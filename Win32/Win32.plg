@@ -1,0 +1,33 @@
+<html>
+<body>
+<pre>
+<h1>Build Log</h1>
+<h3>
+--------------------Configuration: Win32 - Win32 Debug--------------------
+</h3>
+<h3>Command Lines</h3>
+Creating temporary file "G:\TEMP\RSP19.tmp" with contents
+[
+/nologo /MTd /W3 /Gm /GR /GX /ZI /Od /I ".." /I "../../Include" /I "../../stl/inc" /D "WIN32" /D "_DEBUG" /D "_CONSOLE" /D "_MBCS" /Fo"Debug/" /Fd"Debug/" /FD /GZ /c 
+"G:\0work\Nirvana\Src\esiop.cpp"
+]
+Creating command line "cl.exe @G:\TEMP\RSP19.tmp" 
+<h3>Output Window</h3>
+Compiling...
+esiop.cpp
+g:\0work\nirvana\include\corba\exceptions.h(103) : error C2065: 'EC_' : undeclared identifier
+g:\0work\nirvana\include\corba\exceptions.h(103) : error C2143: syntax error : missing ';' before 'string'
+g:\0work\nirvana\include\corba\exceptions.h(103) : error C2143: syntax error : missing ')' before 'string'
+g:\0work\nirvana\include\corba\exceptions.h(103) : error C2059: syntax error : ')'
+g:\0work\nirvana\include\corba\exceptions.h(176) : error C2143: syntax error : missing ';' before '&'
+g:\0work\nirvana\include\corba\exceptions.h(176) : error C2501: 'Any' : missing storage-class or type specifiers
+g:\0work\nirvana\include\corba\exceptions.h(176) : error C2501: 'exception' : missing storage-class or type specifiers
+Error executing cl.exe.
+
+
+
+<h3>Results</h3>
+esiop.obj - 7 error(s), 0 warning(s)
+</pre>
+</body>
+</html>
