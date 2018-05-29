@@ -1,4 +1,4 @@
-// Testing Windows memory management functions
+// Testing Windows API memory management functions
 
 #include <windows.h>
 #include <gtest/gtest.h>
@@ -16,14 +16,14 @@ BOOL handles_equal (HANDLE h0, HANDLE h1)
 	return (*fn_handles_equal) (h0, h1);
 }
 
-class Test :
+class TestAPI :
 	public ::testing::Test
 {
 protected:
-	Test ()
+	TestAPI ()
 	{}
 
-	virtual ~Test ()
+	virtual ~TestAPI ()
 	{}
 
 	// If the constructor and destructor are not enough for setting up
@@ -43,7 +43,7 @@ protected:
 	}
 };
 
-TEST (Test, MappingHandle)
+TEST (TestAPI, MappingHandle)
 {
 	HANDLE mh = CreateFileMapping (0, 0, PAGE_READWRITE | SEC_RESERVE, 0, LINE_SIZE, 0);
 	ASSERT_TRUE (mh);
@@ -55,7 +55,7 @@ TEST (Test, MappingHandle)
 	EXPECT_TRUE (CloseHandle (mh));
 }
 
-TEST (Test, Allocate)
+TEST (TestAPI, Allocate)
 {
 	SYSTEM_INFO si;
 	GetSystemInfo (&si);
@@ -93,7 +93,7 @@ TEST (Test, Allocate)
 	EXPECT_TRUE (CloseHandle (mh));
 }
 
-TEST (Test, Sharing)
+TEST (TestAPI, Sharing)
 {
 	HANDLE mh = CreateFileMapping (0, 0, PAGE_READWRITE | SEC_RESERVE, 0, LINE_SIZE, 0);
 	ASSERT_TRUE (mh);

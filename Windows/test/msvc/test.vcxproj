@@ -22,8 +22,8 @@
     <ClCompile Include="..\..\..\..\googletest\googletest\src\gtest-all.cc" />
     <ClCompile Include="..\..\..\..\googletest\googletest\src\gtest_main.cc" />
     <ClCompile Include="..\..\..\Memory.cpp" />
-    <ClCompile Include="..\..\WinMemory.cpp" />
-    <ClCompile Include="..\test.cpp" />
+    <ClCompile Include="..\..\MemoryWindows.cpp" />
+    <ClCompile Include="..\testAPI.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\config.h" />
@@ -31,7 +31,7 @@
     <ClInclude Include="..\..\..\Include\cpplib.h" />
     <ClInclude Include="..\..\..\Include\Memory.h" />
     <ClInclude Include="..\..\win32.h" />
-    <ClInclude Include="..\..\WinMemory.h" />
+    <ClInclude Include="..\..\MemoryWindows.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\..\..\ORB\Source\msvs\ORB.vcxproj">

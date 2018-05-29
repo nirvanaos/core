@@ -4,12 +4,8 @@
 #ifndef NIRVANA_WIN32_H_
 #define NIRVANA_WIN32_H_
 
-#if _MSC_VER > 1000
-#pragma once
-#endif // _MSC_VER > 1000
-
-#ifndef _M_IX86
-#error Only Intel platform supported for Windows.
+#if !(defined (_M_IX86) || defined (_M_AMD64))
+#error Only x86 and x64 platforms supported for Windows.
 #endif
 
 #include "../core.h"
