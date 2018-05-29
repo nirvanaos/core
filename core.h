@@ -1,13 +1,13 @@
-// Nirvana System ORB core implementation definitions
+// Nirvana core implementation definitions
 
-#ifndef _CORE_H_
-#define _CORE_H_
+#ifndef NIRVANA_CORE_H_
+#define NIRVANA_CORE_H_
 
 #if _MSC_VER > 1000
 #pragma once
 #endif // _MSC_VER > 1000
 
-#include <nirvana.h>
+#include <BasicTypes.h>
 #include <assert.h>
 #include "config.h"
 
@@ -23,10 +23,10 @@
 
 #endif
 
-using namespace Nirvana;
-using namespace CORBA;
-
 namespace Nirvana {
+
+using namespace ::CORBA;
+using namespace ::CORBA::Nirvana;
 
 template <class InIt, class OutIt>
 inline OutIt real_copy (InIt begin, InIt end, OutIt dst)
@@ -121,8 +121,6 @@ inline void real_move (const Octet* begin, const Octet* end, Octet* dst)
     
   }
 }
-
-inline Memory* system_memory ();
 
 }
 
