@@ -11,6 +11,10 @@
 #include "../core.h"
 #include <windows.h>
 
+#ifdef interface
+#undef interface
+#endif
+
 namespace Nirvana {
 
 const UWord PAGE_SIZE = 4096;

@@ -5,7 +5,7 @@
 
 namespace Nirvana {
 
-MemoryWindows::Data MemoryWindows::sm_data;
+ProcessMemory MemoryWindows::sm_directory;
 
 void MemoryWindows::get_line_state (const Line* line, LineState& state)
 {
@@ -17,17 +17,17 @@ void MemoryWindows::get_line_state (const Line* line, LineState& state)
 		MemoryBasicInformation mbi (line);
 
 		if (MEM_FREE == mbi.State) {
-			state.m_allocation_protect = 0;
+			state.allocation_protect = 0;
 			mbi.Type = 0;
 		} else
-			state.m_allocation_protect = mbi.AllocationProtect;
+			state.allocation_protect = mbi.AllocationProtect;
 
 		if (MEM_MAPPED != mbi.Type) {
-			zero ((UWord*)state.m_page_states, (UWord*)(state.m_page_states + PAGES_PER_LINE));
+			zero ((UWord*)state.page_states, (UWord*)(state.page_states + PAGES_PER_LINE));
 			return;
 		}
 
-		Octet* page_state_ptr = state.m_page_states;
+		Octet* page_state_ptr = state.page_states;
 		const Page* page = line->pages;
 		const Line* line_end = line + 1;
 		for (;;) {
@@ -75,9 +75,9 @@ void MemoryWindows::get_line_state (const Line* line, LineState& state)
 		Lock lock (sm_data.critical_section);
 
 		for (
-			const Line* shared_line = logical_line (line).shared_next ();
+			const Line* shared_line = virtual_line (line).shared_next ();
 			shared_line != line;
-			shared_line = logical_line (shared_line).shared_next ()
+			shared_line = virtual_line (shared_line).shared_next ()
 			) {
 
 			const Page* page = shared_line->pages;
@@ -126,11 +126,24 @@ Line* MemoryWindows::reserve (UWord size, UWord flags, Line* dst)
 	// Reserve full lines
 
 	UWord full_lines_size = (size + LINE_SIZE - 1) & ~(LINE_SIZE - 1);
-	Line* begin = (Line*)VirtualAlloc (dst, full_lines_size, MEM_RESERVE, protect);
-	if (!(begin || dst))
-		throw NO_MEMORY ();
+	Line* begin = 0;
+	for (;;) {	// Loop for handle possible raise conditions
+		begin = (Line*)VirtualAlloc (dst, full_lines_size, MEM_RESERVE, protect);
+		if (!(begin || dst))
+			throw NO_MEMORY ();
 
-	assert (!((UWord)begin % LINE_SIZE));
+		if (!begin)
+			break;
+
+		assert (!((UWord)begin % LINE_SIZE));
+
+		// Check for reserved space is not temporary released for mapping
+		if (sm_directory.reserve (begin, full_lines_size))
+			break;
+
+		VirtualFree (begin, full_lines_size, MEM_RELEASE);
+		Sleep (0);
+	}
 
 	return begin;
 }
@@ -895,7 +908,7 @@ void MemoryWindows::commit_line_cost (const Octet* begin, const Octet* end, cons
 	} while (page < line_end);
 }
 
-void MemoryWindows::commit_one_line (Page* begin, Page* end, LineState& line_state, UWord zero_init)
+void MemoryWindows::commit_one_line (Page* begin, Page* end, LineState& line_state, Flags zero_init)
 {
 	assert (line_state.m_allocation_protect); // not free
 
@@ -931,9 +944,9 @@ void MemoryWindows::commit_one_line (Page* begin, Page* end, LineState& line_sta
 			// Disable access at other shared lines
 			UWord offset = (begin - begin_line->pages) * PAGE_SIZE;
 			for (
-				Line* shared_line = logical_line (begin_line).shared_next ();
+				Line* shared_line = virtual_line (begin_line).shared_next ();
 				shared_line != begin_line;
-				shared_line = logical_line (shared_line).shared_next ()
+				shared_line = virtual_line (shared_line).shared_next ()
 				)
 				decommit_surrogate ((Page*)(shared_line->pages->bytes + offset), size);
 
@@ -1015,7 +1028,7 @@ void MemoryWindows::decommit (Page* begin, Page* end)
 HANDLE MemoryWindows::mapping (const void* p)
 {
 	try {
-		return logical_line (p).m_mapping;
+		return virtual_line (p).m_mapping;
 	} catch (...) {
 		return 0;
 	}
@@ -1039,19 +1052,14 @@ bool MemoryWindows::map (Line* line, HANDLE mapping)
 		return param.ret;
 	}
 
-	LogicalLine& ll = logical_line (line);
-	if (!VirtualAlloc (&ll, sizeof (ll), MEM_COMMIT, PAGE_READWRITE))
-		throw NO_MEMORY ();
+	VirtualLine& vl = virtual_line (line);
 
 	bool is_new_mapping;
 	if (is_new_mapping = !mapping) {
-		if (ll.m_mapping)
+		if (vl.mapping)
 			return false;
 		mapping = new_mapping ();
 	}
-
-	// No remapping possible for this object location.
-/*	assert (((void*)(this + 1) <= line) || ((void*)this >= (line + 1))); */
 
 	try {
 
@@ -1064,26 +1072,36 @@ bool MemoryWindows::map (Line* line, HANDLE mapping)
 			if (MEM_RESERVE != mbi.State)
 				throw BAD_PARAM ();
 
-			assert (!ll.m_mapping);
+			assert (INVALID_HANDLE_VALUE == vl.mapping);
 
 			VirtualFree (mbi.AllocationBase, 0, MEM_RELEASE);
 
 			UWord re_reserve = (UWord)line - (UWord)mbi.AllocationBase;
-			if (re_reserve)
-				verify (VirtualAlloc (mbi.AllocationBase, re_reserve, MEM_RESERVE, mbi.AllocationProtect));
+			if (re_reserve) {
+				while (!VirtualAlloc (mbi.AllocationBase, re_reserve, MEM_RESERVE, mbi.AllocationProtect)) {
+					if (ERROR_INVALID_ADDRESS != GetLastError ())
+						throw INTERNAL ();
+					Sleep (0);
+				}
+			}
 
 			re_reserve = (UWord)mbi.BaseAddress + mbi.RegionSize - (UWord)(line + 1);
-			if (re_reserve)
-				verify (VirtualAlloc ((line + 1), re_reserve, MEM_RESERVE, mbi.AllocationProtect));
+			if (re_reserve) {
+				while (!VirtualAlloc ((line + 1), re_reserve, MEM_RESERVE, mbi.AllocationProtect)) {
+					if (ERROR_INVALID_ADDRESS != GetLastError ())
+						throw INTERNAL ();
+					Sleep (0);
+				}
+			}
 
 		} else {
 
 			assert (mbi.AllocationBase == line);
 
-			assert (ll.m_mapping);
+			assert (vl.mapping && INVALID_HANDLE_VALUE != vl.mapping);
 
-			if (mapping != ll.m_mapping)
-				unmap (line, ll);
+			if (mapping != vl.mapping)
+				unmap (line, vl);
 			else if (!UnmapViewOfFile (line))
 				throw BAD_PARAM ();
 		}
@@ -1094,8 +1112,11 @@ bool MemoryWindows::map (Line* line, HANDLE mapping)
 		else
 			map_access = FILE_MAP_READ;
 
-		if (!MapViewOfFileEx (mapping, map_access, 0, 0, LINE_SIZE, line))
-			throw INTERNAL ();
+		while (!MapViewOfFileEx (mapping, map_access, 0, 0, LINE_SIZE, line)) {
+			if (ERROR_INVALID_ADDRESS != GetLastError ())
+				throw INTERNAL ();
+			Sleep (0);
+		}
 
 	} catch (...) {
 		if (is_new_mapping)
@@ -1103,10 +1124,8 @@ bool MemoryWindows::map (Line* line, HANDLE mapping)
 		throw;
 	}
 
-	if (mapping != ll.m_mapping) {  // if mapping has replaced
-		ll.m_mapping = mapping;
-		// link in single list element
-		ll.m_line_next = ll.m_line_prev = (UShort)line_index (line);
+	if (mapping != vl.mapping) {  // if mapping has replaced
+		vl.mapping = mapping;
 		return true;
 	}
 
@@ -1120,12 +1139,11 @@ void MemoryWindows::map_in_fiber (MapParam* param)
 
 void MemoryWindows::map (Line* dst, const Line* src)
 {
-	UWord src_li = line_index (src);
-	LogicalLine& src_ll = logical_line (src_li);
+	VirtualLine& src_ll = virtual_line (src);
 
-	assert (src_ll.m_mapping);
+	assert (src_vl.mapping);
 
-	bool is_new = map (dst, src_ll.m_mapping);
+	bool is_new = map (dst, src_vl.mapping);
 
 	// If source mapping is old then pages can be committed elsewhere.
 	// In this case, memory state can be MEM_COMMIT, not MEM_RESERVE.
@@ -1161,11 +1179,11 @@ void MemoryWindows::map (Line* dst, const Line* src)
 		// Link lines to cycle list.
 
 		UWord dst_li = line_index (dst);
-		LogicalLine& dst_ll = logical_line (dst_li);
+		VirtualLine& dst_ll = virtual_line (dst_li);
 
 		Lock lock (sm_data.critical_section);
 
-		LogicalLine& next_ll = logical_line (dst_ll.m_line_next = src_ll.m_line_next);
+		VirtualLine& next_ll = virtual_line (dst_ll.m_line_next = src_ll.m_line_next);
 		next_ll.m_line_prev = (UShort)dst_li;
 		dst_ll.m_line_prev = (UShort)src_li;
 		src_ll.m_line_next = (UShort)dst_li;
@@ -1189,26 +1207,14 @@ void MemoryWindows::unmap (Line* line)
 	}
 }
 
-void MemoryWindows::unmap (Line* line, LogicalLine& ll)
+void MemoryWindows::unmap (Line* line, VirtualLine& vl)
 {
-	assert (ll.m_mapping);
+	assert (vl.mapping && INVALID_HANDLE_VALUE != vl.mapping);
 
 	if (!UnmapViewOfFile (line))
 		throw BAD_PARAM ();
-
-	Lock lock (sm_data.critical_section);
-
-	if (ll.shared_next () == line)  // line not shared
-		CloseHandle (ll.m_mapping);   // close mapping
-	else {
-
-		// Remove line from list.
-		logical_line (ll.m_line_next).m_line_prev = ll.m_line_prev;
-		logical_line (ll.m_line_prev).m_line_next = ll.m_line_next;
-	}
-
-	ll.m_mapping = 0;
-	ll.m_line_next = ll.m_line_prev = 0;
+	CloseHandle (vl.mapping);   // close mapping
+	vl.mapping = INVALID_HANDLE_VALUE;
 }
 
 HANDLE MemoryWindows::remap_line (Octet* exclude_begin, Octet* exclude_end, LineState& line_state, Word remap_type)
@@ -1412,36 +1418,28 @@ void MemoryWindows::stack_prepare (const ShareStackParam* param_ptr)
 
 void MemoryWindows::call_in_fiber (FiberMethod method, void* param)
 {
-	// Only one thread can use fiber call
-	Lock lock (sm_data.critical_section);
-
-	sm_data.fiber_param.source_fiber = GetCurrentFiber ();
-	sm_data.fiber_param.method = method;
-	sm_data.fiber_param.param = param;
+	FiberParam fp;
+	fp.source_fiber = GetCurrentFiber ();
+	fp.method = method;
+	fp.param = param;
+	void* fiber = CreateFiber (0, (LPFIBER_START_ROUTINE)fiber_proc, &fp);
+	if (!fiber)
+		throw INTERNAL ();
 	SwitchToFiber (sm_data.fiber);
-	if (sm_data.fiber_param.failed)
-		((SystemException*)sm_data.fiber_param.system_exception)->_raise ();
+	DeleteFiber (fiber);
+	fp.environment.check ();
 }
 
 void MemoryWindows::fiber_proc (FiberParam* param)
 {
-	for (;;) {
-
-		try {
-			param->failed = false;
-			(*param->method) (param->param);
-		} catch (const SystemException& ex) {
-			param->failed = true;
-			real_copy ((const UWord*)&ex, (const UWord*)(&ex + 1), param->system_exception);
-		} catch (...) {
-			param->failed = true;
-
-			UNKNOWN ue;
-			real_copy ((const UWord*)&ue, (const UWord*)(&ue + 1), param->system_exception);
-		}
-
-		SwitchToFiber (param->source_fiber);
+	try {
+		(*param->method) (param->param);
+	} catch (const Exception& ex) {
+		param->environment.set_exception (ex);
+	} catch (...) {
+		param->environment.set_unknown_exception ();
 	}
+	SwitchToFiber (param->source_fiber);
 }
 
 MemoryWindows::RemapType MemoryWindows::CostOfOperation::decide_remap () const

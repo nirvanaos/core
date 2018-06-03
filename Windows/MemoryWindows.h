@@ -4,7 +4,7 @@
 #define NIRVANA_MEMORYWINDOWS_H_
 
 #include <Memory.h>
-#include "Win32.h"
+#include "ProcessMemory.h"
 
 namespace Nirvana {
 
@@ -17,12 +17,12 @@ public:
 
 	static void initialize ()
 	{
-		sm_data.initialize ();
+		sm_directory.initialize ();
 	}
 
 	static void terminate ()
 	{
-		sm_data.terminate ();
+		sm_directory.terminate ();
 	}
 
 	// Memory::
@@ -205,17 +205,7 @@ private:
 	};
 
 	// Line
-
-	struct LogicalLine
-	{
-		Line* shared_next () const
-		{
-			return line_address (m_line_next);
-		}
-
-		HANDLE m_mapping;
-		UShort m_line_prev, m_line_next;
-	};
+	typedef ProcessMemory::VirtualLine VirtualLine;
 
 	// Win32 protection types for shared and private memory
 
@@ -259,8 +249,8 @@ private:
 
 	struct LineState
 	{
-		UWord m_allocation_protect;
-		Octet m_page_states [PAGES_PER_LINE];
+		DWORD allocation_protect;
+		BYTE page_states [PAGES_PER_LINE];
 	};
 
 	static void get_line_state (const Line* line, LineState& state);
@@ -317,11 +307,11 @@ private:
 	// Unmap and release logical line
 	static void unmap_and_release (Line* line)
 	{
-		unmap (line, logical_line (line));
+		unmap (line, virtual_line (line));
 	}
 
 	// Assistant function
-	static void unmap (Line* line, LogicalLine& ll);
+	static void unmap (Line* line, VirtualLine& vl);
 	// Logical line must be mapped.
 
 	// Get current mapping
@@ -352,7 +342,7 @@ private:
 	// Это - режим для подсчета стоимости физического копирования.
 	// Для подсчета стоимости фиксации copy = false.
 
-	static void commit_one_line (Page* begin, Page* end, LineState& line_state, UWord zero_init);
+	static void commit_one_line (Page* begin, Page* end, LineState& line_state, Flags zero_init);
 	// Changes protection of pages in range [begin, end) to read-write
 
 	static void decommit (Page* begin, Page* end);
@@ -389,16 +379,11 @@ private:
 		return (Line*)(line_index * LINE_SIZE);
 	}
 
-	// Get logical line for memory address
+	// Get virtual line information for memory address
 
-	static LogicalLine& logical_line (const void* p)
+	static VirtualLine& virtual_line (const void* p)
 	{
-		return sm_data.map [line_index (p)];
-	}
-
-	static LogicalLine& logical_line (UWord line_index)
-	{
-		return sm_data.map [line_index];
+		return sm_directory.line (p);
 	}
 
 	// Thread stack processing
@@ -426,92 +411,13 @@ private:
 		void* source_fiber;
 		FiberMethod method;
 		void* param;
-		bool  failed;
-		UWord system_exception [sizeof (SystemException) / sizeof (UWord)];
+		Environment environment;
 	};
 
 	static void CALLBACK fiber_proc (FiberParam* param);
 
 private:
-
-	class Lock
-	{
-	public:
-
-		Lock (CRITICAL_SECTION& cs)
-			: m_cs (cs)
-		{
-			EnterCriticalSection (&m_cs);
-		}
-
-		~Lock ()
-		{
-			LeaveCriticalSection (&m_cs);
-		}
-
-	private:
-		CRITICAL_SECTION & m_cs;
-	};
-
-	static struct Data
-	{
-		Pointer address_space_end;
-
-		// Logical lines map
-		LogicalLine* map;
-
-		// Critical section to lock Logical lines map
-		/*
-			Блокировка используется только при работе со списком m_line_prev, m_line_next;
-			При нормальной работе, каждая линия всегда используется только одним
-			доменом исполнения и ее состояние не может быть изменено асинхронно.
-			Асинхронно могут меняться только связи в списке линий m_line_prev, m_line_next.
-			Также асинхронно может измениться бит PAGE_VIRTUAL_PRIVATE в состояниях страниц
-			текущей строки. Это можеть привести к неправильной оценке стоимости операции и
-			к неоптимальному ее выполнению, но не нарушит работу системы. С целью сокращения
-			количества и времени блокировок, будем считать это допустимым.
-		*/
-		CRITICAL_SECTION critical_section;
-
-		// Stack processing fiber
-		FiberParam fiber_param;
-		void* fiber;
-
-		void initialize ()
-		{
-			// Obtain system parameters
-			SYSTEM_INFO sysinfo;
-			GetSystemInfo (&sysinfo);
-
-			// Check architecture
-			if ((PAGE_SIZE != sysinfo.dwPageSize) || (LINE_SIZE != sysinfo.dwAllocationGranularity))
-				throw INITIALIZE ();
-
-			address_space_end = sysinfo.lpMaximumApplicationAddress;
-
-			UWord max_lines = (UWord)sysinfo.lpMaximumApplicationAddress / LINE_SIZE;
-
-			// Reserve mapping table
-			if (!(map = (LogicalLine*)VirtualAlloc (0, sizeof (LogicalLine) * max_lines, MEM_RESERVE, PAGE_NOACCESS)))
-				throw INITIALIZE ();
-
-			InitializeCriticalSection (&critical_section);
-			fiber = CreateFiber (0, (LPFIBER_START_ROUTINE)fiber_proc, &fiber_param);
-		}
-
-		void terminate ()
-		{
-			if (map) {
-				VirtualFree (map, (UWord)address_space_end / LINE_SIZE * sizeof (LogicalLine), MEM_RELEASE);
-				map = 0;
-			}
-			if (fiber) {
-				DeleteFiber (fiber);
-				fiber = 0;
-			}
-			DeleteCriticalSection (&critical_section);
-		}
-	} sm_data;
+	static ProcessMemory sm_directory;
 };
 
 inline Pointer MemoryWindows::allocate (Pointer dst, UWord size, Flags flags)
@@ -525,11 +431,10 @@ inline Pointer MemoryWindows::allocate (Pointer dst, UWord size, Flags flags)
 	// Allocation unit is one line (64K)
 	Line* begin = Line::begin (dst);
 	UWord offset = (Octet*)dst - begin->pages->bytes;
-	if (offset)
-		if (!(flags & Memory::EXACTLY)) {
-			begin = 0;
-			offset = 0;
-		}
+	if (offset && !(flags & Memory::EXACTLY)) {
+		begin = 0;
+		offset = 0;
+	}
 
 	if (begin) {
 

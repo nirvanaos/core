@@ -9,6 +9,23 @@
 
 namespace Nirvana {
 
+// Integral rounding
+
+template <size_t N2, typename I>
+inline I round_down (I i)
+{
+	return (I)((size_t)i / N2 * N2);
+}
+
+template <size_t N2, typename I>
+inline I round_up (I i)
+{
+	return (I)(((size_t)i + N2 - 1) / N2 * N2);
+}
+
+#define ROUND_DOWN(i, n2) round_down<n2> (i)
+#define ROUND_UP(i, n2) round_up<n2> (i)
+
 // Useful templates to zero memory
 
 template <class It>
