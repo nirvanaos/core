@@ -4,7 +4,7 @@
 #include <gtest/gtest.h>
 
 #define PAGE_SIZE 4096
-#define LINE_SIZE (16 * PAGE_SIZE)
+#define ALLOCATION_GRANULARITY (16 * PAGE_SIZE)
 
 namespace unittests {
 
@@ -45,7 +45,7 @@ protected:
 
 TEST_F (TestAPI, MappingHandle)
 {
-	HANDLE mh = CreateFileMapping (0, 0, PAGE_READWRITE | SEC_RESERVE, 0, LINE_SIZE, 0);
+	HANDLE mh = CreateFileMapping (0, 0, PAGE_READWRITE | SEC_RESERVE, 0, ALLOCATION_GRANULARITY, 0);
 	ASSERT_TRUE (mh);
 	HANDLE mh1;
 	HANDLE process = GetCurrentProcess ();
@@ -59,18 +59,18 @@ TEST_F (TestAPI, Allocate)
 {
 	SYSTEM_INFO si;
 	GetSystemInfo (&si);
-	EXPECT_EQ (si.dwAllocationGranularity, LINE_SIZE);
-	EXPECT_EQ (((size_t)si.lpMaximumApplicationAddress + 1) % LINE_SIZE, 0);
+	EXPECT_EQ (si.dwAllocationGranularity, ALLOCATION_GRANULARITY);
+	EXPECT_EQ (((size_t)si.lpMaximumApplicationAddress + 1) % ALLOCATION_GRANULARITY, 0);
 
-	HANDLE mh = CreateFileMapping (0, 0, PAGE_READWRITE | SEC_RESERVE, 0, LINE_SIZE, 0);
+	HANDLE mh = CreateFileMapping (0, 0, PAGE_READWRITE | SEC_RESERVE, 0, ALLOCATION_GRANULARITY, 0);
 	ASSERT_TRUE (mh);
-	char* p = (char*)MapViewOfFile (mh, FILE_MAP_ALL_ACCESS, 0, 0, LINE_SIZE);
+	char* p = (char*)MapViewOfFile (mh, FILE_MAP_ALL_ACCESS, 0, 0, ALLOCATION_GRANULARITY);
 	ASSERT_TRUE (p);
 
 	// Commit 2 pages.
 	EXPECT_TRUE (VirtualAlloc (p, PAGE_SIZE * 2, MEM_COMMIT, PAGE_READWRITE));
 
-	EXPECT_FALSE (VirtualAlloc (p, LINE_SIZE, MEM_RESERVE, PAGE_READWRITE));
+	EXPECT_FALSE (VirtualAlloc (p, ALLOCATION_GRANULARITY, MEM_RESERVE, PAGE_READWRITE));
 
 	DWORD err = GetLastError ();
 	EXPECT_EQ (err, ERROR_INVALID_ADDRESS);
@@ -84,9 +84,6 @@ TEST_F (TestAPI, Allocate)
 	DWORD old;
 	EXPECT_TRUE (VirtualProtect (p, PAGE_SIZE, PAGE_NOACCESS, &old));
 	EXPECT_TRUE (VirtualAlloc (p, PAGE_SIZE, MEM_RESET, PAGE_NOACCESS));
-	/*
-	OfferVirtualMemory (p, PAGE_SIZE, VmOfferPriorityVeryLow);
-	*/
 
 	char x;
 	EXPECT_ANY_THROW (x = p [0]);
@@ -101,9 +98,9 @@ TEST_F (TestAPI, Allocate)
 
 TEST_F (TestAPI, Sharing)
 {
-	HANDLE mh = CreateFileMapping (0, 0, PAGE_READWRITE | SEC_RESERVE, 0, LINE_SIZE, 0);
+	HANDLE mh = CreateFileMapping (0, 0, PAGE_READWRITE | SEC_RESERVE, 0, ALLOCATION_GRANULARITY, 0);
 	ASSERT_TRUE (mh);
-	char* p = (char*)MapViewOfFile (mh, FILE_MAP_ALL_ACCESS, 0, 0, LINE_SIZE);
+	char* p = (char*)MapViewOfFile (mh, FILE_MAP_ALL_ACCESS, 0, 0, ALLOCATION_GRANULARITY);
 	ASSERT_TRUE (p);
 	EXPECT_TRUE (VirtualAlloc (p, PAGE_SIZE, MEM_COMMIT, PAGE_READWRITE));
 	strcpy (p, "test");
@@ -119,7 +116,7 @@ TEST_F (TestAPI, Sharing)
 		HANDLE mh1;
 		ASSERT_TRUE (DuplicateHandle (process, mh, process, &mh1, 0, FALSE, DUPLICATE_SAME_ACCESS));
 		handles [i] = mh1;
-		char* p = (char*)MapViewOfFile (mh1, FILE_MAP_ALL_ACCESS, 0, 0, LINE_SIZE);
+		char* p = (char*)MapViewOfFile (mh1, FILE_MAP_ALL_ACCESS, 0, 0, ALLOCATION_GRANULARITY);
 		EXPECT_TRUE (p);
 		copies [i] = p;
 		if (p) {
@@ -144,7 +141,7 @@ TEST_F (TestAPI, Sharing)
 		HANDLE mh1;
 		ASSERT_TRUE (DuplicateHandle (process, mh, process, &mh1, 0, FALSE, DUPLICATE_SAME_ACCESS));
 		handles [i] = mh1;
-		char* p = (char*)MapViewOfFile (mh1, FILE_MAP_ALL_ACCESS, 0, 0, LINE_SIZE);
+		char* p = (char*)MapViewOfFile (mh1, FILE_MAP_ALL_ACCESS, 0, 0, ALLOCATION_GRANULARITY);
 		EXPECT_TRUE (p);
 		copies [i] = p;
 		if (p) {
@@ -202,7 +199,7 @@ TEST_F (TestAPI, SparseMapping)
 	{
 		SYSTEM_INFO si;
 		GetSystemInfo (&si);
-		size_t size = ((size_t)si.lpMaximumApplicationAddress + LINE_SIZE) / LINE_SIZE * sizeof (HANDLE);
+		size_t size = ((size_t)si.lpMaximumApplicationAddress + ALLOCATION_GRANULARITY) / ALLOCATION_GRANULARITY * sizeof (HANDLE);
 
 		FILE_ZERO_DATA_INFORMATION zdi;
 		zdi.FileOffset.QuadPart = 0;
@@ -227,8 +224,8 @@ TEST_F (TestAPI, SparseMapping)
 	EXPECT_TRUE (smapping);
 	HANDLE* stable = (HANDLE*)MapViewOfFile (smapping, FILE_MAP_ALL_ACCESS, 0, 0, 0);
 
-	table [LINE_SIZE / sizeof (HANDLE)] = INVALID_HANDLE_VALUE;
-	EXPECT_EQ (stable [LINE_SIZE / sizeof (HANDLE)], INVALID_HANDLE_VALUE);
+	table [ALLOCATION_GRANULARITY / sizeof (HANDLE)] = INVALID_HANDLE_VALUE;
+	EXPECT_EQ (stable [ALLOCATION_GRANULARITY / sizeof (HANDLE)], INVALID_HANDLE_VALUE);
 
 	EXPECT_TRUE (UnmapViewOfFile (stable));
 	EXPECT_TRUE (CloseHandle (smapping));
@@ -245,7 +242,7 @@ TEST_F (TestAPI, SharedMapping)
 	SYSTEM_INFO si;
 	GetSystemInfo (&si);
 	LARGE_INTEGER size;
-	size.QuadPart = ((size_t)si.lpMaximumApplicationAddress + LINE_SIZE) / LINE_SIZE * sizeof (HANDLE);
+	size.QuadPart = ((size_t)si.lpMaximumApplicationAddress + ALLOCATION_GRANULARITY) / ALLOCATION_GRANULARITY * sizeof (HANDLE);
 
 	HANDLE mapping = CreateFileMappingW (INVALID_HANDLE_VALUE, 0, PAGE_READWRITE | SEC_RESERVE, size.HighPart, size.LowPart, L"NirvanaMapping");
 	ASSERT_TRUE (mapping);
@@ -258,11 +255,11 @@ TEST_F (TestAPI, SharedMapping)
 	HANDLE* stable = (HANDLE*)MapViewOfFile (smapping, FILE_MAP_ALL_ACCESS, 0, 0, (SIZE_T)size.QuadPart);
 	EXPECT_TRUE (stable);
 
-	EXPECT_TRUE (VirtualAlloc (table + LINE_SIZE / sizeof (HANDLE), PAGE_SIZE, MEM_COMMIT, PAGE_READWRITE));
-	table [LINE_SIZE / sizeof (HANDLE)] = INVALID_HANDLE_VALUE;
+	EXPECT_TRUE (VirtualAlloc (table + ALLOCATION_GRANULARITY / sizeof (HANDLE), PAGE_SIZE, MEM_COMMIT, PAGE_READWRITE));
+	table [ALLOCATION_GRANULARITY / sizeof (HANDLE)] = INVALID_HANDLE_VALUE;
 
-	EXPECT_TRUE (VirtualAlloc (stable + LINE_SIZE / sizeof (HANDLE), PAGE_SIZE, MEM_COMMIT, PAGE_READWRITE));
-	EXPECT_EQ (stable [LINE_SIZE / sizeof (HANDLE)], INVALID_HANDLE_VALUE);
+	EXPECT_TRUE (VirtualAlloc (stable + ALLOCATION_GRANULARITY / sizeof (HANDLE), PAGE_SIZE, MEM_COMMIT, PAGE_READWRITE));
+	EXPECT_EQ (stable [ALLOCATION_GRANULARITY / sizeof (HANDLE)], INVALID_HANDLE_VALUE);
 
 	EXPECT_TRUE (UnmapViewOfFile (stable));
 	EXPECT_TRUE (CloseHandle (smapping));
@@ -277,27 +274,27 @@ TEST_F (TestAPI, SharedMapping2)
 	SYSTEM_INFO si;
 	GetSystemInfo (&si);
 	LARGE_INTEGER size;
-	size.QuadPart = ((size_t)si.lpMaximumApplicationAddress + LINE_SIZE) / LINE_SIZE * sizeof (HANDLE);
+	size.QuadPart = ((size_t)si.lpMaximumApplicationAddress + ALLOCATION_GRANULARITY) / ALLOCATION_GRANULARITY * sizeof (HANDLE);
 
 	HANDLE mapping = CreateFileMappingW (INVALID_HANDLE_VALUE, 0, PAGE_READWRITE | SEC_RESERVE, size.HighPart, size.LowPart, L"NirvanaMapping");
 	ASSERT_TRUE (mapping);
 
-	static const size_t SECOND_LEVEL_SIZE = LINE_SIZE / sizeof (HANDLE);
+	static const size_t SECOND_LEVEL_SIZE = ALLOCATION_GRANULARITY / sizeof (HANDLE);
 
-	size_t root_size = ((size_t)size.QuadPart + LINE_SIZE - 1) / LINE_SIZE;
+	size_t root_size = ((size_t)size.QuadPart + ALLOCATION_GRANULARITY - 1) / ALLOCATION_GRANULARITY;
 
 	HANDLE** root_dir = (HANDLE**)VirtualAlloc (0, root_size, MEM_RESERVE, PAGE_READWRITE);
 	ASSERT_TRUE (root_dir);
 
-	size_t idx = LINE_SIZE / sizeof (HANDLE);
+	size_t idx = ALLOCATION_GRANULARITY / sizeof (HANDLE);
 	size_t i1 = idx / SECOND_LEVEL_SIZE;
 	size_t i2 = idx % SECOND_LEVEL_SIZE;
 
 	ASSERT_TRUE (VirtualAlloc (root_dir + i1, sizeof (HANDLE**), MEM_COMMIT, PAGE_READWRITE));
 
 	LARGE_INTEGER offset;
-	offset.QuadPart = LINE_SIZE * i1;
-	EXPECT_TRUE (root_dir [i1] = (HANDLE*)MapViewOfFile (mapping, FILE_MAP_ALL_ACCESS, offset.HighPart, offset.LowPart, LINE_SIZE));
+	offset.QuadPart = ALLOCATION_GRANULARITY * i1;
+	EXPECT_TRUE (root_dir [i1] = (HANDLE*)MapViewOfFile (mapping, FILE_MAP_ALL_ACCESS, offset.HighPart, offset.LowPart, ALLOCATION_GRANULARITY));
 	ASSERT_TRUE (VirtualAlloc (root_dir[i1] + i2, sizeof (HANDLE), MEM_COMMIT, PAGE_READWRITE));
 
 	HANDLE smapping = OpenFileMappingW (FILE_MAP_ALL_ACCESS, FALSE, L"NirvanaMapping");
@@ -308,7 +305,7 @@ TEST_F (TestAPI, SharedMapping2)
 
 	ASSERT_TRUE (VirtualAlloc (sroot_dir + i1, sizeof (HANDLE**), MEM_COMMIT, PAGE_READWRITE));
 
-	EXPECT_TRUE (sroot_dir [i1] = (HANDLE*)MapViewOfFile (smapping, FILE_MAP_ALL_ACCESS, offset.HighPart, offset.LowPart, LINE_SIZE));
+	EXPECT_TRUE (sroot_dir [i1] = (HANDLE*)MapViewOfFile (smapping, FILE_MAP_ALL_ACCESS, offset.HighPart, offset.LowPart, ALLOCATION_GRANULARITY));
 	ASSERT_TRUE (VirtualAlloc (sroot_dir [i1] + i2, sizeof (HANDLE), MEM_COMMIT, PAGE_READWRITE));
 
 	root_dir [i1][i2] = INVALID_HANDLE_VALUE;

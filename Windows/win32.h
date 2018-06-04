@@ -48,31 +48,31 @@ struct Page
 	}
 };
 
-const UWord PAGES_PER_LINE = 16; // Windows allocate memory by 64K blocks
-const UWord LINE_SIZE = PAGE_SIZE * PAGES_PER_LINE;
+const UWord PAGES_PER_BLOCK = 16; // Windows allocate memory by 64K blocks
+const UWord ALLOCATION_GRANULARITY = PAGE_SIZE * PAGES_PER_BLOCK;
 
-struct Line
+struct Block
 {
-	Page pages [PAGES_PER_LINE];
+	Page pages [PAGES_PER_BLOCK];
 
-	static Line* begin (void* p)
+	static Block* begin (void* p)
 	{
-		return (Line*)((UWord)p & ~(LINE_SIZE - 1));
+		return (Block*)((UWord)p & ~(ALLOCATION_GRANULARITY - 1));
 	}
 
-	static const Line* begin (const void* p)
+	static const Block* begin (const void* p)
 	{
-		return (const Line*)((UWord)p & ~(LINE_SIZE - 1));
+		return (const Block*)((UWord)p & ~(ALLOCATION_GRANULARITY - 1));
 	}
 
-	static Line* end (void* p)
+	static Block* end (void* p)
 	{
-		return (Line*)(((UWord)p + LINE_SIZE - 1) & ~(LINE_SIZE - 1));
+		return (Block*)(((UWord)p + ALLOCATION_GRANULARITY - 1) & ~(ALLOCATION_GRANULARITY - 1));
 	}
 
-	static const Line* end (const void* p)
+	static const Block* end (const void* p)
 	{
-		return (const Line*)(((UWord)p + LINE_SIZE - 1) & ~(LINE_SIZE - 1));
+		return (const Block*)(((UWord)p + ALLOCATION_GRANULARITY - 1) & ~(ALLOCATION_GRANULARITY - 1));
 	}
 };
 

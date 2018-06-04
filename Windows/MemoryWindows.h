@@ -139,9 +139,9 @@ private:
 			return (Page*)((UWord)BaseAddress + RegionSize);
 		}
 
-		Line* allocation_base () const
+		Block* allocation_base () const
 		{
-			return (Line*)AllocationBase;
+			return (Block*)AllocationBase;
 		}
 
 		bool write_copied () const
@@ -204,8 +204,8 @@ private:
 		Region* m_end;
 	};
 
-	// Line
-	typedef ProcessMemory::VirtualLine VirtualLine;
+	// Block
+	typedef ProcessMemory::VirtualBlock VirtualBlock;
 
 	// Win32 protection types for shared and private memory
 
@@ -245,30 +245,30 @@ private:
 		PAGE_MAPPED_PRIVATE = PAGE_MAPPED_SHARED | PAGE_VIRTUAL_PRIVATE
 	};
 
-	// Line state information
+	// Block state information
 
 	struct LineState
 	{
 		DWORD allocation_protect;
-		BYTE page_states [PAGES_PER_LINE];
+		BYTE page_states [PAGES_PER_BLOCK];
 	};
 
-	static void get_line_state (const Line* line, LineState& state);
+	static void get_line_state (const Block* line, LineState& state);
 
 	// Logical space reservation
 
-	static Line* reserve (UWord size, UWord flags, Line* begin = 0);
+	static Block* reserve (UWord size, UWord flags, Block* begin = 0);
 
 	// Release memory
 
-	static void release (Line* begin, Line* end);
+	static void release (Block* begin, Block* end);
 
 	static UWord check_allocated (Page* begin, Page* end);
 	// Returns bitwise or of allocation protect for all lines.
 
 	// Map logical line to virtual
 
-	static bool map (Line* line, HANDLE mapping = 0);
+	static bool map (Block* line, HANDLE mapping = 0);
 	// line must be allocated.
 	// If mapping = 0
 	//   if line is mapped,
@@ -286,32 +286,32 @@ private:
 	// Fiber stub for map function
 	struct MapParam
 	{
-		Line* line;
+		Block* line;
 		HANDLE mapping;
 		bool ret;
 	};
 
 	static void map_in_fiber (MapParam* param);
 
-	static void map (Line* dst, const Line* src);
+	static void map (Block* dst, const Block* src);
 	// Map source line to destination.
 	// Source line must be mapped.
 	// Destination page states are not committed.
 
 	// Unmap logical line
 
-	static void unmap (Line* line);
+	static void unmap (Block* line);
 	// If line not mapped, do nothing.
 	// Else, line will be decommitted.
 
 	// Unmap and release logical line
-	static void unmap_and_release (Line* line)
+	static void unmap_and_release (Block* line)
 	{
 		unmap (line, virtual_line (line));
 	}
 
 	// Assistant function
-	static void unmap (Line* line, VirtualLine& vl);
+	static void unmap (Block* line, VirtualBlock& vl);
 	// Logical line must be mapped.
 
 	// Get current mapping
@@ -325,7 +325,7 @@ private:
 	// Remap line
 
 	static HANDLE remap_line (Octet* exclude_begin, Octet* exclude_end, LineState& line_state, Word remap_type);
-	// Remaps Line::begin (exclude_begin).
+	// Remaps Block::begin (exclude_begin).
 	// Allocated data will be preserved excluding region [exclude_begin, exclude_end).
 	// Page state in range [exclude_begin, exclude_end) will be undefined.
 
@@ -371,17 +371,17 @@ private:
 
 	static UWord line_index (const void* p)
 	{
-		return (UWord)p / LINE_SIZE;
+		return (UWord)p / ALLOCATION_GRANULARITY;
 	}
 
-	static Line* line_address (UWord line_index)
+	static Block* line_address (UWord line_index)
 	{
-		return (Line*)(line_index * LINE_SIZE);
+		return (Block*)(line_index * ALLOCATION_GRANULARITY);
 	}
 
 	// Get virtual line information for memory address
 
-	static VirtualLine& virtual_line (const void* p)
+	static VirtualBlock& virtual_line (const void* p)
 	{
 		return sm_directory.line (p);
 	}
@@ -429,7 +429,7 @@ inline Pointer MemoryWindows::allocate (Pointer dst, UWord size, Flags flags)
 		throw INV_FLAG ();
 
 	// Allocation unit is one line (64K)
-	Line* begin = Line::begin (dst);
+	Block* begin = Block::begin (dst);
 	UWord offset = (Octet*)dst - begin->pages->bytes;
 	if (offset && !(flags & Memory::EXACTLY)) {
 		begin = 0;
@@ -463,7 +463,7 @@ inline Pointer MemoryWindows::allocate (Pointer dst, UWord size, Flags flags)
 		try {
 			commit (Page::begin (dst), Page::end (end), flags & Memory::ZERO_INIT);
 		} catch (...) {
-			release (begin, Line::end (end));
+			release (begin, Block::end (end));
 			throw;
 		}
 	}
@@ -511,15 +511,15 @@ inline Pointer MemoryWindows::copy (Pointer dst, Pointer src, UWord size, Flags 
 		// To use sharing, source and destination must have same offset from line begin
 		// TODO: Not in all cases it will be optimal (small pieces across page boundaries). 
 
-		UWord line_offset = (UWord)src & (LINE_SIZE - 1);
+		UWord line_offset = (UWord)src & (ALLOCATION_GRANULARITY - 1);
 
 		if (dst) {  // Allocation address explicitly specified
 
-			if (((UWord)dst & (LINE_SIZE - 1)) == line_offset) {
+			if (((UWord)dst & (ALLOCATION_GRANULARITY - 1)) == line_offset) {
 
 				UWord page_offset = line_offset & (PAGE_SIZE - 1);
 
-				if (!reserve (size + page_offset, flags, Line::begin (dst))) {
+				if (!reserve (size + page_offset, flags, Block::begin (dst))) {
 
 					if (flags & Memory::EXACTLY)
 						return 0;
@@ -537,7 +537,7 @@ inline Pointer MemoryWindows::copy (Pointer dst, Pointer src, UWord size, Flags 
 				throw BAD_PARAM ();
 
 			// Allocate block with same alignment as source
-			Line* dst_begin_line = reserve (size + line_offset, flags);
+			Block* dst_begin_line = reserve (size + line_offset, flags);
 			dst = dst_begin_line->pages->bytes + line_offset;
 		}
 
@@ -573,7 +573,7 @@ inline Pointer MemoryWindows::copy (Pointer dst, Pointer src, UWord size, Flags 
 			void* dst_begin = dst;
 			do {
 
-				Octet* dst_line_end = Line::end (dst_begin)->pages->bytes;
+				Octet* dst_line_end = Block::end (dst_begin)->pages->bytes;
 				if (dst_line_end > dst_end)
 					dst_line_end = dst_end;
 
@@ -589,7 +589,7 @@ inline Pointer MemoryWindows::copy (Pointer dst, Pointer src, UWord size, Flags 
 
 			do {
 
-				Octet* dst_line_begin = Line::begin (dst_end - 1)->pages->bytes;
+				Octet* dst_line_begin = Block::begin (dst_end - 1)->pages->bytes;
 
 				if (dst_line_begin < (Octet*)dst)
 					dst_line_begin = (Octet*)dst;
@@ -607,7 +607,7 @@ inline Pointer MemoryWindows::copy (Pointer dst, Pointer src, UWord size, Flags 
 	} catch (...) {
 
 		if (flags & Memory::ALLOCATE)
-			release (Line::begin (dst), Line::end ((Octet*)dst + size));
+			release (Block::begin (dst), Block::end ((Octet*)dst + size));
 
 		throw;
 	}
@@ -616,15 +616,15 @@ inline Pointer MemoryWindows::copy (Pointer dst, Pointer src, UWord size, Flags 
 
 		// Release memory. DECOMMIT implemented inside copy_one_line.
 
-		Line* release_begin = Line::begin (src);
-		Line* release_end = Line::end ((Octet*)src + size);
+		Block* release_begin = Block::begin (src);
+		Block* release_end = Block::end ((Octet*)src + size);
 
 		if (dst < src) {
-			Line* dst_end = Line::end ((Octet*)dst + size);
+			Block* dst_end = Block::end ((Octet*)dst + size);
 			if (release_begin < dst_end)
 				release_begin = dst_end;
 		} else {
-			Line* dst_begin = Line::begin (dst);
+			Block* dst_begin = Block::begin (dst);
 			if (release_end > dst_begin)
 				release_end = dst_begin;
 		}
@@ -644,8 +644,8 @@ inline void MemoryWindows::release (Pointer src, UWord size)
 	if (!size)
 		return;
 
-	Line* begin = Line::begin (src);
-	Line* end = Line::end ((Octet*)src + size);
+	Block* begin = Block::begin (src);
+	Block* end = Block::end ((Octet*)src + size);
 	check_allocated (begin->pages, end->pages);
 
 	release (begin, end);
@@ -713,7 +713,7 @@ inline Word MemoryWindows::query (Pointer p, Memory::QueryParam q)
 	case Memory::ALLOCATION_UNIT:
 	case Memory::SHARING_UNIT:
 	case Memory::GRANULARITY:
-		return LINE_SIZE;
+		return ALLOCATION_GRANULARITY;
 
 	case Memory::PROTECTION_UNIT:
 		return PAGE_SIZE;

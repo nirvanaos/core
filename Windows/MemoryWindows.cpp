@@ -7,9 +7,9 @@ namespace Nirvana {
 
 ProcessMemory MemoryWindows::sm_directory;
 
-void MemoryWindows::get_line_state (const Line* line, LineState& state)
+void MemoryWindows::get_line_state (const Block* line, LineState& state)
 {
-	assert (!((UWord)line % LINE_SIZE));
+	assert (!((UWord)line % ALLOCATION_GRANULARITY));
 
 	bool check_sharing = false;
 
@@ -23,13 +23,13 @@ void MemoryWindows::get_line_state (const Line* line, LineState& state)
 			state.allocation_protect = mbi.AllocationProtect;
 
 		if (MEM_MAPPED != mbi.Type) {
-			zero ((UWord*)state.page_states, (UWord*)(state.page_states + PAGES_PER_LINE));
+			zero ((UWord*)state.page_states, (UWord*)(state.page_states + PAGES_PER_BLOCK));
 			return;
 		}
 
 		Octet* page_state_ptr = state.page_states;
 		const Page* page = line->pages;
-		const Line* line_end = line + 1;
+		const Block* line_end = line + 1;
 		for (;;) {
 
 			assert (MEM_FREE != mbi.State);
@@ -75,14 +75,14 @@ void MemoryWindows::get_line_state (const Line* line, LineState& state)
 		Lock lock (sm_data.critical_section);
 
 		for (
-			const Line* shared_line = virtual_line (line).shared_next ();
+			const Block* shared_line = virtual_line (line).shared_next ();
 			shared_line != line;
 			shared_line = virtual_line (shared_line).shared_next ()
 			) {
 
 			const Page* page = shared_line->pages;
 			Octet* page_state_ptr = state.m_page_states;
-			Octet* page_state_end = state.m_page_states + PAGES_PER_LINE;
+			Octet* page_state_end = state.m_page_states + PAGES_PER_BLOCK;
 			check_sharing = false;
 
 			do {
@@ -112,10 +112,10 @@ void MemoryWindows::get_line_state (const Line* line, LineState& state)
 	}
 }
 
-Line* MemoryWindows::reserve (UWord size, UWord flags, Line* dst)
+Block* MemoryWindows::reserve (UWord size, UWord flags, Block* dst)
 {
 	assert (size);
-	assert (!((UWord)dst % LINE_SIZE));
+	assert (!((UWord)dst % ALLOCATION_GRANULARITY));
 
 	UWord protect;
 	if (flags & Memory::READ_ONLY)
@@ -125,17 +125,17 @@ Line* MemoryWindows::reserve (UWord size, UWord flags, Line* dst)
 
 	// Reserve full lines
 
-	UWord full_lines_size = (size + LINE_SIZE - 1) & ~(LINE_SIZE - 1);
-	Line* begin = 0;
+	UWord full_lines_size = (size + ALLOCATION_GRANULARITY - 1) & ~(ALLOCATION_GRANULARITY - 1);
+	Block* begin = 0;
 	for (;;) {	// Loop for handle possible raise conditions
-		begin = (Line*)VirtualAlloc (dst, full_lines_size, MEM_RESERVE, protect);
+		begin = (Block*)VirtualAlloc (dst, full_lines_size, MEM_RESERVE, protect);
 		if (!(begin || dst))
 			throw NO_MEMORY ();
 
 		if (!begin)
 			break;
 
-		assert (!((UWord)begin % LINE_SIZE));
+		assert (!((UWord)begin % ALLOCATION_GRANULARITY));
 
 		// Check for reserved space is not temporary released for mapping
 		if (sm_directory.reserve (begin, full_lines_size))
@@ -159,8 +159,8 @@ UWord MemoryWindows::check_allocated (Page* begin, Page* end)
 	// Start address must be valid
 	check_pointer (begin);
 
-	Line* line = Line::begin (begin);
-	Line* end_line = Line::end (end);
+	Block* line = Block::begin (begin);
+	Block* end_line = Block::end (end);
 
 	UWord allocation_protect = 0;
 
@@ -185,10 +185,10 @@ UWord MemoryWindows::check_allocated (Page* begin, Page* end)
 			if (MEM_RESERVE != mbi.State)
 				throw BAD_PARAM (); // This pages not from memory service
 
-			if (mbi.RegionSize % LINE_SIZE)
+			if (mbi.RegionSize % ALLOCATION_GRANULARITY)
 				throw BAD_PARAM (); // This pages not from memory service
 
-			line = (Line*)mbi.end ();
+			line = (Block*)mbi.end ();
 			break;
 
 		case MEM_MAPPED:
@@ -207,10 +207,10 @@ UWord MemoryWindows::check_allocated (Page* begin, Page* end)
 	return allocation_protect;
 }
 
-void MemoryWindows::release (Line* begin, Line* end)
+void MemoryWindows::release (Block* begin, Block* end)
 {
 	// Release full lines
-	for (Line* line = begin; line < end;) {
+	for (Block* line = begin; line < end;) {
 
 		MemoryBasicInformation mbi (line);
 
@@ -227,7 +227,7 @@ void MemoryWindows::release (Line* begin, Line* end)
 					verify (VirtualAlloc (mbi.AllocationBase, re_reserve, MEM_RESERVE, mbi.Protect));
 
 				// Re-reserve at end
-				line = (Line*)((UWord)mbi.BaseAddress + mbi.RegionSize);
+				line = (Block*)((UWord)mbi.BaseAddress + mbi.RegionSize);
 				if ((UWord)line > (UWord)end)
 					verify (VirtualAlloc (end, (UWord)line - (UWord)end, MEM_RESERVE, mbi.Protect));
 			}
@@ -247,12 +247,12 @@ void MemoryWindows::copy_one_line (Octet* dst_begin, Octet* src_begin, UWord siz
 	assert (dst_begin);
 	assert (dst_begin != src_begin);
 	assert (size);
-	assert ((dst_begin + size) <= Line::end (dst_begin + 1)->pages->bytes);
+	assert ((dst_begin + size) <= Block::end (dst_begin + 1)->pages->bytes);
 
 	// To use sharing, source and destination must have same offset from line begin.
 
 	if (!(
-		(((UWord)dst_begin & (LINE_SIZE - 1)) == ((UWord)src_begin & (LINE_SIZE - 1)))
+		(((UWord)dst_begin & (ALLOCATION_GRANULARITY - 1)) == ((UWord)src_begin & (ALLOCATION_GRANULARITY - 1)))
 		&&
 		copy_one_line_aligned (dst_begin, src_begin, size, flags)
 		)) {
@@ -260,7 +260,7 @@ void MemoryWindows::copy_one_line (Octet* dst_begin, Octet* src_begin, UWord siz
 		// Perform simple copy
 
 		LineState dst_line_state;
-		get_line_state (Line::begin (dst_begin), dst_line_state);
+		get_line_state (Block::begin (dst_begin), dst_line_state);
 
 		CostOfOperation cost;
 		commit_line_cost (dst_begin, dst_begin + size, dst_line_state, cost, true);
@@ -274,8 +274,8 @@ void MemoryWindows::copy_one_line (Octet* dst_begin, Octet* src_begin, UWord siz
 
 		Page* begin, *end;
 		if (Memory::RELEASE == flags) {
-			begin = Line::begin (src_begin)->pages;
-			end = Line::end (src_begin + size)->pages;
+			begin = Block::begin (src_begin)->pages;
+			end = Block::end (src_begin + size)->pages;
 		} else {
 			begin = Page::end (src_begin);
 			end = Page::begin (src_begin + size);
@@ -360,12 +360,12 @@ bool MemoryWindows::copy_one_line_aligned (Octet* dst_begin, Octet* src_begin, U
 
 		// ѕолучаем состо€ни€ страниц дл€ исходной и целевой строк.
 
-		Line* src_line = Line::begin (src_begin);
+		Block* src_line = Block::begin (src_begin);
 		LineState src_line_state;
 		get_line_state (src_line, src_line_state);
 		assert (src_line_state.m_allocation_protect); // not free
 
-		Line* dst_line = Line::begin (dst_begin);
+		Block* dst_line = Block::begin (dst_begin);
 		LineState dst_line_state;
 		get_line_state (dst_line, dst_line_state);
 		assert (dst_line_state.m_allocation_protect); // not free
@@ -381,7 +381,7 @@ bool MemoryWindows::copy_one_line_aligned (Octet* dst_begin, Octet* src_begin, U
 
 		Octet* src_page_state_ptr = src_line_state.m_page_states;
 		Octet* dst_page_state_ptr = dst_line_state.m_page_states;
-		Octet* dst_page_state_end = dst_line_state.m_page_states + PAGES_PER_LINE;
+		Octet* dst_page_state_end = dst_line_state.m_page_states + PAGES_PER_BLOCK;
 		Page* dst_page = dst_line->pages;
 
 		do {
@@ -548,14 +548,14 @@ bool MemoryWindows::copy_one_line_aligned (Octet* dst_begin, Octet* src_begin, U
 				//  опируем даные целевой строки, которые должны остатьс€ на месте.
 				if (bytes_in_place.not_empty ()) {
 
-					Line* tmp_line;
+					Block* tmp_line;
 					// ¬иртуальные страницы, в которые мы копируем, заведомо свободны, это мы проверили раньше.
 					// ќднако, если переотображение не выполн€лось, они могут быть не отображены на исходную строку.
 					// ѕоэтому, если remap_share == REMAP_NONE, отображаем исходную виртуальную строку
 					// по временному адресу.
 
 					if (remap_share == REMAP_NONE) {
-						if (!(tmp_line = (Line*)MapViewOfFileEx (src_mapping, FILE_MAP_WRITE, 0, 0, LINE_SIZE, 0)))
+						if (!(tmp_line = (Block*)MapViewOfFileEx (src_mapping, FILE_MAP_WRITE, 0, 0, ALLOCATION_GRANULARITY, 0)))
 							throw NO_MEMORY ();
 					} else
 						tmp_line = src_line;
@@ -698,7 +698,7 @@ void MemoryWindows::copy_one_line_really (Octet* dst_begin, const Octet* src_beg
 	if (WIN_MASK_READ & dst_line_state.m_allocation_protect) {
 		// Restore read-only protection
 
-		Octet* page_state_ptr = dst_line_state.m_page_states + (dst_begin_page - Line::begin (dst_begin)->pages);
+		Octet* page_state_ptr = dst_line_state.m_page_states + (dst_begin_page - Block::begin (dst_begin)->pages);
 		Page* page = dst_begin_page;
 		do {
 
@@ -725,11 +725,11 @@ void MemoryWindows::commit (Page* begin, Page* end, UWord zero_init)
 
 		// Define line margins
 
-		Page* line_end = Line::end (begin->bytes + 1)->pages;
+		Page* line_end = Block::end (begin->bytes + 1)->pages;
 		if (line_end > end)
 			line_end = end;
 
-		Line* line = Line::begin (begin);
+		Block* line = Block::begin (begin);
 
 		// Get current line state
 
@@ -760,8 +760,8 @@ void MemoryWindows::commit (Page* begin, Page* end, UWord zero_init)
 
 void MemoryWindows::commit_line_cost (const Octet* begin, const Octet* end, const LineState& line_state, CostOfOperation& cost, bool copy)
 {
-	const Page* page = Line::begin (begin)->pages;
-	const Page* line_end = page + PAGES_PER_LINE;
+	const Page* page = Block::begin (begin)->pages;
+	const Page* line_end = page + PAGES_PER_BLOCK;
 	const Octet* page_state_ptr = line_state.m_page_states;
 
 	do {
@@ -912,14 +912,14 @@ void MemoryWindows::commit_one_line (Page* begin, Page* end, LineState& line_sta
 {
 	assert (line_state.m_allocation_protect); // not free
 
-	Line* begin_line = Line::begin (begin);
+	Block* begin_line = Block::begin (begin);
 
-	assert (Line::end (end) == begin_line + 1);
+	assert (Block::end (end) == begin_line + 1);
 
 	map (begin_line);
 
-	Octet* page_state_ptr = line_state.m_page_states + (UWord)begin / PAGE_SIZE % PAGES_PER_LINE;
-	Octet* page_state_end = line_state.m_page_states + (UWord)end / PAGE_SIZE % PAGES_PER_LINE;
+	Octet* page_state_ptr = line_state.m_page_states + (UWord)begin / PAGE_SIZE % PAGES_PER_BLOCK;
+	Octet* page_state_end = line_state.m_page_states + (UWord)end / PAGE_SIZE % PAGES_PER_BLOCK;
 
 	do {
 
@@ -944,7 +944,7 @@ void MemoryWindows::commit_one_line (Page* begin, Page* end, LineState& line_sta
 			// Disable access at other shared lines
 			UWord offset = (begin - begin_line->pages) * PAGE_SIZE;
 			for (
-				Line* shared_line = virtual_line (begin_line).shared_next ();
+				Block* shared_line = virtual_line (begin_line).shared_next ();
 				shared_line != begin_line;
 				shared_line = virtual_line (shared_line).shared_next ()
 				)
@@ -1010,11 +1010,11 @@ void MemoryWindows::commit_one_line (Page* begin, Page* end, LineState& line_sta
 
 void MemoryWindows::decommit (Page* begin, Page* end)
 {
-	Line* begin_line = Line::end (begin);
-	Line* end_line = Line::begin (end);
+	Block* begin_line = Block::end (begin);
+	Block* end_line = Block::begin (end);
 
 	// Unmap full lines
-	for (Line* line = begin_line; line < end_line; ++line)
+	for (Block* line = begin_line; line < end_line; ++line)
 		unmap (line);
 
 	// Decommit partial lines
@@ -1036,13 +1036,13 @@ HANDLE MemoryWindows::mapping (const void* p)
 
 HANDLE MemoryWindows::new_mapping ()
 {
-	HANDLE h = CreateFileMapping (INVALID_HANDLE_VALUE, 0, PAGE_READWRITE | SEC_RESERVE, 0, LINE_SIZE, 0);
+	HANDLE h = CreateFileMapping (INVALID_HANDLE_VALUE, 0, PAGE_READWRITE | SEC_RESERVE, 0, ALLOCATION_GRANULARITY, 0);
 	if (!h)
 		throw NO_MEMORY ();
 	return h;
 }
 
-bool MemoryWindows::map (Line* line, HANDLE mapping)
+bool MemoryWindows::map (Block* line, HANDLE mapping)
 {
 	// Check for current stack intersects with line
 	if (((void*)&mapping >= line) && ((void*)&mapping < (line + 1))) {
@@ -1052,7 +1052,7 @@ bool MemoryWindows::map (Line* line, HANDLE mapping)
 		return param.ret;
 	}
 
-	VirtualLine& vl = virtual_line (line);
+	VirtualBlock& vl = virtual_line (line);
 
 	bool is_new_mapping;
 	if (is_new_mapping = !mapping) {
@@ -1112,7 +1112,7 @@ bool MemoryWindows::map (Line* line, HANDLE mapping)
 		else
 			map_access = FILE_MAP_READ;
 
-		while (!MapViewOfFileEx (mapping, map_access, 0, 0, LINE_SIZE, line)) {
+		while (!MapViewOfFileEx (mapping, map_access, 0, 0, ALLOCATION_GRANULARITY, line)) {
 			if (ERROR_INVALID_ADDRESS != GetLastError ())
 				throw INTERNAL ();
 			Sleep (0);
@@ -1137,9 +1137,9 @@ void MemoryWindows::map_in_fiber (MapParam* param)
 	param->ret = map (param->line, param->mapping);
 }
 
-void MemoryWindows::map (Line* dst, const Line* src)
+void MemoryWindows::map (Block* dst, const Block* src)
 {
-	VirtualLine& src_ll = virtual_line (src);
+	VirtualBlock& src_ll = virtual_line (src);
 
 	assert (src_vl.mapping);
 
@@ -1149,7 +1149,7 @@ void MemoryWindows::map (Line* dst, const Line* src)
 	// In this case, memory state can be MEM_COMMIT, not MEM_RESERVE.
 	// So, we must 'decommit' this pages now.
 
-	if (!VirtualFree (dst, PAGES_PER_LINE, MEM_DECOMMIT)) {
+	if (!VirtualFree (dst, PAGES_PER_BLOCK, MEM_DECOMMIT)) {
 
 		// MEM_DECOMMIT does not work for memory mappings
 
@@ -1179,18 +1179,18 @@ void MemoryWindows::map (Line* dst, const Line* src)
 		// Link lines to cycle list.
 
 		UWord dst_li = line_index (dst);
-		VirtualLine& dst_ll = virtual_line (dst_li);
+		VirtualBlock& dst_ll = virtual_line (dst_li);
 
 		Lock lock (sm_data.critical_section);
 
-		VirtualLine& next_ll = virtual_line (dst_ll.m_line_next = src_ll.m_line_next);
+		VirtualBlock& next_ll = virtual_line (dst_ll.m_line_next = src_ll.m_line_next);
 		next_ll.m_line_prev = (UShort)dst_li;
 		dst_ll.m_line_prev = (UShort)src_li;
 		src_ll.m_line_next = (UShort)dst_li;
 	}
 }
 
-void MemoryWindows::unmap (Line* line)
+void MemoryWindows::unmap (Block* line)
 {
 	MemoryBasicInformation mbi (line);
 
@@ -1202,12 +1202,12 @@ void MemoryWindows::unmap (Line* line)
 
 		unmap_and_release (line);
 
-		verify (VirtualAlloc (line, LINE_SIZE, MEM_RESERVE,
+		verify (VirtualAlloc (line, ALLOCATION_GRANULARITY, MEM_RESERVE,
 			(mbi.AllocationProtect & WIN_MASK_READ) ? WIN_READ_RESERVE : WIN_WRITE_RESERVE));
 	}
 }
 
-void MemoryWindows::unmap (Line* line, VirtualLine& vl)
+void MemoryWindows::unmap (Block* line, VirtualBlock& vl)
 {
 	assert (vl.mapping && INVALID_HANDLE_VALUE != vl.mapping);
 
@@ -1231,14 +1231,14 @@ HANDLE MemoryWindows::remap_line (Octet* exclude_begin, Octet* exclude_end, Line
 
 	try {
 
-		Line* tmp_line = (Line*)MapViewOfFileEx (file_mapping, FILE_MAP_WRITE, 0, 0, LINE_SIZE, 0);
+		Block* tmp_line = (Block*)MapViewOfFileEx (file_mapping, FILE_MAP_WRITE, 0, 0, ALLOCATION_GRANULARITY, 0);
 		if (!tmp_line)
 			throw NO_MEMORY ();
-		Line* line = Line::begin (exclude_begin);
+		Block* line = Block::begin (exclude_begin);
 		Page* begin_page = Page::begin (exclude_begin);
 		Page* tmp_page = tmp_line->pages;
 		Octet* page_state_ptr = line_state.m_page_states;
-		Line* line_end = line + 1;
+		Block* line_end = line + 1;
 		Page* page = line->pages;
 
 		do {
@@ -1370,10 +1370,10 @@ void MemoryWindows::stack_prepare (const ShareStackParam* param_ptr)
 	}
 #endif // _DEBUG
 
-	Line* stack_begin = mbi.allocation_base ();
-	assert (!((UWord)param.stack_base % LINE_SIZE));
-	Line* stack_end = (Line*)param.stack_base;
-	Line* line = stack_begin;
+	Block* stack_begin = mbi.allocation_base ();
+	assert (!((UWord)param.stack_base % ALLOCATION_GRANULARITY));
+	Block* stack_end = (Block*)param.stack_base;
+	Block* line = stack_begin;
 
 	try {
 
@@ -1456,7 +1456,7 @@ MemoryWindows::RemapType MemoryWindows::CostOfOperation::decide_remap () const
 
 void MemoryWindows::LineRegions::push_back (UWord offset, UWord size)
 {
-	assert (offset + size <= LINE_SIZE);
+	assert (offset + size <= ALLOCATION_GRANULARITY);
 
 	if (m_end > m_regions) {
 		if (m_end->offset + m_end->size == offset) {

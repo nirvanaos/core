@@ -9,7 +9,7 @@ namespace Nirvana {
 class ProcessMemory
 {
 public:
-	struct VirtualLine
+	struct VirtualBlock
 	{
 		// Currently we are using only one field. But we create structure for possible future extensions.
 		HANDLE mapping;
@@ -36,7 +36,7 @@ public:
 	};
 
 private:
-	static const size_t SECOND_LEVEL_BLOCK = LINE_SIZE / sizeof (VirtualLine);
+	static const size_t SECOND_LEVEL_BLOCK = ALLOCATION_GRANULARITY / sizeof (VirtualBlock);
 
 public:
 	void initialize ()
@@ -46,11 +46,11 @@ public:
 
 	void terminate ();
 
-	const VirtualLine& line (const void* address) const
+	const VirtualBlock& block (const void* address) const
 	{
-		size_t idx = (size_t)address / LINE_SIZE;
+		size_t idx = (size_t)address / ALLOCATION_GRANULARITY;
 		assert (idx < m_directory_size);
-		const VirtualLine* p;
+		const VirtualBlock* p;
 #ifdef _WIN64
 		size_t i0 = idx / SECOND_LEVEL_BLOCK;
 		size_t i1 = idx % SECOND_LEVEL_BLOCK;
@@ -62,7 +62,7 @@ public:
 		return *p;
 	}
 
-	VirtualLine& line (void* address);
+	VirtualBlock& block (void* address);
 
 	void* reserve (size_t size, LONG flags, void* dst = 0);
 	void release (void* dst, size_t size);
@@ -72,13 +72,18 @@ public:
 private:
 	void initialize (DWORD process_id, HANDLE process_handle);
 
+	static void raise_condition ()
+	{
+		Sleep (0);
+	}
+
 private:
 	HANDLE m_process;
 	HANDLE m_mapping;
 #ifdef _WIN64
-	VirtualLine** m_directory;
+	VirtualBlock** m_directory;
 #else
-	VirtualLine* m_directory;
+	VirtualBlock* m_directory;
 #endif
 	size_t m_directory_size;
 };

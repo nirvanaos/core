@@ -16,8 +16,8 @@ void ProcessMemory::initialize (DWORD process_id, HANDLE process_handle)
 	LARGE_INTEGER size;
 	SYSTEM_INFO si;
 	GetSystemInfo (&si);
-	size.QuadPart = ((size_t)si.lpMaximumApplicationAddress + LINE_SIZE) / LINE_SIZE * sizeof (VirtualLine);
-	m_directory_size = (size_t)(size.QuadPart / sizeof (VirtualLine));
+	size.QuadPart = ((size_t)si.lpMaximumApplicationAddress + ALLOCATION_GRANULARITY) / ALLOCATION_GRANULARITY * sizeof (VirtualBlock);
+	m_directory_size = (size_t)(size.QuadPart / sizeof (VirtualBlock));
 
 	if (GetCurrentProcessId () == process_id) {
 
@@ -35,9 +35,9 @@ void ProcessMemory::initialize (DWORD process_id, HANDLE process_handle)
 	}
 
 #ifdef _WIN64
-	m_directory = (VirtualLine**)VirtualAlloc (0, (size.QuadPart + LINE_SIZE - 1) / LINE_SIZE * sizeof (VirtualLine*), MEM_RESERVE, PAGE_READWRITE);
+	m_directory = (VirtualBlock**)VirtualAlloc (0, (size.QuadPart + ALLOCATION_GRANULARITY - 1) / ALLOCATION_GRANULARITY * sizeof (VirtualBlock*), MEM_RESERVE, PAGE_READWRITE);
 #else
-	m_directory = (VirtualLine*)MapViewOfFile (m_mapping, FILE_MAP_ALL_ACCESS, 0, 0, 0);
+	m_directory = (VirtualBlock*)MapViewOfFile (m_mapping, FILE_MAP_ALL_ACCESS, 0, 0, 0);
 #endif
 	if (!m_directory)
 		throw INITIALIZE ();
@@ -47,14 +47,14 @@ void ProcessMemory::terminate ()
 {
 	if (m_directory) {
 #ifdef _WIN64
-		VirtualLine** end = m_directory + (m_directory_size * sizeof (VirtualLine) + LINE_SIZE - 1) / LINE_SIZE;
-		for (VirtualLine** page = m_directory; page < end; page += PAGE_SIZE / sizeof (VirtualLine**)) {
+		VirtualBlock** end = m_directory + (m_directory_size * sizeof (VirtualBlock) + ALLOCATION_GRANULARITY - 1) / ALLOCATION_GRANULARITY;
+		for (VirtualBlock** page = m_directory; page < end; page += PAGE_SIZE / sizeof (VirtualBlock**)) {
 			MEMORY_BASIC_INFORMATION mbi;
 			verify (VirtualQuery (page, &mbi, sizeof (mbi)));
 			if (mbi.State == MEM_COMMIT) {
-				VirtualLine** end = page + PAGE_SIZE / sizeof (VirtualLine**);
-				for (VirtualLine** p = page; p < end; ++p) {
-					VirtualLine* block = *p;
+				VirtualBlock** end = page + PAGE_SIZE / sizeof (VirtualBlock**);
+				for (VirtualBlock** p = page; p < end; ++p) {
+					VirtualBlock* block = *p;
 					if (block)
 						verify (UnmapViewOfFile (block));
 				}
@@ -72,30 +72,35 @@ void ProcessMemory::terminate ()
 	}
 }
 
-ProcessMemory::VirtualLine& ProcessMemory::line (void* address)
+ProcessMemory::VirtualBlock& ProcessMemory::block (void* address)
 {
-	size_t idx = (size_t)address / LINE_SIZE;
+	size_t idx = (size_t)address / ALLOCATION_GRANULARITY;
 	assert (idx < m_directory_size);
-	VirtualLine* p;
+	VirtualBlock* p;
 #ifdef _WIN64
 	size_t i0 = idx / SECOND_LEVEL_BLOCK;
 	size_t i1 = idx % SECOND_LEVEL_BLOCK;
-	if (!VirtualAlloc (m_directory + i0, sizeof (VirtualLine*), MEM_COMMIT, PAGE_READWRITE))
+	if (!VirtualAlloc (m_directory + i0, sizeof (VirtualBlock*), MEM_COMMIT, PAGE_READWRITE))
 		throw NO_MEMORY ();
-	p = m_directory [i0];
+	VirtualBlock** pp = m_directory + i0;
+	p = *pp;
 	if (!p) {
 		LARGE_INTEGER offset;
-		offset.QuadPart = LINE_SIZE * i0;
-		p = (VirtualLine*)MapViewOfFile (m_mapping, FILE_MAP_ALL_ACCESS, offset.HighPart, offset.LowPart, LINE_SIZE);
+		offset.QuadPart = ALLOCATION_GRANULARITY * i0;
+		p = (VirtualBlock*)MapViewOfFile (m_mapping, FILE_MAP_ALL_ACCESS, offset.HighPart, offset.LowPart, ALLOCATION_GRANULARITY);
 		if (!p)
 			throw NO_MEMORY ();
-		m_directory [i0] = p;
+		VirtualBlock* cur = (VirtualBlock*)InterlockedCompareExchangePointer ((void* volatile*)pp, p, 0);
+		if (cur) {
+			UnmapViewOfFile (p);
+			p = cur;
+		}
 	}
 	p += i1;
 #else
 	p = m_directory + idx;
 #endif
-	if (!VirtualAlloc (p, sizeof (VirtualLine), MEM_COMMIT, PAGE_READWRITE))
+	if (!VirtualAlloc (p, sizeof (VirtualBlock), MEM_COMMIT, PAGE_READWRITE))
 		throw NO_MEMORY ();
 	return *p;
 }
@@ -107,7 +112,7 @@ void* ProcessMemory::reserve (size_t size, LONG flags, void* dst)
 
 	BYTE* p;
   if (dst && !(flags & Memory::EXACTLY))
-    dst = ROUND_DOWN(dst, LINE_SIZE);
+    dst = ROUND_DOWN(dst, ALLOCATION_GRANULARITY);
 	for (;;) {	// Loop to handle possible raise conditions.
 		p = (BYTE*)VirtualAllocEx (m_process, dst, size, MEM_RESERVE, (flags & Memory::READ_ONLY) ? WIN_READ_RESERVE : WIN_WRITE_RESERVE);
 		if (!p) {
@@ -119,16 +124,16 @@ void* ProcessMemory::reserve (size_t size, LONG flags, void* dst)
 
 		BYTE* pb = p;
 		BYTE* end = p + size;
-		for (; pb < end; pb += LINE_SIZE) {
-			if (InterlockedCompareExchangePointer (&line (pb).mapping, INVALID_HANDLE_VALUE, 0))
+		for (; pb < end; pb += ALLOCATION_GRANULARITY) {
+			if (InterlockedCompareExchangePointer (&block (pb).mapping, INVALID_HANDLE_VALUE, 0))
 				break;
 		}
 		if (pb >= end)
 			break;
 		while (pb > p)
-			line (pb -= LINE_SIZE).mapping = 0;
+			block (pb -= ALLOCATION_GRANULARITY).mapping = 0;
 		verify (VirtualFreeEx (m_process, p, 0, MEM_RELEASE));
-		Sleep (0);
+		raise_condition ();
 	}
 	if (dst && (flags & Memory::EXACTLY))
 		return dst;
@@ -141,13 +146,13 @@ void ProcessMemory::release (void* dst, size_t size)
 	if (!(dst && size))
 		return;
 
-	BYTE* begin = ROUND_DOWN((BYTE*)dst, LINE_SIZE);
-	BYTE* end = ROUND_UP((BYTE*)dst + size, LINE_SIZE);
+	BYTE* begin = ROUND_DOWN((BYTE*)dst, ALLOCATION_GRANULARITY);
+	BYTE* end = ROUND_UP((BYTE*)dst + size, ALLOCATION_GRANULARITY);
 
 	// If memory is allocated by this service, mepping must be != 0.
 	try {
-		for (const BYTE* p = begin; p != end; p += LINE_SIZE)
-			if (!line (p).mapping)
+		for (const BYTE* p = begin; p != end; p += ALLOCATION_GRANULARITY)
+			if (!block (p).mapping)
 				throw BAD_PARAM ();
 	} catch (...) {
 		throw BAD_PARAM ();
@@ -156,7 +161,7 @@ void ProcessMemory::release (void* dst, size_t size)
 	{
 		// Define allocation margins if memory is reserved.
 		MEMORY_BASIC_INFORMATION begin_mbi = {0}, end_mbi = {0};
-		if (INVALID_HANDLE_VALUE == line ((const void*)begin).mapping) {
+		if (INVALID_HANDLE_VALUE == block ((const void*)begin).mapping) {
 			verify (VirtualQueryEx (m_process, begin, &begin_mbi, sizeof (begin_mbi)));
 			assert (MEM_RESERVE == begin_mbi.State);
 			if ((BYTE*)begin_mbi.BaseAddress + begin_mbi.RegionSize >= end)
@@ -165,7 +170,7 @@ void ProcessMemory::release (void* dst, size_t size)
 
 		if (!end_mbi.BaseAddress) {
 			BYTE* back = end - PAGE_SIZE;
-			if (INVALID_HANDLE_VALUE == line ((const void*)back).mapping) {
+			if (INVALID_HANDLE_VALUE == block ((const void*)back).mapping) {
 				verify (VirtualQueryEx (m_process, back, &end_mbi, sizeof (end_mbi)));
 				assert (MEM_RESERVE == end_mbi.State);
 			}
@@ -178,7 +183,7 @@ void ProcessMemory::release (void* dst, size_t size)
 				verify (VirtualFreeEx (m_process, begin_mbi.AllocationBase, 0, MEM_RELEASE));
 				while (!VirtualAllocEx (m_process, begin_mbi.AllocationBase, realloc, MEM_RESERVE, begin_mbi.AllocationProtect)) {
 					assert (ERROR_INVALID_ADDRESS == GetLastError ());
-					Sleep (0);
+					raise_condition ();
 				}
 			}
 		}
@@ -190,7 +195,7 @@ void ProcessMemory::release (void* dst, size_t size)
 					verify (VirtualFreeEx (m_process, end_mbi.AllocationBase, 0, MEM_RELEASE));
 				while (!VirtualAllocEx (m_process, end, realloc, MEM_RESERVE, end_mbi.AllocationProtect)) {
 					assert (ERROR_INVALID_ADDRESS == GetLastError ());
-					Sleep (0);
+					raise_condition ();
 				}
 			}
 		}
@@ -198,7 +203,7 @@ void ProcessMemory::release (void* dst, size_t size)
 
 	// Release memory
 	for (BYTE* p = begin; p < end;) {
-		HANDLE mapping = InterlockedExchangePointer (&line (p).mapping, 0);
+		HANDLE mapping = InterlockedExchangePointer (&block (p).mapping, 0);
 		if (INVALID_HANDLE_VALUE == mapping) {
 			MEMORY_BASIC_INFORMATION mbi;
 			if (!VirtualQueryEx (m_process, p, &mbi, sizeof (mbi)))
@@ -209,16 +214,16 @@ void ProcessMemory::release (void* dst, size_t size)
 			BYTE* region_end = (BYTE*)mbi.BaseAddress + mbi.RegionSize;
 			if (region_end > end)
 				region_end = end;
-			p += LINE_SIZE;
+			p += ALLOCATION_GRANULARITY;
 			while (p < region_end) {
-				assert (INVALID_HANDLE_VALUE == line (p).mapping);
-				line (p).mapping = 0;
-				p += LINE_SIZE;
+				assert (INVALID_HANDLE_VALUE == block (p).mapping);
+				block (p).mapping = 0;
+				p += ALLOCATION_GRANULARITY;
 			}
 		} else {
 			verify (UnmapViewOfFile2 (m_process, p, 0));
 			verify (CloseHandle (mapping));
-			p += LINE_SIZE;
+			p += ALLOCATION_GRANULARITY;
 		}
 	}
 }
@@ -227,9 +232,9 @@ void ProcessMemory::map (void* dst, HANDLE src)
 {
 	if (!dst)
 		throw BAD_PARAM ();
-	dst = ROUND_DOWN (dst, LINE_SIZE);
+	dst = ROUND_DOWN (dst, ALLOCATION_GRANULARITY);
 
-	VirtualLine& vl = line (dst);
+	VirtualBlock& vl = block (dst);
 	if (!vl.mapping)	// Memory must be allocated
 		throw BAD_PARAM ();
 
@@ -237,7 +242,7 @@ void ProcessMemory::map (void* dst, HANDLE src)
 	if (!src) {
 		if (vl.mapping != INVALID_HANDLE_VALUE)
 			return;
-		if (!(mapping = CreateFileMapping (0, 0, PAGE_READWRITE | SEC_RESERVE, 0, LINE_SIZE, 0)))
+		if (!(mapping = CreateFileMapping (0, 0, PAGE_READWRITE | SEC_RESERVE, 0, ALLOCATION_GRANULARITY, 0)))
 			throw NO_MEMORY ();
 	} else {
 		if (!DuplicateHandle (GetCurrentProcess (), src, m_process, &mapping, 0, FALSE, DUPLICATE_SAME_ACCESS))
@@ -253,19 +258,19 @@ void ProcessMemory::map (void* dst, HANDLE src)
 		if (old == INVALID_HANDLE_VALUE) {
 			assert (MEM_RESERVE == mbi.State);
 			ptrdiff_t realloc_begin = (BYTE*)dst - (BYTE*)mbi.AllocationBase;
-			ptrdiff_t realloc_end = (BYTE*)mbi.BaseAddress + mbi.RegionSize - (BYTE*)dst - LINE_SIZE;
+			ptrdiff_t realloc_end = (BYTE*)mbi.BaseAddress + mbi.RegionSize - (BYTE*)dst - ALLOCATION_GRANULARITY;
 			verify (VirtualFreeEx (m_process, dst, 0, MEM_RELEASE));
 			if (realloc_begin > 0) {
 				while (!VirtualAllocEx (m_process, mbi.AllocationBase, realloc_begin, MEM_RESERVE, mbi.AllocationProtect)) {
 					assert (ERROR_INVALID_ADDRESS == GetLastError ());
-					Sleep (0);
+					raise_condition ();
 				}
 			}
 			if (realloc_end > 0) {
-				BYTE* end = (BYTE*)dst + LINE_SIZE;
+				BYTE* end = (BYTE*)dst + ALLOCATION_GRANULARITY;
 				while (!VirtualAllocEx (m_process, end, realloc_end, MEM_RESERVE, mbi.AllocationProtect)) {
 					assert (ERROR_INVALID_ADDRESS == GetLastError ());
-					Sleep (0);
+					raise_condition ();
 				}
 			}
 		} else if (old) {
@@ -278,9 +283,9 @@ void ProcessMemory::map (void* dst, HANDLE src)
 		}
 
 		ULONG protect = (mbi.AllocationProtect & WIN_MASK_WRITE) ? (src ? WIN_WRITE_MAPPED_SHARED : WIN_WRITE_MAPPED_PRIVATE) : (src ? WIN_READ_COPIED : WIN_READ_MAPPED);
-		while (!MapViewOfFile2 (mapping, m_process, 0, dst, LINE_SIZE, 0, protect)) {
+		while (!MapViewOfFile2 (mapping, m_process, 0, dst, ALLOCATION_GRANULARITY, 0, protect)) {
 			assert (ERROR_INVALID_ADDRESS == GetLastError ());
-			Sleep (0);
+			raise_condition ();
 		}
 
 	} catch (...) {
@@ -293,8 +298,8 @@ void ProcessMemory::unmap (void* dst)
 {
 	if (!dst)
 		throw BAD_PARAM ();
-	dst = ROUND_DOWN (dst, LINE_SIZE);
-	VirtualLine& vl = line (dst);
+	dst = ROUND_DOWN (dst, ALLOCATION_GRANULARITY);
+	VirtualBlock& vl = block (dst);
 	HANDLE mapping = InterlockedExchangePointer (&vl.mapping, INVALID_HANDLE_VALUE);
 	if (!mapping) {
 		vl.mapping = 0;
@@ -305,9 +310,9 @@ void ProcessMemory::unmap (void* dst)
 		verify (VirtualQueryEx (m_process, dst, &mbi, sizeof (mbi)));
 		verify (UnmapViewOfFile2 (m_process, dst, 0));
 		verify (CloseHandle (mapping));
-		while (!VirtualAllocEx (m_process, dst, LINE_SIZE, MEM_RESERVE, mbi.AllocationProtect)) {
+		while (!VirtualAllocEx (m_process, dst, ALLOCATION_GRANULARITY, MEM_RESERVE, mbi.AllocationProtect)) {
 			assert (ERROR_INVALID_ADDRESS == GetLastError ());
-			Sleep (0);
+			raise_condition ();
 		}
 	}
 }
