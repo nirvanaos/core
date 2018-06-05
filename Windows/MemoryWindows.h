@@ -247,17 +247,20 @@ private:
 
 	// Block state information
 
-	struct LineState
+	struct BlockState
 	{
 		DWORD allocation_protect;
 		BYTE page_states [PAGES_PER_BLOCK];
 	};
 
-	static void get_line_state (const Block* line, LineState& state);
+	static void get_block_state (const void* block, BlockState& state);
 
 	// Logical space reservation
 
-	static Block* reserve (UWord size, UWord flags, Block* begin = 0);
+	static void* reserve (size_t size, LONG flags, void* dst = 0)
+	{
+		return sm_directory.reserve (size, flags, dst);
+	}
 
 	// Release memory
 
@@ -324,7 +327,7 @@ private:
 
 	// Remap line
 
-	static HANDLE remap_line (Octet* exclude_begin, Octet* exclude_end, LineState& line_state, Word remap_type);
+	static HANDLE remap_line (Octet* exclude_begin, Octet* exclude_end, BlockState& line_state, Word remap_type);
 	// Remaps Block::begin (exclude_begin).
 	// Allocated data will be preserved excluding region [exclude_begin, exclude_end).
 	// Page state in range [exclude_begin, exclude_end) will be undefined.
@@ -335,14 +338,14 @@ private:
 	// Carefully: does not validates memory state.
 	// Changes protection of pages in range [begin, end) to read-write.
 
-	static void commit_line_cost (const Octet* begin, const Octet* end, const LineState& line_state, CostOfOperation& cost, bool copy);
+	static void commit_line_cost (const Octet* begin, const Octet* end, const BlockState& line_state, CostOfOperation& cost, bool copy);
 	// Adds cost of commit in range [begin, end) to cost.
 	// Cost includes make pages in range [begin, end) private.
 	// ≈сли copy = true, функци€ не учитывает в стоимости переотображени€ стоимость копировани€ end - begin байт.
 	// Ёто - режим дл€ подсчета стоимости физического копировани€.
 	// ƒл€ подсчета стоимости фиксации copy = false.
 
-	static void commit_one_line (Page* begin, Page* end, LineState& line_state, Flags zero_init);
+	static void commit_one_line (Page* begin, Page* end, BlockState& line_state, Flags zero_init);
 	// Changes protection of pages in range [begin, end) to read-write
 
 	static void decommit (Page* begin, Page* end);
@@ -359,7 +362,7 @@ private:
 
 	static void copy_one_line (Octet* dst, Octet* src, UWord size, UWord flags);
 	static bool copy_one_line_aligned (Octet* dst, Octet* src, UWord size, UWord flags);
-	static void copy_one_line_really (Octet* dst, const Octet* src, UWord size, RemapType remap_type, LineState& dst_state);
+	static void copy_one_line_really (Octet* dst, const Octet* src, UWord size, RemapType remap_type, BlockState& dst_state);
 
 	// Pointer to line number and vice versa conversions
 
@@ -428,7 +431,7 @@ inline Pointer MemoryWindows::allocate (Pointer dst, UWord size, Flags flags)
 	if ((Memory::READ_ONLY & flags) && !(Memory::RESERVED & flags))
 		throw INV_FLAG ();
 
-	// Allocation unit is one line (64K)
+	// Allocation unit is one block (64K)
 	Block* begin = Block::begin (dst);
 	UWord offset = (Octet*)dst - begin->pages->bytes;
 	if (offset && !(flags & Memory::EXACTLY)) {

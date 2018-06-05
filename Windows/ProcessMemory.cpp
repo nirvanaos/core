@@ -112,7 +112,8 @@ void* ProcessMemory::reserve (size_t size, LONG flags, void* dst)
 
 	BYTE* p;
   if (dst && !(flags & Memory::EXACTLY))
-    dst = ROUND_DOWN(dst, ALLOCATION_GRANULARITY);
+    dst = ROUND_DOWN (dst, ALLOCATION_GRANULARITY);
+	size = ROUND_UP (size, ALLOCATION_GRANULARITY);
 	for (;;) {	// Loop to handle possible raise conditions.
 		p = (BYTE*)VirtualAllocEx (m_process, dst, size, MEM_RESERVE, (flags & Memory::READ_ONLY) ? WIN_READ_RESERVE : WIN_WRITE_RESERVE);
 		if (!p) {

@@ -7,14 +7,14 @@ namespace Nirvana {
 
 ProcessMemory MemoryWindows::sm_directory;
 
-void MemoryWindows::get_line_state (const Block* line, LineState& state)
+void MemoryWindows::get_block_state (const void* block, BlockState& state)
 {
-	assert (!((UWord)line % ALLOCATION_GRANULARITY));
+	assert (!((UWord)block % ALLOCATION_GRANULARITY));
 
 	bool check_sharing = false;
 
 	{
-		MemoryBasicInformation mbi (line);
+		MemoryBasicInformation mbi (block);
 
 		if (MEM_FREE == mbi.State) {
 			state.allocation_protect = 0;
@@ -28,14 +28,14 @@ void MemoryWindows::get_line_state (const Block* line, LineState& state)
 		}
 
 		Octet* page_state_ptr = state.page_states;
-		const Page* page = line->pages;
-		const Block* line_end = line + 1;
+		const BYTE* page = (const BYTE*)block;
+		const BYTE* block_end = page + ALLOCATION_GRANULARITY;
 		for (;;) {
 
 			assert (MEM_FREE != mbi.State);
-			assert (mbi.allocation_base () == line);
+			assert (mbi.allocation_base () == block);
 
-			Octet page_state;
+			BYTE page_state;
 			if (MEM_COMMIT == mbi.State) {
 
 				if (PAGE_NOACCESS == mbi.Protect)
@@ -112,8 +112,9 @@ void MemoryWindows::get_line_state (const Block* line, LineState& state)
 	}
 }
 
-Block* MemoryWindows::reserve (UWord size, UWord flags, Block* dst)
+void* MemoryWindows::reserve (size_t size, LONG flags, void* dst)
 {
+	return 
 	assert (size);
 	assert (!((UWord)dst % ALLOCATION_GRANULARITY));
 
@@ -259,7 +260,7 @@ void MemoryWindows::copy_one_line (Octet* dst_begin, Octet* src_begin, UWord siz
 
 		// Perform simple copy
 
-		LineState dst_line_state;
+		BlockState dst_line_state;
 		get_line_state (Block::begin (dst_begin), dst_line_state);
 
 		CostOfOperation cost;
@@ -361,12 +362,12 @@ bool MemoryWindows::copy_one_line_aligned (Octet* dst_begin, Octet* src_begin, U
 		// Получаем состояния страниц для исходной и целевой строк.
 
 		Block* src_line = Block::begin (src_begin);
-		LineState src_line_state;
+		BlockState src_line_state;
 		get_line_state (src_line, src_line_state);
 		assert (src_line_state.m_allocation_protect); // not free
 
 		Block* dst_line = Block::begin (dst_begin);
-		LineState dst_line_state;
+		BlockState dst_line_state;
 		get_line_state (dst_line, dst_line_state);
 		assert (dst_line_state.m_allocation_protect); // not free
 
@@ -678,7 +679,7 @@ bool MemoryWindows::copy_one_line_aligned (Octet* dst_begin, Octet* src_begin, U
 	return false;
 }
 
-void MemoryWindows::copy_one_line_really (Octet* dst_begin, const Octet* src_begin, UWord size, RemapType remap_type, LineState& dst_line_state)
+void MemoryWindows::copy_one_line_really (Octet* dst_begin, const Octet* src_begin, UWord size, RemapType remap_type, BlockState& dst_line_state)
 {
 	assert (size);
 
@@ -733,7 +734,7 @@ void MemoryWindows::commit (Page* begin, Page* end, UWord zero_init)
 
 		// Get current line state
 
-		LineState line_state;
+		BlockState line_state;
 		get_line_state (line, line_state);
 
 		// Do not remap line if one contains this object
@@ -758,7 +759,7 @@ void MemoryWindows::commit (Page* begin, Page* end, UWord zero_init)
 	} while (begin < end);
 }
 
-void MemoryWindows::commit_line_cost (const Octet* begin, const Octet* end, const LineState& line_state, CostOfOperation& cost, bool copy)
+void MemoryWindows::commit_line_cost (const Octet* begin, const Octet* end, const BlockState& line_state, CostOfOperation& cost, bool copy)
 {
 	const Page* page = Block::begin (begin)->pages;
 	const Page* line_end = page + PAGES_PER_BLOCK;
@@ -908,7 +909,7 @@ void MemoryWindows::commit_line_cost (const Octet* begin, const Octet* end, cons
 	} while (page < line_end);
 }
 
-void MemoryWindows::commit_one_line (Page* begin, Page* end, LineState& line_state, Flags zero_init)
+void MemoryWindows::commit_one_line (Page* begin, Page* end, BlockState& line_state, Flags zero_init)
 {
 	assert (line_state.m_allocation_protect); // not free
 
@@ -1217,7 +1218,7 @@ void MemoryWindows::unmap (Block* line, VirtualBlock& vl)
 	vl.mapping = INVALID_HANDLE_VALUE;
 }
 
-HANDLE MemoryWindows::remap_line (Octet* exclude_begin, Octet* exclude_end, LineState& line_state, Word remap_type)
+HANDLE MemoryWindows::remap_line (Octet* exclude_begin, Octet* exclude_end, BlockState& line_state, Word remap_type)
 {
 	assert (remap_type != REMAP_NONE);
 
