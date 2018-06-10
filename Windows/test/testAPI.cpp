@@ -37,11 +37,18 @@ protected:
 		// Code here will be called immediately after each test (right
 		// before the destructor).
 	}
+
+	// Create new mapping
+	static HANDLE new_mapping ()
+	{
+		return CreateFileMappingW (0, 0, PAGE_EXECUTE_READWRITE | SEC_RESERVE, 0, ALLOCATION_GRANULARITY, 0);
+	}
+
 };
 
 TEST_F (TestAPI, MappingHandle)
 {
-	HANDLE mh = CreateFileMapping (0, 0, PAGE_READWRITE | SEC_RESERVE, 0, ALLOCATION_GRANULARITY, 0);
+	HANDLE mh = new_mapping ();
 	ASSERT_TRUE (mh);
 	HANDLE mh1;
 	HANDLE process = GetCurrentProcess ();
@@ -58,7 +65,7 @@ TEST_F (TestAPI, Allocate)
 	EXPECT_EQ (si.dwAllocationGranularity, ALLOCATION_GRANULARITY);
 	EXPECT_EQ (((size_t)si.lpMaximumApplicationAddress + 1) % ALLOCATION_GRANULARITY, 0);
 
-	HANDLE mh = CreateFileMapping (0, 0, PAGE_READWRITE | SEC_RESERVE, 0, ALLOCATION_GRANULARITY, 0);
+	HANDLE mh = new_mapping ();
 	ASSERT_TRUE (mh);
 	char* p = (char*)MapViewOfFile (mh, FILE_MAP_ALL_ACCESS, 0, 0, ALLOCATION_GRANULARITY);
 	ASSERT_TRUE (p);
@@ -96,7 +103,7 @@ TEST_F (TestAPI, Sharing)
 {
 	MEMORY_BASIC_INFORMATION mbi0, mbi1;
 
-	HANDLE mh = CreateFileMapping (0, 0, PAGE_READWRITE | SEC_RESERVE, 0, ALLOCATION_GRANULARITY, 0);
+	HANDLE mh = new_mapping ();
 	ASSERT_TRUE (mh);
 	char* p = (char*)MapViewOfFile (mh, FILE_MAP_ALL_ACCESS, 0, 0, ALLOCATION_GRANULARITY);
 	ASSERT_TRUE (p);
@@ -204,8 +211,8 @@ TEST_F (TestAPI, Protection)
 
 	// We use "execute" protection to distinct mapped pages from write-copied pages.
 	// Page states:
-	// 0 - page not committed (entire block never was shared).
-	// PAGE_NOACCESS - Decommitted.
+	// 0 - Not committed.
+	// PAGE_NOACCESS - Decommitted (mapped, but not accessible).
 	// PAGE_EXECUTE_READWRITE: The page is mapped and never was shared.
 	// PAGE_WRITECOPY: The page is mapped and was shared.
 	// PAGE_READWRITE: The page is write-copyed (private, disconnected from mapping).
@@ -229,7 +236,7 @@ TEST_F (TestAPI, Protection)
 	//   PAGE_READWRITE<->PAGE_READONLY
 
 	// Create source block
-	HANDLE mh = CreateFileMapping (0, 0, PAGE_EXECUTE_READWRITE | SEC_RESERVE, 0, ALLOCATION_GRANULARITY, 0);
+	HANDLE mh = new_mapping ();
 	ASSERT_TRUE (mh);
 	BYTE* src = (BYTE*)MapViewOfFile (mh, FILE_MAP_ALL_ACCESS | FILE_MAP_EXECUTE, 0, 0, ALLOCATION_GRANULARITY);
 	ASSERT_TRUE (src);
@@ -311,32 +318,19 @@ TEST_F (TestAPI, Protection)
 
 	EXPECT_EQ (dst [0], 1);	// Destination not changed
 
-	// Decommit second page
-	EXPECT_TRUE (VirtualProtect (src + PAGE_SIZE, PAGE_SIZE, PAGE_NOACCESS, &old));
-	EXPECT_TRUE (VirtualAlloc (src + PAGE_SIZE, PAGE_SIZE, MEM_RESET, PAGE_NOACCESS));
 	BYTE x;
+
+	// Decommit source page
+	EXPECT_TRUE (VirtualProtect (src, PAGE_SIZE, PAGE_NOACCESS | PAGE_REVERT_TO_FILE_MAP, &old));
+	EXPECT_ANY_THROW (x = src [0]);
+
+	EXPECT_EQ (dst [0], 1);	// Destination not changed
+
+	// Decommit second source page
+	EXPECT_TRUE (VirtualProtect (src + PAGE_SIZE, PAGE_SIZE, PAGE_NOACCESS, &old));
+	// For not shared pages call VirtualAlloc with MEM_RESET to inform system that page content is not more interested.
+	EXPECT_TRUE (VirtualAlloc (src + PAGE_SIZE, PAGE_SIZE, MEM_RESET, PAGE_NOACCESS));
 	EXPECT_ANY_THROW (x = src [PAGE_SIZE]);
-
-	// Check source state
-	EXPECT_TRUE (VirtualQuery (src, &mbi0, sizeof (mbi0)));
-	EXPECT_TRUE (VirtualQuery (src + PAGE_SIZE, &mbi1, sizeof (mbi1)));
-
-	EXPECT_EQ (mbi0.State, MEM_COMMIT);
-	EXPECT_EQ (mbi1.State, MEM_COMMIT);
-	EXPECT_EQ (mbi0.Protect, PAGE_READWRITE);
-	EXPECT_EQ (mbi1.Protect, PAGE_NOACCESS);
-
-	// Check target state
-	EXPECT_TRUE (VirtualQuery (dst, &mbi0, sizeof (mbi0)));
-	EXPECT_TRUE (VirtualQuery (dst + PAGE_SIZE, &mbi1, sizeof (mbi1)));
-
-	EXPECT_EQ (mbi0.Type, MEM_MAPPED);
-	EXPECT_EQ (mbi1.Type, MEM_MAPPED);
-
-	EXPECT_EQ (mbi0.State, MEM_COMMIT);
-	EXPECT_EQ (mbi1.State, MEM_COMMIT);
-	EXPECT_EQ (mbi0.Protect, PAGE_WRITECOPY);
-	EXPECT_EQ (mbi1.Protect, PAGE_NOACCESS);
 
 	EXPECT_TRUE (UnmapViewOfFile (dst));
 	EXPECT_TRUE (UnmapViewOfFile (src));
@@ -482,6 +476,28 @@ TEST_F (TestAPI, SharedMapping2)
 
 	EXPECT_TRUE (UnmapViewOfFile (root_dir [i1]));
 	EXPECT_TRUE (CloseHandle (mapping));
+}
+
+TEST_F (TestAPI, Commit)
+{
+	// Create source block
+	HANDLE mh = new_mapping ();
+	ASSERT_TRUE (mh);
+	BYTE* src = (BYTE*)MapViewOfFile (mh, FILE_MAP_ALL_ACCESS | FILE_MAP_EXECUTE, 0, 0, ALLOCATION_GRANULARITY);
+	ASSERT_TRUE (src);
+
+	// Commit 2 pages overlapped
+	EXPECT_TRUE (VirtualAlloc (src, PAGE_SIZE, MEM_COMMIT, PAGE_EXECUTE_READ));
+	EXPECT_TRUE (VirtualAlloc (src + PAGE_SIZE, PAGE_SIZE, MEM_COMMIT, PAGE_EXECUTE_READWRITE));
+
+	MEMORY_BASIC_INFORMATION mbi0, mbi1;
+	EXPECT_TRUE (VirtualQuery (src, &mbi0, sizeof (mbi0)));
+	EXPECT_TRUE (VirtualQuery (src + PAGE_SIZE, &mbi1, sizeof (mbi1)));
+	EXPECT_EQ (mbi0.Protect, PAGE_EXECUTE_READ);
+	EXPECT_EQ (mbi1.Protect, PAGE_EXECUTE_READWRITE);
+
+	EXPECT_TRUE (UnmapViewOfFile (src));
+	EXPECT_TRUE (CloseHandle (mh));
 }
 
 }

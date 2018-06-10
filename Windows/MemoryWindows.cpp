@@ -1,35 +1,58 @@
-// Nirvana Memory Service for Win32
+// Nirvana project
+// Protection domain memory service over Win32 API
 
 #include "MemoryWindows.h"
 #include <cpplib.h>
+#include "../real_copy.h"
 
 namespace Nirvana {
 namespace Windows {
 
 AddressSpace MemoryWindows::sm_space;
 
-inline void MemoryWindows::Block::commit (void* begin, SIZE_T size)
+inline void MemoryWindows::Block::commit (void* ptr, SIZE_T size)
 {
-	assert ((BYTE*)begin >= address ());
-	assert ((BYTE*)begin + size <= address () + ALLOCATION_GRANULARITY);
+	BYTE* begin = round_up ((BYTE*)ptr, PAGE_SIZE);
+	BYTE* end = round_down ((BYTE*)ptr + size, PAGE_SIZE);
+	assert (begin >= address ());
+	assert (end <= address () + ALLOCATION_GRANULARITY);
 
 	HANDLE old_mapping = mapping ();
 	if (INVALID_HANDLE_VALUE == old_mapping) {
 		HANDLE hm = new_mapping ();
 		try {
-			map (hm, false);
+			map (hm, AddressSpace::MAP_PRIVATE);
+			if (!VirtualAlloc (begin, size, MEM_COMMIT, PageState::RW_MAPPED_PRIVATE)) {
+				unmap ();
+				throw NO_MEMORY ();
+			}
 		} catch (...) {
 			CloseHandle (hm);
 			throw;
 		}
-	}
+	} else {
+		const State& bs = state ();
+		Regions regions;
+		auto region_begin = bs.mapped.page_state, block_end = region_begin + PAGES_PER_BLOCK;
+		do {
+			auto region_end = region_begin;
+			DWORD state = *region_begin;
+			do
+				++region_end;
+			while (region_end < block_end && state == *region_end);
 
-	MEMORY_BASIC_INFORMATION mbi;
-	sm_space.query (begin, mbi);
-	if (!VirtualAlloc (begin, size, MEM_COMMIT, (mbi.AllocationProtect & PageState::MASK_RW) ? PageState::RW_MAPPED_PRIVATE : PageState::RW_MAPPED_SHARED)) {
-		if (INVALID_HANDLE_VALUE == old_mapping)
-			unmap ();
-		throw NO_MEMORY ();
+			if (!(PageState::MASK_ACCESS & state))
+				regions.add (address () + (region_begin - bs.mapped.page_state) * PAGE_SIZE, (region_end - region_begin) * PAGE_SIZE);
+
+			region_begin = region_end;
+		} while (region_begin < block_end);
+
+		if (regions.end != regions.begin) {
+			if (bs.page_state_bits & PageState::MASK_MAY_BE_SHARED)
+				remap (false);
+			for (const Region* p = regions.begin; p != regions.end; ++p)
+				verify (VirtualAlloc (p->ptr, p->size, MEM_COMMIT, PageState::RW_MAPPED_PRIVATE));
+		}
 	}
 }
 
@@ -41,7 +64,7 @@ inline void MemoryWindows::Block::decommit (void* ptr, SIZE_T size)
 	assert (end <= address () + ALLOCATION_GRANULARITY);
 	if (begin == address () && end == address () + ALLOCATION_GRANULARITY)
 		unmap ();
-	else if (state ().state == AddressSpace::BlockState::MAPPED) {
+	else if (state ().state == State::MAPPED) {
 		bool can_unmap = true;
 		auto page_state = state ().mapped.page_state;
 		if (begin > address ()) {
@@ -65,16 +88,12 @@ inline void MemoryWindows::Block::decommit (void* ptr, SIZE_T size)
 			unmap ();
 		else {
 			invalidate_state ();
-			decommit_surrogate (begin, end - begin);
+			// Decommit pages. We can't use VirtualFree and MEM_DECOMMIT with mapped memory.
+			protect (begin, size, PageState::DECOMMITTED | PAGE_REVERT_TO_FILE_MAP);
+			// Discard page. TODO: Is this safe if page is shared?
+			verify (VirtualAlloc (begin, size, MEM_RESET, PageState::DECOMMITTED));
 		}
 	}
-}
-
-void MemoryWindows::Block::decommit_surrogate (void* begin, SIZE_T size)
-{
-	// Decommit pages. We can't use VirtualFree and MEM_DECOMMIT with mapped memory.
-	protect (begin, size, PageState::DECOMMITTED);
-	verify (VirtualAlloc (begin, size, MEM_RESET, PageState::DECOMMITTED));
 }
 
 void MemoryWindows::Block::prepare2share (void* begin, SIZE_T size)
@@ -82,61 +101,25 @@ void MemoryWindows::Block::prepare2share (void* begin, SIZE_T size)
 	SIZE_T offset = (BYTE*)begin - address ();
 	assert (offset + size <= ALLOCATION_GRANULARITY);
 
-	if (state ().state != AddressSpace::BlockState::MAPPED)
+	if (state ().state != State::MAPPED)
 		throw BAD_PARAM ();
 
-	{ // Remap if neeed.
-		bool need_remap = false;
-		auto page_state = state ().mapped.page_state;
-		for (auto ps = page_state + offset / PAGE_SIZE, end = page_state + (offset + size + PAGE_SIZE - 1) / PAGE_SIZE; ps < end; ++ps) {
-			DWORD state = *ps;
-			if (!(PageState::MASK_ACCESS & state))
-				throw BAD_PARAM ();	// Page not committed
-			else if (PageState::MASK_UNMAPPED & state)
-				need_remap = true;
-		}
-
-		if (need_remap) {
-			HANDLE hm = new_mapping ();
-			try {
-				BYTE* ptmp = (BYTE*)MapViewOfFile (hm, FILE_MAP_ALL_ACCESS, 0, 0, 0);
-				if (!ptmp)
-					throw NO_MEMORY ();
-				auto region_begin = page_state, block_end = page_state + PAGES_PER_BLOCK;
-				do {
-					auto region_end = region_begin;
-					if (PageState::MASK_ACCESS & *region_begin) {
-						do
-							++region_end;
-						while (region_end < block_end && (PageState::MASK_ACCESS & *region_end));
-
-						SIZE_T offset = (region_begin - page_state) * PAGE_SIZE;
-						Word* src = (Word*)(address () + offset);
-						Word* dst = (Word*)(ptmp + offset);
-						Word* src_end = src + (region_end - region_begin) * PAGE_SIZE / sizeof (Word);
-						do
-							*(dst++) = *(src++);
-						while (src < src_end);
-					} else {
-						do
-							++region_end;
-						while (region_end < block_end && !(PageState::MASK_ACCESS & *region_end));
-					}
-
-					region_begin = region_end;
-				} while (region_begin < block_end);
-
-				verify (UnmapViewOfFile (ptmp));
-				map (hm, false);
-
-			} catch (...) {
-				CloseHandle (hm);
-				throw;
-			}
-		}
+	// Remap if neeed.
+	bool need_remap = false;
+	auto page_state = state ().mapped.page_state;
+	for (auto ps = page_state + offset / PAGE_SIZE, end = page_state + (offset + size + PAGE_SIZE - 1) / PAGE_SIZE; ps < end; ++ps) {
+		DWORD state = *ps;
+		if (!(PageState::MASK_ACCESS & state))
+			throw BAD_PARAM ();	// Page not committed
+		else if (PageState::MASK_UNMAPPED & state)
+			need_remap = true;
 	}
+	if (state ().page_state_bits & PageState::DECOMMITTED)
+		need_remap = true;
 
-	{ // Prepare pages
+	if (need_remap)
+		remap (true);
+	else { // Prepare pages
 		auto page_state = state ().mapped.page_state;
 		auto region_begin = page_state, block_end = region_begin + PAGES_PER_BLOCK;
 		bool committed = false;
@@ -147,17 +130,7 @@ void MemoryWindows::Block::prepare2share (void* begin, SIZE_T size)
 				++region_end;
 			while (region_end < block_end && state == *region_end);
 
-			if (PageState::NOT_COMMITTED == state) {
-				BYTE* ptr = address () + (region_begin - page_state) * PAGE_SIZE;
-				SIZE_T size = (region_end - region_begin) * PAGE_SIZE;
-				if (!committed) {
-					// Do it once.
-					verify (VirtualAlloc (ptr, address () + ALLOCATION_GRANULARITY - ptr, MEM_COMMIT, PageState::DECOMMITTED));
-					committed = true;
-					// Do not invalidate state here! Keep page_state unchanged until the end of operation.
-				}
-				decommit_surrogate (ptr, size);
-			} else if (PageState::RW_MAPPED_PRIVATE == state) {
+			if (PageState::RW_MAPPED_PRIVATE == state) {
 				BYTE* ptr = address () + (region_begin - page_state) * PAGE_SIZE;
 				SIZE_T size = (region_end - region_begin) * PAGE_SIZE;
 				protect (ptr, size, PageState::RW_MAPPED_SHARED);
@@ -165,6 +138,69 @@ void MemoryWindows::Block::prepare2share (void* begin, SIZE_T size)
 
 			region_begin = region_end;
 		} while (region_begin < block_end);
+	}
+}
+
+void MemoryWindows::Block::remap (bool for_share)
+{
+	HANDLE hm = new_mapping ();
+	try {
+		BYTE* ptmp = (BYTE*)MapViewOfFile (hm, FILE_MAP_ALL_ACCESS, 0, 0, 0);
+		if (!ptmp)
+			throw NO_MEMORY ();
+
+		Regions read_only;
+		try {
+			auto page_state = state ().mapped.page_state;
+			auto region_begin = page_state, block_end = page_state + PAGES_PER_BLOCK;
+			do {
+				auto region_end = region_begin;
+				if (PageState::MASK_ACCESS & *region_begin) {
+					do
+						++region_end;
+					while (region_end < block_end && (PageState::MASK_ACCESS & *region_end));
+
+					SIZE_T offset = (region_begin - page_state) * PAGE_SIZE;
+					LONG_PTR* dst = (LONG_PTR*)(ptmp + offset);
+					SIZE_T size = (region_end - region_begin) * PAGE_SIZE;
+					if (!VirtualAlloc (dst, size, MEM_COMMIT, PAGE_READWRITE))
+						throw NO_MEMORY ();
+					const LONG_PTR* src = (LONG_PTR*)(address () + offset);
+					real_copy (src, src + size / sizeof (LONG_PTR), dst);
+					if (PageState::MASK_RO & *region_begin)
+						read_only.add ((void*)src, size);
+				} else {
+					do
+						++region_end;
+					while (region_end < block_end && !(PageState::MASK_ACCESS & *region_end));
+				}
+
+				region_begin = region_end;
+			} while (region_begin < block_end);
+		} catch (...) {
+			UnmapViewOfFile (ptmp);
+			throw;
+		}
+		verify (UnmapViewOfFile (ptmp));
+
+		// Change to new mapping
+		AddressSpace::MappingType mt;
+		DWORD read_only_protect;
+		if (for_share) {
+			mt = AddressSpace::MAP_SHARED;
+			read_only_protect = PageState::RO_MAPPED_SHARED;
+		} else {
+			mt = AddressSpace::MAP_PRIVATE;
+			read_only_protect = PageState::RO_MAPPED_PRIVATE;
+		}
+		map (hm, mt);
+
+		// Change protection for read-only pages.
+		for (const Region* p = read_only.begin; p != read_only.end; ++p)
+			protect (p->ptr, p->size, read_only_protect);
+	} catch (...) {
+		CloseHandle (hm);
+		throw;
 	}
 }
 
@@ -177,6 +213,10 @@ void MemoryWindows::commit (void* dst, SIZE_T size)
 
 	BYTE* begin = (BYTE*)dst;
 	BYTE* end = begin + size;
+
+	// Memory must be allocated.
+	for (BYTE* p = begin; p < end; p += ALLOCATION_GRANULARITY)
+		sm_space.allocated_block (p);
 
 	BYTE* p = begin;
 	try {
@@ -196,30 +236,25 @@ void MemoryWindows::commit (void* dst, SIZE_T size)
 
 void MemoryWindows::decommit (void* dst, SIZE_T size)
 {
+	if (!size)
+		return;
+	if (!dst)
+		throw BAD_PARAM ();
+
 	BYTE* begin = (BYTE*)dst;
 	BYTE* end = begin + size;
 
-	// Memory must be allocated as read-write.
-	bool committed = false;
-	for (BYTE* p = begin; p < end; p += ALLOCATION_GRANULARITY) {
+	// Memory must be allocated.
+	for (BYTE* p = begin; p < end; p += ALLOCATION_GRANULARITY)
 		sm_space.allocated_block (p);
-		MEMORY_BASIC_INFORMATION mbi;
-		sm_space.query (p, mbi);
-		if (PageState::MASK_RO & mbi.AllocationProtect)
-			throw BAD_PARAM ();
-		if (mbi.State == MEM_COMMIT)
-			committed = true;
-	}
 
-	if (committed) {
-		for (BYTE* p = begin; p < end;) {
-			Block block (p);
-			BYTE* block_end = block.address () + ALLOCATION_GRANULARITY;
-			if (block_end > end)
-				block_end = end;
-			block.decommit (p, block_end - p);
-			p = block_end;
-		}
+	for (BYTE* p = begin; p < end;) {
+		Block block (p);
+		BYTE* block_end = block.address () + ALLOCATION_GRANULARITY;
+		if (block_end > end)
+			block_end = end;
+		block.decommit (p, block_end - p);
+		p = block_end;
 	}
 }
 

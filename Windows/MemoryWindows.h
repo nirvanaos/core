@@ -1,5 +1,5 @@
-// Nirvana project.
-// Protection domain memory service for Win32 API
+// Nirvana project
+// Protection domain memory service over Win32 API
 
 #ifndef NIRVANA_MEMORYWINDOWS_H_
 #define NIRVANA_MEMORYWINDOWS_H_
@@ -11,7 +11,6 @@ namespace Nirvana {
 namespace Windows {
 
 using namespace ::CORBA;
-using namespace ::CORBA::Nirvana;
 
 class MemoryWindows
 {
@@ -44,7 +43,7 @@ public:
 			
 			HANDLE mapping = new_mapping ();
 			try {
-				ret = sm_space.map (mapping, protection);
+				ret = sm_space.map (mapping, AddressSpace::MAP_PRIVATE);
 			} catch (...) {
 				CloseHandle (mapping);
 				throw;
@@ -80,11 +79,11 @@ public:
 	static void decommit (void* dst, SIZE_T size);
 
 	static void* copy (void* dst, void* src, SIZE_T size, LONG flags);
-
+/*
 	static Boolean is_private (Pointer p);
 	static Boolean is_copy (Pointer p1, Pointer p2, UWord size);
 	static Word query (Pointer p, Memory::QueryParam q);
-
+*/
 	class Block :
 		public AddressSpace::Block
 	{
@@ -98,7 +97,31 @@ public:
 		void prepare2share (void* begin, SIZE_T size);
 
 	private:
-		void decommit_surrogate (void* begin, SIZE_T size);
+		void remap (bool for_share);
+
+		struct Region
+		{
+			void* ptr;
+			SIZE_T size;
+		};
+
+		struct Regions
+		{
+			Region begin [PAGES_PER_BLOCK];
+			Region* end;
+
+			Regions () :
+				end (begin)
+			{}
+
+			void add (void* ptr, SIZE_T size)
+			{
+				assert (end < begin + PAGES_PER_BLOCK);
+				Region* p = end++;
+				p->ptr = ptr;
+				p->size = size;
+			}
+		};
 	};
 
 private:
@@ -110,7 +133,7 @@ private:
 	// Create new mapping
 	static HANDLE new_mapping ()
 	{
-		HANDLE mapping = CreateFileMapping (0, 0, PageState::RW_MAPPED_PRIVATE | SEC_RESERVE, 0, ALLOCATION_GRANULARITY, 0);
+		HANDLE mapping = CreateFileMappingW (0, 0, PageState::RW_MAPPED_PRIVATE | SEC_RESERVE, 0, ALLOCATION_GRANULARITY, 0);
 		if (!mapping)
 			throw NO_MEMORY ();
 		return mapping;

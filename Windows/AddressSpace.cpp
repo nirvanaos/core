@@ -5,7 +5,7 @@
 namespace Nirvana {
 namespace Windows {
 
-using namespace std;
+using namespace ::CORBA;
 
 void AddressSpace::initialize (DWORD process_id, HANDLE process_handle)
 {
@@ -183,7 +183,7 @@ void* AddressSpace::reserve (SIZE_T size, LONG flags, void* dst)
 		dst = round_down (dst, ALLOCATION_GRANULARITY);
 	size = round_up (size, ALLOCATION_GRANULARITY);
 	for (;;) {	// Loop to handle possible raise conditions.
-		p = (BYTE*)VirtualAllocEx (m_process, dst, size, MEM_RESERVE, (flags & Memory::READ_ONLY) ? PageState::RO_RESERVED : PageState::RW_RESERVED);
+		p = (BYTE*)VirtualAllocEx (m_process, dst, size, MEM_RESERVE, PAGE_NOACCESS);
 		if (!p) {
 			if (dst && (flags & Memory::EXACTLY))
 				return 0;
@@ -222,8 +222,7 @@ void AddressSpace::release (void* dst, SIZE_T size)
 	for (BYTE* p = begin; p != end; p += ALLOCATION_GRANULARITY)
 		allocated_block (p);
 
-	{
-		// Define allocation margins if memory is reserved.
+	{ // Define allocation margins if memory is reserved.
 		MEMORY_BASIC_INFORMATION begin_mbi = {0}, end_mbi = {0};
 		if (INVALID_HANDLE_VALUE == allocated_block (begin).mapping) {
 			query (begin, begin_mbi);
@@ -245,7 +244,7 @@ void AddressSpace::release (void* dst, SIZE_T size)
 			SSIZE_T realloc = begin - (BYTE*)begin_mbi.AllocationBase;
 			if (realloc > 0) {
 				verify (VirtualFreeEx (m_process, begin_mbi.AllocationBase, 0, MEM_RELEASE));
-				while (!VirtualAllocEx (m_process, begin_mbi.AllocationBase, realloc, MEM_RESERVE, begin_mbi.AllocationProtect)) {
+				while (!VirtualAllocEx (m_process, begin_mbi.AllocationBase, realloc, MEM_RESERVE, PAGE_NOACCESS)) {
 					assert (ERROR_INVALID_ADDRESS == GetLastError ());
 					raise_condition ();
 				}
@@ -257,7 +256,7 @@ void AddressSpace::release (void* dst, SIZE_T size)
 			if (realloc > 0) {
 				if ((BYTE*)end_mbi.AllocationBase >= begin)
 					verify (VirtualFreeEx (m_process, end_mbi.AllocationBase, 0, MEM_RELEASE));
-				while (!VirtualAllocEx (m_process, end, realloc, MEM_RESERVE, end_mbi.AllocationProtect)) {
+				while (!VirtualAllocEx (m_process, end, realloc, MEM_RESERVE, PAGE_NOACCESS)) {
 					assert (ERROR_INVALID_ADDRESS == GetLastError ());
 					raise_condition ();
 				}
@@ -268,6 +267,7 @@ void AddressSpace::release (void* dst, SIZE_T size)
 	// Release memory
 	for (BYTE* p = begin; p < end;) {
 		HANDLE mapping = InterlockedExchangePointer (&allocated_block (p).mapping, 0);
+		assert (mapping);
 		if (INVALID_HANDLE_VALUE == mapping) {
 			MEMORY_BASIC_INFORMATION mbi;
 			if (!VirtualQueryEx (m_process, p, &mbi, sizeof (mbi)))
@@ -284,7 +284,7 @@ void AddressSpace::release (void* dst, SIZE_T size)
 				allocated_block (p).mapping = 0;
 				p += ALLOCATION_GRANULARITY;
 			}
-		} else {
+		} else if (mapping) {
 			verify (UnmapViewOfFile2 (m_process, p, 0));
 			verify (CloseHandle (mapping));
 			p += ALLOCATION_GRANULARITY;
@@ -292,9 +292,10 @@ void AddressSpace::release (void* dst, SIZE_T size)
 	}
 }
 
-void* AddressSpace::map (HANDLE mapping, DWORD protection)
+void* AddressSpace::map (HANDLE mapping, MappingType protection)
 {
 	assert (mapping);
+	assert (protection == MAP_SHARED || is_current_process ());
 	for (;;) {
 		void* p = MapViewOfFile2 (mapping, m_process, 0, 0, ALLOCATION_GRANULARITY, 0, protection);
 		if (!p)
@@ -311,7 +312,7 @@ void* AddressSpace::map (HANDLE mapping, DWORD protection)
 	}
 }
 
-void* AddressSpace::copy (HANDLE src, SIZE_T offset, SIZE_T size, LONG read_only)
+void* AddressSpace::copy (HANDLE src, SIZE_T offset, SIZE_T size, LONG flags)
 {
 	HANDLE mapping;
 	if (!DuplicateHandle (GetCurrentProcess (), src, m_process, &mapping, 0, FALSE, DUPLICATE_SAME_ACCESS))
@@ -319,11 +320,14 @@ void* AddressSpace::copy (HANDLE src, SIZE_T offset, SIZE_T size, LONG read_only
 
 	BYTE* p;
 	try {
-		p = (BYTE*)map (mapping, (read_only & Memory::READ_ONLY) ? PageState::RO_MAPPED_SHARED : PageState::RW_MAPPED_SHARED);
+		p = (BYTE*)map (mapping, MAP_SHARED);
 	} catch (...) {
 		CloseHandle (mapping);
 		throw;
 	}
+
+	if (Memory::READ_ONLY & flags)
+		protect (p + offset, size, PageState::RO_MAPPED_SHARED);
 
 	if (offset > 0)
 		protect (p, round_down (offset, PAGE_SIZE), PageState::DECOMMITTED);
@@ -335,22 +339,23 @@ void* AddressSpace::copy (HANDLE src, SIZE_T offset, SIZE_T size, LONG read_only
 	return p;
 }
 
-const AddressSpace::BlockState& AddressSpace::Block::state ()
+const AddressSpace::Block::State& AddressSpace::Block::state ()
 {
-	if (BlockState::INVALID == m_state.state) {
+	if (State::INVALID == m_state.state) {
 		MEMORY_BASIC_INFORMATION mbi;
 		m_space.query (m_address, mbi);
-		m_state.allocation_protect = mbi.AllocationProtect;
+		DWORD page_state_bits = mbi.Protect;
 		if (mbi.Type == MEM_MAPPED) {
 			assert (mapping () != INVALID_HANDLE_VALUE);
 			assert (mbi.AllocationBase == m_address);
-			m_state.state = BlockState::MAPPED;
+			m_state.state = State::MAPPED;
 			BYTE* page = m_address;
 			BYTE* block_end = page + ALLOCATION_GRANULARITY;
 			auto* ps = m_state.mapped.page_state;
 			for (;;) {
 				BYTE* end = page + mbi.RegionSize;
 				assert (end <= block_end);
+				page_state_bits |= mbi.Protect;
 				for (; page < end; page += PAGE_SIZE) {
 					*(ps++) = mbi.Protect;
 				}
@@ -362,16 +367,17 @@ const AddressSpace::BlockState& AddressSpace::Block::state ()
 		} else {
 			assert (mapping () == INVALID_HANDLE_VALUE);
 			assert ((BYTE*)mbi.BaseAddress + mbi.RegionSize >= (m_address + ALLOCATION_GRANULARITY));
-			m_state.state = BlockState::RESERVED;
+			m_state.state = State::RESERVED;
 
 			m_state.reserved.begin = (BYTE*)mbi.AllocationBase;
 			m_state.reserved.end = (BYTE*)mbi.BaseAddress + mbi.RegionSize;
 		}
+		m_state.page_state_bits = page_state_bits;
 	}
 	return m_state;
 }
 
-void AddressSpace::Block::copy (HANDLE src, DWORD offset, DWORD size)
+void AddressSpace::Block::copy (HANDLE src, DWORD offset, DWORD size, LONG flags)
 {
 	assert (offset + size <= ALLOCATION_GRANULARITY);
 	assert (size);
@@ -401,7 +407,17 @@ void AddressSpace::Block::copy (HANDLE src, DWORD offset, DWORD size)
 	}
 
 	if (remap) {
-		map (src, true);
+		HANDLE mapping;
+		if (!DuplicateHandle (GetCurrentProcess (), src, m_space.process (), &mapping, 0, FALSE, DUPLICATE_SAME_ACCESS))
+			throw NO_MEMORY ();
+		try {
+			map (src, MAP_SHARED);
+		} catch (...) {
+			CloseHandle (mapping);
+			throw;
+		}
+		if (Memory::READ_ONLY & flags)
+			m_space.protect (m_address + offset, size, PageState::RO_MAPPED_SHARED);
 		if (offset > 0)
 			m_space.protect (m_address, round_down (offset, PAGE_SIZE), PageState::DECOMMITTED);
 		offset = round_up (offset + size, PAGE_SIZE);
@@ -410,79 +426,96 @@ void AddressSpace::Block::copy (HANDLE src, DWORD offset, DWORD size)
 			m_space.protect (m_address + offset, tail, PageState::DECOMMITTED);
 	} else {
 		bool change_protection = false;
+		DWORD protection = (Memory::READ_ONLY & flags) ? PageState::RO_MAPPED_SHARED | PAGE_REVERT_TO_FILE_MAP : PageState::RW_MAPPED_SHARED | PAGE_REVERT_TO_FILE_MAP;
 		auto page_state = state ().mapped.page_state;
-		for (auto ps = page_state + offset / PAGE_SIZE, end = page_state + (offset + size + PAGE_SIZE - 1) / PAGE_SIZE; ps < end; ++ps) {
-			if (PageState::MASK_UNMAPPED & *ps)
-				throw INTERNAL ();
-			else if (!(PageState::MASK_ACCESS & *ps))
-				change_protection = true;
+		auto begin = page_state + offset / PAGE_SIZE, end = page_state + (offset + size + PAGE_SIZE - 1) / PAGE_SIZE - 1;
+		if (offset % PAGE_SIZE) {	// Destination address is not page-aligned.
+			auto state = *begin;
+			if (state != protection) {
+				if (PageState::MASK_UNMAPPED & state)
+					throw INTERNAL ();	// Can not copy unaligned data to unmapped private page.
+				else if (PageState::NOT_COMMITTED == state)
+					throw BAD_PARAM ();	// Can not copy not committed page - source error.
+				else if (PageState::DECOMMITTED == state)
+					change_protection = true;
+				else if (Memory::READ_ONLY & flags)
+					offset = round_up (offset, PAGE_SIZE); // Start page should remain partially writable.
+			}
+			++begin;
+		}
+
+		{
+			SIZE_T tail = (offset + size) % PAGE_SIZE;
+			if (tail) {	// End of destination block is not page-aligned
+				auto state = *end;
+				if (state != protection) {
+					if (PageState::MASK_UNMAPPED & state)
+						throw INTERNAL ();	// Can not copy unaligned data to unmapped private page.
+					else if (PageState::NOT_COMMITTED == state)
+						throw BAD_PARAM ();	// Can not copy not committed page - source error.
+					else if (PageState::DECOMMITTED == state)
+						change_protection = true;
+					else if (Memory::READ_ONLY & flags)
+						size -= tail; // End page should remain partially writable.
+				}
+			}
+			--end;
+		}
+
+		for (auto ps = begin; ps <= end; ++ps) {
+			auto state = *ps;
+			if (state != protection) {
+				if (PageState::NOT_COMMITTED == state)
+					throw BAD_PARAM ();	// Can not copy not committed page
+				else
+					change_protection = true;
+			}
 		}
 		if (change_protection) {
-			DWORD protection = (state ().allocation_protect & PageState::MASK_RW) ? PageState::RW_MAPPED_SHARED : PageState::RO_MAPPED_SHARED;
-			m_space.protect (m_address + offset, size, protection);
+			m_space.protect (m_address + offset, size, protection | PAGE_REVERT_TO_FILE_MAP);
 			invalidate_state ();
 		}
 	}
 }
 
-void AddressSpace::Block::map (HANDLE src, bool copy)
+void AddressSpace::Block::map (HANDLE mapping, MappingType protection)
 {
-	assert (src);
+	assert (mapping);
 
-	HANDLE mapping;
-	if (copy) {
-		if (!DuplicateHandle (GetCurrentProcess (), src, m_space.process (), &mapping, 0, FALSE, DUPLICATE_SAME_ACCESS))
-			throw NO_MEMORY ();
-	} else
-		mapping = src;
-
-	invalidate_state ();
-
-	try {
-
-		MEMORY_BASIC_INFORMATION mbi;
-		m_space.query (m_address, mbi);
-		HANDLE old = InterlockedExchangePointer (&m_info.mapping, mapping);
-		if (old == INVALID_HANDLE_VALUE) {
-			assert (MEM_RESERVE == mbi.State);
-			ptrdiff_t realloc_begin = m_address - (BYTE*)mbi.AllocationBase;
-			ptrdiff_t realloc_end = (BYTE*)mbi.BaseAddress + mbi.RegionSize - m_address - ALLOCATION_GRANULARITY;
-			verify (VirtualFreeEx (m_space.process (), mbi.AllocationBase, 0, MEM_RELEASE));
-			if (realloc_begin > 0) {
-				while (!VirtualAllocEx (m_space.process (), mbi.AllocationBase, realloc_begin, MEM_RESERVE, mbi.AllocationProtect)) {
-					assert (ERROR_INVALID_ADDRESS == GetLastError ());
-					raise_condition ();
-				}
+	MEMORY_BASIC_INFORMATION mbi;
+	m_space.query (m_address, mbi);
+	HANDLE old = InterlockedExchangePointer (&m_info.mapping, mapping);
+	if (old == INVALID_HANDLE_VALUE) {
+		const State& bs = state ();
+		assert (State::RESERVED == bs.state);
+		BYTE* reserved_begin = bs.reserved.begin;
+		ptrdiff_t realloc_begin = m_address - reserved_begin;
+		ptrdiff_t realloc_end = bs.reserved.end - m_address - ALLOCATION_GRANULARITY;
+		verify (VirtualFreeEx (m_space.process (), reserved_begin, 0, MEM_RELEASE));
+		if (realloc_begin > 0) {
+			while (!VirtualAllocEx (m_space.process (), reserved_begin, realloc_begin, MEM_RESERVE, mbi.AllocationProtect)) {
+				assert (ERROR_INVALID_ADDRESS == GetLastError ());
+				raise_condition ();
 			}
-			if (realloc_end > 0) {
-				BYTE* end = m_address + ALLOCATION_GRANULARITY;
-				while (!VirtualAllocEx (m_space.process (), end, realloc_end, MEM_RESERVE, mbi.AllocationProtect)) {
-					assert (ERROR_INVALID_ADDRESS == GetLastError ());
-					raise_condition ();
-				}
+		}
+		if (realloc_end > 0) {
+			BYTE* end = m_address + ALLOCATION_GRANULARITY;
+			while (!VirtualAllocEx (m_space.process (), end, realloc_end, MEM_RESERVE, mbi.AllocationProtect)) {
+				assert (ERROR_INVALID_ADDRESS == GetLastError ());
+				raise_condition ();
 			}
-		} else if (old) {
-			if (!UnmapViewOfFile2 (m_space.process (), m_address, 0))
-				throw INTERNAL ();
-			verify (CloseHandle (old));
-		} else {
-			m_info.mapping = 0;
-			throw INTERNAL ();
 		}
+	} else if (old) {
+		verify (UnmapViewOfFile2 (m_space.process (), m_address, 0));
+		verify (CloseHandle (old));
+	} else {
+		m_info.mapping = 0;
+		throw INTERNAL ();
+	}
 
-		ULONG protect = (mbi.AllocationProtect & PageState::MASK_RW) ? 
-			(copy ? PageState::RW_MAPPED_SHARED : PageState::RW_MAPPED_PRIVATE) : 
-			(copy ? PageState::RO_MAPPED_SHARED : PageState::RO_MAPPED_PRIVATE);
-
-		while (!MapViewOfFile2 (mapping, m_space.process (), 0, m_address, ALLOCATION_GRANULARITY, 0, protect)) {
-			assert (ERROR_INVALID_ADDRESS == GetLastError ());
-			raise_condition ();
-		}
-
-	} catch (...) {
-		if (copy)
-			CloseHandle (mapping);
-		throw;
+	while (!MapViewOfFile2 (mapping, m_space.process (), 0, m_address, ALLOCATION_GRANULARITY, 0, protection)) {
+		assert (ERROR_INVALID_ADDRESS == GetLastError ());
+		raise_condition ();
 	}
 }
 
@@ -494,21 +527,9 @@ void AddressSpace::Block::unmap ()
 		throw INTERNAL ();
 	}
 	if (INVALID_HANDLE_VALUE != mapping) {
-		DWORD protect;
-		if (m_state.state != BlockState::INVALID) {
-			protect = m_state.allocation_protect;
-			invalidate_state ();
-		} else {
-			MEMORY_BASIC_INFORMATION mbi;
-			m_space.query (m_address, mbi);
-			protect = mbi.AllocationProtect;
-		}
-
-		protect = (protect & PageState::MASK_RW) ? PageState::RW_RESERVED : PageState::RO_RESERVED;
-
 		verify (UnmapViewOfFile2 (m_space.process (), m_address, 0));
 		verify (CloseHandle (mapping));
-		while (!VirtualAllocEx (m_space.process (), m_address, ALLOCATION_GRANULARITY, MEM_RESERVE, protect)) {
+		while (!VirtualAllocEx (m_space.process (), m_address, ALLOCATION_GRANULARITY, MEM_RESERVE, PAGE_NOACCESS)) {
 			assert (ERROR_INVALID_ADDRESS == GetLastError ());
 			raise_condition ();
 		}

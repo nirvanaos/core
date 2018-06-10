@@ -22,6 +22,7 @@
     <ClCompile Include="..\..\..\..\googletest\googletest\src\gtest-all.cc" />
     <ClCompile Include="..\..\..\..\googletest\googletest\src\gtest_main.cc" />
     <ClCompile Include="..\..\..\Memory.cpp" />
+    <ClCompile Include="..\..\..\real_copy.cpp" />
     <ClCompile Include="..\..\MemoryWindows.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
@@ -42,6 +43,7 @@
     <ClInclude Include="..\..\..\core.h" />
     <ClInclude Include="..\..\..\Include\cpplib.h" />
     <ClInclude Include="..\..\..\Include\Memory.h" />
+    <ClInclude Include="..\..\..\real_copy.h" />
     <ClInclude Include="..\..\AddressSpace.h" />
     <ClInclude Include="..\..\win32.h" />
     <ClInclude Include="..\..\MemoryWindows.h" />

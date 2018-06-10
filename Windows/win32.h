@@ -25,9 +25,9 @@
 namespace Nirvana {
 namespace Windows {
 
-const UWord PAGE_SIZE = 4096;
-const UWord PAGES_PER_BLOCK = 16; // Windows allocate memory by 64K blocks
-const UWord ALLOCATION_GRANULARITY = PAGE_SIZE * PAGES_PER_BLOCK;
+const SIZE_T PAGE_SIZE = 4096;
+const SIZE_T PAGES_PER_BLOCK = 16; // Windows allocate memory by 64K blocks
+const SIZE_T ALLOCATION_GRANULARITY = PAGE_SIZE * PAGES_PER_BLOCK;
 
 }
 }

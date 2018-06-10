@@ -36,7 +36,7 @@ protected:
 
 TEST_F (TestMemoryWindows, Allocate)
 {
-	UWord BLOCK_SIZE = 0x10000000;	// 256M
+	size_t BLOCK_SIZE = 0x10000000;	// 256M
 
 	static const size_t ITER_CNT = 3;
 	static const Flags iter_flags [ITER_CNT] = {

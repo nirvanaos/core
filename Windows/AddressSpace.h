@@ -5,8 +5,6 @@
 #ifndef NIRVANA_WINDOWS_ADDRESSSPACE_H_
 #define NIRVANA_WINDOWS_ADDRESSSPACE_H_
 
-#include <ORB.h>
-#include <cpplib.h>
 #include "Win32.h"
 
 namespace Nirvana {
@@ -88,7 +86,8 @@ public:
 		MASK_RW = PAGE_EXECUTE_READWRITE | PAGE_WRITECOPY | PAGE_READWRITE,
 		MASK_RO = PAGE_EXECUTE_READ | PAGE_EXECUTE | PAGE_READONLY,
 		MASK_ACCESS = MASK_RW | MASK_RO,
-		MASK_UNMAPPED = RW_UNMAPPED | RO_UNMAPPED
+		MASK_UNMAPPED = RW_UNMAPPED | RO_UNMAPPED,
+		MASK_MAY_BE_SHARED = RW_MAPPED_SHARED | RO_MAPPED_SHARED | MASK_UNMAPPED | DECOMMITTED
 	};
 };
 
@@ -111,12 +110,24 @@ public:
 	/// </summary>
 	void terminate ();
 
+	bool is_current_process () const
+	{
+		return GetCurrentProcess () == m_process;
+	}
+
 	void* reserve (SIZE_T size, LONG flags, void* dst = 0);
 	void release (void* dst, SIZE_T size);
 
 	// Quick methods for block sizes <= ALLOCATION_GRANULARITY
-	void* copy (HANDLE src, SIZE_T offset, SIZE_T size, LONG read_only);
-	void* map (HANDLE mapping, DWORD protection);
+	void* copy (HANDLE src, SIZE_T offset, SIZE_T size, LONG flags);
+
+	enum MappingType
+	{
+		MAP_PRIVATE = PageState::RW_MAPPED_PRIVATE,
+		MAP_SHARED = PageState::RW_MAPPED_SHARED
+	};
+
+	void* map (HANDLE mapping, MappingType protection);
 
 	void query (const void* address, MEMORY_BASIC_INFORMATION& mbi) const
 	{
@@ -133,45 +144,6 @@ public:
 	{
 		// Currently we are using only one field. But we create structure for possible future extensions.
 		HANDLE mapping;
-	};
-
-	struct BlockState
-	{
-		enum : DWORD
-		{
-			INVALID,
-			RESERVED,
-			MAPPED
-		}
-		state;
-
-		DWORD allocation_protect;
-		
-		union
-		{
-			/// <summary>
-			/// Valid if block is mapped.
-			/// </summary>
-			struct
-			{
-				DWORD page_state [PAGES_PER_BLOCK];
-			}
-			mapped;
-
-			/// <summary>
-			/// Valid if block is reserved.
-			/// </summary>
-			struct
-			{
-				BYTE* begin;
-				BYTE* end;
-			}
-			reserved;
-		};
-
-		BlockState () :
-			state (INVALID)
-		{}
 	};
 
 	class Block
@@ -195,24 +167,66 @@ public:
 			return m_info.mapping;
 		}
 
-		const BlockState& state ();
-
-		void invalidate_state ()
-		{
-			m_state.state = BlockState::INVALID;
-		}
-
-		void copy (HANDLE src, DWORD offset, DWORD size);
+		void copy (HANDLE src, DWORD offset, DWORD size, LONG flags);
 		void unmap ();
 
 	protected:
-		void map (HANDLE mapping, bool copy);
+		struct State
+		{
+			enum : DWORD
+			{
+				INVALID,
+				RESERVED,
+				MAPPED
+			}
+			state;
+
+			/// <summary>
+			/// The OR of all page_state.
+			/// </summary>
+			DWORD page_state_bits;
+
+			union
+			{
+				/// <summary>
+				/// Valid if block is mapped.
+				/// </summary>
+				struct
+				{
+					DWORD page_state [PAGES_PER_BLOCK];
+				}
+				mapped;
+
+				/// <summary>
+				/// Valid if block is reserved.
+				/// </summary>
+				struct
+				{
+					BYTE* begin;
+					BYTE* end;
+				}
+				reserved;
+			};
+
+			State () :
+				state (INVALID)
+			{}
+		};
+
+		const State& state ();
+
+		void invalidate_state ()
+		{
+			m_state.state = State::INVALID;
+		}
+
+		void map (HANDLE mapping, MappingType protection);
 
 	private:
 		AddressSpace& m_space;
 		BYTE* m_address;
 		BlockInfo& m_info;
-		BlockState m_state;
+		State m_state;
 	};
 
 private:
