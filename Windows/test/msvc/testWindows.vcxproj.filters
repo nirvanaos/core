@@ -30,10 +30,10 @@
     <ClCompile Include="..\testAPI.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\ProcessMemory.cpp">
+    <ClCompile Include="..\..\AddressSpace.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\TestProcessMemory.cpp">
+    <ClCompile Include="..\TestMemoryWindows.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -56,7 +56,7 @@
     <ClInclude Include="..\..\MemoryWindows.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\ProcessMemory.h">
+    <ClInclude Include="..\..\AddressSpace.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -8,12 +8,9 @@
 
 namespace unittests {
 
-typedef BOOL (__stdcall* HandlesEqual) (HANDLE h0, HANDLE h1);
-HandlesEqual fn_handles_equal = (HandlesEqual)GetProcAddress (LoadLibraryW (L"Kernelbase.dll"), "CompareObjectHandles");
-
 BOOL handles_equal (HANDLE h0, HANDLE h1)
 {
-	return (*fn_handles_equal) (h0, h1);
+	return CompareObjectHandles (h0, h1);
 }
 
 class TestAPI :
@@ -33,7 +30,6 @@ protected:
 	{
 		// Code here will be called immediately after the constructor (right
 		// before each test).
-		ASSERT_TRUE (fn_handles_equal);
 	}
 
 	virtual void TearDown ()
@@ -98,11 +94,28 @@ TEST_F (TestAPI, Allocate)
 
 TEST_F (TestAPI, Sharing)
 {
+	MEMORY_BASIC_INFORMATION mbi0, mbi1;
+
 	HANDLE mh = CreateFileMapping (0, 0, PAGE_READWRITE | SEC_RESERVE, 0, ALLOCATION_GRANULARITY, 0);
 	ASSERT_TRUE (mh);
 	char* p = (char*)MapViewOfFile (mh, FILE_MAP_ALL_ACCESS, 0, 0, ALLOCATION_GRANULARITY);
 	ASSERT_TRUE (p);
 	EXPECT_TRUE (VirtualAlloc (p, PAGE_SIZE, MEM_COMMIT, PAGE_READWRITE));
+
+	EXPECT_TRUE (VirtualQuery (p, &mbi0, sizeof (mbi0)));
+	EXPECT_TRUE (VirtualQuery (p + PAGE_SIZE, &mbi1, sizeof (mbi1)));
+	EXPECT_EQ (mbi0.AllocationBase, p);
+	EXPECT_EQ (mbi1.AllocationBase, p);
+	EXPECT_EQ (mbi0.Type, MEM_MAPPED);
+	EXPECT_EQ (mbi1.Type, MEM_MAPPED);
+	EXPECT_EQ (mbi0.AllocationProtect, PAGE_READWRITE);
+	EXPECT_EQ (mbi1.AllocationProtect, PAGE_READWRITE);
+
+	EXPECT_EQ (mbi0.State, MEM_COMMIT);
+	EXPECT_EQ (mbi1.State, MEM_RESERVE);
+	EXPECT_EQ (mbi0.Protect, PAGE_READWRITE);
+	EXPECT_EQ (mbi1.Protect, 0);
+
 	strcpy (p, "test");
 
 	HANDLE process = GetCurrentProcess ();
@@ -112,15 +125,22 @@ TEST_F (TestAPI, Sharing)
 
 	memset (copies, 0, sizeof (copies));
 	memset (handles, 0, sizeof (copies));
+
+	DWORD old;
+	EXPECT_TRUE (VirtualProtect (p, PAGE_SIZE, PAGE_WRITECOPY, &old));
+
+	EXPECT_TRUE (VirtualQuery (p, &mbi0, sizeof (mbi0)));
+	EXPECT_TRUE (VirtualQuery (p + PAGE_SIZE, &mbi1, sizeof (mbi1)));
+
 	for (int i = 0; i < _countof (copies); ++i) {
 		HANDLE mh1;
 		ASSERT_TRUE (DuplicateHandle (process, mh, process, &mh1, 0, FALSE, DUPLICATE_SAME_ACCESS));
 		handles [i] = mh1;
-		char* p = (char*)MapViewOfFile (mh1, FILE_MAP_ALL_ACCESS, 0, 0, ALLOCATION_GRANULARITY);
+		char* p = (char*)MapViewOfFile (mh1, FILE_MAP_READ, 0, 0, ALLOCATION_GRANULARITY);
 		EXPECT_TRUE (p);
 		copies [i] = p;
 		if (p) {
-			EXPECT_TRUE (VirtualAlloc (p, PAGE_SIZE, MEM_COMMIT, PAGE_READONLY));
+//			EXPECT_TRUE (VirtualProtect (p, PAGE_SIZE, PAGE_READONLY, &old));
 			EXPECT_STREQ (p, "test");
 			EXPECT_ANY_THROW (strcpy (p, "test1"));
 		}
@@ -141,11 +161,11 @@ TEST_F (TestAPI, Sharing)
 		HANDLE mh1;
 		ASSERT_TRUE (DuplicateHandle (process, mh, process, &mh1, 0, FALSE, DUPLICATE_SAME_ACCESS));
 		handles [i] = mh1;
-		char* p = (char*)MapViewOfFile (mh1, FILE_MAP_ALL_ACCESS, 0, 0, ALLOCATION_GRANULARITY);
+		char* p = (char*)MapViewOfFile (mh1, FILE_MAP_COPY, 0, 0, ALLOCATION_GRANULARITY);
 		EXPECT_TRUE (p);
 		copies [i] = p;
 		if (p) {
-			EXPECT_TRUE (VirtualAlloc (p, PAGE_SIZE, MEM_COMMIT, PAGE_WRITECOPY));
+//			EXPECT_TRUE (VirtualProtect (p, PAGE_SIZE, PAGE_WRITECOPY, &old));
 			EXPECT_STREQ (p, "test");
 
 			char buf [16];
@@ -174,6 +194,152 @@ TEST_F (TestAPI, Sharing)
 
 	EXPECT_STREQ (p, "test");
 	EXPECT_TRUE (UnmapViewOfFile (p));
+	EXPECT_TRUE (CloseHandle (mh));
+}
+
+TEST_F (TestAPI, Protection)
+{
+	MEMORY_BASIC_INFORMATION mbi0, mbi1;
+	DWORD old;
+
+	// We use "execute" protection to distinct mapped pages from write-copied pages.
+	// Page states:
+	// 0 - page not committed (entire block never was shared).
+	// PAGE_NOACCESS - Decommitted.
+	// PAGE_EXECUTE_READWRITE: The page is mapped and never was shared.
+	// PAGE_WRITECOPY: The page is mapped and was shared.
+	// PAGE_READWRITE: The page is write-copyed (private, disconnected from mapping).
+	// PAGE_EXECUTE_READONLY: The read-only mapped page never was shared.
+	// PAGE_EXECUTE: The read-only mapped page was shared.
+	// PAGE_READONLY: The page is not mapped. Page was write-copyed, than access was changed from PAGE_READWRITE to PAGE_READONLY.
+	// Note: "Page was shared" means that page has been shared at least once. Currently, page may be still shared or already not.
+
+	// Page state changes.
+	// Prepare to share:
+	//   0 (not committed)->PAGE_NOACCESS (commit+decommit)
+	//   PAGE_EXECUTE_READWRITE->PAGE_WRITECOPY
+	//   PAGE_EXECUTE_READONLY, PAGE_WRITECOPY, PAGE_EXECUTE, PAGE_NOACCESS unchanged.
+	//   PAGE_READWRITE, PAGE_READONLY - we need to remap the block.
+	// Remap:
+	//   PAGE_READWRITE->PAGE_EXECUTE_READWRITE
+	//   PAGE_READONLY->PAGE_EXECUTE_READONLY
+	// Write-protect:
+	//   PAGE_EXECUTE_READWRITE<->PAGE_EXECUTE_READONLY
+	//	 PAGE_WRITECOPY<->PAGE_EXECUTE
+	//   PAGE_READWRITE<->PAGE_READONLY
+
+	// Create source block
+	HANDLE mh = CreateFileMapping (0, 0, PAGE_EXECUTE_READWRITE | SEC_RESERVE, 0, ALLOCATION_GRANULARITY, 0);
+	ASSERT_TRUE (mh);
+	BYTE* src = (BYTE*)MapViewOfFile (mh, FILE_MAP_ALL_ACCESS | FILE_MAP_EXECUTE, 0, 0, ALLOCATION_GRANULARITY);
+	ASSERT_TRUE (src);
+
+	// Commit 2 pages
+	EXPECT_TRUE (VirtualAlloc (src, PAGE_SIZE * 2, MEM_COMMIT, PAGE_EXECUTE_READWRITE));
+	src [0] = 1;
+	src [PAGE_SIZE] = 2;
+
+	EXPECT_TRUE (VirtualQuery (src, &mbi0, sizeof (mbi0)));
+	EXPECT_TRUE (VirtualQuery (src + PAGE_SIZE * 2, &mbi1, sizeof (mbi1)));
+	EXPECT_EQ (mbi0.AllocationBase, src);
+	EXPECT_EQ (mbi1.AllocationBase, src);
+	EXPECT_EQ (mbi0.Type, MEM_MAPPED);
+	EXPECT_EQ (mbi1.Type, MEM_MAPPED);
+	EXPECT_EQ (mbi0.AllocationProtect, PAGE_EXECUTE_READWRITE);
+	EXPECT_EQ (mbi1.AllocationProtect, PAGE_EXECUTE_READWRITE);
+
+	EXPECT_EQ (mbi0.State, MEM_COMMIT);
+	EXPECT_EQ (mbi1.State, MEM_RESERVE);
+	EXPECT_EQ (mbi0.Protect, PAGE_EXECUTE_READWRITE);
+	EXPECT_EQ (mbi1.Protect, 0);
+
+	// Virtual copy first page to target block
+	
+	// 1. Change committed data protection to write-copy
+	EXPECT_TRUE (VirtualProtect (src, PAGE_SIZE, PAGE_WRITECOPY, &old));
+
+	// 2. Map to destination
+	BYTE* dst = (BYTE*)MapViewOfFile (mh, FILE_MAP_COPY, 0, 0, ALLOCATION_GRANULARITY);
+	ASSERT_TRUE (dst);
+
+	// 3. Protect non-copyed data
+	EXPECT_TRUE (VirtualProtect (dst + PAGE_SIZE, PAGE_SIZE, PAGE_NOACCESS, &old));
+
+	EXPECT_TRUE (VirtualQuery (dst, &mbi0, sizeof (mbi0)));
+	EXPECT_TRUE (VirtualQuery (dst + PAGE_SIZE, &mbi1, sizeof (mbi1)));
+	EXPECT_EQ (mbi0.AllocationBase, dst);
+	EXPECT_EQ (mbi1.AllocationBase, dst);
+	EXPECT_EQ (mbi0.Type, MEM_MAPPED);
+	EXPECT_EQ (mbi1.Type, MEM_MAPPED);
+	EXPECT_EQ (mbi0.AllocationProtect, PAGE_WRITECOPY);
+	EXPECT_EQ (mbi1.AllocationProtect, PAGE_WRITECOPY);
+
+	EXPECT_EQ (mbi0.State, MEM_COMMIT);
+	EXPECT_EQ (mbi1.State, MEM_COMMIT);
+	EXPECT_EQ (mbi0.Protect, PAGE_WRITECOPY);
+	EXPECT_EQ (mbi1.Protect, PAGE_NOACCESS);
+
+	EXPECT_EQ (dst [0], src [0]);
+	// Write to destination
+	dst [0] = 3;
+	EXPECT_EQ (src [0], 1);	// Source not changed
+
+	EXPECT_TRUE (VirtualQuery (dst, &mbi0, sizeof (mbi0)));
+	EXPECT_EQ (mbi0.Protect, PAGE_READWRITE); // Private write-copyed
+
+	// Copy source again
+	//
+	// PAGE_REVERT_TO_FILE_MAP can be combined with other protection
+	// values to specify to VirtualProtect that the argument range
+	// should be reverted to point back to the backing file.  This
+	// means the contents of any private (copy on write) pages in the
+	// range will be discarded.  Any reverted pages that were locked
+	// into the working set are unlocked as well.
+	//
+	EXPECT_TRUE (VirtualProtect (dst, PAGE_SIZE, PAGE_WRITECOPY | PAGE_REVERT_TO_FILE_MAP, &old));
+	EXPECT_EQ (dst [0], src [0]);
+
+	// Write to source (copy-on-write)
+	src [1] = 4;
+
+	// Check source state
+	EXPECT_TRUE (VirtualQuery (src, &mbi0, sizeof (mbi0)));
+	EXPECT_TRUE (VirtualQuery (src + PAGE_SIZE, &mbi1, sizeof (mbi1)));
+
+	EXPECT_EQ (mbi0.Protect, PAGE_READWRITE); // Private write-copyed
+	EXPECT_EQ (mbi1.Protect, PAGE_EXECUTE_READWRITE); // Shared read-write
+
+	EXPECT_EQ (dst [0], 1);	// Destination not changed
+
+	// Decommit second page
+	EXPECT_TRUE (VirtualProtect (src + PAGE_SIZE, PAGE_SIZE, PAGE_NOACCESS, &old));
+	EXPECT_TRUE (VirtualAlloc (src + PAGE_SIZE, PAGE_SIZE, MEM_RESET, PAGE_NOACCESS));
+	BYTE x;
+	EXPECT_ANY_THROW (x = src [PAGE_SIZE]);
+
+	// Check source state
+	EXPECT_TRUE (VirtualQuery (src, &mbi0, sizeof (mbi0)));
+	EXPECT_TRUE (VirtualQuery (src + PAGE_SIZE, &mbi1, sizeof (mbi1)));
+
+	EXPECT_EQ (mbi0.State, MEM_COMMIT);
+	EXPECT_EQ (mbi1.State, MEM_COMMIT);
+	EXPECT_EQ (mbi0.Protect, PAGE_READWRITE);
+	EXPECT_EQ (mbi1.Protect, PAGE_NOACCESS);
+
+	// Check target state
+	EXPECT_TRUE (VirtualQuery (dst, &mbi0, sizeof (mbi0)));
+	EXPECT_TRUE (VirtualQuery (dst + PAGE_SIZE, &mbi1, sizeof (mbi1)));
+
+	EXPECT_EQ (mbi0.Type, MEM_MAPPED);
+	EXPECT_EQ (mbi1.Type, MEM_MAPPED);
+
+	EXPECT_EQ (mbi0.State, MEM_COMMIT);
+	EXPECT_EQ (mbi1.State, MEM_COMMIT);
+	EXPECT_EQ (mbi0.Protect, PAGE_WRITECOPY);
+	EXPECT_EQ (mbi1.Protect, PAGE_NOACCESS);
+
+	EXPECT_TRUE (UnmapViewOfFile (dst));
+	EXPECT_TRUE (UnmapViewOfFile (src));
 	EXPECT_TRUE (CloseHandle (mh));
 }
 

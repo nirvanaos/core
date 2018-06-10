@@ -1,20 +1,19 @@
-#include "../ProcessMemory.h"
+#include "../MemoryWindows.h"
 #include <gtest/gtest.h>
 
 namespace unittests {
 
 using namespace ::Nirvana;
+using namespace ::Nirvana::Windows;
 
-static ProcessMemory process_memory;
-
-class TestProcessMemory :
+class TestMemoryWindows :
 	public ::testing::Test
 {
 protected:
-	TestProcessMemory ()
+	TestMemoryWindows ()
 	{}
 
-	virtual ~TestProcessMemory ()
+	virtual ~TestMemoryWindows ()
 	{}
 
 	// If the constructor and destructor are not enough for setting up
@@ -24,91 +23,89 @@ protected:
 	{
 		// Code here will be called immediately after the constructor (right
 		// before each test).
-		process_memory.initialize ();
+		MemoryWindows::initialize ();
 	}
 
 	virtual void TearDown ()
 	{
 		// Code here will be called immediately after each test (right
 		// before the destructor).
-		process_memory.terminate ();
+		MemoryWindows::terminate ();
 	}
 };
 
-TEST_F (TestProcessMemory, Allocate)
+TEST_F (TestMemoryWindows, Allocate)
 {
-	size_t BLOCK_SIZE = 0x10000000;	// 256M
-	BYTE* block = (BYTE*)process_memory.reserve (BLOCK_SIZE, 0);
-	ASSERT_TRUE (block);
-	process_memory.release (block, BLOCK_SIZE);
+	UWord BLOCK_SIZE = 0x10000000;	// 256M
 
-	block = (BYTE*)process_memory.reserve (BLOCK_SIZE, 0, block);
-	ASSERT_TRUE (block);
-	process_memory.release (block, BLOCK_SIZE / 2);
-	process_memory.release (block + BLOCK_SIZE / 2, BLOCK_SIZE / 2);
+	static const size_t ITER_CNT = 3;
+	static const Flags iter_flags [ITER_CNT] = {
+		Memory::READ_WRITE | Memory::RESERVED,
+		Memory::READ_WRITE,
+		Memory::READ_ONLY | Memory::RESERVED,
+	};
+	for (int iteration = 0; iteration < ITER_CNT; ++iteration) {
 
-	block = (BYTE*)process_memory.reserve (BLOCK_SIZE, 0, block);
-	ASSERT_TRUE (block);
-	process_memory.release (block + BLOCK_SIZE / 2, BLOCK_SIZE / 2);
-	process_memory.release (block, BLOCK_SIZE / 2);
+		LONG flags = iter_flags [iteration];
 
-	block = (BYTE*)process_memory.reserve (BLOCK_SIZE, 0, block);
-	ASSERT_TRUE (block);
-	process_memory.release (block + BLOCK_SIZE / 4, BLOCK_SIZE / 2);
-	process_memory.release (block, BLOCK_SIZE / 4);
-	process_memory.release (block + BLOCK_SIZE / 4 * 3, BLOCK_SIZE / 4);
+		BYTE* block = (BYTE*)MemoryWindows::allocate (0, BLOCK_SIZE, flags);
+		ASSERT_TRUE (block);
+		MemoryWindows::release (block, BLOCK_SIZE);
 
-	block = (BYTE*)process_memory.reserve (BLOCK_SIZE / 2, 0, block);
-	ASSERT_TRUE (block);
-	ASSERT_EQ (process_memory.reserve (BLOCK_SIZE / 2, 0, block + BLOCK_SIZE / 2), block + BLOCK_SIZE / 2);
-	process_memory.release (block, BLOCK_SIZE);
+		flags |= Memory::EXACTLY;
 
-	block = (BYTE*)process_memory.reserve (BLOCK_SIZE, 0);
-	ASSERT_TRUE (block);
-	process_memory.release (block, BLOCK_SIZE);
+		ASSERT_EQ (block, (BYTE*)MemoryWindows::allocate (block, BLOCK_SIZE, flags));
+		MemoryWindows::release (block, BLOCK_SIZE / 2);
+		MemoryWindows::release (block + BLOCK_SIZE / 2, BLOCK_SIZE / 2);
+
+		ASSERT_EQ (block, (BYTE*)MemoryWindows::allocate (block, BLOCK_SIZE, flags));
+		MemoryWindows::release (block + BLOCK_SIZE / 2, BLOCK_SIZE / 2);
+		MemoryWindows::release (block, BLOCK_SIZE / 2);
+
+		ASSERT_EQ (block, (BYTE*)MemoryWindows::allocate (block, BLOCK_SIZE, flags));
+		MemoryWindows::release (block + BLOCK_SIZE / 4, BLOCK_SIZE / 2);
+		MemoryWindows::release (block, BLOCK_SIZE / 4);
+		MemoryWindows::release (block + BLOCK_SIZE / 4 * 3, BLOCK_SIZE / 4);
+
+		ASSERT_EQ (block, (BYTE*)MemoryWindows::allocate (block, BLOCK_SIZE / 2, flags));
+		ASSERT_EQ (MemoryWindows::allocate (block + BLOCK_SIZE / 2, BLOCK_SIZE / 2, flags), block + BLOCK_SIZE / 2);
+		MemoryWindows::release (block, BLOCK_SIZE);
+
+		ASSERT_EQ (block, (BYTE*)MemoryWindows::allocate (block, BLOCK_SIZE, flags));
+		MemoryWindows::release (block, BLOCK_SIZE);
+	}
 }
 
-TEST_F (TestProcessMemory, Map)
+TEST_F (TestMemoryWindows, Commit)
+{
+	size_t BLOCK_SIZE = 0x20000000;	// 512M
+	BYTE* block = (BYTE*)MemoryWindows::allocate (0, BLOCK_SIZE, Memory::READ_WRITE | Memory::RESERVED);
+	ASSERT_TRUE (block);
+	BYTE* end = block + BLOCK_SIZE;
+
+	MemoryWindows::commit (block, BLOCK_SIZE);
+	for (int* p = (int*)block, *end = (int*)(block + BLOCK_SIZE); p < end; ++p)
+		*p = rand ();
+
+	MemoryWindows::decommit (block, BLOCK_SIZE);
+	MemoryWindows::decommit (block, BLOCK_SIZE);
+
+	MemoryWindows::commit (block, BLOCK_SIZE);
+	MemoryWindows::commit (block, BLOCK_SIZE);
+
+	MemoryWindows::release (block, BLOCK_SIZE);
+}
+
+/*
+TEST_F (TestMemoryWindows, Share)
 {
 	size_t BLOCK_SIZE = 0x20000000;	// 512M
 	BYTE* block = (BYTE*)process_memory.reserve (BLOCK_SIZE, 0);
 	ASSERT_TRUE (block);
-
 	BYTE* end = block + BLOCK_SIZE;
 	for (BYTE* p = block; p < end; p += ALLOCATION_GRANULARITY) {
 		process_memory.map (p);
-		EXPECT_TRUE (VirtualAlloc (p, ALLOCATION_GRANULARITY, MEM_COMMIT, PAGE_READWRITE));
-	}
-
-	EXPECT_EQ (block [1], 0);
-
-	BYTE b = 0;
-	for (BYTE* p = block; p < end; ++p)
-		*p = b++;
-	EXPECT_EQ (block [1], 1);
-
-	for (BYTE* p = block; p < end; p += ALLOCATION_GRANULARITY)
-		process_memory.unmap (p);
-
-	for (BYTE* p = block; p < end; p += ALLOCATION_GRANULARITY) {
-		process_memory.map (p);
-		EXPECT_TRUE (VirtualAlloc (p, ALLOCATION_GRANULARITY, MEM_COMMIT, PAGE_READWRITE));
-	}
-
-	EXPECT_EQ (block [1], 0);
-
-	process_memory.release (block, BLOCK_SIZE);
-}
-
-TEST_F (TestProcessMemory, Share)
-{
-	size_t BLOCK_SIZE = 0x20000000;	// 512M
-	BYTE* block = (BYTE*)process_memory.reserve (BLOCK_SIZE, 0);
-	ASSERT_TRUE (block);
-	BYTE* end = block + BLOCK_SIZE;
-	for (BYTE* p = block; p < end; p += ALLOCATION_GRANULARITY) {
-		process_memory.map (p);
-		EXPECT_TRUE (VirtualAlloc (p, ALLOCATION_GRANULARITY, MEM_COMMIT, PAGE_READWRITE));
+		EXPECT_TRUE (VirtualAlloc (p, ALLOCATION_GRANULARITY, MEM_COMMIT, PAGE_EXECUTE_READWRITE));
 	}
 
 	BYTE b = 0;
@@ -172,5 +169,5 @@ TEST_F (TestProcessMemory, Share)
 	free (block);
 	free (sblock);
 }
-
+*/
 }
