@@ -162,6 +162,12 @@ void AddressSpace::Block::copy (HANDLE src, SIZE_T offset, SIZE_T size, LONG fla
 		}
 		if (Memory::READ_ONLY & flags)
 			m_space.protect (m_address + offset, size, PageState::RO_MAPPED_SHARED);
+		if (offset > 0)
+			m_space.protect (m_address, round_down (offset, PAGE_SIZE), PageState::DECOMMITTED);
+		offset = round_up (offset + size, PAGE_SIZE);
+		SIZE_T tail = ALLOCATION_GRANULARITY - offset;
+		if (tail > 0)
+			m_space.protect (m_address + offset, tail, PageState::DECOMMITTED);
 	} else {
 		bool change_protection = false;
 		DWORD protection = (Memory::READ_ONLY & flags) ? PageState::RO_MAPPED_SHARED | PAGE_REVERT_TO_FILE_MAP : PageState::RW_MAPPED_SHARED | PAGE_REVERT_TO_FILE_MAP;
@@ -683,6 +689,13 @@ void* AddressSpace::copy (HANDLE src, SIZE_T offset, SIZE_T size, LONG flags)
 
 	if (Memory::READ_ONLY & flags)
 		protect (p + offset, size, PageState::RO_MAPPED_SHARED);
+
+	if (offset > 0)
+		protect (p, round_down (offset, PAGE_SIZE), PageState::DECOMMITTED);
+	offset = round_up (offset + size, PAGE_SIZE);
+	SIZE_T tail = ALLOCATION_GRANULARITY - offset;
+	if (tail > 0)
+		protect (p + offset, tail, PageState::DECOMMITTED);
 
 	return p;
 }
