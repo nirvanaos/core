@@ -7,7 +7,7 @@ using namespace ::CORBA;
 using namespace ::CORBA::Nirvana;
 
 template <>
-inline Octet* real_copy (const Octet* begin, const Octet* end, Octet* dst)
+Octet* real_copy (const Octet* begin, const Octet* end, Octet* dst)
 {
 	const Octet* aligned_begin = round_up (begin, sizeof (UWord));
 	const Octet* aligned_end = round_down (end, sizeof (UWord));

@@ -3,26 +3,22 @@
 
 #include "MemoryWindows.h"
 #include <cpplib.h>
-#include "../real_copy.h"
 
 namespace Nirvana {
 namespace Windows {
 
 AddressSpace MemoryWindows::sm_space;
 
-inline void MemoryWindows::Block::commit (void* ptr, SIZE_T size)
+DWORD MemoryWindows::Block::commit (SIZE_T offset, SIZE_T size)
 {
-	BYTE* begin = round_up ((BYTE*)ptr, PAGE_SIZE);
-	BYTE* end = round_down ((BYTE*)ptr + size, PAGE_SIZE);
-	assert (begin >= address ());
-	assert (end <= address () + ALLOCATION_GRANULARITY);
+	assert (offset + size <= ALLOCATION_GRANULARITY);
 
 	HANDLE old_mapping = mapping ();
 	if (INVALID_HANDLE_VALUE == old_mapping) {
 		HANDLE hm = new_mapping ();
 		try {
 			map (hm, AddressSpace::MAP_PRIVATE);
-			if (!VirtualAlloc (begin, size, MEM_COMMIT, PageState::RW_MAPPED_PRIVATE)) {
+			if (!VirtualAlloc (address () + offset, size, MEM_COMMIT, PageState::RW_MAPPED_PRIVATE)) {
 				unmap ();
 				throw NO_MEMORY ();
 			}
@@ -30,75 +26,51 @@ inline void MemoryWindows::Block::commit (void* ptr, SIZE_T size)
 			CloseHandle (hm);
 			throw;
 		}
+		return PageState::RW_MAPPED_PRIVATE;
 	} else {
 		const State& bs = state ();
-		Regions regions;
-		auto region_begin = bs.mapped.page_state, block_end = region_begin + PAGES_PER_BLOCK;
+		Regions regions;	// Regions to commit.
+		auto region_begin = bs.mapped.page_state + offset / PAGE_SIZE, state_end = bs.mapped.page_state + (offset + size + PAGE_SIZE - 1) / PAGE_SIZE;
 		do {
 			auto region_end = region_begin;
-			DWORD state = *region_begin;
-			do
-				++region_end;
-			while (region_end < block_end && state == *region_end);
+			if (!(PageState::MASK_ACCESS & *region_begin)) {
+				do
+					++region_end;
+				while (region_end < state_end && !(PageState::MASK_ACCESS & *region_end));
 
-			if (!(PageState::MASK_ACCESS & state))
 				regions.add (address () + (region_begin - bs.mapped.page_state) * PAGE_SIZE, (region_end - region_begin) * PAGE_SIZE);
-
+			} else {
+				do
+					++region_end;
+				while (region_end < state_end && (PageState::MASK_ACCESS & *region_end));
+			}
 			region_begin = region_end;
-		} while (region_begin < block_end);
+		} while (region_begin < state_end);
+
+		DWORD ret = bs.page_state_bits & PageState::MASK_ACCESS;
 
 		if (regions.end != regions.begin) {
 			if (bs.page_state_bits & PageState::MASK_MAY_BE_SHARED)
 				remap (false);
-			for (const Region* p = regions.begin; p != regions.end; ++p)
-				verify (VirtualAlloc (p->ptr, p->size, MEM_COMMIT, PageState::RW_MAPPED_PRIVATE));
-		}
-	}
-}
-
-inline void MemoryWindows::Block::decommit (void* ptr, SIZE_T size)
-{
-	BYTE* begin = round_up((BYTE*)ptr, PAGE_SIZE);
-	BYTE* end = round_down ((BYTE*)ptr + size, PAGE_SIZE);
-	assert (begin >= address ());
-	assert (end <= address () + ALLOCATION_GRANULARITY);
-	if (begin == address () && end == address () + ALLOCATION_GRANULARITY)
-		unmap ();
-	else if (state ().state == State::MAPPED) {
-		bool can_unmap = true;
-		auto page_state = state ().mapped.page_state;
-		if (begin > address ()) {
-			for (auto ps = page_state, end = page_state + (begin - address ()) / PAGE_SIZE; ps < end; ++ps) {
-				if (PageState::MASK_ACCESS & *ps) {
-					can_unmap = false;
-					break;
-				}
-			}
-		}
-		if (can_unmap && end < address () + ALLOCATION_GRANULARITY) {
-			for (auto ps = page_state + (end - address ()) / PAGE_SIZE, end = page_state + PAGES_PER_BLOCK; ps < end; ++ps) {
-				if (PageState::MASK_ACCESS & *ps) {
-					can_unmap = false;
-					break;
+			for (const Region* p = regions.begin; p != regions.end; ++p) {
+				if (!VirtualAlloc (p->ptr, p->size, MEM_COMMIT, PageState::RW_MAPPED_PRIVATE)) {
+					// Error, decommit back and throw the exception.
+					while (p != regions.begin) {
+						--p;
+						protect (p->ptr, p->size, PageState::DECOMMITTED);
+						verify (VirtualAlloc (p->ptr, p->size, MEM_RESET, PageState::DECOMMITTED));
+					}
+					throw NO_MEMORY ();
 				}
 			}
 		}
 
-		if (can_unmap)
-			unmap ();
-		else {
-			invalidate_state ();
-			// Decommit pages. We can't use VirtualFree and MEM_DECOMMIT with mapped memory.
-			protect (begin, size, PageState::DECOMMITTED | PAGE_REVERT_TO_FILE_MAP);
-			// Discard page. TODO: Is this safe if page is shared?
-			verify (VirtualAlloc (begin, size, MEM_RESET, PageState::DECOMMITTED));
-		}
+		return ret;
 	}
 }
 
-void MemoryWindows::Block::prepare2share (void* begin, SIZE_T size)
+void MemoryWindows::Block::prepare2share (SIZE_T offset, SIZE_T size)
 {
-	SIZE_T offset = (BYTE*)begin - address ();
 	assert (offset + size <= ALLOCATION_GRANULARITY);
 
 	if (state ().state != State::MAPPED)
@@ -204,56 +176,97 @@ void MemoryWindows::Block::remap (bool for_share)
 	}
 }
 
-void MemoryWindows::commit (void* dst, SIZE_T size)
+void MemoryWindows::Block::copy (void* src, SIZE_T size, LONG flags)
 {
-	if (!size)
-		return;
-	if (!dst)
-		throw BAD_PARAM ();
+	assert (size);
+	SIZE_T offset = (SIZE_T)src % ALLOCATION_GRANULARITY;
+	assert (offset + size <= ALLOCATION_GRANULARITY);
 
-	BYTE* begin = (BYTE*)dst;
-	BYTE* end = begin + size;
-
-	// Memory must be allocated.
-	for (BYTE* p = begin; p < end; p += ALLOCATION_GRANULARITY)
-		sm_space.allocated_block (p);
-
-	BYTE* p = begin;
-	try {
-		while (p < end) {
-			Block block (p);
-			BYTE* block_end = block.address () + ALLOCATION_GRANULARITY;
-			if (block_end > end)
-				block_end = end;
-			block.commit (p, block_end - p);
-			p = block_end;
+	Block src_block (src);
+	if (offset || size < ALLOCATION_GRANULARITY) {
+		if (INVALID_HANDLE_VALUE != mapping ()) {
+			if (CompareObjectHandles (mapping (), src_block.mapping ())) {
+				SIZE_T page_off = offset % PAGE_SIZE;
+				if (page_off) {
+					SIZE_T page_tail = PAGE_SIZE - page_off;
+					if (copy_page_part (src, page_tail, flags)) {
+						offset += page_tail;
+						size -= page_tail;
+						assert (!(offset % PAGE_SIZE));
+					}
+				}
+				page_off = (offset + size) % PAGE_SIZE;
+				if (page_off && copy_page_part ((const BYTE*)src + size - page_off, page_off, flags)) {
+					size -= page_off;
+					assert (!((offset + size) % PAGE_SIZE));
+				}
+				if (!size)
+					return;
+			} else if (has_data_outside_of (offset, size)) {
+				if (PageState::MASK_RO & commit (offset, size))
+					change_protection (offset, size, Memory::READ_WRITE);
+				real_copy ((BYTE*)src, (BYTE*)src + size, address () + offset);
+				if (flags & Memory::READ_ONLY)
+					change_protection (offset, size, Memory::READ_ONLY);
+				return;
+			}
 		}
-	} catch (...) {
-		decommit (begin, p - begin);
-		throw;
 	}
+	src_block.prepare2share (offset, size);
+	AddressSpace::Block::copy (src_block.mapping (), offset, size, flags);
 }
 
-void MemoryWindows::decommit (void* dst, SIZE_T size)
+bool MemoryWindows::Block::copy_page_part (const void* src, SIZE_T size, LONG flags)
+{
+	SIZE_T offset = (SIZE_T)src % ALLOCATION_GRANULARITY;
+	DWORD s = state ().mapped.page_state [offset / PAGE_SIZE];
+	if (PageState::MASK_UNMAPPED & s) {
+		BYTE* dst = address () + offset;
+		if (PageState::MASK_RO & s)
+			protect (dst, size, PageState::RW_UNMAPPED);
+		real_copy ((const BYTE*)src, (const BYTE*)src + size, dst);
+		if ((PageState::MASK_RO & s) && (flags & Memory::READ_ONLY))
+			protect (dst, size, PageState::RO_UNMAPPED);
+		return true;
+	}
+	return false;
+}
+
+DWORD MemoryWindows::commit (void* ptr, SIZE_T size)
 {
 	if (!size)
-		return;
-	if (!dst)
+		return 0;
+	if (!ptr)
 		throw BAD_PARAM ();
 
-	BYTE* begin = (BYTE*)dst;
-	BYTE* end = begin + size;
-
 	// Memory must be allocated.
-	for (BYTE* p = begin; p < end; p += ALLOCATION_GRANULARITY)
-		sm_space.allocated_block (p);
+	sm_space.check_allocated (ptr, size);
 
-	for (BYTE* p = begin; p < end;) {
+	DWORD mask = 0;
+	for (BYTE* p = (BYTE*)ptr, *end = p + size; p < end;) {
 		Block block (p);
 		BYTE* block_end = block.address () + ALLOCATION_GRANULARITY;
 		if (block_end > end)
 			block_end = end;
-		block.decommit (p, block_end - p);
+		mask |= block.commit (p - block.address (), block_end - p);
+		p = block_end;
+	}
+	return mask;
+}
+
+void MemoryWindows::prepare2share (void* src, SIZE_T size)
+{
+	if (!size)
+		return;
+	if (!src)
+		throw BAD_PARAM ();
+
+	for (BYTE* p = (BYTE*)src, *end = p + size; p < end;) {
+		Block block (p);
+		BYTE* block_end = block.address () + ALLOCATION_GRANULARITY;
+		if (block_end > end)
+			block_end = end;
+		block.prepare2share (p - block.address (), block_end - p);
 		p = block_end;
 	}
 }

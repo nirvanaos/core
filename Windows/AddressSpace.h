@@ -110,34 +110,14 @@ public:
 	/// </summary>
 	void terminate ();
 
+	HANDLE process () const
+	{
+		return m_process;
+	}
+
 	bool is_current_process () const
 	{
 		return GetCurrentProcess () == m_process;
-	}
-
-	void* reserve (SIZE_T size, LONG flags, void* dst = 0);
-	void release (void* dst, SIZE_T size);
-
-	// Quick methods for block sizes <= ALLOCATION_GRANULARITY
-	void* copy (HANDLE src, SIZE_T offset, SIZE_T size, LONG flags);
-
-	enum MappingType
-	{
-		MAP_PRIVATE = PageState::RW_MAPPED_PRIVATE,
-		MAP_SHARED = PageState::RW_MAPPED_SHARED
-	};
-
-	void* map (HANDLE mapping, MappingType protection);
-
-	void query (const void* address, MEMORY_BASIC_INFORMATION& mbi) const
-	{
-		verify (VirtualQueryEx (m_process, address, &mbi, sizeof (mbi)));
-	}
-
-	void protect (void* address, SIZE_T size, DWORD protection)
-	{
-		DWORD old;
-		verify (VirtualProtectEx (m_process, address, size, protection, &old));
 	}
 
 	struct BlockInfo
@@ -146,16 +126,19 @@ public:
 		HANDLE mapping;
 	};
 
+	BlockInfo & block (void* address);
+	BlockInfo* allocated_block (void* address);
+
+	enum MappingType
+	{
+		MAP_PRIVATE = PageState::RW_MAPPED_PRIVATE,
+		MAP_SHARED = PageState::RW_MAPPED_SHARED
+	};
+
 	class Block
 	{
 	public:
-		Block (AddressSpace& space, void* address) :
-			m_space (space),
-			m_address (round_down ((BYTE*)address, ALLOCATION_GRANULARITY)),
-			m_info (space.allocated_block (address))
-		{
-			assert (m_info.mapping);
-		}
+		Block (AddressSpace& space, void* address);
 
 		BYTE* address () const
 		{
@@ -167,10 +150,12 @@ public:
 			return m_info.mapping;
 		}
 
-		void copy (HANDLE src, DWORD offset, DWORD size, LONG flags);
+		void copy (HANDLE src, SIZE_T offset, SIZE_T size, LONG flags);
 		void unmap ();
+		DWORD check_committed (SIZE_T offset, SIZE_T size);
+		void change_protection (SIZE_T offset, SIZE_T size, LONG flags);
+		void decommit (SIZE_T offset, SIZE_T size);
 
-	protected:
 		struct State
 		{
 			enum : DWORD
@@ -215,6 +200,7 @@ public:
 
 		const State& state ();
 
+	protected:
 		void invalidate_state ()
 		{
 			m_state.state = State::INVALID;
@@ -222,30 +208,43 @@ public:
 
 		void map (HANDLE mapping, MappingType protection);
 
+		bool has_data_outside_of (SIZE_T offset, SIZE_T size);
+
 	private:
-		AddressSpace& m_space;
+		AddressSpace & m_space;
 		BYTE* m_address;
 		BlockInfo& m_info;
 		State m_state;
 	};
 
-private:
-#ifdef _WIN64
-	static const size_t SECOND_LEVEL_BLOCK = ALLOCATION_GRANULARITY / sizeof (BlockInfo);
-#endif
+	void* reserve (SIZE_T size, LONG flags, void* dst = 0);
+	void release (void* ptr, SIZE_T size);
 
-public:
+	// Quick copy for block sizes <= ALLOCATION_GRANULARITY
+	void* copy (HANDLE src, SIZE_T offset, SIZE_T size, LONG flags);
 
-	BlockInfo & block (void* address);
-	BlockInfo & allocated_block (void* address);
-
-	HANDLE process () const
+	void query (const void* address, MEMORY_BASIC_INFORMATION& mbi) const
 	{
-		return m_process;
+		verify (VirtualQueryEx (m_process, address, &mbi, sizeof (mbi)));
 	}
+
+	void check_allocated (void* ptr, SIZE_T size);
+	DWORD check_committed (void* ptr, SIZE_T size);
+	void change_protection (void* ptr, SIZE_T size, LONG flags);
+	void decommit (void* ptr, SIZE_T size);
 
 protected:
 	void initialize (DWORD process_id, HANDLE process_handle);
+
+private:
+	friend class MemoryWindows;
+
+	void* map (HANDLE mapping, MappingType protection);
+	void protect (void* address, SIZE_T size, DWORD protection)
+	{
+		DWORD old;
+		verify (VirtualProtectEx (m_process, address, size, protection, &old));
+	}
 
 private:
 	static void raise_condition ()
@@ -257,6 +256,7 @@ private:
 	HANDLE m_process;
 	HANDLE m_mapping;
 #ifdef _WIN64
+	static const size_t SECOND_LEVEL_BLOCK = ALLOCATION_GRANULARITY / sizeof (BlockInfo);
 	BlockInfo** m_directory;
 #else
 	BlockInfo* m_directory;
