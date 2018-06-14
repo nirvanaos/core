@@ -78,16 +78,21 @@ void MemoryWindows::Block::prepare2share (SIZE_T offset, SIZE_T size)
 
 	// Remap if neeed.
 	bool need_remap = false;
-	auto page_state = state ().mapped.page_state;
-	for (auto ps = page_state + offset / PAGE_SIZE, end = page_state + (offset + size + PAGE_SIZE - 1) / PAGE_SIZE; ps < end; ++ps) {
-		DWORD state = *ps;
-		if (!(PageState::MASK_ACCESS & state))
-			throw BAD_PARAM ();	// Page not committed
-		else if (PageState::MASK_UNMAPPED & state)
-			need_remap = true;
-	}
-	if (state ().page_state_bits & PageState::DECOMMITTED)
+	const State& st = state ();
+	if (st.page_state_bits & PageState::DECOMMITTED)
 		need_remap = true;
+	else if (0 == offset && size == ALLOCATION_GRANULARITY) {
+		if (st.page_state_bits & PageState::MASK_UNMAPPED)
+			need_remap = true;
+	} else {
+		auto page_state = state ().mapped.page_state;
+		for (auto ps = page_state + offset / PAGE_SIZE, end = page_state + (offset + size + PAGE_SIZE - 1) / PAGE_SIZE; ps < end; ++ps) {
+			if (PageState::MASK_UNMAPPED & *ps) {
+				need_remap = true;
+				break;
+			}
+		}
+	}
 
 	if (need_remap)
 		remap (true);

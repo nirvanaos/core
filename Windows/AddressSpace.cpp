@@ -44,7 +44,7 @@ const AddressSpace::Block::State& AddressSpace::Block::state ()
 		} else {
 			assert (mapping () == INVALID_HANDLE_VALUE);
 			assert ((BYTE*)mbi.BaseAddress + mbi.RegionSize >= (m_address + ALLOCATION_GRANULARITY));
-			m_state.state = State::RESERVED;
+			m_state.state = mbi.Type;
 
 			m_state.reserved.begin = (BYTE*)mbi.AllocationBase;
 			m_state.reserved.end = (BYTE*)mbi.BaseAddress + mbi.RegionSize;
@@ -58,15 +58,15 @@ void AddressSpace::Block::map (HANDLE mapping, MappingType protection)
 {
 	assert (mapping);
 
-	MEMORY_BASIC_INFORMATION mbi;
-	m_space.query (m_address, mbi);
+	invalidate_state ();
 	HANDLE old = InterlockedExchangePointer (&m_info.mapping, mapping);
 	if (old == INVALID_HANDLE_VALUE) {
-		const State& bs = state ();
-		assert (State::RESERVED == bs.state);
-		BYTE* reserved_begin = bs.reserved.begin;
+		MEMORY_BASIC_INFORMATION mbi;
+		m_space.query (m_address, mbi);
+		assert (MEM_RESERVE == mbi.State);
+		BYTE* reserved_begin = (BYTE*)mbi.AllocationBase;
 		ptrdiff_t realloc_begin = m_address - reserved_begin;
-		ptrdiff_t realloc_end = bs.reserved.end - m_address - ALLOCATION_GRANULARITY;
+		ptrdiff_t realloc_end = (BYTE*)mbi.BaseAddress + mbi.RegionSize - m_address - ALLOCATION_GRANULARITY;
 		verify (VirtualFreeEx (m_space.process (), reserved_begin, 0, MEM_RELEASE));
 		if (realloc_begin > 0) {
 			while (!VirtualAllocEx (m_space.process (), reserved_begin, realloc_begin, MEM_RESERVE, mbi.AllocationProtect)) {
@@ -131,6 +131,7 @@ bool AddressSpace::Block::has_data_outside_of (SIZE_T offset, SIZE_T size)
 			}
 		}
 	}
+	return false;
 }
 
 void AddressSpace::Block::copy (HANDLE src, SIZE_T offset, SIZE_T size, LONG flags)
@@ -155,7 +156,7 @@ void AddressSpace::Block::copy (HANDLE src, SIZE_T offset, SIZE_T size, LONG fla
 		if (!DuplicateHandle (GetCurrentProcess (), src, m_space.process (), &mapping, 0, FALSE, DUPLICATE_SAME_ACCESS))
 			throw NO_MEMORY ();
 		try {
-			map (src, MAP_SHARED);
+			map (mapping, MAP_SHARED);
 		} catch (...) {
 			CloseHandle (mapping);
 			throw;

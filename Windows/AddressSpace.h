@@ -158,13 +158,14 @@ public:
 
 		struct State
 		{
-			enum : DWORD
+			enum
 			{
-				INVALID,
-				RESERVED,
-				MAPPED
-			}
-			state;
+				INVALID = 0,
+				RESERVED = MEM_RESERVE,
+				MAPPED = MEM_MAPPED
+			};
+
+			DWORD state;
 
 			/// <summary>
 			/// The OR of all page_state.
