@@ -78,18 +78,19 @@ void MemoryWindows::Block::prepare2share (SIZE_T offset, SIZE_T size)
 
 	{ // Remap if neeed.
 		const State& st = state ();
-		if (0 == offset && size == ALLOCATION_GRANULARITY) {
-			if (st.page_state_bits & PageState::MASK_UNMAPPED)
-				remap ();
-		} else {
-			// We need more intellectual algorithm based on cost of remapping and physical copying.
-			for (auto ps = st.mapped.page_state + offset / PAGE_SIZE, end = st.mapped.page_state + (offset + size + PAGE_SIZE - 1) / PAGE_SIZE; ps < end; ++ps) {
-				if (PageState::MASK_UNMAPPED & *ps) {
-					remap ();
-					break;
-				}
-			}
-		}
+    if (st.page_state_bits & PageState::MASK_UNMAPPED) {
+      if (0 == offset && size == ALLOCATION_GRANULARITY)
+        remap();
+      else {
+        // We need more intellectual algorithm based on cost of remapping and physical copying.
+        for (auto ps = st.mapped.page_state + offset / PAGE_SIZE, end = st.mapped.page_state + (offset + size + PAGE_SIZE - 1) / PAGE_SIZE; ps < end; ++ps) {
+          if (PageState::MASK_UNMAPPED & *ps) {
+            remap();
+            break;
+          }
+        }
+      }
+    }
 	}
 	
 	{ // Prepare pages
@@ -176,33 +177,31 @@ void MemoryWindows::Block::copy (void* src, SIZE_T size, LONG flags)
 	assert (offset + size <= ALLOCATION_GRANULARITY);
 
 	Block src_block (src);
-	if (offset || size < ALLOCATION_GRANULARITY) {
-		if (INVALID_HANDLE_VALUE != mapping ()) {
-			if (CompareObjectHandles (mapping (), src_block.mapping ())) {
-				SIZE_T page_off = offset % PAGE_SIZE;
-				if (page_off) {
-					SIZE_T page_tail = PAGE_SIZE - page_off;
-					if (copy_page_part (src, page_tail, flags)) {
-						offset += page_tail;
-						size -= page_tail;
-						assert (!(offset % PAGE_SIZE));
-					}
+	if ((offset || size < ALLOCATION_GRANULARITY) && INVALID_HANDLE_VALUE != mapping()) {
+		if (CompareObjectHandles (mapping (), src_block.mapping ())) {
+			SIZE_T page_off = offset % PAGE_SIZE;
+			if (page_off) {
+				SIZE_T page_tail = PAGE_SIZE - page_off;
+				if (copy_page_part (src, page_tail, flags)) {
+					offset += page_tail;
+					size -= page_tail;
+					assert (!(offset % PAGE_SIZE));
 				}
-				page_off = (offset + size) % PAGE_SIZE;
-				if (page_off && copy_page_part ((const BYTE*)src + size - page_off, page_off, flags)) {
-					size -= page_off;
-					assert (!((offset + size) % PAGE_SIZE));
-				}
-				if (!size)
-					return;
-			} else if (has_data_outside_of (offset, size)) {
-				if (PageState::MASK_RO & commit (offset, size))
-					change_protection (offset, size, Memory::READ_WRITE);
-				real_copy ((BYTE*)src, (BYTE*)src + size, address () + offset);
-				if (flags & Memory::READ_ONLY)
-					change_protection (offset, size, Memory::READ_ONLY);
-				return;
 			}
+			page_off = (offset + size) % PAGE_SIZE;
+			if (page_off && copy_page_part ((const BYTE*)src + size - page_off, page_off, flags)) {
+				size -= page_off;
+				assert (!((offset + size) % PAGE_SIZE));
+			}
+			if (!size)
+				return;
+		} else if (has_data_outside_of (offset, size)) {
+			if (PageState::MASK_RO & commit (offset, size))
+				change_protection (offset, size, Memory::READ_WRITE);
+			real_copy ((BYTE*)src, (BYTE*)src + size, address () + offset);
+			if (flags & Memory::READ_ONLY)
+				change_protection (offset, size, Memory::READ_ONLY);
+			return;
 		}
 	}
 	src_block.prepare2share (offset, size);
