@@ -151,7 +151,7 @@ public:
 			}
 		};
 
-		void remap (bool for_share);
+		void remap ();
 		bool copy_page_part (const void* src, SIZE_T size, LONG flags);
 	};
 

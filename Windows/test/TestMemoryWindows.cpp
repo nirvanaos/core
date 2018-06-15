@@ -111,7 +111,9 @@ TEST_F (TestMemoryWindows, Share)
 	BYTE* sblock = (BYTE*)MemoryWindows::copy (0, block, BLOCK_SIZE, 0);
 	ASSERT_TRUE (sblock);
 	BYTE* send = sblock + BLOCK_SIZE;
+	EXPECT_EQ (sblock [1], 1);
 
+	EXPECT_EQ (sblock, (BYTE*)MemoryWindows::copy (sblock, block, BLOCK_SIZE, 0));
 	EXPECT_EQ (sblock [1], 1);
 
 	b = 1;

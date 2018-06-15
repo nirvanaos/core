@@ -51,7 +51,7 @@ DWORD MemoryWindows::Block::commit (SIZE_T offset, SIZE_T size)
 
 		if (regions.end != regions.begin) {
 			if (bs.page_state_bits & PageState::MASK_MAY_BE_SHARED)
-				remap (false);
+				remap ();
 			for (const Region* p = regions.begin; p != regions.end; ++p) {
 				if (!VirtualAlloc (p->ptr, p->size, MEM_COMMIT, PageState::RW_MAPPED_PRIVATE)) {
 					// Error, decommit back and throw the exception.
@@ -76,49 +76,46 @@ void MemoryWindows::Block::prepare2share (SIZE_T offset, SIZE_T size)
 	if (state ().state != State::MAPPED)
 		throw BAD_PARAM ();
 
-	// Remap if neeed.
-	bool need_remap = false;
-	const State& st = state ();
-	if (st.page_state_bits & PageState::DECOMMITTED)
-		need_remap = true;
-	else if (0 == offset && size == ALLOCATION_GRANULARITY) {
-		if (st.page_state_bits & PageState::MASK_UNMAPPED)
-			need_remap = true;
-	} else {
-		auto page_state = state ().mapped.page_state;
-		for (auto ps = page_state + offset / PAGE_SIZE, end = page_state + (offset + size + PAGE_SIZE - 1) / PAGE_SIZE; ps < end; ++ps) {
-			if (PageState::MASK_UNMAPPED & *ps) {
-				need_remap = true;
-				break;
+	{ // Remap if neeed.
+		const State& st = state ();
+		if (0 == offset && size == ALLOCATION_GRANULARITY) {
+			if (st.page_state_bits & PageState::MASK_UNMAPPED)
+				remap ();
+		} else {
+			// We need more intellectual algorithm based on cost of remapping and physical copying.
+			for (auto ps = st.mapped.page_state + offset / PAGE_SIZE, end = st.mapped.page_state + (offset + size + PAGE_SIZE - 1) / PAGE_SIZE; ps < end; ++ps) {
+				if (PageState::MASK_UNMAPPED & *ps) {
+					remap ();
+					break;
+				}
 			}
 		}
 	}
+	
+	{ // Prepare pages
+		const State& st = state ();
+		if (st.page_state_bits & PageState::RW_MAPPED_PRIVATE) {
+			auto region_begin = st.mapped.page_state + offset / PAGE_SIZE, block_end = st.mapped.page_state + (offset + size + PAGE_SIZE - 1) / PAGE_SIZE;
+			do {
+				auto region_end = region_begin;
+				DWORD state = *region_begin;
+				do
+					++region_end;
+				while (region_end < block_end && state == *region_end);
 
-	if (need_remap)
-		remap (true);
-	else { // Prepare pages
-		auto page_state = state ().mapped.page_state;
-		auto region_begin = page_state, block_end = region_begin + PAGES_PER_BLOCK;
-		bool committed = false;
-		do {
-			auto region_end = region_begin;
-			DWORD state = *region_begin;
-			do
-				++region_end;
-			while (region_end < block_end && state == *region_end);
+				if (PageState::RW_MAPPED_PRIVATE == state) {
+					BYTE* ptr = address () + (region_begin - st.mapped.page_state) * PAGE_SIZE;
+					SIZE_T size = (region_end - region_begin) * PAGE_SIZE;
+					protect (ptr, size, PageState::RW_MAPPED_SHARED);
+				}
 
-			if (PageState::RW_MAPPED_PRIVATE == state) {
-				BYTE* ptr = address () + (region_begin - page_state) * PAGE_SIZE;
-				SIZE_T size = (region_end - region_begin) * PAGE_SIZE;
-				protect (ptr, size, PageState::RW_MAPPED_SHARED);
-			}
-
-			region_begin = region_end;
-		} while (region_begin < block_end);
+				region_begin = region_end;
+			} while (region_begin < block_end);
+		}
 	}
 }
 
-void MemoryWindows::Block::remap (bool for_share)
+void MemoryWindows::Block::remap ()
 {
 	HANDLE hm = new_mapping ();
 	try {
@@ -161,20 +158,11 @@ void MemoryWindows::Block::remap (bool for_share)
 		verify (UnmapViewOfFile (ptmp));
 
 		// Change to new mapping
-		AddressSpace::MappingType mt;
-		DWORD read_only_protect;
-		if (for_share) {
-			mt = AddressSpace::MAP_SHARED;
-			read_only_protect = PageState::RO_MAPPED_SHARED;
-		} else {
-			mt = AddressSpace::MAP_PRIVATE;
-			read_only_protect = PageState::RO_MAPPED_PRIVATE;
-		}
-		map (hm, mt);
+		map (hm, AddressSpace::MAP_PRIVATE);
 
 		// Change protection for read-only pages.
 		for (const Region* p = read_only.begin; p != read_only.end; ++p)
-			protect (p->ptr, p->size, read_only_protect);
+			protect (p->ptr, p->size, PageState::RO_MAPPED_PRIVATE);
 	} catch (...) {
 		CloseHandle (hm);
 		throw;

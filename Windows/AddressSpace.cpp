@@ -149,7 +149,8 @@ void AddressSpace::Block::copy (HANDLE src, SIZE_T offset, SIZE_T size, LONG fla
 		if (has_data_outside_of (offset, size))
 			throw INTERNAL ();
 		remap = true;
-	}
+	} else
+		remap = false;
 
 	if (remap) {
 		HANDLE mapping;
@@ -171,28 +172,14 @@ void AddressSpace::Block::copy (HANDLE src, SIZE_T offset, SIZE_T size, LONG fla
 			m_space.protect (m_address + offset, tail, PageState::DECOMMITTED);
 	} else {
 		bool change_protection = false;
-		DWORD protection = (Memory::READ_ONLY & flags) ? PageState::RO_MAPPED_SHARED | PAGE_REVERT_TO_FILE_MAP : PageState::RW_MAPPED_SHARED | PAGE_REVERT_TO_FILE_MAP;
-		auto page_state = state ().mapped.page_state;
-		auto begin = page_state + offset / PAGE_SIZE, end = page_state + (offset_end + PAGE_SIZE - 1) / PAGE_SIZE - 1;
-		if (offset % PAGE_SIZE) {	// Destination address is not page-aligned.
-			auto state = *begin;
-			if (state != protection) {
-				if (PageState::MASK_UNMAPPED & state)
-					throw INTERNAL ();	// Can not copy unaligned data to unmapped private page.
-				else if (PageState::NOT_COMMITTED == state)
-					throw BAD_PARAM ();	// Can not copy not committed page - source error.
-				else if (PageState::DECOMMITTED == state)
-					change_protection = true;
-				else if (Memory::READ_ONLY & flags)
-					offset = round_up (offset, PAGE_SIZE); // Start page should remain partially writable.
-			}
-			++begin;
-		}
-
-		{
-			SIZE_T tail = offset_end % PAGE_SIZE;
-			if (tail) {	// End of destination block is not page-aligned
-				auto state = *end;
+		DWORD protection = (Memory::READ_ONLY & flags) ? PageState::RO_MAPPED_SHARED : PageState::RW_MAPPED_SHARED;
+		const State& st = state ();
+		if (0 == offset && ALLOCATION_GRANULARITY == size) {
+			change_protection = (st.page_state_bits & ~protection) != 0;
+		} else {
+			auto begin = st.mapped.page_state + offset / PAGE_SIZE, end = st.mapped.page_state + (offset_end + PAGE_SIZE - 1) / PAGE_SIZE - 1;
+			if (offset % PAGE_SIZE) {	// Destination address is not page-aligned.
+				auto state = *begin;
 				if (state != protection) {
 					if (PageState::MASK_UNMAPPED & state)
 						throw INTERNAL ();	// Can not copy unaligned data to unmapped private page.
@@ -201,19 +188,37 @@ void AddressSpace::Block::copy (HANDLE src, SIZE_T offset, SIZE_T size, LONG fla
 					else if (PageState::DECOMMITTED == state)
 						change_protection = true;
 					else if (Memory::READ_ONLY & flags)
-						size -= tail; // End page should remain partially writable.
+						offset = round_up (offset, PAGE_SIZE); // Start page should remain partially writable.
 				}
+				++begin;
 			}
-			--end;
-		}
 
-		for (auto ps = begin; ps <= end; ++ps) {
-			auto state = *ps;
-			if (state != protection) {
-				if (PageState::NOT_COMMITTED == state)
-					throw BAD_PARAM ();	// Can not copy not committed page
-				else
-					change_protection = true;
+			{
+				SIZE_T tail = offset_end % PAGE_SIZE;
+				if (tail) {	// End of destination block is not page-aligned
+					auto state = *end;
+					if (state != protection) {
+						if (PageState::MASK_UNMAPPED & state)
+							throw INTERNAL ();	// Can not copy unaligned data to unmapped private page.
+						else if (PageState::NOT_COMMITTED == state)
+							throw BAD_PARAM ();	// Can not copy not committed page - source error.
+						else if (PageState::DECOMMITTED == state)
+							change_protection = true;
+						else if (Memory::READ_ONLY & flags)
+							size -= tail; // End page should remain partially writable.
+					}
+				}
+				--end;
+			}
+
+			for (auto ps = begin; ps <= end; ++ps) {
+				auto state = *ps;
+				if (state != protection) {
+					if (PageState::NOT_COMMITTED == state)
+						throw BAD_PARAM ();	// Can not copy not committed page
+					else
+						change_protection = true;
+				}
 			}
 		}
 		if (change_protection) {
@@ -519,7 +524,7 @@ AddressSpace::BlockInfo* AddressSpace::allocated_block (void* address)
 		size_t i0 = idx / SECOND_LEVEL_BLOCK;
 		size_t i1 = idx % SECOND_LEVEL_BLOCK;
 		BlockInfo** pp = m_directory + i0;
-		if (!IsBadReadPtr (pp, sizeof (BlockInfo*)) {
+		if (!IsBadReadPtr (pp, sizeof (BlockInfo*))) {
 			if (p = *pp)
 				p += i1;
 		}
