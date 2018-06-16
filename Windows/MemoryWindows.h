@@ -201,7 +201,7 @@ private:
 	// Create new mapping
 	static HANDLE new_mapping ()
 	{
-		HANDLE mapping = CreateFileMappingW (0, 0, PageState::RW_MAPPED_PRIVATE | SEC_RESERVE, 0, ALLOCATION_GRANULARITY, 0);
+		HANDLE mapping = CreateFileMappingW (0, 0, PAGE_EXECUTE_READWRITE | SEC_RESERVE, 0, ALLOCATION_GRANULARITY, 0);
 		if (!mapping)
 			throw NO_MEMORY ();
 		return mapping;
