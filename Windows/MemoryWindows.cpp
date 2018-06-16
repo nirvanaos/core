@@ -69,50 +69,48 @@ DWORD MemoryWindows::Block::commit (SIZE_T offset, SIZE_T size)
 	}
 }
 
-void MemoryWindows::Block::prepare2share (SIZE_T offset, SIZE_T size)
+bool MemoryWindows::Block::need_remap_to_share (SIZE_T offset, SIZE_T size)
+{
+	const State& st = state ();
+	if (st.state != State::MAPPED)
+		throw BAD_PARAM ();
+	if (st.page_state_bits & PageState::MASK_UNMAPPED) {
+		if (0 == offset && size == ALLOCATION_GRANULARITY)
+			return true;
+		else {
+			for (auto ps = st.mapped.page_state + offset / PAGE_SIZE, end = st.mapped.page_state + (offset + size + PAGE_SIZE - 1) / PAGE_SIZE; ps < end; ++ps) {
+				if (PageState::MASK_UNMAPPED & *ps)
+					return true;
+			}
+		}
+	}
+	return false;
+}
+
+void MemoryWindows::Block::prepare_to_share_no_remap (SIZE_T offset, SIZE_T size)
 {
 	assert (offset + size <= ALLOCATION_GRANULARITY);
+	assert ((state ().state == State::MAPPED));
 
-	if (state ().state != State::MAPPED)
-		throw BAD_PARAM ();
+	// Prepare pages
+	const State& st = state ();
+	if (st.page_state_bits & PageState::RW_MAPPED_PRIVATE) {
+		auto region_begin = st.mapped.page_state + offset / PAGE_SIZE, block_end = st.mapped.page_state + (offset + size + PAGE_SIZE - 1) / PAGE_SIZE;
+		do {
+			auto region_end = region_begin;
+			DWORD state = *region_begin;
+			do
+				++region_end;
+			while (region_end < block_end && state == *region_end);
 
-	{ // Remap if neeed.
-		const State& st = state ();
-    if (st.page_state_bits & PageState::MASK_UNMAPPED) {
-      if (0 == offset && size == ALLOCATION_GRANULARITY)
-        remap();
-      else {
-        // We need more intellectual algorithm based on cost of remapping and physical copying.
-        for (auto ps = st.mapped.page_state + offset / PAGE_SIZE, end = st.mapped.page_state + (offset + size + PAGE_SIZE - 1) / PAGE_SIZE; ps < end; ++ps) {
-          if (PageState::MASK_UNMAPPED & *ps) {
-            remap();
-            break;
-          }
-        }
-      }
-    }
-	}
-	
-	{ // Prepare pages
-		const State& st = state ();
-		if (st.page_state_bits & PageState::RW_MAPPED_PRIVATE) {
-			auto region_begin = st.mapped.page_state + offset / PAGE_SIZE, block_end = st.mapped.page_state + (offset + size + PAGE_SIZE - 1) / PAGE_SIZE;
-			do {
-				auto region_end = region_begin;
-				DWORD state = *region_begin;
-				do
-					++region_end;
-				while (region_end < block_end && state == *region_end);
+			if (PageState::RW_MAPPED_PRIVATE == state) {
+				BYTE* ptr = address () + (region_begin - st.mapped.page_state) * PAGE_SIZE;
+				SIZE_T size = (region_end - region_begin) * PAGE_SIZE;
+				protect (ptr, size, PageState::RW_MAPPED_SHARED);
+			}
 
-				if (PageState::RW_MAPPED_PRIVATE == state) {
-					BYTE* ptr = address () + (region_begin - st.mapped.page_state) * PAGE_SIZE;
-					SIZE_T size = (region_end - region_begin) * PAGE_SIZE;
-					protect (ptr, size, PageState::RW_MAPPED_SHARED);
-				}
-
-				region_begin = region_end;
-			} while (region_begin < block_end);
-		}
+			region_begin = region_end;
+		} while (region_begin < block_end);
 	}
 }
 
@@ -120,9 +118,10 @@ void MemoryWindows::Block::remap ()
 {
 	HANDLE hm = new_mapping ();
 	try {
-		BYTE* ptmp = (BYTE*)MapViewOfFile (hm, FILE_MAP_ALL_ACCESS, 0, 0, 0);
+		BYTE* ptmp = (BYTE*)sm_space.map (hm, AddressSpace::MAP_PRIVATE);
 		if (!ptmp)
 			throw NO_MEMORY ();
+		assert (hm == sm_space.allocated_block (ptmp)->mapping);
 
 		Regions read_only;
 		try {
@@ -138,7 +137,7 @@ void MemoryWindows::Block::remap ()
 					SIZE_T offset = (region_begin - page_state) * PAGE_SIZE;
 					LONG_PTR* dst = (LONG_PTR*)(ptmp + offset);
 					SIZE_T size = (region_end - region_begin) * PAGE_SIZE;
-					if (!VirtualAlloc (dst, size, MEM_COMMIT, PAGE_READWRITE))
+					if (!VirtualAlloc (dst, size, MEM_COMMIT, PageState::RW_MAPPED_PRIVATE))
 						throw NO_MEMORY ();
 					const LONG_PTR* src = (LONG_PTR*)(address () + offset);
 					real_copy (src, src + size / sizeof (LONG_PTR), dst);
@@ -153,9 +152,12 @@ void MemoryWindows::Block::remap ()
 				region_begin = region_end;
 			} while (region_begin < block_end);
 		} catch (...) {
-			UnmapViewOfFile (ptmp);
+			sm_space.allocated_block (ptmp)->mapping = 0;
+			verify (UnmapViewOfFile (ptmp));
 			throw;
 		}
+
+		sm_space.allocated_block (ptmp)->mapping = 0;
 		verify (UnmapViewOfFile (ptmp));
 
 		// Change to new mapping
@@ -179,33 +181,51 @@ void MemoryWindows::Block::copy (void* src, SIZE_T size, LONG flags)
 	Block src_block (src);
 	if ((offset || size < ALLOCATION_GRANULARITY) && INVALID_HANDLE_VALUE != mapping()) {
 		if (CompareObjectHandles (mapping (), src_block.mapping ())) {
-			SIZE_T page_off = offset % PAGE_SIZE;
-			if (page_off) {
-				SIZE_T page_tail = PAGE_SIZE - page_off;
-				if (copy_page_part (src, page_tail, flags)) {
-					offset += page_tail;
-					size -= page_tail;
-					assert (!(offset % PAGE_SIZE));
+			if (src_block.need_remap_to_share (offset, size)) {
+				if (has_data_outside_of (offset, size, PageState::MASK_UNMAPPED)) {
+					// Real copy
+					copy (offset, size, src, flags);
+					return;
+				} else
+					src_block.remap ();
+			} else {
+				SIZE_T page_off = offset % PAGE_SIZE;
+				if (page_off) {
+					SIZE_T page_tail = PAGE_SIZE - page_off;
+					if (copy_page_part (src, page_tail, flags)) {
+						offset += page_tail;
+						size -= page_tail;
+						assert (!(offset % PAGE_SIZE));
+					}
 				}
+				page_off = (offset + size) % PAGE_SIZE;
+				if (page_off && copy_page_part ((const BYTE*)src + size - page_off, page_off, flags)) {
+					size -= page_off;
+					assert (!((offset + size) % PAGE_SIZE));
+				}
+				if (!size)
+					return;
 			}
-			page_off = (offset + size) % PAGE_SIZE;
-			if (page_off && copy_page_part ((const BYTE*)src + size - page_off, page_off, flags)) {
-				size -= page_off;
-				assert (!((offset + size) % PAGE_SIZE));
-			}
-			if (!size)
-				return;
 		} else if (has_data_outside_of (offset, size)) {
-			if (PageState::MASK_RO & commit (offset, size))
-				change_protection (offset, size, Memory::READ_WRITE);
-			real_copy ((BYTE*)src, (BYTE*)src + size, address () + offset);
-			if (flags & Memory::READ_ONLY)
-				change_protection (offset, size, Memory::READ_ONLY);
+			// Real copy
+			copy (offset, size, src, flags);
 			return;
-		}
-	}
-	src_block.prepare2share (offset, size);
+		} else if (src_block.need_remap_to_share (offset, size))
+			src_block.remap ();
+	} else if (src_block.need_remap_to_share (offset, size))
+		src_block.remap ();
+
+	src_block.prepare_to_share_no_remap (offset, size);
 	AddressSpace::Block::copy (src_block.mapping (), offset, size, flags);
+}
+
+void MemoryWindows::Block::copy (SIZE_T offset, SIZE_T size, const void* src, LONG flags)
+{
+	if (PageState::MASK_RO & commit (offset, size))
+		change_protection (offset, size, Memory::READ_WRITE);
+	real_copy ((const BYTE*)src, (const BYTE*)src + size, address () + offset);
+	if (flags & Memory::READ_ONLY)
+		change_protection (offset, size, Memory::READ_ONLY);
 }
 
 bool MemoryWindows::Block::copy_page_part (const void* src, SIZE_T size, LONG flags)
@@ -246,7 +266,7 @@ DWORD MemoryWindows::commit (void* ptr, SIZE_T size)
 	return mask;
 }
 
-void MemoryWindows::prepare2share (void* src, SIZE_T size)
+void MemoryWindows::prepare_to_share (void* src, SIZE_T size)
 {
 	if (!size)
 		return;
@@ -258,7 +278,7 @@ void MemoryWindows::prepare2share (void* src, SIZE_T size)
 		BYTE* block_end = block.address () + ALLOCATION_GRANULARITY;
 		if (block_end > end)
 			block_end = end;
-		block.prepare2share (p - block.address (), block_end - p);
+		block.prepare_to_share (p - block.address (), block_end - p);
 		p = block_end;
 	}
 }

@@ -112,7 +112,7 @@ void AddressSpace::Block::unmap ()
 	}
 }
 
-bool AddressSpace::Block::has_data_outside_of (SIZE_T offset, SIZE_T size)
+bool AddressSpace::Block::has_data_outside_of (SIZE_T offset, SIZE_T size, DWORD mask)
 {
 	SIZE_T offset_end = offset + size;
 	assert (offset_end <= ALLOCATION_GRANULARITY);
@@ -120,13 +120,13 @@ bool AddressSpace::Block::has_data_outside_of (SIZE_T offset, SIZE_T size)
 		auto page_state = state ().mapped.page_state;
 		if (offset) {
 			for (auto ps = page_state, end = page_state + (offset + PAGE_SIZE - 1) / PAGE_SIZE; ps < end; ++ps) {
-				if (PageState::MASK_ACCESS & *ps)
+				if (mask & *ps)
 					return true;
 			}
 		}
 		if (offset_end < ALLOCATION_GRANULARITY) {
 			for (auto ps = page_state + (offset_end) / PAGE_SIZE, end = page_state + PAGES_PER_BLOCK; ps < end; ++ps) {
-				if (PageState::MASK_ACCESS & *ps)
+				if (mask & *ps)
 					return true;
 			}
 		}

@@ -209,7 +209,7 @@ public:
 
 		void map (HANDLE mapping, MappingType protection);
 
-		bool has_data_outside_of (SIZE_T offset, SIZE_T size);
+		bool has_data_outside_of (SIZE_T offset, SIZE_T size, DWORD mask = PageState::MASK_ACCESS);
 
 	private:
 		AddressSpace & m_space;
