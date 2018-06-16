@@ -288,17 +288,6 @@ void MemoryWindows::prepare_to_share (void* src, SIZE_T size)
 	}
 }
 
-NT_TIB* MemoryWindows::current_tib ()
-{
-#ifdef _M_IX86
-	return (NT_TIB*)__readfsdword (0x18);
-#elif _M_AMD64
-	return (NT_TIB*)__readgsqword (0x30);
-#else
-#error Only x86 and x64 platforms supported.
-#endif
-}
-
 inline MemoryWindows::StackInfo::StackInfo ()
 {
 	// Obtain stack size.
@@ -469,7 +458,6 @@ public:
 
 		// Decommit Windows memory
 		verify (VirtualFree (m_guard_begin, m_stack_base - m_guard_begin, MEM_DECOMMIT));
-		//verify (VirtualFree (m_allocation_base, m_stack_base - m_allocation_base, MEM_DECOMMIT));
 
 #ifdef _DEBUG
 		{

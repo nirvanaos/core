@@ -135,9 +135,30 @@ TEST_F (TestMemoryWindows, Share)
 	MemoryWindows::release (sblock, BLOCK_SIZE);
 }
 
+inline NT_TIB* current_tib ()
+{
+#ifdef _M_IX86
+	return (NT_TIB*)__readfsdword (0x18);
+#elif _M_AMD64
+	return (NT_TIB*)__readgsqword (0x30);
+#else
+#error Only x86 and x64 platforms supported.
+#endif
+}
+
+void stack_test (void* limit)
+{
+	BYTE page [PAGE_SIZE];
+	page [0] = 1;
+	if (current_tib ()->StackLimit != limit)
+		return;
+	stack_test (limit);
+}
+
 TEST_F (TestMemoryWindows, Stack)
 {
 	MemoryWindows::ThreadMemory tm;
+	stack_test (current_tib ()->StackLimit);
 }
 
 }

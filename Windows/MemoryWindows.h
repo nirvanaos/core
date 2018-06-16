@@ -209,7 +209,16 @@ private:
 
 	// Thread stack processing
 
-	static NT_TIB* current_tib ();
+	static NT_TIB* current_tib ()
+	{
+#ifdef _M_IX86
+		return (NT_TIB*)__readfsdword (0x18);
+#elif _M_AMD64
+		return (NT_TIB*)__readgsqword (0x30);
+#else
+#error Only x86 and x64 platforms supported.
+#endif
+	}
 
 	typedef void (*FiberMethod) (void*);
 	static void call_in_fiber (FiberMethod method, void* param);
