@@ -135,4 +135,9 @@ TEST_F (TestMemoryWindows, Share)
 	MemoryWindows::release (sblock, BLOCK_SIZE);
 }
 
+TEST_F (TestMemoryWindows, Stack)
+{
+	MemoryWindows::ThreadMemory tm;
+}
+
 }

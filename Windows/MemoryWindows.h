@@ -166,6 +166,33 @@ public:
 	};
 
 private:
+	struct StackInfo
+	{
+		BYTE* m_stack_base;
+		BYTE* m_stack_limit;
+		BYTE* m_guard_begin;
+		BYTE* m_allocation_base;
+
+		StackInfo ();
+	};
+
+public:
+	class ThreadMemory :
+		protected StackInfo
+	{
+	public:
+		ThreadMemory ();
+		~ThreadMemory ();
+
+	private:
+		static void stack_prepare (const ThreadMemory* param);
+		static void stack_unprepare (const ThreadMemory* param);
+
+		class StackMemory;
+		class StackPrepare;
+	};
+
+private:
 	static void protect (void* address, SIZE_T size, DWORD protection)
 	{
 		sm_space.protect (address, size, protection);
@@ -184,21 +211,8 @@ private:
 
 	static NT_TIB* current_tib ();
 
-	static void thread_prepare ();
-	static void thread_unprepare ();
-
 	typedef void (*FiberMethod) (void*);
-
 	static void call_in_fiber (FiberMethod method, void* param);
-
-	struct StackPrepareParam
-	{
-		void* stack_base;
-		void* stack_limit;
-	};
-
-	static void stack_prepare (const StackPrepareParam* param);
-	static void stack_unprepare (const StackPrepareParam* param);
 
 	struct FiberParam
 	{

@@ -95,7 +95,7 @@ void AddressSpace::Block::map (HANDLE mapping, MappingType protection)
 	}
 }
 
-void AddressSpace::Block::unmap ()
+void AddressSpace::Block::unmap (bool release)
 {
 	HANDLE mapping = InterlockedExchangePointer (&m_info.mapping, INVALID_HANDLE_VALUE);
 	if (!mapping) {
@@ -105,10 +105,11 @@ void AddressSpace::Block::unmap ()
 	if (INVALID_HANDLE_VALUE != mapping) {
 		verify (UnmapViewOfFile2 (m_space.process (), m_address, 0));
 		verify (CloseHandle (mapping));
-		while (!VirtualAllocEx (m_space.process (), m_address, ALLOCATION_GRANULARITY, MEM_RESERVE, PAGE_NOACCESS)) {
-			assert (ERROR_INVALID_ADDRESS == GetLastError ());
-			raise_condition ();
-		}
+		if (!release)
+			while (!VirtualAllocEx (m_space.process (), m_address, ALLOCATION_GRANULARITY, MEM_RESERVE, PAGE_NOACCESS)) {
+				assert (ERROR_INVALID_ADDRESS == GetLastError ());
+				raise_condition ();
+			}
 	}
 }
 

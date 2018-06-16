@@ -5,10 +5,6 @@
 #ifndef NIRVANA_WINDOWS_WIN32_H_
 #define NIRVANA_WINDOWS_WIN32_H_
 
-#if !(defined (_M_IX86) || defined (_M_AMD64))
-#error Only x86 and x64 platforms supported for Windows.
-#endif
-
 #include "../core.h"
 #define NOMINMAX
 #include <windows.h>

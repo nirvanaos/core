@@ -151,7 +151,7 @@ public:
 		}
 
 		void copy (HANDLE src, SIZE_T offset, SIZE_T size, LONG flags);
-		void unmap ();
+		void unmap (bool release = false);
 		DWORD check_committed (SIZE_T offset, SIZE_T size);
 		void change_protection (SIZE_T offset, SIZE_T size, LONG flags);
 		void decommit (SIZE_T offset, SIZE_T size);
@@ -202,6 +202,8 @@ public:
 		const State& state ();
 
 	protected:
+		friend class MemoryWindows;
+
 		void invalidate_state ()
 		{
 			m_state.state = State::INVALID;
@@ -218,7 +220,7 @@ public:
 		State m_state;
 	};
 
-	void* reserve (SIZE_T size, LONG flags, void* dst = 0);
+	void* reserve (SIZE_T size, LONG flags = 0, void* dst = 0);
 	void release (void* ptr, SIZE_T size);
 
 	// Quick copy for block sizes <= ALLOCATION_GRANULARITY

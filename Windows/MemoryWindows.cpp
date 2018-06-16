@@ -13,45 +13,51 @@ DWORD MemoryWindows::Block::commit (SIZE_T offset, SIZE_T size)
 {
 	assert (offset + size <= ALLOCATION_GRANULARITY);
 
+	DWORD ret = 0;	// Page state bits in committed region
 	HANDLE old_mapping = mapping ();
 	if (INVALID_HANDLE_VALUE == old_mapping) {
 		HANDLE hm = new_mapping ();
 		try {
 			map (hm, AddressSpace::MAP_PRIVATE);
-			if (!VirtualAlloc (address () + offset, size, MEM_COMMIT, PageState::RW_MAPPED_PRIVATE)) {
-				unmap ();
-				throw NO_MEMORY ();
+			if (size) {
+				if (!VirtualAlloc (address () + offset, size, MEM_COMMIT, PageState::RW_MAPPED_PRIVATE)) {
+					unmap ();
+					throw NO_MEMORY ();
+				}
+				ret = PageState::RW_MAPPED_PRIVATE;
 			}
 		} catch (...) {
 			CloseHandle (hm);
 			throw;
 		}
-		return PageState::RW_MAPPED_PRIVATE;
-	} else {
+	} else if (size) {
 		const State& bs = state ();
 		Regions regions;	// Regions to commit.
 		auto region_begin = bs.mapped.page_state + offset / PAGE_SIZE, state_end = bs.mapped.page_state + (offset + size + PAGE_SIZE - 1) / PAGE_SIZE;
 		do {
 			auto region_end = region_begin;
-			if (!(PageState::MASK_ACCESS & *region_begin)) {
-				do
+			DWORD state = *region_begin;
+			if (!(PageState::MASK_ACCESS & state)) {
+				do {
 					++region_end;
-				while (region_end < state_end && !(PageState::MASK_ACCESS & *region_end));
+				} while (region_end < state_end && !(PageState::MASK_ACCESS & (state = *region_end)));
 
 				regions.add (address () + (region_begin - bs.mapped.page_state) * PAGE_SIZE, (region_end - region_begin) * PAGE_SIZE);
 			} else {
-				do
+				do {
+					ret |= state;
 					++region_end;
-				while (region_end < state_end && (PageState::MASK_ACCESS & *region_end));
+				} while (region_end < state_end && (PageState::MASK_ACCESS & (state = *region_end)));
 			}
 			region_begin = region_end;
 		} while (region_begin < state_end);
 
-		DWORD ret = bs.page_state_bits & PageState::MASK_ACCESS;
-
 		if (regions.end != regions.begin) {
-			if (bs.page_state_bits & PageState::MASK_MAY_BE_SHARED)
+			if (bs.page_state_bits & PageState::MASK_MAY_BE_SHARED) {
 				remap ();
+				ret = ((ret & PageState::MASK_RW) ? PageState::RW_MAPPED_PRIVATE : 0)
+					| ((ret & PageState::MASK_RO) ? PageState::RO_MAPPED_PRIVATE : 0);
+			}
 			for (const Region* p = regions.begin; p != regions.end; ++p) {
 				if (!VirtualAlloc (p->ptr, p->size, MEM_COMMIT, PageState::RW_MAPPED_PRIVATE)) {
 					// Error, decommit back and throw the exception.
@@ -64,9 +70,8 @@ DWORD MemoryWindows::Block::commit (SIZE_T offset, SIZE_T size)
 				}
 			}
 		}
-
-		return ret;
 	}
+	return ret;
 }
 
 bool MemoryWindows::Block::need_remap_to_share (SIZE_T offset, SIZE_T size)
@@ -289,109 +294,218 @@ NT_TIB* MemoryWindows::current_tib ()
 	return (NT_TIB*)__readfsdword (0x18);
 #elif _M_AMD64
 	return (NT_TIB*)__readgsqword (0x30);
+#else
+#error Only x86 and x64 platforms supported.
 #endif
 }
 
-void MemoryWindows::thread_prepare ()
+inline MemoryWindows::StackInfo::StackInfo ()
 {
-	// Prepare stack of current thread to share
-
-	// Obtain stack size
-	StackPrepareParam param;
+	// Obtain stack size.
 	const NT_TIB* ptib = current_tib ();
-	param.stack_base = ptib->StackBase;
-	param.stack_limit = ptib->StackLimit;
+	m_stack_base = (BYTE*)ptib->StackBase;
+	m_stack_limit = (BYTE*)ptib->StackLimit;
+	assert (m_stack_limit < m_stack_base);
+	assert (!((SIZE_T)m_stack_base % PAGE_SIZE));
+	assert (!((SIZE_T)m_stack_limit % PAGE_SIZE));
 
-	// Call share_stack in fiber
-	verify (ConvertThreadToFiber (0));
-//	call_in_fiber ((FiberMethod)&MemoryWindows::stack_prepare, &param);
+	MEMORY_BASIC_INFORMATION mbi;
+#ifdef _DEBUG
+	verify (VirtualQuery (m_stack_limit, &mbi, sizeof (mbi)));
+	assert (MEM_COMMIT == mbi.State);
+	assert (PAGE_READWRITE == mbi.Protect);
+#endif
+
+	// The pages before m_stack_limit are guard pages.
+	BYTE* guard = m_stack_limit;
+	for (;;) {
+		BYTE* g = guard - PAGE_SIZE;
+		verify (VirtualQuery (g, &mbi, sizeof (mbi)));
+		if ((PAGE_GUARD | PAGE_READWRITE) != mbi.Protect)
+			break;
+		guard = g;
+	}
+	assert (guard < m_stack_limit);
+	m_guard_begin = guard;
+	m_allocation_base = (BYTE*)mbi.AllocationBase;
 }
 
-void MemoryWindows::thread_unprepare ()
-{}
-/*
-void MemoryWindows::stack_prepare (const StackPrepareParam* param_ptr)
+MemoryWindows::ThreadMemory::ThreadMemory () :
+	StackInfo ()
+{ // Prepare stack of current thread to share.
+	// Call stack_prepare in fiber
+	if (!ConvertThreadToFiber (0))
+		throw INTERNAL ();
+	call_in_fiber ((FiberMethod)&stack_prepare, this);
+}
+
+MemoryWindows::ThreadMemory::~ThreadMemory ()
 {
-	// Copy parameter from source stack
-	// The source stack will become temporary unaccessible
-	ShareStackParam param = *param_ptr;
+	call_in_fiber ((FiberMethod)&stack_unprepare, this);
+}
 
-	// Temporary copy committed stack
-	UWord cur_stack_size = (Octet*)param.stack_base - (Octet*)param.stack_limit;
-	void* ptmp = VirtualAlloc (0, cur_stack_size, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
-	if (!ptmp)
-		throw NO_MEMORY ();
-
-	//memcpy (ptmp, param.stack_limit, cur_stack_size);
-	real_copy ((const UWord*)param.stack_limit, (const UWord*)param.stack_base, (UWord*)ptmp);
-
-	// Get stack region
-	// The first page before param.m_stack_limit is a guard page
-	MemoryBasicInformation mbi ((Page*)param.stack_limit - 1);
-
-	assert (MEM_COMMIT == mbi.State);
-	assert ((PAGE_GUARD | PAGE_READWRITE) == mbi.Protect);
-	assert (PAGE_SIZE == mbi.RegionSize);
-
-	// Decommit Windows memory
-	VirtualFree (mbi.BaseAddress, (Octet*)param.stack_base - (Octet*)mbi.BaseAddress, MEM_DECOMMIT);
-
-#ifdef _DEBUG
+class MemoryWindows::ThreadMemory::StackMemory :
+	protected StackInfo
+{
+public:
+	StackMemory (const StackInfo& thread) :
+		StackInfo (thread)
 	{
-		MemoryBasicInformation dmbi (mbi.AllocationBase);
+		SIZE_T cur_stack_size = m_stack_base - m_stack_limit;
 
-		assert (dmbi.State == MEM_RESERVE);
-		assert (mbi.AllocationBase == dmbi.AllocationBase);
-		assert ((((Octet*)mbi.AllocationBase) + dmbi.RegionSize) == (Octet*)param.stack_base);
+		m_tmpbuf = (BYTE*)sm_space.reserve (cur_stack_size);
+		if (!m_tmpbuf)
+			throw NO_MEMORY ();
+		if (!VirtualAlloc (m_tmpbuf, cur_stack_size, MEM_COMMIT, PAGE_READWRITE)) {
+			sm_space.release (m_tmpbuf, cur_stack_size);
+			throw NO_MEMORY ();
+		}
+
+		// Temporary copy current stack.
+		real_copy ((const SIZE_T*)m_stack_limit, (const SIZE_T*)(m_stack_base), (SIZE_T*)m_tmpbuf);
 	}
-#endif // _DEBUG
 
-	Block* stack_begin = mbi.allocation_base ();
-	assert (!((UWord)param.stack_base % ALLOCATION_GRANULARITY));
-	Block* stack_end = (Block*)param.stack_base;
-	Block* line = stack_begin;
+	void unprepare ()
+	{
+		// Remove mappings and free memory. But blocks still marekd as reserved.
+		for (BYTE* p = m_allocation_base; p < m_stack_base; p += ALLOCATION_GRANULARITY) {
+			HANDLE mapping = InterlockedExchangePointer (&sm_space.allocated_block (p)->mapping, INVALID_HANDLE_VALUE);
+			if (mapping != INVALID_HANDLE_VALUE) {
+				verify (UnmapViewOfFile (p));
+				verify (CloseHandle (mapping));
+			} else if (!mapping)
+				sm_space.allocated_block (p)->mapping = INVALID_HANDLE_VALUE;
+			else
+				VirtualFree (p, 0, MEM_RELEASE);
+		}
 
-	try {
+		// Reserve all stack.
+		while (!VirtualAlloc (m_allocation_base, m_stack_base - m_allocation_base, MEM_RESERVE, PAGE_READWRITE)) {
+			assert (ERROR_INVALID_ADDRESS == GetLastError ());
+			AddressSpace::raise_condition ();
+		}
 
-		// Map our memory (but not commit)
-		do
-			map (line);
-		while (++line < stack_end);
+		// Mark blocks as free
+		for (BYTE* p = m_allocation_base; p < m_stack_base; p += ALLOCATION_GRANULARITY)
+			sm_space.allocated_block (p)->mapping = 0;
 
-	} catch (...) {
+		finalize ();
+	}
 
-		// Unmap
-		while (line > stack_begin)
-			unmap (--line);
-
-		// Commit current stack
-		VirtualAlloc (param.stack_limit, cur_stack_size, MEM_COMMIT, PAGE_READWRITE);
-
-		// Commit guard page(s)
-		VirtualAlloc (mbi.BaseAddress, mbi.RegionSize, MEM_COMMIT, PAGE_GUARD | PAGE_READWRITE);
-
+	~StackMemory ()
+	{
 		// Release temporary buffer
-		VirtualFree (ptmp, 0, MEM_RELEASE);
-
-		throw;
+		SIZE_T cur_stack_size = m_stack_base - m_stack_limit;
+		if (m_tmpbuf) {
+			verify (VirtualFree (m_tmpbuf, cur_stack_size, MEM_DECOMMIT));
+			sm_space.release (m_tmpbuf, cur_stack_size);
+		}
 	}
+
+protected:
+	void finalize ();
+
+private:
+	BYTE* m_tmpbuf;
+};
+
+void MemoryWindows::ThreadMemory::StackMemory::finalize ()
+{
+	SIZE_T cur_stack_size = m_stack_base - m_stack_limit;
 
 	// Commit current stack
-	VirtualAlloc (param.stack_limit, cur_stack_size, MEM_COMMIT, PAGE_READWRITE);
+	if (!VirtualAlloc (m_stack_limit, cur_stack_size, MEM_COMMIT, PAGE_READWRITE))
+		throw NO_MEMORY ();
 
 	// Commit guard page(s)
-	VirtualAlloc ((Page*)param.stack_limit - 1, mbi.RegionSize, MEM_COMMIT, PAGE_GUARD | PAGE_READWRITE);
+	if (!VirtualAlloc (m_guard_begin, m_stack_limit - m_guard_begin, MEM_COMMIT, PAGE_GUARD | PAGE_READWRITE))
+		throw NO_MEMORY ();
 
-	// Copy stack data back
-	//memcpy (param.stack_limit, ptmp, cur_stack_size);
-	real_copy ((const UWord*)ptmp, (const UWord*)((Octet*)ptmp + cur_stack_size), (UWord*)param.stack_limit);
-
-	// Release temporary buffer
-	VirtualFree (ptmp, 0, MEM_RELEASE);
-
-	assert (!memcmp (&param, param_ptr, sizeof (ShareStackParam)));
+	// Copy current stack contents back.
+	real_copy ((SIZE_T*)m_tmpbuf, (SIZE_T*)m_tmpbuf + cur_stack_size / sizeof (SIZE_T), (SIZE_T*)m_stack_limit);
 }
-*/
+
+class MemoryWindows::ThreadMemory::StackPrepare :
+	private StackMemory
+{
+public:
+	StackPrepare (const ThreadMemory& thread) :
+		StackMemory (thread),
+		m_finalized (true)
+	{
+		m_mapped_end = m_allocation_base;
+	}
+
+	~StackPrepare ()
+	{
+		if (!m_finalized) {	// On error.
+			// Unmap and free mapped blocks.
+			BYTE* ptail = m_mapped_end + ALLOCATION_GRANULARITY;
+			if (ptail < m_stack_base)
+				VirtualFree (ptail, 0, MEM_RELEASE); // May fail. No verify.
+			VirtualFree (m_mapped_end, 0, MEM_RELEASE); // May fail. No verify.
+			while (m_mapped_end > m_allocation_base) {
+				Block (m_mapped_end -= ALLOCATION_GRANULARITY).unmap ();
+				verify (VirtualFree (m_mapped_end, 0, MEM_RELEASE));
+			}
+
+			// Reserve Windows stack back.
+			verify (VirtualAlloc (m_allocation_base, m_stack_base - m_allocation_base, MEM_RESERVE, PAGE_READWRITE));
+
+			try {
+				finalize ();
+			} catch (...) {
+			}
+		}
+	}
+
+	void prepare ()
+	{
+		m_finalized = false;
+
+		// Mark memory as reserved.
+		for (BYTE* p = m_allocation_base; p < m_stack_base; p += ALLOCATION_GRANULARITY)
+			sm_space.block (p).mapping = INVALID_HANDLE_VALUE;
+
+		// Decommit Windows memory
+		verify (VirtualFree (m_guard_begin, m_stack_base - m_guard_begin, MEM_DECOMMIT));
+		//verify (VirtualFree (m_allocation_base, m_stack_base - m_allocation_base, MEM_DECOMMIT));
+
+#ifdef _DEBUG
+		{
+			MEMORY_BASIC_INFORMATION dmbi;
+			assert (VirtualQuery (m_allocation_base, &dmbi, sizeof (dmbi)));
+			assert (dmbi.State == MEM_RESERVE);
+			assert (m_allocation_base == dmbi.AllocationBase);
+			assert (m_allocation_base == dmbi.BaseAddress);
+			assert (((BYTE*)dmbi.BaseAddress + dmbi.RegionSize) == m_stack_base);
+		}
+#endif
+
+		// Map all stack, but not commit.
+		for (; m_mapped_end < m_stack_base; m_mapped_end += ALLOCATION_GRANULARITY) {
+			Block (m_mapped_end).commit (0, 0);
+		}
+
+		finalize ();
+		m_finalized = true;
+	}
+
+private:
+	BYTE * m_mapped_end;
+	bool m_finalized;
+};
+
+void MemoryWindows::ThreadMemory::stack_prepare (const ThreadMemory* param_ptr)
+{
+	StackPrepare (*param_ptr).prepare ();
+}
+
+void MemoryWindows::ThreadMemory::stack_unprepare (const ThreadMemory* param_ptr)
+{
+	StackMemory (*param_ptr).unprepare ();
+}
+
 void MemoryWindows::call_in_fiber (FiberMethod method, void* param)
 {
 	FiberParam fp;
