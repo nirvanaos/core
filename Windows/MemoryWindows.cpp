@@ -403,11 +403,11 @@ void MemoryWindows::ThreadMemory::StackMemory::finalize ()
 	SIZE_T cur_stack_size = m_stack_base - m_stack_limit;
 
 	// Commit current stack
-	if (!VirtualAlloc (m_stack_limit, cur_stack_size, MEM_COMMIT, PAGE_READWRITE))
+	if (!VirtualAlloc (m_stack_limit, cur_stack_size, MEM_COMMIT, PageState::RW_MAPPED_PRIVATE))
 		throw NO_MEMORY ();
 
 	// Commit guard page(s)
-	if (!VirtualAlloc (m_guard_begin, m_stack_limit - m_guard_begin, MEM_COMMIT, PAGE_GUARD | PAGE_READWRITE))
+	if (!VirtualAlloc (m_guard_begin, m_stack_limit - m_guard_begin, MEM_COMMIT, PAGE_GUARD | PageState::RW_MAPPED_PRIVATE))
 		throw NO_MEMORY ();
 
 	// Copy current stack contents back.

@@ -146,19 +146,25 @@ inline NT_TIB* current_tib ()
 #endif
 }
 
-void stack_test (void* limit)
+void stack_test (void* limit, bool first)
 {
-	BYTE page [PAGE_SIZE];
-	page [0] = 1;
+	BYTE data [4096];
+	data [0] = 1;
+	MEMORY_BASIC_INFORMATION mbi;
+	ASSERT_TRUE (VirtualQuery (data, &mbi, sizeof (mbi)));
+	ASSERT_EQ (mbi.Protect, PageState::RW_MAPPED_PRIVATE);
 	if (current_tib ()->StackLimit != limit)
-		return;
-	stack_test (limit);
+		if (first)
+			first = false;
+		else
+			return;
+	stack_test (limit, first);
 }
 
 TEST_F (TestMemoryWindows, Stack)
 {
 	MemoryWindows::ThreadMemory tm;
-	stack_test (current_tib ()->StackLimit);
+	stack_test (current_tib ()->StackLimit, true);
 }
 
 }
