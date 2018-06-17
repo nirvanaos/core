@@ -145,8 +145,8 @@ public:
 			return m_info.mapping;
 		}
 
-		void copy (HANDLE src, SIZE_T offset, SIZE_T size, LONG flags);
-		void unmap (bool release = false);
+		void copy (Block& src, SIZE_T offset, SIZE_T size, LONG flags);
+		void unmap (HANDLE reserve = INVALID_HANDLE_VALUE);
 		DWORD check_committed (SIZE_T offset, SIZE_T size);
 		void change_protection (SIZE_T offset, SIZE_T size, LONG flags);
 		void decommit (SIZE_T offset, SIZE_T size);

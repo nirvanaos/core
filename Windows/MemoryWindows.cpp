@@ -8,6 +8,7 @@ namespace Nirvana {
 namespace Windows {
 
 AddressSpace MemoryWindows::sm_space;
+PTOP_LEVEL_EXCEPTION_FILTER MemoryWindows::sm_exception_filter;
 
 DWORD MemoryWindows::Block::commit (SIZE_T offset, SIZE_T size)
 {
@@ -117,11 +118,35 @@ void MemoryWindows::Block::prepare_to_share_no_remap (SIZE_T offset, SIZE_T size
 			region_begin = region_end;
 		} while (region_begin < block_end);
 	}
+
+	if (st.page_state_bits & PAGE_GUARD) {
+		// We are sharing block at the top of the stack.
+		// We have to commit all pages in the block.
+		for (auto end = st.mapped.page_state + PAGES_PER_BLOCK, begin = st.mapped.page_state, p = end;;) {
+			auto prev = p - 1;
+			DWORD s;
+			if (s = *prev) {
+				if (p < end &&!VirtualAlloc (address () + (p - begin) * PAGE_SIZE, (end - p) * PAGE_SIZE, MEM_COMMIT, s))
+					throw NO_MEMORY ();
+				break;
+			}
+			if ((p = prev) == begin)
+				break;
+		}
+	}
 }
 
 void MemoryWindows::Block::remap ()
 {
-	HANDLE hm = new_mapping ();
+	HANDLE hm;
+
+	// If this block is on the top of current stack, we must remap it in different fiber.
+	if (address () <= (BYTE*)&hm && (BYTE*)&hm < address () + ALLOCATION_GRANULARITY) {
+		call_in_fiber ((FiberMethod)&remap_proc, this);
+		return;
+	}
+
+	hm = new_mapping ();
 	try {
 		BYTE* ptmp = (BYTE*)sm_space.map (hm, AddressSpace::MAP_PRIVATE);
 		if (!ptmp)
@@ -177,6 +202,11 @@ void MemoryWindows::Block::remap ()
 	}
 }
 
+void MemoryWindows::Block::remap_proc (Block* block)
+{
+	block->remap ();
+}
+
 void MemoryWindows::Block::copy (void* src, SIZE_T size, LONG flags)
 {
 	assert (size);
@@ -220,8 +250,9 @@ void MemoryWindows::Block::copy (void* src, SIZE_T size, LONG flags)
 	} else if (src_block.need_remap_to_share (offset, size))
 		src_block.remap ();
 
-	src_block.prepare_to_share_no_remap (offset, size);
-	AddressSpace::Block::copy (src_block.mapping (), offset, size, flags);
+	if (!(flags & Memory::DECOMMIT))	// Memory::RELEASE includes flag DECOMMIT.
+		src_block.prepare_to_share_no_remap (offset, size);
+	AddressSpace::Block::copy (src_block, offset, size, flags);
 }
 
 void MemoryWindows::Block::copy (SIZE_T offset, SIZE_T size, const void* src, LONG flags)
@@ -291,7 +322,7 @@ void MemoryWindows::prepare_to_share (void* src, SIZE_T size)
 inline MemoryWindows::StackInfo::StackInfo ()
 {
 	// Obtain stack size.
-	const NT_TIB* ptib = current_tib ();
+	const NT_TIB* ptib = current_TIB ();
 	m_stack_base = (BYTE*)ptib->StackBase;
 	m_stack_limit = (BYTE*)ptib->StackLimit;
 	assert (m_stack_limit < m_stack_base);
@@ -300,7 +331,7 @@ inline MemoryWindows::StackInfo::StackInfo ()
 
 	MEMORY_BASIC_INFORMATION mbi;
 #ifdef _DEBUG
-	verify (VirtualQuery (m_stack_limit, &mbi, sizeof (mbi)));
+	query (m_stack_limit, mbi);
 	assert (MEM_COMMIT == mbi.State);
 	assert (PAGE_READWRITE == mbi.Protect);
 #endif
@@ -309,7 +340,7 @@ inline MemoryWindows::StackInfo::StackInfo ()
 	BYTE* guard = m_stack_limit;
 	for (;;) {
 		BYTE* g = guard - PAGE_SIZE;
-		verify (VirtualQuery (g, &mbi, sizeof (mbi)));
+		query (g, mbi);
 		if ((PAGE_GUARD | PAGE_READWRITE) != mbi.Protect)
 			break;
 		guard = g;
@@ -462,7 +493,7 @@ public:
 #ifdef _DEBUG
 		{
 			MEMORY_BASIC_INFORMATION dmbi;
-			assert (VirtualQuery (m_allocation_base, &dmbi, sizeof (dmbi)));
+			query (m_allocation_base, dmbi);
 			assert (dmbi.State == MEM_RESERVE);
 			assert (m_allocation_base == dmbi.AllocationBase);
 			assert (m_allocation_base == dmbi.BaseAddress);
@@ -508,7 +539,7 @@ void MemoryWindows::call_in_fiber (FiberMethod method, void* param)
 	fp.environment.check ();
 }
 
-void MemoryWindows::fiber_proc (FiberParam* param)
+void CALLBACK MemoryWindows::fiber_proc (FiberParam* param)
 {
 	try {
 		(*param->method) (param->param);
@@ -518,6 +549,28 @@ void MemoryWindows::fiber_proc (FiberParam* param)
 		param->environment.set_unknown_exception ();
 	}
 	SwitchToFiber (param->source_fiber);
+}
+
+LONG CALLBACK MemoryWindows::exception_filter (struct _EXCEPTION_POINTERS* pex)
+{
+	if (
+		pex->ExceptionRecord->ExceptionCode == EXCEPTION_ACCESS_VIOLATION
+		&&
+		pex->ExceptionRecord->NumberParameters >= 2
+		&&
+		!(pex->ExceptionRecord->ExceptionFlags & EXCEPTION_NONCONTINUABLE)
+	) {
+		void* address = (void*)pex->ExceptionRecord->ExceptionInformation [1];
+		if (sm_space.allocated_block (address)) {
+			AddressSpace::raise_condition ();
+			return EXCEPTION_CONTINUE_EXECUTION;
+		}
+	}
+
+	if (sm_exception_filter)
+		return (sm_exception_filter)(pex);
+	else
+		return UnhandledExceptionFilter (pex);
 }
 
 }

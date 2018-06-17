@@ -96,6 +96,7 @@ TEST_F (TestMemoryWindows, Commit)
 	MemoryWindows::release (block, BLOCK_SIZE);
 }
 
+// Test the sharing of the large memory block.
 TEST_F (TestMemoryWindows, Share)
 {
 	size_t BLOCK_SIZE = 0x20000000;	// 512M
@@ -135,7 +136,34 @@ TEST_F (TestMemoryWindows, Share)
 	MemoryWindows::release (sblock, BLOCK_SIZE);
 }
 
-inline NT_TIB* current_tib ()
+TEST_F (TestMemoryWindows, Move)
+{
+	size_t BLOCK_SIZE = 0x100000;
+	// Allocate block.
+	int* block = (int*)MemoryWindows::allocate (0, BLOCK_SIZE, Memory::ZERO_INIT);
+	ASSERT_TRUE (block);
+
+	int i = 0;
+	for (int* p = block, *end = block + BLOCK_SIZE / sizeof (int); p != end; ++p)
+		*p = ++i;
+
+	// Shift block right on ALLOCATION_GRANULARITY
+	int* shifted = (int*)MemoryWindows::copy (block + ALLOCATION_GRANULARITY / sizeof (int), block, BLOCK_SIZE, Memory::ALLOCATE | Memory::EXACTLY | Memory::RELEASE);
+	EXPECT_EQ (shifted, block + ALLOCATION_GRANULARITY / sizeof (int));
+	i = 0;
+	for (int* p = shifted, *end = shifted + BLOCK_SIZE / sizeof (int); p != end; ++p)
+		EXPECT_EQ (*p, ++i);
+
+	// Shift it back.
+	EXPECT_EQ (block, (int*)MemoryWindows::copy (block, shifted, BLOCK_SIZE, Memory::ALLOCATE | Memory::EXACTLY | Memory::RELEASE));
+	i = 0;
+	for (int* p = block, *end = block + BLOCK_SIZE / sizeof (int); p != end; ++p)
+		EXPECT_EQ (*p, ++i);
+
+	MemoryWindows::release (block, BLOCK_SIZE);
+}
+
+inline NT_TIB* current_TIB ()
 {
 #ifdef _M_IX86
 	return (NT_TIB*)__readfsdword (0x18);
@@ -153,7 +181,7 @@ void stack_test (void* limit, bool first)
 	MEMORY_BASIC_INFORMATION mbi;
 	ASSERT_TRUE (VirtualQuery (data, &mbi, sizeof (mbi)));
 	ASSERT_EQ (mbi.Protect, PageState::RW_MAPPED_PRIVATE);
-	if (current_tib ()->StackLimit != limit)
+	if (current_TIB ()->StackLimit != limit)
 		if (first)
 			first = false;
 		else
@@ -164,7 +192,7 @@ void stack_test (void* limit, bool first)
 TEST_F (TestMemoryWindows, Stack)
 {
 	MemoryWindows::ThreadMemory tm;
-	stack_test (current_tib ()->StackLimit, true);
+	stack_test (current_TIB ()->StackLimit, true);
 }
 
 }

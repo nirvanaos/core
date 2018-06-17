@@ -1,6 +1,7 @@
 #include "AddressSpace.h"
 #include <Memory.h>
 #include <cpplib.h>
+#include <algorithm>
 
 namespace Nirvana {
 namespace Windows {
@@ -95,17 +96,18 @@ void AddressSpace::Block::map (HANDLE mapping, MappingType protection)
 	}
 }
 
-void AddressSpace::Block::unmap (bool release)
+void AddressSpace::Block::unmap (HANDLE reserve)
 {
-	HANDLE mapping = InterlockedExchangePointer (&m_info.mapping, INVALID_HANDLE_VALUE);
+	HANDLE mapping = InterlockedExchangePointer (&m_info.mapping, reserve);
 	if (!mapping) {
-		m_info.mapping = 0;
+		if (reserve)
+			m_info.mapping = 0;
 		throw INTERNAL ();
 	}
 	if (INVALID_HANDLE_VALUE != mapping) {
 		verify (UnmapViewOfFile2 (m_space.process (), m_address, 0));
 		verify (CloseHandle (mapping));
-		if (!release)
+		if (reserve)
 			while (!VirtualAllocEx (m_space.process (), m_address, ALLOCATION_GRANULARITY, MEM_RESERVE, PAGE_NOACCESS)) {
 				assert (ERROR_INVALID_ADDRESS == GetLastError ());
 				raise_condition ();
@@ -135,17 +137,20 @@ bool AddressSpace::Block::has_data_outside_of (SIZE_T offset, SIZE_T size, DWORD
 	return false;
 }
 
-void AddressSpace::Block::copy (HANDLE src, SIZE_T offset, SIZE_T size, LONG flags)
+void AddressSpace::Block::copy (Block& src, SIZE_T offset, SIZE_T size, LONG flags)
 {
 	assert (size);
 	SIZE_T offset_end = offset + size;
 	assert (offset_end <= ALLOCATION_GRANULARITY);
+	HANDLE src_mapping = src.mapping ();
+	assert (src_mapping && INVALID_HANDLE_VALUE != src_mapping);
+	assert (address () != src.address ());
 
 	bool remap;
 	HANDLE cur_mapping = mapping ();
 	if (INVALID_HANDLE_VALUE == cur_mapping)
 		remap = true;
-	else if (!CompareObjectHandles (cur_mapping, src)) {
+	else if (!CompareObjectHandles (cur_mapping, src_mapping)) {
 		// Change mapping, if possible
 		if (has_data_outside_of (offset, size))
 			throw INTERNAL ();
@@ -153,80 +158,84 @@ void AddressSpace::Block::copy (HANDLE src, SIZE_T offset, SIZE_T size, LONG fla
 	} else
 		remap = false;
 
+	bool move;
+	if (flags & Memory::DECOMMIT) {
+		if (flags & (Memory::RELEASE & ~Memory::DECOMMIT))
+			move = true;
+		else
+			move = !src.has_data_outside_of (offset, size);
+	}
+	DWORD dst_page_state [PAGES_PER_BLOCK];
+	DWORD* dst_ps_begin = dst_page_state + offset / PAGE_SIZE;
+	DWORD* dst_ps_end = dst_page_state + (offset_end + PAGE_SIZE - 1) / PAGE_SIZE;
+	std::fill (dst_page_state, dst_ps_begin, PageState::DECOMMITTED);
+	std::fill (dst_ps_end, dst_page_state + PAGES_PER_BLOCK, PageState::DECOMMITTED);
+
+	if (move) {
+		// Decide target page states based on source page states.
+		auto src_page_state = src.state ().mapped.page_state;
+		const DWORD* src_ps = src_page_state + offset / PAGE_SIZE;
+		DWORD* dst_ps = dst_ps_begin;
+		do {
+			DWORD src_state = *src_ps;
+			if (flags & Memory::READ_ONLY)
+				if (src_state & PageState::MASK_MAY_BE_SHARED)
+					*dst_ps = PageState::RO_MAPPED_SHARED;
+				else
+					*dst_ps = PageState::RO_MAPPED_PRIVATE;
+			else
+				if (src_state & PageState::MASK_MAY_BE_SHARED)
+					*dst_ps = PageState::RW_MAPPED_SHARED;
+				else
+					*dst_ps = PageState::RW_MAPPED_PRIVATE;
+			++src_ps;
+
+		} while (++dst_ps != dst_ps_end);
+	} else
+		std::fill (dst_ps_begin, dst_ps_end, Memory::READ_ONLY & flags ? PageState::RO_MAPPED_SHARED : PageState::RW_MAPPED_SHARED);
+
 	if (remap) {
 		HANDLE mapping;
-		if (!DuplicateHandle (GetCurrentProcess (), src, m_space.process (), &mapping, 0, FALSE, DUPLICATE_SAME_ACCESS))
+		if (!DuplicateHandle (GetCurrentProcess (), src_mapping, m_space.process (), &mapping, 0, FALSE, DUPLICATE_SAME_ACCESS))
 			throw NO_MEMORY ();
 		try {
-			map (mapping, MAP_SHARED);
+			map (mapping, move ? MAP_PRIVATE : MAP_SHARED);
 		} catch (...) {
 			CloseHandle (mapping);
 			throw;
 		}
-		if (Memory::READ_ONLY & flags)
-			m_space.protect (m_address + offset, size, PageState::RO_MAPPED_SHARED);
-		if (offset > 0)
-			m_space.protect (m_address, round_down (offset, PAGE_SIZE), PageState::DECOMMITTED);
-		offset = round_up (offset + size, PAGE_SIZE);
-		SIZE_T tail = ALLOCATION_GRANULARITY - offset;
-		if (tail > 0)
-			m_space.protect (m_address + offset, tail, PageState::DECOMMITTED);
-	} else {
-		bool change_protection = false;
-		DWORD protection = (Memory::READ_ONLY & flags) ? PageState::RO_MAPPED_SHARED : PageState::RW_MAPPED_SHARED;
-		const State& st = state ();
-		if (0 == offset && ALLOCATION_GRANULARITY == size) {
-			change_protection = (st.page_state_bits & ~protection) != 0;
-		} else {
-			auto begin = st.mapped.page_state + offset / PAGE_SIZE, end = st.mapped.page_state + (offset_end + PAGE_SIZE - 1) / PAGE_SIZE - 1;
-			if (offset % PAGE_SIZE) {	// Destination address is not page-aligned.
-				auto state = *begin;
-				if (state != protection) {
-					if (PageState::MASK_UNMAPPED & state)
-						throw INTERNAL ();	// Can not copy unaligned data to unmapped private page.
-					else if (PageState::NOT_COMMITTED == state)
-						throw BAD_PARAM ();	// Can not copy not committed page - source error.
-					else if (PageState::DECOMMITTED == state)
-						change_protection = true;
-					else if (Memory::READ_ONLY & flags)
-						offset = round_up (offset, PAGE_SIZE); // Start page should remain partially writable.
-				}
-				++begin;
-			}
-
-			{
-				SIZE_T tail = offset_end % PAGE_SIZE;
-				if (tail) {	// End of destination block is not page-aligned
-					auto state = *end;
-					if (state != protection) {
-						if (PageState::MASK_UNMAPPED & state)
-							throw INTERNAL ();	// Can not copy unaligned data to unmapped private page.
-						else if (PageState::NOT_COMMITTED == state)
-							throw BAD_PARAM ();	// Can not copy not committed page - source error.
-						else if (PageState::DECOMMITTED == state)
-							change_protection = true;
-						else if (Memory::READ_ONLY & flags)
-							size -= tail; // End page should remain partially writable.
-					}
-				}
-				--end;
-			}
-
-			for (auto ps = begin; ps <= end; ++ps) {
-				auto state = *ps;
-				if (state != protection) {
-					if (PageState::NOT_COMMITTED == state)
-						throw BAD_PARAM ();	// Can not copy not committed page
-					else
-						change_protection = true;
-				}
-			}
-		}
-		if (change_protection) {
-			m_space.protect (m_address + offset, size, protection | PAGE_REVERT_TO_FILE_MAP);
-			invalidate_state ();
-		}
 	}
+
+	if (Memory::DECOMMIT & flags) {
+		if ((Memory::RELEASE & ~Memory::DECOMMIT) & flags)
+			src.unmap (0);
+		else
+			src.decommit (offset, size);
+	}
+
+	// Manage protection of copyed pages
+	const DWORD* cur_ps = state ().mapped.page_state;
+	const DWORD* region_begin = dst_page_state, *block_end = dst_page_state + PAGES_PER_BLOCK;
+	do {
+		DWORD state;
+		while (!(PageState::MASK_ACCESS & (*cur_ps ^ (state = *region_begin)))) {
+			++cur_ps;
+			if (++region_begin == block_end)
+				return;
+		}
+		auto region_end = region_begin;
+		do {
+			++cur_ps;
+			++region_end;
+		} while (region_end < block_end && state == *region_end);
+
+		BYTE* ptr = address () + (region_begin - dst_page_state) * PAGE_SIZE;
+		SIZE_T size = (region_end - region_begin) * PAGE_SIZE;
+		m_space.protect (ptr, size, state);
+		invalidate_state ();
+
+		region_begin = region_end;
+	} while (region_begin < block_end);
 }
 
 void AddressSpace::Block::change_protection (SIZE_T offset, SIZE_T size, LONG flags)
