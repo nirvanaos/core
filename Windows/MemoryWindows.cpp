@@ -96,10 +96,10 @@ bool MemoryWindows::Block::need_remap_to_share (SIZE_T offset, SIZE_T size)
 void MemoryWindows::Block::prepare_to_share_no_remap (SIZE_T offset, SIZE_T size)
 {
 	assert (offset + size <= ALLOCATION_GRANULARITY);
-	assert ((state ().state == State::MAPPED));
 
 	// Prepare pages
 	const State& st = state ();
+	assert (st.state == State::MAPPED);
 	if (st.page_state_bits & PageState::RW_MAPPED_PRIVATE) {
 		auto region_begin = st.mapped.page_state + offset / PAGE_SIZE, block_end = st.mapped.page_state + (offset + size + PAGE_SIZE - 1) / PAGE_SIZE;
 		do {
@@ -153,7 +153,7 @@ void MemoryWindows::Block::remap ()
 			throw NO_MEMORY ();
 		assert (hm == sm_space.allocated_block (ptmp)->mapping);
 
-		Regions read_only;
+		Regions read_only, read_write;
 		try {
 			auto page_state = state ().mapped.page_state;
 			auto region_begin = page_state, block_end = page_state + PAGES_PER_BLOCK;
@@ -173,6 +173,8 @@ void MemoryWindows::Block::remap ()
 					real_copy (src, src + size / sizeof (LONG_PTR), dst);
 					if (PageState::MASK_RO & *region_begin)
 						read_only.add ((void*)src, size);
+					else
+						read_write.add ((void*)src, size);
 				} else {
 					do
 						++region_end;
@@ -193,7 +195,9 @@ void MemoryWindows::Block::remap ()
 		// Change to new mapping
 		map (hm, AddressSpace::MAP_PRIVATE);
 
-		// Change protection for read-only pages.
+		// Change protection.
+		for (const Region* p = read_write.begin; p != read_write.end; ++p)
+			protect (p->ptr, p->size, PageState::RW_MAPPED_PRIVATE);
 		for (const Region* p = read_only.begin; p != read_only.end; ++p)
 			protect (p->ptr, p->size, PageState::RO_MAPPED_PRIVATE);
 	} catch (...) {

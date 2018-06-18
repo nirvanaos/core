@@ -82,6 +82,7 @@ public:
 		MASK_RO = RO_MAPPED_PRIVATE | RO_MAPPED_SHARED | RO_UNMAPPED,
 		MASK_ACCESS = MASK_RW | MASK_RO,
 		MASK_UNMAPPED = RW_UNMAPPED | RO_UNMAPPED,
+		MASK_MAPPED = RW_MAPPED_PRIVATE | RW_MAPPED_SHARED | RO_MAPPED_PRIVATE | RO_MAPPED_SHARED,
 		MASK_MAY_BE_SHARED = RW_MAPPED_SHARED | RO_MAPPED_SHARED | MASK_UNMAPPED | DECOMMITTED
 	};
 };
@@ -115,14 +116,19 @@ public:
 		return GetCurrentProcess () == m_process;
 	}
 
+	void* end () const
+	{
+		return (void*)(m_directory_size * ALLOCATION_GRANULARITY);
+	}
+
 	struct BlockInfo
 	{
 		// Currently we are using only one field. But we create structure for possible future extensions.
 		HANDLE mapping;
 	};
 
-	BlockInfo & block (void* address);
-	BlockInfo* allocated_block (void* address);
+	BlockInfo& block (const void* address);
+	BlockInfo* allocated_block (const void* address);
 
 	enum MappingType
 	{
@@ -150,6 +156,7 @@ public:
 		DWORD check_committed (SIZE_T offset, SIZE_T size);
 		void change_protection (SIZE_T offset, SIZE_T size, LONG flags);
 		void decommit (SIZE_T offset, SIZE_T size);
+		bool is_copy (Block& other, SIZE_T offset, SIZE_T size);
 
 		struct State
 		{
@@ -231,6 +238,9 @@ public:
 	void change_protection (void* ptr, SIZE_T size, LONG flags);
 	void decommit (void* ptr, SIZE_T size);
 
+	bool is_private (const void* p, SIZE_T size);
+	bool is_copy (const void* p, const void* plocal, SIZE_T size);
+
 protected:
 	void initialize (DWORD process_id, HANDLE process_handle);
 
@@ -261,6 +271,18 @@ private:
 #endif
 	size_t m_directory_size;
 };
+
+inline bool AddressSpace::is_private (const void* p, SIZE_T size)
+{
+	for (const BYTE* begin = (const BYTE*)p, *end = begin + size; begin < end;) {
+		MEMORY_BASIC_INFORMATION mbi;
+		query (begin, mbi);
+		if (mbi.Protect & (PAGE_WRITECOPY | PAGE_EXECUTE_WRITECOPY))
+			return false;
+		begin = (const BYTE*)mbi.BaseAddress + mbi.RegionSize;
+	}
+	return true;
+}
 
 }
 }

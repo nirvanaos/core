@@ -86,6 +86,8 @@ TEST_F (TestMemoryWindows, Commit)
 	MemoryWindows::commit (block, BLOCK_SIZE);
 	for (int* p = (int*)block, *end = (int*)(block + BLOCK_SIZE); p < end; ++p)
 		*p = rand ();
+	
+	EXPECT_TRUE (MemoryWindows::is_private (block, BLOCK_SIZE));
 
 	MemoryWindows::decommit (block, BLOCK_SIZE);
 	MemoryWindows::decommit (block, BLOCK_SIZE);
@@ -109,28 +111,50 @@ TEST_F (TestMemoryWindows, Share)
 		*p = b++;
 	EXPECT_EQ (block [1], 1);
 
+	EXPECT_TRUE (MemoryWindows::is_private (block, BLOCK_SIZE));
+
 	BYTE* sblock = (BYTE*)MemoryWindows::copy (0, block, BLOCK_SIZE, 0);
 	ASSERT_TRUE (sblock);
 	BYTE* send = sblock + BLOCK_SIZE;
 	EXPECT_EQ (sblock [1], 1);
 
+	EXPECT_FALSE (MemoryWindows::is_private (block, BLOCK_SIZE));
+	EXPECT_FALSE (MemoryWindows::is_private (sblock, BLOCK_SIZE));
+	EXPECT_TRUE (MemoryWindows::is_copy (sblock, block, BLOCK_SIZE));
+	EXPECT_TRUE (MemoryWindows::is_copy (block, sblock, BLOCK_SIZE));
+
 	EXPECT_EQ (sblock, (BYTE*)MemoryWindows::copy (sblock, block, BLOCK_SIZE, 0));
 	EXPECT_EQ (sblock [1], 1);
+
+	EXPECT_FALSE (MemoryWindows::is_private (block, BLOCK_SIZE));
+	EXPECT_FALSE (MemoryWindows::is_private (sblock, BLOCK_SIZE));
+	EXPECT_TRUE (MemoryWindows::is_copy (sblock, block, BLOCK_SIZE));
+	EXPECT_TRUE (MemoryWindows::is_copy (block, sblock, BLOCK_SIZE));
 
 	b = 1;
 	for (BYTE* p = block; p < end; ++p)
 		*p = b++;
 	EXPECT_EQ (block [1], 2);
 	EXPECT_EQ (sblock [1], 1);
+	
+	EXPECT_TRUE (MemoryWindows::is_private (block, BLOCK_SIZE));
+	EXPECT_FALSE (MemoryWindows::is_copy (sblock, block, BLOCK_SIZE));
 
 	b = 2;
 	for (BYTE* p = sblock; p < send; ++p)
 		*p = b++;
 	EXPECT_EQ (block [1], 2);
 	EXPECT_EQ (sblock [1], 3);
+	
+	EXPECT_TRUE (MemoryWindows::is_private (sblock, BLOCK_SIZE));
 
 	EXPECT_EQ (block, MemoryWindows::copy (block, sblock, BLOCK_SIZE, 0));
 	EXPECT_EQ (block [1], 3);
+
+	EXPECT_FALSE (MemoryWindows::is_private (block, BLOCK_SIZE));
+	EXPECT_FALSE (MemoryWindows::is_private (sblock, BLOCK_SIZE));
+	EXPECT_TRUE (MemoryWindows::is_copy (sblock, block, BLOCK_SIZE));
+	EXPECT_TRUE (MemoryWindows::is_copy (block, sblock, BLOCK_SIZE));
 
 	MemoryWindows::release (block, BLOCK_SIZE);
 	MemoryWindows::release (sblock, BLOCK_SIZE);
@@ -153,12 +177,22 @@ TEST_F (TestMemoryWindows, Move)
 	i = 0;
 	for (int* p = shifted, *end = shifted + BLOCK_SIZE / sizeof (int); p != end; ++p)
 		EXPECT_EQ (*p, ++i);
+	EXPECT_TRUE (MemoryWindows::is_private (shifted, BLOCK_SIZE));
+
+	// Allocate region to ensure that it is free.
+	EXPECT_TRUE (MemoryWindows::allocate (block, ALLOCATION_GRANULARITY, Memory::RESERVED | Memory::EXACTLY));
+	MemoryWindows::release (block, ALLOCATION_GRANULARITY);
 
 	// Shift it back.
 	EXPECT_EQ (block, (int*)MemoryWindows::copy (block, shifted, BLOCK_SIZE, Memory::ALLOCATE | Memory::EXACTLY | Memory::RELEASE));
 	i = 0;
 	for (int* p = block, *end = block + BLOCK_SIZE / sizeof (int); p != end; ++p)
 		EXPECT_EQ (*p, ++i);
+	EXPECT_TRUE (MemoryWindows::is_private (block, BLOCK_SIZE));
+
+	// Allocate region to ensure that it is free.
+	EXPECT_TRUE (MemoryWindows::allocate (block + BLOCK_SIZE / sizeof (int), ALLOCATION_GRANULARITY, Memory::RESERVED | Memory::EXACTLY));
+	MemoryWindows::release (block + BLOCK_SIZE / sizeof (int), ALLOCATION_GRANULARITY);
 
 	MemoryWindows::release (block, BLOCK_SIZE);
 }

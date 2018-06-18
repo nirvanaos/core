@@ -92,11 +92,18 @@ public:
 	}
 
 	static void* copy (void* dst, void* src, SIZE_T size, LONG flags);
-/*
-	static Boolean is_private (Pointer p);
-	static Boolean is_copy (Pointer p1, Pointer p2, UWord size);
-	static Word query (Pointer p, Memory::QueryParam q);
-*/
+
+	static bool is_private (const void* p, SIZE_T size)
+	{
+		return sm_space.is_private (p, size);
+	}
+
+	static bool is_copy (const void* p1, const void* p2, SIZE_T size)
+	{
+		return sm_space.is_copy (p1, p2, size);
+	}
+
+	static SIZE_T query (const void* p, Memory::QueryParam q);
 
 	static void prepare_to_share (void* src, SIZE_T size);
 
@@ -439,6 +446,42 @@ inline void* MemoryWindows::copy (void* dst, void* src, SIZE_T size, LONG flags)
 	}
 
 	return ret;
+}
+
+inline SIZE_T MemoryWindows::query (const void* p, Memory::QueryParam q)
+{
+	{
+		switch (q) {
+
+		case Memory::ALLOCATION_SPACE_BEGIN:
+			{
+				SYSTEM_INFO sysinfo;
+				GetSystemInfo (&sysinfo);
+				return (SIZE_T)sysinfo.lpMinimumApplicationAddress;
+			}
+
+		case Memory::ALLOCATION_SPACE_END:
+			return (SIZE_T)sm_space.end ();
+
+		case Memory::ALLOCATION_UNIT:
+		case Memory::SHARING_UNIT:
+		case Memory::GRANULARITY:
+		case Memory::SHARING_ASSOCIATIVITY:
+			return ALLOCATION_GRANULARITY;
+
+		case Memory::PROTECTION_UNIT:
+			return PAGE_SIZE;
+
+		case Memory::FLAGS:
+			return
+				Memory::ACCESS_CHECK |
+				Memory::HARDWARE_PROTECTION |
+				Memory::COPY_ON_WRITE |
+				Memory::SPACE_RESERVATION;
+		}
+
+		throw BAD_PARAM ();
+	}
 }
 
 }

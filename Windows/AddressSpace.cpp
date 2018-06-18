@@ -1,5 +1,4 @@
-#include "AddressSpace.h"
-#include <Memory.h>
+#include "MemoryWindows.h"
 #include <cpplib.h>
 #include <algorithm>
 
@@ -158,7 +157,7 @@ void AddressSpace::Block::copy (Block& src, SIZE_T offset, SIZE_T size, LONG fla
 	} else
 		remap = false;
 
-	bool move;
+	bool move = false;
 	if (flags & Memory::DECOMMIT) {
 		if (flags & (Memory::RELEASE & ~Memory::DECOMMIT))
 			move = true;
@@ -380,6 +379,27 @@ void AddressSpace::Block::decommit (SIZE_T offset, SIZE_T size)
 	}
 }
 
+inline bool AddressSpace::Block::is_copy (Block& other, SIZE_T offset, SIZE_T size)
+{
+	const State& st = state (), &other_st = other.state ();
+	if (st.state != State::MAPPED || other_st.state != State::MAPPED)
+		return false;
+	if (!CompareObjectHandles (mapping (), other.mapping ()))
+		return false;
+	SIZE_T page_begin = offset / PAGE_SIZE;
+	auto pst = st.mapped.page_state + page_begin;
+	auto other_pst = other_st.mapped.page_state + page_begin;
+	auto pst_end = st.mapped.page_state + (offset + size + PAGE_SIZE - 1) / PAGE_SIZE;
+	for (; pst != pst_end; ++pst, ++other_pst) {
+		DWORD ps = *pst, other_ps = *other_pst;
+		if ((ps | other_ps) & PageState::MASK_UNMAPPED)
+			return false;
+		else if (!(ps & PageState::MASK_ACCESS) || !(other_ps & PageState::MASK_ACCESS))
+			return false;
+	}
+	return true;
+}
+
 void AddressSpace::initialize (DWORD process_id, HANDLE process_handle)
 {
 	m_process = process_handle;
@@ -492,7 +512,7 @@ void AddressSpace::terminate ()
 	}
 }
 
-AddressSpace::BlockInfo& AddressSpace::block (void* address)
+AddressSpace::BlockInfo& AddressSpace::block (const void* address)
 {
 	size_t idx = (size_t)address / ALLOCATION_GRANULARITY;
 	assert (idx < m_directory_size);
@@ -525,7 +545,7 @@ AddressSpace::BlockInfo& AddressSpace::block (void* address)
 	return *p;
 }
 
-AddressSpace::BlockInfo* AddressSpace::allocated_block (void* address)
+AddressSpace::BlockInfo* AddressSpace::allocated_block (const void* address)
 {
 	size_t idx = (size_t)address / ALLOCATION_GRANULARITY;
 	BlockInfo* p = 0;
@@ -782,6 +802,29 @@ void AddressSpace::decommit (void* ptr, SIZE_T size)
 		block.decommit (p - block.address (), block_end - p);
 		p = block_end;
 	}
+}
+
+bool AddressSpace::is_copy (const void* p, const void* plocal, SIZE_T size)
+{
+	if ((SIZE_T)p % ALLOCATION_GRANULARITY == (SIZE_T)plocal % ALLOCATION_GRANULARITY) {
+		try {
+			for (BYTE* begin1 = (BYTE*)p, *end1 = begin1 + size, *begin2 = (BYTE*)plocal; begin1 < end1;) {
+				Block block1 (*this, begin1);
+				MemoryWindows::Block block2 (begin2);
+				BYTE* block_end1 = block1.address () + ALLOCATION_GRANULARITY;
+				if (block_end1 > end1)
+					block_end1 = end1;
+				if (!block1.is_copy (block2, begin1 - block1.address (), block_end1 - begin1))
+					return false;
+				begin1 = block_end1;
+				begin2 = block2.address () + ALLOCATION_GRANULARITY;
+			}
+			return true;
+		} catch (...) {
+			return false;
+		}
+	} else
+		return false;
 }
 
 }
