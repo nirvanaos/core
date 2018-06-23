@@ -14,7 +14,7 @@ namespace CORBA {
 namespace Nirvana {
 
 template <>
-class Bridge <::Nirvana::Memory> :
+class Bridge < ::Nirvana::Memory> :
 	public Bridge <Interface>
 {
 public:
@@ -59,7 +59,7 @@ public:
 
 		struct
 		{
-			Bridge <Object>* (*CORBA_Object) (Bridge <::Nirvana::Memory>*, EnvironmentBridge*);
+			Bridge <Object>* (*CORBA_Object) (Bridge < ::Nirvana::Memory>*, EnvironmentBridge*);
 		}
 		base;
 
@@ -116,14 +116,14 @@ public:
 	Pointer copy (Pointer dst, Pointer src, UWord size, Flags flags);
 	Boolean is_private (Pointer p);
 	Boolean is_copy (Pointer p1, Pointer p2, UWord size);
-	Word query (Pointer p, Bridge <::Nirvana::Memory>::QueryParam param);
+	Word query (Pointer p, Bridge < ::Nirvana::Memory>::QueryParam param);
 };
 
 template <class T>
 Pointer Client <T, ::Nirvana::Memory>::allocate (Pointer dst, UWord size, Flags flags)
 {
 	Environment _env;
-	Bridge <::Nirvana::Memory>& _b = ClientBase <T, ::Nirvana::Memory>::_bridge ();
+	Bridge < ::Nirvana::Memory>& _b = ClientBase <T, ::Nirvana::Memory>::_bridge ();
 	Pointer _ret = (_b._epv ().epv.allocate) (dst, size, flags, &_env);
 	_env.check ();
 	return _ret;
@@ -133,7 +133,7 @@ template <class T>
 void Client <T, ::Nirvana::Memory>::commit (Pointer dst, UWord size)
 {
 	Environment _env;
-	Bridge <::Nirvana::Memory>& _b = ClientBase <T, ::Nirvana::Memory>::_bridge ();
+	Bridge < ::Nirvana::Memory>& _b = ClientBase <T, ::Nirvana::Memory>::_bridge ();
 	(_b._epv ().epv.commit) (dst, size, &_env);
 	_env.check ();
 }
@@ -142,7 +142,7 @@ template <class T>
 void Client <T, ::Nirvana::Memory>::decommit (Pointer dst, UWord size)
 {
 	Environment _env;
-	Bridge <::Nirvana::Memory>& _b = ClientBase <T, ::Nirvana::Memory>::_bridge ();
+	Bridge < ::Nirvana::Memory>& _b = ClientBase <T, ::Nirvana::Memory>::_bridge ();
 	(_b._epv ().epv.decommit) (dst, size, &_env);
 	_env.check ();
 }
@@ -151,7 +151,7 @@ template <class T>
 void Client <T, ::Nirvana::Memory>::release (Pointer dst, UWord size)
 {
 	Environment _env;
-	Bridge <::Nirvana::Memory>& _b = ClientBase <T, ::Nirvana::Memory>::_bridge ();
+	Bridge < ::Nirvana::Memory>& _b = ClientBase <T, ::Nirvana::Memory>::_bridge ();
 	(_b._epv ().epv.release) (dst, size, &_env);
 	_env.check ();
 }
@@ -160,7 +160,7 @@ template <class T>
 Pointer Client <T, ::Nirvana::Memory>::copy (Pointer dst, Pointer src, UWord size, Flags flags)
 {
 	Environment _env;
-	Bridge <::Nirvana::Memory>& _b = ClientBase <T, ::Nirvana::Memory>::_bridge ();
+	Bridge < ::Nirvana::Memory>& _b = ClientBase <T, ::Nirvana::Memory>::_bridge ();
 	Pointer _ret = (_b._epv ().epv.copy) (dst, src, size, flags, &_env);
 	_env.check ();
 	return _ret;
@@ -170,7 +170,7 @@ template <class T>
 Boolean Client <T, ::Nirvana::Memory>::is_private (Pointer p)
 {
 	Environment _env;
-	Bridge <::Nirvana::Memory>& _b = ClientBase <T, ::Nirvana::Memory>::_bridge ();
+	Bridge < ::Nirvana::Memory>& _b = ClientBase <T, ::Nirvana::Memory>::_bridge ();
 	Boolean _ret = (_b._epv ().epv.is_private) (p, &_env);
 	_env.check ();
 	return _ret;
@@ -180,17 +180,17 @@ template <class T>
 Boolean Client <T, ::Nirvana::Memory>::is_copy (Pointer p1, Pointer p2, UWord size)
 {
 	Environment _env;
-	Bridge <::Nirvana::Memory>& _b = ClientBase <T, ::Nirvana::Memory>::_bridge ();
+	Bridge < ::Nirvana::Memory>& _b = ClientBase <T, ::Nirvana::Memory>::_bridge ();
 	Boolean _ret = (_b._epv ().epv.is_copy) (p1, p2, size, &_env);
 	_env.check ();
 	return _ret;
 }
 
 template <class T>
-Word Client <T, ::Nirvana::Memory>::query (Pointer p, Bridge <::Nirvana::Memory>::QueryParam param)
+Word Client <T, ::Nirvana::Memory>::query (Pointer p, Bridge < ::Nirvana::Memory>::QueryParam param)
 {
 	Environment _env;
-	Bridge <::Nirvana::Memory>& _b = ClientBase <T, ::Nirvana::Memory>::_bridge ();
+	Bridge < ::Nirvana::Memory>& _b = ClientBase <T, ::Nirvana::Memory>::_bridge ();
 	Word _ret = (_b._epv ().epv.query) (p, param, &_env);
 	_env.check ();
 	return _ret;
@@ -200,19 +200,19 @@ template <class S>
 class Skeleton <S, ::Nirvana::Memory>
 {
 public:
-	static const typename Bridge <::Nirvana::Memory>::EPV sm_epv;
+	static const typename Bridge < ::Nirvana::Memory>::EPV sm_epv;
 
 	template <class Base>
 	static Bridge <Interface>* _find_interface (Base& base, const Char* id)
 	{
-		if (RepositoryId::compatible (Bridge <::Nirvana::Memory>::_primary_interface (), id))
-			return &S::_narrow <::Nirvana::Memory> (base);
+		if (RepositoryId::compatible (Bridge < ::Nirvana::Memory>::_primary_interface (), id))
+			return &S::_narrow < ::Nirvana::Memory> (base);
 		else
 			return Skeleton <S, Object>::_find_interface (base, id);
 	}
 
 protected:
-	static Pointer _allocate (Bridge <::Nirvana::Memory>* _b, Pointer dst, UWord size, Flags flags, EnvironmentBridge* _env)
+	static Pointer _allocate (Bridge < ::Nirvana::Memory>* _b, Pointer dst, UWord size, Flags flags, EnvironmentBridge* _env)
 	{
 		try {
 			return S::_implementation (_b).allocate (dst, size, flags);
@@ -224,7 +224,7 @@ protected:
 		return 0;
 	}
 
-	static void _commit (Bridge <::Nirvana::Memory>* _b, Pointer dst, UWord size, EnvironmentBridge* _env)
+	static void _commit (Bridge < ::Nirvana::Memory>* _b, Pointer dst, UWord size, EnvironmentBridge* _env)
 	{
 		try {
 			S::_implementation (_b).commit (dst, size);
@@ -293,7 +293,7 @@ protected:
 		return 0;
 	}
 	
-	static Word _query (Pointer p, Bridge <::Nirvana::Memory>::QueryParam param, EnvironmentBridge* _env)
+	static Word _query (Pointer p, Bridge < ::Nirvana::Memory>::QueryParam param, EnvironmentBridge* _env)
 	{
 		try {
 			return S::_implementation (_b).query (p, param);
@@ -307,10 +307,10 @@ protected:
 };
 
 template <class S>
-const Bridge <::Nirvana::Memory>::EPV Skeleton <S, ::Nirvana::Memory>::sm_epv = {
+const Bridge < ::Nirvana::Memory>::EPV Skeleton <S, ::Nirvana::Memory>::sm_epv = {
 	{ // interface
-		S::_duplicate <::Nirvana::Memory>,
-		S::_release <::Nirvana::Memory>
+		S::_duplicate < ::Nirvana::Memory>,
+		S::_release < ::Nirvana::Memory>
 	},
 	{ // base
 		S::_wide <Object, ::Nirvana::Memory>
@@ -342,7 +342,7 @@ public:
 	operator ::CORBA::Object& ()
 	{
 		::CORBA::Environment _env;
-		::CORBA::Object* _ret = static_cast <::CORBA::Object*> ((_epv ().base.CORBA_Object) (this, &_env));
+		::CORBA::Object* _ret = static_cast < ::CORBA::Object*> ((_epv ().base.CORBA_Object) (this, &_env));
 		_env.check ();
 		assert (_ret);
 		return *_ret;
