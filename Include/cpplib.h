@@ -5,7 +5,6 @@
 #define NIRVANA_CPPLIB_H_
 
 #include <BasicTypes.h>
-#include <limits.h>
 
 namespace Nirvana {
 
