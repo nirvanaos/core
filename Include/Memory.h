@@ -7,6 +7,8 @@ namespace Nirvana {
 
 class Memory;
 typedef ::CORBA::Nirvana::T_ptr <Memory> Memory_ptr;
+typedef ::CORBA::Nirvana::T_var <Memory> Memory_var;
+typedef ::CORBA::Nirvana::T_out <Memory> Memory_out;
 
 }
 
