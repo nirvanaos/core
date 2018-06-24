@@ -206,7 +206,7 @@ public:
 	static Bridge <Interface>* _find_interface (Base& base, const Char* id)
 	{
 		if (RepositoryId::compatible (Bridge < ::Nirvana::Memory>::_primary_interface (), id))
-			return &S::_narrow < ::Nirvana::Memory> (base);
+			return &S::template _narrow < ::Nirvana::Memory> (base);
 		else
 			return Skeleton <S, Object>::_find_interface (base, id);
 	}
@@ -235,7 +235,7 @@ protected:
 		}
 	}
 
-	static void _decommit (Pointer dst, UWord size, EnvironmentBridge* _env)
+	static void _decommit (Bridge < ::Nirvana::Memory>* _b, Pointer dst, UWord size, EnvironmentBridge* _env)
 	{
 		try {
 			S::_implementation (_b).decommit (dst, size);
@@ -246,7 +246,7 @@ protected:
 		}
 	}
 
-	static void _release (Pointer dst, UWord size, EnvironmentBridge* _env)
+	static void _release (Bridge < ::Nirvana::Memory>* _b, Pointer dst, UWord size, EnvironmentBridge* _env)
 	{
 		try {
 			S::_implementation (_b).release (dst, size);
@@ -257,7 +257,7 @@ protected:
 		}
 	}
 
-	static Pointer _copy (Pointer dst, Pointer src, UWord size, Flags flags, EnvironmentBridge* _env)
+	static Pointer _copy (Bridge < ::Nirvana::Memory>* _b, Pointer dst, Pointer src, UWord size, Flags flags, EnvironmentBridge* _env)
 	{
 		try {
 			return S::_implementation (_b).copy (dst, src, size, flags);
@@ -269,7 +269,7 @@ protected:
 		return 0;
 	}
 
-	static Boolean _is_private (Pointer p, EnvironmentBridge* _env)
+	static Boolean _is_private (Bridge < ::Nirvana::Memory>* _b, Pointer p, EnvironmentBridge* _env)
 	{
 		try {
 			return S::_implementation (_b).is_private (p);
@@ -281,7 +281,7 @@ protected:
 		return 0;
 	}
 
-	static Boolean _is_copy (Pointer p1, Pointer p2, UWord size, EnvironmentBridge* _env)
+	static Boolean _is_copy (Bridge < ::Nirvana::Memory>* _b, Pointer p1, Pointer p2, UWord size, EnvironmentBridge* _env)
 	{
 		try {
 			return S::_implementation (_b).is_copy (p1, p2);
@@ -293,7 +293,7 @@ protected:
 		return 0;
 	}
 	
-	static Word _query (Pointer p, Bridge < ::Nirvana::Memory>::QueryParam param, EnvironmentBridge* _env)
+	static Word _query (Bridge < ::Nirvana::Memory>* _b, Pointer p, Bridge < ::Nirvana::Memory>::QueryParam param, EnvironmentBridge* _env)
 	{
 		try {
 			return S::_implementation (_b).query (p, param);
@@ -309,11 +309,11 @@ protected:
 template <class S>
 const Bridge < ::Nirvana::Memory>::EPV Skeleton <S, ::Nirvana::Memory>::sm_epv = {
 	{ // interface
-		S::_duplicate < ::Nirvana::Memory>,
-		S::_release < ::Nirvana::Memory>
+		S::template _duplicate < ::Nirvana::Memory>,
+		S::template _release < ::Nirvana::Memory>
 	},
 	{ // base
-		S::_wide <Object, ::Nirvana::Memory>
+		S::template _wide <Object, ::Nirvana::Memory>
 	},
 	{ // epv
 		S::_allocate,
