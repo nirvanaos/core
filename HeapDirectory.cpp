@@ -1,7 +1,11 @@
 #include "HeapDirectory.h"
 #include <algorithm>
+#include <memory>
+#include <Memory.h>
 
 namespace Nirvana {
+
+extern Memory* system_memory ();
 
 using namespace std;
 
