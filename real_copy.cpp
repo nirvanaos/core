@@ -1,10 +1,9 @@
 #include "real_copy.h"
-#include <cpplib.h>
+#include <Nirvana.h>
 
 namespace Nirvana {
 
 using namespace ::CORBA;
-using namespace ::CORBA::Nirvana;
 
 template <>
 Octet* real_copy (const Octet* begin, const Octet* end, Octet* dst)

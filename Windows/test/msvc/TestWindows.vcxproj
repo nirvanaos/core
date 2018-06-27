@@ -21,9 +21,14 @@
   <ItemGroup>
     <ClCompile Include="..\..\..\..\googletest\googletest\src\gtest-all.cc" />
     <ClCompile Include="..\..\..\..\googletest\googletest\src\gtest_main.cc" />
+    <ClCompile Include="..\..\..\HeapDirectory.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="..\..\..\Memory.cpp" />
     <ClCompile Include="..\..\..\real_copy.cpp" />
-    <ClCompile Include="..\..\..\Test\TestCore.cpp" />
     <ClCompile Include="..\..\MemoryWindows.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</ExcludedFromBuild>
@@ -40,8 +45,11 @@
     <ClCompile Include="..\TestMemoryWindows.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\..\..\nlib\Include\Nirvana.h" />
+    <ClInclude Include="..\..\..\..\nlib\Include\nlz.h" />
     <ClInclude Include="..\..\..\config.h" />
     <ClInclude Include="..\..\..\core.h" />
+    <ClInclude Include="..\..\..\HeapDirectory.h" />
     <ClInclude Include="..\..\..\Include\cpplib.h" />
     <ClInclude Include="..\..\..\Include\Memory.h" />
     <ClInclude Include="..\..\..\real_copy.h" />
@@ -66,7 +74,7 @@
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v141</PlatformToolset>
-    <CharacterSet>Unicode</CharacterSet>
+    <CharacterSet>NotSet</CharacterSet>
     <WindowsAppContainer>false</WindowsAppContainer>
     <BasePlatformToolset>v140</BasePlatformToolset>
   </PropertyGroup>
@@ -75,14 +83,14 @@
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v141</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
-    <CharacterSet>Unicode</CharacterSet>
+    <CharacterSet>NotSet</CharacterSet>
     <BasePlatformToolset>v140</BasePlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v141</PlatformToolset>
-    <CharacterSet>Unicode</CharacterSet>
+    <CharacterSet>NotSet</CharacterSet>
     <BasePlatformToolset>v140</BasePlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
@@ -90,7 +98,7 @@
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v141</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
-    <CharacterSet>Unicode</CharacterSet>
+    <CharacterSet>NotSet</CharacterSet>
     <BasePlatformToolset>v140</BasePlatformToolset>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
@@ -135,7 +143,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_SCL_SECURE_NO_WARNINGS;_CRT_SECURE_NO_WARNINGS;WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>..\..\..\..\ORB\Include;..\..\..\..\Core\Include;..\..\..\..\googletest\googletest;..\..\..\..\googletest\googletest\include;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\..\..\nlib\Include;..\..\..\..\ORB\Include;..\..\..\..\Core\Include;..\..\..\..\googletest\googletest;..\..\..\..\googletest\googletest\include;</AdditionalIncludeDirectories>
       <ExceptionHandling>Async</ExceptionHandling>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <DisableLanguageExtensions>false</DisableLanguageExtensions>
@@ -155,7 +163,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_SCL_SECURE_NO_WARNINGS;_CRT_SECURE_NO_WARNINGS;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>..\..\..\..\ORB\Include;..\..\..\..\Core\Include;..\..\..\..\googletest\googletest;..\..\..\..\googletest\googletest\include;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\..\..\nlib\Include;..\..\..\..\ORB\Include;..\..\..\..\Core\Include;..\..\..\..\googletest\googletest;..\..\..\..\googletest\googletest\include;</AdditionalIncludeDirectories>
       <ExceptionHandling>Async</ExceptionHandling>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <DisableLanguageExtensions>false</DisableLanguageExtensions>
@@ -177,7 +185,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_SCL_SECURE_NO_WARNINGS;_CRT_SECURE_NO_WARNINGS;WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>..\..\..\..\ORB\Include;..\..\..\..\Core\Include;..\..\..\..\googletest\googletest;..\..\..\..\googletest\googletest\include;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\..\..\nlib\Include;..\..\..\..\ORB\Include;..\..\..\..\Core\Include;..\..\..\..\googletest\googletest;..\..\..\..\googletest\googletest\include;</AdditionalIncludeDirectories>
       <ExceptionHandling>Async</ExceptionHandling>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <DisableLanguageExtensions>false</DisableLanguageExtensions>
@@ -201,7 +209,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_SCL_SECURE_NO_WARNINGS;_CRT_SECURE_NO_WARNINGS;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>..\..\..\..\ORB\Include;..\..\..\..\Core\Include;..\..\..\..\googletest\googletest;..\..\..\..\googletest\googletest\include;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\..\..\nlib\Include;..\..\..\..\ORB\Include;..\..\..\..\Core\Include;..\..\..\..\googletest\googletest;..\..\..\..\googletest\googletest\include;</AdditionalIncludeDirectories>
       <ExceptionHandling>Async</ExceptionHandling>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <DisableLanguageExtensions>false</DisableLanguageExtensions>

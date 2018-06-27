@@ -419,11 +419,11 @@ void AddressSpace::initialize (DWORD process_id, HANDLE process_handle)
 
 		LARGE_INTEGER size;
 		size.QuadPart = m_directory_size * sizeof (BlockInfo);
-		m_mapping = CreateFileMapping (INVALID_HANDLE_VALUE, 0, PAGE_READWRITE | SEC_RESERVE, size.HighPart, size.LowPart, name);
+		m_mapping = CreateFileMappingW (INVALID_HANDLE_VALUE, 0, PAGE_READWRITE | SEC_RESERVE, size.HighPart, size.LowPart, name);
 		if (!m_mapping)
 			throw INITIALIZE ();
 	} else {
-		m_mapping = OpenFileMapping (FILE_MAP_ALL_ACCESS, FALSE, name);
+		m_mapping = OpenFileMappingW (FILE_MAP_ALL_ACCESS, FALSE, name);
 		if (!m_mapping)
 			throw INITIALIZE ();
 	}

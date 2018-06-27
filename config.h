@@ -1,8 +1,8 @@
 // Nirvana Project
-// ORB implementation configuration parameters
+// Compile configuration parameters
 
-#ifndef _CONFIG_H_
-#define _CONFIG_H_
+#ifndef NIRVANA_CORE_CONFIG_H_
+#define NIRVANA_CORE_CONFIG_H_
 
 /*
   Check level.
