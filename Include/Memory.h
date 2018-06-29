@@ -39,6 +39,8 @@ public:
 	{
 		ALLOCATION_UNIT,
 		PROTECTION_UNIT,
+		COMMIT_UNIT,
+		OPTIMAL_COMMIT_UNIT,
 		SHARING_UNIT,
 		SHARING_ASSOCIATIVITY,
 		GRANULARITY,
@@ -73,9 +75,11 @@ public:
 			void (*decommit) (::Nirvana::Pointer dst, ::Nirvana::UWord size, EnvironmentBridge*);
 			void (*release) (::Nirvana::Pointer dst, ::Nirvana::UWord size, EnvironmentBridge*);
 			::Nirvana::Pointer (*copy) (::Nirvana::Pointer dst, ::Nirvana::Pointer src, ::Nirvana::UWord size, Flags flags, EnvironmentBridge*);
-			Boolean (*is_private) (::Nirvana::Pointer p, EnvironmentBridge*);
-			Boolean (*is_copy) (::Nirvana::Pointer p1, ::Nirvana::Pointer p2, ::Nirvana::UWord size, EnvironmentBridge*);
-			::Nirvana::Word (*query) (::Nirvana::Pointer p, QueryParam param, EnvironmentBridge*);
+			Boolean (*is_readable) (::Nirvana::ConstPointer p, ::Nirvana::UWord size, EnvironmentBridge*);
+			Boolean (*is_writable) (::Nirvana::ConstPointer p, ::Nirvana::UWord size, EnvironmentBridge*);
+			Boolean (*is_private) (::Nirvana::ConstPointer p, ::Nirvana::UWord size, EnvironmentBridge*);
+			Boolean (*is_copy) (::Nirvana::ConstPointer p1, ::Nirvana::ConstPointer p2, ::Nirvana::UWord size, EnvironmentBridge*);
+			::Nirvana::Word (*query) (::Nirvana::ConstPointer p, QueryParam param, EnvironmentBridge*);
 		}
 		epv;
 	};
@@ -117,9 +121,11 @@ public:
 	void decommit (::Nirvana::Pointer dst, ::Nirvana::UWord size);
 	void release (::Nirvana::Pointer dst, ::Nirvana::UWord size);
 	::Nirvana::Pointer copy (::Nirvana::Pointer dst, ::Nirvana::Pointer src, ::Nirvana::UWord size, Flags flags);
-	Boolean is_private (::Nirvana::Pointer p);
-	Boolean is_copy (::Nirvana::Pointer p1, ::Nirvana::Pointer p2, ::Nirvana::UWord size);
-	::Nirvana::Word query (::Nirvana::Pointer p, Bridge < ::Nirvana::Memory>::QueryParam param);
+	Boolean is_readable (::Nirvana::ConstPointer p, ::Nirvana::UWord size);
+	Boolean is_writable (::Nirvana::ConstPointer p, ::Nirvana::UWord size);
+	Boolean is_private (::Nirvana::ConstPointer p, ::Nirvana::UWord size);
+	Boolean is_copy (::Nirvana::ConstPointer p1, ::Nirvana::ConstPointer p2, ::Nirvana::UWord size);
+	::Nirvana::Word query (::Nirvana::ConstPointer p, Bridge < ::Nirvana::Memory>::QueryParam param);
 };
 
 template <class T>
@@ -170,17 +176,37 @@ template <class T>
 }
 
 template <class T>
-Boolean Client <T, ::Nirvana::Memory>::is_private (::Nirvana::Pointer p)
+Boolean Client <T, ::Nirvana::Memory>::is_readable (::Nirvana::ConstPointer p, ::Nirvana::UWord size)
 {
 	Environment _env;
 	Bridge < ::Nirvana::Memory>& _b = ClientBase <T, ::Nirvana::Memory>::_bridge ();
-	Boolean _ret = (_b._epv ().epv.is_private) (p, &_env);
+	Boolean _ret = (_b._epv ().epv.is_readable) (p, size, &_env);
 	_env.check ();
 	return _ret;
 }
 
 template <class T>
-Boolean Client <T, ::Nirvana::Memory>::is_copy (::Nirvana::Pointer p1, ::Nirvana::Pointer p2, ::Nirvana::UWord size)
+Boolean Client <T, ::Nirvana::Memory>::is_writable (::Nirvana::ConstPointer p, ::Nirvana::UWord size)
+{
+	Environment _env;
+	Bridge < ::Nirvana::Memory>& _b = ClientBase <T, ::Nirvana::Memory>::_bridge ();
+	Boolean _ret = (_b._epv ().epv.is_writable) (p, size, &_env);
+	_env.check ();
+	return _ret;
+}
+
+template <class T>
+Boolean Client <T, ::Nirvana::Memory>::is_private (::Nirvana::ConstPointer p, ::Nirvana::UWord size)
+{
+	Environment _env;
+	Bridge < ::Nirvana::Memory>& _b = ClientBase <T, ::Nirvana::Memory>::_bridge ();
+	Boolean _ret = (_b._epv ().epv.is_private) (p, size, &_env);
+	_env.check ();
+	return _ret;
+}
+
+template <class T>
+Boolean Client <T, ::Nirvana::Memory>::is_copy (::Nirvana::ConstPointer p1, ::Nirvana::ConstPointer p2, ::Nirvana::UWord size)
 {
 	Environment _env;
 	Bridge < ::Nirvana::Memory>& _b = ClientBase <T, ::Nirvana::Memory>::_bridge ();
@@ -190,7 +216,7 @@ Boolean Client <T, ::Nirvana::Memory>::is_copy (::Nirvana::Pointer p1, ::Nirvana
 }
 
 template <class T>
-::Nirvana::Word Client <T, ::Nirvana::Memory>::query (::Nirvana::Pointer p, Bridge < ::Nirvana::Memory>::QueryParam param)
+::Nirvana::Word Client <T, ::Nirvana::Memory>::query (::Nirvana::ConstPointer p, Bridge < ::Nirvana::Memory>::QueryParam param)
 {
 	Environment _env;
 	Bridge < ::Nirvana::Memory>& _b = ClientBase <T, ::Nirvana::Memory>::_bridge ();
@@ -272,10 +298,10 @@ protected:
 		return 0;
 	}
 
-	static Boolean _is_private (Bridge < ::Nirvana::Memory>* _b, ::Nirvana::Pointer p, EnvironmentBridge* _env)
+	static Boolean _is_redable (Bridge < ::Nirvana::Memory>* _b, ::Nirvana::ConstPointer p, ::Nirvana::UWord size, EnvironmentBridge* _env)
 	{
 		try {
-			return S::_implementation (_b).is_private (p);
+			return S::_implementation (_b).is_readable (p, size);
 		} catch (const Exception& e) {
 			_env->set_exception (e);
 		} catch (...) {
@@ -284,10 +310,34 @@ protected:
 		return 0;
 	}
 
-	static Boolean _is_copy (Bridge < ::Nirvana::Memory>* _b, ::Nirvana::Pointer p1, ::Nirvana::Pointer p2, ::Nirvana::UWord size, EnvironmentBridge* _env)
+	static Boolean _is_writable (Bridge < ::Nirvana::Memory>* _b, ::Nirvana::ConstPointer p, ::Nirvana::UWord size, EnvironmentBridge* _env)
 	{
 		try {
-			return S::_implementation (_b).is_copy (p1, p2);
+			return S::_implementation (_b).is_writable (p, size);
+		} catch (const Exception& e) {
+			_env->set_exception (e);
+		} catch (...) {
+			_env->set_unknown_exception ();
+		}
+		return 0;
+	}
+
+	static Boolean _is_private (Bridge < ::Nirvana::Memory>* _b, ::Nirvana::ConstPointer p, ::Nirvana::UWord size, EnvironmentBridge* _env)
+	{
+		try {
+			return S::_implementation (_b).is_private (p, size);
+		} catch (const Exception& e) {
+			_env->set_exception (e);
+		} catch (...) {
+			_env->set_unknown_exception ();
+		}
+		return 0;
+	}
+
+	static Boolean _is_copy (Bridge < ::Nirvana::Memory>* _b, ::Nirvana::ConstPointer p1, ::Nirvana::ConstPointer p2, ::Nirvana::UWord size, EnvironmentBridge* _env)
+	{
+		try {
+			return S::_implementation (_b).is_copy (p1, p2, size);
 		} catch (const Exception& e) {
 			_env->set_exception (e);
 		} catch (...) {
@@ -296,7 +346,7 @@ protected:
 		return 0;
 	}
 	
-	static ::Nirvana::Word _query (Bridge < ::Nirvana::Memory>* _b, ::Nirvana::Pointer p, Bridge < ::Nirvana::Memory>::QueryParam param, EnvironmentBridge* _env)
+	static ::Nirvana::Word _query (Bridge < ::Nirvana::Memory>* _b, ::Nirvana::ConstPointer p, Bridge < ::Nirvana::Memory>::QueryParam param, EnvironmentBridge* _env)
 	{
 		try {
 			return S::_implementation (_b).query (p, param);
@@ -324,6 +374,8 @@ const Bridge < ::Nirvana::Memory>::EPV Skeleton <S, ::Nirvana::Memory>::sm_epv =
 		S::_decommit,
 		S::_release,
 		S::_copy,
+		S::_is_readable,
+		S::_is_writable,
 		S::_is_private,
 		S::_is_copy,
 		S::_query

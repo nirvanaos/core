@@ -550,17 +550,20 @@ AddressSpace::BlockInfo* AddressSpace::allocated_block (const void* address)
 	size_t idx = (size_t)address / ALLOCATION_GRANULARITY;
 	BlockInfo* p = 0;
 	if (idx < m_directory_size) {
+		MEMORY_BASIC_INFORMATION mbi;
 #ifdef _WIN64
 		size_t i0 = idx / SECOND_LEVEL_BLOCK;
 		size_t i1 = idx % SECOND_LEVEL_BLOCK;
 		BlockInfo** pp = m_directory + i0;
-		if (!IsBadReadPtr (pp, sizeof (BlockInfo*))) {
+		verify (VirtualQuery (pp, &mbi, sizeof (mbi)));
+		if (mbi.State == MEM_COMMIT) {
 			if (p = *pp)
 				p += i1;
 		}
 #else
 		p = m_directory + idx;
-		if (IsBadReadPtr (p, sizeof (BlockInfo)))
+		verify (VirtualQuery (p, &mbi, sizeof (mbi)));
+		if (mbi.State != MEM_COMMIT)
 			p = 0;
 #endif
 		if (p && !p->mapping)

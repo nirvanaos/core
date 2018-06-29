@@ -42,6 +42,9 @@
     <ClCompile Include="..\..\..\HeapDirectory.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\Test\TestHeapDirectory.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\Include\Memory.h">

@@ -2,6 +2,8 @@
 #define NIRVANA_CORE_HEAPDIRECTORY_H_
 
 #include "core.h"
+#include <Memory.h>
+#include <stddef.h>
 
 #ifndef MIN
 #define MIN(a,b)  (((a) < (b)) ? (a) : (b))
@@ -32,7 +34,7 @@ namespace Nirvana {
 
 using namespace CORBA;
 
-#define HEAP_PARTS (HEAP_HEADER_SIZE / HEAP_DIRECTORY_SIZE)
+//#define HEAP_PARTS (HEAP_HEADER_SIZE / HEAP_DIRECTORY_SIZE)
 
 // Размер кучи (2 бита заголовка на каждый HEAP_UNIT_MIN)
 
@@ -40,38 +42,40 @@ using namespace CORBA;
 
 // Общий размер кучи
 
-#define HEAP_SIZE (HEAP_PART_SIZE * HEAP_PARTS)
+//#define HEAP_SIZE (HEAP_PART_SIZE * HEAP_PARTS)
 
-// Heap control block.
+// Heap directory. Used for memory allocation on different levels of memory management.
+// Heap directory allocates and deallocates abstract "units" in range (0 <= n < UNIT_COUNT).
+// Each unit requires 2 bits of HeapDirectory size.
 class HeapDirectory
 {
 public:
+	static const UWord UNIT_COUNT = HEAP_DIRECTORY_SIZE * 4;
+	static const UWord MAX_BLOCK_SIZE = 1 << (HEAP_LEVELS - 1);
 
-	void* operator new (size_t cb, void* p)
-	{
-		return p;
-	}
-
-	void operator delete (void*, void*)
-	{}
-
-	HeapDirectory ();
+	static void initialize (HeapDirectory* zero_filled_buf);
+	static HeapDirectory* create (Memory_ptr memory);
 
 	bool empty () const;
 
-	Pointer allocate (Pointer heap, Pointer p, UWord cb, UWord flags);
-	void release (Pointer heap, Pointer p, UWord cb);
-	bool check_allocated (UWord begin, UWord end);
+	/// <summary>Reserve block.</summary>
+	/// <returns>Block offset in units if succeded, otherwise -1.</returns>
+	Word reserve (UWord size);
+
+	bool allocate (UWord begin, UWord end, Memory_ptr memory = Memory_ptr::nil ());
+
+	// Checks that all units in range are allocated.
+	bool check_allocated (UWord begin, UWord end) const;
+	bool check_allocated (UWord begin, UWord end, Memory_ptr memory) const;
+	
+	void release (UWord begin, UWord end, Memory_ptr memory = Memory_ptr::nil (), bool right_to_left = false);
 
 private:
 
-	Pointer reserve (Pointer heap, UWord cb);
+	static UWord level_align (UWord offset, UWord size);
 
-	void release (UWord begin, UWord end, Pointer heap = 0, bool right_to_left = false);
-
-	UWord level_align (UWord offset, UWord size);
-
-	UWord unit_size (UWord level)
+	// Number of units per block, for level.
+	static UWord block_size (UWord level)
 	{
 		return sm_block_index1 [HEAP_LEVELS - 1 - level].m_block_size;
 		/*
@@ -80,48 +84,50 @@ private:
 		*/
 	}
 
-	UWord unit_number (UWord offset, UWord level)
+	static UWord block_number (UWord unit, UWord level)
 	{
-		return (offset / HEAP_UNIT_MIN) >> (HEAP_LEVELS - 1 - level);
+		return unit >> (HEAP_LEVELS - 1 - level);
 	}
 
-	UWord unit_offset (UWord number, UWord level)
+	static UWord unit_number (UWord block, UWord level)
 	{
-		return (number * HEAP_UNIT_MIN) << (HEAP_LEVELS - 1 - level);
+		return block << (HEAP_LEVELS - 1 - level);
 	}
 
-	UWord bitmap_offset (UWord level)
+	static UWord bitmap_offset (UWord level)
 	{
 		return (TOP_BITMAP_WORDS << level) - TOP_BITMAP_WORDS;
 	}
 
-	UWord bitmap_offset_next (UWord bitmap_offset)
+	static UWord bitmap_offset_next (UWord bitmap_offset)
 	{
 		return (bitmap_offset << 1) + TOP_BITMAP_WORDS;
 	}
 
-	UWord bitmap_offset_prev (UWord bitmap_offset)
+	static UWord bitmap_offset_prev (UWord bitmap_offset)
 	{
 		return (bitmap_offset - TOP_BITMAP_WORDS) >> 1;
 	}
 
-	UShort& free_unit_count (UWord level, UWord unit_number)
+	UShort& free_block_count (UWord level, UWord block_number)
 	{
 		return m_free_block_index [sm_block_index1 [HEAP_LEVELS - 1 - level].m_block_index_offset
 #if (HEAP_DIRECTORY_SIZE > 0x4000)
 			// Add index for splitted levels
-			+ (unit_number >> (sizeof (UShort) * 8))
+			+ (block_number >> (sizeof (UShort) * 8))
 #endif
 		];
 	}
 
+
+
 	enum
 	{
-		// Number of HEAP_UNIT_MAX per one heap partition
-		MAX_UNITS_PER_PART = (HEAP_DIRECTORY_SIZE * 4) >> (HEAP_LEVELS - 1),
+		// Number of top level blocks.
+		TOP_LEVEL_BLOCKS = UNIT_COUNT >> (HEAP_LEVELS - 1),
 
 		// Размер верхнего уровня битовой карты в машинных словах
-		TOP_BITMAP_WORDS = MAX_UNITS_PER_PART / (sizeof (UWord) * 8)
+		TOP_BITMAP_WORDS = TOP_LEVEL_BLOCKS / (sizeof (UWord) * 8)
 	};
 
 	enum
@@ -132,7 +138,7 @@ private:
 
 	enum
 	{
-		// Space available at top of bitmap for free block index
+		// Space available before bitmap for free block index.
 		FREE_BLOCK_INDEX_MAX = (HEAP_DIRECTORY_SIZE - BITMAP_SIZE * sizeof (UWord)) / sizeof (UShort)
 	};
 
@@ -159,9 +165,10 @@ private:
 #endif
 	};
 
+	// Free block count index.
 	UShort m_free_block_index [FREE_BLOCK_INDEX_SIZE];
 
-	// Битовая карта свободных блоков
+	// Битовая карта свободных блоков.
 	UWord m_bitmap [BITMAP_SIZE];
 
 	// Alignment

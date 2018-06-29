@@ -93,6 +93,16 @@ public:
 
 	static void* copy (void* dst, void* src, SIZE_T size, LONG flags);
 
+	static bool is_readable (const void* p, SIZE_T size)
+	{
+		return sm_space.is_readable (p, size);
+	}
+
+	static bool is_writable (const void* p, SIZE_T size)
+	{
+		return sm_space.is_writable (p, size);
+	}
+
 	static bool is_private (const void* p, SIZE_T size)
 	{
 		return sm_space.is_private (p, size);

@@ -29,6 +29,7 @@
     </ClCompile>
     <ClCompile Include="..\..\..\Memory.cpp" />
     <ClCompile Include="..\..\..\real_copy.cpp" />
+    <ClCompile Include="..\..\..\Test\TestHeapDirectory.cpp" />
     <ClCompile Include="..\..\MemoryWindows.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</ExcludedFromBuild>

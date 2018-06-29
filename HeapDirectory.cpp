@@ -1,11 +1,10 @@
 #include "HeapDirectory.h"
 #include <algorithm>
-#include <memory>
 #include <Memory.h>
 
 namespace Nirvana {
 
-extern Memory* system_memory ();
+Memory_ptr system_memory ();
 
 using namespace std;
 
@@ -17,47 +16,47 @@ const HeapDirectory::BlockIndex1 HeapDirectory::sm_block_index1 [HEAP_LEVELS] =
 #if (HEAP_DIRECTORY_SIZE == 0x10000)
 // FREE_BLOCK_INDEX_SIZE == 15
 
-{HEAP_UNIT_MIN,        0},  // разделен на 4 части
-{HEAP_UNIT_MIN * 2,    4},  // разделен на 2 части
-{HEAP_UNIT_MIN * 4,    6},
-{HEAP_UNIT_MIN * 8,    7},
-{HEAP_UNIT_MIN * 16,   8},
-{HEAP_UNIT_MIN * 32,   9},
-{HEAP_UNIT_MIN * 64,   10},
-{HEAP_UNIT_MIN * 128,  11},
-{HEAP_UNIT_MIN * 256,  12},
-{HEAP_UNIT_MIN * 512,  13},
-{HEAP_UNIT_MIN * 1024, 14}
+{1,    0},  // разделен на 4 части
+{2,    4},  // разделен на 2 части
+{4,    6},
+{8,    7},
+{16,   8},
+{32,   9},
+{64,   10},
+{128,  11},
+{256,  12},
+{512,  13},
+{1024, 14}
 
 #elif (HEAP_DIRECTORY_SIZE == 0x8000)
-	// FREE_BLOCK_INDEX_SIZE == 8
+// FREE_BLOCK_INDEX_SIZE == 8
 
-{ HEAP_UNIT_MIN,        0 },  // разделен на 2 части
-{HEAP_UNIT_MIN * 2,    2},
-{HEAP_UNIT_MIN * 4,    3},
-{HEAP_UNIT_MIN * 8,    4},
-{HEAP_UNIT_MIN * 16,   5},
-{HEAP_UNIT_MIN * 32,   6},
-{HEAP_UNIT_MIN * 64,   7},  // 5 верхних уровней объединены
-{HEAP_UNIT_MIN * 128,  7},
-{HEAP_UNIT_MIN * 256,  7},
-{HEAP_UNIT_MIN * 512,  7},
-{HEAP_UNIT_MIN * 1024, 7}
+{1,    0},  // разделен на 2 части
+{2,    2},
+{4,    3},
+{8,    4},
+{16,   5},
+{32,   6},
+{64,   7},  // 5 верхних уровней объединены
+{128,  7},
+{256,  7},
+{512,  7},
+{1024, 7}
 
 #elif (HEAP_DIRECTORY_SIZE == 0x4000)
-	// FREE_BLOCK_INDEX_SIZE == 4
+// FREE_BLOCK_INDEX_SIZE == 4
 
-{ HEAP_UNIT_MIN,        0 },
-{HEAP_UNIT_MIN * 2,    1},
-{HEAP_UNIT_MIN * 4,    2},
-{HEAP_UNIT_MIN * 8,    3},  // 8 верхних уровней объединены
-{HEAP_UNIT_MIN * 16,   3},
-{HEAP_UNIT_MIN * 32,   3},
-{HEAP_UNIT_MIN * 64,   3},
-{HEAP_UNIT_MIN * 128,  3},
-{HEAP_UNIT_MIN * 256,  3},
-{HEAP_UNIT_MIN * 512,  3},
-{HEAP_UNIT_MIN * 1024, 3}
+{1,    0},
+{2,    1},
+{4,    2},
+{8,    3},  // 8 верхних уровней объединены
+{16,   3},
+{32,   3},
+{64,   3},
+{128,  3},
+{256,  3},
+{512,  3},
+{1024, 3}
 
 #else
 #error HEAP_DIRECTORY_SIZE is invalid.
@@ -92,7 +91,7 @@ const HeapDirectory::BlockIndex2 HeapDirectory::sm_block_index2 [FREE_BLOCK_INDE
 #elif (HEAP_DIRECTORY_SIZE == 0x8000)
 // FREE_BLOCK_INDEX_SIZE == 8
 
-{ 4,  TOP_BITMAP_WORDS * 15 },
+{4,  TOP_BITMAP_WORDS * 15},
 {5,  TOP_BITMAP_WORDS * 31},
 {6,  TOP_BITMAP_WORDS * 63},
 {7,  TOP_BITMAP_WORDS * 127},
@@ -105,7 +104,7 @@ const HeapDirectory::BlockIndex2 HeapDirectory::sm_block_index2 [FREE_BLOCK_INDE
 // FREE_BLOCK_INDEX_SIZE == 4
 
 // Можно обойтись вычислениями. Нужен ли такой массив?
-{ 7,  TOP_BITMAP_WORDS * 127 },
+{7,  TOP_BITMAP_WORDS * 127},
 {8,  TOP_BITMAP_WORDS * 255},
 {9,  TOP_BITMAP_WORDS * 511},
 {10, TOP_BITMAP_WORDS * 1023}
@@ -114,15 +113,27 @@ const HeapDirectory::BlockIndex2 HeapDirectory::sm_block_index2 [FREE_BLOCK_INDE
 
 };
 
-HeapDirectory::HeapDirectory ()
+HeapDirectory* HeapDirectory::create (Memory_ptr memory)
 {
-	// Инициализируем индекс количества свободных блоков
-	system_memory ()->commit (m_free_block_index, sizeof (m_free_block_index));
-	m_free_block_index [FREE_BLOCK_INDEX_SIZE - 1] = MAX_UNITS_PER_PART;
+	// Reserve memory.
+	HeapDirectory* p = reinterpret_cast <HeapDirectory*>(memory->allocate (0, sizeof (HeapDirectory), Memory::RESERVED | Memory::ZERO_INIT));
 
-	// Инициализируем первый уровень битовой карты единицами
-	system_memory ()->commit (m_bitmap, MAX_UNITS_PER_PART / 8);
-	uninitialized_fill (m_bitmap, m_bitmap + MAX_UNITS_PER_PART / (sizeof (UWord) * 8), ~0);
+	// Commit initial part.
+	memory->commit (p, reinterpret_cast <Octet*> (p->m_bitmap + TOP_BITMAP_WORDS) - reinterpret_cast <Octet*> (p));
+
+	// Initialize
+	initialize (p);
+
+	return p;
+}
+
+void HeapDirectory::initialize (HeapDirectory* zero_filled_buf)
+{
+	// Initialize free blocs count on top level.
+	zero_filled_buf->m_free_block_index [FREE_BLOCK_INDEX_SIZE - 1] = TOP_LEVEL_BLOCKS;
+
+	// Initialize top level of bitmap by ones.
+	fill_n (zero_filled_buf->m_bitmap, TOP_BITMAP_WORDS, ~0);
 }
 
 bool HeapDirectory::empty () const
@@ -140,21 +151,18 @@ bool HeapDirectory::empty () const
 
 #else
 
-	return (MAX_UNITS_PER_PART == m_free_block_index [HEAP_LEVELS - 1]);
+	return (TOP_LEVEL_BLOCKS == m_free_block_index [FREE_BLOCK_INDEX_SIZE - 1]);
 
 #endif
 }
 
-Pointer HeapDirectory::reserve (Pointer heap, UWord cb)
+Word HeapDirectory::reserve (UWord size)
 {
-	assert (cb);
-	assert (cb <= HEAP_UNIT_MAX);
-
-	// Align block size
-	cb = (cb + HEAP_UNIT_MIN - 1) & ~(HEAP_UNIT_MIN - 1);
+	assert (size);
+	assert (size <= MAX_BLOCK_SIZE);
 
 	// Quantize block size
-	const BlockIndex1* pi1 = lower_bound (sm_block_index1, sm_block_index1 + HEAP_LEVELS, *reinterpret_cast <const BlockIndex1*> (&cb));
+	const BlockIndex1* pi1 = lower_bound (sm_block_index1, sm_block_index1 + HEAP_LEVELS, *reinterpret_cast <const BlockIndex1*> (&size));
 	UWord block_index_offset = pi1->m_block_index_offset;
 
 	// Search in free block index
@@ -163,10 +171,10 @@ Pointer HeapDirectory::reserve (Pointer heap, UWord cb)
 	while ((cnt--) && !*free_blocks_ptr)
 		++free_blocks_ptr;
 	if (cnt < 0)
-		return 0; // no such blocks
+		return -1; // no such blocks
 
-							// Определяем, где искать
-							// Search in bitmap
+	// Определяем, где искать
+	// Search in bitmap
 	BlockIndex2 bi2 = sm_block_index2 [cnt];
 
 	UWord* bitmap_ptr;
@@ -267,260 +275,186 @@ Pointer HeapDirectory::reserve (Pointer heap, UWord cb)
 	}
 
 	// Определяем смещение блока в куче и его размер.
-	UWord allocated_size = unit_size (bi2.m_level);
+	UWord allocated_size = block_size (bi2.m_level);
 	UWord block_offset = block_number * allocated_size;
 	*bitmap_ptr &= ~mask; // сбрасываем бит
 	--*free_blocks_ptr;   // уменьшаем счетчик установленных бит
 
-												// Выделен блок размером allocated_size. Нужен блок размером cb.
-												// Освобождаем оставшуюся часть.
-
-	Pointer block = (Octet*)heap + block_offset;
+	// Выделен блок размером allocated_size. Нужен блок размером size.
+	// Освобождаем оставшуюся часть.
 
 	try {
 
-		release (block_offset + cb, block_offset + allocated_size);
+		release (block_offset + size, block_offset + allocated_size);
 
 	} catch (...) {
-
 		// Release cb bytes, not allocated_size bytes!
-		release (heap, block, cb);
+		release (block_offset, block_offset + size);
 		throw;
 	}
 
-	return block;
+	return block_offset;
 }
 
-Pointer HeapDirectory::allocate (Pointer heap, Pointer p, UWord cb, UWord flags)
+bool HeapDirectory::allocate (UWord begin, UWord end, Memory_ptr memory)
 {
-	assert (heap);
-	assert (cb);
+	assert (begin < end);
+	assert (end <= UNIT_COUNT);
 
-	if (p) {
+	// Занимаем блок, разбивая его на блоки размером 2^n, смещение которых кратно их размеру.
+	UWord allocated_begin = begin;  // Начало занятого пространства.
+	UWord allocated_end = allocated_begin;    // Конец занятого пространства.
+	while (allocated_end < end) {
 
-		assert (p > heap);
+		// Ищем минимальный уровень, на который выравнены смещение и размер.
+		UWord level = level_align (allocated_end, end - allocated_end);
 
-		// Смещение блока в куче
-		UWord begin = (Octet*)p - (Octet*)heap;
-		if ((!(flags & Memory::EXACTLY)) && (begin % HEAP_UNIT_MIN))
-			return 0;
+		// Находим начало битовой карты уровня и номер блока.
+		UWord level_bitmap_begin = bitmap_offset (level);
+		UWord block_number = unit_number (allocated_end, level);
 
-		UWord end = (begin + cb + HEAP_UNIT_MIN - 1) & ~(HEAP_UNIT_MIN - 1);
-		assert (end <= HEAP_PART_SIZE);
+		UWord* bitmap_ptr;
+		UWord mask;
+		for (;;) {
 
-		begin &= ~(HEAP_UNIT_MIN - 1);
+			bitmap_ptr = m_bitmap + level_bitmap_begin + block_number / (sizeof (UWord) * 8);
+			mask = 1 << (block_number % (sizeof (UWord) * 8));
+			// Bitmap page can be not committed.
+			if (
+				(!memory || memory->is_readable (bitmap_ptr, sizeof (UWord)))
+				&&
+				(*bitmap_ptr & mask)
+			)
+				break;  // was found
 
-		// Занимаем блок, разбивая его на блоки размером 2^n, смещение которых кратно их размеру.
-		UWord allocated_begin = begin & ~(HEAP_UNIT_MIN - 1);  // Начало занятого пространства.
-		UWord allocated_end = allocated_begin;    // Конец занятого пространства.
-		while (allocated_end < end) {
+			if (!level) {
 
-			// Ищем минимальный уровень, на который выравнены смещение и размер.
-			UWord level = level_align (allocated_end, end - allocated_end);
+				// No block found. Release allocated.
+				release (allocated_begin, allocated_end, Memory_ptr::nil ());
 
-			// Находим начало битовой карты уровня и номер блока.
-			UWord level_bitmap_begin = bitmap_offset (level);
-			UWord block_number = unit_number (allocated_end, level);
-
-			UWord* bitmap_ptr;
-			UWord mask;
-			for (;;) {
-
-				bitmap_ptr = m_bitmap + level_bitmap_begin + block_number / (sizeof (UWord) * 8);
-				mask = 1 << (block_number % (sizeof (UWord) * 8));
-				try {
-					if (*bitmap_ptr & mask)
-						break;  // was found
-				} catch (...) {
-					// Uncommitted page, assume zero
-				}
-
-				if (!level) {
-
-					// No block found. Release allocated.
-					release (allocated_begin, allocated_end);
-
-					return 0;
-				}
-
-				// Level up
-				--level;
-				block_number = block_number >> 1;
-				level_bitmap_begin = bitmap_offset_prev (level_bitmap_begin);
+				return false;
 			}
 
-			// Clear free bit
-			*bitmap_ptr &= ~mask;
-
-			// Decrement free blocks counter
-			--free_unit_count (level, block_number);
-
-			UWord block_offset = unit_offset (block_number, level);
-			if (allocated_begin < block_offset)
-				allocated_begin = block_offset;
-			allocated_end = block_offset + unit_size (level);
+			// Level up
+			--level;
+			block_number = block_number >> 1;
+			level_bitmap_begin = bitmap_offset_prev (level_bitmap_begin);
 		}
 
-		try { // Release extra space at begin and end
-					// Память освобождается изнутри - наружу, чтобы, в случае сбоя
-					// (невозможность зафиксировать битовую карту) и последующего освобождения внутренней
-					// части, восстановилось исходное состояние.
-			release (allocated_begin, begin, 0, true);
-			release (end, allocated_end);
-		} catch (...) {
-			release (heap, p, cb);
-			throw;
-		}
+		// Clear free bit
+		*bitmap_ptr &= ~mask;
 
-	} else
-		p = reserve (heap, cb);
+		// Decrement free blocks counter
+		--free_block_count (level, block_number);
 
-	if (!(flags & Memory::RESERVED)) {
-
-		system_memory ()->commit (p, cb);
-
-		if (flags & Memory::ZERO_INIT) {
-
-			// New committed pages are already zeroed
-			// We must zero only partial protection units at begin and end
-
-#if (FIXED_PROTECTION_UNIT)
-			static const UWord fpu = FIXED_PROTECTION_UNIT - 1;
-#else
-			const UWord fpu = system_memory ()->query (p, PROTECTION_UNIT) - 1;
-
-			// Assume that protection unit are the same on one heap
-			assert (system_memory ()->query ((Octet*)p + cb - 1, PROTECTION_UNIT) == fpu + 1);
-#endif
-			Octet* committed_begin = (Octet*)(((UWord)p + fpu) & ~fpu);
-			Octet* committed_end = (Octet*)(((UWord)p + cb + fpu) & ~fpu);
-			if (committed_begin <= committed_end) {
-				zero ((Octet*)p, committed_begin);
-				zero (committed_end, (Octet*)p + cb);
-			} else
-				zero ((Octet*)p, (Octet*)p + cb);
-		}
+		UWord block_offset = unit_number (block_number, level);
+		if (allocated_begin < block_offset)
+			allocated_begin = block_offset;
+		allocated_end = block_offset + block_size (level);
 	}
 
-	return p;
+	try { // Release extra space at begin and end
+		// Память освобождается изнутри - наружу, чтобы, в случае сбоя
+		// (невозможность зафиксировать битовую карту) и последующего освобождения внутренней
+		// части, восстановилось исходное состояние.
+		release (allocated_begin, begin, memory, true);
+		release (end, allocated_end, memory);
+	} catch (...) {
+		release (begin, end, Memory_ptr::nil ());
+		throw;
+	}
+
+	return true;
 }
 
-void HeapDirectory::release (Pointer heap, Pointer p, UWord cb)
+void HeapDirectory::release (UWord begin, UWord end, Memory_ptr memory, bool rtl)
 {
-	assert (cb);
-
-	// Смещение блока в куче
-	UWord begin = (Octet*)p - (Octet*)heap;
-	UWord end = (begin + cb + HEAP_UNIT_MIN - 1) & ~(HEAP_UNIT_MIN - 1);
-	assert (end <= HEAP_PART_SIZE);
-	begin &= ~(HEAP_UNIT_MIN - 1);
-
-	release (begin, end, heap);
-}
-
-void HeapDirectory::release (UWord begin, UWord end, Pointer heap, bool rtl)
-{
-	// Смещение блока в куче
-	assert (end <= HEAP_PART_SIZE);
-	assert (!(begin % HEAP_UNIT_MIN));
-	assert (!(end % HEAP_UNIT_MIN));
+	assert (begin <= end);
+	assert (end <= UNIT_COUNT);
 
 	// Освобождаемый блок должен быть разбит на блоки размером 2^n, смещение которых
 	// кратно их размеру.
 	while (begin < end) {
 
+		// Смещение блока в куче
 		UWord level;
-		UWord block;
+		UWord block_begin;
 		if (rtl) {
 			level = level_align (end, end - begin);
-			block = end - unit_size (level);
+			block_begin = end - block_size (level);
 		} else {
 			level = level_align (begin, end - begin);
-			block = begin;
+			block_begin = begin;
 		}
 
-		// Освобождаем блок со смещением block на уровне level
+		// Освобождаем блок со смещением block_begin на уровне level
 
 		// Находим начало битовой карты уровня и номер блока
 		UWord level_bitmap_begin = bitmap_offset (level);
-		UWord block_number = unit_number (block, level);
+		UWord bl_number = block_number (block_begin, level);
 
-		UWord* bitmap_ptr = m_bitmap + level_bitmap_begin + block_number / (sizeof (UWord) * 8);
-		UWord mask = 1 << (block_number % (sizeof (UWord) * 8));
+		UWord* bitmap_ptr = m_bitmap + level_bitmap_begin + bl_number / (sizeof (UWord) * 8);
+		UWord mask = 1 << (bl_number % (sizeof (UWord) * 8));
 
-		if (heap) { // heap = 0 for internal usage, without companion check
+		while (level > 0) {
 
-			while (level > 0) {
+			// Проверяем, есть ли у блока свободный компаньон
+			UWord companion_mask = mask;
+			if (bl_number & 1)
+				companion_mask >>= 1;
+			else
+				companion_mask <<= 1;
 
-				// Проверяем, есть ли у блока свободный компаньон
-				UWord companion_mask = mask;
-				if (block_number & 1)
-					companion_mask >>= 1;
-				else
-					companion_mask <<= 1;
+			// Определяем адрес слова в битовой карте
+			UWord* bitmap_ptr = m_bitmap + level_bitmap_begin + bl_number / (sizeof (UWord) * 8);
 
-				// Память битовой карты может не быть зафиксирована, перехватываем исключение защиты
-				try {
+			// Память битовой карты может не быть зафиксирована.
 
-					// Определяем адрес слова в битовой карте
-					UWord* bitmap_ptr = m_bitmap + level_bitmap_begin + block_number / (sizeof (UWord) * 8);
+			if (
+				(!memory || memory->is_readable (bitmap_ptr, sizeof (UWord)))
+			&&
+				(*bitmap_ptr & companion_mask)
+			) {
 
-					if (*bitmap_ptr & companion_mask) {
+				// Есть свободный компаньон, объединяем его с освобождаемым блоком
 
-						// Есть свободный компаньон, объединяем его с освобождаемым блоком
+				// Убираем бит компаньона
+				*bitmap_ptr &= ~companion_mask;
+				--free_block_count (level, bl_number);
 
-						// Убираем бит компаньона
-						*bitmap_ptr &= ~companion_mask;
-						--free_unit_count (level, block_number);
-
-						// Поднимаемся на уровень выше
-						--level;
-						block_number >>= 1;
-						mask = 1 << (block_number % sizeof (UWord));
-						level_bitmap_begin = bitmap_offset_prev (level_bitmap_begin);
-						bitmap_ptr = m_bitmap + level_bitmap_begin + block_number / (sizeof (UWord) * 8);
-					} else
-						break;
-
-				} catch (...) {
-					// Бит компаньона оказался в незафиксированной области.
-					// Это нормально. Значит компаньона нет.
-					break;
-				}
-			}
+				// Поднимаемся на уровень выше
+				--level;
+				bl_number >>= 1;
+				mask = 1 << (bl_number % sizeof (UWord));
+				level_bitmap_begin = bitmap_offset_prev (level_bitmap_begin);
+				bitmap_ptr = m_bitmap + level_bitmap_begin + bl_number / (sizeof (UWord) * 8);
+			} else
+				break;
 		}
 
 		// Фиксируем память битовой карты
-		system_memory ()->commit (bitmap_ptr, sizeof (UWord));
+		if (memory)
+			memory->commit (bitmap_ptr, sizeof (UWord));
 
 		// Устанавливаем бит свободного блока
 
 		*bitmap_ptr |= mask;
 
 		// Увеличиваем счетчик свободных блоков
-		++free_unit_count (level, block_number);
-
-		UWord block_size = unit_size (level);
-
-		if (heap) { // Расфиксируем блок
-			block = unit_offset (block_number, level);
-			system_memory ()->decommit (block + (Octet*)heap, block_size);
-		}
+		++free_block_count (level, bl_number);
 
 		// Блок освобожден
 		if (rtl)
-			end = block;
+			end = block_begin;
 		else
-			begin = block + block_size;
+			begin = block_begin + block_size (level);
 	}
 }
 
 UWord HeapDirectory::level_align (UWord offset, UWord size)
 {
-	offset &= ~(HEAP_UNIT_MIN - 1);
-
 	// Ищем максимальный размер блока <= size, на который выравнен offset
-	UWord mask = HEAP_UNIT_MAX - 1;
+	UWord mask = MAX_BLOCK_SIZE - 1;
 	UWord level = 0;
 	while ((mask & offset) || (mask >= size)) {
 		mask >>= 1;
@@ -529,21 +463,16 @@ UWord HeapDirectory::level_align (UWord offset, UWord size)
 	return level;
 }
 
-bool HeapDirectory::check_allocated (UWord begin, UWord end)
+bool HeapDirectory::check_allocated (UWord begin, UWord end) const
 {
-	// Calculate begin and end block numbers
-
-	begin /= HEAP_UNIT_MIN;
-	end = (end + HEAP_UNIT_MIN - 1) / HEAP_UNIT_MIN;
-
 	// Check for all bits on all levels are 0
 	UWord level_bitmap_begin = bitmap_offset (HEAP_LEVELS - 1);
 	for (Word level = HEAP_LEVELS - 1; level >= 0; --level) {
 
 		assert (begin < end);
 
-		UWord* begin_ptr = m_bitmap + level_bitmap_begin + begin / (sizeof (UWord) * 8);
-		UWord* end_ptr = m_bitmap + level_bitmap_begin + end / (sizeof (UWord) * 8);
+		const UWord* begin_ptr = m_bitmap + level_bitmap_begin + begin / (sizeof (UWord) * 8);
+		const UWord* end_ptr = m_bitmap + level_bitmap_begin + end / (sizeof (UWord) * 8);
 		UWord begin_mask = (~0) << (begin % (sizeof (UWord) * 8));
 		UWord end_mask = ~((~0) << (end % (sizeof (UWord) * 8)));
 
@@ -579,6 +508,70 @@ bool HeapDirectory::check_allocated (UWord begin, UWord end)
 			}
 		} catch (...) {
 			// Uncommitted page
+		}
+
+		// Go to up level
+		level_bitmap_begin = bitmap_offset_prev (level_bitmap_begin);
+		begin /= 2;
+		end = (end + 1) / 2;
+	}
+
+	return true;
+}
+
+bool HeapDirectory::check_allocated (UWord begin, UWord end, Memory_ptr memory) const
+{
+	UWord page_size = memory->query (this, Memory::COMMIT_UNIT);
+	
+	// Check for all bits on all levels are 0
+	UWord level_bitmap_begin = bitmap_offset (HEAP_LEVELS - 1);
+	for (Word level = HEAP_LEVELS - 1; level >= 0; --level) {
+
+		assert (begin < end);
+
+		const UWord* begin_ptr = m_bitmap + level_bitmap_begin + begin / (sizeof (UWord) * 8);
+		const UWord* end_ptr = m_bitmap + level_bitmap_begin + end / (sizeof (UWord) * 8);
+		UWord begin_mask = (~0) << (begin % (sizeof (UWord) * 8));
+		UWord end_mask = ~((~0) << (end % (sizeof (UWord) * 8)));
+
+		if (begin_ptr >= end_ptr) {
+
+			if (
+				memory->is_readable (begin_ptr, sizeof (UWord))
+			&&
+				(*begin_ptr & begin_mask & end_mask)
+			)
+				return false;
+
+		} else {
+
+			const UWord* page_end = round_up (begin_ptr + 1, page_size);
+
+			if (memory->is_readable (begin_ptr, sizeof (UWord))) {
+				if (*begin_ptr & begin_mask)
+					return false;
+				++begin_ptr;
+			} else
+				begin_ptr = page_end;
+
+			while (begin_ptr < end_ptr) {
+
+				for (const UWord* end = min (end_ptr, page_end); begin_ptr < end; ++begin_ptr)
+					if (*begin_ptr)
+						return false;
+
+				while (begin_ptr < end_ptr && !memory->is_readable (begin_ptr, sizeof (UWord))) {
+					begin_ptr = page_end;
+					page_end += page_size;
+				}
+			}
+
+			if (
+				((end_ptr < page_end) || memory->is_readable (end_ptr, sizeof (UWord)))
+			&&
+				(*end_ptr & end_mask)
+			)
+				return false;
 		}
 
 		// Go to up level
