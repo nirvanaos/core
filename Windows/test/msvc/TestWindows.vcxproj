@@ -20,7 +20,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\..\googletest\googletest\src\gtest-all.cc" />
-    <ClCompile Include="..\..\..\..\googletest\googletest\src\gtest_main.cc" />
+    <ClCompile Include="..\..\..\..\gtest_main.cc" />
     <ClCompile Include="..\..\..\HeapDirectory.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</ExcludedFromBuild>

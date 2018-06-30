@@ -4,8 +4,6 @@
 
 namespace Nirvana {
 
-Memory_ptr system_memory ();
-
 using namespace std;
 
 // BlockIndex1 ѕо размеру блока определает смещение начала поиска в m_free_block_index
@@ -156,7 +154,7 @@ bool HeapDirectory::empty () const
 #endif
 }
 
-Word HeapDirectory::reserve (UWord size)
+Word HeapDirectory::allocate (UWord size, Memory_ptr memory)
 {
 	assert (size);
 	assert (size <= MAX_BLOCK_SIZE);
@@ -218,46 +216,45 @@ Word HeapDirectory::reserve (UWord size)
 
 #endif
 
-	{
-		// »щем ненулевое слово. ѕроверка границы не нужна, так как ненулевой счетчик гарантирует,
-		// что ненулевое слово есть. 
+	// »щем ненулевое слово. ѕроверка границы не нужна, так как ненулевой счетчик гарантирует,
+	// что ненулевое слово есть. 
 
-		bitmap_ptr = m_bitmap + bi2.m_bitmap_offset;
+	bitmap_ptr = m_bitmap + bi2.m_bitmap_offset;
 
-		for (;;) {// ћогут попастьс€ неподтвержденные страницы.
+	if (memory) {// ћогут попастьс€ неподтвержденные страницы.
+		UWord page_size = memory->query (this, Memory::COMMIT_UNIT);
+		assert (page_size);
 
-			try {
+		UWord* page_end = round_down (bitmap_ptr, page_size) + page_size / sizeof (UWord);
 
-				while (!*bitmap_ptr)
-					++bitmap_ptr;
-				break;
+		for (;;) {
+			while (!memory->is_readable (bitmap_ptr, sizeof (UWord))) {
+				bitmap_ptr = page_end;
+				page_end += page_size;
+			}
 
-			} catch (...) {
-				// ѕропускаем неподтвержденную страницу
-#if (FIXED_PROTECTION_UNIT)
-				bitmap_ptr += FIXED_PROTECTION_UNIT / sizeof (UWord);
-#else
-				bitmap_ptr += system_memory ()->query (bitmap_ptr, Memory::PROTECTION_UNIT) / sizeof (UWord);
-#endif
+			while (!*bitmap_ptr) {
+				if (++bitmap_ptr == page_end)
+					break;
 			}
 		}
+	} else {
+		while (!*bitmap_ptr)
+			++bitmap_ptr;
+	}
 
-		// ≈сли все работает правильно, ненулевой элемент в битовой карте об€зательно будет найден.
-		// —ледующа€ проверка введена на случай, если структура данных кучи была испорчена.
-
+	// ≈сли все работает правильно, ненулевой элемент в битовой карте об€зательно будет найден.
+	// —ледующа€ проверка введена на случай, если структура данных кучи была испорчена.
 #if (BUILD_CHECK_LEVEL >= 1)
-
-		UWord end;
-		if (++cnt < FREE_BLOCK_INDEX_SIZE)
-			end = sm_block_index2 [cnt].m_bitmap_offset;
+	{
+		Word end;
+		if (cnt + 1 < FREE_BLOCK_INDEX_SIZE)
+			end = sm_block_index2 [cnt + 1].m_bitmap_offset;
 		else
 			end = BITMAP_SIZE;
-		if ((UWord)(bitmap_ptr - m_bitmap) >= end)
-			throw INTERNAL ();
-
-#endif
-
+		assert ((bitmap_ptr - m_bitmap) < end);
 	}
+#endif
 
 	// ѕо смещению в битовой карте и размеру блока определ€ем номер (адрес) блока.
 	UWord level_bitmap_begin = bitmap_offset (bi2.m_level);
@@ -277,7 +274,7 @@ Word HeapDirectory::reserve (UWord size)
 	// ќпредел€ем смещение блока в куче и его размер.
 	UWord allocated_size = block_size (bi2.m_level);
 	UWord block_offset = block_number * allocated_size;
-	*bitmap_ptr &= ~mask; // сбрасываем бит
+	*bitmap_ptr &= ~mask; // сбрасываем бит свободного блока
 	--*free_blocks_ptr;   // уменьшаем счетчик установленных бит
 
 	// ¬ыделен блок размером allocated_size. Ќужен блок размером size.
@@ -463,66 +460,14 @@ UWord HeapDirectory::level_align (UWord offset, UWord size)
 	return level;
 }
 
-bool HeapDirectory::check_allocated (UWord begin, UWord end) const
-{
-	// Check for all bits on all levels are 0
-	UWord level_bitmap_begin = bitmap_offset (HEAP_LEVELS - 1);
-	for (Word level = HEAP_LEVELS - 1; level >= 0; --level) {
-
-		assert (begin < end);
-
-		const UWord* begin_ptr = m_bitmap + level_bitmap_begin + begin / (sizeof (UWord) * 8);
-		const UWord* end_ptr = m_bitmap + level_bitmap_begin + end / (sizeof (UWord) * 8);
-		UWord begin_mask = (~0) << (begin % (sizeof (UWord) * 8));
-		UWord end_mask = ~((~0) << (end % (sizeof (UWord) * 8)));
-
-		try {
-			if (begin_ptr >= end_ptr) {
-
-				if (*begin_ptr & begin_mask & end_mask)
-					return false;
-
-			} else {
-
-				if (*begin_ptr & begin_mask)
-					return false;
-
-				if (*end_ptr & end_mask)
-					return false;
-
-				for (;;) {
-					try {
-						while (++begin_ptr < end_ptr)
-							if (*begin_ptr)
-								return false;
-						break;
-					} catch (...) {
-						// Skip uncommitted page
-#if (FIXED_PROTECTION_UNIT)
-						begin_ptr += FIXED_PROTECTION_UNIT / sizeof (UWord);
-#else
-						begin_ptr += system_memory ()->query (begin_ptr, Memory::PROTECTION_UNIT) / sizeof (UWord) - 1;
-#endif
-					}
-				}
-			}
-		} catch (...) {
-			// Uncommitted page
-		}
-
-		// Go to up level
-		level_bitmap_begin = bitmap_offset_prev (level_bitmap_begin);
-		begin /= 2;
-		end = (end + 1) / 2;
-	}
-
-	return true;
-}
-
 bool HeapDirectory::check_allocated (UWord begin, UWord end, Memory_ptr memory) const
 {
-	UWord page_size = memory->query (this, Memory::COMMIT_UNIT);
-	
+	UWord page_size;
+	if (memory) {
+		page_size = memory->query (this, Memory::COMMIT_UNIT);
+		assert (page_size);
+	}
+
 	// Check for all bits on all levels are 0
 	UWord level_bitmap_begin = bitmap_offset (HEAP_LEVELS - 1);
 	for (Word level = HEAP_LEVELS - 1; level >= 0; --level) {
@@ -537,15 +482,15 @@ bool HeapDirectory::check_allocated (UWord begin, UWord end, Memory_ptr memory) 
 		if (begin_ptr >= end_ptr) {
 
 			if (
-				memory->is_readable (begin_ptr, sizeof (UWord))
+				(!memory || memory->is_readable (begin_ptr, sizeof (UWord)))
 			&&
 				(*begin_ptr & begin_mask & end_mask)
 			)
 				return false;
 
-		} else {
+		} else if (memory) {
 
-			const UWord* page_end = round_up (begin_ptr + 1, page_size);
+			const UWord* page_end = round_down (begin_ptr, page_size) + page_size / sizeof (UWord);
 
 			if (memory->is_readable (begin_ptr, sizeof (UWord))) {
 				if (*begin_ptr & begin_mask)
@@ -571,6 +516,18 @@ bool HeapDirectory::check_allocated (UWord begin, UWord end, Memory_ptr memory) 
 			&&
 				(*end_ptr & end_mask)
 			)
+				return false;
+
+		} else {
+
+			if (*begin_ptr & begin_mask)
+				return false;
+
+			while (++begin_ptr < end_ptr)
+				if (*begin_ptr)
+					return false;
+
+			if (*end_ptr & end_mask)
 				return false;
 		}
 

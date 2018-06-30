@@ -412,11 +412,6 @@ void AddressSpace::initialize (DWORD process_id, HANDLE process_handle)
 	m_directory_size = ((size_t)si.lpMaximumApplicationAddress + ALLOCATION_GRANULARITY) / ALLOCATION_GRANULARITY;
 
 	if (GetCurrentProcessId () == process_id) {
-
-#ifndef NDEBUG
-		_set_error_mode (_OUT_TO_MSGBOX);
-#endif
-
 		LARGE_INTEGER size;
 		size.QuadPart = m_directory_size * sizeof (BlockInfo);
 		m_mapping = CreateFileMappingW (INVALID_HANDLE_VALUE, 0, PAGE_READWRITE | SEC_RESERVE, size.HighPart, size.LowPart, name);

@@ -58,15 +58,14 @@ public:
 
 	bool empty () const;
 
-	/// <summary>Reserve block.</summary>
+	/// <summary>Allocate block.</summary>
 	/// <returns>Block offset in units if succeded, otherwise -1.</returns>
-	Word reserve (UWord size);
+	Word allocate (UWord size, Memory_ptr memory = Memory_ptr::nil ());
 
 	bool allocate (UWord begin, UWord end, Memory_ptr memory = Memory_ptr::nil ());
 
 	// Checks that all units in range are allocated.
-	bool check_allocated (UWord begin, UWord end) const;
-	bool check_allocated (UWord begin, UWord end, Memory_ptr memory) const;
+	bool check_allocated (UWord begin, UWord end, Memory_ptr memory = Memory_ptr::nil ()) const;
 	
 	void release (UWord begin, UWord end, Memory_ptr memory = Memory_ptr::nil (), bool right_to_left = false);
 
