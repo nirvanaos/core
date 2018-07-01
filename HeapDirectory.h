@@ -118,8 +118,6 @@ private:
 		];
 	}
 
-
-
 	enum
 	{
 		// Number of top level blocks.

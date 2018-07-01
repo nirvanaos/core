@@ -127,6 +127,7 @@ HeapDirectory* HeapDirectory::create (Memory_ptr memory)
 
 void HeapDirectory::initialize (HeapDirectory* zero_filled_buf)
 {
+	assert (sizeof (HeapDirectory) <= HEAP_DIRECTORY_SIZE);
 	// Initialize free blocs count on top level.
 	zero_filled_buf->m_free_block_index [FREE_BLOCK_INDEX_SIZE - 1] = TOP_LEVEL_BLOCKS;
 
@@ -245,13 +246,10 @@ Word HeapDirectory::allocate (UWord size, Memory_ptr memory)
 
 	// Если все работает правильно, ненулевой элемент в битовой карте обязательно будет найден.
 	// Следующая проверка введена на случай, если структура данных кучи была испорчена.
-#if (BUILD_CHECK_LEVEL >= 1)
+	assert (bitmap_ptr < m_bitmap + BITMAP_SIZE);
+#ifndef NDEBUG
 	{
-		Word end;
-		if (cnt + 1 < FREE_BLOCK_INDEX_SIZE)
-			end = sm_block_index2 [cnt + 1].m_bitmap_offset;
-		else
-			end = BITMAP_SIZE;
+		Word end = bi2.m_bitmap_offset + min (TOP_LEVEL_BLOCKS << bi2.m_level, 0x10000) / sizeof (UWord);
 		assert ((bitmap_ptr - m_bitmap) < end);
 	}
 #endif
@@ -315,7 +313,7 @@ bool HeapDirectory::allocate (UWord begin, UWord end, Memory_ptr memory)
 		for (;;) {
 
 			bitmap_ptr = m_bitmap + level_bitmap_begin + block_number / (sizeof (UWord) * 8);
-			mask = 1 << (block_number % (sizeof (UWord) * 8));
+			mask = (UWord)1 << (block_number % (sizeof (UWord) * 8));
 			// Bitmap page can be not committed.
 			if (
 				(!memory || memory->is_readable (bitmap_ptr, sizeof (UWord)))
@@ -391,7 +389,7 @@ void HeapDirectory::release (UWord begin, UWord end, Memory_ptr memory, bool rtl
 		UWord bl_number = block_number (block_begin, level);
 
 		UWord* bitmap_ptr = m_bitmap + level_bitmap_begin + bl_number / (sizeof (UWord) * 8);
-		UWord mask = 1 << (bl_number % (sizeof (UWord) * 8));
+		UWord mask = (UWord)1 << (bl_number % (sizeof (UWord) * 8));
 
 		while (level > 0) {
 
@@ -422,7 +420,7 @@ void HeapDirectory::release (UWord begin, UWord end, Memory_ptr memory, bool rtl
 				// Поднимаемся на уровень выше
 				--level;
 				bl_number >>= 1;
-				mask = 1 << (bl_number % sizeof (UWord));
+				mask = (UWord)1 << (bl_number % sizeof (UWord));
 				level_bitmap_begin = bitmap_offset_prev (level_bitmap_begin);
 				bitmap_ptr = m_bitmap + level_bitmap_begin + bl_number / (sizeof (UWord) * 8);
 			} else

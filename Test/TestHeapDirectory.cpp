@@ -71,13 +71,15 @@ TYPED_TEST (TestHeapDirectory, Allocate)
 {
 	EXPECT_TRUE (this->m_directory->empty ());
 
+	size_t total = 0;
 	for (UWord block_size = TypeParam::DirectoryType::MAX_BLOCK_SIZE; block_size > 0; block_size >>= 1) {
 		UWord blocks_cnt = TypeParam::DirectoryType::UNIT_COUNT / block_size;
 		for (UWord i = 0; i < blocks_cnt; ++i) {
 			EXPECT_FALSE (this->m_directory->check_allocated (i * block_size, TypeParam::DirectoryType::UNIT_COUNT, TypeParam::memory ()));
 			UWord block = this->m_directory->allocate (block_size, TypeParam::memory ());
 			EXPECT_EQ (block, i * block_size);
-			EXPECT_TRUE (this->m_directory->check_allocated (0, (i + 1) * block_size, TypeParam::memory ()));
+			EXPECT_TRUE (this->m_directory->check_allocated (block, block + block_size, TypeParam::memory ()));
+			++total;
 		}
 		EXPECT_TRUE (this->m_directory->check_allocated (0, TypeParam::DirectoryType::UNIT_COUNT, TypeParam::memory ()));
 		this->m_directory->release (0, TypeParam::DirectoryType::UNIT_COUNT, TypeParam::memory ());
