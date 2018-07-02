@@ -9,53 +9,53 @@ using namespace std;
 
 // BlockIndex1 ѕо размеру блока определает смещение начала поиска в m_free_block_index
 
-const HeapDirectory::BlockIndex1 HeapDirectory::sm_block_index1 [HEAP_LEVELS] =
+const UWord HeapDirectory::sm_block_index_offset [HEAP_LEVELS] =
 {
 
 #if (HEAP_DIRECTORY_SIZE == 0x10000)
 // FREE_BLOCK_INDEX_SIZE == 15
 
-{1,    0},  // разделен на 4 части
-{2,    4},  // разделен на 2 части
-{4,    6},
-{8,    7},
-{16,   8},
-{32,   9},
-{64,   10},
-{128,  11},
-{256,  12},
-{512,  13},
-{1024, 14}
+0,  // разделен на 4 части
+4,  // разделен на 2 части
+6,
+7,
+8,
+9,
+10,
+11,
+12,
+13,
+14
 
 #elif (HEAP_DIRECTORY_SIZE == 0x8000)
 // FREE_BLOCK_INDEX_SIZE == 8
 
-{1,    0},  // разделен на 2 части
-{2,    2},
-{4,    3},
-{8,    4},
-{16,   5},
-{32,   6},
-{64,   7},  // 5 верхних уровней объединены
-{128,  7},
-{256,  7},
-{512,  7},
-{1024, 7}
+0,  // разделен на 2 части
+2,
+3,
+4,
+5,
+6,
+7,  // 5 верхних уровней объединены
+7,
+7,
+7,
+7
 
 #elif (HEAP_DIRECTORY_SIZE == 0x4000)
 // FREE_BLOCK_INDEX_SIZE == 4
 
-{1,    0},
-{2,    1},
-{4,    2},
-{8,    3},  // 8 верхних уровней объединены
-{16,   3},
-{32,   3},
-{64,   3},
-{128,  3},
-{256,  3},
-{512,  3},
-{1024, 3}
+0,
+1,
+2,
+3,  // 8 верхних уровней объединены
+3,
+3,
+3,
+3,
+3,
+3,
+3
 
 #else
 #error HEAP_DIRECTORY_SIZE is invalid.
@@ -63,10 +63,10 @@ const HeapDirectory::BlockIndex1 HeapDirectory::sm_block_index1 [HEAP_LEVELS] =
 
 };
 
-// BlockIndex2 ѕо обратному смещению от конца массива m_free_block_cnt определ€ет
+// BitmapIndex ѕо обратному смещению от конца массива m_free_block_cnt определ€ет
 // уровень и положение области битовой карты.
 
-const HeapDirectory::BlockIndex2 HeapDirectory::sm_block_index2 [FREE_BLOCK_INDEX_SIZE] =
+const HeapDirectory::BitmapIndex HeapDirectory::sm_bitmap_index [FREE_BLOCK_INDEX_SIZE] =
 {
 #if (HEAP_DIRECTORY_SIZE == 0x10000)
 // FREE_BLOCK_INDEX_SIZE == 15
@@ -128,7 +128,8 @@ HeapDirectory* HeapDirectory::create (Memory_ptr memory)
 
 void HeapDirectory::initialize (HeapDirectory* zero_filled_buf)
 {
-	assert (sizeof (HeapDirectory) <= HEAP_DIRECTORY_SIZE);
+	size_t cb = sizeof (HeapDirectory);
+	assert (cb <= HEAP_DIRECTORY_SIZE);
 	// Initialize free blocs count on top level.
 	zero_filled_buf->m_free_block_index [FREE_BLOCK_INDEX_SIZE - 1] = TOP_LEVEL_BLOCKS;
 
@@ -162,9 +163,9 @@ Word HeapDirectory::allocate (UWord size, Memory_ptr memory)
 	assert (size <= MAX_BLOCK_SIZE);
 
 	// Quantize block size
-	const BlockIndex1* pi1 = sm_block_index1 + 32 - nlz ((ULong)(size - 1));
-	assert (pi1->m_block_size >= size);
-	UWord block_index_offset = pi1->m_block_index_offset;
+	UWord level = HEAP_LEVELS + nlz ((ULong)(size - 1)) - 33;
+	assert (level < HEAP_LEVELS);
+	UWord block_index_offset = sm_block_index_offset [HEAP_LEVELS - 1 - level];
 
 	// Search in free block index
 	UShort* free_blocks_ptr = m_free_block_index + block_index_offset;
@@ -176,7 +177,7 @@ Word HeapDirectory::allocate (UWord size, Memory_ptr memory)
 
 	// ќпредел€ем, где искать
 	// Search in bitmap
-	BlockIndex2 bi2 = sm_block_index2 [cnt];
+	BitmapIndex bi = sm_bitmap_index [cnt];
 
 	UWord* bitmap_ptr;
 
@@ -186,17 +187,16 @@ Word HeapDirectory::allocate (UWord size, Memory_ptr memory)
 
 	if (!cnt) { // ¬ерхние уровни
 
-							// ѕо индексу размера блока уточн€ем уровень и смещение начала поиска
-		UWord level = sm_block_index1 + HEAP_LEVELS - 1 - pi1;
-		if (bi2.m_level > level) {
-			bi2.m_level = level;
+		// ѕо индексу размера блока уточн€ем уровень и смещение начала поиска
+		if (bi.level > level) {
+			bi.level = level;
 
-			bi2.m_bitmap_offset = bitmap_offset (level);
-			bitmap_ptr = m_bitmap + bi2.m_bitmap_offset;
+			bi.bitmap_offset = bitmap_offset (level);
+			bitmap_ptr = m_bitmap + bi.bitmap_offset;
 		}
 
-		UWord* end = m_bitmap + bitmap_offset_next (bi2.m_bitmap_offset);
-		UWord* begin = bitmap_ptr = m_bitmap + bi2.m_bitmap_offset;
+		UWord* end = m_bitmap + bitmap_offset_next (bi.bitmap_offset);
+		UWord* begin = bitmap_ptr = m_bitmap + bi.bitmap_offset;
 
 		// ѕоиск в битовой карте. 
 		// ¬ерхние уровни всегда наход€тс€ в подтвержденной области.
@@ -204,13 +204,13 @@ Word HeapDirectory::allocate (UWord size, Memory_ptr memory)
 
 			if (++bitmap_ptr >= end) {
 
-				if (!bi2.m_level)
+				if (!bi.level)
 					return 0; // Ѕлок не найден
 
-										// ѕоднимаемс€ на уровень выше
-				--bi2.m_level;
+				// ѕоднимаемс€ на уровень выше
+				--bi.level;
 				end = begin;
-				begin = bitmap_ptr = m_bitmap + (bi2.m_bitmap_offset = bitmap_offset_prev (bi2.m_bitmap_offset));
+				begin = bitmap_ptr = m_bitmap + (bi.bitmap_offset = bitmap_offset_prev (bi.bitmap_offset));
 			}
 
 		}
@@ -222,7 +222,7 @@ Word HeapDirectory::allocate (UWord size, Memory_ptr memory)
 	// »щем ненулевое слово. ѕроверка границы не нужна, так как ненулевой счетчик гарантирует,
 	// что ненулевое слово есть. 
 
-	bitmap_ptr = m_bitmap + bi2.m_bitmap_offset;
+	bitmap_ptr = m_bitmap + bi.bitmap_offset;
 
 	if (memory) {// ћогут попастьс€ неподтвержденные страницы.
 		UWord page_size = memory->query (this, Memory::COMMIT_UNIT);
@@ -251,13 +251,13 @@ Word HeapDirectory::allocate (UWord size, Memory_ptr memory)
 	assert (bitmap_ptr < m_bitmap + BITMAP_SIZE);
 #ifndef NDEBUG
 	{
-		Word end = bi2.m_bitmap_offset + min (TOP_LEVEL_BLOCKS << bi2.m_level, 0x10000) / sizeof (UWord);
+		Word end = bi.bitmap_offset + min (TOP_LEVEL_BLOCKS << bi.level, 0x10000) / sizeof (UWord);
 		assert ((bitmap_ptr - m_bitmap) < end);
 	}
 #endif
 
 	// ѕо смещению в битовой карте и размеру блока определ€ем номер (адрес) блока.
-	UWord level_bitmap_begin = bitmap_offset (bi2.m_level);
+	UWord level_bitmap_begin = bitmap_offset (bi.level);
 
 	// Ќомер блока:
 	assert ((UWord)(bitmap_ptr - m_bitmap) >= level_bitmap_begin);
@@ -272,7 +272,7 @@ Word HeapDirectory::allocate (UWord size, Memory_ptr memory)
 	}
 
 	// ќпредел€ем смещение блока в куче и его размер.
-	UWord allocated_size = block_size (bi2.m_level);
+	UWord allocated_size = block_size (bi.level);
 	UWord block_offset = block_number * allocated_size;
 	*bitmap_ptr &= ~mask; // сбрасываем бит свободного блока
 	--*free_blocks_ptr;   // уменьшаем счетчик установленных бит

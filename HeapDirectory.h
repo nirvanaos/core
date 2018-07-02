@@ -76,11 +76,7 @@ private:
 	// Number of units per block, for level.
 	static UWord block_size (UWord level)
 	{
-		return sm_block_index1 [HEAP_LEVELS - 1 - level].m_block_size;
-		/*
-		А можно так, нужно посмотреть, что быстрее
-		return HEAP_UNIT_MAX >> level;
-		*/
+		return MAX_BLOCK_SIZE >> level;
 	}
 
 	static UWord block_number (UWord unit, UWord level)
@@ -110,7 +106,7 @@ private:
 
 	UShort& free_block_count (UWord level, UWord block_number)
 	{
-		return m_free_block_index [sm_block_index1 [HEAP_LEVELS - 1 - level].m_block_index_offset
+		return m_free_block_index [sm_block_index_offset [HEAP_LEVELS - 1 - level]
 #if (HEAP_DIRECTORY_SIZE > 0x4000)
 			// Add index for splitted levels
 			+ (block_number >> (sizeof (UShort) * 8))
@@ -152,11 +148,11 @@ private:
 	{
 
 #if (HEAP_DIRECTORY_SIZE == 0x10000)
-		FREE_BLOCK_INDEX_SIZE = 4 + 2 + MIN ((HEAP_LEVELS - 2), FREE_BLOCK_INDEX_MAX)
+		FREE_BLOCK_INDEX_SIZE = 15
 #elif (HEAP_DIRECTORY_SIZE == 0x8000)
-		FREE_BLOCK_INDEX_SIZE = 2 + MIN ((HEAP_LEVELS - 1), FREE_BLOCK_INDEX_MAX)
+		FREE_BLOCK_INDEX_SIZE = 8
 #elif (HEAP_DIRECTORY_SIZE == 0x4000)
-		FREE_BLOCK_INDEX_SIZE = MIN (HEAP_LEVELS, FREE_BLOCK_INDEX_MAX)
+		FREE_BLOCK_INDEX_SIZE = 4
 #else
 #error HEAP_DIRECTORY_SIZE is invalid.
 #endif
@@ -181,31 +177,19 @@ private:
 
 	// Статические таблицы для ускорения поиска
 
-	// BlockIndex1 По размеру блока определает смещение начала поиска в m_free_block_cnt
+	// По размеру блока определает смещение начала поиска в m_free_block_cnt
+	static const UWord sm_block_index_offset [HEAP_LEVELS];
 
-	struct BlockIndex1
-	{
-		bool operator < (const BlockIndex1& rhs) const
-		{
-			return m_block_size < rhs.m_block_size;
-		}
-
-		UWord m_block_size;
-		UWord m_block_index_offset; // offset in m_free_block_index
-	};
-
-	static const BlockIndex1 sm_block_index1 [HEAP_LEVELS];
-
-	// BlockIndex2 По обратному смещению от конца массива m_free_block_cnt определяет
+	// BitmapIndex По обратному смещению от конца массива m_free_block_cnt определяет
 	// уровень и положение области битовой карты.
 
-	struct BlockIndex2
+	struct BitmapIndex
 	{
-		UWord m_level;
-		UWord m_bitmap_offset;
+		UWord level;
+		UWord bitmap_offset;
 	};
 
-	static const BlockIndex2 sm_block_index2 [FREE_BLOCK_INDEX_SIZE];
+	static const BitmapIndex sm_bitmap_index [FREE_BLOCK_INDEX_SIZE];
 };
 
 }
