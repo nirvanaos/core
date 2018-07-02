@@ -8,18 +8,6 @@
 #include <assert.h>
 #include "config.h"
 
-#undef verify
-
-#ifdef NDEBUG
-
-#define verify(exp) (exp)
-
-#else
-
-#define verify(exp) assert(exp)
-
-#endif
-
 namespace Nirvana {
 
 }

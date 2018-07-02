@@ -1,6 +1,7 @@
 #include "HeapDirectory.h"
 #include <algorithm>
 #include <Memory.h>
+#include <nlz.h>
 
 namespace Nirvana {
 
@@ -161,7 +162,8 @@ Word HeapDirectory::allocate (UWord size, Memory_ptr memory)
 	assert (size <= MAX_BLOCK_SIZE);
 
 	// Quantize block size
-	const BlockIndex1* pi1 = lower_bound (sm_block_index1, sm_block_index1 + HEAP_LEVELS, *reinterpret_cast <const BlockIndex1*> (&size));
+	const BlockIndex1* pi1 = sm_block_index1 + 32 - nlz ((ULong)(size - 1));
+	assert (pi1->m_block_size >= size);
 	UWord block_index_offset = pi1->m_block_index_offset;
 
 	// Search in free block index
