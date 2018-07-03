@@ -90,14 +90,16 @@ private:
 		return (TOP_BITMAP_WORDS << level) - TOP_BITMAP_WORDS;
 	}
 
-	static UWord bitmap_offset_next (UWord bitmap_offset)
+	static UWord bitmap_offset_next (UWord level_bitmap_offset)
 	{
-		return (bitmap_offset << 1) + TOP_BITMAP_WORDS;
+		assert (level_bitmap_offset < BITMAP_SIZE - UNIT_COUNT / (sizeof (UWord) * 8));
+		return (level_bitmap_offset << 1) + TOP_BITMAP_WORDS;
 	}
 
-	static UWord bitmap_offset_prev (UWord bitmap_offset)
+	static UWord bitmap_offset_prev (UWord level_bitmap_offset)
 	{
-		return (bitmap_offset - TOP_BITMAP_WORDS) >> 1;
+		assert (level_bitmap_offset >= TOP_BITMAP_WORDS);
+		return (level_bitmap_offset - TOP_BITMAP_WORDS) >> 1;
 	}
 
 	UShort& free_block_count (UWord level, UWord block_number)

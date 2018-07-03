@@ -418,9 +418,9 @@ void HeapDirectory::release (UWord begin, UWord end, Memory_ptr memory, bool rtl
 
 				// Поднимаемся на уровень выше
 				--level;
-				bl_number >>= 1;
-				mask = (UWord)1 << (bl_number % sizeof (UWord));
 				level_bitmap_begin = bitmap_offset_prev (level_bitmap_begin);
+				bl_number >>= 1;
+				mask = (UWord)1 << (bl_number % (sizeof (UWord) * 8));
 				bitmap_ptr = m_bitmap + level_bitmap_begin + bl_number / (sizeof (UWord) * 8);
 			} else
 				break;
@@ -466,15 +466,16 @@ bool HeapDirectory::check_allocated (UWord begin, UWord end, Memory_ptr memory) 
 	}
 
 	// Check for all bits on all levels are 0
+	Word level = HEAP_LEVELS - 1;
 	UWord level_bitmap_begin = bitmap_offset (HEAP_LEVELS - 1);
-	for (Word level = HEAP_LEVELS - 1; level >= 0; --level) {
+	for (;;) {
 
 		assert (begin < end);
 
 		const UWord* begin_ptr = m_bitmap + level_bitmap_begin + begin / (sizeof (UWord) * 8);
+		UWord begin_mask = (~(UWord)0) << (begin % (sizeof (UWord) * 8));
 		const UWord* end_ptr = m_bitmap + level_bitmap_begin + end / (sizeof (UWord) * 8);
-		UWord begin_mask = (~0) << (begin % (sizeof (UWord) * 8));
-		UWord end_mask = ~((~0) << (end % (sizeof (UWord) * 8)));
+		UWord end_mask = ~((~(UWord)0) << (end % (sizeof (UWord) * 8)));
 
 		if (begin_ptr >= end_ptr) {
 
@@ -528,10 +529,14 @@ bool HeapDirectory::check_allocated (UWord begin, UWord end, Memory_ptr memory) 
 				return false;
 		}
 
-		// Go to up level
-		level_bitmap_begin = bitmap_offset_prev (level_bitmap_begin);
-		begin /= 2;
-		end = (end + 1) / 2;
+		if (level > 0) {
+			// Go to up level
+			--level;
+			level_bitmap_begin = bitmap_offset_prev (level_bitmap_begin);
+			begin /= 2;
+			end = (end + 1) / 2;
+		} else
+			break;
 	}
 
 	return true;
