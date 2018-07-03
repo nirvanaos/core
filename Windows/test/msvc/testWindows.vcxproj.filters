@@ -77,7 +77,7 @@
     <ClInclude Include="..\..\..\..\nlib\Include\Nirvana.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\nlib\Include\nlz.h">
+    <ClInclude Include="..\..\..\..\nlib\Include\nlzntz.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

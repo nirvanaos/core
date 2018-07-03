@@ -47,7 +47,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\..\nlib\Include\Nirvana.h" />
-    <ClInclude Include="..\..\..\..\nlib\Include\nlz.h" />
+    <ClInclude Include="..\..\..\..\nlib\Include\nlzntz.h" />
     <ClInclude Include="..\..\..\config.h" />
     <ClInclude Include="..\..\..\core.h" />
     <ClInclude Include="..\..\..\HeapDirectory.h" />

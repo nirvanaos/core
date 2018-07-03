@@ -1,7 +1,7 @@
 #include "HeapDirectory.h"
 #include <algorithm>
 #include <Memory.h>
-#include <nlz.h>
+#include <nlzntz.h>
 
 namespace Nirvana {
 
@@ -247,11 +247,11 @@ Word HeapDirectory::allocate (UWord size, Memory_ptr memory)
 
 	// Если все работает правильно, ненулевой элемент в битовой карте обязательно будет найден.
 	// Следующая проверка введена на случай, если структура данных кучи была испорчена.
-	assert (bitmap_ptr < m_bitmap + BITMAP_SIZE);
 #ifndef NDEBUG
 	{
 		Word end = bi.bitmap_offset + min (TOP_LEVEL_BLOCKS << bi.level, 0x10000) / sizeof (UWord);
-		assert ((bitmap_ptr - m_bitmap) < end);
+		if ((bitmap_ptr - m_bitmap) >= end)
+			throw INTERNAL ();
 	}
 #endif
 
@@ -262,19 +262,16 @@ Word HeapDirectory::allocate (UWord size, Memory_ptr memory)
 	assert ((UWord)(bitmap_ptr - m_bitmap) >= level_bitmap_begin);
 	UWord block_number = (bitmap_ptr - m_bitmap - level_bitmap_begin) * sizeof (UWord) * 8;
 
-	// Ищем бит, соответствующий блоку.
-	UWord mask = 1;
+	// Сбрасываем крайний справа единичный бит
 	UWord bits = *bitmap_ptr;
-	while (!(bits & mask)) {
-		mask <<= 1;
-		++block_number;
-	}
+	assert (bits);
+	*bitmap_ptr = bits & bits - 1;
+	block_number += ntz (bits); // Номер этого бита прибавляем к номеру блока.
+	--*free_blocks_ptr;   // Уменьшаем счетчик свободных блоков.
 
 	// Определяем смещение блока в куче и его размер.
 	UWord allocated_size = block_size (bi.level);
 	UWord block_offset = block_number * allocated_size;
-	*bitmap_ptr &= ~mask; // Сбрасываем бит свободного блока.
-	--*free_blocks_ptr;   // Уменьшаем счетчик свободных блоков.
 
 	// Выделен блок размером allocated_size. Нужен блок размером size.
 	// Освобождаем оставшуюся часть.
@@ -396,14 +393,9 @@ void HeapDirectory::release (UWord begin, UWord end, Memory_ptr memory, bool rtl
 		while (level > 0) {
 
 			// Проверяем, есть ли у блока свободный компаньон
-			UWord companion_mask = mask;
-			if (bl_number & 1)
-				companion_mask >>= 1;
-			else
-				companion_mask <<= 1;
+			UWord companion_mask = (bl_number & 1) ? mask >> 1 : mask << 1;	// TODO: optimize?
 
 			// Память битовой карты может не быть зафиксирована.
-
 			if (
 				(!memory || memory->is_readable (bitmap_ptr, sizeof (UWord)))
 			&&
