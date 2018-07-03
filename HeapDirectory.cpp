@@ -7,8 +7,7 @@ namespace Nirvana {
 
 using namespace std;
 
-// BlockIndex1 По размеру блока определает смещение начала поиска в m_free_block_index
-
+// По размеру блока определяет смещение начала поиска в m_free_block_index
 const UWord HeapDirectory::sm_block_index_offset [HEAP_LEVELS] =
 {
 
@@ -65,7 +64,6 @@ const UWord HeapDirectory::sm_block_index_offset [HEAP_LEVELS] =
 
 // BitmapIndex По обратному смещению от конца массива m_free_block_cnt определяет
 // уровень и положение области битовой карты.
-
 const HeapDirectory::BitmapIndex HeapDirectory::sm_bitmap_index [FREE_BLOCK_INDEX_SIZE] =
 {
 #if (HEAP_DIRECTORY_SIZE == 0x10000)
@@ -130,6 +128,7 @@ void HeapDirectory::initialize (HeapDirectory* zero_filled_buf)
 {
 	size_t cb = sizeof (HeapDirectory);
 	assert (cb <= HEAP_DIRECTORY_SIZE);
+
 	// Initialize free blocs count on top level.
 	zero_filled_buf->m_free_block_index [FREE_BLOCK_INDEX_SIZE - 1] = TOP_LEVEL_BLOCKS;
 
@@ -274,8 +273,8 @@ Word HeapDirectory::allocate (UWord size, Memory_ptr memory)
 	// Определяем смещение блока в куче и его размер.
 	UWord allocated_size = block_size (bi.level);
 	UWord block_offset = block_number * allocated_size;
-	*bitmap_ptr &= ~mask; // сбрасываем бит свободного блока
-	--*free_blocks_ptr;   // уменьшаем счетчик установленных бит
+	*bitmap_ptr &= ~mask; // Сбрасываем бит свободного блока.
+	--*free_blocks_ptr;   // Уменьшаем счетчик свободных блоков.
 
 	// Выделен блок размером allocated_size. Нужен блок размером size.
 	// Освобождаем оставшуюся часть.
@@ -308,14 +307,14 @@ bool HeapDirectory::allocate (UWord begin, UWord end, Memory_ptr memory)
 
 		// Находим начало битовой карты уровня и номер блока.
 		UWord level_bitmap_begin = bitmap_offset (level);
-		UWord block_number = unit_number (allocated_end, level);
+		UWord bl_number = block_number (allocated_end, level);
 
 		UWord* bitmap_ptr;
 		UWord mask;
 		for (;;) {
 
-			bitmap_ptr = m_bitmap + level_bitmap_begin + block_number / (sizeof (UWord) * 8);
-			mask = (UWord)1 << (block_number % (sizeof (UWord) * 8));
+			bitmap_ptr = m_bitmap + level_bitmap_begin + bl_number / (sizeof (UWord) * 8);
+			mask = (UWord)1 << (bl_number % (sizeof (UWord) * 8));
 			// Bitmap page can be not committed.
 			if (
 				(!memory || memory->is_readable (bitmap_ptr, sizeof (UWord)))
@@ -334,7 +333,7 @@ bool HeapDirectory::allocate (UWord begin, UWord end, Memory_ptr memory)
 
 			// Level up
 			--level;
-			block_number = block_number >> 1;
+			bl_number = bl_number >> 1;
 			level_bitmap_begin = bitmap_offset_prev (level_bitmap_begin);
 		}
 
@@ -342,9 +341,9 @@ bool HeapDirectory::allocate (UWord begin, UWord end, Memory_ptr memory)
 		*bitmap_ptr &= ~mask;
 
 		// Decrement free blocks counter
-		--free_block_count (level, block_number);
+		--free_block_count (level, bl_number);
 
-		UWord block_offset = unit_number (block_number, level);
+		UWord block_offset = unit_number (bl_number, level);
 		if (allocated_begin < block_offset)
 			allocated_begin = block_offset;
 		allocated_end = block_offset + block_size (level);
@@ -390,6 +389,7 @@ void HeapDirectory::release (UWord begin, UWord end, Memory_ptr memory, bool rtl
 		UWord level_bitmap_begin = bitmap_offset (level);
 		UWord bl_number = block_number (block_begin, level);
 
+		// Определяем адрес слова в битовой карте
 		UWord* bitmap_ptr = m_bitmap + level_bitmap_begin + bl_number / (sizeof (UWord) * 8);
 		UWord mask = (UWord)1 << (bl_number % (sizeof (UWord) * 8));
 
@@ -401,9 +401,6 @@ void HeapDirectory::release (UWord begin, UWord end, Memory_ptr memory, bool rtl
 				companion_mask >>= 1;
 			else
 				companion_mask <<= 1;
-
-			// Определяем адрес слова в битовой карте
-			UWord* bitmap_ptr = m_bitmap + level_bitmap_begin + bl_number / (sizeof (UWord) * 8);
 
 			// Память битовой карты может не быть зафиксирована.
 

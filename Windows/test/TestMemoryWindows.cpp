@@ -48,29 +48,53 @@ TEST_F (TestMemoryWindows, Allocate)
 
 		LONG flags = iter_flags [iteration];
 
+		// Allocate and release memory.
 		BYTE* block = (BYTE*)MemoryWindows::allocate (0, BLOCK_SIZE, flags);
 		ASSERT_TRUE (block);
 		MemoryWindows::release (block, BLOCK_SIZE);
 
 		flags |= Memory::EXACTLY;
 
+		// Allocate memory at the same range.
 		ASSERT_EQ (block, (BYTE*)MemoryWindows::allocate (block, BLOCK_SIZE, flags));
+		
+		// Release the first half.
 		MemoryWindows::release (block, BLOCK_SIZE / 2);
+		
+		// Release the second half.
 		MemoryWindows::release (block + BLOCK_SIZE / 2, BLOCK_SIZE / 2);
 
+		// Allocate the range again.
 		ASSERT_EQ (block, (BYTE*)MemoryWindows::allocate (block, BLOCK_SIZE, flags));
+		
+		// Release the second half.
 		MemoryWindows::release (block + BLOCK_SIZE / 2, BLOCK_SIZE / 2);
+		
+		// Release the first half.
 		MemoryWindows::release (block, BLOCK_SIZE / 2);
 
+		// Allocate the range again.
 		ASSERT_EQ (block, (BYTE*)MemoryWindows::allocate (block, BLOCK_SIZE, flags));
+
+		// Release half at center
 		MemoryWindows::release (block + BLOCK_SIZE / 4, BLOCK_SIZE / 2);
+		
+		// Release the first quarter.
 		MemoryWindows::release (block, BLOCK_SIZE / 4);
+		
+		// Release the last quarter.
 		MemoryWindows::release (block + BLOCK_SIZE / 4 * 3, BLOCK_SIZE / 4);
 
+		// Allocate the first half.
 		ASSERT_EQ (block, (BYTE*)MemoryWindows::allocate (block, BLOCK_SIZE / 2, flags));
+		
+		// Allocate the second half.
 		ASSERT_EQ (MemoryWindows::allocate (block + BLOCK_SIZE / 2, BLOCK_SIZE / 2, flags), block + BLOCK_SIZE / 2);
+		
+		// Release all range
 		MemoryWindows::release (block, BLOCK_SIZE);
 
+		// Allocate and release range to check that it is free.
 		ASSERT_EQ (block, (BYTE*)MemoryWindows::allocate (block, BLOCK_SIZE, flags));
 		MemoryWindows::release (block, BLOCK_SIZE);
 	}

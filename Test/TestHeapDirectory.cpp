@@ -77,9 +77,86 @@ TYPED_TEST (TestHeapDirectory, Allocate)
 		for (UWord i = 0; i < blocks_cnt; ++i) {
 			EXPECT_FALSE (this->m_directory->check_allocated (i * block_size, TypeParam::DirectoryType::UNIT_COUNT, TypeParam::memory ()));
 			UWord block = this->m_directory->allocate (block_size, TypeParam::memory ());
-			EXPECT_EQ (block, i * block_size);
+			ASSERT_EQ (block, i * block_size);
 			EXPECT_TRUE (this->m_directory->check_allocated (block, block + block_size, TypeParam::memory ()));
 			++total;
+		}
+		ASSERT_TRUE (this->m_directory->check_allocated (0, TypeParam::DirectoryType::UNIT_COUNT, TypeParam::memory ()));
+		this->m_directory->release (0, TypeParam::DirectoryType::UNIT_COUNT, TypeParam::memory ());
+	}
+
+	EXPECT_TRUE (this->m_directory->empty ());
+}
+
+TYPED_TEST (TestHeapDirectory, Release)
+{
+	EXPECT_TRUE (this->m_directory->empty ());
+
+	for (UWord block_size = TypeParam::DirectoryType::MAX_BLOCK_SIZE; block_size >= 4; block_size >>= 1) {
+		UWord blocks_cnt = TypeParam::DirectoryType::UNIT_COUNT / block_size;
+		for (UWord i = 0; i < blocks_cnt; ++i) {
+
+			// Allocate and release block.
+			EXPECT_FALSE (this->m_directory->check_allocated (i * block_size, TypeParam::DirectoryType::UNIT_COUNT, TypeParam::memory ()));
+			UWord block = this->m_directory->allocate (block_size, TypeParam::memory ());
+			ASSERT_EQ (block, i * block_size);
+			EXPECT_TRUE (this->m_directory->check_allocated (block, block + block_size, TypeParam::memory ()));
+			this->m_directory->release (block, block + block_size, TypeParam::memory ());
+			EXPECT_FALSE (this->m_directory->check_allocated (block, block + block_size, TypeParam::memory ()));
+			
+			// Allocate the same block.
+			ASSERT_TRUE (this->m_directory->allocate (block, block + block_size, TypeParam::memory ()));
+			EXPECT_TRUE (this->m_directory->check_allocated (block, block + block_size, TypeParam::memory ()));
+
+			// Release the first half.
+			this->m_directory->release (block, block + block_size / 2, TypeParam::memory ());
+			EXPECT_FALSE (this->m_directory->check_allocated (block, block + block_size / 2, TypeParam::memory ()));
+			EXPECT_TRUE (this->m_directory->check_allocated (block + block_size / 2, block + block_size, TypeParam::memory ()));
+
+			// Release the second half.
+			this->m_directory->release (block + block_size / 2, block + block_size, TypeParam::memory ());
+			EXPECT_FALSE (this->m_directory->check_allocated (block, block + block_size, TypeParam::memory ()));
+
+			// Allocate the range again.
+			ASSERT_TRUE (this->m_directory->allocate (block, block + block_size, TypeParam::memory ()));
+			EXPECT_TRUE (this->m_directory->check_allocated (block, block + block_size, TypeParam::memory ()));
+
+			// Release the second half.
+			this->m_directory->release (block + block_size / 2, block + block_size, TypeParam::memory ());
+			EXPECT_TRUE (this->m_directory->check_allocated (block, block + block_size / 2, TypeParam::memory ()));
+			EXPECT_FALSE (this->m_directory->check_allocated (block + block_size / 2, block + block_size, TypeParam::memory ()));
+
+			// Release the first half.
+			this->m_directory->release (block, block + block_size / 2, TypeParam::memory ());
+			EXPECT_FALSE (this->m_directory->check_allocated (block, block + block_size, TypeParam::memory ()));
+
+			// Allocate the range again.
+			ASSERT_TRUE (this->m_directory->allocate (block, block + block_size, TypeParam::memory ()));
+			EXPECT_TRUE (this->m_directory->check_allocated (block, block + block_size, TypeParam::memory ()));
+
+			// Release half at center
+			this->m_directory->release (block + block_size / 4, block + block_size / 4 * 3, TypeParam::memory ());
+			EXPECT_TRUE (this->m_directory->check_allocated (block, block + block_size / 4, TypeParam::memory ()));
+			EXPECT_FALSE (this->m_directory->check_allocated (block + block_size / 4, block + block_size / 4 * 3, TypeParam::memory ()));
+			EXPECT_TRUE (this->m_directory->check_allocated (block + block_size / 4 * 3, block + block_size, TypeParam::memory ()));
+
+			// Release the first quarter.
+			this->m_directory->release (block, block + block_size / 4, TypeParam::memory ());
+			EXPECT_FALSE (this->m_directory->check_allocated (block, block + block_size / 4 * 3, TypeParam::memory ()));
+			EXPECT_TRUE (this->m_directory->check_allocated (block + block_size / 4 * 3, block + block_size, TypeParam::memory ()));
+
+			// Release the last quarter.
+			this->m_directory->release (block + block_size / 4 * 3, block + block_size, TypeParam::memory ());
+			EXPECT_FALSE (this->m_directory->check_allocated (block, block + block_size, TypeParam::memory ()));
+
+			// Allocate the first half.
+			this->m_directory->allocate (block, block + block_size / 2, TypeParam::memory ());
+			EXPECT_TRUE (this->m_directory->check_allocated (block, block + block_size / 2, TypeParam::memory ()));
+			EXPECT_FALSE (this->m_directory->check_allocated (block + block_size / 2, block + block_size, TypeParam::memory ()));
+
+			// Allocate the second half.
+			this->m_directory->allocate (block + block_size / 2, block + block_size, TypeParam::memory ());
+			EXPECT_TRUE (this->m_directory->check_allocated (block, block + block_size, TypeParam::memory ()));
 		}
 		EXPECT_TRUE (this->m_directory->check_allocated (0, TypeParam::DirectoryType::UNIT_COUNT, TypeParam::memory ()));
 		this->m_directory->release (0, TypeParam::DirectoryType::UNIT_COUNT, TypeParam::memory ());
