@@ -162,7 +162,7 @@ Word HeapDirectory::allocate (UWord size, Memory_ptr memory)
 	assert (size <= MAX_BLOCK_SIZE);
 
 	// Quantize block size
-	UWord level = HEAP_LEVELS + nlz ((ULong)(size - 1)) - 33;
+	UWord level = nlz ((ULong)(size - 1)) + HEAP_LEVELS - 33;
 	assert (level < HEAP_LEVELS);
 	UWord block_index_offset = sm_block_index_offset [HEAP_LEVELS - 1 - level];
 
@@ -440,12 +440,19 @@ void HeapDirectory::release (UWord begin, UWord end, Memory_ptr memory, bool rtl
 UWord HeapDirectory::level_align (UWord offset, UWord size)
 {
 	// Ищем максимальный размер блока <= size, на который выравнен offset
+	UWord level = HEAP_LEVELS - 1 - min (ntz (offset | MAX_BLOCK_SIZE), 31 - nlz ((ULong)size));
+	assert (level < HEAP_LEVELS);
+/* The check code.
+#ifdef _DEBUG
 	UWord mask = MAX_BLOCK_SIZE - 1;
-	UWord level = 0;
+	UWord dlevel = 0;
 	while ((mask & offset) || (mask >= size)) {
 		mask >>= 1;
-		++level;
+		++dlevel;
 	}
+	assert (dlevel == level);
+#endif
+*/
 	return level;
 }
 
