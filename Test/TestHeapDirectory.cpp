@@ -5,19 +5,20 @@ namespace unittests {
 
 using namespace ::Nirvana;
 
+template <UWord SIZE>
 class HeapDirectoryFactory
 {
 public:
-	typedef HeapDirectory DirectoryType;
+	typedef HeapDirectory <SIZE> DirectoryType;
 
-	static HeapDirectory * create ()
+	static DirectoryType* create ()
 	{
-		HeapDirectory* p = (HeapDirectory*)calloc (1, sizeof (HeapDirectory));
-		HeapDirectory::initialize (p);
+		DirectoryType* p = (DirectoryType*)calloc (1, sizeof (DirectoryType));
+		DirectoryType::initialize (p);
 		return p;
 	}
 
-	static void destroy (HeapDirectory *p)
+	static void destroy (DirectoryType *p)
 	{
 		free (p);
 	}
@@ -64,7 +65,10 @@ protected:
 	typename DirectoryType* m_directory;
 };
 
-typedef ::testing::Types <HeapDirectoryFactory> MyTypes;
+typedef ::testing::Types <
+	HeapDirectoryFactory <0x10000>, HeapDirectoryFactory <0x8000>, HeapDirectoryFactory <0x4000>
+> MyTypes;
+
 TYPED_TEST_CASE (TestHeapDirectory, MyTypes);
 
 TYPED_TEST (TestHeapDirectory, Allocate)

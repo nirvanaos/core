@@ -9,9 +9,9 @@
 #define NOMINMAX
 #include <windows.h>
 
-#if (FIXED_PROTECTION_UNIT && (FIXED_PROTECTION_UNIT != 4096))
-#error Windows version assumes page size 4096 bytes.
-#endif
+//#if (FIXED_PROTECTION_UNIT && (FIXED_PROTECTION_UNIT != 4096))
+//#error Windows version assumes page size 4096 bytes.
+//#endif
 
 // "interface" is used as identifier in ORB.
 #ifdef interface
