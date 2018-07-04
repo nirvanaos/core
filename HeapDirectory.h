@@ -6,6 +6,7 @@
 #include <stddef.h>
 #include <nlzntz.h>
 #include <algorithm>
+#include <atomic>
 
 /*
 Используется алгоритм распределения памяти с двоичным квантованием размеров блоков.
@@ -65,6 +66,52 @@ protected:
 		UWord level;
 		UWord bitmap_offset;
 	};
+
+	// Atomic decrement free blocks counter if it is not zero.
+	static bool acquire (volatile UShort* pcnt)
+	{
+		assert (::std::atomic_is_lock_free ((volatile ::std::atomic <UShort>*)pcnt));
+		UShort cnt = ::std::atomic_load ((volatile ::std::atomic <UShort>*)pcnt);
+		while (cnt) {
+			if (::std::atomic_compare_exchange_strong ((volatile ::std::atomic <UShort>*)pcnt, &cnt, cnt - 1))
+				return true;
+		}
+		return false;
+	}
+
+	// Atomic increment free blocks counter.
+	static void release (volatile UShort* pcnt)
+	{
+		::std::atomic_fetch_add ((volatile ::std::atomic <UShort>*)pcnt, 1);
+	}
+
+	// Clear rightmost not zero bit and return number of this bit.
+	// Return -1 if all bits are zero.
+	static Word clear_rightmost_1 (volatile UWord* pbits)
+	{
+		assert (::std::atomic_is_lock_free ((volatile ::std::atomic <UWord>*)pbits));
+		UWord bits = ::std::atomic_load ((volatile ::std::atomic <UWord>*)pbits);
+		while (bits) {
+			if (::std::atomic_compare_exchange_strong ((volatile ::std::atomic <UWord>*)pbits, &bits, bits & (bits - 1)))
+				return ntz (bits);
+		}
+		return -1;
+	}
+
+	static bool bit_clear (volatile UWord* pbits, UWord mask)
+	{
+		UWord bits = ::std::atomic_load ((volatile ::std::atomic <UWord>*)pbits);
+		while (bits & mask) {
+			if (::std::atomic_compare_exchange_strong ((volatile ::std::atomic <UWord>*)pbits, &bits, bits & ~mask))
+				return true;
+		}
+		return false;
+	}
+
+	static void bit_set (volatile UWord* pbits, UWord mask)
+	{
+		::std::atomic_fetch_or ((volatile ::std::atomic <UWord>*)pbits, mask);
+	}
 };
 
 template <ULong SIZE>
@@ -293,7 +340,7 @@ Word HeapDirectory <HEAP_DIRECTORY_SIZE>::allocate (UWord size, Memory_ptr memor
 	// Search in free block index
 	UShort* free_blocks_ptr = m_free_block_index + block_index_offset;
 	Word cnt = Traits::FREE_BLOCK_INDEX_SIZE - block_index_offset;
-	while ((cnt--) && !*free_blocks_ptr)
+	while ((cnt--) && !Traits::acquire (free_blocks_ptr))
 		++free_blocks_ptr;
 	if (cnt < 0)
 		return -1; // no such blocks
@@ -303,6 +350,7 @@ Word HeapDirectory <HEAP_DIRECTORY_SIZE>::allocate (UWord size, Memory_ptr memor
 	typename Traits::BitmapIndex bi = Traits::sm_bitmap_index [cnt];
 
 	UWord* bitmap_ptr;
+	Word bit_number;
 
 	if (
 		(HEAP_DIRECTORY_SIZE < 0x10000) // Верхние уровни объединены
@@ -313,9 +361,7 @@ Word HeapDirectory <HEAP_DIRECTORY_SIZE>::allocate (UWord size, Memory_ptr memor
 		// По индексу размера блока уточняем уровень и смещение начала поиска
 		if (bi.level > level) {
 			bi.level = level;
-
 			bi.bitmap_offset = bitmap_offset (level);
-			bitmap_ptr = m_bitmap + bi.bitmap_offset;
 		}
 
 		UWord* end = m_bitmap + bitmap_offset_next (bi.bitmap_offset);
@@ -323,11 +369,14 @@ Word HeapDirectory <HEAP_DIRECTORY_SIZE>::allocate (UWord size, Memory_ptr memor
 
 		// Поиск в битовой карте. 
 		// Верхние уровни всегда находятся в подтвержденной области.
-		while (!*bitmap_ptr) {
+		while ((bit_number = Traits::clear_rightmost_1 (bitmap_ptr)) < 0) {
 			if (++bitmap_ptr >= end) {
 
-				if (!bi.level)
-					return -1; // Блок не найден
+				if (!bi.level) {
+					// Блок требуемого размера не найден.
+					Traits::release (free_blocks_ptr);
+					return -1;
+				}
 
 				// Поднимаемся на уровень выше
 				--bi.level;
@@ -355,13 +404,13 @@ Word HeapDirectory <HEAP_DIRECTORY_SIZE>::allocate (UWord size, Memory_ptr memor
 					page_end += page_size;
 				}
 
-				while (!*bitmap_ptr) {
+				while ((bit_number = Traits::clear_rightmost_1 (bitmap_ptr)) < 0) {
 					if (++bitmap_ptr == page_end)
 						break;
 				}
 			}
 		} else {
-			while (!*bitmap_ptr)
+			while ((bit_number = Traits::clear_rightmost_1 (bitmap_ptr)) < 0)
 				++bitmap_ptr;
 		}
 
@@ -369,10 +418,14 @@ Word HeapDirectory <HEAP_DIRECTORY_SIZE>::allocate (UWord size, Memory_ptr memor
 		// Следующая проверка введена на случай, если структура данных кучи была испорчена.
 		{
 			Word end = bi.bitmap_offset + ::std::min (Traits::TOP_LEVEL_BLOCKS << bi.level, (UWord)0x10000) / sizeof (UWord);
-			if ((bitmap_ptr - m_bitmap) >= end)
+			if ((bitmap_ptr - m_bitmap) >= end) {
+				Traits::release (free_blocks_ptr);
 				throw INTERNAL ();
+			}
 		}
 	}
+
+	assert (bit_number >= 0);
 
 	// По смещению в битовой карте и размеру блока определяем номер (адрес) блока.
 	UWord level_bitmap_begin = bitmap_offset (bi.level);
@@ -380,15 +433,9 @@ Word HeapDirectory <HEAP_DIRECTORY_SIZE>::allocate (UWord size, Memory_ptr memor
 	// Номер блока:
 	assert ((UWord)(bitmap_ptr - m_bitmap) >= level_bitmap_begin);
 	UWord block_number = (bitmap_ptr - m_bitmap - level_bitmap_begin) * sizeof (UWord) * 8;
+	block_number += bit_number;
 
-	// Сбрасываем крайний справа единичный бит
-	UWord bits = *bitmap_ptr;
-	assert (bits);
-	*bitmap_ptr = bits & bits - 1;
-	block_number += ntz (bits); // Номер этого бита прибавляем к номеру блока.
-	--*free_blocks_ptr;   // Уменьшаем счетчик свободных блоков.
-
-												// Определяем смещение блока в куче и его размер.
+	// Определяем смещение блока в куче и его размер.
 	UWord allocated_size = block_size (bi.level);
 	UWord block_offset = block_number * allocated_size;
 
@@ -397,7 +444,7 @@ Word HeapDirectory <HEAP_DIRECTORY_SIZE>::allocate (UWord size, Memory_ptr memor
 
 	try {
 
-		release (block_offset + size, block_offset + allocated_size);
+		release (block_offset + size, block_offset + allocated_size, memory);
 
 	} catch (...) {
 		// Release cb bytes, not allocated_size bytes!
@@ -426,27 +473,26 @@ bool HeapDirectory <HEAP_DIRECTORY_SIZE>::allocate (UWord begin, UWord end, Memo
 		UWord level_bitmap_begin = bitmap_offset (level);
 		UWord bl_number = block_number (allocated_end, level);
 
+		bool success = false;
 		UWord* bitmap_ptr;
 		UWord mask;
 		for (;;) {
 
 			bitmap_ptr = m_bitmap + level_bitmap_begin + bl_number / (sizeof (UWord) * 8);
 			mask = (UWord)1 << (bl_number % (sizeof (UWord) * 8));
-			// Bitmap page can be not committed.
-			if (
-				(!memory || memory->is_readable (bitmap_ptr, sizeof (UWord)))
-				&&
-				(*bitmap_ptr & mask)
-				)
-				break;  // was found
-
-			if (!level) {
-
-				// No block found. Release allocated.
-				release (allocated_begin, allocated_end, Memory_ptr::nil ());
-
-				return false;
+			volatile UShort& free_blocks_cnt = free_block_count (level, bl_number);
+			// Decrement free blocks counter.
+			if (Traits::acquire (&free_blocks_cnt)) {
+				// If bitmap level(s) had free block, then they are committed. We can avoid memory->is_readable() check here.
+				if (Traits::bit_clear (bitmap_ptr, mask)) {
+					success = true; // Block allocated
+					break;
+				} else
+					Traits::release (&free_blocks_cnt);
 			}
+
+			if (!level)
+				break; // Unsuccessfull. Range is not free.
 
 			// Level up
 			--level;
@@ -454,11 +500,11 @@ bool HeapDirectory <HEAP_DIRECTORY_SIZE>::allocate (UWord begin, UWord end, Memo
 			level_bitmap_begin = bitmap_offset_prev (level_bitmap_begin);
 		}
 
-		// Clear free bit
-		*bitmap_ptr &= ~mask;
-
-		// Decrement free blocks counter
-		--free_block_count (level, bl_number);
+		if (!success) {
+			// Block is not free. Release allocated blocks and return false.
+			release (allocated_begin, allocated_end, Memory_ptr::nil ());
+			return false;
+		}
 
 		UWord block_offset = unit_number (bl_number, level);
 		if (allocated_begin < block_offset)
@@ -513,28 +559,28 @@ void HeapDirectory <HEAP_DIRECTORY_SIZE>::release (UWord begin, UWord end, Memor
 
 		while (level > 0) {
 
-			// Проверяем, есть ли у блока свободный компаньон
-			UWord companion_mask = (bl_number & 1) ? mask >> 1 : mask << 1;	// TODO: optimize?
-
 			// Память битовой карты может не быть зафиксирована.
-			if (
-				(!memory || memory->is_readable (bitmap_ptr, sizeof (UWord)))
-				&&
-				(*bitmap_ptr & companion_mask)
-			) {
+			if (!memory || memory->is_readable (bitmap_ptr, sizeof (UWord))) {
 
-				// Есть свободный компаньон, объединяем его с освобождаемым блоком
+				// Проверяем, есть ли у блока свободный компаньон
+				UWord companion_mask = (bl_number & 1) ? mask >> 1 : mask << 1;	// TODO: optimize?
 
-				// Убираем бит компаньона
-				*bitmap_ptr &= ~companion_mask;
-				--free_block_count (level, bl_number);
-
-				// Поднимаемся на уровень выше
-				--level;
-				level_bitmap_begin = bitmap_offset_prev (level_bitmap_begin);
-				bl_number >>= 1;
-				mask = (UWord)1 << (bl_number % (sizeof (UWord) * 8));
-				bitmap_ptr = m_bitmap + level_bitmap_begin + bl_number / (sizeof (UWord) * 8);
+				volatile UShort& free_blocks_cnt = free_block_count (level, bl_number);
+				if (Traits::acquire (&free_blocks_cnt)) {
+					if (Traits::bit_clear (bitmap_ptr, companion_mask)) {
+						// Есть свободный компаньон, объединяем его с освобождаемым блоком
+						// Поднимаемся на уровень выше
+						--level;
+						level_bitmap_begin = bitmap_offset_prev (level_bitmap_begin);
+						bl_number >>= 1;
+						mask = (UWord)1 << (bl_number % (sizeof (UWord) * 8));
+						bitmap_ptr = m_bitmap + level_bitmap_begin + bl_number / (sizeof (UWord) * 8);
+					} else {
+						Traits::release (&free_blocks_cnt);
+						break;
+					}
+				} else
+					break;
 			} else
 				break;
 		}
@@ -544,11 +590,10 @@ void HeapDirectory <HEAP_DIRECTORY_SIZE>::release (UWord begin, UWord end, Memor
 			memory->commit (bitmap_ptr, sizeof (UWord));
 
 		// Устанавливаем бит свободного блока
-
-		*bitmap_ptr |= mask;
+		Traits::bit_set (bitmap_ptr, mask);
 
 		// Увеличиваем счетчик свободных блоков
-		++free_block_count (level, bl_number);
+		Traits::release (&free_block_count (level, bl_number));
 
 		// Блок освобожден
 		if (rtl)
