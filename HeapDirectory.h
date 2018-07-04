@@ -327,9 +327,9 @@ Word HeapDirectory <HEAP_DIRECTORY_SIZE>::allocate (UWord size, Memory_ptr memor
 			if (++bitmap_ptr >= end) {
 
 				if (!bi.level)
-					return 0; // Блок не найден
+					return -1; // Блок не найден
 
-										// Поднимаемся на уровень выше
+				// Поднимаемся на уровень выше
 				--bi.level;
 				end = begin;
 				begin = bitmap_ptr = m_bitmap + (bi.bitmap_offset = bitmap_offset_prev (bi.bitmap_offset));

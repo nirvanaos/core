@@ -88,8 +88,9 @@ TEST_F (TestAPI, Allocate)
 	EXPECT_TRUE (VirtualProtect (p, PAGE_SIZE, PAGE_NOACCESS, &old));
 	EXPECT_TRUE (VirtualAlloc (p, PAGE_SIZE, MEM_RESET, PAGE_NOACCESS));
 
-	char x;
+	char x = 0;
 	EXPECT_ANY_THROW (x = p [0]);
+	EXPECT_EQ (x, 0); // Prevent optimization.
 
 	// Recommit first page
 	EXPECT_TRUE (VirtualAlloc (p, PAGE_SIZE, MEM_COMMIT, PAGE_READWRITE));
@@ -318,11 +319,12 @@ TEST_F (TestAPI, Protection)
 
 	EXPECT_EQ (dst [0], 1);	// Destination not changed
 
-	BYTE x;
+	BYTE x = 0;
 
 	// Decommit source page
 	EXPECT_TRUE (VirtualProtect (src, PAGE_SIZE, PAGE_NOACCESS | PAGE_REVERT_TO_FILE_MAP, &old));
 	EXPECT_ANY_THROW (x = src [0]);
+	EXPECT_EQ (x, 0); // Prevent optimization.
 
 	EXPECT_EQ (dst [0], 1);	// Destination not changed
 
@@ -331,6 +333,7 @@ TEST_F (TestAPI, Protection)
 	// For not shared pages call VirtualAlloc with MEM_RESET to inform system that page content is not more interested.
 	EXPECT_TRUE (VirtualAlloc (src + PAGE_SIZE, PAGE_SIZE, MEM_RESET, PAGE_NOACCESS));
 	EXPECT_ANY_THROW (x = src [PAGE_SIZE]);
+	EXPECT_EQ (x, 0); // Prevent optimization.
 
 	EXPECT_TRUE (UnmapViewOfFile (dst));
 	EXPECT_TRUE (UnmapViewOfFile (src));

@@ -1,9 +1,11 @@
 #include "../HeapDirectory.h"
 #include <gtest/gtest.h>
+#include <random>
+
+using namespace Nirvana;
+using namespace std;
 
 namespace unittests {
-
-using namespace ::Nirvana;
 
 template <UWord SIZE>
 class HeapDirectoryFactory
@@ -164,6 +166,51 @@ TYPED_TEST (TestHeapDirectory, Release)
 		}
 		EXPECT_TRUE (this->m_directory->check_allocated (0, TypeParam::DirectoryType::UNIT_COUNT, TypeParam::memory ()));
 		this->m_directory->release (0, TypeParam::DirectoryType::UNIT_COUNT, TypeParam::memory ());
+	}
+
+	EXPECT_TRUE (this->m_directory->empty ());
+}
+
+TYPED_TEST (TestHeapDirectory, Random)
+{
+	EXPECT_TRUE (this->m_directory->empty ());
+
+	struct Block
+	{
+		UWord begin;
+		UWord end;
+	};
+
+	vector <Block> allocated;
+	allocated.reserve (1024);
+	UWord total_allocated = 0;
+	
+	mt19937 rndgen;
+	int iteration = 0;
+	static const int MAX_ITERATIONS = 1000000;
+	for (; iteration < MAX_ITERATIONS; ++iteration) {
+		if (allocated.empty () || !bernoulli_distribution ((double)total_allocated / (double)TypeParam::DirectoryType::UNIT_COUNT)(rndgen)) {
+			UWord size = uniform_int_distribution <UWord> (1, TypeParam::DirectoryType::MAX_BLOCK_SIZE)(rndgen);
+			Word block = this->m_directory->allocate (size, TypeParam::memory ());
+			if (block >= 0) {
+				allocated.push_back ({(UWord)block, (UWord)block + size});
+				total_allocated += size;
+				EXPECT_TRUE (this->m_directory->check_allocated (allocated.back ().begin, allocated.back ().end, TypeParam::memory ()));
+			} else
+				break;
+		} else {
+			size_t idx = uniform_int_distribution <size_t> (0, allocated.size () - 1)(rndgen);
+			Block& block = allocated [idx];
+			EXPECT_TRUE (this->m_directory->check_allocated (block.begin, block.end, TypeParam::memory ()));
+			this->m_directory->release (block.begin, block.end, TypeParam::memory ());
+			total_allocated -= block.end - block.begin;
+			allocated.erase (allocated.begin () + idx);
+		}
+	}
+
+	for (auto p = allocated.cbegin (); p != allocated.cend (); ++p) {
+		EXPECT_TRUE (this->m_directory->check_allocated (p->begin, p->end, TypeParam::memory ()));
+		this->m_directory->release (p->begin, p->end, TypeParam::memory ());
 	}
 
 	EXPECT_TRUE (this->m_directory->empty ());
