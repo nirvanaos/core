@@ -4,17 +4,6 @@
 #ifndef NIRVANA_CORE_CONFIG_H_
 #define NIRVANA_CORE_CONFIG_H_
 
-/*
-  Check level.
-  0 - No additional check. For embedded systems with debugged software.
-  1 - Unexpensive checks added. 
-  2 - Paranoidal check. For debug environment.
-*/
-#define BUILD_CHECK_LEVEL 2
-
-// Build with fixed protection unit. 0 - no assumption about unit size.
-#define FIXED_PROTECTION_UNIT 4096
-
 // Heap parameters
 
 /*
@@ -36,29 +25,9 @@
 #define HEAP_UNIT_MIN 16
 
 /*
-  HEAP_DIRECTORY_SIZE - размер управл€ющего блока кучи. ƒолжен быть кратен PROTECTION_UNIT.
-  ”правл€ющий блок содержит битовую карту свободных блоков и массив количества
-  свободных блоков на уровн€х. ћеньший размер более экономно расходует пам€ть, 
-  выдел€емую на управление кучей.
-  “ак как максимальный размер блока меньше размера кучи, битова€ карта выгл€дит,
-  как пирамида со срезанной верхушкой. Ќа месте верхушки расподожен индексный массив, 
-  UShort, содержащий информацию о количестве свободных блоков на различных уровн€х.
-  ”меньшение размера управл€ющего блока кучи уменьшает размер срезанной верхушки 
-  и оставл€ет меньше места дл€ индекса. ѕри этом приходитс€ отводить один счетчик свободных
-  блоков на несколько верхних уровней. Ёто может увеличить врем€ поиска свободного
-  блока в куче.
-  –азмер управл€ющего блока принимаетс€ равным 16, 32 или 64  . ћеньшие и большие размеры
-  вр€д ли дадут оптимальный результат.
-*/
-
-//#define HEAP_DIRECTORY_SIZE 0x10000
-//#define HEAP_DIRECTORY_SIZE 0x8000
-//#define HEAP_DIRECTORY_SIZE 0x4000
-
-/*
   HEAP_HEADER_SIZE - размер заголовка кучи. «аголовок содержит 1 или несколько управл€ющих
   блоков. –азмер заголовка должен быть кратен гранул€рности пам€ти домена защиты - максимальному
-  значению MAX (ALLOCATION_UNIT, PROTECTION_UNIT, SHARING_UNIT). ≈сли HEAP_DIRECTORY_SIZE
+  значению MAX (ALLOCATION_UNIT, PROTECTION_UNIT, SHARING_UNIT). ≈сли DIRECTORY_SIZE
   меньше этой величины, заголовок кучи содержит несколько управл€ющих блоков, а сама куча
   делитс€ на соответствующее количество частей, кажда€ из которых работает отдельно.
   ƒл€ Windows размер заголовка равен 64K. ƒл€ систем с меньшими размерами ALLOCATION_UNIT

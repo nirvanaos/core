@@ -114,12 +114,28 @@ protected:
 	}
 };
 
-template <ULong SIZE>
+/*
+DIRECTORY_SIZE - размер управляющего блока кучи. Должен быть кратен PROTECTION_UNIT.
+Управляющий блок содержит битовую карту свободных блоков и массив количества
+свободных блоков на уровнях. Меньший размер более экономно расходует память,
+выделяемую на управление кучей.
+Так как максимальный размер блока меньше размера кучи, битовая карта выглядит,
+как пирамида со срезанной верхушкой. На месте верхушки расподожен индексный массив,
+UShort, содержащий информацию о количестве свободных блоков на различных уровнях.
+Уменьшение размера управляющего блока кучи уменьшает размер срезанной верхушки
+и оставляет меньше места для индекса. При этом приходится отводить один счетчик свободных
+блоков на несколько верхних уровней. Это может увеличить время поиска свободного
+блока в куче.
+Размер управляющего блока принимается равным 16, 32 или 64 К. Меньшие и большие размеры
+вряд ли дадут оптимальный результат.
+*/
+
+template <ULong DIRECTORY_SIZE>
 class HeapDirectoryTraitsBase :
 	public HeapDirectoryBase
 {
 public:
-	static const UWord UNIT_COUNT = SIZE * 4;
+	static const UWord UNIT_COUNT = DIRECTORY_SIZE * 4;
 
 protected:
 	// Number of top level blocks.
@@ -132,7 +148,7 @@ protected:
 	static const UWord BITMAP_SIZE = (~((~0) << HEAP_LEVELS)) * TOP_BITMAP_WORDS;
 
 	// Space available before bitmap for free block index.
-	static const UWord FREE_BLOCK_INDEX_MAX = (SIZE - BITMAP_SIZE * sizeof (UWord)) / sizeof (UShort);
+	static const UWord FREE_BLOCK_INDEX_MAX = (DIRECTORY_SIZE - BITMAP_SIZE * sizeof (UWord)) / sizeof (UShort);
 };
 
 // There are 3 implementations of HeapDirectoryTraits for directory sizes 0x10000, 0x8000 and 0x4000 respectively.
@@ -182,17 +198,17 @@ public:
 // Heap directory. Used for memory allocation on different levels of memory management.
 // Heap directory allocates and deallocates abstract "units" in range (0 <= n < UNIT_COUNT).
 // Each unit requires 2 bits of HeapDirectory size.
-template <UWord HEAP_DIRECTORY_SIZE>
+template <UWord DIRECTORY_SIZE>
 class HeapDirectory :
-	public HeapDirectoryTraits <HEAP_DIRECTORY_SIZE>
+	public HeapDirectoryTraits <DIRECTORY_SIZE>
 {
-	typedef HeapDirectoryTraits <HEAP_DIRECTORY_SIZE> Traits;
+	typedef HeapDirectoryTraits <DIRECTORY_SIZE> Traits;
 //	static_assert (Traits::FREE_BLOCK_INDEX_SIZE <= Traits::FREE_BLOCK_INDEX_MAX);
 
 public:
-	static void initialize (HeapDirectory <HEAP_DIRECTORY_SIZE>* zero_filled_buf)
+	static void initialize (HeapDirectory <DIRECTORY_SIZE>* zero_filled_buf)
 	{
-		assert (sizeof (HeapDirectory <HEAP_DIRECTORY_SIZE>) <= HEAP_DIRECTORY_SIZE);
+		assert (sizeof (HeapDirectory <DIRECTORY_SIZE>) <= DIRECTORY_SIZE);
 
 		// Bitmap is always aligned for performance.
 		assert ((UWord)(&zero_filled_buf->m_bitmap) % sizeof (UWord) == 0);
@@ -204,18 +220,13 @@ public:
 		::std::fill_n (zero_filled_buf->m_bitmap, Traits::TOP_BITMAP_WORDS, ~0);
 	}
 
-	static HeapDirectory <HEAP_DIRECTORY_SIZE>* create (Memory_ptr memory)
+	static void initialize (HeapDirectory <DIRECTORY_SIZE>* reserved_buf, Memory_ptr memory)
 	{
-		// Reserve memory.
-		HeapDirectory* p = reinterpret_cast <HeapDirectory*>(memory->allocate (0, sizeof (HeapDirectory), Memory::RESERVED | Memory::ZERO_INIT));
-
 		// Commit initial part.
-		memory->commit (p, reinterpret_cast <Octet*> (p->m_bitmap + TOP_BITMAP_WORDS) - reinterpret_cast <Octet*> (p));
+		memory->commit (reserved_buf, reinterpret_cast <Octet*> (reserved_buf->m_bitmap + Traits::TOP_BITMAP_WORDS) - reinterpret_cast <Octet*> (reserved_buf));
 
 		// Initialize
-		initialize (p);
-
-		return p;
+		initialize (reserved_buf);
 	}
 
 	/// <summary>Allocate block.</summary>
@@ -227,11 +238,12 @@ public:
 	// Checks that all units in range are allocated.
 	bool check_allocated (UWord begin, UWord end, Memory_ptr memory = Memory_ptr::nil ()) const;
 	
-	void release (UWord begin, UWord end, Memory_ptr memory = Memory_ptr::nil (), bool right_to_left = false);
+	void release (UWord begin, UWord end, Memory_ptr memory = Memory_ptr::nil (), bool right_to_left = false, 
+								Pointer heap = 0, UWord unit_size = 0);
 
 	bool empty () const
 	{
-		if (HEAP_DIRECTORY_SIZE < 0x10000) {
+		if (DIRECTORY_SIZE < 0x10000) {
 
 			// Верхние уровни объединены
 			const UWord* end = m_bitmap + Traits::TOP_BITMAP_WORDS;
@@ -304,7 +316,7 @@ private:
 	UShort& free_block_count (UWord level, UWord block_number)
 	{
 		size_t idx = Traits::sm_block_index_offset [Traits::HEAP_LEVELS - 1 - level];
-		if (HEAP_DIRECTORY_SIZE > 0x4000) {
+		if (DIRECTORY_SIZE > 0x4000) {
 			// Add index for splitted levels
 			idx += (block_number >> (sizeof (UShort) * 8));
 		}
@@ -326,8 +338,8 @@ private:
 	UWord m_bitmap [Traits::BITMAP_SIZE];
 };
 
-template <UWord HEAP_DIRECTORY_SIZE>
-Word HeapDirectory <HEAP_DIRECTORY_SIZE>::allocate (UWord size, Memory_ptr memory)
+template <UWord DIRECTORY_SIZE>
+Word HeapDirectory <DIRECTORY_SIZE>::allocate (UWord size, Memory_ptr memory)
 {
 	assert (size);
 	assert (size <= Traits::MAX_BLOCK_SIZE);
@@ -353,7 +365,7 @@ Word HeapDirectory <HEAP_DIRECTORY_SIZE>::allocate (UWord size, Memory_ptr memor
 	Word bit_number;
 
 	if (
-		(HEAP_DIRECTORY_SIZE < 0x10000) // Верхние уровни объединены
+		(DIRECTORY_SIZE < 0x10000) // Верхние уровни объединены
 		&&
 		!cnt
 	) { // Верхние уровни
@@ -398,7 +410,7 @@ Word HeapDirectory <HEAP_DIRECTORY_SIZE>::allocate (UWord size, Memory_ptr memor
 
 			UWord* page_end = round_down (bitmap_ptr, page_size) + page_size / sizeof (UWord);
 
-			for (;;) {
+			do {
 				while (!memory->is_readable (bitmap_ptr, sizeof (UWord))) {
 					bitmap_ptr = page_end;
 					page_end += page_size;
@@ -408,7 +420,7 @@ Word HeapDirectory <HEAP_DIRECTORY_SIZE>::allocate (UWord size, Memory_ptr memor
 					if (++bitmap_ptr == page_end)
 						break;
 				}
-			}
+			} while (bit_number < 0);
 		} else {
 			while ((bit_number = Traits::clear_rightmost_1 (bitmap_ptr)) < 0)
 				++bitmap_ptr;
@@ -455,8 +467,8 @@ Word HeapDirectory <HEAP_DIRECTORY_SIZE>::allocate (UWord size, Memory_ptr memor
 	return block_offset;
 }
 
-template <UWord HEAP_DIRECTORY_SIZE>
-bool HeapDirectory <HEAP_DIRECTORY_SIZE>::allocate (UWord begin, UWord end, Memory_ptr memory)
+template <UWord DIRECTORY_SIZE>
+bool HeapDirectory <DIRECTORY_SIZE>::allocate (UWord begin, UWord end, Memory_ptr memory)
 {
 	assert (begin < end);
 	assert (end <= Traits::UNIT_COUNT);
@@ -526,11 +538,21 @@ bool HeapDirectory <HEAP_DIRECTORY_SIZE>::allocate (UWord begin, UWord end, Memo
 	return true;
 }
 
-template <UWord HEAP_DIRECTORY_SIZE>
-void HeapDirectory <HEAP_DIRECTORY_SIZE>::release (UWord begin, UWord end, Memory_ptr memory, bool rtl)
+template <UWord DIRECTORY_SIZE>
+void HeapDirectory <DIRECTORY_SIZE>::release (UWord begin, UWord end, Memory_ptr memory, bool rtl, Pointer heap, UWord unit_size)
 {
 	assert (begin <= end);
 	assert (end <= Traits::UNIT_COUNT);
+
+	// Decommit blocks at levels upper than this.
+	UWord decommit_levels_end = 0;
+	if (memory && heap) {
+		assert (unit_size);
+		if (unit_size) {
+			UWord decommit_size = memory->query (heap, Memory::OPTIMAL_COMMIT_UNIT);
+			decommit_levels_end = Traits::HEAP_LEVELS - 31 + nlz (decommit_size / unit_size);
+		}
+	}
 
 	// Освобождаемый блок должен быть разбит на блоки размером 2^n, смещение которых
 	// кратно их размеру.
@@ -556,38 +578,48 @@ void HeapDirectory <HEAP_DIRECTORY_SIZE>::release (UWord begin, UWord end, Memor
 		// Определяем адрес слова в битовой карте
 		UWord* bitmap_ptr = m_bitmap + level_bitmap_begin + bl_number / (sizeof (UWord) * 8);
 		UWord mask = (UWord)1 << (bl_number % (sizeof (UWord) * 8));
+		
+		if (memory) // We have to set bit or clear companion here. So memory have to be committed anyway.
+			memory->commit (bitmap_ptr, sizeof (UWord));
 
 		while (level > 0) {
 
-			// Память битовой карты может не быть зафиксирована.
-			if (!memory || memory->is_readable (bitmap_ptr, sizeof (UWord))) {
+			// Проверяем, есть ли у блока свободный компаньон
+			UWord companion_mask = (bl_number & 1) ? mask >> 1 : mask << 1;	// TODO: optimize?
 
-				// Проверяем, есть ли у блока свободный компаньон
-				UWord companion_mask = (bl_number & 1) ? mask >> 1 : mask << 1;	// TODO: optimize?
+			volatile UShort& free_blocks_cnt = free_block_count (level, bl_number);
+			if (Traits::acquire (&free_blocks_cnt)) {
+				if (Traits::bit_clear (bitmap_ptr, companion_mask)) {
+					// Есть свободный компаньон, объединяем его с освобождаемым блоком
+					// Поднимаемся на уровень выше
+					--level;
+					level_bitmap_begin = bitmap_offset_prev (level_bitmap_begin);
+					bl_number >>= 1;
+					mask = (UWord)1 << (bl_number % (sizeof (UWord) * 8));
 
-				volatile UShort& free_blocks_cnt = free_block_count (level, bl_number);
-				if (Traits::acquire (&free_blocks_cnt)) {
-					if (Traits::bit_clear (bitmap_ptr, companion_mask)) {
-						// Есть свободный компаньон, объединяем его с освобождаемым блоком
-						// Поднимаемся на уровень выше
-						--level;
-						level_bitmap_begin = bitmap_offset_prev (level_bitmap_begin);
-						bl_number >>= 1;
-						mask = (UWord)1 << (bl_number % (sizeof (UWord) * 8));
-						bitmap_ptr = m_bitmap + level_bitmap_begin + bl_number / (sizeof (UWord) * 8);
-					} else {
-						Traits::release (&free_blocks_cnt);
-						break;
+					UWord* companion_bitmap = bitmap_ptr;
+					bitmap_ptr = m_bitmap + level_bitmap_begin + bl_number / (sizeof (UWord) * 8);
+
+					if (memory) {
+						try {
+							memory->commit (bitmap_ptr, sizeof (UWord));
+						} catch (...) {
+							Traits::bit_set (companion_bitmap, companion_mask);
+							Traits::release (&free_blocks_cnt);
+							throw;
+						}
 					}
-				} else
+				} else {
+					Traits::release (&free_blocks_cnt);
 					break;
+				}
 			} else
 				break;
 		}
 
-		// Фиксируем память битовой карты
-		if (memory)
-			memory->commit (bitmap_ptr, sizeof (UWord));
+		// Decommit freed memory.
+		if (level < decommit_levels_end)
+			memory->decommit ((Octet*)heap + unit_number (bl_number, level) * unit_size, block_size (level) * unit_size);
 
 		// Устанавливаем бит свободного блока
 		Traits::bit_set (bitmap_ptr, mask);
@@ -603,8 +635,8 @@ void HeapDirectory <HEAP_DIRECTORY_SIZE>::release (UWord begin, UWord end, Memor
 	}
 }
 
-template <UWord HEAP_DIRECTORY_SIZE>
-bool HeapDirectory <HEAP_DIRECTORY_SIZE>::check_allocated (UWord begin, UWord end, Memory_ptr memory) const
+template <UWord DIRECTORY_SIZE>
+bool HeapDirectory <DIRECTORY_SIZE>::check_allocated (UWord begin, UWord end, Memory_ptr memory) const
 {
 	UWord page_size;
 	if (memory) {
@@ -645,22 +677,23 @@ bool HeapDirectory <HEAP_DIRECTORY_SIZE>::check_allocated (UWord begin, UWord en
 				begin_ptr = page_end;
 
 			while (begin_ptr < end_ptr) {
-
-				for (const UWord* end = ::std::min (end_ptr, page_end); begin_ptr < end; ++begin_ptr)
-					if (*begin_ptr)
-						return false;
-
-				while (begin_ptr < end_ptr && !memory->is_readable (begin_ptr, sizeof (UWord))) {
+				if (memory->is_readable (begin_ptr, sizeof (UWord))) {
+					for (const UWord* end = ::std::min (end_ptr, page_end); begin_ptr < end; ++begin_ptr)
+						if (*begin_ptr)
+							return false;
+				} else {
 					begin_ptr = page_end;
 					page_end += page_size;
 				}
 			}
 
 			if (
+				(begin_ptr <= end_ptr)
+				&&
 				((end_ptr < page_end) || memory->is_readable (end_ptr, sizeof (UWord)))
 				&&
 				(*end_ptr & end_mask)
-				)
+			)
 				return false;
 
 		} else {

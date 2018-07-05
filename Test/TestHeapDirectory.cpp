@@ -1,33 +1,58 @@
 #include "../HeapDirectory.h"
 #include <gtest/gtest.h>
 #include <random>
+#include "../core.h"
 
-using namespace Nirvana;
-using namespace std;
+using namespace ::Nirvana;
+using namespace ::std;
 
 namespace unittests {
 
-template <UWord SIZE>
+template <UWord SIZE, bool PROT>
 class HeapDirectoryFactory
 {
 public:
 	typedef HeapDirectory <SIZE> DirectoryType;
 
+	static void initialize ()
+	{
+		if (PROT)
+			::Nirvana::initialize ();
+	}
+
+	static void terminate ()
+	{
+		if (PROT)
+			::Nirvana::terminate ();
+	}
+
 	static DirectoryType* create ()
 	{
-		DirectoryType* p = (DirectoryType*)calloc (1, sizeof (DirectoryType));
-		DirectoryType::initialize (p);
+		DirectoryType* p;
+		if (PROT) {
+			p = (DirectoryType*)memory ()->allocate (0, sizeof (DirectoryType), Memory::RESERVED | Memory::ZERO_INIT);
+			DirectoryType::initialize (p, memory ());
+		} else {
+			p = (DirectoryType*)calloc (1, sizeof (DirectoryType));
+			DirectoryType::initialize (p);
+		}
 		return p;
 	}
 
 	static void destroy (DirectoryType *p)
 	{
-		free (p);
+		if (PROT)
+			memory ()->release (p, sizeof (DirectoryType));
+		else
+			free (p);
 	}
 
 	static Memory_ptr memory ()
 	{
-		return Memory_ptr::nil ();
+		if (PROT)
+			return prot_domain_memory ();
+		else
+			return Memory_ptr::nil ();
 	}
 };
 
@@ -52,6 +77,7 @@ protected:
 	{
 		// Code here will be called immediately after the constructor (right
 		// before each test).
+		Factory::initialize ();
 		m_directory = Factory::create ();
 		ASSERT_TRUE (m_directory);
 	}
@@ -61,6 +87,7 @@ protected:
 		// Code here will be called immediately after each test (right
 		// before the destructor).
 		Factory::destroy (m_directory);
+		Factory::terminate ();
 	}
 
 protected:
@@ -68,7 +95,8 @@ protected:
 };
 
 typedef ::testing::Types <
-	HeapDirectoryFactory <0x10000>, HeapDirectoryFactory <0x8000>, HeapDirectoryFactory <0x4000>
+	HeapDirectoryFactory <0x10000, false>, HeapDirectoryFactory <0x8000, false>, HeapDirectoryFactory <0x4000, false>,
+	HeapDirectoryFactory <0x10000, true>, HeapDirectoryFactory <0x8000, true>, HeapDirectoryFactory <0x4000, true>
 > MyTypes;
 
 TYPED_TEST_CASE (TestHeapDirectory, MyTypes);

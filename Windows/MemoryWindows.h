@@ -13,7 +13,8 @@ namespace Windows {
 
 using namespace ::CORBA;
 
-class MemoryWindows
+class MemoryWindows :
+	public ::CORBA::Nirvana::ServantStatic <MemoryWindows, ::Nirvana::Memory>
 {
 public:
 	static void initialize ()
@@ -477,9 +478,11 @@ inline SIZE_T MemoryWindows::query (const void* p, Memory::QueryParam q)
 		case Memory::SHARING_UNIT:
 		case Memory::GRANULARITY:
 		case Memory::SHARING_ASSOCIATIVITY:
+		case Memory::OPTIMAL_COMMIT_UNIT:
 			return ALLOCATION_GRANULARITY;
 
 		case Memory::PROTECTION_UNIT:
+		case Memory::COMMIT_UNIT:
 			return PAGE_SIZE;
 
 		case Memory::FLAGS:
