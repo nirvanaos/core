@@ -607,12 +607,14 @@ void HeapDirectory <DIRECTORY_SIZE>::release (UWord begin, UWord end, Memory_ptr
 						break;
 					}
 				} catch (const MEM_NOT_COMMITTED&) {
+					assert (memory);
 					commit = true;
 					Traits::release (&free_blocks_cnt);
 					break;
 				}
 			} else {
-				commit = true;
+				if (memory)
+					commit = true;
 				break;
 			}
 		}
