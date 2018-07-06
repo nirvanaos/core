@@ -582,9 +582,7 @@ void HeapDirectory <DIRECTORY_SIZE>::release (UWord begin, UWord end, Memory_ptr
 		UWord* bitmap_ptr = m_bitmap + level_bitmap_begin + bl_number / (sizeof (UWord) * 8);
 		UWord mask = (UWord)1 << (bl_number % (sizeof (UWord) * 8));
 		
-		if (memory) // We have to set bit or clear companion here. So memory have to be committed anyway.
-			memory->commit (bitmap_ptr, sizeof (UWord));
-
+		bool commit = false;
 		while (level > 0) {
 
 			// Проверяем, есть ли у блока свободный компаньон
@@ -592,32 +590,31 @@ void HeapDirectory <DIRECTORY_SIZE>::release (UWord begin, UWord end, Memory_ptr
 
 			volatile UShort& free_blocks_cnt = free_block_count (level, bl_number);
 			if (Traits::acquire (&free_blocks_cnt)) {
-				if (Traits::bit_clear (bitmap_ptr, companion_mask)) {
-					// Есть свободный компаньон, объединяем его с освобождаемым блоком
-					// Поднимаемся на уровень выше
-					--level;
-					level_bitmap_begin = bitmap_offset_prev (level_bitmap_begin);
-					bl_number >>= 1;
-					mask = (UWord)1 << (bl_number % (sizeof (UWord) * 8));
+				try {
+					if (Traits::bit_clear (bitmap_ptr, companion_mask)) {
+						// Есть свободный компаньон, объединяем его с освобождаемым блоком
+						// Поднимаемся на уровень выше
+						--level;
+						level_bitmap_begin = bitmap_offset_prev (level_bitmap_begin);
+						bl_number >>= 1;
+						mask = (UWord)1 << (bl_number % (sizeof (UWord) * 8));
 
-					UWord* companion_bitmap = bitmap_ptr;
-					bitmap_ptr = m_bitmap + level_bitmap_begin + bl_number / (sizeof (UWord) * 8);
+						UWord* companion_bitmap = bitmap_ptr;
+						bitmap_ptr = m_bitmap + level_bitmap_begin + bl_number / (sizeof (UWord) * 8);
 
-					if (memory) {
-						try {
-							memory->commit (bitmap_ptr, sizeof (UWord));
-						} catch (...) {
-							Traits::bit_set (companion_bitmap, companion_mask);
-							Traits::release (&free_blocks_cnt);
-							throw;
-						}
+					} else {
+						Traits::release (&free_blocks_cnt);
+						break;
 					}
-				} else {
+				} catch (const MEM_NOT_COMMITTED&) {
+					commit = true;
 					Traits::release (&free_blocks_cnt);
 					break;
 				}
-			} else
+			} else {
+				commit = true;
 				break;
+			}
 		}
 
 		// Decommit freed memory.
@@ -625,6 +622,8 @@ void HeapDirectory <DIRECTORY_SIZE>::release (UWord begin, UWord end, Memory_ptr
 			memory->decommit ((Octet*)heap + unit_number (bl_number, level) * unit_size, block_size (level) * unit_size);
 
 		// Устанавливаем бит свободного блока
+		if (commit)
+			memory->commit (bitmap_ptr, sizeof (UWord));
 		Traits::bit_set (bitmap_ptr, mask);
 
 		// Увеличиваем счетчик свободных блоков
