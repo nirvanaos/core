@@ -56,6 +56,10 @@ HEAP_LEVELS - количество уровней (размеров блоков) кучи. Определяет максимальный
 
 class HeapDirectoryBase
 {
+	// Copy prohibited.
+	HeapDirectoryBase (const HeapDirectoryBase&);
+	HeapDirectoryBase operator = (const HeapDirectoryBase&);
+
 public:
 	static const UWord HEAP_LEVELS = 11;
 	static const UWord MAX_BLOCK_SIZE = 1 << (HEAP_LEVELS - 1);
@@ -408,19 +412,16 @@ Word HeapDirectory <DIRECTORY_SIZE>::allocate (UWord size, Memory_ptr memory)
 			UWord page_size = memory->query (this, Memory::COMMIT_UNIT);
 			assert (page_size);
 
-			UWord* page_end = round_down (bitmap_ptr, page_size) + page_size / sizeof (UWord);
-
-			do {
-				while (!memory->is_readable (bitmap_ptr, sizeof (UWord))) {
-					bitmap_ptr = page_end;
-					page_end += page_size;
+			for (;;) {
+				try {
+					while ((bit_number = Traits::clear_rightmost_1 (bitmap_ptr)) < 0)
+						++bitmap_ptr;
+					break;
+				} catch (const MEM_NOT_COMMITTED&) { 
+					bitmap_ptr = round_up (bitmap_ptr + 1, page_size);
 				}
+			}
 
-				while ((bit_number = Traits::clear_rightmost_1 (bitmap_ptr)) < 0) {
-					if (++bitmap_ptr == page_end)
-						break;
-				}
-			} while (bit_number < 0);
 		} else {
 			while ((bit_number = Traits::clear_rightmost_1 (bitmap_ptr)) < 0)
 				++bitmap_ptr;
@@ -495,12 +496,14 @@ bool HeapDirectory <DIRECTORY_SIZE>::allocate (UWord begin, UWord end, Memory_pt
 			volatile UShort& free_blocks_cnt = free_block_count (level, bl_number);
 			// Decrement free blocks counter.
 			if (Traits::acquire (&free_blocks_cnt)) {
-				// If bitmap level(s) had free block, then they are committed. We can avoid memory->is_readable() check here.
-				if (Traits::bit_clear (bitmap_ptr, mask)) {
-					success = true; // Block allocated
-					break;
-				} else
-					Traits::release (&free_blocks_cnt);
+				try {
+					if (Traits::bit_clear (bitmap_ptr, mask)) {
+						success = true; // Block allocated
+						break;
+					}
+				} catch (...) { // MEM_NOT_COMMITTED
+				}
+				Traits::release (&free_blocks_cnt);
 			}
 
 			if (!level)
@@ -550,7 +553,7 @@ void HeapDirectory <DIRECTORY_SIZE>::release (UWord begin, UWord end, Memory_ptr
 		assert (unit_size);
 		if (unit_size) {
 			UWord decommit_size = memory->query (heap, Memory::OPTIMAL_COMMIT_UNIT);
-			decommit_levels_end = Traits::HEAP_LEVELS - 31 + nlz (decommit_size / unit_size);
+			decommit_levels_end = Traits::HEAP_LEVELS - 31 + nlz ((ULong)(decommit_size / unit_size));
 		}
 	}
 
@@ -638,7 +641,7 @@ void HeapDirectory <DIRECTORY_SIZE>::release (UWord begin, UWord end, Memory_ptr
 template <UWord DIRECTORY_SIZE>
 bool HeapDirectory <DIRECTORY_SIZE>::check_allocated (UWord begin, UWord end, Memory_ptr memory) const
 {
-	UWord page_size;
+	UWord page_size = 0;
 	if (memory) {
 		page_size = memory->query (this, Memory::COMMIT_UNIT);
 		assert (page_size);
@@ -653,57 +656,59 @@ bool HeapDirectory <DIRECTORY_SIZE>::check_allocated (UWord begin, UWord end, Me
 
 		const UWord* begin_ptr = m_bitmap + level_bitmap_begin + begin / (sizeof (UWord) * 8);
 		UWord begin_mask = (~(UWord)0) << (begin % (sizeof (UWord) * 8));
-		const UWord* end_ptr = m_bitmap + level_bitmap_begin + end / (sizeof (UWord) * 8);
-		UWord end_mask = ~((~(UWord)0) << (end % (sizeof (UWord) * 8)));
+		const UWord* end_ptr = m_bitmap + level_bitmap_begin + (end - 1) / (sizeof (UWord) * 8);
+		UWord end_mask = (~(UWord)0) >> ((sizeof(UWord) * 8) - (((end - 1) % (sizeof (UWord) * 8)) + 1));
+		assert (end_ptr < m_bitmap + Traits::BITMAP_SIZE);
+		assert (end_mask);
+		assert (begin_ptr <= end_ptr);
+		assert (begin_mask);
 
 		if (begin_ptr >= end_ptr) {
 
-			if (
-				(!memory || memory->is_readable (begin_ptr, sizeof (UWord)))
-				&&
-				(*begin_ptr & begin_mask & end_mask)
-			)
-				return false;
+			try {
+				if (*begin_ptr & begin_mask & end_mask)
+					return false;
+			} catch (...) { // MEM_NOT_COMMITTED
+			}
 
-		} else if (memory) {
+		} else if (page_size) {
 
-			const UWord* page_end = round_down (begin_ptr, page_size) + page_size / sizeof (UWord);
-
-			if (memory->is_readable (begin_ptr, sizeof (UWord))) {
+			try {
 				if (*begin_ptr & begin_mask)
 					return false;
 				++begin_ptr;
-			} else
-				begin_ptr = page_end;
+			} catch (...) { // MEM_NOT_COMMITTED
+				begin_ptr = round_up (begin_ptr + 1, page_size);
+			}
 
-			while (begin_ptr < end_ptr) {
-				if (memory->is_readable (begin_ptr, sizeof (UWord))) {
-					for (const UWord* end = ::std::min (end_ptr, page_end); begin_ptr < end; ++begin_ptr)
+			for (;;) {
+				try {
+					while (begin_ptr < end_ptr) {
 						if (*begin_ptr)
 							return false;
-				} else {
-					begin_ptr = page_end;
-					page_end += page_size;
+						++begin_ptr;
+					}
+					break;
+				} catch (...) { // MEM_NOT_COMMITTED
+					begin_ptr = round_up (begin_ptr + 1, page_size);
 				}
 			}
 
-			if (
-				(begin_ptr <= end_ptr)
-				&&
-				((end_ptr < page_end) || memory->is_readable (end_ptr, sizeof (UWord)))
-				&&
-				(*end_ptr & end_mask)
-			)
-				return false;
+			try {
+				if (begin_ptr == end_ptr && (*end_ptr & end_mask))
+					return false;
+			} catch (...) { // MEM_NOT_COMMITTED
+			}
 
 		} else {
-
+			
 			if (*begin_ptr & begin_mask)
 				return false;
 
-			while (++begin_ptr < end_ptr)
+			while (++begin_ptr < end_ptr) {
 				if (*begin_ptr)
 					return false;
+			}
 
 			if (*end_ptr & end_mask)
 				return false;

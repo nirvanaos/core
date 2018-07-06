@@ -361,6 +361,7 @@ MemoryWindows::ThreadMemory::ThreadMemory () :
 	if (!ConvertThreadToFiber (0))
 		throw INTERNAL ();
 	call_in_fiber ((FiberMethod)&stack_prepare, this);
+	_set_se_translator (&se_translator);
 }
 
 MemoryWindows::ThreadMemory::~ThreadMemory ()
@@ -565,16 +566,61 @@ LONG CALLBACK MemoryWindows::exception_filter (struct _EXCEPTION_POINTERS* pex)
 		!(pex->ExceptionRecord->ExceptionFlags & EXCEPTION_NONCONTINUABLE)
 	) {
 		void* address = (void*)pex->ExceptionRecord->ExceptionInformation [1];
-		if (sm_space.allocated_block (address)) {
-			AddressSpace::raise_condition ();
-			return EXCEPTION_CONTINUE_EXECUTION;
-		}
+		const AddressSpace::BlockInfo* block = sm_space.allocated_block (address);
+		if (block) {
+			if (INVALID_HANDLE_VALUE == block->mapping)
+				throw MEM_NOT_COMMITTED ();
+			MEMORY_BASIC_INFORMATION mbi;
+			verify (VirtualQuery (address, &mbi, sizeof (mbi)));
+			if (MEM_MAPPED != mbi.Type) {
+				AddressSpace::raise_condition ();
+				return EXCEPTION_CONTINUE_EXECUTION;
+			} else if (!(mbi.Protect & PageState::MASK_ACCESS))
+				throw MEM_NOT_COMMITTED ();
+			else if (pex->ExceptionRecord->ExceptionInformation [0] && !(mbi.Protect & PageState::MASK_RW))
+				throw NO_PERMISSION ();
+			else
+				return EXCEPTION_CONTINUE_EXECUTION;
+		} else
+			throw MEM_NOT_ALLOCATED ();
 	}
 
 	if (sm_exception_filter)
 		return (sm_exception_filter)(pex);
 	else
 		return UnhandledExceptionFilter (pex);
+}
+
+void MemoryWindows::se_translator (unsigned int, struct _EXCEPTION_POINTERS* pex)
+{
+	if (
+		pex->ExceptionRecord->ExceptionCode == EXCEPTION_ACCESS_VIOLATION
+		&&
+		pex->ExceptionRecord->NumberParameters >= 2
+		&&
+		!(pex->ExceptionRecord->ExceptionFlags & EXCEPTION_NONCONTINUABLE)
+	) {
+		void* address = (void*)pex->ExceptionRecord->ExceptionInformation [1];
+		const AddressSpace::BlockInfo* block = sm_space.allocated_block (address);
+		if (block) {
+			if (INVALID_HANDLE_VALUE == block->mapping)
+				throw MEM_NOT_COMMITTED ();
+			MEMORY_BASIC_INFORMATION mbi;
+			verify (VirtualQuery (address, &mbi, sizeof (mbi)));
+			if (MEM_MAPPED != mbi.Type) {
+				AddressSpace::raise_condition ();
+				return;
+			} else if (!(mbi.Protect & PageState::MASK_ACCESS))
+				throw MEM_NOT_COMMITTED ();
+			else if (pex->ExceptionRecord->ExceptionInformation [0] && !(mbi.Protect & PageState::MASK_RW))
+				throw NO_PERMISSION ();
+			else
+				return;
+		} else
+			throw MEM_NOT_ALLOCATED ();
+	}
+
+	throw UNKNOWN ();
 }
 
 }

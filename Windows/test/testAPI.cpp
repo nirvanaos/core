@@ -503,4 +503,14 @@ TEST_F (TestAPI, Commit)
 	EXPECT_TRUE (CloseHandle (mh));
 }
 
+PTOP_LEVEL_EXCEPTION_FILTER g_exception_filter;
+
+class MyException
+{
+public:
+	MyException ()
+	{}
+
+};
+
 }

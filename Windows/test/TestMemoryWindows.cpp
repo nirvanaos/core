@@ -1,4 +1,4 @@
-#include "../MemoryWindows.h"
+#include "../../core.h"
 #include <gtest/gtest.h>
 
 namespace unittests {
@@ -106,6 +106,8 @@ TEST_F (TestMemoryWindows, Commit)
 	BYTE* block = (BYTE*)MemoryWindows::allocate (0, BLOCK_SIZE, Memory::READ_WRITE | Memory::RESERVED);
 	ASSERT_TRUE (block);
 	BYTE* end = block + BLOCK_SIZE;
+	
+	EXPECT_THROW (*block = 1, MEM_NOT_COMMITTED);
 
 	MemoryWindows::commit (block, BLOCK_SIZE);
 	for (int* p = (int*)block, *end = (int*)(block + BLOCK_SIZE); p < end; ++p)

@@ -7,6 +7,7 @@
 #include <Memory.h>
 #include "AddressSpace.h"
 #include "../real_copy.h"
+#include <eh.h>
 
 namespace Nirvana {
 namespace Windows {
@@ -21,6 +22,7 @@ public:
 	{
 		sm_space.initialize ();
 		sm_exception_filter = SetUnhandledExceptionFilter (&exception_filter);
+		_set_se_translator (&se_translator);
 	}
 
 	static void terminate ()
@@ -97,7 +99,7 @@ public:
 	static bool is_readable (const void* p, SIZE_T size)
 	{
 		return sm_space.is_readable (p, size);
-	}
+  }
 
 	static bool is_writable (const void* p, SIZE_T size)
 	{
@@ -263,7 +265,8 @@ private:
 
 	static void CALLBACK fiber_proc (FiberParam* param);
 
-	static LONG CALLBACK exception_filter (struct _EXCEPTION_POINTERS* ex);
+	static LONG CALLBACK exception_filter (struct _EXCEPTION_POINTERS* pex);
+	static void se_translator (unsigned int, struct _EXCEPTION_POINTERS* pex);
 
 private:
 	static AddressSpace sm_space;
