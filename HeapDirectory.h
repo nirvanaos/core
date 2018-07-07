@@ -202,7 +202,8 @@ public:
 // Heap directory. Used for memory allocation on different levels of memory management.
 // Heap directory allocates and deallocates abstract "units" in range (0 <= n < UNIT_COUNT).
 // Each unit requires 2 bits of HeapDirectory size.
-template <UWord DIRECTORY_SIZE>
+// USE_EXCEPTION = true provides better performance, but maybe not for all platforms.
+template <UWord DIRECTORY_SIZE, bool USE_EXCEPTION>
 class HeapDirectory :
 	public HeapDirectoryTraits <DIRECTORY_SIZE>
 {
@@ -210,9 +211,9 @@ class HeapDirectory :
 //	static_assert (Traits::FREE_BLOCK_INDEX_SIZE <= Traits::FREE_BLOCK_INDEX_MAX);
 
 public:
-	static void initialize (HeapDirectory <DIRECTORY_SIZE>* zero_filled_buf)
+	static void initialize (HeapDirectory <DIRECTORY_SIZE, USE_EXCEPTION>* zero_filled_buf)
 	{
-		assert (sizeof (HeapDirectory <DIRECTORY_SIZE>) <= DIRECTORY_SIZE);
+		assert (sizeof (HeapDirectory <DIRECTORY_SIZE, USE_EXCEPTION>) <= DIRECTORY_SIZE);
 
 		// Bitmap is always aligned for performance.
 		assert ((UWord)(&zero_filled_buf->m_bitmap) % sizeof (UWord) == 0);
@@ -224,7 +225,7 @@ public:
 		::std::fill_n (zero_filled_buf->m_bitmap, Traits::TOP_BITMAP_WORDS, ~0);
 	}
 
-	static void initialize (HeapDirectory <DIRECTORY_SIZE>* reserved_buf, Memory_ptr memory)
+	static void initialize (HeapDirectory <DIRECTORY_SIZE, USE_EXCEPTION>* reserved_buf, Memory_ptr memory)
 	{
 		// Commit initial part.
 		memory->commit (reserved_buf, reinterpret_cast <Octet*> (reserved_buf->m_bitmap + Traits::TOP_BITMAP_WORDS) - reinterpret_cast <Octet*> (reserved_buf));
@@ -342,8 +343,8 @@ private:
 	UWord m_bitmap [Traits::BITMAP_SIZE];
 };
 
-template <UWord DIRECTORY_SIZE>
-Word HeapDirectory <DIRECTORY_SIZE>::allocate (UWord size, Memory_ptr memory)
+template <UWord DIRECTORY_SIZE, bool USE_EXCEPTION>
+Word HeapDirectory <DIRECTORY_SIZE, USE_EXCEPTION>::allocate (UWord size, Memory_ptr memory)
 {
 	assert (size);
 	assert (size <= Traits::MAX_BLOCK_SIZE);
@@ -412,14 +413,30 @@ Word HeapDirectory <DIRECTORY_SIZE>::allocate (UWord size, Memory_ptr memory)
 			UWord page_size = memory->query (this, Memory::COMMIT_UNIT);
 			assert (page_size);
 
-			for (;;) {
-				try {
-					while ((bit_number = Traits::clear_rightmost_1 (bitmap_ptr)) < 0)
-						++bitmap_ptr;
-					break;
-				} catch (const MEM_NOT_COMMITTED&) { 
-					bitmap_ptr = round_up (bitmap_ptr + 1, page_size);
+			if (USE_EXCEPTION) {
+				for (;;) {
+					try {
+						while ((bit_number = Traits::clear_rightmost_1 (bitmap_ptr)) < 0)
+							++bitmap_ptr;
+						break;
+					} catch (const MEM_NOT_COMMITTED&) {
+						bitmap_ptr = round_up (bitmap_ptr + 1, page_size);
+					}
 				}
+			} else {
+				UWord* page_end = round_up (bitmap_ptr + 1, page_size);
+
+				do {
+					while (!memory->is_readable (bitmap_ptr, sizeof (UWord))) {
+						bitmap_ptr = page_end;
+						page_end += page_size;
+					}
+
+					while ((bit_number = Traits::clear_rightmost_1 (bitmap_ptr)) < 0) {
+						if (++bitmap_ptr == page_end)
+							break;
+					}
+				} while (bit_number < 0);
 			}
 
 		} else {
@@ -468,8 +485,8 @@ Word HeapDirectory <DIRECTORY_SIZE>::allocate (UWord size, Memory_ptr memory)
 	return block_offset;
 }
 
-template <UWord DIRECTORY_SIZE>
-bool HeapDirectory <DIRECTORY_SIZE>::allocate (UWord begin, UWord end, Memory_ptr memory)
+template <UWord DIRECTORY_SIZE, bool USE_EXCEPTION>
+bool HeapDirectory <DIRECTORY_SIZE, USE_EXCEPTION>::allocate (UWord begin, UWord end, Memory_ptr memory)
 {
 	assert (begin < end);
 	assert (end <= Traits::UNIT_COUNT);
@@ -496,12 +513,23 @@ bool HeapDirectory <DIRECTORY_SIZE>::allocate (UWord begin, UWord end, Memory_pt
 			volatile UShort& free_blocks_cnt = free_block_count (level, bl_number);
 			// Decrement free blocks counter.
 			if (Traits::acquire (&free_blocks_cnt)) {
-				try {
-					if (Traits::bit_clear (bitmap_ptr, mask)) {
-						success = true; // Block allocated
+				if (USE_EXCEPTION) {
+					try {
+						if (Traits::bit_clear (bitmap_ptr, mask)) {
+							success = true; // Block has been allocated
+							break;
+						}
+					} catch (...) { // MEM_NOT_COMMITTED
+					}
+				} else {
+					if (
+						(!memory || memory->is_readable (bitmap_ptr, sizeof (UWord)))
+						&&
+						Traits::bit_clear (bitmap_ptr, mask)
+					) {
+						success = true; // Block has been allocated
 						break;
 					}
-				} catch (...) { // MEM_NOT_COMMITTED
 				}
 				Traits::release (&free_blocks_cnt);
 			}
@@ -541,8 +569,8 @@ bool HeapDirectory <DIRECTORY_SIZE>::allocate (UWord begin, UWord end, Memory_pt
 	return true;
 }
 
-template <UWord DIRECTORY_SIZE>
-void HeapDirectory <DIRECTORY_SIZE>::release (UWord begin, UWord end, Memory_ptr memory, bool rtl, Pointer heap, UWord unit_size)
+template <UWord DIRECTORY_SIZE, bool USE_EXCEPTION>
+void HeapDirectory <DIRECTORY_SIZE, USE_EXCEPTION>::release (UWord begin, UWord end, Memory_ptr memory, bool rtl, Pointer heap, UWord unit_size)
 {
 	assert (begin <= end);
 	assert (end <= Traits::UNIT_COUNT);
@@ -581,16 +609,66 @@ void HeapDirectory <DIRECTORY_SIZE>::release (UWord begin, UWord end, Memory_ptr
 		// Определяем адрес слова в битовой карте
 		UWord* bitmap_ptr = m_bitmap + level_bitmap_begin + bl_number / (sizeof (UWord) * 8);
 		UWord mask = (UWord)1 << (bl_number % (sizeof (UWord) * 8));
+
+		if (USE_EXCEPTION) {
+			bool commit = false;
+			while (level > 0) {
+
+				// Проверяем, есть ли у блока свободный компаньон
+				UWord companion_mask = (bl_number & 1) ? mask >> 1 : mask << 1;	// TODO: optimize?
+
+				volatile UShort& free_blocks_cnt = free_block_count (level, bl_number);
+				if (Traits::acquire (&free_blocks_cnt)) {
+					try {
+						if (Traits::bit_clear (bitmap_ptr, companion_mask)) {
+							// Есть свободный компаньон, объединяем его с освобождаемым блоком
+							// Поднимаемся на уровень выше
+							--level;
+							level_bitmap_begin = bitmap_offset_prev (level_bitmap_begin);
+							bl_number >>= 1;
+							mask = (UWord)1 << (bl_number % (sizeof (UWord) * 8));
+
+							UWord* companion_bitmap = bitmap_ptr;
+							bitmap_ptr = m_bitmap + level_bitmap_begin + bl_number / (sizeof (UWord) * 8);
+
+						} else {
+							Traits::release (&free_blocks_cnt);
+							break;
+						}
+					} catch (const MEM_NOT_COMMITTED&) {
+						assert (memory);
+						commit = true;
+						Traits::release (&free_blocks_cnt);
+						break;
+					}
+				} else {
+					if (memory)
+						commit = true;
+					break;
+				}
+			}
+
+			// Decommit freed memory.
+			if (level < decommit_levels_end)
+				memory->decommit ((Octet*)heap + unit_number (bl_number, level) * unit_size, block_size (level) * unit_size);
+
+			// Устанавливаем бит свободного блока
+			if (commit)
+				memory->commit (bitmap_ptr, sizeof (UWord));
+			Traits::bit_set (bitmap_ptr, mask);
 		
-		bool commit = false;
-		while (level > 0) {
+		} else {
 
-			// Проверяем, есть ли у блока свободный компаньон
-			UWord companion_mask = (bl_number & 1) ? mask >> 1 : mask << 1;	// TODO: optimize?
+			if (memory) // We have to set bit or clear companion here. So memory have to be committed anyway.
+				memory->commit (bitmap_ptr, sizeof (UWord));
 
-			volatile UShort& free_blocks_cnt = free_block_count (level, bl_number);
-			if (Traits::acquire (&free_blocks_cnt)) {
-				try {
+			while (level > 0) {
+
+				// Проверяем, есть ли у блока свободный компаньон
+				UWord companion_mask = (bl_number & 1) ? mask >> 1 : mask << 1;	// TODO: optimize?
+
+				volatile UShort& free_blocks_cnt = free_block_count (level, bl_number);
+				if (Traits::acquire (&free_blocks_cnt)) {
 					if (Traits::bit_clear (bitmap_ptr, companion_mask)) {
 						// Есть свободный компаньон, объединяем его с освобождаемым блоком
 						// Поднимаемся на уровень выше
@@ -602,31 +680,30 @@ void HeapDirectory <DIRECTORY_SIZE>::release (UWord begin, UWord end, Memory_ptr
 						UWord* companion_bitmap = bitmap_ptr;
 						bitmap_ptr = m_bitmap + level_bitmap_begin + bl_number / (sizeof (UWord) * 8);
 
+						if (memory) {
+							try {
+								memory->commit (bitmap_ptr, sizeof (UWord));
+							} catch (...) {
+								Traits::bit_set (companion_bitmap, companion_mask);
+								Traits::release (&free_blocks_cnt);
+								throw;
+							}
+						}
 					} else {
 						Traits::release (&free_blocks_cnt);
 						break;
 					}
-				} catch (const MEM_NOT_COMMITTED&) {
-					assert (memory);
-					commit = true;
-					Traits::release (&free_blocks_cnt);
+				} else
 					break;
-				}
-			} else {
-				if (memory)
-					commit = true;
-				break;
 			}
+
+			// Decommit freed memory.
+			if (level < decommit_levels_end)
+				memory->decommit ((Octet*)heap + unit_number (bl_number, level) * unit_size, block_size (level) * unit_size);
+
+			// Устанавливаем бит свободного блока
+			Traits::bit_set (bitmap_ptr, mask);
 		}
-
-		// Decommit freed memory.
-		if (level < decommit_levels_end)
-			memory->decommit ((Octet*)heap + unit_number (bl_number, level) * unit_size, block_size (level) * unit_size);
-
-		// Устанавливаем бит свободного блока
-		if (commit)
-			memory->commit (bitmap_ptr, sizeof (UWord));
-		Traits::bit_set (bitmap_ptr, mask);
 
 		// Увеличиваем счетчик свободных блоков
 		Traits::release (&free_block_count (level, bl_number));
@@ -639,8 +716,8 @@ void HeapDirectory <DIRECTORY_SIZE>::release (UWord begin, UWord end, Memory_ptr
 	}
 }
 
-template <UWord DIRECTORY_SIZE>
-bool HeapDirectory <DIRECTORY_SIZE>::check_allocated (UWord begin, UWord end, Memory_ptr memory) const
+template <UWord DIRECTORY_SIZE, bool USE_EXCEPTION>
+bool HeapDirectory <DIRECTORY_SIZE, USE_EXCEPTION>::check_allocated (UWord begin, UWord end, Memory_ptr memory) const
 {
 	UWord page_size = 0;
 	if (memory) {
@@ -666,39 +743,86 @@ bool HeapDirectory <DIRECTORY_SIZE>::check_allocated (UWord begin, UWord end, Me
 
 		if (begin_ptr >= end_ptr) {
 
-			try {
-				if (*begin_ptr & begin_mask & end_mask)
+			if (USE_EXCEPTION) {
+				try {
+					if (*begin_ptr & begin_mask & end_mask)
+						return false;
+				} catch (...) { // MEM_NOT_COMMITTED
+				}
+			} else {
+				if (
+					(!memory || memory->is_readable (begin_ptr, sizeof (UWord)))
+					&&
+					(*begin_ptr & begin_mask & end_mask)
+				)
 					return false;
-			} catch (...) { // MEM_NOT_COMMITTED
 			}
 
 		} else if (page_size) {
 
-			try {
-				if (*begin_ptr & begin_mask)
-					return false;
-				++begin_ptr;
-			} catch (...) { // MEM_NOT_COMMITTED
-				begin_ptr = round_up (begin_ptr + 1, page_size);
-			}
-
-			for (;;) {
+			if (USE_EXCEPTION) {
 				try {
-					while (begin_ptr < end_ptr) {
-						if (*begin_ptr)
-							return false;
-						++begin_ptr;
-					}
-					break;
+					if (*begin_ptr & begin_mask)
+						return false;
+					++begin_ptr;
 				} catch (...) { // MEM_NOT_COMMITTED
 					begin_ptr = round_up (begin_ptr + 1, page_size);
 				}
-			}
 
-			try {
-				if (begin_ptr == end_ptr && (*end_ptr & end_mask))
+				for (;;) {
+					try {
+						while (begin_ptr < end_ptr) {
+							if (*begin_ptr)
+								return false;
+							++begin_ptr;
+						}
+						break;
+					} catch (...) { // MEM_NOT_COMMITTED
+						begin_ptr = round_up (begin_ptr + 1, page_size);
+					}
+				}
+
+				try {
+					if (begin_ptr == end_ptr && (*end_ptr & end_mask))
+						return false;
+				} catch (...) { // MEM_NOT_COMMITTED
+				}
+			
+			} else { // Don't use exception
+
+				// End of readable memory.
+				const UWord* page_end = round_down (begin_ptr, page_size) + page_size / sizeof (UWord);
+
+				if (memory->is_readable (begin_ptr, sizeof (UWord))) {
+					if (*begin_ptr & begin_mask)
+						return false;
+					++begin_ptr;
+				} else
+					begin_ptr = page_end;
+
+				while (begin_ptr < end_ptr) {
+					for (const UWord* end = ::std::min (end_ptr, page_end); begin_ptr < end; ++begin_ptr)
+						if (*begin_ptr)
+							return false;
+
+					while (begin_ptr < end_ptr) {
+						if (memory->is_readable (begin_ptr, sizeof (UWord))) {
+							page_end = begin_ptr + page_size;
+							break;
+						} else
+							begin_ptr += page_size;
+					}
+				}
+
+				if (
+					(begin_ptr <= end_ptr)
+					&&
+					((end_ptr < page_end) || memory->is_readable (end_ptr, sizeof (UWord)))
+					&&
+					(*end_ptr & end_mask)
+				)
 					return false;
-			} catch (...) { // MEM_NOT_COMMITTED
+
 			}
 
 		} else {
