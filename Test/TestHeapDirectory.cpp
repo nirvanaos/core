@@ -1,6 +1,7 @@
 #include "../HeapDirectory.h"
 #include <gtest/gtest.h>
 #include <random>
+#include <thread>
 #include "../core.h"
 
 using namespace ::Nirvana;
@@ -95,9 +96,9 @@ protected:
 };
 
 typedef ::testing::Types <
-	HeapDirectoryFactory <0x10000, false, true>, HeapDirectoryFactory <0x10000, false, false>, HeapDirectoryFactory <0x10000, true, true>, HeapDirectoryFactory <0x10000, true, false>,
-	HeapDirectoryFactory <0x8000, false, true>, HeapDirectoryFactory <0x8000, false, false>, HeapDirectoryFactory <0x8000, true, true>, HeapDirectoryFactory <0x8000, true, false>,
-	HeapDirectoryFactory <0x4000, false, true>, HeapDirectoryFactory <0x4000, false, false>, HeapDirectoryFactory <0x4000, true, true>, HeapDirectoryFactory <0x4000, true, false>
+	HeapDirectoryFactory <0x10000, false, false>, HeapDirectoryFactory <0x10000, false, true>, HeapDirectoryFactory <0x10000, true, true>, HeapDirectoryFactory <0x10000, true, false>,
+	HeapDirectoryFactory <0x8000, false, false>, HeapDirectoryFactory <0x8000, false, true>, HeapDirectoryFactory <0x8000, true, true>, HeapDirectoryFactory <0x8000, true, false>,
+	HeapDirectoryFactory <0x4000, false, false>, HeapDirectoryFactory <0x4000, false, true>, HeapDirectoryFactory <0x4000, true, true>, HeapDirectoryFactory <0x4000, true, false>
 > MyTypes;
 
 TYPED_TEST_CASE (TestHeapDirectory, MyTypes);
@@ -202,59 +203,123 @@ TYPED_TEST (TestHeapDirectory, Release)
 	}
 }
 
+class RandomAllocator
+{
+public:
+	RandomAllocator (unsigned seed = mt19937::default_seed) :
+		m_rndgen (seed)
+	{
+		m_allocated.reserve (1024);
+	}
+
+	template <class DirType>
+	void run (DirType* dir, Memory_ptr memory, int iterations);
+
+	struct Block
+	{
+		ULong begin;
+		ULong end;
+	};
+
+	const vector <Block>& allocated () const
+	{
+		return m_allocated;
+	}
+
+private:
+	mt19937 m_rndgen;
+	vector <Block> m_allocated;
+	static atomic <ULong> sm_total_allocated;
+};
+
+atomic <ULong> RandomAllocator::sm_total_allocated = 0;
+
+template <class DirType>
+void RandomAllocator::run (DirType* dir, Memory_ptr memory, int iterations)
+{
+	for (int i = 0; i < iterations; ++i) {
+		bool rel = !m_allocated.empty () && bernoulli_distribution ((double)sm_total_allocated / (double)DirType::UNIT_COUNT)(m_rndgen);
+		if (!rel) {
+			ULong free_cnt = DirType::UNIT_COUNT - sm_total_allocated;
+			if (!free_cnt)
+				rel = true;
+			else {
+				ULong max_size = DirType::MAX_BLOCK_SIZE;
+				if (max_size > free_cnt)
+					max_size = 0x80000000 >> nlz ((ULong)free_cnt);
+
+				ULong size = uniform_int_distribution <ULong> (1, max_size)(m_rndgen);
+				Word block = dir->allocate (size, memory);
+				if (block >= 0) {
+					sm_total_allocated += size;
+					m_allocated.push_back ({(ULong)block, (ULong)block + size});
+					EXPECT_TRUE (dir->check_allocated (m_allocated.back ().begin, m_allocated.back ().end, memory));
+				} else
+					rel = true;
+			}
+		}
+
+		if (rel) {
+			ASSERT_FALSE (m_allocated.empty ());
+			size_t idx = uniform_int_distribution <size_t> (0, m_allocated.size () - 1)(m_rndgen);
+			Block& block = m_allocated [idx];
+			EXPECT_TRUE (dir->check_allocated (block.begin, block.end, memory));
+			dir->release (block.begin, block.end, memory);
+			sm_total_allocated -= block.end - block.begin;
+			m_allocated.erase (m_allocated.begin () + idx);
+		}
+	}
+}
+
 TYPED_TEST (TestHeapDirectory, Random)
 {
 	EXPECT_TRUE (this->m_directory->empty ());
 
-	struct Block
-	{
-		UWord begin;
-		UWord end;
-	};
-
-	vector <Block> allocated;
-	allocated.reserve (1024);
-	UWord total_allocated = 0;
-	
-	mt19937 rndgen;
-	int iteration = 0;
+	RandomAllocator ra;
 	static const int MAX_ITERATIONS = 1000000;
-	for (; iteration < MAX_ITERATIONS; ++iteration) {
-		bool rel = !allocated.empty () && bernoulli_distribution ((double)total_allocated / (double)TypeParam::DirectoryType::UNIT_COUNT)(rndgen);
-		if (!rel) {
-			UWord free_cnt = TypeParam::DirectoryType::UNIT_COUNT - total_allocated;
-			if (!free_cnt)
-				rel = true;
-			else {
-				UWord max_size = TypeParam::DirectoryType::MAX_BLOCK_SIZE;
-				if (max_size > free_cnt)
-					max_size = 0x80000000 >> nlz ((ULong)free_cnt);
+	ra.run (this->m_directory, TypeParam::memory (), MAX_ITERATIONS);
 
-				UWord size = uniform_int_distribution <UWord> (1, max_size)(rndgen);
-				Word block = this->m_directory->allocate (size, TypeParam::memory ());
-				if (block >= 0) {
-					allocated.push_back ({(UWord)block, (UWord)block + size});
-					total_allocated += size;
-					EXPECT_TRUE (this->m_directory->check_allocated (allocated.back ().begin, allocated.back ().end, TypeParam::memory ()));
-				} else
-					rel = true;
-			}
-		} 
-		
-		if (rel) {
-			ASSERT_FALSE (allocated.empty ());
-			size_t idx = uniform_int_distribution <size_t> (0, allocated.size () - 1)(rndgen);
-			Block& block = allocated [idx];
-			EXPECT_TRUE (this->m_directory->check_allocated (block.begin, block.end, TypeParam::memory ()));
-			this->m_directory->release (block.begin, block.end, TypeParam::memory ());
-			total_allocated -= block.end - block.begin;
-			allocated.erase (allocated.begin () + idx);
-		}
-	}
-
-	for (auto p = allocated.cbegin (); p != allocated.cend (); ++p) {
+	for (auto p = ra.allocated ().cbegin (); p != ra.allocated ().cend (); ++p) {
 		EXPECT_TRUE (this->m_directory->check_allocated (p->begin, p->end, TypeParam::memory ()));
 		this->m_directory->release (p->begin, p->end, TypeParam::memory ());
+	}
+
+	EXPECT_TRUE (this->m_directory->empty ());
+}
+
+class ThreadAllocator :
+	public RandomAllocator,
+	public thread
+{
+public:
+	template <class DirType>
+	ThreadAllocator (unsigned n, DirType* dir, Memory_ptr memory, int iterations) :
+		RandomAllocator (n),
+		thread (&RandomAllocator::template run <DirType>, this, dir, memory, iterations)
+	{}
+};
+
+TYPED_TEST (TestHeapDirectory, MultiThread)
+{
+	EXPECT_TRUE (this->m_directory->empty ());
+
+	static const size_t THREAD_CNT = 2;
+	static const int MAX_ITERATIONS = 1000000;
+	vector <ThreadAllocator> threads;
+	threads.reserve (THREAD_CNT);
+	for (unsigned i = 0; i < THREAD_CNT; ++i) {
+		threads.emplace_back (i, this->m_directory, TypeParam::memory (), MAX_ITERATIONS);
+	}
+
+	for (auto p = threads.begin (); p != threads.end (); ++p) {
+		p->join ();
+	}
+
+	for (auto pt = threads.begin (); pt != threads.end (); ++pt) {
+		for (auto p = pt->allocated ().cbegin (); p != pt->allocated ().cend (); ++p) {
+			EXPECT_TRUE (this->m_directory->check_allocated (p->begin, p->end, TypeParam::memory ()));
+			this->m_directory->release (p->begin, p->end, TypeParam::memory ());
+		}
 	}
 
 	EXPECT_TRUE (this->m_directory->empty ());
