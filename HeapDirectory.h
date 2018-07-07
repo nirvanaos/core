@@ -96,8 +96,9 @@ protected:
 		assert (::std::atomic_is_lock_free ((volatile ::std::atomic <UWord>*)pbits));
 		UWord bits = ::std::atomic_load ((volatile ::std::atomic <UWord>*)pbits);
 		while (bits) {
-			if (::std::atomic_compare_exchange_strong ((volatile ::std::atomic <UWord>*)pbits, &bits, bits & (bits - 1)))
-				return ntz (bits);
+			UWord rbits = bits;
+			if (::std::atomic_compare_exchange_strong ((volatile ::std::atomic <UWord>*)pbits, &bits, rbits & (rbits - 1)))
+				return ntz (rbits);
 		}
 		return -1;
 	}
@@ -335,6 +336,9 @@ private:
 	// Если места в заголовке недостаточно, верхние уровни объединяются.
 	// В этом случае, элемент массива содержит суммарное количество свободных блоков
 	// на этих уровнях.
+	// Заметим, что для массива 64К бит, счетчик свободных блоков (бит) не может превышать
+	// величину 32К, так как два соседних бита не могут быть одновременно установлены, в этом
+	// случае они обнуляются и устанавливается бит на предыдущем уровне.
 	// Массив перевернут - нижние уровни идут первыми.
 	// Free block count index.
 	UShort m_free_block_index [Traits::FREE_BLOCK_INDEX_SIZE];
@@ -468,6 +472,7 @@ Word HeapDirectory <DIRECTORY_SIZE, USE_EXCEPTION>::allocate (UWord size, Memory
 	// Определяем смещение блока в куче и его размер.
 	UWord allocated_size = block_size (bi.level);
 	UWord block_offset = block_number * allocated_size;
+	assert (block_offset + allocated_size <= Traits::UNIT_COUNT);
 
 	// Выделен блок размером allocated_size. Нужен блок размером size.
 	// Освобождаем оставшуюся часть.
@@ -609,17 +614,75 @@ void HeapDirectory <DIRECTORY_SIZE, USE_EXCEPTION>::release (UWord begin, UWord 
 		// Определяем адрес слова в битовой карте
 		UWord* bitmap_ptr = m_bitmap + level_bitmap_begin + bl_number / (sizeof (UWord) * 8);
 		UWord mask = (UWord)1 << (bl_number % (sizeof (UWord) * 8));
+		volatile UShort* free_blocks_cnt = &free_block_count (level, bl_number);
 
-		if (USE_EXCEPTION) {
-			bool commit = false;
-			while (level > 0) {
+		if (level > 0) {
+			if (USE_EXCEPTION) {
+				bool commit = false;
+				UWord* companion_bitmap = 0;
+				UWord saved_companion_mask;
+				volatile UShort* companion_free_blocks_cnt = 0;
+				do {
 
-				// Проверяем, есть ли у блока свободный компаньон
-				UWord companion_mask = (bl_number & 1) ? mask >> 1 : mask << 1;	// TODO: optimize?
+					// Проверяем, есть ли у блока свободный компаньон
+					UWord companion_mask = (bl_number & 1) ? mask >> 1 : mask << 1;	// TODO: optimize?
 
-				volatile UShort& free_blocks_cnt = free_block_count (level, bl_number);
-				if (Traits::acquire (&free_blocks_cnt)) {
+					if (Traits::acquire (free_blocks_cnt)) {
+						try {
+							if (Traits::bit_clear (bitmap_ptr, companion_mask)) {
+								// Есть свободный компаньон, объединяем его с освобождаемым блоком
+								// Поднимаемся на уровень выше
+								--level;
+								level_bitmap_begin = bitmap_offset_prev (level_bitmap_begin);
+								bl_number >>= 1;
+								mask = (UWord)1 << (bl_number % (sizeof (UWord) * 8));
+								companion_bitmap = bitmap_ptr;
+								bitmap_ptr = m_bitmap + level_bitmap_begin + bl_number / (sizeof (UWord) * 8);
+								companion_free_blocks_cnt = free_blocks_cnt;
+								free_blocks_cnt = &free_block_count (level, bl_number);
+								saved_companion_mask = companion_mask;
+							} else {
+								Traits::release (free_blocks_cnt);
+								break;
+							}
+						} catch (...) { // MEM_NOT_COMMITTED
+							assert (memory);
+							commit = true;
+							Traits::release (free_blocks_cnt);
+							break;
+						}
+					} else {
+						if (memory)
+							commit = true;
+						break;
+					}
+				} while (level > 0);
+
+				// Commit bitmap memory if need.
+				if (commit) {
 					try {
+						memory->commit (bitmap_ptr, sizeof (UWord));
+					} catch (...) {
+						if (companion_bitmap) {
+							// Restore companion bit.
+							Traits::bit_set (companion_bitmap, saved_companion_mask);
+							Traits::release (companion_free_blocks_cnt);
+						}
+						throw FREE_MEM ();
+					}
+				}
+
+			} else {
+
+				if (memory) // We have to set bit or clear companion here. So memory have to be committed anyway.
+					memory->commit (bitmap_ptr, sizeof (UWord));
+
+				do {
+
+					// Проверяем, есть ли у блока свободный компаньон
+					UWord companion_mask = (bl_number & 1) ? mask >> 1 : mask << 1;	// TODO: optimize?
+
+					if (Traits::acquire (free_blocks_cnt)) {
 						if (Traits::bit_clear (bitmap_ptr, companion_mask)) {
 							// Есть свободный компаньон, объединяем его с освобождаемым блоком
 							// Поднимаемся на уровень выше
@@ -627,86 +690,42 @@ void HeapDirectory <DIRECTORY_SIZE, USE_EXCEPTION>::release (UWord begin, UWord 
 							level_bitmap_begin = bitmap_offset_prev (level_bitmap_begin);
 							bl_number >>= 1;
 							mask = (UWord)1 << (bl_number % (sizeof (UWord) * 8));
-
 							UWord* companion_bitmap = bitmap_ptr;
 							bitmap_ptr = m_bitmap + level_bitmap_begin + bl_number / (sizeof (UWord) * 8);
 
+							if (memory) {
+								try {
+									memory->commit (bitmap_ptr, sizeof (UWord));
+								} catch (...) {
+									Traits::bit_set (companion_bitmap, companion_mask);
+									Traits::release (free_blocks_cnt);
+									throw FREE_MEM ();
+								}
+							}
+
+							free_blocks_cnt = &free_block_count (level, bl_number);
+
 						} else {
-							Traits::release (&free_blocks_cnt);
+							Traits::release (free_blocks_cnt);
 							break;
 						}
-					} catch (const MEM_NOT_COMMITTED&) {
-						assert (memory);
-						commit = true;
-						Traits::release (&free_blocks_cnt);
+					} else
 						break;
-					}
-				} else {
-					if (memory)
-						commit = true;
-					break;
-				}
+
+				} while (level > 0);
 			}
-
-			// Decommit freed memory.
-			if (level < decommit_levels_end)
-				memory->decommit ((Octet*)heap + unit_number (bl_number, level) * unit_size, block_size (level) * unit_size);
-
-			// Устанавливаем бит свободного блока
-			if (commit)
-				memory->commit (bitmap_ptr, sizeof (UWord));
-			Traits::bit_set (bitmap_ptr, mask);
-		
-		} else {
-
-			if (memory) // We have to set bit or clear companion here. So memory have to be committed anyway.
-				memory->commit (bitmap_ptr, sizeof (UWord));
-
-			while (level > 0) {
-
-				// Проверяем, есть ли у блока свободный компаньон
-				UWord companion_mask = (bl_number & 1) ? mask >> 1 : mask << 1;	// TODO: optimize?
-
-				volatile UShort& free_blocks_cnt = free_block_count (level, bl_number);
-				if (Traits::acquire (&free_blocks_cnt)) {
-					if (Traits::bit_clear (bitmap_ptr, companion_mask)) {
-						// Есть свободный компаньон, объединяем его с освобождаемым блоком
-						// Поднимаемся на уровень выше
-						--level;
-						level_bitmap_begin = bitmap_offset_prev (level_bitmap_begin);
-						bl_number >>= 1;
-						mask = (UWord)1 << (bl_number % (sizeof (UWord) * 8));
-
-						UWord* companion_bitmap = bitmap_ptr;
-						bitmap_ptr = m_bitmap + level_bitmap_begin + bl_number / (sizeof (UWord) * 8);
-
-						if (memory) {
-							try {
-								memory->commit (bitmap_ptr, sizeof (UWord));
-							} catch (...) {
-								Traits::bit_set (companion_bitmap, companion_mask);
-								Traits::release (&free_blocks_cnt);
-								throw;
-							}
-						}
-					} else {
-						Traits::release (&free_blocks_cnt);
-						break;
-					}
-				} else
-					break;
-			}
-
-			// Decommit freed memory.
-			if (level < decommit_levels_end)
-				memory->decommit ((Octet*)heap + unit_number (bl_number, level) * unit_size, block_size (level) * unit_size);
-
-			// Устанавливаем бит свободного блока
-			Traits::bit_set (bitmap_ptr, mask);
 		}
 
+		// Decommit freed memory.
+		if (level < decommit_levels_end)
+			memory->decommit ((Octet*)heap + unit_number (bl_number, level) * unit_size, block_size (level) * unit_size);
+		// Устанавливаем бит свободного блока
+		assert (!(*bitmap_ptr & mask));
+		Traits::bit_set (bitmap_ptr, mask);
+
 		// Увеличиваем счетчик свободных блоков
-		Traits::release (&free_block_count (level, bl_number));
+		assert (*free_blocks_cnt < 0x8000);
+		Traits::release (free_blocks_cnt);
 
 		// Блок освобожден
 		if (rtl)

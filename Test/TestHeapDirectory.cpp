@@ -2,6 +2,8 @@
 #include <gtest/gtest.h>
 #include <random>
 #include <thread>
+#include <vector>
+#include <set>
 #include "../core.h"
 
 using namespace ::Nirvana;
@@ -203,6 +205,17 @@ TYPED_TEST (TestHeapDirectory, Release)
 	}
 }
 
+struct Block
+{
+	ULong begin;
+	ULong end;
+
+	bool operator < (const Block& rhs) const
+	{
+		return begin < rhs.begin;
+	}
+};
+
 class RandomAllocator
 {
 public:
@@ -214,12 +227,6 @@ public:
 
 	template <class DirType>
 	void run (DirType* dir, Memory_ptr memory, int iterations);
-
-	struct Block
-	{
-		ULong begin;
-		ULong end;
-	};
 
 	const vector <Block>& allocated () const
 	{
@@ -276,8 +283,8 @@ TYPED_TEST (TestHeapDirectory, Random)
 	EXPECT_TRUE (this->m_directory->empty ());
 
 	RandomAllocator ra;
-	static const int MAX_ITERATIONS = 1000000;
-	ra.run (this->m_directory, TypeParam::memory (), MAX_ITERATIONS);
+	static const int ITERATIONS = 1000000;
+	ra.run (this->m_directory, TypeParam::memory (), ITERATIONS);
 
 	for (auto p = ra.allocated ().cbegin (); p != ra.allocated ().cend (); ++p) {
 		EXPECT_TRUE (this->m_directory->check_allocated (p->begin, p->end, TypeParam::memory ()));
@@ -292,34 +299,78 @@ class ThreadAllocator :
 	public thread
 {
 public:
-	template <class DirType>
-	ThreadAllocator (unsigned n, DirType* dir, Memory_ptr memory, int iterations) :
-		RandomAllocator (n),
-		thread (&RandomAllocator::template run <DirType>, this, dir, memory, iterations)
+	ThreadAllocator (unsigned seed) :
+		RandomAllocator (seed)
 	{}
+
+	template <class DirType>
+	void run (DirType* dir, Memory_ptr memory, int iterations)
+	{
+		thread t (&RandomAllocator::template run <DirType>, this, dir, memory, iterations);
+		swap (t);
+	}
 };
 
 TYPED_TEST (TestHeapDirectory, MultiThread)
 {
 	EXPECT_TRUE (this->m_directory->empty ());
 
-	static const size_t THREAD_CNT = 2;
-	static const int MAX_ITERATIONS = 1000000;
+	const size_t thread_cnt = max (thread::hardware_concurrency (), (unsigned)2);
+	static const int THREAD_ITERATIONS = 1000;
+	static const int ITERATIONS = 1000;
 	vector <ThreadAllocator> threads;
-	threads.reserve (THREAD_CNT);
-	for (unsigned i = 0; i < THREAD_CNT; ++i) {
-		threads.emplace_back (i, this->m_directory, TypeParam::memory (), MAX_ITERATIONS);
-	}
+	threads.reserve (thread_cnt);
+	for (unsigned i = 0; i < thread_cnt; ++i)
+		threads.emplace_back (i + 1);
 
-	for (auto p = threads.begin (); p != threads.end (); ++p) {
-		p->join ();
+	for (int i = 0; i < ITERATIONS; ++i) {
+		for (auto p = threads.begin (); p != threads.end (); ++p)
+			p->run (this->m_directory, TypeParam::memory (), THREAD_ITERATIONS);
+
+		for (auto p = threads.begin (); p != threads.end (); ++p)
+			p->join ();
+
+		set <Block> allocated;
+		for (auto pt = threads.begin (); pt != threads.end (); ++pt) {
+			for (auto p = pt->allocated ().cbegin (); p != pt->allocated ().cend (); ++p) {
+				ASSERT_TRUE (this->m_directory->check_allocated (p->begin, p->end, TypeParam::memory ()));
+				auto ins = allocated.insert (*p);
+				ASSERT_TRUE (ins.second);
+				if (ins.first != allocated.begin ()) {
+					auto prev = ins.first;
+					--prev;
+					ASSERT_LE (prev->end, ins.first->begin);
+				}
+				auto next = ins.first;
+				++next;
+				if (next != allocated.end ()) {
+					ASSERT_LE (ins.first->end, next->begin);
+				}
+			}
+		}
+
+		UWord begin = 0;
+		for (auto pa = allocated.begin ();;) {
+			UWord end;
+			if (pa != allocated.end ())
+				end = pa->begin;
+			else
+				end = TypeParam::DirectoryType::UNIT_COUNT;
+			if (begin != end) {
+				ASSERT_TRUE (this->m_directory->allocate (begin, end, TypeParam::memory ()));
+				this->m_directory->release (begin, end, TypeParam::memory ());
+			}
+			if (pa != allocated.end ()) {
+				begin = pa->end;
+				++pa;
+			} else
+				break;
+		}
 	}
 
 	for (auto pt = threads.begin (); pt != threads.end (); ++pt) {
-		for (auto p = pt->allocated ().cbegin (); p != pt->allocated ().cend (); ++p) {
-			EXPECT_TRUE (this->m_directory->check_allocated (p->begin, p->end, TypeParam::memory ()));
+		for (auto p = pt->allocated ().cbegin (); p != pt->allocated ().cend (); ++p)
 			this->m_directory->release (p->begin, p->end, TypeParam::memory ());
-		}
 	}
 
 	EXPECT_TRUE (this->m_directory->empty ());
