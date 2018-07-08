@@ -50,6 +50,7 @@
     <ClInclude Include="..\..\..\..\nlib\Include\nlzntz.h" />
     <ClInclude Include="..\..\..\config.h" />
     <ClInclude Include="..\..\..\core.h" />
+    <ClInclude Include="..\..\..\Heap.h" />
     <ClInclude Include="..\..\..\HeapDirectory.h" />
     <ClInclude Include="..\..\..\Include\cpplib.h" />
     <ClInclude Include="..\..\..\Include\Memory.h" />

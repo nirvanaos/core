@@ -5,7 +5,6 @@
 #define NIRVANA_CORE_CORE_H_
 
 #include <Nirvana.h>
-#include <assert.h>
 #include "config.h"
 #ifdef _WIN32
 #include "Windows/MemoryWindows.h"

@@ -390,7 +390,6 @@ class Servant <S, ::Nirvana::Memory> :
 {};
 
 // POA implementation
-/*
 template <>
 class ServantPOA < ::Nirvana::Memory> :
 	public ImplementationPOA < ::Nirvana::Memory>
@@ -407,7 +406,7 @@ public:
 	virtual Boolean is_copy (::Nirvana::ConstPointer p1, ::Nirvana::ConstPointer p2, ::Nirvana::UWord size) = 0;
 	virtual ::Nirvana::Word query (::Nirvana::ConstPointer p, Bridge < ::Nirvana::Memory>::QueryParam param) = 0;
 };
-*/
+
 // Static implementation
 
 template <class S>

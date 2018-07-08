@@ -205,6 +205,24 @@ TYPED_TEST (TestHeapDirectory, Release)
 	}
 }
 
+TYPED_TEST (TestHeapDirectory, Release2)
+{
+	EXPECT_TRUE (this->m_directory->empty ());
+	for (int pass = 0; pass < 2; ++pass) {
+
+		for (UWord block = 0, end = TypeParam::DirectoryType::UNIT_COUNT; block < end; block += TypeParam::DirectoryType::MAX_BLOCK_SIZE) {
+			ASSERT_TRUE (this->m_directory->allocate (block, block + TypeParam::DirectoryType::MAX_BLOCK_SIZE, TypeParam::memory ()));
+		}
+
+		for (UWord block = 0, end = TypeParam::DirectoryType::UNIT_COUNT; block < end; ++block) {
+			ASSERT_TRUE (this->m_directory->check_allocated (block, block + 1, TypeParam::memory ()));
+			this->m_directory->release (block, block + 1, TypeParam::memory ());
+		}
+
+		EXPECT_TRUE (this->m_directory->empty ());
+	}
+}
+
 struct Block
 {
 	ULong begin;
@@ -278,18 +296,85 @@ void RandomAllocator::run (DirType* dir, Memory_ptr memory, int iterations)
 	}
 }
 
+class AllocatedBlocks :
+	public set <Block>
+{
+public:
+	void add (const vector <Block>& blocks);
+	
+	template <class DirType>
+	void check (DirType* dir, Memory_ptr memory) const;
+};
+
+void AllocatedBlocks::add (const vector <Block>& blocks)
+{
+	for (auto p = blocks.cbegin (); p != blocks.cend (); ++p) {
+		auto ins = insert (*p);
+		ASSERT_TRUE (ins.second);
+		if (ins.first != begin ()) {
+			auto prev = ins.first;
+			--prev;
+			ASSERT_LE (prev->end, ins.first->begin);
+		}
+		auto next = ins.first;
+		++next;
+		if (next != end ()) {
+			ASSERT_LE (ins.first->end, next->begin);
+		}
+	}
+}
+
+template <class DirType>
+void AllocatedBlocks::check (DirType* dir, Memory_ptr memory) const
+{
+	for (auto p = begin (); p != end (); ++p) {
+		ASSERT_TRUE (dir->check_allocated (p->begin, p->end, memory));
+		dir->release (p->begin, p->end, memory);
+	}
+	bool ok = dir->empty ();
+	ASSERT_TRUE (ok);
+	for (auto p = begin (); p != end (); ++p) {
+		ASSERT_TRUE (dir->allocate (p->begin, p->end, memory));
+	}
+	/*
+	UWord free_begin = 0;
+	for (auto pa = begin ();;) {
+		UWord free_end;
+		if (pa != end ())
+			free_end = pa->begin;
+		else
+			free_end = DirType::UNIT_COUNT;
+		if (free_begin != free_end) {
+			bool ok = dir->allocate (free_begin, free_end, memory);
+			ASSERT_TRUE (ok);
+			dir->release (free_begin, free_end, memory);
+		}
+		if (pa != this->end ()) {
+			ASSERT_TRUE (dir->check_allocated (pa->begin, pa->end, memory));
+			free_begin = pa->end;
+			++pa;
+		} else
+			break;
+	}
+	*/
+}
+
 TYPED_TEST (TestHeapDirectory, Random)
 {
 	EXPECT_TRUE (this->m_directory->empty ());
 
-	RandomAllocator ra;
-	static const int ITERATIONS = 1000000;
-	ra.run (this->m_directory, TypeParam::memory (), ITERATIONS);
+	RandomAllocator ra (1);
+	static const int ITERATIONS = 1000;
+	static const int ALLOC_ITERATIONS = 1000;
+	for (int i = 0; i < ITERATIONS; ++i) {
+		ra.run (this->m_directory, TypeParam::memory (), ALLOC_ITERATIONS);
 
-	for (auto p = ra.allocated ().cbegin (); p != ra.allocated ().cend (); ++p) {
-		EXPECT_TRUE (this->m_directory->check_allocated (p->begin, p->end, TypeParam::memory ()));
-		this->m_directory->release (p->begin, p->end, TypeParam::memory ());
+		AllocatedBlocks checker;
+		ASSERT_NO_FATAL_FAILURE (checker.add (ra.allocated ()));
+		ASSERT_NO_FATAL_FAILURE (checker.check (this->m_directory, TypeParam::memory ()));
 	}
+	for (auto p = ra.allocated ().cbegin (); p != ra.allocated ().cend (); ++p)
+		this->m_directory->release (p->begin, p->end, TypeParam::memory ());
 
 	EXPECT_TRUE (this->m_directory->empty ());
 }
@@ -330,42 +415,11 @@ TYPED_TEST (TestHeapDirectory, MultiThread)
 		for (auto p = threads.begin (); p != threads.end (); ++p)
 			p->join ();
 
-		set <Block> allocated;
-		for (auto pt = threads.begin (); pt != threads.end (); ++pt) {
-			for (auto p = pt->allocated ().cbegin (); p != pt->allocated ().cend (); ++p) {
-				ASSERT_TRUE (this->m_directory->check_allocated (p->begin, p->end, TypeParam::memory ()));
-				auto ins = allocated.insert (*p);
-				ASSERT_TRUE (ins.second);
-				if (ins.first != allocated.begin ()) {
-					auto prev = ins.first;
-					--prev;
-					ASSERT_LE (prev->end, ins.first->begin);
-				}
-				auto next = ins.first;
-				++next;
-				if (next != allocated.end ()) {
-					ASSERT_LE (ins.first->end, next->begin);
-				}
-			}
-		}
+		AllocatedBlocks checker;
+		for (auto pt = threads.begin (); pt != threads.end (); ++pt)
+			ASSERT_NO_FATAL_FAILURE (checker.add (pt->allocated ()));
 
-		UWord begin = 0;
-		for (auto pa = allocated.begin ();;) {
-			UWord end;
-			if (pa != allocated.end ())
-				end = pa->begin;
-			else
-				end = TypeParam::DirectoryType::UNIT_COUNT;
-			if (begin != end) {
-				ASSERT_TRUE (this->m_directory->allocate (begin, end, TypeParam::memory ()));
-				this->m_directory->release (begin, end, TypeParam::memory ());
-			}
-			if (pa != allocated.end ()) {
-				begin = pa->end;
-				++pa;
-			} else
-				break;
-		}
+		ASSERT_NO_FATAL_FAILURE (checker.check (this->m_directory, TypeParam::memory ()));
 	}
 
 	for (auto pt = threads.begin (); pt != threads.end (); ++pt) {

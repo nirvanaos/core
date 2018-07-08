@@ -80,5 +80,8 @@
     <ClInclude Include="..\..\..\..\nlib\Include\nlzntz.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\Heap.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

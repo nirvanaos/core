@@ -1,7 +1,7 @@
 #ifndef NIRVANA_CORE_HEAPDIRECTORY_H_
 #define NIRVANA_CORE_HEAPDIRECTORY_H_
 
-#include "core.h"
+#include <Nirvana.h>
 #include <Memory.h>
 #include <stddef.h>
 #include <nlzntz.h>
@@ -107,7 +107,8 @@ protected:
 	{
 		UWord bits = ::std::atomic_load ((volatile ::std::atomic <UWord>*)pbits);
 		while (bits & mask) {
-			if (::std::atomic_compare_exchange_strong ((volatile ::std::atomic <UWord>*)pbits, &bits, bits & ~mask))
+			UWord rbits = bits & ~mask;
+			if (::std::atomic_compare_exchange_strong ((volatile ::std::atomic <UWord>*)pbits, &bits, rbits))
 				return true;
 		}
 		return false;
@@ -204,7 +205,7 @@ public:
 // Heap directory allocates and deallocates abstract "units" in range (0 <= n < UNIT_COUNT).
 // Each unit requires 2 bits of HeapDirectory size.
 // USE_EXCEPTION = true provides better performance, but maybe not for all platforms.
-template <UWord DIRECTORY_SIZE, bool USE_EXCEPTION>
+template <ULong DIRECTORY_SIZE, bool USE_EXCEPTION>
 class HeapDirectory :
 	public HeapDirectoryTraits <DIRECTORY_SIZE>
 {
@@ -278,17 +279,16 @@ private:
 		// Ищем максимальный размер блока <= size, на который выравнен offset
 		UWord level = Traits::HEAP_LEVELS - 1 - ::std::min (ntz (offset | Traits::MAX_BLOCK_SIZE), 31 - nlz ((ULong)size));
 		assert (level < Traits::HEAP_LEVELS);
-		/* The check code.
-		#ifdef _DEBUG
+		// The check code.
+/*#ifdef _DEBUG
 		UWord mask = Traits::MAX_BLOCK_SIZE - 1;
 		UWord dlevel = 0;
 		while ((mask & offset) || (mask >= size)) {
-		mask >>= 1;
-		++dlevel;
+			mask >>= 1;
+			++dlevel;
 		}
 		assert (dlevel == level);
-		#endif
-		*/
+#endif*/
 		return level;
 	}
 
@@ -408,10 +408,8 @@ Word HeapDirectory <DIRECTORY_SIZE, USE_EXCEPTION>::allocate (UWord size, Memory
 
 	} else { // На остальных уровнях ищем, как обычно
 
-		// Ищем ненулевое слово. Проверка границы не нужна, так как ненулевой счетчик гарантирует,
-		// что ненулевое слово есть. 
-
-		bitmap_ptr = m_bitmap + bi.bitmap_offset;
+		UWord* begin = bitmap_ptr = m_bitmap + bi.bitmap_offset;
+		UWord* end = begin + ::std::min (Traits::TOP_LEVEL_BLOCKS << bi.level, (UWord)0x10000) / (sizeof (UWord) * 8);
 
 		if (memory) {// Могут попасться неподтвержденные страницы.
 			UWord page_size = memory->query (this, Memory::COMMIT_UNIT);
@@ -421,41 +419,46 @@ Word HeapDirectory <DIRECTORY_SIZE, USE_EXCEPTION>::allocate (UWord size, Memory
 				for (;;) {
 					try {
 						while ((bit_number = Traits::clear_rightmost_1 (bitmap_ptr)) < 0)
-							++bitmap_ptr;
+							if (++bitmap_ptr == end)
+								bitmap_ptr = begin;
 						break;
 					} catch (const MEM_NOT_COMMITTED&) {
-						bitmap_ptr = round_up (bitmap_ptr + 1, page_size);
+						if ((bitmap_ptr = round_up (bitmap_ptr + 1, page_size)) >= end)
+							bitmap_ptr = begin;
 					}
 				}
 			} else {
-				UWord* page_end = round_up (bitmap_ptr + 1, page_size);
 
-				do {
-					while (!memory->is_readable (bitmap_ptr, sizeof (UWord))) {
-						bitmap_ptr = page_end;
-						page_end += page_size;
-					}
+				for (;;) {
+					UWord* page_end = round_up (bitmap_ptr + 1, page_size);
+					for (;;) {
+						next_page:
+						while (!memory->is_readable (bitmap_ptr, sizeof (UWord))) {
+							if ((bitmap_ptr = page_end) >= end)
+								goto tryagain;
+							else
+								page_end += page_size;
+						}
 
-					while ((bit_number = Traits::clear_rightmost_1 (bitmap_ptr)) < 0) {
-						if (++bitmap_ptr == page_end)
-							break;
+						while ((bit_number = Traits::clear_rightmost_1 (bitmap_ptr)) < 0) {
+							if (++bitmap_ptr == end)
+								goto tryagain;
+
+							if (bitmap_ptr == page_end)
+								goto next_page;
+						}
+						break;
 					}
-				} while (bit_number < 0);
+					break;
+					tryagain:
+					bitmap_ptr = begin;
+				}
 			}
 
 		} else {
 			while ((bit_number = Traits::clear_rightmost_1 (bitmap_ptr)) < 0)
-				++bitmap_ptr;
-		}
-
-		// Если все работает правильно, ненулевой элемент в битовой карте обязательно будет найден.
-		// Следующая проверка введена на случай, если структура данных кучи была испорчена.
-		{
-			Word end = bi.bitmap_offset + ::std::min (Traits::TOP_LEVEL_BLOCKS << bi.level, (UWord)0x10000) / sizeof (UWord);
-			if ((bitmap_ptr - m_bitmap) >= end) {
-				Traits::release (free_blocks_ptr);
-				throw INTERNAL ();
-			}
+				if (++bitmap_ptr == end)
+					bitmap_ptr = begin;
 		}
 	}
 
@@ -555,10 +558,12 @@ bool HeapDirectory <DIRECTORY_SIZE, USE_EXCEPTION>::allocate (UWord begin, UWord
 		}
 
 		UWord block_offset = unit_number (bl_number, level);
-		if (allocated_begin < block_offset)
+		if (allocated_begin > block_offset)
 			allocated_begin = block_offset;
 		allocated_end = block_offset + block_size (level);
 	}
+
+	assert (allocated_begin <= begin && end <= allocated_end);
 
 	try { // Release extra space at begin and end
 		// Память освобождается изнутри - наружу, чтобы, в случае сбоя
@@ -597,12 +602,15 @@ void HeapDirectory <DIRECTORY_SIZE, USE_EXCEPTION>::release (UWord begin, UWord 
 		// Смещение блока в куче
 		UWord level;
 		UWord block_begin;
+		UWord block_end;
 		if (rtl) {
 			level = level_align (end, end - begin);
 			block_begin = end - block_size (level);
+			block_end = end;
 		} else {
 			level = level_align (begin, end - begin);
 			block_begin = begin;
+			block_end = block_begin + block_size (level);
 		}
 
 		// Освобождаем блок со смещением block_begin на уровне level
@@ -693,7 +701,7 @@ void HeapDirectory <DIRECTORY_SIZE, USE_EXCEPTION>::release (UWord begin, UWord 
 							UWord* companion_bitmap = bitmap_ptr;
 							bitmap_ptr = m_bitmap + level_bitmap_begin + bl_number / (sizeof (UWord) * 8);
 
-							if (memory) {
+							if (level && memory) {
 								try {
 									memory->commit (bitmap_ptr, sizeof (UWord));
 								} catch (...) {
@@ -719,6 +727,7 @@ void HeapDirectory <DIRECTORY_SIZE, USE_EXCEPTION>::release (UWord begin, UWord 
 		// Decommit freed memory.
 		if (level < decommit_levels_end)
 			memory->decommit ((Octet*)heap + unit_number (bl_number, level) * unit_size, block_size (level) * unit_size);
+
 		// Устанавливаем бит свободного блока
 		assert (!(*bitmap_ptr & mask));
 		Traits::bit_set (bitmap_ptr, mask);
@@ -731,7 +740,7 @@ void HeapDirectory <DIRECTORY_SIZE, USE_EXCEPTION>::release (UWord begin, UWord 
 		if (rtl)
 			end = block_begin;
 		else
-			begin = block_begin + block_size (level);
+			begin = block_end;
 	}
 }
 
