@@ -70,82 +70,6 @@ protected:
 		UWord level;
 		UWord bitmap_offset;
 	};
-
-	// Atomic decrement free blocks counter if it is not zero.
-	static bool acquire (volatile UShort* pcnt)
-	{
-		assert (::std::atomic_is_lock_free ((volatile ::std::atomic <UShort>*)pcnt));
-		UShort cnt = ::std::atomic_load ((volatile ::std::atomic <UShort>*)pcnt);
-		while ((unsigned)(cnt - 1) < (unsigned)0x7FFF) {	// 0 < cnt && cnt <= 0x8000
-			if (::std::atomic_compare_exchange_strong ((volatile ::std::atomic <UShort>*)pcnt, &cnt, cnt - 1))
-				return true;
-		}
-		return false;
-	}
-
-	// Atomic decrement unconditional.
-	static void decrement (volatile UShort* pcnt)
-	{
-		::std::atomic_fetch_sub ((volatile ::std::atomic <UShort>*)pcnt, 1);
-	}
-
-	// Atomic increment free blocks counter.
-	static void release (volatile UShort* pcnt)
-	{
-		assert ((Short)*pcnt <= 0x7FFF);
-		::std::atomic_fetch_add ((volatile ::std::atomic <UShort>*)pcnt, 1);
-	}
-
-	// Clear rightmost not zero bit and return number of this bit.
-	// Return -1 if all bits are zero.
-	static Word clear_rightmost_one (volatile UWord* pbits)
-	{
-		assert (::std::atomic_is_lock_free ((volatile ::std::atomic <UWord>*)pbits));
-		UWord bits = ::std::atomic_load ((volatile ::std::atomic <UWord>*)pbits);
-		while (bits) {
-			UWord rbits = bits;
-			if (::std::atomic_compare_exchange_strong ((volatile ::std::atomic <UWord>*)pbits, &bits, rbits & (rbits - 1)))
-				return ntz (rbits);
-		}
-		return -1;
-	}
-
-	static bool bit_clear (volatile UWord* pbits, UWord mask)
-	{
-		UWord bits = ::std::atomic_load ((volatile ::std::atomic <UWord>*)pbits);
-		while (bits & mask) {
-			UWord rbits = bits & ~mask;
-			if (::std::atomic_compare_exchange_strong ((volatile ::std::atomic <UWord>*)pbits, &bits, rbits))
-				return true;
-		}
-		return false;
-	}
-
-	static void bit_set (volatile UWord* pbits, UWord mask)
-	{
-		assert (!(*pbits & mask));
-		::std::atomic_fetch_or ((volatile ::std::atomic <UWord>*)pbits, mask);
-	}
-
-	static bool bit_set_check_companion (volatile UWord* pbits, UWord mask)
-	{
-		constexpr UWord ODD = sizeof (UWord) > 4 ? 0x5555555555555555 : 0x55555555;
-		UWord companion_mask = ((mask >> 1) & ODD) | ((mask << 1) & ~ODD);
-		UWord bits = ::std::atomic_load ((volatile ::std::atomic <UWord>*)pbits);
-		assert (!(bits & mask));
-		for (;;) {
-			while (bits & companion_mask) {
-				UWord rbits = bits & ~(mask | companion_mask);
-				if (::std::atomic_compare_exchange_strong ((volatile ::std::atomic <UWord>*)pbits, &bits, rbits))
-					return true;
-			}
-			do {
-				UWord rbits = bits | mask;
-				if (::std::atomic_compare_exchange_strong ((volatile ::std::atomic <UWord>*)pbits, &bits, rbits))
-					return false;
-			} while (!(bits & companion_mask));
-		}
-	}
 };
 
 /*
@@ -229,6 +153,79 @@ public:
 	static const BitmapIndex sm_bitmap_index [FREE_BLOCK_INDEX_SIZE];
 };
 
+
+struct HeapDirectoryOpsLockFree
+{
+	// Atomic decrement free blocks counter if it is not zero.
+	static bool acquire (volatile UShort* pcnt)
+	{
+		assert (::std::atomic_is_lock_free ((volatile ::std::atomic <UShort>*)pcnt));
+		UShort cnt = ::std::atomic_load ((volatile ::std::atomic <UShort>*)pcnt);
+		while ((unsigned)(cnt - 1) < (unsigned)0x7FFF) {	// 0 < cnt && cnt <= 0x8000
+			if (::std::atomic_compare_exchange_strong ((volatile ::std::atomic <UShort>*)pcnt, &cnt, cnt - 1))
+				return true;
+		}
+		return false;
+	}
+
+	// Atomic decrement unconditional.
+	static void decrement (volatile UShort* pcnt)
+	{
+		::std::atomic_fetch_sub ((volatile ::std::atomic <UShort>*)pcnt, 1);
+	}
+
+	// Atomic increment free blocks counter.
+	static void release (volatile UShort* pcnt)
+	{
+		assert ((Short)*pcnt <= 0x7FFF);
+		::std::atomic_fetch_add ((volatile ::std::atomic <UShort>*)pcnt, 1);
+	}
+
+	// Clear rightmost not zero bit and return number of this bit.
+	// Return -1 if all bits are zero.
+	static Word clear_rightmost_one (volatile UWord* pbits)
+	{
+		assert (::std::atomic_is_lock_free ((volatile ::std::atomic <UWord>*)pbits));
+		UWord bits = ::std::atomic_load ((volatile ::std::atomic <UWord>*)pbits);
+		while (bits) {
+			UWord rbits = bits;
+			if (::std::atomic_compare_exchange_strong ((volatile ::std::atomic <UWord>*)pbits, &bits, rbits & (rbits - 1)))
+				return ntz (rbits);
+		}
+		return -1;
+	}
+
+	static bool bit_clear (volatile UWord* pbits, UWord mask)
+	{
+		UWord bits = ::std::atomic_load ((volatile ::std::atomic <UWord>*)pbits);
+		while (bits & mask) {
+			UWord rbits = bits & ~mask;
+			if (::std::atomic_compare_exchange_strong ((volatile ::std::atomic <UWord>*)pbits, &bits, rbits))
+				return true;
+		}
+		return false;
+	}
+
+	static void bit_set (volatile UWord* pbits, UWord mask)
+	{
+		assert (!(*pbits & mask));
+		::std::atomic_fetch_or ((volatile ::std::atomic <UWord>*)pbits, mask);
+	}
+
+	static bool bit_set_check_companion (volatile UWord* pbits, UWord mask, UWord companion_mask)
+	{
+		UWord bits = ::std::atomic_load ((volatile ::std::atomic <UWord>*)pbits);
+		assert (!(bits & mask));
+		for (;;) {
+			if (((bits | mask) & companion_mask) == companion_mask) {
+				if (::std::atomic_compare_exchange_strong ((volatile ::std::atomic <UWord>*)pbits, &bits, bits & ~companion_mask))
+					return true;
+			} else if (::std::atomic_compare_exchange_strong ((volatile ::std::atomic <UWord>*)pbits, &bits, bits | mask))
+				return false;
+		}
+	}
+};
+
 // Heap directory. Used for memory allocation on different levels of memory management.
 // Heap directory allocates and deallocates abstract "units" in range (0 <= n < UNIT_COUNT).
 // Each unit requires 2 bits of HeapDirectory size.
@@ -238,6 +235,7 @@ class HeapDirectory :
 	public HeapDirectoryTraits <DIRECTORY_SIZE>
 {
 	typedef HeapDirectoryTraits <DIRECTORY_SIZE> Traits;
+	typedef HeapDirectoryOpsLockFree Ops;
 //	static_assert (Traits::FREE_BLOCK_INDEX_SIZE <= Traits::FREE_BLOCK_INDEX_MAX);
 
 public:
@@ -357,6 +355,12 @@ private:
 		return m_free_block_index [idx];
 	}
 
+	static UWord companion_mask (UWord mask)
+	{
+		constexpr UWord ODD = sizeof (UWord) > 4 ? 0x5555555555555555 : 0x55555555;
+		return mask | ((mask >> 1) & ODD) | ((mask << 1) & ~ODD);
+	}
+
 	// Массив, содержащий количество свободных блоков на каждом уровне.
 	// Если общее количество блоков на уровне > 64K, он разделяется на части,
 	// каждой из которых соответствует один элемент массива.
@@ -394,7 +398,7 @@ Word HeapDirectory <DIRECTORY_SIZE, USE_EXCEPTION>::allocate (UWord size, Memory
 		// Search in free block index
 		UShort* free_blocks_ptr = m_free_block_index + block_index_offset;
 		Word cnt = Traits::FREE_BLOCK_INDEX_SIZE - block_index_offset;
-		while ((cnt--) && !Traits::acquire (free_blocks_ptr))
+		while ((cnt--) && !Ops::acquire (free_blocks_ptr))
 			++free_blocks_ptr;
 		if (cnt < 0)
 			return -1; // no such blocks
@@ -422,13 +426,13 @@ Word HeapDirectory <DIRECTORY_SIZE, USE_EXCEPTION>::allocate (UWord size, Memory
 
 			// Поиск в битовой карте. 
 			// Верхние уровни всегда находятся в подтвержденной области.
-			while ((bit_number = Traits::clear_rightmost_one (bitmap_ptr)) < 0) {
+			while ((bit_number = Ops::clear_rightmost_one (bitmap_ptr)) < 0) {
 				if (++bitmap_ptr >= end) {
 
 					if (!bi.level) {
 						// Блок требуемого размера не найден.
 						if (level < merged_levels) {
-							Traits::release (free_blocks_ptr);
+							Ops::release (free_blocks_ptr);
 							return -1;
 						} else
 							goto tryagain;
@@ -454,7 +458,7 @@ Word HeapDirectory <DIRECTORY_SIZE, USE_EXCEPTION>::allocate (UWord size, Memory
 
 					for (;;) {
 						try {
-							while ((bit_number = Traits::clear_rightmost_one (bitmap_ptr)) < 0)
+							while ((bit_number = Ops::clear_rightmost_one (bitmap_ptr)) < 0)
 								if (++bitmap_ptr == end)
 									goto tryagain;
 							break;
@@ -476,7 +480,7 @@ Word HeapDirectory <DIRECTORY_SIZE, USE_EXCEPTION>::allocate (UWord size, Memory
 									page_end += page_size;
 							}
 
-							while ((bit_number = Traits::clear_rightmost_one (bitmap_ptr)) < 0) {
+							while ((bit_number = Ops::clear_rightmost_one (bitmap_ptr)) < 0) {
 								if (++bitmap_ptr == end)
 									goto tryagain;
 
@@ -491,7 +495,7 @@ Word HeapDirectory <DIRECTORY_SIZE, USE_EXCEPTION>::allocate (UWord size, Memory
 				}
 
 			} else {
-				while ((bit_number = Traits::clear_rightmost_one (bitmap_ptr)) < 0)
+				while ((bit_number = Ops::clear_rightmost_one (bitmap_ptr)) < 0)
 					if (++bitmap_ptr == end)
 						goto tryagain;
 			}
@@ -500,7 +504,7 @@ Word HeapDirectory <DIRECTORY_SIZE, USE_EXCEPTION>::allocate (UWord size, Memory
 
 		break;
 	tryagain:
-		Traits::release (free_blocks_ptr);
+		Ops::release (free_blocks_ptr);
 	}
 
 	assert (bit_number >= 0);
@@ -561,10 +565,10 @@ bool HeapDirectory <DIRECTORY_SIZE, USE_EXCEPTION>::allocate (UWord begin, UWord
 			mask = (UWord)1 << (bl_number % (sizeof (UWord) * 8));
 			volatile UShort& free_blocks_cnt = free_block_count (level, bl_number);
 			// Decrement free blocks counter.
-			if (Traits::acquire (&free_blocks_cnt)) {
+			if (Ops::acquire (&free_blocks_cnt)) {
 				if (USE_EXCEPTION) {
 					try {
-						if (Traits::bit_clear (bitmap_ptr, mask)) {
+						if (Ops::bit_clear (bitmap_ptr, mask)) {
 							success = true; // Block has been allocated
 							break;
 						}
@@ -574,13 +578,13 @@ bool HeapDirectory <DIRECTORY_SIZE, USE_EXCEPTION>::allocate (UWord begin, UWord
 					if (
 						(!memory || memory->is_readable (bitmap_ptr, sizeof (UWord)))
 						&&
-						Traits::bit_clear (bitmap_ptr, mask)
+						Ops::bit_clear (bitmap_ptr, mask)
 					) {
 						success = true; // Block has been allocated
 						break;
 					}
 				}
-				Traits::release (&free_blocks_cnt);
+				Ops::release (&free_blocks_cnt);
 			}
 
 			if (!level)
@@ -678,10 +682,10 @@ void HeapDirectory <DIRECTORY_SIZE, USE_EXCEPTION>::release (UWord begin, UWord 
 
 				for (;;) {
 					try {
-						if (Traits::bit_set_check_companion (bitmap_ptr, mask)) {
+						if (Ops::bit_set_check_companion (bitmap_ptr, mask, companion_mask (mask))) {
 							// Есть свободный компаньон, объединяем его с освобождаемым блоком
 							// Поднимаемся на уровень выше
-							Traits::decrement (free_blocks_cnt);
+							Ops::decrement (free_blocks_cnt);
 							--level;
 							level_bitmap_begin = bitmap_offset_prev (level_bitmap_begin);
 							bl_number >>= 1;
@@ -703,10 +707,10 @@ void HeapDirectory <DIRECTORY_SIZE, USE_EXCEPTION>::release (UWord begin, UWord 
 				if (memory) // We have to set bit or clear companion bit here. So memory have to be committed anyway.
 					memory->commit (bitmap_ptr, sizeof (UWord));
 
-				if (Traits::bit_set_check_companion (bitmap_ptr, mask)) {
+				if (Ops::bit_set_check_companion (bitmap_ptr, mask, companion_mask (mask))) {
 					// Есть свободный компаньон, объединяем его с освобождаемым блоком
 					// Поднимаемся на уровень выше
-					Traits::decrement (free_blocks_cnt);
+					Ops::decrement (free_blocks_cnt);
 					--level;
 					level_bitmap_begin = bitmap_offset_prev (level_bitmap_begin);
 					bl_number >>= 1;
@@ -720,38 +724,30 @@ void HeapDirectory <DIRECTORY_SIZE, USE_EXCEPTION>::release (UWord begin, UWord 
 
 		}
 
+		// Заранее увеличиваем счетчик свободных блоков, чтобы другие потоки знали,
+		// что свободный блок скоро появится и начинали поиск. Это должно уменьшить вероятность
+		// ложных отказов. Хотя может вызвать дополительные циклы поиска.
+		Ops::release (free_blocks_cnt);
+		
 		if (level == 0) {
 			if (decommit_level <= 0) {
 				if (decommit_level == 0) {
 					memory->decommit ((Octet*)heap + bl_number * decommit_size, decommit_size);
+					Ops::bit_set (bitmap_ptr, mask);
 				} else {
 					UWord block_size = (UWord)1 << (UWord)(-decommit_level);
 					UWord companion_mask = (~((~(UWord)0) << block_size)) << round_down ((bl_number % (sizeof (UWord) * 8)), block_size);
-					UWord bits = ::std::atomic_load ((volatile ::std::atomic <UWord>*)bitmap_ptr);
-					for (;;) {
-						if (((bits & companion_mask) | mask) == companion_mask) {
-							if (::std::atomic_compare_exchange_strong ((volatile ::std::atomic <UWord>*)bitmap_ptr, &bits, bits & ~companion_mask)) {
-								try {
-									memory->decommit ((Octet*)heap + (bl_number >> (UWord)(-decommit_level)) * decommit_size, decommit_size);
-								} catch (...) {
-								}
-								Traits::bit_set (bitmap_ptr, companion_mask);
-								break;
-							}
-						} else if (::std::atomic_compare_exchange_strong ((volatile ::std::atomic <UWord>*)bitmap_ptr, &bits, bits | mask))
-							break;
+					if (Ops::bit_set_check_companion (bitmap_ptr, mask, companion_mask)) {
+						try {
+							memory->decommit ((Octet*)heap + (bl_number >> (UWord)(-decommit_level)) * decommit_size, decommit_size);
+						} catch (...) {
+						}
+						Ops::bit_set (bitmap_ptr, companion_mask);
 					}
 				}
-			}
-
-			if (decommit_level >= 0) {
-				// Устанавливаем бит свободного блока
-				Traits::bit_set (bitmap_ptr, mask);
-			}
+			} else
+				Ops::bit_set (bitmap_ptr, mask);
 		}
-
-		// Увеличиваем счетчик свободных блоков
-		Traits::release (free_blocks_cnt);
 
 		// Блок освобожден
 		if (rtl)
