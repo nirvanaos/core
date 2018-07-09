@@ -327,16 +327,6 @@ void AllocatedBlocks::add (const vector <Block>& blocks)
 template <class DirType>
 void AllocatedBlocks::check (DirType* dir, Memory_ptr memory) const
 {
-	for (auto p = begin (); p != end (); ++p) {
-		ASSERT_TRUE (dir->check_allocated (p->begin, p->end, memory));
-		dir->release (p->begin, p->end, memory);
-	}
-	bool ok = dir->empty ();
-	ASSERT_TRUE (ok);
-	for (auto p = begin (); p != end (); ++p) {
-		ASSERT_TRUE (dir->allocate (p->begin, p->end, memory));
-	}
-	/*
 	UWord free_begin = 0;
 	for (auto pa = begin ();;) {
 		UWord free_end;
@@ -356,7 +346,6 @@ void AllocatedBlocks::check (DirType* dir, Memory_ptr memory) const
 		} else
 			break;
 	}
-	*/
 }
 
 TYPED_TEST (TestHeapDirectory, Random)
