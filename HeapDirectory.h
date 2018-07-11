@@ -542,7 +542,8 @@ template <ULong DIRECTORY_SIZE, bool USE_EXCEPTION>
 bool HeapDirectory <DIRECTORY_SIZE, USE_EXCEPTION>::allocate (UWord begin, UWord end, Memory_ptr memory)
 {
 	assert (begin < end);
-	assert (end <= Traits::UNIT_COUNT);
+	if (end > Traits::UNIT_COUNT)
+		return false;
 
 	// Занимаем блок, разбивая его на блоки размером 2^n, смещение которых кратно их размеру.
 	UWord allocated_begin = begin;  // Начало занятого пространства.
@@ -760,6 +761,9 @@ void HeapDirectory <DIRECTORY_SIZE, USE_EXCEPTION>::release (UWord begin, UWord 
 template <ULong DIRECTORY_SIZE, bool USE_EXCEPTION>
 bool HeapDirectory <DIRECTORY_SIZE, USE_EXCEPTION>::check_allocated (UWord begin, UWord end, Memory_ptr memory) const
 {
+	if (begin >= Traits::UNIT_COUNT || end > Traits::UNIT_COUNT || end <= begin)
+		return false;
+
 	UWord page_size = 0;
 	if (memory) {
 		page_size = memory->query (this, Memory::COMMIT_UNIT);

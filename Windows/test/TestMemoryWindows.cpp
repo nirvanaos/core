@@ -38,11 +38,10 @@ TEST_F (TestMemoryWindows, Allocate)
 {
 	size_t BLOCK_SIZE = 0x10000000;	// 256M
 
-	static const size_t ITER_CNT = 3;
+	static const size_t ITER_CNT = 2;
 	static const Flags iter_flags [ITER_CNT] = {
 		Memory::READ_WRITE | Memory::RESERVED,
-		Memory::READ_WRITE,
-		Memory::READ_ONLY | Memory::RESERVED,
+		Memory::READ_WRITE
 	};
 	for (int iteration = 0; iteration < ITER_CNT; ++iteration) {
 
