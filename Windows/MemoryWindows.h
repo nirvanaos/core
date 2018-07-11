@@ -37,10 +37,8 @@ public:
 		if (!size)
 			throw BAD_PARAM ();
 
-		if ((Memory::READ_ONLY & flags) && !(Memory::RESERVED & flags))
+		if (flags & ~(Memory::RESERVED | Memory::EXACTLY | Memory::ZERO_INIT))
 			throw INV_FLAG ();
-
-		DWORD protection = (Memory::READ_ONLY & flags) ? PageState::RO_MAPPED_PRIVATE : PageState::RW_MAPPED_PRIVATE;
 
 		void* ret;
 		try {
@@ -54,10 +52,6 @@ public:
 					CloseHandle (mapping);
 					throw;
 				}
-
-				if (!(Memory::RESERVED & flags))
-					if (!VirtualAlloc (ret, size, MEM_COMMIT, protection))
-						throw NO_MEMORY ();
 
 			} else {
 
