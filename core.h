@@ -5,33 +5,15 @@
 #define NIRVANA_CORE_CORE_H_
 
 #include <Nirvana.h>
-#include "config.h"
-#ifdef _WIN32
-#include "Windows/MemoryWindows.h"
-#endif
+#include <Memory.h>
 
 namespace Nirvana {
 
-#ifdef _WIN32
+void initialize ();
+void terminate ();
 
-inline Memory_ptr prot_domain_memory ()
-{
-	return Windows::MemoryWindows::_this ();
-}
-
-inline void initialize ()
-{
-	Windows::MemoryWindows::initialize ();
-}
-
-inline void terminate ()
-{
-	Windows::MemoryWindows::terminate ();
-}
-
-#else
-#error Unknown platform.
-#endif
+extern Memory_ptr g_protection_domain_memory;
+extern Memory_ptr g_default_heap;
 
 }
 

@@ -53,7 +53,7 @@ public:
 	static Memory_ptr memory ()
 	{
 		if (PROT)
-			return prot_domain_memory ();
+			return g_protection_domain_memory;
 		else
 			return Memory_ptr::nil ();
 	}

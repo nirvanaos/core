@@ -2,7 +2,6 @@
 // Protection domain memory service over Win32 API
 
 #include "MemoryWindows.h"
-#include <cpplib.h>
 
 namespace Nirvana {
 namespace Windows {

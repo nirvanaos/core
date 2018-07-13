@@ -1,4 +1,4 @@
-#include "../../core.h"
+#include "../MemoryWindows.h"
 #include <gtest/gtest.h>
 
 namespace unittests {

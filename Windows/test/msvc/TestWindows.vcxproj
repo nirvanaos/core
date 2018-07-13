@@ -21,6 +21,7 @@
   <ItemGroup>
     <ClCompile Include="..\..\..\..\googletest\googletest\src\gtest-all.cc" />
     <ClCompile Include="..\..\..\..\gtest_main.cc" />
+    <ClCompile Include="..\..\..\Core.cpp" />
     <ClCompile Include="..\..\..\Heap.cpp" />
     <ClCompile Include="..\..\..\HeapDirectory.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</ExcludedFromBuild>
@@ -30,6 +31,7 @@
     </ClCompile>
     <ClCompile Include="..\..\..\Memory.cpp" />
     <ClCompile Include="..\..\..\real_copy.cpp" />
+    <ClCompile Include="..\..\..\Test\TestHeap.cpp" />
     <ClCompile Include="..\..\..\Test\TestHeapDirectory.cpp" />
     <ClCompile Include="..\..\MemoryWindows.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</ExcludedFromBuild>
@@ -53,7 +55,6 @@
     <ClInclude Include="..\..\..\core.h" />
     <ClInclude Include="..\..\..\Heap.h" />
     <ClInclude Include="..\..\..\HeapDirectory.h" />
-    <ClInclude Include="..\..\..\Include\cpplib.h" />
     <ClInclude Include="..\..\..\Include\Memory.h" />
     <ClInclude Include="..\..\..\real_copy.h" />
     <ClInclude Include="..\..\AddressSpace.h" />
