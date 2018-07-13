@@ -118,12 +118,12 @@ protected:
 
 	static void release (const Partition& part, Pointer p, UWord size)
 	{
-		Octet* heap = (Octet*)(&part + 1);
+		Directory* dir = part.directory ();
+		Octet* heap = (Octet*)(dir + 1);
 		UWord offset = (Octet*)p - heap;
 		UWord allocation_unit = part.allocation_unit ();
 		UWord begin = offset / allocation_unit;
 		UWord end = (offset + size + allocation_unit - 1) / allocation_unit;
-		Directory* dir = part.directory ();
 		if (!dir->check_allocated (begin, end, g_protection_domain_memory))
 			throw BAD_PARAM ();
 		dir->release (begin, end, g_protection_domain_memory, false, heap, allocation_unit);
