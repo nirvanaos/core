@@ -53,6 +53,13 @@ public:
 					throw;
 				}
 
+				try {
+					Block (ret).commit (0, size);
+				} catch (...) {
+					sm_space.release (ret, size);
+					throw;
+				}
+
 			} else {
 
 				if (!(ret = sm_space.reserve (size, flags, dst)))
@@ -60,7 +67,7 @@ public:
 
 				if (!(Memory::RESERVED & flags)) {
 					try {
-						commit (ret, size);
+						commit_no_check (ret, size);
 					} catch (...) {
 						sm_space.release (ret, size);
 						throw;
@@ -81,11 +88,27 @@ public:
 		sm_space.release (dst, size);
 	}
 
-	static DWORD commit (void* dst, SIZE_T size);
-
-	static void decommit (void* dst, SIZE_T size)
+	static void commit (void* ptr, SIZE_T size)
 	{
-		sm_space.decommit (dst, size);
+		if (!size)
+			return;
+
+		if (!ptr)
+			throw BAD_PARAM ();
+
+		// Memory must be allocated.
+		sm_space.check_allocated (ptr, size);
+
+		commit_no_check (ptr, size);
+	}
+
+private:
+	static DWORD commit_no_check (void* ptr, SIZE_T size);
+
+public:
+	static void decommit (void* ptr, SIZE_T size)
+	{
+		sm_space.decommit (ptr, size);
 	}
 
 	static void* copy (void* dst, void* src, SIZE_T size, LONG flags);
@@ -113,6 +136,9 @@ public:
 	static SIZE_T query (const void* p, Memory::QueryParam q);
 
 	static void prepare_to_share (void* src, SIZE_T size);
+
+private:
+	friend class AddressSpace;
 
 	struct Region
 	{
@@ -422,7 +448,7 @@ inline void* MemoryWindows::copy (void* dst, void* src, SIZE_T size, LONG flags)
 					}
 				} else {
 					// Physical copy.
-					DWORD state_bits = commit (ret, size);
+					DWORD state_bits = commit_no_check (ret, size);
 					if (state_bits & PageState::MASK_RO)
 						sm_space.change_protection (dst, size, Memory::READ_WRITE);
 					real_move ((const BYTE*)src, (const BYTE*)src + size, (BYTE*)ret);

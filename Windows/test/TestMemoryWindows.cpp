@@ -222,6 +222,28 @@ TEST_F (TestMemoryWindows, Move)
 	MemoryWindows::release (block, BLOCK_SIZE);
 }
 
+TEST_F (TestMemoryWindows, SmallBlock)
+{
+	int* block = (int*)MemoryWindows::allocate (0, sizeof (int), Memory::ZERO_INIT);
+	ASSERT_TRUE (block);
+	*block = 1;
+	{
+		int* copy = (int*)MemoryWindows::copy (0, block, sizeof (int), 0);
+		ASSERT_EQ (*copy, *block);
+		*copy = 2;
+		ASSERT_EQ (*block, 1);
+		MemoryWindows::release (copy, sizeof (int));
+	}
+	{
+		int* copy = (int*)MemoryWindows::copy (0, block, sizeof (int), Memory::READ_ONLY);
+		ASSERT_EQ (*copy, *block);
+		ASSERT_THROW (*copy = 2, NO_PERMISSION);
+		ASSERT_EQ (*block, 1);
+		MemoryWindows::release (copy, sizeof (int));
+	}
+	MemoryWindows::release (block, sizeof (int));
+}
+
 inline NT_TIB* current_TIB ()
 {
 #ifdef _M_IX86

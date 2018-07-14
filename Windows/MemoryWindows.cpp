@@ -283,16 +283,8 @@ bool MemoryWindows::Block::copy_page_part (const void* src, SIZE_T size, LONG fl
 	return false;
 }
 
-DWORD MemoryWindows::commit (void* ptr, SIZE_T size)
+DWORD MemoryWindows::commit_no_check (void* ptr, SIZE_T size)
 {
-	if (!size)
-		return 0;
-	if (!ptr)
-		throw BAD_PARAM ();
-
-	// Memory must be allocated.
-	sm_space.check_allocated (ptr, size);
-
 	DWORD mask = 0;
 	for (BYTE* p = (BYTE*)ptr, *end = p + size; p < end;) {
 		Block block (p);

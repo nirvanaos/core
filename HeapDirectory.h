@@ -153,7 +153,7 @@ public:
 	static const BitmapIndex sm_bitmap_index [FREE_BLOCK_INDEX_SIZE];
 };
 
-
+// Multithreaded implementation of HeapDirectory operations.
 struct HeapDirectoryOpsLockFree
 {
 	// Atomic decrement free blocks counter if it is not zero.

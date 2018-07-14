@@ -411,6 +411,10 @@ inline Pointer Heap::allocate (Pointer p, UWord size, Flags flags)
 						return 0;
 					throw;
 				}
+
+				if (flags & Memory::ZERO_INIT)
+					zero ((Octet*)p, (Octet*)p + size);
+
 			} else if (flags & Memory::EXACTLY)
 				return 0;
 			else
@@ -419,16 +423,20 @@ inline Pointer Heap::allocate (Pointer p, UWord size, Flags flags)
 			p = g_protection_domain_memory->allocate (p, size, flags);
 	}
 
-	if (!p && size / m_allocation_unit <= Directory::MAX_BLOCK_SIZE && !(flags & Memory::RESERVED)) {
-		try {
-			p = allocate (size);
-		} catch (const NO_MEMORY&) {
-			if (flags & Memory::EXACTLY)
-				return 0;
-			throw;
-		}
-	} else
-		p = g_protection_domain_memory->allocate (p, size, flags);
+	if (!p) {
+		if (size / m_allocation_unit <= Directory::MAX_BLOCK_SIZE && !(flags & Memory::RESERVED)) {
+			try {
+				p = allocate (size);
+			} catch (const NO_MEMORY&) {
+				if (flags & Memory::EXACTLY)
+					return 0;
+				throw;
+			}
+			if (flags & Memory::ZERO_INIT)
+				zero ((Octet*)p, (Octet*)p + size);
+		} else
+			p = g_protection_domain_memory->allocate (p, size, flags);
+	} 
 
 	return p;
 }
