@@ -135,7 +135,7 @@ public:
 
 	static SIZE_T query (const void* p, Memory::QueryParam q);
 
-	static void prepare_to_share (void* src, SIZE_T size);
+	static void prepare_to_share (void* src, SIZE_T size, LONG flags);
 
 private:
 	friend class AddressSpace;
@@ -174,11 +174,12 @@ private:
 		DWORD commit (SIZE_T offset, SIZE_T size);
 		bool need_remap_to_share (SIZE_T offset, SIZE_T size);
 		
-		void prepare_to_share (SIZE_T offset, SIZE_T size)
+		void prepare_to_share (SIZE_T offset, SIZE_T size, LONG flags)
 		{
 			if (need_remap_to_share (offset, size))
 				remap ();
-			prepare_to_share_no_remap (offset, size);
+			if (!(flags & Memory::DECOMMIT)) // Memory::RELEASE includes flag DECOMMIT.
+				prepare_to_share_no_remap (offset, size);
 		}
 
 		void copy (void* src, SIZE_T size, LONG flags);
@@ -328,8 +329,8 @@ inline void* MemoryWindows::copy (void* dst, void* src, SIZE_T size, LONG flags)
 		if (!dst && Memory::RELEASE != (flags & Memory::RELEASE) && !src_in_stack && round_up ((BYTE*)src + size, ALLOCATION_GRANULARITY) - (BYTE*)src <= ALLOCATION_GRANULARITY) {
 			// Quick copy one block.
 			Block block (src);
-			block.prepare_to_share (src_align, size);
-			ret = sm_space.copy (block.mapping (), src_align, size, flags);
+			block.prepare_to_share (src_align, size, flags);
+			ret = sm_space.copy (block, src_align, size, flags);
 		} else {
 			Region allocated = {0, 0};
 			if (!dst || (flags & Memory::ALLOCATE)) {

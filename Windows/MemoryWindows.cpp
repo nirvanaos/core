@@ -297,7 +297,7 @@ DWORD MemoryWindows::commit_no_check (void* ptr, SIZE_T size)
 	return mask;
 }
 
-void MemoryWindows::prepare_to_share (void* src, SIZE_T size)
+void MemoryWindows::prepare_to_share (void* src, SIZE_T size, LONG flags)
 {
 	if (!size)
 		return;
@@ -309,7 +309,7 @@ void MemoryWindows::prepare_to_share (void* src, SIZE_T size)
 		BYTE* block_end = block.address () + ALLOCATION_GRANULARITY;
 		if (block_end > end)
 			block_end = end;
-		block.prepare_to_share (p - block.address (), block_end - p);
+		block.prepare_to_share (p - block.address (), block_end - p, flags);
 		p = block_end;
 	}
 }

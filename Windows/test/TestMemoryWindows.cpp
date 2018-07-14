@@ -187,26 +187,28 @@ TEST_F (TestMemoryWindows, Share)
 
 TEST_F (TestMemoryWindows, Move)
 {
-	size_t BLOCK_SIZE = 0x100000;
+	size_t BLOCK_SIZE = 0x20000000;	// 512M
+	size_t SHIFT = ALLOCATION_GRANULARITY;
 	// Allocate block.
-	int* block = (int*)MemoryWindows::allocate (0, BLOCK_SIZE, Memory::ZERO_INIT);
+	int* block = (int*)MemoryWindows::allocate (0, BLOCK_SIZE + SHIFT, Memory::ZERO_INIT | Memory::RESERVED);
 	ASSERT_TRUE (block);
+	MemoryWindows::commit (block, BLOCK_SIZE);
 
 	int i = 0;
 	for (int* p = block, *end = block + BLOCK_SIZE / sizeof (int); p != end; ++p)
 		*p = ++i;
 
-	// Shift block right on ALLOCATION_GRANULARITY
-	int* shifted = (int*)MemoryWindows::copy (block + ALLOCATION_GRANULARITY / sizeof (int), block, BLOCK_SIZE, Memory::ALLOCATE | Memory::EXACTLY | Memory::RELEASE);
-	EXPECT_EQ (shifted, block + ALLOCATION_GRANULARITY / sizeof (int));
+	// Shift block right on SHIFT
+	int* shifted = (int*)MemoryWindows::copy (block + SHIFT / sizeof (int), block, BLOCK_SIZE, Memory::EXACTLY | Memory::RELEASE);
+	EXPECT_EQ (shifted, block + SHIFT / sizeof (int));
 	i = 0;
 	for (int* p = shifted, *end = shifted + BLOCK_SIZE / sizeof (int); p != end; ++p)
 		EXPECT_EQ (*p, ++i);
 	EXPECT_TRUE (MemoryWindows::is_private (shifted, BLOCK_SIZE));
 
 	// Allocate region to ensure that it is free.
-	EXPECT_TRUE (MemoryWindows::allocate (block, ALLOCATION_GRANULARITY, Memory::RESERVED | Memory::EXACTLY));
-	MemoryWindows::release (block, ALLOCATION_GRANULARITY);
+	EXPECT_TRUE (MemoryWindows::allocate (block, SHIFT, Memory::RESERVED | Memory::EXACTLY));
+	MemoryWindows::release (block, SHIFT);
 
 	// Shift it back.
 	EXPECT_EQ (block, (int*)MemoryWindows::copy (block, shifted, BLOCK_SIZE, Memory::ALLOCATE | Memory::EXACTLY | Memory::RELEASE));
@@ -216,8 +218,8 @@ TEST_F (TestMemoryWindows, Move)
 	EXPECT_TRUE (MemoryWindows::is_private (block, BLOCK_SIZE));
 
 	// Allocate region to ensure that it is free.
-	EXPECT_TRUE (MemoryWindows::allocate (block + BLOCK_SIZE / sizeof (int), ALLOCATION_GRANULARITY, Memory::RESERVED | Memory::EXACTLY));
-	MemoryWindows::release (block + BLOCK_SIZE / sizeof (int), ALLOCATION_GRANULARITY);
+	EXPECT_TRUE (MemoryWindows::allocate (block + BLOCK_SIZE / sizeof (int), SHIFT, Memory::RESERVED | Memory::EXACTLY));
+	MemoryWindows::release (block + BLOCK_SIZE / sizeof (int), SHIFT);
 
 	MemoryWindows::release (block, BLOCK_SIZE);
 }
@@ -226,20 +228,52 @@ TEST_F (TestMemoryWindows, SmallBlock)
 {
 	int* block = (int*)MemoryWindows::allocate (0, sizeof (int), Memory::ZERO_INIT);
 	ASSERT_TRUE (block);
+	EXPECT_TRUE (MemoryWindows::is_private (block, sizeof (int)));
 	*block = 1;
 	{
 		int* copy = (int*)MemoryWindows::copy (0, block, sizeof (int), 0);
-		ASSERT_EQ (*copy, *block);
+		ASSERT_TRUE (copy);
+		EXPECT_EQ (*copy, *block);
+		EXPECT_TRUE (MemoryWindows::is_readable (copy, sizeof (int)));
+		EXPECT_TRUE (MemoryWindows::is_writable (copy, sizeof (int)));
+		EXPECT_TRUE (MemoryWindows::is_copy (copy, block, sizeof (int)));
+		EXPECT_FALSE (MemoryWindows::is_private (block, sizeof (int)));
 		*copy = 2;
-		ASSERT_EQ (*block, 1);
+		EXPECT_EQ (*block, 1);
 		MemoryWindows::release (copy, sizeof (int));
 	}
 	{
 		int* copy = (int*)MemoryWindows::copy (0, block, sizeof (int), Memory::READ_ONLY);
-		ASSERT_EQ (*copy, *block);
-		ASSERT_THROW (*copy = 2, NO_PERMISSION);
-		ASSERT_EQ (*block, 1);
+		ASSERT_TRUE (copy);
+		EXPECT_EQ (*copy, *block);
+		EXPECT_TRUE (MemoryWindows::is_readable (copy, sizeof (int)));
+		EXPECT_FALSE (MemoryWindows::is_writable (copy, sizeof (int)));
+		EXPECT_TRUE (MemoryWindows::is_copy (copy, block, sizeof (int)));
+		EXPECT_THROW (*copy = 2, NO_PERMISSION);
 		MemoryWindows::release (copy, sizeof (int));
+	}
+	MemoryWindows::decommit (block, PAGE_SIZE);
+	MemoryWindows::commit (block, sizeof (int));
+	*block = 1;
+	{
+		EXPECT_TRUE (MemoryWindows::is_private (block, sizeof (int)));
+		int* copy = (int*)MemoryWindows::copy (0, block, PAGE_SIZE, Memory::DECOMMIT);
+		EXPECT_EQ (*copy, 1);
+		EXPECT_TRUE (MemoryWindows::is_readable (copy, sizeof (int)));
+		EXPECT_TRUE (MemoryWindows::is_writable (copy, sizeof (int)));
+		EXPECT_FALSE (MemoryWindows::is_readable (block, sizeof (int)));
+		EXPECT_FALSE (MemoryWindows::is_writable (block, sizeof (int)));
+		EXPECT_THROW (*block = 2, MEM_NOT_COMMITTED);
+		MemoryWindows::commit (block, sizeof (int));
+		*block = 2;
+		EXPECT_TRUE (MemoryWindows::is_private (block, sizeof (int)));
+		EXPECT_TRUE (MemoryWindows::is_private (copy, sizeof (int)));
+		EXPECT_FALSE (MemoryWindows::is_copy (copy, block, sizeof (int)));
+		MemoryWindows::release (copy, sizeof (int));
+	}
+	{
+		int* copy = (int*)MemoryWindows::copy (0, block, sizeof (int), Memory::RELEASE);
+		ASSERT_EQ (copy, block);
 	}
 	MemoryWindows::release (block, sizeof (int));
 }

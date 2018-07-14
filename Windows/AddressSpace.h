@@ -152,7 +152,7 @@ public:
 		}
 
 		void copy (Block& src, SIZE_T offset, SIZE_T size, LONG flags);
-		void unmap (HANDLE reserve = INVALID_HANDLE_VALUE);
+		void unmap (HANDLE reserve = INVALID_HANDLE_VALUE, bool no_close_handle = false);
 		DWORD check_committed (SIZE_T offset, SIZE_T size);
 		void change_protection (SIZE_T offset, SIZE_T size, LONG flags);
 		void decommit (SIZE_T offset, SIZE_T size);
@@ -216,6 +216,22 @@ public:
 		bool has_data_outside_of (SIZE_T offset, SIZE_T size, DWORD mask = PageState::MASK_ACCESS);
 
 	private:
+		friend class AddressSpace;
+		void copy (bool remap, bool move, Block& src, SIZE_T offset, SIZE_T size, LONG flags);
+		
+		bool can_move (SIZE_T offset, SIZE_T size, LONG flags)
+		{
+			bool move = false;
+			if (flags & Memory::DECOMMIT) {
+				if (flags & (Memory::RELEASE & ~Memory::DECOMMIT))
+					move = true;
+				else
+					move = !has_data_outside_of (offset, size);
+			}
+			return move;
+		}
+
+	private:
 		AddressSpace & m_space;
 		BYTE* m_address;
 		BlockInfo& m_info;
@@ -226,7 +242,7 @@ public:
 	void release (void* ptr, SIZE_T size);
 
 	// Quick copy for block sizes <= ALLOCATION_GRANULARITY
-	void* copy (HANDLE src, SIZE_T offset, SIZE_T size, LONG flags);
+	void* copy (Block& src, SIZE_T offset, SIZE_T size, LONG flags);
 
 	void query (const void* address, MEMORY_BASIC_INFORMATION& mbi) const
 	{

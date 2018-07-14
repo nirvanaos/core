@@ -94,7 +94,7 @@ void AddressSpace::Block::map (HANDLE mapping, MappingType protection)
 	}
 }
 
-void AddressSpace::Block::unmap (HANDLE reserve)
+void AddressSpace::Block::unmap (HANDLE reserve, bool no_close_handle)
 {
 	HANDLE mapping = InterlockedExchangePointer (&m_info.mapping, reserve);
 	if (!mapping) {
@@ -104,7 +104,8 @@ void AddressSpace::Block::unmap (HANDLE reserve)
 	}
 	if (INVALID_HANDLE_VALUE != mapping) {
 		verify (UnmapViewOfFile2 (m_space.process (), m_address, 0));
-		verify (CloseHandle (mapping));
+		if (!no_close_handle)
+			verify (CloseHandle (mapping));
 		if (reserve)
 			while (!VirtualAllocEx (m_space.process (), m_address, ALLOCATION_GRANULARITY, MEM_RESERVE, PAGE_NOACCESS)) {
 				assert (ERROR_INVALID_ADDRESS == GetLastError ());
@@ -156,19 +157,18 @@ void AddressSpace::Block::copy (Block& src, SIZE_T offset, SIZE_T size, LONG fla
 	} else
 		remap = false;
 
-	bool move = false;
-	if (flags & Memory::DECOMMIT) {
-		if (flags & (Memory::RELEASE & ~Memory::DECOMMIT))
-			move = true;
-		else
-			move = !src.has_data_outside_of (offset, size);
-	}
+	copy (remap, src.can_move (offset, size, flags), src, offset, size, flags);
+}
+
+void AddressSpace::Block::copy (bool remap, bool move, Block& src, SIZE_T offset, SIZE_T size, LONG flags)
+{
 	DWORD dst_page_state [PAGES_PER_BLOCK];
 	DWORD* dst_ps_begin = dst_page_state + offset / PAGE_SIZE;
-	DWORD* dst_ps_end = dst_page_state + (offset_end + PAGE_SIZE - 1) / PAGE_SIZE;
+	DWORD* dst_ps_end = dst_page_state + (offset + size + PAGE_SIZE - 1) / PAGE_SIZE;
 	std::fill (dst_page_state, dst_ps_begin, PageState::DECOMMITTED);
 	std::fill (dst_ps_end, dst_page_state + PAGES_PER_BLOCK, PageState::DECOMMITTED);
 
+	bool no_duplicate_handle = false;
 	if (move) {
 		// Decide target page states based on source page states.
 		auto src_page_state = src.state ().mapped.page_state;
@@ -189,24 +189,31 @@ void AddressSpace::Block::copy (Block& src, SIZE_T offset, SIZE_T size, LONG fla
 			++src_ps;
 
 		} while (++dst_ps != dst_ps_end);
+
+		no_duplicate_handle = m_space.is_current_process ();
 	} else
 		std::fill (dst_ps_begin, dst_ps_end, Memory::READ_ONLY & flags ? PageState::RO_MAPPED_SHARED : PageState::RW_MAPPED_SHARED);
 
 	if (remap) {
-		HANDLE mapping;
-		if (!DuplicateHandle (GetCurrentProcess (), src_mapping, m_space.process (), &mapping, 0, FALSE, DUPLICATE_SAME_ACCESS))
-			throw NO_MEMORY ();
-		try {
-			map (mapping, move ? MAP_PRIVATE : MAP_SHARED);
-		} catch (...) {
-			CloseHandle (mapping);
-			throw;
-		}
+		if (!no_duplicate_handle) {
+			HANDLE mapping;
+			if (!DuplicateHandle (GetCurrentProcess (), src.mapping (), m_space.process (), &mapping, 0, FALSE, DUPLICATE_SAME_ACCESS))
+				throw NO_MEMORY ();
+			try {
+				map (mapping, move ? MAP_PRIVATE : MAP_SHARED);
+			} catch (...) {
+				CloseHandle (mapping);
+				throw;
+			}
+		} else
+			map (src.mapping (), MAP_PRIVATE);
 	}
 
 	if (Memory::DECOMMIT & flags) {
 		if ((Memory::RELEASE & ~Memory::DECOMMIT) & flags)
-			src.unmap (0);
+			src.unmap (0, no_duplicate_handle);
+		else if (move)
+			src.unmap (INVALID_HANDLE_VALUE, no_duplicate_handle);
 		else
 			src.decommit (offset, size);
 	}
@@ -706,29 +713,31 @@ void* AddressSpace::map (HANDLE mapping, MappingType protection)
 	}
 }
 
-void* AddressSpace::copy (HANDLE src, SIZE_T offset, SIZE_T size, LONG flags)
+void* AddressSpace::copy (Block& src, SIZE_T offset, SIZE_T size, LONG flags)
 {
-	HANDLE mapping;
-	if (!DuplicateHandle (GetCurrentProcess (), src, m_process, &mapping, 0, FALSE, DUPLICATE_SAME_ACCESS))
-		throw NO_MEMORY ();
+	bool move = src.can_move (offset, size, flags);
 
 	BYTE* p;
+	if (!move || !is_current_process ()) {
+		HANDLE mapping;
+		if (!DuplicateHandle (GetCurrentProcess (), src.mapping (), m_process, &mapping, 0, FALSE, DUPLICATE_SAME_ACCESS))
+			throw NO_MEMORY ();
+
+		try {
+			p = (BYTE*)map (mapping, move ? MAP_PRIVATE : MAP_SHARED);
+		} catch (...) {
+			CloseHandle (mapping);
+			throw;
+		}
+	} else
+		p = (BYTE*)map (src.mapping (), MAP_PRIVATE);
+
 	try {
-		p = (BYTE*)map (mapping, MAP_SHARED);
+		Block (*this, p).copy (false, move, src, offset, size, flags);
 	} catch (...) {
-		CloseHandle (mapping);
+		release (p, size);
 		throw;
 	}
-
-	if (Memory::READ_ONLY & flags)
-		protect (p + offset, size, PageState::RO_MAPPED_SHARED);
-
-	if (offset > 0)
-		protect (p, round_down (offset, PAGE_SIZE), PageState::DECOMMITTED);
-	offset = round_up (offset + size, PAGE_SIZE);
-	SIZE_T tail = ALLOCATION_GRANULARITY - offset;
-	if (tail > 0)
-		protect (p + offset, tail, PageState::DECOMMITTED);
 
 	return p;
 }
