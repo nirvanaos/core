@@ -5,6 +5,7 @@
 #include "core.h"
 #include "config.h"
 #include <type_traits>
+#include <HeapFactory.h>
 
 namespace Nirvana {
 
@@ -71,12 +72,15 @@ protected:
 		return ((sm_space_end - sm_space_begin) + MIN_PARTITION_SIZE - 1) / MIN_PARTITION_SIZE;
 	}
 
-	HeapBase (UWord allocation_unit) :
-		m_allocation_unit (allocation_unit),
+	HeapBase (ULong allocation_unit) :
 		m_part_list (0)
 	{
-		if (allocation_unit < HEAP_UNIT_MIN || allocation_unit > HEAP_UNIT_MAX || allocation_unit != (UWord)1 << ntz (allocation_unit))
-			throw BAD_PARAM ();
+		if (allocation_unit <= HEAP_UNIT_MIN)
+			m_allocation_unit = HEAP_UNIT_MIN;
+		else if (allocation_unit >= HEAP_UNIT_MAX)
+			m_allocation_unit = HEAP_UNIT_MAX;
+		else
+			m_allocation_unit = (UWord)1 << (32 - nlz (allocation_unit - 1));
 	}
 
 	~HeapBase ()
@@ -178,7 +182,7 @@ protected:
 
 	static const Partition* get_partition (const void* address);
 
-	Heap32 (UWord allocation_unit) :
+	Heap32 (ULong allocation_unit) :
 		HeapBase (allocation_unit)
 	{}
 
@@ -221,7 +225,7 @@ protected:
 
 	static const Partition* get_partition (const void* address);
 
-	Heap64 (UWord allocation_unit) :
+	Heap64 (ULong allocation_unit) :
 		HeapBase (allocation_unit)
 	{}
 
@@ -237,6 +241,14 @@ private:
 };
 
 typedef std::conditional <(sizeof (UWord) > 4), Heap64, Heap32>::type HeapBaseT;
+
+class HFactory :
+	public ::CORBA::Nirvana::ServantStatic <HFactory, HeapFactory>
+{
+public:
+	static Memory_ptr create ();
+	static Memory_ptr create_with_granularity (ULong granularity);
+};
 
 class Heap : 
 	public HeapBaseT,
@@ -295,17 +307,20 @@ public:
 		return g_protection_domain_memory->query (p, param);
 	}
 
-	Heap (UWord allocation_unit) :
-		HeapBaseT (allocation_unit),
-		m_no_destroy (false)
-	{}
-
 	static void initialize ()
 	{
 		Partition& first_part = HeapBaseT::initialize ();
 		Heap* instance = (Heap*)HeapBase::allocate (first_part, sizeof (Heap));
 		new (instance) Heap (first_part);
 		g_default_heap = instance;
+		g_heap_factory = HFactory::_this ();
+	}
+
+	Heap (ULong allocation_unit) :
+		HeapBaseT (allocation_unit),
+		m_no_destroy (false)
+	{
+		m_part_list = &create_partition ();
 	}
 
 	void _add_ref ()
@@ -320,7 +335,25 @@ public:
 			::CORBA::Nirvana::Servant <Heap, Memory>::_remove_ref ();
 	}
 
+	void* operator new (size_t cb)
+	{
+		return g_default_heap->allocate (0, cb, 0);
+	}
+
+	void operator delete (void* p, size_t cb)
+	{
+		g_default_heap->release (p, cb);
+	}
+
 private:
+	void* operator new (size_t cb, void* p)
+	{
+		return p;
+	}
+
+	void operator delete (void* p, void* p1)
+	{}
+
 	Heap (Partition& first_part) :
 		HeapBaseT (HEAP_UNIT_DEFAULT),
 		m_no_destroy (true)
@@ -330,6 +363,8 @@ private:
 
 private:
 	Pointer allocate (UWord size);
+
+	Partition& create_partition () const;
 
 	const Partition* get_partition (const void* address) const
 	{
@@ -396,6 +431,16 @@ inline Pointer Heap::allocate (Pointer p, UWord size, Flags flags)
 		p = g_protection_domain_memory->allocate (p, size, flags);
 
 	return p;
+}
+
+inline Memory_ptr HFactory::create ()
+{
+	return new Heap (HEAP_UNIT_DEFAULT);
+}
+
+inline Memory_ptr HFactory::create_with_granularity (ULong granularity)
+{
+	return new Heap (granularity);
 }
 
 }

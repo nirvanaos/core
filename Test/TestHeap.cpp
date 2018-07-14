@@ -1,6 +1,7 @@
 #include "../core.h"
 #include <gtest/gtest.h>
 
+using namespace ::CORBA;
 using namespace ::Nirvana;
 using namespace ::std;
 
@@ -39,6 +40,15 @@ TEST_F (TestHeap, Allocate)
 	int* p = (int*)g_default_heap->allocate (0, sizeof (int), Memory::ZERO_INIT);
 	*p = 1;
 	g_default_heap->release (p, sizeof (int));
+}
+
+TEST_F (TestHeap, Heap)
+{
+	Memory_ptr heap = g_heap_factory->create ();
+	int* p = (int*)heap->allocate (0, sizeof (int), Memory::ZERO_INIT);
+	*p = 1;
+	heap->release (p, sizeof (int));
+	release (heap);
 }
 
 }

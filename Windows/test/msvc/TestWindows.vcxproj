@@ -55,6 +55,7 @@
     <ClInclude Include="..\..\..\core.h" />
     <ClInclude Include="..\..\..\Heap.h" />
     <ClInclude Include="..\..\..\HeapDirectory.h" />
+    <ClInclude Include="..\..\..\Include\HeapFactory.h" />
     <ClInclude Include="..\..\..\Include\Memory.h" />
     <ClInclude Include="..\..\..\real_copy.h" />
     <ClInclude Include="..\..\AddressSpace.h" />

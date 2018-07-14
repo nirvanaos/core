@@ -27,7 +27,7 @@ using namespace ::CORBA;
 	В данной реализации размер блока по умолчанию равен 16 байт.
 */
 
-const ULong HEAP_UNIT_MIN = 4;
+const ULong HEAP_UNIT_MIN = 16;
 const ULong HEAP_UNIT_DEFAULT = 16;
 const ULong HEAP_UNIT_MAX = 4096;
 

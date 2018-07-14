@@ -11,6 +11,7 @@ namespace Nirvana {
 
 Memory_ptr g_protection_domain_memory;
 Memory_ptr g_default_heap;
+HeapFactory_ptr g_heap_factory;
 
 void initialize()
 {

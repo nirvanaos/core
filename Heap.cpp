@@ -113,31 +113,37 @@ const HeapBase::Partition* Heap64::get_partition (const void* address)
 	return 0;
 }
 
+Heap::Partition& Heap::create_partition () const
+{
+	Directory* dir = HeapBase::create_partition (m_allocation_unit);
+	try {
+		return add_partition (dir, m_allocation_unit);
+	} catch (...) {
+		g_protection_domain_memory->release (dir, partition_size (m_allocation_unit));
+		throw;
+	}
+}
+
 Pointer Heap::allocate (UWord size)
 {
 	Partition* last_part;
 	Pointer p = HeapBase::allocate (size, last_part);
 	if (!p) {
-		Directory* dir = create_partition (m_allocation_unit);
-		Partition* new_part = 0;
+		Partition& new_part = create_partition ();
 		try {
-			new_part = &add_partition (dir, m_allocation_unit);
 			for (;;) {
 				Partition* next_part = 0;
-				if (atomic_compare_exchange_strong ((volatile atomic <Partition*>*)&last_part->next, &next_part, new_part))
-					next_part = new_part;
+				if (atomic_compare_exchange_strong ((volatile atomic <Partition*>*)&last_part->next, &next_part, &new_part))
+					next_part = &new_part;
 				if (p = HeapBase::allocate (*next_part, size)) {
-					if (next_part != new_part)
-						new_part->release ();
+					if (next_part != &new_part)
+						new_part.release ();
 					break;
 				} else
 					last_part = next_part;
 			}
 		} catch (...) {
-			if (new_part)
-				new_part->release ();
-			else
-				g_protection_domain_memory->release (dir, partition_size (m_allocation_unit));
+			new_part.release ();
 			throw;
 		}
 	}
