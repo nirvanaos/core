@@ -640,7 +640,7 @@ void HeapDirectory <DIRECTORY_SIZE, USE_EXCEPTION>::release (UWord begin, UWord 
 			decommit_size = memory->query (heap, Memory::OPTIMAL_COMMIT_UNIT);
 			assert (decommit_size);
 			if (decommit_size)
-				decommit_level = Traits::HEAP_LEVELS - 31 + nlz ((ULong)(decommit_size / unit_size));
+				decommit_level = Traits::HEAP_LEVELS - 32 + nlz ((ULong)(decommit_size / unit_size));
 		}
 	}
 

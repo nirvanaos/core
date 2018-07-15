@@ -2,6 +2,7 @@
 #include <gtest/gtest.h>
 #include <random>
 #include <thread>
+#include <atomic>
 #include <vector>
 #include <set>
 #include "../core.h"
@@ -9,7 +10,7 @@
 using namespace ::Nirvana;
 using namespace ::std;
 
-namespace unittests {
+namespace TestHeapDirectory {
 
 template <UWord SIZE, bool PROT, bool EXC>
 class HeapDirectoryFactory
@@ -263,7 +264,9 @@ template <class DirType>
 void RandomAllocator::run (DirType* dir, Memory_ptr memory, int iterations)
 {
 	for (int i = 0; i < iterations; ++i) {
-		bool rel = !m_allocated.empty () && bernoulli_distribution ((double)sm_total_allocated / (double)DirType::UNIT_COUNT)(m_rndgen);
+		ULong total = sm_total_allocated;
+		bool rel = !m_allocated.empty () 
+			&& (total >= DirType::UNIT_COUNT || bernoulli_distribution ((double)sm_total_allocated / (double)DirType::UNIT_COUNT)(m_rndgen));
 		if (!rel) {
 			ULong free_cnt = DirType::UNIT_COUNT - sm_total_allocated;
 			if (!free_cnt)

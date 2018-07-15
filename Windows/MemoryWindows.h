@@ -262,17 +262,6 @@ private:
 
 	// Thread stack processing
 
-	static const NT_TIB* current_TIB ()
-	{
-#ifdef _M_IX86
-		return (const NT_TIB*)__readfsdword (0x18);
-#elif _M_AMD64
-		return (const NT_TIB*)__readgsqword (0x30);
-#else
-#error Only x86 and x64 platforms supported.
-#endif
-	}
-
 	typedef void (*FiberMethod) (void*);
 	static void call_in_fiber (FiberMethod method, void* param);
 
@@ -299,29 +288,17 @@ inline void* MemoryWindows::copy (void* dst, void* src, SIZE_T size, LONG flags)
 	if (!size)
 		return dst;
 
+	if (flags & ~(Memory::READ_ONLY | Memory::RELEASE | Memory::ALLOCATE | Memory::EXACTLY))
+		throw INV_FLAG ();
+
 	// Source range have to be committed.
 	DWORD src_prot_mask = sm_space.check_committed (src, size);
 	
-	void* stack_base, *stack_limit, *stack_top;
-	{
-		const NT_TIB* tib = current_TIB ();
-		stack_base = tib->StackBase;
-		stack_limit = tib->StackLimit;
-		MEMORY_BASIC_INFORMATION mbi;
-		query ((BYTE*)stack_base - PAGE_SIZE, mbi);
-		stack_top = mbi.AllocationBase;
-	}
+	// Current stack location
+	void* stack_begin = &stack_begin;
+	void* stack_end = current_TIB ()->StackBase;
 
-	bool src_in_stack = false, dst_in_stack = false;
-	if (src >= stack_limit) {
-		if (
-			(src_in_stack = src < stack_base)
-		&&
-			(flags & Memory::DECOMMIT)	// Memory::RELEASE also includes flag DECOMMIT.
-		)
-			throw BAD_PARAM ();
-	} else if (stack_top <= src)
-		throw BAD_PARAM ();
+	bool src_in_stack = is_current_stack (src), dst_in_stack = false;
 
 	void* ret = 0;
 	SIZE_T src_align = (SIZE_T)src % ALLOCATION_GRANULARITY;
@@ -366,10 +343,7 @@ inline void* MemoryWindows::copy (void* dst, void* src, SIZE_T size, LONG flags)
 					}
 				}
 			} else {
-				if (dst >= stack_limit)
-					dst_in_stack = dst < stack_base;
-				else if (stack_top <= dst)
-					throw BAD_PARAM ();
+				dst_in_stack = is_current_stack (dst);
 				sm_space.check_allocated (dst, size);
 				ret = dst;
 			}

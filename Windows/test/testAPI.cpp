@@ -6,7 +6,7 @@
 #define PAGE_SIZE 4096
 #define ALLOCATION_GRANULARITY (16 * PAGE_SIZE)
 
-namespace unittests {
+namespace TestAPI {
 
 BOOL handles_equal (HANDLE h0, HANDLE h1)
 {

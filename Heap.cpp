@@ -32,6 +32,59 @@ Pointer HeapBase::allocate (Directory* part, UWord size, UWord allocation_unit)
 	return 0;
 }
 
+HeapBase::HeapBase (ULong allocation_unit) :
+	m_part_list (0)
+{
+	if (allocation_unit <= HEAP_UNIT_MIN)
+		m_allocation_unit = HEAP_UNIT_MIN;
+	else if (allocation_unit >= HEAP_UNIT_MAX)
+		m_allocation_unit = HEAP_UNIT_MAX;
+	else
+		m_allocation_unit = (UWord)1 << (32 - nlz (allocation_unit - 1));
+}
+
+HeapBase::~HeapBase ()
+{
+	for (Partition* p = m_part_list; p;) {
+		Partition* next = p->next;
+		p->destroy ();
+		p = next;
+	}
+}
+
+bool HeapBase::Partition::allocate (Pointer p, UWord size, Flags flags) const
+{
+	Directory* dir = directory ();
+	Octet* heap = (Octet*)(dir + 1);
+	UWord offset = (Octet*)p - heap;
+	UWord au = allocation_unit ();
+	UWord begin = offset / au;
+	UWord end;
+
+	if (flags & Memory::EXACTLY)
+		end = (offset + size + au - 1) / au;
+	else
+		end = begin + (size + au - 1) / au;
+	
+	if (dir->allocate (begin, end, g_protection_domain_memory)) {
+		if (!(flags & Memory::EXACTLY))
+			p = heap + begin * au;
+
+		try {
+			commit_heap (p, size);
+		} catch (...) {
+			release (p, size);
+			throw;
+		}
+
+		if (flags & Memory::ZERO_INIT)
+			zero ((Octet*)p, (Octet*)p + size);
+
+		return true;
+	}
+	return false;
+}
+
 HeapBase::Partition& Heap32::add_partition (Directory* part, UWord allocation_unit)
 {
 	assert (valid_address (part));
@@ -135,15 +188,15 @@ Pointer Heap::allocate (UWord size)
 				Partition* next_part = 0;
 				if (atomic_compare_exchange_strong ((volatile atomic <Partition*>*)&last_part->next, &next_part, &new_part))
 					next_part = &new_part;
-				if (p = HeapBase::allocate (*next_part, size)) {
+				if (p = next_part->allocate (size)) {
 					if (next_part != &new_part)
-						new_part.release ();
+						new_part.destroy ();
 					break;
 				} else
 					last_part = next_part;
 			}
 		} catch (...) {
-			new_part.release ();
+			new_part.destroy ();
 			throw;
 		}
 	}

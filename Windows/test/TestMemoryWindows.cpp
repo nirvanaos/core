@@ -1,7 +1,7 @@
 #include "../MemoryWindows.h"
 #include <gtest/gtest.h>
 
-namespace unittests {
+namespace TestMemoryWindows {
 
 using namespace ::Nirvana;
 using namespace ::Nirvana::Windows;
@@ -276,17 +276,6 @@ TEST_F (TestMemoryWindows, SmallBlock)
 		ASSERT_EQ (copy, block);
 	}
 	MemoryWindows::release (block, sizeof (int));
-}
-
-inline NT_TIB* current_TIB ()
-{
-#ifdef _M_IX86
-	return (NT_TIB*)__readfsdword (0x18);
-#elif _M_AMD64
-	return (NT_TIB*)__readgsqword (0x30);
-#else
-#error Only x86 and x64 platforms supported.
-#endif
 }
 
 void stack_test (void* limit, bool first)
