@@ -69,6 +69,16 @@ protected:
 			dir->release (begin, end, g_protection_domain_memory, false, heap, au);
 		}
 
+		bool contains (const void* p) const
+		{
+			if (dir_and_unit) {
+				Octet* begin = (Octet*)(directory () + 1);
+				Octet* end = begin + allocation_unit () * Directory::UNIT_COUNT;
+				return p >= begin && p < end;
+			}
+			return false;
+		}
+
 		UWord dir_and_unit;
 		Partition* next;
 	};
@@ -353,14 +363,6 @@ private:
 
 	Partition& create_partition () const;
 
-	const Partition* get_partition (const void* address) const
-	{
-		const Partition* part = HeapBaseT::get_partition (address);
-		if (part && (part->directory () + 1) <= address)
-			return part;
-		return 0;
-	}
-
 private:
 	bool m_no_destroy;
 };
@@ -381,8 +383,12 @@ inline Pointer Heap::allocate (Pointer p, UWord size, Flags flags)
 					return 0;
 				else
 					p = 0;
-		} else
-			p = g_protection_domain_memory->allocate (p, size, flags);
+		} else if (
+			!(p = g_protection_domain_memory->allocate (p, size, flags | Memory::EXACTLY))
+			&&
+			(flags & Memory::EXACTLY)
+		)
+			return 0;
 	}
 
 	if (!p) {
@@ -397,7 +403,7 @@ inline Pointer Heap::allocate (Pointer p, UWord size, Flags flags)
 			if (flags & Memory::ZERO_INIT)
 				zero ((Octet*)p, (Octet*)p + size);
 		} else
-			p = g_protection_domain_memory->allocate (p, size, flags);
+			p = g_protection_domain_memory->allocate (0, size, flags);
 	} 
 
 	return p;

@@ -355,7 +355,7 @@ TYPED_TEST (TestHeapDirectory, Random)
 {
 	EXPECT_TRUE (this->m_directory->empty ());
 
-	RandomAllocator ra (1);
+	RandomAllocator ra;
 	static const int ITERATIONS = 1000;
 	static const int ALLOC_ITERATIONS = 1000;
 	for (int i = 0; i < ITERATIONS; ++i) {

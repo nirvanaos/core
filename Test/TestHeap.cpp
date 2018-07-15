@@ -102,7 +102,7 @@ void RandomAllocator::run (Memory_ptr memory, int iterations)
 		bool rel = !m_allocated.empty () 
 			&& (total >= MAX_MEMORY || bernoulli_distribution ((double)total / (double)MAX_MEMORY)(m_rndgen));
 		if (!rel) {
-			ULong size = poisson_distribution <> (4)(m_rndgen) * sizeof (UWord);
+			ULong size = poisson_distribution <> (16)(m_rndgen) * sizeof (UWord);
 			if (!size)
 				size = sizeof (UWord);
 			else if (size > MAX_BLOCK)
@@ -137,6 +137,7 @@ class AllocatedBlocks :
 {
 public:
 	void add (const vector <Block>& blocks);
+	void check (Memory_ptr memory);
 };
 
 void AllocatedBlocks::add (const vector <Block>& blocks)
@@ -159,16 +160,29 @@ void AllocatedBlocks::add (const vector <Block>& blocks)
 	}
 }
 
+void AllocatedBlocks::check (Memory_ptr memory)
+{
+	for (auto p = cbegin (); p != cend (); ++p) {
+		memory->release (p->begin, (p->end - p->begin) * sizeof (UWord));
+		UWord* bl = (UWord*)memory->allocate (p->begin, (p->end - p->begin) * sizeof (UWord), Memory::EXACTLY);
+		assert (bl);
+		ASSERT_EQ (p->begin, bl);
+		*(p->begin) = p->tag;
+		*(p->end - 1) = p->tag;
+	}
+}
+
 TEST_F (TestHeap, Random)
 {
-	RandomAllocator ra (1);
-	static const int ITERATIONS = 1000;
+	RandomAllocator ra;
+	static const int ITERATIONS = 100;
 	static const int ALLOC_ITERATIONS = 1000;
 	for (int i = 0; i < ITERATIONS; ++i) {
 		ra.run (g_default_heap, ALLOC_ITERATIONS);
 
 		AllocatedBlocks checker;
 		ASSERT_NO_FATAL_FAILURE (checker.add (ra.allocated ()));
+		ASSERT_NO_FATAL_FAILURE (checker.check (g_default_heap));
 	}
 
 	for (auto p = ra.allocated ().cbegin (); p != ra.allocated ().cend (); ++p)

@@ -20,6 +20,7 @@ Pointer HeapBase::allocate (Directory* part, UWord size, UWord allocation_unit)
 	UWord units = (size + allocation_unit - 1) / allocation_unit;
 	Word unit = part->allocate (units, g_protection_domain_memory);
 	if (unit >= 0) {
+		assert (unit < Directory::UNIT_COUNT);
 		Pointer p = (Octet*)(part + 1) + unit * allocation_unit;
 		try {
 			commit_heap (p, size);
@@ -100,14 +101,21 @@ const HeapBase::Partition* Heap32::get_partition (const void* address)
 {
 	if (!valid_address (address))
 		throw BAD_PARAM ();
-	const Partition* p = sm_part_table + ((Octet*)address - sm_space_begin) / MIN_PARTITION_SIZE;
-	if (
-		(!sparse_table (table_bytes ()) || g_protection_domain_memory->is_readable (p, sizeof (Partition)))
-	&&
-		p->dir_and_unit
-	)
-		return p;
+	UWord idx = ((Octet*)address - sm_space_begin) / MIN_PARTITION_SIZE;
+	UWord prev = idx ? idx - 1 : 0;
+	for (;;) {
+		const Partition* p = sm_part_table + idx;
+		if (
+			(!sparse_table (table_bytes ()) || g_protection_domain_memory->is_readable (p, sizeof (Partition)))
+			&&
+			p->contains (address)
+		)
+			return p;
 
+		if (idx == prev)
+			break;
+		--idx;
+	}
 	return 0;
 }
 
@@ -146,21 +154,25 @@ const HeapBase::Partition* Heap64::get_partition (const void* address)
 	if (!valid_address (address))
 		throw BAD_PARAM ();
 
-	UWord idx = ((Octet*)address - sm_space_begin) / MIN_PARTITION_SIZE;
-	UWord i0 = idx / sm_table_block_size;
-	UWord i1 = idx % sm_table_block_size;
-	Partition* const* pblock = sm_part_table + i0;
-	if (!sparse_table (table_bytes ()) || g_protection_domain_memory->is_readable (pblock, sizeof (Partition*))) {
-		const Partition* p = *pblock;
-		if (p) {
-			p += i1;
-			if (
-				(sm_table_block_size * sizeof (Partition) <= sm_commit_unit || g_protection_domain_memory->is_readable (p, sizeof (Partition)))
+	for (UWord idx = ((Octet*)address - sm_space_begin) / MIN_PARTITION_SIZE, prev = idx ? idx - 1 : 0;;) {
+		UWord i0 = idx / sm_table_block_size;
+		UWord i1 = idx % sm_table_block_size;
+		Partition* const* pblock = sm_part_table + i0;
+		if (!sparse_table (table_bytes ()) || g_protection_domain_memory->is_readable (pblock, sizeof (Partition*))) {
+			const Partition* p = *pblock;
+			if (p) {
+				p += i1;
+				if (
+					(sm_table_block_size * sizeof (Partition) <= sm_commit_unit || g_protection_domain_memory->is_readable (p, sizeof (Partition)))
 				&&
-				p->dir_and_unit
-			)
-				return p;
+					p->contains (address)
+				)
+					return p;
+			}
 		}
+		if (idx == prev)
+			break;
+		--idx;
 	}
 
 	return 0;
