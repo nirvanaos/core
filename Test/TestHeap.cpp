@@ -208,7 +208,7 @@ public:
 TEST_F (TestHeap, MultiThread)
 {
 	const size_t thread_cnt = max (thread::hardware_concurrency (), (unsigned)2);
-	static const int ITERATIONS = 10;
+	static const int ITERATIONS = 50;
 	static const int THREAD_ITERATIONS = 1000;
 	vector <ThreadAllocator> threads;
 	threads.reserve (thread_cnt);

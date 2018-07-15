@@ -211,7 +211,7 @@ public:
 			m_state.state = State::INVALID;
 		}
 
-		void map (HANDLE mapping, MappingType protection);
+		void map (HANDLE mapping, MappingType protection, bool commit = false);
 
 		bool has_data_outside_of (SIZE_T offset, SIZE_T size, DWORD mask = PageState::MASK_ACCESS);
 
@@ -273,7 +273,7 @@ private:
 	}
 
 private:
-	static void raise_condition ()
+	static void concurrency ()
 	{
 		Sleep (0);
 	}

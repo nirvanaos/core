@@ -10,7 +10,8 @@ AddressSpace MemoryWindows::sm_space;
 PTOP_LEVEL_EXCEPTION_FILTER MemoryWindows::sm_exception_filter;
 
 DWORD MemoryWindows::Block::commit (SIZE_T offset, SIZE_T size)
-{
+{ // This operation must be thread-safe.
+
 	assert (offset + size <= ALLOCATION_GRANULARITY);
 
 	DWORD ret = 0;	// Page state bits in committed region
@@ -18,19 +19,14 @@ DWORD MemoryWindows::Block::commit (SIZE_T offset, SIZE_T size)
 	if (INVALID_HANDLE_VALUE == old_mapping) {
 		HANDLE hm = new_mapping ();
 		try {
-			map (hm, AddressSpace::MAP_PRIVATE);
-			if (size) {
-				if (!VirtualAlloc (address () + offset, size, MEM_COMMIT, PageState::RW_MAPPED_PRIVATE)) {
-					unmap ();
-					throw NO_MEMORY ();
-				}
-				ret = PageState::RW_MAPPED_PRIVATE;
-			}
+			map (hm, AddressSpace::MAP_PRIVATE, true);
 		} catch (...) {
 			CloseHandle (hm);
 			throw;
 		}
-	} else if (size) {
+	}
+	
+	if (size) {
 		const State& bs = state ();
 		Regions regions;	// Regions to commit.
 		auto region_begin = bs.mapped.page_state + offset / PAGE_SIZE, state_end = bs.mapped.page_state + (offset + size + PAGE_SIZE - 1) / PAGE_SIZE;
@@ -398,7 +394,7 @@ public:
 		// Reserve all stack.
 		while (!VirtualAlloc (m_allocation_base, m_stack_base - m_allocation_base, MEM_RESERVE, PAGE_READWRITE)) {
 			assert (ERROR_INVALID_ADDRESS == GetLastError ());
-			AddressSpace::raise_condition ();
+			AddressSpace::concurrency ();
 		}
 
 		// Mark blocks as free
@@ -564,7 +560,7 @@ LONG CALLBACK MemoryWindows::exception_filter (struct _EXCEPTION_POINTERS* pex)
 			MEMORY_BASIC_INFORMATION mbi;
 			verify (VirtualQuery (address, &mbi, sizeof (mbi)));
 			if (MEM_MAPPED != mbi.Type) {
-				AddressSpace::raise_condition ();
+				AddressSpace::concurrency ();
 				return EXCEPTION_CONTINUE_EXECUTION;
 			} else if (!(mbi.Protect & PageState::MASK_ACCESS))
 				throw MEM_NOT_COMMITTED ();
@@ -599,7 +595,7 @@ void MemoryWindows::se_translator (unsigned int, struct _EXCEPTION_POINTERS* pex
 			MEMORY_BASIC_INFORMATION mbi;
 			verify (VirtualQuery (address, &mbi, sizeof (mbi)));
 			if (MEM_MAPPED != mbi.Type) {
-				AddressSpace::raise_condition ();
+				AddressSpace::concurrency ();
 				return;
 			} else if (!(mbi.Protect & PageState::MASK_ACCESS))
 				throw MEM_NOT_COMMITTED ();

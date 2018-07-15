@@ -19,7 +19,16 @@ const AddressSpace::Block::State& AddressSpace::Block::state ()
 {
 	if (State::INVALID == m_state.state) {
 		MEMORY_BASIC_INFORMATION mbi;
-		m_space.query (m_address, mbi);
+		for (;;) {
+			// Concurrency
+			m_space.query (m_address, mbi);
+			HANDLE hm = mapping ();
+			assert (hm);
+			if (!hm || INVALID_HANDLE_VALUE == hm || mbi.Type == MEM_MAPPED)
+				break;
+			concurrency ();
+		}
+
 		DWORD page_state_bits = mbi.Protect;
 		if (mbi.Type == MEM_MAPPED) {
 			assert (mapping () != INVALID_HANDLE_VALUE);
@@ -53,12 +62,16 @@ const AddressSpace::Block::State& AddressSpace::Block::state ()
 	return m_state;
 }
 
-void AddressSpace::Block::map (HANDLE mapping, MappingType protection)
+void AddressSpace::Block::map (HANDLE mapping, MappingType protection, bool commit)
 {
 	assert (mapping);
 
 	invalidate_state ();
-	HANDLE old = InterlockedExchangePointer (&m_info.mapping, mapping);
+	HANDLE old = commit ?
+		InterlockedCompareExchangePointer (&m_info.mapping, mapping, INVALID_HANDLE_VALUE)
+		:
+		InterlockedExchangePointer (&m_info.mapping, mapping);
+	
 	if (old == INVALID_HANDLE_VALUE) {
 		MEMORY_BASIC_INFORMATION mbi;
 		m_space.query (m_address, mbi);
@@ -70,17 +83,21 @@ void AddressSpace::Block::map (HANDLE mapping, MappingType protection)
 		if (realloc_begin > 0) {
 			while (!VirtualAllocEx (m_space.process (), reserved_begin, realloc_begin, MEM_RESERVE, mbi.AllocationProtect)) {
 				assert (ERROR_INVALID_ADDRESS == GetLastError ());
-				raise_condition ();
+				concurrency ();
 			}
 		}
 		if (realloc_end > 0) {
 			BYTE* end = m_address + ALLOCATION_GRANULARITY;
 			while (!VirtualAllocEx (m_space.process (), end, realloc_end, MEM_RESERVE, mbi.AllocationProtect)) {
 				assert (ERROR_INVALID_ADDRESS == GetLastError ());
-				raise_condition ();
+				concurrency ();
 			}
 		}
 	} else if (old) {
+		if (commit) {
+			CloseHandle (mapping);
+			return;
+		}
 		verify (UnmapViewOfFile2 (m_space.process (), m_address, 0));
 		verify (CloseHandle (old));
 	} else {
@@ -90,7 +107,7 @@ void AddressSpace::Block::map (HANDLE mapping, MappingType protection)
 
 	while (!MapViewOfFile2 (mapping, m_space.process (), 0, m_address, ALLOCATION_GRANULARITY, 0, protection)) {
 		assert (ERROR_INVALID_ADDRESS == GetLastError ());
-		raise_condition ();
+		concurrency ();
 	}
 }
 
@@ -109,7 +126,7 @@ void AddressSpace::Block::unmap (HANDLE reserve, bool no_close_handle)
 		if (reserve)
 			while (!VirtualAllocEx (m_space.process (), m_address, ALLOCATION_GRANULARITY, MEM_RESERVE, PAGE_NOACCESS)) {
 				assert (ERROR_INVALID_ADDRESS == GetLastError ());
-				raise_condition ();
+				concurrency ();
 			}
 	}
 }
@@ -602,7 +619,7 @@ void* AddressSpace::reserve (SIZE_T size, LONG flags, void* dst)
 		while (pb > p)
 			block (pb -= ALLOCATION_GRANULARITY).mapping = 0;
 		verify (VirtualFreeEx (m_process, p, 0, MEM_RELEASE));
-		raise_condition ();
+		concurrency ();
 	}
 	if (dst && (flags & Memory::EXACTLY))
 		return dst;
@@ -647,7 +664,7 @@ void AddressSpace::release (void* dst, SIZE_T size)
 				verify (VirtualFreeEx (m_process, begin_mbi.AllocationBase, 0, MEM_RELEASE));
 				while (!VirtualAllocEx (m_process, begin_mbi.AllocationBase, realloc, MEM_RESERVE, PAGE_NOACCESS)) {
 					assert (ERROR_INVALID_ADDRESS == GetLastError ());
-					raise_condition ();
+					concurrency ();
 				}
 			}
 		}
@@ -659,7 +676,7 @@ void AddressSpace::release (void* dst, SIZE_T size)
 					verify (VirtualFreeEx (m_process, end_mbi.AllocationBase, 0, MEM_RELEASE));
 				while (!VirtualAllocEx (m_process, end, realloc, MEM_RESERVE, PAGE_NOACCESS)) {
 					assert (ERROR_INVALID_ADDRESS == GetLastError ());
-					raise_condition ();
+					concurrency ();
 				}
 			}
 		}
@@ -696,7 +713,6 @@ void AddressSpace::release (void* dst, SIZE_T size)
 void* AddressSpace::map (HANDLE mapping, MappingType protection)
 {
 	assert (mapping);
-	assert (protection == MAP_SHARED || is_current_process ());
 	for (;;) {
 		void* p = MapViewOfFile2 (mapping, m_process, 0, 0, ALLOCATION_GRANULARITY, 0, protection);
 		if (!p)
@@ -709,7 +725,7 @@ void* AddressSpace::map (HANDLE mapping, MappingType protection)
 			throw;
 		}
 		UnmapViewOfFile2 (m_process, p, 0);
-		raise_condition ();
+		concurrency ();
 	}
 }
 
