@@ -189,4 +189,50 @@ TEST_F (TestHeap, Random)
 		g_default_heap->release (p->begin, (p->end - p->begin) * sizeof (UWord));
 }
 
+class ThreadAllocator :
+	public RandomAllocator,
+	public thread
+{
+public:
+	ThreadAllocator (unsigned seed) :
+		RandomAllocator (seed)
+	{}
+
+	void run (Memory_ptr memory, int iterations)
+	{
+		thread t (&RandomAllocator::run, this, memory, iterations);
+		swap (t);
+	}
+};
+
+TEST_F (TestHeap, MultiThread)
+{
+	const size_t thread_cnt = max (thread::hardware_concurrency (), (unsigned)2);
+	static const int ITERATIONS = 10;
+	static const int THREAD_ITERATIONS = 1000;
+	vector <ThreadAllocator> threads;
+	threads.reserve (thread_cnt);
+	for (unsigned i = 0; i < thread_cnt; ++i)
+		threads.emplace_back (i + 1);
+
+	for (int i = 0; i < ITERATIONS; ++i) {
+		for (auto p = threads.begin (); p != threads.end (); ++p)
+			p->run (g_default_heap, THREAD_ITERATIONS);
+
+		for (auto p = threads.begin (); p != threads.end (); ++p)
+			p->join ();
+
+		AllocatedBlocks checker;
+		for (auto pt = threads.begin (); pt != threads.end (); ++pt)
+			ASSERT_NO_FATAL_FAILURE (checker.add (pt->allocated ()));
+
+		ASSERT_NO_FATAL_FAILURE (checker.check (g_default_heap));
+	}
+
+	for (auto pt = threads.begin (); pt != threads.end (); ++pt) {
+		for (auto p = pt->allocated ().cbegin (); p != pt->allocated ().cend (); ++p)
+			g_default_heap->release (p->begin, (p->end - p->begin) * sizeof (UWord));
+	}
+}
+
 }

@@ -183,7 +183,13 @@ protected:
 
 	static Partition& add_partition (Directory* part, UWord allocation_unit);
 
-	static const Partition* get_partition (const void* address);
+	static const Partition* partition (UWord idx)
+	{
+		const Partition* p = sm_part_table + idx;
+		if (!sparse_table (table_bytes ()) || g_protection_domain_memory->is_readable (p, sizeof (Partition)))
+			return p;
+		return 0;
+	}
 
 	Heap32 (ULong allocation_unit) :
 		HeapBase (allocation_unit)
@@ -226,7 +232,21 @@ protected:
 
 	static Partition& add_partition (Directory* part, UWord allocation_unit);
 
-	static const Partition* get_partition (const void* address);
+	static const Partition* partition (UWord idx)
+	{
+		UWord i0 = idx / sm_table_block_size;
+		UWord i1 = idx % sm_table_block_size;
+		Partition* const* pblock = sm_part_table + i0;
+		if (!sparse_table (table_bytes ()) || g_protection_domain_memory->is_readable (pblock, sizeof (Partition*))) {
+			const Partition* p = *pblock;
+			if (p) {
+				p += i1;
+				if (sm_table_block_size * sizeof (Partition) <= sm_commit_unit || g_protection_domain_memory->is_readable (p, sizeof (Partition)))
+					return p;
+			}
+		}
+		return 0;
+	}
 
 	Heap64 (ULong allocation_unit) :
 		HeapBase (allocation_unit)
@@ -276,7 +296,7 @@ public:
 
 	void decommit (Pointer p, UWord size)
 	{
-		if (!HeapBaseT::get_partition (p))
+		if (!get_partition (p))
 			g_protection_domain_memory->decommit (p, size);
 	}
 
@@ -360,8 +380,8 @@ private:
 
 private:
 	Pointer allocate (UWord size);
-
 	Partition& create_partition () const;
+	static const Partition* get_partition (const void* address);
 
 private:
 	bool m_no_destroy;

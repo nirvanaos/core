@@ -97,28 +97,6 @@ HeapBase::Partition& Heap32::add_partition (Directory* part, UWord allocation_un
 	return *p;
 }
 
-const HeapBase::Partition* Heap32::get_partition (const void* address)
-{
-	if (!valid_address (address))
-		throw BAD_PARAM ();
-	UWord idx = ((Octet*)address - sm_space_begin) / MIN_PARTITION_SIZE;
-	UWord prev = idx ? idx - 1 : 0;
-	for (;;) {
-		const Partition* p = sm_part_table + idx;
-		if (
-			(!sparse_table (table_bytes ()) || g_protection_domain_memory->is_readable (p, sizeof (Partition)))
-			&&
-			p->contains (address)
-		)
-			return p;
-
-		if (idx == prev)
-			break;
-		--idx;
-	}
-	return 0;
-}
-
 HeapBase::Partition& Heap64::add_partition (Directory* part, UWord allocation_unit)
 {
 	assert (valid_address (part));
@@ -149,35 +127,6 @@ HeapBase::Partition& Heap64::add_partition (Directory* part, UWord allocation_un
 	return *p;
 }
 
-const HeapBase::Partition* Heap64::get_partition (const void* address)
-{
-	if (!valid_address (address))
-		throw BAD_PARAM ();
-
-	for (UWord idx = ((Octet*)address - sm_space_begin) / MIN_PARTITION_SIZE, prev = idx ? idx - 1 : 0;;) {
-		UWord i0 = idx / sm_table_block_size;
-		UWord i1 = idx % sm_table_block_size;
-		Partition* const* pblock = sm_part_table + i0;
-		if (!sparse_table (table_bytes ()) || g_protection_domain_memory->is_readable (pblock, sizeof (Partition*))) {
-			const Partition* p = *pblock;
-			if (p) {
-				p += i1;
-				if (
-					(sm_table_block_size * sizeof (Partition) <= sm_commit_unit || g_protection_domain_memory->is_readable (p, sizeof (Partition)))
-				&&
-					p->contains (address)
-				)
-					return p;
-			}
-		}
-		if (idx == prev)
-			break;
-		--idx;
-	}
-
-	return 0;
-}
-
 Heap::Partition& Heap::create_partition () const
 {
 	Directory* dir = HeapBase::create_partition (m_allocation_unit);
@@ -187,6 +136,29 @@ Heap::Partition& Heap::create_partition () const
 		g_protection_domain_memory->release (dir, partition_size (m_allocation_unit));
 		throw;
 	}
+}
+
+const HeapBase::Partition* Heap::get_partition (const void* address)
+{
+	if (!valid_address (address))
+		throw BAD_PARAM ();
+	UWord off = (Octet*)address - sm_space_begin;
+	UWord idx = off / MIN_PARTITION_SIZE;
+	UWord rem = off % MIN_PARTITION_SIZE;
+	UWord prev = idx ? idx - 1 : 0;
+	if (rem < sizeof (Directory))
+		--idx;
+
+	for (;;) {
+		const Partition* p = partition (idx);
+		if (p && p->contains (address))
+			return p;
+
+		if (idx == prev)
+			break;
+		--idx;
+	}
+	return 0;
 }
 
 Pointer Heap::allocate (UWord size)
