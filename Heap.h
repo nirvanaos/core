@@ -412,7 +412,9 @@ inline Pointer Heap::allocate (Pointer p, UWord size, Flags flags)
 	}
 
 	if (!p) {
-		if (size <= Directory::MAX_BLOCK_SIZE * m_allocation_unit && !(flags & Memory::RESERVED)) {
+		if (size > Directory::MAX_BLOCK_SIZE * m_allocation_unit || ((flags & Memory::RESERVED) && size >= sm_optimal_commit_unit))
+			p = g_protection_domain_memory->allocate (0, size, flags);
+		else {
 			try {
 				p = allocate (size);
 			} catch (const NO_MEMORY&) {
@@ -422,8 +424,7 @@ inline Pointer Heap::allocate (Pointer p, UWord size, Flags flags)
 			}
 			if (flags & Memory::ZERO_INIT)
 				zero ((Octet*)p, (Octet*)p + size);
-		} else
-			p = g_protection_domain_memory->allocate (0, size, flags);
+		}
 	} 
 
 	return p;
@@ -453,6 +454,8 @@ inline Pointer Heap::copy (Pointer dst, Pointer src, UWord size, Flags flags)
 inline Word Heap::query (ConstPointer p, Memory::QueryParam param)
 {
 	if (Memory::ALLOCATION_UNIT == param) {
+		if (!p)
+			return m_allocation_unit;
 		const Partition* part = get_partition (p);
 		if (part)
 			return part->allocation_unit ();
