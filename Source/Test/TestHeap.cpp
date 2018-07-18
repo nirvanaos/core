@@ -55,14 +55,14 @@ TEST_F (TestHeap, Heap)
 	Memory_ptr heap = g_heap_factory->create_with_granularity (GRANULARITY);
 	EXPECT_EQ (GRANULARITY, heap->query (0, Memory::ALLOCATION_UNIT));
 
-	for (size_t i = 0; i < COUNT; ++i) {
+	for (int i = 0; i < COUNT; ++i) {
 		blocks [i] = heap->allocate (0, BLOCK_SIZE, 0);
 		ASSERT_TRUE (blocks [i]);
 		Word au = heap->query (blocks [i], Memory::ALLOCATION_UNIT);
 		ASSERT_EQ (GRANULARITY, au);
 	}
 	
-	for (size_t i = 0; i < COUNT; ++i) {
+	for (int i = COUNT - 1; i >= 0; --i) {
 		heap->release (blocks [i], BLOCK_SIZE);
 	}
 

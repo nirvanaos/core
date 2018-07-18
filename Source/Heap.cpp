@@ -117,7 +117,7 @@ HeapBase::Partition& Heap64::add_partition (Directory* part, UWord allocation_un
 	UWord i1 = idx % sm_table_block_size;
 	Partition** pblock = sm_part_table + i0;
 	if (sparse_table (table_bytes ()))
-		g_protection_domain_memory->commit (pblock, (end / sm_table_block_size - i0) * sizeof (Partition*));
+		g_protection_domain_memory->commit (pblock, ((end + sm_table_block_size - 1) / sm_table_block_size - i0) * sizeof (Partition*));
 
 	Partition* ret = 0;
 	UWord block_size = sm_table_block_size * sizeof (Partition);
