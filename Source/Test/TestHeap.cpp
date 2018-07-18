@@ -48,10 +48,24 @@ TEST_F (TestHeap, Allocate)
 
 TEST_F (TestHeap, Heap)
 {
-	Memory_ptr heap = g_heap_factory->create ();
-	int* p = (int*)heap->allocate (0, sizeof (int), Memory::ZERO_INIT);
-	*p = 1;
-	heap->release (p, sizeof (int));
+	static const UWord GRANULARITY = 128;
+	static const UWord BLOCK_SIZE = GRANULARITY * 128;
+	static const UWord COUNT = 1024 * 1024 * 4 / 16 * GRANULARITY / BLOCK_SIZE;
+	void* blocks [COUNT];
+	Memory_ptr heap = g_heap_factory->create_with_granularity (GRANULARITY);
+	EXPECT_EQ (GRANULARITY, heap->query (0, Memory::ALLOCATION_UNIT));
+
+	for (size_t i = 0; i < COUNT; ++i) {
+		blocks [i] = heap->allocate (0, BLOCK_SIZE, 0);
+		ASSERT_TRUE (blocks [i]);
+		Word au = heap->query (blocks [i], Memory::ALLOCATION_UNIT);
+		ASSERT_EQ (GRANULARITY, au);
+	}
+	
+	for (size_t i = 0; i < COUNT; ++i) {
+		heap->release (blocks [i], BLOCK_SIZE);
+	}
+
 	release (heap);
 }
 
