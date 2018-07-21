@@ -1,4 +1,4 @@
-#include "../core.h"
+#include "../Source/core.h"
 #include <gtest/gtest.h>
 #include <random>
 #include <thread>
@@ -28,14 +28,14 @@ protected:
 	{
 		// Code here will be called immediately after the constructor (right
 		// before each test).
-		::Nirvana::initialize ();
+		::Nirvana::Core::initialize ();
 	}
 
 	virtual void TearDown ()
 	{
 		// Code here will be called immediately after each test (right
 		// before the destructor).
-		::Nirvana::terminate ();
+		::Nirvana::Core::terminate ();
 	}
 };
 

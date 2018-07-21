@@ -1,11 +1,11 @@
-#include "../HeapDirectory.h"
+#include <HeapDirectory.h>
 #include <gtest/gtest.h>
 #include <random>
 #include <thread>
 #include <atomic>
 #include <vector>
 #include <set>
-#include "../core.h"
+#include "../Source/core.h"
 
 using namespace ::Nirvana;
 using namespace ::std;
@@ -21,13 +21,13 @@ public:
 	static void initialize ()
 	{
 		if (PROT)
-			::Nirvana::initialize ();
+			::Nirvana::Core::initialize ();
 	}
 
 	static void terminate ()
 	{
 		if (PROT)
-			::Nirvana::terminate ();
+			::Nirvana::Core::terminate ();
 	}
 
 	static DirectoryType* create ()

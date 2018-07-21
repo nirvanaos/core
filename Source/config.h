@@ -7,6 +7,7 @@
 #include <BasicTypes.h>
 
 namespace Nirvana {
+namespace Core {
 
 using namespace ::CORBA;
 
@@ -45,6 +46,7 @@ const UWord HEAP_HEADER_SIZE = 0x10000;
 const ULong HEAP_DIRECTORY_SIZE = 0x10000;
 const Boolean HEAP_DIRECTORY_USE_EXCEPTION = true;
 
+}
 }
 
 #endif
