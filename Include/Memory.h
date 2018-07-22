@@ -229,7 +229,7 @@ template <class S>
 class Skeleton <S, ::Nirvana::Memory>
 {
 public:
-	static const typename Bridge < ::Nirvana::Memory>::EPV sm_epv;
+	static const typename Bridge < ::Nirvana::Memory>::EPV epv_;
 
 	template <class Base>
 	static Bridge <Interface>* _find_interface (Base& base, const Char* id)
@@ -360,7 +360,7 @@ protected:
 };
 
 template <class S>
-const Bridge < ::Nirvana::Memory>::EPV Skeleton <S, ::Nirvana::Memory>::sm_epv = {
+const Bridge < ::Nirvana::Memory>::EPV Skeleton <S, ::Nirvana::Memory>::epv_ = {
 	{ // interface
 		S::template _duplicate < ::Nirvana::Memory>,
 		S::template _release < ::Nirvana::Memory>

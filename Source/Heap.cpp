@@ -6,10 +6,10 @@ namespace Core {
 
 using namespace std;
 
-UWord HeapBase::sm_commit_unit;
-UWord HeapBase::sm_optimal_commit_unit;
-Octet* HeapBase::sm_space_begin;
-Octet* HeapBase::sm_space_end;
+UWord HeapBase::commit_unit_;
+UWord HeapBase::optimal_commit_unit_;
+Octet* HeapBase::space_begin_;
+Octet* HeapBase::space_end_;
 
 HeapBase::Partition* Heap32::sm_part_table;
 
@@ -35,14 +35,14 @@ Pointer HeapBase::allocate(Directory* part, UWord size, UWord allocation_unit)
 }
 
 HeapBase::HeapBase(ULong allocation_unit) :
-	m_part_list(0)
+	part_list_(0)
 {
 	if (allocation_unit <= HEAP_UNIT_MIN)
-		m_allocation_unit = HEAP_UNIT_MIN;
+		allocation_unit_ = HEAP_UNIT_MIN;
 	else if (allocation_unit >= HEAP_UNIT_MAX)
-		m_allocation_unit = HEAP_UNIT_MAX;
+		allocation_unit_ = HEAP_UNIT_MAX;
 	else
-		m_allocation_unit = (UWord)1 << (32 - nlz(allocation_unit - 1));
+		allocation_unit_ = (UWord)1 << (32 - nlz(allocation_unit - 1));
 }
 
 bool HeapBase::Partition::allocate(Pointer p, UWord size, Flags flags) const
@@ -81,7 +81,7 @@ bool HeapBase::Partition::allocate(Pointer p, UWord size, Flags flags) const
 HeapBase::Partition& Heap32::add_partition(Directory* part, UWord allocation_unit)
 {
 	assert(valid_address(part));
-	UWord offset = (Octet*)part - sm_space_begin;
+	UWord offset = (Octet*)part - space_begin_;
 	Partition* begin = sm_part_table + offset / MIN_PARTITION_SIZE;
 	Partition* end = sm_part_table + (offset + partition_size(allocation_unit)) / MIN_PARTITION_SIZE;
 	if (sparse_table(table_bytes()))
@@ -94,7 +94,7 @@ HeapBase::Partition& Heap32::add_partition(Directory* part, UWord allocation_uni
 void Heap32::remove_partition(Partition& part)
 {
 	Partition* begin = &part;
-	Partition* end = sm_part_table + ((Octet*)begin->directory() + partition_size(begin->allocation_unit()) - sm_space_begin) / MIN_PARTITION_SIZE;
+	Partition* end = sm_part_table + ((Octet*)begin->directory() + partition_size(begin->allocation_unit()) - space_begin_) / MIN_PARTITION_SIZE;
 	for (Partition* p = begin; p != end; ++p)
 		p->clear();
 }
@@ -110,7 +110,7 @@ inline const HeapBase::Partition* Heap32::partition(UWord idx)
 HeapBase::Partition& Heap64::add_partition(Directory* part, UWord allocation_unit)
 {
 	assert(valid_address(part));
-	UWord offset = (Octet*)part - sm_space_begin;
+	UWord offset = (Octet*)part - space_begin_;
 	UWord idx = offset / MIN_PARTITION_SIZE;
 	UWord end = (offset + partition_size(allocation_unit)) / MIN_PARTITION_SIZE;
 	UWord cnt = end - idx;
@@ -134,7 +134,7 @@ HeapBase::Partition& Heap64::add_partition(Directory* part, UWord allocation_uni
 				block = cur;
 			}
 		} else
-			commit = block_size > sm_commit_unit;
+			commit = block_size > commit_unit_;
 
 		Partition* p = block + i1;
 		if (!ret)
@@ -160,7 +160,7 @@ HeapBase::Partition& Heap64::add_partition(Directory* part, UWord allocation_uni
 
 void Heap64::remove_partition(Partition& part)
 {
-	UWord offset = (Octet*)part.directory() - sm_space_begin;
+	UWord offset = (Octet*)part.directory() - space_begin_;
 	UWord idx = offset / MIN_PARTITION_SIZE;
 	UWord end = (offset + partition_size(part.allocation_unit())) / MIN_PARTITION_SIZE;
 	UWord cnt = end - idx;
@@ -195,7 +195,7 @@ const HeapBase::Partition* Heap64::partition(UWord idx)
 		const Partition* p = *pblock;
 		if (p) {
 			p += i1;
-			if (sm_table_block_size * sizeof(Partition) <= sm_commit_unit || g_protection_domain_memory->is_readable(p, sizeof(Partition)))
+			if (sm_table_block_size * sizeof(Partition) <= commit_unit_ || g_protection_domain_memory->is_readable(p, sizeof(Partition)))
 				return p;
 		}
 	}
@@ -204,11 +204,11 @@ const HeapBase::Partition* Heap64::partition(UWord idx)
 
 Heap::Partition& Heap::create_partition() const
 {
-	Directory* dir = HeapBase::create_partition(m_allocation_unit);
+	Directory* dir = HeapBase::create_partition(allocation_unit_);
 	try {
-		return add_partition(dir, m_allocation_unit);
+		return add_partition(dir, allocation_unit_);
 	} catch (...) {
-		g_protection_domain_memory->release(dir, partition_size(m_allocation_unit));
+		g_protection_domain_memory->release(dir, partition_size(allocation_unit_));
 		throw;
 	}
 }
@@ -225,7 +225,7 @@ const HeapBase::Partition* Heap::get_partition(const void* address)
 {
 	if (!valid_address(address))
 		throw BAD_PARAM();
-	UWord off = (Octet*)address - sm_space_begin;
+	UWord off = (Octet*)address - space_begin_;
 	UWord idx = off / MIN_PARTITION_SIZE;
 	UWord rem = off % MIN_PARTITION_SIZE;
 	UWord prev = idx ? idx - 1 : 0;
@@ -246,7 +246,7 @@ const HeapBase::Partition* Heap::get_partition(const void* address)
 
 Heap::~Heap()
 {
-	for (Partition* p = m_part_list; p;) {
+	for (Partition* p = part_list_; p;) {
 		Partition* next = p->next;
 		destroy_partition(*p);
 		p = next;

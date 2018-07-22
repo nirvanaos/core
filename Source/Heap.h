@@ -85,15 +85,15 @@ protected:
 	static void initialize()
 	{
 		assert(g_protection_domain_memory->query(0, Memory::ALLOCATION_UNIT) >= HEAP_UNIT_MAX);
-		sm_commit_unit = g_protection_domain_memory->query(0, Memory::COMMIT_UNIT);
-		sm_optimal_commit_unit = g_protection_domain_memory->query(0, Memory::OPTIMAL_COMMIT_UNIT);
-		sm_space_begin = (Octet*)g_protection_domain_memory->query(0, Memory::ALLOCATION_SPACE_BEGIN);
-		sm_space_end = (Octet*)g_protection_domain_memory->query(0, Memory::ALLOCATION_SPACE_END);
+		commit_unit_ = g_protection_domain_memory->query(0, Memory::COMMIT_UNIT);
+		optimal_commit_unit_ = g_protection_domain_memory->query(0, Memory::OPTIMAL_COMMIT_UNIT);
+		space_begin_ = (Octet*)g_protection_domain_memory->query(0, Memory::ALLOCATION_SPACE_BEGIN);
+		space_end_ = (Octet*)g_protection_domain_memory->query(0, Memory::ALLOCATION_SPACE_END);
 	}
 
 	static bool valid_address(const void* p)
 	{
-		return sm_space_begin <= (Octet*)p && (Octet*)p + 1 <= sm_space_end;
+		return space_begin_ <= (Octet*)p && (Octet*)p + 1 <= space_end_;
 	}
 
 	static UWord partition_size(const UWord allocation_unit)
@@ -105,7 +105,7 @@ protected:
 
 	static UWord max_partitions()
 	{
-		return ((sm_space_end - sm_space_begin) + MIN_PARTITION_SIZE - 1) / MIN_PARTITION_SIZE;
+		return ((space_end_ - space_begin_) + MIN_PARTITION_SIZE - 1) / MIN_PARTITION_SIZE;
 	}
 
 	HeapBase(ULong allocation_unit);
@@ -119,8 +119,8 @@ protected:
 
 	Pointer allocate(UWord size, Partition*& last_part)
 	{
-		assert(m_part_list);
-		for (Partition* part = m_part_list;;) {
+		assert(part_list_);
+		for (Partition* part = part_list_;;) {
 			Pointer p = part->allocate(size);
 			if (p)
 				return p;
@@ -136,8 +136,8 @@ protected:
 
 	static void commit_heap(void* p, UWord size)
 	{
-		Octet* commit_begin = round_down((Octet*)p, sm_optimal_commit_unit);
-		g_protection_domain_memory->commit(commit_begin, round_up((Octet*)p + size, sm_optimal_commit_unit) - commit_begin);
+		Octet* commit_begin = round_down((Octet*)p, optimal_commit_unit_);
+		g_protection_domain_memory->commit(commit_begin, round_up((Octet*)p + size, optimal_commit_unit_) - commit_begin);
 	}
 
 	static bool sparse_table(UWord table_bytes)
@@ -146,13 +146,13 @@ protected:
 	}
 
 protected:
-	UWord m_allocation_unit;
-	Partition* m_part_list;
+	UWord allocation_unit_;
+	Partition* part_list_;
 
-	static UWord sm_commit_unit;
-	static UWord sm_optimal_commit_unit;
-	static Octet* sm_space_begin;
-	static Octet* sm_space_end;
+	static UWord commit_unit_;
+	static UWord optimal_commit_unit_;
+	static Octet* space_begin_;
+	static Octet* space_end_;
 };
 
 class Heap32 : protected HeapBase
@@ -317,7 +317,7 @@ public:
 		HeapBaseT(allocation_unit),
 		m_no_destroy(false)
 	{
-		m_part_list = &create_partition();
+		part_list_ = &create_partition();
 	}
 
 	~Heap();
@@ -357,7 +357,7 @@ private:
 		HeapBaseT(HEAP_UNIT_DEFAULT),
 		m_no_destroy(true)
 	{
-		m_part_list = &first_part;
+		part_list_ = &first_part;
 	}
 
 private:
@@ -395,7 +395,7 @@ inline Pointer Heap::allocate(Pointer p, UWord size, Flags flags)
 	}
 
 	if (!p) {
-		if (size > Directory::MAX_BLOCK_SIZE * m_allocation_unit || ((flags & Memory::RESERVED) && size >= sm_optimal_commit_unit))
+		if (size > Directory::MAX_BLOCK_SIZE * allocation_unit_ || ((flags & Memory::RESERVED) && size >= optimal_commit_unit_))
 			p = g_protection_domain_memory->allocate(0, size, flags);
 		else {
 			try {
@@ -438,7 +438,7 @@ inline Word Heap::query(ConstPointer p, Memory::QueryParam param)
 {
 	if (Memory::ALLOCATION_UNIT == param) {
 		if (!p)
-			return m_allocation_unit;
+			return allocation_unit_;
 		const Partition* part = get_partition(p);
 		if (part)
 			return part->allocation_unit();

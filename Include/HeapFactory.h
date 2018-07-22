@@ -98,7 +98,7 @@ template <class S>
 class Skeleton <S, ::Nirvana::HeapFactory>
 {
 public:
-	static const typename Bridge < ::Nirvana::HeapFactory>::EPV sm_epv;
+	static const typename Bridge < ::Nirvana::HeapFactory>::EPV epv_;
 
 	template <class Base>
 	static Bridge <Interface>* _find_interface (Base& base, const Char* id)
@@ -136,7 +136,7 @@ protected:
 };
 
 template <class S>
-const Bridge < ::Nirvana::HeapFactory>::EPV Skeleton <S, ::Nirvana::HeapFactory>::sm_epv = {
+const Bridge < ::Nirvana::HeapFactory>::EPV Skeleton <S, ::Nirvana::HeapFactory>::epv_ = {
 	{ // interface
 		S::template _duplicate < ::Nirvana::HeapFactory>,
 		S::template _release < ::Nirvana::HeapFactory>

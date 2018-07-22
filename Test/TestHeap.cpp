@@ -85,63 +85,63 @@ class RandomAllocator
 {
 public:
 	RandomAllocator (unsigned seed = mt19937::default_seed) :
-		m_rndgen (seed)
+		rndgen_ (seed)
 	{
-		m_allocated.reserve (1024);
+		allocated_.reserve (1024);
 	}
 
 	void run (Memory_ptr memory, int iterations);
 
 	const vector <Block>& allocated () const
 	{
-		return m_allocated;
+		return allocated_;
 	}
 
 private:
-	mt19937 m_rndgen;
-	vector <Block> m_allocated;
-	static atomic <UWord> sm_next_tag;
-	static atomic <UWord> sm_total_allocated;
+	mt19937 rndgen_;
+	vector <Block> allocated_;
+	static atomic <UWord> next_tag_;
+	static atomic <UWord> total_allocated_;
 };
 
-atomic <UWord> RandomAllocator::sm_total_allocated = 0;
-atomic <UWord> RandomAllocator::sm_next_tag = 1;
+atomic <UWord> RandomAllocator::total_allocated_ = 0;
+atomic <UWord> RandomAllocator::next_tag_ = 1;
 
 void RandomAllocator::run (Memory_ptr memory, int iterations)
 {
 	static const ULong MAX_MEMORY = 0x20000000;	// 512M
 	static const ULong MAX_BLOCK = 0x1000000;	// 16M
 	for (int i = 0; i < iterations; ++i) {
-		UWord total = sm_total_allocated;
-		bool rel = !m_allocated.empty () 
-			&& (total >= MAX_MEMORY || bernoulli_distribution ((double)total / (double)MAX_MEMORY)(m_rndgen));
+		UWord total = total_allocated_;
+		bool rel = !allocated_.empty () 
+			&& (total >= MAX_MEMORY || bernoulli_distribution ((double)total / (double)MAX_MEMORY)(rndgen_));
 		if (!rel) {
-			ULong size = poisson_distribution <> (16)(m_rndgen) * sizeof (UWord);
+			ULong size = poisson_distribution <> (16)(rndgen_) * sizeof (UWord);
 			if (!size)
 				size = sizeof (UWord);
 			else if (size > MAX_BLOCK)
 				size = MAX_BLOCK;
 			try {
 				UWord* block = (UWord*)memory->allocate (0, size, 0);
-				UWord tag = sm_next_tag++;
-				sm_total_allocated += size;
+				UWord tag = next_tag_++;
+				total_allocated_ += size;
 				*block = tag;
 				block [size / sizeof (UWord) - 1] = tag;
-				m_allocated.push_back ({tag, block, block + size / sizeof (UWord)});
+				allocated_.push_back ({tag, block, block + size / sizeof (UWord)});
 			} catch (const NO_MEMORY&) {
 				rel = true;
 			}
 		}
 
 		if (rel) {
-			ASSERT_FALSE (m_allocated.empty ());
-			size_t idx = uniform_int_distribution <size_t> (0, m_allocated.size () - 1)(m_rndgen);
-			Block& block = m_allocated [idx];
+			ASSERT_FALSE (allocated_.empty ());
+			size_t idx = uniform_int_distribution <size_t> (0, allocated_.size () - 1)(rndgen_);
+			Block& block = allocated_ [idx];
 			ASSERT_EQ (block.tag, *block.begin);
 			ASSERT_EQ (block.tag, *(block.end - 1));
 			memory->release (block.begin, (block.end - block.begin) * sizeof (UWord));
-			sm_total_allocated -= (block.end - block.begin) * sizeof (UWord);
-			m_allocated.erase (m_allocated.begin () + idx);
+			total_allocated_ -= (block.end - block.begin) * sizeof (UWord);
+			allocated_.erase (allocated_.begin () + idx);
 		}
 	}
 }
