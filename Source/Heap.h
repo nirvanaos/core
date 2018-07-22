@@ -166,14 +166,14 @@ protected:
 		bool large_table = false;
 		try {
 			if (sparse_table(table_size)) {
-				sm_part_table = (Partition*)g_protection_domain_memory->allocate(0, table_size, Memory::RESERVED | Memory::ZERO_INIT);
+				part_table_ = (Partition*)g_protection_domain_memory->allocate(0, table_size, Memory::RESERVED | Memory::ZERO_INIT);
 				large_table = true;
 			} else
-				sm_part_table = (Partition*)allocate(dir0, table_size, HEAP_UNIT_DEFAULT);
+				part_table_ = (Partition*)allocate(dir0, table_size, HEAP_UNIT_DEFAULT);
 			return add_partition(dir0, HEAP_UNIT_DEFAULT);
 		} catch (...) {
 			if (large_table)
-				g_protection_domain_memory->release(sm_part_table, table_size);
+				g_protection_domain_memory->release(part_table_, table_size);
 			g_protection_domain_memory->release(dir0, partition_size(HEAP_UNIT_DEFAULT));
 			throw;
 		}
@@ -195,7 +195,7 @@ private:
 	}
 
 private:
-	static Partition* sm_part_table;
+	static Partition* part_table_;
 };
 
 class Heap64 : public HeapBase
@@ -205,19 +205,19 @@ protected:
 	{
 		HeapBase::initialize();
 		Directory* dir0 = create_partition(HEAP_UNIT_DEFAULT);
-		sm_table_block_size = g_protection_domain_memory->query(0, Memory::ALLOCATION_UNIT) / sizeof(Partition);
+		table_block_size_ = g_protection_domain_memory->query(0, Memory::ALLOCATION_UNIT) / sizeof(Partition);
 		UWord table_size = table_bytes();
 		bool large_table = false;
 		try {
 			if (sparse_table(table_size)) {
-				sm_part_table = (Partition**)g_protection_domain_memory->allocate(0, table_size, Memory::RESERVED | Memory::ZERO_INIT);
+				part_table_ = (Partition**)g_protection_domain_memory->allocate(0, table_size, Memory::RESERVED | Memory::ZERO_INIT);
 				large_table = true;
 			} else
-				sm_part_table = (Partition**)allocate(dir0, table_size, HEAP_UNIT_DEFAULT);
+				part_table_ = (Partition**)allocate(dir0, table_size, HEAP_UNIT_DEFAULT);
 			return add_partition(dir0, HEAP_UNIT_DEFAULT);
 		} catch (...) {
 			if (large_table)
-				g_protection_domain_memory->release(sm_part_table, table_size);
+				g_protection_domain_memory->release(part_table_, table_size);
 			g_protection_domain_memory->release(dir0, partition_size(HEAP_UNIT_DEFAULT));
 			throw;
 		}
@@ -235,12 +235,12 @@ protected:
 private:
 	static UWord table_bytes()
 	{
-		return max_partitions() / sm_table_block_size * sizeof(Partition*);
+		return max_partitions() / table_block_size_ * sizeof(Partition*);
 	}
 
 private:
-	static UWord sm_table_block_size;
-	static Partition** sm_part_table;
+	static UWord table_block_size_;
+	static Partition** part_table_;
 };
 
 typedef std::conditional <(sizeof(UWord) > 4), Heap64, Heap32>::type HeapBaseT;

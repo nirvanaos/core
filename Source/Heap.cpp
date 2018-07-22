@@ -11,10 +11,10 @@ UWord HeapBase::optimal_commit_unit_;
 Octet* HeapBase::space_begin_;
 Octet* HeapBase::space_end_;
 
-HeapBase::Partition* Heap32::sm_part_table;
+HeapBase::Partition* Heap32::part_table_;
 
-UWord Heap64::sm_table_block_size;
-HeapBase::Partition** Heap64::sm_part_table;
+UWord Heap64::table_block_size_;
+HeapBase::Partition** Heap64::part_table_;
 
 Pointer HeapBase::allocate(Directory* part, UWord size, UWord allocation_unit)
 {
@@ -82,8 +82,8 @@ HeapBase::Partition& Heap32::add_partition(Directory* part, UWord allocation_uni
 {
 	assert(valid_address(part));
 	UWord offset = (Octet*)part - space_begin_;
-	Partition* begin = sm_part_table + offset / MIN_PARTITION_SIZE;
-	Partition* end = sm_part_table + (offset + partition_size(allocation_unit)) / MIN_PARTITION_SIZE;
+	Partition* begin = part_table_ + offset / MIN_PARTITION_SIZE;
+	Partition* end = part_table_ + (offset + partition_size(allocation_unit)) / MIN_PARTITION_SIZE;
 	if (sparse_table(table_bytes()))
 		g_protection_domain_memory->commit(begin, (end - begin) * sizeof(Partition));
 	for (Partition* p = begin; p != end; ++p)
@@ -94,14 +94,14 @@ HeapBase::Partition& Heap32::add_partition(Directory* part, UWord allocation_uni
 void Heap32::remove_partition(Partition& part)
 {
 	Partition* begin = &part;
-	Partition* end = sm_part_table + ((Octet*)begin->directory() + partition_size(begin->allocation_unit()) - space_begin_) / MIN_PARTITION_SIZE;
+	Partition* end = part_table_ + ((Octet*)begin->directory() + partition_size(begin->allocation_unit()) - space_begin_) / MIN_PARTITION_SIZE;
 	for (Partition* p = begin; p != end; ++p)
 		p->clear();
 }
 
 inline const HeapBase::Partition* Heap32::partition(UWord idx)
 {
-	const Partition* p = sm_part_table + idx;
+	const Partition* p = part_table_ + idx;
 	if (!sparse_table(table_bytes()) || g_protection_domain_memory->is_readable(p, sizeof(Partition)))
 		return p;
 	return 0;
@@ -114,14 +114,14 @@ HeapBase::Partition& Heap64::add_partition(Directory* part, UWord allocation_uni
 	UWord idx = offset / MIN_PARTITION_SIZE;
 	UWord end = (offset + partition_size(allocation_unit)) / MIN_PARTITION_SIZE;
 	UWord cnt = end - idx;
-	UWord i0 = idx / sm_table_block_size;
-	UWord i1 = idx % sm_table_block_size;
-	Partition** pblock = sm_part_table + i0;
+	UWord i0 = idx / table_block_size_;
+	UWord i1 = idx % table_block_size_;
+	Partition** pblock = part_table_ + i0;
 	if (sparse_table(table_bytes()))
-		g_protection_domain_memory->commit(pblock, ((end + sm_table_block_size - 1) / sm_table_block_size - i0) * sizeof(Partition*));
+		g_protection_domain_memory->commit(pblock, ((end + table_block_size_ - 1) / table_block_size_ - i0) * sizeof(Partition*));
 
 	Partition* ret = 0;
-	UWord block_size = sm_table_block_size * sizeof(Partition);
+	UWord block_size = table_block_size_ * sizeof(Partition);
 	for (;;) {
 		Partition* block = atomic_load((volatile atomic <Partition*>*)pblock);
 		bool commit = false;
@@ -139,7 +139,7 @@ HeapBase::Partition& Heap64::add_partition(Directory* part, UWord allocation_uni
 		Partition* p = block + i1;
 		if (!ret)
 			ret = p;
-		UWord tail = sm_table_block_size - i1;
+		UWord tail = table_block_size_ - i1;
 		if (tail > cnt)
 			tail = cnt;
 		if (commit)
@@ -164,11 +164,11 @@ void Heap64::remove_partition(Partition& part)
 	UWord idx = offset / MIN_PARTITION_SIZE;
 	UWord end = (offset + partition_size(part.allocation_unit())) / MIN_PARTITION_SIZE;
 	UWord cnt = end - idx;
-	UWord i0 = idx / sm_table_block_size;
-	UWord i1 = idx % sm_table_block_size;
-	Partition** pblock = sm_part_table + i0;
+	UWord i0 = idx / table_block_size_;
+	UWord i1 = idx % table_block_size_;
+	Partition** pblock = part_table_ + i0;
 	for (;;) {
-		UWord tail = sm_table_block_size - i1;
+		UWord tail = table_block_size_ - i1;
 		if (tail > cnt)
 			tail = cnt;
 		Partition* p = *pblock + i1;
@@ -188,14 +188,14 @@ void Heap64::remove_partition(Partition& part)
 
 const HeapBase::Partition* Heap64::partition(UWord idx)
 {
-	UWord i0 = idx / sm_table_block_size;
-	UWord i1 = idx % sm_table_block_size;
-	Partition* const* pblock = sm_part_table + i0;
+	UWord i0 = idx / table_block_size_;
+	UWord i1 = idx % table_block_size_;
+	Partition* const* pblock = part_table_ + i0;
 	if (!sparse_table(table_bytes()) || g_protection_domain_memory->is_readable(pblock, sizeof(Partition*))) {
 		const Partition* p = *pblock;
 		if (p) {
 			p += i1;
-			if (sm_table_block_size * sizeof(Partition) <= commit_unit_ || g_protection_domain_memory->is_readable(p, sizeof(Partition)))
+			if (table_block_size_ * sizeof(Partition) <= commit_unit_ || g_protection_domain_memory->is_readable(p, sizeof(Partition)))
 				return p;
 		}
 	}
