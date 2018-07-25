@@ -15,8 +15,8 @@ extern HeapFactory_ptr g_heap_factory;
 
 namespace Core {
 
-void initialize();
-void terminate();
+void initialize ();
+void terminate ();
 
 }
 }

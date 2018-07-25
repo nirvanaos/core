@@ -126,6 +126,7 @@
     <ClInclude Include="..\..\Include\Memory.h" />
     <ClInclude Include="..\..\Source\config.h" />
     <ClInclude Include="..\..\Source\core.h" />
+    <ClInclude Include="..\..\Source\ExecDomain.h" />
     <ClInclude Include="..\..\Source\Heap.h" />
     <ClInclude Include="..\..\Source\Windows\AddressSpace.h" />
     <ClInclude Include="..\..\Source\Windows\MemoryWindows.h" />

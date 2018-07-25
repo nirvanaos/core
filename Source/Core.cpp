@@ -15,16 +15,16 @@ HeapFactory_ptr g_heap_factory;
 
 namespace Core {
 
-void initialize()
+void initialize ()
 {
-	Windows::MemoryWindows::initialize();
-	g_protection_domain_memory = Windows::MemoryWindows::_this();
-	Heap::initialize();
+	Windows::MemoryWindows::initialize ();
+	g_protection_domain_memory = Windows::MemoryWindows::_this ();
+	Heap::initialize ();
 }
 
-void terminate()
+void terminate ()
 {
-	Windows::MemoryWindows::terminate();
+	Windows::MemoryWindows::terminate ();
 }
 
 }

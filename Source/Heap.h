@@ -15,64 +15,64 @@ class HeapBase
 protected:
 	typedef HeapDirectory <HEAP_DIRECTORY_SIZE, HEAP_DIRECTORY_USE_EXCEPTION> Directory;
 
-	static Pointer allocate(Directory* part, UWord size, UWord allocation_unit);
+	static Pointer allocate (Directory* part, UWord size, UWord allocation_unit);
 
 	struct Partition
 	{
-		void set(Directory* dir, UWord unit)
+		void set (Directory* dir, UWord unit)
 		{
-			assert(!dir_and_unit);
-			assert(!next);
-			assert(((UWord)dir & (HEAP_UNIT_MAX - 1)) == 0);
+			assert (!dir_and_unit);
+			assert (!next);
+			assert (((UWord)dir & (HEAP_UNIT_MAX - 1)) == 0);
 			dir_and_unit = (UWord)dir | (unit - 1);
 		}
 
-		UWord exists() const
+		UWord exists () const
 		{
 			return dir_and_unit;
 		}
 
-		void clear()
+		void clear ()
 		{
 			dir_and_unit = 0;
 			next = 0;
 		}
 
-		Directory* directory() const
+		Directory* directory () const
 		{
 			return (Directory*)(dir_and_unit & ~(UWord)(HEAP_UNIT_MAX - 1));
 		}
 
-		UWord allocation_unit() const
+		UWord allocation_unit () const
 		{
 			return (dir_and_unit & (HEAP_UNIT_MAX - 1)) + 1;
 		}
 
-		Pointer allocate(UWord size) const
+		Pointer allocate (UWord size) const
 		{
-			return HeapBase::allocate(directory(), size, allocation_unit());
+			return HeapBase::allocate (directory (), size, allocation_unit ());
 		}
 
-		bool allocate(Pointer p, UWord size, Flags flags) const;
+		bool allocate (Pointer p, UWord size, Flags flags) const;
 
-		void release(Pointer p, UWord size) const
+		void release (Pointer p, UWord size) const
 		{
-			Directory* dir = directory();
+			Directory* dir = directory ();
 			Octet* heap = (Octet*)(dir + 1);
 			UWord offset = (Octet*)p - heap;
-			UWord au = allocation_unit();
+			UWord au = allocation_unit ();
 			UWord begin = offset / au;
 			UWord end = (offset + size + au - 1) / au;
-			if (!dir->check_allocated(begin, end, g_protection_domain_memory))
-				throw BAD_PARAM();
-			dir->release(begin, end, g_protection_domain_memory, false, heap, au);
+			if (!dir->check_allocated (begin, end, g_protection_domain_memory))
+				throw BAD_PARAM ();
+			dir->release (begin, end, g_protection_domain_memory, false, heap, au);
 		}
 
-		bool contains(const void* p) const
+		bool contains (const void* p) const
 		{
 			if (dir_and_unit) {
-				Octet* begin = (Octet*)(directory() + 1);
-				Octet* end = begin + allocation_unit() * Directory::UNIT_COUNT;
+				Octet* begin = (Octet*)(directory () + 1);
+				Octet* end = begin + allocation_unit () * Directory::UNIT_COUNT;
 				return p >= begin && p < end;
 			}
 			return false;
@@ -82,46 +82,46 @@ protected:
 		Partition* next;
 	};
 
-	static void initialize()
+	static void initialize ()
 	{
-		assert(g_protection_domain_memory->query(0, Memory::ALLOCATION_UNIT) >= HEAP_UNIT_MAX);
-		commit_unit_ = g_protection_domain_memory->query(0, Memory::COMMIT_UNIT);
-		optimal_commit_unit_ = g_protection_domain_memory->query(0, Memory::OPTIMAL_COMMIT_UNIT);
-		space_begin_ = (Octet*)g_protection_domain_memory->query(0, Memory::ALLOCATION_SPACE_BEGIN);
-		space_end_ = (Octet*)g_protection_domain_memory->query(0, Memory::ALLOCATION_SPACE_END);
+		assert (g_protection_domain_memory->query (0, Memory::ALLOCATION_UNIT) >= HEAP_UNIT_MAX);
+		commit_unit_ = g_protection_domain_memory->query (0, Memory::COMMIT_UNIT);
+		optimal_commit_unit_ = g_protection_domain_memory->query (0, Memory::OPTIMAL_COMMIT_UNIT);
+		space_begin_ = (Octet*)g_protection_domain_memory->query (0, Memory::ALLOCATION_SPACE_BEGIN);
+		space_end_ = (Octet*)g_protection_domain_memory->query (0, Memory::ALLOCATION_SPACE_END);
 	}
 
-	static bool valid_address(const void* p)
+	static bool valid_address (const void* p)
 	{
 		return space_begin_ <= (Octet*)p && (Octet*)p + 1 <= space_end_;
 	}
 
-	static UWord partition_size(const UWord allocation_unit)
+	static UWord partition_size (const UWord allocation_unit)
 	{
-		return sizeof(Directory) + Directory::UNIT_COUNT * allocation_unit;
+		return sizeof (Directory) + Directory::UNIT_COUNT * allocation_unit;
 	}
 
-	static const UWord MIN_PARTITION_SIZE = sizeof(Directory) + Directory::UNIT_COUNT * HEAP_UNIT_MIN;
+	static const UWord MIN_PARTITION_SIZE = sizeof (Directory) + Directory::UNIT_COUNT * HEAP_UNIT_MIN;
 
-	static UWord max_partitions()
+	static UWord max_partitions ()
 	{
 		return ((space_end_ - space_begin_) + MIN_PARTITION_SIZE - 1) / MIN_PARTITION_SIZE;
 	}
 
-	HeapBase(ULong allocation_unit);
+	HeapBase (ULong allocation_unit);
 
-	static Directory* create_partition(UWord allocation_unit)
+	static Directory* create_partition (UWord allocation_unit)
 	{
-		Directory* part = (Directory*)g_protection_domain_memory->allocate(0, partition_size(allocation_unit), Memory::RESERVED | Memory::ZERO_INIT);
-		Directory::initialize(part, g_protection_domain_memory);
+		Directory* part = (Directory*)g_protection_domain_memory->allocate (0, partition_size (allocation_unit), Memory::RESERVED | Memory::ZERO_INIT);
+		Directory::initialize (part, g_protection_domain_memory);
 		return part;
 	}
 
-	Pointer allocate(UWord size, Partition*& last_part)
+	Pointer allocate (UWord size, Partition*& last_part) const
 	{
-		assert(part_list_);
+		assert (part_list_);
 		for (Partition* part = part_list_;;) {
-			Pointer p = part->allocate(size);
+			Pointer p = part->allocate (size);
 			if (p)
 				return p;
 			Partition* next = part->next;
@@ -134,13 +134,13 @@ protected:
 		}
 	}
 
-	static void commit_heap(void* p, UWord size)
+	static void commit_heap (void* p, UWord size)
 	{
-		Octet* commit_begin = round_down((Octet*)p, optimal_commit_unit_);
-		g_protection_domain_memory->commit(commit_begin, round_up((Octet*)p + size, optimal_commit_unit_) - commit_begin);
+		Octet* commit_begin = round_down ((Octet*)p, optimal_commit_unit_);
+		g_protection_domain_memory->commit (commit_begin, round_up ((Octet*)p + size, optimal_commit_unit_) - commit_begin);
 	}
 
-	static bool sparse_table(UWord table_bytes)
+	static bool sparse_table (UWord table_bytes)
 	{
 		return ((table_bytes + HEAP_UNIT_DEFAULT - 1) / HEAP_UNIT_DEFAULT > Directory::MAX_BLOCK_SIZE);
 	}
@@ -158,40 +158,40 @@ protected:
 class Heap32 : protected HeapBase
 {
 protected:
-	static Partition& initialize()
+	static Partition& initialize ()
 	{
-		HeapBase::initialize();
-		Directory* dir0 = create_partition(HEAP_UNIT_DEFAULT);
-		UWord table_size = table_bytes();
+		HeapBase::initialize ();
+		Directory* dir0 = create_partition (HEAP_UNIT_DEFAULT);
+		UWord table_size = table_bytes ();
 		bool large_table = false;
 		try {
-			if (sparse_table(table_size)) {
-				part_table_ = (Partition*)g_protection_domain_memory->allocate(0, table_size, Memory::RESERVED | Memory::ZERO_INIT);
+			if (sparse_table (table_size)) {
+				part_table_ = (Partition*)g_protection_domain_memory->allocate (0, table_size, Memory::RESERVED | Memory::ZERO_INIT);
 				large_table = true;
 			} else
-				part_table_ = (Partition*)allocate(dir0, table_size, HEAP_UNIT_DEFAULT);
-			return add_partition(dir0, HEAP_UNIT_DEFAULT);
+				part_table_ = (Partition*)allocate (dir0, table_size, HEAP_UNIT_DEFAULT);
+			return add_partition (dir0, HEAP_UNIT_DEFAULT);
 		} catch (...) {
 			if (large_table)
-				g_protection_domain_memory->release(part_table_, table_size);
-			g_protection_domain_memory->release(dir0, partition_size(HEAP_UNIT_DEFAULT));
+				g_protection_domain_memory->release (part_table_, table_size);
+			g_protection_domain_memory->release (dir0, partition_size (HEAP_UNIT_DEFAULT));
 			throw;
 		}
 	}
 
-	static Partition& add_partition(Directory* part, UWord allocation_unit);
-	static void remove_partition(Partition& part);
+	static Partition& add_partition (Directory* part, UWord allocation_unit);
+	static void remove_partition (Partition& part);
 
-	static const Partition* partition(UWord idx);
+	static const Partition* partition (UWord idx);
 
-	Heap32(ULong allocation_unit) :
-		HeapBase(allocation_unit)
+	Heap32 (ULong allocation_unit) :
+		HeapBase (allocation_unit)
 	{}
 
 private:
-	static UWord table_bytes()
+	static UWord table_bytes ()
 	{
-		return max_partitions() * sizeof(Partition);
+		return max_partitions () * sizeof (Partition);
 	}
 
 private:
@@ -201,41 +201,41 @@ private:
 class Heap64 : public HeapBase
 {
 protected:
-	static Partition& initialize()
+	static Partition& initialize ()
 	{
-		HeapBase::initialize();
-		Directory* dir0 = create_partition(HEAP_UNIT_DEFAULT);
-		table_block_size_ = g_protection_domain_memory->query(0, Memory::ALLOCATION_UNIT) / sizeof(Partition);
-		UWord table_size = table_bytes();
+		HeapBase::initialize ();
+		Directory* dir0 = create_partition (HEAP_UNIT_DEFAULT);
+		table_block_size_ = g_protection_domain_memory->query (0, Memory::ALLOCATION_UNIT) / sizeof (Partition);
+		UWord table_size = table_bytes ();
 		bool large_table = false;
 		try {
-			if (sparse_table(table_size)) {
-				part_table_ = (Partition**)g_protection_domain_memory->allocate(0, table_size, Memory::RESERVED | Memory::ZERO_INIT);
+			if (sparse_table (table_size)) {
+				part_table_ = (Partition**)g_protection_domain_memory->allocate (0, table_size, Memory::RESERVED | Memory::ZERO_INIT);
 				large_table = true;
 			} else
-				part_table_ = (Partition**)allocate(dir0, table_size, HEAP_UNIT_DEFAULT);
-			return add_partition(dir0, HEAP_UNIT_DEFAULT);
+				part_table_ = (Partition**)allocate (dir0, table_size, HEAP_UNIT_DEFAULT);
+			return add_partition (dir0, HEAP_UNIT_DEFAULT);
 		} catch (...) {
 			if (large_table)
-				g_protection_domain_memory->release(part_table_, table_size);
-			g_protection_domain_memory->release(dir0, partition_size(HEAP_UNIT_DEFAULT));
+				g_protection_domain_memory->release (part_table_, table_size);
+			g_protection_domain_memory->release (dir0, partition_size (HEAP_UNIT_DEFAULT));
 			throw;
 		}
 	}
 
-	static Partition& add_partition(Directory* part, UWord allocation_unit);
-	static void remove_partition(Partition& part);
+	static Partition& add_partition (Directory* part, UWord allocation_unit);
+	static void remove_partition (Partition& part);
 
-	static const Partition* partition(UWord idx);
+	static const Partition* partition (UWord idx);
 
-	Heap64(ULong allocation_unit) :
-		HeapBase(allocation_unit)
+	Heap64 (ULong allocation_unit) :
+		HeapBase (allocation_unit)
 	{}
 
 private:
-	static UWord table_bytes()
+	static UWord table_bytes ()
 	{
-		return max_partitions() / table_block_size_ * sizeof(Partition*);
+		return max_partitions () / table_block_size_ * sizeof (Partition*);
 	}
 
 private:
@@ -243,14 +243,14 @@ private:
 	static Partition** part_table_;
 };
 
-typedef std::conditional <(sizeof(UWord) > 4), Heap64, Heap32>::type HeapBaseT;
+typedef std::conditional <(sizeof (UWord) > 4), Heap64, Heap32>::type HeapBaseT;
 
 class HeapFactoryImpl :
 	public ::CORBA::Nirvana::ServantStatic <HeapFactoryImpl, HeapFactory>
 {
 public:
-	static Memory_ptr create();
-	static Memory_ptr create_with_granularity(ULong granularity);
+	static Memory_ptr create ();
+	static Memory_ptr create_with_granularity (ULong granularity);
 };
 
 class Heap :
@@ -258,90 +258,90 @@ class Heap :
 	public ::CORBA::Nirvana::Servant <Heap, Memory>
 {
 public:
-	Pointer allocate(Pointer p, UWord size, Flags flags);
+	Pointer allocate (Pointer p, UWord size, Flags flags);
 
-	void release(Pointer p, UWord size)
+	static void release (Pointer p, UWord size)
 	{
-		const Partition* part = get_partition(p);
+		const Partition* part = get_partition (p);
 		if (part)
-			part->release(p, size);
+			part->release (p, size);
 		else
-			g_protection_domain_memory->release(p, size);
+			g_protection_domain_memory->release (p, size);
 	}
 
-	void commit(Pointer p, UWord size)
+	static void commit (Pointer p, UWord size)
 	{
-		g_protection_domain_memory->commit(p, size);
+		g_protection_domain_memory->commit (p, size);
 	}
 
-	void decommit(Pointer p, UWord size)
+	static void decommit (Pointer p, UWord size)
 	{
-		if (!get_partition(p))
-			g_protection_domain_memory->decommit(p, size);
+		if (!get_partition (p))
+			g_protection_domain_memory->decommit (p, size);
 	}
 
-	Pointer copy(Pointer dst, Pointer src, UWord size, Flags flags);
+	Pointer copy (Pointer dst, Pointer src, UWord size, Flags flags);
 
-	static Boolean is_readable(ConstPointer p, UWord size)
+	static Boolean is_readable (ConstPointer p, UWord size)
 	{
-		return g_protection_domain_memory->is_readable(p, size);
+		return g_protection_domain_memory->is_readable (p, size);
 	}
 
-	static Boolean is_writable(ConstPointer p, UWord size)
+	static Boolean is_writable (ConstPointer p, UWord size)
 	{
-		return g_protection_domain_memory->is_writable(p, size);
+		return g_protection_domain_memory->is_writable (p, size);
 	}
 
-	static Boolean is_private(ConstPointer p, UWord size)
+	static Boolean is_private (ConstPointer p, UWord size)
 	{
-		return g_protection_domain_memory->is_private(p, size);
+		return g_protection_domain_memory->is_private (p, size);
 	}
 
-	static Boolean is_copy(ConstPointer p1, ConstPointer p2, UWord size)
+	static Boolean is_copy (ConstPointer p1, ConstPointer p2, UWord size)
 	{
-		return g_protection_domain_memory->is_copy(p1, p2, size);
+		return g_protection_domain_memory->is_copy (p1, p2, size);
 	}
 
-	Word query(ConstPointer p, Memory::QueryParam param);
+	Word query (ConstPointer p, Memory::QueryParam param);
 
-	static void initialize()
+	static void initialize ()
 	{
-		Partition& first_part = HeapBaseT::initialize();
-		Heap* instance = (Heap*)first_part.allocate(sizeof(Heap));
-		new (instance) Heap(first_part);
+		Partition& first_part = HeapBaseT::initialize ();
+		Heap* instance = (Heap*)first_part.allocate (sizeof (Heap));
+		new (instance) Heap (first_part);
 		g_default_heap = instance;
-		g_heap_factory = HeapFactoryImpl::_this();
+		g_heap_factory = HeapFactoryImpl::_this ();
 	}
 
-	Heap(ULong allocation_unit) :
-		HeapBaseT(allocation_unit),
-		m_no_destroy(false)
+	Heap (ULong allocation_unit) :
+		HeapBaseT (allocation_unit),
+		m_no_destroy (false)
 	{
-		part_list_ = &create_partition();
+		part_list_ = &create_partition ();
 	}
 
-	~Heap();
+	~Heap ();
 
-	void _add_ref()
-	{
-		if (!m_no_destroy)
-			::CORBA::Nirvana::Servant <Heap, Memory>::_add_ref();
-	}
-
-	void _remove_ref()
+	void _add_ref ()
 	{
 		if (!m_no_destroy)
-			::CORBA::Nirvana::Servant <Heap, Memory>::_remove_ref();
+			::CORBA::Nirvana::Servant <Heap, Memory>::_add_ref ();
+	}
+
+	void _remove_ref ()
+	{
+		if (!m_no_destroy)
+			::CORBA::Nirvana::Servant <Heap, Memory>::_remove_ref ();
 	}
 
 	void* operator new (size_t cb)
 	{
-		return g_default_heap->allocate(0, cb, 0);
+		return g_default_heap->allocate (0, cb, 0);
 	}
 
 	void operator delete (void* p, size_t cb)
 	{
-		g_default_heap->release(p, cb);
+		g_default_heap->release (p, cb);
 	}
 
 private:
@@ -353,41 +353,41 @@ private:
 	void operator delete (void* p, void* p1)
 	{}
 
-	Heap(Partition& first_part) :
-		HeapBaseT(HEAP_UNIT_DEFAULT),
-		m_no_destroy(true)
+	Heap (Partition& first_part) :
+		HeapBaseT (HEAP_UNIT_DEFAULT),
+		m_no_destroy (true)
 	{
 		part_list_ = &first_part;
 	}
 
 private:
-	Pointer allocate(UWord size);
-	Partition& create_partition() const;
-	static const Partition* get_partition(const void* address);
-	static void destroy_partition(Partition& part);
+	Pointer allocate (UWord size) const;
+	Partition& create_partition () const;
+	static const Partition* get_partition (const void* address);
+	static void destroy_partition (Partition& part);
 
 private:
 	bool m_no_destroy;
 };
 
-inline Pointer Heap::allocate(Pointer p, UWord size, Flags flags)
+inline Pointer Heap::allocate (Pointer p, UWord size, Flags flags)
 {
 	if (!size)
-		throw BAD_PARAM();
+		throw BAD_PARAM ();
 
 	if (flags & ~(Memory::RESERVED | Memory::EXACTLY | Memory::ZERO_INIT))
-		throw INV_FLAG();
+		throw INV_FLAG ();
 
 	if (p) {
-		const Partition* part = get_partition(p);
+		const Partition* part = get_partition (p);
 		if (part) {
-			if (!part->allocate(p, size, flags))
+			if (!part->allocate (p, size, flags))
 				if (flags & Memory::EXACTLY)
 					return 0;
 				else
 					p = 0;
 		} else if (
-			!(p = g_protection_domain_memory->allocate(p, size, flags | Memory::EXACTLY))
+			!(p = g_protection_domain_memory->allocate (p, size, flags | Memory::EXACTLY))
 			&&
 			(flags & Memory::EXACTLY)
 			)
@@ -396,64 +396,64 @@ inline Pointer Heap::allocate(Pointer p, UWord size, Flags flags)
 
 	if (!p) {
 		if (size > Directory::MAX_BLOCK_SIZE * allocation_unit_ || ((flags & Memory::RESERVED) && size >= optimal_commit_unit_))
-			p = g_protection_domain_memory->allocate(0, size, flags);
+			p = g_protection_domain_memory->allocate (0, size, flags);
 		else {
 			try {
-				p = allocate(size);
+				p = allocate (size);
 			} catch (const NO_MEMORY&) {
 				if (flags & Memory::EXACTLY)
 					return 0;
 				throw;
 			}
 			if (flags & Memory::ZERO_INIT)
-				zero((Octet*)p, (Octet*)p + size);
+				zero ((Octet*)p, (Octet*)p + size);
 		}
 	}
 
 	return p;
 }
 
-inline Pointer Heap::copy(Pointer dst, Pointer src, UWord size, Flags flags)
+inline Pointer Heap::copy (Pointer dst, Pointer src, UWord size, Flags flags)
 {
 	if (!size)
 		return dst;
 
 	if (flags & ~(Memory::READ_ONLY | Memory::RELEASE | Memory::ALLOCATE | Memory::EXACTLY))
-		throw INV_FLAG();
+		throw INV_FLAG ();
 
 	if (dst && (flags & Memory::ALLOCATE)) {
-		const Partition* part = get_partition(dst);
+		const Partition* part = get_partition (dst);
 		if (part) {
-			if (part->allocate(dst, size, flags))
+			if (part->allocate (dst, size, flags))
 				flags &= ~Memory::ALLOCATE;
 			else if (flags & Memory::EXACTLY)
 				return 0;
 		}
 	}
 
-	return g_protection_domain_memory->copy(dst, src, size, flags);
+	return g_protection_domain_memory->copy (dst, src, size, flags);
 }
 
-inline Word Heap::query(ConstPointer p, Memory::QueryParam param)
+inline Word Heap::query (ConstPointer p, Memory::QueryParam param)
 {
 	if (Memory::ALLOCATION_UNIT == param) {
 		if (!p)
 			return allocation_unit_;
-		const Partition* part = get_partition(p);
+		const Partition* part = get_partition (p);
 		if (part)
-			return part->allocation_unit();
+			return part->allocation_unit ();
 	}
-	return g_protection_domain_memory->query(p, param);
+	return g_protection_domain_memory->query (p, param);
 }
 
-inline Memory_ptr HeapFactoryImpl::create()
+inline Memory_ptr HeapFactoryImpl::create ()
 {
-	return new Heap(HEAP_UNIT_DEFAULT);
+	return new Heap (HEAP_UNIT_DEFAULT);
 }
 
-inline Memory_ptr HeapFactoryImpl::create_with_granularity(ULong granularity)
+inline Memory_ptr HeapFactoryImpl::create_with_granularity (ULong granularity)
 {
-	return new Heap(granularity);
+	return new Heap (granularity);
 }
 
 }

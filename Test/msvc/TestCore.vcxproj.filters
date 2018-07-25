@@ -61,5 +61,8 @@
     <ClInclude Include="..\..\Source\Windows\win32.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\Source\ExecDomain.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
