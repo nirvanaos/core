@@ -71,9 +71,9 @@ TEST_F (TestHeap, Heap)
 
 struct Block
 {
-	UWord tag;
-	UWord* begin;
-	UWord* end;
+	ULong tag;
+	ULong* begin;
+	ULong* end;
 
 	bool operator < (const Block& rhs) const
 	{
@@ -100,12 +100,12 @@ public:
 private:
 	mt19937 rndgen_;
 	vector <Block> allocated_;
-	static atomic <UWord> next_tag_;
+	static atomic <ULong> next_tag_;
 	static atomic <UWord> total_allocated_;
 };
 
 atomic <UWord> RandomAllocator::total_allocated_ = 0;
-atomic <UWord> RandomAllocator::next_tag_ = 1;
+atomic <ULong> RandomAllocator::next_tag_ = 1;
 
 void RandomAllocator::run (Memory_ptr memory, int iterations)
 {
@@ -116,18 +116,18 @@ void RandomAllocator::run (Memory_ptr memory, int iterations)
 		bool rel = !allocated_.empty () 
 			&& (total >= MAX_MEMORY || bernoulli_distribution ((double)total / (double)MAX_MEMORY)(rndgen_));
 		if (!rel) {
-			ULong size = poisson_distribution <> (16)(rndgen_) * sizeof (UWord);
+			ULong size = poisson_distribution <> (16)(rndgen_) * sizeof (ULong);
 			if (!size)
-				size = sizeof (UWord);
+				size = sizeof (ULong);
 			else if (size > MAX_BLOCK)
 				size = MAX_BLOCK;
 			try {
-				UWord* block = (UWord*)memory->allocate (0, size, 0);
-				UWord tag = next_tag_++;
+				ULong* block = (ULong*)memory->allocate (0, size, 0);
+				ULong tag = next_tag_++;
 				total_allocated_ += size;
 				*block = tag;
-				block [size / sizeof (UWord) - 1] = tag;
-				allocated_.push_back ({tag, block, block + size / sizeof (UWord)});
+				block [size / sizeof (ULong) - 1] = tag;
+				allocated_.push_back ({tag, block, block + size / sizeof (ULong)});
 			} catch (const NO_MEMORY&) {
 				rel = true;
 			}
@@ -139,8 +139,8 @@ void RandomAllocator::run (Memory_ptr memory, int iterations)
 			Block& block = allocated_ [idx];
 			ASSERT_EQ (block.tag, *block.begin);
 			ASSERT_EQ (block.tag, *(block.end - 1));
-			memory->release (block.begin, (block.end - block.begin) * sizeof (UWord));
-			total_allocated_ -= (block.end - block.begin) * sizeof (UWord);
+			memory->release (block.begin, (block.end - block.begin) * sizeof (ULong));
+			total_allocated_ -= (block.end - block.begin) * sizeof (ULong);
 			allocated_.erase (allocated_.begin () + idx);
 		}
 	}
@@ -177,8 +177,8 @@ void AllocatedBlocks::add (const vector <Block>& blocks)
 void AllocatedBlocks::check (Memory_ptr memory)
 {
 	for (auto p = cbegin (); p != cend (); ++p) {
-		memory->release (p->begin, (p->end - p->begin) * sizeof (UWord));
-		UWord* bl = (UWord*)memory->allocate (p->begin, (p->end - p->begin) * sizeof (UWord), Memory::EXACTLY);
+		memory->release (p->begin, (p->end - p->begin) * sizeof (ULong));
+		ULong* bl = (ULong*)memory->allocate (p->begin, (p->end - p->begin) * sizeof (ULong), Memory::EXACTLY);
 		assert (bl);
 		ASSERT_EQ (p->begin, bl);
 		*(p->begin) = p->tag;
@@ -200,7 +200,7 @@ TEST_F (TestHeap, Random)
 	}
 
 	for (auto p = ra.allocated ().cbegin (); p != ra.allocated ().cend (); ++p)
-		g_default_heap->release (p->begin, (p->end - p->begin) * sizeof (UWord));
+		g_default_heap->release (p->begin, (p->end - p->begin) * sizeof (ULong));
 }
 
 class ThreadAllocator :
@@ -245,7 +245,7 @@ TEST_F (TestHeap, MultiThread)
 
 	for (auto pt = threads.begin (); pt != threads.end (); ++pt) {
 		for (auto p = pt->allocated ().cbegin (); p != pt->allocated ().cend (); ++p)
-			g_default_heap->release (p->begin, (p->end - p->begin) * sizeof (UWord));
+			g_default_heap->release (p->begin, (p->end - p->begin) * sizeof (ULong));
 	}
 }
 
