@@ -19,17 +19,11 @@ HeapBase::Partition** Heap64::part_table_;
 Pointer HeapBase::allocate (Directory* part, UWord size, UWord allocation_unit)
 {
 	UWord units = (size + allocation_unit - 1) / allocation_unit;
-	Word unit = part->allocate (units, g_protection_domain_memory);
+	HeapInfo hi = {part + 1, allocation_unit, optimal_commit_unit_};
+	Word unit = part->allocate (units, g_protection_domain_memory, &hi);
 	if (unit >= 0) {
 		assert (unit < Directory::UNIT_COUNT);
-		Pointer p = (Octet*)(part + 1) + unit * allocation_unit;
-		try {
-			commit_heap (p, size);
-		} catch (...) {
-			part->release (unit, unit + units);
-			throw;
-		}
-		return p;
+		return (Octet*)(part + 1) + unit * allocation_unit;
 	}
 	return 0;
 }
@@ -59,19 +53,14 @@ bool HeapBase::Partition::allocate (Pointer p, UWord size, Flags flags) const
 	else
 		end = begin + (size + au - 1) / au;
 
-	if (dir->allocate (begin, end, g_protection_domain_memory)) {
+	HeapInfo hi = {heap, au, optimal_commit_unit_};
+	if (dir->allocate (begin, end, g_protection_domain_memory, &hi)) {
+		Octet* pbegin = heap + begin * au;
 		if (!(flags & Memory::EXACTLY))
-			p = heap + begin * au;
-
-		try {
-			commit_heap (p, size);
-		} catch (...) {
-			release (p, size);
-			throw;
-		}
+			p = pbegin;
 
 		if (flags & Memory::ZERO_INIT)
-			zero ((Octet*)p, (Octet*)p + size);
+			zero ((Word*)pbegin, (Word*)(heap + end * au));
 
 		return true;
 	}

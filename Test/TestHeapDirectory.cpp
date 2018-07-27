@@ -1,4 +1,4 @@
-#include <HeapDirectory.h>
+#include "../Source/HeapDirectory.h"
 #include <gtest/gtest.h>
 #include <random>
 #include <thread>
@@ -8,6 +8,7 @@
 #include "../Source/core.h"
 
 using namespace ::Nirvana;
+using namespace ::Nirvana::Core;
 using namespace ::std;
 
 namespace TestHeapDirectory {

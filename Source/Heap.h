@@ -65,7 +65,8 @@ protected:
 			UWord end = (offset + size + au - 1) / au;
 			if (!dir->check_allocated (begin, end, g_protection_domain_memory))
 				throw BAD_PARAM ();
-			dir->release (begin, end, g_protection_domain_memory, false, heap, au);
+			HeapInfo hi = {heap, au, optimal_commit_unit_};
+			dir->release (begin, end, g_protection_domain_memory, &hi);
 		}
 
 		bool contains (const void* p) const
@@ -132,12 +133,6 @@ protected:
 				return 0;
 			}
 		}
-	}
-
-	static void commit_heap (void* p, UWord size)
-	{
-		Octet* commit_begin = round_down ((Octet*)p, optimal_commit_unit_);
-		g_protection_domain_memory->commit (commit_begin, round_up ((Octet*)p + size, optimal_commit_unit_) - commit_begin);
 	}
 
 	static bool sparse_table (UWord table_bytes)
@@ -315,7 +310,7 @@ public:
 
 	Heap (ULong allocation_unit) :
 		HeapBaseT (allocation_unit),
-		m_no_destroy (false)
+		no_destroy_ (false)
 	{
 		part_list_ = &create_partition ();
 	}
@@ -324,13 +319,13 @@ public:
 
 	void _add_ref ()
 	{
-		if (!m_no_destroy)
+		if (!no_destroy_)
 			::CORBA::Nirvana::Servant <Heap, Memory>::_add_ref ();
 	}
 
 	void _remove_ref ()
 	{
-		if (!m_no_destroy)
+		if (!no_destroy_)
 			::CORBA::Nirvana::Servant <Heap, Memory>::_remove_ref ();
 	}
 
@@ -355,7 +350,7 @@ private:
 
 	Heap (Partition& first_part) :
 		HeapBaseT (HEAP_UNIT_DEFAULT),
-		m_no_destroy (true)
+		no_destroy_ (true)
 	{
 		part_list_ = &first_part;
 	}
@@ -367,7 +362,7 @@ private:
 	static void destroy_partition (Partition& part);
 
 private:
-	bool m_no_destroy;
+	bool no_destroy_;
 };
 
 inline Pointer Heap::allocate (Pointer p, UWord size, Flags flags)
@@ -406,7 +401,7 @@ inline Pointer Heap::allocate (Pointer p, UWord size, Flags flags)
 				throw;
 			}
 			if (flags & Memory::ZERO_INIT)
-				zero ((Octet*)p, (Octet*)p + size);
+				zero ((Word*)p, (Word*)p + (size + sizeof (Word) - 1) / sizeof (Word));
 		}
 	}
 
