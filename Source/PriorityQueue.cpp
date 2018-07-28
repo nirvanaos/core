@@ -1,5 +1,6 @@
 #include "PriorityQueue.h"
 #include <limits>
+#include <algorithm>
 
 namespace Nirvana {
 namespace Core {
@@ -19,16 +20,24 @@ PriorityQueue::Node::Node (int l, Key k, void* v) :
 
 PriorityQueue::PriorityQueue (unsigned max_levels) :
 	max_levels_ (max_levels),
+	distr_ (0.5),
 	tail_ (1, numeric_limits <Key>::max (), 0)
 {
-	assert (max_levels > 0);
-	head_ = create_node (max_levels, 0, 0);
-	head_->next [0] = &tail_;
+	assert (max_levels_ > 0);
+	assert (max_levels_ <= MAX_LEVELS_MAX);
+	head_ = create_node (max_levels_, 0, 0);
 	tail_.prev = head_;
+	fill_n (head_->next, max_levels_, &tail_);
+}
+
+PriorityQueue::~PriorityQueue ()
+{
+	Node::operator delete (head_, head_->level);
 }
 
 void PriorityQueue::release_node (Node* node)
 {
+	node = get_unmarked (node);
 	if (node && !--(node->ref_cnt)) {
 		for (Node** pp = node->next, **end = pp + node->level; pp != end; ++pp)
 			release_node (*pp);
@@ -68,7 +77,7 @@ bool PriorityQueue::insert (Key key, void* value, RandomGen& rndgen)
 	copy_node (new_node);
 	Node* node1 = copy_node (head ());
 
-	Node** saved_nodes = (Node**)_alloca (max_levels_ * sizeof (Node*));
+	Node* saved_nodes [MAX_LEVELS_MAX];
 	for (int i = max_levels_ - 1; i >= 1; --i) {
 		Node* node2 = scan_key (node1, i, key);
 		release_node (node2);

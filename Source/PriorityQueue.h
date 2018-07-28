@@ -12,7 +12,7 @@ using namespace ::CORBA;
 
 class PriorityQueue
 {
-	static const int MAX_LEVEL = 16;
+	static const int MAX_LEVELS_MAX = 32;
 
 public:
 	typedef ULongLong Key;
@@ -36,7 +36,7 @@ private:
 
 		void operator delete (void* p, int level)
 		{
-			g_default_heap->release (p, sizeof (Node) + (((Node*)p)->level - 1) * sizeof (Node*));
+			g_default_heap->release (p, sizeof (Node) + (level - 1) * sizeof (Node*));
 		}
 	};
 
@@ -44,6 +44,7 @@ public:
 	typedef std::mt19937 RandomGen;
 
 	PriorityQueue (unsigned max_levels = 8);
+	~PriorityQueue ();
 
 	bool insert (Key key, void* value, RandomGen& rndgen);
 
@@ -115,7 +116,7 @@ private:
 
 	int random_level (RandomGen& rndgen) const
 	{
-		return std::min (1 + distr_ (rndgen), max_levels_);
+		return max_levels_ > 1 ? std::min (1 + distr_ (rndgen), max_levels_) : 1;
 	}
 
 	template <typename T>
