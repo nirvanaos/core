@@ -71,12 +71,9 @@ protected:
 
 		bool contains (const void* p) const
 		{
-			if (dir_and_unit) {
-				Octet* begin = (Octet*)(directory () + 1);
-				Octet* end = begin + allocation_unit () * Directory::UNIT_COUNT;
-				return p >= begin && p < end;
-			}
-			return false;
+			Octet* begin = (Octet*)(directory () + 1);
+			Octet* end = begin + allocation_unit () * Directory::UNIT_COUNT;
+			return p >= begin && p < end;
 		}
 
 		UWord dir_and_unit;

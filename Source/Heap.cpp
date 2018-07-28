@@ -91,8 +91,20 @@ void Heap32::remove_partition (Partition& part)
 inline const HeapBase::Partition* Heap32::partition (UWord idx)
 {
 	const Partition* p = part_table_ + idx;
-	if (!sparse_table (table_bytes ()) || g_protection_domain_memory->is_readable (p, sizeof (Partition)))
-		return p;
+	if (HEAP_DIRECTORY_USE_EXCEPTION) {
+		try {
+			if (p->exists ())
+				return p;
+		} catch (...) {
+		}
+	} else {
+		if (
+			(!sparse_table (table_bytes ()) || g_protection_domain_memory->is_readable (p, sizeof (Partition)))
+		&&
+			p->exists ()
+		)
+			return p;
+	}
 	return 0;
 }
 
@@ -180,12 +192,28 @@ const HeapBase::Partition* Heap64::partition (UWord idx)
 	UWord i0 = idx / table_block_size_;
 	UWord i1 = idx % table_block_size_;
 	Partition* const* pblock = part_table_ + i0;
-	if (!sparse_table (table_bytes ()) || g_protection_domain_memory->is_readable (pblock, sizeof (Partition*))) {
-		const Partition* p = *pblock;
-		if (p) {
-			p += i1;
-			if (table_block_size_ * sizeof (Partition) <= commit_unit_ || g_protection_domain_memory->is_readable (p, sizeof (Partition)))
+	if (HEAP_DIRECTORY_USE_EXCEPTION) {
+		try {
+			const Partition* p = (*pblock) + i1;
+			if (p->exists ())
 				return p;
+		} catch (...) {
+		}
+	} else {
+		if (!sparse_table (table_bytes ()) || g_protection_domain_memory->is_readable (pblock, sizeof (Partition*))) {
+			const Partition* p = *pblock;
+			if (p) {
+				p += i1;
+				if (
+					(
+						table_block_size_ * sizeof (Partition) <= commit_unit_
+						||
+						g_protection_domain_memory->is_readable (p, sizeof (Partition))
+					)
+					&& p->exists ()
+				)
+					return p;
+			}
 		}
 	}
 	return 0;
