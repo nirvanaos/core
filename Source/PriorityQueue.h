@@ -114,6 +114,8 @@ private:
 
 	Node* help_delete (Node*, int level);
 
+	void remove_node (Node* node, Node*& prev, int level);
+
 	int random_level (RandomGen& rndgen) const
 	{
 		return max_levels_ > 1 ? std::min (1 + distr_ (rndgen), max_levels_) : 1;

@@ -132,6 +132,24 @@ bool PriorityQueue::insert (Key key, void* value, RandomGen& rndgen)
 	return true;
 }
 
+void PriorityQueue::remove_node (Node* node, Node*& prev, int level)
+{
+	for (;;) {
+		if (node->next [level] == get_marked ((Node*)0))
+			break;
+		Node* last = scan_key (prev, level, node->key);
+		release_node (last);
+		if (last != node || node->next [level] == get_marked ((Node*)0))
+			break;
+		if (cas (&(prev->next [level]), node, get_unmarked (node->next [level]))) {
+			node->next [level] = get_marked ((Node*)0);
+			break;
+		}
+		if (node->next [level] == get_marked ((Node*)0))
+			break;
+	}
+}
+
 void* PriorityQueue::delete_min ()
 {
 	Node* prev = copy_node (head ());
@@ -172,20 +190,7 @@ void* PriorityQueue::delete_min ()
 	}
 	prev = copy_node (head ());
 	for (int i = node1->level - 1; i >= 0; --i) {
-		for (;;) {
-			if (node1->next [i] == get_marked ((Node*)0))
-				break;
-			Node* last = scan_key (prev, i, node1->key);
-			release_node (last);
-			if (last != node1 || node1->next [i] == get_marked ((Node*)0))
-				break;
-			if (cas (&(prev->next [i]), node1, get_unmarked (node1->next [i]))) {
-				node1->next [i] = get_marked ((Node*)0);
-				break;
-			}
-			if (node1->next [i] == get_marked ((Node*)0))
-				break;
-		}
+		remove_node (node1, prev, i);
 	}
 	release_node (prev);
 	release_node (node1);
@@ -212,20 +217,7 @@ PriorityQueue::Node* PriorityQueue::help_delete (Node* node, int level)
 	} else
 		copy_node (prev);
 
-	for (;;) {
-		if (node->next [level] == get_marked ((Node*)0))
-			break;
-		Node* last = scan_key (prev, level, node->key);
-		release_node (last);
-		if (last != node || node->next [level] == get_marked ((Node*)0))
-			break;
-		if (cas (&(prev->next [level]), node, get_unmarked (node->next [level]))) {
-			node->next [level] = get_marked ((Node*)0);
-			break;
-		}
-		if (node->next [level] == get_marked ((Node*)0))
-			break;
-	}
+	remove_node (node, prev, level);
 	release_node (node);
 	return prev;
 }

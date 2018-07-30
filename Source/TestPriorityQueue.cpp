@@ -63,7 +63,7 @@ TEST_F (TestPriorityQueue, Single)
 		int prio = distr (rndgen);
 		StdNode node;
 		node.key = prio;
-		node.value = (void*)(prio << 1);
+		node.value = (void*)(intptr_t)(prio << 1);
 		queue.insert (prio, node.value, rndgen);
 		queue_std.push (node);
 	}
@@ -72,6 +72,22 @@ TEST_F (TestPriorityQueue, Single)
 		void* val = queue.delete_min ();
 		ASSERT_EQ (val, queue_std.top ().value);
 		queue_std.pop ();
+	}
+}
+
+TEST_F (TestPriorityQueue, Equal)
+{
+	PriorityQueue queue (1);
+	PriorityQueue::RandomGen rndgen;
+
+	static const int MAX_COUNT = 2;
+	for (int i = MAX_COUNT; i > 0; --i) {
+		queue.insert (1, (void*)(intptr_t)(i * 2), rndgen);
+	}
+
+	for (int i = MAX_COUNT; i > 0; --i) {
+		void* val = queue.delete_min ();
+		ASSERT_EQ (val, (void*)(intptr_t)(i * 2));
 	}
 }
 
