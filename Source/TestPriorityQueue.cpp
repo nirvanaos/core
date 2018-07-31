@@ -81,11 +81,11 @@ TEST_F (TestPriorityQueue, Equal)
 	PriorityQueue::RandomGen rndgen;
 
 	static const int MAX_COUNT = 2;
-	for (int i = MAX_COUNT; i > 0; --i) {
+	for (int i = 1; i <= MAX_COUNT; --i) {
 		queue.insert (1, (void*)(intptr_t)(i * 2), rndgen);
 	}
 
-	for (int i = MAX_COUNT; i > 0; --i) {
+	for (int i = 1; i <= MAX_COUNT; --i) {
 		void* val = queue.delete_min ();
 		ASSERT_EQ (val, (void*)(intptr_t)(i * 2));
 	}

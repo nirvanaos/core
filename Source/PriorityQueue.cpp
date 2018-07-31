@@ -62,7 +62,19 @@ PriorityQueue::Node* PriorityQueue::read_next (Node*& node1, int level)
 PriorityQueue::Node* PriorityQueue::scan_key (Node*& node1, int level, Key key)
 {
 	Node* node2 = read_next (node1, level);
-	while (node2->key < key) {
+	while (node2->key <= key) {
+		release_node (node1);
+		node1 = node2;
+		node2 = read_next (node1, level);
+	}
+	return node2;
+}
+
+PriorityQueue::Node* PriorityQueue::scan_key (Node*& node1, int level, Node* keynode)
+{
+	Node* node2 = read_next (node1, level);
+	Key key = keynode->key;
+	while (node2->key <= key && node2 != keynode) {
 		release_node (node1);
 		node1 = node2;
 		node2 = read_next (node1, level);
@@ -87,6 +99,7 @@ bool PriorityQueue::insert (Key key, void* value, RandomGen& rndgen)
 
 	for (;;) {
 		Node* node2 = scan_key (node1, 0, key);
+		/*
 		void* value2 = node2->value;
 		if (!is_marked (value2) && node2->key == key) {
 			if (cas (&node2->value, value2, value)) {
@@ -102,7 +115,7 @@ bool PriorityQueue::insert (Key key, void* value, RandomGen& rndgen)
 				continue;
 			}
 		}
-
+		*/
 		new_node->next [0] = node2;
 		release_node (node2);
 		if (cas (&(node1->next [0]), node2, new_node)) {
@@ -137,7 +150,7 @@ void PriorityQueue::remove_node (Node* node, Node*& prev, int level)
 	for (;;) {
 		if (node->next [level] == get_marked ((Node*)0))
 			break;
-		Node* last = scan_key (prev, level, node->key);
+		Node* last = scan_key (prev, level, node);
 		release_node (last);
 		if (last != node || node->next [level] == get_marked ((Node*)0))
 			break;
@@ -211,7 +224,7 @@ PriorityQueue::Node* PriorityQueue::help_delete (Node* node, int level)
 	if (!prev || level >= prev->valid_level) {
 		prev = copy_node (head ());
 		for (int i = max_levels_ - 1; i >= level; --i) {
-			Node* node2 = scan_key (prev, i, node->key);
+			Node* node2 = scan_key (prev, i, node);
 			release_node (node2);
 		}
 	} else

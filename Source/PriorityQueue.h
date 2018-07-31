@@ -111,6 +111,7 @@ private:
 	Node* read_next (Node*& node1, int level);
 
 	Node* scan_key (Node*& node1, int level, Key key);
+	Node* scan_key (Node*& node1, int level, Node* keynode);
 
 	Node* help_delete (Node*, int level);
 
