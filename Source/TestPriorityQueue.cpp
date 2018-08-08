@@ -14,7 +14,7 @@ using ::Nirvana::Core::PriorityQueue;
 namespace TestPriorityQueue {
 
 class TestPriorityQueue :
-	public ::testing::Test
+	public ::testing::TestWithParam <unsigned>
 {
 protected:
 	TestPriorityQueue ()
@@ -54,9 +54,9 @@ struct StdNode
 
 typedef std::priority_queue <StdNode> StdPriorityQueue;
 
-TEST_F (TestPriorityQueue, SingleThread)
+TEST_P (TestPriorityQueue, SingleThread)
 {
-	PriorityQueue queue;
+	PriorityQueue queue (GetParam ());
 	StdPriorityQueue queue_std;
 	PriorityQueue::RandomGen rndgen;
 	uniform_int_distribution <int> distr (1);
@@ -80,9 +80,9 @@ TEST_F (TestPriorityQueue, SingleThread)
 	}
 }
 
-TEST_F (TestPriorityQueue, Equal)
+TEST_P (TestPriorityQueue, Equal)
 {
-	PriorityQueue queue;
+	PriorityQueue queue (GetParam ());
 	PriorityQueue::RandomGen rndgen;
 
 	static const int MAX_COUNT = 10;
@@ -102,10 +102,10 @@ class ThreadTest
 	static const int NUM_ITERATIONS = 1000;
 	static const int MAX_QUEUE_SIZE = 1000;
 public:
-	ThreadTest () :
+	ThreadTest (unsigned max_level) :
 		distr_ (1, NUM_PRIORITIES),
 		queue_size_ (0),
-		queue_ ()
+		queue_ (max_level)
 	{
 		for (int i = 0; i < NUM_PRIORITIES; ++i)
 			counters_ [i] = 0;
@@ -156,9 +156,9 @@ void ThreadTest::finalize ()
 		ASSERT_EQ (counters_ [i], 0);
 }
 
-TEST_F (TestPriorityQueue, MultiThread)
+TEST_P (TestPriorityQueue, MultiThread)
 {
-	ThreadTest test;
+	ThreadTest test (GetParam ());
 
 	const unsigned int thread_cnt = max (thread::hardware_concurrency (), (unsigned)2);
 	vector <thread> threads;
@@ -171,5 +171,7 @@ TEST_F (TestPriorityQueue, MultiThread)
 
 	test.finalize ();
 }
+
+INSTANTIATE_TEST_CASE_P (LevelCount, TestPriorityQueue, ::testing::Values (1, 4, 8, 16));
 
 }

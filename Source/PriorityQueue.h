@@ -2,23 +2,23 @@
 #define NIRVANA_CORE_PRIORITYQUEUE_H_
 
 #include "core.h"
-#include <InterlockedCounter.h>
+#include <AtomicCounter.h>
 #include <random>
 #include <atomic>
 
 namespace Nirvana {
 namespace Core {
 
-using namespace ::CORBA;
-
 class PriorityQueue
 {
 	static const int MAX_LEVEL_MAX = 32;
 
 public:
-	typedef ULongLong Key;
+	typedef ::CORBA::ULongLong Key;
 
 private:
+	template <typename T> class AtomicLink;
+
 	template <typename T>
 	class Link
 	{
@@ -32,34 +32,45 @@ private:
 			assert (!((intptr_t)p & 1));
 		}
 
+		Link (const Link <T>& src) :
+			ptr_ (src.ptr_)
+		{}
+
+		T* operator = (T* p)
+		{
+			assert (!((intptr_t)p & 1));
+			ptr_ = p;
+			return p;
+		}
+
+		Link& operator = (const Link <T>& src)
+		{
+			ptr_ = src.ptr_;
+			return *this;
+		}
+
 		intptr_t is_marked () const
 		{
 			return (intptr_t)ptr_ & 1;
 		}
 
-		Link marked () const
+		Link <T> marked () const
 		{
-			Link link;
+			Link <T> link;
 			link.ptr_ = (void*)((intptr_t)ptr_ | 1);
 			return link;
 		}
 
-		Link unmarked () const
+		Link <T> unmarked () const
 		{
-			Link link;
+			Link <T> link;
 			link.ptr_ = (void*)((intptr_t)ptr_ & ~(intptr_t)1);
 			return link;
 		}
 
-		operator T* ()
+		operator T* () const
 		{
 			return (T*)((intptr_t)ptr_ & ~(intptr_t)1);
-		}
-
-		bool cas (Link <T> _cur, Link <T> _new)
-		{
-			void* cur = _cur.ptr_;
-			return std::atomic_compare_exchange_strong ((volatile std::atomic <void*>*)&ptr_, &cur, _new.ptr_);
 		}
 
 		bool operator == (const Link <T>& rhs) const
@@ -68,27 +79,74 @@ private:
 		}
 
 	private:
+		friend class AtomicLink <T>;
 		void* ptr_;
+	};
+
+	template <typename T>
+	class AtomicLink
+	{
+	public:
+		AtomicLink ()
+		{}
+
+		AtomicLink (T* p) :
+			ptr_ (p)
+		{
+			assert (!((intptr_t)p & 1));
+		}
+
+		Link <T> load () const
+		{
+			Link <T> link;
+			link.ptr_ = ptr_.load ();
+			return link;
+		}
+
+		Link <T> operator = (Link <T> link)
+		{
+			ptr_ = link.ptr_;
+			return link;
+		}
+
+		T* operator = (T* p)
+		{
+			assert (!((intptr_t)p & 1));
+			ptr_ = p;
+			return p;
+		}
+
+		bool cas (const Link <T>& _cur, const Link <T>& _new)
+		{
+			void* cur = _cur.ptr_;
+			return ptr_.compare_exchange_strong (cur, _new.ptr_);
+		}
+
+	private:
+		std::atomic <void*> ptr_;
 	};
 
 	struct Node
 	{
-		InterlockedCounter ref_cnt;
+		AtomicCounter ref_cnt;
 		Key key;
-		int level, valid_level;
-		Link <void> value;
+		int level;
+		std::atomic <int> valid_level;
+		AtomicLink <void> value;
 		Node* prev;
-		Link <Node> next [1];	// Variable length array.
+		AtomicLink <Node> next [1];	// Variable length array.
 
 		Node (int l, Key k, void* v);
 
 		void* operator new (size_t cb, int level)
 		{
+			//return malloc (sizeof (Node) + (level - 1) * sizeof (next [0]));
 			return g_default_heap->allocate (0, sizeof (Node) + (level - 1) * sizeof (next [0]), 0);
 		}
 
 		void operator delete (void* p, int level)
 		{
+			//free (p);
 			g_default_heap->release (p, sizeof (Node) + (level - 1) * sizeof (next [0]));
 		}
 	};
@@ -134,20 +192,23 @@ private:
 		Node::operator delete (node, node->level);
 	}
 
-	static Node* read_node (Link <Node> node)
+	static Node* read_node (const AtomicLink <Node>& node)
 	{
-		Node* p = node;
-		if (p)
+		Link <Node> link = node.load ();
+		Node* p = link;
+		if (p) {
+			assert (p->ref_cnt > 0);
 			p->ref_cnt.increment ();
-		if (node.is_marked ())
-			return 0;
-		else
-			return p;
+			if (!link.is_marked ())
+				return p;
+		}
+		return 0;
 	}
 
 	static Node* copy_node (Node* node)
 	{
 		assert (node);
+		assert (node->ref_cnt > 0);
 		node->ref_cnt.increment ();
 		return node;
 	}
@@ -174,7 +235,7 @@ private:
 	Node tail_;
 	const std::geometric_distribution <> distr_;
 #ifdef _DEBUG
-	InterlockedCounter node_cnt_;
+	AtomicCounter node_cnt_;
 #endif
 };
 

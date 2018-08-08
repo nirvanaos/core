@@ -477,7 +477,7 @@ Word HeapDirectory <DIRECTORY_SIZE, USE_EXCEPTION>::allocate (UWord size, Memory
 								if (++bitmap_ptr == end)
 									goto tryagain;
 							break;
-						} catch (const MEM_NOT_COMMITTED&) {
+						} catch (...) { // MEM_NOT_COMMITTED
 							if ((bitmap_ptr = round_up (bitmap_ptr + 1, page_size)) >= end)
 								goto tryagain;
 						}

@@ -7,6 +7,12 @@ namespace Core {
 
 using namespace std;
 
+//#ifdef _DEBUG
+//#define CHECK_VALID_LEVEL(lev, nod) assert(lev < nod->valid_level)
+//#else
+#define CHECK_VALID_LEVEL(lev, nod)
+//#endif
+
 PriorityQueue::Node::Node (int l, Key k, void* v) :
 	ref_cnt (1),
 	key (k),
@@ -33,7 +39,9 @@ PriorityQueue::PriorityQueue (unsigned max_levels) :
 
 PriorityQueue::~PriorityQueue ()
 {
+#ifdef _DEBUG
 	assert (node_cnt_ == 0);
+#endif
 	Node::operator delete (head_, head_->level);
 }
 
@@ -47,13 +55,13 @@ void PriorityQueue::release_node (Node* node)
 
 PriorityQueue::Node* PriorityQueue::read_next (Node*& node1, int level)
 {
-	if (node1->value.is_marked ())
+	if (node1->value.load ().is_marked ())
 		node1 = help_delete (node1, level);
-	assert (level < node1->valid_level);
+	CHECK_VALID_LEVEL (level, node1);
 	Node* node2 = read_node (node1->next [level]);
 	while (!node2) {
 		node1 = help_delete (node1, level);
-		assert (level < node1->valid_level);
+		CHECK_VALID_LEVEL (level, node1);
 		node2 = read_node (node1->next [level]);
 	}
 	return node2;
@@ -127,13 +135,13 @@ void PriorityQueue::insert (Key key, void* value, RandomGen& rndgen)
 	}
 
 	for (int i = 1; i < level; ++i) {
-		new_node->valid_level = i;
+		new_node->valid_level.store (i, memory_order_release);
 		node1 = saved_nodes [i];
 		for (;;) {
 			Node* node2 = scan_key (node1, i, key);
 			new_node->next [i] = node2;
 			release_node (node2);
-			if (new_node->value.is_marked () || node1->next [i].cas (node2, new_node)) {
+			if (new_node->value.load ().is_marked () || node1->next [i].cas (node2, new_node)) {
 				release_node (node1);
 				break;
 			}
@@ -141,27 +149,27 @@ void PriorityQueue::insert (Key key, void* value, RandomGen& rndgen)
 		}
 	}
 
-	new_node->valid_level = level;
-	if (new_node->value.is_marked ())
+	new_node->valid_level.store (level, memory_order_release);
+	if (new_node->value.load ().is_marked ())
 		new_node = help_delete (new_node, 0);
 	release_node (new_node);
 }
 
 void PriorityQueue::remove_node (Node* node, Node*& prev, int level)
 {
-	assert (level < node->valid_level);
+	CHECK_VALID_LEVEL (level, node);
 	for (;;) {
-		if (node->next [level] == Link <Node> (0).marked ())
+		if (node->next [level].load () == Link <Node> (0).marked ())
 			break;
 		Node* last = scan_key (prev, level, node);
 		release_node (last);
-		if (last != node || node->next [level] == Link <Node> (0).marked ())
+		if (last != node || node->next [level].load () == Link <Node> (0).marked ())
 			break;
-		if (prev->next [level].cas (node, node->next [level].unmarked ())) {
+		if (prev->next [level].cas (node, node->next [level].load ().unmarked ())) {
 			node->next [level] = Link <Node> (0).marked ();
 			break;
 		}
-		if (node->next [level] == Link <Node> (0).marked ())
+		if (node->next [level].load () == Link <Node> (0).marked ())
 			break;
 		// Back-Off
 	}
@@ -181,8 +189,8 @@ void* PriorityQueue::delete_min ()
 			return 0;
 		}
 	retry:
-		value = node1->value;
-		if (node1 != prev->next [0]) {
+		value = node1->value.load ();
+		if (node1 != prev->next [0].load ()) {
 			release_node (node1);
 			continue;
 		}
@@ -202,7 +210,7 @@ void* PriorityQueue::delete_min ()
 	for (int i = 0, end = node1->level; i < end; ++i) {
 		Link <Node> node2;
 		do {
-			node2 = node1->next [i];
+			node2 = node1->next [i].load ();
 		} while (!(
 			node2.is_marked ()
 			||
@@ -224,7 +232,7 @@ PriorityQueue::Node* PriorityQueue::help_delete (Node* node, int level)
 	for (unsigned i = level, end = node->level; i < end; ++i) {
 		Link <Node> node2;
 		do {
-			node2 = node->next [i];
+			node2 = node->next [i].load ();
 		} while (!(
 			node2.is_marked ()
 			||
@@ -233,7 +241,7 @@ PriorityQueue::Node* PriorityQueue::help_delete (Node* node, int level)
 	}
 	
 	Node* prev = node->prev;
-	if (!prev || level >= prev->valid_level) {
+	if (!prev || level >= prev->valid_level.load (memory_order_acquire)) {
 		prev = copy_node (head ());
 		for (int i = max_level_ - 1; i >= level; --i) {
 			Node* node2 = scan_key (prev, i, node);
