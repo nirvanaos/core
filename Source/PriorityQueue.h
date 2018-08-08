@@ -2,6 +2,7 @@
 #define NIRVANA_CORE_PRIORITYQUEUE_H_
 
 #include "core.h"
+#include <InterlockedCounter.h>
 #include <random>
 #include <atomic>
 
@@ -12,62 +13,98 @@ using namespace ::CORBA;
 
 class PriorityQueue
 {
-	static const int MAX_LEVELS_MAX = 32;
+	static const int MAX_LEVEL_MAX = 32;
 
 public:
 	typedef ULongLong Key;
 
 private:
+	template <typename T>
+	class Link
+	{
+	public:
+		Link ()
+		{}
+
+		Link (T* p) :
+			ptr_ (p)
+		{
+			assert (!((intptr_t)p & 1));
+		}
+
+		intptr_t is_marked () const
+		{
+			return (intptr_t)ptr_ & 1;
+		}
+
+		Link marked () const
+		{
+			Link link;
+			link.ptr_ = (void*)((intptr_t)ptr_ | 1);
+			return link;
+		}
+
+		Link unmarked () const
+		{
+			Link link;
+			link.ptr_ = (void*)((intptr_t)ptr_ & ~(intptr_t)1);
+			return link;
+		}
+
+		operator T* ()
+		{
+			return (T*)((intptr_t)ptr_ & ~(intptr_t)1);
+		}
+
+		bool cas (Link <T> _cur, Link <T> _new)
+		{
+			void* cur = _cur.ptr_;
+			return std::atomic_compare_exchange_strong ((volatile std::atomic <void*>*)&ptr_, &cur, _new.ptr_);
+		}
+
+		bool operator == (const Link <T>& rhs) const
+		{
+			return ptr_ == rhs.ptr_;
+		}
+
+	private:
+		void* ptr_;
+	};
+
 	struct Node
 	{
-		std::atomic_ulong ref_cnt;
+		InterlockedCounter ref_cnt;
 		Key key;
 		int level, valid_level;
-		void* value;
+		Link <void> value;
 		Node* prev;
-		Node* next [1];	// Variable length array.
+		Link <Node> next [1];	// Variable length array.
 
 		Node (int l, Key k, void* v);
 
 		void* operator new (size_t cb, int level)
 		{
-			return g_default_heap->allocate (0, sizeof (Node) + (level - 1) * sizeof (Node*), 0);
+			return g_default_heap->allocate (0, sizeof (Node) + (level - 1) * sizeof (next [0]), 0);
 		}
 
 		void operator delete (void* p, int level)
 		{
-			g_default_heap->release (p, sizeof (Node) + (level - 1) * sizeof (Node*));
+			g_default_heap->release (p, sizeof (Node) + (level - 1) * sizeof (next [0]));
 		}
 	};
 
 public:
+	/// Random-number generator.
 	typedef std::mt19937 RandomGen;
 
 	PriorityQueue (unsigned max_levels = 8);
 	~PriorityQueue ();
 
-	bool insert (Key key, void* value, RandomGen& rndgen);
+	void insert (Key key, void* value, RandomGen& rndgen);
 
 	void* delete_min ();
 
 private:
-	static bool is_marked (void* p)
-	{
-		return (intptr_t)p & 1 != 0;
-	}
-
-	template <typename T>
-	static T* get_marked (T* p)
-	{
-		return (T*)((intptr_t)p | 1);
-	}
-
-	template <typename T>
-	static T* get_unmarked (T* p)
-	{
-		return (T*)((intptr_t)p & ~(intptr_t)1);
-	}
-
 	Node* head ()
 	{
 		return head_;
@@ -78,8 +115,11 @@ private:
 		return &tail_;
 	}
 
-	static Node* create_node (int level, Key key, void* value)
+	Node* create_node (int level, Key key, void* value)
 	{
+#ifdef _DEBUG
+		node_cnt_.increment ();
+#endif
 		return new (level) Node (level, key, value);
 	}
 
@@ -87,22 +127,28 @@ private:
 	{
 		assert (node != head ());
 		assert (node != tail ());
+#ifdef _DEBUG
+		assert (node_cnt_ > 0);
+		node_cnt_.decrement ();
+#endif
 		Node::operator delete (node, node->level);
 	}
 
-	static Node* read_node (Node* node)
+	static Node* read_node (Link <Node> node)
 	{
-		if (node && !is_marked (node)) {
-			++(node->ref_cnt);
-			return node;
-		}
-		return 0;
+		Node* p = node;
+		if (p)
+			p->ref_cnt.increment ();
+		if (node.is_marked ())
+			return 0;
+		else
+			return p;
 	}
 
 	static Node* copy_node (Node* node)
 	{
-		if (node)
-			++(node->ref_cnt);
+		assert (node);
+		node->ref_cnt.increment ();
 		return node;
 	}
 
@@ -119,21 +165,17 @@ private:
 
 	int random_level (RandomGen& rndgen) const
 	{
-		return max_levels_ > 1 ? std::min (1 + distr_ (rndgen), max_levels_) : 1;
-	}
-
-	template <typename T>
-	static bool cas (T** pp, T* pcur, T* pnew)
-	{
-		void* cur = pcur;
-		return std::atomic_compare_exchange_strong ((volatile std::atomic <void*>*)pp, &cur, (void*)pnew);
+		return max_level_ > 1 ? std::min (1 + distr_ (rndgen), max_level_) : 1;
 	}
 
 private:
-	const int max_levels_;
+	const int max_level_;
 	Node* head_;
 	Node tail_;
 	const std::geometric_distribution <> distr_;
+#ifdef _DEBUG
+	InterlockedCounter node_cnt_;
+#endif
 };
 
 }

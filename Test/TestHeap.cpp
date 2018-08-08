@@ -221,12 +221,12 @@ public:
 
 TEST_F (TestHeap, MultiThread)
 {
-	const size_t thread_cnt = max (thread::hardware_concurrency (), (unsigned)2);
+	const unsigned int thread_cnt = max (thread::hardware_concurrency (), (unsigned)2);
 	static const int ITERATIONS = 50;
 	static const int THREAD_ITERATIONS = 1000;
 	vector <ThreadAllocator> threads;
 	threads.reserve (thread_cnt);
-	for (unsigned i = 0; i < thread_cnt; ++i)
+	for (unsigned int i = 0; i < thread_cnt; ++i)
 		threads.emplace_back (i + 1);
 
 	for (int i = 0; i < ITERATIONS; ++i) {
