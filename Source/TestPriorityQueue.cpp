@@ -5,6 +5,7 @@
 #include <thread>
 #include <random>
 #include <vector>
+#include <atomic>
 
 using namespace ::CORBA;
 using namespace ::Nirvana;
@@ -30,14 +31,12 @@ protected:
 	{
 		// Code here will be called immediately after the constructor (right
 		// before each test).
-		::Nirvana::Core::initialize ();
 	}
 
 	virtual void TearDown ()
 	{
 		// Code here will be called immediately after each test (right
 		// before the destructor).
-		::Nirvana::Core::terminate ();
 	}
 };
 

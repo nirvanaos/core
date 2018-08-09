@@ -14,7 +14,6 @@ using namespace std;
 //#endif
 
 PriorityQueue::Node::Node (int l, Key k, void* v) :
-	ref_cnt (1),
 	key (k),
 	level (l),
 	valid_level (0),
@@ -23,15 +22,13 @@ PriorityQueue::Node::Node (int l, Key k, void* v) :
 {}
 
 PriorityQueue::PriorityQueue (unsigned max_levels) :
-	max_level_ (max_levels),
+	max_level_ (max (1u, min (MAX_LEVEL_MAX, max_levels))),
 #ifdef _DEBUG
 	node_cnt_ (0),
 #endif
 	distr_ (0.5),
 	tail_ (max_levels, numeric_limits <Key>::max (), 0)
 {
-	assert (max_level_ > 0);
-	assert (max_level_ <= MAX_LEVEL_MAX);
 	head_ = new (max_level_) Node (max_level_, 0, 0);
 	fill_n (head_->next, max_level_, &tail_);
 	head_->valid_level = max_level_;
@@ -135,7 +132,7 @@ void PriorityQueue::insert (Key key, void* value, RandomGen& rndgen)
 	}
 
 	for (int i = 1; i < level; ++i) {
-		new_node->valid_level.store (i, memory_order_release);
+		new_node->valid_level = i;
 		node1 = saved_nodes [i];
 		for (;;) {
 			Node* node2 = scan_key (node1, i, key);
@@ -149,7 +146,7 @@ void PriorityQueue::insert (Key key, void* value, RandomGen& rndgen)
 		}
 	}
 
-	new_node->valid_level.store (level, memory_order_release);
+	new_node->valid_level = level;
 	if (new_node->value.load ().is_marked ())
 		new_node = help_delete (new_node, 0);
 	release_node (new_node);
@@ -241,7 +238,7 @@ PriorityQueue::Node* PriorityQueue::help_delete (Node* node, int level)
 	}
 	
 	Node* prev = node->prev;
-	if (!prev || level >= prev->valid_level.load (memory_order_acquire)) {
+	if (!prev || level >= prev->valid_level) {
 		prev = copy_node (head ());
 		for (int i = max_level_ - 1; i >= level; --i) {
 			Node* node2 = scan_key (prev, i, node);

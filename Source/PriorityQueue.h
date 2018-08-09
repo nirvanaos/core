@@ -1,17 +1,26 @@
 #ifndef NIRVANA_CORE_PRIORITYQUEUE_H_
 #define NIRVANA_CORE_PRIORITYQUEUE_H_
 
+#ifndef UNIT_TEST
 #include "core.h"
+#endif
 #include <AtomicCounter.h>
 #include <random>
+
+#define USE_INTRINSIC_ATOMIC
+
+#if (defined USE_INTRINSIC_ATOMIC && defined _MSC_BUILD)
+#include <intrin.h>
+#else
 #include <atomic>
+#endif
 
 namespace Nirvana {
 namespace Core {
 
 class PriorityQueue
 {
-	static const int MAX_LEVEL_MAX = 32;
+	static const unsigned MAX_LEVEL_MAX = 32;
 
 public:
 	typedef ::CORBA::ULongLong Key;
@@ -90,16 +99,14 @@ private:
 		AtomicLink ()
 		{}
 
-		AtomicLink (T* p) :
-			ptr_ (p)
-		{
-			assert (!((intptr_t)p & 1));
-		}
+		AtomicLink (Link <T> link) :
+			ptr_ (link.ptr_)
+		{}
 
 		Link <T> load () const
 		{
 			Link <T> link;
-			link.ptr_ = ptr_.load ();
+			link.ptr_ = ptr_;
 			return link;
 		}
 
@@ -109,29 +116,35 @@ private:
 			return link;
 		}
 
-		T* operator = (T* p)
-		{
-			assert (!((intptr_t)p & 1));
-			ptr_ = p;
-			return p;
-		}
-
 		bool cas (const Link <T>& _cur, const Link <T>& _new)
 		{
+			// We don't need to load current value, so we can use more lite function than STL.
+#if (defined USE_INTRINSIC_ATOMIC && defined _MSC_BUILD)
+#ifdef _M_X64
+			return _InterlockedCompareExchange64 ((__int64 volatile*)&ptr_, (__int64)_new.ptr_, (__int64)_cur.ptr_) == (__int64)_cur.ptr_;
+#else
+			return _InterlockedCompareExchange ((long volatile*)&ptr_, (long)_new.ptr_, (long)_cur.ptr_) == (long)_cur.ptr_;
+#endif
+#else
 			void* cur = _cur.ptr_;
 			return ptr_.compare_exchange_strong (cur, _new.ptr_);
+#endif
 		}
 
 	private:
+#if (defined USE_INTRINSIC_ATOMIC && defined _MSC_BUILD)
+		void* volatile ptr_;
+#else
 		std::atomic <void*> ptr_;
+#endif
 	};
 
 	struct Node
 	{
-		AtomicCounter ref_cnt;
+		RefCounter ref_cnt;
 		Key key;
 		int level;
-		std::atomic <int> valid_level;
+		volatile int valid_level;
 		AtomicLink <void> value;
 		Node* prev;
 		AtomicLink <Node> next [1];	// Variable length array.
@@ -140,14 +153,20 @@ private:
 
 		void* operator new (size_t cb, int level)
 		{
-			//return malloc (sizeof (Node) + (level - 1) * sizeof (next [0]));
+#ifdef UNIT_TEST
+			return malloc (sizeof (Node) + (level - 1) * sizeof (next [0]));
+#else
 			return g_default_heap->allocate (0, sizeof (Node) + (level - 1) * sizeof (next [0]), 0);
+#endif
 		}
 
 		void operator delete (void* p, int level)
 		{
-			//free (p);
+#ifdef UNIT_TEST
+			free (p);
+#else
 			g_default_heap->release (p, sizeof (Node) + (level - 1) * sizeof (next [0]));
+#endif
 		}
 	};
 
@@ -197,7 +216,6 @@ private:
 		Link <Node> link = node.load ();
 		Node* p = link;
 		if (p) {
-			assert (p->ref_cnt > 0);
 			p->ref_cnt.increment ();
 			if (!link.is_marked ())
 				return p;
@@ -208,7 +226,6 @@ private:
 	static Node* copy_node (Node* node)
 	{
 		assert (node);
-		assert (node->ref_cnt > 0);
 		node->ref_cnt.increment ();
 		return node;
 	}
@@ -241,6 +258,8 @@ private:
 
 }
 }
+
+#undef USE_INTRINSIC_ATOMIC
 
 #endif
 
