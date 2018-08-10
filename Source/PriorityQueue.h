@@ -14,10 +14,20 @@ namespace Core {
 
 class PriorityQueue
 {
+public:
 	static const unsigned MAX_LEVEL_MAX = 32;
 
-public:
+	/// Key type (deadline).
 	typedef ::CORBA::ULongLong Key;
+
+	/// Random-number generator.
+	typedef std::mt19937 RandomGen;
+
+	PriorityQueue (unsigned max_level = 8);
+	~PriorityQueue ();
+
+	void insert (Key key, void* value, RandomGen& rndgen);
+	void* delete_min ();
 
 private:
 	struct Node
@@ -34,27 +44,23 @@ private:
 
 		void* operator new (size_t cb, int level)
 		{
+#ifdef UNIT_TEST
+			return _aligned_malloc (sizeof (Node) + (level - 1) * sizeof (next [0]), 1 << log2_ceil (sizeof (Node)));
+#else
 			return g_default_heap->allocate (0, sizeof (Node) + (level - 1) * sizeof (next [0]), 0);
+#endif
 		}
 
 		void operator delete (void* p, int level)
 		{
+#ifdef UNIT_TEST
+			_aligned_free (p);
+#else
 			g_default_heap->release (p, sizeof (Node) + (level - 1) * sizeof (next [0]));
+#endif
 		}
 	};
 
-public:
-	/// Random-number generator.
-	typedef std::mt19937 RandomGen;
-
-	PriorityQueue (unsigned max_levels = 8);
-	~PriorityQueue ();
-
-	void insert (Key key, void* value, RandomGen& rndgen);
-
-	void* delete_min ();
-
-private:
 	Node* head () const
 	{
 		return head_;
@@ -70,9 +76,7 @@ private:
 #ifdef _DEBUG
 		node_cnt_.increment ();
 #endif
-		Node* ret = new (level) Node (level, key, value);
-		std::fill_n (ret->next, level, Link <Node> (nullptr));
-		return ret;
+		return new (level) Node (level, key, value);
 	}
 
 	void delete_node (Node* node)
@@ -86,7 +90,7 @@ private:
 		Node::operator delete (node, node->level);
 	}
 
-	static Node* read_node (AtomicLink <Node>& node);
+	Node* read_node (AtomicLink <Node>& node);
 
 	static Node* copy_node (Node* node)
 	{

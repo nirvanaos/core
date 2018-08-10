@@ -1,7 +1,6 @@
 #include "PriorityQueue.h"
 #include "BackOff.h"
 #include <limits>
-#include <algorithm>
 
 namespace Nirvana {
 namespace Core {
@@ -14,23 +13,30 @@ using namespace std;
 #define CHECK_VALID_LEVEL(lev, nod)
 //#endif
 
-PriorityQueue::Node::Node (int l, Key k, void* v) :
+inline PriorityQueue::Node::Node (int l, Key k, void* v) :
 	key (k),
 	level (l),
 	valid_level (0),
 	value (v),
 	prev (0)
-{}
+{
+	fill_n ((uintptr_t*)next, level, 0);
+}
 
-PriorityQueue::PriorityQueue (unsigned max_levels) :
-	max_level_ (max (1u, min (MAX_LEVEL_MAX, max_levels))),
+PriorityQueue::PriorityQueue (unsigned max_level) :
+	max_level_ (max (1u, min (MAX_LEVEL_MAX, max_level))),
 #ifdef _DEBUG
 	node_cnt_ (0),
 #endif
-	distr_ (0.5),
-	head_ (new (max_level_) Node (max_level_, 0, 0)),
-	tail_ (new (max_level_) Node (max_level_, numeric_limits <Key>::max (), 0))
+	distr_ (0.5)
 {
+	head_ = new (max_level_) Node (max_level_, 0, 0);
+	try {
+		tail_ = new (max_level_) Node (max_level_, numeric_limits <Key>::max (), 0);
+	} catch (...) {
+		Node::operator delete (head_, head_->level);
+		throw;
+	}
 	fill_n (head_->next, max_level_, tail_);
 	head_->valid_level = max_level_;
 }
@@ -41,6 +47,7 @@ PriorityQueue::~PriorityQueue ()
 	assert (node_cnt_ == 0);
 #endif
 	Node::operator delete (head_, head_->level);
+	Node::operator delete (tail_, tail_->level);
 }
 
 void PriorityQueue::release_node (Node* node)
@@ -62,10 +69,11 @@ PriorityQueue::Node* PriorityQueue::read_node (AtomicLink <Node>& node)
 	if (p)
 		p->ref_cnt.increment ();
 	node.unlock ();
-	if (link.is_marked ())
-		return nullptr;
-	else
-		return p;
+	if (p && link.is_marked ()) {
+		//release_node (p);
+		p = nullptr;
+	}
+	return p;
 }
 
 PriorityQueue::Node* PriorityQueue::read_next (Node*& node1, int level)
