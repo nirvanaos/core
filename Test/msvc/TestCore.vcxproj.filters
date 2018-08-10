@@ -82,5 +82,8 @@
     <ClInclude Include="..\..\Source\BackOff.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\Source\AtomicLink.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

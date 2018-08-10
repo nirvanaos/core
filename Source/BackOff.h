@@ -2,7 +2,7 @@
 #define NIRVANA_CORE_BACKOFF_H_
 
 #ifdef _WIN32
-__declspec(dllimport)
+extern "C" __declspec(dllimport)
 void __stdcall Sleep (unsigned long ms);
 #endif
 

@@ -1,4 +1,5 @@
 #include "../Source/PriorityQueue.h"
+#include "../Source/core.h"
 #include "gtest/gtest.h"
 #include <queue>
 #include <array>
@@ -31,12 +32,14 @@ protected:
 	{
 		// Code here will be called immediately after the constructor (right
 		// before each test).
+		::Nirvana::Core::initialize ();
 	}
 
 	virtual void TearDown ()
 	{
 		// Code here will be called immediately after each test (right
 		// before the destructor).
+		::Nirvana::Core::terminate ();
 	}
 };
 
@@ -53,6 +56,8 @@ struct StdNode
 
 typedef std::priority_queue <StdNode> StdPriorityQueue;
 
+static const unsigned PTR_ALIGN = 16;
+
 TEST_P (TestPriorityQueue, SingleThread)
 {
 	PriorityQueue queue (GetParam ());
@@ -67,7 +72,7 @@ TEST_P (TestPriorityQueue, SingleThread)
 		int prio = distr (rndgen);
 		StdNode node;
 		node.key = prio;
-		node.value = (void*)(intptr_t)(prio << 1);
+		node.value = (void*)(intptr_t)(prio * PTR_ALIGN);
 		queue.insert (prio, node.value, rndgen);
 		queue_std.push (node);
 	}
@@ -86,12 +91,12 @@ TEST_P (TestPriorityQueue, Equal)
 
 	static const int MAX_COUNT = 10;
 	for (int i = 1; i <= MAX_COUNT; ++i) {
-		queue.insert (1, (void*)(intptr_t)(i * 2), rndgen);
+		queue.insert (1, (void*)(intptr_t)(i * PTR_ALIGN), rndgen);
 	}
 
 	for (int i = 1; i <= MAX_COUNT; ++i) {
 		void* val = queue.delete_min ();
-		ASSERT_EQ (val, (void*)(intptr_t)(i * 2));
+		ASSERT_EQ (val, (void*)(intptr_t)(i * PTR_ALIGN));
 	}
 }
 
@@ -130,11 +135,11 @@ void ThreadTest::thread_proc (int rndinit)
 			int prio = distr_ (rndgen);
 			++counters_ [prio - 1];
 			++queue_size_;
-			queue_.insert (prio, (void*)(intptr_t)(prio * 2), rndgen);
+			queue_.insert (prio, (void*)(intptr_t)(prio * PTR_ALIGN), rndgen);
 		} else {
 			void* p = queue_.delete_min ();
 			if (p) {
-				int prio = ((intptr_t)p / 2);
+				int prio = ((intptr_t)p / PTR_ALIGN);
 				--counters_ [prio - 1];
 				--queue_size_;
 			}
@@ -145,7 +150,7 @@ void ThreadTest::thread_proc (int rndinit)
 void ThreadTest::finalize ()
 {
 	while (void* p = queue_.delete_min ()) {
-		int prio = ((intptr_t)p / 2);
+		int prio = ((intptr_t)p / PTR_ALIGN);
 		--counters_ [prio - 1];
 		--queue_size_;
 	}

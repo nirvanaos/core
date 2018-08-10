@@ -1,4 +1,5 @@
 #include "PriorityQueue.h"
+#include "BackOff.h"
 #include <limits>
 #include <algorithm>
 
@@ -27,10 +28,10 @@ PriorityQueue::PriorityQueue (unsigned max_levels) :
 	node_cnt_ (0),
 #endif
 	distr_ (0.5),
-	tail_ (max_levels, numeric_limits <Key>::max (), 0)
+	head_ (new (max_level_) Node (max_level_, 0, 0)),
+	tail_ (new (max_level_) Node (max_level_, numeric_limits <Key>::max (), 0))
 {
-	head_ = new (max_level_) Node (max_level_, 0, 0);
-	fill_n (head_->next, max_level_, &tail_);
+	fill_n (head_->next, max_level_, tail_);
 	head_->valid_level = max_level_;
 }
 
@@ -44,10 +45,27 @@ PriorityQueue::~PriorityQueue ()
 
 void PriorityQueue::release_node (Node* node)
 {
+	assert (node);
 	if (node && !node->ref_cnt.decrement ()) {
-		release_node (node->prev);
+		Node* prev = node->prev;
+		if (prev)
+			release_node (prev);
 		delete_node (node);
 	}
+}
+
+PriorityQueue::Node* PriorityQueue::read_node (AtomicLink <Node>& node)
+{
+	node.lock ();
+	Link <Node> link = node.load ();
+	Node* p = link;
+	if (p)
+		p->ref_cnt.increment ();
+	node.unlock ();
+	if (link.is_marked ())
+		return nullptr;
+	else
+		return p;
 }
 
 PriorityQueue::Node* PriorityQueue::read_next (Node*& node1, int level)
@@ -103,7 +121,7 @@ void PriorityQueue::insert (Key key, void* value, RandomGen& rndgen)
 			saved_nodes [i] = copy_node (node1);
 	}
 
-	for (;;) {
+	for (BackOff bo; true; bo.sleep ()) {
 		Node* node2 = scan_key (node1, 0, key);
 		/*
 		void* value2 = node2->value;
@@ -128,13 +146,12 @@ void PriorityQueue::insert (Key key, void* value, RandomGen& rndgen)
 			release_node (node1);
 			break;
 		}
-		// Back-Off
 	}
 
 	for (int i = 1; i < level; ++i) {
 		new_node->valid_level = i;
 		node1 = saved_nodes [i];
-		for (;;) {
+		for (BackOff bo; true; bo.sleep ()) {
 			Node* node2 = scan_key (node1, i, key);
 			new_node->next [i] = node2;
 			release_node (node2);
@@ -142,7 +159,6 @@ void PriorityQueue::insert (Key key, void* value, RandomGen& rndgen)
 				release_node (node1);
 				break;
 			}
-			// Back-Off
 		}
 	}
 
@@ -155,20 +171,22 @@ void PriorityQueue::insert (Key key, void* value, RandomGen& rndgen)
 void PriorityQueue::remove_node (Node* node, Node*& prev, int level)
 {
 	CHECK_VALID_LEVEL (level, node);
-	for (;;) {
-		if (node->next [level].load () == Link <Node> (0).marked ())
+	for (BackOff bo; true; bo.sleep ()) {
+		if (node->next [level].load () == Link <Node> (nullptr).marked ())
 			break;
 		Node* last = scan_key (prev, level, node);
 		release_node (last);
-		if (last != node || node->next [level].load () == Link <Node> (0).marked ())
+		if (last != node)
 			break;
-		if (prev->next [level].cas (node, node->next [level].load ().unmarked ())) {
-			node->next [level] = Link <Node> (0).marked ();
+		Link <Node> next = node->next [level].load ();
+		if (next == Link <Node> (nullptr).marked ())
+			break;
+		if (prev->next [level].cas (node, next.unmarked ())) {
+			node->next [level] = Link <Node> (nullptr).marked ();
 			break;
 		}
-		if (node->next [level].load () == Link <Node> (0).marked ())
+		if (node->next [level].load () == Link <Node> (nullptr).marked ())
 			break;
-		// Back-Off
 	}
 }
 
@@ -183,7 +201,7 @@ void* PriorityQueue::delete_min ()
 		if (node1 == tail ()) {
 			release_node (prev);
 			release_node (node1);
-			return 0;
+			return nullptr;
 		}
 	retry:
 		value = node1->value.load ();
