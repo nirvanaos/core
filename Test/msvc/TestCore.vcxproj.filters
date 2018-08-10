@@ -79,5 +79,8 @@
     <ClInclude Include="..\..\Source\PriorityQueue.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\Source\BackOff.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
