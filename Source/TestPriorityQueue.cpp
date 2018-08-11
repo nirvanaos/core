@@ -53,7 +53,7 @@ struct StdNode
 
 typedef std::priority_queue <StdNode> StdPriorityQueue;
 
-static const unsigned PTR_ALIGN = 16;
+static const unsigned PTR_ALIGN = 4;
 
 TEST_P (TestPriorityQueue, SingleThread)
 {
@@ -161,7 +161,7 @@ TEST_P (TestPriorityQueue, MultiThread)
 {
 	ThreadTest test (GetParam ());
 
-	const unsigned int thread_cnt = max (thread::hardware_concurrency (), (unsigned)2);
+	const unsigned int thread_cnt = 2;// max (thread::hardware_concurrency (), (unsigned)2);
 	vector <thread> threads;
 
 	for (unsigned int i = 0; i < thread_cnt; ++i)

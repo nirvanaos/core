@@ -21,7 +21,7 @@ public:
 	void sleep ()
 	{
 #ifdef _WIN32
-		Sleep (0);
+		Sleep (2);
 #endif
 	}
 };

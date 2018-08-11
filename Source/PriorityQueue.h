@@ -4,8 +4,8 @@
 #ifndef UNIT_TEST
 #include "core.h"
 #endif
-#include <AtomicCounter.h>
-#include "AtomicLink.h"
+#include "AtomicCounter.h"
+#include "AtomicPtr.h"
 #include <random>
 #include <algorithm>
 
@@ -30,22 +30,42 @@ public:
 	void* delete_min ();
 
 private:
-	struct Node
+	struct Node;
+
+	struct NodeBase
 	{
 		Key key;
 		RefCounter ref_cnt;
 		int level;
 		int volatile valid_level;
-		AtomicLink <void> value;
+		AtomicPtr <> value;
 		Node* volatile prev;
-		AtomicLink <Node> next [1];	// Variable length array.
 
-		Node (int l, Key k, void* v);
+		NodeBase (int l, Key k, void* v) :
+			key (k),
+			level (l),
+			valid_level (0),
+			value (v),
+			prev (0)
+		{}
+	};
+
+	typedef AtomicPtrT <Node, 1 << log2_ceil (sizeof (NodeBase))> Link;
+
+	struct Node : public NodeBase
+	{
+		Link next [1];	// Variable length array.
+
+		Node (int l, Key k, void* v) :
+			NodeBase (l, k, v)
+		{
+			std::fill_n ((uintptr_t*)next, level, 0);
+		}
 
 		void* operator new (size_t cb, int level)
 		{
 #ifdef UNIT_TEST
-			return _aligned_malloc (sizeof (Node) + (level - 1) * sizeof (next [0]), 1 << log2_ceil (sizeof (Node)));
+			return _aligned_malloc (sizeof (Node) + (level - 1) * sizeof (next [0]), Link::alignment);
 #else
 			return g_default_heap->allocate (0, sizeof (Node) + (level - 1) * sizeof (next [0]), 0);
 #endif
@@ -90,7 +110,7 @@ private:
 		Node::operator delete (node, node->level);
 	}
 
-	Node* read_node (AtomicLink <Node>& node);
+	Node* read_node (Link& node);
 
 	static Node* copy_node (Node* node)
 	{
@@ -129,4 +149,3 @@ private:
 }
 
 #endif
-

@@ -13,16 +13,6 @@ using namespace std;
 #define CHECK_VALID_LEVEL(lev, nod)
 //#endif
 
-inline PriorityQueue::Node::Node (int l, Key k, void* v) :
-	key (k),
-	level (l),
-	valid_level (0),
-	value (v),
-	prev (0)
-{
-	fill_n ((uintptr_t*)next, level, 0);
-}
-
 PriorityQueue::PriorityQueue (unsigned max_level) :
 	max_level_ (max (1u, min (MAX_LEVEL_MAX, max_level))),
 #ifdef _DEBUG
@@ -61,15 +51,14 @@ void PriorityQueue::release_node (Node* node)
 	}
 }
 
-PriorityQueue::Node* PriorityQueue::read_node (AtomicLink <Node>& node)
+PriorityQueue::Node* PriorityQueue::read_node (Link& node)
 {
-	node.lock ();
-	Link <Node> link = node.load ();
-	Node* p = link;
+	Link::Ptr tagged = node.lock ();
+	Node* p = tagged;
 	if (p)
 		p->ref_cnt.increment ();
 	node.unlock ();
-	if (p && link.is_marked ()) {
+	if (p && tagged.is_marked ()) {
 		//release_node (p);
 		p = nullptr;
 	}
@@ -180,20 +169,20 @@ void PriorityQueue::remove_node (Node* node, Node*& prev, int level)
 {
 	CHECK_VALID_LEVEL (level, node);
 	for (BackOff bo; true; bo.sleep ()) {
-		if (node->next [level].load () == Link <Node> (nullptr).marked ())
+		if (node->next [level].load () == TaggedNil::marked ())
 			break;
 		Node* last = scan_key (prev, level, node);
 		release_node (last);
 		if (last != node)
 			break;
-		Link <Node> next = node->next [level].load ();
-		if (next == Link <Node> (nullptr).marked ())
+		Link::Ptr next = node->next [level].load ();
+		if (next == TaggedNil::marked ())
 			break;
 		if (prev->next [level].cas (node, next.unmarked ())) {
-			node->next [level] = Link <Node> (nullptr).marked ();
+			node->next [level] = TaggedNil::marked ();
 			break;
 		}
-		if (node->next [level].load () == Link <Node> (nullptr).marked ())
+		if (node->next [level].load () == TaggedNil::marked ())
 			break;
 	}
 }
@@ -202,7 +191,7 @@ void* PriorityQueue::delete_min ()
 {
 	Node* prev = copy_node (head ());
 	Node* node1;
-	Link <void> value;
+	TaggedPtr <> value;
 
 	for (;;) {
 		node1 = read_next (prev, 0);
@@ -231,7 +220,7 @@ void* PriorityQueue::delete_min ()
 	}
 
 	for (int i = 0, end = node1->level; i < end; ++i) {
-		Link <Node> node2;
+		Link::Ptr node2;
 		do {
 			node2 = node1->next [i].load ();
 		} while (!(
@@ -253,7 +242,7 @@ void* PriorityQueue::delete_min ()
 PriorityQueue::Node* PriorityQueue::help_delete (Node* node, int level)
 {
 	for (unsigned i = level, end = node->level; i < end; ++i) {
-		Link <Node> node2;
+		Link::Ptr node2;
 		do {
 			node2 = node->next [i].load ();
 		} while (!(

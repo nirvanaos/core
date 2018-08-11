@@ -82,7 +82,10 @@
     <ClInclude Include="..\..\Source\BackOff.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\Source\AtomicLink.h">
+    <ClInclude Include="..\..\Source\AtomicPtr.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\AtomicCounter.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

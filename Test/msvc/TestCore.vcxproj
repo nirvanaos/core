@@ -137,7 +137,8 @@
   <ItemGroup>
     <ClInclude Include="..\..\Include\HeapFactory.h" />
     <ClInclude Include="..\..\Include\Memory.h" />
-    <ClInclude Include="..\..\Source\AtomicLink.h" />
+    <ClInclude Include="..\..\Source\AtomicCounter.h" />
+    <ClInclude Include="..\..\Source\AtomicPtr.h" />
     <ClInclude Include="..\..\Source\BackOff.h" />
     <ClInclude Include="..\..\Source\config.h" />
     <ClInclude Include="..\..\Source\core.h" />
