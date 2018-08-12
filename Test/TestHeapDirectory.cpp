@@ -1,11 +1,11 @@
 #include "../Source/HeapDirectory.h"
+#include "../Source/core.h"
 #include <gtest/gtest.h>
 #include <random>
 #include <thread>
 #include <atomic>
 #include <vector>
 #include <set>
-#include "../Source/core.h"
 
 using namespace ::Nirvana;
 using namespace ::Nirvana::Core;

@@ -50,11 +50,11 @@ private:
 		{}
 	};
 
-	typedef AtomicPtrT <Node, 1 << log2_ceil (sizeof (NodeBase))> Link;
+	typedef TaggedPtrT <Node, 1 << log2_ceil (sizeof (NodeBase))> Link;
 
 	struct Node : public NodeBase
 	{
-		Link next [1];	// Variable length array.
+		Link::Atomic next [1];	// Variable length array.
 
 		Node (int l, Key k, void* v) :
 			NodeBase (l, k, v)
@@ -110,7 +110,7 @@ private:
 		Node::operator delete (node, node->level);
 	}
 
-	Node* read_node (Link& node);
+	Node* read_node (Link::Atomic& node);
 
 	static Node* copy_node (Node* node)
 	{

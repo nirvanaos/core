@@ -51,9 +51,9 @@ void PriorityQueue::release_node (Node* node)
 	}
 }
 
-PriorityQueue::Node* PriorityQueue::read_node (Link& node)
+PriorityQueue::Node* PriorityQueue::read_node (Link::Atomic& node)
 {
-	Link::Ptr tagged = node.lock ();
+	Link tagged = node.lock ();
 	Node* p = tagged;
 	if (p)
 		p->ref_cnt.increment ();
@@ -175,7 +175,7 @@ void PriorityQueue::remove_node (Node* node, Node*& prev, int level)
 		release_node (last);
 		if (last != node)
 			break;
-		Link::Ptr next = node->next [level].load ();
+		Link next = node->next [level].load ();
 		if (next == TaggedNil::marked ())
 			break;
 		if (prev->next [level].cas (node, next.unmarked ())) {
@@ -220,7 +220,7 @@ void* PriorityQueue::delete_min ()
 	}
 
 	for (int i = 0, end = node1->level; i < end; ++i) {
-		Link::Ptr node2;
+		Link node2;
 		do {
 			node2 = node1->next [i].load ();
 		} while (!(
@@ -242,7 +242,7 @@ void* PriorityQueue::delete_min ()
 PriorityQueue::Node* PriorityQueue::help_delete (Node* node, int level)
 {
 	for (unsigned i = level, end = node->level; i < end; ++i) {
-		Link::Ptr node2;
+		Link node2;
 		do {
 			node2 = node->next [i].load ();
 		} while (!(

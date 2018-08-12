@@ -131,6 +131,7 @@
     <ClCompile Include="..\..\Source\TestPriorityQueue.cpp" />
     <ClCompile Include="..\..\Source\Windows\AddressSpace.cpp" />
     <ClCompile Include="..\..\Source\Windows\MemoryWindows.cpp" />
+    <ClCompile Include="..\TestAtomicPtr.cpp" />
     <ClCompile Include="..\TestHeap.cpp" />
     <ClCompile Include="..\TestHeapDirectory.cpp" />
   </ItemGroup>
