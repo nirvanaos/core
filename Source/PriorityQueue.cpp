@@ -53,15 +53,14 @@ void PriorityQueue::release_node (Node* node)
 
 PriorityQueue::Node* PriorityQueue::read_node (Link::Atomic& node)
 {
+	Node* p = nullptr;
 	Link tagged = node.lock ();
-	Node* p = tagged;
-	if (p)
-		p->ref_cnt.increment ();
-	node.unlock ();
-	if (p && tagged.is_marked ()) {
-		//release_node (p);
-		p = nullptr;
+	if (!tagged.is_marked ()) {
+		p = tagged;
+		if (p)
+			p->ref_cnt.increment ();
 	}
+	node.unlock ();
 	return p;
 }
 
@@ -165,28 +164,6 @@ void PriorityQueue::insert (Key key, void* value, RandomGen& rndgen)
 	release_node (new_node);
 }
 
-void PriorityQueue::remove_node (Node* node, Node*& prev, int level)
-{
-	CHECK_VALID_LEVEL (level, node);
-	for (BackOff bo; true; bo.sleep ()) {
-		if (node->next [level].load () == TaggedNil::marked ())
-			break;
-		Node* last = scan_key (prev, level, node);
-		release_node (last);
-		if (last != node)
-			break;
-		Link next = node->next [level].load ();
-		if (next == TaggedNil::marked ())
-			break;
-		if (prev->next [level].cas (node, next.unmarked ())) {
-			node->next [level] = TaggedNil::marked ();
-			break;
-		}
-		if (node->next [level].load () == TaggedNil::marked ())
-			break;
-	}
-}
-
 void* PriorityQueue::delete_min ()
 {
 	Node* prev = copy_node (head ());
@@ -220,13 +197,14 @@ void* PriorityQueue::delete_min ()
 	}
 
 	for (int i = 0, end = node1->level; i < end; ++i) {
+		Link::Atomic& alink2 = node1->next [i];
 		Link node2;
 		do {
-			node2 = node1->next [i].load ();
+			node2 = alink2.load ();
 		} while (!(
 			node2.is_marked ()
 			||
-			node1->next [i].cas (node2, node2.marked ())
+			alink2.cas (node2, node2.marked ())
 		));
 	}
 	prev = copy_node (head ());
@@ -242,13 +220,15 @@ void* PriorityQueue::delete_min ()
 PriorityQueue::Node* PriorityQueue::help_delete (Node* node, int level)
 {
 	for (unsigned i = level, end = node->level; i < end; ++i) {
+		assert (end <= max_level_);
+		Link::Atomic& alink2 = node->next [i];
 		Link node2;
 		do {
-			node2 = node->next [i].load ();
+			node2 = alink2.load ();
 		} while (!(
 			node2.is_marked ()
 			||
-			node->next [i].cas (node2, node2.marked ())
+			alink2.cas (node2, node2.marked ())
 		));
 	}
 	
@@ -265,6 +245,28 @@ PriorityQueue::Node* PriorityQueue::help_delete (Node* node, int level)
 	remove_node (node, prev, level);
 	release_node (node);
 	return prev;
+}
+
+void PriorityQueue::remove_node (Node* node, Node*& prev, int level)
+{
+	CHECK_VALID_LEVEL (level, node);
+	for (BackOff bo; true; bo.sleep ()) {
+		if (node->next [level].load () == TaggedNil::marked ())
+			break;
+		Node* last = scan_key (prev, level, node);
+		release_node (last);
+		if (last != node)
+			break;
+		Link next = node->next [level].load ();
+		if (next == TaggedNil::marked ())
+			break;
+		if (prev->next [level].cas (node, next.unmarked ())) {
+			node->next [level] = TaggedNil::marked ();
+			break;
+		}
+		if (node->next [level].load () == TaggedNil::marked ())
+			break;
+	}
 }
 
 }

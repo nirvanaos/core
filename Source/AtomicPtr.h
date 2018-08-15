@@ -123,18 +123,14 @@ public:
 
 	Ptr lock ()
 	{
-		BackOff bo;
-		uintptr_t cur = ptr_.load ();
-		for (;;) {
-			if ((cur & SPIN_BITS) != SPIN_BITS) {
+		for (BackOff bo; true; bo.sleep ()) {
+			uintptr_t cur = ptr_.load ();
+			while ((cur & SPIN_BITS) != SPIN_BITS) {
 				//if (ptr_.compare_exchange_weak (cur, cur + 2, std::memory_order_acquire))
 				if (ptr_.compare_exchange_strong (cur, cur + 2))
-					break;
-			} else
-				bo.sleep ();
+					return Ptr (cur & ~SPIN_BITS);
+			}
 		}
-		
-		return Ptr (cur & ~SPIN_BITS);
 	}
 
 	void unlock ()

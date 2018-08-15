@@ -20,7 +20,7 @@ class TestAtomicPtr :
 	public ::testing::Test
 {
 protected:
-	static const unsigned NUM_ITERATIONS = 1000;
+	static const unsigned NUM_ITERATIONS = 10000;
 	static const unsigned alignment = Align::alignment;
 
 	struct Value
@@ -105,7 +105,7 @@ public:
 template <typename Align>
 typename TestAtomicPtr <Align>::SharedPtr TestAtomicPtr <Align>::shared_ptr_ = 0;
 
-typedef ::testing::Types <Align <4>, Align <16> > Alignments;
+typedef ::testing::Types <Align <4>, Align <32> > Alignments;
 
 TYPED_TEST_CASE (TestAtomicPtr, Alignments);
 
