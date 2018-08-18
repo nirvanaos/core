@@ -7,8 +7,7 @@
 #include <vector>
 #include <atomic>
 
-using namespace ::CORBA;
-using namespace ::Nirvana;
+//using namespace ::Nirvana;
 using namespace std;
 using ::Nirvana::Core::PriorityQueue;
 
@@ -42,7 +41,7 @@ protected:
 
 struct StdNode
 {
-	DeadlineTime deadline;
+	unsigned deadline;
 	void* value;
 
 	bool operator < (const StdNode& rhs) const
@@ -66,7 +65,7 @@ TEST_P (TestPriorityQueue, SingleThread)
 
 	static const int MAX_COUNT = 1000;
 	for (int i = MAX_COUNT; i > 0; --i) {
-		int deadline = distr (rndgen);
+		unsigned deadline = distr (rndgen);
 		StdNode node;
 		node.deadline = deadline;
 		node.value = (void*)(intptr_t)(deadline * PTR_ALIGN);
@@ -129,14 +128,14 @@ void ThreadTest::thread_proc (int rndinit)
 
 	for (int i = NUM_ITERATIONS; i > 0; --i) {
 		if (!bernoulli_distribution (min (1., ((double)queue_size_ / (double)MAX_QUEUE_SIZE))) (rndgen)) {
-			int deadline = distr_ (rndgen);
+			unsigned deadline = distr_ (rndgen);
 			++counters_ [deadline - 1];
 			++queue_size_;
 			queue_.insert (deadline, (void*)(intptr_t)(deadline * PTR_ALIGN), rndgen);
 		} else {
 			void* p = queue_.delete_min ();
 			if (p) {
-				int deadline = ((intptr_t)p / PTR_ALIGN);
+				unsigned deadline = ((intptr_t)p / PTR_ALIGN);
 				--counters_ [deadline - 1];
 				--queue_size_;
 			}
@@ -147,7 +146,7 @@ void ThreadTest::thread_proc (int rndinit)
 void ThreadTest::finalize ()
 {
 	while (void* p = queue_.delete_min ()) {
-		int deadline = ((intptr_t)p / PTR_ALIGN);
+		unsigned deadline = ((intptr_t)p / PTR_ALIGN);
 		--counters_ [deadline - 1];
 		--queue_size_;
 	}
@@ -173,6 +172,6 @@ TEST_P (TestPriorityQueue, MultiThread)
 	test.finalize ();
 }
 
-INSTANTIATE_TEST_CASE_P (LevelCount, TestPriorityQueue, ::testing::Values (1, 4, 8, 16));
+INSTANTIATE_TEST_CASE_P (LevelCount, TestPriorityQueue, ::testing::Values (1, 2, 4, 16));
 
 }
