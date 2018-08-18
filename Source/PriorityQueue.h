@@ -1,3 +1,8 @@
+// Nirvana project
+// Lock-free priority queue based on the algorithm of Hakan Sundell and Philippas Tsigas.
+// http://www.non-blocking.com/download/SunT03_PQueue_TR.pdf
+// https://pdfs.semanticscholar.org/c9d0/c04f24e8c47324cb18ff12a39ff89999afc8.pdf
+
 #ifndef NIRVANA_CORE_PRIORITYQUEUE_H_
 #define NIRVANA_CORE_PRIORITYQUEUE_H_
 
@@ -10,6 +15,9 @@
 #include <algorithm>
 
 namespace Nirvana {
+
+typedef ::CORBA::ULongLong DeadlineTime;
+
 namespace Core {
 
 class PriorityQueue
@@ -17,16 +25,13 @@ class PriorityQueue
 public:
 	static const unsigned MAX_LEVEL_MAX = 32;
 
-	/// Key type (deadline).
-	typedef ::CORBA::ULongLong Key;
-
 	/// Random-number generator.
 	typedef std::mt19937 RandomGen;
 
 	PriorityQueue (unsigned max_level = 8);
 	~PriorityQueue ();
 
-	void insert (Key key, void* value, RandomGen& rndgen);
+	void insert (DeadlineTime dt, void* value, RandomGen& rndgen);
 	void* delete_min ();
 
 private:
@@ -34,17 +39,19 @@ private:
 
 	struct NodeBase
 	{
-		Key key;
+		DeadlineTime deadline;
+		AtomicCounter::UIntType timestamp;
 		RefCounter ref_cnt;
 		int level;
 		int volatile valid_level;
 		AtomicPtr <> value;
 		Node* volatile prev;
 
-		NodeBase (int l, Key k, void* v) :
-			key (k),
+		NodeBase (int l, DeadlineTime dt, void* v, AtomicCounter::UIntType ts) :
+			deadline (dt),
+			timestamp (ts),
 			level (l),
-			valid_level (0),
+			valid_level (1),
 			value (v),
 			prev (0)
 		{}
@@ -56,8 +63,8 @@ private:
 	{
 		Link::Atomic next [1];	// Variable length array.
 
-		Node (int l, Key k, void* v) :
-			NodeBase (l, k, v)
+		Node (int l, DeadlineTime dt, void* v, AtomicCounter::UIntType ts) :
+			NodeBase (l, dt, v, ts)
 		{
 			std::fill_n ((uintptr_t*)next, level, 0);
 		}
@@ -81,6 +88,16 @@ private:
 		}
 	};
 
+	static bool less (const Node& n1, const Node& n2)
+	{
+		if (n1.deadline < n2.deadline)
+			return true;
+		else if (n1.deadline > n2.deadline)
+			return false;
+		AtomicCounter::UIntType current_ts = last_timestamp_;
+		return current_ts - n1.timestamp > current_ts - n2.timestamp;
+	}
+
 	Node* head () const
 	{
 		return head_;
@@ -91,12 +108,12 @@ private:
 		return tail_;
 	}
 
-	Node* create_node (int level, Key key, void* value)
+	Node* create_node (int level, DeadlineTime dt, void* value)
 	{
 #ifdef _DEBUG
 		node_cnt_.increment ();
 #endif
-		return new (level) Node (level, key, value);
+		return new (level) Node (level, dt, value, last_timestamp_.increment ());
 	}
 
 	void delete_node (Node* node)
@@ -123,7 +140,6 @@ private:
 
 	Node* read_next (Node*& node1, int level);
 
-	Node* scan_key (Node*& node1, int level, Key key);
 	Node* scan_key (Node*& node1, int level, Node* keynode);
 
 	Node* help_delete (Node*, int level);
@@ -140,6 +156,7 @@ private:
 	Node* tail_;
 	const std::geometric_distribution <> distr_;
 	const int max_level_;
+  static AtomicCounter last_timestamp_;
 #ifdef _DEBUG
 	AtomicCounter node_cnt_;
 #endif

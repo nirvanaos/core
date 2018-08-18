@@ -13,6 +13,8 @@ using namespace std;
 #define CHECK_VALID_LEVEL(lev, nod)
 //#endif
 
+AtomicCounter PriorityQueue::last_timestamp_ = 0;
+
 PriorityQueue::PriorityQueue (unsigned max_level) :
 	max_level_ (max (1u, min (MAX_LEVEL_MAX, max_level))),
 #ifdef _DEBUG
@@ -20,9 +22,9 @@ PriorityQueue::PriorityQueue (unsigned max_level) :
 #endif
 	distr_ (0.5)
 {
-	head_ = new (max_level_) Node (max_level_, 0, 0);
+	head_ = new (max_level_) Node (max_level_, 0, 0, 0);
 	try {
-		tail_ = new (max_level_) Node (max_level_, numeric_limits <Key>::max (), 0);
+		tail_ = new (max_level_) Node (max_level_, numeric_limits <DeadlineTime>::max (), 0, 0);
 	} catch (...) {
 		Node::operator delete (head_, head_->level);
 		throw;
@@ -43,7 +45,7 @@ PriorityQueue::~PriorityQueue ()
 void PriorityQueue::release_node (Node* node)
 {
 	assert (node);
-	if (node && !node->ref_cnt.decrement ()) {
+	if (!node->ref_cnt.decrement ()) {
 		Node* prev = node->prev;
 		if (prev)
 			release_node (prev);
@@ -54,13 +56,12 @@ void PriorityQueue::release_node (Node* node)
 PriorityQueue::Node* PriorityQueue::read_node (Link::Atomic& node)
 {
 	Node* p = nullptr;
-	Link tagged = node.lock ();
-	if (!tagged.is_marked ()) {
-		p = tagged;
-		if (p)
+	Link link = node.lock ();
+	if (!link.is_marked ()) {
+		if (p = link)
 			p->ref_cnt.increment ();
 	}
-	node.unlock ();
+	node.unlock();
 	return p;
 }
 
@@ -78,23 +79,11 @@ PriorityQueue::Node* PriorityQueue::read_next (Node*& node1, int level)
 	return node2;
 }
 
-PriorityQueue::Node* PriorityQueue::scan_key (Node*& node1, int level, Key key)
-{
-	Node* node2 = read_next (node1, level);
-	while (node2->key <= key) {
-		release_node (node1);
-		node1 = node2;
-		node2 = read_next (node1, level);
-	}
-	return node2;
-}
-
 PriorityQueue::Node* PriorityQueue::scan_key (Node*& node1, int level, Node* keynode)
 {
 	assert (keynode);
 	Node* node2 = read_next (node1, level);
-	Key key = keynode->key;
-	while (node2->key <= key && node2 != keynode) {
+	while (less (*node2, *keynode)) {
 		release_node (node1);
 		node1 = node2;
 		node2 = read_next (node1, level);
@@ -102,23 +91,23 @@ PriorityQueue::Node* PriorityQueue::scan_key (Node*& node1, int level, Node* key
 	return node2;
 }
 
-void PriorityQueue::insert (Key key, void* value, RandomGen& rndgen)
+void PriorityQueue::insert (DeadlineTime dt, void* value, RandomGen& rndgen)
 {
 	int level = random_level (rndgen);
-	Node* new_node = create_node (level, key, value);
+	Node* new_node = create_node (level, dt, value);
 	copy_node (new_node);
 	Node* node1 = copy_node (head ());
 
-	Node* saved_nodes [MAX_LEVEL_MAX];
+	Node* saved_nodes [MAX_LEVEL_MAX - 1];
 	for (int i = max_level_ - 1; i >= 1; --i) {
-		Node* node2 = scan_key (node1, i, key);
+		Node* node2 = scan_key (node1, i, new_node);
 		release_node (node2);
 		if (i < level)
-			saved_nodes [i] = copy_node (node1);
+			saved_nodes [i - 1] = copy_node (node1);
 	}
 
 	for (BackOff bo; true; bo.sleep ()) {
-		Node* node2 = scan_key (node1, 0, key);
+		Node* node2 = scan_key (node1, 0, new_node);
 		/*
 		void* value2 = node2->value;
 		if (!is_marked (value2) && node2->key == key) {
@@ -126,7 +115,7 @@ void PriorityQueue::insert (Key key, void* value, RandomGen& rndgen)
 				release_node (node1);
 				release_node (node2);
 				for (int i = 1; i < level; ++i)
-					release_node (saved_nodes [i]);
+					release_node (saved_nodes [i - 1]);
 				release_node (new_node);
 				release_node (new_node);
 				return true;
@@ -146,9 +135,9 @@ void PriorityQueue::insert (Key key, void* value, RandomGen& rndgen)
 
 	for (int i = 1; i < level; ++i) {
 		new_node->valid_level = i;
-		node1 = saved_nodes [i];
+		node1 = saved_nodes [i - 1];
 		for (BackOff bo; true; bo.sleep ()) {
-			Node* node2 = scan_key (node1, i, key);
+			Node* node2 = scan_key (node1, i, new_node);
 			new_node->next [i] = node2;
 			release_node (node2);
 			if (new_node->value.load ().is_marked () || node1->next [i].cas (node2, new_node)) {
@@ -219,6 +208,8 @@ void* PriorityQueue::delete_min ()
 
 PriorityQueue::Node* PriorityQueue::help_delete (Node* node, int level)
 {
+	assert (node != head ());
+	assert (node != tail ());
 	for (unsigned i = level, end = node->level; i < end; ++i) {
 		assert (end <= max_level_);
 		Link::Atomic& alink2 = node->next [i];
@@ -249,22 +240,25 @@ PriorityQueue::Node* PriorityQueue::help_delete (Node* node, int level)
 
 void PriorityQueue::remove_node (Node* node, Node*& prev, int level)
 {
+	assert (node != head ());
+	assert (node != tail ());
 	CHECK_VALID_LEVEL (level, node);
 	for (BackOff bo; true; bo.sleep ()) {
-		if (node->next [level].load () == TaggedNil::marked ())
+		Link::Atomic& anext = node->next [level];
+		if (anext.load () == TaggedNil::marked ())
 			break;
 		Node* last = scan_key (prev, level, node);
 		release_node (last);
 		if (last != node)
 			break;
-		Link next = node->next [level].load ();
+		Link next = anext.load ();
 		if (next == TaggedNil::marked ())
 			break;
 		if (prev->next [level].cas (node, next.unmarked ())) {
-			node->next [level] = TaggedNil::marked ();
+			anext = TaggedNil::marked ();
 			break;
 		}
-		if (node->next [level].load () == TaggedNil::marked ())
+		if (anext.load () == TaggedNil::marked ())
 			break;
 	}
 }

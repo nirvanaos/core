@@ -42,12 +42,12 @@ protected:
 
 struct StdNode
 {
-	PriorityQueue::Key key;
+	DeadlineTime deadline;
 	void* value;
 
 	bool operator < (const StdNode& rhs) const
 	{
-		return key > rhs.key;
+		return deadline > rhs.deadline;
 	}
 };
 
@@ -66,11 +66,11 @@ TEST_P (TestPriorityQueue, SingleThread)
 
 	static const int MAX_COUNT = 1000;
 	for (int i = MAX_COUNT; i > 0; --i) {
-		int prio = distr (rndgen);
+		int deadline = distr (rndgen);
 		StdNode node;
-		node.key = prio;
-		node.value = (void*)(intptr_t)(prio * PTR_ALIGN);
-		queue.insert (prio, node.value, rndgen);
+		node.deadline = deadline;
+		node.value = (void*)(intptr_t)(deadline * PTR_ALIGN);
+		queue.insert (deadline, node.value, rndgen);
 		queue_std.push (node);
 	}
 
@@ -129,15 +129,15 @@ void ThreadTest::thread_proc (int rndinit)
 
 	for (int i = NUM_ITERATIONS; i > 0; --i) {
 		if (!bernoulli_distribution (min (1., ((double)queue_size_ / (double)MAX_QUEUE_SIZE))) (rndgen)) {
-			int prio = distr_ (rndgen);
-			++counters_ [prio - 1];
+			int deadline = distr_ (rndgen);
+			++counters_ [deadline - 1];
 			++queue_size_;
-			queue_.insert (prio, (void*)(intptr_t)(prio * PTR_ALIGN), rndgen);
+			queue_.insert (deadline, (void*)(intptr_t)(deadline * PTR_ALIGN), rndgen);
 		} else {
 			void* p = queue_.delete_min ();
 			if (p) {
-				int prio = ((intptr_t)p / PTR_ALIGN);
-				--counters_ [prio - 1];
+				int deadline = ((intptr_t)p / PTR_ALIGN);
+				--counters_ [deadline - 1];
 				--queue_size_;
 			}
 		}
@@ -147,8 +147,8 @@ void ThreadTest::thread_proc (int rndinit)
 void ThreadTest::finalize ()
 {
 	while (void* p = queue_.delete_min ()) {
-		int prio = ((intptr_t)p / PTR_ALIGN);
-		--counters_ [prio - 1];
+		int deadline = ((intptr_t)p / PTR_ALIGN);
+		--counters_ [deadline - 1];
 		--queue_size_;
 	}
 

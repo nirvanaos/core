@@ -104,9 +104,14 @@ public:
 
 	Ptr operator = (Ptr src)
 	{
-		assert ((ptr_.load () & SPIN_BITS) == 0);
-		ptr_ = src.ptr_;
-		return src;
+		assert ((src.ptr_ & SPIN_BITS) == 0);
+		for (BackOff bo; true; bo.sleep ()) {
+			uintptr_t cur = ptr_.load ();
+			while (!(cur & SPIN_BITS)) {
+				if (ptr_.compare_exchange_strong (cur, src.ptr_))
+					return src;
+			}
+		}
 	}
 
 	bool cas (const Ptr& from, const Ptr& to)

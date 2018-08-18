@@ -18,6 +18,8 @@ namespace Core {
 class AtomicCounter
 {
 public:
+	typedef uint32_t UIntType;
+
 	AtomicCounter (uint32_t init) :
 		cnt_ (init)
 	{}
