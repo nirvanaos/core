@@ -30,12 +30,18 @@ protected:
 	{
 		// Code here will be called immediately after the constructor (right
 		// before each test).
+#ifndef UNIT_TEST
+		::Nirvana::Core::initialize ();
+#endif
 	}
 
 	virtual void TearDown ()
 	{
 		// Code here will be called immediately after each test (right
 		// before the destructor).
+#ifndef UNIT_TEST
+		::Nirvana::Core::terminate ();
+#endif
 	}
 };
 
@@ -100,7 +106,7 @@ class ThreadTest
 {
 	static const size_t NUM_PRIORITIES = 20;
 	static const int NUM_ITERATIONS = 10000;
-	static const int MAX_QUEUE_SIZE = 1000;
+	static const int MAX_QUEUE_SIZE = 10000;
 public:
 	ThreadTest (unsigned max_level) :
 		distr_ (1, NUM_PRIORITIES),

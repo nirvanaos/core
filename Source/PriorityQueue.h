@@ -78,7 +78,7 @@ private:
 		void operator delete (void* p, int level)
 		{
 #ifdef UNIT_TEST
-			//_aligned_free (p);
+			_aligned_free (p);
 #else
 			g_default_heap->release (p, sizeof (Node) + (level - 1) * sizeof (next [0]));
 #endif
