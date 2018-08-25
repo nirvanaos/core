@@ -3,7 +3,7 @@
 #include <limits>
 
 // Doesn't work without this
-#define WAIT_FULL_INSERT
+//#define WAIT_FULL_INSERT
 
 namespace Nirvana {
 namespace Core {
@@ -122,7 +122,8 @@ void PriorityQueue::insert (DeadlineTime dt, void* value, RandomGen& rndgen)
 
 	for (BackOff bo; true; bo.sleep ()) {
 		Node* node2 = scan_key (node1, 0, new_node);
-		/*
+		/* This code was removed from the original algorithm because of keys can't 
+		be equal in this implementation.
 		void* value2 = node2->value;
 		if (!is_marked (value2) && node2->key == key) {
 			if (cas (&node2->value, value2, value)) {
@@ -139,6 +140,8 @@ void PriorityQueue::insert (DeadlineTime dt, void* value, RandomGen& rndgen)
 			}
 		}
 		*/
+
+		// Insert node to list at level 0.
 		new_node->next [0] = node2;
 		release_node (node2);
 		if (node1->next [0].cas (node2, new_node)) {
@@ -146,34 +149,55 @@ void PriorityQueue::insert (DeadlineTime dt, void* value, RandomGen& rndgen)
 			break;
 		}
 	}
+	
+	// After the new node has been inserted at the lowest level, it is possible that it is deleted
+	// by a concurrent delete (e.g.DeleteMin) operation before it has been inserted at all levels.
+	bool deleted = false;
 
+	// Insert node to list at levels > 0.
 	for (int i = 1; i < level; ++i) {
 		new_node->valid_level = i;
 		node1 = saved_nodes [i - 1];
+		Link::Atomic& anext = new_node->next [i];
 		for (BackOff bo; true; bo.sleep ()) {
 			Node* node2 = scan_key (node1, i, new_node);
-			new_node->next [i] = node2;
+			anext = node2;
 			release_node (node2);
-			if (new_node->value.load ().is_marked () || node1->next [i].cas (node2, new_node)) {
+			if (new_node->value.load ().is_marked ()) {
+				deleted = true;
+				anext = TaggedNil::marked ();
+				release_node (node1);
+				break;
+			}
+			if (node1->next [i].cas (node2, new_node)) {
 				release_node (node1);
 				break;
 			}
 		}
+
+		if (deleted) {
+			while (level > ++i)
+				release_node (saved_nodes [i - 1]);
+			break;
+		}
 	}
 
 	new_node->valid_level = level;
-	if (new_node->value.load ().is_marked ())
+	if (deleted || new_node->value.load ().is_marked ())
 		new_node = help_delete (new_node, 0);
 	release_node (new_node);
 }
 
 void* PriorityQueue::delete_min ()
 {
+	// Start from the head node.
 	Node* prev = copy_node (head ());
 	Node* node1;
 	TaggedPtr <> value;
 
 	for (;;) {
+		// Search the first node (node1) in the list that does not have
+		// its deletion mark on the value set.
 		node1 = read_next (prev, 0);
 		if (node1 == tail ()) {
 			release_node (prev);
@@ -190,7 +214,12 @@ void* PriorityQueue::delete_min ()
 			}
 			value = node1->value.load ();
 			if (!value.is_marked ()) {
+				// Try to set deletion mark.
 				if (node1->value.cas (value, value.marked ())) {
+					// Succeeded, write valid pointer to the prev field of the node.
+					// This prev field is necessary in order to increase the performance of concurrent
+					// help_delete () functions, these operations otherwise
+					// would have to search for the previous node in order to complete the deletion.
 					node1->prev = prev;
 					break;
 				} else
@@ -204,17 +233,25 @@ void* PriorityQueue::delete_min ()
 		prev = node1;
 	}
 
+	// Mark the deletion bits of the next pointers of the node, starting with the lowest
+	// level and going upwards.
 	for (int i = 0, end = node1->level; i < end; ++i) {
 		Link::Atomic& alink2 = node1->next [i];
 		Link node2;
 		do {
 			node2 = alink2.load ();
-		} while (!(
+		} while ((Node*)node2 && !(
 			node2.is_marked ()
 			||
 			alink2.cas (node2, node2.marked ())
 		));
 	}
+
+	// Actual deletion by calling the remove_node procedure, starting at the highest level
+	// and continuing downwards. The reason for doing the deletion in decreasing order
+	// of levels is that concurrent search operations also start at the
+	// highest level and proceed downwards, in this way the concurrent
+	// search operations will sooner avoid traversing this node.
 	prev = copy_node (head ());
 	for (int i = node1->level - 1; i >= 0; --i) {
 		remove_node (node1, prev, i);
@@ -239,7 +276,7 @@ PriorityQueue::Node* PriorityQueue::help_delete (Node* node, int level)
 		Link node2;
 		do {
 			node2 = alink2.load ();
-		} while (!(
+		} while ((Node*)node2 && !(
 			node2.is_marked ()
 			||
 			alink2.cas (node2, node2.marked ())

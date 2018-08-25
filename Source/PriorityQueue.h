@@ -78,19 +78,30 @@ private:
 		void operator delete (void* p, int level)
 		{
 #ifdef UNIT_TEST
-			_aligned_free (p);
+			//_aligned_free (p);
 #else
 			g_default_heap->release (p, sizeof (Node) + (level - 1) * sizeof (next [0]));
 #endif
 		}
 	};
 
-	static bool less (const Node& n1, const Node& n2)
+	bool less (const Node& n1, const Node& n2) const
 	{
 		if (n1.deadline < n2.deadline)
 			return true;
 		else if (n1.deadline > n2.deadline)
 			return false;
+		
+		if (&n1 == head ())
+			return &n2 != head ();
+		else if (&n2 == head ())
+			return false;
+
+		if (&n2 == tail ())
+			return &n1 != tail ();
+		else if (&n1 == tail ())
+			return false;
+
 		AtomicCounter::UIntType current_ts = last_timestamp_;
 		return current_ts - n1.timestamp > current_ts - n2.timestamp;
 	}
@@ -118,6 +129,8 @@ private:
 		assert (node != head ());
 		assert (node != tail ());
 #ifdef _DEBUG
+		for (int i = 0, end = node->level; i < end; ++i)
+			assert (!(Node*)node->next [i].load ());
 		assert (node_cnt_ > 0);
 		node_cnt_.decrement ();
 #endif
