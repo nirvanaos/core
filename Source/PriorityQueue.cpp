@@ -2,9 +2,6 @@
 #include "BackOff.h"
 #include <limits>
 
-// Doesn't work without this
-//#define WAIT_FULL_INSERT
-
 namespace Nirvana {
 namespace Core {
 
@@ -159,6 +156,7 @@ void PriorityQueue::insert (DeadlineTime dt, void* value, RandomGen& rndgen)
 		new_node->valid_level = i;
 		node1 = saved_nodes [i - 1];
 		Link::Atomic& anext = new_node->next [i];
+		copy_node (new_node); // Experiment
 		for (BackOff bo; true; bo.sleep ()) {
 			Node* node2 = scan_key (node1, i, new_node);
 			anext = node2;
@@ -166,6 +164,7 @@ void PriorityQueue::insert (DeadlineTime dt, void* value, RandomGen& rndgen)
 			if (new_node->value.load ().is_marked ()) {
 				deleted = true;
 				anext = TaggedNil::marked ();
+				release_node (new_node); // Experiment
 				release_node (node1);
 				break;
 			}
@@ -204,31 +203,25 @@ void* PriorityQueue::delete_min ()
 			release_node (node1);
 			return nullptr;
 		}
-#ifdef WAIT_FULL_INSERT
-		if (node1->valid_level >= node1->level) {
-#endif
 		retry:
-			if (node1 != prev->next [0].load ()) {
-				release_node (node1);
-				continue;
-			}
-			value = node1->value.load ();
-			if (!value.is_marked ()) {
-				// Try to set deletion mark.
-				if (node1->value.cas (value, value.marked ())) {
-					// Succeeded, write valid pointer to the prev field of the node.
-					// This prev field is necessary in order to increase the performance of concurrent
-					// help_delete () functions, these operations otherwise
-					// would have to search for the previous node in order to complete the deletion.
-					node1->prev = prev;
-					break;
-				} else
-					goto retry;
-			} else //if (value.is_marked ())
-				node1 = help_delete (node1, 0);
-#ifdef WAIT_FULL_INSERT
+		if (node1 != prev->next [0].load ()) {
+			release_node (node1);
+			continue;
 		}
-#endif
+		value = node1->value.load ();
+		if (!value.is_marked ()) {
+			// Try to set deletion mark.
+			if (node1->value.cas (value, value.marked ())) {
+				// Succeeded, write valid pointer to the prev field of the node.
+				// This prev field is necessary in order to increase the performance of concurrent
+				// help_delete () functions, these operations otherwise
+				// would have to search for the previous node in order to complete the deletion.
+				node1->prev = prev;
+				break;
+			} else
+				goto retry;
+		} else //if (value.is_marked ())
+			node1 = help_delete (node1, 0);
 		release_node (prev);
 		prev = node1;
 	}
@@ -257,7 +250,7 @@ void* PriorityQueue::delete_min ()
 		remove_node (node1, prev, i);
 	}
 	release_node (prev);
-	release_node (node1);
+// Experiment	release_node (node1);
 	release_node (node1);	// Delete node.
 	return value;
 }
@@ -333,6 +326,7 @@ void PriorityQueue::remove_node (Node* node, Node*& prev, int level)
 		// Try to remove node by changing the next pointer of the previous node.
 		if (prev->next [level].cas (node, next.unmarked ())) {
 			anext = TaggedNil::marked ();
+			release_node (node); // Experiment
 			break;
 		}
 		
