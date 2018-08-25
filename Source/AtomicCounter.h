@@ -63,6 +63,12 @@ public:
 		AtomicCounter (1)
 	{}
 
+	uint32_t decrement ()
+	{
+		assert ((UIntType)*this > 0);
+		return AtomicCounter::decrement ();
+	}
+
 	uint32_t increment ()
 	{
 		uint32_t ret = AtomicCounter::increment ();
