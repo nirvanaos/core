@@ -108,7 +108,7 @@ public:
 		for (BackOff bo; true; bo.sleep ()) {
 			uintptr_t cur = ptr_.load ();
 			while (!(cur & SPIN_BITS)) {
-				if (ptr_.compare_exchange_strong (cur, src.ptr_))
+				if (ptr_.compare_exchange_weak (cur, src.ptr_))
 					return src;
 			}
 		}
@@ -118,7 +118,7 @@ public:
 	{
 		uintptr_t cur = from.ptr_;
 		assert ((cur & SPIN_BITS) == 0);
-		for (BackOff bo; !ptr_.compare_exchange_strong (cur, to.ptr_); bo.sleep ()) {
+		for (BackOff bo; !ptr_.compare_exchange_weak (cur, to.ptr_); bo.sleep ()) {
 			if ((cur & ~SPIN_BITS) != from.ptr_)
 				return false;
 			cur = from.ptr_;
@@ -131,8 +131,7 @@ public:
 		for (BackOff bo; true; bo.sleep ()) {
 			uintptr_t cur = ptr_.load ();
 			while ((cur & SPIN_BITS) != SPIN_BITS) {
-				//if (ptr_.compare_exchange_weak (cur, cur + 2, std::memory_order_acquire))
-				if (ptr_.compare_exchange_strong (cur, cur + 2))
+				if (ptr_.compare_exchange_weak (cur, cur + 2, std::memory_order_acquire))
 					return Ptr (cur & ~SPIN_BITS);
 			}
 		}
@@ -140,8 +139,7 @@ public:
 
 	void unlock ()
 	{
-		//ptr_.fetch_sub (2, std::memory_order_release);
-		ptr_.fetch_sub (2);
+		ptr_.fetch_sub (2, std::memory_order_release);
 	}
 
 private:

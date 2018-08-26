@@ -65,7 +65,7 @@ TEST_P (TestPriorityQueue, SingleThread)
 	PriorityQueue queue (GetParam ());
 	StdPriorityQueue queue_std;
 	PriorityQueue::RandomGen rndgen;
-	uniform_int_distribution <int> distr (1);
+	uniform_int_distribution <int> distr;
 
 	ASSERT_FALSE (queue.delete_min ());
 
@@ -74,7 +74,7 @@ TEST_P (TestPriorityQueue, SingleThread)
 		unsigned deadline = distr (rndgen);
 		StdNode node;
 		node.deadline = deadline;
-		node.value = (void*)(intptr_t)(deadline * PTR_ALIGN);
+		node.value = (void*)(intptr_t)((deadline + 1) * PTR_ALIGN);
 		queue.insert (deadline, node.value, rndgen);
 		queue_std.push (node);
 	}
@@ -109,7 +109,7 @@ class ThreadTest
 	static const int MAX_QUEUE_SIZE = 10000;
 public:
 	ThreadTest (unsigned max_level) :
-		distr_ (1, NUM_PRIORITIES),
+		distr_ (0, NUM_PRIORITIES - 1),
 		queue_size_ (0),
 		queue_ (max_level)
 	{
@@ -135,14 +135,14 @@ void ThreadTest::thread_proc (int rndinit)
 	for (int i = NUM_ITERATIONS; i > 0; --i) {
 		if (!bernoulli_distribution (min (1., ((double)queue_size_ / (double)MAX_QUEUE_SIZE))) (rndgen)) {
 			unsigned deadline = distr_ (rndgen);
-			++counters_ [deadline - 1];
+			++counters_ [deadline];
 			++queue_size_;
-			queue_.insert (deadline, (void*)(intptr_t)(deadline * PTR_ALIGN), rndgen);
+			queue_.insert (deadline, (void*)(intptr_t)((deadline + 1) * PTR_ALIGN), rndgen);
 		} else {
 			void* p = queue_.delete_min ();
 			if (p) {
-				unsigned deadline = ((intptr_t)p / PTR_ALIGN);
-				--counters_ [deadline - 1];
+				unsigned deadline = (((intptr_t)p - 1) / PTR_ALIGN);
+				--counters_ [deadline];
 				--queue_size_;
 			}
 		}
@@ -152,8 +152,8 @@ void ThreadTest::thread_proc (int rndinit)
 void ThreadTest::finalize ()
 {
 	while (void* p = queue_.delete_min ()) {
-		unsigned deadline = ((intptr_t)p / PTR_ALIGN);
-		--counters_ [deadline - 1];
+		unsigned deadline = (((intptr_t)p - 1) / PTR_ALIGN);
+		--counters_ [deadline];
 		--queue_size_;
 	}
 

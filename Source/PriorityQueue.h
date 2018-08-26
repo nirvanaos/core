@@ -172,6 +172,25 @@ private:
 #endif
 };
 
+template <class T>
+class PriorityQueueT : public PriorityQueue
+{
+public:
+	PriorityQueueT (unsigned max_level = 8) :
+		PriorityQueue (max_level)
+	{}
+
+	void insert (DeadlineTime dt, T* value, RandomGen& rndgen)
+	{
+		PriorityQueue::insert (dt, value, rndgen);
+	}
+
+	T* delete_min ()
+	{
+		return (T*)PriorityQueue::delete_min ();
+	}
+};
+
 }
 }
 

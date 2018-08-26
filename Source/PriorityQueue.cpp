@@ -24,7 +24,7 @@ PriorityQueue::PriorityQueue (unsigned max_level) :
 {
 	head_ = new (max_level_) Node (max_level_, 0, 0, 0);
 	try {
-		tail_ = new (max_level_) Node (max_level_, numeric_limits <DeadlineTime>::max (), 0, 0);
+		tail_ = new (1) Node (1, numeric_limits <DeadlineTime>::max (), 0, 0);
 	} catch (...) {
 		Node::operator delete (head_, head_->level);
 		throw;
@@ -93,8 +93,6 @@ PriorityQueue::Node* PriorityQueue::scan_key (Node*& node1, int level, Node* key
 
 void PriorityQueue::insert (DeadlineTime dt, void* value, RandomGen& rndgen)
 {
-	assert (dt > 0 && dt < numeric_limits <DeadlineTime>::max ());
-
 	// Choose level randomly.
 	int level = random_level (rndgen);
 	
@@ -156,7 +154,7 @@ void PriorityQueue::insert (DeadlineTime dt, void* value, RandomGen& rndgen)
 		new_node->valid_level = i;
 		node1 = saved_nodes [i - 1];
 		Link::Atomic& anext = new_node->next [i];
-		copy_node (new_node); // Experiment
+		copy_node (new_node);
 		for (BackOff bo; true; bo.sleep ()) {
 			Node* node2 = scan_key (node1, i, new_node);
 			anext = node2;
@@ -164,7 +162,7 @@ void PriorityQueue::insert (DeadlineTime dt, void* value, RandomGen& rndgen)
 			if (new_node->value.load ().is_marked ()) {
 				deleted = true;
 				anext = TaggedNil::marked ();
-				release_node (new_node); // Experiment
+				release_node (new_node);
 				release_node (node1);
 				break;
 			}
@@ -250,7 +248,6 @@ void* PriorityQueue::delete_min ()
 		remove_node (node1, prev, i);
 	}
 	release_node (prev);
-// Experiment	release_node (node1);
 	release_node (node1);	// Delete node.
 	return value;
 }
@@ -326,7 +323,7 @@ void PriorityQueue::remove_node (Node* node, Node*& prev, int level)
 		// Try to remove node by changing the next pointer of the previous node.
 		if (prev->next [level].cas (node, next.unmarked ())) {
 			anext = TaggedNil::marked ();
-			release_node (node); // Experiment
+			release_node (node);
 			break;
 		}
 		
