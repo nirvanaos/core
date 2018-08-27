@@ -125,9 +125,12 @@
     <ClCompile Include="..\..\..\googletest\googletest\src\gtest-all.cc" />
     <ClCompile Include="..\..\..\gtest_main.cc" />
     <ClCompile Include="..\..\Source\Core.cpp" />
+    <ClCompile Include="..\..\Source\ExecDomain.cpp" />
     <ClCompile Include="..\..\Source\Heap.cpp" />
     <ClCompile Include="..\..\Source\HeapDirectory.cpp" />
     <ClCompile Include="..\..\Source\PriorityQueue.cpp" />
+    <ClCompile Include="..\..\Source\ProtDomain.cpp" />
+    <ClCompile Include="..\..\Source\SyncDomain.cpp" />
     <ClCompile Include="..\..\Source\TestPriorityQueue.cpp" />
     <ClCompile Include="..\..\Source\Windows\AddressSpace.cpp" />
     <ClCompile Include="..\..\Source\Windows\MemoryWindows.cpp" />
@@ -147,6 +150,8 @@
     <ClInclude Include="..\..\Source\Heap.h" />
     <ClInclude Include="..\..\Source\HeapDirectory.h" />
     <ClInclude Include="..\..\Source\PriorityQueue.h" />
+    <ClInclude Include="..\..\Source\ProtDomain.h" />
+    <ClInclude Include="..\..\Source\SyncDomain.h" />
     <ClInclude Include="..\..\Source\Windows\AddressSpace.h" />
     <ClInclude Include="..\..\Source\Windows\MemoryWindows.h" />
     <ClInclude Include="..\..\Source\Windows\win32.h" />

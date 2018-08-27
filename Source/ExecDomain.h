@@ -1,11 +1,11 @@
 // Nirvana project.
-// Windows implementation.
 // Execution domain (fiber).
 
 #ifndef NIRVANA_CORE_EXECDOMAIN_H_
 #define NIRVANA_CORE_EXECDOMAIN_H_
 
 #include "core.h"
+#include "PriorityQueue.h"
 #include "Windows/ExecDomainBase.h"
 
 namespace Nirvana {
@@ -21,10 +21,24 @@ class ExecDomain :
 	private ExecDomainBase
 {
 public:
-	typedef ::CORBA::ULongLong Deadline;
+	DeadlineTime deadline () const
+	{
+		return deadline_;
+	}
+
+	PriorityQueue::RandomGen& rndgen ()
+	{
+		return rndgen_;
+	}
+
+	void switch_to ()
+	{
+		ExecDomainBase::switch_to ();
+	}
 
 private:
-	Deadline deadline_, effective_deadline_;
+	PriorityQueue::RandomGen rndgen_;
+	DeadlineTime deadline_;
 };
 
 }
