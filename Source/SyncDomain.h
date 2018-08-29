@@ -13,17 +13,33 @@ class SyncDomain
 {
 public:
 	SyncDomain () :
-		schedule_cnt_ (0)
+		schedule_cnt_ (0),
+		current_executor_ (nullptr),
+		min_deadline_ (0)
 	{}
 
 	void schedule (ExecDomain& ed)
 	{
 		queue_.insert (ed.deadline (), &ed, ed.rndgen ());
+		schedule ();
 	}
+
+	void schedule ();
+
+	DeadlineTime min_deadline () const
+	{
+		return min_deadline_;
+	}
+
+	void run ();
+
+	void leave ();
 
 private:
 	PriorityQueueT <ExecDomain> queue_;
+	DeadlineTime min_deadline_;
 	AtomicCounter schedule_cnt_;
+	volatile ExecDomain* current_executor_;
 };
 
 }

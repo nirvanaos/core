@@ -6,16 +6,20 @@
 
 #include "core.h"
 #include "PriorityQueue.h"
-#include "Windows/ExecDomainBase.h"
-
-namespace Nirvana {
-namespace Core {
 
 #ifdef _WIN32
+#include "Windows/ExecDomainBase.h"
+namespace Nirvana {
+namespace Core {
 typedef Windows::ExecDomainBase ExecDomainBase;
+}
+}
 #else
 #error Unknown platform.
 #endif
+
+namespace Nirvana {
+namespace Core {
 
 class ExecDomain :
 	private ExecDomainBase

@@ -260,7 +260,7 @@ PriorityQueue::Node* PriorityQueue::help_delete (Node* node, int level)
 	assert (node != tail ());
 
 	// Set the deletion mark on all next pointers in case they have not been set.
-	for (unsigned i = level, end = node->level; i < end; ++i) {
+	for (int i = level, end = node->level; i < end; ++i) {
 		assert (end <= max_level_);
 		Link::Atomic& alink2 = node->next [i];
 		Link node2;

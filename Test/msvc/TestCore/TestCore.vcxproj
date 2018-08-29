@@ -64,13 +64,19 @@
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
-  <PropertyGroup />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(Platform)\$(Configuration)\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(Platform)\$(Configuration)\</IntDir>
+  </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
-      <AdditionalIncludeDirectories>..\..\Include;..\..\..\ORB\Include;..\..\..\Library\Include;..\..\..\googletest\googletest;..\..\..\googletest\googletest\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\..\Include;..\..\..\..\ORB\Include;..\..\..\..\Library\Include;..\..\..\..\googletest\googletest;..\..\..\..\googletest\googletest\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <ExceptionHandling>Async</ExceptionHandling>
-      <PreprocessorDefinitions>UNIT_TEST</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <AdditionalDependencies>OneCore.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -79,9 +85,8 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
-      <AdditionalIncludeDirectories>..\..\Include;..\..\..\ORB\Include;..\..\..\Library\Include;..\..\..\googletest\googletest;..\..\..\googletest\googletest\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\..\Include;..\..\..\..\ORB\Include;..\..\..\..\Library\Include;..\..\..\..\googletest\googletest;..\..\..\..\googletest\googletest\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <ExceptionHandling>Async</ExceptionHandling>
-      <PreprocessorDefinitions>UNIT_TEST</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <AdditionalDependencies>OneCore.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -90,11 +95,10 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
-      <AdditionalIncludeDirectories>..\..\Include;..\..\..\ORB\Include;..\..\..\Library\Include;..\..\..\googletest\googletest;..\..\..\googletest\googletest\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\..\Include;..\..\..\..\ORB\Include;..\..\..\..\Library\Include;..\..\..\..\googletest\googletest;..\..\..\..\googletest\googletest\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <ExceptionHandling>Async</ExceptionHandling>
       <WholeProgramOptimization>true</WholeProgramOptimization>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <PreprocessorDefinitions>UNIT_TEST</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <AdditionalDependencies>OneCore.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -103,58 +107,60 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
-      <AdditionalIncludeDirectories>..\..\Include;..\..\..\ORB\Include;..\..\..\Library\Include;..\..\..\googletest\googletest;..\..\..\googletest\googletest\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\..\Include;..\..\..\..\ORB\Include;..\..\..\..\Library\Include;..\..\..\..\googletest\googletest;..\..\..\..\googletest\googletest\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <ExceptionHandling>Async</ExceptionHandling>
       <WholeProgramOptimization>true</WholeProgramOptimization>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <PreprocessorDefinitions>UNIT_TEST</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <AdditionalDependencies>OneCore.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\..\Library\Source\msvc\Library.vcxproj">
+    <ClCompile Include="..\..\..\..\googletest\googletest\src\gtest-all.cc" />
+    <ClCompile Include="..\..\..\..\googletest\googletest\src\gtest_main.cc" />
+    <ClCompile Include="..\..\..\Source\Core.cpp" />
+    <ClCompile Include="..\..\..\Source\ExecDomain.cpp" />
+    <ClCompile Include="..\..\..\Source\Heap.cpp" />
+    <ClCompile Include="..\..\..\Source\HeapDirectory.cpp" />
+    <ClCompile Include="..\..\..\Source\PriorityQueue.cpp" />
+    <ClCompile Include="..\..\..\Source\ProtDomain.cpp" />
+    <ClCompile Include="..\..\..\Source\SyncDomain.cpp" />
+    <ClCompile Include="..\..\..\Source\Windows\AddressSpace.cpp" />
+    <ClCompile Include="..\..\..\Source\Windows\ExecDomainBase.cpp" />
+    <ClCompile Include="..\..\..\Source\Windows\MemoryWindows.cpp" />
+    <ClCompile Include="..\..\..\Source\Windows\ProtDomainBase.cpp" />
+    <ClCompile Include="..\..\..\Source\Windows\Scheduler.cpp" />
+    <ClCompile Include="..\..\TestHeap.cpp" />
+    <ClCompile Include="..\..\TestHeapDirectory.cpp" />
+    <ClCompile Include="..\..\TestPriorityQueue.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\..\Library\Source\msvc\Library.vcxproj">
       <Project>{810a987d-bff4-4112-a59f-b8eae9fccd65}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\..\..\ORB\Source\msvs\ORB.vcxproj">
+    <ProjectReference Include="..\..\..\..\ORB\Source\msvs\ORB.vcxproj">
       <Project>{11cc69aa-aba7-40e5-a5b5-fa0dc3e705a1}</Project>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\..\googletest\googletest\src\gtest-all.cc" />
-    <ClCompile Include="..\..\..\gtest_main.cc" />
-    <ClCompile Include="..\..\Source\Core.cpp" />
-    <ClCompile Include="..\..\Source\ExecDomain.cpp" />
-    <ClCompile Include="..\..\Source\Heap.cpp" />
-    <ClCompile Include="..\..\Source\HeapDirectory.cpp" />
-    <ClCompile Include="..\..\Source\PriorityQueue.cpp" />
-    <ClCompile Include="..\..\Source\ProtDomain.cpp" />
-    <ClCompile Include="..\..\Source\SyncDomain.cpp" />
-    <ClCompile Include="..\..\Source\TestPriorityQueue.cpp" />
-    <ClCompile Include="..\..\Source\Windows\AddressSpace.cpp" />
-    <ClCompile Include="..\..\Source\Windows\MemoryWindows.cpp" />
-    <ClCompile Include="..\TestAtomicPtr.cpp" />
-    <ClCompile Include="..\TestHeap.cpp" />
-    <ClCompile Include="..\TestHeapDirectory.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="..\..\Include\HeapFactory.h" />
-    <ClInclude Include="..\..\Include\Memory.h" />
-    <ClInclude Include="..\..\Source\AtomicCounter.h" />
-    <ClInclude Include="..\..\Source\AtomicPtr.h" />
-    <ClInclude Include="..\..\Source\BackOff.h" />
-    <ClInclude Include="..\..\Source\config.h" />
-    <ClInclude Include="..\..\Source\core.h" />
-    <ClInclude Include="..\..\Source\ExecDomain.h" />
-    <ClInclude Include="..\..\Source\Heap.h" />
-    <ClInclude Include="..\..\Source\HeapDirectory.h" />
-    <ClInclude Include="..\..\Source\PriorityQueue.h" />
-    <ClInclude Include="..\..\Source\ProtDomain.h" />
-    <ClInclude Include="..\..\Source\SyncDomain.h" />
-    <ClInclude Include="..\..\Source\Windows\AddressSpace.h" />
-    <ClInclude Include="..\..\Source\Windows\MemoryWindows.h" />
-    <ClInclude Include="..\..\Source\Windows\win32.h" />
+    <ClInclude Include="..\..\..\Source\AtomicCounter.h" />
+    <ClInclude Include="..\..\..\Source\AtomicPtr.h" />
+    <ClInclude Include="..\..\..\Source\BackOff.h" />
+    <ClInclude Include="..\..\..\Source\config.h" />
+    <ClInclude Include="..\..\..\Source\core.h" />
+    <ClInclude Include="..\..\..\Source\ExecDomain.h" />
+    <ClInclude Include="..\..\..\Source\Heap.h" />
+    <ClInclude Include="..\..\..\Source\HeapDirectory.h" />
+    <ClInclude Include="..\..\..\Source\PriorityQueue.h" />
+    <ClInclude Include="..\..\..\Source\ProtDomain.h" />
+    <ClInclude Include="..\..\..\Source\SyncDomain.h" />
+    <ClInclude Include="..\..\..\Source\Windows\AddressSpace.h" />
+    <ClInclude Include="..\..\..\Source\Windows\ExecDomainBase.h" />
+    <ClInclude Include="..\..\..\Source\Windows\MemoryWindows.h" />
+    <ClInclude Include="..\..\..\Source\Windows\ProtDomainBase.h" />
+    <ClInclude Include="..\..\..\Source\Windows\Scheduler.h" />
+    <ClInclude Include="..\..\..\Source\Windows\win32.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

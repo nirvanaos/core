@@ -6,6 +6,7 @@
 #ifndef NIRVANA_CORE_PRIORITYQUEUE_H_
 #define NIRVANA_CORE_PRIORITYQUEUE_H_
 
+#include <Nirvana.h>
 #ifndef UNIT_TEST
 #include "core.h"
 #endif
@@ -28,8 +29,30 @@ public:
 	PriorityQueue (unsigned max_level = 8);
 	~PriorityQueue ();
 
+	/// Inserts new node.
 	void insert (DeadlineTime dt, void* value, RandomGen& rndgen);
+	
+	/// Deletes node with minimal deadline.
 	void* delete_min ();
+
+	/// Gets minimal deadline.
+	bool get_min_deadline (DeadlineTime& dt)
+	{
+		Node* prev = copy_node (head ());
+		// Search the first node (node1) in the list that does not have
+		// its deletion mark on the value set.
+		Node* node = read_next (prev, 0);
+		bool ret;
+		if (node == tail ())
+			ret = false;
+		else {
+			ret = true;
+			dt = node->deadline;
+		}
+		release_node (prev);
+		release_node (node);
+		return ret;
+	}
 
 private:
 	struct Node;
