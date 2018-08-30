@@ -94,7 +94,7 @@ private:
 #ifdef UNIT_TEST
 			return _aligned_malloc (sizeof (Node) + (level - 1) * sizeof (next [0]), Link::alignment);
 #else
-			return g_default_heap->allocate (0, sizeof (Node) + (level - 1) * sizeof (next [0]), 0);
+			return g_core_heap->allocate (0, sizeof (Node) + (level - 1) * sizeof (next [0]), 0);
 #endif
 		}
 
@@ -103,7 +103,7 @@ private:
 #ifdef UNIT_TEST
 			_aligned_free (p);
 #else
-			g_default_heap->release (p, sizeof (Node) + (level - 1) * sizeof (next [0]));
+			g_core_heap->release (p, sizeof (Node) + (level - 1) * sizeof (next [0]));
 #endif
 		}
 	};

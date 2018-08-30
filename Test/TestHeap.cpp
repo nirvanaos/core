@@ -41,9 +41,9 @@ protected:
 
 TEST_F (TestHeap, Allocate)
 {
-	int* p = (int*)g_default_heap->allocate (0, sizeof (int), Memory::ZERO_INIT);
+	int* p = (int*)Core::g_core_heap->allocate (0, sizeof (int), Memory::ZERO_INIT);
 	*p = 1;
-	g_default_heap->release (p, sizeof (int));
+	Core::g_core_heap->release (p, sizeof (int));
 }
 
 TEST_F (TestHeap, Heap)
@@ -192,15 +192,15 @@ TEST_F (TestHeap, Random)
 	static const int ITERATIONS = 100;
 	static const int ALLOC_ITERATIONS = 1000;
 	for (int i = 0; i < ITERATIONS; ++i) {
-		ra.run (g_default_heap, ALLOC_ITERATIONS);
+		ra.run (Core::g_core_heap, ALLOC_ITERATIONS);
 
 		AllocatedBlocks checker;
 		ASSERT_NO_FATAL_FAILURE (checker.add (ra.allocated ()));
-		ASSERT_NO_FATAL_FAILURE (checker.check (g_default_heap));
+		ASSERT_NO_FATAL_FAILURE (checker.check (Core::g_core_heap));
 	}
 
 	for (auto p = ra.allocated ().cbegin (); p != ra.allocated ().cend (); ++p)
-		g_default_heap->release (p->begin, (p->end - p->begin) * sizeof (ULong));
+		Core::g_core_heap->release (p->begin, (p->end - p->begin) * sizeof (ULong));
 }
 
 class ThreadAllocator :
@@ -231,7 +231,7 @@ TEST_F (TestHeap, MultiThread)
 
 	for (int i = 0; i < ITERATIONS; ++i) {
 		for (auto p = threads.begin (); p != threads.end (); ++p)
-			p->run (g_default_heap, THREAD_ITERATIONS);
+			p->run (Core::g_core_heap, THREAD_ITERATIONS);
 
 		for (auto p = threads.begin (); p != threads.end (); ++p)
 			p->join ();
@@ -240,12 +240,12 @@ TEST_F (TestHeap, MultiThread)
 		for (auto pt = threads.begin (); pt != threads.end (); ++pt)
 			ASSERT_NO_FATAL_FAILURE (checker.add (pt->allocated ()));
 
-		ASSERT_NO_FATAL_FAILURE (checker.check (g_default_heap));
+		ASSERT_NO_FATAL_FAILURE (checker.check (Core::g_core_heap));
 	}
 
 	for (auto pt = threads.begin (); pt != threads.end (); ++pt) {
 		for (auto p = pt->allocated ().cbegin (); p != pt->allocated ().cend (); ++p)
-			g_default_heap->release (p->begin, (p->end - p->begin) * sizeof (ULong));
+			Core::g_core_heap->release (p->begin, (p->end - p->begin) * sizeof (ULong));
 	}
 }
 

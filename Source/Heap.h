@@ -63,10 +63,10 @@ protected:
 			UWord au = allocation_unit ();
 			UWord begin = offset / au;
 			UWord end = (offset + size + au - 1) / au;
-			if (!dir->check_allocated (begin, end, g_protection_domain_memory))
+			if (!dir->check_allocated (begin, end, protection_domain_memory ()))
 				throw BAD_PARAM ();
 			HeapInfo hi = {heap, au, optimal_commit_unit_};
-			dir->release (begin, end, g_protection_domain_memory, &hi);
+			dir->release (begin, end, protection_domain_memory (), &hi);
 		}
 
 		bool contains (const void* p) const
@@ -82,11 +82,11 @@ protected:
 
 	static void initialize ()
 	{
-		assert (g_protection_domain_memory->query (0, Memory::ALLOCATION_UNIT) >= HEAP_UNIT_MAX);
-		commit_unit_ = g_protection_domain_memory->query (0, Memory::COMMIT_UNIT);
-		optimal_commit_unit_ = g_protection_domain_memory->query (0, Memory::OPTIMAL_COMMIT_UNIT);
-		space_begin_ = (Octet*)g_protection_domain_memory->query (0, Memory::ALLOCATION_SPACE_BEGIN);
-		space_end_ = (Octet*)g_protection_domain_memory->query (0, Memory::ALLOCATION_SPACE_END);
+		assert (protection_domain_memory ()->query (0, Memory::ALLOCATION_UNIT) >= HEAP_UNIT_MAX);
+		commit_unit_ = protection_domain_memory ()->query (0, Memory::COMMIT_UNIT);
+		optimal_commit_unit_ = protection_domain_memory ()->query (0, Memory::OPTIMAL_COMMIT_UNIT);
+		space_begin_ = (Octet*)protection_domain_memory ()->query (0, Memory::ALLOCATION_SPACE_BEGIN);
+		space_end_ = (Octet*)protection_domain_memory ()->query (0, Memory::ALLOCATION_SPACE_END);
 	}
 
 	static bool valid_address (const void* p)
@@ -110,8 +110,8 @@ protected:
 
 	static Directory* create_partition (UWord allocation_unit)
 	{
-		Directory* part = (Directory*)g_protection_domain_memory->allocate (0, partition_size (allocation_unit), Memory::RESERVED | Memory::ZERO_INIT);
-		Directory::initialize (part, g_protection_domain_memory);
+		Directory* part = (Directory*)protection_domain_memory ()->allocate (0, partition_size (allocation_unit), Memory::RESERVED | Memory::ZERO_INIT);
+		Directory::initialize (part, protection_domain_memory ());
 		return part;
 	}
 
@@ -158,15 +158,15 @@ protected:
 		bool large_table = false;
 		try {
 			if (sparse_table (table_size)) {
-				part_table_ = (Partition*)g_protection_domain_memory->allocate (0, table_size, Memory::RESERVED | Memory::ZERO_INIT);
+				part_table_ = (Partition*)protection_domain_memory ()->allocate (0, table_size, Memory::RESERVED | Memory::ZERO_INIT);
 				large_table = true;
 			} else
 				part_table_ = (Partition*)allocate (dir0, table_size, HEAP_UNIT_DEFAULT);
 			return add_partition (dir0, HEAP_UNIT_DEFAULT);
 		} catch (...) {
 			if (large_table)
-				g_protection_domain_memory->release (part_table_, table_size);
-			g_protection_domain_memory->release (dir0, partition_size (HEAP_UNIT_DEFAULT));
+				protection_domain_memory ()->release (part_table_, table_size);
+			protection_domain_memory ()->release (dir0, partition_size (HEAP_UNIT_DEFAULT));
 			throw;
 		}
 	}
@@ -197,20 +197,20 @@ protected:
 	{
 		HeapBase::initialize ();
 		Directory* dir0 = create_partition (HEAP_UNIT_DEFAULT);
-		table_block_size_ = g_protection_domain_memory->query (0, Memory::ALLOCATION_UNIT) / sizeof (Partition);
+		table_block_size_ = protection_domain_memory ()->query (0, Memory::ALLOCATION_UNIT) / sizeof (Partition);
 		UWord table_size = table_bytes ();
 		bool large_table = false;
 		try {
 			if (sparse_table (table_size)) {
-				part_table_ = (Partition**)g_protection_domain_memory->allocate (0, table_size, Memory::RESERVED | Memory::ZERO_INIT);
+				part_table_ = (Partition**)protection_domain_memory ()->allocate (0, table_size, Memory::RESERVED | Memory::ZERO_INIT);
 				large_table = true;
 			} else
 				part_table_ = (Partition**)allocate (dir0, table_size, HEAP_UNIT_DEFAULT);
 			return add_partition (dir0, HEAP_UNIT_DEFAULT);
 		} catch (...) {
 			if (large_table)
-				g_protection_domain_memory->release (part_table_, table_size);
-			g_protection_domain_memory->release (dir0, partition_size (HEAP_UNIT_DEFAULT));
+				protection_domain_memory ()->release (part_table_, table_size);
+			protection_domain_memory ()->release (dir0, partition_size (HEAP_UNIT_DEFAULT));
 			throw;
 		}
 	}
@@ -258,40 +258,40 @@ public:
 		if (part)
 			part->release (p, size);
 		else
-			g_protection_domain_memory->release (p, size);
+			protection_domain_memory ()->release (p, size);
 	}
 
 	static void commit (Pointer p, UWord size)
 	{
-		g_protection_domain_memory->commit (p, size);
+		protection_domain_memory ()->commit (p, size);
 	}
 
 	static void decommit (Pointer p, UWord size)
 	{
 		if (!get_partition (p))
-			g_protection_domain_memory->decommit (p, size);
+			protection_domain_memory ()->decommit (p, size);
 	}
 
 	Pointer copy (Pointer dst, Pointer src, UWord size, Flags flags);
 
 	static Boolean is_readable (ConstPointer p, UWord size)
 	{
-		return g_protection_domain_memory->is_readable (p, size);
+		return protection_domain_memory ()->is_readable (p, size);
 	}
 
 	static Boolean is_writable (ConstPointer p, UWord size)
 	{
-		return g_protection_domain_memory->is_writable (p, size);
+		return protection_domain_memory ()->is_writable (p, size);
 	}
 
 	static Boolean is_private (ConstPointer p, UWord size)
 	{
-		return g_protection_domain_memory->is_private (p, size);
+		return protection_domain_memory ()->is_private (p, size);
 	}
 
 	static Boolean is_copy (ConstPointer p1, ConstPointer p2, UWord size)
 	{
-		return g_protection_domain_memory->is_copy (p1, p2, size);
+		return protection_domain_memory ()->is_copy (p1, p2, size);
 	}
 
 	Word query (ConstPointer p, Memory::QueryParam param);
@@ -301,7 +301,7 @@ public:
 		Partition& first_part = HeapBaseT::initialize ();
 		Heap* instance = (Heap*)first_part.allocate (sizeof (Heap));
 		new (instance) Heap (first_part);
-		g_default_heap = instance;
+		g_core_heap = instance;
 		g_heap_factory = HeapFactoryImpl::_this ();
 	}
 
@@ -328,12 +328,12 @@ public:
 
 	void* operator new (size_t cb)
 	{
-		return g_default_heap->allocate (0, cb, 0);
+		return g_core_heap->allocate (0, cb, 0);
 	}
 
 	void operator delete (void* p, size_t cb)
 	{
-		g_default_heap->release (p, cb);
+		g_core_heap->release (p, cb);
 	}
 
 private:
@@ -379,7 +379,7 @@ inline Pointer Heap::allocate (Pointer p, UWord size, Flags flags)
 				else
 					p = 0;
 		} else if (
-			!(p = g_protection_domain_memory->allocate (p, size, flags | Memory::EXACTLY))
+			!(p = protection_domain_memory ()->allocate (p, size, flags | Memory::EXACTLY))
 			&&
 			(flags & Memory::EXACTLY)
 			)
@@ -388,7 +388,7 @@ inline Pointer Heap::allocate (Pointer p, UWord size, Flags flags)
 
 	if (!p) {
 		if (size > Directory::MAX_BLOCK_SIZE * allocation_unit_ || ((flags & Memory::RESERVED) && size >= optimal_commit_unit_))
-			p = g_protection_domain_memory->allocate (0, size, flags);
+			p = protection_domain_memory ()->allocate (0, size, flags);
 		else {
 			try {
 				p = allocate (size);
@@ -423,7 +423,7 @@ inline Pointer Heap::copy (Pointer dst, Pointer src, UWord size, Flags flags)
 		}
 	}
 
-	return g_protection_domain_memory->copy (dst, src, size, flags);
+	return protection_domain_memory ()->copy (dst, src, size, flags);
 }
 
 inline Word Heap::query (ConstPointer p, Memory::QueryParam param)
@@ -435,7 +435,7 @@ inline Word Heap::query (ConstPointer p, Memory::QueryParam param)
 		if (part)
 			return part->allocation_unit ();
 	}
-	return g_protection_domain_memory->query (p, param);
+	return protection_domain_memory ()->query (p, param);
 }
 
 inline Memory_ptr HeapFactoryImpl::create ()

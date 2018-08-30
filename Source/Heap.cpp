@@ -20,7 +20,7 @@ Pointer HeapBase::allocate (Directory* part, UWord size, UWord allocation_unit)
 {
 	UWord units = (size + allocation_unit - 1) / allocation_unit;
 	HeapInfo hi = {part + 1, allocation_unit, optimal_commit_unit_};
-	Word unit = part->allocate (units, g_protection_domain_memory, &hi);
+	Word unit = part->allocate (units, protection_domain_memory (), &hi);
 	if (unit >= 0) {
 		assert (unit < Directory::UNIT_COUNT);
 		return (Octet*)(part + 1) + unit * allocation_unit;
@@ -54,7 +54,7 @@ bool HeapBase::Partition::allocate (Pointer p, UWord size, Flags flags) const
 		end = begin + (size + au - 1) / au;
 
 	HeapInfo hi = {heap, au, optimal_commit_unit_};
-	if (dir->allocate (begin, end, g_protection_domain_memory, &hi)) {
+	if (dir->allocate (begin, end, protection_domain_memory (), &hi)) {
 		Octet* pbegin = heap + begin * au;
 		if (!(flags & Memory::EXACTLY))
 			p = pbegin;
@@ -74,7 +74,7 @@ HeapBase::Partition& Heap32::add_partition (Directory* part, UWord allocation_un
 	Partition* begin = part_table_ + offset / MIN_PARTITION_SIZE;
 	Partition* end = part_table_ + (offset + partition_size (allocation_unit)) / MIN_PARTITION_SIZE;
 	if (sparse_table (table_bytes ()))
-		g_protection_domain_memory->commit (begin, (end - begin) * sizeof (Partition));
+		protection_domain_memory ()->commit (begin, (end - begin) * sizeof (Partition));
 	for (Partition* p = begin; p != end; ++p)
 		p->set (part, allocation_unit);
 	return *begin;
@@ -99,7 +99,7 @@ inline const HeapBase::Partition* Heap32::partition (UWord idx)
 		}
 	} else {
 		if (
-			(!sparse_table (table_bytes ()) || g_protection_domain_memory->is_readable (p, sizeof (Partition)))
+			(!sparse_table (table_bytes ()) || protection_domain_memory ()->is_readable (p, sizeof (Partition)))
 		&&
 			p->exists ()
 		)
@@ -119,7 +119,7 @@ HeapBase::Partition& Heap64::add_partition (Directory* part, UWord allocation_un
 	UWord i1 = idx % table_block_size_;
 	Partition** pblock = part_table_ + i0;
 	if (sparse_table (table_bytes ()))
-		g_protection_domain_memory->commit (pblock, ((end + table_block_size_ - 1) / table_block_size_ - i0) * sizeof (Partition*));
+		protection_domain_memory ()->commit (pblock, ((end + table_block_size_ - 1) / table_block_size_ - i0) * sizeof (Partition*));
 
 	Partition* ret = 0;
 	UWord block_size = table_block_size_ * sizeof (Partition);
@@ -128,10 +128,10 @@ HeapBase::Partition& Heap64::add_partition (Directory* part, UWord allocation_un
 		bool commit = false;
 		if (!block) {
 			commit = true;
-			block = (Partition*)g_protection_domain_memory->allocate (0, block_size, Memory::RESERVED | Memory::ZERO_INIT);
+			block = (Partition*)protection_domain_memory ()->allocate (0, block_size, Memory::RESERVED | Memory::ZERO_INIT);
 			Partition* cur = 0;
 			if (!atomic_compare_exchange_strong ((volatile atomic <Partition*>*)pblock, &cur, block)) {
-				g_protection_domain_memory->release (block, block_size);
+				protection_domain_memory ()->release (block, block_size);
 				block = cur;
 			}
 		} else
@@ -144,7 +144,7 @@ HeapBase::Partition& Heap64::add_partition (Directory* part, UWord allocation_un
 		if (tail > cnt)
 			tail = cnt;
 		if (commit)
-			g_protection_domain_memory->commit (p, tail * sizeof (Partition));
+			protection_domain_memory ()->commit (p, tail * sizeof (Partition));
 		Partition* end = p + tail;
 		do {
 			p->set (part, allocation_unit);
@@ -200,7 +200,7 @@ const HeapBase::Partition* Heap64::partition (UWord idx)
 		} catch (...) {
 		}
 	} else {
-		if (!sparse_table (table_bytes ()) || g_protection_domain_memory->is_readable (pblock, sizeof (Partition*))) {
+		if (!sparse_table (table_bytes ()) || protection_domain_memory ()->is_readable (pblock, sizeof (Partition*))) {
 			const Partition* p = *pblock;
 			if (p) {
 				p += i1;
@@ -208,7 +208,7 @@ const HeapBase::Partition* Heap64::partition (UWord idx)
 					(
 						table_block_size_ * sizeof (Partition) <= commit_unit_
 						||
-						g_protection_domain_memory->is_readable (p, sizeof (Partition))
+						protection_domain_memory ()->is_readable (p, sizeof (Partition))
 					)
 					&& p->exists ()
 				)
@@ -225,7 +225,7 @@ Heap::Partition& Heap::create_partition () const
 	try {
 		return add_partition (dir, allocation_unit_);
 	} catch (...) {
-		g_protection_domain_memory->release (dir, partition_size (allocation_unit_));
+		protection_domain_memory ()->release (dir, partition_size (allocation_unit_));
 		throw;
 	}
 }
@@ -235,7 +235,7 @@ void Heap::destroy_partition (Partition& part)
 	Directory* dir = part.directory ();
 	UWord au = part.allocation_unit ();
 	remove_partition (part);
-	g_protection_domain_memory->release (dir, partition_size (au));
+	protection_domain_memory ()->release (dir, partition_size (au));
 }
 
 const HeapBase::Partition* Heap::get_partition (const void* address)
