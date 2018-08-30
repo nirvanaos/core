@@ -155,11 +155,13 @@
     <ClInclude Include="..\..\..\Source\PriorityQueue.h" />
     <ClInclude Include="..\..\..\Source\ProtDomain.h" />
     <ClInclude Include="..\..\..\Source\SyncDomain.h" />
+    <ClInclude Include="..\..\..\Source\SysDomain.h" />
     <ClInclude Include="..\..\..\Source\Windows\AddressSpace.h" />
     <ClInclude Include="..\..\..\Source\Windows\ExecDomainBase.h" />
     <ClInclude Include="..\..\..\Source\Windows\MemoryWindows.h" />
     <ClInclude Include="..\..\..\Source\Windows\ProtDomainBase.h" />
     <ClInclude Include="..\..\..\Source\Windows\Scheduler.h" />
+    <ClInclude Include="..\..\..\Source\Windows\SysDomainBase.h" />
     <ClInclude Include="..\..\..\Source\Windows\win32.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

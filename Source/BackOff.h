@@ -2,8 +2,9 @@
 #define NIRVANA_CORE_BACKOFF_H_
 
 #ifdef _WIN32
-extern "C" __declspec(dllimport)
-void __stdcall Sleep (unsigned long ms);
+#include "Windows/win32.h"
+#else
+#error Unknown platform.
 #endif
 
 namespace Nirvana {
@@ -21,7 +22,7 @@ public:
 	void sleep ()
 	{
 #ifdef _WIN32
-		Sleep (0);
+		::Sleep (0);
 #endif
 	}
 };
