@@ -1,6 +1,4 @@
 #include "PriorityQueue.h"
-#include "BackOff.h"
-#include <limits>
 
 namespace Nirvana {
 namespace Core {
@@ -13,27 +11,16 @@ using namespace std;
 #define CHECK_VALID_LEVEL(lev, nod)
 #endif
 
-AtomicCounter PriorityQueue::last_timestamp_ = 0;
+AtomicCounter _PriorityQueue::last_timestamp_ = 0;
 
-PriorityQueue::PriorityQueue (unsigned max_level) :
-	max_level_ (max (1u, min (MAX_LEVEL_MAX, max_level))),
+_PriorityQueue::_PriorityQueue () :
 #ifdef _DEBUG
 	node_cnt_ (0),
 #endif
 	distr_ (0.5)
-{
-	head_ = new (max_level_) Node (max_level_, 0, 0, 0);
-	try {
-		tail_ = new (1) Node (1, numeric_limits <DeadlineTime>::max (), 0, 0);
-	} catch (...) {
-		Node::operator delete (head_, head_->level);
-		throw;
-	}
-	fill_n (head_->next, max_level_, tail_);
-	head_->valid_level = max_level_;
-}
+{}
 
-PriorityQueue::~PriorityQueue ()
+_PriorityQueue::~_PriorityQueue ()
 {
 #ifdef _DEBUG
 	assert (node_cnt_ == 0);
@@ -42,7 +29,7 @@ PriorityQueue::~PriorityQueue ()
 	Node::operator delete (tail_, tail_->level);
 }
 
-void PriorityQueue::release_node (Node* node)
+void _PriorityQueue::release_node (Node* node)
 {
 	assert (node);
 	if (!node->ref_cnt.decrement ()) {
@@ -53,7 +40,7 @@ void PriorityQueue::release_node (Node* node)
 	}
 }
 
-PriorityQueue::Node* PriorityQueue::read_node (Link::Atomic& node)
+_PriorityQueue::Node* _PriorityQueue::read_node (Link::Atomic& node)
 {
 	Node* p = nullptr;
 	Link link = node.lock ();
@@ -65,7 +52,7 @@ PriorityQueue::Node* PriorityQueue::read_node (Link::Atomic& node)
 	return p;
 }
 
-PriorityQueue::Node* PriorityQueue::read_next (Node*& node1, int level)
+_PriorityQueue::Node* _PriorityQueue::read_next (Node*& node1, int level)
 {
 	if (node1->value.load ().is_marked ())
 		node1 = help_delete (node1, level);
@@ -79,7 +66,7 @@ PriorityQueue::Node* PriorityQueue::read_next (Node*& node1, int level)
 	return node2;
 }
 
-PriorityQueue::Node* PriorityQueue::scan_key (Node*& node1, int level, Node* keynode)
+_PriorityQueue::Node* _PriorityQueue::scan_key (Node*& node1, int level, Node* keynode)
 {
 	assert (keynode);
 	Node* node2 = read_next (node1, level);
@@ -91,101 +78,7 @@ PriorityQueue::Node* PriorityQueue::scan_key (Node*& node1, int level, Node* key
 	return node2;
 }
 
-void PriorityQueue::insert (DeadlineTime dt, void* value, RandomGen& rndgen)
-{
-	// Choose level randomly.
-	int level = random_level (rndgen);
-	
-	// Create new node.
-	Node* new_node = create_node (level, dt, value);
-	copy_node (new_node);
-
-	// Search phase to find the node after which newNode shouldbe inserted.
-	// This search phase starts from the headnod e at the highest
-	// level and traverses down to the lowest level until the correct
-	// node is found (node1).When going down one level, the last
-	// node traversed on that level is remembered (savedNodes)
-	// for later use (this is where we shouldinsert the new node at that level).
-	Node* node1 = copy_node (head ());
-	Node* saved_nodes [MAX_LEVEL_MAX - 1];
-	for (int i = max_level_ - 1; i >= 1; --i) {
-		Node* node2 = scan_key (node1, i, new_node);
-		release_node (node2);
-		if (i < level)
-			saved_nodes [i - 1] = copy_node (node1);
-	}
-
-	for (BackOff bo; true; bo.sleep ()) {
-		Node* node2 = scan_key (node1, 0, new_node);
-		/* This code was removed from the original algorithm because of keys can't 
-		be equal in this implementation.
-		void* value2 = node2->value;
-		if (!is_marked (value2) && node2->key == key) {
-			if (cas (&node2->value, value2, value)) {
-				release_node (node1);
-				release_node (node2);
-				for (int i = 1; i < level; ++i)
-					release_node (saved_nodes [i - 1]);
-				release_node (new_node);
-				release_node (new_node);
-				return true;
-			} else {
-				release_node (node2);
-				continue;
-			}
-		}
-		*/
-
-		// Insert node to list at level 0.
-		new_node->next [0] = node2;
-		release_node (node2);
-		if (node1->next [0].cas (node2, new_node)) {
-			release_node (node1);
-			break;
-		}
-	}
-	
-	// After the new node has been inserted at the lowest level, it is possible that it is deleted
-	// by a concurrent delete (e.g.DeleteMin) operation before it has been inserted at all levels.
-	bool deleted = false;
-
-	// Insert node to list at levels > 0.
-	for (int i = 1; i < level; ++i) {
-		new_node->valid_level = i;
-		node1 = saved_nodes [i - 1];
-		Link::Atomic& anext = new_node->next [i];
-		copy_node (new_node);
-		for (BackOff bo; true; bo.sleep ()) {
-			Node* node2 = scan_key (node1, i, new_node);
-			anext = node2;
-			release_node (node2);
-			if (new_node->value.load ().is_marked ()) {
-				deleted = true;
-				anext = TaggedNil::marked ();
-				release_node (new_node);
-				release_node (node1);
-				break;
-			}
-			if (node1->next [i].cas (node2, new_node)) {
-				release_node (node1);
-				break;
-			}
-		}
-
-		if (deleted) {
-			while (level > ++i)
-				release_node (saved_nodes [i - 1]);
-			break;
-		}
-	}
-
-	new_node->valid_level = level;
-	if (deleted || new_node->value.load ().is_marked ())
-		new_node = help_delete (new_node, 0);
-	release_node (new_node);
-}
-
-void* PriorityQueue::delete_min ()
+void* _PriorityQueue::delete_min ()
 {
 	// Start from the head node.
 	Node* prev = copy_node (head ());
@@ -254,14 +147,13 @@ void* PriorityQueue::delete_min ()
 
 /// Tries to fulfill the deletion on the current level and returns a reference to
 /// the previous node when the deletion is completed.
-PriorityQueue::Node* PriorityQueue::help_delete (Node* node, int level)
+_PriorityQueue::Node* _PriorityQueue::help_delete (Node* node, int level)
 {
 	assert (node != head ());
 	assert (node != tail ());
 
 	// Set the deletion mark on all next pointers in case they have not been set.
 	for (int i = level, end = node->level; i < end; ++i) {
-		assert (end <= max_level_);
 		Link::Atomic& alink2 = node->next [i];
 		Link node2;
 		do {
@@ -278,7 +170,7 @@ PriorityQueue::Node* PriorityQueue::help_delete (Node* node, int level)
 	if (!prev || level >= prev->valid_level) {
 		// Search for the correct previous node
 		prev = copy_node (head ());
-		for (int i = max_level_ - 1; i >= level; --i) {
+		for (int i = prev->level - 1; i >= level; --i) {
 			Node* node2 = scan_key (prev, i, node);
 			release_node (node2);
 		}
@@ -292,7 +184,7 @@ PriorityQueue::Node* PriorityQueue::help_delete (Node* node, int level)
 }
 
 /// Removes the given node from the linked list structure at the given level.
-void PriorityQueue::remove_node (Node* node, Node*& prev, int level)
+void _PriorityQueue::remove_node (Node* node, Node*& prev, int level)
 {
 	assert (node != head ());
 	assert (node != tail ());

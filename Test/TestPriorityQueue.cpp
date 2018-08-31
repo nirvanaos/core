@@ -10,11 +10,13 @@
 //using namespace ::Nirvana;
 using namespace std;
 using ::Nirvana::Core::PriorityQueue;
+using ::Nirvana::Core::RandomGen;
 
 namespace TestPriorityQueue {
 
+template <class PQ>
 class TestPriorityQueue :
-	public ::testing::TestWithParam <unsigned>
+	public ::testing::Test
 {
 protected:
 	TestPriorityQueue ()
@@ -60,11 +62,20 @@ typedef std::priority_queue <StdNode> StdPriorityQueue;
 
 static const unsigned PTR_ALIGN = 4;
 
-TEST_P (TestPriorityQueue, SingleThread)
+typedef ::testing::Types <
+	PriorityQueue <1>,
+	PriorityQueue <2>, 
+	PriorityQueue <4>,
+	PriorityQueue <16>
+> MaxLevel;
+
+TYPED_TEST_CASE (TestPriorityQueue, MaxLevel);
+
+TYPED_TEST (TestPriorityQueue, SingleThread)
 {
-	PriorityQueue queue (GetParam ());
+	TypeParam queue;
 	StdPriorityQueue queue_std;
-	PriorityQueue::RandomGen rndgen;
+	RandomGen rndgen;
 	uniform_int_distribution <int> distr;
 
 	ASSERT_FALSE (queue.delete_min ());
@@ -86,10 +97,10 @@ TEST_P (TestPriorityQueue, SingleThread)
 	}
 }
 
-TEST_P (TestPriorityQueue, Equal)
+TYPED_TEST (TestPriorityQueue, Equal)
 {
-	PriorityQueue queue (GetParam ());
-	PriorityQueue::RandomGen rndgen;
+	TypeParam queue;
+	RandomGen rndgen;
 
 	static const int MAX_COUNT = 10;
 	for (int i = 1; i <= MAX_COUNT; ++i) {
@@ -102,16 +113,17 @@ TEST_P (TestPriorityQueue, Equal)
 	}
 }
 
+template <class PQ>
 class ThreadTest
 {
 	static const size_t NUM_PRIORITIES = 20;
 	static const int NUM_ITERATIONS = 10000;
 	static const int MAX_QUEUE_SIZE = 10000;
 public:
-	ThreadTest (unsigned max_level) :
+	ThreadTest () :
 		distr_ (0, NUM_PRIORITIES - 1),
 		queue_size_ (0),
-		queue_ (max_level)
+		queue_ ()
 	{
 		for (int i = 0; i < NUM_PRIORITIES; ++i)
 			counters_ [i] = 0;
@@ -124,13 +136,14 @@ public:
 private:
 	array <atomic <int>, NUM_PRIORITIES> counters_;
 	const uniform_int_distribution <int> distr_;
-	PriorityQueue queue_;
+	PQ queue_;
 	atomic <int> queue_size_;
 };
 
-void ThreadTest::thread_proc (int rndinit)
+template <class PQ>
+void ThreadTest <PQ>::thread_proc (int rndinit)
 {
-	PriorityQueue::RandomGen rndgen (rndinit);
+	RandomGen rndgen (rndinit);
 
 	for (int i = NUM_ITERATIONS; i > 0; --i) {
 		if (!bernoulli_distribution (min (1., ((double)queue_size_ / (double)MAX_QUEUE_SIZE))) (rndgen)) {
@@ -141,7 +154,7 @@ void ThreadTest::thread_proc (int rndinit)
 		} else {
 			void* p = queue_.delete_min ();
 			if (p) {
-				unsigned deadline = (((intptr_t)p - 1) / PTR_ALIGN);
+				size_t deadline = (((intptr_t)p - 1) / PTR_ALIGN);
 				--counters_ [deadline];
 				--queue_size_;
 			}
@@ -149,10 +162,11 @@ void ThreadTest::thread_proc (int rndinit)
 	}
 }
 
-void ThreadTest::finalize ()
+template <class PQ>
+void ThreadTest <PQ>::finalize ()
 {
 	while (void* p = queue_.delete_min ()) {
-		unsigned deadline = (((intptr_t)p - 1) / PTR_ALIGN);
+		size_t deadline = (((intptr_t)p - 1) / PTR_ALIGN);
 		--counters_ [deadline];
 		--queue_size_;
 	}
@@ -162,22 +176,20 @@ void ThreadTest::finalize ()
 		ASSERT_EQ (counters_ [i], 0);
 }
 
-TEST_P (TestPriorityQueue, MultiThread)
+TYPED_TEST (TestPriorityQueue, MultiThread)
 {
-	ThreadTest test (GetParam ());
+	ThreadTest <TypeParam> test;
 
 	const unsigned int thread_cnt = max (thread::hardware_concurrency (), (unsigned)2);
 	vector <thread> threads;
 
 	for (unsigned int i = 0; i < thread_cnt; ++i)
-		threads.emplace_back (&ThreadTest::thread_proc, &test, i + 1);
+		threads.emplace_back (&ThreadTest <TypeParam>::thread_proc, &test, i + 1);
 
 	for (auto p = threads.begin (); p != threads.end (); ++p)
 		p->join ();
 
 	test.finalize ();
 }
-
-INSTANTIATE_TEST_CASE_P (LevelCount, TestPriorityQueue, ::testing::Values (1, 2, 4, 16));
 
 }

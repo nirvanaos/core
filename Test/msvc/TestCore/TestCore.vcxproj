@@ -144,6 +144,8 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\..\Include\HeapFactory.h" />
+    <ClInclude Include="..\..\..\Include\Memory.h" />
     <ClInclude Include="..\..\..\Source\AtomicCounter.h" />
     <ClInclude Include="..\..\..\Source\AtomicPtr.h" />
     <ClInclude Include="..\..\..\Source\BackOff.h" />

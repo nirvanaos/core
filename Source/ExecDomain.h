@@ -30,7 +30,7 @@ public:
 		return deadline_;
 	}
 
-	PriorityQueue::RandomGen& rndgen ()
+	RandomGen& rndgen ()
 	{
 		return rndgen_;
 	}
@@ -41,7 +41,7 @@ public:
 	}
 
 private:
-	PriorityQueue::RandomGen rndgen_;
+	RandomGen rndgen_;
 	DeadlineTime deadline_;
 };
 

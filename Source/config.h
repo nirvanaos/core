@@ -32,19 +32,28 @@ const ULong HEAP_UNIT_MIN = 16;
 const ULong HEAP_UNIT_DEFAULT = 16;
 const ULong HEAP_UNIT_MAX = 4096;
 
-/*
-	HEAP_HEARED_SIZE - размер заголовка кучи. Заголовок содержит 1 или несколько управляющих
-	блоков. Размер заголовка должен быть кратен гранулярности памяти домена защиты - максимальному
-	значению MAX (ALLOCATION_UNIT, PROTECTION_UNIT, SHARING_UNIT). Если HEAP_DIRECTORY_SIZE
-	меньше этой величины, заголовок кучи содержит несколько управляющих блоков, а сама куча
-	делится на соответствующее количество частей, каждая из которых работает отдельно.
-	Для Windows размер заголовка равен 64K. Для систем с меньшими размерами ALLOCATION_UNIT
-	и SHARING_UNIT его можно сделать меньше.
+/**	Размер управляющего блока кучи. 
+Размер должен быть кратен гранулярности памяти домена защиты - максимальному
+значению MAX (ALLOCATION_UNIT, PROTECTION_UNIT, SHARING_UNIT). Если HEAP_DIRECTORY_SIZE
+меньше этой величины, заголовок кучи содержит несколько управляющих блоков, а сама куча
+делится на соответствующее количество частей, каждая из которых работает отдельно.
+Для Windows размер заголовка равен 64K. Для систем с меньшими размерами ALLOCATION_UNIT
+и SHARING_UNIT его можно сделать меньше.
 */
-
-const UWord HEAP_HEADER_SIZE = 0x10000;
 const ULong HEAP_DIRECTORY_SIZE = 0x10000;
+
+/** Use exceptions to handle uncommitted pages in heap directory.
+When set to `false`, heap algorithm uses `Memory::is_readable ()`
+to detect uncommitted pages. `true` provides better performance, but maybe not for all platforms.
+*/
 const Boolean HEAP_DIRECTORY_USE_EXCEPTION = true;
+
+/** Maximum count of levels in PriorityQueue.
+To provide best performance with a probabilistic time complexity of
+O(logN) where N is the maximum number of elements, the queue should
+have PRIORITY_QUEUE_LEVELS = logN. Too large value degrades the performance.
+*/
+const ULong PRIORITY_QUEUE_LEVELS = 10;
 
 }
 }

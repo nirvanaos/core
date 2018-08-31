@@ -5,6 +5,7 @@
 
 #include "ExecDomain.h"
 #include "PriorityQueue.h"
+#include "config.h"
 
 namespace Nirvana {
 namespace Core {
@@ -36,7 +37,7 @@ public:
 	void leave ();
 
 private:
-	PriorityQueueT <ExecDomain> queue_;
+	PriorityQueueT <ExecDomain, PRIORITY_QUEUE_LEVELS> queue_;
 	DeadlineTime min_deadline_;
 	AtomicCounter schedule_cnt_;
 	volatile ExecDomain* current_executor_;
