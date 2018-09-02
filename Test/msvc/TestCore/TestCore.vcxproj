@@ -131,6 +131,11 @@
     <ClCompile Include="..\..\..\Source\Windows\MemoryWindows.cpp" />
     <ClCompile Include="..\..\..\Source\Windows\ProtDomainBase.cpp" />
     <ClCompile Include="..\..\..\Source\Windows\Scheduler.cpp" />
+    <ClCompile Include="..\..\..\Source\Windows\SchedulerIPC.cpp" />
+    <ClCompile Include="..\..\..\Source\Windows\SysDomainBase.cpp" />
+    <ClCompile Include="..\..\..\Source\Windows\ThreadBase.cpp" />
+    <ClCompile Include="..\..\..\Source\Windows\ThreadWorkerBase.cpp" />
+    <ClCompile Include="..\..\..\Source\Windows\WorkerThreads.cpp" />
     <ClCompile Include="..\..\TestHeap.cpp" />
     <ClCompile Include="..\..\TestHeapDirectory.cpp" />
     <ClCompile Include="..\..\TestPriorityQueue.cpp" />
@@ -158,13 +163,19 @@
     <ClInclude Include="..\..\..\Source\ProtDomain.h" />
     <ClInclude Include="..\..\..\Source\SyncDomain.h" />
     <ClInclude Include="..\..\..\Source\SysDomain.h" />
+    <ClInclude Include="..\..\..\Source\Thread.h" />
+    <ClInclude Include="..\..\..\Source\ThreadWorker.h" />
     <ClInclude Include="..\..\..\Source\Windows\AddressSpace.h" />
     <ClInclude Include="..\..\..\Source\Windows\ExecDomainBase.h" />
     <ClInclude Include="..\..\..\Source\Windows\MemoryWindows.h" />
     <ClInclude Include="..\..\..\Source\Windows\ProtDomainBase.h" />
     <ClInclude Include="..\..\..\Source\Windows\Scheduler.h" />
+    <ClInclude Include="..\..\..\Source\Windows\SchedulerIPC.h" />
     <ClInclude Include="..\..\..\Source\Windows\SysDomainBase.h" />
+    <ClInclude Include="..\..\..\Source\Windows\ThreadBase.h" />
+    <ClInclude Include="..\..\..\Source\Windows\ThreadWorkerBase.h" />
     <ClInclude Include="..\..\..\Source\Windows\win32.h" />
+    <ClInclude Include="..\..\..\Source\Windows\WorkerThreads.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

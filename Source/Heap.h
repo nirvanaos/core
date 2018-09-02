@@ -298,11 +298,17 @@ public:
 
 	static void initialize ()
 	{
+		MemoryManager::initialize ();
 		Partition& first_part = HeapBaseT::initialize ();
 		Heap* instance = (Heap*)first_part.allocate (sizeof (Heap));
 		new (instance) Heap (first_part);
 		g_core_heap = instance;
 		g_heap_factory = HeapFactoryImpl::_this ();
+	}
+
+	static void terminate ()
+	{
+		MemoryManager::terminate ();
 	}
 
 	Heap (ULong allocation_unit) :

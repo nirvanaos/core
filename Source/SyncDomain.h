@@ -5,12 +5,14 @@
 
 #include "ExecDomain.h"
 #include "PriorityQueue.h"
+#include "Thread.h"
 #include "config.h"
 
 namespace Nirvana {
 namespace Core {
 
-class SyncDomain
+class SyncDomain :
+	public CoreObject
 {
 public:
 	SyncDomain () :
@@ -21,7 +23,7 @@ public:
 
 	void schedule (ExecDomain& ed)
 	{
-		queue_.insert (ed.deadline (), &ed, ed.rndgen ());
+		queue_.insert (ed.deadline (), &ed, Thread::current ()->rndgen ());
 		schedule ();
 	}
 
@@ -32,7 +34,14 @@ public:
 		return min_deadline_;
 	}
 
-	void run ();
+	void execute ()
+	{
+		ExecDomain* executor = queue_.delete_min ();
+		if (executor) {
+			current_executor_ = executor;
+			executor->switch_to ();
+		}
+	}
 
 	void leave ();
 

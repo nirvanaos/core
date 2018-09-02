@@ -22,13 +22,13 @@ public:
 	static void initialize ()
 	{
 		if (PROT)
-			::Nirvana::Core::initialize ();
+			::Nirvana::Core::MemoryManager::initialize ();
 	}
 
 	static void terminate ()
 	{
 		if (PROT)
-			::Nirvana::Core::terminate ();
+			::Nirvana::Core::MemoryManager::terminate ();
 	}
 
 	static DirectoryType* create ()

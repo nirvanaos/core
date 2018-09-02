@@ -6,5 +6,7 @@
 namespace Nirvana {
 namespace Core {
 
+ProtDomain* ProtDomain::singleton_ = nullptr;
+
 }
 }

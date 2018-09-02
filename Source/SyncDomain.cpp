@@ -25,19 +25,10 @@ void SyncDomain::schedule ()
 				bool first_time = !min_deadline;
 				if (first_time || (min_deadline_ > min_deadline)) {
 					min_deadline_ = min_deadline;
-					ProtDomain::schedule (*this, !first_time);
+					ProtDomain::singleton ().schedule (*this, !first_time);
 				}
 			}
 		} while (schedule_cnt_.decrement ());
-	}
-}
-
-void SyncDomain::run ()
-{
-	ExecDomain* executor = queue_.delete_min ();
-	if (executor) {
-		current_executor_ = executor;
-		executor->switch_to ();
 	}
 }
 

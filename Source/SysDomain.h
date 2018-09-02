@@ -18,9 +18,20 @@ namespace Nirvana {
 namespace Core {
 
 class SysDomain :
+	public CoreObject,
 	private SysDomainBase
 {
 public:
+	static void initialize ()
+	{
+		SysDomainBase::initialize ();
+	}
+
+	static void terminate ()
+	{
+		SysDomainBase::terminate ();
+	}
+
 	static unsigned int hardware_concurrency ()
 	{
 		return SysDomainBase::hardware_concurrency ();

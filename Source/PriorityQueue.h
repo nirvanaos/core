@@ -7,9 +7,7 @@
 #define NIRVANA_CORE_PRIORITYQUEUE_H_
 
 #include <Nirvana.h>
-#ifndef UNIT_TEST
 #include "core.h"
-#endif
 #include "AtomicCounter.h"
 #include "AtomicPtr.h"
 #include "BackOff.h"
@@ -19,9 +17,6 @@
 
 namespace Nirvana {
 namespace Core {
-
-/// Random-number generator.
-typedef std::mt19937 RandomGen;
 
 class _PriorityQueue
 {

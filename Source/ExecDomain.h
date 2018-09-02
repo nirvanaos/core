@@ -22,17 +22,29 @@ namespace Nirvana {
 namespace Core {
 
 class ExecDomain :
+	public CoreObject,
 	private ExecDomainBase
 {
 public:
+	ExecDomain () :
+		ExecDomainBase ()
+	{}
+
+	template <class P>
+	ExecDomain (P param) :
+		ExecDomainBase (param)
+	{}
+
+	/// Returns current execution domain.
+	/// Can return nullptr if current thread executes in the special "neutral" context.
+	static ExecDomain* current ()
+	{
+		return static_cast <ExecDomain*> (ExecDomainBase::current ());
+	}
+
 	DeadlineTime deadline () const
 	{
 		return deadline_;
-	}
-
-	RandomGen& rndgen ()
-	{
-		return rndgen_;
 	}
 
 	void switch_to ()
@@ -41,7 +53,6 @@ public:
 	}
 
 private:
-	RandomGen rndgen_;
 	DeadlineTime deadline_;
 };
 

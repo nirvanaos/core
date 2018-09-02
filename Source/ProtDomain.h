@@ -19,15 +19,38 @@ namespace Nirvana {
 namespace Core {
 
 class ProtDomain :
-	private ProtDomainBase
+	public CoreObject,
+	public ProtDomainBase
 {
 public:
-	static void schedule (SyncDomain& sd, bool update)
+	static void initialize ()
+	{
+		singleton_ = new ProtDomain;
+	}
+
+	static void terminate ()
+	{
+		delete singleton_;
+		singleton_ = nullptr;
+	}
+
+	static ProtDomain& singleton ()
+	{
+		assert (singleton_);
+		return *singleton_;
+	}
+
+	void schedule (SyncDomain& sd, bool update)
 	{
 		ProtDomainBase::schedule (sd.min_deadline (), &sd, update);
 	}
 
 private:
+	ProtDomain ()
+	{}
+
+private:
+	static ProtDomain* singleton_;
 };
 
 }
