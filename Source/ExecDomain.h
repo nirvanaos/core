@@ -6,6 +6,8 @@
 
 #include "core.h"
 #include "PriorityQueue.h"
+#include "ObjectPool.h"
+#include <CallWrapper.h>
 
 #ifdef _WIN32
 #include "Windows/ExecDomainBase.h"
@@ -23,6 +25,7 @@ namespace Core {
 
 class ExecDomain :
 	public CoreObject,
+	public PoolableObject,
 	private ExecDomainBase
 {
 public:
@@ -54,6 +57,7 @@ public:
 
 private:
 	DeadlineTime deadline_;
+	CallWrapper_ptr call_;
 };
 
 }

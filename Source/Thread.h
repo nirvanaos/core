@@ -51,18 +51,17 @@ public:
 		ThreadBase::switch_to_neutral ();
 	}
 
-	bool neutral_context_call ()
+	void neutral_context_proc ()
 	{
 		NeutralProc proc;
-		if (proc = neutral_proc_) {
+		while (proc = neutral_proc_) {
 			neutral_proc_ = nullptr;
 			(proc) (neutral_proc_param_);
-			if (exec_domain_) {
+			if (exec_domain_)
 				exec_domain_->switch_to ();
-				return true;
-			}
+			else
+				break;
 		}
-		return false;
 	}
 
 	void join () const

@@ -123,6 +123,7 @@
     <ClCompile Include="..\..\..\Source\ExecDomain.cpp" />
     <ClCompile Include="..\..\..\Source\Heap.cpp" />
     <ClCompile Include="..\..\..\Source\HeapDirectory.cpp" />
+    <ClCompile Include="..\..\..\Source\ObjectPool.cpp" />
     <ClCompile Include="..\..\..\Source\PriorityQueue.cpp" />
     <ClCompile Include="..\..\..\Source\ProtDomain.cpp" />
     <ClCompile Include="..\..\..\Source\SyncDomain.cpp" />
@@ -149,6 +150,7 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\..\Include\CallWrapper.h" />
     <ClInclude Include="..\..\..\Include\HeapFactory.h" />
     <ClInclude Include="..\..\..\Include\Memory.h" />
     <ClInclude Include="..\..\..\Source\AtomicCounter.h" />
@@ -159,11 +161,13 @@
     <ClInclude Include="..\..\..\Source\ExecDomain.h" />
     <ClInclude Include="..\..\..\Source\Heap.h" />
     <ClInclude Include="..\..\..\Source\HeapDirectory.h" />
+    <ClInclude Include="..\..\..\Source\ObjectPool.h" />
     <ClInclude Include="..\..\..\Source\PriorityQueue.h" />
     <ClInclude Include="..\..\..\Source\ProtDomain.h" />
     <ClInclude Include="..\..\..\Source\SyncDomain.h" />
     <ClInclude Include="..\..\..\Source\SysDomain.h" />
     <ClInclude Include="..\..\..\Source\Thread.h" />
+    <ClInclude Include="..\..\..\Source\ThreadBackground.h" />
     <ClInclude Include="..\..\..\Source\ThreadWorker.h" />
     <ClInclude Include="..\..\..\Source\Windows\AddressSpace.h" />
     <ClInclude Include="..\..\..\Source\Windows\ExecDomainBase.h" />
@@ -172,6 +176,7 @@
     <ClInclude Include="..\..\..\Source\Windows\Scheduler.h" />
     <ClInclude Include="..\..\..\Source\Windows\SchedulerIPC.h" />
     <ClInclude Include="..\..\..\Source\Windows\SysDomainBase.h" />
+    <ClInclude Include="..\..\..\Source\Windows\ThreadBackgroundBase.h" />
     <ClInclude Include="..\..\..\Source\Windows\ThreadBase.h" />
     <ClInclude Include="..\..\..\Source\Windows\ThreadWorkerBase.h" />
     <ClInclude Include="..\..\..\Source\Windows\win32.h" />

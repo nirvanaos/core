@@ -27,7 +27,7 @@ public:
 	void execute (SyncDomain& sync_domain)
 	{
 		sync_domain.execute ();
-		while (neutral_context_call ());
+		neutral_context_proc ();
 	}
 };
 
