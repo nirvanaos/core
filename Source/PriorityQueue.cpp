@@ -1,4 +1,5 @@
 #include "PriorityQueue.h"
+#include <limits>
 
 namespace Nirvana {
 namespace Core {
@@ -13,12 +14,22 @@ using namespace std;
 
 AtomicCounter _PriorityQueue::last_timestamp_ = 0;
 
-_PriorityQueue::_PriorityQueue () :
+_PriorityQueue::_PriorityQueue (unsigned max_level) :
 #ifdef _DEBUG
 	node_cnt_ (0),
 #endif
 	distr_ (0.5)
-{}
+{
+	head_ = new (max_level) Node (max_level, 0, 0);
+	try {
+		tail_ = new (1) Node (1, std::numeric_limits <DeadlineTime>::max (), 0);
+	} catch (...) {
+		Node::operator delete (head_, head_->level);
+		throw;
+	}
+	std::fill_n (head_->next, max_level, tail_);
+	head_->valid_level = max_level;
+}
 
 _PriorityQueue::~_PriorityQueue ()
 {
@@ -54,7 +65,7 @@ _PriorityQueue::Node* _PriorityQueue::read_node (Link::Atomic& node)
 
 _PriorityQueue::Node* _PriorityQueue::read_next (Node*& node1, int level)
 {
-	if (node1->value.load ().is_marked ())
+	if (node1->deleted)
 		node1 = help_delete (node1, level);
 	CHECK_VALID_LEVEL (level, node1);
 	Node* node2 = read_node (node1->next [level]);
@@ -78,16 +89,15 @@ _PriorityQueue::Node* _PriorityQueue::scan_key (Node*& node1, int level, Node* k
 	return node2;
 }
 
-void* _PriorityQueue::delete_min ()
+_PriorityQueue::Node* _PriorityQueue::delete_min ()
 {
 	// Start from the head node.
 	Node* prev = copy_node (head ());
 	Node* node1;
-	TaggedPtr <> value;
 
 	for (;;) {
 		// Search the first node (node1) in the list that does not have
-		// its deletion mark on the value set.
+		// its deletion mark set.
 		node1 = read_next (prev, 0);
 		if (node1 == tail ()) {
 			release_node (prev);
@@ -99,10 +109,10 @@ void* _PriorityQueue::delete_min ()
 			release_node (node1);
 			continue;
 		}
-		value = node1->value.load ();
-		if (!value.is_marked ()) {
+		if (!node1->deleted) {
 			// Try to set deletion mark.
-			if (node1->value.cas (value, value.marked ())) {
+			bool f = false;
+			if (node1->deleted.compare_exchange_strong (f, true)) {
 				// Succeeded, write valid pointer to the prev field of the node.
 				// This prev field is necessary in order to increase the performance of concurrent
 				// help_delete () functions, these operations otherwise
@@ -111,7 +121,7 @@ void* _PriorityQueue::delete_min ()
 				break;
 			} else
 				goto retry;
-		} else //if (value.is_marked ())
+		} else
 			node1 = help_delete (node1, 0);
 		release_node (prev);
 		prev = node1;
@@ -141,8 +151,7 @@ void* _PriorityQueue::delete_min ()
 		remove_node (node1, prev, i);
 	}
 	release_node (prev);
-	release_node (node1);	// Delete node.
-	return value;
+	return node1;	// Reference counter have to be released by caller.
 }
 
 /// Tries to fulfill the deletion on the current level and returns a reference to

@@ -13,7 +13,7 @@
 #include "BackOff.h"
 #include <random>
 #include <algorithm>
-#include <limits>
+#include <atomic>
 
 namespace Nirvana {
 namespace Core {
@@ -21,17 +21,12 @@ namespace Core {
 class _PriorityQueue
 {
 public:
-	~_PriorityQueue ();
-
-	/// Deletes node with minimal deadline.
-	void* delete_min ();
-
 	/// Gets minimal deadline.
 	bool get_min_deadline (DeadlineTime& dt)
 	{
 		Node* prev = copy_node (head ());
 		// Search the first node (node1) in the list that does not have
-		// its deletion mark on the value set.
+		// its deletion mark set.
 		Node* node = read_next (prev, 0);
 		bool ret;
 		if (node == tail ())
@@ -51,20 +46,23 @@ protected:
 	struct NodeBase
 	{
 		DeadlineTime deadline;
-		AtomicCounter::UIntType timestamp;
+		Node* volatile prev;
 		RefCounter ref_cnt;
+		AtomicCounter::UIntType timestamp;
 		int level;
 		int volatile valid_level;
-		AtomicPtr <> value;
-		Node* volatile prev;
+		std::atomic <bool> deleted;
 
-		NodeBase (int l, DeadlineTime dt, void* v, AtomicCounter::UIntType ts) :
+		NodeBase (int l, DeadlineTime dt, AtomicCounter::UIntType ts) :
 			deadline (dt),
 			timestamp (ts),
 			level (l),
 			valid_level (1),
-			value (v),
+			deleted (false),
 			prev (0)
+		{}
+
+		virtual ~NodeBase ()
 		{}
 	};
 
@@ -74,18 +72,23 @@ protected:
 	{
 		Link::Atomic next [1];	// Variable length array.
 
-		Node (int l, DeadlineTime dt, void* v, AtomicCounter::UIntType ts) :
-			NodeBase (l, dt, v, ts)
+		Node (int level, DeadlineTime dt, AtomicCounter::UIntType timestamp) :
+			NodeBase (level, dt, timestamp)
 		{
 			std::fill_n ((uintptr_t*)next, level, 0);
+		}
+
+		static size_t size (unsigned level)
+		{
+			return sizeof (Node) + (level - 1) * sizeof (next [0]);
 		}
 
 		void* operator new (size_t cb, int level)
 		{
 #ifdef UNIT_TEST
-			return _aligned_malloc (sizeof (Node) + (level - 1) * sizeof (next [0]), Link::alignment);
+			return _aligned_malloc (size (level), Link::alignment);
 #else
-			return g_core_heap->allocate (0, sizeof (Node) + (level - 1) * sizeof (next [0]), 0);
+			return g_core_heap->allocate (0, size (level), 0);
 #endif
 		}
 
@@ -94,10 +97,16 @@ protected:
 #ifdef UNIT_TEST
 			_aligned_free (p);
 #else
-			g_core_heap->release (p, sizeof (Node) + (level - 1) * sizeof (next [0]));
+			g_core_heap->release (p, size (level));
 #endif
 		}
 	};
+
+	_PriorityQueue (unsigned max_level);
+	~_PriorityQueue ();
+
+	/// Deletes node with minimal deadline.
+	Node* delete_min ();
 
 	bool less (const Node& n1, const Node& n2) const
 	{
@@ -116,11 +125,17 @@ protected:
 		else if (&n1 == tail ())
 			return false;
 
-		AtomicCounter::UIntType current_ts = last_timestamp_;
-		return current_ts - n1.timestamp > current_ts - n2.timestamp;
-	}
+		AtomicCounter::IntType ts_diff = n1.timestamp - n2.timestamp;
+		if (ts_diff < 0)
+			return true;
+		else if (ts_diff > 0)
+			return false;
 
-	_PriorityQueue ();
+		// Different nodes can not be equal, otherwise, the algorithm will not works.
+		// It is very unlikely that two nodes with equal deadlines will have equal timestamps.
+		// But even in this case, we have to provide inequality.
+		return &n1 < &n2;
+	}
 
 	Node* head () const
 	{
@@ -130,14 +145,6 @@ protected:
 	Node* tail () const
 	{
 		return tail_;
-	}
-
-	Node* create_node (int level, DeadlineTime dt, void* value)
-	{
-#ifdef _DEBUG
-		node_cnt_.increment ();
-#endif
-		return new (level) Node (level, dt, value, last_timestamp_.increment ());
 	}
 
 	void delete_node (Node* node)
@@ -176,32 +183,23 @@ protected:
 	Node* head_;
 	Node* tail_;
 	const std::geometric_distribution <> distr_;
-  static AtomicCounter last_timestamp_;
+  static AtomicCounter last_timestamp_;	// Maybe not static.
 #ifdef _DEBUG
 	AtomicCounter node_cnt_;
 #endif
 };
 
-template <unsigned MAX_LEVEL>
+template <typename Val, unsigned MAX_LEVEL>
 class PriorityQueue :
 	public _PriorityQueue
 {
 public:
-	PriorityQueue ()
-	{
-		head_ = new (MAX_LEVEL) Node (MAX_LEVEL, 0, 0, 0);
-		try {
-			tail_ = new (1) Node (1, std::numeric_limits <DeadlineTime>::max (), 0, 0);
-		} catch (...) {
-			Node::operator delete (head_, head_->level);
-			throw;
-		}
-		std::fill_n (head_->next, MAX_LEVEL, tail_);
-		head_->valid_level = MAX_LEVEL;
-	}
+	PriorityQueue () :
+		_PriorityQueue (MAX_LEVEL)
+	{}
 
 	/// Inserts new node.
-	void insert (DeadlineTime dt, void* value, RandomGen& rndgen)
+	void insert (DeadlineTime dt, const Val& value, RandomGen& rndgen)
 	{
 		// Choose level randomly.
 		int level = random_level (rndgen);
@@ -269,7 +267,7 @@ public:
 				Node* node2 = scan_key (node1, i, new_node);
 				anext = node2;
 				release_node (node2);
-				if (new_node->value.load ().is_marked ()) {
+				if (new_node->deleted) {
 					deleted = true;
 					anext = TaggedNil::marked ();
 					release_node (new_node);
@@ -290,30 +288,77 @@ public:
 		}
 
 		new_node->valid_level = level;
-		if (deleted || new_node->value.load ().is_marked ())
+		if (deleted || new_node->deleted)
 			new_node = help_delete (new_node, 0);
 		release_node (new_node);
 	}
 
+	bool delete_min (Val& val)
+	{
+		NodeVal* node = static_cast <NodeVal*> (_PriorityQueue::delete_min ());
+		if (node) {
+			val = node->value ();
+			release_node (node);
+			return true;
+		}
+		return false;
+	}
+
 private:
+	struct NodeVal :
+		public _PriorityQueue::Node
+	{
+		static size_t size (unsigned level)
+		{
+			return _PriorityQueue::Node::size (level) + sizeof (Val);
+		}
+
+		void* operator new (size_t cb, int level)
+		{
+#ifdef UNIT_TEST
+			return _aligned_malloc (size (level), Link::alignment);
+#else
+			return g_core_heap->allocate (0, size (level), 0);
+#endif
+		}
+
+		void operator delete (void* p, int level)
+		{
+#ifdef UNIT_TEST
+			_aligned_free (p);
+#else
+			g_core_heap->release (p, size (level));
+#endif
+		}
+
+		Val& value ()
+		{
+			return *(Val*)((::CORBA::Octet*)this + _PriorityQueue::Node::size (level));
+		}
+
+		NodeVal (int level, DeadlineTime deadline, AtomicCounter::UIntType timestamp, const Val& val) :
+			_PriorityQueue::Node (level, deadline, timestamp)
+		{
+			new (&value ()) Val (val);
+		}
+
+		~NodeVal ()
+		{
+			value ().~Val ();
+		}
+	};
+
+	Node* create_node (int level, DeadlineTime dt, const Val& value)
+	{
+#ifdef _DEBUG
+		node_cnt_.increment ();
+#endif
+		return new (level) NodeVal (level, dt, last_timestamp_.increment (), value);
+	}
+
 	int random_level (RandomGen& rndgen) const
 	{
 		return MAX_LEVEL > 1 ? std::min ((unsigned)(1 + distr_ (rndgen)), MAX_LEVEL) : 1;
-	}
-};
-
-template <class T, unsigned MAX_LEVEL>
-class PriorityQueueT : public PriorityQueue <MAX_LEVEL>
-{
-public:
-	void insert (DeadlineTime dt, T* value, RandomGen& rndgen)
-	{
-		PriorityQueue::insert (dt, value, rndgen);
-	}
-
-	T* delete_min ()
-	{
-		return (T*)PriorityQueue::delete_min ();
 	}
 };
 

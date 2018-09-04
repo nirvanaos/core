@@ -51,7 +51,7 @@ protected:
 struct StdNode
 {
 	unsigned deadline;
-	void* value;
+	unsigned value;
 
 	bool operator < (const StdNode& rhs) const
 	{
@@ -61,13 +61,11 @@ struct StdNode
 
 typedef std::priority_queue <StdNode> StdPriorityQueue;
 
-static const unsigned PTR_ALIGN = 4;
-
 typedef ::testing::Types <
-	PriorityQueue <1>,
-	PriorityQueue <2>, 
-	PriorityQueue <4>,
-	PriorityQueue <16>
+	PriorityQueue <unsigned, 1>,
+	PriorityQueue <unsigned, 2>,
+	PriorityQueue <unsigned, 4>,
+	PriorityQueue <unsigned, 16>
 > MaxLevel;
 
 TYPED_TEST_CASE (TestPriorityQueue, MaxLevel);
@@ -79,20 +77,22 @@ TYPED_TEST (TestPriorityQueue, SingleThread)
 	RandomGen rndgen;
 	uniform_int_distribution <int> distr;
 
-	ASSERT_FALSE (queue.delete_min ());
+	unsigned d;
+	ASSERT_FALSE (queue.delete_min (d));
 
 	static const int MAX_COUNT = 1000;
 	for (int i = MAX_COUNT; i > 0; --i) {
 		unsigned deadline = distr (rndgen);
 		StdNode node;
 		node.deadline = deadline;
-		node.value = (void*)(intptr_t)((deadline + 1) * PTR_ALIGN);
+		node.value = deadline;
 		queue.insert (deadline, node.value, rndgen);
 		queue_std.push (node);
 	}
 
 	for (int i = MAX_COUNT; i > 0; --i) {
-		void* val = queue.delete_min ();
+		unsigned val;
+		ASSERT_TRUE (queue.delete_min (val));
 		ASSERT_EQ (val, queue_std.top ().value);
 		queue_std.pop ();
 	}
@@ -103,14 +103,15 @@ TYPED_TEST (TestPriorityQueue, Equal)
 	TypeParam queue;
 	RandomGen rndgen;
 
-	static const int MAX_COUNT = 10;
-	for (int i = 1; i <= MAX_COUNT; ++i) {
-		queue.insert (1, (void*)(intptr_t)(i * PTR_ALIGN), rndgen);
+	static const unsigned MAX_COUNT = 10;
+	for (unsigned i = 1; i <= MAX_COUNT; ++i) {
+		queue.insert (1, i, rndgen);
 	}
 
-	for (int i = 1; i <= MAX_COUNT; ++i) {
-		void* val = queue.delete_min ();
-		ASSERT_EQ (val, (void*)(intptr_t)(i * PTR_ALIGN));
+	for (unsigned i = 1; i <= MAX_COUNT; ++i) {
+		unsigned val;
+		ASSERT_TRUE (queue.delete_min (val));
+		ASSERT_EQ (val, i);
 	}
 }
 
@@ -151,11 +152,10 @@ void ThreadTest <PQ>::thread_proc (int rndinit)
 			unsigned deadline = distr_ (rndgen);
 			++counters_ [deadline];
 			++queue_size_;
-			queue_.insert (deadline, (void*)(intptr_t)((deadline + 1) * PTR_ALIGN), rndgen);
+			queue_.insert (deadline, deadline, rndgen);
 		} else {
-			void* p = queue_.delete_min ();
-			if (p) {
-				size_t deadline = (((intptr_t)p - 1) / PTR_ALIGN);
+			unsigned deadline;
+			if (queue_.delete_min (deadline)) {
 				--counters_ [deadline];
 				--queue_size_;
 			}
@@ -166,8 +166,8 @@ void ThreadTest <PQ>::thread_proc (int rndinit)
 template <class PQ>
 void ThreadTest <PQ>::finalize ()
 {
-	while (void* p = queue_.delete_min ()) {
-		size_t deadline = (((intptr_t)p - 1) / PTR_ALIGN);
+	unsigned deadline;
+	while (queue_.delete_min (deadline)) {
 		--counters_ [deadline];
 		--queue_size_;
 	}

@@ -36,8 +36,8 @@ public:
 
 	void execute ()
 	{
-		ExecDomain* executor = queue_.delete_min ();
-		if (executor) {
+		ExecDomain* executor;
+		if (queue_.delete_min (executor)) {
 			current_executor_ = executor;
 			executor->switch_to ();
 		}
@@ -46,7 +46,7 @@ public:
 	void leave ();
 
 private:
-	PriorityQueueT <ExecDomain, PRIORITY_QUEUE_LEVELS> queue_;
+	PriorityQueue <ExecDomain*, PRIORITY_QUEUE_LEVELS> queue_;
 	DeadlineTime min_deadline_;
 	AtomicCounter schedule_cnt_;
 	volatile ExecDomain* current_executor_;

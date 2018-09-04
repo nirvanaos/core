@@ -19,6 +19,7 @@ class AtomicCounter
 {
 public:
 	typedef uint32_t UIntType;
+	typedef int32_t IntType;
 
 	AtomicCounter (uint32_t init) :
 		cnt_ (init)
