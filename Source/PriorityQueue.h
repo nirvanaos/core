@@ -11,6 +11,7 @@
 #include "AtomicCounter.h"
 #include "AtomicPtr.h"
 #include "BackOff.h"
+#include "RandomGen.h"
 #include <random>
 #include <algorithm>
 #include <atomic>

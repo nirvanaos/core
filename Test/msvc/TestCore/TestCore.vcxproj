@@ -126,6 +126,7 @@
     <ClCompile Include="..\..\..\Source\ObjectPool.cpp" />
     <ClCompile Include="..\..\..\Source\PriorityQueue.cpp" />
     <ClCompile Include="..\..\..\Source\ProtDomain.cpp" />
+    <ClCompile Include="..\..\..\Source\RandomGen.cpp" />
     <ClCompile Include="..\..\..\Source\SyncDomain.cpp" />
     <ClCompile Include="..\..\..\Source\Windows\AddressSpace.cpp" />
     <ClCompile Include="..\..\..\Source\Windows\ExecDomainBase.cpp" />
@@ -165,6 +166,7 @@
     <ClInclude Include="..\..\..\Source\ObjectPool.h" />
     <ClInclude Include="..\..\..\Source\PriorityQueue.h" />
     <ClInclude Include="..\..\..\Source\ProtDomain.h" />
+    <ClInclude Include="..\..\..\Source\RandomGen.h" />
     <ClInclude Include="..\..\..\Source\SyncDomain.h" />
     <ClInclude Include="..\..\..\Source\SysDomain.h" />
     <ClInclude Include="..\..\..\Source\Thread.h" />

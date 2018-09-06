@@ -131,7 +131,7 @@ public:
 			counters_ [i] = 0;
 	}
 
-	void thread_proc (int rndinit);
+	void thread_proc ();
 
 	void finalize ();
 
@@ -143,9 +143,9 @@ private:
 };
 
 template <class PQ>
-void ThreadTest <PQ>::thread_proc (int rndinit)
+void ThreadTest <PQ>::thread_proc ()
 {
-	RandomGen rndgen (rndinit);
+	RandomGen rndgen;
 
 	for (int i = NUM_ITERATIONS; i > 0; --i) {
 		if (!bernoulli_distribution (min (1., ((double)queue_size_ / (double)MAX_QUEUE_SIZE))) (rndgen)) {
@@ -185,7 +185,7 @@ TYPED_TEST (TestPriorityQueue, MultiThread)
 	vector <thread> threads;
 
 	for (unsigned int i = 0; i < thread_cnt; ++i)
-		threads.emplace_back (&ThreadTest <TypeParam>::thread_proc, &test, i + 1);
+		threads.emplace_back (&ThreadTest <TypeParam>::thread_proc, &test);
 
 	for (auto p = threads.begin (); p != threads.end (); ++p)
 		p->join ();

@@ -32,7 +32,7 @@ public:
 	}
 
 	Thread () :
-		rndgen_ ((unsigned)(intptr_t)this)
+		rndgen_ ()
 	{}
 
 	/// Random number generator's accessor.

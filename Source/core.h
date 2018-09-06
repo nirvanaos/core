@@ -8,7 +8,6 @@
 #include <HeapFactory.h>
 #include <RefCountBase.h>
 #include <memory>
-#include <random>
 
 #ifdef _WIN32
 #include "Windows/MemoryWindows.h"
@@ -71,9 +70,6 @@ class ProtDomain;
 
 /// Current protection domain.
 extern ProtDomain* g_protection_domain;
-
-/// Random-number generator.
-typedef std::mt19937 RandomGen;
 
 }
 }
