@@ -41,6 +41,9 @@ public:
 	}
 
 protected:
+	_PriorityQueue (unsigned max_level);
+	~_PriorityQueue ();
+
 	struct Node;
 
 	struct NodeBase
@@ -102,9 +105,6 @@ protected:
 		}
 	};
 
-	_PriorityQueue (unsigned max_level);
-	~_PriorityQueue ();
-
 	/// Deletes node with minimal deadline.
 	Node* delete_min ();
 
@@ -147,18 +147,7 @@ protected:
 		return tail_;
 	}
 
-	void delete_node (Node* node)
-	{
-		assert (node != head ());
-		assert (node != tail ());
-#ifdef _DEBUG
-		for (int i = 0, end = node->level; i < end; ++i)
-			assert (!(Node*)node->next [i].load ());
-		assert (node_cnt_ > 0);
-		node_cnt_.decrement ();
-#endif
-		Node::operator delete (node, node->level);
-	}
+	void delete_node (Node* node);
 
 	Node* read_node (Link::Atomic& node);
 
