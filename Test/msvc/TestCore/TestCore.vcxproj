@@ -130,8 +130,9 @@
     <ClCompile Include="..\..\..\Source\Windows\AddressSpace.cpp" />
     <ClCompile Include="..\..\..\Source\Windows\ExecDomainBase.cpp" />
     <ClCompile Include="..\..\..\Source\Windows\MemoryWindows.cpp" />
+    <ClCompile Include="..\..\..\Source\Windows\PostOffice.cpp" />
     <ClCompile Include="..\..\..\Source\Windows\ProtDomainBase.cpp" />
-    <ClCompile Include="..\..\..\Source\Windows\Scheduler.cpp" />
+    <ClCompile Include="..\..\..\Source\Windows\SchedulerBase.cpp" />
     <ClCompile Include="..\..\..\Source\Windows\SchedulerIPC.cpp" />
     <ClCompile Include="..\..\..\Source\Windows\SysDomainBase.cpp" />
     <ClCompile Include="..\..\..\Source\Windows\ThreadBase.cpp" />
@@ -172,10 +173,12 @@
     <ClInclude Include="..\..\..\Source\Windows\AddressSpace.h" />
     <ClInclude Include="..\..\..\Source\Windows\ExecDomainBase.h" />
     <ClInclude Include="..\..\..\Source\Windows\MemoryWindows.h" />
+    <ClInclude Include="..\..\..\Source\Windows\PostOffice.h" />
     <ClInclude Include="..\..\..\Source\Windows\ProtDomainBase.h" />
-    <ClInclude Include="..\..\..\Source\Windows\Scheduler.h" />
+    <ClInclude Include="..\..\..\Source\Windows\SchedulerBase.h" />
     <ClInclude Include="..\..\..\Source\Windows\SchedulerIPC.h" />
     <ClInclude Include="..\..\..\Source\Windows\SysDomainBase.h" />
+    <ClInclude Include="..\..\..\Source\Windows\SystemInfo.h" />
     <ClInclude Include="..\..\..\Source\Windows\ThreadBackgroundBase.h" />
     <ClInclude Include="..\..\..\Source\Windows\ThreadBase.h" />
     <ClInclude Include="..\..\..\Source\Windows\ThreadWorkerBase.h" />
