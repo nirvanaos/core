@@ -7,7 +7,7 @@
 #include "core.h"
 #include "PriorityQueue.h"
 #include "ObjectPool.h"
-#include <CallWrapper.h>
+#include <Runnable.h>
 
 #ifdef _WIN32
 #include "Windows/ExecDomainBase.h"

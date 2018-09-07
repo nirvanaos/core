@@ -152,7 +152,7 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\..\Include\CallWrapper.h" />
+    <ClInclude Include="..\..\..\Include\Runnable.h" />
     <ClInclude Include="..\..\..\Include\HeapFactory.h" />
     <ClInclude Include="..\..\..\Include\Memory.h" />
     <ClInclude Include="..\..\..\Source\AtomicCounter.h" />
