@@ -75,7 +75,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
-      <AdditionalIncludeDirectories>..\..\..\Include;..\..\..\..\ORB\Include;..\..\..\..\Library\Include;..\..\..\..\googletest\googletest;..\..\..\..\googletest\googletest\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\..\..\ORB\Include;..\..\..\..\Library\Include;..\..\..\..\googletest\googletest;..\..\..\..\googletest\googletest\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <ExceptionHandling>Async</ExceptionHandling>
     </ClCompile>
     <Link>
@@ -85,7 +85,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
-      <AdditionalIncludeDirectories>..\..\..\Include;..\..\..\..\ORB\Include;..\..\..\..\Library\Include;..\..\..\..\googletest\googletest;..\..\..\..\googletest\googletest\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\..\..\ORB\Include;..\..\..\..\Library\Include;..\..\..\..\googletest\googletest;..\..\..\..\googletest\googletest\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <ExceptionHandling>Async</ExceptionHandling>
     </ClCompile>
     <Link>
@@ -95,7 +95,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
-      <AdditionalIncludeDirectories>..\..\..\Include;..\..\..\..\ORB\Include;..\..\..\..\Library\Include;..\..\..\..\googletest\googletest;..\..\..\..\googletest\googletest\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\..\..\ORB\Include;..\..\..\..\Library\Include;..\..\..\..\googletest\googletest;..\..\..\..\googletest\googletest\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <ExceptionHandling>Async</ExceptionHandling>
       <WholeProgramOptimization>true</WholeProgramOptimization>
       <IntrinsicFunctions>true</IntrinsicFunctions>
@@ -107,7 +107,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
-      <AdditionalIncludeDirectories>..\..\..\Include;..\..\..\..\ORB\Include;..\..\..\..\Library\Include;..\..\..\..\googletest\googletest;..\..\..\..\googletest\googletest\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\..\..\ORB\Include;..\..\..\..\Library\Include;..\..\..\..\googletest\googletest;..\..\..\..\googletest\googletest\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <ExceptionHandling>Async</ExceptionHandling>
       <WholeProgramOptimization>true</WholeProgramOptimization>
       <IntrinsicFunctions>true</IntrinsicFunctions>
@@ -125,20 +125,48 @@
     <ClCompile Include="..\..\..\Source\HeapDirectory.cpp" />
     <ClCompile Include="..\..\..\Source\ObjectPool.cpp" />
     <ClCompile Include="..\..\..\Source\PriorityQueue.cpp" />
-    <ClCompile Include="..\..\..\Source\ProtDomain.cpp" />
+    <ClCompile Include="..\..\..\Source\ProtDomain.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="..\..\..\Source\RandomGen.cpp" />
     <ClCompile Include="..\..\..\Source\SyncDomain.cpp" />
     <ClCompile Include="..\..\..\Source\Windows\AddressSpace.cpp" />
+    <ClCompile Include="..\..\..\Source\Windows\BufferPool.cpp" />
     <ClCompile Include="..\..\..\Source\Windows\ExecDomainBase.cpp" />
+    <ClCompile Include="..\..\..\Source\Windows\Mailslot.cpp" />
+    <ClCompile Include="..\..\..\Source\Windows\MailslotReader.cpp" />
     <ClCompile Include="..\..\..\Source\Windows\MemoryWindows.cpp" />
-    <ClCompile Include="..\..\..\Source\Windows\PostOffice.cpp" />
-    <ClCompile Include="..\..\..\Source\Windows\ProtDomainBase.cpp" />
-    <ClCompile Include="..\..\..\Source\Windows\SchedulerBase.cpp" />
+    <ClCompile Include="..\..\..\Source\Windows\ProtDomainBase.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Source\Windows\SchedulerBase.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="..\..\..\Source\Windows\SchedulerIPC.cpp" />
-    <ClCompile Include="..\..\..\Source\Windows\SysDomainBase.cpp" />
+    <ClCompile Include="..\..\..\Source\Windows\SysDomainBase.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="..\..\..\Source\Windows\ThreadBase.cpp" />
     <ClCompile Include="..\..\..\Source\Windows\ThreadWorkerBase.cpp" />
-    <ClCompile Include="..\..\..\Source\Windows\WorkerThreads.cpp" />
+    <ClCompile Include="..\..\..\Source\Windows\WorkerThreads.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\..\TestAtomicPtr.cpp" />
     <ClCompile Include="..\..\TestHeap.cpp" />
     <ClCompile Include="..\..\TestHeapDirectory.cpp" />
     <ClCompile Include="..\..\TestPriorityQueue.cpp" />
@@ -152,9 +180,9 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\..\Include\Runnable.h" />
-    <ClInclude Include="..\..\..\Include\HeapFactory.h" />
-    <ClInclude Include="..\..\..\Include\Memory.h" />
+    <ClInclude Include="..\..\..\Interface\HeapFactory.h" />
+    <ClInclude Include="..\..\..\Interface\Memory.h" />
+    <ClInclude Include="..\..\..\Interface\Runnable.h" />
     <ClInclude Include="..\..\..\Source\AtomicCounter.h" />
     <ClInclude Include="..\..\..\Source\AtomicPtr.h" />
     <ClInclude Include="..\..\..\Source\BackOff.h" />
@@ -173,7 +201,11 @@
     <ClInclude Include="..\..\..\Source\ThreadBackground.h" />
     <ClInclude Include="..\..\..\Source\ThreadWorker.h" />
     <ClInclude Include="..\..\..\Source\Windows\AddressSpace.h" />
+    <ClInclude Include="..\..\..\Source\Windows\BufferPool.h" />
+    <ClInclude Include="..\..\..\Source\Windows\CompletionPortReceiver.h" />
     <ClInclude Include="..\..\..\Source\Windows\ExecDomainBase.h" />
+    <ClInclude Include="..\..\..\Source\Windows\Mailslot.h" />
+    <ClInclude Include="..\..\..\Source\Windows\MailslotReader.h" />
     <ClInclude Include="..\..\..\Source\Windows\MemoryWindows.h" />
     <ClInclude Include="..\..\..\Source\Windows\PostOffice.h" />
     <ClInclude Include="..\..\..\Source\Windows\ProtDomainBase.h" />
@@ -183,9 +215,11 @@
     <ClInclude Include="..\..\..\Source\Windows\SystemInfo.h" />
     <ClInclude Include="..\..\..\Source\Windows\ThreadBackgroundBase.h" />
     <ClInclude Include="..\..\..\Source\Windows\ThreadBase.h" />
+    <ClInclude Include="..\..\..\Source\Windows\ThreadPool.h" />
     <ClInclude Include="..\..\..\Source\Windows\ThreadWorkerBase.h" />
     <ClInclude Include="..\..\..\Source\Windows\win32.h" />
     <ClInclude Include="..\..\..\Source\Windows\WorkerThreads.h" />
+    <ClInclude Include="..\..\MockMemory.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

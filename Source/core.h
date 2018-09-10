@@ -5,7 +5,7 @@
 #define NIRVANA_CORE_CORE_H_
 
 #include <Nirvana.h>
-#include <HeapFactory.h>
+#include "../Interface/HeapFactory.h"
 #include <RefCountBase.h>
 #include <memory>
 
@@ -25,9 +25,6 @@ namespace Nirvana {
 extern HeapFactory_ptr g_heap_factory;
 
 namespace Core {
-
-void initialize ();
-void terminate ();
 
 inline Memory_ptr protection_domain_memory ()
 {

@@ -5,7 +5,7 @@
 #include "core.h"
 #include "config.h"
 #include <type_traits>
-#include <HeapFactory.h>
+#include "../Interface/HeapFactory.h"
 
 namespace Nirvana {
 namespace Core {

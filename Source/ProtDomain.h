@@ -42,7 +42,7 @@ public:
 
 	void schedule (SyncDomain& sd, bool update)
 	{
-		ProtDomainBase::schedule (sd.min_deadline (), &sd, update);
+//		ProtDomainBase::schedule (sd.min_deadline (), &sd, update);
 	}
 
 private:

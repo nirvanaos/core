@@ -89,20 +89,12 @@ protected:
 
 		void* operator new (size_t cb, int level)
 		{
-#ifdef UNIT_TEST
-			return _aligned_malloc (size (level), Link::alignment);
-#else
 			return g_core_heap->allocate (0, size (level), 0);
-#endif
 		}
 
 		void operator delete (void* p, int level)
 		{
-#ifdef UNIT_TEST
-			_aligned_free (p);
-#else
 			g_core_heap->release (p, size (level));
-#endif
 		}
 	};
 
@@ -305,20 +297,12 @@ private:
 
 		void* operator new (size_t cb, int level)
 		{
-#ifdef UNIT_TEST
-			return _aligned_malloc (size (level), Link::alignment);
-#else
 			return g_core_heap->allocate (0, size (level), 0);
-#endif
 		}
 
 		void operator delete (void* p, int level)
 		{
-#ifdef UNIT_TEST
-			_aligned_free (p);
-#else
 			g_core_heap->release (p, size (level));
-#endif
 		}
 
 		Val& value ()
