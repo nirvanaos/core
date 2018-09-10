@@ -159,6 +159,7 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="..\..\..\Source\Windows\ThreadBase.cpp" />
+    <ClCompile Include="..\..\..\Source\Windows\ThreadPool.cpp" />
     <ClCompile Include="..\..\..\Source\Windows\ThreadWorkerBase.cpp" />
     <ClCompile Include="..\..\..\Source\Windows\WorkerThreads.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>

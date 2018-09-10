@@ -95,6 +95,9 @@
     <ClCompile Include="..\..\..\Source\Windows\Mailslot.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\Source\Windows\ThreadPool.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\Source\AtomicCounter.h">
