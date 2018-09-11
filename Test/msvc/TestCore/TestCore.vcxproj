@@ -136,6 +136,7 @@
     <ClCompile Include="..\..\..\Source\Windows\AddressSpace.cpp" />
     <ClCompile Include="..\..\..\Source\Windows\BufferPool.cpp" />
     <ClCompile Include="..\..\..\Source\Windows\ExecDomainBase.cpp" />
+    <ClCompile Include="..\..\..\Source\Windows\Initterm.cpp" />
     <ClCompile Include="..\..\..\Source\Windows\Mailslot.cpp" />
     <ClCompile Include="..\..\..\Source\Windows\MailslotReader.cpp" />
     <ClCompile Include="..\..\..\Source\Windows\MemoryWindows.cpp" />
@@ -167,6 +168,8 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </ClCompile>
+    <ClCompile Include="..\..\MockMemory.cpp" />
+    <ClCompile Include="..\..\MockScheduler.cpp" />
     <ClCompile Include="..\..\TestAtomicPtr.cpp" />
     <ClCompile Include="..\..\TestHeap.cpp" />
     <ClCompile Include="..\..\TestHeapDirectory.cpp" />
@@ -184,6 +187,7 @@
     <ClInclude Include="..\..\..\Interface\HeapFactory.h" />
     <ClInclude Include="..\..\..\Interface\Memory.h" />
     <ClInclude Include="..\..\..\Interface\Runnable.h" />
+    <ClInclude Include="..\..\..\Interface\Scheduler.h" />
     <ClInclude Include="..\..\..\Source\AtomicCounter.h" />
     <ClInclude Include="..\..\..\Source\AtomicPtr.h" />
     <ClInclude Include="..\..\..\Source\BackOff.h" />
@@ -192,6 +196,7 @@
     <ClInclude Include="..\..\..\Source\ExecDomain.h" />
     <ClInclude Include="..\..\..\Source\Heap.h" />
     <ClInclude Include="..\..\..\Source\HeapDirectory.h" />
+    <ClInclude Include="..\..\..\Source\InitTerm.h" />
     <ClInclude Include="..\..\..\Source\ObjectPool.h" />
     <ClInclude Include="..\..\..\Source\PriorityQueue.h" />
     <ClInclude Include="..\..\..\Source\ProtDomain.h" />
@@ -221,6 +226,7 @@
     <ClInclude Include="..\..\..\Source\Windows\win32.h" />
     <ClInclude Include="..\..\..\Source\Windows\WorkerThreads.h" />
     <ClInclude Include="..\..\MockMemory.h" />
+    <ClInclude Include="..\..\MockScheduler.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

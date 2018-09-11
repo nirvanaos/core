@@ -4,6 +4,7 @@
 #include "HeapDirectory.h"
 #include "core.h"
 #include "config.h"
+#include "InitTerm.h"
 #include <type_traits>
 #include "../Interface/HeapFactory.h"
 
@@ -298,7 +299,7 @@ public:
 
 	static void initialize ()
 	{
-		MemoryManager::initialize ();
+		initialize_memory ();
 		Partition& first_part = HeapBaseT::initialize ();
 		Heap* instance = (Heap*)first_part.allocate (sizeof (Heap));
 		new (instance) Heap (first_part);
@@ -308,7 +309,7 @@ public:
 
 	static void terminate ()
 	{
-		MemoryManager::terminate ();
+		terminate_memory ();
 	}
 
 	Heap (ULong allocation_unit) :

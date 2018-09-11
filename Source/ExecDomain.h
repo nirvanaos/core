@@ -57,7 +57,7 @@ public:
 
 private:
 	DeadlineTime deadline_;
-	CallWrapper_ptr call_;
+	Runnable_ptr runnable_;
 };
 
 }

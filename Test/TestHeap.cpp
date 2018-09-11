@@ -1,4 +1,5 @@
 #include "../Source/Heap.h"
+#include "MockScheduler.h"
 #include <gtest/gtest.h>
 #include <random>
 #include <thread>
@@ -28,6 +29,7 @@ protected:
 	{
 		// Code here will be called immediately after the constructor (right
 		// before each test).
+		::Nirvana::Core::Test::mock_scheduler_init (true);
 		::Nirvana::Core::Heap::initialize ();
 	}
 
@@ -36,6 +38,7 @@ protected:
 		// Code here will be called immediately after each test (right
 		// before the destructor).
 		::Nirvana::Core::Heap::terminate ();
+		::Nirvana::Core::Test::mock_scheduler_term ();
 	}
 };
 
@@ -221,6 +224,8 @@ public:
 
 TEST_F (TestHeap, MultiThread)
 {
+	::Nirvana::Core::Test::mock_scheduler_backoff_break (false);
+
 	const unsigned int thread_cnt = max (thread::hardware_concurrency (), (unsigned)2);
 	static const int ITERATIONS = 50;
 	static const int THREAD_ITERATIONS = 1000;

@@ -1,5 +1,5 @@
-#ifndef NIRVANA_CALLWRAPPER_H_
-#define NIRVANA_CALLWRAPPER_H_
+#ifndef NIRVANA_RUNNABLE_H_
+#define NIRVANA_RUNNABLE_H_
 
 #include <ORB.h>
 #include <Nirvana.h>
@@ -7,9 +7,9 @@
 namespace Nirvana {
 
 class Runnable;
-typedef ::CORBA::Nirvana::T_ptr <Runnable> CallWrapper_ptr;
-typedef ::CORBA::Nirvana::T_var <Runnable> CallWrapper_var;
-typedef ::CORBA::Nirvana::T_out <Runnable> CallWrapper_out;
+typedef ::CORBA::Nirvana::T_ptr <Runnable> Runnable_ptr;
+typedef ::CORBA::Nirvana::T_var <Runnable> Runnable_var;
+typedef ::CORBA::Nirvana::T_out <Runnable> Runnable_out;
 
 }
 
@@ -65,7 +65,6 @@ public:
 	void run ();
 };
 
-
 template <class T>
 void Client <T, ::Nirvana::Runnable>::run ()
 {
@@ -91,7 +90,7 @@ public:
 	}
 
 protected:
-	static void _call (Bridge < ::Nirvana::Runnable>* _b, EnvironmentBridge* _env)
+	static void _run (Bridge < ::Nirvana::Runnable>* _b, EnvironmentBridge* _env)
 	{
 		try {
 			return S::_implementation (_b).run ();
@@ -100,7 +99,6 @@ protected:
 		} catch (...) {
 			_env->set_unknown_exception ();
 		}
-		return 0;
 	}
 };
 
@@ -114,7 +112,7 @@ const Bridge < ::Nirvana::Runnable>::EPV Skeleton <S, ::Nirvana::Runnable>::epv_
 		S::template _wide <AbstractBase, ::Nirvana::Runnable>
 	},
 	{ // epv
-		S::_call
+		S::_run
 	}
 };
 
@@ -135,7 +133,7 @@ class Runnable :
 	public ::CORBA::Nirvana::Client <Runnable, ::CORBA::AbstractBase>
 {
 public:
-	typedef CallWrapper_ptr _ptr_type;
+	typedef Runnable_ptr _ptr_type;
 
 	operator ::CORBA::AbstractBase& ()
 	{
