@@ -135,7 +135,7 @@
     <ClCompile Include="..\..\..\Source\SyncDomain.cpp" />
     <ClCompile Include="..\..\..\Source\Windows\AddressSpace.cpp" />
     <ClCompile Include="..\..\..\Source\Windows\BufferPool.cpp" />
-    <ClCompile Include="..\..\..\Source\Windows\ExecDomainBase.cpp" />
+    <ClCompile Include="..\..\..\Source\Windows\ExecDomainWindows.cpp" />
     <ClCompile Include="..\..\..\Source\Windows\Initterm.cpp" />
     <ClCompile Include="..\..\..\Source\Windows\Mailslot.cpp" />
     <ClCompile Include="..\..\..\Source\Windows\MailslotReader.cpp" />
@@ -209,7 +209,7 @@
     <ClInclude Include="..\..\..\Source\Windows\AddressSpace.h" />
     <ClInclude Include="..\..\..\Source\Windows\BufferPool.h" />
     <ClInclude Include="..\..\..\Source\Windows\CompletionPortReceiver.h" />
-    <ClInclude Include="..\..\..\Source\Windows\ExecDomainBase.h" />
+    <ClInclude Include="..\..\..\Source\Windows\ExecDomainWindows.h" />
     <ClInclude Include="..\..\..\Source\Windows\Mailslot.h" />
     <ClInclude Include="..\..\..\Source\Windows\MailslotReader.h" />
     <ClInclude Include="..\..\..\Source\Windows\MemoryWindows.h" />
