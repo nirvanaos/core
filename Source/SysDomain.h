@@ -3,11 +3,13 @@
 #ifndef NIRVANA_CORE_SYSDOMAIN_H_
 #define NIRVANA_CORE_SYSDOMAIN_H_
 
+#include "core.h"
+
 #ifdef _WIN32
-#include "Windows/SysDomainBase.h"
+#include "Windows/SysDomainWindows.h"
 namespace Nirvana {
 namespace Core {
-typedef Windows::SysDomainBase SysDomainBase;
+typedef Windows::SysDomainWindows SysDomainBase;
 }
 }
 #else
@@ -30,11 +32,6 @@ public:
 	static void terminate ()
 	{
 		SysDomainBase::terminate ();
-	}
-
-	static unsigned int hardware_concurrency ()
-	{
-		return SysDomainBase::hardware_concurrency ();
 	}
 };
 

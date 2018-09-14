@@ -3,12 +3,13 @@
 #ifndef NIRVANA_CORE_PROTDOMAIN_H_
 #define NIRVANA_CORE_PROTDOMAIN_H_
 
-#include "SyncDomain.h"
+#include "core.h"
+
 #ifdef _WIN32
-#include "Windows/ProtDomainBase.h"
+#include "Windows/ProtDomainWindows.h"
 namespace Nirvana {
 namespace Core {
-typedef Windows::ProtDomainBase ProtDomainBase;
+typedef Windows::ProtDomainWindows ProtDomainBase;
 }
 }
 #else
@@ -38,11 +39,6 @@ public:
 	{
 		assert (singleton_);
 		return *singleton_;
-	}
-
-	void schedule (SyncDomain& sd, bool update)
-	{
-//		ProtDomainBase::schedule (sd.min_deadline (), &sd, update);
 	}
 
 private:

@@ -1,19 +1,19 @@
 // Nirvana project.
-// Execution domain (fiber).
+// Execution domain (coroutine, fiber).
 
 #ifndef NIRVANA_CORE_EXECDOMAIN_H_
 #define NIRVANA_CORE_EXECDOMAIN_H_
 
 #include "core.h"
-#include "PriorityQueue.h"
 #include "ObjectPool.h"
 #include "../Interface/Runnable.h"
+#include <limits>
 
 #ifdef _WIN32
-#include "Windows/ExecDomainBase.h"
+#include "Windows/ExecContextWindows.h"
 namespace Nirvana {
 namespace Core {
-typedef Windows::ExecDomainBase ExecDomainBase;
+typedef Windows::ExecContextWindows ExecContextBase;
 }
 }
 #else
@@ -23,41 +23,54 @@ typedef Windows::ExecDomainBase ExecDomainBase;
 namespace Nirvana {
 namespace Core {
 
-class ExecDomain :
+class ExecContext :
 	public CoreObject,
-	public PoolableObject,
-	private ExecDomainBase
+	public ::CORBA::Nirvana::Servant <ExecContext, Runnable>,
+	protected ExecContextBase
+{
+public:
+	ExecContext () :
+		ExecContextBase ()
+	{}
+
+	template <class P>
+	ExecContext (P param) :
+		ExecContextBase (param)
+	{}
+
+	/// Implementation of Runnable::run() is customized for performance.
+	static void _run (::CORBA::Nirvana::Bridge <Runnable>* bridge, ::CORBA::Nirvana::EnvironmentBridge* env)
+	{
+		static_cast <ExecContextBase*> (static_cast <ExecContext*> (bridge))->run (env);
+	}
+
+private:
+	Runnable_ptr runnable_;
+};
+
+class ExecDomain :
+	public ExecContext,
+	public PoolableObject
 {
 public:
 	ExecDomain () :
-		ExecDomainBase ()
+		ExecContext (),
+		deadline_ (std::numeric_limits <DeadlineTime>::max ())
 	{}
 
 	template <class P>
 	ExecDomain (P param) :
-		ExecDomainBase (param)
+		ExecContext (param),
+		deadline_ (std::numeric_limits <DeadlineTime>::max ())
 	{}
-
-	/// Returns current execution domain.
-	/// Can return nullptr if current thread executes in the special "neutral" context.
-	static ExecDomain* current ()
-	{
-		return static_cast <ExecDomain*> (ExecDomainBase::current ());
-	}
 
 	DeadlineTime deadline () const
 	{
 		return deadline_;
 	}
 
-	void switch_to ()
-	{
-		ExecDomainBase::switch_to ();
-	}
-
 private:
 	DeadlineTime deadline_;
-	Runnable_ptr runnable_;
 };
 
 }

@@ -3,12 +3,13 @@
 
 #include "core.h"
 #include "ExecDomain.h"
+#include "RandomGen.h"
 
 #ifdef _WIN32
-#include "Windows/ThreadBase.h"
+#include "Windows/ThreadWindows.h"
 namespace Nirvana {
 namespace Core {
-typedef Windows::ThreadBase ThreadBase;
+typedef Windows::ThreadWindows ThreadBase;
 }
 }
 #else
@@ -32,6 +33,13 @@ public:
 	}
 
 	Thread () :
+		ThreadBase (),
+		rndgen_ ()
+	{}
+
+	template <class P>
+	Thread (P param) :
+		ThreadBase (param),
 		rndgen_ ()
 	{}
 
@@ -41,27 +49,10 @@ public:
 		return rndgen_;
 	}
 
-	typedef void (*NeutralProc) (void*);
-
-	/// Call in neutral context.
-	void call_in_neutral (NeutralProc proc, void* param)
+	virtual ExecContext* neutral_context ()
 	{
-		neutral_proc_ = proc;
-		neutral_proc_param_ = param;
-		ThreadBase::switch_to_neutral ();
-	}
-
-	void neutral_context_proc ()
-	{
-		NeutralProc proc;
-		while (proc = neutral_proc_) {
-			neutral_proc_ = nullptr;
-			(proc) (neutral_proc_param_);
-			if (exec_domain_)
-				exec_domain_->switch_to ();
-			else
-				break;
-		}
+		assert (false);
+		return nullptr;
 	}
 
 	void join () const
@@ -75,12 +66,6 @@ protected:
 
 	/// Pointer to the current execution domain.
 	ExecDomain* exec_domain_;
-
-	/// Address of procedure to call in neutral context.
-	NeutralProc neutral_proc_;
-
-	/// Parameter for procedure called in neutral context.
-	void* neutral_proc_param_;
 };
 
 }

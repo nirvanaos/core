@@ -1,7 +1,7 @@
 // Nirvana project.
 // Synchronization domain.
 
-#include "ProtDomain.h"
+#include "SyncDomain.h"
 
 namespace Nirvana {
 namespace Core {
@@ -25,7 +25,7 @@ void SyncDomain::schedule ()
 				bool first_time = !min_deadline;
 				if (first_time || (min_deadline_ > min_deadline)) {
 					min_deadline_ = min_deadline;
-					ProtDomain::singleton ().schedule (*this, !first_time);
+					g_scheduler->schedule (min_deadline, _this (), !first_time);
 				}
 			}
 		} while (schedule_cnt_.decrement ());

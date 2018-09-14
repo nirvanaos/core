@@ -3,16 +3,17 @@
 #ifndef NIRVANA_CORE_SYNCDOMAIN_H_
 #define NIRVANA_CORE_SYNCDOMAIN_H_
 
-#include "ExecDomain.h"
 #include "PriorityQueue.h"
 #include "Thread.h"
 #include "config.h"
+#include "../Interface/Runnable.h"
 
 namespace Nirvana {
 namespace Core {
 
 class SyncDomain :
-	public CoreObject
+	public CoreObject,
+	public ::CORBA::Nirvana::Servant <ExecContext, Runnable>
 {
 public:
 	SyncDomain () :
@@ -34,12 +35,12 @@ public:
 		return min_deadline_;
 	}
 
-	void execute ()
+	void run ()
 	{
 		ExecDomain* executor;
 		if (queue_.delete_min (executor)) {
 			current_executor_ = executor;
-			executor->switch_to ();
+			executor->_this()->run ();
 		}
 	}
 

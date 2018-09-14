@@ -135,38 +135,39 @@
     <ClCompile Include="..\..\..\Source\SyncDomain.cpp" />
     <ClCompile Include="..\..\..\Source\Windows\AddressSpace.cpp" />
     <ClCompile Include="..\..\..\Source\Windows\BufferPool.cpp" />
-    <ClCompile Include="..\..\..\Source\Windows\ExecDomainWindows.cpp" />
+    <ClCompile Include="..\..\..\Source\Windows\ExecContextWindows.cpp" />
     <ClCompile Include="..\..\..\Source\Windows\Initterm.cpp" />
     <ClCompile Include="..\..\..\Source\Windows\Mailslot.cpp" />
     <ClCompile Include="..\..\..\Source\Windows\MailslotReader.cpp" />
     <ClCompile Include="..\..\..\Source\Windows\MemoryWindows.cpp" />
-    <ClCompile Include="..\..\..\Source\Windows\ProtDomainBase.cpp">
+    <ClCompile Include="..\..\..\Source\Windows\ProtDomainWindows.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="..\..\..\Source\Windows\SchedulerBase.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    <ClCompile Include="..\..\..\Source\Windows\SchedulerWindows.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="..\..\..\Source\Windows\SchedulerIPC.cpp" />
-    <ClCompile Include="..\..\..\Source\Windows\SysDomainBase.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    <ClCompile Include="..\..\..\Source\Windows\SysDomainWindows.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="..\..\..\Source\Windows\ThreadBase.cpp" />
+    <ClCompile Include="..\..\..\Source\Windows\ThreadPoolable.cpp" />
+    <ClCompile Include="..\..\..\Source\Windows\ThreadWindows.cpp" />
     <ClCompile Include="..\..\..\Source\Windows\ThreadPool.cpp" />
-    <ClCompile Include="..\..\..\Source\Windows\ThreadWorkerBase.cpp" />
+    <ClCompile Include="..\..\..\Source\Windows\ThreadWorker.cpp" />
     <ClCompile Include="..\..\..\Source\Windows\WorkerThreads.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="..\..\MockMemory.cpp" />
     <ClCompile Include="..\..\MockScheduler.cpp" />
@@ -201,28 +202,30 @@
     <ClInclude Include="..\..\..\Source\PriorityQueue.h" />
     <ClInclude Include="..\..\..\Source\ProtDomain.h" />
     <ClInclude Include="..\..\..\Source\RandomGen.h" />
+    <ClInclude Include="..\..\..\Source\SchedulerImpl.h" />
     <ClInclude Include="..\..\..\Source\SyncDomain.h" />
     <ClInclude Include="..\..\..\Source\SysDomain.h" />
     <ClInclude Include="..\..\..\Source\Thread.h" />
     <ClInclude Include="..\..\..\Source\ThreadBackground.h" />
-    <ClInclude Include="..\..\..\Source\ThreadWorker.h" />
     <ClInclude Include="..\..\..\Source\Windows\AddressSpace.h" />
     <ClInclude Include="..\..\..\Source\Windows\BufferPool.h" />
     <ClInclude Include="..\..\..\Source\Windows\CompletionPortReceiver.h" />
-    <ClInclude Include="..\..\..\Source\Windows\ExecDomainWindows.h" />
+    <ClInclude Include="..\..\..\Source\Windows\ExecContextWindows.h" />
     <ClInclude Include="..\..\..\Source\Windows\Mailslot.h" />
     <ClInclude Include="..\..\..\Source\Windows\MailslotReader.h" />
     <ClInclude Include="..\..\..\Source\Windows\MemoryWindows.h" />
     <ClInclude Include="..\..\..\Source\Windows\PostOffice.h" />
-    <ClInclude Include="..\..\..\Source\Windows\ProtDomainBase.h" />
-    <ClInclude Include="..\..\..\Source\Windows\SchedulerBase.h" />
+    <ClInclude Include="..\..\..\Source\Windows\ProtDomainWindows.h" />
+    <ClInclude Include="..\..\..\Source\Windows\SchedulerClient.h" />
+    <ClInclude Include="..\..\..\Source\Windows\SchedulerWindows.h" />
     <ClInclude Include="..\..\..\Source\Windows\SchedulerIPC.h" />
-    <ClInclude Include="..\..\..\Source\Windows\SysDomainBase.h" />
+    <ClInclude Include="..\..\..\Source\Windows\SysDomainWindows.h" />
     <ClInclude Include="..\..\..\Source\Windows\SystemInfo.h" />
     <ClInclude Include="..\..\..\Source\Windows\ThreadBackgroundBase.h" />
-    <ClInclude Include="..\..\..\Source\Windows\ThreadBase.h" />
+    <ClInclude Include="..\..\..\Source\Windows\ThreadPoolable.h" />
+    <ClInclude Include="..\..\..\Source\Windows\ThreadWindows.h" />
     <ClInclude Include="..\..\..\Source\Windows\ThreadPool.h" />
-    <ClInclude Include="..\..\..\Source\Windows\ThreadWorkerBase.h" />
+    <ClInclude Include="..\..\..\Source\Windows\ThreadWorker.h" />
     <ClInclude Include="..\..\..\Source\Windows\win32.h" />
     <ClInclude Include="..\..\..\Source\Windows\WorkerThreads.h" />
     <ClInclude Include="..\..\MockMemory.h" />

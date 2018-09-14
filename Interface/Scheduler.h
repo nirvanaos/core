@@ -1,5 +1,5 @@
 #ifndef NIRVANA_CORE_SCHEDULER_H_
-#define NIRVANA_SCHEDULER_H_
+#define NIRVANA_CORE_SCHEDULER_H_
 
 #include "Runnable.h"
 #include <Nirvana.h>
@@ -35,7 +35,7 @@ public:
 
 		struct
 		{
-			void (*schedule) (Bridge <::Nirvana::Core::Scheduler>*, ::Nirvana::DeadlineTime, Bridge <::Nirvana::Runnable>*, EnvironmentBridge*);
+			void (*schedule) (Bridge <::Nirvana::Core::Scheduler>*, ::Nirvana::DeadlineTime, Bridge <::Nirvana::Runnable>*, Boolean update, EnvironmentBridge*);
 			void (*back_off) (Bridge <::Nirvana::Core::Scheduler>*, ULong hint, EnvironmentBridge*);
 		}
 		epv;
@@ -65,16 +65,16 @@ class Client <T, ::Nirvana::Core::Scheduler> :
 	public ClientBase <T, ::Nirvana::Core::Scheduler>
 {
 public:
-	void schedule (::Nirvana::DeadlineTime, ::Nirvana::Runnable_ptr);
+	void schedule (::Nirvana::DeadlineTime, ::Nirvana::Runnable_ptr, Boolean update);
 	void back_off (ULong);
 };
 
 template <class T>
-void Client <T, ::Nirvana::Core::Scheduler>::schedule (::Nirvana::DeadlineTime deadline, ::Nirvana::Runnable_ptr runnable)
+void Client <T, ::Nirvana::Core::Scheduler>::schedule (::Nirvana::DeadlineTime deadline, ::Nirvana::Runnable_ptr runnable, Boolean update)
 {
 	Environment _env;
 	Bridge < ::Nirvana::Core::Scheduler>& _b = ClientBase <T, ::Nirvana::Core::Scheduler>::_bridge ();
-	(_b._epv ().epv.run) (&_b, deadline, runnable, &_env);
+	(_b._epv ().epv.schedule) (&_b, deadline, runnable, update, &_env);
 	_env.check ();
 }
 
@@ -103,10 +103,10 @@ public:
 	}
 
 protected:
-	static void _schedule (Bridge < ::Nirvana::Core::Scheduler>* _b, ::Nirvana::DeadlineTime deadline, Bridge < ::Nirvana::Runnable>* runnable, EnvironmentBridge* _env)
+	static void _schedule (Bridge < ::Nirvana::Core::Scheduler>* _b, ::Nirvana::DeadlineTime deadline, Bridge < ::Nirvana::Runnable>* runnable, Boolean update, EnvironmentBridge* _env)
 	{
 		try {
-			return S::_implementation (_b).schedule (deadline, runnable);
+			return S::_implementation (_b).schedule (deadline, runnable, update);
 		} catch (const Exception& e) {
 			_env->set_exception (e);
 		} catch (...) {

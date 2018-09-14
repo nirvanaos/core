@@ -16,26 +16,26 @@ namespace Core {
 class RandomGen
 {
 public:
-  typedef uint32_t result_type;
+	typedef uint32_t result_type;
 
-  RandomGen () :
-    state_ (reinterpret_cast <uint32_t> (this))
-  {}
+	RandomGen () :
+		state_ (reinterpret_cast <uint32_t> (this))
+	{}
 
 	static uint32_t min ()
 	{
 		return 0;
 	}
 
-  static uint32_t max ()
-  {
-    return std::numeric_limits <uint32_t>::max ();
-  }
+	static uint32_t max ()
+	{
+		return std::numeric_limits <uint32_t>::max ();
+	}
 
-  uint32_t operator () ();
+	uint32_t operator () ();
 
 private:
-  uint32_t state_;
+	uint32_t state_;
 };
 
 }
