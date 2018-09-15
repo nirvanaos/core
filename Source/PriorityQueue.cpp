@@ -12,9 +12,9 @@ using namespace std;
 #define CHECK_VALID_LEVEL(lev, nod)
 #endif
 
-AtomicCounter _PriorityQueue::last_timestamp_ = 0;
+AtomicCounter PriorityQueueBase::last_timestamp_ = 0;
 
-_PriorityQueue::_PriorityQueue (unsigned max_level) :
+PriorityQueueBase::PriorityQueueBase (unsigned max_level) :
 #ifdef _DEBUG
 	node_cnt_ (0),
 #endif
@@ -31,7 +31,7 @@ _PriorityQueue::_PriorityQueue (unsigned max_level) :
 	head_->valid_level = max_level;
 }
 
-_PriorityQueue::~_PriorityQueue ()
+PriorityQueueBase::~PriorityQueueBase ()
 {
 #ifdef _DEBUG
 	assert (node_cnt_ == 0);
@@ -40,7 +40,7 @@ _PriorityQueue::~_PriorityQueue ()
 	Node::operator delete (tail_, tail_->level);
 }
 
-void _PriorityQueue::release_node (Node* node)
+void PriorityQueueBase::release_node (Node* node)
 {
 	assert (node);
 	if (!node->ref_cnt.decrement ()) {
@@ -51,7 +51,7 @@ void _PriorityQueue::release_node (Node* node)
 	}
 }
 
-void _PriorityQueue::delete_node (Node* node)
+void PriorityQueueBase::delete_node (Node* node)
 {
 	assert (node != head ());
 	assert (node != tail ());
@@ -65,7 +65,7 @@ void _PriorityQueue::delete_node (Node* node)
 	Node::operator delete (node, node->level);
 }
 
-_PriorityQueue::Node* _PriorityQueue::read_node (Link::Atomic& node)
+PriorityQueueBase::Node* PriorityQueueBase::read_node (Link::Atomic& node)
 {
 	Node* p = nullptr;
 	Link link = node.lock ();
@@ -77,7 +77,7 @@ _PriorityQueue::Node* _PriorityQueue::read_node (Link::Atomic& node)
 	return p;
 }
 
-_PriorityQueue::Node* _PriorityQueue::read_next (Node*& node1, int level)
+PriorityQueueBase::Node* PriorityQueueBase::read_next (Node*& node1, int level)
 {
 	if (node1->deleted)
 		node1 = help_delete (node1, level);
@@ -91,7 +91,7 @@ _PriorityQueue::Node* _PriorityQueue::read_next (Node*& node1, int level)
 	return node2;
 }
 
-_PriorityQueue::Node* _PriorityQueue::scan_key (Node*& node1, int level, Node* keynode)
+PriorityQueueBase::Node* PriorityQueueBase::scan_key (Node*& node1, int level, Node* keynode)
 {
 	assert (keynode);
 	Node* node2 = read_next (node1, level);
@@ -103,7 +103,13 @@ _PriorityQueue::Node* _PriorityQueue::scan_key (Node*& node1, int level, Node* k
 	return node2;
 }
 
-_PriorityQueue::Node* _PriorityQueue::delete_min ()
+unsigned PriorityQueueBase::random_level (RandomGen& rndgen) const
+{
+	return 1 + distr_ (rndgen);
+}
+
+
+PriorityQueueBase::Node* PriorityQueueBase::delete_min ()
 {
 	// Start from the head node.
 	Node* prev = copy_node (head ());
@@ -170,7 +176,7 @@ _PriorityQueue::Node* _PriorityQueue::delete_min ()
 
 /// Tries to fulfill the deletion on the current level and returns a reference to
 /// the previous node when the deletion is completed.
-_PriorityQueue::Node* _PriorityQueue::help_delete (Node* node, int level)
+PriorityQueueBase::Node* PriorityQueueBase::help_delete (Node* node, int level)
 {
 	assert (node != head ());
 	assert (node != tail ());
@@ -207,7 +213,7 @@ _PriorityQueue::Node* _PriorityQueue::help_delete (Node* node, int level)
 }
 
 /// Removes the given node from the linked list structure at the given level.
-void _PriorityQueue::remove_node (Node* node, Node*& prev, int level)
+void PriorityQueueBase::remove_node (Node* node, Node*& prev, int level)
 {
 	assert (node != head ());
 	assert (node != tail ());

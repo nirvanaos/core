@@ -11,7 +11,7 @@
 #include "AtomicCounter.h"
 #include "AtomicPtr.h"
 #include "BackOff.h"
-#include "RandomGen.h"
+#include "Thread.h"
 #include <random>
 #include <algorithm>
 #include <atomic>
@@ -19,9 +19,19 @@
 namespace Nirvana {
 namespace Core {
 
-class _PriorityQueue
+class PriorityQueueBase
 {
 public:
+	bool empty ()
+	{
+		Node* prev = copy_node (head ());
+		Node* node = read_next (prev, 0);
+		bool ret = node == tail ();
+		release_node (prev);
+		release_node (node);
+		return ret;
+	}
+
 	/// Gets minimal deadline.
 	bool get_min_deadline (DeadlineTime& dt)
 	{
@@ -42,8 +52,8 @@ public:
 	}
 
 protected:
-	_PriorityQueue (unsigned max_level);
-	~_PriorityQueue ();
+	PriorityQueueBase (unsigned max_level);
+	~PriorityQueueBase ();
 
 	struct Node;
 
@@ -161,123 +171,149 @@ protected:
 
 	void remove_node (Node* node, Node*& prev, int level);
 
+	unsigned random_level (RandomGen& rndgen) const;
+
 protected:
-	Node* head_;
-	Node* tail_;
-	const std::geometric_distribution <> distr_;
-  static AtomicCounter last_timestamp_;	// Maybe not static.
+	static AtomicCounter last_timestamp_;	// Maybe not static.
 #ifdef _DEBUG
 	AtomicCounter node_cnt_;
 #endif
+
+private:
+	Node* head_;
+	Node* tail_;
+	const std::geometric_distribution <> distr_;
 };
 
-template <typename Val, unsigned MAX_LEVEL>
-class PriorityQueue :
-	public _PriorityQueue
+template <unsigned MAX_LEVEL>
+class PriorityQueueL :
+	public PriorityQueueBase
 {
-public:
-	PriorityQueue () :
-		_PriorityQueue (MAX_LEVEL)
+protected:
+	PriorityQueueL () :
+		PriorityQueueBase (MAX_LEVEL)
 	{}
 
-	/// Inserts new node.
-	void insert (DeadlineTime dt, const Val& value, RandomGen& rndgen)
+	unsigned random_level (RandomGen& rndgen) const
 	{
-		// Choose level randomly.
-		int level = random_level (rndgen);
+		return MAX_LEVEL > 1 ? std::min (PriorityQueueBase::random_level (rndgen), MAX_LEVEL) : 1;
+	}
 
-		// Create new node.
-		Node* new_node = create_node (level, dt, value);
-		copy_node (new_node);
+	void insert (Node* new_node);
+};
 
-		// Search phase to find the node after which newNode shouldbe inserted.
-		// This search phase starts from the headnod e at the highest
-		// level and traverses down to the lowest level until the correct
-		// node is found (node1).When going down one level, the last
-		// node traversed on that level is remembered (savedNodes)
-		// for later use (this is where we shouldinsert the new node at that level).
-		Node* node1 = copy_node (head ());
-		Node* saved_nodes [MAX_LEVEL];
-		for (int i = MAX_LEVEL - 1; i >= 1; --i) {
-			Node* node2 = scan_key (node1, i, new_node);
-			release_node (node2);
-			if (i < level)
-				saved_nodes [i] = copy_node (node1);
-		}
+template <unsigned MAX_LEVEL>
+void PriorityQueueL <MAX_LEVEL>::insert (Node* new_node)
+{
+	int level = new_node->level;
+	copy_node (new_node);
 
-		for (BackOff bo; true; bo.sleep ()) {
-			Node* node2 = scan_key (node1, 0, new_node);
-			/* This code was removed from the original algorithm because of keys can't
-			be equal in this implementation.
-			void* value2 = node2->value;
-			if (!is_marked (value2) && node2->key == key) {
-				if (cas (&node2->value, value2, value)) {
-					release_node (node1);
-					release_node (node2);
-					for (int i = 1; i < level; ++i)
-						release_node (saved_nodes [i]);
-					release_node (new_node);
-					release_node (new_node);
-					return true;
-				} else {
-					release_node (node2);
-					continue;
-				}
+	// Search phase to find the node after which newNode shouldbe inserted.
+	// This search phase starts from the headnod e at the highest
+	// level and traverses down to the lowest level until the correct
+	// node is found (node1).When going down one level, the last
+	// node traversed on that level is remembered (savedNodes)
+	// for later use (this is where we shouldinsert the new node at that level).
+	Node* node1 = copy_node (head ());
+	Node* saved_nodes [MAX_LEVEL];
+	for (int i = MAX_LEVEL - 1; i >= 1; --i) {
+		Node* node2 = scan_key (node1, i, new_node);
+		release_node (node2);
+		if (i < level)
+			saved_nodes [i] = copy_node (node1);
+	}
+
+	for (BackOff bo; true; bo.sleep ()) {
+		Node* node2 = scan_key (node1, 0, new_node);
+		/* This code was removed from the original algorithm because of keys can't
+		be equal in this implementation.
+		void* value2 = node2->value;
+		if (!is_marked (value2) && node2->key == key) {
+			if (cas (&node2->value, value2, value)) {
+				release_node (node1);
+				release_node (node2);
+				for (int i = 1; i < level; ++i)
+					release_node (saved_nodes [i]);
+				release_node (new_node);
+				release_node (new_node);
+				return true;
+			} else {
+				release_node (node2);
+				continue;
 			}
-			*/
+		}
+		*/
 
-			// Insert node to list at level 0.
-			new_node->next [0] = node2;
+		// Insert node to list at level 0.
+		new_node->next [0] = node2;
+		release_node (node2);
+		if (node1->next [0].cas (node2, new_node)) {
+			release_node (node1);
+			break;
+		}
+	}
+
+	// After the new node has been inserted at the lowest level, it is possible that it is deleted
+	// by a concurrent delete (e.g.DeleteMin) operation before it has been inserted at all levels.
+	bool deleted = false;
+
+	// Insert node to list at levels > 0.
+	for (int i = 1; i < level; ++i) {
+		new_node->valid_level = i;
+		node1 = saved_nodes [i];
+		Link::Atomic& anext = new_node->next [i];
+		copy_node (new_node);
+		for (BackOff bo; true; bo.sleep ()) {
+			Node* node2 = scan_key (node1, i, new_node);
+			anext = node2;
 			release_node (node2);
-			if (node1->next [0].cas (node2, new_node)) {
+			if (new_node->deleted) {
+				deleted = true;
+				anext = TaggedNil::marked ();
+				release_node (new_node);
+				release_node (node1);
+				break;
+			}
+			if (node1->next [i].cas (node2, new_node)) {
 				release_node (node1);
 				break;
 			}
 		}
 
-		// After the new node has been inserted at the lowest level, it is possible that it is deleted
-		// by a concurrent delete (e.g.DeleteMin) operation before it has been inserted at all levels.
-		bool deleted = false;
-
-		// Insert node to list at levels > 0.
-		for (int i = 1; i < level; ++i) {
-			new_node->valid_level = i;
-			node1 = saved_nodes [i];
-			Link::Atomic& anext = new_node->next [i];
-			copy_node (new_node);
-			for (BackOff bo; true; bo.sleep ()) {
-				Node* node2 = scan_key (node1, i, new_node);
-				anext = node2;
-				release_node (node2);
-				if (new_node->deleted) {
-					deleted = true;
-					anext = TaggedNil::marked ();
-					release_node (new_node);
-					release_node (node1);
-					break;
-				}
-				if (node1->next [i].cas (node2, new_node)) {
-					release_node (node1);
-					break;
-				}
-			}
-
-			if (deleted) {
-				while (level > ++i)
-					release_node (saved_nodes [i]);
-				break;
-			}
+		if (deleted) {
+			while (level > ++i)
+				release_node (saved_nodes [i]);
+			break;
 		}
+	}
 
-		new_node->valid_level = level;
-		if (deleted || new_node->deleted)
-			new_node = help_delete (new_node, 0);
-		release_node (new_node);
+	new_node->valid_level = level;
+	if (deleted || new_node->deleted)
+		new_node = help_delete (new_node, 0);
+	release_node (new_node);
+}
+
+template <typename Val, unsigned MAX_LEVEL>
+class PriorityQueue :
+	public PriorityQueueL <MAX_LEVEL>
+{
+public:
+	PriorityQueue ()
+	{}
+
+	/// Inserts new node.
+	void insert (DeadlineTime dt, const Val& value, RandomGen& rndgen = Thread::current ().rndgen ())
+	{
+		// Choose level randomly.
+		int level = random_level (rndgen);
+
+		// Create new node.
+		PriorityQueueL <MAX_LEVEL>::insert (create_node (level, dt, value));
 	}
 
 	bool delete_min (Val& val)
 	{
-		NodeVal* node = static_cast <NodeVal*> (_PriorityQueue::delete_min ());
+		NodeVal* node = static_cast <NodeVal*> (PriorityQueueBase::delete_min ());
 		if (node) {
 			val = node->value ();
 			release_node (node);
@@ -288,11 +324,11 @@ public:
 
 private:
 	struct NodeVal :
-		public _PriorityQueue::Node
+		public PriorityQueueBase::Node
 	{
 		static size_t size (unsigned level)
 		{
-			return _PriorityQueue::Node::size (level) + sizeof (Val);
+			return PriorityQueueBase::Node::size (level) + sizeof (Val);
 		}
 
 		void* operator new (size_t cb, int level)
@@ -307,11 +343,11 @@ private:
 
 		Val& value ()
 		{
-			return *(Val*)((::CORBA::Octet*)this + _PriorityQueue::Node::size (level));
+			return *(Val*)((::CORBA::Octet*)this + PriorityQueueBase::Node::size (level));
 		}
 
 		NodeVal (int level, DeadlineTime deadline, AtomicCounter::UIntType timestamp, const Val& val) :
-			_PriorityQueue::Node (level, deadline, timestamp)
+			PriorityQueueBase::Node (level, deadline, timestamp)
 		{
 			new (&value ()) Val (val);
 		}
@@ -328,11 +364,6 @@ private:
 		node_cnt_.increment ();
 #endif
 		return new (level) NodeVal (level, dt, last_timestamp_.increment (), value);
-	}
-
-	int random_level (RandomGen& rndgen) const
-	{
-		return MAX_LEVEL > 1 ? std::min ((unsigned)(1 + distr_ (rndgen)), MAX_LEVEL) : 1;
 	}
 };
 

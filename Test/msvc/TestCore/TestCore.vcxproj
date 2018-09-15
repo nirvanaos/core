@@ -146,13 +146,13 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
     </ClCompile>
+    <ClCompile Include="..\..\..\Source\Windows\SchedulerClient.cpp" />
     <ClCompile Include="..\..\..\Source\Windows\SchedulerWindows.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="..\..\..\Source\Windows\SchedulerIPC.cpp" />
     <ClCompile Include="..\..\..\Source\Windows\SysDomainWindows.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</ExcludedFromBuild>
@@ -217,6 +217,7 @@
     <ClInclude Include="..\..\..\Source\Windows\PostOffice.h" />
     <ClInclude Include="..\..\..\Source\Windows\ProtDomainWindows.h" />
     <ClInclude Include="..\..\..\Source\Windows\SchedulerClient.h" />
+    <ClInclude Include="..\..\..\Source\Windows\SchedulerServant.h" />
     <ClInclude Include="..\..\..\Source\Windows\SchedulerWindows.h" />
     <ClInclude Include="..\..\..\Source\Windows\SchedulerIPC.h" />
     <ClInclude Include="..\..\..\Source\Windows\SysDomainWindows.h" />

@@ -53,7 +53,8 @@ To provide best performance with a probabilistic time complexity of
 O(logN) where N is the maximum number of elements, the queue should
 have PRIORITY_QUEUE_LEVELS = logN. Too large value degrades the performance.
 */
-const ULong PRIORITY_QUEUE_LEVELS = 10;
+const ULong SYNC_DOMAIN_PRIORITY_QUEUE_LEVELS = 10; ///< For syncronization domain.
+const ULong SYS_DOMAIN_PRIORITY_QUEUE_LEVELS = 10; ///< For system-wide scheduler.
 
 }
 }

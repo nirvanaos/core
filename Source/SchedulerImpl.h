@@ -1,37 +1,66 @@
-#ifndef NIRVANA_CORE_SCHEDULER_H_
-#define NIRVANA_CORE_SCHEDULER_H_
+#ifndef NIRVANA_CORE_SCHEDULERIMPL_H_
+#define NIRVANA_CORE_SCHEDULERIMPL_H_
 
 #include "PriorityQueue.h"
 #include "config.h"
-
-#ifdef _WIN32
-#include "Windows/SchedulerWindows.h"
-namespace Nirvana {
-namespace Core {
-typedef Windows::SchedulerWindows SchedulerBase;
-}
-}
-#else
-#error Unknown platform.
-#endif
+#include "Thread.h"
+#include "AtomicCounter.h"
 
 namespace Nirvana {
 namespace Core {
 
-class SchedulerImpl :
-	private SchedulerBase
+template <class T, class QueueItem>
+class SchedulerImpl
 {
-	friend class SchedulerBase;
 public:
+	SchedulerImpl (AtomicCounter::UIntType cores) :
+		free_cores_ (cores)
+	{}
 
-	void schedule (DeadlineTime deadline, const QueueItem& item, bool update);
-	void core_free ();
+	void schedule (DeadlineTime deadline, const QueueItem& item, bool update)
+	{
+		queue_.insert (deadline, item);
+		execute_next ();
+	}
+
+	void core_free ()
+	{
+		free_cores_.increment ();
+		execute_next ();
+	}
+
+	void execute_next ();
 
 private:
-	typedef SchedulerBase::QueueItem QueueItem;
-
-	PriorityQueue <QueueItem, PRIORITY_QUEUE_LEVELS> queue_;
+	PriorityQueue <QueueItem, SYS_DOMAIN_PRIORITY_QUEUE_LEVELS> queue_;
+	AtomicCounter free_cores_;
 };
+
+template <class T, class QueueItem>
+void SchedulerImpl <T, QueueItem>::execute_next ()
+{
+	do {
+
+		// Acquire processor core
+		for (;;) {
+			if ((AtomicCounter::IntType)free_cores_.decrement () >= 0)
+				break;
+			if ((AtomicCounter::IntType)free_cores_.increment () <= 0)
+				return;
+		}
+
+		// Get next item
+		QueueItem item;
+		if (queue_.delete_min (item)) {
+			static_cast <T*> (this)->execute (item);
+			break;
+		}
+
+		// Release processor core
+		free_cores_.increment ();
+
+	} while (!queue_.empty ());
+}
 
 }
 }

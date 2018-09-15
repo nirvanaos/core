@@ -4,7 +4,6 @@
 #define NIRVANA_CORE_SYNCDOMAIN_H_
 
 #include "PriorityQueue.h"
-#include "Thread.h"
 #include "config.h"
 #include "../Interface/Runnable.h"
 
@@ -24,7 +23,7 @@ public:
 
 	void schedule (ExecDomain& ed)
 	{
-		queue_.insert (ed.deadline (), &ed, Thread::current ()->rndgen ());
+		queue_.insert (ed.deadline (), &ed);
 		schedule ();
 	}
 
@@ -47,7 +46,7 @@ public:
 	void leave ();
 
 private:
-	PriorityQueue <ExecDomain*, PRIORITY_QUEUE_LEVELS> queue_;
+	PriorityQueue <ExecDomain*, SYNC_DOMAIN_PRIORITY_QUEUE_LEVELS> queue_;
 	DeadlineTime min_deadline_;
 	AtomicCounter schedule_cnt_;
 	volatile ExecDomain* current_executor_;

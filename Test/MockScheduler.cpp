@@ -43,6 +43,9 @@ public:
 			std::this_thread::yield ();
 	}
 
+	static void core_free ()
+	{}
+
 private:
 	static bool backoff_break_;
 };

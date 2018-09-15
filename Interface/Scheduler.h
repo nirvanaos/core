@@ -37,6 +37,7 @@ public:
 		{
 			void (*schedule) (Bridge <::Nirvana::Core::Scheduler>*, ::Nirvana::DeadlineTime, Bridge <::Nirvana::Runnable>*, Boolean update, EnvironmentBridge*);
 			void (*back_off) (Bridge <::Nirvana::Core::Scheduler>*, ULong hint, EnvironmentBridge*);
+			void (*core_free) (Bridge <::Nirvana::Core::Scheduler>*, EnvironmentBridge*);
 		}
 		epv;
 	};
@@ -67,6 +68,7 @@ class Client <T, ::Nirvana::Core::Scheduler> :
 public:
 	void schedule (::Nirvana::DeadlineTime, ::Nirvana::Runnable_ptr, Boolean update);
 	void back_off (ULong);
+	void core_free ();
 };
 
 template <class T>
@@ -84,6 +86,15 @@ void Client <T, ::Nirvana::Core::Scheduler>::back_off (ULong hint)
 	Environment _env;
 	Bridge < ::Nirvana::Core::Scheduler>& _b = ClientBase <T, ::Nirvana::Core::Scheduler>::_bridge ();
 	(_b._epv ().epv.back_off) (&_b, hint, &_env);
+	_env.check ();
+}
+
+template <class T>
+void Client <T, ::Nirvana::Core::Scheduler>::core_free ()
+{
+	Environment _env;
+	Bridge < ::Nirvana::Core::Scheduler>& _b = ClientBase <T, ::Nirvana::Core::Scheduler>::_bridge ();
+	(_b._epv ().epv.core_free) (&_b, &_env);
 	_env.check ();
 }
 
@@ -124,6 +135,17 @@ protected:
 			_env->set_unknown_exception ();
 		}
 	}
+
+	static void _core_free (Bridge < ::Nirvana::Core::Scheduler>* _b, EnvironmentBridge* _env)
+	{
+		try {
+			return S::_implementation (_b).core_free ();
+		} catch (const Exception& e) {
+			_env->set_exception (e);
+		} catch (...) {
+			_env->set_unknown_exception ();
+		}
+	}
 };
 
 template <class S>
@@ -137,7 +159,8 @@ const Bridge < ::Nirvana::Core::Scheduler>::EPV Skeleton <S, ::Nirvana::Core::Sc
 	},
 	{ // epv
 		S::_schedule,
-		S::_back_off
+		S::_back_off,
+		S::_core_free
 	}
 };
 
@@ -159,7 +182,7 @@ class ServantStatic <S, ::Nirvana::Core::Scheduler> :
 
 template <class T>
 class ServantTied <T, ::Nirvana::Core::Scheduler> :
-	public ImplementationTied <T, ::Nirvana::Memory>
+	public ImplementationTied <T, ::Nirvana::Core::Scheduler>
 {
 public:
 	ServantTied (T* tp, Boolean release) :

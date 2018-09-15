@@ -24,15 +24,15 @@ class SysDomain :
 	private SysDomainBase
 {
 public:
-	static void initialize ()
+	class ProtDomainInfo :
+		public SysDomainBase::ProtDomainInfo
 	{
-		SysDomainBase::initialize ();
-	}
-
-	static void terminate ()
-	{
-		SysDomainBase::terminate ();
-	}
+	public:
+		template <typename T>
+		ProtDomainInfo (T p) :
+			SysDomainBase::ProtDomainInfo (p)
+		{}
+	};
 };
 
 }

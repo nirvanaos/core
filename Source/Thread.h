@@ -4,6 +4,7 @@
 #include "core.h"
 #include "ExecDomain.h"
 #include "RandomGen.h"
+#include "../Interface/Runnable.h"
 
 #ifdef _WIN32
 #include "Windows/ThreadWindows.h"
@@ -27,21 +28,31 @@ class Thread :
 {
 public:
 	/// Returns current thread.
-	static Thread* current ()
+	static Thread& current ()
 	{
-		return static_cast <Thread*> (ThreadBase::current ());
+		Thread* p = static_cast <Thread*> (ThreadBase::current ());
+		assert (p);
+		return *p;
 	}
 
 	Thread () :
 		ThreadBase (),
-		rndgen_ ()
+		rndgen_ (),
+		exec_domain_ (nullptr)
 	{}
 
 	template <class P>
 	Thread (P param) :
 		ThreadBase (param),
-		rndgen_ ()
+		rndgen_ (),
+		exec_domain_ (nullptr)
 	{}
+
+	/// This static method is called by the scheduler.
+	static void execute (Runnable_ptr runnable)
+	{
+		runnable->run ();
+	}
 
 	/// Random number generator's accessor.
 	RandomGen& rndgen ()
@@ -49,15 +60,11 @@ public:
 		return rndgen_;
 	}
 
+	/// Returns special "neutral" execution context with own stack and CPU state.
 	virtual ExecContext* neutral_context ()
 	{
 		assert (false);
 		return nullptr;
-	}
-
-	void join () const
-	{
-		ThreadBase::join ();
 	}
 
 protected:
