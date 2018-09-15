@@ -14,10 +14,10 @@ void SyncDomain::schedule ()
 		if (queue_.get_min_deadline (min_deadline)) {
 			if (running_)
 				break;
-			bool first_time = !min_deadline_;
-			if (first_time || (min_deadline_ > min_deadline)) {
+			DeadlineTime prev_deadline = min_deadline_;
+			if (!prev_deadline || (prev_deadline > min_deadline)) {
 				min_deadline_ = min_deadline;
-				g_scheduler->schedule (min_deadline, _this (), !first_time);
+				g_scheduler->schedule (min_deadline, _this (), prev_deadline);
 			}
 		}
 	} while (schedule_changed_.decrement ());

@@ -17,10 +17,12 @@ public:
 		free_cores_ (cores)
 	{}
 
-	void schedule (DeadlineTime deadline, const QueueItem& item, bool update)
+	void schedule (DeadlineTime deadline, const QueueItem& item, DeadlineTime deadline_prev)
 	{
-		queue_.insert (deadline, item);
-		execute_next ();
+		if (!deadline_prev || queue_.erase (deadline_prev, item)) {
+			queue_.insert (deadline, item);
+			execute_next ();
+		}
 	}
 
 	void core_free ()

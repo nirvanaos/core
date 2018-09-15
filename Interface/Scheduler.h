@@ -35,8 +35,8 @@ public:
 
 		struct
 		{
-			void (*schedule) (Bridge <::Nirvana::Core::Scheduler>*, ::Nirvana::DeadlineTime, Bridge <::Nirvana::Runnable>*, Boolean update, EnvironmentBridge*);
-			void (*back_off) (Bridge <::Nirvana::Core::Scheduler>*, ULong hint, EnvironmentBridge*);
+			void (*schedule) (Bridge <::Nirvana::Core::Scheduler>*, ::Nirvana::DeadlineTime, Bridge <::Nirvana::Runnable>*, ::Nirvana::DeadlineTime, EnvironmentBridge*);
+			void (*back_off) (Bridge <::Nirvana::Core::Scheduler>*, ULong, EnvironmentBridge*);
 			void (*core_free) (Bridge <::Nirvana::Core::Scheduler>*, EnvironmentBridge*);
 		}
 		epv;
@@ -66,17 +66,17 @@ class Client <T, ::Nirvana::Core::Scheduler> :
 	public ClientBase <T, ::Nirvana::Core::Scheduler>
 {
 public:
-	void schedule (::Nirvana::DeadlineTime, ::Nirvana::Runnable_ptr, Boolean update);
+	void schedule (::Nirvana::DeadlineTime deadline, ::Nirvana::Runnable_ptr runnable, ::Nirvana::DeadlineTime old);
 	void back_off (ULong);
 	void core_free ();
 };
 
 template <class T>
-void Client <T, ::Nirvana::Core::Scheduler>::schedule (::Nirvana::DeadlineTime deadline, ::Nirvana::Runnable_ptr runnable, Boolean update)
+void Client <T, ::Nirvana::Core::Scheduler>::schedule (::Nirvana::DeadlineTime deadline, ::Nirvana::Runnable_ptr runnable, ::Nirvana::DeadlineTime old)
 {
 	Environment _env;
 	Bridge < ::Nirvana::Core::Scheduler>& _b = ClientBase <T, ::Nirvana::Core::Scheduler>::_bridge ();
-	(_b._epv ().epv.schedule) (&_b, deadline, runnable, update, &_env);
+	(_b._epv ().epv.schedule) (&_b, deadline, runnable, old, &_env);
 	_env.check ();
 }
 
@@ -114,10 +114,10 @@ public:
 	}
 
 protected:
-	static void _schedule (Bridge < ::Nirvana::Core::Scheduler>* _b, ::Nirvana::DeadlineTime deadline, Bridge < ::Nirvana::Runnable>* runnable, Boolean update, EnvironmentBridge* _env)
+	static void _schedule (Bridge < ::Nirvana::Core::Scheduler>* _b, ::Nirvana::DeadlineTime deadline, Bridge < ::Nirvana::Runnable>* runnable, ::Nirvana::DeadlineTime old, EnvironmentBridge* _env)
 	{
 		try {
-			return S::_implementation (_b).schedule (deadline, runnable, update);
+			return S::_implementation (_b).schedule (deadline, runnable, old);
 		} catch (const Exception& e) {
 			_env->set_exception (e);
 		} catch (...) {
