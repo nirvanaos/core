@@ -6,6 +6,8 @@
 #include "PriorityQueue.h"
 #include "config.h"
 #include "../Interface/Runnable.h"
+#include "AtomicCounter.h"
+#include <atomic>
 
 namespace Nirvana {
 namespace Core {
@@ -16,18 +18,17 @@ class SyncDomain :
 {
 public:
 	SyncDomain () :
-		schedule_cnt_ (0),
-		current_executor_ (nullptr),
+		schedule_changed_ (0),
+		running_ (0),
 		min_deadline_ (0)
 	{}
 
 	void schedule (ExecDomain& ed)
 	{
 		queue_.insert (ed.deadline (), &ed);
-		schedule ();
+		if ((1 == schedule_changed_.increment ()) && !schedule_.test_and_set ())
+			schedule ();
 	}
-
-	void schedule ();
 
 	DeadlineTime min_deadline () const
 	{
@@ -36,19 +37,35 @@ public:
 
 	void run ()
 	{
-		ExecDomain* executor;
-		if (queue_.delete_min (executor)) {
-			current_executor_ = executor;
-			executor->_this()->run ();
+		bool f = false;
+		if (running_.compare_exchange_strong (f, true)) {
+			// This thread becomes a worker.
+
+			// Become a scheduler also.
+			schedule_changed_ = 1;
+			for (BackOff bo; schedule_.test_and_set (); bo.sleep ());
+			
+			min_deadline_ = 0;
+			ExecDomain* executor;
+			if (queue_.delete_min (executor)) {
+				current_executor_ = executor;
+				executor->_this ()->run ();
+				current_executor_ = nullptr;
+			}
+			running_ = false;
+			schedule ();
 		}
 	}
 
-	void leave ();
+private:
+	void schedule ();
 
 private:
 	PriorityQueue <ExecDomain*, SYNC_DOMAIN_PRIORITY_QUEUE_LEVELS> queue_;
 	DeadlineTime min_deadline_;
-	AtomicCounter schedule_cnt_;
+	std::atomic <bool> running_;
+	AtomicCounter schedule_changed_;
+	std::atomic_flag schedule_;
 	volatile ExecDomain* current_executor_;
 };
 
