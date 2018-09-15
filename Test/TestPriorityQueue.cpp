@@ -11,6 +11,7 @@
 
 //using namespace ::Nirvana;
 using namespace std;
+using ::Nirvana::DeadlineTime;
 using ::Nirvana::Core::PriorityQueue;
 using ::Nirvana::Core::RandomGen;
 
@@ -47,24 +48,36 @@ protected:
 	}
 };
 
-struct StdNode
+struct Value
 {
+	int idx;
 	unsigned deadline;
-	unsigned value;
 
-	bool operator < (const StdNode& rhs) const
+	bool operator < (const Value& rhs) const
 	{
-		return deadline > rhs.deadline;
+		return idx < rhs.idx;
+	}
+};
+
+struct StdNode : Value
+{
+	bool operator < (const StdNode& rhs) const
+	{ // STL priority queue sorted in descending order.
+		if (deadline > rhs.deadline)
+			return true;
+		else if (deadline < rhs.deadline)
+			return false;
+		return idx > rhs.idx;
 	}
 };
 
 typedef std::priority_queue <StdNode> StdPriorityQueue;
 
 typedef ::testing::Types <
-	PriorityQueue <unsigned, 1>,
-	PriorityQueue <unsigned, 2>,
-	PriorityQueue <unsigned, 4>,
-	PriorityQueue <unsigned, 16>
+	PriorityQueue <Value, 1>,
+	PriorityQueue <Value, 2>,
+	PriorityQueue <Value, 4>,
+	PriorityQueue <Value, 16>
 > MaxLevel;
 
 TYPED_TEST_CASE (TestPriorityQueue, MaxLevel);
@@ -76,23 +89,24 @@ TYPED_TEST (TestPriorityQueue, SingleThread)
 	RandomGen rndgen;
 	uniform_int_distribution <int> distr;
 
-	unsigned d;
-	ASSERT_FALSE (queue.delete_min (d));
+	Value v;
+	ASSERT_FALSE (queue.delete_min (v));
 
 	static const int MAX_COUNT = 1000;
-	for (int i = MAX_COUNT; i > 0; --i) {
+	for (int i = 0; i < MAX_COUNT; ++i) {
 		unsigned deadline = distr (rndgen);
 		StdNode node;
 		node.deadline = deadline;
-		node.value = deadline;
-		queue.insert (deadline, node.value, rndgen);
+		node.idx = i;
+		ASSERT_TRUE (queue.insert (deadline, node, rndgen));
 		queue_std.push (node);
 	}
 
-	for (int i = MAX_COUNT; i > 0; --i) {
-		unsigned val;
+	for (int i = 0; i < MAX_COUNT; ++i) {
+		Value val;
 		ASSERT_TRUE (queue.delete_min (val));
-		ASSERT_EQ (val, queue_std.top ().value);
+		ASSERT_EQ (val.idx, queue_std.top ().idx);
+		ASSERT_EQ (val.deadline, queue_std.top ().deadline);
 		queue_std.pop ();
 	}
 }
@@ -102,17 +116,21 @@ TYPED_TEST (TestPriorityQueue, Equal)
 	TypeParam queue;
 	RandomGen rndgen;
 
-	static const unsigned MAX_COUNT = 10;
-	for (unsigned i = 1; i <= MAX_COUNT; ++i) {
-		queue.insert (1, i, rndgen);
+	{
+		Value val = {1, 1};
+		ASSERT_TRUE (queue.insert (1, val, rndgen));
+		ASSERT_FALSE (queue.insert (1, val, rndgen));
 	}
 
-	for (unsigned i = 1; i <= MAX_COUNT; ++i) {
-		unsigned val;
-		ASSERT_TRUE (queue.delete_min (val));
-		ASSERT_EQ (val, i);
-	}
+	Value val;
+	ASSERT_TRUE (queue.delete_min (val));
+	ASSERT_EQ (val.idx, 1);
+	ASSERT_EQ (val.deadline, 1);
+	ASSERT_FALSE (queue.delete_min (val));
 }
+
+// Ensure that all values are different.
+atomic <int> g_timestamp = 0;
 
 template <class PQ>
 class ThreadTest
@@ -151,11 +169,12 @@ void ThreadTest <PQ>::thread_proc ()
 			unsigned deadline = distr_ (rndgen);
 			++counters_ [deadline];
 			++queue_size_;
-			queue_.insert (deadline, deadline, rndgen);
+			Value val = {g_timestamp++, deadline};
+			queue_.insert (deadline, val, rndgen);
 		} else {
-			unsigned deadline;
-			if (queue_.delete_min (deadline)) {
-				--counters_ [deadline];
+			Value val;
+			if (queue_.delete_min (val)) {
+				--counters_ [val.deadline];
 				--queue_size_;
 			}
 		}
@@ -165,9 +184,9 @@ void ThreadTest <PQ>::thread_proc ()
 template <class PQ>
 void ThreadTest <PQ>::finalize ()
 {
-	unsigned deadline;
-	while (queue_.delete_min (deadline)) {
-		--counters_ [deadline];
+	Value val;
+	while (queue_.delete_min (val)) {
+		--counters_ [val.deadline];
 		--queue_size_;
 	}
 
@@ -190,6 +209,26 @@ TYPED_TEST (TestPriorityQueue, MultiThread)
 		p->join ();
 
 	test.finalize ();
+}
+
+TYPED_TEST (TestPriorityQueue, Erase)
+{
+	TypeParam queue;
+	RandomGen rndgen;
+
+	static const unsigned NUM_ELEMENTS = 100;
+	vector <Value> values;
+	values.reserve (NUM_ELEMENTS);
+	uniform_int_distribution <unsigned> distr;
+	for (int i = 0; i < NUM_ELEMENTS; ++i) {
+		values.push_back ({i, distr (rndgen)});
+	}
+	for (auto p = values.begin (); p != values.end (); ++p) {
+		ASSERT_TRUE (queue.insert (p->deadline, *p, rndgen));
+	}
+	for (auto p = values.begin (); p != values.end (); ++p) {
+		ASSERT_TRUE (queue.erase (p->deadline, *p));
+	}
 }
 
 }

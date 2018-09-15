@@ -62,14 +62,12 @@ protected:
 		DeadlineTime deadline;
 		Node* volatile prev;
 		RefCounter ref_cnt;
-		AtomicCounter::UIntType timestamp;
 		int level;
 		int volatile valid_level;
 		std::atomic <bool> deleted;
 
-		NodeBase (int l, DeadlineTime dt, AtomicCounter::UIntType ts) :
+		NodeBase (int l, DeadlineTime dt) :
 			deadline (dt),
-			timestamp (ts),
 			level (l),
 			valid_level (1),
 			deleted (false),
@@ -78,16 +76,19 @@ protected:
 
 		virtual ~NodeBase ()
 		{}
+
 	};
 
 	typedef TaggedPtrT <Node, 1 << log2_ceil (sizeof (NodeBase))> Link;
 
 	struct Node : public NodeBase
 	{
+		virtual bool operator < (const Node&) const;
+
 		Link::Atomic next [1];	// Variable length array.
 
-		Node (int level, DeadlineTime dt, AtomicCounter::UIntType timestamp) :
-			NodeBase (level, dt, timestamp)
+		Node (int level, DeadlineTime dt) :
+			NodeBase (level, dt)
 		{
 			std::fill_n ((uintptr_t*)next, level, 0);
 		}
@@ -111,33 +112,15 @@ protected:
 	/// Deletes node with minimal deadline.
 	Node* delete_min ();
 
-	bool less (const Node& n1, const Node& n2) const
+	// Node comparator.
+	static bool less (const Node& n1, const Node& n2)
 	{
 		if (n1.deadline < n2.deadline)
 			return true;
 		else if (n1.deadline > n2.deadline)
 			return false;
 		
-		if (&n1 == head ())
-			return &n2 != head ();
-		else if (&n2 == head ())
-			return false;
-
-		if (&n2 == tail ())
-			return &n1 != tail ();
-		else if (&n1 == tail ())
-			return false;
-
-		AtomicCounter::IntType ts_diff = n1.timestamp - n2.timestamp;
-		if (ts_diff < 0)
-			return true;
-		else if (ts_diff > 0)
-			return false;
-
-		// Different nodes can not be equal, otherwise, the algorithm will not works.
-		// It is very unlikely that two nodes with equal deadlines will have equal timestamps.
-		// But even in this case, we have to provide inequality.
-		return &n1 < &n2;
+		return n1 < n2;
 	}
 
 	Node* head () const
@@ -149,8 +132,6 @@ protected:
 	{
 		return tail_;
 	}
-
-	void delete_node (Node* node);
 
 	Node* read_node (Link::Atomic& node);
 
@@ -169,12 +150,16 @@ protected:
 
 	Node* help_delete (Node*, int level);
 
-	void remove_node (Node* node, Node*& prev, int level);
-
 	unsigned random_level (RandomGen& rndgen) const;
 
+	bool erase (Node* node, unsigned max_level);
+
+private:
+	void remove_node (Node* node, Node*& prev, int level);
+	void delete_node (Node* node);
+	void final_delete (Node* node);
+
 protected:
-	static AtomicCounter last_timestamp_;	// Maybe not static.
 #ifdef _DEBUG
 	AtomicCounter node_cnt_;
 #endif
@@ -199,11 +184,16 @@ protected:
 		return MAX_LEVEL > 1 ? std::min (PriorityQueueBase::random_level (rndgen), MAX_LEVEL) : 1;
 	}
 
-	void insert (Node* new_node);
+	bool insert (Node* new_node);
+
+	bool erase (Node* node)
+	{
+		return PriorityQueueBase::erase (node, MAX_LEVEL);
+	}
 };
 
 template <unsigned MAX_LEVEL>
-void PriorityQueueL <MAX_LEVEL>::insert (Node* new_node)
+bool PriorityQueueL <MAX_LEVEL>::insert (Node* new_node)
 {
 	int level = new_node->level;
 	copy_node (new_node);
@@ -225,24 +215,17 @@ void PriorityQueueL <MAX_LEVEL>::insert (Node* new_node)
 
 	for (BackOff bo; true; bo.sleep ()) {
 		Node* node2 = scan_key (node1, 0, new_node);
-		/* This code was removed from the original algorithm because of keys can't
-		be equal in this implementation.
-		void* value2 = node2->value;
-		if (!is_marked (value2) && node2->key == key) {
-			if (cas (&node2->value, value2, value)) {
-				release_node (node1);
-				release_node (node2);
-				for (int i = 1; i < level; ++i)
-					release_node (saved_nodes [i]);
-				release_node (new_node);
-				release_node (new_node);
-				return true;
-			} else {
-				release_node (node2);
-				continue;
-			}
+		if (!node2->deleted && !less (*new_node, *node2)) {
+			// The same value with the same deadline already exists.
+			// This case should not occurs in the real operating, but we support it.
+			release_node (node1);
+			release_node (node2);
+			for (int i = 1; i < level; ++i)
+				release_node (saved_nodes [i]);
+			release_node (new_node);
+			release_node (new_node);
+			return false;
 		}
-		*/
 
 		// Insert node to list at level 0.
 		new_node->next [0] = node2;
@@ -291,6 +274,8 @@ void PriorityQueueL <MAX_LEVEL>::insert (Node* new_node)
 	if (deleted || new_node->deleted)
 		new_node = help_delete (new_node, 0);
 	release_node (new_node);
+
+	return true;
 }
 
 template <typename Val, unsigned MAX_LEVEL>
@@ -302,15 +287,16 @@ public:
 	{}
 
 	/// Inserts new node.
-	void insert (DeadlineTime dt, const Val& value, RandomGen& rndgen = Thread::current ().rndgen ())
+	bool insert (DeadlineTime dt, const Val& value, RandomGen& rndgen = Thread::current ().rndgen ())
 	{
 		// Choose level randomly.
 		int level = random_level (rndgen);
 
 		// Create new node.
-		PriorityQueueL <MAX_LEVEL>::insert (create_node (level, dt, value));
+		return PriorityQueueL <MAX_LEVEL>::insert (create_node (level, dt, value));
 	}
 
+	/// Deletes node with minimal deadline.
 	bool delete_min (Val& val)
 	{
 		NodeVal* node = static_cast <NodeVal*> (PriorityQueueBase::delete_min ());
@@ -320,6 +306,14 @@ public:
 			return true;
 		}
 		return false;
+	}
+
+	bool erase (DeadlineTime dt, const Val& value)
+	{
+		Node* node = create_node (1, dt, value);
+		bool ret = PriorityQueueL <MAX_LEVEL>::erase (node);
+		release_node (node);
+		return ret;
 	}
 
 private:
@@ -346,8 +340,18 @@ private:
 			return *(Val*)((::CORBA::Octet*)this + PriorityQueueBase::Node::size (level));
 		}
 
-		NodeVal (int level, DeadlineTime deadline, AtomicCounter::UIntType timestamp, const Val& val) :
-			PriorityQueueBase::Node (level, deadline, timestamp)
+		const Val& value () const
+		{
+			return const_cast <NodeVal*> (this)->value ();
+		}
+
+		virtual bool operator < (const PriorityQueueBase::Node& rhs) const
+		{
+			return value () < static_cast <const NodeVal&> (rhs).value ();
+		}
+
+		NodeVal (int level, DeadlineTime deadline, const Val& val) :
+			PriorityQueueBase::Node (level, deadline)
 		{
 			new (&value ()) Val (val);
 		}
@@ -363,7 +367,7 @@ private:
 #ifdef _DEBUG
 		node_cnt_.increment ();
 #endif
-		return new (level) NodeVal (level, dt, last_timestamp_.increment (), value);
+		return new (level) NodeVal (level, dt, value);
 	}
 };
 

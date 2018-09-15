@@ -12,7 +12,14 @@ using namespace std;
 #define CHECK_VALID_LEVEL(lev, nod)
 #endif
 
-AtomicCounter PriorityQueueBase::last_timestamp_ = 0;
+bool PriorityQueueBase::Node::operator < (const Node& rhs) const
+{
+	// This node is head or tail node.
+	if (this == &rhs)
+		return false;
+	else
+		return !deadline; // Head always less, tail always not.
+}
 
 PriorityQueueBase::PriorityQueueBase (unsigned max_level) :
 #ifdef _DEBUG
@@ -20,9 +27,9 @@ PriorityQueueBase::PriorityQueueBase (unsigned max_level) :
 #endif
 	distr_ (0.5)
 {
-	head_ = new (max_level) Node (max_level, 0, 0);
+	head_ = new (max_level) Node (max_level, 0);
 	try {
-		tail_ = new (1) Node (1, std::numeric_limits <DeadlineTime>::max (), 0);
+		tail_ = new (1) Node (1, std::numeric_limits <DeadlineTime>::max ());
 	} catch (...) {
 		Node::operator delete (head_, head_->level);
 		throw;
@@ -147,10 +154,17 @@ PriorityQueueBase::Node* PriorityQueueBase::delete_min ()
 		prev = node1;
 	}
 
+	final_delete (node1);
+
+	return node1;	// Reference counter have to be released by caller.
+}
+
+void PriorityQueueBase::final_delete (Node* node)
+{
 	// Mark the deletion bits of the next pointers of the node, starting with the lowest
 	// level and going upwards.
-	for (int i = 0, end = node1->level; i < end; ++i) {
-		Link::Atomic& alink2 = node1->next [i];
+	for (int i = 0, end = node->level; i < end; ++i) {
+		Link::Atomic& alink2 = node->next [i];
 		Link node2;
 		do {
 			node2 = alink2.load ();
@@ -158,7 +172,7 @@ PriorityQueueBase::Node* PriorityQueueBase::delete_min ()
 			node2.is_marked ()
 			||
 			alink2.cas (node2, node2.marked ())
-		));
+			));
 	}
 
 	// Actual deletion by calling the remove_node procedure, starting at the highest level
@@ -166,12 +180,11 @@ PriorityQueueBase::Node* PriorityQueueBase::delete_min ()
 	// of levels is that concurrent search operations also start at the
 	// highest level and proceed downwards, in this way the concurrent
 	// search operations will sooner avoid traversing this node.
-	prev = copy_node (head ());
-	for (int i = node1->level - 1; i >= 0; --i) {
-		remove_node (node1, prev, i);
+	Node* prev = copy_node (head ());
+	for (int i = node->level - 1; i >= 0; --i) {
+		remove_node (node, prev, i);
 	}
 	release_node (prev);
-	return node1;	// Reference counter have to be released by caller.
 }
 
 /// Tries to fulfill the deletion on the current level and returns a reference to
@@ -215,6 +228,7 @@ PriorityQueueBase::Node* PriorityQueueBase::help_delete (Node* node, int level)
 /// Removes the given node from the linked list structure at the given level.
 void PriorityQueueBase::remove_node (Node* node, Node*& prev, int level)
 {
+	assert (node);
 	assert (node != head ());
 	assert (node != tail ());
 	CHECK_VALID_LEVEL (level, node);
@@ -251,6 +265,42 @@ void PriorityQueueBase::remove_node (Node* node, Node*& prev, int level)
 		// Synchronize with the possible other invocations to avoid redundant executions.
 		if (anext.load () == TaggedNil::marked ())
 			break;
+	}
+}
+
+bool PriorityQueueBase::erase (Node* node, unsigned max_level)
+{
+	assert (node);
+	assert (node != head ());
+	assert (node != tail ());
+
+	Node* prev = copy_node (head ());
+	for (unsigned i = max_level - 1; i >= 1; --i) {
+		Node* node2 = scan_key (prev, i, node);
+		release_node (node2);
+	}
+
+	for (;;) {
+		Node* node2 = scan_key (prev, 0, node);
+		if (!less (*node, *node2)) {
+			bool f = false;
+			if (node2->deleted.compare_exchange_strong (f, true)) {
+				// Succeeded, write valid pointer to the prev field of the node.
+				// This prev field is necessary in order to increase the performance of concurrent
+				// help_delete () functions, these operations otherwise
+				// would have to search for the previous node in order to complete the deletion.
+				node2->prev = prev;
+				final_delete (node2);
+				release_node (node2);
+				return true;
+			}
+		} else {
+			release_node (prev);
+			release_node (node2);
+			return false;
+		}
+		release_node (prev);
+		prev = node2;
 	}
 }
 
