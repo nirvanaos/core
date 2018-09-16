@@ -6,6 +6,7 @@
 
 #include "core.h"
 #include "ObjectPool.h"
+#include "../Interface/Scheduler.h"
 #include "../Interface/Runnable.h"
 #include <limits>
 
@@ -25,7 +26,6 @@ namespace Core {
 
 class ExecContext :
 	public CoreObject,
-	public ::CORBA::Nirvana::Servant <ExecContext, Runnable>,
 	protected ExecContextBase
 {
 public:
@@ -38,19 +38,14 @@ public:
 		ExecContextBase (param)
 	{}
 
-	/// Implementation of Runnable::run() is customized for performance.
-	static void _run (::CORBA::Nirvana::Bridge <Runnable>* bridge, ::CORBA::Nirvana::EnvironmentBridge* env)
-	{
-		static_cast <ExecContextBase*> (static_cast <ExecContext*> (bridge))->run (env);
-	}
-
 private:
 	Runnable_ptr runnable_;
 };
 
 class ExecDomain :
 	public ExecContext,
-	public PoolableObject
+	public PoolableObject,
+	public ::CORBA::Nirvana::Servant <ExecDomain, Executor>
 {
 public:
 	ExecDomain () :
@@ -68,6 +63,11 @@ public:
 	{
 		return deadline_;
 	}
+
+	void execute (DeadlineTime deadline)
+	{
+		ExecContextBase::switch_to ();
+  }
 
 private:
 	DeadlineTime deadline_;

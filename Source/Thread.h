@@ -49,9 +49,9 @@ public:
 	{}
 
 	/// This static method is called by the scheduler.
-	static void execute (Runnable_ptr runnable)
+	static void execute (Executor_ptr executor, DeadlineTime deadline)
 	{
-		runnable->run ();
+		executor->execute (deadline);
 	}
 
 	/// Random number generator's accessor.

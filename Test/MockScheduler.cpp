@@ -29,7 +29,7 @@ public:
 		backoff_break_ = on;
 	}
 
-	static void schedule (DeadlineTime deadline, Runnable_ptr runnable, bool update)
+	static void schedule (DeadlineTime deadline, Executor_ptr runnable, DeadlineTime deadline_prev)
 	{
 		throw ::CORBA::NO_IMPLEMENT ();
 	}

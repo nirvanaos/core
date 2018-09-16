@@ -6,7 +6,6 @@
 #include "../Source/core.h"
 #include <malloc.h>
 #include <memory.h>
-#include <math.h>
 #include <real_copy.h>
 #include <nlzntz.h>
 
@@ -29,7 +28,7 @@ public:
 
 	static size_t alignment (size_t size)
 	{
-		size_t al = 1 << (int)ceil (log2 (size));
+		size_t al = clp2 (size);
 		if (al < 8)
 			al = 8;
 		return al;

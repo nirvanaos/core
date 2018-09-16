@@ -19,10 +19,11 @@ public:
 
 	void schedule (DeadlineTime deadline, const QueueItem& item, DeadlineTime deadline_prev)
 	{
-		if (!deadline_prev || queue_.erase (deadline_prev, item)) {
-			queue_.insert (deadline, item);
-			execute_next ();
-		}
+		assert (deadline_prev != deadline);
+		queue_.insert (deadline, item);
+		if (deadline_prev)
+			queue_.erase (deadline_prev, item);
+		execute_next ();
 	}
 
 	void core_free ()
