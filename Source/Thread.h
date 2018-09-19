@@ -5,7 +5,6 @@
 #define NIRVANA_CORE_THREAD_H_
 
 #include "core.h"
-#include "ExecDomain.h"
 #include "RandomGen.h"
 #include "../Interface/Runnable.h"
 
@@ -23,6 +22,7 @@ typedef Windows::ThreadWindows ThreadBase;
 namespace Nirvana {
 namespace Core {
 
+class ExecContext;
 class ExecDomain;
 
 class Thread :
@@ -56,6 +56,11 @@ public:
 		return exec_domain_;
 	}
 
+	void execution_domain (ExecDomain* d)
+	{
+		exec_domain_ = d;
+	}
+
 	/// This static method is called by the scheduler.
 	static void execute (Executor_ptr executor, DeadlineTime deadline);
 
@@ -70,8 +75,6 @@ public:
 	{
 		return ThreadBase::neutral_context ();
 	}
-
-	void neutral_context_proc ();
 
 protected:
 	/// Random number generator.

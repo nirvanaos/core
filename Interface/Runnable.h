@@ -123,6 +123,25 @@ class Servant <S, ::Nirvana::Runnable> :
 	public Implementation <S, ::Nirvana::Runnable>
 {};
 
+// Static implementation
+
+template <class S>
+class ServantStatic <S, ::Nirvana::Runnable> :
+	public ImplementationStatic <S, ::Nirvana::Runnable>
+{};
+
+// Tied implementation
+
+template <class T>
+class ServantTied <T, ::Nirvana::Runnable> :
+	public ImplementationTied <T, ::Nirvana::Runnable>
+{
+public:
+	ServantTied (T* tp, Boolean release) :
+		ImplementationTied <T, ::Nirvana::Runnable> (tp, release)
+	{}
+};
+
 }
 }
 

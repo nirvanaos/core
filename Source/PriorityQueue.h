@@ -76,7 +76,6 @@ protected:
 
 		virtual ~NodeBase ()
 		{}
-
 	};
 
 	typedef TaggedPtrT <Node, 1 << log2_ceil (sizeof (NodeBase))> Link;

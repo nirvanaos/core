@@ -6,6 +6,7 @@
 
 #include "ExecContext.h"
 #include "ObjectPool.h"
+#include "Thread.h"
 #include "../Interface/Scheduler.h"
 #include <limits>
 
@@ -29,6 +30,8 @@ public:
 
 	void execute (DeadlineTime deadline)
 	{
+		assert (deadline_ == deadline);
+		Thread::current ().execution_domain (this);
 		ExecContext::switch_to ();
 	}
 
@@ -46,7 +49,31 @@ public:
 	{}
 
 private:
+	virtual void final_release ()
+	{
+		if (ExecContext::current () == this)
+			run_in_neutral_context (Release::_this ());
+		else {
+			Thread::current ().execution_domain (nullptr);
+			pool_.release (*this);
+		}
+	}
+
+private:
 	static ObjectPoolT <ExecDomain> pool_;
+
+	class Release :
+		public ::CORBA::Nirvana::ServantStatic <Release, Runnable>
+	{
+	public:
+		static void run ()
+		{
+			Thread& thread = Thread::current ();
+			ExecDomain* ed = thread.execution_domain ();
+			thread.execution_domain (nullptr);
+			pool_.release (*ed);
+		}
+	};
 
 	DeadlineTime deadline_;
 	SyncDomain* cur_sync_domain_;

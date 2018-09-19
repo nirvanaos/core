@@ -3,6 +3,7 @@
 // Thread class.
 
 #include "Thread.h"
+#include "ExecContext.h"
 
 namespace Nirvana {
 namespace Core {

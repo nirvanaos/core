@@ -6,7 +6,7 @@
 #include "PriorityQueue.h"
 #include "config.h"
 #include "../Interface/Scheduler.h"
-#include "AtomicCounter.h"
+#include "ExecDomain.h"
 #include <atomic>
 
 namespace Nirvana {

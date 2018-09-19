@@ -1,7 +1,7 @@
 // Nirvana project.
 // Execution domain (fiber).
 
-#include "ExecContext.h"
+#include "ExecDomain.h"
 #include "Thread.h"
 
 namespace Nirvana {
