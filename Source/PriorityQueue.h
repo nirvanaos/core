@@ -297,11 +297,29 @@ public:
 	}
 
 	/// Deletes node with minimal deadline.
+	/// \param [out] val Value.
+	/// \return `true` if node deleted, `false` if queue is empty.
 	bool delete_min (Val& val)
 	{
 		NodeVal* node = static_cast <NodeVal*> (PriorityQueueBase::delete_min ());
 		if (node) {
-			val = node->value ();
+			val = std::move (node->value ());
+			release_node (node);
+			return true;
+		}
+		return false;
+	}
+
+	/// Deletes node with minimal deadline.
+	/// \param [out] val Value.
+	/// \param [out] deadline Deadline.
+	/// \return `true` if node deleted, `false` if queue is empty.
+	bool delete_min (Val& val, DeadlineTime& deadline)
+	{
+		NodeVal* node = static_cast <NodeVal*> (PriorityQueueBase::delete_min ());
+		if (node) {
+			val = std::move (node->value ());
+			deadline = node->deadline;
 			release_node (node);
 			return true;
 		}

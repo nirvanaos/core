@@ -54,8 +54,9 @@ void SchedulerImpl <T, QueueItem>::execute_next ()
 
 		// Get next item
 		QueueItem item;
-		if (queue_.delete_min (item)) {
-			static_cast <T*> (this)->execute (item);
+		DeadlineTime deadline;
+		if (queue_.delete_min (item, deadline)) {
+			static_cast <T*> (this)->execute (item, deadline);
 			break;
 		}
 

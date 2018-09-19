@@ -4,43 +4,15 @@
 #ifndef NIRVANA_CORE_EXECDOMAIN_H_
 #define NIRVANA_CORE_EXECDOMAIN_H_
 
-#include "core.h"
+#include "ExecContext.h"
 #include "ObjectPool.h"
 #include "../Interface/Scheduler.h"
-#include "../Interface/Runnable.h"
 #include <limits>
 
-#ifdef _WIN32
-#include "Windows/ExecContextWindows.h"
-namespace Nirvana {
-namespace Core {
-typedef Windows::ExecContextWindows ExecContextBase;
-}
-}
-#else
-#error Unknown platform.
-#endif
-
 namespace Nirvana {
 namespace Core {
 
-class ExecContext :
-	public CoreObject,
-	protected ExecContextBase
-{
-public:
-	ExecContext () :
-		ExecContextBase ()
-	{}
-
-	template <class P>
-	ExecContext (P param) :
-		ExecContextBase (param)
-	{}
-
-private:
-	Runnable_ptr runnable_;
-};
+class SyncDomain;
 
 class ExecDomain :
 	public ExecContext,
@@ -48,16 +20,7 @@ class ExecDomain :
 	public ::CORBA::Nirvana::Servant <ExecDomain, Executor>
 {
 public:
-	ExecDomain () :
-		ExecContext (),
-		deadline_ (std::numeric_limits <DeadlineTime>::max ())
-	{}
-
-	template <class P>
-	ExecDomain (P param) :
-		ExecContext (param),
-		deadline_ (std::numeric_limits <DeadlineTime>::max ())
-	{}
+	static void async_call (Runnable_ptr runnable, DeadlineTime deadline, SyncDomain* sync_domain);
 
 	DeadlineTime deadline () const
 	{
@@ -66,11 +29,27 @@ public:
 
 	void execute (DeadlineTime deadline)
 	{
-		ExecContextBase::switch_to ();
-  }
+		ExecContext::switch_to ();
+	}
+
+	ExecDomain () :
+		ExecContext (),
+		deadline_ (std::numeric_limits <DeadlineTime>::max ()),
+		cur_sync_domain_ (nullptr)
+	{}
+
+	template <class P>
+	ExecDomain (P param) :
+		ExecContext (param),
+		deadline_ (std::numeric_limits <DeadlineTime>::max ()),
+		cur_sync_domain_ (nullptr)
+	{}
 
 private:
+	static ObjectPoolT <ExecDomain> pool_;
+
 	DeadlineTime deadline_;
+	SyncDomain* cur_sync_domain_;
 };
 
 }

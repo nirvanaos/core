@@ -1,3 +1,6 @@
+// The Nirvana project.
+// Core.
+// Thread class.
 #ifndef NIRVANA_CORE_THREAD_H_
 #define NIRVANA_CORE_THREAD_H_
 
@@ -48,11 +51,13 @@ public:
 		exec_domain_ (nullptr)
 	{}
 
-	/// This static method is called by the scheduler.
-	static void execute (Executor_ptr executor, DeadlineTime deadline)
+	ExecDomain* execution_domain () const
 	{
-		executor->execute (deadline);
+		return exec_domain_;
 	}
+
+	/// This static method is called by the scheduler.
+	static void execute (Executor_ptr executor, DeadlineTime deadline);
 
 	/// Random number generator's accessor.
 	RandomGen& rndgen ()
@@ -61,11 +66,12 @@ public:
 	}
 
 	/// Returns special "neutral" execution context with own stack and CPU state.
-	virtual ExecContext* neutral_context ()
+	ExecContext* neutral_context ()
 	{
-		assert (false);
-		return nullptr;
+		return ThreadBase::neutral_context ();
 	}
+
+	void neutral_context_proc ();
 
 protected:
 	/// Random number generator.

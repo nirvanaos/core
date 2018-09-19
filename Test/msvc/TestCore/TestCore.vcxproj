@@ -120,6 +120,7 @@
     <ClCompile Include="..\..\..\..\googletest\googletest\src\gtest-all.cc" />
     <ClCompile Include="..\..\..\..\googletest\googletest\src\gtest_main.cc" />
     <ClCompile Include="..\..\..\Source\Core.cpp" />
+    <ClCompile Include="..\..\..\Source\ExecContext.cpp" />
     <ClCompile Include="..\..\..\Source\ExecDomain.cpp" />
     <ClCompile Include="..\..\..\Source\Heap.cpp" />
     <ClCompile Include="..\..\..\Source\HeapDirectory.cpp" />
@@ -133,6 +134,7 @@
     </ClCompile>
     <ClCompile Include="..\..\..\Source\RandomGen.cpp" />
     <ClCompile Include="..\..\..\Source\SyncDomain.cpp" />
+    <ClCompile Include="..\..\..\Source\Thread.cpp" />
     <ClCompile Include="..\..\..\Source\Windows\AddressSpace.cpp" />
     <ClCompile Include="..\..\..\Source\Windows\BufferPool.cpp" />
     <ClCompile Include="..\..\..\Source\Windows\ExecContextWindows.cpp" />
@@ -194,6 +196,7 @@
     <ClInclude Include="..\..\..\Source\BackOff.h" />
     <ClInclude Include="..\..\..\Source\config.h" />
     <ClInclude Include="..\..\..\Source\core.h" />
+    <ClInclude Include="..\..\..\Source\ExecContext.h" />
     <ClInclude Include="..\..\..\Source\ExecDomain.h" />
     <ClInclude Include="..\..\..\Source\Heap.h" />
     <ClInclude Include="..\..\..\Source\HeapDirectory.h" />

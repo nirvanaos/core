@@ -41,9 +41,10 @@ public:
 			bool f = false;
 			if (running_.compare_exchange_strong (f, true)) {
 				ExecDomain* executor;
-				if (queue_.delete_min (executor)) {
+				DeadlineTime dt;
+				if (queue_.delete_min (executor, dt)) {
 					current_executor_ = executor;
-					executor->execute (min_deadline);
+					executor->execute (dt);
 					current_executor_ = nullptr;
 				}
 				running_ = false;

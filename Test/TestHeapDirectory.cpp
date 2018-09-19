@@ -104,9 +104,18 @@ protected:
 };
 
 typedef ::testing::Types <
-	HeapDirectoryFactory <0x10000, false, false>, HeapDirectoryFactory <0x10000, false, true>, HeapDirectoryFactory <0x10000, true, true>, HeapDirectoryFactory <0x10000, true, false>,
-	HeapDirectoryFactory <0x8000, false, false>, HeapDirectoryFactory <0x8000, false, true>, HeapDirectoryFactory <0x8000, true, true>, HeapDirectoryFactory <0x8000, true, false>,
-	HeapDirectoryFactory <0x4000, false, false>, HeapDirectoryFactory <0x4000, false, true>, HeapDirectoryFactory <0x4000, true, true>, HeapDirectoryFactory <0x4000, true, false>
+	//HeapDirectoryFactory <0x10000, false, false>, 
+	//HeapDirectoryFactory <0x10000, false, true>, 
+	HeapDirectoryFactory <0x10000, true, true> //, 
+	//HeapDirectoryFactory <0x10000, true, false>,
+	//HeapDirectoryFactory <0x8000, false, false>, 
+	//HeapDirectoryFactory <0x8000, false, true>, 
+	//HeapDirectoryFactory <0x8000, true, true>, 
+	//HeapDirectoryFactory <0x8000, true, false>,
+	//HeapDirectoryFactory <0x4000, false, false>,
+	//HeapDirectoryFactory <0x4000, false, true>,
+	//HeapDirectoryFactory <0x4000, true, true>,
+	//HeapDirectoryFactory <0x4000, true, false>
 > MyTypes;
 
 TYPED_TEST_CASE (TestHeapDirectory, MyTypes);

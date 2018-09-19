@@ -104,7 +104,9 @@ TYPED_TEST (TestPriorityQueue, SingleThread)
 
 	for (int i = 0; i < MAX_COUNT; ++i) {
 		Value val;
-		ASSERT_TRUE (queue.delete_min (val));
+		DeadlineTime deadline;
+		ASSERT_TRUE (queue.delete_min (val, deadline));
+		ASSERT_EQ (val.deadline, deadline);
 		ASSERT_EQ (val.idx, queue_std.top ().idx);
 		ASSERT_EQ (val.deadline, queue_std.top ().deadline);
 		queue_std.pop ();
@@ -173,7 +175,9 @@ void ThreadTest <PQ>::thread_proc ()
 			queue_.insert (deadline, val, rndgen);
 		} else {
 			Value val;
-			if (queue_.delete_min (val)) {
+			DeadlineTime deadline;
+			if (queue_.delete_min (val, deadline)) {
+				ASSERT_EQ (val.deadline, deadline);
 				--counters_ [val.deadline];
 				--queue_size_;
 			}
@@ -185,7 +189,9 @@ template <class PQ>
 void ThreadTest <PQ>::finalize ()
 {
 	Value val;
-	while (queue_.delete_min (val)) {
+	DeadlineTime deadline;
+	while (queue_.delete_min (val, deadline)) {
+		ASSERT_EQ (val.deadline, deadline);
 		--counters_ [val.deadline];
 		--queue_size_;
 	}

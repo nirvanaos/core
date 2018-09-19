@@ -13,7 +13,7 @@ void SyncDomain::schedule ()
 		if (queue_.get_min_deadline (min_deadline)) {
 			DeadlineTime prev_deadline = min_deadline_;
 			if (
-				(!prev_deadline || (prev_deadline > min_deadline))
+				(!prev_deadline || (prev_deadline != min_deadline))
 				&&
 				min_deadline_.compare_exchange_strong (prev_deadline, min_deadline)
 				&&

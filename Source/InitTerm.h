@@ -9,9 +9,6 @@ namespace Core {
 void initialize_memory ();
 void terminate_memory ();
 
-void initialize_scheduler ();
-void terminate_scheduler ();
-
 }
 }
 
