@@ -5,7 +5,7 @@
 #define NIRVANA_CORE_CORE_H_
 
 #include <Nirvana.h>
-#include "../Interface/HeapFactory.h"
+#include <Interface/HeapFactory.h>
 #include "../Interface/Scheduler.h"
 #include <memory>
 

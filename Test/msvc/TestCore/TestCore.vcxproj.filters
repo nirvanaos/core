@@ -9,6 +9,9 @@
       <UniqueIdentifier>{10a7441a-f7af-48bd-a111-fc11f29514b0}</UniqueIdentifier>
       <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
     </Filter>
+    <Filter Include="Interface">
+      <UniqueIdentifier>{0cc5b500-6e57-4578-bf4c-58d616731a9b}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\..\googletest\googletest\src\gtest_main.cc">
@@ -196,15 +199,6 @@
     <ClInclude Include="..\..\MockMemory.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\Interface\HeapFactory.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\Interface\Memory.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\Interface\Runnable.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\..\Source\Windows\BufferPool.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -215,9 +209,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\Source\Windows\Mailslot.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\Interface\Scheduler.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\Source\InitTerm.h">
@@ -258,6 +249,9 @@
     </ClInclude>
     <ClInclude Include="..\..\..\Source\ExecContext.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Interface\Scheduler.h">
+      <Filter>Interface</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

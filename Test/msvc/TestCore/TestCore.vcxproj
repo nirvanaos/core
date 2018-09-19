@@ -187,9 +187,6 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\..\Interface\HeapFactory.h" />
-    <ClInclude Include="..\..\..\Interface\Memory.h" />
-    <ClInclude Include="..\..\..\Interface\Runnable.h" />
     <ClInclude Include="..\..\..\Interface\Scheduler.h" />
     <ClInclude Include="..\..\..\Source\AtomicCounter.h" />
     <ClInclude Include="..\..\..\Source\AtomicPtr.h" />

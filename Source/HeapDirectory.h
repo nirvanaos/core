@@ -2,7 +2,7 @@
 #define NIRVANA_CORE_HEAPDIRECTORY_H_
 
 #include <Nirvana.h>
-#include "../Interface/Memory.h"
+#include <Interface/Memory.h>
 #include <stddef.h>
 #include <nlzntz.h>
 #include <algorithm>
