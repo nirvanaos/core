@@ -28,6 +28,8 @@ public:
 		return deadline_;
 	}
 
+	void schedule (SyncDomain* sync_domain);
+
 	void execute (DeadlineTime deadline)
 	{
 		assert (deadline_ == deadline);
@@ -74,6 +76,18 @@ private:
 			pool_.release (*ed);
 		}
 	};
+
+	class Schedule :
+		public ::CORBA::Nirvana::ServantStatic <Schedule, Runnable>
+	{
+	public:
+		static void run ()
+		{
+			Thread::current ().execution_domain ()->schedule_internal ();
+		}
+	};
+
+	void schedule_internal ();
 
 	DeadlineTime deadline_;
 	SyncDomain* cur_sync_domain_;

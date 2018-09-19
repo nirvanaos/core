@@ -56,11 +56,6 @@ public:
 		return exec_domain_;
 	}
 
-	void execution_domain (ExecDomain* d)
-	{
-		exec_domain_ = d;
-	}
-
 	/// This static method is called by the scheduler.
 	static void execute (Executor_ptr executor, DeadlineTime deadline);
 
@@ -74,6 +69,14 @@ public:
 	ExecContext* neutral_context ()
 	{
 		return ThreadBase::neutral_context ();
+	}
+
+private:
+	friend class ExecDomain;
+
+	void execution_domain (ExecDomain* d)
+	{
+		exec_domain_ = d;
 	}
 
 protected:

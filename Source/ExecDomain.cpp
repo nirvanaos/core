@@ -14,12 +14,28 @@ void ExecDomain::async_call (Runnable_ptr runnable, DeadlineTime deadline, SyncD
 
 	exec_domain->runnable_ = runnable;
 	exec_domain->deadline_ = deadline;
+	exec_domain->cur_sync_domain_ = sync_domain;
+	exec_domain->schedule_internal ();
+}
 
-	if (sync_domain) {
-		exec_domain->cur_sync_domain_ = sync_domain;
-		sync_domain->schedule (*exec_domain);
-	} else
-		g_scheduler->schedule (deadline, exec_domain->_this (), 0);
+void ExecDomain::schedule (SyncDomain* sync_domain)
+{
+	cur_sync_domain_ = sync_domain;
+	if (ExecContext::current () == this)
+		run_in_neutral_context (Schedule::_this ());
+	else
+		schedule_internal ();
+}
+
+void ExecDomain::schedule_internal ()
+{
+	if (cur_sync_domain_)
+		cur_sync_domain_->schedule (*this);
+	else
+		g_scheduler->schedule (deadline (), _this (), 0);
+
+	if (Thread::current ().execution_domain () == this)
+		Thread::current ().execution_domain (nullptr);
 }
 
 }
