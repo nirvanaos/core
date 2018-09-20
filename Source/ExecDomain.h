@@ -50,15 +50,27 @@ public:
 		cur_sync_domain_ (nullptr)
 	{}
 
+	void activate ()
+	{
+		_add_ref ();
+	}
+
+protected:
+	void execute_loop ()
+	{
+		if (runnable_) {
+			runnable_->run ();
+			runnable_ = Runnable::_nil ();
+		}
+		Thread::current ().execution_domain (nullptr);
+		run_in_neutral_context (Release::_this ());
+	}
+
 private:
 	virtual void final_release ()
 	{
-		if (ExecContext::current () == this)
-			run_in_neutral_context (Release::_this ());
-		else {
-			Thread::current ().execution_domain (nullptr);
-			pool_.release (*this);
-		}
+		assert (ExecContext::current () != this);
+		pool_.release (*this);
 	}
 
 private:
@@ -70,10 +82,7 @@ private:
 	public:
 		static void run ()
 		{
-			Thread& thread = Thread::current ();
-			ExecDomain* ed = thread.execution_domain ();
-			thread.execution_domain (nullptr);
-			pool_.release (*ed);
+			Thread::current ().execution_domain ()->_remove_ref ();
 		}
 	};
 

@@ -14,6 +14,9 @@ In the future possible more complex and smart implementation.
 */
 class PoolableObject
 {
+public:
+	void activate () {}
+
 private:
 	friend class ObjectPool;
 	std::atomic <PoolableObject*> next_;
@@ -40,6 +43,8 @@ public:
 		T* obj = static_cast <T*> (ObjectPool::get ());
 		if (!obj)
 			obj = new T;
+		else
+			obj->activate ();
 		return obj;
 	}
 
