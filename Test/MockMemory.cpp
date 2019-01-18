@@ -7,7 +7,7 @@
 #include <malloc.h>
 #include <memory.h>
 #include <Nirvana/real_copy.h>
-#include <Nirvana/nlzntz.h>
+#include <Nirvana/bitutils.h>
 
 namespace Nirvana {
 namespace Test {

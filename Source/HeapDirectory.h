@@ -3,7 +3,7 @@
 
 #include <Nirvana/Nirvana.h>
 #include <Nirvana/Memory.h>
-#include <Nirvana/nlzntz.h>
+#include <Nirvana/bitutils.h>
 #include <stddef.h>
 #include <algorithm>
 #include <atomic>
