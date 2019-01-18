@@ -5,7 +5,7 @@
 #define NIRVANA_CORE_EXECCONTEXT_H_
 
 #include "core.h"
-#include <Interface/Runnable.h>
+#include <Nirvana/Runnable.h>
 
 #ifdef _WIN32
 #include "Windows/ExecContextWindows.h"

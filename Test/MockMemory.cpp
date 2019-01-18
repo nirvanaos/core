@@ -6,8 +6,8 @@
 #include "../Source/core.h"
 #include <malloc.h>
 #include <memory.h>
-#include <real_copy.h>
-#include <nlzntz.h>
+#include <Nirvana/real_copy.h>
+#include <Nirvana/nlzntz.h>
 
 namespace Nirvana {
 namespace Test {

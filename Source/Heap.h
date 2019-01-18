@@ -6,7 +6,7 @@
 #include "config.h"
 #include "InitTerm.h"
 #include <type_traits>
-#include <Interface/HeapFactory.h>
+#include <Nirvana/HeapFactory.h>
 
 namespace Nirvana {
 namespace Core {

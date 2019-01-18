@@ -1,8 +1,8 @@
 #ifndef NIRVANA_CORE_ATOMICPTR_H_
 #define NIRVANA_CORE_ATOMICPTR_H_
 
+#include <Nirvana/Nirvana.h>
 #include "BackOff.h"
-#include <Nirvana.h>
 #include <atomic>
 #include <type_traits>
 

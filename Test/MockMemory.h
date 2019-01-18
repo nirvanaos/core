@@ -5,7 +5,7 @@
 #ifndef NIRVANA_TEST_MOCKMEMORY_H_
 #define NIRVANA_TEST_MOCKMEMORY_H_
 
-#include <Interface\Memory.h>
+#include <Nirvana\Memory.h>
 
 namespace Nirvana {
 namespace Test {

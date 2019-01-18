@@ -187,7 +187,6 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\..\Interface\Scheduler.h" />
     <ClInclude Include="..\..\..\Source\AtomicCounter.h" />
     <ClInclude Include="..\..\..\Source\AtomicPtr.h" />
     <ClInclude Include="..\..\..\Source\BackOff.h" />
@@ -202,6 +201,7 @@
     <ClInclude Include="..\..\..\Source\PriorityQueue.h" />
     <ClInclude Include="..\..\..\Source\ProtDomain.h" />
     <ClInclude Include="..\..\..\Source\RandomGen.h" />
+    <ClInclude Include="..\..\..\Source\Scheduler.h" />
     <ClInclude Include="..\..\..\Source\SchedulerImpl.h" />
     <ClInclude Include="..\..\..\Source\SyncDomain.h" />
     <ClInclude Include="..\..\..\Source\SysDomain.h" />

@@ -4,7 +4,7 @@
 #include <random>
 #include <thread>
 #include <atomic>
-#include <nlzntz.h>
+#include <Nirvana/nlzntz.h>
 
 using namespace ::CORBA;
 using namespace ::Nirvana;

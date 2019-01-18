@@ -6,7 +6,7 @@
 #ifndef NIRVANA_CORE_PRIORITYQUEUE_H_
 #define NIRVANA_CORE_PRIORITYQUEUE_H_
 
-#include <Nirvana.h>
+#include <Nirvana/Nirvana.h>
 #include "core.h"
 #include "AtomicCounter.h"
 #include "AtomicPtr.h"

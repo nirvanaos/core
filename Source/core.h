@@ -4,9 +4,9 @@
 #ifndef NIRVANA_CORE_CORE_H_
 #define NIRVANA_CORE_CORE_H_
 
-#include <Nirvana.h>
-#include <Interface/HeapFactory.h>
-#include "../Interface/Scheduler.h"
+#include <Nirvana/Nirvana.h>
+#include <Nirvana/HeapFactory.h>
+#include "Scheduler.h"
 #include <memory>
 
 namespace Nirvana {

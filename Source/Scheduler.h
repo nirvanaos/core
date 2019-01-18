@@ -5,7 +5,7 @@
 #define NIRVANA_CORE_SCHEDULER_H_
 
 #include <ORB.h>
-#include <Nirvana.h>
+#include <Nirvana/Nirvana.h>
 
 /// \interface Executor
 
