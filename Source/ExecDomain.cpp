@@ -29,13 +29,15 @@ void ExecDomain::schedule (SyncDomain* sync_domain)
 
 void ExecDomain::schedule_internal ()
 {
-	if (cur_sync_domain_)
-		cur_sync_domain_->schedule (*this);
-	else
+	if (cur_sync_domain_) {
+		try {
+			cur_sync_domain_->schedule (*this);
+		} catch (...) {
+			cur_sync_domain_ = nullptr;
+			throw;
+		}
+	} else
 		g_scheduler->schedule (deadline (), _this (), 0);
-
-	if (Thread::current ().execution_domain () == this)
-		Thread::current ().execution_domain (nullptr);
 }
 
 }

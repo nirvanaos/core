@@ -16,7 +16,7 @@ void Thread::execute (Executor_ptr executor, DeadlineTime deadline)
 	// Switch to executor context.
 	executor->execute (deadline);
 	// Perform possible neutral context calls, then return.
-	ExecContext::neutral_context_proc ();
+	ExecContext::neutral_context_loop ();
 }
 
 }

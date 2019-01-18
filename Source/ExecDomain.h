@@ -58,12 +58,12 @@ public:
 protected:
 	void execute_loop ()
 	{
-		if (runnable_) {
-			runnable_->run ();
-			runnable_ = Runnable::_nil ();
+		for (;;) {
+			run ();
+			environment_.clear ();	// TODO: Check unhandled exception and log error message.
+			Thread::current ().execution_domain (nullptr);
+			run_in_neutral_context (Release::_this ());
 		}
-		Thread::current ().execution_domain (nullptr);
-		run_in_neutral_context (Release::_this ());
 	}
 
 private:
@@ -92,7 +92,9 @@ private:
 	public:
 		static void run ()
 		{
-			Thread::current ().execution_domain ()->schedule_internal ();
+			Thread& thread = Thread::current ();
+			thread.execution_domain ()->schedule_internal ();
+			thread.execution_domain (nullptr);
 		}
 	};
 
