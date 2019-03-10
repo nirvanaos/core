@@ -62,7 +62,7 @@ protected:
 
 template <class T>
 class Client <T, ::Nirvana::Core::Executor> :
-	public ClientBase <T, ::Nirvana::Core::Executor>
+	public T
 {
 public:
 	void execute (::Nirvana::DeadlineTime deadline);
@@ -153,7 +153,7 @@ namespace Core {
 
 class Executor :
 	public ::CORBA::Nirvana::ClientInterface <Executor>,
-	public ::CORBA::Nirvana::Client <Executor, ::CORBA::AbstractBase>
+	public ::CORBA::Nirvana::ClientInterface <Executor, ::CORBA::AbstractBase>
 {
 public:
 	typedef Executor_ptr _ptr_type;
@@ -229,7 +229,7 @@ protected:
 
 template <class T>
 class Client <T, ::Nirvana::Core::Scheduler> :
-	public ClientBase <T, ::Nirvana::Core::Scheduler>
+	public T
 {
 public:
 	void schedule (::Nirvana::DeadlineTime deadline, ::Nirvana::Core::Executor_ptr executor, ::Nirvana::DeadlineTime old);
@@ -364,8 +364,8 @@ namespace Nirvana {
 namespace Core {
 
 class Scheduler :
-	public ::CORBA::Nirvana::ClientInterface <Scheduler>,
-	public ::CORBA::Nirvana::Client <Scheduler, ::CORBA::AbstractBase>
+	public ::CORBA::Nirvana::ClientInterfacePseudo <Scheduler>,
+	public ::CORBA::Nirvana::ClientInterfaceBase <Scheduler, ::CORBA::AbstractBase>
 {
 public:
 	typedef Scheduler_ptr _ptr_type;
