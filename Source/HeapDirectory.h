@@ -2,7 +2,7 @@
 #define NIRVANA_CORE_HEAPDIRECTORY_H_
 
 #include <Nirvana/Nirvana.h>
-#include <Nirvana/Memory.h>
+#include <Nirvana/Memory_c.h>
 #include <Nirvana/bitutils.h>
 #include <stddef.h>
 #include <algorithm>

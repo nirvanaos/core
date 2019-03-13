@@ -5,7 +5,7 @@
 
 #include "PriorityQueue.h"
 #include "config.h"
-#include "Scheduler.h"
+#include "Scheduler_c.h"
 #include "ExecDomain.h"
 #include <atomic>
 

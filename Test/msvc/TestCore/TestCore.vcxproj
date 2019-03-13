@@ -202,7 +202,7 @@
     <ClInclude Include="..\..\..\Source\PriorityQueue.h" />
     <ClInclude Include="..\..\..\Source\ProtDomain.h" />
     <ClInclude Include="..\..\..\Source\RandomGen.h" />
-    <ClInclude Include="..\..\..\Source\Scheduler.h" />
+    <ClInclude Include="..\..\..\Source\Scheduler_c.h" />
     <ClInclude Include="..\..\..\Source\SchedulerImpl.h" />
     <ClInclude Include="..\..\..\Source\Scheduler_s.h" />
     <ClInclude Include="..\..\..\Source\SyncDomain.h" />

@@ -1,4 +1,4 @@
-#include "Scheduler.h"
+#include "Scheduler_c.h"
 
 namespace CORBA {
 namespace Nirvana {

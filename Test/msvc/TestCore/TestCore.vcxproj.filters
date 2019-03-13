@@ -253,10 +253,10 @@
     <ClInclude Include="..\..\..\Source\ExecContext.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\Source\Scheduler.h">
+    <ClInclude Include="..\..\..\Source\Scheduler_s.h">
       <Filter>Interface</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\Source\Scheduler_s.h">
+    <ClInclude Include="..\..\..\Source\Scheduler_c.h">
       <Filter>Interface</Filter>
     </ClInclude>
   </ItemGroup>

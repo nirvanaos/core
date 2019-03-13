@@ -6,7 +6,7 @@
 
 #include "core.h"
 #include "RandomGen.h"
-#include <Nirvana/Runnable.h>
+#include <Nirvana/Runnable_c.h>
 
 #ifdef _WIN32
 #include "Windows/ThreadWindows.h"

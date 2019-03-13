@@ -1,7 +1,7 @@
 #ifndef NIRVANA_CORE_SCHEDULER_S_H_
 #define NIRVANA_CORE_SCHEDULER_S_H_
 
-#include "Scheduler.h"
+#include "Scheduler_c.h"
 #include <Servant.h>
 
 namespace CORBA {
