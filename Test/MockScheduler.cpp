@@ -3,6 +3,7 @@
 // MockScheduler class
 
 #include "../Source/core.h"
+#include "../Source/Scheduler_s.h"
 #include <thread>
 
 namespace Nirvana {

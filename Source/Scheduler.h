@@ -1,12 +1,12 @@
 /// The Nirvana project.
 /// Core scheduler interfaces.
 
-#ifndef NIRVANA_CORE_SCHEDULER_H_
-#define NIRVANA_CORE_SCHEDULER_H_
+#ifndef NIRVANA_CORE_SCHEDULER_C_H_
+#define NIRVANA_CORE_SCHEDULER_C_H_
 
-#include <ORB.h>
+#include <AbstractBase_c.h>
 
-/// \interface Executor
+//! \interface Executor
 
 namespace Nirvana {
 namespace Core {
@@ -24,7 +24,7 @@ namespace Nirvana {
 
 template <>
 class Bridge < ::Nirvana::Core::Executor> :
-	public Bridge <Interface>
+	public BridgeMarshal < ::Nirvana::Core::Executor>
 {
 public:
 	struct EPV
@@ -33,7 +33,7 @@ public:
 
 		struct
 		{
-			Bridge <AbstractBase>* (*CORBA_AbstractBase) (Bridge < ::Nirvana::Core::Executor>*, EnvironmentBridge*);
+			BASE_STRUCT_ENTRY (CORBA::AbstractBase, CORBA_AbstractBase)
 		}
 		base;
 
@@ -49,14 +49,11 @@ public:
 		return (EPV&)Bridge <Interface>::_epv ();
 	}
 
-	static const Char* _primary_interface ()
-	{
-		return "IDL:Nirvana/Core/Executor:1.0";
-	}
+	static const Char interface_id_ [];
 
 protected:
 	Bridge (const EPV& epv) :
-		Bridge <Interface> (epv.interface)
+		BridgeMarshal < ::Nirvana::Core::Executor> (epv.interface)
 	{}
 };
 
@@ -72,78 +69,10 @@ template <class T>
 void Client <T, ::Nirvana::Core::Executor>::execute (::Nirvana::DeadlineTime deadline)
 {
 	Environment _env;
-	Bridge < ::Nirvana::Core::Executor>& _b = ClientBase <T, ::Nirvana::Core::Executor>::_bridge ();
+	Bridge < ::Nirvana::Core::Executor>& _b (*this);
 	(_b._epv ().epv.execute) (&_b, deadline, &_env);
 	_env.check ();
 }
-
-template <class S>
-class Skeleton <S, ::Nirvana::Core::Executor>
-{
-public:
-	static const typename Bridge < ::Nirvana::Core::Executor>::EPV epv_;
-
-	template <class Base>
-	static Bridge <Interface>* _query_interface (Base& base, const Char* id)
-	{
-		if (RepositoryId::compatible (Bridge < ::Nirvana::Core::Executor>::_primary_interface (), id))
-			return &S::template _narrow < ::Nirvana::Core::Executor> (base);
-		else
-			return false;
-	}
-
-protected:
-	static void _execute (Bridge < ::Nirvana::Core::Executor>* _b, ::Nirvana::DeadlineTime deadline, EnvironmentBridge* _env)
-	{
-		try {
-			return S::_implementation (_b).execute (deadline);
-		} catch (const Exception& e) {
-			_env->set_exception (e);
-		} catch (...) {
-			_env->set_unknown_exception ();
-		}
-	}
-};
-
-template <class S>
-const Bridge < ::Nirvana::Core::Executor>::EPV Skeleton <S, ::Nirvana::Core::Executor>::epv_ = {
-	{ // interface
-		S::template _duplicate < ::Nirvana::Core::Executor>,
-		S::template _release < ::Nirvana::Core::Executor>
-	},
-	{ // base
-		S::template _wide <AbstractBase, ::Nirvana::Core::Executor>
-	},
-	{ // epv
-		S::_execute,
-	}
-};
-
-// Standard implementation
-
-template <class S>
-class Servant <S, ::Nirvana::Core::Executor> :
-	public Implementation <S, ::Nirvana::Core::Executor>
-{};
-
-// Static implementation
-
-template <class S>
-class ServantStatic <S, ::Nirvana::Core::Executor> :
-	public ImplementationStatic <S, ::Nirvana::Core::Executor>
-{};
-
-// Tied implementation
-
-template <class T>
-class ServantTied <T, ::Nirvana::Core::Executor> :
-	public ImplementationTied <T, ::Nirvana::Core::Executor>
-{
-public:
-	ServantTied (T* tp, Boolean release) :
-		ImplementationTied <T, ::Nirvana::Core::Executor> (tp, release)
-	{}
-};
 
 }
 }
@@ -151,27 +80,13 @@ public:
 namespace Nirvana {
 namespace Core {
 
-class Executor :
-	public ::CORBA::Nirvana::ClientInterface <Executor>,
-	public ::CORBA::Nirvana::ClientInterface <Executor, ::CORBA::AbstractBase>
-{
-public:
-	typedef Executor_ptr _ptr_type;
-
-	operator ::CORBA::AbstractBase& ()
-	{
-		::CORBA::Environment _env;
-		::CORBA::AbstractBase* _ret = static_cast <::CORBA::AbstractBase*> ((_epv ().base.CORBA_AbstractBase) (this, &_env));
-		_env.check ();
-		assert (_ret);
-		return *_ret;
-	}
-};
+class Executor : public ::CORBA::Nirvana::ClientInterface <Executor, ::CORBA::AbstractBase>
+{};
 
 }
 }
 
-/// \interface Scheduler
+//! \interface Scheduler
 
 namespace Nirvana {
 namespace Core {
@@ -189,7 +104,7 @@ namespace Nirvana {
 
 template <>
 class Bridge < ::Nirvana::Core::Scheduler> :
-	public Bridge <Interface>
+	public BridgeMarshal < ::Nirvana::Core::Scheduler>
 {
 public:
 	struct EPV
@@ -198,12 +113,14 @@ public:
 
 		struct
 		{
-			Bridge <AbstractBase>* (*CORBA_AbstractBase) (Bridge < ::Nirvana::Core::Scheduler>*, EnvironmentBridge*);
+			BASE_STRUCT_ENTRY (CORBA::AbstractBase, CORBA_AbstractBase)
 		}
 		base;
 
 		struct
 		{
+			// Pass Bridge < ::Nirvana::Core::Executor>*, not BridgeMarshal for performance.
+			// We can be sure that this call is performed only in core binaries.
 			void (*schedule) (Bridge <::Nirvana::Core::Scheduler>*, ::Nirvana::DeadlineTime, Bridge < ::Nirvana::Core::Executor>*, ::Nirvana::DeadlineTime, EnvironmentBridge*);
 			void (*back_off) (Bridge <::Nirvana::Core::Scheduler>*, ULong, EnvironmentBridge*);
 			void (*core_free) (Bridge <::Nirvana::Core::Scheduler>*, EnvironmentBridge*);
@@ -216,14 +133,11 @@ public:
 		return (EPV&)Bridge <Interface>::_epv ();
 	}
 
-	static const Char* _primary_interface ()
-	{
-		return "IDL:Nirvana/Core/Scheduler:1.0";
-	}
+	static const Char interface_id_ [];
 
 protected:
 	Bridge (const EPV& epv) :
-		Bridge <Interface> (epv.interface)
+		BridgeMarshal < ::Nirvana::Core::Scheduler> (epv.interface)
 	{}
 };
 
@@ -241,7 +155,7 @@ template <class T>
 void Client <T, ::Nirvana::Core::Scheduler>::schedule (::Nirvana::DeadlineTime deadline, ::Nirvana::Core::Executor_ptr executor, ::Nirvana::DeadlineTime old)
 {
 	Environment _env;
-	Bridge < ::Nirvana::Core::Scheduler>& _b = ClientBase <T, ::Nirvana::Core::Scheduler>::_bridge ();
+	Bridge < ::Nirvana::Core::Scheduler>& _b (*this);
 	(_b._epv ().epv.schedule) (&_b, deadline, executor, old, &_env);
 	_env.check ();
 }
@@ -250,7 +164,7 @@ template <class T>
 void Client <T, ::Nirvana::Core::Scheduler>::back_off (ULong hint)
 {
 	Environment _env;
-	Bridge < ::Nirvana::Core::Scheduler>& _b = ClientBase <T, ::Nirvana::Core::Scheduler>::_bridge ();
+	Bridge < ::Nirvana::Core::Scheduler>& _b (*this);
 	(_b._epv ().epv.back_off) (&_b, hint, &_env);
 	_env.check ();
 }
@@ -259,103 +173,10 @@ template <class T>
 void Client <T, ::Nirvana::Core::Scheduler>::core_free ()
 {
 	Environment _env;
-	Bridge < ::Nirvana::Core::Scheduler>& _b = ClientBase <T, ::Nirvana::Core::Scheduler>::_bridge ();
+	Bridge < ::Nirvana::Core::Scheduler>& _b (*this);
 	(_b._epv ().epv.core_free) (&_b, &_env);
 	_env.check ();
 }
-
-template <class S>
-class Skeleton <S, ::Nirvana::Core::Scheduler>
-{
-public:
-	static const typename Bridge < ::Nirvana::Core::Scheduler>::EPV epv_;
-
-	template <class Base>
-	static Bridge <Interface>* _query_interface (Base& base, const Char* id)
-	{
-		if (RepositoryId::compatible (Bridge < ::Nirvana::Core::Scheduler>::_primary_interface (), id))
-			return &S::template _narrow < ::Nirvana::Core::Scheduler> (base);
-		else
-			return false;
-	}
-
-protected:
-	static void _schedule (Bridge < ::Nirvana::Core::Scheduler>* _b, ::Nirvana::DeadlineTime deadline, 
-												 Bridge < ::Nirvana::Core::Executor>* executor, ::Nirvana::DeadlineTime old, EnvironmentBridge* _env)
-	{
-		try {
-			return S::_implementation (_b).schedule (deadline, executor, old);
-		} catch (const Exception& e) {
-			_env->set_exception (e);
-		} catch (...) {
-			_env->set_unknown_exception ();
-		}
-	}
-
-	static void _back_off (Bridge < ::Nirvana::Core::Scheduler>* _b, ULong hint, EnvironmentBridge* _env)
-	{
-		try {
-			return S::_implementation (_b).back_off (hint);
-		} catch (const Exception& e) {
-			_env->set_exception (e);
-		} catch (...) {
-			_env->set_unknown_exception ();
-		}
-	}
-
-	static void _core_free (Bridge < ::Nirvana::Core::Scheduler>* _b, EnvironmentBridge* _env)
-	{
-		try {
-			return S::_implementation (_b).core_free ();
-		} catch (const Exception& e) {
-			_env->set_exception (e);
-		} catch (...) {
-			_env->set_unknown_exception ();
-		}
-	}
-};
-
-template <class S>
-const Bridge < ::Nirvana::Core::Scheduler>::EPV Skeleton <S, ::Nirvana::Core::Scheduler>::epv_ = {
-	{ // interface
-		S::template _duplicate < ::Nirvana::Core::Scheduler>,
-		S::template _release < ::Nirvana::Core::Scheduler>
-	},
-	{ // base
-		S::template _wide <AbstractBase, ::Nirvana::Core::Scheduler>
-	},
-	{ // epv
-		S::_schedule,
-		S::_back_off,
-		S::_core_free
-	}
-};
-
-// Standard implementation
-
-template <class S>
-class Servant <S, ::Nirvana::Core::Scheduler> :
-	public Implementation <S, ::Nirvana::Core::Scheduler>
-{};
-
-// Static implementation
-
-template <class S>
-class ServantStatic <S, ::Nirvana::Core::Scheduler> :
-	public ImplementationStatic <S, ::Nirvana::Core::Scheduler>
-{};
-
-// Tied implementation
-
-template <class T>
-class ServantTied <T, ::Nirvana::Core::Scheduler> :
-	public ImplementationTied <T, ::Nirvana::Core::Scheduler>
-{
-public:
-	ServantTied (T* tp, Boolean release) :
-		ImplementationTied <T, ::Nirvana::Core::Scheduler> (tp, release)
-	{}
-};
 
 }
 }
@@ -363,22 +184,8 @@ public:
 namespace Nirvana {
 namespace Core {
 
-class Scheduler :
-	public ::CORBA::Nirvana::ClientInterfacePseudo <Scheduler>,
-	public ::CORBA::Nirvana::ClientInterfaceBase <Scheduler, ::CORBA::AbstractBase>
-{
-public:
-	typedef Scheduler_ptr _ptr_type;
-
-	operator ::CORBA::AbstractBase& ()
-	{
-		::CORBA::Environment _env;
-		::CORBA::AbstractBase* _ret = static_cast <::CORBA::AbstractBase*> ((_epv ().base.CORBA_AbstractBase) (this, &_env));
-		_env.check ();
-		assert (_ret);
-		return *_ret;
-	}
-};
+class Scheduler : public ::CORBA::Nirvana::ClientInterface <Scheduler, ::CORBA::AbstractBase>
+{};
 
 }
 }

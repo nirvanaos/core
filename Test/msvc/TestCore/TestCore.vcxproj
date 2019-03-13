@@ -133,6 +133,7 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="..\..\..\Source\RandomGen.cpp" />
+    <ClCompile Include="..\..\..\Source\Scheduler_c.cpp" />
     <ClCompile Include="..\..\..\Source\SyncDomain.cpp" />
     <ClCompile Include="..\..\..\Source\Thread.cpp" />
     <ClCompile Include="..\..\..\Source\Windows\AddressSpace.cpp" />
@@ -203,6 +204,7 @@
     <ClInclude Include="..\..\..\Source\RandomGen.h" />
     <ClInclude Include="..\..\..\Source\Scheduler.h" />
     <ClInclude Include="..\..\..\Source\SchedulerImpl.h" />
+    <ClInclude Include="..\..\..\Source\Scheduler_s.h" />
     <ClInclude Include="..\..\..\Source\SyncDomain.h" />
     <ClInclude Include="..\..\..\Source\SysDomain.h" />
     <ClInclude Include="..\..\..\Source\Thread.h" />

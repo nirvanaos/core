@@ -7,7 +7,8 @@
 #include "ExecContext.h"
 #include "ObjectPool.h"
 #include "Thread.h"
-#include "Scheduler.h"
+#include "Scheduler_s.h"
+#include <Nirvana/Runnable_s.h>
 #include <limits>
 
 namespace Nirvana {

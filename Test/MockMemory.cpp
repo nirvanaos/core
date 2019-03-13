@@ -6,6 +6,7 @@
 #include "../Source/core.h"
 #include <malloc.h>
 #include <memory.h>
+#include <Nirvana/Memory_s.h>
 #include <Nirvana/real_copy.h>
 #include <Nirvana/bitutils.h>
 
