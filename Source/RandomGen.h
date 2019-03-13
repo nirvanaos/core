@@ -19,7 +19,7 @@ public:
 	typedef uint32_t result_type;
 
 	RandomGen () :
-		state_ (reinterpret_cast <uint32_t> (this))
+		state_ ((uint32_t)reinterpret_cast <uintptr_t> (this))
 	{}
 
 	static uint32_t min ()
