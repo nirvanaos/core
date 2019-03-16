@@ -47,14 +47,14 @@ const Bridge < ::Nirvana::Core::Executor>::EPV Skeleton <S, ::Nirvana::Core::Exe
 
 template <class S>
 class Servant <S, ::Nirvana::Core::Executor> :
-	public Implementation <S, ::Nirvana::Core::Executor, ::CORBA::AbstractBase>
+	public Implementation <S, ::Nirvana::Core::Executor>
 {};
 
 // Static implementation
 
 template <class S>
 class ServantStatic <S, ::Nirvana::Core::Executor> :
-	public ImplementationStatic <S, ::Nirvana::Core::Executor, ::CORBA::AbstractBase>
+	public ImplementationStatic <S, ::Nirvana::Core::Executor>
 {};
 
 // Scheduler skeleton
@@ -122,14 +122,14 @@ const Bridge < ::Nirvana::Core::Scheduler>::EPV Skeleton <S, ::Nirvana::Core::Sc
 
 template <class S>
 class Servant <S, ::Nirvana::Core::Scheduler> :
-	public Implementation <S, ::Nirvana::Core::Scheduler, ::CORBA::AbstractBase>
+	public Implementation <S, ::Nirvana::Core::Scheduler>
 {};
 
 // Static implementation
 
 template <class S>
 class ServantStatic <S, ::Nirvana::Core::Scheduler> :
-	public ImplementationStatic <S, ::Nirvana::Core::Scheduler, ::CORBA::AbstractBase>
+	public ImplementationStatic <S, ::Nirvana::Core::Scheduler>
 {};
 
 }
