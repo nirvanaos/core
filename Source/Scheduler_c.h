@@ -69,7 +69,7 @@ template <class T>
 void Client <T, ::Nirvana::Core::Executor>::execute (::Nirvana::DeadlineTime deadline)
 {
 	Environment _env;
-	Bridge < ::Nirvana::Core::Executor>& _b (*this);
+	Bridge < ::Nirvana::Core::Executor>& _b (T::_get_bridge (_env));
 	(_b._epv ().epv.execute) (&_b, deadline, &_env);
 	_env.check ();
 }
@@ -155,7 +155,7 @@ template <class T>
 void Client <T, ::Nirvana::Core::Scheduler>::schedule (::Nirvana::DeadlineTime deadline, ::Nirvana::Core::Executor_ptr executor, ::Nirvana::DeadlineTime old)
 {
 	Environment _env;
-	Bridge < ::Nirvana::Core::Scheduler>& _b (*this);
+	Bridge < ::Nirvana::Core::Scheduler>& _b (T::_get_bridge (_env));
 	(_b._epv ().epv.schedule) (&_b, deadline, executor, old, &_env);
 	_env.check ();
 }
@@ -164,7 +164,7 @@ template <class T>
 void Client <T, ::Nirvana::Core::Scheduler>::back_off (ULong hint)
 {
 	Environment _env;
-	Bridge < ::Nirvana::Core::Scheduler>& _b (*this);
+	Bridge < ::Nirvana::Core::Scheduler>& _b (T::_get_bridge (_env));
 	(_b._epv ().epv.back_off) (&_b, hint, &_env);
 	_env.check ();
 }
@@ -173,7 +173,7 @@ template <class T>
 void Client <T, ::Nirvana::Core::Scheduler>::core_free ()
 {
 	Environment _env;
-	Bridge < ::Nirvana::Core::Scheduler>& _b (*this);
+	Bridge < ::Nirvana::Core::Scheduler>& _b (T::_get_bridge (_env));
 	(_b._epv ().epv.core_free) (&_b, &_env);
 	_env.check ();
 }
