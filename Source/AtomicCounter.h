@@ -56,13 +56,22 @@ private:
 #endif
 };
 
-/// Reference counter always initialized to 1 and can't be incremented from zero.
+//! Reference counter always initialized to 1 and can't be incremented from zero.
 class RefCounter : public AtomicCounter
 {
 public:
 	RefCounter () :
 		AtomicCounter (1)
 	{}
+
+	RefCounter (const RefCounter&) :
+		AtomicCounter (1)
+	{}
+
+	RefCounter& operator = (const RefCounter&)
+	{
+		return *this;
+	}
 
 	uint32_t decrement ()
 	{
