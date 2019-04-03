@@ -2,7 +2,7 @@
 #define NIRVANA_CORE_SCHEDULER_S_H_
 
 #include "Scheduler_c.h"
-#include <Servant.h>
+#include <CORBA/Servant.h>
 
 namespace CORBA {
 namespace Nirvana {

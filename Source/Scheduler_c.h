@@ -4,7 +4,8 @@
 #ifndef NIRVANA_CORE_SCHEDULER_C_H_
 #define NIRVANA_CORE_SCHEDULER_C_H_
 
-#include <AbstractBase_c.h>
+#include <CORBA/AbstractBase_c.h>
+#include <Nirvana/Nirvana.h>
 
 //! \interface Executor
 

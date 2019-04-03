@@ -4,7 +4,7 @@
 #ifndef NIRVANA_CORE_CONFIG_H_
 #define NIRVANA_CORE_CONFIG_H_
 
-#include <BasicTypes.h>
+#include <CORBA/BasicTypes.h>
 
 namespace Nirvana {
 namespace Core {
