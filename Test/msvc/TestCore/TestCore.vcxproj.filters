@@ -12,6 +12,9 @@
     <Filter Include="Interface">
       <UniqueIdentifier>{0cc5b500-6e57-4578-bf4c-58d616731a9b}</UniqueIdentifier>
     </Filter>
+    <Filter Include="ORB">
+      <UniqueIdentifier>{06f8a358-f707-4f9f-ae50-629851f450f2}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\..\googletest\googletest\src\gtest_main.cc">
@@ -121,6 +124,18 @@
     </ClCompile>
     <ClCompile Include="..\..\..\Source\Scheduler_c.cpp">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Source\ORB\ObjectCore.cpp">
+      <Filter>ORB</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Source\ORB\ObjectFactoryCore.cpp">
+      <Filter>ORB</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Source\ORB\ObjectImpl.cpp">
+      <Filter>ORB</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Source\ORB\ServantCore.cpp">
+      <Filter>ORB</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -258,6 +273,24 @@
     </ClInclude>
     <ClInclude Include="..\..\..\Source\Scheduler_c.h">
       <Filter>Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Source\ORB\LocalObjectCore.h">
+      <Filter>ORB</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Source\ORB\ObjectCore.h">
+      <Filter>ORB</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Source\ORB\ObjectFactoryCore.h">
+      <Filter>ORB</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Source\ORB\ObjectImpl.h">
+      <Filter>ORB</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Source\ORB\ReferenceCounterImpl.h">
+      <Filter>ORB</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Source\ORB\ServantCore.h">
+      <Filter>ORB</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

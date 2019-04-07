@@ -14,7 +14,8 @@ namespace Core {
 
 class SyncDomain :
 	public CoreObject,
-	public ::CORBA::Nirvana::Servant <SyncDomain, Executor>
+	public ::CORBA::Nirvana::Servant <SyncDomain, Executor>,
+	public ::CORBA::Nirvana::LifeCycleRefCntAbstract <SyncDomain>
 {
 public:
 	SyncDomain () :

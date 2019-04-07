@@ -125,6 +125,10 @@
     <ClCompile Include="..\..\..\Source\Heap.cpp" />
     <ClCompile Include="..\..\..\Source\HeapDirectory.cpp" />
     <ClCompile Include="..\..\..\Source\ObjectPool.cpp" />
+    <ClCompile Include="..\..\..\Source\ORB\ObjectCore.cpp" />
+    <ClCompile Include="..\..\..\Source\ORB\ObjectFactoryCore.cpp" />
+    <ClCompile Include="..\..\..\Source\ORB\ObjectImpl.cpp" />
+    <ClCompile Include="..\..\..\Source\ORB\ServantCore.cpp" />
     <ClCompile Include="..\..\..\Source\PriorityQueue.cpp" />
     <ClCompile Include="..\..\..\Source\ProtDomain.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</ExcludedFromBuild>
@@ -199,6 +203,12 @@
     <ClInclude Include="..\..\..\Source\HeapDirectory.h" />
     <ClInclude Include="..\..\..\Source\InitTerm.h" />
     <ClInclude Include="..\..\..\Source\ObjectPool.h" />
+    <ClInclude Include="..\..\..\Source\ORB\LocalObjectCore.h" />
+    <ClInclude Include="..\..\..\Source\ORB\ObjectCore.h" />
+    <ClInclude Include="..\..\..\Source\ORB\ObjectFactoryCore.h" />
+    <ClInclude Include="..\..\..\Source\ORB\ObjectImpl.h" />
+    <ClInclude Include="..\..\..\Source\ORB\ReferenceCounterImpl.h" />
+    <ClInclude Include="..\..\..\Source\ORB\ServantCore.h" />
     <ClInclude Include="..\..\..\Source\PriorityQueue.h" />
     <ClInclude Include="..\..\..\Source\ProtDomain.h" />
     <ClInclude Include="..\..\..\Source\RandomGen.h" />

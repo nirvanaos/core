@@ -249,7 +249,8 @@ public:
 
 class Heap :
 	public HeapBaseT,
-	public ::CORBA::Nirvana::Servant <Heap, Memory>
+	public ::CORBA::Nirvana::Servant <Heap, Memory>,
+	public ::CORBA::Nirvana::LifeCycleRefCntAbstract <Heap>
 {
 public:
 	Pointer allocate (Pointer p, UWord size, Flags flags);
@@ -325,13 +326,13 @@ public:
 	void _add_ref ()
 	{
 		if (!no_destroy_)
-			::CORBA::Nirvana::Servant <Heap, Memory>::_add_ref ();
+			::CORBA::Nirvana::ReferenceCounterLink::_add_ref ();
 	}
 
 	void _remove_ref ()
 	{
 		if (!no_destroy_)
-			::CORBA::Nirvana::Servant <Heap, Memory>::_remove_ref ();
+			::CORBA::Nirvana::ReferenceCounterLink::_remove_ref ();
 	}
 
 	void* operator new (size_t cb)

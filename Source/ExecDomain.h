@@ -19,7 +19,8 @@ class SyncDomain;
 class ExecDomain :
 	public ExecContext,
 	public PoolableObject,
-	public ::CORBA::Nirvana::Servant <ExecDomain, Executor>
+	public ::CORBA::Nirvana::Servant <ExecDomain, Executor>,
+	public ::CORBA::Nirvana::LifeCycleRefCntAbstract <ExecDomain>
 {
 public:
 	static void async_call (Runnable_ptr runnable, DeadlineTime deadline, SyncDomain* sync_domain);
