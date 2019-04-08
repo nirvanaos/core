@@ -187,9 +187,6 @@
     <ProjectReference Include="..\..\..\..\Library\Source\msvc\Library.vcxproj">
       <Project>{810a987d-bff4-4112-a59f-b8eae9fccd65}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\..\..\..\ORB\Source\msvs\ORB.vcxproj">
-      <Project>{11cc69aa-aba7-40e5-a5b5-fa0dc3e705a1}</Project>
-    </ProjectReference>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\Source\AtomicCounter.h" />
@@ -244,7 +241,17 @@
     <ClInclude Include="..\..\MockMemory.h" />
     <ClInclude Include="..\..\MockScheduler.h" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
+    <Import Project="..\..\..\..\build\msvc\packages\Nirvana.ORB.1.0.0.0\build\native\Nirvana.ORB.targets" Condition="Exists('..\..\..\..\build\msvc\packages\Nirvana.ORB.1.0.0.0\build\native\Nirvana.ORB.targets')" />
   </ImportGroup>
+  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
+    <PropertyGroup>
+      <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
+    </PropertyGroup>
+    <Error Condition="!Exists('..\..\..\..\build\msvc\packages\Nirvana.ORB.1.0.0.0\build\native\Nirvana.ORB.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\..\..\..\build\msvc\packages\Nirvana.ORB.1.0.0.0\build\native\Nirvana.ORB.targets'))" />
+  </Target>
 </Project>
