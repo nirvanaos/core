@@ -75,7 +75,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
-      <AdditionalIncludeDirectories>..\..\..\..\ORB\Include;..\..\..\..\Library\Include;..\..\..\..\googletest\googletest;..\..\..\..\googletest\googletest\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\..\..\googletest\googletest;..\..\..\..\googletest\googletest\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <ExceptionHandling>Async</ExceptionHandling>
     </ClCompile>
     <Link>
@@ -85,7 +85,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
-      <AdditionalIncludeDirectories>..\..\..\..\ORB\Include;..\..\..\..\Library\Include;..\..\..\..\googletest\googletest;..\..\..\..\googletest\googletest\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\..\..\googletest\googletest;..\..\..\..\googletest\googletest\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <ExceptionHandling>Async</ExceptionHandling>
     </ClCompile>
     <Link>
@@ -95,7 +95,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
-      <AdditionalIncludeDirectories>..\..\..\..\ORB\Include;..\..\..\..\Library\Include;..\..\..\..\googletest\googletest;..\..\..\..\googletest\googletest\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\..\..\googletest\googletest;..\..\..\..\googletest\googletest\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <ExceptionHandling>Async</ExceptionHandling>
       <WholeProgramOptimization>true</WholeProgramOptimization>
       <IntrinsicFunctions>true</IntrinsicFunctions>
@@ -107,7 +107,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
-      <AdditionalIncludeDirectories>..\..\..\..\ORB\Include;..\..\..\..\Library\Include;..\..\..\..\googletest\googletest;..\..\..\..\googletest\googletest\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\..\..\googletest\googletest;..\..\..\..\googletest\googletest\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <ExceptionHandling>Async</ExceptionHandling>
       <WholeProgramOptimization>true</WholeProgramOptimization>
       <IntrinsicFunctions>true</IntrinsicFunctions>
@@ -184,11 +184,6 @@
     <ClCompile Include="..\..\TestPriorityQueue.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\..\..\Library\Source\msvc\Library.vcxproj">
-      <Project>{810a987d-bff4-4112-a59f-b8eae9fccd65}</Project>
-    </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
     <ClInclude Include="..\..\..\Source\AtomicCounter.h" />
     <ClInclude Include="..\..\..\Source\AtomicPtr.h" />
     <ClInclude Include="..\..\..\Source\BackOff.h" />
@@ -247,11 +242,13 @@
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
     <Import Project="..\..\..\..\build\msvc\packages\Nirvana.ORB.1.0.0.0\build\native\Nirvana.ORB.targets" Condition="Exists('..\..\..\..\build\msvc\packages\Nirvana.ORB.1.0.0.0\build\native\Nirvana.ORB.targets')" />
+    <Import Project="..\..\..\..\build\msvc\packages\Nirvana.Lib.1.0.0.0\build\native\Nirvana.Lib.targets" Condition="Exists('..\..\..\..\build\msvc\packages\Nirvana.Lib.1.0.0.0\build\native\Nirvana.Lib.targets')" />
   </ImportGroup>
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
     <PropertyGroup>
       <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
     </PropertyGroup>
     <Error Condition="!Exists('..\..\..\..\build\msvc\packages\Nirvana.ORB.1.0.0.0\build\native\Nirvana.ORB.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\..\..\..\build\msvc\packages\Nirvana.ORB.1.0.0.0\build\native\Nirvana.ORB.targets'))" />
+    <Error Condition="!Exists('..\..\..\..\build\msvc\packages\Nirvana.Lib.1.0.0.0\build\native\Nirvana.Lib.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\..\..\..\build\msvc\packages\Nirvana.Lib.1.0.0.0\build\native\Nirvana.Lib.targets'))" />
   </Target>
 </Project>
