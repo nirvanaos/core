@@ -2,8 +2,8 @@
 // Core tests
 // MockScheduler class
 
-#include "../Source/core.h"
-#include "../Source/Scheduler_s.h"
+#include <core.h>
+#include <Scheduler_s.h>
 #include <thread>
 
 namespace Nirvana {

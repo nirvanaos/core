@@ -3,7 +3,7 @@
 // MockMemory class
 
 #include "MockMemory.h"
-#include "../Source/core.h"
+#include <core.h>
 #include <malloc.h>
 #include <memory.h>
 #include <Nirvana/Memory_s.h>
