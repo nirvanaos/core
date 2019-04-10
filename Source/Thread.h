@@ -7,17 +7,7 @@
 #include "core.h"
 #include "RandomGen.h"
 #include <Nirvana/Runnable_c.h>
-
-#ifdef _WIN32
 #include "PortThread.h"
-namespace Nirvana {
-namespace Core {
-typedef Windows::ThreadWindows ThreadBase;
-}
-}
-#else
-#error Unknown platform.
-#endif
 
 namespace Nirvana {
 namespace Core {
@@ -27,26 +17,26 @@ class ExecDomain;
 
 class Thread :
 	public CoreObject,
-	protected ThreadBase
+	protected Port::Thread
 {
 public:
 	/// Returns current thread.
 	static Thread& current ()
 	{
-		Thread* p = static_cast <Thread*> (ThreadBase::current ());
+		Thread* p = static_cast <Thread*> (Port::Thread::current ());
 		assert (p);
 		return *p;
 	}
 
 	Thread () :
-		ThreadBase (),
+		Port::Thread (),
 		rndgen_ (),
 		exec_domain_ (nullptr)
 	{}
 
 	template <class P>
 	Thread (P param) :
-		ThreadBase (param),
+		Port::Thread (param),
 		rndgen_ (),
 		exec_domain_ (nullptr)
 	{}
@@ -68,7 +58,7 @@ public:
 	/// Returns special "neutral" execution context with own stack and CPU state.
 	ExecContext* neutral_context ()
 	{
-		return ThreadBase::neutral_context ();
+		return Port::Thread::neutral_context ();
 	}
 	
 	/// Temporary boost the priority for time-critical operations.

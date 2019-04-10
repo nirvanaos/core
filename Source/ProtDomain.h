@@ -4,24 +4,14 @@
 #define NIRVANA_CORE_PROTDOMAIN_H_
 
 #include "core.h"
-
-#ifdef _WIN32
 #include "PortProtDomain.h"
-namespace Nirvana {
-namespace Core {
-typedef Windows::ProtDomainWindows ProtDomainBase;
-}
-}
-#else
-#error Unknown platform.
-#endif
 
 namespace Nirvana {
 namespace Core {
 
 class ProtDomain :
 	public CoreObject,
-	public ProtDomainBase
+	public Port::ProtDomain
 {
 public:
 	static void initialize ()

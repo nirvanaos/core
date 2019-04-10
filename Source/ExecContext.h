@@ -6,38 +6,28 @@
 
 #include "core.h"
 #include <Nirvana/Runnable_c.h>
-
-#ifdef _WIN32
 #include "PortExecContext.h"
-namespace Nirvana {
-namespace Core {
-typedef Windows::ExecContextWindows ExecContextBase;
-}
-}
-#else
-#error Unknown platform.
-#endif
 
 namespace Nirvana {
 namespace Core {
 
 class ExecContext :
 	public CoreObject,
-	protected ExecContextBase
+	protected Port::ExecContext
 {
 public:
 	static ExecContext* current ()
 	{
-		return static_cast <ExecContext*> (ExecContextBase::current ());
+		return static_cast <ExecContext*> (Port::ExecContext::current ());
 	}
 
 	ExecContext () :
-		ExecContextBase ()
+		Port::ExecContext ()
 	{}
 
 	template <class P>
 	ExecContext (P param) :
-		ExecContextBase (param)
+		Port::ExecContext (param)
 	{}
 
 	::CORBA::Environment& environment ()
@@ -49,7 +39,7 @@ public:
 	void switch_to ()
 	{
 		assert (current () != this);
-		ExecContextBase::switch_to ();
+		Port::ExecContext::switch_to ();
 	}
 
 	static void run_in_neutral_context (Runnable_ptr runnable);

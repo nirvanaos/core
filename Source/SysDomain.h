@@ -4,28 +4,18 @@
 #define NIRVANA_CORE_SYSDOMAIN_H_
 
 #include "core.h"
-
-#ifdef _WIN32
 #include "PortSysDomain.h"
-namespace Nirvana {
-namespace Core {
-typedef Windows::SysDomainWindows SysDomainBase;
-}
-}
-#else
-#error Unknown platform.
-#endif
 
 namespace Nirvana {
 namespace Core {
 
 class SysDomain :
 	public CoreObject,
-	private SysDomainBase
+	private Port::SysDomain
 {
 public:
 	class ProtDomainInfo :
-		public SysDomainBase::ProtDomainInfo
+		public Port::SysDomain::ProtDomainInfo
 	{
 	public:
 		template <typename T>

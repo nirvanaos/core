@@ -7,7 +7,7 @@ namespace Nirvana {
 namespace Core {
 
 class BackOff :
-	public PortBackOff
+	public Port::BackOff
 {
 public:
 	BackOff ()
@@ -19,7 +19,7 @@ public:
 	void sleep ()
 	{
 		// TODO: Implement some algorithm to choice the sleep time
-		PortBackOff::sleep (0);
+		Port::BackOff::sleep (0);
 	}
 };
 
