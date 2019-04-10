@@ -9,7 +9,7 @@
 #include <Nirvana/Runnable_c.h>
 
 #ifdef _WIN32
-#include "ThreadWindows.h"
+#include "PortThread.h"
 namespace Nirvana {
 namespace Core {
 typedef Windows::ThreadWindows ThreadBase;

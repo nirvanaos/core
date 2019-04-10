@@ -6,7 +6,7 @@
 #include "core.h"
 
 #ifdef _WIN32
-#include "SysDomainWindows.h"
+#include "PortSysDomain.h"
 namespace Nirvana {
 namespace Core {
 typedef Windows::SysDomainWindows SysDomainBase;

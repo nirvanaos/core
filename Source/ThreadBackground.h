@@ -4,7 +4,7 @@
 #include "Thread.h"
 
 #ifdef _WIN32
-#include "Windows/ThreadBackgroundBase.h"
+#include "PortThreadBackground.h"
 namespace Nirvana {
 namespace Core {
 typedef Windows::ThreadBackgroundBase ThreadBackgroundBase;

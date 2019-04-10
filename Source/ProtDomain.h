@@ -6,7 +6,7 @@
 #include "core.h"
 
 #ifdef _WIN32
-#include "ProtDomainWindows.h"
+#include "PortProtDomain.h"
 namespace Nirvana {
 namespace Core {
 typedef Windows::ProtDomainWindows ProtDomainBase;
