@@ -8,7 +8,7 @@
 #include <Nirvana/Runnable_c.h>
 
 #ifdef _WIN32
-#include "Windows/ExecContextWindows.h"
+#include "ExecContextWindows.h"
 namespace Nirvana {
 namespace Core {
 typedef Windows::ExecContextWindows ExecContextBase;

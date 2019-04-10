@@ -655,7 +655,7 @@ void HeapDirectory <DIRECTORY_SIZE, USE_EXCEPTION>::commit (UWord begin, UWord e
 {
 	if (heap_info) {
 		assert (memory && heap_info->heap && heap_info->unit_size && heap_info->commit_size);
-		UWord commit_size = min (Traits::MAX_BLOCK_SIZE * heap_info->unit_size, heap_info->commit_size);
+		UWord commit_size = std::min (Traits::MAX_BLOCK_SIZE * heap_info->unit_size, heap_info->commit_size);
 		UWord commit_begin = round_up (begin * heap_info->unit_size, commit_size);
 		UWord commit_end = round_down (end * heap_info->unit_size, commit_size);
 		if (commit_begin < commit_end) {

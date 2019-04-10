@@ -289,7 +289,7 @@ public:
 	bool insert (DeadlineTime dt, const Val& value, RandomGen& rndgen = Thread::current ().rndgen ())
 	{
 		// Choose level randomly.
-		int level = random_level (rndgen);
+		int level = PriorityQueueBase::random_level (rndgen);
 
 		// Create new node.
 		return PriorityQueueL <MAX_LEVEL>::insert (create_node (level, dt, value));
@@ -303,7 +303,7 @@ public:
 		NodeVal* node = static_cast <NodeVal*> (PriorityQueueBase::delete_min ());
 		if (node) {
 			val = std::move (node->value ());
-			release_node (node);
+			PriorityQueueBase::release_node (node);
 			return true;
 		}
 		return false;
@@ -319,7 +319,7 @@ public:
 		if (node) {
 			val = std::move (node->value ());
 			deadline = node->deadline;
-			release_node (node);
+			PriorityQueueBase::release_node (node);
 			return true;
 		}
 		return false;
@@ -327,9 +327,9 @@ public:
 
 	bool erase (DeadlineTime dt, const Val& value)
 	{
-		Node* node = create_node (1, dt, value);
+		PriorityQueueBase::Node* node = create_node (1, dt, value);
 		bool ret = PriorityQueueL <MAX_LEVEL>::erase (node);
-		release_node (node);
+		PriorityQueueBase::release_node (node);
 		return ret;
 	}
 
@@ -379,10 +379,10 @@ private:
 		}
 	};
 
-	Node* create_node (int level, DeadlineTime dt, const Val& value)
+	PriorityQueueBase::Node* create_node (int level, DeadlineTime dt, const Val& value)
 	{
 #ifdef _DEBUG
-		node_cnt_.increment ();
+		PriorityQueueBase::node_cnt_.increment ();
 #endif
 		return new (level) NodeVal (level, dt, value);
 	}

@@ -1,16 +1,13 @@
 #ifndef NIRVANA_CORE_BACKOFF_H_
 #define NIRVANA_CORE_BACKOFF_H_
 
-#ifdef _WIN32
-#include "Windows/win32.h"
-#else
-#error Unknown platform.
-#endif
+#include "PortBackOff.h"
 
 namespace Nirvana {
 namespace Core {
 
-class BackOff
+class BackOff :
+	public PortBackOff
 {
 public:
 	BackOff ()
@@ -21,9 +18,8 @@ public:
 
 	void sleep ()
 	{
-#ifdef _WIN32
-		::Sleep (0);
-#endif
+		// TODO: Implement some algorithm to choice the sleep time
+		PortBackOff::sleep (0);
 	}
 };
 
