@@ -4,7 +4,7 @@
 #define NIRVANA_CORE_SYSDOMAIN_H_
 
 #include "core.h"
-#include "PortSysDomain.h"
+#include <Port/SysDomain.h>
 
 namespace Nirvana {
 namespace Core {

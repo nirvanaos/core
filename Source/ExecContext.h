@@ -6,7 +6,7 @@
 
 #include "core.h"
 #include <Nirvana/Runnable_c.h>
-#include "PortExecContext.h"
+#include <Port/ExecContext.h>
 
 namespace Nirvana {
 namespace Core {

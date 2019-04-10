@@ -7,7 +7,7 @@
 #include "core.h"
 #include "RandomGen.h"
 #include <Nirvana/Runnable_c.h>
-#include "PortThread.h"
+#include <Port/Thread.h>
 
 namespace Nirvana {
 namespace Core {
