@@ -123,7 +123,6 @@ public:
 			// Pass Bridge < ::Nirvana::Core::Executor>*, not BridgeMarshal for performance.
 			// We can be sure that this call is performed only in core binaries.
 			void (*schedule) (Bridge <::Nirvana::Core::Scheduler>*, ::Nirvana::DeadlineTime, Bridge < ::Nirvana::Core::Executor>*, ::Nirvana::DeadlineTime, EnvironmentBridge*);
-			void (*back_off) (Bridge <::Nirvana::Core::Scheduler>*, ULong, EnvironmentBridge*);
 			void (*core_free) (Bridge <::Nirvana::Core::Scheduler>*, EnvironmentBridge*);
 		}
 		epv;
@@ -148,7 +147,6 @@ class Client <T, ::Nirvana::Core::Scheduler> :
 {
 public:
 	void schedule (::Nirvana::DeadlineTime deadline, ::Nirvana::Core::Executor_ptr executor, ::Nirvana::DeadlineTime old);
-	void back_off (ULong);
 	void core_free ();
 };
 
@@ -158,15 +156,6 @@ void Client <T, ::Nirvana::Core::Scheduler>::schedule (::Nirvana::DeadlineTime d
 	Environment _env;
 	Bridge < ::Nirvana::Core::Scheduler>& _b (T::_get_bridge (_env));
 	(_b._epv ().epv.schedule) (&_b, deadline, executor, old, &_env);
-	_env.check ();
-}
-
-template <class T>
-void Client <T, ::Nirvana::Core::Scheduler>::back_off (ULong hint)
-{
-	Environment _env;
-	Bridge < ::Nirvana::Core::Scheduler>& _b (T::_get_bridge (_env));
-	(_b._epv ().epv.back_off) (&_b, hint, &_env);
 	_env.check ();
 }
 

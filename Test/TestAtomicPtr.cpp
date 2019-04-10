@@ -1,6 +1,5 @@
 #include "../Source/AtomicPtr.h"
 #include "../Source/AtomicCounter.h"
-#include "MockScheduler.h"
 #include "gtest/gtest.h"
 #include <thread>
 #include <vector>
@@ -63,7 +62,6 @@ protected:
 	{
 		// Code here will be called immediately after the constructor (right
 		// before each test).
-		::Nirvana::Core::Test::mock_scheduler_init (false);
 	}
 
 	virtual void TearDown ()
@@ -73,7 +71,6 @@ protected:
 		Value* p = shared_ptr_.load ();
 		if (p)
 			p->remove_ref ();
-		::Nirvana::Core::Test::mock_scheduler_term ();
 	}
 
 	typedef TaggedPtrT <Value, alignment> Ptr;

@@ -39,7 +39,7 @@ const Bridge < ::Nirvana::Core::Executor>::EPV Skeleton <S, ::Nirvana::Core::Exe
 		S::template _wide <AbstractBase, ::Nirvana::Core::Executor>
 	},
 	{ // epv
-		S::_execute,
+		S::_execute
 	}
 };
 
@@ -78,17 +78,6 @@ protected:
 		}
 	}
 
-	static void _back_off (Bridge < ::Nirvana::Core::Scheduler>* _b, ULong hint, EnvironmentBridge* _env)
-	{
-		try {
-			S::_implementation (_b).back_off (hint);
-		} catch (const Exception& e) {
-			_env->set_exception (e);
-		} catch (...) {
-			_env->set_unknown_exception ();
-		}
-	}
-
 	static void _core_free (Bridge < ::Nirvana::Core::Scheduler>* _b, EnvironmentBridge* _env)
 	{
 		try {
@@ -113,7 +102,6 @@ const Bridge < ::Nirvana::Core::Scheduler>::EPV Skeleton <S, ::Nirvana::Core::Sc
 	},
 	{ // epv
 		S::_schedule,
-		S::_back_off,
 		S::_core_free
 	}
 };

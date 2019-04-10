@@ -1,7 +1,6 @@
 #include "../Source/HeapDirectory.h"
 #include "../Source/core.h"
 #include "../Source/InitTerm.h"
-#include "MockScheduler.h"
 #include <gtest/gtest.h>
 #include <random>
 #include <thread>
@@ -84,7 +83,6 @@ protected:
 	{
 		// Code here will be called immediately after the constructor (right
 		// before each test).
-		::Nirvana::Core::Test::mock_scheduler_init (true);
 		Factory::initialize ();
 		directory_ = Factory::create ();
 		ASSERT_TRUE (directory_);
@@ -96,7 +94,6 @@ protected:
 		// before the destructor).
 		Factory::destroy (directory_);
 		Factory::terminate ();
-		::Nirvana::Core::Test::mock_scheduler_term ();
 	}
 
 protected:
@@ -404,8 +401,6 @@ public:
 
 TYPED_TEST (TestHeapDirectory, MultiThread)
 {
-	::Nirvana::Core::Test::mock_scheduler_backoff_break (false);
-
 	EXPECT_TRUE (this->directory_->empty ());
 
 	const size_t thread_cnt = max (thread::hardware_concurrency (), (unsigned)2);
