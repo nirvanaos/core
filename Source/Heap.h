@@ -4,10 +4,10 @@
 #include "HeapDirectory.h"
 #include "core.h"
 #include "config.h"
-#include "InitTerm.h"
 #include <type_traits>
 #include <Nirvana/HeapFactory_s.h>
 #include <Nirvana/Memory_s.h>
+#include <Port/ProtDomainMemory.h>
 
 namespace Nirvana {
 namespace Core {
@@ -137,6 +137,11 @@ protected:
 	static bool sparse_table (UWord table_bytes)
 	{
 		return ((table_bytes + HEAP_UNIT_DEFAULT - 1) / HEAP_UNIT_DEFAULT > Directory::MAX_BLOCK_SIZE);
+	}
+
+	static Memory_ptr protection_domain_memory ()
+	{
+		return Port::ProtDomainMemory::singleton ();
 	}
 
 protected:
@@ -301,7 +306,8 @@ public:
 
 	static void initialize ()
 	{
-		initialize_memory ();
+		::Nirvana::Core::Port::ProtDomainMemory::initialize ();
+
 		Partition& first_part = HeapBaseT::initialize ();
 		Heap* instance = (Heap*)first_part.allocate (sizeof (Heap));
 		new (instance) Heap (first_part);
@@ -311,7 +317,7 @@ public:
 
 	static void terminate ()
 	{
-		terminate_memory ();
+		::Nirvana::Core::Port::ProtDomainMemory::terminate ();
 	}
 
 	Heap (ULong allocation_unit) :

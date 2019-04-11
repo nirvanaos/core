@@ -15,14 +15,8 @@ extern HeapFactory_ptr g_heap_factory;
 
 namespace Core {
 
-extern Memory_ptr g_protection_domain_memory;
 extern Memory_ptr g_core_heap;
 extern Scheduler_ptr g_scheduler;
-
-inline Memory_ptr protection_domain_memory ()
-{
-	return g_protection_domain_memory;
-}
 
 class CoreObject
 {

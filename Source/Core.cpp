@@ -7,7 +7,6 @@ HeapFactory_ptr g_heap_factory;
 
 namespace Core {
 
-Memory_ptr g_protection_domain_memory;
 Memory_ptr g_core_heap = Memory_ptr::nil ();
 Scheduler_ptr g_scheduler;
 

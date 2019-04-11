@@ -289,7 +289,7 @@ public:
 	bool insert (DeadlineTime dt, const Val& value, RandomGen& rndgen = Thread::current ().rndgen ())
 	{
 		// Choose level randomly.
-		int level = PriorityQueueBase::random_level (rndgen);
+		int level = PriorityQueueL <MAX_LEVEL>::random_level (rndgen);
 
 		// Create new node.
 		return PriorityQueueL <MAX_LEVEL>::insert (create_node (level, dt, value));

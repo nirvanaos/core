@@ -1,6 +1,6 @@
 #include "../Source/HeapDirectory.h"
 #include "../Source/core.h"
-#include "../Source/InitTerm.h"
+#include <Port/ProtDomainMemory.h>
 #include <gtest/gtest.h>
 #include <random>
 #include <thread>
@@ -23,13 +23,13 @@ public:
 	static void initialize ()
 	{
 		if (PROT)
-			::Nirvana::Core::initialize_memory ();
+			::Nirvana::Core::Port::ProtDomainMemory::initialize ();
 	}
 
 	static void terminate ()
 	{
 		if (PROT)
-			::Nirvana::Core::terminate_memory ();
+			::Nirvana::Core::Port::ProtDomainMemory::terminate ();
 	}
 
 	static DirectoryType* create ()
@@ -56,7 +56,7 @@ public:
 	static Memory_ptr memory ()
 	{
 		if (PROT)
-			return protection_domain_memory ();
+			return Port::ProtDomainMemory::singleton ();
 		else
 			return Memory_ptr::nil ();
 	}
