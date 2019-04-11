@@ -253,9 +253,7 @@ public:
 };
 
 class Heap :
-	public HeapBaseT,
-	public ::CORBA::Nirvana::Servant <Heap, Memory>,
-	public ::CORBA::Nirvana::LifeCycleRefCntAbstract <Heap>
+	public HeapBaseT
 {
 public:
 	Pointer allocate (Pointer p, UWord size, Flags flags);
@@ -304,41 +302,11 @@ public:
 
 	Word query (ConstPointer p, Memory::QueryParam param);
 
-	static void initialize ()
-	{
-		::Nirvana::Core::Port::ProtDomainMemory::initialize ();
-
-		Partition& first_part = HeapBaseT::initialize ();
-		Heap* instance = (Heap*)first_part.allocate (sizeof (Heap));
-		new (instance) Heap (first_part);
-		g_core_heap = instance;
-		g_heap_factory = HeapFactoryImpl::_this ();
-	}
+	static void initialize ();
 
 	static void terminate ()
 	{
 		::Nirvana::Core::Port::ProtDomainMemory::terminate ();
-	}
-
-	Heap (ULong allocation_unit) :
-		HeapBaseT (allocation_unit),
-		no_destroy_ (false)
-	{
-		part_list_ = &create_partition ();
-	}
-
-	~Heap ();
-
-	void _add_ref ()
-	{
-		if (!no_destroy_)
-			::CORBA::Nirvana::ReferenceCounterLink::_add_ref ();
-	}
-
-	void _remove_ref ()
-	{
-		if (!no_destroy_)
-			::CORBA::Nirvana::ReferenceCounterLink::_remove_ref ();
 	}
 
 	void* operator new (size_t cb)
@@ -351,6 +319,21 @@ public:
 		g_core_heap->release (p, cb);
 	}
 
+	~Heap ();
+
+protected:
+	Heap (ULong allocation_unit) :
+		HeapBaseT (allocation_unit)
+	{
+		part_list_ = &create_partition ();
+	}
+
+	Heap (Partition& first_part) :
+		HeapBaseT (HEAP_UNIT_DEFAULT)
+	{
+		part_list_ = &first_part;
+	}
+
 private:
 	void* operator new (size_t cb, void* p)
 	{
@@ -360,21 +343,11 @@ private:
 	void operator delete (void* p, void* p1)
 	{}
 
-	Heap (Partition& first_part) :
-		HeapBaseT (HEAP_UNIT_DEFAULT),
-		no_destroy_ (true)
-	{
-		part_list_ = &first_part;
-	}
-
 private:
 	Pointer allocate (UWord size) const;
 	Partition& create_partition () const;
 	static const Partition* get_partition (const void* address);
 	static void destroy_partition (Partition& part);
-
-private:
-	bool no_destroy_;
 };
 
 inline Pointer Heap::allocate (Pointer p, UWord size, Flags flags)
@@ -453,14 +426,49 @@ inline Word Heap::query (ConstPointer p, Memory::QueryParam param)
 	return protection_domain_memory ()->query (p, param);
 }
 
+class HeapMain :
+	public Heap,
+	public CORBA::Nirvana::Servant <HeapMain, Memory>,
+	public CORBA::Nirvana::LifeCycleStatic <>
+{
+private:
+	friend class Heap;
+
+	HeapMain (Partition& first_part) :
+		Heap (first_part)
+	{}
+};
+
+inline void Heap::initialize ()
+{
+	::Nirvana::Core::Port::ProtDomainMemory::initialize ();
+
+	Partition& first_part = HeapBaseT::initialize ();
+	HeapMain* instance = (HeapMain*)first_part.allocate (sizeof (HeapMain));
+	new (instance) HeapMain (first_part);
+	g_core_heap = instance;
+	g_heap_factory = HeapFactoryImpl::_this ();
+}
+
+class HeapDynamic :
+	public Heap,
+	public CORBA::Nirvana::Servant <HeapDynamic, Memory>,
+	public CORBA::Nirvana::LifeCycleRefCntAbstract <HeapDynamic>
+{
+public:
+	HeapDynamic (ULong allocation_unit) :
+		Heap (allocation_unit)
+	{}
+};
+
 inline Memory_ptr HeapFactoryImpl::create ()
 {
-	return new Heap (HEAP_UNIT_DEFAULT);
+	return new HeapDynamic (HEAP_UNIT_DEFAULT);
 }
 
 inline Memory_ptr HeapFactoryImpl::create_with_granularity (ULong granularity)
 {
-	return new Heap (granularity);
+	return new HeapDynamic (granularity);
 }
 
 }
