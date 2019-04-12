@@ -67,7 +67,7 @@ public:
 
 protected:
 	static void _schedule (Bridge < ::Nirvana::Core::Scheduler>* _b, ::Nirvana::DeadlineTime deadline,
-												 Bridge < ::Nirvana::Core::Executor>* executor, ::Nirvana::DeadlineTime old, EnvironmentBridge* _env)
+												 BridgeMarshal < ::Nirvana::Core::Executor>* executor, ::Nirvana::DeadlineTime old, EnvironmentBridge* _env)
 	{
 		try {
 			S::_implementation (_b).schedule (deadline, executor, old);

@@ -1,5 +1,5 @@
-/// The Nirvana project.
-/// Core scheduler interfaces.
+// The Nirvana project.
+// Core scheduler interfaces.
 
 #ifndef NIRVANA_CORE_SCHEDULER_C_H_
 #define NIRVANA_CORE_SCHEDULER_C_H_
@@ -120,9 +120,7 @@ public:
 
 		struct
 		{
-			// Pass Bridge < ::Nirvana::Core::Executor>*, not BridgeMarshal for performance.
-			// We can be sure that this call is performed only in core binaries.
-			void (*schedule) (Bridge <::Nirvana::Core::Scheduler>*, ::Nirvana::DeadlineTime, Bridge < ::Nirvana::Core::Executor>*, ::Nirvana::DeadlineTime, EnvironmentBridge*);
+			void (*schedule) (Bridge <::Nirvana::Core::Scheduler>*, ::Nirvana::DeadlineTime, BridgeMarshal < ::Nirvana::Core::Executor>*, ::Nirvana::DeadlineTime, EnvironmentBridge*);
 			void (*core_free) (Bridge <::Nirvana::Core::Scheduler>*, EnvironmentBridge*);
 		}
 		epv;
