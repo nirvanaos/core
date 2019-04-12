@@ -56,12 +56,6 @@ public:
 		return rndgen_;
 	}
 
-	/// Returns special "neutral" execution context with own stack and CPU state.
-	ExecContext* neutral_context ()
-	{
-		return Port::Thread::neutral_context ();
-	}
-	
 	/// Temporary boost the priority of the background thread for time-critical operations.
 	/// \param boost `true` - raise priority above worker thread, `false` - down priority to background.
 	virtual void boost_priority (bool boost)

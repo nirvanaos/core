@@ -16,7 +16,7 @@ void SyncDomain::schedule ()
 				break;
 			if (min_deadline_.compare_exchange_strong (prev_deadline, min_deadline)) {
 				if (!running_)
-					scheduler ()->schedule (min_deadline, _this (), prev_deadline);
+					scheduler ()->schedule (min_deadline, this, prev_deadline);
 				break;
 			}
 		} else

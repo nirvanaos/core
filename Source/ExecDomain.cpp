@@ -37,7 +37,7 @@ void ExecDomain::schedule_internal ()
 			throw;
 		}
 	} else
-		scheduler ()->schedule (deadline (), _this (), 0);
+		scheduler ()->schedule (deadline (), this, 0);
 }
 
 void ExecDomain::execute_loop ()
