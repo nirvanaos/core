@@ -38,11 +38,12 @@ public:
 
 protected:
 	ReferenceCounterBase (DynamicServant_ptr dynamic) :
+		ref_cnt_ (1),
 		dynamic_ (dynamic)
 	{}
 
 private:
-	RefCounter ref_cnt_;
+	AtomicCounter ref_cnt_;
 	DynamicServant_ptr dynamic_;
 };
 

@@ -14,13 +14,15 @@ void ExecContext::RunnableHolder::run (::CORBA::Environment& env)
 	(bridge->_epv ().epv.run) (bridge, &env);
 }
 
-void ExecContext::run ()
+bool ExecContext::run ()
 {
 	environment_.clear ();
 	if (runnable_) {
 		runnable_.run (environment_);
 		runnable_ = Runnable::_nil ();
+		return true;
 	}
+	return false;
 }
 
 void ExecContext::run_in_neutral_context (Runnable_ptr runnable)

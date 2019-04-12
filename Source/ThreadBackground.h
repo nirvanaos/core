@@ -2,7 +2,7 @@
 #define NIRVANA_CORE_THREADBACKGROUND_H_
 
 #include "Thread.h"
-#include "PortThreadBackground.h"
+#include "Port/ThreadBackground.h"
 
 namespace Nirvana {
 namespace Core {

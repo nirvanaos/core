@@ -13,7 +13,7 @@ namespace Core {
 
 class ExecContext :
 	public CoreObject,
-	protected Port::ExecContext
+	public Port::ExecContext
 {
 public:
 	static ExecContext* current ()
@@ -47,7 +47,7 @@ public:
 	static void neutral_context_loop ();
 
 protected:
-	void run ();
+	bool run ();
 
 protected:
 	class RunnableHolder :

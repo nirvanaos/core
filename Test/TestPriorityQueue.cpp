@@ -8,7 +8,6 @@
 #include <vector>
 #include <atomic>
 
-//using namespace ::Nirvana;
 using namespace std;
 using ::Nirvana::DeadlineTime;
 using ::Nirvana::Core::PriorityQueue;

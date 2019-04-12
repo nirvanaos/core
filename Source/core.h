@@ -6,7 +6,6 @@
 
 #include <Nirvana/Nirvana.h>
 #include <Nirvana/HeapFactory_c.h>
-#include "Scheduler_c.h"
 #include <memory>
 
 namespace Nirvana {
@@ -16,7 +15,6 @@ extern HeapFactory_ptr g_heap_factory;
 namespace Core {
 
 extern Memory_ptr g_core_heap;
-extern Scheduler_ptr g_scheduler;
 
 class CoreObject
 {

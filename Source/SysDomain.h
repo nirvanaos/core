@@ -11,7 +11,7 @@ namespace Core {
 
 class SysDomain :
 	public CoreObject,
-	private Port::SysDomain
+	public Port::SysDomain
 {
 public:
 	class ProtDomainInfo :

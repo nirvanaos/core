@@ -7,7 +7,7 @@ namespace Nirvana {
 namespace Core {
 
 class BackOff :
-	public Port::BackOff
+	private Port::BackOff
 {
 public:
 	BackOff ()

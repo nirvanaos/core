@@ -8,6 +8,7 @@
 #include "RandomGen.h"
 #include <Nirvana/Runnable_c.h>
 #include <Port/Thread.h>
+#include "Scheduler_c.h"
 
 namespace Nirvana {
 namespace Core {
@@ -17,7 +18,7 @@ class ExecDomain;
 
 class Thread :
 	public CoreObject,
-	protected Port::Thread
+	public Port::Thread
 {
 public:
 	/// Returns current thread.

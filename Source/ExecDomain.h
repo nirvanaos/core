@@ -57,23 +57,13 @@ public:
 		_add_ref ();
 	}
 
-protected:
-	void execute_loop ()
-	{
-		for (;;) {
-			run ();
-			environment_.clear ();	// TODO: Check unhandled exception and log error message.
-			Thread::current ().execution_domain (nullptr);
-			run_in_neutral_context (Release::_this ());
-		}
-	}
-
-private:
-	virtual void final_release ()
+	void _delete ()
 	{
 		assert (ExecContext::current () != this);
 		pool_.release (*this);
 	}
+
+	void execute_loop ();
 
 private:
 	static ObjectPoolT <ExecDomain> pool_;

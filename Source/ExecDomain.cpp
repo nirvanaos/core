@@ -37,7 +37,16 @@ void ExecDomain::schedule_internal ()
 			throw;
 		}
 	} else
-		g_scheduler->schedule (deadline (), _this (), 0);
+		scheduler ()->schedule (deadline (), _this (), 0);
+}
+
+void ExecDomain::execute_loop ()
+{
+	while (run ()) {
+		environment_.clear ();	// TODO: Check unhandled exception and log error message.
+		Thread::current ().execution_domain (nullptr);
+		run_in_neutral_context (Release::_this ());
+	}
 }
 
 }
