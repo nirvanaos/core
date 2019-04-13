@@ -32,19 +32,36 @@ public:
 	Thread () :
 		Port::Thread (),
 		rndgen_ (),
-		exec_domain_ (nullptr)
+		exec_domain_ (nullptr),
+		exec_context_ (nullptr)
 	{}
 
 	template <class P>
 	Thread (P param) :
 		Port::Thread (param),
 		rndgen_ (),
-		exec_domain_ (nullptr)
+		exec_domain_ (nullptr),
+		exec_context_ (nullptr)
 	{}
 
 	ExecDomain* execution_domain () const
 	{
 		return exec_domain_;
+	}
+
+	void execution_domain (ExecDomain* d)
+	{
+		exec_domain_ = d;
+	}
+
+	ExecContext* context () const
+	{
+		return exec_context_;
+	}
+
+	void context (ExecContext* c)
+	{
+		exec_context_ = c;
 	}
 
 	/// This static method is called by the scheduler.
@@ -61,20 +78,15 @@ public:
 	virtual void boost_priority (bool boost)
 	{} /// For worker thread does nothing. Overridden in ThreadBackground.
 
-private:
-	friend class ExecDomain;
-
-	void execution_domain (ExecDomain* d)
-	{
-		exec_domain_ = d;
-	}
-
 protected:
 	/// Random number generator.
 	RandomGen rndgen_;
 
 	/// Pointer to the current execution domain.
 	ExecDomain* exec_domain_;
+
+	/// Pointer to the current execution context.
+	ExecContext* exec_context_;
 };
 
 }

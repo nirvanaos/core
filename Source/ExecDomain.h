@@ -74,7 +74,9 @@ private:
 	public:
 		static void run ()
 		{
-			Thread::current ().execution_domain ()->_remove_ref ();
+			Thread& thread = Thread::current ();
+			thread.execution_domain ()->_remove_ref ();
+			thread.execution_domain (nullptr);
 		}
 	};
 

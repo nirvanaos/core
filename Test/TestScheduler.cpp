@@ -46,6 +46,9 @@ class SimpleShutdown :
 	public RunnableImpl <SimpleShutdown>
 {
 public:
+	~SimpleShutdown ()
+	{}
+
 	void run ()
 	{
 		::Nirvana::Core::Port::Scheduler::shutdown ();

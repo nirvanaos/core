@@ -12,7 +12,7 @@ void ExecDomain::async_call (Runnable_ptr runnable, DeadlineTime deadline, SyncD
 {
 	ExecDomain* exec_domain = pool_.get ();
 
-	exec_domain->runnable_ = runnable;
+	exec_domain->runnable_ = Runnable::_duplicate (runnable);
 	exec_domain->deadline_ = deadline;
 	exec_domain->cur_sync_domain_ = sync_domain;
 	exec_domain->schedule_internal ();
@@ -44,7 +44,6 @@ void ExecDomain::execute_loop ()
 {
 	while (run ()) {
 		environment_.clear ();	// TODO: Check unhandled exception and log error message.
-		Thread::current ().execution_domain (nullptr);
 		run_in_neutral_context (Release::_this ());
 	}
 }

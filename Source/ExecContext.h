@@ -16,10 +16,7 @@ class ExecContext :
 	public Port::ExecContext
 {
 public:
-	static ExecContext* current ()
-	{
-		return static_cast <ExecContext*> (Port::ExecContext::current ());
-	}
+	static ExecContext* current ();
 
 	ExecContext () :
 		Port::ExecContext ()
@@ -36,11 +33,7 @@ public:
 	}
 
 	/// Switch to this context.
-	void switch_to ()
-	{
-		assert (current () != this);
-		Port::ExecContext::switch_to ();
-	}
+	void switch_to ();
 
 	static void run_in_neutral_context (Runnable_ptr runnable);
 
@@ -63,7 +56,7 @@ protected:
 		void run (::CORBA::Environment& env);
 	};
 
-	RunnableHolder runnable_;
+	Runnable_var runnable_;
 	::CORBA::Environment environment_;
 };
 

@@ -1,5 +1,5 @@
 // Nirvana project.
-// Execution domain (fiber).
+// Execution context (fiber).
 
 #include "ExecDomain.h"
 #include "Thread.h"
@@ -8,17 +8,23 @@
 namespace Nirvana {
 namespace Core {
 
-void ExecContext::RunnableHolder::run (::CORBA::Environment& env)
+ExecContext* ExecContext::current ()
 {
-	::CORBA::Nirvana::Bridge <Runnable>* bridge = *this;
-	(bridge->_epv ().epv.run) (bridge, &env);
+	return Thread::current ().context ();
+}
+
+void ExecContext::switch_to ()
+{
+	assert (current () != this);
+	Thread::current ().context (this);
+	Port::ExecContext::switch_to ();
 }
 
 bool ExecContext::run ()
 {
 	environment_.clear ();
 	if (runnable_) {
-		runnable_.run (environment_);
+		(runnable_->_epv ().epv.run) (runnable_, &environment_);
 		runnable_ = Runnable::_nil ();
 		return true;
 	}
@@ -28,7 +34,8 @@ bool ExecContext::run ()
 void ExecContext::run_in_neutral_context (Runnable_ptr runnable)
 {
 	ExecContext* neutral_context = Thread::current ().neutral_context ();
-	neutral_context->runnable_ = runnable;
+	assert (neutral_context);
+	neutral_context->runnable_ = Runnable::_duplicate (runnable);
 	neutral_context->switch_to ();
 	::std::auto_ptr < ::CORBA::Exception> exception (neutral_context->environment ().detach ());
 	if (exception.get ())
