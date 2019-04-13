@@ -52,6 +52,16 @@ public:
 		cur_sync_domain_ (nullptr)
 	{}
 
+	static void initialize ()
+	{
+		pool_.initialize ();
+	}
+
+	static void terminate ()
+	{
+		pool_.terminate ();
+	}
+
 	void activate ()
 	{
 		_add_ref ();

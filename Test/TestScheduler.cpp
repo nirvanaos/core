@@ -1,4 +1,4 @@
-#include <Port/Scheduler.h>
+#include "../Source/SysScheduler.h"
 #include "MockMemory.h"
 #include "gtest/gtest.h"
 #include <Nirvana/Runnable_s.h>
@@ -51,14 +51,14 @@ public:
 
 	void run ()
 	{
-		::Nirvana::Core::Port::Scheduler::shutdown ();
+		::Nirvana::Core::SysScheduler::shutdown ();
 	}
 };
 
 TEST_F (TestScheduler, Startup)
 {
 	::Nirvana::Runnable_ptr startup (new SimpleShutdown ());
-	::Nirvana::Core::Port::Scheduler::run (startup, numeric_limits <Nirvana::DeadlineTime>::max ());
+	::Nirvana::Core::SysScheduler::run (startup, numeric_limits <Nirvana::DeadlineTime>::max ());
 	::CORBA::release (startup);
 }
 

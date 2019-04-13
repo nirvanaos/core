@@ -25,6 +25,11 @@ private:
 class ObjectPool
 {
 public:
+	void initialize ()
+	{
+		top_ = nullptr;
+	}
+
 	void release (PoolableObject& obj);
 
 	PoolableObject* get ();
@@ -51,6 +56,18 @@ public:
 	void release (T& obj)
 	{
 		ObjectPool::release (obj);
+	}
+
+	void initialize ()
+	{
+		ObjectPool::initialize ();
+	}
+
+	void terminate ()
+	{
+		while (T* obj = static_cast <T*> (ObjectPool::get ())) {
+			delete obj;
+		}
 	}
 };
 

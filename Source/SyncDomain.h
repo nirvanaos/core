@@ -7,16 +7,11 @@
 #include "config.h"
 #include "Scheduler_c.h"
 #include "ExecDomain.h"
-#include <Port/Scheduler.h>
+#include "SysScheduler.h"
 #include <atomic>
 
 namespace Nirvana {
 namespace Core {
-
-inline Scheduler_ptr scheduler ()
-{
-	return Port::Scheduler::singleton ();
-}
 
 class SyncDomain :
 	public CoreObject,
