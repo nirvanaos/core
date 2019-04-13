@@ -10,6 +10,8 @@ ObjectPoolT <ExecDomain> ExecDomain::pool_;
 
 void ExecDomain::async_call (Runnable_ptr runnable, DeadlineTime deadline, SyncDomain* sync_domain)
 {
+	SysScheduler::activity_begin ();	// Throws exception if shutdown was started.
+
 	ExecDomain* exec_domain = pool_.get ();
 
 	exec_domain->runnable_ = Runnable::_duplicate (runnable);

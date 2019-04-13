@@ -1,6 +1,7 @@
 #ifndef NIRVANA_ATOMICCOUNTER_H_
 #define NIRVANA_ATOMICCOUNTER_H_
 
+#include <Nirvana/Nirvana.h>
 #include <stdint.h>
 
 #define USE_INTRINSIC_ATOMIC

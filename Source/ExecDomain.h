@@ -8,6 +8,7 @@
 #include "ObjectPool.h"
 #include "Thread.h"
 #include "Scheduler_s.h"
+#include "SysScheduler.h"
 #include <Nirvana/Runnable_s.h>
 #include <limits>
 
@@ -71,13 +72,12 @@ public:
 	{
 		assert (ExecContext::current () != this);
 		pool_.release (*this);
+		SysScheduler::activity_end ();
 	}
 
 	void execute_loop ();
 
 private:
-	static ObjectPoolT <ExecDomain> pool_;
-
 	class Release :
 		public ::CORBA::Nirvana::ServantStatic <Release, Runnable>
 	{
@@ -104,8 +104,11 @@ private:
 
 	void schedule_internal ();
 
+private:
 	DeadlineTime deadline_;
 	SyncDomain* cur_sync_domain_;
+
+	static ObjectPoolT <ExecDomain> pool_;
 };
 
 }
