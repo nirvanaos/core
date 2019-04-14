@@ -11,9 +11,14 @@ namespace Core {
 
 class ProtDomain :
 	public CoreObject,
-	public Port::ProtDomain
+	private Port::ProtDomain
 {
 public:
+	Port::ProtDomain& port ()
+	{
+		return *this;
+	}
+
 	static void initialize ()
 	{
 		singleton_ = new ProtDomain;

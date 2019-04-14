@@ -11,16 +11,21 @@ namespace Core {
 
 class SysDomain :
 	public CoreObject,
-	public Port::SysDomain
+	private Port::SysDomain
 {
 public:
+	Port::SysDomain& port ()
+	{
+		return *this;
+	}
+
 	class ProtDomainInfo :
 		public Port::SysDomain::ProtDomainInfo
 	{
 	public:
 		template <typename T>
 		ProtDomainInfo (T p) :
-			SysDomainBase::ProtDomainInfo (p)
+			Port::SysDomain::ProtDomainInfo (p)
 		{}
 	};
 };

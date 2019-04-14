@@ -40,19 +40,6 @@ public:
 		ExecContext::switch_to ();
 	}
 
-	ExecDomain () :
-		ExecContext (),
-		deadline_ (std::numeric_limits <DeadlineTime>::max ()),
-		cur_sync_domain_ (nullptr)
-	{}
-
-	template <class P>
-	ExecDomain (P param) :
-		ExecContext (param),
-		deadline_ (std::numeric_limits <DeadlineTime>::max ()),
-		cur_sync_domain_ (nullptr)
-	{}
-
 	static void initialize ()
 	{
 		pool_.initialize ();
@@ -77,7 +64,25 @@ public:
 
 	void execute_loop ();
 
+	//! Public constructor can be used in porting for special cases.
+	template <class P>
+	ExecDomain (P param) :
+		ExecContext (param),
+		deadline_ (std::numeric_limits <DeadlineTime>::max ()),
+		cur_sync_domain_ (nullptr)
+	{
+		SysScheduler::activity_begin ();
+	}
+
 private:
+	friend class ObjectPoolT <ExecDomain>;
+
+	ExecDomain () :
+		ExecContext (),
+		deadline_ (std::numeric_limits <DeadlineTime>::max ()),
+		cur_sync_domain_ (nullptr)
+	{}
+
 	class Release :
 		public ::CORBA::Nirvana::ServantStatic <Release, Runnable>
 	{

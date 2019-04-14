@@ -13,9 +13,14 @@ namespace Core {
 
 class ExecContext :
 	public CoreObject,
-	public Port::ExecContext
+	private Port::ExecContext
 {
 public:
+	Port::ExecContext& port ()
+	{
+		return *this;
+	}
+
 	static ExecContext* current ();
 
 	ExecContext () :
