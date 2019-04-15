@@ -11,11 +11,13 @@ namespace Core {
 class SysScheduler
 {
 public:
-	static void run (Runnable_ptr startup, DeadlineTime deadline);
+	//! Called from core
+	static void initialize ();
+	static void terminate ();
 
-	static Scheduler_ptr singleton ()
+	static void schedule (DeadlineTime deadline, Executor_ptr executor, DeadlineTime old)
 	{
-		return Port::Scheduler::singleton ();
+		Port::Scheduler::singleton ()->schedule (deadline, executor, old);
 	}
 
 	static void shutdown ()

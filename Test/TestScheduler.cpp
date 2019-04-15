@@ -58,7 +58,7 @@ public:
 TEST_F (TestScheduler, Startup)
 {
 	::Nirvana::Runnable_ptr startup (new SimpleShutdown ());
-	::Nirvana::Core::SysScheduler::run (startup, numeric_limits <Nirvana::DeadlineTime>::max ());
+	::Nirvana::Core::Port::Scheduler::run (startup, numeric_limits <Nirvana::DeadlineTime>::max ());
 	::CORBA::release (startup);
 }
 

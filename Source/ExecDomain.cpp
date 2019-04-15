@@ -39,7 +39,7 @@ void ExecDomain::schedule_internal ()
 			throw;
 		}
 	} else
-		SysScheduler::singleton ()->schedule (deadline (), this, 0);
+		SysScheduler::schedule (deadline (), this, 0);
 }
 
 void ExecDomain::execute_loop ()
