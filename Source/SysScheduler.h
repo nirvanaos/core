@@ -47,7 +47,7 @@ private:
 	{
 		State state = SHUTDOWN_STARTED;
 		if (state_.compare_exchange_strong (state, SHUTDOWN_FINISH))
-			Port::Scheduler::shutdown ();
+			Port::Scheduler::singleton ()->shutdown ();
 	}
 
 private:

@@ -4,10 +4,15 @@
 #ifndef NIRVANA_CORE_SCHEDULER_C_H_
 #define NIRVANA_CORE_SCHEDULER_C_H_
 
-#include <CORBA/AbstractBase_c.h>
+#include <CORBA/Interface_c.h>
 #include <Nirvana/Nirvana.h>
 
 //! \interface Executor
+//! \code{.idl}
+//!   pseudo interface Executor {
+//! 		void execute (DeadlineTime deadline);
+//!   };
+//! \endcode
 
 namespace Nirvana {
 namespace Core {
@@ -31,12 +36,6 @@ public:
 	struct EPV
 	{
 		Bridge <Interface>::EPV interface;
-
-		struct
-		{
-			BASE_STRUCT_ENTRY (CORBA::AbstractBase, CORBA_AbstractBase)
-		}
-		base;
 
 		struct
 		{
@@ -81,13 +80,20 @@ void Client <T, ::Nirvana::Core::Executor>::execute (::Nirvana::DeadlineTime dea
 namespace Nirvana {
 namespace Core {
 
-class Executor : public ::CORBA::Nirvana::ClientInterface <Executor, ::CORBA::AbstractBase>
+class Executor : public ::CORBA::Nirvana::ClientInterface <Executor>
 {};
 
 }
 }
 
 //! \interface Scheduler
+//! \code{.idl}
+//!   pseudo interface Scheduler {
+//! 		void schedule (DeadlineTime deadline, Executor executor, DeadlineTime prev_deadline);
+//! 		void core_free ();
+//! 		void shutdown ();
+//!   };
+//! \endcode
 
 namespace Nirvana {
 namespace Core {
@@ -114,14 +120,9 @@ public:
 
 		struct
 		{
-			BASE_STRUCT_ENTRY (CORBA::AbstractBase, CORBA_AbstractBase)
-		}
-		base;
-
-		struct
-		{
 			void (*schedule) (Bridge <::Nirvana::Core::Scheduler>*, ::Nirvana::DeadlineTime, BridgeMarshal < ::Nirvana::Core::Executor>*, ::Nirvana::DeadlineTime, EnvironmentBridge*);
 			void (*core_free) (Bridge <::Nirvana::Core::Scheduler>*, EnvironmentBridge*);
+			void (*shutdown) (Bridge <::Nirvana::Core::Scheduler>*, EnvironmentBridge*);
 		}
 		epv;
 	};
@@ -146,6 +147,7 @@ class Client <T, ::Nirvana::Core::Scheduler> :
 public:
 	void schedule (::Nirvana::DeadlineTime deadline, ::Nirvana::Core::Executor_ptr executor, ::Nirvana::DeadlineTime old);
 	void core_free ();
+	void shutdown ();
 };
 
 template <class T>
@@ -166,13 +168,22 @@ void Client <T, ::Nirvana::Core::Scheduler>::core_free ()
 	_env.check ();
 }
 
+template <class T>
+void Client <T, ::Nirvana::Core::Scheduler>::shutdown ()
+{
+	Environment _env;
+	Bridge < ::Nirvana::Core::Scheduler>& _b (T::_get_bridge (_env));
+	(_b._epv ().epv.shutdown) (&_b, &_env);
+	_env.check ();
+}
+
 }
 }
 
 namespace Nirvana {
 namespace Core {
 
-class Scheduler : public ::CORBA::Nirvana::ClientInterface <Scheduler, ::CORBA::AbstractBase>
+class Scheduler : public ::CORBA::Nirvana::ClientInterface <Scheduler>
 {};
 
 }

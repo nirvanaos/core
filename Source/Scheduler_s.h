@@ -35,9 +35,6 @@ const Bridge < ::Nirvana::Core::Executor>::EPV Skeleton <S, ::Nirvana::Core::Exe
 		S::template __duplicate < ::Nirvana::Core::Executor>,
 		S::template __release < ::Nirvana::Core::Executor>
 	},
-	{ // base
-		S::template _wide <AbstractBase, ::Nirvana::Core::Executor>
-	},
 	{ // epv
 		S::_execute
 	}
@@ -47,14 +44,14 @@ const Bridge < ::Nirvana::Core::Executor>::EPV Skeleton <S, ::Nirvana::Core::Exe
 
 template <class S>
 class Servant <S, ::Nirvana::Core::Executor> :
-	public Implementation <S, ::Nirvana::Core::Executor>
+	public ImplementationPseudo <S, ::Nirvana::Core::Executor>
 {};
 
 // Static implementation
 
 template <class S>
 class ServantStatic <S, ::Nirvana::Core::Executor> :
-	public ImplementationStatic <S, ::Nirvana::Core::Executor>
+	public ImplementationStaticPseudo <S, ::Nirvana::Core::Executor>
 {};
 
 // Scheduler skeleton
@@ -88,6 +85,17 @@ protected:
 			_env->set_unknown_exception ();
 		}
 	}
+
+	static void _shutdown (Bridge < ::Nirvana::Core::Scheduler>* _b, EnvironmentBridge* _env)
+	{
+		try {
+			S::_implementation (_b).shutdown ();
+		} catch (const Exception& e) {
+			_env->set_exception (e);
+		} catch (...) {
+			_env->set_unknown_exception ();
+		}
+	}
 };
 
 template <class S>
@@ -97,12 +105,10 @@ const Bridge < ::Nirvana::Core::Scheduler>::EPV Skeleton <S, ::Nirvana::Core::Sc
 		S::template __duplicate < ::Nirvana::Core::Scheduler>,
 		S::template __release < ::Nirvana::Core::Scheduler>
 	},
-	{ // base
-		S::template _wide <AbstractBase, ::Nirvana::Core::Scheduler>
-	},
 	{ // epv
 		S::_schedule,
-		S::_core_free
+		S::_core_free,
+		S::_shutdown
 	}
 };
 
@@ -110,14 +116,14 @@ const Bridge < ::Nirvana::Core::Scheduler>::EPV Skeleton <S, ::Nirvana::Core::Sc
 
 template <class S>
 class Servant <S, ::Nirvana::Core::Scheduler> :
-	public Implementation <S, ::Nirvana::Core::Scheduler>
+	public ImplementationPseudo <S, ::Nirvana::Core::Scheduler>
 {};
 
 // Static implementation
 
 template <class S>
 class ServantStatic <S, ::Nirvana::Core::Scheduler> :
-	public ImplementationStatic <S, ::Nirvana::Core::Scheduler>
+	public ImplementationStaticPseudo <S, ::Nirvana::Core::Scheduler>
 {};
 
 }
