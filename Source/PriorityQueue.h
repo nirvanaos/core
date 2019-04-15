@@ -112,15 +112,7 @@ protected:
 	Node* delete_min ();
 
 	// Node comparator.
-	static bool less (const Node& n1, const Node& n2)
-	{
-		if (n1.deadline < n2.deadline)
-			return true;
-		else if (n1.deadline > n2.deadline)
-			return false;
-		
-		return n1 < n2;
-	}
+	bool less (const Node& n1, const Node& n2) const;
 
 	Node* head () const
 	{
@@ -197,12 +189,12 @@ bool PriorityQueueL <MAX_LEVEL>::insert (Node* new_node)
 	int level = new_node->level;
 	copy_node (new_node);
 
-	// Search phase to find the node after which newNode shouldbe inserted.
-	// This search phase starts from the headnod e at the highest
+	// Search phase to find the node after which newNode should be inserted.
+	// This search phase starts from the head node at the highest
 	// level and traverses down to the lowest level until the correct
 	// node is found (node1).When going down one level, the last
 	// node traversed on that level is remembered (savedNodes)
-	// for later use (this is where we shouldinsert the new node at that level).
+	// for later use (this is where we should insert the new node at that level).
 	Node* node1 = copy_node (head ());
 	Node* saved_nodes [MAX_LEVEL];
 	for (int i = MAX_LEVEL - 1; i >= 1; --i) {

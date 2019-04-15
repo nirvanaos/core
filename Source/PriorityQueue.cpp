@@ -14,11 +14,26 @@ using namespace std;
 
 bool PriorityQueueBase::Node::operator < (const Node& rhs) const
 {
-	// This node is head or tail node.
-	if (this == &rhs)
+	return false; // Virtual, can be overridden.
+}
+
+bool PriorityQueueBase::less (const Node& n1, const Node& n2) const
+{
+	if (n1.deadline < n2.deadline)
+		return true;
+	else if (n1.deadline > n2.deadline)
 		return false;
-	else
-		return !deadline; // Head always less, tail always not.
+
+	if (&n1 == &n2)
+		return false;
+
+	if (head () == &n1 || tail () == &n2)
+		return true;
+
+	if (tail () == &n1 || head () == &n2)
+		return false;
+
+	return n1 < n2;
 }
 
 PriorityQueueBase::PriorityQueueBase (unsigned max_level) :

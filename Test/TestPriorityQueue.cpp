@@ -127,6 +127,19 @@ TYPED_TEST (TestPriorityQueue, Equal)
 	ASSERT_FALSE (queue.delete_min (val));
 }
 
+TYPED_TEST (TestPriorityQueue, MinMax)
+{
+	TypeParam queue;
+	RandomGen rndgen;
+
+	Value val = {1, 1};
+	Value out;
+	ASSERT_TRUE (queue.insert (numeric_limits <DeadlineTime>::max (), val, rndgen));
+	ASSERT_TRUE (queue.delete_min (out));
+	ASSERT_TRUE (queue.insert (0, val, rndgen));
+	ASSERT_TRUE (queue.delete_min (out));
+}
+
 // Ensure that all values are different.
 atomic <int> g_timestamp = 0;
 
