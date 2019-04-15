@@ -20,6 +20,11 @@ public:
 		Port::Scheduler::singleton ()->schedule (deadline, executor, old);
 	}
 
+	static void core_free ()
+	{
+		Port::Scheduler::singleton ()->core_free ();
+	}
+
 	static void shutdown ()
 	{
 		State state = RUNNING;

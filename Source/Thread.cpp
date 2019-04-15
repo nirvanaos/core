@@ -4,6 +4,7 @@
 
 #include "Thread.h"
 #include "ExecContext.h"
+#include "SysScheduler.h"
 
 namespace Nirvana {
 namespace Core {
@@ -17,6 +18,7 @@ void Thread::execute (Executor_ptr executor, DeadlineTime deadline)
 	executor->execute (deadline);
 	// Perform possible neutral context calls, then return.
 	ExecContext::neutral_context_loop ();
+	SysScheduler::core_free ();
 }
 
 }
