@@ -20,9 +20,14 @@ public:
 	}
 
 	class ProtDomainInfo :
-		public Port::SysDomain::ProtDomainInfo
+		private Port::SysDomain::ProtDomainInfo
 	{
 	public:
+		Port::SysDomain::ProtDomainInfo& port ()
+		{
+			return *this;
+		}
+
 		template <typename T>
 		ProtDomainInfo (T p) :
 			Port::SysDomain::ProtDomainInfo (p)

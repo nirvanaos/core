@@ -33,7 +33,7 @@ bool PriorityQueueBase::less (const Node& n1, const Node& n2) const
 	if (tail () == &n1 || head () == &n2)
 		return false;
 
-	return n1 < n2;
+	return n1 < n2; // Call virtual comparator
 }
 
 PriorityQueueBase::PriorityQueueBase (unsigned max_level) :

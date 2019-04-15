@@ -18,9 +18,14 @@ class ExecDomain;
 
 class Thread :
 	public CoreObject,
-	public Port::Thread
+	private Port::Thread
 {
 public:
+	Port::Thread& port ()
+	{
+		return *this;
+	}
+
 	/// Returns current thread.
 	static Thread& current ()
 	{
@@ -73,10 +78,12 @@ public:
 		return rndgen_;
 	}
 
-	/// Temporary boost the priority of the background thread for time-critical operations.
-	/// \param boost `true` - raise priority above worker thread, `false` - down priority to background.
-	virtual void boost_priority (bool boost)
-	{} /// For worker thread does nothing. Overridden in ThreadBackground.
+	/// Returns special "neutral" execution context with own stack and CPU state.
+	virtual ExecContext* neutral_context ()
+	{
+		assert (false);
+		return nullptr;
+	}
 
 protected:
 	/// Random number generator.
