@@ -20,7 +20,7 @@ public:
 	void schedule (DeadlineTime deadline, const QueueItem& item, DeadlineTime deadline_prev)
 	{
 		assert (deadline_prev != deadline);
-		queue_.insert (deadline, item);
+		verify (queue_.insert (deadline, item));
 		if (deadline_prev)
 			queue_.erase (deadline_prev, item);
 		execute_next ();
