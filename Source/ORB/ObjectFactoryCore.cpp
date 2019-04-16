@@ -3,7 +3,7 @@
 namespace CORBA {
 namespace Nirvana {
 
-ObjectFactory_ptr g_object_factory = InterfaceStatic < ::Nirvana::Core::ObjectFactoryCore, ObjectFactory>::_bridge ();
+ObjectFactory_ptr g_object_factory = STATIC_BRIDGE (::Nirvana::Core::ObjectFactoryCore, ObjectFactory);
 
 }
 }
