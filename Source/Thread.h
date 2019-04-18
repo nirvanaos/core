@@ -8,7 +8,7 @@
 #include "RandomGen.h"
 #include <Nirvana/Runnable_c.h>
 #include <Port/Thread.h>
-#include "Scheduler_c.h"
+#include "Scheduler.h"
 
 namespace Nirvana {
 namespace Core {
@@ -70,7 +70,7 @@ public:
 	}
 
 	/// This static method is called by the scheduler.
-	static void execute (Executor_ptr executor, DeadlineTime deadline);
+	static void execute (Executor& executor, DeadlineTime deadline);
 
 	/// Random number generator's accessor.
 	RandomGen& rndgen ()

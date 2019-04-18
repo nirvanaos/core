@@ -5,9 +5,9 @@
 
 #include "PriorityQueue.h"
 #include "config.h"
-#include "Scheduler_c.h"
+#include "Scheduler.h"
 #include "ExecDomain.h"
-#include "SysScheduler.h"
+#include "Scheduler.h"
 #include <atomic>
 
 namespace Nirvana {
@@ -15,8 +15,9 @@ namespace Core {
 
 class SyncDomain :
 	public CoreObject,
-	public ::CORBA::Nirvana::Servant <SyncDomain, Executor>,
-	public ::CORBA::Nirvana::LifeCycleRefCntAbstract <SyncDomain>
+	public Executor,
+	public ::CORBA::Nirvana::ServantTraits <SyncDomain>,
+	public ::CORBA::Nirvana::LifeCycleRefCntPseudo <SyncDomain>
 {
 public:
 	SyncDomain () :

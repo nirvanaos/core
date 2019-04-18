@@ -453,7 +453,7 @@ inline void Heap::initialize ()
 class HeapDynamic :
 	public Heap,
 	public CORBA::Nirvana::Servant <HeapDynamic, Memory>,
-	public CORBA::Nirvana::LifeCycleRefCntAbstract <HeapDynamic>
+	public CORBA::Nirvana::LifeCycleRefCntPseudo <HeapDynamic>
 {
 public:
 	HeapDynamic (ULong allocation_unit) :

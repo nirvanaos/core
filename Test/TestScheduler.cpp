@@ -1,4 +1,4 @@
-#include "../Source/SysScheduler.h"
+#include "../Source/Scheduler.h"
 #include "MockMemory.h"
 #include "gtest/gtest.h"
 #include <Nirvana/Runnable_s.h>
@@ -39,7 +39,7 @@ protected:
 template <class S>
 class RunnableImpl :
 	public ::CORBA::Nirvana::Servant <S, ::Nirvana::Runnable>,
-	public ::CORBA::Nirvana::LifeCycleRefCntAbstract <S>
+	public ::CORBA::Nirvana::LifeCycleRefCntPseudo <S>
 {};
 
 class SimpleShutdown :
@@ -51,7 +51,7 @@ public:
 
 	void run ()
 	{
-		::Nirvana::Core::SysScheduler::shutdown ();
+		::Nirvana::Core::Scheduler::shutdown ();
 	}
 };
 

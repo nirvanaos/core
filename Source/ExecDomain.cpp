@@ -10,7 +10,7 @@ ObjectPoolT <ExecDomain> ExecDomain::pool_;
 
 void ExecDomain::async_call (Runnable_ptr runnable, DeadlineTime deadline, SyncDomain* sync_domain)
 {
-	SysScheduler::activity_begin ();	// Throws exception if shutdown was started.
+	Scheduler::activity_begin ();	// Throws exception if shutdown was started.
 
 	ExecDomain* exec_domain = pool_.get ();
 
@@ -39,7 +39,7 @@ void ExecDomain::schedule_internal ()
 			throw;
 		}
 	} else
-		SysScheduler::schedule (deadline (), this, 0);
+		Scheduler::schedule (deadline (), *this, 0);
 }
 
 void ExecDomain::execute_loop ()

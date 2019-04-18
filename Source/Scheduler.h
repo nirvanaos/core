@@ -1,28 +1,28 @@
-#ifndef NIRVANA_CORE_SYSSCHEDULER_H_
-#define NIRVANA_CORE_SYSSCHEDULER_H_
+#ifndef NIRVANA_CORE_SCHEDULER_H_
+#define NIRVANA_CORE_SCHEDULER_H_
 
-#include "AtomicCounter.h"
 #include <Port/Scheduler.h>
+#include "AtomicCounter.h"
 #include <atomic>
 
 namespace Nirvana {
 namespace Core {
 
-class SysScheduler
+class Scheduler
 {
 public:
 	//! Called from core
 	static void initialize ();
 	static void terminate ();
 
-	static void schedule (DeadlineTime deadline, Executor_ptr executor, DeadlineTime old)
+	static void schedule (DeadlineTime deadline, Executor& executor, DeadlineTime old)
 	{
-		Port::Scheduler::singleton ()->schedule (deadline, executor, old);
+		Port::Scheduler::schedule (deadline, executor, old);
 	}
 
 	static void core_free ()
 	{
-		Port::Scheduler::singleton ()->core_free ();
+		Port::Scheduler::core_free ();
 	}
 
 	static void shutdown ()
@@ -54,7 +54,7 @@ private:
 	{
 		State state = SHUTDOWN_STARTED;
 		if (state_.compare_exchange_strong (state, SHUTDOWN_FINISH))
-			Port::Scheduler::singleton ()->shutdown ();
+			Port::Scheduler::shutdown ();
 	}
 
 private:

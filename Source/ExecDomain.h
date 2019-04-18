@@ -7,8 +7,7 @@
 #include "ExecContext.h"
 #include "ObjectPool.h"
 #include "Thread.h"
-#include "Scheduler_s.h"
-#include "SysScheduler.h"
+#include "Scheduler.h"
 #include <Nirvana/Runnable_s.h>
 #include <limits>
 
@@ -20,8 +19,9 @@ class SyncDomain;
 class ExecDomain :
 	public ExecContext,
 	public PoolableObject,
-	public ::CORBA::Nirvana::Servant <ExecDomain, Executor>,
-	public ::CORBA::Nirvana::LifeCycleRefCntAbstract <ExecDomain>
+	public Executor,
+	public ::CORBA::Nirvana::ServantTraits <ExecDomain>,
+	public ::CORBA::Nirvana::LifeCycleRefCntPseudo <ExecDomain>
 {
 public:
 	static void async_call (Runnable_ptr runnable, DeadlineTime deadline, SyncDomain* sync_domain);
@@ -59,7 +59,7 @@ public:
 	{
 		assert (ExecContext::current () != this);
 		pool_.release (*this);
-		SysScheduler::activity_end ();
+		Scheduler::activity_end ();
 	}
 
 	void execute_loop ();
@@ -71,7 +71,7 @@ public:
 		deadline_ (std::numeric_limits <DeadlineTime>::max ()),
 		cur_sync_domain_ (nullptr)
 	{
-		SysScheduler::activity_begin ();
+		Scheduler::activity_begin ();
 	}
 
 private:
