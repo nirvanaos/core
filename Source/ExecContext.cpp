@@ -31,17 +31,6 @@ bool ExecContext::run ()
 	return false;
 }
 
-void ExecContext::run_in_neutral_context (Runnable_ptr runnable)
-{
-	ExecContext* neutral_context = Thread::current ().neutral_context ();
-	assert (neutral_context);
-	neutral_context->runnable_ = Runnable::_duplicate (runnable);
-	neutral_context->switch_to ();
-	::std::auto_ptr < ::CORBA::Exception> exception (neutral_context->environment ().detach ());
-	if (exception.get ())
-		exception->_raise ();
-}
-
 void ExecContext::neutral_context_loop ()
 {
 	Thread& thread = Thread::current ();

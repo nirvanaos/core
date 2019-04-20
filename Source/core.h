@@ -6,6 +6,7 @@
 
 #include <Nirvana/Nirvana.h>
 #include <Nirvana/HeapFactory_c.h>
+#include <Nirvana/Runnable_c.h>
 #include <memory>
 
 namespace Nirvana {
@@ -46,10 +47,7 @@ public:
 	}
 };
 
-class ProtDomain;
-
-/// Current protection domain.
-extern ProtDomain* g_protection_domain;
+void run_in_neutral_context (Runnable_ptr runnable);
 
 }
 }

@@ -37,10 +37,8 @@ public:
 		return environment_;
 	}
 
-	/// Switch to this context.
+	//! Switch to this context.
 	void switch_to ();
-
-	static void run_in_neutral_context (Runnable_ptr runnable);
 
 	static void neutral_context_loop ();
 
@@ -48,18 +46,7 @@ protected:
 	bool run ();
 
 protected:
-	class RunnableHolder :
-		public Runnable_var
-	{
-	public:
-		RunnableHolder& operator = (Runnable_ptr p)
-		{
-			Runnable_var::operator = (p);
-			return *this;
-		}
-
-		void run (::CORBA::Environment& env);
-	};
+	friend void run_in_neutral_context (Runnable_ptr runnable);
 
 	Runnable_var runnable_;
 	::CORBA::Nirvana::Environment environment_;

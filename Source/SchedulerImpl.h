@@ -2,7 +2,7 @@
 #define NIRVANA_CORE_SCHEDULERIMPL_H_
 
 #include "PriorityQueue.h"
-#include "config.h"
+#include <Port/config.h>
 #include "Thread.h"
 #include "AtomicCounter.h"
 
