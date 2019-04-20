@@ -3,7 +3,7 @@
 
 #include "HeapDirectory.h"
 #include "core.h"
-#include "config.h"
+#include <Port/config.h>
 #include <type_traits>
 #include <Nirvana/HeapFactory_s.h>
 #include <Nirvana/Memory_s.h>
