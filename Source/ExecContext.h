@@ -32,7 +32,7 @@ public:
 		Port::ExecContext (param)
 	{}
 
-	::CORBA::Environment& environment ()
+	::CORBA::Nirvana::Environment& environment ()
 	{
 		return environment_;
 	}
@@ -62,7 +62,7 @@ protected:
 	};
 
 	Runnable_var runnable_;
-	::CORBA::Environment environment_;
+	::CORBA::Nirvana::Environment environment_;
 };
 
 }

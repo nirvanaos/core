@@ -45,7 +45,7 @@ void ExecDomain::schedule_internal ()
 void ExecDomain::execute_loop ()
 {
 	while (run ()) {
-		environment_.clear ();	// TODO: Check unhandled exception and log error message.
+		environment_.exception_free ();	// TODO: Check unhandled exception and log error message.
 		run_in_neutral_context (Release::_this ());
 	}
 }
