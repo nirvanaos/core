@@ -260,11 +260,13 @@ public:
 
 	static void release (Pointer p, UWord size)
 	{
-		const Partition* part = get_partition (p);
-		if (part)
-			part->release (p, size);
-		else
-			protection_domain_memory ()->release (p, size);
+		if (p && size) {
+			const Partition* part = get_partition (p);
+			if (part)
+				part->release (p, size);
+			else
+				protection_domain_memory ()->release (p, size);
+		}
 	}
 
 	static void commit (Pointer p, UWord size)
