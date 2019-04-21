@@ -34,7 +34,7 @@ bool ExecContext::run ()
 void ExecContext::neutral_context_loop ()
 {
 	Thread& thread = Thread::current ();
-	ExecContext* context = current ();
+	ExecContext* context = thread.context ();
 	assert (context == thread.neutral_context ());
 	for (;;) {
 		context->run ();

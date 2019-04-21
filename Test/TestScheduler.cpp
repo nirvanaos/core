@@ -1,5 +1,5 @@
 #include "../Source/Scheduler.h"
-#include "MockMemory.h"
+#include "../Source/Heap.h"
 #include "gtest/gtest.h"
 #include <Nirvana/Runnable_s.h>
 #include <limits>
@@ -25,14 +25,14 @@ protected:
 	{
 		// Code here will be called immediately after the constructor (right
 		// before each test).
-		::Nirvana::Core::Test::mock_memory_init ();
+		::Nirvana::Core::Heap::initialize ();
 	}
 
 	virtual void TearDown ()
 	{
 		// Code here will be called immediately after each test (right
 		// before the destructor).
-		::Nirvana::Core::Test::mock_memory_term ();
+		::Nirvana::Core::Heap::terminate ();
 	}
 };
 
