@@ -46,20 +46,33 @@ class SimpleShutdown :
 	public RunnableImpl <SimpleShutdown>
 {
 public:
+	SimpleShutdown ()
+	{
+		exists_ = true;
+	}
+
 	~SimpleShutdown ()
-	{}
+	{
+		exists_ = false;
+	}
 
 	void run ()
 	{
 		::Nirvana::Core::Scheduler::shutdown ();
 	}
+
+	static bool exists_;
 };
+
+bool SimpleShutdown::exists_ = false;
 
 TEST_F (TestScheduler, Startup)
 {
 	::Nirvana::Runnable_ptr startup (new SimpleShutdown ());
 	::Nirvana::Core::Port::Scheduler::run (startup, numeric_limits <Nirvana::DeadlineTime>::max ());
+	ASSERT_TRUE (SimpleShutdown::exists_);
 	::CORBA::release (startup);
+	ASSERT_FALSE (SimpleShutdown::exists_);
 }
 
 }
