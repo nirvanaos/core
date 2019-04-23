@@ -1,5 +1,5 @@
-#ifndef NIRVANA_ATOMICCOUNTER_H_
-#define NIRVANA_ATOMICCOUNTER_H_
+#ifndef NIRVANA_CORE_ATOMICCOUNTER_H_
+#define NIRVANA_CORE_ATOMICCOUNTER_H_
 
 #include <Nirvana/Nirvana.h>
 #include <stdint.h>
