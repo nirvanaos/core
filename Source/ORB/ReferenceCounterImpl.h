@@ -9,9 +9,6 @@
 namespace Nirvana {
 namespace Core {
 
-using namespace ::CORBA;
-using namespace ::CORBA::Nirvana;
-
 class ReferenceCounterBase
 {
 public:
@@ -31,40 +28,40 @@ public:
 		}
 	}
 
-	ULong _refcount_value () const
+	CORBA::ULong _refcount_value () const
 	{
 		return ref_cnt_;
 	}
 
 protected:
-	ReferenceCounterBase (DynamicServant_ptr dynamic) :
+	ReferenceCounterBase (CORBA::Nirvana::DynamicServant_ptr dynamic) :
 		ref_cnt_ (1),
 		dynamic_ (dynamic)
 	{}
 
 private:
 	AtomicCounter ref_cnt_;
-	DynamicServant_ptr dynamic_;
+	CORBA::Nirvana::DynamicServant_ptr dynamic_;
 };
 
 template <class S>
 class ReferenceCounterImpl :
 	public ReferenceCounterBase,
-	public InterfaceImpl <S, ReferenceCounter>
+	public CORBA::Nirvana::InterfaceImpl <S, CORBA::Nirvana::ReferenceCounter>
 {
 protected:
-	ReferenceCounterImpl (DynamicServant_ptr dynamic) :
+	ReferenceCounterImpl (CORBA::Nirvana::DynamicServant_ptr dynamic) :
 		ReferenceCounterBase (dynamic)
 	{}
 };
 
 class ReferenceCounterCore :
 	public ReferenceCounterImpl <ReferenceCounterCore>,
-	public ServantTraits <ReferenceCounterCore>,
-	public LifeCycleNoCopy <ReferenceCounterCore>
+	public CORBA::Nirvana::ServantTraits <ReferenceCounterCore>,
+	public CORBA::Nirvana::LifeCycleNoCopy <ReferenceCounterCore>
 {
 public:
-	ReferenceCounterCore (DynamicServant_ptr dynamic) :
+	ReferenceCounterCore (CORBA::Nirvana::DynamicServant_ptr dynamic) :
 		ReferenceCounterImpl (dynamic)
 	{}
 };
