@@ -8,6 +8,7 @@
 #include <Nirvana/HeapFactory_s.h>
 #include <Nirvana/Memory_s.h>
 #include <Port/ProtDomainMemory.h>
+#include "ORB/StringManager.h"
 
 namespace Nirvana {
 namespace Core {
@@ -308,6 +309,7 @@ public:
 
 	static void terminate ()
 	{
+		StringManagerBase::terminate ();
 		::Nirvana::Core::Port::ProtDomainMemory::terminate ();
 	}
 
@@ -450,6 +452,8 @@ inline void Heap::initialize ()
 	new (instance) HeapMain (first_part);
 	g_core_heap = instance;
 	g_heap_factory = HeapFactoryImpl::_this ();
+
+	StringManagerBase::initialize ();
 }
 
 class HeapDynamic :

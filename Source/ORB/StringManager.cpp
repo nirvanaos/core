@@ -1,7 +1,5 @@
-#include "../core.h"
+#include "StringManager.h"
 #include <CORBA/StringManager_s.h>
-#include <CORBA/Implementation.h>
-#include "ReferenceCounterImpl.h"
 #include <limits>
 
 namespace Nirvana {
@@ -9,98 +7,34 @@ namespace Core {
 
 using namespace CORBA;
 
-class StringManagerBase
+CORBA::Nirvana::Bridge <Memory>* StringManagerBase::heap_;
+
+StringManagerBase::String* StringManagerBase::String::create (ULong size)
 {
-public:
-	static void initialize ()
-	{
-		heap_ = g_heap_factory->create_with_granularity (sizeof (String) * 2);
-		allocation_unit_ = heap ()->query (nullptr, Memory::ALLOCATION_UNIT);
+	String* p = (String*)heap ()->allocate (0, sizeof (String) + size, 0);
+	new (p) String (size);
+	return p;
+}
+
+StringManagerBase::String::String (ULong size) :
+	ReferenceCounterBase (this),
+	size_ (size),
+	allocated_size_ ((ULong)(round_up (sizeof (String) + size_, heap ()->query (this, Memory::ALLOCATION_UNIT)) - sizeof (String)))
+{}
+
+StringManagerBase::String* StringManagerBase::String::get_writable_copy (ULong size)
+{
+	if ((_refcount_value () == 1) && (allocated_size_ >= size)) {
+		if (size_ < size)
+			heap ()->commit ((Octet*)data () + size_, size - size_);
+		size_ = size;
+		return this;
 	}
-
-	static void terminate ()
-	{
-		release (heap_);
-	}
-
-protected:
-	class String :
-		public ReferenceCounterBase,
-		public CORBA::Nirvana::ServantTraits <String>,
-		public CORBA::Nirvana::LifeCycleRefCnt <String>,
-		public CORBA::Nirvana::InterfaceImpl <String, CORBA::Nirvana::DynamicServant>
-	{
-	public:
-		String (ULong size) :
-			ReferenceCounterBase (*this),
-			size_ (size),
-			allocated_size_ ((ULong)(round_up (sizeof (String) + size_, allocation_unit_) - sizeof (String)))
-		{}
-
-		static String* create (ULong size)
-		{
-			String* p = (String*)heap ()->allocate (0, sizeof (String) + size, 0);
-			new (p) String (size);
-			return p;
-		}
-
-		void _delete ()
-		{
-			UWord cb = sizeof (String) + allocated_size_;
-			this->~String ();
-			heap ()->release (this, cb);
-		}
-
-		static String* get_object (const void* p)
-		{
-			if (heap ()->is_writable (p, 1))
-				return (String*)p - 1;
-			else
-				return nullptr;
-		}
-
-		void* data ()
-		{
-			return this + 1;
-		}
-
-		ULong size () const
-		{
-			return size_;
-		}
-
-		ULong allocated_size () const
-		{
-			return allocated_size_;
-		}
-
-		String* get_writable_copy (ULong size)
-		{
-			if ((_refcount_value () == 1) && (allocated_size_ >= size)) {
-				size_ = size;
-				return this;
-			}
-			String* ns = (String*)heap ()->copy (nullptr, this, sizeof (String) + size, Memory::ALLOCATE | Memory::READ_WRITE);
-			new (ns) String (size);
-			release (this);
-			return ns + 1;
-		}
-
-	private:
-		ULong size_;
-		ULong allocated_size_;
-	};
-
-protected:
-	static Memory_ptr heap ()
-	{
-		return heap_;
-	}
-
-private:
-	static CORBA::Nirvana::Bridge <Memory>* heap_;
-	static size_t allocation_unit_;
-};
+	String* ns = (String*)heap ()->copy (nullptr, this, sizeof (String) + size, Memory::ALLOCATE | Memory::READ_WRITE);
+	new (ns) String (size);
+	release (this);
+	return ns + 1;
+}
 
 template <class C>
 class StringManager :
@@ -143,6 +77,9 @@ public:
 	C& at (C*& p, ULong index)
 	{
 		C* pc = p;
+		if (!pc)
+			throw BAD_PARAM ();
+
 		String* s = String::get_object (pc);
 		if (s) {
 			ULong length = s->size () / sizeof (C) - 1;
@@ -158,8 +95,9 @@ public:
 				++length;
 			}
 			ULong size = (length + 1) * sizeof (C);
-			String* s = String::create (size);
-			heap ()->copy (s->data (), pc, size, 0);
+			s = String::create (size);
+			//heap ()->copy (s->data (), pc, size, 0);
+			memcpy (s->data (), pc, size);
 		}
 		pc = (C*)s->data ();
 		p = pc;

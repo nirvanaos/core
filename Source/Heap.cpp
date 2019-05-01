@@ -36,7 +36,7 @@ HeapBase::HeapBase (ULong allocation_unit) :
 	else if (allocation_unit >= HEAP_UNIT_MAX)
 		allocation_unit_ = HEAP_UNIT_MAX;
 	else
-		allocation_unit_ = (UWord)1 << (32 - nlz (allocation_unit - 1));
+		allocation_unit_ = clp2 (allocation_unit);
 }
 
 bool HeapBase::Partition::allocate (Pointer p, UWord size, Flags flags) const
