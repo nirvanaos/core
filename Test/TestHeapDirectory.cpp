@@ -14,30 +14,30 @@ using namespace ::std;
 
 namespace TestHeapDirectory {
 
-template <UWord SIZE, bool PROT, bool EXC>
+template <UWord SIZE, HeapDirectoryImpl IMPL>
 class HeapDirectoryFactory
 {
 public:
-	typedef HeapDirectory <SIZE, EXC> DirectoryType;
+	typedef HeapDirectory <SIZE, IMPL> DirectoryType;
 
 	static void initialize ()
 	{
-		if (PROT)
+		if (HeapDirectoryImpl::COMMITTED_BITMAP < IMPL)
 			::Nirvana::Core::Port::ProtDomainMemory::initialize ();
 	}
 
 	static void terminate ()
 	{
-		if (PROT)
+		if (HeapDirectoryImpl::COMMITTED_BITMAP < IMPL)
 			::Nirvana::Core::Port::ProtDomainMemory::terminate ();
 	}
 
 	static DirectoryType* create ()
 	{
 		DirectoryType* p;
-		if (PROT) {
-			p = (DirectoryType*)memory ()->allocate (0, sizeof (DirectoryType), Memory::RESERVED | Memory::ZERO_INIT);
-			DirectoryType::initialize (p, memory ());
+		if (HeapDirectoryImpl::COMMITTED_BITMAP < IMPL) {
+			p = (DirectoryType*)Port::ProtDomainMemory::allocate (0, sizeof (DirectoryType), Memory::RESERVED | Memory::ZERO_INIT);
+			DirectoryType::initialize (p);
 		} else {
 			p = (DirectoryType*)calloc (1, sizeof (DirectoryType));
 			DirectoryType::initialize (p);
@@ -47,18 +47,10 @@ public:
 
 	static void destroy (DirectoryType *p)
 	{
-		if (PROT)
-			memory ()->release (p, sizeof (DirectoryType));
+		if (HeapDirectoryImpl::COMMITTED_BITMAP < IMPL)
+			Port::ProtDomainMemory::release (p, sizeof (DirectoryType));
 		else
 			free (p);
-	}
-
-	static Memory_ptr memory ()
-	{
-		if (PROT)
-			return Port::ProtDomainMemory::singleton ();
-		else
-			return Memory_ptr::nil ();
 	}
 };
 
@@ -101,18 +93,15 @@ protected:
 };
 
 typedef ::testing::Types <
-	//HeapDirectoryFactory <0x10000, false, false>, 
-	//HeapDirectoryFactory <0x10000, false, true>, 
-	HeapDirectoryFactory <0x10000, true, true> //, 
-	//HeapDirectoryFactory <0x10000, true, false>,
-	//HeapDirectoryFactory <0x8000, false, false>, 
-	//HeapDirectoryFactory <0x8000, false, true>, 
-	//HeapDirectoryFactory <0x8000, true, true>, 
-	//HeapDirectoryFactory <0x8000, true, false>,
-	//HeapDirectoryFactory <0x4000, false, false>,
-	//HeapDirectoryFactory <0x4000, false, true>,
-	//HeapDirectoryFactory <0x4000, true, true>,
-	//HeapDirectoryFactory <0x4000, true, false>
+	HeapDirectoryFactory <0x10000, HeapDirectoryImpl::COMMITTED_BITMAP>,
+	HeapDirectoryFactory <0x10000, HeapDirectoryImpl::RESERVED_BITMAP>,
+	HeapDirectoryFactory <0x10000, HeapDirectoryImpl::RESERVED_BITMAP_WITH_EXCEPTIONS> //, 
+//	HeapDirectoryFactory <0x8000, HeapDirectoryImpl::COMMITTED_BITMAP>,
+//	HeapDirectoryFactory <0x8000, HeapDirectoryImpl::RESERVED_BITMAP>,
+//	HeapDirectoryFactory <0x8000, HeapDirectoryImpl::RESERVED_BITMAP_WITH_EXCEPTIONS>,
+//	HeapDirectoryFactory <0x4000, HeapDirectoryImpl::COMMITTED_BITMAP>,
+//	HeapDirectoryFactory <0x4000, HeapDirectoryImpl::RESERVED_BITMAP>,
+//	HeapDirectoryFactory <0x4000, HeapDirectoryImpl::RESERVED_BITMAP_WITH_EXCEPTIONS>
 > MyTypes;
 
 TYPED_TEST_CASE (TestHeapDirectory, MyTypes);
@@ -125,13 +114,13 @@ TYPED_TEST (TestHeapDirectory, Allocate)
 		for (UWord block_size = TypeParam::DirectoryType::MAX_BLOCK_SIZE; block_size > 0; block_size >>= 1) {
 			UWord blocks_cnt = TypeParam::DirectoryType::UNIT_COUNT / block_size;
 			for (UWord i = 0; i < blocks_cnt; ++i) {
-				EXPECT_FALSE (this->directory_->check_allocated (i * block_size, TypeParam::DirectoryType::UNIT_COUNT, TypeParam::memory ()));
-				UWord block = this->directory_->allocate (block_size, TypeParam::memory ());
+				EXPECT_FALSE (this->directory_->check_allocated (i * block_size, TypeParam::DirectoryType::UNIT_COUNT));
+				UWord block = this->directory_->allocate (block_size);
 				ASSERT_EQ (block, i * block_size);
-				EXPECT_TRUE (this->directory_->check_allocated (block, block + block_size, TypeParam::memory ()));
+				EXPECT_TRUE (this->directory_->check_allocated (block, block + block_size));
 			}
-			ASSERT_TRUE (this->directory_->check_allocated (0, TypeParam::DirectoryType::UNIT_COUNT, TypeParam::memory ()));
-			this->directory_->release (0, TypeParam::DirectoryType::UNIT_COUNT, TypeParam::memory ());
+			ASSERT_TRUE (this->directory_->check_allocated (0, TypeParam::DirectoryType::UNIT_COUNT));
+			this->directory_->release (0, TypeParam::DirectoryType::UNIT_COUNT);
 		}
 
 		EXPECT_TRUE (this->directory_->empty ());
@@ -148,69 +137,69 @@ TYPED_TEST (TestHeapDirectory, Release)
 			for (UWord i = 0; i < blocks_cnt; ++i) {
 
 				// Allocate and release block.
-				EXPECT_FALSE (this->directory_->check_allocated (i * block_size, TypeParam::DirectoryType::UNIT_COUNT, TypeParam::memory ()));
-				UWord block = this->directory_->allocate (block_size, TypeParam::memory ());
+				EXPECT_FALSE (this->directory_->check_allocated (i * block_size, TypeParam::DirectoryType::UNIT_COUNT));
+				UWord block = this->directory_->allocate (block_size);
 				ASSERT_EQ (block, i * block_size);
-				EXPECT_TRUE (this->directory_->check_allocated (block, block + block_size, TypeParam::memory ()));
-				this->directory_->release (block, block + block_size, TypeParam::memory ());
-				EXPECT_FALSE (this->directory_->check_allocated (block, block + block_size, TypeParam::memory ()));
+				EXPECT_TRUE (this->directory_->check_allocated (block, block + block_size));
+				this->directory_->release (block, block + block_size);
+				EXPECT_FALSE (this->directory_->check_allocated (block, block + block_size));
 
 				// Allocate the same block.
-				ASSERT_TRUE (this->directory_->allocate (block, block + block_size, TypeParam::memory ()));
-				EXPECT_TRUE (this->directory_->check_allocated (block, block + block_size, TypeParam::memory ()));
+				ASSERT_TRUE (this->directory_->allocate (block, block + block_size));
+				EXPECT_TRUE (this->directory_->check_allocated (block, block + block_size));
 
 				// Release the first half.
-				this->directory_->release (block, block + block_size / 2, TypeParam::memory ());
-				EXPECT_FALSE (this->directory_->check_allocated (block, block + block_size / 2, TypeParam::memory ()));
-				EXPECT_TRUE (this->directory_->check_allocated (block + block_size / 2, block + block_size, TypeParam::memory ()));
+				this->directory_->release (block, block + block_size / 2);
+				EXPECT_FALSE (this->directory_->check_allocated (block, block + block_size / 2));
+				EXPECT_TRUE (this->directory_->check_allocated (block + block_size / 2, block + block_size));
 
 				// Release the second half.
-				this->directory_->release (block + block_size / 2, block + block_size, TypeParam::memory ());
-				EXPECT_FALSE (this->directory_->check_allocated (block, block + block_size, TypeParam::memory ()));
+				this->directory_->release (block + block_size / 2, block + block_size);
+				EXPECT_FALSE (this->directory_->check_allocated (block, block + block_size));
 
 				// Allocate the range again.
-				ASSERT_TRUE (this->directory_->allocate (block, block + block_size, TypeParam::memory ()));
-				EXPECT_TRUE (this->directory_->check_allocated (block, block + block_size, TypeParam::memory ()));
+				ASSERT_TRUE (this->directory_->allocate (block, block + block_size));
+				EXPECT_TRUE (this->directory_->check_allocated (block, block + block_size));
 
 				// Release the second half.
-				this->directory_->release (block + block_size / 2, block + block_size, TypeParam::memory ());
-				EXPECT_TRUE (this->directory_->check_allocated (block, block + block_size / 2, TypeParam::memory ()));
-				EXPECT_FALSE (this->directory_->check_allocated (block + block_size / 2, block + block_size, TypeParam::memory ()));
+				this->directory_->release (block + block_size / 2, block + block_size);
+				EXPECT_TRUE (this->directory_->check_allocated (block, block + block_size / 2));
+				EXPECT_FALSE (this->directory_->check_allocated (block + block_size / 2, block + block_size));
 
 				// Release the first half.
-				this->directory_->release (block, block + block_size / 2, TypeParam::memory ());
-				EXPECT_FALSE (this->directory_->check_allocated (block, block + block_size, TypeParam::memory ()));
+				this->directory_->release (block, block + block_size / 2);
+				EXPECT_FALSE (this->directory_->check_allocated (block, block + block_size));
 
 				// Allocate the range again.
-				ASSERT_TRUE (this->directory_->allocate (block, block + block_size, TypeParam::memory ()));
-				EXPECT_TRUE (this->directory_->check_allocated (block, block + block_size, TypeParam::memory ()));
+				ASSERT_TRUE (this->directory_->allocate (block, block + block_size));
+				EXPECT_TRUE (this->directory_->check_allocated (block, block + block_size));
 
 				// Release half at center
-				this->directory_->release (block + block_size / 4, block + block_size / 4 * 3, TypeParam::memory ());
-				EXPECT_TRUE (this->directory_->check_allocated (block, block + block_size / 4, TypeParam::memory ()));
-				EXPECT_FALSE (this->directory_->check_allocated (block + block_size / 4, block + block_size / 4 * 3, TypeParam::memory ()));
-				EXPECT_TRUE (this->directory_->check_allocated (block + block_size / 4 * 3, block + block_size, TypeParam::memory ()));
+				this->directory_->release (block + block_size / 4, block + block_size / 4 * 3);
+				EXPECT_TRUE (this->directory_->check_allocated (block, block + block_size / 4));
+				EXPECT_FALSE (this->directory_->check_allocated (block + block_size / 4, block + block_size / 4 * 3));
+				EXPECT_TRUE (this->directory_->check_allocated (block + block_size / 4 * 3, block + block_size));
 
 				// Release the first quarter.
-				this->directory_->release (block, block + block_size / 4, TypeParam::memory ());
-				EXPECT_FALSE (this->directory_->check_allocated (block, block + block_size / 4 * 3, TypeParam::memory ()));
-				EXPECT_TRUE (this->directory_->check_allocated (block + block_size / 4 * 3, block + block_size, TypeParam::memory ()));
+				this->directory_->release (block, block + block_size / 4);
+				EXPECT_FALSE (this->directory_->check_allocated (block, block + block_size / 4 * 3));
+				EXPECT_TRUE (this->directory_->check_allocated (block + block_size / 4 * 3, block + block_size));
 
 				// Release the last quarter.
-				this->directory_->release (block + block_size / 4 * 3, block + block_size, TypeParam::memory ());
-				EXPECT_FALSE (this->directory_->check_allocated (block, block + block_size, TypeParam::memory ()));
+				this->directory_->release (block + block_size / 4 * 3, block + block_size);
+				EXPECT_FALSE (this->directory_->check_allocated (block, block + block_size));
 
 				// Allocate the first half.
-				this->directory_->allocate (block, block + block_size / 2, TypeParam::memory ());
-				EXPECT_TRUE (this->directory_->check_allocated (block, block + block_size / 2, TypeParam::memory ()));
-				EXPECT_FALSE (this->directory_->check_allocated (block + block_size / 2, block + block_size, TypeParam::memory ()));
+				this->directory_->allocate (block, block + block_size / 2);
+				EXPECT_TRUE (this->directory_->check_allocated (block, block + block_size / 2));
+				EXPECT_FALSE (this->directory_->check_allocated (block + block_size / 2, block + block_size));
 
 				// Allocate the second half.
-				this->directory_->allocate (block + block_size / 2, block + block_size, TypeParam::memory ());
-				EXPECT_TRUE (this->directory_->check_allocated (block, block + block_size, TypeParam::memory ()));
+				this->directory_->allocate (block + block_size / 2, block + block_size);
+				EXPECT_TRUE (this->directory_->check_allocated (block, block + block_size));
 			}
-			EXPECT_TRUE (this->directory_->check_allocated (0, TypeParam::DirectoryType::UNIT_COUNT, TypeParam::memory ()));
-			this->directory_->release (0, TypeParam::DirectoryType::UNIT_COUNT, TypeParam::memory ());
+			EXPECT_TRUE (this->directory_->check_allocated (0, TypeParam::DirectoryType::UNIT_COUNT));
+			this->directory_->release (0, TypeParam::DirectoryType::UNIT_COUNT);
 		}
 
 		EXPECT_TRUE (this->directory_->empty ());
@@ -223,12 +212,12 @@ TYPED_TEST (TestHeapDirectory, Release2)
 	for (int pass = 0; pass < 2; ++pass) {
 
 		for (UWord block = 0, end = TypeParam::DirectoryType::UNIT_COUNT; block < end; block += TypeParam::DirectoryType::MAX_BLOCK_SIZE) {
-			ASSERT_TRUE (this->directory_->allocate (block, block + TypeParam::DirectoryType::MAX_BLOCK_SIZE, TypeParam::memory ()));
+			ASSERT_TRUE (this->directory_->allocate (block, block + TypeParam::DirectoryType::MAX_BLOCK_SIZE));
 		}
 
 		for (UWord block = 0, end = TypeParam::DirectoryType::UNIT_COUNT; block < end; ++block) {
-			ASSERT_TRUE (this->directory_->check_allocated (block, block + 1, TypeParam::memory ()));
-			this->directory_->release (block, block + 1, TypeParam::memory ());
+			ASSERT_TRUE (this->directory_->check_allocated (block, block + 1));
+			this->directory_->release (block, block + 1);
 		}
 
 		EXPECT_TRUE (this->directory_->empty ());
@@ -256,7 +245,7 @@ public:
 	}
 
 	template <class DirType>
-	void run (DirType* dir, Memory_ptr memory, int iterations);
+	void run (DirType* dir, int iterations);
 
 	const vector <Block>& allocated () const
 	{
@@ -272,7 +261,7 @@ private:
 atomic <ULong> RandomAllocator::total_allocated_ = 0;
 
 template <class DirType>
-void RandomAllocator::run (DirType* dir, Memory_ptr memory, int iterations)
+void RandomAllocator::run (DirType* dir, int iterations)
 {
 	for (int i = 0; i < iterations; ++i) {
 		ULong total = total_allocated_;
@@ -288,11 +277,11 @@ void RandomAllocator::run (DirType* dir, Memory_ptr memory, int iterations)
 					max_size = 0x80000000 >> nlz ((ULong)free_cnt);
 
 				ULong size = uniform_int_distribution <ULong> (1, max_size)(rndgen_);
-				Word block = dir->allocate (size, memory);
+				Word block = dir->allocate (size);
 				if (block >= 0) {
 					total_allocated_ += size;
 					allocated_.push_back ({(ULong)block, (ULong)block + size});
-					EXPECT_TRUE (dir->check_allocated (allocated_.back ().begin, allocated_.back ().end, memory));
+					EXPECT_TRUE (dir->check_allocated (allocated_.back ().begin, allocated_.back ().end));
 				} else
 					rel = true;
 			}
@@ -302,8 +291,8 @@ void RandomAllocator::run (DirType* dir, Memory_ptr memory, int iterations)
 			ASSERT_FALSE (allocated_.empty ());
 			size_t idx = uniform_int_distribution <size_t> (0, allocated_.size () - 1)(rndgen_);
 			Block& block = allocated_ [idx];
-			EXPECT_TRUE (dir->check_allocated (block.begin, block.end, memory));
-			dir->release (block.begin, block.end, memory);
+			EXPECT_TRUE (dir->check_allocated (block.begin, block.end));
+			dir->release (block.begin, block.end);
 			total_allocated_ -= block.end - block.begin;
 			allocated_.erase (allocated_.begin () + idx);
 		}
@@ -317,7 +306,7 @@ public:
 	void add (const vector <Block>& blocks);
 	
 	template <class DirType>
-	void check (DirType* dir, Memory_ptr memory) const;
+	void check (DirType* dir) const;
 };
 
 void AllocatedBlocks::add (const vector <Block>& blocks)
@@ -339,7 +328,7 @@ void AllocatedBlocks::add (const vector <Block>& blocks)
 }
 
 template <class DirType>
-void AllocatedBlocks::check (DirType* dir, Memory_ptr memory) const
+void AllocatedBlocks::check (DirType* dir) const
 {
 	UWord free_begin = 0;
 	for (auto pa = begin ();;) {
@@ -349,12 +338,12 @@ void AllocatedBlocks::check (DirType* dir, Memory_ptr memory) const
 		else
 			free_end = DirType::UNIT_COUNT;
 		if (free_begin != free_end) {
-			bool ok = dir->allocate (free_begin, free_end, memory);
+			bool ok = dir->allocate (free_begin, free_end);
 			ASSERT_TRUE (ok);
-			dir->release (free_begin, free_end, memory);
+			dir->release (free_begin, free_end);
 		}
 		if (pa != this->end ()) {
-			ASSERT_TRUE (dir->check_allocated (pa->begin, pa->end, memory));
+			ASSERT_TRUE (dir->check_allocated (pa->begin, pa->end));
 			free_begin = pa->end;
 			++pa;
 		} else
@@ -370,14 +359,14 @@ TYPED_TEST (TestHeapDirectory, Random)
 	static const int ITERATIONS = 1000;
 	static const int ALLOC_ITERATIONS = 1000;
 	for (int i = 0; i < ITERATIONS; ++i) {
-		ra.run (this->directory_, TypeParam::memory (), ALLOC_ITERATIONS);
+		ra.run (this->directory_, ALLOC_ITERATIONS);
 
 		AllocatedBlocks checker;
 		ASSERT_NO_FATAL_FAILURE (checker.add (ra.allocated ()));
-		ASSERT_NO_FATAL_FAILURE (checker.check (this->directory_, TypeParam::memory ()));
+		ASSERT_NO_FATAL_FAILURE (checker.check (this->directory_));
 	}
 	for (auto p = ra.allocated ().cbegin (); p != ra.allocated ().cend (); ++p)
-		this->directory_->release (p->begin, p->end, TypeParam::memory ());
+		this->directory_->release (p->begin, p->end);
 
 	EXPECT_TRUE (this->directory_->empty ());
 }
@@ -392,9 +381,9 @@ public:
 	{}
 
 	template <class DirType>
-	void run (DirType* dir, Memory_ptr memory, int iterations)
+	void run (DirType* dir, int iterations)
 	{
-		thread t (&RandomAllocator::template run <DirType>, this, dir, memory, iterations);
+		thread t (&RandomAllocator::template run <DirType>, this, dir, iterations);
 		swap (t);
 	}
 };
@@ -413,7 +402,7 @@ TYPED_TEST (TestHeapDirectory, MultiThread)
 
 	for (int i = 0; i < ITERATIONS; ++i) {
 		for (auto p = threads.begin (); p != threads.end (); ++p)
-			p->run (this->directory_, TypeParam::memory (), THREAD_ITERATIONS);
+			p->run (this->directory_, THREAD_ITERATIONS);
 
 		for (auto p = threads.begin (); p != threads.end (); ++p)
 			p->join ();
@@ -422,12 +411,12 @@ TYPED_TEST (TestHeapDirectory, MultiThread)
 		for (auto pt = threads.begin (); pt != threads.end (); ++pt)
 			ASSERT_NO_FATAL_FAILURE (checker.add (pt->allocated ()));
 
-		ASSERT_NO_FATAL_FAILURE (checker.check (this->directory_, TypeParam::memory ()));
+		ASSERT_NO_FATAL_FAILURE (checker.check (this->directory_));
 	}
 
 	for (auto pt = threads.begin (); pt != threads.end (); ++pt) {
 		for (auto p = pt->allocated ().cbegin (); p != pt->allocated ().cend (); ++p)
-			this->directory_->release (p->begin, p->end, TypeParam::memory ());
+			this->directory_->release (p->begin, p->end);
 	}
 
 	EXPECT_TRUE (this->directory_->empty ());
