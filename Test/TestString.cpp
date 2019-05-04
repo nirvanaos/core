@@ -41,14 +41,22 @@ TYPED_TEST_CASE (TestString, CharTypes);
 
 TYPED_TEST (TestString, Var)
 {
+	typedef StringT_var <TypeParam> Var;
 	static const TypeParam test [5] = {'T', 'E', 'S', 'T', '\0'};
-	StringT_var <TypeParam> var = test;
+	Var var = test;
 	EXPECT_EQ (test, var);
-	StringT_var <TypeParam> var1 = var;
+	Var var1 = var;
 	EXPECT_EQ ((const TypeParam*)var1, (const TypeParam*)var);
 	var1 [(ULong)1] = 'A';
 	EXPECT_NE ((const TypeParam*)var1, (const TypeParam*)var);
-	EXPECT_EQ (var1 [(ULong)1], 'A');
+	EXPECT_EQ ('A', const_cast <const Var&> (var1) [(ULong)1]);
+	var = var1;
+	EXPECT_EQ ((const TypeParam*)var1, (const TypeParam*)var);
+	EXPECT_EQ (const_cast <const Var&> (var) [(ULong)1], 'A');
+	var1 [(ULong)1] = 'E';
+	EXPECT_NE ((const TypeParam*)var1, (const TypeParam*)var);
+	EXPECT_EQ (const_cast <const Var&> (var1) [(ULong)1], 'E');
+	EXPECT_EQ (const_cast <const Var&> (var) [(ULong)1], 'A');
 }
 
 }

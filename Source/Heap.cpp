@@ -6,8 +6,6 @@ namespace Core {
 
 using namespace std;
 
-UWord HeapBase::commit_unit_;
-UWord HeapBase::optimal_commit_unit_;
 Octet* HeapBase::space_begin_;
 Octet* HeapBase::space_end_;
 
@@ -19,7 +17,7 @@ HeapBase::Partition** Heap64::part_table_;
 Pointer HeapBase::allocate (Directory* part, UWord size, UWord allocation_unit)
 {
 	UWord units = (size + allocation_unit - 1) / allocation_unit;
-	HeapInfo hi = {part + 1, allocation_unit, optimal_commit_unit_};
+	HeapInfo hi = {part + 1, allocation_unit, Port::ProtDomainMemory::OPTIMAL_COMMIT_UNIT};
 	Word unit = part->allocate (units, &hi);
 	if (unit >= 0) {
 		assert (unit < Directory::UNIT_COUNT);
@@ -53,7 +51,7 @@ bool HeapBase::Partition::allocate (Pointer p, UWord size, Flags flags) const
 	else
 		end = begin + (size + au - 1) / au;
 
-	HeapInfo hi = {heap, au, optimal_commit_unit_};
+	HeapInfo hi = {heap, au, Port::ProtDomainMemory::OPTIMAL_COMMIT_UNIT};
 	if (dir->allocate (begin, end, &hi)) {
 		Octet* pbegin = heap + begin * au;
 		if (!(flags & Memory::EXACTLY))
@@ -135,7 +133,7 @@ HeapBase::Partition& Heap64::add_partition (Directory* part, UWord allocation_un
 				block = cur;
 			}
 		} else
-			commit = block_size > commit_unit_;
+			commit = block_size > Port::ProtDomainMemory::COMMIT_UNIT;
 
 		Partition* p = block + i1;
 		if (!ret)
@@ -206,7 +204,7 @@ const HeapBase::Partition* Heap64::partition (UWord idx)
 				p += i1;
 				if (
 					(
-						table_block_size_ * sizeof (Partition) <= commit_unit_
+						table_block_size_ * sizeof (Partition) <= Port::ProtDomainMemory::COMMIT_UNIT
 						||
 						Port::ProtDomainMemory::is_readable (p, sizeof (Partition))
 					)

@@ -33,7 +33,7 @@ StringBase* StringBase::get_writable_copy (ULong size)
 	StringBase* ns = (StringBase*)heap ()->copy (nullptr, this, sizeof (StringBase) + size, Memory::ALLOCATE | Memory::READ_WRITE);
 	new (ns) StringBase (size);
 	release (this);
-	return ns + 1;
+	return ns;
 }
 
 template <class C>

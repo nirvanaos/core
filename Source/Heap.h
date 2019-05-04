@@ -68,7 +68,7 @@ protected:
 			UWord end = (offset + size + au - 1) / au;
 			if (!dir->check_allocated (begin, end))
 				throw BAD_PARAM ();
-			HeapInfo hi = {heap, au, optimal_commit_unit_};
+			HeapInfo hi = {heap, au, Port::ProtDomainMemory::OPTIMAL_COMMIT_UNIT};
 			dir->release (begin, end, &hi);
 		}
 
@@ -85,9 +85,7 @@ protected:
 
 	static void initialize ()
 	{
-		assert (Port::ProtDomainMemory::query (0, Memory::ALLOCATION_UNIT) >= HEAP_UNIT_MAX);
-		commit_unit_ = Port::ProtDomainMemory::query (0, Memory::COMMIT_UNIT);
-		optimal_commit_unit_ = Port::ProtDomainMemory::query (0, Memory::OPTIMAL_COMMIT_UNIT);
+		assert (Port::ProtDomainMemory::ALLOCATION_UNIT >= HEAP_UNIT_MAX);
 		space_begin_ = (Octet*)Port::ProtDomainMemory::query (0, Memory::ALLOCATION_SPACE_BEGIN);
 		space_end_ = (Octet*)Port::ProtDomainMemory::query (0, Memory::ALLOCATION_SPACE_END);
 	}
@@ -144,8 +142,6 @@ protected:
 	UWord allocation_unit_;
 	Partition* part_list_;
 
-	static UWord commit_unit_;
-	static UWord optimal_commit_unit_;
 	static Octet* space_begin_;
 	static Octet* space_end_;
 };
@@ -200,7 +196,7 @@ protected:
 	{
 		HeapBase::initialize ();
 		Directory* dir0 = create_partition (HEAP_UNIT_DEFAULT);
-		table_block_size_ = Port::ProtDomainMemory::query (0, Memory::ALLOCATION_UNIT) / sizeof (Partition);
+		table_block_size_ = Port::ProtDomainMemory::ALLOCATION_UNIT / sizeof (Partition);
 		UWord table_size = table_bytes ();
 		bool large_table = false;
 		try {
@@ -374,7 +370,7 @@ inline Pointer Heap::allocate (Pointer p, UWord size, Flags flags)
 	}
 
 	if (!p) {
-		if (size > Directory::MAX_BLOCK_SIZE * allocation_unit_ || ((flags & Memory::RESERVED) && size >= optimal_commit_unit_))
+		if (size > Directory::MAX_BLOCK_SIZE * allocation_unit_ || ((flags & Memory::RESERVED) && size >= Port::ProtDomainMemory::OPTIMAL_COMMIT_UNIT))
 			p = Port::ProtDomainMemory::allocate (0, size, flags);
 		else {
 			try {
@@ -397,17 +393,80 @@ inline Pointer Heap::copy (Pointer dst, Pointer src, UWord size, Flags flags)
 	if (!size)
 		return dst;
 
-	if (flags & ~(Memory::READ_ONLY | Memory::RELEASE | Memory::ALLOCATE | Memory::EXACTLY))
-		throw INV_FLAG ();
+	if (src != dst && !(flags & Memory::READ_ONLY)) {
 
-	if (dst && (flags & Memory::ALLOCATE)) {
-		const Partition* part = get_partition (dst);
-		if (part) {
-			if (part->allocate (dst, size, flags))
-				flags &= ~Memory::ALLOCATE;
-			else if (flags & Memory::EXACTLY)
-				return 0;
+		if (!src)
+			throw BAD_PARAM ();
+
+		if (flags & ~(Memory::READ_ONLY | Memory::RELEASE | Memory::ALLOCATE | Memory::EXACTLY))
+			throw INV_FLAG ();
+
+		const Partition* release_part = nullptr;
+		UWord release_size;
+		void* release_ptr = nullptr;
+		if (flags & Memory::RELEASE) {
+			release_part = get_partition (src);
+			release_ptr = src;
+			release_size = size;
 		}
+
+		if (dst && (flags & Memory::ALLOCATE)) {
+			const Partition* part = get_partition (dst);
+			if (part) {
+				void* alloc_ptr = dst;
+				UWord alloc_size = size;
+				if (dst < src) {
+					Octet* dst_end = (Octet*)dst + size;
+					if (dst_end > src) {
+						alloc_size = (Octet*)src - (Octet*)dst;
+						if (flags & Memory::RELEASE) {
+							release_ptr = dst_end;
+							release_size = alloc_size;
+						}
+					}
+				} else {
+					Octet* src_end = (Octet*)src + size;
+					if (src_end > dst) {
+						alloc_ptr = src_end;
+						alloc_size = (Octet*)dst - (Octet*)src;
+						if (flags & Memory::RELEASE)
+							release_size = alloc_size;
+					}
+				}
+				if (part->allocate (alloc_ptr, alloc_size, flags))
+					flags &= ~Memory::ALLOCATE;
+				else if (flags & Memory::EXACTLY)
+					return 0;
+				else {
+					dst = 0;
+					if (flags & Memory::RELEASE) {
+						release_ptr = src;
+						release_size = size;
+					}
+				}
+			}
+		}
+
+		if (!dst && size < Port::ProtDomainMemory::ALLOCATION_UNIT / 2) {
+			assert (!(flags & ~(Memory::ALLOCATE | Memory::RELEASE | Memory::EXACTLY)));
+			try {
+				dst = allocate (size);
+			} catch (const NO_MEMORY&) {
+				if (flags & Memory::EXACTLY)
+					return 0;
+				throw;
+			}
+			flags &= ~Memory::ALLOCATE;
+		}
+
+		Pointer ret;
+		if (release_part) {
+			ret = Port::ProtDomainMemory::copy (dst, src, size, flags & ~Memory::RELEASE);
+			release_part->release (release_ptr, release_size);
+		} else
+			ret = Port::ProtDomainMemory::copy (dst, src, size, flags);
+
+		return ret;
 	}
 
 	return Port::ProtDomainMemory::copy (dst, src, size, flags);
