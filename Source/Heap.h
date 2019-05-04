@@ -304,7 +304,7 @@ public:
 
 	static void terminate ()
 	{
-		StringManagerBase::terminate ();
+		StringBase::terminate ();
 		::Nirvana::Core::Port::ProtDomainMemory::terminate ();
 	}
 
@@ -448,7 +448,7 @@ inline void Heap::initialize ()
 	g_core_heap = instance;
 	g_heap_factory = HeapFactoryImpl::_this ();
 
-	StringManagerBase::initialize ();
+	StringBase::initialize ();
 }
 
 class HeapDynamic :
