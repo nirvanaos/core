@@ -56,6 +56,8 @@ public:
 		}
 	}
 
+	void leave ();
+
 private:
 	void schedule ();
 

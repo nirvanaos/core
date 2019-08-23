@@ -24,5 +24,13 @@ void SyncDomain::schedule ()
 	}
 }
 
+void SyncDomain::leave ()
+{
+	assert (Thread::current ().execution_domain () == current_executor_ && running_);
+	current_executor_ = nullptr;
+	running_ = false;
+	schedule ();
+}
+
 }
 }

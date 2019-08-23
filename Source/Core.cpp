@@ -19,7 +19,7 @@ void run_in_neutral_context (Runnable_ptr runnable)
 	neutral_context->switch_to ();
 	::std::auto_ptr < ::CORBA::Exception> exception (neutral_context->environment ().detach ());
 	if (exception.get ())
-		exception->_raise ();
+		exception->raise ();
 }
 
 }

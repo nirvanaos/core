@@ -22,6 +22,8 @@ void ExecDomain::async_call (Runnable_ptr runnable, DeadlineTime deadline, SyncD
 
 void ExecDomain::schedule (SyncDomain* sync_domain)
 {
+	if (cur_sync_domain_)
+		cur_sync_domain_->leave ();
 	cur_sync_domain_ = sync_domain;
 	if (ExecContext::current () == this)
 		run_in_neutral_context (Schedule::_this ());
@@ -40,6 +42,12 @@ void ExecDomain::schedule_internal ()
 		}
 	} else
 		Scheduler::schedule (deadline (), *this, 0);
+}
+
+void ExecDomain::suspend ()
+{
+	if (cur_sync_domain_)
+		cur_sync_domain_->leave ();
 }
 
 void ExecDomain::execute_loop ()
