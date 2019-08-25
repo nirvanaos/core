@@ -1,9 +1,10 @@
 #ifndef NIRVANA_CORE_ATOMICPTR_H_
 #define NIRVANA_CORE_ATOMICPTR_H_
 
-#include <Nirvana/Nirvana.h>
+#include "core.h"
 #include "BackOff.h"
 #include <atomic>
+#include <algorithm>
 #include <type_traits>
 
 namespace Nirvana {
@@ -11,7 +12,7 @@ namespace Core {
 
 template <unsigned ALIGN> class AtomicPtr;
 
-template <unsigned ALIGN = 4>
+template <unsigned ALIGN = HEAP_UNIT_CORE>
 class TaggedPtr
 {
 	static const uintptr_t TAG_BITS = ALIGN - 1;
@@ -76,33 +77,65 @@ private:
 	{}
 
 private:
+	friend class MarkablePtr;
 	friend class AtomicPtr <ALIGN>;
 	friend class TaggedNil;
 
 	uintptr_t ptr_;
 };
 
-template <unsigned ALIGN = 4>
+class MarkablePtr
+{
+public:
+	typedef TaggedPtr <2> Tagged;
+
+	MarkablePtr ()
+	{}
+
+	MarkablePtr (Tagged src) :
+		ptr_ (src.ptr_)
+	{}
+
+	Tagged load () const
+	{
+		return Tagged (ptr_.load ());
+	}
+
+	Tagged operator = (Tagged src)
+	{
+		ptr_ = src.ptr_;
+	}
+
+	bool compare_exchange (Tagged& from, const Tagged& to)
+	{
+		return ptr_.compare_exchange_weak (from.ptr_, to.ptr_);
+	}
+
+private:
+	volatile std::atomic <uintptr_t> ptr_;
+};
+
+template <unsigned ALIGN = HEAP_UNIT_CORE>
 class AtomicPtr
 {
 	static const uintptr_t SPIN_BITS = TaggedPtr <ALIGN>::TAG_BITS & ~(uintptr_t)1;
 public:
 	static const unsigned alignment = ALIGN;
-	typedef TaggedPtr <ALIGN> Ptr;
+	typedef TaggedPtr <ALIGN> Tagged;
 
 	AtomicPtr ()
 	{}
 
-	AtomicPtr (Ptr src) :
+	AtomicPtr (Tagged src) :
 		ptr_ (src.ptr_)
 	{}
 
-	Ptr load () const
+	Tagged load () const
 	{
-		return Ptr (ptr_.load () & ~SPIN_BITS);
+		return Tagged (ptr_.load () & ~SPIN_BITS);
 	}
 
-	Ptr operator = (Ptr src)
+	Tagged operator = (Tagged src)
 	{
 		assert ((src.ptr_ & SPIN_BITS) == 0);
 		for (BackOff bo; true; bo.sleep ()) {
@@ -114,25 +147,34 @@ public:
 		}
 	}
 
-	bool cas (const Ptr& from, const Ptr& to)
+	bool cas (const Tagged& from, const Tagged& to)
 	{
-		uintptr_t cur = from.ptr_;
-		assert ((cur & SPIN_BITS) == 0);
-		for (BackOff bo; !ptr_.compare_exchange_weak (cur, to.ptr_); bo.sleep ()) {
-			if ((cur & ~SPIN_BITS) != from.ptr_)
+		Tagged tmp = from;
+		return compare_exchange (tmp, to);
+	}
+
+	bool compare_exchange (Tagged& cur, const Tagged& to)
+	{
+		uintptr_t tcur = cur.ptr_;
+		assert ((tcur & SPIN_BITS) == 0);
+		for (BackOff bo; !ptr_.compare_exchange_weak (tcur, to.ptr_); bo.sleep ()) {
+			tcur &= ~SPIN_BITS;
+			if (tcur != cur.ptr_) {
+				cur.ptr_ = tcur;
 				return false;
-			cur = from.ptr_;
+			}
+			tcur = cur.ptr_;
 		}
 		return true;
 	}
 
-	Ptr lock ()
+	Tagged lock ()
 	{
 		for (BackOff bo; true; bo.sleep ()) {
 			uintptr_t cur = ptr_.load ();
 			while ((cur & SPIN_BITS) != SPIN_BITS) {
 				if (ptr_.compare_exchange_weak (cur, cur + 2, std::memory_order_acquire))
-					return Ptr (cur & ~SPIN_BITS);
+					return Tagged (cur & ~SPIN_BITS);
 			}
 		}
 	}
@@ -148,7 +190,7 @@ private:
 
 template <class T, unsigned ALIGN> class AtomicPtrT;
 
-template <class T, unsigned ALIGN = 4>
+template <class T, unsigned ALIGN = std::max ((unsigned)HEAP_UNIT_CORE, (unsigned)(1 << log2_ceil (sizeof (T))))>
 class TaggedPtrT : public TaggedPtr <ALIGN>
 {
 public:
@@ -202,37 +244,66 @@ public:
 	}
 };
 
-template <class T, unsigned ALIGN = 4>
+template <class T>
+class MarkablePtrT : public MarkablePtr
+{
+public:
+	typedef TaggedPtrT <T, 2> Tagged;
+
+	MarkablePtrT ()
+	{}
+
+	MarkablePtrT (Tagged src) :
+		MarkablePtr (src)
+	{}
+
+	Tagged load () const
+	{
+		return Tagged (MarkablePtr::load ());
+	}
+
+	Tagged operator = (Tagged src)
+	{
+		return Tagged (MarkablePtr::operator = (src));
+	}
+
+	bool compare_exchange (Tagged& from, const Tagged& to)
+	{
+		return MarkablePtr::compare_exchange (from, to);
+	}
+};
+
+template <class T, unsigned ALIGN = std::max ((unsigned)HEAP_UNIT_CORE, (unsigned)(1 << log2_ceil (sizeof (T))))>
 class AtomicPtrT : public AtomicPtr <ALIGN>
 {
 public:
-	typedef TaggedPtrT <T, ALIGN> Ptr;
+	typedef TaggedPtrT <T, ALIGN> Tagged;
 
 	AtomicPtrT ()
 	{}
 
-	AtomicPtrT (Ptr src) :
+	AtomicPtrT (Tagged src) :
 		AtomicPtr <ALIGN> (src)
 	{}
 
-	Ptr load () const
+	Tagged load () const
 	{
-		return Ptr (AtomicPtr <ALIGN>::load ());
+		return Tagged (AtomicPtr <ALIGN>::load ());
 	}
 
-	Ptr operator = (Ptr src)
+	Tagged operator = (Tagged src)
 	{
-		return Ptr (AtomicPtr <ALIGN>::operator = (src));
+		return Tagged (AtomicPtr <ALIGN>::operator = (src));
 	}
 
-	bool cas (const Ptr& from, const Ptr& to)
+	bool cas (const Tagged& from, const Tagged& to)
 	{
 		return AtomicPtr <ALIGN>::cas (from, to);
 	}
 
-	Ptr lock ()
+	Tagged lock ()
 	{
-		return Ptr (AtomicPtr <ALIGN>::lock ());
+		return Tagged (AtomicPtr <ALIGN>::lock ());
 	}
 };
 

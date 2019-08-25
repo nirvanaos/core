@@ -3,7 +3,6 @@
 
 #include "HeapDirectory.h"
 #include "core.h"
-#include <Port/config.h>
 #include <type_traits>
 #include <Nirvana/HeapFactory_s.h>
 #include <Nirvana/Memory_s.h>
@@ -135,7 +134,7 @@ protected:
 
 	static bool sparse_table (UWord table_bytes)
 	{
-		return ((table_bytes + HEAP_UNIT_DEFAULT - 1) / HEAP_UNIT_DEFAULT > Directory::MAX_BLOCK_SIZE);
+		return ((table_bytes + HEAP_UNIT_CORE - 1) / HEAP_UNIT_CORE > Directory::MAX_BLOCK_SIZE);
 	}
 
 protected:
@@ -152,7 +151,7 @@ protected:
 	static Partition& initialize ()
 	{
 		HeapBase::initialize ();
-		Directory* dir0 = create_partition (HEAP_UNIT_DEFAULT);
+		Directory* dir0 = create_partition (HEAP_UNIT_CORE);
 		UWord table_size = table_bytes ();
 		bool large_table = false;
 		try {
@@ -160,12 +159,12 @@ protected:
 				part_table_ = (Partition*)Port::ProtDomainMemory::allocate (0, table_size, Memory::RESERVED | Memory::ZERO_INIT);
 				large_table = true;
 			} else
-				part_table_ = (Partition*)allocate (dir0, table_size, HEAP_UNIT_DEFAULT);
-			return add_partition (dir0, HEAP_UNIT_DEFAULT);
+				part_table_ = (Partition*)allocate (dir0, table_size, HEAP_UNIT_CORE);
+			return add_partition (dir0, HEAP_UNIT_CORE);
 		} catch (...) {
 			if (large_table)
 				Port::ProtDomainMemory::release (part_table_, table_size);
-			Port::ProtDomainMemory::release (dir0, partition_size (HEAP_UNIT_DEFAULT));
+			Port::ProtDomainMemory::release (dir0, partition_size (HEAP_UNIT_CORE));
 			throw;
 		}
 	}
@@ -195,7 +194,7 @@ protected:
 	static Partition& initialize ()
 	{
 		HeapBase::initialize ();
-		Directory* dir0 = create_partition (HEAP_UNIT_DEFAULT);
+		Directory* dir0 = create_partition (HEAP_UNIT_CORE);
 		table_block_size_ = Port::ProtDomainMemory::ALLOCATION_UNIT / sizeof (Partition);
 		UWord table_size = table_bytes ();
 		bool large_table = false;
@@ -204,12 +203,12 @@ protected:
 				part_table_ = (Partition**)Port::ProtDomainMemory::allocate (0, table_size, Memory::RESERVED | Memory::ZERO_INIT);
 				large_table = true;
 			} else
-				part_table_ = (Partition**)allocate (dir0, table_size, HEAP_UNIT_DEFAULT);
-			return add_partition (dir0, HEAP_UNIT_DEFAULT);
+				part_table_ = (Partition**)allocate (dir0, table_size, HEAP_UNIT_CORE);
+			return add_partition (dir0, HEAP_UNIT_CORE);
 		} catch (...) {
 			if (large_table)
 				Port::ProtDomainMemory::release (part_table_, table_size);
-			Port::ProtDomainMemory::release (dir0, partition_size (HEAP_UNIT_DEFAULT));
+			Port::ProtDomainMemory::release (dir0, partition_size (HEAP_UNIT_CORE));
 			throw;
 		}
 	}
@@ -324,7 +323,7 @@ protected:
 	}
 
 	Heap (Partition& first_part) :
-		HeapBaseT (HEAP_UNIT_DEFAULT)
+		HeapBaseT (HEAP_UNIT_CORE)
 	{
 		part_list_ = &first_part;
 	}

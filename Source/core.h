@@ -5,9 +5,9 @@
 #define NIRVANA_CORE_CORE_H_
 
 #include <Nirvana/Nirvana.h>
+#include <Port/config.h>
 #include <Nirvana/HeapFactory_c.h>
 #include <Nirvana/Runnable_c.h>
-#include <memory>
 
 namespace Nirvana {
 
@@ -28,22 +28,6 @@ public:
 	void operator delete (void* p, size_t cb)
 	{
 		g_core_heap->release (p, cb);
-	}
-};
-
-template <class T>
-class CoreAllocator :
-	public std::allocator <T>
-{
-public:
-	void deallocate (T* p, size_t cnt)
-	{
-		g_core_heap->release (p, cnt * sizeof (T));
-	}
-
-	T* allocate (size_t cnt, void* hint = nullptr)
-	{
-		return (T*)g_core_heap->allocate (0, cnt * sizeof (T), 0);
 	}
 };
 

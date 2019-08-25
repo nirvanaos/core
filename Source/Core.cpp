@@ -2,6 +2,7 @@
 #include "Heap.h"
 #include "ExecContext.h"
 #include "Thread.h"
+#include <memory>
 
 namespace Nirvana {
 

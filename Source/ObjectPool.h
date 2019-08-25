@@ -3,49 +3,26 @@
 #ifndef NIRVANA_CORE_OBJECTPOOL_H_
 #define NIRVANA_CORE_OBJECTPOOL_H_
 
-#include <atomic>
+#include "Stack.h"
 
 namespace Nirvana {
 namespace Core {
 
-/**
-In the current implementation, poolable objects are never be deleted until the terminate() call.
-In the future possible more complex and smart implementation.
-*/
-class PoolableObject
+class PoolableObject :
+	public StackElem
 {
 public:
 	void activate () {}
-
-private:
-	friend class ObjectPool;
-	std::atomic <PoolableObject*> next_;
-};
-
-class ObjectPool
-{
-public:
-	void initialize ()
-	{
-		top_ = nullptr;
-	}
-
-	void release (PoolableObject& obj);
-
-	PoolableObject* get ();
-
-private:
-	std::atomic <PoolableObject*> top_;
 };
 
 template <class T>
 class ObjectPoolT :
-	private ObjectPool
+	private StackT <T>
 {
 public:
 	T* get ()
 	{
-		T* obj = static_cast <T*> (ObjectPool::get ());
+		T* obj = StackT <T>::pop ();
 		if (!obj)
 			obj = new T;
 		else
@@ -55,17 +32,16 @@ public:
 
 	void release (T& obj)
 	{
-		ObjectPool::release (obj);
+		StackT <T>::push (obj);
 	}
 
 	void initialize ()
 	{
-		ObjectPool::initialize ();
 	}
 
 	void terminate ()
 	{
-		while (T* obj = static_cast <T*> (ObjectPool::get ())) {
+		while (T* obj = StackT <T>::pop ()) {
 			delete obj;
 		}
 	}

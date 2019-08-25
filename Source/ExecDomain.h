@@ -17,8 +17,8 @@ namespace Core {
 class SyncDomain;
 
 class ExecDomain :
-	public ExecContext,
 	public PoolableObject,
+	public ExecContext,
 	public Executor,
 	public ::CORBA::Nirvana::ServantTraits <ExecDomain>,
 	public ::CORBA::Nirvana::LifeCycleRefCntPseudo <ExecDomain>

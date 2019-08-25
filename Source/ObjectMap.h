@@ -8,6 +8,7 @@
 #include <CORBA/Exception.h>
 #include <unordered_map>
 #include <atomic>
+#include "Allocators.h"
 
 namespace Nirvana {
 namespace Core {
@@ -26,11 +27,13 @@ template <class Key,
 	class Hash = std::hash <Key>,
 	class Pred = std::equal_to <Key> >
 class ObjectMap :
-	private std::unordered_map <Key, ObjectMapBase::Value, Hash, Pred>,
+	private std::unordered_map <Key, ObjectMapBase::Value, Hash, Pred, 
+		AllocatorFixedSize <std::pair <const Key, ObjectMapBase::Value> > >,
 	private ObjectMapBase,
 	private RWLock
 {
-	typedef std::unordered_map <Key, ObjectMapBase::Value, Hash, Pred> Base;
+	typedef std::unordered_map <Key, ObjectMapBase::Value, Hash, Pred,
+		AllocatorFixedSize <std::pair <const Key, ObjectMapBase::Value> > > Base;
 public:
 	typedef Base::iterator iterator;
 	
