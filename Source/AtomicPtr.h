@@ -6,6 +6,7 @@
 #include <atomic>
 #include <algorithm>
 #include <type_traits>
+#include <Nirvana/bitutils.h>
 
 namespace Nirvana {
 namespace Core {
@@ -176,6 +177,7 @@ public:
 				if (ptr_.compare_exchange_weak (cur, cur + 2, std::memory_order_acquire))
 					return Tagged (cur & ~SPIN_BITS);
 			}
+			;
 		}
 	}
 
@@ -190,7 +192,9 @@ private:
 
 template <class T, unsigned ALIGN> class AtomicPtrT;
 
-template <class T, unsigned ALIGN = std::max ((unsigned)HEAP_UNIT_CORE, (unsigned)(1 << log2_ceil (sizeof (T))))>
+#define CORE_OBJECT_ALIGN(T) (std::max ((unsigned)::Nirvana::Core::HEAP_UNIT_CORE, (unsigned)(1 << ::Nirvana::log2_ceil (sizeof (T)))))
+
+template <class T, unsigned ALIGN = CORE_OBJECT_ALIGN (T)>
 class TaggedPtrT : public TaggedPtr <ALIGN>
 {
 public:
@@ -273,7 +277,7 @@ public:
 	}
 };
 
-template <class T, unsigned ALIGN = std::max ((unsigned)HEAP_UNIT_CORE, (unsigned)(1 << log2_ceil (sizeof (T))))>
+template <class T, unsigned ALIGN = CORE_OBJECT_ALIGN (T)>
 class AtomicPtrT : public AtomicPtr <ALIGN>
 {
 public:

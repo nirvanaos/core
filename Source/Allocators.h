@@ -1,27 +1,11 @@
 #ifndef NIRVANA_CORE_ALLOCATORS_H_
 #define NIRVANA_CORE_ALLOCATORS_H_
 
-#include <memory>
+#include "core.h"
 #include "Stack.h"
 
 namespace Nirvana {
 namespace Core {
-
-template <class T>
-class CoreAllocator :
-	public std::allocator <T>
-{
-public:
-	void deallocate (T* p, size_t cnt)
-	{
-		g_core_heap->release (p, cnt * sizeof (T));
-	}
-
-	T* allocate (size_t cnt, void* hint = nullptr)
-	{
-		return (T*)g_core_heap->allocate (0, cnt * sizeof (T), 0);
-	}
-};
 
 template <unsigned SIZE>
 class FreeList :
@@ -60,7 +44,7 @@ public:
 	}
 
 private:
-	static FreeList <std::max ((unsigned)HEAP_UNIT_CORE, (unsigned)(1 << log2_ceil (sizeof (T))))> free_list_;
+	static FreeList <CORE_OBJECT_ALIGN (T)> free_list_;
 };
 
 }
