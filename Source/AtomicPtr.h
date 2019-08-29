@@ -8,158 +8,182 @@
 #include <type_traits>
 #include <Nirvana/bitutils.h>
 
+#define CORE_OBJECT_ALIGN(T) (std::max ((unsigned)::Nirvana::Core::HEAP_UNIT_CORE, (unsigned)(1 << ::Nirvana::log2_ceil (sizeof (T)))))
+
 namespace Nirvana {
 namespace Core {
 
-template <unsigned ALIGN> class AtomicPtr;
+template <unsigned TAG_BITS, unsigned ALIGN> class AtomicPtr;
+template <unsigned TAG_BITS, unsigned ALIGN> class LockablePtr;
 
-template <unsigned ALIGN = HEAP_UNIT_CORE>
+template <unsigned TAG_BITS, unsigned ALIGN = HEAP_UNIT_CORE>
 class TaggedPtr
 {
-	static const uintptr_t TAG_BITS = ALIGN - 1;
+	static_assert (ALIGN == 1 << log2_ceil (ALIGN), "Alignment must be power of 2.");
 public:
-	static const unsigned alignment = ALIGN;
-	typedef AtomicPtr <ALIGN> Atomic;
+	static const uintptr_t ALIGN_MASK = ALIGN - 1;
+	static const uintptr_t TAG_MASK = ~(~0u << TAG_BITS);
+	static_assert (ALIGN_MASK >= TAG_MASK, "ALIGN_MASK >= TAG_MASK");
+	typedef AtomicPtr <TAG_BITS, ALIGN> Atomic;
+	typedef LockablePtr <TAG_BITS, ALIGN> Lockable;
 
 	TaggedPtr ()
 	{}
 
-	TaggedPtr (void* p) :
-		ptr_ ((uintptr_t)p)
+	TaggedPtr (void* p)
 	{
-		assert (!((uintptr_t)p & TAG_BITS));
-	}
-
-	TaggedPtr (const TaggedPtr <ALIGN>& src) :
-		ptr_ (src.ptr_)
-	{}
-
-	void* operator = (void* p)
-	{
-		assert (!((uintptr_t)p & TAG_BITS));
+		assert (!((uintptr_t)p & ALIGN_MASK));
 		ptr_ = (uintptr_t)p;
-		return p;
 	}
 
-	TaggedPtr <ALIGN>& operator = (const TaggedPtr <ALIGN>& src)
+	TaggedPtr (void* p, uintptr_t tag_bits)
 	{
+		assert (!((uintptr_t)p & ALIGN_MASK));
+		assert (!(tag_bits & ~TAG_MASK));
+		ptr_ = (uintptr_t)p | tag_bits;
+	}
+
+	template <unsigned A>
+	TaggedPtr (const TaggedPtr <TAG_BITS, A>& src) :
+		ptr_ (src.ptr_)
+	{
+		static_assert (A > ALIGN_MASK, "Alignment decreasing.");
+	}
+
+	template <unsigned A>
+	TaggedPtr <TAG_BITS, ALIGN>& operator = (const TaggedPtr <TAG_BITS, A>& src)
+	{
+		static_assert (A > ALIGN_MASK, "Alignment decreasing.");
 		ptr_ = src.ptr_;
 		return *this;
 	}
 
-	uintptr_t is_marked () const
+	void* operator = (void* p)
 	{
-		return ptr_ & 1;
-	}
-
-	TaggedPtr <ALIGN> marked () const
-	{
-		return TaggedPtr <ALIGN> (ptr_ | 1);
-	}
-
-	TaggedPtr <ALIGN> unmarked () const
-	{
-		return TaggedPtr <ALIGN> (ptr_ & ~(uintptr_t)1);
+		assert (!((uintptr_t)p & ALIGN_MASK));
+		ptr_ = (uintptr_t)p;
+		return p;
 	}
 
 	operator void* () const
 	{
-		return (void*)(ptr_ & ~(uintptr_t)1);
+		return (void*)(ptr_ & ~TAG_MASK);
 	}
 
-	bool operator == (const TaggedPtr <ALIGN>& rhs) const
+	unsigned tag_bits () const
+	{
+		return (unsigned)ptr_ & TAG_MASK;
+	}
+
+	TaggedPtr <TAG_BITS, ALIGN> untagged () const
+	{
+		return TaggedPtr <TAG_BITS, ALIGN> (ptr_ & ~TAG_MASK);
+	}
+
+	template <unsigned A>
+	bool operator == (const TaggedPtr <TAG_BITS, A>& rhs) const
 	{
 		return ptr_ == rhs.ptr_;
 	}
 
+	operator bool () const
+	{
+		return ptr_ != 0;
+	}
+
 private:
-	TaggedPtr (uintptr_t val) :
+	explicit TaggedPtr (uintptr_t val) :
 		ptr_ (val)
 	{}
 
 private:
-	friend class MarkablePtr;
-	friend class AtomicPtr <ALIGN>;
-	friend class TaggedNil;
+	friend class AtomicPtr <TAG_BITS, ALIGN>;
+	friend class LockablePtr <TAG_BITS, ALIGN>;
 
 	uintptr_t ptr_;
 };
 
-class MarkablePtr
+template <unsigned TAG_BITS, unsigned ALIGN = HEAP_UNIT_CORE>
+class AtomicPtr
 {
 public:
-	typedef TaggedPtr <2> Tagged;
+	typedef TaggedPtr <TAG_BITS, ALIGN> Ptr;
 
-	MarkablePtr ()
+	AtomicPtr ()
 	{}
 
-	MarkablePtr (Tagged src) :
+	AtomicPtr (Ptr src) :
 		ptr_ (src.ptr_)
 	{}
 
-	Tagged load () const
+	Ptr load () const
 	{
-		return Tagged (ptr_.load ());
+		return Ptr (ptr_.load ());
 	}
 
-	Tagged operator = (Tagged src)
+	Ptr operator = (Ptr src)
 	{
-		ptr_ = src.ptr_;
+		ptr_.store (src.ptr_);
+		return src;
 	}
 
-	bool compare_exchange (Tagged& from, const Tagged& to)
+	bool cas (const Ptr& from, const Ptr& to)
 	{
-		return ptr_.compare_exchange_weak (from.ptr_, to.ptr_);
+		Ptr tmp = from;
+		return compare_exchange (tmp, to);
+	}
+
+	bool compare_exchange (Ptr& cur, const Ptr& to)
+	{
+		return ptr_.compare_exchange_weak (cur.ptr_, to.ptr_);
 	}
 
 private:
 	volatile std::atomic <uintptr_t> ptr_;
 };
 
-template <unsigned ALIGN = HEAP_UNIT_CORE>
-class AtomicPtr
+template <unsigned TAG_BITS, unsigned ALIGN = HEAP_UNIT_CORE>
+class LockablePtr
 {
-	static const uintptr_t SPIN_BITS = TaggedPtr <ALIGN>::TAG_BITS & ~(uintptr_t)1;
 public:
-	static const unsigned alignment = ALIGN;
-	typedef TaggedPtr <ALIGN> Tagged;
+	typedef TaggedPtr <TAG_BITS, ALIGN> Ptr;
 
-	AtomicPtr ()
+	LockablePtr ()
 	{}
 
-	AtomicPtr (Tagged src) :
+	LockablePtr (Ptr src) :
 		ptr_ (src.ptr_)
 	{}
 
-	Tagged load () const
+	Ptr load () const
 	{
-		return Tagged (ptr_.load () & ~SPIN_BITS);
+		return Ptr (ptr_.load () & ~SPIN_MASK);
 	}
 
-	Tagged operator = (Tagged src)
+	Ptr operator = (Ptr src)
 	{
-		assert ((src.ptr_ & SPIN_BITS) == 0);
+		assert ((src.ptr_ & SPIN_MASK) == 0);
 		for (BackOff bo; true; bo.sleep ()) {
 			uintptr_t cur = ptr_.load ();
-			while (!(cur & SPIN_BITS)) {
+			while (!(cur & SPIN_MASK)) {
 				if (ptr_.compare_exchange_weak (cur, src.ptr_))
 					return src;
 			}
 		}
 	}
 
-	bool cas (const Tagged& from, const Tagged& to)
+	bool cas (const Ptr& from, const Ptr& to)
 	{
-		Tagged tmp = from;
+		Ptr tmp = from;
 		return compare_exchange (tmp, to);
 	}
 
-	bool compare_exchange (Tagged& cur, const Tagged& to)
+	bool compare_exchange (Ptr& cur, const Ptr& to)
 	{
 		uintptr_t tcur = cur.ptr_;
-		assert ((tcur & SPIN_BITS) == 0);
+		assert ((tcur & SPIN_MASK) == 0);
 		for (BackOff bo; !ptr_.compare_exchange_weak (tcur, to.ptr_); bo.sleep ()) {
-			tcur &= ~SPIN_BITS;
+			tcur &= ~SPIN_MASK;
 			if (tcur != cur.ptr_) {
 				cur.ptr_ = tcur;
 				return false;
@@ -169,13 +193,13 @@ public:
 		return true;
 	}
 
-	Tagged lock ()
+	Ptr lock ()
 	{
 		for (BackOff bo; true; bo.sleep ()) {
 			uintptr_t cur = ptr_.load ();
-			while ((cur & SPIN_BITS) != SPIN_BITS) {
-				if (ptr_.compare_exchange_weak (cur, cur + 2, std::memory_order_acquire))
-					return Tagged (cur & ~SPIN_BITS);
+			while ((cur & SPIN_MASK) != SPIN_MASK) {
+				if (ptr_.compare_exchange_weak (cur, cur + Ptr::TAG_MASK + 1, std::memory_order_acquire))
+					return Ptr (cur & ~SPIN_MASK);
 			}
 			;
 		}
@@ -183,166 +207,151 @@ public:
 
 	void unlock ()
 	{
-		ptr_.fetch_sub (2, std::memory_order_release);
+		ptr_.fetch_sub (Ptr::TAG_MASK + 1, std::memory_order_release);
 	}
 
 private:
+	static const uintptr_t SPIN_MASK = Ptr::ALIGN_MASK & ~Ptr::TAG_MASK;
+
 	volatile std::atomic <uintptr_t> ptr_;
 };
 
-template <class T, unsigned ALIGN> class AtomicPtrT;
+template <class T, unsigned TAG_BITS, unsigned ALIGN> class AtomicPtrT;
+template <class T, unsigned TAG_BITS, unsigned ALIGN> class LockablePtrT;
 
-#define CORE_OBJECT_ALIGN(T) (std::max ((unsigned)::Nirvana::Core::HEAP_UNIT_CORE, (unsigned)(1 << ::Nirvana::log2_ceil (sizeof (T)))))
-
-template <class T, unsigned ALIGN = CORE_OBJECT_ALIGN (T)>
-class TaggedPtrT : public TaggedPtr <ALIGN>
+template <class T, unsigned TAG_BITS, unsigned ALIGN = CORE_OBJECT_ALIGN (T)>
+class TaggedPtrT : public TaggedPtr <TAG_BITS, ALIGN>
 {
+	typedef TaggedPtr <TAG_BITS, ALIGN> Base;
 public:
-	typedef AtomicPtrT <T, ALIGN> Atomic;
+	typedef AtomicPtrT <T, TAG_BITS, ALIGN> Atomic;
+	typedef LockablePtrT <T, TAG_BITS, ALIGN> Lockable;
 
 	TaggedPtrT ()
 	{}
 
 	TaggedPtrT (T* p) :
-		TaggedPtr <ALIGN> (p)
+		Base (p)
 	{}
 
-	TaggedPtrT (const TaggedPtrT <T, ALIGN>& src) :
-		TaggedPtr <ALIGN> (src)
+	TaggedPtrT (T* p, unsigned tag_bits) :
+		Base (p, tag_bits)
 	{}
 
-	explicit
-		TaggedPtrT (const TaggedPtr <ALIGN>& src) :
-		TaggedPtr <ALIGN> (src)
+	template <unsigned A>
+	TaggedPtrT (const TaggedPtrT <T, TAG_BITS, A>& src) :
+		Base (src)
 	{}
 
 	T* operator = (T* p)
 	{
-		return (T*)TaggedPtr <ALIGN>::operator = (p);
+		return (T*)Base::operator = (p);
 	}
 
-	TaggedPtrT <T, ALIGN>& operator = (const TaggedPtrT <T, ALIGN>& src)
+	template <unsigned A>
+	TaggedPtrT <T, TAG_BITS, ALIGN>& operator = (const TaggedPtrT <T, TAG_BITS, A>& src)
 	{
-		TaggedPtr <ALIGN>::operator = (src);
+		Base::operator = (src);
 		return *this;
-	}
-
-	TaggedPtrT <T, ALIGN> marked () const
-	{
-		return TaggedPtrT <T, ALIGN> (TaggedPtr <ALIGN>::marked ());
-	}
-
-	TaggedPtrT <T, ALIGN> unmarked () const
-	{
-		return TaggedPtrT <T, ALIGN> (TaggedPtr <ALIGN>::unmarked ());
 	}
 
 	operator T* () const
 	{
-		return (T*)TaggedPtr <ALIGN>::operator void* ();
+		return (T*)Base::operator void* ();
 	}
 
 	T* operator -> () const
 	{
 		return operator T* ();
 	}
+
+	TaggedPtrT <T, TAG_BITS, ALIGN> untagged () const
+	{
+		return TaggedPtrT <T, TAG_BITS, ALIGN> (Base::untagged ());
+	}
+
+private:
+	friend class AtomicPtrT <T, TAG_BITS, ALIGN>;
+	friend class LockablePtrT <T, TAG_BITS, ALIGN>;
+
+	explicit TaggedPtrT (const Base& src) :
+		Base (src)
+	{}
 };
 
-template <class T>
-class MarkablePtrT : public MarkablePtr
+template <class T, unsigned TAG_BITS, unsigned ALIGN = CORE_OBJECT_ALIGN (T)>
+class AtomicPtrT : public AtomicPtr <TAG_BITS, ALIGN>
 {
+	typedef AtomicPtr <TAG_BITS, ALIGN> Base;
 public:
-	typedef TaggedPtrT <T, 2> Tagged;
-
-	MarkablePtrT ()
-	{}
-
-	MarkablePtrT (Tagged src) :
-		MarkablePtr (src)
-	{}
-
-	Tagged load () const
-	{
-		return Tagged (MarkablePtr::load ());
-	}
-
-	Tagged operator = (Tagged src)
-	{
-		return Tagged (MarkablePtr::operator = (src));
-	}
-
-	bool compare_exchange (Tagged& from, const Tagged& to)
-	{
-		return MarkablePtr::compare_exchange (from, to);
-	}
-};
-
-template <class T, unsigned ALIGN = CORE_OBJECT_ALIGN (T)>
-class AtomicPtrT : public AtomicPtr <ALIGN>
-{
-public:
-	typedef TaggedPtrT <T, ALIGN> Tagged;
+	typedef TaggedPtrT <T, TAG_BITS, ALIGN> Ptr;
 
 	AtomicPtrT ()
 	{}
 
-	AtomicPtrT (Tagged src) :
-		AtomicPtr <ALIGN> (src)
+	AtomicPtrT (Ptr src) :
+		Base (src)
 	{}
 
-	Tagged load () const
+	Ptr load () const
 	{
-		return Tagged (AtomicPtr <ALIGN>::load ());
+		return Ptr (Base::load ());
 	}
 
-	Tagged operator = (Tagged src)
+	Ptr operator = (Ptr src)
 	{
-		return Tagged (AtomicPtr <ALIGN>::operator = (src));
+		return Ptr (Base::operator = (src));
 	}
 
-	bool cas (const Tagged& from, const Tagged& to)
+	bool cas (const Ptr& from, const Ptr& to)
 	{
-		return AtomicPtr <ALIGN>::cas (from, to);
+		return Base::cas (from, to);
 	}
 
-	Tagged lock ()
+	bool compare_exchange (Ptr& cur, const Ptr& to)
 	{
-		return Tagged (AtomicPtr <ALIGN>::lock ());
+		return Base::compare_exchange (cur, to);
 	}
 };
 
-class TaggedNil
+template <class T, unsigned TAG_BITS, unsigned ALIGN = CORE_OBJECT_ALIGN (T)>
+class LockablePtrT : public LockablePtr <TAG_BITS, ALIGN>
 {
+	typedef LockablePtr <TAG_BITS, ALIGN> Base;
 public:
-	template <unsigned ALIGN>
-	operator TaggedPtr <ALIGN> () const
-	{
-		return TaggedPtr <ALIGN> (ptr_);
-	}
-	
-	template <class T, unsigned ALIGN>
-	operator TaggedPtrT <T, ALIGN> () const
-	{
-		return TaggedPtrT <T, ALIGN> (TaggedPtr <ALIGN> (ptr_));
-	}
+	typedef TaggedPtrT <T, TAG_BITS, ALIGN> Ptr;
 
-	static TaggedNil marked ()
-	{
-		return TaggedNil (1);
-	}
-
-	static TaggedNil unmarked ()
-	{
-		return TaggedNil (0);
-	}
-
-private:
-	TaggedNil (uintptr_t marked) :
-		ptr_ ((uintptr_t)nullptr | marked)
+	LockablePtrT ()
 	{}
 
-private:
-	uintptr_t ptr_;
+	LockablePtrT (Ptr src) :
+		Base (src)
+	{}
+
+	Ptr load () const
+	{
+		return Ptr (Base::load ());
+	}
+
+	Ptr operator = (Ptr src)
+	{
+		return Ptr (Base::operator = (src));
+	}
+
+	bool cas (const Ptr& from, const Ptr& to)
+	{
+		return Base::cas (from, to);
+	}
+
+	bool compare_exchange (Ptr& cur, const Ptr& to)
+	{
+		return Base::compare_exchange (cur, to);
+	}
+
+	Ptr lock ()
+	{
+		return Ptr (Base::lock ());
+	}
 };
 
 }

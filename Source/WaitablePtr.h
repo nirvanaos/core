@@ -35,7 +35,7 @@ public:
 	}
 
 private:
-	static const uintptr_t STATE_MASK = 3;
+	static const unsigned STATE_MASK = 3;
 	enum
 	{
 		PTR_OBJECT = 0,

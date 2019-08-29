@@ -87,11 +87,11 @@ void PriorityQueueBase::delete_node (Node* node)
 	Node::operator delete (node, node->level);
 }
 
-PriorityQueueBase::Node* PriorityQueueBase::read_node (Link::Atomic& node)
+PriorityQueueBase::Node* PriorityQueueBase::read_node (Link::Lockable& node)
 {
 	Node* p = nullptr;
 	Link link = node.lock ();
-	if (!link.is_marked ()) {
+	if (!link.tag_bits ()) {
 		if (p = link)
 			p->ref_cnt.increment ();
 	}
@@ -179,14 +179,14 @@ void PriorityQueueBase::final_delete (Node* node)
 	// Mark the deletion bits of the next pointers of the node, starting with the lowest
 	// level and going upwards.
 	for (int i = 0, end = node->level; i < end; ++i) {
-		Link::Atomic& alink2 = node->next [i];
+		Link::Lockable& alink2 = node->next [i];
 		Link node2;
 		do {
 			node2 = alink2.load ();
 		} while ((Node*)node2 && !(
-			node2.is_marked ()
+			node2.tag_bits ()
 			||
-			alink2.cas (node2, node2.marked ())
+			alink2.cas (node2, Link (node2, 1))
 			));
 	}
 
@@ -211,14 +211,14 @@ PriorityQueueBase::Node* PriorityQueueBase::help_delete (Node* node, int level)
 
 	// Set the deletion mark on all next pointers in case they have not been set.
 	for (int i = level, end = node->level; i < end; ++i) {
-		Link::Atomic& alink2 = node->next [i];
+		Link::Lockable& alink2 = node->next [i];
 		Link node2;
 		do {
 			node2 = alink2.load ();
 		} while ((Node*)node2 && !(
-			node2.is_marked ()
+			node2.tag_bits ()
 			||
-			alink2.cas (node2, node2.marked ())
+			alink2.cas (node2, Link (node2, 1))
 		));
 	}
 	
@@ -249,12 +249,12 @@ void PriorityQueueBase::remove_node (Node* node, Node*& prev, int level)
 	CHECK_VALID_LEVEL (level, node);
 
 	// Address of next node pointer for the given level.
-	Link::Atomic& anext = node->next [level];
+	Link::Lockable& anext = node->next [level];
 
 	for (BackOff bo; true; bo.sleep ()) {
 
 		// Synchronize with the possible other invocations to avoid redundant executions.
-		if (anext.load () == TaggedNil::marked ())
+		if (anext.load () == Link (nullptr, 1))
 			break;
 		
 		// Search for the right position of the previous node according to the key of node.
@@ -267,18 +267,18 @@ void PriorityQueueBase::remove_node (Node* node, Node*& prev, int level)
 
 		Link next = anext.load ();
 		// Synchronize with the possible other invocations to avoid redundant executions.
-		if (next == TaggedNil::marked ())
+		if (next == Link (nullptr, 1))
 			break;
 		
 		// Try to remove node by changing the next pointer of the previous node.
-		if (prev->next [level].cas (node, next.unmarked ())) {
-			anext = TaggedNil::marked ();
+		if (prev->next [level].cas (node, next.untagged ())) {
+			anext = Link (nullptr, 1);
 			release_node (node);
 			break;
 		}
 		
 		// Synchronize with the possible other invocations to avoid redundant executions.
-		if (anext.load () == TaggedNil::marked ())
+		if (anext.load () == Link (nullptr, 1))
 			break;
 	}
 }

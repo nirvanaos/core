@@ -73,8 +73,8 @@ protected:
 			p->remove_ref ();
 	}
 
-	typedef TaggedPtrT <Value, alignment> Ptr;
-	typedef typename Ptr::Atomic SharedPtr;
+	typedef TaggedPtrT <Value, 0, alignment> Ptr;
+	typedef typename Ptr::Lockable SharedPtr;
 
 	static SharedPtr shared_ptr_;
 

@@ -77,13 +77,13 @@ protected:
 		{}
 	};
 
-	typedef TaggedPtrT <Node, 1 << log2_ceil (sizeof (NodeBase))> Link;
+	typedef TaggedPtrT <Node, 1, 1 << log2_ceil (sizeof (NodeBase))> Link;
 
 	struct Node : public NodeBase
 	{
 		virtual bool operator < (const Node&) const;
 
-		Link::Atomic next [1];	// Variable length array.
+		Link::Lockable next [1];	// Variable length array.
 
 		Node (int level, DeadlineTime dt) :
 			NodeBase (level, dt)
@@ -123,7 +123,7 @@ protected:
 		return tail_;
 	}
 
-	Node* read_node (Link::Atomic& node);
+	Node* read_node (Link::Lockable& node);
 
 	static Node* copy_node (Node* node)
 	{
@@ -234,7 +234,7 @@ bool PriorityQueueL <MAX_LEVEL>::insert (Node* new_node)
 	for (int i = 1; i < level; ++i) {
 		new_node->valid_level = i;
 		node1 = saved_nodes [i];
-		Link::Atomic& anext = new_node->next [i];
+		Link::Lockable& anext = new_node->next [i];
 		copy_node (new_node);
 		for (BackOff bo; true; bo.sleep ()) {
 			Node* node2 = scan_key (node1, i, new_node);
@@ -242,7 +242,7 @@ bool PriorityQueueL <MAX_LEVEL>::insert (Node* new_node)
 			release_node (node2);
 			if (new_node->deleted) {
 				deleted = true;
-				anext = TaggedNil::marked ();
+				anext = Link (nullptr, 1);
 				release_node (new_node);
 				release_node (node1);
 				break;

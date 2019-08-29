@@ -19,24 +19,18 @@ class Stack
 {
 	struct Elem
 	{
-		typedef AtomicPtrT <Elem, ALIGN> Atomic;
-		Atomic next;
+		Elem* next;
 		RefCounter ref_cnt;
-
-		Elem () :
-			next (nullptr)
-		{}
 	};
 
 public:
 	Stack () :
 		head_ (nullptr)
-	{
-	}
+	{}
 
 	void push (StackElem& node)
 	{
-		Elem* p = reinterpret_cast <Elem*> (&node);
+		Elem* p = &reinterpret_cast <Elem&> (node);
 		new (p) Elem ();
 		auto head = head_.load ();
 		do
@@ -47,7 +41,7 @@ public:
 	StackElem* pop ();
 
 private:
-	typename Elem::Atomic head_;
+	LockablePtrT <Elem, 0, ALIGN> head_;
 };
 
 template <unsigned ALIGN>
@@ -60,7 +54,7 @@ StackElem* Stack <ALIGN>::pop ()
 			p->ref_cnt.increment ();
 		head_.unlock ();
 		if (p) {
-			if (head_.cas (p, p->next.load ()))
+			if (head_.cas (p, p->next))
 				p->ref_cnt.decrement ();
 			if (!p->ref_cnt.decrement ())
 				return (StackElem*)p;
