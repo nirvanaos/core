@@ -8,7 +8,7 @@
 
 #include "core.h"
 #include "AtomicCounter.h"
-#include "AtomicPtr.h"
+#include "TaggedPtr.h"
 #include "BackOff.h"
 #include "Thread.h"
 #include <random>

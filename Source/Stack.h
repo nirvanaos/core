@@ -2,7 +2,7 @@
 #ifndef NIRVANA_CORE_STACK_H_
 #define NIRVANA_CORE_STACK_H_
 
-#include "AtomicPtr.h"
+#include "TaggedPtr.h"
 #include "AtomicCounter.h"
 
 namespace Nirvana {

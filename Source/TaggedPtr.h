@@ -1,5 +1,5 @@
-#ifndef NIRVANA_CORE_ATOMICPTR_H_
-#define NIRVANA_CORE_ATOMICPTR_H_
+#ifndef NIRVANA_CORE_TAGGEDPTR_H_
+#define NIRVANA_CORE_TAGGEDPTR_H_
 
 #include "core.h"
 #include "BackOff.h"

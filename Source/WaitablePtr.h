@@ -1,7 +1,7 @@
 #ifndef NIRVANA_CORE_WAITABLEPTR_H_
 #define NIRVANA_CORE_WAITABLEPTR_H_
 
-#include "AtomicPtr.h"
+#include "TaggedPtr.h"
 #include <CORBA/Exception.h>
 
 namespace Nirvana {
