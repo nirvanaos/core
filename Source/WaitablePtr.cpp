@@ -28,14 +28,14 @@ private:
 
 void* WaitablePtr::wait ()
 {
-	uintptr_t p = ptr_.load ();
-	if ((p & STATE_MASK) == PTR_WAITLIST) {
+	Ptr p = load ();
+	if (p.tag_bits () == TAG_WAITLIST) {
 		run_in_neutral_context (&WaitForCreation (*this));
-		p = ptr_.load ();
+		p = load ();
 	}
-	if (p & STATE_MASK) {
-		assert ((p & STATE_MASK) == PTR_EXCEPTION);
-		const Exception* pe = (const Exception*)(p & ~STATE_MASK);
+	if (p.tag_bits ()) {
+		assert (p.tag_bits () == TAG_EXCEPTION);
+		const Exception* pe = (const Exception*)static_cast <void*> (p);
 		if (pe)
 			pe->raise ();
 		else
@@ -47,25 +47,26 @@ void* WaitablePtr::wait ()
 inline void WaitablePtr::run_in_neutral ()
 {
 	Thread& thread = Thread::current ();
-	ExecDomain* cur = thread.execution_domain ();
-	uintptr_t icur = (uintptr_t)cur | PTR_WAITLIST;
-	uintptr_t p = ptr_.load ();
-	while ((p & STATE_MASK) == PTR_WAITLIST) {
-		cur->wait_list_next_ = (ExecDomain*)(p & ~STATE_MASK);
-		if (ptr_.compare_exchange_weak (p, icur)) {
-			cur->suspend ();
+	ExecDomain* exec_domain = thread.execution_domain ();
+	assert (exec_domain);
+	Ptr pcur = Ptr (exec_domain, TAG_WAITLIST);
+	Ptr p = load ();
+	while (p.tag_bits () == TAG_WAITLIST) {
+		static_cast <StackElem&> (*exec_domain).next = p;
+		if (compare_exchange (p, pcur)) {
+			exec_domain->suspend ();
 			thread.execution_domain (nullptr);
 			break;
 		}
 	}
 }
 
-void WaitablePtr::set_ptr (uintptr_t p)
+void WaitablePtr::set_ptr (Ptr p)
 {
-	assert (PTR_WAITLIST != (p & STATE_MASK));
-	for (ExecDomain* wait_list = (ExecDomain*)(ptr_.exchange (p) & ~STATE_MASK); wait_list;) {
+	assert (TAG_WAITLIST != p.tag_bits ());
+	for (ExecDomain* wait_list = (ExecDomain*)(void*)exchange (p); wait_list;) {
 		ExecDomain* ed = wait_list;
-		wait_list = ed->wait_list_next_;
+		wait_list = reinterpret_cast <ExecDomain*> (static_cast <StackElem&> (*ed).next);
 		ed->resume ();
 	}
 }
@@ -73,12 +74,12 @@ void WaitablePtr::set_ptr (uintptr_t p)
 void WaitablePtr::set_exception (const Exception& ex)
 {
 	if (NO_MEMORY ().__code () == ex.__code ())
-		set_ptr (PTR_EXCEPTION);
+		set_ptr (Ptr (nullptr, TAG_EXCEPTION));
 	else {
 		try {
-			set_ptr ((uintptr_t)ex.__clone () | PTR_EXCEPTION);
+			set_ptr (Ptr (ex.__clone (), TAG_EXCEPTION));
 		} catch (...) {
-			set_ptr (PTR_EXCEPTION);
+			set_ptr (Ptr (nullptr, TAG_EXCEPTION));
 		}
 	}
 }
@@ -86,9 +87,9 @@ void WaitablePtr::set_exception (const Exception& ex)
 void WaitablePtr::set_unknown_exception ()
 {
 	try {
-		set_ptr (((uintptr_t)new UNKNOWN ()) | PTR_EXCEPTION);
+		set_ptr (Ptr (new UNKNOWN (), TAG_EXCEPTION));
 	} catch (...) {
-		set_ptr (PTR_EXCEPTION);
+		set_ptr (Ptr (nullptr, TAG_EXCEPTION));
 	}
 }
 

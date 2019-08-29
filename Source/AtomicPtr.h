@@ -5,7 +5,6 @@
 #include "BackOff.h"
 #include <atomic>
 #include <algorithm>
-#include <type_traits>
 #include <Nirvana/bitutils.h>
 
 #define CORE_OBJECT_ALIGN(T) (std::max ((unsigned)::Nirvana::Core::HEAP_UNIT_CORE, (unsigned)(1 << ::Nirvana::log2_ceil (sizeof (T)))))
@@ -127,15 +126,19 @@ public:
 		return src;
 	}
 
-	bool cas (const Ptr& from, const Ptr& to)
+	bool cas (Ptr from, const Ptr& to)
 	{
-		Ptr tmp = from;
-		return compare_exchange (tmp, to);
+		return compare_exchange (from, to);
 	}
 
 	bool compare_exchange (Ptr& cur, const Ptr& to)
 	{
 		return ptr_.compare_exchange_weak (cur.ptr_, to.ptr_);
+	}
+
+	Ptr exchange (Ptr& to)
+	{
+		return Ptr (ptr_.exchange (to.ptr_));
 	}
 
 private:
@@ -155,55 +158,31 @@ public:
 		ptr_ (src.ptr_)
 	{}
 
+	LockablePtr (const LockablePtr&) = delete;
+
 	Ptr load () const
 	{
 		return Ptr (ptr_.load () & ~SPIN_MASK);
 	}
 
+	LockablePtr& operator = (const LockablePtr&) = delete;
+
 	Ptr operator = (Ptr src)
 	{
 		assert ((src.ptr_ & SPIN_MASK) == 0);
-		for (BackOff bo; true; bo.sleep ()) {
-			uintptr_t cur = ptr_.load ();
-			while (!(cur & SPIN_MASK)) {
-				if (ptr_.compare_exchange_weak (cur, src.ptr_))
-					return src;
-			}
-		}
+		assert ((ptr_.load () & SPIN_MASK) == 0);
+		ptr_.store (src.ptr_);
+		return src;
 	}
 
-	bool cas (const Ptr& from, const Ptr& to)
+	bool cas (Ptr from, const Ptr& to)
 	{
-		Ptr tmp = from;
-		return compare_exchange (tmp, to);
+		return compare_exchange (from, to);
 	}
 
-	bool compare_exchange (Ptr& cur, const Ptr& to)
-	{
-		uintptr_t tcur = cur.ptr_;
-		assert ((tcur & SPIN_MASK) == 0);
-		for (BackOff bo; !ptr_.compare_exchange_weak (tcur, to.ptr_); bo.sleep ()) {
-			tcur &= ~SPIN_MASK;
-			if (tcur != cur.ptr_) {
-				cur.ptr_ = tcur;
-				return false;
-			}
-			tcur = cur.ptr_;
-		}
-		return true;
-	}
+	bool compare_exchange (Ptr& cur, const Ptr& to);
 
-	Ptr lock ()
-	{
-		for (BackOff bo; true; bo.sleep ()) {
-			uintptr_t cur = ptr_.load ();
-			while ((cur & SPIN_MASK) != SPIN_MASK) {
-				if (ptr_.compare_exchange_weak (cur, cur + Ptr::TAG_MASK + 1, std::memory_order_acquire))
-					return Ptr (cur & ~SPIN_MASK);
-			}
-			;
-		}
-	}
+	Ptr lock ();
 
 	void unlock ()
 	{
@@ -211,10 +190,40 @@ public:
 	}
 
 private:
+	static_assert (Ptr::ALIGN_MASK > Ptr::TAG_MASK, "Ptr::ALIGN_MASK > Ptr::TAG_MASK");
 	static const uintptr_t SPIN_MASK = Ptr::ALIGN_MASK & ~Ptr::TAG_MASK;
 
 	volatile std::atomic <uintptr_t> ptr_;
 };
+
+template <unsigned TAG_BITS, unsigned ALIGN>
+bool LockablePtr <TAG_BITS, ALIGN>::compare_exchange (Ptr& cur, const Ptr& to)
+{
+	uintptr_t tcur = cur.ptr_;
+	assert ((tcur & SPIN_MASK) == 0);
+	for (BackOff bo; !ptr_.compare_exchange_weak (tcur, to.ptr_); bo.sleep ()) {
+		tcur &= ~SPIN_MASK;
+		if (tcur != cur.ptr_) {
+			cur.ptr_ = tcur;
+			return false;
+		}
+		tcur = cur.ptr_;
+	}
+	return true;
+}
+
+template <unsigned TAG_BITS, unsigned ALIGN>
+typename LockablePtr <TAG_BITS, ALIGN>::Ptr LockablePtr <TAG_BITS, ALIGN>::lock ()
+{
+	for (BackOff bo; true; bo.sleep ()) {
+		uintptr_t cur = ptr_.load ();
+		while ((cur & SPIN_MASK) != SPIN_MASK) {
+			if (ptr_.compare_exchange_weak (cur, cur + Ptr::TAG_MASK + 1, std::memory_order_acquire))
+				return Ptr (cur & ~SPIN_MASK);
+		}
+		;
+	}
+}
 
 template <class T, unsigned TAG_BITS, unsigned ALIGN> class AtomicPtrT;
 template <class T, unsigned TAG_BITS, unsigned ALIGN> class LockablePtrT;

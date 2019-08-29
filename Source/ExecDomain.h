@@ -24,9 +24,6 @@ class ExecDomain :
 	public ::CORBA::Nirvana::LifeCycleRefCntPseudo <ExecDomain>
 {
 public:
-	ExecDomain* wait_list_next_;
-
-public:
 	static void async_call (Runnable_ptr runnable, DeadlineTime deadline, SyncDomain* sync_domain);
 
 	DeadlineTime deadline () const
@@ -90,8 +87,7 @@ private:
 	ExecDomain () :
 		ExecContext (),
 		deadline_ (std::numeric_limits <DeadlineTime>::max ()),
-		cur_sync_domain_ (nullptr),
-		wait_list_next_ (nullptr)
+		cur_sync_domain_ (nullptr)
 	{}
 
 	class Release :

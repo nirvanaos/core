@@ -1,55 +1,44 @@
 #ifndef NIRVANA_CORE_WAITABLEPTR_H_
 #define NIRVANA_CORE_WAITABLEPTR_H_
 
-#include <atomic>
+#include "AtomicPtr.h"
 #include <CORBA/Exception.h>
 
 namespace Nirvana {
 namespace Core {
 
-class WaitablePtr
+class WaitablePtr :
+	public AtomicPtr <2, 4>
 {
 public:
+	enum
+	{
+		TAG_OBJECT = 0,
+		TAG_WAITLIST = 1,
+		TAG_EXCEPTION = 2
+	};
+
 	WaitablePtr () :
-		ptr_ (PTR_WAITLIST)
+		AtomicPtr <2, 4> (Ptr (nullptr, TAG_WAITLIST))
 	{}
 
 	void* wait ();
 	
 	void set_object (void* p)
 	{
-		set_ptr ((uintptr_t)p);
+		set_ptr (p);
 	}
 
 	void set_exception (const CORBA::Exception& ex);
 	void set_unknown_exception ();
 
-	bool is_object () const
-	{
-		return !(ptr_ & STATE_MASK);
-	}
-
-	operator void* () const
-	{
-		return (void*)(ptr_ & ~STATE_MASK);
-	}
-
 private:
-	static const unsigned STATE_MASK = 3;
-	enum
-	{
-		PTR_OBJECT = 0,
-		PTR_WAITLIST = 1,
-		PTR_EXCEPTION = 2
-	};
 
 	class WaitForCreation;
 
 	void run_in_neutral ();
 
-	void set_ptr (uintptr_t p);
-
-	std::atomic <uintptr_t> ptr_;
+	void set_ptr (Ptr p);
 };
 
 }
