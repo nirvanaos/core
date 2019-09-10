@@ -15,5 +15,12 @@ Boolean ObjectBase::_is_a (const Char* type_id) const
 		return FALSE;
 }
 
+Interface_ptr ObjectBase::_query_interface (const Char* id)
+{
+	// Real implementation must return proxy
+	// For test we just shortcut to servant
+	return servant_->_query_interface (id);
+}
+
 }
 }

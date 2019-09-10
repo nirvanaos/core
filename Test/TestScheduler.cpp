@@ -68,7 +68,7 @@ bool SimpleShutdown::exists_ = false;
 
 TEST_F (TestScheduler, Startup)
 {
-	::Nirvana::Runnable_ptr startup (new SimpleShutdown ());
+	::Nirvana::Runnable_ptr startup ((new SimpleShutdown ())->_get_ptr ());
 	::Nirvana::Core::Port::Scheduler::run (startup, numeric_limits <Nirvana::DeadlineTime>::max ());
 	ASSERT_TRUE (SimpleShutdown::exists_);
 	::CORBA::release (startup);

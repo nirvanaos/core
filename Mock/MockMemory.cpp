@@ -19,7 +19,7 @@ class MockMemory :
 public:
 	static void initialize ()
 	{
-		Core::g_core_heap = MockMemory::_this ();
+		Core::g_core_heap = MockMemory::_get_ptr ();
 	}
 
 	static void terminate ()
@@ -95,7 +95,7 @@ public:
 
 Memory_ptr mock_memory ()
 {
-	return MockMemory::_this ();
+	return MockMemory::_get_ptr ();
 }
 
 }
@@ -105,7 +105,7 @@ namespace Test {
 
 void mock_memory_init ()
 {
-	g_core_heap = ::Nirvana::Test::MockMemory::_this ();
+	g_core_heap = ::Nirvana::Test::MockMemory::_get_ptr ();
 }
 
 void mock_memory_term ()

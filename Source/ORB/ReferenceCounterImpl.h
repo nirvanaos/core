@@ -44,25 +44,14 @@ private:
 	CORBA::Nirvana::DynamicServant_ptr dynamic_;
 };
 
-template <class S>
-class ReferenceCounterImpl :
-	public ReferenceCounterBase,
-	public CORBA::Nirvana::InterfaceImpl <S, CORBA::Nirvana::ReferenceCounter>
-{
-protected:
-	ReferenceCounterImpl (CORBA::Nirvana::DynamicServant_ptr dynamic) :
-		ReferenceCounterBase (dynamic)
-	{}
-};
-
 class ReferenceCounterCore :
-	public ReferenceCounterImpl <ReferenceCounterCore>,
-	public CORBA::Nirvana::ServantTraits <ReferenceCounterCore>,
-	public CORBA::Nirvana::LifeCycleNoCopy <ReferenceCounterCore>
+	public ImplementationPseudo <ReferenceCounterCore, ReferenceCounter>,
+	public LifeCycleNoCopy <ReferenceCounterCore>,
+	public ReferenceCounterBase
 {
 public:
-	ReferenceCounterCore (CORBA::Nirvana::DynamicServant_ptr dynamic) :
-		ReferenceCounterImpl (dynamic)
+	ReferenceCounterCore (DynamicServant_ptr dynamic) :
+		ReferenceCounterBase (dynamic)
 	{}
 };
 

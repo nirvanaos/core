@@ -12,24 +12,22 @@ using namespace ::CORBA;
 using namespace ::CORBA::Nirvana;
 
 class ServantCore :
-	public ServantTraits <ServantCore>,
-	public InterfaceImplBase <ServantCore, AbstractBase>,
-	public InterfaceImplBase <ServantCore, PortableServer::ServantBase>,
-	public ReferenceCounterImpl <ServantCore>,
+	public ImplementationPseudo <ServantCore, PortableServer::ServantBase, ReferenceCounter>,
+	public ReferenceCounterBase,
 	public LifeCycleNoCopy <ServantCore>
 {
 public:
 	ServantCore (PortableServer::Servant servant, DynamicServant_ptr dynamic) :
 		object_ (servant),
-		ReferenceCounterImpl <ServantCore> (dynamic)
+		ReferenceCounterBase (dynamic)
 	{}
 
-	Interface_ptr _query_interface (const Char* id)
+	operator Bridge <Object>& ()
 	{
-		return FindInterface <PortableServer::ServantBase, Object, ReferenceCounter>::find (*this, id);
+		return object_;
 	}
 
-	operator Bridge <Object>& ()
+	operator Bridge <AbstractBase>& ()
 	{
 		return object_;
 	}

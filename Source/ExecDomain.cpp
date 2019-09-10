@@ -26,7 +26,7 @@ void ExecDomain::schedule (SyncDomain* sync_domain)
 		cur_sync_domain_->leave ();
 	cur_sync_domain_ = sync_domain;
 	if (ExecContext::current () == this)
-		run_in_neutral_context (Schedule::_this ());
+		run_in_neutral_context (Schedule::_get_ptr ());
 	else
 		schedule_internal ();
 }
@@ -54,7 +54,7 @@ void ExecDomain::execute_loop ()
 {
 	while (run ()) {
 		environment_.exception_free ();	// TODO: Check unhandled exception and log error message.
-		run_in_neutral_context (Release::_this ());
+		run_in_neutral_context (Release::_get_ptr ());
 	}
 }
 

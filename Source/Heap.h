@@ -501,8 +501,8 @@ inline void Heap::initialize ()
 	Partition& first_part = HeapBaseT::initialize ();
 	HeapMain* instance = (HeapMain*)first_part.allocate (sizeof (HeapMain));
 	new (instance) HeapMain (first_part);
-	g_core_heap = instance;
-	g_heap_factory = HeapFactoryImpl::_this ();
+	g_core_heap = instance->_get_ptr ();
+	g_heap_factory = HeapFactoryImpl::_get_ptr ();
 }
 
 class HeapDynamic :
@@ -518,12 +518,12 @@ public:
 
 inline Memory_ptr HeapFactoryImpl::create ()
 {
-	return new HeapDynamic (HEAP_UNIT_DEFAULT);
+	return (new HeapDynamic (HEAP_UNIT_DEFAULT))->_get_ptr ();
 }
 
 inline Memory_ptr HeapFactoryImpl::create_with_granularity (ULong granularity)
 {
-	return new HeapDynamic (granularity);
+	return (new HeapDynamic (granularity))->_get_ptr ();
 }
 
 }

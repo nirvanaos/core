@@ -30,7 +30,8 @@ void* WaitablePtr::wait ()
 {
 	Ptr p = load ();
 	if (p.tag_bits () == TAG_WAITLIST) {
-		run_in_neutral_context (&WaitForCreation (*this));
+		WaitForCreation runnable (*this);
+		run_in_neutral_context (runnable._get_ptr ());
 		p = load ();
 	}
 	if (p.tag_bits ()) {

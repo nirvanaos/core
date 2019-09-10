@@ -5,7 +5,6 @@
 #include "ServantCore.h"
 #include "LocalObjectCore.h"
 #include "ReferenceCounterImpl.h"
-#include <CORBA/ImplementationStatic.h>
 
 namespace Nirvana {
 namespace Core {
@@ -14,22 +13,22 @@ using namespace ::CORBA;
 using namespace ::CORBA::Nirvana;
 
 class ObjectFactoryCore :
-	public ImplementationStatic <ObjectFactoryCore, ObjectFactory>
+	public ServantStatic <ObjectFactoryCore, ObjectFactory>
 {
 public:
 	static PortableServer::Servant create_servant (PortableServer::Servant servant, DynamicServant_ptr dynamic)
 	{
-		return new ServantCore (servant, dynamic);
+		return (new ServantCore (servant, dynamic))->_get_ptr ();
 	}
 
 	static LocalObject_ptr create_local_object (AbstractBase_ptr base, DynamicServant_ptr dynamic)
 	{
-		return new LocalObjectCore (base, dynamic);
+		return (new LocalObjectCore (base, dynamic))->_get_ptr ();
 	}
 
 	static ReferenceCounter_ptr create_reference_counter (DynamicServant_ptr dynamic)
 	{
-		return new ReferenceCounterCore (dynamic);
+		return (new ReferenceCounterCore (dynamic))->_get_ptr ();
 	}
 };
 

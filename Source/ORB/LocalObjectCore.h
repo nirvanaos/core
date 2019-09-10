@@ -12,16 +12,15 @@ using namespace ::CORBA;
 using namespace ::CORBA::Nirvana;
 
 class LocalObjectCore :
-	public ServantTraits <LocalObjectCore>,
-	public LifeCycleNoCopy <LocalObjectCore>,
+	public ImplementationPseudo <LocalObjectCore, LocalObject, ReferenceCounter>,
 	public ObjectImpl <LocalObjectCore>,
-	public ReferenceCounterImpl <LocalObjectCore>,
-	public InterfaceImplBase <LocalObjectCore, LocalObject>
+	public ReferenceCounterBase,
+	public LifeCycleNoCopy <LocalObjectCore>
 {
 public:
 	LocalObjectCore (AbstractBase_ptr servant, DynamicServant_ptr dynamic) :
 		ObjectImpl <LocalObjectCore> (servant),
-		ReferenceCounterImpl (dynamic)
+		ReferenceCounterBase (dynamic)
 	{}
 };
 
