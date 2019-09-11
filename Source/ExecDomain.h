@@ -82,7 +82,7 @@ public:
 	}
 
 private:
-	friend class ObjectPoolT <ExecDomain>;
+	friend class ObjectPool <ExecDomain>;
 
 	ExecDomain () :
 		ExecContext (),
@@ -120,7 +120,7 @@ private:
 	DeadlineTime deadline_;
 	SyncDomain* cur_sync_domain_;
 
-	static ObjectPoolT <ExecDomain> pool_;
+	static ObjectPool <ExecDomain> pool_;
 };
 
 }

@@ -8,18 +8,24 @@
 namespace Nirvana {
 namespace Core {
 
+//! \struct StackElem
+//!
+//! \brief A stack elements must be derived from StackElem.
+//!        While element not in stack, the StackElem fields are unused and may contain any values.
+//!        So this fields may be used for other purposes until the element placed to the stack.
+
 struct StackElem
 {
 	void* next;
 	RefCounter::UIntType ref_cnt;
 };
 
-template <unsigned ALIGN = HEAP_UNIT_CORE>
+template <class T, unsigned ALIGN = CORE_OBJECT_ALIGN (T)>
 class Stack
 {
-	struct Elem
+	struct Node
 	{
-		Elem* next;
+		T* next;
 		RefCounter ref_cnt;
 	};
 
@@ -28,56 +34,43 @@ public:
 		head_ (nullptr)
 	{}
 
-	void push (StackElem& node)
+	void push (T& elem)
 	{
-		Elem* p = &reinterpret_cast <Elem&> (node);
-		new (p) Elem ();
+		Node* p = &get_node (elem);
+		new (p) Node ();
 		auto head = head_.load ();
 		do
-			node.next = head;
-		while (!head_.compare_exchange (head, p));
-	}
-
-	StackElem* pop ();
-
-private:
-	LockablePtrT <Elem, 0, ALIGN> head_;
-};
-
-template <unsigned ALIGN>
-StackElem* Stack <ALIGN>::pop ()
-{
-	for (;;) {
-		head_.lock ();
-		Elem* p = head_.load ();
-		if (p)
-			p->ref_cnt.increment ();
-		head_.unlock ();
-		if (p) {
-			if (head_.cas (p, p->next))
-				p->ref_cnt.decrement ();
-			if (!p->ref_cnt.decrement ())
-				return (StackElem*)p;
-		} else
-			return nullptr;
-	}
-}
-
-template <class T>
-class StackT :
-	public Stack <CORE_OBJECT_ALIGN (T)>
-{
-public:
-	void push (T& node)
-	{
-		assert ((char*)static_cast <StackElem*> (&node) == (char*)&node); // StackElem must be derived first
-		Stack <CORE_OBJECT_ALIGN (T)>::push (static_cast <StackElem&> (node));
+			p->next = head;
+		while (!head_.compare_exchange (head, &elem));
 	}
 
 	T* pop ()
 	{
-		return static_cast <T*> (Stack <CORE_OBJECT_ALIGN (T)>::pop ());
+		for (;;) {
+			head_.lock ();
+			auto p = head_.load ();
+			if (p)
+				get_node (*p).ref_cnt.increment ();
+			head_.unlock ();
+			if (p) {
+				Node& node = get_node (*p);
+				if (head_.cas (p, node.next))
+					node.ref_cnt.decrement ();
+				if (!node.ref_cnt.decrement ())
+					return p;
+			} else
+				return nullptr;
+		}
 	}
+
+private:
+	static Node& get_node (T& elem)
+	{
+		return reinterpret_cast <Node&> (static_cast <StackElem&> (elem));
+	}
+
+private:
+	LockablePtrT <T, 0, ALIGN> head_;
 };
 
 }

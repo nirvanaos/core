@@ -16,13 +16,13 @@ public:
 };
 
 template <class T>
-class ObjectPoolT :
-	private StackT <T>
+class ObjectPool :
+	private Stack <T>
 {
 public:
 	T* get ()
 	{
-		T* obj = StackT <T>::pop ();
+		T* obj = Stack <T>::pop ();
 		if (!obj)
 			obj = new T;
 		else
@@ -32,7 +32,7 @@ public:
 
 	void release (T& obj)
 	{
-		StackT <T>::push (obj);
+		Stack <T>::push (obj);
 	}
 
 	void initialize ()
@@ -41,7 +41,7 @@ public:
 
 	void terminate ()
 	{
-		while (T* obj = StackT <T>::pop ()) {
+		while (T* obj = Stack <T>::pop ()) {
 			delete obj;
 		}
 	}

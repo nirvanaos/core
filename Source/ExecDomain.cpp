@@ -6,7 +6,7 @@
 namespace Nirvana {
 namespace Core {
 
-ObjectPoolT <ExecDomain> ExecDomain::pool_;
+ObjectPool <ExecDomain> ExecDomain::pool_;
 
 void ExecDomain::async_call (Runnable_ptr runnable, DeadlineTime deadline, SyncDomain* sync_domain)
 {

@@ -34,9 +34,13 @@ protected:
 	}
 };
 
-struct Value : public Nirvana::Core::StackElem
+class Value : 
+	public Nirvana::Core::StackElem
 {
 public:
+	virtual ~Value ()	// Make class virtual to test unaligned StackElem
+	{}
+
 	void* operator new (size_t size)
 	{
 		return _aligned_malloc (size, CORE_OBJECT_ALIGN (Value));
@@ -48,11 +52,11 @@ public:
 	}
 };
 
-typedef Nirvana::Core::StackT <Value> Stack;
+typedef Nirvana::Core::Stack <Value> MyStack;
 
 TEST_F (TestStack, SingleThread)
 {
-	Stack stack;
+	MyStack stack;
 	ASSERT_FALSE (stack.pop ());
 	for (int i = 0; i < 3; ++i) {
 		stack.push (*new Value);
@@ -65,7 +69,7 @@ TEST_F (TestStack, SingleThread)
 	ASSERT_FALSE (stack.pop ());
 }
 
-void thread_proc (Stack& stack, unsigned elements, unsigned iterations)
+void thread_proc (MyStack& stack, unsigned elements, unsigned iterations)
 {
 	vector <Value*> buf (elements);
 	while (iterations--) {
@@ -87,7 +91,7 @@ TEST_F (TestStack, MultiThread)
 	static const unsigned thread_cnt = thread::hardware_concurrency ();
 	static const unsigned element_cnt = 20;
 	static const unsigned iterations = 1000;
-	Stack stack;
+	MyStack stack;
 	unordered_set <Value*> valset;
 	for (unsigned cnt = thread_cnt * element_cnt; cnt; --cnt) {
 		Value* val = new Value;

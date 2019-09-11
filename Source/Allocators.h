@@ -9,17 +9,17 @@ namespace Core {
 
 template <unsigned SIZE>
 class FreeList :
-	private Stack <SIZE>
+	private Stack <StackElem, SIZE>
 {
 public:
 	void push (void* p)
 	{
-		Stack <SIZE>::push ((StackElem*)p);
+		Stack <StackElem, SIZE>::push (*(StackElem*)p);
 	}
 
 	void* pop ()
 	{
-		return Stack <SIZE>::pop ();
+		return Stack <StackElem, SIZE>::pop ();
 	}
 };
 
