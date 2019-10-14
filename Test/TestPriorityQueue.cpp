@@ -1,6 +1,6 @@
 #include "../Source/PriorityQueue.h"
-#include "MockMemory.h"
-#include "gtest/gtest.h"
+#include <Mock/MockMemory.h>
+#include <gtest/gtest.h>
 #include <queue>
 #include <array>
 #include <thread>
@@ -33,14 +33,13 @@ protected:
 	{
 		// Code here will be called immediately after the constructor (right
 		// before each test).
-		::Nirvana::Core::Test::mock_memory_init ();
+		::Nirvana::Core::g_core_heap = ::Nirvana::Test::mock_memory ();
 	}
 
 	virtual void TearDown ()
 	{
 		// Code here will be called immediately after each test (right
 		// before the destructor).
-		::Nirvana::Core::Test::mock_memory_term ();
 	}
 };
 
