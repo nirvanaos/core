@@ -77,6 +77,16 @@ protected:
 			return p >= begin && p < end;
 		}
 
+		Octet* heap_begin () const
+		{
+			return (Octet*)(directory () + 1);
+		}
+
+		Octet* heap_end () const
+		{
+			return heap_begin () + allocation_unit () * Directory::UNIT_COUNT;
+		}
+
 		UWord dir_and_unit;
 		Partition* next;
 	};
@@ -477,6 +487,14 @@ inline Word Heap::query (ConstPointer p, Memory::QueryParam param)
 		const Partition* part = get_partition (p);
 		if (part)
 			return part->allocation_unit ();
+	} else if (p && (param == Memory::ALLOCATION_SPACE_BEGIN || param == Memory::ALLOCATION_SPACE_END)) {
+		const Partition* part = get_partition (p);
+		if (part) {
+			if (param == Memory::ALLOCATION_SPACE_BEGIN)
+				return (Word)part->heap_begin ();
+			else
+				return (Word)part->heap_end ();
+		}
 	}
 	return Port::ProtDomainMemory::query (p, param);
 }
