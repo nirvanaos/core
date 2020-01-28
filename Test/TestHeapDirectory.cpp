@@ -1,5 +1,4 @@
 #include "../Source/HeapDirectory.h"
-#include "../Source/core.h"
 #include <Port/ProtDomainMemory.h>
 #include <gtest/gtest.h>
 #include <random>

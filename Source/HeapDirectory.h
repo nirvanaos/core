@@ -1,7 +1,7 @@
 #ifndef NIRVANA_CORE_HEAPDIRECTORY_H_
 #define NIRVANA_CORE_HEAPDIRECTORY_H_
 
-#include <Nirvana/Nirvana.h>
+#include "core.h"
 #include <Port/ProtDomainMemory.h>
 #include <Nirvana/bitutils.h>
 #include <stddef.h>

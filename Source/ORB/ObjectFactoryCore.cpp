@@ -3,7 +3,9 @@
 namespace CORBA {
 namespace Nirvana {
 
-Bridge <ObjectFactory>* const ObjectFactory::singleton_ = STATIC_BRIDGE (::Nirvana::Core::ObjectFactoryCore, ObjectFactory);
+const ::Nirvana::ImportInterfaceT <ObjectFactory> g_object_factory = { 
+	0, nullptr, nullptr, STATIC_BRIDGE (::Nirvana::Core::ObjectFactoryCore, ObjectFactory)
+};
 
 }
 }

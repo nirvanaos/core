@@ -2,7 +2,6 @@
 #define NIRVANA_CORE_HEAP_H_
 
 #include "HeapDirectory.h"
-#include "core.h"
 #include <type_traits>
 #include <Nirvana/HeapFactory_s.h>
 #include <Nirvana/Memory_s.h>
@@ -502,7 +501,7 @@ inline Word Heap::query (ConstPointer p, Memory::QueryParam param)
 class HeapMain :
 	public Heap,
 	public CORBA::Nirvana::Servant <HeapMain, Memory>,
-	public CORBA::Nirvana::LifeCycleStatic <>
+	public CORBA::Nirvana::LifeCycleStatic
 {
 private:
 	friend class Heap;

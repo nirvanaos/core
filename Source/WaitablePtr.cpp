@@ -10,7 +10,7 @@ using namespace CORBA::Nirvana;
 
 class WaitablePtr::WaitForCreation :
 	public Servant <WaitablePtr::WaitForCreation, Runnable>,
-	public LifeCycleStatic <>
+	public LifeCycleStatic
 {
 public:
 	WaitForCreation (WaitablePtr& ptr) :
