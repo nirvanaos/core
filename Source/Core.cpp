@@ -2,7 +2,9 @@
 #include "Heap.h"
 #include "ExecContext.h"
 #include "Thread.h"
-#include <memory>
+#include <utility>
+
+using namespace std;
 
 namespace Nirvana {
 
@@ -18,9 +20,8 @@ void run_in_neutral_context (Runnable_ptr runnable)
 	assert (neutral_context);
 	neutral_context->runnable_ = Runnable::_duplicate (runnable);
 	neutral_context->switch_to ();
-	::std::auto_ptr < ::CORBA::Exception> exception (neutral_context->environment ().detach ());
-	if (exception.get ())
-		exception->raise ();
+	CORBA::Nirvana::Environment tmp (move (neutral_context->environment ()));
+	tmp.check ();
 }
 
 }

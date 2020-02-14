@@ -5,7 +5,7 @@
 #define NIRVANA_CORE_EXECCONTEXT_H_
 
 #include "core.h"
-#include <Nirvana/Runnable_c.h>
+#include <Nirvana/Runnable.h>
 #include <Port/ExecContext.h>
 
 namespace Nirvana {

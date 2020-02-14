@@ -53,12 +53,12 @@ TEST_F (TestHeap, Heap)
 	static const UWord COUNT = 1024 * 1024 * 4 / 16 * GRANULARITY / BLOCK_SIZE;
 	void* blocks [COUNT];
 	Memory_ptr heap = g_heap_factory->create_with_granularity (GRANULARITY);
-	EXPECT_EQ (GRANULARITY, heap->query (0, Memory::ALLOCATION_UNIT));
+	EXPECT_EQ (GRANULARITY, heap->query (0, MemQuery::ALLOCATION_UNIT));
 
 	for (int i = 0; i < COUNT; ++i) {
 		blocks [i] = heap->allocate (0, BLOCK_SIZE, 0);
 		ASSERT_TRUE (blocks [i]);
-		Word au = heap->query (blocks [i], Memory::ALLOCATION_UNIT);
+		Word au = heap->query (blocks [i], MemQuery::ALLOCATION_UNIT);
 		ASSERT_EQ (GRANULARITY, au);
 	}
 	

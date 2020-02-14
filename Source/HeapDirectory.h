@@ -496,7 +496,7 @@ Word HeapDirectory <DIRECTORY_SIZE, IMPL>::allocate (UWord size, const HeapInfo*
 			UWord* end = begin + ::std::min (Traits::TOP_LEVEL_BLOCKS << bi.level, (UWord)0x10000) / (sizeof (UWord) * 8);
 
 			if (HeapDirectoryImpl::COMMITTED_BITMAP < IMPL) {// ћогут попастьс€ неподтвержденные страницы.
-				UWord page_size = Port::ProtDomainMemory::query (this, Memory::COMMIT_UNIT);
+				UWord page_size = Port::ProtDomainMemory::query (this, MemQuery::COMMIT_UNIT);
 				assert (page_size);
 
 				if (HeapDirectoryImpl::RESERVED_BITMAP_WITH_EXCEPTIONS == IMPL) {
@@ -836,7 +836,7 @@ bool HeapDirectory <DIRECTORY_SIZE, IMPL>::check_allocated (UWord begin, UWord e
 
 	UWord page_size = 0;
 	if (HeapDirectoryImpl::COMMITTED_BITMAP < IMPL) {
-		page_size = Port::ProtDomainMemory::query (this, Memory::COMMIT_UNIT);
+		page_size = Port::ProtDomainMemory::query (this, MemQuery::COMMIT_UNIT);
 		assert (page_size);
 	}
 

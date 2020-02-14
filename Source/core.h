@@ -8,8 +8,8 @@
 
 #include <Nirvana/Nirvana.h>
 #include <Port/config.h>
-#include <Nirvana/HeapFactory_c.h>
-#include <Nirvana/Runnable_c.h>
+#include <Nirvana/HeapFactory.h>
+#include <Nirvana/Runnable.h>
 #include <memory>
 
 namespace Nirvana {

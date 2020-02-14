@@ -93,8 +93,8 @@ protected:
 	static void initialize ()
 	{
 		assert (Port::ProtDomainMemory::ALLOCATION_UNIT >= HEAP_UNIT_MAX);
-		space_begin_ = (Octet*)Port::ProtDomainMemory::query (0, Memory::ALLOCATION_SPACE_BEGIN);
-		space_end_ = (Octet*)Port::ProtDomainMemory::query (0, Memory::ALLOCATION_SPACE_END);
+		space_begin_ = (Octet*)Port::ProtDomainMemory::query (0, MemQuery::ALLOCATION_SPACE_BEGIN);
+		space_end_ = (Octet*)Port::ProtDomainMemory::query (0, MemQuery::ALLOCATION_SPACE_END);
 	}
 
 	static bool valid_address (const void* p)
@@ -301,7 +301,7 @@ public:
 		return Port::ProtDomainMemory::is_copy (p1, p2, size);
 	}
 
-	Word query (ConstPointer p, Memory::QueryParam param);
+	Word query (ConstPointer p, MemQuery param);
 
 	static void initialize ();
 
@@ -478,18 +478,18 @@ inline Pointer Heap::copy (Pointer dst, Pointer src, UWord size, Flags flags)
 	return Port::ProtDomainMemory::copy (dst, src, size, flags);
 }
 
-inline Word Heap::query (ConstPointer p, Memory::QueryParam param)
+inline Word Heap::query (ConstPointer p, MemQuery param)
 {
-	if (Memory::ALLOCATION_UNIT == param) {
+	if (MemQuery::ALLOCATION_UNIT == param) {
 		if (!p)
 			return allocation_unit_;
 		const Partition* part = get_partition (p);
 		if (part)
 			return part->allocation_unit ();
-	} else if (p && (param == Memory::ALLOCATION_SPACE_BEGIN || param == Memory::ALLOCATION_SPACE_END)) {
+	} else if (p && (param == MemQuery::ALLOCATION_SPACE_BEGIN || param == MemQuery::ALLOCATION_SPACE_END)) {
 		const Partition* part = get_partition (p);
 		if (part) {
-			if (param == Memory::ALLOCATION_SPACE_BEGIN)
+			if (param == MemQuery::ALLOCATION_SPACE_BEGIN)
 				return (Word)part->heap_begin ();
 			else
 				return (Word)part->heap_end ();

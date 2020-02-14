@@ -6,7 +6,7 @@
 
 #include "core.h"
 #include "RandomGen.h"
-#include <Nirvana/Runnable_c.h>
+#include <Nirvana/Runnable.h>
 #include <Port/Thread.h>
 #include "Scheduler.h"
 

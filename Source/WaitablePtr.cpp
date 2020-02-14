@@ -1,6 +1,7 @@
 #include "WaitablePtr.h"
 #include <Nirvana/Runnable_s.h>
 #include "ExecDomain.h"
+#include <CORBA/CORBA.h>
 
 namespace Nirvana {
 namespace Core {
@@ -77,9 +78,15 @@ void WaitablePtr::set_exception (const Exception& ex)
 	if (NO_MEMORY ().__code () == ex.__code ())
 		set_ptr (Ptr (nullptr, TAG_EXCEPTION));
 	else {
+		Octet* pex = nullptr;
 		try {
-			set_ptr (Ptr (ex.__clone (), TAG_EXCEPTION));
+			TypeCode_ptr tc = ex.__type_code ();
+			size_t cb = tc->_size ();
+			pex = new Octet [cb];
+			tc->_copy (pex, ex.__data ());
+			set_ptr (Ptr (pex, TAG_EXCEPTION));
 		} catch (...) {
+			delete [] pex;
 			set_ptr (Ptr (nullptr, TAG_EXCEPTION));
 		}
 	}
