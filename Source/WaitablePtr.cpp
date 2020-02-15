@@ -39,7 +39,7 @@ void* WaitablePtr::wait ()
 		assert (p.tag_bits () == TAG_EXCEPTION);
 		const Exception* pe = (const Exception*)static_cast <void*> (p);
 		if (pe)
-			pe->raise ();
+			pe->_raise ();
 		else
 			throw NO_MEMORY ();
 	}
@@ -80,11 +80,7 @@ void WaitablePtr::set_exception (const Exception& ex)
 	else {
 		Octet* pex = nullptr;
 		try {
-			TypeCode_ptr tc = ex.__type_code ();
-			size_t cb = tc->_size ();
-			pex = new Octet [cb];
-			tc->_copy (pex, ex.__data ());
-			set_ptr (Ptr (pex, TAG_EXCEPTION));
+			set_ptr (Ptr (ex.__clone (), TAG_EXCEPTION));
 		} catch (...) {
 			delete [] pex;
 			set_ptr (Ptr (nullptr, TAG_EXCEPTION));
