@@ -5,6 +5,7 @@
 #include <type_traits>
 #include <Nirvana/HeapFactory_s.h>
 #include <Nirvana/Memory_s.h>
+#include <CORBA/LifeCycle.h>
 #include <Port/ProtDomainMemory.h>
 
 namespace Nirvana {
@@ -242,14 +243,6 @@ private:
 };
 
 typedef std::conditional <(sizeof (UWord) > 4), Heap64, Heap32>::type HeapBaseT;
-
-class HeapFactoryImpl :
-	public ::CORBA::Nirvana::ServantStatic <HeapFactoryImpl, HeapFactory>
-{
-public:
-	static Memory_ptr create ();
-	static Memory_ptr create_with_granularity (ULong granularity);
-};
 
 class Heap :
 	public HeapBaseT
@@ -520,27 +513,6 @@ inline void Heap::initialize ()
 	new (instance) HeapMain (first_part);
 	g_core_heap = instance->_get_ptr ();
 	g_heap_factory = HeapFactoryImpl::_get_ptr ();
-}
-
-class HeapDynamic :
-	public Heap,
-	public CORBA::Nirvana::Servant <HeapDynamic, Memory>,
-	public CORBA::Nirvana::LifeCycleRefCntPseudo <HeapDynamic>
-{
-public:
-	HeapDynamic (ULong allocation_unit) :
-		Heap (allocation_unit)
-	{}
-};
-
-inline Memory_ptr HeapFactoryImpl::create ()
-{
-	return (new HeapDynamic (HEAP_UNIT_DEFAULT))->_get_ptr ();
-}
-
-inline Memory_ptr HeapFactoryImpl::create_with_granularity (ULong granularity)
-{
-	return (new HeapDynamic (granularity))->_get_ptr ();
 }
 
 }

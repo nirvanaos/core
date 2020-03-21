@@ -3,31 +3,25 @@
 
 #include <CORBA/ServantBase_s.h>
 #include "ObjectCore.h"
-#include "ReferenceCounterImpl.h"
 
 namespace Nirvana {
 namespace Core {
 
-using namespace ::CORBA;
-using namespace ::CORBA::Nirvana;
-
 class ServantCore :
-	public ImplementationPseudo <ServantCore, PortableServer::ServantBase, ReferenceCounter>,
-	public ReferenceCounterBase,
-	public LifeCycleNoCopy <ServantCore>
+	public ::CORBA::Nirvana::ImplementationPseudo <ServantCore, ::CORBA::Nirvana::ServantBase>,
+	public ::CORBA::Nirvana::LifeCycleNoCopy <ServantCore>
 {
 public:
-	ServantCore (PortableServer::Servant servant, DynamicServant_ptr dynamic) :
-		object_ (servant),
-		ReferenceCounterBase (dynamic)
+	ServantCore (::CORBA::Nirvana::ServantBase_ptr servant) :
+		object_ (servant)
 	{}
 
-	operator Bridge <Object>& ()
+	operator ::CORBA::Nirvana::Bridge < ::CORBA::Object>& ()
 	{
 		return object_;
 	}
 
-	operator Bridge <AbstractBase>& ()
+	operator ::CORBA::Nirvana::Bridge <AbstractBase>& ()
 	{
 		return object_;
 	}

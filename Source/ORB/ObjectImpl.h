@@ -29,7 +29,7 @@ public:
 
 	Interface_ptr primary_interface () const
 	{
-		return Interface::unmarshal (servant_->_query_interface (nullptr));
+		return servant_->_query_interface (0);
 	}
 
 	const Char* primary_interface_id () const
@@ -41,24 +41,24 @@ public:
 
 	// Object operations
 
-	static BridgeMarshal <ImplementationDef>* __get_implementation (Bridge <Object>* obj, EnvironmentBridge* env)
+	static Interface* __get_implementation (Bridge <Object>* obj, EnvironmentBridge* env)
 	{
-		return nullptr; // We dont implement it
+		return 0; // We dont implement it
 	}
 
 	InterfaceDef_ptr _get_interface () const
 	{
-		return InterfaceDef_ptr::nil ();	// TODO: Implement
+		return InterfaceDef::_nil ();	// TODO: Implement
 	}
 
 	Boolean _is_a (const Char* type_id) const;
 
-	static Boolean __non_existent (Bridge <Object>*, EnvironmentBridge*)
+	static ABI_boolean __non_existent (Bridge <Object>*, EnvironmentBridge*)
 	{
-		return FALSE;
+		return false;
 	}
 
-	static Boolean __is_equivalent (Bridge <Object>* obj, BridgeMarshal <Object>* other, EnvironmentBridge*)
+	static ABI_boolean __is_equivalent (Bridge <Object>* obj, Interface* other, EnvironmentBridge*)
 	{
 		return obj == other;
 	}
@@ -84,17 +84,17 @@ public:
 		ObjectBase (servant)
 	{}
 
-	static BridgeMarshal <ImplementationDef>* __get_implementation (Bridge <Object>* obj, EnvironmentBridge* env)
+	static Interface* __get_implementation (Bridge <Object>* obj, EnvironmentBridge* env)
 	{
 		return ObjectBase::__get_implementation (obj, env);
 	}
 
-	static Boolean __non_existent (Bridge <Object>* obj, EnvironmentBridge* env)
+	static ABI_boolean __non_existent (Bridge <Object>* obj, EnvironmentBridge* env)
 	{
 		return ObjectBase::__non_existent (obj, env);
 	}
 
-	static Boolean __is_equivalent (Bridge <Object>* obj, BridgeMarshal <Object>* other, EnvironmentBridge* env)
+	static ABI_boolean __is_equivalent (Bridge <Object>* obj, Interface* other, EnvironmentBridge* env)
 	{
 		return ObjectBase::__is_equivalent (obj, other, env);
 	}

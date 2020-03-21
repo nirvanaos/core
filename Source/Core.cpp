@@ -12,7 +12,7 @@ HeapFactory_ptr g_heap_factory;
 
 namespace Core {
 
-Memory_ptr g_core_heap = Memory_ptr::nil ();
+Memory_ptr g_core_heap = Memory::_nil ();
 
 void run_in_neutral_context (Runnable_ptr runnable)
 {
