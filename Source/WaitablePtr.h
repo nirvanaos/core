@@ -22,6 +22,13 @@ public:
 		AtomicPtr <2, 4> (Ptr (nullptr, TAG_WAITLIST))
 	{}
 
+	~WaitablePtr ()
+	{
+		Ptr p = load ();
+		if (p.tag_bits () == TAG_EXCEPTION)
+			delete_exception ((Exception*)(void*)p);
+	}
+
 	void* wait ();
 	
 	void set_object (void* p)
@@ -39,6 +46,8 @@ private:
 	void run_in_neutral ();
 
 	void set_ptr (Ptr p);
+
+	void delete_exception (Exception* pex);
 };
 
 }

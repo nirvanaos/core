@@ -5,10 +5,10 @@
 #define NIRVANA_CORE_EXECDOMAIN_H_
 
 #include "ExecContext.h"
-#include "ObjectPool.h"
 #include "Thread.h"
 #include "Scheduler.h"
-#include <Nirvana/Runnable_s.h>
+#include "Runnable.h"
+#include "ObjectPool.h"
 #include <limits>
 
 namespace Nirvana {
@@ -17,14 +17,11 @@ namespace Core {
 class SyncDomain;
 
 class ExecDomain :
-	public PoolableObject,
 	public ExecContext,
-	public Executor,
-	public ::CORBA::Nirvana::ServantTraits <ExecDomain>,
-	public ::CORBA::Nirvana::LifeCycleRefCntPseudo <ExecDomain>
+	public ImplPoolable <ExecDomain, Executor>
 {
 public:
-	static void async_call (Runnable_ptr runnable, DeadlineTime deadline, SyncDomain* sync_domain);
+	static void async_call (Runnable* runnable, DeadlineTime deadline, SyncDomain* sync_domain);
 
 	DeadlineTime deadline () const
 	{
@@ -47,42 +44,16 @@ public:
 		schedule_internal ();
 	}
 
-	static void initialize ()
-	{
-		pool_.initialize ();
-	}
+	void _activate ()
+	{}
 
-	static void terminate ()
-	{
-		pool_.terminate ();
-	}
-
-	void activate ()
-	{
-		_add_ref ();
-	}
-
-	void _delete ()
+	void _deactivate ()
 	{
 		assert (ExecContext::current () != this);
-		pool_.release (*this);
 		Scheduler::activity_end ();
 	}
 
 	void execute_loop ();
-
-	//! Public constructor can be used in porting for special cases.
-	template <class P>
-	ExecDomain (P param) :
-		ExecContext (param),
-		deadline_ (std::numeric_limits <DeadlineTime>::max ()),
-		cur_sync_domain_ (nullptr)
-	{
-		Scheduler::activity_begin ();
-	}
-
-private:
-	friend class ObjectPool <ExecDomain>;
 
 	ExecDomain () :
 		ExecContext (),
@@ -90,37 +61,36 @@ private:
 		cur_sync_domain_ (nullptr)
 	{}
 
-	class Release :
-		public ::CORBA::Nirvana::ServantStatic <Release, Runnable>
+	//! Constructor with parameters can be used in porting for special cases.
+	template <class ... Args>
+	ExecDomain (Args ... args) :
+		ExecContext (std::forward (args)...),
+		deadline_ (std::numeric_limits <DeadlineTime>::max ()),
+		cur_sync_domain_ (nullptr)
 	{
-	public:
-		static void run ()
-		{
-			Thread& thread = Thread::current ();
-			thread.execution_domain ()->_remove_ref ();
-			thread.execution_domain (nullptr);
-		}
-	};
+		Scheduler::activity_begin ();
+	}
 
-	class Schedule :
-		public ::CORBA::Nirvana::ServantStatic <Schedule, Runnable>
+private:
+	static class Release :
+		public ImplStatic <Runnable>
 	{
 	public:
-		static void run ()
-		{
-			Thread& thread = Thread::current ();
-			thread.execution_domain ()->schedule_internal ();
-			thread.execution_domain (nullptr);
-		}
-	};
+		void run ();
+	} release_;
+
+	static class Schedule :
+		public ImplStatic <Runnable>
+	{
+	public:
+		void run ();
+	} schedule_;
 
 	void schedule_internal ();
 
 private:
 	DeadlineTime deadline_;
 	SyncDomain* cur_sync_domain_;
-
-	static ObjectPool <ExecDomain> pool_;
 };
 
 }

@@ -14,10 +14,7 @@ namespace Nirvana {
 namespace Core {
 
 class SyncDomain :
-	public CoreObject,
-	public Executor,
-	public ::CORBA::Nirvana::ServantTraits <SyncDomain>,
-	public ::CORBA::Nirvana::LifeCycleRefCntPseudo <SyncDomain>
+	public Executor
 {
 public:
 	SyncDomain () :

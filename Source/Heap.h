@@ -512,7 +512,7 @@ inline void Heap::initialize ()
 	HeapMain* instance = (HeapMain*)first_part.allocate (sizeof (HeapMain));
 	new (instance) HeapMain (first_part);
 	g_core_heap = instance->_get_ptr ();
-	g_heap_factory = HeapFactoryImpl::_get_ptr ();
+//	g_heap_factory = HeapFactoryImpl::_get_ptr ();
 }
 
 }

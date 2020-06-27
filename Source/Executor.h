@@ -1,12 +1,12 @@
 #ifndef NIRVANA_CORE_EXECUTOR_H_
 #define NIRVANA_CORE_EXECUTOR_H_
 
-#include "core.h"
+#include "CoreInterface.h"
 
 namespace Nirvana {
 namespace Core {
 
-class Executor
+class Executor : public CoreInterface
 {
 public:
 	virtual void execute (DeadlineTime deadline) = 0;

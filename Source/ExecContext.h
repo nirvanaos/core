@@ -5,14 +5,13 @@
 #define NIRVANA_CORE_EXECCONTEXT_H_
 
 #include "core.h"
-#include <Nirvana/Runnable.h>
+#include "Runnable.h"
 #include <Port/ExecContext.h>
 
 namespace Nirvana {
 namespace Core {
 
 class ExecContext :
-	public CoreObject,
 	private Port::ExecContext
 {
 public:
@@ -23,13 +22,9 @@ public:
 
 	static ExecContext* current ();
 
-	ExecContext () :
-		Port::ExecContext ()
-	{}
-
-	template <class P>
-	ExecContext (P param) :
-		Port::ExecContext (param)
+	template <class ... Args>
+	ExecContext (Args ... args) :
+		Port::ExecContext (std::forward (args)...)
 	{}
 
 	::CORBA::Nirvana::Environment& environment ()
@@ -46,9 +41,9 @@ protected:
 	bool run ();
 
 protected:
-	friend void run_in_neutral_context (Runnable_ptr runnable);
+	friend void run_in_neutral_context (Runnable* runnable);
 
-	Runnable_var runnable_;
+	Core_var <Runnable> runnable_;
 	::CORBA::Nirvana::Environment environment_;
 };
 

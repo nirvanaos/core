@@ -24,8 +24,8 @@ bool ExecContext::run ()
 {
 	environment_.exception_free ();
 	if (runnable_) {
-		(runnable_->_epv ().epv.run) (runnable_, &environment_);
-		runnable_ = Runnable::_nil ();
+		runnable_->run ();
+		runnable_.reset ();
 		return true;
 	}
 	return false;

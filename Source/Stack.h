@@ -1,4 +1,5 @@
-// Lock-free stack implementation
+/// \file Stack.h
+/// Lock-free stack implementation
 #ifndef NIRVANA_CORE_STACK_H_
 #define NIRVANA_CORE_STACK_H_
 
@@ -8,27 +9,21 @@
 namespace Nirvana {
 namespace Core {
 
-//! \struct StackElem
-//!
-//! \brief A stack elements must be derived from StackElem.
-//!        While element not in stack, the StackElem fields are unused and may contain any values.
-//!        So this fields may be used for other purposes until the element placed to the stack.
+/// \struct StackElem
+///
+/// \brief A stack elements must be derived from StackElem.
+///        While element not in stack, the StackElem fields are unused and may contain any values.
+///        So this fields may be used for other purposes until the element placed to the stack.
 
 struct StackElem
 {
 	void* next;
-	RefCounter::UIntType ref_cnt;
+	RefCounter ref_cnt;
 };
 
 template <class T, unsigned ALIGN = CORE_OBJECT_ALIGN (T)>
 class Stack
 {
-	struct Node
-	{
-		T* next;
-		RefCounter ref_cnt;
-	};
-
 public:
 	Stack () :
 		head_ (nullptr)
@@ -36,8 +31,8 @@ public:
 
 	void push (T& elem)
 	{
-		Node* p = &get_node (elem);
-		new (p) Node ();
+		StackElem* p = &static_cast <StackElem&> (elem);
+		new (&p->ref_cnt) RefCounter (); // Initialize reference counter with 1
 		auto head = head_.load ();
 		do
 			p->next = head;
@@ -50,23 +45,17 @@ public:
 			head_.lock ();
 			auto p = head_.load ();
 			if (p)
-				get_node (*p).ref_cnt.increment ();
+				static_cast <StackElem&> (*p).ref_cnt.increment ();
 			head_.unlock ();
 			if (p) {
-				Node& node = get_node (*p);
-				if (head_.cas (p, node.next))
+				StackElem& node = static_cast <StackElem&> (*p);
+				if (head_.cas (p, (T*)node.next))
 					node.ref_cnt.decrement ();
 				if (!node.ref_cnt.decrement ())
 					return p;
 			} else
 				return nullptr;
 		}
-	}
-
-private:
-	static Node& get_node (T& elem)
-	{
-		return reinterpret_cast <Node&> (static_cast <StackElem&> (elem));
 	}
 
 private:

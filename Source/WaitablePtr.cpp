@@ -1,5 +1,5 @@
 #include "WaitablePtr.h"
-#include <Nirvana/Runnable_s.h>
+#include "Runnable.h"
 #include "ExecDomain.h"
 #include <CORBA/CORBA.h>
 
@@ -10,8 +10,7 @@ using namespace CORBA;
 using namespace CORBA::Nirvana;
 
 class WaitablePtr::WaitForCreation :
-	public Servant <WaitablePtr::WaitForCreation, Runnable>,
-	public LifeCycleStatic
+	public ImplStatic <Runnable>
 {
 public:
 	WaitForCreation (WaitablePtr& ptr) :
@@ -32,7 +31,7 @@ void* WaitablePtr::wait ()
 	Ptr p = load ();
 	if (p.tag_bits () == TAG_WAITLIST) {
 		WaitForCreation runnable (*this);
-		run_in_neutral_context (runnable._get_ptr ());
+		run_in_neutral_context (&runnable);
 		p = load ();
 	}
 	if (p.tag_bits ()) {
@@ -78,11 +77,20 @@ void WaitablePtr::set_exception (const Exception& ex)
 	if (NO_MEMORY ().__code () == ex.__code ())
 		set_ptr (Ptr (nullptr, TAG_EXCEPTION));
 	else {
-		Octet* pex = nullptr;
 		try {
-			set_ptr (Ptr (ex.__clone (), TAG_EXCEPTION));
+			// Clone exception
+			TypeCode_ptr tc = ex.__type_code ();
+			size_t cb = sizeof (Exception) + tc->_size ();
+			Exception* pex = (Exception*)g_core_heap->allocate (nullptr, cb, 0);
+			try {
+				*pex = ex;
+				tc->_copy (pex->__data (), ex.__data ());
+			} catch (...) {
+				g_core_heap->release (pex, cb);
+				throw;
+			}
+			set_ptr (Ptr (pex, TAG_EXCEPTION));
 		} catch (...) {
-			delete [] pex;
 			set_ptr (Ptr (nullptr, TAG_EXCEPTION));
 		}
 	}
@@ -94,6 +102,16 @@ void WaitablePtr::set_unknown_exception ()
 		set_ptr (Ptr (new UNKNOWN (), TAG_EXCEPTION));
 	} catch (...) {
 		set_ptr (Ptr (nullptr, TAG_EXCEPTION));
+	}
+}
+
+void WaitablePtr::delete_exception (Exception* pex)
+{
+	if (pex) {
+		TypeCode_ptr tc = pex->__type_code ();
+		size_t cb = sizeof (Exception) + tc->_size ();
+		pex->~Exception ();
+		g_core_heap->release (pex, cb);
 	}
 }
 

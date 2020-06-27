@@ -104,14 +104,10 @@ void ObjectMap <Key, Hash, Pred>::remove_ref (iterator p)
 	leave_read ();
 	enter_write ();
 	if (!p->second.ref_cnt.decrement ()) {
-		void* obj = p->second.ptr;
-		bool is_object = p->second.ptr.is_object ();
+		void* obj = p->second.ptr.load ();
 		Base::erase (p);
 		leave_write ();
-		if (is_object)
-			destroy (obj);
-		else
-			delete (CORBA::Exception*)obj;
+		destroy (obj);
 		return;
 	}
 	leave_write ();

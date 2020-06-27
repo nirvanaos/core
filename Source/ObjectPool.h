@@ -8,13 +8,6 @@
 namespace Nirvana {
 namespace Core {
 
-class PoolableObject :
-	public StackElem
-{
-public:
-	void activate () {}
-};
-
 template <class T>
 class ObjectPool :
 	private Stack <T>
@@ -23,15 +16,16 @@ public:
 	T* get ()
 	{
 		T* obj = Stack <T>::pop ();
-		if (!obj)
-			obj = new T;
+		if (obj)
+			obj->_activate ();
 		else
-			obj->activate ();
+			obj = new T;
 		return obj;
 	}
 
 	void release (T& obj)
 	{
+		obj._deactivate ();
 		Stack <T>::push (obj);
 	}
 
@@ -46,6 +40,54 @@ public:
 		}
 	}
 };
+
+/// Poolable implementation of a core object.
+/// \tparam T object class.
+/// \tparam I interfaces.
+template <class T, class ... I>
+class ImplPoolable :
+	public CoreObject, // Allocate from core heap.
+	public StackElem,
+	public I...
+{
+public:
+	static void initialize ()
+	{
+		pool_.initialize ();
+	}
+
+	static void terminate ()
+	{
+		pool_.terminate ();
+	}
+
+	static T* get ()
+	{
+		return pool_.get ();
+	}
+
+	void _activate ()
+	{
+		new (&StackElem::ref_cnt) RefCounter (); // Initialize reference counter with 1
+		static_cast <T&> (*this)._activate ();
+	}
+
+	void _add_ref ()
+	{
+		StackElem::ref_cnt.increment ();
+	}
+
+	void _remove_ref ()
+	{
+		if (!StackElem::ref_cnt.decrement ())
+			pool_.release (static_cast <T&> (*this));
+	}
+
+	static ObjectPool <T> pool_;
+};
+
+template <class T, class ... I>
+ObjectPool <T> ImplPoolable <T, I...>::pool_;
 
 }
 }

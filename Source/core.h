@@ -8,14 +8,9 @@
 
 #include <Nirvana/Nirvana.h>
 #include <Port/config.h>
-#include <Nirvana/HeapFactory.h>
-#include <Nirvana/Runnable.h>
 #include <memory>
 
 namespace Nirvana {
-
-extern HeapFactory_ptr g_heap_factory;
-
 namespace Core {
 
 extern Memory_ptr g_core_heap;
@@ -49,8 +44,6 @@ public:
 		return (T*)g_core_heap->allocate (0, cnt * sizeof (T), 0);
 	}
 };
-
-void run_in_neutral_context (Runnable_ptr runnable);
 
 }
 }
