@@ -24,7 +24,7 @@ public:
 
 	template <class ... Args>
 	ExecContext (Args ... args) :
-		Port::ExecContext (std::forward (args)...)
+		Port::ExecContext (std::forward <Args> (args)...)
 	{}
 
 	::CORBA::Nirvana::Environment& environment ()

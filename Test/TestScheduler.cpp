@@ -1,7 +1,6 @@
 #include "../Source/Scheduler.h"
 #include "../Source/Heap.h"
 #include "gtest/gtest.h"
-#include <Nirvana/Runnable_s.h>
 #include <limits>
 
 namespace TestScheduler {
@@ -43,7 +42,7 @@ class RunnableImpl :
 {};
 
 class SimpleShutdown :
-	public RunnableImpl <SimpleShutdown>
+	public ImplDynamic <SimpleShutdown, Runnable>
 {
 public:
 	SimpleShutdown ()
@@ -68,10 +67,11 @@ bool SimpleShutdown::exists_ = false;
 
 TEST_F (TestScheduler, Startup)
 {
-	::Nirvana::Runnable_ptr startup ((new SimpleShutdown ())->_get_ptr ());
-	::Nirvana::Core::Port::Scheduler::run_system_domain (startup, numeric_limits <Nirvana::DeadlineTime>::max ());
-	ASSERT_TRUE (SimpleShutdown::exists_);
-	::CORBA::release (startup);
+	{
+		Core_var <Core::Runnable> startup (new SimpleShutdown ());
+		::Nirvana::Core::Port::Scheduler::run_system_domain (startup, numeric_limits <Nirvana::DeadlineTime>::max ());
+		ASSERT_TRUE (SimpleShutdown::exists_);
+	}
 	ASSERT_FALSE (SimpleShutdown::exists_);
 }
 

@@ -64,7 +64,7 @@ public:
 	//! Constructor with parameters can be used in porting for special cases.
 	template <class ... Args>
 	ExecDomain (Args ... args) :
-		ExecContext (std::forward (args)...),
+		ExecContext (std::forward <Args> (args)...),
 		deadline_ (std::numeric_limits <DeadlineTime>::max ()),
 		cur_sync_domain_ (nullptr)
 	{
