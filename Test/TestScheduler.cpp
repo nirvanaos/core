@@ -35,14 +35,8 @@ protected:
 	}
 };
 
-template <class S>
-class RunnableImpl :
-	public ::CORBA::Nirvana::Servant <S, ::Nirvana::Runnable>,
-	public ::CORBA::Nirvana::LifeCycleRefCntPseudo <S>
-{};
-
 class SimpleShutdown :
-	public ImplDynamic <SimpleShutdown, Runnable>
+	public Nirvana::Core::ImplDynamic <SimpleShutdown, Nirvana::Core::Runnable>
 {
 public:
 	SimpleShutdown ()
@@ -68,8 +62,8 @@ bool SimpleShutdown::exists_ = false;
 TEST_F (TestScheduler, Startup)
 {
 	{
-		Core_var <Core::Runnable> startup (new SimpleShutdown ());
-		::Nirvana::Core::Port::Scheduler::run_system_domain (startup, numeric_limits <Nirvana::DeadlineTime>::max ());
+		Nirvana::Core::Core_var <Nirvana::Core::Runnable> startup (new SimpleShutdown ());
+		Nirvana::Core::Port::Scheduler::run_system_domain (startup, numeric_limits <Nirvana::DeadlineTime>::max ());
 		ASSERT_TRUE (SimpleShutdown::exists_);
 	}
 	ASSERT_FALSE (SimpleShutdown::exists_);

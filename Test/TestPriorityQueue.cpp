@@ -32,7 +32,7 @@ protected:
 	{
 		// Code here will be called immediately after the constructor (right
 		// before each test).
-		::Nirvana::Core::g_core_heap = ::Nirvana::g_default_heap;
+		::Nirvana::Core::g_core_heap = ::Nirvana::g_memory;
 	}
 
 	virtual void TearDown ()

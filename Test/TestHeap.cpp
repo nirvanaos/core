@@ -45,7 +45,7 @@ TEST_F (TestHeap, Allocate)
 	*p = 1;
 	Core::g_core_heap->release (p, sizeof (int));
 }
-
+/*
 TEST_F (TestHeap, Heap)
 {
 	static const UWord GRANULARITY = 128;
@@ -68,7 +68,7 @@ TEST_F (TestHeap, Heap)
 
 	release (heap);
 }
-
+*/
 struct Block
 {
 	ULong tag;
