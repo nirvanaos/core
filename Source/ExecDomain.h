@@ -21,7 +21,7 @@ class ExecDomain :
 	public ImplPoolable <ExecDomain, Executor>
 {
 public:
-	static void async_call (Runnable* runnable, DeadlineTime deadline, SyncDomain* sync_domain);
+	static void async_call (Runnable& runnable, DeadlineTime deadline, SyncDomain* sync_domain);
 
 	DeadlineTime deadline () const
 	{
@@ -43,9 +43,6 @@ public:
 	{
 		schedule_internal ();
 	}
-
-	void _activate ()
-	{}
 
 	void _deactivate ()
 	{

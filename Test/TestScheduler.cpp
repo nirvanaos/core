@@ -63,7 +63,7 @@ TEST_F (TestScheduler, Startup)
 {
 	{
 		Nirvana::Core::Core_var <Nirvana::Core::Runnable> startup (new SimpleShutdown ());
-		Nirvana::Core::Port::Scheduler::run_system_domain (startup, numeric_limits <Nirvana::DeadlineTime>::max ());
+		Nirvana::Core::Port::Scheduler::run_system_domain (*startup, numeric_limits <Nirvana::DeadlineTime>::max ());
 		ASSERT_TRUE (SimpleShutdown::exists_);
 	}
 	ASSERT_FALSE (SimpleShutdown::exists_);

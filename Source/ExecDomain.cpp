@@ -23,16 +23,18 @@ void ExecDomain::Schedule::run ()
 	thread.execution_domain (nullptr);
 }
 
-void ExecDomain::async_call (Runnable* runnable, DeadlineTime deadline, SyncDomain* sync_domain)
+void ExecDomain::async_call (Runnable& runnable, DeadlineTime deadline, SyncDomain* sync_domain)
 {
 	Scheduler::activity_begin ();	// Throws exception if shutdown was started.
 
-	ExecDomain* exec_domain = get ();
+	Core_var <ExecDomain> exec_domain = get ();
 
-	exec_domain->runnable_ = runnable;
+	exec_domain->runnable_ = &runnable;
+	runnable._add_ref ();
 	exec_domain->deadline_ = deadline;
 	exec_domain->cur_sync_domain_ = sync_domain;
 	exec_domain->schedule_internal ();
+	exec_domain.detach (); // Pointer will be released asynchronously
 }
 
 void ExecDomain::schedule (SyncDomain* sync_domain)
@@ -41,7 +43,7 @@ void ExecDomain::schedule (SyncDomain* sync_domain)
 		cur_sync_domain_->leave ();
 	cur_sync_domain_ = sync_domain;
 	if (ExecContext::current () == this)
-		run_in_neutral_context (&schedule_);
+		run_in_neutral_context (schedule_);
 	else
 		schedule_internal ();
 }
@@ -69,7 +71,7 @@ void ExecDomain::execute_loop ()
 {
 	while (run ()) {
 		environment_.exception_free ();	// TODO: Check unhandled exception and log error message.
-		run_in_neutral_context (&release_);
+		run_in_neutral_context (release_);
 	}
 }
 

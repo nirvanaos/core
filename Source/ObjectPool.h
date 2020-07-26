@@ -68,8 +68,7 @@ public:
 
 	void _activate ()
 	{
-		new (&StackElem::ref_cnt) RefCounter (); // Initialize reference counter with 1
-		static_cast <T&> (*this)._activate ();
+		::new (&static_cast <StackElem&> (*this).ref_cnt) RefCounter (); // Initialize reference counter with 1
 	}
 
 	void _add_ref ()

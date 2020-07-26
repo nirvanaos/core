@@ -32,7 +32,7 @@ public:
 	void push (T& elem)
 	{
 		StackElem* p = &static_cast <StackElem&> (elem);
-		new (&p->ref_cnt) RefCounter (); // Initialize reference counter with 1
+		::new (&p->ref_cnt) RefCounter (); // Initialize reference counter with 1
 		auto head = head_.load ();
 		do
 			p->next = head;

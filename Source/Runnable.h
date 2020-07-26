@@ -14,7 +14,7 @@ public:
 	virtual void run () = 0;
 };
 
-void run_in_neutral_context (Runnable* runnable);
+void run_in_neutral_context (Runnable& runnable);
 
 }
 }

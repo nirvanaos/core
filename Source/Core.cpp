@@ -11,11 +11,12 @@ namespace Core {
 
 Memory_ptr g_core_heap = Memory::_nil ();
 
-void run_in_neutral_context (Runnable* runnable)
+void run_in_neutral_context (Runnable& runnable)
 {
 	ExecContext* neutral_context = Thread::current ().neutral_context ();
 	assert (neutral_context);
-	neutral_context->runnable_ = runnable;
+	runnable._add_ref ();
+	neutral_context->runnable_ = &runnable;
 	neutral_context->switch_to ();
 	CORBA::Nirvana::Environment tmp (move (neutral_context->environment ()));
 	tmp.check ();

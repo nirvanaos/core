@@ -84,6 +84,12 @@ public:
 		return p_;
 	}
 
+	I& operator * () const
+	{
+		assert (p_);
+		return *p_;
+	}
+
 	void reset ()
 	{
 		if (p_) {
@@ -91,6 +97,13 @@ public:
 			p_ = nullptr;
 			tmp->_remove_ref ();
 		}
+	}
+
+	I* detach ()
+	{
+		I* tmp = p_;
+		p_ = nullptr;
+		return tmp;
 	}
 
 private:

@@ -41,7 +41,7 @@ protected:
 	bool run ();
 
 protected:
-	friend void run_in_neutral_context (Runnable* runnable);
+	friend void run_in_neutral_context (Runnable& runnable);
 
 	Core_var <Runnable> runnable_;
 	::CORBA::Nirvana::Environment environment_;

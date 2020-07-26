@@ -24,7 +24,13 @@ bool ExecContext::run ()
 {
 	environment_.exception_free ();
 	if (runnable_) {
-		runnable_->run ();
+		try {
+			runnable_->run ();
+		} catch (const CORBA::Exception& ex) {
+			CORBA::Nirvana::set_exception (&environment_, ex);
+		} catch (...) {
+			CORBA::Nirvana::set_unknown_exception (&environment_);
+		}
 		runnable_.reset ();
 		return true;
 	}
