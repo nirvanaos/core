@@ -11,9 +11,9 @@
 #include "TaggedPtr.h"
 #include "BackOff.h"
 #include "Thread.h"
-#include <random>
+#include "RandomGen.h"
 #include <algorithm>
-#include <atomic>
+#include <random>
 
 namespace Nirvana {
 namespace Core {
@@ -140,7 +140,7 @@ protected:
 
 	Node* help_delete (Node*, int level);
 
-	unsigned random_level (RandomGen& rndgen) const;
+	unsigned random_level ();
 
 	bool erase (Node* node, unsigned max_level);
 
@@ -158,6 +158,7 @@ private:
 	Node* head_;
 	Node* tail_;
 	const std::geometric_distribution <> distr_;
+	RandomGen rndgen_;
 };
 
 template <unsigned MAX_LEVEL>
@@ -169,9 +170,9 @@ protected:
 		PriorityQueueBase (MAX_LEVEL)
 	{}
 
-	unsigned random_level (RandomGen& rndgen) const
+	unsigned random_level ()
 	{
-		return MAX_LEVEL > 1 ? std::min (PriorityQueueBase::random_level (rndgen), MAX_LEVEL) : 1;
+		return MAX_LEVEL > 1 ? std::min (PriorityQueueBase::random_level (), MAX_LEVEL) : 1;
 	}
 
 	bool insert (Node* new_node);
@@ -277,10 +278,10 @@ public:
 	{}
 
 	/// Inserts new node.
-	bool insert (DeadlineTime dt, const Val& value, RandomGen& rndgen = Thread::current ().rndgen ())
+	bool insert (DeadlineTime dt, const Val& value)
 	{
 		// Choose level randomly.
-		int level = PriorityQueueL <MAX_LEVEL>::random_level (rndgen);
+		int level = PriorityQueueL <MAX_LEVEL>::random_level ();
 
 		// Create new node.
 		return PriorityQueueL <MAX_LEVEL>::insert (create_node (level, dt, value));

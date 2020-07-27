@@ -125,9 +125,9 @@ PriorityQueueBase::Node* PriorityQueueBase::scan_key (Node*& node1, int level, N
 	return node2;
 }
 
-unsigned PriorityQueueBase::random_level (RandomGen& rndgen) const
+unsigned PriorityQueueBase::random_level ()
 {
-	return 1 + distr_ (rndgen);
+	return 1 + distr_ (rndgen_);
 }
 
 

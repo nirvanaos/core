@@ -92,7 +92,7 @@ TYPED_TEST (TestPriorityQueue, SingleThread)
 		StdNode node;
 		node.deadline = deadline;
 		node.idx = i;
-		ASSERT_TRUE (queue.insert (deadline, node, rndgen));
+		ASSERT_TRUE (queue.insert (deadline, node));
 		queue_std.push (node);
 	}
 
@@ -110,12 +110,11 @@ TYPED_TEST (TestPriorityQueue, SingleThread)
 TYPED_TEST (TestPriorityQueue, Equal)
 {
 	TypeParam queue;
-	RandomGen rndgen;
 
 	{
 		Value val = {1, 1};
-		ASSERT_TRUE (queue.insert (1, val, rndgen));
-		ASSERT_FALSE (queue.insert (1, val, rndgen));
+		ASSERT_TRUE (queue.insert (1, val));
+		ASSERT_FALSE (queue.insert (1, val));
 	}
 
 	Value val;
@@ -128,13 +127,12 @@ TYPED_TEST (TestPriorityQueue, Equal)
 TYPED_TEST (TestPriorityQueue, MinMax)
 {
 	TypeParam queue;
-	RandomGen rndgen;
 
 	Value val = {1, 1};
 	Value out;
-	ASSERT_TRUE (queue.insert (numeric_limits <DeadlineTime>::max (), val, rndgen));
+	ASSERT_TRUE (queue.insert (numeric_limits <DeadlineTime>::max (), val));
 	ASSERT_TRUE (queue.delete_min (out));
-	ASSERT_TRUE (queue.insert (0, val, rndgen));
+	ASSERT_TRUE (queue.insert (0, val));
 	ASSERT_TRUE (queue.delete_min (out));
 }
 
@@ -179,7 +177,7 @@ void ThreadTest <PQ>::thread_proc ()
 			++counters_ [deadline];
 			++queue_size_;
 			Value val = {g_timestamp++, deadline};
-			queue_.insert (deadline, val, rndgen);
+			queue_.insert (deadline, val);
 		} else {
 			Value val;
 			DeadlineTime deadline;
@@ -237,7 +235,7 @@ TYPED_TEST (TestPriorityQueue, Erase)
 		values.push_back ({i, distr (rndgen)});
 	}
 	for (auto p = values.begin (); p != values.end (); ++p) {
-		ASSERT_TRUE (queue.insert (p->deadline, *p, rndgen));
+		ASSERT_TRUE (queue.insert (p->deadline, *p));
 	}
 	for (auto p = values.begin (); p != values.end (); ++p) {
 		ASSERT_TRUE (queue.erase (p->deadline, *p));

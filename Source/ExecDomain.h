@@ -48,6 +48,7 @@ public:
 	{
 		assert (ExecContext::current () != this);
 		Scheduler::activity_end ();
+		runnable_.reset ();
 	}
 
 	void execute_loop ();

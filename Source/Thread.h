@@ -5,7 +5,6 @@
 #define NIRVANA_CORE_THREAD_H_
 
 #include "core.h"
-#include "RandomGen.h"
 #include <Nirvana/Runnable.h>
 #include <Port/Thread.h>
 #include "Scheduler.h"
@@ -36,7 +35,6 @@ public:
 
 	Thread () :
 		Port::Thread (),
-		rndgen_ (),
 		exec_domain_ (nullptr),
 		exec_context_ (nullptr)
 	{}
@@ -44,7 +42,6 @@ public:
 	template <class P>
 	Thread (P param) :
 		Port::Thread (param),
-		rndgen_ (),
 		exec_domain_ (nullptr),
 		exec_context_ (nullptr)
 	{}
@@ -72,12 +69,6 @@ public:
 	/// This static method is called by the scheduler.
 	static void execute (Executor& executor, DeadlineTime deadline);
 
-	/// Random number generator's accessor.
-	RandomGen& rndgen ()
-	{
-		return rndgen_;
-	}
-
 	/// Returns special "neutral" execution context with own stack and CPU state.
 	virtual ExecContext* neutral_context ()
 	{
@@ -86,9 +77,6 @@ public:
 	}
 
 protected:
-	/// Random number generator.
-	RandomGen rndgen_;
-
 	/// Pointer to the current execution domain.
 	ExecDomain* exec_domain_;
 

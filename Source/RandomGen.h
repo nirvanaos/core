@@ -1,5 +1,5 @@
 // Nirvana project.
-// Pseudorandom number generator.
+// Atomic pseudorandom number generator.
 // We use fast and non-cryptographically secure Xorshift algorithm.
 // http://www.jstatsoft.org/v08/i14/paper
 
@@ -8,6 +8,7 @@
 
 #include <stdint.h>
 #include <limits>
+#include <atomic>
 
 namespace Nirvana {
 namespace Core {
@@ -18,7 +19,7 @@ class RandomGen
 public:
 	typedef uint32_t result_type;
 
-	RandomGen () :
+	RandomGen () : // Use `this` as seed value
 		state_ ((uint32_t)reinterpret_cast <uintptr_t> (this))
 	{}
 
@@ -35,7 +36,7 @@ public:
 	uint32_t operator () ();
 
 private:
-	uint32_t state_;
+	std::atomic <uint32_t> state_;
 };
 
 }
