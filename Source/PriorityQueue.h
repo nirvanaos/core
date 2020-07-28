@@ -157,8 +157,10 @@ protected:
 private:
 	Node* head_;
 	Node* tail_;
+	RandomGenAtomic rndgen_;
+
+	// constant can be made static in future
 	const std::geometric_distribution <> distr_;
-	RandomGen rndgen_;
 };
 
 template <unsigned MAX_LEVEL>
@@ -204,7 +206,7 @@ bool PriorityQueueL <MAX_LEVEL>::insert (Node* new_node)
 			saved_nodes [i] = copy_node (node1);
 	}
 
-	for (BackOff bo; true; bo.sleep ()) {
+	for (BackOff bo; true; bo ()) {
 		Node* node2 = scan_key (node1, 0, new_node);
 		if (!node2->deleted && !less (*new_node, *node2)) {
 			// The same value with the same deadline already exists.
@@ -237,7 +239,7 @@ bool PriorityQueueL <MAX_LEVEL>::insert (Node* new_node)
 		node1 = saved_nodes [i];
 		Link::Lockable& anext = new_node->next [i];
 		copy_node (new_node);
-		for (BackOff bo; true; bo.sleep ()) {
+		for (BackOff bo; true; bo ()) {
 			Node* node2 = scan_key (node1, i, new_node);
 			anext = node2;
 			release_node (node2);

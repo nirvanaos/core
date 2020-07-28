@@ -2,6 +2,7 @@
 #define NIRVANA_CORE_BACKOFF_H_
 
 #include <Port/BackOff.h>
+#include "RandomGen.h"
 
 namespace Nirvana {
 namespace Core {
@@ -9,23 +10,24 @@ namespace Core {
 class BackOff :
 	private Port::BackOff
 {
+	static const unsigned MAX_COUNT = 10; // 2 ^ 10 iterations
+	static const unsigned SLEEP_ITERATIONS = 200;
 public:
-	Port::BackOff& port ()
-	{
-		return *this;
-	}
-
-	BackOff ()
+	BackOff () :
+		count_ (0)
 	{}
 
 	~BackOff ()
 	{}
 
-	void sleep ()
-	{
-		// TODO: Implement some algorithm to choice the sleep time
-		Port::BackOff::sleep (0);
-	}
+	void operator () ();
+
+private:
+	inline void cpu_relax ();
+
+private:
+	unsigned count_;
+	RandomGen rndgen_;
 };
 
 }

@@ -8,7 +8,6 @@
 
 #include <stdint.h>
 #include <limits>
-#include <atomic>
 
 namespace Nirvana {
 namespace Core {
@@ -23,6 +22,10 @@ public:
 		state_ ((uint32_t)reinterpret_cast <uintptr_t> (this))
 	{}
 
+	RandomGen (uint32_t s) :
+		state_ (s)
+	{}
+
 	static uint32_t min ()
 	{
 		return 0;
@@ -35,8 +38,18 @@ public:
 
 	uint32_t operator () ();
 
-private:
-	std::atomic <uint32_t> state_;
+protected:
+	static uint32_t xorshift (uint32_t x);
+
+protected:
+	uint32_t state_;
+};
+
+class RandomGenAtomic :
+	public RandomGen
+{
+public:
+	uint32_t operator () ();
 };
 
 }

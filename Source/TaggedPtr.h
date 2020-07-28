@@ -201,7 +201,7 @@ bool LockablePtr <TAG_BITS, ALIGN>::compare_exchange (Ptr& cur, const Ptr& to)
 {
 	uintptr_t tcur = cur.ptr_;
 	assert ((tcur & SPIN_MASK) == 0);
-	for (BackOff bo; !ptr_.compare_exchange_weak (tcur, to.ptr_); bo.sleep ()) {
+	for (BackOff bo; !ptr_.compare_exchange_weak (tcur, to.ptr_); bo ()) {
 		tcur &= ~SPIN_MASK;
 		if (tcur != cur.ptr_) {
 			cur.ptr_ = tcur;
@@ -215,7 +215,7 @@ bool LockablePtr <TAG_BITS, ALIGN>::compare_exchange (Ptr& cur, const Ptr& to)
 template <unsigned TAG_BITS, unsigned ALIGN>
 typename LockablePtr <TAG_BITS, ALIGN>::Ptr LockablePtr <TAG_BITS, ALIGN>::lock ()
 {
-	for (BackOff bo; true; bo.sleep ()) {
+	for (BackOff bo; true; bo ()) {
 		uintptr_t cur = ptr_.load ();
 		while ((cur & SPIN_MASK) != SPIN_MASK) {
 			if (ptr_.compare_exchange_weak (cur, cur + Ptr::TAG_MASK + 1, std::memory_order_acquire))

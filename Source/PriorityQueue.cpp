@@ -130,7 +130,6 @@ unsigned PriorityQueueBase::random_level ()
 	return 1 + distr_ (rndgen_);
 }
 
-
 PriorityQueueBase::Node* PriorityQueueBase::delete_min ()
 {
 	// Start from the head node.
@@ -251,7 +250,7 @@ void PriorityQueueBase::remove_node (Node* node, Node*& prev, int level)
 	// Address of next node pointer for the given level.
 	Link::Lockable& anext = node->next [level];
 
-	for (BackOff bo; true; bo.sleep ()) {
+	for (BackOff bo; true; bo ()) {
 
 		// Synchronize with the possible other invocations to avoid redundant executions.
 		if (anext.load () == Link (nullptr, 1))
