@@ -10,7 +10,6 @@
 #include "AtomicCounter.h"
 #include "TaggedPtr.h"
 #include "BackOff.h"
-#include "Thread.h"
 #include "RandomGen.h"
 #include <algorithm>
 #include <random>
