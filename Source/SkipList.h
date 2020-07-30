@@ -57,7 +57,8 @@ protected:
 	};
 
 	// Assume that key and value at least sizeof(void*) each.
-	static const size_t NODE_ALIGN = 1 << log2_ceil (sizeof (NodeBase) + 3 * sizeof (void*));
+	// So we add 3 * sizeof (void*) to the node size: next, key, and value.
+	static const unsigned NODE_ALIGN = 1 << log2_ceil (sizeof (NodeBase) + 3 * sizeof (void*));
 	typedef TaggedPtrT <Node, 1, NODE_ALIGN> Link;
 
 	struct Node : public NodeBase
@@ -107,7 +108,7 @@ protected:
 		return tail_;
 	}
 
-	Node* create_node (unsigned level);
+	Node* allocate_node (unsigned level);
 
 	static Node* read_node (Link::Lockable& node) NIRVANA_NOEXCEPT;
 
@@ -157,14 +158,9 @@ class SkipListL :
 	public SkipListBase
 {
 protected:
-	SkipListL (size_t node_size) NIRVANA_NOEXCEPT :
+	SkipListL (unsigned node_size) NIRVANA_NOEXCEPT :
 		SkipListBase (node_size, MAX_LEVEL, head_tail_)
 	{}
-
-	Node* create_node ()
-	{
-		return SkipListBase::create_node (random_level ());
-	}
 
 	bool insert (Node* new_node) NIRVANA_NOEXCEPT;
 
@@ -173,7 +169,6 @@ protected:
 		return SkipListBase::erase (node, MAX_LEVEL);
 	}
 
-private:
 	unsigned random_level () NIRVANA_NOEXCEPT
 	{
 		return MAX_LEVEL > 1 ? std::min (SkipListBase::random_level (), MAX_LEVEL) : 1;
@@ -290,11 +285,14 @@ public:
 	/// \returns `true` if new node was inserted. `false` if node already exists.
 	bool insert (const Val& val)
 	{
-		// Create new node.
-		Node* p = Base::create_node ();
+		// Choose level randomly.
+		unsigned level = Base::random_level ();
+
+		// Allocate new node.
+		Node* p = Base::allocate_node (level);
 
 		// Initialize data
-		new (p->value ()) Val (val);
+		new (p) NodeVal (level, val);
 
 		// Insert node into skip list.
 		return Base::insert (p);

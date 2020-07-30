@@ -54,13 +54,12 @@ SkipListBase::~SkipListBase ()
 #endif
 }
 
-SkipListBase::Node* SkipListBase::create_node (unsigned level)
+SkipListBase::Node* SkipListBase::allocate_node (unsigned level)
 {
 	Node* p = (Node*)g_core_heap->allocate (0, Node::size (node_size_, level), 0);
 #ifdef _DEBUG
 	node_cnt_.increment ();
 #endif
-	new (p) Node (level);
 	return p;
 }
 

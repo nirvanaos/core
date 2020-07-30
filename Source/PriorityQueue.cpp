@@ -1,6 +1,8 @@
 #include "PriorityQueue.h"
 #include <limits>
 
+#ifdef OLD_PRIORITY_QUEUE
+
 namespace Nirvana {
 namespace Core {
 
@@ -324,3 +326,5 @@ bool PriorityQueueBase::erase (Node* node, unsigned max_level)
 
 }
 }
+
+#endif
