@@ -11,7 +11,7 @@ using namespace std;
 #define CHECK_VALID_LEVEL(lev, nod)
 #endif
 
-bool SkipListBase::Node::operator < (const Node&) const
+bool SkipListBase::Node::operator < (const Node&) const NIRVANA_NOEXCEPT
 {
 	// Must be overridden.
 	// Base method must never be called.
@@ -19,7 +19,7 @@ bool SkipListBase::Node::operator < (const Node&) const
 	return false;
 }
 
-bool SkipListBase::less (const Node& n1, const Node& n2) const
+bool SkipListBase::less (const Node& n1, const Node& n2) const NIRVANA_NOEXCEPT
 {
 	if (&n1 == &n2)
 		return false;
@@ -33,19 +33,16 @@ bool SkipListBase::less (const Node& n1, const Node& n2) const
 	return n1 < n2; // Call virtual comparator
 }
 
-SkipListBase::SkipListBase (unsigned max_level) :
+SkipListBase::SkipListBase (unsigned node_size, unsigned max_level, void* head_tail) NIRVANA_NOEXCEPT :
 #ifdef _DEBUG
 	node_cnt_ (0),
 #endif
+	node_size_ (node_size),
 	distr_ (0.5)
 {
-	head_ = new (max_level) Node (max_level);
-	try {
-		tail_ = new (1) Node (1);
-	} catch (...) {
-		Node::operator delete (head_, head_->level);
-		throw;
-	}
+	head_ = new (head_tail) Node (max_level);
+	void* tail = round_up ((uint8_t*)head_tail + Node::size (sizeof (Node), max_level), NODE_ALIGN);
+	tail_ = new (tail) Node (1);
 	std::fill_n (head_->next, max_level, tail_);
 	head_->valid_level = max_level;
 }
@@ -55,11 +52,19 @@ SkipListBase::~SkipListBase ()
 #ifdef _DEBUG
 	assert (node_cnt_ == 0);
 #endif
-	Node::operator delete (head_, head_->level);
-	Node::operator delete (tail_, tail_->level);
 }
 
-void SkipListBase::release_node (Node* node)
+SkipListBase::Node* SkipListBase::create_node (unsigned level)
+{
+	Node* p = (Node*)g_core_heap->allocate (0, Node::size (node_size_, level), 0);
+#ifdef _DEBUG
+	node_cnt_.increment ();
+#endif
+	new (p) Node (level);
+	return p;
+}
+
+void SkipListBase::release_node (Node* node) NIRVANA_NOEXCEPT
 {
 	assert (node);
 	if (!node->ref_cnt.decrement ()) {
@@ -70,7 +75,7 @@ void SkipListBase::release_node (Node* node)
 	}
 }
 
-void SkipListBase::delete_node (Node* node)
+void SkipListBase::delete_node (Node* node) NIRVANA_NOEXCEPT
 {
 #ifdef _DEBUG
 	assert (node != head ());
@@ -80,11 +85,12 @@ void SkipListBase::delete_node (Node* node)
 	assert (node_cnt_ > 0);
 	node_cnt_.decrement ();
 #endif
+	unsigned level = node->level;
 	node->~Node ();
-	Node::operator delete (node, node->level);
+	g_core_heap->release (node, Node::size (node_size_, level));
 }
 
-SkipListBase::Node* SkipListBase::read_node (Link::Lockable& node)
+SkipListBase::Node* SkipListBase::read_node (Link::Lockable& node) NIRVANA_NOEXCEPT
 {
 	Node* p = nullptr;
 	Link link = node.lock ();
@@ -96,7 +102,7 @@ SkipListBase::Node* SkipListBase::read_node (Link::Lockable& node)
 	return p;
 }
 
-SkipListBase::Node* SkipListBase::read_next (Node*& node1, int level)
+SkipListBase::Node* SkipListBase::read_next (Node*& node1, int level) NIRVANA_NOEXCEPT
 {
 	if (node1->deleted)
 		node1 = help_delete (node1, level);
@@ -110,7 +116,7 @@ SkipListBase::Node* SkipListBase::read_next (Node*& node1, int level)
 	return node2;
 }
 
-SkipListBase::Node* SkipListBase::scan_key (Node*& node1, int level, Node* keynode)
+SkipListBase::Node* SkipListBase::scan_key (Node*& node1, int level, Node* keynode) NIRVANA_NOEXCEPT
 {
 	assert (keynode);
 	Node* node2 = read_next (node1, level);
@@ -122,12 +128,12 @@ SkipListBase::Node* SkipListBase::scan_key (Node*& node1, int level, Node* keyno
 	return node2;
 }
 
-unsigned SkipListBase::random_level ()
+unsigned SkipListBase::random_level () NIRVANA_NOEXCEPT
 {
 	return 1 + distr_ (rndgen_);
 }
 
-SkipListBase::Node* SkipListBase::get_min_node ()
+SkipListBase::Node* SkipListBase::get_min_node () NIRVANA_NOEXCEPT
 {
 	Node* prev = copy_node (head ());
 	// Search the first node (node1) in the list that does not have
@@ -139,7 +145,7 @@ SkipListBase::Node* SkipListBase::get_min_node ()
 	return node;
 }
 
-SkipListBase::Node* SkipListBase::delete_min ()
+SkipListBase::Node* SkipListBase::delete_min () NIRVANA_NOEXCEPT
 {
 	// Start from the head node.
 	Node* prev = copy_node (head ());
@@ -182,7 +188,7 @@ SkipListBase::Node* SkipListBase::delete_min ()
 	return node1;	// Reference counter have to be released by caller.
 }
 
-void SkipListBase::final_delete (Node* node)
+void SkipListBase::final_delete (Node* node) NIRVANA_NOEXCEPT
 {
 	// Mark the deletion bits of the next pointers of the node, starting with the lowest
 	// level and going upwards.
@@ -212,7 +218,7 @@ void SkipListBase::final_delete (Node* node)
 
 /// Tries to fulfill the deletion on the current level and returns a reference to
 /// the previous node when the deletion is completed.
-SkipListBase::Node* SkipListBase::help_delete (Node* node, int level)
+SkipListBase::Node* SkipListBase::help_delete (Node* node, int level) NIRVANA_NOEXCEPT
 {
 	assert (node != head ());
 	assert (node != tail ());
@@ -249,7 +255,7 @@ SkipListBase::Node* SkipListBase::help_delete (Node* node, int level)
 }
 
 /// Removes the given node from the linked list structure at the given level.
-void SkipListBase::remove_node (Node* node, Node*& prev, int level)
+void SkipListBase::remove_node (Node* node, Node*& prev, int level) NIRVANA_NOEXCEPT
 {
 	assert (node);
 	assert (node != head ());
@@ -291,7 +297,7 @@ void SkipListBase::remove_node (Node* node, Node*& prev, int level)
 	}
 }
 
-bool SkipListBase::erase (Node* node, unsigned max_level)
+bool SkipListBase::erase (Node* node, unsigned max_level) NIRVANA_NOEXCEPT
 {
 	assert (node);
 	assert (node != head ());

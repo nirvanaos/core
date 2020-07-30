@@ -17,13 +17,11 @@
 namespace Nirvana {
 namespace Core {
 
-/// <summary>
 /// Base class implementing lock-free skip list algorithm.
-/// </summary>
 class SkipListBase
 {
 public:
-	bool empty ()
+	bool empty () NIRVANA_NOEXCEPT
 	{
 		Node* prev = copy_node (head ());
 		Node* node = read_next (prev, 0);
@@ -34,10 +32,10 @@ public:
 	}
 
 protected:
-	SkipListBase (unsigned max_level);
-	~SkipListBase ();
-
 	struct Node;
+
+	SkipListBase (unsigned node_size, unsigned max_level, void* head_tail) NIRVANA_NOEXCEPT;
+	~SkipListBase () NIRVANA_NOEXCEPT;
 
 	struct NodeBase
 	{
@@ -47,107 +45,95 @@ protected:
 		int volatile valid_level;
 		std::atomic <bool> deleted;
 
-		NodeBase (int l) :
+		NodeBase (int l) NIRVANA_NOEXCEPT :
 			level (l),
 			valid_level (1),
 			deleted (false),
 			prev (nullptr)
 		{}
 
-		virtual ~NodeBase ()
+		virtual ~NodeBase () NIRVANA_NOEXCEPT
 		{}
 	};
 
-	/// <summary>
-	/// TaggedPtr assumes that key and value at least sizeof(void*) each.
-	/// </summary>
-	typedef TaggedPtrT <Node, 1, 1 << log2_ceil (sizeof (NodeBase) + 3 * sizeof (void*))> Link;
+	// Assume that key and value at least sizeof(void*) each.
+	static const size_t NODE_ALIGN = 1 << log2_ceil (sizeof (NodeBase) + 3 * sizeof (void*));
+	typedef TaggedPtrT <Node, 1, NODE_ALIGN> Link;
 
 	struct Node : public NodeBase
 	{
-		/// <summary>
 		/// Virtual operator < must be overridden.
-		/// </summary>
-		virtual bool operator < (const Node&) const;
+		virtual bool operator < (const Node&) const NIRVANA_NOEXCEPT;
 
 		Link::Lockable next [1];	// Variable length array.
 
-		Node (int level) :
+		Node (int level) NIRVANA_NOEXCEPT :
 			NodeBase (level)
 		{
 			std::fill_n ((uintptr_t*)next, level, 0);
 		}
 
-		static size_t size (unsigned level)
+		static constexpr size_t size (size_t node_size, unsigned level) NIRVANA_NOEXCEPT
 		{
-			return sizeof (Node) + (level - 1) * sizeof (next [0]);
+			return node_size + (level - 1) * sizeof (next [0]);
 		}
 
-		void* operator new (size_t cb, int level)
+		void* value () NIRVANA_NOEXCEPT
 		{
-			return g_core_heap->allocate (0, size (level), 0);
-		}
-
-		void operator delete (void* p, int level)
-		{
-			g_core_heap->release (p, size (level));
+			return next + level;
 		}
 	};
 
 	/// Gets node with minimal key.
 	/// \returns `Node*` if list not empty or `nullptr` otherwise.
 	///          Returned Node* must be released by release_node().
-	Node* get_min_node ();
+	Node* get_min_node () NIRVANA_NOEXCEPT;
 
 	/// Deletes node with minimal key.
 	/// \returns `Node*` if list not empty or `nullptr` otherwise.
 	///          Returned Node* must be released by release_node().
-	Node* delete_min ();
+	Node* delete_min () NIRVANA_NOEXCEPT;
 
 	// Node comparator.
-	bool less (const Node& n1, const Node& n2) const;
+	bool less (const Node& n1, const Node& n2) const NIRVANA_NOEXCEPT;
 
-	Node* head () const
+	Node* head () const NIRVANA_NOEXCEPT
 	{
 		return head_;
 	}
 
-	Node* tail () const
+	Node* tail () const NIRVANA_NOEXCEPT
 	{
 		return tail_;
 	}
 
-	static Node* read_node (Link::Lockable& node);
+	Node* create_node (unsigned level);
 
-	static Node* copy_node (Node* node)
+	static Node* read_node (Link::Lockable& node) NIRVANA_NOEXCEPT;
+
+	static Node* copy_node (Node* node) NIRVANA_NOEXCEPT
 	{
 		assert (node);
 		node->ref_cnt.increment ();
 		return node;
 	}
 
-#ifndef _DEBUG
-	static
-#endif
-	void release_node (Node* node);
+	void release_node (Node* node) NIRVANA_NOEXCEPT;
 
-	Node* read_next (Node*& node1, int level);
+	Node* read_next (Node*& node1, int level) NIRVANA_NOEXCEPT;
 
-	Node* scan_key (Node*& node1, int level, Node* keynode);
+	Node* scan_key (Node*& node1, int level, Node* keynode) NIRVANA_NOEXCEPT;
 
-	Node* help_delete (Node*, int level);
+	Node* help_delete (Node*, int level) NIRVANA_NOEXCEPT;
 
-	unsigned random_level ();
+	unsigned random_level () NIRVANA_NOEXCEPT;
 
-	bool erase (Node* node, unsigned max_level);
+	bool erase (Node* node, unsigned max_level) NIRVANA_NOEXCEPT;
 
 private:
-	void remove_node (Node* node, Node*& prev, int level);
-#ifndef _DEBUG
-	static
-#endif
-	void delete_node (Node* node);
-	void final_delete (Node* node);
+	void remove_node (Node* node, Node*& prev, int level) NIRVANA_NOEXCEPT;
+	void delete_node (Node* node) NIRVANA_NOEXCEPT;
+	void final_delete (Node* node) NIRVANA_NOEXCEPT;
 
 protected:
 #ifdef _DEBUG
@@ -157,39 +143,50 @@ protected:
 private:
 	Node* head_;
 	Node* tail_;
+	unsigned node_size_;
 	RandomGenAtomic rndgen_;
 
 	// constant can be made static in future
 	const std::geometric_distribution <> distr_;
 };
 
-/// <summary>
-/// Skip list implementation for the given MAX_LEVEL value.
-/// </summary>
+/// Skip list implementation for the given maximal level count.
+/// \tparam MAX_LEVEL Maximal level count.
 template <unsigned MAX_LEVEL>
 class SkipListL :
 	public SkipListBase
 {
 protected:
-	SkipListL () :
-		SkipListBase (MAX_LEVEL)
+	SkipListL (size_t node_size) NIRVANA_NOEXCEPT :
+		SkipListBase (node_size, MAX_LEVEL, head_tail_)
 	{}
 
-	unsigned random_level ()
+	Node* create_node ()
+	{
+		return SkipListBase::create_node (random_level ());
+	}
+
+	bool insert (Node* new_node) NIRVANA_NOEXCEPT;
+
+	bool erase (Node* node) NIRVANA_NOEXCEPT
+	{
+		return SkipListBase::erase (node, MAX_LEVEL);
+	}
+
+private:
+	unsigned random_level () NIRVANA_NOEXCEPT
 	{
 		return MAX_LEVEL > 1 ? std::min (SkipListBase::random_level (), MAX_LEVEL) : 1;
 	}
 
-	bool insert (Node* new_node);
-
-	bool erase (Node* node)
-	{
-		return SkipListBase::erase (node, MAX_LEVEL);
-	}
+private:
+	// Memory space for head and tail nodes.
+	// Add extra space for tail node alignment.
+	uint8_t head_tail_ [Node::size (sizeof (Node), MAX_LEVEL) + Node::size (sizeof (Node), 1) + NODE_ALIGN - 1];
 };
 
 template <unsigned MAX_LEVEL>
-bool SkipListL <MAX_LEVEL>::insert (Node* new_node)
+bool SkipListL <MAX_LEVEL>::insert (Node* new_node) NIRVANA_NOEXCEPT
 {
 	int level = new_node->level;
 	copy_node (new_node);
@@ -273,118 +270,108 @@ bool SkipListL <MAX_LEVEL>::insert (Node* new_node)
 
 	return true;
 }
-/*
+
+/// Skip list implementation for the given node value type and maximal level count.
+/// \tparam Val Node value type. Must have operator <.
+/// \tparam MAX_LEVEL Maximal level count.
 template <typename Val, unsigned MAX_LEVEL>
-class PriorityQueue :
-	public PriorityQueueL <MAX_LEVEL>
+class SkipList :
+	public SkipListL <MAX_LEVEL>
 {
+	typedef SkipListL <MAX_LEVEL> Base;
+	typedef Base::Node Node;
 public:
-	PriorityQueue ()
+	SkipList () NIRVANA_NOEXCEPT :
+		Base (sizeof (Node) + sizeof (Val))
 	{}
 
 	/// Inserts new node.
-	bool insert (DeadlineTime dt, const Val& value)
+	/// \param val Node value.
+	/// \returns `true` if new node was inserted. `false` if node already exists.
+	bool insert (const Val& val)
 	{
-		// Choose level randomly.
-		int level = PriorityQueueL <MAX_LEVEL>::random_level ();
-
 		// Create new node.
-		return PriorityQueueL <MAX_LEVEL>::insert (create_node (level, dt, value));
+		Node* p = Base::create_node ();
+
+		// Initialize data
+		new (p->value ()) Val (val);
+
+		// Insert node into skip list.
+		return Base::insert (p);
 	}
 
-	/// Deletes node with minimal deadline.
-	/// \param [out] val Value.
-	/// \return `true` if node deleted, `false` if queue is empty.
-	bool delete_min (Val& val)
+	/// Gets minimal value.
+	/// \param [out] val Node value.
+	/// \returns `true` if node found, `false` if queue is empty.
+	bool get_min_value (Val& val) NIRVANA_NOEXCEPT
 	{
-		NodeVal* node = static_cast <NodeVal*> (PriorityQueueBase::delete_min ());
+		NodeVal* node = static_cast <NodeVal*> (Base::get_min_node ());
 		if (node) {
-			val = std::move (node->value ());
-			PriorityQueueBase::release_node (node);
+			val = node->value ();
+			Base::release_node (node);
 			return true;
 		}
 		return false;
 	}
 
-	/// Deletes node with minimal deadline.
-	/// \param [out] val Value.
-	/// \param [out] deadline Deadline.
-	/// \return `true` if node deleted, `false` if queue is empty.
-	bool delete_min (Val& val, DeadlineTime& deadline)
+	/// Deletes node with minimal value.
+	/// \param [out] val Node value.
+	/// \returns `true` if node deleted, `false` if queue is empty.
+	bool delete_min (Val& val) NIRVANA_NOEXCEPT
 	{
-		NodeVal* node = static_cast <NodeVal*> (PriorityQueueBase::delete_min ());
+		NodeVal* node = static_cast <NodeVal*> (Base::delete_min ());
 		if (node) {
 			val = std::move (node->value ());
-			deadline = node->deadline;
-			PriorityQueueBase::release_node (node);
+			Base::release_node (node);
 			return true;
 		}
 		return false;
 	}
 
-	bool erase (DeadlineTime dt, const Val& value)
+	/// Deletes node with specified value.
+	/// \param val Node value to delete.
+	/// \returns `true` if node deleted, `false` if value not found.
+	bool erase (const Val& val) NIRVANA_NOEXCEPT
 	{
-		PriorityQueueBase::Node* node = create_node (1, dt, value);
-		bool ret = PriorityQueueL <MAX_LEVEL>::erase (node);
-		PriorityQueueBase::release_node (node);
-		return ret;
+		NodeVal node (1, val);
+		return Base::erase (&node);
 	}
 
 private:
 	struct NodeVal :
-		public PriorityQueueBase::Node
+		public Node
 	{
-		static size_t size (unsigned level)
+		// Reserve space for creation of auto variables with level = 1.
+		uint8_t val_space [sizeof (Val)];
+
+		Val& value () NIRVANA_NOEXCEPT
 		{
-			return PriorityQueueBase::Node::size (level) + sizeof (Val);
+			return *(Val*)Node::value ();
 		}
 
-		void* operator new (size_t cb, int level)
-		{
-			return g_core_heap->allocate (0, size (level), 0);
-		}
-
-		void operator delete (void* p, int level)
-		{
-			g_core_heap->release (p, size (level));
-		}
-
-		Val& value ()
-		{
-			return *(Val*)((::CORBA::Octet*)this + PriorityQueueBase::Node::size (level));
-		}
-
-		const Val& value () const
+		const Val& value () const NIRVANA_NOEXCEPT
 		{
 			return const_cast <NodeVal*> (this)->value ();
 		}
 
-		virtual bool operator < (const PriorityQueueBase::Node& rhs) const
+		virtual bool operator < (const Node& rhs) const NIRVANA_NOEXCEPT
 		{
 			return value () < static_cast <const NodeVal&> (rhs).value ();
 		}
 
-		NodeVal (int level, DeadlineTime deadline, const Val& val) :
-			PriorityQueueBase::Node (level, deadline)
+		NodeVal (int level, const Val& val) NIRVANA_NOEXCEPT :
+			Base::Node (level)
 		{
 			new (&value ()) Val (val);
 		}
 
-		~NodeVal ()
+		~NodeVal () NIRVANA_NOEXCEPT
 		{
 			value ().~Val ();
 		}
 	};
-
-	PriorityQueueBase::Node* create_node (int level, DeadlineTime dt, const Val& value)
-	{
-#ifdef _DEBUG
-		PriorityQueueBase::node_cnt_.increment ();
-#endif
-		return new (level) NodeVal (level, dt, value);
-	}
 };
-*/
+
 }
 }
 
