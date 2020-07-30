@@ -1,10 +1,10 @@
 // Nirvana project
-// Lock-free priority queue based on the algorithm of Hakan Sundell and Philippas Tsigas.
+// Lock-free skip list based on the algorithm of Hakan Sundell and Philippas Tsigas.
 // http://www.non-blocking.com/download/SunT03_PQueue_TR.pdf
 // https://pdfs.semanticscholar.org/c9d0/c04f24e8c47324cb18ff12a39ff89999afc8.pdf
 
-#ifndef NIRVANA_CORE_PRIORITYQUEUE_H_
-#define NIRVANA_CORE_PRIORITYQUEUE_H_
+#ifndef NIRVANA_CORE_SKIPLIST_H_
+#define NIRVANA_CORE_SKIPLIST_H_
 
 #include "core.h"
 #include "AtomicCounter.h"
@@ -17,7 +17,10 @@
 namespace Nirvana {
 namespace Core {
 
-class PriorityQueueBase
+/// <summary>
+/// Base class implementing lock-free skip list algorithm.
+/// </summary>
+class SkipListBase
 {
 public:
 	bool empty ()
@@ -30,42 +33,21 @@ public:
 		return ret;
 	}
 
-	/// Gets minimal deadline.
-	bool get_min_deadline (DeadlineTime& dt)
-	{
-		Node* prev = copy_node (head ());
-		// Search the first node (node1) in the list that does not have
-		// its deletion mark set.
-		Node* node = read_next (prev, 0);
-		bool ret;
-		if (node == tail ())
-			ret = false;
-		else {
-			ret = true;
-			dt = node->deadline;
-		}
-		release_node (prev);
-		release_node (node);
-		return ret;
-	}
-
 protected:
-	PriorityQueueBase (unsigned max_level);
-	~PriorityQueueBase ();
+	SkipListBase (unsigned max_level);
+	~SkipListBase ();
 
 	struct Node;
 
 	struct NodeBase
 	{
-		DeadlineTime deadline;
 		Node* volatile prev;
 		RefCounter ref_cnt;
 		int level;
 		int volatile valid_level;
 		std::atomic <bool> deleted;
 
-		NodeBase (int l, DeadlineTime dt) :
-			deadline (dt),
+		NodeBase (int l) :
 			level (l),
 			valid_level (1),
 			deleted (false),
@@ -76,16 +58,22 @@ protected:
 		{}
 	};
 
-	typedef TaggedPtrT <Node, 1, 1 << log2_ceil (sizeof (NodeBase))> Link;
+	/// <summary>
+	/// TaggedPtr assumes that key and value at least sizeof(void*) each.
+	/// </summary>
+	typedef TaggedPtrT <Node, 1, 1 << log2_ceil (sizeof (NodeBase) + 3 * sizeof (void*))> Link;
 
 	struct Node : public NodeBase
 	{
+		/// <summary>
+		/// Virtual operator < must be overridden.
+		/// </summary>
 		virtual bool operator < (const Node&) const;
 
 		Link::Lockable next [1];	// Variable length array.
 
-		Node (int level, DeadlineTime dt) :
-			NodeBase (level, dt)
+		Node (int level) :
+			NodeBase (level)
 		{
 			std::fill_n ((uintptr_t*)next, level, 0);
 		}
@@ -106,7 +94,14 @@ protected:
 		}
 	};
 
-	/// Deletes node with minimal deadline.
+	/// Gets node with minimal key.
+	/// \returns `Node*` if list not empty or `nullptr` otherwise.
+	///          Returned Node* must be released by release_node().
+	Node* get_min_node ();
+
+	/// Deletes node with minimal key.
+	/// \returns `Node*` if list not empty or `nullptr` otherwise.
+	///          Returned Node* must be released by release_node().
 	Node* delete_min ();
 
 	// Node comparator.
@@ -131,6 +126,9 @@ protected:
 		return node;
 	}
 
+#ifndef _DEBUG
+	static
+#endif
 	void release_node (Node* node);
 
 	Node* read_next (Node*& node1, int level);
@@ -145,6 +143,9 @@ protected:
 
 private:
 	void remove_node (Node* node, Node*& prev, int level);
+#ifndef _DEBUG
+	static
+#endif
 	void delete_node (Node* node);
 	void final_delete (Node* node);
 
@@ -162,30 +163,33 @@ private:
 	const std::geometric_distribution <> distr_;
 };
 
+/// <summary>
+/// Skip list implementation for the given MAX_LEVEL value.
+/// </summary>
 template <unsigned MAX_LEVEL>
-class PriorityQueueL :
-	public PriorityQueueBase
+class SkipListL :
+	public SkipListBase
 {
 protected:
-	PriorityQueueL () :
-		PriorityQueueBase (MAX_LEVEL)
+	SkipListL () :
+		SkipListBase (MAX_LEVEL)
 	{}
 
 	unsigned random_level ()
 	{
-		return MAX_LEVEL > 1 ? std::min (PriorityQueueBase::random_level (), MAX_LEVEL) : 1;
+		return MAX_LEVEL > 1 ? std::min (SkipListBase::random_level (), MAX_LEVEL) : 1;
 	}
 
 	bool insert (Node* new_node);
 
 	bool erase (Node* node)
 	{
-		return PriorityQueueBase::erase (node, MAX_LEVEL);
+		return SkipListBase::erase (node, MAX_LEVEL);
 	}
 };
 
 template <unsigned MAX_LEVEL>
-bool PriorityQueueL <MAX_LEVEL>::insert (Node* new_node)
+bool SkipListL <MAX_LEVEL>::insert (Node* new_node)
 {
 	int level = new_node->level;
 	copy_node (new_node);
@@ -269,7 +273,7 @@ bool PriorityQueueL <MAX_LEVEL>::insert (Node* new_node)
 
 	return true;
 }
-
+/*
 template <typename Val, unsigned MAX_LEVEL>
 class PriorityQueue :
 	public PriorityQueueL <MAX_LEVEL>
@@ -320,17 +324,16 @@ public:
 
 	bool erase (DeadlineTime dt, const Val& value)
 	{
-		NodeVal node (1, dt, value);
-		return PriorityQueueL <MAX_LEVEL>::erase (&node);
+		PriorityQueueBase::Node* node = create_node (1, dt, value);
+		bool ret = PriorityQueueL <MAX_LEVEL>::erase (node);
+		PriorityQueueBase::release_node (node);
+		return ret;
 	}
 
 private:
 	struct NodeVal :
 		public PriorityQueueBase::Node
 	{
-		// Reserve space for creation of auto variables with level = 1.
-		uint8_t val_space [sizeof (Val)];
-
 		static size_t size (unsigned level)
 		{
 			return PriorityQueueBase::Node::size (level) + sizeof (Val);
@@ -348,7 +351,7 @@ private:
 
 		Val& value ()
 		{
-			return *(Val*)((uint8_t*)this + PriorityQueueBase::Node::size (level));
+			return *(Val*)((::CORBA::Octet*)this + PriorityQueueBase::Node::size (level));
 		}
 
 		const Val& value () const
@@ -381,7 +384,7 @@ private:
 		return new (level) NodeVal (level, dt, value);
 	}
 };
-
+*/
 }
 }
 
