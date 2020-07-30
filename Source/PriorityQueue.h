@@ -50,7 +50,7 @@ public:
 	}
 
 protected:
-	PriorityQueueBase (unsigned max_level);
+	PriorityQueueBase (unsigned max_level, size_t node_size);
 	~PriorityQueueBase ();
 
 	struct Node;
@@ -90,19 +90,14 @@ protected:
 			std::fill_n ((uintptr_t*)next, level, 0);
 		}
 
+		static size_t size (size_t cb, unsigned level)
+		{
+			return cb + (level - 1) * sizeof (next [0]);
+		}
+
 		static size_t size (unsigned level)
 		{
-			return sizeof (Node) + (level - 1) * sizeof (next [0]);
-		}
-
-		void* operator new (size_t cb, int level)
-		{
-			return g_core_heap->allocate (0, size (level), 0);
-		}
-
-		void operator delete (void* p, int level)
-		{
-			g_core_heap->release (p, size (level));
+			return size (sizeof (Node), level);
 		}
 	};
 
@@ -154,11 +149,12 @@ protected:
 #endif
 
 private:
+	const size_t node_size_;
 	Node* head_;
 	Node* tail_;
 	RandomGenAtomic rndgen_;
 
-	// constant can be made static in future
+	// This constant can be made static in future
 	const std::geometric_distribution <> distr_;
 };
 
@@ -167,8 +163,8 @@ class PriorityQueueL :
 	public PriorityQueueBase
 {
 protected:
-	PriorityQueueL () :
-		PriorityQueueBase (MAX_LEVEL)
+	PriorityQueueL (size_t node_size) :
+		PriorityQueueBase (MAX_LEVEL, node_size)
 	{}
 
 	unsigned random_level ()
@@ -275,7 +271,8 @@ class PriorityQueue :
 	public PriorityQueueL <MAX_LEVEL>
 {
 public:
-	PriorityQueue ()
+	PriorityQueue () :
+		PriorityQueueL <MAX_LEVEL> (sizeof (NodeVal))
 	{}
 
 	/// Inserts new node.
@@ -331,21 +328,6 @@ private:
 		// Reserve space for creation of auto variables with level = 1.
 		uint8_t val_space [sizeof (Val)];
 
-		static size_t size (unsigned level)
-		{
-			return PriorityQueueBase::Node::size (level) + sizeof (Val);
-		}
-
-		void* operator new (size_t cb, int level)
-		{
-			return g_core_heap->allocate (0, size (level), 0);
-		}
-
-		void operator delete (void* p, int level)
-		{
-			g_core_heap->release (p, size (level));
-		}
-
 		Val& value ()
 		{
 			return *(Val*)((uint8_t*)this + PriorityQueueBase::Node::size (level));
@@ -378,7 +360,9 @@ private:
 #ifdef _DEBUG
 		PriorityQueueBase::node_cnt_.increment ();
 #endif
-		return new (level) NodeVal (level, dt, value);
+		PriorityQueueBase::Node* p = (PriorityQueueBase::Node*)g_core_heap->allocate (0, PriorityQueueBase::Node::size (sizeof (NodeVal), level), 0);
+		new (p) NodeVal (level, dt, value);
+		return p;
 	}
 };
 

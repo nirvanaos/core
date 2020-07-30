@@ -36,17 +36,20 @@ bool PriorityQueueBase::less (const Node& n1, const Node& n2) const
 	return n1 < n2; // Call virtual comparator
 }
 
-PriorityQueueBase::PriorityQueueBase (unsigned max_level) :
+PriorityQueueBase::PriorityQueueBase (unsigned max_level, size_t node_size) :
 #ifdef _DEBUG
 	node_cnt_ (0),
 #endif
+	node_size_ (node_size),
 	distr_ (0.5)
 {
-	head_ = new (max_level) Node (max_level, 0);
+	head_ = (Node*)g_core_heap->allocate (0, Node::size (max_level), 0);
+	new (head_) Node (max_level, 0);
 	try {
-		tail_ = new (1) Node (1, std::numeric_limits <DeadlineTime>::max ());
+		tail_ = (Node*)g_core_heap->allocate (0, Node::size (1), 0);
+		new (tail_) Node (1, std::numeric_limits <DeadlineTime>::max ());
 	} catch (...) {
-		Node::operator delete (head_, head_->level);
+		g_core_heap->release (head_, Node::size (max_level));
 		throw;
 	}
 	std::fill_n (head_->next, max_level, tail_);
@@ -58,8 +61,8 @@ PriorityQueueBase::~PriorityQueueBase ()
 #ifdef _DEBUG
 	assert (node_cnt_ == 0);
 #endif
-	Node::operator delete (head_, head_->level);
-	Node::operator delete (tail_, tail_->level);
+	g_core_heap->release (head_, Node::size (head_->level));
+	g_core_heap->release (tail_, Node::size (tail_->level));
 }
 
 void PriorityQueueBase::release_node (Node* node)
@@ -83,8 +86,9 @@ void PriorityQueueBase::delete_node (Node* node)
 	assert (node_cnt_ > 0);
 	node_cnt_.decrement ();
 #endif
+	unsigned level = node->level;
 	node->~Node ();
-	Node::operator delete (node, node->level);
+	g_core_heap->release (node, Node::size (node_size_, level));
 }
 
 PriorityQueueBase::Node* PriorityQueueBase::read_node (Link::Lockable& node)
