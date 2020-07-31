@@ -296,13 +296,14 @@ void SkipListBase::remove_node (Node* node, Node*& prev, int level) NIRVANA_NOEX
 	}
 }
 
-bool SkipListBase::erase (Node* node, unsigned max_level) NIRVANA_NOEXCEPT
+bool SkipListBase::erase (Node* node) NIRVANA_NOEXCEPT
 {
 	assert (node);
 	assert (node != head ());
 	assert (node != tail ());
 
 	Node* prev = copy_node (head ());
+	unsigned max_level = this->max_level ();
 	for (unsigned i = max_level - 1; i >= 1; --i) {
 		Node* node2 = scan_key (prev, i, node);
 		release_node (node2);

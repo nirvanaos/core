@@ -37,13 +37,14 @@ class PriorityQueue :
 	public SkipList <PriorityQueueKeyVal <Val>, MAX_LEVEL>
 {
 	typedef SkipList <PriorityQueueKeyVal <Val>, MAX_LEVEL> Base;
-	typedef PriorityQueueKeyVal <Val> KeyVal;
+	typedef Base::NodeVal NodeVal;
 public:
 	bool get_min_deadline (DeadlineTime& dt)
 	{
-		KeyVal keyval;
-		if (Base::get_min_value (keyval)) {
-			dt = keyval.deadline;
+		NodeVal* node = Base::get_min_node ();
+		if (node) {
+			dt = node->value ().deadline;
+			Base::release_node (node);
 			return true;
 		}
 		return false;
@@ -60,9 +61,10 @@ public:
 	/// \return `true` if node deleted, `false` if queue is empty.
 	bool delete_min (Val& val)
 	{
-		KeyVal keyval;
-		if (Base::delete_min (keyval)) {
-			val = keyval.val;
+		NodeVal* node = Base::delete_min ();
+		if (node) {
+			val = node->value ().val;
+			Base::release_node (node);
 			return true;
 		}
 		return false;
@@ -74,10 +76,11 @@ public:
 	/// \return `true` if node deleted, `false` if queue is empty.
 	bool delete_min (Val& val, DeadlineTime& deadline)
 	{
-		KeyVal keyval;
-		if (Base::delete_min (keyval)) {
-			deadline = keyval.deadline;
-			val = keyval.val;
+		NodeVal* node = Base::delete_min ();
+		if (node) {
+			deadline = node->value ().deadline;
+			val = node->value ().val;
+			Base::release_node (node);
 			return true;
 		}
 		return false;

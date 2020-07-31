@@ -108,6 +108,11 @@ protected:
 		return tail_;
 	}
 
+	unsigned max_level () const NIRVANA_NOEXCEPT
+	{
+		return head_->level;
+	}
+
 	Node* allocate_node (unsigned level);
 
 	static Node* read_node (Link::Lockable& node) NIRVANA_NOEXCEPT;
@@ -129,7 +134,7 @@ protected:
 
 	unsigned random_level () NIRVANA_NOEXCEPT;
 
-	bool erase (Node* node, unsigned max_level) NIRVANA_NOEXCEPT;
+	bool erase (Node* node) NIRVANA_NOEXCEPT;
 
 private:
 	void remove_node (Node* node, Node*& prev, int level) NIRVANA_NOEXCEPT;
@@ -163,11 +168,6 @@ protected:
 	{}
 
 	bool insert (Node* new_node) NIRVANA_NOEXCEPT;
-
-	bool erase (Node* node) NIRVANA_NOEXCEPT
-	{
-		return SkipListBase::erase (node, MAX_LEVEL);
-	}
 
 	unsigned random_level () NIRVANA_NOEXCEPT
 	{
@@ -303,10 +303,10 @@ public:
 	/// \returns `true` if node found, `false` if queue is empty.
 	bool get_min_value (Val& val) NIRVANA_NOEXCEPT
 	{
-		NodeVal* node = static_cast <NodeVal*> (Base::get_min_node ());
+		NodeVal* node = get_min_node ();
 		if (node) {
 			val = node->value ();
-			Base::release_node (node);
+			release_node (node);
 			return true;
 		}
 		return false;
@@ -317,10 +317,10 @@ public:
 	/// \returns `true` if node deleted, `false` if queue is empty.
 	bool delete_min (Val& val) NIRVANA_NOEXCEPT
 	{
-		NodeVal* node = static_cast <NodeVal*> (Base::delete_min ());
+		NodeVal* node = delete_min ();
 		if (node) {
 			val = std::move (node->value ());
-			Base::release_node (node);
+			release_node (node);
 			return true;
 		}
 		return false;
@@ -335,7 +335,7 @@ public:
 		return Base::erase (&node);
 	}
 
-private:
+protected:
 	struct NodeVal :
 		public Node
 	{
@@ -368,6 +368,21 @@ private:
 			value ().~Val ();
 		}
 	};
+
+	NodeVal* get_min_node () NIRVANA_NOEXCEPT
+	{
+		return static_cast <NodeVal*> (Base::get_min_node ());
+	}
+
+	NodeVal* delete_min () NIRVANA_NOEXCEPT
+	{
+		return static_cast <NodeVal*> (Base::delete_min ());
+	}
+
+	void release_node (NodeVal* node) NIRVANA_NOEXCEPT
+	{
+		Base::release_node (node);
+	}
 };
 
 }
