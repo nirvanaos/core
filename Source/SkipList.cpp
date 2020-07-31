@@ -89,6 +89,90 @@ void SkipListBase::delete_node (Node* node) NIRVANA_NOEXCEPT
 	g_core_heap->release (node, Node::size (node_size_, level));
 }
 
+bool SkipListBase::insert (Node* new_node, Node** saved_nodes) NIRVANA_NOEXCEPT
+{
+	int level = new_node->level;
+	copy_node (new_node);
+
+	// Search phase to find the node after which newNode should be inserted.
+	// This search phase starts from the head node at the highest
+	// level and traverses down to the lowest level until the correct
+	// node is found (node1).When going down one level, the last
+	// node traversed on that level is remembered (savedNodes)
+	// for later use (this is where we should insert the new node at that level).
+	Node* node1 = copy_node (head ());
+	for (int i = max_level () - 1; i >= 1; --i) {
+		Node* node2 = scan_key (node1, i, new_node);
+		release_node (node2);
+		if (i < level)
+			saved_nodes [i] = copy_node (node1);
+	}
+
+	for (BackOff bo; true; bo ()) {
+		Node* node2 = scan_key (node1, 0, new_node);
+		if (!node2->deleted && !less (*new_node, *node2)) {
+			// The same value with the same deadline already exists.
+			// This case should not occurs in the real operating, but we support it.
+			release_node (node1);
+			release_node (node2);
+			for (int i = 1; i < level; ++i)
+				release_node (saved_nodes [i]);
+			release_node (new_node);
+			release_node (new_node);
+			return false;
+		}
+
+		// Insert node to list at level 0.
+		new_node->next [0] = node2;
+		release_node (node2);
+		if (node1->next [0].cas (node2, new_node)) {
+			release_node (node1);
+			break;
+		}
+	}
+
+	// After the new node has been inserted at the lowest level, it is possible that it is deleted
+	// by a concurrent delete (e.g.DeleteMin) operation before it has been inserted at all levels.
+	bool deleted = false;
+
+	// Insert node to list at levels > 0.
+	for (int i = 1; i < level; ++i) {
+		new_node->valid_level = i;
+		node1 = saved_nodes [i];
+		Link::Lockable& anext = new_node->next [i];
+		copy_node (new_node);
+		for (BackOff bo; true; bo ()) {
+			Node* node2 = scan_key (node1, i, new_node);
+			anext = node2;
+			release_node (node2);
+			if (new_node->deleted) {
+				deleted = true;
+				anext = Link (nullptr, 1);
+				release_node (new_node);
+				release_node (node1);
+				break;
+			}
+			if (node1->next [i].cas (node2, new_node)) {
+				release_node (node1);
+				break;
+			}
+		}
+
+		if (deleted) {
+			while (level > ++i)
+				release_node (saved_nodes [i]);
+			break;
+		}
+	}
+
+	new_node->valid_level = level;
+	if (deleted || new_node->deleted)
+		new_node = help_delete (new_node, 0);
+	release_node (new_node);
+
+	return true;
+}
+
 SkipListBase::Node* SkipListBase::read_node (Link::Lockable& node) NIRVANA_NOEXCEPT
 {
 	Node* p = nullptr;
