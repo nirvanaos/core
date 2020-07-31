@@ -380,22 +380,47 @@ void SkipListBase::remove_node (Node* node, Node*& prev, int level) NIRVANA_NOEX
 	}
 }
 
-bool SkipListBase::erase (Node* node) NIRVANA_NOEXCEPT
+SkipListBase::Node* SkipListBase::find (Node* keynode) NIRVANA_NOEXCEPT
 {
-	assert (node);
-	assert (node != head ());
-	assert (node != tail ());
+	assert (keynode);
+	assert (keynode != head ());
+	assert (keynode != tail ());
 
 	Node* prev = copy_node (head ());
-	unsigned max_level = this->max_level ();
-	for (unsigned i = max_level - 1; i >= 1; --i) {
-		Node* node2 = scan_key (prev, i, node);
+	for (unsigned i = this->max_level () - 1; i >= 1; --i) {
+		Node* node2 = scan_key (prev, i, keynode);
 		release_node (node2);
 	}
 
 	for (;;) {
-		Node* node2 = scan_key (prev, 0, node);
-		if (!less (*node, *node2)) {
+		Node* node2 = scan_key (prev, 0, keynode);
+		if (!less (*keynode, *node2)) {
+			return node2;
+		} else {
+			release_node (prev);
+			release_node (node2);
+			return nullptr;
+		}
+		release_node (prev);
+		prev = node2;
+	}
+}
+
+bool SkipListBase::erase (Node* keynode) NIRVANA_NOEXCEPT
+{
+	assert (keynode);
+	assert (keynode != head ());
+	assert (keynode != tail ());
+
+	Node* prev = copy_node (head ());
+	for (unsigned i = max_level () - 1; i >= 1; --i) {
+		Node* node2 = scan_key (prev, i, keynode);
+		release_node (node2);
+	}
+
+	for (;;) {
+		Node* node2 = scan_key (prev, 0, keynode);
+		if (!less (*keynode, *node2)) {
 			bool f = false;
 			if (node2->deleted.compare_exchange_strong (f, true)) {
 				// Succeeded, write valid pointer to the prev field of the node.
@@ -406,7 +431,8 @@ bool SkipListBase::erase (Node* node) NIRVANA_NOEXCEPT
 				final_delete (node2);
 				release_node (node2);
 				return true;
-			}
+			} else
+				return false; // Key found but was deleted in other thread.
 		} else {
 			release_node (prev);
 			release_node (node2);

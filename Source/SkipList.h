@@ -136,7 +136,22 @@ protected:
 
 	unsigned random_level () NIRVANA_NOEXCEPT;
 
-	bool erase (Node* node) NIRVANA_NOEXCEPT;
+	Node* find (Node* keynode) NIRVANA_NOEXCEPT;
+	
+	/// Erase by key.
+	bool erase (Node* keynode) NIRVANA_NOEXCEPT;
+
+	/// Directly erases node.
+	/// `erase_node (find (keynode));` works slower then `erase (keynode);`.
+	bool erase_node (Node* node) NIRVANA_NOEXCEPT
+	{
+		bool f = false;
+		if (node->deleted.compare_exchange_strong (f, true)) {
+			final_delete (node);
+			return true;
+		}
+		return false;
+	}
 
 private:
 	void remove_node (Node* node, Node*& prev, int level) NIRVANA_NOEXCEPT;
@@ -252,8 +267,8 @@ public:
 	/// \returns `true` if node deleted, `false` if value not found.
 	bool erase (const Val& val) NIRVANA_NOEXCEPT
 	{
-		NodeVal node (1, val);
-		return Base::erase (&node);
+		NodeVal keynode (1, val);
+		return Base::erase (&keynode);
 	}
 
 protected:
@@ -303,6 +318,19 @@ protected:
 	void release_node (NodeVal* node) NIRVANA_NOEXCEPT
 	{
 		Base::release_node (node);
+	}
+
+	NodeVal* find (const Val& val) NIRVANA_NOEXCEPT
+	{
+		NodeVal keynode (1, val);
+		return static_cast <NodeVal*> (Base::find (&keynode));
+	}
+
+	/// Directly erases node.
+	/// `erase_node (find (key));` works slower then `erase (key);`.
+	bool erase_node (NodeVal* node) NIRVANA_NOEXCEPT
+	{
+		return Base::erase_node (node);
 	}
 };
 
