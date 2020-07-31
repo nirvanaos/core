@@ -113,7 +113,7 @@ protected:
 		return head_->level;
 	}
 
-	Node* allocate_node (unsigned level);
+	void* allocate_node (unsigned level);
 
 	bool insert (Node* new_node, Node** saved_nodes) NIRVANA_NOEXCEPT;
 
@@ -137,6 +137,7 @@ protected:
 	unsigned random_level () NIRVANA_NOEXCEPT;
 
 	Node* find (Node* keynode) NIRVANA_NOEXCEPT;
+	Node* upper_bound (Node* keynode) NIRVANA_NOEXCEPT;
 	
 	/// Erase by key.
 	bool erase (Node* keynode) NIRVANA_NOEXCEPT;
@@ -224,14 +225,8 @@ public:
 		// Choose level randomly.
 		unsigned level = Base::random_level ();
 
-		// Allocate new node.
-		Node* p = Base::allocate_node (level);
-
-		// Initialize data
-		new (p) NodeVal (level, val);
-
-		// Insert node into skip list.
-		return Base::insert (p);
+		// Initialize node and insert it into skip list.
+		return Base::insert (new (Base::allocate_node (level)) NodeVal (level, val));
 	}
 
 	/// Gets minimal value.
@@ -324,6 +319,12 @@ protected:
 	{
 		NodeVal keynode (1, val);
 		return static_cast <NodeVal*> (Base::find (&keynode));
+	}
+
+	NodeVal* upper_bound (const Val& val) NIRVANA_NOEXCEPT
+	{
+		NodeVal keynode (1, val);
+		return static_cast <NodeVal*> (Base::upper_bound (&keynode));
 	}
 
 	/// Directly erases node.

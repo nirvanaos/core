@@ -54,9 +54,9 @@ SkipListBase::~SkipListBase ()
 #endif
 }
 
-SkipListBase::Node* SkipListBase::allocate_node (unsigned level)
+void* SkipListBase::allocate_node (unsigned level)
 {
-	Node* p = (Node*)g_core_heap->allocate (0, Node::size (node_size_, level), 0);
+	void* p = (Node*)g_core_heap->allocate (0, Node::size (node_size_, level), 0);
 #ifdef _DEBUG
 	node_cnt_.increment ();
 #endif
@@ -395,6 +395,7 @@ SkipListBase::Node* SkipListBase::find (Node* keynode) NIRVANA_NOEXCEPT
 	for (;;) {
 		Node* node2 = scan_key (prev, 0, keynode);
 		if (!less (*keynode, *node2)) {
+			release_node (prev);
 			return node2;
 		} else {
 			release_node (prev);
@@ -404,6 +405,33 @@ SkipListBase::Node* SkipListBase::find (Node* keynode) NIRVANA_NOEXCEPT
 		release_node (prev);
 		prev = node2;
 	}
+}
+
+SkipListBase::Node* SkipListBase::upper_bound (Node* keynode) NIRVANA_NOEXCEPT
+{
+	assert (keynode);
+	assert (keynode != head ());
+	assert (keynode != tail ());
+
+	Node* prev = copy_node (head ());
+	for (unsigned i = this->max_level () - 1; i >= 1; --i) {
+		Node* node2 = scan_key (prev, i, keynode);
+		release_node (node2);
+	}
+
+	Node* node2 = scan_key (prev, 0, keynode);
+	release_node (prev);
+	if (!less (*keynode, *node2)) {
+		prev = node2;
+		node2 = read_next (prev, 0);
+	}
+
+	if (node2 == tail ()) {
+		release_node (node2);
+		node2 = nullptr;
+	}
+
+	return node2;
 }
 
 bool SkipListBase::erase (Node* keynode) NIRVANA_NOEXCEPT
@@ -418,28 +446,24 @@ bool SkipListBase::erase (Node* keynode) NIRVANA_NOEXCEPT
 		release_node (node2);
 	}
 
-	for (;;) {
-		Node* node2 = scan_key (prev, 0, keynode);
-		if (!less (*keynode, *node2)) {
-			bool f = false;
-			if (node2->deleted.compare_exchange_strong (f, true)) {
-				// Succeeded, write valid pointer to the prev field of the node.
-				// This prev field is necessary in order to increase the performance of concurrent
-				// help_delete () functions, these operations otherwise
-				// would have to search for the previous node in order to complete the deletion.
-				node2->prev = prev;
-				final_delete (node2);
-				release_node (node2);
-				return true;
-			} else
-				return false; // Key found but was deleted in other thread.
-		} else {
-			release_node (prev);
+	Node* node2 = scan_key (prev, 0, keynode);
+	if (!less (*keynode, *node2)) {
+		bool f = false;
+		if (node2->deleted.compare_exchange_strong (f, true)) {
+			// Succeeded, write valid pointer to the prev field of the node.
+			// This prev field is necessary in order to increase the performance of concurrent
+			// help_delete () functions, these operations otherwise
+			// would have to search for the previous node in order to complete the deletion.
+			node2->prev = prev;
+			final_delete (node2);
 			release_node (node2);
-			return false;
-		}
+			return true;
+		} else
+			return false; // Key found but was deleted in other thread.
+	} else {
 		release_node (prev);
-		prev = node2;
+		release_node (node2);
+		return false;
 	}
 }
 
