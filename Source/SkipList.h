@@ -115,7 +115,7 @@ protected:
 
 	void* allocate_node (unsigned level);
 
-	bool insert (Node* new_node, Node** saved_nodes) NIRVANA_NOEXCEPT;
+	Node* insert (Node* new_node, Node** saved_nodes) NIRVANA_NOEXCEPT;
 
 	static Node* read_node (Link::Lockable& node) NIRVANA_NOEXCEPT;
 
@@ -186,7 +186,7 @@ protected:
 		Base (node_size, MAX_LEVEL, head_tail_)
 	{}
 
-	bool insert (Node* new_node) NIRVANA_NOEXCEPT
+	Node* insert (Node* new_node) NIRVANA_NOEXCEPT
 	{
 		Node* save_nodes [MAX_LEVEL];
 		return Base::insert (new_node, save_nodes);
@@ -211,22 +211,62 @@ class SkipList :
 	public SkipListL <MAX_LEVEL>
 {
 	typedef SkipListL <MAX_LEVEL> Base;
-	typedef Base::Node Node;
 public:
+	struct NodeVal :
+		public Base::Node
+	{
+		// Reserve space for creation of auto variables with level = 1.
+		uint8_t val_space [sizeof (Val)];
+
+		Val& value () NIRVANA_NOEXCEPT
+		{
+			return *(Val*)Node::value ();
+		}
+
+		const Val& value () const NIRVANA_NOEXCEPT
+		{
+			return const_cast <NodeVal*> (this)->value ();
+		}
+
+		virtual bool operator < (const typename Base::Node& rhs) const NIRVANA_NOEXCEPT
+		{
+			return value () < static_cast <const NodeVal&> (rhs).value ();
+		}
+
+	private:
+		friend class SkipList;
+
+		NodeVal (int level, const Val& val) NIRVANA_NOEXCEPT :
+		Base::Node (level)
+		{
+			new (&value ()) Val (val);
+		}
+
+		~NodeVal () NIRVANA_NOEXCEPT
+		{
+			value ().~Val ();
+		}
+	};
+
 	SkipList () NIRVANA_NOEXCEPT :
-		Base (sizeof (Node) + sizeof (Val))
+		Base (sizeof (NodeVal))
 	{}
 
 	/// Inserts new node.
 	/// \param val Node value.
-	/// \returns `true` if new node was inserted. `false` if node already exists.
-	bool insert (const Val& val)
+	/// \returns std::pair <NodeVal*, bool>.
+	///          first must be released by `release_node`.
+	///          second is `true` if new node was inserted, false if node already exists.
+	std::pair <NodeVal*, bool> insert (const Val& val)
 	{
 		// Choose level randomly.
 		unsigned level = Base::random_level ();
 
-		// Initialize node and insert it into skip list.
-		return Base::insert (new (Base::allocate_node (level)) NodeVal (level, val));
+		// Initialize node
+		NodeVal* new_node = new (Base::allocate_node (level)) NodeVal (level, val);
+		// Insert it into skip list.
+		NodeVal* p = static_cast <NodeVal*> (Base::insert (new_node));
+		return std::pair <NodeVal*, bool> (p, p == new_node);
 	}
 
 	/// Gets minimal value.
@@ -266,61 +306,40 @@ public:
 		return Base::erase (&keynode);
 	}
 
-protected:
-	struct NodeVal :
-		public Node
-	{
-		// Reserve space for creation of auto variables with level = 1.
-		uint8_t val_space [sizeof (Val)];
-
-		Val& value () NIRVANA_NOEXCEPT
-		{
-			return *(Val*)Node::value ();
-		}
-
-		const Val& value () const NIRVANA_NOEXCEPT
-		{
-			return const_cast <NodeVal*> (this)->value ();
-		}
-
-		virtual bool operator < (const Node& rhs) const NIRVANA_NOEXCEPT
-		{
-			return value () < static_cast <const NodeVal&> (rhs).value ();
-		}
-
-		NodeVal (int level, const Val& val) NIRVANA_NOEXCEPT :
-			Base::Node (level)
-		{
-			new (&value ()) Val (val);
-		}
-
-		~NodeVal () NIRVANA_NOEXCEPT
-		{
-			value ().~Val ();
-		}
-	};
-
+	/// Gets node with minimal value.
+	/// \returns Minimal node pointer or `nullptr` if list is empty.
+	///          Returned pointer must be released by `release_node`.
 	NodeVal* get_min_node () NIRVANA_NOEXCEPT
 	{
 		return static_cast <NodeVal*> (Base::get_min_node ());
 	}
 
+	/// Deletes node with minimal value.
+	/// \returns Removed node pointer or `nullptr` if list is empty.
+	///          Returned pointer must be released by `release_node`.
 	NodeVal* delete_min () NIRVANA_NOEXCEPT
 	{
 		return static_cast <NodeVal*> (Base::delete_min ());
 	}
 
+	/// Releases the node pointer.
 	void release_node (NodeVal* node) NIRVANA_NOEXCEPT
 	{
 		Base::release_node (node);
 	}
 
+	/// Finds node by value.
+	/// \returns Node pointer or `nullptr` if value not found.
+	///          Returned pointer must be released by `release_node`.
 	NodeVal* find (const Val& val) NIRVANA_NOEXCEPT
 	{
 		NodeVal keynode (1, val);
 		return static_cast <NodeVal*> (Base::find (&keynode));
 	}
 
+	/// Finds first node greater than value.
+	/// \returns Node pointer or `nullptr` if node not found.
+	///          Returned pointer must be released by `release_node`.
 	NodeVal* upper_bound (const Val& val) NIRVANA_NOEXCEPT
 	{
 		NodeVal keynode (1, val);

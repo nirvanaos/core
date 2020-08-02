@@ -37,13 +37,12 @@ SkipListBase::SkipListBase (unsigned node_size, unsigned max_level, void* head_t
 #ifdef _DEBUG
 	node_cnt_ (0),
 #endif
+	head_ (new (head_tail) Node (max_level)),
+	tail_ (new (round_up ((uint8_t*)head_tail + Node::size (sizeof (Node), max_level), NODE_ALIGN)) Node (1)),
 	node_size_ (node_size),
 	distr_ (0.5)
 {
-	head_ = new (head_tail) Node (max_level);
-	void* tail = round_up ((uint8_t*)head_tail + Node::size (sizeof (Node), max_level), NODE_ALIGN);
-	tail_ = new (tail) Node (1);
-	std::fill_n (head_->next, max_level, tail_);
+	fill_n (head_->next, max_level, tail_);
 	head_->valid_level = max_level;
 }
 
@@ -89,7 +88,7 @@ void SkipListBase::delete_node (Node* node) NIRVANA_NOEXCEPT
 	g_core_heap->release (node, Node::size (node_size_, level));
 }
 
-bool SkipListBase::insert (Node* new_node, Node** saved_nodes) NIRVANA_NOEXCEPT
+SkipListBase::Node* SkipListBase::insert (Node* new_node, Node** saved_nodes) NIRVANA_NOEXCEPT
 {
 	int level = new_node->level;
 	copy_node (new_node);
@@ -111,15 +110,13 @@ bool SkipListBase::insert (Node* new_node, Node** saved_nodes) NIRVANA_NOEXCEPT
 	for (BackOff bo; true; bo ()) {
 		Node* node2 = scan_key (node1, 0, new_node);
 		if (!node2->deleted && !less (*new_node, *node2)) {
-			// The same value with the same deadline already exists.
-			// This case should not occurs in the real operating, but we support it.
+			// The same value already exists.
 			release_node (node1);
-			release_node (node2);
 			for (int i = 1; i < level; ++i)
 				release_node (saved_nodes [i]);
 			release_node (new_node);
 			release_node (new_node);
-			return false;
+			return node2;
 		}
 
 		// Insert node to list at level 0.
@@ -168,9 +165,8 @@ bool SkipListBase::insert (Node* new_node, Node** saved_nodes) NIRVANA_NOEXCEPT
 	new_node->valid_level = level;
 	if (deleted || new_node->deleted)
 		new_node = help_delete (new_node, 0);
-	release_node (new_node);
 
-	return true;
+	return new_node;
 }
 
 SkipListBase::Node* SkipListBase::read_node (Link::Lockable& node) NIRVANA_NOEXCEPT
