@@ -137,6 +137,7 @@ protected:
 	unsigned random_level () NIRVANA_NOEXCEPT;
 
 	Node* find (Node* keynode) NIRVANA_NOEXCEPT;
+	Node* lower_bound (Node* keynode) NIRVANA_NOEXCEPT;
 	Node* upper_bound (Node* keynode) NIRVANA_NOEXCEPT;
 	
 	/// Erase by key.
@@ -335,6 +336,15 @@ public:
 	{
 		NodeVal keynode (1, val);
 		return static_cast <NodeVal*> (Base::find (&keynode));
+	}
+
+	/// Finds first node equal or greater than value.
+	/// \returns Node pointer or `nullptr` if node not found.
+	///          Returned pointer must be released by `release_node`.
+	NodeVal* lower_bound (const Val& val) NIRVANA_NOEXCEPT
+	{
+		NodeVal keynode (1, val);
+		return static_cast <NodeVal*> (Base::lower_bound (&keynode));
 	}
 
 	/// Finds first node greater than value.

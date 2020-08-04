@@ -376,34 +376,7 @@ void SkipListBase::remove_node (Node* node, Node*& prev, int level) NIRVANA_NOEX
 	}
 }
 
-SkipListBase::Node* SkipListBase::find (Node* keynode) NIRVANA_NOEXCEPT
-{
-	assert (keynode);
-	assert (keynode != head ());
-	assert (keynode != tail ());
-
-	Node* prev = copy_node (head ());
-	for (unsigned i = this->max_level () - 1; i >= 1; --i) {
-		Node* node2 = scan_key (prev, i, keynode);
-		release_node (node2);
-	}
-
-	for (;;) {
-		Node* node2 = scan_key (prev, 0, keynode);
-		if (!less (*keynode, *node2)) {
-			release_node (prev);
-			return node2;
-		} else {
-			release_node (prev);
-			release_node (node2);
-			return nullptr;
-		}
-		release_node (prev);
-		prev = node2;
-	}
-}
-
-SkipListBase::Node* SkipListBase::upper_bound (Node* keynode) NIRVANA_NOEXCEPT
+SkipListBase::Node* SkipListBase::lower_bound (Node* keynode) NIRVANA_NOEXCEPT
 {
 	assert (keynode);
 	assert (keynode != head ());
@@ -417,16 +390,42 @@ SkipListBase::Node* SkipListBase::upper_bound (Node* keynode) NIRVANA_NOEXCEPT
 
 	Node* node2 = scan_key (prev, 0, keynode);
 	release_node (prev);
-	if (!less (*keynode, *node2)) {
-		prev = node2;
-		node2 = read_next (prev, 0);
-	}
 
 	if (node2 == tail ()) {
 		release_node (node2);
 		node2 = nullptr;
 	}
 
+	return node2;
+}
+
+SkipListBase::Node* SkipListBase::upper_bound (Node* keynode) NIRVANA_NOEXCEPT
+{
+	Node* node2 = lower_bound (keynode);
+	if (node2) {
+		if (!less (*keynode, *node2)) {
+			Node* prev = node2;
+			node2 = read_next (prev, 0);
+			release_node (prev);
+			if (node2 == tail ()) {
+				release_node (node2);
+				node2 = nullptr;
+			}
+		}
+	}
+
+	return node2;
+}
+
+SkipListBase::Node* SkipListBase::find (Node* keynode) NIRVANA_NOEXCEPT
+{
+	Node* node2 = lower_bound (keynode);
+	if (node2) {
+		if (less (*keynode, *node2)) {
+			release_node (node2);
+			node2 = nullptr;
+		}
+	}
 	return node2;
 }
 

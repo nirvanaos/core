@@ -4,8 +4,6 @@
 #ifndef NIRVANA_CORE_CORE_H_
 #define NIRVANA_CORE_CORE_H_
 
-#define NIRVANA_DEBUG_ITERATORS 0
-
 #include <Nirvana/Nirvana.h>
 #include <Port/config.h>
 #include <memory>
