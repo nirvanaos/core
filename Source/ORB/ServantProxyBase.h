@@ -156,9 +156,9 @@ public:
 	}
 
 	Unmarshal_var call (OperationIndex op,
-		::Nirvana::ConstPointer in_params, ::Nirvana::Size in_params_size,
+		const void* in_params, size_t in_params_size,
 		Marshal_var& marshaler,
-		::Nirvana::Pointer out_params, ::Nirvana::Size out_params_size)
+		void* out_params, size_t out_params_size)
 	{
 		::Nirvana::UWord idx = op.interface_idx;
 		if (idx >= interfaces ().size ())

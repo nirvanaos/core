@@ -1,5 +1,4 @@
 #include "core.h"
-#include "Heap.h"
 #include "ExecContext.h"
 #include "Thread.h"
 #include <utility>
@@ -9,7 +8,7 @@ using namespace std;
 namespace Nirvana {
 namespace Core {
 
-Memory_ptr g_core_heap = Memory::_nil ();
+Heap* g_core_heap = nullptr;
 
 void run_in_neutral_context (Runnable& runnable)
 {

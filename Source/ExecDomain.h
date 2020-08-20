@@ -10,6 +10,7 @@
 #include "Runnable.h"
 #include "ObjectPool.h"
 #include <limits>
+#include <utility>
 
 namespace Nirvana {
 namespace Core {

@@ -6,13 +6,13 @@
 #ifndef NIRVANA_CORE_SKIPLIST_H_
 #define NIRVANA_CORE_SKIPLIST_H_
 
-#include "core.h"
 #include "AtomicCounter.h"
 #include "TaggedPtr.h"
 #include "BackOff.h"
 #include "RandomGen.h"
 #include <algorithm>
 #include <random>
+#include <utility>
 
 namespace Nirvana {
 namespace Core {
@@ -113,39 +113,29 @@ protected:
 		return head_->level;
 	}
 
+	unsigned random_level () NIRVANA_NOEXCEPT;
+
 	void* allocate_node (unsigned level);
+
+	size_t node_size (unsigned level) const NIRVANA_NOEXCEPT
+	{
+		return Node::size (node_size_, level);
+	}
 
 	Node* insert (Node* new_node, Node** saved_nodes) NIRVANA_NOEXCEPT;
 
-	static Node* read_node (Link::Lockable& node) NIRVANA_NOEXCEPT;
-
-	static Node* copy_node (Node* node) NIRVANA_NOEXCEPT
-	{
-		assert (node);
-		node->ref_cnt.increment ();
-		return node;
-	}
-
 	void release_node (Node* node) NIRVANA_NOEXCEPT;
-
-	Node* read_next (Node*& node1, int level) NIRVANA_NOEXCEPT;
-
-	Node* scan_key (Node*& node1, int level, Node* keynode) NIRVANA_NOEXCEPT;
-
-	Node* help_delete (Node*, int level) NIRVANA_NOEXCEPT;
-
-	unsigned random_level () NIRVANA_NOEXCEPT;
 
 	Node* find (Node* keynode) NIRVANA_NOEXCEPT;
 	Node* lower_bound (Node* keynode) NIRVANA_NOEXCEPT;
 	Node* upper_bound (Node* keynode) NIRVANA_NOEXCEPT;
-	
+
 	/// Erase by key.
 	bool erase (Node* keynode) NIRVANA_NOEXCEPT;
 
-	/// Directly erases node.
-	/// `erase_node (find (keynode));` works slower then `erase (keynode);`.
-	bool erase_node (Node* node) NIRVANA_NOEXCEPT
+	/// Directly removes node from list.
+	/// `remove (find (keynode));` works slower then `erase (keynode);`.
+	bool remove (Node* node) NIRVANA_NOEXCEPT
 	{
 		bool f = false;
 		if (node->deleted.compare_exchange_strong (f, true)) {
@@ -156,6 +146,21 @@ protected:
 	}
 
 private:
+	static Node* read_node (Link::Lockable& node) NIRVANA_NOEXCEPT;
+
+	static Node* copy_node (Node* node) NIRVANA_NOEXCEPT
+	{
+		assert (node);
+		node->ref_cnt.increment ();
+		return node;
+	}
+
+	Node* read_next (Node*& node1, int level) NIRVANA_NOEXCEPT;
+
+	Node* scan_key (Node*& node1, int level, Node* keynode) NIRVANA_NOEXCEPT;
+
+	Node* help_delete (Node*, int level) NIRVANA_NOEXCEPT;
+
 	void remove_node (Node* node, Node*& prev, int level) NIRVANA_NOEXCEPT;
 	void delete_node (Node* node) NIRVANA_NOEXCEPT;
 	void final_delete (Node* node) NIRVANA_NOEXCEPT;
@@ -234,13 +239,11 @@ public:
 			return value () < static_cast <const NodeVal&> (rhs).value ();
 		}
 
-	private:
-		friend class SkipList;
-
-		NodeVal (int level, const Val& val) NIRVANA_NOEXCEPT :
+		template <class ... Args>
+		NodeVal (int level, Args ... args) NIRVANA_NOEXCEPT :
 		Base::Node (level)
 		{
-			new (&value ()) Val (val);
+			new (&value ()) Val (std::forward <Args> (args)...);
 		}
 
 		~NodeVal () NIRVANA_NOEXCEPT
@@ -258,16 +261,26 @@ public:
 	/// \returns std::pair <NodeVal*, bool>.
 	///          first must be released by `release_node`.
 	///          second is `true` if new node was inserted, false if node already exists.
-	std::pair <NodeVal*, bool> insert (const Val& val)
+	template <class ... Args>
+	std::pair <NodeVal*, bool> insert (Args ... args)
+	{
+		return insert (create_node (std::forward <Args> (args)...));
+	}
+
+	std::pair <NodeVal*, bool> insert (NodeVal* new_node) NIRVANA_NOEXCEPT
+	{
+		NodeVal* p = static_cast <NodeVal*> (Base::insert (new_node));
+		return std::pair <NodeVal*, bool> (p, p == new_node);
+	}
+
+	template <class ... Args>
+	NodeVal* create_node (Args ... args)
 	{
 		// Choose level randomly.
 		unsigned level = Base::random_level ();
 
 		// Initialize node
-		NodeVal* new_node = new (Base::allocate_node (level)) NodeVal (level, val);
-		// Insert it into skip list.
-		NodeVal* p = static_cast <NodeVal*> (Base::insert (new_node));
-		return std::pair <NodeVal*, bool> (p, p == new_node);
+		return new (Base::allocate_node (level)) NodeVal (level, std::forward <Args> (args)...);
 	}
 
 	/// Gets minimal value.
@@ -356,11 +369,11 @@ public:
 		return static_cast <NodeVal*> (Base::upper_bound (&keynode));
 	}
 
-	/// Directly erases node.
-	/// `erase_node (find (key));` works slower then `erase (key);`.
-	bool erase_node (NodeVal* node) NIRVANA_NOEXCEPT
+	/// Removes node from list.
+	/// `remove (find (key));` works slower then `erase (key);`.
+	bool remove (NodeVal* node) NIRVANA_NOEXCEPT
 	{
-		return Base::erase_node (node);
+		return Base::remove (node);
 	}
 };
 

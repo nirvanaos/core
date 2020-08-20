@@ -33,15 +33,12 @@ public:
 
 	static DirectoryType* create ()
 	{
-		DirectoryType* p;
-		if (HeapDirectoryImpl::COMMITTED_BITMAP < IMPL) {
-			p = (DirectoryType*)Port::ProtDomainMemory::allocate (0, sizeof (DirectoryType), Memory::RESERVED | Memory::ZERO_INIT);
-			DirectoryType::initialize (p);
-		} else {
-			p = (DirectoryType*)calloc (1, sizeof (DirectoryType));
-			DirectoryType::initialize (p);
-		}
-		return p;
+		void* p;
+		if (HeapDirectoryImpl::COMMITTED_BITMAP < IMPL)
+			p = Port::ProtDomainMemory::allocate (0, sizeof (DirectoryType), Memory::RESERVED | Memory::ZERO_INIT);
+		else
+			p = calloc (1, sizeof (DirectoryType));
+		return new (p) DirectoryType ();
 	}
 
 	static void destroy (DirectoryType *p)
@@ -225,8 +222,8 @@ TYPED_TEST (TestHeapDirectory, Release2)
 
 struct Block
 {
-	ULong begin;
-	ULong end;
+	unsigned begin;
+	unsigned end;
 
 	bool operator < (const Block& rhs) const
 	{
@@ -254,32 +251,32 @@ public:
 private:
 	mt19937 rndgen_;
 	vector <Block> allocated_;
-	static atomic <ULong> total_allocated_;
+	static atomic <unsigned> total_allocated_;
 };
 
-atomic <ULong> RandomAllocator::total_allocated_ = 0;
+atomic <unsigned> RandomAllocator::total_allocated_ = 0;
 
 template <class DirType>
 void RandomAllocator::run (DirType* dir, int iterations)
 {
 	for (int i = 0; i < iterations; ++i) {
-		ULong total = total_allocated_;
+		unsigned total = total_allocated_;
 		bool rel = !allocated_.empty () 
 			&& (total >= DirType::UNIT_COUNT || bernoulli_distribution ((double)total_allocated_ / (double)DirType::UNIT_COUNT)(rndgen_));
 		if (!rel) {
-			ULong free_cnt = DirType::UNIT_COUNT - total_allocated_;
+			unsigned free_cnt = DirType::UNIT_COUNT - total_allocated_;
 			if (!free_cnt)
 				rel = true;
 			else {
-				ULong max_size = DirType::MAX_BLOCK_SIZE;
+				unsigned max_size = DirType::MAX_BLOCK_SIZE;
 				if (max_size > free_cnt)
-					max_size = 0x80000000 >> nlz ((ULong)free_cnt);
+					max_size = 0x80000000 >> nlz ((unsigned)free_cnt);
 
-				ULong size = uniform_int_distribution <ULong> (1, max_size)(rndgen_);
+				unsigned size = uniform_int_distribution <unsigned> (1, max_size)(rndgen_);
 				Word block = dir->allocate (size);
 				if (block >= 0) {
 					total_allocated_ += size;
-					allocated_.push_back ({(ULong)block, (ULong)block + size});
+					allocated_.push_back ({(unsigned)block, (unsigned)block + size});
 					EXPECT_TRUE (dir->check_allocated (allocated_.back ().begin, allocated_.back ().end));
 				} else
 					rel = true;

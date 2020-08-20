@@ -32,9 +32,9 @@ public:
 	/// Returns `false` if there is no synchronization domain.
 	virtual bool synchronized () = 0;
 
-	virtual Pointer allocate (Size& size) = 0;
-	virtual Pointer copy (ConstPointer src, Size& size) = 0;
-	virtual void release (Pointer p, Size size) = 0;
+	virtual Pointer allocate (size_t& size) = 0;
+	virtual Pointer copy (ConstPointer src, size_t& size) = 0;
+	virtual void release (Pointer p, size_t size) = 0;
 
 	/// Returns `true` if both contexts use common heap.
 	/// For example, if it is the same context.

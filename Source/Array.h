@@ -25,7 +25,7 @@ public:
 	}
 
 	/// \brief Allocate memory and initialize it with zeroes.
-	void allocate (Size size)
+	void allocate (size_t size)
 	{
 		assert (!begin_ && !end_);
 		begin_ = (T*)g_memory->allocate (0, size * sizeof (T), Memory::ZERO_INIT);
@@ -33,7 +33,7 @@ public:
 	}
 
 	/// \brief Allocate and call default constructors. Rarely used.
-	void construct (Size size)
+	void construct (size_t size)
 	{
 		assert (!begin_ && !end_);
 		if (size) {
@@ -57,7 +57,7 @@ public:
 		}
 	}
 
-	Size size () const
+	size_t size () const
 	{
 		return end_ - begin_;
 	}
@@ -92,15 +92,15 @@ public:
 		return end ();
 	}
 
-	const T& operator [] (Size i) const
+	const T& operator [] (size_t i) const
 	{
-		assert (i < (Size)(end_ - begin_));
+		assert (i < (size_t)(end_ - begin_));
 		return begin_ [i];
 	}
 
-	T& operator [] (Size i)
+	T& operator [] (size_t i)
 	{
-		assert (i < (Size)(end_ - begin_));
+		assert (i < (size_t)(end_ - begin_));
 		return begin_ [i];
 	}
 

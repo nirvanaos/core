@@ -40,7 +40,7 @@ ServantMarshaler::Block* ServantMarshaler::clear_block (Tag* p)
 void* ServantMarshaler::add_record (RecordType tag, size_t record_size)
 {
 	if ((block_end (cur_ptr_) - cur_ptr_) * sizeof (Tag) < (record_size + sizeof (Tag))) {
-		Size bs = sizeof (Block);
+		size_t bs = sizeof (Block);
 		Block* next = (Block*)sync_context_->allocate (bs);
 		*cur_ptr_ = (Tag)next;
 		cur_ptr_ = *next;

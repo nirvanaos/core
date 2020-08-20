@@ -1,4 +1,4 @@
-#include "../Source/Heap.h"
+#include "../Source/core.h"
 #include <gtest/gtest.h>
 #include <random>
 #include <thread>
@@ -90,7 +90,7 @@ public:
 		allocated_.reserve (1024);
 	}
 
-	void run (Memory_ptr memory, int iterations);
+	void run (Core::Heap* memory, int iterations);
 
 	const vector <Block>& allocated () const
 	{
@@ -101,18 +101,18 @@ private:
 	mt19937 rndgen_;
 	vector <Block> allocated_;
 	static atomic <ULong> next_tag_;
-	static atomic <UWord> total_allocated_;
+	static atomic <size_t> total_allocated_;
 };
 
-atomic <UWord> RandomAllocator::total_allocated_ = 0;
+atomic <size_t> RandomAllocator::total_allocated_ = 0;
 atomic <ULong> RandomAllocator::next_tag_ = 1;
 
-void RandomAllocator::run (Memory_ptr memory, int iterations)
+void RandomAllocator::run (Core::Heap* memory, int iterations)
 {
 	static const ULong MAX_MEMORY = 0x20000000;	// 512M
 	static const ULong MAX_BLOCK = 0x1000000;	// 16M
 	for (int i = 0; i < iterations; ++i) {
-		UWord total = total_allocated_;
+		size_t total = total_allocated_;
 		bool rel = !allocated_.empty () 
 			&& (total >= MAX_MEMORY || bernoulli_distribution ((double)total / (double)MAX_MEMORY)(rndgen_));
 		if (!rel) {
@@ -151,7 +151,7 @@ class AllocatedBlocks :
 {
 public:
 	void add (const vector <Block>& blocks);
-	void check (Memory_ptr memory);
+	void check (Core::Heap* memory);
 };
 
 void AllocatedBlocks::add (const vector <Block>& blocks)
@@ -174,7 +174,7 @@ void AllocatedBlocks::add (const vector <Block>& blocks)
 	}
 }
 
-void AllocatedBlocks::check (Memory_ptr memory)
+void AllocatedBlocks::check (Core::Heap* memory)
 {
 	for (auto p = cbegin (); p != cend (); ++p) {
 		memory->release (p->begin, (p->end - p->begin) * sizeof (ULong));
@@ -212,7 +212,7 @@ public:
 		RandomAllocator (seed)
 	{}
 
-	void run (Memory_ptr memory, int iterations)
+	void run (Core::Heap* memory, int iterations)
 	{
 		thread t (&RandomAllocator::run, this, memory, iterations);
 		swap (t);

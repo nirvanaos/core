@@ -15,6 +15,11 @@ struct PriorityQueueKeyVal
 	DeadlineTime deadline;
 	Val val;
 
+	PriorityQueueKeyVal (DeadlineTime dt, Val v) :
+		deadline (dt),
+		val (v)
+	{}
+
 	bool operator < (const PriorityQueueKeyVal& rhs) const
 	{
 		if (deadline < rhs.deadline)
@@ -47,7 +52,7 @@ public:
 	/// Inserts new node.
 	bool insert (DeadlineTime dt, const Val& value)
 	{
-		std::pair <NodeVal*, bool> ins = Base::insert ({ dt, value });
+		std::pair <NodeVal*, bool> ins = Base::insert (dt, value);
 		Base::release_node (ins.first);
 		return ins.second;
 	}

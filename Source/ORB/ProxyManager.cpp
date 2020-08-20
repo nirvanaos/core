@@ -187,7 +187,7 @@ ProxyManager::ProxyManager (const Bridge <IOReference>::EPV& epv_ior, const Brid
 	ie = interfaces_.begin ();
 	do {
 		OperationIndex idx;
-		idx.interface_idx = (UShort)(ie - interfaces_.begin ());
+		idx.interface_idx = (uint16_t)(ie - interfaces_.begin ());
 		idx.operation_idx = 0;
 		for (const Operation* p = ie->operations.p, *end = p + ie->operations.size; p != end; ++p) {
 			const Char* name = p->name;

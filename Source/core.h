@@ -6,12 +6,13 @@
 
 #include <Nirvana/Nirvana.h>
 #include <Port/config.h>
+#include "Heap.h"
 #include <memory>
 
 namespace Nirvana {
 namespace Core {
 
-extern Memory_ptr g_core_heap;
+extern Heap* g_core_heap;
 
 class CoreObject
 {

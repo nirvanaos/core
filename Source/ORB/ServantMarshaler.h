@@ -75,7 +75,7 @@ public:
 			return MarshalContext::SHARED_PROTECTION_DOMAIN;
 	}
 
-	::Nirvana::UIntPtr marshal_memory (::Nirvana::ConstPointer p, ::Nirvana::Size& size, ::Nirvana::Size release_size)
+	::Nirvana::UIntPtr marshal_memory (::Nirvana::ConstPointer p, size_t& size, size_t release_size)
 	{
 		RecMemory* rec = (RecMemory*)add_record (RT_MEMORY, sizeof (RecMemory));
 		rec->p = nullptr;
@@ -87,12 +87,12 @@ public:
 			rec->p = sync_context_->copy (p, size);
 			rec->size = size;
 			if (release_size)
-				::Nirvana::g_memory->release (const_cast <::Nirvana::Pointer> (p), release_size);
+				::Nirvana::g_memory->release (const_cast <void*> (p), release_size);
 		}
 		return (::Nirvana::UIntPtr)(rec->p);
 	}
 
-	::Nirvana::UIntPtr get_buffer (::Nirvana::Size& size, ::Nirvana::Pointer& buf_ptr)
+	::Nirvana::UIntPtr get_buffer (size_t& size, void*& buf_ptr)
 	{
 		RecMemory* rec = (RecMemory*)add_record (RT_MEMORY, sizeof (RecMemory));
 		rec->p = nullptr;
@@ -102,7 +102,7 @@ public:
 		return (::Nirvana::UIntPtr)(rec->p);
 	}
 
-	void adopt_memory (::Nirvana::ConstPointer p, ::Nirvana::Size size)
+	void adopt_memory (const void* p, size_t size)
 	{
 		RecMemory* rec = (RecMemory*)get_record (RT_MEMORY);
 		if (rec->p == p && rec->size == size) {
@@ -163,8 +163,8 @@ private:
 
 	struct RecMemory
 	{
-		::Nirvana::Pointer p;
-		::Nirvana::Size size;
+		void* p;
+		size_t size;
 	};
 
 	struct RecObject

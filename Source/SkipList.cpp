@@ -1,3 +1,4 @@
+#include "core.h"
 #include "SkipList.h"
 
 namespace Nirvana {
@@ -55,7 +56,7 @@ SkipListBase::~SkipListBase ()
 
 void* SkipListBase::allocate_node (unsigned level)
 {
-	void* p = (Node*)g_core_heap->allocate (0, Node::size (node_size_, level), 0);
+	void* p = (Node*)g_core_heap->allocate (0, node_size (level), 0);
 #ifdef _DEBUG
 	node_cnt_.increment ();
 #endif
@@ -90,6 +91,8 @@ void SkipListBase::delete_node (Node* node) NIRVANA_NOEXCEPT
 
 SkipListBase::Node* SkipListBase::insert (Node* new_node, Node** saved_nodes) NIRVANA_NOEXCEPT
 {
+	new_node->deleted = false; // In case we insert back the removed node.
+
 	int level = new_node->level;
 	copy_node (new_node);
 

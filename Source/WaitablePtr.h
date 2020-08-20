@@ -26,7 +26,7 @@ public:
 	{
 		Ptr p = load ();
 		if (p.tag_bits () == TAG_EXCEPTION)
-			delete_exception ((Exception*)(void*)p);
+			delete_exception ((CORBA::Exception*)(void*)p);
 	}
 
 	void* wait ();
@@ -47,7 +47,7 @@ private:
 
 	void set_ptr (Ptr p);
 
-	void delete_exception (Exception* pex);
+	void delete_exception (CORBA::Exception* pex);
 };
 
 }
