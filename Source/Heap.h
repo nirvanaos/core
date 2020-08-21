@@ -3,7 +3,6 @@
 
 #include "HeapDirectory.h"
 #include "SkipList.h"
-#include <Port/ProtDomainMemory.h>
 
 namespace Nirvana {
 namespace Core {
@@ -20,18 +19,25 @@ public:
 
 	Heap (size_t allocation_unit) NIRVANA_NOEXCEPT;
 
+	~Heap ()
+	{
+		cleanup ();
+	}
+
+	void cleanup ();
+
 	void* allocate (void* p, size_t size, UWord flags);
 	void release (void* p, size_t size);
 
-	static void commit (void* p, size_t size)
+	void commit (void* p, size_t size)
 	{
-		// TODO: Check memory address.
+		check_owner (p, size);
 		Port::ProtDomainMemory::commit (p, size);
 	}
 
-	static void decommit (void* p, size_t size)
+	void decommit (void* p, size_t size)
 	{
-		// TODO: Check memory address.
+		check_owner (p, size);
 		Port::ProtDomainMemory::decommit (p, size);
 	}
 
@@ -208,6 +214,8 @@ protected:
 	void add_large_block (void* p, size_t size);
 
 	virtual MemoryBlock* add_new_partition (MemoryBlock*& tail);
+
+	void check_owner (const void* p, size_t size);
 
 protected:
 	size_t allocation_unit_;

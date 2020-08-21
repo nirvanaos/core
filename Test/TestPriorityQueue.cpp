@@ -1,4 +1,5 @@
 #include "../Source/PriorityQueue.h"
+#include "../Source/Heap.h"
 #include <gtest/gtest.h>
 #include <queue>
 #include <array>
@@ -32,13 +33,14 @@ protected:
 	{
 		// Code here will be called immediately after the constructor (right
 		// before each test).
-		::Nirvana::Core::g_core_heap = ::Nirvana::g_memory;
+		::Nirvana::Core::Heap::initialize ();
 	}
 
 	virtual void TearDown ()
 	{
 		// Code here will be called immediately after each test (right
 		// before the destructor).
+		::Nirvana::Core::Heap::terminate ();
 	}
 };
 

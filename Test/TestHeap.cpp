@@ -3,7 +3,6 @@
 #include <random>
 #include <thread>
 #include <atomic>
-#include <Nirvana/bitutils.h>
 
 using namespace ::CORBA;
 using namespace ::Nirvana;

@@ -1,11 +1,11 @@
 #ifndef NIRVANA_CORE_TAGGEDPTR_H_
 #define NIRVANA_CORE_TAGGEDPTR_H_
 
+#include <Nirvana/Nirvana.h>
 #include <Port/config.h>
 #include "BackOff.h"
 #include <atomic>
 #include <algorithm>
-#include <Nirvana/bitutils.h>
 
 #define CORE_OBJECT_ALIGN(T) (std::max ((unsigned)::Nirvana::Core::HEAP_UNIT_CORE, (unsigned)(1 << ::Nirvana::log2_ceil (sizeof (T)))))
 

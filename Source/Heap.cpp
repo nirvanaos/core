@@ -191,7 +191,7 @@ Heap::Directory* Heap::get_partition (const void* p) NIRVANA_NOEXCEPT
 	BlockList::NodeVal* node = block_list_.lower_bound (p);
 	if (node) {
 		const MemoryBlock& block = node->value ();
-		if (!block.is_large_block () && p <= block.begin () + partition_size ())
+		if (!block.is_large_block () && p < block.begin () + partition_size ())
 			part = &block.directory ();
 		block_list_.release_node (node);
 	}
@@ -468,6 +468,35 @@ uintptr_t Heap::query (const void* p, MemQuery param)
 		}
 	}
 	return Port::ProtDomainMemory::query (p, param);
+}
+
+void Heap::check_owner (const void* p, size_t size)
+{
+	bool ok = false;
+	BlockList::NodeVal* node = block_list_.lower_bound (p);
+	if (node) {
+		const MemoryBlock& block = node->value ();
+		if (block.is_large_block ())
+			ok = p < block.begin () + block.large_block_size ();
+		else
+			ok = p < block.begin () + partition_size ();
+		block_list_.release_node (node);
+	}
+	if (!ok)
+		throw CORBA::BAD_PARAM ();
+}
+
+void Heap::cleanup ()
+{
+	part_list_ = nullptr;
+	while (BlockList::NodeVal* node = block_list_.delete_min ()) {
+		const MemoryBlock block = node->value ();
+		block_list_.release_node (node);
+		if (block.is_large_block ())
+			Port::ProtDomainMemory::release (block.begin (), block.large_block_size ());
+		else
+			Port::ProtDomainMemory::release (&block.directory (), sizeof (Directory) + partition_size ());
+	}
 }
 
 void Heap::initialize ()
