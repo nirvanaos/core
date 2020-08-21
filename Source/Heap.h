@@ -234,6 +234,8 @@ private:
 	virtual MemoryBlock* add_new_partition (MemoryBlock*& tail);
 };
 
+extern Heap* g_core_heap;
+
 }
 }
 

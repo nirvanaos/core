@@ -1,4 +1,4 @@
-#include "core.h"
+#include "Runnable.h"
 #include "ExecContext.h"
 #include "Thread.h"
 #include <utility>
@@ -7,8 +7,6 @@ using namespace std;
 
 namespace Nirvana {
 namespace Core {
-
-Heap* g_core_heap = nullptr;
 
 void run_in_neutral_context (Runnable& runnable)
 {

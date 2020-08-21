@@ -1,4 +1,4 @@
-#include "core.h"
+#include "Heap.h"
 #include <CORBA/CORBA.h>
 #include <atomic>
 
@@ -6,6 +6,8 @@ namespace Nirvana {
 namespace Core {
 
 using namespace std;
+
+Heap* g_core_heap = nullptr;
 
 Heap::Heap (size_t allocation_unit) NIRVANA_NOEXCEPT :
 	allocation_unit_ (allocation_unit),
@@ -293,7 +295,7 @@ void* Heap::allocate (Directory& part, size_t size, UWord flags, size_t allocati
 		assert (unit < Directory::UNIT_COUNT);
 		return heap + unit * allocation_unit;
 	}
-	return 0;
+	return nullptr;
 }
 
 bool Heap::allocate (Directory& part, void* p, size_t size, UWord flags) const NIRVANA_NOEXCEPT

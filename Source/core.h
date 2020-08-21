@@ -4,15 +4,11 @@
 #ifndef NIRVANA_CORE_CORE_H_
 #define NIRVANA_CORE_CORE_H_
 
-#include <Nirvana/Nirvana.h>
-#include <Port/config.h>
 #include "Heap.h"
 #include <memory>
 
 namespace Nirvana {
 namespace Core {
-
-extern Heap* g_core_heap;
 
 class CoreObject
 {
