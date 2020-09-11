@@ -9,6 +9,130 @@ using namespace std;
 
 Heap* g_core_heap = nullptr;
 
+inline
+bool Heap::MemoryBlock::collapse_large_block (size_t size) NIRVANA_NOEXCEPT
+{
+	assert (is_large_block ());
+	size |= 1;
+	return atomic_compare_exchange_strong ((volatile atomic <size_t>*) & large_block_size_, &size, 1);
+}
+
+inline
+void Heap::MemoryBlock::restore_large_block (size_t size) NIRVANA_NOEXCEPT
+{
+	assert (large_block_size_ == 1);
+	large_block_size_ = size | 1;
+}
+
+Heap::LBErase::LBErase (BlockList& block_list, BlockList::NodeVal* first_node) :
+	block_list_ (block_list),
+	new_node_ (nullptr)
+{
+	assert (first_node);
+	first_block_.node = first_node;
+	last_block_.node = nullptr;
+}
+
+Heap::LBErase::~LBErase ()
+{
+	if (last_block_.node)
+		block_list_.release_node (last_block_.node);
+	for (auto& mb : middle_blocks_) {
+		block_list_.release_node (mb.node);
+	}
+	block_list_.release_node (first_block_.node);
+	if (new_node_)
+		block_list_.release_node (new_node_);
+}
+
+void Heap::LBErase::prepare (void* p, size_t size)
+{
+	MemoryBlock* block = &first_block_.node->value ();
+	assert (block->is_large_block ());
+	if (!(first_block_.size = block->large_block_size ()))
+		throw_BAD_PARAM (); // Block is collapsed in another thread.
+
+	// Collect contiguos blocks.
+	uintptr_t au = Port::ProtDomainMemory::query (p, MemQuery::ALLOCATION_UNIT);
+	uint8_t* end = round_up ((uint8_t*)p + size, au);
+	uint8_t* block_end = block->begin ();
+	shrink_size_ = round_down ((uint8_t*)p, au) - block_end; // First block shrink size
+	block_end += first_block_.size;
+	while (end > block_end) {
+		if (last_block_.node)
+			middle_blocks_.push_back (last_block_);
+		if (!(last_block_.node = block_list_.find (block_end)))
+			throw_BAD_PARAM ();
+		block = &last_block_.node->value ();
+		if (!block->is_large_block ())
+			throw_BAD_PARAM ();
+		if (!(last_block_.size = block->large_block_size ()))
+			throw_BAD_PARAM ();
+		block_end = block->begin () + last_block_.size;
+	}
+
+	// Create new block at end if need.
+	if (end < block_end)
+		new_node_ = block_list_.create_node (end, block_end - end);
+
+	// Collapse collected blocks.
+	for (MiddleBlocks::reverse_iterator it = middle_blocks_.rbegin (); it != middle_blocks_.rend (); ++it) {
+		if (!it->collapse ()) {
+			while (it > middle_blocks_.rbegin ()) {
+				(--it)->restore ();
+			}
+			throw_BAD_PARAM ();
+		}
+	}
+
+	try {
+		if (last_block_.node)
+			if (!last_block_.collapse ())
+				throw_BAD_PARAM ();
+
+		if (!first_block_.collapse ())
+			throw_BAD_PARAM ();
+
+	} catch (...) {
+		rollback_helper ();
+		throw;
+	}
+}
+
+void Heap::LBErase::commit () NIRVANA_NOEXCEPT
+{
+	if (shrink_size_)
+		first_block_.restore (shrink_size_);
+
+	if (new_node_)
+		block_list_.insert (new_node_);
+
+	// Cleanup
+	if (last_block_.node)
+		block_list_.remove (last_block_.node);
+
+	for (auto& mb : middle_blocks_) {
+		block_list_.remove (mb.node);
+	}
+
+	block_list_.remove (first_block_.node);
+}
+
+void Heap::LBErase::rollback () NIRVANA_NOEXCEPT
+{
+	rollback_helper ();
+	first_block_.restore ();
+}
+
+void Heap::LBErase::rollback_helper () NIRVANA_NOEXCEPT
+{
+	for (MiddleBlocks::iterator it = middle_blocks_.begin (); it != middle_blocks_.end (); ++it) {
+		it->restore ();
+	}
+	if (last_block_.node)
+		last_block_.restore ();
+}
+
 Heap::Heap (size_t allocation_unit) NIRVANA_NOEXCEPT :
 	allocation_unit_ (allocation_unit),
 	part_list_ (nullptr)
@@ -29,7 +153,7 @@ void Heap::release (void* p, size_t size)
 	// Search memory block
 	BlockList::NodeVal* node = block_list_.lower_bound (p);
 	if (!node)
-		throw CORBA::BAD_PARAM ();
+		throw_BAD_PARAM ();
 	const MemoryBlock& block = node->value ();
 	if (!block.is_large_block ()) {
 		// Release from heap partition
@@ -38,164 +162,52 @@ void Heap::release (void* p, size_t size)
 		if ((uint8_t*)p + size <= part_end)
 			release (block.directory (), p, size);
 		else
-			throw CORBA::BAD_PARAM ();
+			throw_BAD_PARAM ();
 	} else {
 		// Release large block
-		uint8_t* block_begin = block.begin ();
-		uint8_t* block_end = block_begin + block.large_block_size ();
-		uint8_t* release_begin = (uint8_t*)p;
-		uint8_t* release_end = (uint8_t*)p + size;
-		if (release_begin > block_begin || release_end < block_end) {
-			size_t au = (size_t)Port::ProtDomainMemory::query (block_begin, MemQuery::ALLOCATION_UNIT);
-			release_begin = round_down (release_begin, au);
-			release_end = round_up (release_end, au);
-		}
-		// Memory may be released partially, so it may be up to 2 new nodes.
-		BlockList::NodeVal* new_node0 = nullptr, * new_node1 = nullptr;
+		LBErase lberase (block_list_, node);
+		lberase.prepare (p, size);
 		try {
-			if (release_end <= block_end) {
-				
-				// Release memory from single large block
-				if (block_begin < release_begin)
-					new_node0 = block_list_.create_node (block_begin, release_begin - block_begin);
-				if (release_end < block_end)
-					new_node1 = block_list_.create_node (release_end, block_end - release_end);
-				if (!block_list_.remove (node))
-					throw CORBA::BAD_PARAM (); // Concurrently removed in another thread.
-				block_list_.release_node (node);
-
-				// Add new blocks and release protection domain memory.
-				// This mustn't cause any exceptions.
-				if (new_node0)
-					block_list_.insert (new_node0);
-				if (new_node1)
-					block_list_.insert (new_node1);
-				Port::ProtDomainMemory::release (release_begin, release_end - release_begin);
-
-			} else {
-				// Release memory across multiple large blocks. Rare case.
-				// Collect pointers to all large block nodes in list to ensure that we own all of this blocks.
-				vector <BlockList::NodeVal*> middle_blocks;
-				BlockList::NodeVal* last_node = nullptr;
-				try {
-					const MemoryBlock* last_block;
-					for (;;) {
-						last_node = block_list_.find (block_end);
-						if (!last_node)
-							throw CORBA::BAD_PARAM ();
-						last_block = &last_node->value ();
-						if (!last_block->is_large_block ())
-							throw CORBA::BAD_PARAM ();
-						block_end = last_block->begin () + last_block->large_block_size ();
-						if (release_end <= block_end)
-							break;
-						middle_blocks.push_back (last_node);
-					}
-
-					// Collected.
-					if (release_end < block_end) {
-						size_t au = (size_t)Port::ProtDomainMemory::query (last_block->begin (), MemQuery::ALLOCATION_UNIT);
-						release_end = round_up (release_end, au);
-					}
-					if (block_begin < release_begin)
-						new_node0 = block_list_.create_node (block_begin, release_begin - block_begin);
-					if (release_end < block_end)
-						new_node1 = block_list_.create_node (release_end, block_end - release_end);
-
-					// Release block-by-block.
-					// If block_list_.remove () returns false for some block, just skip it.
-					// This may be caused by the collision and we violate rules.
-					// We can not implement atomic memory release for this case.
-					// So if we threw an exception, we could leave memory in an unpredictable state.
-
-					// Release first block
-					bool ok = block_list_.remove (node);
-					assert (ok); // Assert can be caused only by a wrong memory release pointer in other thread.
-					block_list_.release_node (node);
-					node = nullptr;
-					if (ok) {
-						if (new_node0)
-							block_list_.insert (new_node0);
-						Port::ProtDomainMemory::release (release_begin, block_begin + block.large_block_size () - release_begin);
-					} else if (new_node0) {
-						block_list_.release_node (new_node0);
-						new_node0 = nullptr;
-					}
-
-					// Release middle blocks
-					for (size_t i = 0; i < middle_blocks.size (); ++i) {
-						BlockList::NodeVal*& p = middle_blocks [i];
-						ok = block_list_.remove (p);
-						assert (ok); // Assert can be caused only by a wrong memory release pointer in other thread.
-						if (ok) {
-							const MemoryBlock& block = p->value ();
-							Port::ProtDomainMemory::release (block.begin (), block.large_block_size ());
-						}
-						block_list_.release_node (p);
-						p = nullptr;
-					}
-
-					// Release last block
-					ok = block_list_.remove (last_node);
-					assert (ok); // Assert can be caused only by a wrong memory release pointer in other thread.
-					block_list_.release_node (last_node);
-					last_node = nullptr;
-					if (ok) {
-						if (new_node1)
-							block_list_.insert (new_node1);
-						block_begin = last_block->begin ();
-						Port::ProtDomainMemory::release (block_begin, release_end - block_begin);
-					} else if (new_node1) {
-						block_list_.release_node (new_node1);
-						new_node1 = nullptr;
-					}
-
-				} catch (...) {
-					if (last_node)
-						block_list_.release_node (last_node);
-					while (!middle_blocks.empty ()) {
-						BlockList::NodeVal* p = middle_blocks.back ();
-						if (!p)
-							break;
-						block_list_.release_node (p);
-						middle_blocks.pop_back ();
-					}
-					throw;
-				}
-			}
+			Port::ProtDomainMemory::release (p, size);
 		} catch (...) {
-			block_list_.release_node (node);
-			if (new_node0)
-				block_list_.release_node (new_node0);
-			if (new_node1)
-				block_list_.release_node (new_node1);
+			lberase.rollback ();
 			throw;
 		}
+		lberase.commit ();
 	}
 }
 
 void Heap::release (Directory& part, void* p, size_t size) const
 {
 	uint8_t* heap = (uint8_t*)(&part + 1);
-	UWord offset = (uint8_t*)p - heap;
-	UWord begin = offset / allocation_unit_;
-	UWord end = (offset + size + allocation_unit_ - 1) / allocation_unit_;
+	size_t offset = (uint8_t*)p - heap;
+	size_t begin = offset / allocation_unit_;
+	size_t end = (offset + size + allocation_unit_ - 1) / allocation_unit_;
 	if (!part.check_allocated (begin, end))
-		throw CORBA::BAD_PARAM ();
+		throw_BAD_PARAM ();
 	HeapInfo hi = { heap, allocation_unit_, Port::ProtDomainMemory::OPTIMAL_COMMIT_UNIT };
 	part.release (begin, end, &hi);
 }
 
-Heap::Directory* Heap::get_partition (const void* p) NIRVANA_NOEXCEPT
+Heap::Directory* Heap::get_partition (const void* p, size_t size) NIRVANA_NOEXCEPT
 {
 	assert (p);
 	Directory* part = nullptr;
 	BlockList::NodeVal* node = block_list_.lower_bound (p);
 	if (node) {
 		const MemoryBlock& block = node->value ();
-		if (!block.is_large_block () && p < block.begin () + partition_size ())
-			part = &block.directory ();
-		block_list_.release_node (node);
+		if (block.is_large_block ())
+			block_list_.release_node (node);
+		else {
+			block_list_.release_node (node);
+			uint8_t* part_end = block.begin () + partition_size ();
+			if (p < part_end) {
+				if ((uint8_t*)p + size <= part_end)
+					part = &block.directory ();
+				else
+					throw_BAD_PARAM ();
+			}
+		}
 	}
 	return part;
 }
@@ -203,31 +215,39 @@ Heap::Directory* Heap::get_partition (const void* p) NIRVANA_NOEXCEPT
 void* Heap::allocate (void* p, size_t size, UWord flags)
 {
 	if (!size)
-		throw CORBA::BAD_PARAM ();
+		throw_BAD_PARAM ();
 
 	if (flags & ~(Memory::RESERVED | Memory::EXACTLY | Memory::ZERO_INIT))
-		throw CORBA::INV_FLAG ();
+		throw_INV_FLAG ();
 
 	if (p) {
-		Directory* part = get_partition (p);
-		if (part) {
-			if (!allocate (*part, p, size, flags))
-				if (flags & Memory::EXACTLY)
-					return nullptr;
-				else
-					p = nullptr;
-		} else {
-			p = Port::ProtDomainMemory::allocate (p, size, flags | Memory::EXACTLY);
-			if (!p) {
-				if (flags & Memory::EXACTLY)
-					return nullptr;
-			} else {
-				try {
-					add_large_block (p, size);
-				} catch (...) {
-					Port::ProtDomainMemory::release (p, size);
-					throw;
+		// Explicit address allocation
+		BlockList::NodeVal* node = block_list_.lower_bound (p);
+		if (node) {
+			const MemoryBlock& block = node->value ();
+			if (!block.is_large_block ()) {
+				block_list_.release_node (node);
+				uint8_t* part_end = block.begin () + partition_size ();
+				if (p < part_end) {
+					if ((p = allocate (block.directory (), p, size, flags)) || (flags & Memory::EXACTLY))
+						return p;
+				} else {
+					// Don't let to expand block behind the end of partition.
+					uintptr_t au = Port::ProtDomainMemory::query (p, MemQuery::ALLOCATION_UNIT);
+					if (round_down (p, au) == part_end) {
+						p = nullptr;
+						if (flags & Memory::EXACTLY)
+							return p;
+					}
 				}
+			} else {
+				block_list_.release_node (node);
+				p = Port::ProtDomainMemory::allocate (p, size, flags | Memory::EXACTLY);
+				if (!p) {
+					if (flags & Memory::EXACTLY)
+						return p;
+				} else
+					add_large_block (p, size);
 			}
 		}
 	}
@@ -235,12 +255,7 @@ void* Heap::allocate (void* p, size_t size, UWord flags)
 	if (!p) {
 		if (size > Directory::MAX_BLOCK_SIZE * allocation_unit_ || ((flags & Memory::RESERVED) && size >= Port::ProtDomainMemory::OPTIMAL_COMMIT_UNIT)) {
 			p = Port::ProtDomainMemory::allocate (nullptr, size, flags);
-			try {
-				add_large_block (p, size);
-			} catch (...) {
-				Port::ProtDomainMemory::release (p, size);
-				throw;
-			}
+			add_large_block (p, size);
 		} else {
 			try {
 				p = allocate (size, flags);
@@ -249,8 +264,6 @@ void* Heap::allocate (void* p, size_t size, UWord flags)
 					return nullptr;
 				throw;
 			}
-			if (flags & Memory::ZERO_INIT)
-				zero ((Word*)p, (Word*)p + (size + sizeof (Word) - 1) / sizeof (Word));
 		}
 	}
 
@@ -293,12 +306,15 @@ void* Heap::allocate (Directory& part, size_t size, UWord flags, size_t allocati
 	ptrdiff_t unit = part.allocate (units, flags & Memory::RESERVED ? nullptr : &hi);
 	if (unit >= 0) {
 		assert (unit < Directory::UNIT_COUNT);
-		return heap + unit * allocation_unit;
+		void* p = heap + unit * allocation_unit;
+		if (flags & Memory::ZERO_INIT)
+			zero ((Word*)p, (Word*)p + (size + sizeof (Word) - 1) / sizeof (Word));
+		return p;
 	}
 	return nullptr;
 }
 
-bool Heap::allocate (Directory& part, void* p, size_t size, UWord flags) const NIRVANA_NOEXCEPT
+void* Heap::allocate (Directory& part, void* p, size_t size, UWord flags) const NIRVANA_NOEXCEPT
 {
 	uint8_t* heap = (uint8_t*)(&part + 1);
 	size_t offset = (uint8_t*)p - heap;
@@ -319,9 +335,9 @@ bool Heap::allocate (Directory& part, void* p, size_t size, UWord flags) const N
 		if (flags & Memory::ZERO_INIT)
 			zero ((Word*)pbegin, (Word*)(heap + end * allocation_unit_));
 
-		return true;
+		return p;
 	}
-	return false;
+	return nullptr;
 }
 
 Heap::MemoryBlock* Heap::add_new_partition (MemoryBlock*& tail)
@@ -376,92 +392,182 @@ void* Heap::copy (void* dst, void* src, size_t size, UWord flags)
 	if (!size)
 		return dst;
 
-	if (src != dst && !(flags & Memory::READ_ONLY)) {
+	if (!src)
+		throw_BAD_PARAM ();
 
-		if (!src)
-			throw CORBA::BAD_PARAM ();
+	if (flags & ~(Memory::READ_ONLY | Memory::RELEASE | Memory::ALLOCATE | Memory::EXACTLY))
+		throw_INV_FLAG ();
 
-		if (flags & ~(Memory::READ_ONLY | Memory::RELEASE | Memory::ALLOCATE | Memory::EXACTLY))
-			throw CORBA::INV_FLAG ();
-
-		Directory* release_part = nullptr;
-		size_t release_size;
-		void* release_ptr = nullptr;
-		if (flags & Memory::RELEASE) {
-			release_part = get_partition (src);
-			release_ptr = src;
-			release_size = size;
+	if (dst == src) {
+		if (check_owner (dst, size))
+			return Port::ProtDomainMemory::copy (dst, src, size, flags);
+		else {
+			if (!Port::ProtDomainMemory::is_writable (dst, size))
+				throw_NO_PERMISSION ();
+			return dst;
 		}
-
-		if (dst && (flags & Memory::ALLOCATE)) {
-			Directory* part = get_partition (dst);
-			if (part) {
-				void* alloc_ptr = dst;
-				size_t alloc_size = size;
-				if (dst < src) {
-					uint8_t* dst_end = (uint8_t*)dst + size;
-					if (dst_end > src) {
-						alloc_size = (uint8_t*)src - (uint8_t*)dst;
-						if (flags & Memory::RELEASE) {
-							release_ptr = dst_end;
-							release_size = alloc_size;
-						}
-					}
-				} else {
-					uint8_t* src_end = (uint8_t*)src + size;
-					if (src_end > dst) {
-						alloc_ptr = src_end;
-						alloc_size = (uint8_t*)dst - (uint8_t*)src;
-						if (flags & Memory::RELEASE)
-							release_size = alloc_size;
-					}
-				}
-				if (allocate (*part, alloc_ptr, alloc_size, flags))
-					flags &= ~Memory::ALLOCATE;
-				else if (flags & Memory::EXACTLY)
-					return 0;
-				else {
-					dst = 0;
-					if (flags & Memory::RELEASE) {
-						release_ptr = src;
-						release_size = size;
-					}
-				}
-			}
-		}
-
-		if (!dst && size < Port::ProtDomainMemory::ALLOCATION_UNIT / 2) {
-			assert (!(flags & ~(Memory::ALLOCATE | Memory::RELEASE | Memory::EXACTLY)));
-			try {
-				dst = allocate (size, flags);
-			} catch (const CORBA::NO_MEMORY&) {
-				if (flags & Memory::EXACTLY)
-					return nullptr;
-				throw;
-			}
-			flags &= ~Memory::ALLOCATE;
-		}
-
-		void* ret;
-		if (release_part) {
-			ret = Port::ProtDomainMemory::copy (dst, src, size, flags & ~Memory::RELEASE);
-			release (*release_part, release_ptr, release_size);
-		} else
-			ret = Port::ProtDomainMemory::copy (dst, src, size, flags);
-
-		return ret;
 	}
 
-	return Port::ProtDomainMemory::copy (dst, src, size, flags);
+	UWord release_flags = flags & Memory::RELEASE;
+	if (release_flags == Memory::RELEASE) {
+		BlockList::NodeVal* node = block_list_.lower_bound (src);
+		if (!node)
+			throw_BAD_PARAM ();
+		const MemoryBlock& block = node->value ();
+		if (block.is_large_block ()) {
+			LBErase lberase (block_list_, node);
+			lberase.prepare (src, size);
+			BlockList::NodeVal* new_node = nullptr;
+			try {
+				new_node = block_list_.create_node ();
+				dst = Port::ProtDomainMemory::copy (dst, src, size, flags);
+				if (dst) {
+					uintptr_t au = Port::ProtDomainMemory::query (dst, MemQuery::ALLOCATION_UNIT);
+					uint8_t* begin = round_down ((uint8_t*)dst, au);
+					uint8_t* end = round_up ((uint8_t*)dst + size, au);
+					new_node->value () = MemoryBlock (begin, end - begin);
+				}
+			} catch (...) {
+				if (new_node)
+					block_list_.release_node (new_node);
+				lberase.rollback ();
+				throw;
+			}
+			if (dst) {
+				lberase.commit ();
+				block_list_.insert (new_node);
+			} else {
+				lberase.rollback ();
+				block_list_.release_node (new_node);
+			}
+		} else {
+			// Release from the heap partition
+			uint8_t* heap = block.begin ();
+			if ((uint8_t*)src + size > heap + partition_size ())
+				throw_BAD_PARAM ();
+			size_t offset = (uint8_t*)src - heap;
+			size_t begin = offset / allocation_unit_;
+			size_t end = (offset + size + allocation_unit_ - 1) / allocation_unit_;
+			Directory* part = (Directory*)heap - 1;
+			if (!part->check_allocated (begin, end))
+				throw_BAD_PARAM ();
+
+			uint8_t* rel_begin = round_down ((uint8_t*)src, allocation_unit_);
+			uint8_t* rel_end = round_up ((uint8_t*)src + size, allocation_unit_);
+			uint8_t* alloc_begin = nullptr;
+			uint8_t* alloc_end = nullptr;
+			bool dst_own = true;
+			if (!dst) {
+				if (!(dst = allocate (size, flags | Memory::RESERVED))) {
+					assert (flags & Memory::EXACTLY);
+					return nullptr;
+				}
+				alloc_begin = (uint8_t*)dst;
+				alloc_end = alloc_begin + size;
+			} else if (flags & Memory::ALLOCATE) {
+				alloc_begin = (uint8_t*)dst;
+				alloc_end = alloc_begin + size;
+				if (alloc_begin < (uint8_t*)src) {
+					if (alloc_end > rel_begin) {
+						uint8_t* tmp = rel_begin;
+						rel_begin = round_up (alloc_end, allocation_unit_);
+						alloc_end = tmp;
+					}
+				} else if (alloc_begin < rel_end) {
+					uint8_t* tmp = rel_end;
+					rel_end = round_down (alloc_begin, allocation_unit_);
+					alloc_begin = tmp;
+				}
+
+				if (!allocate (alloc_begin, alloc_end - alloc_begin, flags | Memory::RESERVED | Memory::EXACTLY)) {
+					if (flags & Memory::EXACTLY)
+						return nullptr;
+					dst = allocate (size, flags | Memory::RESERVED);
+					alloc_begin = (uint8_t*)dst;
+					alloc_end = alloc_begin + size;
+					rel_begin = (uint8_t*)src;
+					rel_end = rel_begin + size;
+				}
+			} else
+				dst_own = check_owner (dst, size);
+
+			try {
+				if (dst_own)
+					dst = Port::ProtDomainMemory::copy (dst, src, size, (flags & ~Memory::RELEASE) | Memory::DECOMMIT);
+				else
+					real_copy ((uint8_t*)src, (uint8_t*)src + size, (uint8_t*)dst);
+			} catch (...) {
+				Port::ProtDomainMemory::release (alloc_begin, alloc_end - alloc_begin);
+				throw;
+			}
+			
+			// Release memory
+			offset = rel_begin - heap;
+			begin = offset / allocation_unit_;
+			end = (rel_end - heap + allocation_unit_ - 1) / allocation_unit_;
+			part->release (begin, end, nullptr); // Source memory was already decommitted so we don't pass HeapInfo.
+		}
+
+		return dst;
+
+	} else if (release_flags) {
+		assert (release_flags == Memory::DECOMMIT);
+		if (!check_owner (src, size))
+			throw_BAD_PARAM ();
+	}
+
+	uint8_t* alloc_begin = nullptr;
+	uint8_t* alloc_end = nullptr;
+	bool dst_own = true;
+	if (!dst) {
+		if (!(dst = allocate (size, flags | Memory::RESERVED))) {
+			assert (flags & Memory::EXACTLY);
+			return nullptr;
+		}
+		alloc_begin = (uint8_t*)dst;
+		alloc_end = alloc_begin + size;
+	} else if (flags & Memory::ALLOCATE) {
+		uintptr_t au = query (dst, MemQuery::ALLOCATION_UNIT);
+		alloc_begin = round_down ((uint8_t*)dst, au);
+		alloc_end = round_up ((uint8_t*)dst + size, au);
+		if (alloc_begin < (uint8_t*)src) {
+			if (alloc_end > (uint8_t*)src)
+				alloc_end = round_down ((uint8_t*)src, au);
+		} else {
+			uint8_t* src_end = (uint8_t*)src + size;
+			if (alloc_begin < src_end)
+				alloc_begin = round_up (src_end, au);
+		}
+		if (!allocate (alloc_begin, alloc_end - alloc_begin, flags | Memory::RESERVED | Memory::EXACTLY)) {
+			if (flags & Memory::EXACTLY)
+				return nullptr;
+			dst = allocate (size, flags | Memory::RESERVED);
+			alloc_begin = (uint8_t*)dst;
+			alloc_end = alloc_begin + size;
+		}
+	} else
+		dst_own = check_owner (dst, size);
+
+	try {
+		if (dst_own)
+			dst = Port::ProtDomainMemory::copy (dst, src, size, (flags & ~Memory::RELEASE) | Memory::DECOMMIT);
+		else
+			real_copy ((uint8_t*)src, (uint8_t*)src + size, (uint8_t*)dst);
+	} catch (...) {
+		Port::ProtDomainMemory::release (alloc_begin, alloc_end - alloc_begin);
+		throw;
+	}
+
+	return dst;
 }
 
 uintptr_t Heap::query (const void* p, MemQuery param)
 {
 	if (MemQuery::ALLOCATION_UNIT == param) {
-		if (!p || get_partition (p))
+		if (!p || get_partition (p, 0))
 			return allocation_unit_;
 	} else if (p && (param == MemQuery::ALLOCATION_SPACE_BEGIN || param == MemQuery::ALLOCATION_SPACE_END)) {
-		const Directory* part = get_partition (p);
+		const Directory* part = get_partition (p, 0);
 		if (part) {
 			if (param == MemQuery::ALLOCATION_SPACE_BEGIN)
 				return (uintptr_t)(part + 1);
@@ -472,20 +578,49 @@ uintptr_t Heap::query (const void* p, MemQuery param)
 	return Port::ProtDomainMemory::query (p, param);
 }
 
-void Heap::check_owner (const void* p, size_t size)
+bool Heap::check_owner (const void* p, size_t size)
 {
 	bool ok = false;
 	BlockList::NodeVal* node = block_list_.lower_bound (p);
 	if (node) {
-		const MemoryBlock& block = node->value ();
-		if (block.is_large_block ())
-			ok = p < block.begin () + block.large_block_size ();
-		else
-			ok = p < block.begin () + partition_size ();
-		block_list_.release_node (node);
+		const MemoryBlock* block = &node->value ();
+		if (block->is_large_block ()) {
+			uint8_t* block_end = block->begin () + block->large_block_size ();
+			if ((uint8_t*)p < block_end) {
+				uint8_t* end = (uint8_t*)p + size;
+				for (;;) {
+					if (end <= block_end) {
+						ok = true;
+						break;
+					}
+					block_list_.release_node (node);
+					node = block_list_.find (block_end);
+					if (!node)
+						break;
+					block = &node->value ();
+					if (!block->is_large_block ())
+						break;
+					size_t block_size = block->large_block_size ();
+					if (!block_size)
+						break;
+					block_end = block->begin () + block_size;
+				}
+			}
+			if (node)
+				block_list_.release_node (node);
+		} else {
+			uint8_t* heap = block->begin ();
+			if ((uint8_t*)p + size <= heap + partition_size ()) {
+				size_t offset = (uint8_t*)p - heap;
+				size_t begin = offset / allocation_unit_;
+				size_t end = (offset + size + allocation_unit_ - 1) / allocation_unit_;
+				Directory* part = (Directory*)heap - 1;
+				ok = part->check_allocated (begin, end);
+			}
+			block_list_.release_node (node);
+		}
 	}
-	if (!ok)
-		throw CORBA::BAD_PARAM ();
+	return ok;
 }
 
 void Heap::cleanup ()

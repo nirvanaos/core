@@ -24,22 +24,6 @@ public:
 	}
 };
 
-template <class T>
-class CoreAllocator :
-	public std::allocator <T>
-{
-public:
-	void deallocate (T* p, size_t cnt)
-	{
-		g_core_heap->release (p, cnt * sizeof (T));
-	}
-
-	T* allocate (size_t cnt, void* hint = nullptr)
-	{
-		return (T*)g_core_heap->allocate (0, cnt * sizeof (T), 0);
-	}
-};
-
 }
 }
 

@@ -7,11 +7,20 @@
 namespace Nirvana {
 namespace Core {
 
+template <class T>
+class CoreAllocator :
+	public std::allocator <T>
+{
+public:
+	void deallocate (T* p, size_t cnt);
+	T* allocate (size_t cnt, void* hint = nullptr);
+};
+
 class Heap
 {
 	// Skip list level count for heap skip list.
 	// May be moved to Port/config.h
-	static const unsigned SKIP_LIST_LEVELS = 16;
+	static const unsigned SKIP_LIST_LEVELS = 10;
 
 public:
 	static void initialize ();
@@ -31,13 +40,15 @@ public:
 
 	void commit (void* p, size_t size)
 	{
-		check_owner (p, size);
+		if (!check_owner (p, size))
+			throw_BAD_PARAM ();
 		Port::ProtDomainMemory::commit (p, size);
 	}
 
 	void decommit (void* p, size_t size)
 	{
-		check_owner (p, size);
+		if (!check_owner (p, size))
+			throw_BAD_PARAM ();
 		Port::ProtDomainMemory::decommit (p, size);
 	}
 
@@ -72,6 +83,9 @@ protected:
 	class MemoryBlock
 	{
 	public:
+		MemoryBlock () NIRVANA_NOEXCEPT
+		{}
+
 		MemoryBlock (const void* p) NIRVANA_NOEXCEPT :
 			begin_ ((uint8_t*)p)
 		{}
@@ -123,6 +137,10 @@ protected:
 		{
 			return begin_ > rhs.begin_;
 		}
+
+		bool collapse_large_block (size_t size) NIRVANA_NOEXCEPT;
+
+		void restore_large_block (size_t size) NIRVANA_NOEXCEPT;
 
 	private:
 		// Pointer to the memory block.
@@ -196,7 +214,7 @@ protected:
 		Port::ProtDomainMemory::release (dir, sizeof (Directory) + partition_size (allocation_unit_));
 	}
 
-	Directory* get_partition (const void* p) NIRVANA_NOEXCEPT;
+	Directory* get_partition (const void* p, size_t size) NIRVANA_NOEXCEPT;
 
 	static void* allocate (Directory& part, size_t size, UWord flags, size_t allocation_unit) NIRVANA_NOEXCEPT;
 
@@ -205,17 +223,65 @@ protected:
 		return allocate (part, size, flags, allocation_unit_);
 	}
 
-	bool allocate (Directory& part, void* p, size_t size, UWord flags) const NIRVANA_NOEXCEPT;
+	void* allocate (Directory& part, void* p, size_t size, UWord flags) const NIRVANA_NOEXCEPT;
 
 	void* allocate (size_t size, UWord flags);
 
+	void check_allocated (Directory& part, void* p, size_t size) const;
 	void release (Directory& part, void* p, size_t size) const;
-
-	void add_large_block (void* p, size_t size);
 
 	virtual MemoryBlock* add_new_partition (MemoryBlock*& tail);
 
-	void check_owner (const void* p, size_t size);
+	void add_large_block (void* p, size_t size);
+
+	bool check_owner (const void* p, size_t size);
+
+	/// \summary Atomically erase large block information from the block list.
+	class LBErase
+	{
+	public:
+		/// \param block_list The block list.
+		/// \param first_node First large block node found in the block list.
+		/// \param p Begin of the released memory.
+		/// \param size Size of the released memory.
+		LBErase (BlockList& block_list, BlockList::NodeVal* first_node);
+		~LBErase () NIRVANA_NOEXCEPT;
+
+		void prepare (void* p, size_t size);
+		void commit () NIRVANA_NOEXCEPT;
+		void rollback () NIRVANA_NOEXCEPT;
+
+	private:
+		void rollback_helper () NIRVANA_NOEXCEPT;
+
+		struct LBNode
+		{
+			BlockList::NodeVal* node;
+			size_t size;
+
+			bool collapse () NIRVANA_NOEXCEPT
+			{
+				return node->value ().collapse_large_block (size);
+			}
+
+			void restore () NIRVANA_NOEXCEPT
+			{
+				node->value ().restore_large_block (size);
+			}
+
+			void restore (size_t new_size) NIRVANA_NOEXCEPT
+			{
+				node->value ().restore_large_block (new_size);
+			}
+		};
+
+		BlockList& block_list_;
+		LBNode first_block_, last_block_;
+		typedef std::vector <LBNode, CoreAllocator <LBNode> > MiddleBlocks;
+		MiddleBlocks middle_blocks_;
+		BlockList::NodeVal* new_node_;
+		size_t shrink_size_;
+	};
 
 protected:
 	size_t allocation_unit_;
@@ -235,6 +301,18 @@ private:
 };
 
 extern Heap* g_core_heap;
+
+template <class T> inline
+void CoreAllocator <T>::deallocate (T* p, size_t cnt)
+{
+	g_core_heap->release (p, cnt * sizeof (T));
+}
+
+template <class T> inline
+T* CoreAllocator <T>::allocate (size_t cnt, void* hint)
+{
+	return (T*)g_core_heap->allocate (0, cnt * sizeof (T), 0);
+}
 
 }
 }
