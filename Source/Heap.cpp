@@ -189,7 +189,7 @@ void Heap::release (Directory& part, void* p, size_t size) const
 	part.release (begin, end, &hi);
 }
 
-Heap::Directory* Heap::get_partition (const void* p, size_t size) NIRVANA_NOEXCEPT
+Heap::Directory* Heap::get_partition (const void* p) NIRVANA_NOEXCEPT
 {
 	assert (p);
 	Directory* part = nullptr;
@@ -200,13 +200,8 @@ Heap::Directory* Heap::get_partition (const void* p, size_t size) NIRVANA_NOEXCE
 			block_list_.release_node (node);
 		else {
 			block_list_.release_node (node);
-			uint8_t* part_end = block.begin () + partition_size ();
-			if (p < part_end) {
-				if ((uint8_t*)p + size <= part_end)
-					part = &block.directory ();
-				else
-					throw_BAD_PARAM ();
-			}
+			if (p < block.begin () + partition_size ())
+				part = &block.directory ();
 		}
 	}
 	return part;
@@ -222,39 +217,24 @@ void* Heap::allocate (void* p, size_t size, UWord flags)
 
 	if (p) {
 		// Explicit address allocation
-		BlockList::NodeVal* node = block_list_.lower_bound (p);
-		if (node) {
-			const MemoryBlock& block = node->value ();
-			if (!block.is_large_block ()) {
-				block_list_.release_node (node);
-				uint8_t* part_end = block.begin () + partition_size ();
-				if (p < part_end) {
-					if ((p = allocate (block.directory (), p, size, flags)) || (flags & Memory::EXACTLY))
-						return p;
-				} else {
-					// Don't let to expand block behind the end of partition.
-					uintptr_t au = Port::ProtDomainMemory::query (p, MemQuery::ALLOCATION_UNIT);
-					if (round_down (p, au) == part_end) {
-						p = nullptr;
-						if (flags & Memory::EXACTLY)
-							return p;
-					}
-				}
-			} else {
-				block_list_.release_node (node);
-				p = Port::ProtDomainMemory::allocate (p, size, flags | Memory::EXACTLY);
-				if (!p) {
-					if (flags & Memory::EXACTLY)
-						return p;
-				} else
-					add_large_block (p, size);
-			}
+		Directory* dir = get_partition (p);
+		if (dir) {
+			if ((p = allocate (*dir, p, size, flags)) || (flags & Memory::EXACTLY))
+				return p;
+		} else {
+			if (p = Port::ProtDomainMemory::allocate (p, size, flags | Memory::EXACTLY))
+				add_large_block (p, size);
+			else if (flags & Memory::EXACTLY)
+				return nullptr;
 		}
 	}
 
 	if (!p) {
 		if (size > Directory::MAX_BLOCK_SIZE * allocation_unit_ || ((flags & Memory::RESERVED) && size >= Port::ProtDomainMemory::OPTIMAL_COMMIT_UNIT)) {
-			p = Port::ProtDomainMemory::allocate (nullptr, size, flags);
+			if (!(p = Port::ProtDomainMemory::allocate (nullptr, size, flags))) {
+				assert (flags & Memory::EXACTLY);
+				return nullptr;
+			}
 			add_large_block (p, size);
 		} else {
 			try {
@@ -564,10 +544,10 @@ void* Heap::copy (void* dst, void* src, size_t size, UWord flags)
 uintptr_t Heap::query (const void* p, MemQuery param)
 {
 	if (MemQuery::ALLOCATION_UNIT == param) {
-		if (!p || get_partition (p, 0))
+		if (!p || get_partition (p))
 			return allocation_unit_;
 	} else if (p && (param == MemQuery::ALLOCATION_SPACE_BEGIN || param == MemQuery::ALLOCATION_SPACE_END)) {
-		const Directory* part = get_partition (p, 0);
+		const Directory* part = get_partition (p);
 		if (part) {
 			if (param == MemQuery::ALLOCATION_SPACE_BEGIN)
 				return (uintptr_t)(part + 1);

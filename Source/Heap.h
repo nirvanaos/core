@@ -214,7 +214,7 @@ protected:
 		Port::ProtDomainMemory::release (dir, sizeof (Directory) + partition_size (allocation_unit_));
 	}
 
-	Directory* get_partition (const void* p, size_t size) NIRVANA_NOEXCEPT;
+	Directory* get_partition (const void* p) NIRVANA_NOEXCEPT;
 
 	static void* allocate (Directory& part, size_t size, UWord flags, size_t allocation_unit) NIRVANA_NOEXCEPT;
 

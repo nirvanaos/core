@@ -4,7 +4,6 @@
 #include <thread>
 #include <atomic>
 
-using namespace ::CORBA;
 using namespace ::Nirvana;
 using namespace ::std;
 
@@ -70,9 +69,9 @@ TEST_F (TestHeap, Heap)
 */
 struct Block
 {
-	ULong tag;
-	ULong* begin;
-	ULong* end;
+	UWord tag;
+	UWord* begin;
+	UWord* end;
 
 	bool operator < (const Block& rhs) const
 	{
@@ -99,35 +98,31 @@ public:
 private:
 	mt19937 rndgen_;
 	vector <Block> allocated_;
-	static atomic <ULong> next_tag_;
+	static atomic <UWord> next_tag_;
 	static atomic <size_t> total_allocated_;
 };
 
 atomic <size_t> RandomAllocator::total_allocated_ = 0;
-atomic <ULong> RandomAllocator::next_tag_ = 1;
+atomic <UWord> RandomAllocator::next_tag_ = 1;
 
 void RandomAllocator::run (Core::Heap* memory, int iterations)
 {
-	static const ULong MAX_MEMORY = 0x20000000;	// 512M
-	static const ULong MAX_BLOCK = 0x1000000;	// 16M
+	static const size_t MAX_MEMORY = 0x20000000;	// 512M
+	static const size_t MAX_BLOCK = 0x1000000;	// 16M
 	for (int i = 0; i < iterations; ++i) {
 		size_t total = total_allocated_;
 		bool rel = !allocated_.empty () 
 			&& (total >= MAX_MEMORY || bernoulli_distribution ((double)total / (double)MAX_MEMORY)(rndgen_));
 		if (!rel) {
-			ULong size = poisson_distribution <> (16)(rndgen_) * sizeof (ULong);
-			if (!size)
-				size = sizeof (ULong);
-			else if (size > MAX_BLOCK)
-				size = MAX_BLOCK;
+			size_t size = uniform_int_distribution <size_t> (1, MAX_BLOCK / sizeof (UWord))(rndgen_) * sizeof (UWord);
 			try {
-				ULong* block = (ULong*)memory->allocate (0, size, 0);
-				ULong tag = next_tag_++;
+				UWord* block = (UWord*)memory->allocate (0, size, 0);
+				UWord tag = next_tag_++;
 				total_allocated_ += size;
 				*block = tag;
-				block [size / sizeof (ULong) - 1] = tag;
-				allocated_.push_back ({tag, block, block + size / sizeof (ULong)});
-			} catch (const NO_MEMORY&) {
+				block [size / sizeof (UWord) - 1] = tag;
+				allocated_.push_back ({tag, block, block + size / sizeof (UWord)});
+			} catch (const CORBA::NO_MEMORY&) {
 				rel = true;
 			}
 		}
@@ -138,8 +133,8 @@ void RandomAllocator::run (Core::Heap* memory, int iterations)
 			Block& block = allocated_ [idx];
 			ASSERT_EQ (block.tag, *block.begin);
 			ASSERT_EQ (block.tag, *(block.end - 1));
-			memory->release (block.begin, (block.end - block.begin) * sizeof (ULong));
-			total_allocated_ -= (block.end - block.begin) * sizeof (ULong);
+			memory->release (block.begin, (block.end - block.begin) * sizeof (UWord));
+			total_allocated_ -= (block.end - block.begin) * sizeof (UWord);
 			allocated_.erase (allocated_.begin () + idx);
 		}
 	}
@@ -176,8 +171,8 @@ void AllocatedBlocks::add (const vector <Block>& blocks)
 void AllocatedBlocks::check (Core::Heap* memory)
 {
 	for (auto p = cbegin (); p != cend (); ++p) {
-		memory->release (p->begin, (p->end - p->begin) * sizeof (ULong));
-		ULong* bl = (ULong*)memory->allocate (p->begin, (p->end - p->begin) * sizeof (ULong), Memory::EXACTLY);
+		memory->release (p->begin, (p->end - p->begin) * sizeof (UWord));
+		UWord* bl = (UWord*)memory->allocate (p->begin, (p->end - p->begin) * sizeof (UWord), Memory::EXACTLY);
 		assert (bl);
 		ASSERT_EQ (p->begin, bl);
 		*(p->begin) = p->tag;
@@ -199,7 +194,7 @@ TEST_F (TestHeap, Random)
 	}
 
 	for (auto p = ra.allocated ().cbegin (); p != ra.allocated ().cend (); ++p)
-		Core::g_core_heap->release (p->begin, (p->end - p->begin) * sizeof (ULong));
+		Core::g_core_heap->release (p->begin, (p->end - p->begin) * sizeof (UWord));
 }
 
 class ThreadAllocator :
@@ -244,7 +239,7 @@ TEST_F (TestHeap, MultiThread)
 
 	for (auto pt = threads.begin (); pt != threads.end (); ++pt) {
 		for (auto p = pt->allocated ().cbegin (); p != pt->allocated ().cend (); ++p)
-			Core::g_core_heap->release (p->begin, (p->end - p->begin) * sizeof (ULong));
+			Core::g_core_heap->release (p->begin, (p->end - p->begin) * sizeof (UWord));
 	}
 }
 
