@@ -111,23 +111,62 @@ void RandomAllocator::run (Core::Heap* memory, int iterations)
 	static const size_t MAX_BLOCK = 0x1000000;	// 16M
 	for (int i = 0; i < iterations; ++i) {
 		size_t total = total_allocated_;
-		bool rel = !allocated_.empty () 
-			&& (total >= MAX_MEMORY || bernoulli_distribution ((double)total / (double)MAX_MEMORY)(rndgen_));
-		if (!rel) {
-			size_t size = uniform_int_distribution <size_t> (1, MAX_BLOCK / sizeof (UWord))(rndgen_) * sizeof (UWord);
+		enum Op
+		{
+			OP_ALLOCATE,
+			OP_COPY_RO,
+			OP_COPY_RW,
+			OP_COPY_CHANGE,
+			OP_RELEASE
+		};
+		Op op;
+		if (allocated_.empty ())
+			op = OP_ALLOCATE;
+		else if (total >= MAX_MEMORY || bernoulli_distribution ((double)total / (double)MAX_MEMORY)(rndgen_))
+			op = OP_RELEASE;
+		else
+			op = (Op)uniform_int_distribution <> (OP_COPY_RO, OP_COPY_CHANGE) (rndgen_);
+
+		if (op != OP_RELEASE) {
 			try {
-				UWord* block = (UWord*)memory->allocate (0, size, 0);
-				UWord tag = next_tag_++;
-				total_allocated_ += size;
-				*block = tag;
-				block [size / sizeof (UWord) - 1] = tag;
-				allocated_.push_back ({tag, block, block + size / sizeof (UWord)});
+				switch (op) {
+					case OP_ALLOCATE:
+					{
+						size_t size = uniform_int_distribution <size_t> (1, MAX_BLOCK / sizeof (UWord))(rndgen_) * sizeof (UWord);
+						UWord* block = (UWord*)memory->allocate (nullptr, size, 0);
+						total_allocated_ += size;
+						UWord tag = next_tag_++;
+						*block = tag;
+						block [size / sizeof (UWord) - 1] = tag;
+						allocated_.push_back ({ tag, block, block + size / sizeof (UWord) });
+					}
+					break;
+
+					case OP_COPY_RO:
+					case OP_COPY_RW:
+					case OP_COPY_CHANGE:
+					{
+						size_t idx = uniform_int_distribution <size_t> (0, allocated_.size () - 1)(rndgen_);
+						Block& src = allocated_ [idx];
+						size_t size = (src.end - src.begin) * sizeof (UWord);
+						UWord* block = (UWord*)memory->copy (nullptr, src.begin, size, OP_COPY_RO == op ? Memory::READ_ONLY : 0);
+						total_allocated_ += size;
+						UWord tag;
+						if (OP_COPY_CHANGE == op) {
+							tag = next_tag_++;
+							*block = tag;
+							block [size / sizeof (UWord) - 1] = tag;
+						} else
+							tag = src.tag;
+						allocated_.push_back ({ tag, block, block + size / sizeof (UWord) });
+					}
+				}
 			} catch (const CORBA::NO_MEMORY&) {
-				rel = true;
+				op = OP_RELEASE;
 			}
 		}
 
-		if (rel) {
+		if (OP_RELEASE == op) {
 			ASSERT_FALSE (allocated_.empty ());
 			size_t idx = uniform_int_distribution <size_t> (0, allocated_.size () - 1)(rndgen_);
 			Block& block = allocated_ [idx];

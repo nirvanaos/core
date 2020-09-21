@@ -229,40 +229,41 @@ void* Heap::allocate (void* p, size_t size, UWord flags)
 		}
 	}
 
-	if (!p) {
-		if (size > Directory::MAX_BLOCK_SIZE * allocation_unit_ || ((flags & Memory::RESERVED) && size >= Port::ProtDomainMemory::OPTIMAL_COMMIT_UNIT)) {
-			if (!(p = Port::ProtDomainMemory::allocate (nullptr, size, flags))) {
-				assert (flags & Memory::EXACTLY);
-				return nullptr;
-			}
-			add_large_block (p, size);
-		} else {
-			try {
-				p = allocate (size, flags);
-			} catch (const CORBA::NO_MEMORY&) {
-				if (flags & Memory::EXACTLY)
-					return nullptr;
-				throw;
-			}
-		}
-	}
+	if (!p)
+		p = allocate (size, flags);
 
 	return p;
 }
 
 void* Heap::allocate (size_t size, UWord flags)
 {
-	MemoryBlock** link = &part_list_;
-	for (;;) {
-		MemoryBlock* part = *link;
-		if (part) {
-			void* p = allocate (part->directory (), size, flags);
-			if (p)
-				return p;
-			link = &part->next_partition ();
-		} else
-			part = add_new_partition (*link);
+	void* p;
+	if (size > Directory::MAX_BLOCK_SIZE * allocation_unit_ || ((flags & Memory::RESERVED) && size >= Port::ProtDomainMemory::OPTIMAL_COMMIT_UNIT)) {
+		if (!(p = Port::ProtDomainMemory::allocate (nullptr, size, flags))) {
+			assert (flags & Memory::EXACTLY);
+			return nullptr;
+		}
+		add_large_block (p, size);
+	} else {
+		try {
+			MemoryBlock** link = &part_list_;
+			for (;;) {
+				MemoryBlock* part = *link;
+				if (part) {
+					void* p = allocate (part->directory (), size, flags);
+					if (p)
+						return p;
+					link = &part->next_partition ();
+				} else
+					part = add_new_partition (*link);
+			}
+		} catch (const CORBA::NO_MEMORY&) {
+			if (flags & Memory::EXACTLY)
+				return nullptr;
+			throw;
+		}
 	}
+	return p;
 }
 
 void Heap::add_large_block (void* p, size_t size)
@@ -381,11 +382,9 @@ void* Heap::copy (void* dst, void* src, size_t size, UWord flags)
 	if (dst == src) {
 		if (check_owner (dst, size))
 			return Port::ProtDomainMemory::copy (dst, src, size, flags);
-		else {
-			if (!Port::ProtDomainMemory::is_writable (dst, size))
-				throw_NO_PERMISSION ();
-			return dst;
-		}
+		else if ((flags & Memory::READ_ONLY) || !Port::ProtDomainMemory::is_writable (dst, size))
+			throw_BAD_PARAM ();
+		return dst;
 	}
 
 	UWord release_flags = flags & Memory::RELEASE;
@@ -438,7 +437,7 @@ void* Heap::copy (void* dst, void* src, size_t size, UWord flags)
 			uint8_t* alloc_end = nullptr;
 			bool dst_own = true;
 			if (!dst) {
-				if (!(dst = allocate (size, flags | Memory::RESERVED))) {
+				if (!(dst = allocate (size, (flags & ~Memory::READ_ONLY) | Memory::RESERVED))) {
 					assert (flags & Memory::EXACTLY);
 					return nullptr;
 				}
@@ -459,17 +458,20 @@ void* Heap::copy (void* dst, void* src, size_t size, UWord flags)
 					alloc_begin = tmp;
 				}
 
-				if (!allocate (alloc_begin, alloc_end - alloc_begin, flags | Memory::RESERVED | Memory::EXACTLY)) {
+				if (!allocate (alloc_begin, alloc_end - alloc_begin, (flags & ~Memory::READ_ONLY) | Memory::RESERVED | Memory::EXACTLY)) {
 					if (flags & Memory::EXACTLY)
 						return nullptr;
-					dst = allocate (size, flags | Memory::RESERVED);
+					dst = allocate (size, (flags & ~Memory::READ_ONLY) | Memory::RESERVED);
 					alloc_begin = (uint8_t*)dst;
 					alloc_end = alloc_begin + size;
 					rel_begin = (uint8_t*)src;
 					rel_end = rel_begin + size;
 				}
-			} else
+			} else {
 				dst_own = check_owner (dst, size);
+				if (!dst_own && (flags & Memory::READ_ONLY))
+					throw_BAD_PARAM ();
+			}
 
 			try {
 				if (dst_own)
@@ -500,7 +502,7 @@ void* Heap::copy (void* dst, void* src, size_t size, UWord flags)
 	uint8_t* alloc_end = nullptr;
 	bool dst_own = true;
 	if (!dst) {
-		if (!(dst = allocate (size, flags | Memory::RESERVED))) {
+		if (!(dst = allocate (size, (flags & ~Memory::READ_ONLY) | Memory::RESERVED))) {
 			assert (flags & Memory::EXACTLY);
 			return nullptr;
 		}
@@ -518,19 +520,24 @@ void* Heap::copy (void* dst, void* src, size_t size, UWord flags)
 			if (alloc_begin < src_end)
 				alloc_begin = round_up (src_end, au);
 		}
-		if (!allocate (alloc_begin, alloc_end - alloc_begin, flags | Memory::RESERVED | Memory::EXACTLY)) {
+		if (!allocate (alloc_begin, alloc_end - alloc_begin, (flags & ~Memory::READ_ONLY) | Memory::RESERVED | Memory::EXACTLY)) {
 			if (flags & Memory::EXACTLY)
 				return nullptr;
 			dst = allocate (size, flags | Memory::RESERVED);
 			alloc_begin = (uint8_t*)dst;
 			alloc_end = alloc_begin + size;
 		}
-	} else
+	} else if (flags & Memory::READ_ONLY)
+		throw_BAD_PARAM ();
+	else {
 		dst_own = check_owner (dst, size);
+		if (!dst_own && (flags & Memory::READ_ONLY))
+			throw_BAD_PARAM ();
+	}
 
 	try {
 		if (dst_own)
-			dst = Port::ProtDomainMemory::copy (dst, src, size, (flags & ~Memory::RELEASE) | Memory::DECOMMIT);
+			dst = Port::ProtDomainMemory::copy (dst, src, size, flags);
 		else
 			real_copy ((uint8_t*)src, (uint8_t*)src + size, (uint8_t*)dst);
 	} catch (...) {
