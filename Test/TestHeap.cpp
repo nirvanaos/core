@@ -117,6 +117,7 @@ void RandomAllocator::run (Core::Heap* memory, int iterations)
 			OP_COPY_RO,
 			OP_COPY_RW,
 			OP_COPY_CHANGE,
+
 			OP_RELEASE
 		};
 		Op op;
@@ -125,7 +126,7 @@ void RandomAllocator::run (Core::Heap* memory, int iterations)
 		else if (total >= MAX_MEMORY || bernoulli_distribution ((double)total / (double)MAX_MEMORY)(rndgen_))
 			op = OP_RELEASE;
 		else
-			op = (Op)uniform_int_distribution <> (OP_COPY_RO, OP_COPY_CHANGE) (rndgen_);
+			op = (Op)uniform_int_distribution <> (OP_ALLOCATE, OP_RELEASE - 1) (rndgen_);
 
 		if (op != OP_RELEASE) {
 			try {
@@ -143,6 +144,8 @@ void RandomAllocator::run (Core::Heap* memory, int iterations)
 					break;
 
 					case OP_COPY_RO:
+						break; // TODO: Does not work
+
 					case OP_COPY_RW:
 					case OP_COPY_CHANGE:
 					{
