@@ -383,7 +383,7 @@ void* Heap::copy (void* dst, void* src, size_t size, UWord flags)
 		if (check_owner (dst, size))
 			return Port::ProtDomainMemory::copy (dst, src, size, flags);
 		else if ((flags & Memory::READ_ONLY) || !Port::ProtDomainMemory::is_writable (dst, size))
-			throw_BAD_PARAM ();
+			throw_NO_PERMISSION ();
 		return dst;
 	}
 
@@ -431,63 +431,61 @@ void* Heap::copy (void* dst, void* src, size_t size, UWord flags)
 			if (!part->check_allocated (begin, end))
 				throw_BAD_PARAM ();
 
-			uint8_t* rel_begin = round_down ((uint8_t*)src, allocation_unit_);
-			uint8_t* rel_end = round_up ((uint8_t*)src + size, allocation_unit_);
-			uint8_t* alloc_begin = nullptr;
-			uint8_t* alloc_end = nullptr;
-			bool dst_own = true;
 			if (!dst) {
-				if (!(dst = allocate (size, (flags & ~Memory::READ_ONLY) | Memory::RESERVED))) {
-					assert (flags & Memory::EXACTLY);
-					return nullptr;
-				}
-				alloc_begin = (uint8_t*)dst;
-				alloc_end = alloc_begin + size;
-			} else if (flags & Memory::ALLOCATE) {
-				alloc_begin = (uint8_t*)dst;
-				alloc_end = alloc_begin + size;
-				if (alloc_begin < (uint8_t*)src) {
-					if (alloc_end > rel_begin) {
-						uint8_t* tmp = rel_begin;
-						rel_begin = round_up (alloc_end, allocation_unit_);
-						alloc_end = tmp;
-					}
-				} else if (alloc_begin < rel_end) {
-					uint8_t* tmp = rel_end;
-					rel_end = round_down (alloc_begin, allocation_unit_);
-					alloc_begin = tmp;
-				}
-
-				if (!allocate (alloc_begin, alloc_end - alloc_begin, (flags & ~Memory::READ_ONLY) | Memory::RESERVED | Memory::EXACTLY)) {
-					if (flags & Memory::EXACTLY)
-						return nullptr;
-					dst = allocate (size, (flags & ~Memory::READ_ONLY) | Memory::RESERVED);
+				// Memory::RELEASE is specified, so we can use source block as destination
+				dst = Port::ProtDomainMemory::copy (src, src, size, (flags & ~Memory::RELEASE) | Memory::DECOMMIT);
+			} else {
+				uint8_t* rel_begin = round_down ((uint8_t*)src, allocation_unit_);
+				uint8_t* rel_end = round_up ((uint8_t*)src + size, allocation_unit_);
+				uint8_t* alloc_begin = nullptr;
+				uint8_t* alloc_end = nullptr;
+				bool dst_own = true;
+				if (flags & Memory::ALLOCATE) {
 					alloc_begin = (uint8_t*)dst;
 					alloc_end = alloc_begin + size;
-					rel_begin = (uint8_t*)src;
-					rel_end = rel_begin + size;
-				}
-			} else {
-				dst_own = check_owner (dst, size);
-				if (!dst_own && (flags & Memory::READ_ONLY))
-					throw_BAD_PARAM ();
-			}
+					if (alloc_begin < (uint8_t*)src) {
+						if (alloc_end > rel_begin) {
+							uint8_t* tmp = rel_begin;
+							rel_begin = round_up (alloc_end, allocation_unit_);
+							alloc_end = tmp;
+						}
+					} else if (alloc_begin < rel_end) {
+						uint8_t* tmp = rel_end;
+						rel_end = round_down (alloc_begin, allocation_unit_);
+						alloc_begin = tmp;
+					}
 
-			try {
-				if (dst_own)
-					dst = Port::ProtDomainMemory::copy (dst, src, size, (flags & ~Memory::RELEASE) | Memory::DECOMMIT);
-				else
-					real_copy ((uint8_t*)src, (uint8_t*)src + size, (uint8_t*)dst);
-			} catch (...) {
-				Port::ProtDomainMemory::release (alloc_begin, alloc_end - alloc_begin);
-				throw;
+					if (!allocate (alloc_begin, alloc_end - alloc_begin, (flags & ~Memory::READ_ONLY) | Memory::RESERVED | Memory::EXACTLY)) {
+						if (flags & Memory::EXACTLY)
+							return nullptr;
+						dst = allocate (size, (flags & ~Memory::READ_ONLY) | Memory::RESERVED);
+						alloc_begin = (uint8_t*)dst;
+						alloc_end = alloc_begin + size;
+						rel_begin = (uint8_t*)src;
+						rel_end = rel_begin + size;
+					}
+				} else {
+					dst_own = check_owner (dst, size);
+					if (!dst_own && (flags & Memory::READ_ONLY))
+						throw_NO_PERMISSION ();
+				}
+
+				try {
+					if (dst_own)
+						dst = Port::ProtDomainMemory::copy (dst, src, size, (flags & ~Memory::RELEASE) | Memory::DECOMMIT);
+					else
+						real_copy ((uint8_t*)src, (uint8_t*)src + size, (uint8_t*)dst);
+				} catch (...) {
+					Port::ProtDomainMemory::release (alloc_begin, alloc_end - alloc_begin);
+					throw;
+				}
+
+				// Release memory
+				offset = rel_begin - heap;
+				begin = offset / allocation_unit_;
+				end = (rel_end - heap + allocation_unit_ - 1) / allocation_unit_;
+				part->release (begin, end, nullptr); // Source memory was already decommitted so we don't pass HeapInfo.
 			}
-			
-			// Release memory
-			offset = rel_begin - heap;
-			begin = offset / allocation_unit_;
-			end = (rel_end - heap + allocation_unit_ - 1) / allocation_unit_;
-			part->release (begin, end, nullptr); // Source memory was already decommitted so we don't pass HeapInfo.
 		}
 
 		return dst;
@@ -495,7 +493,7 @@ void* Heap::copy (void* dst, void* src, size_t size, UWord flags)
 	} else if (release_flags) {
 		assert (release_flags == Memory::DECOMMIT);
 		if (!check_owner (src, size))
-			throw_BAD_PARAM ();
+			throw_NO_PERMISSION ();
 	}
 
 	uint8_t* alloc_begin = nullptr;

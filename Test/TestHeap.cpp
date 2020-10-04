@@ -144,8 +144,6 @@ void RandomAllocator::run (Core::Heap* memory, int iterations)
 					break;
 
 					case OP_COPY_RO:
-						break; // TODO: Does not work
-
 					case OP_COPY_RW:
 					case OP_COPY_CHANGE:
 					{

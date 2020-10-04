@@ -221,7 +221,6 @@ typename LockablePtr <TAG_BITS, ALIGN>::Ptr LockablePtr <TAG_BITS, ALIGN>::lock 
 			if (ptr_.compare_exchange_weak (cur, cur + Ptr::TAG_MASK + 1, std::memory_order_acquire))
 				return Ptr (cur & ~SPIN_MASK);
 		}
-		;
 	}
 }
 
