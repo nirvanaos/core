@@ -61,13 +61,13 @@ class HeapDirectoryBase
 public:
 	HeapDirectoryBase () {}
 
-	static const UWord HEAP_LEVELS = 11;
-	static const UWord MAX_BLOCK_SIZE = 1 << (HEAP_LEVELS - 1);
+	static const size_t HEAP_LEVELS = 11;
+	static const size_t MAX_BLOCK_SIZE = 1 << (HEAP_LEVELS - 1);
 
 protected:
 	struct BitmapIndex
 	{
-		UWord level;
+		size_t level;
 		size_t bitmap_offset;
 	};
 };
@@ -118,7 +118,7 @@ class HeapDirectoryTraits <0x10000> :
 	public HeapDirectoryTraitsBase <0x10000>
 {
 public:
-	static const UWord FREE_BLOCK_INDEX_SIZE = 15;
+	static const size_t FREE_BLOCK_INDEX_SIZE = 15;
 
 	// По размеру блока определает смещение начала поиска в free_block_index_
 	static const size_t block_index_offset_ [HEAP_LEVELS];
@@ -133,10 +133,10 @@ class HeapDirectoryTraits <0x8000> :
 	public HeapDirectoryTraitsBase <0x8000>
 {
 public:
-	static const UWord FREE_BLOCK_INDEX_SIZE = 8;
+	static const size_t FREE_BLOCK_INDEX_SIZE = 8;
 
 	// По размеру блока определает смещение начала поиска в free_block_index_
-	static const UWord block_index_offset_ [HEAP_LEVELS];
+	static const size_t block_index_offset_ [HEAP_LEVELS];
 
 	// По обратному смещению от конца массива free_block_index_ определяет
 	// уровень и положение области битовой карты.
@@ -148,10 +148,10 @@ class HeapDirectoryTraits <0x4000> :
 	public HeapDirectoryTraitsBase <0x4000>
 {
 public:
-	static const UWord FREE_BLOCK_INDEX_SIZE = 4;
+	static const size_t FREE_BLOCK_INDEX_SIZE = 4;
 
 	// По размеру блока определает смещение начала поиска в free_block_index_
-	static const UWord block_index_offset_ [HEAP_LEVELS];
+	static const size_t block_index_offset_ [HEAP_LEVELS];
 
 	// По обратному смещению от конца массива free_block_index_ определяет
 	// уровень и положение области битовой карты.
@@ -236,9 +236,9 @@ struct HeapDirectoryOpsLockFree
 //! Must be NULL if heap allocation/deallocation mustn't cause commit/decommit.
 struct HeapInfo
 {
-	Pointer heap;
-	UWord unit_size;
-	UWord commit_size;
+	void* heap;
+	size_t unit_size;
+	size_t commit_size;
 };
 
 //! Heap directory bitmap implementation details
@@ -289,7 +289,7 @@ public:
 		assert (sizeof (HeapDirectory <DIRECTORY_SIZE, IMPL>) <= DIRECTORY_SIZE);
 
 		// Bitmap is always aligned for performance.
-		assert ((UWord)(&bitmap_) % sizeof (UWord) == 0);
+		assert ((uintptr_t)(&bitmap_) % sizeof (UWord) == 0);
 
 		// Initialize free blocs count on top level.
 		free_block_index_ [Traits::FREE_BLOCK_INDEX_SIZE - 1] = Traits::TOP_LEVEL_BLOCKS;
@@ -328,13 +328,13 @@ public:
 
 private:
 	// Number of units per block, for level.
-	static UWord block_size (UWord level)
+	static size_t block_size (size_t level)
 	{
 		assert (level < Traits::HEAP_LEVELS);
 		return Traits::MAX_BLOCK_SIZE >> level;
 	}
 
-	static UWord level_align (UWord offset, UWord size)
+	static size_t level_align (size_t offset, size_t size)
 	{
 		// Ищем максимальный размер блока <= size, на который выравнен offset
 		UWord level = Traits::HEAP_LEVELS - 1 - ::std::min (ntz (offset | Traits::MAX_BLOCK_SIZE), 31 - nlz ((uint32_t)size));
@@ -399,7 +399,7 @@ private:
 	}
 
 	//! Commit heap block. Does nothing if heap_info == NULL.
-	void commit (UWord begin, UWord end, const HeapInfo* heap_info);
+	void commit (size_t begin, size_t end, const HeapInfo* heap_info);
 
 private:
 	// Массив, содержащий количество свободных блоков на каждом уровне.
@@ -566,7 +566,7 @@ Word HeapDirectory <DIRECTORY_SIZE, IMPL>::allocate (size_t size, const HeapInfo
 
 	// Выделен блок размером allocated_size. Нужен блок размером size.
 
-	// Commit if need.
+	// Ensure that memory is committed and writeable.
 	if (IMPL > HeapDirectoryImpl::COMMITTED_BITMAP)
 		commit (block_offset, allocated_end, heap_info);
 
@@ -660,7 +660,7 @@ bool HeapDirectory <DIRECTORY_SIZE, IMPL>::allocate (UWord begin, UWord end, con
 	assert (allocated_begin <= begin && end <= allocated_end);
 	assert (allocated_end <= Traits::UNIT_COUNT);
 
-	// Commit if need.
+	// Ensure that memory is committed and writeable.
 	if (IMPL > HeapDirectoryImpl::COMMITTED_BITMAP)
 		commit (allocated_begin, allocated_end, heap_info);
 
@@ -679,22 +679,17 @@ bool HeapDirectory <DIRECTORY_SIZE, IMPL>::allocate (UWord begin, UWord end, con
 }
 
 template <size_t DIRECTORY_SIZE, HeapDirectoryImpl IMPL>
-void HeapDirectory <DIRECTORY_SIZE, IMPL>::commit (UWord begin, UWord end, const HeapInfo* heap_info)
+void HeapDirectory <DIRECTORY_SIZE, IMPL>::commit (size_t begin, size_t end, const HeapInfo* heap_info)
 {
 	if (IMPL != HeapDirectoryImpl::PLAIN_MEMORY && heap_info) {
 		assert (heap_info->heap && heap_info->unit_size && heap_info->commit_size);
-		UWord commit_size = std::min (Traits::MAX_BLOCK_SIZE * heap_info->unit_size, heap_info->commit_size);
-		UWord commit_begin = round_up (begin * heap_info->unit_size, commit_size);
-		UWord commit_end = round_down (end * heap_info->unit_size, commit_size);
-		if (commit_begin < commit_end) {
-			commit_begin = round_down (commit_begin, heap_info->commit_size);
-			commit_end = round_up (commit_end, heap_info->commit_size);
-			try {
-				Port::ProtDomainMemory::commit ((uint8_t*)(heap_info->heap) + commit_begin, commit_end - commit_begin);
-			} catch (...) {
-				release (begin, end);
-				throw;
-			}
+		size_t commit_begin = begin * heap_info->unit_size;
+		size_t commit_size = end * heap_info->unit_size - commit_begin;
+		try {
+			Port::ProtDomainMemory::commit ((uint8_t*)(heap_info->heap) + commit_begin, commit_size);
+		} catch (...) {
+			release (begin, end);
+			throw;
 		}
 	}
 }
