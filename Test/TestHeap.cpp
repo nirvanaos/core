@@ -39,10 +39,31 @@ protected:
 
 TEST_F (TestHeap, Allocate)
 {
-	int* p = (int*)Core::g_core_heap->allocate (0, sizeof (int), Memory::ZERO_INIT);
+	int* p = (int*)Core::g_core_heap->allocate (nullptr, sizeof (int), Memory::ZERO_INIT);
 	*p = 1;
 	Core::g_core_heap->release (p, sizeof (int));
+	EXPECT_THROW (Core::g_core_heap->release (p, sizeof (int)), CORBA::BAD_PARAM);
 }
+
+TEST_F (TestHeap, ReadOnly)
+{
+	size_t pu = (size_t)Core::g_core_heap->query (nullptr, MemQuery::PROTECTION_UNIT);
+	int* p = (int*)Core::g_core_heap->allocate (nullptr, pu, 0);
+	size_t au = (size_t)Core::g_core_heap->query (p, MemQuery::ALLOCATION_UNIT);
+	if (au < pu) {
+		int* pro = (int*)Core::g_core_heap->copy (nullptr, p, pu, Memory::READ_ONLY);
+		EXPECT_THROW (*pro = 1, CORBA::NO_PERMISSION);
+		size_t pu2 = (size_t)pu / 2;
+		int* p1 = pro + pu2 / sizeof (int);
+		Core::g_core_heap->release (p1, pu2);
+		int* p2 = (int*)Core::g_core_heap->allocate (p1, pu2, 0);
+		EXPECT_EQ (p1, p2);
+		EXPECT_NO_THROW (*p2 = 1);
+		Core::g_core_heap->release (pro, pu);
+	}
+	Core::g_core_heap->release (p, pu);
+}
+
 /*
 TEST_F (TestHeap, Heap)
 {
