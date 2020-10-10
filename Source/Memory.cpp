@@ -14,7 +14,7 @@ class CoreMemory :
 {
 public:
 	// Memory::
-	static void* allocate (void* dst, size_t size, long flags)
+	static void* allocate (void* dst, size_t size, UWord flags)
 	{
 		return g_core_heap->allocate (dst, size, flags);
 	}
@@ -34,7 +34,7 @@ public:
 		return g_core_heap->decommit (p, size);
 	}
 
-	static void* copy (void* dst, void* src, size_t size, long flags)
+	static void* copy (void* dst, void* src, size_t size, UWord flags)
 	{
 		return g_core_heap->copy (dst, src, size, flags);
 	}

@@ -263,7 +263,7 @@ enum class HeapDirectoryImpl
 	COMMITTED_BITMAP,
 
 	//! Bitmap memory must be initially reserved. HeapDirectory will commit it as needed.
-	//! HeapDirectory uses `is_committed()` method to detect uncommitted pages.
+	//! HeapDirectory uses `is_readable()` method to detect uncommitted pages.
 	RESERVED_BITMAP,
 
 	//! Bitmap memory must be initially reserved. HeapDirectory will commit it as needed.
@@ -282,8 +282,8 @@ class HeapDirectory :
 	typedef HeapDirectoryTraits <DIRECTORY_SIZE> Traits;
 	typedef HeapDirectoryOpsLockFree Ops;
 	static_assert (Traits::FREE_BLOCK_INDEX_SIZE <= Traits::FREE_BLOCK_INDEX_MAX, "Traits::FREE_BLOCK_INDEX_SIZE <= Traits::FREE_BLOCK_INDEX_MAX");
-
 public:
+	static const HeapDirectoryImpl IMPLEMENTATION = IMPL;
 
 	//! \brief Initializes heap directory.
 	//! The bitmap buffer must be reserved for protected implementation or allocated for plain implementation.
@@ -575,8 +575,7 @@ Word HeapDirectory <DIRECTORY_SIZE, IMPL>::allocate (size_t size, const HeapInfo
 	// Выделен блок размером allocated_size. Нужен блок размером size.
 
 	// Ensure that memory is committed and writeable.
-	if (IMPL > HeapDirectoryImpl::COMMITTED_BITMAP)
-		commit (block_offset, allocated_end, heap_info);
+	commit (block_offset, allocated_end, heap_info);
 
 	// Освобождаем оставшуюся часть.
 	try {
@@ -669,8 +668,7 @@ bool HeapDirectory <DIRECTORY_SIZE, IMPL>::allocate (UWord begin, UWord end, con
 	assert (allocated_end <= Traits::UNIT_COUNT);
 
 	// Ensure that memory is committed and writeable.
-	if (IMPL > HeapDirectoryImpl::COMMITTED_BITMAP)
-		commit (allocated_begin, allocated_end, heap_info);
+	commit (allocated_begin, allocated_end, heap_info);
 
 	try { // Release extra space at begin and end
 		// Память освобождается изнутри - наружу, чтобы, в случае сбоя
@@ -686,7 +684,7 @@ bool HeapDirectory <DIRECTORY_SIZE, IMPL>::allocate (UWord begin, UWord end, con
 	return true;
 }
 
-template <size_t DIRECTORY_SIZE, HeapDirectoryImpl IMPL>
+template <size_t DIRECTORY_SIZE, HeapDirectoryImpl IMPL> inline
 void HeapDirectory <DIRECTORY_SIZE, IMPL>::commit (size_t begin, size_t end, const HeapInfo* heap_info)
 {
 	if (IMPL != HeapDirectoryImpl::PLAIN_MEMORY && heap_info) {

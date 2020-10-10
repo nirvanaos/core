@@ -77,7 +77,7 @@ public:
 	uintptr_t query (const void* p, MemQuery param);
 
 protected:
-	typedef HeapDirectory <HEAP_DIRECTORY_SIZE, HEAP_DIRECTORY_USE_EXCEPTION ? HeapDirectoryImpl::RESERVED_BITMAP_WITH_EXCEPTIONS : HeapDirectoryImpl::RESERVED_BITMAP> Directory;
+	typedef HeapDirectory <HEAP_DIRECTORY_SIZE, HeapDirectoryImpl::COMMITTED_BITMAP> Directory;
 	
 	// MemoryBlock represents the heap partition or large memory block allocated from the main memory service.
 	class MemoryBlock
@@ -210,7 +210,9 @@ protected:
 
 	static Directory* create_partition (size_t allocation_unit)
 	{
-		return new (Port::ProtDomainMemory::allocate (0, sizeof (Directory) + partition_size (allocation_unit), Memory::RESERVED | Memory::ZERO_INIT)) Directory ();
+		return new (Port::ProtDomainMemory::allocate (0, sizeof (Directory) + partition_size (allocation_unit), 
+			Directory::IMPLEMENTATION > HeapDirectoryImpl::COMMITTED_BITMAP ? Memory::RESERVED : Memory::ZERO_INIT)
+			) Directory ();
 	}
 
 	Directory* create_partition () const

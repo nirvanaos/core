@@ -93,6 +93,7 @@ struct Block
 	UWord tag;
 	UWord* begin;
 	UWord* end;
+	bool read_only;
 
 	bool operator < (const Block& rhs) const
 	{
@@ -160,7 +161,7 @@ void RandomAllocator::run (Core::Heap* memory, int iterations)
 						UWord tag = next_tag_++;
 						*block = tag;
 						block [size / sizeof (UWord) - 1] = tag;
-						allocated_.push_back ({ tag, block, block + size / sizeof (UWord) });
+						allocated_.push_back ({ tag, block, block + size / sizeof (UWord), false });
 					}
 					break;
 
@@ -171,7 +172,8 @@ void RandomAllocator::run (Core::Heap* memory, int iterations)
 						size_t idx = uniform_int_distribution <size_t> (0, allocated_.size () - 1)(rndgen_);
 						Block& src = allocated_ [idx];
 						size_t size = (src.end - src.begin) * sizeof (UWord);
-						UWord* block = (UWord*)memory->copy (nullptr, src.begin, size, OP_COPY_RO == op ? Memory::READ_ONLY : 0);
+						bool read_only = OP_COPY_RO == op;
+						UWord* block = (UWord*)memory->copy (nullptr, src.begin, size, read_only ? Memory::READ_ONLY : 0);
 						total_allocated_ += size;
 						UWord tag;
 						if (OP_COPY_CHANGE == op) {
@@ -180,7 +182,7 @@ void RandomAllocator::run (Core::Heap* memory, int iterations)
 							block [size / sizeof (UWord) - 1] = tag;
 						} else
 							tag = src.tag;
-						allocated_.push_back ({ tag, block, block + size / sizeof (UWord) });
+						allocated_.push_back ({ tag, block, block + size / sizeof (UWord), read_only });
 					}
 				}
 			} catch (const CORBA::NO_MEMORY&) {
@@ -232,8 +234,9 @@ void AllocatedBlocks::add (const vector <Block>& blocks)
 void AllocatedBlocks::check (Core::Heap* memory)
 {
 	for (auto p = cbegin (); p != cend (); ++p) {
-		memory->release (p->begin, (p->end - p->begin) * sizeof (UWord));
-		UWord* bl = (UWord*)memory->allocate (p->begin, (p->end - p->begin) * sizeof (UWord), Memory::EXACTLY);
+		size_t size = (p->end - p->begin) * sizeof (UWord);
+		memory->release (p->begin, size);
+		UWord* bl = (UWord*)memory->allocate (p->begin, size, Memory::EXACTLY);
 		assert (bl);
 		ASSERT_EQ (p->begin, bl);
 		*(p->begin) = p->tag;

@@ -222,7 +222,7 @@ void* Heap::allocate (void* p, size_t size, UWord flags)
 			if ((p = allocate (*dir, p, size, flags)) || (flags & Memory::EXACTLY))
 				return p;
 		} else {
-			if (p = Port::ProtDomainMemory::allocate (p, size, flags | Memory::EXACTLY))
+			if ((p = Port::ProtDomainMemory::allocate (p, size, flags | Memory::EXACTLY)))
 				add_large_block (p, size);
 			else if (flags & Memory::EXACTLY)
 				return nullptr;
