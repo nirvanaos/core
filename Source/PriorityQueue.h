@@ -36,7 +36,7 @@ class PriorityQueue :
 	public SkipList <PriorityQueueKeyVal <Val>, MAX_LEVEL>
 {
 	typedef SkipList <PriorityQueueKeyVal <Val>, MAX_LEVEL> Base;
-	typedef Base::NodeVal NodeVal;
+	typedef typename Base::NodeVal NodeVal;
 public:
 	bool get_min_deadline (DeadlineTime& dt)
 	{

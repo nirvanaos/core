@@ -123,8 +123,8 @@ private:
 	static atomic <size_t> total_allocated_;
 };
 
-atomic <size_t> RandomAllocator::total_allocated_ = 0;
-atomic <UWord> RandomAllocator::next_tag_ = 1;
+atomic <UWord> RandomAllocator::next_tag_ (1);
+atomic <size_t> RandomAllocator::total_allocated_ (0);
 
 void RandomAllocator::run (Core::Heap* memory, int iterations)
 {

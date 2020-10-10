@@ -5,8 +5,8 @@ namespace Nirvana {
 namespace Core {
 
 RWLock::RWLock () :
-	writer_waits_ (false),
-	read_cnt_ (0)
+	read_cnt_ (0),
+	writer_waits_ (false)
 {
 	write_lock_.clear ();
 }

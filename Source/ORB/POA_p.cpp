@@ -105,8 +105,6 @@ public:
 
 	String activate_object (PortableServer::Servant p_servant)
 	{
-		PortableServer::Servant ps = p_servant->__core_servant ();
-		Core::ServantBase* core_obj = static_cast <Core::ServantBase*> (&ps);
 		Object_ptr proxy = servant2object (p_servant);
 		Traits::activate_object_in _in;
 		Marshal_var _m = _target ()->create_marshaler ();

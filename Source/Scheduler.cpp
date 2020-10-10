@@ -4,8 +4,8 @@
 namespace Nirvana {
 namespace Core {
 
-AtomicCounter Scheduler::activity_cnt_ = 0;
-std::atomic <Scheduler::State> Scheduler::state_ = RUNNING;
+AtomicCounter Scheduler::activity_cnt_ (0);
+std::atomic <Scheduler::State> Scheduler::state_ (RUNNING);
 
 void Scheduler::initialize ()
 {

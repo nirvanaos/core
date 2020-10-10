@@ -85,7 +85,7 @@ protected:
 	}
 
 protected:
-	typename DirectoryType* directory_;
+	DirectoryType* directory_;
 };
 
 typedef ::testing::Types <
@@ -254,7 +254,7 @@ private:
 	static atomic <unsigned> total_allocated_;
 };
 
-atomic <unsigned> RandomAllocator::total_allocated_ = 0;
+atomic <unsigned> RandomAllocator::total_allocated_ (0);
 
 template <class DirType>
 void RandomAllocator::run (DirType* dir, int iterations)

@@ -35,7 +35,7 @@ class ObjectMap :
 	typedef std::unordered_map <Key, ObjectMapBase::Value, Hash, Pred,
 		AllocatorFixedSize <std::pair <const Key, ObjectMapBase::Value> > > Base;
 public:
-	typedef Base::iterator iterator;
+	typedef typename Base::iterator iterator;
 	
 	void* get_ref (const Key& key);
 
@@ -43,7 +43,7 @@ public:
 
 protected:
 	virtual void* create (iterator it) = 0;
-	virtual void* destroy (void* p) = 0;
+	virtual void destroy (void* p) = 0;
 };
 
 template <class Key, class Hash, class Pred>

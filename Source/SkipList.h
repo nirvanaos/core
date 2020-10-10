@@ -46,10 +46,10 @@ protected:
 		std::atomic <bool> deleted;
 
 		NodeBase (int l) NIRVANA_NOEXCEPT :
+			prev (nullptr),
 			level (l),
 			valid_level (1),
-			deleted (false),
-			prev (nullptr)
+			deleted (false)
 		{}
 
 		virtual ~NodeBase () NIRVANA_NOEXCEPT
@@ -226,7 +226,7 @@ public:
 
 		Val& value () NIRVANA_NOEXCEPT
 		{
-			return *(Val*)Node::value ();
+			return *(Val*)Base::Node::value ();
 		}
 
 		const Val& value () const NIRVANA_NOEXCEPT

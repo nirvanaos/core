@@ -11,7 +11,7 @@ private:
 		return nullptr;
 	}
 
-	virtual void* destroy (void* p)
+	virtual void destroy (void* p)
 	{}
 };
 

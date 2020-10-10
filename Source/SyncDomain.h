@@ -18,8 +18,8 @@ class SyncDomain :
 {
 public:
 	SyncDomain () :
-		running_ (0),
-		min_deadline_ (0)
+		min_deadline_ (0),
+		running_ (0)
 	{}
 
 	void schedule (ExecDomain& ed)

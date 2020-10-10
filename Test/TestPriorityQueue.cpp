@@ -139,7 +139,7 @@ TYPED_TEST (TestPriorityQueue, MinMax)
 }
 
 // Ensure that all values are different.
-atomic <int> g_timestamp = 0;
+atomic <int> g_timestamp (0);
 
 template <class PQ>
 class ThreadTest

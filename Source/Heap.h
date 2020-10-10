@@ -261,7 +261,7 @@ protected:
 		/// \param p Begin of the released memory.
 		/// \param size Size of the released memory.
 		LBErase (BlockList& block_list, BlockList::NodeVal* first_node);
-		~LBErase () NIRVANA_NOEXCEPT;
+		~LBErase ();
 
 		void prepare (void* p, size_t size);
 		void commit () NIRVANA_NOEXCEPT;

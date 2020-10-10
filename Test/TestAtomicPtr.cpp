@@ -103,7 +103,7 @@ public:
 };
 
 template <typename Align>
-typename TestAtomicPtr <Align>::SharedPtr TestAtomicPtr <Align>::shared_ptr_ = TestAtomicPtr <Align>::Ptr (nullptr);
+typename TestAtomicPtr <Align>::SharedPtr TestAtomicPtr <Align>::shared_ptr_;
 
 typedef ::testing::Types <Align <4>, Align <32> > Alignments;
 
