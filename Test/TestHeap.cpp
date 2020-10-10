@@ -147,7 +147,7 @@ void RandomAllocator::run (Core::Heap* memory, int iterations)
 		else if (total >= MAX_MEMORY || bernoulli_distribution ((double)total / (double)MAX_MEMORY)(rndgen_))
 			op = OP_RELEASE;
 		else
-			op = (Op)uniform_int_distribution <> (OP_ALLOCATE, OP_RELEASE - 1) (rndgen_);
+			op = (Op)uniform_int_distribution <> (OP_ALLOCATE, OP_RELEASE) (rndgen_);
 
 		if (op != OP_RELEASE) {
 			try {

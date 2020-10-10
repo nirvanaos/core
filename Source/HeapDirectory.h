@@ -65,6 +65,14 @@ public:
 	static const size_t MAX_BLOCK_SIZE = 1 << (HEAP_LEVELS - 1);
 
 protected:
+	static uintptr_t commit_unit (const void* p)
+	{
+		if (Port::ProtDomainMemory::FIXED_COMMIT_UNIT)
+			return Port::ProtDomainMemory::FIXED_COMMIT_UNIT;
+		else
+			return Port::ProtDomainMemory::query (p, MemQuery::COMMIT_UNIT);
+	}
+
 	struct BitmapIndex
 	{
 		size_t level;
@@ -259,7 +267,7 @@ enum class HeapDirectoryImpl
 	RESERVED_BITMAP,
 
 	//! Bitmap memory must be initially reserved. HeapDirectory will commit it as needed.
-	//! HeapDirectory catches `MEM_NOT_COMMITTED` to detect uncommitted pages.
+	//! HeapDirectory catches `NO_PERMISSION` to detect uncommitted pages.
 	//! This provides better performance than `RESERVED_BITMAP`, but maybe not for all platforms.
 	RESERVED_BITMAP_WITH_EXCEPTIONS
 };
@@ -492,7 +500,7 @@ Word HeapDirectory <DIRECTORY_SIZE, IMPL>::allocate (size_t size, const HeapInfo
 			UWord* end = begin + ::std::min (Traits::TOP_LEVEL_BLOCKS << bi.level, (UWord)0x10000) / (sizeof (UWord) * 8);
 
 			if (HeapDirectoryImpl::COMMITTED_BITMAP < IMPL) {// ћогут попастьс€ неподтвержденные страницы.
-				UWord page_size = Port::ProtDomainMemory::query (this, MemQuery::COMMIT_UNIT);
+				UWord page_size = HeapDirectoryBase::commit_unit (this);
 				assert (page_size);
 
 				if (HeapDirectoryImpl::RESERVED_BITMAP_WITH_EXCEPTIONS == IMPL) {
@@ -503,7 +511,7 @@ Word HeapDirectory <DIRECTORY_SIZE, IMPL>::allocate (size_t size, const HeapInfo
 								if (++bitmap_ptr == end)
 									goto tryagain;
 							break;
-						} catch (...) { // MEM_NOT_COMMITTED
+						} catch (...) { // NO_PERMISSION
 							if ((bitmap_ptr = round_up (bitmap_ptr + 1, page_size)) >= end)
 								goto tryagain;
 						}
@@ -621,7 +629,7 @@ bool HeapDirectory <DIRECTORY_SIZE, IMPL>::allocate (UWord begin, UWord end, con
 							success = true; // Block has been allocated
 							break;
 						}
-					} catch (...) { // MEM_NOT_COMMITTED
+					} catch (...) { // NO_PERMISSION
 					}
 				} else {
 					if (
@@ -759,7 +767,7 @@ void HeapDirectory <DIRECTORY_SIZE, IMPL>::release (UWord begin, UWord end, cons
 							goto prev_level;
 						} else
 							break;
-					} catch (...) { // MEM_NOT_COMMITTED
+					} catch (...) { // NO_PERMISSION
 						Port::ProtDomainMemory::commit (bitmap_ptr, sizeof (UWord));
 					}
 				}
@@ -827,7 +835,7 @@ bool HeapDirectory <DIRECTORY_SIZE, IMPL>::check_allocated (UWord begin, UWord e
 
 	UWord page_size = 0;
 	if (HeapDirectoryImpl::COMMITTED_BITMAP < IMPL) {
-		page_size = Port::ProtDomainMemory::query (this, MemQuery::COMMIT_UNIT);
+		page_size = HeapDirectoryBase::commit_unit (this);
 		assert (page_size);
 	}
 
@@ -853,7 +861,7 @@ bool HeapDirectory <DIRECTORY_SIZE, IMPL>::check_allocated (UWord begin, UWord e
 				try {
 					if (*begin_ptr & begin_mask & end_mask)
 						return false;
-				} catch (...) { // MEM_NOT_COMMITTED
+				} catch (...) { // NO_PERMISSION
 				}
 			} else {
 				if (
@@ -872,7 +880,7 @@ bool HeapDirectory <DIRECTORY_SIZE, IMPL>::check_allocated (UWord begin, UWord e
 					if (*begin_ptr & begin_mask)
 						return false;
 					++begin_ptr;
-				} catch (...) { // MEM_NOT_COMMITTED
+				} catch (...) { // NO_PERMISSION
 					begin_ptr = round_up (begin_ptr + 1, page_size);
 				}
 
@@ -884,7 +892,7 @@ bool HeapDirectory <DIRECTORY_SIZE, IMPL>::check_allocated (UWord begin, UWord e
 							++begin_ptr;
 						}
 						break;
-					} catch (...) { // MEM_NOT_COMMITTED
+					} catch (...) { // NO_PERMISSION
 						begin_ptr = round_up (begin_ptr + 1, page_size);
 					}
 				}
@@ -892,7 +900,7 @@ bool HeapDirectory <DIRECTORY_SIZE, IMPL>::check_allocated (UWord begin, UWord e
 				try {
 					if (begin_ptr == end_ptr && (*end_ptr & end_mask))
 						return false;
-				} catch (...) { // MEM_NOT_COMMITTED
+				} catch (...) { // NO_PERMISSION
 				}
 
 			} else { // Don't use exception

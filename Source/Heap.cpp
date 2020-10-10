@@ -53,7 +53,7 @@ void Heap::LBErase::prepare (void* p, size_t size)
 		throw_BAD_PARAM (); // Block is collapsed in another thread.
 
 	// Collect contiguos blocks.
-	uintptr_t au = Port::ProtDomainMemory::query (p, MemQuery::ALLOCATION_UNIT);
+	uintptr_t au = large_allocation_unit (p);
 	uint8_t* end = round_up ((uint8_t*)p + size, au);
 	uint8_t* block_end = block->begin ();
 	shrink_size_ = round_down ((uint8_t*)p, au) - block_end; // First block shrink size
@@ -269,7 +269,7 @@ void* Heap::allocate (size_t size, UWord flags)
 void Heap::add_large_block (void* p, size_t size)
 {
 	try {
-		size_t au = (size_t)Port::ProtDomainMemory::query (p, MemQuery::ALLOCATION_UNIT);
+		uintptr_t au = large_allocation_unit (p);
 		uint8_t* begin = round_down ((uint8_t*)p, au);
 		uint8_t* end = round_up ((uint8_t*)p + size, au);
 		block_list_.insert (begin, end - begin);
@@ -401,7 +401,7 @@ void* Heap::copy (void* dst, void* src, size_t size, UWord flags)
 				new_node = block_list_.create_node ();
 				dst = Port::ProtDomainMemory::copy (dst, src, size, flags);
 				if (dst) {
-					uintptr_t au = Port::ProtDomainMemory::query (dst, MemQuery::ALLOCATION_UNIT);
+					uintptr_t au = large_allocation_unit (dst);
 					uint8_t* begin = round_down ((uint8_t*)dst, au);
 					uint8_t* end = round_up ((uint8_t*)dst + size, au);
 					new_node->value () = MemoryBlock (begin, end - begin);

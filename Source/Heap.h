@@ -135,7 +135,16 @@ protected:
 		// So we can use lower_bound to search block begin.
 		bool operator < (const MemoryBlock& rhs) const NIRVANA_NOEXCEPT
 		{
-			return begin_ > rhs.begin_;
+			if (begin_ > rhs.begin_)
+				return true;
+			else if (begin_ < rhs.begin_)
+				return false;
+			// Hide collapsed blocks
+			else if (is_large_block () && !large_block_size ())
+				return false;
+			else if (rhs.is_large_block () && !rhs.large_block_size ())
+				return true;
+			return false;
 		}
 
 		bool collapse_large_block (size_t size) NIRVANA_NOEXCEPT;
@@ -227,7 +236,6 @@ protected:
 
 	void* allocate (size_t size, UWord flags);
 
-	void check_allocated (Directory& part, void* p, size_t size) const;
 	void release (Directory& part, void* p, size_t size) const;
 
 	virtual MemoryBlock* add_new_partition (MemoryBlock*& tail);
@@ -235,6 +243,14 @@ protected:
 	void add_large_block (void* p, size_t size);
 
 	bool check_owner (const void* p, size_t size);
+
+	static uintptr_t large_allocation_unit (const void* p)
+	{
+		if (Port::ProtDomainMemory::FIXED_ALLOCATION_UNIT)
+			return Port::ProtDomainMemory::FIXED_ALLOCATION_UNIT;
+		else
+			return Port::ProtDomainMemory::query (p, MemQuery::ALLOCATION_UNIT);
+	}
 
 	/// \summary Atomically erase large block information from the block list.
 	class LBErase
