@@ -66,6 +66,7 @@ public:
 		assert (ExecContext::current () != this);
 		Scheduler::activity_end ();
 		runnable_.reset ();
+		heap_.cleanup ();
 	}
 
 	void execute_loop ();
