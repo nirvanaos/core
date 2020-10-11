@@ -24,6 +24,22 @@ class ExecDomain :
 public:
 	static void async_call (Runnable& runnable, DeadlineTime deadline, SyncDomain* sync_domain);
 
+	ExecDomain () :
+		ExecContext (),
+		deadline_ (std::numeric_limits <DeadlineTime>::max ()),
+		cur_sync_domain_ (nullptr)
+	{}
+
+	//! Constructor with parameters can be used in porting for special cases.
+	template <class ... Args>
+	ExecDomain (Args ... args) :
+		ExecContext (std::forward <Args> (args)...),
+		deadline_ (std::numeric_limits <DeadlineTime>::max ()),
+		cur_sync_domain_ (nullptr)
+	{
+		Scheduler::activity_begin ();
+	}
+
 	DeadlineTime deadline () const
 	{
 		return deadline_;
@@ -54,20 +70,14 @@ public:
 
 	void execute_loop ();
 
-	ExecDomain () :
-		ExecContext (),
-		deadline_ (std::numeric_limits <DeadlineTime>::max ()),
-		cur_sync_domain_ (nullptr)
-	{}
-
-	//! Constructor with parameters can be used in porting for special cases.
-	template <class ... Args>
-	ExecDomain (Args ... args) :
-		ExecContext (std::forward <Args> (args)...),
-		deadline_ (std::numeric_limits <DeadlineTime>::max ()),
-		cur_sync_domain_ (nullptr)
+	SyncDomain* cur_sync_domain () const
 	{
-		Scheduler::activity_begin ();
+		return cur_sync_domain_;
+	}
+
+	Heap& heap ()
+	{
+		return heap_;
 	}
 
 private:
@@ -90,6 +100,7 @@ private:
 private:
 	DeadlineTime deadline_;
 	SyncDomain* cur_sync_domain_;
+	Heap heap_;
 };
 
 }

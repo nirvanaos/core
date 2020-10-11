@@ -55,6 +55,11 @@ public:
 
 	void leave ();
 
+	Heap& heap ()
+	{
+		return heap_;
+	}
+
 private:
 	void schedule ();
 
@@ -63,6 +68,7 @@ private:
 	std::atomic <DeadlineTime> min_deadline_;
 	std::atomic <bool> running_;
 	volatile ExecDomain* current_executor_;
+	Heap heap_;
 };
 
 }

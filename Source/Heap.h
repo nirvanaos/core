@@ -26,7 +26,7 @@ public:
 	static void initialize ();
 	static void terminate ();
 
-	Heap (size_t allocation_unit) NIRVANA_NOEXCEPT;
+	Heap (size_t allocation_unit = HEAP_UNIT_DEFAULT) NIRVANA_NOEXCEPT;
 
 	~Heap ()
 	{
