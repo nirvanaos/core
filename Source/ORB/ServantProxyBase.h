@@ -71,7 +71,7 @@ protected:
 
 	void run_garbage_collector (::Nirvana::Core::Core_var <::Nirvana::Core::Runnable> gc) const
 	{
-		sync_context_->async_call (gc, ::Nirvana::INFINITE_DEADLINE);
+		sync_context_->async_call (*gc, ::Nirvana::INFINITE_DEADLINE);
 	}
 
 	template <class I, void (*proc) (I*, IORequest_ptr, ::Nirvana::ConstPointer, Unmarshal_var, ::Nirvana::Pointer)>

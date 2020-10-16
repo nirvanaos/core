@@ -27,18 +27,13 @@ public:
 
 	/// Call runnable in the new execution domain.
 	/// Exceptions are logged and swallowed.
-	virtual void async_call (Runnable* p, DeadlineTime dt) = 0;
+	virtual void async_call (Runnable& runnable, DeadlineTime deadline) = 0;
 
 	/// Returns `false` if there is no synchronization domain.
 	virtual bool synchronized () = 0;
 
-	virtual Pointer allocate (size_t& size) = 0;
-	virtual Pointer copy (ConstPointer src, size_t& size) = 0;
-	virtual void release (Pointer p, size_t size) = 0;
-
-	/// Returns `true` if both contexts use common heap.
-	/// For example, if it is the same context.
-	virtual bool shared_memory (SynchronizationContext* other) = 0;
+	/// Returns heap reference.
+	virtual Heap& memory () = 0;
 };
 
 }

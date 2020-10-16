@@ -8,18 +8,21 @@
 #include "Scheduler.h"
 #include "ExecDomain.h"
 #include "Scheduler.h"
+#include "SynchronizationContext.h"
 #include <atomic>
 
 namespace Nirvana {
 namespace Core {
 
-class SyncDomain :
-	public Executor
-{
+class SyncDomain : public ImplDynamic <SyncDomain,
+	Executor,
+	SynchronizationContext
+> {
 public:
 	SyncDomain () :
 		min_deadline_ (0),
-		running_ (0)
+		running_ (false),
+		current_executor_ (nullptr)
 	{}
 
 	void schedule (ExecDomain& ed)
@@ -54,6 +57,11 @@ public:
 	}
 
 	void leave ();
+
+	virtual void enter (bool ret);
+	virtual void async_call (Runnable& runnable, DeadlineTime deadline);
+	virtual bool synchronized ();
+	virtual Heap& memory ();
 
 	Heap& heap ()
 	{

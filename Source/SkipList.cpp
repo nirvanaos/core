@@ -12,6 +12,8 @@ using namespace std;
 #define CHECK_VALID_LEVEL(lev, nod)
 #endif
 
+const geometric_distribution <> SkipListBase::distr_ (0.5);
+
 bool SkipListBase::Node::operator < (const Node&) const NIRVANA_NOEXCEPT
 {
 	// Must be overridden.
@@ -40,8 +42,7 @@ SkipListBase::SkipListBase (unsigned node_size, unsigned max_level, void* head_t
 #endif
 	head_ (new (head_tail) Node (max_level)),
 	tail_ (new (round_up ((uint8_t*)head_tail + Node::size (sizeof (Node), max_level), NODE_ALIGN)) Node (1)),
-	node_size_ (node_size),
-	distr_ (0.5)
+	node_size_ (node_size)
 {
 	fill_n (head_->next, max_level, tail_);
 	head_->valid_level = max_level;

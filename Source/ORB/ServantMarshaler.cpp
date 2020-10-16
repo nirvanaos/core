@@ -17,7 +17,7 @@ ServantMarshaler::Block* ServantMarshaler::clear_block (Tag* p)
 			{
 				RecMemory* rec = (RecMemory*)(p + 1);
 				if (rec->p)
-					sync_context_->release (rec->p, rec->size);
+					sync_context_->memory ().release (rec->p, rec->size);
 				p = (Tag*)(rec + 1);
 			}
 			break;
@@ -41,7 +41,7 @@ void* ServantMarshaler::add_record (RecordType tag, size_t record_size)
 {
 	if ((block_end (cur_ptr_) - cur_ptr_) * sizeof (Tag) < (record_size + sizeof (Tag))) {
 		size_t bs = sizeof (Block);
-		Block* next = (Block*)sync_context_->allocate (bs);
+		Block* next = (Block*)sync_context_->memory ().allocate (nullptr, bs, 0);
 		*cur_ptr_ = (Tag)next;
 		cur_ptr_ = *next;
 	}
@@ -60,7 +60,7 @@ void ServantMarshaler::move_next (size_t record_size)
 		// Next block
 		if (cur_ptr_ >= block_ + countof (block_) || cur_ptr_ < block_) {
 			Block* this_block = (Block*)round_down (cur_ptr_, BLOCK_SIZE);
-			sync_context_->release (this_block, BLOCK_SIZE);
+			sync_context_->memory ().release (this_block, BLOCK_SIZE);
 		}
 		block_ [0] = next;
 	}

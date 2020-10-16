@@ -42,7 +42,7 @@ public:
 		Block* pb = clear_block (block_);
 		while (pb) {
 			Block* next = clear_block (*pb);
-			sync_context_->release (pb, sizeof (Block));
+			sync_context_->memory ().release (pb, sizeof (Block));
 			pb = next;
 		}
 	}
@@ -75,7 +75,7 @@ public:
 			return MarshalContext::SHARED_PROTECTION_DOMAIN;
 	}
 
-	::Nirvana::UIntPtr marshal_memory (::Nirvana::ConstPointer p, size_t& size, size_t release_size)
+	uintptr_t marshal_memory (const void* p, size_t& size, size_t release_size)
 	{
 		RecMemory* rec = (RecMemory*)add_record (RT_MEMORY, sizeof (RecMemory));
 		rec->p = nullptr;
@@ -84,7 +84,11 @@ public:
 			rec->size = release_size;
 			size = release_size;
 		} else {
-			rec->p = sync_context_->copy (p, size);
+			::Nirvana::Core::Heap& mem = sync_context_->memory ();
+			uint8_t* pc = (uint8_t*)mem.copy (nullptr, const_cast <void*> (p), size, 0);
+			size_t au = mem.query (pc, ::Nirvana::MemQuery::ALLOCATION_UNIT);
+			size = ::Nirvana::round_up (pc + size, au) - pc;
+			rec->p = pc;
 			rec->size = size;
 			if (release_size)
 				::Nirvana::g_memory->release (const_cast <void*> (p), release_size);
@@ -96,7 +100,7 @@ public:
 	{
 		RecMemory* rec = (RecMemory*)add_record (RT_MEMORY, sizeof (RecMemory));
 		rec->p = nullptr;
-		rec->p = sync_context_->allocate (size);
+		rec->p = sync_context_->memory ().allocate (nullptr, size, 0);
 		rec->size = size;
 		buf_ptr = rec->p;
 		return (::Nirvana::UIntPtr)(rec->p);
@@ -200,7 +204,7 @@ private:
 
 	bool shared_memory () const
 	{
-		return sync_context_->shared_memory (::Nirvana::Core::SynchronizationContext::current ());
+		return &sync_context_->memory () == &::Nirvana::Core::SynchronizationContext::current ()->memory ();
 	}
 
 	::Nirvana::Core::Core_var <::Nirvana::Core::SynchronizationContext> sync_context_;

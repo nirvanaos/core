@@ -177,7 +177,7 @@ private:
 	RandomGenAtomic rndgen_;
 
 	// constant can be made static in future
-	const std::geometric_distribution <> distr_;
+	static const std::geometric_distribution <> distr_;
 };
 
 /// Skip list implementation for the given maximal level count.

@@ -32,5 +32,26 @@ void SyncDomain::leave ()
 	schedule ();
 }
 
+void SyncDomain::enter (bool ret)
+{
+	// TODO: Exception is fatal if ret == true.
+	Thread::current ().execution_domain ()->schedule (this);
+}
+
+void SyncDomain::async_call (Runnable& runnable, DeadlineTime deadline)
+{
+	ExecDomain::async_call (runnable, deadline, this);
+}
+
+bool SyncDomain::synchronized ()
+{
+	return true;
+}
+
+Heap& SyncDomain::memory ()
+{
+	return heap_;
+}
+
 }
 }
