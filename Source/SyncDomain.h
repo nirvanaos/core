@@ -60,7 +60,7 @@ public:
 
 	virtual void enter (bool ret);
 	virtual void async_call (Runnable& runnable, DeadlineTime deadline);
-	virtual bool synchronized ();
+	virtual bool is_free_sync_context ();
 	virtual Heap& memory ();
 
 	Heap& heap ()

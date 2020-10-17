@@ -29,11 +29,8 @@ public:
 		Stack <T>::push (obj);
 	}
 
-	void initialize ()
-	{
-	}
-
-	void terminate ()
+	/// \brief Clean up the pool. We hardly ever call this method.
+	void cleanup ()
 	{
 		while (T* obj = Stack <T>::pop ()) {
 			delete obj;
@@ -51,16 +48,6 @@ class ImplPoolable :
 	public I...
 {
 public:
-	static void initialize ()
-	{
-		pool_.initialize ();
-	}
-
-	static void terminate ()
-	{
-		pool_.terminate ();
-	}
-
 	static T* get ()
 	{
 		return pool_.get ();

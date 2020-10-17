@@ -35,7 +35,6 @@ protected:
 	struct Node;
 
 	SkipListBase (unsigned node_size, unsigned max_level, void* head_tail) NIRVANA_NOEXCEPT;
-	~SkipListBase () NIRVANA_NOEXCEPT;
 
 	struct NodeBase
 	{
@@ -125,6 +124,7 @@ protected:
 	Node* insert (Node* new_node, Node** saved_nodes) NIRVANA_NOEXCEPT;
 
 	void release_node (Node* node) NIRVANA_NOEXCEPT;
+	void release_node_no_delete (Node* node) NIRVANA_NOEXCEPT;
 
 	Node* find (Node* keynode) NIRVANA_NOEXCEPT;
 	Node* lower_bound (Node* keynode) NIRVANA_NOEXCEPT;
@@ -340,6 +340,12 @@ public:
 	void release_node (NodeVal* node) NIRVANA_NOEXCEPT
 	{
 		Base::release_node (node);
+	}
+
+	/// Releases the node pointer without delete.
+	void release_node_no_delete (NodeVal* node) NIRVANA_NOEXCEPT
+	{
+		Base::release_node_no_delete (node);
 	}
 
 	/// Finds node by value.

@@ -19,34 +19,16 @@ class HeapDirectoryFactory
 public:
 	typedef HeapDirectory <SIZE, IMPL> DirectoryType;
 
-	static void initialize ()
-	{
-		if (HeapDirectoryImpl::COMMITTED_BITMAP < IMPL)
-			::Nirvana::Core::Port::ProtDomainMemory::initialize ();
-	}
-
-	static void terminate ()
-	{
-		if (HeapDirectoryImpl::COMMITTED_BITMAP < IMPL)
-			::Nirvana::Core::Port::ProtDomainMemory::terminate ();
-	}
-
 	static DirectoryType* create ()
 	{
-		void* p;
-		if (HeapDirectoryImpl::COMMITTED_BITMAP < IMPL)
-			p = Port::ProtDomainMemory::allocate (0, sizeof (DirectoryType), Memory::RESERVED | Memory::ZERO_INIT);
-		else
-			p = calloc (1, sizeof (DirectoryType));
-		return new (p) DirectoryType ();
+		return new (Port::ProtDomainMemory::allocate (nullptr, sizeof (DirectoryType), 
+				IMPL > HeapDirectoryImpl::COMMITTED_BITMAP ? Memory::RESERVED : Memory::ZERO_INIT)
+			) DirectoryType ();
 	}
 
 	static void destroy (DirectoryType *p)
 	{
-		if (HeapDirectoryImpl::COMMITTED_BITMAP < IMPL)
-			Port::ProtDomainMemory::release (p, sizeof (DirectoryType));
-		else
-			free (p);
+		Port::ProtDomainMemory::release (p, sizeof (DirectoryType));
 	}
 };
 
@@ -71,7 +53,6 @@ protected:
 	{
 		// Code here will be called immediately after the constructor (right
 		// before each test).
-		Factory::initialize ();
 		directory_ = Factory::create ();
 		ASSERT_TRUE (directory_);
 	}
@@ -81,7 +62,6 @@ protected:
 		// Code here will be called immediately after each test (right
 		// before the destructor).
 		Factory::destroy (directory_);
-		Factory::terminate ();
 	}
 
 protected:

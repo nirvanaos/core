@@ -81,12 +81,12 @@ void WaitablePtr::set_exception (const Exception& ex)
 			// Clone exception
 			TypeCode_ptr tc = ex.__type_code ();
 			size_t cb = sizeof (Exception) + tc->_size ();
-			Exception* pex = (Exception*)g_core_heap->allocate (nullptr, cb, 0);
+			Exception* pex = (Exception*)g_core_heap.allocate (nullptr, cb, 0);
 			try {
 				*pex = ex;
 				tc->_copy (pex->__data (), ex.__data ());
 			} catch (...) {
-				g_core_heap->release (pex, cb);
+				g_core_heap.release (pex, cb);
 				throw;
 			}
 			set_ptr (Ptr (pex, TAG_EXCEPTION));
@@ -111,7 +111,7 @@ void WaitablePtr::delete_exception (Exception* pex)
 		TypeCode_ptr tc = pex->__type_code ();
 		size_t cb = sizeof (Exception) + tc->_size ();
 		pex->~Exception ();
-		g_core_heap->release (pex, cb);
+		g_core_heap.release (pex, cb);
 	}
 }
 

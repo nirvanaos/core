@@ -34,14 +34,14 @@ public:
 
 	InterfaceDef_var _get_interface () const
 	{
-		::Nirvana::Core::Synchronized sync (::Nirvana::Core::SynchronizationContext::not_synchronized ());
+		::Nirvana::Core::Synchronized sync (::Nirvana::Core::SynchronizationContext::free_sync_context ());
 		return InterfaceDef::_nil (); // TODO: Implement.
 	}
 
 	Boolean _is_a (const String& type_id) const
 	{
 		String tmp (type_id);
-		::Nirvana::Core::Synchronized sync (::Nirvana::Core::SynchronizationContext::not_synchronized ());
+		::Nirvana::Core::Synchronized sync (::Nirvana::Core::SynchronizationContext::free_sync_context ());
 		return find_interface (tmp) != nullptr;
 	}
 

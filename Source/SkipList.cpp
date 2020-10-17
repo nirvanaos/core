@@ -48,16 +48,9 @@ SkipListBase::SkipListBase (unsigned node_size, unsigned max_level, void* head_t
 	head_->valid_level = max_level;
 }
 
-SkipListBase::~SkipListBase ()
-{
-#ifdef _DEBUG
-	assert (node_cnt_ == 0);
-#endif
-}
-
 void* SkipListBase::allocate_node (unsigned level)
 {
-	void* p = (Node*)g_core_heap->allocate (0, node_size (level), 0);
+	void* p = (Node*)g_core_heap.allocate (0, node_size (level), 0);
 #ifdef _DEBUG
 	node_cnt_.increment ();
 #endif
@@ -75,6 +68,25 @@ void SkipListBase::release_node (Node* node) NIRVANA_NOEXCEPT
 	}
 }
 
+void SkipListBase::release_node_no_delete (Node* node) NIRVANA_NOEXCEPT
+{
+	assert (node);
+	if (!node->ref_cnt.decrement ()) {
+		Node* prev = node->prev;
+		if (prev)
+			release_node (prev);
+#ifdef _DEBUG
+		assert (node != head ());
+		assert (node != tail ());
+		for (int i = 0, end = node->level; i < end; ++i)
+			assert (!(Node*)node->next [i].load ());
+		assert (node_cnt_ > 0);
+		node_cnt_.decrement ();
+#endif
+		node->~Node ();
+	}
+}
+
 void SkipListBase::delete_node (Node* node) NIRVANA_NOEXCEPT
 {
 #ifdef _DEBUG
@@ -87,7 +99,7 @@ void SkipListBase::delete_node (Node* node) NIRVANA_NOEXCEPT
 #endif
 	unsigned level = node->level;
 	node->~Node ();
-	g_core_heap->release (node, Node::size (node_size_, level));
+	g_core_heap.release (node, Node::size (node_size_, level));
 }
 
 SkipListBase::Node* SkipListBase::insert (Node* new_node, Node** saved_nodes) NIRVANA_NOEXCEPT

@@ -43,9 +43,9 @@ void SyncDomain::async_call (Runnable& runnable, DeadlineTime deadline)
 	ExecDomain::async_call (runnable, deadline, this);
 }
 
-bool SyncDomain::synchronized ()
+bool SyncDomain::is_free_sync_context ()
 {
-	return true;
+	return false;
 }
 
 Heap& SyncDomain::memory ()

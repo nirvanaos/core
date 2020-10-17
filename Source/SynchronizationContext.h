@@ -18,7 +18,7 @@ public:
 	static Core_var <SynchronizationContext> current ();
 
 	/// Returns free synchronization context.
-	static Core_var <SynchronizationContext> not_synchronized ();
+	static Core_var <SynchronizationContext> free_sync_context ();
 
 	/// Enter to the synchronization domain.
 	/// \param ret `true` on return to call source domain.
@@ -29,8 +29,10 @@ public:
 	/// Exceptions are logged and swallowed.
 	virtual void async_call (Runnable& runnable, DeadlineTime deadline) = 0;
 
-	/// Returns `false` if there is no synchronization domain.
-	virtual bool synchronized () = 0;
+	/// Returns `true` if there is free sync context.
+	/// May be used for proxy optimization.
+	/// When we marshal `in` parameters from free context we haven't to copy data.
+	virtual bool is_free_sync_context () = 0;
 
 	/// Returns heap reference.
 	virtual Heap& memory () = 0;

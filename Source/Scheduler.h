@@ -11,10 +11,6 @@ namespace Core {
 class Scheduler
 {
 public:
-	//! Called from core
-	static void initialize ();
-	static void terminate ();
-
 	static void schedule (DeadlineTime deadline, Executor& executor, DeadlineTime old)
 	{
 		Port::Scheduler::schedule (deadline, executor, old);

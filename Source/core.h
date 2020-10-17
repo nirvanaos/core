@@ -15,12 +15,12 @@ class CoreObject
 public:
 	void* operator new (size_t cb)
 	{
-		return g_core_heap->allocate (nullptr, cb, 0);
+		return g_core_heap.allocate (nullptr, cb, 0);
 	}
 
 	void operator delete (void* p, size_t cb)
 	{
-		g_core_heap->release (p, cb);
+		g_core_heap.release (p, cb);
 	}
 };
 

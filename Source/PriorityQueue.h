@@ -91,6 +91,13 @@ public:
 	{
 		return Base::erase ({ dt, value });
 	}
+
+	~PriorityQueue ()
+	{
+#ifdef _DEBUG
+		assert (Base::node_cnt_ == 0);
+#endif
+	}
 };
 
 }

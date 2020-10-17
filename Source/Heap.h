@@ -16,24 +16,14 @@ public:
 	T* allocate (size_t cnt, void* hint = nullptr);
 };
 
-class Heap
+class HeapBase
 {
 	// Skip list level count for heap skip list.
 	// May be moved to Port/config.h
 	static const unsigned SKIP_LIST_LEVELS = 10;
 
 public:
-	static void initialize ();
-	static void terminate ();
-
-	Heap (size_t allocation_unit = HEAP_UNIT_DEFAULT) NIRVANA_NOEXCEPT;
-
-	~Heap ()
-	{
-		cleanup ();
-	}
-
-	void cleanup ();
+	HeapBase (size_t allocation_unit = HEAP_UNIT_DEFAULT) NIRVANA_NOEXCEPT;
 
 	void* allocate (void* p, size_t size, UWord flags);
 	void release (void* p, size_t size);
@@ -192,8 +182,11 @@ protected:
 		NodeVal* insert (Directory* part, size_t allocation_unit) NIRVANA_NOEXCEPT
 		{
 			unsigned level = Base::random_level ();
-			auto ins = Base::insert (new (Heap::allocate (*part, Base::node_size (level), 0, allocation_unit)) NodeVal (level, part));
+			auto ins = Base::insert (new (HeapBase::allocate (*part, Base::node_size (level), 0, allocation_unit)) NodeVal (level, part));
 			assert (ins.second);
+#ifdef _DEBUG
+			node_cnt_.increment ();
+#endif
 			return ins.first;
 		}
 	};
@@ -307,29 +300,47 @@ protected:
 	MemoryBlock* part_list_;
 };
 
-class CoreHeap : public Heap
+class CoreHeap : public HeapBase
 {
 public:
 	CoreHeap () :
-		Heap (HEAP_UNIT_CORE)
+		HeapBase (HEAP_UNIT_CORE)
 	{}
 
 private:
 	virtual MemoryBlock* add_new_partition (MemoryBlock*& tail);
 };
 
-extern Heap* g_core_heap;
+class Heap : public HeapBase
+{
+public:
+	Heap (size_t allocation_unit = HEAP_UNIT_DEFAULT) :
+		HeapBase (allocation_unit)
+	{}
+
+	~Heap ()
+	{
+		cleanup ();
+		// TODO: Log message if memory leaks detected.
+	}
+
+	/// \brief Releases all memory.
+	/// \returns `true` if no memory leaks.
+	bool cleanup ();
+};
+
+extern CoreHeap g_core_heap;
 
 template <class T> inline
 void CoreAllocator <T>::deallocate (T* p, size_t cnt)
 {
-	g_core_heap->release (p, cnt * sizeof (T));
+	g_core_heap.release (p, cnt * sizeof (T));
 }
 
 template <class T> inline
 T* CoreAllocator <T>::allocate (size_t cnt, void* hint)
 {
-	return (T*)g_core_heap->allocate (0, cnt * sizeof (T), 0);
+	return (T*)g_core_heap.allocate (0, cnt * sizeof (T), 0);
 }
 
 }

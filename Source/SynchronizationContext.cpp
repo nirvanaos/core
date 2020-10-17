@@ -10,9 +10,9 @@ static class FreeSyncContext :
 public:
 	virtual void enter (bool ret);
 	virtual void async_call (Runnable& runnable, DeadlineTime deadline);
-	virtual bool synchronized ();
+	virtual bool is_free_sync_context ();
 	virtual Heap& memory ();
-} free_sync_context;
+} g_free_sync_context;
 
 Core_var <SynchronizationContext> SynchronizationContext::current ()
 {
@@ -22,9 +22,15 @@ Core_var <SynchronizationContext> SynchronizationContext::current ()
 	if (sd)
 		sc = sd;
 	else
-		sc = &free_sync_context;
+		sc = &g_free_sync_context;
 	sc->_add_ref ();
 	return sc;
+}
+
+Core_var <SynchronizationContext> SynchronizationContext::free_sync_context ()
+{
+	g_free_sync_context._add_ref ();
+	return &g_free_sync_context;
 }
 
 void FreeSyncContext::enter (bool ret)
@@ -37,9 +43,9 @@ void FreeSyncContext::async_call (Runnable& runnable, DeadlineTime deadline)
 	ExecDomain::async_call (runnable, deadline, nullptr);
 }
 
-bool FreeSyncContext::synchronized ()
+bool FreeSyncContext::is_free_sync_context ()
 {
-	return false;
+	return true;
 }
 
 Heap& FreeSyncContext::memory ()
