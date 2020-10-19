@@ -149,7 +149,7 @@ protected:
 		union
 		{
 			MemoryBlock* next_partition_;
-			size_t large_block_size_;
+			volatile size_t large_block_size_;
 		};
 	};
 

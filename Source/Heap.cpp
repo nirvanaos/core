@@ -1,6 +1,9 @@
 #include "Heap.h"
 #include <CORBA/CORBA.h>
 #include <atomic>
+#include <iostream>
+
+#define THROW(e) { std::cerr << #e << " " << __FILE__ << ":" << __LINE__ << std::endl; throw_##e ();}
 
 namespace Nirvana {
 namespace Core {
@@ -50,24 +53,25 @@ void HeapBase::LBErase::prepare (void* p, size_t size)
 	MemoryBlock* block = &first_block_.node->value ();
 	assert (block->is_large_block ());
 	if (!(first_block_.size = block->large_block_size ()))
-		throw_BAD_PARAM (); // Block is collapsed in another thread.
+		THROW (BAD_PARAM); // Block is collapsed in another thread.
 
 	// Collect contiguos blocks.
 	uintptr_t au = large_allocation_unit (p);
 	uint8_t* end = round_up ((uint8_t*)p + size, au);
-	uint8_t* block_end = block->begin ();
-	shrink_size_ = round_down ((uint8_t*)p, au) - block_end; // First block shrink size
-	block_end += first_block_.size;
+	uint8_t* block_begin = block->begin ();
+	assert (block_begin <= p);
+	shrink_size_ = round_down ((uint8_t*)p, au) - block_begin; // First block shrink size
+	uint8_t* block_end = block_begin + first_block_.size;
 	while (end > block_end) {
 		if (last_block_.node)
 			middle_blocks_.push_back (last_block_);
 		if (!(last_block_.node = block_list_.find (block_end)))
-			throw_BAD_PARAM ();
+			THROW (BAD_PARAM);
 		block = &last_block_.node->value ();
 		if (!block->is_large_block ())
-			throw_BAD_PARAM ();
+			THROW (BAD_PARAM);
 		if (!(last_block_.size = block->large_block_size ()))
-			throw_BAD_PARAM ();
+			THROW (BAD_PARAM);
 		block_end = block->begin () + last_block_.size;
 	}
 
@@ -76,23 +80,23 @@ void HeapBase::LBErase::prepare (void* p, size_t size)
 		new_node_ = block_list_.create_node (end, block_end - end);
 
 	// Collapse collected blocks.
+	if (last_block_.node && !last_block_.collapse ())
+		THROW (BAD_PARAM);
+
 	for (MiddleBlocks::reverse_iterator it = middle_blocks_.rbegin (); it != middle_blocks_.rend (); ++it) {
 		if (!it->collapse ()) {
+			if (last_block_.node)
+				last_block_.restore ();
 			while (it > middle_blocks_.rbegin ()) {
 				(--it)->restore ();
 			}
-			throw_BAD_PARAM ();
+			THROW (BAD_PARAM);
 		}
 	}
 
 	try {
-		if (last_block_.node)
-			if (!last_block_.collapse ())
-				throw_BAD_PARAM ();
-
 		if (!first_block_.collapse ())
-			throw_BAD_PARAM ();
-
+			THROW (BAD_PARAM);
 	} catch (...) {
 		rollback_helper ();
 		throw;
@@ -122,6 +126,8 @@ void HeapBase::LBErase::rollback () NIRVANA_NOEXCEPT
 {
 	rollback_helper ();
 	first_block_.restore ();
+	if (last_block_.node)
+		last_block_.restore ();
 }
 
 void HeapBase::LBErase::rollback_helper () NIRVANA_NOEXCEPT
@@ -129,8 +135,6 @@ void HeapBase::LBErase::rollback_helper () NIRVANA_NOEXCEPT
 	for (MiddleBlocks::iterator it = middle_blocks_.begin (); it != middle_blocks_.end (); ++it) {
 		it->restore ();
 	}
-	if (last_block_.node)
-		last_block_.restore ();
 }
 
 HeapBase::HeapBase (size_t allocation_unit) NIRVANA_NOEXCEPT :
@@ -153,7 +157,7 @@ void HeapBase::release (void* p, size_t size)
 	// Search memory block
 	BlockList::NodeVal* node = block_list_.lower_bound (p);
 	if (!node)
-		throw_BAD_PARAM ();
+		THROW (BAD_PARAM);
 	const MemoryBlock& block = node->value ();
 	if (!block.is_large_block ()) {
 		// Release from heap partition
@@ -162,7 +166,7 @@ void HeapBase::release (void* p, size_t size)
 		if ((uint8_t*)p + size <= part_end)
 			release (block.directory (), p, size);
 		else
-			throw_BAD_PARAM ();
+			THROW (BAD_PARAM);
 	} else {
 		// Release large block
 		LBErase lberase (block_list_, node);
@@ -184,7 +188,7 @@ void HeapBase::release (Directory& part, void* p, size_t size) const
 	size_t begin = offset / allocation_unit_;
 	size_t end = (offset + size + allocation_unit_ - 1) / allocation_unit_;
 	if (!part.check_allocated (begin, end))
-		throw_BAD_PARAM ();
+		THROW (BAD_PARAM);
 	HeapInfo hi = { heap, allocation_unit_, Port::ProtDomainMemory::OPTIMAL_COMMIT_UNIT };
 	part.release (begin, end, &hi);
 }
@@ -210,7 +214,7 @@ HeapBase::Directory* HeapBase::get_partition (const void* p) NIRVANA_NOEXCEPT
 void* HeapBase::allocate (void* p, size_t size, UWord flags)
 {
 	if (!size)
-		throw_BAD_PARAM ();
+		THROW (BAD_PARAM);
 
 	if (flags & ~(Memory::RESERVED | Memory::EXACTLY | Memory::ZERO_INIT))
 		throw_INV_FLAG ();
@@ -374,7 +378,7 @@ void* HeapBase::copy (void* dst, void* src, size_t size, UWord flags)
 		return dst;
 
 	if (!src)
-		throw_BAD_PARAM ();
+		THROW (BAD_PARAM);
 
 	if (flags & ~(Memory::READ_ONLY | Memory::RELEASE | Memory::ALLOCATE | Memory::EXACTLY))
 		throw_INV_FLAG ();
@@ -391,7 +395,7 @@ void* HeapBase::copy (void* dst, void* src, size_t size, UWord flags)
 	if (release_flags == Memory::RELEASE) {
 		BlockList::NodeVal* node = block_list_.lower_bound (src);
 		if (!node)
-			throw_BAD_PARAM ();
+			THROW (BAD_PARAM);
 		const MemoryBlock& block = node->value ();
 		if (block.is_large_block ()) {
 			LBErase lberase (block_list_, node);
@@ -423,13 +427,13 @@ void* HeapBase::copy (void* dst, void* src, size_t size, UWord flags)
 			// Release from the heap partition
 			uint8_t* heap = block.begin ();
 			if ((uint8_t*)src + size > heap + partition_size ())
-				throw_BAD_PARAM ();
+				THROW (BAD_PARAM);
 			size_t offset = (uint8_t*)src - heap;
 			size_t begin = offset / allocation_unit_;
 			size_t end = (offset + size + allocation_unit_ - 1) / allocation_unit_;
 			Directory* part = (Directory*)heap - 1;
 			if (!part->check_allocated (begin, end))
-				throw_BAD_PARAM ();
+				THROW (BAD_PARAM);
 
 			if (!dst) {
 				// Memory::RELEASE is specified, so we can use source block as destination
