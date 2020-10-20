@@ -62,6 +62,7 @@ void HeapBase::LBErase::prepare (void* p, size_t size)
 	assert (block_begin <= p);
 	shrink_size_ = round_down ((uint8_t*)p, au) - block_begin; // First block shrink size
 	uint8_t* block_end = block_begin + first_block_.size;
+	assert (block_end > p);
 	while (end > block_end) {
 		if (last_block_.node)
 			middle_blocks_.push_back (last_block_);

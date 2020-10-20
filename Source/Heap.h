@@ -67,7 +67,7 @@ public:
 	uintptr_t query (const void* p, MemQuery param);
 
 protected:
-	typedef HeapDirectory <HEAP_DIRECTORY_SIZE, HeapDirectoryImpl::COMMITTED_BITMAP> Directory;
+	typedef HeapDirectory <HEAP_DIRECTORY_SIZE, HEAP_DIRECTORY_IMPLEMENTATION> Directory;
 	
 	// MemoryBlock represents the heap partition or large memory block allocated from the main memory service.
 	class MemoryBlock
@@ -77,13 +77,15 @@ protected:
 		{}
 
 		MemoryBlock (const void* p) NIRVANA_NOEXCEPT :
-			begin_ ((uint8_t*)p)
+			begin_ ((uint8_t*)p),
+			next_partition_ (nullptr)
 		{}
 
 		MemoryBlock (void* p, size_t size) NIRVANA_NOEXCEPT :
 			begin_ ((uint8_t*)p),
 			large_block_size_ (size | 1)
 		{
+			assert (size);
 			assert (!(size & 1));
 		}
 
@@ -130,11 +132,12 @@ protected:
 			else if (begin_ < rhs.begin_)
 				return false;
 			// Hide collapsed blocks
-			else if (is_large_block () && !large_block_size ())
+			else if (large_block_size_ == 1)
 				return false;
-			else if (rhs.is_large_block () && !rhs.large_block_size ())
+			else if (rhs.large_block_size_ == 1)
 				return true;
-			return false;
+			else
+				return false;
 		}
 
 		bool collapse_large_block (size_t size) NIRVANA_NOEXCEPT;

@@ -1,4 +1,4 @@
-#ifndef NIRVANA_CORE_HEAPDIRECTORY_H_
+п»ї#ifndef NIRVANA_CORE_HEAPDIRECTORY_H_
 #define NIRVANA_CORE_HEAPDIRECTORY_H_
 
 #include <Nirvana/Nirvana.h>
@@ -7,49 +7,62 @@
 #include <algorithm>
 #include <atomic>
 
-/*
-Используется алгоритм распределения памяти с двоичным квантованием размеров блоков.
-Куча рассматривается, как совокупность блоков размером, кратным степени 2,
-расположенных по адресам, кратным размеру блока. При выделении блока размером S
-ищется свободный блок размером m << n >= S, где m - минимальный размер блока.
-Если запрошенный размер блока меньше, оставшееся в блоке свободное пространство
-разделяется на несколько меньших блоков, размеры которых также кратны степени 2.
-Поскольку все аппаратные параметры управления памятью обычно кратны степени 2,
-это гарантирует, что блок, по размеру кратный странице, будет выравнен на границу
-страницы, блок, кратный размеру линейки кэша, будет выравнен на ее границу и т. п.
-Таким образом, обеспечивается оптимальное выравнивание выделяемых блоков для любой
-архитектуры и максимальная производительность.
+#ifdef _WIN32
 
-Информация о свободных блоках хранится в битовой карте. Битовая карта представляет
-собой "пирамиду", в которой каждому блоку каждого уровня (размера) соответствует
-один бит. Этот бит установлен, если блок свободен. Так как максимальный размер блока
-меньше размера кучи, битовая карта выглядит, как пирамида со срезанной верхушкой.
-На месте верхушки расподожен индексный массив, uint16_t, содержащий информацию о
-количестве свободных блоков на различных уровнях.
+#define HEAP_DIR_TRY __try
+#define HEAP_DIR_CATCH __except (1) // EXCEPTION_EXECUTE_HANDLER
+
+#else
+
+// For POSIX we can implement GP handling based on signals and longjmp
+#define HEAP_DIR_TRY try
+#define HEAP_DIR_CATCH catch (...)
+
+#endif
+
+/*
+РСЃРїРѕР»СЊР·СѓРµС‚СЃСЏ Р°Р»РіРѕСЂРёС‚Рј СЂР°СЃРїСЂРµРґРµР»РµРЅРёСЏ РїР°РјСЏС‚Рё СЃ РґРІРѕРёС‡РЅС‹Рј РєРІР°РЅС‚РѕРІР°РЅРёРµРј СЂР°Р·РјРµСЂРѕРІ Р±Р»РѕРєРѕРІ.
+РљСѓС‡Р° СЂР°СЃСЃРјР°С‚СЂРёРІР°РµС‚СЃСЏ, РєР°Рє СЃРѕРІРѕРєСѓРїРЅРѕСЃС‚СЊ Р±Р»РѕРєРѕРІ СЂР°Р·РјРµСЂРѕРј, РєСЂР°С‚РЅС‹Рј СЃС‚РµРїРµРЅРё 2,
+СЂР°СЃРїРѕР»РѕР¶РµРЅРЅС‹С… РїРѕ Р°РґСЂРµСЃР°Рј, РєСЂР°С‚РЅС‹Рј СЂР°Р·РјРµСЂСѓ Р±Р»РѕРєР°. РџСЂРё РІС‹РґРµР»РµРЅРёРё Р±Р»РѕРєР° СЂР°Р·РјРµСЂРѕРј S
+РёС‰РµС‚СЃСЏ СЃРІРѕР±РѕРґРЅС‹Р№ Р±Р»РѕРє СЂР°Р·РјРµСЂРѕРј m << n >= S, РіРґРµ m - РјРёРЅРёРјР°Р»СЊРЅС‹Р№ СЂР°Р·РјРµСЂ Р±Р»РѕРєР°.
+Р•СЃР»Рё Р·Р°РїСЂРѕС€РµРЅРЅС‹Р№ СЂР°Р·РјРµСЂ Р±Р»РѕРєР° РјРµРЅСЊС€Рµ, РѕСЃС‚Р°РІС€РµРµСЃСЏ РІ Р±Р»РѕРєРµ СЃРІРѕР±РѕРґРЅРѕРµ РїСЂРѕСЃС‚СЂР°РЅСЃС‚РІРѕ
+СЂР°Р·РґРµР»СЏРµС‚СЃСЏ РЅР° РЅРµСЃРєРѕР»СЊРєРѕ РјРµРЅСЊС€РёС… Р±Р»РѕРєРѕРІ, СЂР°Р·РјРµСЂС‹ РєРѕС‚РѕСЂС‹С… С‚Р°РєР¶Рµ РєСЂР°С‚РЅС‹ СЃС‚РµРїРµРЅРё 2.
+РџРѕСЃРєРѕР»СЊРєСѓ РІСЃРµ Р°РїРїР°СЂР°С‚РЅС‹Рµ РїР°СЂР°РјРµС‚СЂС‹ СѓРїСЂР°РІР»РµРЅРёСЏ РїР°РјСЏС‚СЊСЋ РѕР±С‹С‡РЅРѕ РєСЂР°С‚РЅС‹ СЃС‚РµРїРµРЅРё 2,
+СЌС‚Рѕ РіР°СЂР°РЅС‚РёСЂСѓРµС‚, С‡С‚Рѕ Р±Р»РѕРє, РїРѕ СЂР°Р·РјРµСЂСѓ РєСЂР°С‚РЅС‹Р№ СЃС‚СЂР°РЅРёС†Рµ, Р±СѓРґРµС‚ РІС‹СЂР°РІРЅРµРЅ РЅР° РіСЂР°РЅРёС†Сѓ
+СЃС‚СЂР°РЅРёС†С‹, Р±Р»РѕРє, РєСЂР°С‚РЅС‹Р№ СЂР°Р·РјРµСЂСѓ Р»РёРЅРµР№РєРё РєСЌС€Р°, Р±СѓРґРµС‚ РІС‹СЂР°РІРЅРµРЅ РЅР° РµРµ РіСЂР°РЅРёС†Сѓ Рё С‚. Рї.
+РўР°РєРёРј РѕР±СЂР°Р·РѕРј, РѕР±РµСЃРїРµС‡РёРІР°РµС‚СЃСЏ РѕРїС‚РёРјР°Р»СЊРЅРѕРµ РІС‹СЂР°РІРЅРёРІР°РЅРёРµ РІС‹РґРµР»СЏРµРјС‹С… Р±Р»РѕРєРѕРІ РґР»СЏ Р»СЋР±РѕР№
+Р°СЂС…РёС‚РµРєС‚СѓСЂС‹ Рё РјР°РєСЃРёРјР°Р»СЊРЅР°СЏ РїСЂРѕРёР·РІРѕРґРёС‚РµР»СЊРЅРѕСЃС‚СЊ.
+
+РРЅС„РѕСЂРјР°С†РёСЏ Рѕ СЃРІРѕР±РѕРґРЅС‹С… Р±Р»РѕРєР°С… С…СЂР°РЅРёС‚СЃСЏ РІ Р±РёС‚РѕРІРѕР№ РєР°СЂС‚Рµ. Р‘РёС‚РѕРІР°СЏ РєР°СЂС‚Р° РїСЂРµРґСЃС‚Р°РІР»СЏРµС‚
+СЃРѕР±РѕР№ "РїРёСЂР°РјРёРґСѓ", РІ РєРѕС‚РѕСЂРѕР№ РєР°Р¶РґРѕРјСѓ Р±Р»РѕРєСѓ РєР°Р¶РґРѕРіРѕ СѓСЂРѕРІРЅСЏ (СЂР°Р·РјРµСЂР°) СЃРѕРѕС‚РІРµС‚СЃС‚РІСѓРµС‚
+РѕРґРёРЅ Р±РёС‚. Р­С‚РѕС‚ Р±РёС‚ СѓСЃС‚Р°РЅРѕРІР»РµРЅ, РµСЃР»Рё Р±Р»РѕРє СЃРІРѕР±РѕРґРµРЅ. РўР°Рє РєР°Рє РјР°РєСЃРёРјР°Р»СЊРЅС‹Р№ СЂР°Р·РјРµСЂ Р±Р»РѕРєР°
+РјРµРЅСЊС€Рµ СЂР°Р·РјРµСЂР° РєСѓС‡Рё, Р±РёС‚РѕРІР°СЏ РєР°СЂС‚Р° РІС‹РіР»СЏРґРёС‚, РєР°Рє РїРёСЂР°РјРёРґР° СЃРѕ СЃСЂРµР·Р°РЅРЅРѕР№ РІРµСЂС…СѓС€РєРѕР№.
+РќР° РјРµСЃС‚Рµ РІРµСЂС…СѓС€РєРё СЂР°СЃРїРѕРґРѕР¶РµРЅ РёРЅРґРµРєСЃРЅС‹Р№ РјР°СЃСЃРёРІ, uint16_t, СЃРѕРґРµСЂР¶Р°С‰РёР№ РёРЅС„РѕСЂРјР°С†РёСЋ Рѕ
+РєРѕР»РёС‡РµСЃС‚РІРµ СЃРІРѕР±РѕРґРЅС‹С… Р±Р»РѕРєРѕРІ РЅР° СЂР°Р·Р»РёС‡РЅС‹С… СѓСЂРѕРІРЅСЏС….
 */
 
 namespace Nirvana {
 namespace Core {
 
 /*
-HEAP_LEVELS - количество уровней (размеров блоков) кучи. Определяет максимальный
-размер выделяемого блока MAX_BLOCK_SIZE = HEAP_UNIT << (HEAP_LEVELS - 1).
-Блоки большего размера выделяются напрямую базовым сервисом памяти.
-Накладные расходы из-за выравнивания для базового
-сервиса памяти составляют половину PROTECTION_UNIT (аппаратной страницы) на блок.
-Поэтому MAX_BLOCK_SIZE должен быть значительно больше размера страницы, и не сильно
-меньшим ALLOCATION_UNIT и SHARING_UNIT.
-Блоки такого большого размера выделяются достаточно редко.
-Кроме того, они часто бывают выравнены по размеру страницы (буферы etc.).
-Базовый сервис обычно выделяет каждый блок в отдельном SHARING_UNIT, что уменьшает
-накладные расходы при копировании.
-Таким образом, выделение достаточно больших блоков непосредственно через базовый сервис
-можно считать оправданным.
-В данной реализации количество уровней равно 11.
-Это дает MAX_BLOCK_SIZE = HEAP_UNIT * 1024, равный 16 (32)K. Для процессоров Intel
-это 4 (8) страниц, что вполне достаточно.
-В системах с небольшими величинами PROTECTION_UNIT, ALLOCATION_UNIT и SHARING_UNIT можно
-попробовать количество уровней 10.
+HEAP_LEVELS - РєРѕР»РёС‡РµСЃС‚РІРѕ СѓСЂРѕРІРЅРµР№ (СЂР°Р·РјРµСЂРѕРІ Р±Р»РѕРєРѕРІ) РєСѓС‡Рё. РћРїСЂРµРґРµР»СЏРµС‚ РјР°РєСЃРёРјР°Р»СЊРЅС‹Р№
+СЂР°Р·РјРµСЂ РІС‹РґРµР»СЏРµРјРѕРіРѕ Р±Р»РѕРєР° MAX_BLOCK_SIZE = HEAP_UNIT << (HEAP_LEVELS - 1).
+Р‘Р»РѕРєРё Р±РѕР»СЊС€РµРіРѕ СЂР°Р·РјРµСЂР° РІС‹РґРµР»СЏСЋС‚СЃСЏ РЅР°РїСЂСЏРјСѓСЋ Р±Р°Р·РѕРІС‹Рј СЃРµСЂРІРёСЃРѕРј РїР°РјСЏС‚Рё.
+РќР°РєР»Р°РґРЅС‹Рµ СЂР°СЃС…РѕРґС‹ РёР·-Р·Р° РІС‹СЂР°РІРЅРёРІР°РЅРёСЏ РґР»СЏ Р±Р°Р·РѕРІРѕРіРѕ
+СЃРµСЂРІРёСЃР° РїР°РјСЏС‚Рё СЃРѕСЃС‚Р°РІР»СЏСЋС‚ РїРѕР»РѕРІРёРЅСѓ PROTECTION_UNIT (Р°РїРїР°СЂР°С‚РЅРѕР№ СЃС‚СЂР°РЅРёС†С‹) РЅР° Р±Р»РѕРє.
+РџРѕСЌС‚РѕРјСѓ MAX_BLOCK_SIZE РґРѕР»Р¶РµРЅ Р±С‹С‚СЊ Р·РЅР°С‡РёС‚РµР»СЊРЅРѕ Р±РѕР»СЊС€Рµ СЂР°Р·РјРµСЂР° СЃС‚СЂР°РЅРёС†С‹, Рё РЅРµ СЃРёР»СЊРЅРѕ
+РјРµРЅСЊС€РёРј ALLOCATION_UNIT Рё SHARING_UNIT.
+Р‘Р»РѕРєРё С‚Р°РєРѕРіРѕ Р±РѕР»СЊС€РѕРіРѕ СЂР°Р·РјРµСЂР° РІС‹РґРµР»СЏСЋС‚СЃСЏ РґРѕСЃС‚Р°С‚РѕС‡РЅРѕ СЂРµРґРєРѕ.
+РљСЂРѕРјРµ С‚РѕРіРѕ, РѕРЅРё С‡Р°СЃС‚Рѕ Р±С‹РІР°СЋС‚ РІС‹СЂР°РІРЅРµРЅС‹ РїРѕ СЂР°Р·РјРµСЂСѓ СЃС‚СЂР°РЅРёС†С‹ (Р±СѓС„РµСЂС‹ etc.).
+Р‘Р°Р·РѕРІС‹Р№ СЃРµСЂРІРёСЃ РѕР±С‹С‡РЅРѕ РІС‹РґРµР»СЏРµС‚ РєР°Р¶РґС‹Р№ Р±Р»РѕРє РІ РѕС‚РґРµР»СЊРЅРѕРј SHARING_UNIT, С‡С‚Рѕ СѓРјРµРЅСЊС€Р°РµС‚
+РЅР°РєР»Р°РґРЅС‹Рµ СЂР°СЃС…РѕРґС‹ РїСЂРё РєРѕРїРёСЂРѕРІР°РЅРёРё.
+РўР°РєРёРј РѕР±СЂР°Р·РѕРј, РІС‹РґРµР»РµРЅРёРµ РґРѕСЃС‚Р°С‚РѕС‡РЅРѕ Р±РѕР»СЊС€РёС… Р±Р»РѕРєРѕРІ РЅРµРїРѕСЃСЂРµРґСЃС‚РІРµРЅРЅРѕ С‡РµСЂРµР· Р±Р°Р·РѕРІС‹Р№ СЃРµСЂРІРёСЃ
+РјРѕР¶РЅРѕ СЃС‡РёС‚Р°С‚СЊ РѕРїСЂР°РІРґР°РЅРЅС‹Рј.
+Р’ РґР°РЅРЅРѕР№ СЂРµР°Р»РёР·Р°С†РёРё РєРѕР»РёС‡РµСЃС‚РІРѕ СѓСЂРѕРІРЅРµР№ СЂР°РІРЅРѕ 11.
+Р­С‚Рѕ РґР°РµС‚ MAX_BLOCK_SIZE = HEAP_UNIT * 1024, СЂР°РІРЅС‹Р№ 16 (32)K. Р”Р»СЏ РїСЂРѕС†РµСЃСЃРѕСЂРѕРІ Intel
+СЌС‚Рѕ 4 (8) СЃС‚СЂР°РЅРёС†, С‡С‚Рѕ РІРїРѕР»РЅРµ РґРѕСЃС‚Р°С‚РѕС‡РЅРѕ.
+Р’ СЃРёСЃС‚РµРјР°С… СЃ РЅРµР±РѕР»СЊС€РёРјРё РІРµР»РёС‡РёРЅР°РјРё PROTECTION_UNIT, ALLOCATION_UNIT Рё SHARING_UNIT РјРѕР¶РЅРѕ
+РїРѕРїСЂРѕР±РѕРІР°С‚СЊ РєРѕР»РёС‡РµСЃС‚РІРѕ СѓСЂРѕРІРЅРµР№ 10.
 */
 
 class HeapDirectoryBase
@@ -78,23 +91,24 @@ protected:
 		size_t level;
 		size_t bitmap_offset;
 	};
+
 };
 
 /*
-DIRECTORY_SIZE - размер управляющего блока кучи. Должен быть кратен PROTECTION_UNIT.
-Управляющий блок содержит битовую карту свободных блоков и массив количества
-свободных блоков на уровнях. Меньший размер более экономно расходует память,
-выделяемую на управление кучей.
-Так как максимальный размер блока меньше размера кучи, битовая карта выглядит,
-как пирамида со срезанной верхушкой. На месте верхушки расположен индексный массив,
-uint16_t, содержащий информацию о количестве свободных блоков на различных уровнях.
-Уменьшение размера управляющего блока кучи уменьшает размер срезанной верхушки
-и оставляет меньше места для индекса. При этом приходится отводить один счетчик свободных
-блоков на несколько верхних уровней. Это может увеличить время поиска свободного
-блока в куче.
-Размер управляющего блока принимается равным 16, 32 или 64 К. Меньшие и большие размеры
-вряд ли дадут оптимальный результат.
-Для 16 битных систем размер управляющего блока единственной общей кучи должен 4 или 2 К (пока не реализовано).
+DIRECTORY_SIZE - СЂР°Р·РјРµСЂ СѓРїСЂР°РІР»СЏСЋС‰РµРіРѕ Р±Р»РѕРєР° РєСѓС‡Рё. Р”РѕР»Р¶РµРЅ Р±С‹С‚СЊ РєСЂР°С‚РµРЅ PROTECTION_UNIT.
+РЈРїСЂР°РІР»СЏСЋС‰РёР№ Р±Р»РѕРє СЃРѕРґРµСЂР¶РёС‚ Р±РёС‚РѕРІСѓСЋ РєР°СЂС‚Сѓ СЃРІРѕР±РѕРґРЅС‹С… Р±Р»РѕРєРѕРІ Рё РјР°СЃСЃРёРІ РєРѕР»РёС‡РµСЃС‚РІР°
+СЃРІРѕР±РѕРґРЅС‹С… Р±Р»РѕРєРѕРІ РЅР° СѓСЂРѕРІРЅСЏС…. РњРµРЅСЊС€РёР№ СЂР°Р·РјРµСЂ Р±РѕР»РµРµ СЌРєРѕРЅРѕРјРЅРѕ СЂР°СЃС…РѕРґСѓРµС‚ РїР°РјСЏС‚СЊ,
+РІС‹РґРµР»СЏРµРјСѓСЋ РЅР° СѓРїСЂР°РІР»РµРЅРёРµ РєСѓС‡РµР№.
+РўР°Рє РєР°Рє РјР°РєСЃРёРјР°Р»СЊРЅС‹Р№ СЂР°Р·РјРµСЂ Р±Р»РѕРєР° РјРµРЅСЊС€Рµ СЂР°Р·РјРµСЂР° РєСѓС‡Рё, Р±РёС‚РѕРІР°СЏ РєР°СЂС‚Р° РІС‹РіР»СЏРґРёС‚,
+РєР°Рє РїРёСЂР°РјРёРґР° СЃРѕ СЃСЂРµР·Р°РЅРЅРѕР№ РІРµСЂС…СѓС€РєРѕР№. РќР° РјРµСЃС‚Рµ РІРµСЂС…СѓС€РєРё СЂР°СЃРїРѕР»РѕР¶РµРЅ РёРЅРґРµРєСЃРЅС‹Р№ РјР°СЃСЃРёРІ,
+uint16_t, СЃРѕРґРµСЂР¶Р°С‰РёР№ РёРЅС„РѕСЂРјР°С†РёСЋ Рѕ РєРѕР»РёС‡РµСЃС‚РІРµ СЃРІРѕР±РѕРґРЅС‹С… Р±Р»РѕРєРѕРІ РЅР° СЂР°Р·Р»РёС‡РЅС‹С… СѓСЂРѕРІРЅСЏС….
+РЈРјРµРЅСЊС€РµРЅРёРµ СЂР°Р·РјРµСЂР° СѓРїСЂР°РІР»СЏСЋС‰РµРіРѕ Р±Р»РѕРєР° РєСѓС‡Рё СѓРјРµРЅСЊС€Р°РµС‚ СЂР°Р·РјРµСЂ СЃСЂРµР·Р°РЅРЅРѕР№ РІРµСЂС…СѓС€РєРё
+Рё РѕСЃС‚Р°РІР»СЏРµС‚ РјРµРЅСЊС€Рµ РјРµСЃС‚Р° РґР»СЏ РёРЅРґРµРєСЃР°. РџСЂРё СЌС‚РѕРј РїСЂРёС…РѕРґРёС‚СЃСЏ РѕС‚РІРѕРґРёС‚СЊ РѕРґРёРЅ СЃС‡РµС‚С‡РёРє СЃРІРѕР±РѕРґРЅС‹С…
+Р±Р»РѕРєРѕРІ РЅР° РЅРµСЃРєРѕР»СЊРєРѕ РІРµСЂС…РЅРёС… СѓСЂРѕРІРЅРµР№. Р­С‚Рѕ РјРѕР¶РµС‚ СѓРІРµР»РёС‡РёС‚СЊ РІСЂРµРјСЏ РїРѕРёСЃРєР° СЃРІРѕР±РѕРґРЅРѕРіРѕ
+Р±Р»РѕРєР° РІ РєСѓС‡Рµ.
+Р Р°Р·РјРµСЂ СѓРїСЂР°РІР»СЏСЋС‰РµРіРѕ Р±Р»РѕРєР° РїСЂРёРЅРёРјР°РµС‚СЃСЏ СЂР°РІРЅС‹Рј 16, 32 РёР»Рё 64 Рљ. РњРµРЅСЊС€РёРµ Рё Р±РѕР»СЊС€РёРµ СЂР°Р·РјРµСЂС‹
+РІСЂСЏРґ Р»Рё РґР°РґСѓС‚ РѕРїС‚РёРјР°Р»СЊРЅС‹Р№ СЂРµР·СѓР»СЊС‚Р°С‚.
+Р”Р»СЏ 16 Р±РёС‚РЅС‹С… СЃРёСЃС‚РµРј СЂР°Р·РјРµСЂ СѓРїСЂР°РІР»СЏСЋС‰РµРіРѕ Р±Р»РѕРєР° РµРґРёРЅСЃС‚РІРµРЅРЅРѕР№ РѕР±С‰РµР№ РєСѓС‡Рё РґРѕР»Р¶РµРЅ 4 РёР»Рё 2 Рљ (РїРѕРєР° РЅРµ СЂРµР°Р»РёР·РѕРІР°РЅРѕ).
 */
 
 template <size_t DIRECTORY_SIZE>
@@ -108,7 +122,7 @@ protected:
 	// Number of top level blocks.
 	static const size_t TOP_LEVEL_BLOCKS = UNIT_COUNT >> (HEAP_LEVELS - 1);
 
-	// Размер верхнего уровня битовой карты в машинных словах.
+	// Р Р°Р·РјРµСЂ РІРµСЂС…РЅРµРіРѕ СѓСЂРѕРІРЅСЏ Р±РёС‚РѕРІРѕР№ РєР°СЂС‚С‹ РІ РјР°С€РёРЅРЅС‹С… СЃР»РѕРІР°С….
 	static const size_t TOP_BITMAP_WORDS = TOP_LEVEL_BLOCKS / (sizeof (UWord) * 8);
 
 	// size_t of bitmap (in words).
@@ -128,11 +142,11 @@ class HeapDirectoryTraits <0x10000> :
 public:
 	static const size_t FREE_BLOCK_INDEX_SIZE = 15;
 
-	// По размеру блока определает смещение начала поиска в free_block_index_
+	// РџРѕ СЂР°Р·РјРµСЂСѓ Р±Р»РѕРєР° РѕРїСЂРµРґРµР»Р°РµС‚ СЃРјРµС‰РµРЅРёРµ РЅР°С‡Р°Р»Р° РїРѕРёСЃРєР° РІ free_block_index_
 	static const size_t block_index_offset_ [HEAP_LEVELS];
 
-	// По обратному смещению от конца массива free_block_index_ определяет
-	// уровень и положение области битовой карты.
+	// РџРѕ РѕР±СЂР°С‚РЅРѕРјСѓ СЃРјРµС‰РµРЅРёСЋ РѕС‚ РєРѕРЅС†Р° РјР°СЃСЃРёРІР° free_block_index_ РѕРїСЂРµРґРµР»СЏРµС‚
+	// СѓСЂРѕРІРµРЅСЊ Рё РїРѕР»РѕР¶РµРЅРёРµ РѕР±Р»Р°СЃС‚Рё Р±РёС‚РѕРІРѕР№ РєР°СЂС‚С‹.
 	static const BitmapIndex bitmap_index_ [FREE_BLOCK_INDEX_SIZE];
 };
 
@@ -143,11 +157,11 @@ class HeapDirectoryTraits <0x8000> :
 public:
 	static const size_t FREE_BLOCK_INDEX_SIZE = 8;
 
-	// По размеру блока определает смещение начала поиска в free_block_index_
+	// РџРѕ СЂР°Р·РјРµСЂСѓ Р±Р»РѕРєР° РѕРїСЂРµРґРµР»Р°РµС‚ СЃРјРµС‰РµРЅРёРµ РЅР°С‡Р°Р»Р° РїРѕРёСЃРєР° РІ free_block_index_
 	static const size_t block_index_offset_ [HEAP_LEVELS];
 
-	// По обратному смещению от конца массива free_block_index_ определяет
-	// уровень и положение области битовой карты.
+	// РџРѕ РѕР±СЂР°С‚РЅРѕРјСѓ СЃРјРµС‰РµРЅРёСЋ РѕС‚ РєРѕРЅС†Р° РјР°СЃСЃРёРІР° free_block_index_ РѕРїСЂРµРґРµР»СЏРµС‚
+	// СѓСЂРѕРІРµРЅСЊ Рё РїРѕР»РѕР¶РµРЅРёРµ РѕР±Р»Р°СЃС‚Рё Р±РёС‚РѕРІРѕР№ РєР°СЂС‚С‹.
 	static const BitmapIndex bitmap_index_ [FREE_BLOCK_INDEX_SIZE];
 };
 
@@ -158,11 +172,11 @@ class HeapDirectoryTraits <0x4000> :
 public:
 	static const size_t FREE_BLOCK_INDEX_SIZE = 4;
 
-	// По размеру блока определает смещение начала поиска в free_block_index_
+	// РџРѕ СЂР°Р·РјРµСЂСѓ Р±Р»РѕРєР° РѕРїСЂРµРґРµР»Р°РµС‚ СЃРјРµС‰РµРЅРёРµ РЅР°С‡Р°Р»Р° РїРѕРёСЃРєР° РІ free_block_index_
 	static const size_t block_index_offset_ [HEAP_LEVELS];
 
-	// По обратному смещению от конца массива free_block_index_ определяет
-	// уровень и положение области битовой карты.
+	// РџРѕ РѕР±СЂР°С‚РЅРѕРјСѓ СЃРјРµС‰РµРЅРёСЋ РѕС‚ РєРѕРЅС†Р° РјР°СЃСЃРёРІР° free_block_index_ РѕРїСЂРµРґРµР»СЏРµС‚
+	// СѓСЂРѕРІРµРЅСЊ Рё РїРѕР»РѕР¶РµРЅРёРµ РѕР±Р»Р°СЃС‚Рё Р±РёС‚РѕРІРѕР№ РєР°СЂС‚С‹.
 	static const BitmapIndex bitmap_index_ [FREE_BLOCK_INDEX_SIZE];
 };
 
@@ -267,7 +281,7 @@ enum class HeapDirectoryImpl
 	RESERVED_BITMAP,
 
 	//! Bitmap memory must be initially reserved. HeapDirectory will commit it as needed.
-	//! HeapDirectory catches `NO_PERMISSION` to detect uncommitted pages.
+	//! HeapDirectory catches GP exception to detect uncommitted pages.
 	//! This provides better performance than `RESERVED_BITMAP`, but maybe not for all platforms.
 	RESERVED_BITMAP_WITH_EXCEPTIONS
 };
@@ -321,7 +335,7 @@ public:
 	{
 		if (DIRECTORY_SIZE < 0x10000) {
 
-			// Верхние уровни объединены
+			// Р’РµСЂС…РЅРёРµ СѓСЂРѕРІРЅРё РѕР±СЉРµРґРёРЅРµРЅС‹
 			const UWord* end = bitmap_ + Traits::TOP_BITMAP_WORDS;
 
 			for (const UWord* p = bitmap_; p < end; ++p)
@@ -344,7 +358,7 @@ private:
 
 	static size_t level_align (size_t offset, size_t size)
 	{
-		// Ищем максимальный размер блока <= size, на который выравнен offset
+		// РС‰РµРј РјР°РєСЃРёРјР°Р»СЊРЅС‹Р№ СЂР°Р·РјРµСЂ Р±Р»РѕРєР° <= size, РЅР° РєРѕС‚РѕСЂС‹Р№ РІС‹СЂР°РІРЅРµРЅ offset
 		UWord level = Traits::HEAP_LEVELS - 1 - ::std::min (ntz (offset | Traits::MAX_BLOCK_SIZE), 31 - nlz ((uint32_t)size));
 		assert (level < Traits::HEAP_LEVELS);
 
@@ -409,22 +423,67 @@ private:
 	//! Commit heap block. Does nothing if heap_info == NULL.
 	void commit (size_t begin, size_t end, const HeapInfo* heap_info);
 
+	Word reserved_scan (UWord*& bitmap_ptr, UWord* const end) const
+	{
+		UWord page_size = HeapDirectoryBase::commit_unit (this);
+		assert (page_size);
+		Word bit_number = -1;
+		for (;;) {
+			HEAP_DIR_TRY {
+				while ((bit_number = Ops::clear_rightmost_one (bitmap_ptr)) < 0) {
+					if (++bitmap_ptr == end)
+						break;
+				}
+				break;
+			} HEAP_DIR_CATCH {
+				if ((bitmap_ptr = round_up (bitmap_ptr + 1, page_size)) >= end) {
+					break;
+				}
+			}
+		}
+		return bit_number;
+	}
+
+	static bool reserved_bit_clear (UWord* const bitmap_ptr, const UWord mask)
+	{
+		HEAP_DIR_TRY {
+			return Ops::bit_clear (bitmap_ptr, mask);
+		} HEAP_DIR_CATCH {
+			return false;
+		}
+	}
+
+	static bool reserved_bit_set_check_companion (UWord* bitmap_ptr, const UWord mask, const UWord companion_mask)
+	{
+		for (;;) {
+			HEAP_DIR_TRY{
+				if (Ops::bit_set_check_companion (bitmap_ptr, mask, companion_mask))
+					return true;
+				else
+					break;
+			} HEAP_DIR_CATCH{
+				Port::ProtDomainMemory::commit (bitmap_ptr, sizeof (UWord));
+			}
+		}
+		return false;
+	}
+
 private:
-	// Массив, содержащий количество свободных блоков на каждом уровне.
-	// Если общее количество блоков на уровне > 64K, он разделяется на части,
-	// каждой из которых соответствует один элемент массива.
-	// Таким образом, поиск производится, в худшем случае, среди 64K бит или 2K слов.
-	// Если места в заголовке недостаточно, верхние уровни объединяются.
-	// В этом случае, элемент массива содержит суммарное количество свободных блоков
-	// на этих уровнях.
-	// Заметим, что для массива 64К бит, счетчик свободных блоков (бит) не может превышать
-	// величину 32К, так как два соседних бита не могут быть одновременно установлены, в этом
-	// случае они обнуляются и устанавливается бит на предыдущем уровне.
-	// Массив перевернут - нижние уровни идут первыми.
+	// РњР°СЃСЃРёРІ, СЃРѕРґРµСЂР¶Р°С‰РёР№ РєРѕР»РёС‡РµСЃС‚РІРѕ СЃРІРѕР±РѕРґРЅС‹С… Р±Р»РѕРєРѕРІ РЅР° РєР°Р¶РґРѕРј СѓСЂРѕРІРЅРµ.
+	// Р•СЃР»Рё РѕР±С‰РµРµ РєРѕР»РёС‡РµСЃС‚РІРѕ Р±Р»РѕРєРѕРІ РЅР° СѓСЂРѕРІРЅРµ > 64K, РѕРЅ СЂР°Р·РґРµР»СЏРµС‚СЃСЏ РЅР° С‡Р°СЃС‚Рё,
+	// РєР°Р¶РґРѕР№ РёР· РєРѕС‚РѕСЂС‹С… СЃРѕРѕС‚РІРµС‚СЃС‚РІСѓРµС‚ РѕРґРёРЅ СЌР»РµРјРµРЅС‚ РјР°СЃСЃРёРІР°.
+	// РўР°РєРёРј РѕР±СЂР°Р·РѕРј, РїРѕРёСЃРє РїСЂРѕРёР·РІРѕРґРёС‚СЃСЏ, РІ С…СѓРґС€РµРј СЃР»СѓС‡Р°Рµ, СЃСЂРµРґРё 64K Р±РёС‚ РёР»Рё 2K СЃР»РѕРІ.
+	// Р•СЃР»Рё РјРµСЃС‚Р° РІ Р·Р°РіРѕР»РѕРІРєРµ РЅРµРґРѕСЃС‚Р°С‚РѕС‡РЅРѕ, РІРµСЂС…РЅРёРµ СѓСЂРѕРІРЅРё РѕР±СЉРµРґРёРЅСЏСЋС‚СЃСЏ.
+	// Р’ СЌС‚РѕРј СЃР»СѓС‡Р°Рµ, СЌР»РµРјРµРЅС‚ РјР°СЃСЃРёРІР° СЃРѕРґРµСЂР¶РёС‚ СЃСѓРјРјР°СЂРЅРѕРµ РєРѕР»РёС‡РµСЃС‚РІРѕ СЃРІРѕР±РѕРґРЅС‹С… Р±Р»РѕРєРѕРІ
+	// РЅР° СЌС‚РёС… СѓСЂРѕРІРЅСЏС….
+	// Р—Р°РјРµС‚РёРј, С‡С‚Рѕ РґР»СЏ РјР°СЃСЃРёРІР° 64Рљ Р±РёС‚, СЃС‡РµС‚С‡РёРє СЃРІРѕР±РѕРґРЅС‹С… Р±Р»РѕРєРѕРІ (Р±РёС‚) РЅРµ РјРѕР¶РµС‚ РїСЂРµРІС‹С€Р°С‚СЊ
+	// РІРµР»РёС‡РёРЅСѓ 32Рљ, С‚Р°Рє РєР°Рє РґРІР° СЃРѕСЃРµРґРЅРёС… Р±РёС‚Р° РЅРµ РјРѕРіСѓС‚ Р±С‹С‚СЊ РѕРґРЅРѕРІСЂРµРјРµРЅРЅРѕ СѓСЃС‚Р°РЅРѕРІР»РµРЅС‹, РІ СЌС‚РѕРј
+	// СЃР»СѓС‡Р°Рµ РѕРЅРё РѕР±РЅСѓР»СЏСЋС‚СЃСЏ Рё СѓСЃС‚Р°РЅР°РІР»РёРІР°РµС‚СЃСЏ Р±РёС‚ РЅР° РїСЂРµРґС‹РґСѓС‰РµРј СѓСЂРѕРІРЅРµ.
+	// РњР°СЃСЃРёРІ РїРµСЂРµРІРµСЂРЅСѓС‚ - РЅРёР¶РЅРёРµ СѓСЂРѕРІРЅРё РёРґСѓС‚ РїРµСЂРІС‹РјРё.
 	// Free block count index.
 	uint16_t free_block_index_ [Traits::FREE_BLOCK_INDEX_SIZE];
 
-	// Битовая карта свободных блоков. Компилятор должен выравнять на границу UWord.
+	// Р‘РёС‚РѕРІР°СЏ РєР°СЂС‚Р° СЃРІРѕР±РѕРґРЅС‹С… Р±Р»РѕРєРѕРІ. РљРѕРјРїРёР»СЏС‚РѕСЂ РґРѕР»Р¶РµРЅ РІС‹СЂР°РІРЅСЏС‚СЊ РЅР° РіСЂР°РЅРёС†Сѓ UWord.
 	UWord bitmap_ [Traits::BITMAP_SIZE];
 };
 
@@ -452,19 +511,19 @@ Word HeapDirectory <DIRECTORY_SIZE, IMPL>::allocate (size_t size, const HeapInfo
 		if (cnt < 0)
 			return -1; // no such blocks
 
-		// Определяем, где искать
+		// РћРїСЂРµРґРµР»СЏРµРј, РіРґРµ РёСЃРєР°С‚СЊ
 		// Search in bitmap
 		bi = Traits::bitmap_index_ [cnt];
 
 		if (
-			(DIRECTORY_SIZE < 0x10000) // Верхние уровни объединены
+			(DIRECTORY_SIZE < 0x10000) // Р’РµСЂС…РЅРёРµ СѓСЂРѕРІРЅРё РѕР±СЉРµРґРёРЅРµРЅС‹
 			&&
 			!cnt
-			) { // Верхние уровни
+			) { // Р’РµСЂС…РЅРёРµ СѓСЂРѕРІРЅРё
 
 			UWord merged_levels = bi.level;
 
-			// По индексу размера блока уточняем уровень и смещение начала поиска
+			// РџРѕ РёРЅРґРµРєСЃСѓ СЂР°Р·РјРµСЂР° Р±Р»РѕРєР° СѓС‚РѕС‡РЅСЏРµРј СѓСЂРѕРІРµРЅСЊ Рё СЃРјРµС‰РµРЅРёРµ РЅР°С‡Р°Р»Р° РїРѕРёСЃРєР°
 			if (bi.level > level) {
 				bi.level = level;
 				bi.bitmap_offset = bitmap_offset (level);
@@ -473,13 +532,13 @@ Word HeapDirectory <DIRECTORY_SIZE, IMPL>::allocate (size_t size, const HeapInfo
 			UWord* end = bitmap_ + bitmap_offset_next (bi.bitmap_offset);
 			UWord* begin = bitmap_ptr = bitmap_ + bi.bitmap_offset;
 
-			// Поиск в битовой карте. 
-			// Верхние уровни всегда находятся в подтвержденной области.
+			// РџРѕРёСЃРє РІ Р±РёС‚РѕРІРѕР№ РєР°СЂС‚Рµ. 
+			// Р’РµСЂС…РЅРёРµ СѓСЂРѕРІРЅРё РІСЃРµРіРґР° РЅР°С…РѕРґСЏС‚СЃСЏ РІ РїРѕРґС‚РІРµСЂР¶РґРµРЅРЅРѕР№ РѕР±Р»Р°СЃС‚Рё.
 			while ((bit_number = Ops::clear_rightmost_one (bitmap_ptr)) < 0) {
 				if (++bitmap_ptr >= end) {
 
 					if (!bi.level) {
-						// Блок требуемого размера не найден.
+						// Р‘Р»РѕРє С‚СЂРµР±СѓРµРјРѕРіРѕ СЂР°Р·РјРµСЂР° РЅРµ РЅР°Р№РґРµРЅ.
 						if (level < merged_levels) {
 							Ops::release (free_blocks_ptr);
 							return -1;
@@ -487,38 +546,29 @@ Word HeapDirectory <DIRECTORY_SIZE, IMPL>::allocate (size_t size, const HeapInfo
 							goto tryagain;
 					}
 
-					// Поднимаемся на уровень выше
+					// РџРѕРґРЅРёРјР°РµРјСЃСЏ РЅР° СѓСЂРѕРІРµРЅСЊ РІС‹С€Рµ
 					--bi.level;
 					end = begin;
 					begin = bitmap_ptr = bitmap_ + (bi.bitmap_offset = bitmap_offset_prev (bi.bitmap_offset));
 				}
 			}
 
-		} else { // На остальных уровнях ищем, как обычно
+		} else { // РќР° РѕСЃС‚Р°Р»СЊРЅС‹С… СѓСЂРѕРІРЅСЏС… РёС‰РµРј, РєР°Рє РѕР±С‹С‡РЅРѕ
 
 			UWord* begin = bitmap_ptr = bitmap_ + bi.bitmap_offset;
 			UWord* end = begin + ::std::min (Traits::TOP_LEVEL_BLOCKS << bi.level, (UWord)0x10000) / (sizeof (UWord) * 8);
 
-			if (HeapDirectoryImpl::COMMITTED_BITMAP < IMPL) {// Могут попасться неподтвержденные страницы.
-				UWord page_size = HeapDirectoryBase::commit_unit (this);
-				assert (page_size);
+			if (HeapDirectoryImpl::COMMITTED_BITMAP < IMPL) {// РњРѕРіСѓС‚ РїРѕРїР°СЃС‚СЊСЃСЏ РЅРµРїРѕРґС‚РІРµСЂР¶РґРµРЅРЅС‹Рµ СЃС‚СЂР°РЅРёС†С‹.
 
 				if (HeapDirectoryImpl::RESERVED_BITMAP_WITH_EXCEPTIONS == IMPL) {
 
-					for (;;) {
-						try {
-							while ((bit_number = Ops::clear_rightmost_one (bitmap_ptr)) < 0)
-								if (++bitmap_ptr == end)
-									goto tryagain;
-							break;
-						} catch (...) { // NO_PERMISSION
-							if ((bitmap_ptr = round_up (bitmap_ptr + 1, page_size)) >= end)
-								goto tryagain;
-						}
-					}
+					if ((bit_number = reserved_scan (bitmap_ptr, end)) < 0)
+						goto tryagain;
 
 				} else {
 
+					UWord page_size = HeapDirectoryBase::commit_unit (this);
+					assert (page_size);
 					for (;;) {
 						UWord* page_end = round_up (bitmap_ptr + 1, page_size);
 						for (;;) {
@@ -558,34 +608,34 @@ Word HeapDirectory <DIRECTORY_SIZE, IMPL>::allocate (size_t size, const HeapInfo
 
 	assert (bit_number >= 0);
 
-	// По смещению в битовой карте и размеру блока определяем номер (адрес) блока.
+	// РџРѕ СЃРјРµС‰РµРЅРёСЋ РІ Р±РёС‚РѕРІРѕР№ РєР°СЂС‚Рµ Рё СЂР°Р·РјРµСЂСѓ Р±Р»РѕРєР° РѕРїСЂРµРґРµР»СЏРµРј РЅРѕРјРµСЂ (Р°РґСЂРµСЃ) Р±Р»РѕРєР°.
 	UWord level_bitmap_begin = bitmap_offset (bi.level);
 
-	// Номер блока:
+	// РќРѕРјРµСЂ Р±Р»РѕРєР°:
 	assert ((UWord)(bitmap_ptr - bitmap_) >= level_bitmap_begin);
 	UWord block_number = (bitmap_ptr - bitmap_ - level_bitmap_begin) * sizeof (UWord) * 8;
 	block_number += bit_number;
 
-	// Определяем смещение блока в куче и его размер.
+	// РћРїСЂРµРґРµР»СЏРµРј СЃРјРµС‰РµРЅРёРµ Р±Р»РѕРєР° РІ РєСѓС‡Рµ Рё РµРіРѕ СЂР°Р·РјРµСЂ.
 	UWord allocated_size = block_size (bi.level);
 	UWord block_offset = block_number * allocated_size;
 	UWord allocated_end = block_offset + allocated_size;
 	assert (allocated_end <= Traits::UNIT_COUNT);
 
-	// Выделен блок размером allocated_size. Нужен блок размером size.
+	// Р’С‹РґРµР»РµРЅ Р±Р»РѕРє СЂР°Р·РјРµСЂРѕРј allocated_size. РќСѓР¶РµРЅ Р±Р»РѕРє СЂР°Р·РјРµСЂРѕРј size.
 
 	// Ensure that memory is committed and writeable.
 	commit (block_offset, allocated_end, heap_info);
 
-	// Освобождаем оставшуюся часть.
+	// РћСЃРІРѕР±РѕР¶РґР°РµРј РѕСЃС‚Р°РІС€СѓСЋСЃСЏ С‡Р°СЃС‚СЊ.
 	try {
 		release (block_offset + size, allocated_end);
 	} catch (...) {
 		// Release size bytes, not allocated_size bytes!
-		// Если память была освобождена частично и произошел сбой (невозможно зафиксировать битоую карту, например)
-		// Мы освобождаем блок, заканчивающийся на block_offset + size. Там же начинается успешно освобожденная часть.
-		// Биты свободных блоков в этой части будут обнулены, как компаньоны освобождающихся блоков.
-		// В результате будет восстановлено исходное состояние битовой карты.
+		// Р•СЃР»Рё РїР°РјСЏС‚СЊ Р±С‹Р»Р° РѕСЃРІРѕР±РѕР¶РґРµРЅР° С‡Р°СЃС‚РёС‡РЅРѕ Рё РїСЂРѕРёР·РѕС€РµР» СЃР±РѕР№ (РЅРµРІРѕР·РјРѕР¶РЅРѕ Р·Р°С„РёРєСЃРёСЂРѕРІР°С‚СЊ Р±РёС‚РѕСѓСЋ РєР°СЂС‚Сѓ, РЅР°РїСЂРёРјРµСЂ)
+		// РњС‹ РѕСЃРІРѕР±РѕР¶РґР°РµРј Р±Р»РѕРє, Р·Р°РєР°РЅС‡РёРІР°СЋС‰РёР№СЃСЏ РЅР° block_offset + size. РўР°Рј Р¶Рµ РЅР°С‡РёРЅР°РµС‚СЃСЏ СѓСЃРїРµС€РЅРѕ РѕСЃРІРѕР±РѕР¶РґРµРЅРЅР°СЏ С‡Р°СЃС‚СЊ.
+		// Р‘РёС‚С‹ СЃРІРѕР±РѕРґРЅС‹С… Р±Р»РѕРєРѕРІ РІ СЌС‚РѕР№ С‡Р°СЃС‚Рё Р±СѓРґСѓС‚ РѕР±РЅСѓР»РµРЅС‹, РєР°Рє РєРѕРјРїР°РЅСЊРѕРЅС‹ РѕСЃРІРѕР±РѕР¶РґР°СЋС‰РёС…СЃСЏ Р±Р»РѕРєРѕРІ.
+		// Р’ СЂРµР·СѓР»СЊС‚Р°С‚Рµ Р±СѓРґРµС‚ РІРѕСЃСЃС‚Р°РЅРѕРІР»РµРЅРѕ РёСЃС…РѕРґРЅРѕРµ СЃРѕСЃС‚РѕСЏРЅРёРµ Р±РёС‚РѕРІРѕР№ РєР°СЂС‚С‹.
 		release (block_offset, block_offset + size, heap_info);
 		throw;
 	}
@@ -600,15 +650,15 @@ bool HeapDirectory <DIRECTORY_SIZE, IMPL>::allocate (UWord begin, UWord end, con
 	if (end > Traits::UNIT_COUNT)
 		return false;
 
-	// Занимаем блок, разбивая его на блоки размером 2^n, смещение которых кратно их размеру.
-	UWord allocated_begin = begin;  // Начало занятого пространства.
-	UWord allocated_end = allocated_begin;    // Конец занятого пространства.
+	// Р—Р°РЅРёРјР°РµРј Р±Р»РѕРє, СЂР°Р·Р±РёРІР°СЏ РµРіРѕ РЅР° Р±Р»РѕРєРё СЂР°Р·РјРµСЂРѕРј 2^n, СЃРјРµС‰РµРЅРёРµ РєРѕС‚РѕСЂС‹С… РєСЂР°С‚РЅРѕ РёС… СЂР°Р·РјРµСЂСѓ.
+	UWord allocated_begin = begin;  // РќР°С‡Р°Р»Рѕ Р·Р°РЅСЏС‚РѕРіРѕ РїСЂРѕСЃС‚СЂР°РЅСЃС‚РІР°.
+	UWord allocated_end = allocated_begin;    // РљРѕРЅРµС† Р·Р°РЅСЏС‚РѕРіРѕ РїСЂРѕСЃС‚СЂР°РЅСЃС‚РІР°.
 	while (allocated_end < end) {
 
-		// Ищем минимальный уровень, на который выравнены смещение и размер.
+		// РС‰РµРј РјРёРЅРёРјР°Р»СЊРЅС‹Р№ СѓСЂРѕРІРµРЅСЊ, РЅР° РєРѕС‚РѕСЂС‹Р№ РІС‹СЂР°РІРЅРµРЅС‹ СЃРјРµС‰РµРЅРёРµ Рё СЂР°Р·РјРµСЂ.
 		UWord level = level_align (allocated_end, end - allocated_end);
 
-		// Находим начало битовой карты уровня и номер блока.
+		// РќР°С…РѕРґРёРј РЅР°С‡Р°Р»Рѕ Р±РёС‚РѕРІРѕР№ РєР°СЂС‚С‹ СѓСЂРѕРІРЅСЏ Рё РЅРѕРјРµСЂ Р±Р»РѕРєР°.
 		UWord level_bitmap_begin = bitmap_offset (level);
 		UWord bl_number = block_number (allocated_end, level);
 
@@ -623,13 +673,8 @@ bool HeapDirectory <DIRECTORY_SIZE, IMPL>::allocate (UWord begin, UWord end, con
 			// Decrement free blocks counter.
 			if (Ops::acquire (&free_blocks_cnt)) {
 				if (HeapDirectoryImpl::RESERVED_BITMAP_WITH_EXCEPTIONS == IMPL) {
-					try {
-						if (Ops::bit_clear (bitmap_ptr, mask)) {
-							success = true; // Block has been allocated
-							break;
-						}
-					} catch (...) { // NO_PERMISSION
-					}
+					if ((success = reserved_bit_clear (bitmap_ptr, mask)))
+						break;
 				} else {
 					if (
 						(HeapDirectoryImpl::COMMITTED_BITMAP >= IMPL || Port::ProtDomainMemory::is_readable (bitmap_ptr, sizeof (UWord)))
@@ -671,9 +716,9 @@ bool HeapDirectory <DIRECTORY_SIZE, IMPL>::allocate (UWord begin, UWord end, con
 	commit (allocated_begin, allocated_end, heap_info);
 
 	try { // Release extra space at begin and end
-		// Память освобождается изнутри - наружу, чтобы, в случае сбоя
-		// (невозможность зафиксировать битовую карту) и последующего освобождения внутренней
-		// части, восстановилось исходное состояние.
+		// РџР°РјСЏС‚СЊ РѕСЃРІРѕР±РѕР¶РґР°РµС‚СЃСЏ РёР·РЅСѓС‚СЂРё - РЅР°СЂСѓР¶Сѓ, С‡С‚РѕР±С‹, РІ СЃР»СѓС‡Р°Рµ СЃР±РѕСЏ
+		// (РЅРµРІРѕР·РјРѕР¶РЅРѕСЃС‚СЊ Р·Р°С„РёРєСЃРёСЂРѕРІР°С‚СЊ Р±РёС‚РѕРІСѓСЋ РєР°СЂС‚Сѓ) Рё РїРѕСЃР»РµРґСѓСЋС‰РµРіРѕ РѕСЃРІРѕР±РѕР¶РґРµРЅРёСЏ РІРЅСѓС‚СЂРµРЅРЅРµР№
+		// С‡Р°СЃС‚Рё, РІРѕСЃСЃС‚Р°РЅРѕРІРёР»РѕСЃСЊ РёСЃС…РѕРґРЅРѕРµ СЃРѕСЃС‚РѕСЏРЅРёРµ.
 		release (allocated_begin, begin, 0, true);
 		release (end, allocated_end, 0, false);
 	} catch (...) {
@@ -701,7 +746,7 @@ void HeapDirectory <DIRECTORY_SIZE, IMPL>::commit (size_t begin, size_t end, con
 }
 
 template <size_t DIRECTORY_SIZE, HeapDirectoryImpl IMPL>
-void HeapDirectory <DIRECTORY_SIZE, IMPL>::release (UWord begin, UWord end, const HeapInfo* heap_info, bool rtl)
+void HeapDirectory <DIRECTORY_SIZE, IMPL>::release (size_t begin, size_t end, const HeapInfo* heap_info, bool rtl)
 {
 	assert (begin <= end);
 	assert (end <= Traits::UNIT_COUNT);
@@ -713,14 +758,14 @@ void HeapDirectory <DIRECTORY_SIZE, IMPL>::release (UWord begin, UWord end, cons
 		decommit_level = Traits::HEAP_LEVELS - 32 + nlz ((uint32_t)(heap_info->commit_size / heap_info->unit_size));
 	}
 
-	// Освобождаемый блок должен быть разбит на блоки размером 2^n, смещение которых
-	// кратно их размеру.
+	// РћСЃРІРѕР±РѕР¶РґР°РµРјС‹Р№ Р±Р»РѕРє РґРѕР»Р¶РµРЅ Р±С‹С‚СЊ СЂР°Р·Р±РёС‚ РЅР° Р±Р»РѕРєРё СЂР°Р·РјРµСЂРѕРј 2^n, СЃРјРµС‰РµРЅРёРµ РєРѕС‚РѕСЂС‹С…
+	// РєСЂР°С‚РЅРѕ РёС… СЂР°Р·РјРµСЂСѓ.
 	while (begin < end) {
 
-		// Смещение блока в куче
-		UWord level;
-		UWord block_begin;
-		UWord block_end;
+		// РЎРјРµС‰РµРЅРёРµ Р±Р»РѕРєР° РІ РєСѓС‡Рµ
+		size_t level;
+		size_t block_begin;
+		size_t block_end;
 		if (rtl) {
 			level = level_align (end, end - begin);
 			block_begin = end - block_size (level);
@@ -731,13 +776,13 @@ void HeapDirectory <DIRECTORY_SIZE, IMPL>::release (UWord begin, UWord end, cons
 			block_end = block_begin + block_size (level);
 		}
 
-		// Освобождаем блок со смещением block_begin на уровне level
+		// РћСЃРІРѕР±РѕР¶РґР°РµРј Р±Р»РѕРє СЃРѕ СЃРјРµС‰РµРЅРёРµРј block_begin РЅР° СѓСЂРѕРІРЅРµ level
 
-		// Находим начало битовой карты уровня и номер блока
+		// РќР°С…РѕРґРёРј РЅР°С‡Р°Р»Рѕ Р±РёС‚РѕРІРѕР№ РєР°СЂС‚С‹ СѓСЂРѕРІРЅСЏ Рё РЅРѕРјРµСЂ Р±Р»РѕРєР°
 		UWord level_bitmap_begin = bitmap_offset (level);
 		UWord bl_number = block_number (block_begin, level);
 
-		// Определяем адрес слова в битовой карте
+		// РћРїСЂРµРґРµР»СЏРµРј Р°РґСЂРµСЃ СЃР»РѕРІР° РІ Р±РёС‚РѕРІРѕР№ РєР°СЂС‚Рµ
 		UWord* bitmap_ptr = bitmap_ + level_bitmap_begin + bl_number / (sizeof (UWord) * 8);
 		UWord mask = (UWord)1 << (bl_number % (sizeof (UWord) * 8));
 		volatile uint16_t* free_blocks_cnt = &free_block_count (level, bl_number);
@@ -750,27 +795,18 @@ void HeapDirectory <DIRECTORY_SIZE, IMPL>::release (UWord begin, UWord end, cons
 
 			if (HeapDirectoryImpl::RESERVED_BITMAP_WITH_EXCEPTIONS == IMPL) {
 
-				for (;;) {
-					try {
-						if (Ops::bit_set_check_companion (bitmap_ptr, mask, companion_mask (mask))) {
-							// Есть свободный компаньон, объединяем его с освобождаемым блоком
-							// Поднимаемся на уровень выше
-							Ops::decrement (free_blocks_cnt);
-							--level;
-							level_bitmap_begin = bitmap_offset_prev (level_bitmap_begin);
-							bl_number >>= 1;
-							mask = (UWord)1 << (bl_number % (sizeof (UWord) * 8));
-							bitmap_ptr = bitmap_ + level_bitmap_begin + bl_number / (sizeof (UWord) * 8);
-							free_blocks_cnt = &free_block_count (level, bl_number);
-							goto prev_level;
-						} else
-							break;
-					} catch (...) { // NO_PERMISSION
-						Port::ProtDomainMemory::commit (bitmap_ptr, sizeof (UWord));
-					}
-				}
-				break;
-			prev_level:;
+				if (reserved_bit_set_check_companion (bitmap_ptr, mask, companion_mask (mask))) {
+					// Р•СЃС‚СЊ СЃРІРѕР±РѕРґРЅС‹Р№ РєРѕРјРїР°РЅСЊРѕРЅ, РѕР±СЉРµРґРёРЅСЏРµРј РµРіРѕ СЃ РѕСЃРІРѕР±РѕР¶РґР°РµРјС‹Рј Р±Р»РѕРєРѕРј
+					// РџРѕРґРЅРёРјР°РµРјСЃСЏ РЅР° СѓСЂРѕРІРµРЅСЊ РІС‹С€Рµ
+					Ops::decrement (free_blocks_cnt);
+					--level;
+					level_bitmap_begin = bitmap_offset_prev (level_bitmap_begin);
+					bl_number >>= 1;
+					mask = (UWord)1 << (bl_number % (sizeof (UWord) * 8));
+					bitmap_ptr = bitmap_ + level_bitmap_begin + bl_number / (sizeof (UWord) * 8);
+					free_blocks_cnt = &free_block_count (level, bl_number);
+				} else
+					break;
 
 			} else {
 
@@ -778,8 +814,8 @@ void HeapDirectory <DIRECTORY_SIZE, IMPL>::release (UWord begin, UWord end, cons
 					Port::ProtDomainMemory::commit (bitmap_ptr, sizeof (UWord));
 
 				if (Ops::bit_set_check_companion (bitmap_ptr, mask, companion_mask (mask))) {
-					// Есть свободный компаньон, объединяем его с освобождаемым блоком
-					// Поднимаемся на уровень выше
+					// Р•СЃС‚СЊ СЃРІРѕР±РѕРґРЅС‹Р№ РєРѕРјРїР°РЅСЊРѕРЅ, РѕР±СЉРµРґРёРЅСЏРµРј РµРіРѕ СЃ РѕСЃРІРѕР±РѕР¶РґР°РµРјС‹Рј Р±Р»РѕРєРѕРј
+					// РџРѕРґРЅРёРјР°РµРјСЃСЏ РЅР° СѓСЂРѕРІРµРЅСЊ РІС‹С€Рµ
 					Ops::decrement (free_blocks_cnt);
 					--level;
 					level_bitmap_begin = bitmap_offset_prev (level_bitmap_begin);
@@ -792,9 +828,9 @@ void HeapDirectory <DIRECTORY_SIZE, IMPL>::release (UWord begin, UWord end, cons
 			}
 		}
 
-		// Заранее увеличиваем счетчик свободных блоков, чтобы другие потоки знали,
-		// что свободный блок скоро появится и начинали поиск. Это должно уменьшить вероятность
-		// ложных отказов. Хотя может вызвать дополительные циклы поиска.
+		// Р—Р°СЂР°РЅРµРµ СѓРІРµР»РёС‡РёРІР°РµРј СЃС‡РµС‚С‡РёРє СЃРІРѕР±РѕРґРЅС‹С… Р±Р»РѕРєРѕРІ, С‡С‚РѕР±С‹ РґСЂСѓРіРёРµ РїРѕС‚РѕРєРё Р·РЅР°Р»Рё,
+		// С‡С‚Рѕ СЃРІРѕР±РѕРґРЅС‹Р№ Р±Р»РѕРє СЃРєРѕСЂРѕ РїРѕСЏРІРёС‚СЃСЏ Рё РЅР°С‡РёРЅР°Р»Рё РїРѕРёСЃРє. Р­С‚Рѕ РґРѕР»Р¶РЅРѕ СѓРјРµРЅСЊС€РёС‚СЊ РІРµСЂРѕСЏС‚РЅРѕСЃС‚СЊ
+		// Р»РѕР¶РЅС‹С… РѕС‚РєР°Р·РѕРІ. РҐРѕС‚СЏ РјРѕР¶РµС‚ РІС‹Р·РІР°С‚СЊ РґРѕРїРѕР»РёС‚РµР»СЊРЅС‹Рµ С†РёРєР»С‹ РїРѕРёСЃРєР°.
 		Ops::release (free_blocks_cnt);
 
 		if (level == 0) {
@@ -817,7 +853,7 @@ void HeapDirectory <DIRECTORY_SIZE, IMPL>::release (UWord begin, UWord end, cons
 				Ops::bit_set (bitmap_ptr, mask);
 		}
 
-		// Блок освобожден
+		// Р‘Р»РѕРє РѕСЃРІРѕР±РѕР¶РґРµРЅ
 		if (rtl)
 			end = block_begin;
 		else
@@ -826,12 +862,12 @@ void HeapDirectory <DIRECTORY_SIZE, IMPL>::release (UWord begin, UWord end, cons
 }
 
 template <size_t DIRECTORY_SIZE, HeapDirectoryImpl IMPL>
-bool HeapDirectory <DIRECTORY_SIZE, IMPL>::check_allocated (UWord begin, UWord end) const
+bool HeapDirectory <DIRECTORY_SIZE, IMPL>::check_allocated (size_t begin, size_t end) const
 {
 	if (begin >= Traits::UNIT_COUNT || end > Traits::UNIT_COUNT || end <= begin)
 		return false;
 
-	UWord page_size = 0;
+	uintptr_t page_size = 0;
 	if (HeapDirectoryImpl::COMMITTED_BITMAP < IMPL) {
 		page_size = HeapDirectoryBase::commit_unit (this);
 		assert (page_size);
@@ -856,10 +892,11 @@ bool HeapDirectory <DIRECTORY_SIZE, IMPL>::check_allocated (UWord begin, UWord e
 		if (begin_ptr >= end_ptr) {
 
 			if (HeapDirectoryImpl::RESERVED_BITMAP_WITH_EXCEPTIONS == IMPL) {
-				try {
+				HEAP_DIR_TRY {
 					if (*begin_ptr & begin_mask & end_mask)
 						return false;
-				} catch (...) { // NO_PERMISSION
+				} HEAP_DIR_CATCH {
+					;
 				}
 			} else {
 				if (
@@ -874,31 +911,32 @@ bool HeapDirectory <DIRECTORY_SIZE, IMPL>::check_allocated (UWord begin, UWord e
 			assert (page_size);
 
 			if (HeapDirectoryImpl::RESERVED_BITMAP_WITH_EXCEPTIONS == IMPL) {
-				try {
+				HEAP_DIR_TRY {
 					if (*begin_ptr & begin_mask)
 						return false;
 					++begin_ptr;
-				} catch (...) { // NO_PERMISSION
+				} HEAP_DIR_CATCH {
 					begin_ptr = round_up (begin_ptr + 1, page_size);
 				}
 
 				for (;;) {
-					try {
+					HEAP_DIR_TRY {
 						while (begin_ptr < end_ptr) {
 							if (*begin_ptr)
 								return false;
 							++begin_ptr;
 						}
-						break;
-					} catch (...) { // NO_PERMISSION
+					break;
+					} HEAP_DIR_CATCH {
 						begin_ptr = round_up (begin_ptr + 1, page_size);
 					}
 				}
 
-				try {
+				HEAP_DIR_TRY {
 					if (begin_ptr == end_ptr && (*end_ptr & end_mask))
 						return false;
-				} catch (...) { // NO_PERMISSION
+				} HEAP_DIR_CATCH{
+					;
 				}
 
 			} else { // Don't use exception

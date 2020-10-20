@@ -69,15 +69,17 @@ protected:
 };
 
 typedef ::testing::Types <
-	HeapDirectoryFactory <0x10000, HeapDirectoryImpl::COMMITTED_BITMAP>,
-//	HeapDirectoryFactory <0x10000, HeapDirectoryImpl::RESERVED_BITMAP>,
-//	HeapDirectoryFactory <0x10000, HeapDirectoryImpl::RESERVED_BITMAP_WITH_EXCEPTIONS>, 
-	HeapDirectoryFactory <0x8000, HeapDirectoryImpl::COMMITTED_BITMAP>,
-//	HeapDirectoryFactory <0x8000, HeapDirectoryImpl::RESERVED_BITMAP>,
-//	HeapDirectoryFactory <0x8000, HeapDirectoryImpl::RESERVED_BITMAP_WITH_EXCEPTIONS>,
-	HeapDirectoryFactory <0x4000, HeapDirectoryImpl::COMMITTED_BITMAP> //,
-//	HeapDirectoryFactory <0x4000, HeapDirectoryImpl::RESERVED_BITMAP>,
-//	HeapDirectoryFactory <0x4000, HeapDirectoryImpl::RESERVED_BITMAP_WITH_EXCEPTIONS>
+	HeapDirectoryFactory <0x10000, HeapDirectoryImpl::COMMITTED_BITMAP>
+//,	HeapDirectoryFactory <0x10000, HeapDirectoryImpl::RESERVED_BITMAP>
+#if defined _WIN32 && !defined (__clang__)
+, HeapDirectoryFactory <0x10000, HeapDirectoryImpl::RESERVED_BITMAP_WITH_EXCEPTIONS>
+#endif
+, HeapDirectoryFactory <0x8000, HeapDirectoryImpl::COMMITTED_BITMAP>
+//, HeapDirectoryFactory <0x8000, HeapDirectoryImpl::RESERVED_BITMAP>
+//, HeapDirectoryFactory <0x8000, HeapDirectoryImpl::RESERVED_BITMAP_WITH_EXCEPTIONS>
+, HeapDirectoryFactory <0x4000, HeapDirectoryImpl::COMMITTED_BITMAP>
+//, HeapDirectoryFactory <0x4000, HeapDirectoryImpl::RESERVED_BITMAP>
+//, HeapDirectoryFactory <0x4000, HeapDirectoryImpl::RESERVED_BITMAP_WITH_EXCEPTIONS>
 > MyTypes;
 
 TYPED_TEST_CASE (TestHeapDirectory, MyTypes);

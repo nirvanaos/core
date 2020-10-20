@@ -190,7 +190,7 @@ SkipListBase::Node* SkipListBase::read_node (Link::Lockable& node) NIRVANA_NOEXC
 	Node* p = nullptr;
 	Link link = node.lock ();
 	if (!link.tag_bits ()) {
-		if (p = link)
+		if ((p = link))
 			p->ref_cnt.increment ();
 	}
 	node.unlock ();
