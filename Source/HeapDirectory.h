@@ -263,7 +263,16 @@ struct HeapInfo
 	size_t commit_size;
 };
 
-//! Heap directory bitmap implementation details
+/// Heap directory bitmap implementation details
+/// 
+/// Heap bitmaps are often sparse (filled with zeroes).
+/// Some virtual memory systems, such as Linux, use single zeroed physical page for all zero memory
+/// blocks and then eventually do COW (copy on write) behavior on the page when we are changing the contents.
+/// So the physical page is allocated only when we write to page.
+/// For the such systems we may use HeapDirectoryImpl::COMMITTED_BITMAP and it won't produce the redundant
+/// memory allocations.
+/// But Windows does not use this behaviour. In Windows, the physical page allocated on the first access
+/// the page, read or write. So, to conserve the physical memory in Windows we use HeapDirectoryImpl::RESERVED_BITMAP_WITH_EXCEPTIONS.
 enum class HeapDirectoryImpl
 {
 	//! This implementation used for systems without memory protection.
@@ -278,6 +287,7 @@ enum class HeapDirectoryImpl
 
 	//! Bitmap memory must be initially reserved. HeapDirectory will commit it as needed.
 	//! HeapDirectory uses `is_readable()` method to detect uncommitted pages.
+	//! Extremely slow.
 	RESERVED_BITMAP,
 
 	//! Bitmap memory must be initially reserved. HeapDirectory will commit it as needed.
