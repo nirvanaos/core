@@ -1,14 +1,14 @@
-#include "HeapDirectory.h"
+п»ї#include "HeapDirectory.h"
 
 namespace Nirvana {
 namespace Core {
 
 using namespace std;
 
-const UWord HeapDirectoryTraits <0x10000>::block_index_offset_ [HEAP_LEVELS] =
+const UWord HeapDirectoryTraits <0x10000, 11>::block_index_offset_ [HEAP_LEVELS] =
 { // FREE_BLOCK_INDEX_SIZE == 15
-	0,  // разделен на 4 части
-	4,  // разделен на 2 части
+	0,  // СЂР°Р·РґРµР»РµРЅ РЅР° 4 С‡Р°СЃС‚Рё
+	4,  // СЂР°Р·РґРµР»РµРЅ РЅР° 2 С‡Р°СЃС‚Рё
 	6,
 	7,
 	8,
@@ -20,7 +20,7 @@ const UWord HeapDirectoryTraits <0x10000>::block_index_offset_ [HEAP_LEVELS] =
 	14
 };
 
-const HeapDirectoryBase::BitmapIndex HeapDirectoryTraits <0x10000>::bitmap_index_ [FREE_BLOCK_INDEX_SIZE] =
+const HeapDirectoryBase::BitmapIndex HeapDirectoryTraits <0x10000, 11>::bitmap_index_ [FREE_BLOCK_INDEX_SIZE] =
 { // FREE_BLOCK_INDEX_SIZE == 15
 	{0,  0},
 	{1,  TOP_BITMAP_WORDS},
@@ -39,22 +39,51 @@ const HeapDirectoryBase::BitmapIndex HeapDirectoryTraits <0x10000>::bitmap_index
 	{10, TOP_BITMAP_WORDS * 1023}
 };
 
-const UWord HeapDirectoryTraits <0x8000>::block_index_offset_ [HEAP_LEVELS] =
-{ // FREE_BLOCK_INDEX_SIZE == 8
-	0,  // разделен на 2 части
+const UWord HeapDirectoryTraits <0x8000, 10>::block_index_offset_ [HEAP_LEVELS] =
+{ // FREE_BLOCK_INDEX_SIZE == 11
+	0,  // СЂР°Р·РґРµР»РµРЅ РЅР° 2 С‡Р°СЃС‚Рё
 	2,
 	3,
 	4,
 	5,
 	6,
-	7,  // 5 верхних уровней объединены
+	7,
+	8,
+	9,
+	10
+};
+
+const HeapDirectoryBase::BitmapIndex HeapDirectoryTraits <0x8000, 10>::bitmap_index_ [FREE_BLOCK_INDEX_SIZE] =
+{ // FREE_BLOCK_INDEX_SIZE == 11
+	{0,  0},
+	{1,  TOP_BITMAP_WORDS},
+	{2,  TOP_BITMAP_WORDS * 3},
+	{3,  TOP_BITMAP_WORDS * 7},
+	{4,  TOP_BITMAP_WORDS * 15},
+	{5,  TOP_BITMAP_WORDS * 31},
+	{6,  TOP_BITMAP_WORDS * 63},
+	{7,  TOP_BITMAP_WORDS * 127},
+	{8,  TOP_BITMAP_WORDS * 255},
+	{9,  TOP_BITMAP_WORDS * (511 + 256)},
+	{9,  TOP_BITMAP_WORDS * 511}
+};
+
+const UWord HeapDirectoryTraits <0x8000, 11>::block_index_offset_ [HEAP_LEVELS] =
+{ // FREE_BLOCK_INDEX_SIZE == 8
+	0,  // СЂР°Р·РґРµР»РµРЅ РЅР° 2 С‡Р°СЃС‚Рё
+	2,
+	3,
+	4,
+	5,
+	6,
+	7,  // 5 РІРµСЂС…РЅРёС… СѓСЂРѕРІРЅРµР№ РѕР±СЉРµРґРёРЅРµРЅС‹
 	7,
 	7,
 	7,
 	7
 };
 
-const HeapDirectoryBase::BitmapIndex HeapDirectoryTraits <0x8000>::bitmap_index_ [FREE_BLOCK_INDEX_SIZE] =
+const HeapDirectoryBase::BitmapIndex HeapDirectoryTraits <0x8000, 11>::bitmap_index_ [FREE_BLOCK_INDEX_SIZE] =
 { // FREE_BLOCK_INDEX_SIZE == 8
 	{4,  TOP_BITMAP_WORDS * 15},
 	{5,  TOP_BITMAP_WORDS * 31},
@@ -66,12 +95,40 @@ const HeapDirectoryBase::BitmapIndex HeapDirectoryTraits <0x8000>::bitmap_index_
 	{10, TOP_BITMAP_WORDS * 1023}
 };
 
-const UWord HeapDirectoryTraits <0x4000>::block_index_offset_ [HEAP_LEVELS] =
+// TODO: For 0x4000 directory size we can avoid usage of indexes.
+
+const UWord HeapDirectoryTraits <0x4000, 9>::block_index_offset_ [HEAP_LEVELS] =
+{ // FREE_BLOCK_INDEX_SIZE == 9
+	0,
+	1,
+	2,
+	3,
+	4,
+	5,
+	6,
+	7,
+	8
+};
+
+const HeapDirectoryBase::BitmapIndex HeapDirectoryTraits <0x4000, 9>::bitmap_index_ [FREE_BLOCK_INDEX_SIZE] =
+{ // FREE_BLOCK_INDEX_SIZE == 9
+	{0,  0},
+	{1,  TOP_BITMAP_WORDS},
+	{2,  TOP_BITMAP_WORDS * 3},
+	{3,  TOP_BITMAP_WORDS * 7},
+	{4,  TOP_BITMAP_WORDS * 15},
+	{5,  TOP_BITMAP_WORDS * 31},
+	{6,  TOP_BITMAP_WORDS * 63},
+	{7,  TOP_BITMAP_WORDS * 127},
+	{8,  TOP_BITMAP_WORDS * 255}
+};
+
+const UWord HeapDirectoryTraits <0x4000, 11>::block_index_offset_ [HEAP_LEVELS] =
 { // FREE_BLOCK_INDEX_SIZE == 4
 	0,
 	1,
 	2,
-	3,  // 8 верхних уровней объединены
+	3,  // 8 РІРµСЂС…РЅРёС… СѓСЂРѕРІРЅРµР№ РѕР±СЉРµРґРёРЅРµРЅС‹
 	3,
 	3,
 	3,
@@ -81,9 +138,9 @@ const UWord HeapDirectoryTraits <0x4000>::block_index_offset_ [HEAP_LEVELS] =
 	3
 };
 
-const HeapDirectoryBase::BitmapIndex HeapDirectoryTraits <0x4000>::bitmap_index_ [FREE_BLOCK_INDEX_SIZE] =
+const HeapDirectoryBase::BitmapIndex HeapDirectoryTraits <0x4000, 11>::bitmap_index_ [FREE_BLOCK_INDEX_SIZE] =
 { // FREE_BLOCK_INDEX_SIZE == 4
-	// Можно обойтись вычислениями. Нужен ли такой массив?
+	// РњРѕР¶РЅРѕ РѕР±РѕР№С‚РёСЃСЊ РІС‹С‡РёСЃР»РµРЅРёСЏРјРё. РќСѓР¶РµРЅ Р»Рё С‚Р°РєРѕР№ РјР°СЃСЃРёРІ?
 	{7,  TOP_BITMAP_WORDS * 127},
 	{8,  TOP_BITMAP_WORDS * 255},
 	{9,  TOP_BITMAP_WORDS * 511},

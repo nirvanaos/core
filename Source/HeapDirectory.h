@@ -44,27 +44,6 @@
 namespace Nirvana {
 namespace Core {
 
-/*
-HEAP_LEVELS - количество уровней (размеров блоков) кучи. Определяет максимальный
-размер выделяемого блока MAX_BLOCK_SIZE = HEAP_UNIT << (HEAP_LEVELS - 1).
-Блоки большего размера выделяются напрямую базовым сервисом памяти.
-Накладные расходы из-за выравнивания для базового
-сервиса памяти составляют половину PROTECTION_UNIT (аппаратной страницы) на блок.
-Поэтому MAX_BLOCK_SIZE должен быть значительно больше размера страницы, и не сильно
-меньшим ALLOCATION_UNIT и SHARING_UNIT.
-Блоки такого большого размера выделяются достаточно редко.
-Кроме того, они часто бывают выравнены по размеру страницы (буферы etc.).
-Базовый сервис обычно выделяет каждый блок в отдельном SHARING_UNIT, что уменьшает
-накладные расходы при копировании.
-Таким образом, выделение достаточно больших блоков непосредственно через базовый сервис
-можно считать оправданным.
-В данной реализации количество уровней равно 11.
-Это дает MAX_BLOCK_SIZE = HEAP_UNIT * 1024, равный 16 (32)K. Для процессоров Intel
-это 4 (8) страниц, что вполне достаточно.
-В системах с небольшими величинами PROTECTION_UNIT, ALLOCATION_UNIT и SHARING_UNIT можно
-попробовать количество уровней 10.
-*/
-
 class HeapDirectoryBase
 {
 	// Copy prohibited.
@@ -74,11 +53,8 @@ class HeapDirectoryBase
 public:
 	HeapDirectoryBase () {}
 
-	static const size_t HEAP_LEVELS = 11;
-	static const size_t MAX_BLOCK_SIZE = 1 << (HEAP_LEVELS - 1);
-
 protected:
-	static uintptr_t commit_unit (const void* p)
+	static size_t commit_unit (const void* p)
 	{
 		if (Port::ProtDomainMemory::FIXED_COMMIT_UNIT)
 			return Port::ProtDomainMemory::FIXED_COMMIT_UNIT;
@@ -88,7 +64,7 @@ protected:
 
 	struct BitmapIndex
 	{
-		size_t level;
+		UWord  level;
 		size_t bitmap_offset;
 	};
 
@@ -109,16 +85,37 @@ uint16_t, содержащий информацию о количестве св
 Размер управляющего блока принимается равным 16, 32 или 64 К. Меньшие и большие размеры
 вряд ли дадут оптимальный результат.
 Для 16 битных систем размер управляющего блока единственной общей кучи должен 4 или 2 К (пока не реализовано).
+
+HEAP_LEVELS - количество уровней (размеров блоков) кучи. Определяет максимальный
+размер выделяемого блока MAX_BLOCK_SIZE = HEAP_UNIT << (HEAP_LEVELS - 1).
+Блоки большего размера выделяются напрямую базовым сервисом памяти.
+Накладные расходы из-за выравнивания для базового
+сервиса памяти составляют половину PROTECTION_UNIT (аппаратной страницы) на блок.
+Поэтому MAX_BLOCK_SIZE должен быть значительно больше размера страницы, и не сильно
+меньшим ProtDomainMemory::ALLOCATION_UNIT и ProtDomainMemory::SHARING_UNIT.
+Блоки такого большого размера выделяются достаточно редко.
+Кроме того, они часто бывают выравнены по размеру страницы (буферы etc.).
+Базовый сервис обычно выделяет каждый блок в отдельном SHARING_UNIT, что уменьшает
+накладные расходы при копировании.
+Таким образом, выделение достаточно больших блоков непосредственно через базовый сервис
+можно считать оправданным.
+For Windows host ProtDomainMemory::ALLOCATION_UNIT = 64K, DIRECTORY_SIZE = 64K and HEAP_LEVELS = 11.
+Это дает MAX_BLOCK_SIZE = HEAP_UNIT_DEFAULT * 1024, равный 16K.
+В системах с небольшими величинами PROTECTION_UNIT, ALLOCATION_UNIT и SHARING_UNIT можно
+использовать DIRECTORY_SIZE = 0x8000 или DIRECTORY_SIZE = 0x4000.
 */
 
-template <size_t DIRECTORY_SIZE>
+template <size_t DIRECTORY_SIZE, UWord _HEAP_LEVELS>
 class HeapDirectoryTraitsBase :
 	public HeapDirectoryBase
 {
 public:
 	static const size_t UNIT_COUNT = DIRECTORY_SIZE * 4;
+	static const size_t MAX_BLOCK_SIZE = 1 << (_HEAP_LEVELS - 1);
 
 protected:
+	static const UWord HEAP_LEVELS = _HEAP_LEVELS;
+
 	// Number of top level blocks.
 	static const size_t TOP_LEVEL_BLOCKS = UNIT_COUNT >> (HEAP_LEVELS - 1);
 
@@ -133,15 +130,17 @@ protected:
 };
 
 // There are 3 implementations of HeapDirectoryTraits for directory sizes 0x10000, 0x8000 and 0x4000 respectively.
-template <size_t SIZE> class HeapDirectoryTraits;
+template <size_t SIZE, UWord HEAP_LEVELS> class HeapDirectoryTraits;
 
 template <>
-class HeapDirectoryTraits <0x10000> :
-	public HeapDirectoryTraitsBase <0x10000>
+class HeapDirectoryTraits <0x10000, 11> :
+	public HeapDirectoryTraitsBase <0x10000, 11>
 {
 public:
 	static const size_t FREE_BLOCK_INDEX_SIZE = 15;
 
+	static const bool merged_levels = false;
+
 	// По размеру блока определает смещение начала поиска в free_block_index_
 	static const size_t block_index_offset_ [HEAP_LEVELS];
 
@@ -151,12 +150,31 @@ public:
 };
 
 template <>
-class HeapDirectoryTraits <0x8000> :
-	public HeapDirectoryTraitsBase <0x8000>
+class HeapDirectoryTraits <0x8000, 10> :
+	public HeapDirectoryTraitsBase <0x8000, 10>
+{
+public:
+	static const size_t FREE_BLOCK_INDEX_SIZE = 11;
+
+	static const bool merged_levels = false;
+
+	// По размеру блока определает смещение начала поиска в free_block_index_
+	static const size_t block_index_offset_ [HEAP_LEVELS];
+
+	// По обратному смещению от конца массива free_block_index_ определяет
+	// уровень и положение области битовой карты.
+	static const BitmapIndex bitmap_index_ [FREE_BLOCK_INDEX_SIZE];
+};
+
+template <>
+class HeapDirectoryTraits <0x8000, 11> :
+	public HeapDirectoryTraitsBase <0x8000, 11>
 {
 public:
 	static const size_t FREE_BLOCK_INDEX_SIZE = 8;
 
+	static const bool merged_levels = true;
+
 	// По размеру блока определает смещение начала поиска в free_block_index_
 	static const size_t block_index_offset_ [HEAP_LEVELS];
 
@@ -166,11 +184,30 @@ public:
 };
 
 template <>
-class HeapDirectoryTraits <0x4000> :
-	public HeapDirectoryTraitsBase <0x4000>
+class HeapDirectoryTraits <0x4000, 9> :
+	public HeapDirectoryTraitsBase <0x4000, 9>
+{
+public:
+	static const size_t FREE_BLOCK_INDEX_SIZE = 9;
+
+	static const bool merged_levels = false;
+
+	// По размеру блока определает смещение начала поиска в free_block_index_
+	static const size_t block_index_offset_ [HEAP_LEVELS];
+
+	// По обратному смещению от конца массива free_block_index_ определяет
+	// уровень и положение области битовой карты.
+	static const BitmapIndex bitmap_index_ [FREE_BLOCK_INDEX_SIZE];
+};
+
+template <>
+class HeapDirectoryTraits <0x4000, 11> :
+	public HeapDirectoryTraitsBase <0x4000, 11>
 {
 public:
 	static const size_t FREE_BLOCK_INDEX_SIZE = 4;
+
+	static const bool merged_levels = true;
 
 	// По размеру блока определает смещение начала поиска в free_block_index_
 	static const size_t block_index_offset_ [HEAP_LEVELS];
@@ -299,11 +336,11 @@ enum class HeapDirectoryImpl
 //! Heap directory. Used for memory allocation on different levels of memory management.
 //! Heap directory allocates and deallocates abstract "units" in range (0 <= n < UNIT_COUNT).
 //! Each unit requires 2 bits of HeapDirectory size.
-template <size_t DIRECTORY_SIZE, HeapDirectoryImpl IMPL>
+template <size_t DIRECTORY_SIZE, UWord HEAP_LEVELS, HeapDirectoryImpl IMPL>
 class HeapDirectory :
-	public HeapDirectoryTraits <DIRECTORY_SIZE>
+	public HeapDirectoryTraits <DIRECTORY_SIZE, HEAP_LEVELS>
 {
-	typedef HeapDirectoryTraits <DIRECTORY_SIZE> Traits;
+	typedef HeapDirectoryTraits <DIRECTORY_SIZE, HEAP_LEVELS> Traits;
 	typedef HeapDirectoryOpsLockFree Ops;
 	static_assert (Traits::FREE_BLOCK_INDEX_SIZE <= Traits::FREE_BLOCK_INDEX_MAX, "Traits::FREE_BLOCK_INDEX_SIZE <= Traits::FREE_BLOCK_INDEX_MAX");
 public:
@@ -318,7 +355,7 @@ public:
 			Port::ProtDomainMemory::commit (this, reinterpret_cast <uint8_t*> (bitmap_ + Traits::TOP_BITMAP_WORDS) - reinterpret_cast <uint8_t*> (this));
 
 		// Initialize
-		assert (sizeof (HeapDirectory <DIRECTORY_SIZE, IMPL>) <= DIRECTORY_SIZE);
+		assert (sizeof (HeapDirectory <DIRECTORY_SIZE, HEAP_LEVELS, IMPL>) <= DIRECTORY_SIZE);
 
 		// Bitmap is always aligned for performance.
 		assert ((uintptr_t)(&bitmap_) % sizeof (UWord) == 0);
@@ -343,7 +380,7 @@ public:
 
 	bool empty () const
 	{
-		if (DIRECTORY_SIZE < 0x10000) {
+		if (Traits::merged_levels) {
 
 			// Верхние уровни объединены
 			const UWord* end = bitmap_ + Traits::TOP_BITMAP_WORDS;
@@ -366,10 +403,10 @@ private:
 		return Traits::MAX_BLOCK_SIZE >> level;
 	}
 
-	static size_t level_align (size_t offset, size_t size)
+	static UWord level_align (size_t offset, size_t size)
 	{
 		// Ищем максимальный размер блока <= size, на который выравнен offset
-		UWord level = Traits::HEAP_LEVELS - 1 - ::std::min (ntz (offset | Traits::MAX_BLOCK_SIZE), 31 - nlz ((uint32_t)size));
+		size_t level = Traits::HEAP_LEVELS - 1 - ::std::min (ntz (offset | Traits::MAX_BLOCK_SIZE), 31 - nlz ((uint32_t)size));
 		assert (level < Traits::HEAP_LEVELS);
 
 #ifdef _DEBUG
@@ -387,34 +424,34 @@ private:
 		return level;
 	}
 
-	static UWord block_number (UWord unit, UWord level)
+	static size_t block_number (size_t unit, UWord level)
 	{
 		return unit >> (Traits::HEAP_LEVELS - 1 - level);
 	}
 
-	static UWord unit_number (UWord block, UWord level)
+	static size_t unit_number (size_t block, UWord level)
 	{
 		return block << (Traits::HEAP_LEVELS - 1 - level);
 	}
 
-	static UWord bitmap_offset (UWord level)
+	static size_t bitmap_offset (UWord level)
 	{
 		return (Traits::TOP_BITMAP_WORDS << level) - Traits::TOP_BITMAP_WORDS;
 	}
 
-	static UWord bitmap_offset_next (UWord level_bitmap_offset)
+	static size_t bitmap_offset_next (size_t level_bitmap_offset)
 	{
 		assert (level_bitmap_offset < Traits::BITMAP_SIZE - Traits::UNIT_COUNT / (sizeof (UWord) * 8));
 		return (level_bitmap_offset << 1) + Traits::TOP_BITMAP_WORDS;
 	}
 
-	static UWord bitmap_offset_prev (UWord level_bitmap_offset)
+	static size_t bitmap_offset_prev (size_t level_bitmap_offset)
 	{
 		assert (level_bitmap_offset >= Traits::TOP_BITMAP_WORDS);
 		return (level_bitmap_offset - Traits::TOP_BITMAP_WORDS) >> 1;
 	}
 
-	uint16_t& free_block_count (UWord level, UWord block_number)
+	uint16_t& free_block_count (UWord level, size_t block_number)
 	{
 		size_t idx = Traits::block_index_offset_ [Traits::HEAP_LEVELS - 1 - level];
 		if (DIRECTORY_SIZE > 0x4000) {
@@ -435,7 +472,7 @@ private:
 
 	Word reserved_scan (UWord*& bitmap_ptr, UWord* const end) const
 	{
-		UWord page_size = HeapDirectoryBase::commit_unit (this);
+		size_t page_size = HeapDirectoryBase::commit_unit (this);
 		assert (page_size);
 		Word bit_number = -1;
 		for (;;) {
@@ -483,9 +520,6 @@ private:
 	// Если общее количество блоков на уровне > 64K, он разделяется на части,
 	// каждой из которых соответствует один элемент массива.
 	// Таким образом, поиск производится, в худшем случае, среди 64K бит или 2K слов.
-	// Если места в заголовке недостаточно, верхние уровни объединяются.
-	// В этом случае, элемент массива содержит суммарное количество свободных блоков
-	// на этих уровнях.
 	// Заметим, что для массива 64К бит, счетчик свободных блоков (бит) не может превышать
 	// величину 32К, так как два соседних бита не могут быть одновременно установлены, в этом
 	// случае они обнуляются и устанавливается бит на предыдущем уровне.
@@ -497,8 +531,8 @@ private:
 	UWord bitmap_ [Traits::BITMAP_SIZE];
 };
 
-template <size_t DIRECTORY_SIZE, HeapDirectoryImpl IMPL>
-Word HeapDirectory <DIRECTORY_SIZE, IMPL>::allocate (size_t size, const HeapInfo* heap_info)
+template <size_t DIRECTORY_SIZE, UWord HEAP_LEVELS, HeapDirectoryImpl IMPL>
+Word HeapDirectory <DIRECTORY_SIZE, HEAP_LEVELS, IMPL>::allocate (size_t size, const HeapInfo* heap_info)
 {
 	assert (size);
 	assert (size <= Traits::MAX_BLOCK_SIZE);
@@ -506,7 +540,7 @@ Word HeapDirectory <DIRECTORY_SIZE, IMPL>::allocate (size_t size, const HeapInfo
 	// Quantize block size
 	UWord level = nlz ((uint32_t)(size - 1)) + Traits::HEAP_LEVELS - 33;
 	assert (level < Traits::HEAP_LEVELS);
-	UWord block_index_offset = Traits::block_index_offset_ [Traits::HEAP_LEVELS - 1 - level];
+	size_t block_index_offset = Traits::block_index_offset_ [Traits::HEAP_LEVELS - 1 - level];
 
 	typename Traits::BitmapIndex bi;
 	UWord* bitmap_ptr;
@@ -515,7 +549,7 @@ Word HeapDirectory <DIRECTORY_SIZE, IMPL>::allocate (size_t size, const HeapInfo
 	for (;;) {
 		// Search in free block index
 		uint16_t* free_blocks_ptr = free_block_index_ + block_index_offset;
-		Word cnt = Traits::FREE_BLOCK_INDEX_SIZE - block_index_offset;
+		ptrdiff_t cnt = Traits::FREE_BLOCK_INDEX_SIZE - block_index_offset;
 		while ((cnt--) && !Ops::acquire (free_blocks_ptr))
 			++free_blocks_ptr;
 		if (cnt < 0)
@@ -526,7 +560,7 @@ Word HeapDirectory <DIRECTORY_SIZE, IMPL>::allocate (size_t size, const HeapInfo
 		bi = Traits::bitmap_index_ [cnt];
 
 		if (
-			(DIRECTORY_SIZE < 0x10000) // Верхние уровни объединены
+			Traits::merged_levels // Верхние уровни объединены
 			&&
 			!cnt
 			) { // Верхние уровни
@@ -577,7 +611,7 @@ Word HeapDirectory <DIRECTORY_SIZE, IMPL>::allocate (size_t size, const HeapInfo
 
 				} else {
 
-					UWord page_size = HeapDirectoryBase::commit_unit (this);
+					size_t page_size = HeapDirectoryBase::commit_unit (this);
 					assert (page_size);
 					for (;;) {
 						UWord* page_end = round_up (bitmap_ptr + 1, page_size);
@@ -619,17 +653,17 @@ Word HeapDirectory <DIRECTORY_SIZE, IMPL>::allocate (size_t size, const HeapInfo
 	assert (bit_number >= 0);
 
 	// По смещению в битовой карте и размеру блока определяем номер (адрес) блока.
-	UWord level_bitmap_begin = bitmap_offset (bi.level);
+	size_t level_bitmap_begin = bitmap_offset (bi.level);
 
 	// Номер блока:
-	assert ((UWord)(bitmap_ptr - bitmap_) >= level_bitmap_begin);
-	UWord block_number = (bitmap_ptr - bitmap_ - level_bitmap_begin) * sizeof (UWord) * 8;
+	assert ((bitmap_ptr - bitmap_) >= (ptrdiff_t)level_bitmap_begin);
+	size_t block_number = (bitmap_ptr - bitmap_ - level_bitmap_begin) * sizeof (UWord) * 8;
 	block_number += bit_number;
 
 	// Определяем смещение блока в куче и его размер.
-	UWord allocated_size = block_size (bi.level);
-	UWord block_offset = block_number * allocated_size;
-	UWord allocated_end = block_offset + allocated_size;
+	size_t allocated_size = block_size (bi.level);
+	size_t block_offset = block_number * allocated_size;
+	size_t allocated_end = block_offset + allocated_size;
 	assert (allocated_end <= Traits::UNIT_COUNT);
 
 	// Выделен блок размером allocated_size. Нужен блок размером size.
@@ -653,24 +687,24 @@ Word HeapDirectory <DIRECTORY_SIZE, IMPL>::allocate (size_t size, const HeapInfo
 	return block_offset;
 }
 
-template <size_t DIRECTORY_SIZE, HeapDirectoryImpl IMPL>
-bool HeapDirectory <DIRECTORY_SIZE, IMPL>::allocate (UWord begin, UWord end, const HeapInfo* heap_info)
+template <size_t DIRECTORY_SIZE, UWord HEAP_LEVELS, HeapDirectoryImpl IMPL>
+bool HeapDirectory <DIRECTORY_SIZE, HEAP_LEVELS, IMPL>::allocate (size_t begin, size_t end, const HeapInfo* heap_info)
 {
 	assert (begin < end);
 	if (end > Traits::UNIT_COUNT)
 		return false;
 
 	// Занимаем блок, разбивая его на блоки размером 2^n, смещение которых кратно их размеру.
-	UWord allocated_begin = begin;  // Начало занятого пространства.
-	UWord allocated_end = allocated_begin;    // Конец занятого пространства.
+	size_t allocated_begin = begin;  // Начало занятого пространства.
+	size_t allocated_end = allocated_begin;    // Конец занятого пространства.
 	while (allocated_end < end) {
 
 		// Ищем минимальный уровень, на который выравнены смещение и размер.
 		UWord level = level_align (allocated_end, end - allocated_end);
 
 		// Находим начало битовой карты уровня и номер блока.
-		UWord level_bitmap_begin = bitmap_offset (level);
-		UWord bl_number = block_number (allocated_end, level);
+		size_t level_bitmap_begin = bitmap_offset (level);
+		size_t bl_number = block_number (allocated_end, level);
 
 		bool success = false;
 		UWord* bitmap_ptr;
@@ -713,7 +747,7 @@ bool HeapDirectory <DIRECTORY_SIZE, IMPL>::allocate (UWord begin, UWord end, con
 			return false;
 		}
 
-		UWord block_offset = unit_number (bl_number, level);
+		size_t block_offset = unit_number (bl_number, level);
 		if (allocated_begin > block_offset)
 			allocated_begin = block_offset;
 		allocated_end = block_offset + block_size (level);
@@ -739,8 +773,8 @@ bool HeapDirectory <DIRECTORY_SIZE, IMPL>::allocate (UWord begin, UWord end, con
 	return true;
 }
 
-template <size_t DIRECTORY_SIZE, HeapDirectoryImpl IMPL> inline
-void HeapDirectory <DIRECTORY_SIZE, IMPL>::commit (size_t begin, size_t end, const HeapInfo* heap_info)
+template <size_t DIRECTORY_SIZE, UWord HEAP_LEVELS, HeapDirectoryImpl IMPL> inline
+void HeapDirectory <DIRECTORY_SIZE, HEAP_LEVELS, IMPL>::commit (size_t begin, size_t end, const HeapInfo* heap_info)
 {
 	if (IMPL != HeapDirectoryImpl::PLAIN_MEMORY && heap_info) {
 		assert (heap_info->heap && heap_info->unit_size && heap_info->commit_size);
@@ -755,8 +789,8 @@ void HeapDirectory <DIRECTORY_SIZE, IMPL>::commit (size_t begin, size_t end, con
 	}
 }
 
-template <size_t DIRECTORY_SIZE, HeapDirectoryImpl IMPL>
-void HeapDirectory <DIRECTORY_SIZE, IMPL>::release (size_t begin, size_t end, const HeapInfo* heap_info, bool rtl)
+template <size_t DIRECTORY_SIZE, UWord HEAP_LEVELS, HeapDirectoryImpl IMPL>
+void HeapDirectory <DIRECTORY_SIZE, HEAP_LEVELS, IMPL>::release (size_t begin, size_t end, const HeapInfo* heap_info, bool rtl)
 {
 	assert (begin <= end);
 	assert (end <= Traits::UNIT_COUNT);
@@ -773,7 +807,7 @@ void HeapDirectory <DIRECTORY_SIZE, IMPL>::release (size_t begin, size_t end, co
 	while (begin < end) {
 
 		// Смещение блока в куче
-		size_t level;
+		UWord level;
 		size_t block_begin;
 		size_t block_end;
 		if (rtl) {
@@ -789,8 +823,8 @@ void HeapDirectory <DIRECTORY_SIZE, IMPL>::release (size_t begin, size_t end, co
 		// Освобождаем блок со смещением block_begin на уровне level
 
 		// Находим начало битовой карты уровня и номер блока
-		UWord level_bitmap_begin = bitmap_offset (level);
-		UWord bl_number = block_number (block_begin, level);
+		size_t level_bitmap_begin = bitmap_offset (level);
+		size_t bl_number = block_number (block_begin, level);
 
 		// Определяем адрес слова в битовой карте
 		UWord* bitmap_ptr = bitmap_ + level_bitmap_begin + bl_number / (sizeof (UWord) * 8);
@@ -871,8 +905,8 @@ void HeapDirectory <DIRECTORY_SIZE, IMPL>::release (size_t begin, size_t end, co
 	}
 }
 
-template <size_t DIRECTORY_SIZE, HeapDirectoryImpl IMPL>
-bool HeapDirectory <DIRECTORY_SIZE, IMPL>::check_allocated (size_t begin, size_t end) const
+template <size_t DIRECTORY_SIZE, UWord HEAP_LEVELS, HeapDirectoryImpl IMPL>
+bool HeapDirectory <DIRECTORY_SIZE, HEAP_LEVELS, IMPL>::check_allocated (size_t begin, size_t end) const
 {
 	if (begin >= Traits::UNIT_COUNT || end > Traits::UNIT_COUNT || end <= begin)
 		return false;
@@ -885,7 +919,7 @@ bool HeapDirectory <DIRECTORY_SIZE, IMPL>::check_allocated (size_t begin, size_t
 
 	// Check for all bits on all levels are 0
 	Word level = Traits::HEAP_LEVELS - 1;
-	UWord level_bitmap_begin = bitmap_offset (Traits::HEAP_LEVELS - 1);
+	size_t level_bitmap_begin = bitmap_offset (Traits::HEAP_LEVELS - 1);
 	for (;;) {
 
 		assert (begin < end);

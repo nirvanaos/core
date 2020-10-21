@@ -243,9 +243,10 @@ void* HeapBase::allocate (void* p, size_t size, UWord flags)
 void* HeapBase::allocate (size_t size, UWord flags)
 {
 	void* p;
-	if (size > Directory::MAX_BLOCK_SIZE * allocation_unit_
+	const size_t max_block_size = Directory::MAX_BLOCK_SIZE * allocation_unit_;
+	if (size > max_block_size
 		||
-		(Directory::MAX_BLOCK_SIZE >= Port::ProtDomainMemory::ALLOCATION_UNIT && !(size % Port::ProtDomainMemory::ALLOCATION_UNIT))
+		(max_block_size >= Port::ProtDomainMemory::ALLOCATION_UNIT && !(size % Port::ProtDomainMemory::ALLOCATION_UNIT))
 		||
 		((flags & Memory::RESERVED) && size >= Port::ProtDomainMemory::OPTIMAL_COMMIT_UNIT)
 		) {

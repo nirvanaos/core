@@ -67,7 +67,7 @@ public:
 	uintptr_t query (const void* p, MemQuery param);
 
 protected:
-	typedef HeapDirectory <HEAP_DIRECTORY_SIZE, HEAP_DIRECTORY_IMPLEMENTATION> Directory;
+	typedef HeapDirectory <HEAP_DIRECTORY_SIZE, HEAP_DIRECTORY_LEVELS, HEAP_DIRECTORY_IMPLEMENTATION> Directory;
 	
 	// MemoryBlock represents the heap partition or large memory block allocated from the main memory service.
 	class MemoryBlock

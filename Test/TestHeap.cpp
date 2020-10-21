@@ -241,8 +241,8 @@ void RandomAllocator::run (Core::Heap& memory, int iterations)
 			ASSERT_FALSE (allocated_.empty ());
 			size_t idx = uniform_int_distribution <size_t> (0, allocated_.size () - 1)(rndgen_);
 			Block& block = allocated_ [idx];
-			ASSERT_EQ (block.tag, *block.begin);
-			ASSERT_EQ (block.tag, *(block.end - 1));
+			if (Block::RESERVED != block.state)
+				EXPECT_TRUE (check_readable (block.begin, block.end, block.tag));
 			memory.release (block.begin, (block.end - block.begin) * sizeof (UWord));
 			total_allocated_ -= (block.end - block.begin) * sizeof (UWord);
 			allocated_.erase (allocated_.begin () + idx);
