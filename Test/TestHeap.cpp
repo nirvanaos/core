@@ -298,7 +298,7 @@ TEST_F (TestHeap, Random)
 	static const int ITERATIONS = 100;
 	static const int ALLOC_ITERATIONS = 1000;
 	for (int i = 0; i < ITERATIONS; ++i) {
-		ra.run (heap_, ALLOC_ITERATIONS);
+		ASSERT_NO_FATAL_FAILURE (ra.run (heap_, ALLOC_ITERATIONS));
 
 		AllocatedBlocks checker;
 		ASSERT_NO_FATAL_FAILURE (checker.add (ra.allocated ()));
@@ -353,6 +353,60 @@ TEST_F (TestHeap, MultiThread)
 		for (auto p = pt->allocated ().cbegin (); p != pt->allocated ().cend (); ++p)
 			heap_.release (p->begin, (p->end - p->begin) * sizeof (UWord));
 	}
+}
+
+void write_copy (Core::Heap& memory, void* src, void* dst, size_t size, int iterations)
+{
+	for (int cnt = iterations + 1; cnt > 0; --cnt) {
+		unsigned i = 0;
+		for (int* p = (int*)src, *end = p + size / sizeof (int); p != end; ++p) {
+			*p = i++;
+		}
+
+		ASSERT_EQ (memory.copy (dst, src, size, 0), dst);
+		i = 0;
+		for (const int* p = (const int*)dst, *end = p + size / sizeof (int); p != end; ++p) {
+			ASSERT_EQ (*p, i);
+			++i;
+		}
+		i = 0;
+		for (const int* p = (const int*)src, *end = p + size / sizeof (int); p != end; ++p) {
+			ASSERT_EQ (*p, i);
+			++i;
+		}
+	}
+}
+
+// Test multithread memory sharing. Exception handler must be called during this test.
+TEST_F (TestHeap, MultiThreadCopy)
+{
+	const unsigned thread_count = max (thread::hardware_concurrency (), (unsigned)2);
+	const int iterations = 100;
+
+	size_t block_size = (size_t)heap_.query (nullptr, MemQuery::SHARING_ASSOCIATIVITY);
+	uint8_t* src = (uint8_t*)heap_.allocate (nullptr, block_size, 0);
+	uint8_t* dst = (uint8_t*)heap_.allocate (nullptr, block_size * thread_count, Memory::RESERVED);
+	size_t thr_size = block_size / thread_count;
+	vector <thread> threads;
+	threads.reserve (thread_count);
+
+	for (unsigned i = 0; i < thread_count; ++i) {
+		uint8_t* ts = src + thr_size * i;
+		uint8_t* td = dst + (block_size + thr_size) * i;
+		threads.push_back (thread (write_copy, ref (heap_), ts, td, thr_size, iterations));
+	}
+
+	for (auto p = threads.begin (); p != threads.end (); ++p)
+		p->join ();
+/*
+	for (size_t i = 0; i < thread_count; ++i) {
+		uint8_t* ts = src + thr_size * i;
+		uint8_t* td = dst + (block_size + thr_size) * i;
+		write_copy (heap_, ts, td, thr_size, iterations);
+	}
+*/
+	heap_.release (src, block_size);
+	heap_.release (dst, block_size * thread_count);
 }
 
 }

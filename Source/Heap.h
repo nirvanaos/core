@@ -22,6 +22,9 @@ class HeapBase
 	// May be moved to Port/config.h
 	static const unsigned SKIP_LIST_LEVELS = 10;
 
+	HeapBase (const HeapBase&) = delete;
+	HeapBase& operator = (const HeapBase&) = delete;
+
 public:
 	HeapBase (size_t allocation_unit = HEAP_UNIT_DEFAULT) NIRVANA_NOEXCEPT;
 
