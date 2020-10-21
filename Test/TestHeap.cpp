@@ -37,34 +37,40 @@ protected:
 		EXPECT_TRUE (heap_.cleanup ());
 	}
 
-#pragma optimize("", off)
-
-	static void check_readable (const void* p, size_t cb)
-	{
-		int i;
-		for (const int* pi = (const int*)p, *end = pi + cb / sizeof (int); pi != end; ++pi) {
-			i = *pi;
-		}
-	}
-
-	static void check_writeable (void* p, size_t cb)
-	{
-		for (int* pi = (int*)p, *end = pi + cb / sizeof (int); pi != end; ++pi) {
-			int i = *pi;
-			*pi = 0;
-			*pi = i;
-		}
-	}
-
-#pragma optimize("", on)
-
 protected:
 	Core::Heap heap_;
 };
 
+bool check_readable (const UWord* begin, const UWord* end, UWord tag)
+{
+	for (const UWord* p = begin; p != end; ++p) {
+		if (*p != tag)
+			return false;
+	}
+	return true;
+}
+
+inline bool check_readable (const void* p, size_t cb, UWord tag)
+{
+	return check_readable ((const UWord*)p, (const UWord*)p + cb / sizeof (UWord), tag);
+}
+
+bool check_writeable (void* p, size_t cb, UWord tag)
+{
+	for (UWord* pi = (UWord*)p, *end = pi + cb / sizeof (UWord); pi != end; ++pi) {
+		UWord i = *pi;
+		*pi = 0;
+		*pi = i;
+		if (i != tag)
+			return false;
+	}
+	return true;
+}
+
 TEST_F (TestHeap, Allocate)
 {
 	int* p = (int*)heap_.allocate (nullptr, sizeof (int), Memory::ZERO_INIT);
+	EXPECT_EQ (*p, 0);
 	*p = 1;
 	heap_.release (p, sizeof (int));
 	EXPECT_THROW (heap_.release (p, sizeof (int)), CORBA::BAD_PARAM);
@@ -73,17 +79,18 @@ TEST_F (TestHeap, Allocate)
 TEST_F (TestHeap, ReadOnly)
 {
 	size_t pu = (size_t)heap_.query (nullptr, MemQuery::PROTECTION_UNIT);
-	int* p = (int*)heap_.allocate (nullptr, pu, 0);
+	UWord* p = (UWord*)heap_.allocate (nullptr, pu, 0);
 	size_t au = (size_t)heap_.query (p, MemQuery::ALLOCATION_UNIT);
 	if (au < pu) {
-		int* pro = (int*)heap_.copy (nullptr, p, pu, Memory::READ_ONLY);
-		check_readable (pro, pu);
+		fill_n (p, pu / sizeof (UWord), 1);
+		UWord* pro = (UWord*)heap_.copy (nullptr, p, pu, Memory::READ_ONLY);
+		EXPECT_TRUE (check_readable (pro, pu, 1));
 		size_t pu2 = (size_t)pu / 2;
-		int* p1 = pro + pu2 / sizeof (int);
+		UWord* p1 = pro + pu2 / sizeof (UWord);
 		heap_.release (p1, pu2);
-		int* p2 = (int*)heap_.allocate (p1, pu2, 0);
+		UWord* p2 = (UWord*)heap_.allocate (p1, pu2, 0);
 		EXPECT_EQ (p1, p2);
-		check_writeable (p2, pu2);
+		fill_n (p2, pu2 / sizeof (UWord), 1);
 		heap_.release (pro, pu);
 	}
 	heap_.release (p, pu);
@@ -118,7 +125,14 @@ struct Block
 	UWord tag;
 	UWord* begin;
 	UWord* end;
-	bool read_only;
+
+	enum
+	{
+		READ_WRITE,
+		READ_ONLY,
+		RESERVED
+	}
+	state;
 
 	bool operator < (const Block& rhs) const
 	{
@@ -163,7 +177,7 @@ void RandomAllocator::run (Core::Heap& memory, int iterations)
 			OP_ALLOCATE,
 			OP_COPY_RO,
 			OP_COPY_RW,
-			OP_COPY_CHANGE,
+			OP_CHANGE_OR_CHECK,
 
 			OP_RELEASE
 		};
@@ -181,18 +195,17 @@ void RandomAllocator::run (Core::Heap& memory, int iterations)
 					case OP_ALLOCATE:
 					{
 						size_t size = uniform_int_distribution <size_t> (1, MAX_BLOCK / sizeof (UWord))(rndgen_) * sizeof (UWord);
-						UWord* block = (UWord*)memory.allocate (nullptr, size, 0);
+						UWord* block = (UWord*)memory.allocate (nullptr, size, Memory::ZERO_INIT);
+						EXPECT_TRUE (check_readable (block, size, 0)); // Check for ZERO_INIT
 						total_allocated_ += size;
 						UWord tag = next_tag_++;
-						*block = tag;
-						block [size / sizeof (UWord) - 1] = tag;
-						allocated_.push_back ({ tag, block, block + size / sizeof (UWord), false });
+						fill_n (block, size / sizeof (UWord), tag);
+						allocated_.push_back ({ tag, block, block + size / sizeof (UWord), Block::READ_WRITE });
 					}
 					break;
 
 					case OP_COPY_RO:
 					case OP_COPY_RW:
-					case OP_COPY_CHANGE:
 					{
 						size_t idx = uniform_int_distribution <size_t> (0, allocated_.size () - 1)(rndgen_);
 						Block& src = allocated_ [idx];
@@ -200,15 +213,24 @@ void RandomAllocator::run (Core::Heap& memory, int iterations)
 						bool read_only = OP_COPY_RO == op;
 						UWord* block = (UWord*)memory.copy (nullptr, src.begin, size, read_only ? Memory::READ_ONLY : 0);
 						total_allocated_ += size;
-						UWord tag;
-						if (OP_COPY_CHANGE == op) {
-							tag = next_tag_++;
-							*block = tag;
-							block [size / sizeof (UWord) - 1] = tag;
-						} else
-							tag = src.tag;
-						allocated_.push_back ({ tag, block, block + size / sizeof (UWord), read_only });
+						allocated_.push_back ({ src.tag, block, block + size / sizeof (UWord), read_only ? Block::READ_ONLY : Block::READ_WRITE });
 					}
+					break;
+
+					case OP_CHANGE_OR_CHECK:
+					{
+						size_t idx = uniform_int_distribution <size_t> (0, allocated_.size () - 1)(rndgen_);
+						Block& block = allocated_ [idx];
+						if (Block::RESERVED != block.state) {
+							EXPECT_TRUE (check_readable (block.begin, block.end, block.tag));
+							if (Block::READ_WRITE == block.state) {
+								UWord tag = next_tag_++;
+								fill (block.begin, block.end, tag);
+								block.tag = tag;
+							}
+						}
+					}
+					break;
 				}
 			} catch (const CORBA::NO_MEMORY&) {
 				op = OP_RELEASE;
@@ -261,12 +283,11 @@ void AllocatedBlocks::check (Core::Heap& memory)
 	for (auto p = cbegin (); p != cend (); ++p) {
 		size_t size = (p->end - p->begin) * sizeof (UWord);
 		memory.release (p->begin, size);
-		UWord* bl = (UWord*)memory.allocate (p->begin, size, Memory::EXACTLY);
+		UWord* bl = (UWord*)memory.allocate (p->begin, size, Memory::EXACTLY | ((Block::RESERVED == p->state) ? Memory::RESERVED : 0));
 		assert (bl);
 		ASSERT_EQ (p->begin, bl);
-		*(p->begin) = p->tag;
-		*(p->end - 1) = p->tag;
-		if (p->read_only)
+		fill (p->begin, p->end, p->tag);
+		if (Block::READ_ONLY == p->state)
 			ASSERT_EQ (memory.copy (p->begin, p->begin, size, Memory::EXACTLY | Memory::READ_ONLY), p->begin);
 	}
 }

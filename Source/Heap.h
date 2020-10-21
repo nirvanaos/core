@@ -242,14 +242,6 @@ protected:
 
 	bool check_owner (const void* p, size_t size);
 
-	static uintptr_t large_allocation_unit (const void* p)
-	{
-		if (Port::ProtDomainMemory::FIXED_ALLOCATION_UNIT)
-			return Port::ProtDomainMemory::FIXED_ALLOCATION_UNIT;
-		else
-			return Port::ProtDomainMemory::query (p, MemQuery::ALLOCATION_UNIT);
-	}
-
 	/// \summary Atomically erase large block information from the block list.
 	class LBErase
 	{

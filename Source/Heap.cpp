@@ -56,7 +56,7 @@ void HeapBase::LBErase::prepare (void* p, size_t size)
 		THROW (BAD_PARAM); // Block is collapsed in another thread.
 
 	// Collect contiguos blocks.
-	uintptr_t au = large_allocation_unit (p);
+	const uintptr_t au = Port::ProtDomainMemory::ALLOCATION_UNIT;
 	uint8_t* end = round_up ((uint8_t*)p + size, au);
 	uint8_t* block_begin = block->begin ();
 	assert (block_begin <= p);
@@ -243,7 +243,12 @@ void* HeapBase::allocate (void* p, size_t size, UWord flags)
 void* HeapBase::allocate (size_t size, UWord flags)
 {
 	void* p;
-	if (size > Directory::MAX_BLOCK_SIZE * allocation_unit_ || ((flags & Memory::RESERVED) && size >= Port::ProtDomainMemory::OPTIMAL_COMMIT_UNIT)) {
+	if (size > Directory::MAX_BLOCK_SIZE * allocation_unit_
+		||
+		(Directory::MAX_BLOCK_SIZE >= Port::ProtDomainMemory::ALLOCATION_UNIT && !(size % Port::ProtDomainMemory::ALLOCATION_UNIT))
+		||
+		((flags & Memory::RESERVED) && size >= Port::ProtDomainMemory::OPTIMAL_COMMIT_UNIT)
+		) {
 		if (!(p = Port::ProtDomainMemory::allocate (nullptr, size, flags))) {
 			assert (flags & Memory::EXACTLY);
 			return nullptr;
@@ -274,7 +279,7 @@ void* HeapBase::allocate (size_t size, UWord flags)
 void HeapBase::add_large_block (void* p, size_t size)
 {
 	try {
-		uintptr_t au = large_allocation_unit (p);
+		const uintptr_t au = Port::ProtDomainMemory::ALLOCATION_UNIT;
 		uint8_t* begin = round_down ((uint8_t*)p, au);
 		uint8_t* end = round_up ((uint8_t*)p + size, au);
 		block_list_.insert (begin, end - begin);
@@ -406,7 +411,7 @@ void* HeapBase::copy (void* dst, void* src, size_t size, UWord flags)
 				new_node = block_list_.create_node ();
 				dst = Port::ProtDomainMemory::copy (dst, src, size, flags);
 				if (dst) {
-					uintptr_t au = large_allocation_unit (dst);
+					const uintptr_t au = Port::ProtDomainMemory::ALLOCATION_UNIT;
 					uint8_t* begin = round_down ((uint8_t*)dst, au);
 					uint8_t* end = round_up ((uint8_t*)dst + size, au);
 					new_node->value () = MemoryBlock (begin, end - begin);
