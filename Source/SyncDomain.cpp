@@ -38,9 +38,9 @@ void SyncDomain::enter (bool ret)
 	Thread::current ().execution_domain ()->schedule (this);
 }
 
-void SyncDomain::async_call (Runnable& runnable, DeadlineTime deadline)
+void SyncDomain::async_call (Runnable& runnable, DeadlineTime deadline, CORBA::Nirvana::EnvironmentBridge* environment)
 {
-	ExecDomain::async_call (runnable, deadline, this);
+	ExecDomain::async_call (runnable, deadline, this, environment);
 }
 
 bool SyncDomain::is_free_sync_context ()

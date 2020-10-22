@@ -22,7 +22,7 @@ class ExecDomain :
 	public ImplPoolable <ExecDomain, Executor>
 {
 public:
-	static void async_call (Runnable& runnable, DeadlineTime deadline, SyncDomain* sync_domain);
+	static void async_call (Runnable& runnable, DeadlineTime deadline, SyncDomain* sync_domain, CORBA::Nirvana::EnvironmentBridge* environment);
 
 	ExecDomain () :
 		ExecContext (),
@@ -70,6 +70,11 @@ public:
 	}
 
 	void execute_loop ();
+
+	void on_crash ()
+	{
+		ExecContext::on_crash ();
+	}
 
 	SyncDomain* cur_sync_domain () const
 	{

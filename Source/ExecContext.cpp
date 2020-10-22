@@ -22,19 +22,26 @@ void ExecContext::switch_to ()
 
 bool ExecContext::run ()
 {
-	environment_.exception_free ();
 	if (runnable_) {
 		try {
 			runnable_->run ();
 		} catch (const CORBA::Exception& ex) {
-			CORBA::Nirvana::set_exception (&environment_, ex);
+			CORBA::Nirvana::set_exception (environment_, ex);
 		} catch (...) {
-			CORBA::Nirvana::set_unknown_exception (&environment_);
+			CORBA::Nirvana::set_unknown_exception (environment_);
 		}
+		environment_ = CORBA::Nirvana::Interface::_nil ();
 		runnable_.reset ();
 		return true;
 	}
 	return false;
+}
+
+void ExecContext::on_crash ()
+{
+	CORBA::Nirvana::set_unknown_exception (environment_);
+	environment_ = CORBA::Nirvana::Interface::_nil ();
+	runnable_.reset ();
 }
 
 void ExecContext::neutral_context_loop ()

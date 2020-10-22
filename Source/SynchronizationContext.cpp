@@ -9,7 +9,7 @@ static class FreeSyncContext :
 {
 public:
 	virtual void enter (bool ret);
-	virtual void async_call (Runnable& runnable, DeadlineTime deadline);
+	virtual void async_call (Runnable& runnable, DeadlineTime deadline, CORBA::Nirvana::EnvironmentBridge* environment);
 	virtual bool is_free_sync_context ();
 	virtual Heap& memory ();
 } g_free_sync_context;
@@ -38,9 +38,9 @@ void FreeSyncContext::enter (bool ret)
 	Thread::current ().execution_domain ()->schedule (nullptr);
 }
 
-void FreeSyncContext::async_call (Runnable& runnable, DeadlineTime deadline)
+void FreeSyncContext::async_call (Runnable& runnable, DeadlineTime deadline, CORBA::Nirvana::EnvironmentBridge* environment)
 {
-	ExecDomain::async_call (runnable, deadline, nullptr);
+	ExecDomain::async_call (runnable, deadline, nullptr, environment);
 }
 
 bool FreeSyncContext::is_free_sync_context ()

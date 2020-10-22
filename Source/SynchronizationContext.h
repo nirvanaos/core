@@ -26,8 +26,7 @@ public:
 	virtual void enter (bool ret) = 0;
 
 	/// Call runnable in the new execution domain.
-	/// Exceptions are logged and swallowed.
-	virtual void async_call (Runnable& runnable, DeadlineTime deadline) = 0;
+	virtual void async_call (Runnable& runnable, DeadlineTime deadline, CORBA::Nirvana::EnvironmentBridge* environment = nullptr) = 0;
 
 	/// Returns `true` if there is free sync context.
 	/// May be used for proxy optimization.

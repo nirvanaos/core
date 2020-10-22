@@ -23,13 +23,14 @@ void ExecDomain::Schedule::run ()
 	thread.execution_domain (nullptr);
 }
 
-void ExecDomain::async_call (Runnable& runnable, DeadlineTime deadline, SyncDomain* sync_domain)
+void ExecDomain::async_call (Runnable& runnable, DeadlineTime deadline, SyncDomain* sync_domain, CORBA::Nirvana::EnvironmentBridge* environment)
 {
 	Scheduler::activity_begin ();	// Throws exception if shutdown was started.
 
 	Core_var <ExecDomain> exec_domain = get ();
 
 	exec_domain->runnable_ = &runnable;
+	exec_domain->environment_ = environment;
 	runnable._add_ref ();
 	exec_domain->deadline_ = deadline;
 	exec_domain->cur_sync_domain_ = sync_domain;
@@ -70,7 +71,6 @@ void ExecDomain::suspend ()
 void ExecDomain::execute_loop ()
 {
 	while (run ()) {
-		environment_.exception_free ();	// TODO: Check unhandled exception and log error message.
 		run_in_neutral_context (release_);
 	}
 }
