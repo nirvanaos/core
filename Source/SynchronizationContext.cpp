@@ -1,35 +1,24 @@
 #include "SynchronizationContext.h"
-#include "SyncDomain.h"
+#include "Thread.h"
+#include "ExecDomain.h"
 
 namespace Nirvana {
 namespace Core {
 
-static class FreeSyncContext : 
-	public ImplStatic <SynchronizationContext>
+class FreeSyncContext :
+	public SynchronizationContext
 {
 public:
 	virtual void enter (bool ret);
 	virtual void async_call (Runnable& runnable, DeadlineTime deadline, CORBA::Nirvana::EnvironmentBridge* environment);
 	virtual bool is_free_sync_context ();
 	virtual Heap& memory ();
-} g_free_sync_context;
+};
 
-Core_var <SynchronizationContext> SynchronizationContext::current ()
-{
-	Thread& th = Thread::current ();
-	SyncDomain* sd = th.execution_domain ()->cur_sync_domain ();
-	SynchronizationContext* sc;
-	if (sd)
-		sc = sd;
-	else
-		sc = &g_free_sync_context;
-	sc->_add_ref ();
-	return sc;
-}
+ImplStatic <FreeSyncContext> g_free_sync_context;
 
-Core_var <SynchronizationContext> SynchronizationContext::free_sync_context ()
+SynchronizationContext* SynchronizationContext::free_sync_context ()
 {
-	g_free_sync_context._add_ref ();
 	return &g_free_sync_context;
 }
 

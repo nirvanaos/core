@@ -2,18 +2,17 @@
 // Execution domain (coroutine, fiber).
 
 #include "SyncDomain.h"
+#include "Thread.h"
 
 namespace Nirvana {
 namespace Core {
 
-ExecDomain::Release ExecDomain::release_;
-ExecDomain::Schedule ExecDomain::schedule_;
+ImplStatic <ExecDomain::Release> ExecDomain::release_;
+ImplStatic <ExecDomain::Schedule> ExecDomain::schedule_;
 
 void ExecDomain::Release::run ()
 {
-	Thread& thread = Thread::current ();
-	thread.execution_domain ()->_remove_ref ();
-	thread.execution_domain (nullptr);
+	Thread::current ().execution_domain (nullptr);
 }
 
 void ExecDomain::Schedule::run ()
@@ -31,11 +30,9 @@ void ExecDomain::async_call (Runnable& runnable, DeadlineTime deadline, SyncDoma
 
 	exec_domain->runnable_ = &runnable;
 	exec_domain->environment_ = environment;
-	runnable._add_ref ();
 	exec_domain->deadline_ = deadline;
 	exec_domain->cur_sync_domain_ = sync_domain;
 	exec_domain->schedule_internal ();
-	exec_domain.detach (); // Pointer will be released asynchronously
 }
 
 void ExecDomain::schedule (SyncDomain* sync_domain)
@@ -60,6 +57,13 @@ void ExecDomain::schedule_internal ()
 		}
 	} else
 		Scheduler::schedule (deadline (), *this, 0);
+}
+
+void ExecDomain::execute (DeadlineTime deadline)
+{
+	assert (deadline_ == deadline);
+	Thread::current ().execution_domain (this);
+	ExecContext::switch_to ();
 }
 
 void ExecDomain::suspend ()

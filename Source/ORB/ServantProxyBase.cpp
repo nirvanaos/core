@@ -8,7 +8,8 @@ namespace Core {
 using namespace ::Nirvana::Core;
 
 class ServantProxyBase::GarbageCollector :
-	public ImplDynamic <ServantProxyBase::GarbageCollector, Runnable>
+	public CoreObject,
+	public Runnable
 {
 public:
 	GarbageCollector (Interface_ptr servant) :
@@ -55,7 +56,7 @@ void ServantProxyBase::add_ref_1 ()
 	::Nirvana::Core::RefCounter::IntType cnt = ref_cnt_.decrement ();
 	if (!cnt) {
 		try {
-			run_garbage_collector (new GarbageCollector (servant_));
+			run_garbage_collector (Core_var <Runnable>::create <ImplDynamic <GarbageCollector> > (servant_));
 		} catch (...) {
 			// Async call failed, maybe resources are exausted.
 			// Fallback to collect garbage in current thread.

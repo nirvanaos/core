@@ -1,16 +1,15 @@
-/// \file Memory.cpp
-/// The g_memory object for core.
-/// Delegates all operations to g_core_heap.
+/// \file g_memory.cpp
+/// The g_memory object implementation.
 
 #include "core.h"
-#include <Nirvana/Nirvana.h>
 #include <Nirvana/Memory_s.h>
 #include <Nirvana/OLF.h>
-#include "SyncDomain.h"
+#include "SynchronizationContext.h"
 
 namespace Nirvana {
 namespace Core {
 
+/// Delegates all operations to g_core_heap.
 class CoreMemory :
 	public ::CORBA::Nirvana::ServantStatic <CoreMemory, Memory>
 {
@@ -67,18 +66,13 @@ public:
 	}
 };
 
+/// Delegates memory operations dependent on context.
 class UserMemory :
 	public ::CORBA::Nirvana::ServantStatic <UserMemory, Memory>
 {
 	static Heap& get_heap ()
 	{
-		ExecDomain* ed = Thread::current ().execution_domain ();
-		assert (ed);
-		SyncDomain* sd = ed->cur_sync_domain ();
-		if (sd)
-			return sd->heap ();
-		else
-			return ed->heap ();
+		return Thread::current ().synchronization_context ()->memory ();
 	}
 
 public:

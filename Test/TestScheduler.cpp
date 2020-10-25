@@ -6,6 +6,8 @@
 namespace TestScheduler {
 
 using namespace std;
+using namespace Nirvana;
+using namespace Nirvana::Core;
 
 class TestScheduler :
 	public ::testing::Test
@@ -34,7 +36,7 @@ protected:
 };
 
 class SimpleShutdown :
-	public Nirvana::Core::ImplDynamic <SimpleShutdown, Nirvana::Core::Runnable>
+	public Runnable
 {
 public:
 	SimpleShutdown ()
@@ -49,7 +51,7 @@ public:
 
 	void run ()
 	{
-		::Nirvana::Core::Scheduler::shutdown ();
+		Scheduler::shutdown ();
 	}
 
 	static bool exists_;
@@ -60,8 +62,8 @@ bool SimpleShutdown::exists_ = false;
 TEST_F (TestScheduler, Startup)
 {
 	{
-		Nirvana::Core::Core_var <Nirvana::Core::Runnable> startup (new SimpleShutdown ());
-		Nirvana::Core::Port::Scheduler::run_system_domain (*startup, numeric_limits <Nirvana::DeadlineTime>::max ());
+		Core_var <Runnable> startup = Core_var <Runnable>::create <ImplDynamic <SimpleShutdown> > ();
+		Port::Scheduler::run_system_domain (*startup, numeric_limits <Nirvana::DeadlineTime>::max ());
 		ASSERT_TRUE (SimpleShutdown::exists_);
 	}
 	ASSERT_FALSE (SimpleShutdown::exists_);

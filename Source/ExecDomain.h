@@ -5,10 +5,10 @@
 #define NIRVANA_CORE_EXECDOMAIN_H_
 
 #include "ExecContext.h"
-#include "Thread.h"
 #include "Scheduler.h"
 #include "Runnable.h"
 #include "ObjectPool.h"
+#include "RuntimeSupportImpl.h"
 #include <limits>
 #include <utility>
 
@@ -47,12 +47,7 @@ public:
 
 	void schedule (SyncDomain* sync_domain);
 
-	void execute (DeadlineTime deadline)
-	{
-		assert (deadline_ == deadline);
-		Thread::current ().execution_domain (this);
-		ExecContext::switch_to ();
-	}
+	void execute (DeadlineTime deadline);
 
 	void suspend ();
 	
@@ -66,6 +61,7 @@ public:
 		assert (ExecContext::current () != this);
 		Scheduler::activity_end ();
 		runnable_.reset ();
+		runtime_support_.cleanup ();
 		heap_.cleanup ();
 	}
 
@@ -86,20 +82,29 @@ public:
 		return heap_;
 	}
 
-private:
-	static class Release :
-		public ImplStatic <Runnable>
+	RuntimeSupportImpl& runtime_support ()
 	{
-	public:
-		void run ();
-	} release_;
+		return runtime_support_;
+	}
 
-	static class Schedule :
-		public ImplStatic <Runnable>
+private:
+	class Release :
+		public Runnable
 	{
 	public:
 		void run ();
-	} schedule_;
+	};
+	
+	static ImplStatic <Release> release_;
+
+	class Schedule :
+		public Runnable
+	{
+	public:
+		void run ();
+	};
+	
+	static ImplStatic <Schedule> schedule_;
 
 	void schedule_internal ();
 
@@ -107,6 +112,7 @@ private:
 	DeadlineTime deadline_;
 	SyncDomain* cur_sync_domain_;
 	Heap heap_;
+	RuntimeSupportImpl runtime_support_;
 };
 
 }

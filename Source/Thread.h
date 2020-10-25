@@ -5,15 +5,15 @@
 #define NIRVANA_CORE_THREAD_H_
 
 #include "core.h"
-#include <Nirvana/Runnable.h>
 #include <Port/Thread.h>
-#include "Scheduler.h"
+#include "ExecDomain.h"
 
 namespace Nirvana {
 namespace Core {
 
 class ExecContext;
 class ExecDomain;
+class SynchronizationContext;
 
 class Thread :
 	public CoreObject,
@@ -76,9 +76,14 @@ public:
 		return nullptr;
 	}
 
+	/// Returns synchronization context.
+	virtual SynchronizationContext* synchronization_context ();
+
+	virtual RuntimeSupportImpl& runtime_support ();
+
 protected:
 	/// Pointer to the current execution domain.
-	ExecDomain* exec_domain_;
+	Core_var <ExecDomain> exec_domain_;
 
 	/// Pointer to the current execution context.
 	ExecContext* exec_context_;

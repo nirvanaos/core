@@ -9,7 +9,8 @@ namespace Core {
 using namespace ::Nirvana::Core;
 
 class ProxyObject::Deactivator :
-	public ImplDynamic <ProxyObject::Deactivator, Runnable>
+	public CoreObject,
+	public Runnable
 {
 public:
 	Deactivator (ProxyObject& proxy) :
@@ -64,7 +65,7 @@ void ProxyObject::add_ref_1 ()
 			change_state (ACTIVE, DEACTIVATION_SCHEDULED)
 		) {
 			try {
-				run_garbage_collector (new Deactivator (*this));
+				run_garbage_collector (Core_var <Runnable>::create <ImplDynamic <Deactivator> > (std::ref (*this)));
 			} catch (...) {
 				// Async call failed, maybe resources are exausted.
 				// Fallback to collect garbage in current thread.

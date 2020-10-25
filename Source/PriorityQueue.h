@@ -15,9 +15,14 @@ struct PriorityQueueKeyVal
 	DeadlineTime deadline;
 	Val val;
 
-	PriorityQueueKeyVal (DeadlineTime dt, Val v) :
+	PriorityQueueKeyVal (DeadlineTime dt, const Val& v) :
 		deadline (dt),
 		val (v)
+	{}
+
+	PriorityQueueKeyVal (DeadlineTime dt, Val&& v) :
+		deadline (dt),
+		val (std::move (v))
 	{}
 
 	bool operator < (const PriorityQueueKeyVal& rhs) const
@@ -80,7 +85,7 @@ public:
 		NodeVal* node = Base::delete_min ();
 		if (node) {
 			deadline = node->value ().deadline;
-			val = node->value ().val;
+			val = std::move (node->value ().val);
 			Base::release_node (node);
 			return true;
 		}

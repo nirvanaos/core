@@ -10,6 +10,7 @@
 namespace Nirvana {
 namespace Core {
 
+/// \brief Object allocated from the core heap.
 class CoreObject
 {
 public:

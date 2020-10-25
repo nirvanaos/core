@@ -1,6 +1,7 @@
 #include "WaitablePtr.h"
 #include "Runnable.h"
 #include "ExecDomain.h"
+#include "Thread.h"
 #include <CORBA/CORBA.h>
 
 namespace Nirvana {

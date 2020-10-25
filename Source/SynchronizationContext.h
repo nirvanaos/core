@@ -2,10 +2,12 @@
 #ifndef NIRVANA_CORE_SYNCHRONIZATIONCONTEXT_H_
 #define NIRVANA_CORE_SYNCHRONIZATIONCONTEXT_H_
 
-#include "Runnable.h"
+#include "Thread.h"
 
 namespace Nirvana {
 namespace Core {
+
+class Runnable;
 
 /// Core synchronization context.
 class SynchronizationContext :
@@ -13,12 +15,13 @@ class SynchronizationContext :
 {
 public:
 	/// Returns current synchronization context
-	/// Returns smart pointer to ensure that context won't be destroyed
-	/// until will be released.
-	static Core_var <SynchronizationContext> current ();
+	static SynchronizationContext* current ()
+	{
+		return Thread::current ().synchronization_context ();
+	}
 
 	/// Returns free synchronization context.
-	static Core_var <SynchronizationContext> free_sync_context ();
+	static SynchronizationContext* free_sync_context ();
 
 	/// Enter to the synchronization domain.
 	/// \param ret `true` on return to call source domain.

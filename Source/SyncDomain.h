@@ -14,10 +14,11 @@
 namespace Nirvana {
 namespace Core {
 
-class SyncDomain : public ImplDynamic <SyncDomain,
-	Executor,
-	SynchronizationContext
-> {
+class SyncDomain : 
+	public CoreObject,
+	public Executor,
+	public SynchronizationContext
+{
 public:
 	SyncDomain () :
 		min_deadline_ (0),
@@ -43,7 +44,7 @@ public:
 		if (min_deadline && deadline >= min_deadline && min_deadline_.compare_exchange_strong (min_deadline, 0)) {
 			bool f = false;
 			if (running_.compare_exchange_strong (f, true)) {
-				ExecDomain* executor;
+				Core_var <ExecDomain> executor;
 				DeadlineTime dt;
 				if (queue_.delete_min (executor, dt)) {
 					current_executor_ = executor;
@@ -68,15 +69,21 @@ public:
 		return heap_;
 	}
 
+	RuntimeSupportImpl& runtime_support ()
+	{
+		return runtime_support_;
+	}
+
 private:
 	void schedule ();
 
 private:
-	PriorityQueue <ExecDomain*, SYNC_DOMAIN_PRIORITY_QUEUE_LEVELS> queue_;
+	PriorityQueue <Core_var <ExecDomain>, SYNC_DOMAIN_PRIORITY_QUEUE_LEVELS> queue_;
 	std::atomic <DeadlineTime> min_deadline_;
 	std::atomic <bool> running_;
 	volatile ExecDomain* current_executor_;
 	Heap heap_;
+	RuntimeSupportImpl runtime_support_; // Must be destructed before the heap_ destruction.
 };
 
 }

@@ -7,16 +7,20 @@
 namespace Nirvana {
 namespace Core {
 
+template <class T> class Core_var;
+
 /// Core interface.
 class CoreInterface
 {
-public:
+protected:
+	template <class> friend class Core_var;
 	virtual void _add_ref () = 0;
 	virtual void _remove_ref () = 0;
 };
 
 /// Core smart pointer.
-template <class I>
+/// \tparam T object or core interface class.
+template <class T>
 class Core_var
 {
 public:
@@ -24,9 +28,13 @@ public:
 		p_ (nullptr)
 	{}
 
-	Core_var (I* p) :
+	/// Increments reference counter unlike I_var.
+	Core_var (T* p) :
 		p_ (p)
-	{}
+	{
+		if (p_)
+			p_->_add_ref ();
+	}
 
 	Core_var (const Core_var& src) :
 		Core_var (src.p_)
@@ -41,22 +49,36 @@ public:
 		src.p_ = nullptr;
 	}
 
+	/// Creates the object.
+	/// \tparam Impl Object implementation class.
+	template <class Impl, class ... Args>
+	static Core_var create (Args ... args)
+	{
+		Core_var v;
+		v.p_ = new Impl (std::forward <Args> (args)...);
+		return v;
+	}
+
 	~Core_var ()
 	{
 		if (p_)
 			p_->_remove_ref ();
 	}
 
-	Core_var& operator = (I* p)
+	/// Increments reference counter unlike I_var.
+	Core_var& operator = (T* p)
 	{
-		if (p_ != p)
+		if (p_ != p) {
 			reset (p);
+			if (p)
+				p->_add_ref ();
+		}
 		return *this;
 	}
 
 	Core_var& operator = (const Core_var& src)
 	{
-		I* p = src.p_;
+		T* p = src.p_;
 		if (p_ != p) {
 			reset (p);
 			if (p)
@@ -74,17 +96,17 @@ public:
 		return *this;
 	}
 
-	I* operator -> () const
+	T* operator -> () const
 	{
 		return p_;
 	}
 
-	operator I* () const
+	operator T* () const
 	{
 		return p_;
 	}
 
-	I& operator * () const
+	T& operator * () const
 	{
 		assert (p_);
 		return *p_;
@@ -93,24 +115,26 @@ public:
 	void reset ()
 	{
 		if (p_) {
-			I* tmp = p_;
+			T* tmp = p_;
 			p_ = nullptr;
 			tmp->_remove_ref ();
 		}
 	}
 
-	I* detach ()
+	// TODO: Remove as unsafe!
+	/*
+	T* detach ()
 	{
-		I* tmp = p_;
+		T* tmp = p_;
 		p_ = nullptr;
 		return tmp;
-	}
+	}*/
 
 private:
-	void reset (I* p)
+	void reset (T* p)
 	{
 		if (p != p_) {
-			I* tmp = p_;
+			T* tmp = p_;
 			p_ = p;
 			if (tmp)
 				tmp->_remove_ref ();
@@ -118,18 +142,23 @@ private:
 	}
 
 private:
-	I* p_;
+	T* p_;
 };
 
 /// Dynamic implementation of a core object.
 /// \tparam T object class.
-/// \tparam I... interfaces.
-template <class T, class ... I>
+template <class T>
 class ImplDynamic : 
-	public CoreObject, // Allocate memory from g_core_heap
-	public I...
+	public T
 {
-public:
+private:
+	template <class> friend class Core_var;
+
+	template <class ... Args>
+	ImplDynamic (Args ... args) :
+		T (std::forward <Args> (args)...)
+	{}
+
 	void _add_ref ()
 	{
 		ref_cnt_.increment ();
@@ -138,7 +167,7 @@ public:
 	void _remove_ref ()
 	{
 		if (!ref_cnt_.decrement ())
-			delete static_cast <T*> (this);
+			delete this;
 	}
 
 private:
@@ -146,12 +175,18 @@ private:
 };
 
 /// Static or stack implementation of a core object.
-/// \tparam I... interfaces.
-template <class ... I>
+/// \tparam T object class.
+template <class T>
 class ImplStatic :
-	public I...
+	public T
 {
 public:
+	template <class ... Args>
+	ImplStatic (Args ... args) :
+		T (std::forward <Args> (args)...)
+	{}
+
+private:
 	void _add_ref ()
 	{}
 
