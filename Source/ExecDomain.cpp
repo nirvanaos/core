@@ -9,10 +9,14 @@ namespace Core {
 
 ImplStatic <ExecDomain::Release> ExecDomain::release_;
 ImplStatic <ExecDomain::Schedule> ExecDomain::schedule_;
+ObjectPool <ExecDomain> ExecDomain::pool_;
 
 void ExecDomain::Release::run ()
 {
-	Thread::current ().execution_domain (nullptr);
+	Thread& thread = Thread::current ();
+	ExecDomain* ed = thread.execution_domain ();
+	thread.execution_domain (nullptr);
+	ed->_remove_ref ();
 }
 
 void ExecDomain::Schedule::run ()
@@ -33,6 +37,7 @@ void ExecDomain::async_call (Runnable& runnable, DeadlineTime deadline, SyncDoma
 	exec_domain->deadline_ = deadline;
 	exec_domain->cur_sync_domain_ = sync_domain;
 	exec_domain->schedule_internal ();
+	exec_domain.detach (); // Object will be released when work is done.
 }
 
 void ExecDomain::schedule (SyncDomain* sync_domain)

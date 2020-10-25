@@ -12,8 +12,7 @@ template <class T> class Core_var;
 /// Core interface.
 class CoreInterface
 {
-protected:
-	template <class> friend class Core_var;
+public:
 	virtual void _add_ref () = 0;
 	virtual void _remove_ref () = 0;
 };
@@ -23,27 +22,30 @@ protected:
 template <class T>
 class Core_var
 {
+	template <class T1> friend class Core_var;
 public:
-	Core_var () :
+	Core_var () NIRVANA_NOEXCEPT :
 		p_ (nullptr)
 	{}
 
 	/// Increments reference counter unlike I_var.
-	Core_var (T* p) :
+	Core_var (T* p) NIRVANA_NOEXCEPT :
 		p_ (p)
 	{
 		if (p_)
 			p_->_add_ref ();
 	}
 
-	Core_var (const Core_var& src) :
+	template <class T1>
+	Core_var (const Core_var <T1>& src) NIRVANA_NOEXCEPT :
 		Core_var (src.p_)
 	{
 		if (p_)
 			p_->_add_ref ();
 	}
 
-	Core_var (Core_var&& src) :
+	template <class T1>
+	Core_var (Core_var <T1>&& src) NIRVANA_NOEXCEPT :
 		p_ (src.p_)
 	{
 		src.p_ = nullptr;
@@ -59,14 +61,14 @@ public:
 		return v;
 	}
 
-	~Core_var ()
+	~Core_var () NIRVANA_NOEXCEPT
 	{
 		if (p_)
 			p_->_remove_ref ();
 	}
 
 	/// Increments reference counter unlike I_var.
-	Core_var& operator = (T* p)
+	Core_var& operator = (T* p) NIRVANA_NOEXCEPT
 	{
 		if (p_ != p) {
 			reset (p);
@@ -76,7 +78,8 @@ public:
 		return *this;
 	}
 
-	Core_var& operator = (const Core_var& src)
+	template <class T1>
+	Core_var& operator = (const Core_var <T1>& src) NIRVANA_NOEXCEPT
 	{
 		T* p = src.p_;
 		if (p_ != p) {
@@ -87,7 +90,8 @@ public:
 		return *this;
 	}
 
-	Core_var& operator = (Core_var&& src)
+	template <class T1>
+	Core_var& operator = (Core_var <T1>&& src) NIRVANA_NOEXCEPT
 	{
 		if (this != &src) {
 			reset (src.p_);
@@ -121,14 +125,12 @@ public:
 		}
 	}
 
-	// TODO: Remove as unsafe!
-	/*
-	T* detach ()
+	/// Special function intended to use with ExewcDomain only.
+	/// Do not use enywhere else.
+	void detach ()
 	{
-		T* tmp = p_;
 		p_ = nullptr;
-		return tmp;
-	}*/
+	}
 
 private:
 	void reset (T* p)

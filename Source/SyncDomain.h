@@ -44,7 +44,7 @@ public:
 		if (min_deadline && deadline >= min_deadline && min_deadline_.compare_exchange_strong (min_deadline, 0)) {
 			bool f = false;
 			if (running_.compare_exchange_strong (f, true)) {
-				Core_var <ExecDomain> executor;
+				ExecDomain* executor;
 				DeadlineTime dt;
 				if (queue_.delete_min (executor, dt)) {
 					current_executor_ = executor;
@@ -78,7 +78,7 @@ private:
 	void schedule ();
 
 private:
-	PriorityQueue <Core_var <ExecDomain>, SYNC_DOMAIN_PRIORITY_QUEUE_LEVELS> queue_;
+	PriorityQueue <ExecDomain*, SYNC_DOMAIN_PRIORITY_QUEUE_LEVELS> queue_;
 	std::atomic <DeadlineTime> min_deadline_;
 	std::atomic <bool> running_;
 	volatile ExecDomain* current_executor_;

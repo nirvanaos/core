@@ -4,58 +4,28 @@
 #define NIRVANA_CORE_OBJECTPOOL_H_
 
 #include "Stack.h"
+#include "CoreInterface.h"
 
 namespace Nirvana {
 namespace Core {
 
-template <class T>
-class ObjectPool :
-	private Stack <T>
-{
-public:
-	T* get ()
-	{
-		T* obj = Stack <T>::pop ();
-		if (obj)
-			obj->_activate ();
-		else
-			obj = new T;
-		return obj;
-	}
-
-	void release (T& obj)
-	{
-		obj._deactivate ();
-		Stack <T>::push (obj);
-	}
-
-	/// \brief Clean up the pool. We hardly ever call this method.
-	void cleanup ()
-	{
-		while (T* obj = Stack <T>::pop ()) {
-			delete obj;
-		}
-	}
-};
+template <class T> class ObjectPool;
 
 /// Poolable implementation of a core object.
 /// \tparam T object class.
-/// \tparam I interfaces.
-template <class T, class ... I>
+template <class T>
 class ImplPoolable :
-	public CoreObject, // Allocate from core heap.
-	public StackElem,
-	public I...
+	public T,
+	public StackElem
 {
-public:
-	static T* get ()
-	{
-		return pool_.get ();
-	}
+private:
+	template <class> friend class Core_var;
 
-	void _activate ()
+	template <class ... Args>
+	ImplPoolable (ObjectPool <T>& pool, Args ... args) :
+		T (std::forward <Args> (args)...)
 	{
-		::new (&static_cast <StackElem&> (*this).ref_cnt) RefCounter (); // Initialize reference counter with 1
+		StackElem::next = &pool;
 	}
 
 	void _add_ref ()
@@ -63,17 +33,49 @@ public:
 		StackElem::ref_cnt.increment ();
 	}
 
-	void _remove_ref ()
-	{
-		if (!StackElem::ref_cnt.decrement ())
-			pool_.release (static_cast <T&> (*this));
-	}
-
-	static ObjectPool <T> pool_;
+	void _remove_ref ();
 };
 
-template <class T, class ... I>
-ObjectPool <T> ImplPoolable <T, I...>::pool_;
+template <class T>
+class ObjectPool :
+	private Stack <ImplPoolable <T> >
+{
+public:
+	Core_var <T> get ()
+	{
+		Core_var <ImplPoolable <T> > obj (Stack <ImplPoolable <T> >::pop ());
+		if (obj) {
+			static_cast <StackElem&> (*obj).next = this;
+			obj->_activate ();
+		} else
+			obj = Core_var <ImplPoolable <T> >::template create <ImplPoolable <T> > (std::ref (*this));
+		return obj;
+	}
+
+	void release (ImplPoolable <T>& obj)
+	{
+		obj._deactivate ();
+		Stack <ImplPoolable <T> >::push (obj);
+	}
+
+	/// \brief Clean up the pool. We hardly ever call this method.
+	void cleanup ()
+	{
+		while (T* obj = Stack <ImplPoolable <T> >::pop ()) {
+			delete obj;
+		}
+	}
+};
+
+template <class T>
+void ImplPoolable <T>::_remove_ref ()
+{
+	if (!StackElem::ref_cnt.decrement ()) {
+		ObjectPool <T>* pool = (ObjectPool <T>*)StackElem::next;
+		pool->release (*this);
+	}
+}
+
 
 }
 }

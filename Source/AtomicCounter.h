@@ -82,9 +82,7 @@ public:
 
 	uint32_t increment ()
 	{
-		uint32_t ret = AtomicCounter::increment ();
-		assert (ret > 1); // Can't be incremented from 0.
-		return ret;
+		return AtomicCounter::increment ();
 	}
 };
 

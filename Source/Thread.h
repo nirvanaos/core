@@ -83,7 +83,7 @@ public:
 
 protected:
 	/// Pointer to the current execution domain.
-	Core_var <ExecDomain> exec_domain_;
+	ExecDomain* exec_domain_;
 
 	/// Pointer to the current execution context.
 	ExecContext* exec_context_;

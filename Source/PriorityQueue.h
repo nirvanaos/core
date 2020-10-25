@@ -54,10 +54,10 @@ public:
 		return false;
 	}
 
-	/// Inserts new node.
-	bool insert (DeadlineTime dt, const Val& value)
+	/// Inserts a new node.
+	bool insert (DeadlineTime dt, const Val& val)
 	{
-		std::pair <NodeVal*, bool> ins = Base::insert (dt, value);
+		std::pair <NodeVal*, bool> ins = Base::insert (dt, std::ref (val));
 		Base::release_node (ins.first);
 		return ins.second;
 	}

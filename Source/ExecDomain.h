@@ -18,14 +18,27 @@ namespace Core {
 class SyncDomain;
 
 class ExecDomain :
+	public CoreObject,
 	public ExecContext,
-	public ImplPoolable <ExecDomain, Executor>
+	public Executor
 {
 public:
 	static void async_call (Runnable& runnable, DeadlineTime deadline, SyncDomain* sync_domain, CORBA::Nirvana::EnvironmentBridge* environment);
 
+	static Core_var <ExecDomain> get ()
+	{
+		return pool_.get ();
+	}
+
+	template <class ... Args>
+	static Core_var <ExecDomain> create (Args ... args)
+	{
+		return Core_var <ExecDomain>::create <ImplPoolable <ExecDomain> > (std::ref (pool_), std::forward <Args> (args)...);
+	}
+
 	ExecDomain () :
 		ExecContext (),
+		wait_list_next_ (nullptr),
 		deadline_ (std::numeric_limits <DeadlineTime>::max ()),
 		cur_sync_domain_ (nullptr)
 	{}
@@ -34,6 +47,7 @@ public:
 	template <class ... Args>
 	ExecDomain (Args ... args) :
 		ExecContext (std::forward <Args> (args)...),
+		wait_list_next_ (nullptr),
 		deadline_ (std::numeric_limits <DeadlineTime>::max ()),
 		cur_sync_domain_ (nullptr)
 	{
@@ -55,6 +69,9 @@ public:
 	{
 		schedule_internal ();
 	}
+
+	void _activate ()
+	{}
 
 	void _deactivate ()
 	{
@@ -94,8 +111,6 @@ private:
 	public:
 		void run ();
 	};
-	
-	static ImplStatic <Release> release_;
 
 	class Schedule :
 		public Runnable
@@ -103,12 +118,17 @@ private:
 	public:
 		void run ();
 	};
-	
-	static ImplStatic <Schedule> schedule_;
 
 	void schedule_internal ();
 
+public:
+	void* wait_list_next_;
+
 private:
+	static ImplStatic <Release> release_;
+	static ImplStatic <Schedule> schedule_;
+	static ObjectPool <ExecDomain> pool_;
+
 	DeadlineTime deadline_;
 	SyncDomain* cur_sync_domain_;
 	Heap heap_;
