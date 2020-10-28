@@ -38,9 +38,11 @@ void ExecDomain::schedule (SyncDomain* sync_domain)
 	if (cur_sync_domain_)
 		cur_sync_domain_->leave ();
 	cur_sync_domain_ = sync_domain;
-	if (ExecContext::current () == this)
-		run_in_neutral_context (schedule_);
-	else
+	if (ExecContext::current () == this) {
+		CORBA::Nirvana::Environment env;
+		run_in_neutral_context (schedule_, &env);
+		env.check ();
+	} else
 		schedule_internal ();
 }
 
@@ -73,7 +75,7 @@ void ExecDomain::suspend ()
 void ExecDomain::execute_loop ()
 {
 	while (run ()) {
-		run_in_neutral_context (release_);
+		release ();
 	}
 }
 

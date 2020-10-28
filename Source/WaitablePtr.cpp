@@ -54,7 +54,7 @@ inline void WaitablePtr::run_in_neutral ()
 	Ptr pcur = Ptr (exec_domain, TAG_WAITLIST);
 	Ptr p = load ();
 	while (p.tag_bits () == TAG_WAITLIST) {
-		exec_domain->wait_list_next_ = p;
+		exec_domain->wait_list_next_ = (ExecDomain*)(void*)p;
 		if (compare_exchange (p, pcur)) {
 			exec_domain->suspend ();
 			thread.execution_domain (nullptr);
@@ -68,7 +68,7 @@ void WaitablePtr::set_ptr (Ptr p)
 	assert (TAG_WAITLIST != p.tag_bits ());
 	for (ExecDomain* wait_list = (ExecDomain*)(void*)exchange (p); wait_list;) {
 		ExecDomain* ed = wait_list;
-		wait_list = (ExecDomain*)(ed->wait_list_next_);
+		wait_list = ed->wait_list_next_;
 		ed->resume ();
 	}
 }

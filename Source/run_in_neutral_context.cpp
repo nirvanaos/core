@@ -8,15 +8,11 @@ using namespace std;
 namespace Nirvana {
 namespace Core {
 
-void run_in_neutral_context (Runnable& runnable)
+void run_in_neutral_context (Runnable& runnable, CORBA::Nirvana::Interface_ptr environment)
 {
 	ExecContext* neutral_context = Thread::current ().neutral_context ();
 	assert (neutral_context);
-	CORBA::Nirvana::Environment env;
-	neutral_context->runnable_ = &runnable;
-	neutral_context->environment_ = &env;
-	neutral_context->switch_to ();
-	env.check ();
+	neutral_context->run_in_context (runnable, environment);
 }
 
 }

@@ -32,10 +32,18 @@ public:
 		return environment_;
 	}
 
-	//! Switch to this context.
+	/// Switch to this context.
 	void switch_to ();
 
 	static void neutral_context_loop ();
+
+	void run_in_context (Runnable& runnable, CORBA::Nirvana::Interface_ptr environment)
+	{
+		assert (this != current ());
+		runnable_ = &runnable;
+		environment_ = environment;
+		switch_to ();
+	}
 
 protected:
 	bool run ();
@@ -43,8 +51,6 @@ protected:
 	void on_crash ();
 
 protected:
-	friend void run_in_neutral_context (Runnable& runnable);
-
 	Core_var <Runnable> runnable_;
 	CORBA::Nirvana::I_var <CORBA::Nirvana::EnvironmentBridge> environment_;
 };

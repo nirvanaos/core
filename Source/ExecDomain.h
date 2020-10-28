@@ -101,7 +101,7 @@ public:
 	void on_crash ()
 	{
 		ExecContext::on_crash ();
-		run_in_neutral_context (release_);
+		release ();
 	}
 
 	SyncDomain* cur_sync_domain () const
@@ -136,8 +136,13 @@ private:
 
 	void schedule_internal ();
 
+	void release ()
+	{
+		run_in_neutral_context (release_, CORBA::Nirvana::Interface::_nil ());
+	}
+
 public:
-	void* wait_list_next_;
+	ExecDomain* wait_list_next_;
 
 private:
 	static ImplStatic <Release> release_;
