@@ -2,7 +2,9 @@
 #define NIRVANA_CORE_RUNTIMESUPPORTIMPL_H_
 
 // Currently we use std::unordered_map.
-// TODO Should be used a more efficient implementation like folly / F14.
+// TODO Should be used a more efficient implementation like folly / F14, abseil or EASTL.
+// NOTE: The implementation must not allocate memory in the empty container constructor.
+// 
 // std::unordered_map depends on std::vector. 
 // std::vector can use debug iterators.
 // This can cause cyclic dependency.
@@ -11,8 +13,9 @@
 #undef NIRVANA_DEBUG_ITERATORS
 #define NIRVANA_DEBUG_ITERATORS 0
 
-#include <Nirvana/RuntimeSupport_s.h>
 #include "UserObject.h"
+#include "UserAllocator.h"
+#include <Nirvana/RuntimeSupport_s.h>
 #include "ORB/LifeCyclePseudo.h"
 #include <unordered_map>
 
@@ -79,7 +82,8 @@ public:
 	}
 
 private:
-	typedef std::unordered_map <const void*, Core_var <RuntimeProxyImpl> > ProxyMap;
+	typedef std::unordered_map <const void*, Core_var <RuntimeProxyImpl>, 
+		std::hash <const void*>, std::equal_to <const void*>, UserAllocator <std::pair <const void* const, Core_var <RuntimeProxyImpl> > > > ProxyMap;
 	ProxyMap proxy_map_;
 };
 

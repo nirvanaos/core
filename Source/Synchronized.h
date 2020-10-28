@@ -10,13 +10,13 @@ class Synchronized
 {
 public:
 	Synchronized () :
-		call_context_ (SynchronizationContext::current ())
+		call_context_ (&SynchronizationContext::current ())
 	{}
 
-	Synchronized (SynchronizationContext* target) :
-		call_context_ (SynchronizationContext::current ())
+	Synchronized (SynchronizationContext& target) :
+		call_context_ (&SynchronizationContext::current ())
 	{
-		target->enter (false);
+		target.enter (false);
 	}
 
 	~Synchronized ()
@@ -24,9 +24,9 @@ public:
 		call_context_->enter (true);
 	}
 
-	SynchronizationContext* call_context () const
+	SynchronizationContext& call_context () const
 	{
-		return call_context_;
+		return *call_context_;
 	}
 
 private:

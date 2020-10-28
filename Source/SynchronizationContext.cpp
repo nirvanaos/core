@@ -17,9 +17,9 @@ public:
 
 ImplStatic <FreeSyncContext> g_free_sync_context;
 
-SynchronizationContext* SynchronizationContext::free_sync_context ()
+SynchronizationContext& SynchronizationContext::free_sync_context ()
 {
-	return &g_free_sync_context;
+	return g_free_sync_context;
 }
 
 void FreeSyncContext::enter (bool ret)

@@ -28,16 +28,9 @@ void ExecDomain::Schedule::run ()
 
 void ExecDomain::async_call (Runnable& runnable, DeadlineTime deadline, SyncDomain* sync_domain, CORBA::Nirvana::EnvironmentBridge* environment)
 {
-	Scheduler::activity_begin ();	// Throws exception if shutdown was started.
-
 	Core_var <ExecDomain> exec_domain = get ();
-
-	exec_domain->runnable_ = &runnable;
-	exec_domain->environment_ = environment;
-	exec_domain->deadline_ = deadline;
-	exec_domain->cur_sync_domain_ = sync_domain;
-	exec_domain->schedule_internal ();
-	exec_domain.detach (); // Object will be released when work is done.
+	ExecDomain* p = exec_domain;
+	start (exec_domain, runnable, deadline, sync_domain, environment, [p]() {p->schedule_internal (); });
 }
 
 void ExecDomain::schedule (SyncDomain* sync_domain)

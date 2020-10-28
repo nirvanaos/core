@@ -1,4 +1,4 @@
-#include "core.h"
+#include "Heap.h"
 #include "SkipList.h"
 
 namespace Nirvana {

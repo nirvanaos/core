@@ -43,7 +43,7 @@ public:
 		::Nirvana::Core::RefCounter::IntType cnt = ref_cnt_.increment ();
 		if (1 == cnt) {
 			try {
-				::Nirvana::Core::Synchronized sync (sync_context_);
+				::Nirvana::Core::Synchronized sync (*sync_context_);
 				add_ref_1 ();
 			} catch (...) {
 				ref_cnt_.decrement ();
@@ -59,14 +59,17 @@ protected:
 
 	virtual void add_ref_1 ();
 
-	::Nirvana::Core::SynchronizationContext* sync_context () const
+	/// Returns synchronization context for the target object.
+	::Nirvana::Core::SynchronizationContext& sync_context () const
 	{
-		return sync_context_;
+		return *sync_context_;
 	}
 
-	virtual ::Nirvana::Core::SynchronizationContext* get_sync_context (OperationIndex op)
+	/// Returns synchronization context for the specific operation.
+	/// For some Object operations may return free context.
+	virtual ::Nirvana::Core::SynchronizationContext& get_sync_context (OperationIndex op)
 	{
-		return sync_context_;
+		return *sync_context_;
 	}
 
 	void run_garbage_collector (::Nirvana::Core::Core_var <::Nirvana::Core::Runnable> gc) const

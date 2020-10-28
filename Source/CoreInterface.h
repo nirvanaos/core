@@ -1,18 +1,20 @@
 #ifndef NIRVANA_CORE_COREINTERFACE_H_
 #define NIRVANA_CORE_COREINTERFACE_H_
 
-#include "core.h"
 #include "AtomicCounter.h"
 
 namespace Nirvana {
 namespace Core {
 
-template <class T> class Core_var;
+template <class> class Core_var;
 
 /// Core interface.
 class CoreInterface
 {
-public:
+protected:
+	template <class> friend class Core_var;
+	friend class ExecDomain;
+
 	virtual void _add_ref () = 0;
 	virtual void _remove_ref () = 0;
 };
@@ -125,14 +127,15 @@ public:
 		}
 	}
 
+private:
 	/// Special function intended to use with ExewcDomain only.
 	/// Do not use enywhere else.
+	friend class ExecDomain;
 	void detach ()
 	{
 		p_ = nullptr;
 	}
 
-private:
 	void reset (T* p)
 	{
 		if (p != p_) {

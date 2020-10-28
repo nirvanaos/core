@@ -4,7 +4,7 @@
 #include "core.h"
 #include <Nirvana/Memory_s.h>
 #include <Nirvana/OLF.h>
-#include "SynchronizationContext.h"
+#include "user_memory.h"
 
 namespace Nirvana {
 namespace Core {
@@ -70,61 +70,56 @@ public:
 class UserMemory :
 	public ::CORBA::Nirvana::ServantStatic <UserMemory, Memory>
 {
-	static Heap& get_heap ()
-	{
-		return Thread::current ().synchronization_context ()->memory ();
-	}
-
 public:
 	// Memory::
 	static void* allocate (void* dst, size_t size, UWord flags)
 	{
-		return get_heap ().allocate (dst, size, flags);
+		return user_memory ().allocate (dst, size, flags);
 	}
 
 	static void release (void* p, size_t size)
 	{
-		return get_heap ().release (p, size);
+		return user_memory ().release (p, size);
 	}
 
 	static void commit (void* p, size_t size)
 	{
-		return get_heap ().commit (p, size);
+		return user_memory ().commit (p, size);
 	}
 
 	static void decommit (void* p, size_t size)
 	{
-		return get_heap ().decommit (p, size);
+		return user_memory ().decommit (p, size);
 	}
 
 	static void* copy (void* dst, void* src, size_t size, UWord flags)
 	{
-		return get_heap ().copy (dst, src, size, flags);
+		return user_memory ().copy (dst, src, size, flags);
 	}
 
 	static bool is_readable (const void* p, size_t size)
 	{
-		return get_heap ().is_readable (p, size);
+		return user_memory ().is_readable (p, size);
 	}
 
 	static bool is_writable (const void* p, size_t size)
 	{
-		return get_heap ().is_writable (p, size);
+		return user_memory ().is_writable (p, size);
 	}
 
 	static bool is_private (const void* p, size_t size)
 	{
-		return get_heap ().is_private (p, size);
+		return user_memory ().is_private (p, size);
 	}
 
 	static bool is_copy (const void* p1, const void* p2, size_t size)
 	{
-		return get_heap ().is_copy (p1, p2, size);
+		return user_memory ().is_copy (p1, p2, size);
 	}
 
 	static intptr_t query (const void* p, MemQuery q)
 	{
-		return get_heap ().query (p, q);
+		return user_memory ().query (p, q);
 	}
 };
 

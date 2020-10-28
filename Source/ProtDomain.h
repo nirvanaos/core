@@ -3,7 +3,7 @@
 #ifndef NIRVANA_CORE_PROTDOMAIN_H_
 #define NIRVANA_CORE_PROTDOMAIN_H_
 
-#include "core.h"
+#include "CoreObject.h"
 #include <Port/ProtDomain.h>
 
 namespace Nirvana {

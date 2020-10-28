@@ -35,7 +35,7 @@ ServantProxyBase::ServantProxyBase (AbstractBase_ptr servant,
 		object_ops, object_impl),
 	servant_ (servant),
 	ref_cnt_ (0),
-	sync_context_ (SynchronizationContext::current ())
+	sync_context_ (&SynchronizationContext::current ())
 {
 	// Fill implementation pointers
 	for (InterfaceEntry* ie = interfaces ().begin (); ie != interfaces ().end (); ++ie) {
@@ -60,7 +60,7 @@ void ServantProxyBase::add_ref_1 ()
 		} catch (...) {
 			// Async call failed, maybe resources are exausted.
 			// Fallback to collect garbage in current thread.
-			::Nirvana::Core::Synchronized sync (sync_context_);
+			::Nirvana::Core::Synchronized sync (*sync_context_);
 			release (servant_);
 			// Swallow exception
 		}

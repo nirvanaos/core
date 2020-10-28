@@ -4,7 +4,6 @@
 #define NIRVANA_CORE_SYNCDOMAIN_H_
 
 #include "PriorityQueue.h"
-#include <Port/config.h>
 #include "Scheduler.h"
 #include "ExecDomain.h"
 #include "Scheduler.h"

@@ -2,13 +2,13 @@
 #ifndef NIRVANA_CORE_ARRAY_H_
 #define NIRVANA_CORE_ARRAY_H_
 
-#include <Nirvana/Nirvana.h>
+#include "core.h"
 
 namespace Nirvana {
 namespace Core {
 
 /// \brief Fixed size array.
-template <class T>
+template <class T, template <class> class Al>
 class Array
 {
 public:
@@ -28,7 +28,7 @@ public:
 	void allocate (size_t size)
 	{
 		assert (!begin_ && !end_);
-		begin_ = (T*)g_memory->allocate (0, size * sizeof (T), Memory::ZERO_INIT);
+		begin_ = Al <T>::allocate (size, nullptr, Memory::ZERO_INIT);
 		end_ = begin_ + size;
 	}
 
@@ -37,7 +37,7 @@ public:
 	{
 		assert (!begin_ && !end_);
 		if (size) {
-			begin_ = (T*)g_memory->allocate (0, size * sizeof (T), 0);
+			begin_ = Al <T>::allocate (size);
 			end_ = begin_ + size;
 			T* p = begin_;
 			do {
@@ -53,7 +53,7 @@ public:
 			do {
 				p->~T ();
 			} while (end_ != ++p);
-			g_memory->release (begin_, (end_ - begin_) * sizeof (T));
+			Al <T>::deallocate (begin_, (end_ - begin_));
 		}
 	}
 

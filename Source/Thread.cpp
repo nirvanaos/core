@@ -21,12 +21,12 @@ void Thread::execute (Executor& executor, DeadlineTime deadline)
 	Scheduler::core_free ();
 }
 
-SynchronizationContext* Thread::synchronization_context ()
+SynchronizationContext& Thread::sync_context ()
 {
 	assert (exec_domain_);
 	SyncDomain* sd = exec_domain_->cur_sync_domain ();
 	if (sd)
-		return sd;
+		return *sd;
 	else
 		return SynchronizationContext::free_sync_context ();
 }

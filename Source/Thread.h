@@ -77,7 +77,7 @@ public:
 	}
 
 	/// Returns synchronization context.
-	virtual SynchronizationContext* synchronization_context ();
+	virtual SynchronizationContext& sync_context ();
 
 	virtual RuntimeSupportImpl& runtime_support ();
 

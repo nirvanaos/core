@@ -49,7 +49,7 @@ private:
 
 	PortableServer::ServantBase_var _get_servant () const
 	{
-		if (sync_context () == ::Nirvana::Core::SynchronizationContext::current ())
+		if (&sync_context () == &::Nirvana::Core::SynchronizationContext::current ())
 			return PortableServer::ServantBase::_duplicate (servant_);
 		else
 			throw MARSHAL ();

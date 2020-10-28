@@ -12,8 +12,8 @@ class CoreAllocator :
 	public std::allocator <T>
 {
 public:
-	void deallocate (T* p, size_t cnt);
-	T* allocate (size_t cnt, void* hint = nullptr);
+	static void deallocate (T* p, size_t cnt);
+	static T* allocate (size_t cnt, void* hint = nullptr, UWord flags = 0);
 };
 
 class HeapBase
@@ -336,9 +336,9 @@ void CoreAllocator <T>::deallocate (T* p, size_t cnt)
 }
 
 template <class T> inline
-T* CoreAllocator <T>::allocate (size_t cnt, void* hint)
+T* CoreAllocator <T>::allocate (size_t cnt, void* hint, UWord flags)
 {
-	return (T*)g_core_heap.allocate (0, cnt * sizeof (T), 0);
+	return (T*)g_core_heap.allocate (hint, cnt * sizeof (T), flags);
 }
 
 }

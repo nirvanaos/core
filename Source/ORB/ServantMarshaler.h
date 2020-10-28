@@ -205,7 +205,7 @@ private:
 
 	bool shared_memory () const
 	{
-		return &sync_context_->memory () == &::Nirvana::Core::SynchronizationContext::current ()->memory ();
+		return &sync_context_->memory () == &::Nirvana::Core::SynchronizationContext::current ().memory ();
 	}
 
 	::Nirvana::Core::Core_var <::Nirvana::Core::SynchronizationContext> sync_context_;

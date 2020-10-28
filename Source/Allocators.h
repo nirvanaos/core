@@ -1,7 +1,7 @@
 #ifndef NIRVANA_CORE_ALLOCATORS_H_
 #define NIRVANA_CORE_ALLOCATORS_H_
 
-#include "core.h"
+#include "Heap.h"
 #include "Stack.h"
 
 namespace Nirvana {

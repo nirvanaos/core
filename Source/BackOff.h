@@ -1,6 +1,7 @@
 #ifndef NIRVANA_CORE_BACKOFF_H_
 #define NIRVANA_CORE_BACKOFF_H_
 
+#include "core.h"
 #include <Port/BackOff.h>
 #include "RandomGen.h"
 

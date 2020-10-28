@@ -15,13 +15,13 @@ class SynchronizationContext :
 {
 public:
 	/// Returns current synchronization context
-	static SynchronizationContext* current ()
+	static SynchronizationContext& current ()
 	{
-		return Thread::current ().synchronization_context ();
+		return Thread::current ().sync_context ();
 	}
 
 	/// Returns free synchronization context.
-	static SynchronizationContext* free_sync_context ();
+	static SynchronizationContext& free_sync_context ();
 
 	/// Enter to the synchronization domain.
 	/// \param ret `true` on return to call source domain.

@@ -8,6 +8,7 @@
 #include "Scheduler.h"
 #include "Runnable.h"
 #include "ObjectPool.h"
+#include "CoreObject.h"
 #include "RuntimeSupportImpl.h"
 #include <limits>
 #include <utility>
@@ -27,6 +28,7 @@ public:
 
 	static Core_var <ExecDomain> get ()
 	{
+		Scheduler::activity_begin ();	// Throws exception if shutdown was started.
 		return pool_.get ();
 	}
 
@@ -63,6 +65,18 @@ public:
 
 	void execute (DeadlineTime deadline);
 
+	template <class Starter>
+	static void start (Core_var <ExecDomain>& exec_domain, Runnable& runnable, DeadlineTime deadline,
+		SyncDomain* sync_domain, CORBA::Nirvana::EnvironmentBridge* environment, Starter starter)
+	{
+		exec_domain->runnable_ = &runnable;
+		exec_domain->environment_ = environment;
+		exec_domain->deadline_ = deadline;
+		exec_domain->cur_sync_domain_ = sync_domain;
+		starter ();
+		exec_domain.detach (); // Object will be released when work is done.
+	}
+
 	void suspend ();
 	
 	inline void resume ()
@@ -87,6 +101,7 @@ public:
 	void on_crash ()
 	{
 		ExecContext::on_crash ();
+		run_in_neutral_context (release_);
 	}
 
 	SyncDomain* cur_sync_domain () const

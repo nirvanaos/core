@@ -3,7 +3,7 @@
 #ifndef NIRVANA_CORE_SYSDOMAIN_H_
 #define NIRVANA_CORE_SYSDOMAIN_H_
 
-#include "core.h"
+#include "CoreObject.h"
 #include <Port/SysDomain.h>
 
 namespace Nirvana {

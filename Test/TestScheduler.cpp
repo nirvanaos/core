@@ -39,7 +39,8 @@ class SimpleShutdown :
 	public Runnable
 {
 public:
-	SimpleShutdown ()
+	SimpleShutdown () :
+		ran_ (false)
 	{
 		exists_ = true;
 	}
@@ -56,19 +57,18 @@ public:
 	}
 
 	static bool exists_;
-	static bool ran_;
+	bool ran_;
 };
 
 bool SimpleShutdown::exists_ = false;
-bool SimpleShutdown::ran_ = false;
 
 TEST_F (TestScheduler, Startup)
 {
 	{
-		Core_var <Runnable> startup = Core_var <Runnable>::create <ImplDynamic <SimpleShutdown> > ();
+		Core_var <SimpleShutdown> startup = Core_var <SimpleShutdown>::create <ImplDynamic <SimpleShutdown> > ();
 		Port::Scheduler::run_system_domain (*startup, numeric_limits <Nirvana::DeadlineTime>::max ());
 		ASSERT_TRUE (SimpleShutdown::exists_);
-		ASSERT_TRUE (SimpleShutdown::ran_);
+		ASSERT_TRUE (startup->ran_);
 	}
 	ASSERT_FALSE (SimpleShutdown::exists_);
 }

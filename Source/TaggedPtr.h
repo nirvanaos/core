@@ -1,8 +1,6 @@
 #ifndef NIRVANA_CORE_TAGGEDPTR_H_
 #define NIRVANA_CORE_TAGGEDPTR_H_
 
-#include <Nirvana/Nirvana.h>
-#include <Port/config.h>
 #include "BackOff.h"
 #include <atomic>
 #include <algorithm>
