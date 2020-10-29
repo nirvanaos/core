@@ -102,23 +102,23 @@ public:
 		return *this;
 	}
 
-	T* operator -> () const
+	T* operator -> () const NIRVANA_NOEXCEPT
 	{
 		return p_;
 	}
 
-	operator T* () const
+	operator T* () const NIRVANA_NOEXCEPT
 	{
 		return p_;
 	}
 
-	T& operator * () const
+	T& operator * () const NIRVANA_NOEXCEPT
 	{
 		assert (p_);
 		return *p_;
 	}
 
-	void reset ()
+	void reset () NIRVANA_NOEXCEPT
 	{
 		if (p_) {
 			T* tmp = p_;
@@ -131,12 +131,12 @@ private:
 	/// Special function intended to use with ExewcDomain only.
 	/// Do not use enywhere else.
 	friend class ExecDomain;
-	void detach ()
+	void detach () NIRVANA_NOEXCEPT
 	{
 		p_ = nullptr;
 	}
 
-	void reset (T* p)
+	void reset (T* p) NIRVANA_NOEXCEPT
 	{
 		if (p != p_) {
 			T* tmp = p_;

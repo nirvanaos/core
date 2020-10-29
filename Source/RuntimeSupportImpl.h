@@ -2,8 +2,9 @@
 #define NIRVANA_CORE_RUNTIMESUPPORTIMPL_H_
 
 // Currently we use std::unordered_map.
-// TODO Should be used a more efficient implementation like folly / F14, abseil or EASTL.
-// NOTE: The implementation must not allocate memory in the empty container constructor.
+// TODO: Should be used a more efficient implementation like folly/F14, abseil or EASTL.
+// https://martin.ankerl.com/2019/04/01/hashmap-benchmarks-01-overview/
+// TODO: The implementation must not allocate memory in the empty container constructor. But std implementation does!
 // 
 // std::unordered_map depends on std::vector. 
 // std::vector can use debug iterators.
@@ -17,6 +18,7 @@
 #include "UserAllocator.h"
 #include <Nirvana/RuntimeSupport_s.h>
 #include "ORB/LifeCyclePseudo.h"
+#include "CoreInterface.h"
 #include <unordered_map>
 
 namespace Nirvana {
@@ -52,6 +54,9 @@ private:
 
 class RuntimeSupportImpl
 {
+	typedef std::unordered_map
+		<const void*, Core_var <RuntimeProxyImpl>,
+		std::hash <const void*>, std::equal_to <const void*>, UserAllocator <std::pair <const void* const, Core_var <RuntimeProxyImpl> > > > ProxyMap;
 public:
 	RuntimeProxy_var runtime_proxy_get (const void* obj)
 	{
@@ -82,8 +87,6 @@ public:
 	}
 
 private:
-	typedef std::unordered_map <const void*, Core_var <RuntimeProxyImpl>, 
-		std::hash <const void*>, std::equal_to <const void*>, UserAllocator <std::pair <const void* const, Core_var <RuntimeProxyImpl> > > > ProxyMap;
 	ProxyMap proxy_map_;
 };
 
