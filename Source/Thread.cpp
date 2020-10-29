@@ -13,7 +13,7 @@ namespace Core {
 void Thread::execute (Executor& executor, DeadlineTime deadline)
 {
 	// Always called in the neutral context.
-	assert (ExecContext::current () == Thread::current ().neutral_context ());
+	assert (&ExecContext::current () == &Thread::current ().neutral_context ());
 	// Switch to executor context.
 	executor.execute (deadline);
 	// Perform possible neutral context calls, then return.

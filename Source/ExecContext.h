@@ -14,13 +14,15 @@ namespace Core {
 class ExecContext :
 	private Port::ExecContext
 {
+	friend class Port::ExecContext;
 public:
+	// Implementation - specific methods must be called explicitly.
 	Port::ExecContext& port ()
 	{
 		return *this;
 	}
 
-	static ExecContext* current ();
+	static ExecContext& current ();
 
 	template <class ... Args>
 	ExecContext (Args ... args) :
@@ -39,7 +41,7 @@ public:
 
 	void run_in_context (Runnable& runnable, CORBA::Nirvana::Interface_ptr environment)
 	{
-		assert (this != current ());
+		assert (this != &current ());
 		runnable_ = &runnable;
 		environment_ = environment;
 		switch_to ();

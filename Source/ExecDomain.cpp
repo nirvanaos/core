@@ -38,7 +38,7 @@ void ExecDomain::schedule (SyncDomain* sync_domain)
 	if (cur_sync_domain_)
 		cur_sync_domain_->leave ();
 	cur_sync_domain_ = sync_domain;
-	if (ExecContext::current () == this) {
+	if (&ExecContext::current () == this) {
 		CORBA::Nirvana::Environment env;
 		run_in_neutral_context (schedule_, &env);
 		env.check ();

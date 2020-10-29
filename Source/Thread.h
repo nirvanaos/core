@@ -16,10 +16,11 @@ class ExecDomain;
 class SynchronizationContext;
 
 class Thread :
-	public CoreObject,
 	private Port::Thread
 {
+	friend class Port::Thread;
 public:
+	// Implementation - specific methods must be called explicitly.
 	Port::Thread& port ()
 	{
 		return *this;
@@ -28,22 +29,17 @@ public:
 	/// Returns current thread.
 	static Thread& current ()
 	{
-		Thread* p = static_cast <Thread*> (Port::Thread::current ());
+		Thread* p = Port::Thread::current ();
 		assert (p);
 		return *p;
 	}
 
-	Thread () :
-		Port::Thread (),
+	template <class ... Args>
+	Thread (Args ... args) :
+		Port::Thread (std::forward <Args> (args)...),
 		exec_domain_ (nullptr),
-		exec_context_ (nullptr)
-	{}
-
-	template <class P>
-	Thread (P param) :
-		Port::Thread (param),
-		exec_domain_ (nullptr),
-		exec_context_ (nullptr)
+		exec_context_ (&neutral_context_),
+		neutral_context_ (true)
 	{}
 
 	ExecDomain* execution_domain () const
@@ -56,24 +52,23 @@ public:
 		exec_domain_ = d;
 	}
 
-	ExecContext* context () const
+	ExecContext& context () const
 	{
-		return exec_context_;
+		return *exec_context_;
 	}
 
-	void context (ExecContext* c)
+	void context (ExecContext& c)
 	{
-		exec_context_ = c;
+		exec_context_ = &c;
 	}
 
 	/// This static method is called by the scheduler.
 	static void execute (Executor& executor, DeadlineTime deadline);
 
 	/// Returns special "neutral" execution context with own stack and CPU state.
-	virtual ExecContext* neutral_context ()
+	ExecContext& neutral_context ()
 	{
-		assert (false);
-		return nullptr;
+		return neutral_context_;
 	}
 
 	/// Returns synchronization context.
@@ -87,6 +82,9 @@ protected:
 
 	/// Pointer to the current execution context.
 	ExecContext* exec_context_;
+
+	/// Special "neutral" execution context with own stack and CPU state.
+	ExecContext neutral_context_;
 };
 
 }

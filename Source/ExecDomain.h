@@ -89,7 +89,7 @@ public:
 
 	void _deactivate ()
 	{
-		assert (ExecContext::current () != this);
+		assert (&ExecContext::current () != this);
 		Scheduler::activity_end ();
 		runnable_.reset ();
 		runtime_support_.cleanup ();

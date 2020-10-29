@@ -8,15 +8,15 @@
 namespace Nirvana {
 namespace Core {
 
-ExecContext* ExecContext::current ()
+ExecContext& ExecContext::current ()
 {
 	return Thread::current ().context ();
 }
 
 void ExecContext::switch_to ()
 {
-	assert (current () != this);
-	Thread::current ().context (this);
+	assert (&current () != this);
+	Thread::current ().context (*this);
 	Port::ExecContext::switch_to ();
 }
 
@@ -47,10 +47,10 @@ void ExecContext::on_crash ()
 void ExecContext::neutral_context_loop ()
 {
 	Thread& thread = Thread::current ();
-	ExecContext* context = thread.context ();
-	assert (context == thread.neutral_context ());
+	ExecContext& context = thread.context ();
+	assert (&context == &thread.neutral_context ());
 	for (;;) {
-		context->run ();
+		context.run ();
 		if (thread.execution_domain ())
 			thread.execution_domain ()->switch_to ();
 		else
