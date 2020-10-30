@@ -128,14 +128,6 @@ public:
 	}
 
 private:
-	/// Special function intended to use with ExewcDomain only.
-	/// Do not use enywhere else.
-	friend class ExecDomain;
-	void detach () NIRVANA_NOEXCEPT
-	{
-		p_ = nullptr;
-	}
-
 	void reset (T* p) NIRVANA_NOEXCEPT
 	{
 		if (p != p_) {

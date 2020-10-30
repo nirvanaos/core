@@ -66,15 +66,15 @@ public:
 	void execute (DeadlineTime deadline);
 
 	template <class Starter>
-	static void start (Core_var <ExecDomain>& exec_domain, Runnable& runnable, DeadlineTime deadline,
-		SyncDomain* sync_domain, CORBA::Nirvana::EnvironmentBridge* environment, Starter starter)
+	void start (Runnable& runnable, DeadlineTime deadline, SyncDomain* sync_domain,
+		CORBA::Nirvana::EnvironmentBridge* environment, Starter starter)
 	{
-		exec_domain->runnable_ = &runnable;
-		exec_domain->environment_ = environment;
-		exec_domain->deadline_ = deadline;
-		exec_domain->cur_sync_domain_ = sync_domain;
+		runnable_ = &runnable;
+		environment_ = environment;
+		deadline_ = deadline;
+		cur_sync_domain_ = sync_domain;
 		starter ();
-		exec_domain.detach (); // Object will be released when work is done.
+		_add_ref ();
 	}
 
 	void suspend ();
@@ -92,6 +92,7 @@ public:
 		assert (&ExecContext::current () != this);
 		Scheduler::activity_end ();
 		runnable_.reset ();
+		cur_sync_domain_ = nullptr;
 		runtime_support_.cleanup ();
 		heap_.cleanup ();
 	}

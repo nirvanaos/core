@@ -30,7 +30,7 @@ void ExecDomain::async_call (Runnable& runnable, DeadlineTime deadline, SyncDoma
 {
 	Core_var <ExecDomain> exec_domain = get ();
 	ExecDomain* p = exec_domain;
-	start (exec_domain, runnable, deadline, sync_domain, environment, [p]() {p->schedule_internal (); });
+	p->start (runnable, deadline, sync_domain, environment, [p]() {p->schedule_internal (); });
 }
 
 void ExecDomain::schedule (SyncDomain* sync_domain)

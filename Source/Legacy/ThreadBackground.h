@@ -32,14 +32,11 @@ public:
 	/// Returns synchronization context.
 	virtual SynchronizationContext& sync_context ();
 
-	/// Returns runtime support object.
-	virtual Nirvana::Core::RuntimeSupportImpl& runtime_support ();
-
 protected:
-	ThreadBackground (Nirvana::Core::Runnable& runnable, CORBA::Nirvana::Interface* environment);
+	void start (Nirvana::Core::ExecDomain& exec_domain, 
+		Nirvana::Core::Runnable& runnable, CORBA::Nirvana::Interface* environment);
 
 private:
-
 	void on_thread_proc_end ()
 	{
 		_remove_ref ();
