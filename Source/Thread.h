@@ -15,17 +15,10 @@ class ExecContext;
 class ExecDomain;
 class SynchronizationContext;
 
-class Thread :
-	private Port::Thread
+class Thread
 {
 	friend class Port::Thread;
 public:
-	// Implementation - specific methods must be called explicitly.
-	Port::Thread& port ()
-	{
-		return *this;
-	}
-
 	/// Returns current thread.
 	static Thread& current ()
 	{
@@ -34,9 +27,7 @@ public:
 		return *p;
 	}
 
-	template <class ... Args>
-	Thread (Args ... args) :
-		Port::Thread (std::forward <Args> (args)...),
+	Thread () :
 		exec_domain_ (nullptr),
 		exec_context_ (&neutral_context_),
 		neutral_context_ (true)
@@ -62,9 +53,6 @@ public:
 		exec_context_ = &c;
 	}
 
-	/// This static method is called by the scheduler.
-	static void execute (Executor& executor, DeadlineTime deadline);
-
 	/// Returns special "neutral" execution context with own stack and CPU state.
 	ExecContext& neutral_context ()
 	{
@@ -72,11 +60,12 @@ public:
 	}
 
 	/// Returns synchronization context.
-	virtual SynchronizationContext& sync_context ();
+	virtual SynchronizationContext& sync_context () = 0;
 
-	virtual RuntimeSupportImpl& runtime_support ();
+	/// Returns runtime support object.
+	virtual RuntimeSupportImpl& runtime_support () = 0;
 
-protected:
+private:
 	/// Pointer to the current execution domain.
 	ExecDomain* exec_domain_;
 
