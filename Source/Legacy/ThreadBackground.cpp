@@ -1,4 +1,5 @@
 #include "ThreadBackground.h"
+#include "../ExecDomain.h"
 
 namespace Nirvana {
 namespace Legacy {

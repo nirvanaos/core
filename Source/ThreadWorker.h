@@ -7,6 +7,8 @@
 namespace Nirvana {
 namespace Core {
 
+class Executor;
+
 class ThreadWorker :
 	public Thread,
 	private Port::ThreadWorker

@@ -4,8 +4,7 @@
 
 #include "../Synchronized.h"
 #include "../Array.h"
-#include "../UserAllocator.h"
-#include "../UserObject.h"
+#include "../CoreObject.h"
 #include <CORBA/Proxy/Proxy.h>
 
 namespace CORBA {
@@ -14,7 +13,7 @@ namespace Core {
 
 /// \brief Base for all proxies.
 class ProxyManager :
-	public ::Nirvana::Core::UserObject,
+	public ::Nirvana::Core::CoreObject,
 	public Bridge <IOReference>,
 	public Bridge <Object>
 {
@@ -98,7 +97,7 @@ protected:
 		OperationIndex idx;
 	};
 
-	::Nirvana::Core::Array <InterfaceEntry, ::Nirvana::Core::UserAllocator>& interfaces ()
+	::Nirvana::Core::Array <InterfaceEntry, ::Nirvana::Core::CoreAllocator>& interfaces ()
 	{
 		return interfaces_;
 	}
@@ -169,8 +168,8 @@ private:
 	}
 
 private:
-	::Nirvana::Core::Array <InterfaceEntry, ::Nirvana::Core::UserAllocator> interfaces_;
-	::Nirvana::Core::Array <OperationEntry, ::Nirvana::Core::UserAllocator> operations_;
+	::Nirvana::Core::Array <InterfaceEntry, ::Nirvana::Core::CoreAllocator> interfaces_;
+	::Nirvana::Core::Array <OperationEntry, ::Nirvana::Core::CoreAllocator> operations_;
 
 	const InterfaceEntry* primary_interface_;
 	UShort object_itf_idx_;

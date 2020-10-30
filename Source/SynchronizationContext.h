@@ -8,6 +8,7 @@ namespace Nirvana {
 namespace Core {
 
 class Runnable;
+class Heap;
 
 /// Core synchronization context.
 class SynchronizationContext :

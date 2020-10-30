@@ -6,18 +6,17 @@
 
 #include "core.h"
 #include <Port/Thread.h>
-#include "ExecDomain.h"
+#include "ExecContext.h"
 
 namespace Nirvana {
 namespace Core {
 
-class ExecContext;
 class ExecDomain;
 class SynchronizationContext;
+class RuntimeSupportImpl;
 
 class Thread
 {
-	friend class Port::Thread;
 public:
 	/// Returns current thread.
 	static Thread& current ()
@@ -26,12 +25,6 @@ public:
 		assert (p);
 		return *p;
 	}
-
-	Thread () :
-		exec_domain_ (nullptr),
-		exec_context_ (&neutral_context_),
-		neutral_context_ (true)
-	{}
 
 	ExecDomain* execution_domain () const
 	{
@@ -64,6 +57,13 @@ public:
 
 	/// Returns runtime support object.
 	virtual RuntimeSupportImpl& runtime_support () = 0;
+
+protected:
+	Thread () :
+		exec_domain_ (nullptr),
+		exec_context_ (&neutral_context_),
+		neutral_context_ (true)
+	{}
 
 private:
 	/// Pointer to the current execution domain.

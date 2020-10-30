@@ -1,10 +1,10 @@
 /// \file g_runtime_support.cpp
 /// The g_runtime_support object implementation.
 
-#include "core.h"
-#include <Nirvana/Memory_s.h>
-#include <Nirvana/OLF.h>
+#include "RuntimeSupportImpl.h"
 #include "Thread.h"
+#include <Nirvana/RuntimeSupport_s.h>
+#include <Nirvana/OLF.h>
 
 namespace Nirvana {
 namespace Core {
