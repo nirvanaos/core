@@ -60,14 +60,14 @@ protected:
 	virtual void add_ref_1 ();
 
 	/// Returns synchronization context for the target object.
-	::Nirvana::Core::SynchronizationContext& sync_context () const
+	::Nirvana::Core::SyncContext& sync_context () const
 	{
 		return *sync_context_;
 	}
 
 	/// Returns synchronization context for the specific operation.
 	/// For some Object operations may return free context.
-	virtual ::Nirvana::Core::SynchronizationContext& get_sync_context (OperationIndex op)
+	virtual ::Nirvana::Core::SyncContext& get_sync_context (OperationIndex op)
 	{
 		return *sync_context_;
 	}
@@ -192,7 +192,7 @@ private:
 private:
 	AbstractBase_ptr servant_;
 	::Nirvana::Core::AtomicCounter ref_cnt_;
-	::Nirvana::Core::Core_var <::Nirvana::Core::SynchronizationContext> sync_context_;
+	::Nirvana::Core::Core_var <::Nirvana::Core::SyncContext> sync_context_;
 };
 
 }

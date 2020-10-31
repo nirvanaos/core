@@ -35,7 +35,7 @@ ServantProxyBase::ServantProxyBase (AbstractBase_ptr servant,
 		object_ops, object_impl),
 	servant_ (servant),
 	ref_cnt_ (0),
-	sync_context_ (&SynchronizationContext::current ())
+	sync_context_ (&SyncContext::current ())
 {
 	// Fill implementation pointers
 	for (InterfaceEntry* ie = interfaces ().begin (); ie != interfaces ().end (); ++ie) {

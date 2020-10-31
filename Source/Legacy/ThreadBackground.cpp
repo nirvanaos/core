@@ -15,7 +15,7 @@ void ThreadBackground::start (Nirvana::Core::ExecDomain& exec_domain,
 	_add_ref ();
 }
 
-Nirvana::Core::SynchronizationContext& ThreadBackground::sync_context ()
+Nirvana::Core::SyncContext& ThreadBackground::sync_context ()
 {
 	return *this;
 }

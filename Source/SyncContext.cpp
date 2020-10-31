@@ -1,4 +1,4 @@
-#include "SynchronizationContext.h"
+#include "SyncContext.h"
 #include "Thread.h"
 #include "ExecDomain.h"
 
@@ -6,7 +6,7 @@ namespace Nirvana {
 namespace Core {
 
 class FreeSyncContext :
-	public SynchronizationContext
+	public SyncContext
 {
 public:
 	virtual void enter (bool ret);
@@ -17,7 +17,7 @@ public:
 
 ImplStatic <FreeSyncContext> g_free_sync_context;
 
-SynchronizationContext& SynchronizationContext::free_sync_context ()
+SyncContext& SyncContext::free_sync_context ()
 {
 	return g_free_sync_context;
 }

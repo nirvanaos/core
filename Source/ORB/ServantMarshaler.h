@@ -3,7 +3,7 @@
 
 #include "../UserObject.h"
 #include "LifeCyclePseudo.h"
-#include "../SynchronizationContext.h"
+#include "../SyncContext.h"
 #include <CORBA/Proxy/Marshal_s.h>
 #include <CORBA/Proxy/Unmarshal_s.h>
 
@@ -31,7 +31,7 @@ class ServantMarshaler :
 public:
 	static const size_t BLOCK_SIZE = 32 * sizeof (Tag);
 
-	ServantMarshaler (::Nirvana::Core::SynchronizationContext* sc) :
+	ServantMarshaler (::Nirvana::Core::SyncContext* sc) :
 		sync_context_ (sc),
 		cur_ptr_ (block_)
 	{
@@ -205,10 +205,10 @@ private:
 
 	bool shared_memory () const
 	{
-		return &sync_context_->memory () == &::Nirvana::Core::SynchronizationContext::current ().memory ();
+		return &sync_context_->memory () == &::Nirvana::Core::SyncContext::current ().memory ();
 	}
 
-	::Nirvana::Core::Core_var <::Nirvana::Core::SynchronizationContext> sync_context_;
+	::Nirvana::Core::Core_var <::Nirvana::Core::SyncContext> sync_context_;
 	Tag* cur_ptr_;
 	Tag block_ [(BLOCK_SIZE - sizeof (ServantMarshalerImpl <ServantMarshaler>)
 	- sizeof (sync_context_) - sizeof (cur_ptr_)) / sizeof (Tag)];

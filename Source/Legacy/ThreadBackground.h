@@ -2,7 +2,7 @@
 #define NIRVANA_CORE_THREADBACKGROUND_H_
 
 #include "../Thread.h"
-#include "../SynchronizationContext.h"
+#include "../SyncContext.h"
 #include <Port/ThreadBackground.h>
 
 namespace Nirvana {
@@ -18,7 +18,7 @@ namespace Core {
 /// Used in the legacy mode implementation.
 class ThreadBackground :
 	public Nirvana::Core::Thread,
-	public Nirvana::Core::SynchronizationContext,
+	public Nirvana::Core::SyncContext,
 	private Nirvana::Core::Port::ThreadBackground
 {
 	friend class Nirvana::Core::Port::ThreadBackground;
@@ -30,7 +30,7 @@ public:
 	}
 
 	/// Returns synchronization context.
-	virtual Nirvana::Core::SynchronizationContext& sync_context ();
+	virtual Nirvana::Core::SyncContext& sync_context ();
 
 	virtual void enter (bool ret);
 	virtual void async_call (Runnable& runnable, DeadlineTime deadline, CORBA::Nirvana::Interface_ptr environment);

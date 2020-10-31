@@ -32,7 +32,7 @@ public:
 	static void execute (Executor& executor, DeadlineTime deadline);
 
 	/// Returns synchronization context.
-	virtual SynchronizationContext& sync_context ();
+	virtual SyncContext& sync_context ();
 
 	/// Returns runtime support object.
 	virtual RuntimeSupportImpl& runtime_support ();

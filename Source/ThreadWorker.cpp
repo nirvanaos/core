@@ -21,14 +21,14 @@ void ThreadWorker::execute (Executor& executor, DeadlineTime deadline)
 	Scheduler::core_free ();
 }
 
-SynchronizationContext& ThreadWorker::sync_context ()
+SyncContext& ThreadWorker::sync_context ()
 {
 	assert (execution_domain ());
 	SyncDomain* sd = execution_domain ()->cur_sync_domain ();
 	if (sd)
 		return *sd;
 	else
-		return SynchronizationContext::free_sync_context ();
+		return SyncContext::free_sync_context ();
 }
 
 RuntimeSupportImpl& ThreadWorker::runtime_support ()

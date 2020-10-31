@@ -12,7 +12,7 @@ namespace Nirvana {
 namespace Core {
 
 class ExecDomain;
-class SynchronizationContext;
+class SyncContext;
 class RuntimeSupportImpl;
 
 class Thread
@@ -53,7 +53,7 @@ public:
 	}
 
 	/// Returns synchronization context.
-	virtual SynchronizationContext& sync_context () = 0;
+	virtual SyncContext& sync_context () = 0;
 
 	/// Returns runtime support object.
 	virtual RuntimeSupportImpl& runtime_support () = 0;

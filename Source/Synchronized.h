@@ -1,7 +1,7 @@
 #ifndef NIRVANA_CORE_SYNCHRONIZED_H_
 #define NIRVANA_CORE_SYNCHRONIZED_H_
 
-#include "SynchronizationContext.h"
+#include "SyncContext.h"
 
 namespace Nirvana {
 namespace Core {
@@ -10,11 +10,11 @@ class Synchronized
 {
 public:
 	Synchronized () :
-		call_context_ (&SynchronizationContext::current ())
+		call_context_ (&SyncContext::current ())
 	{}
 
-	Synchronized (SynchronizationContext& target) :
-		call_context_ (&SynchronizationContext::current ())
+	Synchronized (SyncContext& target) :
+		call_context_ (&SyncContext::current ())
 	{
 		target.enter (false);
 	}
@@ -24,13 +24,13 @@ public:
 		call_context_->enter (true);
 	}
 
-	SynchronizationContext& call_context () const
+	SyncContext& call_context () const
 	{
 		return *call_context_;
 	}
 
 private:
-	Core_var <SynchronizationContext> call_context_;
+	Core_var <SyncContext> call_context_;
 };
 
 }

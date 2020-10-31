@@ -7,7 +7,7 @@
 #include "Scheduler.h"
 #include "ExecDomain.h"
 #include "Scheduler.h"
-#include "SynchronizationContext.h"
+#include "SyncContext.h"
 #include <atomic>
 
 namespace Nirvana {
@@ -16,7 +16,7 @@ namespace Core {
 class SyncDomain : 
 	public CoreObject,
 	public Executor,
-	public SynchronizationContext
+	public SyncContext
 {
 public:
 	SyncDomain () :
