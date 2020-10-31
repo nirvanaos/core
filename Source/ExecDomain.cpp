@@ -14,16 +14,16 @@ ObjectPool <ExecDomain> ExecDomain::pool_;
 void ExecDomain::Release::run ()
 {
 	Thread& thread = Thread::current ();
-	ExecDomain* ed = thread.execution_domain ();
-	thread.execution_domain (nullptr);
+	ExecDomain* ed = thread.exec_domain ();
+	thread.exec_domain (nullptr);
 	ed->_remove_ref ();
 }
 
 void ExecDomain::Schedule::run ()
 {
 	Thread& thread = Thread::current ();
-	thread.execution_domain ()->schedule_internal ();
-	thread.execution_domain (nullptr);
+	thread.exec_domain ()->schedule_internal ();
+	thread.exec_domain (nullptr);
 }
 
 void ExecDomain::async_call (Runnable& runnable, DeadlineTime deadline, SyncDomain* sync_domain, CORBA::Nirvana::Interface_ptr environment)
@@ -35,9 +35,9 @@ void ExecDomain::async_call (Runnable& runnable, DeadlineTime deadline, SyncDoma
 
 void ExecDomain::schedule (SyncDomain* sync_domain)
 {
-	if (cur_sync_domain_)
-		cur_sync_domain_->leave ();
-	cur_sync_domain_ = sync_domain;
+	if (sync_domain_)
+		sync_domain_->leave ();
+	sync_domain_ = sync_domain;
 	if (&ExecContext::current () == this) {
 		CORBA::Nirvana::Environment env;
 		run_in_neutral_context (schedule_, &env);
@@ -48,11 +48,11 @@ void ExecDomain::schedule (SyncDomain* sync_domain)
 
 void ExecDomain::schedule_internal ()
 {
-	if (cur_sync_domain_) {
+	if (sync_domain_) {
 		try {
-			cur_sync_domain_->schedule (*this);
+			sync_domain_->schedule (*this);
 		} catch (...) {
-			cur_sync_domain_ = nullptr;
+			sync_domain_ = nullptr;
 			throw;
 		}
 	} else
@@ -62,14 +62,14 @@ void ExecDomain::schedule_internal ()
 void ExecDomain::execute (DeadlineTime deadline)
 {
 	assert (deadline_ == deadline);
-	Thread::current ().execution_domain (this);
+	Thread::current ().exec_domain (this);
 	ExecContext::switch_to ();
 }
 
 void ExecDomain::suspend ()
 {
-	if (cur_sync_domain_)
-		cur_sync_domain_->leave ();
+	if (sync_domain_)
+		sync_domain_->leave ();
 }
 
 void ExecDomain::execute_loop ()

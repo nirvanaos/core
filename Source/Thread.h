@@ -26,12 +26,12 @@ public:
 		return *p;
 	}
 
-	ExecDomain* execution_domain () const
+	ExecDomain* exec_domain () const
 	{
 		return exec_domain_;
 	}
 
-	void execution_domain (ExecDomain* d)
+	void exec_domain (ExecDomain* d)
 	{
 		exec_domain_ = d;
 	}

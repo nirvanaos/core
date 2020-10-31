@@ -26,7 +26,7 @@ void SyncDomain::schedule ()
 
 void SyncDomain::leave ()
 {
-	assert (Thread::current ().execution_domain () == current_executor_ && running_);
+	assert (Thread::current ().exec_domain () == current_executor_ && running_);
 	current_executor_ = nullptr;
 	running_ = false;
 	schedule ();
@@ -35,7 +35,7 @@ void SyncDomain::leave ()
 void SyncDomain::enter (bool ret)
 {
 	// TODO: Exception is fatal if ret == true.
-	Thread::current ().execution_domain ()->schedule (this);
+	Thread::current ().exec_domain ()->schedule (this);
 }
 
 void SyncDomain::async_call (Runnable& runnable, DeadlineTime deadline, CORBA::Nirvana::Interface_ptr environment)

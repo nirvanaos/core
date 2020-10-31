@@ -37,7 +37,7 @@ public:
 	virtual bool is_free_sync_context ();
 
 protected:
-	void start (Nirvana::Core::ExecDomain& exec_domain, 
+	void start (Nirvana::Core::ExecDomain& ed, 
 		Nirvana::Core::Runnable& runnable, CORBA::Nirvana::Interface* environment);
 
 private:

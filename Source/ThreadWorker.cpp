@@ -23,8 +23,8 @@ void ThreadWorker::execute (Executor& executor, DeadlineTime deadline)
 
 SyncContext& ThreadWorker::sync_context ()
 {
-	assert (execution_domain ());
-	SyncDomain* sd = execution_domain ()->cur_sync_domain ();
+	assert (exec_domain ());
+	SyncDomain* sd = exec_domain ()->sync_domain ();
 	if (sd)
 		return *sd;
 	else
@@ -33,12 +33,12 @@ SyncContext& ThreadWorker::sync_context ()
 
 RuntimeSupportImpl& ThreadWorker::runtime_support ()
 {
-	assert (execution_domain ());
-	SyncDomain* sd = execution_domain ()->cur_sync_domain ();
+	assert (exec_domain ());
+	SyncDomain* sd = exec_domain ()->sync_domain ();
 	if (sd)
 		return sd->runtime_support ();
 	else
-		return execution_domain ()->runtime_support ();
+		return exec_domain ()->runtime_support ();
 }
 
 }

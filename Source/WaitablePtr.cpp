@@ -49,7 +49,7 @@ void* WaitablePtr::wait ()
 inline void WaitablePtr::run_in_neutral ()
 {
 	Thread& thread = Thread::current ();
-	ExecDomain* exec_domain = thread.execution_domain ();
+	ExecDomain* exec_domain = thread.exec_domain ();
 	assert (exec_domain);
 	Ptr pcur = Ptr (exec_domain, TAG_WAITLIST);
 	Ptr p = load ();
@@ -57,7 +57,7 @@ inline void WaitablePtr::run_in_neutral ()
 		exec_domain->wait_list_next_ = (ExecDomain*)(void*)p;
 		if (compare_exchange (p, pcur)) {
 			exec_domain->suspend ();
-			thread.execution_domain (nullptr);
+			thread.exec_domain (nullptr);
 			break;
 		}
 	}

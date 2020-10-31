@@ -51,8 +51,8 @@ void ExecContext::neutral_context_loop ()
 	assert (&context == &thread.neutral_context ());
 	for (;;) {
 		context.run ();
-		if (thread.execution_domain ())
-			thread.execution_domain ()->switch_to ();
+		if (thread.exec_domain ())
+			thread.exec_domain ()->switch_to ();
 		else
 			break;
 	}

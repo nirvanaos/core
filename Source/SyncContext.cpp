@@ -24,7 +24,7 @@ SyncContext& SyncContext::free_sync_context ()
 
 void FreeSyncContext::enter (bool ret)
 {
-	Thread::current ().execution_domain ()->schedule (nullptr);
+	Thread::current ().exec_domain ()->schedule (nullptr);
 }
 
 void FreeSyncContext::async_call (Runnable& runnable, DeadlineTime deadline, CORBA::Nirvana::Interface_ptr environment)
@@ -40,7 +40,7 @@ bool FreeSyncContext::is_free_sync_context ()
 Heap& FreeSyncContext::memory ()
 {
 	Thread& th = Thread::current ();
-	return th.execution_domain ()->heap ();
+	return th.exec_domain ()->heap ();
 }
 
 }

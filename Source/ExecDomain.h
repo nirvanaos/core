@@ -42,7 +42,7 @@ public:
 		ExecContext (),
 		wait_list_next_ (nullptr),
 		deadline_ (std::numeric_limits <DeadlineTime>::max ()),
-		cur_sync_domain_ (nullptr)
+		sync_domain_ (nullptr)
 	{}
 
 	//! Constructor with parameters can be used in porting for special cases.
@@ -51,7 +51,7 @@ public:
 		ExecContext (std::forward <Args> (args)...),
 		wait_list_next_ (nullptr),
 		deadline_ (std::numeric_limits <DeadlineTime>::max ()),
-		cur_sync_domain_ (nullptr)
+		sync_domain_ (nullptr)
 	{
 		Scheduler::activity_begin ();
 	}
@@ -72,7 +72,7 @@ public:
 		runnable_ = &runnable;
 		environment_ = environment;
 		deadline_ = deadline;
-		cur_sync_domain_ = sync_domain;
+		sync_domain_ = sync_domain;
 		starter ();
 		_add_ref ();
 	}
@@ -92,7 +92,7 @@ public:
 		assert (&ExecContext::current () != this);
 		Scheduler::activity_end ();
 		runnable_.reset ();
-		cur_sync_domain_ = nullptr;
+		sync_domain_ = nullptr;
 		runtime_support_.cleanup ();
 		heap_.cleanup ();
 	}
@@ -105,9 +105,9 @@ public:
 		release ();
 	}
 
-	SyncDomain* cur_sync_domain () const
+	SyncDomain* sync_domain () const
 	{
-		return cur_sync_domain_;
+		return sync_domain_;
 	}
 
 	Heap& heap ()
@@ -151,7 +151,7 @@ private:
 	static ObjectPool <ExecDomain> pool_;
 
 	DeadlineTime deadline_;
-	SyncDomain* cur_sync_domain_;
+	SyncDomain* sync_domain_;
 	Heap heap_;
 	RuntimeSupportImpl runtime_support_;
 };
