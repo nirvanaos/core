@@ -30,7 +30,11 @@ public:
 	}
 
 	/// Returns synchronization context.
-	virtual SynchronizationContext& sync_context ();
+	virtual Nirvana::Core::SynchronizationContext& sync_context ();
+
+	virtual void enter (bool ret);
+	virtual void async_call (Runnable& runnable, DeadlineTime deadline, CORBA::Nirvana::Interface_ptr environment);
+	virtual bool is_free_sync_context ();
 
 protected:
 	void start (Nirvana::Core::ExecDomain& exec_domain, 

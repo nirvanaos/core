@@ -25,13 +25,13 @@ public:
 	using ServantTraits <T>::_wide_object;
 
 	template <class Base, class Derived>
-	static Bridge <Base>* _wide (Bridge <Derived>* derived, String_in id, EnvironmentBridge* env)
+	static Bridge <Base>* _wide (Bridge <Derived>* derived, String_in id, Interface* env)
 	{
 		return ServantTraits <T>::template _wide <Base, Derived> (derived, id, env);
 	}
 
 	template <>
-	static Bridge <ReferenceCounter>* _wide <ReferenceCounter, I> (Bridge <I>* derived, String_in id, EnvironmentBridge* env)
+	static Bridge <ReferenceCounter>* _wide <ReferenceCounter, I> (Bridge <I>* derived, String_in id, Interface* env)
 	{
 		return nullptr; // ReferenceCounter base is not implemented, return nullptr.
 	}

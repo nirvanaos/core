@@ -55,7 +55,7 @@ private:
 			throw MARSHAL ();
 	}
 
-	static Interface* __get_servant (Bridge <Object>* obj, EnvironmentBridge* env)
+	static Interface* __get_servant (Bridge <Object>* obj, Interface* env)
 	{
 		try {
 			return TypeI <PortableServer::ServantBase>::ret (static_cast <ProxyObject&> (_implementation (obj))._get_servant ());

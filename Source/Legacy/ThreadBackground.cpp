@@ -15,6 +15,27 @@ void ThreadBackground::start (Nirvana::Core::ExecDomain& exec_domain,
 	_add_ref ();
 }
 
+Nirvana::Core::SynchronizationContext& ThreadBackground::sync_context ()
+{
+	return *this;
+}
+
+void ThreadBackground::enter (bool ret)
+{
+	assert (ret);
+	resume ();
+}
+
+void ThreadBackground::async_call (Runnable& runnable, DeadlineTime deadline, CORBA::Nirvana::Interface_ptr environment)
+{
+	assert (false);
+}
+
+bool ThreadBackground::is_free_sync_context ()
+{
+	return false;
+}
+
 }
 }
 }

@@ -24,7 +24,7 @@ class ExecDomain :
 	public Executor
 {
 public:
-	static void async_call (Runnable& runnable, DeadlineTime deadline, SyncDomain* sync_domain, CORBA::Nirvana::EnvironmentBridge* environment);
+	static void async_call (Runnable& runnable, DeadlineTime deadline, SyncDomain* sync_domain, CORBA::Nirvana::Interface_ptr environment);
 
 	static Core_var <ExecDomain> get ()
 	{
@@ -67,7 +67,7 @@ public:
 
 	template <class Starter>
 	void start (Runnable& runnable, DeadlineTime deadline, SyncDomain* sync_domain,
-		CORBA::Nirvana::EnvironmentBridge* environment, Starter starter)
+		CORBA::Nirvana::Interface_ptr environment, Starter starter)
 	{
 		runnable_ = &runnable;
 		environment_ = environment;

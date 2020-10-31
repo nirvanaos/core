@@ -15,7 +15,7 @@ class POA :
 	public Servant <POA, PortableServer::POA>
 {
 public:
-	static Type <String>::ABI_ret _activate_object (Bridge <PortableServer::POA>* obj, Interface* servant, EnvironmentBridge* env)
+	static Type <String>::ABI_ret _activate_object (Bridge <PortableServer::POA>* obj, Interface* servant, Interface* env)
 	{
 		try {
 			return Type <String>::ret (_implementation (obj).activate_object (TypeI <Object>::in (servant)));

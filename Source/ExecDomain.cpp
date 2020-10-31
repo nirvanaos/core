@@ -26,7 +26,7 @@ void ExecDomain::Schedule::run ()
 	thread.execution_domain (nullptr);
 }
 
-void ExecDomain::async_call (Runnable& runnable, DeadlineTime deadline, SyncDomain* sync_domain, CORBA::Nirvana::EnvironmentBridge* environment)
+void ExecDomain::async_call (Runnable& runnable, DeadlineTime deadline, SyncDomain* sync_domain, CORBA::Nirvana::Interface_ptr environment)
 {
 	Core_var <ExecDomain> exec_domain = get ();
 	ExecDomain* p = exec_domain;

@@ -29,7 +29,7 @@ public:
 		Port::ExecContext (std::forward <Args> (args)...)
 	{}
 
-	::CORBA::Nirvana::I_ptr <::CORBA::Nirvana::EnvironmentBridge> environment () const
+	::CORBA::Nirvana::Interface_ptr environment () const
 	{
 		return environment_;
 	}
@@ -54,7 +54,7 @@ protected:
 
 protected:
 	Core_var <Runnable> runnable_;
-	CORBA::Nirvana::I_var <CORBA::Nirvana::EnvironmentBridge> environment_;
+	CORBA::Nirvana::Interface_var environment_;
 };
 
 }

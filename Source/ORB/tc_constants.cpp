@@ -21,7 +21,7 @@ class TC_Object :
 	public TypeCodeStatic <TC_Object, TypeCodeWithId <tk_objref, Object>, TypeCodeOps <Object_var> >
 {
 public:
-	static const char* _name (Bridge <TypeCode>* _b, EnvironmentBridge* _env)
+	static const char* _name (Bridge <TypeCode>* _b, Interface* _env)
 	{
 		return "Object";
 	}
