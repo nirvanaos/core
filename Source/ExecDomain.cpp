@@ -8,7 +8,6 @@ namespace Nirvana {
 namespace Core {
 
 ImplStatic <ExecDomain::Release> ExecDomain::release_;
-ImplStatic <ExecDomain::Schedule> ExecDomain::schedule_;
 ObjectPool <ExecDomain> ExecDomain::pool_;
 
 void ExecDomain::Release::run ()
@@ -19,57 +18,52 @@ void ExecDomain::Release::run ()
 	ed->_remove_ref ();
 }
 
-void ExecDomain::Schedule::run ()
-{
-	Thread& thread = Thread::current ();
-	thread.exec_domain ()->schedule_internal ();
-	thread.exec_domain (nullptr);
-}
-
 void ExecDomain::async_call (Runnable& runnable, DeadlineTime deadline, SyncDomain* sync_domain, CORBA::Nirvana::Interface_ptr environment)
 {
 	Core_var <ExecDomain> exec_domain = get ();
 	ExecDomain* p = exec_domain;
-	p->start (runnable, deadline, sync_domain, environment, [p]() {p->schedule_internal (); });
+	p->start (runnable, deadline, sync_domain, environment, [p, sync_domain]() {p->schedule (sync_domain, false); });
 }
 
-void ExecDomain::schedule (SyncDomain* sync_domain)
+void ExecDomain::schedule (SyncDomain* sync_domain, bool ret)
 {
-	if (sync_domain_)
-		sync_domain_->leave ();
-	sync_domain_ = sync_domain;
-	if (&ExecContext::current () == this) {
-		CORBA::Nirvana::Environment env;
-		run_in_neutral_context (schedule_, &env);
-		env.check ();
-	} else
-		schedule_internal ();
-}
+	assert (&ExecContext::current () != this);
 
-void ExecDomain::schedule_internal ()
-{
-	if (sync_domain_) {
-		try {
-			sync_domain_->schedule (*this);
-		} catch (...) {
-			sync_domain_ = nullptr;
-			throw;
+	SyncDomain* old_domain = sync_domain_;
+	if (!ret && old_domain)
+		old_domain->call_begin ();
+	try {
+		if ((sync_domain_ = sync_domain))
+			sync_domain_->schedule (*this, ret);
+		else
+			Scheduler::schedule (deadline (), *this, 0, ret);
+	} catch (...) {
+		if (ret)
+			unrecoverable_error ();
+		else if ((sync_domain_ = old_domain)) {
+			try {
+				old_domain->schedule (*this, true);
+			} catch (...) {
+				unrecoverable_error ();
+			}
 		}
-	} else
-		Scheduler::schedule (deadline (), *this, 0);
+		throw;
+	}
 }
 
-void ExecDomain::execute (DeadlineTime deadline)
+void ExecDomain::execute (DeadlineTime deadline, Word scheduler_error)
 {
 	assert (deadline_ == deadline);
 	Thread::current ().exec_domain (this);
+	scheduler_error_ = scheduler_error;
 	ExecContext::switch_to ();
 }
 
 void ExecDomain::suspend ()
 {
+	assert (&ExecContext::current () != this);
 	if (sync_domain_)
-		sync_domain_->leave ();
+		sync_domain_->call_begin ();
 }
 
 void ExecDomain::execute_loop ()

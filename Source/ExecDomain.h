@@ -42,7 +42,8 @@ public:
 		ExecContext (),
 		wait_list_next_ (nullptr),
 		deadline_ (std::numeric_limits <DeadlineTime>::max ()),
-		sync_domain_ (nullptr)
+		sync_domain_ (nullptr),
+		scheduler_error_ (CORBA::SystemException::EC_NO_EXCEPTION)
 	{}
 
 	//! Constructor with parameters can be used in porting for special cases.
@@ -61,9 +62,16 @@ public:
 		return deadline_;
 	}
 
-	void schedule (SyncDomain* sync_domain);
+	/// Schedules this ED to execute.
+	/// Must be called from another execution context.
+	/// Does not throw an exception if `ret = true`.
+	///
+	/// \param sync_domain Synchronization domain. May be `nullptr`.
+	/// \param ret `false` on call, `true` on return.
+	void schedule (SyncDomain* sync_domain, bool ret);
 
-	void execute (DeadlineTime deadline);
+	/// Executor::execute ()
+	void execute (DeadlineTime deadline, Word scheduler_error);
 
 	template <class Starter>
 	void start (Runnable& runnable, DeadlineTime deadline, SyncDomain* sync_domain,
@@ -81,7 +89,8 @@ public:
 	
 	inline void resume ()
 	{
-		schedule_internal ();
+		assert (&ExecContext::current () != this);
+		schedule (sync_domain_, true);
 	}
 
 	void _activate ()
@@ -93,6 +102,7 @@ public:
 		Scheduler::activity_end ();
 		runnable_.reset ();
 		sync_domain_ = nullptr;
+		scheduler_error_ = CORBA::SystemException::EC_NO_EXCEPTION;
 		runtime_support_.cleanup ();
 		heap_.cleanup ();
 	}
@@ -128,30 +138,23 @@ private:
 		void run ();
 	};
 
-	class Schedule :
-		public Runnable
-	{
-	public:
-		void run ();
-	};
-
-	void schedule_internal ();
-
 	void release ()
 	{
 		run_in_neutral_context (release_, CORBA::Nirvana::Interface::_nil ());
 	}
+
+	void check_schedule_error ();
 
 public:
 	ExecDomain* wait_list_next_;
 
 private:
 	static ImplStatic <Release> release_;
-	static ImplStatic <Schedule> schedule_;
 	static ObjectPool <ExecDomain> pool_;
 
 	DeadlineTime deadline_;
 	SyncDomain* sync_domain_;
+	Word scheduler_error_;
 	Heap heap_;
 	RuntimeSupportImpl runtime_support_;
 };

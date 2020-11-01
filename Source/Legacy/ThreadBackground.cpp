@@ -15,7 +15,7 @@ void ThreadBackground::start (Nirvana::Core::ExecDomain& ed,
 	_add_ref ();
 }
 
-Nirvana::Core::SyncContext& ThreadBackground::sync_context ()
+Nirvana::Core::SyncContext& ThreadBackground::sync_context () NIRVANA_NOEXCEPT
 {
 	return *this;
 }
@@ -35,6 +35,21 @@ bool ThreadBackground::is_free_sync_context ()
 {
 	return false;
 }
+
+void ThreadBackground::enter_to (Nirvana::Core::SyncDomain* sync_domain, bool ret)
+{
+	if (sync_domain) {
+		assert (!ret);
+		Nirvana::Core::Thread::enter_to (sync_domain, ret);
+	}
+}
+
+void ThreadBackground::run ()
+{
+	Nirvana::Core::Thread::run ();
+	suspend ();
+}
+
 
 }
 }

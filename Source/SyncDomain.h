@@ -21,42 +21,19 @@ class SyncDomain :
 public:
 	SyncDomain () :
 		min_deadline_ (0),
-		running_ (false),
-		current_executor_ (nullptr)
+		running_ (false)
 	{}
 
-	void schedule (ExecDomain& ed)
-	{
-		queue_.insert (ed.deadline (), &ed);
-		schedule ();
-	}
+	void schedule (ExecDomain& ed, bool ret);
 
 	DeadlineTime min_deadline () const
 	{
 		return min_deadline_;
 	}
 
-	void execute (DeadlineTime deadline)
-	{
-		assert (deadline);
-		DeadlineTime min_deadline = min_deadline_;
-		if (min_deadline && deadline >= min_deadline && min_deadline_.compare_exchange_strong (min_deadline, 0)) {
-			bool f = false;
-			if (running_.compare_exchange_strong (f, true)) {
-				ExecDomain* executor;
-				DeadlineTime dt;
-				if (queue_.delete_min (executor, dt)) {
-					current_executor_ = executor;
-					executor->execute (dt);
-					current_executor_ = nullptr;
-				}
-				running_ = false;
-				schedule ();
-			}
-		}
-	}
+	virtual void execute (DeadlineTime deadline, Word scheduler_error);
 
-	void leave ();
+	void call_begin ();
 
 	virtual void enter (bool ret);
 	virtual void async_call (Runnable& runnable, DeadlineTime deadline, CORBA::Nirvana::Interface_ptr environment);
@@ -74,13 +51,12 @@ public:
 	}
 
 private:
-	void schedule ();
+	void schedule (bool ret);
 
 private:
 	PriorityQueue <ExecDomain*, SYNC_DOMAIN_PRIORITY_QUEUE_LEVELS> queue_;
 	std::atomic <DeadlineTime> min_deadline_;
 	std::atomic <bool> running_;
-	volatile ExecDomain* current_executor_;
 	Heap heap_;
 	RuntimeSupportImpl runtime_support_; // Must be destructed before the heap_ destruction.
 };

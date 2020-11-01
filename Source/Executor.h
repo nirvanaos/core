@@ -9,7 +9,7 @@ namespace Core {
 class Executor : public CoreInterface
 {
 public:
-	virtual void execute (DeadlineTime deadline) = 0;
+	virtual void execute (DeadlineTime deadline, Word scheduler_error) = 0;
 };
 
 }

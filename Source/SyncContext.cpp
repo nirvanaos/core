@@ -24,7 +24,7 @@ SyncContext& SyncContext::free_sync_context ()
 
 void FreeSyncContext::enter (bool ret)
 {
-	Thread::current ().exec_domain ()->schedule (nullptr);
+	Thread::current ().enter_to (nullptr, ret);
 }
 
 void FreeSyncContext::async_call (Runnable& runnable, DeadlineTime deadline, CORBA::Nirvana::Interface_ptr environment)

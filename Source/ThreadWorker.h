@@ -10,7 +10,7 @@ namespace Core {
 class Executor;
 
 class ThreadWorker :
-	public Thread,
+	public Core::Thread,
 	private Port::ThreadWorker
 {
 	friend class Port::ThreadWorker;
@@ -29,13 +29,17 @@ public:
 	{}
 
 		/// This static method is called by the scheduler.
-	static void execute (Executor& executor, DeadlineTime deadline);
+	static void execute (Executor& executor, DeadlineTime deadline, Word scheduler_error);
 
 	/// Returns synchronization context.
-	virtual SyncContext& sync_context ();
+	virtual SyncContext& sync_context () NIRVANA_NOEXCEPT;
 
 	/// Returns runtime support object.
-	virtual RuntimeSupportImpl& runtime_support ();
+	virtual RuntimeSupportImpl& runtime_support () NIRVANA_NOEXCEPT;
+
+private:
+	/// Run in neutral context for schedule.
+	virtual void run ();
 };
 
 }

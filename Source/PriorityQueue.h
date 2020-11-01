@@ -43,7 +43,7 @@ class PriorityQueue :
 	typedef SkipList <PriorityQueueKeyVal <Val>, MAX_LEVEL> Base;
 	typedef typename Base::NodeVal NodeVal;
 public:
-	bool get_min_deadline (DeadlineTime& dt)
+	bool get_min_deadline (DeadlineTime& dt) NIRVANA_NOEXCEPT
 	{
 		NodeVal* node = Base::get_min_node ();
 		if (node) {
@@ -65,7 +65,7 @@ public:
 	/// Deletes node with minimal deadline.
 	/// \param [out] val Value.
 	/// \return `true` if node deleted, `false` if queue is empty.
-	bool delete_min (Val& val)
+	bool delete_min (Val& val) NIRVANA_NOEXCEPT
 	{
 		NodeVal* node = Base::delete_min ();
 		if (node) {
@@ -80,7 +80,7 @@ public:
 	/// \param [out] val Value.
 	/// \param [out] deadline Deadline.
 	/// \return `true` if node deleted, `false` if queue is empty.
-	bool delete_min (Val& val, DeadlineTime& deadline)
+	bool delete_min (Val& val, DeadlineTime& deadline) NIRVANA_NOEXCEPT
 	{
 		NodeVal* node = Base::delete_min ();
 		if (node) {
@@ -92,7 +92,7 @@ public:
 		return false;
 	}
 
-	bool erase (DeadlineTime dt, const Val& value)
+	bool erase (DeadlineTime dt, const Val& value) NIRVANA_NOEXCEPT
 	{
 		return Base::erase ({ dt, value });
 	}

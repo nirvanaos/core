@@ -19,7 +19,13 @@ public:
 	void schedule (DeadlineTime deadline, const QueueItem& item, DeadlineTime deadline_prev)
 	{
 		assert (deadline_prev != deadline);
-		verify (queue_.insert (deadline, item));
+		try {
+			verify (queue_.insert (deadline, item));
+		} catch (...) {
+			if (deadline_prev)
+				queue_.erase (deadline_prev, item);
+			throw;
+		}
 		if (deadline_prev)
 			queue_.erase (deadline_prev, item);
 		execute_next ();

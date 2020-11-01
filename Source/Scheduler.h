@@ -11,9 +11,9 @@ namespace Core {
 class Scheduler
 {
 public:
-	static void schedule (DeadlineTime deadline, Executor& executor, DeadlineTime old)
+	static void schedule (DeadlineTime deadline, Executor& executor, DeadlineTime old, bool nothrow_fallback)
 	{
-		Port::Scheduler::schedule (deadline, executor, old);
+		Port::Scheduler::schedule (deadline, executor, old, nothrow_fallback);
 	}
 
 	static void core_free ()
