@@ -9,7 +9,7 @@ namespace Core {
 template <class> class Core_var;
 
 /// Core interface.
-class CoreInterface
+class NIRVANA_NOVTABLE CoreInterface
 {
 protected:
 	template <class> friend class Core_var;

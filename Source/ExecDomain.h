@@ -18,7 +18,7 @@ namespace Core {
 
 class SyncDomain;
 
-class ExecDomain :
+class NIRVANA_NOVTABLE ExecDomain :
 	public CoreObject,
 	public ExecContext,
 	public Executor
@@ -131,7 +131,7 @@ public:
 	}
 
 private:
-	class Release :
+	class NIRVANA_NOVTABLE Release :
 		public Runnable
 	{
 	public:

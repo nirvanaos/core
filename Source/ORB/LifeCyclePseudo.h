@@ -2,6 +2,7 @@
 #define NIRVANA_ORB_CORE_LIFECYCLEPSEUDO_H_
 
 #include "../AtomicCounter.h"
+#include "CORBA/LifeCycleRefCnt.h"
 
 namespace CORBA {
 namespace Nirvana {

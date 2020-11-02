@@ -8,7 +8,7 @@ namespace Core {
 
 using namespace ::Nirvana::Core;
 
-class ProxyObject::Deactivator :
+class NIRVANA_NOVTABLE ProxyObject::Deactivator :
 	public CoreObject,
 	public Runnable
 {

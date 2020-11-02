@@ -1,5 +1,5 @@
-#ifndef NIRVANA_CORE_THREADBACKGROUND_H_
-#define NIRVANA_CORE_THREADBACKGROUND_H_
+#ifndef NIRVANA_LEGACY_CORE_THREADBACKGROUND_H_
+#define NIRVANA_LEGACY_CORE_THREADBACKGROUND_H_
 
 #include "../Thread.h"
 #include "../SyncContext.h"
@@ -16,7 +16,7 @@ namespace Core {
 
 /// Background thread.
 /// Used in the legacy mode implementation.
-class ThreadBackground :
+class NIRVANA_NOVTABLE ThreadBackground :
 	public Nirvana::Core::Thread,
 	public Nirvana::Core::SyncContext,
 	private Nirvana::Core::Port::ThreadBackground
@@ -27,6 +27,12 @@ public:
 	Nirvana::Core::Port::ThreadBackground& port ()
 	{
 		return *this;
+	}
+
+	/// When we run in the legacy subsystem, every thread is a ThreadBackground instance.
+	static ThreadBackground& current () NIRVANA_NOEXCEPT
+	{
+		return static_cast <ThreadBackground&> (Nirvana::Core::Thread::current ());
 	}
 
 	/// Returns synchronization context.

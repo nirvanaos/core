@@ -7,7 +7,7 @@
 namespace Nirvana {
 namespace Core {
 
-class Runnable :
+class NIRVANA_NOVTABLE Runnable :
 	public CoreInterface
 {
 public:

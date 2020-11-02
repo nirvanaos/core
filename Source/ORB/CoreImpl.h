@@ -4,6 +4,7 @@
 
 #include "../core.h"
 #include <CORBA/Server.h>
+#include <CORBA/LifeCycleNoCopy.h>
 
 namespace CORBA {
 namespace Nirvana {

@@ -7,8 +7,10 @@
 #include "ProxyManager.h"
 #include <CORBA/AbstractBase_s.h>
 #include <CORBA/Object_s.h>
+#include <CORBA/ImplementationPseudo.h>
 #include <CORBA/Proxy/IOReference_s.h>
 #include <CORBA/Proxy/IORequest_s.h>
+#include <CORBA/LifeCycleNoCopy.h>
 #include "ServantMarshaler.h"
 
 namespace CORBA {

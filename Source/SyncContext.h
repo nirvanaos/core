@@ -11,7 +11,7 @@ class Runnable;
 class Heap;
 
 /// Core synchronization context.
-class SyncContext :
+class NIRVANA_NOVTABLE SyncContext :
 	public CoreInterface
 {
 public:

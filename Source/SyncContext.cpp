@@ -5,7 +5,7 @@
 namespace Nirvana {
 namespace Core {
 
-class FreeSyncContext :
+class NIRVANA_NOVTABLE FreeSyncContext :
 	public SyncContext
 {
 public:

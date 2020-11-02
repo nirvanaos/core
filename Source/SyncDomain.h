@@ -13,7 +13,7 @@
 namespace Nirvana {
 namespace Core {
 
-class SyncDomain : 
+class NIRVANA_NOVTABLE SyncDomain :
 	public CoreObject,
 	public Executor,
 	public SyncContext

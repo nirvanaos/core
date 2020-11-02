@@ -15,7 +15,7 @@ class SyncDomain;
 class SyncContext;
 class RuntimeSupportImpl;
 
-class Thread :
+class NIRVANA_NOVTABLE Thread :
 	protected Runnable // Runnable::run () is used for schedule.
 {
 public:
