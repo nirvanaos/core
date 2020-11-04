@@ -17,7 +17,7 @@
 #include "UserObject.h"
 #include "UserAllocator.h"
 #include <Nirvana/RuntimeSupport_s.h>
-#include "ORB/LifeCyclePseudo.h"
+#include "LifeCyclePseudo.h"
 #include "CoreInterface.h"
 #include <unordered_map>
 
@@ -27,7 +27,7 @@ namespace Core {
 class RuntimeProxyImpl :
 	public UserObject, // Allocate from user heap.
 	public CORBA::Nirvana::ImplementationPseudo <RuntimeProxyImpl, RuntimeProxy>,
-	public CORBA::Nirvana::Core::LifeCyclePseudo <RuntimeProxyImpl>
+	public LifeCyclePseudo <RuntimeProxyImpl>
 {
 public:
 	RuntimeProxyImpl (const void* obj) :

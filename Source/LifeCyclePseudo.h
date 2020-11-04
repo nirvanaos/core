@@ -1,10 +1,9 @@
 #ifndef NIRVANA_ORB_CORE_LIFECYCLEPSEUDO_H_
 #define NIRVANA_ORB_CORE_LIFECYCLEPSEUDO_H_
 
-#include "../AtomicCounter.h"
-#include "CORBA/LifeCycleRefCnt.h"
+#include "AtomicCounter.h"
+#include <CORBA/LifeCycleRefCnt.h>
 
-namespace CORBA {
 namespace Nirvana {
 namespace Core {
 
@@ -12,7 +11,7 @@ namespace Core {
 /// \tparam S Servant class.
 template <class S>
 class LifeCyclePseudo :
-	public LifeCycleRefCnt <S>
+	public CORBA::Nirvana::LifeCycleRefCnt <S>
 {
 public:
 	void _add_ref ()
@@ -27,10 +26,9 @@ public:
 	}
 
 private:
-	::Nirvana::Core::RefCounter ref_cnt_;
+	RefCounter ref_cnt_;
 };
 
-}
 }
 }
 

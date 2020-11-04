@@ -126,7 +126,7 @@ ProxyManager::ProxyManager (const Bridge <IOReference>::EPV& epv_ior, const Brid
 
 	{ // Interface Object
 		ie->iid = Object::repository_id_;
-		ie->iid_len = countof (Object::repository_id_);
+		ie->iid_len = countof (Object::repository_id_) - 1;
 		ie->proxy = &static_cast <Bridge <Object>&> (*this);
 		ie->operations.p = object_ops;
 		ie->operations.size = 3;

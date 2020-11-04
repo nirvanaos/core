@@ -14,7 +14,7 @@ namespace Core {
 template <class T>
 class ServantMarshalerImpl :
 	public ::Nirvana::Core::UserObject,
-	public LifeCyclePseudo <T>,
+	public ::Nirvana::Core::LifeCyclePseudo <T>,
 	public ServantTraits <T>,
 	public InterfaceImplBase <T, Marshal>,
 	public InterfaceImplBase <T, Unmarshal>
