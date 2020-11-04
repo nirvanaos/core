@@ -51,11 +51,6 @@ public:
 		}
 	}
 
-	const void* stateless_copy (const void* src, size_t size)
-	{
-		return ::Nirvana::g_memory->copy (0, const_cast <void*> (src), size, ::Nirvana::Memory::READ_ONLY);
-	}
-
 	static CORBA::Nirvana::ReferenceCounter_ptr create_reference_counter (CORBA::Nirvana::DynamicServant_ptr dynamic)
 	{
 		return (new ReferenceCounter (offset_ptr (dynamic)))->_get_ptr ();
