@@ -55,7 +55,7 @@ private:
 
 private:
 	PriorityQueue <ExecDomain*, SYNC_DOMAIN_PRIORITY_QUEUE_LEVELS> queue_;
-	std::atomic <DeadlineTime> min_deadline_;
+	std::atomic <DeadlineTime> min_deadline_; // TODO: Lock-free atomic 64-bit may be unavailable!
 	std::atomic <bool> running_;
 	Heap heap_;
 	RuntimeSupportImpl runtime_support_; // Must be destructed before the heap_ destruction.

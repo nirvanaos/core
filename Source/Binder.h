@@ -28,7 +28,7 @@ class Binder :
 			begin_ (id)
 		{
 			const char* sver = CORBA::Nirvana::RepositoryId::version (id, id + strlen (id));
-			size_ = sver - id;
+			size_ = sver - begin_;
 			ver = Version (sver);
 		}
 
@@ -36,6 +36,7 @@ class Binder :
 			begin_ (id.c_str ())
 		{
 			const char* sver = CORBA::Nirvana::RepositoryId::version (begin_, begin_ + id.length ());
+			size_ = sver - begin_;
 			ver = Version (sver);
 		}
 
@@ -65,6 +66,32 @@ class Binder :
 		{
 			return Hash::hash_bytes (key.begin (), key.size ());
 		}
+	};
+
+	class Key
+	{
+	public:
+		Key (const char* id) :
+			name_ (id, version_)
+		{}
+
+		Key (const std::string& id) :
+			name_ (id, version_)
+		{}
+
+		const NameKey& name () const
+		{
+			return name_;
+		}
+
+		const Version& version () const
+		{
+			return version_;
+		}
+
+	private:
+		NameKey name_;
+		Version version_;
 	};
 
 	typedef std::map <Version, Interface_ptr, std::less <Version>,

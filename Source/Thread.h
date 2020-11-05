@@ -7,6 +7,7 @@
 #include "core.h"
 #include <Port/Thread.h>
 #include "ExecDomain.h"
+#include "SpinLock.h"
 
 namespace Nirvana {
 namespace Core {
@@ -16,6 +17,7 @@ class SyncContext;
 class RuntimeSupportImpl;
 
 class NIRVANA_NOVTABLE Thread :
+	public SpinLockNode,
 	protected Runnable // Runnable::run () is used for schedule.
 {
 public:
@@ -90,7 +92,7 @@ private:
 	ExecContext neutral_context_;
 
 	///@{
-	/// Data for schedule.
+	/// Data for `virtual void run()`.
 	SyncDomain* schedule_domain_;
 	bool schedule_ret_;
 	///@}
