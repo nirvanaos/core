@@ -82,6 +82,9 @@ protected:
 	}
 
 private:
+	void _enter_to (SyncDomain* sync_domain, bool ret);
+
+private:
 	/// Pointer to the current execution domain.
 	ExecDomain* exec_domain_;
 

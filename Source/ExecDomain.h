@@ -71,6 +71,7 @@ public:
 	void schedule (SyncDomain* sync_domain, bool ret);
 
 	/// Executor::execute ()
+	/// Called from worker thread.
 	void execute (DeadlineTime deadline, Word scheduler_error);
 
 	template <class Starter>
@@ -109,9 +110,9 @@ public:
 
 	void execute_loop ();
 
-	void on_crash ()
+	void on_crash (CORBA::Exception::Code code)
 	{
-		ExecContext::on_crash ();
+		ExecContext::on_crash (code);
 		release ();
 	}
 
@@ -130,6 +131,11 @@ public:
 		return runtime_support_;
 	}
 
+	Word scheduler_error () const
+	{
+		return scheduler_error_;
+	}
+
 private:
 	class NIRVANA_NOVTABLE Release :
 		public Runnable
@@ -142,8 +148,6 @@ private:
 	{
 		run_in_neutral_context (release_, CORBA::Nirvana::Interface::_nil ());
 	}
-
-	void check_schedule_error ();
 
 public:
 	ExecDomain* wait_list_next_;

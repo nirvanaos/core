@@ -38,15 +38,7 @@ void ExecDomain::schedule (SyncDomain* sync_domain, bool ret)
 		else
 			Scheduler::schedule (deadline (), *this, 0, ret);
 	} catch (...) {
-		if (ret)
-			unrecoverable_error ();
-		else if ((sync_domain_ = old_domain)) {
-			try {
-				old_domain->schedule (*this, true);
-			} catch (...) {
-				unrecoverable_error ();
-			}
-		}
+		sync_domain_ = old_domain;
 		throw;
 	}
 }
@@ -68,8 +60,14 @@ void ExecDomain::suspend ()
 
 void ExecDomain::execute_loop ()
 {
-	while (run ()) {
-		release ();
+	if (scheduler_error_) {
+		CORBA::Nirvana::set_exception (environment_, scheduler_error_, nullptr, nullptr);
+		environment_ = CORBA::Nirvana::Interface::_nil ();
+		runnable_.reset ();
+	} else {
+		while (run ()) {
+			release ();
+		}
 	}
 }
 

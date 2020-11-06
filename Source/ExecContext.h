@@ -47,10 +47,16 @@ public:
 		switch_to ();
 	}
 
+	/// Abort current context due to a unrecoverable error.
+	static void abort ()
+	{
+		Port::ExecContext::abort ();
+	}
+
 protected:
 	bool run ();
 
-	void on_crash ();
+	void on_crash (CORBA::Exception::Code code);
 
 protected:
 	Core_var <Runnable> runnable_;

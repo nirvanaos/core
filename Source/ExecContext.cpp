@@ -37,9 +37,9 @@ bool ExecContext::run ()
 	return false;
 }
 
-void ExecContext::on_crash ()
+void ExecContext::on_crash (CORBA::Exception::Code code)
 {
-	CORBA::Nirvana::set_unknown_exception (environment_);
+	CORBA::Nirvana::set_exception (environment_, code, nullptr, nullptr);
 	environment_ = CORBA::Nirvana::Interface::_nil ();
 	runnable_.reset ();
 }
