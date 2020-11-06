@@ -18,20 +18,20 @@ inline void BackOff::cpu_relax ()
 
 void BackOff::operator () ()
 {
-	RandomGen::result_type max_iters = 1 << count_;
+	if ((iterations_ <<= 1) > ITERATIONS_MAX)
+		iterations_ = ITERATIONS_MAX;
 
-	// TODO: Implement some algorithm to choice the back off time
-	typedef std::uniform_int_distribution <RandomGen::result_type> Dist;
+	// TODO: We can try other distributions: geometric, exponential...
+	typedef std::uniform_int_distribution <UWord> Dist;
 
-	unsigned iters = Dist (1, max_iters)(rndgen_);
-	if (iters < SLEEP_ITERATIONS)
-		for (volatile unsigned i = 0; i < iters; ++i)
+	UWord iters = Dist (1U, iterations_)(rndgen_);
+	if (ITERATIONS_MAX <= ITERATIONS_YIELD || iters < ITERATIONS_YIELD) {
+		volatile UWord cnt = iters;
+		do
 			cpu_relax ();
-	else
-		Port::BackOff::sleep ((iters - SLEEP_ITERATIONS) / SLEEP_ITERATIONS);
-
-	if (count_ < MAX_COUNT)
-		++count_;
+		while (--cnt);
+	} else
+		Port::BackOff::yield (iters);
 }
 
 }

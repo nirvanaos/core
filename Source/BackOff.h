@@ -11,11 +11,9 @@ namespace Core {
 class BackOff :
 	private Port::BackOff
 {
-	static const unsigned MAX_COUNT = 10; // 2 ^ 10 iterations
-	static const unsigned SLEEP_ITERATIONS = 200;
 public:
 	BackOff () :
-		count_ (0)
+		iterations_ (1)
 	{}
 
 	~BackOff ()
@@ -24,10 +22,19 @@ public:
 	void operator () ();
 
 private:
+	/// A number of iterations when we should call yield ().
+	using Port::BackOff::ITERATIONS_MAX;
+
+	/// Maximal number of iterations.
+	using Port::BackOff::ITERATIONS_YIELD;
+
+	/// If ITERATIONS_MAX == ITERATIONS_YIELD we never call yield ().
+	static_assert (ITERATIONS_MAX >= ITERATIONS_YIELD, "ITERATIONS_MAX >= ITERATIONS_YIELD");
+
 	inline void cpu_relax ();
 
 private:
-	unsigned count_;
+	UWord iterations_;
 	RandomGen rndgen_;
 };
 

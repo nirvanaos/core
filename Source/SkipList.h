@@ -176,7 +176,6 @@ private:
 	unsigned node_size_;
 	RandomGenAtomic rndgen_;
 
-	// constant can be made static in future
 	static const std::geometric_distribution <> distr_;
 };
 

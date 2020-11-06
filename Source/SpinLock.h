@@ -22,8 +22,8 @@ public:
 
 private:
 	friend class SpinLock;
-	volatile Word sn_locked_;
-	volatile SpinLockNode* sn_next_;
+	Word volatile sn_locked_;
+	SpinLockNode* volatile sn_next_;
 };
 
 class SpinLock
@@ -32,7 +32,7 @@ class SpinLock
 	SpinLock& operator = (const SpinLock&) = delete;
 public:
 	SpinLock () NIRVANA_NOEXCEPT :
-		queue_ (nullptr)
+		last_ (nullptr)
 	{}
 
 	void acquire () NIRVANA_NOEXCEPT;
@@ -42,7 +42,7 @@ public:
 	void release (SpinLockNode& node) NIRVANA_NOEXCEPT;
 
 private:
-	std::atomic <SpinLockNode*> queue_;
+	std::atomic <SpinLockNode*> last_;
 };
 
 }
