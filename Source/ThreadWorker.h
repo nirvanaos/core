@@ -1,7 +1,7 @@
 #ifndef NIRVANA_CORE_THREADWORKER_H_
 #define NIRVANA_CORE_THREADWORKER_H_
 
-#include "Thread.h"
+#include "Thread.inl"
 #include <Port/ThreadWorker.h>
 
 namespace Nirvana {

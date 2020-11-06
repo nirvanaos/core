@@ -2,21 +2,31 @@
 // Synchronization domain.
 
 #include "SyncDomain.h"
+#include "ExecDomain.h"
 
 namespace Nirvana {
 namespace Core {
 
-void SyncDomain::schedule (ExecDomain& ed, bool ret)
+void SyncDomain::schedule (QueueNode* node)
 {
-	// TODO: If ret==true, get queue entry from pool.
-	queue_.insert (ed.deadline (), &ed);
+	verify (queue_.insert (node));
+	schedule (true);
+}
+
+void SyncDomain::schedule (ExecDomain& ed)
+{
+	QueueNode* node = queue_node_create (ed.deadline (), &ed);
+	queue_.insert (node);
 	try {
-		schedule (ret);
+		schedule (false);
 	} catch (...) {
-		queue_.erase (ed.deadline (), &ed);
+		queue_.erase (node);
+		queue_node_release (node);
 		throw;
 	}
+	queue_node_release (node);
 }
+
 void SyncDomain::schedule (bool ret)
 {
 	while (!running_) {
@@ -51,11 +61,6 @@ void SyncDomain::execute (DeadlineTime deadline, Word scheduler_error)
 			schedule (true);
 		}
 	}
-}
-
-void SyncDomain::call_begin ()
-{
-	// TODO: Allocate queue entry and place it to a pool.
 }
 
 void SyncDomain::enter (bool ret)

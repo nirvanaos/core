@@ -5,13 +5,14 @@
 #define NIRVANA_CORE_THREAD_H_
 
 #include "core.h"
-#include <Port/Thread.h>
-#include "ExecDomain.h"
+#include "ExecContext.h"
 #include "SpinLock.h"
+#include <Port/Thread.h>
 
 namespace Nirvana {
 namespace Core {
 
+class ExecDomain;
 class SyncDomain;
 class SyncContext;
 class RuntimeSupportImpl;
@@ -76,10 +77,7 @@ protected:
 		neutral_context_ (true)
 	{}
 
-	virtual void run ()
-	{
-		exec_domain ()->schedule (schedule_domain_, schedule_ret_);
-	}
+	virtual void run ();
 
 private:
 	void _enter_to (SyncDomain* sync_domain, bool ret);

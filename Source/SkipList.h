@@ -319,6 +319,18 @@ public:
 		return Base::erase (&keynode);
 	}
 
+	template <class ... Args>
+	bool erase (Args ... args)
+	{
+		NodeVal keynode (1, std::forward <Args> (args)...);
+		return Base::erase (&keynode);
+	}
+
+	bool erase (NodeVal* keynode) NIRVANA_NOEXCEPT
+	{
+		return Base::erase (keynode);
+	}
+
 	/// Gets node with minimal value.
 	/// \returns Minimal node pointer or `nullptr` if list is empty.
 	///          Returned pointer must be released by `release_node`.

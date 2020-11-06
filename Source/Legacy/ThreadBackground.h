@@ -1,7 +1,7 @@
 #ifndef NIRVANA_LEGACY_CORE_THREADBACKGROUND_H_
 #define NIRVANA_LEGACY_CORE_THREADBACKGROUND_H_
 
-#include "../Thread.h"
+#include "../Thread.inl"
 #include "../SyncContext.h"
 #include <Port/ThreadBackground.h>
 

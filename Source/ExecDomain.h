@@ -4,9 +4,8 @@
 #ifndef NIRVANA_CORE_EXECDOMAIN_H_
 #define NIRVANA_CORE_EXECDOMAIN_H_
 
-#include "ExecContext.h"
+#include "SyncDomain.h"
 #include "Scheduler.h"
-#include "Runnable.h"
 #include "ObjectPool.h"
 #include "CoreObject.h"
 #include "RuntimeSupportImpl.h"
@@ -15,8 +14,6 @@
 
 namespace Nirvana {
 namespace Core {
-
-class SyncDomain;
 
 class NIRVANA_NOVTABLE ExecDomain :
 	public CoreObject,
@@ -39,21 +36,17 @@ public:
 	}
 
 	ExecDomain () :
-		ExecContext (),
-		wait_list_next_ (nullptr),
-		deadline_ (std::numeric_limits <DeadlineTime>::max ()),
-		sync_domain_ (nullptr),
-		scheduler_error_ (CORBA::SystemException::EC_NO_EXCEPTION)
-	{}
+		ExecContext ()
+	{
+		ctor_base ();
+	}
 
 	//! Constructor with parameters can be used in porting for special cases.
 	template <class ... Args>
 	ExecDomain (Args ... args) :
-		ExecContext (std::forward <Args> (args)...),
-		wait_list_next_ (nullptr),
-		deadline_ (std::numeric_limits <DeadlineTime>::max ()),
-		sync_domain_ (nullptr)
+		ExecContext (std::forward <Args> (args)...)
 	{
+		ctor_base ();
 		Scheduler::activity_begin ();
 	}
 
@@ -87,12 +80,7 @@ public:
 	}
 
 	void suspend ();
-	
-	inline void resume ()
-	{
-		assert (&ExecContext::current () != this);
-		schedule (sync_domain_, true);
-	}
+	void resume ();
 
 	void _activate ()
 	{}
@@ -106,6 +94,7 @@ public:
 		scheduler_error_ = CORBA::SystemException::EC_NO_EXCEPTION;
 		runtime_support_.cleanup ();
 		heap_.cleanup ();
+		ret_qnodes_clear ();
 	}
 
 	void execute_loop ();
@@ -137,6 +126,20 @@ public:
 	}
 
 private:
+	void ctor_base ();
+
+	void ret_qnode_push (SyncDomain& sd);
+	SyncDomain::QueueNode* ret_qnode_pop ();
+
+	void ret_qnodes_clear ()
+	{
+		while (ret_qnodes_) {
+			SyncDomain::QueueNode* qn = ret_qnodes_;
+			ret_qnodes_ = (SyncDomain::QueueNode*)(qn->value ().val);
+			((SyncDomain*)(qn->value ().deadline))->queue_node_release (qn);
+		}
+	}
+
 	class NIRVANA_NOVTABLE Release :
 		public Runnable
 	{
@@ -158,6 +161,7 @@ private:
 
 	DeadlineTime deadline_;
 	SyncDomain* sync_domain_;
+	SyncDomain::QueueNode* ret_qnodes_;
 	Word scheduler_error_;
 	Heap heap_;
 	RuntimeSupportImpl runtime_support_;

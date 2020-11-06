@@ -41,8 +41,9 @@ class PriorityQueue :
 	public SkipList <PriorityQueueKeyVal <Val>, MAX_LEVEL>
 {
 	typedef SkipList <PriorityQueueKeyVal <Val>, MAX_LEVEL> Base;
-	typedef typename Base::NodeVal NodeVal;
 public:
+	typedef typename Base::NodeVal NodeVal;
+
 	bool get_min_deadline (DeadlineTime& dt) NIRVANA_NOEXCEPT
 	{
 		NodeVal* node = Base::get_min_node ();
@@ -58,6 +59,13 @@ public:
 	bool insert (DeadlineTime dt, const Val& val)
 	{
 		std::pair <NodeVal*, bool> ins = Base::insert (dt, std::ref (val));
+		Base::release_node (ins.first);
+		return ins.second;
+	}
+
+	bool insert (NodeVal* node)
+	{
+		std::pair <NodeVal*, bool> ins = Base::insert (node);
 		Base::release_node (ins.first);
 		return ins.second;
 	}
@@ -91,12 +99,12 @@ public:
 		}
 		return false;
 	}
-
+	/*
 	bool erase (DeadlineTime dt, const Val& value) NIRVANA_NOEXCEPT
 	{
 		return Base::erase ({ dt, value });
 	}
-
+	*/
 	~PriorityQueue ()
 	{
 #ifdef _DEBUG

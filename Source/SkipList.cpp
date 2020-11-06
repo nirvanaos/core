@@ -112,7 +112,7 @@ SkipListBase::Node* SkipListBase::insert (Node* new_node, Node** saved_nodes) NI
 	// Search phase to find the node after which newNode should be inserted.
 	// This search phase starts from the head node at the highest
 	// level and traverses down to the lowest level until the correct
-	// node is found (node1).When going down one level, the last
+	// node is found (node1). When going down one level, the last
 	// node traversed on that level is remembered (savedNodes)
 	// for later use (this is where we should insert the new node at that level).
 	Node* node1 = copy_node (head ());

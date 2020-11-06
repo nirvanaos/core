@@ -1,4 +1,4 @@
-#include "Thread.h"
+#include "Thread.inl"
 
 namespace Nirvana {
 namespace Core {
