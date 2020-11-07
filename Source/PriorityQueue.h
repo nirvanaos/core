@@ -44,6 +44,13 @@ class PriorityQueue :
 public:
 	typedef typename Base::NodeVal NodeVal;
 
+	~PriorityQueue ()
+	{
+#ifdef _DEBUG
+		assert (Base::node_cnt_ == 0);
+#endif
+	}
+
 	bool get_min_deadline (DeadlineTime& dt) NIRVANA_NOEXCEPT
 	{
 		NodeVal* node = Base::get_min_node ();
@@ -98,18 +105,6 @@ public:
 			return true;
 		}
 		return false;
-	}
-	/*
-	bool erase (DeadlineTime dt, const Val& value) NIRVANA_NOEXCEPT
-	{
-		return Base::erase ({ dt, value });
-	}
-	*/
-	~PriorityQueue ()
-	{
-#ifdef _DEBUG
-		assert (Base::node_cnt_ == 0);
-#endif
 	}
 };
 
