@@ -9,7 +9,7 @@ namespace Core {
 class NIRVANA_NOVTABLE Executor : public CoreInterface
 {
 public:
-	virtual void execute (DeadlineTime deadline, Word scheduler_error) = 0;
+	virtual void execute (Word scheduler_error) = 0;
 };
 
 }

@@ -10,15 +10,14 @@ namespace Nirvana {
 namespace Core {
 
 /// This static method is called by the scheduler.
-void ThreadWorker::execute (Executor& executor, DeadlineTime deadline, Word scheduler_error)
+void ThreadWorker::execute (Executor& executor, Word scheduler_error)
 {
 	// Always called in the neutral context.
 	assert (&ExecContext::current () == &Core::Thread::current ().neutral_context ());
 	// Switch to executor context.
-	executor.execute (deadline, scheduler_error);
+	executor.execute (scheduler_error);
 	// Perform possible neutral context calls, then return.
 	ExecContext::neutral_context_loop ();
-	Scheduler::core_free ();
 }
 
 SyncContext& ThreadWorker::sync_context () NIRVANA_NOEXCEPT

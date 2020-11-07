@@ -107,11 +107,15 @@ public:
 	typedef TaggedPtr <TAG_BITS, ALIGN> Ptr;
 
 	AtomicPtr ()
-	{}
+	{
+		assert (ptr_.is_lock_free ());
+	}
 
 	AtomicPtr (Ptr src) :
 		ptr_ (src.ptr_)
-	{}
+	{
+		assert (ptr_.is_lock_free ());
+	}
 
 	Ptr load () const
 	{
@@ -150,11 +154,15 @@ public:
 	typedef TaggedPtr <TAG_BITS, ALIGN> Ptr;
 
 	LockablePtr ()
-	{}
+	{
+		assert (ptr_.is_lock_free ());
+	}
 
 	LockablePtr (Ptr src) :
 		ptr_ (src.ptr_)
-	{}
+	{
+		assert (ptr_.is_lock_free ());
+	}
 
 	LockablePtr (const LockablePtr&) = delete;
 

@@ -19,7 +19,7 @@ void Thread::enter_to (SyncDomain* sync_domain, bool ret)
 	_enter_to (sync_domain, ret);
 
 	// We are in sync_domain now.
-	Word err = exec_domain_->scheduler_error ();
+	CORBA::Exception::Code err = exec_domain_->scheduler_error ();
 	if (err) {
 		if (!ret) {
 			// This is an outgoing call.

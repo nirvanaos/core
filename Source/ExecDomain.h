@@ -65,7 +65,7 @@ public:
 
 	/// Executor::execute ()
 	/// Called from worker thread.
-	void execute (DeadlineTime deadline, Word scheduler_error);
+	void execute (Word scheduler_error);
 
 	template <class Starter>
 	void start (Runnable& runnable, DeadlineTime deadline, SyncDomain* sync_domain,
@@ -95,6 +95,10 @@ public:
 		runtime_support_.cleanup ();
 		heap_.cleanup ();
 		ret_qnodes_clear ();
+		if (scheduler_item_) {
+			Scheduler::release_item (scheduler_item_);
+			scheduler_item_ = nullptr;
+		}
 	}
 
 	void execute_loop ();
@@ -120,7 +124,7 @@ public:
 		return runtime_support_;
 	}
 
-	Word scheduler_error () const
+	CORBA::Exception::Code scheduler_error () const
 	{
 		return scheduler_error_;
 	}
@@ -139,6 +143,8 @@ private:
 			((SyncDomain*)(qn->value ().deadline))->queue_node_release (qn);
 		}
 	}
+
+	void return_to_sync_domain ();
 
 	class NIRVANA_NOVTABLE Release :
 		public Runnable
@@ -162,9 +168,10 @@ private:
 	DeadlineTime deadline_;
 	SyncDomain* sync_domain_;
 	SyncDomain::QueueNode* ret_qnodes_;
-	Word scheduler_error_;
 	Heap heap_;
 	RuntimeSupportImpl runtime_support_;
+	Scheduler::Item* scheduler_item_;
+	CORBA::Exception::Code scheduler_error_;
 };
 
 }

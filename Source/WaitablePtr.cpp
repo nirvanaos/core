@@ -10,8 +10,8 @@ namespace Core {
 using namespace CORBA;
 using namespace CORBA::Nirvana;
 
-class WaitablePtr::WaitForCreation :
-	public ImplStatic <Runnable>
+class NIRVANA_NOVTABLE WaitablePtr::WaitForCreation :
+	public Runnable
 {
 public:
 	WaitForCreation (WaitablePtr& ptr) :
@@ -31,7 +31,7 @@ void* WaitablePtr::wait ()
 {
 	Ptr p = load ();
 	if (p.tag_bits () == TAG_WAITLIST) {
-		WaitForCreation runnable (*this);
+		ImplStatic <WaitForCreation> runnable (std::ref (*this));
 		run_in_neutral_context (runnable);
 		p = load ();
 	}

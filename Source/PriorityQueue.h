@@ -47,7 +47,7 @@ public:
 	~PriorityQueue ()
 	{
 #ifdef _DEBUG
-		assert (Base::node_cnt_ == 0);
+		assert (!Base::node_cnt_);
 #endif
 	}
 
@@ -70,7 +70,7 @@ public:
 		return ins.second;
 	}
 
-	bool insert (NodeVal* node)
+	bool insert (NodeVal* node) NIRVANA_NOEXCEPT
 	{
 		std::pair <NodeVal*, bool> ins = Base::insert (node);
 		Base::release_node (ins.first);

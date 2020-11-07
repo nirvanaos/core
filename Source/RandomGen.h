@@ -6,7 +6,7 @@
 #ifndef NIRVANA_CORE_RANDOMGEN_H_
 #define NIRVANA_CORE_RANDOMGEN_H_
 
-#include <stdint.h>
+#include <Nirvana/Nirvana.h>
 #include <limits>
 
 namespace Nirvana {
@@ -16,40 +16,42 @@ namespace Core {
 class RandomGen
 {
 public:
-	typedef uint32_t result_type;
+	typedef UWord result_type;
 
 	RandomGen () : // Use `this` as seed value
-		state_ ((uint32_t)reinterpret_cast <uintptr_t> (this))
+		state_ ((result_type)reinterpret_cast <uintptr_t> (this))
 	{}
 
-	RandomGen (uint32_t s) :
-		state_ (s)
+	RandomGen (result_type seed) :
+		state_ (seed)
 	{}
 
-	static uint32_t min ()
+	static result_type min ()
 	{
 		return 0;
 	}
 
-	static uint32_t max ()
+	static result_type max ()
 	{
-		return std::numeric_limits <uint32_t>::max ();
+		return std::numeric_limits <result_type>::max ();
 	}
 
-	uint32_t operator () ();
+	result_type operator () ();
 
 protected:
+	static uint16_t xorshift (uint16_t x);
 	static uint32_t xorshift (uint32_t x);
+	static uint64_t xorshift (uint64_t x);
 
 protected:
-	uint32_t state_;
+	result_type state_;
 };
 
 class RandomGenAtomic :
 	public RandomGen
 {
 public:
-	uint32_t operator () ();
+	result_type operator () ();
 };
 
 }

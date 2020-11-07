@@ -5,6 +5,7 @@
 #include <CORBA/DynamicServant_s.h>
 #include <CORBA/ImplementationPseudo.h>
 #include "../AtomicCounter.h"
+#include <limits>
 
 namespace CORBA {
 namespace Nirvana {
@@ -37,7 +38,8 @@ public:
 
 	ULong _refcount_value () const
 	{
-		return ref_cnt_;
+		::Nirvana::Core::RefCounter::UIntType ucnt = ref_cnt_;
+		return ucnt > std::numeric_limits <ULong>::max () ? std::numeric_limits <ULong>::max () : (ULong)ucnt;
 	}
 
 private:

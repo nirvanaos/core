@@ -145,7 +145,7 @@ private:
 /// Dynamic implementation of a core object.
 /// \tparam T object class.
 template <class T>
-class ImplDynamic : 
+class ImplDynamic final : 
 	public T
 {
 private:
@@ -174,7 +174,7 @@ private:
 /// Static or stack implementation of a core object.
 /// \tparam T object class.
 template <class T>
-class ImplStatic :
+class ImplStatic final :
 	public T
 {
 public:

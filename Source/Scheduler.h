@@ -11,20 +11,32 @@ namespace Core {
 class Scheduler
 {
 public:
-	static void schedule (DeadlineTime deadline, Executor& executor, DeadlineTime old, bool nothrow_fallback)
+	typedef Port::Scheduler::Item Item;
+
+	static Item* create_item (Executor& executor)
 	{
-		Port::Scheduler::schedule (deadline, executor, old, nothrow_fallback);
+		return Port::Scheduler::create_item (executor);
 	}
 
-	static void core_free ()
+	static void release_item (Item* item) NIRVANA_NOEXCEPT
 	{
-		Port::Scheduler::core_free ();
+		Port::Scheduler::release_item (item);
 	}
 
-	static void shutdown ()
+	static void schedule (const DeadlineTime& deadline, Item* item) NIRVANA_NOEXCEPT
 	{
-		State state = RUNNING;
-		if (state_.compare_exchange_strong (state, SHUTDOWN_STARTED) && !activity_cnt_) {
+		Port::Scheduler::schedule (deadline, item);
+	}
+
+	static bool reschedule (const DeadlineTime& deadline, Item* item, const DeadlineTime& old) NIRVANA_NOEXCEPT
+	{
+		return Port::Scheduler::reschedule (deadline, item, old);
+	}
+
+	static void shutdown () NIRVANA_NOEXCEPT
+	{
+		State state = State::RUNNING;
+		if (state_.compare_exchange_strong (state, State::SHUTDOWN_STARTED) && !activity_cnt_) {
 			activity_cnt_.increment ();
 			activity_end ();
 		}
@@ -33,28 +45,28 @@ public:
 	static void activity_begin ()
 	{
 		activity_cnt_.increment ();
-		if (RUNNING != state_) {
+		if (State::RUNNING != state_) {
 			activity_end ();
 			throw CORBA::INITIALIZE ();
 		}
 	}
 	
-	static void activity_end ()
+	static void activity_end () NIRVANA_NOEXCEPT
 	{
 		if (!activity_cnt_.decrement ())
 			do_shutdown ();
 	}
 
 private:
-	static void do_shutdown ()
+	static void do_shutdown () NIRVANA_NOEXCEPT
 	{
-		State state = SHUTDOWN_STARTED;
-		if (state_.compare_exchange_strong (state, SHUTDOWN_FINISH))
+		State state = State::SHUTDOWN_STARTED;
+		if (state_.compare_exchange_strong (state, State::SHUTDOWN_FINISH))
 			Port::Scheduler::shutdown ();
 	}
 
 private:
-	enum State
+	enum class State
 	{
 		RUNNING = 0,
 		SHUTDOWN_STARTED,

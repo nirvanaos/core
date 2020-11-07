@@ -2,14 +2,7 @@
 #define NIRVANA_CORE_ATOMICCOUNTER_H_
 
 #include "core.h"
-
-#define USE_INTRINSIC_ATOMIC
-
-#if (defined USE_INTRINSIC_ATOMIC && defined _MSC_BUILD)
-#include <intrin.h>
-#else
 #include <atomic>
-#endif
 
 namespace Nirvana {
 namespace Core {
@@ -17,42 +10,42 @@ namespace Core {
 class AtomicCounter
 {
 public:
-	typedef uint32_t UIntType;
-	typedef int32_t IntType;
+	typedef UWord UIntType;
+	typedef Word IntType;
 
-	AtomicCounter (uint32_t init) :
+	AtomicCounter (IntType init) :
 		cnt_ (init)
-	{}
+	{
+		assert (cnt_.is_lock_free ());
+	}
 
-	operator uint32_t () const
+	explicit operator IntType () const
 	{
 		return cnt_;
 	}
 
-	uint32_t increment ()
+	explicit operator UIntType () const
 	{
-#if (defined USE_INTRINSIC_ATOMIC && defined _MSC_BUILD)
-		return _InterlockedIncrement ((volatile long*)&cnt_);
-#else
-		return ++cnt_;
-#endif
+		return cnt_;
 	}
 
-	uint32_t decrement ()
+	operator bool () const
 	{
-#if (defined USE_INTRINSIC_ATOMIC && defined _MSC_BUILD)
-		return _InterlockedDecrement ((volatile long*)&cnt_);
-#else
+		return cnt_ != 0;
+	}
+
+	IntType increment ()
+	{
+		return ++cnt_;
+	}
+
+	IntType decrement ()
+	{
 		return --cnt_;
-#endif
 	}
 
 private:
-#if (defined USE_INTRINSIC_ATOMIC && defined _MSC_BUILD)
-	volatile uint32_t cnt_;
-#else
-	std::atomic_uint32_t cnt_;
-#endif
+	std::atomic <Word> cnt_;
 };
 
 //! Reference counter
@@ -73,13 +66,13 @@ public:
 		return *this;
 	}
 
-	uint32_t decrement ()
+	UIntType decrement ()
 	{
 		assert ((UIntType)*this > 0);
 		return AtomicCounter::decrement ();
 	}
 
-	uint32_t increment ()
+	UIntType increment ()
 	{
 		return AtomicCounter::increment ();
 	}
@@ -87,7 +80,5 @@ public:
 
 }
 }
-
-#undef USE_INTRINSIC_ATOMIC
 
 #endif

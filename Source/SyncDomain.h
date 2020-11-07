@@ -18,17 +18,14 @@ class NIRVANA_NOVTABLE SyncDomain :
 	public Executor,
 	public SyncContext
 {
-	typedef PriorityQueue <ExecDomain*, SYNC_DOMAIN_PRIORITY_QUEUE_LEVELS> Queue;
+	typedef PriorityQueue <Executor*, SYNC_DOMAIN_PRIORITY_QUEUE_LEVELS> Queue;
 public:
-
-	SyncDomain () :
-		min_deadline_ (0),
-		running_ (false)
-	{}
+	SyncDomain ();
+	~SyncDomain ();
 
 	typedef Queue::NodeVal QueueNode;
 
-	QueueNode* queue_node_create (DeadlineTime deadline, ExecDomain* ed)
+	QueueNode* queue_node_create (DeadlineTime deadline, Executor* ed)
 	{
 		return queue_.create_node (deadline, ed);
 	}
@@ -38,16 +35,11 @@ public:
 		queue_.release_node (node);
 	}
 
-	void schedule (QueueNode* node); //  NIRVANA_NOEXCEPT
+	void schedule (QueueNode* node) NIRVANA_NOEXCEPT;
 
 	void schedule (ExecDomain& ed);
 
-	DeadlineTime min_deadline () const
-	{
-		return min_deadline_;
-	}
-
-	virtual void execute (DeadlineTime deadline, Word scheduler_error);
+	virtual void execute (Word scheduler_error);
 
 	virtual void enter (bool ret);
 	virtual void async_call (Runnable& runnable, DeadlineTime deadline, CORBA::Nirvana::Interface_ptr environment);
@@ -65,14 +57,27 @@ public:
 	}
 
 private:
-	void schedule (bool ret);
+	void schedule () NIRVANA_NOEXCEPT;
 
 private:
 	Queue queue_;
-	std::atomic <DeadlineTime> min_deadline_; // TODO: Lock-free atomic 64-bit may be unavailable!
-	std::atomic <bool> running_;
 	Heap heap_;
 	RuntimeSupportImpl runtime_support_; // Must be destructed before the heap_ destruction.
+
+	Scheduler::Item* scheduler_item_;
+	
+	// Thread that acquires this flag become a scheduling thread.
+	std::atomic_flag scheduling_;
+	volatile bool need_schedule_;
+
+	enum class State
+	{
+		IDLE,
+		SCHEDULED,
+		RUNNING
+	};
+	volatile State state_;
+	volatile DeadlineTime scheduled_deadline_;
 };
 
 }

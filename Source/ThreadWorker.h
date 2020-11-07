@@ -29,7 +29,7 @@ public:
 	{}
 
 		/// This static method is called by the scheduler.
-	static void execute (Executor& executor, DeadlineTime deadline, Word scheduler_error);
+	static void execute (Executor& executor, Word scheduler_error);
 
 	/// Returns synchronization context.
 	virtual SyncContext& sync_context () NIRVANA_NOEXCEPT;

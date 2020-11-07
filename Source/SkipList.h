@@ -60,7 +60,7 @@ protected:
 	static const unsigned NODE_ALIGN = 1 << log2_ceil (sizeof (NodeBase) + 3 * sizeof (void*));
 	typedef TaggedPtrT <Node, 1, NODE_ALIGN> Link;
 
-	struct Node : public NodeBase
+	struct Node : NodeBase
 	{
 		/// Virtual operator < must be overridden.
 		virtual bool operator < (const Node&) const NIRVANA_NOEXCEPT;
@@ -217,18 +217,19 @@ class SkipList :
 {
 	typedef SkipListL <MAX_LEVEL> Base;
 public:
-	struct NodeVal :
-		public Base::Node
+	struct NodeVal : Base::Node
 	{
 		// Reserve space for creation of auto variables with level = 1.
 		uint8_t val_space [sizeof (Val)];
 
-		Val& value () NIRVANA_NOEXCEPT
+		typedef Val Value;
+
+		Value& value () NIRVANA_NOEXCEPT
 		{
-			return *(Val*)Base::Node::value ();
+			return *(Value*)Base::Node::value ();
 		}
 
-		const Val& value () const NIRVANA_NOEXCEPT
+		const Value& value () const NIRVANA_NOEXCEPT
 		{
 			return const_cast <NodeVal*> (this)->value ();
 		}
@@ -242,7 +243,7 @@ public:
 		NodeVal (int level, Args ... args) NIRVANA_NOEXCEPT :
 		Base::Node (level)
 		{
-			new (&value ()) Val (std::forward <Args> (args)...);
+			new (&value ()) Value (std::forward <Args> (args)...);
 		}
 
 		~NodeVal () NIRVANA_NOEXCEPT

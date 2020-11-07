@@ -7,65 +7,64 @@
 namespace Nirvana {
 namespace Core {
 
-void SyncDomain::schedule (QueueNode* node)
+SyncDomain::SyncDomain () :
+	scheduler_item_ (Scheduler::create_item (*this)),
+	need_schedule_ (false),
+	state_ (State::IDLE)
+{}
+
+SyncDomain::~SyncDomain ()
+{
+	Scheduler::release_item (scheduler_item_);
+}
+
+void SyncDomain::schedule (QueueNode* node) NIRVANA_NOEXCEPT
 {
 	verify (queue_.insert (node));
-	schedule (true);
+	schedule ();
 }
 
-void SyncDomain::schedule (ExecDomain& ed)
+void SyncDomain::schedule () NIRVANA_NOEXCEPT
 {
-	QueueNode* node = queue_node_create (ed.deadline (), &ed);
-	queue_.insert (node);
-	try {
-		schedule (false);
-	} catch (...) {
-		queue_.erase (node);
-		queue_node_release (node);
-		throw;
-	}
-	queue_node_release (node);
-}
-
-void SyncDomain::schedule (bool ret)
-{
-	while (!running_) {
+	need_schedule_ = true;
+	// Only one thread perform scheduling at a time.
+	while (need_schedule_ && State::RUNNING != state_ && !scheduling_.test_and_set ()) {
+		need_schedule_ = false;
 		DeadlineTime min_deadline;
 		if (queue_.get_min_deadline (min_deadline)) {
-			DeadlineTime prev_deadline = min_deadline_;
-			if (prev_deadline == min_deadline || running_)
-				break;
-			if (min_deadline_.compare_exchange_strong (prev_deadline, min_deadline)) {
-				if (!running_)
-					Scheduler::schedule (min_deadline, *this, prev_deadline, ret || prev_deadline);
-				break;
+			if (State::IDLE == state_) {
+				state_ = State::SCHEDULED;
+				Scheduler::schedule (min_deadline, scheduler_item_);
+				scheduled_deadline_ = min_deadline;
+			} else if (State::SCHEDULED == state_) {
+				DeadlineTime scheduled_deadline = scheduled_deadline_;
+				if (
+					min_deadline != scheduled_deadline
+					&&
+					Scheduler::reschedule (min_deadline, scheduler_item_, scheduled_deadline)
+					)
+						scheduled_deadline_ = min_deadline;
 			}
-		} else
-			break;
+		}
+		scheduling_.clear ();
 	}
 }
 
-void SyncDomain::execute (DeadlineTime deadline, Word scheduler_error)
+void SyncDomain::execute (Word scheduler_error)
 {
-	assert (deadline);
-	DeadlineTime min_deadline = min_deadline_;
-	if (min_deadline && deadline >= min_deadline && min_deadline_.compare_exchange_strong (min_deadline, 0)) {
-		bool f = false;
-		if (running_.compare_exchange_strong (f, true)) {
-			ExecDomain* executor;
-			DeadlineTime dt;
-			if (queue_.delete_min (executor, dt)) {
-				executor->execute (dt, scheduler_error);
-			}
-			running_ = false;
-			schedule (true);
-		}
-	}
+	assert (State::SCHEDULED == state_);
+	state_ = State::RUNNING;
+	Executor* executor;
+	DeadlineTime dt;
+	verify (queue_.delete_min (executor, dt));
+	executor->execute (scheduler_error);
+	assert (State::RUNNING == state_);
+	state_ = State::IDLE;
+	schedule ();
 }
 
 void SyncDomain::enter (bool ret)
 {
-	// TODO: Exception is fatal if ret == true.
 	Thread::current ().enter_to (this, ret);
 }
 
