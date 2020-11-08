@@ -18,7 +18,8 @@ namespace Core {
 class NIRVANA_NOVTABLE ExecDomain :
 	public CoreObject,
 	public ExecContext,
-	public Executor
+	public Executor,
+	private Runnable // Runnable is used for return object to pool in neutral context.
 {
 	static const size_t MAX_RUNNABLE_SIZE = 8; // In words.
 public:
@@ -37,24 +38,9 @@ public:
 	}
 
 	template <class ... Args>
-	static Core_var <ExecDomain> create (Args ... args)
+	static Core_var <ExecDomain> create_main (Runnable& startup, Args ... args)
 	{
-		return Core_var <ExecDomain>::create <ImplPoolable <ExecDomain> > (std::ref (pool_), std::forward <Args> (args)...);
-	}
-
-	ExecDomain () :
-		ExecContext ()
-	{
-		ctor_base ();
-	}
-
-	//! Constructor with parameters can be used in porting for special cases.
-	template <class ... Args>
-	ExecDomain (Args ... args) :
-		ExecContext (std::forward <Args> (args)...)
-	{
-		ctor_base ();
-		Scheduler::activity_begin ();
+		return Core_var <ExecDomain>::create <ImplPoolable <ExecDomain> > (std::ref (pool_), startup, std::forward <Args> (args)...);
 	}
 
 	DeadlineTime deadline () const
@@ -84,11 +70,6 @@ public:
 			runnable_ = Core_var <Runnable>::construct <ImplNoAddRef <R> > (runnable_space_, std::forward <Args> (args)...);
 	}
 
-	void runnable (Runnable& r)
-	{
-		runnable_ = r;
-	}
-
 	template <class Starter>
 	void start (Starter starter, DeadlineTime deadline, SyncDomain* sync_domain)
 	{
@@ -99,15 +80,16 @@ public:
 		_add_ref ();
 	}
 
+	void spawn (DeadlineTime deadline, SyncDomain* sync_domain);
+
 	void suspend ();
 	void resume ();
 
 	void _activate ()
 	{}
 
-	void _deactivate ()
+	void _deactivate (ImplPoolable <ExecDomain>& obj)
 	{
-		assert (&ExecContext::current () != this);
 		runnable_.reset ();
 		sync_domain_ = nullptr;
 		scheduler_error_ = CORBA::SystemException::EC_NO_EXCEPTION;
@@ -118,7 +100,14 @@ public:
 			Scheduler::release_item (scheduler_item_);
 			scheduler_item_ = nullptr;
 		}
+		Thread& thread = Thread::current ();
+		if (thread.exec_domain () == this)
+			thread.exec_domain (nullptr);
 		Scheduler::activity_end ();
+		if (&ExecContext::current () == this)
+			run_in_neutral_context (*this);
+		else
+			pool_.release (obj);
 	}
 
 	void execute_loop ();
@@ -126,7 +115,7 @@ public:
 	void on_crash (Word code)
 	{
 		ExecContext::on_crash (code);
-		release ();
+		_remove_ref ();
 	}
 
 	SyncDomain* sync_domain () const
@@ -149,6 +138,27 @@ public:
 		return scheduler_error_;
 	}
 
+protected:
+	ExecDomain () :
+		ExecContext ()
+	{
+		ctor_base ();
+	}
+
+	//! Constructor with parameters used in porting for creation of the startup domain.
+	template <class ... Args>
+	ExecDomain (Runnable& startup, Args ... args) :
+		ExecContext (std::forward <Args> (args)...)
+	{
+		ctor_base ();
+		runnable_ = &startup;
+		Scheduler::activity_begin ();
+	}
+
+	friend class Core_var <ExecDomain>;
+	virtual void _add_ref () = 0;
+	virtual void _remove_ref () = 0;
+
 private:
 	void ctor_base ();
 
@@ -166,25 +176,12 @@ private:
 
 	void return_to_sync_domain ();
 
-	void spawn (DeadlineTime deadline, SyncDomain* sync_domain);
-
-	class NIRVANA_NOVTABLE Release :
-		public Runnable
-	{
-	public:
-		void run ();
-	};
-
-	void release ()
-	{
-		run_in_neutral_context (release_);
-	}
+	virtual void run ();
 
 public:
 	ExecDomain* wait_list_next_;
 
 private:
-	static ImplStatic <Release> release_;
 	static ObjectPool <ExecDomain> pool_;
 
 	DeadlineTime deadline_;

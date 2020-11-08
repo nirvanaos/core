@@ -34,6 +34,13 @@ private:
 	}
 
 	void _remove_ref ();
+
+	/// Returns a pool where the object was got.
+	/// You can release deactivated object to this or other pool.
+	ObjectPool <T>& pool () const
+	{
+		return *(ObjectPool <T>*)StackElem::next;
+	}
 };
 
 template <class T>
@@ -54,7 +61,6 @@ public:
 
 	void release (ImplPoolable <T>& obj)
 	{
-		obj._deactivate ();
 		Stack <ImplPoolable <T> >::push (obj);
 	}
 
@@ -70,12 +76,9 @@ public:
 template <class T>
 void ImplPoolable <T>::_remove_ref ()
 {
-	if (!StackElem::ref_cnt.decrement ()) {
-		ObjectPool <T>* pool = (ObjectPool <T>*)StackElem::next;
-		pool->release (*this);
-	}
+	if (!StackElem::ref_cnt.decrement ())
+		T::_deactivate (*this);
 }
-
 
 }
 }

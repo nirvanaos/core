@@ -46,6 +46,7 @@ public:
 protected:
 	void start (Nirvana::Core::ExecDomain& ed);
 
+	friend class Nirvana::Core::Core_var <ThreadBackground>;
 	virtual void _add_ref () = 0;
 	virtual void _remove_ref () = 0;
 

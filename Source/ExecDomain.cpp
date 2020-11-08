@@ -6,26 +6,12 @@
 namespace Nirvana {
 namespace Core {
 
-ImplStatic <ExecDomain::Release> ExecDomain::release_;
 ObjectPool <ExecDomain> ExecDomain::pool_;
 
-void ExecDomain::Release::run ()
-{
-	Thread& thread = Thread::current ();
-	ExecDomain* ed = thread.exec_domain ();
-	thread.exec_domain (nullptr);
-	ed->_remove_ref ();
-}
-/*
-void ExecDomain::async_call (DeadlineTime deadline, SyncDomain* sync_domain, Runnable& runnable)
-{
-	Core_var <ExecDomain> exec_domain = get ();
-	ExecDomain* p = exec_domain;
-	p->start ([p, sync_domain]() {p->schedule (sync_domain, false); }, deadline, sync_domain, runnable);
-}
-*/
 void ExecDomain::spawn (DeadlineTime deadline, SyncDomain* sync_domain)
 {
+	assert (&ExecContext::current () != this);
+	assert (runnable_);
 	start ([this, sync_domain]() {this->schedule (sync_domain, false); }, deadline, sync_domain);
 }
 
@@ -118,15 +104,23 @@ void ExecDomain::execute (Word scheduler_error)
 
 void ExecDomain::execute_loop ()
 {
+	assert (Thread::current ().exec_domain () == this);
 	while (runnable_) {
 		if (scheduler_error_) {
 			runnable_->on_crash (scheduler_error_);
 			runnable_.reset ();
 		} else {
-			run ();
+			ExecContext::run ();
 		}
-		release ();
+		Thread::current ().exec_domain (nullptr);
+		_remove_ref ();
 	}
+}
+
+void ExecDomain::run ()
+{
+	assert (&ExecContext::current () != this);
+	pool_.release (static_cast <ImplPoolable <ExecDomain>&> (*this));
 }
 
 }
