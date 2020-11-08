@@ -77,10 +77,16 @@ public:
 	template <class R, class ... Args>
 	void create_runnable (Args ... args)
 	{
+		assert (!runnable_);
 		if (sizeof (ImplNoAddRef <R>) > sizeof (runnable_space_))
 			runnable_ = Core_var <Runnable>::create <ImplDynamic <R> > (std::forward <Args> (args)...);
 		else
 			runnable_ = Core_var <Runnable>::construct <ImplNoAddRef <R> > (runnable_space_, std::forward <Args> (args)...);
+	}
+
+	void runnable (Runnable& r)
+	{
+		runnable_ = r;
 	}
 
 	template <class Starter>
@@ -102,7 +108,6 @@ public:
 	void _deactivate ()
 	{
 		assert (&ExecContext::current () != this);
-		Scheduler::activity_end ();
 		runnable_.reset ();
 		sync_domain_ = nullptr;
 		scheduler_error_ = CORBA::SystemException::EC_NO_EXCEPTION;
@@ -113,6 +118,7 @@ public:
 			Scheduler::release_item (scheduler_item_);
 			scheduler_item_ = nullptr;
 		}
+		Scheduler::activity_end ();
 	}
 
 	void execute_loop ();

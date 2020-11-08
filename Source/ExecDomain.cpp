@@ -118,13 +118,14 @@ void ExecDomain::execute (Word scheduler_error)
 
 void ExecDomain::execute_loop ()
 {
-	if (scheduler_error_) {
-		runnable_->on_crash (scheduler_error_);
-		runnable_.reset ();
-	} else {
-		while (run ()) {
-			release ();
+	while (runnable_) {
+		if (scheduler_error_) {
+			runnable_->on_crash (scheduler_error_);
+			runnable_.reset ();
+		} else {
+			run ();
 		}
+		release ();
 	}
 }
 

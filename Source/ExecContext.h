@@ -48,7 +48,7 @@ public:
 	}
 
 protected:
-	bool run ();
+	void run ();
 
 	void on_crash (Word code);
 

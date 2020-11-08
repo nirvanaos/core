@@ -20,7 +20,7 @@ void ExecContext::switch_to ()
 	Port::ExecContext::switch_to ();
 }
 
-bool ExecContext::run ()
+void ExecContext::run ()
 {
 	if (runnable_) {
 		try {
@@ -29,9 +29,7 @@ bool ExecContext::run ()
 			runnable_->on_exception ();
 		}
 		runnable_.reset ();
-		return true;
 	}
-	return false;
 }
 
 void ExecContext::on_crash (Word code)
