@@ -19,6 +19,14 @@ public:
 	{
 		g_core_heap.release (p, cb);
 	}
+
+	void* operator new (size_t cb, void* place)
+	{
+		return place;
+	}
+
+	void operator delete (void*, void*)
+	{}
 };
 
 }

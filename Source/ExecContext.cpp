@@ -25,22 +25,18 @@ bool ExecContext::run ()
 	if (runnable_) {
 		try {
 			runnable_->run ();
-		} catch (const CORBA::Exception& ex) {
-			CORBA::Nirvana::set_exception (environment_, ex);
 		} catch (...) {
-			CORBA::Nirvana::set_unknown_exception (environment_);
+			runnable_->on_exception ();
 		}
-		environment_ = CORBA::Nirvana::Interface::_nil ();
 		runnable_.reset ();
 		return true;
 	}
 	return false;
 }
 
-void ExecContext::on_crash (CORBA::Exception::Code code)
+void ExecContext::on_crash (Word code)
 {
-	CORBA::Nirvana::set_exception (environment_, code, nullptr, nullptr);
-	environment_ = CORBA::Nirvana::Interface::_nil ();
+	runnable_->on_crash (code);
 	runnable_.reset ();
 }
 

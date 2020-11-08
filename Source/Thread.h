@@ -78,6 +78,7 @@ protected:
 	{}
 
 	virtual void run ();
+	virtual void on_exception () override;
 
 private:
 	void _enter_to (SyncDomain* sync_domain, bool ret);
@@ -96,6 +97,7 @@ private:
 	/// Data for `virtual void run()`.
 	SyncDomain* schedule_domain_;
 	bool schedule_ret_;
+	std::exception_ptr exception_;
 	///@}
 };
 

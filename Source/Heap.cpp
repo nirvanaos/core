@@ -3,7 +3,8 @@
 #include <atomic>
 #include <iostream>
 
-#define THROW(e) { std::cerr << #e << " " << __FILE__ << ":" << __LINE__ << std::endl; throw_##e ();}
+//#define THROW(e) { std::cerr << #e << " " << __FILE__ << ":" << __LINE__ << std::endl; throw_##e ();}
+#define THROW(e) throw_##e ()
 
 namespace Nirvana {
 namespace Core {

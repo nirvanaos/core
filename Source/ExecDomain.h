@@ -20,8 +20,15 @@ class NIRVANA_NOVTABLE ExecDomain :
 	public ExecContext,
 	public Executor
 {
+	static const size_t MAX_RUNNABLE_SIZE = 8; // In words.
 public:
-	static void async_call (Runnable& runnable, DeadlineTime deadline, SyncDomain* sync_domain, CORBA::Nirvana::Interface_ptr environment);
+	template <class R, class ... Args>
+	static void async_call (DeadlineTime deadline, SyncDomain* sync_domain, Args ... args)
+	{
+		Core_var <ExecDomain> exec_domain = get ();
+		exec_domain->create_runnable <R> (std::forward <Args> (args)...);
+		exec_domain->spawn (deadline, sync_domain);
+	}
 
 	static Core_var <ExecDomain> get ()
 	{
@@ -67,12 +74,19 @@ public:
 	/// Called from worker thread.
 	void execute (Word scheduler_error);
 
-	template <class Starter>
-	void start (Runnable& runnable, DeadlineTime deadline, SyncDomain* sync_domain,
-		CORBA::Nirvana::Interface_ptr environment, Starter starter)
+	template <class R, class ... Args>
+	void create_runnable (Args ... args)
 	{
-		runnable_ = &runnable;
-		environment_ = environment;
+		if (sizeof (ImplNoAddRef <R>) > sizeof (runnable_space_))
+			runnable_ = Core_var <Runnable>::create <ImplDynamic <R> > (std::forward <Args> (args)...);
+		else
+			runnable_ = Core_var <Runnable>::construct <ImplNoAddRef <R> > (runnable_space_, std::forward <Args> (args)...);
+	}
+
+	template <class Starter>
+	void start (Starter starter, DeadlineTime deadline, SyncDomain* sync_domain)
+	{
+		assert (runnable_);
 		deadline_ = deadline;
 		sync_domain_ = sync_domain;
 		starter ();
@@ -103,7 +117,7 @@ public:
 
 	void execute_loop ();
 
-	void on_crash (CORBA::Exception::Code code)
+	void on_crash (Word code)
 	{
 		ExecContext::on_crash (code);
 		release ();
@@ -146,6 +160,8 @@ private:
 
 	void return_to_sync_domain ();
 
+	void spawn (DeadlineTime deadline, SyncDomain* sync_domain);
+
 	class NIRVANA_NOVTABLE Release :
 		public Runnable
 	{
@@ -155,7 +171,7 @@ private:
 
 	void release ()
 	{
-		run_in_neutral_context (release_, CORBA::Nirvana::Interface::_nil ());
+		run_in_neutral_context (release_);
 	}
 
 public:
@@ -172,6 +188,8 @@ private:
 	RuntimeSupportImpl runtime_support_;
 	Scheduler::Item* scheduler_item_;
 	CORBA::Exception::Code scheduler_error_;
+
+	Word runnable_space_ [MAX_RUNNABLE_SIZE];
 };
 
 }

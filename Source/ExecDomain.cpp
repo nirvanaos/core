@@ -16,12 +16,17 @@ void ExecDomain::Release::run ()
 	thread.exec_domain (nullptr);
 	ed->_remove_ref ();
 }
-
-void ExecDomain::async_call (Runnable& runnable, DeadlineTime deadline, SyncDomain* sync_domain, CORBA::Nirvana::Interface_ptr environment)
+/*
+void ExecDomain::async_call (DeadlineTime deadline, SyncDomain* sync_domain, Runnable& runnable)
 {
 	Core_var <ExecDomain> exec_domain = get ();
 	ExecDomain* p = exec_domain;
-	p->start (runnable, deadline, sync_domain, environment, [p, sync_domain]() {p->schedule (sync_domain, false); });
+	p->start ([p, sync_domain]() {p->schedule (sync_domain, false); }, deadline, sync_domain, runnable);
+}
+*/
+void ExecDomain::spawn (DeadlineTime deadline, SyncDomain* sync_domain)
+{
+	start ([this, sync_domain]() {this->schedule (sync_domain, false); }, deadline, sync_domain);
 }
 
 void ExecDomain::ctor_base ()
@@ -114,8 +119,7 @@ void ExecDomain::execute (Word scheduler_error)
 void ExecDomain::execute_loop ()
 {
 	if (scheduler_error_) {
-		CORBA::Nirvana::set_exception (environment_, scheduler_error_, nullptr, nullptr);
-		environment_ = CORBA::Nirvana::Interface::_nil ();
+		runnable_->on_crash (scheduler_error_);
 		runnable_.reset ();
 	} else {
 		while (run ()) {

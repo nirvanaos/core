@@ -10,8 +10,7 @@ class NIRVANA_NOVTABLE FreeSyncContext :
 {
 public:
 	virtual void enter (bool ret);
-	virtual void async_call (Runnable& runnable, DeadlineTime deadline, CORBA::Nirvana::Interface_ptr environment);
-	virtual bool is_free_sync_context ();
+	virtual SyncDomain* sync_domain ();
 	virtual Heap& memory ();
 };
 
@@ -27,14 +26,9 @@ void FreeSyncContext::enter (bool ret)
 	Thread::current ().enter_to (nullptr, ret);
 }
 
-void FreeSyncContext::async_call (Runnable& runnable, DeadlineTime deadline, CORBA::Nirvana::Interface_ptr environment)
+SyncDomain* FreeSyncContext::sync_domain ()
 {
-	ExecDomain::async_call (runnable, deadline, nullptr, environment);
-}
-
-bool FreeSyncContext::is_free_sync_context ()
-{
-	return true;
+	return nullptr;
 }
 
 Heap& FreeSyncContext::memory ()

@@ -4,6 +4,7 @@
 
 #include "../AtomicCounter.h"
 #include "../Synchronized.h"
+#include "../ExecDomain.h"
 #include "ProxyManager.h"
 #include <CORBA/AbstractBase_s.h>
 #include <CORBA/Object_s.h>
@@ -74,9 +75,22 @@ protected:
 		return *sync_context_;
 	}
 
-	void run_garbage_collector (::Nirvana::Core::Core_var <::Nirvana::Core::Runnable> gc) const
+	template <class GC, class ... Args>
+	void run_garbage_collector (Args ... args) const NIRVANA_NOEXCEPT
 	{
-		sync_context_->async_call (*gc, ::Nirvana::INFINITE_DEADLINE);
+		try {
+			// TODO: Garbage collector deadline must not be infinite, but reasonable enough.
+			::Nirvana::Core::ExecDomain::async_call <GC> (::Nirvana::INFINITE_DEADLINE, sync_context_->sync_domain (), std::forward <Args> (args)...);
+		} catch (...) {
+			// Async call failed, maybe resources are exausted.
+			// Fallback to collect garbage in current thread.
+			try {
+				::Nirvana::Core::ImplStatic <GC> (std::forward <Args> (args)...).run ();
+			} catch (...) {
+				// Swallow exceptions.
+				// TODO: Log error.
+			}
+		}
 	}
 
 	template <class I, void (*proc) (I*, IORequest_ptr, ::Nirvana::ConstPointer, Unmarshal_var, ::Nirvana::Pointer)>

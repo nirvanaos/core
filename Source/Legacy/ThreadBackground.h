@@ -39,14 +39,12 @@ public:
 	virtual Nirvana::Core::SyncContext& sync_context () NIRVANA_NOEXCEPT;
 
 	virtual void enter (bool ret);
-	virtual void async_call (Runnable& runnable, DeadlineTime deadline, CORBA::Nirvana::Interface_ptr environment);
-	virtual bool is_free_sync_context ();
+	virtual ::Nirvana::Core::SyncDomain* sync_domain ();
 
 	virtual void enter_to (Nirvana::Core::SyncDomain* sync_domain, bool ret);
 
 protected:
-	void start (Nirvana::Core::ExecDomain& ed, 
-		Nirvana::Core::Runnable& runnable, CORBA::Nirvana::Interface* environment);
+	void start (Nirvana::Core::ExecDomain& ed);
 
 	virtual void _add_ref () = 0;
 	virtual void _remove_ref () = 0;

@@ -7,9 +7,12 @@ void Thread::_enter_to (SyncDomain* sync_domain, bool ret)
 {
 	schedule_domain_ = sync_domain;
 	schedule_ret_ = ret;
-	CORBA::Nirvana::Environment env;
-	neutral_context_.run_in_context (*this, &env);
-	env.check ();
+	neutral_context_.run_in_context (*this);
+	if (exception_) {
+		std::exception_ptr ep;
+		std::swap (exception_, ep);
+		std::rethrow_exception (ep);
+	}
 }
 
 void Thread::enter_to (SyncDomain* sync_domain, bool ret)
@@ -33,6 +36,11 @@ void Thread::enter_to (SyncDomain* sync_domain, bool ret)
 		}
 		CORBA::SystemException::_raise_by_code (err);
 	}
+}
+
+void Thread::on_exception ()
+{
+	exception_ = std::current_exception ();
 }
 
 }

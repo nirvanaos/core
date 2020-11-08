@@ -42,8 +42,7 @@ public:
 	virtual void execute (Word scheduler_error);
 
 	virtual void enter (bool ret);
-	virtual void async_call (Runnable& runnable, DeadlineTime deadline, CORBA::Nirvana::Interface_ptr environment);
-	virtual bool is_free_sync_context ();
+	virtual SyncDomain* sync_domain ();
 	virtual Heap& memory ();
 
 	Heap& heap ()

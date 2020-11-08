@@ -19,6 +19,83 @@ protected:
 	virtual void _remove_ref () = 0;
 };
 
+template <class T> class Core_var;
+
+/// Dynamic implementation of a core object.
+/// \tparam T object class.
+template <class T>
+class ImplDynamic final :
+	public T
+{
+private:
+	template <class> friend class Core_var;
+
+	template <class ... Args>
+	ImplDynamic (Args ... args) :
+		T (std::forward <Args> (args)...)
+	{}
+
+	void _add_ref ()
+	{
+		ref_cnt_.increment ();
+	}
+
+	void _remove_ref ()
+	{
+		if (!ref_cnt_.decrement ())
+			delete this;
+	}
+
+private:
+	RefCounter ref_cnt_;
+};
+
+/// Static or stack implementation of a core object.
+/// \tparam T object class.
+template <class T>
+class ImplStatic final :
+	public T
+{
+public:
+	template <class ... Args>
+	ImplStatic (Args ... args) :
+		T (std::forward <Args> (args)...)
+	{}
+
+private:
+	void _add_ref ()
+	{}
+
+	void _remove_ref ()
+	{}
+};
+
+/// Special implementation of a core object.
+/// \tparam T object class.
+template <class T>
+class ImplNoAddRef final :
+	public T
+{
+private:
+	template <class> friend class Core_var;
+
+	template <class ... Args>
+	ImplNoAddRef (Args ... args) :
+		T (std::forward <Args> (args)...)
+	{}
+
+	void _add_ref ()
+	{
+		assert (false);
+		throw_INTERNAL ();
+	}
+
+	void _remove_ref ()
+	{
+		this->~ImplNoAddRef <T> ();
+	}
+};
+
 /// Core smart pointer.
 /// \tparam T object or core interface class.
 template <class T>
@@ -53,13 +130,23 @@ public:
 		src.p_ = nullptr;
 	}
 
-	/// Creates the object.
+	/// Creates an object.
 	/// \tparam Impl Object implementation class.
 	template <class Impl, class ... Args>
 	static Core_var create (Args ... args)
 	{
 		Core_var v;
 		v.p_ = new Impl (std::forward <Args> (args)...);
+		return v;
+	}
+
+	/// Constructs an object in-place.
+	/// \tparam Impl Object implementation class.
+	template <class Impl, class ... Args>
+	static Core_var construct (void* p, Args ... args)
+	{
+		Core_var v;
+		v.p_ = new (p) Impl (std::forward <Args> (args)...);
 		return v;
 	}
 
@@ -140,55 +227,6 @@ private:
 
 private:
 	T* p_;
-};
-
-/// Dynamic implementation of a core object.
-/// \tparam T object class.
-template <class T>
-class ImplDynamic final : 
-	public T
-{
-private:
-	template <class> friend class Core_var;
-
-	template <class ... Args>
-	ImplDynamic (Args ... args) :
-		T (std::forward <Args> (args)...)
-	{}
-
-	void _add_ref ()
-	{
-		ref_cnt_.increment ();
-	}
-
-	void _remove_ref ()
-	{
-		if (!ref_cnt_.decrement ())
-			delete this;
-	}
-
-private:
-	RefCounter ref_cnt_;
-};
-
-/// Static or stack implementation of a core object.
-/// \tparam T object class.
-template <class T>
-class ImplStatic final :
-	public T
-{
-public:
-	template <class ... Args>
-	ImplStatic (Args ... args) :
-		T (std::forward <Args> (args)...)
-	{}
-
-private:
-	void _add_ref ()
-	{}
-
-	void _remove_ref ()
-	{}
 };
 
 }

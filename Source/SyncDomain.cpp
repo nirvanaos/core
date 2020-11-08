@@ -68,14 +68,9 @@ void SyncDomain::enter (bool ret)
 	Thread::current ().enter_to (this, ret);
 }
 
-void SyncDomain::async_call (Runnable& runnable, DeadlineTime deadline, CORBA::Nirvana::Interface_ptr environment)
+SyncDomain* SyncDomain::sync_domain ()
 {
-	ExecDomain::async_call (runnable, deadline, this, environment);
-}
-
-bool SyncDomain::is_free_sync_context ()
-{
-	return false;
+	return this;
 }
 
 Heap& SyncDomain::memory ()

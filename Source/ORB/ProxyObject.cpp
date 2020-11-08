@@ -64,19 +64,7 @@ void ProxyObject::add_ref_1 ()
 		&&
 			change_state (ACTIVE, DEACTIVATION_SCHEDULED)
 		) {
-			try {
-				run_garbage_collector (Core_var <Runnable>::create <ImplDynamic <Deactivator> > (std::ref (*this)));
-			} catch (...) {
-				// Async call failed, maybe resources are exausted.
-				// Fallback to collect garbage in current thread.
-				// TODO: Log the error
-				try {
-					Synchronized sync (sync_context ());
-					implicit_deactivate ();
-				} catch (...) {
-					// TODO: Log the error
-				}
-			}
+			run_garbage_collector <Deactivator> (std::ref (*this));
 		}
 	}
 	return cnt;

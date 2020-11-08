@@ -7,11 +7,10 @@ namespace Core {
 
 using namespace Nirvana::Core;
 
-void ThreadBackground::start (Nirvana::Core::ExecDomain& ed,
-	Nirvana::Core::Runnable& runnable, CORBA::Nirvana::Interface* environment)
+void ThreadBackground::start (Nirvana::Core::ExecDomain& ed)
 {
 	exec_domain (&ed);
-	ed.start (runnable, INFINITE_DEADLINE, nullptr, environment, [this]() {this->create (); });
+	ed.start ([this]() {this->create (); }, INFINITE_DEADLINE, nullptr);
 	_add_ref ();
 }
 
@@ -26,14 +25,10 @@ void ThreadBackground::enter (bool ret)
 	resume ();
 }
 
-void ThreadBackground::async_call (Runnable& runnable, DeadlineTime deadline, CORBA::Nirvana::Interface_ptr environment)
+::Nirvana::Core::SyncDomain* ThreadBackground::sync_domain ()
 {
 	assert (false);
-}
-
-bool ThreadBackground::is_free_sync_context ()
-{
-	return false;
+	return nullptr;
 }
 
 void ThreadBackground::enter_to (Nirvana::Core::SyncDomain* sync_domain, bool ret)

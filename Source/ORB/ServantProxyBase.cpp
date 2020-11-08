@@ -55,15 +55,7 @@ void ServantProxyBase::add_ref_1 ()
 {
 	::Nirvana::Core::RefCounter::IntType cnt = ref_cnt_.decrement ();
 	if (!cnt) {
-		try {
-			run_garbage_collector (Core_var <Runnable>::create <ImplDynamic <GarbageCollector> > (servant_));
-		} catch (...) {
-			// Async call failed, maybe resources are exausted.
-			// Fallback to collect garbage in current thread.
-			::Nirvana::Core::Synchronized sync (*sync_context_);
-			release (servant_);
-			// Swallow exception
-		}
+		run_garbage_collector <GarbageCollector> (servant_);
 	} else if (cnt < 0) {
 		// TODO: Log error
 		ref_cnt_.increment ();

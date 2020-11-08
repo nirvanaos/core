@@ -29,13 +29,10 @@ public:
 	///            If `true` then causes fatal on error.
 	virtual void enter (bool ret) = 0;
 
-	/// Call runnable in the new execution domain.
-	virtual void async_call (Runnable& runnable, DeadlineTime deadline, CORBA::Nirvana::Interface_ptr environment = CORBA::Nirvana::Interface::_nil ()) = 0;
-
-	/// Returns `true` if there is free sync context.
+	/// Returns `nullptr` if it is free sync context.
 	/// May be used for proxy optimization.
 	/// When we marshal `in` parameters from free context we haven't to copy data.
-	virtual bool is_free_sync_context () = 0;
+	virtual SyncDomain* sync_domain () = 0;
 
 	/// Returns heap reference.
 	virtual Heap& memory () = 0;

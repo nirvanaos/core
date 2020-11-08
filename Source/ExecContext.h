@@ -29,21 +29,15 @@ public:
 		Port::ExecContext (std::forward <Args> (args)...)
 	{}
 
-	::CORBA::Nirvana::Interface_ptr environment () const
-	{
-		return environment_;
-	}
-
 	/// Switch to this context.
 	void switch_to ();
 
 	static void neutral_context_loop ();
 
-	void run_in_context (Runnable& runnable, CORBA::Nirvana::Interface_ptr environment)
+	void run_in_context (Runnable& runnable)
 	{
 		assert (this != &current ());
 		runnable_ = &runnable;
-		environment_ = environment;
 		switch_to ();
 	}
 
@@ -56,11 +50,10 @@ public:
 protected:
 	bool run ();
 
-	void on_crash (CORBA::Exception::Code code);
+	void on_crash (Word code);
 
 protected:
 	Core_var <Runnable> runnable_;
-	CORBA::Nirvana::Interface_var environment_;
 };
 
 }
