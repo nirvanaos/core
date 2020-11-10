@@ -26,17 +26,33 @@ public:
 	template <class R, class ... Args>
 	static void async_call (DeadlineTime deadline, SyncDomain* sync_domain, Args ... args)
 	{
-		Core_var <ExecDomain> exec_domain = get ();
-		exec_domain->create_runnable <R> (std::forward <Args> (args)...);
+		Core_var <ExecDomain> exec_domain = create <R> (std::forward <Args> (args)...);
 		exec_domain->spawn (deadline, sync_domain);
 	}
 
-	static Core_var <ExecDomain> get ()
+	static void async_call (DeadlineTime deadline, Runnable& runnable, SyncDomain* sync_domain)
 	{
-		Scheduler::activity_begin ();	// Throws exception if shutdown was started.
-		return pool_.get ();
+		Core_var <ExecDomain> exec_domain = create (runnable);
+		exec_domain->spawn (deadline, sync_domain);
 	}
 
+	static Core_var <ExecDomain> create (Runnable& runnable)
+	{
+		Core_var <ExecDomain> exec_domain = get ();
+		exec_domain->runnable_ = &runnable;
+		return exec_domain;
+	}
+
+	template <class R, class ... Args>
+	static Core_var <ExecDomain> create (Args ... args)
+	{
+		Core_var <ExecDomain> exec_domain = get ();
+		static_assert (sizeof (ImplNoAddRef <R>) <= sizeof (runnable_space_), "Runnable object is too large.");
+		exec_domain->runnable_ = Core_var <Runnable>::construct <ImplNoAddRef <R> > (exec_domain->runnable_space_, std::forward <Args> (args)...);
+		return exec_domain;
+	}
+
+	/// Used in porting for creation of the startup domain.
 	template <class ... Args>
 	static Core_var <ExecDomain> create_main (Runnable& startup, Args ... args)
 	{
@@ -59,16 +75,6 @@ public:
 	/// Executor::execute ()
 	/// Called from worker thread.
 	void execute (Word scheduler_error);
-
-	template <class R, class ... Args>
-	void create_runnable (Args ... args)
-	{
-		assert (!runnable_);
-		if (sizeof (ImplNoAddRef <R>) > sizeof (runnable_space_))
-			runnable_ = Core_var <Runnable>::create <ImplDynamic <R> > (std::forward <Args> (args)...);
-		else
-			runnable_ = Core_var <Runnable>::construct <ImplNoAddRef <R> > (runnable_space_, std::forward <Args> (args)...);
-	}
 
 	template <class Starter>
 	void start (Starter starter, DeadlineTime deadline, SyncDomain* sync_domain)
@@ -172,6 +178,12 @@ private:
 			ret_qnodes_ = (SyncDomain::QueueNode*)(qn->value ().val);
 			((SyncDomain*)(qn->value ().deadline))->queue_node_release (qn);
 		}
+	}
+
+	static Core_var <ExecDomain> get ()
+	{
+		Scheduler::activity_begin ();	// Throws exception if shutdown was started.
+		return pool_.get ();
 	}
 
 	void return_to_sync_domain ();
