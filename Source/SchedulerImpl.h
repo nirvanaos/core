@@ -2,50 +2,75 @@
 #define NIRVANA_CORE_SCHEDULERIMPL_H_
 
 #include "PriorityQueue.h"
-#include "Thread.h"
 #include "AtomicCounter.h"
+#include <Port/SystemInfo.h>
 
 namespace Nirvana {
 namespace Core {
 
-template <class T, class QueueItem>
+/// Template for implementing the master scheduler.
+/// \tparam T Derived class implementing the scheduler.
+///           T must implement public method void execute (const ExecutorRef&);
+/// \tparam ExecutorRef Executor reference type.
+template <class T, class ExecutorRef>
 class SchedulerImpl
 {
+	typedef PriorityQueue <ExecutorRef, SYS_DOMAIN_PRIORITY_QUEUE_LEVELS> Queue;
 public:
-	SchedulerImpl (AtomicCounter::UIntType cores) :
-		free_cores_ (cores)
+	typedef Queue::NodeVal* Item;
+
+	SchedulerImpl () NIRVANA_NOEXCEPT :
+		free_cores_ (Port::g_system_info.hardware_concurrency ())
 	{}
 
-	void schedule (DeadlineTime deadline, const QueueItem& item, DeadlineTime deadline_prev)
+	Item create_item (const ExecutorRef& executor)
 	{
-		assert (deadline_prev != deadline);
-		try {
-			verify (queue_.insert (deadline, item));
-		} catch (...) {
-			if (deadline_prev)
-				queue_.erase (deadline_prev, item);
-			throw;
-		}
-		if (deadline_prev)
-			queue_.erase (deadline_prev, item);
+		return queue_.create_node (0, executor);
+	}
+
+	void release_item (Item item) NIRVANA_NOEXCEPT
+	{
+		queue_.release_node (item);
+	}
+
+	void schedule (const DeadlineTime& deadline, Item item) NIRVANA_NOEXCEPT
+	{
+		verify (queue_.insert (deadline, item));
 		execute_next ();
 	}
 
-	void core_free ()
+	bool reschedule (const DeadlineTime& deadline, Item item) NIRVANA_NOEXCEPT
+	{
+		Item removed = queue_.find_and_delete (item);
+		if (removed) {
+			queue_.insert (deadline, removed);
+			return true
+		} else
+			return false;
+	}
+
+	bool reschedule (const DeadlineTime& deadline, const ExecutorRef& executor, const DeadlineTime& deadline_prev) NIRVANA_NOEXCEPT
+	{
+		Queue::NodeVal keynode (1, deadline_prev, std::ref (executor));
+		return reschedule (deadline, &keynode);
+	}
+
+	void core_free () NIRVANA_NOEXCEPT
 	{
 		free_cores_.increment ();
 		execute_next ();
 	}
 
-	void execute_next ();
+private:
+	void execute_next (); NIRVANA_NOEXCEPT
 
 private:
-	PriorityQueue <QueueItem, SYS_DOMAIN_PRIORITY_QUEUE_LEVELS> queue_;
+	Queue queue_;
 	AtomicCounter free_cores_;
 };
 
-template <class T, class QueueItem>
-void SchedulerImpl <T, QueueItem>::execute_next ()
+template <class T, class ExecutorRef>
+void SchedulerImpl <T, ExecutorRef>::execute_next () NIRVANA_NOEXCEPT
 {
 	do {
 
@@ -57,11 +82,11 @@ void SchedulerImpl <T, QueueItem>::execute_next ()
 				return;
 		}
 
-		// Get next item
-		QueueItem item;
-		DeadlineTime deadline;
-		if (queue_.delete_min (item, deadline)) {
-			static_cast <T*> (this)->execute (item, deadline);
+		// Get first item
+		Item item = queue_.delete_min ();
+		if (item) {
+			ExecutorRef val = item->value ().val;
+			static_cast <T*> (this)->execute (val);
 			break;
 		}
 

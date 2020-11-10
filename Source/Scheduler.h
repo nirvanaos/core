@@ -13,22 +13,22 @@ class Scheduler
 public:
 	typedef Port::Scheduler::Item Item;
 
-	static Item* create_item (Executor& executor)
+	static Item create_item (Executor& executor)
 	{
 		return Port::Scheduler::create_item (executor);
 	}
 
-	static void release_item (Item* item) NIRVANA_NOEXCEPT
+	static void release_item (Item item) NIRVANA_NOEXCEPT
 	{
 		Port::Scheduler::release_item (item);
 	}
 
-	static void schedule (const DeadlineTime& deadline, Item* item) NIRVANA_NOEXCEPT
+	static void schedule (const DeadlineTime& deadline, Item item) NIRVANA_NOEXCEPT
 	{
 		Port::Scheduler::schedule (deadline, item);
 	}
 
-	static bool reschedule (const DeadlineTime& deadline, Item* item, const DeadlineTime& old) NIRVANA_NOEXCEPT
+	static bool reschedule (const DeadlineTime& deadline, Item item, const DeadlineTime& old) NIRVANA_NOEXCEPT
 	{
 		return Port::Scheduler::reschedule (deadline, item, old);
 	}

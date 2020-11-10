@@ -40,7 +40,7 @@ public:
 	template <class ... Args>
 	static Core_var <ExecDomain> create_main (Runnable& startup, Args ... args)
 	{
-		return Core_var <ExecDomain>::create <ImplPoolable <ExecDomain> > (std::ref (pool_), startup, std::forward <Args> (args)...);
+		return Core_var <ExecDomain>::create <ImplPoolable <ExecDomain> > (std::ref (pool_), std::ref (startup), std::forward <Args> (args)...);
 	}
 
 	DeadlineTime deadline () const
@@ -98,7 +98,7 @@ public:
 		ret_qnodes_clear ();
 		if (scheduler_item_) {
 			Scheduler::release_item (scheduler_item_);
-			scheduler_item_ = nullptr;
+			scheduler_item_ = 0;
 		}
 		Thread& thread = Thread::current ();
 		if (thread.exec_domain () == this)
@@ -189,7 +189,7 @@ private:
 	SyncDomain::QueueNode* ret_qnodes_;
 	Heap heap_;
 	RuntimeSupportImpl runtime_support_;
-	Scheduler::Item* scheduler_item_;
+	Scheduler::Item scheduler_item_;
 	CORBA::Exception::Code scheduler_error_;
 
 	Word runnable_space_ [MAX_RUNNABLE_SIZE];

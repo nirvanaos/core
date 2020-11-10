@@ -13,33 +13,33 @@ public:
 	typedef UWord UIntType;
 	typedef Word IntType;
 
-	AtomicCounter (IntType init) :
+	AtomicCounter (IntType init) NIRVANA_NOEXCEPT :
 		cnt_ (init)
 	{
 		assert (cnt_.is_lock_free ());
 	}
 
-	explicit operator IntType () const
+	explicit operator IntType () const NIRVANA_NOEXCEPT
 	{
 		return cnt_;
 	}
 
-	explicit operator UIntType () const
+	explicit operator UIntType () const NIRVANA_NOEXCEPT
 	{
 		return cnt_;
 	}
 
-	operator bool () const
+	operator bool () const NIRVANA_NOEXCEPT
 	{
 		return cnt_ != 0;
 	}
 
-	IntType increment ()
+	IntType increment () NIRVANA_NOEXCEPT
 	{
 		return ++cnt_;
 	}
 
-	IntType decrement ()
+	IntType decrement () NIRVANA_NOEXCEPT
 	{
 		return --cnt_;
 	}
@@ -48,31 +48,33 @@ private:
 	std::atomic <Word> cnt_;
 };
 
-//! Reference counter
-//! Initialized with 1.
+/// Reference counter
 class RefCounter : public AtomicCounter
 {
 public:
-	RefCounter () :
+	/// Initialized with 1.
+	RefCounter () NIRVANA_NOEXCEPT :
 		AtomicCounter (1)
 	{}
 
-	RefCounter (const RefCounter&) :
+	/// Initialized with 1 on copy construction.
+	RefCounter (const RefCounter&) NIRVANA_NOEXCEPT :
 		AtomicCounter (1)
 	{}
 
-	RefCounter& operator = (const RefCounter&)
+	/// Not changed on copy operation.
+	RefCounter& operator = (const RefCounter&) NIRVANA_NOEXCEPT
 	{
 		return *this;
 	}
 
-	UIntType decrement ()
+	UIntType decrement () NIRVANA_NOEXCEPT
 	{
 		assert ((UIntType)*this > 0);
 		return AtomicCounter::decrement ();
 	}
 
-	UIntType increment ()
+	UIntType increment () NIRVANA_NOEXCEPT
 	{
 		return AtomicCounter::increment ();
 	}

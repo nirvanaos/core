@@ -35,7 +35,7 @@ public:
 		queue_.release_node (node);
 	}
 
-	void schedule (QueueNode* node) NIRVANA_NOEXCEPT;
+	void schedule (DeadlineTime deadline, QueueNode* node) NIRVANA_NOEXCEPT;
 
 	void schedule (ExecDomain& ed);
 
@@ -63,7 +63,7 @@ private:
 	Heap heap_;
 	RuntimeSupportImpl runtime_support_; // Must be destructed before the heap_ destruction.
 
-	Scheduler::Item* scheduler_item_;
+	Scheduler::Item scheduler_item_;
 	
 	// Thread that acquires this flag become a scheduling thread.
 	std::atomic_flag scheduling_;

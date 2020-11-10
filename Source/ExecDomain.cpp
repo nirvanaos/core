@@ -22,7 +22,7 @@ void ExecDomain::ctor_base ()
 	sync_domain_ = nullptr;
 	ret_qnodes_ = nullptr;
 	scheduler_error_ = CORBA::SystemException::EC_NO_EXCEPTION;
-	scheduler_item_ = nullptr;
+	scheduler_item_ = 0;
 }
 
 inline
@@ -72,9 +72,8 @@ void ExecDomain::return_to_sync_domain ()
 	SyncDomain::QueueNode* qn = ret_qnode_pop ();
 	SyncDomain::QueueNode::Value& val = qn->value ();
 	assert (sync_domain_ == (SyncDomain*)(val.deadline));
-	val.deadline = deadline ();
 	val.val = this;
-	sync_domain_->schedule (qn);
+	sync_domain_->schedule (deadline (), qn);
 	sync_domain_->queue_node_release (qn);
 }
 

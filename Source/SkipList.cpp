@@ -211,7 +211,7 @@ SkipListBase::Node* SkipListBase::read_next (Node*& node1, int level) NIRVANA_NO
 	return node2;
 }
 
-SkipListBase::Node* SkipListBase::scan_key (Node*& node1, int level, Node* keynode) NIRVANA_NOEXCEPT
+SkipListBase::Node* SkipListBase::scan_key (Node*& node1, int level, const Node* keynode) NIRVANA_NOEXCEPT
 {
 	assert (keynode);
 	Node* node2 = read_next (node1, level);
@@ -392,7 +392,7 @@ void SkipListBase::remove_node (Node* node, Node*& prev, int level) NIRVANA_NOEX
 	}
 }
 
-SkipListBase::Node* SkipListBase::lower_bound (Node* keynode) NIRVANA_NOEXCEPT
+SkipListBase::Node* SkipListBase::lower_bound (const Node* keynode) NIRVANA_NOEXCEPT
 {
 	assert (keynode);
 	assert (keynode != head ());
@@ -415,7 +415,7 @@ SkipListBase::Node* SkipListBase::lower_bound (Node* keynode) NIRVANA_NOEXCEPT
 	return node2;
 }
 
-SkipListBase::Node* SkipListBase::upper_bound (Node* keynode) NIRVANA_NOEXCEPT
+SkipListBase::Node* SkipListBase::upper_bound (const Node* keynode) NIRVANA_NOEXCEPT
 {
 	Node* node2 = lower_bound (keynode);
 	if (node2) {
@@ -433,7 +433,7 @@ SkipListBase::Node* SkipListBase::upper_bound (Node* keynode) NIRVANA_NOEXCEPT
 	return node2;
 }
 
-SkipListBase::Node* SkipListBase::find (Node* keynode) NIRVANA_NOEXCEPT
+SkipListBase::Node* SkipListBase::find (const Node* keynode) NIRVANA_NOEXCEPT
 {
 	Node* node2 = lower_bound (keynode);
 	if (node2) {
@@ -445,7 +445,7 @@ SkipListBase::Node* SkipListBase::find (Node* keynode) NIRVANA_NOEXCEPT
 	return node2;
 }
 
-bool SkipListBase::erase (Node* keynode) NIRVANA_NOEXCEPT
+SkipListBase::Node* SkipListBase::find_and_delete (const Node* keynode) NIRVANA_NOEXCEPT
 {
 	assert (keynode);
 	assert (keynode != head ());
@@ -467,14 +467,13 @@ bool SkipListBase::erase (Node* keynode) NIRVANA_NOEXCEPT
 			// would have to search for the previous node in order to complete the deletion.
 			node2->prev = prev;
 			final_delete (node2);
-			release_node (node2);
-			return true;
+			return node2;
 		} else
-			return false; // Key found but was deleted in other thread.
+			return nullptr; // Key found but was deleted in other thread.
 	} else {
 		release_node (prev);
 		release_node (node2);
-		return false;
+		return nullptr;
 	}
 }
 

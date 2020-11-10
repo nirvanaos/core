@@ -126,15 +126,24 @@ protected:
 	void release_node (Node* node) NIRVANA_NOEXCEPT;
 	void release_node_no_delete (Node* node) NIRVANA_NOEXCEPT;
 
-	Node* find (Node* keynode) NIRVANA_NOEXCEPT;
-	Node* lower_bound (Node* keynode) NIRVANA_NOEXCEPT;
-	Node* upper_bound (Node* keynode) NIRVANA_NOEXCEPT;
+	Node* find (const Node* keynode) NIRVANA_NOEXCEPT;
+	Node* lower_bound (const Node* keynode) NIRVANA_NOEXCEPT;
+	Node* upper_bound (const Node* keynode) NIRVANA_NOEXCEPT;
+
+	Node* find_and_delete (const Node* keynode) NIRVANA_NOEXCEPT;
 
 	/// Erase by key.
-	bool erase (Node* keynode) NIRVANA_NOEXCEPT;
+	bool erase (const Node* keynode) NIRVANA_NOEXCEPT
+	{
+		Node* node = find_and_delete (keynode);
+		if (node)
+			release_node (node);
+		return node;
+	}
 
 	/// Directly removes node from list.
 	/// `remove (find (keynode));` works slower then `erase (keynode);`.
+	/// But it does not use the comparison and exactly removes the specified node.
 	bool remove (Node* node) NIRVANA_NOEXCEPT
 	{
 		bool f = false;
@@ -157,7 +166,7 @@ private:
 
 	Node* read_next (Node*& node1, int level) NIRVANA_NOEXCEPT;
 
-	Node* scan_key (Node*& node1, int level, Node* keynode) NIRVANA_NOEXCEPT;
+	Node* scan_key (Node*& node1, int level, const Node* keynode) NIRVANA_NOEXCEPT;
 
 	Node* help_delete (Node*, int level) NIRVANA_NOEXCEPT;
 
@@ -327,7 +336,7 @@ public:
 		return Base::erase (&keynode);
 	}
 
-	bool erase (NodeVal* keynode) NIRVANA_NOEXCEPT
+	bool erase (const NodeVal* keynode) NIRVANA_NOEXCEPT
 	{
 		return Base::erase (keynode);
 	}
@@ -361,12 +370,31 @@ public:
 	}
 
 	/// Finds node by value.
-	/// \returns Node pointer or `nullptr` if value not found.
+	/// \returns The Node pointer or `nullptr` if value not found.
+	///          Returned pointer must be released by `release_node`.
+	NodeVal* find (const NodeVal* keynode) NIRVANA_NOEXCEPT
+	{
+		return static_cast <NodeVal*> (Base::find (keynode));
+	}
+
+	/// Finds node by value.
+	/// \returns The Node pointer or `nullptr` if value not found.
 	///          Returned pointer must be released by `release_node`.
 	NodeVal* find (const Val& val) NIRVANA_NOEXCEPT
 	{
 		NodeVal keynode (1, val);
-		return static_cast <NodeVal*> (Base::find (&keynode));
+		return find (&keynode);
+	}
+
+	NodeVal* find_and_delete (const NodeVal* keynode) NIRVANA_NOEXCEPT
+	{
+		return static_cast <NodeVal*> (Base::find_and_delete (keynode));
+	}
+
+	NodeVal* find_and_delete (const Val& val) NIRVANA_NOEXCEPT
+	{
+		NodeVal keynode (1, val);
+		return find_and_delete (&keynode);
 	}
 
 	/// Finds first node equal or greater than value.

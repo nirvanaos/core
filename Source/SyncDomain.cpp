@@ -18,9 +18,9 @@ SyncDomain::~SyncDomain ()
 	Scheduler::release_item (scheduler_item_);
 }
 
-void SyncDomain::schedule (QueueNode* node) NIRVANA_NOEXCEPT
+void SyncDomain::schedule (DeadlineTime deadline, QueueNode* node) NIRVANA_NOEXCEPT
 {
-	verify (queue_.insert (node));
+	verify (queue_.insert (deadline, node));
 	schedule ();
 }
 
