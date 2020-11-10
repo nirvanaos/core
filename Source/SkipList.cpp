@@ -48,9 +48,10 @@ SkipListBase::SkipListBase (unsigned node_size, unsigned max_level, void* head_t
 	head_->valid_level = max_level;
 }
 
-void* SkipListBase::allocate_node (unsigned level)
+SkipListBase::NodeBase* SkipListBase::allocate_node (unsigned level)
 {
-	void* p = (Node*)g_core_heap.allocate (0, node_size (level), 0);
+	NodeBase* p = (NodeBase*)g_core_heap.allocate (0, node_size (level), 0);
+	p->level = (Level)level;
 #ifdef _DEBUG
 	node_cnt_.increment ();
 #endif
@@ -64,36 +65,19 @@ void SkipListBase::release_node (Node* node) NIRVANA_NOEXCEPT
 		Node* prev = node->prev;
 		if (prev)
 			release_node (prev);
-		delete_node (node);
-	}
-}
-
-void SkipListBase::release_node_no_delete (Node* node) NIRVANA_NOEXCEPT
-{
-	assert (node);
-	if (!node->ref_cnt.decrement ()) {
-		Node* prev = node->prev;
-		if (prev)
-			release_node (prev);
 #ifdef _DEBUG
 		assert (node != head ());
 		assert (node != tail ());
 		for (int i = 0, end = node->level; i < end; ++i)
 			assert (!(Node*)node->next [i].load ());
-		assert (node_cnt_ > 0);
-		node_cnt_.decrement ();
 #endif
-		node->~Node ();
+		delete_node (node);
 	}
 }
 
 void SkipListBase::delete_node (Node* node) NIRVANA_NOEXCEPT
 {
 #ifdef _DEBUG
-	assert (node != head ());
-	assert (node != tail ());
-	for (int i = 0, end = node->level; i < end; ++i)
-		assert (!(Node*)node->next [i].load ());
 	assert (node_cnt_ > 0);
 	node_cnt_.decrement ();
 #endif
@@ -104,7 +88,9 @@ void SkipListBase::delete_node (Node* node) NIRVANA_NOEXCEPT
 
 SkipListBase::Node* SkipListBase::insert (Node* new_node, Node** saved_nodes) NIRVANA_NOEXCEPT
 {
-	new_node->deleted = false; // In case we insert back the removed node.
+	// In case we insert back the removed node.
+	// We mustn't insert the removed node back because it may be still referenced by other nodes.
+	assert (!new_node->deleted);
 
 	int level = new_node->level;
 	copy_node (new_node);
@@ -178,7 +164,7 @@ SkipListBase::Node* SkipListBase::insert (Node* new_node, Node** saved_nodes) NI
 		}
 	}
 
-	new_node->valid_level = level;
+	new_node->valid_level = (Level)level;
 	if (deleted || new_node->deleted)
 		new_node = help_delete (new_node, 0);
 

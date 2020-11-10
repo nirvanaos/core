@@ -11,26 +11,24 @@ namespace Core {
 class Scheduler
 {
 public:
-	typedef Port::Scheduler::Item Item;
-
-	static Item create_item (Executor& executor)
+	static void create_item ()
 	{
-		return Port::Scheduler::create_item (executor);
+		Port::Scheduler::create_item ();
 	}
 
-	static void release_item (Item item) NIRVANA_NOEXCEPT
+	static void delete_item () NIRVANA_NOEXCEPT
 	{
-		Port::Scheduler::release_item (item);
+		Port::Scheduler::delete_item ();
 	}
 
-	static void schedule (const DeadlineTime& deadline, Item item) NIRVANA_NOEXCEPT
+	static void schedule (const DeadlineTime& deadline, Executor& executor) NIRVANA_NOEXCEPT
 	{
-		Port::Scheduler::schedule (deadline, item);
+		Port::Scheduler::schedule (deadline, executor);
 	}
 
-	static bool reschedule (const DeadlineTime& deadline, Item item, const DeadlineTime& old) NIRVANA_NOEXCEPT
+	static bool reschedule (const DeadlineTime& deadline, Executor& executor, const DeadlineTime& old) NIRVANA_NOEXCEPT
 	{
-		return Port::Scheduler::reschedule (deadline, item, old);
+		return Port::Scheduler::reschedule (deadline, executor, old);
 	}
 
 	static void shutdown () NIRVANA_NOEXCEPT

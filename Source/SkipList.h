@@ -21,6 +21,8 @@ namespace Core {
 class SkipListBase
 {
 public:
+	typedef uint_fast8_t Level;
+
 	bool empty () NIRVANA_NOEXCEPT
 	{
 		Node* prev = copy_node (head ());
@@ -40,18 +42,15 @@ protected:
 	{
 		Node* volatile prev;
 		RefCounter ref_cnt;
-		int level;
-		int volatile valid_level;
+		Level level;
+		Level volatile valid_level;
 		std::atomic <bool> deleted;
 
-		NodeBase (int l) NIRVANA_NOEXCEPT :
+		NodeBase (unsigned l) NIRVANA_NOEXCEPT :
 			prev (nullptr),
-			level (l),
-			valid_level (1),
+			level ((Level)l),
+			valid_level ((Level)1),
 			deleted (false)
-		{}
-
-		virtual ~NodeBase () NIRVANA_NOEXCEPT
 		{}
 	};
 
@@ -60,18 +59,21 @@ protected:
 	static const unsigned NODE_ALIGN = 1 << log2_ceil (sizeof (NodeBase) + 3 * sizeof (void*));
 	typedef TaggedPtrT <Node, 1, NODE_ALIGN> Link;
 
-	struct Node : NodeBase
+	struct NIRVANA_NOVTABLE Node : NodeBase
 	{
 		/// Virtual operator < must be overridden.
 		virtual bool operator < (const Node&) const NIRVANA_NOEXCEPT;
 
 		Link::Lockable next [1];	// Variable length array.
 
-		Node (int level) NIRVANA_NOEXCEPT :
+		Node (unsigned level) NIRVANA_NOEXCEPT :
 			NodeBase (level)
 		{
 			std::fill_n ((uintptr_t*)next, level, 0);
 		}
+
+		virtual ~Node () NIRVANA_NOEXCEPT
+		{}
 
 		static constexpr size_t size (size_t node_size, unsigned level) NIRVANA_NOEXCEPT
 		{
@@ -114,8 +116,6 @@ protected:
 
 	unsigned random_level () NIRVANA_NOEXCEPT;
 
-	void* allocate_node (unsigned level);
-
 	size_t node_size (unsigned level) const NIRVANA_NOEXCEPT
 	{
 		return Node::size (node_size_, level);
@@ -124,7 +124,6 @@ protected:
 	Node* insert (Node* new_node, Node** saved_nodes) NIRVANA_NOEXCEPT;
 
 	void release_node (Node* node) NIRVANA_NOEXCEPT;
-	void release_node_no_delete (Node* node) NIRVANA_NOEXCEPT;
 
 	Node* find (const Node* keynode) NIRVANA_NOEXCEPT;
 	Node* lower_bound (const Node* keynode) NIRVANA_NOEXCEPT;
@@ -154,6 +153,14 @@ protected:
 		return false;
 	}
 
+	/// Only `NodeBase::level` member is valid on return.
+	NodeBase* allocate_node (unsigned level);
+
+	virtual NodeBase* allocate_node () = 0;
+
+	/// Only `NodeBase::level` member is valid on return.
+	virtual void delete_node (Node* node) NIRVANA_NOEXCEPT;
+
 private:
 	static Node* read_node (Link::Lockable& node) NIRVANA_NOEXCEPT;
 
@@ -171,7 +178,6 @@ private:
 	Node* help_delete (Node*, int level) NIRVANA_NOEXCEPT;
 
 	void remove_node (Node* node, Node*& prev, int level) NIRVANA_NOEXCEPT;
-	void delete_node (Node* node) NIRVANA_NOEXCEPT;
 	void final_delete (Node* node) NIRVANA_NOEXCEPT;
 
 protected:
@@ -200,6 +206,12 @@ protected:
 		Base (node_size, MAX_LEVEL, head_tail_)
 	{}
 
+	virtual NodeBase* allocate_node ()
+	{
+		// Choose level randomly.
+		return Base::allocate_node (random_level ());
+	}
+
 	Node* insert (Node* new_node) NIRVANA_NOEXCEPT
 	{
 		Node* save_nodes [MAX_LEVEL];
@@ -226,12 +238,12 @@ class SkipList :
 {
 	typedef SkipListL <MAX_LEVEL> Base;
 public:
+	typedef Val Value;
+
 	struct NodeVal : Base::Node
 	{
 		// Reserve space for creation of auto variables with level = 1.
 		uint8_t val_space [sizeof (Val)];
-
-		typedef Val Value;
 
 		Value& value () NIRVANA_NOEXCEPT
 		{
@@ -285,11 +297,10 @@ public:
 	template <class ... Args>
 	NodeVal* create_node (Args ... args)
 	{
-		// Choose level randomly.
-		unsigned level = Base::random_level ();
-
+		SkipListBase::NodeBase* nb = Base::allocate_node ();
+		Level level = nb->level;
 		// Initialize node
-		return new (Base::allocate_node (level)) NodeVal (level, std::forward <Args> (args)...);
+		return new (nb) NodeVal (level, std::forward <Args> (args)...);
 	}
 
 	/// Gets minimal value.
@@ -361,12 +372,6 @@ public:
 	void release_node (NodeVal* node) NIRVANA_NOEXCEPT
 	{
 		Base::release_node (node);
-	}
-
-	/// Releases the node pointer without delete.
-	void release_node_no_delete (NodeVal* node) NIRVANA_NOEXCEPT
-	{
-		Base::release_node_no_delete (node);
 	}
 
 	/// Finds node by value.

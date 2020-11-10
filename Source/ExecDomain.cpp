@@ -1,7 +1,7 @@
 // Nirvana project.
 // Execution domain (coroutine, fiber).
 
-#include "SyncDomain.inl"
+#include "ExecDomain.h"
 
 namespace Nirvana {
 namespace Core {
@@ -55,7 +55,7 @@ void ExecDomain::schedule (SyncDomain* sync_domain, bool ret)
 			return_to_sync_domain ();
 		else {
 			try {
-				sync_domain->schedule (*this);
+				sync_domain->schedule (deadline (), *this);
 			} catch (...) {
 				if (old_domain)
 					old_domain->queue_node_release (ret_qnode_pop ());
@@ -72,8 +72,7 @@ void ExecDomain::return_to_sync_domain ()
 	SyncDomain::QueueNode* qn = ret_qnode_pop ();
 	SyncDomain::QueueNode::Value& val = qn->value ();
 	assert (sync_domain_ == (SyncDomain*)(val.deadline));
-	val.val = this;
-	sync_domain_->schedule (deadline (), qn);
+	sync_domain_->schedule (qn, deadline (), *this);
 	sync_domain_->queue_node_release (qn);
 }
 

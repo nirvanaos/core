@@ -25,11 +25,11 @@ template <class T, unsigned ALIGN = CORE_OBJECT_ALIGN (T)>
 class Stack
 {
 public:
-	Stack () :
+	Stack () NIRVANA_NOEXCEPT :
 		head_ (nullptr)
 	{}
 
-	void push (T& elem)
+	void push (T& elem) NIRVANA_NOEXCEPT
 	{
 		StackElem* p = &static_cast <StackElem&> (elem);
 		::new (&p->ref_cnt) RefCounter (); // Initialize reference counter with 1
@@ -39,7 +39,7 @@ public:
 		while (!head_.compare_exchange (head, &elem));
 	}
 
-	T* pop ()
+	T* pop () NIRVANA_NOEXCEPT
 	{
 		for (;;) {
 			head_.lock ();

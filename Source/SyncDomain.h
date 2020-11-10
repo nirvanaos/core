@@ -35,9 +35,17 @@ public:
 		queue_.release_node (node);
 	}
 
-	void schedule (DeadlineTime deadline, QueueNode* node) NIRVANA_NOEXCEPT;
+	void schedule (DeadlineTime deadline, Executor& executor)
+	{
+		verify (queue_.insert (deadline, &executor));
+		schedule ();
+	}
 
-	void schedule (ExecDomain& ed);
+	void schedule (QueueNode* node, DeadlineTime deadline, Executor& executor) NIRVANA_NOEXCEPT
+	{
+		verify (queue_.insert (node, deadline, &executor));
+		schedule ();
+	}
 
 	virtual void execute (Word scheduler_error);
 

@@ -2,7 +2,7 @@
 #define NIRVANA_CORE_SCHEDULERIMPL_H_
 
 #include "PriorityQueue.h"
-#include "AtomicCounter.h"
+#include "SkipListWithPool.h"
 #include <Port/SystemInfo.h>
 
 namespace Nirvana {
@@ -15,25 +15,24 @@ namespace Core {
 template <class T, class ExecutorRef>
 class SchedulerImpl
 {
-	typedef PriorityQueue <ExecutorRef, SYS_DOMAIN_PRIORITY_QUEUE_LEVELS> Queue;
+	typedef SkipListWithPool <PriorityQueue <ExecutorRef, SYS_DOMAIN_PRIORITY_QUEUE_LEVELS> > Queue;
 public:
-	typedef Queue::NodeVal* Item;
-
 	SchedulerImpl () NIRVANA_NOEXCEPT :
-		free_cores_ (Port::g_system_info.hardware_concurrency ())
+		free_cores_ (Port::g_system_info.hardware_concurrency ()),
+		queue_ (Port::g_system_info.hardware_concurrency ())
 	{}
 
-	Item create_item (const ExecutorRef& executor)
+	void create_item ()
 	{
-		return queue_.create_node (0, executor);
+		queue_.create_item ()
 	}
 
-	void release_item (Item item) NIRVANA_NOEXCEPT
+	void delete_item () NIRVANA_NOEXCEPT
 	{
-		queue_.release_node (item);
+		queue_.delete_item ();
 	}
 
-	void schedule (const DeadlineTime& deadline, Item item) NIRVANA_NOEXCEPT
+	void schedule (const DeadlineTime& deadline, ExecutorRef& executor) NIRVANA_NOEXCEPT
 	{
 		verify (queue_.insert (deadline, item));
 		execute_next ();
@@ -65,8 +64,8 @@ private:
 	void execute_next (); NIRVANA_NOEXCEPT
 
 private:
-	Queue queue_;
 	AtomicCounter free_cores_;
+	Queue queue_;
 };
 
 template <class T, class ExecutorRef>

@@ -2,7 +2,6 @@
 // Synchronization domain.
 
 #include "SyncDomain.h"
-#include "ExecDomain.h"
 
 namespace Nirvana {
 namespace Core {
@@ -16,12 +15,6 @@ SyncDomain::SyncDomain () :
 SyncDomain::~SyncDomain ()
 {
 	Scheduler::release_item (scheduler_item_);
-}
-
-void SyncDomain::schedule (DeadlineTime deadline, QueueNode* node) NIRVANA_NOEXCEPT
-{
-	verify (queue_.insert (deadline, node));
-	schedule ();
 }
 
 void SyncDomain::schedule () NIRVANA_NOEXCEPT
