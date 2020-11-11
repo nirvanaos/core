@@ -18,18 +18,21 @@ class SchedulerImpl
 	typedef SkipListWithPool <PriorityQueue <ExecutorRef, SYS_DOMAIN_PRIORITY_QUEUE_LEVELS> > Queue;
 public:
 	SchedulerImpl () NIRVANA_NOEXCEPT :
+		queue_ (Port::g_system_info.hardware_concurrency ()),
 		free_cores_ (Port::g_system_info.hardware_concurrency ()),
-		queue_ (Port::g_system_info.hardware_concurrency ())
+		active_items_ (0)
 	{}
 
 	void create_item ()
 	{
-		queue_.create_item ()
+		queue_.create_item ();
+		active_items_.increment ();
 	}
 
 	void delete_item () NIRVANA_NOEXCEPT
 	{
 		queue_.delete_item ();
+		active_items_.decrement ();
 	}
 
 	void schedule (const DeadlineTime& deadline, ExecutorRef& executor) NIRVANA_NOEXCEPT
@@ -38,20 +41,9 @@ public:
 		execute_next ();
 	}
 
-	bool reschedule (const DeadlineTime& deadline, Item item) NIRVANA_NOEXCEPT
-	{
-		Item removed = queue_.find_and_delete (item);
-		if (removed) {
-			queue_.insert (deadline, removed);
-			return true
-		} else
-			return false;
-	}
-
 	bool reschedule (const DeadlineTime& deadline, const ExecutorRef& executor, const DeadlineTime& deadline_prev) NIRVANA_NOEXCEPT
 	{
-		Queue::NodeVal keynode (1, deadline_prev, std::ref (executor));
-		return reschedule (deadline, &keynode);
+		return queue_.reorder (deadline, executor, deadline_prev);
 	}
 
 	void core_free () NIRVANA_NOEXCEPT
@@ -60,12 +52,18 @@ public:
 		execute_next ();
 	}
 
-private:
-	void execute_next (); NIRVANA_NOEXCEPT
+	AtomicCounter::UIntType active_items () const
+	{
+		return active_items_;
+	}
 
 private:
-	AtomicCounter free_cores_;
+	void execute_next () NIRVANA_NOEXCEPT;
+
+private:
 	Queue queue_;
+	AtomicCounter free_cores_;
+	AtomicCounter active_items_;
 };
 
 template <class T, class ExecutorRef>

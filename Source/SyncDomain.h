@@ -23,22 +23,44 @@ public:
 	SyncDomain ();
 	~SyncDomain ();
 
-	typedef Queue::QueueNode QueueNode;
-
-	QueueNode* create_queue_node (QueueNode* next)
+	void schedule (const DeadlineTime& deadline, Executor& executor)
 	{
-		return queue_.create_queue_node (next);
-	}
-
-	void schedule (DeadlineTime deadline, Executor& executor)
-	{
+		if (0 == activity_cnt_.increment ())
+			Scheduler::create_item ();
 		verify (queue_.insert (deadline, &executor));
 		schedule ();
 	}
 
-	void schedule (QueueNode* node, DeadlineTime deadline, Executor& executor) NIRVANA_NOEXCEPT
+	/// Pre-allocated queue node
+	class QueueNode : private SkipListBase::NodeBase
 	{
-		verify (queue_.insert (node, deadline, &executor));
+	public:
+		QueueNode* next () const NIRVANA_NOEXCEPT
+		{
+			return next_;
+		}
+
+		void release () NIRVANA_NOEXCEPT
+		{
+			domain_->release_queue_node (this);
+		}
+
+	private:
+		friend class SyncDomain;
+
+		SyncDomain* domain_;
+		QueueNode* next_;
+	};
+
+	QueueNode* create_queue_node (QueueNode* next);
+	void release_queue_node (QueueNode* node) NIRVANA_NOEXCEPT;
+
+	void schedule (QueueNode* node, const DeadlineTime& deadline, Executor& executor) NIRVANA_NOEXCEPT
+	{
+		assert (node);
+		assert (node->domain_ == this);
+		unsigned level = node->level;
+		verify (queue_.insert (new (node) Queue::NodeVal (level, deadline, &executor)));
 		schedule ();
 	}
 
@@ -60,6 +82,7 @@ public:
 
 private:
 	void schedule () NIRVANA_NOEXCEPT;
+	void activity_end () NIRVANA_NOEXCEPT;
 
 private:
 	Queue queue_;
@@ -78,6 +101,8 @@ private:
 	};
 	volatile State state_;
 	volatile DeadlineTime scheduled_deadline_;
+
+	AtomicCounter activity_cnt_;
 };
 
 }

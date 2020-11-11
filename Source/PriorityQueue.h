@@ -72,58 +72,25 @@ public:
 		return ins.second;
 	}
 
-	/// Pre-allocated queue node
-	class QueueNode : private SkipListBase::NodeBase
+	bool insert (NodeVal* new_node) NIRVANA_NOEXCEPT
 	{
-	public:
-		QueueNode* next () const NIRVANA_NOEXCEPT
-		{
-			return next_;
-		}
-
-		void release () NIRVANA_NOEXCEPT
-		{
-			queue_->release_queue_node (this);
-		}
-
-		unsigned level () const NIRVANA_NOEXCEPT
-		{
-			return SkipListBase::NodeBase::level;
-		}
-
-		SkipListBase* queue () const NIRVANA_NOEXCEPT
-		{
-			return queue_;
-		}
-
-	private:
-		friend class Queue;
-
-		Queue* queue_;
-		QueueNode* next_;
-	};
-
-	QueueNode* create_queue_node (QueueNode* next)
-	{
-		QueueNode* node = static_cast <QueueNode*> (Base::allocate_node ());
-		node->queue_ = this;
-		node->next_ = next;
-		return node;
-	}
-
-	void release_queue_node (QueueNode* node) NIRVANA_NOEXCEPT
-	{
-		Base::deallocate_node (node);
-	}
-
-	bool insert (QueueNode* node, const DeadlineTime& deadline, const Val& val) NIRVANA_NOEXCEPT
-	{
-		assert (node);
-		assert (node->queue () == this);
-		unsigned level = node->level ();
-		std::pair <NodeVal*, bool> ins = Base::insert (new (node) NodeVal (level, deadline, val));
+		std::pair <NodeVal*, bool> ins = Base::insert (new_node);
 		Base::release_node (ins.first);
 		return ins.second;
+	}
+
+	bool reorder (const DeadlineTime& deadline, const Val& val, const DeadlineTime& old)
+	{
+		assert (deadline != old);
+		SkipListBase::NodeBase* node = Base::allocate_node ();
+		if (Base::erase (old, val)) {
+			unsigned level = node->level;
+			verify (insert (new (node) NodeVal (level, deadline, val)));
+			return true;
+		} else {
+			Base::deallocate_node (node);
+			return false;
+		}
 	}
 
 	/// Deletes node with minimal deadline.

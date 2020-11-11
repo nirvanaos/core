@@ -36,8 +36,7 @@ public:
 protected:
 	struct Node;
 
-	SkipListBase (unsigned node_size, unsigned max_level, void* head_tail) NIRVANA_NOEXCEPT;
-
+public:
 	struct NodeBase
 	{
 		Node* volatile prev;
@@ -47,12 +46,19 @@ protected:
 		std::atomic <bool> deleted;
 
 		NodeBase (unsigned l) NIRVANA_NOEXCEPT :
-			prev (nullptr),
+		prev (nullptr),
 			level ((Level)l),
 			valid_level ((Level)1),
 			deleted (false)
 		{}
 	};
+
+	/// Only `NodeBase::level` member is used.
+	virtual void deallocate_node (NodeBase* node);
+
+protected:
+
+	SkipListBase (unsigned node_size, unsigned max_level, void* head_tail) NIRVANA_NOEXCEPT;
 
 	// Assume that key and value at least sizeof(void*) each.
 	// So we add 3 * sizeof (void*) to the node size: next, key, and value.
@@ -156,9 +162,6 @@ protected:
 	/// Only `NodeBase::level` member is valid on return.
 	NodeBase* allocate_node (unsigned level);
 
-	/// Only `NodeBase::level` member is used.
-	virtual void deallocate_node (NodeBase* node);
-
 private:
 	static Node* read_node (Link::Lockable& node) NIRVANA_NOEXCEPT;
 
@@ -200,16 +203,18 @@ class SkipListL :
 	public SkipListBase
 {
 	typedef SkipListBase Base;
-protected:
-	SkipListL (unsigned node_size) NIRVANA_NOEXCEPT :
-		Base (node_size, MAX_LEVEL, head_tail_)
-	{}
-
+public:
+	/// Only `NodeBase::level` member is valid on return.
 	virtual NodeBase* allocate_node ()
 	{
 		// Choose level randomly.
 		return Base::allocate_node (random_level ());
 	}
+
+protected:
+	SkipListL (unsigned node_size) NIRVANA_NOEXCEPT :
+		Base (node_size, MAX_LEVEL, head_tail_)
+	{}
 
 	Node* insert (Node* new_node) NIRVANA_NOEXCEPT
 	{
