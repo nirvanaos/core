@@ -23,16 +23,11 @@ public:
 	SyncDomain ();
 	~SyncDomain ();
 
-	typedef Queue::NodeVal QueueNode;
+	typedef Queue::QueueNode QueueNode;
 
-	QueueNode* queue_node_create (DeadlineTime deadline, Executor* ed)
+	QueueNode* create_queue_node (QueueNode* next)
 	{
-		return queue_.create_node (deadline, ed);
-	}
-
-	void queue_node_release (QueueNode* node) NIRVANA_NOEXCEPT
-	{
-		queue_.release_node (node);
+		return queue_.create_queue_node (next);
 	}
 
 	void schedule (DeadlineTime deadline, Executor& executor)
@@ -71,8 +66,6 @@ private:
 	Heap heap_;
 	RuntimeSupportImpl runtime_support_; // Must be destructed before the heap_ destruction.
 
-	Scheduler::Item scheduler_item_;
-	
 	// Thread that acquires this flag become a scheduling thread.
 	std::atomic_flag scheduling_;
 	volatile bool need_schedule_;

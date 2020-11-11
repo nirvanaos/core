@@ -102,9 +102,9 @@ public:
 		runtime_support_.cleanup ();
 		heap_.cleanup ();
 		ret_qnodes_clear ();
-		if (scheduler_item_) {
-			Scheduler::release_item (scheduler_item_);
-			scheduler_item_ = 0;
+		if (scheduler_item_created_) {
+			Scheduler::delete_item ();
+			scheduler_item_created_ = false;
 		}
 		Thread& thread = Thread::current ();
 		if (thread.exec_domain () == this)
@@ -175,8 +175,8 @@ private:
 	{
 		while (ret_qnodes_) {
 			SyncDomain::QueueNode* qn = ret_qnodes_;
-			ret_qnodes_ = (SyncDomain::QueueNode*)(qn->value ().val);
-			((SyncDomain*)(qn->value ().deadline))->queue_node_release (qn);
+			ret_qnodes_ = qn->next ();
+			qn->release ();
 		}
 	}
 
@@ -201,7 +201,7 @@ private:
 	SyncDomain::QueueNode* ret_qnodes_;
 	Heap heap_;
 	RuntimeSupportImpl runtime_support_;
-	Scheduler::Item scheduler_item_;
+	bool scheduler_item_created_;
 	CORBA::Exception::Code scheduler_error_;
 
 	Word runnable_space_ [MAX_RUNNABLE_SIZE];

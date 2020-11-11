@@ -20,8 +20,7 @@ class SkipListWithPool : public Base
 
 public:
 	SkipListWithPool (AtomicCounter::UIntType initial_count) :
-		item_count_cur_ (0),
-		item_count_req_ (initial_count)
+		purge_count_ (0)
 	{
 		while (initial_count--)
 			push_node ();
@@ -34,16 +33,13 @@ public:
 
 	void create_item ()
 	{
-		item_count_req_.increment ();
 		push_node ();
 	}
 
 	void delete_item ()
 	{
-		AtomicCounter::UIntType cnt_req = item_count_req_.decrement ();
-		while (item_count_cur_ > cnt_req)
-			if (!pop_node ())
-				break;
+		if (!pop_node ())
+			purge_count_.increment ();
 	}
 
 private:
@@ -77,22 +73,25 @@ private:
 	{
 		Stackable* se = stack_.pop ();
 		if (!se) {
-			assert (false); // Hardly ever, but may be
+			assert (false); // Hardly ever, but may be.
 			se = real_allocate_node ();
+			// This increases the minimum pool size and helps to avoid this situation in the future.
 		}
 		SkipListBase::NodeBase* nb = (SkipListBase::NodeBase*)se;
 		nb->level = se->level;
 		return nb;
 	}
 
-	virtual void delete_node (SkipListBase::Node* node) NIRVANA_NOEXCEPT
+	virtual void deallocate_node (SkipListBase::NodeBase* node) NIRVANA_NOEXCEPT
 	{
-		if (item_count_cur_ <= item_count_req_) {
+		if ((AtomicCounter::IntType)purge_count_.decrement () >= 0)
+			SkipListBase::deallocate_node (node);
+		else {
+			purge_count_.increment ();
 			Stackable* se = (Stackable*)node;
 			se->level = node->level;
 			stack_.push (*se);
-		} else
-			SkipListBase::delete_node (node);
+		}
 	}
 
 	void push_node (Stackable& se) NIRVANA_NOEXCEPT
@@ -104,7 +103,7 @@ private:
 
 private:
 	Stack <Stackable> stack_;
-	AtomicCounter item_count_cur_, item_count_req_;
+	AtomicCounter purge_count_;
 };
 
 }

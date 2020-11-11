@@ -156,10 +156,8 @@ protected:
 	/// Only `NodeBase::level` member is valid on return.
 	NodeBase* allocate_node (unsigned level);
 
-	virtual NodeBase* allocate_node () = 0;
-
-	/// Only `NodeBase::level` member is valid on return.
-	virtual void delete_node (Node* node) NIRVANA_NOEXCEPT;
+	/// Only `NodeBase::level` member is used.
+	virtual void deallocate_node (NodeBase* node);
 
 private:
 	static Node* read_node (Link::Lockable& node) NIRVANA_NOEXCEPT;
@@ -179,6 +177,7 @@ private:
 
 	void remove_node (Node* node, Node*& prev, int level) NIRVANA_NOEXCEPT;
 	void final_delete (Node* node) NIRVANA_NOEXCEPT;
+	void delete_node (Node* node) NIRVANA_NOEXCEPT;
 
 protected:
 #ifdef _DEBUG
@@ -298,9 +297,8 @@ public:
 	NodeVal* create_node (Args ... args)
 	{
 		SkipListBase::NodeBase* nb = Base::allocate_node ();
-		Level level = nb->level;
 		// Initialize node
-		return new (nb) NodeVal (level, std::forward <Args> (args)...);
+		return new (nb) NodeVal (nb->level, std::forward <Args> (args)...);
 	}
 
 	/// Gets minimal value.

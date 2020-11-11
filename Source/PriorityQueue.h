@@ -41,6 +41,7 @@ class PriorityQueue :
 	public SkipList <PriorityQueueKeyVal <Val>, MAX_LEVEL>
 {
 	typedef SkipList <PriorityQueueKeyVal <Val>, MAX_LEVEL> Base;
+	typedef PriorityQueue <Val, MAX_LEVEL> Queue;
 public:
 	typedef typename Base::NodeVal NodeVal;
 	typedef typename Base::Value Value;
@@ -71,13 +72,56 @@ public:
 		return ins.second;
 	}
 
-	bool insert (NodeVal* node, const DeadlineTime& deadline, const Val& val) NIRVANA_NOEXCEPT
+	/// Pre-allocated queue node
+	class QueueNode : private SkipListBase::NodeBase
 	{
-		Value& value = node->value ();
-		value.deadline = deadline;
-		value.val = val;
+	public:
+		QueueNode* next () const NIRVANA_NOEXCEPT
+		{
+			return next_;
+		}
 
-		std::pair <NodeVal*, bool> ins = Base::insert (node);
+		void release () NIRVANA_NOEXCEPT
+		{
+			queue_->release_queue_node (this);
+		}
+
+		unsigned level () const NIRVANA_NOEXCEPT
+		{
+			return SkipListBase::NodeBase::level;
+		}
+
+		SkipListBase* queue () const NIRVANA_NOEXCEPT
+		{
+			return queue_;
+		}
+
+	private:
+		friend class Queue;
+
+		Queue* queue_;
+		QueueNode* next_;
+	};
+
+	QueueNode* create_queue_node (QueueNode* next)
+	{
+		QueueNode* node = static_cast <QueueNode*> (Base::allocate_node ());
+		node->queue_ = this;
+		node->next_ = next;
+		return node;
+	}
+
+	void release_queue_node (QueueNode* node) NIRVANA_NOEXCEPT
+	{
+		Base::deallocate_node (node);
+	}
+
+	bool insert (QueueNode* node, const DeadlineTime& deadline, const Val& val) NIRVANA_NOEXCEPT
+	{
+		assert (node);
+		assert (node->queue () == this);
+		unsigned level = node->level ();
+		std::pair <NodeVal*, bool> ins = Base::insert (new (node) NodeVal (level, deadline, val));
 		Base::release_node (ins.first);
 		return ins.second;
 	}

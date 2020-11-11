@@ -22,13 +22,13 @@ void ExecDomain::ctor_base ()
 	sync_domain_ = nullptr;
 	ret_qnodes_ = nullptr;
 	scheduler_error_ = CORBA::SystemException::EC_NO_EXCEPTION;
-	scheduler_item_ = 0;
+	scheduler_item_created_ = false;
 }
 
 inline
 void ExecDomain::ret_qnode_push (SyncDomain& sd)
 {
-	ret_qnodes_ = sd.queue_node_create ((DeadlineTime)&sd, (Executor*)ret_qnodes_);
+	ret_qnodes_ = sd.create_queue_node (ret_qnodes_);
 }
 
 inline
@@ -36,7 +36,7 @@ SyncDomain::QueueNode* ExecDomain::ret_qnode_pop ()
 {
 	assert (ret_qnodes_);
 	SyncDomain::QueueNode* ret = ret_qnodes_;
-	ret_qnodes_ = (SyncDomain::QueueNode*)(ret->value ().val);
+	ret_qnodes_ = ret->next ();
 	return ret;
 }
 
@@ -47,8 +47,10 @@ void ExecDomain::schedule (SyncDomain* sync_domain, bool ret)
 	SyncDomain* old_domain = sync_domain_;
 	if (!ret && old_domain)
 		ret_qnode_push (*old_domain);
-	if (!sync_domain && !scheduler_item_)
-		scheduler_item_ = Scheduler::create_item (*this);
+	if (!sync_domain && !scheduler_item_created_) {
+		Scheduler::create_item ();
+		scheduler_item_created_ = true;
+	}
 
 	if ((sync_domain_ = sync_domain)) {
 		if (ret)
@@ -58,28 +60,25 @@ void ExecDomain::schedule (SyncDomain* sync_domain, bool ret)
 				sync_domain->schedule (deadline (), *this);
 			} catch (...) {
 				if (old_domain)
-					old_domain->queue_node_release (ret_qnode_pop ());
+					ret_qnode_pop ()->release ();
 				sync_domain_ = old_domain;
 				throw;
 			}
 		}
 	} else
-		Scheduler::schedule (deadline (), scheduler_item_);
+		Scheduler::schedule (deadline (), *this);
 }
 
 void ExecDomain::return_to_sync_domain ()
 {
 	SyncDomain::QueueNode* qn = ret_qnode_pop ();
-	SyncDomain::QueueNode::Value& val = qn->value ();
-	assert (sync_domain_ == (SyncDomain*)(val.deadline));
 	sync_domain_->schedule (qn, deadline (), *this);
-	sync_domain_->queue_node_release (qn);
 }
 
 void ExecDomain::suspend ()
 {
 	assert (&ExecContext::current () == &Thread::current ().neutral_context ());
-	assert (sync_domain_ || scheduler_item_);
+	assert (sync_domain_ || scheduler_item_created_);
 	if (sync_domain_)
 		ret_qnode_push (*sync_domain_);
 }
@@ -89,8 +88,10 @@ void ExecDomain::resume ()
 	assert (&ExecContext::current () != this);
 	if (sync_domain_)
 		return_to_sync_domain ();
-	else
-		Scheduler::schedule (deadline (), scheduler_item_);
+	else {
+		assert (scheduler_item_created_);
+		Scheduler::schedule (deadline (), *this);
+	}
 }
 
 void ExecDomain::execute (Word scheduler_error)

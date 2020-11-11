@@ -7,14 +7,15 @@ namespace Nirvana {
 namespace Core {
 
 SyncDomain::SyncDomain () :
-	scheduler_item_ (Scheduler::create_item (*this)),
 	need_schedule_ (false),
 	state_ (State::IDLE)
-{}
+{
+	Scheduler::create_item ();
+}
 
 SyncDomain::~SyncDomain ()
 {
-	Scheduler::release_item (scheduler_item_);
+	Scheduler::delete_item ();
 }
 
 void SyncDomain::schedule () NIRVANA_NOEXCEPT
@@ -27,14 +28,14 @@ void SyncDomain::schedule () NIRVANA_NOEXCEPT
 		if (queue_.get_min_deadline (min_deadline)) {
 			if (State::IDLE == state_) {
 				state_ = State::SCHEDULED;
-				Scheduler::schedule (min_deadline, scheduler_item_);
+				Scheduler::schedule (min_deadline, *this);
 				scheduled_deadline_ = min_deadline;
 			} else if (State::SCHEDULED == state_) {
 				DeadlineTime scheduled_deadline = scheduled_deadline_;
 				if (
 					min_deadline != scheduled_deadline
 					&&
-					Scheduler::reschedule (min_deadline, scheduler_item_, scheduled_deadline)
+					Scheduler::reschedule (min_deadline, *this, scheduled_deadline)
 					)
 						scheduled_deadline_ = min_deadline;
 			}

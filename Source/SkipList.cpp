@@ -58,6 +58,22 @@ SkipListBase::NodeBase* SkipListBase::allocate_node (unsigned level)
 	return p;
 }
 
+void SkipListBase::deallocate_node (NodeBase* node)
+{
+	g_core_heap.release (node, Node::size (node_size_, node->level));
+}
+
+inline
+void SkipListBase::delete_node (Node* node) NIRVANA_NOEXCEPT
+{
+#ifdef _DEBUG
+	assert (node_cnt_ > 0);
+	node_cnt_.decrement ();
+#endif
+	node->~Node ();
+	deallocate_node (node);
+}
+
 void SkipListBase::release_node (Node* node) NIRVANA_NOEXCEPT
 {
 	assert (node);
@@ -73,17 +89,6 @@ void SkipListBase::release_node (Node* node) NIRVANA_NOEXCEPT
 #endif
 		delete_node (node);
 	}
-}
-
-void SkipListBase::delete_node (Node* node) NIRVANA_NOEXCEPT
-{
-#ifdef _DEBUG
-	assert (node_cnt_ > 0);
-	node_cnt_.decrement ();
-#endif
-	unsigned level = node->level;
-	node->~Node ();
-	g_core_heap.release (node, Node::size (node_size_, level));
 }
 
 SkipListBase::Node* SkipListBase::insert (Node* new_node, Node** saved_nodes) NIRVANA_NOEXCEPT
