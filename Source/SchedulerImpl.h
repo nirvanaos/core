@@ -52,7 +52,7 @@ public:
 		execute_next ();
 	}
 
-	AtomicCounter::UIntType active_items () const
+	AtomicCounter <false>::IntegralType active_items () const
 	{
 		return active_items_;
 	}
@@ -62,8 +62,8 @@ private:
 
 private:
 	Queue queue_;
-	AtomicCounter free_cores_;
-	AtomicCounter active_items_;
+	AtomicCounter <false> free_cores_;
+	AtomicCounter <false> active_items_;
 };
 
 template <class T, class ExecutorRef>

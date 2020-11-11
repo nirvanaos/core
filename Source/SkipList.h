@@ -184,7 +184,7 @@ private:
 
 protected:
 #ifdef _DEBUG
-	AtomicCounter node_cnt_;
+	AtomicCounter <false> node_cnt_;
 #endif
 
 private:

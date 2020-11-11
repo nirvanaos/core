@@ -51,9 +51,9 @@ void ServantProxyBase::add_ref_1 ()
 	interface_duplicate (&servant_);
 }
 
-::Nirvana::Core::RefCounter::UIntType ServantProxyBase::_remove_ref ()
+ServantProxyBase::RefCnt::IntegralType ServantProxyBase::_remove_ref ()
 {
-	::Nirvana::Core::RefCounter::IntType cnt = ref_cnt_.decrement ();
+	RefCnt::IntegralType cnt = ref_cnt_.decrement ();
 	if (!cnt) {
 		run_garbage_collector <GarbageCollector> (servant_);
 	} else if (cnt < 0) {

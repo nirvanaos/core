@@ -84,7 +84,7 @@ private:
 
 	virtual void deallocate_node (SkipListBase::NodeBase* node) NIRVANA_NOEXCEPT
 	{
-		if ((AtomicCounter::IntType)purge_count_.decrement () >= 0)
+		if (purge_count_.decrement () >= 0)
 			SkipListBase::deallocate_node (node);
 		else {
 			purge_count_.increment ();
@@ -103,7 +103,7 @@ private:
 
 private:
 	Stack <Stackable> stack_;
-	AtomicCounter purge_count_;
+	AtomicCounter <true> purge_count_;
 };
 
 }

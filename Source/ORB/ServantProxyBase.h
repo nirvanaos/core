@@ -41,9 +41,11 @@ public:
 		return &static_cast <Object&> (static_cast <Bridge <Object>&> (*this));
 	}
 
+	typedef ::Nirvana::Core::AtomicCounter <false> RefCnt;
+
 	void _add_ref ()
 	{
-		::Nirvana::Core::RefCounter::IntType cnt = ref_cnt_.increment ();
+		RefCnt::IntegralType cnt = ref_cnt_.increment ();
 		if (1 == cnt) {
 			try {
 				::Nirvana::Core::Synchronized sync (*sync_context_);
@@ -55,7 +57,7 @@ public:
 		}
 	}
 
-	virtual ::Nirvana::Core::AtomicCounter::UIntType _remove_ref ();
+	virtual RefCnt::IntegralType _remove_ref ();
 
 protected:
 	ServantProxyBase (AbstractBase_ptr servant, const Operation object_ops [3], void* object_impl);
@@ -207,7 +209,7 @@ private:
 
 private:
 	AbstractBase_ptr servant_;
-	::Nirvana::Core::AtomicCounter ref_cnt_;
+	RefCnt ref_cnt_;
 	::Nirvana::Core::Core_var <::Nirvana::Core::SyncContext> sync_context_;
 };
 

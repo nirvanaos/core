@@ -64,7 +64,7 @@ public:
 	};
 
 private:
-	AtomicCounter read_cnt_;
+	AtomicCounter <false> read_cnt_;
 	std::atomic_flag write_lock_;
 	volatile bool writer_waits_;
 };

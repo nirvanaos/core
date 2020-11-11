@@ -54,9 +54,9 @@ void ProxyObject::add_ref_1 ()
 	}
 }
 
-::Nirvana::Core::AtomicCounter::UIntType ProxyObject::_remove_ref ()
+::Nirvana::Core::RefCounter::IntegralType ProxyObject::_remove_ref ()
 {
-	::Nirvana::Core::AtomicCounter::UIntType cnt = Base::_remove_ref ();
+	::Nirvana::Core::RefCounter::IntegralType cnt = Base::_remove_ref ();
 	if (implicit_activation_ && 1 == cnt) {
 		// Launch deactivator
 		if (

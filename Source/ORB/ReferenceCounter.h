@@ -38,7 +38,7 @@ public:
 
 	ULong _refcount_value () const
 	{
-		::Nirvana::Core::RefCounter::UIntType ucnt = ref_cnt_;
+		::Nirvana::Core::RefCounter::IntegralType ucnt = ref_cnt_;
 		return ucnt > std::numeric_limits <ULong>::max () ? std::numeric_limits <ULong>::max () : (ULong)ucnt;
 	}
 

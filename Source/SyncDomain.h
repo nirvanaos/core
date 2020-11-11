@@ -102,7 +102,7 @@ private:
 	volatile State state_;
 	volatile DeadlineTime scheduled_deadline_;
 
-	AtomicCounter activity_cnt_;
+	AtomicCounter <false> activity_cnt_;
 };
 
 }

@@ -3,28 +3,40 @@
 
 #include "core.h"
 #include <atomic>
+#include <type_traits>
 
 namespace Nirvana {
 namespace Core {
 
+template <bool SIGNED>
 class AtomicCounter
 {
-public:
-	typedef UWord UIntType;
-	typedef Word IntType;
+#if ATOMIC_INT_LOCK_FREE
+	typedef unsigned int Unsigned;
+	typedef int Signed;
+#elif ATOMIC_LONG_LOCK_FREE
+	typedef unsigned long Unsigned;
+	typedef long Signed;
+#elif ATOMIC_LLONG_LOCK_FREE
+	typedef unsigned long long Unsigned;
+	typedef long long Signed;
+#elif ATOMIC_SHORT_LOCK_FREE
+	typedef unsigned short Unsigned;
+	typedef short Signed;
+#else
+#error Platform does not meet the minimal atomic requirements.
+#endif
 
-	AtomicCounter (IntType init) NIRVANA_NOEXCEPT :
+public:
+	using IntegralType = std::conditional_t <SIGNED, Signed, Unsigned>;
+
+	AtomicCounter (IntegralType init) NIRVANA_NOEXCEPT :
 		cnt_ (init)
 	{
 		assert (cnt_.is_lock_free ());
 	}
 
-	explicit operator IntType () const NIRVANA_NOEXCEPT
-	{
-		return cnt_;
-	}
-
-	explicit operator UIntType () const NIRVANA_NOEXCEPT
+	explicit operator IntegralType () const NIRVANA_NOEXCEPT
 	{
 		return cnt_;
 	}
@@ -34,22 +46,23 @@ public:
 		return cnt_ != 0;
 	}
 
-	IntType increment () NIRVANA_NOEXCEPT
+	IntegralType increment () NIRVANA_NOEXCEPT
 	{
 		return ++cnt_;
 	}
 
-	IntType decrement () NIRVANA_NOEXCEPT
+	IntegralType decrement () NIRVANA_NOEXCEPT
 	{
+		assert (SIGNED || cnt_ > 0);
 		return --cnt_;
 	}
 
 private:
-	std::atomic <Word> cnt_;
+	std::atomic <IntegralType> cnt_;
 };
 
 /// Reference counter
-class RefCounter : public AtomicCounter
+class RefCounter : public AtomicCounter <false>
 {
 public:
 	/// Initialized with 1.
@@ -66,17 +79,6 @@ public:
 	RefCounter& operator = (const RefCounter&) NIRVANA_NOEXCEPT
 	{
 		return *this;
-	}
-
-	UIntType decrement () NIRVANA_NOEXCEPT
-	{
-		assert ((UIntType)*this > 0);
-		return AtomicCounter::decrement ();
-	}
-
-	UIntType increment () NIRVANA_NOEXCEPT
-	{
-		return AtomicCounter::increment ();
 	}
 };
 

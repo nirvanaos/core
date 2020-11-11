@@ -5,6 +5,10 @@
 #include <atomic>
 #include <algorithm>
 
+#ifndef ATOMIC_POINTER_LOCK_FREE
+#error Atomic pointer is required.
+#endif
+
 #define CORE_OBJECT_ALIGN(T) (std::max ((unsigned)::Nirvana::Core::HEAP_UNIT_CORE, (unsigned)(1 << ::Nirvana::log2_ceil (sizeof (T)))))
 
 namespace Nirvana {

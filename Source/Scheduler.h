@@ -72,7 +72,7 @@ private:
 	};
 
 	static std::atomic <State> state_;
-	static AtomicCounter activity_cnt_;
+	static AtomicCounter <false> activity_cnt_;
 };
 
 }

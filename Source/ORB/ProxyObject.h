@@ -32,7 +32,7 @@ private:
 	};
 
 	virtual void add_ref_1 ();
-	virtual ::Nirvana::Core::RefCounter::UIntType _remove_ref ();
+	virtual ::Nirvana::Core::RefCounter::IntegralType _remove_ref ();
 
 	void implicit_deactivate ();
 
