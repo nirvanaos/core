@@ -13,6 +13,11 @@ template <class T> class ObjectPool;
 
 /// Poolable implementation of a core object.
 /// \tparam T object class.
+///           Class T must have the members:
+///           void _activate ();
+///           void _deactivate (ImplPoolable <T>& obj);
+/// 
+/// While element is not in stack, the StackElem::next field is unused and may contain any value.
 template <class T>
 class ImplPoolable :
 	public T,
@@ -22,11 +27,9 @@ private:
 	template <class> friend class Core_var;
 
 	template <class ... Args>
-	ImplPoolable (ObjectPool <T>& pool, Args ... args) :
+	ImplPoolable (Args ... args) :
 		T (std::forward <Args> (args)...)
-	{
-		StackElem::next = &pool;
-	}
+	{}
 
 	void _add_ref ()
 	{
@@ -34,13 +37,6 @@ private:
 	}
 
 	void _remove_ref ();
-
-	/// Returns a pool where the object was got.
-	/// You can release deactivated object to this or other pool.
-	ObjectPool <T>& pool () const
-	{
-		return *(ObjectPool <T>*)StackElem::next;
-	}
 };
 
 template <class T>
@@ -51,11 +47,10 @@ public:
 	Core_var <T> get ()
 	{
 		Core_var <ImplPoolable <T> > obj (Stack <ImplPoolable <T> >::pop ());
-		if (obj) {
-			static_cast <StackElem&> (*obj).next = this;
+		if (obj)
 			obj->_activate ();
-		} else
-			obj = Core_var <ImplPoolable <T> >::template create <ImplPoolable <T> > (std::ref (*this));
+		else
+			obj = Core_var <ImplPoolable <T> >::template create <ImplPoolable <T> > ();
 		return obj;
 	}
 

@@ -21,7 +21,7 @@ class NIRVANA_NOVTABLE ExecDomain :
 	public Executor,
 	private Runnable // Runnable is used for return object to pool in neutral context.
 {
-	static const size_t MAX_RUNNABLE_SIZE = 8; // In words.
+	static const size_t MAX_RUNNABLE_SIZE = 8; // In pointers.
 public:
 	template <class R, class ... Args>
 	static void async_call (DeadlineTime deadline, SyncDomain* sync_domain, Args ... args)
@@ -56,7 +56,7 @@ public:
 	template <class ... Args>
 	static Core_var <ExecDomain> create_main (Runnable& startup, Args ... args)
 	{
-		return Core_var <ExecDomain>::create <ImplPoolable <ExecDomain> > (std::ref (pool_), std::ref (startup), std::forward <Args> (args)...);
+		return Core_var <ExecDomain>::create <ImplPoolable <ExecDomain> > (std::ref (startup), std::forward <Args> (args)...);
 	}
 
 	DeadlineTime deadline () const
@@ -88,12 +88,16 @@ public:
 
 	void spawn (DeadlineTime deadline, SyncDomain* sync_domain);
 
-	void suspend ();
+	/// Suspend current domain
+	static void suspend ();
+
+	/// Resume suspended domain
 	void resume ();
 
 	void _activate ()
 	{}
 
+	/// Clear data and return object to the pool
 	void _deactivate (ImplPoolable <ExecDomain>& obj)
 	{
 		runnable_.reset ();
@@ -204,7 +208,7 @@ private:
 	bool scheduler_item_created_;
 	CORBA::Exception::Code scheduler_error_;
 
-	Word runnable_space_ [MAX_RUNNABLE_SIZE];
+	void* runnable_space_ [MAX_RUNNABLE_SIZE];
 };
 
 }

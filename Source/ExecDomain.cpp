@@ -77,10 +77,12 @@ void ExecDomain::return_to_sync_domain ()
 
 void ExecDomain::suspend ()
 {
-	assert (&ExecContext::current () == &Thread::current ().neutral_context ());
-	assert (sync_domain_ || scheduler_item_created_);
-	if (sync_domain_)
-		ret_qnode_push (*sync_domain_);
+	ExecDomain* cur = Thread::current ().exec_domain ();
+	assert (cur);
+	assert (cur->sync_domain_ || cur->scheduler_item_created_);
+	if (cur->sync_domain_)
+		cur->ret_qnode_push (*cur->sync_domain_);
+	Thread::current ().exec_domain (nullptr);
 }
 
 void ExecDomain::resume ()

@@ -15,7 +15,7 @@ public:
 
 private:
 	ExecDomain& worker_;
-	Stack <ExecDomain> wait_list_;
+	ExecDomain* wait_list_;
 };
 
 }

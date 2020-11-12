@@ -12,7 +12,7 @@ namespace Core {
 /// \struct StackElem
 ///
 /// \brief A stack elements must be derived from StackElem.
-///        While element not in stack, the StackElem fields are unused and may contain any values.
+///        While element is not in stack, the StackElem fields are unused and may contain any values.
 ///        So this fields may be used for other purposes until the element placed to the stack.
 
 struct StackElem
