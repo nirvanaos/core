@@ -11,7 +11,7 @@ class Process : public ThreadBackground
 {
 public:
 	static void spawn (int argc, char* argv []);
-	static Core_var <Process> posix_spawn (const char* file, char* argv [], char* envp);
+	static Core::Core_var <Process> posix_spawn (const char* file, char* argv [], char* envp);
 
 private:
 	Core::Heap heap_;

@@ -1,7 +1,9 @@
 // Nirvana project.
 // Synchronization domain.
 
-#include "SyncDomain.h"
+#include "ExecDomain.h"
+#include "ScheduleCall.h"
+#include "Suspend.h"
 
 namespace Nirvana {
 namespace Core {
@@ -77,25 +79,50 @@ void SyncDomain::execute (Word scheduler_error)
 	state_ = State::RUNNING;
 	Executor* executor;
 	DeadlineTime dt;
-	verify (queue_.delete_min (executor, dt));
-	executor->execute (scheduler_error);
+	if (queue_.delete_min (executor, dt))
+		executor->execute (scheduler_error);
+#ifdef _DEBUG
+	else
+		assert (false);
+#endif
 	assert (State::RUNNING == state_);
 	state_ = State::IDLE;
 	schedule ();
 	activity_end ();
 }
 
-void SyncDomain::enter (bool ret)
+void SyncDomain::schedule_call (SyncDomain* sync_domain)
 {
-	Thread::current ().enter_to (this, ret);
+	ExecDomain* exec_domain = Thread::current ().exec_domain ();
+	assert (exec_domain);
+	assert (&ExecContext::current () == exec_domain);
+	exec_domain->ret_qnode_push (*this);
+
+	if (SyncContext::SUSPEND == sync_domain)
+		Suspend::suspend ();
+	else {
+		try {
+			ScheduleCall::schedule_call (sync_domain);
+		} catch (...) {
+			release_queue_node (exec_domain->ret_qnode_pop ());
+			throw;
+		}
+		check_schedule_error ();
+	}
 }
 
-SyncDomain* SyncDomain::sync_domain ()
+void SyncDomain::schedule_return (ExecDomain& exec_domain) NIRVANA_NOEXCEPT
+{
+	exec_domain.sync_context (*this);
+	schedule (exec_domain.ret_qnode_pop (), exec_domain.deadline (), exec_domain);
+}
+
+SyncDomain* SyncDomain::sync_domain () NIRVANA_NOEXCEPT
 {
 	return this;
 }
 
-Heap& SyncDomain::memory ()
+Heap& SyncDomain::memory () NIRVANA_NOEXCEPT
 {
 	return heap_;
 }

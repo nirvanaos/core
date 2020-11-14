@@ -13,11 +13,11 @@ class NIRVANA_NOVTABLE Runnable :
 {
 public:
 	virtual void run () = 0;
-	virtual void on_exception ();
-	virtual void on_crash (Word error_code);
+	virtual void on_exception () NIRVANA_NOEXCEPT;
+	virtual void on_crash (Word error_code) NIRVANA_NOEXCEPT;
 };
 
-void run_in_neutral_context (Runnable& runnable);
+void run_in_neutral_context (Runnable& runnable) NIRVANA_NOEXCEPT;
 
 }
 }

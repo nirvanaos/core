@@ -34,23 +34,17 @@ public:
 
 	static void neutral_context_loop ();
 
-	void run_in_context (Runnable& runnable)
+	void run_in_context (Runnable& runnable) NIRVANA_NOEXCEPT
 	{
 		assert (this != &current ());
 		runnable_ = &runnable;
 		switch_to ();
 	}
 
-	/// Abort current context due to a unrecoverable error.
-	static void abort ()
-	{
-		Port::ExecContext::abort ();
-	}
-
 protected:
 	void run ();
 
-	void on_crash (Word code);
+	void on_crash ();
 
 protected:
 	Core_var <Runnable> runnable_;

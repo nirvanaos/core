@@ -32,9 +32,9 @@ void ExecContext::run ()
 	}
 }
 
-void ExecContext::on_crash (Word code)
+void ExecContext::on_crash ()
 {
-	runnable_->on_crash (code);
+	runnable_->on_crash (CORBA::SystemException::EC_UNKNOWN);
 	runnable_.reset ();
 }
 

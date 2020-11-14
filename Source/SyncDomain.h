@@ -66,9 +66,11 @@ public:
 
 	virtual void execute (Word scheduler_error);
 
-	virtual void enter (bool ret);
-	virtual SyncDomain* sync_domain ();
-	virtual Heap& memory ();
+	virtual void schedule_call (SyncDomain* sync_domain);
+	virtual void schedule_return (ExecDomain& exec_domain) NIRVANA_NOEXCEPT;
+
+	virtual SyncDomain* sync_domain () NIRVANA_NOEXCEPT;
+	virtual Heap& memory () NIRVANA_NOEXCEPT;
 
 	Heap& heap ()
 	{

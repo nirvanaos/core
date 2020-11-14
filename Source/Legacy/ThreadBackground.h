@@ -1,9 +1,10 @@
 #ifndef NIRVANA_LEGACY_CORE_THREADBACKGROUND_H_
 #define NIRVANA_LEGACY_CORE_THREADBACKGROUND_H_
 
-#include "../Thread.inl"
+#include "../Thread.h"
 #include "../SyncContext.h"
 #include <Port/ThreadBackground.h>
+#include "RuntimeSupportLegacy.h"
 
 namespace Nirvana {
 
@@ -35,24 +36,32 @@ public:
 		return static_cast <ThreadBackground&> (Nirvana::Core::Thread::current ());
 	}
 
-	/// Returns synchronization context.
-	virtual Nirvana::Core::SyncContext& sync_context () NIRVANA_NOEXCEPT;
+	/// Leave this context and enter to the synchronization domain.
+	virtual void schedule_call (Nirvana::Core::SyncDomain* sync_domain);
 
-	virtual void enter (bool ret);
-	virtual ::Nirvana::Core::SyncDomain* sync_domain ();
+	/// Return execution domain to this context.
+	virtual void schedule_return (Nirvana::Core::ExecDomain& exec_domain) NIRVANA_NOEXCEPT;
 
-	virtual void enter_to (Nirvana::Core::SyncDomain* sync_domain, bool ret);
+	/// Returns `nullptr` if it is free sync context.
+	/// May be used for proxy optimization.
+	/// When we marshal `in` parameters from free context we haven't to copy data.
+	virtual Nirvana::Core::SyncDomain* sync_domain () NIRVANA_NOEXCEPT;
+
+	/// Returns heap reference.
+	// virtual Nirvana::Core::Heap& memory () = 0;
+
+	RuntimeSupportLegacy& runtime_support () const NIRVANA_NOEXCEPT
+	{
+		assert (runtime_support_);
+		return static_cast <RuntimeSupportLegacy&> (*runtime_support_);
+	}
+
+	virtual void yield () NIRVANA_NOEXCEPT;
 
 protected:
-	void start (Nirvana::Core::ExecDomain& ed);
-
-	friend class Nirvana::Core::Core_var <ThreadBackground>;
-	virtual void _add_ref () = 0;
-	virtual void _remove_ref () = 0;
+	void start (RuntimeSupportLegacy& runtime_support, Nirvana::Core::ExecDomain& execution_domain);
 
 private:
-	virtual void run ();
-
 	void on_thread_proc_end ()
 	{
 		_remove_ref ();

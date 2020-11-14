@@ -18,8 +18,7 @@ class SyncContext;
 class RuntimeSupportImpl;
 
 class NIRVANA_NOVTABLE Thread :
-	public SpinLockNode,
-	protected Runnable // Runnable::run () is used for schedule.
+	public SpinLockNode
 {
 public:
 	/// Returns current thread.
@@ -35,9 +34,12 @@ public:
 		return exec_domain_;
 	}
 
-	void exec_domain (ExecDomain* d) NIRVANA_NOEXCEPT
+	void exec_domain (ExecDomain& exec_domain) NIRVANA_NOEXCEPT;
+
+	void exec_domain (nullptr_t) NIRVANA_NOEXCEPT
 	{
-		exec_domain_ = d;
+		exec_domain_ = nullptr;
+		runtime_support_ = nullptr;
 	}
 
 	ExecContext& context () const NIRVANA_NOEXCEPT
@@ -56,19 +58,14 @@ public:
 		return neutral_context_;
 	}
 
-	/// Returns synchronization context.
-	virtual SyncContext& sync_context () NIRVANA_NOEXCEPT = 0;
-
 	/// Returns runtime support object.
-	virtual RuntimeSupportImpl& runtime_support () NIRVANA_NOEXCEPT = 0;
+	RuntimeSupportImpl& runtime_support () const NIRVANA_NOEXCEPT
+	{
+		assert (runtime_support_);
+		return *runtime_support_;
+	}
 
-	/// Enter to a synchronization domain.
-	/// Schedules current execution domain to execute in the synchronization domain.
-	/// Does not throw an exception if `ret = true`.
-	/// 
-	/// \param sync_domain Synchronization domain. May be `nullptr`.
-	/// \param ret `false` for call, `true` for return.
-	virtual void enter_to (SyncDomain* sync_domain, bool ret);
+	virtual void yield () NIRVANA_NOEXCEPT = 0;
 
 protected:
 	Thread () :
@@ -77,11 +74,8 @@ protected:
 		neutral_context_ (true)
 	{}
 
-	virtual void run ();
-	virtual void on_exception () override;
-
-private:
-	void _enter_to (SyncDomain* sync_domain, bool ret);
+protected:
+	RuntimeSupportImpl* runtime_support_;
 
 private:
 	/// Pointer to the current execution domain.
@@ -92,13 +86,6 @@ private:
 
 	/// Special "neutral" execution context with own stack and CPU state.
 	ExecContext neutral_context_;
-
-	///@{
-	/// Data for `virtual void run()`.
-	SyncDomain* schedule_domain_;
-	bool schedule_ret_;
-	std::exception_ptr exception_;
-	///@}
 };
 
 }

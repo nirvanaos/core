@@ -22,19 +22,29 @@ class ServantMarshalerImpl :
 public:
 	using InterfaceImplBase <T, Marshal>::_context;
 	using InterfaceImplBase <T, Unmarshal>::_context;
+
+protected:
+	ServantMarshalerImpl (::Nirvana::Core::SyncContext& sc) :
+		memory_ (sc.memory ())
+	{}
+
+protected:
+	::Nirvana::Core::Heap& memory_;
+	
+	typedef ::Nirvana::UIntPtr Tag;
+	Tag* cur_ptr_;
 };
 
 class ServantMarshaler :
 	public ServantMarshalerImpl <ServantMarshaler>
 {
-	typedef ::Nirvana::UIntPtr Tag;
 public:
 	static const size_t BLOCK_SIZE = 32 * sizeof (Tag);
 
-	ServantMarshaler (::Nirvana::Core::SyncContext* sc) :
-		sync_context_ (sc),
-		cur_ptr_ (block_)
+	ServantMarshaler (::Nirvana::Core::SyncContext& sc) :
+		ServantMarshalerImpl (sc)
 	{
+		cur_ptr_ = block_;
 		*cur_ptr_ = RT_END;
 	}
 
@@ -43,7 +53,7 @@ public:
 		Block* pb = clear_block (block_);
 		while (pb) {
 			Block* next = clear_block (*pb);
-			sync_context_->memory ().release (pb, sizeof (Block));
+			memory_.release (pb, sizeof (Block));
 			pb = next;
 		}
 	}
@@ -85,9 +95,8 @@ public:
 			rec->size = release_size;
 			size = release_size;
 		} else {
-			::Nirvana::Core::Heap& mem = sync_context_->memory ();
-			uint8_t* pc = (uint8_t*)mem.copy (nullptr, const_cast <void*> (p), size, 0);
-			size_t au = mem.query (pc, ::Nirvana::MemQuery::ALLOCATION_UNIT);
+			uint8_t* pc = (uint8_t*)memory_.copy (nullptr, const_cast <void*> (p), size, 0);
+			size_t au = memory_.query (pc, ::Nirvana::MemQuery::ALLOCATION_UNIT);
 			size = ::Nirvana::round_up (pc + size, au) - pc;
 			rec->p = pc;
 			rec->size = size;
@@ -101,7 +110,7 @@ public:
 	{
 		RecMemory* rec = (RecMemory*)add_record (RT_MEMORY, sizeof (RecMemory));
 		rec->p = nullptr;
-		rec->p = sync_context_->memory ().allocate (nullptr, size, 0);
+		rec->p = memory_.allocate (nullptr, size, 0);
 		rec->size = size;
 		buf_ptr = rec->p;
 		return (::Nirvana::UIntPtr)(rec->p);
@@ -205,13 +214,10 @@ private:
 
 	bool shared_memory () const
 	{
-		return &sync_context_->memory () == &::Nirvana::Core::SyncContext::current ().memory ();
+		return &memory_ == &::Nirvana::Core::SyncContext::current ().memory ();
 	}
 
-	::Nirvana::Core::Core_var <::Nirvana::Core::SyncContext> sync_context_;
-	Tag* cur_ptr_;
-	Tag block_ [(BLOCK_SIZE - sizeof (ServantMarshalerImpl <ServantMarshaler>)
-	- sizeof (sync_context_) - sizeof (cur_ptr_)) / sizeof (Tag)];
+	Tag block_ [(BLOCK_SIZE - sizeof (ServantMarshalerImpl <ServantMarshaler>)) / sizeof (Tag)];
 };
 
 static_assert (sizeof (ServantMarshaler) == ServantMarshaler::BLOCK_SIZE, "sizeof (ServantMarshaler)");

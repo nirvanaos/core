@@ -24,39 +24,37 @@ class NIRVANA_NOVTABLE ExecDomain :
 	static const size_t MAX_RUNNABLE_SIZE = 8; // In pointers.
 public:
 	template <class R, class ... Args>
-	static void async_call (DeadlineTime deadline, SyncDomain* sync_domain, Args ... args)
+	static void async_call (const DeadlineTime& deadline, SyncDomain* sync_domain, Args ... args)
 	{
-		Core_var <ExecDomain> exec_domain = create <R> (std::forward <Args> (args)...);
-		exec_domain->spawn (deadline, sync_domain);
-	}
-
-	static void async_call (DeadlineTime deadline, Runnable& runnable, SyncDomain* sync_domain)
-	{
-		Core_var <ExecDomain> exec_domain = create (runnable);
-		exec_domain->spawn (deadline, sync_domain);
-	}
-
-	static Core_var <ExecDomain> create (Runnable& runnable)
-	{
-		Core_var <ExecDomain> exec_domain = get ();
-		exec_domain->runnable_ = &runnable;
-		return exec_domain;
-	}
-
-	template <class R, class ... Args>
-	static Core_var <ExecDomain> create (Args ... args)
-	{
-		Core_var <ExecDomain> exec_domain = get ();
 		static_assert (sizeof (ImplNoAddRef <R>) <= sizeof (runnable_space_), "Runnable object is too large.");
+		Core_var <ExecDomain> exec_domain = get (deadline);
 		exec_domain->runnable_ = Core_var <Runnable>::construct <ImplNoAddRef <R> > (exec_domain->runnable_space_, std::forward <Args> (args)...);
-		return exec_domain;
+		exec_domain->spawn (sync_domain);
+	}
+
+	static void async_call (const DeadlineTime& deadline, Runnable& runnable, SyncDomain* sync_domain)
+	{
+		Core_var <ExecDomain> exec_domain = get (deadline);
+		exec_domain->runnable_ = &runnable;
+		exec_domain->spawn (sync_domain);
 	}
 
 	/// Used in porting for creation of the startup domain.
 	template <class ... Args>
-	static Core_var <ExecDomain> create_main (Runnable& startup, Args ... args)
+	static Core_var <ExecDomain> create_main (const DeadlineTime& deadline, Runnable& startup, Args ... args)
 	{
-		return Core_var <ExecDomain>::create <ImplPoolable <ExecDomain> > (std::ref (startup), std::forward <Args> (args)...);
+		return Core_var <ExecDomain>::create <ImplPoolable <ExecDomain> > (deadline, std::ref (startup), std::forward <Args> (args)...);
+	}
+
+	/// Get execution domain for a background thread.
+	template <class R, class ... Args>
+	static Core_var <ExecDomain> get_background (SyncContext& sync_context, Args ... args)
+	{
+		static_assert (sizeof (ImplNoAddRef <R>) <= sizeof (runnable_space_), "Runnable object is too large.");
+		Core_var <ExecDomain> exec_domain = get (INFINITE_DEADLINE);
+		exec_domain->runnable_ = Core_var <Runnable>::construct <ImplNoAddRef <R> > (exec_domain->runnable_space_, std::forward <Args> (args)...);
+		exec_domain->sync_context_ = &sync_context;
+		return exec_domain;
 	}
 
 	DeadlineTime deadline () const
@@ -69,24 +67,21 @@ public:
 	/// Does not throw an exception if `ret = true`.
 	///
 	/// \param sync_domain Synchronization domain. May be `nullptr`.
-	/// \param ret `false` on call, `true` on return.
-	void schedule (SyncDomain* sync_domain, bool ret);
+	void schedule (SyncDomain* sync_domain);
 
 	/// Executor::execute ()
 	/// Called from worker thread.
 	void execute (Word scheduler_error);
 
 	template <class Starter>
-	void start (Starter starter, DeadlineTime deadline, SyncDomain* sync_domain)
+	void start (Starter starter)
 	{
 		assert (runnable_);
-		deadline_ = deadline;
-		sync_domain_ = sync_domain;
 		starter ();
 		_add_ref ();
 	}
 
-	void spawn (DeadlineTime deadline, SyncDomain* sync_domain);
+	void spawn (SyncDomain* sync_domain);
 
 	/// Suspend current domain
 	static void suspend ();
@@ -101,7 +96,7 @@ public:
 	void _deactivate (ImplPoolable <ExecDomain>& obj)
 	{
 		runnable_.reset ();
-		sync_domain_ = nullptr;
+		sync_context_ = nullptr;
 		scheduler_error_ = CORBA::SystemException::EC_NO_EXCEPTION;
 		runtime_support_.cleanup ();
 		heap_.cleanup ();
@@ -122,15 +117,20 @@ public:
 
 	void execute_loop ();
 
-	void on_crash (Word code)
+	void on_exec_domain_crash ()
 	{
-		ExecContext::on_crash (code);
+		ExecContext::on_crash ();
 		_remove_ref ();
 	}
 
-	SyncDomain* sync_domain () const
+	SyncContext* sync_context () const
 	{
-		return sync_domain_;
+		return sync_context_;
+	}
+
+	void sync_context (SyncContext& sync_context)
+	{
+		sync_context_ = &sync_context;
 	}
 
 	Heap& heap ()
@@ -148,6 +148,19 @@ public:
 		return scheduler_error_;
 	}
 
+	void ret_qnode_push (SyncDomain& sd)
+	{
+		ret_qnodes_ = sd.create_queue_node (ret_qnodes_);
+	}
+
+	SyncDomain::QueueNode* ret_qnode_pop () NIRVANA_NOEXCEPT
+	{
+		assert (ret_qnodes_);
+		SyncDomain::QueueNode* ret = ret_qnodes_;
+		ret_qnodes_ = ret->next ();
+		return ret;
+	}
+
 protected:
 	ExecDomain () :
 		ExecContext ()
@@ -157,10 +170,11 @@ protected:
 
 	//! Constructor with parameters used in porting for creation of the startup domain.
 	template <class ... Args>
-	ExecDomain (Runnable& startup, Args ... args) :
+	ExecDomain (DeadlineTime deadline, Runnable& startup, Args ... args) :
 		ExecContext (std::forward <Args> (args)...)
 	{
 		ctor_base ();
+		deadline_ = deadline;
 		runnable_ = &startup;
 		Scheduler::activity_begin ();
 	}
@@ -172,9 +186,6 @@ protected:
 private:
 	void ctor_base ();
 
-	void ret_qnode_push (SyncDomain& sd);
-	SyncDomain::QueueNode* ret_qnode_pop ();
-
 	void ret_qnodes_clear ()
 	{
 		while (ret_qnodes_) {
@@ -184,13 +195,13 @@ private:
 		}
 	}
 
-	static Core_var <ExecDomain> get ()
+	static Core_var <ExecDomain> get (DeadlineTime deadline)
 	{
 		Scheduler::activity_begin ();	// Throws exception if shutdown was started.
-		return pool_.get ();
+		Core_var <ExecDomain> exec_domain = pool_.get ();
+		exec_domain->deadline_ = deadline;
+		return exec_domain;
 	}
-
-	void return_to_sync_domain ();
 
 	virtual void run ();
 
@@ -201,7 +212,7 @@ private:
 	static ObjectPool <ExecDomain> pool_;
 
 	DeadlineTime deadline_;
-	SyncDomain* sync_domain_;
+	SyncContext* sync_context_;
 	SyncDomain::QueueNode* ret_qnodes_;
 	Heap heap_;
 	RuntimeSupportImpl runtime_support_;

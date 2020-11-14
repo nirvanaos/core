@@ -4,7 +4,7 @@
 
 #include "ThreadWorker.h"
 #include "Scheduler.h"
-#include "SyncDomain.h"
+#include "Thread.h"
 
 namespace Nirvana {
 namespace Core {
@@ -20,29 +20,8 @@ void ThreadWorker::execute (Executor& executor, Word scheduler_error)
 	ExecContext::neutral_context_loop ();
 }
 
-SyncContext& ThreadWorker::sync_context () NIRVANA_NOEXCEPT
+void ThreadWorker::yield () NIRVANA_NOEXCEPT
 {
-	assert (exec_domain ());
-	SyncDomain* sd = exec_domain ()->sync_domain ();
-	if (sd)
-		return *sd;
-	else
-		return SyncContext::free_sync_context ();
-}
-
-RuntimeSupportImpl& ThreadWorker::runtime_support () NIRVANA_NOEXCEPT
-{
-	assert (exec_domain ());
-	SyncDomain* sd = exec_domain ()->sync_domain ();
-	if (sd)
-		return sd->runtime_support ();
-	else
-		return exec_domain ()->runtime_support ();
-}
-
-void ThreadWorker::run ()
-{
-	Core::Thread::run ();
 	exec_domain (nullptr); // Release worker thread to a pool.
 }
 

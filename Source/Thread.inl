@@ -7,10 +7,17 @@
 namespace Nirvana {
 namespace Core {
 
-inline void Thread::run ()
+inline
+void Thread::exec_domain (ExecDomain& exec_domain) NIRVANA_NOEXCEPT
 {
-	exec_domain ()->schedule (schedule_domain_, schedule_ret_);
+	exec_domain_ = &exec_domain;
+	SyncDomain* sd = exec_domain.sync_context ()->sync_domain ();
+	if (sd)
+		runtime_support_ = &sd->runtime_support ();
+	else
+		runtime_support_ = &exec_domain.runtime_support ();
 }
+
 
 }
 }

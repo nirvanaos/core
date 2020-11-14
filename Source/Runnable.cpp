@@ -3,13 +3,13 @@
 namespace Nirvana {
 namespace Core {
 
-void Runnable::on_exception ()
+void Runnable::on_exception () NIRVANA_NOEXCEPT
 {
 	// TODO: Log
 	assert (false);
 }
 
-void Runnable::on_crash (Word error_code)
+void Runnable::on_crash (Word error_code) NIRVANA_NOEXCEPT
 {
 	// TODO: Log
 	assert (false);

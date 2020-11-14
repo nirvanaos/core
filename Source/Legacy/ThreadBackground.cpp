@@ -1,5 +1,7 @@
 #include "ThreadBackground.h"
 #include "../ExecDomain.h"
+#include "../ScheduleCall.h"
+#include "../Suspend.h"
 
 namespace Nirvana {
 namespace Legacy {
@@ -7,44 +9,41 @@ namespace Core {
 
 using namespace Nirvana::Core;
 
-void ThreadBackground::start (Nirvana::Core::ExecDomain& ed)
+void ThreadBackground::start (RuntimeSupportLegacy& runtime_support, Nirvana::Core::ExecDomain& execution_domain)
 {
-	exec_domain (&ed);
-	ed.start ([this]() {this->create (); }, INFINITE_DEADLINE, nullptr);
+	exec_domain (execution_domain);
+	runtime_support_ = &runtime_support;
+	execution_domain.start ([this]() {this->create (); });
 	_add_ref ();
 }
 
-Nirvana::Core::SyncContext& ThreadBackground::sync_context () NIRVANA_NOEXCEPT
+::Nirvana::Core::SyncDomain* ThreadBackground::sync_domain () NIRVANA_NOEXCEPT
 {
-	return *this;
-}
-
-void ThreadBackground::enter (bool ret)
-{
-	assert (ret);
-	resume ();
-}
-
-::Nirvana::Core::SyncDomain* ThreadBackground::sync_domain ()
-{
-	assert (false);
 	return nullptr;
 }
 
-void ThreadBackground::enter_to (Nirvana::Core::SyncDomain* sync_domain, bool ret)
+void ThreadBackground::schedule_call (Nirvana::Core::SyncDomain* sync_domain)
 {
+	// We don't switch context if sync_domain == nullptr
 	if (sync_domain) {
-		assert (!ret);
-		Nirvana::Core::Thread::enter_to (sync_domain, ret);
+		if (SyncContext::SUSPEND == sync_domain)
+			Suspend::suspend ();
+		else {
+			ScheduleCall::schedule_call (sync_domain);
+			check_schedule_error ();
+		}
 	}
 }
 
-void ThreadBackground::run ()
+void ThreadBackground::schedule_return (Nirvana::Core::ExecDomain& exec_domain) NIRVANA_NOEXCEPT
 {
-	Nirvana::Core::Thread::run ();
-	suspend ();
+	Port::ThreadBackground::resume ();
 }
 
+void ThreadBackground::yield () NIRVANA_NOEXCEPT
+{
+	Port::ThreadBackground::suspend ();
+}
 
 }
 }

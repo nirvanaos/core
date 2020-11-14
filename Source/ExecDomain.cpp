@@ -1,104 +1,71 @@
 // Nirvana project.
 // Execution domain (coroutine, fiber).
 
-#include "ExecDomain.h"
+#include "Thread.inl"
 
 namespace Nirvana {
 namespace Core {
 
 ObjectPool <ExecDomain> ExecDomain::pool_;
 
-void ExecDomain::spawn (DeadlineTime deadline, SyncDomain* sync_domain)
-{
-	assert (&ExecContext::current () != this);
-	assert (runnable_);
-	start ([this, sync_domain]() {this->schedule (sync_domain, false); }, deadline, sync_domain);
-}
-
 void ExecDomain::ctor_base ()
 {
 	wait_list_next_ = nullptr;
 	deadline_ = std::numeric_limits <DeadlineTime>::max ();
-	sync_domain_ = nullptr;
+	sync_context_ = nullptr;
 	ret_qnodes_ = nullptr;
 	scheduler_error_ = CORBA::SystemException::EC_NO_EXCEPTION;
 	scheduler_item_created_ = false;
 }
 
-inline
-void ExecDomain::ret_qnode_push (SyncDomain& sd)
+void ExecDomain::spawn (SyncDomain* sync_domain)
 {
-	ret_qnodes_ = sd.create_queue_node (ret_qnodes_);
+	assert (&ExecContext::current () != this);
+	assert (runnable_);
+	start ([this, sync_domain]() {this->schedule (sync_domain); });
 }
 
-inline
-SyncDomain::QueueNode* ExecDomain::ret_qnode_pop ()
-{
-	assert (ret_qnodes_);
-	SyncDomain::QueueNode* ret = ret_qnodes_;
-	ret_qnodes_ = ret->next ();
-	return ret;
-}
-
-void ExecDomain::schedule (SyncDomain* sync_domain, bool ret)
+void ExecDomain::schedule (SyncDomain* sync_domain)
 {
 	assert (&ExecContext::current () != this);
 
-	SyncDomain* old_domain = sync_domain_;
-	if (!ret && old_domain)
-		ret_qnode_push (*old_domain);
+	SyncContext* old_context = sync_context_;
 	if (!sync_domain && !scheduler_item_created_) {
 		Scheduler::create_item ();
 		scheduler_item_created_ = true;
 	}
 
-	if ((sync_domain_ = sync_domain)) {
-		if (ret)
-			return_to_sync_domain ();
-		else {
-			try {
-				sync_domain->schedule (deadline (), *this);
-			} catch (...) {
-				if (old_domain)
-					ret_qnode_pop ()->release ();
-				sync_domain_ = old_domain;
-				throw;
-			}
+	try {
+		if (sync_domain) {
+			sync_context_ = sync_domain;
+			sync_domain->schedule (deadline (), *this);
+		} else {
+			sync_context_ = &SyncContext::free_sync_context ();
+			Scheduler::schedule (deadline (), *this);
 		}
-	} else
-		Scheduler::schedule (deadline (), *this);
-}
-
-void ExecDomain::return_to_sync_domain ()
-{
-	SyncDomain::QueueNode* qn = ret_qnode_pop ();
-	sync_domain_->schedule (qn, deadline (), *this);
+	} catch (...) {
+		sync_context_ = old_context;
+		throw;
+	}
 }
 
 void ExecDomain::suspend ()
 {
 	ExecDomain* cur = Thread::current ().exec_domain ();
 	assert (cur);
-	assert (cur->sync_domain_ || cur->scheduler_item_created_);
-	if (cur->sync_domain_)
-		cur->ret_qnode_push (*cur->sync_domain_);
-	Thread::current ().exec_domain (nullptr);
+	cur->sync_context ()->schedule_call (SyncContext::SUSPEND);
 }
 
 void ExecDomain::resume ()
 {
 	assert (&ExecContext::current () != this);
-	if (sync_domain_)
-		return_to_sync_domain ();
-	else {
-		assert (scheduler_item_created_);
-		Scheduler::schedule (deadline (), *this);
-	}
+	assert (sync_context_);
+	sync_context_->schedule_return (*this);
 }
 
 void ExecDomain::execute (Word scheduler_error)
 {
-	Thread::current ().exec_domain (this);
+	Thread::current ().exec_domain (*this);
 	scheduler_error_ = (CORBA::Exception::Code)scheduler_error;
 	ExecContext::switch_to ();
 }
