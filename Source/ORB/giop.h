@@ -8,6 +8,42 @@
 
 namespace GIOP {
 
+struct Version
+{
+  uint8_t major;
+  uint8_t minor;
+};
+
+#if MAX_GIOP_VERSION_NUMBER == 0
+// GIOP 1.0
+enum MsgType_1_0
+{ // Renamed from MsgType
+  Request, Reply, CancelRequest,
+  LocateRequest, LocateReply,
+  CloseConnection, MessageError
+};
+#else
+// GIOP 1.1
+enum MsgType_1_1
+{
+  Request, Reply, CancelRequest,
+  LocateRequest, LocateReply,
+  CloseConnection, MessageError,
+  Fragment // GIOP 1.1 addition
+};
+#endif // MAX_GIOP_VERSION_NUMBER
+
+typedef char Magicn [4];
+
+struct MessageHeader_1_1
+{
+  Magicn magic;
+  Version GIOP_version;
+  uint8_t flags; // GIOP 1.1 change
+  uint8_t message_type;
+  unsigned long message_size;
+};
+
 #ifndef GIOP_1_2
   
   // GIOP 1.0 and 1.1

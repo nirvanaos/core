@@ -19,7 +19,7 @@ class SkipListWithPool : public Base
 	};
 
 public:
-	SkipListWithPool (AtomicCounter::UIntType initial_count) :
+	SkipListWithPool (AtomicCounter <false>::IntegralType initial_count) :
 		purge_count_ (0)
 	{
 		while (initial_count--)
@@ -52,9 +52,9 @@ private:
 	{
 		Stackable* se = stack_.pop ();
 		if (se) {
-			item_count_cur_.decrement ();
-			unsigned level = se->level;
-			SkipListBase::delete_node (new (se) SkipListBase::Node (level));
+			SkipListBase::NodeBase* nb = (SkipListBase::NodeBase*)se;
+			nb->level = se->level;
+			SkipListBase::deallocate_node (nb);
 			return true;
 		}
 		return false;
@@ -63,9 +63,8 @@ private:
 	Stackable* real_allocate_node ()
 	{
 		SkipListBase::NodeBase* nb = Base::allocate_node ();
-		Stackable* se = (Stackable*)nb
+		Stackable* se = (Stackable*)nb;
 		se->level = nb->level;
-		item_count_cur_.increment ();
 		return se;
 	}
 
@@ -92,13 +91,6 @@ private:
 			se->level = node->level;
 			stack_.push (*se);
 		}
-	}
-
-	void push_node (Stackable& se) NIRVANA_NOEXCEPT
-	{
-		Stackable* se = reinterpret_cast <Stackable*> (node);
-		se->level = level;
-		stack_.push (*se);
 	}
 
 private:
