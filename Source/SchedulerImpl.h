@@ -35,9 +35,9 @@ public:
 		active_items_.decrement ();
 	}
 
-	void schedule (const DeadlineTime& deadline, ExecutorRef& executor) NIRVANA_NOEXCEPT
+	void schedule (const DeadlineTime& deadline, const ExecutorRef& executor) NIRVANA_NOEXCEPT
 	{
-		verify (queue_.insert (deadline, item));
+		verify (queue_.insert (deadline, executor));
 		execute_next ();
 	}
 
