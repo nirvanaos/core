@@ -1,6 +1,6 @@
 // Platform domain environment specific inter-ORB protocol.
-#ifndef NIRVANA_ORB_CORE_ESIOP_H_
-#define NIRVANA_ORB_CORE_ESIOP_H_
+#ifndef NIRVANA_ORB_CORE_MESSAGE_H_
+#define NIRVANA_ORB_CORE_MESSAGE_H_
 
 #include "../core.h"
 
@@ -21,6 +21,17 @@ struct Message
 		RESERVED_MESSAGES = 8
 	};
 
+	struct ObjRef
+	{
+		uintptr_t address;
+		Core::ObjRefSignature signature;
+	};
+
+	struct ObjRefLocal : ObjRef
+	{
+		Core::ProtDomainId prot_domain;
+	};
+
 	struct Header
 	{
 		Type type;
@@ -28,18 +39,18 @@ struct Message
 		uint16_t flags;
 		static const uint16_t IMMEDIATE_DATA = 0x0001;
 
-		uintptr_t target;
+		ObjRef target;
 	};
 
 	struct Request : Header
 	{
-		uintptr_t reply_target; // Zero for oneway requests
+		ObjRefLocal reply_target; // Zero for oneway requests
 	};
 
 	struct SystemException : Header
 	{
-		CORBA::SystemException::Code exception_code;
-		CORBA::SystemException::Data exception_data;
+		CORBA::SystemException::Code code;
+		CORBA::SystemException::Data data;
 	};
 
 	union Buffer

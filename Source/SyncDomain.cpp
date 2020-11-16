@@ -78,8 +78,7 @@ void SyncDomain::execute (Word scheduler_error)
 	assert (State::SCHEDULED == state_);
 	state_ = State::RUNNING;
 	Executor* executor;
-	DeadlineTime dt;
-	if (queue_.delete_min (executor, dt))
+	if (queue_.delete_min (executor))
 		executor->execute (scheduler_error);
 #ifdef _DEBUG
 	else
