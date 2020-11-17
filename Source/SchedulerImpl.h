@@ -18,8 +18,8 @@ class SchedulerImpl
 	typedef SkipListWithPool <PriorityQueue <ExecutorRef, SYS_DOMAIN_PRIORITY_QUEUE_LEVELS> > Queue;
 public:
 	SchedulerImpl () NIRVANA_NOEXCEPT :
-		queue_ (Port::g_system_info.hardware_concurrency ()),
-		free_cores_ (Port::g_system_info.hardware_concurrency ()),
+		queue_ (Port::SystemInfo::hardware_concurrency ()),
+		free_cores_ (Port::SystemInfo::hardware_concurrency ()),
 		active_items_ (0)
 	{}
 
@@ -62,27 +62,26 @@ private:
 
 private:
 	Queue queue_;
-	AtomicCounter <false> free_cores_;
+	AtomicCounter <true> free_cores_;
 	AtomicCounter <false> active_items_;
 };
 
 template <class T, class ExecutorRef>
 void SchedulerImpl <T, ExecutorRef>::execute_next () NIRVANA_NOEXCEPT
 {
+	ExecutorRef val;
 	do {
 
 		// Acquire processor core
 		for (;;) {
-			if ((AtomicCounter::IntType)free_cores_.decrement () >= 0)
+			if (free_cores_.decrement () >= 0)
 				break;
-			if ((AtomicCounter::IntType)free_cores_.increment () <= 0)
+			if (free_cores_.increment () <= 0)
 				return;
 		}
 
 		// Get first item
-		Item item = queue_.delete_min ();
-		if (item) {
-			ExecutorRef val = item->value ().val;
+		if (queue_.delete_min (val)) {
 			static_cast <T*> (this)->execute (val);
 			break;
 		}
