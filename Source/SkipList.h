@@ -47,9 +47,9 @@ public:
 
 		NodeBase (unsigned l) NIRVANA_NOEXCEPT :
 		prev (nullptr),
-			level ((Level)l),
-			valid_level ((Level)1),
-			deleted (false)
+		level ((Level)l),
+		valid_level ((Level)1),
+		deleted (false)
 		{}
 	};
 

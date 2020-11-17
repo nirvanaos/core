@@ -60,16 +60,16 @@ SkipListBase::NodeBase* SkipListBase::allocate_node (unsigned level)
 
 void SkipListBase::deallocate_node (NodeBase* node)
 {
+#ifdef _DEBUG
+	assert (node_cnt_ > 0);
+	node_cnt_.decrement ();
+#endif
 	g_core_heap.release (node, Node::size (node_size_, node->level));
 }
 
 inline
 void SkipListBase::delete_node (Node* node) NIRVANA_NOEXCEPT
 {
-#ifdef _DEBUG
-	assert (node_cnt_ > 0);
-	node_cnt_.decrement ();
-#endif
 	node->~Node ();
 	deallocate_node (node);
 }
