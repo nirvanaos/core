@@ -8,19 +8,19 @@
 namespace Nirvana {
 namespace Core {
 
-ExecContext& ExecContext::current ()
+ExecContext& ExecContext::current () NIRVANA_NOEXCEPT
 {
 	return Thread::current ().context ();
 }
 
-void ExecContext::switch_to ()
+void ExecContext::switch_to () NIRVANA_NOEXCEPT
 {
 	assert (&current () != this);
 	Thread::current ().context (*this);
 	Port::ExecContext::switch_to ();
 }
 
-void ExecContext::run ()
+void ExecContext::run () NIRVANA_NOEXCEPT
 {
 	if (runnable_) {
 		try {
@@ -32,13 +32,13 @@ void ExecContext::run ()
 	}
 }
 
-void ExecContext::on_crash ()
+void ExecContext::on_crash (CORBA::SystemException::Code err) NIRVANA_NOEXCEPT
 {
-	runnable_->on_crash (CORBA::SystemException::EC_UNKNOWN);
+	runnable_->on_crash (err);
 	runnable_.reset ();
 }
 
-void ExecContext::neutral_context_loop ()
+void ExecContext::neutral_context_loop () NIRVANA_NOEXCEPT
 {
 	Thread& thread = Thread::current ();
 	ExecContext& context = thread.context ();

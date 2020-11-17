@@ -15,7 +15,7 @@ class NIRVANA_NOVTABLE ThreadWorker :
 {
 public:
 	/// This static method is called by the scheduler.
-	static void execute (Executor& executor, Word scheduler_error);
+	static void execute (Executor& executor, Word scheduler_error) NIRVANA_NOEXCEPT;
 
 	virtual void yield () NIRVANA_NOEXCEPT;
 };

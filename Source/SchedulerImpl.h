@@ -60,9 +60,11 @@ public:
 private:
 	void execute_next () NIRVANA_NOEXCEPT;
 
+protected:
+	AtomicCounter <true> free_cores_;
+
 private:
 	Queue queue_;
-	AtomicCounter <true> free_cores_;
 	AtomicCounter <false> active_items_;
 };
 

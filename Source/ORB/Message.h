@@ -39,6 +39,7 @@ struct Message
 		uint16_t flags;
 		static const uint16_t IMMEDIATE_DATA = 0x0001;
 
+		Core::UserToken user;
 		ObjRef target;
 	};
 

@@ -17,12 +17,12 @@ class ExecContext :
 	friend class Port::ExecContext;
 public:
 	// Implementation - specific methods must be called explicitly.
-	Port::ExecContext& port ()
+	Port::ExecContext& port () NIRVANA_NOEXCEPT
 	{
 		return *this;
 	}
 
-	static ExecContext& current ();
+	static ExecContext& current () NIRVANA_NOEXCEPT;
 
 	template <class ... Args>
 	ExecContext (Args ... args) :
@@ -30,9 +30,9 @@ public:
 	{}
 
 	/// Switch to this context.
-	void switch_to ();
+	void switch_to () NIRVANA_NOEXCEPT;
 
-	static void neutral_context_loop ();
+	static void neutral_context_loop () NIRVANA_NOEXCEPT;
 
 	void run_in_context (Runnable& runnable) NIRVANA_NOEXCEPT
 	{
@@ -42,9 +42,9 @@ public:
 	}
 
 protected:
-	void run ();
+	void run () NIRVANA_NOEXCEPT;
 
-	void on_crash ();
+	void on_crash (CORBA::SystemException::Code err) NIRVANA_NOEXCEPT;
 
 protected:
 	Core_var <Runnable> runnable_;

@@ -117,9 +117,9 @@ public:
 
 	void execute_loop ();
 
-	void on_exec_domain_crash ()
+	void on_exec_domain_crash (CORBA::SystemException::Code err)
 	{
-		ExecContext::on_crash ();
+		ExecContext::on_crash (err);
 		_remove_ref ();
 	}
 
