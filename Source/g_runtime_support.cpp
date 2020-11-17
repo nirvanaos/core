@@ -29,6 +29,10 @@ public:
 };
 
 }
+
+extern const ImportInterfaceT <RuntimeSupport> g_runtime_support = { OLF_IMPORT_INTERFACE, nullptr, nullptr, 
+STATIC_BRIDGE (RuntimeSupport, Core::RuntimeSupport) };
+
 }
 
 NIRVANA_EXPORT (_exp_Nirvana_g_runtime_support, "Nirvana/g_runtime_support", Nirvana::RuntimeSupport, Nirvana::Core::RuntimeSupport)

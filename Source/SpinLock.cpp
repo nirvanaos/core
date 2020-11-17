@@ -5,7 +5,6 @@
 // http://www.cs.rice.edu/~johnmc/papers/tocs91.pdf
 
 #include "Thread.h"
-#include "BackOff.h"
 
 namespace Nirvana {
 namespace Core {
@@ -22,9 +21,8 @@ void SpinLock::acquire (SpinLockNode& node) NIRVANA_NOEXCEPT
 		assert (!predecessor->sn_next_);
 		node.sn_locked_ = 1;
 		predecessor->sn_next_ = &node;
-		for (BackOff bo; node.sn_locked_; bo ()) {
+		while (node.sn_locked_)
 			;
-		}
 	}
 }
 
@@ -33,7 +31,7 @@ void SpinLock::release (SpinLockNode& node) NIRVANA_NOEXCEPT
 {
 	if (!node.sn_next_) {
 		// No known successor
-		for (BackOff bo; true; bo ()) {
+		for (;;) {
 
 			// If this node is last, clear and return
 			SpinLockNode* pnode = &node;
