@@ -8,29 +8,9 @@
 namespace Nirvana {
 namespace Core {
 
-class Scheduler
+class Scheduler : public Port::Scheduler
 {
 public:
-	static void create_item ()
-	{
-		Port::Scheduler::create_item ();
-	}
-
-	static void delete_item () NIRVANA_NOEXCEPT
-	{
-		Port::Scheduler::delete_item ();
-	}
-
-	static void schedule (const DeadlineTime& deadline, Executor& executor) NIRVANA_NOEXCEPT
-	{
-		Port::Scheduler::schedule (deadline, executor);
-	}
-
-	static bool reschedule (const DeadlineTime& deadline, Executor& executor, const DeadlineTime& old) NIRVANA_NOEXCEPT
-	{
-		return Port::Scheduler::reschedule (deadline, executor, old);
-	}
-
 	static void shutdown () NIRVANA_NOEXCEPT
 	{
 		State state = State::RUNNING;

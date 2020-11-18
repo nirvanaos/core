@@ -66,7 +66,7 @@ TEST_F (TestScheduler, Startup)
 {
 	{
 		Core_var <SimpleShutdown> startup = Core_var <SimpleShutdown>::create <ImplDynamic <SimpleShutdown> > ();
-		Port::Scheduler::run_system_domain (*startup, numeric_limits <Nirvana::DeadlineTime>::max ());
+		Scheduler::run_sys_domain (*startup, numeric_limits <Nirvana::DeadlineTime>::max ());
 		ASSERT_TRUE (SimpleShutdown::exists_);
 		ASSERT_TRUE (startup->ran_);
 	}

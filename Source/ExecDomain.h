@@ -18,8 +18,7 @@ namespace Core {
 class NIRVANA_NOVTABLE ExecDomain :
 	public CoreObject,
 	public ExecContext,
-	public Executor,
-	private Runnable // Runnable is used for return object to pool in neutral context.
+	public Executor
 {
 	static const size_t MAX_RUNNABLE_SIZE = 8; // In pointers.
 public:
@@ -110,7 +109,7 @@ public:
 			thread.exec_domain (nullptr);
 		Scheduler::activity_end ();
 		if (&ExecContext::current () == this)
-			run_in_neutral_context (*this);
+			run_in_neutral_context (release_to_pool_);
 		else
 			pool_.release (obj);
 	}
@@ -176,7 +175,6 @@ protected:
 		ctor_base ();
 		deadline_ = deadline;
 		runnable_ = &startup;
-		Scheduler::activity_begin ();
 	}
 
 	friend class Core_var <ExecDomain>;
@@ -203,8 +201,6 @@ private:
 		return exec_domain;
 	}
 
-	virtual void run ();
-
 public:
 	ExecDomain* wait_list_next_;
 
@@ -218,6 +214,15 @@ private:
 	RuntimeSupportImpl runtime_support_;
 	bool scheduler_item_created_;
 	CORBA::Exception::Code scheduler_error_;
+
+	class ReleaseToPool : public Runnable // Runnable for return object to pool in neutral context.
+	{
+	public:
+		virtual void run ();
+		ExecDomain* obj_;
+	};
+
+	ImplStatic <ReleaseToPool> release_to_pool_;
 
 	void* runnable_space_ [MAX_RUNNABLE_SIZE];
 };
