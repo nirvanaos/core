@@ -33,11 +33,11 @@ public:
 		return ret;
 	}
 
-protected:
 	struct Node;
 
-public:
-	struct NodeBase
+private:
+	/// NodeBase is used to determine the minimal size of node.
+	struct NIRVANA_NOVTABLE NodeBase
 	{
 		Node* volatile prev;
 		RefCounter ref_cnt;
@@ -51,15 +51,11 @@ public:
 		valid_level ((Level)1),
 		deleted (false)
 		{}
+
+		virtual ~NodeBase () NIRVANA_NOEXCEPT = 0 {}
 	};
 
-	/// Only `NodeBase::level` member is used.
-	virtual void deallocate_node (NodeBase* node);
-
-protected:
-
-	SkipListBase (unsigned node_size, unsigned max_level, void* head_tail) NIRVANA_NOEXCEPT;
-
+public:
 	// Assume that key and value at least sizeof(void*) each.
 	// So we add 3 * sizeof (void*) to the node size: next, key, and value.
 	static const unsigned NODE_ALIGN = 1 << log2_ceil (sizeof (NodeBase) + 3 * sizeof (void*));
@@ -73,13 +69,10 @@ protected:
 		Link::Lockable next [1];	// Variable length array.
 
 		Node (unsigned level) NIRVANA_NOEXCEPT :
-			NodeBase (level)
+		NodeBase (level)
 		{
 			std::fill_n ((uintptr_t*)next, level, 0);
 		}
-
-		virtual ~Node () NIRVANA_NOEXCEPT
-		{}
 
 		static constexpr size_t size (size_t node_size, unsigned level) NIRVANA_NOEXCEPT
 		{
@@ -91,6 +84,13 @@ protected:
 			return next + level;
 		}
 	};
+
+	/// Only `Node:level` member is used.
+	virtual void deallocate_node (Node* node);
+
+protected:
+
+	SkipListBase (unsigned node_size, unsigned max_level, void* head_tail) NIRVANA_NOEXCEPT;
 
 	/// Gets node with minimal key.
 	/// \returns `Node*` if list not empty or `nullptr` otherwise.
@@ -159,8 +159,8 @@ protected:
 		return false;
 	}
 
-	/// Only `NodeBase::level` member is valid on return.
-	NodeBase* allocate_node (unsigned level);
+	/// Only `Node::level` member is valid on return.
+	Node* allocate_node (unsigned level);
 
 private:
 	static Node* read_node (Link::Lockable& node) NIRVANA_NOEXCEPT;
@@ -204,8 +204,8 @@ class SkipListL :
 {
 	typedef SkipListBase Base;
 public:
-	/// Only `NodeBase::level` member is valid on return.
-	virtual NodeBase* allocate_node ()
+	/// Only `Node::level` member is valid on return.
+	virtual Node* allocate_node ()
 	{
 		// Choose level randomly.
 		return Base::allocate_node (random_level ());
@@ -301,9 +301,9 @@ public:
 	template <class ... Args>
 	NodeVal* create_node (Args ... args)
 	{
-		SkipListBase::NodeBase* nb = Base::allocate_node ();
+		SkipListBase::Node* node = Base::allocate_node ();
 		// Initialize node
-		return new (nb) NodeVal (nb->level, std::forward <Args> (args)...);
+		return new (node) NodeVal (node->level, std::forward <Args> (args)...);
 	}
 
 	/// Gets minimal value.

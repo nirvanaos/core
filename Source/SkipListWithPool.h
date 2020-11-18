@@ -52,9 +52,9 @@ private:
 	{
 		Stackable* se = stack_.pop ();
 		if (se) {
-			SkipListBase::NodeBase* nb = (SkipListBase::NodeBase*)se;
-			nb->level = se->level;
-			SkipListBase::deallocate_node (nb);
+			SkipListBase::Node* node = (SkipListBase::Node*)se;
+			node->level = se->level;
+			SkipListBase::deallocate_node (node);
 			return true;
 		}
 		return false;
@@ -62,13 +62,13 @@ private:
 
 	Stackable* real_allocate_node ()
 	{
-		SkipListBase::NodeBase* nb = Base::allocate_node ();
-		Stackable* se = (Stackable*)nb;
-		se->level = nb->level;
+		SkipListBase::Node* node = Base::allocate_node ();
+		Stackable* se = (Stackable*)node;
+		se->level = node->level;
 		return se;
 	}
 
-	virtual SkipListBase::NodeBase* allocate_node ()
+	virtual SkipListBase::Node* allocate_node ()
 	{
 		Stackable* se = stack_.pop ();
 		if (!se) {
@@ -76,12 +76,12 @@ private:
 			se = real_allocate_node ();
 			// This increases the minimum pool size and helps to avoid this situation in the future.
 		}
-		SkipListBase::NodeBase* nb = (SkipListBase::NodeBase*)se;
-		nb->level = se->level;
-		return nb;
+		SkipListBase::Node* node = (SkipListBase::Node*)se;
+		node->level = se->level;
+		return node;
 	}
 
-	virtual void deallocate_node (SkipListBase::NodeBase* node) NIRVANA_NOEXCEPT
+	virtual void deallocate_node (SkipListBase::Node* node) NIRVANA_NOEXCEPT
 	{
 		if (purge_count_.decrement () >= 0)
 			SkipListBase::deallocate_node (node);

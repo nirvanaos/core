@@ -48,9 +48,9 @@ SkipListBase::SkipListBase (unsigned node_size, unsigned max_level, void* head_t
 	head_->valid_level = max_level;
 }
 
-SkipListBase::NodeBase* SkipListBase::allocate_node (unsigned level)
+SkipListBase::Node* SkipListBase::allocate_node (unsigned level)
 {
-	NodeBase* p = (NodeBase*)g_core_heap.allocate (0, node_size (level), 0);
+	Node* p = (Node*)g_core_heap.allocate (0, node_size (level), 0);
 	p->level = (Level)level;
 #ifdef _DEBUG
 	node_cnt_.increment ();
@@ -58,13 +58,12 @@ SkipListBase::NodeBase* SkipListBase::allocate_node (unsigned level)
 	return p;
 }
 
-void SkipListBase::deallocate_node (NodeBase* node)
+void SkipListBase::deallocate_node (Node* node)
 {
 #ifdef _DEBUG
-	assert (node_cnt_ > 0);
 	node_cnt_.decrement ();
 #endif
-	g_core_heap.release (node, Node::size (node_size_, node->level));
+	g_core_heap.release (node, node_size (node->level));
 }
 
 inline

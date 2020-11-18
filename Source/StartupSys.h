@@ -17,6 +17,9 @@ public:
 	StartupSys (int argc, char* argv [])
 	{}
 
+	~StartupSys ()
+	{}
+
 	virtual void run ();
 };
 

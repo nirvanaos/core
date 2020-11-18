@@ -82,7 +82,7 @@ public:
 	bool reorder (const DeadlineTime& deadline, const Val& val, const DeadlineTime& old)
 	{
 		assert (deadline != old);
-		SkipListBase::NodeBase* node = Base::allocate_node ();
+		SkipListBase::Node* node = Base::allocate_node ();
 		if (Base::erase (old, val)) {
 			unsigned level = node->level;
 			verify (insert (new (node) NodeVal (level, deadline, val)));

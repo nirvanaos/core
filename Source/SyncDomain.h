@@ -32,7 +32,7 @@ public:
 	}
 
 	/// Pre-allocated queue node
-	class QueueNode : private SkipListBase::NodeBase
+	class QueueNode : private SkipListBase::Node
 	{
 	public:
 		QueueNode* next () const NIRVANA_NOEXCEPT

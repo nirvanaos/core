@@ -17,6 +17,9 @@ public:
 	StartupProt (int argc, char* argv [])
 	{}
 
+	~StartupProt ()
+	{}
+
 	virtual void run ();
 };
 

@@ -295,7 +295,12 @@ void AllocatedBlocks::check (Core::Heap& memory)
 TEST_F (TestHeap, Random)
 {
 	RandomAllocator ra;
-	static const int ITERATIONS = 100;
+	static const int ITERATIONS
+#ifdef _DEBUG
+		= 10;
+#else
+		= 100;
+#endif
 	static const int ALLOC_ITERATIONS = 1000;
 	for (int i = 0; i < ITERATIONS; ++i) {
 		ASSERT_NO_FATAL_FAILURE (ra.run (heap_, ALLOC_ITERATIONS));
@@ -328,7 +333,12 @@ public:
 TEST_F (TestHeap, MultiThread)
 {
 	const unsigned int thread_cnt = max (thread::hardware_concurrency (), (unsigned)2);
-	static const int ITERATIONS = 50;
+	static const int ITERATIONS
+#ifdef _DEBUG
+		= 5;
+#else
+		= 50;
+#endif
 	static const int THREAD_ITERATIONS = 1000;
 	vector <ThreadAllocator> threads;
 	threads.reserve (thread_cnt);
