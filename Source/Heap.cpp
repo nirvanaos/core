@@ -57,7 +57,7 @@ void HeapBase::LBErase::prepare (void* p, size_t size)
 		THROW (BAD_PARAM); // Block is collapsed in another thread.
 
 	// Collect contiguos blocks.
-	const uintptr_t au = Port::ProtDomainMemory::ALLOCATION_UNIT;
+	const uintptr_t au = Port::Memory::ALLOCATION_UNIT;
 	uint8_t* end = round_up ((uint8_t*)p + size, au);
 	uint8_t* block_begin = block->begin ();
 	assert (block_begin <= p);
@@ -174,7 +174,7 @@ void HeapBase::release (void* p, size_t size)
 		LBErase lberase (block_list_, node);
 		lberase.prepare (p, size);
 		try {
-			Port::ProtDomainMemory::release (p, size);
+			Port::Memory::release (p, size);
 		} catch (...) {
 			lberase.rollback ();
 			throw;
@@ -191,7 +191,7 @@ void HeapBase::release (Directory& part, void* p, size_t size) const
 	size_t end = (offset + size + allocation_unit_ - 1) / allocation_unit_;
 	if (!part.check_allocated (begin, end))
 		THROW (BAD_PARAM);
-	HeapInfo hi = { heap, allocation_unit_, Port::ProtDomainMemory::OPTIMAL_COMMIT_UNIT };
+	HeapInfo hi = { heap, allocation_unit_, Port::Memory::OPTIMAL_COMMIT_UNIT };
 	part.release (begin, end, &hi);
 }
 
@@ -228,7 +228,7 @@ void* HeapBase::allocate (void* p, size_t size, UWord flags)
 			if ((p = allocate (*dir, p, size, flags)) || (flags & Memory::EXACTLY))
 				return p;
 		} else {
-			if ((p = Port::ProtDomainMemory::allocate (p, size, flags | Memory::EXACTLY)))
+			if ((p = Port::Memory::allocate (p, size, flags | Memory::EXACTLY)))
 				add_large_block (p, size);
 			else if (flags & Memory::EXACTLY)
 				return nullptr;
@@ -247,11 +247,11 @@ void* HeapBase::allocate (size_t size, UWord flags)
 	const size_t max_block_size = Directory::MAX_BLOCK_SIZE * allocation_unit_;
 	if (size > max_block_size
 		||
-		(max_block_size >= Port::ProtDomainMemory::ALLOCATION_UNIT && !(size % Port::ProtDomainMemory::ALLOCATION_UNIT))
+		(max_block_size >= Port::Memory::ALLOCATION_UNIT && !(size % Port::Memory::ALLOCATION_UNIT))
 		||
-		((flags & Memory::RESERVED) && size >= Port::ProtDomainMemory::OPTIMAL_COMMIT_UNIT)
+		((flags & Memory::RESERVED) && size >= Port::Memory::OPTIMAL_COMMIT_UNIT)
 		) {
-		if (!(p = Port::ProtDomainMemory::allocate (nullptr, size, flags))) {
+		if (!(p = Port::Memory::allocate (nullptr, size, flags))) {
 			assert (flags & Memory::EXACTLY);
 			return nullptr;
 		}
@@ -281,12 +281,12 @@ void* HeapBase::allocate (size_t size, UWord flags)
 void HeapBase::add_large_block (void* p, size_t size)
 {
 	try {
-		const uintptr_t au = Port::ProtDomainMemory::ALLOCATION_UNIT;
+		const uintptr_t au = Port::Memory::ALLOCATION_UNIT;
 		uint8_t* begin = round_down ((uint8_t*)p, au);
 		uint8_t* end = round_up ((uint8_t*)p + size, au);
 		block_list_.insert (begin, end - begin);
 	} catch (...) {
-		Port::ProtDomainMemory::release (p, size);
+		Port::Memory::release (p, size);
 		throw;
 	}
 }
@@ -295,7 +295,7 @@ void* HeapBase::allocate (Directory& part, size_t size, UWord flags, size_t allo
 {
 	size_t units = (size + allocation_unit - 1) / allocation_unit;
 	uint8_t* heap = (uint8_t*)(&part + 1);
-	HeapInfo hi = {heap, allocation_unit, Port::ProtDomainMemory::OPTIMAL_COMMIT_UNIT};
+	HeapInfo hi = {heap, allocation_unit, Port::Memory::OPTIMAL_COMMIT_UNIT};
 	ptrdiff_t unit = part.allocate (units, flags & Memory::RESERVED ? nullptr : &hi);
 	if (unit >= 0) {
 		assert (unit < Directory::UNIT_COUNT);
@@ -319,7 +319,7 @@ void* HeapBase::allocate (Directory& part, void* p, size_t size, UWord flags) co
 	else
 		end = begin + (size + allocation_unit_ - 1) / allocation_unit_;
 
-	HeapInfo hi = {heap, allocation_unit_, Port::ProtDomainMemory::OPTIMAL_COMMIT_UNIT};
+	HeapInfo hi = {heap, allocation_unit_, Port::Memory::OPTIMAL_COMMIT_UNIT};
 	if (part.allocate (begin, end, flags & Memory::RESERVED ? nullptr : &hi)) {
 		uint8_t* pbegin = heap + begin * allocation_unit_;
 		if (!(flags & Memory::EXACTLY))
@@ -393,8 +393,8 @@ void* HeapBase::copy (void* dst, void* src, size_t size, UWord flags)
 
 	if (dst == src) {
 		if (check_owner (dst, size))
-			return Port::ProtDomainMemory::copy (dst, src, size, flags);
-		else if ((flags & Memory::READ_ONLY) || !Port::ProtDomainMemory::is_writable (dst, size))
+			return Port::Memory::copy (dst, src, size, flags);
+		else if ((flags & Memory::READ_ONLY) || !Port::Memory::is_writable (dst, size))
 			throw_NO_PERMISSION ();
 		return dst;
 	}
@@ -411,9 +411,9 @@ void* HeapBase::copy (void* dst, void* src, size_t size, UWord flags)
 			BlockList::NodeVal* new_node = nullptr;
 			try {
 				new_node = block_list_.create_node ();
-				dst = Port::ProtDomainMemory::copy (dst, src, size, flags);
+				dst = Port::Memory::copy (dst, src, size, flags);
 				if (dst) {
-					const uintptr_t au = Port::ProtDomainMemory::ALLOCATION_UNIT;
+					const uintptr_t au = Port::Memory::ALLOCATION_UNIT;
 					uint8_t* begin = round_down ((uint8_t*)dst, au);
 					uint8_t* end = round_up ((uint8_t*)dst + size, au);
 					new_node->value () = MemoryBlock (begin, end - begin);
@@ -445,7 +445,7 @@ void* HeapBase::copy (void* dst, void* src, size_t size, UWord flags)
 
 			if (!dst) {
 				// Memory::RELEASE is specified, so we can use source block as destination
-				dst = Port::ProtDomainMemory::copy (src, src, size, (flags & ~Memory::RELEASE) | Memory::DECOMMIT);
+				dst = Port::Memory::copy (src, src, size, (flags & ~Memory::RELEASE) | Memory::DECOMMIT);
 			} else {
 				uint8_t* rel_begin = round_down ((uint8_t*)src, allocation_unit_);
 				uint8_t* rel_end = round_up ((uint8_t*)src + size, allocation_unit_);
@@ -484,11 +484,11 @@ void* HeapBase::copy (void* dst, void* src, size_t size, UWord flags)
 
 				try {
 					if (dst_own)
-						dst = Port::ProtDomainMemory::copy (dst, src, size, (flags & ~Memory::RELEASE) | Memory::DECOMMIT);
+						dst = Port::Memory::copy (dst, src, size, (flags & ~Memory::RELEASE) | Memory::DECOMMIT);
 					else
 						real_copy ((uint8_t*)src, (uint8_t*)src + size, (uint8_t*)dst);
 				} catch (...) {
-					Port::ProtDomainMemory::release (alloc_begin, alloc_end - alloc_begin);
+					Port::Memory::release (alloc_begin, alloc_end - alloc_begin);
 					throw;
 				}
 
@@ -547,11 +547,11 @@ void* HeapBase::copy (void* dst, void* src, size_t size, UWord flags)
 
 	try {
 		if (dst_own)
-			dst = Port::ProtDomainMemory::copy (dst, src, size, flags);
+			dst = Port::Memory::copy (dst, src, size, flags);
 		else
 			real_copy ((uint8_t*)src, (uint8_t*)src + size, (uint8_t*)dst);
 	} catch (...) {
-		Port::ProtDomainMemory::release (alloc_begin, alloc_end - alloc_begin);
+		Port::Memory::release (alloc_begin, alloc_end - alloc_begin);
 		throw;
 	}
 
@@ -572,7 +572,7 @@ uintptr_t HeapBase::query (const void* p, MemQuery param)
 				return (uintptr_t)(part + 1 + partition_size ());
 		}
 	}
-	return Port::ProtDomainMemory::query (p, param);
+	return Port::Memory::query (p, param);
 }
 
 bool HeapBase::check_owner (const void* p, size_t size)
@@ -628,13 +628,13 @@ bool Heap::cleanup ()
 		const MemoryBlock block = node->value ();
 		block_list_.release_node (node);
 		if (block.is_large_block ()) {
-			Port::ProtDomainMemory::release (block.begin (), block.large_block_size ());
+			Port::Memory::release (block.begin (), block.large_block_size ());
 			empty = false;
 		} else {
 			Directory& dir = block.directory ();
 			if (!dir.empty ())
 				empty = false;
-			Port::ProtDomainMemory::release (&dir, sizeof (Directory) + partition_size ());
+			Port::Memory::release (&dir, sizeof (Directory) + partition_size ());
 		}
 	}
 	return empty;

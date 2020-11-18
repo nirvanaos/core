@@ -1,5 +1,5 @@
 #include "../Source/HeapDirectory.h"
-#include <Port/ProtDomainMemory.h>
+#include <Port/Memory.h>
 #include <gtest/gtest.h>
 #include <random>
 #include <thread>
@@ -21,14 +21,14 @@ public:
 
 	static DirectoryType* create ()
 	{
-		return new (Port::ProtDomainMemory::allocate (nullptr, sizeof (DirectoryType), 
+		return new (Port::Memory::allocate (nullptr, sizeof (DirectoryType), 
 				IMPL > HeapDirectoryImpl::COMMITTED_BITMAP ? Memory::RESERVED : Memory::ZERO_INIT)
 			) DirectoryType ();
 	}
 
 	static void destroy (DirectoryType *p)
 	{
-		Port::ProtDomainMemory::release (p, sizeof (DirectoryType));
+		Port::Memory::release (p, sizeof (DirectoryType));
 	}
 };
 

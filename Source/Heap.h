@@ -35,36 +35,36 @@ public:
 	{
 		if (!check_owner (p, size))
 			throw_BAD_PARAM ();
-		Port::ProtDomainMemory::commit (p, size);
+		Port::Memory::commit (p, size);
 	}
 
 	void decommit (void* p, size_t size)
 	{
 		if (!check_owner (p, size))
 			throw_BAD_PARAM ();
-		Port::ProtDomainMemory::decommit (p, size);
+		Port::Memory::decommit (p, size);
 	}
 
 	void* copy (void* dst, void* src, size_t size, UWord flags);
 
 	static bool is_readable (const void* p, size_t size)
 	{
-		return Port::ProtDomainMemory::is_readable (p, size);
+		return Port::Memory::is_readable (p, size);
 	}
 
 	static bool is_writable (const void* p, size_t size)
 	{
-		return Port::ProtDomainMemory::is_writable (p, size);
+		return Port::Memory::is_writable (p, size);
 	}
 
 	static bool is_private (const void* p, size_t size)
 	{
-		return Port::ProtDomainMemory::is_private (p, size);
+		return Port::Memory::is_private (p, size);
 	}
 
 	static bool is_copy (const void* p1, const void* p2, size_t size)
 	{
-		return Port::ProtDomainMemory::is_copy (p1, p2, size);
+		return Port::Memory::is_copy (p1, p2, size);
 	}
 
 	uintptr_t query (const void* p, MemQuery param);
@@ -209,7 +209,7 @@ protected:
 
 	static Directory* create_partition (size_t allocation_unit)
 	{
-		return new (Port::ProtDomainMemory::allocate (0, sizeof (Directory) + partition_size (allocation_unit), 
+		return new (Port::Memory::allocate (0, sizeof (Directory) + partition_size (allocation_unit), 
 			Directory::IMPLEMENTATION > HeapDirectoryImpl::COMMITTED_BITMAP ? Memory::RESERVED : Memory::ZERO_INIT)
 			) Directory ();
 	}
@@ -221,7 +221,7 @@ protected:
 
 	void release_partition (Directory* dir)
 	{
-		Port::ProtDomainMemory::release (dir, sizeof (Directory) + partition_size (allocation_unit_));
+		Port::Memory::release (dir, sizeof (Directory) + partition_size (allocation_unit_));
 	}
 
 	Directory* get_partition (const void* p) NIRVANA_NOEXCEPT;

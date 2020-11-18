@@ -2,7 +2,7 @@
 #define NIRVANA_CORE_HEAPDIRECTORY_H_
 
 #include <Nirvana/Nirvana.h>
-#include <Port/ProtDomainMemory.h>
+#include <Port/Memory.h>
 #include <stddef.h>
 #include <algorithm>
 #include <atomic>
@@ -56,10 +56,10 @@ public:
 protected:
 	static size_t commit_unit (const void* p)
 	{
-		if (Port::ProtDomainMemory::FIXED_COMMIT_UNIT)
-			return Port::ProtDomainMemory::FIXED_COMMIT_UNIT;
+		if (Port::Memory::FIXED_COMMIT_UNIT)
+			return Port::Memory::FIXED_COMMIT_UNIT;
 		else
-			return Port::ProtDomainMemory::query (p, MemQuery::COMMIT_UNIT);
+			return Port::Memory::query (p, MemQuery::COMMIT_UNIT);
 	}
 
 	struct BitmapIndex
@@ -92,14 +92,14 @@ HEAP_LEVELS - количество уровней (размеров блоков
 Накладные расходы из-за выравнивания для базового
 сервиса памяти составляют половину PROTECTION_UNIT (аппаратной страницы) на блок.
 Поэтому MAX_BLOCK_SIZE должен быть значительно больше размера страницы, и не сильно
-меньшим ProtDomainMemory::ALLOCATION_UNIT и ProtDomainMemory::SHARING_UNIT.
+меньшим Memory::ALLOCATION_UNIT и Memory::SHARING_UNIT.
 Блоки такого большого размера выделяются достаточно редко.
 Кроме того, они часто бывают выравнены по размеру страницы (буферы etc.).
 Базовый сервис обычно выделяет каждый блок в отдельном SHARING_UNIT, что уменьшает
 накладные расходы при копировании.
 Таким образом, выделение достаточно больших блоков непосредственно через базовый сервис
 можно считать оправданным.
-For Windows host ProtDomainMemory::ALLOCATION_UNIT = 64K, DIRECTORY_SIZE = 64K and HEAP_LEVELS = 11.
+For Windows host Memory::ALLOCATION_UNIT = 64K, DIRECTORY_SIZE = 64K and HEAP_LEVELS = 11.
 Это дает MAX_BLOCK_SIZE = HEAP_UNIT_DEFAULT * 1024, равный 16K.
 В системах с небольшими величинами PROTECTION_UNIT, ALLOCATION_UNIT и SHARING_UNIT можно
 использовать DIRECTORY_SIZE = 0x8000 или DIRECTORY_SIZE = 0x4000.
@@ -314,11 +314,11 @@ enum class HeapDirectoryImpl
 {
 	//! This implementation used for systems without memory protection.
 	//! All bitmap memory must be initially committed and zero-filled.
-	//! `HeapInfo` parameter is unused and must be `NULL`. `ProtDomainMemory` functions never called.
+	//! `HeapInfo` parameter is unused and must be `NULL`. `Memory` functions never called.
 	PLAIN_MEMORY,
 
 	//! All bitmap memory must be initially committed and zero-filled.
-	//! If `HeapInfo` pointer is `NULL` the `ProtDomainMemory` functions will never be called as for PLAIN_MEMORY.
+	//! If `HeapInfo` pointer is `NULL` the `Memory` functions will never be called as for PLAIN_MEMORY.
 	//! This implementation provides the best performance but can't save physical pages for bitmap.
 	COMMITTED_BITMAP,
 
@@ -352,7 +352,7 @@ public:
 	HeapDirectory ()
 	{
 		if (IMPL > HeapDirectoryImpl::COMMITTED_BITMAP) // Commit initial part.
-			Port::ProtDomainMemory::commit (this, reinterpret_cast <uint8_t*> (bitmap_ + Traits::TOP_BITMAP_WORDS) - reinterpret_cast <uint8_t*> (this));
+			Port::Memory::commit (this, reinterpret_cast <uint8_t*> (bitmap_ + Traits::TOP_BITMAP_WORDS) - reinterpret_cast <uint8_t*> (this));
 
 		// Initialize
 		assert (sizeof (HeapDirectory <DIRECTORY_SIZE, HEAP_LEVELS, IMPL>) <= DIRECTORY_SIZE);
@@ -509,7 +509,7 @@ private:
 				else
 					break;
 			} HEAP_DIR_CATCH{
-				Port::ProtDomainMemory::commit (bitmap_ptr, sizeof (UWord));
+				Port::Memory::commit (bitmap_ptr, sizeof (UWord));
 			}
 		}
 		return false;
@@ -616,7 +616,7 @@ Word HeapDirectory <DIRECTORY_SIZE, HEAP_LEVELS, IMPL>::allocate (size_t size, c
 					for (;;) {
 						UWord* page_end = round_up (bitmap_ptr + 1, page_size);
 						for (;;) {
-							while (!Port::ProtDomainMemory::is_readable (bitmap_ptr, sizeof (UWord))) {
+							while (!Port::Memory::is_readable (bitmap_ptr, sizeof (UWord))) {
 								if ((bitmap_ptr = page_end) >= end)
 									goto tryagain;
 								else
@@ -721,7 +721,7 @@ bool HeapDirectory <DIRECTORY_SIZE, HEAP_LEVELS, IMPL>::allocate (size_t begin, 
 						break;
 				} else {
 					if (
-						(HeapDirectoryImpl::COMMITTED_BITMAP >= IMPL || Port::ProtDomainMemory::is_readable (bitmap_ptr, sizeof (UWord)))
+						(HeapDirectoryImpl::COMMITTED_BITMAP >= IMPL || Port::Memory::is_readable (bitmap_ptr, sizeof (UWord)))
 						&&
 						Ops::bit_clear (bitmap_ptr, mask)
 						) {
@@ -781,7 +781,7 @@ void HeapDirectory <DIRECTORY_SIZE, HEAP_LEVELS, IMPL>::commit (size_t begin, si
 		size_t commit_begin = begin * heap_info->unit_size;
 		size_t commit_size = end * heap_info->unit_size - commit_begin;
 		try {
-			Port::ProtDomainMemory::commit ((uint8_t*)(heap_info->heap) + commit_begin, commit_size);
+			Port::Memory::commit ((uint8_t*)(heap_info->heap) + commit_begin, commit_size);
 		} catch (...) {
 			release (begin, end);
 			throw;
@@ -835,7 +835,7 @@ void HeapDirectory <DIRECTORY_SIZE, HEAP_LEVELS, IMPL>::release (size_t begin, s
 
 			// Decommit freed memory.
 			if (IMPL != HeapDirectoryImpl::PLAIN_MEMORY && level == decommit_level)
-				Port::ProtDomainMemory::decommit ((uint8_t*)(heap_info->heap) + bl_number * heap_info->commit_size, heap_info->commit_size);
+				Port::Memory::decommit ((uint8_t*)(heap_info->heap) + bl_number * heap_info->commit_size, heap_info->commit_size);
 
 			if (HeapDirectoryImpl::RESERVED_BITMAP_WITH_EXCEPTIONS == IMPL) {
 
@@ -855,7 +855,7 @@ void HeapDirectory <DIRECTORY_SIZE, HEAP_LEVELS, IMPL>::release (size_t begin, s
 			} else {
 
 				if (HeapDirectoryImpl::COMMITTED_BITMAP < IMPL) // We have to set bit or clear companion bit here. So memory have to be committed anyway.
-					Port::ProtDomainMemory::commit (bitmap_ptr, sizeof (UWord));
+					Port::Memory::commit (bitmap_ptr, sizeof (UWord));
 
 				if (Ops::bit_set_check_companion (bitmap_ptr, mask, companion_mask (mask))) {
 					// Есть свободный компаньон, объединяем его с освобождаемым блоком
@@ -880,14 +880,14 @@ void HeapDirectory <DIRECTORY_SIZE, HEAP_LEVELS, IMPL>::release (size_t begin, s
 		if (level == 0) {
 			if (IMPL != HeapDirectoryImpl::PLAIN_MEMORY && decommit_level <= 0) {
 				if (decommit_level == 0) {
-					Port::ProtDomainMemory::decommit ((uint8_t*)(heap_info->heap) + bl_number * heap_info->commit_size, heap_info->commit_size);
+					Port::Memory::decommit ((uint8_t*)(heap_info->heap) + bl_number * heap_info->commit_size, heap_info->commit_size);
 					Ops::bit_set (bitmap_ptr, mask);
 				} else {
 					UWord block_size = (UWord)1 << (UWord)(-decommit_level);
 					UWord companion_mask = (~((~(UWord)0) << block_size)) << round_down ((bl_number % (sizeof (UWord) * 8)), block_size);
 					if (Ops::bit_set_check_companion (bitmap_ptr, mask, companion_mask)) {
 						try {
-							Port::ProtDomainMemory::decommit ((uint8_t*)(heap_info->heap) + (bl_number >> (UWord)(-decommit_level)) * heap_info->commit_size, heap_info->commit_size);
+							Port::Memory::decommit ((uint8_t*)(heap_info->heap) + (bl_number >> (UWord)(-decommit_level)) * heap_info->commit_size, heap_info->commit_size);
 						} catch (...) {
 						}
 						Ops::bit_set (bitmap_ptr, companion_mask);
@@ -944,7 +944,7 @@ bool HeapDirectory <DIRECTORY_SIZE, HEAP_LEVELS, IMPL>::check_allocated (size_t 
 				}
 			} else {
 				if (
-					(HeapDirectoryImpl::COMMITTED_BITMAP >= IMPL || Port::ProtDomainMemory::is_readable (begin_ptr, sizeof (UWord)))
+					(HeapDirectoryImpl::COMMITTED_BITMAP >= IMPL || Port::Memory::is_readable (begin_ptr, sizeof (UWord)))
 					&&
 					(*begin_ptr & begin_mask & end_mask)
 					)
@@ -988,7 +988,7 @@ bool HeapDirectory <DIRECTORY_SIZE, HEAP_LEVELS, IMPL>::check_allocated (size_t 
 				// End of readable memory.
 				const UWord* page_end = round_down (begin_ptr, page_size) + page_size / sizeof (UWord);
 
-				if (Port::ProtDomainMemory::is_readable (begin_ptr, sizeof (UWord))) {
+				if (Port::Memory::is_readable (begin_ptr, sizeof (UWord))) {
 					if (*begin_ptr & begin_mask)
 						return false;
 					++begin_ptr;
@@ -1001,7 +1001,7 @@ bool HeapDirectory <DIRECTORY_SIZE, HEAP_LEVELS, IMPL>::check_allocated (size_t 
 							return false;
 
 					while (begin_ptr < end_ptr) {
-						if (Port::ProtDomainMemory::is_readable (begin_ptr, sizeof (UWord))) {
+						if (Port::Memory::is_readable (begin_ptr, sizeof (UWord))) {
 							page_end = begin_ptr + page_size;
 							break;
 						} else
@@ -1012,7 +1012,7 @@ bool HeapDirectory <DIRECTORY_SIZE, HEAP_LEVELS, IMPL>::check_allocated (size_t 
 				if (
 					(begin_ptr <= end_ptr)
 					&&
-					((end_ptr < page_end) || Port::ProtDomainMemory::is_readable (end_ptr, sizeof (UWord)))
+					((end_ptr < page_end) || Port::Memory::is_readable (end_ptr, sizeof (UWord)))
 					&&
 					(*end_ptr & end_mask)
 					)
