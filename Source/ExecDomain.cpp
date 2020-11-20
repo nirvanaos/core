@@ -8,10 +8,16 @@ namespace Core {
 
 ObjectPool <ExecDomain> ExecDomain::pool_;
 
+void ExecDomain::ReleaseToPool::run ()
+{
+	assert (&ExecContext::current () != &obj_);
+	pool_.release (static_cast <ImplPoolable <ExecDomain>&> (obj_));
+}
+
 void ExecDomain::ctor_base ()
 {
 	Scheduler::activity_begin ();
-	release_to_pool_.obj_ = this;
+	release_to_pool_ = Core_var <Runnable>::create <ImplDynamic <ReleaseToPool> > (std::ref (*this));
 	wait_list_next_ = nullptr;
 	deadline_ = std::numeric_limits <DeadlineTime>::max ();
 	sync_context_ = nullptr;
@@ -85,12 +91,6 @@ void ExecDomain::execute_loop ()
 		Thread::current ().exec_domain (nullptr);
 		_remove_ref ();
 	}
-}
-
-void ExecDomain::ReleaseToPool::run ()
-{
-	assert (&ExecContext::current () != obj_);
-	pool_.release (static_cast <ImplPoolable <ExecDomain>&> (*obj_));
 }
 
 }

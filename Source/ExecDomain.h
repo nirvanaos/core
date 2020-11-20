@@ -109,7 +109,7 @@ public:
 			thread.exec_domain (nullptr);
 		Scheduler::activity_end ();
 		if (&ExecContext::current () == this)
-			run_in_neutral_context (release_to_pool_);
+			run_in_neutral_context (*release_to_pool_);
 		else
 			pool_.release (obj);
 	}
@@ -218,11 +218,17 @@ private:
 	class ReleaseToPool : public Runnable // Runnable for return object to pool in neutral context.
 	{
 	public:
+		ReleaseToPool (ExecDomain& obj) :
+			obj_ (obj)
+		{}
+
 		virtual void run ();
-		ExecDomain* obj_;
+
+	private:
+		ExecDomain& obj_;
 	};
 
-	ImplStatic <ReleaseToPool> release_to_pool_;
+	Core_var <Runnable> release_to_pool_;
 
 	void* runnable_space_ [MAX_RUNNABLE_SIZE];
 };
