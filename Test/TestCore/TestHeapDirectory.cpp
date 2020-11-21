@@ -84,7 +84,7 @@ typedef ::testing::Types <
 //, HeapDirectoryFactory <0x4000, 9, HeapDirectoryImpl::RESERVED_BITMAP_WITH_EXCEPTIONS>
 > MyTypes;
 
-TYPED_TEST_CASE (TestHeapDirectory, MyTypes);
+TYPED_TEST_SUITE (TestHeapDirectory, MyTypes);
 
 TYPED_TEST (TestHeapDirectory, Allocate)
 {

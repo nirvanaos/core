@@ -21,7 +21,10 @@ public:
 	/// Returns free synchronization context.
 	static SyncContext& free_sync_context () NIRVANA_NOEXCEPT;
 
-	constexpr static SyncDomain* SUSPEND = (SyncDomain*)(~(uintptr_t)0);
+	static SyncDomain* SUSPEND ()
+	{
+		return (SyncDomain*)(~(uintptr_t)0);
+	}
 
 	/// Leave this context and enter to the synchronization domain.
 	virtual void schedule_call (SyncDomain* sync_domain) = 0;

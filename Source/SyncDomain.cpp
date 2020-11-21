@@ -97,7 +97,7 @@ void SyncDomain::schedule_call (SyncDomain* sync_domain)
 	assert (&ExecContext::current () == exec_domain);
 	exec_domain->ret_qnode_push (*this);
 
-	if (SyncContext::SUSPEND == sync_domain)
+	if (SyncContext::SUSPEND () == sync_domain)
 		Suspend::suspend ();
 	else {
 		try {

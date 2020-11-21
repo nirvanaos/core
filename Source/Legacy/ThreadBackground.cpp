@@ -26,7 +26,7 @@ void ThreadBackground::schedule_call (Nirvana::Core::SyncDomain* sync_domain)
 {
 	// We don't switch context if sync_domain == nullptr
 	if (sync_domain) {
-		if (SyncContext::SUSPEND == sync_domain)
+		if (SyncContext::SUSPEND () == sync_domain)
 			Suspend::suspend ();
 		else {
 			ScheduleCall::schedule_call (sync_domain);

@@ -52,7 +52,8 @@ private:
 		deleted (false)
 		{}
 
-		virtual ~NodeBase () NIRVANA_NOEXCEPT = 0 {}
+		virtual ~NodeBase () NIRVANA_NOEXCEPT
+		{}
 	};
 
 public:

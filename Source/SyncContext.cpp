@@ -46,7 +46,7 @@ void SyncContext::check_schedule_error ()
 
 void FreeSyncContext::schedule_call (SyncDomain* sync_domain)
 {
-	if (SyncContext::SUSPEND == sync_domain)
+	if (SyncContext::SUSPEND () == sync_domain)
 		Suspend::suspend ();
 	else {
 		ScheduleCall::schedule_call (sync_domain);

@@ -74,7 +74,7 @@ typedef ::testing::Types <
 	PriorityQueue <Value, 16>
 > MaxLevel;
 
-TYPED_TEST_CASE (TestPriorityQueue, MaxLevel);
+TYPED_TEST_SUITE (TestPriorityQueue, MaxLevel);
 
 TYPED_TEST (TestPriorityQueue, SingleThread)
 {

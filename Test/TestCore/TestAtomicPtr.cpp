@@ -107,7 +107,7 @@ typename TestAtomicPtr <Align>::SharedPtr TestAtomicPtr <Align>::shared_ptr_;
 
 typedef ::testing::Types <Align <4>, Align <32> > Alignments;
 
-TYPED_TEST_CASE (TestAtomicPtr, Alignments);
+TYPED_TEST_SUITE (TestAtomicPtr, Alignments);
 
 TYPED_TEST (TestAtomicPtr, Run)
 {

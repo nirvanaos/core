@@ -61,7 +61,7 @@ void ExecDomain::suspend ()
 {
 	ExecDomain* cur = Thread::current ().exec_domain ();
 	assert (cur);
-	cur->sync_context ()->schedule_call (SyncContext::SUSPEND);
+	cur->sync_context ()->schedule_call (SyncContext::SUSPEND ());
 }
 
 void ExecDomain::resume ()

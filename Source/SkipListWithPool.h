@@ -11,7 +11,7 @@ namespace Core {
 template <class Base>
 class SkipListWithPool : public Base
 {
-	static_assert (sizeof (Base::Value) >= sizeof (StackElem), "sizeof (Base::Value) >= sizeof (StackElem)");
+	static_assert (sizeof (typename Base::Value) >= sizeof (StackElem), "sizeof (Base::Value) >= sizeof (StackElem)");
 
 	struct Stackable : StackElem
 	{
