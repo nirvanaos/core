@@ -3,7 +3,7 @@
 
 #include "ServantBase.h"
 #include <CORBA/POA_s.h>
-#include <unordered_map>
+#include "../parallel-hashmap/parallel_hashmap/phmap.h"
 
 namespace CORBA {
 namespace Nirvana {
@@ -47,7 +47,7 @@ public:
 	}
 
 private:
-	typedef std::unordered_map <String, Object_var> AOM;
+	typedef phmap::flat_hash_map <String, Object_var> AOM;
 	AOM active_object_map_;
 };
 

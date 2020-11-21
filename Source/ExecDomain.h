@@ -215,7 +215,9 @@ private:
 	bool scheduler_item_created_;
 	CORBA::Exception::Code scheduler_error_;
 
-	class ReleaseToPool : public Runnable // Runnable for return object to pool in neutral context.
+	class ReleaseToPool : 
+		public CoreObject,
+		public Runnable // Runnable for return object to pool in neutral context.
 	{
 	public:
 		ReleaseToPool (ExecDomain& obj) :

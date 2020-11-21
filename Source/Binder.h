@@ -7,8 +7,14 @@
 #include <Nirvana/Binder_s.h>
 #include <Nirvana/Hash.h>
 #include <CORBA/RepositoryId.h>
-#include <unordered_map>
-#include <map>
+
+#pragma push_macro ("verify")
+#undef verify
+
+#include "parallel-hashmap/parallel_hashmap/phmap.h"
+#include "parallel-hashmap/parallel_hashmap/btree.h"
+
+#pragma pop_macro ("verify")
 
 namespace Nirvana {
 namespace Core {
@@ -94,7 +100,7 @@ class Binder :
 		Version version_;
 	};
 
-	typedef std::map <Version, Interface_ptr, std::less <Version>,
+	typedef phmap::btree_map <Version, Interface_ptr, std::less <Version>,
 		CoreAllocator <std::pair <Version, Interface_ptr> >
 	> VersionMap;
 
@@ -150,7 +156,7 @@ class Binder :
 		} map_;
 	};
 
-	typedef std::unordered_map <NameKey, Versions> Map;
+	typedef phmap::node_hash_map <NameKey, Versions> Map;
 
 public:
 	static void initialize (const void* OLF_section);
