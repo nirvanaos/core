@@ -1,12 +1,12 @@
 #ifndef NIRVANA_CORE_STARTUPSYS_H_
 #define NIRVANA_CORE_STARTUPSYS_H_
 
-#include "Runnable.h"
+#include "Startup.h"
 
 namespace Nirvana {
 namespace Core {
 
-class StartupSys : public ImplStatic <Runnable>
+class StartupSys : public Startup
 {
 public:
 	static DeadlineTime default_deadline ()
@@ -14,7 +14,8 @@ public:
 		return INFINITE_DEADLINE;
 	}
 
-	StartupSys (int argc, char* argv [])
+	StartupSys (int argc, char* argv []) :
+		Startup (argc, argv)
 	{}
 
 	~StartupSys ()
