@@ -10,7 +10,7 @@ namespace Nirvana {
 namespace Core {
 
 /// \brief Core implementation of ServantBase default operations.
-class ServantBase :
+class ServantBase final :
 	public CoreImpl <ServantBase, PortableServer::ServantBase, ProxyObject>
 {
 	typedef CoreImpl <ServantBase, PortableServer::ServantBase, ProxyObject> Base;

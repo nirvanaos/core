@@ -10,7 +10,7 @@ namespace Nirvana {
 namespace Core {
 
 /// \brief Core implementation of LocalObject default operations.
-class LocalObject :
+class LocalObject final :
 	public CoreImpl <LocalObject, CORBA::LocalObject, ProxyLocal>
 {
 	typedef CoreImpl <LocalObject, CORBA::LocalObject, ProxyLocal> Base;
