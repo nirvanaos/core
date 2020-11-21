@@ -1,4 +1,4 @@
-#include "../core.h"
+#include <core.h>
 #include <CORBA/POA.h>
 #include <CORBA/Proxy/TypeCodeException.h>
 #include "tc_impex.h"

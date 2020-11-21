@@ -1,8 +1,8 @@
 /// \file g_runtime_support.cpp
 /// The g_runtime_support object implementation.
 
-#include "RuntimeSupportImpl.h"
-#include "Thread.h"
+#include <RuntimeSupportImpl.h>
+#include <Thread.h>
 #include <Nirvana/RuntimeSupport_s.h>
 #include <Nirvana/OLF.h>
 

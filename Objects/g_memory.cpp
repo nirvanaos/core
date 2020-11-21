@@ -1,10 +1,9 @@
 /// \file g_memory.cpp
 /// The g_memory object implementation.
 
-#include "core.h"
+#include <user_memory.h>
 #include <Nirvana/Memory_s.h>
 #include <Nirvana/OLF.h>
-#include "user_memory.h"
 
 namespace Nirvana {
 namespace Core {

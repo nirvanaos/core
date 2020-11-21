@@ -1,8 +1,8 @@
 // Hand-made proxy code for the POA interface.
-#include "../core.h"
+#include <core.h>
 #include <CORBA/Proxy/Proxy.h>
 #include <CORBA/POA_s.h>
-#include "ServantBase.h"
+#include <ORB/ServantBase.h>
 
 namespace CORBA {
 namespace Nirvana {
