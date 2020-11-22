@@ -323,7 +323,7 @@ public:
 #endif
 	}
 
-	void terminate ()
+	void terminate () NIRVANA_NOEXCEPT
 	{
 		assert (initialized_);
 		((CoreHeap*)object_)->~CoreHeap ();
@@ -335,11 +335,12 @@ public:
 
 	HeapBase* operator -> ()
 	{
+		assert (initialized_);
 		return (CoreHeap*)object_;
 	}
 
 private:
-	uint8_t object_ [sizeof (CoreHeap)];
+	int object_ [(sizeof (CoreHeap) + sizeof (int) - 1) / sizeof (int)];
 
 #ifdef _DEBUG
 	bool initialized_;
@@ -357,7 +358,7 @@ public:
 		g_core_heap.initialize ();
 	}
 
-	static void terminate ()
+	static void terminate () NIRVANA_NOEXCEPT
 	{
 		g_core_heap.terminate ();
 	}
