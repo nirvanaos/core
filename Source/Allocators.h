@@ -39,7 +39,7 @@ public:
 		assert (1 == cnt);
 		T* p = (T*)free_list_.pop ();
 		if (!p)
-			p = (T*)g_core_heap.allocate (0, sizeof (T), 0);
+			p = (T*)g_core_heap->allocate (0, sizeof (T), 0);
 		return p;
 	}
 

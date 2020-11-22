@@ -15,10 +15,14 @@ class TestHeap :
 {
 protected:
 	TestHeap ()
-	{}
+	{
+		Core::Heap::initialize ();
+	}
 
 	virtual ~TestHeap ()
-	{}
+	{
+		Core::Heap::terminate ();
+	}
 
 	// If the constructor and destructor are not enough for setting up
 	// and cleaning up each test, you can define the following methods:

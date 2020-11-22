@@ -33,12 +33,14 @@ protected:
 	{
 		// Code here will be called immediately after the constructor (right
 		// before each test).
+		Nirvana::Core::Heap::initialize ();
 	}
 
 	virtual void TearDown ()
 	{
 		// Code here will be called immediately after each test (right
 		// before the destructor).
+		Nirvana::Core::Heap::terminate ();
 	}
 };
 
@@ -148,8 +150,8 @@ class ThreadTest
 public:
 	ThreadTest () :
 		distr_ (0, NUM_PRIORITIES - 1),
-		queue_size_ (0),
-		queue_ ()
+		queue_ (),
+		queue_size_ (0)
 	{
 		for (int i = 0; i < NUM_PRIORITIES; ++i)
 			counters_ [i] = 0;

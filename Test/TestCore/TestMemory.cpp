@@ -25,12 +25,14 @@ protected:
 	{
 		// Code here will be called immediately after the constructor (right
 		// before each test).
+		Port::Memory::initialize ();
 	}
 
 	virtual void TearDown ()
 	{
 		// Code here will be called immediately after each test (right
 		// before the destructor).
+		Port::Memory::terminate ();
 	}
 };
 

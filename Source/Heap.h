@@ -298,7 +298,8 @@ protected:
 	MemoryBlock* part_list_;
 };
 
-class CoreHeap : public HeapBase
+class CoreHeap final :
+	public HeapBase
 {
 public:
 	CoreHeap () :
@@ -309,9 +310,58 @@ private:
 	virtual MemoryBlock* add_new_partition (MemoryBlock*& tail);
 };
 
-class Heap : public HeapBase
+class CoreHeapObj
 {
 public:
+	void initialize ()
+	{
+		assert (!initialized_);
+		Port::Memory::initialize ();
+		new (object_) CoreHeap ();
+#ifdef _DEBUG
+		initialized_ = true;
+#endif
+	}
+
+	void terminate ()
+	{
+		assert (initialized_);
+		((CoreHeap*)object_)->~CoreHeap ();
+		Port::Memory::terminate ();
+#ifdef _DEBUG
+		initialized_ = false;
+#endif
+	}
+
+	HeapBase* operator -> ()
+	{
+		return (CoreHeap*)object_;
+	}
+
+private:
+	uint8_t object_ [sizeof (CoreHeap)];
+
+#ifdef _DEBUG
+	bool initialized_;
+#endif
+};
+
+extern CoreHeapObj g_core_heap;
+
+class Heap final :
+	public HeapBase
+{
+public:
+	static void initialize ()
+	{
+		g_core_heap.initialize ();
+	}
+
+	static void terminate ()
+	{
+		g_core_heap.terminate ();
+	}
+
 	Heap (size_t allocation_unit = HEAP_UNIT_DEFAULT) :
 		HeapBase (allocation_unit)
 	{}
@@ -327,18 +377,16 @@ public:
 	bool cleanup ();
 };
 
-extern CoreHeap g_core_heap;
-
 template <class T> inline
 void CoreAllocator <T>::deallocate (T* p, size_t cnt)
 {
-	g_core_heap.release (p, cnt * sizeof (T));
+	g_core_heap->release (p, cnt * sizeof (T));
 }
 
 template <class T> inline
 T* CoreAllocator <T>::allocate (size_t cnt, void* hint, UWord flags)
 {
-	return (T*)g_core_heap.allocate (hint, cnt * sizeof (T), flags);
+	return (T*)g_core_heap->allocate (hint, cnt * sizeof (T), flags);
 }
 
 }

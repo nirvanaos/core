@@ -41,10 +41,14 @@ protected:
 
 	TestHeapDirectory () :
 		directory_ (0)
-	{}
+	{
+		Port::Memory::initialize ();
+	}
 
 	virtual ~TestHeapDirectory ()
-	{}
+	{
+		Port::Memory::terminate ();
+	}
 
 	// If the constructor and destructor are not enough for setting up
 	// and cleaning up each test, you can define the following methods:
