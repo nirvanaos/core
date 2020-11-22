@@ -18,13 +18,12 @@ namespace Core {
 /// Background thread.
 /// Used in the legacy mode implementation.
 class NIRVANA_NOVTABLE ThreadBackground :
-	public Nirvana::Core::Thread,
-	public Nirvana::Core::SyncContext,
-	private Nirvana::Core::Port::ThreadBackground
+	protected Nirvana::Core::Port::ThreadBackground,
+	public Nirvana::Core::SyncContext
 {
 	friend class Nirvana::Core::Port::ThreadBackground;
 public:
-	/// Implementation - specific methods must be called explicitly.
+	/// Implementation - specific methods can be called explicitly.
 	Nirvana::Core::Port::ThreadBackground& port ()
 	{
 		return *this;

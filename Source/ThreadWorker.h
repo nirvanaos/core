@@ -11,7 +11,7 @@ class Executor;
 /// ThreadWorker instances are never created by core.
 /// The underlying port implementation creates a pool of ThreadWorker objects on startup.
 class NIRVANA_NOVTABLE ThreadWorker :
-	public Core::Thread
+	public Thread
 {
 public:
 	/// This static method is called by the scheduler.

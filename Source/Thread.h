@@ -18,9 +18,17 @@ class SyncContext;
 class RuntimeSupportImpl;
 
 class NIRVANA_NOVTABLE Thread :
+	protected Port::Thread,
 	public SpinLockNode
 {
+	friend class Port::Thread;
 public:
+	// Implementation - specific methods can be called explicitly.
+	Port::Thread& port () NIRVANA_NOEXCEPT
+	{
+		return *this;
+	}
+
 	/// Returns current thread.
 	static Thread& current () NIRVANA_NOEXCEPT
 	{
@@ -42,16 +50,6 @@ public:
 		runtime_support_ = nullptr;
 	}
 
-	ExecContext& context () const NIRVANA_NOEXCEPT
-	{
-		return *exec_context_;
-	}
-
-	void context (ExecContext& c) NIRVANA_NOEXCEPT
-	{
-		exec_context_ = &c;
-	}
-
 	/// Returns special "neutral" execution context with own stack and CPU state.
 	ExecContext& neutral_context () NIRVANA_NOEXCEPT
 	{
@@ -70,7 +68,6 @@ public:
 protected:
 	Thread () :
 		exec_domain_ (nullptr),
-		exec_context_ (&neutral_context_),
 		neutral_context_ (true)
 	{}
 
@@ -80,9 +77,6 @@ protected:
 private:
 	/// Pointer to the current execution domain.
 	ExecDomain* exec_domain_;
-
-	/// Pointer to the current execution context.
-	ExecContext* exec_context_;
 
 	/// Special "neutral" execution context with own stack and CPU state.
 	ExecContext neutral_context_;

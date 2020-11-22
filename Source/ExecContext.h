@@ -7,12 +7,13 @@
 #include "core.h"
 #include "Runnable.h"
 #include <Port/ExecContext.h>
+#include <Port/Thread.h>
 
 namespace Nirvana {
 namespace Core {
 
 class ExecContext :
-	private Port::ExecContext
+	protected Port::ExecContext
 {
 	friend class Port::ExecContext;
 public:
@@ -22,7 +23,12 @@ public:
 		return *this;
 	}
 
-	static ExecContext& current () NIRVANA_NOEXCEPT;
+	static ExecContext& current () NIRVANA_NOEXCEPT
+	{
+		ExecContext* p = Port::Thread::context ();
+		assert (p);
+		return *p;
+	}
 
 	template <class ... Args>
 	ExecContext (Args ... args) :
@@ -30,7 +36,11 @@ public:
 	{}
 
 	/// Switch to this context.
-	void switch_to () NIRVANA_NOEXCEPT;
+	void switch_to () NIRVANA_NOEXCEPT
+	{
+		assert (&current () != this);
+		Port::ExecContext::switch_to ();
+	}
 
 	static void neutral_context_loop () NIRVANA_NOEXCEPT;
 
