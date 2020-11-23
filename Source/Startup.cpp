@@ -16,7 +16,7 @@ void Startup::on_crash (Word error_code) NIRVANA_NOEXCEPT
 	Scheduler::shutdown ();
 }
 
-void Startup::check ()
+void Startup::check () const
 {
 	if (CORBA::Exception::EC_NO_EXCEPTION != exception_code_)
 		CORBA::SystemException::_raise_by_code (exception_code_);

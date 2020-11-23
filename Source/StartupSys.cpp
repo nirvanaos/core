@@ -7,6 +7,7 @@ namespace Core {
 void StartupSys::run ()
 {
 	// TODO: System domain startup code.
+	ret_ = 0;
 }
 
 }

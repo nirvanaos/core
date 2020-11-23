@@ -22,11 +22,17 @@ public:
 	virtual void on_exception () NIRVANA_NOEXCEPT;
 	virtual void on_crash (Word error_code) NIRVANA_NOEXCEPT;
 
-	void check ();
+	void check () const;
+
+	int ret () const NIRVANA_NOEXCEPT
+	{
+		return ret_;
+	}
 
 protected:
 	int argc_;
 	char** argv_;
+	int ret_;
 
 private:
 	std::exception_ptr exception_;
