@@ -12,19 +12,29 @@ namespace Core {
 class RuntimeSupport :
 	public ::CORBA::Nirvana::ServantStatic <RuntimeSupport, Nirvana::RuntimeSupport>
 {
-	static RuntimeSupportImpl& get_impl ()
+	static RuntimeSupportImpl* get_impl ()
 	{
-		return Thread::current ().runtime_support ();
+		Thread* thread = Thread::current_ptr ();
+		if (thread)
+			return &thread->runtime_support ();
+		else
+			return nullptr;
 	}
 public:
 	RuntimeProxy_var runtime_proxy_get (const void* obj)
 	{
-		return get_impl ().runtime_proxy_get (obj);
+		RuntimeSupportImpl* impl = get_impl ();
+		if (impl)
+			return impl->runtime_proxy_get (obj);
+		else
+			return RuntimeProxy::_nil ();
 	}
 
 	void runtime_proxy_remove (const void* obj)
 	{
-		get_impl ().runtime_proxy_remove (obj);
+		RuntimeSupportImpl* impl = get_impl ();
+		if (impl)
+			impl->runtime_proxy_remove (obj);
 	}
 };
 

@@ -37,6 +37,13 @@ public:
 		return *p;
 	}
 
+	/// Returns current thread.
+	/// May return nullptr.
+	static Thread* current_ptr () NIRVANA_NOEXCEPT
+	{
+		return Port::Thread::current ();
+	}
+
 	ExecDomain* exec_domain () const NIRVANA_NOEXCEPT
 	{
 		return exec_domain_;
