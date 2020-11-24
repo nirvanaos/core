@@ -78,7 +78,22 @@ void ExecDomain::execute (Word scheduler_error)
 	ExecContext::switch_to ();
 }
 
-void ExecDomain::execute_loop ()
+inline
+void ExecDomain::cleanup () NIRVANA_NOEXCEPT
+{
+	heap_.cleanup ();
+	// All user memory release, so we can just re-construct the runtime support object.
+	new (&runtime_support_) RuntimeSupportImpl ();
+	scheduler_error_ = CORBA::SystemException::EC_NO_EXCEPTION;
+	sync_context_ = nullptr;
+	ret_qnodes_clear ();
+	if (scheduler_item_created_) {
+		Scheduler::delete_item ();
+		scheduler_item_created_ = false;
+	}
+}
+
+void ExecDomain::execute_loop () NIRVANA_NOEXCEPT
 {
 	assert (Thread::current ().exec_domain () == this);
 	while (runnable_) {
@@ -87,7 +102,9 @@ void ExecDomain::execute_loop ()
 			runnable_.reset ();
 		} else {
 			ExecContext::run ();
+			assert (!runnable_); // Cleaned inside ExecContext::run ();
 		}
+		cleanup ();
 		Thread::current ().exec_domain (nullptr);
 		_remove_ref ();
 	}

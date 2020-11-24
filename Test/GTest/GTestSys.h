@@ -11,9 +11,7 @@ class GTestSys :
 	public StartupSys
 {
 public:
-	GTestSys (int argc, char* argv []) :
-		StartupSys (argc, argv)
-	{}
+	GTestSys (int argc, char* argv []);
 
 	virtual void run ();
 };

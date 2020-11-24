@@ -94,19 +94,12 @@ public:
 	/// Clear data and return object to the pool
 	void _deactivate (ImplPoolable <ExecDomain>& obj)
 	{
-		runnable_.reset ();
-		sync_context_ = nullptr;
-		scheduler_error_ = CORBA::SystemException::EC_NO_EXCEPTION;
-		runtime_support_.cleanup ();
-		heap_.cleanup ();
-		ret_qnodes_clear ();
-		if (scheduler_item_created_) {
-			Scheduler::delete_item ();
-			scheduler_item_created_ = false;
-		}
+		assert (!runnable_);
+		assert (!sync_context_);
+#ifdef _DEBUG
 		Thread& thread = Thread::current ();
-		if (thread.exec_domain () == this)
-			thread.exec_domain (nullptr);
+		assert (thread.exec_domain () != this);
+#endif
 		Scheduler::activity_end ();
 		if (&ExecContext::current () == this)
 			run_in_neutral_context (*release_to_pool_);
@@ -114,7 +107,7 @@ public:
 			pool_.release (obj);
 	}
 
-	void execute_loop ();
+	void execute_loop () NIRVANA_NOEXCEPT;
 
 	void on_exec_domain_crash (CORBA::SystemException::Code err)
 	{
@@ -200,6 +193,8 @@ private:
 		exec_domain->deadline_ = deadline;
 		return exec_domain;
 	}
+
+	void cleanup () NIRVANA_NOEXCEPT;
 
 public:
 	ExecDomain* wait_list_next_;
