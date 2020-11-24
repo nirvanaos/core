@@ -547,7 +547,7 @@ void* HeapBase::copy (void* dst, void* src, size_t size, UWord flags)
 
 	try {
 		if (dst_own)
-			dst = Port::Memory::copy (dst, src, size, flags);
+			dst = Port::Memory::copy (dst, src, size, flags & ~Memory::ALLOCATE);
 		else
 			real_copy ((uint8_t*)src, (uint8_t*)src + size, (uint8_t*)dst);
 	} catch (...) {
