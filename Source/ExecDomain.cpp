@@ -81,7 +81,7 @@ void ExecDomain::execute (Word scheduler_error)
 inline
 void ExecDomain::cleanup () NIRVANA_NOEXCEPT
 {
-	heap_.cleanup ();
+	heap_.cleanup (); // TODO: Detect and log the memory leaks.
 	// All user memory release, so we can just re-construct the runtime support object.
 	new (&runtime_support_) RuntimeSupportImpl ();
 	scheduler_error_ = CORBA::SystemException::EC_NO_EXCEPTION;
