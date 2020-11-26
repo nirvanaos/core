@@ -1,8 +1,6 @@
 #ifndef NIRVANA_CORE_BINDER_H_
 #define NIRVANA_CORE_BINDER_H_
 
-#include "CoreObject.h"
-#include "LifeCyclePseudo.h"
 #include "SyncDomain.h"
 #include <Nirvana/Binder_s.h>
 #include <Nirvana/Hash.h>
@@ -20,10 +18,9 @@ namespace Nirvana {
 namespace Core {
 
 class Binder :
-	public CoreObject,
-	public LifeCyclePseudo <Binder>,
-	public CORBA::Nirvana::ImplementationPseudo <Binder, Nirvana::Binder>
+	public CORBA::Nirvana::ServantStatic <Binder, Nirvana::Binder>
 {
+private:
 	typedef CORBA::Nirvana::RepositoryId::Version Version;
 	typedef CORBA::Nirvana::Interface_ptr Interface_ptr;
 
@@ -68,7 +65,7 @@ class Binder :
 
 	struct NameKeyHash
 	{
-		size_t operator () (const NameKey& key)
+		size_t operator () (const NameKey& key) const
 		{
 			return Hash::hash_bytes (key.begin (), key.size ());
 		}
@@ -126,7 +123,7 @@ class Binder :
 				return 1;
 		}
 
-		std::pair <VersionMap::iterator, bool> emplace (const Version& ver, Interface_ptr itf)
+		void emplace (const Version& ver, Interface_ptr itf)
 		{
 			if (!use_map_) {
 				std::pair <Version, Interface_ptr> tmp = map_.single;
@@ -156,13 +153,15 @@ class Binder :
 		} map_;
 	};
 
-	typedef phmap::node_hash_map <NameKey, Versions> Map;
+	typedef phmap::node_hash_map <NameKey, Versions, NameKeyHash, std::equal_to <NameKey>, CoreAllocator <std::pair <NameKey, Versions> > > Map;
 
 public:
-	static void initialize (const void* OLF_section);
-	static void terminate ();
+	static void initialize ();
 
-	CORBA::Nirvana::Interface_var bind (CORBA::String_in name, CORBA::String_in interface_id);
+	static CORBA::Nirvana::Interface_var bind (CORBA::String_in name, CORBA::String_in interface_id)
+	{
+		throw_NO_IMPLEMENT ();
+	}
 
 	class iterator
 	{
@@ -170,14 +169,18 @@ public:
 		Version ver;
 	};
 
-	void erase (const iterator& it)
+	static void erase (const iterator& it)
 	{
 
 	}
 
+	class OLF_Iterator;
+
+	static void add_export (const char* name, CORBA::Nirvana::Interface_ptr itf);
+
 private:
-	ImplStatic <SyncDomain> sync_domain_;
-	Map map_;
+	static ImplStatic <SyncDomain> sync_domain_;
+	static Map map_;
 };
 
 }

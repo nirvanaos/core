@@ -1,8 +1,14 @@
 #include "Startup.h"
 #include "Scheduler.h"
+#include "Binder.h"
 
 namespace Nirvana {
 namespace Core {
+
+void Startup::run ()
+{
+	Binder::initialize ();
+}
 
 void Startup::on_exception () NIRVANA_NOEXCEPT
 {

@@ -19,6 +19,7 @@ public:
 	~Startup ()
 	{}
 
+	virtual void run ();
 	virtual void on_exception () NIRVANA_NOEXCEPT;
 	virtual void on_crash (Word error_code) NIRVANA_NOEXCEPT;
 
