@@ -1,182 +1,113 @@
 #ifndef NIRVANA_CORE_BINDER_H_
 #define NIRVANA_CORE_BINDER_H_
 
-#include "SyncDomain.h"
 #include <Nirvana/Binder_s.h>
-#include <Nirvana/Hash.h>
+#include "SyncDomain.h"
+#include "Section.h"
+#include "Synchronized.h"
 #include <CORBA/RepositoryId.h>
-
-#pragma push_macro ("verify")
-#undef verify
-
-#include "parallel-hashmap/parallel_hashmap/phmap.h"
-#include "parallel-hashmap/parallel_hashmap/btree.h"
-
-#pragma pop_macro ("verify")
+#include <map>
 
 namespace Nirvana {
 namespace Core {
+
+class Module;
+
+typedef std::basic_string <char, std::char_traits <char>, CoreAllocator <char>> CoreString;
 
 class Binder :
 	public CORBA::Nirvana::ServantStatic <Binder, Nirvana::Binder>
 {
 private:
+	typedef CORBA::Nirvana::RepositoryId RepositoryId;
 	typedef CORBA::Nirvana::RepositoryId::Version Version;
 	typedef CORBA::Nirvana::Interface_ptr Interface_ptr;
-
-	class NameKey
-	{
-	public:
-		NameKey (const char* id, Version& ver) :
-			begin_ (id)
-		{
-			const char* sver = CORBA::Nirvana::RepositoryId::version (id, id + strlen (id));
-			size_ = sver - begin_;
-			ver = Version (sver);
-		}
-
-		NameKey (const std::string& id, Version& ver) :
-			begin_ (id.c_str ())
-		{
-			const char* sver = CORBA::Nirvana::RepositoryId::version (begin_, begin_ + id.length ());
-			size_ = sver - begin_;
-			ver = Version (sver);
-		}
-
-		bool operator == (const NameKey& rhs) const
-		{
-			return size_ == rhs.size_ && std::equal (begin_, begin_ + size_, rhs.begin_);
-		}
-
-		const char* begin () const
-		{
-			return begin_;
-		}
-
-		size_t size () const
-		{
-			return size_;
-		}
-
-	private:
-		const char* begin_;
-		size_t size_;
-	};
-
-	struct NameKeyHash
-	{
-		size_t operator () (const NameKey& key) const
-		{
-			return Hash::hash_bytes (key.begin (), key.size ());
-		}
-	};
+	typedef CORBA::Nirvana::Interface_var Interface_var;
 
 	class Key
 	{
 	public:
+		Key (const char* id, size_t length) :
+			name_ (id)
+		{
+			const char* sver = RepositoryId::version (id, id + length);
+			length_ = sver - id;
+			version_ = Version (sver);
+		}
+
 		Key (const char* id) :
-			name_ (id, version_)
+			Key (id, strlen (id))
 		{}
 
 		Key (const std::string& id) :
-			name_ (id, version_)
+			Key (id.c_str (), id.length ())
 		{}
 
-		const NameKey& name () const
+		bool operator < (const Key& rhs) const
 		{
-			return name_;
+			if (length_ < rhs.length_)
+				return true;
+			else if (length_ > rhs.length_)
+				return false;
+			else {
+				int c = RepositoryId::lex_compare (name_, name_ + length_, rhs.name_, rhs.name_ + length_);
+				if (c < 0)
+					return true;
+				else if (c > 0)
+					return false;
+			}
+			return version_ < rhs.version_;
 		}
 
-		const Version& version () const
+		bool is_a (const Key& rhs) const
 		{
-			return version_;
+			return length_ == rhs.length_ && std::equal (name_, name_ + length_, rhs.name_);
+		}
+
+		bool compatible (const Key& rhs) const
+		{
+			return length_ == rhs.length_
+				&& !RepositoryId::lex_compare (name_, name_ + length_, rhs.name_, rhs.name_ + length_)
+				&& version_.compatible (rhs.version_);
 		}
 
 	private:
-		NameKey name_;
+		const char* name_;
+		size_t length_;
 		Version version_;
 	};
 
-	typedef phmap::btree_map <Version, Interface_ptr, std::less <Version>,
-		CoreAllocator <std::pair <Version, Interface_ptr> >
-	> VersionMap;
-
-	class Versions
-	{
-	public:
-		Versions (const Version& ver, Interface_ptr itf) :
-			use_map_ (false),
-			map_ (ver, itf)
-		{}
-
-		~Versions ()
-		{
-			if (use_map_)
-				((VersionMap*)map_.map_space)->~VersionMap ();
-		}
-
-		size_t size () const
-		{
-			if (use_map_)
-				return ((VersionMap*)map_.map_space)->size ();
-			else
-				return 1;
-		}
-
-		void emplace (const Version& ver, Interface_ptr itf)
-		{
-			if (!use_map_) {
-				std::pair <Version, Interface_ptr> tmp = map_.single;
-				try {
-					(new (map_.map_space) VersionMap ())->emplace (ver, itf);
-				} catch (...) {
-					map_.single = tmp;
-					throw;
-				}
-				use_map_ = true;
-			}
-			((VersionMap*)map_.map_space)->emplace (ver, itf);
-		}
-
-		bool erase (const Version& ver);
-
-	private:
-		bool use_map_;
-		union Map
-		{
-			Map (const Version& ver, Interface_ptr itf) :
-				single (ver, itf)
-			{}
-
-			std::pair <Version, Interface_ptr> single;
-			uint8_t map_space [sizeof (VersionMap)];
-		} map_;
-	};
-
-	typedef phmap::node_hash_map <NameKey, Versions, NameKeyHash, std::equal_to <NameKey>, CoreAllocator <std::pair <NameKey, Versions> > > Map;
+	typedef std::map <Key, Interface_ptr, std::less <Key>, CoreAllocator <std::pair <Key, Interface_ptr> > > Map;
 
 public:
 	static void initialize ();
 
-	static CORBA::Nirvana::Interface_var bind (CORBA::String_in name, CORBA::String_in interface_id)
+	static Interface_var bind (const std::string& _name, const std::string& _iid)
 	{
-		throw_NO_IMPLEMENT ();
+		CoreString name (_name.c_str (), _name.length ()), iid (_iid.c_str (), _iid.length ());
+		Synchronized sync (&sync_domain_);
+		return bind_sync (name, iid);
 	}
 
-	class iterator
-	{
-		Map::iterator it_;
-		Version ver;
-	};
+	typedef Map::iterator Iterator;
 
-	static void erase (const iterator& it)
-	{
-
-	}
-
+private:
 	class OLF_Iterator;
 
-	static void add_export (const char* name, CORBA::Nirvana::Interface_ptr itf);
+	static void add_export (Module* mod, const char* name, CORBA::Nirvana::Interface_ptr itf);
+	static void bind_module (Module* mod, const Section& metadata);
+
+	static Interface_var bind_sync (const CoreString& name, const CoreString& iid)
+	{
+		return bind_sync (name.c_str (), name.length (), iid.c_str (), iid.length ());
+	}
+
+	static Interface_var bind_sync (const char* name, const char* iid)
+	{
+		return bind_sync (name, strlen (name), iid, strlen (iid));
+	}
+
+	static Interface_var bind_sync (const char* name, size_t name_len, const char* iid, size_t iid_len);
 
 private:
 	static ImplStatic <SyncDomain> sync_domain_;
