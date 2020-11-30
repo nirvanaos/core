@@ -56,9 +56,11 @@ void ExecDomain::schedule (SyncDomain* sync_domain)
 		throw;
 	}
 
-	SyncDomain* old_sd = old_context->sync_domain ();
-	if (old_sd)
-		old_sd->leave ();
+	if (old_context) {
+		SyncDomain* old_sd = old_context->sync_domain ();
+		if (old_sd)
+			old_sd->leave ();
+	}
 }
 
 void ExecDomain::suspend ()

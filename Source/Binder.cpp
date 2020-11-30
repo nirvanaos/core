@@ -41,7 +41,7 @@ public:
 	void next ()
 	{
 		if (!end ()) {
-			Word idx = (Word)(*cur_ptr_) - 1;
+			size_t idx = (size_t)(*cur_ptr_) - 1;
 			assert (idx >= 0);
 			cur_ptr_ = (OLF_Command*)((uint8_t*)cur_ptr_ + command_sizes_ [idx]);
 			check ();

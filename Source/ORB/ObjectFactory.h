@@ -18,7 +18,7 @@ class ObjectFactory :
 public:
 	static void* memory_allocate (size_t size)
 	{
-		enter_sync_domain ();
+		::Nirvana::Core::SyncDomain::enter ();
 		return ::Nirvana::g_memory->allocate (0, size, 0);
 	}
 
@@ -79,11 +79,6 @@ private:
 	}
 
 	static size_t offset_ptr ();
-
-	static void enter_sync_domain ()
-	{
-		::Nirvana::Core::SyncDomain::enter ();
-	}
 };
 
 }

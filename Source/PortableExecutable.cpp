@@ -29,7 +29,7 @@ bool PortableExecutable::find_OLF_section (Core::Section& section) const NIRVANA
 	const COFF::Section* ps = COFF::find_section (OLF_BIND);
 	if (ps) {
 		section.address = (const uint8_t*)base_address_ + ps->VirtualAddress;
-		section.size = ps->VirtualSize;
+		section.size = ps->SizeOfRawData;
 		return true;
 	}
 	return false;
