@@ -48,11 +48,41 @@ void SyncDomain::schedule () NIRVANA_NOEXCEPT
 	}
 }
 
+void SyncDomain::execute (Word scheduler_error)
+{
+	assert (State::SCHEDULED == state_);
+	state_ = State::RUNNING;
+	Executor* executor;
+	verify (queue_.delete_min (executor));
+	executor->execute (scheduler_error);
+}
+
 inline
 void SyncDomain::activity_end () NIRVANA_NOEXCEPT
 {
 	if (1 == activity_cnt_.decrement ())
 		Scheduler::delete_item ();
+}
+
+void SyncDomain::leave () NIRVANA_NOEXCEPT
+{
+	assert (State::RUNNING == state_);
+	state_ = State::IDLE;
+	schedule ();
+	activity_end ();
+}
+
+void SyncDomain::enter ()
+{
+	ExecDomain* exec_domain = Thread::current ().exec_domain ();
+	assert (exec_domain);
+	SyncContext* sync_context = exec_domain->sync_context ();
+	assert (sync_context);
+	if (!sync_context->sync_domain ()) {
+		Core_var <ImplDynamic <SyncDomain>> sd = Core_var <ImplDynamic <SyncDomain>>::create <ImplDynamic <SyncDomain>> ();
+		sd->state_ = State::RUNNING;
+		exec_domain->sync_context (*sd);
+	}
 }
 
 SyncDomain::QueueNode* SyncDomain::create_queue_node (QueueNode* next)
@@ -70,23 +100,6 @@ void SyncDomain::release_queue_node (QueueNode* node) NIRVANA_NOEXCEPT
 	assert (node);
 	assert (node->domain_ == this);
 	queue_.deallocate_node (node);
-	activity_end ();
-}
-
-void SyncDomain::execute (Word scheduler_error)
-{
-	assert (State::SCHEDULED == state_);
-	state_ = State::RUNNING;
-	Executor* executor;
-	if (queue_.delete_min (executor))
-		executor->execute (scheduler_error);
-#ifdef _DEBUG
-	else
-		assert (false);
-#endif
-	assert (State::RUNNING == state_);
-	state_ = State::IDLE;
-	schedule ();
 	activity_end ();
 }
 

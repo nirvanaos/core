@@ -153,6 +153,10 @@ public:
 		return ret;
 	}
 
+public:
+	ExecDomain* wait_list_next_;
+	CORBA::Nirvana::StatelessCreationFrame* stateless_creation_frame_;
+
 protected:
 	ExecDomain () :
 		ExecContext ()
@@ -196,14 +200,11 @@ private:
 
 	void cleanup () NIRVANA_NOEXCEPT;
 
-public:
-	ExecDomain* wait_list_next_;
-
 private:
 	static ObjectPool <ExecDomain> pool_;
 
 	DeadlineTime deadline_;
-	SyncContext* sync_context_;
+	Core_var <SyncContext> sync_context_;
 	SyncDomain::QueueNode* ret_qnodes_;
 	Heap heap_;
 	RuntimeSupportImpl runtime_support_;

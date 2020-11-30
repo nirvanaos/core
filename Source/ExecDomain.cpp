@@ -20,10 +20,10 @@ void ExecDomain::ctor_base ()
 	release_to_pool_ = Core_var <Runnable>::create <ImplDynamic <ReleaseToPool> > (std::ref (*this));
 	wait_list_next_ = nullptr;
 	deadline_ = std::numeric_limits <DeadlineTime>::max ();
-	sync_context_ = nullptr;
 	ret_qnodes_ = nullptr;
 	scheduler_error_ = CORBA::SystemException::EC_NO_EXCEPTION;
 	scheduler_item_created_ = false;
+	stateless_creation_frame_ = nullptr;
 }
 
 void ExecDomain::spawn (SyncDomain* sync_domain)
@@ -37,7 +37,7 @@ void ExecDomain::schedule (SyncDomain* sync_domain)
 {
 	assert (&ExecContext::current () != this);
 
-	SyncContext* old_context = sync_context_;
+	Core_var <SyncContext> old_context = std::move (sync_context_);
 	if (!sync_domain && !scheduler_item_created_) {
 		Scheduler::create_item ();
 		scheduler_item_created_ = true;
@@ -52,9 +52,13 @@ void ExecDomain::schedule (SyncDomain* sync_domain)
 			Scheduler::schedule (deadline (), *this);
 		}
 	} catch (...) {
-		sync_context_ = old_context;
+		sync_context_ = std::move (old_context);
 		throw;
 	}
+
+	SyncDomain* old_sd = old_context->sync_domain ();
+	if (old_sd)
+		old_sd->leave ();
 }
 
 void ExecDomain::suspend ()
@@ -81,11 +85,15 @@ void ExecDomain::execute (Word scheduler_error)
 inline
 void ExecDomain::cleanup () NIRVANA_NOEXCEPT
 {
-	heap_.cleanup (); // TODO: Detect and log the memory leaks.
-	// All user memory release, so we can just re-construct the runtime support object.
-	new (&runtime_support_) RuntimeSupportImpl ();
-	scheduler_error_ = CORBA::SystemException::EC_NO_EXCEPTION;
+	{
+		SyncDomain* sd = sync_context_->sync_domain ();
+		if (sd)
+			sd->leave ();
+	}
 	sync_context_ = nullptr;
+	runtime_support_.cleanup ();
+	heap_.cleanup (); // TODO: Detect and log the memory leaks.
+	scheduler_error_ = CORBA::SystemException::EC_NO_EXCEPTION;
 	ret_qnodes_clear ();
 	if (scheduler_item_created_) {
 		Scheduler::delete_item ();

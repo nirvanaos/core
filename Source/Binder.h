@@ -13,10 +13,8 @@ namespace Core {
 
 class Module;
 
-typedef std::basic_string <char, std::char_traits <char>, CoreAllocator <char>> CoreString;
-
 class Binder :
-	public CORBA::Nirvana::ServantStatic <Binder, Nirvana::Binder>
+	public CORBA::Nirvana::ServantStatic <Binder, ::Nirvana::Binder>
 {
 private:
 	typedef CORBA::Nirvana::RepositoryId RepositoryId;

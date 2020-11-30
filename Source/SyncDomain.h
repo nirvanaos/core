@@ -82,6 +82,11 @@ public:
 		return runtime_support_;
 	}
 
+	/// If we currently run out of SD, create new SD and enter into it.
+	static void enter ();
+
+	void leave () NIRVANA_NOEXCEPT;
+
 private:
 	void schedule () NIRVANA_NOEXCEPT;
 	void activity_end () NIRVANA_NOEXCEPT;

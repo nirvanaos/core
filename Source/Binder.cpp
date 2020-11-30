@@ -85,6 +85,7 @@ void Binder::initialize ()
 	if (!Port::SystemInfo::get_OLF_section (metadata))
 		throw_INITIALIZE ();
 
+	Synchronized sync (&sync_domain_);
 	add_export (nullptr, g_binder.imp.name, g_binder.imp.itf);
 	bind_module (nullptr, metadata);
 }
@@ -107,7 +108,7 @@ void Binder::bind_module (Module* mod, const Section& metadata)
 		switch (*it.cur ()) {
 			case OLF_IMPORT_INTERFACE:
 				assert (mod);
-				{
+				if (!module_entry) {
 					ImportInterface* ps = reinterpret_cast <ImportInterface*> (it.cur ());
 					Key key (ps->name);
 					if (key.is_a (k_gmodule)) {
@@ -144,6 +145,7 @@ void Binder::bind_module (Module* mod, const Section& metadata)
 	if (!mod) {
 		// Create POA
 		// TODO: It is temporary solution.
+		Synchronized sync (nullptr);
 		Servant_var <POA> poa = new POA;
 		CORBA::Nirvana::Core::g_root_POA = poa->_this ();
 	}

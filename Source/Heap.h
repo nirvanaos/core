@@ -390,6 +390,8 @@ T* CoreAllocator <T>::allocate (size_t cnt, void* hint, UWord flags)
 	return (T*)g_core_heap->allocate (hint, cnt * sizeof (T), flags);
 }
 
+typedef std::basic_string <char, std::char_traits <char>, CoreAllocator <char>> CoreString;
+
 }
 }
 

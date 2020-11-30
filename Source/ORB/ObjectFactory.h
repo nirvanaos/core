@@ -6,6 +6,7 @@
 #include "ServantBase.h"
 #include "LocalObject.h"
 #include "ReferenceCounter.h"
+#include "SyncDomain.h"
 
 namespace CORBA {
 namespace Nirvana {
@@ -30,15 +31,17 @@ public:
 	{
 		if (!(scs.tmp && scs.size))
 			throw BAD_PARAM ();
-		void* p = ::Nirvana::g_memory->allocate (0, scs.size, ::Nirvana::Memory::READ_ONLY | ::Nirvana::Memory::RESERVED);
-		scs.offset = (Octet*)p - (Octet*)scs.tmp;
-		stateless_ = &scs;
+		// TODO: Allocate from read-only heap
+		void* p = ::Nirvana::Core::g_core_heap->allocate (0, scs.size, ::Nirvana::Memory::READ_ONLY | ::Nirvana::Memory::RESERVED);
+		scs.offset = (uint8_t*)p - (uint8_t*)scs.tmp;
+		stateless_creation_frame () = &scs;
 	}
 
 	void* stateless_end (bool success)
 	{
-		StatelessCreationFrame* scs = stateless_;
-		stateless_ = 0;
+		StatelessCreationFrame*& scsr = stateless_creation_frame ();
+		StatelessCreationFrame* scs = scsr;
+		scsr = nullptr;
 		if (!scs)
 			throw BAD_INV_ORDER ();
 		void* p = (Octet*)scs->tmp + scs->offset;
@@ -67,24 +70,20 @@ public:
 	}
 
 private:
+	static StatelessCreationFrame*& stateless_creation_frame ();
+
 	template <class I>
 	static I_ptr <I> offset_ptr (I_ptr <I> p)
 	{
-		if (stateless_) {
-			void* vp = &p;
-			p = reinterpret_cast <I*> ((Octet*)vp + stateless_->offset);
-		} else
-			enter_sync_domain ();
-		return p;
+		return reinterpret_cast <I*> ((Octet*)&p + offset_ptr ());
 	}
+
+	static size_t offset_ptr ();
 
 	static void enter_sync_domain ()
 	{
-		// If we currently run out of SD, create new SD and enter into it.
+		::Nirvana::Core::SyncDomain::enter ();
 	}
-
-private:
-	static StatelessCreationFrame* stateless_;
 };
 
 }
