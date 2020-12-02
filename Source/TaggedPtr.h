@@ -180,8 +180,10 @@ public:
 	Ptr operator = (Ptr src)
 	{
 		assert ((src.ptr_ & SPIN_MASK) == 0);
-		assert ((ptr_.load () & SPIN_MASK) == 0);
-		ptr_.store (src.ptr_);
+		uintptr_t p = ptr_.load () & ~SPIN_MASK;
+		while (!ptr_.compare_exchange_weak (p, src.ptr_)) {
+			p &= ~SPIN_MASK;
+		}
 		return src;
 	}
 
