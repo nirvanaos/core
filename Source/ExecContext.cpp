@@ -10,29 +10,27 @@ namespace Core {
 
 void ExecContext::run () NIRVANA_NOEXCEPT
 {
-	if (runnable_) {
-		try {
-			runnable_->run ();
-		} catch (...) {
-			runnable_->on_exception ();
-		}
-		runnable_.reset ();
+	assert (runnable_);
+	try {
+		runnable_->run ();
+	} catch (...) {
+		runnable_->on_exception ();
 	}
+	runnable_ = nullptr;
 }
 
 void ExecContext::on_crash (CORBA::SystemException::Code err) NIRVANA_NOEXCEPT
 {
 	runnable_->on_crash (err);
-	runnable_.reset ();
+	runnable_ = nullptr;
 }
 
 void ExecContext::neutral_context_loop () NIRVANA_NOEXCEPT
 {
 	Thread& thread = Thread::current ();
-	ExecContext& context = current ();
-	assert (&context == &thread.neutral_context ());
+	assert (&current () == &thread.neutral_context ());
 	for (;;) {
-		context.run ();
+		thread.neutral_context ().run ();
 		if (thread.exec_domain ())
 			thread.exec_domain ()->switch_to ();
 		else

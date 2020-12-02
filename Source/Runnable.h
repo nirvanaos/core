@@ -2,14 +2,13 @@
 #ifndef NIRVANA_CORE_RUNNABLE_H_
 #define NIRVANA_CORE_RUNNABLE_H_
 
-#include "CoreInterface.h"
+#include "core.h"
 #include <exception>
 
 namespace Nirvana {
 namespace Core {
 
-class NIRVANA_NOVTABLE Runnable :
-	public CoreInterface
+class NIRVANA_NOVTABLE Runnable
 {
 public:
 	virtual void run () = 0;

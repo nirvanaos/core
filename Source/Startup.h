@@ -7,7 +7,7 @@
 namespace Nirvana {
 namespace Core {
 
-class Startup : public ImplStatic <Runnable>
+class NIRVANA_NOVTABLE Startup : public Runnable
 {
 public:
 	Startup (int argc, char* argv []) :

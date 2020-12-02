@@ -25,9 +25,13 @@ public:
 
 	void schedule (const DeadlineTime& deadline, Executor& executor)
 	{
-		if (0 == activity_cnt_.increment ())
-			Scheduler::create_item ();
-		verify (queue_.insert (deadline, &executor));
+		activity_begin ();
+		try {
+			verify (queue_.insert (deadline, &executor));
+		} catch (...) {
+			activity_end ();
+			throw;
+		}
 		schedule ();
 	}
 
@@ -52,7 +56,20 @@ public:
 		QueueNode* next_;
 	};
 
-	QueueNode* create_queue_node (QueueNode* next);
+	QueueNode* create_queue_node (QueueNode* next)
+	{
+		activity_begin ();
+		try {
+			QueueNode* node = static_cast <QueueNode*> (queue_.allocate_node ());
+			node->domain_ = this;
+			node->next_ = next;
+			return node;
+		} catch (...) {
+			activity_end ();
+			throw;
+		}
+	}
+
 	void release_queue_node (QueueNode* node) NIRVANA_NOEXCEPT;
 
 	void schedule (QueueNode* node, const DeadlineTime& deadline, Executor& executor) NIRVANA_NOEXCEPT
@@ -89,6 +106,12 @@ public:
 
 private:
 	void schedule () NIRVANA_NOEXCEPT;
+	void activity_begin ()
+	{
+		if (0 == activity_cnt_.increment ())
+			Scheduler::create_item ();
+	}
+
 	void activity_end () NIRVANA_NOEXCEPT;
 
 private:

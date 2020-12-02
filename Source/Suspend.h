@@ -6,13 +6,13 @@
 namespace Nirvana {
 namespace Core {
 
-class NIRVANA_NOVTABLE Suspend :
+class Suspend :
 	public Runnable
 {
 public:
 	static void suspend () NIRVANA_NOEXCEPT
 	{
-		ImplStatic <Suspend> runnable;
+		Suspend runnable;
 		run_in_neutral_context (runnable);
 	}
 

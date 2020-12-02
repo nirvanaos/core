@@ -6,7 +6,7 @@ namespace Core {
 
 void ScheduleCall::schedule_call (SyncDomain* sync_domain)
 {
-	ImplStatic <ScheduleCall> runnable (sync_domain);
+	ScheduleCall runnable (sync_domain);
 	run_in_neutral_context (runnable);
 	if (runnable.exception_)
 		std::rethrow_exception (runnable.exception_);

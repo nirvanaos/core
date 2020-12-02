@@ -8,16 +8,15 @@ namespace Core {
 
 ObjectPool <ExecDomain> ExecDomain::pool_;
 
-void ExecDomain::ReleaseToPool::run ()
+void ExecDomain::run ()
 {
-	assert (&ExecContext::current () != &obj_);
-	pool_.release (static_cast <ImplPoolable <ExecDomain>&> (obj_));
+	assert (&ExecContext::current () != this);
+	pool_.release (static_cast <ImplPoolable <ExecDomain>&> (*this));
 }
 
 void ExecDomain::ctor_base ()
 {
 	Scheduler::activity_begin ();
-	release_to_pool_ = Core_var <Runnable>::create <ImplDynamic <ReleaseToPool> > (std::ref (*this));
 	wait_list_next_ = nullptr;
 	deadline_ = std::numeric_limits <DeadlineTime>::max ();
 	ret_qnodes_ = nullptr;
@@ -92,9 +91,9 @@ void ExecDomain::cleanup () NIRVANA_NOEXCEPT
 		if (sd)
 			sd->leave ();
 	}
-	sync_context_ = nullptr;
 	runtime_support_.cleanup ();
 	heap_.cleanup (); // TODO: Detect and log the memory leaks.
+	sync_context_ = nullptr;
 	scheduler_error_ = CORBA::SystemException::EC_NO_EXCEPTION;
 	ret_qnodes_clear ();
 	if (scheduler_item_created_) {
@@ -109,7 +108,7 @@ void ExecDomain::execute_loop () NIRVANA_NOEXCEPT
 	while (runnable_) {
 		if (scheduler_error_) {
 			runnable_->on_crash (scheduler_error_);
-			runnable_.reset ();
+			runnable_ = nullptr;
 		} else {
 			ExecContext::run ();
 			assert (!runnable_); // Cleaned inside ExecContext::run ();

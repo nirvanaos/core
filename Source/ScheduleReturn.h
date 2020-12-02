@@ -8,13 +8,13 @@ namespace Core {
 
 class SyncContext;
 
-class NIRVANA_NOVTABLE ScheduleReturn :
+class ScheduleReturn :
 	private Runnable
 {
 public:
 	static void schedule_return (SyncContext& sync_context) NIRVANA_NOEXCEPT
 	{
-		ImplStatic <ScheduleReturn> runnable (std::ref (sync_context));
+		ScheduleReturn runnable (sync_context);
 		run_in_neutral_context (runnable);
 	}
 

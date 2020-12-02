@@ -4,10 +4,11 @@
 #ifndef NIRVANA_CORE_EXECCONTEXT_H_
 #define NIRVANA_CORE_EXECCONTEXT_H_
 
-#include "core.h"
+
 #include "Runnable.h"
 #include <Port/ExecContext.h>
 #include <Port/Thread.h>
+#include "CoreInterface.h"
 
 namespace Nirvana {
 namespace Core {
@@ -32,7 +33,8 @@ public:
 
 	template <class ... Args>
 	ExecContext (Args ... args) :
-		Port::ExecContext (std::forward <Args> (args)...)
+		Port::ExecContext (std::forward <Args> (args)...),
+		runnable_ (nullptr)
 	{}
 
 	/// Switch to this context.
@@ -57,7 +59,7 @@ protected:
 	void on_crash (CORBA::SystemException::Code err) NIRVANA_NOEXCEPT;
 
 protected:
-	Core_var <Runnable> runnable_;
+	Runnable* runnable_;
 };
 
 }

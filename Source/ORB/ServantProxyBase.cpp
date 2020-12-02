@@ -7,7 +7,7 @@ namespace Core {
 
 using namespace ::Nirvana::Core;
 
-class NIRVANA_NOVTABLE ServantProxyBase::GarbageCollector :
+class ServantProxyBase::GarbageCollector :
 	public CoreObject,
 	public Runnable
 {

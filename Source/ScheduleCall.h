@@ -8,7 +8,7 @@ namespace Core {
 
 class SyncDomain;
 
-class NIRVANA_NOVTABLE ScheduleCall :
+class ScheduleCall :
 	private Runnable
 {
 public:

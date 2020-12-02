@@ -57,7 +57,6 @@ void SyncDomain::execute (Word scheduler_error)
 	executor->execute (scheduler_error);
 }
 
-inline
 void SyncDomain::activity_end () NIRVANA_NOEXCEPT
 {
 	if (1 == activity_cnt_.decrement ())
@@ -83,16 +82,6 @@ void SyncDomain::enter ()
 		sd->state_ = State::RUNNING;
 		exec_domain->sync_context (*sd);
 	}
-}
-
-SyncDomain::QueueNode* SyncDomain::create_queue_node (QueueNode* next)
-{
-	assert (0 != activity_cnt_);
-	QueueNode* node = static_cast <QueueNode*> (queue_.allocate_node ());
-	activity_cnt_.increment ();
-	node->domain_ = this;
-	node->next_ = next;
-	return node;
 }
 
 void SyncDomain::release_queue_node (QueueNode* node) NIRVANA_NOEXCEPT

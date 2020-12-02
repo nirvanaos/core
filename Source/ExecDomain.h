@@ -18,16 +18,17 @@ namespace Core {
 class NIRVANA_NOVTABLE ExecDomain :
 	public CoreObject,
 	public ExecContext,
-	public Executor
+	public Executor,
+	private Runnable // Runnable::run () is used for return to pool in the neutral context.
 {
 	static const size_t MAX_RUNNABLE_SIZE = 8; // In pointers.
 public:
 	template <class R, class ... Args>
 	static void async_call (const DeadlineTime& deadline, SyncDomain* sync_domain, Args ... args)
 	{
-		static_assert (sizeof (ImplNoAddRef <R>) <= sizeof (runnable_space_), "Runnable object is too large.");
+		static_assert (sizeof (R) <= sizeof (runnable_space_), "Runnable object is too large.");
 		Core_var <ExecDomain> exec_domain = get (deadline);
-		exec_domain->runnable_ = Core_var <Runnable>::construct <ImplNoAddRef <R> > (exec_domain->runnable_space_, std::forward <Args> (args)...);
+		exec_domain->runnable_ = new (exec_domain->runnable_space_) R (std::forward <Args> (args)...);
 		exec_domain->spawn (sync_domain);
 	}
 
@@ -49,9 +50,9 @@ public:
 	template <class R, class ... Args>
 	static Core_var <ExecDomain> get_background (SyncContext& sync_context, Args ... args)
 	{
-		static_assert (sizeof (ImplNoAddRef <R>) <= sizeof (runnable_space_), "Runnable object is too large.");
+		static_assert (sizeof (R) <= sizeof (runnable_space_), "Runnable object is too large.");
 		Core_var <ExecDomain> exec_domain = get (INFINITE_DEADLINE);
-		exec_domain->runnable_ = Core_var <Runnable>::construct <ImplNoAddRef <R> > (exec_domain->runnable_space_, std::forward <Args> (args)...);
+		exec_domain->runnable_ = new (exec_domain->runnable_space_) R (std::forward <Args> (args)...);
 		exec_domain->sync_context_ = &sync_context;
 		return exec_domain;
 	}
@@ -102,7 +103,7 @@ public:
 #endif
 		Scheduler::activity_end ();
 		if (&ExecContext::current () == this)
-			run_in_neutral_context (*release_to_pool_);
+			run_in_neutral_context (*this);
 		else
 			pool_.release (obj);
 	}
@@ -200,6 +201,8 @@ private:
 
 	void cleanup () NIRVANA_NOEXCEPT;
 
+	void run ();
+
 private:
 	static ObjectPool <ExecDomain> pool_;
 
@@ -210,23 +213,6 @@ private:
 	RuntimeSupportImpl runtime_support_;
 	bool scheduler_item_created_;
 	CORBA::Exception::Code scheduler_error_;
-
-	class ReleaseToPool : 
-		public CoreObject,
-		public Runnable // Runnable for return object to pool in neutral context.
-	{
-	public:
-		ReleaseToPool (ExecDomain& obj) :
-			obj_ (obj)
-		{}
-
-		virtual void run ();
-
-	private:
-		ExecDomain& obj_;
-	};
-
-	Core_var <Runnable> release_to_pool_;
 
 	void* runnable_space_ [MAX_RUNNABLE_SIZE];
 };
