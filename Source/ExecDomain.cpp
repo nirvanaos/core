@@ -83,7 +83,6 @@ void ExecDomain::execute (Word scheduler_error)
 	ExecContext::switch_to ();
 }
 
-inline
 void ExecDomain::cleanup () NIRVANA_NOEXCEPT
 {
 	{
@@ -117,6 +116,14 @@ void ExecDomain::execute_loop () NIRVANA_NOEXCEPT
 		Thread::current ().exec_domain (nullptr);
 		_remove_ref ();
 	}
+}
+
+void ExecDomain::on_exec_domain_crash (CORBA::SystemException::Code err) NIRVANA_NOEXCEPT
+{
+	Thread::current ().exec_domain (nullptr);
+	ExecContext::on_crash (err);
+	cleanup ();
+	_remove_ref ();
 }
 
 }

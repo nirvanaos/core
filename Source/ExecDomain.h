@@ -108,13 +108,12 @@ public:
 			pool_.release (obj);
 	}
 
+	/// \brief Called from the Port implementation.
 	void execute_loop () NIRVANA_NOEXCEPT;
 
-	void on_exec_domain_crash (CORBA::SystemException::Code err)
-	{
-		ExecContext::on_crash (err);
-		_remove_ref ();
-	}
+	/// Called from the Port implementation in case of the unrecoverable system error.
+	/// \param err Exception code.
+	void on_exec_domain_crash (CORBA::SystemException::Code err) NIRVANA_NOEXCEPT;
 
 	SyncContext* sync_context () const
 	{
