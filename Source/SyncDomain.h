@@ -18,7 +18,14 @@ class NIRVANA_NOVTABLE SyncDomain :
 	public Executor,
 	public SyncContext
 {
+protected:
+	friend class Core_var <SyncDomain>;
+	virtual void _add_ref () = 0;
+	virtual void _remove_ref () = 0;
+
+private:
 	typedef PriorityQueue <Executor*, SYNC_DOMAIN_PRIORITY_QUEUE_LEVELS> Queue;
+
 public:
 	SyncDomain ();
 	~SyncDomain ();
@@ -106,9 +113,10 @@ public:
 
 private:
 	void schedule () NIRVANA_NOEXCEPT;
+
 	void activity_begin ()
 	{
-		if (0 == activity_cnt_.increment ())
+		if (1 == activity_cnt_.increment ())
 			Scheduler::create_item ();
 	}
 

@@ -36,15 +36,17 @@ public:
 
 	InterfaceDef_var _get_interface () const
 	{
-		::Nirvana::Core::Synchronized sync (nullptr);
+		SYNC_BEGIN (nullptr);
 		return InterfaceDef::_nil (); // TODO: Implement.
+		SYNC_END ();
 	}
 
 	Boolean _is_a (const String& type_id) const
 	{
 		String tmp (type_id);
-		::Nirvana::Core::Synchronized sync (nullptr);
+		SYNC_BEGIN (nullptr);
 		return find_interface (tmp) != nullptr;
+		SYNC_END ();
 	}
 
 	Boolean _non_existent ()

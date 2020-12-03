@@ -37,6 +37,7 @@ void ThreadBackground::schedule_call (Nirvana::Core::SyncDomain* sync_domain)
 
 void ThreadBackground::schedule_return (Nirvana::Core::ExecDomain& exec_domain) NIRVANA_NOEXCEPT
 {
+	exec_domain.sync_context (*this);
 	Port::ThreadBackground::resume ();
 }
 

@@ -85,9 +85,10 @@ void Binder::initialize ()
 	if (!Port::SystemInfo::get_OLF_section (metadata))
 		throw_INITIALIZE ();
 
-	Synchronized sync (&sync_domain_);
+	SYNC_BEGIN (&sync_domain_);
 	add_export (nullptr, g_binder.imp.name, g_binder.imp.itf);
 	bind_module (nullptr, metadata);
+	SYNC_END ();
 }
 
 void Binder::bind_module (Module* mod, const Section& metadata)
@@ -145,9 +146,10 @@ void Binder::bind_module (Module* mod, const Section& metadata)
 	if (!mod) {
 		// Create POA
 		// TODO: It is temporary solution.
-		Synchronized sync (nullptr);
+		SYNC_BEGIN (nullptr);
 		Servant_var <POA> poa = new POA;
 		CORBA::Nirvana::Core::g_root_POA = poa->_this ();
+		SYNC_END ();
 	}
 
 	if (flags) {

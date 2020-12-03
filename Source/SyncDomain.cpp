@@ -55,11 +55,15 @@ void SyncDomain::execute (Word scheduler_error)
 	Executor* executor;
 	verify (queue_.delete_min (executor));
 	executor->execute (scheduler_error);
+
+	// activity_begin() was called in schedule (const DeadlineTime& deadline, Executor& executor);
+	// So we call activity_end () here for the balance.
+	activity_end ();
 }
 
 void SyncDomain::activity_end () NIRVANA_NOEXCEPT
 {
-	if (1 == activity_cnt_.decrement ())
+	if (0 == activity_cnt_.decrement ())
 		Scheduler::delete_item ();
 }
 
@@ -68,7 +72,6 @@ void SyncDomain::leave () NIRVANA_NOEXCEPT
 	assert (State::RUNNING == state_);
 	state_ = State::IDLE;
 	schedule ();
-	activity_end ();
 }
 
 void SyncDomain::enter ()
@@ -78,7 +81,7 @@ void SyncDomain::enter ()
 	SyncContext* sync_context = exec_domain->sync_context ();
 	assert (sync_context);
 	if (!sync_context->sync_domain ()) {
-		Core_var <ImplDynamic <SyncDomain>> sd = Core_var <ImplDynamic <SyncDomain>>::create <ImplDynamic <SyncDomain>> ();
+		Core_var <SyncDomain> sd = Core_var <SyncDomain>::create <ImplDynamic <SyncDomain>> ();
 		sd->state_ = State::RUNNING;
 		exec_domain->sync_context (*sd);
 	}

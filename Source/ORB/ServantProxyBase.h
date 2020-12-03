@@ -48,8 +48,9 @@ public:
 		RefCnt::IntegralType cnt = ref_cnt_.increment ();
 		if (1 == cnt) {
 			try {
-				::Nirvana::Core::Synchronized sync (*sync_context_);
+				SYNC_BEGIN (*sync_context_);
 				add_ref_1 ();
+				SYNC_END ();
 			} catch (...) {
 				ref_cnt_.decrement ();
 				throw;
@@ -190,10 +191,9 @@ public:
 			throw BAD_OPERATION ();
 		Unmarshal_var u = ServantMarshaler::unmarshaler (marshaler._retn ());
 		Request request;
-		{
-			::Nirvana::Core::Synchronized sync (get_sync_context (op));
-			(ie.operations.p [idx].invoke) (ie.implementation, &request._get_ptr (), in_params, &TypeI <Unmarshal>::C_inout (u), out_params);
-		}
+		SYNC_BEGIN (get_sync_context (op));
+		(ie.operations.p [idx].invoke) (ie.implementation, &request._get_ptr (), in_params, &TypeI <Unmarshal>::C_inout (u), out_params);
+		SYNC_END ();
 		return request.check ();
 	}
 

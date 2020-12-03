@@ -15,6 +15,7 @@ protected:
 	template <class> friend class Core_var;
 	friend class ExecDomain;
 
+	// TODO: NIRVANA_NOEXCEPT?
 	virtual void _add_ref () = 0;
 	virtual void _remove_ref () = 0;
 };

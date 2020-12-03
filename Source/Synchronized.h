@@ -10,10 +10,6 @@ namespace Core {
 class Synchronized
 {
 public:
-	Synchronized () :
-		call_context_ (&SyncContext::current ())
-	{}
-
 	Synchronized (SyncDomain* target) :
 		call_context_ (&SyncContext::current ())
 	{
@@ -30,12 +26,21 @@ public:
 
 	~Synchronized ()
 	{
-		ScheduleReturn::schedule_return (*call_context_);
+		if (call_context_)
+			ScheduleReturn::schedule_return (*call_context_);
 	}
 
 	SyncContext& call_context () const
 	{
 		return *call_context_;
+	}
+
+	NIRVANA_NORETURN void on_exception ()
+	{
+		std::exception_ptr exc = std::current_exception ();
+		Core_var <SyncContext> context = std::move (call_context_);
+		ScheduleReturn::schedule_return (*context);
+		std::rethrow_exception (exc);
 	}
 
 private:
@@ -44,5 +49,8 @@ private:
 
 }
 }
+
+#define SYNC_BEGIN(target) { ::Nirvana::Core::Synchronized sync (target); try {
+#define SYNC_END() } catch (...) { sync.on_exception (); }}
 
 #endif

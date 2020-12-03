@@ -83,8 +83,9 @@ public:
 	static Interface_var bind (const std::string& _name, const std::string& _iid)
 	{
 		CoreString name (_name.c_str (), _name.length ()), iid (_iid.c_str (), _iid.length ());
-		Synchronized sync (&sync_domain_);
+		SYNC_BEGIN (&sync_domain_);
 		return bind_sync (name, iid);
+		SYNC_END ();
 	}
 
 	typedef Map::iterator Iterator;
