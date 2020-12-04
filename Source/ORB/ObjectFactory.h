@@ -19,11 +19,14 @@ public:
 	static void* memory_allocate (size_t size)
 	{
 		::Nirvana::Core::SyncDomain::enter ();
+		// TODO: Allocate from the current sync domain heap.
 		return ::Nirvana::g_memory->allocate (0, size, 0);
 	}
 
 	static void memory_release (void* p, size_t size)
 	{
+		// TODO: In sync domain: release from the current sync domain heap.
+		// Otherwise: release from the read-only heap.
 		::Nirvana::g_memory->release (p, size);
 	}
 
@@ -41,16 +44,18 @@ public:
 	{
 		StatelessCreationFrame*& scsr = stateless_creation_frame ();
 		StatelessCreationFrame* scs = scsr;
-		scsr = nullptr;
 		if (!scs)
 			throw BAD_INV_ORDER ();
 		void* p = (Octet*)scs->tmp + scs->offset;
+		// TODO: Allocate from read-only heap
 		if (success) {
-			::Nirvana::g_memory->copy (p, const_cast <void*> (scs->tmp), scs->size, ::Nirvana::Memory::READ_ONLY);
+			::Nirvana::Core::g_core_heap->copy (p, const_cast <void*> (scs->tmp), scs->size, ::Nirvana::Memory::READ_ONLY);
+			scsr = nullptr;
 			return p;
 		} else {
-			::Nirvana::g_memory->release (p, scs->size);
-			return 0;
+			scsr = nullptr;
+			::Nirvana::Core::g_core_heap->release (p, scs->size);
+			return nullptr;
 		}
 	}
 

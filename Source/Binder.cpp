@@ -86,7 +86,7 @@ void Binder::initialize ()
 		throw_INITIALIZE ();
 
 	SYNC_BEGIN (&sync_domain_);
-	add_export (nullptr, g_binder.imp.name, g_binder.imp.itf);
+	add_export (g_binder.imp.name, g_binder.imp.itf);
 	bind_module (nullptr, metadata);
 	SYNC_END ();
 }
@@ -117,6 +117,7 @@ void Binder::bind_module (Module* mod, const Section& metadata)
 							throw_INITIALIZE ();
 						module_entry = ps;
 						ps->itf = &mod->_get_ptr ();
+						break;
 					}
 				}
 				flags |= MetadataFlags::IMPORT_INTERFACES;
@@ -125,7 +126,7 @@ void Binder::bind_module (Module* mod, const Section& metadata)
 			case OLF_EXPORT_INTERFACE:
 			{
 				const ExportInterface* ps = reinterpret_cast <const ExportInterface*> (it.cur ());
-				add_export (mod, ps->name, ps->itf);
+				add_export (ps->name, ps->itf);
 			}
 			break;
 
@@ -179,7 +180,7 @@ void Binder::bind_module (Module* mod, const Section& metadata)
 							PortableServer::ServantBase_var core_obj = ObjectFactory::create_servant (TypeI <PortableServer::ServantBase>::in (ps->servant_base));
 							Object_ptr obj = AbstractBase_ptr (core_obj)->_query_interface <Object> ();
 							ps->core_object = &core_obj._retn ();
-							add_export (nullptr, ps->name, obj);
+							add_export (ps->name, obj);
 						}
 						break;
 
@@ -189,7 +190,7 @@ void Binder::bind_module (Module* mod, const Section& metadata)
 							LocalObject_ptr core_obj = ObjectFactory::create_local_object (TypeI <LocalObject>::in (ps->local_object), TypeI <AbstractBase>::in (ps->abstract_base));
 							Object_ptr obj = core_obj;
 							ps->core_object = &core_obj;
-							add_export (nullptr, ps->name, obj);
+							add_export (ps->name, obj);
 						}
 						break;
 					}
@@ -213,22 +214,13 @@ void Binder::bind_module (Module* mod, const Section& metadata)
 	}
 }
 
-void Binder::add_export (Module* mod, const char* name, CORBA::Nirvana::Interface_ptr itf)
+void Binder::add_export (const char* name, CORBA::Nirvana::Interface_ptr itf)
 {
 	assert (itf);
 	Key key (name);
 	auto ins = map_.emplace (name, itf);
 	if (!ins.second)
 		throw_INV_OBJREF ();	// Duplicated name
-
-	if (mod) {
-		try {
-			mod->exported_interfaces_.push_back (ins.first);
-		} catch (...) {
-			map_.erase (ins.first);
-			throw;
-		}
-	}
 }
 
 inline

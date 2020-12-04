@@ -12,10 +12,14 @@ public:
 		return nullptr;
 	}
 
-	void _add_ref ()
-	{}
+	template <class I>
+	static CORBA::Nirvana::Interface* __duplicate (CORBA::Nirvana::Interface* itf, CORBA::Nirvana::Interface*)
+	{
+		return itf;
+	}
 
-	void _remove_ref ()
+	template <class I>
+	static void __release (CORBA::Nirvana::Interface*)
 	{}
 };
 

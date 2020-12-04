@@ -4,8 +4,6 @@
 #include <Nirvana/Module_s.h>
 #include "AtomicCounter.h"
 #include <CORBA/LifeCycleRefCnt.h>
-#include "Binder.h"
-#include <vector>
 
 namespace Nirvana {
 namespace Core {
@@ -25,8 +23,6 @@ public:
 		if (!ref_cnt_.decrement ())
 			on_release ();
 	}
-
-	std::vector <Binder::Iterator> exported_interfaces_;
 
 private:
 	void on_release ()

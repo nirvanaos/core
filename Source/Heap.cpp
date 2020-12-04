@@ -218,7 +218,9 @@ void* HeapBase::allocate (void* p, size_t size, UWord flags)
 	if (!size)
 		THROW (BAD_PARAM);
 
-	if (flags & ~(Memory::RESERVED | Memory::EXACTLY | Memory::ZERO_INIT))
+	if ((flags & ~(Memory::RESERVED | Memory::READ_ONLY | Memory::EXACTLY | Memory::ZERO_INIT))
+		|| ((flags & Memory::READ_ONLY) && !(flags & Memory::RESERVED))
+	)
 		throw_INV_FLAG ();
 
 	if (p) {
@@ -537,9 +539,7 @@ void* HeapBase::copy (void* dst, void* src, size_t size, UWord flags)
 			alloc_begin = (uint8_t*)dst;
 			alloc_end = alloc_begin + size;
 		}
-	} else if (flags & Memory::READ_ONLY)
-		throw_BAD_PARAM ();
-	else {
+	} else {
 		dst_own = check_owner (dst, size);
 		if (!dst_own && (flags & Memory::READ_ONLY))
 			throw_BAD_PARAM ();

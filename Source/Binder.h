@@ -6,7 +6,11 @@
 #include "Section.h"
 #include "Synchronized.h"
 #include <CORBA/RepositoryId.h>
-#include <map>
+
+#pragma push_macro ("verify")
+#undef verify
+#include "parallel-hashmap/parallel_hashmap/btree.h"
+#pragma pop_macro ("verify")
 
 namespace Nirvana {
 namespace Core {
@@ -75,7 +79,7 @@ private:
 		Version version_;
 	};
 
-	typedef std::map <Key, Interface_ptr, std::less <Key>, CoreAllocator <std::pair <Key, Interface_ptr> > > Map;
+	typedef phmap::btree_map <Key, Interface_ptr, std::less <Key>, CoreAllocator <std::pair <Key, Interface_ptr> > > Map;
 
 public:
 	static void initialize ();
@@ -88,12 +92,10 @@ public:
 		SYNC_END ();
 	}
 
-	typedef Map::iterator Iterator;
-
 private:
 	class OLF_Iterator;
 
-	static void add_export (Module* mod, const char* name, CORBA::Nirvana::Interface_ptr itf);
+	static void add_export (const char* name, CORBA::Nirvana::Interface_ptr itf);
 	static void bind_module (Module* mod, const Section& metadata);
 
 	static Interface_var bind_sync (const CoreString& name, const CoreString& iid)
