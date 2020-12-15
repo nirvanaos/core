@@ -236,7 +236,7 @@ Interface_var Binder::bind_sync (const char* name, size_t name_len, const char* 
 			AbstractBase_ptr ab = AbstractBase::_nil ();
 			if (RepositoryId::compatible (itf_id, Object::repository_id_))
 				ab = Object_ptr (static_cast <Object*> (itf));
-			if (RepositoryId::compatible (itf_id, AbstractBase::repository_id_))
+			else if (RepositoryId::compatible (itf_id, AbstractBase::repository_id_))
 				ab = static_cast <AbstractBase*> (itf);
 			else
 				throw_INV_OBJREF ();
