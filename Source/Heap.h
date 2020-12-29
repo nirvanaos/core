@@ -339,6 +339,12 @@ public:
 		return (CoreHeap*)object_;
 	}
 
+	HeapBase& object ()
+	{
+		assert (initialized_);
+		return *(CoreHeap*)object_;
+	}
+
 private:
 	int object_ [(sizeof (CoreHeap) + sizeof (int) - 1) / sizeof (int)];
 

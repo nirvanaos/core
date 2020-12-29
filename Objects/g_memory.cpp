@@ -5,6 +5,7 @@
 #include <Nirvana/Memory_s.h>
 #include <Nirvana/OLF.h>
 #include "user_memory.h"
+#include "ExecDomain.h"
 
 namespace Nirvana {
 namespace Core {
@@ -17,52 +18,67 @@ public:
 	// Memory::
 	static void* allocate (void* dst, size_t size, UWord flags)
 	{
-		return g_core_heap->allocate (dst, size, flags);
+		return heap ().allocate (dst, size, flags);
 	}
 
 	static void release (void* p, size_t size)
 	{
-		return g_core_heap->release (p, size);
+		return heap ().release (p, size);
 	}
 
 	static void commit (void* p, size_t size)
 	{
-		return g_core_heap->commit (p, size);
+		return heap ().commit (p, size);
 	}
 
 	static void decommit (void* p, size_t size)
 	{
-		return g_core_heap->decommit (p, size);
+		return heap ().decommit (p, size);
 	}
 
 	static void* copy (void* dst, void* src, size_t size, UWord flags)
 	{
-		return g_core_heap->copy (dst, src, size, flags);
+		return heap ().copy (dst, src, size, flags);
 	}
 
 	static bool is_readable (const void* p, size_t size)
 	{
-		return g_core_heap->is_readable (p, size);
+		return heap ().is_readable (p, size);
 	}
 
 	static bool is_writable (const void* p, size_t size)
 	{
-		return g_core_heap->is_writable (p, size);
+		return heap ().is_writable (p, size);
 	}
 
 	static bool is_private (const void* p, size_t size)
 	{
-		return g_core_heap->is_private (p, size);
+		return heap ().is_private (p, size);
 	}
 
 	static bool is_copy (const void* p1, const void* p2, size_t size)
 	{
-		return g_core_heap->is_copy (p1, p2, size);
+		return heap ().is_copy (p1, p2, size);
 	}
 
 	static intptr_t query (const void* p, MemQuery q)
 	{
-		return g_core_heap->query (p, q);
+		return heap ().query (p, q);
+	}
+
+private:
+	static HeapBase& heap ()
+	{
+		Thread* th = Thread::current_ptr ();
+		if (th) {
+			ExecDomain* ed = th->exec_domain ();
+			if (ed) {
+				SyncContext* sc = ed->sync_context ();
+				if (sc)
+					return sc->memory ();
+			}
+		}
+		return g_core_heap.object ();
 	}
 };
 

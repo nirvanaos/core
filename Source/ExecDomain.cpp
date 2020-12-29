@@ -16,7 +16,6 @@ void ExecDomain::run ()
 
 void ExecDomain::ctor_base ()
 {
-	Scheduler::activity_begin ();
 	wait_list_next_ = nullptr;
 	deadline_ = std::numeric_limits <DeadlineTime>::max ();
 	ret_qnodes_ = nullptr;

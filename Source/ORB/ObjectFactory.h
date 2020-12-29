@@ -20,14 +20,14 @@ public:
 	{
 		::Nirvana::Core::SyncDomain::enter ();
 		// TODO: Allocate from the current sync domain heap.
-		return ::Nirvana::g_memory->allocate (0, size, 0);
+		return ::Nirvana::Core::g_core_heap->allocate (0, size, 0);
 	}
 
 	static void memory_release (void* p, size_t size)
 	{
 		// TODO: In sync domain: release from the current sync domain heap.
 		// Otherwise: release from the read-only heap.
-		::Nirvana::g_memory->release (p, size);
+		::Nirvana::Core::g_core_heap->release (p, size);
 	}
 
 	void stateless_begin (StatelessCreationFrame& scs)

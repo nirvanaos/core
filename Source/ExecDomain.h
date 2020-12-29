@@ -169,6 +169,7 @@ protected:
 	ExecDomain (DeadlineTime deadline, Runnable& startup, Args ... args) :
 		ExecContext (std::forward <Args> (args)...)
 	{
+		Scheduler::activity_begin ();
 		ctor_base ();
 		deadline_ = deadline;
 		runnable_ = &startup;

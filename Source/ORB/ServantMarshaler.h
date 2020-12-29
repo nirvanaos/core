@@ -101,7 +101,7 @@ public:
 			rec->p = pc;
 			rec->size = size;
 			if (release_size)
-				::Nirvana::g_memory->release (const_cast <void*> (p), release_size);
+				::Nirvana::Core::SyncContext::current ().memory ().release (const_cast <void*> (p), release_size);
 		}
 		return (::Nirvana::UIntPtr)(rec->p);
 	}
