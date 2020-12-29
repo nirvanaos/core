@@ -86,12 +86,12 @@ void Binder::initialize ()
 		throw_INITIALIZE ();
 
 	SYNC_BEGIN (&sync_domain_);
-	add_export (g_binder.imp.name, g_binder.imp.itf);
-	bind_module (nullptr, metadata);
+	export_add (g_binder.imp.name, g_binder.imp.itf);
+	module_bind (nullptr, metadata);
 	SYNC_END ();
 }
 
-void Binder::bind_module (Module* mod, const Section& metadata)
+void Binder::module_bind (Module* mod, const Section& metadata)
 {
 	enum MetadataFlags
 	{
@@ -101,71 +101,73 @@ void Binder::bind_module (Module* mod, const Section& metadata)
 	};
 
 	const ImportInterface* module_entry = nullptr;
+	void* writable = const_cast <void*> (metadata.address);
 
-	// Pass 1: Export pseudo objects and bind g_module.
-	unsigned flags = 0;
-	Key k_gmodule (g_module.imp.name);
-	for (OLF_Iterator it (metadata.address, metadata.size); !it.end (); it.next ()) {
-		switch (*it.cur ()) {
-			case OLF_IMPORT_INTERFACE:
-				assert (mod);
-				if (!module_entry) {
-					ImportInterface* ps = reinterpret_cast <ImportInterface*> (it.cur ());
-					Key key (ps->name);
-					if (key.is_a (k_gmodule)) {
-						if (!k_gmodule.compatible (key))
-							throw_INITIALIZE ();
-						module_entry = ps;
-						ps->itf = &mod->_get_ptr ();
-						break;
+	try {
+
+		// Pass 1: Export pseudo objects and bind g_module.
+		unsigned flags = 0;
+		Key k_gmodule (g_module.imp.name);
+		for (OLF_Iterator it (metadata.address, metadata.size); !it.end (); it.next ()) {
+			switch (*it.cur ()) {
+				case OLF_IMPORT_INTERFACE:
+					assert (mod);
+					if (!module_entry) {
+						ImportInterface* ps = reinterpret_cast <ImportInterface*> (it.cur ());
+						Key key (ps->name);
+						if (key.is_a (k_gmodule)) {
+							if (!k_gmodule.compatible (key))
+								throw_INITIALIZE ();
+							mod->module_entry_ = module_entry = ps;
+							ps->itf = &mod->_get_ptr ();
+							break;
+						}
 					}
+					flags |= MetadataFlags::IMPORT_INTERFACES;
+					break;
+
+				case OLF_EXPORT_INTERFACE:
+				{
+					const ExportInterface* ps = reinterpret_cast <const ExportInterface*> (it.cur ());
+					export_add (ps->name, ps->itf);
 				}
-				flags |= MetadataFlags::IMPORT_INTERFACES;
 				break;
 
-			case OLF_EXPORT_INTERFACE:
-			{
-				const ExportInterface* ps = reinterpret_cast <const ExportInterface*> (it.cur ());
-				add_export (ps->name, ps->itf);
+				case OLF_EXPORT_OBJECT:
+				case OLF_EXPORT_LOCAL:
+					flags |= MetadataFlags::EXPORT_OBJECTS;
+					break;
+
+				case OLF_IMPORT_OBJECT:
+					flags |= MetadataFlags::IMPORT_OBJECTS;
+					break;
+
+				default:
+					throw_INITIALIZE ();
 			}
-			break;
-
-			case OLF_EXPORT_OBJECT:
-			case OLF_EXPORT_LOCAL:
-				flags |= MetadataFlags::EXPORT_OBJECTS;
-				break;
-
-			case OLF_IMPORT_OBJECT:
-				flags |= MetadataFlags::IMPORT_OBJECTS;
-				break;
-
-			default:
-				throw_INITIALIZE ();
 		}
-	}
 
-	if (!mod) {
-		// Create POA
-		// TODO: It is temporary solution.
-		SYNC_BEGIN (nullptr);
-		Servant_var <POA> poa = new POA;
-		CORBA::Nirvana::Core::g_root_POA = poa->_this ();
-		SYNC_END ();
-	}
+		if (!mod) {
+			// Create POA
+			// TODO: It is temporary solution.
+			SYNC_BEGIN (nullptr);
+			Servant_var <POA> poa = new POA;
+			CORBA::Nirvana::Core::g_root_POA = poa->_this ();
+			SYNC_END ();
+		}
 
-	if (flags) {
-		void* writable = Port::Memory::copy (const_cast <void*> (metadata.address), const_cast <void*> (metadata.address), metadata.size, Memory::READ_WRITE);
+		if (flags) {
+			writable = Port::Memory::copy (const_cast <void*> (metadata.address), const_cast <void*> (metadata.address), metadata.size, Memory::READ_WRITE);
 
-		if (module_entry)
-			module_entry = (ImportInterface*)((uint8_t*)module_entry + ((uint8_t*)writable - (uint8_t*)metadata.address));
+			if (module_entry)
+				mod->module_entry_ = (ImportInterface*)((uint8_t*)module_entry + ((uint8_t*)writable - (uint8_t*)metadata.address));
 
-		try {
 			// Pass 2: Import pseudo objects.
 			if (flags & MetadataFlags::IMPORT_INTERFACES)
 				for (OLF_Iterator it (writable, metadata.size); !it.end (); it.next ()) {
 					if (OLF_IMPORT_INTERFACE == *it.cur ()) {
 						ImportInterface* ps = reinterpret_cast <ImportInterface*> (it.cur ());
-						if (ps != module_entry)
+						if (ps != mod->module_entry_)
 							ps->itf = &bind_sync (ps->name, ps->interface_id)._retn ();
 					}
 				}
@@ -180,7 +182,7 @@ void Binder::bind_module (Module* mod, const Section& metadata)
 							PortableServer::ServantBase_var core_obj = ObjectFactory::create_servant (TypeI <PortableServer::ServantBase>::in (ps->servant_base));
 							Object_ptr obj = AbstractBase_ptr (core_obj)->_query_interface <Object> ();
 							ps->core_object = &core_obj._retn ();
-							add_export (ps->name, obj);
+							export_add (ps->name, obj);
 						}
 						break;
 
@@ -190,7 +192,7 @@ void Binder::bind_module (Module* mod, const Section& metadata)
 							LocalObject_ptr core_obj = ObjectFactory::create_local_object (TypeI <LocalObject>::in (ps->local_object), TypeI <AbstractBase>::in (ps->abstract_base));
 							Object_ptr obj = core_obj;
 							ps->core_object = &core_obj;
-							add_export (ps->name, obj);
+							export_add (ps->name, obj);
 						}
 						break;
 					}
@@ -206,21 +208,75 @@ void Binder::bind_module (Module* mod, const Section& metadata)
 				}
 
 			Port::Memory::copy (const_cast <void*> (metadata.address), writable, metadata.size, Memory::READ_ONLY | Memory::RELEASE);
-		} catch (...) {
-			if (writable != metadata.address)
-				Port::Memory::release (writable, metadata.size);
-			throw;
+			mod->module_entry_ = module_entry;
+		}
+	} catch (...) {
+		module_unbind (mod, { writable, metadata.size });
+		if (writable != metadata.address)
+			Port::Memory::release (writable, metadata.size);
+		throw;
+	}
+}
+
+void Binder::module_unbind (Module* mod, const Section& metadata) NIRVANA_NOEXCEPT
+{
+	// Pass 1: Release all imported interfaces.
+	for (OLF_Iterator it (metadata.address, metadata.size); !it.end (); it.next ()) {
+		switch (*it.cur ()) {
+			case OLF_IMPORT_INTERFACE:
+			case OLF_IMPORT_OBJECT:
+				ImportInterface* ps = reinterpret_cast <ImportInterface*> (it.cur ());
+				if (ps != mod->module_entry_)
+					CORBA::Nirvana::interface_release (ps->itf);
+				break;
+		}
+	}
+
+	// Pass 2: Release proxies for all exported interfaces.
+	for (OLF_Iterator it (metadata.address, metadata.size); !it.end (); it.next ()) {
+		switch (*it.cur ()) {
+			case OLF_EXPORT_INTERFACE:
+			{
+				const ExportInterface* ps = reinterpret_cast <const ExportInterface*> (it.cur ());
+				export_remove (ps->name);
+			}
+			break;
+
+			case OLF_EXPORT_OBJECT:
+			{
+				ExportObject* ps = reinterpret_cast <ExportObject*> (it.cur ());
+				if (ps->core_object) { // Module may be bound partially because of an error.
+					export_remove (ps->name);
+					CORBA::Nirvana::interface_release (ps->core_object);
+				}
+			}
+			break;
+
+			case OLF_EXPORT_LOCAL:
+			{
+				ExportLocal* ps = reinterpret_cast <ExportLocal*> (it.cur ());
+				if (ps->core_object) { // Module may be bound partially because of an error.
+					export_remove (ps->name);
+					CORBA::Nirvana::interface_release (ps->core_object);
+				}
+			}
+			break;
 		}
 	}
 }
 
-void Binder::add_export (const char* name, CORBA::Nirvana::Interface_ptr itf)
+void Binder::export_add (const char* name, CORBA::Nirvana::Interface_ptr itf)
 {
 	assert (itf);
 	Key key (name);
 	auto ins = map_.emplace (name, itf);
 	if (!ins.second)
 		throw_INV_OBJREF ();	// Duplicated name
+}
+
+void Binder::export_remove (const char* name) NIRVANA_NOEXCEPT
+{
+	verify (map_.erase (name));
 }
 
 inline

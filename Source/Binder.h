@@ -5,6 +5,7 @@
 #include "SyncDomain.h"
 #include "Section.h"
 #include "Synchronized.h"
+#include "Heap.h"
 #include <CORBA/RepositoryId.h>
 
 #pragma push_macro ("verify")
@@ -83,6 +84,9 @@ private:
 
 public:
 	static void initialize ();
+	
+	static void terminate ()
+	{}
 
 	static Interface_var bind (const std::string& _name, const std::string& _iid)
 	{
@@ -95,8 +99,11 @@ public:
 private:
 	class OLF_Iterator;
 
-	static void add_export (const char* name, CORBA::Nirvana::Interface_ptr itf);
-	static void bind_module (Module* mod, const Section& metadata);
+	static void export_add (const char* name, CORBA::Nirvana::Interface_ptr itf);
+	static void export_remove (const char* name) NIRVANA_NOEXCEPT;
+
+	static void module_bind (Module* mod, const Section& metadata);
+	static void module_unbind (Module* mod, const Section& metadata) NIRVANA_NOEXCEPT;
 
 	static Interface_var bind_sync (const CoreString& name, const CoreString& iid)
 	{

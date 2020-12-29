@@ -2,6 +2,7 @@
 #define NIRVANA_CORE_STARTUP_H_
 
 #include "Runnable.h"
+#include "initterm.h"
 #include <exception>
 
 namespace Nirvana {
@@ -19,7 +20,11 @@ public:
 	~Startup ()
 	{}
 
-	virtual void run ();
+	virtual void run ()
+	{
+		initialize ();
+	}
+
 	virtual void on_exception () NIRVANA_NOEXCEPT;
 	virtual void on_crash (Word error_code) NIRVANA_NOEXCEPT;
 

@@ -11,37 +11,12 @@ namespace Core {
 class Scheduler : public Port::Scheduler
 {
 public:
-	static void shutdown () NIRVANA_NOEXCEPT
-	{
-		State state = State::RUNNING;
-		if (state_.compare_exchange_strong (state, State::SHUTDOWN_STARTED) && !activity_cnt_) {
-			activity_cnt_.increment ();
-			activity_end ();
-		}
-	}
-
-	static void activity_begin ()
-	{
-		activity_cnt_.increment ();
-		if (State::RUNNING != state_) {
-			activity_end ();
-			throw CORBA::INITIALIZE ();
-		}
-	}
-	
-	static void activity_end () NIRVANA_NOEXCEPT
-	{
-		if (!activity_cnt_.decrement ())
-			do_shutdown ();
-	}
+	static void shutdown () NIRVANA_NOEXCEPT;
+	static void activity_begin ();
+	static void activity_end () NIRVANA_NOEXCEPT;
 
 private:
-	static void do_shutdown () NIRVANA_NOEXCEPT
-	{
-		State state = State::SHUTDOWN_STARTED;
-		if (state_.compare_exchange_strong (state, State::SHUTDOWN_FINISH))
-			Port::Scheduler::shutdown ();
-	}
+	static void check_shutdown () NIRVANA_NOEXCEPT;
 
 private:
 	enum class State
