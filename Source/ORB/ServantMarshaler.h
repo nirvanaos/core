@@ -1,7 +1,7 @@
 #ifndef NIRVANA_ORB_CORE_SERVANTMARSHALER_H_
 #define NIRVANA_ORB_CORE_SERVANTMARSHALER_H_
 
-#include "../UserObject.h"
+#include "../CoreObject.h"
 #include "LifeCyclePseudo.h"
 #include "../SyncContext.h"
 #include <CORBA/Proxy/Marshal_s.h>
@@ -13,7 +13,7 @@ namespace Core {
 
 template <class T>
 class ServantMarshalerImpl :
-	public ::Nirvana::Core::UserObject,
+	public ::Nirvana::Core::CoreObject,
 	public ::Nirvana::Core::LifeCyclePseudo <T>,
 	public ServantTraits <T>,
 	public InterfaceImplBase <T, Marshal>,

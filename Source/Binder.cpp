@@ -111,11 +111,11 @@ void Binder::module_bind (Module* mod, const Section& metadata)
 		for (OLF_Iterator it (metadata.address, metadata.size); !it.end (); it.next ()) {
 			switch (*it.cur ()) {
 				case OLF_IMPORT_INTERFACE:
-					assert (mod);
 					if (!module_entry) {
 						ImportInterface* ps = reinterpret_cast <ImportInterface*> (it.cur ());
 						Key key (ps->name);
 						if (key.is_a (k_gmodule)) {
+							assert (mod);
 							if (!k_gmodule.compatible (key))
 								throw_INITIALIZE ();
 							mod->module_entry_ = module_entry = ps;
@@ -167,7 +167,7 @@ void Binder::module_bind (Module* mod, const Section& metadata)
 				for (OLF_Iterator it (writable, metadata.size); !it.end (); it.next ()) {
 					if (OLF_IMPORT_INTERFACE == *it.cur ()) {
 						ImportInterface* ps = reinterpret_cast <ImportInterface*> (it.cur ());
-						if (ps != mod->module_entry_)
+						if (!mod || ps != mod->module_entry_)
 							ps->itf = &bind_sync (ps->name, ps->interface_id)._retn ();
 					}
 				}
@@ -207,8 +207,9 @@ void Binder::module_bind (Module* mod, const Section& metadata)
 					}
 				}
 
-			Port::Memory::copy (const_cast <void*> (metadata.address), writable, metadata.size, Memory::READ_ONLY | Memory::RELEASE);
-			mod->module_entry_ = module_entry;
+			Port::Memory::copy (const_cast <void*> (metadata.address), writable, metadata.size, (writable != metadata.address) ? (Memory::READ_ONLY | Memory::RELEASE) : Memory::READ_ONLY);
+			if (mod)
+				mod->module_entry_ = module_entry;
 		}
 	} catch (...) {
 		module_unbind (mod, { writable, metadata.size });
@@ -226,7 +227,7 @@ void Binder::module_unbind (Module* mod, const Section& metadata) NIRVANA_NOEXCE
 			case OLF_IMPORT_INTERFACE:
 			case OLF_IMPORT_OBJECT:
 				ImportInterface* ps = reinterpret_cast <ImportInterface*> (it.cur ());
-				if (ps != mod->module_entry_)
+				if (!mod || ps != mod->module_entry_)
 					CORBA::Nirvana::interface_release (ps->itf);
 				break;
 		}
