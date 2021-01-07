@@ -15,8 +15,8 @@ class ProxyObject :
 	class Deactivator;
 
 protected:
-	ProxyObject (PortableServer::Servant servant) :
-		ServantProxyBase (servant, object_ops_, this),
+	ProxyObject (PortableServer::Servant servant, ::Nirvana::Core::SyncContext& sync_context) :
+		ServantProxyBase (servant, object_ops_, this, sync_context),
 		servant_ (servant),
 		implicit_activation_ (false)
 	{}

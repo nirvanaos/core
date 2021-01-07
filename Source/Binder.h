@@ -102,7 +102,7 @@ private:
 	static void export_add (const char* name, CORBA::Nirvana::Interface_ptr itf);
 	static void export_remove (const char* name) NIRVANA_NOEXCEPT;
 
-	static void module_bind (Module* mod, const Section& metadata);
+	static void module_bind (Module* mod, const Section& metadata, SyncContext& sync_context);
 	static void module_unbind (Module* mod, const Section& metadata) NIRVANA_NOEXCEPT;
 
 	static Interface_var bind_sync (const CoreString& name, const CoreString& iid)

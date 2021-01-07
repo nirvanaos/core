@@ -61,7 +61,7 @@ public:
 	virtual RefCnt::IntegralType _remove_ref ();
 
 protected:
-	ServantProxyBase (AbstractBase_ptr servant, const Operation object_ops [3], void* object_impl);
+	ServantProxyBase (AbstractBase_ptr servant, const Operation object_ops [3], void* object_impl, ::Nirvana::Core::SyncContext& sync_context);
 
 	virtual void add_ref_1 ();
 

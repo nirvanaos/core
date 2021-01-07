@@ -3,7 +3,8 @@
 #include <Port/SystemInfo.h>
 #include <Nirvana/OLF.h>
 #include "ORB/POA.h"
-#include "ORB/ObjectFactory.h"
+#include "ORB/ServantBase.h"
+#include "ORB/LocalObject.h"
 
 namespace Nirvana {
 namespace Core {
@@ -12,7 +13,6 @@ using namespace std;
 using namespace CORBA;
 using namespace CORBA::Nirvana;
 using namespace PortableServer;
-using CORBA::Nirvana::Core::ObjectFactory;
 using CORBA::Nirvana::Core::POA;
 
 ImplStatic <SyncDomain> Binder::sync_domain_;
@@ -87,11 +87,11 @@ void Binder::initialize ()
 
 	SYNC_BEGIN (&sync_domain_);
 	export_add (g_binder.imp.name, g_binder.imp.itf);
-	module_bind (nullptr, metadata);
+	module_bind (nullptr, metadata, SyncContext::free_sync_context ());
 	SYNC_END ();
 }
 
-void Binder::module_bind (Module* mod, const Section& metadata)
+void Binder::module_bind (Module* mod, const Section& metadata, SyncContext& sync_context)
 {
 	enum MetadataFlags
 	{
@@ -179,7 +179,7 @@ void Binder::module_bind (Module* mod, const Section& metadata)
 						case OLF_EXPORT_OBJECT:
 						{
 							ExportObject* ps = reinterpret_cast <ExportObject*> (it.cur ());
-							PortableServer::ServantBase_var core_obj = ObjectFactory::create_servant (TypeI <PortableServer::ServantBase>::in (ps->servant_base));
+							PortableServer::ServantBase_var core_obj = (new CORBA::Nirvana::Core::ServantBase (TypeI <PortableServer::ServantBase>::in (ps->servant_base), sync_context))->_get_ptr ();
 							Object_ptr obj = AbstractBase_ptr (core_obj)->_query_interface <Object> ();
 							ps->core_object = &core_obj._retn ();
 							export_add (ps->name, obj);
@@ -189,7 +189,7 @@ void Binder::module_bind (Module* mod, const Section& metadata)
 						case OLF_EXPORT_LOCAL:
 						{
 							ExportLocal* ps = reinterpret_cast <ExportLocal*> (it.cur ());
-							LocalObject_ptr core_obj = ObjectFactory::create_local_object (TypeI <LocalObject>::in (ps->local_object), TypeI <AbstractBase>::in (ps->abstract_base));
+							LocalObject_ptr core_obj = (new CORBA::Nirvana::Core::LocalObject (TypeI <LocalObject>::in (ps->local_object), TypeI <AbstractBase>::in (ps->abstract_base), sync_context))->_get_ptr ();
 							Object_ptr obj = core_obj;
 							ps->core_object = &core_obj;
 							export_add (ps->name, obj);

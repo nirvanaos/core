@@ -8,6 +8,19 @@ namespace Core {
 
 ObjectPool <ExecDomain> ExecDomain::pool_;
 
+Core_var <ExecDomain> ExecDomain::get (DeadlineTime deadline)
+{
+	Scheduler::activity_begin ();	// Throws exception if shutdown was started.
+	try {
+		Core_var <ExecDomain> exec_domain = pool_.get ();
+		exec_domain->deadline_ = deadline;
+		return exec_domain;
+	} catch (...) {
+		Scheduler::activity_end ();
+		throw;
+	}
+}
+
 void ExecDomain::run ()
 {
 	assert (&ExecContext::current () != this);

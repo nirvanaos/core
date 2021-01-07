@@ -191,13 +191,7 @@ private:
 		}
 	}
 
-	static Core_var <ExecDomain> get (DeadlineTime deadline)
-	{
-		Scheduler::activity_begin ();	// Throws exception if shutdown was started.
-		Core_var <ExecDomain> exec_domain = pool_.get ();
-		exec_domain->deadline_ = deadline;
-		return exec_domain;
-	}
+	static Core_var <ExecDomain> get (DeadlineTime deadline);
 
 	void cleanup () NIRVANA_NOEXCEPT;
 

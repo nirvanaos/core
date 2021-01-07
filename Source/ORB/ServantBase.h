@@ -18,8 +18,8 @@ public:
 	using Skeleton <ServantBase, PortableServer::ServantBase>::__get_interface;
 	using Skeleton <ServantBase, PortableServer::ServantBase>::__is_a;
 
-	ServantBase (PortableServer::Servant servant) :
-		Base (servant)
+	ServantBase (PortableServer::Servant servant, ::Nirvana::Core::SyncContext& sync_context = ::Nirvana::Core::SyncContext::current ()) :
+		Base (servant, std::ref (sync_context))
 	{}
 
 	// ServantBase default implementation

@@ -11,8 +11,8 @@ class ProxyLocal :
 	public ServantProxyBase
 {
 protected:
-	ProxyLocal (LocalObject_ptr servant, AbstractBase_ptr abstract_base) :
-		ServantProxyBase (abstract_base, object_ops_, this),
+	ProxyLocal (LocalObject_ptr servant, AbstractBase_ptr abstract_base, ::Nirvana::Core::SyncContext& sync_context) :
+		ServantProxyBase (abstract_base, object_ops_, this, sync_context),
 		servant_ (servant)
 	{}
 

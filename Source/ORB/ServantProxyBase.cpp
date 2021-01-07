@@ -29,13 +29,13 @@ private:
 };
 
 ServantProxyBase::ServantProxyBase (AbstractBase_ptr servant, 
-	const Operation object_ops [3], void* object_impl) :
+	const Operation object_ops [3], void* object_impl, SyncContext& sync_context) :
 	ProxyManager (Skeleton <ServantProxyBase, IOReference>::epv_, 
 		Skeleton <ServantProxyBase, Object>::epv_, primary_interface_id (servant), 
 		object_ops, object_impl),
 	servant_ (servant),
 	ref_cnt_ (0),
-	sync_context_ (&SyncContext::current ())
+	sync_context_ (&sync_context)
 {
 	// Fill implementation pointers
 	for (InterfaceEntry* ie = interfaces ().begin (); ie != interfaces ().end (); ++ie) {
