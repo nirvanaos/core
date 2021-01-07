@@ -54,11 +54,13 @@ void SyncDomain::execute (Word scheduler_error)
 	state_ = State::RUNNING;
 	Executor* executor;
 	verify (queue_.delete_min (executor));
+	_add_ref ();
 	executor->execute (scheduler_error);
 
 	// activity_begin() was called in schedule (const DeadlineTime& deadline, Executor& executor);
 	// So we call activity_end () here for the balance.
 	activity_end ();
+	_remove_ref ();
 }
 
 void SyncDomain::activity_end () NIRVANA_NOEXCEPT
