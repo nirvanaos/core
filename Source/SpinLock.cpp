@@ -11,7 +11,6 @@ namespace Core {
 
 using namespace std;
 
-inline
 void SpinLock::acquire (SpinLockNode& node) NIRVANA_NOEXCEPT
 {
 	node.sn_next_ = nullptr;
@@ -26,7 +25,6 @@ void SpinLock::acquire (SpinLockNode& node) NIRVANA_NOEXCEPT
 	}
 }
 
-inline
 void SpinLock::release (SpinLockNode& node) NIRVANA_NOEXCEPT
 {
 	if (!node.sn_next_) {
