@@ -14,8 +14,8 @@ class Module :
 {
 public:
 	Module (const void* base_address) :
-		base_address_ (base_address),
-		module_entry_ (nullptr)
+		module_entry_ (nullptr),
+		base_address_ (base_address)
 	{}
 
 	const void* base_address () const
