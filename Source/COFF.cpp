@@ -1,5 +1,5 @@
 #include "COFF.h"
-#include <llvm/BinaryFormat/COFF.h>
+#include "llvm/BinaryFormat/COFF.h"
 
 namespace Nirvana {
 namespace Core {

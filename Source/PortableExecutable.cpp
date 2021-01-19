@@ -1,7 +1,7 @@
 #include "PortableExecutable.h"
 #include <Nirvana/throw_exception.h>
 #include <Nirvana/OLF.h>
-#include <llvm/BinaryFormat/COFF.h>
+#include "llvm/BinaryFormat/COFF.h"
 
 namespace Nirvana {
 namespace Core {
