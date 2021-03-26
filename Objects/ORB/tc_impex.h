@@ -12,8 +12,8 @@ extern const ::Nirvana::ImportInterfaceT <TypeCode> _tc_##t = { ::Nirvana::OLF_I
 #define TC_IMPEX_BY_ID(T) TC_IMPEX_EX (T, CORBA::TC_##T::RepositoryType::repository_id_, CORBA::TC_##T)
 
 // Import and export for interface exception
-#define INTERFACE_EXC_IMPEX(ns, I, E) namespace ns {\
-const ::Nirvana::ImportInterfaceT <CORBA::TypeCode> I::_tc_##E = { ::Nirvana::OLF_IMPORT_INTERFACE, 0, 0, STATIC_BRIDGE (CORBA::TypeCode, CORBA::Nirvana::TypeCodeException <ns::I::E>) };\
-} NIRVANA_EXPORT (_exp_##ns##_##I##_##E, ns::I::E::repository_id_, CORBA::TypeCode, CORBA::Nirvana::TypeCodeException <ns::I::E>);
+#define INTERFACE_EXC_IMPEX(ns, I, E)\
+const ::Nirvana::ImportInterfaceT <CORBA::TypeCode> CORBA::Nirvana::Definitions <ns::I>::_tc_##E = { ::Nirvana::OLF_IMPORT_INTERFACE, 0, 0, STATIC_BRIDGE (CORBA::TypeCode, CORBA::Nirvana::TypeCodeException <CORBA::Nirvana::Definitions <ns::I>::E>) };\
+NIRVANA_EXPORT (_exp_##ns##_##I##_##E, ns::I::E::repository_id_, CORBA::TypeCode, CORBA::Nirvana::TypeCodeException <CORBA::Nirvana::Definitions <ns::I>::E>);
 
 #endif
