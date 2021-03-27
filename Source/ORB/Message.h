@@ -51,7 +51,7 @@ struct Message
 	struct SystemException : Header
 	{
 		CORBA::SystemException::Code code;
-		CORBA::SystemException::Data data;
+		CORBA::SystemException::_Data data;
 	};
 
 	union Buffer
