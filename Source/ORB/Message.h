@@ -7,8 +7,6 @@
 namespace Nirvana {
 namespace ESIOP {
 
-#pragma pack(push, 1)
-
 struct Message
 {
 	enum class Type : uint16_t
@@ -60,8 +58,6 @@ struct Message
 		SystemException system_exception;
 	};
 };
-
-#pragma pack(pop)
 
 }
 }
