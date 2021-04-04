@@ -5,6 +5,8 @@
 *
 * This is a part of the Nirvana project.
 *
+* Author: Igor Popov
+*
 * Copyright (c) 2021 Igor Popov.
 *
 * This program is free software; you can redistribute it and/or modify

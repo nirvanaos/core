@@ -1,10 +1,10 @@
 /// \file
-/// Lock-free object pool.
-
 /*
 * Nirvana Core.
 *
 * This is a part of the Nirvana project.
+*
+* Author: Igor Popov
 *
 * Copyright (c) 2021 Igor Popov.
 *
@@ -36,7 +36,7 @@ namespace Core {
 template <class T> class ObjectPool;
 
 /// Poolable implementation of a core object.
-/// \tparam T object class.
+/// \tparam T Object class.
 ///           Class T must have the members:
 ///           void _activate ();
 ///           void _deactivate (ImplPoolable <T>& obj);
@@ -63,11 +63,14 @@ private:
 	void _remove_ref ();
 };
 
+/// Lock-free object pool.
+/// \tparam T Poolable object class.
 template <class T>
 class ObjectPool :
 	private Stack <ImplPoolable <T> >
 {
 public:
+	/// Get object from the pool or create a new.
 	Core_var <T> get ()
 	{
 		Core_var <ImplPoolable <T> > obj (Stack <ImplPoolable <T> >::pop ());
@@ -78,6 +81,7 @@ public:
 		return obj;
 	}
 
+	/// Releas object to the pool.
 	void release (ImplPoolable <T>& obj)
 	{
 		Stack <ImplPoolable <T> >::push (obj);

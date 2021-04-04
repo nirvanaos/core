@@ -1,10 +1,10 @@
 /// \file Stack.h
-/// Lock-free stack implementation
-
 /*
 * Nirvana Core.
 *
 * This is a part of the Nirvana project.
+*
+* Author: Igor Popov
 *
 * Copyright (c) 2021 Igor Popov.
 *
@@ -38,13 +38,13 @@ namespace Core {
 /// \brief A stack elements must be derived from StackElem.
 ///        While element is not in stack, the StackElem fields are unused and may contain any values.
 ///        So this fields may be used for other purposes until the element placed to the stack.
-
 struct StackElem
 {
 	void* next;
 	RefCounter ref_cnt;
 };
 
+/// Lock-free stack implementation.
 template <class T, unsigned ALIGN = CORE_OBJECT_ALIGN (T)>
 class Stack
 {

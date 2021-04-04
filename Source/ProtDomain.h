@@ -1,10 +1,10 @@
 /// \file
-/// Protection domain.
-
 /*
 * Nirvana Core.
 *
 * This is a part of the Nirvana project.
+*
+* Author: Igor Popov
 *
 * Copyright (c) 2021 Igor Popov.
 *
@@ -33,6 +33,7 @@
 namespace Nirvana {
 namespace Core {
 
+/// Protection domain.
 class ProtDomain :
 	public CoreObject,
 	private Port::ProtDomain
