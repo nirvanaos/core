@@ -32,6 +32,9 @@ namespace CORBA {
 namespace Nirvana {
 
 template <>
+const Char RepIdOf <CompletionStatus>::repository_id_ [] = CORBA_REPOSITORY_ID ("CompletionStatus");
+
+template <>
 const Char TypeCodeEnum <CompletionStatus>::name_ [] = "CompletionStatus";
 
 template <>
