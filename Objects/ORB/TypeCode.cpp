@@ -32,7 +32,7 @@ namespace CORBA {
 namespace Nirvana {
 
 template <>
-const Char TypeCodeEnum <TCKind>::name_ [] = "TCKind";
+const Char TypeCodeName <TCKind>::name_ [] = "TCKind";
 
 template <>
 const Char* const TypeCodeEnum <TCKind>::members_ [] = {
@@ -50,21 +50,9 @@ const Char* const TypeCodeEnum <TCKind>::members_ [] = {
 	"tk_local_interface"
 };
 
-template <>
-class TypeCodeException <TypeCode::BadKind> :
-	public TypeCodeExceptionImpl <TypeCode::BadKind>
-{};
-
-template <>
-class TypeCodeException <TypeCode::Bounds> :
-	public TypeCodeExceptionImpl <TypeCode::Bounds>
-{};
-
 }
 
 typedef Nirvana::TypeCodeEnum <TCKind> TC_TCKind;
-typedef Nirvana::TypeCodeException <TypeCode::BadKind> TC_TypeCode_BadKind;
-typedef Nirvana::TypeCodeException <TypeCode::Bounds> TC_TypeCode_Bounds;
 
 }
 

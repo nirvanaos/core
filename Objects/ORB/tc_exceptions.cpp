@@ -35,7 +35,7 @@ template <>
 const Char RepIdOf <CompletionStatus>::repository_id_ [] = CORBA_REPOSITORY_ID ("CompletionStatus");
 
 template <>
-const Char TypeCodeEnum <CompletionStatus>::name_ [] = "CompletionStatus";
+const Char TypeCodeName <CompletionStatus>::name_ [] = "CompletionStatus";
 
 template <>
 const Char* const TypeCodeEnum <CompletionStatus>::members_ [] = {
@@ -44,27 +44,33 @@ const Char* const TypeCodeEnum <CompletionStatus>::members_ [] = {
 	"COMPLETED_MAYBE"
 };
 
-class SystemExceptionMembers
-{
-protected:
-	static const Parameter members_ [];
-};
-
-const Parameter SystemExceptionMembers::members_ [] = {
-{ "minor", _tc_ulong },
-{ "completed", _tc_CompletionStatus }
+template <>
+const Parameter TypeCodeMembers <SystemException>::members_ [] = {
+	{ "minor", _tc_ulong },
+	{ "completed", _tc_CompletionStatus }
 };
 
 template <class E>
-class TypeCodeException :
-	public TypeCodeWithMembersImpl <2, TypeCodeExceptionRoot <E>, SystemExceptionMembers>
-{};
+class TypeCodeSystemException :
+	public TypeCodeStatic <TypeCodeSystemException <E>, TypeCodeWithId <tk_except, E>, TypeCodeOps <SystemException::_Data> >,
+	public TypeCodeMembers <SystemException>
+{
+public:
+	using TypeCodeMembers <SystemException>::_member_count;
+	using TypeCodeMembers <SystemException>::_member_name;
+	using TypeCodeMembers <SystemException>::_member_type;
+
+	static const char* _name (Bridge <TypeCode>* _b, Interface* _env)
+	{
+		return E::__name ();
+	}
+};
 
 }
 
 typedef Nirvana::TypeCodeEnum <CompletionStatus> TC_CompletionStatus;
 
-#define TC_EXCEPTION(E) typedef Nirvana::TypeCodeException <E> TC_##E;
+#define TC_EXCEPTION(E) typedef Nirvana::TypeCodeSystemException <E> TC_##E;
 
 SYSTEM_EXCEPTIONS(TC_EXCEPTION)
 TC_EXCEPTION(UnknownUserException)
