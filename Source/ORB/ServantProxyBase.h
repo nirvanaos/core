@@ -162,7 +162,7 @@ protected:
 		{
 			TypeCode_ptr tc = exc.type ();
 			if (tc)
-				MarshalTraits <Any>::marshal_out (exc, marshaler (), exception_);
+				Type <Any>::marshal_out (exc, marshaler (), exception_);
 		}
 
 		void success ()
@@ -176,7 +176,7 @@ protected:
 			if (!success_) {
 				if (exception_.type ()) {
 					Any exc;
-					MarshalTraits <Any>::unmarshal (exception_, u, exc);
+					Type <Any>::unmarshal (exception_, u, exc);
 					Octet tmp [sizeof (SystemException)];
 					SystemException* pse = (SystemException*)tmp;
 					if (exc >>= *pse)
