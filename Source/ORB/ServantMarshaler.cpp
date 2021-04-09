@@ -47,11 +47,10 @@ ServantMarshaler::Block* ServantMarshaler::clear_block (Tag* p)
 			}
 			break;
 
-			case RT_OBJECT:
-			case RT_TYPE_CODE:
+			case RT_INTERFACE:
 			{
-				RecObject* rec = (RecObject*)(p + 1);
-				release (rec->p);
+				RecInterface* rec = (RecInterface*)(p + 1);
+				interface_release (rec->p);
 				p = (Tag*)(rec + 1);
 			}
 			break;
@@ -81,7 +80,7 @@ void ServantMarshaler::move_next (size_t record_size)
 {
 	cur_ptr_ = (Tag*)((Octet*)cur_ptr_ + record_size + sizeof (Tag));
 	Tag next = *cur_ptr_;
-	if (next == RT_END || next > RT_TYPE_CODE) {
+	if (next == RT_END || next > RT_INTERFACE) {
 		// Next block
 		if (cur_ptr_ >= block_ + countof (block_) || cur_ptr_ < block_) {
 			Block* this_block = (Block*)round_down (cur_ptr_, BLOCK_SIZE);

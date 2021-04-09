@@ -151,42 +151,30 @@ public:
 			throw MARSHAL ();
 	}
 
-	::Nirvana::UIntPtr marshal_object (Object_ptr obj)
+	::Nirvana::UIntPtr marshal_interface (Interface_ptr obj)
 	{
-		RecObject* rec = (RecObject*)add_record (RT_OBJECT, sizeof (RecObject));
-		rec->p = Object::_duplicate (obj);
-		return (::Nirvana::UIntPtr)&obj;
+		RecInterface* rec = (RecInterface*)add_record (RT_INTERFACE, sizeof (RecInterface));
+		return (::Nirvana::UIntPtr)(rec->p = interface_duplicate (&obj));
 	}
 
 	NIRVANA_NODISCARD Interface* unmarshal_interface (::Nirvana::ConstPointer marshal_data, const String& iid)
 	{
-		RecObject* rec = (RecObject*)get_record (RT_OBJECT);
-		if (marshal_data == &rec->p) {
-			Interface* itf = AbstractBase_ptr (rec->p)->_query_interface (iid);
+		RecInterface* rec = (RecInterface*)get_record (RT_INTERFACE);
+		Interface* itf = rec->p;
+		if (marshal_data == itf) {
+			const Char* bridge_id = itf->_epv ().interface_id;
+			if (!RepositoryId::compatible (bridge_id, iid)) {
+				if (RepositoryId::compatible (bridge_id, Object::repository_id_)) {
+					Object_ptr obj (static_cast <Object*> (itf));
+					itf = AbstractBase_ptr (obj)->_query_interface (iid);
+				}
+			}
+
 			if (itf) {
-				rec->p = Object::_nil ();
-				move_next (sizeof (RecObject));
+				rec->p = nullptr;
+				move_next (sizeof (RecInterface));
 				return itf;
 			}
-		}
-		throw MARSHAL ();
-	}
-
-	::Nirvana::UIntPtr marshal_type_code (TypeCode_ptr tc)
-	{
-		RecTypeCode* rec = (RecTypeCode*)add_record (RT_TYPE_CODE, sizeof (RecTypeCode));
-		rec->p = TypeCode::_duplicate (tc);
-		return (::Nirvana::UIntPtr)&tc;
-	}
-
-	TypeCode_var unmarshal_type_code (::Nirvana::ConstPointer marshal_data)
-	{
-		RecTypeCode* rec = (RecTypeCode*)get_record (RT_TYPE_CODE);
-		if (marshal_data == &rec->p) {
-			TypeCode_ptr tc = rec->p;
-			rec->p = TypeCode::_nil ();
-			move_next (sizeof (RecTypeCode));
-			return tc;
 		}
 		throw MARSHAL ();
 	}
@@ -196,8 +184,7 @@ private:
 	{
 		RT_END = 0,
 		RT_MEMORY,
-		RT_OBJECT,
-		RT_TYPE_CODE
+		RT_INTERFACE
 	};
 
 	struct RecMemory
@@ -206,14 +193,9 @@ private:
 		size_t size;
 	};
 
-	struct RecObject
+	struct RecInterface
 	{
-		Object_ptr p;
-	};
-
-	struct RecTypeCode
-	{
-		TypeCode_ptr p;
+		Interface* p;
 	};
 
 	typedef Tag Block [BLOCK_SIZE / sizeof (Tag)];
