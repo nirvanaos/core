@@ -181,7 +181,7 @@ private:
 
 	static void check_metadata (const InterfaceMetadata* metadata, String_in primary);
 	static void check_parameters (CountedArray <Parameter> parameters);
-	static void check_type_code (const ::Nirvana::ImportInterfaceT <TypeCode>& tc);
+	static void check_type_code (TypeCode_ptr tc);
 	
 	template <class It, class Pr>
 	static bool is_unique (It begin, It end, Pr pred)

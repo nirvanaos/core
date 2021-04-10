@@ -46,8 +46,8 @@ const Char* const TypeCodeEnum <CompletionStatus>::members_ [] = {
 
 template <>
 const Parameter TypeCodeMembers <SystemException>::members_ [] = {
-	{ "minor", _tc_ulong },
-	{ "completed", _tc_CompletionStatus }
+	{ "minor", Type <ULong>::type_code },
+	{ "completed", Type <CompletionStatus>::type_code }
 };
 
 template <class E>

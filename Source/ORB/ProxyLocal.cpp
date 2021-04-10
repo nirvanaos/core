@@ -43,9 +43,9 @@ inline void ProxyLocal::non_existent_request (ProxyLocal* servant, IORequest_ptr
 }
 
 const Operation ProxyLocal::object_ops_ [3] = {
-	{ op_get_interface_, {0, 0}, {0, 0}, _tc_InterfaceDef, nullptr },
-	{ op_is_a_, {&is_a_param_, 1}, {0, 0}, _tc_boolean, nullptr },
-	{ op_non_existent_, {0, 0}, {0, 0}, _tc_boolean, ObjProcWrapper <ProxyLocal, non_existent_request> }
+	{ op_get_interface_, {0, 0}, {0, 0}, TypeI <InterfaceDef>::type_code, nullptr },
+	{ op_is_a_, {&is_a_param_, 1}, {0, 0}, Type <Boolean>::type_code, nullptr },
+	{ op_non_existent_, {0, 0}, {0, 0}, Type <Boolean>::type_code, ObjProcWrapper <ProxyLocal, non_existent_request> }
 };
 
 }

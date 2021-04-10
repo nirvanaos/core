@@ -82,7 +82,7 @@ bool ProxyManager::OEPred::compare (const Char* lhs, size_t lhs_len, const Char*
 	return lexicographical_compare (lhs, lhs + lhs_len, rhs, rhs + rhs_len, less_no_case);
 }
 
-const Parameter ProxyManager::is_a_param_ = { "logical_type_id", _tc_string };
+const Parameter ProxyManager::is_a_param_ = { "logical_type_id", Type <String>::type_code };
 
 // Implicit operation names
 const Char ProxyManager::op_get_interface_ [] = "_get_interface";
@@ -115,7 +115,7 @@ void ProxyManager::check_metadata (const InterfaceMetadata* metadata, String_in 
 			throw OBJ_ADAPTER (); // TODO: Log
 		check_parameters (op->input);
 		check_parameters (op->output);
-		check_type_code (op->return_type);
+		check_type_code ((op->return_type) ());
 	}
 }
 
@@ -124,15 +124,14 @@ void ProxyManager::check_parameters (CountedArray <Parameter> parameters)
 	for (const Parameter* p = parameters.p, *end = p + parameters.size; p != end; ++p) {
 		if (!p->name)
 			throw OBJ_ADAPTER (); // TODO: Log
-		check_type_code (p->type);
+		check_type_code ((p->type) ());
 	}
 }
 
-void ProxyManager::check_type_code (const ::Nirvana::ImportInterfaceT <TypeCode>& tc)
+void ProxyManager::check_type_code (TypeCode_ptr tc)
 {
-	if (!tc.imp.itf)
+	if (!tc)
 		throw OBJ_ADAPTER (); // TODO: Log
-	TypeCode::_check (tc.imp.itf);
 }
 
 ProxyManager::ProxyManager (const Bridge <IOReference>::EPV& epv_ior, const Bridge <Object>::EPV& epv_obj,

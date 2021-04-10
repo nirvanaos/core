@@ -154,16 +154,16 @@ public:
 };
 
 const Parameter ProxyTraits <::PortableServer::POA>::activate_object_in_params_ [1] = {
-	{ "p_servant", _tc_Object }
+	{ "p_servant", TypeI <Object>::type_code }
 };
 
 const Parameter ProxyTraits <::PortableServer::POA>::deactivate_object_in_params_ [1] = {
-	{ "oid", _tc_string }
+	{ "oid", Type <String>::type_code }
 };
 
 const Operation ProxyTraits <::PortableServer::POA>::operations_ [] = {
-	{ "activate_object", { activate_object_in_params_, countof (activate_object_in_params_) }, {0, 0}, ::CORBA::_tc_string, RqProcWrapper <::PortableServer::POA, activate_object_request> },
-	{ "deactivate_object", { deactivate_object_in_params_, countof (deactivate_object_in_params_) }, {0, 0}, ::CORBA::_tc_void, RqProcWrapper <::PortableServer::POA, deactivate_object_request> }
+	{ "activate_object", { activate_object_in_params_, countof (activate_object_in_params_) }, {0, 0}, Type <String>::type_code, RqProcWrapper <::PortableServer::POA, activate_object_request> },
+	{ "deactivate_object", { deactivate_object_in_params_, countof (deactivate_object_in_params_) }, {0, 0}, Type <void>::type_code, RqProcWrapper <::PortableServer::POA, deactivate_object_request> }
 };
 
 const Char* const ProxyTraits <::PortableServer::POA>::interfaces_ [] = {
