@@ -52,7 +52,7 @@ const Parameter TypeCodeMembers <SystemException>::members_ [] = {
 
 template <class E>
 class TypeCodeSystemException :
-	public TypeCodeStatic <TypeCodeSystemException <E>, TypeCodeWithId <tk_except, E>, TypeCodeOps <SystemException::_Data> >,
+	public TypeCodeStatic <TypeCodeSystemException <E>, TypeCodeWithId <tk_except, RepIdOf <E> >, TypeCodeOps <SystemException::_Data> >,
 	public TypeCodeMembers <SystemException>
 {
 public:
@@ -60,9 +60,9 @@ public:
 	using TypeCodeMembers <SystemException>::_member_name;
 	using TypeCodeMembers <SystemException>::_member_type;
 
-	static const char* _name (Bridge <TypeCode>* _b, Interface* _env)
+	static Type <String>::ABI_ret _name (Bridge <TypeCode>* _b, Interface* _env)
 	{
-		return E::__name ();
+		return const_string_ret (E::__name ());
 	}
 };
 

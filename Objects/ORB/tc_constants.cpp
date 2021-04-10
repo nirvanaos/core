@@ -46,9 +46,9 @@ class TC_Object :
 	public TypeCodeStatic <TC_Object, TypeCodeWithId <tk_objref, Object>, TypeCodeOps <Object_var> >
 {
 public:
-	static const char* _name (Bridge <TypeCode>* _b, Interface* _env)
+	static Type <String>::ABI_ret _name (Bridge <TypeCode>* _b, Interface* _env)
 	{
-		return "Object";
+		return const_string_ret ("Object");
 	}
 };
 
