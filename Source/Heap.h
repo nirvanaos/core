@@ -41,17 +41,20 @@ public:
 	static T* allocate (size_t cnt, void* hint = nullptr, UWord flags = 0);
 };
 
-class HeapBase
+class Heap
 {
 	// Skip list level count for heap skip list.
 	// May be moved to Port/config.h
 	static const unsigned SKIP_LIST_LEVELS = 10;
 
-	HeapBase (const HeapBase&) = delete;
-	HeapBase& operator = (const HeapBase&) = delete;
+	Heap (const Heap&) = delete;
+	Heap& operator = (const Heap&) = delete;
 
 public:
-	HeapBase (size_t allocation_unit = HEAP_UNIT_DEFAULT) NIRVANA_NOEXCEPT;
+	static void initialize ();
+	static void terminate () NIRVANA_NOEXCEPT;
+
+	Heap (size_t allocation_unit = HEAP_UNIT_DEFAULT) NIRVANA_NOEXCEPT;
 
 	void* allocate (void* p, size_t size, UWord flags);
 	void release (void* p, size_t size);
@@ -213,7 +216,7 @@ protected:
 		NodeVal* insert (Directory* part, size_t allocation_unit) NIRVANA_NOEXCEPT
 		{
 			unsigned level = Base::random_level ();
-			auto ins = Base::insert (new (HeapBase::allocate (*part, Base::node_size (level), 0, allocation_unit)) NodeVal (level, part));
+			auto ins = Base::insert (new (Heap::allocate (*part, Base::node_size (level), 0, allocation_unit)) NodeVal (level, part));
 			assert (ins.second);
 #ifdef _DEBUG
 			node_cnt_.increment ();
@@ -323,12 +326,12 @@ protected:
 	MemoryBlock* part_list_;
 };
 
-class CoreHeap final :
-	public HeapBase
+class HeapCore final :
+	public Heap
 {
 public:
-	CoreHeap () :
-		HeapBase (HEAP_UNIT_CORE)
+	HeapCore () :
+		Heap (HEAP_UNIT_CORE)
 	{}
 
 private:
@@ -342,7 +345,7 @@ public:
 	{
 		assert (!initialized_);
 		Port::Memory::initialize ();
-		new (object_) CoreHeap ();
+		new (object_) HeapCore ();
 #ifdef _DEBUG
 		initialized_ = true;
 #endif
@@ -351,27 +354,27 @@ public:
 	void terminate () NIRVANA_NOEXCEPT
 	{
 		assert (initialized_);
-		((CoreHeap*)object_)->~CoreHeap ();
+		((HeapCore*)object_)->~HeapCore ();
 		Port::Memory::terminate ();
 #ifdef _DEBUG
 		initialized_ = false;
 #endif
 	}
 
-	HeapBase* operator -> ()
+	Heap* operator -> ()
 	{
 		assert (initialized_);
-		return (CoreHeap*)object_;
+		return (HeapCore*)object_;
 	}
 
-	HeapBase& object ()
+	Heap& object ()
 	{
 		assert (initialized_);
-		return *(CoreHeap*)object_;
+		return *(HeapCore*)object_;
 	}
 
 private:
-	int object_ [(sizeof (CoreHeap) + sizeof (int) - 1) / sizeof (int)];
+	int object_ [(sizeof (HeapCore) + sizeof (int) - 1) / sizeof (int)];
 
 #ifdef _DEBUG
 	bool initialized_;
@@ -380,25 +383,25 @@ private:
 
 extern CoreHeapObj g_core_heap;
 
-class Heap final :
-	public HeapBase
+inline void Heap::initialize ()
+{
+	g_core_heap.initialize ();
+}
+
+inline void Heap::terminate () NIRVANA_NOEXCEPT
+{
+	g_core_heap.terminate ();
+}
+
+class HeapUser final :
+	public Heap
 {
 public:
-	static void initialize ()
-	{
-		g_core_heap.initialize ();
-	}
-
-	static void terminate () NIRVANA_NOEXCEPT
-	{
-		g_core_heap.terminate ();
-	}
-
-	Heap (size_t allocation_unit = HEAP_UNIT_DEFAULT) :
-		HeapBase (allocation_unit)
+	HeapUser (size_t allocation_unit = HEAP_UNIT_DEFAULT) :
+		Heap (allocation_unit)
 	{}
 
-	~Heap ()
+	~HeapUser ()
 	{
 		cleanup ();
 		// TODO: Log message if memory leaks detected.

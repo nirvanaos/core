@@ -39,7 +39,7 @@ using namespace std;
 CoreHeapObj g_core_heap;
 
 inline
-bool HeapBase::MemoryBlock::collapse_large_block (size_t size) NIRVANA_NOEXCEPT
+bool Heap::MemoryBlock::collapse_large_block (size_t size) NIRVANA_NOEXCEPT
 {
 	assert (is_large_block ());
 	size |= 1;
@@ -47,13 +47,13 @@ bool HeapBase::MemoryBlock::collapse_large_block (size_t size) NIRVANA_NOEXCEPT
 }
 
 inline
-void HeapBase::MemoryBlock::restore_large_block (size_t size) NIRVANA_NOEXCEPT
+void Heap::MemoryBlock::restore_large_block (size_t size) NIRVANA_NOEXCEPT
 {
 	assert (large_block_size_ == 1);
 	large_block_size_ = size | 1;
 }
 
-HeapBase::LBErase::LBErase (BlockList& block_list, BlockList::NodeVal* first_node) :
+Heap::LBErase::LBErase (BlockList& block_list, BlockList::NodeVal* first_node) :
 	block_list_ (block_list),
 	new_node_ (nullptr)
 {
@@ -62,7 +62,7 @@ HeapBase::LBErase::LBErase (BlockList& block_list, BlockList::NodeVal* first_nod
 	last_block_.node = nullptr;
 }
 
-HeapBase::LBErase::~LBErase ()
+Heap::LBErase::~LBErase ()
 {
 	if (last_block_.node)
 		block_list_.release_node (last_block_.node);
@@ -74,7 +74,7 @@ HeapBase::LBErase::~LBErase ()
 		block_list_.release_node (new_node_);
 }
 
-void HeapBase::LBErase::prepare (void* p, size_t size)
+void Heap::LBErase::prepare (void* p, size_t size)
 {
 	MemoryBlock* block = &first_block_.node->value ();
 	assert (block->is_large_block ());
@@ -130,7 +130,7 @@ void HeapBase::LBErase::prepare (void* p, size_t size)
 	}
 }
 
-void HeapBase::LBErase::commit () NIRVANA_NOEXCEPT
+void Heap::LBErase::commit () NIRVANA_NOEXCEPT
 {
 	if (shrink_size_)
 		first_block_.restore (shrink_size_);
@@ -149,7 +149,7 @@ void HeapBase::LBErase::commit () NIRVANA_NOEXCEPT
 	block_list_.remove (first_block_.node);
 }
 
-void HeapBase::LBErase::rollback () NIRVANA_NOEXCEPT
+void Heap::LBErase::rollback () NIRVANA_NOEXCEPT
 {
 	rollback_helper ();
 	first_block_.restore ();
@@ -157,14 +157,14 @@ void HeapBase::LBErase::rollback () NIRVANA_NOEXCEPT
 		last_block_.restore ();
 }
 
-void HeapBase::LBErase::rollback_helper () NIRVANA_NOEXCEPT
+void Heap::LBErase::rollback_helper () NIRVANA_NOEXCEPT
 {
 	for (MiddleBlocks::iterator it = middle_blocks_.begin (); it != middle_blocks_.end (); ++it) {
 		it->restore ();
 	}
 }
 
-HeapBase::HeapBase (size_t allocation_unit) NIRVANA_NOEXCEPT :
+Heap::Heap (size_t allocation_unit) NIRVANA_NOEXCEPT :
 	allocation_unit_ (allocation_unit),
 	part_list_ (nullptr)
 {
@@ -176,7 +176,7 @@ HeapBase::HeapBase (size_t allocation_unit) NIRVANA_NOEXCEPT :
 		allocation_unit_ = clp2 (allocation_unit);
 }
 
-void HeapBase::release (void* p, size_t size)
+void Heap::release (void* p, size_t size)
 {
 	if (!p || !size)
 		return;
@@ -208,7 +208,7 @@ void HeapBase::release (void* p, size_t size)
 	}
 }
 
-void HeapBase::release (Directory& part, void* p, size_t size) const
+void Heap::release (Directory& part, void* p, size_t size) const
 {
 	uint8_t* heap = (uint8_t*)(&part + 1);
 	size_t offset = (uint8_t*)p - heap;
@@ -220,7 +220,7 @@ void HeapBase::release (Directory& part, void* p, size_t size) const
 	part.release (begin, end, &hi);
 }
 
-HeapBase::Directory* HeapBase::get_partition (const void* p) NIRVANA_NOEXCEPT
+Heap::Directory* Heap::get_partition (const void* p) NIRVANA_NOEXCEPT
 {
 	assert (p);
 	Directory* part = nullptr;
@@ -238,7 +238,7 @@ HeapBase::Directory* HeapBase::get_partition (const void* p) NIRVANA_NOEXCEPT
 	return part;
 }
 
-void* HeapBase::allocate (void* p, size_t size, UWord flags)
+void* Heap::allocate (void* p, size_t size, UWord flags)
 {
 	if (!size)
 		THROW (BAD_PARAM);
@@ -268,7 +268,7 @@ void* HeapBase::allocate (void* p, size_t size, UWord flags)
 	return p;
 }
 
-void* HeapBase::allocate (size_t size, UWord flags)
+void* Heap::allocate (size_t size, UWord flags)
 {
 	void* p;
 	const size_t max_block_size = Directory::MAX_BLOCK_SIZE * allocation_unit_;
@@ -305,7 +305,7 @@ void* HeapBase::allocate (size_t size, UWord flags)
 	return p;
 }
 
-void HeapBase::add_large_block (void* p, size_t size)
+void Heap::add_large_block (void* p, size_t size)
 {
 	try {
 		const uintptr_t au = Port::Memory::ALLOCATION_UNIT;
@@ -318,7 +318,7 @@ void HeapBase::add_large_block (void* p, size_t size)
 	}
 }
 
-void* HeapBase::allocate (Directory& part, size_t size, UWord flags, size_t allocation_unit) NIRVANA_NOEXCEPT
+void* Heap::allocate (Directory& part, size_t size, UWord flags, size_t allocation_unit) NIRVANA_NOEXCEPT
 {
 	size_t units = (size + allocation_unit - 1) / allocation_unit;
 	uint8_t* heap = (uint8_t*)(&part + 1);
@@ -334,7 +334,7 @@ void* HeapBase::allocate (Directory& part, size_t size, UWord flags, size_t allo
 	return nullptr;
 }
 
-void* HeapBase::allocate (Directory& part, void* p, size_t size, UWord flags) const NIRVANA_NOEXCEPT
+void* Heap::allocate (Directory& part, void* p, size_t size, UWord flags) const NIRVANA_NOEXCEPT
 {
 	uint8_t* heap = (uint8_t*)(&part + 1);
 	size_t offset = (uint8_t*)p - heap;
@@ -360,7 +360,7 @@ void* HeapBase::allocate (Directory& part, void* p, size_t size, UWord flags) co
 	return nullptr;
 }
 
-HeapBase::MemoryBlock* HeapBase::add_new_partition (MemoryBlock*& tail)
+Heap::MemoryBlock* Heap::add_new_partition (MemoryBlock*& tail)
 {
 	Directory* dir = create_partition ();
 	BlockList::NodeVal* node;
@@ -382,7 +382,7 @@ HeapBase::MemoryBlock* HeapBase::add_new_partition (MemoryBlock*& tail)
 	return part;
 }
 
-HeapBase::MemoryBlock* CoreHeap::add_new_partition (MemoryBlock*& tail)
+Heap::MemoryBlock* HeapCore::add_new_partition (MemoryBlock*& tail)
 {
 	// Core heap has different algorithm to avoid recursion.
 	// The block list node is allocated from the new partition.
@@ -407,7 +407,7 @@ HeapBase::MemoryBlock* CoreHeap::add_new_partition (MemoryBlock*& tail)
 	return ret;
 }
 
-void* HeapBase::copy (void* dst, void* src, size_t size, UWord flags)
+void* Heap::copy (void* dst, void* src, size_t size, UWord flags)
 {
 	if (!size)
 		return dst;
@@ -583,7 +583,7 @@ void* HeapBase::copy (void* dst, void* src, size_t size, UWord flags)
 	return dst;
 }
 
-uintptr_t HeapBase::query (const void* p, MemQuery param)
+uintptr_t Heap::query (const void* p, MemQuery param)
 {
 	if (MemQuery::ALLOCATION_UNIT == param) {
 		if (!p || get_partition (p))
@@ -600,7 +600,7 @@ uintptr_t HeapBase::query (const void* p, MemQuery param)
 	return Port::Memory::query (p, param);
 }
 
-bool HeapBase::check_owner (const void* p, size_t size)
+bool Heap::check_owner (const void* p, size_t size)
 {
 	bool ok = false;
 	BlockList::NodeVal* node = block_list_.lower_bound (p);
@@ -645,7 +645,7 @@ bool HeapBase::check_owner (const void* p, size_t size)
 	return ok;
 }
 
-bool Heap::cleanup ()
+bool HeapUser::cleanup ()
 {
 	bool empty = true;
 	part_list_ = nullptr;

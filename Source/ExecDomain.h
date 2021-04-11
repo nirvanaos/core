@@ -227,7 +227,7 @@ private:
 	DeadlineTime deadline_;
 	Core_var <SyncContext> sync_context_;
 	SyncDomain::QueueNode* ret_qnodes_;
-	Heap heap_;
+	HeapUser heap_;
 	RuntimeSupportImpl runtime_support_;
 	bool scheduler_item_created_;
 	CORBA::Exception::Code scheduler_error_;

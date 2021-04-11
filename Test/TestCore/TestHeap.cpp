@@ -42,7 +42,7 @@ protected:
 	}
 
 protected:
-	Core::Heap heap_;
+	Core::HeapUser heap_;
 };
 
 bool check_readable (const UWord* begin, const UWord* end, UWord tag)

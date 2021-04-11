@@ -149,7 +149,7 @@ private:
 
 private:
 	Queue queue_;
-	Heap heap_;
+	HeapUser heap_;
 	RuntimeSupportImpl runtime_support_; // Must be destructed before the heap_ destruction.
 
 	// Thread that acquires this flag become a scheduling thread.

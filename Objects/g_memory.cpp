@@ -93,7 +93,7 @@ public:
 	}
 
 private:
-	static HeapBase& heap ()
+	static Heap& heap ()
 	{
 		Thread* th = Thread::current_ptr ();
 		if (th) {

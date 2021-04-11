@@ -31,13 +31,13 @@ namespace Nirvana {
 namespace Core {
 
 class HeapDynamic :
-	public Heap,
+	public HeapUser,
 	public CORBA::Nirvana::Servant <HeapDynamic, Memory>,
 	public CORBA::Nirvana::LifeCycleRefCntImpl <HeapDynamic>
 {
 public:
 	HeapDynamic (ULong allocation_unit) :
-		Heap (allocation_unit)
+		HeapUser (allocation_unit)
 	{}
 };
 

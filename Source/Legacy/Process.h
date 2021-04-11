@@ -44,7 +44,7 @@ public:
 	static Nirvana::Core::Core_var <Process> posix_spawn (const char* file, char* argv [], char* envp);
 
 private:
-	Nirvana::Core::Heap heap_;
+	Nirvana::Core::HeapUser heap_;
 	RuntimeSupportLegacy runtime_support_;
 };
 
