@@ -23,10 +23,7 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include <CORBA/CORBA.h>
-#include <CORBA/Proxy/TypeCodeEnum.h>
-#include <CORBA/Proxy/TypeCodeException.h>
-#include "tc_impex.h"
+#include <CORBA/Proxy/Proxy.h>
 
 namespace CORBA {
 namespace Nirvana {
@@ -52,12 +49,12 @@ const Char* const TypeCodeEnum <TCKind>::members_ [] = {
 
 }
 
-typedef Nirvana::TypeCodeEnum <TCKind> TC_TCKind;
-
 }
 
-TC_IMPEX_BY_ID (TCKind)
+NIRVANA_EXPORT (_exp_CORBA_Nirvana_TCKind_TC, CORBA::Nirvana::RepIdOf < ::CORBA::TCKind>::repository_id_, CORBA::TypeCode, CORBA::Nirvana::TypeCodeEnum < ::CORBA::TCKind>)
 
-INTERFACE_EXC_IMPEX (CORBA, TypeCode, BadKind)
-INTERFACE_EXC_IMPEX (CORBA, TypeCode, Bounds)
+NIRVANA_EXPORT (_exp_CORBA_Nirvana_TypeCode_BadKind_TC, CORBA::Nirvana::RepIdOf < ::CORBA::Nirvana::Definitions <::CORBA::TypeCode>::BadKind>::repository_id_,
+	CORBA::TypeCode, CORBA::Nirvana::TypeCodeException < ::CORBA::Nirvana::Definitions <::CORBA::TypeCode>::BadKind, false>)
 
+NIRVANA_EXPORT (_exp_CORBA_Nirvana_TypeCode_Bounds_TC, CORBA::Nirvana::RepIdOf < ::CORBA::Nirvana::Definitions <::CORBA::TypeCode>::Bounds>::repository_id_,
+	CORBA::TypeCode, CORBA::Nirvana::TypeCodeException < ::CORBA::Nirvana::Definitions <::CORBA::TypeCode>::Bounds, false>)

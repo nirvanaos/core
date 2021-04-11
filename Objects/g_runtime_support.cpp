@@ -28,7 +28,6 @@
 */
 #include <RuntimeSupportImpl.h>
 #include <Thread.h>
-#include <Nirvana/RuntimeSupport_s.h>
 #include <Nirvana/OLF.h>
 
 namespace Nirvana {

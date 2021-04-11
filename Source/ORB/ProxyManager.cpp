@@ -24,6 +24,7 @@
 *  popov.nirvana@gmail.com
 */
 #include "ProxyManager.h"
+#include <Nirvana/Binder.h>
 #include <algorithm>
 
 namespace CORBA {

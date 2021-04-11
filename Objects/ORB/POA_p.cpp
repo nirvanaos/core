@@ -30,6 +30,12 @@
 #include <CORBA/POA_s.h>
 #include <ORB/ServantBase.h>
 
+NIRVANA_EXPORT (_exp_PortableServer_POA_ServantAlreadyActive_TC, CORBA::Nirvana::RepIdOf <CORBA::Nirvana::Definitions <PortableServer::POA>::ServantAlreadyActive>::repository_id_,
+CORBA::TypeCode, CORBA::Nirvana::TypeCodeException <CORBA::Nirvana::Definitions <PortableServer::POA>::ServantAlreadyActive, false>)
+
+NIRVANA_EXPORT (_exp_PortableServer_POA_ObjectNotActive_TC, CORBA::Nirvana::RepIdOf <CORBA::Nirvana::Definitions <PortableServer::POA>::ObjectNotActive>::repository_id_,
+CORBA::TypeCode, CORBA::Nirvana::TypeCodeException <CORBA::Nirvana::Definitions <PortableServer::POA>::ObjectNotActive, false>)
+
 namespace CORBA {
 namespace Nirvana {
 

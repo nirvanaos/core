@@ -23,6 +23,7 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
+#include <CORBA/Server.h>
 #include "Binder.h"
 #include "Module.h"
 #include <Port/SystemInfo.h>

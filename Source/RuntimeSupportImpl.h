@@ -27,9 +27,10 @@
 #ifndef NIRVANA_CORE_RUNTIMESUPPORTIMPL_H_
 #define NIRVANA_CORE_RUNTIMESUPPORTIMPL_H_
 
+#include <CORBA/Server.h>
+#include <Nirvana/RuntimeSupport_s.h>
 #include "UserObject.h"
 #include "UserAllocator.h"
-#include <Nirvana/RuntimeSupport_s.h>
 #include "LifeCyclePseudo.h"
 #include "CoreInterface.h"
 #include "parallel-hashmap/parallel_hashmap/phmap.h"

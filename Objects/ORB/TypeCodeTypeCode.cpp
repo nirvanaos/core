@@ -1,5 +1,5 @@
 /*
-* Nirvana Core.
+* Nirvana IDL support library.
 *
 * This is a part of the Nirvana project.
 *
@@ -23,20 +23,16 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include <core.h>
-#include <CORBA/Server.h>
-#include <CORBA/POA.h>
-#include <CORBA/Proxy/TypeCodeException.h>
-#include "tc_impex.h"
+#include <CORBA/Proxy/Proxy.h>
 
 namespace CORBA {
 namespace Nirvana {
 
-namespace Core {
-
-StaticI_ptr <PortableServer::POA> g_root_POA = { 0 };
-
-}
+class TypeCodeTypeCode :
+	public TypeCodeStatic <TypeCodeTypeCode, TypeCodeTK <tk_TypeCode>, TypeCodeOps <I_var <TypeCode> > >
+{};
 
 }
 }
+
+NIRVANA_EXPORT (_exp_CORBA_TypeCode_TC, CORBA::TypeCode::repository_id_, CORBA::TypeCode, CORBA::Nirvana::TypeCodeTypeCode)
