@@ -139,27 +139,40 @@ public:
 	/// \param err Exception code.
 	void on_exec_domain_crash (CORBA::SystemException::Code err) NIRVANA_NOEXCEPT;
 
-	SyncContext* sync_context () const
+	SyncContext* sync_context () const NIRVANA_NOEXCEPT
 	{
 		return sync_context_;
 	}
 
-	void sync_context (SyncContext& sync_context)
+	void sync_context (SyncContext& sync_context) NIRVANA_NOEXCEPT
 	{
 		sync_context_ = &sync_context;
 	}
 
-	Heap& heap ()
+	/// \returns Current heap.
+	Heap& heap () NIRVANA_NOEXCEPT
 	{
-		return heap_;
+		return *cur_heap_;
 	}
 
-	RuntimeSupportImpl& runtime_support ()
+	/// Used to set module heap before the module initialization.
+	void heap_replace (Heap& heap) NIRVANA_NOEXCEPT
+	{
+		cur_heap_ = &heap;
+	}
+
+	/// Used to restore heap after the module initialization.
+	void heap_restore () NIRVANA_NOEXCEPT
+	{
+		cur_heap_ = &heap_;
+	}
+
+	RuntimeSupportImpl& runtime_support () NIRVANA_NOEXCEPT
 	{
 		return runtime_support_;
 	}
 
-	CORBA::Exception::Code scheduler_error () const
+	CORBA::Exception::Code scheduler_error () const NIRVANA_NOEXCEPT
 	{
 		return scheduler_error_;
 	}
@@ -206,7 +219,7 @@ protected:
 private:
 	void ctor_base ();
 
-	void ret_qnodes_clear ()
+	void ret_qnodes_clear () NIRVANA_NOEXCEPT
 	{
 		while (ret_qnodes_) {
 			SyncDomain::QueueNode* qn = ret_qnodes_;
@@ -228,6 +241,7 @@ private:
 	Core_var <SyncContext> sync_context_;
 	SyncDomain::QueueNode* ret_qnodes_;
 	HeapUser heap_;
+	Heap* cur_heap_;
 	RuntimeSupportImpl runtime_support_;
 	bool scheduler_item_created_;
 	CORBA::Exception::Code scheduler_error_;

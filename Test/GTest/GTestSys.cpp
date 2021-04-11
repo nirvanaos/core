@@ -23,6 +23,8 @@
 */
 #include "GTestSys.h"
 #include <Scheduler.h>
+#include <Thread.h>
+#include <ExecDomain.h>
 #include <gtest/gtest.h>
 
 namespace Nirvana {
@@ -37,6 +39,7 @@ GTestSys::GTestSys (int argc, char* argv []) :
 
 void GTestSys::run ()
 {
+	Thread::current ().exec_domain ()->heap_replace (g_core_heap.object ());
 	StartupSys::run ();
 	ret_ = RUN_ALL_TESTS ();
 	Scheduler::shutdown ();

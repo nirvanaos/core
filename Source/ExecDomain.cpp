@@ -57,6 +57,7 @@ void ExecDomain::ctor_base ()
 	scheduler_error_ = CORBA::SystemException::EC_NO_EXCEPTION;
 	scheduler_item_created_ = false;
 	stateless_creation_frame_ = nullptr;
+	cur_heap_ = &heap_;
 }
 
 void ExecDomain::spawn (SyncDomain* sync_domain)
