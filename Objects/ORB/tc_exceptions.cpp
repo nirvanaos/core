@@ -62,7 +62,7 @@ public:
 
 	static Type <String>::ABI_ret _name (Bridge <TypeCode>* _b, Interface* _env)
 	{
-		return const_string_ret (E::__name ());
+		return const_string_ret_p (E::__name ());
 	}
 };
 
