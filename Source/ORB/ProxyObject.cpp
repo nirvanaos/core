@@ -116,7 +116,6 @@ inline void ProxyObject::non_existent_request (ProxyObject* _servant, IORequest_
 {
 	Boolean _ret = _servant->servant_->_non_existent ();
 	BooleanRet& _out = *(BooleanRet*)out_params;
-	Marshal_var _m;
 	_marshal_out (_ret, Marshal::_nil (), _out._ret);
 }
 
