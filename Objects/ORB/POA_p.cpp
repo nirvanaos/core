@@ -70,7 +70,7 @@ struct ProxyTraits <::PortableServer::POA>
 		const activate_object_in& _in = *(const activate_object_in*)_in_ptr;
 
 		Object_var p_servant;
-		_unmarshal (_in.p_servant, _u, p_servant);
+		Type <Object>::unmarshal (_in.p_servant, _u, p_servant);
 		_u = Unmarshal::_nil ();
 		String ret;
 		{
@@ -82,7 +82,7 @@ struct ProxyTraits <::PortableServer::POA>
 		// Marshal output
 		activate_object_out& _out = *(activate_object_out*)_out_ptr;
 		Marshal_var _m = _call->marshaler ();
-		_marshal_out (ret, _m, _out._ret);
+		Type <String>::marshal_out (ret, _m, _out._ret);
 	}
 
 	// void deactivate_object (string oid);
@@ -102,7 +102,7 @@ struct ProxyTraits <::PortableServer::POA>
 	{
 		const deactivate_object_in& _in = *(const deactivate_object_in*)_in_ptr;
 		String oid;
-		_unmarshal (_in.oid, _u, oid);
+		Type <String>::unmarshal (_in.oid, _u, oid);
 		_u = Unmarshal::_nil ();
 		_servant->deactivate_object (oid);
 	}
@@ -140,12 +140,12 @@ public:
 		Object_ptr proxy = servant2object (p_servant);
 		Traits::activate_object_in _in;
 		Marshal_var _m = _target ()->create_marshaler ();
-		_marshal_in (proxy, _m, _in.p_servant);
+		Type <Object>::marshal_in (proxy, _m, _in.p_servant);
 		Traits::activate_object_out _out;
 		Unmarshal_var _u = _target ()->call (CORBA::Nirvana::OperationIndex{ _interface_idx (), 0 },
 			&_in, sizeof (_in), _m, &_out, sizeof (_out));
 		String _ret;
-		_unmarshal (_out._ret, _u, _ret);
+		Type <String>::unmarshal (_out._ret, _u, _ret);
 		return _ret;
 	}
 
@@ -153,14 +153,14 @@ public:
 	{
 		Traits::deactivate_object_in _in;
 		Marshal_var _m = _target ()->create_marshaler ();
-		_marshal_in (oid, _m, _in.oid);
+		Type <String>::marshal_in (oid, _m, _in.oid);
 		Unmarshal_var _u = _target ()->call (CORBA::Nirvana::OperationIndex{ _interface_idx (), 1 },
 			&_in, sizeof (_in), _m, 0, 0);
 	}
 };
 
 const Parameter ProxyTraits <::PortableServer::POA>::activate_object_in_params_ [1] = {
-	{ "p_servant", TypeI <Object>::type_code }
+	{ "p_servant", Type <Object>::type_code }
 };
 
 const Parameter ProxyTraits <::PortableServer::POA>::deactivate_object_in_params_ [1] = {

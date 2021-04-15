@@ -29,7 +29,7 @@ namespace CORBA {
 namespace Nirvana {
 
 class TypeCodeTypeCode :
-	public TypeCodeStatic <TypeCodeTypeCode, TypeCodeTK <tk_TypeCode>, TypeCodeOps <I_var <TypeCode> > >
+	public TypeCodeStatic <TypeCodeTypeCode, TypeCodeTK <tk_TypeCode>, TypeCodeOps <TypeCode> >
 {};
 
 }

@@ -205,7 +205,7 @@ void Binder::module_bind (Module* mod, const Section& metadata, SyncContext& syn
 						case OLF_EXPORT_OBJECT:
 						{
 							ExportObject* ps = reinterpret_cast <ExportObject*> (it.cur ());
-							PortableServer::ServantBase_var core_obj = (new CORBA::Nirvana::Core::ServantBase (TypeI <PortableServer::ServantBase>::in (ps->servant_base), sync_context))->_get_ptr ();
+							PortableServer::ServantBase_var core_obj = (new CORBA::Nirvana::Core::ServantBase (Type <PortableServer::ServantBase>::in (ps->servant_base), sync_context))->_get_ptr ();
 							Object_ptr obj = AbstractBase_ptr (core_obj)->_query_interface <Object> ();
 							ps->core_object = &core_obj._retn ();
 							export_add (ps->name, obj);
@@ -215,7 +215,7 @@ void Binder::module_bind (Module* mod, const Section& metadata, SyncContext& syn
 						case OLF_EXPORT_LOCAL:
 						{
 							ExportLocal* ps = reinterpret_cast <ExportLocal*> (it.cur ());
-							LocalObject_ptr core_obj = (new CORBA::Nirvana::Core::LocalObject (TypeI <LocalObject>::in (ps->local_object), TypeI <AbstractBase>::in (ps->abstract_base), sync_context))->_get_ptr ();
+							LocalObject_ptr core_obj = (new CORBA::Nirvana::Core::LocalObject (Type <LocalObject>::in (ps->local_object), Type <AbstractBase>::in (ps->abstract_base), sync_context))->_get_ptr ();
 							Object_ptr obj = core_obj;
 							ps->core_object = &core_obj;
 							export_add (ps->name, obj);

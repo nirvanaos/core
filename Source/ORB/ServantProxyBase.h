@@ -130,7 +130,7 @@ protected:
 		try {
 			IORequest_ptr rq = IORequest::_check (call);
 			try {
-				proc ((I*)(void*)servant, rq, in_params, TypeI <Unmarshal>::inout (unmarshaler), out_params);
+				proc ((I*)(void*)servant, rq, in_params, Type <Unmarshal>::inout (unmarshaler), out_params);
 				rq->success ();
 			} catch (Exception& e) {
 				rq->exception (std::move (e));
@@ -217,7 +217,7 @@ public:
 		Unmarshal_var u = ServantMarshaler::unmarshaler (marshaler._retn ());
 		Request request;
 		SYNC_BEGIN (get_sync_context (op));
-		(ie.operations.p [idx].invoke) (ie.implementation, &request._get_ptr (), in_params, &TypeI <Unmarshal>::C_inout (u), out_params);
+		(ie.operations.p [idx].invoke) (ie.implementation, &request._get_ptr (), in_params, &Type <Unmarshal>::C_inout (u), out_params);
 		SYNC_END ();
 		return request.check ();
 	}

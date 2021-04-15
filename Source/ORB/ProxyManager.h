@@ -80,7 +80,7 @@ public:
 		Marshal_var m;
 		ior ()->call (OperationIndex{ object_itf_idx (), OBJ_OP_NON_EXISTENT }, nullptr, 0, m, &out, sizeof (out));
 		Boolean _ret;
-		_unmarshal (out._ret, Unmarshal::_nil (), _ret);
+		Type <Boolean>::unmarshal (out._ret, Unmarshal::_nil (), _ret);
 		return _ret;
 	}
 
@@ -152,7 +152,7 @@ protected:
 	// Output param structure for Boolean returning operations.
 	struct BooleanRet
 	{
-		ABI_boolean _ret;
+		Type <Boolean>::ABI_type _ret;
 	};
 
 	struct get_interface_out

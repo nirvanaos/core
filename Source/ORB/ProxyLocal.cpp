@@ -39,11 +39,11 @@ inline void ProxyLocal::non_existent_request (ProxyLocal* servant, IORequest_ptr
 	Boolean _ret = servant->servant_->_non_existent ();
 	BooleanRet& _out = *(BooleanRet*)out_params;
 	Marshal_var _m;
-	_marshal_out (_ret, Marshal::_nil (), _out._ret);
+	Type <Boolean>::marshal_out (_ret, Marshal::_nil (), _out._ret);
 }
 
 const Operation ProxyLocal::object_ops_ [3] = {
-	{ op_get_interface_, {0, 0}, {0, 0}, TypeI <InterfaceDef>::type_code, nullptr },
+	{ op_get_interface_, {0, 0}, {0, 0}, Type <InterfaceDef>::type_code, nullptr },
 	{ op_is_a_, {&is_a_param_, 1}, {0, 0}, Type <Boolean>::type_code, nullptr },
 	{ op_non_existent_, {0, 0}, {0, 0}, Type <Boolean>::type_code, ObjProcWrapper <ProxyLocal, non_existent_request> }
 };

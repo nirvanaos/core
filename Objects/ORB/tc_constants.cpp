@@ -38,12 +38,8 @@ class TypeCodeScalar : public TypeCodeStatic <TypeCodeScalar <T, tk>, TypeCodeTK
 
 using namespace Nirvana;
 
-class TC_TypeCode :
-	public TypeCodeStatic <TC_TypeCode, TypeCodeTK <tk_TypeCode>, TypeCodeOps <TypeCode_var> >
-{};
-
 class TC_Object :
-	public TypeCodeStatic <TC_Object, TypeCodeWithId <tk_objref, Object>, TypeCodeOps <Object_var> >
+	public TypeCodeStatic <TC_Object, TypeCodeWithId <tk_objref, Object>, TypeCodeOps <Object> >
 {
 public:
 	static Type <String>::ABI_ret _name (Bridge <TypeCode>* _b, Interface* _env)

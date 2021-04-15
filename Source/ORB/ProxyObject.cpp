@@ -116,11 +116,11 @@ inline void ProxyObject::non_existent_request (ProxyObject* _servant, IORequest_
 {
 	Boolean _ret = _servant->servant_->_non_existent ();
 	BooleanRet& _out = *(BooleanRet*)out_params;
-	_marshal_out (_ret, Marshal::_nil (), _out._ret);
+	Type <Boolean>::marshal_out (_ret, Marshal::_nil (), _out._ret);
 }
 
 const Operation ProxyObject::object_ops_ [3] = {
-	{ op_get_interface_, {0, 0}, {0, 0}, TypeI <InterfaceDef>::type_code, nullptr },
+	{ op_get_interface_, {0, 0}, {0, 0}, Type <InterfaceDef>::type_code, nullptr },
 	{ op_is_a_, {&is_a_param_, 1}, {0, 0}, Type <Boolean>::type_code, nullptr },
 	{ op_non_existent_, {0, 0}, {0, 0}, Type <Boolean>::type_code, ObjProcWrapper <ProxyObject, non_existent_request> }
 };

@@ -83,7 +83,7 @@ private:
 	static Interface* __get_servant (Bridge <Object>* obj, Interface* env)
 	{
 		try {
-			return TypeI <PortableServer::ServantBase>::ret (static_cast <ProxyObject&> (_implementation (obj))._get_servant ());
+			return Type <PortableServer::ServantBase>::ret (static_cast <ProxyObject&> (_implementation (obj))._get_servant ());
 		} catch (const Exception& e) {
 			set_exception (env, e);
 		} catch (...) {
