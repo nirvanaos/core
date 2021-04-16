@@ -51,6 +51,6 @@ public:
 
 }
 
-extern const ImportInterfaceT <Module> g_module = { OLF_IMPORT_INTERFACE, "Nirvana/g_module", Module::repository_id_, STATIC_BRIDGE (Module, Core::Module) };
+extern const ImportInterfaceT <Module> g_module = { OLF_IMPORT_INTERFACE, "Nirvana/g_module", Module::repository_id_, NIRVANA_STATIC_BRIDGE (Module, Core::Module) };
 
 }

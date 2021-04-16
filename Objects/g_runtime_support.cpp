@@ -65,7 +65,7 @@ public:
 }
 
 extern const ImportInterfaceT <RuntimeSupport> g_runtime_support = { OLF_IMPORT_INTERFACE, nullptr, nullptr, 
-STATIC_BRIDGE (RuntimeSupport, Core::RuntimeSupport) };
+NIRVANA_STATIC_BRIDGE (RuntimeSupport, Core::RuntimeSupport) };
 
 }
 

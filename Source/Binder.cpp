@@ -336,5 +336,5 @@ Interface_var Binder::bind_sync (const char* name, size_t name_len, const char* 
 }
 
 }
-extern const ImportInterfaceT <Binder> g_binder = { OLF_IMPORT_INTERFACE, "Nirvana/g_binder", Binder::repository_id_, STATIC_BRIDGE (Binder, Core::Binder) };
+extern const ImportInterfaceT <Binder> g_binder = { OLF_IMPORT_INTERFACE, "Nirvana/g_binder", Binder::repository_id_, NIRVANA_STATIC_BRIDGE (Binder, Core::Binder) };
 }
