@@ -152,7 +152,7 @@ protected:
 	// Output param structure for Boolean returning operations.
 	struct BooleanRet
 	{
-		Type <Boolean>::ABI_type _ret;
+		Type <Boolean>::ABI _ret;
 	};
 
 	struct get_interface_out
