@@ -87,7 +87,7 @@ public:
 		return heap ().is_copy (p1, p2, size);
 	}
 
-	static intptr_t query (const void* p, MemQuery q)
+	static intptr_t query (const void* p, Memory::Query q)
 	{
 		return heap ().query (p, q);
 	}
@@ -159,7 +159,7 @@ public:
 		return user_memory ().is_copy (p1, p2, size);
 	}
 
-	static intptr_t query (const void* p, MemQuery q)
+	static intptr_t query (const void* p, Memory::Query q)
 	{
 		return user_memory ().query (p, q);
 	}

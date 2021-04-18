@@ -84,7 +84,7 @@ protected:
 		if (Port::Memory::FIXED_COMMIT_UNIT)
 			return Port::Memory::FIXED_COMMIT_UNIT;
 		else
-			return Port::Memory::query (p, MemQuery::COMMIT_UNIT);
+			return Port::Memory::query (p, Memory::Query::COMMIT_UNIT);
 	}
 
 	struct BitmapIndex

@@ -82,9 +82,9 @@ TEST_F (TestHeap, Allocate)
 
 TEST_F (TestHeap, ReadOnly)
 {
-	size_t pu = (size_t)heap_.query (nullptr, MemQuery::PROTECTION_UNIT);
+	size_t pu = (size_t)heap_.query (nullptr, Memory::Query::PROTECTION_UNIT);
 	UWord* p = (UWord*)heap_.allocate (nullptr, pu, 0);
-	size_t au = (size_t)heap_.query (p, MemQuery::ALLOCATION_UNIT);
+	size_t au = (size_t)heap_.query (p, Memory::Query::ALLOCATION_UNIT);
 	if (au < pu) {
 		fill_n (p, pu / sizeof (UWord), 1);
 		UWord* pro = (UWord*)heap_.copy (nullptr, p, pu, Memory::READ_ONLY);
@@ -108,12 +108,12 @@ TEST_F (TestHeap, Heap)
 	static const UWord COUNT = 1024 * 1024 * 4 / 16 * GRANULARITY / BLOCK_SIZE;
 	void* blocks [COUNT];
 	Memory_ptr heap = g_heap_factory->create_with_granularity (GRANULARITY);
-	EXPECT_EQ (GRANULARITY, heap->query (0, MemQuery::ALLOCATION_UNIT));
+	EXPECT_EQ (GRANULARITY, heap->query (0, Query::ALLOCATION_UNIT));
 
 	for (int i = 0; i < COUNT; ++i) {
 		blocks [i] = heap->allocate (0, BLOCK_SIZE, 0);
 		ASSERT_TRUE (blocks [i]);
-		Word au = heap->query (blocks [i], MemQuery::ALLOCATION_UNIT);
+		Word au = heap->query (blocks [i], Query::ALLOCATION_UNIT);
 		ASSERT_EQ (GRANULARITY, au);
 	}
 	
@@ -303,7 +303,7 @@ TEST_F (TestHeap, Random)
 #ifdef _DEBUG
 		= 10;
 #else
-		= 100;
+		= 50;
 #endif
 	static const int ALLOC_ITERATIONS = 1000;
 	for (int i = 0; i < ITERATIONS; ++i) {
@@ -341,7 +341,7 @@ TEST_F (TestHeap, MultiThread)
 #ifdef _DEBUG
 		= 5;
 #else
-		= 50;
+		= 25;
 #endif
 	static const int THREAD_ITERATIONS = 1000;
 	vector <ThreadAllocator> threads;
@@ -397,7 +397,7 @@ TEST_F (TestHeap, MultiThreadCopy)
 	const unsigned thread_count = max (thread::hardware_concurrency (), (unsigned)2);
 	const int iterations = 100;
 
-	size_t block_size = (size_t)heap_.query (nullptr, MemQuery::SHARING_ASSOCIATIVITY);
+	size_t block_size = (size_t)heap_.query (nullptr, Memory::Query::SHARING_ASSOCIATIVITY);
 	uint8_t* src = (uint8_t*)heap_.allocate (nullptr, block_size, 0);
 	uint8_t* dst = (uint8_t*)heap_.allocate (nullptr, block_size * thread_count, Memory::RESERVED);
 	size_t thr_size = block_size / thread_count;

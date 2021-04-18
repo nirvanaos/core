@@ -546,7 +546,7 @@ void* Heap::copy (void* dst, void* src, size_t size, UWord flags)
 		alloc_begin = (uint8_t*)dst;
 		alloc_end = alloc_begin + size;
 	} else if (flags & Memory::ALLOCATE) {
-		uintptr_t au = query (dst, MemQuery::ALLOCATION_UNIT);
+		uintptr_t au = query (dst, Memory::Query::ALLOCATION_UNIT);
 		alloc_begin = round_down ((uint8_t*)dst, au);
 		alloc_end = round_up ((uint8_t*)dst + size, au);
 		if (alloc_begin < (uint8_t*)src) {
@@ -583,15 +583,15 @@ void* Heap::copy (void* dst, void* src, size_t size, UWord flags)
 	return dst;
 }
 
-uintptr_t Heap::query (const void* p, MemQuery param)
+uintptr_t Heap::query (const void* p, Memory::Query param)
 {
-	if (MemQuery::ALLOCATION_UNIT == param) {
+	if (Memory::Query::ALLOCATION_UNIT == param) {
 		if (!p || get_partition (p))
 			return allocation_unit_;
-	} else if (p && (param == MemQuery::ALLOCATION_SPACE_BEGIN || param == MemQuery::ALLOCATION_SPACE_END)) {
+	} else if (p && (param == Memory::Query::ALLOCATION_SPACE_BEGIN || param == Memory::Query::ALLOCATION_SPACE_END)) {
 		const Directory* part = get_partition (p);
 		if (part) {
-			if (param == MemQuery::ALLOCATION_SPACE_BEGIN)
+			if (param == Memory::Query::ALLOCATION_SPACE_BEGIN)
 				return (uintptr_t)(part + 1);
 			else
 				return (uintptr_t)(part + 1 + partition_size ());
