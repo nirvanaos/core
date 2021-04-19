@@ -26,6 +26,7 @@
 #ifndef NIRVANA_ORB_CORE_SERVANTMARSHALER_H_
 #define NIRVANA_ORB_CORE_SERVANTMARSHALER_H_
 
+#include <CORBA/Server.h>
 #include "../CoreObject.h"
 #include "LifeCyclePseudo.h"
 #include "../SyncContext.h"
@@ -45,8 +46,8 @@ class ServantMarshalerImpl :
 	public InterfaceImplBase <T, Unmarshal>
 {
 public:
-	using InterfaceImplBase <T, Marshal>::_context;
-	using InterfaceImplBase <T, Unmarshal>::_context;
+	using InterfaceImplBase <T, Marshal>::__get_marshal_context;
+	using InterfaceImplBase <T, Unmarshal>::__get_marshal_context;
 
 protected:
 	ServantMarshalerImpl (::Nirvana::Core::SyncContext& sc) :
@@ -103,7 +104,7 @@ public:
 			return Unmarshal::_nil ();
 	}
 
-	MarshalContext context () const
+	MarshalContext marshal_context () const
 	{
 		if (shared_memory ())
 			return MarshalContext::SHARED_MEMORY;
