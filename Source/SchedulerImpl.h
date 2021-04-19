@@ -43,8 +43,8 @@ class SchedulerImpl
 	typedef SkipListWithPool <PriorityQueue <ExecutorRef, SYS_DOMAIN_PRIORITY_QUEUE_LEVELS> > Queue;
 public:
 	SchedulerImpl () NIRVANA_NOEXCEPT :
-		queue_ (Port::SystemInfo::hardware_concurrency ()),
 		free_cores_ (Port::SystemInfo::hardware_concurrency ()),
+		queue_ (Port::SystemInfo::hardware_concurrency ()),
 		active_items_ (0)
 	{}
 

@@ -415,7 +415,7 @@ void* Heap::copy (void* dst, void* src, size_t size, UWord flags)
 	if (!src)
 		THROW (BAD_PARAM);
 
-	if (flags & ~(Memory::READ_ONLY | Memory::RELEASE | Memory::ALLOCATE | Memory::EXACTLY))
+	if (flags & ~(Memory::READ_ONLY | Memory::SRC_RELEASE | Memory::DST_ALLOCATE | Memory::EXACTLY))
 		throw_INV_FLAG ();
 
 	if (dst == src) {
@@ -426,8 +426,8 @@ void* Heap::copy (void* dst, void* src, size_t size, UWord flags)
 		return dst;
 	}
 
-	UWord release_flags = flags & Memory::RELEASE;
-	if (release_flags == Memory::RELEASE) {
+	UWord release_flags = flags & Memory::SRC_RELEASE;
+	if (release_flags == Memory::SRC_RELEASE) {
 		BlockList::NodeVal* node = block_list_.lower_bound (src);
 		if (!node)
 			THROW (BAD_PARAM);
@@ -471,15 +471,15 @@ void* Heap::copy (void* dst, void* src, size_t size, UWord flags)
 				THROW (BAD_PARAM);
 
 			if (!dst) {
-				// Memory::RELEASE is specified, so we can use source block as destination
-				dst = Port::Memory::copy (src, src, size, (flags & ~Memory::RELEASE) | Memory::DECOMMIT);
+				// Memory::SRC_RELEASE is specified, so we can use source block as destination
+				dst = Port::Memory::copy (src, src, size, (flags & ~Memory::SRC_RELEASE) | Memory::SRC_DECOMMIT);
 			} else {
 				uint8_t* rel_begin = round_down ((uint8_t*)src, allocation_unit_);
 				uint8_t* rel_end = round_up ((uint8_t*)src + size, allocation_unit_);
 				uint8_t* alloc_begin = nullptr;
 				uint8_t* alloc_end = nullptr;
 				bool dst_own = true;
-				if (flags & Memory::ALLOCATE) {
+				if (flags & Memory::DST_ALLOCATE) {
 					alloc_begin = (uint8_t*)dst;
 					alloc_end = alloc_begin + size;
 					if (alloc_begin < (uint8_t*)src) {
@@ -511,7 +511,7 @@ void* Heap::copy (void* dst, void* src, size_t size, UWord flags)
 
 				try {
 					if (dst_own)
-						dst = Port::Memory::copy (dst, src, size, (flags & ~Memory::RELEASE) | Memory::DECOMMIT);
+						dst = Port::Memory::copy (dst, src, size, (flags & ~Memory::SRC_RELEASE) | Memory::SRC_DECOMMIT);
 					else
 						real_copy ((uint8_t*)src, (uint8_t*)src + size, (uint8_t*)dst);
 				} catch (...) {
@@ -530,7 +530,7 @@ void* Heap::copy (void* dst, void* src, size_t size, UWord flags)
 		return dst;
 
 	} else if (release_flags) {
-		assert (release_flags == Memory::DECOMMIT);
+		assert (release_flags == Memory::SRC_DECOMMIT);
 		if (!check_owner (src, size))
 			throw_NO_PERMISSION ();
 	}
@@ -545,8 +545,8 @@ void* Heap::copy (void* dst, void* src, size_t size, UWord flags)
 		}
 		alloc_begin = (uint8_t*)dst;
 		alloc_end = alloc_begin + size;
-	} else if (flags & Memory::ALLOCATE) {
-		uintptr_t au = query (dst, Memory::Query::ALLOCATION_UNIT);
+	} else if (flags & Memory::DST_ALLOCATE) {
+		uintptr_t au = query (dst, Memory::QueryParam::ALLOCATION_UNIT);
 		alloc_begin = round_down ((uint8_t*)dst, au);
 		alloc_end = round_up ((uint8_t*)dst + size, au);
 		if (alloc_begin < (uint8_t*)src) {
@@ -572,7 +572,7 @@ void* Heap::copy (void* dst, void* src, size_t size, UWord flags)
 
 	try {
 		if (dst_own)
-			dst = Port::Memory::copy (dst, src, size, flags & ~Memory::ALLOCATE);
+			dst = Port::Memory::copy (dst, src, size, flags & ~Memory::DST_ALLOCATE);
 		else
 			real_copy ((uint8_t*)src, (uint8_t*)src + size, (uint8_t*)dst);
 	} catch (...) {
@@ -583,15 +583,15 @@ void* Heap::copy (void* dst, void* src, size_t size, UWord flags)
 	return dst;
 }
 
-uintptr_t Heap::query (const void* p, Memory::Query param)
+uintptr_t Heap::query (const void* p, Memory::QueryParam param)
 {
-	if (Memory::Query::ALLOCATION_UNIT == param) {
+	if (Memory::QueryParam::ALLOCATION_UNIT == param) {
 		if (!p || get_partition (p))
 			return allocation_unit_;
-	} else if (p && (param == Memory::Query::ALLOCATION_SPACE_BEGIN || param == Memory::Query::ALLOCATION_SPACE_END)) {
+	} else if (p && (param == Memory::QueryParam::ALLOCATION_SPACE_BEGIN || param == Memory::QueryParam::ALLOCATION_SPACE_END)) {
 		const Directory* part = get_partition (p);
 		if (part) {
-			if (param == Memory::Query::ALLOCATION_SPACE_BEGIN)
+			if (param == Memory::QueryParam::ALLOCATION_SPACE_BEGIN)
 				return (uintptr_t)(part + 1);
 			else
 				return (uintptr_t)(part + 1 + partition_size ());

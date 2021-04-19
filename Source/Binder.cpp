@@ -233,7 +233,7 @@ void Binder::module_bind (Module* mod, const Section& metadata, SyncContext& syn
 					}
 				}
 
-			Port::Memory::copy (const_cast <void*> (metadata.address), writable, metadata.size, (writable != metadata.address) ? (Memory::READ_ONLY | Memory::RELEASE) : Memory::READ_ONLY);
+			Port::Memory::copy (const_cast <void*> (metadata.address), writable, metadata.size, (writable != metadata.address) ? (Memory::READ_ONLY | Memory::SRC_RELEASE) : Memory::READ_ONLY);
 			if (mod)
 				mod->module_entry_ = module_entry;
 		}

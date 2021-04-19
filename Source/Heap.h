@@ -95,7 +95,7 @@ public:
 		return Port::Memory::is_copy (p1, p2, size);
 	}
 
-	uintptr_t query (const void* p, Memory::Query param);
+	uintptr_t query (const void* p, Memory::QueryParam param);
 
 protected:
 	typedef HeapDirectory <HEAP_DIRECTORY_SIZE, HEAP_DIRECTORY_LEVELS, HEAP_DIRECTORY_IMPLEMENTATION> Directory;

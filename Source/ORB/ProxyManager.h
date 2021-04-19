@@ -92,7 +92,7 @@ public:
 	ULong _hash (ULong maximum) const
 	{
 		return (ULong)((uintptr_t)this 
-			- ::Nirvana::Core::Port::Memory::query (nullptr, ::Nirvana::Memory::Query::ALLOCATION_SPACE_BEGIN)
+			- ::Nirvana::Core::Port::Memory::query (nullptr, ::Nirvana::Memory::QueryParam::ALLOCATION_SPACE_BEGIN)
 			) % maximum;
 	}
 

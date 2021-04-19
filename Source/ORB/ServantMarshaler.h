@@ -121,7 +121,7 @@ public:
 			size = release_size;
 		} else {
 			uint8_t* pc = (uint8_t*)memory_.copy (nullptr, const_cast <void*> (p), size, 0);
-			size_t au = memory_.query (pc, ::Nirvana::Memory::Query::ALLOCATION_UNIT);
+			size_t au = memory_.query (pc, ::Nirvana::Memory::QueryParam::ALLOCATION_UNIT);
 			size = ::Nirvana::round_up (pc + size, au) - pc;
 			rec->p = pc;
 			rec->size = size;

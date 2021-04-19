@@ -82,9 +82,9 @@ TEST_F (TestHeap, Allocate)
 
 TEST_F (TestHeap, ReadOnly)
 {
-	size_t pu = (size_t)heap_.query (nullptr, Memory::Query::PROTECTION_UNIT);
+	size_t pu = (size_t)heap_.query (nullptr, Memory::QueryParam::PROTECTION_UNIT);
 	UWord* p = (UWord*)heap_.allocate (nullptr, pu, 0);
-	size_t au = (size_t)heap_.query (p, Memory::Query::ALLOCATION_UNIT);
+	size_t au = (size_t)heap_.query (p, Memory::QueryParam::ALLOCATION_UNIT);
 	if (au < pu) {
 		fill_n (p, pu / sizeof (UWord), 1);
 		UWord* pro = (UWord*)heap_.copy (nullptr, p, pu, Memory::READ_ONLY);
@@ -397,7 +397,7 @@ TEST_F (TestHeap, MultiThreadCopy)
 	const unsigned thread_count = max (thread::hardware_concurrency (), (unsigned)2);
 	const int iterations = 100;
 
-	size_t block_size = (size_t)heap_.query (nullptr, Memory::Query::SHARING_ASSOCIATIVITY);
+	size_t block_size = (size_t)heap_.query (nullptr, Memory::QueryParam::SHARING_ASSOCIATIVITY);
 	uint8_t* src = (uint8_t*)heap_.allocate (nullptr, block_size, 0);
 	uint8_t* dst = (uint8_t*)heap_.allocate (nullptr, block_size * thread_count, Memory::RESERVED);
 	size_t thr_size = block_size / thread_count;
