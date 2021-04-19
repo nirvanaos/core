@@ -39,7 +39,7 @@ CORBA::TypeCode, CORBA::Nirvana::TypeCodeException <CORBA::Nirvana::Definitions 
 namespace CORBA {
 namespace Nirvana {
 
-IMPLEMENT_PROXY_FACTORY (::PortableServer, POA);
+IMPLEMENT_PROXY_FACTORY (::PortableServer::, POA);
 
 template <>
 struct ProxyTraits <::PortableServer::POA>
