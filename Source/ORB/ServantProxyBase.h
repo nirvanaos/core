@@ -133,7 +133,9 @@ protected:
 				proc ((I*)(void*)servant, rq, in_params, Type <Unmarshal>::inout (unmarshaler), out_params);
 				rq->success ();
 			} catch (Exception& e) {
-				rq->exception (std::move (e));
+				Any any;
+				any <<= std::move (e);
+				rq->set_exception (any);
 			}
 		} catch (...) {
 		}
@@ -158,7 +160,7 @@ protected:
 			return marshaler_;
 		}
 
-		void exception (Any& exc)
+		void set_exception (Any& exc)
 		{
 			TypeCode_ptr tc = exc.type ();
 			if (tc)

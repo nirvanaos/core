@@ -26,6 +26,7 @@
 #ifndef NIRVANA_CORE_BINDER_H_
 #define NIRVANA_CORE_BINDER_H_
 
+#include <CORBA/Server.h>
 #include <Nirvana/Binder_s.h>
 #include "SyncDomain.h"
 #include "Section.h"
