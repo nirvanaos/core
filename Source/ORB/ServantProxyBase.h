@@ -153,7 +153,7 @@ protected:
 			exception_.reset ();
 		}
 
-		Marshal_var marshaler ()
+		Marshal_ptr marshaler ()
 		{
 			if (!marshaler_)
 				marshaler_ = (new ServantMarshaler (*sync_context_))->marshaler ();

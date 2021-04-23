@@ -81,7 +81,7 @@ struct ProxyTraits <::PortableServer::POA>
 		}
 		// Marshal output
 		activate_object_out& _out = *(activate_object_out*)_out_ptr;
-		Marshal_var _m = _call->marshaler ();
+		Marshal_ptr _m = _call->marshaler ();
 		Type <String>::marshal_out (ret, _m, _out._ret);
 	}
 
