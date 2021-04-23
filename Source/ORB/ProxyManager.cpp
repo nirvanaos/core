@@ -140,7 +140,7 @@ ProxyManager::ProxyManager (const Bridge <IOReference>::EPV& epv_ior, const Brid
 	Bridge <IOReference> (epv_ior),
 	Bridge <Object> (epv_obj)
 {
-	ProxyFactory_var proxy_factory = g_binder->bind <ProxyFactory> (primary_iid);
+	ProxyFactory::_var_type proxy_factory = g_binder->bind <ProxyFactory> (primary_iid);
 
 	const InterfaceMetadata* metadata = proxy_factory->metadata ();
 	check_metadata (metadata, primary_iid);
@@ -195,7 +195,7 @@ ProxyManager::ProxyManager (const Bridge <IOReference>::EPV& epv_ior, const Brid
 
 	// Create primary proxy
 	assert (primary);
-	primary->proxy = &proxy_factory->create_proxy (ior (), (UShort)(primary - interfaces_.begin ()), primary->deleter);
+	primary->proxy = &proxy_factory->create_proxy (ior (), (UShort)(primary - interfaces_.begin ()), primary->deleter)._retn();
 	primary->operations = metadata->operations;
 	primary_interface_ = primary;
 
@@ -244,7 +244,7 @@ void ProxyManager::create_proxy (InterfaceEntry& ie)
 {
 	if (!ie.proxy) {
 		StringBase <Char> iid (ie.iid);
-		ProxyFactory_var pf = g_binder->bind <ProxyFactory> (iid);
+		ProxyFactory::_var_type pf = g_binder->bind <ProxyFactory> (iid);
 		const InterfaceMetadata* metadata = pf->metadata ();
 		check_metadata (metadata, iid);
 		const Char* const* base = metadata->interfaces.p;
@@ -257,7 +257,7 @@ void ProxyManager::create_proxy (InterfaceEntry& ie)
 				throw OBJ_ADAPTER (); // Base is not listed in the primary interface base list. TODO: Log
 			create_proxy (*base_ie);
 		}
-		ie.proxy = &pf->create_proxy (ior (), (UShort)(&ie - interfaces_.begin ()), ie.deleter);
+		ie.proxy = &pf->create_proxy (ior (), (UShort)(&ie - interfaces_.begin ()), ie.deleter)._retn ();
 		ie.operations = metadata->operations;
 	}
 }
