@@ -194,7 +194,7 @@ void Binder::module_bind (Module* mod, const Section& metadata, SyncContext& syn
 					if (OLF_IMPORT_INTERFACE == *it.cur ()) {
 						ImportInterface* ps = reinterpret_cast <ImportInterface*> (it.cur ());
 						if (!mod || ps != mod->module_entry_)
-							ps->itf = &bind_sync (ps->name, ps->interface_id)._retn ();
+							ps->itf = &Interface::_ptr_type(bind_sync (ps->name, ps->interface_id));
 					}
 				}
 
@@ -205,9 +205,9 @@ void Binder::module_bind (Module* mod, const Section& metadata, SyncContext& syn
 						case OLF_EXPORT_OBJECT:
 						{
 							ExportObject* ps = reinterpret_cast <ExportObject*> (it.cur ());
-							PortableServer::ServantBase_var core_obj = (new CORBA::Nirvana::Core::ServantBase (Type <PortableServer::ServantBase>::in (ps->servant_base), sync_context))->_get_ptr ();
-							Object_ptr obj = AbstractBase_ptr (core_obj)->_query_interface <Object> ();
-							ps->core_object = &core_obj._retn ();
+							PortableServer::ServantBase::_var_type core_obj = (new CORBA::Nirvana::Core::ServantBase (Type <PortableServer::ServantBase>::in (ps->servant_base), sync_context))->_get_ptr ();
+							Object::_ptr_type obj = AbstractBase::_ptr_type (core_obj)->_query_interface <Object> ();
+							ps->core_object = &PortableServer::ServantBase::_ptr_type(move(core_obj));
 							export_add (ps->name, obj);
 						}
 						break;
@@ -229,7 +229,7 @@ void Binder::module_bind (Module* mod, const Section& metadata, SyncContext& syn
 				for (OLF_Iterator it (writable, metadata.size); !it.end (); it.next ()) {
 					if (OLF_IMPORT_OBJECT == *it.cur ()) {
 						ImportInterface* ps = reinterpret_cast <ImportInterface*> (it.cur ());
-						ps->itf = &bind_sync (ps->name, ps->interface_id)._retn ();
+						ps->itf = &Interface::_ptr_type(move (bind_sync (ps->name, ps->interface_id)._retn ()));
 					}
 				}
 

@@ -150,7 +150,7 @@ protected:
 
 		void set_exception (Any& exc)
 		{
-			TypeCode_ptr tc = exc.type ();
+			I_ptr <TypeCode> tc = exc.type ();
 			if (tc)
 				Type <Any>::marshal_out (exc, marshaler (), exception_);
 		}

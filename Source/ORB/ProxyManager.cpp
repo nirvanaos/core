@@ -129,7 +129,7 @@ void ProxyManager::check_parameters (CountedArray <Parameter> parameters)
 	}
 }
 
-void ProxyManager::check_type_code (TypeCode_ptr tc)
+void ProxyManager::check_type_code (I_ptr <TypeCode> tc)
 {
 	if (!tc)
 		throw OBJ_ADAPTER (); // TODO: Log
@@ -195,7 +195,7 @@ ProxyManager::ProxyManager (const Bridge <IOReference>::EPV& epv_ior, const Brid
 
 	// Create primary proxy
 	assert (primary);
-	primary->proxy = &proxy_factory->create_proxy (ior (), (UShort)(primary - interfaces_.begin ()), primary->deleter)._retn();
+	primary->proxy = &Interface::_ptr_type(proxy_factory->create_proxy (ior (), (UShort)(primary - interfaces_.begin ()), primary->deleter));
 	primary->operations = metadata->operations;
 	primary_interface_ = primary;
 
@@ -257,7 +257,7 @@ void ProxyManager::create_proxy (InterfaceEntry& ie)
 				throw OBJ_ADAPTER (); // Base is not listed in the primary interface base list. TODO: Log
 			create_proxy (*base_ie);
 		}
-		ie.proxy = &pf->create_proxy (ior (), (UShort)(&ie - interfaces_.begin ()), ie.deleter)._retn ();
+		ie.proxy = &Interface::_ptr_type(pf->create_proxy (ior (), (UShort)(&ie - interfaces_.begin ()), ie.deleter));
 		ie.operations = metadata->operations;
 	}
 }
