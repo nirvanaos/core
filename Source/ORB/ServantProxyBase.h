@@ -54,18 +54,6 @@ class ServantProxyBase :
 {
 	class GarbageCollector;
 public:
-	Bridge <Object>* _get_object (String_in iid)
-	{
-		if (RepositoryId::check (Object::repository_id_, iid) != RepositoryId::COMPATIBLE)
-			::Nirvana::throw_INV_OBJREF ();
-		return this;
-	}
-
-	Object_ptr get_proxy ()
-	{
-		return &static_cast <Object&> (static_cast <Bridge <Object>&> (*this));
-	}
-
 	typedef ::Nirvana::Core::AtomicCounter <false> RefCnt;
 
 	void _add_ref ()

@@ -43,6 +43,23 @@ class ProxyManager :
 	public Bridge <Object>
 {
 public:
+	Bridge <Object>* _get_object (String_in iid)
+	{
+		if (RepositoryId::check (Object::repository_id_, iid) != RepositoryId::COMPATIBLE)
+			::Nirvana::throw_INV_OBJREF ();
+		return this;
+	}
+
+	Object::_ptr_type get_proxy () NIRVANA_NOEXCEPT
+	{
+		return object ();
+	}
+
+	Object::_ptr_type object () NIRVANA_NOEXCEPT
+	{
+		return &static_cast <Object&> (static_cast <Bridge <Object>&> (*this));
+	}
+
 	// Abstract base
 	Interface* _query_interface (const String& type_id) const
 	{
