@@ -161,12 +161,12 @@ public:
 	Interface::_ref_type unmarshal_interface (::Nirvana::ConstPointer marshal_data, const String& iid)
 	{
 		RecInterface* rec = (RecInterface*)get_record (RT_INTERFACE);
-		Interface* itf = rec->p;
-		if (marshal_data == itf) {
+		Interface::_ptr_type itf = rec->p;
+		if (marshal_data == &itf) {
 			const Char* bridge_id = itf->_epv ().interface_id;
 			if (!RepositoryId::compatible (bridge_id, iid)) {
 				if (RepositoryId::compatible (bridge_id, Object::repository_id_)) {
-					Object_ptr obj (static_cast <Object*> (itf));
+					Object::_ptr_type obj (static_cast <Object*> (&itf));
 					itf = AbstractBase_ptr (obj)->_query_interface (iid);
 				}
 			}

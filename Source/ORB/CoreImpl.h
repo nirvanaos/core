@@ -29,7 +29,7 @@
 
 #include "../core.h"
 #include <CORBA/Server.h>
-#include <CORBA/LifeCycleNoCopy.h>
+#include "LifeCycleNoCopy.h"
 
 namespace CORBA {
 namespace Nirvana {

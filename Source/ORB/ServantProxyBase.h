@@ -36,7 +36,7 @@
 #include <CORBA/ImplementationPseudo.h>
 #include <CORBA/Proxy/IOReference_s.h>
 #include <CORBA/Proxy/IORequest_s.h>
-#include <CORBA/LifeCycleNoCopy.h>
+#include "LifeCycleNoCopy.h"
 #include "ServantMarshaler.h"
 
 namespace CORBA {
@@ -208,7 +208,7 @@ public:
 		marshaler = nullptr;
 		Request request;
 		SYNC_BEGIN (get_sync_context (op));
-		(ie.operations.p [idx].invoke) (ie.implementation, &request._get_ptr (), in_params, &Type <Unmarshal>::C_inout (u), out_params);
+		(ie.operations.p [idx].invoke) (&ie.implementation, &request._get_ptr (), in_params, &Type <Unmarshal>::C_inout (u), out_params);
 		SYNC_END ();
 		return request.check ();
 	}
@@ -216,7 +216,7 @@ public:
 private:
 	static const Char* primary_interface_id (AbstractBase_ptr servant)
 	{
-		Interface* primary = servant->_query_interface (0);
+		Interface::_ptr_type primary = servant->_query_interface (0);
 		if (!primary)
 			throw OBJ_ADAPTER (); // TODO: Log
 		return primary->_epv ().interface_id;

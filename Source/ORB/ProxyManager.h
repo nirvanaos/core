@@ -121,7 +121,7 @@ protected:
 
 	~ProxyManager ();
 
-	IOReference_ptr ior ()
+	IOReference::_ptr_type ior ()
 	{
 		return &static_cast <IOReference&> (static_cast <Bridge <IOReference>&> (*this));
 	}
@@ -131,8 +131,8 @@ protected:
 		const Char* iid;
 		size_t iid_len;
 		Interface* proxy;
-		DynamicServant* deleter;
-		Interface* implementation;
+		DynamicServant::_ptr_type deleter;
+		Interface::_ptr_type implementation;
 		CountedArray <Operation> operations;
 	};
 
@@ -200,6 +200,7 @@ private:
 	struct OEPred;
 
 	void create_proxy (InterfaceEntry& ie);
+	void create_proxy (ProxyFactory::_ptr_type pf, InterfaceEntry& ie);
 
 	static void check_metadata (const InterfaceMetadata* metadata, String_in primary);
 	static void check_parameters (CountedArray <Parameter> parameters);

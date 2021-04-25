@@ -48,7 +48,7 @@ size_t ObjectFactory::offset_ptr ()
 	assert (ed);
 	StatelessCreationFrame* scs = ed->stateless_creation_frame_;
 	if (scs)
-		return scs->offset;
+		return scs->offset ();
 	else if (!ed->sync_context ()->sync_domain ())
 		throw_BAD_INV_ORDER ();
 	return 0;

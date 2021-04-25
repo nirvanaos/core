@@ -195,7 +195,7 @@ ProxyManager::ProxyManager (const Bridge <IOReference>::EPV& epv_ior, const Brid
 
 	// Create primary proxy
 	assert (primary);
-	primary->proxy = proxy_factory->create_proxy (ior (), (UShort)(primary - interfaces_.begin ()), primary->deleter);
+	create_proxy (proxy_factory, *primary);
 	primary->operations = metadata->operations;
 	primary_interface_ = primary;
 
@@ -238,6 +238,21 @@ ProxyManager::~ProxyManager ()
 	}
 }
 
+void ProxyManager::create_proxy (ProxyFactory::_ptr_type pf, InterfaceEntry& ie)
+{
+	Interface* deleter = nullptr;
+	Interface* proxy = pf->create_proxy (ior (), (UShort)(&ie - interfaces_.begin ()), deleter);
+	if (!proxy || !deleter)
+		throw MARSHAL ();
+	ie.deleter = DynamicServant::_check (deleter);
+	try {
+		ie.proxy = Interface::_check (proxy, ie.iid);
+	} catch (...) {
+		ie.deleter->_delete ();
+		throw;
+	}
+}
+
 void ProxyManager::create_proxy (InterfaceEntry& ie)
 {
 	if (!ie.proxy) {
@@ -255,7 +270,7 @@ void ProxyManager::create_proxy (InterfaceEntry& ie)
 				throw OBJ_ADAPTER (); // Base is not listed in the primary interface base list. TODO: Log
 			create_proxy (*base_ie);
 		}
-		ie.proxy = pf->create_proxy (ior (), (UShort)(&ie - interfaces_.begin ()), ie.deleter);
+		create_proxy (pf, ie);
 		ie.operations = metadata->operations;
 	}
 }

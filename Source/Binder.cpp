@@ -177,8 +177,7 @@ void Binder::module_bind (Module* mod, const Section& metadata, SyncContext& syn
 			// Create POA
 			// TODO: It is temporary solution.
 			SYNC_BEGIN (nullptr);
-			Servant_var <POA> poa = new POA;
-			CORBA::Nirvana::Core::g_root_POA = poa->_this ();
+			CORBA::Nirvana::Core::g_root_POA = CORBA::make_reference <POA> ()->_this ();
 			SYNC_END ();
 		}
 
@@ -205,9 +204,9 @@ void Binder::module_bind (Module* mod, const Section& metadata, SyncContext& syn
 						case OLF_EXPORT_OBJECT:
 						{
 							ExportObject* ps = reinterpret_cast <ExportObject*> (it.cur ());
-							PortableServer::ServantBase::_ref_type core_obj = (new CORBA::Nirvana::Core::ServantBase (Type <PortableServer::ServantBase>::in (ps->servant_base), sync_context))->_get_ptr ();
+							PortableServer::ServantBase::_ptr_type core_obj = (new CORBA::Nirvana::Core::ServantBase (Type <PortableServer::ServantBase>::in (ps->servant_base), sync_context))->_get_ptr ();
 							Object::_ptr_type obj = AbstractBase::_ptr_type (core_obj)->_query_interface <Object> ();
-							reinterpret_cast <PortableServer::ServantBase::_ref_type&> (ps->core_object) = move(core_obj);
+							ps->core_object = &core_obj;
 							export_add (ps->name, obj);
 						}
 						break;
@@ -215,8 +214,8 @@ void Binder::module_bind (Module* mod, const Section& metadata, SyncContext& syn
 						case OLF_EXPORT_LOCAL:
 						{
 							ExportLocal* ps = reinterpret_cast <ExportLocal*> (it.cur ());
-							LocalObject_ptr core_obj = (new CORBA::Nirvana::Core::LocalObject (Type <LocalObject>::in (ps->local_object), Type <AbstractBase>::in (ps->abstract_base), sync_context))->_get_ptr ();
-							Object_ptr obj = core_obj;
+							LocalObject::_ptr_type core_obj = (new CORBA::Nirvana::Core::LocalObject (Type <LocalObject>::in (ps->local_object), Type <AbstractBase>::in (ps->abstract_base), sync_context))->_get_ptr ();
+							Object::_ptr_type obj = core_obj;
 							ps->core_object = &core_obj;
 							export_add (ps->name, obj);
 						}
@@ -312,24 +311,24 @@ Binder::InterfaceRef Binder::bind_sync (const char* name, size_t name_len, const
 	Key key (name, name_len);
 	auto pf = map_.lower_bound (key);
 	if (pf != map_.end () && pf->first.compatible (key)) {
-		Interface* itf = &pf->second;
+		InterfacePtr itf = &pf->second;
 		const StringBase <char> itf_id = itf->_epv ().interface_id;
 		const StringBase <char> requested_iid (iid, iid_len);
 		if (!RepositoryId::compatible (itf_id, requested_iid)) {
-			AbstractBase_ptr ab = AbstractBase::_nil ();
+			AbstractBase::_ptr_type ab = AbstractBase::_nil ();
 			if (RepositoryId::compatible (itf_id, Object::repository_id_))
-				ab = Object_ptr (static_cast <Object*> (itf));
+				ab = Object::_ptr_type (static_cast <Object*> (&itf));
 			else if (RepositoryId::compatible (itf_id, AbstractBase::repository_id_))
-				ab = static_cast <AbstractBase*> (itf);
+				ab = static_cast <AbstractBase*> (&itf);
 			else
 				throw_INV_OBJREF ();
-			Interface* qi = ab->_query_interface (requested_iid);
+			InterfacePtr qi = ab->_query_interface (requested_iid);
 			if (!qi)
 				throw_INV_OBJREF ();
 			itf = qi;
 		}
 
-		return InterfaceRef (InterfacePtr (itf));
+		return itf;
 
 	} else
 		throw_OBJECT_NOT_EXIST ();
