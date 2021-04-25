@@ -84,18 +84,18 @@ public:
 		}
 	}
 
-	Marshal_ptr marshaler ()
+	Marshal::_ptr_type marshaler ()
 	{
 		return &static_cast <Marshal&> (static_cast <Bridge <Marshal>&> (*this));
 	}
 
-	Unmarshal_ptr unmarshaler ()
+	Unmarshal::_ptr_type unmarshaler ()
 	{
 		cur_ptr_ = block_;
 		return &static_cast <Unmarshal&> (static_cast <Bridge <Unmarshal>&> (*this));
 	}
 
-	static Unmarshal_ptr unmarshaler (Marshal_ptr marshaler)
+	static Unmarshal::_ptr_type unmarshaler (Marshal::_ptr_type marshaler)
 	{
 		ServantMarshaler* obj = static_cast <ServantMarshaler*> (&marshaler);
 		if (obj)
@@ -158,7 +158,7 @@ public:
 		return (::Nirvana::UIntPtr)(rec->p = interface_duplicate (&obj));
 	}
 
-	NIRVANA_NODISCARD Interface* unmarshal_interface (::Nirvana::ConstPointer marshal_data, const String& iid)
+	Interface::_ref_type unmarshal_interface (::Nirvana::ConstPointer marshal_data, const String& iid)
 	{
 		RecInterface* rec = (RecInterface*)get_record (RT_INTERFACE);
 		Interface* itf = rec->p;
@@ -172,9 +172,8 @@ public:
 			}
 
 			if (itf) {
-				rec->p = nullptr;
 				move_next (sizeof (RecInterface));
-				return itf;
+				return std::move (reinterpret_cast <Interface::_ref_type&> (rec->p));
 			}
 		}
 		throw MARSHAL ();

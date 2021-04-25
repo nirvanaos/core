@@ -109,7 +109,7 @@ protected:
 		}
 	}
 
-	template <class I, void (*proc) (I*, IORequest_ptr, ::Nirvana::ConstPointer, Unmarshal_var, ::Nirvana::Pointer)>
+	template <class I, void (*proc) (I*, IORequest::_ptr_type, ::Nirvana::ConstPointer, Unmarshal::_ref_type&, ::Nirvana::Pointer)>
 	static void ObjProcWrapper (Interface* servant, Interface* call,
 		::Nirvana::ConstPointer in_params,
 		Interface** unmarshaler,
@@ -160,9 +160,9 @@ protected:
 			success_ = true;
 		}
 
-		Unmarshal_var check ()
+		Unmarshal::_ref_type check ()
 		{
-			Unmarshal_var u = ServantMarshaler::unmarshaler (marshaler_._retn ());
+			Unmarshal::_ref_type u = ServantMarshaler::unmarshaler (marshaler_._retn ());
 			if (!success_) {
 				if (exception_.type ()) {
 					Any exc;
@@ -192,9 +192,9 @@ public:
 		return (new ServantMarshaler (*sync_context_))->marshaler ();
 	}
 
-	Unmarshal_var call (OperationIndex op,
+	Unmarshal::_ref_type call (OperationIndex op,
 		const void* in_params, size_t in_params_size,
-		Marshal_var& marshaler,
+		Marshal::_ref_type& marshaler,
 		void* out_params, size_t out_params_size)
 	{
 		size_t idx = interface_idx (op);
@@ -204,7 +204,8 @@ public:
 		idx = operation_idx (op);
 		if (idx >= ie.operations.size)
 			throw BAD_OPERATION ();
-		Unmarshal_var u = ServantMarshaler::unmarshaler (marshaler._retn ());
+		Unmarshal::_ref_type u = ServantMarshaler::unmarshaler (marshaler);
+		marshaler = nullptr;
 		Request request;
 		SYNC_BEGIN (get_sync_context (op));
 		(ie.operations.p [idx].invoke) (ie.implementation, &request._get_ptr (), in_params, &Type <Unmarshal>::C_inout (u), out_params);

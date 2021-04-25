@@ -131,7 +131,7 @@ protected:
 		const Char* iid;
 		size_t iid_len;
 		Interface* proxy;
-		DynamicServant_ptr deleter;
+		DynamicServant* deleter;
 		Interface* implementation;
 		CountedArray <Operation> operations;
 	};

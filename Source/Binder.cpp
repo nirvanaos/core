@@ -205,9 +205,9 @@ void Binder::module_bind (Module* mod, const Section& metadata, SyncContext& syn
 						case OLF_EXPORT_OBJECT:
 						{
 							ExportObject* ps = reinterpret_cast <ExportObject*> (it.cur ());
-							PortableServer::ServantBase::_var_type core_obj = (new CORBA::Nirvana::Core::ServantBase (Type <PortableServer::ServantBase>::in (ps->servant_base), sync_context))->_get_ptr ();
+							PortableServer::ServantBase::_ref_type core_obj = (new CORBA::Nirvana::Core::ServantBase (Type <PortableServer::ServantBase>::in (ps->servant_base), sync_context))->_get_ptr ();
 							Object::_ptr_type obj = AbstractBase::_ptr_type (core_obj)->_query_interface <Object> ();
-							ps->core_object = &PortableServer::ServantBase::_ptr_type(move(core_obj));
+							reinterpret_cast <PortableServer::ServantBase::_ref_type&> (ps->core_object) = move(core_obj);
 							export_add (ps->name, obj);
 						}
 						break;
@@ -229,7 +229,7 @@ void Binder::module_bind (Module* mod, const Section& metadata, SyncContext& syn
 				for (OLF_Iterator it (writable, metadata.size); !it.end (); it.next ()) {
 					if (OLF_IMPORT_OBJECT == *it.cur ()) {
 						ImportInterface* ps = reinterpret_cast <ImportInterface*> (it.cur ());
-						ps->itf = &Interface::_ptr_type(move (bind_sync (ps->name, ps->interface_id)._retn ()));
+						reinterpret_cast <InterfaceRef&> (ps->itf) = move (bind_sync (ps->name, ps->interface_id));
 					}
 				}
 
@@ -292,7 +292,7 @@ void Binder::module_unbind (Module* mod, const Section& metadata) NIRVANA_NOEXCE
 	}
 }
 
-void Binder::export_add (const char* name, Interface_ptr itf)
+void Binder::export_add (const char* name, InterfacePtr itf)
 {
 	assert (itf);
 	Key key (name);
@@ -307,7 +307,7 @@ void Binder::export_remove (const char* name) NIRVANA_NOEXCEPT
 }
 
 inline
-Interface_var Binder::bind_sync (const char* name, size_t name_len, const char* iid, size_t iid_len)
+Binder::InterfaceRef Binder::bind_sync (const char* name, size_t name_len, const char* iid, size_t iid_len)
 {
 	Key key (name, name_len);
 	auto pf = map_.lower_bound (key);
@@ -329,7 +329,7 @@ Interface_var Binder::bind_sync (const char* name, size_t name_len, const char* 
 			itf = qi;
 		}
 
-		return Interface_ptr (interface_duplicate (itf));
+		return InterfaceRef (InterfacePtr (itf));
 
 	} else
 		throw_OBJECT_NOT_EXIST ();

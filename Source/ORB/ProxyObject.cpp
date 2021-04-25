@@ -109,9 +109,9 @@ void ProxyObject::implicit_deactivate ()
 	}
 }
 
-inline void ProxyObject::non_existent_request (ProxyObject* _servant, IORequest_ptr _rq,
+inline void ProxyObject::non_existent_request (ProxyObject* _servant, IORequest::_ptr_type _rq,
 	::Nirvana::ConstPointer in_params,
-	Unmarshal_var unmarshaler,
+	Unmarshal::_ref_type& unmarshaler,
 	::Nirvana::Pointer out_params)
 {
 	Boolean _ret = _servant->servant_->_non_existent ();

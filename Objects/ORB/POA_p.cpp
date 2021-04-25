@@ -61,15 +61,15 @@ struct ProxyTraits <::PortableServer::POA>
 		ABI <String> _ret;
 	};
 
-	static void activate_object_request (::PortableServer::POA_ptr _servant,
-		IORequest_ptr _call,
+	static void activate_object_request (::PortableServer::POA::_ptr_type _servant,
+		IORequest::_ptr_type _call,
 		::Nirvana::ConstPointer _in_ptr,
-		Unmarshal_var& _u,
+		Unmarshal::_ref_type& _u,
 		::Nirvana::Pointer _out_ptr)
 	{
 		const activate_object_in& _in = *(const activate_object_in*)_in_ptr;
 
-		Object_var p_servant;
+		Object::_ref_type p_servant;
 		Type <Object>::unmarshal (_in.p_servant, _u, p_servant);
 		_u = Unmarshal::_nil ();
 		String ret;
@@ -81,7 +81,7 @@ struct ProxyTraits <::PortableServer::POA>
 		}
 		// Marshal output
 		activate_object_out& _out = *(activate_object_out*)_out_ptr;
-		Marshal_ptr _m = _call->marshaler ();
+		Marshal::_ptr_type _m = _call->marshaler ();
 		Type <String>::marshal_out (ret, _m, _out._ret);
 	}
 
@@ -95,9 +95,9 @@ struct ProxyTraits <::PortableServer::POA>
 	static const Parameter deactivate_object_in_params_ [];
 
 	static void deactivate_object_request (::PortableServer::POA_ptr _servant,
-		IORequest_ptr _call,
+		IORequest::_ptr_type _call,
 		::Nirvana::ConstPointer _in_ptr,
-		Unmarshal_var& _u,
+		Unmarshal::_ref_type& _u,
 		::Nirvana::Pointer _out_ptr)
 	{
 		const deactivate_object_in& _in = *(const deactivate_object_in*)_in_ptr;
@@ -137,12 +137,12 @@ public:
 
 	String activate_object (PortableServer::Servant p_servant)
 	{
-		Object_ptr proxy = servant2object (p_servant);
+		Object::_ptr_type proxy = servant2object (p_servant);
 		Traits::activate_object_in _in;
-		Marshal_var _m = _target ()->create_marshaler ();
+		Marshal::_ref_type _m = _target ()->create_marshaler ();
 		Type <Object>::marshal_in (proxy, _m, _in.p_servant);
 		Traits::activate_object_out _out;
-		Unmarshal_var _u = _target ()->call (_make_op_idx (0),
+		Unmarshal::_ref_type _u = _target ()->call (_make_op_idx (0),
 			&_in, sizeof (_in), _m, &_out, sizeof (_out));
 		String _ret;
 		Type <String>::unmarshal (_out._ret, _u, _ret);
@@ -152,9 +152,9 @@ public:
 	void deactivate_object (const String& oid)
 	{
 		Traits::deactivate_object_in _in;
-		Marshal_var _m = _target ()->create_marshaler ();
+		Marshal::_ref_type _m = _target ()->create_marshaler ();
 		Type <String>::marshal_in (oid, _m, _in.oid);
-		Unmarshal_var _u = _target ()->call (_make_op_idx (1),
+		Unmarshal::_ref_type _u = _target ()->call (_make_op_idx (1),
 			&_in, sizeof (_in), _m, 0, 0);
 	}
 };
@@ -168,8 +168,8 @@ const Parameter ProxyTraits <::PortableServer::POA>::deactivate_object_in_params
 };
 
 const Operation ProxyTraits <::PortableServer::POA>::operations_ [] = {
-	{ "activate_object", { activate_object_in_params_, countof (activate_object_in_params_) }, {0, 0}, Type <String>::type_code, RqProcWrapper <::PortableServer::POA, activate_object_request> },
-	{ "deactivate_object", { deactivate_object_in_params_, countof (deactivate_object_in_params_) }, {0, 0}, Type <void>::type_code, RqProcWrapper <::PortableServer::POA, deactivate_object_request> }
+	{ "activate_object", { activate_object_in_params_, countof (activate_object_in_params_) }, {0, 0}, Type <String>::type_code, RqProcWrapper < ::PortableServer::POA, activate_object_request> },
+	{ "deactivate_object", { deactivate_object_in_params_, countof (deactivate_object_in_params_) }, {0, 0}, Type <void>::type_code, RqProcWrapper < ::PortableServer::POA, deactivate_object_request> }
 };
 
 const Char* const ProxyTraits <::PortableServer::POA>::interfaces_ [] = {

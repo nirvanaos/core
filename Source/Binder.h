@@ -50,8 +50,8 @@ class Binder :
 private:
 	typedef CORBA::Nirvana::RepositoryId RepositoryId;
 	typedef CORBA::Nirvana::RepositoryId::Version Version;
-	typedef CORBA::Nirvana::Interface::_ptr_type Interface_ptr;
-	typedef CORBA::Nirvana::Interface::_var_type Interface_var;
+	typedef CORBA::Nirvana::Interface::_ptr_type InterfacePtr;
+	typedef CORBA::Nirvana::Interface::_ref_type InterfaceRef;
 
 	class Key
 	{
@@ -106,7 +106,7 @@ private:
 		Version version_;
 	};
 
-	typedef phmap::btree_map <Key, Interface_ptr, std::less <Key>, CoreAllocator <std::pair <Key, Interface_ptr> > > Map;
+	typedef phmap::btree_map <Key, InterfacePtr, std::less <Key>, CoreAllocator <std::pair <Key, InterfacePtr> > > Map;
 
 public:
 	static void initialize ();
@@ -114,7 +114,7 @@ public:
 	static void terminate ()
 	{}
 
-	static Interface_var bind (const std::string& _name, const std::string& _iid)
+	static InterfaceRef bind (const std::string& _name, const std::string& _iid)
 	{
 		CoreString name (_name.c_str (), _name.length ()), iid (_iid.c_str (), _iid.length ());
 		SYNC_BEGIN (&sync_domain_);
@@ -125,23 +125,23 @@ public:
 private:
 	class OLF_Iterator;
 
-	static void export_add (const char* name, Interface_ptr itf);
+	static void export_add (const char* name, InterfacePtr itf);
 	static void export_remove (const char* name) NIRVANA_NOEXCEPT;
 
 	static void module_bind (Module* mod, const Section& metadata, SyncContext& sync_context);
 	static void module_unbind (Module* mod, const Section& metadata) NIRVANA_NOEXCEPT;
 
-	static Interface_var bind_sync (const CoreString& name, const CoreString& iid)
+	static InterfaceRef bind_sync (const CoreString& name, const CoreString& iid)
 	{
 		return bind_sync (name.c_str (), name.length (), iid.c_str (), iid.length ());
 	}
 
-	static Interface_var bind_sync (const char* name, const char* iid)
+	static InterfaceRef bind_sync (const char* name, const char* iid)
 	{
 		return bind_sync (name, strlen (name), iid, strlen (iid));
 	}
 
-	static Interface_var bind_sync (const char* name, size_t name_len, const char* iid, size_t iid_len);
+	static InterfaceRef bind_sync (const char* name, size_t name_len, const char* iid, size_t iid_len);
 
 private:
 	static ImplStatic <SyncDomain> sync_domain_;

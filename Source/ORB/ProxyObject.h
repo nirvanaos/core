@@ -67,9 +67,9 @@ private:
 	}
 
 	static void non_existent_request (ProxyObject* servant,
-		IORequest_ptr call,
+		IORequest::_ptr_type call,
 		::Nirvana::ConstPointer in_params,
-		Unmarshal_var unmarshaler,
+		Unmarshal::_ref_type& unmarshaler,
 		::Nirvana::Pointer out_params);
 
 	PortableServer::ServantBase_var _get_servant () const

@@ -31,9 +31,9 @@ namespace Core {
 
 using namespace ::Nirvana::Core;
 
-inline void ProxyLocal::non_existent_request (ProxyLocal* servant, IORequest_ptr _rq,
+inline void ProxyLocal::non_existent_request (ProxyLocal* servant, IORequest::_ptr_type _rq,
 	::Nirvana::ConstPointer in_params,
-	Unmarshal_var unmarshaler,
+	Unmarshal::_ref_type& unmarshaler,
 	::Nirvana::Pointer out_params)
 {
 	Boolean _ret = servant->servant_->_non_existent ();
