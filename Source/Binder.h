@@ -50,8 +50,8 @@ class Binder :
 private:
 	typedef CORBA::Nirvana::RepositoryId RepositoryId;
 	typedef CORBA::Nirvana::RepositoryId::Version Version;
-	typedef CORBA::Nirvana::Interface_ptr Interface_ptr;
-	typedef CORBA::Nirvana::Interface_var Interface_var;
+	typedef CORBA::Nirvana::Interface::_ptr_type Interface_ptr;
+	typedef CORBA::Nirvana::Interface::_var_type Interface_var;
 
 	class Key
 	{
@@ -125,7 +125,7 @@ public:
 private:
 	class OLF_Iterator;
 
-	static void export_add (const char* name, CORBA::Nirvana::Interface_ptr itf);
+	static void export_add (const char* name, Interface_ptr itf);
 	static void export_remove (const char* name) NIRVANA_NOEXCEPT;
 
 	static void module_bind (Module* mod, const Section& metadata, SyncContext& sync_context);

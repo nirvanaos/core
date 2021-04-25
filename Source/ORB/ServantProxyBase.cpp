@@ -37,7 +37,7 @@ class ServantProxyBase::GarbageCollector :
 	public Runnable
 {
 public:
-	GarbageCollector (Interface_ptr servant) :
+	GarbageCollector (Interface::_ptr_type servant) :
 		servant_ (servant)
 	{}
 
@@ -50,7 +50,7 @@ public:
 	}
 
 private:
-	Interface_ptr servant_;
+	Interface::_ptr_type servant_;
 };
 
 ServantProxyBase::ServantProxyBase (AbstractBase_ptr servant, 

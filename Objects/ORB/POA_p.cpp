@@ -142,7 +142,7 @@ public:
 		Marshal_var _m = _target ()->create_marshaler ();
 		Type <Object>::marshal_in (proxy, _m, _in.p_servant);
 		Traits::activate_object_out _out;
-		Unmarshal_var _u = _target ()->call (CORBA::Nirvana::OperationIndex{ _interface_idx (), 0 },
+		Unmarshal_var _u = _target ()->call (_make_op_idx (0),
 			&_in, sizeof (_in), _m, &_out, sizeof (_out));
 		String _ret;
 		Type <String>::unmarshal (_out._ret, _u, _ret);
@@ -154,7 +154,7 @@ public:
 		Traits::deactivate_object_in _in;
 		Marshal_var _m = _target ()->create_marshaler ();
 		Type <String>::marshal_in (oid, _m, _in.oid);
-		Unmarshal_var _u = _target ()->call (CORBA::Nirvana::OperationIndex{ _interface_idx (), 1 },
+		Unmarshal_var _u = _target ()->call (_make_op_idx (1),
 			&_in, sizeof (_in), _m, 0, 0);
 	}
 };

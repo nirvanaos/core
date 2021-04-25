@@ -345,7 +345,7 @@ public:
 	{
 		assert (!initialized_);
 		Port::Memory::initialize ();
-		new (object_) HeapCore ();
+		new (&object_) HeapCore ();
 #ifdef _DEBUG
 		initialized_ = true;
 #endif
@@ -354,7 +354,7 @@ public:
 	void terminate () NIRVANA_NOEXCEPT
 	{
 		assert (initialized_);
-		((HeapCore*)object_)->~HeapCore ();
+		((HeapCore*)&object_)->~HeapCore ();
 		Port::Memory::terminate ();
 #ifdef _DEBUG
 		initialized_ = false;
@@ -364,17 +364,17 @@ public:
 	Heap* operator -> ()
 	{
 		assert (initialized_);
-		return (HeapCore*)object_;
+		return (HeapCore*)&object_;
 	}
 
 	Heap& object ()
 	{
 		assert (initialized_);
-		return *(HeapCore*)object_;
+		return *(HeapCore*)&object_;
 	}
 
 private:
-	int object_ [(sizeof (HeapCore) + sizeof (int) - 1) / sizeof (int)];
+	std::aligned_storage <sizeof (HeapCore), alignof (HeapCore)>::type object_;
 
 #ifdef _DEBUG
 	bool initialized_;

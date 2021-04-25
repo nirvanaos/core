@@ -197,11 +197,11 @@ public:
 		Marshal_var& marshaler,
 		void* out_params, size_t out_params_size)
 	{
-		::Nirvana::UWord idx = op.interface_idx;
+		size_t idx = interface_idx (op);
 		if (idx >= interfaces ().size ())
 			throw BAD_OPERATION ();
 		const InterfaceEntry& ie = interfaces () [idx];
-		idx = op.operation_idx;
+		idx = operation_idx (op);
 		if (idx >= ie.operations.size)
 			throw BAD_OPERATION ();
 		Unmarshal_var u = ServantMarshaler::unmarshaler (marshaler._retn ());

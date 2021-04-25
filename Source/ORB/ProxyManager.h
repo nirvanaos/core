@@ -95,7 +95,7 @@ public:
 	{
 		BooleanRet out;
 		Marshal_var m;
-		ior ()->call (OperationIndex{ object_itf_idx (), OBJ_OP_NON_EXISTENT }, nullptr, 0, m, &out, sizeof (out));
+		ior ()->call (_make_op_idx (OBJ_OP_NON_EXISTENT), nullptr, 0, m, &out, sizeof (out));
 		Boolean _ret;
 		Type <Boolean>::unmarshal (out._ret, Unmarshal::_nil (), _ret);
 		return _ret;
@@ -154,6 +154,11 @@ protected:
 	UShort object_itf_idx () const
 	{
 		return object_itf_idx_;
+	}
+
+	OperationIndex _make_op_idx (UShort op_idx) const
+	{
+		return make_op_idx (object_itf_idx_, op_idx);
 	}
 
 	// Object operation indexes

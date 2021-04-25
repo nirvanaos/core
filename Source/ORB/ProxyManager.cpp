@@ -195,7 +195,7 @@ ProxyManager::ProxyManager (const Bridge <IOReference>::EPV& epv_ior, const Brid
 
 	// Create primary proxy
 	assert (primary);
-	primary->proxy = &Interface::_ptr_type(proxy_factory->create_proxy (ior (), (UShort)(primary - interfaces_.begin ()), primary->deleter));
+	primary->proxy = proxy_factory->create_proxy (ior (), (UShort)(primary - interfaces_.begin ()), primary->deleter);
 	primary->operations = metadata->operations;
 	primary_interface_ = primary;
 
@@ -211,15 +211,13 @@ ProxyManager::ProxyManager (const Bridge <IOReference>::EPV& epv_ior, const Brid
 	OperationEntry* op = operations_.begin ();
 	ie = interfaces_.begin ();
 	do {
-		OperationIndex idx;
-		idx.interface_idx = (uint16_t)(ie - interfaces_.begin ());
-		idx.operation_idx = 0;
+		OperationIndex idx = make_op_idx ((UShort)(ie - interfaces_.begin ()), 0);
 		for (const Operation* p = ie->operations.p, *end = p + ie->operations.size; p != end; ++p) {
 			const Char* name = p->name;
 			op->name = name;
 			op->name_len = strlen (name);
 			op->idx = idx;
-			++idx.operation_idx;
+			++idx;
 			++op;
 		}
 	} while (interfaces_.end () != ++ie);
@@ -257,7 +255,7 @@ void ProxyManager::create_proxy (InterfaceEntry& ie)
 				throw OBJ_ADAPTER (); // Base is not listed in the primary interface base list. TODO: Log
 			create_proxy (*base_ie);
 		}
-		ie.proxy = &Interface::_ptr_type(pf->create_proxy (ior (), (UShort)(&ie - interfaces_.begin ()), ie.deleter));
+		ie.proxy = pf->create_proxy (ior (), (UShort)(&ie - interfaces_.begin ()), ie.deleter);
 		ie.operations = metadata->operations;
 	}
 }

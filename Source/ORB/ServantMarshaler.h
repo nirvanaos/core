@@ -152,7 +152,7 @@ public:
 			throw MARSHAL ();
 	}
 
-	::Nirvana::UIntPtr marshal_interface (Interface_ptr obj)
+	::Nirvana::UIntPtr marshal_interface (Interface::_ptr_type obj)
 	{
 		RecInterface* rec = (RecInterface*)add_record (RT_INTERFACE, sizeof (RecInterface));
 		return (::Nirvana::UIntPtr)(rec->p = interface_duplicate (&obj));

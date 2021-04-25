@@ -292,7 +292,7 @@ void Binder::module_unbind (Module* mod, const Section& metadata) NIRVANA_NOEXCE
 	}
 }
 
-void Binder::export_add (const char* name, CORBA::Nirvana::Interface_ptr itf)
+void Binder::export_add (const char* name, Interface_ptr itf)
 {
 	assert (itf);
 	Key key (name);
