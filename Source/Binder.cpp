@@ -228,7 +228,7 @@ void Binder::module_bind (Module* mod, const Section& metadata, SyncContext& syn
 				for (OLF_Iterator it (writable, metadata.size); !it.end (); it.next ()) {
 					if (OLF_IMPORT_OBJECT == *it.cur ()) {
 						ImportInterface* ps = reinterpret_cast <ImportInterface*> (it.cur ());
-						reinterpret_cast <InterfaceRef&> (ps->itf) = move (bind_sync (ps->name, ps->interface_id));
+						reinterpret_cast <InterfaceRef&> (ps->itf) = bind_sync (ps->name, ps->interface_id);
 					}
 				}
 
