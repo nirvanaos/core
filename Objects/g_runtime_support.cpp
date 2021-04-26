@@ -45,7 +45,7 @@ class RuntimeSupport :
 			return nullptr;
 	}
 public:
-	RuntimeProxy_var runtime_proxy_get (const void* obj)
+	RuntimeProxy::_ref_type runtime_proxy_get (const void* obj)
 	{
 		RuntimeSupportImpl* impl = get_impl ();
 		if (impl)
