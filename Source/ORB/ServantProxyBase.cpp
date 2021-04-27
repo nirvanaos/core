@@ -46,14 +46,14 @@ public:
 
 	void run ()
 	{
-		release (servant_);
+		interface_release (&servant_);
 	}
 
 private:
 	Interface::_ptr_type servant_;
 };
 
-ServantProxyBase::ServantProxyBase (AbstractBase_ptr servant, 
+ServantProxyBase::ServantProxyBase (AbstractBase::_ptr_type servant, 
 	const Operation object_ops [3], void* object_impl, SyncContext& sync_context) :
 	ProxyManager (Skeleton <ServantProxyBase, IOReference>::epv_, 
 		Skeleton <ServantProxyBase, Object>::epv_, primary_interface_id (servant), 

@@ -30,9 +30,9 @@ namespace CORBA {
 namespace Nirvana {
 namespace Core {
 
-::PortableServer::POA_var ServantBase::_default_POA () const
+PortableServer::POA::_ref_type ServantBase::_default_POA () const
 {
-	return ::PortableServer::POA::_duplicate (g_root_POA);
+	return g_root_POA;
 }
 
 }

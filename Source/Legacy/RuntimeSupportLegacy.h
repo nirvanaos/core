@@ -38,7 +38,7 @@ class RuntimeSupportLegacy :
 	public Nirvana::Core::RuntimeSupportImpl
 {
 public:
-	RuntimeProxy_var runtime_proxy_get (const void* obj)
+	RuntimeProxy::_ref_type runtime_proxy_get (const void* obj)
 	{
 		std::lock_guard <std::mutex> lock (mutex_);
 		return Nirvana::Core::RuntimeSupportImpl::runtime_proxy_get (obj);

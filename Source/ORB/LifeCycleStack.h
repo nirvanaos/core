@@ -1,5 +1,5 @@
 /*
-* Nirvana Core.
+* Nirvana IDL support library.
 *
 * This is a part of the Nirvana project.
 *
@@ -23,31 +23,33 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "ProxyLocal.h"
+#ifndef NIRVANA_ORB_CORE_LIFECYCLESTACK_H_
+#define NIRVANA_ORB_CORE_LIFECYCLESTACK_H_
 
 namespace CORBA {
 namespace Nirvana {
+
+class Interface;
+
 namespace Core {
 
-using namespace ::Nirvana::Core;
-
-inline void ProxyLocal::non_existent_request (ProxyLocal* servant, IORequest::_ptr_type _rq,
-	::Nirvana::ConstPointer in_params,
-	Unmarshal::_ref_type& unmarshaler,
-	::Nirvana::Pointer out_params)
+//! Stack object.
+class LifeCycleStack
 {
-	Boolean _ret = servant->servant_->_non_existent ();
-	BooleanRet& _out = *(BooleanRet*)out_params;
-	I_ref <Marshal> _m;
-	Type <Boolean>::marshal_out (_ret, Marshal::_nil (), _out._ret);
-}
+public:
+	template <class I>
+	static Interface* __duplicate (Interface* itf, Interface* env)
+	{
+		return itf;
+	}
 
-const Operation ProxyLocal::object_ops_ [3] = {
-	{ op_get_interface_, {0, 0}, {0, 0}, Type <InterfaceDef>::type_code, nullptr },
-	{ op_is_a_, {&is_a_param_, 1}, {0, 0}, Type <Boolean>::type_code, nullptr },
-	{ op_non_existent_, {0, 0}, {0, 0}, Type <Boolean>::type_code, ObjProcWrapper <ProxyLocal, non_existent_request> }
+	template <class I>
+	static void __release (Interface* itf)
+	{}
 };
 
 }
 }
 }
+
+#endif

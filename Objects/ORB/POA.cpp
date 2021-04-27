@@ -34,7 +34,7 @@ namespace Nirvana {
 
 namespace Core {
 
-StaticI_ptr <PortableServer::POA> g_root_POA = { 0 };
+PortableServer::POA::_ref_type g_root_POA;
 
 }
 

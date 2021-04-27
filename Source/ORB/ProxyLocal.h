@@ -36,7 +36,7 @@ class ProxyLocal :
 	public ServantProxyBase
 {
 protected:
-	ProxyLocal (LocalObject_ptr servant, AbstractBase_ptr abstract_base, ::Nirvana::Core::SyncContext& sync_context) :
+	ProxyLocal (LocalObject::_ptr_type servant, AbstractBase::_ptr_type abstract_base, ::Nirvana::Core::SyncContext& sync_context) :
 		ServantProxyBase (abstract_base, object_ops_, this, sync_context),
 		servant_ (servant)
 	{}
@@ -49,7 +49,7 @@ private:
 		::Nirvana::Pointer out_params);
 
 private:
-	LocalObject_ptr servant_;
+	LocalObject::_ptr_type servant_;
 
 	static const Operation object_ops_ [3];
 };

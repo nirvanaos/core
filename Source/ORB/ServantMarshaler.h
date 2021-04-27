@@ -167,7 +167,7 @@ public:
 			if (!RepositoryId::compatible (bridge_id, iid)) {
 				if (RepositoryId::compatible (bridge_id, Object::repository_id_)) {
 					Object::_ptr_type obj (static_cast <Object*> (&itf));
-					itf = AbstractBase_ptr (obj)->_query_interface (iid);
+					itf = AbstractBase::_ptr_type (obj)->_query_interface (iid);
 				}
 			}
 

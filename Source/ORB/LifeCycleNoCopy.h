@@ -41,7 +41,7 @@ public:
 	static Interface* __duplicate (Interface* itf, Interface* env)
 	{
 		set_NO_IMPLEMENT (env);
-		return 0;
+		return nullptr;
 	}
 
 	template <class I>

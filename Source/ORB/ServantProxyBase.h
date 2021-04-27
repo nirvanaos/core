@@ -36,7 +36,7 @@
 #include <CORBA/ImplementationPseudo.h>
 #include <CORBA/Proxy/IOReference_s.h>
 #include <CORBA/Proxy/IORequest_s.h>
-#include "LifeCycleNoCopy.h"
+#include "LifeCycleStack.h"
 #include "ServantMarshaler.h"
 
 namespace CORBA {
@@ -74,7 +74,7 @@ public:
 	virtual RefCnt::IntegralType _remove_ref ();
 
 protected:
-	ServantProxyBase (AbstractBase_ptr servant, const Operation object_ops [3], void* object_impl, ::Nirvana::Core::SyncContext& sync_context);
+	ServantProxyBase (AbstractBase::_ptr_type servant, const Operation object_ops [3], void* object_impl, ::Nirvana::Core::SyncContext& sync_context);
 
 	virtual void add_ref_1 ();
 
@@ -131,7 +131,7 @@ protected:
 
 	class Request :
 		public ImplementationPseudo <Request, IORequest>,
-		public LifeCycleNoCopy <Request>
+		public LifeCycleStack
 	{
 	public:
 		Request () :
@@ -162,7 +162,8 @@ protected:
 
 		Unmarshal::_ref_type check ()
 		{
-			Unmarshal::_ref_type u = ServantMarshaler::unmarshaler (marshaler_._retn ());
+			Unmarshal::_ref_type u = ServantMarshaler::unmarshaler (marshaler_);
+			marshaler_ = nullptr;
 			if (!success_) {
 				if (exception_.type ()) {
 					Any exc;
@@ -181,15 +182,15 @@ protected:
 
 	private:
 		::Nirvana::Core::Core_var <::Nirvana::Core::SyncContext> sync_context_;
-		Marshal_var marshaler_;
+		Marshal::_ref_type marshaler_;
 		ABI <Any> exception_;
 		bool success_;
 	};
 
 public:
-	Marshal_var create_marshaler () const
+	Marshal::_ref_type create_marshaler () const
 	{
-		return (new ServantMarshaler (*sync_context_))->marshaler ();
+		return make_reference <ServantMarshaler> (std::ref (*sync_context_))->marshaler ();
 	}
 
 	Unmarshal::_ref_type call (OperationIndex op,
@@ -214,7 +215,7 @@ public:
 	}
 
 private:
-	static const Char* primary_interface_id (AbstractBase_ptr servant)
+	static const Char* primary_interface_id (AbstractBase::_ptr_type servant)
 	{
 		Interface::_ptr_type primary = servant->_query_interface (0);
 		if (!primary)
@@ -223,7 +224,7 @@ private:
 	}
 
 private:
-	AbstractBase_ptr servant_;
+	AbstractBase::_ptr_type servant_;
 	RefCnt ref_cnt_;
 	::Nirvana::Core::Core_var <::Nirvana::Core::SyncContext> sync_context_;
 };

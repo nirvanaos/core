@@ -34,12 +34,18 @@ namespace CORBA {
 namespace Nirvana {
 namespace Core {
 
-extern StaticI_ptr <PortableServer::POA> g_root_POA; // Temporary solution
+extern PortableServer::POA::_ref_type g_root_POA; // Temporary solution
 
 class POA :
 	public Servant <POA, PortableServer::POA>
 {
 public:
+	POA ()
+	{}
+
+	~POA ()
+	{}
+
 	static Type <String>::ABI_ret _activate_object (Bridge <PortableServer::POA>* obj, Interface* servant, Interface* env)
 	{
 		try {
@@ -52,12 +58,12 @@ public:
 		return Type <String>::ABI_ret ();
 	}
 
-	String activate_object (Object_ptr proxy)
+	String activate_object (Object::_ptr_type proxy)
 	{
 		if (active_object_map_.empty ())
 			_add_ref ();
 		std::pair <AOM::iterator, bool> ins = active_object_map_.emplace (std::to_string ((uintptr_t)&proxy), 
-			Object_var (Object::_duplicate (proxy)));
+			Object::_ref_type (proxy));
 		if (!ins.second)
 			throw PortableServer::POA::ServantAlreadyActive ();
 		return ins.first->first;
@@ -72,7 +78,7 @@ public:
 	}
 
 private:
-	typedef phmap::flat_hash_map <String, Object_var> AOM;
+	typedef phmap::flat_hash_map <String, Object::_ref_type> AOM;
 	AOM active_object_map_;
 };
 

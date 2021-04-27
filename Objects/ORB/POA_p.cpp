@@ -75,7 +75,7 @@ struct ProxyTraits <::PortableServer::POA>
 		String ret;
 		{
 			Environment _env;
-			Type <String>::C_ret _ret = (_servant->_epv ().epv.activate_object) (&_servant, &Object_ptr (p_servant), &_env);
+			Type <String>::C_ret _ret = (_servant->_epv ().epv.activate_object) (&_servant, &Object::_ptr_type (p_servant), &_env);
 			_env.check ();
 			ret = _ret;
 		}
@@ -115,11 +115,11 @@ class Proxy <::PortableServer::POA> :
 	typedef ProxyBase <::PortableServer::POA> Base;
 	typedef ProxyTraits <::PortableServer::POA> Traits;
 public:
-	Proxy (IOReference_ptr proxy_manager, CORBA::UShort interface_idx) :
+	Proxy (IOReference::_ptr_type proxy_manager, CORBA::UShort interface_idx) :
 		Base (proxy_manager, interface_idx)
 	{}
 
-	Object_ptr servant2object (PortableServer::Servant servant)
+	Object::_ptr_type servant2object (PortableServer::Servant servant)
 	{
 		PortableServer::Servant ps = servant->__core_servant ();
 		Core::ServantBase* core_obj = static_cast <Core::ServantBase*> (&ps);
@@ -127,7 +127,7 @@ public:
 	}
 
 	// Returns nil for objects from other domains and for local objects
-	PortableServer::ServantBase_var object2servant (Object_ptr obj)
+	PortableServer::ServantBase::_ref_type object2servant (Object::_ptr_type obj)
 	{
 		Environment _env;
 		I_ret <PortableServer::ServantBase> _ret = (obj->_epv ().internal.get_servant) (&obj, &_env);

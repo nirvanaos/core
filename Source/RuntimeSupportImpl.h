@@ -78,7 +78,7 @@ class RuntimeSupportImpl
 		<const void*, Core_var <RuntimeProxyImpl>,
 		std::hash <const void*>, std::equal_to <const void*>, UserAllocator <std::pair <const void* const, Core_var <RuntimeProxyImpl> > > > ProxyMap;
 public:
-	RuntimeProxy_var runtime_proxy_get (const void* obj)
+	RuntimeProxy::_ref_type runtime_proxy_get (const void* obj)
 	{
 		std::pair <ProxyMap::iterator, bool> ins = proxy_map_.insert (ProxyMap::value_type (obj, nullptr));
 		if (ins.second) {
@@ -89,7 +89,7 @@ public:
 				throw;
 			}
 		}
-		return RuntimeProxy::_duplicate (ins.first->second->_get_ptr ());
+		return ins.first->second->_get_ptr ();
 	}
 
 	void runtime_proxy_remove (const void* obj)

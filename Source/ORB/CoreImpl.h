@@ -44,6 +44,8 @@ class CoreImpl :
 	public InterfaceImplBase <T, I>
 {
 public:
+	typedef I PrimaryInterface;
+
 	using ServantTraits <T>::_implementation;
 	using LifeCycleNoCopy <T>::__duplicate;
 	using LifeCycleNoCopy <T>::__release;

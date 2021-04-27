@@ -35,7 +35,7 @@ namespace Core {
 using namespace ::Nirvana;
 using namespace ::Nirvana::Core;
 
-StatelessCreationFrame*& ObjectFactory::stateless_creation_frame ()
+CORBA::Nirvana::ObjectFactory::StatelessCreationFrame*& ObjectFactory::stateless_creation_frame ()
 {
 	ExecDomain* ed = ::Nirvana::Core::Thread::current ().exec_domain ();
 	assert (ed);
@@ -46,7 +46,7 @@ size_t ObjectFactory::offset_ptr ()
 {
 	ExecDomain* ed = ::Nirvana::Core::Thread::current ().exec_domain ();
 	assert (ed);
-	StatelessCreationFrame* scs = ed->stateless_creation_frame_;
+	CORBA::Nirvana::ObjectFactory::StatelessCreationFrame* scs = ed->stateless_creation_frame_;
 	if (scs)
 		return scs->offset ();
 	else if (!ed->sync_context ()->sync_domain ())

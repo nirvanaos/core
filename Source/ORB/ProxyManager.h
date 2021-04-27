@@ -76,7 +76,7 @@ public:
 
 	// Object operations
 
-	InterfaceDef_var _get_interface () const
+	I_ref <InterfaceDef> _get_interface () const
 	{
 		SYNC_BEGIN (nullptr);
 		return InterfaceDef::_nil (); // TODO: Implement.
@@ -94,14 +94,14 @@ public:
 	Boolean _non_existent ()
 	{
 		BooleanRet out;
-		Marshal_var m;
+		Marshal::_ref_type m;
 		ior ()->call (_make_op_idx (OBJ_OP_NON_EXISTENT), nullptr, 0, m, &out, sizeof (out));
 		Boolean _ret;
 		Type <Boolean>::unmarshal (out._ret, Unmarshal::_nil (), _ret);
 		return _ret;
 	}
 
-	Boolean _is_equivalent (Object_ptr other_object) const
+	Boolean _is_equivalent (Object::_ptr_type other_object) const
 	{
 		return &static_cast <const Bridge <Object>&> (*this) == &other_object;
 	}

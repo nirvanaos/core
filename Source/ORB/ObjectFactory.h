@@ -55,7 +55,7 @@ public:
 		::Nirvana::Core::g_core_heap->release (p, size);
 	}
 
-	void stateless_begin (StatelessCreationFrame& scs)
+	void stateless_begin (CORBA::Nirvana::ObjectFactory::StatelessCreationFrame& scs)
 	{
 		if (!(scs.tmp () && scs.size ()))
 			throw BAD_PARAM ();
@@ -67,8 +67,8 @@ public:
 
 	void* stateless_end (bool success)
 	{
-		StatelessCreationFrame*& scsr = stateless_creation_frame ();
-		StatelessCreationFrame* scs = scsr;
+		CORBA::Nirvana::ObjectFactory::StatelessCreationFrame*& scsr = stateless_creation_frame ();
+		CORBA::Nirvana::ObjectFactory::StatelessCreationFrame* scs = scsr;
 		if (!scs)
 			throw BAD_INV_ORDER ();
 		void* p = (Octet*)scs->tmp () + scs->offset ();
@@ -84,23 +84,23 @@ public:
 		}
 	}
 
-	static CORBA::Nirvana::ReferenceCounter_ptr create_reference_counter (CORBA::Nirvana::DynamicServant_ptr dynamic)
+	static I_ref <CORBA::Nirvana::ReferenceCounter> create_reference_counter (CORBA::Nirvana::DynamicServant::_ptr_type dynamic)
 	{
-		return (new ReferenceCounter (offset_ptr (dynamic)))->_get_ptr ();
+		return make_pseudo <ReferenceCounter> (offset_ptr (dynamic));
 	}
 
-	static PortableServer::ServantBase_var create_servant (PortableServer::Servant servant)
+	static I_ref <PortableServer::ServantBase> create_servant (PortableServer::Servant servant)
 	{
-		return (new ServantBase (offset_ptr (servant)))->_get_ptr ();
+		return make_pseudo <ServantBase> (offset_ptr (servant));
 	}
 
-	static LocalObject_var create_local_object (LocalObject_ptr servant, AbstractBase_ptr abstract_base)
+	static I_ref <CORBA::LocalObject> create_local_object (I_ptr <CORBA::LocalObject> servant, I_ptr <AbstractBase> abstract_base)
 	{
-		return (new LocalObject (offset_ptr (servant), offset_ptr (abstract_base)))->_get_ptr ();
+		return make_pseudo <LocalObject> (offset_ptr (servant), offset_ptr (abstract_base));
 	}
 
 private:
-	static StatelessCreationFrame*& stateless_creation_frame ();
+	static CORBA::Nirvana::ObjectFactory::StatelessCreationFrame*& stateless_creation_frame ();
 
 	template <class I>
 	static I_ptr <I> offset_ptr (I_ptr <I> p)

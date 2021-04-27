@@ -66,7 +66,7 @@ void ProxyObject::add_ref_1 ()
 		change_state (INACTIVE, ACTIVATION)
 	) {
 		try {
-			PortableServer::POA_var poa = servant_->_default_POA ();
+			PortableServer::POA::_ref_type poa = servant_->_default_POA ();
 			// TODO: Query poa for the implicit activation policy
 			// While assume that implicit activation is on
 			implicit_activation_ = true;

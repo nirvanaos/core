@@ -41,7 +41,7 @@ class ReferenceCounter :
 	public ImplementationPseudo <ReferenceCounter, CORBA::Nirvana::ReferenceCounter>
 {
 public:
-	ReferenceCounter (DynamicServant_ptr dynamic) :
+	ReferenceCounter (DynamicServant::_ptr_type dynamic) :
 		dynamic_ (dynamic)
 	{}
 
@@ -69,7 +69,7 @@ public:
 
 private:
 	::Nirvana::Core::RefCounter ref_cnt_;
-	DynamicServant_ptr dynamic_;
+	DynamicServant::_ptr_type dynamic_;
 };
 
 }

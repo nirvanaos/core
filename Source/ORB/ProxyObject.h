@@ -72,10 +72,10 @@ private:
 		Unmarshal::_ref_type& unmarshaler,
 		::Nirvana::Pointer out_params);
 
-	PortableServer::ServantBase_var _get_servant () const
+	PortableServer::ServantBase::_ref_type _get_servant () const
 	{
 		if (&sync_context () == &::Nirvana::Core::SyncContext::current ())
-			return PortableServer::ServantBase::_duplicate (servant_);
+			return servant_;
 		else
 			throw MARSHAL ();
 	}

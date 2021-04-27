@@ -54,7 +54,7 @@ public:
 		return this;
 	}
 
-	PortableServer::POA_var _default_POA () const;
+	PortableServer::POA::_ref_type _default_POA () const;
 
 	Boolean _non_existent () const
 	{

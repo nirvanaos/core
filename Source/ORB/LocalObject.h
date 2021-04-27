@@ -40,7 +40,7 @@ class LocalObject final :
 {
 	typedef CoreImpl <LocalObject, CORBA::LocalObject, ProxyLocal> Base;
 public:
-	LocalObject (CORBA::LocalObject_ptr servant, AbstractBase_ptr abstract_base, ::Nirvana::Core::SyncContext& sync_context = ::Nirvana::Core::SyncContext::current ()) :
+	LocalObject (CORBA::LocalObject::_ptr_type servant, AbstractBase::_ptr_type abstract_base, ::Nirvana::Core::SyncContext& sync_context = ::Nirvana::Core::SyncContext::current ()) :
 		Base (servant, abstract_base, std::ref (sync_context))
 	{}
 
