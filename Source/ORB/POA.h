@@ -50,7 +50,7 @@ public:
 	{
 		try {
 			return Type <String>::ret (_implementation (obj).activate_object (Type <Object>::in (servant)));
-		} catch (const Exception& e) {
+		} catch (Exception& e) {
 			set_exception (env, e);
 		} catch (...) {
 			set_unknown_exception (env);

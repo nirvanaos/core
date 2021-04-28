@@ -84,7 +84,7 @@ private:
 	{
 		try {
 			return Type <PortableServer::ServantBase>::ret (static_cast <ProxyObject&> (_implementation (obj))._get_servant ());
-		} catch (const Exception& e) {
+		} catch (Exception& e) {
 			set_exception (env, e);
 		} catch (...) {
 			set_unknown_exception (env);
