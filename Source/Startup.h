@@ -36,9 +36,10 @@ namespace Core {
 class NIRVANA_NOVTABLE Startup : public Runnable
 {
 public:
-	Startup (int argc, char* argv []) :
+	Startup (int argc, char* argv [], char* envp []) :
 		argc_ (argc),
 		argv_ (argv),
+		envp_ (envp),
 		exception_code_ (CORBA::Exception::EC_NO_EXCEPTION)
 	{}
 
@@ -63,6 +64,7 @@ public:
 protected:
 	int argc_;
 	char** argv_;
+	char** envp_;
 	int ret_;
 
 private:

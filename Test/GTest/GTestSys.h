@@ -34,7 +34,7 @@ class GTestSys :
 	public StartupSys
 {
 public:
-	GTestSys (int argc, char* argv []);
+	GTestSys (int argc, char* argv [], char* envp []);
 
 	virtual void run ();
 };

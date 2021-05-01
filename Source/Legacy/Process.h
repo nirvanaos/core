@@ -40,8 +40,8 @@ class Process :
 	public Nirvana::Core::CoreObject
 {
 public:
-	static void spawn (int argc, char* argv []);
-	static Nirvana::Core::Core_var <Process> posix_spawn (const char* file, char* argv [], char* envp);
+	static void spawn (int argc, char* const argv []);
+	static Nirvana::Core::Core_var <Process> posix_spawn (const char* file, char* const argv [], char* const envp []);
 
 private:
 	Nirvana::Core::HeapUser heap_;

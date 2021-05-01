@@ -39,8 +39,8 @@ public:
 		return INFINITE_DEADLINE;
 	}
 
-	StartupProt (int argc, char* argv []) :
-		Startup (argc, argv)
+	StartupProt (int argc, char* argv [], char* envp []) :
+		Startup (argc, argv, envp)
 	{}
 
 	~StartupProt ()

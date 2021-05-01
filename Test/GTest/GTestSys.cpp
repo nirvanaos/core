@@ -31,10 +31,10 @@ namespace Nirvana {
 namespace Core {
 namespace Test {
 
-GTestSys::GTestSys (int argc, char* argv []) :
-	StartupSys (0, nullptr)
+GTestSys::GTestSys (int argc, char* argv [], char* envp []) :
+	StartupSys (argc, argv, envp)
 {
-	testing::InitGoogleTest (&argc, argv);
+	testing::InitGoogleTest (&argc_, argv_);
 }
 
 void GTestSys::run ()
