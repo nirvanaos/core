@@ -96,7 +96,7 @@ void ProxyManager::check_metadata (const InterfaceMetadata* metadata, String_in 
 		throw OBJ_ADAPTER (); // TODO: Log
 
 	{ // Check interfaces
-		ULong itf_cnt = metadata->interfaces.size;
+		size_t itf_cnt = metadata->interfaces.size;
 		if (!itf_cnt || itf_cnt > numeric_limits <UShort>::max ())
 			throw OBJ_ADAPTER (); // TODO: Log
 		const Char* const* itf = metadata->interfaces.p;
@@ -145,7 +145,7 @@ ProxyManager::ProxyManager (const Bridge <IOReference>::EPV& epv_ior, const Brid
 	const InterfaceMetadata* metadata = proxy_factory->metadata ();
 	check_metadata (metadata, primary_iid);
 
-	ULong itf_cnt = metadata->interfaces.size;
+	size_t itf_cnt = metadata->interfaces.size;
 	interfaces_.allocate (itf_cnt + 1);
 	InterfaceEntry* ie = interfaces_.begin ();
 

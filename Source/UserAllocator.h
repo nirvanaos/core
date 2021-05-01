@@ -42,7 +42,7 @@ public:
 		user_memory ().release (p, cnt * sizeof (T));
 	}
 
-	static T* allocate (size_t cnt, void* hint = nullptr, UWord flags = 0)
+	static T* allocate (size_t cnt, void* hint = nullptr, unsigned flags = 0)
 	{
 		return (T*)user_memory ().allocate (hint, cnt * sizeof (T), flags);
 	}

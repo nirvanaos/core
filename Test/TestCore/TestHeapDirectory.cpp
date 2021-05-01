@@ -13,7 +13,7 @@ using namespace ::std;
 
 namespace TestHeapDirectory {
 
-template <size_t SIZE, UWord LEVELS, HeapDirectoryImpl IMPL>
+template <size_t SIZE, size_t LEVELS, HeapDirectoryImpl IMPL>
 class HeapDirectoryFactory
 {
 public:
@@ -95,11 +95,11 @@ TYPED_TEST (TestHeapDirectory, Allocate)
 	EXPECT_TRUE (this->directory_->empty ());
 
 	for (int pass = 0; pass < 2; ++pass) {
-		for (UWord block_size = TypeParam::DirectoryType::MAX_BLOCK_SIZE; block_size > 0; block_size >>= 1) {
-			UWord blocks_cnt = TypeParam::DirectoryType::UNIT_COUNT / block_size;
-			for (UWord i = 0; i < blocks_cnt; ++i) {
+		for (size_t block_size = TypeParam::DirectoryType::MAX_BLOCK_SIZE; block_size > 0; block_size >>= 1) {
+			size_t blocks_cnt = TypeParam::DirectoryType::UNIT_COUNT / block_size;
+			for (size_t i = 0; i < blocks_cnt; ++i) {
 				EXPECT_FALSE (this->directory_->check_allocated (i * block_size, TypeParam::DirectoryType::UNIT_COUNT));
-				UWord block = this->directory_->allocate (block_size);
+				size_t block = this->directory_->allocate (block_size);
 				ASSERT_EQ (block, i * block_size);
 				EXPECT_TRUE (this->directory_->check_allocated (block, block + block_size));
 			}
@@ -116,13 +116,13 @@ TYPED_TEST (TestHeapDirectory, Release)
 	EXPECT_TRUE (this->directory_->empty ());
 
 	for (int pass = 0; pass < 2; ++pass) {
-		for (UWord block_size = TypeParam::DirectoryType::MAX_BLOCK_SIZE; block_size >= 4; block_size >>= 1) {
-			UWord blocks_cnt = TypeParam::DirectoryType::UNIT_COUNT / block_size;
-			for (UWord i = 0; i < blocks_cnt; ++i) {
+		for (size_t block_size = TypeParam::DirectoryType::MAX_BLOCK_SIZE; block_size >= 4; block_size >>= 1) {
+			size_t blocks_cnt = TypeParam::DirectoryType::UNIT_COUNT / block_size;
+			for (size_t i = 0; i < blocks_cnt; ++i) {
 
 				// Allocate and release block.
 				EXPECT_FALSE (this->directory_->check_allocated (i * block_size, TypeParam::DirectoryType::UNIT_COUNT));
-				UWord block = this->directory_->allocate (block_size);
+				size_t block = this->directory_->allocate (block_size);
 				ASSERT_EQ (block, i * block_size);
 				EXPECT_TRUE (this->directory_->check_allocated (block, block + block_size));
 				this->directory_->release (block, block + block_size);
@@ -195,11 +195,11 @@ TYPED_TEST (TestHeapDirectory, Release2)
 	EXPECT_TRUE (this->directory_->empty ());
 	for (int pass = 0; pass < 2; ++pass) {
 
-		for (UWord block = 0, end = TypeParam::DirectoryType::UNIT_COUNT; block < end; block += TypeParam::DirectoryType::MAX_BLOCK_SIZE) {
+		for (size_t block = 0, end = TypeParam::DirectoryType::UNIT_COUNT; block < end; block += TypeParam::DirectoryType::MAX_BLOCK_SIZE) {
 			ASSERT_TRUE (this->directory_->allocate (block, block + TypeParam::DirectoryType::MAX_BLOCK_SIZE));
 		}
 
-		for (UWord block = 0, end = TypeParam::DirectoryType::UNIT_COUNT; block < end; ++block) {
+		for (size_t block = 0, end = TypeParam::DirectoryType::UNIT_COUNT; block < end; ++block) {
 			ASSERT_TRUE (this->directory_->check_allocated (block, block + 1));
 			this->directory_->release (block, block + 1);
 		}
@@ -261,7 +261,7 @@ void RandomAllocator::run (DirType* dir, int iterations)
 					max_size = 0x80000000 >> nlz ((unsigned)free_cnt);
 
 				unsigned size = uniform_int_distribution <unsigned> (1, max_size)(rndgen_);
-				Word block = dir->allocate (size);
+				unsigned block = dir->allocate (size);
 				if (block >= 0) {
 					total_allocated_ += size;
 					allocated_.push_back ({(unsigned)block, (unsigned)block + size});
@@ -314,9 +314,9 @@ void AllocatedBlocks::add (const vector <Block>& blocks)
 template <class DirType>
 void AllocatedBlocks::check (DirType* dir) const
 {
-	UWord free_begin = 0;
+	size_t free_begin = 0;
 	for (auto pa = begin ();;) {
-		UWord free_end;
+		size_t free_end;
 		if (pa != end ())
 			free_end = pa->begin;
 		else

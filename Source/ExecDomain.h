@@ -95,7 +95,7 @@ public:
 
 	/// Executor::execute ()
 	/// Called from worker thread.
-	void execute (Word scheduler_error);
+	void execute (int scheduler_error);
 
 	template <class Starter>
 	void start (Starter starter)

@@ -41,13 +41,13 @@ TEST_F (TestMemory, Allocate)
 	size_t BLOCK_SIZE = 0x10000000;	// 256M
 
 	static const size_t ITER_CNT = 2;
-	static const UWord iter_flags [ITER_CNT] = {
+	static const uint16_t iter_flags [ITER_CNT] = {
 		Memory::RESERVED,
 		0
 	};
 	for (int iteration = 0; iteration < ITER_CNT; ++iteration) {
 
-		UWord flags = iter_flags [iteration];
+		uint16_t flags = iter_flags [iteration];
 
 		// Allocate and release memory.
 		uint8_t* block = (uint8_t*)Port::Memory::allocate (0, BLOCK_SIZE, flags);

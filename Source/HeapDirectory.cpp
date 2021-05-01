@@ -30,7 +30,7 @@ namespace Core {
 
 using namespace std;
 
-const UWord HeapDirectoryTraits <0x10000, 11>::block_index_offset_ [HEAP_LEVELS] =
+const size_t HeapDirectoryTraits <0x10000, 11>::block_index_offset_ [HEAP_LEVELS] =
 { // FREE_BLOCK_INDEX_SIZE == 15
 	0,  // разделен на 4 части
 	4,  // разделен на 2 части
@@ -64,7 +64,7 @@ const HeapDirectoryBase::BitmapIndex HeapDirectoryTraits <0x10000, 11>::bitmap_i
 	{10, TOP_BITMAP_WORDS * 1023}
 };
 
-const UWord HeapDirectoryTraits <0x8000, 10>::block_index_offset_ [HEAP_LEVELS] =
+const size_t HeapDirectoryTraits <0x8000, 10>::block_index_offset_ [HEAP_LEVELS] =
 { // FREE_BLOCK_INDEX_SIZE == 11
 	0,  // разделен на 2 части
 	2,
@@ -93,7 +93,7 @@ const HeapDirectoryBase::BitmapIndex HeapDirectoryTraits <0x8000, 10>::bitmap_in
 	{9,  TOP_BITMAP_WORDS * 511}
 };
 
-const UWord HeapDirectoryTraits <0x8000, 11>::block_index_offset_ [HEAP_LEVELS] =
+const size_t HeapDirectoryTraits <0x8000, 11>::block_index_offset_ [HEAP_LEVELS] =
 { // FREE_BLOCK_INDEX_SIZE == 8
 	0,  // разделен на 2 части
 	2,
@@ -122,7 +122,7 @@ const HeapDirectoryBase::BitmapIndex HeapDirectoryTraits <0x8000, 11>::bitmap_in
 
 // TODO: For 0x4000 directory size we can avoid usage of indexes.
 
-const UWord HeapDirectoryTraits <0x4000, 9>::block_index_offset_ [HEAP_LEVELS] =
+const size_t HeapDirectoryTraits <0x4000, 9>::block_index_offset_ [HEAP_LEVELS] =
 { // FREE_BLOCK_INDEX_SIZE == 9
 	0,
 	1,
@@ -148,7 +148,7 @@ const HeapDirectoryBase::BitmapIndex HeapDirectoryTraits <0x4000, 9>::bitmap_ind
 	{8,  TOP_BITMAP_WORDS * 255}
 };
 
-const UWord HeapDirectoryTraits <0x4000, 11>::block_index_offset_ [HEAP_LEVELS] =
+const size_t HeapDirectoryTraits <0x4000, 11>::block_index_offset_ [HEAP_LEVELS] =
 { // FREE_BLOCK_INDEX_SIZE == 4
 	0,
 	1,

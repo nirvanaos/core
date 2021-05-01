@@ -238,7 +238,7 @@ Heap::Directory* Heap::get_partition (const void* p) NIRVANA_NOEXCEPT
 	return part;
 }
 
-void* Heap::allocate (void* p, size_t size, UWord flags)
+void* Heap::allocate (void* p, size_t size, unsigned flags)
 {
 	if (!size)
 		THROW (BAD_PARAM);
@@ -268,7 +268,7 @@ void* Heap::allocate (void* p, size_t size, UWord flags)
 	return p;
 }
 
-void* Heap::allocate (size_t size, UWord flags)
+void* Heap::allocate (size_t size, unsigned flags)
 {
 	void* p;
 	const size_t max_block_size = Directory::MAX_BLOCK_SIZE * allocation_unit_;
@@ -318,7 +318,7 @@ void Heap::add_large_block (void* p, size_t size)
 	}
 }
 
-void* Heap::allocate (Directory& part, size_t size, UWord flags, size_t allocation_unit) NIRVANA_NOEXCEPT
+void* Heap::allocate (Directory& part, size_t size, unsigned flags, size_t allocation_unit) NIRVANA_NOEXCEPT
 {
 	size_t units = (size + allocation_unit - 1) / allocation_unit;
 	uint8_t* heap = (uint8_t*)(&part + 1);
@@ -328,13 +328,13 @@ void* Heap::allocate (Directory& part, size_t size, UWord flags, size_t allocati
 		assert (unit < Directory::UNIT_COUNT);
 		void* p = heap + unit * allocation_unit;
 		if (flags & Memory::ZERO_INIT)
-			zero ((Word*)p, (Word*)p + (size + sizeof (Word) - 1) / sizeof (Word));
+			zero ((size_t*)p, (size_t*)p + (size + sizeof (size_t) - 1) / sizeof (size_t));
 		return p;
 	}
 	return nullptr;
 }
 
-void* Heap::allocate (Directory& part, void* p, size_t size, UWord flags) const NIRVANA_NOEXCEPT
+void* Heap::allocate (Directory& part, void* p, size_t size, unsigned flags) const NIRVANA_NOEXCEPT
 {
 	uint8_t* heap = (uint8_t*)(&part + 1);
 	size_t offset = (uint8_t*)p - heap;
@@ -353,7 +353,7 @@ void* Heap::allocate (Directory& part, void* p, size_t size, UWord flags) const 
 			p = pbegin;
 
 		if (flags & Memory::ZERO_INIT)
-			zero ((Word*)pbegin, (Word*)(heap + end * allocation_unit_));
+			zero ((size_t*)pbegin, (size_t*)(heap + end * allocation_unit_));
 
 		return p;
 	}
@@ -407,7 +407,7 @@ Heap::MemoryBlock* HeapCore::add_new_partition (MemoryBlock*& tail)
 	return ret;
 }
 
-void* Heap::copy (void* dst, void* src, size_t size, UWord flags)
+void* Heap::copy (void* dst, void* src, size_t size, unsigned flags)
 {
 	if (!size)
 		return dst;
@@ -426,7 +426,7 @@ void* Heap::copy (void* dst, void* src, size_t size, UWord flags)
 		return dst;
 	}
 
-	UWord release_flags = flags & Memory::SRC_RELEASE;
+	unsigned release_flags = flags & Memory::SRC_RELEASE;
 	if (release_flags == Memory::SRC_RELEASE) {
 		BlockList::NodeVal* node = block_list_.lower_bound (src);
 		if (!node)

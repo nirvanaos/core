@@ -42,7 +42,7 @@ namespace Core {
 class RandomGen
 {
 public:
-	typedef UWord result_type;
+	typedef unsigned result_type;
 
 	RandomGen () : // Use `this` as seed value
 		state_ ((result_type)reinterpret_cast <uintptr_t> (this))

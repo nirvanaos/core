@@ -70,7 +70,7 @@ void SyncDomain::schedule () NIRVANA_NOEXCEPT
 	}
 }
 
-void SyncDomain::execute (Word scheduler_error)
+void SyncDomain::execute (int scheduler_error)
 {
 	assert (State::SCHEDULED == state_);
 	state_ = State::RUNNING;

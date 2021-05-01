@@ -45,24 +45,24 @@ protected:
 	Core::HeapUser heap_;
 };
 
-bool check_readable (const UWord* begin, const UWord* end, UWord tag)
+bool check_readable (const size_t* begin, const size_t* end, size_t tag)
 {
-	for (const UWord* p = begin; p != end; ++p) {
+	for (const size_t* p = begin; p != end; ++p) {
 		if (*p != tag)
 			return false;
 	}
 	return true;
 }
 
-inline bool check_readable (const void* p, size_t cb, UWord tag)
+inline bool check_readable (const void* p, size_t cb, size_t tag)
 {
-	return check_readable ((const UWord*)p, (const UWord*)p + cb / sizeof (UWord), tag);
+	return check_readable ((const size_t*)p, (const size_t*)p + cb / sizeof (size_t), tag);
 }
 
-bool check_writeable (void* p, size_t cb, UWord tag)
+bool check_writeable (void* p, size_t cb, size_t tag)
 {
-	for (UWord* pi = (UWord*)p, *end = pi + cb / sizeof (UWord); pi != end; ++pi) {
-		UWord i = *pi;
+	for (size_t* pi = (size_t*)p, *end = pi + cb / sizeof (size_t); pi != end; ++pi) {
+		size_t i = *pi;
 		*pi = 0;
 		*pi = i;
 		if (i != tag)
@@ -83,18 +83,18 @@ TEST_F (TestHeap, Allocate)
 TEST_F (TestHeap, ReadOnly)
 {
 	size_t pu = (size_t)heap_.query (nullptr, Memory::QueryParam::PROTECTION_UNIT);
-	UWord* p = (UWord*)heap_.allocate (nullptr, pu, 0);
+	size_t* p = (size_t*)heap_.allocate (nullptr, pu, 0);
 	size_t au = (size_t)heap_.query (p, Memory::QueryParam::ALLOCATION_UNIT);
 	if (au < pu) {
-		fill_n (p, pu / sizeof (UWord), 1);
-		UWord* pro = (UWord*)heap_.copy (nullptr, p, pu, Memory::READ_ONLY);
+		fill_n (p, pu / sizeof (size_t), 1);
+		size_t* pro = (size_t*)heap_.copy (nullptr, p, pu, Memory::READ_ONLY);
 		EXPECT_TRUE (check_readable (pro, pu, 1));
 		size_t pu2 = (size_t)pu / 2;
-		UWord* p1 = pro + pu2 / sizeof (UWord);
+		size_t* p1 = pro + pu2 / sizeof (size_t);
 		heap_.release (p1, pu2);
-		UWord* p2 = (UWord*)heap_.allocate (p1, pu2, 0);
+		size_t* p2 = (size_t*)heap_.allocate (p1, pu2, 0);
 		EXPECT_EQ (p1, p2);
-		fill_n (p2, pu2 / sizeof (UWord), 1);
+		fill_n (p2, pu2 / sizeof (size_t), 1);
 		heap_.release (pro, pu);
 	}
 	heap_.release (p, pu);
@@ -103,9 +103,9 @@ TEST_F (TestHeap, ReadOnly)
 /*
 TEST_F (TestHeap, Heap)
 {
-	static const UWord GRANULARITY = 128;
-	static const UWord BLOCK_SIZE = GRANULARITY * 128;
-	static const UWord COUNT = 1024 * 1024 * 4 / 16 * GRANULARITY / BLOCK_SIZE;
+	static const size_t GRANULARITY = 128;
+	static const size_t BLOCK_SIZE = GRANULARITY * 128;
+	static const size_t COUNT = 1024 * 1024 * 4 / 16 * GRANULARITY / BLOCK_SIZE;
 	void* blocks [COUNT];
 	Memory_ptr heap = g_heap_factory->create_with_granularity (GRANULARITY);
 	EXPECT_EQ (GRANULARITY, heap->query (0, Query::ALLOCATION_UNIT));
@@ -113,7 +113,7 @@ TEST_F (TestHeap, Heap)
 	for (int i = 0; i < COUNT; ++i) {
 		blocks [i] = heap->allocate (0, BLOCK_SIZE, 0);
 		ASSERT_TRUE (blocks [i]);
-		Word au = heap->query (blocks [i], Query::ALLOCATION_UNIT);
+		UIntPtr au = heap->query (blocks [i], Query::ALLOCATION_UNIT);
 		ASSERT_EQ (GRANULARITY, au);
 	}
 	
@@ -126,9 +126,9 @@ TEST_F (TestHeap, Heap)
 */
 struct Block
 {
-	UWord tag;
-	UWord* begin;
-	UWord* end;
+	size_t tag;
+	size_t* begin;
+	size_t* end;
 
 	enum
 	{
@@ -163,11 +163,11 @@ public:
 private:
 	mt19937 rndgen_;
 	vector <Block> allocated_;
-	static atomic <UWord> next_tag_;
+	static atomic <size_t> next_tag_;
 	static atomic <size_t> total_allocated_;
 };
 
-atomic <UWord> RandomAllocator::next_tag_ (1);
+atomic <size_t> RandomAllocator::next_tag_ (1);
 atomic <size_t> RandomAllocator::total_allocated_ (0);
 
 void RandomAllocator::run (Core::Heap& memory, int iterations)
@@ -198,13 +198,13 @@ void RandomAllocator::run (Core::Heap& memory, int iterations)
 				switch (op) {
 					case OP_ALLOCATE:
 					{
-						size_t size = uniform_int_distribution <size_t> (1, MAX_BLOCK / sizeof (UWord))(rndgen_) * sizeof (UWord);
-						UWord* block = (UWord*)memory.allocate (nullptr, size, Memory::ZERO_INIT);
+						size_t size = uniform_int_distribution <size_t> (1, MAX_BLOCK / sizeof (size_t))(rndgen_) * sizeof (size_t);
+						size_t* block = (size_t*)memory.allocate (nullptr, size, Memory::ZERO_INIT);
 						EXPECT_TRUE (check_readable (block, size, 0)); // Check for ZERO_INIT
 						total_allocated_ += size;
-						UWord tag = next_tag_++;
-						fill_n (block, size / sizeof (UWord), tag);
-						allocated_.push_back ({ tag, block, block + size / sizeof (UWord), Block::READ_WRITE });
+						size_t tag = next_tag_++;
+						fill_n (block, size / sizeof (size_t), tag);
+						allocated_.push_back ({ tag, block, block + size / sizeof (size_t), Block::READ_WRITE });
 					}
 					break;
 
@@ -213,11 +213,11 @@ void RandomAllocator::run (Core::Heap& memory, int iterations)
 					{
 						size_t idx = uniform_int_distribution <size_t> (0, allocated_.size () - 1)(rndgen_);
 						Block& src = allocated_ [idx];
-						size_t size = (src.end - src.begin) * sizeof (UWord);
+						size_t size = (src.end - src.begin) * sizeof (size_t);
 						bool read_only = OP_COPY_RO == op;
-						UWord* block = (UWord*)memory.copy (nullptr, src.begin, size, read_only ? Memory::READ_ONLY : 0);
+						size_t* block = (size_t*)memory.copy (nullptr, src.begin, size, read_only ? Memory::READ_ONLY : 0);
 						total_allocated_ += size;
-						allocated_.push_back ({ src.tag, block, block + size / sizeof (UWord), read_only ? Block::READ_ONLY : Block::READ_WRITE });
+						allocated_.push_back ({ src.tag, block, block + size / sizeof (size_t), read_only ? Block::READ_ONLY : Block::READ_WRITE });
 					}
 					break;
 
@@ -228,7 +228,7 @@ void RandomAllocator::run (Core::Heap& memory, int iterations)
 						if (Block::RESERVED != block.state) {
 							EXPECT_TRUE (check_readable (block.begin, block.end, block.tag));
 							if (Block::READ_WRITE == block.state) {
-								UWord tag = next_tag_++;
+								size_t tag = next_tag_++;
 								fill (block.begin, block.end, tag);
 								block.tag = tag;
 							}
@@ -247,8 +247,8 @@ void RandomAllocator::run (Core::Heap& memory, int iterations)
 			Block& block = allocated_ [idx];
 			if (Block::RESERVED != block.state)
 				EXPECT_TRUE (check_readable (block.begin, block.end, block.tag));
-			memory.release (block.begin, (block.end - block.begin) * sizeof (UWord));
-			total_allocated_ -= (block.end - block.begin) * sizeof (UWord);
+			memory.release (block.begin, (block.end - block.begin) * sizeof (size_t));
+			total_allocated_ -= (block.end - block.begin) * sizeof (size_t);
 			allocated_.erase (allocated_.begin () + idx);
 		}
 	}
@@ -285,9 +285,9 @@ void AllocatedBlocks::add (const vector <Block>& blocks)
 void AllocatedBlocks::check (Core::Heap& memory)
 {
 	for (auto p = cbegin (); p != cend (); ++p) {
-		size_t size = (p->end - p->begin) * sizeof (UWord);
+		size_t size = (p->end - p->begin) * sizeof (size_t);
 		memory.release (p->begin, size);
-		UWord* bl = (UWord*)memory.allocate (p->begin, size, Memory::EXACTLY | ((Block::RESERVED == p->state) ? Memory::RESERVED : 0));
+		size_t* bl = (size_t*)memory.allocate (p->begin, size, Memory::EXACTLY | ((Block::RESERVED == p->state) ? Memory::RESERVED : 0));
 		assert (bl);
 		ASSERT_EQ (p->begin, bl);
 		fill (p->begin, p->end, p->tag);
@@ -315,7 +315,7 @@ TEST_F (TestHeap, Random)
 	}
 
 	for (auto p = ra.allocated ().cbegin (); p != ra.allocated ().cend (); ++p)
-		heap_.release (p->begin, (p->end - p->begin) * sizeof (UWord));
+		heap_.release (p->begin, (p->end - p->begin) * sizeof (size_t));
 }
 
 class ThreadAllocator :
@@ -365,7 +365,7 @@ TEST_F (TestHeap, MultiThread)
 
 	for (auto pt = threads.begin (); pt != threads.end (); ++pt) {
 		for (auto p = pt->allocated ().cbegin (); p != pt->allocated ().cend (); ++p)
-			heap_.release (p->begin, (p->end - p->begin) * sizeof (UWord));
+			heap_.release (p->begin, (p->end - p->begin) * sizeof (size_t));
 	}
 }
 

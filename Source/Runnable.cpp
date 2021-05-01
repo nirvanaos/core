@@ -34,7 +34,7 @@ void Runnable::on_exception () NIRVANA_NOEXCEPT
 	assert (false);
 }
 
-void Runnable::on_crash (Word error_code) NIRVANA_NOEXCEPT
+void Runnable::on_crash (int error_code) NIRVANA_NOEXCEPT
 {
 	// TODO: Log
 	assert (false);

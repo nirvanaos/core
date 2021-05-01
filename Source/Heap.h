@@ -38,7 +38,7 @@ class CoreAllocator :
 {
 public:
 	static void deallocate (T* p, size_t cnt);
-	static T* allocate (size_t cnt, void* hint = nullptr, UWord flags = 0);
+	static T* allocate (size_t cnt, void* hint = nullptr, unsigned flags = 0);
 };
 
 class Heap
@@ -56,7 +56,7 @@ public:
 
 	Heap (size_t allocation_unit = HEAP_UNIT_DEFAULT) NIRVANA_NOEXCEPT;
 
-	void* allocate (void* p, size_t size, UWord flags);
+	void* allocate (void* p, size_t size, unsigned flags);
 	void release (void* p, size_t size);
 
 	void commit (void* p, size_t size)
@@ -73,7 +73,7 @@ public:
 		Port::Memory::decommit (p, size);
 	}
 
-	void* copy (void* dst, void* src, size_t size, UWord flags);
+	void* copy (void* dst, void* src, size_t size, unsigned flags);
 
 	static bool is_readable (const void* p, size_t size)
 	{
@@ -254,16 +254,16 @@ protected:
 
 	Directory* get_partition (const void* p) NIRVANA_NOEXCEPT;
 
-	static void* allocate (Directory& part, size_t size, UWord flags, size_t allocation_unit) NIRVANA_NOEXCEPT;
+	static void* allocate (Directory& part, size_t size, unsigned flags, size_t allocation_unit) NIRVANA_NOEXCEPT;
 
-	void* allocate (Directory& part, size_t size, UWord flags) const NIRVANA_NOEXCEPT
+	void* allocate (Directory& part, size_t size, unsigned flags) const NIRVANA_NOEXCEPT
 	{
 		return allocate (part, size, flags, allocation_unit_);
 	}
 
-	void* allocate (Directory& part, void* p, size_t size, UWord flags) const NIRVANA_NOEXCEPT;
+	void* allocate (Directory& part, void* p, size_t size, unsigned flags) const NIRVANA_NOEXCEPT;
 
-	void* allocate (size_t size, UWord flags);
+	void* allocate (size_t size, unsigned flags);
 
 	void release (Directory& part, void* p, size_t size) const;
 
@@ -419,7 +419,7 @@ void CoreAllocator <T>::deallocate (T* p, size_t cnt)
 }
 
 template <class T> inline
-T* CoreAllocator <T>::allocate (size_t cnt, void* hint, UWord flags)
+T* CoreAllocator <T>::allocate (size_t cnt, void* hint, unsigned flags)
 {
 	return (T*)g_core_heap->allocate (hint, cnt * sizeof (T), flags);
 }

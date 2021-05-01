@@ -47,11 +47,11 @@ void BackOff::operator () ()
 		iterations_ = ITERATIONS_MAX;
 
 	// TODO: We can try other distributions: geometric, exponential...
-	typedef std::uniform_int_distribution <UWord> Dist;
+	typedef std::uniform_int_distribution <unsigned> Dist;
 
-	UWord iters = Dist (1U, iterations_)(rndgen_);
+	unsigned iters = Dist (1U, iterations_)(rndgen_);
 	if (ITERATIONS_MAX <= ITERATIONS_YIELD || iters < ITERATIONS_YIELD) {
-		volatile UWord cnt = iters;
+		volatile unsigned cnt = iters;
 		do
 			cpu_relax ();
 		while (--cnt);

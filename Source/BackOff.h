@@ -59,7 +59,7 @@ private:
 	inline void cpu_relax ();
 
 private:
-	UWord iterations_;
+	unsigned iterations_;
 	RandomGen rndgen_;
 };
 

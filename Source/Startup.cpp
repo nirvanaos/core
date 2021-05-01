@@ -35,7 +35,7 @@ void Startup::on_exception () NIRVANA_NOEXCEPT
 	Scheduler::shutdown ();
 }
 
-void Startup::on_crash (Word error_code) NIRVANA_NOEXCEPT
+void Startup::on_crash (int error_code) NIRVANA_NOEXCEPT
 {
 	exception_code_ = (CORBA::SystemException::Code)error_code;
 	Scheduler::shutdown ();

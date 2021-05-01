@@ -113,7 +113,7 @@ public:
 		schedule ();
 	}
 
-	virtual void execute (Word scheduler_error);
+	virtual void execute (int scheduler_error);
 
 	virtual void schedule_call (SyncDomain* sync_domain);
 	virtual void schedule_return (ExecDomain& exec_domain) NIRVANA_NOEXCEPT;

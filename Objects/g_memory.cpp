@@ -42,7 +42,7 @@ class CoreMemory :
 {
 public:
 	// Memory::
-	static void* allocate (void* dst, size_t size, UWord flags)
+	static void* allocate (void* dst, size_t size, unsigned flags)
 	{
 		return heap ().allocate (dst, size, flags);
 	}
@@ -62,7 +62,7 @@ public:
 		return heap ().decommit (p, size);
 	}
 
-	static void* copy (void* dst, void* src, size_t size, UWord flags)
+	static void* copy (void* dst, void* src, size_t size, unsigned flags)
 	{
 		return heap ().copy (dst, src, size, flags);
 	}
@@ -114,7 +114,7 @@ class UserMemory :
 {
 public:
 	// Memory::
-	static void* allocate (void* dst, size_t size, UWord flags)
+	static void* allocate (void* dst, size_t size, unsigned flags)
 	{
 		return user_memory ().allocate (dst, size, flags);
 	}
@@ -134,7 +134,7 @@ public:
 		return user_memory ().decommit (p, size);
 	}
 
-	static void* copy (void* dst, void* src, size_t size, UWord flags)
+	static void* copy (void* dst, void* src, size_t size, unsigned flags)
 	{
 		return user_memory ().copy (dst, src, size, flags);
 	}

@@ -111,7 +111,7 @@ void ExecDomain::resume ()
 	sync_context_->schedule_return (*this);
 }
 
-void ExecDomain::execute (Word scheduler_error)
+void ExecDomain::execute (int scheduler_error)
 {
 	Thread::current ().exec_domain (*this);
 	scheduler_error_ = (CORBA::Exception::Code)scheduler_error;
