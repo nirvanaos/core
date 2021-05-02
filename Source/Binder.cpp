@@ -25,7 +25,6 @@
 */
 #include <CORBA/Server.h>
 #include "Binder.h"
-#include "Module.h"
 #include <Port/SystemInfo.h>
 #include <Nirvana/OLF.h>
 #include "ORB/POA.h"
@@ -81,15 +80,16 @@ private:
 	OLF_Command* cur_ptr_;
 	OLF_Command* end_;
 
-	static const size_t command_sizes_ [OLF_IMPORT_OBJECT];
+	static const size_t command_sizes_ [OLF_MODULE_STARTUP];
 };
 
-const size_t Binder::OLF_Iterator::command_sizes_ [OLF_IMPORT_OBJECT] = {
+const size_t Binder::OLF_Iterator::command_sizes_ [OLF_MODULE_STARTUP] = {
 	sizeof (ImportInterface),
 	sizeof (ExportInterface),
 	sizeof (ExportObject),
 	sizeof (ExportLocal),
-	sizeof (ImportInterface)
+	sizeof (ImportInterface),
+	sizeof (ModuleStartup)
 };
 
 void Binder::OLF_Iterator::check ()
@@ -113,11 +113,21 @@ void Binder::initialize ()
 
 	SYNC_BEGIN (&sync_domain_);
 	export_add (g_binder.imp.name, g_binder.imp.itf);
-	module_bind (nullptr, metadata, SyncContext::free_sync_context ());
+	module_bind (nullptr, metadata, &SyncContext::free_sync_context ());
 	SYNC_END ();
 }
 
-void Binder::module_bind (Module* mod, const Section& metadata, SyncContext& sync_context)
+void Binder::terminate ()
+{
+	CORBA::Nirvana::Core::g_root_POA = nullptr;
+}
+
+NIRVANA_NORETURN void Binder::invalid_metadata ()
+{
+	throw runtime_error ("Invalid file format");
+}
+
+Interface* Binder::module_bind (Module::_ptr_type mod, const Section& metadata, SyncContext* sync_context)
 {
 	enum MetadataFlags
 	{
@@ -128,6 +138,7 @@ void Binder::module_bind (Module* mod, const Section& metadata, SyncContext& syn
 
 	const ImportInterface* module_entry = nullptr;
 	void* writable = const_cast <void*> (metadata.address);
+	Interface* module_startup = nullptr;
 
 	try {
 
@@ -143,24 +154,26 @@ void Binder::module_bind (Module* mod, const Section& metadata, SyncContext& syn
 						if (key.is_a (k_gmodule)) {
 							assert (mod);
 							if (!k_gmodule.compatible (key))
-								throw_INITIALIZE ();
-							mod->module_entry_ = module_entry = ps;
-							ps->itf = &mod->_get_ptr ();
+								invalid_metadata ();
+							module_entry = ps;
+							ps->itf = &mod;
 							break;
 						}
 					}
 					flags |= MetadataFlags::IMPORT_INTERFACES;
 					break;
 
-				case OLF_EXPORT_INTERFACE:
-				{
+				case OLF_EXPORT_INTERFACE: {
+					if (!sync_context) // Legacy process can not export
+						invalid_metadata ();
 					const ExportInterface* ps = reinterpret_cast <const ExportInterface*> (it.cur ());
 					export_add (ps->name, ps->itf);
-				}
-				break;
+				} break;
 
 				case OLF_EXPORT_OBJECT:
 				case OLF_EXPORT_LOCAL:
+					if (!sync_context) // Legacy process can not export
+						invalid_metadata ();
 					flags |= MetadataFlags::EXPORT_OBJECTS;
 					break;
 
@@ -168,8 +181,14 @@ void Binder::module_bind (Module* mod, const Section& metadata, SyncContext& syn
 					flags |= MetadataFlags::IMPORT_OBJECTS;
 					break;
 
+				case OLF_MODULE_STARTUP:
+					if (module_startup)
+						invalid_metadata (); // Must be only one startup entry
+					module_startup = reinterpret_cast <const ModuleStartup*> (it.cur ())->startup;
+					break;
+
 				default:
-					throw_INITIALIZE ();
+					invalid_metadata ();
 			}
 		}
 
@@ -185,14 +204,14 @@ void Binder::module_bind (Module* mod, const Section& metadata, SyncContext& syn
 			writable = Port::Memory::copy (const_cast <void*> (metadata.address), const_cast <void*> (metadata.address), metadata.size, Memory::READ_WRITE);
 
 			if (module_entry)
-				mod->module_entry_ = (ImportInterface*)((uint8_t*)module_entry + ((uint8_t*)writable - (uint8_t*)metadata.address));
+				module_entry = (ImportInterface*)((uint8_t*)module_entry + ((uint8_t*)writable - (uint8_t*)metadata.address));
 
 			// Pass 2: Import pseudo objects.
 			if (flags & MetadataFlags::IMPORT_INTERFACES)
 				for (OLF_Iterator it (writable, metadata.size); !it.end (); it.next ()) {
 					if (OLF_IMPORT_INTERFACE == *it.cur ()) {
 						ImportInterface* ps = reinterpret_cast <ImportInterface*> (it.cur ());
-						if (!mod || ps != mod->module_entry_)
+						if (!mod || ps != module_entry)
 							ps->itf = &Interface::_ptr_type(bind_sync (ps->name, ps->interface_id));
 					}
 				}
@@ -204,7 +223,7 @@ void Binder::module_bind (Module* mod, const Section& metadata, SyncContext& syn
 						case OLF_EXPORT_OBJECT:
 						{
 							ExportObject* ps = reinterpret_cast <ExportObject*> (it.cur ());
-							PortableServer::ServantBase::_ptr_type core_obj = (new CORBA::Nirvana::Core::ServantBase (Type <PortableServer::ServantBase>::in (ps->servant_base), sync_context))->_get_ptr ();
+							PortableServer::ServantBase::_ptr_type core_obj = (new CORBA::Nirvana::Core::ServantBase (Type <PortableServer::ServantBase>::in (ps->servant_base), *sync_context))->_get_ptr ();
 							Object::_ptr_type obj = AbstractBase::_ptr_type (core_obj)->_query_interface <Object> ();
 							ps->core_object = &core_obj;
 							export_add (ps->name, obj);
@@ -214,7 +233,7 @@ void Binder::module_bind (Module* mod, const Section& metadata, SyncContext& syn
 						case OLF_EXPORT_LOCAL:
 						{
 							ExportLocal* ps = reinterpret_cast <ExportLocal*> (it.cur ());
-							LocalObject::_ptr_type core_obj = (new CORBA::Nirvana::Core::LocalObject (Type <LocalObject>::in (ps->local_object), Type <AbstractBase>::in (ps->abstract_base), sync_context))->_get_ptr ();
+							LocalObject::_ptr_type core_obj = (new CORBA::Nirvana::Core::LocalObject (Type <LocalObject>::in (ps->local_object), Type <AbstractBase>::in (ps->abstract_base), *sync_context))->_get_ptr ();
 							Object::_ptr_type obj = core_obj;
 							ps->core_object = &core_obj;
 							export_add (ps->name, obj);
@@ -233,8 +252,6 @@ void Binder::module_bind (Module* mod, const Section& metadata, SyncContext& syn
 				}
 
 			Port::Memory::copy (const_cast <void*> (metadata.address), writable, metadata.size, (writable != metadata.address) ? (Memory::READ_ONLY | Memory::SRC_RELEASE) : Memory::READ_ONLY);
-			if (mod)
-				mod->module_entry_ = module_entry;
 		}
 	} catch (...) {
 		module_unbind (mod, { writable, metadata.size });
@@ -242,9 +259,11 @@ void Binder::module_bind (Module* mod, const Section& metadata, SyncContext& syn
 			Port::Memory::release (writable, metadata.size);
 		throw;
 	}
+
+	return module_startup;
 }
 
-void Binder::module_unbind (Module* mod, const Section& metadata) NIRVANA_NOEXCEPT
+void Binder::module_unbind (Module::_ptr_type mod, const Section& metadata) NIRVANA_NOEXCEPT
 {
 	// Pass 1: Release all imported interfaces.
 	for (OLF_Iterator it (metadata.address, metadata.size); !it.end (); it.next ()) {
@@ -252,7 +271,7 @@ void Binder::module_unbind (Module* mod, const Section& metadata) NIRVANA_NOEXCE
 			case OLF_IMPORT_INTERFACE:
 			case OLF_IMPORT_OBJECT:
 				ImportInterface* ps = reinterpret_cast <ImportInterface*> (it.cur ());
-				if (!mod || ps != mod->module_entry_)
+				if (!mod || ps->itf != &mod)
 					CORBA::Nirvana::interface_release (ps->itf);
 				break;
 		}

@@ -25,9 +25,54 @@
 */
 #include "Startup.h"
 #include "Scheduler.h"
+#include "Runnable.h"
+#include "Legacy/Executable.h"
 
 namespace Nirvana {
 namespace Core {
+
+class RunProcess : public Runnable
+{
+public:
+	RunProcess (Startup& startup, int argc, char* argv [], char* envp [], int& ret) :
+		startup_ (startup),
+		executable_ (argv [0]),
+		argc_ (argc),
+		argv_ (argv),
+		envp_ (envp)
+	{}
+
+	virtual void run ();
+	virtual void on_exception () NIRVANA_NOEXCEPT;
+	virtual void on_crash (int error_code) NIRVANA_NOEXCEPT;
+
+private:
+	Startup& startup_;
+	Legacy::Core::Executable executable_;
+	int argc_;
+	char** argv_;
+	char** envp_;
+};
+
+void RunProcess::run ()
+{
+	startup_.ret (executable_.startup ()->main (argc_, argv_, envp_));
+}
+
+void RunProcess::on_exception () NIRVANA_NOEXCEPT
+{
+	startup_.on_exception ();
+}
+
+void RunProcess::on_crash (int error_code) NIRVANA_NOEXCEPT
+{
+	startup_.on_crash (error_code);
+}
+
+void Startup::run ()
+{
+	initialize ();
+}
 
 void Startup::on_exception () NIRVANA_NOEXCEPT
 {

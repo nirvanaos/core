@@ -1,3 +1,4 @@
+/// \file
 /*
 * Nirvana Core.
 *
@@ -23,57 +24,46 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_CORE_STARTUP_H_
-#define NIRVANA_CORE_STARTUP_H_
+#ifndef NIRVANA_LEGACY_CORE_EXECUTABLE_H_
+#define NIRVANA_LEGACY_CORE_EXECUTABLE_H_
 
-#include "Runnable.h"
-#include "initterm.h"
-#include <exception>
+#include "../core.h"
+#include "../CoreObject.h"
+#include <CORBA/Server.h>
+#include <Nirvana/Process.h>
+#include <Nirvana/Module_s.h>
+#include "../ORB/LifeCycleStack.h"
+#include <Port/Executable.h>
 
 namespace Nirvana {
+namespace Legacy {
 namespace Core {
 
-class NIRVANA_NOVTABLE Startup : public Runnable
+class Executable :
+	public Port::Executable,
+	public Nirvana::Core::CoreObject,
+	public CORBA::servant_traits <Module>::Servant <Executable>,
+	public CORBA::Nirvana::Core::LifeCycleStack
 {
 public:
-	Startup (int argc, char* argv [], char* envp []) :
-		argc_ (argc),
-		argv_ (argv),
-		envp_ (envp),
-		ret_ (0),
-		exception_code_ (CORBA::Exception::EC_NO_EXCEPTION)
-	{}
+	Executable (const char* file);
+	~Executable ();
 
-	~Startup ()
-	{}
-
-	virtual void run ();
-	virtual void on_exception () NIRVANA_NOEXCEPT;
-	virtual void on_crash (int error_code) NIRVANA_NOEXCEPT;
-
-	void check () const;
-
-	int ret () const NIRVANA_NOEXCEPT
+	const void* base_address () const NIRVANA_NOEXCEPT
 	{
-		return ret_;
+		return Port::Executable::address ();
 	}
 
-	void ret (int r) NIRVANA_NOEXCEPT
+	Process::_ptr_type startup () const
 	{
-		ret_ = r;
+		return startup_;
 	}
-
-protected:
-	int argc_;
-	char** argv_;
-	char** envp_;
-	int ret_;
 
 private:
-	std::exception_ptr exception_;
-	CORBA::SystemException::Code exception_code_;
+	Process::_ptr_type startup_;
 };
 
+}
 }
 }
 

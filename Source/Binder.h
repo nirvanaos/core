@@ -33,6 +33,7 @@
 #include "Synchronized.h"
 #include "Heap.h"
 #include <CORBA/RepositoryId.h>
+#include <Nirvana/Process.h>
 
 #pragma push_macro ("verify")
 #undef verify
@@ -41,8 +42,6 @@
 
 namespace Nirvana {
 namespace Core {
-
-class Module;
 
 class Binder :
 	public CORBA::Nirvana::ServantStatic <Binder, ::Nirvana::Binder>
@@ -110,9 +109,7 @@ private:
 
 public:
 	static void initialize ();
-	
-	static void terminate ()
-	{}
+	static void terminate ();
 
 	static InterfaceRef bind (const std::string& _name, const std::string& _iid)
 	{
@@ -122,14 +119,35 @@ public:
 		SYNC_END ();
 	}
 
+	/// Bind legacy process.
+	/// 
+	/// \param mod Module interface.
+	/// \param metadata Module OLF metadata section.
+	/// \returns Process startup interface.
+	static ::Nirvana::Legacy::Process::_ptr_type bind_process (Module::_ptr_type mod, const Section& metadata)
+	{
+		CORBA::Nirvana::Interface* startup = module_bind (mod, metadata, nullptr);
+		try {
+			return ::Nirvana::Legacy::Process::_check (startup);
+		} catch (...) {
+			module_unbind (mod, metadata);
+			throw;
+		}
+	}
+
+	/// Unbind module.
+	/// 
+	/// \param mod Module interface.
+	/// \param metadata Module OLF metadata section.
+	static void module_unbind (Module::_ptr_type mod, const Section& metadata) NIRVANA_NOEXCEPT;
+
 private:
+	static CORBA::Nirvana::Interface* module_bind (Module::_ptr_type mod, const Section& metadata, SyncContext* sync_context);
+
 	class OLF_Iterator;
 
 	static void export_add (const char* name, InterfacePtr itf);
 	static void export_remove (const char* name) NIRVANA_NOEXCEPT;
-
-	static void module_bind (Module* mod, const Section& metadata, SyncContext& sync_context);
-	static void module_unbind (Module* mod, const Section& metadata) NIRVANA_NOEXCEPT;
 
 	static InterfaceRef bind_sync (const CoreString& name, const CoreString& iid)
 	{
@@ -142,6 +160,8 @@ private:
 	}
 
 	static InterfaceRef bind_sync (const char* name, size_t name_len, const char* iid, size_t iid_len);
+
+	NIRVANA_NORETURN static void invalid_metadata ();
 
 private:
 	static ImplStatic <SyncDomain> sync_domain_;

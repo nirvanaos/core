@@ -32,9 +32,9 @@ namespace Core {
 namespace Test {
 
 GTestSys::GTestSys (int argc, char* argv [], char* envp []) :
-	StartupSys (argc, argv, envp)
+	StartupSys (1, argv, envp)
 {
-	testing::InitGoogleTest (&argc_, argv_);
+	testing::InitGoogleTest (&argc, argv);
 }
 
 void GTestSys::run ()

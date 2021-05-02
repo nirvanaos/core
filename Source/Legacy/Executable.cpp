@@ -23,58 +23,23 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_CORE_STARTUP_H_
-#define NIRVANA_CORE_STARTUP_H_
-
-#include "Runnable.h"
-#include "initterm.h"
-#include <exception>
+#include "Executable.h"
+#include "../Binder.h"
 
 namespace Nirvana {
+namespace Legacy {
 namespace Core {
 
-class NIRVANA_NOVTABLE Startup : public Runnable
+Executable::Executable (const char* file) :
+	Port::Executable (file),
+	startup_ (Nirvana::Core::Binder::bind_process (_get_ptr (), metadata ()))
+{}
+
+Executable::~Executable ()
 {
-public:
-	Startup (int argc, char* argv [], char* envp []) :
-		argc_ (argc),
-		argv_ (argv),
-		envp_ (envp),
-		ret_ (0),
-		exception_code_ (CORBA::Exception::EC_NO_EXCEPTION)
-	{}
-
-	~Startup ()
-	{}
-
-	virtual void run ();
-	virtual void on_exception () NIRVANA_NOEXCEPT;
-	virtual void on_crash (int error_code) NIRVANA_NOEXCEPT;
-
-	void check () const;
-
-	int ret () const NIRVANA_NOEXCEPT
-	{
-		return ret_;
-	}
-
-	void ret (int r) NIRVANA_NOEXCEPT
-	{
-		ret_ = r;
-	}
-
-protected:
-	int argc_;
-	char** argv_;
-	char** envp_;
-	int ret_;
-
-private:
-	std::exception_ptr exception_;
-	CORBA::SystemException::Code exception_code_;
-};
+	Nirvana::Core::Binder::module_unbind (_get_ptr (), metadata ());
+}
 
 }
 }
-
-#endif
+}
