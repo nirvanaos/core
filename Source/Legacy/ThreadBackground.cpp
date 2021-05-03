@@ -26,7 +26,6 @@
 */
 #include "ThreadBackground.h"
 #include "../ExecDomain.h"
-#include "../ScheduleCall.h"
 #include "../Suspend.h"
 
 namespace Nirvana {
@@ -55,8 +54,10 @@ void ThreadBackground::schedule_call (Nirvana::Core::SyncDomain* sync_domain)
 		if (SyncContext::SUSPEND () == sync_domain)
 			Suspend::suspend ();
 		else {
-			ScheduleCall::schedule_call (sync_domain);
-			check_schedule_error ();
+			ExecDomain* exec_domain = Thread::current ().exec_domain ();
+			assert (exec_domain);
+			exec_domain->schedule_call (sync_domain);
+			check_schedule_error (*exec_domain);
 		}
 	}
 }

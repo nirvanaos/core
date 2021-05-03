@@ -32,7 +32,7 @@ namespace Nirvana {
 namespace Core {
 
 class Suspend :
-	public Runnable
+	public ImplStatic <Runnable>
 {
 public:
 	static void suspend () NIRVANA_NOEXCEPT

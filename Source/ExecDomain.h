@@ -42,20 +42,9 @@ namespace Core {
 class NIRVANA_NOVTABLE ExecDomain :
 	public CoreObject,
 	public ExecContext,
-	public Executor,
-	private Runnable // Runnable::run () is used for return to pool in the neutral context.
+	public Executor
 {
-	static const size_t MAX_RUNNABLE_SIZE = 8; // In pointers.
 public:
-	template <class R, class ... Args>
-	static void async_call (const DeadlineTime& deadline, SyncDomain* sync_domain, Args ... args)
-	{
-		static_assert (sizeof (R) <= sizeof (runnable_space_), "Runnable object is too large.");
-		Core_var <ExecDomain> exec_domain = get (deadline);
-		exec_domain->runnable_ = new (exec_domain->runnable_space_) R (std::forward <Args> (args)...);
-		exec_domain->spawn (sync_domain);
-	}
-
 	static void async_call (const DeadlineTime& deadline, Runnable& runnable, SyncDomain* sync_domain)
 	{
 		Core_var <ExecDomain> exec_domain = get (deadline);
@@ -71,12 +60,10 @@ public:
 	}
 
 	/// Get execution domain for a background thread.
-	template <class R, class ... Args>
-	static Core_var <ExecDomain> get_background (SyncContext& sync_context, Args ... args)
+	static Core_var <ExecDomain> get_background (SyncContext& sync_context, Runnable& startup)
 	{
-		static_assert (sizeof (R) <= sizeof (runnable_space_), "Runnable object is too large.");
 		Core_var <ExecDomain> exec_domain = get (INFINITE_DEADLINE);
-		exec_domain->runnable_ = new (exec_domain->runnable_space_) R (std::forward <Args> (args)...);
+		exec_domain->runnable_ = &startup;
 		exec_domain->sync_context_ = &sync_context;
 		return exec_domain;
 	}
@@ -86,9 +73,11 @@ public:
 		return deadline_;
 	}
 
+	void schedule_call (SyncDomain* sync_domain);
+	void schedule_return (SyncContext& sync_context) NIRVANA_NOEXCEPT;
+
 	/// Schedules this ED to execute.
 	/// Must be called from another execution context.
-	/// Does not throw an exception if `ret = true`.
 	///
 	/// \param sync_domain Synchronization domain. May be `nullptr`.
 	void schedule (SyncDomain* sync_domain);
@@ -127,7 +116,7 @@ public:
 #endif
 		Scheduler::activity_end ();
 		if (&ExecContext::current () == this)
-			run_in_neutral_context (*this);
+			run_in_neutral_context (release_to_pool_);
 		else
 			pool_.release (obj);
 	}
@@ -232,9 +221,43 @@ private:
 
 	void cleanup () NIRVANA_NOEXCEPT;
 
-	void run ();
-
 private:
+	class NeutralOp : public ImplStatic <Runnable>
+	{
+	public:
+		void init (ExecDomain& ed)
+		{
+			exec_domain_ = &ed;
+		}
+
+	protected:
+		ExecDomain* exec_domain_;
+	};
+
+	class ReleaseToPool : public NeutralOp
+	{
+	public:
+		virtual void run ();
+	};
+
+	class ScheduleCall : public NeutralOp
+	{
+	public:
+		virtual void run ();
+		virtual void on_exception () NIRVANA_NOEXCEPT;
+
+		SyncDomain* sync_domain_;
+		std::exception_ptr exception_;
+	};
+
+	class ScheduleReturn : public NeutralOp
+	{
+	public:
+		virtual void run ();
+
+		SyncContext* sync_context_;
+	};
+
 	static ObjectPool <ExecDomain> pool_;
 
 	DeadlineTime deadline_;
@@ -245,8 +268,9 @@ private:
 	RuntimeSupportImpl runtime_support_;
 	bool scheduler_item_created_;
 	CORBA::Exception::Code scheduler_error_;
-
-	void* runnable_space_ [MAX_RUNNABLE_SIZE];
+	ReleaseToPool release_to_pool_;
+	ScheduleCall schedule_call_;
+	ScheduleReturn schedule_return_;
 };
 
 }

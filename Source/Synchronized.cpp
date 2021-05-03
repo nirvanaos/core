@@ -23,23 +23,43 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "ScheduleReturn.h"
-#include "Thread.h"
+#include "Synchronized.h"
 #include "ExecDomain.h"
 
 namespace Nirvana {
 namespace Core {
 
-void ScheduleReturn::run ()
+Synchronized::Synchronized (SyncDomain* target) :
+	call_context_ (&SyncContext::current ())
 {
-	Thread& thread = Thread::current ();
-	ExecDomain* exec_domain = thread.exec_domain ();
+	call_context_->schedule_call (target);
+}
+
+Synchronized::Synchronized (SyncContext& target) :
+	call_context_ (&SyncContext::current ())
+{
+	SyncDomain* sync_domain = target.sync_domain ();
+	assert (sync_domain || target.is_free_sync_context ());
+	call_context_->schedule_call (sync_domain);
+}
+
+Synchronized::~Synchronized ()
+{
+	if (call_context_) {
+		ExecDomain* exec_domain = Thread::current ().exec_domain ();
+		assert (exec_domain);
+		exec_domain->schedule_return (*call_context_);
+	}
+}
+
+NIRVANA_NORETURN void Synchronized::on_exception ()
+{
+	std::exception_ptr exc = std::current_exception ();
+	Core_var <SyncContext> context = std::move (call_context_);
+	ExecDomain* exec_domain = Thread::current ().exec_domain ();
 	assert (exec_domain);
-	Core_var <SyncDomain> old_sync_domain = exec_domain->sync_context ()->sync_domain ();
-	sync_context_.schedule_return (*exec_domain);
-	if (old_sync_domain)
-		old_sync_domain->leave ();
-	thread.yield ();
+	exec_domain->schedule_return (*context);
+	std::rethrow_exception (exc);
 }
 
 }

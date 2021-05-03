@@ -30,6 +30,7 @@
 #include "../AtomicCounter.h"
 #include "../Synchronized.h"
 #include "../ExecDomain.h"
+#include "../Runnable.h"
 #include "ProxyManager.h"
 #include <CORBA/AbstractBase_s.h>
 #include <CORBA/Object_s.h>
@@ -38,6 +39,7 @@
 #include <CORBA/Proxy/IORequest_s.h>
 #include "LifeCycleStack.h"
 #include "ServantMarshaler.h"
+#include <utility>
 
 namespace CORBA {
 namespace Nirvana {
@@ -95,10 +97,12 @@ protected:
 	void run_garbage_collector (Args ... args) const NIRVANA_NOEXCEPT
 	{
 		try {
+			using namespace ::Nirvana::Core;
+			auto gc = Core_var <Runnable>::create <ImplDynamic <GC> > (std::forward <Args> (args)...);
 			// TODO: Garbage collector deadline must not be infinite, but reasonable enough.
-			::Nirvana::Core::ExecDomain::async_call <GC> (::Nirvana::INFINITE_DEADLINE, sync_context_->sync_domain (), std::forward <Args> (args)...);
+			::Nirvana::Core::ExecDomain::async_call (::Nirvana::INFINITE_DEADLINE, *gc, sync_context_->sync_domain ());
 		} catch (...) {
-			// Async call failed, maybe resources are exausted.
+			// Async call failed, maybe resources are exausted or shutdown was initiated.
 			// Fallback to collect garbage in current thread.
 			try {
 				::Nirvana::Core::ImplStatic <GC> (std::forward <Args> (args)...).run ();

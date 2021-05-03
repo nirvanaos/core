@@ -134,6 +134,10 @@ public:
 		p_ (nullptr)
 	{}
 
+	Core_var (nullptr_t) NIRVANA_NOEXCEPT :
+		p_ (nullptr)
+	{}
+
 	/// Increments reference counter unlike I_var.
 	Core_var (T* p) NIRVANA_NOEXCEPT :
 		p_ (p)

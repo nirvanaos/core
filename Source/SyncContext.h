@@ -73,7 +73,7 @@ public:
 	virtual Heap& memory () NIRVANA_NOEXCEPT = 0;
 
 protected:
-	void check_schedule_error ();
+	void check_schedule_error (ExecDomain& ed);
 };
 
 }

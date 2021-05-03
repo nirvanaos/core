@@ -24,7 +24,6 @@
 *  popov.nirvana@gmail.com
 */
 #include "ExecDomain.h"
-#include "ScheduleCall.h"
 #include "Suspend.h"
 
 namespace Nirvana {
@@ -130,12 +129,12 @@ void SyncDomain::schedule_call (SyncDomain* sync_domain)
 		Suspend::suspend ();
 	else {
 		try {
-			ScheduleCall::schedule_call (sync_domain);
+			exec_domain->schedule_call (sync_domain);
 		} catch (...) {
 			release_queue_node (exec_domain->ret_qnode_pop ());
 			throw;
 		}
-		check_schedule_error ();
+		check_schedule_error (*exec_domain);
 	}
 }
 

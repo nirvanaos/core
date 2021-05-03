@@ -43,12 +43,6 @@ Core_var <ExecDomain> ExecDomain::get (DeadlineTime deadline)
 	}
 }
 
-void ExecDomain::run ()
-{
-	assert (&ExecContext::current () != this);
-	pool_.release (static_cast <ImplPoolable <ExecDomain>&> (*this));
-}
-
 void ExecDomain::ctor_base ()
 {
 	wait_list_next_ = nullptr;
@@ -58,6 +52,9 @@ void ExecDomain::ctor_base ()
 	scheduler_item_created_ = false;
 	stateless_creation_frame_ = nullptr;
 	cur_heap_ = &heap_;
+	release_to_pool_.init (*this);
+	schedule_call_.init (*this);
+	schedule_return_.init (*this);
 }
 
 void ExecDomain::spawn (SyncDomain* sync_domain)
@@ -159,6 +156,50 @@ void ExecDomain::on_exec_domain_crash (CORBA::SystemException::Code err) NIRVANA
 	ExecContext::on_crash (err);
 	cleanup ();
 	_remove_ref ();
+}
+
+void ExecDomain::ReleaseToPool::run ()
+{
+	assert (&ExecContext::current () != exec_domain_);
+	pool_.release (static_cast <ImplPoolable <ExecDomain>&> (*exec_domain_));
+}
+
+void ExecDomain::schedule_call (SyncDomain* sync_domain)
+{
+	schedule_call_.sync_domain_ = sync_domain;
+	run_in_neutral_context (schedule_call_);
+	if (schedule_call_.exception_) {
+		std::exception_ptr ex = schedule_call_.exception_;
+		schedule_call_.exception_ = nullptr;
+		rethrow_exception (ex);
+	}
+}
+
+void ExecDomain::ScheduleCall::run ()
+{
+	exec_domain_->schedule (sync_domain_);
+	Thread::current ().yield ();
+}
+
+void ExecDomain::ScheduleCall::on_exception () NIRVANA_NOEXCEPT
+{
+	exception_ = std::current_exception ();
+}
+
+void ExecDomain::schedule_return (SyncContext& sync_context) NIRVANA_NOEXCEPT
+{
+	schedule_return_.sync_context_ = &sync_context;
+	run_in_neutral_context (schedule_return_);
+}
+
+void ExecDomain::ScheduleReturn::run ()
+{
+	Thread& thread = Thread::current ();
+	Core_var <SyncDomain> old_sync_domain = exec_domain_->sync_context ()->sync_domain ();
+	sync_context_->schedule_return (*exec_domain_);
+	if (old_sync_domain)
+		old_sync_domain->leave ();
+	thread.yield ();
 }
 
 }

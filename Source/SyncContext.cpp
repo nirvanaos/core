@@ -26,8 +26,6 @@
 #include "SyncContext.h"
 #include "Thread.h"
 #include "ExecDomain.h"
-#include "ScheduleCall.h"
-#include "ScheduleReturn.h"
 #include "Suspend.h"
 
 namespace Nirvana {
@@ -59,12 +57,12 @@ SyncContext& SyncContext::free_sync_context () NIRVANA_NOEXCEPT
 	return g_free_sync_context;
 }
 
-void SyncContext::check_schedule_error ()
+void SyncContext::check_schedule_error (ExecDomain& ed)
 {
 	CORBA::Exception::Code err = Thread::current ().exec_domain ()->scheduler_error ();
 	if (err) {
 		// We must return to prev synchronization domain back before throwing the exception.
-		ScheduleReturn::schedule_return (*this);
+		ed.schedule_return (*this);
 		CORBA::SystemException::_raise_by_code (err);
 	}
 }
@@ -74,8 +72,10 @@ void FreeSyncContext::schedule_call (SyncDomain* sync_domain)
 	if (SyncContext::SUSPEND () == sync_domain)
 		Suspend::suspend ();
 	else {
-		ScheduleCall::schedule_call (sync_domain);
-		check_schedule_error ();
+		ExecDomain* exec_domain = Thread::current ().exec_domain ();
+		assert (exec_domain);
+		exec_domain->schedule_call (sync_domain);
+		check_schedule_error (*exec_domain);
 	}
 }
 
