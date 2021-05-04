@@ -41,6 +41,8 @@ Startup::Startup (int argc, char* argv [], char* envp []) :
 	exception_code_ (CORBA::Exception::EC_NO_EXCEPTION)
 {}
 
+
+
 void Startup::run ()
 {
 	if (!executable_) {

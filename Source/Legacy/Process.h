@@ -50,6 +50,9 @@ protected:
 		ThreadBackground (true)
 	{}
 
+	~Process ()
+	{}
+
 private:
 	Nirvana::Core::HeapUser heap_;
 	RuntimeSupportLegacy runtime_support_;

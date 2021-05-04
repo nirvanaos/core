@@ -59,6 +59,11 @@ public:
 		return ret_;
 	}
 
+	Nirvana::Legacy::Core::Executable* executable () const
+	{
+		return executable_;
+	}
+
 protected:
 	int argc_;
 	char** argv_;

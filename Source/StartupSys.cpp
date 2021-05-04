@@ -32,8 +32,10 @@ namespace Core {
 void StartupSys::run ()
 {
 	Startup::run ();
-	// TODO: System domain startup code.
-	ret_ = 0;
+	if (!executable ()) {
+		// TODO: System domain startup code.
+		ret_ = 0;
+	}
 }
 
 }
