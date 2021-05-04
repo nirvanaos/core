@@ -35,4 +35,4 @@ class TypeCodeTypeCode :
 }
 }
 
-NIRVANA_EXPORT (_exp_CORBA_TypeCode_TC, CORBA::TypeCode::repository_id_, CORBA::TypeCode, CORBA::Nirvana::TypeCodeTypeCode)
+NIRVANA_EXPORT (_exp_CORBA_TypeCode_TC, "CORBA/_tc_TypeCode", CORBA::TypeCode, CORBA::Nirvana::TypeCodeTypeCode)

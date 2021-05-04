@@ -201,10 +201,6 @@ protected:
 		runnable_ = &startup;
 	}
 
-	friend class Core_var <ExecDomain>;
-	virtual void _add_ref () = 0;
-	virtual void _remove_ref () = 0;
-
 private:
 	void ctor_base ();
 

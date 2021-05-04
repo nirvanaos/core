@@ -40,10 +40,14 @@ class Process :
 	public Nirvana::Core::CoreObject
 {
 public:
-	Process (const char* file, char* const argv [], char* const envp []);
+	static Nirvana::Core::Core_var <Process> spawn (Nirvana::Core::Runnable& runnable);
 
 	/// Returns heap reference.
 	virtual Nirvana::Core::Heap& memory () NIRVANA_NOEXCEPT;
+
+protected:
+	Process ()
+	{}
 
 private:
 	Nirvana::Core::HeapUser heap_;

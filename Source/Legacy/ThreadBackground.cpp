@@ -34,11 +34,17 @@ namespace Core {
 
 using namespace Nirvana::Core;
 
-void ThreadBackground::start (RuntimeSupportLegacy& runtime_support, Nirvana::Core::ExecDomain& execution_domain)
+ThreadBackground::ThreadBackground ()
+{}
+
+void ThreadBackground::start (RuntimeSupportLegacy& runtime_support, Nirvana::Core::Runnable& runnable)
 {
-	exec_domain (execution_domain);
+	auto ed = ExecDomain::get_background (*this, runnable);
+	exec_domain (*ed);
+	// The call above sets runtime_support_ variable.
+	// Overwrite it.
 	runtime_support_ = &runtime_support;
-	execution_domain.start ([this]() {this->create (); });
+	ed->start ([this]() {this->create (); });
 	_add_ref ();
 }
 

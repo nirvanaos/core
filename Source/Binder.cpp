@@ -100,8 +100,8 @@ void Binder::OLF_Iterator::check ()
 		OLF_Command cmd = *cur_ptr_;
 		if (OLF_END == cmd)
 			cur_ptr_ = end_;
-		else if (cmd > OLF_IMPORT_OBJECT)
-			throw CORBA::INITIALIZE ();
+		else if ((size_t)cmd > countof (command_sizes_))
+			invalid_metadata ();
 	}
 }
 
@@ -136,7 +136,7 @@ Interface* Binder::module_bind (Module::_ptr_type mod, const Section& metadata, 
 		IMPORT_OBJECTS = 0x04
 	};
 
-	const ImportInterface* module_entry = nullptr;
+	ImportInterface* module_entry = nullptr;
 	void* writable = const_cast <void*> (metadata.address);
 	Interface* module_startup = nullptr;
 
@@ -145,6 +145,7 @@ Interface* Binder::module_bind (Module::_ptr_type mod, const Section& metadata, 
 		// Pass 1: Export pseudo objects and bind g_module.
 		unsigned flags = 0;
 		Key k_gmodule (g_module.imp.name);
+		Key k_object_factory (g_object_factory.imp.name);
 		for (OLF_Iterator it (metadata.address, metadata.size); !it.end (); it.next ()) {
 			switch (*it.cur ()) {
 				case OLF_IMPORT_INTERFACE:
@@ -156,9 +157,9 @@ Interface* Binder::module_bind (Module::_ptr_type mod, const Section& metadata, 
 							if (!k_gmodule.compatible (key))
 								invalid_metadata ();
 							module_entry = ps;
-							ps->itf = &mod;
 							break;
-						}
+						} else if (!sync_context && key.is_a (k_object_factory))
+							invalid_metadata (); // Legacy process can not import ObjectFactory interface
 					}
 					flags |= MetadataFlags::IMPORT_INTERFACES;
 					break;
@@ -200,11 +201,13 @@ Interface* Binder::module_bind (Module::_ptr_type mod, const Section& metadata, 
 			SYNC_END ();
 		}
 
-		if (flags) {
+		if (flags || module_entry) {
 			writable = Port::Memory::copy (const_cast <void*> (metadata.address), const_cast <void*> (metadata.address), metadata.size, Memory::READ_WRITE);
 
-			if (module_entry)
+			if (module_entry) {
 				module_entry = (ImportInterface*)((uint8_t*)module_entry + ((uint8_t*)writable - (uint8_t*)metadata.address));
+				module_entry->itf = &mod;
+			}
 
 			// Pass 2: Import pseudo objects.
 			if (flags & MetadataFlags::IMPORT_INTERFACES)

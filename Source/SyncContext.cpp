@@ -60,7 +60,7 @@ SyncContext& SyncContext::free_sync_context () NIRVANA_NOEXCEPT
 void SyncContext::check_schedule_error (ExecDomain& ed)
 {
 	CORBA::Exception::Code err = Thread::current ().exec_domain ()->scheduler_error ();
-	if (err) {
+	if (err >= 0) {
 		// We must return to prev synchronization domain back before throwing the exception.
 		ed.schedule_return (*this);
 		CORBA::SystemException::_raise_by_code (err);

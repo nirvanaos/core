@@ -137,7 +137,7 @@ void ExecDomain::execute_loop () NIRVANA_NOEXCEPT
 {
 	assert (Thread::current ().exec_domain () == this);
 	while (runnable_) {
-		if (scheduler_error_) {
+		if (scheduler_error_ >= 0) {
 			runnable_->on_crash (scheduler_error_);
 			runnable_ = nullptr;
 		} else {

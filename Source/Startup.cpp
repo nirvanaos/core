@@ -27,62 +27,47 @@
 #include "Scheduler.h"
 #include "Runnable.h"
 #include "Legacy/Executable.h"
+#include "Legacy/Process.h"
 
 namespace Nirvana {
 namespace Core {
 
-class RunProcess : public Runnable
-{
-public:
-	RunProcess (Startup& startup, int argc, char* argv [], char* envp [], int& ret) :
-		startup_ (startup),
-		executable_ (argv [0]),
-		argc_ (argc),
-		argv_ (argv),
-		envp_ (envp)
-	{}
-
-	virtual void run ();
-	virtual void on_exception () NIRVANA_NOEXCEPT;
-	virtual void on_crash (int error_code) NIRVANA_NOEXCEPT;
-
-private:
-	Startup& startup_;
-	Legacy::Core::Executable executable_;
-	int argc_;
-	char** argv_;
-	char** envp_;
-};
-
-void RunProcess::run ()
-{
-	startup_.ret (executable_.startup ()->main (argc_, argv_, envp_));
-}
-
-void RunProcess::on_exception () NIRVANA_NOEXCEPT
-{
-	startup_.on_exception ();
-}
-
-void RunProcess::on_crash (int error_code) NIRVANA_NOEXCEPT
-{
-	startup_.on_crash (error_code);
-}
+Startup::Startup (int argc, char* argv [], char* envp []) :
+	executable_ (nullptr),
+	argc_ (argc),
+	argv_ (argv),
+	envp_ (envp),
+	ret_ (0),
+	exception_code_ (CORBA::Exception::EC_NO_EXCEPTION)
+{}
 
 void Startup::run ()
 {
-	initialize ();
+	if (!executable_) {
+		initialize ();
+		if (argc_ > 1) {
+			executable_ = new Nirvana::Legacy::Core::Executable (argv_ [1]);
+			Nirvana::Legacy::Core::Process::spawn (*this);
+		}
+	} else {
+		ret_ = executable_->startup ()->main (argc_ - 1, argv_ + 1, envp_);
+		Scheduler::shutdown ();
+	}
 }
 
 void Startup::on_exception () NIRVANA_NOEXCEPT
 {
 	exception_ = std::current_exception ();
+	delete executable_;
+	executable_ = nullptr;
 	Scheduler::shutdown ();
 }
 
 void Startup::on_crash (int error_code) NIRVANA_NOEXCEPT
 {
 	exception_code_ = (CORBA::SystemException::Code)error_code;
+	delete executable_;
+	executable_ = nullptr;
 	Scheduler::shutdown ();
 }
 

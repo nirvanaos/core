@@ -31,18 +31,19 @@
 #include <exception>
 
 namespace Nirvana {
+
+namespace Legacy {
+namespace Core {
+class Executable;
+}
+}
+
 namespace Core {
 
 class NIRVANA_NOVTABLE Startup : public ImplStatic <Runnable>
 {
 public:
-	Startup (int argc, char* argv [], char* envp []) :
-		argc_ (argc),
-		argv_ (argv),
-		envp_ (envp),
-		ret_ (0),
-		exception_code_ (CORBA::Exception::EC_NO_EXCEPTION)
-	{}
+	Startup (int argc, char* argv [], char* envp []);
 
 	~Startup ()
 	{}
@@ -58,11 +59,6 @@ public:
 		return ret_;
 	}
 
-	void ret (int r) NIRVANA_NOEXCEPT
-	{
-		ret_ = r;
-	}
-
 protected:
 	int argc_;
 	char** argv_;
@@ -70,6 +66,7 @@ protected:
 	int ret_;
 
 private:
+	Nirvana::Legacy::Core::Executable* executable_;
 	std::exception_ptr exception_;
 	CORBA::SystemException::Code exception_code_;
 };
