@@ -50,7 +50,7 @@ void Startup::run ()
 			Nirvana::Legacy::Core::Process::spawn (*this);
 		}
 	} else {
-		ret_ = executable_->startup ()->main (argc_ - 1, argv_ + 1, envp_);
+		ret_ = executable_->entry_point ()->main (argc_ - 1, argv_ + 1, envp_);
 		Scheduler::shutdown ();
 	}
 }

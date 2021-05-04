@@ -30,7 +30,7 @@
 #include "../core.h"
 #include "../CoreObject.h"
 #include <CORBA/Server.h>
-#include <Nirvana/Process.h>
+#include <Nirvana/Main.h>
 #include <Nirvana/Module_s.h>
 #include "../ORB/LifeCycleStack.h"
 #include <Port/Executable.h>
@@ -54,13 +54,13 @@ public:
 		return Port::Executable::address ();
 	}
 
-	Process::_ptr_type startup () const
+	Main::_ptr_type entry_point () const
 	{
-		return startup_;
+		return entry_point_;
 	}
 
 private:
-	Process::_ptr_type startup_;
+	Main::_ptr_type entry_point_;
 };
 
 }

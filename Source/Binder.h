@@ -33,7 +33,7 @@
 #include "Synchronized.h"
 #include "Heap.h"
 #include <CORBA/RepositoryId.h>
-#include <Nirvana/Process.h>
+#include <Nirvana/Main.h>
 
 #pragma push_macro ("verify")
 #undef verify
@@ -119,16 +119,18 @@ public:
 		SYNC_END ();
 	}
 
-	/// Bind legacy process.
+	/// Bind legacy process executable.
 	/// 
 	/// \param mod Module interface.
 	/// \param metadata Module OLF metadata section.
-	/// \returns Process startup interface.
-	static ::Nirvana::Legacy::Process::_ptr_type bind_process (Module::_ptr_type mod, const Section& metadata)
+	/// \returns The Main interface pointer.
+	static ::Nirvana::Legacy::Main::_ptr_type bind_executable (Module::_ptr_type mod, const Section& metadata)
 	{
 		CORBA::Nirvana::Interface* startup = module_bind (mod, metadata, nullptr);
 		try {
-			return ::Nirvana::Legacy::Process::_check (startup);
+			if (!startup)
+				invalid_metadata ();
+			return ::Nirvana::Legacy::Main::_check (startup);
 		} catch (...) {
 			module_unbind (mod, metadata);
 			throw;

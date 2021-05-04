@@ -32,7 +32,7 @@ namespace Core {
 
 Executable::Executable (const char* file) :
 	Port::Executable (file),
-	startup_ (Nirvana::Core::Binder::bind_process (_get_ptr (), metadata ()))
+	entry_point_ (Nirvana::Core::Binder::bind_executable (_get_ptr (), metadata ()))
 {}
 
 Executable::~Executable ()
