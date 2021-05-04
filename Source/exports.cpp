@@ -1,3 +1,5 @@
+/// \file
+/// This file must be included in the Nirvana core executable project to force linker include exports.
 /*
 * Nirvana Core.
 *
@@ -33,7 +35,6 @@ NIRVANA_LINK_SYMBOL (_exp_PortableServer_POA_ObjectNotActive_TC)
 NIRVANA_LINK_SYMBOL (_exp_CORBA_Nirvana_TCKind_TC)
 NIRVANA_LINK_SYMBOL (_exp_CORBA_Nirvana_TypeCode_BadKind_TC)
 NIRVANA_LINK_SYMBOL (_exp_CORBA_Nirvana_TypeCode_Bounds_TC)
-NIRVANA_LINK_SYMBOL (_exp_CORBA_TypeCode_TC)
 
 NIRVANA_LINK_SYMBOL (_exp_CORBA_Nirvana_g_object_factory)
 
