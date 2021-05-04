@@ -34,7 +34,8 @@ namespace Core {
 
 using namespace Nirvana::Core;
 
-ThreadBackground::ThreadBackground ()
+ThreadBackground::ThreadBackground (bool process) :
+	Nirvana::Core::Port::ThreadBackground (process)
 {}
 
 void ThreadBackground::start (RuntimeSupportLegacy& runtime_support, Nirvana::Core::Runnable& runnable)

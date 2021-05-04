@@ -84,7 +84,7 @@ public:
 	virtual void yield () NIRVANA_NOEXCEPT;
 
 protected:
-	ThreadBackground ();
+	ThreadBackground (bool process);
 
 	void start (RuntimeSupportLegacy& runtime_support, Nirvana::Core::Runnable& runnable);
 

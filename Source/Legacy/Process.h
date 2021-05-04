@@ -46,7 +46,8 @@ public:
 	virtual Nirvana::Core::Heap& memory () NIRVANA_NOEXCEPT;
 
 protected:
-	Process ()
+	Process () :
+		ThreadBackground (true)
 	{}
 
 private:
