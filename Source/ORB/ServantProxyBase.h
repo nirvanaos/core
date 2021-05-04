@@ -120,7 +120,7 @@ protected:
 		::Nirvana::Pointer out_params)
 	{
 		try {
-			IORequest_ptr rq = IORequest::_check (call);
+			IORequest::_ptr_type rq = IORequest::_check (call);
 			try {
 				proc ((I*)(void*)servant, rq, in_params, Type <Unmarshal>::inout (unmarshaler), out_params);
 				rq->success ();

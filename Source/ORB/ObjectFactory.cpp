@@ -63,3 +63,5 @@ extern const ::Nirvana::ImportInterfaceT <ObjectFactory> g_object_factory = {
 
 }
 }
+
+NIRVANA_EXPORT (_exp_CORBA_Nirvana_g_object_factory, "CORBA/Nirvana/g_object_factory", CORBA::Nirvana::ObjectFactory, CORBA::Nirvana::Core::ObjectFactory)
