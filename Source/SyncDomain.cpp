@@ -104,7 +104,7 @@ void SyncDomain::enter ()
 	SyncContext* sync_context = exec_domain->sync_context ();
 	assert (sync_context);
 	if (!sync_context->sync_domain ()) {
-		Core_var <SyncDomain> sd = Core_var <SyncDomain>::create <ImplDynamic <SyncDomain>> ();
+		Core_ref <SyncDomain> sd = Core_ref <SyncDomain>::create <ImplDynamic <SyncDomain>> ();
 		sd->state_ = State::RUNNING;
 		exec_domain->sync_context (*sd);
 	}

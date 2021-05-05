@@ -30,11 +30,11 @@ namespace Core {
 
 ObjectPool <ExecDomain> ExecDomain::pool_;
 
-Core_var <ExecDomain> ExecDomain::get (DeadlineTime deadline)
+Core_ref <ExecDomain> ExecDomain::get (DeadlineTime deadline)
 {
 	Scheduler::activity_begin ();	// Throws exception if shutdown was started.
 	try {
-		Core_var <ExecDomain> exec_domain = pool_.get ();
+		Core_ref <ExecDomain> exec_domain = pool_.get ();
 		exec_domain->deadline_ = deadline;
 		return exec_domain;
 	} catch (...) {
@@ -68,7 +68,7 @@ void ExecDomain::schedule (SyncDomain* sync_domain)
 {
 	assert (&ExecContext::current () != this);
 
-	Core_var <SyncContext> old_context = std::move (sync_context_);
+	Core_ref <SyncContext> old_context = std::move (sync_context_);
 	if (!sync_domain && !scheduler_item_created_) {
 		Scheduler::create_item ();
 		scheduler_item_created_ = true;
@@ -195,7 +195,7 @@ void ExecDomain::schedule_return (SyncContext& sync_context) NIRVANA_NOEXCEPT
 void ExecDomain::ScheduleReturn::run ()
 {
 	Thread& thread = Thread::current ();
-	Core_var <SyncDomain> old_sync_domain = exec_domain_->sync_context ()->sync_domain ();
+	Core_ref <SyncDomain> old_sync_domain = exec_domain_->sync_context ()->sync_domain ();
 	sync_context_->schedule_return (*exec_domain_);
 	if (old_sync_domain)
 		old_sync_domain->leave ();

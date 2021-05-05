@@ -44,7 +44,7 @@ class NIRVANA_NOVTABLE SyncDomain :
 	public SyncContext
 {
 protected:
-	friend class Core_var <SyncDomain>;
+	friend class Core_ref <SyncDomain>;
 	virtual void _add_ref () = 0;
 	virtual void _remove_ref () = 0;
 

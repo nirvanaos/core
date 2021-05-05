@@ -75,15 +75,15 @@ private:
 class RuntimeSupportImpl
 {
 	typedef phmap::flat_hash_map
-		<const void*, Core_var <RuntimeProxyImpl>,
-		std::hash <const void*>, std::equal_to <const void*>, UserAllocator <std::pair <const void* const, Core_var <RuntimeProxyImpl> > > > ProxyMap;
+		<const void*, Core_ref <RuntimeProxyImpl>,
+		std::hash <const void*>, std::equal_to <const void*>, UserAllocator <std::pair <const void* const, Core_ref <RuntimeProxyImpl> > > > ProxyMap;
 public:
 	RuntimeProxy::_ref_type runtime_proxy_get (const void* obj)
 	{
 		std::pair <ProxyMap::iterator, bool> ins = proxy_map_.insert (ProxyMap::value_type (obj, nullptr));
 		if (ins.second) {
 			try {
-				ins.first->second = Core_var <RuntimeProxyImpl>::create <RuntimeProxyImpl> (obj);
+				ins.first->second = Core_ref <RuntimeProxyImpl>::create <RuntimeProxyImpl> (obj);
 			} catch (...) {
 				proxy_map_.erase (ins.first);
 				throw;

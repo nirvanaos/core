@@ -48,7 +48,7 @@ class ImplPoolable :
 	public StackElem
 {
 private:
-	template <class> friend class Core_var;
+	template <class> friend class Core_ref;
 
 	template <class ... Args>
 	ImplPoolable (Args ... args) :
@@ -71,13 +71,13 @@ class ObjectPool :
 {
 public:
 	/// Get object from the pool or create a new.
-	Core_var <T> get ()
+	Core_ref <T> get ()
 	{
-		Core_var <ImplPoolable <T> > obj (Stack <ImplPoolable <T> >::pop ());
+		Core_ref <ImplPoolable <T> > obj (Stack <ImplPoolable <T> >::pop ());
 		if (obj)
 			obj->_activate ();
 		else
-			obj = Core_var <ImplPoolable <T> >::template create <ImplPoolable <T> > ();
+			obj = Core_ref <ImplPoolable <T> >::template create <ImplPoolable <T> > ();
 		return obj;
 	}
 
