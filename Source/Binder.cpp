@@ -215,7 +215,7 @@ Interface* Binder::module_bind (Module::_ptr_type mod, const Section& metadata, 
 					if (OLF_IMPORT_INTERFACE == *it.cur ()) {
 						ImportInterface* ps = reinterpret_cast <ImportInterface*> (it.cur ());
 						if (!mod || ps != module_entry)
-							ps->itf = &Interface::_ptr_type(bind_sync (ps->name, ps->interface_id));
+							ps->itf = interface_duplicate (&bind_interface_sync (ps->name, ps->interface_id));
 					}
 				}
 
@@ -250,7 +250,17 @@ Interface* Binder::module_bind (Module::_ptr_type mod, const Section& metadata, 
 				for (OLF_Iterator it (writable, metadata.size); !it.end (); it.next ()) {
 					if (OLF_IMPORT_OBJECT == *it.cur ()) {
 						ImportInterface* ps = reinterpret_cast <ImportInterface*> (it.cur ());
-						reinterpret_cast <InterfaceRef&> (ps->itf) = bind_sync (ps->name, ps->interface_id);
+						Object::_ptr_type obj = bind_sync (ps->name);
+						const StringBase <char> requested_iid (ps->interface_id);
+						InterfacePtr itf;
+						if (RepositoryId::compatible (obj->_epv ().header.interface_id, requested_iid))
+							itf = &obj;
+						else {
+							itf = AbstractBase::_ptr_type (obj)->_query_interface (requested_iid);
+							if (!itf)
+								throw_INV_OBJREF ();
+						}
+						ps->itf = interface_duplicate (&itf);
 					}
 				}
 
@@ -327,13 +337,20 @@ void Binder::export_remove (const char* name) NIRVANA_NOEXCEPT
 	verify (map_.erase (name));
 }
 
-inline
-Binder::InterfaceRef Binder::bind_sync (const char* name, size_t name_len, const char* iid, size_t iid_len)
+Binder::InterfacePtr Binder::find (const char* name, size_t name_len)
 {
 	Key key (name, name_len);
 	auto pf = map_.lower_bound (key);
 	if (pf != map_.end () && pf->first.compatible (key)) {
-		InterfacePtr itf = &pf->second;
+		return pf->second;
+	}
+	return nullptr;
+}
+
+Binder::InterfacePtr Binder::bind_interface_sync (const char* name, size_t name_len, const char* iid, size_t iid_len)
+{
+	Interface::_ptr_type itf = find (name, name_len);
+	if (itf) {
 		const StringBase <char> itf_id = itf->_epv ().interface_id;
 		const StringBase <char> requested_iid (iid, iid_len);
 		if (!RepositoryId::compatible (itf_id, requested_iid)) {
@@ -356,6 +373,20 @@ Binder::InterfaceRef Binder::bind_sync (const char* name, size_t name_len, const
 		throw_OBJECT_NOT_EXIST ();
 }
 
+CORBA::Object::_ptr_type Binder::bind_sync (const char* name, size_t name_len)
+{
+	Interface::_ptr_type itf = find (name, name_len);
+	if (itf) {
+		if (RepositoryId::compatible (itf->_epv ().interface_id, Object::repository_id_))
+			return static_cast <Object*> (&itf);
+		else
+			throw_INV_OBJREF ();
+	} else
+		throw_OBJECT_NOT_EXIST ();
 }
+
+}
+
 extern const ImportInterfaceT <Binder> g_binder = { OLF_IMPORT_INTERFACE, "Nirvana/g_binder", Binder::repository_id_, NIRVANA_STATIC_BRIDGE (Binder, Core::Binder) };
+
 }

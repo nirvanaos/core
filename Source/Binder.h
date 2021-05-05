@@ -111,11 +111,19 @@ public:
 	static void initialize ();
 	static void terminate ();
 
-	static InterfaceRef bind (const std::string& _name, const std::string& _iid)
+	static CORBA::Object::_ref_type bind (const std::string& _name)
+	{
+		CoreString name (_name.c_str (), _name.length ());
+		SYNC_BEGIN (&sync_domain_);
+		return bind_sync (name);
+		SYNC_END ();
+	}
+
+	static InterfaceRef bind_pseudo (const std::string& _name, const std::string& _iid)
 	{
 		CoreString name (_name.c_str (), _name.length ()), iid (_iid.c_str (), _iid.length ());
 		SYNC_BEGIN (&sync_domain_);
-		return bind_sync (name, iid);
+		return bind_interface_sync (name, iid);
 		SYNC_END ();
 	}
 
@@ -151,17 +159,31 @@ private:
 	static void export_add (const char* name, InterfacePtr itf);
 	static void export_remove (const char* name) NIRVANA_NOEXCEPT;
 
-	static InterfaceRef bind_sync (const CoreString& name, const CoreString& iid)
+	static InterfacePtr bind_interface_sync (const char* name, size_t name_len, const char* iid, size_t iid_len);
+
+	static InterfacePtr bind_interface_sync (const CoreString& name, const CoreString& iid)
 	{
-		return bind_sync (name.c_str (), name.length (), iid.c_str (), iid.length ());
+		return bind_interface_sync (name.c_str (), name.length (), iid.c_str (), iid.length ());
 	}
 
-	static InterfaceRef bind_sync (const char* name, const char* iid)
+	static InterfacePtr bind_interface_sync (const char* name, const char* iid)
 	{
-		return bind_sync (name, strlen (name), iid, strlen (iid));
+		return bind_interface_sync (name, strlen (name), iid, strlen (iid));
 	}
 
-	static InterfaceRef bind_sync (const char* name, size_t name_len, const char* iid, size_t iid_len);
+	static CORBA::Object::_ptr_type bind_sync (const CoreString& name)
+	{
+		return bind_sync (name.c_str (), name.length ());
+	}
+
+	static CORBA::Object::_ptr_type bind_sync (const char* name)
+	{
+		return bind_sync (name, strlen (name));
+	}
+
+	static CORBA::Object::_ptr_type bind_sync (const char* name, size_t name_len);
+
+	static InterfacePtr find (const char* name, size_t name_len);
 
 	NIRVANA_NORETURN static void invalid_metadata ();
 
