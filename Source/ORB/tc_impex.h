@@ -30,7 +30,7 @@
 
 #define TC_IMPEX_EX(t, id, ...) namespace CORBA {\
 extern const ::Nirvana::ImportInterfaceT <TypeCode> _tc_##t = { ::Nirvana::OLF_IMPORT_INTERFACE, nullptr, nullptr, NIRVANA_STATIC_BRIDGE (TypeCode, __VA_ARGS__) };\
-} NIRVANA_EXPORT (_exp_CORBA_tc_##t, id, CORBA::TypeCode, __VA_ARGS__);
+} NIRVANA_EXPORT (_exp_CORBA_##t, id, CORBA::TypeCode, __VA_ARGS__);
 
 // Import and export for type code
 #define TC_IMPEX(t, ...) TC_IMPEX_EX (t, "CORBA/_tc_" #t, __VA_ARGS__)

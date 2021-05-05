@@ -29,16 +29,16 @@
 
 NIRVANA_LINK_SYMBOL (_exp_Nirvana_g_memory)
 NIRVANA_LINK_SYMBOL (_exp_Nirvana_g_runtime_support)
-NIRVANA_LINK_SYMBOL (_exp_PortableServer_POA_ProxyFactory)
-NIRVANA_LINK_SYMBOL (_exp_PortableServer_POA_ServantAlreadyActive_TC)
-NIRVANA_LINK_SYMBOL (_exp_PortableServer_POA_ObjectNotActive_TC)
-NIRVANA_LINK_SYMBOL (_exp_CORBA_Nirvana_TCKind_TC)
-NIRVANA_LINK_SYMBOL (_exp_CORBA_Nirvana_TypeCode_BadKind_TC)
-NIRVANA_LINK_SYMBOL (_exp_CORBA_Nirvana_TypeCode_Bounds_TC)
+NIRVANA_LINK_SYMBOL (_exp_PortableServer_POA)
+NIRVANA_LINK_SYMBOL (_exp_PortableServer_POA_ServantAlreadyActive)
+NIRVANA_LINK_SYMBOL (_exp_PortableServer_POA_ObjectNotActive)
+NIRVANA_LINK_SYMBOL (_exp_CORBA_Nirvana_TCKind)
+NIRVANA_LINK_SYMBOL (_exp_CORBA_Nirvana_TypeCode_BadKind)
+NIRVANA_LINK_SYMBOL (_exp_CORBA_Nirvana_TypeCode_Bounds)
 
 NIRVANA_LINK_SYMBOL (_exp_CORBA_Nirvana_g_object_factory)
 
-#define EXPORT_TC(t) NIRVANA_LINK_SYMBOL (_exp_CORBA_tc_##t)
+#define EXPORT_TC(t) NIRVANA_LINK_SYMBOL (_exp_CORBA_##t)
 EXPORT_TC (void)
 EXPORT_TC (short)
 EXPORT_TC (long)
