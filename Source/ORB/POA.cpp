@@ -23,7 +23,6 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include <core.h>
 #include <CORBA/Server.h>
 #include <CORBA/POA.h>
 #include <CORBA/Proxy/TypeCodeException.h>

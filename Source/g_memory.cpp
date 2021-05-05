@@ -26,7 +26,6 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "core.h"
 #include <CORBA/Server.h>
 #include <Memory_s.h>
 #include <Nirvana/OLF.h>
@@ -36,7 +35,7 @@
 namespace Nirvana {
 namespace Core {
 
-/// Delegates all operations to g_core_heap->
+/// Delegates all operations to g_core_heap
 class CoreMemory :
 	public ::CORBA::Nirvana::ServantStatic <CoreMemory, Memory>
 {

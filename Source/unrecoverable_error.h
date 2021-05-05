@@ -1,5 +1,4 @@
 /// \file
-/// Core implementation definitions
 /*
 * Nirvana Core.
 *
@@ -28,8 +27,7 @@
 #ifndef NIRVANA_CORE_CORE_H_
 #define NIRVANA_CORE_CORE_H_
 
-#include <Nirvana/Nirvana.h>
-#include <Port/config.h>
+#include <Nirvana/NirvanaBase.h>
 
 namespace Nirvana {
 namespace Core {

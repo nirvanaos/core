@@ -28,7 +28,8 @@
 #ifndef NIRVANA_ORB_CORE_MESSAGE_H_
 #define NIRVANA_ORB_CORE_MESSAGE_H_
 
-#include "../core.h"
+#include <CORBA/SystemException.h>
+#include <Port/config.h>
 
 namespace Nirvana {
 namespace ESIOP {

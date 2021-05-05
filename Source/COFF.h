@@ -26,7 +26,7 @@
 #ifndef NIRVANA_CORE_COFF_H_
 #define NIRVANA_CORE_COFF_H_
 
-#include <core.h>
+#include <Nirvana/NirvanaBase.h>
 #include "llvm/BinaryFormat/COFF.h"
 
 namespace Nirvana {

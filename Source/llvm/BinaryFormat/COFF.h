@@ -27,6 +27,7 @@
 #define LLVM_BINARYFORMAT_COFF_H
 
 #include <stdint.h>
+#include <assert.h>
 
 namespace llvm {
 namespace COFF {

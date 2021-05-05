@@ -27,7 +27,6 @@
 #ifndef NIRVANA_LEGACY_CORE_EXECUTABLE_H_
 #define NIRVANA_LEGACY_CORE_EXECUTABLE_H_
 
-#include "../core.h"
 #include "../CoreObject.h"
 #include <CORBA/Server.h>
 #include <Nirvana/Main.h>

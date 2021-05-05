@@ -28,6 +28,7 @@
 
 #include "HeapDirectory.h"
 #include "SkipList.h"
+#include <Port/config.h>
 
 namespace Nirvana {
 namespace Core {

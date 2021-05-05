@@ -27,8 +27,6 @@
 #ifndef NIRVANA_CORE_ARRAY_H_
 #define NIRVANA_CORE_ARRAY_H_
 
-#include "core.h"
-
 namespace Nirvana {
 namespace Core {
 

@@ -27,7 +27,6 @@
 #ifndef NIRVANA_CORE_THREAD_H_
 #define NIRVANA_CORE_THREAD_H_
 
-#include "core.h"
 #include "ExecContext.h"
 #include <Port/Thread.h>
 

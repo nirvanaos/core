@@ -1,4 +1,3 @@
-#include <core.h>
 #include <Port/Memory.h>
 #include <gtest/gtest.h>
 

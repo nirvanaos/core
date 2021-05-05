@@ -25,7 +25,6 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include <core.h>
 #include <CORBA/Proxy/Proxy.h>
 #include <CORBA/POA_s.h>
 #include <ORB/ServantBase.h>
