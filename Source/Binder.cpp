@@ -40,8 +40,7 @@ using namespace CORBA::Nirvana;
 using namespace PortableServer;
 using CORBA::Nirvana::Core::POA;
 
-ImplStatic <SyncDomain> Binder::sync_domain_;
-Binder::Map Binder::map_;
+Binder Binder::singleton_;
 
 class Binder::OLF_Iterator
 {
@@ -111,9 +110,9 @@ void Binder::initialize ()
 	if (!Port::SystemInfo::get_OLF_section (metadata))
 		throw_INITIALIZE ();
 
-	SYNC_BEGIN (&sync_domain_);
-	export_add (g_binder.imp.name, g_binder.imp.itf);
-	module_bind (nullptr, metadata, &SyncContext::free_sync_context ());
+	SYNC_BEGIN (&singleton_.sync_domain_);
+	singleton_.export_add (g_binder.imp.name, g_binder.imp.itf);
+	singleton_.module_bind (nullptr, metadata, &SyncContext::free_sync_context ());
 	SYNC_END ();
 }
 
@@ -337,7 +336,7 @@ void Binder::export_remove (const char* name) NIRVANA_NOEXCEPT
 	verify (map_.erase (name));
 }
 
-Binder::InterfacePtr Binder::find (const char* name, size_t name_len)
+Binder::InterfacePtr Binder::find (const char* name, size_t name_len) const
 {
 	Key key (name, name_len);
 	auto pf = map_.lower_bound (key);

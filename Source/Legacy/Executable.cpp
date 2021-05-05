@@ -37,7 +37,7 @@ Executable::Executable (const char* file) :
 
 Executable::~Executable ()
 {
-	Nirvana::Core::Binder::module_unbind (_get_ptr (), metadata ());
+	Nirvana::Core::Binder::unbind (_get_ptr (), metadata ());
 }
 
 }

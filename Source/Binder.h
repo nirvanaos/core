@@ -114,16 +114,16 @@ public:
 	static CORBA::Object::_ref_type bind (const std::string& _name)
 	{
 		CoreString name (_name.c_str (), _name.length ());
-		SYNC_BEGIN (&sync_domain_);
-		return bind_sync (name);
+		SYNC_BEGIN (&singleton_.sync_domain_);
+		return singleton_.bind_sync (name);
 		SYNC_END ();
 	}
 
 	static InterfaceRef bind_pseudo (const std::string& _name, const std::string& _iid)
 	{
 		CoreString name (_name.c_str (), _name.length ()), iid (_iid.c_str (), _iid.length ());
-		SYNC_BEGIN (&sync_domain_);
-		return bind_interface_sync (name, iid);
+		SYNC_BEGIN (&singleton_.sync_domain_);
+		return singleton_.bind_interface_sync (name, iid);
 		SYNC_END ();
 	}
 
@@ -134,62 +134,72 @@ public:
 	/// \returns The Main interface pointer.
 	static ::Nirvana::Legacy::Main::_ptr_type bind_executable (Module::_ptr_type mod, const Section& metadata)
 	{
-		CORBA::Nirvana::Interface* startup = module_bind (mod, metadata, nullptr);
+		SYNC_BEGIN (&singleton_.sync_domain_);
+		CORBA::Nirvana::Interface* startup = singleton_.module_bind (mod, metadata, nullptr);
 		try {
 			if (!startup)
 				invalid_metadata ();
 			return ::Nirvana::Legacy::Main::_check (startup);
 		} catch (...) {
-			module_unbind (mod, metadata);
+			singleton_.module_unbind (mod, metadata);
 			throw;
 		}
+		SYNC_END ();
 	}
 
 	/// Unbind module.
 	/// 
 	/// \param mod Module interface.
 	/// \param metadata Module OLF metadata section.
-	static void module_unbind (Module::_ptr_type mod, const Section& metadata) NIRVANA_NOEXCEPT;
+	static void unbind (Module::_ptr_type mod, const Section& metadata) NIRVANA_NOEXCEPT
+	{
+		SYNC_BEGIN (&singleton_.sync_domain_);
+		singleton_.module_unbind (mod, metadata);
+		SYNC_END ();
+	}
 
 private:
-	static CORBA::Nirvana::Interface* module_bind (Module::_ptr_type mod, const Section& metadata, SyncContext* sync_context);
+	CORBA::Nirvana::Interface* module_bind (Module::_ptr_type mod, const Section& metadata, SyncContext* sync_context);
+	void module_unbind (Module::_ptr_type mod, const Section& metadata) NIRVANA_NOEXCEPT;
 
 	class OLF_Iterator;
 
-	static void export_add (const char* name, InterfacePtr itf);
-	static void export_remove (const char* name) NIRVANA_NOEXCEPT;
+	void export_add (const char* name, InterfacePtr itf);
+	void export_remove (const char* name) NIRVANA_NOEXCEPT;
 
-	static InterfacePtr bind_interface_sync (const char* name, size_t name_len, const char* iid, size_t iid_len);
+	InterfacePtr bind_interface_sync (const char* name, size_t name_len, const char* iid, size_t iid_len);
 
-	static InterfacePtr bind_interface_sync (const CoreString& name, const CoreString& iid)
+	InterfacePtr bind_interface_sync (const CoreString& name, const CoreString& iid)
 	{
 		return bind_interface_sync (name.c_str (), name.length (), iid.c_str (), iid.length ());
 	}
 
-	static InterfacePtr bind_interface_sync (const char* name, const char* iid)
+	InterfacePtr bind_interface_sync (const char* name, const char* iid)
 	{
 		return bind_interface_sync (name, strlen (name), iid, strlen (iid));
 	}
 
-	static CORBA::Object::_ptr_type bind_sync (const CoreString& name)
+	CORBA::Object::_ptr_type bind_sync (const CoreString& name)
 	{
 		return bind_sync (name.c_str (), name.length ());
 	}
 
-	static CORBA::Object::_ptr_type bind_sync (const char* name)
+	CORBA::Object::_ptr_type bind_sync (const char* name)
 	{
 		return bind_sync (name, strlen (name));
 	}
 
-	static CORBA::Object::_ptr_type bind_sync (const char* name, size_t name_len);
+	CORBA::Object::_ptr_type bind_sync (const char* name, size_t name_len);
 
-	static InterfacePtr find (const char* name, size_t name_len);
+	InterfacePtr find (const char* name, size_t name_len) const;
 
 	NIRVANA_NORETURN static void invalid_metadata ();
 
 private:
-	static ImplStatic <SyncDomain> sync_domain_;
-	static Map map_;
+	ImplStatic <SyncDomain> sync_domain_;
+	Map map_;
+
+	static Binder singleton_;
 };
 
 }
