@@ -28,6 +28,8 @@
 #define NIRVANA_CORE_COREINTERFACE_H_
 
 #include "AtomicCounter.h"
+#include <assert.h>
+#include <Nirvana/throw_exception.h>
 
 namespace Nirvana {
 namespace Core {

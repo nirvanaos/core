@@ -27,7 +27,8 @@
 #ifndef NIRVANA_CORE_ATOMICCOUNTER_H_
 #define NIRVANA_CORE_ATOMICCOUNTER_H_
 
-#include "core.h"
+#include <Nirvana/NirvanaBase.h>
+#include <assert.h>
 #include <atomic>
 #include <type_traits>
 

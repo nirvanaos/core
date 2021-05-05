@@ -26,8 +26,8 @@
 #ifndef NIRVANA_CORE_STARTUP_H_
 #define NIRVANA_CORE_STARTUP_H_
 
+#include <CORBA/CORBA.h>
 #include "Runnable.h"
-#include "initterm.h"
 #include <exception>
 
 namespace Nirvana {

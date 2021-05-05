@@ -28,7 +28,7 @@
 */
 #include "core.h"
 #include <CORBA/Server.h>
-#include <Nirvana/Memory_s.h>
+#include <Memory_s.h>
 #include <Nirvana/OLF.h>
 #include "user_memory.h"
 #include "ExecDomain.h"

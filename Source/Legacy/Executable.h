@@ -31,7 +31,7 @@
 #include "../CoreObject.h"
 #include <CORBA/Server.h>
 #include <Nirvana/Main.h>
-#include <Nirvana/Module_s.h>
+#include <Module_s.h>
 #include "../ORB/LifeCycleStack.h"
 #include <Port/Executable.h>
 

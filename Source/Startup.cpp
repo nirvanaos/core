@@ -24,6 +24,7 @@
 *  popov.nirvana@gmail.com
 */
 #include "Startup.h"
+#include "initterm.h"
 #include "Scheduler.h"
 #include "Runnable.h"
 #include "Legacy/Executable.h"
