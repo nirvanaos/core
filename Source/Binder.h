@@ -44,6 +44,9 @@
 namespace Nirvana {
 namespace Core {
 
+class ClassLibrary;
+class Singleton;
+
 class Binder :
 	public CORBA::Nirvana::ServantStatic <Binder, ::Nirvana::Binder>
 {
@@ -128,41 +131,27 @@ public:
 		SYNC_END ();
 	}
 
-	/// Bind module.
+	/// Bind ClassLibrary.
 	/// 
-	/// \param mod Module interface.
-	/// \param metadata Module OLF metadata section.
-	/// \param singleton `true` if the module is a singleton library.
+	/// \param mod ClassLibrary object.
 	/// \returns The ModuleInit interface pointer or `nil` if not present.
-	static ModuleInit::_ptr_type bind_module (Module::_ptr_type mod, const Section& metadata, bool singleton)
-	{
-		SYNC_BEGIN (&singleton_.sync_domain_);
-		const ModuleStartup* startup = singleton_.module_bind (mod, metadata, singleton ? ModuleType::SINGLETON : ModuleType::CLASS_LIBRARY);
-		try {
-			if (startup) {
-				if (((startup->flags & OLF_MODULE_SINGLETON) != 0) != singleton)
-					invalid_metadata ();
-				return ModuleInit::_check (startup->startup);
-			} else if (singleton)
-				invalid_metadata ();
-			else
-				return nullptr;
-		} catch (...) {
-			singleton_.module_unbind (mod, metadata);
-			throw;
-		}
-		SYNC_END ();
-	}
+	static ModuleInit::_ptr_type bind (ClassLibrary& mod);
+
+	/// Bind Singleton.
+	/// 
+	/// \param mod Singleton object.
+	/// \returns The ModuleInit interface pointer or `nil` if not present.
+	static ModuleInit::_ptr_type bind (Singleton& mod);
 
 	/// Bind legacy process executable.
 	/// 
 	/// \param mod Module interface.
 	/// \param metadata Module OLF metadata section.
 	/// \returns The Main interface pointer.
-	static Legacy::Main::_ptr_type bind_executable (Module::_ptr_type mod, const Section& metadata)
+	static Legacy::Main::_ptr_type bind_executable (::Nirvana::Module::_ptr_type mod, const Section& metadata)
 	{
 		SYNC_BEGIN (&singleton_.sync_domain_);
-		const ModuleStartup* startup = singleton_.module_bind (mod, metadata, ModuleType::EXECUTABLE);
+		const ModuleStartup* startup = singleton_.module_bind (mod, metadata, nullptr);
 		try {
 			if (!startup || !startup->startup)
 				invalid_metadata ();
@@ -178,7 +167,7 @@ public:
 	/// 
 	/// \param mod Module interface.
 	/// \param metadata Module OLF metadata section.
-	static void unbind (Module::_ptr_type mod, const Section& metadata) NIRVANA_NOEXCEPT
+	static void unbind (::Nirvana::Module::_ptr_type mod, const Section& metadata) NIRVANA_NOEXCEPT
 	{
 		SYNC_BEGIN (&singleton_.sync_domain_);
 		singleton_.module_unbind (mod, metadata);
@@ -186,15 +175,19 @@ public:
 	}
 
 private:
-	enum class ModuleType
-	{
-		EXECUTABLE,
-		CLASS_LIBRARY,
-		SINGLETON
-	};
 
-	const ModuleStartup* module_bind (Module::_ptr_type mod, const Section& metadata, ModuleType module_type);
-	void module_unbind (Module::_ptr_type mod, const Section& metadata) NIRVANA_NOEXCEPT;
+	/// Bind module.
+	/// 
+	/// \param mod The Nirvana::Module interface.
+	/// \param metadata Module metadata.
+	/// \param sync_context Synchronization context.
+	///   If module is Legacy::Executable, sync_context must be `nullptr`.
+	///   If module is ClassLibrary, sync_context is free context.
+	///   If module is Singleton, sync_context is the singleton synchronization domain.
+	/// 
+	/// \returns Pointer to the ModuleStartup metadata structure, if found. Otherwise `nullptr`.
+	const ModuleStartup* module_bind (::Nirvana::Module::_ptr_type mod, const Section& metadata, SyncContext* sync_context);
+	void module_unbind (::Nirvana::Module::_ptr_type mod, const Section& metadata) NIRVANA_NOEXCEPT;
 
 	class OLF_Iterator;
 

@@ -24,6 +24,8 @@
 *  popov.nirvana@gmail.com
 */
 #include "Loader.h"
+#include "ClassLibrary.h"
+#include "Singleton.h"
 
 using namespace std;
 
@@ -36,16 +38,25 @@ CoreRef <Module> Loader::load (const string& name, bool singleton)
 {
 	CoreString name_copy (name.c_str (), name.length ());
 	SYNC_BEGIN (&singleton_.sync_domain_);
+	if (singleton_.terminated_)
+		throw_BAD_INV_ORDER ();
 	auto ins = singleton_.map_.emplace (piecewise_construct, forward_as_tuple (move (name_copy)), make_tuple ());
 	if (ins.second) {
 		try {
-			return ins.first->second.initialize (new Module (ins.first->first, singleton));
+			if (singleton)
+				return ins.first->second.initialize (new Singleton (ins.first->first));
+			else
+				return ins.first->second.initialize (new ClassLibrary (ins.first->first));
 		} catch (...) {
 			singleton_.map_.erase (ins.first);
 			throw;
 		}
-	} else
-		return ins.first->second.get ();
+	} else {
+		Module* p = ins.first->second.get ();
+		if (p->singleton () != singleton)
+			throw_BAD_PARAM ();
+		return p;
+	}
 	SYNC_END ();
 }
 

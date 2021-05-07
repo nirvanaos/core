@@ -23,55 +23,18 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "WaitList.h"
-#include "CoreObject.h"
-#include "ExecDomain.h"
-#include "Suspend.h"
-
-using namespace std;
+#include "Module.h"
+#include "Binder.h"
 
 namespace Nirvana {
 namespace Core {
 
-WaitList::WaitList () :
-	finished_ (false),
-	wait_list_ (nullptr)
-{
-	if (!SyncContext::current ().sync_domain ())
-		throw_BAD_INV_ORDER ();
-}
-
-void WaitList::wait ()
-{
-	if (!finished_) {
-		ExecDomain* ed = Thread::current ().exec_domain ();
-		assert (ed);
-		ed->wait_list_next_ = wait_list_;
-		wait_list_ = ed;
-		ed->suspend ();
-	}
-	assert (finished_);
-	if (exception_)
-		rethrow_exception (exception_);
-}
-
-void WaitList::on_exception () NIRVANA_NOEXCEPT
-{
-	assert (!finished_);
-	assert (!exception_);
-	exception_ = current_exception ();
-	finish ();
-}
-
-void WaitList::finish () NIRVANA_NOEXCEPT
-{
-	finished_ = true;
-	while (wait_list_) {
-		ExecDomain* ed = wait_list_;
-		wait_list_ = ed->wait_list_next_;
-		ed->resume ();
-	}
-}
+Module::Module (const CoreString& name, bool singleton) :
+	Port::Module (name),
+	singleton_ (singleton),
+	ref_cnt_ (0),
+	entry_point_ (nullptr)
+{}
 
 }
 }

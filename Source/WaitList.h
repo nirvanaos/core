@@ -40,7 +40,7 @@ class WaitList :
 	public ImplDynamicSync <CoreObject>
 {
 public:
-	WaitList () NIRVANA_NOEXCEPT;
+	WaitList ();
 
 	void wait ();
 	void on_exception () NIRVANA_NOEXCEPT;

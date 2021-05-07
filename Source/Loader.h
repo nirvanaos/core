@@ -40,7 +40,20 @@ namespace Core {
 class Loader
 {
 public:
+	Loader () :
+		terminated_ (false)
+	{}
+
 	static CoreRef <Module> load (const std::string& name, bool singleton);
+
+	static void terminate ()
+	{
+		SYNC_BEGIN (&singleton_.sync_domain_);
+		assert (!singleton_.terminated_);
+		singleton_.terminated_ = true;
+		singleton_.map_.clear ();
+		SYNC_END ();
+	}
 
 private:
 	typedef phmap::flat_hash_map <CoreString, WaitableRef <Module*>, phmap::Hash <CoreString>, phmap::EqualTo <CoreString>, 
@@ -48,6 +61,7 @@ private:
 
 	ImplStatic <SyncDomain> sync_domain_;
 	Map map_;
+	bool terminated_;
 
 	static Loader singleton_;
 };

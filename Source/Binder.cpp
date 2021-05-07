@@ -30,6 +30,7 @@
 #include "ORB/POA.h"
 #include "ORB/ServantBase.h"
 #include "ORB/LocalObject.h"
+#include "ClassLibrary.h"
 
 namespace Nirvana {
 namespace Core {
@@ -112,7 +113,7 @@ void Binder::initialize ()
 
 	SYNC_BEGIN (&singleton_.sync_domain_);
 	singleton_.export_add (g_binder.imp.name, g_binder.imp.itf);
-	singleton_.module_bind (nullptr, metadata, ModuleType::CLASS_LIBRARY);
+	singleton_.module_bind (nullptr, metadata, &SyncContext::free_sync_context ());
 	SYNC_END ();
 }
 
@@ -126,7 +127,7 @@ NIRVANA_NORETURN void Binder::invalid_metadata ()
 	throw runtime_error ("Invalid file format");
 }
 
-const ModuleStartup* Binder::module_bind (Module::_ptr_type mod, const Section& metadata, ModuleType module_type)
+const ModuleStartup* Binder::module_bind (::Nirvana::Module::_ptr_type mod, const Section& metadata, SyncContext* sync_context)
 {
 	enum MetadataFlags
 	{
@@ -138,8 +139,6 @@ const ModuleStartup* Binder::module_bind (Module::_ptr_type mod, const Section& 
 	ImportInterface* module_entry = nullptr;
 	void* writable = const_cast <void*> (metadata.address);
 	const ModuleStartup* module_startup = nullptr;
-	CoreRef <SyncDomain> sync_domain;
-	SyncContext* sync_context = nullptr;
 
 	try {
 
@@ -159,14 +158,14 @@ const ModuleStartup* Binder::module_bind (Module::_ptr_type mod, const Section& 
 								invalid_metadata ();
 							module_entry = ps;
 							break;
-						} else if (ModuleType::EXECUTABLE == module_type && key.is_a (k_object_factory))
+						} else if (!sync_context && key.is_a (k_object_factory))
 							invalid_metadata (); // Legacy process can not import ObjectFactory interface
 					}
 					flags |= MetadataFlags::IMPORT_INTERFACES;
 					break;
 
 				case OLF_EXPORT_INTERFACE: {
-					if (ModuleType::EXECUTABLE == module_type) // Legacy process can not export
+					if (!sync_context) // Legacy process can not export
 						invalid_metadata ();
 					const ExportInterface* ps = reinterpret_cast <const ExportInterface*> (it.cur ());
 					export_add (ps->name, ps->itf);
@@ -174,16 +173,9 @@ const ModuleStartup* Binder::module_bind (Module::_ptr_type mod, const Section& 
 
 				case OLF_EXPORT_OBJECT:
 				case OLF_EXPORT_LOCAL:
-					if (ModuleType::EXECUTABLE == module_type) // Legacy process can not export
+					if (!sync_context) // Legacy process can not export
 						invalid_metadata ();
 					flags |= MetadataFlags::EXPORT_OBJECTS;
-					if (!sync_context) {
-						if (ModuleType::SINGLETON == module_type) {
-							sync_domain = CoreRef <SyncDomain>::create <ImplDynamic <SyncDomain> > ();
-							sync_context = sync_domain;
-						} else
-							sync_context = &SyncContext::free_sync_context ();
-					}
 					break;
 
 				case OLF_IMPORT_OBJECT:
@@ -280,7 +272,7 @@ const ModuleStartup* Binder::module_bind (Module::_ptr_type mod, const Section& 
 	return module_startup;
 }
 
-void Binder::module_unbind (Module::_ptr_type mod, const Section& metadata) NIRVANA_NOEXCEPT
+void Binder::module_unbind (::Nirvana::Module::_ptr_type mod, const Section& metadata) NIRVANA_NOEXCEPT
 {
 	// Pass 1: Remove all exports from table.
 	// This pass will not cause inter-domain calls.
@@ -395,6 +387,29 @@ CORBA::Object::_ptr_type Binder::bind_sync (const char* name, size_t name_len)
 			throw_INV_OBJREF ();
 	} else
 		throw_OBJECT_NOT_EXIST ();
+}
+
+ModuleInit::_ptr_type Binder::bind (ClassLibrary& mod)
+{
+	SYNC_BEGIN (&singleton_.sync_domain_);
+	const ModuleStartup* startup = singleton_.module_bind (mod._get_ptr (), mod.metadata (), &SyncContext::free_sync_context ());
+	try {
+		if (startup) {
+			if (startup->flags & OLF_MODULE_SINGLETON)
+				invalid_metadata ();
+			ModuleInit::_ptr_type init = ModuleInit::_check (startup->startup);
+			ImplStatic <SyncDomain> init_sd;
+			SYNC_BEGIN (&init_sd);
+			init->initialize ();
+			SYNC_END ();
+			return init;
+		} else
+			return nullptr;
+	} catch (...) {
+		singleton_.module_unbind (mod._get_ptr (), mod.metadata ());
+		throw;
+	}
+	SYNC_END ();
 }
 
 }

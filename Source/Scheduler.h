@@ -28,6 +28,7 @@
 
 #include <Port/Scheduler.h>
 #include "AtomicCounter.h"
+#include "Runnable.h"
 #include <atomic>
 
 namespace Nirvana {
@@ -37,22 +38,43 @@ class Scheduler : public Port::Scheduler
 {
 public:
 	static void shutdown () NIRVANA_NOEXCEPT;
-	static void activity_begin ();
+
+	static void activity_begin ()
+	{
+		assert (global_.state < State::SHUTDOWN_FINISH);
+		global_.activity_cnt.increment ();
+	}
+
 	static void activity_end () NIRVANA_NOEXCEPT;
 
 private:
-	static void check_shutdown () NIRVANA_NOEXCEPT;
-
-private:
-	enum class State
+	enum State
 	{
 		RUNNING = 0,
 		SHUTDOWN_STARTED,
+		TERMINATE,
 		SHUTDOWN_FINISH
 	};
 
-	static std::atomic <State> state_;
-	static AtomicCounter <false> activity_cnt_;
+	class Terminator : public ImplStatic <Runnable>
+	{
+	private:
+		virtual void run ();
+	};
+
+	struct GlobalData
+	{
+		std::atomic <State> state;
+		AtomicCounter <false> activity_cnt;
+		Terminator terminator;
+
+		GlobalData () :
+			state (State::RUNNING),
+			activity_cnt (0)
+		{}
+	};
+
+	static GlobalData global_;
 };
 
 }

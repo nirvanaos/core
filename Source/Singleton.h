@@ -23,55 +23,28 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "WaitList.h"
-#include "CoreObject.h"
-#include "ExecDomain.h"
-#include "Suspend.h"
+#ifndef NIRVANA_CORE_SINGLETON_H_
+#define NIRVANA_CORE_SINGLETON_H_
 
-using namespace std;
+#include "Module.h"
+#include "SyncDomain.h"
 
 namespace Nirvana {
 namespace Core {
 
-WaitList::WaitList () :
-	finished_ (false),
-	wait_list_ (nullptr)
+class Singleton : public Module
 {
-	if (!SyncContext::current ().sync_domain ())
-		throw_BAD_INV_ORDER ();
-}
+public:
+	Singleton (const CoreString& name) :
+		Module (name, true),
+		sync_domain_ (CoreRef <SyncDomain>::create <ImplDynamic <SyncDomain> > ())
+	{}
 
-void WaitList::wait ()
-{
-	if (!finished_) {
-		ExecDomain* ed = Thread::current ().exec_domain ();
-		assert (ed);
-		ed->wait_list_next_ = wait_list_;
-		wait_list_ = ed;
-		ed->suspend ();
-	}
-	assert (finished_);
-	if (exception_)
-		rethrow_exception (exception_);
-}
-
-void WaitList::on_exception () NIRVANA_NOEXCEPT
-{
-	assert (!finished_);
-	assert (!exception_);
-	exception_ = current_exception ();
-	finish ();
-}
-
-void WaitList::finish () NIRVANA_NOEXCEPT
-{
-	finished_ = true;
-	while (wait_list_) {
-		ExecDomain* ed = wait_list_;
-		wait_list_ = ed->wait_list_next_;
-		ed->resume ();
-	}
-}
+private:
+	CoreRef <SyncDomain> sync_domain_;
+};
 
 }
 }
+
+#endif

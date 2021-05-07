@@ -31,24 +31,22 @@
 #include <Nirvana/ModuleInit.h>
 #include "AtomicCounter.h"
 #include <Port/Module.h>
-#include "Binder.h"
+#include "CoreObject.h"
 
 namespace Nirvana {
 namespace Core {
 
-class Module :
+class NIRVANA_NOVTABLE Module :
+	public CoreObject,
 	public Port::Module,
 	public CORBA::Nirvana::Servant <Module, ::Nirvana::Module>,
 	public CORBA::Nirvana::LifeCycleRefCnt <Module>
 {
 public:
-	Module (const CoreString& file, bool singleton) :
-		Port::Module (file),
-		ref_cnt_ (0),
-		entry_point_ (Binder::bind_module (_get_ptr (), metadata (), singleton))
-	{}
+	Module (const CoreString& name, bool singleton);
 
-	~Module ();
+	virtual ~Module ()
+	{}
 
 	const void* base_address () const
 	{
@@ -66,11 +64,17 @@ public:
 			on_release ();
 	}
 
+	bool singleton () const
+	{
+		return singleton_;
+	}
+
 private:
 	void on_release ()
 	{}
 
-private:
+protected:
+	bool singleton_;
 	AtomicCounter <false> ref_cnt_;
 	ModuleInit::_ptr_type entry_point_;
 };
