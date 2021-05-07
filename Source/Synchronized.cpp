@@ -55,7 +55,7 @@ Synchronized::~Synchronized ()
 NIRVANA_NORETURN void Synchronized::on_exception ()
 {
 	std::exception_ptr exc = std::current_exception ();
-	Core_ref <SyncContext> context = std::move (call_context_);
+	CoreRef <SyncContext> context = std::move (call_context_);
 	ExecDomain* exec_domain = Thread::current ().exec_domain ();
 	assert (exec_domain);
 	exec_domain->schedule_return (*context);

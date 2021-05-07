@@ -40,7 +40,7 @@ class Process :
 	public Nirvana::Core::CoreObject
 {
 public:
-	static Nirvana::Core::Core_ref <Process> spawn (Nirvana::Core::Runnable& runnable);
+	static Nirvana::Core::CoreRef <Process> spawn (Nirvana::Core::Runnable& runnable);
 
 	/// Returns heap reference.
 	virtual Nirvana::Core::Heap& memory () NIRVANA_NOEXCEPT;

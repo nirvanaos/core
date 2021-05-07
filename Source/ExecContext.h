@@ -83,7 +83,7 @@ protected:
 	void on_crash (CORBA::SystemException::Code err) NIRVANA_NOEXCEPT;
 
 protected:
-	Core_ref <Runnable> runnable_;
+	CoreRef <Runnable> runnable_;
 };
 
 }

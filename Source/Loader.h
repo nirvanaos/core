@@ -40,7 +40,7 @@ namespace Core {
 class Loader
 {
 public:
-	static Core_ref <Module> load (const std::string& name, bool singleton);
+	static CoreRef <Module> load (const std::string& name, bool singleton);
 
 private:
 	typedef phmap::flat_hash_map <CoreString, WaitableRef <Module>, phmap::Hash <CoreString>, phmap::EqualTo <CoreString>, 

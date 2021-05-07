@@ -32,7 +32,7 @@ namespace Core {
 
 Loader Loader::singleton_;
 
-Core_ref <Module> Loader::load (const string& name, bool singleton)
+CoreRef <Module> Loader::load (const string& name, bool singleton)
 {
 	CoreString name_copy (name.c_str (), name.length ());
 	SYNC_BEGIN (&singleton_.sync_domain_);

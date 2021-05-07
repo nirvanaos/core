@@ -34,20 +34,20 @@
 namespace Nirvana {
 namespace Core {
 
-template <class> class Core_ref;
+template <class> class CoreRef;
 
 /// Core interface.
 class NIRVANA_NOVTABLE CoreInterface
 {
 protected:
-	template <class> friend class Core_ref;
+	template <class> friend class CoreRef;
 
 	// TODO: NIRVANA_NOEXCEPT?
 	virtual void _add_ref () = 0;
 	virtual void _remove_ref () = 0;
 };
 
-template <class T> class Core_ref;
+template <class T> class CoreRef;
 
 /// Dynamic implementation of a core object.
 /// \tparam T object class.
@@ -56,7 +56,7 @@ class ImplDynamic :
 	public T
 {
 protected:
-	template <class> friend class Core_ref;
+	template <class> friend class CoreRef;
 
 	template <class ... Args>
 	ImplDynamic (Args ... args) :
@@ -88,7 +88,7 @@ class ImplDynamicSync :
 	public T
 {
 protected:
-	template <class> friend class Core_ref;
+	template <class> friend class CoreRef;
 
 	template <class ... Args>
 	ImplDynamicSync (Args ... args) :
@@ -142,7 +142,7 @@ class ImplNoAddRef :
 	public T
 {
 protected:
-	template <class> friend class Core_ref;
+	template <class> friend class CoreRef;
 
 	template <class ... Args>
 	ImplNoAddRef (Args ... args) :
@@ -168,20 +168,20 @@ protected:
 /// \tparam T object or core interface class.
 ///         Note that T haven't to derive from CoreInterface, but can.
 template <class T>
-class Core_ref
+class CoreRef
 {
-	template <class T1> friend class Core_ref;
+	template <class T1> friend class CoreRef;
 public:
-	Core_ref () NIRVANA_NOEXCEPT :
+	CoreRef () NIRVANA_NOEXCEPT :
 		p_ (nullptr)
 	{}
 
-	Core_ref (nullptr_t) NIRVANA_NOEXCEPT :
+	CoreRef (nullptr_t) NIRVANA_NOEXCEPT :
 		p_ (nullptr)
 	{}
 
 	/// Increments reference counter unlike I_var.
-	Core_ref (T* p) NIRVANA_NOEXCEPT :
+	CoreRef (T* p) NIRVANA_NOEXCEPT :
 		p_ (p)
 	{
 		if (p_)
@@ -189,15 +189,15 @@ public:
 	}
 
 	template <class T1>
-	Core_ref (const Core_ref <T1>& src) NIRVANA_NOEXCEPT :
-		Core_ref (src.p_)
+	CoreRef (const CoreRef <T1>& src) NIRVANA_NOEXCEPT :
+		CoreRef (src.p_)
 	{
 		if (p_)
 			p_->_add_ref ();
 	}
 
 	template <class T1>
-	Core_ref (Core_ref <T1>&& src) NIRVANA_NOEXCEPT :
+	CoreRef (CoreRef <T1>&& src) NIRVANA_NOEXCEPT :
 		p_ (src.p_)
 	{
 		src.p_ = nullptr;
@@ -206,21 +206,21 @@ public:
 	/// Creates an object.
 	/// \tparam Impl Object implementation class.
 	template <class Impl, class ... Args>
-	static Core_ref create (Args ... args)
+	static CoreRef create (Args ... args)
 	{
-		Core_ref v;
+		CoreRef v;
 		v.p_ = new Impl (std::forward <Args> (args)...);
 		return v;
 	}
 
-	~Core_ref () NIRVANA_NOEXCEPT
+	~CoreRef () NIRVANA_NOEXCEPT
 	{
 		if (p_)
 			p_->_remove_ref ();
 	}
 
 	/// Increments reference counter unlike I_var.
-	Core_ref& operator = (T* p) NIRVANA_NOEXCEPT
+	CoreRef& operator = (T* p) NIRVANA_NOEXCEPT
 	{
 		if (p_ != p) {
 			reset (p);
@@ -231,7 +231,7 @@ public:
 	}
 
 	template <class T1>
-	Core_ref& operator = (const Core_ref <T1>& src) NIRVANA_NOEXCEPT
+	CoreRef& operator = (const CoreRef <T1>& src) NIRVANA_NOEXCEPT
 	{
 		T* p = src.p_;
 		if (p_ != p) {
@@ -243,7 +243,7 @@ public:
 	}
 
 	template <class T1>
-	Core_ref& operator = (Core_ref <T1>&& src) NIRVANA_NOEXCEPT
+	CoreRef& operator = (CoreRef <T1>&& src) NIRVANA_NOEXCEPT
 	{
 		if (this != &src) {
 			reset (src.p_);

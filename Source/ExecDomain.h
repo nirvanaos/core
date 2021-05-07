@@ -47,22 +47,22 @@ class NIRVANA_NOVTABLE ExecDomain :
 public:
 	static void async_call (const DeadlineTime& deadline, Runnable& runnable, SyncDomain* sync_domain)
 	{
-		Core_ref <ExecDomain> exec_domain = get (deadline);
+		CoreRef <ExecDomain> exec_domain = get (deadline);
 		exec_domain->runnable_ = &runnable;
 		exec_domain->spawn (sync_domain);
 	}
 
 	/// Used in porting for creation of the startup domain.
 	template <class ... Args>
-	static Core_ref <ExecDomain> create_main (const DeadlineTime& deadline, Runnable& startup, Args ... args)
+	static CoreRef <ExecDomain> create_main (const DeadlineTime& deadline, Runnable& startup, Args ... args)
 	{
-		return Core_ref <ExecDomain>::create <ImplPoolable <ExecDomain> > (deadline, std::ref (startup), std::forward <Args> (args)...);
+		return CoreRef <ExecDomain>::create <ImplPoolable <ExecDomain> > (deadline, std::ref (startup), std::forward <Args> (args)...);
 	}
 
 	/// Get execution domain for a background thread.
-	static Core_ref <ExecDomain> get_background (SyncContext& sync_context, Runnable& startup)
+	static CoreRef <ExecDomain> get_background (SyncContext& sync_context, Runnable& startup)
 	{
-		Core_ref <ExecDomain> exec_domain = get (INFINITE_DEADLINE);
+		CoreRef <ExecDomain> exec_domain = get (INFINITE_DEADLINE);
 		exec_domain->runnable_ = &startup;
 		exec_domain->sync_context_ = &sync_context;
 		return exec_domain;
@@ -213,7 +213,7 @@ private:
 		}
 	}
 
-	static Core_ref <ExecDomain> get (DeadlineTime deadline);
+	static CoreRef <ExecDomain> get (DeadlineTime deadline);
 
 	void cleanup () NIRVANA_NOEXCEPT;
 
@@ -257,7 +257,7 @@ private:
 	static ObjectPool <ExecDomain> pool_;
 
 	DeadlineTime deadline_;
-	Core_ref <SyncContext> sync_context_;
+	CoreRef <SyncContext> sync_context_;
 	SyncDomain::QueueNode* ret_qnodes_;
 	HeapUser heap_;
 	Heap* cur_heap_;

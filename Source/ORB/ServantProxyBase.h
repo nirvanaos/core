@@ -98,7 +98,7 @@ protected:
 	{
 		try {
 			using namespace ::Nirvana::Core;
-			auto gc = Core_ref <Runnable>::create <ImplDynamic <GC> > (std::forward <Args> (args)...);
+			auto gc = CoreRef <Runnable>::create <ImplDynamic <GC> > (std::forward <Args> (args)...);
 			// TODO: Garbage collector deadline must not be infinite, but reasonable enough.
 			::Nirvana::Core::ExecDomain::async_call (::Nirvana::INFINITE_DEADLINE, *gc, sync_context_->sync_domain ());
 		} catch (...) {
@@ -185,7 +185,7 @@ protected:
 		}
 
 	private:
-		::Nirvana::Core::Core_ref <::Nirvana::Core::SyncContext> sync_context_;
+		::Nirvana::Core::CoreRef <::Nirvana::Core::SyncContext> sync_context_;
 		Marshal::_ref_type marshaler_;
 		ABI <Any> exception_;
 		bool success_;
@@ -230,7 +230,7 @@ private:
 private:
 	AbstractBase::_ptr_type servant_;
 	RefCnt ref_cnt_;
-	::Nirvana::Core::Core_ref <::Nirvana::Core::SyncContext> sync_context_;
+	::Nirvana::Core::CoreRef <::Nirvana::Core::SyncContext> sync_context_;
 };
 
 }

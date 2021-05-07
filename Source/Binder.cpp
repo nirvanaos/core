@@ -138,7 +138,7 @@ const ModuleStartup* Binder::module_bind (Module::_ptr_type mod, const Section& 
 	ImportInterface* module_entry = nullptr;
 	void* writable = const_cast <void*> (metadata.address);
 	const ModuleStartup* module_startup = nullptr;
-	Core_ref <SyncDomain> sync_domain;
+	CoreRef <SyncDomain> sync_domain;
 	SyncContext* sync_context = nullptr;
 
 	try {
@@ -179,7 +179,7 @@ const ModuleStartup* Binder::module_bind (Module::_ptr_type mod, const Section& 
 					flags |= MetadataFlags::EXPORT_OBJECTS;
 					if (!sync_context) {
 						if (ModuleType::SINGLETON == module_type) {
-							sync_domain = Core_ref <SyncDomain>::create <ImplDynamic <SyncDomain> > ();
+							sync_domain = CoreRef <SyncDomain>::create <ImplDynamic <SyncDomain> > ();
 							sync_context = sync_domain;
 						} else
 							sync_context = &SyncContext::free_sync_context ();

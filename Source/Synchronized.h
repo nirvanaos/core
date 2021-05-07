@@ -49,7 +49,7 @@ public:
 	NIRVANA_NORETURN void on_exception ();
 
 private:
-	Core_ref <SyncContext> call_context_;
+	CoreRef <SyncContext> call_context_;
 };
 
 }

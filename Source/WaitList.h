@@ -111,7 +111,7 @@ class WaitListImpl : public ImplDynamicSync <WaitListT <T> >
 {
 	typedef ImplDynamicSync <WaitListT <T> > Base;
 public:
-	typedef Core_ref <WaitListImpl> Ref;
+	typedef CoreRef <WaitListImpl> Ref;
 
 	T& get ()
 	{
