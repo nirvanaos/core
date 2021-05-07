@@ -43,10 +43,7 @@ class NIRVANA_NOVTABLE Module :
 	public CORBA::Nirvana::LifeCycleRefCnt <Module>
 {
 public:
-	Module (const CoreString& name, bool singleton);
-
-	virtual ~Module ()
-	{}
+	virtual ~Module ();
 
 	const void* base_address () const
 	{
@@ -68,6 +65,16 @@ public:
 	{
 		return singleton_;
 	}
+
+protected:
+	Module (const CoreString& name, bool singleton);
+
+	static void initialize (ModuleInit::_ptr_type entry_point)
+	{
+		entry_point->initialize ();
+	}
+
+	static void terminate (ModuleInit::_ptr_type entry_point) NIRVANA_NOEXCEPT;
 
 private:
 	void on_release ()

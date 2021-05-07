@@ -36,5 +36,19 @@ Module::Module (const CoreString& name, bool singleton) :
 	entry_point_ (nullptr)
 {}
 
+Module::~Module ()
+{
+	Binder::unbind (_get_ptr (), metadata ());
+}
+
+void Module::terminate (ModuleInit::_ptr_type entry_point) NIRVANA_NOEXCEPT
+{
+	try {
+		entry_point->terminate ();
+	} catch (...) {
+		// TODO: Log
+	}
+}
+
 }
 }

@@ -31,6 +31,9 @@
 #include "ORB/ServantBase.h"
 #include "ORB/LocalObject.h"
 #include "ClassLibrary.h"
+#include "Singleton.h"
+#include "Legacy/Executable.h"
+#include "Loader.h"
 
 namespace Nirvana {
 namespace Core {
@@ -105,6 +108,39 @@ void Binder::OLF_Iterator::check ()
 	}
 }
 
+void Binder::Map::insert (const char* name, InterfacePtr itf)
+{
+	assert (itf);
+	if (!MapBase::emplace (name, itf).second)
+		throw_INV_OBJREF ();	// Duplicated name
+}
+
+void Binder::Map::erase (const char* name) NIRVANA_NOEXCEPT
+{
+	verify (MapBase::erase (name));
+}
+
+void Binder::Map::merge (const Map& src)
+{
+	for (auto it = src.begin (); it != src.end (); ++it) {
+		if (!MapBase::insert (*it).second) {
+			for (auto it1 = src.begin (); it1 != it; ++it1) {
+				MapBase::erase (it1->first);
+			}
+			throw_INV_OBJREF ();	// Duplicated name
+		}
+	}
+}
+
+Binder::InterfacePtr Binder::Map::find (const Key& key) const
+{
+	auto pf = lower_bound (key);
+	if (pf != end () && pf->first.compatible (key)) {
+		return pf->second;
+	}
+	return nullptr;
+}
+
 void Binder::initialize ()
 {
 	Section metadata;
@@ -112,8 +148,9 @@ void Binder::initialize ()
 		throw_INITIALIZE ();
 
 	SYNC_BEGIN (&singleton_.sync_domain_);
-	singleton_.export_add (g_binder.imp.name, g_binder.imp.itf);
-	singleton_.module_bind (nullptr, metadata, &SyncContext::free_sync_context ());
+	singleton_.map_.insert (g_binder.imp.name, g_binder.imp.itf);
+	ModuleContext context{ SyncContext::free_sync_context () };
+	singleton_.module_bind (nullptr, metadata, &context);
 	SYNC_END ();
 }
 
@@ -127,7 +164,7 @@ NIRVANA_NORETURN void Binder::invalid_metadata ()
 	throw runtime_error ("Invalid file format");
 }
 
-const ModuleStartup* Binder::module_bind (::Nirvana::Module::_ptr_type mod, const Section& metadata, SyncContext* sync_context)
+const ModuleStartup* Binder::module_bind (::Nirvana::Module::_ptr_type mod, const Section& metadata, ModuleContext* mod_context)
 {
 	enum MetadataFlags
 	{
@@ -158,22 +195,22 @@ const ModuleStartup* Binder::module_bind (::Nirvana::Module::_ptr_type mod, cons
 								invalid_metadata ();
 							module_entry = ps;
 							break;
-						} else if (!sync_context && key.is_a (k_object_factory))
+						} else if (!mod_context && key.is_a (k_object_factory))
 							invalid_metadata (); // Legacy process can not import ObjectFactory interface
 					}
 					flags |= MetadataFlags::IMPORT_INTERFACES;
 					break;
 
 				case OLF_EXPORT_INTERFACE: {
-					if (!sync_context) // Legacy process can not export
+					if (!mod_context) // Legacy process can not export
 						invalid_metadata ();
 					const ExportInterface* ps = reinterpret_cast <const ExportInterface*> (it.cur ());
-					export_add (ps->name, ps->itf);
+					map_.insert (ps->name, ps->itf);
 				} break;
 
 				case OLF_EXPORT_OBJECT:
 				case OLF_EXPORT_LOCAL:
-					if (!sync_context) // Legacy process can not export
+					if (!mod_context) // Legacy process can not export
 						invalid_metadata ();
 					flags |= MetadataFlags::EXPORT_OBJECTS;
 					break;
@@ -220,33 +257,39 @@ const ModuleStartup* Binder::module_bind (::Nirvana::Module::_ptr_type mod, cons
 				}
 
 			// Pass 3: Export objects.
-			if (flags & MetadataFlags::EXPORT_OBJECTS)
+			if (flags & MetadataFlags::EXPORT_OBJECTS) {
+				assert (mod_context); // Legacy executable can not export.
 				for (OLF_Iterator it (writable, metadata.size); !it.end (); it.next ()) {
 					switch (*it.cur ()) {
 						case OLF_EXPORT_OBJECT: {
 							ExportObject* ps = reinterpret_cast <ExportObject*> (it.cur ());
-							PortableServer::ServantBase::_ptr_type core_obj = (new CORBA::Nirvana::Core::ServantBase (Type <PortableServer::ServantBase>::in (ps->servant_base), *sync_context))->_get_ptr ();
+							PortableServer::ServantBase::_ptr_type core_obj = (
+								new CORBA::Nirvana::Core::ServantBase (Type <PortableServer::ServantBase>::in (ps->servant_base),
+									mod_context->sync_context))->_get_ptr ();
 							Object::_ptr_type obj = AbstractBase::_ptr_type (core_obj)->_query_interface <Object> ();
 							ps->core_object = &core_obj;
-							export_add (ps->name, obj);
+							mod_context->exported_objects.insert (ps->name, obj);
 						} break;
 
 						case OLF_EXPORT_LOCAL: {
 							ExportLocal* ps = reinterpret_cast <ExportLocal*> (it.cur ());
-							LocalObject::_ptr_type core_obj = (new CORBA::Nirvana::Core::LocalObject (Type <LocalObject>::in (ps->local_object), Type <AbstractBase>::in (ps->abstract_base), *sync_context))->_get_ptr ();
+							LocalObject::_ptr_type core_obj = (
+								new CORBA::Nirvana::Core::LocalObject (Type <LocalObject>::in (ps->local_object),
+									Type <AbstractBase>::in (ps->abstract_base), mod_context->sync_context))->_get_ptr ();
 							Object::_ptr_type obj = core_obj;
 							ps->core_object = &core_obj;
-							export_add (ps->name, obj);
+							mod_context->exported_objects.insert (ps->name, obj);
 						} break;
 					}
 				}
+			}
 
 			// Pass 4: Import objects.
 			if (flags & MetadataFlags::IMPORT_OBJECTS)
 				for (OLF_Iterator it (writable, metadata.size); !it.end (); it.next ()) {
 					if (OLF_IMPORT_OBJECT == *it.cur ()) {
 						ImportInterface* ps = reinterpret_cast <ImportInterface*> (it.cur ());
-						Object::_ptr_type obj = bind_sync (ps->name);
+						Object::_ptr_type obj = bind_sync (ps->name, mod_context);
 						const StringBase <char> requested_iid (ps->interface_id);
 						InterfacePtr itf;
 						if (RepositoryId::compatible (obj->_epv ().header.interface_id, requested_iid))
@@ -263,7 +306,7 @@ const ModuleStartup* Binder::module_bind (::Nirvana::Module::_ptr_type mod, cons
 			Port::Memory::copy (const_cast <void*> (metadata.address), writable, metadata.size, (writable != metadata.address) ? (Memory::READ_ONLY | Memory::SRC_RELEASE) : Memory::READ_ONLY);
 		}
 	} catch (...) {
-		module_unbind (mod, { writable, metadata.size });
+		module_unbind (mod, { writable, metadata.size }, mod_context);
 		if (writable != metadata.address)
 			Port::Memory::release (writable, metadata.size);
 		throw;
@@ -272,7 +315,7 @@ const ModuleStartup* Binder::module_bind (::Nirvana::Module::_ptr_type mod, cons
 	return module_startup;
 }
 
-void Binder::module_unbind (::Nirvana::Module::_ptr_type mod, const Section& metadata) NIRVANA_NOEXCEPT
+void Binder::module_unbind (::Nirvana::Module::_ptr_type mod, const Section& metadata, ModuleContext* mod_context) NIRVANA_NOEXCEPT
 {
 	// Pass 1: Remove all exports from table.
 	// This pass will not cause inter-domain calls.
@@ -280,20 +323,24 @@ void Binder::module_unbind (::Nirvana::Module::_ptr_type mod, const Section& met
 		switch (*it.cur ()) {
 			case OLF_EXPORT_INTERFACE: {
 				const ExportInterface* ps = reinterpret_cast <const ExportInterface*> (it.cur ());
-				export_remove (ps->name);
+				map_.erase (ps->name);
 			} break;
 
-			case OLF_EXPORT_OBJECT: {
-				ExportObject* ps = reinterpret_cast <ExportObject*> (it.cur ());
-				if (ps->core_object) // Module may be bound partially because of an error.
-					export_remove (ps->name);
-			} break;
+			case OLF_EXPORT_OBJECT: 
+				if (!mod_context) {
+					ExportObject* ps = reinterpret_cast <ExportObject*> (it.cur ());
+					if (ps->core_object) // Module may be bound partially because of an error.
+						map_.erase (ps->name);
+				}
+				break;
 
-			case OLF_EXPORT_LOCAL: {
-				ExportLocal* ps = reinterpret_cast <ExportLocal*> (it.cur ());
-				if (ps->core_object) // Module may be bound partially because of an error.
-					export_remove (ps->name);
-			} break;
+			case OLF_EXPORT_LOCAL:
+				if (!mod_context) {
+					ExportLocal* ps = reinterpret_cast <ExportLocal*> (it.cur ());
+					if (ps->core_object) // Module may be bound partially because of an error.
+						map_.erase (ps->name);
+				}
+				break;
 		}
 	}
 	
@@ -314,50 +361,27 @@ void Binder::module_unbind (::Nirvana::Module::_ptr_type mod, const Section& met
 		switch (*it.cur ()) {
 			case OLF_EXPORT_OBJECT: {
 				ExportObject* ps = reinterpret_cast <ExportObject*> (it.cur ());
-				if (ps->core_object) // Module may be bound partially because of an error.
-					CORBA::Nirvana::interface_release (ps->core_object);
+				CORBA::Nirvana::interface_release (ps->core_object);
 			} break;
 
 			case OLF_EXPORT_LOCAL: {
 				ExportLocal* ps = reinterpret_cast <ExportLocal*> (it.cur ());
-				if (ps->core_object) // Module may be bound partially because of an error.
-					CORBA::Nirvana::interface_release (ps->core_object);
+				CORBA::Nirvana::interface_release (ps->core_object);
 			} break;
 		}
 	}
 }
 
-void Binder::export_add (const char* name, InterfacePtr itf)
+Binder::InterfacePtr Binder::bind_interface_sync (const Key& name, String_in iid) const
 {
-	assert (itf);
-	Key key (name);
-	auto ins = map_.emplace (name, itf);
-	if (!ins.second)
-		throw_INV_OBJREF ();	// Duplicated name
-}
-
-void Binder::export_remove (const char* name) NIRVANA_NOEXCEPT
-{
-	verify (map_.erase (name));
-}
-
-Binder::InterfacePtr Binder::find (const char* name, size_t name_len) const
-{
-	Key key (name, name_len);
-	auto pf = map_.lower_bound (key);
-	if (pf != map_.end () && pf->first.compatible (key)) {
-		return pf->second;
+	Interface::_ptr_type itf = map_.find (name);
+	if (!itf) {
+		Loader::load ("TestModule.olf", false);
+		itf = map_.find (name);
 	}
-	return nullptr;
-}
-
-Binder::InterfacePtr Binder::bind_interface_sync (const char* name, size_t name_len, const char* iid, size_t iid_len)
-{
-	Interface::_ptr_type itf = find (name, name_len);
 	if (itf) {
-		const StringBase <char> itf_id = itf->_epv ().interface_id;
-		const StringBase <char> requested_iid (iid, iid_len);
-		if (!RepositoryId::compatible (itf_id, requested_iid)) {
+		StringBase <char> itf_id = itf->_epv ().interface_id;
+		if (!RepositoryId::compatible (itf_id, iid)) {
 			AbstractBase::_ptr_type ab = AbstractBase::_nil ();
 			if (RepositoryId::compatible (itf_id, Object::repository_id_))
 				ab = Object::_ptr_type (static_cast <Object*> (&itf));
@@ -365,7 +389,7 @@ Binder::InterfacePtr Binder::bind_interface_sync (const char* name, size_t name_
 				ab = static_cast <AbstractBase*> (&itf);
 			else
 				throw_INV_OBJREF ();
-			InterfacePtr qi = ab->_query_interface (requested_iid);
+			InterfacePtr qi = ab->_query_interface (iid);
 			if (!qi)
 				throw_INV_OBJREF ();
 			itf = qi;
@@ -377,9 +401,18 @@ Binder::InterfacePtr Binder::bind_interface_sync (const char* name, size_t name_
 		throw_OBJECT_NOT_EXIST ();
 }
 
-CORBA::Object::_ptr_type Binder::bind_sync (const char* name, size_t name_len)
+CORBA::Object::_ptr_type Binder::bind_sync (const Key& name, ModuleContext* mod_context) const
 {
-	Interface::_ptr_type itf = find (name, name_len);
+	InterfacePtr itf (nullptr);
+	if (mod_context)
+		itf = mod_context->exported_objects.find (name);
+	if (!itf) {
+		itf = map_.find (name);
+		if (!itf) {
+			Loader::load ("TestModule.olf", false);
+			itf = map_.find (name);
+		}
+	}
 	if (itf) {
 		if (RepositoryId::compatible (itf->_epv ().interface_id, Object::repository_id_))
 			return static_cast <Object*> (&itf);
@@ -392,21 +425,68 @@ CORBA::Object::_ptr_type Binder::bind_sync (const char* name, size_t name_len)
 ModuleInit::_ptr_type Binder::bind (ClassLibrary& mod)
 {
 	SYNC_BEGIN (&singleton_.sync_domain_);
-	const ModuleStartup* startup = singleton_.module_bind (mod._get_ptr (), mod.metadata (), &SyncContext::free_sync_context ());
+	ModuleContext context { SyncContext::free_sync_context () };
+	const ModuleStartup* startup = singleton_.module_bind (mod._get_ptr (), mod.metadata (), &context);
 	try {
 		if (startup) {
 			if (startup->flags & OLF_MODULE_SINGLETON)
 				invalid_metadata ();
 			ModuleInit::_ptr_type init = ModuleInit::_check (startup->startup);
-			ImplStatic <SyncDomain> init_sd;
-			SYNC_BEGIN (&init_sd);
-			init->initialize ();
-			SYNC_END ();
+			mod.initialize (init);
+			try {
+				singleton_.map_.merge (context.exported_objects);
+			} catch (...) {
+				mod.terminate (init);
+				throw;
+			}
 			return init;
 		} else
 			return nullptr;
 	} catch (...) {
-		singleton_.module_unbind (mod._get_ptr (), mod.metadata ());
+		singleton_.module_unbind (mod._get_ptr (), mod.metadata (), &context);
+		throw;
+	}
+	SYNC_END ();
+}
+
+ModuleInit::_ptr_type Binder::bind (Singleton& mod)
+{
+	SYNC_BEGIN (&singleton_.sync_domain_);
+	ModuleContext context{ mod.sync_domain () };
+	const ModuleStartup* startup = singleton_.module_bind (mod._get_ptr (), mod.metadata (), &context);
+	try {
+		if (startup) {
+			// We don't check for singleton flag here. We allow load usual class library as a singleton.
+			//if (startup->flags & OLF_MODULE_SINGLETON)
+			//	invalid_metadata ();
+			ModuleInit::_ptr_type init = ModuleInit::_check (startup->startup);
+			mod.initialize (init);
+			try {
+				singleton_.map_.merge (context.exported_objects);
+			} catch (...) {
+				mod.terminate (init);
+				throw;
+			}
+			return init;
+		} else
+			return nullptr;
+	} catch (...) {
+		singleton_.module_unbind (mod._get_ptr (), mod.metadata (), &context);
+		throw;
+	}
+	SYNC_END ();
+}
+
+Legacy::Main::_ptr_type Binder::bind (Legacy::Core::Executable& mod)
+{
+	SYNC_BEGIN (&singleton_.sync_domain_);
+	const ModuleStartup* startup = singleton_.module_bind (mod._get_ptr (), mod.metadata (), nullptr);
+	try {
+		if (!startup || !startup->startup)
+			invalid_metadata ();
+		return Legacy::Main::_check (startup->startup);
+	} catch (...) {
+		singleton_.module_unbind (mod._get_ptr (), mod.metadata (), nullptr);
 		throw;
 	}
 	SYNC_END ();

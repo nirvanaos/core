@@ -23,23 +23,17 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "Executable.h"
-#include "../Binder.h"
+#include "Singleton.h"
 
 namespace Nirvana {
-namespace Legacy {
 namespace Core {
 
-Executable::Executable (const char* file) :
-	Port::Executable (file),
-	entry_point_ (Nirvana::Core::Binder::bind_executable (_get_ptr (), metadata ()))
-{}
-
-Executable::~Executable ()
+void Singleton::terminate (ModuleInit::_ptr_type entry_point) NIRVANA_NOEXCEPT
 {
-	Nirvana::Core::Binder::unbind (_get_ptr (), metadata ());
+	SYNC_BEGIN (&sync_domain_);
+	Module::terminate (entry_point);
+	SYNC_END ();
 }
 
-}
 }
 }

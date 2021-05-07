@@ -23,48 +23,21 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_CORE_SINGLETON_H_
-#define NIRVANA_CORE_SINGLETON_H_
-
-#include "Module.h"
-#include "Binder.h"
+#include "ClassLibrary.h"
 
 namespace Nirvana {
 namespace Core {
 
-class Singleton : public Module
+void ClassLibrary::terminate (ModuleInit::_ptr_type entry_point) NIRVANA_NOEXCEPT
 {
-public:
-	Singleton (const CoreString& name) :
-		Module (name, true)
-	{
-		entry_point_ = Binder::bind (*this);
-	}
-
-	~Singleton ()
-	{
-		terminate (entry_point_);
-	}
-
-	SyncDomain& sync_domain ()
-	{
-		return sync_domain_;
-	}
-
-	void initialize (ModuleInit::_ptr_type entry_point)
-	{
-		SYNC_BEGIN (&sync_domain ());
-		entry_point->initialize ();
-		SYNC_END ();
-	}
-
-	void terminate (ModuleInit::_ptr_type entry_point) NIRVANA_NOEXCEPT;
-
-private:
-	ImplStatic <SyncDomain> sync_domain_;
-};
+	SYNC_BEGIN (nullptr);
+	ExecDomain* ed = Thread::current ().exec_domain ();
+	assert (ed);
+	ed->heap_replace (readonly_heap_);
+	Module::terminate (entry_point);
+	ed->heap_restore ();
+	SYNC_END ();
+}
 
 }
 }
-
-#endif

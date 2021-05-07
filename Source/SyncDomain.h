@@ -168,6 +168,25 @@ private:
 	AtomicCounter <false> activity_cnt_;
 };
 
+template <class T, SyncDomain* sync_domain>
+class SyncAllocator :
+	public std::allocator <T>
+{
+public:
+	static void deallocate (T* p, size_t cnt)
+	{
+		sync_domain->heap ().release (p, cnt * sizeof (T));
+	}
+
+	static T* allocate (size_t cnt, void* hint = nullptr, unsigned flags = 0)
+	{
+		return (T*)sync_domain->heap ().allocate (hint, cnt * sizeof (T), flags);
+	}
+};
+
+template <SyncDomain* sync_domain>
+using SyncString = std::basic_string <char, std::char_traits <char>, SyncAllocator <char, sync_domain> >;
+
 }
 }
 

@@ -28,6 +28,7 @@
 
 #include "Module.h"
 #include "Binder.h"
+#include "ExecDomain.h"
 
 namespace Nirvana {
 namespace Core {
@@ -40,6 +41,30 @@ public:
 	{
 		entry_point_ = Binder::bind (*this);
 	}
+
+	~ClassLibrary ()
+	{
+		terminate (entry_point_);
+	}
+
+	void initialize (ModuleInit::_ptr_type entry_point)
+	{
+		ImplStatic <SyncDomain> init_sd;
+		SYNC_BEGIN (&init_sd);
+		ExecDomain* ed = Thread::current ().exec_domain ();
+		assert (ed);
+		ed->heap_replace (readonly_heap_);
+		try {
+			entry_point->initialize ();
+		} catch (...) {
+			ed->heap_restore ();
+			throw;
+		}
+		ed->heap_restore ();
+		SYNC_END ();
+	}
+
+	void terminate (ModuleInit::_ptr_type entry_point) NIRVANA_NOEXCEPT;
 
 private:
 	HeapUser readonly_heap_;

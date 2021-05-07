@@ -28,6 +28,7 @@
 #define NIRVANA_LEGACY_CORE_EXECUTABLE_H_
 
 #include "../CoreObject.h"
+#include "../Binder.h"
 #include <CORBA/Server.h>
 #include <Nirvana/Main.h>
 #include <Module_s.h>
@@ -45,8 +46,15 @@ class Executable :
 	public CORBA::Nirvana::Core::LifeCycleStack
 {
 public:
-	Executable (const char* file);
-	~Executable ();
+	Executable (const char* file) :
+		Port::Executable (file),
+		entry_point_ (Nirvana::Core::Binder::bind (*this))
+	{}
+
+	~Executable ()
+	{
+		Nirvana::Core::Binder::unbind (_get_ptr (), metadata ());
+	}
 
 	const void* base_address () const NIRVANA_NOEXCEPT
 	{
