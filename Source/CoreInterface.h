@@ -52,15 +52,18 @@ template <class T> class Core_ref;
 /// Dynamic implementation of a core object.
 /// \tparam T object class.
 template <class T>
-class ImplDynamic final :
+class ImplDynamic :
 	public T
 {
-private:
+protected:
 	template <class> friend class Core_ref;
 
 	template <class ... Args>
 	ImplDynamic (Args ... args) :
 		T (std::forward <Args> (args)...)
+	{}
+
+	~ImplDynamic ()
 	{}
 
 	void _add_ref ()
@@ -76,6 +79,40 @@ private:
 
 private:
 	RefCounter ref_cnt_;
+};
+
+/// Dynamic implementation of a core object for usage in synchronized scenarios.
+/// \tparam T object class.
+template <class T>
+class ImplDynamicSync :
+	public T
+{
+protected:
+	template <class> friend class Core_ref;
+
+	template <class ... Args>
+	ImplDynamicSync (Args ... args) :
+		T (std::forward <Args> (args)...),
+		ref_cnt_ (1)
+	{}
+
+	~ImplDynamicSync ()
+	{}
+
+	void _add_ref ()
+	{
+		++ref_cnt_;
+	}
+
+	void _remove_ref ()
+	{
+		assert (ref_cnt_);
+		if (!--ref_cnt_)
+			delete this;
+	}
+
+private:
+	unsigned ref_cnt_;
 };
 
 /// Static or stack implementation of a core object.
@@ -101,15 +138,18 @@ private:
 /// Special implementation of a core object.
 /// \tparam T object class.
 template <class T>
-class ImplNoAddRef final :
+class ImplNoAddRef :
 	public T
 {
-private:
+protected:
 	template <class> friend class Core_ref;
 
 	template <class ... Args>
 	ImplNoAddRef (Args ... args) :
 		T (std::forward <Args> (args)...)
+	{}
+
+	~ImplNoAddRef ()
 	{}
 
 	void _add_ref ()
@@ -126,6 +166,7 @@ private:
 
 /// Core smart pointer.
 /// \tparam T object or core interface class.
+///         Note that T haven't to derive from CoreInterface, but can.
 template <class T>
 class Core_ref
 {

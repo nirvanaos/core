@@ -112,7 +112,7 @@ void Binder::initialize ()
 
 	SYNC_BEGIN (&singleton_.sync_domain_);
 	singleton_.export_add (g_binder.imp.name, g_binder.imp.itf);
-	singleton_.module_bind (nullptr, metadata, &SyncContext::free_sync_context ());
+	singleton_.module_bind (nullptr, metadata, ModuleType::CLASS_LIBRARY);
 	SYNC_END ();
 }
 
@@ -126,7 +126,7 @@ NIRVANA_NORETURN void Binder::invalid_metadata ()
 	throw runtime_error ("Invalid file format");
 }
 
-Interface* Binder::module_bind (Module::_ptr_type mod, const Section& metadata, SyncContext* sync_context)
+const ModuleStartup* Binder::module_bind (Module::_ptr_type mod, const Section& metadata, ModuleType module_type)
 {
 	enum MetadataFlags
 	{
@@ -137,7 +137,9 @@ Interface* Binder::module_bind (Module::_ptr_type mod, const Section& metadata, 
 
 	ImportInterface* module_entry = nullptr;
 	void* writable = const_cast <void*> (metadata.address);
-	Interface* module_startup = nullptr;
+	const ModuleStartup* module_startup = nullptr;
+	Core_ref <SyncDomain> sync_domain;
+	SyncContext* sync_context = nullptr;
 
 	try {
 
@@ -157,14 +159,14 @@ Interface* Binder::module_bind (Module::_ptr_type mod, const Section& metadata, 
 								invalid_metadata ();
 							module_entry = ps;
 							break;
-						} else if (!sync_context && key.is_a (k_object_factory))
+						} else if (ModuleType::EXECUTABLE == module_type && key.is_a (k_object_factory))
 							invalid_metadata (); // Legacy process can not import ObjectFactory interface
 					}
 					flags |= MetadataFlags::IMPORT_INTERFACES;
 					break;
 
 				case OLF_EXPORT_INTERFACE: {
-					if (!sync_context) // Legacy process can not export
+					if (ModuleType::EXECUTABLE == module_type) // Legacy process can not export
 						invalid_metadata ();
 					const ExportInterface* ps = reinterpret_cast <const ExportInterface*> (it.cur ());
 					export_add (ps->name, ps->itf);
@@ -172,9 +174,16 @@ Interface* Binder::module_bind (Module::_ptr_type mod, const Section& metadata, 
 
 				case OLF_EXPORT_OBJECT:
 				case OLF_EXPORT_LOCAL:
-					if (!sync_context) // Legacy process can not export
+					if (ModuleType::EXECUTABLE == module_type) // Legacy process can not export
 						invalid_metadata ();
 					flags |= MetadataFlags::EXPORT_OBJECTS;
+					if (!sync_context) {
+						if (ModuleType::SINGLETON == module_type) {
+							sync_domain = Core_ref <SyncDomain>::create <ImplDynamic <SyncDomain> > ();
+							sync_context = sync_domain;
+						} else
+							sync_context = &SyncContext::free_sync_context ();
+					}
 					break;
 
 				case OLF_IMPORT_OBJECT:
@@ -184,7 +193,7 @@ Interface* Binder::module_bind (Module::_ptr_type mod, const Section& metadata, 
 				case OLF_MODULE_STARTUP:
 					if (module_startup)
 						invalid_metadata (); // Must be only one startup entry
-					module_startup = reinterpret_cast <const ModuleStartup*> (it.cur ())->startup;
+					module_startup = reinterpret_cast <const ModuleStartup*> (it.cur ());
 					break;
 
 				default:
@@ -222,25 +231,21 @@ Interface* Binder::module_bind (Module::_ptr_type mod, const Section& metadata, 
 			if (flags & MetadataFlags::EXPORT_OBJECTS)
 				for (OLF_Iterator it (writable, metadata.size); !it.end (); it.next ()) {
 					switch (*it.cur ()) {
-						case OLF_EXPORT_OBJECT:
-						{
+						case OLF_EXPORT_OBJECT: {
 							ExportObject* ps = reinterpret_cast <ExportObject*> (it.cur ());
 							PortableServer::ServantBase::_ptr_type core_obj = (new CORBA::Nirvana::Core::ServantBase (Type <PortableServer::ServantBase>::in (ps->servant_base), *sync_context))->_get_ptr ();
 							Object::_ptr_type obj = AbstractBase::_ptr_type (core_obj)->_query_interface <Object> ();
 							ps->core_object = &core_obj;
 							export_add (ps->name, obj);
-						}
-						break;
+						} break;
 
-						case OLF_EXPORT_LOCAL:
-						{
+						case OLF_EXPORT_LOCAL: {
 							ExportLocal* ps = reinterpret_cast <ExportLocal*> (it.cur ());
 							LocalObject::_ptr_type core_obj = (new CORBA::Nirvana::Core::LocalObject (Type <LocalObject>::in (ps->local_object), Type <AbstractBase>::in (ps->abstract_base), *sync_context))->_get_ptr ();
 							Object::_ptr_type obj = core_obj;
 							ps->core_object = &core_obj;
 							export_add (ps->name, obj);
-						}
-						break;
+						} break;
 					}
 				}
 
@@ -277,47 +282,55 @@ Interface* Binder::module_bind (Module::_ptr_type mod, const Section& metadata, 
 
 void Binder::module_unbind (Module::_ptr_type mod, const Section& metadata) NIRVANA_NOEXCEPT
 {
-	// Pass 1: Release all imported interfaces.
+	// Pass 1: Remove all exports from table.
+	// This pass will not cause inter-domain calls.
+	for (OLF_Iterator it (metadata.address, metadata.size); !it.end (); it.next ()) {
+		switch (*it.cur ()) {
+			case OLF_EXPORT_INTERFACE: {
+				const ExportInterface* ps = reinterpret_cast <const ExportInterface*> (it.cur ());
+				export_remove (ps->name);
+			} break;
+
+			case OLF_EXPORT_OBJECT: {
+				ExportObject* ps = reinterpret_cast <ExportObject*> (it.cur ());
+				if (ps->core_object) // Module may be bound partially because of an error.
+					export_remove (ps->name);
+			} break;
+
+			case OLF_EXPORT_LOCAL: {
+				ExportLocal* ps = reinterpret_cast <ExportLocal*> (it.cur ());
+				if (ps->core_object) // Module may be bound partially because of an error.
+					export_remove (ps->name);
+			} break;
+		}
+	}
+	
+	// Pass 2: Release all imported interfaces.
 	for (OLF_Iterator it (metadata.address, metadata.size); !it.end (); it.next ()) {
 		switch (*it.cur ()) {
 			case OLF_IMPORT_INTERFACE:
-			case OLF_IMPORT_OBJECT:
+			case OLF_IMPORT_OBJECT: {
 				ImportInterface* ps = reinterpret_cast <ImportInterface*> (it.cur ());
 				if (!mod || ps->itf != &mod)
 					CORBA::Nirvana::interface_release (ps->itf);
-				break;
+			} break;
 		}
 	}
 
-	// Pass 2: Release proxies for all exported interfaces.
+	// Pass 3: Release proxies for all exported objects.
 	for (OLF_Iterator it (metadata.address, metadata.size); !it.end (); it.next ()) {
 		switch (*it.cur ()) {
-			case OLF_EXPORT_INTERFACE:
-			{
-				const ExportInterface* ps = reinterpret_cast <const ExportInterface*> (it.cur ());
-				export_remove (ps->name);
-			}
-			break;
-
-			case OLF_EXPORT_OBJECT:
-			{
+			case OLF_EXPORT_OBJECT: {
 				ExportObject* ps = reinterpret_cast <ExportObject*> (it.cur ());
-				if (ps->core_object) { // Module may be bound partially because of an error.
-					export_remove (ps->name);
+				if (ps->core_object) // Module may be bound partially because of an error.
 					CORBA::Nirvana::interface_release (ps->core_object);
-				}
-			}
-			break;
+			} break;
 
-			case OLF_EXPORT_LOCAL:
-			{
+			case OLF_EXPORT_LOCAL: {
 				ExportLocal* ps = reinterpret_cast <ExportLocal*> (it.cur ());
-				if (ps->core_object) { // Module may be bound partially because of an error.
-					export_remove (ps->name);
+				if (ps->core_object) // Module may be bound partially because of an error.
 					CORBA::Nirvana::interface_release (ps->core_object);
-				}
-			}
-			break;
+			} break;
 		}
 	}
 }

@@ -23,59 +23,25 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_CORE_MODULE_H_
-#define NIRVANA_CORE_MODULE_H_
+#include "WaitList.h"
 
-#include <CORBA/Server.h>
-#include <Module_s.h>
-#include <Nirvana/ModuleInit.h>
-#include "AtomicCounter.h"
-#include <Port/Module.h>
-#include "Binder.h"
+using namespace std;
 
 namespace Nirvana {
 namespace Core {
 
-class Module :
-	public Port::Module,
-	public CORBA::Nirvana::Servant <Module, ::Nirvana::Module>,
-	public CORBA::Nirvana::LifeCycleRefCnt <Module>
+void WaitList::start_construction ()
 {
-public:
-	Module (const CoreString& file, bool singleton) :
-		Port::Module (file),
-		ref_cnt_ (0),
-		entry_point_ (Binder::bind_module (_get_ptr (), metadata (), singleton))
-	{}
+	if (state_ != State::INITIAL)
+		throw CORBA::BAD_INV_ORDER ();
+	state_ = State::UNDER_CONSTRUCTION;
+}
 
-	~Module ();
-
-	const void* base_address () const
-	{
-		return Port::Module::address ();
-	}
-
-	void _add_ref ()
-	{
-		ref_cnt_.increment ();
-	}
-
-	void _remove_ref ()
-	{
-		if (!ref_cnt_.decrement ())
-			on_release ();
-	}
-
-private:
-	void on_release ()
-	{}
-
-private:
-	AtomicCounter <false> ref_cnt_;
-	ModuleInit::_ptr_type entry_point_;
-};
+void WaitList::end_construction ()
+{
+	assert (State::UNDER_CONSTRUCTION == state_);
+	state_ = State::CONSTRUCTED;
+}
 
 }
 }
-
-#endif

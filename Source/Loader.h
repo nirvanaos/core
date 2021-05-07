@@ -1,3 +1,4 @@
+/// \file
 /*
 * Nirvana Core.
 *
@@ -23,56 +24,32 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_CORE_MODULE_H_
-#define NIRVANA_CORE_MODULE_H_
+#ifndef NIRVANA_CORE_LOADER_H_
+#define NIRVANA_CORE_LOADER_H_
 
-#include <CORBA/Server.h>
-#include <Module_s.h>
-#include <Nirvana/ModuleInit.h>
-#include "AtomicCounter.h"
-#include <Port/Module.h>
-#include "Binder.h"
+#include <Nirvana/Nirvana.h>
+#include "WaitList.h"
+#include "Module.h"
+#include "SyncDomain.h"
+#include "Synchronized.h"
+#include "parallel-hashmap/parallel_hashmap/phmap.h"
 
 namespace Nirvana {
 namespace Core {
 
-class Module :
-	public Port::Module,
-	public CORBA::Nirvana::Servant <Module, ::Nirvana::Module>,
-	public CORBA::Nirvana::LifeCycleRefCnt <Module>
+class Loader
 {
 public:
-	Module (const CoreString& file, bool singleton) :
-		Port::Module (file),
-		ref_cnt_ (0),
-		entry_point_ (Binder::bind_module (_get_ptr (), metadata (), singleton))
-	{}
-
-	~Module ();
-
-	const void* base_address () const
-	{
-		return Port::Module::address ();
-	}
-
-	void _add_ref ()
-	{
-		ref_cnt_.increment ();
-	}
-
-	void _remove_ref ()
-	{
-		if (!ref_cnt_.decrement ())
-			on_release ();
-	}
+	static Core_ref <Module> load (const std::string& name, bool singleton);
 
 private:
-	void on_release ()
-	{}
+	typedef phmap::flat_hash_map <CoreString, WaitableRef <Module>, phmap::Hash <CoreString>, phmap::EqualTo <CoreString>, 
+		CoreAllocator <std::pair <CoreString, WaitableRef <Module> > > > Map;
 
-private:
-	AtomicCounter <false> ref_cnt_;
-	ModuleInit::_ptr_type entry_point_;
+	ImplStatic <SyncDomain> sync_domain_;
+	Map map_;
+
+	static Loader singleton_;
 };
 
 }

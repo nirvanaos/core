@@ -34,6 +34,7 @@
 #include "Heap.h"
 #include <CORBA/RepositoryId.h>
 #include <Nirvana/Main.h>
+#include <Nirvana/ModuleInit.h>
 
 #pragma push_macro ("verify")
 #undef verify
@@ -127,19 +128,45 @@ public:
 		SYNC_END ();
 	}
 
+	/// Bind module.
+	/// 
+	/// \param mod Module interface.
+	/// \param metadata Module OLF metadata section.
+	/// \param singleton `true` if the module is a singleton library.
+	/// \returns The ModuleInit interface pointer or `nil` if not present.
+	static ModuleInit::_ptr_type bind_module (Module::_ptr_type mod, const Section& metadata, bool singleton)
+	{
+		SYNC_BEGIN (&singleton_.sync_domain_);
+		const ModuleStartup* startup = singleton_.module_bind (mod, metadata, singleton ? ModuleType::SINGLETON : ModuleType::CLASS_LIBRARY);
+		try {
+			if (startup) {
+				if (((startup->flags & OLF_MODULE_SINGLETON) != 0) != singleton)
+					invalid_metadata ();
+				return ModuleInit::_check (startup->startup);
+			} else if (singleton)
+				invalid_metadata ();
+			else
+				return nullptr;
+		} catch (...) {
+			singleton_.module_unbind (mod, metadata);
+			throw;
+		}
+		SYNC_END ();
+	}
+
 	/// Bind legacy process executable.
 	/// 
 	/// \param mod Module interface.
 	/// \param metadata Module OLF metadata section.
 	/// \returns The Main interface pointer.
-	static ::Nirvana::Legacy::Main::_ptr_type bind_executable (Module::_ptr_type mod, const Section& metadata)
+	static Legacy::Main::_ptr_type bind_executable (Module::_ptr_type mod, const Section& metadata)
 	{
 		SYNC_BEGIN (&singleton_.sync_domain_);
-		CORBA::Nirvana::Interface* startup = singleton_.module_bind (mod, metadata, nullptr);
+		const ModuleStartup* startup = singleton_.module_bind (mod, metadata, ModuleType::EXECUTABLE);
 		try {
-			if (!startup)
+			if (!startup || !startup->startup)
 				invalid_metadata ();
-			return ::Nirvana::Legacy::Main::_check (startup);
+			return Legacy::Main::_check (startup->startup);
 		} catch (...) {
 			singleton_.module_unbind (mod, metadata);
 			throw;
@@ -159,7 +186,14 @@ public:
 	}
 
 private:
-	CORBA::Nirvana::Interface* module_bind (Module::_ptr_type mod, const Section& metadata, SyncContext* sync_context);
+	enum class ModuleType
+	{
+		EXECUTABLE,
+		CLASS_LIBRARY,
+		SINGLETON
+	};
+
+	const ModuleStartup* module_bind (Module::_ptr_type mod, const Section& metadata, ModuleType module_type);
 	void module_unbind (Module::_ptr_type mod, const Section& metadata) NIRVANA_NOEXCEPT;
 
 	class OLF_Iterator;
