@@ -37,12 +37,14 @@ class Suspend :
 public:
 	static void suspend () NIRVANA_NOEXCEPT
 	{
-		Suspend runnable;
-		run_in_neutral_context (runnable);
+		run_in_neutral_context (runnable_);
 	}
 
-public:
+private:
 	virtual void run ();
+
+private:
+	static Suspend runnable_;
 };
 
 }

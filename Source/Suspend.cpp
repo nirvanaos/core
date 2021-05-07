@@ -29,6 +29,8 @@
 namespace Nirvana {
 namespace Core {
 
+Suspend Suspend::runnable_;
+
 void Suspend::run ()
 {
 	Thread::current ().yield ();

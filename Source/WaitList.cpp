@@ -24,23 +24,50 @@
 *  popov.nirvana@gmail.com
 */
 #include "WaitList.h"
+#include "CoreObject.h"
+#include "ExecDomain.h"
+#include "Suspend.h"
 
 using namespace std;
 
 namespace Nirvana {
 namespace Core {
 
-void WaitList::start_construction ()
+WaitList::WaitList () NIRVANA_NOEXCEPT :
+	finished_ (false),
+	wait_list_ (nullptr)
+{}
+
+void WaitList::wait ()
 {
-	if (state_ != State::INITIAL)
-		throw CORBA::BAD_INV_ORDER ();
-	state_ = State::UNDER_CONSTRUCTION;
+	if (!finished_) {
+		ExecDomain* ed = Thread::current ().exec_domain ();
+		assert (ed);
+		ed->wait_list_next_ = wait_list_;
+		wait_list_ = ed;
+		ed->suspend ();
+	}
+	assert (finished_);
+	if (exception_)
+		rethrow_exception (exception_);
 }
 
-void WaitList::end_construction ()
+void WaitList::on_exception () NIRVANA_NOEXCEPT
 {
-	assert (State::UNDER_CONSTRUCTION == state_);
-	state_ = State::CONSTRUCTED;
+	assert (!finished_);
+	assert (!exception_);
+	exception_ = current_exception ();
+	finish ();
+}
+
+void WaitList::finish () NIRVANA_NOEXCEPT
+{
+	finished_ = true;
+	while (wait_list_) {
+		ExecDomain* ed = wait_list_;
+		wait_list_ = ed->wait_list_next_;
+		ed->resume ();
+	}
 }
 
 }

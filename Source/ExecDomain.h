@@ -96,8 +96,8 @@ public:
 
 	void spawn (SyncDomain* sync_domain);
 
-	/// Suspend current domain
-	static void suspend ();
+	/// Suspend
+	void suspend ();
 
 	/// Resume suspended domain
 	void resume ();

@@ -39,13 +39,13 @@ CoreRef <Module> Loader::load (const string& name, bool singleton)
 	auto ins = singleton_.map_.emplace (piecewise_construct, forward_as_tuple (move (name_copy)), make_tuple ());
 	if (ins.second) {
 		try {
-			return &ins.first->second->construct (ref (ins.first->first), singleton);
+			return ins.first->second.initialize (new Module (ins.first->first, singleton));
 		} catch (...) {
 			singleton_.map_.erase (ins.first);
 			throw;
 		}
 	} else
-		return &ins.first->second->get ();
+		return ins.first->second.get ();
 	SYNC_END ();
 }
 

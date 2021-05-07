@@ -25,6 +25,8 @@
 */
 #include "Thread.inl"
 
+using namespace std;
+
 namespace Nirvana {
 namespace Core {
 
@@ -46,7 +48,7 @@ CoreRef <ExecDomain> ExecDomain::get (DeadlineTime deadline)
 void ExecDomain::ctor_base ()
 {
 	wait_list_next_ = nullptr;
-	deadline_ = std::numeric_limits <DeadlineTime>::max ();
+	deadline_ = numeric_limits <DeadlineTime>::max ();
 	ret_qnodes_ = nullptr;
 	scheduler_error_ = CORBA::SystemException::EC_NO_EXCEPTION;
 	scheduler_item_created_ = false;
@@ -68,7 +70,7 @@ void ExecDomain::schedule (SyncDomain* sync_domain)
 {
 	assert (&ExecContext::current () != this);
 
-	CoreRef <SyncContext> old_context = std::move (sync_context_);
+	CoreRef <SyncContext> old_context = move (sync_context_);
 	if (!sync_domain && !scheduler_item_created_) {
 		Scheduler::create_item ();
 		scheduler_item_created_ = true;
@@ -83,7 +85,7 @@ void ExecDomain::schedule (SyncDomain* sync_domain)
 			Scheduler::schedule (deadline (), *this);
 		}
 	} catch (...) {
-		sync_context_ = std::move (old_context);
+		sync_context_ = move (old_context);
 		throw;
 	}
 
@@ -96,9 +98,7 @@ void ExecDomain::schedule (SyncDomain* sync_domain)
 
 void ExecDomain::suspend ()
 {
-	ExecDomain* cur = Thread::current ().exec_domain ();
-	assert (cur);
-	cur->sync_context ()->schedule_call (SyncContext::SUSPEND ());
+	sync_context ()->schedule_call (SyncContext::SUSPEND ());
 }
 
 void ExecDomain::resume ()
@@ -169,7 +169,7 @@ void ExecDomain::schedule_call (SyncDomain* sync_domain)
 	schedule_call_.sync_domain_ = sync_domain;
 	run_in_neutral_context (schedule_call_);
 	if (schedule_call_.exception_) {
-		std::exception_ptr ex = schedule_call_.exception_;
+		exception_ptr ex = schedule_call_.exception_;
 		schedule_call_.exception_ = nullptr;
 		rethrow_exception (ex);
 	}
@@ -183,7 +183,7 @@ void ExecDomain::ScheduleCall::run ()
 
 void ExecDomain::ScheduleCall::on_exception () NIRVANA_NOEXCEPT
 {
-	exception_ = std::current_exception ();
+	exception_ = current_exception ();
 }
 
 void ExecDomain::schedule_return (SyncContext& sync_context) NIRVANA_NOEXCEPT

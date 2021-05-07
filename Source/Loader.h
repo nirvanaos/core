@@ -28,7 +28,7 @@
 #define NIRVANA_CORE_LOADER_H_
 
 #include <Nirvana/Nirvana.h>
-#include "WaitList.h"
+#include "WaitableRef.h"
 #include "Module.h"
 #include "SyncDomain.h"
 #include "Synchronized.h"
@@ -43,8 +43,8 @@ public:
 	static CoreRef <Module> load (const std::string& name, bool singleton);
 
 private:
-	typedef phmap::flat_hash_map <CoreString, WaitableRef <Module>, phmap::Hash <CoreString>, phmap::EqualTo <CoreString>, 
-		CoreAllocator <std::pair <CoreString, WaitableRef <Module> > > > Map;
+	typedef phmap::flat_hash_map <CoreString, WaitableRef <Module*>, phmap::Hash <CoreString>, phmap::EqualTo <CoreString>, 
+		CoreAllocator <std::pair <CoreString, WaitableRef <Module*> > > > Map;
 
 	ImplStatic <SyncDomain> sync_domain_;
 	Map map_;
