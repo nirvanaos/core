@@ -29,6 +29,19 @@
 namespace Nirvana {
 namespace Core {
 
+inline
+WaitList* WaitableRefBase::wait_list () const NIRVANA_NOEXCEPT
+{
+	assert (is_wait_list ());
+	return reinterpret_cast <WaitList*> (pointer_ & ~1);
+}
+
+void WaitableRefBase::detach (CoreRef <WaitList>& ref) NIRVANA_NOEXCEPT
+{
+	*reinterpret_cast <WaitList**> (&ref) = wait_list ();
+	pointer_ = 0;
+}
+
 WaitableRefBase::WaitableRefBase ()
 {
 	reinterpret_cast <CoreRef <WaitList>&> (pointer_) = CoreRef <WaitList>::create <WaitList> ();
@@ -38,27 +51,23 @@ WaitableRefBase::WaitableRefBase ()
 
 WaitableRefBase::~WaitableRefBase ()
 {
-	if (is_wait_list ())
-		reinterpret_cast <CoreRef <WaitList>&> (wait_list ()).~CoreRef ();
-}
-
-inline
-WaitList& WaitableRefBase::wait_list () const NIRVANA_NOEXCEPT
-{
-	assert (is_wait_list ());
-	return *reinterpret_cast <WaitList*> (pointer_ & ~1);
+	if (is_wait_list ()) {
+		CoreRef <WaitList> wait_list;
+		detach (wait_list);
+	}
 }
 
 void WaitableRefBase::on_exception () NIRVANA_NOEXCEPT
 {
 	assert (is_wait_list ());
-	wait_list ().on_exception ();
+	wait_list ()->on_exception ();
 }
 
 void WaitableRefBase::initialize (uintptr_t p) NIRVANA_NOEXCEPT
 {
-	assert (is_wait_list ());
-	CoreRef <WaitList> wait_list (std::move (reinterpret_cast <CoreRef <WaitList>&> (wait_list ())));
+	assert (!(p & 1));
+	CoreRef <WaitList> wait_list;
+	detach (wait_list);
 	pointer_ = p;
 	wait_list->finish ();
 }
@@ -66,7 +75,7 @@ void WaitableRefBase::initialize (uintptr_t p) NIRVANA_NOEXCEPT
 void WaitableRefBase::wait_construction () const
 {
 	if (is_wait_list ())
-		wait_list ().wait ();
+		wait_list ()->wait ();
 }
 
 }

@@ -36,7 +36,7 @@ namespace Core {
 class ClassLibrary : public Module
 {
 public:
-	ClassLibrary (const CoreString& name) :
+	ClassLibrary (const std::string& name) :
 		Module (name, false)
 	{
 		entry_point_ = Binder::bind (*this);

@@ -35,7 +35,7 @@ namespace Core {
 class Singleton : public Module
 {
 public:
-	Singleton (const CoreString& name) :
+	Singleton (const std::string& name) :
 		Module (name, true)
 	{
 		entry_point_ = Binder::bind (*this);

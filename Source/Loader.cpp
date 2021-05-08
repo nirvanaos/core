@@ -26,6 +26,7 @@
 #include "Loader.h"
 #include "ClassLibrary.h"
 #include "Singleton.h"
+#include "ORB/ServantMarshaler.h"
 
 using namespace std;
 
@@ -34,13 +35,17 @@ namespace Core {
 
 Loader Loader::singleton_;
 
-CoreRef <Module> Loader::load (const string& name, bool singleton)
+CoreRef <Module> Loader::load (const string& _name, bool singleton)
 {
-	CoreString name_copy (name.c_str (), name.length ());
+	CORBA::Nirvana::Core::ServantMarshaler sm (singleton_.sync_domain_);
+	CORBA::Nirvana::Type <string>::ABI name_abi;
+	CORBA::Nirvana::Type <string>::marshal_in (_name, sm.marshaler (), name_abi);
 	SYNC_BEGIN (&singleton_.sync_domain_);
+	string name;
+	CORBA::Nirvana::Type <string>::unmarshal (name_abi, sm.unmarshaler (), name);
 	if (singleton_.terminated_)
 		throw_BAD_INV_ORDER ();
-	auto ins = singleton_.map_.emplace (piecewise_construct, forward_as_tuple (move (name_copy)), make_tuple ());
+	auto ins = singleton_.map_.emplace (piecewise_construct, forward_as_tuple (move (name)), make_tuple ());
 	if (ins.second) {
 		try {
 			if (singleton)

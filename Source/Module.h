@@ -67,7 +67,7 @@ public:
 	}
 
 protected:
-	Module (const CoreString& name, bool singleton);
+	Module (const std::string& name, bool singleton);
 
 	static void initialize (ModuleInit::_ptr_type entry_point)
 	{

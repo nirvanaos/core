@@ -29,7 +29,7 @@
 namespace Nirvana {
 namespace Core {
 
-Module::Module (const CoreString& name, bool singleton) :
+Module::Module (const std::string& name, bool singleton) :
 	Port::Module (name),
 	singleton_ (singleton),
 	ref_cnt_ (0),
@@ -38,7 +38,8 @@ Module::Module (const CoreString& name, bool singleton) :
 
 Module::~Module ()
 {
-	Binder::unbind (_get_ptr (), metadata ());
+	if (entry_point_)
+		Binder::unbind (_get_ptr (), metadata ());
 }
 
 void Module::terminate (ModuleInit::_ptr_type entry_point) NIRVANA_NOEXCEPT

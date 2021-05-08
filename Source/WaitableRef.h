@@ -53,7 +53,8 @@ protected:
 	}
 
 private:
-	WaitList& wait_list () const NIRVANA_NOEXCEPT;
+	WaitList* wait_list () const NIRVANA_NOEXCEPT;
+	void detach (CoreRef <WaitList>& ref) NIRVANA_NOEXCEPT;
 
 protected:
 	uintptr_t pointer_;
