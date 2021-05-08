@@ -184,7 +184,7 @@ void Heap::release (void* p, size_t size)
 	// Search memory block
 	BlockList::NodeVal* node = block_list_.lower_bound (p);
 	if (!node)
-		THROW (BAD_PARAM);
+		THROW (FREE_MEM);
 	const MemoryBlock& block = node->value ();
 	if (!block.is_large_block ()) {
 		// Release from heap partition
@@ -193,7 +193,7 @@ void Heap::release (void* p, size_t size)
 		if ((uint8_t*)p + size <= part_end)
 			release (block.directory (), p, size);
 		else
-			THROW (BAD_PARAM);
+			THROW (FREE_MEM);
 	} else {
 		// Release large block
 		LBErase lberase (block_list_, node);
@@ -215,7 +215,7 @@ void Heap::release (Directory& part, void* p, size_t size) const
 	size_t begin = offset / allocation_unit_;
 	size_t end = (offset + size + allocation_unit_ - 1) / allocation_unit_;
 	if (!part.check_allocated (begin, end))
-		THROW (BAD_PARAM);
+		THROW (FREE_MEM);
 	HeapInfo hi = { heap, allocation_unit_, Port::Memory::OPTIMAL_COMMIT_UNIT };
 	part.release (begin, end, &hi);
 }
@@ -422,7 +422,7 @@ void* Heap::copy (void* dst, void* src, size_t size, unsigned flags)
 		if (check_owner (dst, size))
 			return Port::Memory::copy (dst, src, size, flags);
 		else if ((flags & Memory::READ_ONLY) || !Port::Memory::is_writable (dst, size))
-			throw_NO_PERMISSION ();
+			THROW (NO_PERMISSION);
 		return dst;
 	}
 
@@ -462,13 +462,13 @@ void* Heap::copy (void* dst, void* src, size_t size, unsigned flags)
 			// Release from the heap partition
 			uint8_t* heap = block.begin ();
 			if ((uint8_t*)src + size > heap + partition_size ())
-				THROW (BAD_PARAM);
+				THROW (FREE_MEM);
 			size_t offset = (uint8_t*)src - heap;
 			size_t begin = offset / allocation_unit_;
 			size_t end = (offset + size + allocation_unit_ - 1) / allocation_unit_;
 			Directory* part = (Directory*)heap - 1;
 			if (!part->check_allocated (begin, end))
-				THROW (BAD_PARAM);
+				THROW (FREE_MEM);
 
 			if (!dst) {
 				// Memory::SRC_RELEASE is specified, so we can use source block as destination
@@ -506,7 +506,7 @@ void* Heap::copy (void* dst, void* src, size_t size, unsigned flags)
 				} else {
 					dst_own = check_owner (dst, size);
 					if (!dst_own && (flags & Memory::READ_ONLY))
-						throw_NO_PERMISSION ();
+						THROW (NO_PERMISSION);
 				}
 
 				try {
@@ -532,7 +532,7 @@ void* Heap::copy (void* dst, void* src, size_t size, unsigned flags)
 	} else if (release_flags) {
 		assert (release_flags == Memory::SRC_DECOMMIT);
 		if (!check_owner (src, size))
-			throw_NO_PERMISSION ();
+			THROW (NO_PERMISSION);
 	}
 
 	uint8_t* alloc_begin = nullptr;
