@@ -74,8 +74,7 @@ private:
 /// https://martin.ankerl.com/2019/04/01/hashmap-benchmarks-01-overview/
 class RuntimeSupportImpl
 {
-	typedef phmap::flat_hash_map
-		<const void*, CoreRef <RuntimeProxyImpl>,
+	typedef phmap::flat_hash_map <const void*, CoreRef <RuntimeProxyImpl>,
 		std::hash <const void*>, std::equal_to <const void*>, UserAllocator <std::pair <const void* const, CoreRef <RuntimeProxyImpl> > > > ProxyMap;
 public:
 	RuntimeProxy::_ref_type runtime_proxy_get (const void* obj)

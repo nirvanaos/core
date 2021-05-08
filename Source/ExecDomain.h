@@ -34,6 +34,7 @@
 #include "RuntimeSupportImpl.h"
 #include <limits>
 #include <utility>
+#include "parallel-hashmap/parallel_hashmap/phmap.h"
 
 namespace Nirvana {
 namespace Core {
@@ -44,6 +45,18 @@ class NIRVANA_NOVTABLE ExecDomain :
 	public ExecContext,
 	public Executor
 {
+	template <class T>
+	class Allocator :
+		public std::allocator <T>
+	{
+	public:
+		static void deallocate (T* p, size_t cnt);
+		static T* allocate (size_t cnt, void* hint = nullptr, unsigned flags = 0);
+	};
+
+	typedef phmap::flat_hash_map <const void*, void*,
+		std::hash <const void*>, std::equal_to <const void*>, Allocator <std::pair <const void* const, void* > > > LocalValues;
+
 public:
 	static void async_call (const DeadlineTime& deadline, Runnable& runnable, SyncDomain* sync_domain)
 	{
@@ -179,6 +192,13 @@ public:
 		return ret;
 	}
 
+	///@{
+	/// These methods work like TLS storage functions.
+	void local_value_set (const void* key, void* val);
+	void* local_value_get (const void* key) const NIRVANA_NOEXCEPT;
+	void local_value_erase (const void* key) NIRVANA_NOEXCEPT;
+	///@}
+
 public:
 	ExecDomain* wait_list_next_;
 	CORBA::Nirvana::ObjectFactory::StatelessCreationFrame* stateless_creation_frame_;
@@ -267,6 +287,7 @@ private:
 	ReleaseToPool release_to_pool_;
 	ScheduleCall schedule_call_;
 	ScheduleReturn schedule_return_;
+	LocalValues local_values_;
 };
 
 }

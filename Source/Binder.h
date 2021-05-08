@@ -121,7 +121,7 @@ private:
 	};
 
 	/// We use phmap::btree_map as fast binary tree without the iterator stability.
-	typedef phmap::btree_map <Key, InterfacePtr, std::less <Key>, CoreAllocator <std::pair <Key, InterfacePtr> > > MapBase;
+	typedef phmap::btree_map <Key, InterfacePtr, std::less <Key>, UserAllocator <std::pair <Key, InterfacePtr> > > MapBase;
 
 	/// Name->interface map.
 	class Map : public MapBase
@@ -141,7 +141,7 @@ public:
 	{
 		CoreString name (_name.c_str (), _name.length ());
 		SYNC_BEGIN (&singleton_.sync_domain_);
-		return singleton_.bind_sync (name, nullptr);
+		return singleton_.bind_sync (name);
 		SYNC_END ();
 	}
 
@@ -176,12 +176,7 @@ public:
 	/// 
 	/// \param mod Module interface.
 	/// \param metadata Module OLF metadata section.
-	static void unbind (::Nirvana::Module::_ptr_type mod, const Section& metadata) NIRVANA_NOEXCEPT
-	{
-		SYNC_BEGIN (&singleton_.sync_domain_);
-		singleton_.module_unbind (mod, metadata, nullptr);
-		SYNC_END ();
-	}
+	static void unbind (::Nirvana::Module::_ptr_type mod, const Section& metadata) NIRVANA_NOEXCEPT;
 
 private:
 	/// Module binding context
@@ -192,8 +187,8 @@ private:
 		///   If module is Singleton, sync_context is the singleton synchronization domain.
 		SyncContext& sync_context;
 
-		/// Module exported objects.
-		Map exported_objects;
+		/// Module exports.
+		Map exports;
 	};
 
 	/// Bind module.
@@ -204,13 +199,15 @@ private:
 	///   If module is Legacy::Executable, mod_context must be `nullptr`.
 	/// 
 	/// \returns Pointer to the ModuleStartup metadata structure, if found. Otherwise `nullptr`.
-	const ModuleStartup* module_bind (::Nirvana::Module::_ptr_type mod, const Section& metadata, ModuleContext* mod_context);
-	void module_unbind (::Nirvana::Module::_ptr_type mod, const Section& metadata, ModuleContext* mod_context) NIRVANA_NOEXCEPT;
+	const ModuleStartup* module_bind (::Nirvana::Module::_ptr_type mod, const Section& metadata, ModuleContext* mod_context) const;
+	void remove_module_exports (const Section& metadata);
+	void module_unbind (::Nirvana::Module::_ptr_type mod, const Section& metadata) const NIRVANA_NOEXCEPT;
 
 	class OLF_Iterator;
 
 	InterfacePtr bind_interface_sync (const Key& name, CORBA::Nirvana::String_in iid) const;
-	CORBA::Object::_ptr_type bind_sync (const Key& name, ModuleContext* mod_context) const;
+	CORBA::Object::_ptr_type bind_sync (const Key& name) const;
+	InterfacePtr find (const Key& name) const;
 
 	NIRVANA_NORETURN static void invalid_metadata ();
 

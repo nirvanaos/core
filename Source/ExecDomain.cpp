@@ -123,6 +123,7 @@ void ExecDomain::cleanup () NIRVANA_NOEXCEPT
 			sd->leave ();
 	}
 	runtime_support_.cleanup ();
+	local_values_.clear ();
 	heap_.cleanup (); // TODO: Detect and log the memory leaks.
 	sync_context_ = nullptr;
 	scheduler_error_ = CORBA::SystemException::EC_NO_EXCEPTION;
@@ -200,6 +201,25 @@ void ExecDomain::ScheduleReturn::run ()
 	if (old_sync_domain)
 		old_sync_domain->leave ();
 	thread.yield ();
+}
+
+void ExecDomain::local_value_set (const void* key, void* val)
+{
+	local_values_.emplace (key, val);
+}
+
+void* ExecDomain::local_value_get (const void* key) const NIRVANA_NOEXCEPT
+{
+	LocalValues::const_iterator it = local_values_.find (key);
+	if (it != local_values_.end ())
+		return it->second;
+	else
+		return nullptr;
+}
+
+void ExecDomain::local_value_erase (const void* key) NIRVANA_NOEXCEPT
+{
+	local_values_.erase (key);
 }
 
 }

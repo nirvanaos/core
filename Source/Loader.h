@@ -57,7 +57,7 @@ public:
 
 private:
 	typedef phmap::flat_hash_map <CoreString, WaitableRef <Module*>, phmap::Hash <CoreString>, phmap::EqualTo <CoreString>, 
-		CoreAllocator <std::pair <CoreString, WaitableRef <Module*> > > > Map;
+		UserAllocator <std::pair <CoreString, WaitableRef <Module*> > > > Map;
 
 	ImplStatic <SyncDomain> sync_domain_;
 	Map map_;

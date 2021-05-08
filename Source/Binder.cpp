@@ -151,6 +151,7 @@ void Binder::initialize ()
 	singleton_.map_.insert (g_binder.imp.name, g_binder.imp.itf);
 	ModuleContext context{ SyncContext::free_sync_context () };
 	singleton_.module_bind (nullptr, metadata, &context);
+	singleton_.map_.merge (context.exports);
 	SYNC_END ();
 }
 
@@ -164,8 +165,14 @@ NIRVANA_NORETURN void Binder::invalid_metadata ()
 	throw runtime_error ("Invalid file format");
 }
 
-const ModuleStartup* Binder::module_bind (::Nirvana::Module::_ptr_type mod, const Section& metadata, ModuleContext* mod_context)
+const ModuleStartup* Binder::module_bind (::Nirvana::Module::_ptr_type mod, const Section& metadata, ModuleContext* mod_context) const
 {
+	ExecDomain* exec_domain = nullptr;
+	if (mod_context) {
+		exec_domain = Thread::current ().exec_domain ();
+		exec_domain->local_value_set (this, mod_context);
+	}
+
 	enum MetadataFlags
 	{
 		IMPORT_INTERFACES = 0x01,
@@ -205,7 +212,7 @@ const ModuleStartup* Binder::module_bind (::Nirvana::Module::_ptr_type mod, cons
 					if (!mod_context) // Legacy process can not export
 						invalid_metadata ();
 					const ExportInterface* ps = reinterpret_cast <const ExportInterface*> (it.cur ());
-					map_.insert (ps->name, ps->itf);
+					mod_context->exports.insert (ps->name, ps->itf);
 				} break;
 
 				case OLF_EXPORT_OBJECT:
@@ -268,7 +275,7 @@ const ModuleStartup* Binder::module_bind (::Nirvana::Module::_ptr_type mod, cons
 									mod_context->sync_context))->_get_ptr ();
 							Object::_ptr_type obj = AbstractBase::_ptr_type (core_obj)->_query_interface <Object> ();
 							ps->core_object = &core_obj;
-							mod_context->exported_objects.insert (ps->name, obj);
+							mod_context->exports.insert (ps->name, obj);
 						} break;
 
 						case OLF_EXPORT_LOCAL: {
@@ -278,7 +285,7 @@ const ModuleStartup* Binder::module_bind (::Nirvana::Module::_ptr_type mod, cons
 									Type <AbstractBase>::in (ps->abstract_base), mod_context->sync_context))->_get_ptr ();
 							Object::_ptr_type obj = core_obj;
 							ps->core_object = &core_obj;
-							mod_context->exported_objects.insert (ps->name, obj);
+							mod_context->exports.insert (ps->name, obj);
 						} break;
 					}
 				}
@@ -289,7 +296,7 @@ const ModuleStartup* Binder::module_bind (::Nirvana::Module::_ptr_type mod, cons
 				for (OLF_Iterator it (writable, metadata.size); !it.end (); it.next ()) {
 					if (OLF_IMPORT_OBJECT == *it.cur ()) {
 						ImportInterface* ps = reinterpret_cast <ImportInterface*> (it.cur ());
-						Object::_ptr_type obj = bind_sync (ps->name, mod_context);
+						Object::_ptr_type obj = bind_sync (ps->name);
 						const StringBase <char> requested_iid (ps->interface_id);
 						InterfacePtr itf;
 						if (RepositoryId::compatible (obj->_epv ().header.interface_id, requested_iid))
@@ -306,18 +313,24 @@ const ModuleStartup* Binder::module_bind (::Nirvana::Module::_ptr_type mod, cons
 			Port::Memory::copy (const_cast <void*> (metadata.address), writable, metadata.size, (writable != metadata.address) ? (Memory::READ_ONLY | Memory::SRC_RELEASE) : Memory::READ_ONLY);
 		}
 	} catch (...) {
-		module_unbind (mod, { writable, metadata.size }, mod_context);
+		module_unbind (mod, { writable, metadata.size });
 		if (writable != metadata.address)
 			Port::Memory::release (writable, metadata.size);
+		if (exec_domain)
+			exec_domain->local_value_erase (this);
 		throw;
 	}
+
+	if (exec_domain)
+		exec_domain->local_value_erase (this);
 
 	return module_startup;
 }
 
-void Binder::module_unbind (::Nirvana::Module::_ptr_type mod, const Section& metadata, ModuleContext* mod_context) NIRVANA_NOEXCEPT
+inline
+void Binder::remove_module_exports (const Section& metadata)
 {
-	// Pass 1: Remove all exports from table.
+	// Pass 1: Remove all exports from the map.
 	// This pass will not cause inter-domain calls.
 	for (OLF_Iterator it (metadata.address, metadata.size); !it.end (); it.next ()) {
 		switch (*it.cur ()) {
@@ -326,25 +339,30 @@ void Binder::module_unbind (::Nirvana::Module::_ptr_type mod, const Section& met
 				map_.erase (ps->name);
 			} break;
 
-			case OLF_EXPORT_OBJECT: 
-				if (!mod_context) {
-					ExportObject* ps = reinterpret_cast <ExportObject*> (it.cur ());
-					if (ps->core_object) // Module may be bound partially because of an error.
-						map_.erase (ps->name);
-				}
-				break;
+			case OLF_EXPORT_OBJECT: {
+				ExportObject* ps = reinterpret_cast <ExportObject*> (it.cur ());
+				map_.erase (ps->name);
+			} break;
 
-			case OLF_EXPORT_LOCAL:
-				if (!mod_context) {
-					ExportLocal* ps = reinterpret_cast <ExportLocal*> (it.cur ());
-					if (ps->core_object) // Module may be bound partially because of an error.
-						map_.erase (ps->name);
-				}
-				break;
+			case OLF_EXPORT_LOCAL: {
+				ExportLocal* ps = reinterpret_cast <ExportLocal*> (it.cur ());
+				map_.erase (ps->name);
+			} break;
 		}
 	}
-	
-	// Pass 2: Release all imported interfaces.
+}
+
+void Binder::unbind (::Nirvana::Module::_ptr_type mod, const Section& metadata) NIRVANA_NOEXCEPT
+{
+	SYNC_BEGIN (&singleton_.sync_domain_);
+	singleton_.remove_module_exports (metadata);
+	singleton_.module_unbind (mod, metadata);
+	SYNC_END ();
+}
+
+void Binder::module_unbind (::Nirvana::Module::_ptr_type mod, const Section& metadata) const NIRVANA_NOEXCEPT
+{
+	// Pass 1: Release all imported interfaces.
 	for (OLF_Iterator it (metadata.address, metadata.size); !it.end (); it.next ()) {
 		switch (*it.cur ()) {
 			case OLF_IMPORT_INTERFACE:
@@ -356,7 +374,7 @@ void Binder::module_unbind (::Nirvana::Module::_ptr_type mod, const Section& met
 		}
 	}
 
-	// Pass 3: Release proxies for all exported objects.
+	// Pass 2: Release proxies for all exported objects.
 	for (OLF_Iterator it (metadata.address, metadata.size); !it.end (); it.next ()) {
 		switch (*it.cur ()) {
 			case OLF_EXPORT_OBJECT: {
@@ -372,54 +390,52 @@ void Binder::module_unbind (::Nirvana::Module::_ptr_type mod, const Section& met
 	}
 }
 
-Binder::InterfacePtr Binder::bind_interface_sync (const Key& name, String_in iid) const
+Binder::InterfacePtr Binder::find (const Key& name) const
 {
-	Interface::_ptr_type itf = map_.find (name);
-	if (!itf) {
-		Loader::load ("TestModule.olf", false);
-		itf = map_.find (name);
-	}
-	if (itf) {
-		StringBase <char> itf_id = itf->_epv ().interface_id;
-		if (!RepositoryId::compatible (itf_id, iid)) {
-			AbstractBase::_ptr_type ab = AbstractBase::_nil ();
-			if (RepositoryId::compatible (itf_id, Object::repository_id_))
-				ab = Object::_ptr_type (static_cast <Object*> (&itf));
-			else if (RepositoryId::compatible (itf_id, AbstractBase::repository_id_))
-				ab = static_cast <AbstractBase*> (&itf);
-			else
-				throw_INV_OBJREF ();
-			InterfacePtr qi = ab->_query_interface (iid);
-			if (!qi)
-				throw_INV_OBJREF ();
-			itf = qi;
-		}
-
-		return itf;
-
-	} else
-		throw_OBJECT_NOT_EXIST ();
-}
-
-CORBA::Object::_ptr_type Binder::bind_sync (const Key& name, ModuleContext* mod_context) const
-{
+	ModuleContext* context = reinterpret_cast <ModuleContext*> (Thread::current ().exec_domain ()->local_value_get (this));
 	InterfacePtr itf (nullptr);
-	if (mod_context)
-		itf = mod_context->exported_objects.find (name);
+	if (context)
+		itf = context->exports.find (name);
 	if (!itf) {
 		itf = map_.find (name);
 		if (!itf) {
 			Loader::load ("TestModule.olf", false);
 			itf = map_.find (name);
+			if (!itf)
+				throw_OBJECT_NOT_EXIST ();
 		}
 	}
-	if (itf) {
-		if (RepositoryId::compatible (itf->_epv ().interface_id, Object::repository_id_))
-			return static_cast <Object*> (&itf);
+	return itf;
+}
+
+Binder::InterfacePtr Binder::bind_interface_sync (const Key& name, String_in iid) const
+{
+	InterfacePtr itf = find (name);
+	StringBase <char> itf_id = itf->_epv ().interface_id;
+	if (!RepositoryId::compatible (itf_id, iid)) {
+		AbstractBase::_ptr_type ab = AbstractBase::_nil ();
+		if (RepositoryId::compatible (itf_id, Object::repository_id_))
+			ab = Object::_ptr_type (static_cast <Object*> (&itf));
+		else if (RepositoryId::compatible (itf_id, AbstractBase::repository_id_))
+			ab = static_cast <AbstractBase*> (&itf);
 		else
 			throw_INV_OBJREF ();
-	} else
-		throw_OBJECT_NOT_EXIST ();
+		InterfacePtr qi = ab->_query_interface (iid);
+		if (!qi)
+			throw_INV_OBJREF ();
+		itf = qi;
+	}
+
+	return itf;
+}
+
+CORBA::Object::_ptr_type Binder::bind_sync (const Key& name) const
+{
+	InterfacePtr itf = find (name);
+	if (RepositoryId::compatible (itf->_epv ().interface_id, Object::repository_id_))
+		return static_cast <Object*> (&itf);
+	else
+		throw_INV_OBJREF ();
 }
 
 ModuleInit::_ptr_type Binder::bind (ClassLibrary& mod)
@@ -434,7 +450,7 @@ ModuleInit::_ptr_type Binder::bind (ClassLibrary& mod)
 			ModuleInit::_ptr_type init = ModuleInit::_check (startup->startup);
 			mod.initialize (init);
 			try {
-				singleton_.map_.merge (context.exported_objects);
+				singleton_.map_.merge (context.exports);
 			} catch (...) {
 				mod.terminate (init);
 				throw;
@@ -443,7 +459,7 @@ ModuleInit::_ptr_type Binder::bind (ClassLibrary& mod)
 		} else
 			return nullptr;
 	} catch (...) {
-		singleton_.module_unbind (mod._get_ptr (), mod.metadata (), &context);
+		singleton_.module_unbind (mod._get_ptr (), mod.metadata ());
 		throw;
 	}
 	SYNC_END ();
@@ -462,7 +478,7 @@ ModuleInit::_ptr_type Binder::bind (Singleton& mod)
 			ModuleInit::_ptr_type init = ModuleInit::_check (startup->startup);
 			mod.initialize (init);
 			try {
-				singleton_.map_.merge (context.exported_objects);
+				singleton_.map_.merge (context.exports);
 			} catch (...) {
 				mod.terminate (init);
 				throw;
@@ -471,7 +487,7 @@ ModuleInit::_ptr_type Binder::bind (Singleton& mod)
 		} else
 			return nullptr;
 	} catch (...) {
-		singleton_.module_unbind (mod._get_ptr (), mod.metadata (), &context);
+		singleton_.module_unbind (mod._get_ptr (), mod.metadata ());
 		throw;
 	}
 	SYNC_END ();
@@ -486,7 +502,7 @@ Legacy::Main::_ptr_type Binder::bind (Legacy::Core::Executable& mod)
 			invalid_metadata ();
 		return Legacy::Main::_check (startup->startup);
 	} catch (...) {
-		singleton_.module_unbind (mod._get_ptr (), mod.metadata (), nullptr);
+		singleton_.module_unbind (mod._get_ptr (), mod.metadata ());
 		throw;
 	}
 	SYNC_END ();
