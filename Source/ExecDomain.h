@@ -201,7 +201,6 @@ public:
 
 public:
 	ExecDomain* wait_list_next_;
-	CORBA::Nirvana::ObjectFactory::StatelessCreationFrame* stateless_creation_frame_;
 
 protected:
 	ExecDomain () :

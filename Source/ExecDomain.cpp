@@ -52,7 +52,6 @@ void ExecDomain::ctor_base ()
 	ret_qnodes_ = nullptr;
 	scheduler_error_ = CORBA::SystemException::EC_NO_EXCEPTION;
 	scheduler_item_created_ = false;
-	stateless_creation_frame_ = nullptr;
 	cur_heap_ = &heap_;
 	release_to_pool_.init (*this);
 	schedule_call_.init (*this);

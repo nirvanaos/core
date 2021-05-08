@@ -35,22 +35,34 @@ namespace Core {
 using namespace ::Nirvana;
 using namespace ::Nirvana::Core;
 
-CORBA::Nirvana::ObjectFactory::StatelessCreationFrame*& ObjectFactory::stateless_creation_frame ()
+CORBA::Nirvana::ObjectFactory::StatelessCreationFrame* ObjectFactory::stateless_creation_frame ()
 {
 	ExecDomain* ed = ::Nirvana::Core::Thread::current ().exec_domain ();
 	assert (ed);
-	return ed->stateless_creation_frame_;
+	return reinterpret_cast <CORBA::Nirvana::ObjectFactory::StatelessCreationFrame*> (ed->local_value_get (_get_ptr ()));
+}
+
+void ObjectFactory::stateless_creation_frame (CORBA::Nirvana::ObjectFactory::StatelessCreationFrame* scf)
+{
+	ExecDomain* ed = ::Nirvana::Core::Thread::current ().exec_domain ();
+	assert (ed);
+	if (scf)
+		ed->local_value_set (_get_ptr (), scf);
+	else
+		ed->local_value_erase (_get_ptr ());
 }
 
 size_t ObjectFactory::offset_ptr ()
 {
-	ExecDomain* ed = ::Nirvana::Core::Thread::current ().exec_domain ();
-	assert (ed);
-	CORBA::Nirvana::ObjectFactory::StatelessCreationFrame* scs = ed->stateless_creation_frame_;
+	CORBA::Nirvana::ObjectFactory::StatelessCreationFrame* scs = stateless_creation_frame ();
 	if (scs)
 		return scs->offset ();
-	else if (!ed->sync_context ()->sync_domain ())
-		throw_BAD_INV_ORDER ();
+	else {
+		// Stateful object must be created in the sync doimain only.
+		ExecDomain* ed = ::Nirvana::Core::Thread::current ().exec_domain ();
+		if (!ed || !ed->sync_context ()->sync_domain ())
+			throw_BAD_INV_ORDER ();
+	}
 	return 0;
 }
 

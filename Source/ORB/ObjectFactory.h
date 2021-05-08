@@ -31,7 +31,7 @@
 #include "ServantBase.h"
 #include "LocalObject.h"
 #include "ReferenceCounter.h"
-#include "SyncDomain.h"
+#include "ExecDomain.h"
 
 namespace CORBA {
 namespace Nirvana {
@@ -62,23 +62,21 @@ public:
 		// TODO: Allocate from read-only heap
 		void* p = ::Nirvana::Core::g_core_heap->allocate (0, scs.size (), ::Nirvana::Memory::READ_ONLY | ::Nirvana::Memory::RESERVED);
 		scs.offset ((uint8_t*)p - (uint8_t*)scs.tmp ());
-		stateless_creation_frame () = &scs;
+		stateless_creation_frame (&scs);
 	}
 
 	void* stateless_end (bool success)
 	{
-		CORBA::Nirvana::ObjectFactory::StatelessCreationFrame*& scsr = stateless_creation_frame ();
-		CORBA::Nirvana::ObjectFactory::StatelessCreationFrame* scs = scsr;
+		CORBA::Nirvana::ObjectFactory::StatelessCreationFrame* scs = stateless_creation_frame ();
 		if (!scs)
 			throw BAD_INV_ORDER ();
+		stateless_creation_frame (nullptr);
 		void* p = (Octet*)scs->tmp () + scs->offset ();
 		// TODO: Allocate from read-only heap
 		if (success) {
 			::Nirvana::Core::g_core_heap->copy (p, const_cast <void*> (scs->tmp ()), scs->size (), ::Nirvana::Memory::READ_ONLY);
-			scsr = nullptr;
 			return p;
 		} else {
-			scsr = nullptr;
 			::Nirvana::Core::g_core_heap->release (p, scs->size ());
 			return nullptr;
 		}
@@ -100,7 +98,8 @@ public:
 	}
 
 private:
-	static CORBA::Nirvana::ObjectFactory::StatelessCreationFrame*& stateless_creation_frame ();
+	static CORBA::Nirvana::ObjectFactory::StatelessCreationFrame* stateless_creation_frame ();
+	static void stateless_creation_frame (CORBA::Nirvana::ObjectFactory::StatelessCreationFrame*);
 
 	template <class I>
 	static I_ptr <I> offset_ptr (I_ptr <I> p)
