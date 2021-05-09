@@ -58,13 +58,22 @@ public:
 
 	void _remove_ref ()
 	{
-		if (!ref_cnt_.decrement ())
-			on_release ();
+		auto cnt = ref_cnt_.decrement ();
+		assert (cnt >= initial_ref_cnt_);
 	}
 
+	/// \returns `true` if module is singleton library.
 	bool singleton () const
 	{
 		return singleton_;
+	}
+
+	/// If bound () returns `false`, the module may be safely unloaded.
+	/// 
+	/// \returns `true` if some objects of this module are bound from other modules.
+	bool bound () const
+	{
+		return initial_ref_cnt_ >= ref_cnt_;
 	}
 
 protected:
@@ -72,19 +81,17 @@ protected:
 
 	void initialize (ModuleInit::_ptr_type entry_point)
 	{
+		initial_ref_cnt_ = ref_cnt_;
 		entry_point->initialize ();
 		entry_point_ = entry_point;
 	}
 
 	void terminate () NIRVANA_NOEXCEPT;
 
-private:
-	void on_release ()
-	{}
-
 protected:
 	bool singleton_;
 	AtomicCounter <false> ref_cnt_;
+	AtomicCounter <false>::IntegralType initial_ref_cnt_;
 	ModuleInit::_ptr_type entry_point_;
 };
 

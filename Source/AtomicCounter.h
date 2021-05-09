@@ -63,14 +63,9 @@ public:
 		assert (cnt_.is_lock_free ());
 	}
 
-	explicit operator IntegralType () const NIRVANA_NOEXCEPT
+	operator IntegralType () const NIRVANA_NOEXCEPT
 	{
 		return cnt_;
-	}
-
-	operator bool () const NIRVANA_NOEXCEPT
-	{
-		return cnt_ != 0;
 	}
 
 	IntegralType increment () NIRVANA_NOEXCEPT

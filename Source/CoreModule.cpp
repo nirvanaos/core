@@ -29,8 +29,9 @@
 namespace Nirvana {
 namespace Core {
 
-class Module :
-	public ::CORBA::Nirvana::ServantStatic <Module, ::Nirvana::Module>
+/// Module interface implementation for core static objects.
+class CoreModule :
+	public ::CORBA::Nirvana::ServantStatic <CoreModule, ::Nirvana::Module>
 {
 public:
 	static const void* base_address ()
@@ -51,6 +52,6 @@ public:
 
 }
 
-extern const ImportInterfaceT <Module> g_module = { OLF_IMPORT_INTERFACE, "Nirvana/g_module", Module::repository_id_, NIRVANA_STATIC_BRIDGE (Module, Core::Module) };
+extern const ImportInterfaceT <Module> g_module = { OLF_IMPORT_INTERFACE, "Nirvana/g_module", Module::repository_id_, NIRVANA_STATIC_BRIDGE (Module, Core::CoreModule) };
 
 }
