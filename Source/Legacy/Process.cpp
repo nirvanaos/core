@@ -1,4 +1,5 @@
 #include "Process.h"
+#include "ExecDomain.h"
 
 namespace Nirvana {
 namespace Legacy {
@@ -13,7 +14,7 @@ Nirvana::Core::CoreRef <Process> Process::spawn (Nirvana::Core::Runnable& runnab
 
 Nirvana::Core::Heap& Process::memory () NIRVANA_NOEXCEPT
 {
-	return heap_;
+	return exec_domain ()->heap ();
 }
 
 }

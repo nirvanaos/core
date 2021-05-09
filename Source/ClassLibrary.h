@@ -49,8 +49,7 @@ public:
 
 	void initialize (ModuleInit::_ptr_type entry_point)
 	{
-		ImplStatic <SyncDomain> init_sd;
-		SYNC_BEGIN (&init_sd);
+		SYNC_BEGIN (nullptr);
 		ExecDomain* ed = Thread::current ().exec_domain ();
 		assert (ed);
 		ed->heap_replace (readonly_heap_);

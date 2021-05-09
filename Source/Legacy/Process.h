@@ -54,7 +54,6 @@ protected:
 	{}
 
 private:
-	Nirvana::Core::HeapUser heap_;
 	RuntimeSupportLegacy runtime_support_;
 };
 
