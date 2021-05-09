@@ -351,11 +351,18 @@ void Binder::remove_module_exports (const Section& metadata)
 	}
 }
 
-void Binder::unbind (::Nirvana::Module::_ptr_type mod, const Section& metadata) NIRVANA_NOEXCEPT
+void Binder::unbind (Module& mod) NIRVANA_NOEXCEPT
 {
 	SYNC_BEGIN (&singleton_.sync_domain_);
-	singleton_.remove_module_exports (metadata);
-	singleton_.module_unbind (mod, metadata);
+	singleton_.remove_module_exports (mod.metadata ());
+	singleton_.module_unbind (mod._get_ptr (), mod.metadata ());
+	SYNC_END ();
+}
+
+void Binder::unbind (Legacy::Core::Executable& mod) NIRVANA_NOEXCEPT
+{
+	SYNC_BEGIN (&singleton_.sync_domain_);
+	singleton_.module_unbind (mod._get_ptr (), mod.metadata ());
 	SYNC_END ();
 }
 
@@ -391,7 +398,11 @@ void Binder::module_unbind (::Nirvana::Module::_ptr_type mod, const Section& met
 
 Binder::InterfaceRef Binder::find (const Key& name) const
 {
-	ModuleContext* context = reinterpret_cast <ModuleContext*> (Thread::current ().exec_domain ()->local_value_get (this));
+	const ExecDomain* exec_domain = Thread::current ().exec_domain ();
+	assert (exec_domain);
+	if (ExecDomain::RestrictedMode::MODULE_TERMINATE == exec_domain->restricted_mode_)
+		throw_NO_PERMISSION ();
+	ModuleContext* context = reinterpret_cast <ModuleContext*> (exec_domain->local_value_get (this));
 	InterfaceRef itf;
 	if (context)
 		itf = context->exports.find (name);

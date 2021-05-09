@@ -59,7 +59,6 @@ public:
 	void _remove_ref ()
 	{
 		auto cnt = ref_cnt_.decrement ();
-		assert (cnt >= initial_ref_cnt_);
 	}
 
 	/// \returns `true` if module is singleton library.
@@ -73,7 +72,7 @@ public:
 	/// \returns `true` if some objects of this module are bound from other modules.
 	bool bound () const
 	{
-		return initial_ref_cnt_ >= ref_cnt_;
+		return initial_ref_cnt_ < ref_cnt_;
 	}
 
 protected:

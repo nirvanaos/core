@@ -199,9 +199,6 @@ public:
 	void local_value_erase (const void* key) NIRVANA_NOEXCEPT;
 	///@}
 
-public:
-	ExecDomain* wait_list_next_;
-
 protected:
 	ExecDomain () :
 		ExecContext ()
@@ -273,6 +270,17 @@ private:
 		SyncContext* sync_context_;
 	};
 
+public:
+	enum class RestrictedMode
+	{
+		NO_RESTRICTIONS,
+		CLASS_LIBRARY_INIT,
+		MODULE_TERMINATE
+	}
+	restricted_mode_;
+	ExecDomain* wait_list_next_;
+
+private:
 	static ObjectPool <ExecDomain> pool_;
 
 	DeadlineTime deadline_;

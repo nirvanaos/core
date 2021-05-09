@@ -39,6 +39,8 @@ CORBA::Nirvana::ObjectFactory::StatelessCreationFrame* ObjectFactory::stateless_
 {
 	ExecDomain* ed = ::Nirvana::Core::Thread::current ().exec_domain ();
 	assert (ed);
+	if (ExecDomain::RestrictedMode::NO_RESTRICTIONS != ed->restricted_mode_)
+		throw_NO_PERMISSION ();
 	return reinterpret_cast <CORBA::Nirvana::ObjectFactory::StatelessCreationFrame*> (ed->local_value_get (_get_ptr ()));
 }
 

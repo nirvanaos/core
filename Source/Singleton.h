@@ -43,8 +43,9 @@ public:
 
 	~Singleton ()
 	{
+		assert (!bound ());
 		terminate ();
-		Binder::unbind (_get_ptr (), metadata ());
+		Binder::unbind (*this);
 	}
 
 	SyncDomain& sync_domain ()

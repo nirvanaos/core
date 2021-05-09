@@ -48,6 +48,7 @@ CoreRef <ExecDomain> ExecDomain::get (DeadlineTime deadline)
 void ExecDomain::ctor_base ()
 {
 	wait_list_next_ = nullptr;
+	restricted_mode_ = RestrictedMode::NO_RESTRICTIONS;
 	deadline_ = numeric_limits <DeadlineTime>::max ();
 	ret_qnodes_ = nullptr;
 	scheduler_error_ = CORBA::SystemException::EC_NO_EXCEPTION;

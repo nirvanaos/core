@@ -42,8 +42,6 @@ Startup::Startup (int argc, char* argv [], char* envp []) :
 	exception_code_ (CORBA::Exception::EC_NO_EXCEPTION)
 {}
 
-
-
 void Startup::run ()
 {
 	if (!executable_) {
@@ -54,6 +52,8 @@ void Startup::run ()
 		}
 	} else {
 		ret_ = executable_->entry_point ()->main (argc_ - 1, argv_ + 1, envp_);
+		delete executable_;
+		executable_ = nullptr;
 		Scheduler::shutdown ();
 	}
 }

@@ -44,8 +44,9 @@ public:
 
 	~ClassLibrary ()
 	{
+		assert (!bound ());
 		terminate ();
-		Binder::unbind (_get_ptr (), metadata ());
+		Binder::unbind (*this);
 	}
 
 	void initialize (ModuleInit::_ptr_type entry_point)
@@ -54,13 +55,16 @@ public:
 		ExecDomain* ed = Thread::current ().exec_domain ();
 		assert (ed);
 		ed->heap_replace (readonly_heap_);
+		ed->restricted_mode_ = ExecDomain::RestrictedMode::CLASS_LIBRARY_INIT;
 		try {
 			Module::initialize (entry_point);
 		} catch (...) {
 			ed->heap_restore ();
+			ed->restricted_mode_ = ExecDomain::RestrictedMode::NO_RESTRICTIONS;
 			throw;
 		}
 		ed->heap_restore ();
+		ed->restricted_mode_ = ExecDomain::RestrictedMode::NO_RESTRICTIONS;
 		SYNC_END ();
 	}
 

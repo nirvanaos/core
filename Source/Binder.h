@@ -173,11 +173,15 @@ public:
 	/// \returns The Main interface pointer.
 	static Legacy::Main::_ptr_type bind (Legacy::Core::Executable& mod);
 
+	/// Unbind legacy executable.
+	/// 
+	/// \param mod Executable.
+	static void unbind (Legacy::Core::Executable& mod) NIRVANA_NOEXCEPT;
+
 	/// Unbind module.
 	/// 
-	/// \param mod Module interface.
-	/// \param metadata Module OLF metadata section.
-	static void unbind (::Nirvana::Module::_ptr_type mod, const Section& metadata) NIRVANA_NOEXCEPT;
+	/// \param mod Module.
+	static void unbind (Module& mod) NIRVANA_NOEXCEPT;
 
 private:
 	/// Module binding context

@@ -25,6 +25,7 @@
 */
 #include "Module.h"
 #include "Binder.h"
+#include "ExecDomain.h"
 
 namespace Nirvana {
 namespace Core {
@@ -33,16 +34,21 @@ Module::Module (const std::string& name, bool singleton) :
 	Port::Module (name),
 	singleton_ (singleton),
 	ref_cnt_ (0),
+	initial_ref_cnt_ (0),
 	entry_point_ (nullptr)
 {}
 
 void Module::terminate () NIRVANA_NOEXCEPT
 {
+	ExecDomain* ed = Thread::current ().exec_domain ();
+	assert (ed);
+	ed->restricted_mode_ = ExecDomain::RestrictedMode::MODULE_TERMINATE;
 	try {
 		entry_point_->terminate ();
 	} catch (...) {
 		// TODO: Log
 	}
+	ed->restricted_mode_ = ExecDomain::RestrictedMode::NO_RESTRICTIONS;
 }
 
 }
