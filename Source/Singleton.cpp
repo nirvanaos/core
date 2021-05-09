@@ -28,10 +28,10 @@
 namespace Nirvana {
 namespace Core {
 
-void Singleton::terminate (ModuleInit::_ptr_type entry_point) NIRVANA_NOEXCEPT
+void Singleton::terminate () NIRVANA_NOEXCEPT
 {
 	SYNC_BEGIN (&sync_domain_);
-	Module::terminate (entry_point);
+	Module::terminate ();
 	SYNC_END ();
 }
 

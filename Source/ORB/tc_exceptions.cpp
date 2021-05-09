@@ -27,6 +27,7 @@
 #include <CORBA/Proxy/TypeCodeEnum.h>
 #include <CORBA/Proxy/TypeCodeException.h>
 #include "tc_impex.h"
+#include <CORBA/system_exceptions.h>
 
 namespace CORBA {
 namespace Nirvana {

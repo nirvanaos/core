@@ -53,6 +53,7 @@ namespace Core {
 
 class ClassLibrary;
 class Singleton;
+class Module;
 
 /// Implementation of the interface Nirvana::Binder.
 class Binder :
@@ -157,13 +158,13 @@ public:
 	/// 
 	/// \param mod ClassLibrary object.
 	/// \returns The ModuleInit interface pointer or `nil` if not present.
-	static ModuleInit::_ptr_type bind (ClassLibrary& mod);
+	static void bind (ClassLibrary& mod);
 
 	/// Bind Singleton.
 	/// 
 	/// \param mod Singleton object.
 	/// \returns The ModuleInit interface pointer or `nil` if not present.
-	static ModuleInit::_ptr_type bind (Singleton& mod);
+	static void bind (Singleton& mod);
 
 	/// Bind legacy process executable.
 	/// 
@@ -205,9 +206,10 @@ private:
 
 	class OLF_Iterator;
 
-	InterfacePtr bind_interface_sync (const Key& name, CORBA::Nirvana::String_in iid) const;
-	CORBA::Object::_ptr_type bind_sync (const Key& name) const;
-	InterfacePtr find (const Key& name) const;
+	InterfaceRef bind_interface_sync (const Key& name, CORBA::Nirvana::String_in iid) const;
+	CORBA::Object::_ref_type bind_sync (const Key& name) const;
+
+	InterfaceRef find (const Key& name) const;
 
 	NIRVANA_NORETURN static void invalid_metadata ();
 

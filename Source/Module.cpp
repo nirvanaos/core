@@ -36,16 +36,10 @@ Module::Module (const std::string& name, bool singleton) :
 	entry_point_ (nullptr)
 {}
 
-Module::~Module ()
-{
-	if (entry_point_)
-		Binder::unbind (_get_ptr (), metadata ());
-}
-
-void Module::terminate (ModuleInit::_ptr_type entry_point) NIRVANA_NOEXCEPT
+void Module::terminate () NIRVANA_NOEXCEPT
 {
 	try {
-		entry_point->terminate ();
+		entry_point_->terminate ();
 	} catch (...) {
 		// TODO: Log
 	}

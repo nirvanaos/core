@@ -39,12 +39,13 @@ public:
 	ClassLibrary (const std::string& name) :
 		Module (name, false)
 	{
-		entry_point_ = Binder::bind (*this);
+		Binder::bind (*this);
 	}
 
 	~ClassLibrary ()
 	{
-		terminate (entry_point_);
+		terminate ();
+		Binder::unbind (_get_ptr (), metadata ());
 	}
 
 	void initialize (ModuleInit::_ptr_type entry_point)
@@ -54,7 +55,7 @@ public:
 		assert (ed);
 		ed->heap_replace (readonly_heap_);
 		try {
-			entry_point->initialize ();
+			Module::initialize (entry_point);
 		} catch (...) {
 			ed->heap_restore ();
 			throw;
@@ -63,7 +64,7 @@ public:
 		SYNC_END ();
 	}
 
-	void terminate (ModuleInit::_ptr_type entry_point) NIRVANA_NOEXCEPT;
+	void terminate () NIRVANA_NOEXCEPT;
 
 private:
 	HeapUser readonly_heap_;

@@ -38,12 +38,13 @@ public:
 	Singleton (const std::string& name) :
 		Module (name, true)
 	{
-		entry_point_ = Binder::bind (*this);
+		Binder::bind (*this);
 	}
 
 	~Singleton ()
 	{
-		terminate (entry_point_);
+		terminate ();
+		Binder::unbind (_get_ptr (), metadata ());
 	}
 
 	SyncDomain& sync_domain ()
@@ -54,11 +55,11 @@ public:
 	void initialize (ModuleInit::_ptr_type entry_point)
 	{
 		SYNC_BEGIN (&sync_domain ());
-		entry_point->initialize ();
+		Module::initialize (entry_point);
 		SYNC_END ();
 	}
 
-	void terminate (ModuleInit::_ptr_type entry_point) NIRVANA_NOEXCEPT;
+	void terminate () NIRVANA_NOEXCEPT;
 
 private:
 	ImplStatic <SyncDomain> sync_domain_;

@@ -259,7 +259,7 @@ const ModuleStartup* Binder::module_bind (::Nirvana::Module::_ptr_type mod, cons
 					if (OLF_IMPORT_INTERFACE == *it.cur ()) {
 						ImportInterface* ps = reinterpret_cast <ImportInterface*> (it.cur ());
 						if (!mod || ps != module_entry)
-							ps->itf = interface_duplicate (&bind_interface_sync (ps->name, ps->interface_id));
+							reinterpret_cast <InterfaceRef&> (ps->itf) = move (bind_interface_sync (ps->name, ps->interface_id));
 					}
 				}
 
@@ -296,17 +296,16 @@ const ModuleStartup* Binder::module_bind (::Nirvana::Module::_ptr_type mod, cons
 				for (OLF_Iterator it (writable, metadata.size); !it.end (); it.next ()) {
 					if (OLF_IMPORT_OBJECT == *it.cur ()) {
 						ImportInterface* ps = reinterpret_cast <ImportInterface*> (it.cur ());
-						Object::_ptr_type obj = bind_sync (ps->name);
+						Object::_ref_type obj = bind_sync (ps->name);
 						const StringBase <char> requested_iid (ps->interface_id);
-						InterfacePtr itf;
 						if (RepositoryId::compatible (obj->_epv ().header.interface_id, requested_iid))
-							itf = &obj;
+							reinterpret_cast <Object::_ref_type&> (ps->itf) = move (obj);
 						else {
-							itf = AbstractBase::_ptr_type (obj)->_query_interface (requested_iid);
+							InterfacePtr itf = AbstractBase::_ptr_type (obj)->_query_interface (requested_iid);
 							if (!itf)
 								throw_INV_OBJREF ();
+							ps->itf = interface_duplicate (&itf);
 						}
-						ps->itf = interface_duplicate (&itf);
 					}
 				}
 
@@ -390,16 +389,16 @@ void Binder::module_unbind (::Nirvana::Module::_ptr_type mod, const Section& met
 	}
 }
 
-Binder::InterfacePtr Binder::find (const Key& name) const
+Binder::InterfaceRef Binder::find (const Key& name) const
 {
 	ModuleContext* context = reinterpret_cast <ModuleContext*> (Thread::current ().exec_domain ()->local_value_get (this));
-	InterfacePtr itf (nullptr);
+	InterfaceRef itf;
 	if (context)
 		itf = context->exports.find (name);
 	if (!itf) {
 		itf = map_.find (name);
 		if (!itf) {
-			Loader::load ("TestModule.olf", false);
+			CoreRef <Module> mod = Loader::load ("TestModule.olf", false);
 			itf = map_.find (name);
 			if (!itf)
 				throw_OBJECT_NOT_EXIST ();
@@ -408,16 +407,16 @@ Binder::InterfacePtr Binder::find (const Key& name) const
 	return itf;
 }
 
-Binder::InterfacePtr Binder::bind_interface_sync (const Key& name, String_in iid) const
+Binder::InterfaceRef Binder::bind_interface_sync (const Key& name, String_in iid) const
 {
-	InterfacePtr itf = find (name);
+	InterfaceRef itf = find (name);
 	StringBase <char> itf_id = itf->_epv ().interface_id;
 	if (!RepositoryId::compatible (itf_id, iid)) {
 		AbstractBase::_ptr_type ab = AbstractBase::_nil ();
 		if (RepositoryId::compatible (itf_id, Object::repository_id_))
-			ab = Object::_ptr_type (static_cast <Object*> (&itf));
+			ab = Object::_ptr_type (static_cast <Object*> (&InterfacePtr (itf)));
 		else if (RepositoryId::compatible (itf_id, AbstractBase::repository_id_))
-			ab = static_cast <AbstractBase*> (&itf);
+			ab = static_cast <AbstractBase*> (&InterfacePtr (itf));
 		else
 			throw_INV_OBJREF ();
 		InterfacePtr qi = ab->_query_interface (iid);
@@ -429,16 +428,16 @@ Binder::InterfacePtr Binder::bind_interface_sync (const Key& name, String_in iid
 	return itf;
 }
 
-CORBA::Object::_ptr_type Binder::bind_sync (const Key& name) const
+Object::_ref_type Binder::bind_sync (const Key& name) const
 {
-	InterfacePtr itf = find (name);
+	InterfaceRef itf = find (name);
 	if (RepositoryId::compatible (itf->_epv ().interface_id, Object::repository_id_))
-		return static_cast <Object*> (&itf);
+		return reinterpret_cast <Object::_ref_type&> (itf);
 	else
 		throw_INV_OBJREF ();
 }
 
-ModuleInit::_ptr_type Binder::bind (ClassLibrary& mod)
+void Binder::bind (ClassLibrary& mod)
 {
 	SYNC_BEGIN (&singleton_.sync_domain_);
 	ModuleContext context { SyncContext::free_sync_context () };
@@ -452,12 +451,10 @@ ModuleInit::_ptr_type Binder::bind (ClassLibrary& mod)
 			try {
 				singleton_.map_.merge (context.exports);
 			} catch (...) {
-				mod.terminate (init);
+				mod.terminate ();
 				throw;
 			}
-			return init;
-		} else
-			return nullptr;
+		}
 	} catch (...) {
 		singleton_.module_unbind (mod._get_ptr (), mod.metadata ());
 		throw;
@@ -465,7 +462,7 @@ ModuleInit::_ptr_type Binder::bind (ClassLibrary& mod)
 	SYNC_END ();
 }
 
-ModuleInit::_ptr_type Binder::bind (Singleton& mod)
+void Binder::bind (Singleton& mod)
 {
 	SYNC_BEGIN (&singleton_.sync_domain_);
 	ModuleContext context{ mod.sync_domain () };
@@ -480,12 +477,10 @@ ModuleInit::_ptr_type Binder::bind (Singleton& mod)
 			try {
 				singleton_.map_.merge (context.exports);
 			} catch (...) {
-				mod.terminate (init);
+				mod.terminate ();
 				throw;
 			}
-			return init;
-		} else
-			return nullptr;
+		}
 	} catch (...) {
 		singleton_.module_unbind (mod._get_ptr (), mod.metadata ());
 		throw;

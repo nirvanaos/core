@@ -37,17 +37,21 @@ namespace CORBA {
 namespace Nirvana {
 namespace Core {
 
-template <class T>
+class ServantMarshaler;
+
 class ServantMarshalerImpl :
 	public ::Nirvana::Core::CoreObject,
-	public ::Nirvana::Core::LifeCyclePseudo <T>,
-	public ServantTraits <T>,
-	public InterfaceImplBase <T, Marshal>,
-	public InterfaceImplBase <T, Unmarshal>
+	public ::Nirvana::Core::LifeCyclePseudo <ServantMarshaler>,
+	public ServantTraits <ServantMarshaler>,
+	public InterfaceImplBase <ServantMarshaler, Marshal>,
+	public InterfaceImplBase <ServantMarshaler, Unmarshal>
 {
 public:
-	using InterfaceImplBase <T, Marshal>::__get_marshal_context;
-	using InterfaceImplBase <T, Unmarshal>::__get_marshal_context;
+	using InterfaceImplBase <ServantMarshaler, Marshal>::__get_marshal_context;
+	using InterfaceImplBase <ServantMarshaler, Unmarshal>::__get_marshal_context;
+	
+	typedef ::Nirvana::UIntPtr Tag;
+	static const size_t BLOCK_SIZE = 32 * sizeof (Tag);
 
 protected:
 	ServantMarshalerImpl (::Nirvana::Core::SyncContext& sc) :
@@ -56,20 +60,17 @@ protected:
 
 protected:
 	::Nirvana::Core::Heap& memory_;
-	
-	typedef ::Nirvana::UIntPtr Tag;
 	Tag* cur_ptr_;
 };
 
-class ServantMarshaler :
-	public ServantMarshalerImpl <ServantMarshaler>
+class alignas (ServantMarshalerImpl::BLOCK_SIZE) ServantMarshaler :
+	public ServantMarshalerImpl
 {
 public:
-	static const size_t BLOCK_SIZE = 32 * sizeof (Tag);
-
 	ServantMarshaler (::Nirvana::Core::SyncContext& sc) :
 		ServantMarshalerImpl (sc)
 	{
+		assert ((uintptr_t)this % BLOCK_SIZE == 0);
 		cur_ptr_ = block_;
 		*cur_ptr_ = RT_END;
 	}
@@ -224,7 +225,7 @@ private:
 		return &memory_ == &::Nirvana::Core::SyncContext::current ().memory ();
 	}
 
-	Tag block_ [(BLOCK_SIZE - sizeof (ServantMarshalerImpl <ServantMarshaler>)) / sizeof (Tag)];
+	Tag block_ [(BLOCK_SIZE - sizeof (ServantMarshalerImpl)) / sizeof (Tag)];
 };
 
 static_assert (sizeof (ServantMarshaler) == ServantMarshaler::BLOCK_SIZE, "sizeof (ServantMarshaler)");

@@ -28,13 +28,13 @@
 namespace Nirvana {
 namespace Core {
 
-void ClassLibrary::terminate (ModuleInit::_ptr_type entry_point) NIRVANA_NOEXCEPT
+void ClassLibrary::terminate () NIRVANA_NOEXCEPT
 {
 	SYNC_BEGIN (nullptr);
 	ExecDomain* ed = Thread::current ().exec_domain ();
 	assert (ed);
 	ed->heap_replace (readonly_heap_);
-	Module::terminate (entry_point);
+	Module::terminate ();
 	ed->heap_restore ();
 	SYNC_END ();
 }
