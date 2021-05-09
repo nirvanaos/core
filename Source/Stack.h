@@ -67,7 +67,7 @@ public:
 	{
 		for (;;) {
 			head_.lock ();
-			auto p = head_.load ();
+			T* p = head_.load ();
 			if (p)
 				static_cast <StackElem&> (*p).ref_cnt.increment ();
 			head_.unlock ();

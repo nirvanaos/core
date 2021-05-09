@@ -114,11 +114,6 @@ public:
 		return ptr_ == rhs.ptr_;
 	}
 
-	operator bool () const
-	{
-		return ptr_ != 0;
-	}
-
 private:
 	explicit TaggedPtr (uintptr_t val) :
 		ptr_ (val)
