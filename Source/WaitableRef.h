@@ -32,7 +32,9 @@
 namespace Nirvana {
 namespace Core {
 
-class WaitList;
+class WaitListImpl;
+typedef ImplDynamicSync <WaitListImpl> WaitList;
+
 template <class PtrType> class WaitableRef;
 
 class WaitableRefBase

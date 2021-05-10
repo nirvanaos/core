@@ -102,8 +102,8 @@ protected:
 			// TODO: Garbage collector deadline must not be infinite, but reasonable enough.
 			::Nirvana::Core::ExecDomain::async_call (::Nirvana::INFINITE_DEADLINE, *gc, sync_context_->sync_domain ());
 		} catch (...) {
-			// Async call failed, maybe resources are exausted or shutdown was initiated.
-			// Fallback to collect garbage in current thread.
+			// Async call failed, maybe resources are exausted.
+			// Fallback to collect garbage in the current thread.
 			try {
 				::Nirvana::Core::ImplStatic <GC> (std::forward <Args> (args)...).run ();
 			} catch (...) {

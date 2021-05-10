@@ -61,9 +61,9 @@ public:
 		return Port::Executable::address ();
 	}
 
-	Main::_ptr_type entry_point () const
+	int main (int argc, char* argv [], char* envp [])
 	{
-		return entry_point_;
+		return (int)entry_point_->main (argc, argv, envp);
 	}
 
 private:

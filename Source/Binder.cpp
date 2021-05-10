@@ -259,7 +259,7 @@ const ModuleStartup* Binder::module_bind (::Nirvana::Module::_ptr_type mod, cons
 					if (OLF_IMPORT_INTERFACE == *it.cur ()) {
 						ImportInterface* ps = reinterpret_cast <ImportInterface*> (it.cur ());
 						if (!mod || ps != module_entry)
-							reinterpret_cast <InterfaceRef&> (ps->itf) = move (bind_interface_sync (ps->name, ps->interface_id));
+							reinterpret_cast <InterfaceRef&> (ps->itf) = bind_interface_sync (ps->name, ps->interface_id);
 					}
 				}
 

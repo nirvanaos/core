@@ -34,24 +34,26 @@ namespace Nirvana {
 namespace Core {
 
 Startup::Startup (int argc, char* argv [], char* envp []) :
-	executable_ (nullptr),
 	argc_ (argc),
 	argv_ (argv),
 	envp_ (envp),
 	ret_ (0),
+	process_ (false),
+	executable_ (nullptr),
 	exception_code_ (CORBA::Exception::EC_NO_EXCEPTION)
 {}
 
 void Startup::run ()
 {
-	if (!executable_) {
+	if (!process_) {
 		initialize ();
 		if (argc_ > 1) {
 			executable_ = new Nirvana::Legacy::Core::Executable (argv_ [1]);
+			process_ = true;
 			Nirvana::Legacy::Core::Process::spawn (*this);
 		}
 	} else {
-		ret_ = executable_->entry_point ()->main (argc_ - 1, argv_ + 1, envp_);
+		ret_ = executable_->main (argc_ - 1, argv_ + 1, envp_);
 		delete executable_;
 		executable_ = nullptr;
 		Scheduler::shutdown ();

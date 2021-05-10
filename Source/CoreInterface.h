@@ -51,8 +51,9 @@ template <class T> class CoreRef;
 
 /// Dynamic implementation of a core object.
 /// \tparam T object class.
+///         Note that T haven't to derive from CoreInterface, but can.
 template <class T>
-class ImplDynamic :
+class ImplDynamic final :
 	public T
 {
 protected:
@@ -83,8 +84,9 @@ private:
 
 /// Dynamic implementation of a core object for usage in synchronized scenarios.
 /// \tparam T object class.
+///         Note that T haven't to derive from CoreInterface, but can.
 template <class T>
-class ImplDynamicSync :
+class ImplDynamicSync final :
 	public T
 {
 protected:
@@ -137,8 +139,9 @@ private:
 
 /// Special implementation of a core object.
 /// \tparam T object class.
+///         Note that T haven't to derive from CoreInterface, but can.
 template <class T>
-class ImplNoAddRef :
+class ImplNoAddRef final :
 	public T
 {
 protected:

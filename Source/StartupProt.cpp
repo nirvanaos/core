@@ -31,7 +31,7 @@ namespace Core {
 void StartupProt::run ()
 {
 	Startup::run ();
-	if (!executable ()) {
+	if (!process ()) {
 		// TODO: Protection domain startup code.
 		ret_ = 0;
 	}

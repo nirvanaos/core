@@ -43,7 +43,7 @@ template <class T> class ObjectPool;
 /// 
 /// While element is not in stack, the StackElem::next field is unused and may contain any value.
 template <class T>
-class ImplPoolable :
+class ImplPoolable final :
 	public T,
 	public StackElem
 {
