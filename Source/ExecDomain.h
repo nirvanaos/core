@@ -58,6 +58,8 @@ class NIRVANA_NOVTABLE ExecDomain :
 		std::hash <const void*>, std::equal_to <const void*>, Allocator <std::pair <const void* const, void* > > > LocalValues;
 
 public:
+	typedef ImplPoolable <ExecDomain> Impl;
+
 	static void async_call (const DeadlineTime& deadline, Runnable& runnable, SyncDomain* sync_domain)
 	{
 		CoreRef <ExecDomain> exec_domain = get (deadline);
@@ -278,7 +280,6 @@ public:
 		MODULE_TERMINATE
 	}
 	restricted_mode_;
-	ExecDomain* wait_list_next_;
 
 private:
 	static ObjectPool <ExecDomain> pool_;

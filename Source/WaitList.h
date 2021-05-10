@@ -27,8 +27,7 @@
 #ifndef NIRVANA_CORE_WAITLIST_H_
 #define NIRVANA_CORE_WAITLIST_H_
 
-#include "CoreInterface.h"
-#include "CoreObject.h"
+#include "ExecDomain.h"
 #include <exception>
 
 namespace Nirvana {
@@ -36,28 +35,26 @@ namespace Core {
 
 class ExecDomain;
 
-class WaitList :
-	public ImplDynamicSync <CoreObject>
+class WaitListImpl :
+	public CoreObject
 {
 public:
-	WaitList ();
+	WaitListImpl ();
 
 	void wait ();
 	void on_exception () NIRVANA_NOEXCEPT;
 	void finish () NIRVANA_NOEXCEPT;
 
-	bool finished () const NIRVANA_NOEXCEPT
-	{
-		return finished_;
-	}
-
 private:
+#ifdef _DEBUG
 	bool finished_;
-
+#endif
 	//ExecDomain& worker_;
-	ExecDomain* wait_list_;
+	ExecDomain::Impl* wait_list_;
 	std::exception_ptr exception_;
 };
+
+typedef ImplDynamicSync <WaitListImpl> WaitList;
 
 }
 }
