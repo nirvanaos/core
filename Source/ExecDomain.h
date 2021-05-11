@@ -45,18 +45,6 @@ class NIRVANA_NOVTABLE ExecDomain :
 	public ExecContext,
 	public Executor
 {
-	template <class T>
-	class Allocator :
-		public std::allocator <T>
-	{
-	public:
-		static void deallocate (T* p, size_t cnt);
-		static T* allocate (size_t cnt, void* hint = nullptr, unsigned flags = 0);
-	};
-
-	typedef phmap::flat_hash_map <const void*, void*,
-		std::hash <const void*>, std::equal_to <const void*>, Allocator <std::pair <const void* const, void* > > > LocalValues;
-
 public:
 	typedef ImplPoolable <ExecDomain> Impl;
 
@@ -194,13 +182,6 @@ public:
 		return ret;
 	}
 
-	///@{
-	/// These methods work like TLS storage functions.
-	void local_value_set (const void* key, void* val);
-	void* local_value_get (const void* key) const NIRVANA_NOEXCEPT;
-	void local_value_erase (const void* key) NIRVANA_NOEXCEPT;
-	///@}
-
 protected:
 	ExecDomain () :
 		ExecContext ()
@@ -281,6 +262,9 @@ public:
 	}
 	restricted_mode_;
 
+	void* stateless_creation_frame_;
+	void* binder_context_;
+
 private:
 	static ObjectPool <ExecDomain> pool_;
 
@@ -295,7 +279,6 @@ private:
 	ReleaseToPool release_to_pool_;
 	ScheduleCall schedule_call_;
 	ScheduleReturn schedule_return_;
-	LocalValues local_values_;
 };
 
 }

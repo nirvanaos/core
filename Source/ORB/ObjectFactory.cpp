@@ -41,17 +41,14 @@ CORBA::Nirvana::ObjectFactory::StatelessCreationFrame* ObjectFactory::stateless_
 	assert (ed);
 	if (ExecDomain::RestrictedMode::NO_RESTRICTIONS != ed->restricted_mode_)
 		throw_NO_PERMISSION ();
-	return reinterpret_cast <CORBA::Nirvana::ObjectFactory::StatelessCreationFrame*> (ed->local_value_get (_get_ptr ()));
+	return reinterpret_cast <CORBA::Nirvana::ObjectFactory::StatelessCreationFrame*> (ed->stateless_creation_frame_);
 }
 
 void ObjectFactory::stateless_creation_frame (CORBA::Nirvana::ObjectFactory::StatelessCreationFrame* scf)
 {
 	ExecDomain* ed = ::Nirvana::Core::Thread::current ().exec_domain ();
 	assert (ed);
-	if (scf)
-		ed->local_value_set (_get_ptr (), scf);
-	else
-		ed->local_value_erase (_get_ptr ());
+	ed->stateless_creation_frame_ = scf;
 }
 
 size_t ObjectFactory::offset_ptr ()

@@ -44,18 +44,6 @@ void Thread::exec_domain (ExecDomain& exec_domain) NIRVANA_NOEXCEPT
 		runtime_support_ = &exec_domain.runtime_support ();
 }
 
-template <class T> inline
-void ExecDomain::Allocator <T>::deallocate (T* p, size_t cnt)
-{
-	Thread::current ().exec_domain ()->heap_.release (p, cnt * sizeof (T));
-}
-
-template <class T> inline
-T* ExecDomain::Allocator <T>::allocate (size_t cnt, void* hint, unsigned flags)
-{
-	return (T*)Thread::current ().exec_domain ()->heap_.allocate (hint, cnt * sizeof (T), flags);
-}
-
 }
 }
 

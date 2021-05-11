@@ -24,7 +24,6 @@
 *  popov.nirvana@gmail.com
 */
 #include "Heap.h"
-#include <CORBA/CORBA.h>
 #include <atomic>
 #include <iostream>
 

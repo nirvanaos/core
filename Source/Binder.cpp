@@ -167,11 +167,9 @@ NIRVANA_NORETURN void Binder::invalid_metadata ()
 
 const ModuleStartup* Binder::module_bind (::Nirvana::Module::_ptr_type mod, const Section& metadata, ModuleContext* mod_context) const
 {
-	ExecDomain* exec_domain = nullptr;
-	if (mod_context) {
-		exec_domain = Thread::current ().exec_domain ();
-		exec_domain->local_value_set (this, mod_context);
-	}
+	ExecDomain* exec_domain = Thread::current ().exec_domain ();
+	assert (exec_domain);
+	exec_domain->binder_context_ = mod_context;
 
 	enum MetadataFlags
 	{
@@ -315,13 +313,11 @@ const ModuleStartup* Binder::module_bind (::Nirvana::Module::_ptr_type mod, cons
 		module_unbind (mod, { writable, metadata.size });
 		if (writable != metadata.address)
 			Port::Memory::release (writable, metadata.size);
-		if (exec_domain)
-			exec_domain->local_value_erase (this);
+		exec_domain->binder_context_ = nullptr;
 		throw;
 	}
 
-	if (exec_domain)
-		exec_domain->local_value_erase (this);
+	exec_domain->binder_context_ = nullptr;
 
 	return module_startup;
 }
@@ -402,7 +398,7 @@ Binder::InterfaceRef Binder::find (const Key& name) const
 	assert (exec_domain);
 	if (ExecDomain::RestrictedMode::MODULE_TERMINATE == exec_domain->restricted_mode_)
 		throw_NO_PERMISSION ();
-	ModuleContext* context = reinterpret_cast <ModuleContext*> (exec_domain->local_value_get (this));
+	ModuleContext* context = reinterpret_cast <ModuleContext*> (exec_domain->binder_context_);
 	InterfaceRef itf;
 	if (context)
 		itf = context->exports.find (name);
