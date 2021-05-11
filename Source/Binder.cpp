@@ -439,7 +439,7 @@ Object::_ref_type Binder::bind_sync (const Key& name) const
 {
 	InterfaceRef itf = find (name);
 	if (RepositoryId::compatible (itf->_epv ().interface_id, Object::repository_id_))
-		return reinterpret_cast <Object::_ref_type&> (itf);
+		return reinterpret_cast <Object::_ref_type&&> (itf);
 	else
 		throw_INV_OBJREF ();
 }

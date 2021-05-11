@@ -58,7 +58,7 @@ public:
 
 	void _remove_ref ()
 	{
-		auto cnt = ref_cnt_.decrement ();
+		ref_cnt_.decrement ();
 	}
 
 	/// \returns `true` if module is singleton library.
