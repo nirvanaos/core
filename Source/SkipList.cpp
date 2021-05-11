@@ -115,7 +115,7 @@ void SkipListBase::release_node (Node* node) NIRVANA_NOEXCEPT
 	}
 }
 
-SkipListBase::Node* SkipListBase::insert (Node* new_node, Node** saved_nodes) NIRVANA_NOEXCEPT
+SkipListBase::Node* SkipListBase::insert (Node* const new_node, Node** saved_nodes) NIRVANA_NOEXCEPT
 {
 	// In case we insert back the removed node.
 	// We mustn't insert the removed node back because it may be still referenced by other nodes.
@@ -194,8 +194,12 @@ SkipListBase::Node* SkipListBase::insert (Node* new_node, Node** saved_nodes) NI
 	}
 
 	new_node->valid_level = (Level)level;
-	if (deleted || new_node->deleted)
-		new_node = help_delete (new_node, 0);
+	if (deleted || new_node->deleted) {
+		// Prevent real deletion.
+		// The returned node will be removed from list, but existent.
+		copy_node (new_node);
+		help_delete (new_node, 0);
+	}
 
 	return new_node;
 }

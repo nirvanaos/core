@@ -329,7 +329,7 @@ public:
 	template <class ... Args>
 	NodeVal* create_node (Args ... args)
 	{
-		SkipListBase::Node* node = Base::allocate_node ();
+		SkipListBase::Node* node = this->allocate_node ();
 		// Initialize node
 		return new (node) NodeVal (node->level, std::forward <Args> (args)...);
 	}
