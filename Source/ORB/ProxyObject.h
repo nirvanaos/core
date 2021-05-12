@@ -57,11 +57,11 @@ private:
 	};
 
 	virtual void add_ref_1 ();
-	virtual ::Nirvana::Core::RefCounter::IntegralType _remove_ref ();
+	virtual ::Nirvana::Core::RefCounter::IntegralType _remove_ref () NIRVANA_NOEXCEPT;
 
 	void implicit_deactivate ();
 
-	bool change_state (ActivationState from, ActivationState to)
+	bool change_state (ActivationState from, ActivationState to) NIRVANA_NOEXCEPT
 	{
 		return activation_state_.compare_exchange_strong (from, to);
 	}

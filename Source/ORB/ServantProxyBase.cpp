@@ -76,7 +76,7 @@ void ServantProxyBase::add_ref_1 ()
 	interface_duplicate (&servant_);
 }
 
-ServantProxyBase::RefCnt::IntegralType ServantProxyBase::_remove_ref ()
+ServantProxyBase::RefCnt::IntegralType ServantProxyBase::_remove_ref () NIRVANA_NOEXCEPT
 {
 	RefCnt::IntegralType cnt = ref_cnt_.decrement ();
 	if (!cnt) {

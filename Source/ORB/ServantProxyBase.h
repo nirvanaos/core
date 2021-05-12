@@ -73,7 +73,7 @@ public:
 		}
 	}
 
-	virtual RefCnt::IntegralType _remove_ref ();
+	virtual RefCnt::IntegralType _remove_ref () NIRVANA_NOEXCEPT;
 
 protected:
 	ServantProxyBase (AbstractBase::_ptr_type servant, const Operation object_ops [3], void* object_impl, ::Nirvana::Core::SyncContext& sync_context);
