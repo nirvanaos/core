@@ -31,7 +31,7 @@
 #include "ProxyLocal.h"
 
 namespace CORBA {
-namespace Nirvana {
+namespace Internal {
 namespace Core {
 
 /// \brief Core implementation of LocalObject default operations.

@@ -42,7 +42,7 @@
 #include <utility>
 
 namespace CORBA {
-namespace Nirvana {
+namespace Internal {
 namespace Core {
 
 /// \brief Base for servant-side proxies.

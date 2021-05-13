@@ -32,8 +32,8 @@ namespace Core {
 
 class HeapDynamic :
 	public HeapUser,
-	public CORBA::Nirvana::Servant <HeapDynamic, Memory>,
-	public CORBA::Nirvana::LifeCycleRefCntImpl <HeapDynamic>
+	public CORBA::Internal::Servant <HeapDynamic, Memory>,
+	public CORBA::Internal::LifeCycleRefCntImpl <HeapDynamic>
 {
 public:
 	HeapDynamic (ULong allocation_unit) :
@@ -42,7 +42,7 @@ public:
 };
 
 class HeapFactoryImpl :
-	public ::CORBA::Nirvana::ServantStatic <HeapFactoryImpl, HeapFactory>
+	public ::CORBA::Internal::ServantStatic <HeapFactoryImpl, HeapFactory>
 {
 public:
 	static Memory_ptr create ()

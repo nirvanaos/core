@@ -26,7 +26,7 @@
 #include <CORBA/Proxy/Proxy.h>
 
 namespace CORBA {
-namespace Nirvana {
+namespace Internal {
 
 class TypeCodeTypeCode :
 	public TypeCodeStatic <TypeCodeTypeCode, TypeCodeTK <tk_TypeCode>, TypeCodeOps <TypeCode> >
@@ -35,4 +35,4 @@ class TypeCodeTypeCode :
 }
 }
 
-NIRVANA_EXPORT (_exp_CORBA_TypeCode, "CORBA/_tc_TypeCode", CORBA::TypeCode, CORBA::Nirvana::TypeCodeTypeCode)
+NIRVANA_EXPORT (_exp_CORBA_TypeCode, "CORBA/_tc_TypeCode", CORBA::TypeCode, CORBA::Internal::TypeCodeTypeCode)

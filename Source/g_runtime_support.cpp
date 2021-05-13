@@ -34,7 +34,7 @@ namespace Nirvana {
 namespace Core {
 
 class RuntimeSupport :
-	public ::CORBA::Nirvana::ServantStatic <RuntimeSupport, Nirvana::RuntimeSupport>
+	public ::CORBA::Internal::ServantStatic <RuntimeSupport, Nirvana::RuntimeSupport>
 {
 	static RuntimeSupportImpl* get_impl ()
 	{

@@ -37,7 +37,7 @@ namespace Core {
 
 /// Delegates all operations to g_core_heap
 class CoreMemory :
-	public ::CORBA::Nirvana::ServantStatic <CoreMemory, Memory>
+	public ::CORBA::Internal::ServantStatic <CoreMemory, Memory>
 {
 public:
 	// Memory::
@@ -109,7 +109,7 @@ private:
 
 /// Delegates memory operations dependent on context.
 class UserMemory :
-	public ::CORBA::Nirvana::ServantStatic <UserMemory, Memory>
+	public ::CORBA::Internal::ServantStatic <UserMemory, Memory>
 {
 public:
 	// Memory::

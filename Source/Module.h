@@ -39,8 +39,8 @@ namespace Core {
 class NIRVANA_NOVTABLE Module :
 	public CoreObject,
 	public Port::Module,
-	public CORBA::Nirvana::Servant <Module, ::Nirvana::Module>,
-	public CORBA::Nirvana::LifeCycleRefCnt <Module>
+	public CORBA::Internal::Servant <Module, ::Nirvana::Module>,
+	public CORBA::Internal::LifeCycleRefCnt <Module>
 {
 public:
 	virtual ~Module ()

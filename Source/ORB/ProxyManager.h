@@ -33,7 +33,7 @@
 #include <CORBA/Proxy/Proxy.h>
 
 namespace CORBA {
-namespace Nirvana {
+namespace Internal {
 namespace Core {
 
 /// \brief Base for all proxies.

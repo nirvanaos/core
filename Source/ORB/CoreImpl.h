@@ -31,7 +31,7 @@
 #include "LifeCycleNoCopy.h"
 
 namespace CORBA {
-namespace Nirvana {
+namespace Internal {
 namespace Core {
 
 /// \brief Core implementation of ServantBase and LocalObject.

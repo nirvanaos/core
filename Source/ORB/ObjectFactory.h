@@ -34,11 +34,11 @@
 #include "ExecDomain.h"
 
 namespace CORBA {
-namespace Nirvana {
+namespace Internal {
 namespace Core {
 
 class ObjectFactory :
-	public ServantStatic <ObjectFactory, CORBA::Nirvana::ObjectFactory>
+	public ServantStatic <ObjectFactory, CORBA::Internal::ObjectFactory>
 {
 public:
 	static void* memory_allocate (size_t size)
@@ -55,7 +55,7 @@ public:
 		::Nirvana::Core::g_core_heap->release (p, size);
 	}
 
-	void stateless_begin (CORBA::Nirvana::ObjectFactory::StatelessCreationFrame& scs)
+	void stateless_begin (CORBA::Internal::ObjectFactory::StatelessCreationFrame& scs)
 	{
 		if (!(scs.tmp () && scs.size ()))
 			throw BAD_PARAM ();
@@ -67,7 +67,7 @@ public:
 
 	void* stateless_end (bool success)
 	{
-		CORBA::Nirvana::ObjectFactory::StatelessCreationFrame* scs = stateless_creation_frame ();
+		CORBA::Internal::ObjectFactory::StatelessCreationFrame* scs = stateless_creation_frame ();
 		if (!scs)
 			throw BAD_INV_ORDER ();
 		stateless_creation_frame (nullptr);
@@ -82,7 +82,7 @@ public:
 		}
 	}
 
-	static I_ref <CORBA::Nirvana::ReferenceCounter> create_reference_counter (CORBA::Nirvana::DynamicServant::_ptr_type dynamic)
+	static I_ref <CORBA::Internal::ReferenceCounter> create_reference_counter (CORBA::Internal::DynamicServant::_ptr_type dynamic)
 	{
 		return make_pseudo <ReferenceCounter> (offset_ptr (dynamic));
 	}
@@ -98,8 +98,8 @@ public:
 	}
 
 private:
-	static CORBA::Nirvana::ObjectFactory::StatelessCreationFrame* stateless_creation_frame ();
-	static void stateless_creation_frame (CORBA::Nirvana::ObjectFactory::StatelessCreationFrame*);
+	static CORBA::Internal::ObjectFactory::StatelessCreationFrame* stateless_creation_frame ();
+	static void stateless_creation_frame (CORBA::Internal::ObjectFactory::StatelessCreationFrame*);
 
 	template <class I>
 	static I_ptr <I> offset_ptr (I_ptr <I> p)

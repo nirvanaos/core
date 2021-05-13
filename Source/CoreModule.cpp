@@ -31,7 +31,7 @@ namespace Core {
 
 /// Module interface implementation for core static objects.
 class CoreModule :
-	public ::CORBA::Nirvana::ServantStatic <CoreModule, ::Nirvana::Module>
+	public ::CORBA::Internal::ServantStatic <CoreModule, ::Nirvana::Module>
 {
 public:
 	static const void* base_address ()
@@ -40,13 +40,13 @@ public:
 	}
 
 	template <class I>
-	static CORBA::Nirvana::Interface* __duplicate (CORBA::Nirvana::Interface* itf, CORBA::Nirvana::Interface*)
+	static CORBA::Internal::Interface* __duplicate (CORBA::Internal::Interface* itf, CORBA::Internal::Interface*)
 	{
 		return itf;
 	}
 
 	template <class I>
-	static void __release (CORBA::Nirvana::Interface*)
+	static void __release (CORBA::Internal::Interface*)
 	{}
 };
 

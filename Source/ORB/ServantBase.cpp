@@ -27,7 +27,7 @@
 #include "POA.h"
 
 namespace CORBA {
-namespace Nirvana {
+namespace Internal {
 namespace Core {
 
 PortableServer::POA::_ref_type ServantBase::_default_POA () const

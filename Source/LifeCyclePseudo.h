@@ -36,7 +36,7 @@ namespace Core {
 /// \tparam S Servant class.
 template <class S>
 class LifeCyclePseudo :
-	public CORBA::Nirvana::LifeCycleRefCnt <S>
+	public CORBA::Internal::LifeCycleRefCnt <S>
 {
 public:
 	void _add_ref ()

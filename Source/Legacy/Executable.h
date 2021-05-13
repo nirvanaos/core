@@ -43,7 +43,7 @@ class Executable :
 	public Port::Executable,
 	public Nirvana::Core::CoreObject,
 	public CORBA::servant_traits <Module>::Servant <Executable>,
-	public CORBA::Nirvana::Core::LifeCycleStack
+	public CORBA::Internal::Core::LifeCycleStack
 {
 public:
 	Executable (const char* file) :

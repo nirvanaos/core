@@ -27,7 +27,7 @@
 #define NIRVANA_ORB_CORE_LIFECYCLESTACK_H_
 
 namespace CORBA {
-namespace Nirvana {
+namespace Internal {
 
 class Interface;
 

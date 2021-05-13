@@ -29,14 +29,14 @@
 
 namespace CORBA {
 
-namespace Nirvana {
+namespace Internal {
 
 template <typename T, TCKind tk>
 class TypeCodeScalar : public TypeCodeStatic <TypeCodeScalar <T, tk>, TypeCodeTK <tk>, TypeCodeOps <T> > {};
 
 }
 
-using namespace Nirvana;
+using namespace Internal;
 
 class TC_Object :
 	public TypeCodeStatic <TC_Object, TypeCodeWithId <tk_objref, Object>, TypeCodeOps <Object> >
@@ -50,7 +50,7 @@ public:
 
 }
 
-#define TC_IMPL_SCALAR(T, t) TC_IMPEX(t, CORBA::Nirvana::TypeCodeScalar <T, CORBA::tk_##t>)
+#define TC_IMPL_SCALAR(T, t) TC_IMPEX(t, CORBA::Internal::TypeCodeScalar <T, CORBA::tk_##t>)
 
 TC_IMPL_SCALAR (void, void)
 TC_IMPL_SCALAR (CORBA::Short, short)
@@ -67,8 +67,8 @@ TC_IMPL_SCALAR (CORBA::ULongLong, ulonglong)
 TC_IMPL_SCALAR (CORBA::LongDouble, longdouble)
 TC_IMPL_SCALAR (CORBA::WChar, wchar)
 TC_IMPL_SCALAR (CORBA::Any, any)
-TC_IMPEX (string, CORBA::Nirvana::TypeCodeString <CORBA::Nirvana::String, 0>)
-TC_IMPEX (wstring, CORBA::Nirvana::TypeCodeString <CORBA::Nirvana::WString, 0>)
+TC_IMPEX (string, CORBA::Internal::TypeCodeString <CORBA::Internal::String, 0>)
+TC_IMPEX (wstring, CORBA::Internal::TypeCodeString <CORBA::Internal::WString, 0>)
 TC_IMPEX_BY_ID (Object)
 
 //TC_IMPEX (ValueBase)

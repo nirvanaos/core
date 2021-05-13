@@ -29,7 +29,7 @@
 #include <CORBA/set_exception.h>
 
 namespace CORBA {
-namespace Nirvana {
+namespace Internal {
 namespace Core {
 
 //! Non copyable reference.

@@ -33,12 +33,12 @@
 #include <limits>
 
 namespace CORBA {
-namespace Nirvana {
+namespace Internal {
 namespace Core {
 
 class ReferenceCounter :
 	public LifeCycleNoCopy <ReferenceCounter>,
-	public ImplementationPseudo <ReferenceCounter, CORBA::Nirvana::ReferenceCounter>
+	public ImplementationPseudo <ReferenceCounter, CORBA::Internal::ReferenceCounter>
 {
 public:
 	ReferenceCounter (DynamicServant::_ptr_type dynamic) :

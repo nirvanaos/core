@@ -40,7 +40,7 @@ namespace Core {
 
 class RuntimeProxyImpl :
 	public UserObject, // Allocate from user heap.
-	public CORBA::Nirvana::ImplementationPseudo <RuntimeProxyImpl, RuntimeProxy>,
+	public CORBA::Internal::ImplementationPseudo <RuntimeProxyImpl, RuntimeProxy>,
 	public LifeCyclePseudo <RuntimeProxyImpl>
 {
 public:

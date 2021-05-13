@@ -28,7 +28,7 @@
 #include <algorithm>
 
 namespace CORBA {
-namespace Nirvana {
+namespace Internal {
 namespace Core {
 
 using namespace ::Nirvana;

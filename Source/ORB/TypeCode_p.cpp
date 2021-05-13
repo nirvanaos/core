@@ -26,7 +26,7 @@
 #include <CORBA/Proxy/Proxy.h>
 
 namespace CORBA {
-namespace Nirvana {
+namespace Internal {
 
 template <>
 const Char TypeCodeName <TCKind>::name_ [] = "TCKind";
@@ -51,10 +51,10 @@ const Char* const TypeCodeEnum <TCKind>::members_ [] = {
 
 }
 
-NIRVANA_EXPORT (_exp_CORBA_Nirvana_TCKind, CORBA::Nirvana::RepIdOf < ::CORBA::TCKind>::repository_id_, CORBA::TypeCode, CORBA::Nirvana::TypeCodeEnum < ::CORBA::TCKind>)
+NIRVANA_EXPORT (_exp_CORBA_Nirvana_TCKind, CORBA::Internal::RepIdOf < ::CORBA::TCKind>::repository_id_, CORBA::TypeCode, CORBA::Internal::TypeCodeEnum < ::CORBA::TCKind>)
 
-NIRVANA_EXPORT (_exp_CORBA_Nirvana_TypeCode_BadKind, CORBA::Nirvana::RepIdOf < ::CORBA::Nirvana::Definitions <::CORBA::TypeCode>::BadKind>::repository_id_,
-	CORBA::TypeCode, CORBA::Nirvana::TypeCodeException < ::CORBA::Nirvana::Definitions <::CORBA::TypeCode>::BadKind, false>)
+NIRVANA_EXPORT (_exp_CORBA_Nirvana_TypeCode_BadKind, CORBA::Internal::RepIdOf < ::CORBA::Internal::Definitions <::CORBA::TypeCode>::BadKind>::repository_id_,
+	CORBA::TypeCode, CORBA::Internal::TypeCodeException < ::CORBA::Internal::Definitions <::CORBA::TypeCode>::BadKind, false>)
 
-NIRVANA_EXPORT (_exp_CORBA_Nirvana_TypeCode_Bounds, CORBA::Nirvana::RepIdOf < ::CORBA::Nirvana::Definitions <::CORBA::TypeCode>::Bounds>::repository_id_,
-	CORBA::TypeCode, CORBA::Nirvana::TypeCodeException < ::CORBA::Nirvana::Definitions <::CORBA::TypeCode>::Bounds, false>)
+NIRVANA_EXPORT (_exp_CORBA_Nirvana_TypeCode_Bounds, CORBA::Internal::RepIdOf < ::CORBA::Internal::Definitions <::CORBA::TypeCode>::Bounds>::repository_id_,
+	CORBA::TypeCode, CORBA::Internal::TypeCodeException < ::CORBA::Internal::Definitions <::CORBA::TypeCode>::Bounds, false>)

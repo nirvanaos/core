@@ -29,7 +29,7 @@
 #include "ServantProxyBase.h"
 
 namespace CORBA {
-namespace Nirvana {
+namespace Internal {
 namespace Core {
 
 class ProxyLocal :

@@ -57,13 +57,13 @@ class Module;
 
 /// Implementation of the interface Nirvana::Binder.
 class Binder :
-	public CORBA::Nirvana::ServantStatic <Binder, ::Nirvana::Binder>
+	public CORBA::Internal::ServantStatic <Binder, ::Nirvana::Binder>
 {
 private:
-	typedef CORBA::Nirvana::RepositoryId RepositoryId;
-	typedef CORBA::Nirvana::RepositoryId::Version Version;
-	typedef CORBA::Nirvana::Interface::_ptr_type InterfacePtr;
-	typedef CORBA::Nirvana::Interface::_ref_type InterfaceRef;
+	typedef CORBA::Internal::RepositoryId RepositoryId;
+	typedef CORBA::Internal::RepositoryId::Version Version;
+	typedef CORBA::Internal::Interface::_ptr_type InterfacePtr;
+	typedef CORBA::Internal::Interface::_ref_type InterfaceRef;
 
 	/// Key class for object name and version.
 	/// Notice that Key does not store name and works like string view.
@@ -210,7 +210,7 @@ private:
 
 	class OLF_Iterator;
 
-	InterfaceRef bind_interface_sync (const Key& name, CORBA::Nirvana::String_in iid) const;
+	InterfaceRef bind_interface_sync (const Key& name, CORBA::Internal::String_in iid) const;
 	CORBA::Object::_ref_type bind_sync (const Key& name) const;
 
 	InterfaceRef find (const Key& name) const;

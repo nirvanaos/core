@@ -30,7 +30,7 @@
 #include <atomic>
 
 namespace CORBA {
-namespace Nirvana {
+namespace Internal {
 namespace Core {
 
 class ProxyObject :

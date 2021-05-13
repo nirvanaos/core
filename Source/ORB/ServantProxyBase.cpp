@@ -27,7 +27,7 @@
 #include "../Runnable.h"
 
 namespace CORBA {
-namespace Nirvana {
+namespace Internal {
 namespace Core {
 
 using namespace ::Nirvana::Core;

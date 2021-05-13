@@ -34,7 +34,7 @@
 #include <Unmarshal_s.h>
 
 namespace CORBA {
-namespace Nirvana {
+namespace Internal {
 namespace Core {
 
 class ServantMarshaler;

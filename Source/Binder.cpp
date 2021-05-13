@@ -40,9 +40,9 @@ namespace Core {
 
 using namespace std;
 using namespace CORBA;
-using namespace CORBA::Nirvana;
+using namespace CORBA::Internal;
 using namespace PortableServer;
-using CORBA::Nirvana::Core::POA;
+using CORBA::Internal::Core::POA;
 
 Binder Binder::singleton_;
 
@@ -157,7 +157,7 @@ void Binder::initialize ()
 
 void Binder::terminate ()
 {
-	CORBA::Nirvana::Core::g_root_POA = nullptr;
+	CORBA::Internal::Core::g_root_POA = nullptr;
 }
 
 NIRVANA_NORETURN void Binder::invalid_metadata ()
@@ -239,7 +239,7 @@ const ModuleStartup* Binder::module_bind (::Nirvana::Module::_ptr_type mod, cons
 			// Create POA
 			// TODO: It is temporary solution.
 			SYNC_BEGIN (nullptr);
-			CORBA::Nirvana::Core::g_root_POA = CORBA::make_reference <POA> ()->_this ();
+			CORBA::Internal::Core::g_root_POA = CORBA::make_reference <POA> ()->_this ();
 			SYNC_END ();
 		}
 
@@ -269,7 +269,7 @@ const ModuleStartup* Binder::module_bind (::Nirvana::Module::_ptr_type mod, cons
 						case OLF_EXPORT_OBJECT: {
 							ExportObject* ps = reinterpret_cast <ExportObject*> (it.cur ());
 							PortableServer::ServantBase::_ptr_type core_obj = (
-								new CORBA::Nirvana::Core::ServantBase (Type <PortableServer::ServantBase>::in (ps->servant_base),
+								new CORBA::Internal::Core::ServantBase (Type <PortableServer::ServantBase>::in (ps->servant_base),
 									mod_context->sync_context))->_get_ptr ();
 							Object::_ptr_type obj = AbstractBase::_ptr_type (core_obj)->_query_interface <Object> ();
 							ps->core_object = &core_obj;
@@ -279,7 +279,7 @@ const ModuleStartup* Binder::module_bind (::Nirvana::Module::_ptr_type mod, cons
 						case OLF_EXPORT_LOCAL: {
 							ExportLocal* ps = reinterpret_cast <ExportLocal*> (it.cur ());
 							LocalObject::_ptr_type core_obj = (
-								new CORBA::Nirvana::Core::LocalObject (Type <LocalObject>::in (ps->local_object),
+								new CORBA::Internal::Core::LocalObject (Type <LocalObject>::in (ps->local_object),
 									Type <AbstractBase>::in (ps->abstract_base), mod_context->sync_context))->_get_ptr ();
 							Object::_ptr_type obj = core_obj;
 							ps->core_object = &core_obj;
@@ -371,7 +371,7 @@ void Binder::module_unbind (::Nirvana::Module::_ptr_type mod, const Section& met
 			case OLF_IMPORT_OBJECT: {
 				ImportInterface* ps = reinterpret_cast <ImportInterface*> (it.cur ());
 				if (!mod || ps->itf != &mod)
-					CORBA::Nirvana::interface_release (ps->itf);
+					CORBA::Internal::interface_release (ps->itf);
 			} break;
 		}
 	}
@@ -381,12 +381,12 @@ void Binder::module_unbind (::Nirvana::Module::_ptr_type mod, const Section& met
 		switch (*it.cur ()) {
 			case OLF_EXPORT_OBJECT: {
 				ExportObject* ps = reinterpret_cast <ExportObject*> (it.cur ());
-				CORBA::Nirvana::interface_release (ps->core_object);
+				CORBA::Internal::interface_release (ps->core_object);
 			} break;
 
 			case OLF_EXPORT_LOCAL: {
 				ExportLocal* ps = reinterpret_cast <ExportLocal*> (it.cur ());
-				CORBA::Nirvana::interface_release (ps->core_object);
+				CORBA::Internal::interface_release (ps->core_object);
 			} break;
 		}
 	}

@@ -29,14 +29,14 @@
 #include <CORBA/POA_s.h>
 #include <ORB/ServantBase.h>
 
-NIRVANA_EXPORT (_exp_PortableServer_POA_ServantAlreadyActive, CORBA::Nirvana::RepIdOf <CORBA::Nirvana::Definitions <PortableServer::POA>::ServantAlreadyActive>::repository_id_,
-CORBA::TypeCode, CORBA::Nirvana::TypeCodeException <CORBA::Nirvana::Definitions <PortableServer::POA>::ServantAlreadyActive, false>)
+NIRVANA_EXPORT (_exp_PortableServer_POA_ServantAlreadyActive, CORBA::Internal::RepIdOf <CORBA::Internal::Definitions <PortableServer::POA>::ServantAlreadyActive>::repository_id_,
+CORBA::TypeCode, CORBA::Internal::TypeCodeException <CORBA::Internal::Definitions <PortableServer::POA>::ServantAlreadyActive, false>)
 
-NIRVANA_EXPORT (_exp_PortableServer_POA_ObjectNotActive, CORBA::Nirvana::RepIdOf <CORBA::Nirvana::Definitions <PortableServer::POA>::ObjectNotActive>::repository_id_,
-CORBA::TypeCode, CORBA::Nirvana::TypeCodeException <CORBA::Nirvana::Definitions <PortableServer::POA>::ObjectNotActive, false>)
+NIRVANA_EXPORT (_exp_PortableServer_POA_ObjectNotActive, CORBA::Internal::RepIdOf <CORBA::Internal::Definitions <PortableServer::POA>::ObjectNotActive>::repository_id_,
+CORBA::TypeCode, CORBA::Internal::TypeCodeException <CORBA::Internal::Definitions <PortableServer::POA>::ObjectNotActive, false>)
 
 namespace CORBA {
-namespace Nirvana {
+namespace Internal {
 
 IMPLEMENT_PROXY_FACTORY (::PortableServer::, POA);
 
@@ -184,4 +184,4 @@ const InterfaceMetadata ProxyFactoryImpl <::PortableServer::POA>::metadata_ = {
 }
 }
 
-NIRVANA_EXPORT (_exp_PortableServer_POA, PortableServer::POA::repository_id_, CORBA::AbstractBase, ::CORBA::Nirvana::ProxyFactoryImpl <PortableServer::POA>)
+NIRVANA_EXPORT (_exp_PortableServer_POA, PortableServer::POA::repository_id_, CORBA::AbstractBase, ::CORBA::Internal::ProxyFactoryImpl <PortableServer::POA>)

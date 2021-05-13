@@ -30,7 +30,7 @@
 #include <CORBA/system_exceptions.h>
 
 namespace CORBA {
-namespace Nirvana {
+namespace Internal {
 
 template <>
 const Char RepIdOf <CompletionStatus>::repository_id_ [] = CORBA_REPOSITORY_ID ("CompletionStatus");
@@ -69,9 +69,9 @@ public:
 
 }
 
-typedef Nirvana::TypeCodeEnum <CompletionStatus> TC_CompletionStatus;
+typedef Internal::TypeCodeEnum <CompletionStatus> TC_CompletionStatus;
 
-#define TC_EXCEPTION(E) typedef Nirvana::TypeCodeSystemException <E> TC_##E;
+#define TC_EXCEPTION(E) typedef Internal::TypeCodeSystemException <E> TC_##E;
 
 SYSTEM_EXCEPTIONS (TC_EXCEPTION)
 TC_EXCEPTION (UnknownUserException)

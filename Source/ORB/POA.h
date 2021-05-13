@@ -31,7 +31,7 @@
 #include "../parallel-hashmap/parallel_hashmap/phmap.h"
 
 namespace CORBA {
-namespace Nirvana {
+namespace Internal {
 namespace Core {
 
 extern PortableServer::POA::_ref_type g_root_POA; // Temporary solution
