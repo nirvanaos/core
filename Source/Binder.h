@@ -208,8 +208,6 @@ private:
 	void remove_module_exports (const Section& metadata);
 	void module_unbind (::Nirvana::Module::_ptr_type mod, const Section& metadata) const NIRVANA_NOEXCEPT;
 
-	class OLF_Iterator;
-
 	InterfaceRef bind_interface_sync (const Key& name, CORBA::Internal::String_in iid) const;
 	CORBA::Object::_ref_type bind_sync (const Key& name) const;
 

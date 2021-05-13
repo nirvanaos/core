@@ -27,6 +27,7 @@
 #include "Binder.h"
 #include <Port/SystemInfo.h>
 #include <Nirvana/OLF.h>
+#include <Nirvana/OLF_Iterator.h>
 #include "ORB/POA.h"
 #include "ORB/ServantBase.h"
 #include "ORB/LocalObject.h"
@@ -45,68 +46,6 @@ using namespace PortableServer;
 using CORBA::Internal::Core::POA;
 
 Binder Binder::singleton_;
-
-class Binder::OLF_Iterator
-{
-public:
-	OLF_Iterator (const void* address, size_t size) :
-		cur_ptr_ ((OLF_Command*)address),
-		end_ ((OLF_Command*)((uint8_t*)address + size))
-	{
-		check ();
-	}
-
-	bool end () const
-	{
-		return cur_ptr_ == end_;
-	}
-
-	OLF_Command* cur () const
-	{
-		return cur_ptr_;
-	}
-
-	void next ()
-	{
-		if (!end ()) {
-			size_t idx = (size_t)(*cur_ptr_) - 1;
-			assert (idx >= 0);
-			cur_ptr_ = (OLF_Command*)((uint8_t*)cur_ptr_ + command_sizes_ [idx]);
-			check ();
-		}
-	}
-
-private:
-	void check ();
-
-private:
-	OLF_Command* cur_ptr_;
-	OLF_Command* end_;
-
-	static const size_t command_sizes_ [OLF_MODULE_STARTUP];
-};
-
-const size_t Binder::OLF_Iterator::command_sizes_ [OLF_MODULE_STARTUP] = {
-	sizeof (ImportInterface),
-	sizeof (ExportInterface),
-	sizeof (ExportObject),
-	sizeof (ExportLocal),
-	sizeof (ImportInterface),
-	sizeof (ModuleStartup)
-};
-
-void Binder::OLF_Iterator::check ()
-{
-	if (cur_ptr_ >= end_)
-		cur_ptr_ = end_;
-	else {
-		OLF_Command cmd = *cur_ptr_;
-		if (OLF_END == cmd)
-			cur_ptr_ = end_;
-		else if ((size_t)cmd > countof (command_sizes_))
-			invalid_metadata ();
-	}
-}
 
 void Binder::Map::insert (const char* name, InterfacePtr itf)
 {
