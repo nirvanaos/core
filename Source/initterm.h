@@ -26,14 +26,25 @@
 #ifndef NIRVANA_CORE_INITTERM_H_
 #define NIRVANA_CORE_INITTERM_H_
 
+#include "Binder.h"
+#include "Loader.h"
+
 namespace Nirvana {
 namespace Core {
 
 //! Called by Startup class from free sync domain after kernel initialization.
-void initialize ();
+inline void initialize ()
+{
+	Binder::initialize ();
+	Loader::initialize ();
+}
 
 //! Called before the kernel termination.
-void terminate ();
+inline void terminate ()
+{
+	Loader::terminate ();
+	Binder::terminate ();
+}
 
 }
 }

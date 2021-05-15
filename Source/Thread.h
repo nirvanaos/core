@@ -101,11 +101,10 @@ protected:
 
 protected:
 	RuntimeSupportImpl* runtime_support_;
-
-private:
 	/// Pointer to the current execution domain.
 	ExecDomain* exec_domain_;
 
+private:
 	/// Special "neutral" execution context with own stack and CPU state.
 	ExecContext neutral_context_;
 };
