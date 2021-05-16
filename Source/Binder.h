@@ -27,7 +27,7 @@
 #define NIRVANA_CORE_BINDER_H_
 
 #include <CORBA/Server.h>
-#include <Binder_s.h>
+#include <generated/Binder_s.h>
 #include "SyncDomain.h"
 #include "Section.h"
 #include "Synchronized.h"

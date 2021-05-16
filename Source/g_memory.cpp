@@ -27,7 +27,7 @@
 *  popov.nirvana@gmail.com
 */
 #include <CORBA/Server.h>
-#include <Memory_s.h>
+#include <generated/Memory_s.h>
 #include <Nirvana/OLF.h>
 #include "user_memory.h"
 #include "ExecDomain.h"
