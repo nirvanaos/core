@@ -166,6 +166,7 @@ public:
 
 }
 
+__declspec (selectany)
 extern const ImportInterfaceT <Memory> g_memory = { OLF_IMPORT_INTERFACE, nullptr, nullptr, NIRVANA_STATIC_BRIDGE (Memory, Core::CoreMemory) };
 
 }

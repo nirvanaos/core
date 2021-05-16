@@ -65,5 +65,5 @@ typedef TypeCodeException <Definitions <TypeCode>::Bounds, false> TC_Bounds;
 
 TC_IMPEX_BY_ID (TypeCode)
 TC_IMPEX_BY_ID (TCKind)
-TC_IMPEX_BY_ID_EX (CORBA::Internal::Definitions <CORBA::TypeCode>, BadKind)
-TC_IMPEX_BY_ID_EX (CORBA::Internal::Definitions <CORBA::TypeCode>, Bounds)
+INTERFACE_EXC_IMPEX (CORBA, TypeCode, BadKind)
+INTERFACE_EXC_IMPEX (CORBA, TypeCode, Bounds)

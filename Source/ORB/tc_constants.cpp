@@ -46,7 +46,7 @@ public:
 }
 }
 
-#define TC_IMPL_SCALAR(T, t) TC_IMPEX(t, CORBA::Internal::TypeCodeScalar <T, CORBA::tk_##t>)
+#define TC_IMPL_SCALAR(T, t) TC_IMPEX (t, CORBA::Internal::TypeCodeScalar <T, CORBA::tk_##t>)
 
 TC_IMPL_SCALAR (void, void)
 TC_IMPL_SCALAR (CORBA::Short, short)
