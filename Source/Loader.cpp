@@ -43,14 +43,8 @@ CoreRef <Module> Loader::load (const string& _name, bool singleton)
 	SYNC_BEGIN (&singleton_.sync_domain_);
 	string name;
 	CORBA::Internal::Type <string>::unmarshal (name_abi, sm.unmarshaler (), name);
-	switch (singleton_.state_) {
-		case State::UNINITIALIZED:
-			throw_INITIALIZE ();
-			break;
-		case State::TERMINATED:
-			throw_BAD_INV_ORDER ();
-			break;
-	}
+	if (!singleton_.initialized_)
+		throw_INITIALIZE ();
 	auto ins = singleton_.map_.emplace (piecewise_construct, forward_as_tuple (move (name)), make_tuple ());
 	if (ins.second) {
 		try {

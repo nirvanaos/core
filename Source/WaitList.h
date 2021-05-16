@@ -49,7 +49,7 @@ private:
 #ifdef _DEBUG
 	bool finished_;
 #endif
-	//ExecDomain& worker_;
+	ExecDomain* worker_;
 	ExecDomain::Impl* wait_list_;
 	std::exception_ptr exception_;
 };

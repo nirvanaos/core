@@ -108,6 +108,7 @@ const ModuleStartup* Binder::module_bind (::Nirvana::Module::_ptr_type mod, cons
 {
 	ExecDomain* exec_domain = Thread::current ().exec_domain ();
 	assert (exec_domain);
+	void* prev_context = exec_domain->binder_context_;
 	exec_domain->binder_context_ = mod_context;
 
 	enum MetadataFlags
@@ -256,7 +257,7 @@ const ModuleStartup* Binder::module_bind (::Nirvana::Module::_ptr_type mod, cons
 		throw;
 	}
 
-	exec_domain->binder_context_ = nullptr;
+	exec_domain->binder_context_ = prev_context;
 
 	return module_startup;
 }

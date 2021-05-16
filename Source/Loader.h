@@ -41,21 +41,21 @@ class Loader
 {
 public:
 	Loader () :
-		state_ (State::UNINITIALIZED)
+		initialized_ (false)
 	{}
 
 	static CoreRef <Module> load (const std::string& name, bool singleton);
 
 	static void initialize ()
 	{
-		singleton_.state_ = State::NORMAL;
+		singleton_.initialized_ = true;
 	}
 
 	static void terminate ()
 	{
 		SYNC_BEGIN (&singleton_.sync_domain_);
-		assert (singleton_.state_ != State::TERMINATED);
-		singleton_.state_ = State::TERMINATED;
+		assert (singleton_.initialized_);
+		singleton_.initialized_ = false;
 		singleton_.map_.clear ();
 		SYNC_END ();
 	}
@@ -67,12 +67,7 @@ private:
 	ImplStatic <SyncDomain> sync_domain_;
 	Map map_;
 
-	enum class State
-	{
-		UNINITIALIZED,
-		NORMAL,
-		TERMINATED
-	} state_;
+	bool initialized_;
 
 	static Loader singleton_;
 };

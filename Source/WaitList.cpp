@@ -33,21 +33,24 @@ namespace Nirvana {
 namespace Core {
 
 WaitListImpl::WaitListImpl () :
+	worker_ (Thread::current ().exec_domain ()),
 #ifdef _DEBUG
 	finished_ (false),
 #endif
 	wait_list_ (nullptr)
 {
 	if (!SyncContext::current ().sync_domain ())
-		throw_BAD_INV_ORDER ();
+		throw_BAD_OPERATION ();
 }
 
 void WaitListImpl::wait ()
 {
 	assert (!finished_);
+	ExecDomain::Impl* ed = static_cast <ExecDomain::Impl*> (Thread::current ().exec_domain ());
+	if (ed == worker_)
+		throw_BAD_INV_ORDER ();
 	// Hold reference to this object
 	CoreRef <WaitList> ref = static_cast <WaitList*> (this);
-	ExecDomain::Impl* ed = static_cast <ExecDomain::Impl*> (Thread::current ().exec_domain ());
 	assert (ed);
 	static_cast <StackElem&> (*ed).next = wait_list_;
 	wait_list_ = ed;
@@ -70,6 +73,7 @@ void WaitListImpl::finish () NIRVANA_NOEXCEPT
 #ifdef _DEBUG
 	finished_ = true;
 #endif
+	worker_ = nullptr;
 	while (ExecDomain::Impl* ed = wait_list_) {
 		wait_list_ = reinterpret_cast <ExecDomain::Impl*> (static_cast <StackElem&> (*ed).next);
 		ed->resume ();
