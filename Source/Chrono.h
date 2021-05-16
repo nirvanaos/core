@@ -39,33 +39,33 @@ class Chrono :
 	private Port::Chrono
 {
 public:
-	static uint16_t epoch ()
+	static uint16_t epoch () NIRVANA_NOEXCEPT
 	{
 		return Port::Chrono::epoch;
 	}
 
-	static uint64_t system_clock ()
+	static uint64_t system_clock () NIRVANA_NOEXCEPT
 	{
 		return Port::Chrono::system_clock ();
 	}
 
-	static uint64_t steady_clock ()
+	static uint64_t steady_clock () NIRVANA_NOEXCEPT
 	{
 		return Port::Chrono::steady_clock ();
 	}
 
-	static uint64_t system_to_steady (uint16_t _epoch, uint64_t system)
+	static uint64_t system_to_steady (uint16_t _epoch, uint64_t system) NIRVANA_NOEXCEPT
 	{
 		assert (_epoch == epoch ()); // TODO: Implement
 		return system - (system_clock () - steady_clock ());
 	}
 
-	static uint64_t steady_to_system (uint64_t steady)
+	static uint64_t steady_to_system (uint64_t steady) NIRVANA_NOEXCEPT
 	{
 		return steady + (system_clock () - steady_clock ());
 	}
 
-	static uint64_t create_deadline (uint64_t timeout)
+	static uint64_t create_deadline (uint64_t timeout) NIRVANA_NOEXCEPT
 	{
 		// TODO: We can use advanced algorithm for generation different deadlines inside one steady clock tick.
 		// See Port::Chrono::steady_clock_resoluion ().
