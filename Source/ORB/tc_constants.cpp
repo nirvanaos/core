@@ -28,15 +28,10 @@
 #include "tc_impex.h"
 
 namespace CORBA {
-
 namespace Internal {
 
 template <typename T, TCKind tk>
 class TypeCodeScalar : public TypeCodeStatic <TypeCodeScalar <T, tk>, TypeCodeTK <tk>, TypeCodeOps <T> > {};
-
-}
-
-using namespace Internal;
 
 class TC_Object :
 	public TypeCodeStatic <TC_Object, TypeCodeWithId <tk_objref, Object>, TypeCodeOps <Object> >
@@ -48,6 +43,7 @@ public:
 	}
 };
 
+}
 }
 
 #define TC_IMPL_SCALAR(T, t) TC_IMPEX(t, CORBA::Internal::TypeCodeScalar <T, CORBA::tk_##t>)
@@ -69,6 +65,7 @@ TC_IMPL_SCALAR (CORBA::WChar, wchar)
 TC_IMPL_SCALAR (CORBA::Any, any)
 TC_IMPEX (string, CORBA::Internal::TypeCodeString <CORBA::Internal::String, 0>)
 TC_IMPEX (wstring, CORBA::Internal::TypeCodeString <CORBA::Internal::WString, 0>)
+
 TC_IMPEX_BY_ID (Object)
 
 

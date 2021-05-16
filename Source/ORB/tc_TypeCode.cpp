@@ -24,6 +24,7 @@
 *  popov.nirvana@gmail.com
 */
 #include <CORBA/Proxy/Proxy.h>
+#include "tc_impex.h"
 
 namespace CORBA {
 namespace Internal {
@@ -47,19 +48,22 @@ const Char* const TypeCodeEnum <TCKind>::members_ [] = {
 	"tk_local_interface"
 };
 
-class TypeCodeTypeCode :
-	public TypeCodeStatic <TypeCodeTypeCode, TypeCodeTK <tk_TypeCode>, TypeCodeOps <TypeCode> >
-{};
+typedef CORBA::Internal::TypeCodeEnum < ::CORBA::TCKind> TC_TCKind;
+
+class TC_TypeCode :
+	public TypeCodeStatic <TC_TypeCode, TypeCodeTK <tk_TypeCode>, TypeCodeOps <TypeCode> >
+{
+public:
+	typedef TypeCode RepositoryType;
+};
+
+typedef TypeCodeException <Definitions <TypeCode>::BadKind, false> TC_BadKind;
+typedef TypeCodeException <Definitions <TypeCode>::Bounds, false> TC_Bounds;
 
 }
 }
 
-NIRVANA_EXPORT (_exp_CORBA_TypeCode, CORBA::TypeCode::repository_id_, CORBA::TypeCode, CORBA::Internal::TypeCodeTypeCode)
-
-NIRVANA_EXPORT (_exp_CORBA_Nirvana_TCKind, CORBA::Internal::RepIdOf <CORBA::TCKind>::repository_id_, CORBA::TypeCode, CORBA::Internal::TypeCodeEnum < ::CORBA::TCKind>)
-
-NIRVANA_EXPORT (_exp_CORBA_Nirvana_TypeCode_BadKind, CORBA::Internal::RepIdOf <CORBA::Internal::Definitions <CORBA::TypeCode>::BadKind>::repository_id_,
-	CORBA::TypeCode, CORBA::Internal::TypeCodeException <CORBA::Internal::Definitions <CORBA::TypeCode>::BadKind, false>)
-
-NIRVANA_EXPORT (_exp_CORBA_Nirvana_TypeCode_Bounds, CORBA::Internal::RepIdOf < ::CORBA::Internal::Definitions <::CORBA::TypeCode>::Bounds>::repository_id_,
-	CORBA::TypeCode, CORBA::Internal::TypeCodeException <CORBA::Internal::Definitions <CORBA::TypeCode>::Bounds, false>)
+TC_IMPEX_BY_ID (TypeCode)
+TC_IMPEX_BY_ID (TCKind)
+TC_IMPEX_BY_ID_EX (CORBA::Internal::Definitions <CORBA::TypeCode>, BadKind)
+TC_IMPEX_BY_ID_EX (CORBA::Internal::Definitions <CORBA::TypeCode>, Bounds)

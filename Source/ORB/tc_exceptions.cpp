@@ -67,15 +67,14 @@ public:
 	}
 };
 
-}
+typedef TypeCodeEnum <CompletionStatus> TC_CompletionStatus;
 
-typedef Internal::TypeCodeEnum <CompletionStatus> TC_CompletionStatus;
-
-#define TC_EXCEPTION(E) typedef Internal::TypeCodeSystemException <E> TC_##E;
+#define TC_EXCEPTION(E) typedef TypeCodeSystemException <E> TC_##E;
 
 SYSTEM_EXCEPTIONS (TC_EXCEPTION)
 TC_EXCEPTION (UnknownUserException)
 
+}
 }
 
 TC_IMPEX_BY_ID (CompletionStatus)

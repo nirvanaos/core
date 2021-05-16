@@ -25,17 +25,13 @@
 */
 #include <CORBA/Server.h>
 #include <CORBA/POA.h>
-#include <CORBA/Proxy/TypeCodeException.h>
-#include "tc_impex.h"
 
 namespace CORBA {
 namespace Internal {
-
 namespace Core {
 
 PortableServer::POA::_ref_type g_root_POA;
 
 }
-
 }
 }
