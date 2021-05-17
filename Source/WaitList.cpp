@@ -26,26 +26,28 @@
 #include "WaitList.h"
 #include "CoreObject.h"
 #include "Suspend.h"
+#include "Chrono.h"
 
 using namespace std;
 
 namespace Nirvana {
 namespace Core {
 
-WaitListImpl::WaitListImpl () :
+WaitListImpl::WaitListImpl (uint64_t deadline) :
 	worker_ (Thread::current ().exec_domain ()),
-#ifdef _DEBUG
-	finished_ (false),
-#endif
+	worker_deadline_ (worker_->deadline ()),
 	wait_list_ (nullptr)
 {
 	if (!SyncContext::current ().sync_domain ())
 		throw_BAD_OPERATION ();
+	DeadlineTime max_dt = Chrono::make_deadline (deadline);
+	if (worker_deadline_ > max_dt)
+		worker_->deadline (max_dt);
 }
 
 void WaitListImpl::wait ()
 {
-	assert (!finished_);
+	assert (!finished ());
 	ExecDomain::Impl* ed = static_cast <ExecDomain::Impl*> (Thread::current ().exec_domain ());
 	if (ed == worker_)
 		throw_BAD_INV_ORDER ();
@@ -55,14 +57,14 @@ void WaitListImpl::wait ()
 	static_cast <StackElem&> (*ed).next = wait_list_;
 	wait_list_ = ed;
 	ed->suspend ();
-	assert (finished_);
+	assert (finished ());
 	if (exception_)
 		rethrow_exception (exception_);
 }
 
 void WaitListImpl::on_exception () NIRVANA_NOEXCEPT
 {
-	assert (!finished_);
+	assert (!finished ());
 	assert (!exception_);
 	exception_ = current_exception ();
 	finish ();
@@ -70,9 +72,9 @@ void WaitListImpl::on_exception () NIRVANA_NOEXCEPT
 
 void WaitListImpl::finish () NIRVANA_NOEXCEPT
 {
-#ifdef _DEBUG
-	finished_ = true;
-#endif
+	assert (!finished ());
+	assert (Thread::current ().exec_domain () == worker_);
+	worker_->deadline (worker_deadline_);
 	worker_ = nullptr;
 	while (ExecDomain::Impl* ed = wait_list_) {
 		wait_list_ = reinterpret_cast <ExecDomain::Impl*> (static_cast <StackElem&> (*ed).next);

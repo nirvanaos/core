@@ -295,14 +295,7 @@ void Binder::unbind (Module& mod) NIRVANA_NOEXCEPT
 	SYNC_END ();
 }
 
-void Binder::unbind (Legacy::Core::Executable& mod) NIRVANA_NOEXCEPT
-{
-	SYNC_BEGIN (&singleton_.sync_domain_);
-	singleton_.module_unbind (mod._get_ptr (), mod.metadata ());
-	SYNC_END ();
-}
-
-void Binder::module_unbind (::Nirvana::Module::_ptr_type mod, const Section& metadata) const NIRVANA_NOEXCEPT
+void Binder::module_unbind (::Nirvana::Module::_ptr_type mod, const Section& metadata) NIRVANA_NOEXCEPT
 {
 	// Pass 1: Release all imported interfaces.
 	for (OLF_Iterator it (metadata.address, metadata.size); !it.end (); it.next ()) {
@@ -403,7 +396,7 @@ void Binder::bind (ClassLibrary& mod)
 			}
 		}
 	} catch (...) {
-		singleton_.module_unbind (mod._get_ptr (), mod.metadata ());
+		module_unbind (mod._get_ptr (), mod.metadata ());
 		throw;
 	}
 	SYNC_END ();
@@ -429,7 +422,7 @@ void Binder::bind (Singleton& mod)
 			}
 		}
 	} catch (...) {
-		singleton_.module_unbind (mod._get_ptr (), mod.metadata ());
+		module_unbind (mod._get_ptr (), mod.metadata ());
 		throw;
 	}
 	SYNC_END ();

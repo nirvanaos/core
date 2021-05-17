@@ -39,17 +39,21 @@ class WaitListImpl :
 	public CoreObject
 {
 public:
-	WaitListImpl ();
+	WaitListImpl (uint64_t deadline);
 
 	void wait ();
 	void on_exception () NIRVANA_NOEXCEPT;
 	void finish () NIRVANA_NOEXCEPT;
 
 private:
-#ifdef _DEBUG
-	bool finished_;
-#endif
+	bool finished () const NIRVANA_NOEXCEPT
+	{
+		return !worker_;
+	}
+
+private:
 	ExecDomain* worker_;
+	DeadlineTime worker_deadline_;
 	ExecDomain::Impl* wait_list_;
 	std::exception_ptr exception_;
 };

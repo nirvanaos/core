@@ -33,6 +33,7 @@
 #include "SyncDomain.h"
 #include "Synchronized.h"
 #include "parallel-hashmap/parallel_hashmap/phmap.h"
+#include "Chrono.h"
 
 namespace Nirvana {
 namespace Core {
@@ -44,11 +45,15 @@ public:
 		initialized_ (false)
 	{}
 
-	static CoreRef <Module> load (const std::string& name, bool singleton);
+	static CoreRef <Module> load (const std::string& name, bool singleton)
+	{
+		return singleton_.load_impl (name, singleton);
+	}
 
 	static void initialize ()
 	{
 		singleton_.initialized_ = true;
+		singleton_.latest_housekeeping_ = Chrono::steady_clock ();
 	}
 
 	static void terminate ()
@@ -61,13 +66,17 @@ public:
 	}
 
 private:
-	typedef phmap::flat_hash_map <std::string, WaitableRef <Module*>, phmap::Hash <std::string>, phmap::EqualTo <std::string>,
-		UserAllocator <std::pair <std::string, WaitableRef <Module*> > > > Map;
+	CoreRef <Module> load_impl (const std::string& name, bool singleton);
+
+private:
+	typedef WaitableRef <Module*, MODULE_LOAD_DEADLINE> ModuleRef;
+	typedef phmap::flat_hash_map <std::string, ModuleRef, phmap::Hash <std::string>, phmap::EqualTo <std::string>,
+		UserAllocator <std::pair <std::string, ModuleRef> > > Map;
 
 	ImplStatic <SyncDomain> sync_domain_;
 	Map map_;
-
 	bool initialized_;
+	Chrono::Duration latest_housekeeping_;
 
 	static Loader singleton_;
 };

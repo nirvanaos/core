@@ -53,7 +53,7 @@ public:
 
 	~Executable ()
 	{
-		Nirvana::Core::Binder::unbind (*this);
+		Nirvana::Core::Binder::unbind_executable (_get_ptr (), metadata ());
 	}
 
 	const void* base_address () const NIRVANA_NOEXCEPT

@@ -31,6 +31,7 @@
 #include "../Synchronized.h"
 #include "../ExecDomain.h"
 #include "../Runnable.h"
+#include "../Chrono.h"
 #include "ProxyManager.h"
 #include <CORBA/AbstractBase_s.h>
 #include <CORBA/Object_s.h>
@@ -88,7 +89,7 @@ protected:
 
 	/// Returns synchronization context for the specific operation.
 	/// For some Object operations may return free context.
-	virtual ::Nirvana::Core::SyncContext& get_sync_context (OperationIndex op)
+	virtual Nirvana::Core::SyncContext& get_sync_context (OperationIndex op)
 	{
 		return *sync_context_;
 	}
@@ -99,8 +100,10 @@ protected:
 		try {
 			using namespace ::Nirvana::Core;
 			auto gc = CoreRef <Runnable>::create <ImplDynamic <GC> > (std::forward <Args> (args)...);
-			// TODO: Garbage collector deadline must not be infinite, but reasonable enough.
-			::Nirvana::Core::ExecDomain::async_call (::Nirvana::INFINITE_DEADLINE, *gc, sync_context_->sync_domain ());
+			Nirvana::DeadlineTime deadline = 
+				Nirvana::Core::PROXY_GC_DEADLINE == Nirvana::INFINITE_DEADLINE ?
+				Nirvana::INFINITE_DEADLINE : Nirvana::Core::Chrono::make_deadline (Nirvana::Core::PROXY_GC_DEADLINE);
+			Nirvana::Core::ExecDomain::async_call (deadline, *gc, sync_context_->sync_domain ());
 		} catch (...) {
 			// Async call failed, maybe resources are exausted.
 			// Fallback to collect garbage in the current thread.

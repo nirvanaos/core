@@ -42,9 +42,9 @@ void WaitableRefBase::detach (CoreRef <WaitList>& ref) NIRVANA_NOEXCEPT
 	pointer_ = 0;
 }
 
-WaitableRefBase::WaitableRefBase ()
+WaitableRefBase::WaitableRefBase (uint64_t deadline)
 {
-	reinterpret_cast <CoreRef <WaitList>&> (pointer_) = CoreRef <WaitList>::create <WaitList> ();
+	reinterpret_cast <CoreRef <WaitList>&> (pointer_) = CoreRef <WaitList>::create <WaitList> (deadline);
 	assert (!(pointer_ & 1));
 	pointer_ |= 1;
 }

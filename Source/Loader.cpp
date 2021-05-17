@@ -29,23 +29,40 @@
 #include "ORB/ServantMarshaler.h"
 
 using namespace std;
+using namespace CORBA::Internal;
+using namespace CORBA::Internal::Core;
 
 namespace Nirvana {
 namespace Core {
 
 Loader Loader::singleton_;
 
-CoreRef <Module> Loader::load (const string& _name, bool singleton)
+CoreRef <Module> Loader::load_impl (const string& _name, bool singleton)
 {
-	CORBA::Internal::Core::ServantMarshaler sm (singleton_.sync_domain_);
-	CORBA::Internal::Type <string>::ABI name_abi;
-	CORBA::Internal::Type <string>::marshal_in (_name, sm.marshaler (), name_abi);
-	SYNC_BEGIN (&singleton_.sync_domain_);
+	ServantMarshaler sm (sync_domain_);
+	Type <string>::ABI name_abi;
+	Type <string>::marshal_in (_name, sm.marshaler (), name_abi);
+	SYNC_BEGIN (&sync_domain_);
 	string name;
-	CORBA::Internal::Type <string>::unmarshal (name_abi, sm.unmarshaler (), name);
-	if (!singleton_.initialized_)
+	Type <string>::unmarshal (name_abi, sm.unmarshaler (), name);
+	if (!initialized_)
 		throw_INITIALIZE ();
-	auto ins = singleton_.map_.emplace (piecewise_construct, forward_as_tuple (move (name)), make_tuple ());
+
+	Chrono::Duration time = Chrono::steady_clock ();
+	if (time - latest_housekeeping_ >= MODULE_UNLOAD_TIMEOUT) {
+		// Housekeeping
+		latest_housekeeping_ = time;
+		time -= MODULE_UNLOAD_TIMEOUT;
+		for (auto it = map_.begin (); it != map_.end ();) {
+			Module* pm = it->second.get_constructed ();
+			if (pm && pm->can_be_unloaded (time))
+				it = map_.erase (it);
+			else
+				++it;
+		}
+	}
+
+	auto ins = map_.emplace (piecewise_construct, forward_as_tuple (move (name)), make_tuple ());
 	if (ins.second) {
 		try {
 			if (singleton)
@@ -53,7 +70,7 @@ CoreRef <Module> Loader::load (const string& _name, bool singleton)
 			else
 				return ins.first->second.initialize (new ClassLibrary (ins.first->first));
 		} catch (...) {
-			singleton_.map_.erase (ins.first);
+			map_.erase (ins.first);
 			throw;
 		}
 	} else {

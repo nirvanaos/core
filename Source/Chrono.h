@@ -34,6 +34,7 @@
 namespace Nirvana {
 namespace Core {
 
+/// Core implementation of the Nirvana::Chrono service
 class Chrono :
 	public CORBA::servant_traits <Nirvana::Chrono>::ServantStatic <Chrono>,
 	private Port::Chrono
@@ -65,11 +66,14 @@ public:
 		return steady + (system_clock () - steady_clock ());
 	}
 
-	static uint64_t create_deadline (uint64_t timeout) NIRVANA_NOEXCEPT
+	static DeadlineTime make_deadline (uint64_t timeout) NIRVANA_NOEXCEPT
 	{
-		// TODO: We can use advanced algorithm for generation different deadlines inside one steady clock tick.
-		// See Port::Chrono::steady_clock_resoluion ().
-		return steady_clock () + timeout;
+		// TODO: If steady_clock_resoluion () is too low (1 sec?) we can implement advanced
+		// algorithm to create diffirent deadlines inside one clock tick,
+		// based on atomic counter.
+		DeadlineTime dt = steady_clock ();
+		assert (std::numeric_limits <DeadlineTime>::max () - timeout > dt);
+		return dt + timeout;
 	}
 };
 

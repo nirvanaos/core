@@ -157,13 +157,11 @@ public:
 	/// Bind ClassLibrary.
 	/// 
 	/// \param mod ClassLibrary object.
-	/// \returns The ModuleInit interface pointer or `nil` if not present.
 	static void bind (ClassLibrary& mod);
 
 	/// Bind Singleton.
 	/// 
 	/// \param mod Singleton object.
-	/// \returns The ModuleInit interface pointer or `nil` if not present.
 	static void bind (Singleton& mod);
 
 	/// Bind legacy process executable.
@@ -175,8 +173,12 @@ public:
 
 	/// Unbind legacy executable.
 	/// 
-	/// \param mod Executable.
-	static void unbind (Legacy::Core::Executable& mod) NIRVANA_NOEXCEPT;
+	/// \param mod The Nirvana::Module interface.
+	/// \param metadata Module metadata.
+	static void unbind_executable (Nirvana::Module::_ptr_type mod, const Section& metadata) NIRVANA_NOEXCEPT
+	{
+		module_unbind (mod, metadata);
+	}
 
 	/// Unbind module.
 	/// 
@@ -204,9 +206,9 @@ private:
 	///   If module is Legacy::Executable, mod_context must be `nullptr`.
 	/// 
 	/// \returns Pointer to the ModuleStartup metadata structure, if found. Otherwise `nullptr`.
-	const ModuleStartup* module_bind (::Nirvana::Module::_ptr_type mod, const Section& metadata, ModuleContext* mod_context) const;
+	const ModuleStartup* module_bind (Nirvana::Module::_ptr_type mod, const Section& metadata, ModuleContext* mod_context) const;
 	void remove_module_exports (const Section& metadata);
-	void module_unbind (::Nirvana::Module::_ptr_type mod, const Section& metadata) const NIRVANA_NOEXCEPT;
+	static void module_unbind (Nirvana::Module::_ptr_type mod, const Section& metadata) NIRVANA_NOEXCEPT;
 
 	InterfaceRef bind_interface_sync (const Key& name, CORBA::Internal::String_in iid) const;
 	CORBA::Object::_ref_type bind_sync (const Key& name) const;

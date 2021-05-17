@@ -76,6 +76,11 @@ public:
 		return deadline_;
 	}
 
+	void deadline (const DeadlineTime& dt)
+	{
+		deadline_ = dt;
+	}
+
 	void schedule_call (SyncDomain* sync_domain);
 	void schedule_return (SyncContext& sync_context) NIRVANA_NOEXCEPT;
 

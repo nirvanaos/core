@@ -32,6 +32,7 @@
 #include "AtomicCounter.h"
 #include <Port/Module.h>
 #include "CoreObject.h"
+#include "Chrono.h"
 
 namespace Nirvana {
 namespace Core {
@@ -58,7 +59,12 @@ public:
 
 	void _remove_ref ()
 	{
-		ref_cnt_.decrement ();
+		if (ref_cnt_.decrement () == initial_ref_cnt_) {
+			if (ref_cnt_.increment () == initial_ref_cnt_ + 1) {
+				release_time_ = Chrono::steady_clock ();
+				ref_cnt_.decrement ();
+			}
+		}
 	}
 
 	/// \returns `true` if module is singleton library.
@@ -73,6 +79,11 @@ public:
 	bool bound () const
 	{
 		return initial_ref_cnt_ < ref_cnt_;
+	}
+
+	bool can_be_unloaded (const Nirvana::Chrono::Duration& t) const
+	{
+		return !bound () && release_time_ <= t;
 	}
 
 protected:
@@ -92,6 +103,7 @@ protected:
 	AtomicCounter <false> ref_cnt_;
 	AtomicCounter <false>::IntegralType initial_ref_cnt_;
 	ModuleInit::_ptr_type entry_point_;
+	Chrono::Duration release_time_;
 };
 
 }

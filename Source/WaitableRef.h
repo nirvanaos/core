@@ -35,24 +35,24 @@ namespace Core {
 class WaitListImpl;
 typedef ImplDynamicSync <WaitListImpl> WaitList;
 
-template <class PtrType> class WaitableRef;
+template <class PtrType, uint64_t deadline> class WaitableRef;
 
 class WaitableRefBase
 {
 public:
 	void on_exception () NIRVANA_NOEXCEPT;
 
-protected:
-	WaitableRefBase ();
-	~WaitableRefBase ();
-
-	void initialize (uintptr_t p) NIRVANA_NOEXCEPT;
-	void wait_construction () const;
-
 	bool is_wait_list () const NIRVANA_NOEXCEPT
 	{
 		return pointer_ & 1;
 	}
+
+protected:
+	WaitableRefBase (uint64_t deadline);
+	~WaitableRefBase ();
+
+	void initialize (uintptr_t p) NIRVANA_NOEXCEPT;
+	void wait_construction () const;
 
 private:
 	WaitList* wait_list () const NIRVANA_NOEXCEPT;
@@ -62,7 +62,7 @@ protected:
 	uintptr_t pointer_;
 };
 
-template <class PtrType>
+template <class PtrType, uint64_t deadline>
 class WaitableRefBaseT :
 	public WaitableRefBase
 {
@@ -78,10 +78,22 @@ public:
 	const PtrType& get ()
 	{
 		wait_construction ();
-		return reinterpret_cast <PtrType&> (pointer_);
+		return reinterpret_cast <const PtrType&> (pointer_);
+	}
+
+	PtrType get_constructed () const
+	{
+		if (is_wait_list ())
+			return nullptr;
+		else
+			return reinterpret_cast <const PtrType&> (pointer_);
 	}
 
 protected:
+	WaitableRefBaseT () :
+		WaitableRefBase (deadline)
+	{}
+
 	PtrType& ref () NIRVANA_NOEXCEPT
 	{
 		assert (!this->is_wait_list ());
@@ -92,9 +104,9 @@ private:
 	static_assert (sizeof (PtrType) == sizeof (uintptr_t), "Invalid pointer type");
 };
 
-template <class T>
-class WaitableRef <T*> :
-	public WaitableRefBaseT <T*>
+template <class T, uint64_t deadline>
+class WaitableRef <T*, deadline> :
+	public WaitableRefBaseT <T*, deadline>
 {
 public:
 	~WaitableRef ()
@@ -104,9 +116,9 @@ public:
 	}
 };
 
-template <class T>
-class WaitableRef <CoreRef <T> > :
-	public WaitableRefBaseT <CoreRef <T> >
+template <class T, uint64_t deadline>
+class WaitableRef <CoreRef <T>, deadline> :
+	public WaitableRefBaseT <CoreRef <T>, deadline>
 {
 public:
 	~WaitableRef ()
