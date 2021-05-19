@@ -81,7 +81,7 @@ public:
 		return initial_ref_cnt_ < ref_cnt_;
 	}
 
-	bool can_be_unloaded (const Nirvana::Chrono::Duration& t) const
+	bool can_be_unloaded (const Chrono::Duration& t) const
 	{
 		return !bound () && release_time_ <= t;
 	}

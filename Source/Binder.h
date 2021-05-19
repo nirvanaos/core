@@ -26,8 +26,6 @@
 #ifndef NIRVANA_CORE_BINDER_H_
 #define NIRVANA_CORE_BINDER_H_
 
-#include <CORBA/Server.h>
-#include <generated/Binder_s.h>
 #include "SyncDomain.h"
 #include "Section.h"
 #include "Synchronized.h"
@@ -56,8 +54,7 @@ class Singleton;
 class Module;
 
 /// Implementation of the interface Nirvana::Binder.
-class Binder :
-	public CORBA::Internal::ServantStatic <Binder, ::Nirvana::Binder>
+class Binder
 {
 private:
 	typedef CORBA::Internal::RepositoryId RepositoryId;
@@ -146,7 +143,7 @@ public:
 		SYNC_END ();
 	}
 
-	static InterfaceRef bind_pseudo (const std::string& _name, const std::string& _iid)
+	static InterfaceRef bind_interface (const std::string& _name, const std::string& _iid)
 	{
 		CoreString name (_name.c_str (), _name.length ()), iid (_iid.c_str (), _iid.length ());
 		SYNC_BEGIN (&singleton_.sync_domain_);

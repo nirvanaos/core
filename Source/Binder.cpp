@@ -87,7 +87,6 @@ void Binder::initialize ()
 		throw_INITIALIZE ();
 
 	SYNC_BEGIN (&singleton_.sync_domain_);
-	singleton_.map_.insert (g_binder.imp.name, g_binder.imp.itf);
 	ModuleContext context{ SyncContext::free_sync_context () };
 	singleton_.module_bind (nullptr, metadata, &context);
 	singleton_.map_.merge (context.exports);
@@ -444,7 +443,4 @@ Legacy::Main::_ptr_type Binder::bind (Legacy::Core::Executable& mod)
 }
 
 }
-
-extern const ImportInterfaceT <Binder> g_binder = { OLF_IMPORT_INTERFACE, "Nirvana/g_binder", Binder::repository_id_, NIRVANA_STATIC_BRIDGE (Binder, Core::Binder) };
-
 }

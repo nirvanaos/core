@@ -29,7 +29,7 @@
 
 NIRVANA_LINK_SYMBOL (_exp_Nirvana_g_memory)
 NIRVANA_LINK_SYMBOL (_exp_Nirvana_g_runtime_support)
-NIRVANA_LINK_SYMBOL (_exp_Nirvana_g_chrono)
+NIRVANA_LINK_SYMBOL (_exp_Nirvana_g_system)
 NIRVANA_LINK_SYMBOL (_exp_PortableServer_POA)
 NIRVANA_LINK_SYMBOL (_exp_PortableServer_POA_ServantAlreadyActive)
 NIRVANA_LINK_SYMBOL (_exp_PortableServer_POA_ObjectNotActive)

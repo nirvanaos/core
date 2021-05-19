@@ -27,8 +27,6 @@
 #ifndef NIRVANA_CORE_CHRONO_H_
 #define NIRVANA_CORE_CHRONO_H_
 
-#include <CORBA/Server.h>
-#include <generated/Chrono_s.h>
 #include <Port/Chrono.h>
 
 namespace Nirvana {
@@ -36,7 +34,6 @@ namespace Core {
 
 /// Core implementation of the Nirvana::Chrono service
 class Chrono :
-	public CORBA::servant_traits <Nirvana::Chrono>::ServantStatic <Chrono>,
 	private Port::Chrono
 {
 public:
@@ -45,28 +42,30 @@ public:
 		return Port::Chrono::epoch;
 	}
 
-	static uint64_t system_clock () NIRVANA_NOEXCEPT
+	typedef uint64_t Duration;
+
+	static Duration system_clock () NIRVANA_NOEXCEPT
 	{
 		return Port::Chrono::system_clock ();
 	}
 
-	static uint64_t steady_clock () NIRVANA_NOEXCEPT
+	static Duration steady_clock () NIRVANA_NOEXCEPT
 	{
 		return Port::Chrono::steady_clock ();
 	}
 
-	static uint64_t system_to_steady (uint16_t _epoch, uint64_t system) NIRVANA_NOEXCEPT
+	static Duration system_to_steady (uint16_t _epoch, Duration system) NIRVANA_NOEXCEPT
 	{
 		assert (_epoch == epoch ()); // TODO: Implement
 		return system - (system_clock () - steady_clock ());
 	}
 
-	static uint64_t steady_to_system (uint64_t steady) NIRVANA_NOEXCEPT
+	static Duration steady_to_system (Duration steady) NIRVANA_NOEXCEPT
 	{
 		return steady + (system_clock () - steady_clock ());
 	}
 
-	static DeadlineTime make_deadline (uint64_t timeout) NIRVANA_NOEXCEPT
+	static DeadlineTime make_deadline (Duration timeout) NIRVANA_NOEXCEPT
 	{
 		// TODO: If steady_clock_resoluion () is too low (1 sec?) we can implement advanced
 		// algorithm to create diffirent deadlines inside one clock tick,

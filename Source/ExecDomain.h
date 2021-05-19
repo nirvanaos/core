@@ -269,6 +269,7 @@ public:
 
 	void* stateless_creation_frame_;
 	void* binder_context_;
+	int error_number_;
 
 private:
 	static ObjectPool <ExecDomain> pool_;
