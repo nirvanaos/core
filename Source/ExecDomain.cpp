@@ -99,7 +99,7 @@ void ExecDomain::schedule (SyncDomain* sync_domain)
 
 void ExecDomain::suspend ()
 {
-	sync_context ()->schedule_call (SyncContext::SUSPEND ());
+	sync_context ().schedule_call (SyncContext::SUSPEND ());
 }
 
 void ExecDomain::resume ()
@@ -199,7 +199,7 @@ void ExecDomain::schedule_return (SyncContext& sync_context) NIRVANA_NOEXCEPT
 void ExecDomain::ScheduleReturn::run ()
 {
 	Thread& thread = Thread::current ();
-	CoreRef <SyncDomain> old_sync_domain = exec_domain_->sync_context ()->sync_domain ();
+	CoreRef <SyncDomain> old_sync_domain = exec_domain_->sync_context ().sync_domain ();
 	sync_context_->schedule_return (*exec_domain_);
 	if (old_sync_domain)
 		old_sync_domain->leave ();

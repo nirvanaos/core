@@ -101,9 +101,8 @@ void SyncDomain::enter ()
 {
 	ExecDomain* exec_domain = Thread::current ().exec_domain ();
 	assert (exec_domain);
-	SyncContext* sync_context = exec_domain->sync_context ();
-	assert (sync_context);
-	if (!sync_context->sync_domain ()) {
+	SyncContext& sync_context = exec_domain->sync_context ();
+	if (!sync_context.sync_domain ()) {
 		CoreRef <SyncDomain> sd = CoreRef <SyncDomain>::create <ImplDynamic <SyncDomain>> ();
 		sd->state_ = State::RUNNING;
 		exec_domain->sync_context (*sd);

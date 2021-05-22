@@ -37,7 +37,7 @@ inline
 void Thread::exec_domain (ExecDomain& exec_domain) NIRVANA_NOEXCEPT
 {
 	exec_domain_ = &exec_domain;
-	SyncDomain* sd = exec_domain.sync_context ()->sync_domain ();
+	SyncDomain* sd = exec_domain.sync_context ().sync_domain ();
 	if (sd)
 		runtime_support_ = &sd->runtime_support ();
 	else

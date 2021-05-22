@@ -27,19 +27,19 @@
 *  popov.nirvana@gmail.com
 */
 #include "System.h"
-#include "CoreMemory.h"
-#include "UserMemory.h"
+#include "MemoryCore.h"
+#include "MemoryUser.h"
 #include <Nirvana/OLF.h>
 #include <CORBA/system_exceptions.h>
 
 namespace Nirvana {
 
 __declspec (selectany)
-extern const ImportInterfaceT <Memory> g_memory = { OLF_IMPORT_INTERFACE, nullptr, nullptr, NIRVANA_STATIC_BRIDGE (Memory, Core::CoreMemory) };
+extern const ImportInterfaceT <Memory> g_memory = { OLF_IMPORT_INTERFACE, "Nirvana/g_memory", Memory::repository_id_, NIRVANA_STATIC_BRIDGE (Memory, Core::MemoryCore) };
 
 }
 
-NIRVANA_EXPORT (_exp_Nirvana_g_memory, "Nirvana/g_memory", Nirvana::Memory, Nirvana::Core::UserMemory)
+NIRVANA_EXPORT (_exp_Nirvana_g_memory, "Nirvana/g_memory", Nirvana::Memory, Nirvana::Core::MemoryUser)
 
 namespace Nirvana {
 

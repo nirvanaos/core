@@ -59,7 +59,7 @@ size_t ObjectFactory::offset_ptr ()
 	else {
 		// Stateful object must be created in the sync doimain only.
 		ExecDomain* ed = ::Nirvana::Core::Thread::current ().exec_domain ();
-		if (!ed || !ed->sync_context ()->sync_domain ())
+		if (!ed || !ed->sync_context ().sync_domain ())
 			throw_BAD_INV_ORDER ();
 	}
 	return 0;

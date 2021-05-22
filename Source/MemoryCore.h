@@ -24,70 +24,83 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_CORE_USERMEMORY_H_
-#define NIRVANA_CORE_USERMEMORY_H_
+#ifndef NIRVANA_CORE_MEMORYCORE_H_
+#define NIRVANA_CORE_MEMORYCORE_H_
 
 #include <CORBA/Server.h>
 #include <generated/Memory_s.h>
-#include "user_memory.h"
+#include "ExecDomain.h"
 
 namespace Nirvana {
 namespace Core {
 
-/// Delegates memory operations dependent on context.
-class UserMemory :
-	public ::CORBA::Internal::ServantStatic <UserMemory, Memory>
+/// Core implementation of the g_memory.
+class MemoryCore :
+	public CORBA::servant_traits <Memory>::ServantStatic <MemoryCore>
 {
 public:
 	// Memory::
 	static void* allocate (void* dst, size_t size, unsigned flags)
 	{
-		return user_memory ().allocate (dst, size, flags);
+		return heap ().allocate (dst, size, flags);
 	}
 
 	static void release (void* p, size_t size)
 	{
-		return user_memory ().release (p, size);
+		return heap ().release (p, size);
 	}
 
 	static void commit (void* p, size_t size)
 	{
-		return user_memory ().commit (p, size);
+		return heap ().commit (p, size);
 	}
 
 	static void decommit (void* p, size_t size)
 	{
-		return user_memory ().decommit (p, size);
+		return heap ().decommit (p, size);
 	}
 
 	static void* copy (void* dst, void* src, size_t size, unsigned flags)
 	{
-		return user_memory ().copy (dst, src, size, flags);
+		return heap ().copy (dst, src, size, flags);
 	}
 
 	static bool is_readable (const void* p, size_t size)
 	{
-		return user_memory ().is_readable (p, size);
+		return heap ().is_readable (p, size);
 	}
 
 	static bool is_writable (const void* p, size_t size)
 	{
-		return user_memory ().is_writable (p, size);
+		return heap ().is_writable (p, size);
 	}
 
 	static bool is_private (const void* p, size_t size)
 	{
-		return user_memory ().is_private (p, size);
+		return heap ().is_private (p, size);
 	}
 
 	static bool is_copy (const void* p1, const void* p2, size_t size)
 	{
-		return user_memory ().is_copy (p1, p2, size);
+		return heap ().is_copy (p1, p2, size);
 	}
 
 	static intptr_t query (const void* p, Memory::QueryParam q)
 	{
-		return user_memory ().query (p, q);
+		return heap ().query (p, q);
+	}
+
+private:
+	static Heap& heap ()
+	{
+		Thread* th = Thread::current_ptr ();
+		if (th) {
+			ExecDomain* ed = th->exec_domain ();
+			if (ed)
+				return ed->sync_context ().memory ();
+		}
+		// Fallback to g_core_heap
+		return g_core_heap.object ();
 	}
 };
 

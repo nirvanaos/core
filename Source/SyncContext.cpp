@@ -47,9 +47,7 @@ SyncContext& SyncContext::current () NIRVANA_NOEXCEPT
 {
 	ExecDomain* ed = Thread::current ().exec_domain ();
 	assert (ed);
-	SyncContext* sc = ed->sync_context ();
-	assert (sc);
-	return *sc;
+	return ed->sync_context ();
 }
 
 SyncContext& SyncContext::free_sync_context () NIRVANA_NOEXCEPT

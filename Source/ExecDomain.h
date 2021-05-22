@@ -137,9 +137,10 @@ public:
 	/// \param err Exception code.
 	void on_exec_domain_crash (CORBA::SystemException::Code err) NIRVANA_NOEXCEPT;
 
-	SyncContext* sync_context () const NIRVANA_NOEXCEPT
+	SyncContext& sync_context () const NIRVANA_NOEXCEPT
 	{
-		return sync_context_;
+		assert (sync_context_);
+		return *sync_context_;
 	}
 
 	void sync_context (SyncContext& sync_context) NIRVANA_NOEXCEPT
