@@ -1,10 +1,37 @@
+/// \file
+/*
+* Nirvana Core.
+*
+* This is a part of the Nirvana project.
+*
+* Author: Igor Popov
+*
+* Copyright (c) 2021 Igor Popov.
+*
+* This program is free software; you can redistribute it and/or modify
+* it under the terms of the GNU Lesser General Public License as published by
+* the Free Software Foundation; either version 3 of the License, or
+* (at your option) any later version.
+*
+* This program is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+* GNU General Public License for more details.
+*
+* You should have received a copy of the GNU Lesser General Public
+* License along with this library.  If not, see <http://www.gnu.org/licenses/>.
+*
+* Send comments and/or bug reports to:
+*  popov.nirvana@gmail.com
+*/
+#ifndef NIRVANA_CORE_SYSTEM_H_
+#define NIRVANA_CORE_SYSTEM_H_
+
 #include <CORBA/Server.h>
 #include <generated/System_s.h>
 #include "Binder.h"
 #include "Chrono.h"
 #include "Thread.inl"
-
-using namespace std;
 
 namespace Nirvana {
 namespace Core {
@@ -29,12 +56,12 @@ public:
 			impl->runtime_proxy_remove (obj);
 	}
 
-	static CORBA::Object::_ref_type bind (const string& name)
+	static CORBA::Object::_ref_type bind (const std::string& name)
 	{
 		return Binder::bind (name);
 	}
 
-	static CORBA::Internal::Interface::_ref_type bind_interface (const string& name, const string& iid)
+	static CORBA::Internal::Interface::_ref_type bind_interface (const std::string& name, const std::string& iid)
 	{
 		return Binder::bind_interface (name, iid);
 	}
@@ -91,9 +118,6 @@ private:
 };
 
 }
-
-extern const ImportInterfaceT <System> g_system = { OLF_IMPORT_INTERFACE, "Nirvana/g_system", System::repository_id_, NIRVANA_STATIC_BRIDGE (System, Core::System) };
-
 }
 
-NIRVANA_EXPORT (_exp_Nirvana_g_system, "Nirvana/g_system", Nirvana::System, Nirvana::Core::System)
+#endif

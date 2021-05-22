@@ -28,11 +28,16 @@
 #define NIRVANA_CORE_USER_MEMORY_H_
 
 #include "Heap.h"
+#include "SyncContext.h"
 
 namespace Nirvana {
 namespace Core {
 
-Heap& user_memory ();
+inline
+Heap& user_memory ()
+{
+	return SyncContext::current ().memory ();
+}
 
 }
 }

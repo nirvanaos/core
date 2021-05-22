@@ -24,7 +24,7 @@
 *  popov.nirvana@gmail.com
 */
 #include "ProxyManager.h"
-#include <Nirvana/System.h>
+#include "../Binder.h"
 #include <algorithm>
 
 namespace CORBA {
@@ -140,7 +140,7 @@ ProxyManager::ProxyManager (const Bridge <IOReference>::EPV& epv_ior, const Brid
 	Bridge <IOReference> (epv_ior),
 	Bridge <Object> (epv_obj)
 {
-	ProxyFactory::_ref_type proxy_factory = g_system->bind_interface <ProxyFactory> (primary_iid);
+	ProxyFactory::_ref_type proxy_factory = Nirvana::Core::Binder::bind_interface <ProxyFactory> (primary_iid);
 
 	const InterfaceMetadata* metadata = proxy_factory->metadata ();
 	check_metadata (metadata, primary_iid);
@@ -257,7 +257,7 @@ void ProxyManager::create_proxy (InterfaceEntry& ie)
 {
 	if (!ie.proxy) {
 		StringBase <Char> iid (ie.iid);
-		ProxyFactory::_ref_type pf = g_system->bind_interface <ProxyFactory> (iid);
+		ProxyFactory::_ref_type pf = Nirvana::Core::Binder::bind_interface <ProxyFactory> (iid);
 		const InterfaceMetadata* metadata = pf->metadata ();
 		check_metadata (metadata, iid);
 		const Char* const* base = metadata->interfaces.p;

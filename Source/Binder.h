@@ -135,20 +135,31 @@ public:
 	static void initialize ();
 	static void terminate ();
 
-	static CORBA::Object::_ref_type bind (const std::string& _name)
+	/// Implements System::Bind
+	static CORBA::Object::_ref_type bind (CORBA::Internal::String_in name)
 	{
-		CoreString name (_name.c_str (), _name.length ());
+		const std::string& sname = static_cast <const std::string&> (name);
+		CoreString name_copy (sname.c_str (), sname.length ());
 		SYNC_BEGIN (&singleton_.sync_domain_);
-		return singleton_.bind_sync (name);
+		return singleton_.bind_sync (name_copy);
 		SYNC_END ();
 	}
 
-	static InterfaceRef bind_interface (const std::string& _name, const std::string& _iid)
+	/// Implements System::BindInterface
+	static InterfaceRef bind_interface (CORBA::Internal::String_in name, CORBA::Internal::String_in iid)
 	{
-		CoreString name (_name.c_str (), _name.length ()), iid (_iid.c_str (), _iid.length ());
+		const std::string& sname = static_cast <const std::string&> (name);
+		const std::string& siid = static_cast <const std::string&> (iid);
+		CoreString name_copy (sname.c_str (), sname.length ()), iid_copy (siid.c_str (), siid.length ());
 		SYNC_BEGIN (&singleton_.sync_domain_);
-		return singleton_.bind_interface_sync (name, iid);
+		return singleton_.bind_interface_sync (name_copy, iid_copy);
 		SYNC_END ();
+	}
+
+	template <class I>
+	static CORBA::Internal::I_ref <I> bind_interface (CORBA::Internal::String_in name)
+	{
+		return bind_interface (name, I::repository_id_).template downcast <I> ();
 	}
 
 	/// Bind ClassLibrary.

@@ -1,5 +1,6 @@
 /// \file
-/// This file must be included in the Nirvana core executable project to force linker include exports.
+/// This file must not be included in the core library build.
+/// It must be included in the Nirvana core executable project instead.
 /*
 * Nirvana Core.
 *
@@ -25,10 +26,30 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include <Nirvana/ImportInterface.h>
+#include "System.h"
+#include "CoreMemory.h"
+#include "UserMemory.h"
+#include <Nirvana/OLF.h>
+#include <CORBA/system_exceptions.h>
 
-NIRVANA_LINK_SYMBOL (_exp_Nirvana_g_memory)
-NIRVANA_LINK_SYMBOL (_exp_Nirvana_g_system)
+namespace Nirvana {
+
+__declspec (selectany)
+extern const ImportInterfaceT <Memory> g_memory = { OLF_IMPORT_INTERFACE, nullptr, nullptr, NIRVANA_STATIC_BRIDGE (Memory, Core::CoreMemory) };
+
+}
+
+NIRVANA_EXPORT (_exp_Nirvana_g_memory, "Nirvana/g_memory", Nirvana::Memory, Nirvana::Core::UserMemory)
+
+namespace Nirvana {
+
+__declspec (selectany)
+extern const ImportInterfaceT <System> g_system = { OLF_IMPORT_INTERFACE, "Nirvana/g_system", System::repository_id_, NIRVANA_STATIC_BRIDGE (System, Core::System) };
+
+}
+
+NIRVANA_EXPORT (_exp_Nirvana_g_system, "Nirvana/g_system", Nirvana::System, Nirvana::Core::System)
+
 NIRVANA_LINK_SYMBOL (_exp_PortableServer_POA)
 NIRVANA_LINK_SYMBOL (_exp_PortableServer_POA_ServantAlreadyActive)
 NIRVANA_LINK_SYMBOL (_exp_PortableServer_POA_ObjectNotActive)
