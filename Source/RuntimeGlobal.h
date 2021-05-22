@@ -1,3 +1,4 @@
+/// \file
 /*
 * Nirvana Core.
 *
@@ -23,40 +24,25 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_CORE_COFF_H_
-#define NIRVANA_CORE_COFF_H_
-
-#include <Nirvana/NirvanaBase.h>
-#include "llvm/BinaryFormat/COFF.h"
+#ifndef NIRVANA_CORE_RUNTIMEGLOBAL_H_
+#define NIRVANA_CORE_RUNTIMEGLOBAL_H_
 
 namespace Nirvana {
 namespace Core {
 
-class COFF
+/// Run-time library global state
+struct RuntimeGlobal
 {
-public:
-	typedef llvm::COFF::section Section;
-	typedef llvm::COFF::header Header;
-	typedef llvm::COFF::PE32Header PE32Header;
+	int error_number;
 
-	COFF (const void* addr) NIRVANA_NOEXCEPT :
-		hdr_ ((const Header*)addr)
+	RuntimeGlobal () :
+		error_number (0)
 	{}
 
-	const Header* header () const
+	void cleanup ()
 	{
-		return hdr_;
+		error_number = 0;
 	}
-
-	const PE32Header* pe32_header () const;
-
-	const Section* find_section (const char* name) const NIRVANA_NOEXCEPT;
-
-private:
-	static bool is_section (const Section& s, const char* name) NIRVANA_NOEXCEPT;
-
-private:
-	const Header* hdr_;
 };
 
 }

@@ -32,6 +32,7 @@
 #include "ObjectPool.h"
 #include "CoreObject.h"
 #include "RuntimeSupportImpl.h"
+#include "RuntimeGlobal.h"
 #include <limits>
 #include <utility>
 #include "parallel-hashmap/parallel_hashmap/phmap.h"
@@ -267,9 +268,14 @@ public:
 	}
 	restricted_mode_;
 
+	/// Used by CORBA::Internal::ObjectFactory
 	void* stateless_creation_frame_;
+
+	/// Used by Binder
 	void* binder_context_;
-	int error_number_;
+
+	/// Run-time global state
+	RuntimeGlobal runtime_global_;
 
 private:
 	static ObjectPool <ExecDomain> pool_;

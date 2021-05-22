@@ -28,6 +28,17 @@
 namespace Nirvana {
 namespace Core {
 
+const COFF::PE32Header* COFF::pe32_header () const
+{
+	const Header* hdr = header ();
+	if (hdr->SizeOfOptionalHeader >= sizeof (PE32Header)) {
+		const PE32Header* pehdr = (const PE32Header*)(hdr + 1);
+		if (pehdr->Magic == PE32Header::PE32 || pehdr->Magic == PE32Header::PE32_PLUS)
+			return pehdr;
+	}
+	return nullptr;
+}
+
 inline
 bool COFF::is_section (const Section& s, const char* name) NIRVANA_NOEXCEPT
 {

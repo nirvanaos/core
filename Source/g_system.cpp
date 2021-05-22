@@ -71,12 +71,7 @@ public:
 
 	static int* error_number ()
 	{
-		return &Thread::current ().exec_domain ()->error_number_;
-	}
-
-	static void error_number (int e)
-	{
-		Thread::current ().exec_domain ()->error_number_ = e;
+		return &Thread::current ().exec_domain ()->runtime_global_.error_number;
 	}
 
 	Memory::_ref_type create_heap (uint16_t granularity)

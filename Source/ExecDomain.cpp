@@ -58,7 +58,6 @@ void ExecDomain::ctor_base ()
 	schedule_return_.init (*this);
 	stateless_creation_frame_ = nullptr;
 	binder_context_ = nullptr;
-	error_number_ = 0;
 }
 
 void ExecDomain::spawn (SyncDomain* sync_domain)
@@ -125,6 +124,7 @@ void ExecDomain::cleanup () NIRVANA_NOEXCEPT
 			sd->leave ();
 	}
 	runtime_support_.cleanup ();
+	runtime_global_.cleanup ();
 	heap_.cleanup (); // TODO: Detect and log the memory leaks.
 	stateless_creation_frame_ = nullptr;
 	binder_context_ = nullptr;

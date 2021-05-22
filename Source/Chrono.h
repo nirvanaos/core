@@ -28,15 +28,25 @@
 #define NIRVANA_CORE_CHRONO_H_
 
 #include <Port/Chrono.h>
+#include <limits>
+#include <assert.h>
 
 namespace Nirvana {
 namespace Core {
+
+constexpr unsigned year_to_days (unsigned year)
+{
+	return year * 365 + year / 4 - year / 100 + year / 400;
+}
 
 /// Core implementation of the Nirvana::Chrono service
 class Chrono :
 	private Port::Chrono
 {
+	static constexpr unsigned EPOCH_DAYS = year_to_days (Port::Chrono::epoch);
+	static const unsigned SECONDS_PER_DAY = 86400;
 public:
+
 	static uint16_t epoch () NIRVANA_NOEXCEPT
 	{
 		return Port::Chrono::epoch;
@@ -56,8 +66,10 @@ public:
 
 	static Duration system_to_steady (uint16_t _epoch, Duration system) NIRVANA_NOEXCEPT
 	{
-		assert (_epoch == epoch ()); // TODO: Implement
-		return system - (system_clock () - steady_clock ());
+		Duration t = system - (system_clock () - steady_clock ());
+		if (_epoch != epoch ())
+			t += (int64_t)(year_to_days (_epoch) - EPOCH_DAYS) * (int64_t)SECONDS_PER_DAY * 1000000000LL;
+		return t;
 	}
 
 	static Duration steady_to_system (Duration steady) NIRVANA_NOEXCEPT
@@ -74,6 +86,8 @@ public:
 		assert (std::numeric_limits <DeadlineTime>::max () - timeout > dt);
 		return dt + timeout;
 	}
+
+private:
 };
 
 }
