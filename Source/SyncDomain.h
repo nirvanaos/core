@@ -121,15 +121,11 @@ public:
 
 	virtual SyncDomain* sync_domain () NIRVANA_NOEXCEPT;
 	virtual Heap& memory () NIRVANA_NOEXCEPT;
+	virtual RuntimeSupport& runtime_support () NIRVANA_NOEXCEPT;
 
 	Heap& heap ()
 	{
 		return heap_;
-	}
-
-	RuntimeSupport& runtime_support ()
-	{
-		return runtime_support_;
 	}
 
 	/// If we currently run out of SD, create new SD and enter into it.

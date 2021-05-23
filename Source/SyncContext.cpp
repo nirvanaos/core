@@ -39,6 +39,7 @@ public:
 	virtual void schedule_return (ExecDomain& exec_domain) NIRVANA_NOEXCEPT;
 	virtual SyncDomain* sync_domain () NIRVANA_NOEXCEPT;
 	virtual Heap& memory () NIRVANA_NOEXCEPT;
+	virtual RuntimeSupport& runtime_support () NIRVANA_NOEXCEPT;
 };
 
 ImplStatic <FreeSyncContext> g_free_sync_context;
@@ -90,8 +91,12 @@ SyncDomain* FreeSyncContext::sync_domain () NIRVANA_NOEXCEPT
 
 Heap& FreeSyncContext::memory () NIRVANA_NOEXCEPT
 {
-	Thread& th = Thread::current ();
-	return th.exec_domain ()->heap ();
+	return Thread::current ().exec_domain ()->heap ();
+}
+
+RuntimeSupport& FreeSyncContext::runtime_support () NIRVANA_NOEXCEPT
+{
+	return Thread::current ().exec_domain ()->runtime_support ();
 }
 
 }

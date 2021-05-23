@@ -42,7 +42,6 @@ void ThreadBackground::start (RuntimeSupportLegacy& runtime_support, Nirvana::Co
 {
 	auto ed = ExecDomain::get_background (*this, runnable);
 	exec_domain_ = ed;
-	runtime_support_ = &runtime_support;
 	ed->start ([this]() {this->create (); });
 	_add_ref ();
 }

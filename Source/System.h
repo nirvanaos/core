@@ -31,7 +31,7 @@
 #include <generated/System_s.h>
 #include "Binder.h"
 #include "Chrono.h"
-#include "Thread.inl"
+#include "ExecDomain.h"
 #include "RuntimeSupportImpl.h"
 
 namespace Nirvana {
@@ -96,7 +96,7 @@ public:
 		return &Thread::current ().exec_domain ()->runtime_global_.error_number;
 	}
 
-	Memory::_ref_type create_heap (uint16_t granularity)
+	Nirvana::Memory::_ref_type create_heap (uint16_t granularity)
 	{
 		throw_NO_IMPLEMENT ();
 	}
@@ -107,13 +107,15 @@ private:
 #if defined (NIRVANA_CORE_TEST) && defined (_DEBUG)
 		static RuntimeSupportImpl <CoreAllocator> core_runtime_support;
 
-		Thread* thread = Thread::current_ptr ();
-		if (thread)
-			return thread->runtime_support ();
-		else
-			return core_runtime_support;
+		Thread* th = Thread::current_ptr ();
+		if (th) {
+			ExecDomain* ed = th->exec_domain ();
+			if (ed)
+				return ed->sync_context ().runtime_support ();
+		}
+		return core_runtime_support;
 #else
-		return Thread::current ().runtime_support ();
+		return SyncContext::current ().runtime_support ();
 #endif
 	}
 };

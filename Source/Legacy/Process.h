@@ -45,6 +45,11 @@ public:
 	/// Returns heap reference.
 	virtual Nirvana::Core::Heap& memory () NIRVANA_NOEXCEPT;
 
+	virtual Nirvana::Core::RuntimeSupport& runtime_support () NIRVANA_NOEXCEPT
+	{
+		return runtime_support_;
+	}
+
 protected:
 	Process () :
 		ThreadBackground (true)

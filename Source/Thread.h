@@ -68,25 +68,20 @@ public:
 		return exec_domain_;
 	}
 
-	void exec_domain (ExecDomain& exec_domain) NIRVANA_NOEXCEPT;
+	void exec_domain (ExecDomain& exec_domain) NIRVANA_NOEXCEPT
+	{
+		exec_domain_ = &exec_domain;
+	}
 
 	void exec_domain (nullptr_t) NIRVANA_NOEXCEPT
 	{
 		exec_domain_ = nullptr;
-		runtime_support_ = nullptr;
 	}
 
 	/// Returns special "neutral" execution context with own stack and CPU state.
 	ExecContext& neutral_context () NIRVANA_NOEXCEPT
 	{
 		return neutral_context_;
-	}
-
-	/// Returns runtime support object.
-	RuntimeSupport& runtime_support () const NIRVANA_NOEXCEPT
-	{
-		assert (runtime_support_);
-		return *runtime_support_;
 	}
 
 	virtual void yield () NIRVANA_NOEXCEPT = 0;
@@ -98,7 +93,6 @@ protected:
 	{}
 
 protected:
-	RuntimeSupport* runtime_support_;
 	/// Pointer to the current execution domain.
 	ExecDomain* exec_domain_;
 

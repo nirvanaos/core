@@ -23,7 +23,7 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "Thread.inl"
+#include "ExecDomain.h"
 
 using namespace std;
 

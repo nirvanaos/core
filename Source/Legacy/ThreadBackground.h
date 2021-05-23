@@ -75,12 +75,6 @@ public:
 	/// Returns heap reference.
 	// virtual Nirvana::Core::Heap& memory () = 0;
 
-	RuntimeSupportLegacy& runtime_support () const NIRVANA_NOEXCEPT
-	{
-		assert (runtime_support_);
-		return static_cast <RuntimeSupportLegacy&> (*runtime_support_);
-	}
-
 	virtual void yield () NIRVANA_NOEXCEPT;
 
 protected:

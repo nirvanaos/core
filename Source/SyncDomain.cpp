@@ -153,5 +153,10 @@ Heap& SyncDomain::memory () NIRVANA_NOEXCEPT
 	return heap_;
 }
 
+RuntimeSupport& SyncDomain::runtime_support () NIRVANA_NOEXCEPT
+{
+	return runtime_support_;
+}
+
 }
 }

@@ -70,8 +70,11 @@ public:
 		return this == &free_sync_context ();
 	}
 
-	/// Returns heap reference.
+	/// Returns Heap reference.
 	virtual Heap& memory () NIRVANA_NOEXCEPT = 0;
+
+	/// Returns RuntimeSupport reference.
+	virtual RuntimeSupport& runtime_support () NIRVANA_NOEXCEPT = 0;
 
 protected:
 	void check_schedule_error (ExecDomain& ed);
