@@ -29,8 +29,7 @@
 
 #include <CORBA/Server.h>
 #include <generated/System_s.h>
-#include "UserObject.h"
-#include "UserAllocator.h"
+#include "RuntimeSupport.h"
 #include "LifeCyclePseudo.h"
 #include "CoreInterface.h"
 #include "parallel-hashmap/parallel_hashmap/phmap.h"
@@ -38,67 +37,57 @@
 namespace Nirvana {
 namespace Core {
 
-class RuntimeProxyImpl :
-	public UserObject, // Allocate from user heap.
-	public CORBA::Internal::ImplementationPseudo <RuntimeProxyImpl, RuntimeProxy>,
-	public LifeCyclePseudo <RuntimeProxyImpl>
-{
-public:
-	RuntimeProxyImpl (const void* obj) :
-		object_ (obj)
-	{}
-
-	~RuntimeProxyImpl ()
-	{}
-
-	const void* object () const
-	{
-		return object_;
-	}
-
-	void remove ()
-	{
-		assert (object_);
-		object_ = nullptr;
-	}
-
-private:
-	const void* object_;
-};
-
-/// Implementation of the RuntimeSupport interface.
 /// 
 /// Currently we use phmap::flat_hash_map:
 /// https://github.com/greg7mdp/parallel-hashmap
 /// See also:
 /// https://martin.ankerl.com/2019/04/01/hashmap-benchmarks-01-overview/
-class RuntimeSupportImpl
+/// 
+template <template <class T> class Allocator>
+class RuntimeSupportImpl : public RuntimeSupport
 {
-	typedef phmap::flat_hash_map <const void*, CoreRef <RuntimeProxyImpl>,
-		std::hash <const void*>, std::equal_to <const void*>, UserAllocator <std::pair <const void* const, CoreRef <RuntimeProxyImpl> > > > ProxyMap;
-public:
-	RuntimeProxy::_ref_type runtime_proxy_get (const void* obj)
+	class RuntimeProxyImpl :
+		public CORBA::Internal::ImplementationPseudo <RuntimeProxyImpl, RuntimeProxy>,
+		public LifeCyclePseudo <RuntimeProxyImpl>
 	{
-		std::pair <ProxyMap::iterator, bool> ins = proxy_map_.insert (ProxyMap::value_type (obj, nullptr));
-		if (ins.second) {
-			try {
-				ins.first->second = CoreRef <RuntimeProxyImpl>::create <RuntimeProxyImpl> (obj);
-			} catch (...) {
-				proxy_map_.erase (ins.first);
-				throw;
-			}
+	public:
+		void* operator new (size_t cb)
+		{
+			return Allocator <char>::allocate (cb);
 		}
-		return ins.first->second->_get_ptr ();
-	}
 
-	void runtime_proxy_remove (const void* obj)
-	{
-		ProxyMap::iterator f = proxy_map_.find (obj);
-		if (f != proxy_map_.end ()) {
-			f->second->remove ();
-			proxy_map_.erase (f);
+		void operator delete (void* p, size_t cb)
+		{
+			Allocator <char>::deallocate ((char*)p, cb);
 		}
-	}
+
+		RuntimeProxyImpl (const void* obj) :
+			object_ (obj)
+		{}
+
+		~RuntimeProxyImpl ()
+		{}
+
+		const void* object () const
+		{
+			return object_;
+		}
+
+		void remove ()
+		{
+			assert (object_);
+			object_ = nullptr;
+		}
+
+	private:
+		const void* object_;
+	};
+
+	typedef phmap::flat_hash_map <const void*, CoreRef <RuntimeProxyImpl>,
+		std::hash <const void*>, std::equal_to <const void*>, Allocator <std::pair <const void* const, CoreRef <RuntimeProxyImpl> > > > ProxyMap;
+public:
+	virtual RuntimeProxy::_ref_type runtime_proxy_get (const void* obj);
+	virtual void runtime_proxy_remove (const void* obj);
 
 	void cleanup ()
 	{
@@ -108,6 +97,31 @@ public:
 private:
 	ProxyMap proxy_map_;
 };
+
+template <template <class T> class Allocator>
+RuntimeProxy::_ref_type RuntimeSupportImpl <Allocator>::runtime_proxy_get (const void* obj)
+{
+	std::pair <ProxyMap::iterator, bool> ins = proxy_map_.insert (ProxyMap::value_type (obj, nullptr));
+	if (ins.second) {
+		try {
+			ins.first->second = CoreRef <RuntimeProxyImpl>::template create <RuntimeProxyImpl> (obj);
+		} catch (...) {
+			proxy_map_.erase (ins.first);
+			throw;
+		}
+	}
+	return ins.first->second->_get_ptr ();
+}
+
+template <template <class T> class Allocator>
+void RuntimeSupportImpl <Allocator>::runtime_proxy_remove (const void* obj)
+{
+	typename ProxyMap::iterator f = proxy_map_.find (obj);
+	if (f != proxy_map_.end ()) {
+		f->second->remove ();
+		proxy_map_.erase (f);
+	}
+}
 
 }
 }

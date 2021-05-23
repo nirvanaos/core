@@ -24,39 +24,22 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_LEGACY_CORE_RUNTIMESUPPORTLEGACY_H_
-#define NIRVANA_LEGACY_CORE_RUNTIMESUPPORTLEGACY_H_
+#ifndef NIRVANA_CORE_RUNTIMESUPPORT_H_
+#define NIRVANA_CORE_RUNTIMESUPPORT_H_
 
-#include "../RuntimeSupportImpl.h"
-#include "../UserAllocator.h"
-#include <mutex> // TODO: Replace with own implementation.
+#include <generated/System.h>
 
 namespace Nirvana {
-namespace Legacy {
 namespace Core {
 
-class RuntimeSupportLegacy :
-	public Nirvana::Core::RuntimeSupportImpl <Nirvana::Core::UserAllocator>
+/// Abstract implementation of the System::runtime_proxy_get() and System::runtime_proxy_remove()
+class RuntimeSupport
 {
-	typedef Nirvana::Core::RuntimeSupportImpl <Nirvana::Core::UserAllocator> Base;
 public:
-	virtual RuntimeProxy::_ref_type runtime_proxy_get (const void* obj)
-	{
-		std::lock_guard <std::mutex> lock (mutex_);
-		return Base::runtime_proxy_get (obj);
-	}
-
-	virtual void runtime_proxy_remove (const void* obj)
-	{
-		std::lock_guard <std::mutex> lock (mutex_);
-		Base::runtime_proxy_remove (obj);
-	}
-
-private:
-	std::mutex mutex_;
+	virtual RuntimeProxy::_ref_type runtime_proxy_get (const void* obj) = 0;
+	virtual void runtime_proxy_remove (const void* obj) = 0;
 };
 
-}
 }
 }
 

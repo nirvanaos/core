@@ -35,7 +35,7 @@
 namespace Nirvana {
 
 namespace Core {
-class RuntimeSupportImpl;
+class RuntimeSupport;
 }
 
 namespace Legacy {

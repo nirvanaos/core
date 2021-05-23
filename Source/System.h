@@ -32,6 +32,7 @@
 #include "Binder.h"
 #include "Chrono.h"
 #include "Thread.inl"
+#include "RuntimeSupportImpl.h"
 
 namespace Nirvana {
 namespace Core {
@@ -42,18 +43,12 @@ class System :
 public:
 	static RuntimeProxy::_ref_type runtime_proxy_get (const void* obj)
 	{
-		RuntimeSupportImpl* impl = get_runtime_support ();
-		if (impl)
-			return impl->runtime_proxy_get (obj);
-		else
-			return RuntimeProxy::_nil ();
+		return get_runtime_support ().runtime_proxy_get (obj);
 	}
 
 	static void runtime_proxy_remove (const void* obj)
 	{
-		RuntimeSupportImpl* impl = get_runtime_support ();
-		if (impl)
-			impl->runtime_proxy_remove (obj);
+		get_runtime_support ().runtime_proxy_remove (obj);
 	}
 
 	static CORBA::Object::_ref_type bind (const std::string& name)
@@ -107,13 +102,19 @@ public:
 	}
 
 private:
-	static RuntimeSupportImpl* get_runtime_support ()
+	static RuntimeSupport& get_runtime_support ()
 	{
+#if defined (NIRVANA_CORE_TEST) && defined (_DEBUG)
+		static RuntimeSupportImpl <CoreAllocator> core_runtime_support;
+
 		Thread* thread = Thread::current_ptr ();
 		if (thread)
-			return &thread->runtime_support ();
+			return thread->runtime_support ();
 		else
-			return nullptr;
+			return core_runtime_support;
+#else
+		return Thread::current ().runtime_support ();
+#endif
 	}
 };
 

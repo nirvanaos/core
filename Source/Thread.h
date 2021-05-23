@@ -34,9 +34,7 @@ namespace Nirvana {
 namespace Core {
 
 class ExecDomain;
-class SyncDomain;
-class SyncContext;
-class RuntimeSupportImpl;
+class RuntimeSupport;
 
 /// Thread class.
 class NIRVANA_NOVTABLE Thread :
@@ -85,7 +83,7 @@ public:
 	}
 
 	/// Returns runtime support object.
-	RuntimeSupportImpl& runtime_support () const NIRVANA_NOEXCEPT
+	RuntimeSupport& runtime_support () const NIRVANA_NOEXCEPT
 	{
 		assert (runtime_support_);
 		return *runtime_support_;
@@ -100,7 +98,7 @@ protected:
 	{}
 
 protected:
-	RuntimeSupportImpl* runtime_support_;
+	RuntimeSupport* runtime_support_;
 	/// Pointer to the current execution domain.
 	ExecDomain* exec_domain_;
 

@@ -34,6 +34,7 @@ namespace Core {
 
 class Heap;
 class ExecDomain;
+class SyncDomain;
 
 /// Core synchronization context.
 class NIRVANA_NOVTABLE SyncContext :

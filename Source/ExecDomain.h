@@ -32,6 +32,7 @@
 #include "ObjectPool.h"
 #include "CoreObject.h"
 #include "RuntimeSupportImpl.h"
+#include "UserAllocator.h"
 #include "RuntimeGlobal.h"
 #include <limits>
 #include <utility>
@@ -166,7 +167,7 @@ public:
 		cur_heap_ = &heap_;
 	}
 
-	RuntimeSupportImpl& runtime_support () NIRVANA_NOEXCEPT
+	RuntimeSupport& runtime_support () NIRVANA_NOEXCEPT
 	{
 		return runtime_support_;
 	}
@@ -286,7 +287,7 @@ private:
 	SyncDomain::QueueNode* ret_qnodes_;
 	HeapUser heap_;
 	Heap* cur_heap_;
-	RuntimeSupportImpl runtime_support_;
+	RuntimeSupportImpl <UserAllocator> runtime_support_;
 	bool scheduler_item_created_;
 	CORBA::Exception::Code scheduler_error_;
 	ReleaseToPool release_to_pool_;

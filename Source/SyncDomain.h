@@ -32,6 +32,7 @@
 #include "SyncContext.h"
 #include "CoreObject.h"
 #include "RuntimeSupportImpl.h"
+#include "UserAllocator.h"
 #include <atomic>
 
 namespace Nirvana {
@@ -126,7 +127,7 @@ public:
 		return heap_;
 	}
 
-	RuntimeSupportImpl& runtime_support ()
+	RuntimeSupport& runtime_support ()
 	{
 		return runtime_support_;
 	}
@@ -150,7 +151,7 @@ private:
 private:
 	Queue queue_;
 	HeapUser heap_;
-	RuntimeSupportImpl runtime_support_; // Must be destructed before the heap_ destruction.
+	RuntimeSupportImpl <UserAllocator> runtime_support_; // Must be destructed before the heap_ destruction.
 
 	// Thread that acquires this flag become a scheduling thread.
 	std::atomic_flag scheduling_;
