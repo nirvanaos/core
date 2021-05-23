@@ -101,7 +101,7 @@ private:
 template <template <class T> class Allocator>
 RuntimeProxy::_ref_type RuntimeSupportImpl <Allocator>::runtime_proxy_get (const void* obj)
 {
-	std::pair <ProxyMap::iterator, bool> ins = proxy_map_.insert (ProxyMap::value_type (obj, nullptr));
+	auto ins = proxy_map_.emplace (obj, nullptr);
 	if (ins.second) {
 		try {
 			ins.first->second = CoreRef <RuntimeProxyImpl>::template create <RuntimeProxyImpl> (obj);
@@ -116,7 +116,7 @@ RuntimeProxy::_ref_type RuntimeSupportImpl <Allocator>::runtime_proxy_get (const
 template <template <class T> class Allocator>
 void RuntimeSupportImpl <Allocator>::runtime_proxy_remove (const void* obj)
 {
-	typename ProxyMap::iterator f = proxy_map_.find (obj);
+	auto f = proxy_map_.find (obj);
 	if (f != proxy_map_.end ()) {
 		f->second->remove ();
 		proxy_map_.erase (f);
