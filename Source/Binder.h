@@ -183,10 +183,7 @@ public:
 	/// 
 	/// \param mod The Nirvana::Module interface.
 	/// \param metadata Module metadata.
-	static void unbind_executable (Nirvana::Module::_ptr_type mod, const Section& metadata) NIRVANA_NOEXCEPT
-	{
-		module_unbind (mod, metadata);
-	}
+	static void unbind (Legacy::Core::Executable& mod) NIRVANA_NOEXCEPT;
 
 	/// Unbind module.
 	/// 

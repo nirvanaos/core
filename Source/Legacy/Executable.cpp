@@ -1,4 +1,3 @@
-/// \file
 /*
 * Nirvana Core.
 *
@@ -24,46 +23,23 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_LEGACY_CORE_EXECUTABLE_H_
-#define NIRVANA_LEGACY_CORE_EXECUTABLE_H_
-
-#include "../CoreObject.h"
-#include <CORBA/Server.h>
-#include <Nirvana/Main.h>
-#include <generated/Module_s.h>
-#include "../ORB/LifeCycleStack.h"
-#include <Port/Executable.h>
+#include "Executable.h"
+#include "../Binder.inl"
 
 namespace Nirvana {
 namespace Legacy {
 namespace Core {
 
-class Executable :
-	public Port::Executable,
-	public Nirvana::Core::CoreObject,
-	public CORBA::servant_traits <Module>::Servant <Executable>,
-	public CORBA::Internal::Core::LifeCycleStack
+Executable::Executable (const char* file) :
+	Port::Executable (file),
+	entry_point_ (Nirvana::Core::Binder::bind (*this))
+{}
+
+Executable::~Executable ()
 {
-public:
-	Executable (const char* file);
-	~Executable ();
-
-	const void* base_address () const NIRVANA_NOEXCEPT
-	{
-		return Port::Executable::address ();
-	}
-
-	int main (int argc, char* argv [], char* envp [])
-	{
-		return (int)entry_point_->main (argc, argv, envp);
-	}
-
-private:
-	Main::_ptr_type entry_point_;
-};
+	Nirvana::Core::Binder::unbind (*this);
+}
 
 }
 }
 }
-
-#endif

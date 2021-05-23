@@ -24,8 +24,7 @@
 *  popov.nirvana@gmail.com
 */
 #include "Loader.h"
-#include "ClassLibrary.h"
-#include "Singleton.h"
+#include "Binder.inl"
 #include "ORB/ServantMarshaler.h"
 
 using namespace std;
