@@ -24,19 +24,20 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_CORE_MEMORYCORE_H_
-#define NIRVANA_CORE_MEMORYCORE_H_
+#ifndef NIRVANA_CORE_MEMORY_H_
+#define NIRVANA_CORE_MEMORY_H_
 
 #include <CORBA/Server.h>
 #include <generated/Memory_s.h>
 #include "ExecDomain.h"
+#include "user_memory.h"
 
 namespace Nirvana {
 namespace Core {
 
-/// Core implementation of the g_memory.
-class MemoryCore :
-	public CORBA::servant_traits <Memory>::ServantStatic <MemoryCore>
+/// Implementation of the Nirvana::Memory interface.
+class Memory :
+	public CORBA::servant_traits <Nirvana::Memory>::ServantStatic <Memory>
 {
 public:
 	// Memory::
@@ -93,6 +94,7 @@ public:
 private:
 	static Heap& heap ()
 	{
+#if defined (NIRVANA_CORE_TEST)
 		Thread* th = Thread::current_ptr ();
 		if (th) {
 			ExecDomain* ed = th->exec_domain ();
@@ -101,6 +103,9 @@ private:
 		}
 		// Fallback to g_core_heap
 		return g_core_heap.object ();
+#else
+		return user_memory ();
+#endif
 	}
 };
 
