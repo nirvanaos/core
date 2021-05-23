@@ -183,6 +183,7 @@ const ModuleStartup* Binder::module_bind (::Nirvana::Module::_ptr_type mod, cons
 		}
 
 		if (flags || module_entry) {
+			// TODO: In-place
 			writable = Port::Memory::copy (const_cast <void*> (metadata.address), const_cast <void*> (metadata.address), metadata.size, Memory::READ_WRITE);
 
 			if (module_entry) {
@@ -207,9 +208,12 @@ const ModuleStartup* Binder::module_bind (::Nirvana::Module::_ptr_type mod, cons
 					switch (*it.cur ()) {
 						case OLF_EXPORT_OBJECT: {
 							ExportObject* ps = reinterpret_cast <ExportObject*> (it.cur ());
-							PortableServer::ServantBase::_ptr_type core_obj = (
-								new CORBA::Internal::Core::ServantBase (Type <PortableServer::ServantBase>::in (ps->servant_base),
-									mod_context->sync_context))->_get_ptr ();
+							PortableServer::ServantBase::_ptr_type core_obj;
+							SYNC_BEGIN (mod_context->sync_context);
+							core_obj = (
+								new CORBA::Internal::Core::ServantBase (Type <PortableServer::ServantBase>::in (ps->servant_base)
+									))->_get_ptr ();
+							SYNC_END ();
 							Object::_ptr_type obj = AbstractBase::_ptr_type (core_obj)->_query_interface <Object> ();
 							ps->core_object = &core_obj;
 							mod_context->exports.insert (ps->name, obj);
@@ -217,9 +221,12 @@ const ModuleStartup* Binder::module_bind (::Nirvana::Module::_ptr_type mod, cons
 
 						case OLF_EXPORT_LOCAL: {
 							ExportLocal* ps = reinterpret_cast <ExportLocal*> (it.cur ());
-							LocalObject::_ptr_type core_obj = (
+							LocalObject::_ptr_type core_obj;
+							SYNC_BEGIN (mod_context->sync_context);
+							core_obj = (
 								new CORBA::Internal::Core::LocalObject (Type <LocalObject>::in (ps->local_object),
-									Type <AbstractBase>::in (ps->abstract_base), mod_context->sync_context))->_get_ptr ();
+									Type <AbstractBase>::in (ps->abstract_base)))->_get_ptr ();
+							SYNC_END ();
 							Object::_ptr_type obj = core_obj;
 							ps->core_object = &core_obj;
 							mod_context->exports.insert (ps->name, obj);
@@ -249,7 +256,7 @@ const ModuleStartup* Binder::module_bind (::Nirvana::Module::_ptr_type mod, cons
 			Port::Memory::copy (const_cast <void*> (metadata.address), writable, metadata.size, (writable != metadata.address) ? (Memory::READ_ONLY | Memory::SRC_RELEASE) : Memory::READ_ONLY);
 		}
 	} catch (...) {
-		module_unbind (mod, { writable, metadata.size });
+		module_unbind (mod, { writable, metadata.size }, mod_context->sync_context);
 		if (writable != metadata.address)
 			Port::Memory::release (writable, metadata.size);
 		exec_domain->binder_context_ = nullptr;
@@ -261,9 +268,9 @@ const ModuleStartup* Binder::module_bind (::Nirvana::Module::_ptr_type mod, cons
 	return module_startup;
 }
 
-inline
-void Binder::remove_module_exports (const Section& metadata)
+void Binder::remove_exports (const Section& metadata)
 {
+	SYNC_BEGIN (&sync_domain_);
 	// Pass 1: Remove all exports from the map.
 	// This pass will not cause inter-domain calls.
 	for (OLF_Iterator it (metadata.address, metadata.size); !it.end (); it.next ()) {
@@ -284,19 +291,11 @@ void Binder::remove_module_exports (const Section& metadata)
 			} break;
 		}
 	}
+	SYNC_END ()
 }
 
-void Binder::unbind (Module& mod) NIRVANA_NOEXCEPT
+void Binder::release_imports (Nirvana::Module::_ptr_type mod, const Section& metadata)
 {
-	SYNC_BEGIN (&singleton_.sync_domain_);
-	singleton_.remove_module_exports (mod.metadata ());
-	singleton_.module_unbind (mod._get_ptr (), mod.metadata ());
-	SYNC_END ();
-}
-
-void Binder::module_unbind (::Nirvana::Module::_ptr_type mod, const Section& metadata) NIRVANA_NOEXCEPT
-{
-	// Pass 1: Release all imported interfaces.
 	for (OLF_Iterator it (metadata.address, metadata.size); !it.end (); it.next ()) {
 		switch (*it.cur ()) {
 			case OLF_IMPORT_INTERFACE:
@@ -307,8 +306,15 @@ void Binder::module_unbind (::Nirvana::Module::_ptr_type mod, const Section& met
 			} break;
 		}
 	}
+}
+
+void Binder::module_unbind (Nirvana::Module::_ptr_type mod, const Section& metadata, SyncContext& sc) NIRVANA_NOEXCEPT
+{
+	// Pass 1: Release all imported interfaces.
+	release_imports (mod, metadata);
 
 	// Pass 2: Release proxies for all exported objects.
+	SYNC_BEGIN (sc)
 	for (OLF_Iterator it (metadata.address, metadata.size); !it.end (); it.next ()) {
 		switch (*it.cur ()) {
 			case OLF_EXPORT_OBJECT: {
@@ -322,6 +328,7 @@ void Binder::module_unbind (::Nirvana::Module::_ptr_type mod, const Section& met
 			} break;
 		}
 	}
+	SYNC_END ()
 }
 
 Binder::InterfaceRef Binder::find (const Key& name) const

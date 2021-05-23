@@ -77,7 +77,7 @@ public:
 	virtual RefCnt::IntegralType _remove_ref () NIRVANA_NOEXCEPT;
 
 protected:
-	ServantProxyBase (AbstractBase::_ptr_type servant, const Operation object_ops [3], void* object_impl, ::Nirvana::Core::SyncContext& sync_context);
+	ServantProxyBase (AbstractBase::_ptr_type servant, const Operation object_ops [3], void* object_impl);
 
 	virtual void add_ref_1 ();
 
@@ -108,7 +108,9 @@ protected:
 			// Async call failed, maybe resources are exausted.
 			// Fallback to collect garbage in the current thread.
 			try {
+				SYNC_BEGIN (*sync_context_)
 				::Nirvana::Core::ImplStatic <GC> (std::forward <Args> (args)...).run ();
+				SYNC_END ()
 			} catch (...) {
 				// Swallow exceptions.
 				// TODO: Log error.

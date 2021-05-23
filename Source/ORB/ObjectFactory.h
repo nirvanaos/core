@@ -27,11 +27,11 @@
 #define NIRVANA_ORB_CORE_OBJECTFACTORY_H_
 
 #include <CORBA/Server.h>
-#include <CORBA/ObjectFactory_s.h>
+#include <generated/ObjectFactory_s.h>
 #include "ServantBase.h"
 #include "LocalObject.h"
 #include "ReferenceCounter.h"
-#include "ExecDomain.h"
+#include "SyncDomain.h"
 
 namespace CORBA {
 namespace Internal {
@@ -43,31 +43,40 @@ class ObjectFactory :
 public:
 	static void* memory_allocate (size_t size)
 	{
-		::Nirvana::Core::SyncDomain::enter ();
-		// TODO: Allocate from the current sync domain heap.
-		return ::Nirvana::Core::g_core_heap->allocate (0, size, 0);
+		// Enter sync domain and allocate from the sync domain heap.
+		return Nirvana::Core::SyncDomain::enter ().heap ().allocate (0, size, 0);
 	}
 
 	static void memory_release (void* p, size_t size)
 	{
-		// TODO: In sync domain: release from the current sync domain heap.
-		// Otherwise: release from the read-only heap.
-		::Nirvana::Core::g_core_heap->release (p, size);
+		// In sync domain: release from the current sync domain heap.
+		Nirvana::Core::SyncDomain* sd = Nirvana::Core::SyncContext::current ().sync_domain ();
+		if (sd)
+			sd->heap ().release (p, size);
+		else // TODO: release from the read-only heap.
+			Nirvana::Core::g_core_heap->release (p, size);
+	}
+
+	static bool stateless_available ()
+	{
+		return !Nirvana::Core::SyncContext::current ().sync_domain ();
 	}
 
 	void stateless_begin (CORBA::Internal::ObjectFactory::StatelessCreationFrame& scs)
 	{
 		if (!(scs.tmp () && scs.size ()))
 			throw BAD_PARAM ();
+		if (Nirvana::Core::SyncContext::current ().sync_domain ())
+			throw BAD_OPERATION ();
 		// TODO: Allocate from read-only heap
-		void* p = ::Nirvana::Core::g_core_heap->allocate (0, scs.size (), ::Nirvana::Memory::READ_ONLY | ::Nirvana::Memory::RESERVED);
+		void* p = Nirvana::Core::g_core_heap->allocate (0, scs.size (), ::Nirvana::Memory::READ_ONLY | ::Nirvana::Memory::RESERVED);
 		scs.offset ((uint8_t*)p - (uint8_t*)scs.tmp ());
 		stateless_creation_frame (&scs);
 	}
 
 	void* stateless_end (bool success)
 	{
-		CORBA::Internal::ObjectFactory::StatelessCreationFrame* scs = stateless_creation_frame ();
+		StatelessCreationFrame* scs = stateless_creation_frame ();
 		if (!scs)
 			throw BAD_INV_ORDER ();
 		stateless_creation_frame (nullptr);

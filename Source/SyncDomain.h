@@ -129,7 +129,7 @@ public:
 	}
 
 	/// If we currently run out of SD, create new SD and enter into it.
-	static void enter ();
+	static SyncDomain& enter ();
 
 	void leave () NIRVANA_NOEXCEPT;
 

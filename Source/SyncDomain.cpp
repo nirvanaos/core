@@ -97,16 +97,19 @@ void SyncDomain::leave () NIRVANA_NOEXCEPT
 	schedule ();
 }
 
-void SyncDomain::enter ()
+SyncDomain& SyncDomain::enter ()
 {
 	ExecDomain* exec_domain = Thread::current ().exec_domain ();
 	assert (exec_domain);
 	SyncContext& sync_context = exec_domain->sync_context ();
-	if (!sync_context.sync_domain ()) {
+	SyncDomain* psd = sync_context.sync_domain ();
+	if (!psd) {
 		CoreRef <SyncDomain> sd = CoreRef <SyncDomain>::create <ImplDynamic <SyncDomain>> ();
 		sd->state_ = State::RUNNING;
 		exec_domain->sync_context (*sd);
+		psd = sd;
 	}
+	return *psd;
 }
 
 void SyncDomain::release_queue_node (QueueNode* node) NIRVANA_NOEXCEPT

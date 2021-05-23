@@ -54,10 +54,17 @@ void Binder::bind (ClassLibrary& mod)
 			}
 		}
 	} catch (...) {
-		module_unbind (mod._get_ptr (), mod.metadata ());
+		module_unbind (mod._get_ptr (), mod.metadata (), context.sync_context);
 		throw;
 	}
 	SYNC_END ();
+}
+
+inline
+void Binder::unbind (ClassLibrary& mod) NIRVANA_NOEXCEPT
+{
+	singleton_.remove_exports (mod.metadata ());
+	module_unbind (mod._get_ptr (), mod.metadata (), SyncContext::free_sync_context ());
 }
 
 inline
@@ -81,10 +88,17 @@ void Binder::bind (Singleton& mod)
 			}
 		}
 	} catch (...) {
-		module_unbind (mod._get_ptr (), mod.metadata ());
+		module_unbind (mod._get_ptr (), mod.metadata (), context.sync_context);
 		throw;
 	}
 	SYNC_END ();
+}
+
+inline
+void Binder::unbind (Singleton& mod) NIRVANA_NOEXCEPT
+{
+	singleton_.remove_exports (mod.metadata ());
+	module_unbind (mod._get_ptr (), mod.metadata (), mod.sync_domain ());
 }
 
 inline
@@ -97,7 +111,7 @@ Legacy::Main::_ptr_type Binder::bind (Legacy::Core::Executable& mod)
 			invalid_metadata ();
 		return Legacy::Main::_check (startup->startup);
 	} catch (...) {
-		singleton_.module_unbind (mod._get_ptr (), mod.metadata ());
+		release_imports (mod._get_ptr (), mod.metadata ());
 		throw;
 	}
 	SYNC_END ();
@@ -106,7 +120,7 @@ Legacy::Main::_ptr_type Binder::bind (Legacy::Core::Executable& mod)
 inline
 void Binder::unbind (Legacy::Core::Executable& mod) NIRVANA_NOEXCEPT
 {
-	module_unbind (mod._get_ptr (), mod.metadata ());
+	release_imports (mod._get_ptr (), mod.metadata ());
 }
 
 }
