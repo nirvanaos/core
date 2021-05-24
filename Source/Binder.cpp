@@ -183,17 +183,14 @@ const ModuleStartup* Binder::module_bind (::Nirvana::Module::_ptr_type mod, cons
 		}
 
 		if (flags || module_entry) {
-			// TODO: In-place
-			writable = Port::Memory::copy (const_cast <void*> (metadata.address), const_cast <void*> (metadata.address), metadata.size, Memory::READ_WRITE);
+			verify (Port::Memory::copy (const_cast <void*> (metadata.address), const_cast <void*> (metadata.address), metadata.size, Memory::READ_WRITE | Memory::EXACTLY));
 
-			if (module_entry) {
-				module_entry = (ImportInterface*)((uint8_t*)module_entry + ((uint8_t*)writable - (uint8_t*)metadata.address));
+			if (module_entry)
 				module_entry->itf = &mod;
-			}
 
 			// Pass 2: Import pseudo objects.
 			if (flags & MetadataFlags::IMPORT_INTERFACES)
-				for (OLF_Iterator it (writable, metadata.size); !it.end (); it.next ()) {
+				for (OLF_Iterator it (metadata.address, metadata.size); !it.end (); it.next ()) {
 					if (OLF_IMPORT_INTERFACE == *it.cur ()) {
 						ImportInterface* ps = reinterpret_cast <ImportInterface*> (it.cur ());
 						if (!mod || ps != module_entry)
@@ -204,7 +201,7 @@ const ModuleStartup* Binder::module_bind (::Nirvana::Module::_ptr_type mod, cons
 			// Pass 3: Export objects.
 			if (flags & MetadataFlags::EXPORT_OBJECTS) {
 				assert (mod_context); // Legacy executable can not export.
-				for (OLF_Iterator it (writable, metadata.size); !it.end (); it.next ()) {
+				for (OLF_Iterator it (metadata.address, metadata.size); !it.end (); it.next ()) {
 					switch (*it.cur ()) {
 						case OLF_EXPORT_OBJECT: {
 							ExportObject* ps = reinterpret_cast <ExportObject*> (it.cur ());
@@ -237,7 +234,7 @@ const ModuleStartup* Binder::module_bind (::Nirvana::Module::_ptr_type mod, cons
 
 			// Pass 4: Import objects.
 			if (flags & MetadataFlags::IMPORT_OBJECTS)
-				for (OLF_Iterator it (writable, metadata.size); !it.end (); it.next ()) {
+				for (OLF_Iterator it (metadata.address, metadata.size); !it.end (); it.next ()) {
 					if (OLF_IMPORT_OBJECT == *it.cur ()) {
 						ImportInterface* ps = reinterpret_cast <ImportInterface*> (it.cur ());
 						Object::_ref_type obj = bind_sync (ps->name);
@@ -253,12 +250,10 @@ const ModuleStartup* Binder::module_bind (::Nirvana::Module::_ptr_type mod, cons
 					}
 				}
 
-			Port::Memory::copy (const_cast <void*> (metadata.address), writable, metadata.size, (writable != metadata.address) ? (Memory::READ_ONLY | Memory::SRC_RELEASE) : Memory::READ_ONLY);
+			verify (Port::Memory::copy (const_cast <void*> (metadata.address), const_cast <void*> (metadata.address), metadata.size, Memory::READ_ONLY | Memory::EXACTLY));
 		}
 	} catch (...) {
-		module_unbind (mod, { writable, metadata.size }, mod_context->sync_context);
-		if (writable != metadata.address)
-			Port::Memory::release (writable, metadata.size);
+		module_unbind (mod, { metadata.address, metadata.size }, mod_context->sync_context);
 		exec_domain->binder_context_ = nullptr;
 		throw;
 	}

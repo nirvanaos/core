@@ -34,6 +34,13 @@ SyncDomain::SyncDomain () :
 	state_ (State::IDLE),
 	activity_cnt_ (0)
 {
+#ifdef _DEBUG
+	Thread* cur = Thread::current_ptr ();
+	if (cur) {
+		ExecDomain* ed = cur->exec_domain ();
+		assert (!ed->sync_context ().sync_domain ());
+	}
+#endif
 }
 
 SyncDomain::~SyncDomain ()
