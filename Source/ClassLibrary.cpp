@@ -30,7 +30,7 @@ namespace Core {
 
 void ClassLibrary::terminate () NIRVANA_NOEXCEPT
 {
-	SYNC_BEGIN (nullptr);
+	SYNC_BEGIN (*this);
 	ExecDomain* ed = Thread::current ().exec_domain ();
 	assert (ed);
 	ed->heap_replace (readonly_heap_);

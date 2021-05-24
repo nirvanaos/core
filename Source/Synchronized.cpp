@@ -29,18 +29,12 @@
 namespace Nirvana {
 namespace Core {
 
-Synchronized::Synchronized (SyncDomain* target) :
-	call_context_ (&SyncContext::current ())
-{
-	call_context_->schedule_call (target);
-}
-
 Synchronized::Synchronized (SyncContext& target) :
 	call_context_ (&SyncContext::current ())
 {
-	SyncDomain* sync_domain = target.sync_domain ();
-	assert (sync_domain || target.is_free_sync_context ());
-	call_context_->schedule_call (sync_domain);
+	// Target can not be legacy thread
+	assert (target.sync_domain () || target.is_free_sync_context ());
+	call_context_->schedule_call (target);
 }
 
 Synchronized::~Synchronized ()

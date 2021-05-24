@@ -62,18 +62,10 @@ public:
 	}
 
 	/// Leave this context and enter to the synchronization domain.
-	virtual void schedule_call (Nirvana::Core::SyncDomain* sync_domain);
+	virtual void schedule_call (Nirvana::Core::SyncContext& target);
 
 	/// Return execution domain to this context.
 	virtual void schedule_return (Nirvana::Core::ExecDomain& exec_domain) NIRVANA_NOEXCEPT;
-
-	/// Returns `nullptr` if it is free sync context.
-	/// May be used for proxy optimization.
-	/// When we marshal `in` parameters from free context we haven't to copy data.
-	virtual Nirvana::Core::SyncDomain* sync_domain () NIRVANA_NOEXCEPT;
-
-	/// Returns heap reference.
-	// virtual Nirvana::Core::Heap& memory () = 0;
 
 	virtual void yield () NIRVANA_NOEXCEPT;
 

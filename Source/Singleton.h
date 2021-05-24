@@ -55,7 +55,7 @@ public:
 
 	void initialize (ModuleInit::_ptr_type entry_point)
 	{
-		SYNC_BEGIN (&sync_domain ());
+		SYNC_BEGIN (sync_domain ());
 		Module::initialize (entry_point);
 		SYNC_END ();
 	}

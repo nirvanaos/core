@@ -116,7 +116,7 @@ public:
 
 	virtual void execute (int scheduler_error);
 
-	virtual void schedule_call (SyncDomain* sync_domain);
+	virtual void schedule_call (SyncContext& target);
 	virtual void schedule_return (ExecDomain& exec_domain) NIRVANA_NOEXCEPT;
 
 	virtual SyncDomain* sync_domain () NIRVANA_NOEXCEPT;

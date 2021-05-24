@@ -36,7 +36,12 @@ class Heap;
 class ExecDomain;
 class SyncDomain;
 
-/// Core synchronization context.
+/// Synchronization context pure interface.
+/// Synchronization context may be associated with:
+///   - Synchronization domain
+///   - Free synchronization context for core stateless objects
+///   - Free synchronization context for class library
+///   - Legacy thread
 class NIRVANA_NOVTABLE SyncContext :
 	public CoreInterface
 {
@@ -44,22 +49,19 @@ public:
 	/// Returns current synchronization context
 	static SyncContext& current () NIRVANA_NOEXCEPT;
 
-	/// Returns free synchronization context.
-	static SyncContext& free_sync_context () NIRVANA_NOEXCEPT;
-
-	static SyncDomain* SUSPEND ()
-	{
-		return (SyncDomain*)(~(uintptr_t)0);
-	}
-
-	/// Leave this context and enter to the synchronization domain.
-	virtual void schedule_call (SyncDomain* sync_domain) = 0;
+	/// Leave this context and enter to the other.
+	/// 
+	/// \param target Target synchronization context.
+	virtual void schedule_call (SyncContext& target) = 0;
 
 	/// Return execution domain to this context.
+	/// 
+	/// \param exec_domain Execution domain.
 	virtual void schedule_return (ExecDomain& exec_domain) NIRVANA_NOEXCEPT = 0;
 
-	/// Returns `nullptr` if it is free sync context.
-	virtual SyncDomain* sync_domain () NIRVANA_NOEXCEPT = 0;
+	/// Returns SyncDomain associated with this context.
+	/// Returns `nullptr` if there is not synchronization domain.
+	virtual SyncDomain* sync_domain () NIRVANA_NOEXCEPT;
 
 	/// May be used for proxy optimization.
 	/// When we marshal `in` parameters from free context we haven't to copy data
@@ -67,7 +69,7 @@ public:
 	/// by other threads during the synchronouse call.
 	bool is_free_sync_context () const NIRVANA_NOEXCEPT
 	{
-		return this == &free_sync_context ();
+		return const_cast <SyncContext&> (*this).stateless_memory () != nullptr;
 	}
 
 	/// Returns Heap reference.
@@ -76,9 +78,35 @@ public:
 	/// Returns RuntimeSupport reference.
 	virtual RuntimeSupport& runtime_support () NIRVANA_NOEXCEPT = 0;
 
+	/// Free sync context returns pointer to stateless objects heap.
+	/// Other sync contexts return `nullptr`.
+	virtual Heap* stateless_memory () NIRVANA_NOEXCEPT;
+
 protected:
 	void check_schedule_error (ExecDomain& ed);
 };
+
+/// Free (not synchronized) sync context.
+class NIRVANA_NOVTABLE SyncContextFree :
+	public SyncContext
+{
+public:
+	virtual void schedule_call (SyncContext& target);
+	virtual void schedule_return (ExecDomain& exec_domain) NIRVANA_NOEXCEPT;
+	virtual Heap& memory () NIRVANA_NOEXCEPT;
+	virtual RuntimeSupport& runtime_support () NIRVANA_NOEXCEPT;
+	virtual Heap* stateless_memory () NIRVANA_NOEXCEPT = 0;
+};
+
+/// Core free sync context.
+class SyncContextCore :
+	public SyncContextFree
+{
+public:
+	virtual Heap* stateless_memory () NIRVANA_NOEXCEPT;
+};
+
+extern ImplStatic <SyncContextCore> g_core_free_sync_context;
 
 }
 }

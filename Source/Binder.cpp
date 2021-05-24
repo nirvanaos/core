@@ -86,8 +86,8 @@ void Binder::initialize ()
 	if (!Port::SystemInfo::get_OLF_section (metadata))
 		throw_INITIALIZE ();
 
-	SYNC_BEGIN (&singleton_.sync_domain_);
-	ModuleContext context{ SyncContext::free_sync_context () };
+	SYNC_BEGIN (singleton_.sync_domain_);
+	ModuleContext context{ g_core_free_sync_context };
 	singleton_.module_bind (nullptr, metadata, &context);
 	singleton_.map_.merge (context.exports);
 	SYNC_END ();
@@ -118,7 +118,6 @@ const ModuleStartup* Binder::module_bind (::Nirvana::Module::_ptr_type mod, cons
 	};
 
 	ImportInterface* module_entry = nullptr;
-	void* writable = const_cast <void*> (metadata.address);
 	const ModuleStartup* module_startup = nullptr;
 
 	try {
@@ -177,7 +176,7 @@ const ModuleStartup* Binder::module_bind (::Nirvana::Module::_ptr_type mod, cons
 		if (!mod) {
 			// Create POA
 			// TODO: It is temporary solution.
-			SYNC_BEGIN (nullptr);
+			SYNC_BEGIN (g_core_free_sync_context);
 			CORBA::Internal::Core::g_root_POA = CORBA::make_reference <POA> ()->_this ();
 			SYNC_END ();
 		}
@@ -265,7 +264,7 @@ const ModuleStartup* Binder::module_bind (::Nirvana::Module::_ptr_type mod, cons
 
 void Binder::remove_exports (const Section& metadata)
 {
-	SYNC_BEGIN (&sync_domain_);
+	SYNC_BEGIN (sync_domain_);
 	// Pass 1: Remove all exports from the map.
 	// This pass will not cause inter-domain calls.
 	for (OLF_Iterator it (metadata.address, metadata.size); !it.end (); it.next ()) {

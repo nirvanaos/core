@@ -24,6 +24,7 @@
 *  popov.nirvana@gmail.com
 */
 #include "ExecDomain.h"
+#include "Suspend.h"
 
 using namespace std;
 
@@ -60,31 +61,30 @@ void ExecDomain::ctor_base ()
 	binder_context_ = nullptr;
 }
 
-void ExecDomain::spawn (SyncDomain* sync_domain)
+void ExecDomain::spawn (SyncContext& sync_context)
 {
 	assert (&ExecContext::current () != this);
 	assert (runnable_);
-	start ([this, sync_domain]() {this->schedule (sync_domain); });
+	start ([this, &sync_context]() {this->schedule (sync_context); });
 }
 
-void ExecDomain::schedule (SyncDomain* sync_domain)
+void ExecDomain::schedule (SyncContext& sync_context)
 {
 	assert (&ExecContext::current () != this);
 
 	CoreRef <SyncContext> old_context = move (sync_context_);
+	SyncDomain* sync_domain = sync_context.sync_domain ();
 	if (!sync_domain && !scheduler_item_created_) {
 		Scheduler::create_item ();
 		scheduler_item_created_ = true;
 	}
 
+	sync_context_ = &sync_context;
 	try {
-		if (sync_domain) {
-			sync_context_ = sync_domain;
+		if (sync_domain)
 			sync_domain->schedule (deadline (), *this);
-		} else {
-			sync_context_ = &SyncContext::free_sync_context ();
+		else
 			Scheduler::schedule (deadline (), *this);
-		}
 	} catch (...) {
 		sync_context_ = move (old_context);
 		throw;
@@ -99,14 +99,10 @@ void ExecDomain::schedule (SyncDomain* sync_domain)
 
 void ExecDomain::suspend ()
 {
-	sync_context ().schedule_call (SyncContext::SUSPEND ());
-}
-
-void ExecDomain::resume ()
-{
-	assert (&ExecContext::current () != this);
-	assert (sync_context_);
-	sync_context_->schedule_return (*this);
+	SyncDomain* sync_domain = sync_context_->sync_domain ();
+	if (sync_domain)
+		ret_qnode_push (*sync_domain);
+	Suspend::suspend ();
 }
 
 void ExecDomain::execute (int scheduler_error)
@@ -168,9 +164,9 @@ void ExecDomain::ReleaseToPool::run ()
 	pool_.release (static_cast <ImplPoolable <ExecDomain>&> (*exec_domain_));
 }
 
-void ExecDomain::schedule_call (SyncDomain* sync_domain)
+void ExecDomain::schedule_call (SyncContext& sync_context)
 {
-	schedule_call_.sync_domain_ = sync_domain;
+	schedule_call_.sync_context_ = &sync_context;
 	run_in_neutral_context (schedule_call_);
 	if (schedule_call_.exception_) {
 		exception_ptr ex = schedule_call_.exception_;
@@ -181,7 +177,7 @@ void ExecDomain::schedule_call (SyncDomain* sync_domain)
 
 void ExecDomain::ScheduleCall::run ()
 {
-	exec_domain_->schedule (sync_domain_);
+	exec_domain_->schedule (*sync_context_);
 	Thread::current ().yield ();
 }
 

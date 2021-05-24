@@ -78,7 +78,7 @@ public:
 
 	I_ref <InterfaceDef> _get_interface () const
 	{
-		SYNC_BEGIN (nullptr);
+		SYNC_BEGIN (Nirvana::Core::g_core_free_sync_context);
 		return InterfaceDef::_nil (); // TODO: Implement.
 		SYNC_END ();
 	}
@@ -86,7 +86,7 @@ public:
 	Boolean _is_a (const String& type_id) const
 	{
 		String tmp (type_id);
-		SYNC_BEGIN (nullptr);
+		SYNC_BEGIN (Nirvana::Core::g_core_free_sync_context);
 		return find_interface (tmp) != nullptr;
 		SYNC_END ();
 	}

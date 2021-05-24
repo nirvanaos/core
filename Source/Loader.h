@@ -58,7 +58,7 @@ public:
 
 	static void terminate ()
 	{
-		SYNC_BEGIN (&singleton_.sync_domain_);
+		SYNC_BEGIN (singleton_.sync_domain_);
 		assert (singleton_.initialized_);
 		singleton_.initialized_ = false;
 		singleton_.map_.clear ();

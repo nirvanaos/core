@@ -140,7 +140,7 @@ public:
 	{
 		const std::string& sname = static_cast <const std::string&> (name);
 		CoreString name_copy (sname.c_str (), sname.length ());
-		SYNC_BEGIN (&singleton_.sync_domain_);
+		SYNC_BEGIN (singleton_.sync_domain_);
 		return singleton_.bind_sync (name_copy);
 		SYNC_END ();
 	}
@@ -151,7 +151,7 @@ public:
 		const std::string& sname = static_cast <const std::string&> (name);
 		const std::string& siid = static_cast <const std::string&> (iid);
 		CoreString name_copy (sname.c_str (), sname.length ()), iid_copy (siid.c_str (), siid.length ());
-		SYNC_BEGIN (&singleton_.sync_domain_);
+		SYNC_BEGIN (singleton_.sync_domain_);
 		return singleton_.bind_interface_sync (name_copy, iid_copy);
 		SYNC_END ();
 	}

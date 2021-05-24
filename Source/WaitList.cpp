@@ -25,7 +25,6 @@
 */
 #include "WaitList.h"
 #include "CoreObject.h"
-#include "Suspend.h"
 #include "Chrono.h"
 
 using namespace std;

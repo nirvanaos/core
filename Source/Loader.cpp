@@ -41,7 +41,7 @@ CoreRef <Module> Loader::load_impl (const string& _name, bool singleton)
 	ServantMarshaler sm (sync_domain_);
 	Type <string>::ABI name_abi;
 	Type <string>::marshal_in (_name, sm.marshaler (), name_abi);
-	SYNC_BEGIN (&sync_domain_);
+	SYNC_BEGIN (sync_domain_);
 	string name;
 	Type <string>::unmarshal (name_abi, sm.unmarshaler (), name);
 	if (!initialized_)

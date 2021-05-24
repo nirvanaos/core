@@ -37,7 +37,6 @@ class SyncDomain;
 class Synchronized
 {
 public:
-	Synchronized (SyncDomain* target);
 	Synchronized (SyncContext& target);
 	~Synchronized ();
 

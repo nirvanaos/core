@@ -50,11 +50,11 @@ class NIRVANA_NOVTABLE ExecDomain :
 public:
 	typedef ImplPoolable <ExecDomain> Impl;
 
-	static void async_call (const DeadlineTime& deadline, Runnable& runnable, SyncDomain* sync_domain)
+	static void async_call (const DeadlineTime& deadline, Runnable& runnable, SyncContext& sync_context)
 	{
 		CoreRef <ExecDomain> exec_domain = get (deadline);
 		exec_domain->runnable_ = &runnable;
-		exec_domain->spawn (sync_domain);
+		exec_domain->spawn (sync_context);
 	}
 
 	/// Used in porting for creation of the startup domain.
@@ -83,14 +83,14 @@ public:
 		deadline_ = dt;
 	}
 
-	void schedule_call (SyncDomain* sync_domain);
+	void schedule_call (SyncContext& sync_context);
 	void schedule_return (SyncContext& sync_context) NIRVANA_NOEXCEPT;
 
 	/// Schedules this ED to execute.
 	/// Must be called from another execution context.
 	///
 	/// \param sync_domain Synchronization domain. May be `nullptr`.
-	void schedule (SyncDomain* sync_domain);
+	void schedule (SyncContext& sync_context);
 
 	/// Executor::execute ()
 	/// Called from worker thread.
@@ -104,13 +104,18 @@ public:
 		_add_ref ();
 	}
 
-	void spawn (SyncDomain* sync_domain);
+	void spawn (SyncContext& sync_context);
 
 	/// Suspend
 	void suspend ();
 
 	/// Resume suspended domain
-	void resume ();
+	void resume ()
+	{
+		assert (&ExecContext::current () != this);
+		assert (sync_context_);
+		sync_context_->schedule_return (*this);
+	}
 
 	void _activate ()
 	{}
@@ -249,7 +254,7 @@ private:
 		virtual void run ();
 		virtual void on_exception () NIRVANA_NOEXCEPT;
 
-		SyncDomain* sync_domain_;
+		SyncContext* sync_context_;
 		std::exception_ptr exception_;
 	};
 

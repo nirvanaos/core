@@ -37,8 +37,8 @@ namespace Core {
 inline
 void Binder::bind (ClassLibrary& mod)
 {
-	SYNC_BEGIN (&singleton_.sync_domain_);
-	ModuleContext context{ SyncContext::free_sync_context () };
+	SYNC_BEGIN (singleton_.sync_domain_);
+	ModuleContext context{ mod };
 	const ModuleStartup* startup = singleton_.module_bind (mod._get_ptr (), mod.metadata (), &context);
 	try {
 		if (startup) {
@@ -64,13 +64,13 @@ inline
 void Binder::unbind (ClassLibrary& mod) NIRVANA_NOEXCEPT
 {
 	singleton_.remove_exports (mod.metadata ());
-	module_unbind (mod._get_ptr (), mod.metadata (), SyncContext::free_sync_context ());
+	module_unbind (mod._get_ptr (), mod.metadata (), mod);
 }
 
 inline
 void Binder::bind (Singleton& mod)
 {
-	SYNC_BEGIN (&singleton_.sync_domain_);
+	SYNC_BEGIN (singleton_.sync_domain_);
 	ModuleContext context{ mod.sync_domain () };
 	const ModuleStartup* startup = singleton_.module_bind (mod._get_ptr (), mod.metadata (), &context);
 	try {
@@ -104,7 +104,7 @@ void Binder::unbind (Singleton& mod) NIRVANA_NOEXCEPT
 inline
 Legacy::Main::_ptr_type Binder::bind (Legacy::Core::Executable& mod)
 {
-	SYNC_BEGIN (&singleton_.sync_domain_);
+	SYNC_BEGIN (singleton_.sync_domain_);
 	const ModuleStartup* startup = singleton_.module_bind (mod._get_ptr (), mod.metadata (), nullptr);
 	try {
 		if (!startup || !startup->startup)

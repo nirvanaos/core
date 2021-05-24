@@ -26,7 +26,6 @@
 */
 #include "ThreadBackground.h"
 #include "../ExecDomain.h"
-#include "../Suspend.h"
 
 namespace Nirvana {
 namespace Legacy {
@@ -46,23 +45,14 @@ void ThreadBackground::start (RuntimeSupportLegacy& runtime_support, Nirvana::Co
 	_add_ref ();
 }
 
-::Nirvana::Core::SyncDomain* ThreadBackground::sync_domain () NIRVANA_NOEXCEPT
+void ThreadBackground::schedule_call (Nirvana::Core::SyncContext& target)
 {
-	return nullptr;
-}
-
-void ThreadBackground::schedule_call (Nirvana::Core::SyncDomain* sync_domain)
-{
-	// We don't switch context if sync_domain == nullptr
-	if (sync_domain) {
-		if (SyncContext::SUSPEND () == sync_domain)
-			Suspend::suspend ();
-		else {
-			ExecDomain* exec_domain = Thread::current ().exec_domain ();
-			assert (exec_domain);
-			exec_domain->schedule_call (sync_domain);
-			check_schedule_error (*exec_domain);
-		}
+	// We don't switch context if no sync domain
+	if (target.sync_domain ()) {
+		ExecDomain* exec_domain = Thread::current ().exec_domain ();
+		assert (exec_domain);
+		exec_domain->schedule_call (target);
+		check_schedule_error (*exec_domain);
 	}
 }
 

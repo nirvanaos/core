@@ -24,7 +24,6 @@
 *  popov.nirvana@gmail.com
 */
 #include "ExecDomain.h"
-#include "Suspend.h"
 
 namespace Nirvana {
 namespace Core {
@@ -127,24 +126,20 @@ void SyncDomain::release_queue_node (QueueNode* node) NIRVANA_NOEXCEPT
 	activity_end ();
 }
 
-void SyncDomain::schedule_call (SyncDomain* sync_domain)
+void SyncDomain::schedule_call (SyncContext& target)
 {
 	ExecDomain* exec_domain = Thread::current ().exec_domain ();
 	assert (exec_domain);
 	assert (&ExecContext::current () == exec_domain);
 	exec_domain->ret_qnode_push (*this);
 
-	if (SyncContext::SUSPEND () == sync_domain)
-		Suspend::suspend ();
-	else {
-		try {
-			exec_domain->schedule_call (sync_domain);
-		} catch (...) {
-			release_queue_node (exec_domain->ret_qnode_pop ());
-			throw;
-		}
-		check_schedule_error (*exec_domain);
+	try {
+		exec_domain->schedule_call (target);
+	} catch (...) {
+		release_queue_node (exec_domain->ret_qnode_pop ());
+		throw;
 	}
+	check_schedule_error (*exec_domain);
 }
 
 void SyncDomain::schedule_return (ExecDomain& exec_domain) NIRVANA_NOEXCEPT

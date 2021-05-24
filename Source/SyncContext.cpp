@@ -26,34 +26,17 @@
 #include "SyncContext.h"
 #include "Thread.h"
 #include "ExecDomain.h"
-#include "Suspend.h"
 
 namespace Nirvana {
 namespace Core {
 
-class NIRVANA_NOVTABLE FreeSyncContext :
-	public SyncContext
-{
-public:
-	virtual void schedule_call (SyncDomain* sync_domain);
-	virtual void schedule_return (ExecDomain& exec_domain) NIRVANA_NOEXCEPT;
-	virtual SyncDomain* sync_domain () NIRVANA_NOEXCEPT;
-	virtual Heap& memory () NIRVANA_NOEXCEPT;
-	virtual RuntimeSupport& runtime_support () NIRVANA_NOEXCEPT;
-};
-
-ImplStatic <FreeSyncContext> g_free_sync_context;
+ImplStatic <SyncContextCore> g_core_free_sync_context;
 
 SyncContext& SyncContext::current () NIRVANA_NOEXCEPT
 {
 	ExecDomain* ed = Thread::current ().exec_domain ();
 	assert (ed);
 	return ed->sync_context ();
-}
-
-SyncContext& SyncContext::free_sync_context () NIRVANA_NOEXCEPT
-{
-	return g_free_sync_context;
 }
 
 void SyncContext::check_schedule_error (ExecDomain& ed)
@@ -66,37 +49,43 @@ void SyncContext::check_schedule_error (ExecDomain& ed)
 	}
 }
 
-void FreeSyncContext::schedule_call (SyncDomain* sync_domain)
+SyncDomain* SyncContext::sync_domain () NIRVANA_NOEXCEPT
 {
-	if (SyncContext::SUSPEND () == sync_domain)
-		Suspend::suspend ();
-	else {
-		ExecDomain* exec_domain = Thread::current ().exec_domain ();
-		assert (exec_domain);
-		exec_domain->schedule_call (sync_domain);
-		check_schedule_error (*exec_domain);
-	}
+	return nullptr;
 }
 
-void FreeSyncContext::schedule_return (ExecDomain& exec_domain) NIRVANA_NOEXCEPT
+Heap* SyncContext::stateless_memory () NIRVANA_NOEXCEPT
+{
+	return nullptr;
+}
+
+void SyncContextFree::schedule_call (SyncContext& target)
+{
+	ExecDomain* exec_domain = Thread::current ().exec_domain ();
+	assert (exec_domain);
+	exec_domain->schedule_call (target);
+	check_schedule_error (*exec_domain);
+}
+
+void SyncContextFree::schedule_return (ExecDomain& exec_domain) NIRVANA_NOEXCEPT
 {
 	exec_domain.sync_context (*this);
 	Scheduler::schedule (exec_domain.deadline (), exec_domain);
 }
 
-SyncDomain* FreeSyncContext::sync_domain () NIRVANA_NOEXCEPT
-{
-	return nullptr;
-}
-
-Heap& FreeSyncContext::memory () NIRVANA_NOEXCEPT
+Heap& SyncContextFree::memory () NIRVANA_NOEXCEPT
 {
 	return Thread::current ().exec_domain ()->heap ();
 }
 
-RuntimeSupport& FreeSyncContext::runtime_support () NIRVANA_NOEXCEPT
+RuntimeSupport& SyncContextFree::runtime_support () NIRVANA_NOEXCEPT
 {
 	return Thread::current ().exec_domain ()->runtime_support ();
+}
+
+Heap* SyncContextCore::stateless_memory () NIRVANA_NOEXCEPT
+{
+	return &g_core_heap.object ();
 }
 
 }

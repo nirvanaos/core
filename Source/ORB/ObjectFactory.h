@@ -53,23 +53,27 @@ public:
 		Nirvana::Core::SyncDomain* sd = Nirvana::Core::SyncContext::current ().sync_domain ();
 		if (sd)
 			sd->heap ().release (p, size);
-		else // TODO: release from the read-only heap.
-			Nirvana::Core::g_core_heap->release (p, size);
+		else {
+			// Release from the read-only heap
+			Nirvana::Core::Heap* stateless_memory = Nirvana::Core::SyncContext::current ().stateless_memory ();
+			assert (stateless_memory);
+			stateless_memory->release (p, size);
+		}
 	}
 
 	static bool stateless_available ()
 	{
-		return !Nirvana::Core::SyncContext::current ().sync_domain ();
+		return Nirvana::Core::SyncContext::current ().stateless_memory () != nullptr;
 	}
 
 	void stateless_begin (CORBA::Internal::ObjectFactory::StatelessCreationFrame& scs)
 	{
 		if (!(scs.tmp () && scs.size ()))
 			throw BAD_PARAM ();
-		if (Nirvana::Core::SyncContext::current ().sync_domain ())
+		Nirvana::Core::Heap* stateless_memory = Nirvana::Core::SyncContext::current ().stateless_memory ();
+		if (!stateless_memory)
 			throw BAD_OPERATION ();
-		// TODO: Allocate from read-only heap
-		void* p = Nirvana::Core::g_core_heap->allocate (0, scs.size (), ::Nirvana::Memory::READ_ONLY | ::Nirvana::Memory::RESERVED);
+		void* p = stateless_memory->allocate (0, scs.size (), Nirvana::Memory::READ_ONLY | Nirvana::Memory::RESERVED);
 		scs.offset ((uint8_t*)p - (uint8_t*)scs.tmp ());
 		stateless_creation_frame (&scs);
 	}
@@ -81,12 +85,13 @@ public:
 			throw BAD_INV_ORDER ();
 		stateless_creation_frame (nullptr);
 		void* p = (Octet*)scs->tmp () + scs->offset ();
-		// TODO: Allocate from read-only heap
+		Nirvana::Core::Heap* stateless_memory = Nirvana::Core::SyncContext::current ().stateless_memory ();
+		assert (stateless_memory);
 		if (success) {
-			::Nirvana::Core::g_core_heap->copy (p, const_cast <void*> (scs->tmp ()), scs->size (), ::Nirvana::Memory::READ_ONLY);
+			stateless_memory->copy (p, const_cast <void*> (scs->tmp ()), scs->size (), Nirvana::Memory::READ_ONLY);
 			return p;
 		} else {
-			::Nirvana::Core::g_core_heap->release (p, scs->size ());
+			stateless_memory->release (p, scs->size ());
 			return nullptr;
 		}
 	}

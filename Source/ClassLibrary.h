@@ -33,7 +33,9 @@
 namespace Nirvana {
 namespace Core {
 
-class ClassLibrary : public Module
+class ClassLibrary : 
+	public Module,
+	public SyncContextFree
 {
 public:
 	ClassLibrary (const std::string& name) :
@@ -51,7 +53,7 @@ public:
 
 	void initialize (ModuleInit::_ptr_type entry_point)
 	{
-		SYNC_BEGIN (nullptr);
+		SYNC_BEGIN (*this);
 		ExecDomain* ed = Thread::current ().exec_domain ();
 		assert (ed);
 		ed->heap_replace (readonly_heap_);
@@ -69,6 +71,22 @@ public:
 	}
 
 	void terminate () NIRVANA_NOEXCEPT;
+
+	virtual Heap* stateless_memory () NIRVANA_NOEXCEPT
+	{
+		return &readonly_heap_;
+	}
+
+private:
+	void _add_ref ()
+	{
+		Module::_add_ref ();
+	}
+
+	void _remove_ref ()
+	{
+		Module::_remove_ref ();
+	}
 
 private:
 	HeapUser readonly_heap_;

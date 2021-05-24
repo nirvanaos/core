@@ -103,7 +103,7 @@ protected:
 			Nirvana::DeadlineTime deadline = 
 				Nirvana::Core::PROXY_GC_DEADLINE == Nirvana::INFINITE_DEADLINE ?
 				Nirvana::INFINITE_DEADLINE : Nirvana::Core::Chrono::make_deadline (Nirvana::Core::PROXY_GC_DEADLINE);
-			Nirvana::Core::ExecDomain::async_call (deadline, *gc, sync_context_->sync_domain ());
+			Nirvana::Core::ExecDomain::async_call (deadline, *gc, *sync_context_);
 		} catch (...) {
 			// Async call failed, maybe resources are exausted.
 			// Fallback to collect garbage in the current thread.
