@@ -42,9 +42,8 @@ class NIRVANA_NOVTABLE CoreInterface
 protected:
 	template <class> friend class CoreRef;
 
-	// TODO: NIRVANA_NOEXCEPT?
-	virtual void _add_ref () = 0;
-	virtual void _remove_ref () = 0;
+	virtual void _add_ref () NIRVANA_NOEXCEPT = 0;
+	virtual void _remove_ref () NIRVANA_NOEXCEPT = 0;
 };
 
 template <class T> class CoreRef;
@@ -67,12 +66,12 @@ protected:
 	~ImplDynamic ()
 	{}
 
-	void _add_ref ()
+	void _add_ref () NIRVANA_NOEXCEPT
 	{
 		ref_cnt_.increment ();
 	}
 
-	void _remove_ref ()
+	void _remove_ref () NIRVANA_NOEXCEPT
 	{
 		if (!ref_cnt_.decrement ())
 			delete this;
@@ -101,12 +100,12 @@ protected:
 	~ImplDynamicSync ()
 	{}
 
-	void _add_ref ()
+	void _add_ref () NIRVANA_NOEXCEPT
 	{
 		++ref_cnt_;
 	}
 
-	void _remove_ref ()
+	void _remove_ref () NIRVANA_NOEXCEPT
 	{
 		assert (ref_cnt_);
 		if (!--ref_cnt_)
@@ -130,10 +129,10 @@ public:
 	{}
 
 private:
-	void _add_ref ()
+	void _add_ref () NIRVANA_NOEXCEPT
 	{}
 
-	void _remove_ref ()
+	void _remove_ref () NIRVANA_NOEXCEPT
 	{}
 };
 
@@ -155,13 +154,13 @@ protected:
 	~ImplNoAddRef ()
 	{}
 
-	void _add_ref ()
+	void _add_ref () NIRVANA_NOEXCEPT
 	{
 		assert (false);
 		throw_INTERNAL ();
 	}
 
-	void _remove_ref ()
+	void _remove_ref () NIRVANA_NOEXCEPT
 	{
 		this->~ImplNoAddRef <T> ();
 	}

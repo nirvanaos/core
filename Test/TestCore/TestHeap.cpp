@@ -100,30 +100,6 @@ TEST_F (TestHeap, ReadOnly)
 	heap_.release (p, pu);
 }
 
-/*
-TEST_F (TestHeap, Heap)
-{
-	static const size_t GRANULARITY = 128;
-	static const size_t BLOCK_SIZE = GRANULARITY * 128;
-	static const size_t COUNT = 1024 * 1024 * 4 / 16 * GRANULARITY / BLOCK_SIZE;
-	void* blocks [COUNT];
-	Memory_ptr heap = g_heap_factory->create_with_granularity (GRANULARITY);
-	EXPECT_EQ (GRANULARITY, heap->query (0, Query::ALLOCATION_UNIT));
-
-	for (int i = 0; i < COUNT; ++i) {
-		blocks [i] = heap->allocate (0, BLOCK_SIZE, 0);
-		ASSERT_TRUE (blocks [i]);
-		UIntPtr au = heap->query (blocks [i], Query::ALLOCATION_UNIT);
-		ASSERT_EQ (GRANULARITY, au);
-	}
-	
-	for (int i = COUNT - 1; i >= 0; --i) {
-		heap->release (blocks [i], BLOCK_SIZE);
-	}
-
-	release (heap);
-}
-*/
 struct Block
 {
 	size_t tag;

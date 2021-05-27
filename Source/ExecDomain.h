@@ -121,7 +121,7 @@ public:
 	{}
 
 	/// Clear data and return object to the pool
-	void _deactivate (ImplPoolable <ExecDomain>& obj)
+	void _deactivate (ImplPoolable <ExecDomain>& obj) NIRVANA_NOEXCEPT
 	{
 		assert (!runnable_);
 		assert (!sync_context_);

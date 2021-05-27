@@ -33,6 +33,7 @@
 #include "Chrono.h"
 #include "ExecDomain.h"
 #include "RuntimeSupportImpl.h"
+#include "HeapDynamic.h"
 
 namespace Nirvana {
 namespace Core {
@@ -98,7 +99,7 @@ public:
 
 	Nirvana::Memory::_ref_type create_heap (uint16_t granularity)
 	{
-		throw_NO_IMPLEMENT ();
+		return CORBA::make_pseudo <HeapDynamic> (granularity);
 	}
 
 private:

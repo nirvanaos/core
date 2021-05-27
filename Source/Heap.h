@@ -394,7 +394,7 @@ inline void Heap::terminate () NIRVANA_NOEXCEPT
 	g_core_heap.terminate ();
 }
 
-class HeapUser final :
+class HeapUser :
 	public Heap
 {
 public:

@@ -39,12 +39,12 @@ class LifeCyclePseudo :
 	public CORBA::Internal::LifeCycleRefCnt <S>
 {
 public:
-	void _add_ref ()
+	void _add_ref () NIRVANA_NOEXCEPT
 	{
 		ref_cnt_.increment ();
 	}
 
-	void _remove_ref ()
+	void _remove_ref () NIRVANA_NOEXCEPT
 	{
 		if (!ref_cnt_.decrement ())
 			delete static_cast <S*> (this);

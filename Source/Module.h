@@ -52,12 +52,12 @@ public:
 		return Port::Module::address ();
 	}
 
-	void _add_ref ()
+	void _add_ref () NIRVANA_NOEXCEPT
 	{
 		ref_cnt_.increment ();
 	}
 
-	void _remove_ref ()
+	void _remove_ref () NIRVANA_NOEXCEPT
 	{
 		if (ref_cnt_.decrement () == initial_ref_cnt_) {
 			if (ref_cnt_.increment () == initial_ref_cnt_ + 1) {

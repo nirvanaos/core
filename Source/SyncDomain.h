@@ -46,8 +46,8 @@ class NIRVANA_NOVTABLE SyncDomain :
 {
 protected:
 	friend class CoreRef <SyncDomain>;
-	virtual void _add_ref () = 0;
-	virtual void _remove_ref () = 0;
+	virtual void _add_ref () NIRVANA_NOEXCEPT = 0;
+	virtual void _remove_ref () NIRVANA_NOEXCEPT = 0;
 
 private:
 	typedef PriorityQueue <Executor*, SYNC_DOMAIN_PRIORITY_QUEUE_LEVELS> Queue;

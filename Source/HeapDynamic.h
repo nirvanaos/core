@@ -23,39 +23,34 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
+#ifndef NIRVANA_CORE_HEAPDYNAMIC_H_
+#define NIRVANA_CORE_HEAPDYNAMIC_H_
+
 #include "Heap.h"
-#include <Nirvana/HeapFactory_s.h>
-#include <Nirvana/OLF.h>
+#include <CORBA/Server.h>
+#include <generated/Memory_s.h>
+#include "UserObject.h"
+#include "LifeCyclePseudo.h"
 
 namespace Nirvana {
 namespace Core {
 
 class HeapDynamic :
 	public HeapUser,
-	public CORBA::Internal::Servant <HeapDynamic, Memory>,
-	public CORBA::Internal::LifeCycleRefCntImpl <HeapDynamic>
+	public UserObject,
+	public CORBA::servant_traits <Memory>::Servant <HeapDynamic>,
+	public LifeCyclePseudo <HeapDynamic>
 {
 public:
-	HeapDynamic (ULong allocation_unit) :
+	using CORBA::servant_traits <Memory>::Servant <HeapDynamic>::_release;
+	using LifeCyclePseudo <HeapDynamic>::_release;
+
+	HeapDynamic (uint16_t allocation_unit) :
 		HeapUser (allocation_unit)
 	{}
 };
 
-class HeapFactoryImpl :
-	public ::CORBA::Internal::ServantStatic <HeapFactoryImpl, HeapFactory>
-{
-public:
-	static Memory_ptr create ()
-	{
-		return (new HeapDynamic (HEAP_UNIT_DEFAULT))->_get_ptr ();
-	}
-	static Memory_ptr create_with_granularity (ULong granularity)
-	{
-		return (new HeapDynamic (granularity))->_get_ptr ();
-	}
-};
-
-
-
 }
 }
+
+#endif
