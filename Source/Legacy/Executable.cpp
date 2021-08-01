@@ -31,7 +31,7 @@ namespace Legacy {
 namespace Core {
 
 Executable::Executable (const char* file) :
-	Port::Executable (file),
+	Nirvana::Core::Port::Module (file),
 	entry_point_ (Nirvana::Core::Binder::bind (*this))
 {}
 

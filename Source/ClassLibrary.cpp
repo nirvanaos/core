@@ -28,15 +28,30 @@
 namespace Nirvana {
 namespace Core {
 
+void ClassLibrary::initialize (ModuleInit::_ptr_type entry_point)
+{
+	ExecDomain* ed = Thread::current ().exec_domain ();
+	assert (ed);
+	ed->heap_replace (readonly_heap_);
+	ed->restricted_mode_ = ExecDomain::RestrictedMode::CLASS_LIBRARY_INIT;
+	try {
+		Module::initialize (entry_point);
+	} catch (...) {
+		ed->heap_restore ();
+		ed->restricted_mode_ = ExecDomain::RestrictedMode::NO_RESTRICTIONS;
+		throw;
+	}
+	ed->heap_restore ();
+	ed->restricted_mode_ = ExecDomain::RestrictedMode::NO_RESTRICTIONS;
+}
+
 void ClassLibrary::terminate () NIRVANA_NOEXCEPT
 {
-	SYNC_BEGIN (*this);
 	ExecDomain* ed = Thread::current ().exec_domain ();
 	assert (ed);
 	ed->heap_replace (readonly_heap_);
 	Module::terminate ();
 	ed->heap_restore ();
-	SYNC_END ();
 }
 
 }

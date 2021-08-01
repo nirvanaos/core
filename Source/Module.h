@@ -37,15 +37,22 @@
 namespace Nirvana {
 namespace Core {
 
+class SyncContext;
+
 class NIRVANA_NOVTABLE Module :
 	public CoreObject,
 	public Port::Module,
-	public CORBA::Internal::Servant <Module, ::Nirvana::Module>,
+	public CORBA::servant_traits <Nirvana::Module>::Servant <Module>,
 	public CORBA::Internal::LifeCycleRefCnt <Module>
 {
 public:
 	virtual ~Module ()
 	{}
+
+	/// \returns Synchronization context.
+	///   If module is ClassLibrary, returned context is free context.
+	///   If module is Singleton, returned context is the singleton synchronization domain.
+	virtual SyncContext& sync_context () = 0;
 
 	const void* base_address () const
 	{
@@ -57,15 +64,7 @@ public:
 		ref_cnt_.increment ();
 	}
 
-	void _remove_ref () NIRVANA_NOEXCEPT
-	{
-		if (ref_cnt_.decrement () == initial_ref_cnt_) {
-			if (ref_cnt_.increment () == initial_ref_cnt_ + 1) {
-				release_time_ = Chrono::steady_clock ();
-				ref_cnt_.decrement ();
-			}
-		}
-	}
+	void _remove_ref () NIRVANA_NOEXCEPT;
 
 	/// \returns `true` if module is singleton library.
 	bool singleton () const
@@ -86,17 +85,11 @@ public:
 		return !bound () && release_time_ <= t;
 	}
 
+	virtual void initialize (ModuleInit::_ptr_type entry_point);
+	virtual void terminate () NIRVANA_NOEXCEPT;
+
 protected:
 	Module (const std::string& name, bool singleton);
-
-	void initialize (ModuleInit::_ptr_type entry_point)
-	{
-		initial_ref_cnt_ = ref_cnt_;
-		entry_point->initialize ();
-		entry_point_ = entry_point;
-	}
-
-	void terminate () NIRVANA_NOEXCEPT;
 
 protected:
 	bool singleton_;

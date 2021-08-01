@@ -32,38 +32,29 @@
 namespace Nirvana {
 namespace Core {
 
-class Singleton : public Module
+class Singleton :
+	public Module,
+	public SyncDomain
 {
 public:
 	Singleton (const std::string& name) :
 		Module (name, true)
+	{}
+
+	void _add_ref () NIRVANA_NOEXCEPT
 	{
-		Binder::bind (*this);
+		Module::_add_ref ();
 	}
 
-	~Singleton ()
+	void _remove_ref () NIRVANA_NOEXCEPT
 	{
-		assert (!bound ());
-		terminate ();
-		Binder::unbind (*this);
+		Module::_remove_ref ();
 	}
 
-	SyncDomain& sync_domain ()
+	virtual SyncContext& sync_context ()
 	{
-		return sync_domain_;
+		return *this;
 	}
-
-	void initialize (ModuleInit::_ptr_type entry_point)
-	{
-		SYNC_BEGIN (sync_domain ());
-		Module::initialize (entry_point);
-		SYNC_END ();
-	}
-
-	void terminate () NIRVANA_NOEXCEPT;
-
-private:
-	ImplStatic <SyncDomain> sync_domain_;
 };
 
 }

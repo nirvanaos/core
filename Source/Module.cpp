@@ -38,17 +38,38 @@ Module::Module (const std::string& name, bool singleton) :
 	entry_point_ (nullptr)
 {}
 
+void Module::_remove_ref () NIRVANA_NOEXCEPT
+{
+	if (ref_cnt_.decrement () == initial_ref_cnt_) {
+		if (ref_cnt_.increment () == initial_ref_cnt_ + 1) {
+			release_time_ = Chrono::steady_clock ();
+			ref_cnt_.decrement ();
+		}
+	}
+}
+
+void Module::initialize (ModuleInit::_ptr_type entry_point)
+{
+	initial_ref_cnt_ = ref_cnt_;
+	if (entry_point) {
+		entry_point->initialize ();
+		entry_point_ = entry_point;
+	}
+}
+
 void Module::terminate () NIRVANA_NOEXCEPT
 {
-	ExecDomain* ed = Thread::current ().exec_domain ();
-	assert (ed);
-	ed->restricted_mode_ = ExecDomain::RestrictedMode::MODULE_TERMINATE;
-	try {
-		entry_point_->terminate ();
-	} catch (...) {
-		// TODO: Log
+	if (entry_point_) {
+		ExecDomain* ed = Thread::current ().exec_domain ();
+		assert (ed);
+		ed->restricted_mode_ = ExecDomain::RestrictedMode::MODULE_TERMINATE;
+		try {
+			entry_point_->terminate ();
+		} catch (...) {
+			// TODO: Log
+		}
+		ed->restricted_mode_ = ExecDomain::RestrictedMode::NO_RESTRICTIONS;
 	}
-	ed->restricted_mode_ = ExecDomain::RestrictedMode::NO_RESTRICTIONS;
 }
 
 }

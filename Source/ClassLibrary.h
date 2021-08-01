@@ -40,37 +40,15 @@ class ClassLibrary :
 public:
 	ClassLibrary (const std::string& name) :
 		Module (name, false)
+	{}
+
+	virtual SyncContext& sync_context ()
 	{
-		Binder::bind (*this);
+		return *this;
 	}
 
-	~ClassLibrary ()
-	{
-		assert (!bound ());
-		terminate ();
-		Binder::unbind (*this);
-	}
-
-	void initialize (ModuleInit::_ptr_type entry_point)
-	{
-		SYNC_BEGIN (*this);
-		ExecDomain* ed = Thread::current ().exec_domain ();
-		assert (ed);
-		ed->heap_replace (readonly_heap_);
-		ed->restricted_mode_ = ExecDomain::RestrictedMode::CLASS_LIBRARY_INIT;
-		try {
-			Module::initialize (entry_point);
-		} catch (...) {
-			ed->heap_restore ();
-			ed->restricted_mode_ = ExecDomain::RestrictedMode::NO_RESTRICTIONS;
-			throw;
-		}
-		ed->heap_restore ();
-		ed->restricted_mode_ = ExecDomain::RestrictedMode::NO_RESTRICTIONS;
-		SYNC_END ();
-	}
-
-	void terminate () NIRVANA_NOEXCEPT;
+	virtual void initialize (ModuleInit::_ptr_type entry_point);
+	virtual void terminate () NIRVANA_NOEXCEPT;
 
 	virtual Heap* stateless_memory () NIRVANA_NOEXCEPT
 	{

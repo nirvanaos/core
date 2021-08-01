@@ -32,14 +32,14 @@
 #include <Nirvana/Main.h>
 #include <generated/Module_s.h>
 #include "../ORB/LifeCycleStack.h"
-#include <Port/Executable.h>
+#include <Port/Module.h>
 
 namespace Nirvana {
 namespace Legacy {
 namespace Core {
 
 class Executable :
-	public Port::Executable,
+	public Nirvana::Core::Port::Module,
 	public Nirvana::Core::CoreObject,
 	public CORBA::servant_traits <Module>::Servant <Executable>,
 	public CORBA::Internal::Core::LifeCycleStack
@@ -50,7 +50,7 @@ public:
 
 	const void* base_address () const NIRVANA_NOEXCEPT
 	{
-		return Port::Executable::address ();
+		return Nirvana::Core::Port::Module::address ();
 	}
 
 	int main (int argc, char* argv [], char* envp [])

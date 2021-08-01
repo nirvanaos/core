@@ -28,12 +28,5 @@
 namespace Nirvana {
 namespace Core {
 
-void Singleton::terminate () NIRVANA_NOEXCEPT
-{
-	SYNC_BEGIN (sync_domain_);
-	Module::terminate ();
-	SYNC_END ();
-}
-
 }
 }

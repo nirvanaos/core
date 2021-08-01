@@ -24,7 +24,7 @@
 *  popov.nirvana@gmail.com
 */
 #include <CORBA/Server.h>
-#include "Binder.h"
+#include "Binder.inl"
 #include <Port/SystemInfo.h>
 #include <Nirvana/OLF.h>
 #include <Nirvana/OLF_Iterator.h>
@@ -34,7 +34,6 @@
 #include "ClassLibrary.h"
 #include "Singleton.h"
 #include "Legacy/Executable.h"
-#include "Loader.h"
 
 namespace Nirvana {
 namespace Core {
@@ -47,31 +46,31 @@ using CORBA::Internal::Core::POA;
 
 Binder Binder::singleton_;
 
-void Binder::Map::insert (const char* name, InterfacePtr itf)
+void Binder::ObjectMap::insert (const char* name, InterfacePtr itf)
 {
 	assert (itf);
-	if (!MapBase::emplace (name, itf).second)
+	if (!ObjectMapBase::emplace (name, itf).second)
 		throw_INV_OBJREF ();	// Duplicated name
 }
 
-void Binder::Map::erase (const char* name) NIRVANA_NOEXCEPT
+void Binder::ObjectMap::erase (const char* name) NIRVANA_NOEXCEPT
 {
-	verify (MapBase::erase (name));
+	verify (ObjectMapBase::erase (name));
 }
 
-void Binder::Map::merge (const Map& src)
+void Binder::ObjectMap::merge (const ObjectMap& src)
 {
 	for (auto it = src.begin (); it != src.end (); ++it) {
-		if (!MapBase::insert (*it).second) {
+		if (!ObjectMapBase::insert (*it).second) {
 			for (auto it1 = src.begin (); it1 != it; ++it1) {
-				MapBase::erase (it1->first);
+				ObjectMapBase::erase (it1->first);
 			}
 			throw_INV_OBJREF ();	// Duplicated name
 		}
 	}
 }
 
-Binder::InterfacePtr Binder::Map::find (const Key& key) const
+Binder::InterfacePtr Binder::ObjectMap::find (const ObjectKey& key) const
 {
 	auto pf = lower_bound (key);
 	if (pf != end () && pf->first.compatible (key)) {
@@ -89,13 +88,20 @@ void Binder::initialize ()
 	SYNC_BEGIN (singleton_.sync_domain_);
 	ModuleContext context{ g_core_free_sync_context };
 	singleton_.module_bind (nullptr, metadata, &context);
-	singleton_.map_.merge (context.exports);
+	singleton_.object_map_ = std::move (context.exports);
+	singleton_.initialized_ = true;
 	SYNC_END ();
 }
 
 void Binder::terminate ()
 {
+	SYNC_BEGIN (singleton_.sync_domain_);
+	assert (singleton_.initialized_);
+	singleton_.initialized_ = false;
+	while (!singleton_.module_map_.empty ())
+		singleton_.unload (singleton_.module_map_.begin ());
 	CORBA::Internal::Core::g_root_POA = nullptr;
+	SYNC_END ();
 }
 
 NIRVANA_NORETURN void Binder::invalid_metadata ()
@@ -103,7 +109,7 @@ NIRVANA_NORETURN void Binder::invalid_metadata ()
 	throw runtime_error ("Invalid file format");
 }
 
-const ModuleStartup* Binder::module_bind (::Nirvana::Module::_ptr_type mod, const Section& metadata, ModuleContext* mod_context) const
+const ModuleStartup* Binder::module_bind (::Nirvana::Module::_ptr_type mod, const Section& metadata, ModuleContext* mod_context)
 {
 	ExecDomain* exec_domain = Thread::current ().exec_domain ();
 	assert (exec_domain);
@@ -124,14 +130,14 @@ const ModuleStartup* Binder::module_bind (::Nirvana::Module::_ptr_type mod, cons
 
 		// Pass 1: Export pseudo objects and bind g_module.
 		unsigned flags = 0;
-		Key k_gmodule (g_module.imp.name);
-		Key k_object_factory (g_object_factory.imp.name);
+		ObjectKey k_gmodule (g_module.imp.name);
+		ObjectKey k_object_factory (g_object_factory.imp.name);
 		for (OLF_Iterator it (metadata.address, metadata.size); !it.end (); it.next ()) {
 			switch (*it.cur ()) {
 				case OLF_IMPORT_INTERFACE:
 					if (!module_entry) {
 						ImportInterface* ps = reinterpret_cast <ImportInterface*> (it.cur ());
-						Key key (ps->name);
+						ObjectKey key (ps->name);
 						if (key.is_a (k_gmodule)) {
 							assert (mod);
 							if (!k_gmodule.compatible (key))
@@ -200,16 +206,15 @@ const ModuleStartup* Binder::module_bind (::Nirvana::Module::_ptr_type mod, cons
 			// Pass 3: Export objects.
 			if (flags & MetadataFlags::EXPORT_OBJECTS) {
 				assert (mod_context); // Legacy executable can not export.
+				SYNC_BEGIN (mod_context->sync_context);
 				for (OLF_Iterator it (metadata.address, metadata.size); !it.end (); it.next ()) {
 					switch (*it.cur ()) {
 						case OLF_EXPORT_OBJECT: {
 							ExportObject* ps = reinterpret_cast <ExportObject*> (it.cur ());
 							PortableServer::ServantBase::_ptr_type core_obj;
-							SYNC_BEGIN (mod_context->sync_context);
 							core_obj = (
 								new CORBA::Internal::Core::ServantBase (Type <PortableServer::ServantBase>::in (ps->servant_base)
 									))->_get_ptr ();
-							SYNC_END ();
 							Object::_ptr_type obj = AbstractBase::_ptr_type (core_obj)->_query_interface <Object> ();
 							ps->core_object = &core_obj;
 							mod_context->exports.insert (ps->name, obj);
@@ -218,17 +223,16 @@ const ModuleStartup* Binder::module_bind (::Nirvana::Module::_ptr_type mod, cons
 						case OLF_EXPORT_LOCAL: {
 							ExportLocal* ps = reinterpret_cast <ExportLocal*> (it.cur ());
 							LocalObject::_ptr_type core_obj;
-							SYNC_BEGIN (mod_context->sync_context);
 							core_obj = (
 								new CORBA::Internal::Core::LocalObject (Type <LocalObject>::in (ps->local_object),
 									Type <AbstractBase>::in (ps->abstract_base)))->_get_ptr ();
-							SYNC_END ();
 							Object::_ptr_type obj = core_obj;
 							ps->core_object = &core_obj;
 							mod_context->exports.insert (ps->name, obj);
 						} break;
 					}
 				}
+				SYNC_END ();
 			}
 
 			// Pass 4: Import objects.
@@ -252,8 +256,8 @@ const ModuleStartup* Binder::module_bind (::Nirvana::Module::_ptr_type mod, cons
 			verify (Port::Memory::copy (const_cast <void*> (metadata.address), const_cast <void*> (metadata.address), metadata.size, Memory::READ_ONLY | Memory::EXACTLY));
 		}
 	} catch (...) {
-		module_unbind (mod, { metadata.address, metadata.size }, mod_context->sync_context);
-		exec_domain->binder_context_ = nullptr;
+		module_unbind (mod, { metadata.address, metadata.size });
+		exec_domain->binder_context_ = prev_context;
 		throw;
 	}
 
@@ -262,30 +266,128 @@ const ModuleStartup* Binder::module_bind (::Nirvana::Module::_ptr_type mod, cons
 	return module_startup;
 }
 
+void Binder::module_unbind (Nirvana::Module::_ptr_type mod, const Section& metadata) NIRVANA_NOEXCEPT
+{
+	// Pass 1: Release all imported interfaces.
+	release_imports (mod, metadata);
+
+	// Pass 2: Release proxies for all exported objects.
+	for (OLF_Iterator it (metadata.address, metadata.size); !it.end (); it.next ()) {
+		switch (*it.cur ()) {
+			case OLF_EXPORT_OBJECT: {
+				ExportObject* ps = reinterpret_cast <ExportObject*> (it.cur ());
+				CORBA::Internal::interface_release (ps->core_object);
+			} break;
+
+			case OLF_EXPORT_LOCAL: {
+				ExportLocal* ps = reinterpret_cast <ExportLocal*> (it.cur ());
+				CORBA::Internal::interface_release (ps->core_object);
+			} break;
+		}
+	}
+}
+
+void Binder::delete_module (Module* mod)
+{
+	SYNC_BEGIN (g_core_free_sync_context);
+	delete mod;
+	SYNC_END ();
+}
+
+CoreRef <Module> Binder::load (string& module_name, bool singleton)
+{
+	if (!initialized_)
+		throw_INITIALIZE ();
+	Module* mod;
+	auto f = module_map_.find (module_name);
+	if (f == module_map_.end ()) {
+		SYNC_BEGIN (g_core_free_sync_context);
+		if (singleton)
+			mod = new Singleton (module_name);
+		else
+			mod = new ClassLibrary (module_name);
+		SYNC_END ();
+		try {
+			ModuleContext context{ mod->sync_context () };
+			const ModuleStartup* startup = module_bind (mod->_get_ptr (), mod->metadata (), &context);
+			try {
+				if (startup && (startup->flags & OLF_MODULE_SINGLETON) && !singleton)
+					invalid_metadata ();
+
+				SYNC_BEGIN (context.sync_context);
+				mod->initialize (startup ? ModuleInit::_check (startup->startup) : nullptr);
+				SYNC_END ();
+
+				auto ins = module_map_.emplace (move (module_name), mod);
+				if (ins.second) {
+					try {
+						object_map_.merge (context.exports);
+					} catch (...) {
+						SYNC_BEGIN (context.sync_context);
+						mod->terminate ();
+						SYNC_END ();
+						throw;
+					}
+				} else {
+					SYNC_BEGIN (context.sync_context);
+					mod->terminate ();
+					SYNC_END ();
+					module_unbind (mod->_get_ptr (), mod->metadata ());
+					delete_module (mod);
+					mod = ins.first->second;
+				}
+			} catch (...) {
+				module_unbind (mod->_get_ptr (), mod->metadata ());
+				throw;
+			}
+		} catch (...) {
+			delete_module (mod);
+			throw;
+		}
+	} else {
+		mod = f->second;
+		if (mod->singleton () != singleton)
+			throw_BAD_PARAM ();
+	}
+	return mod;
+}
+
+void Binder::unload (ModuleMap::iterator mod)
+{
+	Module* pmod = mod->second;
+	assert (!pmod->bound ());
+	module_map_.erase (mod);
+	remove_exports (pmod->metadata ());
+	SYNC_BEGIN (pmod->sync_context ());
+	pmod->terminate ();
+	module_unbind (pmod->_get_ptr (), pmod->metadata ());
+	SYNC_END ();
+	delete_module (pmod);
+}
+
+inline
 void Binder::remove_exports (const Section& metadata)
 {
-	SYNC_BEGIN (sync_domain_);
 	// Pass 1: Remove all exports from the map.
 	// This pass will not cause inter-domain calls.
 	for (OLF_Iterator it (metadata.address, metadata.size); !it.end (); it.next ()) {
 		switch (*it.cur ()) {
 			case OLF_EXPORT_INTERFACE: {
 				const ExportInterface* ps = reinterpret_cast <const ExportInterface*> (it.cur ());
-				map_.erase (ps->name);
+				object_map_.erase (ps->name);
 			} break;
 
 			case OLF_EXPORT_OBJECT: {
 				ExportObject* ps = reinterpret_cast <ExportObject*> (it.cur ());
-				map_.erase (ps->name);
+				object_map_.erase (ps->name);
 			} break;
 
 			case OLF_EXPORT_LOCAL: {
 				ExportLocal* ps = reinterpret_cast <ExportLocal*> (it.cur ());
-				map_.erase (ps->name);
+				object_map_.erase (ps->name);
 			} break;
 		}
 	}
-	SYNC_END ()
 }
 
 void Binder::release_imports (Nirvana::Module::_ptr_type mod, const Section& metadata)
@@ -302,30 +404,7 @@ void Binder::release_imports (Nirvana::Module::_ptr_type mod, const Section& met
 	}
 }
 
-void Binder::module_unbind (Nirvana::Module::_ptr_type mod, const Section& metadata, SyncContext& sc) NIRVANA_NOEXCEPT
-{
-	// Pass 1: Release all imported interfaces.
-	release_imports (mod, metadata);
-
-	// Pass 2: Release proxies for all exported objects.
-	SYNC_BEGIN (sc)
-	for (OLF_Iterator it (metadata.address, metadata.size); !it.end (); it.next ()) {
-		switch (*it.cur ()) {
-			case OLF_EXPORT_OBJECT: {
-				ExportObject* ps = reinterpret_cast <ExportObject*> (it.cur ());
-				CORBA::Internal::interface_release (ps->core_object);
-			} break;
-
-			case OLF_EXPORT_LOCAL: {
-				ExportLocal* ps = reinterpret_cast <ExportLocal*> (it.cur ());
-				CORBA::Internal::interface_release (ps->core_object);
-			} break;
-		}
-	}
-	SYNC_END ()
-}
-
-Binder::InterfaceRef Binder::find (const Key& name) const
+Binder::InterfaceRef Binder::find (const ObjectKey& name)
 {
 	const ExecDomain* exec_domain = Thread::current ().exec_domain ();
 	assert (exec_domain);
@@ -336,10 +415,11 @@ Binder::InterfaceRef Binder::find (const Key& name) const
 	if (context)
 		itf = context->exports.find (name);
 	if (!itf) {
-		itf = map_.find (name);
+		itf = object_map_.find (name);
 		if (!itf) {
-			CoreRef <Module> mod = Loader::load ("TestModule.olf", false);
-			itf = map_.find (name);
+			string module_name = "TestModule.olf";
+			CoreRef <Module> mod = load (module_name, false);
+			itf = object_map_.find (name);
 			if (!itf)
 				throw_OBJECT_NOT_EXIST ();
 		}
@@ -347,7 +427,7 @@ Binder::InterfaceRef Binder::find (const Key& name) const
 	return itf;
 }
 
-Binder::InterfaceRef Binder::bind_interface_sync (const Key& name, String_in iid) const
+Binder::InterfaceRef Binder::bind_interface_sync (const ObjectKey& name, String_in iid)
 {
 	InterfaceRef itf = find (name);
 	StringBase <char> itf_id = itf->_epv ().interface_id;
@@ -368,13 +448,30 @@ Binder::InterfaceRef Binder::bind_interface_sync (const Key& name, String_in iid
 	return itf;
 }
 
-Object::_ref_type Binder::bind_sync (const Key& name) const
+Object::_ref_type Binder::bind_sync (const ObjectKey& name)
 {
 	InterfaceRef itf = find (name);
 	if (RepositoryId::compatible (itf->_epv ().interface_id, Object::repository_id_))
 		return reinterpret_cast <Object::_ref_type&&> (itf);
 	else
 		throw_INV_OBJREF ();
+}
+
+void Binder::housekeeping ()
+{
+	for (;;) {
+		bool found = false;
+		Chrono::Duration t = Chrono::steady_clock () - MODULE_UNLOAD_TIMEOUT;
+		for (auto it = module_map_.begin (); it != module_map_.end (); ++it) {
+			if (it->second->can_be_unloaded (t)) {
+				found = true;
+				unload (it);
+				break;
+			}
+		}
+		if (!found)
+			break;
+	}
 }
 
 }

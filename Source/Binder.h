@@ -30,6 +30,7 @@
 #include "Section.h"
 #include "Synchronized.h"
 #include "Heap.h"
+#include "Module.h"
 #include <CORBA/RepositoryId.h>
 #include <Nirvana/Main.h>
 #include <Nirvana/ModuleInit.h>
@@ -51,9 +52,8 @@ namespace Core {
 
 class ClassLibrary;
 class Singleton;
-class Module;
 
-/// Implementation of the interface Nirvana::Binder.
+/// Implements object binding and module loading.
 class Binder
 {
 private:
@@ -62,12 +62,12 @@ private:
 	typedef CORBA::Internal::Interface::_ptr_type InterfacePtr;
 	typedef CORBA::Internal::Interface::_ref_type InterfaceRef;
 
-	/// Key class for object name and version.
-	/// Notice that Key does not store name and works like string view.
-	class Key
+	// ObjectKey class for object name and version.
+	// Notice that ObjectKey does not store name and works like string view.
+	class ObjectKey
 	{
 	public:
-		Key (const char* id, size_t length) :
+		ObjectKey (const char* id, size_t length) :
 			name_ (id)
 		{
 			const char* sver = RepositoryId::version (id, id + length);
@@ -75,16 +75,16 @@ private:
 			version_ = Version (sver);
 		}
 
-		Key (const char* id) :
-			Key (id, strlen (id))
+		ObjectKey (const char* id) :
+			ObjectKey (id, strlen (id))
 		{}
 
 		template <class A>
-		Key (const std::basic_string <char, std::char_traits <char>, A>& id) :
-			Key (id.c_str (), id.length ())
+		ObjectKey (const std::basic_string <char, std::char_traits <char>, A>& id) :
+			ObjectKey (id.c_str (), id.length ())
 		{}
 
-		bool operator < (const Key& rhs) const
+		bool operator < (const ObjectKey& rhs) const
 		{
 			if (length_ < rhs.length_)
 				return true;
@@ -100,12 +100,12 @@ private:
 			return version_ < rhs.version_;
 		}
 
-		bool is_a (const Key& rhs) const
+		bool is_a (const ObjectKey& rhs) const
 		{
 			return length_ == rhs.length_ && std::equal (name_, name_ + length_, rhs.name_);
 		}
 
-		bool compatible (const Key& rhs) const
+		bool compatible (const ObjectKey& rhs) const
 		{
 			return length_ == rhs.length_
 				&& !RepositoryId::lex_compare (name_, name_ + length_, rhs.name_, rhs.name_ + length_)
@@ -118,24 +118,32 @@ private:
 		Version version_;
 	};
 
-	/// We use phmap::btree_map as fast binary tree without the iterator stability.
-	typedef phmap::btree_map <Key, InterfacePtr, std::less <Key>, UserAllocator <std::pair <Key, InterfacePtr> > > MapBase;
+	// We use phmap::btree_map as fast binary tree without the iterator stability.
+	typedef phmap::btree_map <ObjectKey, InterfacePtr, std::less <ObjectKey>, UserAllocator <std::pair <ObjectKey, InterfacePtr> > > ObjectMapBase;
 
-	/// Name->interface map.
-	class Map : public MapBase
+	// Name->interface map.
+	class ObjectMap : public ObjectMapBase
 	{
 	public:
 		void insert (const char* name, InterfacePtr itf);
 		void erase (const char* name) NIRVANA_NOEXCEPT;
-		void merge (const Map& src);
-		InterfacePtr find (const Key& key) const;
+		void merge (const ObjectMap& src);
+		InterfacePtr find (const ObjectKey& key) const;
 	};
 
+	// Map of the loaded modules.
+	typedef phmap::flat_hash_map <std::string, Module*, phmap::Hash <std::string>, phmap::EqualTo <std::string>,
+		UserAllocator <std::pair <std::string, Module*> > > ModuleMap;
+
 public:
+	Binder () :
+		initialized_ (false)
+	{}
+
 	static void initialize ();
 	static void terminate ();
 
-	/// Implements System::Bind
+	// Implements System::Bind
 	static CORBA::Object::_ref_type bind (CORBA::Internal::String_in name)
 	{
 		const std::string& sname = static_cast <const std::string&> (name);
@@ -162,26 +170,6 @@ public:
 		return bind_interface (name, I::repository_id_).template downcast <I> ();
 	}
 
-	/// Bind ClassLibrary.
-	/// 
-	/// \param mod ClassLibrary object.
-	static void bind (ClassLibrary& mod);
-
-	/// Unbind ClassLibrary.
-	/// 
-	/// \param mod ClassLibrary object.
-	static void unbind (ClassLibrary& mod) NIRVANA_NOEXCEPT;
-
-	/// Bind Singleton.
-	/// 
-	/// \param mod Singleton object.
-	static void bind (Singleton& mod);
-
-	/// Unbind Singleton.
-	/// 
-	/// \param mod Module.
-	static void unbind (Singleton& mod) NIRVANA_NOEXCEPT;
-
 	/// Bind legacy process executable.
 	/// 
 	/// \param mod Module interface.
@@ -205,8 +193,13 @@ private:
 		SyncContext& sync_context;
 
 		/// Module exports.
-		Map exports;
+		ObjectMap exports;
 	};
+
+	/// Bind module.
+	/// 
+	/// \param mod Module.
+	void bind (std::string& name, Module& mod);
 
 	/// Bind module.
 	/// 
@@ -216,23 +209,30 @@ private:
 	///   If module is Legacy::Executable, mod_context must be `nullptr`.
 	/// 
 	/// \returns Pointer to the ModuleStartup metadata structure, if found. Otherwise `nullptr`.
-	const ModuleStartup* module_bind (Nirvana::Module::_ptr_type mod, const Section& metadata, ModuleContext* mod_context) const;
+	const ModuleStartup* module_bind (Nirvana::Module::_ptr_type mod, const Section& metadata, ModuleContext* mod_context);
+	static void module_unbind (Nirvana::Module::_ptr_type mod, const Section& metadata) NIRVANA_NOEXCEPT;
 	void remove_exports (const Section& metadata);
 	static void release_imports (Nirvana::Module::_ptr_type mod, const Section& metadata);
-	static void module_unbind (Nirvana::Module::_ptr_type mod, const Section& metadata, SyncContext& sc) NIRVANA_NOEXCEPT;
 
-	InterfaceRef bind_interface_sync (const Key& name, CORBA::Internal::String_in iid) const;
-	CORBA::Object::_ref_type bind_sync (const Key& name) const;
+	InterfaceRef bind_interface_sync (const ObjectKey& name, CORBA::Internal::String_in iid);
+	CORBA::Object::_ref_type bind_sync (const ObjectKey& name);
 
-	InterfaceRef find (const Key& name) const;
+	InterfaceRef find (const ObjectKey& name);
 
 	NIRVANA_NORETURN static void invalid_metadata ();
 
-	class TmpContext;
+	CoreRef <Module> load (std::string& module_name, bool singleton);
+	void unload (ModuleMap::iterator mod);
+
+	void housekeeping ();
+
+	static void delete_module (Module* mod);
 
 private:
 	ImplStatic <SyncDomain> sync_domain_;
-	Map map_;
+	ObjectMap object_map_;
+	ModuleMap module_map_;
+	bool initialized_;
 
 	static Binder singleton_;
 };

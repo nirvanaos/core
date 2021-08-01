@@ -27,7 +27,6 @@
 #define NIRVANA_CORE_INITTERM_H_
 
 #include "Binder.h"
-#include "Loader.h"
 
 namespace Nirvana {
 namespace Core {
@@ -36,13 +35,11 @@ namespace Core {
 inline void initialize ()
 {
 	Binder::initialize ();
-	Loader::initialize ();
 }
 
 //! Called before the kernel termination.
 inline void terminate ()
 {
-	Loader::terminate ();
 	Binder::terminate ();
 }
 
