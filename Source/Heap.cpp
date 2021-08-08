@@ -595,6 +595,9 @@ uintptr_t Heap::query (const void* p, Memory::QueryParam param)
 			else
 				return (uintptr_t)(part + 1 + partition_size ());
 		}
+	} else if (Memory::QueryParam::MEMORY_STATE == param) {
+		if (!check_owner (p, allocation_unit_))
+			return (uintptr_t)Memory::MemoryState::MEM_NOT_ALLOCATED;
 	}
 	return Port::Memory::query (p, param);
 }

@@ -400,7 +400,7 @@ public:
 	/// 
 	/// \param heap_info HeapInfo pointer.
 	/// 
-	/// \returns> Block offset in units if succeded, otherwise -1.
+	/// \returns Block offset in units if succeded, otherwise -1.
 	ptrdiff_t allocate (size_t size, const HeapInfo* heap_info = nullptr);
 
 	bool allocate (size_t begin, size_t end, const HeapInfo* heap_info = nullptr);
