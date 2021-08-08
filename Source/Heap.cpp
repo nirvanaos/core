@@ -647,6 +647,36 @@ bool Heap::check_owner (const void* p, size_t size)
 	return ok;
 }
 
+void Heap::change_protection (bool read_only)
+{
+	unsigned short protection = read_only ? (Memory::READ_ONLY | Memory::EXACTLY) : (Memory::READ_WRITE | Memory::EXACTLY);
+	const BlockList::NodeVal* p = block_list_.head ();
+	for (;;) {
+		p = static_cast <BlockList::NodeVal*> (static_cast <BlockList::Node*> (p->next [0].load ()));
+		if (p == block_list_.tail ())
+			break;
+		const MemoryBlock& mb = p->value ();
+		uint8_t* begin = mb.begin ();
+		uint8_t* end = begin + (mb.is_large_block () ? mb.large_block_size () : partition_size ());
+		size_t commit_unit = Port::Memory::query (begin, Memory::QueryParam::COMMIT_UNIT);
+
+		do {
+			if (Port::Memory::query (begin, Memory::QueryParam::MEMORY_STATE) < (uintptr_t)Memory::MemoryState::MEM_READ_ONLY)
+				begin += commit_unit;
+			else {
+				uint8_t* commit_end = begin + commit_unit;
+				while (commit_end < end) {
+					if (Port::Memory::query (commit_end, Memory::QueryParam::MEMORY_STATE) < (uintptr_t)Memory::MemoryState::MEM_READ_ONLY)
+						break;
+					commit_end += commit_unit;
+				}
+				Port::Memory::copy (begin, begin, commit_end - begin, protection);
+				begin = commit_end;
+			}
+		} while (begin < end);
+	}
+}
+
 bool HeapUser::cleanup ()
 {
 	bool empty = true;

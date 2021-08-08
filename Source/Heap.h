@@ -98,6 +98,8 @@ public:
 
 	uintptr_t query (const void* p, Memory::QueryParam param);
 
+	void change_protection (bool read_only);
+
 protected:
 	typedef HeapDirectory <HEAP_DIRECTORY_SIZE, HEAP_DIRECTORY_LEVELS, HEAP_DIRECTORY_IMPLEMENTATION> Directory;
 	
@@ -223,6 +225,16 @@ protected:
 			node_cnt_.increment ();
 #endif
 			return ins.first;
+		}
+
+		const NodeVal* head () const NIRVANA_NOEXCEPT
+		{
+			return static_cast <NodeVal*> (Base::head ());
+		}
+
+		const NodeVal* tail () const NIRVANA_NOEXCEPT
+		{
+			return static_cast <NodeVal*> (Base::tail ());
 		}
 	};
 
