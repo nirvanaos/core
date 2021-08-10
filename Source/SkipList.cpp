@@ -198,7 +198,7 @@ SkipListBase::Node* SkipListBase::insert (Node* const new_node, Node** saved_nod
 		// Prevent real deletion.
 		// The returned node will be removed from list, but existent.
 		copy_node (new_node);
-		help_delete (new_node, 0);
+		release_node (help_delete (new_node, 0));
 	}
 
 	return new_node;
