@@ -381,6 +381,18 @@ Heap::MemoryBlock* Heap::add_new_partition (MemoryBlock*& tail)
 	return part;
 }
 
+Heap::Directory* Heap::create_partition () const
+{
+	size_t cb = sizeof (Directory) + partition_size (allocation_unit_);
+	void* p = Port::Memory::allocate (nullptr, cb, Memory::RESERVED);
+	try {
+		return new (p) Directory ();
+	} catch (...) {
+		Port::Memory::release (p, cb);
+		throw;
+	}
+}
+
 Heap::MemoryBlock* HeapCore::add_new_partition (MemoryBlock*& tail)
 {
 	// Core heap has different algorithm to avoid recursion.

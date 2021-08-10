@@ -378,7 +378,9 @@ public:
 
 	HeapDirectory ()
 	{
-		if (IMPL > HeapDirectoryImpl::COMMITTED_BITMAP) // Commit initial part.
+		if (IMPLEMENTATION == HeapDirectoryImpl::COMMITTED_BITMAP)
+			Port::Memory::commit (this, sizeof (*this));
+		else if (IMPLEMENTATION != HeapDirectoryImpl::PLAIN_MEMORY) // Commit initial part.
 			Port::Memory::commit (this, reinterpret_cast <uint8_t*> (bitmap_ + Traits::TOP_BITMAP_WORDS) - reinterpret_cast <uint8_t*> (this));
 
 		// Initialize

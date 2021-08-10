@@ -248,17 +248,7 @@ protected:
 		return partition_size (allocation_unit_);
 	}
 
-	static Directory* create_partition (size_t allocation_unit)
-	{
-		return new (Port::Memory::allocate (0, sizeof (Directory) + partition_size (allocation_unit), 
-			Directory::IMPLEMENTATION > HeapDirectoryImpl::COMMITTED_BITMAP ? Memory::RESERVED : Memory::ZERO_INIT)
-			) Directory ();
-	}
-
-	Directory* create_partition () const
-	{
-		return create_partition (allocation_unit_);
-	}
+	Directory* create_partition () const;
 
 	void release_partition (Directory* dir)
 	{

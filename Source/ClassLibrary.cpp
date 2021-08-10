@@ -42,7 +42,8 @@ void ClassLibrary::initialize (ModuleInit::_ptr_type entry_point)
 		throw;
 	}
 	ed->heap_restore ();
-	readonly_heap_.change_protection (true);
+	if (Port::Memory::FLAGS & Memory::ACCESS_CHECK)
+		readonly_heap_.change_protection (true);
 	ed->restricted_mode_ = ExecDomain::RestrictedMode::NO_RESTRICTIONS;
 }
 
@@ -50,7 +51,8 @@ void ClassLibrary::terminate () NIRVANA_NOEXCEPT
 {
 	ExecDomain* ed = Thread::current ().exec_domain ();
 	assert (ed);
-	readonly_heap_.change_protection (false);
+	if (Port::Memory::FLAGS & Memory::ACCESS_CHECK)
+		readonly_heap_.change_protection (false);
 	ed->heap_replace (readonly_heap_);
 	Module::terminate ();
 	ed->heap_restore ();

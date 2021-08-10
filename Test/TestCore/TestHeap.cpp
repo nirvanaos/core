@@ -77,7 +77,7 @@ TEST_F (TestHeap, Allocate)
 	EXPECT_EQ (*p, 0);
 	*p = 1;
 	heap_.release (p, sizeof (int));
-	EXPECT_THROW (heap_.release (p, sizeof (int)), CORBA::BAD_PARAM);
+	EXPECT_THROW (heap_.release (p, sizeof (int)), CORBA::FREE_MEM);
 }
 
 TEST_F (TestHeap, ReadOnly)
