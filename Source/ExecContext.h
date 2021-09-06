@@ -77,6 +77,13 @@ public:
 		switch_to ();
 	}
 
+	/// Aborts execution of the context.
+	/// Dangerous method used for POSIX compatibility.
+	NIRVANA_NORETURN void abort ()
+	{
+		Port::ExecContext::abort ();
+	}
+
 protected:
 	void run () NIRVANA_NOEXCEPT;
 

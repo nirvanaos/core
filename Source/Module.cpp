@@ -52,7 +52,7 @@ void Module::initialize (ModuleInit::_ptr_type entry_point)
 {
 	initial_ref_cnt_ = ref_cnt_;
 	if (entry_point) {
-		entry_point->initialize ();
+		call_initialize (entry_point);
 		entry_point_ = entry_point;
 	}
 }
@@ -64,7 +64,7 @@ void Module::terminate () NIRVANA_NOEXCEPT
 		assert (ed);
 		ed->restricted_mode_ = ExecDomain::RestrictedMode::MODULE_TERMINATE;
 		try {
-			entry_point_->terminate ();
+			call_terminate (entry_point_);
 		} catch (...) {
 			// TODO: Log
 		}

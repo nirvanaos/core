@@ -102,6 +102,11 @@ public:
 		return CORBA::make_pseudo <HeapDynamic> (granularity);
 	}
 
+	void abort ()
+	{
+		Thread::current ().exec_domain ()->abort ();
+	}
+
 private:
 	static RuntimeSupport& get_runtime_support ()
 	{

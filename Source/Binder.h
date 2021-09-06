@@ -198,11 +198,6 @@ private:
 
 	/// Bind module.
 	/// 
-	/// \param mod Module.
-	void bind (std::string& name, Module& mod);
-
-	/// Bind module.
-	/// 
 	/// \param mod The Nirvana::Module interface.
 	/// \param metadata Module metadata.
 	/// \param mod_context Module binding context.
