@@ -33,15 +33,18 @@ namespace Core {
 /// Run-time library global state
 struct RuntimeGlobal
 {
+	uint32_t rand_state;
 	int error_number;
 
-	RuntimeGlobal () :
-		error_number (0)
-	{}
+	RuntimeGlobal ()
+	{
+		cleanup ();
+	}
 
 	void cleanup ()
 	{
 		error_number = 0;
+		rand_state = 1;
 	}
 };
 

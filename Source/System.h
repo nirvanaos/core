@@ -97,14 +97,26 @@ public:
 		return &Thread::current ().exec_domain ()->runtime_global_.error_number;
 	}
 
-	Nirvana::Memory::_ref_type create_heap (uint16_t granularity)
+	static Nirvana::Memory::_ref_type create_heap (uint16_t granularity)
 	{
 		return CORBA::make_pseudo <HeapDynamic> (granularity);
 	}
 
-	void abort ()
+	static void abort ()
 	{
 		Thread::current ().exec_domain ()->abort ();
+	}
+
+	static void srand (uint32_t seed)
+	{
+		Thread::current ().exec_domain ()->runtime_global_.rand_state = seed;
+	}
+
+	static short rand () // RAND_MAX assumed to be 32767
+	{
+		uint32_t& next = Thread::current ().exec_domain ()->runtime_global_.rand_state;
+		next = next * 1103515245 + 12345;
+		return (unsigned int)(next >> 16) % 32768;
 	}
 
 private:
