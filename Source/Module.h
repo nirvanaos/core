@@ -39,6 +39,7 @@ namespace Core {
 
 class SyncContext;
 
+/// Loadable module base
 class NIRVANA_NOVTABLE Module :
 	public CoreObject,
 	public Port::Module,

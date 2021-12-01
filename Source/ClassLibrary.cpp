@@ -41,9 +41,16 @@ void ClassLibrary::initialize (ModuleInit::_ptr_type entry_point)
 		ed->restricted_mode_ = ExecDomain::RestrictedMode::NO_RESTRICTIONS;
 		throw;
 	}
-	ed->heap_restore ();
-	if (Port::Memory::FLAGS & Memory::ACCESS_CHECK)
+	if (Port::Memory::FLAGS & Memory::ACCESS_CHECK) {
+		get_data_sections (data_sections_);
 		readonly_heap_.change_protection (true);
+		/* Temporary disable until CRT will ready 
+		for (auto it = data_sections_.cbegin (); it != data_sections_.cend (); ++it) {
+			void* p = const_cast <void*> (it->address);
+			Port::Memory::copy (p, p, it->size, Memory::READ_ONLY | Memory::EXACTLY);
+		}*/
+	}
+	ed->heap_restore ();
 	ed->restricted_mode_ = ExecDomain::RestrictedMode::NO_RESTRICTIONS;
 }
 
@@ -51,9 +58,21 @@ void ClassLibrary::terminate () NIRVANA_NOEXCEPT
 {
 	ExecDomain* ed = Thread::current ().exec_domain ();
 	assert (ed);
-	if (Port::Memory::FLAGS & Memory::ACCESS_CHECK)
-		readonly_heap_.change_protection (false);
 	ed->heap_replace (readonly_heap_);
+	if (Port::Memory::FLAGS & Memory::ACCESS_CHECK) {
+		try {
+			readonly_heap_.change_protection (false);
+			/* Temporary disable until CRT will ready
+				for (auto it = data_sections_.cbegin (); it != data_sections_.cend (); ++it) {
+				void* p = const_cast <void*> (it->address);
+				Port::Memory::copy (p, p, it->size, Memory::READ_WRITE | Memory::EXACTLY);
+			}*/
+		} catch (...) {
+			// TODO: Log
+			return;
+		}
+	}
+	data_sections_.clear ();
 	Module::terminate ();
 	ed->heap_restore ();
 }

@@ -42,6 +42,11 @@ public:
 		return base_address_;
 	}
 
+	const void* section_address (const COFF::Section& s) const NIRVANA_NOEXCEPT
+	{
+		return (const uint8_t*)base_address_ + s.VirtualAddress;
+	}
+
 	bool find_OLF_section (Core::Section& section) const NIRVANA_NOEXCEPT;
 
 private:

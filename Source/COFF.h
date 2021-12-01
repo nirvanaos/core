@@ -43,16 +43,22 @@ public:
 		hdr_ ((const Header*)addr)
 	{}
 
-	const Header* header () const
+	const Header* header () const NIRVANA_NOEXCEPT
 	{
 		return hdr_;
 	}
 
-	const PE32Header* pe32_header () const;
+	const PE32Header* pe32_header () const NIRVANA_NOEXCEPT;
 
 	const Section* find_section (const char* name) const NIRVANA_NOEXCEPT;
 
-private:
+	const Section* sections () const NIRVANA_NOEXCEPT;
+
+	uint32_t section_count () const NIRVANA_NOEXCEPT
+	{
+		return hdr_->NumberOfSections;
+	}
+
 	static bool is_section (const Section& s, const char* name) NIRVANA_NOEXCEPT;
 
 private:

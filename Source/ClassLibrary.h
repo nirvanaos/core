@@ -68,6 +68,7 @@ private:
 
 private:
 	HeapUser readonly_heap_;
+	std::forward_list <Section, UserAllocator <Section>> data_sections_;
 };
 
 }
