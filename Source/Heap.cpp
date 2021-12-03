@@ -426,7 +426,9 @@ void* Heap::copy (void* dst, void* src, size_t size, unsigned flags)
 	if (!src)
 		THROW (BAD_PARAM);
 
-	if (flags & ~(Memory::READ_ONLY | Memory::SRC_RELEASE | Memory::DST_ALLOCATE | Memory::EXACTLY))
+	if (flags != Memory::SIMPLE_COPY
+		&& (flags & ~(Memory::READ_ONLY | Memory::SRC_RELEASE | Memory::DST_ALLOCATE | Memory::EXACTLY))
+		)
 		throw_INV_FLAG ();
 
 	if (dst == src) {
@@ -550,6 +552,9 @@ void* Heap::copy (void* dst, void* src, size_t size, unsigned flags)
 	uint8_t* alloc_end = nullptr;
 	bool dst_own = true;
 	if (!dst) {
+		if (flags & Memory::SIMPLE_COPY)
+			throw_INV_FLAG ();
+
 		if (!(dst = allocate (size, (flags & ~Memory::READ_ONLY) | Memory::RESERVED))) {
 			assert (flags & Memory::EXACTLY);
 			return nullptr;
