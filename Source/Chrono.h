@@ -86,8 +86,6 @@ public:
 		assert (std::numeric_limits <DeadlineTime>::max () - timeout > dt);
 		return dt + timeout;
 	}
-
-private:
 };
 
 }

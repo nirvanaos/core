@@ -68,11 +68,11 @@ size_t ObjectFactory::offset_ptr ()
 }
 
 extern const ::Nirvana::ImportInterfaceT <ObjectFactory> g_object_factory = {
-	::Nirvana::OLF_IMPORT_INTERFACE, "CORBA/Nirvana/g_object_factory",
+	::Nirvana::OLF_IMPORT_INTERFACE, "CORBA/Internal/g_object_factory",
 	ObjectFactory::repository_id_, NIRVANA_STATIC_BRIDGE (ObjectFactory, Core::ObjectFactory)
 };
 
 }
 }
 
-NIRVANA_EXPORT (_exp_CORBA_Nirvana_g_object_factory, "CORBA/Nirvana/g_object_factory", CORBA::Internal::ObjectFactory, CORBA::Internal::Core::ObjectFactory)
+NIRVANA_EXPORT (_exp_CORBA_Internal_g_object_factory, "CORBA/Internal/g_object_factory", CORBA::Internal::ObjectFactory, CORBA::Internal::Core::ObjectFactory)

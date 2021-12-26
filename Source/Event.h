@@ -24,45 +24,60 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_LEGACY_CORE_EXECUTABLE_H_
-#define NIRVANA_LEGACY_CORE_EXECUTABLE_H_
+#ifndef NIRVANA_CORE_EVENT_H_
+#define NIRVANA_CORE_EVENT_H_
 
-#include "../CoreObject.h"
-#include <CORBA/Server.h>
-#include <Nirvana/Main.h>
-#include <Module_s.h>
-#include "../ORB/LifeCycleStack.h"
-#include <Port/Module.h>
+#include "ExecDomain.h"
 
 namespace Nirvana {
-namespace Legacy {
 namespace Core {
 
-class Executable :
-	public Nirvana::Core::Port::Module,
-	public Nirvana::Core::CoreObject,
-	public CORBA::servant_traits <Module>::Servant <Executable>,
-	public CORBA::Internal::Core::LifeCycleStack
+/// Implement wait list for async operations
+class Event :
+	private Stack <ExecDomain::Impl>
 {
 public:
-	Executable (const char* file);
-	~Executable ();
+	Event () NIRVANA_NOEXCEPT :
+		wait_op_ (std::ref (*this)),
+		signalled_ (false)
+	{}
 
-	const void* base_address () const NIRVANA_NOEXCEPT
-	{
-		return Nirvana::Core::Port::Module::address ();
+	/// Suspend current execution domain until the event will be signalled.
+	void wait () NIRVANA_NOEXCEPT {
+		assert (SyncContext::current ().sync_domain ());
+		if (!signalled_)
+			run_in_neutral_context (wait_op_);
 	}
 
-	int main (int argc, char* argv [], char* envp [])
+	/// Tests event state without wait.
+	/// \returns 'true' if object is already in the signalled state.
+	bool signalled () const NIRVANA_NOEXCEPT
 	{
-		return (int)entry_point_->main (argc, argv, envp);
+		return signalled_;
 	}
+
+	/// Sets object into the signalled state.
+	void set () NIRVANA_NOEXCEPT;
 
 private:
-	Main::_ptr_type entry_point_;
+	class WaitOp : public Runnable
+	{
+	public:
+		WaitOp (Event& obj) :
+			obj_ (obj)
+		{}
+
+	private:
+		virtual void run ();
+
+	private:
+		Event& obj_;
+	};
+
+	ImplStatic <WaitOp> wait_op_;
+	volatile bool signalled_;
 };
 
-}
 }
 }
 

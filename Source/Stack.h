@@ -48,6 +48,8 @@ struct StackElem
 template <class T, unsigned ALIGN = CORE_OBJECT_ALIGN (T)>
 class Stack
 {
+	Stack (const Stack&) = delete;
+	Stack& operator = (const Stack&) = delete;
 public:
 	Stack () NIRVANA_NOEXCEPT :
 		head_ (nullptr)

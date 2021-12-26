@@ -24,7 +24,7 @@
 *  popov.nirvana@gmail.com
 */
 #include <CORBA/Server.h>
-#include <generated/Module_s.h>
+#include <Module_s.h>
 
 namespace Nirvana {
 namespace Core {

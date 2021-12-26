@@ -28,7 +28,7 @@
 #define NIRVANA_CORE_MEMORY_H_
 
 #include <CORBA/Server.h>
-#include <generated/Memory_s.h>
+#include <Memory_s.h>
 #include "ExecDomain.h"
 #include "user_memory.h"
 

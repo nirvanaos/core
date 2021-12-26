@@ -27,7 +27,7 @@
 #ifndef NIRVANA_CORE_RUNTIMESUPPORT_H_
 #define NIRVANA_CORE_RUNTIMESUPPORT_H_
 
-#include <generated/System.h>
+#include <Nirvana/System.h>
 
 namespace Nirvana {
 namespace Core {

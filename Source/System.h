@@ -28,7 +28,7 @@
 #define NIRVANA_CORE_SYSTEM_H_
 
 #include <CORBA/Server.h>
-#include <generated/System_s.h>
+#include <System_s.h>
 #include "Binder.h"
 #include "Chrono.h"
 #include "ExecDomain.h"

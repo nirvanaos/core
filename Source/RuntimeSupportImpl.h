@@ -28,7 +28,7 @@
 #define NIRVANA_CORE_RUNTIMESUPPORTIMPL_H_
 
 #include <CORBA/Server.h>
-#include <generated/System_s.h>
+#include <System_s.h>
 #include "RuntimeSupport.h"
 #include "LifeCyclePseudo.h"
 #include "CoreInterface.h"

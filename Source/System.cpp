@@ -1,4 +1,3 @@
-/// \file
 /*
 * Nirvana Core.
 *
@@ -24,24 +23,13 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_CORE_ATOMICWAITLIST_H_
-#define NIRVANA_CORE_ATOMICWAITLIST_H_
-
-#include "ExecDomain.h"
+#include "System.h"
 
 namespace Nirvana {
-namespace Core {
 
-class AtomicWaitList :
-	private Stack <ExecDomain>
-{
-public:
-
-private:
-	int error_code_;
-};
+__declspec (selectany)
+extern const ImportInterfaceT <System> g_system = { OLF_IMPORT_INTERFACE, "Nirvana/g_system", System::repository_id_, NIRVANA_STATIC_BRIDGE (System, Core::System) };
 
 }
-}
 
-#endif
+NIRVANA_EXPORT (_exp_Nirvana_g_system, "Nirvana/g_system", Nirvana::System, Nirvana::Core::System)

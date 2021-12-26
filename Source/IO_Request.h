@@ -24,30 +24,43 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_CORE_USERALLOCATOR_H_
-#define NIRVANA_CORE_USERALLOCATOR_H_
+#ifndef NIRVANA_CORE_IO_REQUEST_H_
+#define NIRVANA_CORE_IO_REQUEST_H_
 
-#include "user_memory.h"
+#include "Future.h"
 
 namespace Nirvana {
 namespace Core {
 
-/// Allocate from domain memory.
-/// Used to skip calls to Memory interface inside the Core.
-template <class T>
-class UserAllocator :
-	public std::allocator <T>
+/// Result of an input/output operation.
+struct IO_Result
 {
+	uint32_t size;
+	int error;
+};
+
+class IO_Request :
+	public Future <IO_Result>
+{
+	typedef Future <IO_Result> Base;
 public:
-	static void deallocate (T* p, size_t cnt)
+	enum Operation
 	{
-		user_memory ().release (p, cnt * sizeof (T));
+		OP_READ = 1,
+		OP_WRITE = 2
+	};
+
+	IO_Request (Operation operation) NIRVANA_NOEXCEPT :
+		operation_ (operation)
+	{}
+
+	Operation operation () const NIRVANA_NOEXCEPT
+	{
+		return operation_;
 	}
 
-	static T* allocate (size_t cnt, void* hint = nullptr, unsigned flags = 0)
-	{
-		return (T*)user_memory ().allocate (hint, cnt * sizeof (T), flags);
-	}
+private:
+	Operation operation_;
 };
 
 }

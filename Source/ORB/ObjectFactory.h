@@ -27,7 +27,7 @@
 #define NIRVANA_ORB_CORE_OBJECTFACTORY_H_
 
 #include <CORBA/Server.h>
-#include <generated/ObjectFactory_s.h>
+#include <ObjectFactory_s.h>
 #include "ServantBase.h"
 #include "LocalObject.h"
 #include "ReferenceCounter.h"

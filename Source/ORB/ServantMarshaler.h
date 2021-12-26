@@ -30,8 +30,8 @@
 #include "../CoreObject.h"
 #include "LifeCyclePseudo.h"
 #include "../SyncContext.h"
-#include <generated/Marshal_s.h>
-#include <generated/Unmarshal_s.h>
+#include <CORBA/Marshal_s.h>
+#include <CORBA/Unmarshal_s.h>
 
 namespace CORBA {
 namespace Internal {

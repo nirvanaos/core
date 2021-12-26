@@ -1,4 +1,3 @@
-/// \file
 /*
 * Nirvana Core.
 *
@@ -24,33 +23,13 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_CORE_USERALLOCATOR_H_
-#define NIRVANA_CORE_USERALLOCATOR_H_
-
-#include "user_memory.h"
+#include "Memory.h"
 
 namespace Nirvana {
-namespace Core {
 
-/// Allocate from domain memory.
-/// Used to skip calls to Memory interface inside the Core.
-template <class T>
-class UserAllocator :
-	public std::allocator <T>
-{
-public:
-	static void deallocate (T* p, size_t cnt)
-	{
-		user_memory ().release (p, cnt * sizeof (T));
-	}
-
-	static T* allocate (size_t cnt, void* hint = nullptr, unsigned flags = 0)
-	{
-		return (T*)user_memory ().allocate (hint, cnt * sizeof (T), flags);
-	}
-};
+__declspec (selectany)
+extern const ImportInterfaceT <Memory> g_memory = { OLF_IMPORT_INTERFACE, "Nirvana/g_memory", Memory::repository_id_, NIRVANA_STATIC_BRIDGE (Memory, Core::Memory) };
 
 }
-}
 
-#endif
+NIRVANA_EXPORT (_exp_Nirvana_g_memory, "Nirvana/g_memory", Nirvana::Memory, Nirvana::Core::Memory)

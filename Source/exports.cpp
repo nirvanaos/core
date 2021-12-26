@@ -26,33 +26,18 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "System.h"
-#include "Memory.h"
 #include <Nirvana/OLF.h>
 #include <CORBA/system_exceptions.h>
 
-namespace Nirvana {
-
-__declspec (selectany)
-extern const ImportInterfaceT <Memory> g_memory = { OLF_IMPORT_INTERFACE, "Nirvana/g_memory", Memory::repository_id_, NIRVANA_STATIC_BRIDGE (Memory, Core::Memory) };
-
-}
-
-NIRVANA_EXPORT (_exp_Nirvana_g_memory, "Nirvana/g_memory", Nirvana::Memory, Nirvana::Core::Memory)
-
-namespace Nirvana {
-
-__declspec (selectany)
-extern const ImportInterfaceT <System> g_system = { OLF_IMPORT_INTERFACE, "Nirvana/g_system", System::repository_id_, NIRVANA_STATIC_BRIDGE (System, Core::System) };
-
-}
-
-NIRVANA_EXPORT (_exp_Nirvana_g_system, "Nirvana/g_system", Nirvana::System, Nirvana::Core::System)
-
+NIRVANA_LINK_SYMBOL (_exp_Nirvana_g_memory)
+NIRVANA_LINK_SYMBOL (_exp_Nirvana_g_system)
 NIRVANA_LINK_SYMBOL (_exp_PortableServer_POA)
 NIRVANA_LINK_SYMBOL (_exp_PortableServer_POA_ServantAlreadyActive)
 NIRVANA_LINK_SYMBOL (_exp_PortableServer_POA_ObjectNotActive)
-NIRVANA_LINK_SYMBOL (_exp_CORBA_Nirvana_g_object_factory)
+NIRVANA_LINK_SYMBOL (_exp_CORBA_Internal_g_object_factory)
+NIRVANA_LINK_SYMBOL (_exp_CORBA_OctetSeq)
+NIRVANA_LINK_SYMBOL (_exp_Nirvana_FileAccessDirect)
+NIRVANA_LINK_SYMBOL (_exp_Nirvana_FileAccessSeq)
 
 #define EXPORT_TC(t) NIRVANA_LINK_SYMBOL (_exp_CORBA_##t)
 EXPORT_TC (void)

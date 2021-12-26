@@ -27,7 +27,7 @@
 #define NIRVANA_CORE_MODULE_H_
 
 #include <CORBA/Server.h>
-#include <generated/Module_s.h>
+#include <Module_s.h>
 #include <Nirvana/ModuleInit.h>
 #include "AtomicCounter.h"
 #include <Port/Module.h>

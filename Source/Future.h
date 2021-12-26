@@ -24,30 +24,41 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_CORE_USERALLOCATOR_H_
-#define NIRVANA_CORE_USERALLOCATOR_H_
+#ifndef NIRVANA_CORE_FUTURE_H_
+#define NIRVANA_CORE_FUTURE_H_
 
-#include "user_memory.h"
+#include "Event.h"
 
 namespace Nirvana {
 namespace Core {
 
-/// Allocate from domain memory.
-/// Used to skip calls to Memory interface inside the Core.
+/// The result of asynchronous operation.
 template <class T>
-class UserAllocator :
-	public std::allocator <T>
+class Future :
+	public Event
 {
 public:
-	static void deallocate (T* p, size_t cnt)
+	/// Waits until the future has a valid result and (depending on which template is used) retrieves it.
+	/// It effectively calls wait() in order to wait for the result.
+	/// 
+	/// \returns The result of operation.
+	const T& get () NIRVANA_NOEXCEPT
 	{
-		user_memory ().release (p, cnt * sizeof (T));
+		Event::wait ();
+		return value_;
 	}
 
-	static T* allocate (size_t cnt, void* hint = nullptr, unsigned flags = 0)
+	/// Set the result of asynchronous operation.
+	/// 
+	/// \param val The result of asynchronous operation.
+	void set (const T& val) NIRVANA_NOEXCEPT
 	{
-		return (T*)user_memory ().allocate (hint, cnt * sizeof (T), flags);
+		value_ = val;
+		Event::set ();
 	}
+
+private:
+	T value_;
 };
 
 }
