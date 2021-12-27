@@ -416,6 +416,8 @@ Binder::InterfaceRef Binder::find (const ObjectKey& name)
 	if (context)
 		itf = context->exports.find (name);
 	if (!itf) {
+		if (!initialized_)
+			throw_OBJECT_NOT_EXIST ();
 		itf = object_map_.find (name);
 		if (!itf) {
 			string module_name = "TestModule.olf";

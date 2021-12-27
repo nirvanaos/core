@@ -50,13 +50,11 @@ class FileAccessDirect :
 	static const Chrono::Duration WRITE_TIMEOUT = 500 * System::MILLISECOND;
 public:
 	FileAccessDirect (const std::string& path, int flags) :
-		Base (path, flags),
-		base_block_size_ (Base::block_size ()),
+		Base (path, flags, file_size_, base_block_size_),
 		block_size_ (std::max (base_block_size_, (Size)Port::Memory::SHARING_ASSOCIATIVITY))
 	{
 		if (block_size_ / base_block_size_ > 128)
 			throw RuntimeError (ENOTSUP);
-		file_size_ = file_size ();
 	}
 
 	/// Destructor. Without the flush() call all dirty entries will be lost!
@@ -194,7 +192,7 @@ private:
 	}
 
 private:
-	const Size base_block_size_;
+	Size base_block_size_;
 	const Size block_size_;
 	Pos file_size_;
 	Cache cache_;
