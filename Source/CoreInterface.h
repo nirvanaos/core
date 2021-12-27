@@ -168,7 +168,7 @@ protected:
 
 /// Core smart pointer.
 /// \tparam T object or core interface class.
-///         Note that T haven't to derive from CoreInterface, but can.
+///           Note that T haven't to derive from CoreInterface, but can.
 template <class T>
 class CoreRef
 {

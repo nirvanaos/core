@@ -48,9 +48,6 @@ public:
 
 	static void runtime_proxy_remove (const void* obj)
 	{
-		if (!obj)
-			return;
-
 		RuntimeSupport* rs = get_runtime_support ();
 		if (rs)
 			rs->runtime_proxy_remove (obj);

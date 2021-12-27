@@ -90,7 +90,6 @@ public:
 private:
 	static Heap& heap ()
 	{
-#if defined (NIRVANA_CORE_TEST)
 		Thread* th = Thread::current_ptr ();
 		if (th) {
 			ExecDomain* ed = th->exec_domain ();
@@ -99,9 +98,6 @@ private:
 		}
 		// Fallback to g_core_heap
 		return g_core_heap.object ();
-#else
-		return user_memory ();
-#endif
 	}
 };
 
