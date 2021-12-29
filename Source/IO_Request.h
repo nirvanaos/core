@@ -47,7 +47,8 @@ public:
 	enum Operation
 	{
 		OP_READ = 1,
-		OP_WRITE = 2
+		OP_WRITE = 2,
+		OP_SET_SIZE = 3
 	};
 
 	IO_Request (Operation operation) NIRVANA_NOEXCEPT :

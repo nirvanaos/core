@@ -46,26 +46,21 @@ class FileAccessDirect :
 	typedef Base::Size Size;
 	typedef Base::BlockIdx BlockIdx;
 
-	// Write timeout currently defined as constant
+	// Timeouts currently defined as a constant
 	static const Chrono::Duration WRITE_TIMEOUT = 500 * System::MILLISECOND;
+	static const Chrono::Duration DISCARD_TIMEOUT = 500 * System::MILLISECOND;
 public:
 	FileAccessDirect (const std::string& path, int flags) :
 		Base (path, flags, file_size_, base_block_size_),
-		block_size_ (std::max (base_block_size_, (Size)Port::Memory::SHARING_ASSOCIATIVITY))
+		block_size_ (std::max (base_block_size_, (Size)Port::Memory::SHARING_ASSOCIATIVITY)),
+		dirty_blocks_ (0)
 	{
 		if (block_size_ / base_block_size_ > 128)
 			throw RuntimeError (ENOTSUP);
 	}
 
 	/// Destructor. Without the flush() call all dirty entries will be lost!
-	~FileAccessDirect ()
-	{
-		for (Cache::iterator it = cache_.begin (); it != cache_.end ();) {
-			if (it->second.request)
-				complete_request (*it->second.request);
-			it = release_cache (it);
-		}
-	}
+	~FileAccessDirect ();
 
 	inline
 	void flush ();
@@ -77,8 +72,15 @@ public:
 
 	void file_size (uint64_t new_size)
 	{
-		Base::file_size ((Pos)new_size);
-		file_size_ = (Pos)new_size;
+		Request* rq = new Request (Request::OP_SET_SIZE, new_size, nullptr, 0, cache_.end ());
+		if (file_size_ > new_size)
+			file_size_ = new_size;
+		issue_request (*rq);
+		IO_Result res = rq->get ();
+		file_size_ = rq->offset ();
+		delete rq;
+		if (res.error)
+			throw RuntimeError (res.error);
 	}
 
 	inline
@@ -93,6 +95,7 @@ private:
 	struct CacheEntry
 	{
 		Chrono::Duration last_write_time; // Valid only if dirty_begin != dirty_end
+		Chrono::Duration last_read_time;
 		void* buffer;
 		Request* request;
 		unsigned lock_cnt;
@@ -101,7 +104,8 @@ private:
 		uint8_t dirty_begin, dirty_end;
 
 		CacheEntry (void* buf) NIRVANA_NOEXCEPT :
-		last_write_time (0),
+			last_write_time (0),
+			last_read_time (0),
 			buffer (buf),
 			request (nullptr),
 			lock_cnt (1),
@@ -160,8 +164,7 @@ private:
 	void complete_request (Request& request) NIRVANA_NOEXCEPT;
 	void complete_request (Cache::iterator it, unsigned wait_mask = ~0);
 
-	bool can_be_released (Cache::iterator it);
-	Cache::iterator release_cache (Cache::iterator it);
+	Cache::iterator release_cache (Cache::iterator it, Chrono::Duration time);
 
 	void clear_cache (BlockIdx excl_begin, BlockIdx excl_end);
 
@@ -186,7 +189,11 @@ private:
 
 	void write_dirty_blocks (Chrono::Duration timeout);
 
-	void unlock (Cache::iterator it) NIRVANA_NOEXCEPT {
+	static void lock (Cache::iterator it) NIRVANA_NOEXCEPT {
+		++(it->second.lock_cnt);
+	}
+
+	static void unlock (Cache::iterator it) NIRVANA_NOEXCEPT {
 		assert (it->second.lock_cnt);
 		--(it->second.lock_cnt);
 	}

@@ -6,6 +6,15 @@ using namespace std;
 namespace Nirvana {
 namespace Core {
 
+FileAccessDirect::~FileAccessDirect ()
+{
+	for (Cache::iterator it = cache_.begin (); it != cache_.end ();) {
+		if (it->second.request)
+			complete_request (*it->second.request);
+		Port::Memory::release (it->second.buffer, block_size_);
+	}
+}
+
 void FileAccessDirect::read (uint64_t pos, uint32_t size, vector <uint8_t>& data)
 {
 	if (pos > file_size_)
@@ -17,6 +26,7 @@ void FileAccessDirect::read (uint64_t pos, uint32_t size, vector <uint8_t>& data
 	}
 
 	BlockIdx begin_block = pos / block_size_, end_block = (end + block_size_ - 1) / block_size_;
+
 	clear_cache (begin_block, end_block);
 
 	if (!size)
@@ -24,29 +34,35 @@ void FileAccessDirect::read (uint64_t pos, uint32_t size, vector <uint8_t>& data
 
 	CacheRange blocks = request_read (begin_block, end_block);
 	try {
-		// Copy first block
+		Cache::iterator block = blocks.begin;
+			// Copy first block
 		{
-			complete_request (blocks.begin, Request::OP_READ);
+			complete_request (block, Request::OP_READ);
 			// Reserve space when read across multiple blocks
-			Cache::iterator second_block = blocks.begin;
+			Cache::iterator second_block = block;
 			if (blocks.end != ++second_block)
 				data.reserve (size);
 			Size off = pos % block_size_;
-			const uint8_t* bl = (uint8_t*)blocks.begin->second.buffer + off;
+			const uint8_t* bl = (uint8_t*)block->second.buffer + off;
 			Size cb = min (size, block_size_ - off);
 			data.insert (data.end (), bl, bl + cb);
-			unlock (blocks.begin);
 			size -= cb;
-			blocks.begin = second_block;
+			block = second_block;
 		}
 		// Copy remaining blocks
-		while (blocks.begin != blocks.end) {
-			complete_request (blocks.begin, Request::OP_READ);
-			const uint8_t* bl = (uint8_t*)blocks.begin->second.buffer;
+		while (block != blocks.end) {
+			complete_request (block, Request::OP_READ);
+			const uint8_t* bl = (uint8_t*)block->second.buffer;
 			Size cb = min (size, block_size_);
 			data.insert (data.end (), bl, bl + cb);
-			unlock (blocks.begin);
 			size -= cb;
+			++block;
+		}
+		// Set read time and unlock blocks
+		Chrono::Duration time = Chrono::steady_clock ();
+		while (blocks.begin != blocks.end) {
+			blocks.begin->second.last_read_time = time;
+			unlock (blocks.begin);
 			++blocks.begin;
 		}
 
@@ -196,7 +212,6 @@ void FileAccessDirect::write (uint64_t pos, const vector <uint8_t>& data)
 			cached_block = cache_.lower_bound (cur_block);
 
 		// Copy data to cache
-		Chrono::Duration time = Chrono::steady_clock ();
 		const uint8_t* src_data = data.data ();
 		size_t src_size = data.size ();
 		size_t block_offset = pos % block_size_;
@@ -224,6 +239,7 @@ void FileAccessDirect::write (uint64_t pos, const vector <uint8_t>& data)
 					src_data += cb_copy;
 					src_size -= cb_copy;
 					Pos end = (Pos)cur_block * (Pos)block_size_ + cb_copy;
+					Chrono::Duration time = Chrono::steady_clock ();
 					for (uint8_t* block_buf = buffer;;) {
 						Cache::iterator it = cache_.emplace_hint (cached_block, cur_block, block_buf);
 						size_t dirty_size = max ((size_t)block_size_ - block_offset, cb_copy);
@@ -253,7 +269,7 @@ void FileAccessDirect::write (uint64_t pos, const vector <uint8_t>& data)
 			complete_request (cached_block); // Complete previous read/write operation
 			size_t cb_copy = max (block_size_ - block_offset, src_size);
 			Port::Memory::copy ((uint8_t*)cached_block->second.buffer + block_offset, const_cast <uint8_t*> (src_data), cb_copy, 0);
-			set_dirty (cached_block, time, block_offset, cb_copy);
+			set_dirty (cached_block, Chrono::steady_clock (), block_offset, cb_copy);
 
 			// Update file size
 			Pos end = (Pos)cached_block->first * (Pos)block_size_ + block_offset + cb_copy;
@@ -380,47 +396,46 @@ void FileAccessDirect::complete_request (Request& request) NIRVANA_NOEXCEPT
 void FileAccessDirect::complete_request (Cache::iterator it, unsigned wait_mask)
 {
 	if (it->second.request && (it->second.request->signalled ()
-		|| (it->second.request->operation () & wait_mask)))
+		|| (it->second.request->operation () & wait_mask))) {
+		lock (it);
 		complete_request (*it->second.request);
-
+		unlock (it);
+	}
 	if (it->second.error)
 		throw RuntimeError (it->second.error);
 }
 
-bool FileAccessDirect::can_be_released (Cache::iterator it)
+FileAccessDirect::Cache::iterator FileAccessDirect::release_cache (Cache::iterator it, Chrono::Duration time)
 {
 	if (it->second.request && it->second.request->signalled ())
 		complete_request (*it->second.request);
-	return !it->second.lock_cnt && !it->second.dirty ()
-		&& (it->second.error || Port::Memory::is_private (it->second.buffer, block_size_));
+	if (!it->second.lock_cnt && !it->second.dirty ()
+		&& (
+			(Pos)it->first * (Pos)block_size_ >= file_size_
+			|| (!it->second.error && time - it->second.last_read_time >= DISCARD_TIMEOUT)))
+	{
+		Port::Memory::release (it->second.buffer, block_size_);
+		return cache_.erase (it);
+	} else
+		return ++it;
 }
 
 void FileAccessDirect::clear_cache (BlockIdx excl_begin, BlockIdx excl_end)
 {
+	Chrono::Duration time = Chrono::steady_clock ();
 	for (Cache::iterator p = cache_.begin (); p != cache_.end ();) {
-		if (p->first < excl_begin) {
-			if (can_be_released (p))
-				p = release_cache (p);
-			else
-				++p;
-		} else
+		if (p->first < excl_begin)
+			p = release_cache (p, time);
+		else
 			break;
 	}
 	for (Cache::iterator p = cache_.end (); p != cache_.begin ();) {
 		--p;
-		if (p->first >= excl_end) {
-			if (can_be_released (p))
-				p = release_cache (p);
-		} else
+		if (p->first >= excl_end)
+			p = release_cache (p, time);
+		else
 			break;
 	}
-}
-
-FileAccessDirect::Cache::iterator FileAccessDirect::release_cache (Cache::iterator it)
-{
-	assert (!it->second.dirty ());
-	Port::Memory::release (it->second.buffer, block_size_);
-	return cache_.erase (it);
 }
 
 }
