@@ -27,23 +27,23 @@
 #ifndef NIRVANA_CORE_IO_REQUEST_H_
 #define NIRVANA_CORE_IO_REQUEST_H_
 
-#include "Future.h"
+#include "Event.h"
 
 namespace Nirvana {
 namespace Core {
 
-/// Result of an input/output operation.
 struct IO_Result
 {
 	uint32_t size;
 	int error;
 };
 
+/// Input/output request.
 class IO_Request :
-	public Future <IO_Result>
+	public Event
 {
-	typedef Future <IO_Result> Base;
 public:
+	/// I/O operation code.
 	enum Operation
 	{
 		OP_READ = 1,
@@ -55,13 +55,26 @@ public:
 		operation_ (operation)
 	{}
 
+	/// \returns I/O operation code.
 	Operation operation () const NIRVANA_NOEXCEPT
 	{
 		return operation_;
 	}
 
+	void signal (const IO_Result& result) NIRVANA_NOEXCEPT
+	{
+		result_ = result;
+		Event::signal ();
+	}
+
+	const IO_Result& result () const NIRVANA_NOEXCEPT
+	{
+		return result_;
+	}
+
 private:
-	Operation operation_;
+	const Operation operation_;
+	IO_Result result_;
 };
 
 }

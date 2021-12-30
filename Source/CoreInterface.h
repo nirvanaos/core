@@ -190,17 +190,24 @@ public:
 			p_->_add_ref ();
 	}
 
-	template <class T1>
-	CoreRef (const CoreRef <T1>& src) NIRVANA_NOEXCEPT :
+	CoreRef (const CoreRef& src) NIRVANA_NOEXCEPT :
 		CoreRef (src.p_)
+	{}
+
+	CoreRef (CoreRef&& src) NIRVANA_NOEXCEPT :
+		p_ (src.p_)
 	{
-		if (p_)
-			p_->_add_ref ();
+		src.p_ = nullptr;
 	}
 
 	template <class T1>
+	CoreRef (const CoreRef <T1>& src) NIRVANA_NOEXCEPT :
+		CoreRef (static_cast <T*> (src.p_))
+	{}
+
+	template <class T1>
 	CoreRef (CoreRef <T1>&& src) NIRVANA_NOEXCEPT :
-		p_ (src.p_)
+		p_ (static_cast <T*> (src.p_))
 	{
 		src.p_ = nullptr;
 	}
@@ -232,16 +239,24 @@ public:
 		return *this;
 	}
 
+	CoreRef& operator = (const CoreRef& src) NIRVANA_NOEXCEPT
+	{
+		return operator = (src.p_);
+	}
+
+	CoreRef& operator = (CoreRef&& src) NIRVANA_NOEXCEPT
+	{
+		if (this != &src) {
+			reset (src.p_);
+			src.p_ = nullptr;
+		}
+		return *this;
+	}
+
 	template <class T1>
 	CoreRef& operator = (const CoreRef <T1>& src) NIRVANA_NOEXCEPT
 	{
-		T* p = src.p_;
-		if (p_ != p) {
-			reset (p);
-			if (p)
-				p->_add_ref ();
-		}
-		return *this;
+		return operator = (static_cast <T*> (src.p_));
 	}
 
 	template <class T1>

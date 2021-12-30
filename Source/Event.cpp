@@ -18,16 +18,14 @@ void Event::WaitOp::run ()
 	}
 }
 
-void Event::set () NIRVANA_NOEXCEPT
+void Event::signal () NIRVANA_NOEXCEPT
 {
 	// TODO: Can cause priority inversion.
 	// We should sort released ED by deadline.
 	assert (!signalled_);
 	signalled_ = true;
-	for (;;) {
-		ExecDomain* ed = pop ();
-		if (ed)
-			ed->resume ();
+	while (ExecDomain* ed = pop ()) {
+		ed->resume ();
 	}
 }
 
