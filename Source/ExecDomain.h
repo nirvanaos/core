@@ -112,7 +112,7 @@ public:
 	/// Resume suspended domain
 	void resume ()
 	{
-		assert (&ExecContext::current () != this);
+		assert (ExecContext::current_ptr () != this);
 		assert (sync_context_);
 		sync_context_->schedule_return (*this);
 	}

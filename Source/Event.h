@@ -47,9 +47,10 @@ public:
 
 	/// Suspend current execution domain until the event will be signalled.
 	void wait () NIRVANA_NOEXCEPT {
-		assert (SyncContext::current ().sync_domain ());
-		if (!signalled_)
+		if (!signalled_) {
+			CoreRef <Event> hold (this);
 			run_in_neutral_context (wait_op_);
+		}
 	}
 
 	/// Tests event state without wait.

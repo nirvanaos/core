@@ -102,7 +102,7 @@ void FileAccessDirect::write_dirty_blocks (Chrono::Duration timeout)
 				dirty_begin *= base_block_size_;
 				dirty_end *= base_block_size_;
 				Pos pos = (Pos)first_block->first * (Pos)block_size_ + (Pos)dirty_begin;
-				Size size = (Size)(min ((Pos)idx * (Pos)block_size_ + (Pos)dirty_end, file_size_) - pos);
+				Size size = (Size)((Pos)(idx - 1) * (Pos)block_size_ + (Pos)dirty_end - pos);
 				CoreRef <Request> request = CoreRef <Request>::create <ImplDynamic <Request>> (Request::OP_WRITE, pos,
 					(uint8_t*)first_block->second.buffer + dirty_begin, size, first_block);
 
@@ -153,6 +153,16 @@ void FileAccessDirect::complete_request (Cache::reference entry, int op)
 		throw RuntimeError (entry.second.error);
 }
 
+void FileAccessDirect::complete_size_request () NIRVANA_NOEXCEPT
+{
+	size_request_->wait ();
+	if (size_request_) {
+		if (!size_request_->result ().error)
+			file_size_ = size_request_->offset ();
+		size_request_ = nullptr;
+	}
+}
+
 FileAccessDirect::Cache::iterator FileAccessDirect::release_cache (Cache::iterator it, Chrono::Duration time)
 {
 	if (it->second.request && it->second.request->signalled ())
@@ -185,6 +195,21 @@ void FileAccessDirect::clear_cache (BlockIdx excl_begin, BlockIdx excl_end)
 		else
 			break;
 	}
+}
+
+void FileAccessDirect::set_size (Pos new_size)
+{
+	while (size_request_)
+		complete_size_request ();
+
+	CoreRef <Request> request = CoreRef <Request>::create <ImplDynamic <Request>>
+		(Request::OP_SET_SIZE, new_size, nullptr, 0, cache_.end ());
+	size_request_ = request;
+	issue_request (*request);
+	complete_size_request ();
+	int err = request->result ().error;
+	if (err)
+		throw RuntimeError (err);
 }
 
 }

@@ -47,11 +47,19 @@ public:
 		return *this;
 	}
 
+	/// \returns Current execution context.
 	static ExecContext& current () NIRVANA_NOEXCEPT
 	{
-		ExecContext* p = Port::Thread::context ();
+		ExecContext* p = current_ptr ();
 		assert (p);
 		return *p;
+	}
+
+	/// \returns Current execution context pointer.
+	///          Returns `nullptr` for special non-worker threads.
+	static ExecContext* current_ptr () NIRVANA_NOEXCEPT
+	{
+		return Port::Thread::context ();
 	}
 
 	template <class ... Args>

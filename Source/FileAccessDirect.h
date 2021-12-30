@@ -62,7 +62,7 @@ public:
 	/// Destructor. Without the flush() call all dirty entries will be lost!
 	~FileAccessDirect ()
 	{
-		for (Cache::iterator it = cache_.begin (); it != cache_.end ();) {
+		for (Cache::iterator it = cache_.begin (); it != cache_.end (); ++it) {
 			if (it->second.request)
 				complete_request (it->second.request);
 			Port::Memory::release (it->second.buffer, block_size_);
@@ -80,19 +80,32 @@ public:
 
 	void size (uint64_t new_size)
 	{
-		CoreRef <Request> rq = CoreRef <Request>::create <ImplDynamic <Request>> (Request::OP_SET_SIZE, new_size, nullptr, 0, cache_.end ());
+		if (file_size_ == new_size)
+			return;
+
 		if (file_size_ > new_size) {
+			// Truncation
 			file_size_ = new_size;
-			for (Cache::reverse_iterator it = cache_.rbegin (); it != cache_.rend () && it->first >= file_size_; ++it) {
+			for (Cache::iterator it = cache_.end (); it != cache_.begin ();) {
+				--it;
+				if (it->first < new_size)
+					break;
 				clear_dirty (*it);
 			}
+			for (Cache::iterator it = cache_.end (); it != cache_.begin ();) {
+				--it;
+				if (it->first < new_size)
+					break;
+				if (it->second.request) {
+					complete_request (it->second.request);
+					if (new_size != (volatile Pos&)file_size_)
+						return;
+				}
+				if (!it->second.lock_cnt)
+					it = cache_.erase (it);
+			}
 		}
-		issue_request (*rq);
-		rq->wait ();
-		file_size_ = rq->offset ();
-		int err = rq->result ().error;
-		if (err)
-			throw RuntimeError (err);
+		set_size (new_size);
 	}
 
 	inline
@@ -207,11 +220,16 @@ private:
 		--(entry.second.lock_cnt);
 	}
 
+	void set_size (Pos new_size);
+
+	void complete_size_request () NIRVANA_NOEXCEPT;
+
 private:
-	Size base_block_size_;
-	const Size block_size_;
 	Pos file_size_;
 	Cache cache_;
+	CoreRef <Request> size_request_;
+	const Size block_size_;
+	Size base_block_size_;
 	size_t dirty_blocks_;
 };
 
@@ -449,12 +467,19 @@ void FileAccessDirect::write (uint64_t pos, const std::vector <uint8_t>& data)
 void FileAccessDirect::flush ()
 {
 	write_dirty_blocks (0);
+	
 	for (Cache::iterator it = cache_.begin (); it != cache_.end (); ++it) {
 		// Complete pending write requests.
 		// Do not throw the exceptions.
 		if (it->second.request && it->second.request->operation () == Request::OP_WRITE)
 			complete_request (it->second.request);
 	}
+	
+	// Set file size if unaligned
+	if (file_size_ % base_block_size_)
+		set_size (file_size_);
+
+	// Check for write failures
 	for (Cache::iterator it = cache_.begin (); it != cache_.end (); ++it) {
 		if (it->second.dirty () && it->second.error)
 			throw RuntimeError (it->second.error);

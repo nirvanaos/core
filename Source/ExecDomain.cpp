@@ -100,9 +100,14 @@ void ExecDomain::schedule (SyncContext& sync_context)
 void ExecDomain::suspend ()
 {
 	SyncDomain* sync_domain = sync_context_->sync_domain ();
-	if (sync_domain)
+	if (sync_domain) {
 		ret_qnode_push (*sync_domain);
-	Suspend::suspend ();
+		sync_domain->leave ();
+	}
+	if (&Thread::current ().neutral_context () != &ExecContext::current ())
+		Suspend::suspend ();
+	else
+		Thread::current ().yield ();
 }
 
 void ExecDomain::execute (int scheduler_error)
