@@ -52,15 +52,18 @@ private:
 
 	template <class ... Args>
 	ImplPoolable (Args ... args) :
-		T (std::forward <Args> (args)...)
+		T (std::forward <Args> (args)...),
+		ref_cnt_ (1)
 	{}
 
 	void _add_ref () NIRVANA_NOEXCEPT
 	{
-		StackElem::ref_cnt.increment ();
+		ref_cnt_.increment ();
 	}
 
 	void _remove_ref () NIRVANA_NOEXCEPT;
+
+	AtomicCounter <false> ref_cnt_;
 };
 
 /// Lock-free object pool.
@@ -99,7 +102,7 @@ public:
 template <class T>
 void ImplPoolable <T>::_remove_ref () NIRVANA_NOEXCEPT
 {
-	if (!StackElem::ref_cnt.decrement ())
+	if (!ref_cnt_.decrement ())
 		T::_deactivate (*this);
 }
 
