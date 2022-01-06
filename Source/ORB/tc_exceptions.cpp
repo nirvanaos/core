@@ -71,8 +71,15 @@ typedef TypeCodeEnum <CompletionStatus> TC_CompletionStatus;
 
 #define TC_EXCEPTION(E) typedef TypeCodeSystemException <E> TC_##E;
 
+template <>
+const Parameter TypeCodeMembers <UnknownUserException>::members_ [] = {
+	{ "exception", Type <Any>::type_code }
+};
+
+typedef TypeCodeException <UnknownUserException, true> TC_UnknownUserException;
+
 SYSTEM_EXCEPTIONS (TC_EXCEPTION)
-TC_EXCEPTION (UnknownUserException)
+//TC_EXCEPTION (UnknownUserException)
 
 }
 }

@@ -56,7 +56,7 @@ TEST_F (TestSystem, HeapFactory)
 		heap->release (blocks [i], BLOCK_SIZE);
 	}
 }
-/* Fails!!!
+
 TEST_F (TestSystem, FileAccessDirect)
 {
 	char file_name [L_tmpnam_s];
@@ -67,11 +67,14 @@ TEST_F (TestSystem, FileAccessDirect)
 	SYNC_END ();
 
 	EXPECT_EQ (fa->size (), 0);
-	vector <uint8_t> buf;
-	buf.resize (1, 1);
-	fa->write (0, buf);
+	vector <uint8_t> wbuf;
+	wbuf.resize (1, 1);
+	fa->write (0, wbuf);
 	fa->flush ();
+	vector <uint8_t> rbuf;
+	fa->read (0, 1, rbuf);
+	EXPECT_EQ (rbuf, wbuf);
 	fa = nullptr;
 }
-*/
+
 }
