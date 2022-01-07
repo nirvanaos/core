@@ -123,7 +123,7 @@ struct Block
 class RandomAllocator
 {
 public:
-	RandomAllocator (unsigned seed = mt19937::default_seed) :
+	RandomAllocator (unsigned seed) :
 		rndgen_ (seed)
 	{
 		allocated_.reserve (1024);
@@ -274,7 +274,7 @@ void AllocatedBlocks::check (Core::Heap& memory)
 
 TEST_F (TestHeap, Random)
 {
-	RandomAllocator ra;
+	RandomAllocator ra (mt19937::default_seed);
 	static const int ITERATIONS
 #ifdef _DEBUG
 		= 10;

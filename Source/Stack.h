@@ -50,6 +50,8 @@ class Stack
 {
 	Stack (const Stack&) = delete;
 	Stack& operator = (const Stack&) = delete;
+	typedef LockablePtrT <T, 0, ALIGN> LockablePtr;
+	typedef typename LockablePtr::Ptr Ptr;
 public:
 	Stack () NIRVANA_NOEXCEPT :
 		head_ (nullptr)
@@ -57,27 +59,37 @@ public:
 
 	void push (T& elem) NIRVANA_NOEXCEPT
 	{
-		StackElem* p = &static_cast <StackElem&> (elem);
-		::new (&p->ref_cnt) RefCounter (); // Initialize reference counter with 1
-		auto head = head_.load ();
+		StackElem* node = &static_cast <StackElem&> (elem);
+		// Initialize ref_cnt with 1.
+		// While element is attached to the stack, ref_cnt always > 0.
+		node->ref_cnt = RefCounter ();
+
+		// Push element to the stack
+		Ptr p = &elem;
+		Ptr head = head_.load ();
+		assert (!(p == head));
 		do
-			p->next = head;
-		while (!head_.compare_exchange (head, &elem));
+			node->next = head;
+		while (!head_.compare_exchange (head, p));
 	}
 
 	T* pop () NIRVANA_NOEXCEPT
 	{
-		for (;;) {
-			head_.lock ();
-			T* p = head_.load ();
-			if (p)
-				static_cast <StackElem&> (*p).ref_cnt.increment ();
-			head_.unlock ();
+		for (StackElem* node = nullptr;;) {
+			// Get top and increment counter on it
+			auto p = head_.lock ();
 			if (p) {
-				StackElem& node = static_cast <StackElem&> (*p);
-				if (head_.cas (p, (T*)node.next))
-					node.ref_cnt.decrement ();
-				if (!node.ref_cnt.decrement ())
+				node = static_cast <StackElem*> (p);
+				node->ref_cnt.increment ();
+			}
+			head_.unlock ();
+
+			if (node) {
+				if (head_.cas (p, (T*)(node->next)))
+					node->ref_cnt.decrement (); // node was detached from stack so we decrement the counter
+
+				// First thread that decrement counter to zero will return detached node
+				if (!node->ref_cnt.decrement ())
 					return p;
 			} else
 				return nullptr;

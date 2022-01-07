@@ -3,10 +3,11 @@
 #include <unordered_set>
 #include <vector>
 #include <thread>
-
-namespace TestStack {
+#include <random>
 
 using namespace std;
+
+namespace TestStack {
 
 class TestStack :
 	public ::testing::Test
@@ -71,16 +72,20 @@ TEST_F (TestStack, SingleThread)
 
 void thread_proc (MyStack& stack, unsigned elements, unsigned iterations)
 {
+	//random_device rd;
+	//mt19937 rndgen (rd ());
+	//uniform_int_distribution <> distrib (0, elements);
 	vector <Value*> buf (elements);
 	while (iterations--) {
-		for (unsigned i = 0; i < elements; ++i) {
+		unsigned cnt = elements; //distrib (rndgen);
+		for (unsigned i = 0; i < cnt; ++i) {
 			Value* val = stack.pop ();
 			EXPECT_TRUE (val);
 			if (!val)
 				return;
 			buf [i] = val;
 		}
-		for (unsigned i = 0; i < elements; ++i) {
+		for (unsigned i = 0; i < cnt; ++i) {
 			stack.push (*buf [i]);
 		}
 	}

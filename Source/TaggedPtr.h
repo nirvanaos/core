@@ -241,7 +241,6 @@ bool LockablePtr <TAG_BITS, ALIGN>::compare_exchange (Ptr& cur, const Ptr& to)
 			cur.ptr_ = tcur;
 			return false;
 		}
-		tcur = cur.ptr_;
 	}
 	return true;
 }

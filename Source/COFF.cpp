@@ -44,7 +44,6 @@ const COFF::Section* COFF::sections () const NIRVANA_NOEXCEPT
 	return (const Section*)((const uint8_t*)(hdr_ + 1) + hdr_->SizeOfOptionalHeader);
 }
 
-inline
 bool COFF::is_section (const Section& s, const char* name) NIRVANA_NOEXCEPT
 {
 	const char* sn = s.Name;

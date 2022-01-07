@@ -188,7 +188,8 @@ const ModuleStartup* Binder::module_bind (::Nirvana::Module::_ptr_type mod, cons
 		}
 
 		if (flags || module_entry) {
-			//verify (Port::Memory::copy (const_cast <void*> (metadata.address), const_cast <void*> (metadata.address), metadata.size, Memory::READ_WRITE | Memory::EXACTLY));
+			if (Port::Memory::FLAGS & Memory::ACCESS_CHECK)
+				verify (Port::Memory::copy (const_cast <void*> (metadata.address), const_cast <void*> (metadata.address), metadata.size, Memory::READ_WRITE | Memory::EXACTLY));
 
 			if (module_entry)
 				module_entry->itf = &mod;

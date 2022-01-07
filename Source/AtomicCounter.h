@@ -79,7 +79,7 @@ public:
 		return --cnt_;
 	}
 
-private:
+protected:
 	std::atomic <IntegralType> cnt_;
 };
 
@@ -101,6 +101,13 @@ public:
 	RefCounter& operator = (const RefCounter&) NIRVANA_NOEXCEPT
 	{
 		return *this;
+	}
+
+	/// If we have no references we can't add a new one.
+	IntegralType increment () NIRVANA_NOEXCEPT
+	{
+		assert (cnt_ > 0);
+		return AtomicCounter::increment ();
 	}
 };
 

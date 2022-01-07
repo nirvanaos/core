@@ -1084,4 +1084,7 @@ bool HeapDirectory <DIRECTORY_SIZE, HEAP_LEVELS, IMPL>::check_allocated (size_t 
 }
 }
 
+#undef HEAP_DIR_TRY
+#undef HEAP_DIR_CATCH
+
 #endif

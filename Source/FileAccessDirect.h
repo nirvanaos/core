@@ -312,7 +312,7 @@ void FileAccessDirect::write (uint64_t pos, const std::vector <uint8_t>& data)
 	{
 		BlockIdx start;
 		unsigned count;
-	} read_ranges [2] = { 0 }; // Head, tail
+	} read_ranges [2] = { {0}, {0} }; // Head, tail
 
 	if (file_size_ > pos) {
 
@@ -322,7 +322,6 @@ void FileAccessDirect::write (uint64_t pos, const std::vector <uint8_t>& data)
 			read_ranges [0].count = 1;
 		}
 
-		Pos read_end = std::min (end, file_size_);
 		if (end % block_size_) {
 			BlockIdx tail = end / block_size_;
 			if ((Pos)tail * (Pos)block_size_ < file_size_) {
