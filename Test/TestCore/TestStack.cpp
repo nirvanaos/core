@@ -72,12 +72,12 @@ TEST_F (TestStack, SingleThread)
 
 void thread_proc (MyStack& stack, unsigned elements, unsigned iterations)
 {
-	//random_device rd;
-	//mt19937 rndgen (rd ());
-	//uniform_int_distribution <> distrib (0, elements);
+	random_device rd;
+	mt19937 rndgen (rd ());
+	uniform_int_distribution <> distrib (0, elements);
 	vector <Value*> buf (elements);
 	while (iterations--) {
-		unsigned cnt = elements; //distrib (rndgen);
+		unsigned cnt = distrib (rndgen);
 		for (unsigned i = 0; i < cnt; ++i) {
 			Value* val = stack.pop ();
 			EXPECT_TRUE (val);
@@ -95,7 +95,7 @@ TEST_F (TestStack, MultiThread)
 {
 	static const unsigned thread_cnt = thread::hardware_concurrency ();
 	static const unsigned element_cnt = 20;
-	static const unsigned iterations = 1000;
+	static const unsigned iterations = 10000;
 	MyStack stack;
 	unordered_set <Value*> valset;
 	for (unsigned cnt = thread_cnt * element_cnt; cnt; --cnt) {

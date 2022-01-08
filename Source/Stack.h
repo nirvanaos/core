@@ -61,38 +61,37 @@ public:
 	{
 		StackElem* node = &static_cast <StackElem&> (elem);
 		// Initialize ref_cnt with 1.
+		// We can not use operator = because it has no effect for RefCounter.
+		::new (&(node->ref_cnt)) RefCounter ();
 		// While element is attached to the stack, ref_cnt always > 0.
-		node->ref_cnt = RefCounter ();
 
 		// Push element to the stack
-		Ptr p = &elem;
+		Ptr ptr = &elem;
 		Ptr head = head_.load ();
-		assert (!(p == head));
 		do
 			node->next = head;
-		while (!head_.compare_exchange (head, p));
+		while (!head_.compare_exchange (head, ptr));
 	}
 
 	T* pop () NIRVANA_NOEXCEPT
 	{
 		for (StackElem* node = nullptr;;) {
-			// Get top and increment counter on it
-			auto p = head_.lock ();
-			if (p) {
-				node = static_cast <StackElem*> (p);
+			// Get head and increment counter on it
+			Ptr head = head_.lock ();
+			if ((T*)head) {
+				node = static_cast <StackElem*> ((T*)head);
 				node->ref_cnt.increment ();
-			}
-			head_.unlock ();
-
-			if (node) {
-				if (head_.cas (p, (T*)(node->next)))
+				head_.unlock ();
+				if (head_.cas (head, (T*)(node->next)))
 					node->ref_cnt.decrement (); // node was detached from stack so we decrement the counter
 
 				// First thread that decrement counter to zero will return detached node
 				if (!node->ref_cnt.decrement ())
-					return p;
-			} else
+					return head;
+			} else {
+				head_.unlock ();
 				return nullptr;
+			}
 		}
 	}
 
