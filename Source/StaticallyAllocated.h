@@ -37,6 +37,7 @@ namespace Core {
 template <class T>
 class StaticallyAllocated
 {
+	StaticallyAllocated& operator = (const StaticallyAllocated&) = delete;
 public:
 	/// Construct object in static memory.
 	/// 
@@ -77,6 +78,13 @@ public:
 	{
 		assert (constructed_);
 		return (T*)&storage_;
+	}
+
+	template <class T1>
+	T& operator = (T1 src)
+	{
+		(T&)storage_ = src;
+		return (T&)storage_;
 	}
 
 private:

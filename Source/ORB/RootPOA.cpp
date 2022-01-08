@@ -24,13 +24,13 @@
 *  popov.nirvana@gmail.com
 */
 #include <CORBA/Server.h>
-#include <CORBA/POA.h>
+#include "POA.h"
 
 namespace CORBA {
 namespace Internal {
 namespace Core {
 
-PortableServer::POA::_ref_type g_root_POA;
+Nirvana::Core::StaticallyAllocated <PortableServer::POA::_ref_type> g_root_POA;
 
 }
 }

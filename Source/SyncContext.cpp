@@ -30,7 +30,7 @@
 namespace Nirvana {
 namespace Core {
 
-ImplStatic <SyncContextCore> g_core_free_sync_context;
+StaticallyAllocated <ImplStatic <SyncContextCore>> g_core_free_sync_context;
 
 SyncContext& SyncContext::current () NIRVANA_NOEXCEPT
 {

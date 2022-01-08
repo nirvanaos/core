@@ -29,12 +29,13 @@
 #include "ServantBase.h"
 #include <CORBA/POA_s.h>
 #include "../parallel-hashmap/parallel_hashmap/phmap.h"
+#include "../StaticallyAllocated.h"
 
 namespace CORBA {
 namespace Internal {
 namespace Core {
 
-extern PortableServer::POA::_ref_type g_root_POA; // Temporary solution
+extern Nirvana::Core::StaticallyAllocated <PortableServer::POA::_ref_type> g_root_POA; // Temporary solution
 
 class POA :
 	public Servant <POA, PortableServer::POA>

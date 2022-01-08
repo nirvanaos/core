@@ -37,6 +37,7 @@
 #include "TaggedPtr.h"
 #include "BackOff.h"
 #include "RandomGen.h"
+#include "StaticallyAllocated.h"
 #include <algorithm>
 #include <random>
 #include <utility>
@@ -49,6 +50,14 @@ class SkipListBase
 {
 public:
 	typedef uint_fast8_t Level;
+
+	static void initialize ()
+	{
+		distr_.construct (0.5);
+	}
+
+	static void terminate ()
+	{}
 
 	bool empty () NIRVANA_NOEXCEPT
 	{
@@ -221,7 +230,7 @@ private:
 	unsigned node_size_;
 	RandomGenAtomic rndgen_;
 
-	static const std::geometric_distribution <> distr_;
+	static StaticallyAllocated <std::geometric_distribution <>> distr_;
 };
 
 /// Skip list implementation for the given maximal level count.

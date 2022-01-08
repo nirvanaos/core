@@ -50,6 +50,14 @@ class NIRVANA_NOVTABLE ExecDomain :
 public:
 	typedef ImplPoolable <ExecDomain> Impl;
 
+	static void initialize ()
+	{
+		suspend_.construct ();
+	}
+
+	static void terminate () NIRVANA_NOEXCEPT
+	{}
+
 	static void async_call (const DeadlineTime& deadline, Runnable& runnable, SyncContext& sync_context)
 	{
 		CoreRef <ExecDomain> exec_domain = get (deadline);
@@ -244,26 +252,34 @@ private:
 
 	class ReleaseToPool : public NeutralOp
 	{
-	public:
+	private:
 		virtual void run ();
 	};
 
 	class ScheduleCall : public NeutralOp
 	{
 	public:
-		virtual void run ();
-		virtual void on_exception () NIRVANA_NOEXCEPT;
-
 		SyncContext* sync_context_;
 		std::exception_ptr exception_;
+
+	private:
+		virtual void run ();
+		virtual void on_exception () NIRVANA_NOEXCEPT;
 	};
 
 	class ScheduleReturn : public NeutralOp
 	{
 	public:
-		virtual void run ();
-
 		SyncContext* sync_context_;
+
+	private:
+		virtual void run ();
+	};
+
+	class Suspend : public ImplStatic <Runnable>
+	{
+	private:
+		virtual void run ();
 	};
 
 public:
@@ -286,6 +302,7 @@ public:
 
 private:
 	static ObjectPool <ExecDomain> pool_;
+	static StaticallyAllocated <Suspend> suspend_;
 
 	DeadlineTime deadline_;
 	CoreRef <SyncContext> sync_context_;

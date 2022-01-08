@@ -37,7 +37,7 @@ using namespace std;
 #define CHECK_VALID_LEVEL(lev, nod)
 #endif
 
-const geometric_distribution <> SkipListBase::distr_ (0.5);
+StaticallyAllocated <geometric_distribution <>> SkipListBase::distr_;
 
 bool SkipListBase::Node::operator < (const Node&) const NIRVANA_NOEXCEPT
 {
@@ -244,7 +244,7 @@ SkipListBase::Node* SkipListBase::scan_key (Node*& node1, int level, const Node*
 
 unsigned SkipListBase::random_level () NIRVANA_NOEXCEPT
 {
-	return 1 + distr_ (rndgen_);
+	return 1 + distr_->operator()(rndgen_);
 }
 
 SkipListBase::Node* SkipListBase::get_min_node () NIRVANA_NOEXCEPT

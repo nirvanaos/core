@@ -32,33 +32,33 @@ namespace Core {
 
 void Scheduler::Terminator::run ()
 {
-	terminate ();
+	Core::terminate ();
 }
 
-Scheduler::GlobalData Scheduler::global_;
+StaticallyAllocated <Scheduler::GlobalData> Scheduler::global_;
 
 void Scheduler::shutdown () NIRVANA_NOEXCEPT
 {
 	State state = State::RUNNING;
-	if (global_.state.compare_exchange_strong (state, State::SHUTDOWN_STARTED) && !global_.activity_cnt) {
-		global_.activity_cnt.increment ();
+	if (global_->state.compare_exchange_strong (state, State::SHUTDOWN_STARTED) && !global_->activity_cnt) {
+		global_->activity_cnt.increment ();
 		activity_end ();
 	}
 }
 
 void Scheduler::activity_end () NIRVANA_NOEXCEPT
 {
-	if (!global_.activity_cnt.decrement ()) {
-		switch (global_.state) {
+	if (!global_->activity_cnt.decrement ()) {
+		switch (global_->state) {
 			case State::SHUTDOWN_STARTED: {
 				State state = State::SHUTDOWN_STARTED;
-				if (global_.state.compare_exchange_strong (state, State::TERMINATE))
-					ExecDomain::async_call (INFINITE_DEADLINE, global_.terminator, g_core_free_sync_context);
+				if (global_->state.compare_exchange_strong (state, State::TERMINATE))
+					ExecDomain::async_call (INFINITE_DEADLINE, global_->terminator, g_core_free_sync_context);
 			} break;
 
 			case State::TERMINATE: {
 				State state = State::TERMINATE;
-				if (global_.state.compare_exchange_strong (state, State::SHUTDOWN_FINISH))
+				if (global_->state.compare_exchange_strong (state, State::SHUTDOWN_FINISH))
 					Port::Scheduler::shutdown ();
 			} break;
 		}

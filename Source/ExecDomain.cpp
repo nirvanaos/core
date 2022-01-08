@@ -24,7 +24,6 @@
 *  popov.nirvana@gmail.com
 */
 #include "ExecDomain.h"
-#include "Suspend.h"
 
 using namespace std;
 
@@ -32,6 +31,7 @@ namespace Nirvana {
 namespace Core {
 
 ObjectPool <ExecDomain> ExecDomain::pool_;
+StaticallyAllocated <ExecDomain::Suspend> ExecDomain::suspend_;
 
 CoreRef <ExecDomain> ExecDomain::get (DeadlineTime deadline)
 {
@@ -104,10 +104,16 @@ void ExecDomain::suspend ()
 		ret_qnode_push (*sync_domain);
 		sync_domain->leave ();
 	}
-	if (&Thread::current ().neutral_context () != &ExecContext::current ())
-		Suspend::suspend ();
+	ExecContext& neutral_context = Thread::current ().neutral_context ();
+	if (&neutral_context != &ExecContext::current ())
+		neutral_context.run_in_context (suspend_);
 	else
 		Thread::current ().yield ();
+}
+
+void ExecDomain::Suspend::run ()
+{
+	Thread::current ().yield ();
 }
 
 void ExecDomain::execute (int scheduler_error)

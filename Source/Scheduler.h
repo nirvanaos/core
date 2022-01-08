@@ -30,22 +30,72 @@
 #include "AtomicCounter.h"
 #include "Runnable.h"
 #include <atomic>
+#include "StaticallyAllocated.h"
 
 namespace Nirvana {
 namespace Core {
 
-class Scheduler : public Port::Scheduler
+class Scheduler
 {
 public:
-	static void shutdown () NIRVANA_NOEXCEPT;
-
-	static void activity_begin ()
+	static void initialize ()
 	{
-		assert (global_.state < State::SHUTDOWN_FINISH);
-		global_.activity_cnt.increment ();
+		global_.construct ();
 	}
 
+	static void terminate () NIRVANA_NOEXCEPT
+	{
+		//global_.destruct ();
+	}
+
+	/// Start new activity.
+	/// Called on creation of the execution domain.
+	static void activity_begin ()
+	{
+		assert (global_->state < State::SHUTDOWN_FINISH);
+		global_->activity_cnt.increment ();
+	}
+
+	/// End activity.
+	/// Called on completion of the execution domain.
 	static void activity_end () NIRVANA_NOEXCEPT;
+
+	/// Initiates shutdown.
+	/// Shutdown will be completed when activity count became zero.
+	static void shutdown () NIRVANA_NOEXCEPT;
+
+	/// Reserve space for an active item.
+	/// \throws CORBA::NO_MEMORY
+	static void create_item ()
+	{
+		Port::Scheduler::create_item ();
+	}
+
+	/// Release active item space.
+	static void delete_item () NIRVANA_NOEXCEPT
+	{
+		Port::Scheduler::delete_item ();
+	}
+
+	/// \summary Schedule execution.
+	/// 
+	/// \param deadline Deadline.
+	/// \param executor Executor.
+	static void schedule (const DeadlineTime& deadline, Executor& executor) NIRVANA_NOEXCEPT
+	{
+		Port::Scheduler::schedule (deadline, executor);
+	}
+
+	/// \summary Re-schedule execution.
+	/// 
+	/// \param deadline New deadline.
+	/// \param executor Executor.
+	/// \param old Old deadline.
+	/// \returns `true` if the executor was found and rescheduled. `false` if executor with old deadline was not found.
+	static bool reschedule (const DeadlineTime& deadline, Executor& executor, const DeadlineTime& old) NIRVANA_NOEXCEPT
+	{
+		return Port::Scheduler::reschedule (deadline, executor, old);
+	}
 
 private:
 	enum State
@@ -74,7 +124,7 @@ private:
 		{}
 	};
 
-	static GlobalData global_;
+	static StaticallyAllocated <GlobalData> global_;
 };
 
 }

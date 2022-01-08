@@ -28,6 +28,7 @@
 #define NIRVANA_CORE_SYNCCONTEXT_H_
 
 #include "Thread.h"
+#include "StaticallyAllocated.h"
 
 namespace Nirvana {
 namespace Core {
@@ -106,7 +107,7 @@ public:
 	virtual Heap* stateless_memory () NIRVANA_NOEXCEPT;
 };
 
-extern ImplStatic <SyncContextCore> g_core_free_sync_context;
+extern StaticallyAllocated <ImplStatic <SyncContextCore>> g_core_free_sync_context;
 
 }
 }

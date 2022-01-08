@@ -23,31 +23,42 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_CORE_SUSPEND_H_
-#define NIRVANA_CORE_SUSPEND_H_
-
-#include "Runnable.h"
+#include "initterm.h"
+#include "Binder.h"
+#include "Scheduler.h"
+#include "ExecDomain.h"
+#include "ORB/POA.h"
 
 namespace Nirvana {
 namespace Core {
 
-class Suspend :
-	public ImplStatic <Runnable>
+void initialize0 ()
 {
-public:
-	static void suspend () NIRVANA_NOEXCEPT
-	{
-		run_in_neutral_context (runnable_);
-	}
+	Heap::initialize ();
+	g_core_free_sync_context.construct ();
+	ExecDomain::initialize ();
+	Scheduler::initialize ();
+	CORBA::Internal::Core::g_root_POA.construct ();
+}
 
-private:
-	virtual void run ();
+void initialize ()
+{
+	Binder::initialize ();
+}
 
-private:
-	static Suspend runnable_;
-};
+void terminate ()
+{
+	Binder::terminate ();
+	CORBA::Internal::Core::g_root_POA.destruct ();
+}
+
+void terminate0 () NIRVANA_NOEXCEPT
+{
+	Scheduler::terminate ();
+	ExecDomain::terminate ();
+	//g_core_free_sync_context.destruct ();
+	Heap::terminate ();
+}
 
 }
 }
-
-#endif
