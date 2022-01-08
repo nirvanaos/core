@@ -28,6 +28,7 @@
 
 #include "HeapDirectory.h"
 #include "SkipList.h"
+#include "StaticallyAllocated.h"
 #include <Port/config.h>
 
 namespace Nirvana {
@@ -341,59 +342,18 @@ private:
 	virtual MemoryBlock* add_new_partition (MemoryBlock*& tail);
 };
 
-class CoreHeapObj
-{
-public:
-	void initialize ()
-	{
-		assert (!initialized_);
-		Port::Memory::initialize ();
-		new (&object_) HeapCore ();
-#ifdef _DEBUG
-		initialized_ = true;
-#endif
-	}
-
-	void terminate () NIRVANA_NOEXCEPT
-	{
-		assert (initialized_);
-		((HeapCore*)&object_)->~HeapCore ();
-		Port::Memory::terminate ();
-#ifdef _DEBUG
-		initialized_ = false;
-#endif
-	}
-
-	Heap* operator -> ()
-	{
-		assert (initialized_);
-		return (HeapCore*)&object_;
-	}
-
-	Heap& object ()
-	{
-		assert (initialized_);
-		return *(HeapCore*)&object_;
-	}
-
-private:
-	std::aligned_storage <sizeof (HeapCore), alignof (HeapCore)>::type object_;
-
-#ifdef _DEBUG
-	bool initialized_;
-#endif
-};
-
-extern CoreHeapObj g_core_heap;
+extern StaticallyAllocated <HeapCore> g_core_heap;
 
 inline void Heap::initialize ()
 {
-	g_core_heap.initialize ();
+	Port::Memory::initialize ();
+	g_core_heap.construct ();
 }
 
 inline void Heap::terminate () NIRVANA_NOEXCEPT
 {
-	g_core_heap.terminate ();
+	g_core_heap.destruct ();
+	Port::Memory::terminate ();
 }
 
 class HeapUser :

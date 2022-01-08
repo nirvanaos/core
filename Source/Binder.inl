@@ -37,8 +37,8 @@ namespace Core {
 inline
 Legacy::Main::_ptr_type Binder::bind (Legacy::Core::Executable& mod)
 {
-	SYNC_BEGIN (singleton_.sync_domain_);
-	const ModuleStartup* startup = singleton_.module_bind (mod._get_ptr (), mod.metadata (), nullptr);
+	SYNC_BEGIN (singleton_->sync_domain_);
+	const ModuleStartup* startup = singleton_->module_bind (mod._get_ptr (), mod.metadata (), nullptr);
 	try {
 		if (!startup || !startup->startup)
 			invalid_metadata ();

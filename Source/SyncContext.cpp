@@ -85,7 +85,7 @@ RuntimeSupport& SyncContextFree::runtime_support () NIRVANA_NOEXCEPT
 
 Heap* SyncContextCore::stateless_memory () NIRVANA_NOEXCEPT
 {
-	return &g_core_heap.object ();
+	return &g_core_heap;
 }
 
 }

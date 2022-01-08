@@ -97,7 +97,7 @@ private:
 				return ed->sync_context ().memory ();
 		}
 		// Fallback to g_core_heap
-		return g_core_heap.object ();
+		return g_core_heap;
 	}
 };
 

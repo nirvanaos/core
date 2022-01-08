@@ -69,7 +69,7 @@ public:
 	}
 
 private:
-	static FreeList <CORE_OBJECT_ALIGN (T)> free_list_;
+	FreeList <CORE_OBJECT_ALIGN (T)> free_list_;
 };
 
 }

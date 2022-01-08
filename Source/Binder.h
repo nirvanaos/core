@@ -31,6 +31,7 @@
 #include "Synchronized.h"
 #include "Heap.h"
 #include "Module.h"
+#include "StaticallyAllocated.h"
 #include <CORBA/RepositoryId.h>
 #include <Nirvana/Main.h>
 #include <Nirvana/ModuleInit.h>
@@ -136,8 +137,7 @@ private:
 		UserAllocator <std::pair <std::string, Module*> > > ModuleMap;
 
 public:
-	Binder () :
-		initialized_ (false)
+	Binder ()
 	{}
 
 	static void initialize ();
@@ -148,8 +148,8 @@ public:
 	{
 		const std::string& sname = static_cast <const std::string&> (name);
 		CoreString name_copy (sname.c_str (), sname.length ());
-		SYNC_BEGIN (singleton_.sync_domain_);
-		return singleton_.bind_sync (name_copy);
+		SYNC_BEGIN (singleton_->sync_domain_);
+		return singleton_->bind_sync (name_copy);
 		SYNC_END ();
 	}
 
@@ -159,8 +159,8 @@ public:
 		const std::string& sname = static_cast <const std::string&> (name);
 		const std::string& siid = static_cast <const std::string&> (iid);
 		CoreString name_copy (sname.c_str (), sname.length ()), iid_copy (siid.c_str (), siid.length ());
-		SYNC_BEGIN (singleton_.sync_domain_);
-		return singleton_.bind_interface_sync (name_copy, iid_copy);
+		SYNC_BEGIN (singleton_->sync_domain_);
+		return singleton_->bind_interface_sync (name_copy, iid_copy);
 		SYNC_END ();
 	}
 
@@ -227,9 +227,9 @@ private:
 	ImplStatic <SyncDomain> sync_domain_;
 	ObjectMap object_map_;
 	ModuleMap module_map_;
-	bool initialized_;
 
-	static Binder singleton_;
+	static bool initialized_;
+	static StaticallyAllocated <Binder> singleton_;
 };
 
 }

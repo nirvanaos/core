@@ -35,7 +35,7 @@ namespace Core {
 
 using namespace std;
 
-CoreHeapObj g_core_heap;
+StaticallyAllocated <HeapCore> g_core_heap;
 
 inline
 bool Heap::MemoryBlock::collapse_large_block (size_t size) NIRVANA_NOEXCEPT

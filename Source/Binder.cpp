@@ -44,7 +44,8 @@ using namespace CORBA::Internal;
 using namespace PortableServer;
 using CORBA::Internal::Core::POA;
 
-Binder Binder::singleton_;
+StaticallyAllocated <Binder> Binder::singleton_;
+bool Binder::initialized_ = false;
 
 void Binder::ObjectMap::insert (const char* name, InterfacePtr itf)
 {
@@ -81,27 +82,29 @@ Binder::InterfacePtr Binder::ObjectMap::find (const ObjectKey& key) const
 
 void Binder::initialize ()
 {
+	singleton_.construct ();
 	Section metadata;
 	if (!Port::SystemInfo::get_OLF_section (metadata))
 		throw_INITIALIZE ();
 
-	SYNC_BEGIN (singleton_.sync_domain_);
+	SYNC_BEGIN (singleton_->sync_domain_);
 	ModuleContext context{ g_core_free_sync_context };
-	singleton_.module_bind (nullptr, metadata, &context);
-	singleton_.object_map_ = std::move (context.exports);
-	singleton_.initialized_ = true;
+	singleton_->module_bind (nullptr, metadata, &context);
+	singleton_->object_map_ = std::move (context.exports);
+	initialized_ = true;
 	SYNC_END ();
 }
 
 void Binder::terminate ()
 {
-	SYNC_BEGIN (singleton_.sync_domain_);
-	assert (singleton_.initialized_);
-	singleton_.initialized_ = false;
-	while (!singleton_.module_map_.empty ())
-		singleton_.unload (singleton_.module_map_.begin ());
+	SYNC_BEGIN (singleton_->sync_domain_);
+	assert (initialized_);
+	initialized_ = false;
+	while (!singleton_->module_map_.empty ())
+		singleton_->unload (singleton_->module_map_.begin ());
 	CORBA::Internal::Core::g_root_POA = nullptr;
 	SYNC_END ();
+	singleton_.destruct ();
 }
 
 NIRVANA_NORETURN void Binder::invalid_metadata ()
