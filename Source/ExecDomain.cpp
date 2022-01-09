@@ -30,35 +30,11 @@ using namespace std;
 namespace Nirvana {
 namespace Core {
 
-ObjectPool <ExecDomain> ExecDomain::pool_;
 StaticallyAllocated <ExecDomain::Suspend> ExecDomain::suspend_;
 
-CoreRef <ExecDomain> ExecDomain::get (DeadlineTime deadline)
+CoreRef <ExecDomain> ExecDomain::create (const DeadlineTime& deadline, Runnable& runnable)
 {
-	Scheduler::activity_begin ();	// Throws exception if shutdown was started.
-	try {
-		CoreRef <ExecDomain> exec_domain = pool_.get ();
-		exec_domain->deadline_ = deadline;
-		return exec_domain;
-	} catch (...) {
-		Scheduler::activity_end ();
-		throw;
-	}
-}
-
-void ExecDomain::ctor_base ()
-{
-	restricted_mode_ = RestrictedMode::NO_RESTRICTIONS;
-	deadline_ = numeric_limits <DeadlineTime>::max ();
-	ret_qnodes_ = nullptr;
-	scheduler_error_ = CORBA::SystemException::EC_NO_EXCEPTION;
-	scheduler_item_created_ = false;
-	cur_heap_ = &heap_;
-	release_to_pool_.init (*this);
-	schedule_call_.init (*this);
-	schedule_return_.init (*this);
-	stateless_creation_frame_ = nullptr;
-	binder_context_ = nullptr;
+	return CoreRef <ExecDomain>::create <ExecDomain> (deadline, ref (runnable));
 }
 
 void ExecDomain::spawn (SyncContext& sync_context)
@@ -142,37 +118,48 @@ void ExecDomain::cleanup () NIRVANA_NOEXCEPT
 		Scheduler::delete_item ();
 		scheduler_item_created_ = false;
 	}
+	Thread::current ().exec_domain (nullptr);
+	_remove_ref ();
 }
 
-void ExecDomain::execute_loop () NIRVANA_NOEXCEPT
+void ExecDomain::_add_ref () NIRVANA_NOEXCEPT
+{
+	ref_cnt_.increment ();
+}
+
+void ExecDomain::_remove_ref () NIRVANA_NOEXCEPT
+{
+	if (!ref_cnt_.decrement ()) {
+		if (&ExecContext::current () == this)
+			run_in_neutral_context (deleter_);
+		else
+			delete this;
+	}
+}
+
+void ExecDomain::Deleter::run ()
+{
+	delete &exec_domain_;
+}
+
+void ExecDomain::run () NIRVANA_NOEXCEPT
 {
 	assert (Thread::current ().exec_domain () == this);
-	while (runnable_) {
-		if (scheduler_error_ >= 0) {
-			runnable_->on_crash (scheduler_error_);
-			runnable_ = nullptr;
-		} else {
-			ExecContext::run ();
-			assert (!runnable_); // Cleaned inside ExecContext::run ();
-		}
-		cleanup ();
-		Thread::current ().exec_domain (nullptr);
-		_remove_ref ();
+	assert (runnable_);
+	if (scheduler_error_ >= 0) {
+		runnable_->on_crash (scheduler_error_);
+		runnable_ = nullptr;
+	} else {
+		ExecContext::run ();
+		assert (!runnable_); // Cleaned inside ExecContext::run ();
 	}
+	cleanup ();
 }
 
 void ExecDomain::on_exec_domain_crash (CORBA::SystemException::Code err) NIRVANA_NOEXCEPT
 {
-	Thread::current ().exec_domain (nullptr);
 	ExecContext::on_crash (err);
 	cleanup ();
-	_remove_ref ();
-}
-
-void ExecDomain::ReleaseToPool::run ()
-{
-	assert (&ExecContext::current () != exec_domain_);
-	pool_.release (static_cast <ImplPoolable <ExecDomain>&> (*exec_domain_));
 }
 
 void ExecDomain::schedule_call (SyncContext& sync_context)
@@ -188,7 +175,7 @@ void ExecDomain::schedule_call (SyncContext& sync_context)
 
 void ExecDomain::ScheduleCall::run ()
 {
-	exec_domain_->schedule (*sync_context_);
+	exec_domain_.schedule (*sync_context_);
 	Thread::current ().yield ();
 }
 
@@ -206,8 +193,8 @@ void ExecDomain::schedule_return (SyncContext& sync_context) NIRVANA_NOEXCEPT
 void ExecDomain::ScheduleReturn::run ()
 {
 	Thread& thread = Thread::current ();
-	CoreRef <SyncDomain> old_sync_domain = exec_domain_->sync_context ().sync_domain ();
-	sync_context_->schedule_return (*exec_domain_);
+	CoreRef <SyncDomain> old_sync_domain = exec_domain_.sync_context ().sync_domain ();
+	sync_context_->schedule_return (exec_domain_);
 	if (old_sync_domain)
 		old_sync_domain->leave ();
 	thread.yield ();

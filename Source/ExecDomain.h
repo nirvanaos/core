@@ -29,7 +29,7 @@
 
 #include "SyncDomain.h"
 #include "Scheduler.h"
-#include "ObjectPool.h"
+#include "Stack.h"
 #include "CoreObject.h"
 #include "RuntimeSupportImpl.h"
 #include "UserAllocator.h"
@@ -42,14 +42,13 @@ namespace Nirvana {
 namespace Core {
 
 /// Execution domain (coroutine, fiber).
-class NIRVANA_NOVTABLE ExecDomain :
+class ExecDomain :
 	public CoreObject,
 	public ExecContext,
-	public Executor
+	public Executor,
+	public StackElem
 {
 public:
-	typedef ImplPoolable <ExecDomain> Impl;
-
 	static void initialize ()
 	{
 		suspend_.construct ();
@@ -58,25 +57,18 @@ public:
 	static void terminate () NIRVANA_NOEXCEPT
 	{}
 
+	static CoreRef <ExecDomain> create (const DeadlineTime& deadline, Runnable& runnable);
+
 	static void async_call (const DeadlineTime& deadline, Runnable& runnable, SyncContext& sync_context)
 	{
-		CoreRef <ExecDomain> exec_domain = get (deadline);
-		exec_domain->runnable_ = &runnable;
+		CoreRef <ExecDomain> exec_domain = create (deadline, runnable);
 		exec_domain->spawn (sync_context);
 	}
 
-	/// Used in porting for creation of the startup domain.
-	template <class ... Args>
-	static CoreRef <ExecDomain> create_main (const DeadlineTime& deadline, Runnable& startup, Args ... args)
+	/// Create execution domain for a background thread.
+	static CoreRef <ExecDomain> create_background (SyncContext& sync_context, Runnable& startup)
 	{
-		return CoreRef <ExecDomain>::create <ImplPoolable <ExecDomain> > (deadline, std::ref (startup), std::forward <Args> (args)...);
-	}
-
-	/// Get execution domain for a background thread.
-	static CoreRef <ExecDomain> get_background (SyncContext& sync_context, Runnable& startup)
-	{
-		CoreRef <ExecDomain> exec_domain = get (INFINITE_DEADLINE);
-		exec_domain->runnable_ = &startup;
+		CoreRef <ExecDomain> exec_domain = create (INFINITE_DEADLINE, startup);
 		exec_domain->sync_context_ = &sync_context;
 		return exec_domain;
 	}
@@ -125,27 +117,8 @@ public:
 		sync_context_->schedule_return (*this);
 	}
 
-	void _activate ()
-	{}
-
-	/// Clear data and return object to the pool
-	void _deactivate (ImplPoolable <ExecDomain>& obj) NIRVANA_NOEXCEPT
-	{
-		assert (!runnable_);
-		assert (!sync_context_);
-#ifdef _DEBUG
-		Thread& thread = Thread::current ();
-		assert (thread.exec_domain () != this);
-#endif
-		Scheduler::activity_end ();
-		if (&ExecContext::current () == this)
-			run_in_neutral_context (release_to_pool_);
-		else
-			pool_.release (obj);
-	}
-
 	/// \brief Called from the Port implementation.
-	void execute_loop () NIRVANA_NOEXCEPT;
+	void run () NIRVANA_NOEXCEPT;
 
 	/// Called from the Port implementation in case of the unrecoverable system error.
 	/// \param err Exception code.
@@ -203,27 +176,37 @@ public:
 		return ret;
 	}
 
-protected:
-	ExecDomain () :
-		ExecContext ()
+private:
+	ExecDomain (const DeadlineTime& deadline, Runnable& runnable) :
+		ExecContext (false),
+		deadline_ (deadline),
+		restricted_mode_ (RestrictedMode::NO_RESTRICTIONS),
+		ret_qnodes_ (nullptr),
+		scheduler_error_ (CORBA::SystemException::EC_NO_EXCEPTION),
+		scheduler_item_created_ (false),
+		cur_heap_ (&heap_),
+		stateless_creation_frame_ (nullptr),
+		binder_context_ (nullptr),
+		schedule_call_ (*this),
+		schedule_return_ (*this),
+		deleter_ (*this)
 	{
-		ctor_base ();
+		runnable_ = &runnable;
+		Scheduler::activity_begin ();	// Throws exception if shutdown was started.
 	}
 
-	//! Constructor with parameters used in porting for creation of the startup domain.
-	template <class ... Args>
-	ExecDomain (DeadlineTime deadline, Runnable& startup, Args ... args) :
-		ExecContext (std::forward <Args> (args)...)
+	~ExecDomain () NIRVANA_NOEXCEPT
 	{
-		Scheduler::activity_begin ();
-		ctor_base ();
-		deadline_ = deadline;
-		runnable_ = &startup;
+		assert (!runnable_);
+		assert (!sync_context_);
+#ifdef _DEBUG
+		Thread& thread = Thread::current ();
+		assert (thread.exec_domain () != this);
+#endif
+		Scheduler::activity_end ();
 	}
 
 private:
-	void ctor_base ();
-
 	void ret_qnodes_clear () NIRVANA_NOEXCEPT
 	{
 		while (ret_qnodes_) {
@@ -233,32 +216,30 @@ private:
 		}
 	}
 
-	static CoreRef <ExecDomain> get (DeadlineTime deadline);
-
+	friend class CoreRef <ExecDomain>;
+	void _add_ref () NIRVANA_NOEXCEPT;
+	void _remove_ref () NIRVANA_NOEXCEPT;
 	void cleanup () NIRVANA_NOEXCEPT;
 
 private:
 	class NeutralOp : public ImplStatic <Runnable>
 	{
-	public:
-		void init (ExecDomain& ed)
-		{
-			exec_domain_ = &ed;
-		}
+	protected:
+		NeutralOp (ExecDomain& ed) :
+			exec_domain_ (ed)
+		{}
 
 	protected:
-		ExecDomain* exec_domain_;
-	};
-
-	class ReleaseToPool : public NeutralOp
-	{
-	private:
-		virtual void run ();
+		ExecDomain& exec_domain_;
 	};
 
 	class ScheduleCall : public NeutralOp
 	{
 	public:
+		ScheduleCall (ExecDomain& ed) :
+			NeutralOp (ed)
+		{}
+
 		SyncContext* sync_context_;
 		std::exception_ptr exception_;
 
@@ -270,7 +251,22 @@ private:
 	class ScheduleReturn : public NeutralOp
 	{
 	public:
+		ScheduleReturn (ExecDomain& ed) :
+			NeutralOp (ed)
+		{}
+
 		SyncContext* sync_context_;
+
+	private:
+		virtual void run ();
+	};
+
+	class Deleter : public NeutralOp
+	{
+	public:
+		Deleter (ExecDomain& ed) :
+			NeutralOp (ed)
+		{}
 
 	private:
 		virtual void run ();
@@ -301,7 +297,6 @@ public:
 	RuntimeGlobal runtime_global_;
 
 private:
-	static ObjectPool <ExecDomain> pool_;
 	static StaticallyAllocated <Suspend> suspend_;
 
 	DeadlineTime deadline_;
@@ -312,9 +307,10 @@ private:
 	RuntimeSupportImpl <UserAllocator> runtime_support_;
 	bool scheduler_item_created_;
 	CORBA::Exception::Code scheduler_error_;
-	ReleaseToPool release_to_pool_;
+	RefCounter ref_cnt_;
 	ScheduleCall schedule_call_;
 	ScheduleReturn schedule_return_;
+	Deleter deleter_;
 };
 
 }

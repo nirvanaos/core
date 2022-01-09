@@ -9,7 +9,7 @@ void Event::WaitOp::run ()
 		ExecDomain* ed = Thread::current ().exec_domain ();
 		assert (ed);
 		ed->suspend ();
-		obj_.push (static_cast <ExecDomain::Impl&> (*ed));
+		obj_.push (*ed);
 		if (obj_.signalled_) {
 			ExecDomain* ed = obj_.pop ();
 			if (ed)

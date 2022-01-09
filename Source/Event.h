@@ -32,12 +32,10 @@
 namespace Nirvana {
 namespace Core {
 
-class ExecDomain;
-
 /// Implements wait list for asynchronous operations.
 class Event :
 	public CoreInterface,
-	private Stack <ExecDomain::Impl>
+	private Stack <ExecDomain>
 {
 public:
 	Event () NIRVANA_NOEXCEPT :

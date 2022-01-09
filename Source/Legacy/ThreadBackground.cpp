@@ -39,7 +39,7 @@ ThreadBackground::ThreadBackground (bool process) :
 
 void ThreadBackground::start (RuntimeSupportLegacy& runtime_support, Nirvana::Core::Runnable& runnable)
 {
-	auto ed = ExecDomain::get_background (*this, runnable);
+	auto ed = ExecDomain::create_background (*this, runnable);
 	exec_domain_ = ed;
 	ed->start ([this]() {this->create (); });
 	_add_ref ();

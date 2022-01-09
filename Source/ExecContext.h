@@ -62,9 +62,11 @@ public:
 		return Port::Thread::context ();
 	}
 
-	template <class ... Args>
-	ExecContext (Args ... args) :
-		Port::ExecContext (std::forward <Args> (args)...),
+	/// Constructor.
+	/// 
+	/// \param neutral `true` if neutral context is created.
+	ExecContext (bool neutral) :
+		Port::ExecContext (neutral),
 		runnable_ (nullptr)
 	{}
 
