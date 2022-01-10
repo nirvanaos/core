@@ -28,7 +28,7 @@
 
 #include "Heap.h"
 #include <CORBA/Server.h>
-#include <Memory_s.h>
+#include "IDL/Memory_s.h"
 #include "UserObject.h"
 #include "LifeCyclePseudo.h"
 
