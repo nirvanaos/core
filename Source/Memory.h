@@ -23,6 +23,9 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
+#ifndef NIRVANA_CORE_MEMORY_H_
+#define NIRVANA_CORE_MEMORY_H_
+
 #include <CORBA/Server.h>
 #include <Memory_s.h>
 #include "ExecDomain.h"
@@ -102,10 +105,6 @@ private:
 };
 
 }
-
-__declspec (selectany)
-extern const ImportInterfaceT <Memory> g_memory = { OLF_IMPORT_INTERFACE, "Nirvana/g_memory", Memory::repository_id_, NIRVANA_STATIC_BRIDGE (Memory, Core::Memory) };
-
 }
 
-NIRVANA_EXPORT (_exp_Nirvana_g_memory, "Nirvana/g_memory", Nirvana::Memory, Nirvana::Core::Memory)
+#endif

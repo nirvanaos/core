@@ -37,7 +37,6 @@ namespace Core {
 template <class T>
 class StaticallyAllocated
 {
-	StaticallyAllocated& operator = (const StaticallyAllocated&) = delete;
 public:
 	/// Construct object in static memory.
 	/// 

@@ -27,10 +27,23 @@
 *  popov.nirvana@gmail.com
 */
 #include <Nirvana/OLF.h>
+#include "Memory.h"
+#include "System.h"
 #include <CORBA/system_exceptions.h>
 
-NIRVANA_LINK_SYMBOL (_exp_Nirvana_g_memory)
-NIRVANA_LINK_SYMBOL (_exp_Nirvana_g_system)
+namespace Nirvana {
+
+__declspec (selectany)
+const ImportInterfaceT <Memory> g_memory = { OLF_IMPORT_INTERFACE, "Nirvana/g_memory", Memory::repository_id_, NIRVANA_STATIC_BRIDGE (Memory, Core::Memory) };
+
+__declspec (selectany)
+const ImportInterfaceT <System> g_system = { OLF_IMPORT_INTERFACE, "Nirvana/g_system", System::repository_id_, NIRVANA_STATIC_BRIDGE (System, Core::System) };
+
+}
+
+NIRVANA_EXPORT (_exp_Nirvana_g_memory, "Nirvana/g_memory", Nirvana::Memory, Nirvana::Core::Memory)
+NIRVANA_EXPORT (_exp_Nirvana_g_system, "Nirvana/g_system", Nirvana::System, Nirvana::Core::System)
+
 NIRVANA_LINK_SYMBOL (_exp_PortableServer_POA)
 NIRVANA_LINK_SYMBOL (_exp_PortableServer_POA_ServantAlreadyActive)
 NIRVANA_LINK_SYMBOL (_exp_PortableServer_POA_ObjectNotActive)

@@ -38,11 +38,11 @@ namespace Core {
 class HeapDynamic :
 	public HeapUser,
 	public UserObject,
-	public CORBA::servant_traits <Memory>::Servant <HeapDynamic>,
+	public CORBA::servant_traits <Nirvana::Memory>::Servant <HeapDynamic>,
 	public LifeCyclePseudo <HeapDynamic>
 {
 public:
-	using CORBA::servant_traits <Memory>::Servant <HeapDynamic>::_release;
+	using CORBA::servant_traits <Nirvana::Memory>::Servant <HeapDynamic>::_release;
 	using LifeCyclePseudo <HeapDynamic>::_release;
 
 	HeapDynamic (uint16_t allocation_unit) :

@@ -57,7 +57,11 @@ public:
 	}
 
 	static void terminate ()
-	{}
+	{
+#ifdef _DEBUG
+		distr_.destruct ();
+#endif
+	}
 
 	bool empty () NIRVANA_NOEXCEPT
 	{

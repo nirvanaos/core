@@ -23,6 +23,9 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
+#ifndef NIRVANA_CORE_SYSTEM_H_
+#define NIRVANA_CORE_SYSTEM_H_
+
 #include <CORBA/Server.h>
 #include <System_s.h>
 #include "Binder.h"
@@ -134,10 +137,6 @@ private:
 };
 
 }
-
-__declspec (selectany)
-extern const ImportInterfaceT <System> g_system = { OLF_IMPORT_INTERFACE, "Nirvana/g_system", System::repository_id_, NIRVANA_STATIC_BRIDGE (System, Core::System) };
-
 }
 
-NIRVANA_EXPORT (_exp_Nirvana_g_system, "Nirvana/g_system", Nirvana::System, Nirvana::Core::System)
+#endif
