@@ -179,14 +179,14 @@ public:
 private:
 	ExecDomain (const DeadlineTime& deadline, Runnable& runnable) :
 		ExecContext (false),
-		deadline_ (deadline),
 		restricted_mode_ (RestrictedMode::NO_RESTRICTIONS),
-		ret_qnodes_ (nullptr),
-		scheduler_error_ (CORBA::SystemException::EC_NO_EXCEPTION),
-		scheduler_item_created_ (false),
-		cur_heap_ (&heap_),
 		stateless_creation_frame_ (nullptr),
 		binder_context_ (nullptr),
+		deadline_ (deadline),
+		ret_qnodes_ (nullptr),
+		cur_heap_ (&heap_),
+		scheduler_item_created_ (false),
+		scheduler_error_ (CORBA::SystemException::EC_NO_EXCEPTION),
 		schedule_call_ (*this),
 		schedule_return_ (*this),
 		deleter_ (*this)

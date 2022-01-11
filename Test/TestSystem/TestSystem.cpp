@@ -1,10 +1,10 @@
 #include <Nirvana/Nirvana.h>
-#include "../../Source/FileAccessDirect.h"
-#include "../../Source/Synchronized.h"
 #include <gtest/gtest.h>
 
 using namespace Nirvana;
 using namespace std;
+
+// Test for the Nirvana::System interface
 
 namespace TestSystem {
 
@@ -55,26 +55,6 @@ TEST_F (TestSystem, HeapFactory)
 	for (int i = COUNT - 1; i >= 0; --i) {
 		heap->release (blocks [i], BLOCK_SIZE);
 	}
-}
-
-TEST_F (TestSystem, FileAccessDirect)
-{
-	char file_name [L_tmpnam_s];
-	ASSERT_FALSE (tmpnam_s (file_name));
-	Nirvana::FileAccessDirect::_ref_type fa;
-	SYNC_BEGIN (Core::SyncContext::current ());
-	fa = CORBA::make_reference <Nirvana::Core::FileAccessDirect> (file_name, O_CREAT | O_TRUNC)->_this ();
-	SYNC_END ();
-
-	EXPECT_EQ (fa->size (), 0);
-	vector <uint8_t> wbuf;
-	wbuf.resize (1, 1);
-	fa->write (0, wbuf);
-	fa->flush ();
-	vector <uint8_t> rbuf;
-	fa->read (0, 1, rbuf);
-	EXPECT_EQ (rbuf, wbuf);
-	fa = nullptr;
 }
 
 }
