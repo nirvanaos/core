@@ -1,4 +1,3 @@
-/// \file
 /*
 * Nirvana Core.
 *
@@ -24,22 +23,30 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_CORE_USER_MEMORY_H_
-#define NIRVANA_CORE_USER_MEMORY_H_
-
-#include "Heap.h"
-#include "SyncContext.h"
+#include "HeapUser.h"
 
 namespace Nirvana {
 namespace Core {
 
-inline
-Heap& user_memory ()
+bool HeapUser::cleanup ()
 {
-	return SyncContext::current ().memory ();
+	bool empty = true;
+	part_list_ = nullptr;
+	while (BlockList::NodeVal* node = block_list_.delete_min ()) {
+		const MemoryBlock block = node->value ();
+		block_list_.release_node (node);
+		if (block.is_large_block ()) {
+			Port::Memory::release (block.begin (), block.large_block_size ());
+			empty = false;
+		} else {
+			Directory& dir = block.directory ();
+			if (!dir.empty ())
+				empty = false;
+			Port::Memory::release (&dir, sizeof (Directory) + partition_size ());
+		}
+	}
+	return empty;
 }
 
 }
 }
-
-#endif

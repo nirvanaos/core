@@ -25,6 +25,7 @@
 */
 #ifndef NIRVANA_CORE_CLASSLIBRARY_H_
 #define NIRVANA_CORE_CLASSLIBRARY_H_
+#pragma once
 
 #include "Module.h"
 #include "Binder.h"
@@ -52,7 +53,7 @@ public:
 
 	virtual Heap* stateless_memory () NIRVANA_NOEXCEPT
 	{
-		return &readonly_heap_;
+		return &heap ();
 	}
 
 private:
@@ -67,7 +68,6 @@ private:
 	}
 
 private:
-	HeapUser readonly_heap_;
 	std::forward_list <Section, UserAllocator <Section>> data_sections_;
 };
 

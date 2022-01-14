@@ -26,6 +26,7 @@
 */
 #ifndef NIRVANA_CORE_COREOBJECT_H_
 #define NIRVANA_CORE_COREOBJECT_H_
+#pragma once
 
 #include "Heap.h"
 

@@ -26,6 +26,7 @@
 */
 #ifndef NIRVANA_CORE_COREINTERFACE_H_
 #define NIRVANA_CORE_COREINTERFACE_H_
+#pragma once
 
 #include "AtomicCounter.h"
 #include <assert.h>

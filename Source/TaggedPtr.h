@@ -26,6 +26,7 @@
 */
 #ifndef NIRVANA_CORE_TAGGEDPTR_H_
 #define NIRVANA_CORE_TAGGEDPTR_H_
+#pragma once
 
 #include <Port/config.h>
 #include "BackOff.h"

@@ -26,6 +26,7 @@
 */
 #ifndef NIRVANA_CORE_RUNTIMEGLOBAL_H_
 #define NIRVANA_CORE_RUNTIMEGLOBAL_H_
+#pragma once
 
 namespace Nirvana {
 namespace Core {

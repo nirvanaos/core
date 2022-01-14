@@ -25,6 +25,7 @@
 */
 #ifndef NIRVANA_CORE_EXECUTOR_H_
 #define NIRVANA_CORE_EXECUTOR_H_
+#pragma once
 
 #include "CoreInterface.h"
 

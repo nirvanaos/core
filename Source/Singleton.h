@@ -25,6 +25,7 @@
 */
 #ifndef NIRVANA_CORE_SINGLETON_H_
 #define NIRVANA_CORE_SINGLETON_H_
+#pragma once
 
 #include "Module.h"
 #include "Binder.h"
@@ -38,7 +39,8 @@ class Singleton :
 {
 public:
 	Singleton (const std::string& name) :
-		Module (name, true)
+		Module (name, true),
+		SyncDomain (std::ref (static_cast <MemContext&> (*this)))
 	{}
 
 	void _add_ref () NIRVANA_NOEXCEPT

@@ -32,9 +32,9 @@ namespace Core {
 
 StaticallyAllocated <ExecDomain::Suspend> ExecDomain::suspend_;
 
-CoreRef <ExecDomain> ExecDomain::create (const DeadlineTime& deadline, Runnable& runnable)
+CoreRef <ExecDomain> ExecDomain::create (const DeadlineTime& deadline, Runnable& runnable, MemContext* memory)
 {
-	return CoreRef <ExecDomain>::create <ExecDomain> (deadline, ref (runnable));
+	return CoreRef <ExecDomain>::create <ExecDomain> (deadline, &runnable, memory);
 }
 
 void ExecDomain::spawn (SyncContext& sync_context)
@@ -106,9 +106,8 @@ void ExecDomain::cleanup () NIRVANA_NOEXCEPT
 		if (sd)
 			sd->leave ();
 	}
-	runtime_support_.cleanup ();
 	runtime_global_.cleanup ();
-	heap_.cleanup (); // TODO: Detect and log the memory leaks.
+	mem_context_.clear (); // TODO: Detect and log the memory leaks (if domain was not crashed).
 	stateless_creation_frame_ = nullptr;
 	binder_context_ = nullptr;
 	sync_context_ = nullptr;
@@ -162,11 +161,13 @@ void ExecDomain::on_exec_domain_crash (CORBA::SystemException::Code err) NIRVANA
 	cleanup ();
 }
 
-void ExecDomain::schedule_call (SyncContext& sync_context)
+void ExecDomain::schedule_call (SyncContext& sync_context, MemContext* mem_context)
 {
+	mem_context_push (mem_context);
 	schedule_call_.sync_context_ = &sync_context;
 	run_in_neutral_context (schedule_call_);
 	if (schedule_call_.exception_) {
+		mem_context_pop ();
 		exception_ptr ex = schedule_call_.exception_;
 		schedule_call_.exception_ = nullptr;
 		rethrow_exception (ex);
@@ -186,6 +187,7 @@ void ExecDomain::ScheduleCall::on_exception () NIRVANA_NOEXCEPT
 
 void ExecDomain::schedule_return (SyncContext& sync_context) NIRVANA_NOEXCEPT
 {
+	mem_context_pop ();
 	schedule_return_.sync_context_ = &sync_context;
 	run_in_neutral_context (schedule_return_);
 }

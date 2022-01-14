@@ -1,3 +1,4 @@
+/// \file
 /*
 * Nirvana Core.
 *
@@ -25,6 +26,7 @@
 */
 #ifndef NIRVANA_CORE_STARTUP_H_
 #define NIRVANA_CORE_STARTUP_H_
+#pragma once
 
 #include <CORBA/CORBA.h>
 #include "Runnable.h"
@@ -40,6 +42,7 @@ class Executable;
 
 namespace Core {
 
+/// Protection domain startup runnable.
 class NIRVANA_NOVTABLE Startup : public ImplStatic <Runnable>
 {
 public:
@@ -47,6 +50,13 @@ public:
 
 	~Startup ()
 	{}
+
+	/// Called once by a host/kernel in a neutral execution context
+	/// on the protection domain launch.
+	/// All life in the domain started from this asynchronous call.
+	/// 
+	/// \param deadline Domain startup deadline.
+	void launch (DeadlineTime deadline);
 
 	virtual void run ();
 	virtual void on_exception () NIRVANA_NOEXCEPT;

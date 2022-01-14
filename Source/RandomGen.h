@@ -31,6 +31,7 @@
 */
 #ifndef NIRVANA_CORE_RANDOMGEN_H_
 #define NIRVANA_CORE_RANDOMGEN_H_
+#pragma once
 
 #include <Nirvana/Nirvana.h>
 #include <limits>

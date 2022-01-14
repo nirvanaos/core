@@ -24,39 +24,35 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_LEGACY_CORE_RUNTIMESUPPORTLEGACY_H_
-#define NIRVANA_LEGACY_CORE_RUNTIMESUPPORTLEGACY_H_
+#ifndef NIRVANA_CORE_HEAPUSER_H_
+#define NIRVANA_CORE_HEAPUSER_H_
+#pragma once
 
-#include "../RuntimeSupportImpl.h"
-#include "../UserAllocator.h"
-#include <mutex> // TODO: Replace with own implementation.
+#include "Heap.h"
 
 namespace Nirvana {
-namespace Legacy {
 namespace Core {
 
-class RuntimeSupportLegacy :
-	public Nirvana::Core::RuntimeSupportImpl <Nirvana::Core::UserAllocator>
+/// User-mode heap.
+class HeapUser :
+	public Heap
 {
-	typedef Nirvana::Core::RuntimeSupportImpl <Nirvana::Core::UserAllocator> Base;
 public:
-	virtual RuntimeProxy::_ref_type runtime_proxy_get (const void* obj)
+	HeapUser (size_t allocation_unit = HEAP_UNIT_DEFAULT) :
+		Heap (allocation_unit)
+	{}
+
+	~HeapUser ()
 	{
-		std::lock_guard <std::mutex> lock (mutex_);
-		return Base::runtime_proxy_get (obj);
+		cleanup ();
+		// TODO: Log message if memory leaks detected.
 	}
 
-	virtual void runtime_proxy_remove (const void* obj)
-	{
-		std::lock_guard <std::mutex> lock (mutex_);
-		Base::runtime_proxy_remove (obj);
-	}
-
-private:
-	std::mutex mutex_;
+	/// \brief Releases all memory.
+	/// \returns `true` if no memory leaks.
+	bool cleanup ();
 };
 
-}
 }
 }
 

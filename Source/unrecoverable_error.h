@@ -26,6 +26,7 @@
 */
 #ifndef NIRVANA_CORE_CORE_H_
 #define NIRVANA_CORE_CORE_H_
+#pragma once
 
 #include <Nirvana/NirvanaBase.h>
 

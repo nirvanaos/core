@@ -26,10 +26,11 @@
 */
 #ifndef NIRVANA_LEGACY_CORE_PROCESS_H_
 #define NIRVANA_LEGACY_CORE_PROCESS_H_
+#pragma once
 
 #include "ThreadBackground.h"
 #include "CoreObject.h"
-#include "RuntimeSupportLegacy.h"
+#include "MemContextProcess.h"
 
 namespace Nirvana {
 namespace Legacy {
@@ -42,14 +43,6 @@ class Process :
 public:
 	static Nirvana::Core::CoreRef <Process> spawn (Nirvana::Core::Runnable& runnable);
 
-	/// Returns heap reference.
-	virtual Nirvana::Core::Heap& memory () NIRVANA_NOEXCEPT;
-
-	virtual Nirvana::Core::RuntimeSupport& runtime_support () NIRVANA_NOEXCEPT
-	{
-		return runtime_support_;
-	}
-
 protected:
 	Process () :
 		ThreadBackground (true)
@@ -59,7 +52,7 @@ protected:
 	{}
 
 private:
-	RuntimeSupportLegacy runtime_support_;
+	Nirvana::Core::ImplStatic <MemContextProcess> mem_context_;
 };
 
 }

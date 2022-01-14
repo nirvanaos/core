@@ -27,6 +27,7 @@
 */
 #ifndef NIRVANA_CORE_PRIORITYQUEUE_H_
 #define NIRVANA_CORE_PRIORITYQUEUE_H_
+#pragma once
 
 #include "SkipList.h"
 

@@ -25,12 +25,14 @@
 */
 #ifndef NIRVANA_CORE_HEAPDYNAMIC_H_
 #define NIRVANA_CORE_HEAPDYNAMIC_H_
+#pragma once
 
 #include "Heap.h"
 #include <CORBA/Server.h>
 #include "IDL/Memory_s.h"
 #include "UserObject.h"
 #include "LifeCyclePseudo.h"
+#include "SimpleList.h"
 
 namespace Nirvana {
 namespace Core {
@@ -39,14 +41,20 @@ class HeapDynamic :
 	public HeapUser,
 	public UserObject,
 	public CORBA::servant_traits <Nirvana::Memory>::Servant <HeapDynamic>,
-	public LifeCyclePseudo <HeapDynamic>
+	public LifeCyclePseudo <HeapDynamic>,
+	public SimpleListElem
 {
 public:
 	using CORBA::servant_traits <Nirvana::Memory>::Servant <HeapDynamic>::_release;
 	using LifeCyclePseudo <HeapDynamic>::_release;
 
-	HeapDynamic (uint16_t allocation_unit) :
+	HeapDynamic (uint16_t allocation_unit, SimpleList <HeapDynamic>& list) :
 		HeapUser (allocation_unit)
+	{
+		list.push_back (*this);
+	}
+
+	virtual ~HeapDynamic ()
 	{}
 };
 

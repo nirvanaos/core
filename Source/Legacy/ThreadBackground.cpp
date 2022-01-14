@@ -37,21 +37,21 @@ ThreadBackground::ThreadBackground (bool process) :
 	Nirvana::Core::Port::ThreadBackground (process)
 {}
 
-void ThreadBackground::start (RuntimeSupportLegacy& runtime_support, Nirvana::Core::Runnable& runnable)
+void ThreadBackground::start (Nirvana::Core::Runnable& runnable, Nirvana::Core::MemContext& mem_context)
 {
-	auto ed = ExecDomain::create_background (*this, runnable);
+	auto ed = ExecDomain::create_background (*this, runnable, mem_context);
 	exec_domain_ = ed;
 	ed->start ([this]() {this->create (); });
 	_add_ref ();
 }
 
-void ThreadBackground::schedule_call (Nirvana::Core::SyncContext& target)
+void ThreadBackground::schedule_call (Nirvana::Core::SyncContext& target, MemContext* mem_context)
 {
 	// We don't switch context if no sync domain
 	if (target.sync_domain ()) {
 		ExecDomain* exec_domain = Thread::current ().exec_domain ();
 		assert (exec_domain);
-		exec_domain->schedule_call (target);
+		exec_domain->schedule_call (target, mem_context);
 		check_schedule_error (*exec_domain);
 	}
 }

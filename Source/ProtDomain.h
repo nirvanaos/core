@@ -26,6 +26,7 @@
 */
 #ifndef NIRVANA_CORE_PROTDOMAIN_H_
 #define NIRVANA_CORE_PROTDOMAIN_H_
+#pragma once
 
 #include "CoreObject.h"
 #include <Port/ProtDomain.h>

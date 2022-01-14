@@ -26,14 +26,15 @@
 */
 #ifndef NIRVANA_CORE_USERALLOCATOR_H_
 #define NIRVANA_CORE_USERALLOCATOR_H_
+#pragma once
 
-#include "user_memory.h"
+#include "MemContext.h"
 
 namespace Nirvana {
 namespace Core {
 
 /// Allocate from domain memory.
-/// Used to skip calls to Memory interface inside the Core.
+/// Used to skip calls to global Memory object interface inside the Core code.
 template <class T>
 class UserAllocator :
 	public std::allocator <T>
@@ -41,12 +42,12 @@ class UserAllocator :
 public:
 	static void deallocate (T* p, size_t cnt)
 	{
-		user_memory ().release (p, cnt * sizeof (T));
+		MemContext::current ().heap ().release (p, cnt * sizeof (T));
 	}
 
 	static T* allocate (size_t cnt, void* hint = nullptr, unsigned flags = 0)
 	{
-		return (T*)user_memory ().allocate (hint, cnt * sizeof (T), flags);
+		return (T*)MemContext::current ().heap ().allocate (hint, cnt * sizeof (T), flags);
 	}
 };
 

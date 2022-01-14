@@ -25,6 +25,7 @@
 */
 #ifndef NIRVANA_CORE_HEAPDIRECTORY_H_
 #define NIRVANA_CORE_HEAPDIRECTORY_H_
+#pragma once
 
 #include <Nirvana/Nirvana.h>
 #include <Port/Memory.h>

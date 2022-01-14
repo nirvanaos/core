@@ -25,6 +25,7 @@
 */
 #ifndef NIRVANA_ORB_CORE_LIFECYCLESTACK_H_
 #define NIRVANA_ORB_CORE_LIFECYCLESTACK_H_
+#pragma once
 
 namespace CORBA {
 namespace Internal {

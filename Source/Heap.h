@@ -1,3 +1,4 @@
+/// \file
 /*
 * Nirvana Core.
 *
@@ -25,6 +26,7 @@
 */
 #ifndef NIRVANA_CORE_HEAP_H_
 #define NIRVANA_CORE_HEAP_H_
+#pragma once
 
 #include "HeapDirectory.h"
 #include "SkipList.h"
@@ -43,6 +45,7 @@ public:
 	static T* allocate (size_t cnt, void* hint = nullptr, unsigned flags = 0);
 };
 
+/// Heap implementation.
 class Heap
 {
 	// Skip list level count for heap skip list.
@@ -53,7 +56,10 @@ class Heap
 	Heap& operator = (const Heap&) = delete;
 
 public:
+	// Global class initialization.
 	static void initialize ();
+
+	// Global class temination.
 	static void terminate () NIRVANA_NOEXCEPT;
 
 	Heap (size_t allocation_unit = HEAP_UNIT_DEFAULT) NIRVANA_NOEXCEPT;
@@ -330,8 +336,7 @@ protected:
 	MemoryBlock* part_list_;
 };
 
-class HeapCore final :
-	public Heap
+class HeapCore : public Heap
 {
 public:
 	HeapCore () :
@@ -357,25 +362,6 @@ inline void Heap::terminate () NIRVANA_NOEXCEPT
 	SkipListBase::terminate ();
 	Port::Memory::terminate ();
 }
-
-class HeapUser :
-	public Heap
-{
-public:
-	HeapUser (size_t allocation_unit = HEAP_UNIT_DEFAULT) :
-		Heap (allocation_unit)
-	{}
-
-	~HeapUser ()
-	{
-		cleanup ();
-		// TODO: Log message if memory leaks detected.
-	}
-
-	/// \brief Releases all memory.
-	/// \returns `true` if no memory leaks.
-	bool cleanup ();
-};
 
 template <class T> inline
 void CoreAllocator <T>::deallocate (T* p, size_t cnt)

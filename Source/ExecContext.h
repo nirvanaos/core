@@ -26,6 +26,7 @@
 */
 #ifndef NIRVANA_CORE_EXECCONTEXT_H_
 #define NIRVANA_CORE_EXECCONTEXT_H_
+#pragma once
 
 #include "Runnable.h"
 #include <Port/ExecContext.h>

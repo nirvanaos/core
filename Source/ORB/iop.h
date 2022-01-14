@@ -27,6 +27,7 @@
 */
 #ifndef NIRVANA_ORB_IOP_H_
 #define NIRVANA_ORB_IOP_H_
+#pragma once
 
 #include <CORBA/CORBA.h>
 

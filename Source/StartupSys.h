@@ -1,3 +1,4 @@
+/// \file
 /*
 * Nirvana Core.
 *
@@ -25,6 +26,7 @@
 */
 #ifndef NIRVANA_CORE_STARTUPSYS_H_
 #define NIRVANA_CORE_STARTUPSYS_H_
+#pragma once
 
 #include "Startup.h"
 
@@ -34,11 +36,6 @@ namespace Core {
 class StartupSys : public Startup
 {
 public:
-	static DeadlineTime default_deadline ()
-	{
-		return INFINITE_DEADLINE;
-	}
-
 	StartupSys (int argc, char* argv [], char* envp []) :
 		Startup (argc, argv, envp)
 	{}

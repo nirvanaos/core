@@ -26,13 +26,13 @@
 */
 #ifndef NIRVANA_CORE_SYNCDOMAIN_H_
 #define NIRVANA_CORE_SYNCDOMAIN_H_
+#pragma once
 
 #include "PriorityQueue.h"
 #include "Scheduler.h"
 #include "SyncContext.h"
 #include "CoreObject.h"
-#include "RuntimeSupportImpl.h"
-#include "UserAllocator.h"
+#include "MemContext.h"
 #include <atomic>
 
 namespace Nirvana {
@@ -53,9 +53,6 @@ private:
 	typedef PriorityQueue <Executor*, SYNC_DOMAIN_PRIORITY_QUEUE_LEVELS> Queue;
 
 public:
-	SyncDomain ();
-	~SyncDomain ();
-
 	void schedule (const DeadlineTime& deadline, Executor& executor)
 	{
 		activity_begin ();
@@ -116,22 +113,26 @@ public:
 
 	virtual void execute (int scheduler_error);
 
-	virtual void schedule_call (SyncContext& target);
+	virtual void schedule_call (SyncContext& target, MemContext* mem_context);
 	virtual void schedule_return (ExecDomain& exec_domain) NIRVANA_NOEXCEPT;
 
 	virtual SyncDomain* sync_domain () NIRVANA_NOEXCEPT;
-	virtual Heap& memory () NIRVANA_NOEXCEPT;
-	virtual RuntimeSupport& runtime_support () NIRVANA_NOEXCEPT;
 
-	Heap& heap ()
+	/// \returns Domain memory context.
+	MemContext& mem_context ()
 	{
-		return heap_;
+		assert (mem_context_);
+		return *mem_context_;
 	}
 
 	/// If we currently run out of SD, create new SD and enter into it.
 	static SyncDomain& enter ();
 
 	void leave () NIRVANA_NOEXCEPT;
+
+protected:
+	SyncDomain (MemContext& memory);
+	~SyncDomain ();
 
 private:
 	void schedule () NIRVANA_NOEXCEPT;
@@ -146,8 +147,7 @@ private:
 
 private:
 	Queue queue_;
-	HeapUser heap_;
-	RuntimeSupportImpl <UserAllocator> runtime_support_; // Must be destructed before the heap_ destruction.
+	CoreRef <MemContext> mem_context_;
 
 	// Thread that acquires this flag become a scheduling thread.
 	std::atomic_flag scheduling_;

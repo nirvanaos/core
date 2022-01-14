@@ -32,6 +32,7 @@
 */
 #ifndef NIRVANA_CORE_SKIPLIST_H_
 #define NIRVANA_CORE_SKIPLIST_H_
+#pragma once
 
 #include "AtomicCounter.h"
 #include "TaggedPtr.h"

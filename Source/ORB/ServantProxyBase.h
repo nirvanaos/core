@@ -26,6 +26,7 @@
 */
 #ifndef NIRVANA_ORB_CORE_SERVANTPROXYBASE_H_
 #define NIRVANA_ORB_CORE_SERVANTPROXYBASE_H_
+#pragma once
 
 #include "../AtomicCounter.h"
 #include "../Synchronized.h"
@@ -64,7 +65,7 @@ public:
 		RefCnt::IntegralType cnt = ref_cnt_.increment ();
 		if (1 == cnt) {
 			try {
-				SYNC_BEGIN (*sync_context_);
+				SYNC_BEGIN (*sync_context_, nullptr);
 				add_ref_1 ();
 				SYNC_END ();
 			} catch (...) {
@@ -108,7 +109,7 @@ protected:
 			// Async call failed, maybe resources are exausted.
 			// Fallback to collect garbage in the current thread.
 			try {
-				SYNC_BEGIN (*sync_context_)
+				SYNC_BEGIN (*sync_context_, nullptr)
 				::Nirvana::Core::ImplStatic <GC> (std::forward <Args> (args)...).run ();
 				SYNC_END ()
 			} catch (...) {
@@ -217,7 +218,9 @@ public:
 		Unmarshal::_ref_type u = ServantMarshaler::unmarshaler (marshaler);
 		marshaler = nullptr;
 		Request request;
-		SYNC_BEGIN (get_sync_context (op));
+		ServantMarshaler* pmar = static_cast <ServantMarshaler*> (&Unmarshal::_ptr_type (u));
+		Nirvana::Core::MemContext* memory = pmar ? pmar->memory () : nullptr;
+		SYNC_BEGIN (get_sync_context (op), memory);
 		(ie.operations.p [idx].invoke) (&ie.implementation, &request._get_ptr (), in_params, &Type <Unmarshal>::C_inout (u), out_params);
 		SYNC_END ();
 		return request.check ();

@@ -26,6 +26,7 @@
 */
 #ifndef NIRVANA_CORE_EVENT_H_
 #define NIRVANA_CORE_EVENT_H_
+#pragma once
 
 #include "ExecDomain.h"
 

@@ -27,6 +27,7 @@
 */
 #ifndef NIRVANA_ORB_CORE_MESSAGE_H_
 #define NIRVANA_ORB_CORE_MESSAGE_H_
+#pragma once
 
 #include <CORBA/SystemException.h>
 #include <Port/config.h>

@@ -26,6 +26,7 @@
 */
 #ifndef NIRVANA_ORB_CORE_COREIMPL_H_
 #define NIRVANA_ORB_CORE_COREIMPL_H_
+#pragma once
 
 #include <CORBA/Server.h>
 #include "LifeCycleNoCopy.h"

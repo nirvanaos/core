@@ -25,6 +25,7 @@
 */
 #ifndef NIRVANA_CORE_COFF_H_
 #define NIRVANA_CORE_COFF_H_
+#pragma once
 
 #include <Nirvana/NirvanaBase.h>
 #include "llvm/BinaryFormat/COFF.h"

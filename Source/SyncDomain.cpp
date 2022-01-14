@@ -25,10 +25,13 @@
 */
 #include "ExecDomain.h"
 
+using namespace std;
+
 namespace Nirvana {
 namespace Core {
 
-SyncDomain::SyncDomain () :
+SyncDomain::SyncDomain (MemContext& memory) :
+	mem_context_ (&memory),
 	need_schedule_ (false),
 	state_ (State::IDLE),
 	activity_cnt_ (0)
@@ -110,7 +113,7 @@ SyncDomain& SyncDomain::enter ()
 	SyncContext& sync_context = exec_domain->sync_context ();
 	SyncDomain* psd = sync_context.sync_domain ();
 	if (!psd) {
-		CoreRef <SyncDomain> sd = CoreRef <SyncDomain>::create <ImplDynamic <SyncDomain>> ();
+		CoreRef <SyncDomain> sd = CoreRef <SyncDomain>::create <ImplDynamic <SyncDomain>> (ref (exec_domain->mem_context ()));
 		sd->state_ = State::RUNNING;
 		exec_domain->sync_context (*sd);
 		psd = sd;
@@ -126,7 +129,7 @@ void SyncDomain::release_queue_node (QueueNode* node) NIRVANA_NOEXCEPT
 	activity_end ();
 }
 
-void SyncDomain::schedule_call (SyncContext& target)
+void SyncDomain::schedule_call (SyncContext& target, MemContext* mem_context)
 {
 	ExecDomain* exec_domain = Thread::current ().exec_domain ();
 	assert (exec_domain);
@@ -134,7 +137,7 @@ void SyncDomain::schedule_call (SyncContext& target)
 	exec_domain->ret_qnode_push (*this);
 
 	try {
-		exec_domain->schedule_call (target);
+		exec_domain->schedule_call (target, mem_context);
 	} catch (...) {
 		release_queue_node (exec_domain->ret_qnode_pop ());
 		throw;
@@ -151,16 +154,6 @@ void SyncDomain::schedule_return (ExecDomain& exec_domain) NIRVANA_NOEXCEPT
 SyncDomain* SyncDomain::sync_domain () NIRVANA_NOEXCEPT
 {
 	return this;
-}
-
-Heap& SyncDomain::memory () NIRVANA_NOEXCEPT
-{
-	return heap_;
-}
-
-RuntimeSupport& SyncDomain::runtime_support () NIRVANA_NOEXCEPT
-{
-	return runtime_support_;
 }
 
 }

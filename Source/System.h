@@ -25,14 +25,13 @@
 */
 #ifndef NIRVANA_CORE_SYSTEM_H_
 #define NIRVANA_CORE_SYSTEM_H_
+#pragma once
 
 #include <CORBA/Server.h>
 #include "IDL/System_s.h"
 #include "Binder.h"
 #include "Chrono.h"
 #include "ExecDomain.h"
-#include "RuntimeSupportImpl.h"
-#include "HeapDynamic.h"
 
 namespace Nirvana {
 namespace Core {
@@ -43,17 +42,18 @@ class System :
 public:
 	static RuntimeProxy::_ref_type runtime_proxy_get (const void* obj)
 	{
-		RuntimeSupport* rs = get_runtime_support ();
-		if (rs)
-			return rs->runtime_proxy_get (obj);
+#ifndef NIRVANA_RUNTIME_SUPPORT_DISABLE
+		return MemContext::current ().runtime_proxy_get (obj);
+#else
 		return nullptr;
+#endif
 	}
 
 	static void runtime_proxy_remove (const void* obj)
 	{
-		RuntimeSupport* rs = get_runtime_support ();
-		if (rs)
-			rs->runtime_proxy_remove (obj);
+#ifndef NIRVANA_RUNTIME_SUPPORT_DISABLE
+		MemContext::current ().runtime_proxy_remove (obj);
+#endif
 	}
 
 	static CORBA::Object::_ref_type bind (const std::string& name)
@@ -103,7 +103,7 @@ public:
 
 	static Nirvana::Memory::_ref_type create_heap (uint16_t granularity)
 	{
-		return CORBA::make_pseudo <HeapDynamic> (granularity);
+		return MemContext::current ().create_heap (granularity);
 	}
 
 	static void abort ()
@@ -121,18 +121,6 @@ public:
 		uint32_t& next = Thread::current ().exec_domain ()->runtime_global_.rand_state;
 		next = next * 1103515245 + 12345;
 		return (unsigned int)(next >> 16) % 32768;
-	}
-
-private:
-	static RuntimeSupport* get_runtime_support ()
-	{
-		Thread* th = Thread::current_ptr ();
-		if (th) {
-			ExecDomain* ed = th->exec_domain ();
-			if (ed)
-				return &ed->sync_context ().runtime_support ();
-		}
-		return nullptr;
 	}
 };
 

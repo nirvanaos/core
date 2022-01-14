@@ -1,3 +1,4 @@
+/// \file
 /*
 * Nirvana Core.
 *
@@ -25,6 +26,7 @@
 */
 #ifndef NIRVANA_CORE_SKIPLISTWITHPOOL_H_
 #define NIRVANA_CORE_SKIPLISTWITHPOOL_H_
+#pragma once
 
 #include "SkipList.h"
 #include "Stack.h"

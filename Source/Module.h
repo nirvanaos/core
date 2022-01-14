@@ -25,13 +25,14 @@
 */
 #ifndef NIRVANA_CORE_MODULE_H_
 #define NIRVANA_CORE_MODULE_H_
+#pragma once
 
 #include <CORBA/Server.h>
 #include "IDL/Module_s.h"
 #include <Nirvana/ModuleInit.h>
 #include "AtomicCounter.h"
 #include <Port/Module.h>
-#include "CoreObject.h"
+#include "MemContextEx.h"
 #include "Chrono.h"
 
 namespace Nirvana {
@@ -41,7 +42,7 @@ class SyncContext;
 
 /// Loadable module base
 class NIRVANA_NOVTABLE Module :
-	public CoreObject,
+	public MemContextEx,
 	public Port::Module,
 	public CORBA::servant_traits <Nirvana::Module>::Servant <Module>,
 	public CORBA::Internal::LifeCycleRefCnt <Module>

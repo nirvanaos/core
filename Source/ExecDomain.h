@@ -26,17 +26,16 @@
 */
 #ifndef NIRVANA_CORE_EXECDOMAIN_H_
 #define NIRVANA_CORE_EXECDOMAIN_H_
+#pragma once
 
 #include "SyncDomain.h"
 #include "Scheduler.h"
 #include "Stack.h"
-#include "CoreObject.h"
-#include "RuntimeSupportImpl.h"
-#include "UserAllocator.h"
 #include "RuntimeGlobal.h"
+#include "PreallocatedStack.h"
+#include "MemContextEx.h"
 #include <limits>
 #include <utility>
-#include "parallel-hashmap/parallel_hashmap/phmap.h"
 
 namespace Nirvana {
 namespace Core {
@@ -57,18 +56,18 @@ public:
 	static void terminate () NIRVANA_NOEXCEPT
 	{}
 
-	static CoreRef <ExecDomain> create (const DeadlineTime& deadline, Runnable& runnable);
+	static CoreRef <ExecDomain> create (const DeadlineTime& deadline, Runnable& runnable, MemContext* mem_context = nullptr);
 
-	static void async_call (const DeadlineTime& deadline, Runnable& runnable, SyncContext& sync_context)
+	static void async_call (const DeadlineTime& deadline, Runnable& runnable, SyncContext& sync_context, MemContext* mem_context = nullptr)
 	{
-		CoreRef <ExecDomain> exec_domain = create (deadline, runnable);
+		CoreRef <ExecDomain> exec_domain = create (deadline, runnable, mem_context);
 		exec_domain->spawn (sync_context);
 	}
 
 	/// Create execution domain for a background thread.
-	static CoreRef <ExecDomain> create_background (SyncContext& sync_context, Runnable& startup)
+	static CoreRef <ExecDomain> create_background (SyncContext& sync_context, Runnable& runnable, MemContext& mem_context)
 	{
-		CoreRef <ExecDomain> exec_domain = create (INFINITE_DEADLINE, startup);
+		CoreRef <ExecDomain> exec_domain = create (INFINITE_DEADLINE, runnable, &mem_context);
 		exec_domain->sync_context_ = &sync_context;
 		return exec_domain;
 	}
@@ -83,7 +82,7 @@ public:
 		deadline_ = dt;
 	}
 
-	void schedule_call (SyncContext& sync_context);
+	void schedule_call (SyncContext& sync_context, MemContext* mem_context);
 	void schedule_return (SyncContext& sync_context) NIRVANA_NOEXCEPT;
 
 	/// Schedules this ED to execute.
@@ -135,27 +134,30 @@ public:
 		sync_context_ = &sync_context;
 	}
 
-	/// \returns Current heap.
-	Heap& heap () NIRVANA_NOEXCEPT
+	/// \returns Current memory context.
+	MemContext& mem_context ()
 	{
-		return *cur_heap_;
+		CoreRef <MemContext>& top = mem_context_.top ();
+		if (!top)
+			top = MemContextEx::create ();
+		return *top;
 	}
 
-	/// Used to set module heap before the module initialization.
-	void heap_replace (Heap& heap) NIRVANA_NOEXCEPT
+	MemContext* mem_context_ptr () const NIRVANA_NOEXCEPT
 	{
-		cur_heap_ = &heap;
+		return mem_context_.top ();
 	}
 
-	/// Used to restore heap after the module initialization.
-	void heap_restore () NIRVANA_NOEXCEPT
+	/// Push new memory context.
+	void mem_context_push (MemContext* context)
 	{
-		cur_heap_ = &heap_;
+		mem_context_.push (context);
 	}
 
-	RuntimeSupport& runtime_support () NIRVANA_NOEXCEPT
+	/// Pop user context stack.
+	void mem_context_pop () NIRVANA_NOEXCEPT
 	{
-		return runtime_support_;
+		mem_context_.pop ();
 	}
 
 	CORBA::Exception::Code scheduler_error () const NIRVANA_NOEXCEPT
@@ -177,21 +179,21 @@ public:
 	}
 
 private:
-	ExecDomain (const DeadlineTime& deadline, Runnable& runnable) :
+	ExecDomain (const DeadlineTime& deadline, Runnable* runnable, MemContext* user_context) :
 		ExecContext (false),
 		restricted_mode_ (RestrictedMode::NO_RESTRICTIONS),
 		stateless_creation_frame_ (nullptr),
 		binder_context_ (nullptr),
 		deadline_ (deadline),
 		ret_qnodes_ (nullptr),
-		cur_heap_ (&heap_),
+		mem_context_ (user_context),
 		scheduler_item_created_ (false),
 		scheduler_error_ (CORBA::SystemException::EC_NO_EXCEPTION),
 		schedule_call_ (*this),
 		schedule_return_ (*this),
 		deleter_ (*this)
 	{
-		runnable_ = &runnable;
+		runnable_ = runnable;
 		Scheduler::activity_begin ();	// Throws exception if shutdown was started.
 	}
 
@@ -302,9 +304,7 @@ private:
 	DeadlineTime deadline_;
 	CoreRef <SyncContext> sync_context_;
 	SyncDomain::QueueNode* ret_qnodes_;
-	HeapUser heap_;
-	Heap* cur_heap_;
-	RuntimeSupportImpl <UserAllocator> runtime_support_;
+	PreallocatedStack <CoreRef <MemContext>> mem_context_;
 	bool scheduler_item_created_;
 	CORBA::Exception::Code scheduler_error_;
 	RefCounter ref_cnt_;

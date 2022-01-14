@@ -25,11 +25,12 @@
 */
 #ifndef NIRVANA_ORB_CORE_SERVANTMARSHALER_H_
 #define NIRVANA_ORB_CORE_SERVANTMARSHALER_H_
+#pragma once
 
 #include <CORBA/Server.h>
-#include "../CoreObject.h"
+#include "../SyncDomain.h"
+#include "../MemContextEx.h"
 #include "LifeCyclePseudo.h"
-#include "../SyncContext.h"
 #include "IDL/Marshal_s.h"
 #include "IDL/Unmarshal_s.h"
 
@@ -54,12 +55,17 @@ public:
 	static const size_t BLOCK_SIZE = 32 * sizeof (Tag);
 
 protected:
-	ServantMarshalerImpl (::Nirvana::Core::SyncContext& sc) :
-		memory_ (sc.memory ())
-	{}
+	ServantMarshalerImpl (Nirvana::Core::SyncContext& sc)
+	{
+		Nirvana::Core::SyncDomain* sd = sc.sync_domain ();
+		if (sd)
+			memory_ = &sd->mem_context ();
+		else
+			memory_ = Nirvana::Core::MemContextEx::create ();
+	}
 
 protected:
-	::Nirvana::Core::Heap& memory_;
+	Nirvana::Core::CoreRef <Nirvana::Core::MemContext> memory_;
 	Tag* cur_ptr_;
 };
 
@@ -67,7 +73,7 @@ class alignas (ServantMarshalerImpl::BLOCK_SIZE) ServantMarshaler :
 	public ServantMarshalerImpl
 {
 public:
-	ServantMarshaler (::Nirvana::Core::SyncContext& sc) :
+	ServantMarshaler (Nirvana::Core::SyncContext& sc) :
 		ServantMarshalerImpl (sc)
 	{
 		assert ((uintptr_t)this % BLOCK_SIZE == 0);
@@ -80,9 +86,14 @@ public:
 		Block* pb = clear_block (block_);
 		while (pb) {
 			Block* next = clear_block (*pb);
-			memory_.release (pb, sizeof (Block));
+			memory_->heap ().release (pb, sizeof (Block));
 			pb = next;
 		}
+	}
+
+	Nirvana::Core::MemContext* memory () const
+	{
+		return memory_;
 	}
 
 	Marshal::_ptr_type marshaler ()
@@ -118,29 +129,29 @@ public:
 		RecMemory* rec = (RecMemory*)add_record (RT_MEMORY, sizeof (RecMemory));
 		rec->p = nullptr;
 		if (release_size && shared_memory ()) {
-			rec->p = const_cast <::Nirvana::Pointer> (p);
+			rec->p = const_cast <Nirvana::Pointer> (p);
 			rec->size = release_size;
 			size = release_size;
 		} else {
-			uint8_t* pc = (uint8_t*)memory_.copy (nullptr, const_cast <void*> (p), size, 0);
-			size_t au = memory_.query (pc, ::Nirvana::Memory::QueryParam::ALLOCATION_UNIT);
+			uint8_t* pc = (uint8_t*)memory_->heap ().copy (nullptr, const_cast <void*> (p), size, 0);
+			size_t au = memory_->heap ().query (pc, ::Nirvana::Memory::QueryParam::ALLOCATION_UNIT);
 			size = ::Nirvana::round_up (pc + size, au) - pc;
 			rec->p = pc;
 			rec->size = size;
 			if (release_size)
-				::Nirvana::Core::SyncContext::current ().memory ().release (const_cast <void*> (p), release_size);
+				Nirvana::Core::MemContext::current ().heap ().release (const_cast <void*> (p), release_size);
 		}
 		return (::Nirvana::UIntPtr)(rec->p);
 	}
 
-	::Nirvana::UIntPtr get_buffer (size_t& size, void*& buf_ptr)
+	Nirvana::UIntPtr get_buffer (size_t& size, void*& buf_ptr)
 	{
 		RecMemory* rec = (RecMemory*)add_record (RT_MEMORY, sizeof (RecMemory));
 		rec->p = nullptr;
-		rec->p = memory_.allocate (nullptr, size, 0);
+		rec->p = memory_->heap ().allocate (nullptr, size, 0);
 		rec->size = size;
 		buf_ptr = rec->p;
-		return (::Nirvana::UIntPtr)(rec->p);
+		return (Nirvana::UIntPtr)(rec->p);
 	}
 
 	void adopt_memory (const void* p, size_t size)
@@ -159,7 +170,7 @@ public:
 		return (::Nirvana::UIntPtr)(rec->p = interface_duplicate (&obj));
 	}
 
-	Interface::_ref_type unmarshal_interface (::Nirvana::ConstPointer marshal_data, const String& iid)
+	Interface::_ref_type unmarshal_interface (Nirvana::ConstPointer marshal_data, const String& iid)
 	{
 		RecInterface* rec = (RecInterface*)get_record (RT_INTERFACE);
 		Interface::_ptr_type itf = rec->p;
@@ -205,7 +216,7 @@ private:
 
 	Tag* block_end (Tag* p)
 	{
-		return ::Nirvana::round_up (p, BLOCK_SIZE);
+		return Nirvana::round_up (p, BLOCK_SIZE);
 	}
 
 	void* add_record (RecordType tag, size_t record_size);
@@ -222,7 +233,7 @@ private:
 
 	bool shared_memory () const
 	{
-		return &memory_ == &::Nirvana::Core::SyncContext::current ().memory ();
+		return Nirvana::Core::MemContext::is_current (memory_);
 	}
 
 	Tag block_ [(BLOCK_SIZE - sizeof (ServantMarshalerImpl)) / sizeof (Tag)];

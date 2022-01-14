@@ -25,6 +25,7 @@
 */
 #ifndef NIRVANA_CORE_SCHEDULER_H_
 #define NIRVANA_CORE_SCHEDULER_H_
+#pragma once
 
 #include <Port/Scheduler.h>
 #include "AtomicCounter.h"

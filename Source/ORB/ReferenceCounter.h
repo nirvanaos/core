@@ -1,3 +1,4 @@
+/// \file
 /*
 * Nirvana Core.
 *
@@ -25,6 +26,7 @@
 */
 #ifndef NIRVANA_ORB_CORE_REFERENCECOUNTER_H_
 #define NIRVANA_ORB_CORE_REFERENCECOUNTER_H_
+#pragma once
 
 #include <CORBA/ReferenceCounter_s.h>
 #include <CORBA/DynamicServant_s.h>

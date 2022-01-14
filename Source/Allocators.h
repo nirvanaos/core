@@ -25,6 +25,7 @@
 */
 #ifndef NIRVANA_CORE_ALLOCATORS_H_
 #define NIRVANA_CORE_ALLOCATORS_H_
+#pragma once
 
 #include "Heap.h"
 #include "Stack.h"

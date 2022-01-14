@@ -27,6 +27,7 @@
 */
 #ifndef NIRVANA_CORE_WAITABLEREF_H_
 #define NIRVANA_CORE_WAITABLEREF_H_
+#pragma once
 
 #include "CoreInterface.h"
 

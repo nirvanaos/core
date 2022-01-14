@@ -25,6 +25,7 @@
 */
 #ifndef NIRVANA_CORE_PORTABLEEXECUTABLE_H_
 #define NIRVANA_CORE_PORTABLEEXECUTABLE_H_
+#pragma once
 
 #include "COFF.h"
 #include "Section.h"

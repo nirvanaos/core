@@ -26,6 +26,7 @@
 */
 #ifndef NIRVANA_CORE_THREAD_H_
 #define NIRVANA_CORE_THREAD_H_
+#pragma once
 
 #include "ExecContext.h"
 #include <Port/Thread.h>

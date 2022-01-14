@@ -25,6 +25,7 @@
 */
 #ifndef NIRVANA_CORE_BACKOFF_H_
 #define NIRVANA_CORE_BACKOFF_H_
+#pragma once
 
 #include <Port/BackOff.h>
 #include "RandomGen.h"

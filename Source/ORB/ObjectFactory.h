@@ -25,6 +25,7 @@
 */
 #ifndef NIRVANA_ORB_CORE_OBJECTFACTORY_H_
 #define NIRVANA_ORB_CORE_OBJECTFACTORY_H_
+#pragma once
 
 #include <CORBA/Server.h>
 #include "IDL/ObjectFactory_s.h"
@@ -44,7 +45,7 @@ public:
 	static void* memory_allocate (size_t size)
 	{
 		// Enter sync domain and allocate from the sync domain heap.
-		return Nirvana::Core::SyncDomain::enter ().heap ().allocate (0, size, 0);
+		return Nirvana::Core::SyncDomain::enter ().mem_context ().heap ().allocate (0, size, 0);
 	}
 
 	static void memory_release (void* p, size_t size)
@@ -52,7 +53,7 @@ public:
 		// In sync domain: release from the current sync domain heap.
 		Nirvana::Core::SyncDomain* sd = Nirvana::Core::SyncContext::current ().sync_domain ();
 		if (sd)
-			sd->heap ().release (p, size);
+			sd->mem_context ().heap ().release (p, size);
 		else {
 			// Release from the read-only heap
 			Nirvana::Core::Heap* stateless_memory = Nirvana::Core::SyncContext::current ().stateless_memory ();

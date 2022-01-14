@@ -1,4 +1,4 @@
-/// \file Stack.h
+/// \file
 /*
 * Nirvana Core.
 *
@@ -26,6 +26,7 @@
 */
 #ifndef NIRVANA_CORE_STACK_H_
 #define NIRVANA_CORE_STACK_H_
+#pragma once
 
 #include "TaggedPtr.h"
 #include "AtomicCounter.h"
@@ -33,11 +34,9 @@
 namespace Nirvana {
 namespace Core {
 
-/// \struct StackElem
-///
-/// \brief A stack elements must be derived from StackElem.
-///        While element is not in stack, the StackElem fields are unused and may contain any values.
-///        So this fields may be used for other purposes until the element placed to the stack.
+/// A stack elements must be derived from StackElem.
+/// While element is not in stack, the StackElem fields are unused and may contain any values.
+/// So this fields may be used for other purposes until the element placed to the stack.
 struct StackElem
 {
 	void* next;

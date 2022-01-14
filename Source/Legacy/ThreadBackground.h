@@ -26,11 +26,12 @@
 */
 #ifndef NIRVANA_LEGACY_CORE_THREADBACKGROUND_H_
 #define NIRVANA_LEGACY_CORE_THREADBACKGROUND_H_
+#pragma once
 
 #include "../Thread.h"
 #include "../SyncContext.h"
 #include <Port/ThreadBackground.h>
-#include "RuntimeSupportLegacy.h"
+#include "MemContextProcess.h"
 
 namespace Nirvana {
 
@@ -62,7 +63,7 @@ public:
 	}
 
 	/// Leave this context and enter to the synchronization domain.
-	virtual void schedule_call (Nirvana::Core::SyncContext& target);
+	virtual void schedule_call (Nirvana::Core::SyncContext& target, Nirvana::Core::MemContext* mem_context);
 
 	/// Return execution domain to this context.
 	virtual void schedule_return (Nirvana::Core::ExecDomain& exec_domain) NIRVANA_NOEXCEPT;
@@ -72,7 +73,7 @@ public:
 protected:
 	ThreadBackground (bool process);
 
-	void start (RuntimeSupportLegacy& runtime_support, Nirvana::Core::Runnable& runnable);
+	void start (Nirvana::Core::Runnable& runnable, Nirvana::Core::MemContext& mem_context);
 
 private:
 	void on_thread_proc_end ()

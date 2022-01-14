@@ -1,4 +1,4 @@
-#include "../Source/Heap.h"
+#include "../Source/HeapUser.h"
 #include <gtest/gtest.h>
 #include <random>
 #include <thread>
@@ -6,6 +6,7 @@
 #include <signal.h>
 
 using namespace ::Nirvana;
+using namespace ::Nirvana::Core;
 using namespace ::std;
 
 namespace TestHeap {
@@ -16,12 +17,12 @@ class TestHeap :
 protected:
 	TestHeap ()
 	{
-		Core::Heap::initialize ();
+		Heap::initialize ();
 	}
 
 	virtual ~TestHeap ()
 	{
-		Core::Heap::terminate ();
+		Heap::terminate ();
 	}
 
 	// If the constructor and destructor are not enough for setting up
@@ -42,7 +43,7 @@ protected:
 	}
 
 protected:
-	Core::HeapUser heap_;
+	HeapUser heap_;
 };
 
 bool check_readable (const size_t* begin, const size_t* end, size_t tag)

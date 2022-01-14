@@ -87,7 +87,7 @@ void Binder::initialize ()
 	if (!Port::SystemInfo::get_OLF_section (metadata))
 		throw_INITIALIZE ();
 
-	SYNC_BEGIN (singleton_->sync_domain_);
+	SYNC_BEGIN (singleton_->sync_domain_, nullptr);
 	ModuleContext context{ g_core_free_sync_context };
 	singleton_->module_bind (nullptr, metadata, &context);
 	singleton_->object_map_ = std::move (context.exports);
@@ -97,7 +97,7 @@ void Binder::initialize ()
 
 void Binder::terminate ()
 {
-	SYNC_BEGIN (singleton_->sync_domain_);
+	SYNC_BEGIN (singleton_->sync_domain_, nullptr);
 	assert (initialized_);
 	initialized_ = false;
 	while (!singleton_->module_map_.empty ())
@@ -185,7 +185,7 @@ const ModuleStartup* Binder::module_bind (::Nirvana::Module::_ptr_type mod, cons
 		if (!mod) {
 			// Create POA
 			// TODO: It is temporary solution.
-			SYNC_BEGIN (g_core_free_sync_context);
+			SYNC_BEGIN (g_core_free_sync_context, nullptr);
 			CORBA::Internal::Core::g_root_POA = CORBA::make_reference <POA> ()->_this ();
 			SYNC_END ();
 		}
@@ -210,7 +210,7 @@ const ModuleStartup* Binder::module_bind (::Nirvana::Module::_ptr_type mod, cons
 			// Pass 3: Export objects.
 			if (flags & MetadataFlags::EXPORT_OBJECTS) {
 				assert (mod_context); // Legacy executable can not export.
-				SYNC_BEGIN (mod_context->sync_context);
+				SYNC_BEGIN (mod_context->sync_context, nullptr);
 				for (OLF_Iterator it (metadata.address, metadata.size); !it.end (); it.next ()) {
 					switch (*it.cur ()) {
 						case OLF_EXPORT_OBJECT: {
@@ -294,7 +294,7 @@ void Binder::module_unbind (Nirvana::Module::_ptr_type mod, const Section& metad
 
 void Binder::delete_module (Module* mod)
 {
-	SYNC_BEGIN (g_core_free_sync_context);
+	SYNC_BEGIN (g_core_free_sync_context, nullptr);
 	delete mod;
 	SYNC_END ();
 }
@@ -306,7 +306,7 @@ CoreRef <Module> Binder::load (string& module_name, bool singleton)
 	Module* mod;
 	auto f = module_map_.find (module_name);
 	if (f == module_map_.end ()) {
-		SYNC_BEGIN (g_core_free_sync_context);
+		SYNC_BEGIN (g_core_free_sync_context, nullptr);
 		if (singleton)
 			mod = new Singleton (module_name);
 		else
@@ -319,7 +319,7 @@ CoreRef <Module> Binder::load (string& module_name, bool singleton)
 				if (startup && (startup->flags & OLF_MODULE_SINGLETON) && !singleton)
 					invalid_metadata ();
 
-				SYNC_BEGIN (context.sync_context);
+				SYNC_BEGIN (context.sync_context, mod);
 				mod->initialize (startup ? ModuleInit::_check (startup->startup) : nullptr);
 				SYNC_END ();
 
@@ -328,13 +328,13 @@ CoreRef <Module> Binder::load (string& module_name, bool singleton)
 					try {
 						object_map_.merge (context.exports);
 					} catch (...) {
-						SYNC_BEGIN (context.sync_context);
+						SYNC_BEGIN (context.sync_context, mod);
 						mod->terminate ();
 						SYNC_END ();
 						throw;
 					}
 				} else {
-					SYNC_BEGIN (context.sync_context);
+					SYNC_BEGIN (context.sync_context, mod);
 					mod->terminate ();
 					SYNC_END ();
 					module_unbind (mod->_get_ptr (), mod->metadata ());
@@ -363,7 +363,7 @@ void Binder::unload (ModuleMap::iterator mod)
 	assert (!pmod->bound ());
 	module_map_.erase (mod);
 	remove_exports (pmod->metadata ());
-	SYNC_BEGIN (pmod->sync_context ());
+	SYNC_BEGIN (pmod->sync_context (), pmod);
 	pmod->terminate ();
 	module_unbind (pmod->_get_ptr (), pmod->metadata ());
 	SYNC_END ();

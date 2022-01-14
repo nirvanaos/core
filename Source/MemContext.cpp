@@ -1,4 +1,3 @@
-/// \file
 /*
 * Nirvana Core.
 *
@@ -24,27 +23,54 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_CORE_RUNNABLE_H_
-#define NIRVANA_CORE_RUNNABLE_H_
-#pragma once
-
-#include "CoreInterface.h"
+#include "ExecDomain.h"
 
 namespace Nirvana {
 namespace Core {
 
-/// Core implementation of the Runnable interface
-class NIRVANA_NOVTABLE Runnable : public CoreInterface
+StaticallyAllocated <ImplStatic <MemContext>> g_shared_mem_context;
+
+MemContext& MemContext::current ()
 {
-public:
-	virtual void run () = 0;
-	virtual void on_exception () NIRVANA_NOEXCEPT;
-	virtual void on_crash (int error_code) NIRVANA_NOEXCEPT;
-};
+	Thread* th = Thread::current_ptr ();
+	if (th) {
+		ExecDomain* ed = th->exec_domain ();
+		if (ed)
+			return ed->mem_context ();
+	}
+	return g_shared_mem_context;
+}
 
-void run_in_neutral_context (Runnable& runnable) NIRVANA_NOEXCEPT;
+bool MemContext::is_current (MemContext* context)
+{
+	Thread* th = Thread::current_ptr ();
+	if (th) {
+		ExecDomain* ed = th->exec_domain ();
+		if (ed)
+			return ed->mem_context_ptr () == context;
+	}
+	return &g_shared_mem_context == context;
+}
+
+MemContext::MemContext ()
+{}
+
+MemContext::~MemContext ()
+{}
+
+RuntimeProxy::_ref_type MemContext::runtime_proxy_get (const void* obj)
+{
+	return nullptr;
+}
+
+void MemContext::runtime_proxy_remove (const void* obj)
+{
+}
+
+Memory::_ref_type MemContext::create_heap (uint16_t granularity)
+{
+	throw_NO_IMPLEMENT ();
+}
 
 }
 }
-
-#endif

@@ -25,6 +25,7 @@
 */
 #ifndef NIRVANA_ORB_CORE_LIFECYCLEPSEUDO_H_
 #define NIRVANA_ORB_CORE_LIFECYCLEPSEUDO_H_
+#pragma once
 
 #include "AtomicCounter.h"
 #include <CORBA/LifeCycleRefCnt.h>

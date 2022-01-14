@@ -25,11 +25,11 @@
 */
 #ifndef NIRVANA_CORE_MEMORY_H_
 #define NIRVANA_CORE_MEMORY_H_
+#pragma once
 
 #include <CORBA/Server.h>
 #include "IDL/Memory_s.h"
 #include "ExecDomain.h"
-#include "user_memory.h"
 
 namespace Nirvana {
 namespace Core {
@@ -42,65 +42,52 @@ public:
 	// Memory::
 	static void* allocate (void* dst, size_t size, unsigned flags)
 	{
-		return heap ().allocate (dst, size, flags);
+		return MemContext::current ().heap ().allocate (dst, size, flags);
 	}
 
 	static void release (void* p, size_t size)
 	{
-		return heap ().release (p, size);
+		return MemContext::current ().heap ().release (p, size);
 	}
 
 	static void commit (void* p, size_t size)
 	{
-		return heap ().commit (p, size);
+		return MemContext::current ().heap ().commit (p, size);
 	}
 
 	static void decommit (void* p, size_t size)
 	{
-		return heap ().decommit (p, size);
+		return MemContext::current ().heap ().decommit (p, size);
 	}
 
 	static void* copy (void* dst, void* src, size_t size, unsigned flags)
 	{
-		return heap ().copy (dst, src, size, flags);
+		return MemContext::current ().heap ().copy (dst, src, size, flags);
 	}
 
 	static bool is_readable (const void* p, size_t size)
 	{
-		return heap ().is_readable (p, size);
+		return MemContext::current ().heap ().is_readable (p, size);
 	}
 
 	static bool is_writable (const void* p, size_t size)
 	{
-		return heap ().is_writable (p, size);
+		return MemContext::current ().heap ().is_writable (p, size);
 	}
 
 	static bool is_private (const void* p, size_t size)
 	{
-		return heap ().is_private (p, size);
+		return MemContext::current ().heap ().is_private (p, size);
 	}
 
 	static bool is_copy (const void* p1, const void* p2, size_t size)
 	{
-		return heap ().is_copy (p1, p2, size);
+		return MemContext::current ().heap ().is_copy (p1, p2, size);
 	}
 
 	static intptr_t query (const void* p, Memory::QueryParam q)
 	{
-		return heap ().query (p, q);
-	}
-
-private:
-	static Heap& heap ()
-	{
-		Thread* th = Thread::current_ptr ();
-		if (th) {
-			ExecDomain* ed = th->exec_domain ();
-			if (ed)
-				return ed->sync_context ().memory ();
-		}
-		// Fallback to g_core_heap
-		return g_core_heap;
+		return MemContext::current ().heap ().query (p, q);
 	}
 };
 

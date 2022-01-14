@@ -26,6 +26,7 @@
 */
 #ifndef NIRVANA_CORE_CHRONO_H_
 #define NIRVANA_CORE_CHRONO_H_
+#pragma once
 
 #include <Port/Chrono.h>
 #include <limits>

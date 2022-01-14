@@ -26,6 +26,7 @@
 */
 #ifndef NIRVANA_ORB_CORE_PROXYMANAGER_H_
 #define NIRVANA_ORB_CORE_PROXYMANAGER_H_
+#pragma once
 
 #include "../Synchronized.h"
 #include "../Array.h"
@@ -78,7 +79,7 @@ public:
 
 	I_ref <InterfaceDef> _get_interface () const
 	{
-		SYNC_BEGIN (Nirvana::Core::g_core_free_sync_context);
+		SYNC_BEGIN (Nirvana::Core::g_core_free_sync_context, nullptr);
 		return InterfaceDef::_nil (); // TODO: Implement.
 		SYNC_END ();
 	}
@@ -86,7 +87,7 @@ public:
 	Boolean _is_a (const String& type_id) const
 	{
 		String tmp (type_id);
-		SYNC_BEGIN (Nirvana::Core::g_core_free_sync_context);
+		SYNC_BEGIN (Nirvana::Core::g_core_free_sync_context, nullptr);
 		return find_interface (tmp) != nullptr;
 		SYNC_END ();
 	}

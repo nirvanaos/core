@@ -27,6 +27,7 @@
 */
 #ifndef NIRVANA_CORE_WAITLIST_H_
 #define NIRVANA_CORE_WAITLIST_H_
+#pragma once
 
 #include "ExecDomain.h"
 #include <exception>

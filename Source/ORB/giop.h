@@ -27,6 +27,7 @@
 */
 #ifndef NIRVANA_ORB_GIOP_H_
 #define NIRVANA_ORB_GIOP_H_
+#pragma once
 
 #include "iop.h"
 

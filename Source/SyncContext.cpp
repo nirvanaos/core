@@ -59,11 +59,11 @@ Heap* SyncContext::stateless_memory () NIRVANA_NOEXCEPT
 	return nullptr;
 }
 
-void SyncContextFree::schedule_call (SyncContext& target)
+void SyncContextFree::schedule_call (SyncContext& target, MemContext* mem_context)
 {
 	ExecDomain* exec_domain = Thread::current ().exec_domain ();
 	assert (exec_domain);
-	exec_domain->schedule_call (target);
+	exec_domain->schedule_call (target, mem_context);
 	check_schedule_error (*exec_domain);
 }
 
@@ -71,16 +71,6 @@ void SyncContextFree::schedule_return (ExecDomain& exec_domain) NIRVANA_NOEXCEPT
 {
 	exec_domain.sync_context (*this);
 	Scheduler::schedule (exec_domain.deadline (), exec_domain);
-}
-
-Heap& SyncContextFree::memory () NIRVANA_NOEXCEPT
-{
-	return Thread::current ().exec_domain ()->heap ();
-}
-
-RuntimeSupport& SyncContextFree::runtime_support () NIRVANA_NOEXCEPT
-{
-	return Thread::current ().exec_domain ()->runtime_support ();
 }
 
 Heap* SyncContextCore::stateless_memory () NIRVANA_NOEXCEPT

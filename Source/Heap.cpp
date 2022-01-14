@@ -694,25 +694,5 @@ void Heap::change_protection (bool read_only)
 	}
 }
 
-bool HeapUser::cleanup ()
-{
-	bool empty = true;
-	part_list_ = nullptr;
-	while (BlockList::NodeVal* node = block_list_.delete_min ()) {
-		const MemoryBlock block = node->value ();
-		block_list_.release_node (node);
-		if (block.is_large_block ()) {
-			Port::Memory::release (block.begin (), block.large_block_size ());
-			empty = false;
-		} else {
-			Directory& dir = block.directory ();
-			if (!dir.empty ())
-				empty = false;
-			Port::Memory::release (&dir, sizeof (Directory) + partition_size ());
-		}
-	}
-	return empty;
-}
-
 }
 }

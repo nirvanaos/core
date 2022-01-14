@@ -26,6 +26,7 @@
 */
 #ifndef NIRVANA_CORE_SYNCHRONIZED_H_
 #define NIRVANA_CORE_SYNCHRONIZED_H_
+#pragma once
 
 #include "SyncContext.h"
 
@@ -37,7 +38,7 @@ class SyncDomain;
 class Synchronized
 {
 public:
-	Synchronized (SyncContext& target);
+	Synchronized (SyncContext& target, MemContext* mem_context);
 	~Synchronized ();
 
 	SyncContext& call_context () const
@@ -54,7 +55,7 @@ private:
 }
 }
 
-#define SYNC_BEGIN(target) { ::Nirvana::Core::Synchronized sync (target); try {
+#define SYNC_BEGIN(target, mem) { ::Nirvana::Core::Synchronized sync (target, mem); try {
 #define SYNC_END() } catch (...) { sync.on_exception (); }}
 
 #endif

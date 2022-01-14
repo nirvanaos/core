@@ -25,6 +25,7 @@
 */
 #ifndef NIRVANA_ORB_CORE_TC_IMPEX_H_
 #define NIRVANA_ORB_CORE_TC_IMPEX_H_
+#pragma once
 
 #include <Nirvana/OLF.h>
 

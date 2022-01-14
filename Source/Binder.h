@@ -25,11 +25,12 @@
 */
 #ifndef NIRVANA_CORE_BINDER_H_
 #define NIRVANA_CORE_BINDER_H_
+#pragma once
 
 #include "SyncDomain.h"
 #include "Section.h"
 #include "Synchronized.h"
-#include "Heap.h"
+#include "HeapUser.h"
 #include "Module.h"
 #include "StaticallyAllocated.h"
 #include <CORBA/RepositoryId.h>
@@ -39,6 +40,7 @@
 #pragma push_macro ("verify")
 #undef verify
 #include "parallel-hashmap/parallel_hashmap/btree.h"
+#include "parallel-hashmap/parallel_hashmap/phmap.h"
 #pragma pop_macro ("verify")
 
 namespace Nirvana {
@@ -137,7 +139,8 @@ private:
 		UserAllocator <std::pair <std::string, Module*> > > ModuleMap;
 
 public:
-	Binder ()
+	Binder () :
+		sync_domain_ (std::ref (memory_))
 	{}
 
 	static void initialize ();
@@ -148,7 +151,7 @@ public:
 	{
 		const std::string& sname = static_cast <const std::string&> (name);
 		CoreString name_copy (sname.c_str (), sname.length ());
-		SYNC_BEGIN (singleton_->sync_domain_);
+		SYNC_BEGIN (singleton_->sync_domain_, nullptr);
 		return singleton_->bind_sync (name_copy);
 		SYNC_END ();
 	}
@@ -159,7 +162,7 @@ public:
 		const std::string& sname = static_cast <const std::string&> (name);
 		const std::string& siid = static_cast <const std::string&> (iid);
 		CoreString name_copy (sname.c_str (), sname.length ()), iid_copy (siid.c_str (), siid.length ());
-		SYNC_BEGIN (singleton_->sync_domain_);
+		SYNC_BEGIN (singleton_->sync_domain_, nullptr);
 		return singleton_->bind_interface_sync (name_copy, iid_copy);
 		SYNC_END ();
 	}
@@ -224,6 +227,7 @@ private:
 	static void delete_module (Module* mod);
 
 private:
+	ImplStatic <MemContext> memory_;
 	ImplStatic <SyncDomain> sync_domain_;
 	ObjectMap object_map_;
 	ModuleMap module_map_;

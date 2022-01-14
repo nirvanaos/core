@@ -26,18 +26,86 @@
 */
 #ifndef NIRVANA_CORE_RUNTIMESUPPORT_H_
 #define NIRVANA_CORE_RUNTIMESUPPORT_H_
+#pragma once
 
-#include <Nirvana/System.h>
+#include <CORBA/Server.h>
+#include "IDL/System_s.h"
+#include "LifeCyclePseudo.h"
+#include "UserObject.h"
+#include "UserAllocator.h"
+#include "CoreInterface.h"
+
+/// 
+/// Currently we use phmap::flat_hash_map:
+/// https://github.com/greg7mdp/parallel-hashmap
+/// See also:
+/// https://martin.ankerl.com/2019/04/01/hashmap-benchmarks-01-overview/
+/// 
+#include "parallel-hashmap/parallel_hashmap/phmap.h"
 
 namespace Nirvana {
 namespace Core {
 
-/// Abstract implementation of the System::runtime_proxy_get() and System::runtime_proxy_remove()
+/// Implements System::runtime_proxy_get() and System::runtime_proxy_remove().
 class RuntimeSupport
 {
+	/// Implements RuntimeProxy interface.
+	class RuntimeProxyImpl :
+		public CORBA::Internal::ImplementationPseudo <RuntimeProxyImpl, RuntimeProxy>,
+		public LifeCyclePseudo <RuntimeProxyImpl>,
+		public UserObject
+	{
+	public:
+		RuntimeProxyImpl (const void* obj) :
+			object_ (obj)
+		{}
+
+		~RuntimeProxyImpl ()
+		{}
+
+		const void* object () const
+		{
+			return object_;
+		}
+
+		void remove ()
+		{
+			assert (object_);
+			object_ = nullptr;
+		}
+
+	private:
+		const void* object_;
+	};
+
+	typedef phmap::flat_hash_map <const void*, CoreRef <RuntimeProxyImpl>,
+		std::hash <const void*>, std::equal_to <const void*>, UserAllocator <std::pair <const void* const, CoreRef <RuntimeProxyImpl>>>> ProxyMap;
 public:
-	virtual RuntimeProxy::_ref_type runtime_proxy_get (const void* obj) = 0;
-	virtual void runtime_proxy_remove (const void* obj) = 0;
+	RuntimeProxy::_ref_type runtime_proxy_get (const void* obj)
+	{
+		auto ins = proxy_map_.emplace (obj, nullptr);
+		if (ins.second) {
+			try {
+				ins.first->second = CoreRef <RuntimeProxyImpl>::template create <RuntimeProxyImpl> (obj);
+			} catch (...) {
+				proxy_map_.erase (ins.first);
+				throw;
+			}
+		}
+		return ins.first->second->_get_ptr ();
+	}
+
+	void runtime_proxy_remove (const void* obj)
+	{
+		auto f = proxy_map_.find (obj);
+		if (f != proxy_map_.end ()) {
+			f->second->remove ();
+			proxy_map_.erase (f);
+		}
+	}
+
+private:
+	ProxyMap proxy_map_;
 };
 
 }

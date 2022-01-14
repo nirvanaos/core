@@ -26,6 +26,7 @@
 */
 #ifndef NIRVANA_CORE_IO_REQUEST_H_
 #define NIRVANA_CORE_IO_REQUEST_H_
+#pragma once
 
 #include "Event.h"
 

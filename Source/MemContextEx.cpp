@@ -1,4 +1,3 @@
-/// \file
 /*
 * Nirvana Core.
 *
@@ -24,27 +23,34 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_CORE_RUNNABLE_H_
-#define NIRVANA_CORE_RUNNABLE_H_
-#pragma once
-
-#include "CoreInterface.h"
+#include "MemContextEx.h"
+#include "HeapDynamic.h"
 
 namespace Nirvana {
 namespace Core {
 
-/// Core implementation of the Runnable interface
-class NIRVANA_NOVTABLE Runnable : public CoreInterface
+MemContextEx::MemContextEx ()
+{}
+
+MemContextEx::~MemContextEx ()
 {
-public:
-	virtual void run () = 0;
-	virtual void on_exception () NIRVANA_NOEXCEPT;
-	virtual void on_crash (int error_code) NIRVANA_NOEXCEPT;
-};
+	user_heap_list_.clear ();
+}
 
-void run_in_neutral_context (Runnable& runnable) NIRVANA_NOEXCEPT;
+RuntimeProxy::_ref_type MemContextEx::runtime_proxy_get (const void* obj)
+{
+	return runtime_support_.runtime_proxy_get (obj);
+}
+
+void MemContextEx::runtime_proxy_remove (const void* obj)
+{
+	runtime_support_.runtime_proxy_remove (obj);
+}
+
+Memory::_ref_type MemContextEx::create_heap (uint16_t granularity)
+{
+	return CORBA::make_pseudo <HeapDynamic> (granularity, std::ref (user_heap_list_));
+}
 
 }
 }
-
-#endif

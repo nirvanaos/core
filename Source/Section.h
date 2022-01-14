@@ -25,6 +25,7 @@
 */
 #ifndef NIRVANA_CORE_SECTION_H_
 #define NIRVANA_CORE_SECTION_H_
+#pragma once
 
 namespace Nirvana {
 namespace Core {

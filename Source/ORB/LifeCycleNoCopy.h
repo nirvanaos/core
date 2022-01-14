@@ -25,6 +25,7 @@
 */
 #ifndef NIRVANA_ORB_CORE_LIFECYCLENOCOPY_H_
 #define NIRVANA_ORB_CORE_LIFECYCLENOCOPY_H_
+#pragma once
 
 #include <CORBA/set_exception.h>
 

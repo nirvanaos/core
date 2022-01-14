@@ -25,6 +25,7 @@
 */
 #ifndef NIRVANA_ORB_CORE_PROXYOBJECT_H_
 #define NIRVANA_ORB_CORE_PROXYOBJECT_H_
+#pragma once
 
 #include "ServantProxyBase.h"
 #include <atomic>

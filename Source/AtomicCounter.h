@@ -26,6 +26,7 @@
 */
 #ifndef NIRVANA_CORE_ATOMICCOUNTER_H_
 #define NIRVANA_CORE_ATOMICCOUNTER_H_
+#pragma once
 
 #include <Nirvana/NirvanaBase.h>
 #include <assert.h>

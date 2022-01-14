@@ -25,6 +25,7 @@
 */
 #ifndef NIRVANA_CORE_SCHEDULERIMPL_H_
 #define NIRVANA_CORE_SCHEDULERIMPL_H_
+#pragma once
 
 #include "PriorityQueue.h"
 #include "SkipListWithPool.h"

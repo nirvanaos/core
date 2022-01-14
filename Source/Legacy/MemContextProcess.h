@@ -24,26 +24,36 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_CORE_RUNNABLE_H_
-#define NIRVANA_CORE_RUNNABLE_H_
+#ifndef NIRVANA_LEGACY_CORE_MEMCONTEXTPROCESS_H_
+#define NIRVANA_LEGACY_CORE_MEMCONTEXTPROCESS_H_
 #pragma once
 
-#include "CoreInterface.h"
+#include "../MemContextEx.h"
+#include <mutex> // TODO: Replace with own implementation.
 
 namespace Nirvana {
+namespace Legacy {
 namespace Core {
 
-/// Core implementation of the Runnable interface
-class NIRVANA_NOVTABLE Runnable : public CoreInterface
+class MemContextProcess :
+	public Nirvana::Core::MemContextEx
 {
+	typedef Nirvana::Core::MemContextEx Base;
 public:
-	virtual void run () = 0;
-	virtual void on_exception () NIRVANA_NOEXCEPT;
-	virtual void on_crash (int error_code) NIRVANA_NOEXCEPT;
+	virtual RuntimeProxy::_ref_type runtime_proxy_get (const void* obj);
+	virtual void runtime_proxy_remove (const void* obj);
+
+	virtual Memory::_ref_type create_heap (uint16_t granularity);
+
+protected:
+	MemContextProcess ();
+	~MemContextProcess ();
+
+private:
+	std::mutex mutex_; // TODO Replace with own mutex!
 };
 
-void run_in_neutral_context (Runnable& runnable) NIRVANA_NOEXCEPT;
-
+}
 }
 }
 

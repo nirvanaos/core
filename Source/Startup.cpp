@@ -25,8 +25,7 @@
 */
 #include "Startup.h"
 #include "initterm.h"
-#include "Scheduler.h"
-#include "Runnable.h"
+#include "ExecDomain.h"
 #include "Legacy/Executable.h"
 #include "Legacy/Process.h"
 
@@ -42,6 +41,11 @@ Startup::Startup (int argc, char* argv [], char* envp []) :
 	executable_ (nullptr),
 	exception_code_ (CORBA::Exception::EC_NO_EXCEPTION)
 {}
+
+void Startup::launch (DeadlineTime deadline)
+{
+	ExecDomain::async_call (deadline, *this, g_core_free_sync_context, &g_shared_mem_context);
+}
 
 void Startup::run ()
 {

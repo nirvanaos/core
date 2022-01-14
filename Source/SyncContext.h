@@ -26,6 +26,7 @@
 */
 #ifndef NIRVANA_CORE_SYNCCONTEXT_H_
 #define NIRVANA_CORE_SYNCCONTEXT_H_
+#pragma once
 
 #include "Thread.h"
 #include "StaticallyAllocated.h"
@@ -36,6 +37,7 @@ namespace Core {
 class Heap;
 class ExecDomain;
 class SyncDomain;
+class MemContext;
 
 /// Synchronization context pure interface.
 /// Synchronization context may be associated with:
@@ -53,7 +55,7 @@ public:
 	/// Leave this context and enter to the other.
 	/// 
 	/// \param target Target synchronization context.
-	virtual void schedule_call (SyncContext& target) = 0;
+	virtual void schedule_call (SyncContext& target, MemContext* mem_context) = 0;
 
 	/// Return execution domain to this context.
 	/// 
@@ -73,13 +75,7 @@ public:
 		return const_cast <SyncContext&> (*this).stateless_memory () != nullptr;
 	}
 
-	/// Returns Heap reference.
-	virtual Heap& memory () NIRVANA_NOEXCEPT = 0;
-
-	/// Returns RuntimeSupport reference.
-	virtual RuntimeSupport& runtime_support () NIRVANA_NOEXCEPT = 0;
-
-	/// Free sync context returns pointer to stateless objects heap.
+	/// Free sync context returns pointer to the stateless objects heap.
 	/// Other sync contexts return `nullptr`.
 	virtual Heap* stateless_memory () NIRVANA_NOEXCEPT;
 
@@ -92,10 +88,8 @@ class NIRVANA_NOVTABLE SyncContextFree :
 	public SyncContext
 {
 public:
-	virtual void schedule_call (SyncContext& target);
+	virtual void schedule_call (SyncContext& target, MemContext* mem_context);
 	virtual void schedule_return (ExecDomain& exec_domain) NIRVANA_NOEXCEPT;
-	virtual Heap& memory () NIRVANA_NOEXCEPT;
-	virtual RuntimeSupport& runtime_support () NIRVANA_NOEXCEPT;
 	virtual Heap* stateless_memory () NIRVANA_NOEXCEPT = 0;
 };
 

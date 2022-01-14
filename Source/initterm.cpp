@@ -35,6 +35,7 @@ namespace Core {
 void initialize0 ()
 {
 	Heap::initialize ();
+	g_shared_mem_context.construct ();
 	g_core_free_sync_context.construct ();
 	ExecDomain::initialize ();
 	Scheduler::initialize ();
@@ -56,8 +57,11 @@ void terminate0 () NIRVANA_NOEXCEPT
 {
 	Scheduler::terminate ();
 	ExecDomain::terminate ();
-	//g_core_free_sync_context.destruct ();
+#ifdef _DEBUG
+	g_core_free_sync_context.destruct ();
+	g_shared_mem_context.destruct ();
 	Heap::terminate ();
+#endif
 }
 
 }
