@@ -1,5 +1,6 @@
+/// \file
 /*
-* Nirvana Core.
+* Nirvana Core. Windows port library.
 *
 * This is a part of the Nirvana project.
 *
@@ -23,8 +24,8 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_CORE_INITTERM_H_
-#define NIRVANA_CORE_INITTERM_H_
+#ifndef NIRVANA_CORE_PORT_STRINGVIEW_H_
+#define NIRVANA_CORE_PORT_STRINGVIEW_H_
 #pragma once
 
 #include <Nirvana/Nirvana.h>
@@ -32,21 +33,48 @@
 namespace Nirvana {
 namespace Core {
 
-/// First initialize stage.
-/// Called by kernel.
-/// Initializes Heap and other static stuff.
-void initialize0 ();
+/// Strings are passed to Port as StringView.
+class StringView
+{
+public:
+	template <class Al>
+	StringView (const std::basic_string <char, std::char_traits <char>, Al>& s) :
+		c_str_ (s.c_str ()),
+		length_ (s.length ())
+	{}
 
-//! Called by Startup class from free sync domain after kernel initialization.
-void initialize ();
+	StringView (const char* s) :
+		c_str_ (s),
+		length_ (-1)
+	{}
 
-//! Called asynchronously before the kernel termination.
-void terminate ();
+	const char* c_str () const
+	{
+		return c_str_;
+	}
 
-//! Called by kernel on the final termination.
-void terminate0 () NIRVANA_NOEXCEPT;
+	const char* data () const
+	{
+		return c_str_;
+	}
+	
+	size_t length () const
+	{
+		if (length_ < 0)
+			length_ = strlen (c_str_);
+		return length_;
+	}
+
+	size_t size () const
+	{
+		return length ();
+	}
+
+private:
+	const char* c_str_; //< Zero-terminated string
+	mutable ptrdiff_t length_; //< String length or -1 if unknown
+};
 
 }
 }
-
 #endif

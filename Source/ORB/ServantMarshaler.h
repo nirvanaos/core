@@ -55,16 +55,6 @@ public:
 	static const size_t BLOCK_SIZE = 32 * sizeof (Tag);
 
 protected:
-	ServantMarshalerImpl (Nirvana::Core::SyncContext& sc)
-	{
-		Nirvana::Core::SyncDomain* sd = sc.sync_domain ();
-		if (sd)
-			memory_ = &sd->mem_context ();
-		else
-			memory_ = Nirvana::Core::MemContextEx::create ();
-	}
-
-protected:
 	Nirvana::Core::CoreRef <Nirvana::Core::MemContext> memory_;
 	Tag* cur_ptr_;
 };
@@ -72,13 +62,29 @@ protected:
 class alignas (ServantMarshalerImpl::BLOCK_SIZE) ServantMarshaler :
 	public ServantMarshalerImpl
 {
-public:
-	ServantMarshaler (Nirvana::Core::SyncContext& sc) :
-		ServantMarshalerImpl (sc)
+	ServantMarshaler ()
 	{
 		assert ((uintptr_t)this % BLOCK_SIZE == 0);
 		cur_ptr_ = block_;
 		*cur_ptr_ = RT_END;
+	}
+public:
+	/// Constructor for call
+	ServantMarshaler (Nirvana::Core::SyncContext& target) :
+		ServantMarshaler ()
+	{
+		Nirvana::Core::SyncDomain* sd = target.sync_domain ();
+		if (sd)
+			memory_ = &sd->mem_context ();
+		else
+			memory_ = Nirvana::Core::MemContextEx::create ();
+	}
+
+	/// Constructor for return
+	ServantMarshaler (Nirvana::Core::MemContext& target) :
+		ServantMarshaler ()
+	{
+		memory_ = &target;
 	}
 
 	~ServantMarshaler ()

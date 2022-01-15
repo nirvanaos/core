@@ -39,7 +39,7 @@ class HeapDynamic;
 
 /// Memory context full implementation.
 /// Unlike the base MemContext, MemContextEx is not thread-safe and can not be shared by multiple domains.
-class MemContextEx : public MemContext
+class NIRVANA_NOVTABLE MemContextEx : public MemContext
 {
 public:
 	/// Create MemContextEx object.

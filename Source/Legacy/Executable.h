@@ -28,31 +28,24 @@
 #define NIRVANA_LEGACY_CORE_EXECUTABLE_H_
 #pragma once
 
+#include "../ModuleImpl.h"
 #include "../CoreObject.h"
-#include <CORBA/Server.h>
 #include <Nirvana/Main.h>
-#include "IDL/Module_s.h"
 #include "../ORB/LifeCycleStack.h"
-#include <Port/Module.h>
 
 namespace Nirvana {
 namespace Legacy {
 namespace Core {
 
 class Executable :
-	public Nirvana::Core::Port::Module,
+	public Nirvana::Core::ModuleImpl,
 	public Nirvana::Core::CoreObject,
-	public CORBA::servant_traits <Module>::Servant <Executable>,
+	public CORBA::servant_traits <Nirvana::Module>::Servant <Executable>,
 	public CORBA::Internal::Core::LifeCycleStack
 {
 public:
-	Executable (const char* file);
+	Executable (const Nirvana::Core::StringView& file);
 	~Executable ();
-
-	const void* base_address () const NIRVANA_NOEXCEPT
-	{
-		return Nirvana::Core::Port::Module::address ();
-	}
 
 	int main (int argc, char* argv [], char* envp [])
 	{

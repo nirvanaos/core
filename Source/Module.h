@@ -1,3 +1,4 @@
+/// \file
 /*
 * Nirvana Core.
 *
@@ -27,11 +28,9 @@
 #define NIRVANA_CORE_MODULE_H_
 #pragma once
 
-#include <CORBA/Server.h>
-#include "IDL/Module_s.h"
+#include "ModuleImpl.h"
 #include <Nirvana/ModuleInit.h>
 #include "AtomicCounter.h"
-#include <Port/Module.h>
 #include "MemContextEx.h"
 #include "Chrono.h"
 
@@ -40,14 +39,15 @@ namespace Core {
 
 class SyncContext;
 
-/// Loadable module base
+/// Loadable module
 class NIRVANA_NOVTABLE Module :
+	public ModuleImpl,
 	public MemContextEx,
-	public Port::Module,
 	public CORBA::servant_traits <Nirvana::Module>::Servant <Module>,
 	public CORBA::Internal::LifeCycleRefCnt <Module>
 {
 public:
+	/// Derived ClassLibrary and Singleton classes must have virtual destructors.
 	virtual ~Module ()
 	{}
 
@@ -55,11 +55,6 @@ public:
 	///   If module is ClassLibrary, returned context is free context.
 	///   If module is Singleton, returned context is the singleton synchronization domain.
 	virtual SyncContext& sync_context () = 0;
-
-	const void* base_address () const
-	{
-		return Port::Module::address ();
-	}
 
 	void _add_ref () NIRVANA_NOEXCEPT
 	{
@@ -91,7 +86,7 @@ public:
 	virtual void terminate () NIRVANA_NOEXCEPT;
 
 protected:
-	Module (const std::string& name, bool singleton);
+	Module (const StringView& name, bool singleton);
 
 protected:
 	bool singleton_;

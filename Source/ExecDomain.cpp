@@ -34,7 +34,7 @@ StaticallyAllocated <ExecDomain::Suspend> ExecDomain::suspend_;
 
 CoreRef <ExecDomain> ExecDomain::create (const DeadlineTime& deadline, Runnable& runnable, MemContext* memory)
 {
-	return CoreRef <ExecDomain>::create <ExecDomain> (deadline, &runnable, memory);
+	return CoreRef <ExecDomain>::create <ExecDomain> (ref (deadline), ref (runnable), memory);
 }
 
 void ExecDomain::spawn (SyncContext& sync_context)
@@ -163,6 +163,11 @@ void ExecDomain::on_exec_domain_crash (CORBA::SystemException::Code err) NIRVANA
 
 void ExecDomain::schedule_call (SyncContext& sync_context, MemContext* mem_context)
 {
+	SyncDomain* sd = sync_context.sync_domain ();
+	if (sd) {
+		assert (!mem_context || mem_context == &sd->mem_context ());
+		mem_context = &sd->mem_context ();
+	}
 	mem_context_push (mem_context);
 	schedule_call_.sync_context_ = &sync_context;
 	run_in_neutral_context (schedule_call_);

@@ -39,7 +39,7 @@ Synchronized::Synchronized (SyncContext& target, MemContext* mem_context) :
 
 Synchronized::~Synchronized ()
 {
-	if (call_context_) {
+	if (call_context_) { // If no exception
 		ExecDomain* exec_domain = Thread::current ().exec_domain ();
 		assert (exec_domain);
 		exec_domain->schedule_return (*call_context_);

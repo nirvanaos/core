@@ -43,7 +43,6 @@ namespace Legacy {
 namespace Core {
 
 /// Background thread.
-/// Used in the legacy mode implementation.
 class NIRVANA_NOVTABLE ThreadBackground :
 	protected Nirvana::Core::Port::ThreadBackground,
 	public Nirvana::Core::SyncContext
@@ -71,7 +70,9 @@ public:
 	virtual void yield () NIRVANA_NOEXCEPT;
 
 protected:
-	ThreadBackground (bool process);
+	ThreadBackground (bool process) :
+		Nirvana::Core::Port::ThreadBackground (process)
+	{}
 
 	void start (Nirvana::Core::Runnable& runnable, Nirvana::Core::MemContext& mem_context);
 

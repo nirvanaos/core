@@ -140,7 +140,7 @@ public:
 
 private:
 	struct Block;
-	static const size_t BLOCK_ELEMENTS = ((1 << log2_ceil (MIN_BLOCK * sizeof (El) + sizeof (Block*))) - sizeof (Block*)) / sizeof (El);
+	static const size_t BLOCK_ELEMENTS = (((size_t)1 << log2_ceil (MIN_BLOCK * sizeof (El) + sizeof (Block*))) - sizeof (Block*)) / sizeof (El);
 
 	struct Block
 	{
@@ -150,34 +150,40 @@ private:
 
 private:
 	// Allocate space at the top of the stack
-	void allocate ()
-	{
-		El* end = last_block_ ? (El*)&(last_block_->storage) + BLOCK_ELEMENTS : (El*)&preallocated_ + PREALLOCATE;
-		if (top_ == end) {
-			// Allocate new block
-			Block* block = (Block*)g_core_heap->allocate (nullptr, sizeof (Block), 0);
-			block->prev = last_block_;
-			last_block_ = block;
-			top_ = (El*)&(block->storage);
-		}
-	}
+	void allocate ();
 
 	// Release space at the top of the stack
-	void release () NIRVANA_NOEXCEPT
-	{
-		if (top_ == ((El*)&(last_block_->storage))) {
-			Block* block = last_block_;
-			last_block_ = block->prev;
-			top_ = last_block_ ? (El*)&(last_block_->storage) + BLOCK_ELEMENTS : (El*)&preallocated_ + PREALLOCATE;
-			g_core_heap->release (block, sizeof (Block));
-		}
-	}
+	void release () NIRVANA_NOEXCEPT;
 
 private:
 	typename std::aligned_storage <sizeof (El)* PREALLOCATE, alignof (El)>::type preallocated_;
 	Block* last_block_;
 	El* top_;
 };
+
+template <class El, size_t PREALLOCATE, size_t MIN_BLOCK>
+void PreallocatedStack <El, PREALLOCATE, MIN_BLOCK>::allocate ()
+{
+	El* end = last_block_ ? (El*)&(last_block_->storage) + BLOCK_ELEMENTS : (El*)&preallocated_ + PREALLOCATE;
+	if (top_ == end) {
+		// Allocate new block
+		Block* block = (Block*)g_core_heap->allocate (nullptr, sizeof (Block), 0);
+		block->prev = last_block_;
+		last_block_ = block;
+		top_ = (El*)&(block->storage);
+	}
+}
+
+template <class El, size_t PREALLOCATE, size_t MIN_BLOCK>
+void PreallocatedStack <El, PREALLOCATE, MIN_BLOCK>::release () NIRVANA_NOEXCEPT
+{
+	if (top_ == ((El*)&(last_block_->storage))) {
+		Block* block = last_block_;
+		last_block_ = block->prev;
+		top_ = last_block_ ? (El*)&(last_block_->storage) + BLOCK_ELEMENTS : (El*)&preallocated_ + PREALLOCATE;
+		g_core_heap->release (block, sizeof (Block));
+	}
+}
 
 }
 }

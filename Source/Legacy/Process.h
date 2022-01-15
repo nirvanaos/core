@@ -36,9 +36,10 @@ namespace Nirvana {
 namespace Legacy {
 namespace Core {
 
-class Process :
+/// Legacy process.
+class NIRVANA_NOVTABLE Process :
 	public ThreadBackground,
-	public Nirvana::Core::CoreObject
+	public MemContextProcess
 {
 public:
 	static Nirvana::Core::CoreRef <Process> spawn (Nirvana::Core::Runnable& runnable);
@@ -51,8 +52,9 @@ protected:
 	~Process ()
 	{}
 
-private:
-	Nirvana::Core::ImplStatic <MemContextProcess> mem_context_;
+	friend class Nirvana::Core::CoreRef <Process>;
+	virtual void _add_ref () NIRVANA_NOEXCEPT = 0;
+	virtual void _remove_ref () NIRVANA_NOEXCEPT = 0;
 };
 
 }

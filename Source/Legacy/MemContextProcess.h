@@ -35,7 +35,7 @@ namespace Nirvana {
 namespace Legacy {
 namespace Core {
 
-class MemContextProcess :
+class NIRVANA_NOVTABLE MemContextProcess :
 	public Nirvana::Core::MemContextEx
 {
 	typedef Nirvana::Core::MemContextEx Base;

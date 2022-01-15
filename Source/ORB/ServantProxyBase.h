@@ -145,7 +145,7 @@ protected:
 	{
 	public:
 		Request () :
-			sync_context_ (&::Nirvana::Core::SyncContext::current ()),
+			mem_context_ (&::Nirvana::Core::MemContext::current ()),
 			success_ (false)
 		{
 			exception_.reset ();
@@ -154,7 +154,7 @@ protected:
 		Marshal_ptr marshaler ()
 		{
 			if (!marshaler_)
-				marshaler_ = (new ServantMarshaler (*sync_context_))->marshaler ();
+				marshaler_ = (new ServantMarshaler (*mem_context_))->marshaler ();
 			return marshaler_;
 		}
 
@@ -191,7 +191,7 @@ protected:
 		}
 
 	private:
-		::Nirvana::Core::CoreRef <::Nirvana::Core::SyncContext> sync_context_;
+		::Nirvana::Core::CoreRef <::Nirvana::Core::MemContext> mem_context_;
 		Marshal::_ref_type marshaler_;
 		ABI <Any> exception_;
 		bool success_;
@@ -220,9 +220,16 @@ public:
 		Request request;
 		ServantMarshaler* pmar = static_cast <ServantMarshaler*> (&Unmarshal::_ptr_type (u));
 		Nirvana::Core::MemContext* memory = pmar ? pmar->memory () : nullptr;
+#ifdef _DEBUG
+		size_t dbg_stack_size0 = Nirvana::Core::Thread::current ().exec_domain ()->dbg_context_stack_size_;
+#endif
 		SYNC_BEGIN (get_sync_context (op), memory);
 		(ie.operations.p [idx].invoke) (&ie.implementation, &request._get_ptr (), in_params, &Type <Unmarshal>::C_inout (u), out_params);
 		SYNC_END ();
+#ifdef _DEBUG
+		size_t dbg_stack_size1 = Nirvana::Core::Thread::current ().exec_domain ()->dbg_context_stack_size_;
+		assert (dbg_stack_size0 == dbg_stack_size1);
+#endif
 		return request.check ();
 	}
 

@@ -37,7 +37,7 @@ protected:
 };
 
 // This test fails due to error in the heap management
-TEST_F (TestFile, DISABLED_Open)
+TEST_F (TestFile, Open)
 {
 	char file_name [L_tmpnam_s];
 	ASSERT_FALSE (tmpnam_s (file_name));

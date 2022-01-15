@@ -151,13 +151,16 @@ public:
 	/// Push new memory context.
 	void mem_context_push (MemContext* context)
 	{
-		mem_context_.push (context);
+		mem_context_.emplace (context);
+		++dbg_context_stack_size_;
 	}
 
-	/// Pop user context stack.
+	/// Pop memory context stack.
 	void mem_context_pop () NIRVANA_NOEXCEPT
 	{
 		mem_context_.pop ();
+		--dbg_context_stack_size_;
+		assert (!mem_context_.empty ());
 	}
 
 	CORBA::Exception::Code scheduler_error () const NIRVANA_NOEXCEPT
@@ -178,22 +181,28 @@ public:
 		return ret;
 	}
 
+#ifdef _DEBUG
+	size_t dbg_context_stack_size_;
+#endif
 private:
-	ExecDomain (const DeadlineTime& deadline, Runnable* runnable, MemContext* user_context) :
+	ExecDomain (const DeadlineTime& deadline, Runnable& runnable, MemContext* mem_context) :
 		ExecContext (false),
+#ifdef _DEBUG
+		dbg_context_stack_size_ (1),
+#endif
 		restricted_mode_ (RestrictedMode::NO_RESTRICTIONS),
 		stateless_creation_frame_ (nullptr),
 		binder_context_ (nullptr),
 		deadline_ (deadline),
 		ret_qnodes_ (nullptr),
-		mem_context_ (user_context),
+		mem_context_ (mem_context),
 		scheduler_item_created_ (false),
 		scheduler_error_ (CORBA::SystemException::EC_NO_EXCEPTION),
 		schedule_call_ (*this),
 		schedule_return_ (*this),
 		deleter_ (*this)
 	{
-		runnable_ = runnable;
+		runnable_ = &runnable;
 		Scheduler::activity_begin ();	// Throws exception if shutdown was started.
 	}
 
@@ -208,6 +217,11 @@ private:
 		Scheduler::activity_end ();
 	}
 
+	friend class CoreRef <ExecDomain>;
+	void _add_ref () NIRVANA_NOEXCEPT;
+	void _remove_ref () NIRVANA_NOEXCEPT;
+	void cleanup () NIRVANA_NOEXCEPT;
+
 private:
 	void ret_qnodes_clear () NIRVANA_NOEXCEPT
 	{
@@ -217,11 +231,6 @@ private:
 			qn->release ();
 		}
 	}
-
-	friend class CoreRef <ExecDomain>;
-	void _add_ref () NIRVANA_NOEXCEPT;
-	void _remove_ref () NIRVANA_NOEXCEPT;
-	void cleanup () NIRVANA_NOEXCEPT;
 
 private:
 	class NeutralOp : public ImplStatic <Runnable>

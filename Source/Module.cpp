@@ -30,8 +30,8 @@
 namespace Nirvana {
 namespace Core {
 
-Module::Module (const std::string& name, bool singleton) :
-	Port::Module (name),
+Module::Module (const StringView& name, bool singleton) :
+	ModuleImpl (name),
 	singleton_ (singleton),
 	ref_cnt_ (0),
 	initial_ref_cnt_ (0),

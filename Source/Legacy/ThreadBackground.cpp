@@ -27,17 +27,13 @@
 #include "ThreadBackground.h"
 #include "../ExecDomain.h"
 
+using namespace Nirvana::Core;
+
 namespace Nirvana {
 namespace Legacy {
 namespace Core {
 
-using namespace Nirvana::Core;
-
-ThreadBackground::ThreadBackground (bool process) :
-	Nirvana::Core::Port::ThreadBackground (process)
-{}
-
-void ThreadBackground::start (Nirvana::Core::Runnable& runnable, Nirvana::Core::MemContext& mem_context)
+void ThreadBackground::start (Runnable& runnable, MemContext& mem_context)
 {
 	auto ed = ExecDomain::create_background (*this, runnable, mem_context);
 	exec_domain_ = ed;
@@ -45,19 +41,22 @@ void ThreadBackground::start (Nirvana::Core::Runnable& runnable, Nirvana::Core::
 	_add_ref ();
 }
 
-void ThreadBackground::schedule_call (Nirvana::Core::SyncContext& target, MemContext* mem_context)
+void ThreadBackground::schedule_call (SyncContext& target, MemContext* mem_context)
 {
+	assert (this == Thread::current_ptr ());
+
 	// We don't switch context if no sync domain
+	ExecDomain* ed = exec_domain ();
 	if (target.sync_domain ()) {
-		ExecDomain* exec_domain = Thread::current ().exec_domain ();
-		assert (exec_domain);
-		exec_domain->schedule_call (target, mem_context);
-		check_schedule_error (*exec_domain);
-	}
+		ed->schedule_call (target, mem_context);
+		check_schedule_error (*ed);
+	} else
+		ed->mem_context_push (mem_context);
 }
 
 void ThreadBackground::schedule_return (Nirvana::Core::ExecDomain& exec_domain) NIRVANA_NOEXCEPT
 {
+	assert (&exec_domain == this->exec_domain ());
 	exec_domain.sync_context (*this);
 	Port::ThreadBackground::resume ();
 }

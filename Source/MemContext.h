@@ -42,7 +42,7 @@ namespace Core {
 /// The MemContext implements heap only. Other virtual methods are stubbed.
 ///  only an is intended for use in Core only.
 /// 
-class MemContext :
+class NIRVANA_NOVTABLE MemContext :
 	public CoreObject,
 	public CoreInterface
 {

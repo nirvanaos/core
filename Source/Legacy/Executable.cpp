@@ -30,8 +30,8 @@ namespace Nirvana {
 namespace Legacy {
 namespace Core {
 
-Executable::Executable (const char* file) :
-	Nirvana::Core::Port::Module (file),
+Executable::Executable (const Nirvana::Core::StringView& file) :
+	Nirvana::Core::ModuleImpl (file),
 	entry_point_ (Nirvana::Core::Binder::bind (*this))
 {}
 

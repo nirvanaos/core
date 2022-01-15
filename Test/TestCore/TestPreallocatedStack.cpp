@@ -53,4 +53,11 @@ TEST_F (TestPreallocatedStack, Test)
 	}
 }
 
+TEST_F (TestPreallocatedStack, Init)
+{
+	PreallocatedStack <int> stack (1);
+	ASSERT_FALSE (stack.empty ());
+	EXPECT_EQ (stack.top (), 1);
+}
+
 }

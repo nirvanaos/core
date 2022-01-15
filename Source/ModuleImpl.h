@@ -1,3 +1,4 @@
+/// \file
 /*
 * Nirvana Core.
 *
@@ -23,28 +24,32 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_CORE_INITTERM_H_
-#define NIRVANA_CORE_INITTERM_H_
+#ifndef NIRVANA_CORE_MODULEIMPL_H_
+#define NIRVANA_CORE_MODULEIMPL_H_
 #pragma once
 
-#include <Nirvana/Nirvana.h>
+#include <CORBA/Server.h>
+#include "IDL/Module_s.h"
+#include <Port/Module.h>
 
 namespace Nirvana {
 namespace Core {
 
-/// First initialize stage.
-/// Called by kernel.
-/// Initializes Heap and other static stuff.
-void initialize0 ();
+/// Nirvana::Module interface implementation.
+class ModuleImpl :
+	public Port::Module
+{
+public:
+	const void* base_address () const NIRVANA_NOEXCEPT
+	{
+		return Port::Module::address ();
+	}
 
-//! Called by Startup class from free sync domain after kernel initialization.
-void initialize ();
-
-//! Called asynchronously before the kernel termination.
-void terminate ();
-
-//! Called by kernel on the final termination.
-void terminate0 () NIRVANA_NOEXCEPT;
+protected:
+	ModuleImpl (const StringView& file) :
+		Nirvana::Core::Port::Module (file)
+	{}
+};
 
 }
 }
