@@ -33,7 +33,7 @@
 #include <algorithm>
 #include <atomic>
 
-#ifdef _WIN32
+#ifdef _MSC_BUILD
 
 #define HEAP_DIR_TRY __try
 #define HEAP_DIR_CATCH __except (1) // EXCEPTION_EXECUTE_HANDLER
