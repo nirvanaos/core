@@ -24,59 +24,37 @@
 *  popov.nirvana@gmail.com
 */
 #include "MemContextProcess.h"
-#include "../HeapDynamic.h"
 
 namespace Nirvana {
 namespace Legacy {
 namespace Core {
 
-class HeapDynamic : public Nirvana::Core::HeapDynamic
-{
-	typedef Nirvana::Core::HeapDynamic Base;
-public:
-	HeapDynamic (uint16_t allocation_unit, SimpleList <Nirvana::Core::HeapDynamic>& list, std::mutex& m) :
-		Base (allocation_unit, list),
-		mutex_ (&m)
-	{}
-
-	~HeapDynamic ()
-	{
-		if (mutex_) {
-			mutex_->lock ();
-			SimpleListElem::remove ();
-			mutex_->unlock ();
-		}
-	}
-
-	std::mutex* mutex_;
-};
-
-MemContextProcess::MemContextProcess ()
-{}
-
-MemContextProcess::~MemContextProcess ()
-{
-	for (SimpleList <Nirvana::Core::HeapDynamic>::iterator it = user_heap_list_.begin (); it != user_heap_list_.end (); ++it) {
-		static_cast <HeapDynamic&> (*it).mutex_ = nullptr;
-	}
-}
+using namespace Nirvana::Core;
 
 RuntimeProxy::_ref_type MemContextProcess::runtime_proxy_get (const void* obj)
-{ // TODO Replace with own mutex!
-	std::lock_guard <std::mutex> lock (mutex_);
+{
+	std::lock_guard <Mutex> lock (*this);
 	return Base::runtime_proxy_get (obj);
 }
 
 void MemContextProcess::runtime_proxy_remove (const void* obj)
-{ // TODO Replace with own mutex!
-	std::lock_guard <std::mutex> lock (mutex_);
+{
+	std::lock_guard <Mutex> lock (*this);
 	Base::runtime_proxy_remove (obj);
 }
 
-Memory::_ref_type MemContextProcess::create_heap (uint16_t granularity)
+void MemContextProcess::on_object_construct (MemContextObject& obj)
 {
-	std::lock_guard <std::mutex> lock (mutex_);
-	return CORBA::make_pseudo <HeapDynamic> (granularity, std::ref (user_heap_list_), std::ref (mutex_));
+	lock ();
+	Base::on_object_construct (obj);
+	unlock ();
+}
+
+void MemContextProcess::on_object_destruct (MemContextObject& obj)
+{
+	lock ();
+	obj.remove ();
+	unlock ();
 }
 
 }

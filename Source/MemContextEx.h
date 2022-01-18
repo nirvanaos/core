@@ -30,12 +30,10 @@
 
 #include "MemContext.h"
 #include "RuntimeSupport.h"
-#include "SimpleList.h"
+#include "MemContextObject.h"
 
 namespace Nirvana {
 namespace Core {
-
-class HeapDynamic;
 
 /// Memory context full implementation.
 /// Unlike the base MemContext, MemContextEx is not thread-safe and can not be shared by multiple domains.
@@ -67,17 +65,22 @@ public:
 
 #endif
 
-	/// Create user heap.
+	/// Add object to list.
 	/// 
-	/// \param granularity Heap allocation unit size.
-	virtual Memory::_ref_type create_heap (uint16_t granularity);
+	/// \param obj New object.
+	virtual void on_object_construct (MemContextObject& obj);
+
+	/// Remove object from list.
+	/// 
+	/// \param obj Object.
+	virtual void on_object_destruct (MemContextObject& obj);
 
 protected:
 	MemContextEx ();
 	~MemContextEx ();
 
 protected:
-	SimpleList <HeapDynamic> user_heap_list_;
+	SimpleList <MemContextObject> object_list_;
 
 private:
 #ifndef NIRVANA_RUNTIME_SUPPORT_DISABLE

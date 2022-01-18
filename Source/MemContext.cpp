@@ -67,10 +67,11 @@ void MemContext::runtime_proxy_remove (const void* obj)
 {
 }
 
-Memory::_ref_type MemContext::create_heap (uint16_t granularity)
-{
-	throw_NO_IMPLEMENT ();
-}
+void MemContext::on_object_construct (MemContextObject& obj)
+{}
+
+void MemContext::on_object_destruct (MemContextObject& obj)
+{}
 
 }
 }

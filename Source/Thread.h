@@ -35,7 +35,6 @@ namespace Nirvana {
 namespace Core {
 
 class ExecDomain;
-class RuntimeSupport;
 
 /// Thread class.
 class NIRVANA_NOVTABLE Thread :

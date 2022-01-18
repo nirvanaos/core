@@ -24,47 +24,28 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_LEGACY_CORE_MEMCONTEXTPROCESS_H_
-#define NIRVANA_LEGACY_CORE_MEMCONTEXTPROCESS_H_
+#ifndef NIRVANA_CORE_MEMCONTEXTOBJECT_H_
+#define NIRVANA_CORE_MEMCONTEXTOBJECT_H_
 #pragma once
 
-#include "../MemContextEx.h"
-#include "Mutex.h"
+#include "UserObject.h"
+#include <Nirvana/SimpleList.h>
 
 namespace Nirvana {
-namespace Legacy {
 namespace Core {
 
-class NIRVANA_NOVTABLE MemContextProcess :
-	public Nirvana::Core::MemContextEx,
-	private Mutex
+/// Object that belongs to the memory context.
+class NIRVANA_NOVTABLE MemContextObject :
+	public UserObject,
+	public SimpleList <MemContextObject>::Element
 {
-	typedef Nirvana::Core::MemContextEx Base;
+public:
+	virtual ~MemContextObject ();
+
 protected:
-	virtual RuntimeProxy::_ref_type runtime_proxy_get (const void* obj);
-	virtual void runtime_proxy_remove (const void* obj);
-
-	/// Add object to list.
-	/// 
-	/// \param obj New object.
-	virtual void on_object_construct (Nirvana::Core::MemContextObject& obj);
-
-	/// Remove object from list.
-	/// 
-	/// \param obj Object.
-	virtual void on_object_destruct (Nirvana::Core::MemContextObject& obj);
-
-	MemContextProcess ()
-	{}
-
-	~MemContextProcess ()
-	{}
-
-	using Nirvana::Core::CoreObject::operator new;
-	using Nirvana::Core::CoreObject::operator delete;
+	MemContextObject ();
 };
 
-}
 }
 }
 

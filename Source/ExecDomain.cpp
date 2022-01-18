@@ -73,13 +73,16 @@ void ExecDomain::schedule (SyncContext& sync_context)
 	}
 }
 
-void ExecDomain::suspend ()
+void ExecDomain::suspend (SyncContext* resume_context)
 {
 	SyncDomain* sync_domain = sync_context_->sync_domain ();
 	if (sync_domain) {
-		ret_qnode_push (*sync_domain);
+		if (!resume_context)
+			ret_qnode_push (*sync_domain);
 		sync_domain->leave ();
 	}
+	if (resume_context)
+		sync_context (*resume_context);
 	ExecContext& neutral_context = Thread::current ().neutral_context ();
 	if (&neutral_context != &ExecContext::current ())
 		neutral_context.run_in_context (suspend_);

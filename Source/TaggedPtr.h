@@ -30,6 +30,7 @@
 
 #include <Port/config.h>
 #include "BackOff.h"
+#include <Nirvana/bitutils.h>
 #include <atomic>
 #include <algorithm>
 

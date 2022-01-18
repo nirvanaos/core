@@ -103,10 +103,10 @@ public:
 		_add_ref ();
 	}
 
-	void spawn (SyncContext& sync_context);
-
-	/// Suspend
-	void suspend ();
+	/// Suspend execution
+	/// 
+	/// \param resume_context Context where to resume or nullptr for current context.
+	void suspend (SyncContext* resume_context = nullptr);
 
 	/// Resume suspended domain
 	void resume ()
@@ -152,14 +152,18 @@ public:
 	void mem_context_push (MemContext* context)
 	{
 		mem_context_.emplace (context);
+#ifdef _DEBUG
 		++dbg_context_stack_size_;
+#endif
 	}
 
 	/// Pop memory context stack.
 	void mem_context_pop () NIRVANA_NOEXCEPT
 	{
 		mem_context_.pop ();
+#ifdef _DEBUG
 		--dbg_context_stack_size_;
+#endif
 		assert (!mem_context_.empty ());
 	}
 
@@ -223,6 +227,8 @@ private:
 	void cleanup () NIRVANA_NOEXCEPT;
 
 private:
+	void spawn (SyncContext& sync_context);
+
 	void ret_qnodes_clear () NIRVANA_NOEXCEPT
 	{
 		while (ret_qnodes_) {

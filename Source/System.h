@@ -32,6 +32,7 @@
 #include "Binder.h"
 #include "Chrono.h"
 #include "ExecDomain.h"
+#include "HeapDynamic.h"
 
 namespace Nirvana {
 namespace Core {
@@ -103,7 +104,7 @@ public:
 
 	static Nirvana::Memory::_ref_type create_heap (uint16_t granularity)
 	{
-		return MemContext::current ().create_heap (granularity);
+		return HeapDynamic::create (granularity);
 	}
 
 	static void abort ()

@@ -1,4 +1,3 @@
-/// \file
 /*
 * Nirvana Core.
 *
@@ -24,48 +23,48 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_LEGACY_CORE_MEMCONTEXTPROCESS_H_
-#define NIRVANA_LEGACY_CORE_MEMCONTEXTPROCESS_H_
-#pragma once
-
-#include "../MemContextEx.h"
 #include "Mutex.h"
+#include "../ExecDomain.h"
 
 namespace Nirvana {
 namespace Legacy {
 namespace Core {
 
-class NIRVANA_NOVTABLE MemContextProcess :
-	public Nirvana::Core::MemContextEx,
-	private Mutex
+Mutex::~Mutex ()
 {
-	typedef Nirvana::Core::MemContextEx Base;
-protected:
-	virtual RuntimeProxy::_ref_type runtime_proxy_get (const void* obj);
-	virtual void runtime_proxy_remove (const void* obj);
+	// TODO: Terminate all waiting threads
+}
 
-	/// Add object to list.
-	/// 
-	/// \param obj New object.
-	virtual void on_object_construct (Nirvana::Core::MemContextObject& obj);
+void Mutex::lock ()
+{
+	SYNC_BEGIN (*this, nullptr);
+	ThreadBackground& thread = ThreadBackground::current ();
+	if (!owner_) {
+		owner_ = &thread;
+		return;
+	} else if (owner_ == &thread)
+		throw_BAD_INV_ORDER ();
+	else {
+		queue_.push_back (thread);
+		_sync_frame.suspend_and_return ();
+	}
+	SYNC_END ();
+}
 
-	/// Remove object from list.
-	/// 
-	/// \param obj Object.
-	virtual void on_object_destruct (Nirvana::Core::MemContextObject& obj);
-
-	MemContextProcess ()
-	{}
-
-	~MemContextProcess ()
-	{}
-
-	using Nirvana::Core::CoreObject::operator new;
-	using Nirvana::Core::CoreObject::operator delete;
-};
+void Mutex::unlock ()
+{
+	SYNC_BEGIN (*this, nullptr);
+	if (owner_ != &ThreadBackground::current ())
+		throw_BAD_INV_ORDER ();
+	owner_ = nullptr;
+	if (!queue_.empty ()) {
+		ThreadBackground& next = queue_.front ();
+		owner_ = &next;
+		next.port ().exec_domain ()->resume ();
+	}
+	SYNC_END ();
+}
 
 }
 }
 }
-
-#endif

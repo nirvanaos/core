@@ -25,7 +25,6 @@
 */
 #include "ExecDomain.h"
 #include "Thread.h"
-#include <memory>
 
 namespace Nirvana {
 namespace Core {

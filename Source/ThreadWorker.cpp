@@ -26,6 +26,7 @@
 #include "ThreadWorker.h"
 #include "Scheduler.h"
 #include "Thread.h"
+#include "Executor.h"
 
 namespace Nirvana {
 namespace Core {

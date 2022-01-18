@@ -42,6 +42,9 @@ class NIRVANA_NOVTABLE Process :
 	public MemContextProcess
 {
 public:
+	using Nirvana::Core::CoreObject::operator new;
+	using Nirvana::Core::CoreObject::operator delete;
+
 	static Nirvana::Core::CoreRef <Process> spawn (Nirvana::Core::Runnable& runnable);
 
 protected:

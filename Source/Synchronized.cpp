@@ -30,8 +30,10 @@ namespace Nirvana {
 namespace Core {
 
 Synchronized::Synchronized (SyncContext& target, MemContext* mem_context) :
-	call_context_ (&SyncContext::current ())
+	call_context_ (&SyncContext::current ()),
+	exec_domain_ (Thread::current ().exec_domain ())
 {
+	assert (exec_domain_);
 	// Target can not be legacy thread
 	assert (target.sync_domain () || target.is_free_sync_context ());
 	call_context_->schedule_call (target, mem_context);
@@ -39,21 +41,22 @@ Synchronized::Synchronized (SyncContext& target, MemContext* mem_context) :
 
 Synchronized::~Synchronized ()
 {
-	if (call_context_) { // If no exception
-		ExecDomain* exec_domain = Thread::current ().exec_domain ();
-		assert (exec_domain);
-		exec_domain->schedule_return (*call_context_);
-	}
+	if (call_context_) // If no exception and no suspend_and_return ()
+		exec_domain_->schedule_return (*call_context_);
 }
 
 NIRVANA_NORETURN void Synchronized::on_exception ()
 {
-	std::exception_ptr exc = std::current_exception ();
+	std::exception_ptr ex = std::current_exception ();
 	CoreRef <SyncContext> context = std::move (call_context_);
-	ExecDomain* exec_domain = Thread::current ().exec_domain ();
-	assert (exec_domain);
-	exec_domain->schedule_return (*context);
-	std::rethrow_exception (exc);
+	exec_domain_->schedule_return (*context);
+	std::rethrow_exception (ex);
+}
+
+void Synchronized::suspend_and_return ()
+{
+	CoreRef <SyncContext> context = std::move (call_context_);
+	exec_domain_->suspend (context);
 }
 
 }

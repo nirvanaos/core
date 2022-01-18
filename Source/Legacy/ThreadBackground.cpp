@@ -1,4 +1,3 @@
-/// \file
 /*
 * Nirvana Core.
 *
@@ -24,7 +23,7 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "ThreadBackground.h"
+#include "Process.h"
 #include "../ExecDomain.h"
 
 using namespace Nirvana::Core;
@@ -33,9 +32,9 @@ namespace Nirvana {
 namespace Legacy {
 namespace Core {
 
-void ThreadBackground::start (Runnable& runnable, MemContext& mem_context)
+void ThreadBackground::start (Process& process, Nirvana::Core::Runnable& runnable)
 {
-	auto ed = ExecDomain::create_background (*this, runnable, mem_context);
+	auto ed = ExecDomain::create_background (*this, runnable, process);
 	exec_domain_ = ed;
 	ed->start ([this]() {this->create (); });
 	_add_ref ();

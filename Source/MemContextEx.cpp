@@ -24,7 +24,6 @@
 *  popov.nirvana@gmail.com
 */
 #include "MemContextEx.h"
-#include "HeapDynamic.h"
 
 namespace Nirvana {
 namespace Core {
@@ -34,7 +33,7 @@ MemContextEx::MemContextEx ()
 
 MemContextEx::~MemContextEx ()
 {
-	user_heap_list_.clear ();
+	object_list_.clear ();
 }
 
 RuntimeProxy::_ref_type MemContextEx::runtime_proxy_get (const void* obj)
@@ -47,9 +46,13 @@ void MemContextEx::runtime_proxy_remove (const void* obj)
 	runtime_support_.runtime_proxy_remove (obj);
 }
 
-Memory::_ref_type MemContextEx::create_heap (uint16_t granularity)
+void MemContextEx::on_object_construct (MemContextObject& obj)
 {
-	return CORBA::make_pseudo <HeapDynamic> (granularity, std::ref (user_heap_list_));
+	object_list_.push_back (obj);
+}
+
+void MemContextEx::on_object_destruct (MemContextObject& obj)
+{
 }
 
 }

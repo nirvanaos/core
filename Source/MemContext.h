@@ -35,6 +35,8 @@
 namespace Nirvana {
 namespace Core {
 
+class MemContextObject;
+
 /// Memory context.
 /// Contains heap and some other stuff.
 /// MemContext implementation is thread-safe.
@@ -77,9 +79,13 @@ public:
 	/// Overridden in MemContextEx.
 	virtual void runtime_proxy_remove (const void* obj);
 
-	/// Throws CORBA::NO_IMPLEMENT.
+	/// Does nothing.
 	/// Overridden in MemContextEx.
-	virtual Memory::_ref_type create_heap (uint16_t granularity);
+	virtual void on_object_construct (MemContextObject& obj);
+
+	/// Does nothing.
+	/// Overridden in MemContextEx.
+	virtual void on_object_destruct (MemContextObject& obj);
 
 protected:
 	MemContext ();

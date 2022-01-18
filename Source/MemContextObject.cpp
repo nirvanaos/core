@@ -23,40 +23,22 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_CORE_HEAPDYNAMIC_H_
-#define NIRVANA_CORE_HEAPDYNAMIC_H_
-#pragma once
-
-#include "Heap.h"
-#include <CORBA/Server.h>
-#include "IDL/Memory_s.h"
-#include "LifeCyclePseudo.h"
 #include "MemContextObject.h"
+#include "MemContext.h"
 
 namespace Nirvana {
 namespace Core {
 
-class HeapDynamic :
-	public HeapUser,
-	public CORBA::servant_traits <Nirvana::Memory>::Servant <HeapDynamic>,
-	public LifeCyclePseudo <HeapDynamic>,
-	public MemContextObject
+MemContextObject::MemContextObject ()
 {
-public:
-	using CORBA::servant_traits <Nirvana::Memory>::Servant <HeapDynamic>::_release;
-	using LifeCyclePseudo <HeapDynamic>::_release;
+	MemContext::current ().on_object_construct (*this);
+}
 
-	static Nirvana::Memory::_ref_type create (uint16_t allocation_unit)
-	{
-		return CORBA::make_pseudo <HeapDynamic> (allocation_unit);
-	}
-
-	HeapDynamic (uint16_t allocation_unit) :
-		HeapUser (allocation_unit)
-	{}
-};
+MemContextObject::~MemContextObject ()
+{
+	if (listed ())
+		MemContext::current ().on_object_destruct (*this);
+}
 
 }
 }
-
-#endif

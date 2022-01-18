@@ -28,6 +28,7 @@
 #pragma once
 
 #include <Nirvana/Nirvana.h>
+#include <Nirvana/bitutils.h>
 #include <Port/Memory.h>
 #include <stddef.h>
 #include <algorithm>

@@ -30,6 +30,7 @@
 
 #include "PriorityQueue.h"
 #include "Scheduler.h"
+#include "Executor.h"
 #include "SyncContext.h"
 #include "CoreObject.h"
 #include "MemContext.h"

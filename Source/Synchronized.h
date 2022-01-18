@@ -41,21 +41,35 @@ public:
 	Synchronized (SyncContext& target, MemContext* mem_context);
 	~Synchronized ();
 
+	/// \returns The caller synchronization context.
 	SyncContext& call_context () const
 	{
 		return *call_context_;
 	}
 
+	/// Returns current execution domain.
+	/// This method is quicker than Thread::current ().exec_domain ();
+	ExecDomain& exec_domain () NIRVANA_NOEXCEPT
+	{
+		return *exec_domain_;
+	}
+
+	/// Suspend execution.
+	/// On resume, return to call context.
+	void suspend_and_return ();
+
+	/// Called on exception inside synchronization frame.
 	NIRVANA_NORETURN void on_exception ();
 
 private:
 	CoreRef <SyncContext> call_context_;
+	ExecDomain* exec_domain_;
 };
 
 }
 }
 
-#define SYNC_BEGIN(target, mem) { ::Nirvana::Core::Synchronized sync (target, mem); try {
-#define SYNC_END() } catch (...) { sync.on_exception (); }}
+#define SYNC_BEGIN(target, mem) { ::Nirvana::Core::Synchronized _sync_frame (target, mem); try {
+#define SYNC_END() } catch (...) { _sync_frame.on_exception (); }}
 
 #endif
