@@ -44,12 +44,13 @@ void ThreadBackground::schedule_call (SyncContext& target, MemContext* mem_conte
 {
 	assert (this == Thread::current_ptr ());
 
-	// We don't switch context if no sync domain
 	ExecDomain* ed = exec_domain ();
 	if (target.sync_domain ()) {
 		ed->schedule_call (target, mem_context);
 		check_schedule_error (*ed);
 	} else
+		// We don't switch context if no sync domain.
+		// Just continue execution with background priority.
 		ed->mem_context_push (mem_context);
 }
 

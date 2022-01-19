@@ -74,6 +74,7 @@ private:
 	virtual void schedule_return (Nirvana::Core::ExecDomain& exec_domain) NIRVANA_NOEXCEPT;
 
 	/// See Nirvana::Core::Thread.
+	/// Called from neutral context.
 	virtual void yield () NIRVANA_NOEXCEPT;
 
 	void on_thread_proc_end ()

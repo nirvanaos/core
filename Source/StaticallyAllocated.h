@@ -56,7 +56,7 @@ public:
 	void destruct () NIRVANA_NOEXCEPT
 	{
 		assert (constructed_);
-		((T&)storage_).~T ();
+		((T&)storage_).T::~T ();
 #ifdef _DEBUG
 		constructed_ = false;
 #endif
