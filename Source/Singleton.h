@@ -33,6 +33,8 @@
 namespace Nirvana {
 namespace Core {
 
+/// Singleton module.
+/// Static objects live in the common synchronization domain.
 class Singleton :
 	public Module,
 	public SyncDomain

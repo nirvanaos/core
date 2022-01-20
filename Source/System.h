@@ -43,18 +43,16 @@ class System :
 public:
 	static RuntimeProxy::_ref_type runtime_proxy_get (const void* obj)
 	{
-#ifndef NIRVANA_RUNTIME_SUPPORT_DISABLE
-		return MemContext::current ().runtime_proxy_get (obj);
-#else
-		return nullptr;
-#endif
+		if (!RUNTIME_SUPPORT_DISABLE)
+			return MemContext::current ().runtime_proxy_get (obj);
+		else
+			return nullptr;
 	}
 
 	static void runtime_proxy_remove (const void* obj)
 	{
-#ifndef NIRVANA_RUNTIME_SUPPORT_DISABLE
-		MemContext::current ().runtime_proxy_remove (obj);
-#endif
+		if (!RUNTIME_SUPPORT_DISABLE)
+			MemContext::current ().runtime_proxy_remove (obj);
 	}
 
 	static CORBA::Object::_ref_type bind (const std::string& name)

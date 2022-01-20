@@ -245,7 +245,7 @@ private:
 private:
 	AbstractBase::_ptr_type servant_;
 	RefCnt ref_cnt_;
-	::Nirvana::Core::CoreRef <::Nirvana::Core::SyncContext> sync_context_;
+	Nirvana::Core::CoreRef <Nirvana::Core::SyncContext> sync_context_;
 };
 
 }

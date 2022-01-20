@@ -33,14 +33,19 @@ using namespace Nirvana::Core;
 
 RuntimeProxy::_ref_type MemContextProcess::runtime_proxy_get (const void* obj)
 {
-	std::lock_guard <Mutex> lock (*this);
-	return Base::runtime_proxy_get (obj);
+	if (!RUNTIME_SUPPORT_DISABLE) {
+		std::lock_guard <Mutex> lock (*this);
+		return Base::runtime_proxy_get (obj);
+	} else
+		return nullptr;
 }
 
 void MemContextProcess::runtime_proxy_remove (const void* obj)
 {
-	std::lock_guard <Mutex> lock (*this);
-	Base::runtime_proxy_remove (obj);
+	if (!RUNTIME_SUPPORT_DISABLE) {
+		std::lock_guard <Mutex> lock (*this);
+		Base::runtime_proxy_remove (obj);
+	}
 }
 
 void MemContextProcess::on_object_construct (MemContextObject& obj)

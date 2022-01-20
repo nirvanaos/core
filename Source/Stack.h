@@ -44,7 +44,7 @@ struct StackElem
 };
 
 /// Lock-free stack implementation.
-template <class T, unsigned ALIGN = CORE_OBJECT_ALIGN (T)>
+template <class T, unsigned ALIGN = core_object_align <T> ()>
 class Stack
 {
 	Stack (const Stack&) = delete;

@@ -38,7 +38,11 @@
 #error Atomic pointer is required.
 #endif
 
-#define CORE_OBJECT_ALIGN(T) (std::max ((unsigned)::Nirvana::Core::HEAP_UNIT_CORE, (unsigned)(1 << ::Nirvana::log2_ceil (sizeof (T)))))
+template <class T>
+constexpr unsigned core_object_align ()
+{
+	return std::max ((unsigned)::Nirvana::Core::HEAP_UNIT_CORE, (unsigned)(1 << ::Nirvana::log2_ceil (sizeof (T))));
+}
 
 namespace Nirvana {
 namespace Core {
@@ -262,7 +266,7 @@ typename LockablePtr <TAG_BITS, ALIGN>::Ptr LockablePtr <TAG_BITS, ALIGN>::lock 
 template <class T, unsigned TAG_BITS, unsigned ALIGN> class AtomicPtrT;
 template <class T, unsigned TAG_BITS, unsigned ALIGN> class LockablePtrT;
 
-template <class T, unsigned TAG_BITS, unsigned ALIGN = CORE_OBJECT_ALIGN (T)>
+template <class T, unsigned TAG_BITS, unsigned ALIGN = core_object_align <T> ()>
 class TaggedPtrT : public TaggedPtr <TAG_BITS, ALIGN>
 {
 	typedef TaggedPtr <TAG_BITS, ALIGN> Base;
@@ -322,7 +326,7 @@ private:
 	{}
 };
 
-template <class T, unsigned TAG_BITS, unsigned ALIGN = CORE_OBJECT_ALIGN (T)>
+template <class T, unsigned TAG_BITS, unsigned ALIGN = core_object_align <T> ()>
 class AtomicPtrT : public AtomicPtr <TAG_BITS, ALIGN>
 {
 	typedef AtomicPtr <TAG_BITS, ALIGN> Base;
@@ -357,7 +361,7 @@ public:
 	}
 };
 
-template <class T, unsigned TAG_BITS, unsigned ALIGN = CORE_OBJECT_ALIGN (T)>
+template <class T, unsigned TAG_BITS, unsigned ALIGN = core_object_align <T> ()>
 class LockablePtrT : public LockablePtr <TAG_BITS, ALIGN>
 {
 	typedef LockablePtr <TAG_BITS, ALIGN> Base;

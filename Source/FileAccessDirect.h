@@ -38,7 +38,7 @@
 namespace Nirvana {
 namespace Core {
 
-class FileAccessDirect :
+class FileAccessDirect final :
 	public CORBA::servant_traits <Nirvana::FileAccessDirect>::Servant <FileAccessDirect>,
 	private Port::FileAccessDirect
 {

@@ -34,6 +34,7 @@
 #include "RuntimeGlobal.h"
 #include "PreallocatedStack.h"
 #include "MemContextEx.h"
+#include "ObjectPool.h"
 #include <limits>
 #include <utility>
 
@@ -41,22 +42,17 @@ namespace Nirvana {
 namespace Core {
 
 /// Execution domain (coroutine, fiber).
-class ExecDomain :
+class ExecDomain final :
 	public CoreObject,
 	public ExecContext,
 	public Executor,
 	public StackElem
 {
 public:
-	static void initialize ()
-	{
-		suspend_.construct ();
-	}
+	static void initialize ();
+	static void terminate () NIRVANA_NOEXCEPT;
 
-	static void terminate () NIRVANA_NOEXCEPT
-	{}
-
-	static CoreRef <ExecDomain> create (const DeadlineTime& deadline, Runnable& runnable, MemContext* mem_context = nullptr);
+	static CoreRef <ExecDomain> create (const DeadlineTime deadline, Runnable& runnable, MemContext* mem_context = nullptr);
 
 	static void async_call (const DeadlineTime& deadline, Runnable& runnable, SyncContext& sync_context, MemContext* mem_context = nullptr)
 	{
@@ -189,39 +185,32 @@ public:
 	size_t dbg_context_stack_size_;
 #endif
 private:
-	ExecDomain (const DeadlineTime& deadline, Runnable& runnable, MemContext* mem_context) :
+	ExecDomain () :
 		ExecContext (false),
 #ifdef _DEBUG
-		dbg_context_stack_size_ (1),
+		dbg_context_stack_size_ (0),
 #endif
+		ref_cnt_ (1),
 		restricted_mode_ (RestrictedMode::NO_RESTRICTIONS),
 		stateless_creation_frame_ (nullptr),
 		binder_context_ (nullptr),
-		deadline_ (deadline),
 		ret_qnodes_ (nullptr),
-		mem_context_ (mem_context),
 		scheduler_item_created_ (false),
 		scheduler_error_ (CORBA::SystemException::EC_NO_EXCEPTION),
 		schedule_call_ (*this),
 		schedule_return_ (*this),
 		deleter_ (*this)
-	{
-		runnable_ = &runnable;
-		Scheduler::activity_begin ();	// Throws exception if shutdown was started.
-	}
+	{}
+
+	void final_construct (const DeadlineTime& deadline, Runnable& runnable, MemContext* mem_context);
 
 	~ExecDomain () NIRVANA_NOEXCEPT
-	{
-		assert (!runnable_);
-		assert (!sync_context_);
-#ifdef _DEBUG
-		Thread& thread = Thread::current ();
-		assert (thread.exec_domain () != this);
-#endif
-		Scheduler::activity_end ();
-	}
+	{}
+
+	void final_release () NIRVANA_NOEXCEPT;
 
 	friend class CoreRef <ExecDomain>;
+	friend class ObjectPool <ExecDomain>;
 	void _add_ref () NIRVANA_NOEXCEPT;
 	void _remove_ref () NIRVANA_NOEXCEPT;
 	void cleanup () NIRVANA_NOEXCEPT;
@@ -295,6 +284,11 @@ private:
 		virtual void run ();
 	};
 
+	class WithPool;
+	class NoPool;
+
+	using Creator = std::conditional <EXEC_DOMAIN_POOLING, WithPool, NoPool>::type;
+
 public:
 	enum class RestrictedMode
 	{
@@ -316,13 +310,13 @@ public:
 private:
 	static StaticallyAllocated <Suspend> suspend_;
 
+	AtomicCounter <false> ref_cnt_;
 	DeadlineTime deadline_;
 	CoreRef <SyncContext> sync_context_;
 	SyncDomain::QueueNode* ret_qnodes_;
 	PreallocatedStack <CoreRef <MemContext>> mem_context_;
 	bool scheduler_item_created_;
 	CORBA::Exception::Code scheduler_error_;
-	RefCounter ref_cnt_;
 	ScheduleCall schedule_call_;
 	ScheduleReturn schedule_return_;
 	Deleter deleter_;

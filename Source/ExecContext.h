@@ -31,7 +31,6 @@
 #include "Runnable.h"
 #include <Port/ExecContext.h>
 #include <Port/Thread.h>
-#include "CoreInterface.h"
 
 namespace Nirvana {
 namespace Core {

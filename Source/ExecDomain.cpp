@@ -24,17 +24,106 @@
 *  popov.nirvana@gmail.com
 */
 #include "ExecDomain.h"
+#include <Port/SystemInfo.h>
 
 using namespace std;
 
 namespace Nirvana {
 namespace Core {
 
+class ExecDomain::WithPool
+{
+public:
+	static void initialize () NIRVANA_NOEXCEPT
+	{
+		// Set initial pool size with processor count.
+		pool_.construct (Port::SystemInfo::hardware_concurrency ());
+	}
+
+	static void terminate () NIRVANA_NOEXCEPT
+	{
+		pool_.destruct ();
+	}
+
+	static CoreRef <ExecDomain> create ()
+	{
+		return pool_->create ();
+	}
+
+	static void release (ExecDomain& ed)
+	{
+		pool_->release (ed);
+	}
+
+private:
+	static StaticallyAllocated <ObjectPool <ExecDomain>> pool_;
+};
+
+StaticallyAllocated <ObjectPool <ExecDomain>> ExecDomain::WithPool::pool_;
+
+class ExecDomain::NoPool
+{
+public:
+	static void initialize () NIRVANA_NOEXCEPT
+	{}
+
+	static void terminate () NIRVANA_NOEXCEPT
+	{}
+
+	static CoreRef <ExecDomain> create ()
+	{
+		return CoreRef <ExecDomain>::create <ExecDomain> ();
+	}
+
+	static void release (ExecDomain& ed)
+	{
+		delete& ed;
+	}
+};
+
 StaticallyAllocated <ExecDomain::Suspend> ExecDomain::suspend_;
 
-CoreRef <ExecDomain> ExecDomain::create (const DeadlineTime& deadline, Runnable& runnable, MemContext* memory)
+void ExecDomain::initialize ()
 {
-	return CoreRef <ExecDomain>::create <ExecDomain> (ref (deadline), ref (runnable), memory);
+	suspend_.construct ();
+	Creator::initialize ();
+}
+
+void ExecDomain::terminate () NIRVANA_NOEXCEPT
+{
+	Creator::terminate ();
+}
+
+inline
+void ExecDomain::final_construct (const DeadlineTime& deadline, Runnable& runnable, MemContext* mem_context)
+{
+	Scheduler::activity_begin ();	// Throws exception if shutdown was started.
+	deadline_ = deadline;
+	assert (mem_context_.empty ());
+	mem_context_.push (mem_context);
+#ifdef _DEBUG
+	assert (!dbg_context_stack_size_++);
+#endif
+	runnable_ = &runnable;
+}
+
+CoreRef <ExecDomain> ExecDomain::create (const DeadlineTime deadline, Runnable& runnable, MemContext* memory)
+{
+	CoreRef <ExecDomain> ed = Creator::create ();
+	ed->final_construct (deadline, runnable, memory);
+	return ed;
+}
+
+void ExecDomain::final_release () NIRVANA_NOEXCEPT
+{
+	assert (!runnable_);
+	assert (!sync_context_);
+#ifdef _DEBUG
+	Thread& thread = Thread::current ();
+	assert (thread.exec_domain () != this);
+#endif
+	Scheduler::activity_end ();
+	Creator::release (*this);
 }
 
 void ExecDomain::spawn (SyncContext& sync_context)
@@ -111,6 +200,9 @@ void ExecDomain::cleanup () NIRVANA_NOEXCEPT
 	}
 	runtime_global_.cleanup ();
 	mem_context_.clear (); // TODO: Detect and log the memory leaks (if domain was not crashed).
+#ifdef _DEBUG
+	dbg_context_stack_size_ = 0;
+#endif
 	stateless_creation_frame_ = nullptr;
 	binder_context_ = nullptr;
 	sync_context_ = nullptr;
@@ -135,13 +227,13 @@ void ExecDomain::_remove_ref () NIRVANA_NOEXCEPT
 		if (&ExecContext::current () == this)
 			run_in_neutral_context (deleter_);
 		else
-			delete this;
+			final_release ();
 	}
 }
 
 void ExecDomain::Deleter::run ()
 {
-	delete &exec_domain_;
+	exec_domain_.final_release ();
 }
 
 void ExecDomain::run () NIRVANA_NOEXCEPT

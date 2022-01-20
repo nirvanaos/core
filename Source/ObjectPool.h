@@ -1,3 +1,4 @@
+/// \file
 /*
 * Nirvana Core.
 *
@@ -23,37 +24,56 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "MemContextEx.h"
+#ifndef NIRVANA_CORE_OBJECTPOOL_H_
+#define NIRVANA_CORE_OBJECTPOOL_H_
+#pragma once
+
+#include "Stack.h"
+#include "CoreInterface.h"
 
 namespace Nirvana {
 namespace Core {
 
-RuntimeProxy::_ref_type MemContextRS::runtime_proxy_get (const void* obj)
+template <class T>
+class ObjectPool
 {
-	return runtime_support_.runtime_proxy_get (obj);
+public:
+	ObjectPool (unsigned max_size) :
+		max_size_ (max_size)
+	{}
+
+	~ObjectPool ()
+	{
+		while (T* obj = stack_.pop ())
+			delete obj;
+	}
+
+	CoreRef <T> create ()
+	{
+		T* obj = stack_.pop ();
+		if (obj) {
+			--size_;
+			return obj;
+		} else
+			return CoreRef <T>::template create <T> ();
+	}
+
+	void release (T& obj) NIRVANA_NOEXCEPT
+	{
+		if (max_size_ < ++size_) {
+			--size_;
+			delete& obj;
+		} else
+			stack_.push (obj);
+	}
+
+private:
+	Stack <T> stack_;
+	unsigned max_size_;
+	std::atomic <unsigned> size_;
+};
+
+}
 }
 
-void MemContextRS::runtime_proxy_remove (const void* obj)
-{
-	runtime_support_.runtime_proxy_remove (obj);
-}
-
-MemContextEx::MemContextEx ()
-{}
-
-MemContextEx::~MemContextEx ()
-{
-	object_list_.clear ();
-}
-
-void MemContextEx::on_object_construct (MemContextObject& obj)
-{
-	object_list_.push_back (obj);
-}
-
-void MemContextEx::on_object_destruct (MemContextObject& obj)
-{
-}
-
-}
-}
+#endif

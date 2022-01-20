@@ -1,3 +1,4 @@
+/// \file
 /*
 * Nirvana Core.
 *
@@ -34,6 +35,8 @@
 namespace Nirvana {
 namespace Core {
 
+/// Class library.
+/// Static objects live in the free synchronization domain.
 class ClassLibrary : 
 	public Module,
 	public SyncContextFree

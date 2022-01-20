@@ -35,21 +35,10 @@
 namespace Nirvana {
 namespace Core {
 
-/// Memory context full implementation.
-/// Unlike the base MemContext, MemContextEx is not thread-safe and can not be shared by multiple domains.
-class NIRVANA_NOVTABLE MemContextEx : public MemContext
+/// Memory context with runtime support
+class NIRVANA_NOVTABLE MemContextRS : public MemContext
 {
-public:
-	/// Create MemContextEx object.
-	/// 
-	/// \returns MemContext reference.
-	static CoreRef <MemContext> create ()
-	{
-		return CoreRef <MemContext>::create <ImplDynamic <MemContextEx>> ();
-	}
-
-#ifndef NIRVANA_RUNTIME_SUPPORT_DISABLE
-
+protected:
 	/// Search map for runtime proxy for object \p obj.
 	/// If proxy exists, returns it. Otherwise creates a new one.
 	/// 
@@ -63,7 +52,27 @@ public:
 	/// \param obj Pointer used as a key.
 	virtual void runtime_proxy_remove (const void* obj);
 
-#endif
+private:
+	RuntimeSupport runtime_support_;
+};
+
+/// Memory context full implementation.
+/// Unlike the base MemContext, MemContextEx is not thread-safe and can not be shared by multiple domains.
+class NIRVANA_NOVTABLE MemContextEx : 
+	public std::conditional <RUNTIME_SUPPORT_DISABLE, MemContext, MemContextRS>::type
+{
+public:
+	/// Create MemContextEx object.
+	/// 
+	/// \returns MemContext reference.
+	static CoreRef <MemContext> create ()
+	{
+		return CoreRef <MemContext>::create <ImplDynamic <MemContextEx>> ();
+	}
+
+protected:
+	MemContextEx ();
+	~MemContextEx ();
 
 	/// Add object to list.
 	/// 
@@ -76,16 +85,7 @@ public:
 	virtual void on_object_destruct (MemContextObject& obj);
 
 protected:
-	MemContextEx ();
-	~MemContextEx ();
-
-protected:
 	SimpleList <MemContextObject> object_list_;
-
-private:
-#ifndef NIRVANA_RUNTIME_SUPPORT_DISABLE
-	RuntimeSupport runtime_support_;
-#endif
 };
 
 }

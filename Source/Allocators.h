@@ -33,19 +33,20 @@
 namespace Nirvana {
 namespace Core {
 
-template <unsigned SIZE>
+template <unsigned ALIGN>
 class FreeList :
-	private Stack <StackElem, SIZE>
+	private Stack <StackElem, ALIGN>
 {
+	typedef Stack <StackElem, ALIGN> Base;
 public:
 	void push (void* p)
 	{
-		Stack <StackElem, SIZE>::push (*(StackElem*)p);
+		Base::push (*(StackElem*)p);
 	}
 
 	void* pop ()
 	{
-		return Stack <StackElem, SIZE>::pop ();
+		return Base::pop ();
 	}
 };
 
@@ -70,7 +71,7 @@ public:
 	}
 
 private:
-	FreeList <CORE_OBJECT_ALIGN (T)> free_list_;
+	FreeList <core_object_align <T> ()> free_list_;
 };
 
 }

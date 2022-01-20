@@ -121,7 +121,7 @@ private:
 	}
 
 private:
-	Stack <Stackable> stack_;
+	Stack <Stackable, core_object_align <typename Base::NodeVal> ()> stack_;
 	AtomicCounter <true> purge_count_;
 };
 
