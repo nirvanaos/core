@@ -31,7 +31,7 @@ namespace Core {
 
 /// Module interface implementation for core static objects.
 class CoreModule :
-	public ::CORBA::Internal::ServantStatic <CoreModule, ::Nirvana::Module>
+	public CORBA::servant_traits <Nirvana::Module>::ServantStatic <CoreModule>
 {
 public:
 	static const void* base_address ()

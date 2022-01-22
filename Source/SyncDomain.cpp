@@ -34,6 +34,7 @@ SyncDomain::SyncDomain (MemContext& memory) :
 	mem_context_ (&memory),
 	need_schedule_ (false),
 	state_ (State::IDLE),
+	scheduled_deadline_ (0),
 	activity_cnt_ (0)
 {
 #ifdef _DEBUG
