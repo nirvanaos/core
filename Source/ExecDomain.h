@@ -190,10 +190,10 @@ private:
 #ifdef _DEBUG
 		dbg_context_stack_size_ (0),
 #endif
-		ref_cnt_ (1),
 		restricted_mode_ (RestrictedMode::NO_RESTRICTIONS),
 		stateless_creation_frame_ (nullptr),
 		binder_context_ (nullptr),
+		ref_cnt_ (1),
 		ret_qnodes_ (nullptr),
 		scheduler_item_created_ (false),
 		scheduler_error_ (CORBA::SystemException::EC_NO_EXCEPTION),
