@@ -37,8 +37,8 @@ Mutex::~Mutex ()
 
 void Mutex::lock ()
 {
-	SYNC_BEGIN (*this, nullptr);
 	ThreadBackground& thread = ThreadBackground::current ();
+	SYNC_BEGIN (*this, nullptr);
 	if (!owner_) {
 		owner_ = &thread;
 		return;
@@ -53,12 +53,14 @@ void Mutex::lock ()
 
 void Mutex::unlock ()
 {
+	ThreadBackground& thread = ThreadBackground::current ();
 	SYNC_BEGIN (*this, nullptr);
-	if (owner_ != &ThreadBackground::current ())
+	if (owner_ != &thread)
 		throw_BAD_INV_ORDER ();
 	owner_ = nullptr;
 	if (!queue_.empty ()) {
 		ThreadBackground& next = queue_.front ();
+		next.remove (); // From queue
 		owner_ = &next;
 		next.port ().exec_domain ()->resume ();
 	}

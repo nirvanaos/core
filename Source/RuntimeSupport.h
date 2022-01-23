@@ -56,19 +56,19 @@ class RuntimeSupport
 		public UserObject
 	{
 	public:
-		RuntimeProxyImpl (const void* obj) :
+		RuntimeProxyImpl (const void* obj) NIRVANA_NOEXCEPT :
 			object_ (obj)
 		{}
 
 		~RuntimeProxyImpl ()
 		{}
 
-		const void* object () const
+		const void* object () const NIRVANA_NOEXCEPT
 		{
 			return object_;
 		}
 
-		void remove ()
+		void remove () NIRVANA_NOEXCEPT
 		{
 			assert (object_);
 			object_ = nullptr;
@@ -95,7 +95,7 @@ public:
 		return ins.first->second->_get_ptr ();
 	}
 
-	void runtime_proxy_remove (const void* obj)
+	void runtime_proxy_remove (const void* obj) NIRVANA_NOEXCEPT
 	{
 		auto f = proxy_map_.find (obj);
 		if (f != proxy_map_.end ()) {
