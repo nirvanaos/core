@@ -58,7 +58,7 @@ void ClassLibrary::terminate () NIRVANA_NOEXCEPT
 	if (Port::Memory::FLAGS & Memory::ACCESS_CHECK) {
 		try {
 			heap ().change_protection (false);
-			/* Temporary disable until CRT will ready
+			/* TODO: Temporary disabled until CRTL will ready
 				for (auto it = data_sections_.cbegin (); it != data_sections_.cend (); ++it) {
 				void* p = const_cast <void*> (it->address);
 				Port::Memory::copy (p, p, it->size, Memory::READ_WRITE | Memory::EXACTLY);

@@ -39,13 +39,15 @@ namespace Core {
 /// Legacy process.
 class NIRVANA_NOVTABLE Process :
 	public ThreadBackground,
-	public MemContextProcess
+	public Nirvana::Core::CoreObject
 {
 public:
-	using Nirvana::Core::CoreObject::operator new;
-	using Nirvana::Core::CoreObject::operator delete;
-
 	static Nirvana::Core::CoreRef <Process> spawn (Nirvana::Core::Runnable& runnable);
+
+	Nirvana::Core::MemContext& mem_context ()
+	{
+		return mem_context_;
+	}
 
 protected:
 	Process () :
@@ -58,6 +60,9 @@ protected:
 	friend class Nirvana::Core::CoreRef <Process>;
 	virtual void _add_ref () NIRVANA_NOEXCEPT = 0;
 	virtual void _remove_ref () NIRVANA_NOEXCEPT = 0;
+
+private:
+	Nirvana::Core::ImplStatic <MemContextProcess> mem_context_;
 };
 
 }

@@ -30,12 +30,12 @@ namespace Nirvana {
 namespace Legacy {
 namespace Core {
 
-Mutex::~Mutex ()
+MutexCore::~MutexCore ()
 {
 	// TODO: Terminate all waiting threads
 }
 
-void Mutex::lock ()
+void MutexCore::lock ()
 {
 	ThreadBackground& thread = ThreadBackground::current ();
 	SYNC_BEGIN (*this, nullptr);
@@ -51,7 +51,7 @@ void Mutex::lock ()
 	SYNC_END ();
 }
 
-void Mutex::unlock ()
+void MutexCore::unlock ()
 {
 	ThreadBackground& thread = ThreadBackground::current ();
 	SYNC_BEGIN (*this, nullptr);

@@ -33,6 +33,8 @@
 #include "Chrono.h"
 #include "ExecDomain.h"
 #include "HeapDynamic.h"
+#include <Port/SystemInfo.h>
+#include "Legacy/Mutex.h"
 
 namespace Nirvana {
 namespace Core {
@@ -120,6 +122,17 @@ public:
 		uint32_t& next = Thread::current ().exec_domain ()->runtime_global_.rand_state;
 		next = next * 1103515245 + 12345;
 		return (unsigned int)(next >> 16) % 32768;
+	}
+
+	static uint32_t hardware_concurrency ()
+	{
+		return Port::SystemInfo::hardware_concurrency ();
+	}
+
+	static Nirvana::Legacy::Mutex::_ref_type create_mutex ()
+	{
+		// TODO:: Check for the legacy call. Return nullptr if not.
+		return Nirvana::Legacy::Core::MutexUser::create ();
 	}
 };
 

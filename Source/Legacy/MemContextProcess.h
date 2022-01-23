@@ -36,8 +36,8 @@ namespace Legacy {
 namespace Core {
 
 class NIRVANA_NOVTABLE MemContextProcess :
-	public Nirvana::Core::MemContextEx,
-	private Mutex
+	public Nirvana::Core::ImplStatic <Nirvana::Core::MemContextEx>,
+	private MutexCore
 {
 	typedef Nirvana::Core::MemContextEx Base;
 protected:
@@ -54,14 +54,12 @@ protected:
 	/// \param obj Object.
 	virtual void on_object_destruct (Nirvana::Core::MemContextObject& obj);
 
-	MemContextProcess ()
+	MemContextProcess () :
+		MutexCore (static_cast <Nirvana::Core::MemContext&> (*this))
 	{}
 
 	~MemContextProcess ()
 	{}
-
-	using Nirvana::Core::CoreObject::operator new;
-	using Nirvana::Core::CoreObject::operator delete;
 };
 
 }

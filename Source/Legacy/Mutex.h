@@ -41,11 +41,32 @@ namespace Nirvana {
 namespace Legacy {
 namespace Core {
 
-class NIRVANA_NOVTABLE Mutex :
-	public CORBA::servant_traits <Nirvana::Legacy::Mutex>::Servant <Mutex>,
-	public Nirvana::Core::LifeCyclePseudo <Mutex>,
-	public Nirvana::Core::MemContextObject,
-	private Nirvana::Core::SyncDomain
+class NIRVANA_NOVTABLE MutexCore :
+	protected Nirvana::Core::SyncDomain
+{
+public:
+
+	void lock ();
+	void unlock ();
+
+protected:
+	MutexCore (Nirvana::Core::MemContext& mem_context) :
+		Nirvana::Core::SyncDomain (mem_context),
+		owner_ (nullptr)
+	{}
+
+	~MutexCore ();
+
+protected:
+	ThreadBackground* owner_;
+	SimpleList <ThreadBackground> queue_;
+};
+
+class MutexUser :
+	public MutexCore,
+	public CORBA::servant_traits <Nirvana::Legacy::Mutex>::Servant <MutexUser>,
+	public Nirvana::Core::LifeCyclePseudo <MutexUser>,
+	public Nirvana::Core::MemContextObject
 {
 public:
 	using Nirvana::Core::UserObject::operator new;
@@ -53,17 +74,15 @@ public:
 
 	static Nirvana::Legacy::Mutex::_ref_type create ()
 	{
-		return CORBA::make_pseudo <Mutex> ();
+		return CORBA::make_pseudo <MutexUser> ();
 	}
 
-	Mutex () :
-		Nirvana::Core::SyncDomain (Nirvana::Core::MemContext::current ()),
-		owner_ (nullptr)
+	MutexUser () :
+		MutexCore (Nirvana::Core::MemContext::current ())
 	{}
 
-	~Mutex ();
-
-	void lock ();
+	~MutexUser ()
+	{}
 
 	bool try_lock ()
 	{
@@ -76,21 +95,16 @@ public:
 		return false;
 	}
 
-	void unlock ();
-
 	void _add_ref () NIRVANA_NOEXCEPT
 	{
-		Nirvana::Core::LifeCyclePseudo <Mutex>::_add_ref ();
+		Nirvana::Core::LifeCyclePseudo <MutexUser>::_add_ref ();
 	}
 
 	void _remove_ref () NIRVANA_NOEXCEPT
 	{
-		Nirvana::Core::LifeCyclePseudo <Mutex>::_remove_ref ();
+		Nirvana::Core::LifeCyclePseudo <MutexUser>::_remove_ref ();
 	}
 
-private:
-	ThreadBackground* owner_;
-	SimpleList <ThreadBackground> queue_;
 };
 
 }

@@ -34,7 +34,7 @@ namespace Core {
 
 void ThreadBackground::start (Process& process, Nirvana::Core::Runnable& runnable)
 {
-	auto ed = ExecDomain::create_background (*this, runnable, process);
+	auto ed = ExecDomain::create_background (*this, runnable, process.mem_context ());
 	exec_domain_ = ed;
 	ed->start ([this]() {this->create (); });
 	_add_ref ();
