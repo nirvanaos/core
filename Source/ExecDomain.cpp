@@ -225,7 +225,7 @@ void ExecDomain::_remove_ref () NIRVANA_NOEXCEPT
 {
 	if (!ref_cnt_.decrement ()) {
 		if (&ExecContext::current () == this)
-			run_in_neutral_context (deleter_);
+			run_in_neutral_context (*deleter_);
 		else
 			final_release ();
 	}

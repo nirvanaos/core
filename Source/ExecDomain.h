@@ -199,7 +199,7 @@ private:
 		scheduler_error_ (CORBA::SystemException::EC_NO_EXCEPTION),
 		schedule_call_ (*this),
 		schedule_return_ (*this),
-		deleter_ (*this)
+		deleter_ (CoreRef <Runnable>::create <ImplDynamic <Deleter> > (std::ref (*this)))
 	{}
 
 	void final_construct (const DeadlineTime& deadline, Runnable& runnable, MemContext* mem_context);
@@ -267,15 +267,18 @@ private:
 		virtual void run ();
 	};
 
-	class Deleter : public NeutralOp
+	class Deleter : public Runnable
 	{
 	public:
 		Deleter (ExecDomain& ed) :
-			NeutralOp (ed)
+			exec_domain_ (ed)
 		{}
 
 	private:
 		virtual void run ();
+	
+	private:
+		ExecDomain& exec_domain_;
 	};
 
 	class Suspend : public ImplStatic <Runnable>
@@ -319,7 +322,7 @@ private:
 	CORBA::Exception::Code scheduler_error_;
 	ScheduleCall schedule_call_;
 	ScheduleReturn schedule_return_;
-	Deleter deleter_;
+	CoreRef <Runnable> deleter_;
 };
 
 }
