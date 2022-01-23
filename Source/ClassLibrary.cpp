@@ -54,8 +54,6 @@ void ClassLibrary::initialize (ModuleInit::_ptr_type entry_point)
 
 void ClassLibrary::terminate () NIRVANA_NOEXCEPT
 {
-	ExecDomain* ed = Thread::current ().exec_domain ();
-	assert (ed);
 	assert (MemContext::is_current (this));
 	if (Port::Memory::FLAGS & Memory::ACCESS_CHECK) {
 		try {
