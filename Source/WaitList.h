@@ -36,11 +36,23 @@ namespace Core {
 
 class ExecDomain;
 
+/// Synchronous wait list.
+/// May be used only in synchronization domain.
 class WaitListImpl :
 	public CoreObject
 {
 public:
-	WaitListImpl (uint64_t deadline);
+	/// Constructor.
+	/// 
+	/// \param deadline Maximal deadline of the object creation.
+	/// \throw BAD_OPERATION if called out of synchronization domain.
+	WaitListImpl (DeadlineTime deadline);
+
+	~WaitListImpl ()
+	{
+		assert (!wait_list_);
+		assert (!worker_);
+	}
 
 	void wait ();
 	void on_exception () NIRVANA_NOEXCEPT;

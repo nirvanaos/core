@@ -32,7 +32,7 @@ using namespace std;
 namespace Nirvana {
 namespace Core {
 
-WaitListImpl::WaitListImpl (uint64_t deadline) :
+WaitListImpl::WaitListImpl (DeadlineTime deadline) :
 	worker_ (Thread::current ().exec_domain ()),
 	worker_deadline_ (worker_->deadline ()),
 	wait_list_ (nullptr)

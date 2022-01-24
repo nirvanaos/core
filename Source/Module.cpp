@@ -48,9 +48,9 @@ void Module::_remove_ref () NIRVANA_NOEXCEPT
 	}
 }
 
-void Module::initialize (ModuleInit::_ptr_type entry_point)
+void Module::initialize (ModuleInit::_ptr_type entry_point, AtomicCounter <false>::IntegralType initial_ref_cnt)
 {
-	initial_ref_cnt_ = ref_cnt_;
+	initial_ref_cnt_ = initial_ref_cnt;
 	if (entry_point) {
 		call_initialize (entry_point);
 		entry_point_ = entry_point;

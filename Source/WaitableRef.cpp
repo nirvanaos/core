@@ -25,6 +25,7 @@
 */
 #include "WaitableRef.h"
 #include "WaitList.h"
+#include <new>
 
 namespace Nirvana {
 namespace Core {
@@ -38,13 +39,16 @@ WaitList* WaitableRefBase::wait_list () const NIRVANA_NOEXCEPT
 
 void WaitableRefBase::detach (CoreRef <WaitList>& ref) NIRVANA_NOEXCEPT
 {
-	*reinterpret_cast <WaitList**> (&ref) = wait_list ();
+	assert (is_wait_list ());
+	uintptr_t up = pointer_ & ~1;
 	pointer_ = 0;
+	ref = std::move (reinterpret_cast <CoreRef <WaitList>&> (up));
+	assert (up == 0);
 }
 
-WaitableRefBase::WaitableRefBase (uint64_t deadline)
+WaitableRefBase::WaitableRefBase (DeadlineTime deadline)
 {
-	reinterpret_cast <CoreRef <WaitList>&> (pointer_) = CoreRef <WaitList>::create <WaitList> (deadline);
+	::new (&pointer_) CoreRef <WaitList> (CoreRef <WaitList>::create <WaitList> (deadline));
 	assert (!(pointer_ & 1));
 	pointer_ |= 1;
 }

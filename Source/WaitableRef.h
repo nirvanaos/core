@@ -28,29 +28,32 @@
 #define NIRVANA_CORE_WAITABLEREF_H_
 #pragma once
 
-#include "CoreInterface.h"
+#include "WaitList.h"
 
 namespace Nirvana {
 namespace Core {
 
-class WaitListImpl;
-typedef ImplDynamicSync <WaitListImpl> WaitList;
-
-template <class PtrType, uint64_t deadline> class WaitableRef;
-
 class WaitableRefBase
 {
 public:
+	/// Called by creator execution domain on exception in object creation.
 	void on_exception () NIRVANA_NOEXCEPT;
 
+	/// \returns `true` if object creation is not completed.
 	bool is_wait_list () const NIRVANA_NOEXCEPT
 	{
 		return pointer_ & 1;
 	}
 
 protected:
-	WaitableRefBase (uint64_t deadline);
+	WaitableRefBase (DeadlineTime deadline);
 	~WaitableRefBase ();
+
+	WaitableRefBase (WaitableRefBase&& src) NIRVANA_NOEXCEPT :
+	pointer_ (src.pointer_)
+	{
+		src.pointer_ = 0;
+	}
 
 	void finish_construction (uintptr_t p) NIRVANA_NOEXCEPT;
 	void wait_construction () const;
@@ -63,26 +66,60 @@ protected:
 	uintptr_t pointer_;
 };
 
-template <class PtrType, uint64_t deadline>
-class WaitableRefBaseT :
+/// Waitable reference.
+/// 
+/// \tparam PtrType  Object pointer type.
+///                  This may be plain pointer ot smart pointer.
+template <typename PtrType>
+class WaitableRef :
 	public WaitableRefBase
 {
+	static_assert (sizeof (PtrType) == sizeof (uintptr_t), "Invalid pointer type");
 public:
-	const PtrType& finish_construction (PtrType p) NIRVANA_NOEXCEPT
+	/// Construct waitable reference, 
+	/// create wait list and assign current execution domain as creator.
+	/// 
+	/// \param deadline Maximal deadline of the object creation.
+	///                 If deadline of the current executuion domain greater,
+	///                 it will be temporary decreased.
+	/// 
+	/// \throw CORBA::BAD_OPERATION if called out of a synchronization domain.
+	WaitableRef (DeadlineTime deadline) :
+		WaitableRefBase (deadline)
+	{}
+
+	WaitableRef (WaitableRef&&) = default;
+
+	/// Destructor calls ~PtrType if object constructin was completed.
+	~WaitableRef ()
+	{
+		if (!this->is_wait_list ())
+			this->ref ().~PtrType ();
+	}
+
+	/// Called by creator execution domain on finish the object creation.
+	/// 
+	/// \param p Pointer to the created object.
+	void finish_construction (PtrType p) NIRVANA_NOEXCEPT
 	{
 		uintptr_t up;
 		reinterpret_cast <PtrType&> (up) = std::move (p);
 		WaitableRefBase::finish_construction (up);
-		return reinterpret_cast <PtrType&> (pointer_);
 	}
 
+	/// Get object pointer.
+	/// 
+	/// \returns Pointer.
 	const PtrType& get ()
 	{
 		wait_construction ();
 		return reinterpret_cast <const PtrType&> (pointer_);
 	}
 
-	PtrType get_constructed () const
+	/// Get object pointer if object is already constructed.
+	/// 
+	/// \returns Pointer or `nullptr`.
+	PtrType get_if_constructed () const
 	{
 		if (is_wait_list ())
 			return nullptr;
@@ -90,42 +127,11 @@ public:
 			return reinterpret_cast <const PtrType&> (pointer_);
 	}
 
-protected:
-	WaitableRefBaseT () :
-		WaitableRefBase (deadline)
-	{}
-
+private:
 	PtrType& ref () NIRVANA_NOEXCEPT
 	{
 		assert (!this->is_wait_list ());
 		return reinterpret_cast <PtrType&> (this->pointer_);
-	}
-
-private:
-	static_assert (sizeof (PtrType) == sizeof (uintptr_t), "Invalid pointer type");
-};
-
-template <class T, uint64_t deadline>
-class WaitableRef <T*, deadline> :
-	public WaitableRefBaseT <T*, deadline>
-{
-public:
-	~WaitableRef ()
-	{
-		if (!this->is_wait_list ())
-			delete this->ref ();
-	}
-};
-
-template <class T, uint64_t deadline>
-class WaitableRef <CoreRef <T>, deadline> :
-	public WaitableRefBaseT <CoreRef <T>, deadline>
-{
-public:
-	~WaitableRef ()
-	{
-		if (!this->is_wait_list ())
-			this->ref ().~CoreRef ();
 	}
 };
 

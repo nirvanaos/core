@@ -51,7 +51,7 @@ public:
 		return *this;
 	}
 
-	virtual void initialize (ModuleInit::_ptr_type entry_point);
+	virtual void initialize (ModuleInit::_ptr_type entry_point, AtomicCounter <false>::IntegralType initial_ref_cnt);
 	virtual void terminate () NIRVANA_NOEXCEPT;
 
 	virtual Heap* stateless_memory () NIRVANA_NOEXCEPT

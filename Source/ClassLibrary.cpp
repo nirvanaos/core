@@ -28,14 +28,14 @@
 namespace Nirvana {
 namespace Core {
 
-void ClassLibrary::initialize (ModuleInit::_ptr_type entry_point)
+void ClassLibrary::initialize (ModuleInit::_ptr_type entry_point, AtomicCounter <false>::IntegralType initial_ref_cnt)
 {
 	ExecDomain* ed = Thread::current ().exec_domain ();
 	assert (ed);
 	assert (MemContext::is_current (this));
 	ed->restricted_mode_ = ExecDomain::RestrictedMode::CLASS_LIBRARY_INIT;
 	try {
-		Module::initialize (entry_point);
+		Module::initialize (entry_point, initial_ref_cnt);
 	} catch (...) {
 		ed->restricted_mode_ = ExecDomain::RestrictedMode::NO_RESTRICTIONS;
 		throw;

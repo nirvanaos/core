@@ -294,63 +294,64 @@ void Binder::module_unbind (Nirvana::Module::_ptr_type mod, const Section& metad
 
 void Binder::delete_module (Module* mod)
 {
-	SYNC_BEGIN (g_core_free_sync_context, nullptr);
-	delete mod;
-	SYNC_END ();
+	if (mod) {
+		SYNC_BEGIN (g_core_free_sync_context, nullptr);
+		delete mod;
+		SYNC_END ();
+	}
 }
 
-CoreRef <Module> Binder::load (string& module_name, bool singleton)
+CoreRef <Module> Binder::load (const string& module_name, bool singleton)
 {
 	if (!initialized_)
 		throw_INITIALIZE ();
-	Module* mod;
-	auto f = module_map_.find (module_name);
-	if (f == module_map_.end ()) {
-		SYNC_BEGIN (g_core_free_sync_context, nullptr);
-		if (singleton)
-			mod = new Singleton (module_name);
-		else
-			mod = new ClassLibrary (module_name);
-		SYNC_END ();
+	Module* mod = nullptr;
+	auto ins = module_map_.emplace (module_name, MODULE_LOAD_DEADLINE);
+	if (ins.second) {
 		try {
+
+			SYNC_BEGIN (g_core_free_sync_context, nullptr);
+			if (singleton)
+				mod = new Singleton (module_name);
+			else
+				mod = new ClassLibrary (module_name);
+			SYNC_END ();
+			
+			assert (mod->_refcount_value () == 0);
 			ModuleContext context{ mod->sync_context () };
 			const ModuleStartup* startup = module_bind (mod->_get_ptr (), mod->metadata (), &context);
 			try {
 				if (startup && (startup->flags & OLF_MODULE_SINGLETON) && !singleton)
 					invalid_metadata ();
 
+				auto initial_ref_cnt = mod->_refcount_value ();
 				SYNC_BEGIN (context.sync_context, mod);
-				mod->initialize (startup ? ModuleInit::_check (startup->startup) : nullptr);
+				mod->initialize (startup ? ModuleInit::_check (startup->startup) : nullptr, initial_ref_cnt);
 				SYNC_END ();
 
-				auto ins = module_map_.emplace (move (module_name), mod);
-				if (ins.second) {
-					try {
-						object_map_.merge (context.exports);
-					} catch (...) {
-						SYNC_BEGIN (context.sync_context, mod);
-						mod->terminate ();
-						SYNC_END ();
-						throw;
-					}
-				} else {
+				try {
+					object_map_.merge (context.exports);
+				} catch (...) {
 					SYNC_BEGIN (context.sync_context, mod);
 					mod->terminate ();
 					SYNC_END ();
-					module_unbind (mod->_get_ptr (), mod->metadata ());
-					delete_module (mod);
-					mod = ins.first->second;
+					throw;
 				}
+
 			} catch (...) {
 				module_unbind (mod->_get_ptr (), mod->metadata ());
 				throw;
 			}
 		} catch (...) {
+			ins.first->second.on_exception ();
 			delete_module (mod);
 			throw;
 		}
+
+		ins.first->second.finish_construction (mod);
+
 	} else {
-		mod = f->second;
+		mod = ins.first->second.get ();
 		if (mod->singleton () != singleton)
 			throw_BAD_PARAM ();
 	}
@@ -359,7 +360,7 @@ CoreRef <Module> Binder::load (string& module_name, bool singleton)
 
 void Binder::unload (ModuleMap::iterator mod)
 {
-	Module* pmod = mod->second;
+	Module* pmod = mod->second.get ();
 	assert (!pmod->bound ());
 	module_map_.erase (mod);
 	remove_exports (pmod->metadata ());
@@ -470,7 +471,8 @@ void Binder::housekeeping ()
 		bool found = false;
 		Chrono::Duration t = Chrono::steady_clock () - MODULE_UNLOAD_TIMEOUT;
 		for (auto it = module_map_.begin (); it != module_map_.end (); ++it) {
-			if (it->second->can_be_unloaded (t)) {
+			Module* pmod = it->second.get_if_constructed ();
+			if (pmod && pmod->can_be_unloaded (t)) {
 				found = true;
 				unload (it);
 				break;

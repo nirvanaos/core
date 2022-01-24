@@ -56,12 +56,20 @@ public:
 	///   If module is Singleton, returned context is the singleton synchronization domain.
 	virtual SyncContext& sync_context () = 0;
 
+	/// Called on the module static object _add_ref().
 	void _add_ref () NIRVANA_NOEXCEPT
 	{
 		ref_cnt_.increment ();
 	}
 
+	/// Called on the module static object _remove_ref().
 	void _remove_ref () NIRVANA_NOEXCEPT;
+
+	/// \returns Current reference count.
+	AtomicCounter <false>::IntegralType _refcount_value () const NIRVANA_NOEXCEPT
+	{
+		return ref_cnt_;
+	}
 
 	/// \returns `true` if module is singleton library.
 	bool singleton () const
@@ -82,7 +90,7 @@ public:
 		return !bound () && release_time_ <= t;
 	}
 
-	virtual void initialize (ModuleInit::_ptr_type entry_point);
+	virtual void initialize (ModuleInit::_ptr_type entry_point, AtomicCounter <false>::IntegralType initial_ref_cnt);
 	virtual void terminate () NIRVANA_NOEXCEPT;
 
 protected:

@@ -36,6 +36,7 @@
 #include <CORBA/RepositoryId.h>
 #include <Nirvana/Main.h>
 #include <Nirvana/ModuleInit.h>
+#include "WaitableRef.h"
 
 #pragma push_macro ("verify")
 #undef verify
@@ -135,8 +136,10 @@ private:
 	};
 
 	// Map of the loaded modules.
-	typedef phmap::flat_hash_map <std::string, Module*, phmap::Hash <std::string>, phmap::EqualTo <std::string>,
-		UserAllocator <std::pair <std::string, Module*> > > ModuleMap;
+	static const DeadlineTime MODULE_LOAD_DEADLINE = 1 * System::SECOND;
+	typedef WaitableRef <Module*> ModulePtr;
+	typedef phmap::flat_hash_map <std::string, ModulePtr, phmap::Hash <std::string>, phmap::EqualTo <std::string>,
+		UserAllocator <std::pair <std::string, ModulePtr> > > ModuleMap;
 
 public:
 	Binder () :
@@ -219,7 +222,7 @@ private:
 
 	NIRVANA_NORETURN static void invalid_metadata ();
 
-	CoreRef <Module> load (std::string& module_name, bool singleton);
+	CoreRef <Module> load (const std::string& module_name, bool singleton);
 	void unload (ModuleMap::iterator mod);
 
 	void housekeeping ();
