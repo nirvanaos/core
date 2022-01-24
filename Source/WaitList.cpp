@@ -1,4 +1,3 @@
-/// Currently unused. TODO: Remove.
 /*
 * Nirvana Core.
 *
@@ -48,12 +47,12 @@ WaitListImpl::WaitListImpl (uint64_t deadline) :
 void WaitListImpl::wait ()
 {
 	assert (!finished ());
-	ExecDomain::Impl* ed = static_cast <ExecDomain::Impl*> (Thread::current ().exec_domain ());
+	ExecDomain* ed = Thread::current ().exec_domain ();
+	assert (ed);
 	if (ed == worker_)
 		throw_BAD_INV_ORDER ();
 	// Hold reference to this object
 	CoreRef <WaitList> ref = static_cast <WaitList*> (this);
-	assert (ed);
 	static_cast <StackElem&> (*ed).next = wait_list_;
 	wait_list_ = ed;
 	ed->suspend ();
@@ -76,8 +75,8 @@ void WaitListImpl::finish () NIRVANA_NOEXCEPT
 	assert (Thread::current ().exec_domain () == worker_);
 	worker_->deadline (worker_deadline_);
 	worker_ = nullptr;
-	while (ExecDomain::Impl* ed = wait_list_) {
-		wait_list_ = reinterpret_cast <ExecDomain::Impl*> (static_cast <StackElem&> (*ed).next);
+	while (ExecDomain* ed = wait_list_) {
+		wait_list_ = reinterpret_cast <ExecDomain*> (static_cast <StackElem&> (*ed).next);
 		ed->resume ();
 	}
 }

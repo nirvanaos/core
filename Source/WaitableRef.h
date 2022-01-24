@@ -1,5 +1,4 @@
 /// \file
-/// Currently unused. TODO: Remove.
 /*
 * Nirvana Core.
 *
@@ -53,7 +52,7 @@ protected:
 	WaitableRefBase (uint64_t deadline);
 	~WaitableRefBase ();
 
-	void initialize (uintptr_t p) NIRVANA_NOEXCEPT;
+	void finish_construction (uintptr_t p) NIRVANA_NOEXCEPT;
 	void wait_construction () const;
 
 private:
@@ -69,11 +68,11 @@ class WaitableRefBaseT :
 	public WaitableRefBase
 {
 public:
-	const PtrType& initialize (PtrType p) NIRVANA_NOEXCEPT
+	const PtrType& finish_construction (PtrType p) NIRVANA_NOEXCEPT
 	{
 		uintptr_t up;
 		reinterpret_cast <PtrType&> (up) = std::move (p);
-		WaitableRefBase::initialize (up);
+		WaitableRefBase::finish_construction (up);
 		return reinterpret_cast <PtrType&> (pointer_);
 	}
 

@@ -56,6 +56,9 @@ public:
 		head_ (nullptr)
 	{}
 
+	/// Push object to the stack.
+	/// 
+	/// \param elem Object.
 	void push (T& elem) NIRVANA_NOEXCEPT
 	{
 		StackElem* node = &static_cast <StackElem&> (elem);
@@ -72,6 +75,9 @@ public:
 		while (!head_.compare_exchange (head, ptr));
 	}
 
+	/// Pop object from the stack.
+	/// 
+	/// \returns The object pointer or `nullptr` if the stack is empty.
 	T* pop () NIRVANA_NOEXCEPT
 	{
 		for (StackElem* node = nullptr;;) {

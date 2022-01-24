@@ -34,20 +34,35 @@
 namespace Nirvana {
 namespace Core {
 
+/// Object pool
+/// 
+/// \tparam T Object type.
+///           T must derive StackElem and have default constructor.
 template <class T>
 class ObjectPool
 {
 public:
+	/// Constructor.
+	/// 
+	/// \param max_size Maximal object count in the pool.
 	ObjectPool (unsigned max_size) :
 		max_size_ (max_size)
 	{}
 
+	/// Destructor.
+	/// Dletes all objects from the pool.
 	~ObjectPool ()
 	{
 		while (T* obj = stack_.pop ())
 			delete obj;
 	}
 
+	/// Create/get object.
+	/// 
+	/// Tries to get object from the pool.
+	/// If the pool is empty, creates a new object.
+	/// 
+	/// \returns CoreRef <T>.
 	CoreRef <T> create ()
 	{
 		T* obj = stack_.pop ();
@@ -58,6 +73,11 @@ public:
 			return CoreRef <T>::template create <T> ();
 	}
 
+	/// Release object to the pool.
+	/// 
+	/// If pool size reached the limit, object will be deleted.
+	/// 
+	/// \param obj Object to release.
 	void release (T& obj) NIRVANA_NOEXCEPT
 	{
 		if (max_size_ < ++size_) {

@@ -1,5 +1,4 @@
 /// \file
-/// Currently unused. TODO: Remove.
 /*
 * Nirvana Core.
 *
@@ -56,7 +55,7 @@ private:
 private:
 	ExecDomain* worker_;
 	DeadlineTime worker_deadline_;
-	ExecDomain::Impl* wait_list_;
+	ExecDomain* wait_list_;
 	std::exception_ptr exception_;
 };
 

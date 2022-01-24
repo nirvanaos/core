@@ -1,4 +1,3 @@
-/// Currently unused. TODO: Remove.
 /*
 * Nirvana Core.
 *
@@ -64,7 +63,7 @@ void WaitableRefBase::on_exception () NIRVANA_NOEXCEPT
 	wait_list ()->on_exception ();
 }
 
-void WaitableRefBase::initialize (uintptr_t p) NIRVANA_NOEXCEPT
+void WaitableRefBase::finish_construction (uintptr_t p) NIRVANA_NOEXCEPT
 {
 	assert (!(p & 1));
 	CoreRef <WaitList> wait_list;
