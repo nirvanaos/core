@@ -301,20 +301,20 @@ void Binder::delete_module (Module* mod)
 	}
 }
 
-CoreRef <Module> Binder::load (const string& module_name, bool singleton)
+CoreRef <Module> Binder::load (string& module_name, bool singleton)
 {
 	if (!initialized_)
 		throw_INITIALIZE ();
 	Module* mod = nullptr;
-	auto ins = module_map_.emplace (module_name, MODULE_LOAD_DEADLINE);
+	auto ins = module_map_.emplace (move (module_name), MODULE_LOAD_DEADLINE_MIN);
 	if (ins.second) {
 		try {
 
 			SYNC_BEGIN (g_core_free_sync_context, nullptr);
 			if (singleton)
-				mod = new Singleton (module_name);
+				mod = new Singleton (ins.first->first);
 			else
-				mod = new ClassLibrary (module_name);
+				mod = new ClassLibrary (ins.first->first);
 			SYNC_END ();
 			
 			assert (mod->_refcount_value () == 0);

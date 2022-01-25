@@ -60,6 +60,9 @@ class Singleton;
 /// Implements object binding and module loading.
 class Binder
 {
+	/// To avoid priority inversion, if module loader deadline is too far,
+	/// it will be temporary adjusted.
+	static const DeadlineTime MODULE_LOAD_DEADLINE_MIN = 1 * System::SECOND;
 private:
 	typedef CORBA::Internal::RepositoryId RepositoryId;
 	typedef CORBA::Internal::RepositoryId::Version Version;
@@ -136,7 +139,6 @@ private:
 	};
 
 	// Map of the loaded modules.
-	static const DeadlineTime MODULE_LOAD_DEADLINE = 1 * System::SECOND;
 	typedef WaitableRef <Module*> ModulePtr;
 	typedef phmap::flat_hash_map <std::string, ModulePtr, phmap::Hash <std::string>, phmap::EqualTo <std::string>,
 		UserAllocator <std::pair <std::string, ModulePtr> > > ModuleMap;
@@ -222,7 +224,7 @@ private:
 
 	NIRVANA_NORETURN static void invalid_metadata ();
 
-	CoreRef <Module> load (const std::string& module_name, bool singleton);
+	CoreRef <Module> load (std::string& module_name, bool singleton);
 	void unload (ModuleMap::iterator mod);
 
 	void housekeeping ();
