@@ -73,7 +73,10 @@ typedef ::testing::Types <
 	PriorityQueue <Value, 1>,
 	PriorityQueue <Value, 2>,
 	PriorityQueue <Value, 4>,
-	PriorityQueue <Value, 16>
+	PriorityQueue <Value, 8>,
+	PriorityQueue <Value, 10>,
+	PriorityQueue <Value, 16>,
+	PriorityQueue <Value, 32>
 > MaxLevel;
 
 TYPED_TEST_SUITE (TestPriorityQueue, MaxLevel);

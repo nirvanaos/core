@@ -352,14 +352,12 @@ extern StaticallyAllocated <HeapCore> g_core_heap;
 inline void Heap::initialize ()
 {
 	Port::Memory::initialize ();
-	SkipListBase::initialize ();
 	g_core_heap.construct ();
 }
 
 inline void Heap::terminate () NIRVANA_NOEXCEPT
 {
 	g_core_heap.destruct ();
-	SkipListBase::terminate ();
 	Port::Memory::terminate ();
 }
 

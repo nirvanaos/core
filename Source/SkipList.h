@@ -40,7 +40,6 @@
 #include "RandomGen.h"
 #include "StaticallyAllocated.h"
 #include <algorithm>
-#include <random>
 #include <utility>
 
 namespace Nirvana {
@@ -51,18 +50,6 @@ class SkipListBase
 {
 public:
 	typedef uint_fast8_t Level;
-
-	static void initialize ()
-	{
-		distr_.construct (0.5);
-	}
-
-	static void terminate ()
-	{
-#ifdef _DEBUG
-		distr_.destruct ();
-#endif
-	}
 
 	bool empty () NIRVANA_NOEXCEPT
 	{
@@ -162,7 +149,11 @@ protected:
 		return head_->level;
 	}
 
-	unsigned random_level () NIRVANA_NOEXCEPT;
+	unsigned random_level () NIRVANA_NOEXCEPT
+	{
+		// Geometric distribution
+		return 1 + nlz (rndgen_ ());
+	}
 
 	size_t node_size (unsigned level) const NIRVANA_NOEXCEPT
 	{
@@ -234,8 +225,6 @@ private:
 	Node* tail_;
 	unsigned node_size_;
 	RandomGenAtomic rndgen_;
-
-	static StaticallyAllocated <std::geometric_distribution <>> distr_;
 };
 
 /// Skip list implementation for the given maximal level count.

@@ -1,9 +1,4 @@
 /// \file
-/// Atomic pseudorandom number generator.
-/// 
-/// We use fast and non-cryptographically secure Xorshift algorithm.
-/// http://www.jstatsoft.org/v08/i14/paper
-
 /*
 * Nirvana Core.
 *
@@ -39,47 +34,50 @@
 namespace Nirvana {
 namespace Core {
 
-/// Random-number generator.
+/// Pseudorandom number generator.
+/// 
+/// We use fast and non-cryptographically secure Xorshift algorithm.
+/// http://www.jstatsoft.org/v08/i14/paper
 class RandomGen
 {
 public:
 	typedef unsigned result_type;
 
-	RandomGen () : // Use `this` as seed value
+	RandomGen () NIRVANA_NOEXCEPT : // Use `this` as seed value
 		state_ ((result_type)reinterpret_cast <uintptr_t> (this))
 	{}
 
-	RandomGen (result_type seed) :
+	RandomGen (result_type seed) NIRVANA_NOEXCEPT :
 		state_ (seed)
 	{}
 
-	static result_type min ()
+	static result_type min () NIRVANA_NOEXCEPT
 	{
 		return 0;
 	}
 
-	static result_type max ()
+	static result_type max () NIRVANA_NOEXCEPT
 	{
 		return std::numeric_limits <result_type>::max ();
 	}
 
-	result_type operator () ();
+	result_type operator () () NIRVANA_NOEXCEPT;
 
 protected:
-	static uint16_t xorshift (uint16_t x);
-	static uint32_t xorshift (uint32_t x);
-	static uint64_t xorshift (uint64_t x);
+	static uint16_t xorshift (uint16_t x) NIRVANA_NOEXCEPT;
+	static uint32_t xorshift (uint32_t x) NIRVANA_NOEXCEPT;
+	static uint64_t xorshift (uint64_t x) NIRVANA_NOEXCEPT;
 
 protected:
 	result_type state_;
 };
 
-/// Atomic random-number generator.
+/// Atomic pseudorandom number generator.
 class RandomGenAtomic :
 	public RandomGen
 {
 public:
-	result_type operator () ();
+	result_type operator () () NIRVANA_NOEXCEPT;
 };
 
 }
