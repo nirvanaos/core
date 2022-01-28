@@ -34,6 +34,7 @@
 #include "ExecDomain.h"
 #include "HeapDynamic.h"
 #include <Port/SystemInfo.h>
+#include <Port/Debugger.h>
 #include "Legacy/Mutex.h"
 
 namespace Nirvana {
@@ -133,6 +134,21 @@ public:
 	{
 		// TODO:: Check for the legacy call. Return nullptr if not.
 		return Nirvana::Legacy::Core::MutexUser::create ();
+	}
+
+	void debug_event (DebugEvent evt, const std::string& msg)
+	{
+		static const char* ev_prefix [3] = {
+			"INFO: ",
+			"WARNING: ",
+			"ERROR: "
+		};
+		std::string s = ev_prefix [(unsigned)evt];
+		s += msg;
+		s += '\n';
+		Port::Debugger::output_debug_string (s);
+		if (DebugEvent::DEBUG_ERROR == evt)
+			Port::Debugger::debug_break ();
 	}
 };
 
