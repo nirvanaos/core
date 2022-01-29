@@ -24,50 +24,23 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_LEGACY_CORE_PROCESS_H_
-#define NIRVANA_LEGACY_CORE_PROCESS_H_
+#ifndef NIRVANA_CORE_CONSOLE_H_
+#define NIRVANA_CORE_CONSOLE_H_
 #pragma once
 
-#include "ThreadBackground.h"
-#include "CoreObject.h"
-#include "MemContextProcess.h"
-#include "Console.h"
+#include <Port/Console.h>
 
 namespace Nirvana {
-namespace Legacy {
 namespace Core {
 
-/// Legacy process.
-class NIRVANA_NOVTABLE Process :
-	public ThreadBackground,
-	public Nirvana::Core::CoreObject
+class Console :
+	private Port::Console
 {
 public:
-	static Nirvana::Core::CoreRef <Process> spawn (Nirvana::Core::Runnable& runnable);
-
-	Nirvana::Core::MemContext& mem_context ()
-	{
-		return mem_context_;
-	}
-
-protected:
-	Process () :
-		ThreadBackground ()
+	Console ()
 	{}
-
-	~Process ()
-	{}
-
-	friend class Nirvana::Core::CoreRef <Process>;
-	virtual void _add_ref () NIRVANA_NOEXCEPT = 0;
-	virtual void _remove_ref () NIRVANA_NOEXCEPT = 0;
-
-private:
-	Nirvana::Core::ImplStatic <MemContextProcess> mem_context_;
-	Nirvana::Core::Console console_;
 };
 
-}
 }
 }
 

@@ -60,8 +60,8 @@ public:
 	}
 
 protected:
-	ThreadBackground (bool process) :
-		Nirvana::Core::Port::ThreadBackground (process)
+	ThreadBackground () :
+		Nirvana::Core::Port::ThreadBackground ()
 	{}
 
 	void start (Process& process, Nirvana::Core::Runnable& runnable);
