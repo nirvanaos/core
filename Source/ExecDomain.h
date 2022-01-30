@@ -75,16 +75,6 @@ public:
 	void schedule_call (SyncContext& sync_context, MemContext* mem_context);
 	void schedule_return (SyncContext& sync_context) NIRVANA_NOEXCEPT;
 
-	/// Schedules this ED to execute.
-	/// Must be called from another execution context.
-	///
-	/// \param sync_domain Synchronization domain. May be `nullptr`.
-	void schedule (SyncContext& sync_context);
-
-	/// Executor::execute ()
-	/// Called from worker thread.
-	void execute (int scheduler_error);
-
 	/// Suspend execution
 	/// 
 	/// \param resume_context Context where to resume or nullptr for current context.
@@ -95,7 +85,7 @@ public:
 	{
 		assert (ExecContext::current_ptr () != this);
 		assert (sync_context_);
-		sync_context_->schedule_return (*this);
+		schedule_return (*sync_context_);
 	}
 
 	/// \brief Called from the Port implementation.
@@ -130,6 +120,81 @@ public:
 		return mem_context_.top ();
 	}
 
+	CORBA::Exception::Code scheduler_error () const NIRVANA_NOEXCEPT
+	{
+		return scheduler_error_;
+	}
+
+#ifdef _DEBUG
+	size_t dbg_context_stack_size_;
+#endif
+private:
+	ExecDomain () :
+		ExecContext (false),
+#ifdef _DEBUG
+		dbg_context_stack_size_ (0),
+#endif
+		restricted_mode_ (RestrictedMode::NO_RESTRICTIONS),
+		stateless_creation_frame_ (nullptr),
+		binder_context_ (nullptr),
+		ref_cnt_ (1),
+		ret_qnodes_ (nullptr),
+		scheduler_item_created_ (false),
+		scheduler_error_ (CORBA::SystemException::EC_NO_EXCEPTION),
+		schedule_ (*this),
+		deleter_ (CoreRef <Runnable>::create <ImplDynamic <Deleter> > (std::ref (*this)))
+	{}
+
+	static CoreRef <ExecDomain> create (const DeadlineTime deadline, Runnable& runnable, MemContext* mem_context = nullptr);
+
+	void final_construct (const DeadlineTime& deadline, Runnable& runnable, MemContext* mem_context);
+
+	~ExecDomain () NIRVANA_NOEXCEPT
+	{}
+
+	void final_release () NIRVANA_NOEXCEPT;
+
+	friend class CoreRef <ExecDomain>;
+	friend class ObjectPool <ExecDomain>;
+	void _add_ref () NIRVANA_NOEXCEPT;
+	void _remove_ref () NIRVANA_NOEXCEPT;
+	void cleanup () NIRVANA_NOEXCEPT;
+
+	void spawn (SyncContext& sync_context);
+
+	/// Schedules this ED to execute.
+	/// Must be called from another execution context.
+	///
+	/// \param sync_domain Synchronization domain. May be `nullptr`.
+	/// \param ret `true` if scheduled return from call.
+	void schedule (SyncContext& sync_context, bool ret = false);
+
+	/// Executor::execute ()
+	/// Called from worker thread.
+	void execute (int scheduler_error);
+
+	void ret_qnode_push (SyncDomain& sd)
+	{
+		ret_qnodes_ = sd.create_queue_node (ret_qnodes_);
+	}
+
+	SyncDomain::QueueNode* ret_qnode_pop () NIRVANA_NOEXCEPT
+	{
+		assert (ret_qnodes_);
+		SyncDomain::QueueNode* ret = ret_qnodes_;
+		ret_qnodes_ = ret->next ();
+		return ret;
+	}
+
+	void ret_qnodes_clear () NIRVANA_NOEXCEPT
+	{
+		while (ret_qnodes_) {
+			SyncDomain::QueueNode* qn = ret_qnodes_;
+			ret_qnodes_ = qn->next ();
+			qn->release ();
+		}
+	}
+
 	/// Push new memory context.
 	void mem_context_push (MemContext* context)
 	{
@@ -149,110 +214,24 @@ public:
 		assert (!mem_context_.empty ());
 	}
 
-	CORBA::Exception::Code scheduler_error () const NIRVANA_NOEXCEPT
-	{
-		return scheduler_error_;
-	}
-
-	void ret_qnode_push (SyncDomain& sd)
-	{
-		ret_qnodes_ = sd.create_queue_node (ret_qnodes_);
-	}
-
-	SyncDomain::QueueNode* ret_qnode_pop () NIRVANA_NOEXCEPT
-	{
-		assert (ret_qnodes_);
-		SyncDomain::QueueNode* ret = ret_qnodes_;
-		ret_qnodes_ = ret->next ();
-		return ret;
-	}
-
-#ifdef _DEBUG
-	size_t dbg_context_stack_size_;
-#endif
 private:
-	ExecDomain () :
-		ExecContext (false),
-#ifdef _DEBUG
-		dbg_context_stack_size_ (0),
-#endif
-		restricted_mode_ (RestrictedMode::NO_RESTRICTIONS),
-		stateless_creation_frame_ (nullptr),
-		binder_context_ (nullptr),
-		ref_cnt_ (1),
-		ret_qnodes_ (nullptr),
-		scheduler_item_created_ (false),
-		scheduler_error_ (CORBA::SystemException::EC_NO_EXCEPTION),
-		schedule_call_ (*this),
-		schedule_return_ (*this),
-		deleter_ (CoreRef <Runnable>::create <ImplDynamic <Deleter> > (std::ref (*this)))
-	{}
-
-	static CoreRef <ExecDomain> create (const DeadlineTime deadline, Runnable& runnable, MemContext* mem_context = nullptr);
-
-	void final_construct (const DeadlineTime& deadline, Runnable& runnable, MemContext* mem_context);
-
-	~ExecDomain () NIRVANA_NOEXCEPT
-	{}
-
-	void final_release () NIRVANA_NOEXCEPT;
-
-	friend class CoreRef <ExecDomain>;
-	friend class ObjectPool <ExecDomain>;
-	void _add_ref () NIRVANA_NOEXCEPT;
-	void _remove_ref () NIRVANA_NOEXCEPT;
-	void cleanup () NIRVANA_NOEXCEPT;
-
-private:
-	void spawn (SyncContext& sync_context);
-
-	void ret_qnodes_clear () NIRVANA_NOEXCEPT
-	{
-		while (ret_qnodes_) {
-			SyncDomain::QueueNode* qn = ret_qnodes_;
-			ret_qnodes_ = qn->next ();
-			qn->release ();
-		}
-	}
-
-private:
-	class NeutralOp : public ImplStatic <Runnable>
-	{
-	protected:
-		NeutralOp (ExecDomain& ed) :
-			exec_domain_ (ed)
-		{}
-
-	protected:
-		ExecDomain& exec_domain_;
-	};
-
-	class ScheduleCall : public NeutralOp
+	class Schedule : public ImplStatic <Runnable>
 	{
 	public:
-		ScheduleCall (ExecDomain& ed) :
-			NeutralOp (ed)
+		Schedule (ExecDomain& ed) :
+			exec_domain_ (ed)
 		{}
 
 		SyncContext* sync_context_;
 		std::exception_ptr exception_;
+		bool ret_;
 
 	private:
 		virtual void run ();
 		virtual void on_exception () NIRVANA_NOEXCEPT;
-	};
-
-	class ScheduleReturn : public NeutralOp
-	{
-	public:
-		ScheduleReturn (ExecDomain& ed) :
-			NeutralOp (ed)
-		{}
-
-		SyncContext* sync_context_;
 
 	private:
-		virtual void run ();
+		ExecDomain& exec_domain_;
 	};
 
 	class Deleter : public Runnable
@@ -308,8 +287,7 @@ private:
 	PreallocatedStack <CoreRef <MemContext>> mem_context_;
 	bool scheduler_item_created_;
 	CORBA::Exception::Code scheduler_error_;
-	ScheduleCall schedule_call_;
-	ScheduleReturn schedule_return_;
+	Schedule schedule_;
 	CoreRef <Runnable> deleter_;
 	CoreRef <ThreadBackground> background_worker_;
 };

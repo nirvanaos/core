@@ -147,32 +147,35 @@ void ExecDomain::start_legacy_thread (Runnable& runnable, MemContext& mem_contex
 	exec_domain->spawn (g_core_free_sync_context);
 }
 
-void ExecDomain::schedule (SyncContext& sync_context)
+void ExecDomain::schedule (SyncContext& target, bool ret)
 {
 	assert (&ExecContext::current () != this);
 
 	CoreRef <SyncContext> old_context = move (sync_context_);
-	SyncDomain* sync_domain = sync_context.sync_domain ();
+	SyncDomain* sync_domain = target.sync_domain ();
 	bool background = false;
 	if (!sync_domain) {
-		if (INFINITE_DEADLINE == deadline ())
+		if (INFINITE_DEADLINE == deadline ()) {
+			if (!background_worker_)
+				background_worker_ = ThreadBackground::create (*this);
 			background = true;
-		else if (!scheduler_item_created_) {
+		} else if (!scheduler_item_created_) {
 			Scheduler::create_item ();
 			scheduler_item_created_ = true;
 		}
 	}
 
-	sync_context_ = &sync_context;
+	sync_context_ = &target;
 	try {
-		if (sync_domain)
-			sync_domain->schedule (deadline (), *this);
-		else {
-			if (background) {
-				if (!background_worker_)
-					background_worker_ = ThreadBackground::create (*this);
+		if (sync_domain) {
+			if (ret)
+				sync_domain->schedule (ret_qnode_pop (), deadline (), *this);
+			else
+				sync_domain->schedule (deadline (), *this);
+		} else {
+			if (background)
 				background_worker_->resume ();
-			} else
+			else
 				Scheduler::schedule (deadline (), *this);
 		}
 	} catch (...) {
@@ -196,7 +199,7 @@ void ExecDomain::suspend (SyncContext* resume_context)
 		sync_domain->leave ();
 	}
 	if (resume_context)
-		sync_context (*resume_context);
+		sync_context_ = resume_context;
 	ExecContext& neutral_context = Thread::current ().neutral_context ();
 	if (&neutral_context != &ExecContext::current ())
 		neutral_context.run_in_context (suspend_);
@@ -281,50 +284,79 @@ void ExecDomain::on_exec_domain_crash (CORBA::SystemException::Code err) NIRVANA
 	cleanup ();
 }
 
-void ExecDomain::schedule_call (SyncContext& sync_context, MemContext* mem_context)
+void ExecDomain::schedule_call (SyncContext& target, MemContext* mem_context)
 {
-	SyncDomain* sd = sync_context.sync_domain ();
+	mem_context_push (mem_context);
+	SyncDomain* sd = target.sync_domain ();
 	if (sd) {
 		assert (!mem_context || mem_context == &sd->mem_context ());
 		mem_context = &sd->mem_context ();
 	}
-	mem_context_push (mem_context);
-	schedule_call_.sync_context_ = &sync_context;
-	run_in_neutral_context (schedule_call_);
-	if (schedule_call_.exception_) {
-		mem_context_pop ();
-		exception_ptr ex = schedule_call_.exception_;
-		schedule_call_.exception_ = nullptr;
-		rethrow_exception (ex);
+	if (sd || !(deadline () == INFINITE_DEADLINE && &Thread::current () == background_worker_)) {
+		// Need to schedule
+		SyncContext& old_context = sync_context ();
+
+		// If old context is a synchronization domain, we
+		// allocate queue node to perform return without a risk
+		// of memory allocation failure.
+		SyncDomain* old_sd = old_context.sync_domain ();
+		if (old_sd)
+			ret_qnode_push (*old_sd);
+
+		// Call schedule() in the neutral context
+		schedule_.sync_context_ = &target;
+		schedule_.ret_ = false;
+		run_in_neutral_context (schedule_);
+
+		// Handle possible schedule() exceptions
+		if (schedule_.exception_) {
+			exception_ptr ex = schedule_.exception_;
+			schedule_.exception_ = nullptr;
+			mem_context_pop ();
+			if (old_sd)
+				old_sd->release_queue_node (ret_qnode_pop ());
+			rethrow_exception (ex);
+		}
+
+		// Now ED in the scheduler queue.
+		// Now ED is again executed by the scheduler.
+		// But maybe a schedule error occurs.
+		CORBA::Exception::Code err = scheduler_error ();
+		if (err >= 0) {
+			// We must return to prev synchronization context back before throwing the exception.
+			schedule_return (old_context);
+			CORBA::SystemException::_raise_by_code (err);
+		}
 	}
 }
 
-void ExecDomain::ScheduleCall::run ()
+void ExecDomain::schedule_return (SyncContext& target) NIRVANA_NOEXCEPT
 {
-	exec_domain_.schedule (*sync_context_);
+	mem_context_pop ();
+	if (target.sync_domain () || !(deadline () == INFINITE_DEADLINE && &Thread::current () == background_worker_)) {
+		schedule_.sync_context_ = &target;
+		schedule_.ret_ = true;
+		run_in_neutral_context (schedule_);
+		// schedule() can not throw exception in the return mode.
+		// Now ED in the scheduler queue.
+		// Now ED is again executed by the scheduler.
+		// But maybe a schedule error occurs.
+		CORBA::Exception::Code err = scheduler_error ();
+		if (err >= 0)
+			CORBA::SystemException::_raise_by_code (err);
+	}
+}
+
+void ExecDomain::Schedule::run ()
+{
+	exec_domain_.schedule (*sync_context_, ret_);
 	Thread::current ().yield ();
 }
 
-void ExecDomain::ScheduleCall::on_exception () NIRVANA_NOEXCEPT
+void ExecDomain::Schedule::on_exception () NIRVANA_NOEXCEPT
 {
+	assert (!ret_);
 	exception_ = current_exception ();
-}
-
-void ExecDomain::schedule_return (SyncContext& sync_context) NIRVANA_NOEXCEPT
-{
-	mem_context_pop ();
-	schedule_return_.sync_context_ = &sync_context;
-	run_in_neutral_context (schedule_return_);
-}
-
-void ExecDomain::ScheduleReturn::run ()
-{
-	Thread& thread = Thread::current ();
-	CoreRef <SyncDomain> old_sync_domain = exec_domain_.sync_context ().sync_domain ();
-	sync_context_->schedule_return (exec_domain_);
-	if (old_sync_domain)
-		old_sync_domain->leave ();
-	thread.yield ();
 }
 
 }

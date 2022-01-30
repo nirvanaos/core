@@ -52,16 +52,6 @@ public:
 	/// Returns current synchronization context
 	static SyncContext& current () NIRVANA_NOEXCEPT;
 
-	/// Leave this context and enter to the other.
-	/// 
-	/// \param target Target synchronization context.
-	virtual void schedule_call (SyncContext& target, MemContext* mem_context) = 0;
-
-	/// Return execution domain to this context.
-	/// 
-	/// \param exec_domain Execution domain.
-	virtual void schedule_return (ExecDomain& exec_domain) NIRVANA_NOEXCEPT = 0;
-
 	/// Returns SyncDomain associated with this context.
 	/// Returns `nullptr` if there is not synchronization domain.
 	virtual SyncDomain* sync_domain () NIRVANA_NOEXCEPT;
@@ -78,9 +68,6 @@ public:
 	/// Free sync context returns pointer to the stateless objects heap.
 	/// Other sync contexts return `nullptr`.
 	virtual Heap* stateless_memory () NIRVANA_NOEXCEPT;
-
-protected:
-	void check_schedule_error (ExecDomain& ed);
 };
 
 /// Free (not synchronized) sync context.
@@ -88,8 +75,6 @@ class NIRVANA_NOVTABLE SyncContextFree :
 	public SyncContext
 {
 public:
-	virtual void schedule_call (SyncContext& target, MemContext* mem_context);
-	virtual void schedule_return (ExecDomain& exec_domain) NIRVANA_NOEXCEPT;
 	virtual Heap* stateless_memory () NIRVANA_NOEXCEPT = 0;
 };
 

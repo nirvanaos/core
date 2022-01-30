@@ -130,28 +130,6 @@ void SyncDomain::release_queue_node (QueueNode* node) NIRVANA_NOEXCEPT
 	activity_end ();
 }
 
-void SyncDomain::schedule_call (SyncContext& target, MemContext* mem_context)
-{
-	ExecDomain* exec_domain = Thread::current ().exec_domain ();
-	assert (exec_domain);
-	assert (&ExecContext::current () == exec_domain);
-	exec_domain->ret_qnode_push (*this);
-
-	try {
-		exec_domain->schedule_call (target, mem_context);
-	} catch (...) {
-		release_queue_node (exec_domain->ret_qnode_pop ());
-		throw;
-	}
-	check_schedule_error (*exec_domain);
-}
-
-void SyncDomain::schedule_return (ExecDomain& exec_domain) NIRVANA_NOEXCEPT
-{
-	exec_domain.sync_context (*this);
-	schedule (exec_domain.ret_qnode_pop (), exec_domain.deadline (), exec_domain);
-}
-
 SyncDomain* SyncDomain::sync_domain () NIRVANA_NOEXCEPT
 {
 	return this;

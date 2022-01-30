@@ -39,16 +39,6 @@ SyncContext& SyncContext::current () NIRVANA_NOEXCEPT
 	return ed->sync_context ();
 }
 
-void SyncContext::check_schedule_error (ExecDomain& ed)
-{
-	CORBA::Exception::Code err = Thread::current ().exec_domain ()->scheduler_error ();
-	if (err >= 0) {
-		// We must return to prev synchronization domain back before throwing the exception.
-		ed.schedule_return (*this);
-		CORBA::SystemException::_raise_by_code (err);
-	}
-}
-
 SyncDomain* SyncContext::sync_domain () NIRVANA_NOEXCEPT
 {
 	return nullptr;
@@ -57,20 +47,6 @@ SyncDomain* SyncContext::sync_domain () NIRVANA_NOEXCEPT
 Heap* SyncContext::stateless_memory () NIRVANA_NOEXCEPT
 {
 	return nullptr;
-}
-
-void SyncContextFree::schedule_call (SyncContext& target, MemContext* mem_context)
-{
-	ExecDomain* exec_domain = Thread::current ().exec_domain ();
-	assert (exec_domain);
-	exec_domain->schedule_call (target, mem_context);
-	check_schedule_error (*exec_domain);
-}
-
-void SyncContextFree::schedule_return (ExecDomain& exec_domain) NIRVANA_NOEXCEPT
-{
-	exec_domain.sync_context (*this);
-	Scheduler::schedule (exec_domain.deadline (), exec_domain);
 }
 
 Heap* SyncContextCore::stateless_memory () NIRVANA_NOEXCEPT

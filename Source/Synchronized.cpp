@@ -36,7 +36,7 @@ Synchronized::Synchronized (SyncContext& target, MemContext* mem_context) :
 	assert (exec_domain_);
 	// Target can not be legacy thread
 	assert (target.sync_domain () || target.is_free_sync_context ());
-	call_context_->schedule_call (target, mem_context);
+	exec_domain_->schedule_call (target, mem_context);
 }
 
 Synchronized::~Synchronized ()
