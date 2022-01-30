@@ -61,8 +61,8 @@ protected:
 		Executable (file),
 		ret_ (-1)
 	{
-		copy_vec (argv, argv_);
-		copy_vec (envp, envp_);
+		copy_strings (argv, argv_);
+		copy_strings (envp, envp_);
 	}
 
 	~Process ()
@@ -73,13 +73,16 @@ protected:
 	virtual void on_crash (int error_code) NIRVANA_NOEXCEPT;
 
 private:
-	static void copy_vec (const std::vector <Nirvana::Core::StringView>& src, std::vector <std::string>& dst);
-	static void copy_vec (std::vector <std::string>& src, std::vector <char*>& dst);
+	typedef std::vector <Nirvana::Core::CoreString, Nirvana::Core::CoreAllocator <Nirvana::Core::CoreString> > Strings;
+	static void copy_strings (const std::vector <Nirvana::Core::StringView>& src, Strings& dst);
+	
+	typedef std::vector <char*, Nirvana::Core::UserAllocator <char*> > Pointers;
+	static void copy_strings (Strings& src, Pointers& dst);
 
 private:
 	Nirvana::Core::ImplStatic <MemContextProcess> mem_context_;
 	Nirvana::Core::Console console_;
-	std::vector <std::string> argv_, envp_;
+	Strings argv_, envp_;
 	int ret_;
 };
 

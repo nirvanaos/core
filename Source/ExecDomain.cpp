@@ -127,6 +127,26 @@ void ExecDomain::final_release () NIRVANA_NOEXCEPT
 	Creator::release (*this);
 }
 
+void ExecDomain::_add_ref () NIRVANA_NOEXCEPT
+{
+	ref_cnt_.increment ();
+}
+
+void ExecDomain::_remove_ref () NIRVANA_NOEXCEPT
+{
+	if (!ref_cnt_.decrement ()) {
+		if (&ExecContext::current () == this)
+			run_in_neutral_context (*deleter_);
+		else
+			final_release ();
+	}
+}
+
+void ExecDomain::Deleter::run ()
+{
+	exec_domain_.final_release ();
+}
+
 void ExecDomain::spawn (SyncContext& sync_context)
 {
 	assert (&ExecContext::current () != this);
@@ -145,71 +165,6 @@ void ExecDomain::start_legacy_thread (Runnable& runnable, MemContext& mem_contex
 	CoreRef <ExecDomain> exec_domain = create (INFINITE_DEADLINE, runnable, &mem_context);
 	exec_domain->background_worker_ = Legacy::Core::ThreadLegacy::create (*exec_domain);
 	exec_domain->spawn (g_core_free_sync_context);
-}
-
-void ExecDomain::schedule (SyncContext& target, bool ret)
-{
-	assert (&ExecContext::current () != this);
-
-	CoreRef <SyncContext> old_context = move (sync_context_);
-	SyncDomain* sync_domain = target.sync_domain ();
-	bool background = false;
-	if (!sync_domain) {
-		if (INFINITE_DEADLINE == deadline ()) {
-			if (!background_worker_)
-				background_worker_ = ThreadBackground::create (*this);
-			background = true;
-		} else if (!scheduler_item_created_) {
-			Scheduler::create_item ();
-			scheduler_item_created_ = true;
-		}
-	}
-
-	sync_context_ = &target;
-	try {
-		if (sync_domain) {
-			if (ret)
-				sync_domain->schedule (ret_qnode_pop (), deadline (), *this);
-			else
-				sync_domain->schedule (deadline (), *this);
-		} else {
-			if (background)
-				background_worker_->resume ();
-			else
-				Scheduler::schedule (deadline (), *this);
-		}
-	} catch (...) {
-		sync_context_ = move (old_context);
-		throw;
-	}
-
-	if (old_context) {
-		SyncDomain* old_sd = old_context->sync_domain ();
-		if (old_sd)
-			old_sd->leave ();
-	}
-}
-
-void ExecDomain::suspend (SyncContext* resume_context)
-{
-	SyncDomain* sync_domain = sync_context_->sync_domain ();
-	if (sync_domain) {
-		if (!resume_context)
-			ret_qnode_push (*sync_domain);
-		sync_domain->leave ();
-	}
-	if (resume_context)
-		sync_context_ = resume_context;
-	ExecContext& neutral_context = Thread::current ().neutral_context ();
-	if (&neutral_context != &ExecContext::current ())
-		neutral_context.run_in_context (suspend_);
-	else
-		Thread::current ().yield ();
-}
-
-void ExecDomain::Suspend::run ()
-{
-	Thread::current ().yield ();
 }
 
 void ExecDomain::execute (int scheduler_error)
@@ -244,26 +199,6 @@ void ExecDomain::cleanup () NIRVANA_NOEXCEPT
 	_remove_ref ();
 }
 
-void ExecDomain::_add_ref () NIRVANA_NOEXCEPT
-{
-	ref_cnt_.increment ();
-}
-
-void ExecDomain::_remove_ref () NIRVANA_NOEXCEPT
-{
-	if (!ref_cnt_.decrement ()) {
-		if (&ExecContext::current () == this)
-			run_in_neutral_context (*deleter_);
-		else
-			final_release ();
-	}
-}
-
-void ExecDomain::Deleter::run ()
-{
-	exec_domain_.final_release ();
-}
-
 void ExecDomain::run () NIRVANA_NOEXCEPT
 {
 	assert (Thread::current ().exec_domain () == this);
@@ -284,14 +219,51 @@ void ExecDomain::on_exec_domain_crash (CORBA::SystemException::Code err) NIRVANA
 	cleanup ();
 }
 
+void ExecDomain::schedule (SyncContext& target, bool ret)
+{
+	assert (ExecContext::current_ptr () != this);
+
+	CoreRef <SyncContext> old_context = move (sync_context_);
+	SyncDomain* sync_domain = target.sync_domain ();
+	bool background = false;
+	if (!sync_domain) {
+		if (INFINITE_DEADLINE == deadline ()) {
+			if (!background_worker_)
+				background_worker_ = ThreadBackground::create (*this);
+			background = true;
+		} else if (!scheduler_item_created_) {
+			Scheduler::create_item ();
+			scheduler_item_created_ = true;
+		}
+	}
+
+	sync_context_ = &target;
+	try {
+		if (sync_domain) {
+			if (ret)
+				sync_domain->schedule (ret_qnode_pop (), deadline (), *this);
+			else
+				sync_domain->schedule (deadline (), *this);
+		} else {
+			if (background)
+				background_worker_->resume ();
+			else
+				Scheduler::schedule (deadline (), *this);
+		}
+	} catch (...) {
+		sync_context_ = move (old_context);
+		throw;
+	}
+}
+
 void ExecDomain::schedule_call (SyncContext& target, MemContext* mem_context)
 {
-	mem_context_push (mem_context);
 	SyncDomain* sd = target.sync_domain ();
 	if (sd) {
 		assert (!mem_context || mem_context == &sd->mem_context ());
 		mem_context = &sd->mem_context ();
 	}
+	mem_context_push (mem_context);
 	if (sd || !(deadline () == INFINITE_DEADLINE && &Thread::current () == background_worker_)) {
 		// Need to schedule
 		SyncContext& old_context = sync_context ();
@@ -300,8 +272,10 @@ void ExecDomain::schedule_call (SyncContext& target, MemContext* mem_context)
 		// allocate queue node to perform return without a risk
 		// of memory allocation failure.
 		SyncDomain* old_sd = old_context.sync_domain ();
-		if (old_sd)
+		if (old_sd) {
+			old_sd->leave ();
 			ret_qnode_push (*old_sd);
+		}
 
 		// Call schedule() in the neutral context
 		schedule_.sync_context_ = &target;
@@ -312,9 +286,9 @@ void ExecDomain::schedule_call (SyncContext& target, MemContext* mem_context)
 		if (schedule_.exception_) {
 			exception_ptr ex = schedule_.exception_;
 			schedule_.exception_ = nullptr;
-			mem_context_pop ();
+			// We leaved old sync domain so we must enter into prev synchronization domain back before throwing the exception.
 			if (old_sd)
-				old_sd->release_queue_node (ret_qnode_pop ());
+				schedule_return (old_context);
 			rethrow_exception (ex);
 		}
 
@@ -334,6 +308,10 @@ void ExecDomain::schedule_return (SyncContext& target) NIRVANA_NOEXCEPT
 {
 	mem_context_pop ();
 	if (target.sync_domain () || !(deadline () == INFINITE_DEADLINE && &Thread::current () == background_worker_)) {
+		SyncDomain* old_sd = sync_context ().sync_domain ();
+		if (old_sd)
+			old_sd->leave ();
+
 		schedule_.sync_context_ = &target;
 		schedule_.ret_ = true;
 		run_in_neutral_context (schedule_);
@@ -357,6 +335,46 @@ void ExecDomain::Schedule::on_exception () NIRVANA_NOEXCEPT
 {
 	assert (!ret_);
 	exception_ = current_exception ();
+}
+
+void ExecDomain::suspend (SyncContext* resume_context)
+{
+	SyncDomain* sync_domain = sync_context_->sync_domain ();
+	if (sync_domain) {
+		if (!resume_context)
+			ret_qnode_push (*sync_domain);
+		sync_domain->leave ();
+	}
+	if (resume_context)
+		sync_context_ = resume_context;
+	ExecContext& neutral_context = Thread::current ().neutral_context ();
+	if (&neutral_context != &ExecContext::current ())
+		neutral_context.run_in_context (suspend_);
+	else
+		Thread::current ().yield ();
+}
+
+void ExecDomain::Suspend::run ()
+{
+	Thread::current ().yield ();
+}
+
+bool ExecDomain::yield ()
+{
+	Thread& thr = Thread::current ();
+	ExecDomain* ed = thr.exec_domain ();
+	assert (ed);
+	if (&thr != ed->background_worker_) {
+		run_in_neutral_context (ed->yield_);
+		return true;
+	}
+	return false;
+}
+
+void ExecDomain::Yield::run ()
+{
+	exec_domain_.suspend (nullptr);
+	exec_domain_.resume ();
 }
 
 }

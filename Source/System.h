@@ -143,7 +143,7 @@ public:
 			return nullptr;
 	}
 
-	void debug_event (DebugEvent evt, const std::string& msg)
+	static void debug_event (DebugEvent evt, const std::string& msg)
 	{
 		static const char* ev_prefix [3] = {
 			"INFO: ",
@@ -156,6 +156,11 @@ public:
 		Port::Debugger::output_debug_string (s.c_str ());
 		if (DebugEvent::DEBUG_ERROR == evt)
 			Port::Debugger::debug_break ();
+	}
+
+	static bool yield ()
+	{
+		return ExecDomain::yield ();
 	}
 };
 

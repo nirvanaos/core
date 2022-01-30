@@ -85,8 +85,11 @@ public:
 	{
 		assert (ExecContext::current_ptr () != this);
 		assert (sync_context_);
-		schedule_return (*sync_context_);
+		schedule (*sync_context_, true);
 	}
+
+	/// Reschedule
+	static bool yield ();
 
 	/// \brief Called from the Port implementation.
 	void run () NIRVANA_NOEXCEPT;
@@ -128,6 +131,23 @@ public:
 #ifdef _DEBUG
 	size_t dbg_context_stack_size_;
 #endif
+	enum class RestrictedMode
+	{
+		NO_RESTRICTIONS,
+		CLASS_LIBRARY_INIT,
+		MODULE_TERMINATE
+	}
+	restricted_mode_;
+
+	/// Used by CORBA::Internal::ObjectFactory
+	void* stateless_creation_frame_;
+
+	/// Used by Binder
+	void* binder_context_;
+
+	/// Run-time global state
+	RuntimeGlobal runtime_global_;
+
 private:
 	ExecDomain () :
 		ExecContext (false),
@@ -142,8 +162,14 @@ private:
 		scheduler_item_created_ (false),
 		scheduler_error_ (CORBA::SystemException::EC_NO_EXCEPTION),
 		schedule_ (*this),
+		yield_ (*this),
 		deleter_ (CoreRef <Runnable>::create <ImplDynamic <Deleter> > (std::ref (*this)))
 	{}
+
+	class WithPool;
+	class NoPool;
+
+	using Creator = std::conditional <EXEC_DOMAIN_POOLING, WithPool, NoPool>::type;
 
 	static CoreRef <ExecDomain> create (const DeadlineTime deadline, Runnable& runnable, MemContext* mem_context = nullptr);
 
@@ -254,28 +280,18 @@ private:
 		virtual void run ();
 	};
 
-	class WithPool;
-	class NoPool;
-
-	using Creator = std::conditional <EXEC_DOMAIN_POOLING, WithPool, NoPool>::type;
-
-public:
-	enum class RestrictedMode
+	class Yield : public ImplStatic <Runnable>
 	{
-		NO_RESTRICTIONS,
-		CLASS_LIBRARY_INIT,
-		MODULE_TERMINATE
-	}
-	restricted_mode_;
+	public:
+		Yield (ExecDomain& ed) :
+			exec_domain_ (ed)
+		{}
+	private:
+		virtual void run ();
 
-	/// Used by CORBA::Internal::ObjectFactory
-	void* stateless_creation_frame_;
-
-	/// Used by Binder
-	void* binder_context_;
-
-	/// Run-time global state
-	RuntimeGlobal runtime_global_;
+	private:
+		ExecDomain& exec_domain_;
+	};
 
 private:
 	static StaticallyAllocated <Suspend> suspend_;
@@ -288,6 +304,7 @@ private:
 	bool scheduler_item_created_;
 	CORBA::Exception::Code scheduler_error_;
 	Schedule schedule_;
+	Yield yield_;
 	CoreRef <Runnable> deleter_;
 	CoreRef <ThreadBackground> background_worker_;
 };

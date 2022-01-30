@@ -29,6 +29,7 @@ protected:
 	{
 		// Code here will be called immediately after the constructor (right
 		// before each test).
+		ASSERT_TRUE (g_system->is_legacy_mode ());
 	}
 
 	virtual void TearDown ()
@@ -45,6 +46,11 @@ TEST_F (TestLegacy, Mutex)
 	mtx->lock ();
 	EXPECT_NO_THROW (mtx->unlock ());
 	EXPECT_THROW (mtx->unlock (), BAD_INV_ORDER);
+}
+
+TEST_F (TestLegacy, Yield)
+{
+	EXPECT_FALSE (g_system->yield ());
 }
 
 }
