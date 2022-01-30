@@ -46,16 +46,17 @@ WaitListImpl::WaitListImpl (DeadlineTime deadline) :
 
 void WaitListImpl::wait ()
 {
-	assert (!finished ());
-	ExecDomain* ed = Thread::current ().exec_domain ();
-	assert (ed);
-	if (ed == worker_)
-		throw_BAD_INV_ORDER ();
-	// Hold reference to this object
-	CoreRef <WaitList> ref = static_cast <WaitList*> (this);
-	static_cast <StackElem&> (*ed).next = wait_list_;
-	wait_list_ = ed;
-	ed->suspend ();
+	if (!finished ()) {
+		ExecDomain* ed = Thread::current ().exec_domain ();
+		assert (ed);
+		if (ed == worker_)
+			throw_BAD_INV_ORDER ();
+		// Hold reference to this object
+		CoreRef <WaitList> ref = static_cast <WaitList*> (this);
+		static_cast <StackElem&> (*ed).next = wait_list_;
+		wait_list_ = ed;
+		ed->suspend ();
+	}
 	assert (finished ());
 	if (exception_)
 		rethrow_exception (exception_);

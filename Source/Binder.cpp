@@ -360,19 +360,28 @@ CoreRef <Module> Binder::load (string& module_name, bool singleton)
 
 void Binder::unload (ModuleMap::iterator mod)
 {
-	Module* pmod = mod->second.get ();
-	assert (!pmod->bound ());
+	Module* pmod = nullptr;
+	try {
+		pmod = mod->second.get ();
+		assert (!pmod->bound ());
+	} catch (...) {
+		// Module loading error was occurred.
+		// Module was not loaded.
+		// Just remove the entry from table.
+	}
 	module_map_.erase (mod);
-	remove_exports (pmod->metadata ());
-	SYNC_BEGIN (pmod->sync_context (), pmod);
-	pmod->terminate ();
-	module_unbind (pmod->_get_ptr (), pmod->metadata ());
-	SYNC_END ();
-	delete_module (pmod);
+	if (pmod) {
+		remove_exports (pmod->metadata ());
+		SYNC_BEGIN (pmod->sync_context (), pmod);
+		pmod->terminate ();
+		module_unbind (pmod->_get_ptr (), pmod->metadata ());
+		SYNC_END ();
+		delete_module (pmod);
+	}
 }
 
 inline
-void Binder::remove_exports (const Section& metadata)
+void Binder::remove_exports (const Section& metadata) NIRVANA_NOEXCEPT
 {
 	// Pass 1: Remove all exports from the map.
 	// This pass will not cause inter-domain calls.

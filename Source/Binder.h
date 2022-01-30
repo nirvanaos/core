@@ -215,7 +215,7 @@ private:
 	/// \returns Pointer to the ModuleStartup metadata structure, if found. Otherwise `nullptr`.
 	const ModuleStartup* module_bind (Nirvana::Module::_ptr_type mod, const Section& metadata, ModuleContext* mod_context);
 	static void module_unbind (Nirvana::Module::_ptr_type mod, const Section& metadata) NIRVANA_NOEXCEPT;
-	void remove_exports (const Section& metadata);
+	void remove_exports (const Section& metadata) NIRVANA_NOEXCEPT;
 	static void release_imports (Nirvana::Module::_ptr_type mod, const Section& metadata);
 
 	InterfaceRef bind_interface_sync (const ObjectKey& name, CORBA::Internal::String_in iid);
