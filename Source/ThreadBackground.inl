@@ -24,34 +24,21 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_CORE_USERALLOCATOR_H_
-#define NIRVANA_CORE_USERALLOCATOR_H_
+#ifndef NIRVANA_CORE_THREADBACKGROUND_INL_
+#define NIRVANA_CORE_THREADBACKGROUND_INL_
 #pragma once
 
-#include "MemContext.h"
+#include "ExecDomain.h"
 
 namespace Nirvana {
 namespace Core {
 
-/// Allocate from domain memory.
-/// Used to skip calls to global Memory object interface inside the Core code.
-template <class T>
-class UserAllocator :
-	public std::allocator <T>
+inline
+void ThreadBackground::execute () NIRVANA_NOEXCEPT
 {
-public:
-	static void deallocate (T* p, size_t cnt)
-	{
-		MemContext::current ().heap ().release (p, cnt * sizeof (T));
-	}
-
-	static T* allocate (size_t cnt, void* hint = nullptr, unsigned flags = 0)
-	{
-		return (T*)MemContext::current ().heap ().allocate (hint, cnt * sizeof (T), flags);
-	}
-};
-
-typedef std::basic_string <char, std::char_traits <char>, UserAllocator <char> > UserString;
+	exec_domain ()->switch_to ();
+	ExecContext::neutral_context_loop ();
+}
 
 }
 }

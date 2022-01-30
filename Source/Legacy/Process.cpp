@@ -24,16 +24,50 @@
 *  popov.nirvana@gmail.com
 */
 #include "Process.h"
+#include <iostream>
+
+using namespace std;
+using namespace Nirvana::Core;
 
 namespace Nirvana {
 namespace Legacy {
 namespace Core {
 
-Nirvana::Core::CoreRef <Process> Process::spawn (Nirvana::Core::Runnable& runnable)
+void Process::copy_vec (const vector <StringView>& src, vector <string>& dst)
 {
-	auto process = Nirvana::Core::CoreRef <Process>::create <Nirvana::Core::ImplDynamic <Process>> ();
-	process->start (*process, runnable);
-	return process;
+	dst.reserve (src.size ());
+	for (const auto& sv : src) {
+		dst.emplace_back (sv.data (), sv.size ());
+	}
+}
+
+void Process::copy_vec (vector <string>& src, vector <char*>& dst)
+{
+	for (auto& s : src) {
+		dst.push_back (const_cast <char*> (s.data ()));
+	}
+	dst.push_back (nullptr);
+}
+
+void Process::run ()
+{
+	vector <char*> v;
+	v.reserve (argv_.size () + envp_.size () + 2);
+	copy_vec (argv_, v);
+	copy_vec (envp_, v);
+	ret_ = main ((int)argv_.size (), v.data (), v.data () + argv_.size () + 1);
+}
+
+void Process::on_exception () NIRVANA_NOEXCEPT
+{
+	ret_ = -1;
+	console_ << "Unhandled exception.\n";
+}
+
+void Process::on_crash (int error_code) NIRVANA_NOEXCEPT
+{
+	ret_ = -1;
+	console_ << "Process crashed.\n";
 }
 
 }

@@ -39,6 +39,19 @@ class Console :
 public:
 	Console ()
 	{}
+
+	const Console& operator << (const char* text) const NIRVANA_NOEXCEPT
+	{
+		write (text, strlen (text));
+		return *this;
+	}
+
+	const Console& operator << (char c) const NIRVANA_NOEXCEPT
+	{
+		write (&c, 1);
+		return *this;
+	}
+
 };
 
 }

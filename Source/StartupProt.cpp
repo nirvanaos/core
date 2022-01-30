@@ -24,17 +24,16 @@
 *  popov.nirvana@gmail.com
 */
 #include "StartupProt.h"
+#include "initterm.h"
 
 namespace Nirvana {
 namespace Core {
 
 void StartupProt::run ()
 {
+	initialize ();
+	// TODO: Protection domain startup code.
 	Startup::run ();
-	if (!process ()) {
-		// TODO: Protection domain startup code.
-		ret_ = 0;
-	}
 }
 
 }

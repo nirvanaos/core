@@ -24,34 +24,57 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_CORE_USERALLOCATOR_H_
-#define NIRVANA_CORE_USERALLOCATOR_H_
+#ifndef NIRVANA_CORE_THREADBACKGROUND_H_
+#define NIRVANA_CORE_THREADBACKGROUND_H_
 #pragma once
 
-#include "MemContext.h"
+#include <Port/ThreadBackground.h>
 
 namespace Nirvana {
 namespace Core {
 
-/// Allocate from domain memory.
-/// Used to skip calls to global Memory object interface inside the Core code.
-template <class T>
-class UserAllocator :
-	public std::allocator <T>
+class NIRVANA_NOVTABLE ThreadBackground :
+	public CoreInterface,
+	public CoreObject,
+	public Port::ThreadBackground
 {
+	friend class Port::ThreadBackground;
+	typedef Port::ThreadBackground Base;
 public:
-	static void deallocate (T* p, size_t cnt)
+	static CoreRef <ThreadBackground> create (ExecDomain& ed)
 	{
-		MemContext::current ().heap ().release (p, cnt * sizeof (T));
+		CoreRef <ThreadBackground> obj = CoreRef <ThreadBackground>::create <ImplDynamic <ThreadBackground> > (std::ref (ed));
+		obj->start ();
+		return obj;
 	}
 
-	static T* allocate (size_t cnt, void* hint = nullptr, unsigned flags = 0)
+protected:
+	ThreadBackground (ExecDomain& ed) NIRVANA_NOEXCEPT
 	{
-		return (T*)MemContext::current ().heap ().allocate (hint, cnt * sizeof (T), flags);
+		exec_domain (ed);
+	}
+
+	void start ()
+	{
+		_add_ref ();
+		try {
+			Base::start ();
+		} catch (...) {
+			_remove_ref ();
+			throw;
+		}
+	}
+
+private:
+	/// Called from port.
+	inline void execute () NIRVANA_NOEXCEPT;
+
+	/// Called from port.
+	void on_thread_proc_end () NIRVANA_NOEXCEPT
+	{
+		_remove_ref ();
 	}
 };
-
-typedef std::basic_string <char, std::char_traits <char>, UserAllocator <char> > UserString;
 
 }
 }

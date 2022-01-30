@@ -37,7 +37,7 @@ MutexCore::~MutexCore ()
 
 void MutexCore::lock ()
 {
-	ThreadBackground& thread = ThreadBackground::current ();
+	ThreadLegacy& thread = ThreadLegacy::current ();
 	SYNC_BEGIN (*this, nullptr);
 	if (!owner_) {
 		owner_ = &thread;
@@ -53,16 +53,16 @@ void MutexCore::lock ()
 
 void MutexCore::unlock ()
 {
-	ThreadBackground& thread = ThreadBackground::current ();
+	ThreadLegacy& thread = ThreadLegacy::current ();
 	SYNC_BEGIN (*this, nullptr);
 	if (owner_ != &thread)
 		throw_BAD_INV_ORDER ();
 	owner_ = nullptr;
 	if (!queue_.empty ()) {
-		ThreadBackground& next = queue_.front ();
+		ThreadLegacy& next = queue_.front ();
 		next.remove (); // From queue
 		owner_ = &next;
-		next.port ().exec_domain ()->resume ();
+		next.exec_domain ()->resume ();
 	}
 	SYNC_END ();
 }

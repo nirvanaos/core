@@ -130,10 +130,17 @@ public:
 		return Port::SystemInfo::hardware_concurrency ();
 	}
 
+	static bool is_legacy_mode ()
+	{
+		return Thread::current ().is_legacy ();
+	}
+
 	static Nirvana::Legacy::Mutex::_ref_type create_mutex ()
 	{
-		// TODO:: Check for the legacy call. Return nullptr if not.
-		return Nirvana::Legacy::Core::MutexUser::create ();
+		if (Thread::current ().is_legacy ())
+			return Nirvana::Legacy::Core::MutexUser::create ();
+		else
+			return nullptr;
 	}
 
 	void debug_event (DebugEvent evt, const std::string& msg)
@@ -146,7 +153,7 @@ public:
 		std::string s = ev_prefix [(unsigned)evt];
 		s += msg;
 		s += '\n';
-		Port::Debugger::output_debug_string (s);
+		Port::Debugger::output_debug_string (s.c_str ());
 		if (DebugEvent::DEBUG_ERROR == evt)
 			Port::Debugger::debug_break ();
 	}

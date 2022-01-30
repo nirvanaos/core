@@ -24,18 +24,16 @@
 *  popov.nirvana@gmail.com
 */
 #include "StartupSys.h"
-#include "Scheduler.h"
+#include "initterm.h"
 
 namespace Nirvana {
 namespace Core {
 
 void StartupSys::run ()
 {
+	initialize ();
+	// TODO: System domain startup code.
 	Startup::run ();
-	if (!process ()) {
-		// TODO: System domain startup code.
-		ret_ = 0;
-	}
 }
 
 }

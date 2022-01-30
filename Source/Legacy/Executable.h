@@ -29,7 +29,6 @@
 #pragma once
 
 #include "../ModuleImpl.h"
-#include "../CoreObject.h"
 #include <Nirvana/Main.h>
 #include "../ORB/LifeCycleStack.h"
 
@@ -39,7 +38,6 @@ namespace Core {
 
 class Executable :
 	public Nirvana::Core::ModuleImpl,
-	public Nirvana::Core::CoreObject,
 	public CORBA::servant_traits <Nirvana::Module>::Servant <Executable>,
 	public CORBA::Internal::Core::LifeCycleStack
 {

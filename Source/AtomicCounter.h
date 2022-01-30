@@ -28,7 +28,7 @@
 #define NIRVANA_CORE_ATOMICCOUNTER_H_
 #pragma once
 
-#include <Nirvana/NirvanaBase.h>
+#include <Nirvana/Nirvana.h>
 #include <assert.h>
 #include <atomic>
 #include <type_traits>

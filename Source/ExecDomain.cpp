@@ -24,6 +24,7 @@
 *  popov.nirvana@gmail.com
 */
 #include "ExecDomain.h"
+#include "Legacy/ThreadLegacy.h"
 #include <Port/SystemInfo.h>
 
 using namespace std;
@@ -130,7 +131,20 @@ void ExecDomain::spawn (SyncContext& sync_context)
 {
 	assert (&ExecContext::current () != this);
 	assert (runnable_);
-	start ([this, &sync_context]() {this->schedule (sync_context); });
+	_add_ref ();
+	try {
+		schedule (sync_context);
+	} catch (...) {
+		_remove_ref ();
+		throw;
+	}
+}
+
+void ExecDomain::start_legacy_thread (Runnable& runnable, MemContext& mem_context)
+{
+	CoreRef <ExecDomain> exec_domain = create (INFINITE_DEADLINE, runnable, &mem_context);
+	exec_domain->background_worker_ = Legacy::Core::ThreadLegacy::create (*exec_domain);
+	exec_domain->spawn (g_core_free_sync_context);
 }
 
 void ExecDomain::schedule (SyncContext& sync_context)
@@ -139,17 +153,28 @@ void ExecDomain::schedule (SyncContext& sync_context)
 
 	CoreRef <SyncContext> old_context = move (sync_context_);
 	SyncDomain* sync_domain = sync_context.sync_domain ();
-	if (!sync_domain && !scheduler_item_created_) {
-		Scheduler::create_item ();
-		scheduler_item_created_ = true;
+	bool background = false;
+	if (!sync_domain) {
+		if (INFINITE_DEADLINE == deadline ())
+			background = true;
+		else if (!scheduler_item_created_) {
+			Scheduler::create_item ();
+			scheduler_item_created_ = true;
+		}
 	}
 
 	sync_context_ = &sync_context;
 	try {
 		if (sync_domain)
 			sync_domain->schedule (deadline (), *this);
-		else
-			Scheduler::schedule (deadline (), *this);
+		else {
+			if (background) {
+				if (!background_worker_)
+					background_worker_ = ThreadBackground::create (*this);
+				background_worker_->resume ();
+			} else
+				Scheduler::schedule (deadline (), *this);
+		}
 	} catch (...) {
 		sync_context_ = move (old_context);
 		throw;

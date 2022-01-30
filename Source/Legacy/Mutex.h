@@ -35,7 +35,7 @@
 #include "../MemContextObject.h"
 #include "../SyncDomain.h"
 #include "../Synchronized.h"
-#include "ThreadBackground.h"
+#include "ThreadLegacy.h"
 
 namespace Nirvana {
 namespace Legacy {
@@ -58,8 +58,8 @@ protected:
 	~MutexCore ();
 
 protected:
-	ThreadBackground* owner_;
-	SimpleList <ThreadBackground> queue_;
+	ThreadLegacy* owner_;
+	SimpleList <ThreadLegacy> queue_;
 };
 
 class MutexUser :
@@ -88,7 +88,7 @@ public:
 	{
 		SYNC_BEGIN (*this, nullptr);
 		if (!owner_) {
-			owner_ = &ThreadBackground::current ();
+			owner_ = &ThreadLegacy::current ();
 			return true;
 		}
 		SYNC_END ();

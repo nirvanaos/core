@@ -24,10 +24,11 @@
 *  popov.nirvana@gmail.com
 */
 #include "Startup.h"
-#include "initterm.h"
 #include "ExecDomain.h"
-#include "Legacy/Executable.h"
 #include "Legacy/Process.h"
+
+using namespace std;
+using namespace Nirvana::Legacy::Core;
 
 namespace Nirvana {
 namespace Core {
@@ -37,8 +38,6 @@ Startup::Startup (int argc, char* argv [], char* envp []) :
 	argv_ (argv),
 	envp_ (envp),
 	ret_ (0),
-	process_ (false),
-	executable_ (nullptr),
 	exception_code_ (CORBA::Exception::EC_NO_EXCEPTION)
 {}
 
@@ -47,36 +46,53 @@ void Startup::launch (DeadlineTime deadline)
 	ExecDomain::async_call (deadline, *this, g_core_free_sync_context, &g_shared_mem_context);
 }
 
+class RunAndShutdown :
+	public Process
+{
+protected:
+	RunAndShutdown (const vector <StringView>& argv, const vector <StringView>& envp, int& ret) :
+		Process (argv.front (), argv, envp),
+		ret_ (ret)
+	{}
+
+	virtual void run ()
+	{
+		Legacy::Core::Process::run ();
+		ret_ = Legacy::Core::Process::ret ();
+		Scheduler::shutdown ();
+	}
+
+private:
+	int& ret_;
+};
+
 void Startup::run ()
 {
-	if (!process_) {
-		initialize ();
-		if (argc_ > 1) {
-			executable_ = new Nirvana::Legacy::Core::Executable (argv_ [1]);
-			process_ = true;
-			Nirvana::Legacy::Core::Process::spawn (*this);
+	if (argc_ > 1) {
+		std::vector <StringView> argv;
+		argv.reserve (argc_ - 1);
+		for (char** arg = argv_ + 1, **end = argv_ + argc_; arg != end; ++arg) {
+			argv.emplace_back (*arg);
 		}
-	} else {
-		ret_ = executable_->main (argc_ - 1, argv_ + 1, envp_);
-		delete executable_;
-		executable_ = nullptr;
-		Scheduler::shutdown ();
+		std::vector <StringView> envp;
+		for (char** env = envp_; *env; ++env) {
+			envp.emplace_back (*env);
+		}
+		CoreRef <RunAndShutdown> process = CoreRef <RunAndShutdown>::create
+			<ImplDynamic <RunAndShutdown> > (ref (argv), ref (envp), ref (ret_));
+		process->spawn ();
 	}
 }
 
 void Startup::on_exception () NIRVANA_NOEXCEPT
 {
 	exception_ = std::current_exception ();
-	delete executable_;
-	executable_ = nullptr;
 	Scheduler::shutdown ();
 }
 
 void Startup::on_crash (int error_code) NIRVANA_NOEXCEPT
 {
 	exception_code_ = (CORBA::SystemException::Code)error_code;
-	delete executable_;
-	executable_ = nullptr;
 	Scheduler::shutdown ();
 }
 

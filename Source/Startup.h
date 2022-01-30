@@ -69,16 +69,6 @@ public:
 		return ret_;
 	}
 
-	Nirvana::Legacy::Core::Executable* executable () const
-	{
-		return executable_;
-	}
-
-	bool process () const
-	{
-		return process_;
-	}
-
 protected:
 	int argc_;
 	char** argv_;
@@ -86,8 +76,6 @@ protected:
 	int ret_;
 
 private:
-	bool process_;
-	Nirvana::Legacy::Core::Executable* executable_;
 	std::exception_ptr exception_;
 	CORBA::SystemException::Code exception_code_;
 };

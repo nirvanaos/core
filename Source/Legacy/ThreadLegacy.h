@@ -28,10 +28,8 @@
 #define NIRVANA_LEGACY_CORE_THREADBACKGROUND_H_
 #pragma once
 
-#include <Port/ThreadBackground.h>
-#include "../SyncContext.h"
+#include "../ThreadBackground.h"
 #include <Nirvana/SimpleList.h>
-#include <exception>
 
 namespace Nirvana {
 namespace Legacy {
@@ -40,43 +38,39 @@ namespace Core {
 class Process;
 
 /// Background thread.
-class NIRVANA_NOVTABLE ThreadBackground :
-	protected Nirvana::Core::Port::ThreadBackground,
-	public Nirvana::Core::SyncContext,
-	public SimpleList <ThreadBackground>::Element
+class NIRVANA_NOVTABLE ThreadLegacy :
+	public Nirvana::Core::ThreadBackground,
+	public SimpleList <ThreadLegacy>::Element
 {
-	friend class Nirvana::Core::Port::ThreadBackground;
+	typedef Nirvana::Core::ThreadBackground Base;
 public:
-	/// Implementation - specific methods can be called explicitly.
-	Nirvana::Core::Port::ThreadBackground& port ()
+	/// When we run in the legacy subsystem, every thread is a ThreadLegacy instance.
+	static ThreadLegacy& current () NIRVANA_NOEXCEPT
 	{
-		return *this;
+		Nirvana::Core::Thread& base = Base::current ();
+		assert (base.is_legacy ());
+		return static_cast <ThreadLegacy&> (base);
 	}
 
-	/// When we run in the legacy subsystem, every thread is a ThreadBackground instance.
-	static ThreadBackground& current () NIRVANA_NOEXCEPT
+	static Nirvana::Core::CoreRef <ThreadLegacy> create (Nirvana::Core::ExecDomain& ed)
 	{
-		return static_cast <ThreadBackground&> (Nirvana::Core::Thread::current ());
+		using namespace Nirvana::Core;
+		CoreRef <ThreadLegacy> obj = CoreRef <ThreadLegacy>::create <ImplDynamic <ThreadLegacy> > (std::ref (ed));
+		obj->start ();
+		return obj;
+	}
+
+	virtual bool is_legacy () const NIRVANA_NOEXCEPT
+	{
+		return true;
 	}
 
 protected:
-	ThreadBackground () :
-		Nirvana::Core::Port::ThreadBackground ()
+	ThreadLegacy (Nirvana::Core::ExecDomain& ed) :
+		Base (ed)
 	{}
 
-	void start (Process& process, Nirvana::Core::Runnable& runnable);
-
 private:
-	/// See Nirvana::Core::SyncContext.
-	virtual void schedule_call (Nirvana::Core::SyncContext& target, Nirvana::Core::MemContext* mem_context);
-
-	/// See Nirvana::Core::SyncContext.
-	virtual void schedule_return (Nirvana::Core::ExecDomain& exec_domain) NIRVANA_NOEXCEPT;
-
-	/// See Nirvana::Core::Thread.
-	/// Called from neutral context.
-	virtual void yield () NIRVANA_NOEXCEPT;
-
 	void on_thread_proc_end ()
 	{
 		_remove_ref ();

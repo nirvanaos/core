@@ -263,10 +263,8 @@ public:
 	template <class T1>
 	CoreRef& operator = (CoreRef <T1>&& src) NIRVANA_NOEXCEPT
 	{
-		if (this != &src) {
-			reset (src.p_);
-			src.p_ = nullptr;
-		}
+		reset (src.p_);
+		src.p_ = nullptr;
 		return *this;
 	}
 

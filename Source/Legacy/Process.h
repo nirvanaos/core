@@ -28,8 +28,8 @@
 #define NIRVANA_LEGACY_CORE_PROCESS_H_
 #pragma once
 
-#include "ThreadBackground.h"
-#include "CoreObject.h"
+#include "Executable.h"
+#include "ExecDomain.h"
 #include "MemContextProcess.h"
 #include "Console.h"
 
@@ -39,32 +39,48 @@ namespace Core {
 
 /// Legacy process.
 class NIRVANA_NOVTABLE Process :
-	public ThreadBackground,
-	public Nirvana::Core::CoreObject
+	public Nirvana::Core::CoreObject,
+	public Executable,
+	public Nirvana::Core::Runnable
 {
 public:
-	static Nirvana::Core::CoreRef <Process> spawn (Nirvana::Core::Runnable& runnable);
-
-	Nirvana::Core::MemContext& mem_context ()
+	void spawn ()
 	{
-		return mem_context_;
+		Nirvana::Core::ExecDomain::start_legacy_thread (*this, mem_context_);
+	}
+
+	int ret () const
+	{
+		return ret_;
 	}
 
 protected:
-	Process () :
-		ThreadBackground ()
-	{}
+	Process (const Nirvana::Core::StringView& file,
+		const std::vector <Nirvana::Core::StringView>& argv,
+		const std::vector <Nirvana::Core::StringView>& envp) :
+		Executable (file),
+		ret_ (-1)
+	{
+		copy_vec (argv, argv_);
+		copy_vec (envp, envp_);
+	}
 
 	~Process ()
 	{}
 
-	friend class Nirvana::Core::CoreRef <Process>;
-	virtual void _add_ref () NIRVANA_NOEXCEPT = 0;
-	virtual void _remove_ref () NIRVANA_NOEXCEPT = 0;
+	virtual void run ();
+	virtual void on_exception () NIRVANA_NOEXCEPT;
+	virtual void on_crash (int error_code) NIRVANA_NOEXCEPT;
+
+private:
+	static void copy_vec (const std::vector <Nirvana::Core::StringView>& src, std::vector <std::string>& dst);
+	static void copy_vec (std::vector <std::string>& src, std::vector <char*>& dst);
 
 private:
 	Nirvana::Core::ImplStatic <MemContextProcess> mem_context_;
 	Nirvana::Core::Console console_;
+	std::vector <std::string> argv_, envp_;
+	int ret_;
 };
 
 }

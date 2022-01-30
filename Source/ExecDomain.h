@@ -35,6 +35,7 @@
 #include "PreallocatedStack.h"
 #include "MemContextEx.h"
 #include "ObjectPool.h"
+#include "ThreadBackground.h"
 #include <limits>
 #include <utility>
 
@@ -52,21 +53,14 @@ public:
 	static void initialize ();
 	static void terminate () NIRVANA_NOEXCEPT;
 
-	static CoreRef <ExecDomain> create (const DeadlineTime deadline, Runnable& runnable, MemContext* mem_context = nullptr);
-
 	static void async_call (const DeadlineTime& deadline, Runnable& runnable, SyncContext& sync_context, MemContext* mem_context = nullptr)
 	{
 		CoreRef <ExecDomain> exec_domain = create (deadline, runnable, mem_context);
 		exec_domain->spawn (sync_context);
 	}
 
-	/// Create execution domain for a background thread.
-	static CoreRef <ExecDomain> create_background (SyncContext& sync_context, Runnable& runnable, MemContext& mem_context)
-	{
-		CoreRef <ExecDomain> exec_domain = create (INFINITE_DEADLINE, runnable, &mem_context);
-		exec_domain->sync_context_ = &sync_context;
-		return exec_domain;
-	}
+	/// Start legacy thread.
+	static void start_legacy_thread (Runnable& runnable, MemContext& mem_context);
 
 	DeadlineTime deadline () const
 	{
@@ -90,14 +84,6 @@ public:
 	/// Executor::execute ()
 	/// Called from worker thread.
 	void execute (int scheduler_error);
-
-	template <class Starter>
-	void start (Starter starter)
-	{
-		assert (runnable_);
-		starter ();
-		_add_ref ();
-	}
 
 	/// Suspend execution
 	/// 
@@ -201,6 +187,8 @@ private:
 		schedule_return_ (*this),
 		deleter_ (CoreRef <Runnable>::create <ImplDynamic <Deleter> > (std::ref (*this)))
 	{}
+
+	static CoreRef <ExecDomain> create (const DeadlineTime deadline, Runnable& runnable, MemContext* mem_context = nullptr);
 
 	void final_construct (const DeadlineTime& deadline, Runnable& runnable, MemContext* mem_context);
 
@@ -323,6 +311,7 @@ private:
 	ScheduleCall schedule_call_;
 	ScheduleReturn schedule_return_;
 	CoreRef <Runnable> deleter_;
+	CoreRef <ThreadBackground> background_worker_;
 };
 
 }
