@@ -48,7 +48,7 @@ const Char* const TypeCodeEnum <TCKind>::members_ [] = {
 	"tk_local_interface"
 };
 
-typedef CORBA::Internal::TypeCodeEnum < ::CORBA::TCKind> TC_TCKind;
+typedef TypeCodeEnum <TCKind> TC_TCKind;
 
 class TC_TypeCode :
 	public TypeCodeStatic <TC_TypeCode, TypeCodeTK <tk_TypeCode>, TypeCodeOps <TypeCode> >
