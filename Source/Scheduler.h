@@ -51,7 +51,7 @@ public:
 
 	/// Start new activity.
 	/// Called on creation of the execution domain.
-	static void activity_begin ()
+	static void activity_begin () NIRVANA_NOEXCEPT
 	{
 		assert (global_->state < State::SHUTDOWN_FINISH);
 		global_->activity_cnt.increment ();

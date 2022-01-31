@@ -98,7 +98,7 @@ void ExecDomain::terminate () NIRVANA_NOEXCEPT
 inline
 void ExecDomain::final_construct (const DeadlineTime& deadline, Runnable& runnable, MemContext* mem_context)
 {
-	Scheduler::activity_begin ();	// Throws exception if shutdown was started.
+	Scheduler::activity_begin ();
 	deadline_ = deadline;
 	assert (mem_context_.empty ());
 	mem_context_.push (mem_context);
@@ -196,6 +196,10 @@ void ExecDomain::cleanup () NIRVANA_NOEXCEPT
 		scheduler_item_created_ = false;
 	}
 	Thread::current ().exec_domain (nullptr);
+	if (background_worker_) {
+		background_worker_->exec_domain (nullptr);
+		background_worker_.reset ();
+	}
 	_remove_ref ();
 }
 
