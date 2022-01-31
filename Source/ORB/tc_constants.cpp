@@ -43,6 +43,16 @@ public:
 	}
 };
 
+class TC_ValueBase :
+	public TypeCodeStatic <TC_ValueBase, TypeCodeWithId <tk_value, ValueBase>, TypeCodeOps <ValueBase> >
+{
+public:
+	static Type <String>::ABI_ret _name (Bridge <TypeCode>* _b, Interface* _env)
+	{
+		return const_string_ret ("ValueBase");
+	}
+};
+
 }
 }
 
@@ -66,6 +76,9 @@ TC_IMPL_SCALAR (CORBA::Any, any)
 TC_IMPEX (string, CORBA::Internal::TypeCodeString <CORBA::Internal::String, 0>)
 TC_IMPEX (wstring, CORBA::Internal::TypeCodeString <CORBA::Internal::WString, 0>)
 
+// For TypeCode impex, see tc_TypeCode.cpp
+
 TC_IMPEX_BY_ID (Object)
+TC_IMPEX_BY_ID (ValueBase)
 
 
