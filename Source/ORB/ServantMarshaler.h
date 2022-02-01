@@ -182,8 +182,8 @@ public:
 		Interface::_ptr_type itf = rec->p;
 		if (marshal_data == &itf) {
 			const Char* bridge_id = itf->_epv ().interface_id;
-			if (!RepositoryId::compatible (bridge_id, iid)) {
-				if (RepositoryId::compatible (bridge_id, Object::repository_id_)) {
+			if (!RepId::compatible (bridge_id, iid)) {
+				if (RepId::compatible (bridge_id, Object::repository_id_)) {
 					Object::_ptr_type obj (static_cast <Object*> (&itf));
 					itf = AbstractBase::_ptr_type (obj)->_query_interface (iid);
 				}

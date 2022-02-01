@@ -46,7 +46,7 @@ class ProxyManager :
 public:
 	Bridge <Object>* _get_object (String_in iid)
 	{
-		if (RepositoryId::check (Object::repository_id_, iid) != RepositoryId::COMPATIBLE)
+		if (RepId::check (Object::repository_id_, iid) != RepId::COMPATIBLE)
 			::Nirvana::throw_INV_OBJREF ();
 		return this;
 	}

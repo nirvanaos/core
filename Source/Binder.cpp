@@ -246,7 +246,7 @@ const ModuleStartup* Binder::module_bind (::Nirvana::Module::_ptr_type mod, cons
 						ImportInterface* ps = reinterpret_cast <ImportInterface*> (it.cur ());
 						Object::_ref_type obj = bind_sync (ps->name);
 						const StringBase <char> requested_iid (ps->interface_id);
-						if (RepositoryId::compatible (obj->_epv ().header.interface_id, requested_iid))
+						if (RepId::compatible (obj->_epv ().header.interface_id, requested_iid))
 							reinterpret_cast <Object::_ref_type&> (ps->itf) = move (obj);
 						else {
 							InterfacePtr itf = AbstractBase::_ptr_type (obj)->_query_interface (requested_iid);
@@ -448,11 +448,11 @@ Binder::InterfaceRef Binder::bind_interface_sync (const ObjectKey& name, String_
 {
 	InterfaceRef itf = find (name);
 	StringBase <char> itf_id = itf->_epv ().interface_id;
-	if (!RepositoryId::compatible (itf_id, iid)) {
+	if (!RepId::compatible (itf_id, iid)) {
 		AbstractBase::_ptr_type ab = AbstractBase::_nil ();
-		if (RepositoryId::compatible (itf_id, Object::repository_id_))
+		if (RepId::compatible (itf_id, Object::repository_id_))
 			ab = Object::_ptr_type (static_cast <Object*> (&InterfacePtr (itf)));
-		else if (RepositoryId::compatible (itf_id, AbstractBase::repository_id_))
+		else if (RepId::compatible (itf_id, AbstractBase::repository_id_))
 			ab = static_cast <AbstractBase*> (&InterfacePtr (itf));
 		else
 			throw_INV_OBJREF ();
@@ -468,7 +468,7 @@ Binder::InterfaceRef Binder::bind_interface_sync (const ObjectKey& name, String_
 Object::_ref_type Binder::bind_sync (const ObjectKey& name)
 {
 	InterfaceRef itf = find (name);
-	if (RepositoryId::compatible (itf->_epv ().interface_id, Object::repository_id_))
+	if (RepId::compatible (itf->_epv ().interface_id, Object::repository_id_))
 		return reinterpret_cast <Object::_ref_type&&> (itf);
 	else
 		throw_INV_OBJREF ();

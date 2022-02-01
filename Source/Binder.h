@@ -34,7 +34,7 @@
 #include "HeapUser.h"
 #include "Module.h"
 #include "StaticallyAllocated.h"
-#include <CORBA/RepositoryId.h>
+#include <CORBA/RepId.h>
 #include <Nirvana/Main.h>
 #include <Nirvana/ModuleInit.h>
 #include "WaitableRef.h"
@@ -65,8 +65,8 @@ class Binder
 	/// it will be temporary adjusted.
 	static const DeadlineTime MODULE_LOAD_DEADLINE_MIN = 1 * System::SECOND;
 private:
-	typedef CORBA::Internal::RepositoryId RepositoryId;
-	typedef CORBA::Internal::RepositoryId::Version Version;
+	typedef CORBA::Internal::RepId RepId;
+	typedef CORBA::Internal::RepId::Version Version;
 	typedef CORBA::Internal::Interface::_ptr_type InterfacePtr;
 	typedef CORBA::Internal::Interface::_ref_type InterfaceRef;
 
@@ -78,7 +78,7 @@ private:
 		ObjectKey (const char* id, size_t length) :
 			name_ (id)
 		{
-			const char* sver = RepositoryId::version (id, id + length);
+			const char* sver = RepId::version (id, id + length);
 			length_ = sver - id;
 			version_ = Version (sver);
 		}
@@ -99,7 +99,7 @@ private:
 			else if (length_ > rhs.length_)
 				return false;
 			else {
-				int c = RepositoryId::lex_compare (name_, name_ + length_, rhs.name_, rhs.name_ + length_);
+				int c = RepId::lex_compare (name_, name_ + length_, rhs.name_, rhs.name_ + length_);
 				if (c < 0)
 					return true;
 				else if (c > 0)
@@ -116,7 +116,7 @@ private:
 		bool compatible (const ObjectKey& rhs) const
 		{
 			return length_ == rhs.length_
-				&& !RepositoryId::lex_compare (name_, name_ + length_, rhs.name_, rhs.name_ + length_)
+				&& !RepId::lex_compare (name_, name_ + length_, rhs.name_, rhs.name_ + length_)
 				&& version_.compatible (rhs.version_);
 		}
 

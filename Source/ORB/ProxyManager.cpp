@@ -38,17 +38,17 @@ struct ProxyManager::IEPred
 {
 	bool operator () (const InterfaceEntry& lhs, const InterfaceEntry& rhs) const
 	{
-		return RepositoryId::compare (lhs.iid, lhs.iid_len, rhs.iid, rhs.iid_len) < 0;
+		return RepId::compare (lhs.iid, lhs.iid_len, rhs.iid, rhs.iid_len) < 0;
 	}
 
 	bool operator () (const String& lhs, const InterfaceEntry& rhs) const
 	{
-		return RepositoryId::compare (rhs.iid, rhs.iid_len, lhs) > 0;
+		return RepId::compare (rhs.iid, rhs.iid_len, lhs) > 0;
 	}
 
 	bool operator () (const InterfaceEntry& lhs, const String& rhs) const
 	{
-		return RepositoryId::compare (lhs.iid, lhs.iid_len, rhs) < 0;
+		return RepId::compare (lhs.iid, lhs.iid_len, rhs) < 0;
 	}
 };
 
@@ -101,7 +101,7 @@ void ProxyManager::check_metadata (const InterfaceMetadata* metadata, String_in 
 			throw OBJ_ADAPTER (); // TODO: Log
 		const Char* const* itf = metadata->interfaces.p;
 		const Char* iid = *itf;
-		if (!iid || !RepositoryId::compatible (iid, primary))
+		if (!iid || !RepId::compatible (iid, primary))
 			throw OBJ_ADAPTER (); // Primary interface must be first. TODO: Log
 		while (--itf_cnt) {
 			++itf;
@@ -279,7 +279,7 @@ const ProxyManager::InterfaceEntry* ProxyManager::find_interface (String_in iid)
 {
 	const String& siid = static_cast <const String&> (iid);
 	const InterfaceEntry* pf = lower_bound (interfaces_.begin (), interfaces_.end (), siid, IEPred ());
-	if (pf != interfaces_.end () && RepositoryId::compatible (pf->iid, pf->iid_len, siid))
+	if (pf != interfaces_.end () && RepId::compatible (pf->iid, pf->iid_len, siid))
 		return pf;
 	return nullptr;
 }
