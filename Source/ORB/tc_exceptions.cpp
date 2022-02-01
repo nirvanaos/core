@@ -53,7 +53,7 @@ const Parameter TypeCodeMembers <SystemException>::members_ [] = {
 
 template <class E>
 class TypeCodeSystemException :
-	public TypeCodeStatic <TypeCodeSystemException <E>, TypeCodeWithId <tk_except, RepIdOf <E> >, TypeCodeOps <SystemException::_Data> >,
+	public TypeCodeStatic <TypeCodeSystemException <E>, TypeCodeWithId <TCKind::tk_except, RepIdOf <E> >, TypeCodeOps <SystemException::_Data> >,
 	public TypeCodeMembers <SystemException>
 {
 public:

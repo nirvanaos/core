@@ -34,7 +34,7 @@ template <typename T, TCKind tk>
 class TypeCodeScalar : public TypeCodeStatic <TypeCodeScalar <T, tk>, TypeCodeTK <tk>, TypeCodeOps <T> > {};
 
 class TC_Object :
-	public TypeCodeStatic <TC_Object, TypeCodeWithId <tk_objref, Object>, TypeCodeOps <Object> >
+	public TypeCodeStatic <TC_Object, TypeCodeWithId <TCKind::tk_objref, Object>, TypeCodeOps <Object> >
 {
 public:
 	static Type <String>::ABI_ret _name (Bridge <TypeCode>* _b, Interface* _env)
@@ -44,7 +44,7 @@ public:
 };
 
 class TC_ValueBase :
-	public TypeCodeStatic <TC_ValueBase, TypeCodeWithId <tk_value, ValueBase>, TypeCodeOps <ValueBase> >
+	public TypeCodeStatic <TC_ValueBase, TypeCodeWithId <TCKind::tk_value, ValueBase>, TypeCodeOps <ValueBase> >
 {
 public:
 	static Type <String>::ABI_ret _name (Bridge <TypeCode>* _b, Interface* _env)
@@ -56,7 +56,7 @@ public:
 }
 }
 
-#define TC_IMPL_SCALAR(T, t) TC_IMPEX (t, CORBA::Internal::TypeCodeScalar <T, CORBA::tk_##t>)
+#define TC_IMPL_SCALAR(T, t) TC_IMPEX (t, CORBA::Internal::TypeCodeScalar <T, CORBA::TCKind::tk_##t>)
 
 TC_IMPL_SCALAR (void, void)
 TC_IMPL_SCALAR (CORBA::Short, short)

@@ -51,7 +51,7 @@ const Char* const TypeCodeEnum <TCKind>::members_ [] = {
 typedef TypeCodeEnum <TCKind> TC_TCKind;
 
 class TC_TypeCode :
-	public TypeCodeStatic <TC_TypeCode, TypeCodeTK <tk_TypeCode>, TypeCodeOps <TypeCode> >
+	public TypeCodeStatic <TC_TypeCode, TypeCodeTK <TCKind::tk_TypeCode>, TypeCodeOps <TypeCode> >
 {
 public:
 	typedef TypeCode RepositoryType;
