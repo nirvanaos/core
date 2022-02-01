@@ -53,6 +53,13 @@ public:
 	}
 };
 
+class TC_TypeCode :
+	public TypeCodeStatic <TC_TypeCode, TypeCodeTK <TCKind::tk_TypeCode>, TypeCodeOps <TypeCode> >
+{
+public:
+	typedef TypeCode RepositoryType;
+};
+
 }
 }
 
@@ -76,7 +83,6 @@ TC_IMPL_SCALAR (CORBA::Any, any)
 TC_IMPEX (string, CORBA::Internal::TypeCodeString <CORBA::Internal::String, 0>)
 TC_IMPEX (wstring, CORBA::Internal::TypeCodeString <CORBA::Internal::WString, 0>)
 
-// For TypeCode impex, see tc_TypeCode.cpp
-
+TC_IMPEX_BY_ID (TypeCode)
 TC_IMPEX_BY_ID (Object)
 TC_IMPEX_BY_ID (ValueBase)
