@@ -119,7 +119,7 @@ protected:
 		}
 	}
 
-	template <class I, void (*proc) (I*, IORequest::_ptr_type, ::Nirvana::ConstPointer, Unmarshal::_ref_type&, ::Nirvana::Pointer)>
+	template <class I, void (*proc) (I*, IORequest::_ptr_type)>
 	static void ObjProcWrapper (Interface* servant, Interface* call,
 		::Nirvana::ConstPointer in_params,
 		Interface** unmarshaler,
@@ -128,7 +128,7 @@ protected:
 		try {
 			IORequest::_ptr_type rq = IORequest::_check (call);
 			try {
-				proc ((I*)(void*)servant, rq, in_params, Type <Unmarshal>::inout (unmarshaler), out_params);
+				proc ((I*)(void*)servant, rq);
 				rq->success ();
 			} catch (Exception& e) {
 				Any any;
@@ -203,7 +203,7 @@ public:
 		return make_reference <ServantMarshaler> (std::ref (*sync_context_))->marshaler ();
 	}
 
-	Unmarshal::_ref_type call (OperationIndex op,
+	Unmarshal::_ref_type call (IORequest::OperationIndex op,
 		const void* in_params, size_t in_params_size,
 		Marshal::_ref_type& marshaler,
 		void* out_params, size_t out_params_size)
