@@ -95,7 +95,7 @@ public:
 	Boolean _non_existent ()
 	{
 		IORequest::_ref_type rq = ior ()->create_request ();
-		rq->issue (_make_op_idx (OBJ_OP_NON_EXISTENT));
+		rq->issue (_make_op_idx (OBJ_OP_NON_EXISTENT), 0);
 		Boolean _ret;
 		Type <Boolean>::unmarshal (rq, _ret);
 		return _ret;

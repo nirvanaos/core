@@ -78,16 +78,29 @@ public:
 
 	virtual RefCnt::IntegralType _remove_ref () NIRVANA_NOEXCEPT;
 
+	IORequest::_ref_type create_request ();
+	IORequest::_ref_type create_request_oneway ();
+
+	void call (IORequest::OperationIndex op, RequestLocal& rq);
+
+	Nirvana::Core::MemContext* mem_context () const
+	{
+		Nirvana::Core::SyncDomain* sd = sync_context_->sync_domain ();
+		if (sd)
+			return &sd->mem_context ();
+		return nullptr;
+	}
+
+	/// Returns synchronization context for the target object.
+	Nirvana::Core::SyncContext& sync_context () const
+	{
+		return *sync_context_;
+	}
+
 protected:
 	ServantProxyBase (AbstractBase::_ptr_type servant, const Operation object_ops [3], void* object_impl);
 
 	virtual void add_ref_1 ();
-
-	/// Returns synchronization context for the target object.
-	::Nirvana::Core::SyncContext& sync_context () const
-	{
-		return *sync_context_;
-	}
 
 	/// Returns synchronization context for the specific operation.
 	/// For some Object operations may return free context.
@@ -124,21 +137,6 @@ protected:
 	static bool ObjProcWrapper (Interface* servant, Interface* call)
 	{
 		return call_request_proc ((RqProcInternal)proc, servant, call);
-	}
-
-
-public:
-	IORequest::_ref_type create_request ();
-	IORequest::_ref_type create_request_oneway ();
-
-	void call (IORequest::OperationIndex op, RequestLocal& rq);
-
-	Nirvana::Core::MemContext* mem_context () const
-	{
-		Nirvana::Core::SyncDomain* sd = sync_context_->sync_domain ();
-		if (sd)
-			return &sd->mem_context ();
-		return nullptr;
 	}
 
 private:

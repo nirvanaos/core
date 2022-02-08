@@ -117,7 +117,7 @@ public:
 	virtual SyncDomain* sync_domain () NIRVANA_NOEXCEPT;
 
 	/// \returns Domain memory context.
-	MemContext& mem_context ()
+	MemContext& mem_context () NIRVANA_NOEXCEPT
 	{
 		assert (mem_context_);
 		return *mem_context_;

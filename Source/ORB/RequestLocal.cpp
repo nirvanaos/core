@@ -61,7 +61,7 @@ Heap& RequestLocal::source_memory ()
 	}
 }
 
-void RequestLocal::marshal_op ()
+void RequestLocal::marshal_op () NIRVANA_NOEXCEPT
 {
 	if (State::CALL == state_) {
 		clear ();
@@ -76,7 +76,7 @@ void RequestLocal::clear () NIRVANA_NOEXCEPT
 		ItfRecord* itf = interfaces_;
 		interfaces_ = nullptr;
 		while (itf) {
-			itf->ref = nullptr;
+			interface_release (itf->ptr);
 			itf = itf->next;
 		}
 	}
@@ -224,6 +224,41 @@ bool RequestLocal::unmarshal_seq (size_t align, size_t element_size,
 	element_count = cnt;
 	return false;
 }
+
+void RequestLocal::marshal_interface (Interface::_ptr_type itf)
+{
+	marshal_op ();
+	ItfRecord* rec = (ItfRecord*)allocate_space (alignof (ItfRecord), sizeof (ItfRecord));
+	rec->ptr = &itf;
+	rec->next = interfaces_;
+	interfaces_ = rec;
+}
+
+Interface::_ref_type RequestLocal::unmarshal_interface (String_in rep_id)
+{
+	ItfRecord* rec = (ItfRecord*)get_data (alignof (ItfRecord), sizeof (ItfRecord));
+	if (interfaces_ != rec)
+		Nirvana::throw_MARSHAL ();
+	Interface::_check (rec->ptr, rep_id);
+	interfaces_ = rec->next;
+	return (Interface::_ref_type&)(rec->ptr);
+}
+
+void RequestLocalOneway::issue (OperationIndex op, DeadlineTime deadline)
+{
+	op_idx_ = op;
+	ExecDomain::async_call (deadline, *this, proxy_->sync_context (), memory ());
+}
+
+void RequestLocalOneway::run ()
+{
+	try {
+		RequestLocal::issue (op_idx_, 0);
+	} catch (...) {
+		assert (false);
+	}
+}
+
 
 }
 }

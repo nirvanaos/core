@@ -113,7 +113,7 @@ public:
 		Object::_ptr_type proxy = servant2object (p_servant);
 		IORequest::_ref_type _call = _target ()->create_request ();
 		Type <Object>::marshal_in (proxy, _call);
-		_call->issue (_make_op_idx (0));
+		_call->issue (_make_op_idx (0), 0);
 		check_request (_call);
 		String _ret;
 		Type <String>::unmarshal (_call, _ret);
@@ -124,7 +124,7 @@ public:
 	{
 		IORequest::_ref_type _call = _target ()->create_request ();
 		Type <String>::marshal_in (oid, _call);
-		_call->issue (_make_op_idx (1));
+		_call->issue (_make_op_idx (1), 0);
 		check_request (_call);
 	}
 };

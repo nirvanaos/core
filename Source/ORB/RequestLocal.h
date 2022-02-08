@@ -155,7 +155,7 @@ public:
 	template <typename C>
 	void marshal_string (StringT <C>& s, bool move)
 	{
-		typedef Type <StringT <C> >::ABI ABI;
+		typedef typename Type <StringT <C> >::ABI ABI;
 		ABI& abi = (ABI&)s;
 		size_t size;
 		C* ptr;
@@ -181,7 +181,7 @@ public:
 		if (allocated) {
 			s.clear ();
 			s.shrink_to_fit ();
-			typedef Type <StringT <C> >::ABI ABI;
+			typedef typename Type <StringT <C> >::ABI ABI;
 			ABI& abi = (ABI&)s;
 			abi.large_size (size);
 			abi.allocated (allocated);
@@ -193,7 +193,7 @@ public:
 	template <typename C>
 	void marshal_char_seq (Sequence <C>& s, bool move)
 	{
-		typedef Type <Sequence <C> >::ABI ABI;
+		typedef typename Type <Sequence <C> >::ABI ABI;
 		ABI& abi = (ABI&)s;
 		marshal_seq (alignof (C), sizeof (C), abi.size, abi.ptr,
 			move ? abi.allocated : 0);
@@ -210,7 +210,7 @@ public:
 		if (allocated) {
 			s.clear ();
 			s.shrink_to_fit ();
-			typedef Type <Sequence <C> >::ABI ABI;
+			typedef typename Type <Sequence <C> >::ABI ABI;
 			ABI& abi = (ABI&)s;
 			abi.size = size;
 			abi.allocated = allocated;
@@ -269,25 +269,49 @@ public:
 	/// Marshal TypeCode.
 	/// 
 	/// \param tc TypeCode.
-	void marshal_type_code (TypeCode::_ptr_type tc);
+	void marshal_type_code (TypeCode::_ptr_type tc)
+	{
+		marshal_interface (tc);
+	}
 
 	/// Unmarshal TypeCode.
 	/// 
 	/// \returns TypeCode.
-	TypeCode::_ref_type unmarshal_type_code ();
+	TypeCode::_ref_type unmarshal_type_code ()
+	{
+		return unmarshal_interface (TypeCode::repository_id_).template downcast <TypeCode> ();
+	}
 
 	/// Marshal value type.
 	/// 
 	/// \param val  ValueBase.
 	/// \param move Use move semantics. Do not perform deep copy.
-	void marshal_value (ValueBase::_ptr_type val, bool move);
+	void marshal_value (ValueBase::_ptr_type val, bool move)
+	{
+		if (move)
+			marshal_interface (val);
+		else {
+			ValueBase::_ref_type copy = val->_copy_value ();
+			marshal_interface ((ValueBase::_ptr_type)copy);
+		}
+	}
 
 	/// Unmarshal value type.
 	/// 
 	/// \param rep_id The value type repository id.
 	/// 
 	/// \returns Value type interface.
-	Interface::_ref_type unmarshal_value (String_in rep_id);
+	Interface::_ref_type unmarshal_value (String_in rep_id)
+	{
+		ValueBase::_ref_type vb = unmarshal_interface (ValueBase::repository_id_).template downcast <ValueBase> ();
+		Interface::_ref_type itf;
+		if (vb) {
+			itf = ((AbstractBase::_ptr_type)vb)->_query_interface (rep_id);
+			if (!itf)
+				Nirvana::throw_INV_OBJREF ();
+		}
+		return itf;
+	}
 
 	///@}
 
@@ -327,17 +351,29 @@ public:
 	/// Issue request.
 	/// 
 	/// \param op The index of the target operation.
-	virtual void issue (OperationIndex op)
+	virtual void issue (OperationIndex op, DeadlineTime deadline)
 	{
 		rewind ();
 		state_ = State::CALL;
+		proxy_->call (op, *this);
 	}
 
-	bool completed () const;
+	bool completed () const
+	{
+		return State::EXCEPTION == state_ || State::SUCCESS == state_;
+	}
 
-	void wait ();
+	void wait ()
+	{}
 
-	bool unmarshal_exception (Any& e);
+	bool unmarshal_exception (Any& e)
+	{
+		if (State::EXCEPTION == state_) {
+			Type <Any>::unmarshal (_get_ptr (), e);
+			return true;
+		}
+		return false;
+	}
 
 	///@}
 
@@ -361,11 +397,11 @@ protected:
 		EXCEPTION
 	};
 
-	RequestLocal (ServantProxyBase& proxy, MemContext* mem_target) :
+	RequestLocal (ServantProxyBase& proxy) NIRVANA_NOEXCEPT :
 		proxy_ (&proxy),
 		state_ (State::CALLER),
 		caller_memory_ (&MemContext::current ()),
-		callee_memory_ (mem_target),
+		callee_memory_ (proxy.mem_context ()),
 		first_block_ (nullptr),
 		cur_block_ (nullptr)
 	{
@@ -383,7 +419,7 @@ protected:
 			return (const Octet*)cur_block_ + cur_block_->size;
 	}
 
-	void marshal_op ();
+	void marshal_op () NIRVANA_NOEXCEPT;
 	void* allocate_space (size_t align, size_t size);
 	void* get_data (size_t align, size_t size);
 
@@ -409,7 +445,7 @@ protected:
 	struct ItfRecord
 	{
 		ItfRecord* next;
-		Interface::_ref_type ref;
+		Interface* ptr;
 	};
 
 	void clear () NIRVANA_NOEXCEPT;
@@ -438,9 +474,8 @@ class NIRVANA_NOVTABLE RequestLocalOneway :
 	public Nirvana::Core::Runnable
 {
 protected:
-	RequestLocalOneway (ServantProxyBase& proxy, Nirvana::Core::MemContext* mem_target)
-		NIRVANA_NOEXCEPT :
-		RequestLocal (proxy, mem_target)
+	RequestLocalOneway (ServantProxyBase& proxy) NIRVANA_NOEXCEPT :
+		RequestLocal (proxy)
 	{}
 
 	virtual void _add_ref () NIRVANA_NOEXCEPT
@@ -454,7 +489,7 @@ protected:
 	}
 
 private:
-	virtual void issue (OperationIndex op);
+	virtual void issue (OperationIndex op, DeadlineTime deadline);
 	virtual void run ();
 
 protected:
@@ -465,9 +500,8 @@ class NIRVANA_NOVTABLE RequestLocalAsync :
 	public RequestLocalOneway
 {
 protected:
-	RequestLocalAsync (ServantProxyBase& proxy, Nirvana::Core::MemContext* mem_target)
-		NIRVANA_NOEXCEPT :
-		RequestLocalOneway (proxy, mem_target)
+	RequestLocalAsync (ServantProxyBase& proxy) NIRVANA_NOEXCEPT :
+		RequestLocalOneway (proxy)
 	{}
 
 private:
@@ -479,9 +513,8 @@ class RequestLocalImpl :
 	public Base
 {
 public:
-	RequestLocalImpl (ServantProxyBase& proxy, Nirvana::Core::MemContext* mem_target)
-		NIRVANA_NOEXCEPT :
-		Base (proxy, mem_target)
+	RequestLocalImpl (ServantProxyBase& proxy) NIRVANA_NOEXCEPT :
+		Base (proxy)
 	{
 		Base::cur_ptr_ = block_;
 	}
@@ -507,15 +540,13 @@ static_assert (
 inline
 IORequest::_ref_type ServantProxyBase::create_request ()
 {
-	return make_pseudo <RequestLocalImpl <RequestLocal> > (std::ref (*this),
-		mem_context ());
+	return make_pseudo <RequestLocalImpl <RequestLocal> > (std::ref (*this));
 }
 
 inline
 IORequest::_ref_type ServantProxyBase::create_request_oneway ()
 {
-	return make_pseudo <RequestLocalImpl <RequestLocalOneway> > (std::ref (*this),
-		mem_context ());
+	return make_pseudo <RequestLocalImpl <RequestLocalOneway> > (std::ref (*this));
 }
 
 }
