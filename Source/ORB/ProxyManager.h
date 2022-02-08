@@ -94,8 +94,8 @@ public:
 
 	Boolean _non_existent ()
 	{
-		IORequest::_ref_type rq = ior ()->create_request ();
-		rq->issue (_make_op_idx (OBJ_OP_NON_EXISTENT), 0);
+		IORequest::_ref_type rq = ior ()->create_request (_make_op_idx (OBJ_OP_NON_EXISTENT));
+		rq->invoke ();
 		Boolean _ret;
 		Type <Boolean>::unmarshal (rq, _ret);
 		return _ret;
@@ -140,7 +140,7 @@ protected:
 	{
 		const Char* name;
 		size_t name_len;
-		IORequest::OperationIndex idx;
+		IOReference::OperationIndex idx;
 	};
 
 	::Nirvana::Core::Array <InterfaceEntry, ::Nirvana::Core::CoreAllocator>& interfaces ()
@@ -156,7 +156,7 @@ protected:
 		return object_itf_idx_;
 	}
 
-	IORequest::OperationIndex _make_op_idx (UShort op_idx) const
+	IOReference::OperationIndex _make_op_idx (UShort op_idx) const
 	{
 		return make_op_idx (object_itf_idx_, op_idx);
 	}

@@ -229,36 +229,20 @@ void RequestLocal::marshal_interface (Interface::_ptr_type itf)
 {
 	marshal_op ();
 	ItfRecord* rec = (ItfRecord*)allocate_space (alignof (ItfRecord), sizeof (ItfRecord));
-	rec->ptr = &itf;
+	rec->ptr = interface_duplicate (&itf);
 	rec->next = interfaces_;
 	interfaces_ = rec;
 }
 
-Interface::_ref_type RequestLocal::unmarshal_interface (String_in rep_id)
+Interface::_ref_type RequestLocal::unmarshal_interface (String_in interface_id)
 {
 	ItfRecord* rec = (ItfRecord*)get_data (alignof (ItfRecord), sizeof (ItfRecord));
 	if (interfaces_ != rec)
 		Nirvana::throw_MARSHAL ();
-	Interface::_check (rec->ptr, rep_id);
+	Interface::_check (rec->ptr, interface_id);
 	interfaces_ = rec->next;
 	return (Interface::_ref_type&)(rec->ptr);
 }
-
-void RequestLocalOneway::issue (OperationIndex op, DeadlineTime deadline)
-{
-	op_idx_ = op;
-	ExecDomain::async_call (deadline, *this, proxy_->sync_context (), memory ());
-}
-
-void RequestLocalOneway::run ()
-{
-	try {
-		RequestLocal::issue (op_idx_, 0);
-	} catch (...) {
-		assert (false);
-	}
-}
-
 
 }
 }

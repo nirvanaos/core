@@ -28,12 +28,10 @@
 #define NIRVANA_ORB_CORE_REQUESTLOCAL_H_
 #pragma once
 
-#include <CORBA/Server.h>
-#include "../SyncDomain.h"
-#include "../MemContextEx.h"
-#include "LifeCyclePseudo.h"
+#include "ServantProxyBase.h"
+#include "../ExecDomain.h"
+#include "../MemContext.h"
 #include "IDL/IORequest_s.h"
-#include "ServantBase.h"
 
 namespace CORBA {
 namespace Internal {
@@ -44,11 +42,17 @@ class ServantProxyBase;
 class RequestLocal :
 	public Servant <RequestLocal, IORequest>,
 	public Nirvana::Core::LifeCyclePseudo <RequestLocal>,
+	public Nirvana::Core::Runnable,
 	public Nirvana::Core::UserObject
 {
 public:
 	static const size_t BLOCK_SIZE = (32 * sizeof (size_t)
 		+ alignof (max_align_t) - 1) / alignof (max_align_t) * alignof (max_align_t);
+
+	IOReference::OperationIndex op_idx () const NIRVANA_NOEXCEPT
+	{
+		return op_idx_;
+	}
 
 	Nirvana::Core::MemContext* memory () const NIRVANA_NOEXCEPT
 	{
@@ -257,7 +261,7 @@ public:
 	/// \param rep_id The interface repository id.
 	/// 
 	/// \returns Interface.
-	Interface::_ref_type unmarshal_interface (String_in rep_id);
+	Interface::_ref_type unmarshal_interface (String_in interface_id);
 
 	/// Marshal TypeCode.
 	/// 
@@ -294,12 +298,12 @@ public:
 	/// \param rep_id The value type repository id.
 	/// 
 	/// \returns Value type interface.
-	Interface::_ref_type unmarshal_value (String_in rep_id)
+	Interface::_ref_type unmarshal_value (String_in interface_id)
 	{
 		ValueBase::_ref_type vb = unmarshal_interface (ValueBase::repository_id_).template downcast <ValueBase> ();
 		Interface::_ref_type itf;
 		if (vb) {
-			itf = ((AbstractBase::_ptr_type)vb)->_query_interface (rep_id);
+			itf = ((AbstractBase::_ptr_type)vb)->_query_interface (interface_id);
 			if (!itf)
 				Nirvana::throw_INV_OBJREF ();
 		}
@@ -323,7 +327,7 @@ public:
 
 	/// Return exception to caller.
 	/// Operation has move semantics so `e` may be cleared.
-	void marshal_exception (Any& e)
+	void set_exception (Any& e)
 	{
 		clear ();
 		state_ = State::EXCEPTION;
@@ -333,6 +337,7 @@ public:
 	/// Marks request as successful.
 	void success ()
 	{
+		rewind ();
 		state_ = State::SUCCESS;
 	}
 
@@ -341,14 +346,21 @@ public:
 	///@{
 	/// Caller operations.
 
-	/// Issue request.
+	/// Invoke request.
 	/// 
-	/// \param op The index of the target operation.
-	virtual void issue (OperationIndex op, DeadlineTime deadline)
+	void invoke ()
 	{
 		rewind ();
 		state_ = State::CALL;
-		proxy_->call (op, *this);
+		proxy_->call (*this);
+	}
+
+	/// Send request asynchronously.
+	/// 
+	/// \param deadline Asynchronous request deadline.
+	void send (DeadlineTime deadline)
+	{
+		Nirvana::Core::ExecDomain::async_call (deadline, *this, proxy_->sync_context (), memory ());
 	}
 
 	bool completed () const
@@ -356,23 +368,29 @@ public:
 		return State::EXCEPTION == state_ || State::SUCCESS == state_;
 	}
 
+	bool is_exception () const
+	{
+		return State::EXCEPTION == state_;
+	}
+
 	void wait ()
 	{}
-
-	bool unmarshal_exception (Any& e)
-	{
-		if (State::EXCEPTION == state_) {
-			Type <Any>::unmarshal (_get_ptr (), e);
-			return true;
-		}
-		return false;
-	}
 
 	///@}
 
 	virtual ~RequestLocal ()
 	{
 		clear ();
+	}
+
+	void _add_ref () NIRVANA_NOEXCEPT
+	{
+		Nirvana::Core::LifeCyclePseudo <RequestLocal>::_add_ref ();
+	}
+
+	void _remove_ref () NIRVANA_NOEXCEPT
+	{
+		Nirvana::Core::LifeCyclePseudo <RequestLocal>::_remove_ref ();
 	}
 
 protected:
@@ -390,8 +408,9 @@ protected:
 		EXCEPTION
 	};
 
-	RequestLocal (ServantProxyBase& proxy) NIRVANA_NOEXCEPT :
+	RequestLocal (ServantProxyBase& proxy, uint32_t op_idx) NIRVANA_NOEXCEPT :
 		proxy_ (&proxy),
+		op_idx_ (op_idx),
 		state_ (State::CALLER),
 		caller_memory_ (&MemContext::current ()),
 		callee_memory_ (proxy.mem_context ()),
@@ -448,11 +467,17 @@ protected:
 		cur_block_ = nullptr;
 	}
 
+	virtual void run ()
+	{
+		invoke ();
+	}
+
 protected:
 	CoreRef <ServantProxyBase> proxy_;
 	Octet* cur_ptr_;
 
 private:
+	IOReference::OperationIndex op_idx_;
 	State state_;
 	CoreRef <MemContext> caller_memory_;
 	CoreRef <MemContext> callee_memory_;
@@ -462,43 +487,19 @@ private:
 	Segment* segments_;
 };
 
-class NIRVANA_NOVTABLE RequestLocalOneway :
-	public RequestLocal,
-	public Nirvana::Core::Runnable
-{
-protected:
-	RequestLocalOneway (ServantProxyBase& proxy) NIRVANA_NOEXCEPT :
-		RequestLocal (proxy)
-	{}
-
-	virtual void _add_ref () NIRVANA_NOEXCEPT
-	{
-		RequestLocal::_add_ref ();
-	}
-
-	virtual void _remove_ref () NIRVANA_NOEXCEPT
-	{
-		RequestLocal::_remove_ref ();
-	}
-
-private:
-	virtual void issue (OperationIndex op, DeadlineTime deadline);
-	virtual void run ();
-
-protected:
-	IORequest::OperationIndex op_idx_;
-};
-
 class NIRVANA_NOVTABLE RequestLocalAsync :
-	public RequestLocalOneway
+	public RequestLocal
 {
 protected:
-	RequestLocalAsync (ServantProxyBase& proxy) NIRVANA_NOEXCEPT :
-		RequestLocalOneway (proxy)
+	RequestLocalAsync (ServantProxyBase& proxy, IOReference::OperationIndex op_idx) NIRVANA_NOEXCEPT :
+		RequestLocal (proxy, op_idx)
 	{}
 
 private:
 	virtual void run ();
+
+private:
+	// Additional members can be here...
 };
 
 template <class Base>
@@ -506,8 +507,8 @@ class RequestLocalImpl :
 	public Base
 {
 public:
-	RequestLocalImpl (ServantProxyBase& proxy) NIRVANA_NOEXCEPT :
-		Base (proxy)
+	RequestLocalImpl (ServantProxyBase& proxy, IOReference::OperationIndex op_idx) NIRVANA_NOEXCEPT :
+		Base (proxy, op_idx)
 	{
 		Base::cur_ptr_ = block_;
 	}
@@ -525,22 +526,8 @@ private:
 static_assert (
 	sizeof (RequestLocalImpl <RequestLocal>) == RequestLocal::BLOCK_SIZE
 	&&
-	sizeof (RequestLocalImpl <RequestLocalOneway>) == RequestLocal::BLOCK_SIZE
-	&&
 	sizeof (RequestLocalImpl <RequestLocalAsync>) == RequestLocal::BLOCK_SIZE,
 	"sizeof (RequestLocal)");
-
-inline
-IORequest::_ref_type ServantProxyBase::create_request ()
-{
-	return make_pseudo <RequestLocalImpl <RequestLocal> > (std::ref (*this));
-}
-
-inline
-IORequest::_ref_type ServantProxyBase::create_request_oneway ()
-{
-	return make_pseudo <RequestLocalImpl <RequestLocalOneway> > (std::ref (*this));
-}
 
 }
 }

@@ -28,17 +28,16 @@
 #define NIRVANA_ORB_CORE_SERVANTPROXYBASE_H_
 #pragma once
 
+#include <CORBA/Server.h>
 #include "../AtomicCounter.h"
 #include "../Synchronized.h"
 #include "../ExecDomain.h"
-#include "../Runnable.h"
 #include "../Chrono.h"
 #include "ProxyManager.h"
 #include <CORBA/AbstractBase_s.h>
 #include <CORBA/Object_s.h>
-#include <CORBA/ImplementationPseudo.h>
 #include "IDL/IOReference_s.h"
-#include "IDL/IORequest_s.h"
+#include "IDL/IORequest.h"
 #include "LifeCycleStack.h"
 #include <utility>
 
@@ -78,10 +77,10 @@ public:
 
 	virtual RefCnt::IntegralType _remove_ref () NIRVANA_NOEXCEPT;
 
-	IORequest::_ref_type create_request ();
-	IORequest::_ref_type create_request_oneway ();
+	inline
+	IORequest::_ref_type create_request (OperationIndex op);
 
-	void call (IORequest::OperationIndex op, RequestLocal& rq);
+	void call (RequestLocal& rq) NIRVANA_NOEXCEPT;
 
 	Nirvana::Core::MemContext* mem_context () const
 	{
@@ -104,7 +103,7 @@ protected:
 
 	/// Returns synchronization context for the specific operation.
 	/// For some Object operations may return free context.
-	virtual Nirvana::Core::SyncContext& get_sync_context (IORequest::OperationIndex op)
+	virtual Nirvana::Core::SyncContext& get_sync_context (IOReference::OperationIndex op)
 	{
 		return *sync_context_;
 	}

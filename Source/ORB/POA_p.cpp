@@ -111,9 +111,9 @@ public:
 	String activate_object (PortableServer::Servant p_servant)
 	{
 		Object::_ptr_type proxy = servant2object (p_servant);
-		IORequest::_ref_type _call = _target ()->create_request ();
+		IORequest::_ref_type _call = _target ()->create_request (_make_op_idx (0));
 		Type <Object>::marshal_in (proxy, _call);
-		_call->issue (_make_op_idx (0), 0);
+		_call->invoke ();
 		check_request (_call);
 		String _ret;
 		Type <String>::unmarshal (_call, _ret);
@@ -122,9 +122,9 @@ public:
 
 	void deactivate_object (const String& oid)
 	{
-		IORequest::_ref_type _call = _target ()->create_request ();
+		IORequest::_ref_type _call = _target ()->create_request (_make_op_idx (1));
 		Type <String>::marshal_in (oid, _call);
-		_call->issue (_make_op_idx (1), 0);
+		_call->invoke ();
 		check_request (_call);
 	}
 };

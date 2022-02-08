@@ -24,34 +24,21 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_ORB_CORE_PROXYLOCAL_H_
-#define NIRVANA_ORB_CORE_PROXYLOCAL_H_
+#ifndef NIRVANA_ORB_CORE_SERVANTPROXYBASE_INL_
+#define NIRVANA_ORB_CORE_SERVANTPROXYBASE_INL_
 #pragma once
 
-#include "ServantProxyBase.inl"
+#include "RequestLocal.h"
 
 namespace CORBA {
 namespace Internal {
 namespace Core {
 
-/// LocalObject operations proxy
-class ProxyLocal :
-	public ServantProxyBase
+inline
+IORequest::_ref_type ServantProxyBase::create_request (OperationIndex op)
 {
-protected:
-	ProxyLocal (LocalObject::_ptr_type servant, AbstractBase::_ptr_type abstract_base) :
-		ServantProxyBase (abstract_base, object_ops_, this),
-		servant_ (servant)
-	{}
-
-private:
-	static void non_existent_request (ProxyLocal* servant, IORequest::_ptr_type call);
-
-private:
-	LocalObject::_ptr_type servant_;
-
-	static const Operation object_ops_ [3];
-};
+	return make_pseudo <RequestLocalImpl <RequestLocal> > (std::ref (*this), op);
+}
 
 }
 }
