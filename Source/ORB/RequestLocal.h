@@ -55,13 +55,6 @@ public:
 		return callee_memory_;
 	}
 
-	typedef IORequest PrimaryInterface;
-
-	I_ptr <IORequest> _get_ptr () NIRVANA_NOEXCEPT
-	{
-		return I_ptr <IORequest> (&static_cast <IORequest&> (static_cast <Bridge <IORequest>&> (*this)));
-	}
-
 	///@{
 	/// Marshal/unmarshal data that meet the common data representation.
 
