@@ -23,7 +23,7 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "ServantProxyBase.h"
+#include "RequestLocal.h"
 #include "../Runnable.h"
 
 namespace CORBA {
@@ -88,6 +88,30 @@ ServantProxyBase::RefCnt::IntegralType ServantProxyBase::_remove_ref () NIRVANA_
 	}
 		
 	return cnt;
+}
+
+void ServantProxyBase::call (IORequest::OperationIndex op, RequestLocal& rq)
+{
+	size_t idx = interface_idx (op);
+	if (idx >= interfaces ().size ())
+		throw BAD_OPERATION ();
+	const InterfaceEntry& ie = interfaces () [idx];
+	idx = operation_idx (op);
+	if (idx >= ie.operations.size)
+		throw BAD_OPERATION ();
+#ifdef _DEBUG
+	size_t dbg_stack_size0 = Nirvana::Core::Thread::current ().exec_domain ()->dbg_context_stack_size_;
+#endif
+	bool success;
+	SYNC_BEGIN (get_sync_context (op), rq.memory ());
+	success = (ie.operations.p [idx].invoke) (&ie.implementation, &rq);
+	SYNC_END ();
+#ifdef _DEBUG
+	size_t dbg_stack_size1 = Nirvana::Core::Thread::current ().exec_domain ()->dbg_context_stack_size_;
+	assert (dbg_stack_size0 == dbg_stack_size1);
+#endif
+	if (!success)
+		throw UNKNOWN ();
 }
 
 }

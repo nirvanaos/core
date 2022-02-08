@@ -1,3 +1,4 @@
+/// \file
 /*
 * Nirvana Core.
 *
@@ -33,6 +34,7 @@ namespace CORBA {
 namespace Internal {
 namespace Core {
 
+/// LocalObject operations proxy
 class ProxyLocal :
 	public ServantProxyBase
 {

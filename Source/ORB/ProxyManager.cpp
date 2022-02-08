@@ -240,11 +240,11 @@ ProxyManager::~ProxyManager ()
 
 void ProxyManager::create_proxy (ProxyFactory::_ptr_type pf, InterfaceEntry& ie)
 {
-	Interface* deleter = nullptr;
+	DynamicServant::_ref_type deleter;
 	Interface* proxy = pf->create_proxy (ior (), (UShort)(&ie - interfaces_.begin ()), deleter);
 	if (!proxy || !deleter)
 		throw MARSHAL ();
-	ie.deleter = DynamicServant::_check (deleter);
+	ie.deleter = deleter;
 	try {
 		ie.proxy = Interface::_check (proxy, ie.iid);
 	} catch (...) {

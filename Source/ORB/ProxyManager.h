@@ -94,11 +94,10 @@ public:
 
 	Boolean _non_existent ()
 	{
-		BooleanRet out;
 		IORequest::_ref_type rq = ior ()->create_request ();
-		ior ()->call (rq, _make_op_idx (OBJ_OP_NON_EXISTENT));
+		rq->issue (_make_op_idx (OBJ_OP_NON_EXISTENT));
 		Boolean _ret;
-		Type <Boolean>::unmarshal (out._ret, Unmarshal::_nil (), _ret);
+		Type <Boolean>::unmarshal (rq, _ret);
 		return _ret;
 	}
 
