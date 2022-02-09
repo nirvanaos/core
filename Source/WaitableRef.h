@@ -119,7 +119,7 @@ public:
 	/// Get object pointer if object is already constructed.
 	/// 
 	/// \returns Pointer or `nullptr`.
-	PtrType get_if_constructed () const
+	PtrType get_if_constructed () const NIRVANA_NOEXCEPT
 	{
 		if (is_wait_list ())
 			return nullptr;

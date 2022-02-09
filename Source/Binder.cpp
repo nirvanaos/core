@@ -345,6 +345,7 @@ CoreRef <Module> Binder::load (string& module_name, bool singleton)
 		} catch (...) {
 			ins.first->second.on_exception ();
 			delete_module (mod);
+			module_map_.erase (ins.first);
 			throw;
 		}
 
