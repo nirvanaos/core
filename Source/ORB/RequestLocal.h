@@ -445,19 +445,17 @@ protected:
 	{
 		size_t allocated_size;
 
-		// If allocated_size is not zero, info is valid.
-		// Otherwise, the sequence or string data are follows immediate
+		// If allocated_size is not zero, following members are valid.
+		// Otherwise, the sequence data are follows immediate
 		// after allocated_size.
-		struct Info {
-			void* allocated_memory;
-			Segment* next;
-		} info;
+		void* allocated_memory;
+		Segment* next;
 	};
 
 	struct ItfRecord
 	{
-		ItfRecord* next;
 		Interface* ptr;
+		ItfRecord* next;
 	};
 
 	void clear () NIRVANA_NOEXCEPT;
@@ -465,11 +463,26 @@ protected:
 	virtual void rewind () NIRVANA_NOEXCEPT
 	{
 		cur_block_ = nullptr;
+		invert_list (interfaces_);
+		invert_list (segments_);
 	}
 
 	virtual void run ()
 	{
 		invoke ();
+	}
+
+	template <typename Elem>
+	void invert_list (Elem*& head)
+	{
+		Elem* p = head;
+		head = nullptr;
+		while (p) {
+			Elem* next = p->next;
+			p->next = head;
+			head = p;
+			p = next;
+		}
 	}
 
 protected:

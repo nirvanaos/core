@@ -84,8 +84,8 @@ void RequestLocal::clear () NIRVANA_NOEXCEPT
 		Segment* s = segments_;
 		segments_ = nullptr;
 		while (s) {
-			caller_memory_->heap ().release (s->info.allocated_memory, s->allocated_size);
-			s = s->info.next;
+			caller_memory_->heap ().release (s->allocated_memory, s->allocated_size);
+			s = s->next;
 		}
 	}
 	{
@@ -183,7 +183,7 @@ void RequestLocal::marshal_seq (size_t align, size_t element_size,
 			Segment* segment = (Segment*)allocate_space (alignof (Segment), sizeof (Segment));
 			if (allocated_size && caller_memory_ == callee_memory_) {
 				segment->allocated_size = allocated_size;
-				segment->info.allocated_memory = data;
+				segment->allocated_memory = data;
 			} else {
 				Heap& tm = target_memory ();
 				if (max_inline_string)
@@ -191,11 +191,11 @@ void RequestLocal::marshal_seq (size_t align, size_t element_size,
 				void* p = tm.copy (nullptr, data, size, 0);
 				uintptr_t au = tm.query (p, Memory::QueryParam::ALLOCATION_UNIT);
 				segment->allocated_size = round_up (size, au);
-				segment->info.allocated_memory = p;
+				segment->allocated_memory = p;
 				if (allocated_size)
 					source_memory ().release (data, allocated_size);
 			}
-			segment->info.next = segments_;
+			segment->next = segments_;
 			segments_ = segment;
 		}
 	}
@@ -207,15 +207,15 @@ bool RequestLocal::unmarshal_seq (size_t align, size_t element_size,
 	size_t cnt = *(size_t*)get_data (alignof (size_t), sizeof (size_t));
 	if (cnt) {
 		size_t size = element_size * cnt;
-		void* segment = get_data (alignof (size_t), sizeof (size_t));
-		size_t allocated = *(size_t*)segment;
+		Segment* segment = (Segment*)get_data (alignof (size_t), sizeof (size_t));
+		size_t allocated = segment->allocated_size;
 		if (allocated) {
 			if (segments_ != segment || allocated < size)
 				throw_MARSHAL ();
 			allocated_size = allocated;
-			Segment::Info* info = (Segment::Info*)get_data (alignof (Segment::Info), sizeof (Segment::Info));
-			segments_ = info->next;
-			data = info->allocated_memory;
+			get_data (1, sizeof (Segment) - sizeof (size_t));
+			data = segment->allocated_memory;
+			segments_ = segment->next;
 		} else {
 			allocated_size = 0;
 			data = get_data (align, size);
