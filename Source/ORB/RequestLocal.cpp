@@ -69,9 +69,15 @@ void RequestLocal::marshal_op () NIRVANA_NOEXCEPT
 	}
 }
 
-void RequestLocal::clear () NIRVANA_NOEXCEPT
+void RequestLocal::rewind () NIRVANA_NOEXCEPT
 {
-	rewind ();
+	invert_list (interfaces_);
+	invert_list (segments_);
+	reset ();
+}
+
+void RequestLocal::cleanup () NIRVANA_NOEXCEPT
+{
 	{
 		ItfRecord* itf = interfaces_;
 		interfaces_ = nullptr;

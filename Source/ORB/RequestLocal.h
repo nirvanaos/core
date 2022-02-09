@@ -330,8 +330,9 @@ public:
 	void set_exception (Any& e)
 	{
 		clear ();
-		state_ = State::EXCEPTION;
 		Type <Any>::marshal_out (e, _get_ptr ());
+		rewind ();
+		state_ = State::EXCEPTION;
 	}
 
 	/// Marks request as successful.
@@ -380,7 +381,7 @@ public:
 
 	virtual ~RequestLocal ()
 	{
-		clear ();
+		cleanup ();
 	}
 
 	void _add_ref () NIRVANA_NOEXCEPT
@@ -435,37 +436,20 @@ protected:
 	void* allocate_space (size_t align, size_t size);
 	void* get_data (size_t align, size_t size);
 
-	struct BlockHdr
-	{
-		size_t size;
-		BlockHdr* next;
-	};
+	void rewind () NIRVANA_NOEXCEPT;
 
-	struct Segment
-	{
-		size_t allocated_size;
-
-		// If allocated_size is not zero, following members are valid.
-		// Otherwise, the sequence data are follows immediate
-		// after allocated_size.
-		void* allocated_memory;
-		Segment* next;
-	};
-
-	struct ItfRecord
-	{
-		Interface* ptr;
-		ItfRecord* next;
-	};
-
-	void clear () NIRVANA_NOEXCEPT;
-
-	virtual void rewind () NIRVANA_NOEXCEPT
+	virtual void reset () NIRVANA_NOEXCEPT
 	{
 		cur_block_ = nullptr;
-		invert_list (interfaces_);
-		invert_list (segments_);
 	}
+
+	void clear () NIRVANA_NOEXCEPT
+	{
+		cleanup ();
+		reset ();
+	}
+
+	void cleanup () NIRVANA_NOEXCEPT;
 
 	virtual void run ()
 	{
@@ -490,6 +474,29 @@ protected:
 	Octet* cur_ptr_;
 
 private:
+	struct BlockHdr
+	{
+		size_t size;
+		BlockHdr* next;
+	};
+
+	struct Segment
+	{
+		size_t allocated_size;
+
+		// If allocated_size is not zero, following members are valid.
+		// Otherwise, the sequence data are follows immediate
+		// after allocated_size.
+		void* allocated_memory;
+		Segment* next;
+	};
+
+	struct ItfRecord
+	{
+		Interface* ptr;
+		ItfRecord* next;
+	};
+
 	IOReference::OperationIndex op_idx_;
 	State state_;
 	CoreRef <MemContext> caller_memory_;
@@ -526,9 +533,9 @@ public:
 		Base::cur_ptr_ = block_;
 	}
 
-	virtual void rewind () NIRVANA_NOEXCEPT
+	virtual void reset () NIRVANA_NOEXCEPT
 	{
-		Base::rewind ();
+		Base::reset ();
 		Base::cur_ptr_ = block_;
 	}
 
