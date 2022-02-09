@@ -41,52 +41,10 @@ namespace Internal {
 IMPLEMENT_PROXY_FACTORY (::PortableServer::, POA);
 
 template <>
-struct ProxyTraits <::PortableServer::POA>
-{
-	static const Operation operations_ [];
-	static const Char* const interfaces_ [];
-
-	// string activate_object (PortableServer::Servant p_servant);
-
-	static const Parameter activate_object_in_params_ [];
-
-	static void activate_object_request (::PortableServer::POA::_ptr_type _servant,
-		IORequest::_ptr_type _call)
-	{
-		Object::_ref_type p_servant;
-		Type <Object>::unmarshal (_call, p_servant);
-		_call->unmarshal_end ();
-		String ret;
-		{
-			Environment _env;
-			Type <String>::C_ret _ret = (_servant->_epv ().epv.activate_object) (&_servant, &Object::_ptr_type (p_servant), &_env);
-			_env.check ();
-			ret = _ret;
-		}
-		// Marshal output
-		Type <String>::marshal_out (ret, _call);
-	}
-
-	// void deactivate_object (string oid);
-
-	static const Parameter deactivate_object_in_params_ [];
-
-	static void deactivate_object_request (::PortableServer::POA_ptr _servant,
-		IORequest::_ptr_type _call)
-	{
-		String oid;
-		Type <String>::unmarshal (_call, oid);
-		_call->unmarshal_end ();
-		_servant->deactivate_object (oid);
-	}
-};
-
-template <>
 class Proxy <::PortableServer::POA> :
 	public ProxyBase <::PortableServer::POA>
 {
 	typedef ProxyBase <::PortableServer::POA> Base;
-	typedef ProxyTraits <::PortableServer::POA> Traits;
 public:
 	Proxy (IOReference::_ptr_type proxy_manager, CORBA::UShort interface_idx) :
 		Base (proxy_manager, interface_idx)
@@ -108,6 +66,27 @@ public:
 		return _ret;
 	}
 
+	// string activate_object (PortableServer::Servant p_servant);
+
+	static const Parameter __par_in_activate_object [];
+
+	static void __rq_activate_object (::PortableServer::POA::_ptr_type _servant,
+		IORequest::_ptr_type _call)
+	{
+		Object::_ref_type p_servant;
+		Type <Object>::unmarshal (_call, p_servant);
+		_call->unmarshal_end ();
+		String ret;
+		{
+			Environment _env;
+			Type <String>::C_ret _ret = (_servant->_epv ().epv.activate_object) (&_servant, &Object::_ptr_type (p_servant), &_env);
+			_env.check ();
+			ret = _ret;
+		}
+		// Marshal output
+		Type <String>::marshal_out (ret, _call);
+	}
+
 	String activate_object (PortableServer::Servant p_servant)
 	{
 		Object::_ptr_type proxy = servant2object (p_servant);
@@ -120,6 +99,19 @@ public:
 		return _ret;
 	}
 
+	// void deactivate_object (string oid);
+
+	static const Parameter __par_in_deactivate_object [];
+
+	static void __rq_deactivate_object (::PortableServer::POA_ptr _servant,
+		IORequest::_ptr_type _call)
+	{
+		String oid;
+		Type <String>::unmarshal (_call, oid);
+		_call->unmarshal_end ();
+		_servant->deactivate_object (oid);
+	}
+
 	void deactivate_object (const String& oid)
 	{
 		IORequest::_ref_type _call = _target ()->create_request (_make_op_idx (1));
@@ -127,29 +119,32 @@ public:
 		_call->invoke ();
 		check_request (_call);
 	}
+
+	static const Operation __operations [];
+	static const Char* const __interfaces [];
 };
 
-const Parameter ProxyTraits <::PortableServer::POA>::activate_object_in_params_ [1] = {
+const Parameter Proxy <::PortableServer::POA>::__par_in_activate_object [1] = {
 	{ "p_servant", Type <Object>::type_code }
 };
 
-const Parameter ProxyTraits <::PortableServer::POA>::deactivate_object_in_params_ [1] = {
+const Parameter Proxy <::PortableServer::POA>::__par_in_deactivate_object [1] = {
 	{ "oid", Type <String>::type_code }
 };
 
-const Operation ProxyTraits <::PortableServer::POA>::operations_ [] = {
-	{ "activate_object", { activate_object_in_params_, countof (activate_object_in_params_) }, {0, 0}, Type <String>::type_code, RqProcWrapper < ::PortableServer::POA, activate_object_request> },
-	{ "deactivate_object", { deactivate_object_in_params_, countof (deactivate_object_in_params_) }, {0, 0}, Type <void>::type_code, RqProcWrapper < ::PortableServer::POA, deactivate_object_request> }
+const Operation Proxy <::PortableServer::POA>::__operations [] = {
+	{ "activate_object", { __par_in_activate_object, countof (__par_in_activate_object) }, {0, 0}, Type <String>::type_code, RqProcWrapper < ::PortableServer::POA, __rq_activate_object> },
+	{ "deactivate_object", { __par_in_deactivate_object, countof (__par_in_deactivate_object) }, {0, 0}, Type <void>::type_code, RqProcWrapper < ::PortableServer::POA, __rq_deactivate_object> }
 };
 
-const Char* const ProxyTraits <::PortableServer::POA>::interfaces_ [] = {
+const Char* const Proxy <::PortableServer::POA>::__interfaces [] = {
 	::PortableServer::POA::repository_id_
 };
 
 template <>
 const InterfaceMetadata ProxyFactoryImpl <::PortableServer::POA>::metadata_ = {
-	{ProxyTraits <::PortableServer::POA>::interfaces_, countof (ProxyTraits <::PortableServer::POA>::interfaces_)},
-	{ProxyTraits <::PortableServer::POA>::operations_, countof (ProxyTraits <::PortableServer::POA>::operations_)}
+	{Proxy <::PortableServer::POA>::__interfaces, countof (Proxy <::PortableServer::POA>::__interfaces)},
+	{Proxy <::PortableServer::POA>::__operations, countof (Proxy <::PortableServer::POA>::__operations)}
 };
 
 }
