@@ -109,14 +109,10 @@ void ProxyObject::implicit_deactivate ()
 	}
 }
 
-inline void ProxyObject::non_existent_request (ProxyObject* _servant, IORequest::_ptr_type _rq,
-	::Nirvana::ConstPointer in_params,
-	Unmarshal::_ref_type& unmarshaler,
-	::Nirvana::Pointer out_params)
+inline void ProxyObject::non_existent_request (ProxyObject* _servant, IORequest::_ptr_type _rq)
 {
 	Boolean _ret = _servant->servant_->_non_existent ();
-	BooleanRet& _out = *(BooleanRet*)out_params;
-	Type <Boolean>::marshal_out (_ret, Marshal::_nil (), _out._ret);
+	Type <Boolean>::marshal_out (_ret, _rq);
 }
 
 const Operation ProxyObject::object_ops_ [3] = {

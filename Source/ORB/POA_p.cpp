@@ -48,29 +48,14 @@ struct ProxyTraits <::PortableServer::POA>
 
 	// string activate_object (PortableServer::Servant p_servant);
 
-	struct activate_object_in
-	{
-		Interface* p_servant;
-	};
-
 	static const Parameter activate_object_in_params_ [];
 
-	struct activate_object_out
-	{
-		ABI <String> _ret;
-	};
-
 	static void activate_object_request (::PortableServer::POA::_ptr_type _servant,
-		IORequest::_ptr_type _call,
-		::Nirvana::ConstPointer _in_ptr,
-		Unmarshal::_ref_type& _u,
-		::Nirvana::Pointer _out_ptr)
+		IORequest::_ptr_type _call)
 	{
-		const activate_object_in& _in = *(const activate_object_in*)_in_ptr;
-
 		Object::_ref_type p_servant;
-		Type <Object>::unmarshal (_in.p_servant, _u, p_servant);
-		_u = Unmarshal::_nil ();
+		Type <Object>::unmarshal (_call, p_servant);
+		_call->unmarshal_end ();
 		String ret;
 		{
 			Environment _env;
@@ -79,30 +64,19 @@ struct ProxyTraits <::PortableServer::POA>
 			ret = _ret;
 		}
 		// Marshal output
-		activate_object_out& _out = *(activate_object_out*)_out_ptr;
-		Marshal::_ptr_type _m = _call->marshaler ();
-		Type <String>::marshal_out (ret, _m, _out._ret);
+		Type <String>::marshal_out (ret, _call);
 	}
 
 	// void deactivate_object (string oid);
 
-	struct deactivate_object_in
-	{
-		ABI <String> oid;
-	};
-
 	static const Parameter deactivate_object_in_params_ [];
 
 	static void deactivate_object_request (::PortableServer::POA_ptr _servant,
-		IORequest::_ptr_type _call,
-		::Nirvana::ConstPointer _in_ptr,
-		Unmarshal::_ref_type& _u,
-		::Nirvana::Pointer _out_ptr)
+		IORequest::_ptr_type _call)
 	{
-		const deactivate_object_in& _in = *(const deactivate_object_in*)_in_ptr;
 		String oid;
-		Type <String>::unmarshal (_in.oid, _u, oid);
-		_u = Unmarshal::_nil ();
+		Type <String>::unmarshal (_call, oid);
+		_call->unmarshal_end ();
 		_servant->deactivate_object (oid);
 	}
 };
@@ -137,24 +111,21 @@ public:
 	String activate_object (PortableServer::Servant p_servant)
 	{
 		Object::_ptr_type proxy = servant2object (p_servant);
-		Traits::activate_object_in _in;
-		Marshal::_ref_type _m = _target ()->create_marshaler ();
-		Type <Object>::marshal_in (proxy, _m, _in.p_servant);
-		Traits::activate_object_out _out;
-		Unmarshal::_ref_type _u = _target ()->call (_make_op_idx (0),
-			&_in, sizeof (_in), _m, &_out, sizeof (_out));
+		IORequest::_ref_type _call = _target ()->create_request (_make_op_idx (0));
+		Type <Object>::marshal_in (proxy, _call);
+		_call->invoke ();
+		check_request (_call);
 		String _ret;
-		Type <String>::unmarshal (_out._ret, _u, _ret);
+		Type <String>::unmarshal (_call, _ret);
 		return _ret;
 	}
 
 	void deactivate_object (const String& oid)
 	{
-		Traits::deactivate_object_in _in;
-		Marshal::_ref_type _m = _target ()->create_marshaler ();
-		Type <String>::marshal_in (oid, _m, _in.oid);
-		Unmarshal::_ref_type _u = _target ()->call (_make_op_idx (1),
-			&_in, sizeof (_in), _m, 0, 0);
+		IORequest::_ref_type _call = _target ()->create_request (_make_op_idx (1));
+		Type <String>::marshal_in (oid, _call);
+		_call->invoke ();
+		check_request (_call);
 	}
 };
 

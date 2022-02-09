@@ -56,7 +56,7 @@ public:
 	{
 		if (!ref_cnt_.decrement () && dynamic_) {
 			try {
-				dynamic_->_delete ();
+				dynamic_->delete_object ();
 			} catch (...) {
 				assert (false); // TODO: Swallow exception or log
 			}

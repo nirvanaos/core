@@ -211,7 +211,7 @@ ProxyManager::ProxyManager (const Bridge <IOReference>::EPV& epv_ior, const Brid
 	OperationEntry* op = operations_.begin ();
 	ie = interfaces_.begin ();
 	do {
-		OperationIndex idx = make_op_idx ((UShort)(ie - interfaces_.begin ()), 0);
+		IOReference::OperationIndex idx = make_op_idx ((UShort)(ie - interfaces_.begin ()), 0);
 		for (const Operation* p = ie->operations.p, *end = p + ie->operations.size; p != end; ++p) {
 			const Char* name = p->name;
 			op->name = name;
@@ -234,13 +234,13 @@ ProxyManager::~ProxyManager ()
 {
 	for (InterfaceEntry* ie = interfaces_.begin (); ie != interfaces_.end (); ++ie) {
 		if (ie->deleter)
-			ie->deleter->_delete ();
+			ie->deleter->delete_object ();
 	}
 }
 
 void ProxyManager::create_proxy (ProxyFactory::_ptr_type pf, InterfaceEntry& ie)
 {
-	Interface* deleter = nullptr;
+	Interface* deleter;
 	Interface* proxy = pf->create_proxy (ior (), (UShort)(&ie - interfaces_.begin ()), deleter);
 	if (!proxy || !deleter)
 		throw MARSHAL ();
@@ -248,7 +248,7 @@ void ProxyManager::create_proxy (ProxyFactory::_ptr_type pf, InterfaceEntry& ie)
 	try {
 		ie.proxy = Interface::_check (proxy, ie.iid);
 	} catch (...) {
-		ie.deleter->_delete ();
+		ie.deleter->delete_object ();
 		throw;
 	}
 }

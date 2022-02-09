@@ -1,3 +1,4 @@
+/// \file
 /*
 * Nirvana Core.
 *
@@ -23,26 +24,24 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "ProxyLocal.h"
+#ifndef NIRVANA_ORB_CORE_SERVANTPROXYBASE_INL_
+#define NIRVANA_ORB_CORE_SERVANTPROXYBASE_INL_
+#pragma once
+
+#include "RequestLocal.h"
 
 namespace CORBA {
 namespace Internal {
 namespace Core {
 
-using namespace ::Nirvana::Core;
-
-inline void ProxyLocal::non_existent_request (ProxyLocal* servant, IORequest::_ptr_type _rq)
+inline
+IORequest::_ref_type ServantProxyBase::create_request (OperationIndex op)
 {
-	Boolean _ret = servant->servant_->_non_existent ();
-	Type <Boolean>::marshal_out (_ret, _rq);
+	return make_pseudo <RequestLocalImpl <RequestLocal> > (std::ref (*this), op);
 }
 
-const Operation ProxyLocal::object_ops_ [3] = {
-	{ op_get_interface_, {0, 0}, {0, 0}, Type <InterfaceDef>::type_code, nullptr },
-	{ op_is_a_, {&is_a_param_, 1}, {0, 0}, Type <Boolean>::type_code, nullptr },
-	{ op_non_existent_, {0, 0}, {0, 0}, Type <Boolean>::type_code, ObjProcWrapper <ProxyLocal, non_existent_request> }
-};
+}
+}
+}
 
-}
-}
-}
+#endif

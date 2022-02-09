@@ -1,3 +1,4 @@
+/// \file
 /*
 * Nirvana Core.
 *
@@ -27,12 +28,13 @@
 #define NIRVANA_ORB_CORE_PROXYLOCAL_H_
 #pragma once
 
-#include "ServantProxyBase.h"
+#include "ServantProxyBase.inl"
 
 namespace CORBA {
 namespace Internal {
 namespace Core {
 
+/// LocalObject operations proxy
 class ProxyLocal :
 	public ServantProxyBase
 {
@@ -43,11 +45,7 @@ protected:
 	{}
 
 private:
-	static void non_existent_request (ProxyLocal* servant,
-		IORequest::_ptr_type call,
-		::Nirvana::ConstPointer in_params,
-		Unmarshal::_ref_type& unmarshaler,
-		::Nirvana::Pointer out_params);
+	static void non_existent_request (ProxyLocal* servant, IORequest::_ptr_type call);
 
 private:
 	LocalObject::_ptr_type servant_;

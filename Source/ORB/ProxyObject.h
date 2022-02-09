@@ -1,3 +1,4 @@
+/// \file
 /*
 * Nirvana Core.
 *
@@ -27,13 +28,14 @@
 #define NIRVANA_ORB_CORE_PROXYOBJECT_H_
 #pragma once
 
-#include "ServantProxyBase.h"
+#include "ServantProxyBase.inl"
 #include <atomic>
 
 namespace CORBA {
 namespace Internal {
 namespace Core {
 
+/// Object operations proxy.
 class ProxyObject :
 	public ServantProxyBase
 {
@@ -67,11 +69,7 @@ private:
 		return activation_state_.compare_exchange_strong (from, to);
 	}
 
-	static void non_existent_request (ProxyObject* servant,
-		IORequest::_ptr_type call,
-		::Nirvana::ConstPointer in_params,
-		Unmarshal::_ref_type& unmarshaler,
-		::Nirvana::Pointer out_params);
+	static void non_existent_request (ProxyObject* servant, IORequest::_ptr_type call);
 
 	PortableServer::ServantBase::_ref_type _get_servant () const
 	{

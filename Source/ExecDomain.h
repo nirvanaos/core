@@ -118,7 +118,7 @@ public:
 		return *top;
 	}
 
-	MemContext* mem_context_ptr () const NIRVANA_NOEXCEPT
+	CoreRef <MemContext>& mem_context_ptr () NIRVANA_NOEXCEPT
 	{
 		return mem_context_.top ();
 	}
@@ -300,7 +300,7 @@ private:
 	DeadlineTime deadline_;
 	CoreRef <SyncContext> sync_context_;
 	SyncDomain::QueueNode* ret_qnodes_;
-	PreallocatedStack <CoreRef <MemContext>> mem_context_;
+	PreallocatedStack <CoreRef <MemContext> > mem_context_;
 	bool scheduler_item_created_;
 	CORBA::Exception::Code scheduler_error_;
 	Schedule schedule_;

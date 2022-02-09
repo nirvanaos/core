@@ -28,24 +28,24 @@
 #define NIRVANA_ORB_CORE_SERVANTPROXYBASE_H_
 #pragma once
 
+#include <CORBA/Server.h>
 #include "../AtomicCounter.h"
 #include "../Synchronized.h"
 #include "../ExecDomain.h"
-#include "../Runnable.h"
 #include "../Chrono.h"
 #include "ProxyManager.h"
 #include <CORBA/AbstractBase_s.h>
 #include <CORBA/Object_s.h>
-#include <CORBA/ImplementationPseudo.h>
-#include <CORBA/Proxy/IOReference_s.h>
-#include <CORBA/Proxy/IORequest_s.h>
+#include "IDL/IOReference_s.h"
+#include "IDL/IORequest.h"
 #include "LifeCycleStack.h"
-#include "ServantMarshaler.h"
 #include <utility>
 
 namespace CORBA {
 namespace Internal {
 namespace Core {
+
+class RequestLocal;
 
 /// \brief Base for servant-side proxies.
 class ServantProxyBase :
@@ -77,20 +77,33 @@ public:
 
 	virtual RefCnt::IntegralType _remove_ref () NIRVANA_NOEXCEPT;
 
+	inline
+	IORequest::_ref_type create_request (OperationIndex op);
+
+	void call (RequestLocal& rq) NIRVANA_NOEXCEPT;
+
+	Nirvana::Core::MemContext* mem_context () const
+	{
+		Nirvana::Core::SyncDomain* sd = sync_context_->sync_domain ();
+		if (sd)
+			return &sd->mem_context ();
+		return nullptr;
+	}
+
+	/// Returns synchronization context for the target object.
+	Nirvana::Core::SyncContext& sync_context () const
+	{
+		return *sync_context_;
+	}
+
 protected:
 	ServantProxyBase (AbstractBase::_ptr_type servant, const Operation object_ops [3], void* object_impl);
 
 	virtual void add_ref_1 ();
 
-	/// Returns synchronization context for the target object.
-	::Nirvana::Core::SyncContext& sync_context () const
-	{
-		return *sync_context_;
-	}
-
 	/// Returns synchronization context for the specific operation.
 	/// For some Object operations may return free context.
-	virtual Nirvana::Core::SyncContext& get_sync_context (OperationIndex op)
+	virtual Nirvana::Core::SyncContext& get_sync_context (IOReference::OperationIndex op)
 	{
 		return *sync_context_;
 	}
@@ -119,118 +132,10 @@ protected:
 		}
 	}
 
-	template <class I, void (*proc) (I*, IORequest::_ptr_type, ::Nirvana::ConstPointer, Unmarshal::_ref_type&, ::Nirvana::Pointer)>
-	static void ObjProcWrapper (Interface* servant, Interface* call,
-		::Nirvana::ConstPointer in_params,
-		Interface** unmarshaler,
-		::Nirvana::Pointer out_params)
+	template <class I, void (*proc) (I*, IORequest::_ptr_type)>
+	static bool ObjProcWrapper (Interface* servant, Interface* call)
 	{
-		try {
-			IORequest::_ptr_type rq = IORequest::_check (call);
-			try {
-				proc ((I*)(void*)servant, rq, in_params, Type <Unmarshal>::inout (unmarshaler), out_params);
-				rq->success ();
-			} catch (Exception& e) {
-				Any any;
-				any <<= std::move (e);
-				rq->set_exception (any);
-			}
-		} catch (...) {
-		}
-	}
-
-	class Request :
-		public ImplementationPseudo <Request, IORequest>,
-		public LifeCycleStack
-	{
-	public:
-		Request () :
-			mem_context_ (&::Nirvana::Core::MemContext::current ()),
-			success_ (false)
-		{
-			exception_.reset ();
-		}
-
-		Marshal_ptr marshaler ()
-		{
-			if (!marshaler_)
-				marshaler_ = (new ServantMarshaler (*mem_context_))->marshaler ();
-			return marshaler_;
-		}
-
-		void set_exception (Any& exc)
-		{
-			I_ptr <TypeCode> tc = exc.type ();
-			if (tc)
-				Type <Any>::marshal_out (exc, marshaler (), exception_);
-		}
-
-		void success ()
-		{
-			success_ = true;
-		}
-
-		Unmarshal::_ref_type check ()
-		{
-			Unmarshal::_ref_type u = ServantMarshaler::unmarshaler (marshaler_);
-			marshaler_ = nullptr;
-			if (!success_) {
-				if (exception_.type ()) {
-					Any exc;
-					Type <Any>::unmarshal (exception_, u, exc);
-					Octet tmp [sizeof (SystemException)];
-					SystemException* pse = (SystemException*)tmp;
-					if (exc >>= *pse)
-						pse->_raise ();
-					else
-						throw UnknownUserException (std::move (exc));
-				} else
-					throw UNKNOWN ();
-			}
-			return u;
-		}
-
-	private:
-		::Nirvana::Core::CoreRef <::Nirvana::Core::MemContext> mem_context_;
-		Marshal::_ref_type marshaler_;
-		ABI <Any> exception_;
-		bool success_;
-	};
-
-public:
-	Marshal::_ref_type create_marshaler () const
-	{
-		return make_reference <ServantMarshaler> (std::ref (*sync_context_))->marshaler ();
-	}
-
-	Unmarshal::_ref_type call (OperationIndex op,
-		const void* in_params, size_t in_params_size,
-		Marshal::_ref_type& marshaler,
-		void* out_params, size_t out_params_size)
-	{
-		size_t idx = interface_idx (op);
-		if (idx >= interfaces ().size ())
-			throw BAD_OPERATION ();
-		const InterfaceEntry& ie = interfaces () [idx];
-		idx = operation_idx (op);
-		if (idx >= ie.operations.size)
-			throw BAD_OPERATION ();
-		Unmarshal::_ref_type u = ServantMarshaler::unmarshaler (marshaler);
-		marshaler = nullptr;
-		Request request;
-		ServantMarshaler* pmar = static_cast <ServantMarshaler*> (&Unmarshal::_ptr_type (u));
-		Nirvana::Core::MemContext* memory = pmar ? pmar->memory () : nullptr;
-#ifdef _DEBUG
-		size_t dbg_stack_size0 = Nirvana::Core::Thread::current ().exec_domain ()->dbg_context_stack_size_;
-#endif
-		SYNC_BEGIN (get_sync_context (op), memory);
-		(ie.operations.p [idx].invoke) (&ie.implementation, &request._get_ptr (), in_params, &Type <Unmarshal>::C_inout (u), out_params);
-		SYNC_END ();
-#ifdef _DEBUG
-		size_t dbg_stack_size1 = Nirvana::Core::Thread::current ().exec_domain ()->dbg_context_stack_size_;
-		assert (dbg_stack_size0 == dbg_stack_size1);
-#endif
-		return request.check ();
+		return call_request_proc ((RqProcInternal)proc, servant, call);
 	}
 
 private:
