@@ -206,7 +206,7 @@ bool RequestLocal::unmarshal_seq (size_t align, size_t element_size,
 {
 	size_t cnt = *(size_t*)get_data (alignof (size_t), sizeof (size_t));
 	if (cnt) {
-		size_t size = element_size * element_count;
+		size_t size = element_size * cnt;
 		void* segment = get_data (alignof (size_t), sizeof (size_t));
 		size_t allocated = *(size_t*)segment;
 		if (allocated) {
@@ -220,6 +220,9 @@ bool RequestLocal::unmarshal_seq (size_t align, size_t element_size,
 			allocated_size = 0;
 			data = get_data (align, size);
 		}
+	} else {
+		allocated_size = 0;
+		data = nullptr;
 	}
 	element_count = cnt;
 	return false;
