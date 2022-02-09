@@ -250,7 +250,7 @@ Interface::_ref_type RequestLocal::unmarshal_interface (String_in interface_id)
 		Nirvana::throw_MARSHAL ();
 	Interface::_check (rec->ptr, interface_id);
 	interfaces_ = rec->next;
-	return (Interface::_ref_type&)(rec->ptr);
+	return move ((Interface::_ref_type&)(rec->ptr));
 }
 
 }
