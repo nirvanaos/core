@@ -155,7 +155,7 @@ ProxyManager::ProxyManager (const Bridge <IOReference>::EPV& epv_ior, const Brid
 		ie->proxy = &static_cast <Bridge <Object>&> (*this);
 		ie->operations.p = object_ops;
 		ie->operations.size = 3;
-		ie->implementation = (Interface*)object_impl;
+		ie->implementation = reinterpret_cast <Interface*> (object_impl);
 		++ie;
 	}
 

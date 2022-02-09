@@ -109,7 +109,7 @@ void ProxyObject::implicit_deactivate ()
 	}
 }
 
-inline void ProxyObject::non_existent_request (ProxyObject* _servant, IORequest::_ptr_type _rq)
+void ProxyObject::non_existent_request (ProxyObject* _servant, IORequest::_ptr_type _rq)
 {
 	Boolean _ret = _servant->servant_->_non_existent ();
 	Type <Boolean>::marshal_out (_ret, _rq);

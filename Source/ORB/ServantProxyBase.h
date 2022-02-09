@@ -132,7 +132,11 @@ protected:
 		}
 	}
 
-	template <class I, void (*proc) (I*, IORequest::_ptr_type)>
+	typedef void (*RqProcInternal) (void* servant, IORequest::_ptr_type call);
+
+	static bool call_request_proc (RqProcInternal proc, void* servant, Interface* call);
+
+	template <class Impl, void (*proc) (Impl*, IORequest::_ptr_type)>
 	static bool ObjProcWrapper (Interface* servant, Interface* call)
 	{
 		return call_request_proc ((RqProcInternal)proc, servant, call);

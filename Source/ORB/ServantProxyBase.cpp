@@ -123,6 +123,24 @@ void ServantProxyBase::call (RequestLocal& rq) NIRVANA_NOEXCEPT
 	}
 }
 
+bool ServantProxyBase::call_request_proc (RqProcInternal proc, void* servant, Interface* call)
+{
+	IORequest::_ptr_type rq = IORequest::_nil ();
+	try {
+		rq = IORequest::_check (call);
+		proc (servant, rq);
+		rq->success ();
+	} catch (Exception& e) {
+		if (!rq)
+			return false;
+
+		Any any;
+		any <<= std::move (e);
+		rq->set_exception (any);
+	}
+	return true;
+}
+
 }
 }
 }
