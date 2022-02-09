@@ -283,13 +283,37 @@ public:
 	/// 
 	/// \param val  ValueBase.
 	/// \param move Use move semantics. Do not perform deep copy.
-	void marshal_value (ValueBase::_ptr_type val, bool move)
+	void marshal_value (Interface::_ptr_type val, bool move)
 	{
-		if (move)
+		if (move || !val)
 			marshal_interface (val);
 		else {
-			ValueBase::_ref_type copy = val->_copy_value ();
-			marshal_interface ((ValueBase::_ptr_type)copy);
+			ValueBase::_ptr_type base;
+			const Char* interface_id = val->_epv ().interface_id;
+			if (RepId::compatible (interface_id, ValueBase::repository_id_))
+				base = (ValueBase*)&val;
+			else {
+				// Standard value type EPV starts from:
+				struct EPV
+				{
+					Interface::EPV header;
+					struct
+					{
+						Interface* (*to_base) (Interface*, String_in, Interface*);
+					} base;
+				};
+
+				Environment env;
+				Interface* p = ((const EPV&)val->_epv ()).base.to_base (&val, ValueBase::repository_id_, &env);
+				env.check ();
+				base = ValueBase::_check (p);
+			}
+
+			ValueBase::_ref_type copy = base->_copy_value ();
+			Interface::_ptr_type itf = AbstractBase::_ptr_type (copy)->_query_interface (interface_id);
+			if (!itf)
+				Nirvana::throw_MARSHAL ();
+			marshal_interface (itf);
 		}
 	}
 
@@ -300,14 +324,7 @@ public:
 	/// \returns Value type interface.
 	Interface::_ref_type unmarshal_value (String_in interface_id)
 	{
-		ValueBase::_ref_type vb = unmarshal_interface (ValueBase::repository_id_).template downcast <ValueBase> ();
-		Interface::_ref_type itf;
-		if (vb) {
-			itf = ((AbstractBase::_ptr_type)vb)->_query_interface (interface_id);
-			if (!itf)
-				Nirvana::throw_INV_OBJREF ();
-		}
-		return itf;
+		return unmarshal_interface (interface_id);
 	}
 
 	///@}
@@ -484,7 +501,7 @@ private:
 	{
 		size_t allocated_size;
 
-		// If allocated_size is not zero, following members are valid.
+		// If allocated_size is not zero, following members are present.
 		// Otherwise, the sequence data are follows immediate
 		// after allocated_size.
 		void* allocated_memory;
@@ -494,6 +511,7 @@ private:
 	struct ItfRecord
 	{
 		Interface* ptr;
+		// next is present if ptr != nullptr
 		ItfRecord* next;
 	};
 

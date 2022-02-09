@@ -181,7 +181,7 @@ void RequestLocal::marshal_seq (size_t align, size_t element_size,
 		if (allocated_size && allocated_size < size)
 			throw_MARSHAL ();
 		if (element_count <= max_inline_string) {
-			*(size_t*)allocate_space (alignof (size_t), sizeof (size_t)) = 0;
+			*(size_t*)allocate_space (alignof (Segment), sizeof (size_t)) = 0;
 			real_copy ((const Octet*)data, (const Octet*)data + size, (Octet*)allocate_space (align, size));
 			if (allocated_size)
 				source_memory ().release (data, allocated_size);
@@ -213,13 +213,13 @@ bool RequestLocal::unmarshal_seq (size_t align, size_t element_size,
 	size_t cnt = *(size_t*)get_data (alignof (size_t), sizeof (size_t));
 	if (cnt) {
 		size_t size = element_size * cnt;
-		Segment* segment = (Segment*)get_data (alignof (size_t), sizeof (size_t));
+		Segment* segment = (Segment*)get_data (alignof (Segment), sizeof (segment->allocated_size));
 		size_t allocated = segment->allocated_size;
 		if (allocated) {
 			if (segments_ != segment || allocated < size)
 				throw_MARSHAL ();
 			allocated_size = allocated;
-			get_data (1, sizeof (Segment) - sizeof (size_t));
+			get_data (1, sizeof (Segment) - sizeof (segment->allocated_size));
 			data = segment->allocated_memory;
 			segments_ = segment->next;
 		} else {
@@ -237,20 +237,27 @@ bool RequestLocal::unmarshal_seq (size_t align, size_t element_size,
 void RequestLocal::marshal_interface (Interface::_ptr_type itf)
 {
 	marshal_op ();
-	ItfRecord* rec = (ItfRecord*)allocate_space (alignof (ItfRecord), sizeof (ItfRecord));
-	rec->ptr = interface_duplicate (&itf);
-	rec->next = interfaces_;
-	interfaces_ = rec;
+	if (itf) {
+		ItfRecord* rec = (ItfRecord*)allocate_space (alignof (ItfRecord), sizeof (ItfRecord));
+		rec->ptr = interface_duplicate (&itf);
+		rec->next = interfaces_;
+		interfaces_ = rec;
+	} else
+		*(Interface**)allocate_space (alignof (ItfRecord*), sizeof (Interface*)) = nullptr;
 }
 
 Interface::_ref_type RequestLocal::unmarshal_interface (String_in interface_id)
 {
-	ItfRecord* rec = (ItfRecord*)get_data (alignof (ItfRecord), sizeof (ItfRecord));
-	if (interfaces_ != rec)
-		Nirvana::throw_MARSHAL ();
-	Interface::_check (rec->ptr, interface_id);
-	interfaces_ = rec->next;
-	return move ((Interface::_ref_type&)(rec->ptr));
+	ItfRecord* rec = (ItfRecord*)get_data (alignof (ItfRecord), sizeof (rec->ptr));
+	if (rec->ptr) {
+		if (interfaces_ != rec)
+			Nirvana::throw_MARSHAL ();
+		get_data (1, sizeof (ItfRecord) - sizeof (rec->ptr));
+		Interface::_check (rec->ptr, interface_id);
+		interfaces_ = rec->next;
+		return move ((Interface::_ref_type&)(rec->ptr));
+	} else
+		return nullptr;
 }
 
 }
