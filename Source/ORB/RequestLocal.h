@@ -426,7 +426,7 @@ protected:
 		EXCEPTION
 	};
 
-	RequestLocal (ServantProxyBase& proxy, uint32_t op_idx) NIRVANA_NOEXCEPT :
+	RequestLocal (ServantProxyBase& proxy, IOReference::OperationIndex op_idx) NIRVANA_NOEXCEPT :
 		proxy_ (&proxy),
 		op_idx_ (op_idx),
 		state_ (State::CALLER),

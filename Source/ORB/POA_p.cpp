@@ -133,8 +133,8 @@ const Parameter Proxy <::PortableServer::POA>::__par_in_deactivate_object [1] = 
 };
 
 const Operation Proxy <::PortableServer::POA>::__operations [] = {
-	{ "activate_object", { __par_in_activate_object, countof (__par_in_activate_object) }, {0, 0}, Type <String>::type_code, RqProcWrapper < ::PortableServer::POA, __rq_activate_object> },
-	{ "deactivate_object", { __par_in_deactivate_object, countof (__par_in_deactivate_object) }, {0, 0}, Type <void>::type_code, RqProcWrapper < ::PortableServer::POA, __rq_deactivate_object> }
+	{ "activate_object", { __par_in_activate_object, countof (__par_in_activate_object) }, {0, 0}, Type <String>::type_code, RqProcWrapper <__rq_activate_object> },
+	{ "deactivate_object", { __par_in_deactivate_object, countof (__par_in_deactivate_object) }, {0, 0}, Type <void>::type_code, RqProcWrapper <__rq_deactivate_object> }
 };
 
 const Char* const Proxy <::PortableServer::POA>::__interfaces [] = {

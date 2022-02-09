@@ -211,13 +211,13 @@ ProxyManager::ProxyManager (const Bridge <IOReference>::EPV& epv_ior, const Brid
 	OperationEntry* op = operations_.begin ();
 	ie = interfaces_.begin ();
 	do {
-		IOReference::OperationIndex idx = make_op_idx ((UShort)(ie - interfaces_.begin ()), 0);
+		IOReference::OperationIndex idx ((UShort)(ie - interfaces_.begin ()), 0);
 		for (const Operation* p = ie->operations.p, *end = p + ie->operations.size; p != end; ++p) {
 			const Char* name = p->name;
 			op->name = name;
 			op->name_len = strlen (name);
 			op->idx = idx;
-			++idx;
+			++idx.operation_idx ();
 			++op;
 		}
 	} while (interfaces_.end () != ++ie);

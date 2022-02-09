@@ -28,10 +28,12 @@
 #define NIRVANA_ORB_CORE_PROXYMANAGER_H_
 #pragma once
 
+#include "CORBA/CORBA.h"
 #include "../Synchronized.h"
 #include "../Array.h"
 #include "../CoreObject.h"
-#include <CORBA/Proxy/Proxy.h>
+#include <CORBA/Proxy/InterfaceMetadata.h>
+#include <CORBA/Proxy/ProxyFactory.h>
 
 namespace CORBA {
 namespace Internal {
@@ -158,7 +160,7 @@ protected:
 
 	IOReference::OperationIndex _make_op_idx (UShort op_idx) const
 	{
-		return make_op_idx (object_itf_idx_, op_idx);
+		return IOReference::OperationIndex (object_itf_idx_, op_idx);
 	}
 
 	// Object operation indexes

@@ -37,9 +37,6 @@
 #include <CORBA/AbstractBase_s.h>
 #include <CORBA/Object_s.h>
 #include "IDL/IOReference_s.h"
-#include "IDL/IORequest.h"
-#include "LifeCycleStack.h"
-#include <utility>
 
 namespace CORBA {
 namespace Internal {

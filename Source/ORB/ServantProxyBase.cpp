@@ -93,11 +93,11 @@ void ServantProxyBase::call (RequestLocal& rq) NIRVANA_NOEXCEPT
 {
 	try {
 		OperationIndex op = rq.op_idx ();
-		size_t idx = interface_idx (op);
+		size_t idx = op.interface_idx ();
 		if (idx >= interfaces ().size ())
 			throw BAD_OPERATION ();
 		const InterfaceEntry& ie = interfaces () [idx];
-		idx = operation_idx (op);
+		idx = op.operation_idx ();
 		if (idx >= ie.operations.size)
 			throw BAD_OPERATION ();
 #ifdef _DEBUG
