@@ -23,19 +23,15 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_CORE_SYSTEM_H_
-#define NIRVANA_CORE_SYSTEM_H_
-#pragma once
-
 #include <CORBA/Server.h>
-#include "IDL/System_s.h"
-#include "Binder.h"
-#include "Chrono.h"
-#include "ExecDomain.h"
-#include "HeapDynamic.h"
+#include <IDL/System_s.h>
+#include <Binder.h>
+#include <Chrono.h>
+#include <ExecDomain.h>
+#include <HeapDynamic.h>
 #include <Port/SystemInfo.h>
 #include <Port/Debugger.h>
-#include "Legacy/Mutex.h"
+#include <Legacy/Mutex.h>
 
 namespace Nirvana {
 namespace Core {
@@ -165,6 +161,10 @@ public:
 };
 
 }
+
+__declspec (selectany)
+const ImportInterfaceT <System> g_system = { OLF_IMPORT_INTERFACE, "Nirvana/g_system", System::repository_id_, NIRVANA_STATIC_BRIDGE (System, Core::System) };
+
 }
 
-#endif
+NIRVANA_EXPORT (_exp_Nirvana_g_system, "Nirvana/g_system", Nirvana::System, Nirvana::Core::System)

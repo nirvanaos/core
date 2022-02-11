@@ -23,13 +23,9 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_CORE_MEMORY_H_
-#define NIRVANA_CORE_MEMORY_H_
-#pragma once
-
 #include <CORBA/Server.h>
-#include "IDL/Memory_s.h"
-#include "ExecDomain.h"
+#include <IDL/Memory_s.h>
+#include <ExecDomain.h>
 
 namespace Nirvana {
 namespace Core {
@@ -92,6 +88,10 @@ public:
 };
 
 }
+
+__declspec (selectany)
+const ImportInterfaceT <Memory> g_memory = { OLF_IMPORT_INTERFACE, "Nirvana/g_memory", Memory::repository_id_, NIRVANA_STATIC_BRIDGE (Memory, Core::Memory) };
+
 }
 
-#endif
+NIRVANA_EXPORT (_exp_Nirvana_g_memory, "Nirvana/g_memory", Nirvana::Memory, Nirvana::Core::Memory)

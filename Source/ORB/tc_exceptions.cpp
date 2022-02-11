@@ -79,7 +79,6 @@ const Parameter TypeCodeMembers <UnknownUserException>::members_ [] = {
 typedef TypeCodeException <UnknownUserException, true> TC_UnknownUserException;
 
 SYSTEM_EXCEPTIONS (TC_EXCEPTION)
-//TC_EXCEPTION (UnknownUserException)
 
 }
 }
