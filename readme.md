@@ -2,9 +2,23 @@
 
 This is a part of the Nirvana project.
 
-## Purpose
-
 This repository contains source code for the Nirvana core.
+
+## Folders
+
+### Source
+
+This folder contains sources and headers for the CoreLib.
+CoreLib is a library of different core classes that may be tested separately,
+without the Core build.
+
+### Exports
+
+This folder contains sources which must be included directly into the core build.
+
+### Test
+
+Various tests.
 
 ## How to build
 This repository does not contain any project files.
