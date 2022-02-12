@@ -32,6 +32,7 @@
 #include "../ExecDomain.h"
 #include "../MemContext.h"
 #include "IDL/IORequest_s.h"
+#include "MarshalHelper.h"
 
 namespace CORBA {
 namespace Internal {
@@ -43,7 +44,8 @@ class RequestLocal :
 	public Servant <RequestLocal, IORequest>,
 	public Nirvana::Core::LifeCyclePseudo <RequestLocal>,
 	public Nirvana::Core::Runnable,
-	public Nirvana::Core::UserObject
+	public Nirvana::Core::UserObject,
+	private MarshalHelper
 {
 public:
 	static const size_t BLOCK_SIZE = (32 * sizeof (size_t)
@@ -282,40 +284,16 @@ public:
 	/// Marshal value type.
 	/// 
 	/// \param val  ValueBase.
-	/// \param move Use move semantics. Do not perform deep copy.
-	void marshal_value (Interface::_ptr_type val, bool move)
+	/// \param output Output parameter marshaling. Haven't to perform deep copy.
+	void marshal_value (Interface::_ptr_type val, bool output)
 	{
-		if (move || !val)
+		if (output || !val)
 			marshal_interface (val);
-		else {
-			ValueBase::_ptr_type base;
-			const Char* interface_id = val->_epv ().interface_id;
-			if (RepId::compatible (interface_id, ValueBase::repository_id_))
-				base = (ValueBase*)&val;
-			else {
-				// Standard value type EPV starts from:
-				struct EPV
-				{
-					Interface::EPV header;
-					struct
-					{
-						Interface* (*to_base) (Interface*, String_in, Interface*);
-					} base;
-				};
-
-				Environment env;
-				Interface* p = ((const EPV&)val->_epv ()).base.to_base (&val, ValueBase::repository_id_, &env);
-				env.check ();
-				base = ValueBase::_check (p);
-			}
-
-			ValueBase::_ref_type copy = base->_copy_value ();
-			Interface::_ptr_type itf = AbstractBase::_ptr_type (copy)->_query_interface (interface_id);
-			if (!itf)
-				Nirvana::throw_MARSHAL ();
-			marshal_interface (itf);
-		}
+		else
+			marshal_value_copy (value_type2base (val), val->_epv ().interface_id);
 	}
+
+	void marshal_value_copy (ValueBase::_ptr_type base, String_in interface_id);
 
 	/// Unmarshal value type.
 	/// 
@@ -323,6 +301,38 @@ public:
 	/// 
 	/// \returns Value type interface.
 	Interface::_ref_type unmarshal_value (String_in interface_id)
+	{
+		return unmarshal_interface (interface_id);
+	}
+
+	/// Marshal abstract interface.
+	/// 
+	/// \param itf The interface derived from AbstractBase.
+	/// \param output Output parameter marshaling. Haven't to perform deep copy.
+	void marshal_abstract (Interface::_ptr_type itf, bool output)
+	{
+		if (output || !itf)
+			marshal_interface (itf);
+		else {
+			// Downcast to AbstractBase
+			AbstractBase::_ptr_type base = abstract_interface2base (itf);
+			if (base->_to_object ())
+				marshal_interface (itf);
+			else {
+				ValueBase::_ref_type value = base->_to_value ();
+				if (!value)
+					Nirvana::throw_MARSHAL ();
+				marshal_value_copy (value, itf->_epv ().interface_id);
+			}
+		}
+	}
+
+	/// Unmarshal abstract interface.
+	/// 
+	/// \param rep_id The interface repository id.
+	/// 
+	/// \returns Interface.
+	Interface::_ref_type unmarshal_abstract (String_in interface_id)
 	{
 		return unmarshal_interface (interface_id);
 	}

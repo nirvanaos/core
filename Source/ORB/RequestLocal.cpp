@@ -260,6 +260,15 @@ Interface::_ref_type RequestLocal::unmarshal_interface (String_in interface_id)
 		return nullptr;
 }
 
+void RequestLocal::marshal_value_copy (ValueBase::_ptr_type base, String_in interface_id)
+{
+	ValueBase::_ref_type copy = base->_copy_value ();
+	Interface::_ptr_type itf = AbstractBase::_ptr_type (copy)->_query_interface (interface_id);
+	if (!itf)
+		Nirvana::throw_MARSHAL ();
+	marshal_interface (itf);
+}
+
 }
 }
 }
