@@ -41,21 +41,19 @@ namespace Nirvana {
 namespace Legacy {
 namespace Core {
 
-class NIRVANA_NOVTABLE MutexCore :
-	protected Nirvana::Core::SyncDomain
+class MutexCore :
+	public Nirvana::Core::SyncDomain
 {
 public:
-
-	void lock ();
-	void unlock ();
-
-protected:
 	MutexCore (Nirvana::Core::MemContext& mem_context) :
 		Nirvana::Core::SyncDomain (mem_context),
 		owner_ (nullptr)
 	{}
 
 	~MutexCore ();
+
+	void lock ();
+	void unlock ();
 
 protected:
 	ThreadLegacy* owner_;

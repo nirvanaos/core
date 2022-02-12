@@ -55,7 +55,9 @@ void Process::run ()
 	v.reserve (argv_.size () + envp_.size () + 2);
 	copy_strings (argv_, v);
 	copy_strings (envp_, v);
+	mutex_.construct (std::ref (*this));
 	ret_ = main ((int)argv_.size (), v.data (), v.data () + argv_.size () + 1);
+	mutex_.destruct ();
 }
 
 void Process::on_exception () NIRVANA_NOEXCEPT
@@ -68,6 +70,38 @@ void Process::on_crash (int error_code) NIRVANA_NOEXCEPT
 {
 	ret_ = -1;
 	console_ << "Process crashed.\n";
+}
+
+RuntimeProxy::_ref_type Process::runtime_proxy_get (const void* obj)
+{
+	if (!RUNTIME_SUPPORT_DISABLE) {
+		std::lock_guard <MutexCore> lock (mutex_);
+		return MemContextEx::runtime_proxy_get (obj);
+	} else
+		return nullptr;
+}
+
+void Process::runtime_proxy_remove (const void* obj)
+{
+	if (!RUNTIME_SUPPORT_DISABLE) {
+		mutex_->lock ();
+		MemContextEx::runtime_proxy_remove (obj);
+		mutex_->unlock ();
+	}
+}
+
+void Process::on_object_construct (MemContextObject& obj)
+{
+	mutex_->lock ();
+	MemContextEx::on_object_construct (obj);
+	mutex_->unlock ();
+}
+
+void Process::on_object_destruct (MemContextObject& obj)
+{
+	mutex_->lock ();
+	obj.remove ();
+	mutex_->unlock ();
 }
 
 }

@@ -30,8 +30,9 @@
 
 #include "Executable.h"
 #include "ExecDomain.h"
-#include "MemContextProcess.h"
+#include "../MemContextEx.h"
 #include "Console.h"
+#include "Mutex.h"
 
 namespace Nirvana {
 namespace Legacy {
@@ -39,14 +40,16 @@ namespace Core {
 
 /// Legacy process.
 class NIRVANA_NOVTABLE Process :
-	public Nirvana::Core::CoreObject,
 	public Executable,
+	public Nirvana::Core::MemContextEx,
 	public Nirvana::Core::Runnable
 {
+	DECLARE_CORE_INTERFACE
+
 public:
 	void spawn ()
 	{
-		Nirvana::Core::ExecDomain::start_legacy_thread (*this, mem_context_);
+		Nirvana::Core::ExecDomain::start_legacy_thread (*this, *this);
 	}
 
 	int ret () const
@@ -79,8 +82,15 @@ private:
 	typedef std::vector <char*, Nirvana::Core::UserAllocator <char*> > Pointers;
 	static void copy_strings (Strings& src, Pointers& dst);
 
+	// MemContext methods
+
+	virtual RuntimeProxy::_ref_type runtime_proxy_get (const void* obj);
+	virtual void runtime_proxy_remove (const void* obj);
+	virtual void on_object_construct (Nirvana::Core::MemContextObject& obj);
+	virtual void on_object_destruct (Nirvana::Core::MemContextObject& obj);
+
 private:
-	Nirvana::Core::ImplStatic <MemContextProcess> mem_context_;
+	Nirvana::Core::StaticallyAllocated <Nirvana::Core::ImplStatic <MutexCore> > mutex_;
 	Nirvana::Core::Console console_;
 	Strings argv_, envp_;
 	int ret_;

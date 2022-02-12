@@ -37,14 +37,15 @@ namespace Core {
 
 template <class> class CoreRef;
 
+#define DECLARE_CORE_INTERFACE protected:\
+template <class> friend class Nirvana::Core::CoreRef;\
+virtual void _add_ref () NIRVANA_NOEXCEPT = 0;\
+virtual void _remove_ref () NIRVANA_NOEXCEPT = 0;
+
 /// Core interface.
 class NIRVANA_NOVTABLE CoreInterface
 {
-protected:
-	template <class> friend class CoreRef;
-
-	virtual void _add_ref () NIRVANA_NOEXCEPT = 0;
-	virtual void _remove_ref () NIRVANA_NOEXCEPT = 0;
+	DECLARE_CORE_INTERFACE
 };
 
 template <class T> class CoreRef;
