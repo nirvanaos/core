@@ -31,10 +31,11 @@ namespace CORBA {
 namespace Internal {
 
 template <typename T, TCKind tk>
-class TypeCodeScalar : public TypeCodeStatic <TypeCodeScalar <T, tk>, TypeCodeTK <tk>, TypeCodeOps <T> > {};
+class TypeCodeScalar : public TypeCodeStatic <TypeCodeScalar <T, tk>,
+	TypeCodeTK <tk>, TypeCodeOps <T> > {};
 
-class TC_Object :
-	public TypeCodeStatic <TC_Object, TypeCodeWithId <TCKind::tk_objref, Object>, TypeCodeOps <Object> >
+class TC_Object : public TypeCodeStatic <TC_Object,
+	TypeCodeWithId <TCKind::tk_objref, Object>, TypeCodeOps <Object> >
 {
 public:
 	static Type <String>::ABI_ret _name (Bridge <TypeCode>* _b, Interface* _env)
@@ -43,8 +44,8 @@ public:
 	}
 };
 
-class TC_ValueBase :
-	public TypeCodeStatic <TC_ValueBase, TypeCodeWithId <TCKind::tk_value, ValueBase>, TypeCodeOps <ValueBase> >
+class TC_ValueBase : public TypeCodeStatic <TC_ValueBase,
+	TypeCodeWithId <TCKind::tk_value, ValueBase>, TypeCodeOps <ValueBase> >
 {
 public:
 	static Type <String>::ABI_ret _name (Bridge <TypeCode>* _b, Interface* _env)
@@ -53,11 +54,9 @@ public:
 	}
 };
 
-class TC_TypeCode :
-	public TypeCodeStatic <TC_TypeCode, TypeCodeTK <TCKind::tk_TypeCode>, TypeCodeOps <TypeCode> >
+class TC_TypeCode : public TypeCodeStatic <TC_TypeCode,
+	TypeCodeWithId <TCKind::tk_TypeCode, TypeCode>, TypeCodeOps <TypeCode> >
 {
-public:
-	typedef TypeCode RepositoryType;
 };
 
 }

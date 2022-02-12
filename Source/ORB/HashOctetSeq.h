@@ -1,3 +1,4 @@
+/// \file
 /*
 * Nirvana Core.
 *
@@ -23,13 +24,26 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include <CORBA/Server.h>
-#include "POA.h"
+#ifndef NIRVANA_ORB_CORE_HASHOCTETSEQ_H_
+#define NIRVANA_ORB_CORE_HASHOCTETSEQ_H_
+#pragma once
 
-namespace PortableServer {
-namespace Core {
+#include <CORBA/CORBA.h>
+#include <CORBA/OctetSeq.h>
+#include <Nirvana/Hash.h>
+#include <functional>
 
-Nirvana::Core::StaticallyAllocated <PortableServer::POA::_ref_type> g_root_POA;
+namespace std {
+
+template <>
+struct hash <CORBA::OctetSeq>
+{
+	size_t operator () (const CORBA::OctetSeq& seq) const
+	{
+		return Nirvana::Hash::hash_bytes (seq.data (), seq.size ());
+	}
+};
 
 }
-}
+
+#endif

@@ -57,6 +57,7 @@ EXPORT_TC (TCKind)
 EXPORT_TC (TypeCode)
 EXPORT_TC (TypeCode_BadKind)
 EXPORT_TC (TypeCode_Bounds)
+EXPORT_TC (ValueBase)
 
 SYSTEM_EXCEPTIONS(EXPORT_TC)
 

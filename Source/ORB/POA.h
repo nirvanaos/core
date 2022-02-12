@@ -27,19 +27,20 @@
 #define NIRVANA_ORB_CORE_POA_H_
 #pragma once
 
+#include <CORBA/Server.h>
 #include "ServantBase.h"
-#include <CORBA/POA_s.h>
+#include "IDL/PortableServer_s.h"
 #include "../parallel-hashmap/parallel_hashmap/phmap.h"
+#include "HashOctetSeq.h"
 #include "../StaticallyAllocated.h"
 
-namespace CORBA {
-namespace Internal {
+namespace PortableServer {
 namespace Core {
 
 extern Nirvana::Core::StaticallyAllocated <PortableServer::POA::_ref_type> g_root_POA; // Temporary solution
 
 class POA :
-	public Servant <POA, PortableServer::POA>
+	public CORBA::servant_traits <PortableServer::POA>::Servant <POA>
 {
 public:
 	POA ()
@@ -48,30 +49,34 @@ public:
 	~POA ()
 	{}
 
-	static Type <String>::ABI_ret _activate_object (Bridge <PortableServer::POA>* obj, Interface* servant, Interface* env)
+	static CORBA::Internal::Type <ObjectId>::ABI_ret _activate_object (
+		CORBA::Internal::Bridge <PortableServer::POA>* _b, Interface* servant,
+		Interface* env)
 	{
 		try {
-			return Type <String>::ret (_implementation (obj).activate_object (Type <Object>::in (servant)));
-		} catch (Exception& e) {
+			return CORBA::Internal::Type <ObjectId>::ret (_implementation (_b).
+				activate_object (CORBA::Internal::Type <CORBA::Object>::in (servant)));
+		} catch (CORBA::Exception& e) {
 			set_exception (env, e);
 		} catch (...) {
 			set_unknown_exception (env);
 		}
-		return Type <String>::ABI_ret ();
+		return CORBA::Internal::Type <ObjectId>::ret ();
 	}
 
-	String activate_object (Object::_ptr_type proxy)
+	ObjectId activate_object (CORBA::Object::_ptr_type proxy)
 	{
 		if (active_object_map_.empty ())
 			_add_ref ();
-		std::pair <AOM::iterator, bool> ins = active_object_map_.emplace (std::to_string ((uintptr_t)&proxy), 
-			Object::_ref_type (proxy));
+		uintptr_t ptr = (uintptr_t)&proxy;
+		ObjectId objid ((const CORBA::Octet*)&ptr, (const CORBA::Octet*)(&ptr + 1));
+		std::pair <AOM::iterator, bool> ins = active_object_map_.emplace (objid, proxy);
 		if (!ins.second)
 			throw PortableServer::POA::ServantAlreadyActive ();
-		return ins.first->first;
+		return objid;
 	}
 
-	void deactivate_object (const String& oid)
+	void deactivate_object (const ObjectId& oid)
 	{
 		if (!active_object_map_.erase (oid))
 			throw PortableServer::POA::ObjectNotActive ();
@@ -80,11 +85,17 @@ public:
 	}
 
 private:
-	typedef phmap::flat_hash_map <String, Object::_ref_type> AOM;
+	// Active Object Map (AOM)
+	typedef ObjectId Key;
+	typedef CORBA::Object::_ref_type Val;
+
+	typedef phmap::flat_hash_map <Key, Val, 
+		std::hash <Key>, std::equal_to <Key>, Nirvana::Core::UserAllocator
+		<std::pair <Key, Val> > > AOM;
+
 	AOM active_object_map_;
 };
 
-}
 }
 }
 

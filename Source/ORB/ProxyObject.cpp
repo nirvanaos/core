@@ -25,7 +25,7 @@
 */
 #include "ProxyObject.h"
 #include "../Runnable.h"
-#include <CORBA/POA.h>
+#include "IDL/PortableServer.h"
 
 namespace CORBA {
 namespace Internal {
@@ -98,7 +98,7 @@ void ProxyObject::add_ref_1 ()
 // Called from Deactivator in the servant synchronization context.
 void ProxyObject::implicit_deactivate ()
 {
-	String tmp = std::move (implicit_activated_id_);
+	PortableServer::ObjectId tmp = std::move (implicit_activated_id_);
 	if (change_state (DEACTIVATION_SCHEDULED, INACTIVE)) {
 		servant_->_default_POA ()->deactivate_object (tmp);
 	} else {

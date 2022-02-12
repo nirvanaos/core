@@ -41,8 +41,6 @@ namespace Core {
 using namespace std;
 using namespace CORBA;
 using namespace CORBA::Internal;
-using namespace PortableServer;
-using CORBA::Internal::Core::POA;
 
 StaticallyAllocated <Binder> Binder::singleton_;
 bool Binder::initialized_ = false;
@@ -102,7 +100,7 @@ void Binder::terminate ()
 	initialized_ = false;
 	while (!singleton_->module_map_.empty ())
 		singleton_->unload (singleton_->module_map_.begin ());
-	CORBA::Internal::Core::g_root_POA = nullptr;
+	PortableServer::Core::g_root_POA = nullptr;
 	SYNC_END ();
 	singleton_.destruct ();
 }
@@ -181,18 +179,12 @@ const ModuleStartup* Binder::module_bind (::Nirvana::Module::_ptr_type mod, cons
 					invalid_metadata ();
 			}
 		}
-
-		if (!mod) {
-			// Create POA
-			// TODO: It is temporary solution.
-			SYNC_BEGIN (g_core_free_sync_context, nullptr);
-			CORBA::Internal::Core::g_root_POA = CORBA::make_reference <POA> ()->_this ();
-			SYNC_END ();
-		}
-
+		
 		if (flags || module_entry) {
 			if (Port::Memory::FLAGS & Memory::ACCESS_CHECK)
-				verify (Port::Memory::copy (const_cast <void*> (metadata.address), const_cast <void*> (metadata.address), metadata.size, Memory::READ_WRITE | Memory::EXACTLY));
+				verify (Port::Memory::copy (const_cast <void*> (metadata.address),
+					const_cast <void*> (metadata.address), metadata.size,
+					Memory::READ_WRITE | Memory::EXACTLY));
 
 			if (module_entry)
 				module_entry->itf = &mod;
@@ -203,63 +195,76 @@ const ModuleStartup* Binder::module_bind (::Nirvana::Module::_ptr_type mod, cons
 					if (OLF_IMPORT_INTERFACE == *it.cur ()) {
 						ImportInterface* ps = reinterpret_cast <ImportInterface*> (it.cur ());
 						if (!mod || ps != module_entry)
-							reinterpret_cast <InterfaceRef&> (ps->itf) = bind_interface_sync (ps->name, ps->interface_id);
+							reinterpret_cast <InterfaceRef&> (ps->itf) = bind_interface_sync (
+								ps->name, ps->interface_id);
 					}
 				}
+		}
 
-			// Pass 3: Export objects.
-			if (flags & MetadataFlags::EXPORT_OBJECTS) {
-				assert (mod_context); // Legacy executable can not export.
-				SYNC_BEGIN (mod_context->sync_context, nullptr);
-				for (OLF_Iterator it (metadata.address, metadata.size); !it.end (); it.next ()) {
-					switch (*it.cur ()) {
-						case OLF_EXPORT_OBJECT: {
-							ExportObject* ps = reinterpret_cast <ExportObject*> (it.cur ());
-							PortableServer::ServantBase::_ptr_type core_obj;
-							core_obj = (
-								new CORBA::Internal::Core::ServantBase (Type <PortableServer::ServantBase>::in (ps->servant_base)
-									))->_get_ptr ();
-							Object::_ptr_type obj = AbstractBase::_ptr_type (core_obj)->_query_interface <Object> ();
-							ps->core_object = &core_obj;
-							mod_context->exports.insert (ps->name, obj);
-						} break;
+		if (!mod) {
+			// Domain initialization, create POA.
+			// TODO: It is temporary solution.
+			SYNC_BEGIN (g_core_free_sync_context, nullptr);
+			PortableServer::Core::g_root_POA = CORBA::make_reference <PortableServer::Core::POA> ()->_this ();
+			SYNC_END ();
+		}
 
-						case OLF_EXPORT_LOCAL: {
-							ExportLocal* ps = reinterpret_cast <ExportLocal*> (it.cur ());
-							LocalObject::_ptr_type core_obj;
-							core_obj = (
-								new CORBA::Internal::Core::LocalObject (Type <LocalObject>::in (ps->local_object),
-									Type <AbstractBase>::in (ps->abstract_base)))->_get_ptr ();
-							Object::_ptr_type obj = core_obj;
-							ps->core_object = &core_obj;
-							mod_context->exports.insert (ps->name, obj);
-						} break;
+		// Pass 3: Export objects.
+		if (flags & MetadataFlags::EXPORT_OBJECTS) {
+			assert (mod_context); // Legacy executable can not export.
+			SYNC_BEGIN (mod_context->sync_context, nullptr);
+			for (OLF_Iterator it (metadata.address, metadata.size); !it.end (); it.next ()) {
+				switch (*it.cur ()) {
+					case OLF_EXPORT_OBJECT: {
+						ExportObject* ps = reinterpret_cast <ExportObject*> (it.cur ());
+						PortableServer::Servant core_obj;
+						core_obj = (
+							new PortableServer::Core::ServantBase (
+								Type <PortableServer::Servant>::in (ps->servant_base)
+								))->_get_ptr ();
+						Object::_ptr_type obj = AbstractBase::_ptr_type (core_obj)->_query_interface <Object> ();
+						ps->core_object = &core_obj;
+						mod_context->exports.insert (ps->name, obj);
+					} break;
+
+					case OLF_EXPORT_LOCAL: {
+						ExportLocal* ps = reinterpret_cast <ExportLocal*> (it.cur ());
+						LocalObject::_ptr_type core_obj;
+						core_obj = (
+							new CORBA::Internal::Core::LocalObject (Type <LocalObject>::in (ps->local_object),
+								Type <AbstractBase>::in (ps->abstract_base)))->_get_ptr ();
+						Object::_ptr_type obj = core_obj;
+						ps->core_object = &core_obj;
+						mod_context->exports.insert (ps->name, obj);
+					} break;
+				}
+			}
+			SYNC_END ();
+		}
+
+		// Pass 4: Import objects.
+		if (flags & MetadataFlags::IMPORT_OBJECTS)
+			for (OLF_Iterator it (metadata.address, metadata.size); !it.end (); it.next ()) {
+				if (OLF_IMPORT_OBJECT == *it.cur ()) {
+					ImportInterface* ps = reinterpret_cast <ImportInterface*> (it.cur ());
+					Object::_ref_type obj = bind_sync (ps->name);
+					const StringBase <char> requested_iid (ps->interface_id);
+					if (RepId::compatible (obj->_epv ().header.interface_id, requested_iid))
+						reinterpret_cast <Object::_ref_type&> (ps->itf) = move (obj);
+					else {
+						InterfacePtr itf = AbstractBase::_ptr_type (obj)->_query_interface (requested_iid);
+						if (!itf)
+							throw_INV_OBJREF ();
+						ps->itf = interface_duplicate (&itf);
 					}
 				}
-				SYNC_END ();
 			}
 
-			// Pass 4: Import objects.
-			if (flags & MetadataFlags::IMPORT_OBJECTS)
-				for (OLF_Iterator it (metadata.address, metadata.size); !it.end (); it.next ()) {
-					if (OLF_IMPORT_OBJECT == *it.cur ()) {
-						ImportInterface* ps = reinterpret_cast <ImportInterface*> (it.cur ());
-						Object::_ref_type obj = bind_sync (ps->name);
-						const StringBase <char> requested_iid (ps->interface_id);
-						if (RepId::compatible (obj->_epv ().header.interface_id, requested_iid))
-							reinterpret_cast <Object::_ref_type&> (ps->itf) = move (obj);
-						else {
-							InterfacePtr itf = AbstractBase::_ptr_type (obj)->_query_interface (requested_iid);
-							if (!itf)
-								throw_INV_OBJREF ();
-							ps->itf = interface_duplicate (&itf);
-						}
-					}
-				}
+		if (Port::Memory::FLAGS & Memory::ACCESS_CHECK && (flags || module_entry))
+			verify (Port::Memory::copy (const_cast <void*> (metadata.address),
+				const_cast <void*> (metadata.address), metadata.size,
+				Memory::READ_ONLY | Memory::EXACTLY));
 
-			if (Port::Memory::FLAGS & Memory::ACCESS_CHECK)
-				verify (Port::Memory::copy (const_cast <void*> (metadata.address), const_cast <void*> (metadata.address), metadata.size, Memory::READ_ONLY | Memory::EXACTLY));
-		}
 	} catch (...) {
 		module_unbind (mod, { metadata.address, metadata.size });
 		exec_domain->binder_context_ = prev_context;
@@ -450,13 +455,9 @@ Binder::InterfaceRef Binder::bind_interface_sync (const ObjectKey& name, String_
 	InterfaceRef itf = find (name);
 	StringBase <char> itf_id = itf->_epv ().interface_id;
 	if (!RepId::compatible (itf_id, iid)) {
-		AbstractBase::_ptr_type ab = AbstractBase::_nil ();
-		if (RepId::compatible (itf_id, Object::repository_id_))
-			ab = Object::_ptr_type (static_cast <Object*> (&InterfacePtr (itf)));
-		else if (RepId::compatible (itf_id, AbstractBase::repository_id_))
-			ab = static_cast <AbstractBase*> (&InterfacePtr (itf));
-		else
+		if (!RepId::compatible (itf_id, AbstractBase::repository_id_))
 			throw_INV_OBJREF ();
+		AbstractBase::_ptr_type ab = static_cast <AbstractBase*> (&InterfacePtr (itf));
 		InterfacePtr qi = ab->_query_interface (iid);
 		if (!qi)
 			throw_INV_OBJREF ();

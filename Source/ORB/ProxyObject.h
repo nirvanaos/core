@@ -82,7 +82,7 @@ private:
 	static Interface* __get_servant (Bridge <Object>* obj, Interface* env)
 	{
 		try {
-			return Type <PortableServer::ServantBase>::ret (static_cast <ProxyObject&> (_implementation (obj))._get_servant ());
+			return Type <PortableServer::Servant>::ret (static_cast <ProxyObject&> (_implementation (obj))._get_servant ());
 		} catch (Exception& e) {
 			set_exception (env, e);
 		} catch (...) {
@@ -94,7 +94,7 @@ private:
 private:
 	PortableServer::Servant servant_;
 	std::atomic <ActivationState> activation_state_;
-	String implicit_activated_id_;
+	PortableServer::ObjectId implicit_activated_id_;
 	bool implicit_activation_;
 
 	static const Operation object_ops_ [3];

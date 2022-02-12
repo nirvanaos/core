@@ -31,39 +31,57 @@
 #include "CoreImpl.h"
 #include "ProxyObject.h"
 
-namespace CORBA {
-namespace Internal {
+namespace PortableServer {
 namespace Core {
 
 /// \brief Core implementation of ServantBase default operations.
 class ServantBase final :
-	public CoreImpl <ServantBase, PortableServer::ServantBase, ProxyObject>
+	public CORBA::Internal::Core::CoreImpl <ServantBase, PortableServer::ServantBase,
+		CORBA::Internal::Core::ProxyObject>
 {
-	typedef CoreImpl <ServantBase, PortableServer::ServantBase, ProxyObject> Base;
+	typedef CORBA::Internal::Core::CoreImpl <ServantBase, PortableServer::ServantBase,
+		CORBA::Internal::Core::ProxyObject> Base;
 public:
 	using Skeleton <ServantBase, PortableServer::ServantBase>::__get_interface;
 	using Skeleton <ServantBase, PortableServer::ServantBase>::__is_a;
 
-	ServantBase (PortableServer::Servant servant) :
+	ServantBase (Servant servant) :
 		Base (servant)
 	{}
 
 	// ServantBase default implementation
 
-	PortableServer::Servant __core_servant ()
+	Servant __core_servant ()
 	{
 		return this;
 	}
 
 	PortableServer::POA::_ref_type _default_POA () const;
 
-	Boolean _non_existent () const
+	bool _non_existent () const
 	{
 		return false;
 	}
 };
 
+inline
+CORBA::Object::_ptr_type servant2object (Servant servant)
+{
+	Servant ps = servant->__core_servant ();
+	Core::ServantBase* core_obj = static_cast <Core::ServantBase*> (&ps);
+	return core_obj->get_proxy ();
 }
+
+/// Returns nil for objects from other domains and for local objects
+inline
+PortableServer::ServantBase::_ref_type object2servant (CORBA::Object::_ptr_type obj)
+{
+	CORBA::Internal::Environment _env;
+	CORBA::Internal::I_ret <PortableServer::ServantBase> _ret = (obj->_epv ().internal.get_servant) (&obj, &_env);
+	_env.check ();
+	return _ret;
+}
+
 }
 }
 

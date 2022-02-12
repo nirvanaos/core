@@ -104,7 +104,7 @@ public:
 
 	static I_ref <PortableServer::ServantBase> create_servant (PortableServer::Servant servant)
 	{
-		return make_pseudo <ServantBase> (offset_ptr (servant));
+		return make_pseudo <PortableServer::Core::ServantBase> (offset_ptr (servant));
 	}
 
 	static I_ref <CORBA::LocalObject> create_local_object (I_ptr <CORBA::LocalObject> servant, I_ptr <AbstractBase> abstract_base)
