@@ -35,6 +35,8 @@ namespace Core {
 
 class WaitableRefBase
 {
+	WaitableRefBase (const WaitableRefBase&) = delete;
+	WaitableRefBase& operator = (const WaitableRefBase&) = delete;
 public:
 	/// Called by creator execution domain on exception in object creation.
 	void on_exception () NIRVANA_NOEXCEPT;
@@ -45,18 +47,39 @@ public:
 		return pointer_ & 1;
 	}
 
+	bool initialized () const NIRVANA_NOEXCEPT
+	{
+		return pointer_ != 0;
+	}
+
+	bool initialize (DeadlineTime deadline);
+
 protected:
-	WaitableRefBase (DeadlineTime deadline);
-	~WaitableRefBase ();
+	WaitableRefBase () NIRVANA_NOEXCEPT :
+		pointer_ (0)
+	{}
+
+	WaitableRefBase (DeadlineTime deadline) :
+		pointer_ (0)
+	{
+		initialize (deadline);
+	}
+	
+	~WaitableRefBase ()
+	{
+		reset ();
+	}
 
 	WaitableRefBase (WaitableRefBase&& src) NIRVANA_NOEXCEPT :
-	pointer_ (src.pointer_)
+		pointer_ (src.pointer_)
 	{
 		src.pointer_ = 0;
 	}
 
 	void finish_construction (uintptr_t p) NIRVANA_NOEXCEPT;
 	void wait_construction () const;
+
+	void reset () NIRVANA_NOEXCEPT;
 
 private:
 	WaitList* wait_list () const NIRVANA_NOEXCEPT;
@@ -76,6 +99,9 @@ class WaitableRef :
 {
 	static_assert (sizeof (PtrType) == sizeof (uintptr_t), "Invalid pointer type");
 public:
+	WaitableRef ()
+	{}
+
 	/// Construct waitable reference, 
 	/// create wait list and assign current execution domain as creator.
 	/// 
@@ -90,7 +116,7 @@ public:
 
 	WaitableRef (WaitableRef&&) = default;
 
-	/// Destructor calls ~PtrType if object constructin was completed.
+	/// Destructor calls ~PtrType if object construction was completed.
 	~WaitableRef ()
 	{
 		if (!this->is_wait_list ())
@@ -125,6 +151,19 @@ public:
 			return nullptr;
 		else
 			return reinterpret_cast <const PtrType&> (pointer_);
+	}
+
+	void reset () NIRVANA_NOEXCEPT
+	{
+		if (this->is_wait_list ())
+			WaitableRefBase::reset ();
+		else {
+			uintptr_t up = pointer_;
+			if (up) {
+				pointer_ = 0;
+				reinterpret_cast <PtrType&> (up).~PtrType ();
+			}
+		}
 	}
 
 private:

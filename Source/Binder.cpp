@@ -45,6 +45,12 @@ using namespace CORBA::Internal;
 StaticallyAllocated <Binder> Binder::singleton_;
 bool Binder::initialized_ = false;
 
+// Initial services. Must be lexicographically ordered.
+
+const Binder::Service Binder::services_ [(size_t)ServiceIdx::COUNT] = {
+	{ "DefaultPOA", service_default_POA, System::MILLISECOND }
+};
+
 void Binder::ObjectMap::insert (const char* name, InterfacePtr itf)
 {
 	assert (itf);
@@ -100,7 +106,7 @@ void Binder::terminate ()
 	initialized_ = false;
 	while (!singleton_->module_map_.empty ())
 		singleton_->unload (singleton_->module_map_.begin ());
-	PortableServer::Core::g_root_POA = nullptr;
+	singleton_->object_map_.clear ();
 	SYNC_END ();
 	singleton_.destruct ();
 }
@@ -138,13 +144,13 @@ const ModuleStartup* Binder::module_bind (::Nirvana::Module::_ptr_type mod, cons
 					if (!module_entry) {
 						ImportInterface* ps = reinterpret_cast <ImportInterface*> (it.cur ());
 						ObjectKey key (ps->name);
-						if (key.is_a (k_gmodule)) {
+						if (key == k_gmodule) {
 							assert (mod);
 							if (!k_gmodule.compatible (key))
 								invalid_metadata ();
 							module_entry = ps;
 							break;
-						} else if (!mod_context && key.is_a (k_object_factory))
+						} else if (!mod_context && key == k_object_factory)
 							invalid_metadata (); // Legacy process can not import ObjectFactory interface
 					}
 					flags |= MetadataFlags::IMPORT_INTERFACES;
@@ -178,7 +184,7 @@ const ModuleStartup* Binder::module_bind (::Nirvana::Module::_ptr_type mod, cons
 					invalid_metadata ();
 			}
 		}
-		
+
 		if (flags || module_entry) {
 			if (Port::Memory::FLAGS & Memory::ACCESS_CHECK)
 				verify (Port::Memory::copy (const_cast <void*> (metadata.address),
@@ -198,72 +204,63 @@ const ModuleStartup* Binder::module_bind (::Nirvana::Module::_ptr_type mod, cons
 								ps->name, ps->interface_id);
 					}
 				}
-		}
 
-		if (!mod) {
-			// Domain initialization, create POA.
-			// TODO: It is temporary solution.
-			SYNC_BEGIN (g_core_free_sync_context, nullptr);
-			PortableServer::Core::g_root_POA = CORBA::make_reference <PortableServer::Core::POA> ()->_this ();
-			SYNC_END ();
-		}
-
-		// Pass 3: Export objects.
-		if (flags & MetadataFlags::EXPORT_OBJECTS) {
-			assert (mod_context); // Legacy executable can not export.
-			SYNC_BEGIN (mod_context->sync_context, nullptr);
-			for (OLF_Iterator it (metadata.address, metadata.size); !it.end (); it.next ()) {
-				switch (*it.cur ()) {
-					case OLF_EXPORT_OBJECT: {
-						ExportObject* ps = reinterpret_cast <ExportObject*> (it.cur ());
-						PortableServer::Servant core_obj;
-						core_obj = (
-							new PortableServer::Core::ServantBase (
-								Type <PortableServer::Servant>::in (ps->servant_base)
+			// Pass 3: Export objects.
+			if (flags & MetadataFlags::EXPORT_OBJECTS) {
+				assert (mod_context); // Legacy executable can not export.
+				SYNC_BEGIN (mod_context->sync_context, nullptr);
+				for (OLF_Iterator it (metadata.address, metadata.size); !it.end (); it.next ()) {
+					switch (*it.cur ()) {
+						case OLF_EXPORT_OBJECT: {
+							ExportObject* ps = reinterpret_cast <ExportObject*> (it.cur ());
+							PortableServer::Servant core_obj;
+							core_obj = (
+								new PortableServer::Core::ServantBase (
+									Type <PortableServer::Servant>::in (ps->servant_base)
 								))->_get_ptr ();
-						Object::_ptr_type obj = AbstractBase::_ptr_type (core_obj)->_query_interface <Object> ();
-						ps->core_object = &core_obj;
-						mod_context->exports.insert (ps->name, obj);
-					} break;
+							Object::_ptr_type obj = AbstractBase::_ptr_type (core_obj)->_query_interface <Object> ();
+							ps->core_object = &core_obj;
+							mod_context->exports.insert (ps->name, obj);
+						} break;
 
-					case OLF_EXPORT_LOCAL: {
-						ExportLocal* ps = reinterpret_cast <ExportLocal*> (it.cur ());
-						LocalObject::_ptr_type core_obj;
-						core_obj = (
-							new CORBA::Internal::Core::LocalObject (Type <LocalObject>::in (ps->local_object),
-								Type <AbstractBase>::in (ps->abstract_base)))->_get_ptr ();
-						Object::_ptr_type obj = core_obj;
-						ps->core_object = &core_obj;
-						mod_context->exports.insert (ps->name, obj);
-					} break;
-				}
-			}
-			SYNC_END ();
-		}
-
-		// Pass 4: Import objects.
-		if (flags & MetadataFlags::IMPORT_OBJECTS)
-			for (OLF_Iterator it (metadata.address, metadata.size); !it.end (); it.next ()) {
-				if (OLF_IMPORT_OBJECT == *it.cur ()) {
-					ImportInterface* ps = reinterpret_cast <ImportInterface*> (it.cur ());
-					Object::_ref_type obj = bind_sync (ps->name);
-					const StringBase <char> requested_iid (ps->interface_id);
-					if (RepId::compatible (obj->_epv ().header.interface_id, requested_iid))
-						reinterpret_cast <Object::_ref_type&> (ps->itf) = move (obj);
-					else {
-						InterfacePtr itf = AbstractBase::_ptr_type (obj)->_query_interface (requested_iid);
-						if (!itf)
-							throw_INV_OBJREF ();
-						ps->itf = interface_duplicate (&itf);
+						case OLF_EXPORT_LOCAL: {
+							ExportLocal* ps = reinterpret_cast <ExportLocal*> (it.cur ());
+							LocalObject::_ptr_type core_obj;
+							core_obj = (
+								new CORBA::Internal::Core::LocalObject (Type <LocalObject>::in (ps->local_object),
+									Type <AbstractBase>::in (ps->abstract_base)))->_get_ptr ();
+							Object::_ptr_type obj = core_obj;
+							ps->core_object = &core_obj;
+							mod_context->exports.insert (ps->name, obj);
+						} break;
 					}
 				}
+				SYNC_END ();
 			}
 
-		if (Port::Memory::FLAGS & Memory::ACCESS_CHECK && (flags || module_entry))
-			verify (Port::Memory::copy (const_cast <void*> (metadata.address),
-				const_cast <void*> (metadata.address), metadata.size,
-				Memory::READ_ONLY | Memory::EXACTLY));
+			// Pass 4: Import objects.
+			if (flags & MetadataFlags::IMPORT_OBJECTS)
+				for (OLF_Iterator it (metadata.address, metadata.size); !it.end (); it.next ()) {
+					if (OLF_IMPORT_OBJECT == *it.cur ()) {
+						ImportInterface* ps = reinterpret_cast <ImportInterface*> (it.cur ());
+						Object::_ref_type obj = bind_sync (ps->name);
+						const StringBase <char> requested_iid (ps->interface_id);
+						if (RepId::compatible (obj->_epv ().header.interface_id, requested_iid))
+							reinterpret_cast <Object::_ref_type&> (ps->itf) = move (obj);
+						else {
+							InterfacePtr itf = AbstractBase::_ptr_type (obj)->_query_interface (requested_iid);
+							if (!itf)
+								throw_INV_OBJREF ();
+							ps->itf = interface_duplicate (&itf);
+						}
+					}
+				}
 
+			if (Port::Memory::FLAGS & Memory::ACCESS_CHECK)
+				verify (Port::Memory::copy (const_cast <void*> (metadata.address),
+					const_cast <void*> (metadata.address), metadata.size,
+					Memory::READ_ONLY | Memory::EXACTLY));
+		}
 	} catch (...) {
 		module_unbind (mod, { metadata.address, metadata.size });
 		exec_domain.binder_context_ = prev_context;
@@ -310,7 +307,7 @@ CoreRef <Module> Binder::load (string& module_name, bool singleton)
 	if (!initialized_)
 		throw_INITIALIZE ();
 	Module* mod = nullptr;
-	auto ins = module_map_.emplace (move (module_name), MODULE_LOAD_DEADLINE_MIN);
+	auto ins = module_map_.emplace (move (module_name), MODULE_LOADING_DEADLINE_MIN);
 	if (ins.second) {
 		try {
 
@@ -490,6 +487,50 @@ void Binder::housekeeping ()
 		if (!found)
 			break;
 	}
+}
+
+CORBA::Object::_ref_type Binder::bind_service_sync (ServiceIdx sidx)
+{
+	ServiceRef& ref = service_refs_ [(size_t)sidx];
+	const Service& svc = services_ [(size_t)sidx];
+	ObjectRef obj;
+	if (ref.initialize (svc.create_deadline)) {
+		try {
+			obj = (svc.creator) ();
+			ref.finish_construction (obj);
+		} catch (...) {
+			ref.on_exception ();
+			ref.reset ();
+			throw;
+		}
+	} else
+		obj = ref.get ();
+	return obj;
+}
+
+CORBA::Object::_ref_type Binder::bind_service (CORBA::Internal::String_in id)
+{
+	const Service* p = lower_bound (services_, end (services_),
+		static_cast <const std::string&> (id).c_str (), ServiceLess ());
+	return bind_service ((ServiceIdx)(p - services_));
+}
+
+CORBA::Object::_ref_type Binder::bind_service (ServiceIdx sidx)
+{
+	if (sidx >= ServiceIdx::COUNT)
+		throw_INV_OBJREF (); // TODO: Replace with POA::InvalidName
+	SYNC_BEGIN (singleton_->sync_domain_, nullptr);
+	return singleton_->bind_service_sync (sidx);
+	SYNC_END ();
+}
+
+// Service creators
+
+CORBA::Object::_ref_type Binder::service_default_POA ()
+{
+	SYNC_BEGIN (g_core_free_sync_context, nullptr);
+	return CORBA::make_reference <PortableServer::Core::POA> ()->_this ();
+	SYNC_END ();
 }
 
 }

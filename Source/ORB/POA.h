@@ -37,8 +37,6 @@
 namespace PortableServer {
 namespace Core {
 
-extern Nirvana::Core::StaticallyAllocated <PortableServer::POA::_ref_type> g_root_POA; // Temporary solution
-
 class POA :
 	public CORBA::servant_traits <PortableServer::POA>::Servant <POA>
 {

@@ -56,12 +56,14 @@ public:
 		return this;
 	}
 
-	PortableServer::POA::_ref_type _default_POA () const;
+	static PortableServer::POA::_ref_type _default_POA ();
 
 	bool _non_existent () const
 	{
 		return false;
 	}
+
+	static PortableServer::POA* default_POA_;
 };
 
 inline

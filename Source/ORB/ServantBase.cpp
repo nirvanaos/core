@@ -26,16 +26,29 @@
 #include "ServantBase.h"
 #include "POA.h"
 #include <CORBA/Proxy/TypeCodeImpl.h>
+#include "../Binder.inl"
 
 using namespace CORBA::Internal;
 using namespace CORBA;
+using namespace Nirvana::Core;
+using namespace Nirvana;
 
 namespace PortableServer {
 namespace Core {
 
-PortableServer::POA::_ref_type ServantBase::_default_POA () const
+PortableServer::POA* ServantBase::default_POA_ = nullptr;
+
+PortableServer::POA::_ref_type ServantBase::_default_POA ()
 {
-	return g_root_POA;
+	if (!default_POA_) {
+		Object::_ref_type svc = Binder::bind_service (Binder::ServiceIdx::DefaultPOA);
+		PortableServer::POA::_ref_type poa = PortableServer::POA::_narrow (svc);
+		if (!poa)
+			throw_INV_OBJREF ();
+		default_POA_ = static_cast <PortableServer::POA*> (&(PortableServer::POA::_ptr_type)poa);
+		return poa;
+	} else
+		return PortableServer::POA::_ptr_type (default_POA_);
 }
 
 class TC_Servant : public TypeCodeStatic <TC_Servant,

@@ -46,14 +46,18 @@ void WaitableRefBase::detach (CoreRef <WaitList>& ref) NIRVANA_NOEXCEPT
 	assert (up == 0);
 }
 
-WaitableRefBase::WaitableRefBase (DeadlineTime deadline)
+bool WaitableRefBase::initialize (DeadlineTime deadline)
 {
-	::new (&pointer_) CoreRef <WaitList> (CoreRef <WaitList>::create <WaitList> (deadline));
-	assert (!(pointer_ & 1));
-	pointer_ |= 1;
+	if (pointer_ == 0) {
+		::new (&pointer_) CoreRef <WaitList> (CoreRef <WaitList>::create <WaitList> (deadline));
+		assert (!(pointer_ & 1));
+		pointer_ |= 1;
+		return true;
+	}
+	return false;
 }
 
-WaitableRefBase::~WaitableRefBase ()
+void WaitableRefBase::reset () NIRVANA_NOEXCEPT
 {
 	if (is_wait_list ()) {
 		CoreRef <WaitList> wait_list;

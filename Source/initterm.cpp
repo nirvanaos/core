@@ -39,7 +39,6 @@ void initialize0 ()
 	g_core_free_sync_context.construct ();
 	ExecDomain::initialize ();
 	Scheduler::initialize ();
-	PortableServer::Core::g_root_POA.construct ();
 }
 
 void initialize ()
@@ -50,7 +49,6 @@ void initialize ()
 void terminate ()
 {
 	Binder::terminate ();
-	PortableServer::Core::g_root_POA.destruct ();
 }
 
 void terminate0 () NIRVANA_NOEXCEPT

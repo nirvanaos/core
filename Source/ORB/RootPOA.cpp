@@ -29,7 +29,5 @@
 namespace PortableServer {
 namespace Core {
 
-Nirvana::Core::StaticallyAllocated <PortableServer::POA::_ref_type> g_root_POA;
-
 }
 }
