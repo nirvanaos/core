@@ -6,10 +6,9 @@ namespace Core {
 void Event::WaitOp::run ()
 {
 	if (!obj_.signalled_) {
-		ExecDomain* ed = Thread::current ().exec_domain ();
-		assert (ed);
-		ed->suspend ();
-		obj_.push (*ed);
+		ExecDomain& ed = ExecDomain::current ();
+		ed.suspend ();
+		obj_.push (ed);
 		if (obj_.signalled_) {
 			ExecDomain* ed = obj_.pop ();
 			if (ed)

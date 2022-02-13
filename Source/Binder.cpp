@@ -112,10 +112,9 @@ NIRVANA_NORETURN void Binder::invalid_metadata ()
 
 const ModuleStartup* Binder::module_bind (::Nirvana::Module::_ptr_type mod, const Section& metadata, ModuleContext* mod_context)
 {
-	ExecDomain* exec_domain = Thread::current ().exec_domain ();
-	assert (exec_domain);
-	void* prev_context = exec_domain->binder_context_;
-	exec_domain->binder_context_ = mod_context;
+	ExecDomain& exec_domain = ExecDomain::current ();
+	void* prev_context = exec_domain.binder_context_;
+	exec_domain.binder_context_ = mod_context;
 
 	enum MetadataFlags
 	{
@@ -267,11 +266,11 @@ const ModuleStartup* Binder::module_bind (::Nirvana::Module::_ptr_type mod, cons
 
 	} catch (...) {
 		module_unbind (mod, { metadata.address, metadata.size });
-		exec_domain->binder_context_ = prev_context;
+		exec_domain.binder_context_ = prev_context;
 		throw;
 	}
 
-	exec_domain->binder_context_ = prev_context;
+	exec_domain.binder_context_ = prev_context;
 
 	return module_startup;
 }
@@ -427,11 +426,10 @@ void Binder::release_imports (Nirvana::Module::_ptr_type mod, const Section& met
 
 Binder::InterfaceRef Binder::find (const ObjectKey& name)
 {
-	const ExecDomain* exec_domain = Thread::current ().exec_domain ();
-	assert (exec_domain);
-	if (ExecDomain::RestrictedMode::MODULE_TERMINATE == exec_domain->restricted_mode_)
+	const ExecDomain& exec_domain = ExecDomain::current ();
+	if (ExecDomain::RestrictedMode::MODULE_TERMINATE == exec_domain.restricted_mode_)
 		throw_NO_PERMISSION ();
-	ModuleContext* context = reinterpret_cast <ModuleContext*> (exec_domain->binder_context_);
+	ModuleContext* context = reinterpret_cast <ModuleContext*> (exec_domain.binder_context_);
 	InterfaceRef itf;
 	if (context)
 		itf = context->exports.find (name);

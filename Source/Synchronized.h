@@ -48,10 +48,10 @@ public:
 	}
 
 	/// Returns current execution domain.
-	/// This method is quicker than Thread::current ().exec_domain ();
+	/// This method is quicker than ExecDomain::current ();
 	ExecDomain& exec_domain () NIRVANA_NOEXCEPT
 	{
-		return *exec_domain_;
+		return exec_domain_;
 	}
 
 	/// Suspend execution.
@@ -63,7 +63,7 @@ public:
 
 private:
 	CoreRef <SyncContext> call_context_;
-	ExecDomain* exec_domain_;
+	ExecDomain& exec_domain_;
 };
 
 }

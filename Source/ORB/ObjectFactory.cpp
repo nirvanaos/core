@@ -37,18 +37,16 @@ using namespace ::Nirvana::Core;
 
 CORBA::Internal::ObjectFactory::StatelessCreationFrame* ObjectFactory::stateless_creation_frame ()
 {
-	ExecDomain* ed = ::Nirvana::Core::Thread::current ().exec_domain ();
-	assert (ed);
-	if (ExecDomain::RestrictedMode::NO_RESTRICTIONS != ed->restricted_mode_)
+	ExecDomain& ed = ::Nirvana::Core::ExecDomain::current ();
+	if (ExecDomain::RestrictedMode::NO_RESTRICTIONS != ed.restricted_mode_)
 		throw_NO_PERMISSION ();
-	return reinterpret_cast <CORBA::Internal::ObjectFactory::StatelessCreationFrame*> (ed->stateless_creation_frame_);
+	return reinterpret_cast <CORBA::Internal::ObjectFactory::StatelessCreationFrame*> (ed.stateless_creation_frame_);
 }
 
 void ObjectFactory::stateless_creation_frame (CORBA::Internal::ObjectFactory::StatelessCreationFrame* scf)
 {
-	ExecDomain* ed = ::Nirvana::Core::Thread::current ().exec_domain ();
-	assert (ed);
-	ed->stateless_creation_frame_ = scf;
+	ExecDomain& ed = ::Nirvana::Core::ExecDomain::current ();
+	ed.stateless_creation_frame_ = scf;
 }
 
 size_t ObjectFactory::offset_ptr ()

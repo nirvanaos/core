@@ -34,9 +34,7 @@ StaticallyAllocated <ImplStatic <SyncContextCore>> g_core_free_sync_context;
 
 SyncContext& SyncContext::current () NIRVANA_NOEXCEPT
 {
-	ExecDomain* ed = Thread::current ().exec_domain ();
-	assert (ed);
-	return ed->sync_context ();
+	return ExecDomain::current ().sync_context ();
 }
 
 SyncDomain* SyncContext::sync_domain () NIRVANA_NOEXCEPT

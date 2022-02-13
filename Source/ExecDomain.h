@@ -50,8 +50,14 @@ class ExecDomain final :
 	public StackElem
 {
 public:
-	static void initialize ();
-	static void terminate () NIRVANA_NOEXCEPT;
+
+	/// \returns Current execution domain.
+	static ExecDomain& current () NIRVANA_NOEXCEPT
+	{
+		ExecDomain* ed = Thread::current ().exec_domain ();
+		assert (ed);
+		return *ed;
+	}
 
 	/// Asynchronous call.
 	/// 
@@ -172,6 +178,12 @@ public:
 
 	/// Run-time global state
 	RuntimeGlobal runtime_global_;
+
+	/// Called on core startup.
+	static void initialize ();
+	
+	/// Called on core shutdown.
+	static void terminate () NIRVANA_NOEXCEPT;
 
 private:
 	ExecDomain () :

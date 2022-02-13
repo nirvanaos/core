@@ -101,14 +101,14 @@ void ServantProxyBase::call (RequestLocal& rq) NIRVANA_NOEXCEPT
 		if (idx >= ie.operations.size)
 			throw BAD_OPERATION ();
 #ifdef _DEBUG
-		size_t dbg_stack_size0 = Nirvana::Core::Thread::current ().exec_domain ()->dbg_context_stack_size_;
+		size_t dbg_stack_size0 = ExecDomain::current ().dbg_context_stack_size_;
 #endif
 		bool success;
 		SYNC_BEGIN (get_sync_context (op), rq.memory ());
 		success = (ie.operations.p [idx].invoke) (&ie.implementation, &rq);
 		SYNC_END ();
 #ifdef _DEBUG
-		size_t dbg_stack_size1 = Nirvana::Core::Thread::current ().exec_domain ()->dbg_context_stack_size_;
+		size_t dbg_stack_size1 = ExecDomain::current ().dbg_context_stack_size_;
 		assert (dbg_stack_size0 == dbg_stack_size1);
 #endif
 		if (!success)

@@ -60,15 +60,14 @@ void Module::initialize (ModuleInit::_ptr_type entry_point, AtomicCounter <false
 void Module::terminate () NIRVANA_NOEXCEPT
 {
 	if (entry_point_) {
-		ExecDomain* ed = Thread::current ().exec_domain ();
-		assert (ed);
-		ed->restricted_mode_ = ExecDomain::RestrictedMode::MODULE_TERMINATE;
+		ExecDomain& ed = ExecDomain::current ();
+		ed.restricted_mode_ = ExecDomain::RestrictedMode::MODULE_TERMINATE;
 		try {
 			call_terminate (entry_point_);
 		} catch (...) {
 			// TODO: Log
 		}
-		ed->restricted_mode_ = ExecDomain::RestrictedMode::NO_RESTRICTIONS;
+		ed.restricted_mode_ = ExecDomain::RestrictedMode::NO_RESTRICTIONS;
 	}
 }
 

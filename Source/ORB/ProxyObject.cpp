@@ -77,10 +77,10 @@ void ProxyObject::add_ref_1 ()
 				// If target in a free sync context, implicit_activated_id_ must be
 				// allocated in the g_shared_mem_context.
 				// Otherwise it's data will be lost on the pop current memory context.
-				ExecDomain* ed = Thread::current ().exec_domain ();
-				ed->mem_context_push (&g_shared_mem_context);
+				ExecDomain& ed = ExecDomain::current ();
+				ed.mem_context_push (&g_shared_mem_context);
 				implicit_activated_id_ = poa->activate_object (servant_);
-				ed->mem_context_pop ();
+				ed.mem_context_pop ();
 				assert (g_shared_mem_context->heap ().check_owner (
 					implicit_activated_id_.data (), implicit_activated_id_.capacity ()));
 			} else {
@@ -134,11 +134,11 @@ void ProxyObject::implicit_deactivate ()
 		// allocated in the g_shared_mem_context.
 		assert (g_shared_mem_context->heap ().check_owner (
 			tmp.data (), tmp.capacity ()));
-		ExecDomain* ed = Thread::current ().exec_domain ();
-		ed->mem_context_push (&g_shared_mem_context);
+		ExecDomain& ed = ExecDomain::current ();
+		ed.mem_context_push (&g_shared_mem_context);
 		tmp.clear ();
 		tmp.shrink_to_fit ();
-		ed->mem_context_pop ();
+		ed.mem_context_pop ();
 	} else {
 		assert (sync_context ().sync_domain ()->mem_context ().heap ().check_owner (
 			tmp.data (), tmp.capacity ()));

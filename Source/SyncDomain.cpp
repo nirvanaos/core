@@ -109,14 +109,13 @@ void SyncDomain::leave () NIRVANA_NOEXCEPT
 
 SyncDomain& SyncDomain::enter ()
 {
-	ExecDomain* exec_domain = Thread::current ().exec_domain ();
-	assert (exec_domain);
-	SyncContext& sync_context = exec_domain->sync_context ();
+	ExecDomain& exec_domain = ExecDomain::current ();
+	SyncContext& sync_context = exec_domain.sync_context ();
 	SyncDomain* psd = sync_context.sync_domain ();
 	if (!psd) {
-		CoreRef <SyncDomain> sd = CoreRef <SyncDomain>::create <ImplDynamic <SyncDomain>> (ref (exec_domain->mem_context ()));
+		CoreRef <SyncDomain> sd = CoreRef <SyncDomain>::create <ImplDynamic <SyncDomain>> (ref (exec_domain.mem_context ()));
 		sd->state_ = State::RUNNING;
-		exec_domain->sync_context (*sd);
+		exec_domain.sync_context (*sd);
 		psd = sd;
 	}
 	return *psd;

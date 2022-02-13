@@ -33,7 +33,7 @@ namespace Nirvana {
 namespace Core {
 
 WaitListImpl::WaitListImpl (DeadlineTime deadline) :
-	worker_ (Thread::current ().exec_domain ()),
+	worker_ (&ExecDomain::current ()),
 	worker_deadline_ (worker_->deadline ()),
 	wait_list_ (nullptr)
 {
@@ -47,15 +47,14 @@ WaitListImpl::WaitListImpl (DeadlineTime deadline) :
 void WaitListImpl::wait ()
 {
 	if (!finished ()) {
-		ExecDomain* ed = Thread::current ().exec_domain ();
-		assert (ed);
-		if (ed == worker_)
+		ExecDomain& ed = ExecDomain::current ();
+		if (&ed == worker_)
 			throw_BAD_INV_ORDER ();
 		// Hold reference to this object
 		CoreRef <WaitList> ref = static_cast <WaitList*> (this);
-		static_cast <StackElem&> (*ed).next = wait_list_;
-		wait_list_ = ed;
-		ed->suspend ();
+		static_cast <StackElem&> (ed).next = wait_list_;
+		wait_list_ = &ed;
+		ed.suspend ();
 	}
 	assert (finished ());
 	if (exception_)
@@ -73,7 +72,7 @@ void WaitListImpl::on_exception () NIRVANA_NOEXCEPT
 void WaitListImpl::finish () NIRVANA_NOEXCEPT
 {
 	assert (!finished ());
-	assert (Thread::current ().exec_domain () == worker_);
+	assert (&ExecDomain::current () == worker_);
 	worker_->deadline (worker_deadline_);
 	worker_ = nullptr;
 	while (ExecDomain* ed = wait_list_) {
