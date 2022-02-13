@@ -53,13 +53,19 @@ public:
 	static void initialize ();
 	static void terminate () NIRVANA_NOEXCEPT;
 
-	static void async_call (const DeadlineTime& deadline, Runnable& runnable, SyncContext& sync_context, MemContext* mem_context = nullptr)
-	{
-		CoreRef <ExecDomain> exec_domain = create (deadline, runnable, mem_context);
-		exec_domain->spawn (sync_context);
-	}
+	/// Asynchronous call.
+	/// 
+	/// \param deadline    Deadline.
+	/// \param runnable    Runnable object to execute.
+	/// \param target      Target Synchronization context.
+	/// \param mem_context Target memory context (optional).
+	static void async_call (const DeadlineTime& deadline, Runnable& runnable,
+		SyncContext& target, MemContext* mem_context = nullptr);
 
 	/// Start legacy thread.
+	/// 
+	/// \param runnable    Runnable object to execute.
+	/// \param mem_context Memory context of the legacy process.
 	static void start_legacy_thread (Runnable& runnable, MemContext& mem_context);
 
 	DeadlineTime deadline () const
@@ -121,6 +127,25 @@ public:
 	CoreRef <MemContext>& mem_context_ptr () NIRVANA_NOEXCEPT
 	{
 		return mem_context_.top ();
+	}
+
+	/// Push new memory context.
+	void mem_context_push (MemContext* context)
+	{
+		mem_context_.emplace (context);
+#ifdef _DEBUG
+		++dbg_context_stack_size_;
+#endif
+	}
+
+	/// Pop memory context stack.
+	void mem_context_pop () NIRVANA_NOEXCEPT
+	{
+		mem_context_.pop ();
+#ifdef _DEBUG
+		--dbg_context_stack_size_;
+#endif
+		assert (!mem_context_.empty ());
 	}
 
 	CORBA::Exception::Code scheduler_error () const NIRVANA_NOEXCEPT
@@ -219,25 +244,6 @@ private:
 			ret_qnodes_ = qn->next ();
 			qn->release ();
 		}
-	}
-
-	/// Push new memory context.
-	void mem_context_push (MemContext* context)
-	{
-		mem_context_.emplace (context);
-#ifdef _DEBUG
-		++dbg_context_stack_size_;
-#endif
-	}
-
-	/// Pop memory context stack.
-	void mem_context_pop () NIRVANA_NOEXCEPT
-	{
-		mem_context_.pop ();
-#ifdef _DEBUG
-		--dbg_context_stack_size_;
-#endif
-		assert (!mem_context_.empty ());
 	}
 
 private:

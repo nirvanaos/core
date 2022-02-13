@@ -70,7 +70,25 @@ void ProxyObject::add_ref_1 ()
 			// TODO: Query poa for the implicit activation policy
 			// While assume that implicit activation is on
 			implicit_activation_ = true;
-			implicit_activated_id_ = poa->activate_object (servant_);
+
+			assert (&sync_context () == &SyncContext::current ());
+
+			if (sync_context ().is_free_sync_context ()) {
+				// If target in a free sync context, implicit_activated_id_ must be
+				// allocated in the g_shared_mem_context.
+				// Otherwise it's data will be lost on the pop current memory context.
+				ExecDomain* ed = Thread::current ().exec_domain ();
+				ed->mem_context_push (&g_shared_mem_context);
+				implicit_activated_id_ = poa->activate_object (servant_);
+				ed->mem_context_pop ();
+				assert (g_shared_mem_context->heap ().check_owner (
+					implicit_activated_id_.data (), implicit_activated_id_.capacity ()));
+			} else {
+				implicit_activated_id_ = poa->activate_object (servant_);
+				assert (sync_context ().sync_domain ()->mem_context ().heap ().check_owner (
+					implicit_activated_id_.data (), implicit_activated_id_.capacity ()));
+				assert (&MemContext::current () == &sync_context ().sync_domain ()->mem_context ());
+			}
 			activation_state_ = ACTIVE;
 		} catch (...) {
 			activation_state_ = INACTIVE;
@@ -98,14 +116,33 @@ void ProxyObject::add_ref_1 ()
 // Called from Deactivator in the servant synchronization context.
 void ProxyObject::implicit_deactivate ()
 {
+	assert (&sync_context () == &SyncContext::current ());
+
+	// Object may be re-activated later. So we clear implicit_activated_id_ here.
 	PortableServer::ObjectId tmp = std::move (implicit_activated_id_);
 	if (change_state (DEACTIVATION_SCHEDULED, INACTIVE)) {
 		servant_->_default_POA ()->deactivate_object (tmp);
 	} else {
+		// Restore implicit_activated_id_
 		implicit_activated_id_ = std::move (tmp);
 		assert (DEACTIVATION_CANCELLED == activation_state_);
 		if (!change_state (DEACTIVATION_CANCELLED, ACTIVE))
 			::Nirvana::throw_BAD_INV_ORDER ();
+	}
+	if (!tmp.empty () && sync_context ().is_free_sync_context ()) {
+		// If target in a free sync context, implicit_activated_id_ must be
+		// allocated in the g_shared_mem_context.
+		assert (g_shared_mem_context->heap ().check_owner (
+			tmp.data (), tmp.capacity ()));
+		ExecDomain* ed = Thread::current ().exec_domain ();
+		ed->mem_context_push (&g_shared_mem_context);
+		tmp.clear ();
+		tmp.shrink_to_fit ();
+		ed->mem_context_pop ();
+	} else {
+		assert (sync_context ().sync_domain ()->mem_context ().heap ().check_owner (
+			tmp.data (), tmp.capacity ()));
+		assert (&MemContext::current () == &sync_context ().sync_domain ()->mem_context ());
 	}
 }
 

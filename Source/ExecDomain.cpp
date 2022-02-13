@@ -160,6 +160,17 @@ void ExecDomain::spawn (SyncContext& sync_context)
 	}
 }
 
+void ExecDomain::async_call (const DeadlineTime& deadline, Runnable& runnable, SyncContext& target, MemContext* mem_context)
+{
+	SyncDomain* sd = target.sync_domain ();
+	if (sd) {
+		assert (!mem_context || mem_context == &sd->mem_context ());
+		mem_context = &sd->mem_context ();
+	}
+	CoreRef <ExecDomain> exec_domain = create (deadline, runnable, mem_context);
+	exec_domain->spawn (target);
+}
+
 void ExecDomain::start_legacy_thread (Runnable& runnable, MemContext& mem_context)
 {
 	CoreRef <ExecDomain> exec_domain = create (INFINITE_DEADLINE, runnable, &mem_context);
@@ -268,6 +279,7 @@ void ExecDomain::schedule_call (SyncContext& target, MemContext* mem_context)
 		mem_context = &sd->mem_context ();
 	}
 	mem_context_push (mem_context);
+	
 	if (sd || !(deadline () == INFINITE_DEADLINE && &Thread::current () == background_worker_)) {
 		// Need to schedule
 		SyncContext& old_context = sync_context ();

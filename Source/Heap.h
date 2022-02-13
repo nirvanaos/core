@@ -107,6 +107,8 @@ public:
 
 	void change_protection (bool read_only);
 
+	bool check_owner (const void* p, size_t size);
+
 protected:
 	typedef HeapDirectory <HEAP_DIRECTORY_SIZE, HEAP_DIRECTORY_LEVELS, HEAP_DIRECTORY_IMPLEMENTATION> Directory;
 	
@@ -280,8 +282,6 @@ protected:
 	virtual MemoryBlock* add_new_partition (MemoryBlock*& tail);
 
 	void add_large_block (void* p, size_t size);
-
-	bool check_owner (const void* p, size_t size);
 
 	/// \summary Atomically erase large block information from the block list.
 	class LBErase

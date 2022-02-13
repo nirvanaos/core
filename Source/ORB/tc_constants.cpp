@@ -55,9 +55,8 @@ public:
 };
 
 class TC_TypeCode : public TypeCodeStatic <TC_TypeCode,
-	TypeCodeWithId <TCKind::tk_TypeCode, TypeCode>, TypeCodeOps <TypeCode> >
-{
-};
+	TypeCodeTK <TCKind::tk_TypeCode>, TypeCodeOps <TypeCode> >
+{};
 
 }
 }
@@ -82,6 +81,6 @@ TC_IMPL_SCALAR (CORBA::Any, any)
 TC_IMPEX (string, CORBA::Internal::TypeCodeString <CORBA::Internal::String, 0>)
 TC_IMPEX (wstring, CORBA::Internal::TypeCodeString <CORBA::Internal::WString, 0>)
 
-TC_IMPEX_BY_ID (TypeCode)
 TC_IMPEX_BY_ID (Object)
 TC_IMPEX_BY_ID (ValueBase)
+TC_IMPEX_EX (TypeCode, CORBA::TypeCode::repository_id_, CORBA::Internal::TC_TypeCode)
