@@ -76,7 +76,7 @@ protected:
 	virtual void on_crash (int error_code) NIRVANA_NOEXCEPT;
 
 private:
-	typedef std::vector <Nirvana::Core::CoreString, Nirvana::Core::CoreAllocator <Nirvana::Core::CoreString> > Strings;
+	typedef std::vector <Nirvana::Core::SharedString, Nirvana::Core::SharedAllocator <Nirvana::Core::SharedString> > Strings;
 	static void copy_strings (const std::vector <Nirvana::Core::StringView>& src, Strings& dst);
 	
 	typedef std::vector <char*, Nirvana::Core::UserAllocator <char*> > Pointers;

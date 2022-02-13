@@ -39,7 +39,7 @@ class ExecDomain;
 /// Synchronous wait list.
 /// May be used only in synchronization domain.
 class WaitListImpl :
-	public CoreObject
+	public UserObject
 {
 public:
 	/// Constructor.

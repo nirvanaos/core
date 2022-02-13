@@ -34,7 +34,7 @@ namespace Core {
 using namespace ::Nirvana::Core;
 
 class ProxyObject::Deactivator :
-	public CoreObject,
+	public SharedObject,
 	public Runnable
 {
 public:

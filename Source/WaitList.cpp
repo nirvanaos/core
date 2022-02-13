@@ -24,7 +24,6 @@
 *  popov.nirvana@gmail.com
 */
 #include "WaitList.h"
-#include "CoreObject.h"
 #include "Chrono.h"
 
 using namespace std;

@@ -24,51 +24,33 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_CORE_PROTDOMAIN_H_
-#define NIRVANA_CORE_PROTDOMAIN_H_
+#ifndef NIRVANA_CORE_SHAREDALLOCATOR_H_
+#define NIRVANA_CORE_SHAREDALLOCATOR_H_
 #pragma once
 
-#include "SharedObject.h"
-#include <Port/ProtDomain.h>
+#include "MemContext.h"
 
 namespace Nirvana {
 namespace Core {
 
-/// Protection domain.
-class ProtDomain :
-	public SharedObject,
-	private Port::ProtDomain
+/// Allocate from shared memory context.
+template <class T>
+class SharedAllocator :
+	public std::allocator <T>
 {
 public:
-	Port::ProtDomain& port ()
+	static void deallocate (T* p, size_t cnt)
 	{
-		return *this;
+		g_shared_mem_context->heap ().release (p, cnt * sizeof (T));
 	}
 
-	static void initialize ()
+	static T* allocate (size_t cnt, void* hint = nullptr, unsigned flags = 0)
 	{
-		singleton_ = new ProtDomain;
+		return (T*)g_shared_mem_context->heap ().allocate (hint, cnt * sizeof (T), flags);
 	}
-
-	static void terminate ()
-	{
-		delete singleton_;
-		singleton_ = nullptr;
-	}
-
-	static ProtDomain& singleton ()
-	{
-		assert (singleton_);
-		return *singleton_;
-	}
-
-private:
-	ProtDomain ()
-	{}
-
-private:
-	static ProtDomain* singleton_;
 };
+
+typedef std::basic_string <char, std::char_traits <char>, SharedAllocator <char> > SharedString;
 
 }
 }

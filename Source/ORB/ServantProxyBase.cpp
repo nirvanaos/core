@@ -32,7 +32,7 @@ namespace Core {
 using namespace ::Nirvana::Core;
 
 class ServantProxyBase::GarbageCollector :
-	public CoreObject,
+	public SharedObject,
 	public Runnable
 {
 public:

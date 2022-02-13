@@ -28,7 +28,7 @@
 #define NIRVANA_CORE_SYSDOMAIN_H_
 #pragma once
 
-#include "CoreObject.h"
+#include "SharedObject.h"
 #include <Port/SysDomain.h>
 
 namespace Nirvana {
@@ -36,7 +36,7 @@ namespace Core {
 
 /// System domain.
 class SysDomain :
-	public CoreObject,
+	public SharedObject,
 	private Port::SysDomain
 {
 public:

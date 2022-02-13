@@ -24,50 +24,36 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_CORE_PROTDOMAIN_H_
-#define NIRVANA_CORE_PROTDOMAIN_H_
+#ifndef NIRVANA_CORE_SHAREDOBJECT_H_
+#define NIRVANA_CORE_SHAREDOBJECT_H_
 #pragma once
 
-#include "SharedObject.h"
-#include <Port/ProtDomain.h>
+#include "MemContext.h"
 
 namespace Nirvana {
 namespace Core {
 
-/// Protection domain.
-class ProtDomain :
-	public SharedObject,
-	private Port::ProtDomain
+/// \brief Object allocated from the shared memory context.
+class SharedObject
 {
 public:
-	Port::ProtDomain& port ()
+	void* operator new (size_t cb)
 	{
-		return *this;
+		return g_shared_mem_context->heap ().allocate (nullptr, cb, 0);
 	}
 
-	static void initialize ()
+	void operator delete (void* p, size_t cb)
 	{
-		singleton_ = new ProtDomain;
+		g_shared_mem_context->heap ().release (p, cb);
 	}
 
-	static void terminate ()
+	void* operator new (size_t cb, void* place)
 	{
-		delete singleton_;
-		singleton_ = nullptr;
+		return place;
 	}
 
-	static ProtDomain& singleton ()
-	{
-		assert (singleton_);
-		return *singleton_;
-	}
-
-private:
-	ProtDomain ()
+	void operator delete (void*, void*)
 	{}
-
-private:
-	static ProtDomain* singleton_;
 };
 
 }

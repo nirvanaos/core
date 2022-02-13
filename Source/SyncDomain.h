@@ -32,7 +32,7 @@
 #include "Scheduler.h"
 #include "Executor.h"
 #include "SyncContext.h"
-#include "CoreObject.h"
+#include "SharedObject.h"
 #include "MemContext.h"
 #include <atomic>
 
@@ -41,7 +41,7 @@ namespace Core {
 
 /// Synchronization domain.
 class NIRVANA_NOVTABLE SyncDomain :
-	public CoreObject,
+	public SharedObject,
 	public Executor,
 	public SyncContext
 {

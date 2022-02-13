@@ -46,7 +46,7 @@ public:
 		Module (name, false)
 	{}
 
-	virtual SyncContext& sync_context ()
+	virtual SyncContext& sync_context () NIRVANA_NOEXCEPT
 	{
 		return *this;
 	}

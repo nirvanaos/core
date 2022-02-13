@@ -34,6 +34,8 @@ namespace Nirvana {
 namespace Core {
 
 /// \brief Object allocated from the core heap.
+/// 
+/// Rarely used. Use SharedObject instead.
 class CoreObject
 {
 public:

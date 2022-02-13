@@ -29,13 +29,14 @@
 #pragma once
 
 #include <Port/ThreadBackground.h>
+#include "SharedObject.h"
 
 namespace Nirvana {
 namespace Core {
 
 class NIRVANA_NOVTABLE ThreadBackground :
 	public CoreInterface,
-	public CoreObject,
+	public SharedObject,
 	public Port::ThreadBackground
 {
 	friend class Port::ThreadBackground;

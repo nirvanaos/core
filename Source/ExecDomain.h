@@ -44,7 +44,7 @@ namespace Core {
 
 /// Execution domain (coroutine, fiber).
 class ExecDomain final :
-	public CoreObject,
+	public SharedObject,
 	public ExecContext,
 	public Executor,
 	public StackElem

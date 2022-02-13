@@ -30,7 +30,6 @@
 
 #include "HeapUser.h"
 #include "CoreInterface.h"
-#include "CoreObject.h"
 
 namespace Nirvana {
 namespace Core {
@@ -45,13 +44,23 @@ class MemContextObject;
 ///  only an is intended for use in Core only.
 /// 
 class NIRVANA_NOVTABLE MemContext :
-	public CoreObject,
 	public CoreInterface
 {
 	MemContext (const MemContext&) = delete;
 	MemContext& operator = (const MemContext&) = delete;
 
 public:
+	void* operator new (size_t cb);
+	void operator delete (void* p, size_t cb);
+
+	void* operator new (size_t cb, void* place)
+	{
+		return place;
+	}
+
+	void operator delete (void*, void*)
+	{}
+
 	/// \returns Current memory context.
 	static MemContext& current ();
 
@@ -95,9 +104,22 @@ protected:
 	HeapUser heap_;
 };
 
-/// To reduce memory consumtion, core syncronization domains for some
-/// lightweight core objects share one memory context.
+/// Shared memory context.
+/// Used for allocation of the core objects to keep g_core_heap
+/// small and fast.
 extern StaticallyAllocated <ImplStatic <MemContext>> g_shared_mem_context;
+
+inline
+void* MemContext::operator new (size_t cb)
+{
+	return g_shared_mem_context->heap ().allocate (nullptr, cb, 0);
+}
+
+inline
+void MemContext::operator delete (void* p, size_t cb)
+{
+	g_shared_mem_context->heap ().release (p, cb);
+}
 
 }
 }

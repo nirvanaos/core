@@ -54,7 +54,7 @@ public:
 	/// \returns Synchronization context.
 	///   If module is ClassLibrary, returned context is free context.
 	///   If module is Singleton, returned context is the singleton synchronization domain.
-	virtual SyncContext& sync_context () = 0;
+	virtual SyncContext& sync_context () NIRVANA_NOEXCEPT = 0;
 
 	/// Called on the module static object _add_ref().
 	void _add_ref () NIRVANA_NOEXCEPT

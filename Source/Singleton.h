@@ -45,6 +45,11 @@ public:
 		SyncDomain (std::ref (static_cast <MemContext&> (*this)))
 	{}
 
+	virtual SyncContext& sync_context () NIRVANA_NOEXCEPT
+	{
+		return *this;
+	}
+
 	void _add_ref () NIRVANA_NOEXCEPT
 	{
 		Module::_add_ref ();
@@ -55,10 +60,8 @@ public:
 		Module::_remove_ref ();
 	}
 
-	virtual SyncContext& sync_context ()
-	{
-		return *this;
-	}
+	using SharedObject::operator new;
+	using SharedObject::operator delete;
 };
 
 }

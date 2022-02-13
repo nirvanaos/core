@@ -373,15 +373,13 @@ T* CoreAllocator <T>::allocate (size_t cnt, void* hint, unsigned flags)
 	return (T*)g_core_heap->allocate (hint, cnt * sizeof (T), flags);
 }
 
-typedef std::basic_string <char, std::char_traits <char>, CoreAllocator <char> > CoreString;
-
 template <class T>
 class HeapAllocator :
 	public std::allocator <T>
 {
 public:
 	HeapAllocator (Heap& heap) :
-		heap_ (&heap)
+		heap_ (heap)
 	{}
 
 	static void deallocate (T* p, size_t cnt)
@@ -395,7 +393,7 @@ public:
 	}
 
 private:
-	Heap* heap_;
+	Heap& heap_;
 };
 
 }

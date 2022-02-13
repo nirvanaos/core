@@ -31,7 +31,8 @@
 #include "CORBA/CORBA.h"
 #include "../Synchronized.h"
 #include "../Array.h"
-#include "../CoreObject.h"
+#include "../SharedObject.h"
+#include "../SharedAllocator.h"
 #include <CORBA/Proxy/InterfaceMetadata.h>
 #include <CORBA/Proxy/ProxyFactory.h>
 
@@ -41,7 +42,7 @@ namespace Core {
 
 /// \brief Base for all proxies.
 class ProxyManager :
-	public ::Nirvana::Core::CoreObject,
+	public Nirvana::Core::SharedObject,
 	public Bridge <IOReference>,
 	public Bridge <Object>
 {
@@ -145,7 +146,7 @@ protected:
 		IOReference::OperationIndex idx;
 	};
 
-	::Nirvana::Core::Array <InterfaceEntry, ::Nirvana::Core::CoreAllocator>& interfaces ()
+	::Nirvana::Core::Array <InterfaceEntry, ::Nirvana::Core::SharedAllocator>& interfaces ()
 	{
 		return interfaces_;
 	}
@@ -222,8 +223,8 @@ private:
 	}
 
 private:
-	::Nirvana::Core::Array <InterfaceEntry, ::Nirvana::Core::CoreAllocator> interfaces_;
-	::Nirvana::Core::Array <OperationEntry, ::Nirvana::Core::CoreAllocator> operations_;
+	::Nirvana::Core::Array <InterfaceEntry, ::Nirvana::Core::SharedAllocator> interfaces_;
+	::Nirvana::Core::Array <OperationEntry, ::Nirvana::Core::SharedAllocator> operations_;
 
 	const InterfaceEntry* primary_interface_;
 	UShort object_itf_idx_;
