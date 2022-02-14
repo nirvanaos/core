@@ -230,7 +230,22 @@ void ExecDomain::run () NIRVANA_NOEXCEPT
 
 void ExecDomain::on_exec_domain_crash (CORBA::SystemException::Code err) NIRVANA_NOEXCEPT
 {
+	// Leave sync domain if one.
+	SyncDomain* sd = sync_context_->sync_domain ();
+	if (sd)
+		sd->leave ();
+	sync_context_ = &g_core_free_sync_context;
+
+	// Clear memory context stack
+	CoreRef <MemContext> tmp;
+	do {
+		tmp = mem_context_.top ();
+		mem_context_.pop ();
+	} while (!mem_context_.empty ());
+	mem_context_.emplace (move (tmp));
+
 	ExecContext::on_crash (err);
+	
 	cleanup ();
 }
 
