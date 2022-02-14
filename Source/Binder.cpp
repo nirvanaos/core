@@ -489,7 +489,7 @@ CORBA::Object::_ref_type Binder::bind_service (CORBA::Internal::String_in id)
 CORBA::Object::_ref_type Binder::bind_service (Service sidx)
 {
 	if ((size_t)sidx >= Service::COUNT)
-		throw_INV_OBJREF (); // TODO: Replace with POA::InvalidName
+		throw ORB::InvalidName ();
 	SYNC_BEGIN (singleton_->sync_domain_, nullptr);
 	return singleton_->bind_service_sync (sidx);
 	SYNC_END ();

@@ -29,21 +29,23 @@
 
 namespace CORBA {
 namespace Internal {
-
 namespace Core {
 
 using namespace ::Nirvana;
 using namespace ::Nirvana::Core;
 
-CORBA::Internal::ObjectFactory::StatelessCreationFrame* ObjectFactory::stateless_creation_frame ()
+CORBA::Internal::ObjectFactory::StatelessCreationFrame* ObjectFactory::
+	stateless_creation_frame ()
 {
 	ExecDomain& ed = ::Nirvana::Core::ExecDomain::current ();
 	if (ExecDomain::RestrictedMode::NO_RESTRICTIONS != ed.restricted_mode_)
 		throw_NO_PERMISSION ();
-	return reinterpret_cast <CORBA::Internal::ObjectFactory::StatelessCreationFrame*> (ed.stateless_creation_frame_);
+	return reinterpret_cast <CORBA::Internal::ObjectFactory::StatelessCreationFrame*>
+		(ed.stateless_creation_frame_);
 }
 
-void ObjectFactory::stateless_creation_frame (CORBA::Internal::ObjectFactory::StatelessCreationFrame* scf)
+void ObjectFactory::stateless_creation_frame (CORBA::Internal::ObjectFactory::
+	StatelessCreationFrame* scf)
 {
 	ExecDomain& ed = ::Nirvana::Core::ExecDomain::current ();
 	ed.stateless_creation_frame_ = scf;
@@ -51,7 +53,8 @@ void ObjectFactory::stateless_creation_frame (CORBA::Internal::ObjectFactory::St
 
 size_t ObjectFactory::offset_ptr ()
 {
-	CORBA::Internal::ObjectFactory::StatelessCreationFrame* scs = stateless_creation_frame ();
+	CORBA::Internal::ObjectFactory::StatelessCreationFrame* scs =
+		stateless_creation_frame ();
 	if (scs)
 		return scs->offset ();
 	else {
@@ -67,7 +70,8 @@ size_t ObjectFactory::offset_ptr ()
 
 extern const ::Nirvana::ImportInterfaceT <ObjectFactory> g_object_factory = {
 	::Nirvana::OLF_IMPORT_INTERFACE, "CORBA/Internal/g_object_factory",
-	ObjectFactory::repository_id_, NIRVANA_STATIC_BRIDGE (ObjectFactory, Core::ObjectFactory)
+	ObjectFactory::repository_id_, NIRVANA_STATIC_BRIDGE (ObjectFactory,
+	Core::ObjectFactory)
 };
 
 }

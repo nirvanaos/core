@@ -29,9 +29,6 @@
 #include <Nirvana/OLF.h>
 #include <CORBA/system_exceptions.h>
 
-NIRVANA_LINK_SYMBOL (_exp_PortableServer_POA)
-NIRVANA_LINK_SYMBOL (_exp_PortableServer_POA_ServantAlreadyActive)
-NIRVANA_LINK_SYMBOL (_exp_PortableServer_POA_ObjectNotActive)
 NIRVANA_LINK_SYMBOL (_exp_CORBA_Internal_g_object_factory)
 
 #define EXPORT_TC(t) NIRVANA_LINK_SYMBOL (_exp_CORBA_##t)
