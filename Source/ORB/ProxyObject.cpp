@@ -79,7 +79,12 @@ void ProxyObject::add_ref_1 ()
 				// Otherwise it's data will be lost on the pop current memory context.
 				ExecDomain& ed = ExecDomain::current ();
 				ed.mem_context_push (&g_shared_mem_context);
-				implicit_activated_id_ = poa->activate_object (servant_);
+				try {
+					implicit_activated_id_ = poa->activate_object (servant_);
+				} catch (...) {
+					ed.mem_context_pop ();
+					throw;
+				}
 				ed.mem_context_pop ();
 				assert (g_shared_mem_context->heap ().check_owner (
 					implicit_activated_id_.data (), implicit_activated_id_.capacity ()));
@@ -136,8 +141,13 @@ void ProxyObject::implicit_deactivate ()
 			tmp.data (), tmp.capacity ()));
 		ExecDomain& ed = ExecDomain::current ();
 		ed.mem_context_push (&g_shared_mem_context);
-		tmp.clear ();
-		tmp.shrink_to_fit ();
+		try {
+			tmp.clear ();
+			tmp.shrink_to_fit ();
+		} catch (...) {
+			ed.mem_context_pop ();
+			throw;
+		}
 		ed.mem_context_pop ();
 	} else {
 		assert (sync_context ().sync_domain ()->mem_context ().heap ().check_owner (
