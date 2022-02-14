@@ -128,7 +128,7 @@ public:
 	/// \param p Pointer to the created object.
 	void finish_construction (PtrType p) NIRVANA_NOEXCEPT
 	{
-		uintptr_t up;
+		uintptr_t up = 0;
 		reinterpret_cast <PtrType&> (up) = std::move (p);
 		WaitableRefBase::finish_construction (up);
 	}

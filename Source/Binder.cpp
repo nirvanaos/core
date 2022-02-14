@@ -106,7 +106,6 @@ void Binder::terminate ()
 	initialized_ = false;
 	while (!singleton_->module_map_.empty ())
 		singleton_->unload (singleton_->module_map_.begin ());
-	singleton_->object_map_.clear ();
 	SYNC_END ();
 	singleton_.destruct ();
 }
