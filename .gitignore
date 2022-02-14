@@ -9,3 +9,4 @@
 /Exports/TCKind_p.cpp
 /Exports/TypeCode_p.cpp
 /Exports/PortableServer_p.cpp
+/Exports/ORB_p.cpp
