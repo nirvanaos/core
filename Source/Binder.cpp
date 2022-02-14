@@ -28,7 +28,6 @@
 #include <Port/SystemInfo.h>
 #include <Nirvana/OLF.h>
 #include <Nirvana/OLF_Iterator.h>
-#include "ORB/POA.h"
 #include "ORB/ServantBase.h"
 #include "ORB/LocalObject.h"
 #include "ClassLibrary.h"
@@ -44,12 +43,6 @@ using namespace CORBA::Internal;
 
 StaticallyAllocated <Binder> Binder::singleton_;
 bool Binder::initialized_ = false;
-
-// Initial services. Must be lexicographically ordered.
-
-const Binder::Service Binder::services_ [(size_t)ServiceIdx::COUNT] = {
-	{ "DefaultPOA", service_default_POA, System::MILLISECOND }
-};
 
 void Binder::ObjectMap::insert (const char* name, InterfacePtr itf)
 {
@@ -488,47 +481,17 @@ void Binder::housekeeping ()
 	}
 }
 
-CORBA::Object::_ref_type Binder::bind_service_sync (ServiceIdx sidx)
-{
-	ServiceRef& ref = service_refs_ [(size_t)sidx];
-	const Service& svc = services_ [(size_t)sidx];
-	ObjectRef obj;
-	if (ref.initialize (svc.create_deadline)) {
-		try {
-			obj = (svc.creator) ();
-			ref.finish_construction (obj);
-		} catch (...) {
-			ref.on_exception ();
-			ref.reset ();
-			throw;
-		}
-	} else
-		obj = ref.get ();
-	return obj;
-}
-
 CORBA::Object::_ref_type Binder::bind_service (CORBA::Internal::String_in id)
 {
-	const Service* p = lower_bound (services_, end (services_),
-		static_cast <const std::string&> (id).c_str (), ServiceLess ());
-	return bind_service ((ServiceIdx)(p - services_));
+	return bind_service (find_service (static_cast <const string&> (id).c_str ()));
 }
 
-CORBA::Object::_ref_type Binder::bind_service (ServiceIdx sidx)
+CORBA::Object::_ref_type Binder::bind_service (Service sidx)
 {
-	if (sidx >= ServiceIdx::COUNT)
+	if ((size_t)sidx >= Service::COUNT)
 		throw_INV_OBJREF (); // TODO: Replace with POA::InvalidName
 	SYNC_BEGIN (singleton_->sync_domain_, nullptr);
 	return singleton_->bind_service_sync (sidx);
-	SYNC_END ();
-}
-
-// Service creators
-
-CORBA::Object::_ref_type Binder::service_default_POA ()
-{
-	SYNC_BEGIN (g_core_free_sync_context, nullptr);
-	return CORBA::make_reference <PortableServer::Core::POA> ()->_this ();
 	SYNC_END ();
 }
 

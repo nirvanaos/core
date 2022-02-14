@@ -38,6 +38,7 @@
 #include <Nirvana/Main.h>
 #include <Nirvana/ModuleInit.h>
 #include "WaitableRef.h"
+#include "ORB/Services.h"
 
 #pragma push_macro ("verify")
 #undef verify
@@ -59,7 +60,7 @@ class ClassLibrary;
 class Singleton;
 
 /// Implements object binding and module loading.
-class Binder
+class Binder : private CORBA::Internal::Core::Services
 {
 	/// To avoid priority inversion, if module loader deadline is too far,
 	/// it will be temporary adjusted.
@@ -122,14 +123,11 @@ public:
 	/// \returns Service object reference.
 	static ObjectRef bind_service (CORBA::Internal::String_in id);
 
-	enum class ServiceIdx
-	{
-		DefaultPOA,
-
-		COUNT
-	};
-
-	static ObjectRef bind_service (ServiceIdx sidx);
+	/// Bind service.
+	/// 
+	/// \param sidx Service index.
+	/// \returns Service object reference.
+	static ObjectRef bind_service (Service sidx);
 
 private:
 	typedef CORBA::Internal::RepId RepId;
@@ -227,28 +225,6 @@ private:
 		ObjectMap exports;
 	};
 
-	typedef WaitableRef <ObjectRef> ServiceRef;
-
-	struct Service
-	{
-		const char* id;
-		ObjectRef (*creator) ();
-		DeadlineTime create_deadline;
-	};
-
-	struct ServiceLess
-	{
-		bool operator () (const Service& l, const char* r) const NIRVANA_NOEXCEPT
-		{
-			return strcmp (l.id, r) < 0;
-		}
-
-		bool operator () (const char* l, const Service& r) const NIRVANA_NOEXCEPT
-		{
-			return strcmp (l, r.id) < 0;
-		}
-	};
-
 	/// Bind module.
 	/// 
 	/// \param mod The Nirvana::Module interface.
@@ -276,25 +252,15 @@ private:
 
 	static void delete_module (Module* mod);
 
-	ObjectRef bind_service_sync (ServiceIdx sidx);
-
-	// Service creators
-
-	static ObjectRef service_default_POA ();
-
 private:
 	ImplStatic <MemContext> memory_;
 	ImplStatic <SyncDomain> sync_domain_;
 	ObjectMap object_map_;
 	ModuleMap module_map_;
 
-	ServiceRef service_refs_ [(size_t)ServiceIdx::COUNT];
-
 	static StaticallyAllocated <Binder> singleton_;
 	static bool initialized_;
 
-	// Services
-	static const Service services_ [(size_t)ServiceIdx::COUNT];
 };
 
 }

@@ -41,7 +41,7 @@ PortableServer::POA* ServantBase::default_POA_ = nullptr;
 PortableServer::POA::_ref_type ServantBase::_default_POA ()
 {
 	if (!default_POA_) {
-		Object::_ref_type svc = Binder::bind_service (Binder::ServiceIdx::DefaultPOA);
+		Object::_ref_type svc = Binder::bind_service (CORBA::Internal::Core::Services::DefaultPOA);
 		PortableServer::POA::_ref_type poa = PortableServer::POA::_narrow (svc);
 		if (!poa)
 			throw_INV_OBJREF ();
