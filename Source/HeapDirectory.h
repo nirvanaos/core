@@ -29,6 +29,7 @@
 
 #include <Nirvana/Nirvana.h>
 #include <Nirvana/bitutils.h>
+#include <Port/config.h>
 #include <Port/Memory.h>
 #include <stddef.h>
 #include <algorithm>
@@ -327,39 +328,6 @@ struct HeapInfo
 	void* heap;         ///< Pointer to heap space.
 	size_t unit_size;   ///< Allocation unit size.
 	size_t commit_size; ///< Commit unit size.
-};
-
-/// Heap directory bitmap implementation details
-/// 
-/// Heap bitmaps are often sparse (filled with zeroes).
-/// Some virtual memory systems, such as Linux, use single zeroed physical page for all zero memory
-/// blocks and then eventually do COW (copy on write) behavior on the page when we are changing the contents.
-/// So the physical page is allocated only when we write to page.
-/// For the such systems we may use HeapDirectoryImpl::COMMITTED_BITMAP and it won't produce the redundant
-/// memory allocations.
-/// But Windows does not use this behaviour. In Windows, the physical page allocated on the first access
-/// the page, read or write. So, to conserve the physical memory in Windows we use HeapDirectoryImpl::RESERVED_BITMAP_WITH_EXCEPTIONS.
-enum class HeapDirectoryImpl
-{
-	//! This implementation used for systems without memory protection.
-	//! All bitmap memory must be initially committed and zero-filled.
-	//! `HeapInfo` parameter is unused and must be `NULL`. `Memory` functions never called.
-	PLAIN_MEMORY,
-
-	//! All bitmap memory must be initially committed and zero-filled.
-	//! If `HeapInfo` pointer is `NULL` the `Memory` functions will never be called as for PLAIN_MEMORY.
-	//! This implementation provides the best performance but can't save physical pages for bitmap.
-	COMMITTED_BITMAP,
-
-	//! Bitmap memory must be initially reserved. HeapDirectory will commit it as needed.
-	//! HeapDirectory uses `is_readable()` method to detect uncommitted pages.
-	//! Extremely slow.
-	RESERVED_BITMAP,
-
-	//! Bitmap memory must be initially reserved. HeapDirectory will commit it as needed.
-	//! HeapDirectory catches GP exception to detect uncommitted pages.
-	//! This provides better performance than `RESERVED_BITMAP`, but maybe not for all platforms.
-	RESERVED_BITMAP_WITH_EXCEPTIONS
 };
 
 //! Heap directory. Used for memory allocation on different levels of memory management.
