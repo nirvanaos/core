@@ -28,7 +28,7 @@
 #define NIRVANA_CORE_PREALLOCATEDSTACK_H_
 #pragma once
 
-#include "Heap.h"
+#include "MemContext.h"
 #include <type_traits>
 #include <utility>
 
@@ -167,7 +167,7 @@ void PreallocatedStack <El, PREALLOCATE, MIN_BLOCK>::allocate ()
 	El* end = last_block_ ? (El*)&(last_block_->storage) + BLOCK_ELEMENTS : (El*)&preallocated_ + PREALLOCATE;
 	if (top_ == end) {
 		// Allocate new block
-		Block* block = (Block*)g_core_heap->allocate (nullptr, sizeof (Block), 0);
+		Block* block = (Block*)g_shared_mem_context->heap ().allocate (nullptr, sizeof (Block), 0);
 		block->prev = last_block_;
 		last_block_ = block;
 		top_ = (El*)&(block->storage);
@@ -181,7 +181,7 @@ void PreallocatedStack <El, PREALLOCATE, MIN_BLOCK>::release () NIRVANA_NOEXCEPT
 		Block* block = last_block_;
 		last_block_ = block->prev;
 		top_ = last_block_ ? (El*)&(last_block_->storage) + BLOCK_ELEMENTS : (El*)&preallocated_ + PREALLOCATE;
-		g_core_heap->release (block, sizeof (Block));
+		g_shared_mem_context->heap ().release (block, sizeof (Block));
 	}
 }
 
