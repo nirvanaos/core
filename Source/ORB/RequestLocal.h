@@ -443,7 +443,9 @@ protected:
 		caller_memory_ (&MemContext::current ()),
 		callee_memory_ (proxy.mem_context ()),
 		first_block_ (nullptr),
-		cur_block_ (nullptr)
+		cur_block_ (nullptr),
+		interfaces_ (nullptr),
+		segments_ (nullptr)
 	{
 		assert ((uintptr_t)this % BLOCK_SIZE == 0);
 	}
