@@ -187,7 +187,7 @@ void RequestLocal::marshal_seq (size_t align, size_t element_size,
 				source_memory ().release (data, allocated_size);
 		} else {
 			Segment* segment = (Segment*)allocate_space (alignof (Segment), sizeof (Segment));
-			if (allocated_size && caller_memory_ == callee_memory_) {
+			if (allocated_size && &caller_memory_->heap () == &callee_memory_->heap ()) {
 				segment->allocated_size = allocated_size;
 				segment->allocated_memory = data;
 			} else {

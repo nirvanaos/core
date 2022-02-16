@@ -287,7 +287,7 @@ public:
 	/// \param output Output parameter marshaling. Haven't to perform deep copy.
 	void marshal_value (Interface::_ptr_type val, bool output)
 	{
-		if (output || !val)
+		if (output || !val || caller_memory_ == callee_memory_)
 			marshal_interface (val);
 		else
 			marshal_value_copy (value_type2base (val), val->_epv ().interface_id);
@@ -311,7 +311,7 @@ public:
 	/// \param output Output parameter marshaling. Haven't to perform deep copy.
 	void marshal_abstract (Interface::_ptr_type itf, bool output)
 	{
-		if (output || !itf)
+		if (output || !itf || caller_memory_ == callee_memory_)
 			marshal_interface (itf);
 		else {
 			// Downcast to AbstractBase
