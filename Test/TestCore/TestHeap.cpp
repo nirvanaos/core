@@ -81,6 +81,52 @@ TEST_F (TestHeap, Allocate)
 	EXPECT_THROW (heap_.release (p, sizeof (int)), CORBA::FREE_MEM);
 }
 
+TEST_F (TestHeap, LargeBlock)
+{
+	const size_t BLOCK_SIZE = 0x10000;
+	const unsigned BLOCK_COUNT_MAX = 4;
+
+	// Allocate contiguous blocks and release them as a one block
+	for (unsigned bc_max = 1; bc_max <= BLOCK_COUNT_MAX; ++bc_max) {
+		uint8_t* p = (uint8_t*)heap_.allocate (nullptr, BLOCK_SIZE, 0);
+		for (unsigned i = 1; i < bc_max; ++i) {
+			ASSERT_TRUE (heap_.allocate (p + BLOCK_SIZE * i, BLOCK_SIZE, 0));
+		}
+		heap_.release (p, bc_max * BLOCK_SIZE);
+		EXPECT_THROW (heap_.release (p + BLOCK_SIZE / 2, sizeof (int)), CORBA::FREE_MEM);
+	}
+
+	// Allocate large block and release smaller blocks from begin to end
+	for (unsigned bc_max = 2; bc_max <= BLOCK_COUNT_MAX; ++bc_max) {
+		uint8_t* p = (uint8_t*)heap_.allocate (nullptr, BLOCK_SIZE * bc_max, 0);
+		for (unsigned i = 0; i < bc_max; ++i) {
+			heap_.release (p + BLOCK_SIZE * i, BLOCK_SIZE);
+		}
+		EXPECT_THROW (heap_.release (p + BLOCK_SIZE / 2, sizeof (int)), CORBA::FREE_MEM);
+	}
+
+	// Allocate large block and release smaller blocks from end to begin
+	for (unsigned bc_max = 2; bc_max <= BLOCK_COUNT_MAX; ++bc_max) {
+		uint8_t* p = (uint8_t*)heap_.allocate (nullptr, BLOCK_SIZE * bc_max, 0);
+		for (int i = bc_max - 1; i >= 0; --i) {
+			heap_.release (p + BLOCK_SIZE * i, BLOCK_SIZE);
+		}
+		EXPECT_THROW (heap_.release (p + BLOCK_SIZE / 2, sizeof (int)), CORBA::FREE_MEM);
+	}
+
+	// Allocate large block and release smaller blocks even and odd
+	for (unsigned bc_max = 2; bc_max <= BLOCK_COUNT_MAX; ++bc_max) {
+		uint8_t* p = (uint8_t*)heap_.allocate (nullptr, BLOCK_SIZE * bc_max, 0);
+		for (int i = 1; i < bc_max; i += 2) {
+			heap_.release (p + BLOCK_SIZE * i, BLOCK_SIZE);
+		}
+		for (int i = 0; i < bc_max; i += 2) {
+			heap_.release (p + BLOCK_SIZE * i, BLOCK_SIZE);
+		}
+		EXPECT_THROW (heap_.release (p + BLOCK_SIZE / 2, sizeof (int)), CORBA::FREE_MEM);
+	}
+}
+
 TEST_F (TestHeap, ReadOnly)
 {
 	size_t pu = (size_t)heap_.query (nullptr, Memory::QueryParam::PROTECTION_UNIT);

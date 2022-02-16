@@ -145,7 +145,8 @@ void Heap::LBErase::commit () NIRVANA_NOEXCEPT
 		block_list_.remove (mb.node);
 	}
 
-	block_list_.remove (first_block_.node);
+	if (!shrink_size_)
+		block_list_.remove (first_block_.node);
 }
 
 void Heap::LBErase::rollback () NIRVANA_NOEXCEPT
