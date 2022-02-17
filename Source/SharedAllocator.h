@@ -39,6 +39,8 @@ class SharedAllocator :
 	public std::allocator <T>
 {
 public:
+	DEFINE_ALLOCATOR (SharedAllocator);
+
 	static void deallocate (T* p, size_t cnt)
 	{
 		g_shared_mem_context->heap ().release (p, cnt * sizeof (T));

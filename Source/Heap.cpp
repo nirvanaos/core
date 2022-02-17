@@ -52,8 +52,9 @@ void Heap::MemoryBlock::restore_large_block (size_t size) NIRVANA_NOEXCEPT
 	large_block_size_ = size | 1;
 }
 
-Heap::LBErase::LBErase (BlockList& block_list, BlockList::NodeVal* first_node) :
-	block_list_ (block_list),
+Heap::LBErase::LBErase (Heap& heap, BlockList::NodeVal* first_node) :
+	heap_ (heap),
+	middle_blocks_ (HeapAllocator <LBNode> (heap)),
 	new_node_ (nullptr)
 {
 	assert (first_node);
@@ -64,13 +65,13 @@ Heap::LBErase::LBErase (BlockList& block_list, BlockList::NodeVal* first_node) :
 Heap::LBErase::~LBErase ()
 {
 	if (last_block_.node)
-		block_list_.release_node (last_block_.node);
+		heap_.block_list_.release_node (last_block_.node);
 	for (auto& mb : middle_blocks_) {
-		block_list_.release_node (mb.node);
+		heap_.block_list_.release_node (mb.node);
 	}
-	block_list_.release_node (first_block_.node);
+	heap_.block_list_.release_node (first_block_.node);
 	if (new_node_)
-		block_list_.release_node (new_node_);
+		heap_.block_list_.release_node (new_node_);
 }
 
 void Heap::LBErase::prepare (void* p, size_t size)
@@ -91,7 +92,7 @@ void Heap::LBErase::prepare (void* p, size_t size)
 	while (end > block_end) {
 		if (last_block_.node)
 			middle_blocks_.push_back (last_block_);
-		if (!(last_block_.node = block_list_.find (block_end)))
+		if (!(last_block_.node = heap_.block_list_.find (block_end)))
 			THROW (BAD_PARAM);
 		block = &last_block_.node->value ();
 		if (!block->is_large_block ())
@@ -103,7 +104,7 @@ void Heap::LBErase::prepare (void* p, size_t size)
 
 	// Create new block at end if need.
 	if (end < block_end)
-		new_node_ = block_list_.create_node (end, block_end - end);
+		new_node_ = heap_.block_list_.create_node (end, block_end - end);
 
 	// Collapse collected blocks.
 	if (last_block_.node && !last_block_.collapse ())
@@ -135,18 +136,18 @@ void Heap::LBErase::commit () NIRVANA_NOEXCEPT
 		first_block_.restore (shrink_size_);
 
 	if (new_node_)
-		block_list_.insert (new_node_);
+		heap_.block_list_.insert (new_node_);
 
 	// Cleanup
 	if (last_block_.node)
-		block_list_.remove (last_block_.node);
+		heap_.block_list_.remove (last_block_.node);
 
 	for (auto& mb : middle_blocks_) {
-		block_list_.remove (mb.node);
+		heap_.block_list_.remove (mb.node);
 	}
 
 	if (!shrink_size_)
-		block_list_.remove (first_block_.node);
+		heap_.block_list_.remove (first_block_.node);
 }
 
 void Heap::LBErase::rollback () NIRVANA_NOEXCEPT
@@ -196,7 +197,7 @@ void Heap::release (void* p, size_t size)
 			THROW (FREE_MEM);
 	} else {
 		// Release large block
-		LBErase lberase (block_list_, node);
+		LBErase lberase (*this, node);
 		lberase.prepare (p, size);
 		try {
 			Port::Memory::release (p, size);
@@ -447,7 +448,7 @@ void* Heap::copy (void* dst, void* src, size_t size, unsigned flags)
 			THROW (BAD_PARAM);
 		const MemoryBlock& block = node->value ();
 		if (block.is_large_block ()) {
-			LBErase lberase (block_list_, node);
+			LBErase lberase (*this, node);
 			lberase.prepare (src, size);
 			BlockList::NodeVal* new_node = nullptr;
 			try {

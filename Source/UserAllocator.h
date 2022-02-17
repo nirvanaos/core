@@ -40,14 +40,16 @@ class UserAllocator :
 	public std::allocator <T>
 {
 public:
+	DEFINE_ALLOCATOR (UserAllocator);
+
 	static void deallocate (T* p, size_t cnt)
 	{
 		MemContext::current ().heap ().release (p, cnt * sizeof (T));
 	}
 
-	static T* allocate (size_t cnt, void* hint = nullptr, unsigned flags = 0)
+	static T* allocate (size_t cnt)
 	{
-		return (T*)MemContext::current ().heap ().allocate (hint, cnt * sizeof (T), flags);
+		return (T*)MemContext::current ().heap ().allocate (nullptr, cnt * sizeof (T), 0);
 	}
 };
 

@@ -35,13 +35,38 @@
 namespace Nirvana {
 namespace Core {
 
+#define DEFINE_ALLOCATOR(Name) template <class U> operator Name <U>& () { return *reinterpret_cast <Name <U>*> (this); }\
+template <class U> struct rebind { typedef Name <U> other; }
+
 template <class T>
 class CoreAllocator :
 	public std::allocator <T>
 {
 public:
+	DEFINE_ALLOCATOR (CoreAllocator);
+
 	static void deallocate (T* p, size_t cnt);
-	static T* allocate (size_t cnt, void* hint = nullptr, unsigned flags = 0);
+	static T* allocate (size_t cnt);
+};
+
+class Heap;
+
+template <class T>
+class HeapAllocator :
+	public std::allocator <T>
+{
+public:
+	DEFINE_ALLOCATOR (HeapAllocator);
+
+	HeapAllocator (Heap& heap) :
+		heap_ (&heap)
+	{}
+
+	void deallocate (T* p, size_t cnt) const;
+	T* allocate (size_t cnt) const;
+
+private:
+	Heap* heap_;
 };
 
 /// Heap implementation.
@@ -290,7 +315,7 @@ protected:
 		/// \param first_node First large block node found in the block list.
 		/// \param p Begin of the released memory.
 		/// \param size Size of the released memory.
-		LBErase (BlockList& block_list, BlockList::NodeVal* first_node);
+		LBErase (Heap& heap, BlockList::NodeVal* first_node);
 		~LBErase ();
 
 		void prepare (void* p, size_t size);
@@ -321,9 +346,9 @@ protected:
 			}
 		};
 
-		BlockList& block_list_;
+		Heap& heap_;
 		LBNode first_block_, last_block_;
-		typedef std::vector <LBNode, CoreAllocator <LBNode> > MiddleBlocks;
+		typedef std::vector <LBNode, HeapAllocator <LBNode> > MiddleBlocks;
 		MiddleBlocks middle_blocks_;
 		BlockList::NodeVal* new_node_;
 		size_t shrink_size_;
@@ -367,33 +392,22 @@ void CoreAllocator <T>::deallocate (T* p, size_t cnt)
 }
 
 template <class T> inline
-T* CoreAllocator <T>::allocate (size_t cnt, void* hint, unsigned flags)
+T* CoreAllocator <T>::allocate (size_t cnt)
 {
-	return (T*)g_core_heap->allocate (hint, cnt * sizeof (T), flags);
+	return (T*)g_core_heap->allocate (nullptr, cnt * sizeof (T), 0);
 }
 
-template <class T>
-class HeapAllocator :
-	public std::allocator <T>
+template <class T> inline
+void HeapAllocator <T>::deallocate (T* p, size_t cnt) const
 {
-public:
-	HeapAllocator (Heap& heap) :
-		heap_ (heap)
-	{}
+	heap_->release (p, cnt * sizeof (T));
+}
 
-	static void deallocate (T* p, size_t cnt)
-	{
-		heap_.release (p, cnt * sizeof (T));
-	}
-
-	static T* allocate (size_t cnt, void* hint = nullptr, unsigned flags = 0)
-	{
-		return (T*)heap_.allocate (hint, cnt * sizeof (T), flags);
-	}
-
-private:
-	Heap& heap_;
-};
+template <class T> inline
+T* HeapAllocator <T>::allocate (size_t cnt) const
+{
+	return (T*)heap_->allocate (nullptr, cnt * sizeof (T), 0);
+}
 
 }
 }
