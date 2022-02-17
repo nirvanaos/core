@@ -108,7 +108,7 @@ public:
 
 	/// Called from the Port implementation in case of the unrecoverable system error.
 	/// \param err Exception code.
-	void on_exec_domain_crash (CORBA::SystemException::Code err) NIRVANA_NOEXCEPT;
+	void on_crash (CORBA::SystemException::Code err) NIRVANA_NOEXCEPT;
 
 	SyncContext& sync_context () const NIRVANA_NOEXCEPT
 	{

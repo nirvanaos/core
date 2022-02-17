@@ -37,7 +37,7 @@ using namespace Nirvana;
 
 // Initial services. Must be lexicographically ordered.
 
-const Services::Factory Services::factories_ [Service::COUNT] = {
+const Services::Factory Services::factories_ [Service::SERVICE_COUNT] = {
 	{ "DefaultPOA", create_DefaultPOA, System::MILLISECOND }
 };
 

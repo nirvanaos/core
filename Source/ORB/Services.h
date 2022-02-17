@@ -43,7 +43,7 @@ public:
 	{
 		DefaultPOA,
 
-		COUNT
+		SERVICE_COUNT
 	};
 
 protected:
@@ -57,7 +57,7 @@ protected:
 
 	Object::_ref_type bind_service_sync (Service sidx)
 	{
-		assert ((size_t)sidx < Service::COUNT);
+		assert ((size_t)sidx < Service::SERVICE_COUNT);
 		ServiceRef& ref = services_ [sidx];
 		const Factory& f = factories_ [sidx];
 		Object::_ref_type svc;
@@ -111,10 +111,10 @@ private:
 	typedef Nirvana::Core::WaitableRef <Object::_ref_type> ServiceRef;
 
 private:
-	ServiceRef services_ [Service::COUNT];
+	ServiceRef services_ [Service::SERVICE_COUNT];
 
 	// Services
-	static const Factory factories_ [Service::COUNT];
+	static const Factory factories_ [Service::SERVICE_COUNT];
 };
 
 }

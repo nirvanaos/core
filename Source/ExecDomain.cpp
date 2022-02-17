@@ -228,7 +228,7 @@ void ExecDomain::run () NIRVANA_NOEXCEPT
 	cleanup ();
 }
 
-void ExecDomain::on_exec_domain_crash (CORBA::SystemException::Code err) NIRVANA_NOEXCEPT
+void ExecDomain::on_crash (CORBA::SystemException::Code err) NIRVANA_NOEXCEPT
 {
 	// Leave sync domain if one.
 	SyncDomain* sd = sync_context_->sync_domain ();
