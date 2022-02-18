@@ -35,8 +35,10 @@
 namespace Nirvana {
 namespace Core {
 
-#define DEFINE_ALLOCATOR(Name) template <class U> operator Name <U>& () { return *reinterpret_cast <Name <U>*> (this); }\
-template <class U> struct rebind { typedef Name <U> other; }
+//#define DEFINE_ALLOCATOR(Name) template <class U> operator Name <U>& () { return *reinterpret_cast <Name <U>*> (this); }\
+//template <class U> struct rebind { typedef Name <U> other; }
+
+#define DEFINE_ALLOCATOR(Name)
 
 template <class T>
 class CoreAllocator :
@@ -134,7 +136,9 @@ public:
 	bool check_owner (const void* p, size_t size);
 
 protected:
-	typedef HeapDirectory <HEAP_DIRECTORY_SIZE, HEAP_DIRECTORY_LEVELS, HEAP_DIRECTORY_IMPLEMENTATION> Directory;
+	typedef HeapDirectory <HEAP_DIRECTORY_SIZE, HEAP_DIRECTORY_LEVELS,
+		(Port::Memory::FLAGS & Memory::SPACE_RESERVATION) ?
+		HeapDirectoryImpl::COMMITTED_BITMAP : HeapDirectoryImpl::PLAIN_MEMORY> Directory;
 	
 	// MemoryBlock represents the heap partition or large memory block allocated from the main memory service.
 	class MemoryBlock
