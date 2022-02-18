@@ -86,44 +86,62 @@ TEST_F (TestHeap, LargeBlock)
 	const size_t BLOCK_SIZE = 0x10000;
 	const unsigned BLOCK_COUNT_MAX = 4;
 
-	// Allocate contiguous blocks and release them as a one block
+	// Allocate contiguous blocks and release them as an one block
 	for (unsigned bc_max = 1; bc_max <= BLOCK_COUNT_MAX; ++bc_max) {
+		uint8_t* blocks [BLOCK_COUNT_MAX];
 		uint8_t* p = (uint8_t*)heap_.allocate (nullptr, BLOCK_SIZE, 0);
+		ASSERT_TRUE (p);
+		blocks [0] = p;
 		for (unsigned i = 1; i < bc_max; ++i) {
-			ASSERT_TRUE (heap_.allocate (p + BLOCK_SIZE * i, BLOCK_SIZE, 0));
+			p = (uint8_t*)heap_.allocate (p + BLOCK_SIZE, BLOCK_SIZE, 0);
+			ASSERT_TRUE (p);
+			blocks [i] = p;
 		}
-		heap_.release (p, bc_max * BLOCK_SIZE);
-		EXPECT_THROW (heap_.release (p + BLOCK_SIZE / 2, sizeof (int)), CORBA::FREE_MEM);
+
+		p = blocks [0];
+		uint8_t* end = p + BLOCK_SIZE;
+		for (unsigned i = 1; i < bc_max; ++i) {
+			if (blocks [i] != end) {
+				heap_.release (p, end - p);
+				p = blocks [i];
+			}
+			end = blocks [i] + BLOCK_SIZE;
+		}
+		heap_.release (p, end - p);
+		EXPECT_TRUE (heap_.cleanup ());
 	}
 
 	// Allocate large block and release smaller blocks from begin to end
 	for (unsigned bc_max = 2; bc_max <= BLOCK_COUNT_MAX; ++bc_max) {
 		uint8_t* p = (uint8_t*)heap_.allocate (nullptr, BLOCK_SIZE * bc_max, 0);
+		ASSERT_TRUE (p);
 		for (unsigned i = 0; i < bc_max; ++i) {
 			heap_.release (p + BLOCK_SIZE * i, BLOCK_SIZE);
 		}
-		EXPECT_THROW (heap_.release (p + BLOCK_SIZE / 2, sizeof (int)), CORBA::FREE_MEM);
+		EXPECT_TRUE (heap_.cleanup ());
 	}
 
 	// Allocate large block and release smaller blocks from end to begin
 	for (unsigned bc_max = 2; bc_max <= BLOCK_COUNT_MAX; ++bc_max) {
 		uint8_t* p = (uint8_t*)heap_.allocate (nullptr, BLOCK_SIZE * bc_max, 0);
+		ASSERT_TRUE (p);
 		for (int i = bc_max - 1; i >= 0; --i) {
 			heap_.release (p + BLOCK_SIZE * i, BLOCK_SIZE);
 		}
-		EXPECT_THROW (heap_.release (p + BLOCK_SIZE / 2, sizeof (int)), CORBA::FREE_MEM);
+		EXPECT_TRUE (heap_.cleanup ());
 	}
 
 	// Allocate large block and release smaller blocks even and odd
 	for (unsigned bc_max = 2; bc_max <= BLOCK_COUNT_MAX; ++bc_max) {
 		uint8_t* p = (uint8_t*)heap_.allocate (nullptr, BLOCK_SIZE * bc_max, 0);
+		ASSERT_TRUE (p);
 		for (int i = 1; i < bc_max; i += 2) {
 			heap_.release (p + BLOCK_SIZE * i, BLOCK_SIZE);
 		}
 		for (int i = 0; i < bc_max; i += 2) {
 			heap_.release (p + BLOCK_SIZE * i, BLOCK_SIZE);
 		}
-		EXPECT_THROW (heap_.release (p + BLOCK_SIZE / 2, sizeof (int)), CORBA::FREE_MEM);
+		EXPECT_TRUE (heap_.cleanup ());
 	}
 }
 
