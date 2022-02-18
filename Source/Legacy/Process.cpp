@@ -25,6 +25,7 @@
 */
 #include "Process.h"
 #include <iostream>
+#include <signal.h>
 
 using namespace std;
 using namespace Nirvana::Core;
@@ -66,9 +67,12 @@ void Process::on_exception () NIRVANA_NOEXCEPT
 	console_ << "Unhandled exception.\n";
 }
 
-void Process::on_crash (int error_code) NIRVANA_NOEXCEPT
+void Process::on_crash (int signal) NIRVANA_NOEXCEPT
 {
-	ret_ = -1;
+	if (SIGABRT == signal)
+		ret_ = 3;
+	else
+		ret_ = -1;
 	console_ << "Process crashed.\n";
 }
 

@@ -107,8 +107,8 @@ public:
 	void run () NIRVANA_NOEXCEPT;
 
 	/// Called from the Port implementation in case of the unrecoverable system error.
-	/// \param err Exception code.
-	void on_crash (CORBA::SystemException::Code err) NIRVANA_NOEXCEPT;
+	/// \param signal The signal number.
+	void on_crash (int signal) NIRVANA_NOEXCEPT;
 
 	SyncContext& sync_context () const NIRVANA_NOEXCEPT
 	{
@@ -313,6 +313,8 @@ private:
 
 private:
 	static StaticallyAllocated <Suspend> suspend_;
+
+	static const int supported_signals_ [5]; // See <signal.h>
 
 	AtomicCounter <false> ref_cnt_;
 	DeadlineTime deadline_;

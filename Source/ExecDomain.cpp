@@ -26,6 +26,7 @@
 #include "ExecDomain.h"
 #include "Legacy/ThreadLegacy.h"
 #include <Port/SystemInfo.h>
+#include <signal.h>
 
 using namespace std;
 
@@ -83,6 +84,14 @@ public:
 };
 
 StaticallyAllocated <ExecDomain::Suspend> ExecDomain::suspend_;
+
+const int ExecDomain::supported_signals_ [5] = { // See <signal.h>
+	SIGILL,
+	SIGABRT,
+	SIGFPE,
+	SIGSEGV,
+	SIGTERM
+};
 
 void ExecDomain::initialize ()
 {
@@ -219,7 +228,11 @@ void ExecDomain::run () NIRVANA_NOEXCEPT
 	assert (Thread::current ().exec_domain () == this);
 	assert (runnable_);
 	if (scheduler_error_ >= 0) {
-		runnable_->on_crash (scheduler_error_);
+		try {
+			CORBA::SystemException::_raise_by_code (scheduler_error_);
+		} catch (...) {
+			runnable_->on_exception ();
+		}
 		runnable_ = nullptr;
 	} else {
 		ExecContext::run ();
@@ -228,7 +241,7 @@ void ExecDomain::run () NIRVANA_NOEXCEPT
 	cleanup ();
 }
 
-void ExecDomain::on_crash (CORBA::SystemException::Code err) NIRVANA_NOEXCEPT
+void ExecDomain::on_crash (int signal) NIRVANA_NOEXCEPT
 {
 	// Leave sync domain if one.
 	SyncDomain* sd = sync_context_->sync_domain ();
@@ -244,7 +257,7 @@ void ExecDomain::on_crash (CORBA::SystemException::Code err) NIRVANA_NOEXCEPT
 	} while (!mem_context_.empty ());
 	mem_context_.emplace (move (tmp));
 
-	ExecContext::on_crash (err);
+	ExecContext::on_crash (signal);
 	
 	cleanup ();
 }

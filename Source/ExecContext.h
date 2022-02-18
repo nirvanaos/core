@@ -86,17 +86,17 @@ public:
 		switch_to ();
 	}
 
-	/// Aborts execution of the context.
+	/// Raise signal.
 	/// Dangerous method used for POSIX compatibility.
-	NIRVANA_NORETURN void abort ()
+	NIRVANA_NORETURN void raise (int signal)
 	{
-		Port::ExecContext::abort ();
+		Port::ExecContext::raise (signal);
 	}
 
 protected:
 	void run () NIRVANA_NOEXCEPT;
 
-	void on_crash (CORBA::SystemException::Code err) NIRVANA_NOEXCEPT;
+	void on_crash (int signal) NIRVANA_NOEXCEPT;
 
 protected:
 	CoreRef <Runnable> runnable_;

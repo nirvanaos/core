@@ -40,9 +40,9 @@ void ExecContext::run () NIRVANA_NOEXCEPT
 	runnable_ = nullptr;
 }
 
-void ExecContext::on_crash (CORBA::SystemException::Code err) NIRVANA_NOEXCEPT
+void ExecContext::on_crash (int signal) NIRVANA_NOEXCEPT
 {
-	runnable_->on_crash (err);
+	runnable_->on_crash (signal);
 	runnable_ = nullptr;
 }
 

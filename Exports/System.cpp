@@ -104,9 +104,9 @@ public:
 		return HeapDynamic::create (granularity);
 	}
 
-	static void abort ()
+	static void raise (int signal)
 	{
-		Thread::current ().exec_domain ()->abort ();
+		Thread::current ().exec_domain ()->raise (signal);
 	}
 
 	static void srand (uint32_t seed)

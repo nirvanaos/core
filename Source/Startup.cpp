@@ -90,9 +90,9 @@ void Startup::on_exception () NIRVANA_NOEXCEPT
 	Scheduler::shutdown ();
 }
 
-void Startup::on_crash (int error_code) NIRVANA_NOEXCEPT
+void Startup::on_crash (int signal) NIRVANA_NOEXCEPT
 {
-	exception_code_ = (CORBA::SystemException::Code)error_code;
+	exception_code_ = CORBA::SystemException::EC_UNKNOWN;
 	Scheduler::shutdown ();
 }
 
