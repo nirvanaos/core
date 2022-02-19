@@ -45,11 +45,6 @@ public:
 		SyncDomain (std::ref (static_cast <MemContext&> (*this)))
 	{}
 
-	virtual SyncContext& sync_context () NIRVANA_NOEXCEPT
-	{
-		return *this;
-	}
-
 	void _add_ref () NIRVANA_NOEXCEPT
 	{
 		Module::_add_ref ();
@@ -62,6 +57,19 @@ public:
 
 	using SharedObject::operator new;
 	using SharedObject::operator delete;
+
+	// Module::
+
+	virtual SyncContext& sync_context () NIRVANA_NOEXCEPT
+	{
+		return *this;
+	}
+
+	// SyncContext::
+
+	virtual Binary* binary () NIRVANA_NOEXCEPT;
+	virtual void raise_exception (CORBA::SystemException::Code code, unsigned minor) NIRVANA_NOEXCEPT;
+
 };
 
 }

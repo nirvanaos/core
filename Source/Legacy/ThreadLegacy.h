@@ -30,12 +30,11 @@
 
 #include "../ThreadBackground.h"
 #include <Nirvana/SimpleList.h>
+#include "Process.h"
 
 namespace Nirvana {
 namespace Legacy {
 namespace Core {
-
-class Process;
 
 /// Background thread.
 class NIRVANA_NOVTABLE ThreadLegacy :
@@ -52,10 +51,11 @@ public:
 		return static_cast <ThreadLegacy&> (base);
 	}
 
-	static Nirvana::Core::CoreRef <ThreadLegacy> create (Nirvana::Core::ExecDomain& ed)
+	static Nirvana::Core::CoreRef <ThreadLegacy> create (Process& process, Nirvana::Core::ExecDomain& ed)
 	{
 		using namespace Nirvana::Core;
-		CoreRef <ThreadLegacy> obj = CoreRef <ThreadLegacy>::create <ImplDynamic <ThreadLegacy> > (std::ref (ed));
+		CoreRef <ThreadLegacy> obj = CoreRef <ThreadLegacy>::create <
+			ImplDynamic <ThreadLegacy> > (std::ref (process), std::ref (ed));
 		obj->start ();
 		return obj;
 	}
@@ -65,9 +65,15 @@ public:
 		return true;
 	}
 
+	Process& process () const NIRVANA_NOEXCEPT
+	{
+		return *process_;
+	}
+
 protected:
-	ThreadLegacy (Nirvana::Core::ExecDomain& ed) :
-		Base (ed)
+	ThreadLegacy (Process& process, Nirvana::Core::ExecDomain& ed) :
+		Base (ed),
+		process_ (&process)
 	{}
 
 private:
@@ -75,6 +81,9 @@ private:
 	{
 		_remove_ref ();
 	}
+
+private:
+	Nirvana::Core::CoreRef <Process> process_;
 };
 
 }

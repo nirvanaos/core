@@ -23,16 +23,22 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "Mutex.h"
+#include "Process.h"
+#include "Mutex.inl"
 #include "../ExecDomain.h"
 
 namespace Nirvana {
 namespace Legacy {
 namespace Core {
 
+MutexCore::MutexCore (Process& parent) :
+	Nirvana::Core::SyncDomainImpl (parent, parent),
+	owner_ (nullptr)
+{}
+
 MutexCore::~MutexCore ()
 {
-	// TODO: Terminate all waiting threads
+	// TODO: Terminate all waiting threads?
 }
 
 void MutexCore::lock ()

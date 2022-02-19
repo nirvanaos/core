@@ -35,20 +35,19 @@
 #include "../MemContextObject.h"
 #include "../SyncDomain.h"
 #include "../Synchronized.h"
-#include "ThreadLegacy.h"
 
 namespace Nirvana {
 namespace Legacy {
 namespace Core {
 
+class Process;
+class ThreadLegacy;
+
 class MutexCore :
-	public Nirvana::Core::SyncDomain
+	public Nirvana::Core::SyncDomainImpl
 {
 public:
-	MutexCore (Nirvana::Core::MemContext& mem_context) :
-		Nirvana::Core::SyncDomain (mem_context),
-		owner_ (nullptr)
-	{}
+	MutexCore (Process& parent);
 
 	~MutexCore ();
 
@@ -70,28 +69,19 @@ public:
 	using Nirvana::Core::UserObject::operator new;
 	using Nirvana::Core::UserObject::operator delete;
 
-	static Nirvana::Legacy::Mutex::_ref_type create ()
+	static Nirvana::Legacy::Mutex::_ref_type create (Process& parent)
 	{
-		return CORBA::make_pseudo <MutexUser> ();
+		return CORBA::make_pseudo <MutexUser> (std::ref (parent));
 	}
 
-	MutexUser () :
-		MutexCore (Nirvana::Core::MemContext::current ())
+	MutexUser (Process& parent) :
+		MutexCore (parent)
 	{}
 
 	~MutexUser ()
 	{}
 
-	bool try_lock ()
-	{
-		SYNC_BEGIN (*this, nullptr);
-		if (!owner_) {
-			owner_ = &ThreadLegacy::current ();
-			return true;
-		}
-		SYNC_END ();
-		return false;
-	}
+	bool try_lock ();
 
 	void _add_ref () NIRVANA_NOEXCEPT
 	{

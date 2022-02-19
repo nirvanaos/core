@@ -31,7 +31,7 @@
 #include <HeapDynamic.h>
 #include <Port/SystemInfo.h>
 #include <Port/Debugger.h>
-#include <Legacy/Mutex.h>
+#include <Legacy/Mutex.inl>
 #include <Signals.h>
 
 namespace Nirvana {
@@ -135,10 +135,12 @@ public:
 		return Thread::current ().is_legacy ();
 	}
 
-	static Nirvana::Legacy::Mutex::_ref_type create_mutex ()
+	static Legacy::Mutex::_ref_type create_mutex ()
 	{
-		if (Thread::current ().is_legacy ())
-			return Nirvana::Legacy::Core::MutexUser::create ();
+		Thread& th = Thread::current ();
+		if (th.is_legacy ())
+			return Nirvana::Legacy::Core::MutexUser::create (
+				static_cast <Legacy::Core::ThreadLegacy&> (th).process ());
 		else
 			return nullptr;
 	}

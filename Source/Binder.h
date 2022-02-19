@@ -71,7 +71,8 @@ public:
 	typedef CORBA::Object::_ref_type ObjectRef;
 
 	Binder () :
-		sync_domain_ (std::ref (memory_))
+		sync_domain_ (std::ref (static_cast <SyncContextCore&> (g_core_free_sync_context)),
+			std::ref (memory_))
 	{}
 
 	static void initialize ();
@@ -254,7 +255,7 @@ private:
 
 private:
 	ImplStatic <MemContext> memory_;
-	ImplStatic <SyncDomain> sync_domain_;
+	ImplStatic <SyncDomainImpl> sync_domain_;
 	ObjectMap object_map_;
 	ModuleMap module_map_;
 

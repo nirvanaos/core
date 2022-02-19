@@ -71,5 +71,20 @@ void ClassLibrary::terminate () NIRVANA_NOEXCEPT
 	Module::terminate ();
 }
 
+Heap* ClassLibrary::stateless_memory () NIRVANA_NOEXCEPT
+{
+	return &heap ();
+}
+
+Binary* ClassLibrary::binary () NIRVANA_NOEXCEPT
+{
+	return this;
+}
+
+void ClassLibrary::raise_exception (CORBA::SystemException::Code code, unsigned minor) NIRVANA_NOEXCEPT
+{
+	Module::raise_exception (code, minor);
+}
+
 }
 }

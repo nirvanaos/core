@@ -24,8 +24,8 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_CORE_MODULEIMPL_H_
-#define NIRVANA_CORE_MODULEIMPL_H_
+#ifndef NIRVANA_CORE_BINARY_H_
+#define NIRVANA_CORE_BINARY_H_
 #pragma once
 
 #include <CORBA/Server.h>
@@ -35,8 +35,8 @@
 namespace Nirvana {
 namespace Core {
 
-/// Nirvana::Module interface implementation.
-class ModuleImpl :
+/// Binary: Nirvana::Module interface implementation.
+class Binary :
 	public Port::Module
 {
 public:
@@ -46,7 +46,7 @@ public:
 	}
 
 protected:
-	ModuleImpl (const StringView& file) :
+	Binary (const StringView& file) :
 		Nirvana::Core::Port::Module (file)
 	{}
 };

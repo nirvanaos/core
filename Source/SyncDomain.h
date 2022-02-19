@@ -126,7 +126,7 @@ public:
 	void leave () NIRVANA_NOEXCEPT;
 
 protected:
-	SyncDomain (MemContext& memory);
+	SyncDomain (MemContext& memory) NIRVANA_NOEXCEPT;
 	~SyncDomain ();
 
 private:
@@ -158,6 +158,29 @@ private:
 	volatile DeadlineTime scheduled_deadline_;
 
 	AtomicCounter <false> activity_cnt_;
+};
+
+class SyncDomainImpl : public SyncDomain
+{
+protected:
+	SyncDomainImpl (SyncContext& parent, MemContext& memory) NIRVANA_NOEXCEPT :
+		SyncDomain (memory),
+		parent_ (&parent)
+	{}
+
+	virtual Binary* binary () NIRVANA_NOEXCEPT
+	{
+		return parent_->binary ();
+	}
+
+	virtual void raise_exception (CORBA::SystemException::Code code, unsigned minor) NIRVANA_NOEXCEPT
+	{
+		parent_->raise_exception (code, minor);
+	}
+
+private:
+	// Parent free sync context.
+	CoreRef <SyncContext> parent_;
 };
 
 }

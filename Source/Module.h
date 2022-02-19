@@ -28,7 +28,7 @@
 #define NIRVANA_CORE_MODULE_H_
 #pragma once
 
-#include "ModuleImpl.h"
+#include "Binary.h"
 #include <Nirvana/ModuleInit.h>
 #include "AtomicCounter.h"
 #include "MemContextEx.h"
@@ -41,7 +41,7 @@ class SyncContext;
 
 /// Loadable module
 class NIRVANA_NOVTABLE Module :
-	public ModuleImpl,
+	public Binary,
 	public MemContextEx,
 	public CORBA::servant_traits <Nirvana::Module>::Servant <Module>,
 	public CORBA::Internal::LifeCycleRefCnt <Module>
@@ -92,6 +92,8 @@ public:
 
 	virtual void initialize (ModuleInit::_ptr_type entry_point, AtomicCounter <false>::IntegralType initial_ref_cnt);
 	virtual void terminate () NIRVANA_NOEXCEPT;
+
+	void raise_exception (CORBA::SystemException::Code code, unsigned minor) NIRVANA_NOEXCEPT;
 
 protected:
 	Module (const StringView& name, bool singleton);

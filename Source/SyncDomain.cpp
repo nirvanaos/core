@@ -30,7 +30,7 @@ using namespace std;
 namespace Nirvana {
 namespace Core {
 
-SyncDomain::SyncDomain (MemContext& memory) :
+SyncDomain::SyncDomain (MemContext& memory) NIRVANA_NOEXCEPT :
 	mem_context_ (&memory),
 	need_schedule_ (false),
 	state_ (State::IDLE),
@@ -113,7 +113,9 @@ SyncDomain& SyncDomain::enter ()
 	SyncContext& sync_context = exec_domain.sync_context ();
 	SyncDomain* psd = sync_context.sync_domain ();
 	if (!psd) {
-		CoreRef <SyncDomain> sd = CoreRef <SyncDomain>::create <ImplDynamic <SyncDomain>> (ref (exec_domain.mem_context ()));
+		CoreRef <SyncDomain> sd = CoreRef <SyncDomain>::create
+			<ImplDynamic <SyncDomainImpl>> (ref (sync_context),
+				ref (exec_domain.mem_context ()));
 		sd->state_ = State::RUNNING;
 		exec_domain.sync_context (*sd);
 		psd = sd;

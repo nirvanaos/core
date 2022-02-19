@@ -38,8 +38,16 @@
 #include "ThreadBackground.h"
 #include <limits>
 #include <utility>
+#include <signal.h>
 
 namespace Nirvana {
+
+namespace Legacy {
+namespace Core {
+class Process;
+}
+}
+
 namespace Core {
 
 /// Execution domain (coroutine, fiber).
@@ -70,9 +78,9 @@ public:
 
 	/// Start legacy thread.
 	/// 
-	/// \param runnable    Runnable object to execute.
-	/// \param mem_context Memory context of the legacy process.
-	static void start_legacy_thread (Runnable& runnable, MemContext& mem_context);
+	/// \param process   The Process object.
+	/// \param runnable  Runnable object to execute.
+	static void start_legacy_thread (Legacy::Core::Process& process, Runnable& runnable);
 
 	DeadlineTime deadline () const
 	{
@@ -115,7 +123,24 @@ public:
 	/// \param minor The signal minor code.
 	void on_signal (int signal, unsigned minor)
 	{
-		on_crash (signal); // TODO: Temporary stub.
+		static const struct SigToExc
+		{
+			int signal;
+			CORBA::Exception::Code ec;
+		} sig2exc [] = {
+			{ SIGILL, CORBA::SystemException::EC_ILLEGAL_INSTRUCTION },
+			{ SIGFPE, CORBA::SystemException::EC_ARITHMETIC_ERROR },
+			{ SIGSEGV, CORBA::SystemException::EC_ACCESS_VIOLATION }
+		};
+
+		for (const SigToExc* p = sig2exc; p != std::end (sig2exc); ++p) {
+			if (p->signal == signal) {
+				sync_context ().raise_exception (p->ec, minor);
+				return;
+			}
+		}
+
+		on_crash (signal);
 	}
 
 	SyncContext& sync_context () const NIRVANA_NOEXCEPT

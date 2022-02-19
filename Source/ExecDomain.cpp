@@ -25,8 +25,8 @@
 */
 #include "ExecDomain.h"
 #include "Legacy/ThreadLegacy.h"
+#include "Legacy/Process.h"
 #include <Port/SystemInfo.h>
-#include <signal.h>
 
 using namespace std;
 
@@ -172,11 +172,11 @@ void ExecDomain::async_call (const DeadlineTime& deadline, Runnable& runnable, S
 	exec_domain->spawn (target);
 }
 
-void ExecDomain::start_legacy_thread (Runnable& runnable, MemContext& mem_context)
+void ExecDomain::start_legacy_thread (Legacy::Core::Process& process, Runnable& runnable)
 {
-	CoreRef <ExecDomain> exec_domain = create (INFINITE_DEADLINE, runnable, &mem_context);
-	exec_domain->background_worker_ = Legacy::Core::ThreadLegacy::create (*exec_domain);
-	exec_domain->spawn (g_core_free_sync_context);
+	CoreRef <ExecDomain> exec_domain = create (INFINITE_DEADLINE, runnable, &process);
+	exec_domain->background_worker_ = Legacy::Core::ThreadLegacy::create (process, *exec_domain);
+	exec_domain->spawn (process);
 }
 
 void ExecDomain::execute (int scheduler_error)

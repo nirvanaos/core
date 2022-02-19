@@ -52,5 +52,15 @@ Heap* SyncContextCore::stateless_memory () NIRVANA_NOEXCEPT
 	return &g_core_heap;
 }
 
+Binary* SyncContextCore::binary () NIRVANA_NOEXCEPT
+{
+	return nullptr;
+}
+
+void SyncContextCore::raise_exception (CORBA::SystemException::Code code, unsigned minor) NIRVANA_NOEXCEPT
+{
+	CORBA::SystemException::_raise_by_code (code, minor);
+}
+
 }
 }

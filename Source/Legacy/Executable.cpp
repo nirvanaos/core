@@ -31,7 +31,7 @@ namespace Legacy {
 namespace Core {
 
 Executable::Executable (const Nirvana::Core::StringView& file) :
-	Nirvana::Core::ModuleImpl (file),
+	Nirvana::Core::Binary (file),
 	entry_point_ (Nirvana::Core::Binder::bind (*this))
 {}
 
@@ -39,6 +39,18 @@ Executable::~Executable ()
 {
 	Nirvana::Core::Binder::unbind (*this);
 }
+
+Nirvana::Core::Binary* Executable::binary () NIRVANA_NOEXCEPT
+{
+	return this;
+}
+
+void Executable::raise_exception (CORBA::SystemException::Code code, unsigned minor) NIRVANA_NOEXCEPT
+{
+	CORBA::Internal::Bridge <Main>* br = &entry_point_;
+	br->_epv ().epv.raise_exception (br, (short)code, (unsigned short)minor, nullptr);
+}
+
 
 }
 }

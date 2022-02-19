@@ -38,6 +38,7 @@ class Heap;
 class ExecDomain;
 class SyncDomain;
 class MemContext;
+class Binary;
 
 /// Synchronization context pure interface.
 /// Synchronization context may be associated with:
@@ -49,13 +50,14 @@ class NIRVANA_NOVTABLE SyncContext :
 	public CoreInterface
 {
 public:
-	/// Returns current synchronization context
+	/// \returns Current synchronization context.
 	static SyncContext& current () NIRVANA_NOEXCEPT;
 
-	/// Returns SyncDomain associated with this context.
+	/// \returns SyncDomain associated with this context.
 	/// Returns `nullptr` if there is not synchronization domain.
 	virtual SyncDomain* sync_domain () NIRVANA_NOEXCEPT;
 
+	/// \returns `true` if this context is free sync context.
 	/// May be used for proxy optimization.
 	/// When we marshal `in` parameters from free context we haven't to copy data
 	/// because all data are in stack or the execution domain heap and can not be changed
@@ -65,9 +67,21 @@ public:
 		return const_cast <SyncContext&> (*this).stateless_memory () != nullptr;
 	}
 
-	/// Free sync context returns pointer to the stateless objects heap.
-	/// Other sync contexts return `nullptr`.
+	/// \returns Free sync context returns pointer to the stateless objects heap.
+	///          Other sync contexts return `nullptr`.
 	virtual Heap* stateless_memory () NIRVANA_NOEXCEPT;
+
+	/// Each sync context associated with some Binary (Module or Executable).
+	/// 
+	/// \returns Pointer to the Binary object.
+	///          SyncContextCore returns `nullptr`.
+	virtual Binary* binary () NIRVANA_NOEXCEPT = 0;
+
+	/// Raise system exception in the module.
+	/// 
+	/// \code  System exception code.
+	/// \minor System exception minor code.
+	virtual void raise_exception (CORBA::SystemException::Code code, unsigned minor) NIRVANA_NOEXCEPT = 0;
 };
 
 /// Free (not synchronized) sync context.
@@ -84,6 +98,8 @@ class SyncContextCore :
 {
 public:
 	virtual Heap* stateless_memory () NIRVANA_NOEXCEPT;
+	virtual Binary* binary () NIRVANA_NOEXCEPT;
+	virtual void raise_exception (CORBA::SystemException::Code code, unsigned minor) NIRVANA_NOEXCEPT;
 };
 
 extern StaticallyAllocated <ImplStatic <SyncContextCore>> g_core_free_sync_context;

@@ -46,6 +46,8 @@ public:
 		Module (name, false)
 	{}
 
+	// Module::
+
 	virtual SyncContext& sync_context () NIRVANA_NOEXCEPT
 	{
 		return *this;
@@ -54,10 +56,11 @@ public:
 	virtual void initialize (ModuleInit::_ptr_type entry_point, AtomicCounter <false>::IntegralType initial_ref_cnt);
 	virtual void terminate () NIRVANA_NOEXCEPT;
 
-	virtual Heap* stateless_memory () NIRVANA_NOEXCEPT
-	{
-		return &heap ();
-	}
+	// SyncContext::
+
+	virtual Heap* stateless_memory () NIRVANA_NOEXCEPT;
+	virtual Binary* binary () NIRVANA_NOEXCEPT;
+	virtual void raise_exception (CORBA::SystemException::Code code, unsigned minor) NIRVANA_NOEXCEPT;
 
 private:
 	void _add_ref () NIRVANA_NOEXCEPT

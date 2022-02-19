@@ -31,7 +31,7 @@ namespace Nirvana {
 namespace Core {
 
 Module::Module (const StringView& name, bool singleton) :
-	ModuleImpl (name),
+	Binary (name),
 	singleton_ (singleton),
 	ref_cnt_ (0),
 	initial_ref_cnt_ (0),
@@ -52,7 +52,7 @@ void Module::initialize (ModuleInit::_ptr_type entry_point, AtomicCounter <false
 {
 	initial_ref_cnt_ = initial_ref_cnt;
 	if (entry_point) {
-		call_initialize (entry_point);
+		entry_point->initialize ();
 		entry_point_ = entry_point;
 	}
 }
@@ -63,12 +63,18 @@ void Module::terminate () NIRVANA_NOEXCEPT
 		ExecDomain& ed = ExecDomain::current ();
 		ed.restricted_mode_ = ExecDomain::RestrictedMode::MODULE_TERMINATE;
 		try {
-			call_terminate (entry_point_);
+			entry_point_->terminate ();
 		} catch (...) {
 			// TODO: Log
 		}
 		ed.restricted_mode_ = ExecDomain::RestrictedMode::NO_RESTRICTIONS;
 	}
+}
+
+void Module::raise_exception (CORBA::SystemException::Code code, unsigned minor) NIRVANA_NOEXCEPT
+{
+	CORBA::Internal::Bridge <ModuleInit>* br = &entry_point_;
+	br->_epv ().epv.raise_exception (br, (short)code, (unsigned short)minor, nullptr);
 }
 
 }

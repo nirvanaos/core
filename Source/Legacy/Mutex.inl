@@ -24,40 +24,28 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_LEGACY_CORE_EXECUTABLE_H_
-#define NIRVANA_LEGACY_CORE_EXECUTABLE_H_
+#ifndef NIRVANA_LEGACY_CORE_MUTEX_INL_
+#define NIRVANA_LEGACY_CORE_MUTEX_INL_
 #pragma once
 
-#include "../SyncContext.h"
-#include "../Binary.h"
-#include <Nirvana/Main.h>
-#include "../ORB/LifeCycleStack.h"
+#include "Mutex.h"
+#include "ThreadLegacy.h"
 
 namespace Nirvana {
 namespace Legacy {
 namespace Core {
 
-class Executable :
-	public Nirvana::Core::Binary,
-	public Nirvana::Core::SyncContext,
-	public CORBA::servant_traits <Nirvana::Module>::Servant <Executable>,
-	public CORBA::Internal::Core::LifeCycleStack
+inline
+bool MutexUser::try_lock ()
 {
-public:
-	Executable (const Nirvana::Core::StringView& file);
-	~Executable ();
-
-	int main (int argc, char* argv [], char* envp [])
-	{
-		return (int)entry_point_->main (argc, argv, envp);
+	SYNC_BEGIN (*this, nullptr);
+	if (!owner_) {
+		owner_ = &ThreadLegacy::current ();
+		return true;
 	}
-
-	virtual Nirvana::Core::Binary* binary () NIRVANA_NOEXCEPT;
-	virtual void raise_exception (CORBA::SystemException::Code code, unsigned minor) NIRVANA_NOEXCEPT;
-
-private:
-	Main::_ptr_type entry_point_;
-};
+	SYNC_END ();
+	return false;
+}
 
 }
 }
