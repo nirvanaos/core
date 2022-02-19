@@ -35,19 +35,6 @@
 #include <algorithm>
 #include <atomic>
 
-#ifdef _MSC_BUILD
-
-#define HEAP_DIR_TRY __try
-#define HEAP_DIR_CATCH __except (1) // EXCEPTION_EXECUTE_HANDLER
-
-#else
-
-// For POSIX we can implement GP handling based on signals and longjmp
-#define HEAP_DIR_TRY try
-#define HEAP_DIR_CATCH catch (...)
-
-#endif
-
 /*
 Используется алгоритм распределения памяти с двоичным квантованием размеров блоков.
 Куча рассматривается, как совокупность блоков размером, кратным степени 2,
@@ -330,6 +317,19 @@ struct HeapInfo
 	size_t commit_size; ///< Commit unit size.
 };
 
+/// Heap directory bitmap implementation details
+enum class HeapDirectoryImpl
+{
+	//! This implementation used for systems without memory protection.
+	//! All bitmap memory must be initially committed and zero-filled.
+	//! `HeapInfo` parameter is unused and must be `NULL`. `Memory` functions never called.
+	PLAIN_MEMORY,
+
+	//! All bitmap memory must be initially committed and zero-filled.
+	//! If `HeapInfo` pointer is `NULL` the `Memory` functions will never be called as for PLAIN_MEMORY.
+	COMMITTED_BITMAP
+};
+
 //! Heap directory. Used for memory allocation on different levels of memory management.
 //! Heap directory allocates and deallocates abstract "units" in range (0 <= n < UNIT_COUNT).
 //! Each unit requires 2 bits of HeapDirectory size.
@@ -474,51 +474,6 @@ private:
 	//! Commit heap block. Does nothing if heap_info == NULL.
 	void commit (size_t begin, size_t end, const HeapInfo* heap_info);
 
-	int reserved_scan (BitmapWord*& bitmap_ptr, BitmapWord* const end) const
-	{
-		size_t page_size = HeapDirectoryBase::commit_unit (this);
-		assert (page_size);
-		int bit_number = -1;
-		for (;;) {
-			HEAP_DIR_TRY {
-				while ((bit_number = Ops::clear_rightmost_one (bitmap_ptr)) < 0) {
-					if (++bitmap_ptr == end)
-						break;
-				}
-				break;
-			} HEAP_DIR_CATCH {
-				if ((bitmap_ptr = round_up (bitmap_ptr + 1, page_size)) >= end) {
-					break;
-				}
-			}
-		}
-		return bit_number;
-	}
-
-	static bool reserved_bit_clear (BitmapWord* const bitmap_ptr, const BitmapWord mask)
-	{
-		HEAP_DIR_TRY {
-			return Ops::bit_clear (bitmap_ptr, mask);
-		} HEAP_DIR_CATCH {
-			return false;
-		}
-	}
-
-	static bool reserved_bit_set_check_companion (BitmapWord* bitmap_ptr, const BitmapWord mask, const BitmapWord companion_mask)
-	{
-		for (;;) {
-			HEAP_DIR_TRY{
-				if (Ops::bit_set_check_companion (bitmap_ptr, mask, companion_mask))
-					return true;
-				else
-					break;
-			} HEAP_DIR_CATCH{
-				Port::Memory::commit (bitmap_ptr, sizeof (BitmapWord));
-			}
-		}
-		return false;
-	}
-
 private:
 	// Массив, содержащий количество свободных блоков на каждом уровне.
 	// Если общее количество блоков на уровне > 64K, он разделяется на части,
@@ -581,7 +536,6 @@ ptrdiff_t HeapDirectory <DIRECTORY_SIZE, HEAP_LEVELS, IMPL>::allocate (size_t si
 			BitmapWord* begin = bitmap_ptr = bitmap_ + bi.bitmap_offset;
 
 			// Поиск в битовой карте. 
-			// Верхние уровни всегда находятся в подтвержденной области.
 			while ((bit_number = Ops::clear_rightmost_one (bitmap_ptr)) < 0) {
 				if (++bitmap_ptr >= end) {
 
@@ -606,46 +560,9 @@ ptrdiff_t HeapDirectory <DIRECTORY_SIZE, HEAP_LEVELS, IMPL>::allocate (size_t si
 			BitmapWord* begin = bitmap_ptr = bitmap_ + bi.bitmap_offset;
 			BitmapWord* end = begin + ::std::min ((size_t)Traits::TOP_LEVEL_BLOCKS << bi.level, (size_t)0x10000) / (sizeof (BitmapWord) * 8);
 
-			if (HeapDirectoryImpl::COMMITTED_BITMAP < IMPL) {// Могут попасться неподтвержденные страницы.
-
-				if (HeapDirectoryImpl::RESERVED_BITMAP_WITH_EXCEPTIONS == IMPL) {
-
-					if ((bit_number = reserved_scan (bitmap_ptr, end)) < 0)
-						goto tryagain;
-
-				} else {
-
-					size_t page_size = HeapDirectoryBase::commit_unit (this);
-					assert (page_size);
-					for (;;) {
-						BitmapWord* page_end = round_up (bitmap_ptr + 1, page_size);
-						for (;;) {
-							while (!Port::Memory::is_readable (bitmap_ptr, sizeof (BitmapWord))) {
-								if ((bitmap_ptr = page_end) >= end)
-									goto tryagain;
-								else
-									page_end += page_size;
-							}
-
-							while ((bit_number = Ops::clear_rightmost_one (bitmap_ptr)) < 0) {
-								if (++bitmap_ptr == end)
-									goto tryagain;
-
-								if (bitmap_ptr == page_end)
-									goto next_page;
-							}
-							break;
-						next_page:;
-						}
-						break;
-					}
-				}
-
-			} else {
-				while ((bit_number = Ops::clear_rightmost_one (bitmap_ptr)) < 0)
-					if (++bitmap_ptr == end)
-						goto tryagain;
-			}
+			while ((bit_number = Ops::clear_rightmost_one (bitmap_ptr)) < 0)
+				if (++bitmap_ptr == end)
+					goto tryagain;
 
 		}
 
@@ -720,19 +637,8 @@ bool HeapDirectory <DIRECTORY_SIZE, HEAP_LEVELS, IMPL>::allocate (size_t begin, 
 			volatile uint16_t& free_blocks_cnt = free_block_count (level, bl_number);
 			// Decrement free blocks counter.
 			if (Ops::acquire (&free_blocks_cnt)) {
-				if (HeapDirectoryImpl::RESERVED_BITMAP_WITH_EXCEPTIONS == IMPL) {
-					if ((success = reserved_bit_clear (bitmap_ptr, mask)))
-						break;
-				} else {
-					if (
-						(HeapDirectoryImpl::COMMITTED_BITMAP >= IMPL || Port::Memory::is_readable (bitmap_ptr, sizeof (BitmapWord)))
-						&&
-						Ops::bit_clear (bitmap_ptr, mask)
-						) {
-						success = true; // Block has been allocated
-						break;
-					}
-				}
+				if (success = Ops::bit_clear (bitmap_ptr, mask))
+					break;
 				Ops::release (&free_blocks_cnt);
 			}
 
@@ -841,39 +747,18 @@ void HeapDirectory <DIRECTORY_SIZE, HEAP_LEVELS, IMPL>::release (size_t begin, s
 			if (IMPL != HeapDirectoryImpl::PLAIN_MEMORY && level == decommit_level)
 				Port::Memory::decommit ((uint8_t*)(heap_info->heap) + bl_number * heap_info->commit_size, heap_info->commit_size);
 
-			if (HeapDirectoryImpl::RESERVED_BITMAP_WITH_EXCEPTIONS == IMPL) {
-
-				if (reserved_bit_set_check_companion (bitmap_ptr, mask, companion_mask (mask))) {
-					// Есть свободный компаньон, объединяем его с освобождаемым блоком
-					// Поднимаемся на уровень выше
-					Ops::decrement (free_blocks_cnt);
-					--level;
-					level_bitmap_begin = bitmap_offset_prev (level_bitmap_begin);
-					bl_number >>= 1;
-					mask = (BitmapWord)1 << (bl_number % (sizeof (BitmapWord) * 8));
-					bitmap_ptr = bitmap_ + level_bitmap_begin + bl_number / (sizeof (BitmapWord) * 8);
-					free_blocks_cnt = &free_block_count (level, bl_number);
-				} else
-					break;
-
-			} else {
-
-				if (HeapDirectoryImpl::COMMITTED_BITMAP < IMPL) // We have to set bit or clear companion bit here. So memory have to be committed anyway.
-					Port::Memory::commit (bitmap_ptr, sizeof (BitmapWord));
-
-				if (Ops::bit_set_check_companion (bitmap_ptr, mask, companion_mask (mask))) {
-					// Есть свободный компаньон, объединяем его с освобождаемым блоком
-					// Поднимаемся на уровень выше
-					Ops::decrement (free_blocks_cnt);
-					--level;
-					level_bitmap_begin = bitmap_offset_prev (level_bitmap_begin);
-					bl_number >>= 1;
-					mask = (BitmapWord)1 << (bl_number % (sizeof (BitmapWord) * 8));
-					bitmap_ptr = bitmap_ + level_bitmap_begin + bl_number / (sizeof (BitmapWord) * 8);
-					free_blocks_cnt = &free_block_count (level, bl_number);
-				} else
-					break;
-			}
+			if (Ops::bit_set_check_companion (bitmap_ptr, mask, companion_mask (mask))) {
+				// Есть свободный компаньон, объединяем его с освобождаемым блоком
+				// Поднимаемся на уровень выше
+				Ops::decrement (free_blocks_cnt);
+				--level;
+				level_bitmap_begin = bitmap_offset_prev (level_bitmap_begin);
+				bl_number >>= 1;
+				mask = (BitmapWord)1 << (bl_number % (sizeof (BitmapWord) * 8));
+				bitmap_ptr = bitmap_ + level_bitmap_begin + bl_number / (sizeof (BitmapWord) * 8);
+				free_blocks_cnt = &free_block_count (level, bl_number);
+			} else
+				break;
 		}
 
 		// Заранее увеличиваем счетчик свободных блоков, чтобы другие потоки знали,
@@ -916,10 +801,6 @@ bool HeapDirectory <DIRECTORY_SIZE, HEAP_LEVELS, IMPL>::check_allocated (size_t 
 		return false;
 
 	uintptr_t page_size = 0;
-	if (HeapDirectoryImpl::COMMITTED_BITMAP < IMPL) {
-		page_size = HeapDirectoryBase::commit_unit (this);
-		assert (page_size);
-	}
 
 	// Check for all bits on all levels are 0
 	int level = Traits::HEAP_LEVELS - 1;
@@ -939,90 +820,8 @@ bool HeapDirectory <DIRECTORY_SIZE, HEAP_LEVELS, IMPL>::check_allocated (size_t 
 
 		if (begin_ptr >= end_ptr) {
 
-			if (HeapDirectoryImpl::RESERVED_BITMAP_WITH_EXCEPTIONS == IMPL) {
-				HEAP_DIR_TRY {
-					if (*begin_ptr & begin_mask & end_mask)
-						return false;
-				} HEAP_DIR_CATCH {
-					;
-				}
-			} else {
-				if (
-					(HeapDirectoryImpl::COMMITTED_BITMAP >= IMPL || Port::Memory::is_readable (begin_ptr, sizeof (BitmapWord)))
-					&&
-					(*begin_ptr & begin_mask & end_mask)
-					)
-					return false;
-			}
-
-		} else if (HeapDirectoryImpl::COMMITTED_BITMAP < IMPL) {
-			assert (page_size);
-
-			if (HeapDirectoryImpl::RESERVED_BITMAP_WITH_EXCEPTIONS == IMPL) {
-				HEAP_DIR_TRY {
-					if (*begin_ptr & begin_mask)
-						return false;
-					++begin_ptr;
-				} HEAP_DIR_CATCH {
-					begin_ptr = round_up (begin_ptr + 1, page_size);
-				}
-
-				for (;;) {
-					HEAP_DIR_TRY {
-						while (begin_ptr < end_ptr) {
-							if (*begin_ptr)
-								return false;
-							++begin_ptr;
-						}
-					break;
-					} HEAP_DIR_CATCH {
-						begin_ptr = round_up (begin_ptr + 1, page_size);
-					}
-				}
-
-				HEAP_DIR_TRY {
-					if (begin_ptr == end_ptr && (*end_ptr & end_mask))
-						return false;
-				} HEAP_DIR_CATCH{
-					;
-				}
-
-			} else { // Don't use exception
-
-				// End of readable memory.
-				const BitmapWord* page_end = round_down (begin_ptr, page_size) + page_size / sizeof (BitmapWord);
-
-				if (Port::Memory::is_readable (begin_ptr, sizeof (BitmapWord))) {
-					if (*begin_ptr & begin_mask)
-						return false;
-					++begin_ptr;
-				} else
-					begin_ptr = page_end;
-
-				while (begin_ptr < end_ptr) {
-					for (const BitmapWord* end = ::std::min (end_ptr, page_end); begin_ptr < end; ++begin_ptr)
-						if (*begin_ptr)
-							return false;
-
-					while (begin_ptr < end_ptr) {
-						if (Port::Memory::is_readable (begin_ptr, sizeof (BitmapWord))) {
-							page_end = begin_ptr + page_size;
-							break;
-						} else
-							begin_ptr += page_size;
-					}
-				}
-
-				if (
-					(begin_ptr <= end_ptr)
-					&&
-					((end_ptr < page_end) || Port::Memory::is_readable (end_ptr, sizeof (BitmapWord)))
-					&&
-					(*end_ptr & end_mask)
-					)
-					return false;
-
-			}
+			if (*begin_ptr & begin_mask & end_mask)
+				return false;
 
 		} else {
 
@@ -1053,8 +852,5 @@ bool HeapDirectory <DIRECTORY_SIZE, HEAP_LEVELS, IMPL>::check_allocated (size_t 
 
 }
 }
-
-#undef HEAP_DIR_TRY
-#undef HEAP_DIR_CATCH
 
 #endif
