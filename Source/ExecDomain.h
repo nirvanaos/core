@@ -110,6 +110,14 @@ public:
 	/// \param signal The signal number.
 	void on_crash (int signal) NIRVANA_NOEXCEPT;
 
+	/// Called from the Port implementation in case of the signal.
+	/// \param signal The signal number.
+	/// \param minor The signal minor code.
+	void on_signal (int signal, unsigned minor)
+	{
+		on_crash (signal); // TODO: Temporary stub.
+	}
+
 	SyncContext& sync_context () const NIRVANA_NOEXCEPT
 	{
 		assert (sync_context_);
@@ -313,8 +321,6 @@ private:
 
 private:
 	static StaticallyAllocated <Suspend> suspend_;
-
-	static const int supported_signals_ [5]; // See <signal.h>
 
 	AtomicCounter <false> ref_cnt_;
 	DeadlineTime deadline_;

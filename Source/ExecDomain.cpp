@@ -85,14 +85,6 @@ public:
 
 StaticallyAllocated <ExecDomain::Suspend> ExecDomain::suspend_;
 
-const int ExecDomain::supported_signals_ [5] = { // See <signal.h>
-	SIGILL,
-	SIGABRT,
-	SIGFPE,
-	SIGSEGV,
-	SIGTERM
-};
-
 void ExecDomain::initialize ()
 {
 	suspend_.construct ();

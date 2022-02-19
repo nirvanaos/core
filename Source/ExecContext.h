@@ -87,7 +87,6 @@ public:
 	}
 
 	/// Raise signal.
-	/// Dangerous method used for POSIX compatibility.
 	NIRVANA_NORETURN void raise (int signal)
 	{
 		Port::ExecContext::raise (signal);

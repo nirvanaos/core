@@ -32,6 +32,7 @@
 #include <Port/SystemInfo.h>
 #include <Port/Debugger.h>
 #include <Legacy/Mutex.h>
+#include <Signals.h>
 
 namespace Nirvana {
 namespace Core {
@@ -106,7 +107,10 @@ public:
 
 	static void raise (int signal)
 	{
-		Thread::current ().exec_domain ()->raise (signal);
+		if (Signals::is_supported (signal))
+			Thread::current ().exec_domain ()->raise (signal);
+		else
+			throw_BAD_PARAM ();
 	}
 
 	static void srand (uint32_t seed)
