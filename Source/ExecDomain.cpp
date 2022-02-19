@@ -299,19 +299,20 @@ void ExecDomain::schedule_call (SyncContext& target, MemContext* mem_context)
 		mem_context = &sd->mem_context ();
 	}
 	mem_context_push (mem_context);
-	
+
+	SyncContext& old_context = sync_context ();
+
+	// If old context is a synchronization domain, we
+	// allocate queue node to perform return without a risk
+	// of memory allocation failure.
+	SyncDomain* old_sd = old_context.sync_domain ();
+	if (old_sd) {
+		old_sd->leave ();
+		ret_qnode_push (*old_sd);
+	}
+
 	if (sd || !(deadline () == INFINITE_DEADLINE && &Thread::current () == background_worker_)) {
 		// Need to schedule
-		SyncContext& old_context = sync_context ();
-
-		// If old context is a synchronization domain, we
-		// allocate queue node to perform return without a risk
-		// of memory allocation failure.
-		SyncDomain* old_sd = old_context.sync_domain ();
-		if (old_sd) {
-			old_sd->leave ();
-			ret_qnode_push (*old_sd);
-		}
 
 		// Call schedule() in the neutral context
 		schedule_.sync_context_ = &target;
@@ -337,16 +338,19 @@ void ExecDomain::schedule_call (SyncContext& target, MemContext* mem_context)
 			schedule_return (old_context);
 			CORBA::SystemException::_raise_by_code (err);
 		}
-	}
+	} else
+		sync_context (target);
 }
 
 void ExecDomain::schedule_return (SyncContext& target) NIRVANA_NOEXCEPT
 {
 	mem_context_pop ();
+
+	SyncDomain* old_sd = sync_context ().sync_domain ();
+	if (old_sd)
+		old_sd->leave ();
+
 	if (target.sync_domain () || !(deadline () == INFINITE_DEADLINE && &Thread::current () == background_worker_)) {
-		SyncDomain* old_sd = sync_context ().sync_domain ();
-		if (old_sd)
-			old_sd->leave ();
 
 		schedule_.sync_context_ = &target;
 		schedule_.ret_ = true;
@@ -358,7 +362,8 @@ void ExecDomain::schedule_return (SyncContext& target) NIRVANA_NOEXCEPT
 		CORBA::Exception::Code err = scheduler_error ();
 		if (err >= 0)
 			CORBA::SystemException::_raise_by_code (err);
-	}
+	} else
+		sync_context (target);
 }
 
 void ExecDomain::Schedule::run ()
