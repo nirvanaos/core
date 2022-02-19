@@ -166,17 +166,16 @@ protected:
 	SyncDomainImpl (SyncContext& parent, MemContext& memory) NIRVANA_NOEXCEPT :
 		SyncDomain (memory),
 		parent_ (&parent)
+	{
+		assert (!parent.sync_domain ());
+	}
+
+	~SyncDomainImpl ()
 	{}
 
-	virtual Binary* binary () NIRVANA_NOEXCEPT
-	{
-		return parent_->binary ();
-	}
-
-	virtual void raise_exception (CORBA::SystemException::Code code, unsigned minor) NIRVANA_NOEXCEPT
-	{
-		parent_->raise_exception (code, minor);
-	}
+	// SyncContext::
+	virtual Binary* binary () NIRVANA_NOEXCEPT;
+	virtual void raise_exception (CORBA::SystemException::Code code, unsigned minor) NIRVANA_NOEXCEPT;
 
 private:
 	// Parent free sync context.
