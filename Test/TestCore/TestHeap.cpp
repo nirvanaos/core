@@ -1,4 +1,4 @@
-#include "../Source/HeapUser.h"
+#include "../Source/MemContext.h"
 #include <gtest/gtest.h>
 #include <random>
 #include <thread>
@@ -17,12 +17,12 @@ class TestHeap :
 protected:
 	TestHeap ()
 	{
-		Heap::initialize ();
+		MemContext::initialize ();
 	}
 
 	virtual ~TestHeap ()
 	{
-		Heap::terminate ();
+		MemContext::terminate ();
 	}
 
 	// If the constructor and destructor are not enough for setting up

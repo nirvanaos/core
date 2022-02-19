@@ -96,6 +96,12 @@ public:
 	/// Overridden in MemContextEx.
 	virtual void on_object_destruct (MemContextObject& obj);
 
+	/// Global class initialization.
+	static void initialize ();
+
+	/// Global class temination.
+	static void terminate () NIRVANA_NOEXCEPT;
+
 protected:
 	MemContext ();
 	~MemContext ();
@@ -108,6 +114,20 @@ protected:
 /// Used for allocation of the core objects to keep g_core_heap
 /// small and fast.
 extern StaticallyAllocated <ImplStatic <MemContext>> g_shared_mem_context;
+
+inline void MemContext::initialize ()
+{
+	Port::Memory::initialize ();
+	g_core_heap.construct ();
+	g_shared_mem_context.construct ();
+}
+
+inline void MemContext::terminate () NIRVANA_NOEXCEPT
+{
+	g_shared_mem_context.destruct ();
+	g_core_heap.destruct ();
+	Port::Memory::terminate ();
+}
 
 inline
 void* MemContext::operator new (size_t cb)

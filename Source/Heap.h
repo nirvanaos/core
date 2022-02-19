@@ -82,14 +82,6 @@ class Heap
 	Heap& operator = (const Heap&) = delete;
 
 public:
-	// Global class initialization.
-	static void initialize ();
-
-	// Global class temination.
-	static void terminate () NIRVANA_NOEXCEPT;
-
-	Heap (size_t allocation_unit = HEAP_UNIT_DEFAULT) NIRVANA_NOEXCEPT;
-
 	void* allocate (void* p, size_t size, unsigned flags);
 	void release (void* p, size_t size);
 
@@ -136,6 +128,8 @@ public:
 	bool check_owner (const void* p, size_t size);
 
 protected:
+	Heap (size_t allocation_unit = HEAP_UNIT_DEFAULT) NIRVANA_NOEXCEPT;
+
 	typedef HeapDirectory <HEAP_DIRECTORY_SIZE, HEAP_DIRECTORY_LEVELS,
 		(Port::Memory::FLAGS & Memory::SPACE_RESERVATION) ?
 		HeapDirectoryImpl::COMMITTED_BITMAP : HeapDirectoryImpl::PLAIN_MEMORY> Directory;
@@ -376,18 +370,6 @@ private:
 };
 
 extern StaticallyAllocated <HeapCore> g_core_heap;
-
-inline void Heap::initialize ()
-{
-	Port::Memory::initialize ();
-	g_core_heap.construct ();
-}
-
-inline void Heap::terminate () NIRVANA_NOEXCEPT
-{
-	g_core_heap.destruct ();
-	Port::Memory::terminate ();
-}
 
 template <class T> inline
 void CoreAllocator <T>::deallocate (T* p, size_t cnt)

@@ -1,4 +1,4 @@
-#include "../Source/Heap.h"
+#include "../Source/MemContext.h"
 #include "../Source/PriorityQueue.h"
 #include "../Source/SkipListWithPool.h"
 #include <queue>
@@ -57,14 +57,14 @@ protected:
 	{
 		// Code here will be called immediately after the constructor (right
 		// before each test).
-		Nirvana::Core::Heap::initialize ();
+		Nirvana::Core::MemContext::initialize ();
 	}
 
 	virtual void TearDown ()
 	{
 		// Code here will be called immediately after each test (right
 		// before the destructor).
-		Nirvana::Core::Heap::terminate ();
+		Nirvana::Core::MemContext::terminate ();
 	}
 };
 

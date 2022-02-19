@@ -27,15 +27,13 @@
 #include "Binder.h"
 #include "Scheduler.h"
 #include "ExecDomain.h"
-#include "ORB/POA.h"
 
 namespace Nirvana {
 namespace Core {
 
 void initialize0 ()
 {
-	Heap::initialize ();
-	g_shared_mem_context.construct ();
+	MemContext::initialize ();
 	g_core_free_sync_context.construct ();
 	ExecDomain::initialize ();
 	Scheduler::initialize ();
@@ -57,8 +55,7 @@ void terminate0 () NIRVANA_NOEXCEPT
 	ExecDomain::terminate ();
 #ifdef _DEBUG
 	g_core_free_sync_context.destruct ();
-	g_shared_mem_context.destruct ();
-	Heap::terminate ();
+	MemContext::terminate ();
 #endif
 }
 
