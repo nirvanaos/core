@@ -146,7 +146,8 @@ private:
 	};
 
 	// We can not use `phmap::btree_map` here because we need the iterator stability.
-	typedef std::map <BlockIdx, CacheEntry, std::less <BlockIdx>, UserAllocator <std::pair <BlockIdx, CacheEntry>>> Cache;
+	typedef std::map <BlockIdx, CacheEntry, std::less <BlockIdx>,
+		UserAllocator <std::pair <const BlockIdx, CacheEntry> > > Cache;
 
 	struct CacheRange
 	{
