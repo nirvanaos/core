@@ -58,11 +58,13 @@ protected:
 
 	void start ()
 	{
+		Scheduler::activity_begin ();
 		_add_ref ();
 		try {
 			Base::start ();
 		} catch (...) {
 			_remove_ref ();
+			Scheduler::activity_end ();
 			throw;
 		}
 	}
@@ -75,6 +77,7 @@ private:
 	void on_thread_proc_end () NIRVANA_NOEXCEPT
 	{
 		_remove_ref ();
+		Scheduler::activity_end ();
 	}
 };
 
