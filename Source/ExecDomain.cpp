@@ -291,57 +291,6 @@ void ExecDomain::schedule (SyncContext& target, bool ret)
 	}
 }
 
-void ExecDomain::schedule_call (SyncContext& target, MemContext* mem_context)
-{
-	SyncDomain* sd = target.sync_domain ();
-	if (sd) {
-		assert (!mem_context || mem_context == &sd->mem_context ());
-		mem_context = &sd->mem_context ();
-	}
-	mem_context_push (mem_context);
-
-	SyncContext& old_context = sync_context ();
-
-	// If old context is a synchronization domain, we
-	// allocate queue node to perform return without a risk
-	// of memory allocation failure.
-	SyncDomain* old_sd = old_context.sync_domain ();
-	if (old_sd) {
-		old_sd->leave ();
-		ret_qnode_push (*old_sd);
-	}
-
-	if (sd || !(deadline () == INFINITE_DEADLINE && &Thread::current () == background_worker_)) {
-		// Need to schedule
-
-		// Call schedule() in the neutral context
-		schedule_.sync_context_ = &target;
-		schedule_.ret_ = false;
-		run_in_neutral_context (schedule_);
-
-		// Handle possible schedule() exceptions
-		if (schedule_.exception_) {
-			exception_ptr ex = schedule_.exception_;
-			schedule_.exception_ = nullptr;
-			// We leaved old sync domain so we must enter into prev synchronization domain back before throwing the exception.
-			if (old_sd)
-				schedule_return (old_context);
-			rethrow_exception (ex);
-		}
-
-		// Now ED in the scheduler queue.
-		// Now ED is again executed by the scheduler.
-		// But maybe a schedule error occurs.
-		CORBA::Exception::Code err = scheduler_error ();
-		if (err >= 0) {
-			// We must return to prev synchronization context back before throwing the exception.
-			schedule_return (old_context);
-			CORBA::SystemException::_raise_by_code (err);
-		}
-	} else
-		sync_context (target);
-}
-
 void ExecDomain::schedule_return (SyncContext& target) NIRVANA_NOEXCEPT
 {
 	mem_context_pop ();
