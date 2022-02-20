@@ -303,7 +303,7 @@ CoreRef <Module> Binder::load (string& module_name, bool singleton)
 	if (ins.second) {
 		try {
 
-			SYNC_BEGIN (g_core_free_sync_context, nullptr);
+			SYNC_BEGIN (g_core_free_sync_context, &sync_domain_.mem_context ());
 			if (singleton)
 				mod = new Singleton (ins.first->first);
 			else

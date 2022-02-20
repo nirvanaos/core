@@ -74,7 +74,7 @@ private:
 	}
 
 private:
-	std::forward_list <Section, UserAllocator <Section>> data_sections_;
+	DataSections data_sections_;
 };
 
 }

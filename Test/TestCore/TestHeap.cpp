@@ -1,13 +1,13 @@
-#include "../Source/MemContext.h"
+#include "../Source/SharedAllocator.h"
 #include <gtest/gtest.h>
 #include <random>
 #include <thread>
 #include <atomic>
-#include <signal.h>
+#include <forward_list>
 
-using namespace ::Nirvana;
-using namespace ::Nirvana::Core;
-using namespace ::std;
+using namespace Nirvana;
+using namespace Nirvana::Core;
+using namespace std;
 
 namespace TestHeap {
 
@@ -462,6 +462,19 @@ TEST_F (TestHeap, MultiThreadCopy)
 */
 	heap_.release (src, block_size);
 	heap_.release (dst, block_size * thread_count);
+}
+
+TEST_F (TestHeap, Allocator)
+{
+	typedef forward_list <int, SharedAllocator <int> > FL;
+	typedef allocator_traits <SharedAllocator <int> >::rebind_alloc <double> Rebind;
+	static_assert (is_same <SharedAllocator <double>, Rebind>::value, "Rebind");
+
+	FL fl;
+	fl.push_front (3);
+	fl.push_front (2);
+	fl.push_front (1);
+	fl.clear ();
 }
 
 }

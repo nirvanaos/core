@@ -41,6 +41,7 @@ class SyncContext;
 
 /// Loadable module
 class NIRVANA_NOVTABLE Module :
+	public UserObject,
 	public Binary,
 	public MemContextEx,
 	public CORBA::servant_traits <Nirvana::Module>::Servant <Module>,
@@ -94,6 +95,9 @@ public:
 	virtual void terminate () NIRVANA_NOEXCEPT;
 
 	void raise_exception (CORBA::SystemException::Code code, unsigned minor);
+
+	using UserObject::operator delete;
+	using UserObject::operator new;
 
 protected:
 	Module (const StringView& name, bool singleton);

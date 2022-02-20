@@ -27,6 +27,9 @@
 #define NIRVANA_CORE_SECTION_H_
 #pragma once
 
+#include <UserAllocator.h>
+#include <forward_list>
+
 namespace Nirvana {
 namespace Core {
 
@@ -35,6 +38,8 @@ struct Section
 	const void* address;
 	size_t size;
 };
+
+typedef std::forward_list <Section, UserAllocator <Section> > DataSections;
 
 }
 }

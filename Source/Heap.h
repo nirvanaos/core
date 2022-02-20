@@ -35,10 +35,11 @@
 namespace Nirvana {
 namespace Core {
 
-//#define DEFINE_ALLOCATOR(Name) template <class U> operator Name <U>& () { return *reinterpret_cast <Name <U>*> (this); }\
-//template <class U> struct rebind { typedef Name <U> other; }
+#define DEFINE_ALLOCATOR(Name) template <class U> operator Name <U>& ()\
+NIRVANA_NOEXCEPT { return *reinterpret_cast <Name <U>*> (this); }\
+template <class U> struct rebind { typedef Name <U> other; }
 
-#define DEFINE_ALLOCATOR(Name)
+//#define DEFINE_ALLOCATOR(Name)
 
 template <class T>
 class CoreAllocator :
@@ -60,7 +61,7 @@ class HeapAllocator :
 public:
 	DEFINE_ALLOCATOR (HeapAllocator);
 
-	HeapAllocator (Heap& heap) :
+	HeapAllocator (Heap& heap) NIRVANA_NOEXCEPT :
 		heap_ (&heap)
 	{}
 
@@ -70,6 +71,18 @@ public:
 private:
 	Heap* heap_;
 };
+
+template <class T, class U>
+bool operator == (const HeapAllocator <T>& l, const HeapAllocator <U>& r)
+{
+	return l.heap_ == r.heap_;
+}
+
+template <class T, class U>
+bool operator != (const HeapAllocator <T>& l, const HeapAllocator <U>& r)
+{
+	return l.heap_ != r.heap_;
+}
 
 /// Heap implementation.
 class Heap
