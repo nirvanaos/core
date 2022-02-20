@@ -101,8 +101,9 @@ void ExecDomain::final_construct (const DeadlineTime& deadline, Runnable& runnab
 {
 	Scheduler::activity_begin ();
 	deadline_ = deadline;
-	assert (mem_context_.empty ());
-	mem_context_.push (mem_context);
+	assert (mem_context_stack_.empty ());
+	mem_context_stack_.push (mem_context);
+	mem_context_ = mem_context;
 #ifdef _DEBUG
 	assert (!dbg_context_stack_size_++);
 #endif
@@ -196,7 +197,14 @@ void ExecDomain::cleanup () NIRVANA_NOEXCEPT
 	ret_qnodes_clear ();
 	sync_context_.reset ();
 	runtime_global_.cleanup ();
-	mem_context_.clear (); // TODO: Detect and log the memory leaks (if domain was not crashed).
+	assert (!mem_context_stack_.empty ());
+	for (;;) {
+		mem_context_stack_.pop ();
+		if (mem_context_stack_.empty ())
+			break;
+		mem_context_ = mem_context_stack_.top ();
+	}
+	mem_context_ = nullptr;
 #ifdef _DEBUG
 	dbg_context_stack_size_ = 0;
 #endif
@@ -244,10 +252,11 @@ void ExecDomain::on_crash (const siginfo_t& signal) NIRVANA_NOEXCEPT
 	// Clear memory context stack
 	CoreRef <MemContext> tmp;
 	do {
-		tmp = mem_context_.top ();
-		mem_context_.pop ();
-	} while (!mem_context_.empty ());
-	mem_context_.emplace (move (tmp));
+		tmp = move (mem_context_stack_.top ());
+		mem_context_stack_.pop ();
+		mem_context_ = tmp;
+	} while (!mem_context_stack_.empty ());
+	mem_context_stack_.push (move (tmp));
 
 	ExecContext::on_crash (signal);
 	

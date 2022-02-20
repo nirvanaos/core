@@ -270,7 +270,7 @@ private:
 
 	void housekeeping ();
 
-	static void delete_module (Module* mod);
+	void delete_module (Module* mod);
 
 private:
 	ImplStatic <MemContext> memory_;

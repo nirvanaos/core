@@ -85,13 +85,13 @@ void SyncDomain::execute (int scheduler_error)
 	state_ = State::RUNNING;
 	Executor* executor;
 	verify (queue_.delete_min (executor));
-	_add_ref ();
 	executor->execute (scheduler_error);
+}
 
-	// activity_begin() was called in schedule (const DeadlineTime& deadline, Executor& executor);
-	// So we call activity_end () here for the balance.
-	activity_end ();
-	_remove_ref ();
+void SyncDomain::activity_begin ()
+{
+	if (1 == activity_cnt_.increment ())
+		Scheduler::create_item ();
 }
 
 void SyncDomain::activity_end () NIRVANA_NOEXCEPT
@@ -103,6 +103,9 @@ void SyncDomain::activity_end () NIRVANA_NOEXCEPT
 void SyncDomain::leave () NIRVANA_NOEXCEPT
 {
 	assert (State::RUNNING == state_);
+	// activity_begin() was called in schedule (const DeadlineTime& deadline, Executor& executor);
+	// So we call activity_end () here for the balance.
+	activity_end ();
 	state_ = State::IDLE;
 	schedule ();
 }
@@ -114,8 +117,9 @@ SyncDomain& SyncDomain::enter ()
 	SyncDomain* psd = sync_context.sync_domain ();
 	if (!psd) {
 		CoreRef <SyncDomain> sd = CoreRef <SyncDomain>::create
-			<ImplDynamic <SyncDomainImpl>> (ref (sync_context),
+			<ImplDynamic <SyncDomainImpl> > (ref (sync_context),
 				ref (exec_domain.mem_context ()));
+		sd->activity_begin ();
 		sd->state_ = State::RUNNING;
 		exec_domain.sync_context (*sd);
 		psd = sd;

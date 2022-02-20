@@ -132,12 +132,7 @@ protected:
 private:
 	void schedule () NIRVANA_NOEXCEPT;
 
-	void activity_begin ()
-	{
-		if (1 == activity_cnt_.increment ())
-			Scheduler::create_item ();
-	}
-
+	void activity_begin ();
 	void activity_end () NIRVANA_NOEXCEPT;
 
 private:

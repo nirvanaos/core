@@ -290,7 +290,7 @@ void Binder::module_unbind (Nirvana::Module::_ptr_type mod, const Section& metad
 void Binder::delete_module (Module* mod)
 {
 	if (mod) {
-		SYNC_BEGIN (g_core_free_sync_context, nullptr);
+		SYNC_BEGIN (g_core_free_sync_context, &memory_);
 		delete mod;
 		SYNC_END ();
 	}

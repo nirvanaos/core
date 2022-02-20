@@ -108,7 +108,10 @@ protected:
 	~MemContext ();
 
 	void clear () NIRVANA_NOEXCEPT
-	{}
+	{
+		heap_.cleanup ();
+		// TODO: Detect and log memory leaks
+	}
 
 protected:
 	HeapUser heap_;

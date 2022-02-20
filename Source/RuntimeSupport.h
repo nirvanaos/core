@@ -106,7 +106,8 @@ public:
 
 	void clear () NIRVANA_NOEXCEPT
 	{
-		proxy_map_.clear ();
+		ProxyMap tmp;
+		proxy_map_.swap (tmp);
 	}
 
 private:

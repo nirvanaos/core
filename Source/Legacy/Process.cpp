@@ -52,14 +52,16 @@ void Process::copy_strings (Strings& src, Pointers& dst)
 
 void Process::run ()
 {
-	Pointers v;
-	v.reserve (argv_.size () + envp_.size () + 2);
-	copy_strings (argv_, v);
-	copy_strings (envp_, v);
-	mutex_.construct (std::ref (*this));
-	ret_ = main ((int)argv_.size (), v.data (), v.data () + argv_.size () + 1);
+	{
+		Pointers v;
+		v.reserve (argv_.size () + envp_.size () + 2);
+		copy_strings (argv_, v);
+		copy_strings (envp_, v);
+		mutex_.construct (std::ref (*this));
+		ret_ = main ((int)argv_.size (), v.data (), v.data () + argv_.size () + 1);
+		mutex_.destruct ();
+	}
 	MemContextEx::clear ();
-	mutex_.destruct ();
 }
 
 void Process::on_exception () NIRVANA_NOEXCEPT

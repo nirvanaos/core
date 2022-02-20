@@ -110,8 +110,8 @@ public:
 		// of memory allocation failure.
 		SyncDomain* old_sd = old_context.sync_domain ();
 		if (old_sd) {
-			old_sd->leave ();
 			ret_qnode_push (*old_sd);
+			old_sd->leave ();
 		}
 
 		if (sd || !(deadline () == INFINITE_DEADLINE && &Thread::current () == background_worker_)) {
@@ -199,21 +199,23 @@ public:
 	/// \returns Current memory context.
 	MemContext& mem_context ()
 	{
-		CoreRef <MemContext>& top = mem_context_.top ();
-		if (!top)
-			top = MemContextEx::create ();
-		return *top;
+		if (!mem_context_) {
+			mem_context_ = 
+				mem_context_stack_.top () = std::move (MemContextEx::create ());
+		}
+		return *mem_context_;
 	}
 
-	CoreRef <MemContext>& mem_context_ptr () NIRVANA_NOEXCEPT
+	MemContext* mem_context_ptr () NIRVANA_NOEXCEPT
 	{
-		return mem_context_.top ();
+		return mem_context_;
 	}
 
 	/// Push new memory context.
 	void mem_context_push (MemContext* context)
 	{
-		mem_context_.emplace (context);
+		mem_context_stack_.emplace (context);
+		mem_context_ = context;
 #ifdef _DEBUG
 		++dbg_context_stack_size_;
 #endif
@@ -222,11 +224,11 @@ public:
 	/// Pop memory context stack.
 	void mem_context_pop () NIRVANA_NOEXCEPT
 	{
-		mem_context_.pop ();
+		mem_context_stack_.pop ();
 #ifdef _DEBUG
 		--dbg_context_stack_size_;
 #endif
-		assert (!mem_context_.empty ());
+		mem_context_ = mem_context_stack_.top ();
 	}
 
 	CORBA::Exception::Code scheduler_error () const NIRVANA_NOEXCEPT
@@ -393,7 +395,13 @@ private:
 	DeadlineTime deadline_;
 	CoreRef <SyncContext> sync_context_;
 	SyncDomain::QueueNode* ret_qnodes_;
-	PreallocatedStack <CoreRef <MemContext> > mem_context_;
+	
+	PreallocatedStack <CoreRef <MemContext> > mem_context_stack_;
+	// When we perform mem_context_stack_.pop (), the top memory context is still
+	// current. This is necessary for correct memory deallocations in MemContext
+	// destructor.
+	MemContext* mem_context_;
+
 	bool scheduler_item_created_;
 	CORBA::Exception::Code scheduler_error_;
 	Schedule schedule_;
