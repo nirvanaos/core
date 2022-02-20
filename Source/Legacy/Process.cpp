@@ -58,6 +58,7 @@ void Process::run ()
 	copy_strings (envp_, v);
 	mutex_.construct (std::ref (*this));
 	ret_ = main ((int)argv_.size (), v.data (), v.data () + argv_.size () + 1);
+	MemContextEx::clear ();
 	mutex_.destruct ();
 }
 

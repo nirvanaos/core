@@ -43,7 +43,17 @@ MemContextEx::MemContextEx ()
 
 MemContextEx::~MemContextEx ()
 {
-	object_list_.clear ();
+	clear ();
+}
+
+void MemContextEx::clear () NIRVANA_NOEXCEPT
+{
+	while (!object_list_.empty ()) {
+		MemContextObject& obj = object_list_.front ();
+		obj.remove ();
+		delete& obj; // Object is not listed, so it won't call on_object_destruct
+	}
+	Base::clear ();
 }
 
 void MemContextEx::on_object_construct (MemContextObject& obj)

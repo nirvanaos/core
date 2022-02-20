@@ -52,6 +52,12 @@ protected:
 	/// \param obj Pointer used as a key.
 	virtual void runtime_proxy_remove (const void* obj);
 
+	void clear () NIRVANA_NOEXCEPT
+	{
+		runtime_support_.clear ();
+		MemContext::clear ();
+	}
+
 private:
 	RuntimeSupport runtime_support_;
 };
@@ -61,6 +67,7 @@ private:
 class NIRVANA_NOVTABLE MemContextEx : 
 	public std::conditional <RUNTIME_SUPPORT_DISABLE, MemContext, MemContextRS>::type
 {
+	typedef std::conditional <RUNTIME_SUPPORT_DISABLE, MemContext, MemContextRS>::type Base;
 public:
 	/// Create MemContextEx object.
 	/// 
@@ -83,6 +90,8 @@ protected:
 	/// 
 	/// \param obj Object.
 	virtual void on_object_destruct (MemContextObject& obj);
+
+	void clear () NIRVANA_NOEXCEPT;
 
 protected:
 	SimpleList <MemContextObject> object_list_;

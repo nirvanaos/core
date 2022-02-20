@@ -107,6 +107,9 @@ protected:
 	MemContext ();
 	~MemContext ();
 
+	void clear () NIRVANA_NOEXCEPT
+	{}
+
 protected:
 	HeapUser heap_;
 };

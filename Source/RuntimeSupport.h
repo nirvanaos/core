@@ -104,6 +104,11 @@ public:
 		}
 	}
 
+	void clear () NIRVANA_NOEXCEPT
+	{
+		proxy_map_.clear ();
+	}
+
 private:
 	ProxyMap proxy_map_;
 };
