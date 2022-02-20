@@ -196,8 +196,26 @@ private:
 		Version version_;
 	};
 
+	template <class T>
+	class Allocator : public std::allocator <T>
+	{
+	public:
+		DEFINE_ALLOCATOR (Allocator);
+
+		static void deallocate (T* p, size_t cnt)
+		{
+			singleton_->memory_.heap ().release (p, cnt * sizeof (T));
+		}
+
+		static T* allocate (size_t cnt)
+		{
+			return (T*)singleton_->memory_.heap ().allocate (nullptr, cnt * sizeof (T), 0);
+		}
+	};
+
 	// We use phmap::btree_map as fast binary tree without the iterator stability.
-	typedef phmap::btree_map <ObjectKey, InterfacePtr, std::less <ObjectKey>, UserAllocator <std::pair <ObjectKey, InterfacePtr> > > ObjectMapBase;
+	typedef phmap::btree_map <ObjectKey, InterfacePtr, std::less <ObjectKey>,
+		Allocator <std::pair <ObjectKey, InterfacePtr> > > ObjectMapBase;
 
 	// Name->interface map.
 	class ObjectMap : public ObjectMapBase
@@ -211,8 +229,9 @@ private:
 
 	// Map of the loaded modules.
 	typedef WaitableRef <Module*> ModulePtr;
-	typedef phmap::flat_hash_map <std::string, ModulePtr, phmap::Hash <std::string>, phmap::EqualTo <std::string>,
-		UserAllocator <std::pair <std::string, ModulePtr> > > ModuleMap;
+	typedef phmap::flat_hash_map <std::string, ModulePtr, phmap::Hash <std::string>,
+		phmap::EqualTo <std::string>, Allocator <std::pair <std::string, ModulePtr> >
+	> ModuleMap;
 
 	/// Module binding context
 	struct ModuleContext

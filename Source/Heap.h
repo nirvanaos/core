@@ -65,10 +65,33 @@ public:
 		heap_ (&heap)
 	{}
 
+	HeapAllocator (const HeapAllocator& src) :
+		heap_ (src.heap_)
+	{}
+
+	template <class U>
+	HeapAllocator (const HeapAllocator <U>& src) :
+		heap_ (src.heap_)
+	{}
+
+	HeapAllocator& operator = (const HeapAllocator& src)
+	{
+		heap_ = src.heap_;
+		return *this;
+	}
+
+	template <class U>
+	HeapAllocator& operator = (const HeapAllocator <U>& src)
+	{
+		heap_ = src.heap_;
+		return *this;
+	}
+
 	void deallocate (T* p, size_t cnt) const;
 	T* allocate (size_t cnt) const;
 
 private:
+	template <class U> friend class HeapAllocator;
 	Heap* heap_;
 };
 

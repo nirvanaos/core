@@ -193,6 +193,8 @@ void ExecDomain::cleanup () NIRVANA_NOEXCEPT
 		if (sd)
 			sd->leave ();
 	}
+	ret_qnodes_clear ();
+	sync_context_.reset ();
 	runtime_global_.cleanup ();
 	mem_context_.clear (); // TODO: Detect and log the memory leaks (if domain was not crashed).
 #ifdef _DEBUG
@@ -200,9 +202,7 @@ void ExecDomain::cleanup () NIRVANA_NOEXCEPT
 #endif
 	stateless_creation_frame_ = nullptr;
 	binder_context_ = nullptr;
-	sync_context_.reset ();
 	scheduler_error_ = CORBA::SystemException::EC_NO_EXCEPTION;
-	ret_qnodes_clear ();
 	if (scheduler_item_created_) {
 		Scheduler::delete_item ();
 		scheduler_item_created_ = false;
