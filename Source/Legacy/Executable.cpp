@@ -45,7 +45,7 @@ Nirvana::Core::Binary* Executable::binary () NIRVANA_NOEXCEPT
 	return this;
 }
 
-void Executable::raise_exception (CORBA::SystemException::Code code, unsigned minor) NIRVANA_NOEXCEPT
+void Executable::raise_exception (CORBA::SystemException::Code code, unsigned minor)
 {
 	CORBA::Internal::Bridge <Main>* br = &entry_point_;
 	br->_epv ().epv.raise_exception (br, (short)code, (unsigned short)minor, nullptr);

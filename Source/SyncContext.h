@@ -81,7 +81,7 @@ public:
 	/// 
 	/// \code  System exception code.
 	/// \minor System exception minor code.
-	virtual void raise_exception (CORBA::SystemException::Code code, unsigned minor) NIRVANA_NOEXCEPT = 0;
+	virtual void raise_exception (CORBA::SystemException::Code code, unsigned minor) = 0;
 };
 
 /// Free (not synchronized) sync context.
@@ -99,7 +99,7 @@ class SyncContextCore :
 public:
 	virtual Heap* stateless_memory () NIRVANA_NOEXCEPT;
 	virtual Binary* binary () NIRVANA_NOEXCEPT;
-	virtual void raise_exception (CORBA::SystemException::Code code, unsigned minor) NIRVANA_NOEXCEPT;
+	virtual void raise_exception (CORBA::SystemException::Code code, unsigned minor);
 };
 
 extern StaticallyAllocated <ImplStatic <SyncContextCore>> g_core_free_sync_context;

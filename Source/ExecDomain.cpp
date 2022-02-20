@@ -233,7 +233,7 @@ void ExecDomain::run () NIRVANA_NOEXCEPT
 	cleanup ();
 }
 
-void ExecDomain::on_crash (int signal) NIRVANA_NOEXCEPT
+void ExecDomain::on_crash (const siginfo_t& signal) NIRVANA_NOEXCEPT
 {
 	// Leave sync domain if one.
 	SyncDomain* sd = sync_context_->sync_domain ();

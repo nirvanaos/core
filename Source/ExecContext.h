@@ -95,7 +95,7 @@ public:
 protected:
 	void run () NIRVANA_NOEXCEPT;
 
-	void on_crash (int signal) NIRVANA_NOEXCEPT;
+	void on_crash (const siginfo_t& signal) NIRVANA_NOEXCEPT;
 
 protected:
 	CoreRef <Runnable> runnable_;

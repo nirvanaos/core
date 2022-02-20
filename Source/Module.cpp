@@ -71,7 +71,7 @@ void Module::terminate () NIRVANA_NOEXCEPT
 	}
 }
 
-void Module::raise_exception (CORBA::SystemException::Code code, unsigned minor) NIRVANA_NOEXCEPT
+void Module::raise_exception (CORBA::SystemException::Code code, unsigned minor)
 {
 	CORBA::Internal::Bridge <ModuleInit>* br = &entry_point_;
 	br->_epv ().epv.raise_exception (br, (short)code, (unsigned short)minor, nullptr);

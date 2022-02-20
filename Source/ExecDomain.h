@@ -39,6 +39,7 @@
 #include <limits>
 #include <utility>
 #include <signal.h>
+#include <siginfo.h>
 
 namespace Nirvana {
 
@@ -165,14 +166,16 @@ public:
 	/// \brief Called from the Port implementation.
 	void run () NIRVANA_NOEXCEPT;
 
-	/// Called from the Port implementation in case of the unrecoverable system error.
-	/// \param signal The signal number.
-	void on_crash (int signal) NIRVANA_NOEXCEPT;
+	/// Called from the Port implementation in case of the unrecoverable error.
+	/// \param signal The signal information.
+	void on_crash (const siginfo_t& signal) NIRVANA_NOEXCEPT;
 
 	/// Called from the Port implementation in case of the signal.
-	/// \param signal The signal number.
-	/// \param minor The signal minor code.
-	void on_signal (int signal, unsigned minor)
+	/// \param signal The signal information.
+	/// 
+	/// \returns `true` to continue execution,
+	///          `false` to unwind and call on_crash().
+	bool on_signal (const siginfo_t& signal)
 	{
 		static const struct SigToExc
 		{
@@ -185,13 +188,13 @@ public:
 		};
 
 		for (const SigToExc* p = sig2exc; p != std::end (sig2exc); ++p) {
-			if (p->signal == signal) {
-				sync_context ().raise_exception (p->ec, minor);
-				return;
+			if (p->signal == signal.si_signo) {
+				sync_context ().raise_exception (p->ec, signal.si_code);
+				return true;
 			}
 		}
 
-		on_crash (signal);
+		return false;
 	}
 
 	SyncContext& sync_context () const NIRVANA_NOEXCEPT

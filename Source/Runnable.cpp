@@ -34,7 +34,7 @@ void Runnable::on_exception () NIRVANA_NOEXCEPT
 	assert (false);
 }
 
-void Runnable::on_crash (int signal) NIRVANA_NOEXCEPT
+void Runnable::on_crash (const siginfo_t& signal) NIRVANA_NOEXCEPT
 {
 	// TODO: Log
 	assert (false);

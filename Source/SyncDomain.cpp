@@ -141,7 +141,7 @@ Binary* SyncDomainImpl::binary () NIRVANA_NOEXCEPT
 	return parent_->binary ();
 }
 
-void SyncDomainImpl::raise_exception (CORBA::SystemException::Code code, unsigned minor) NIRVANA_NOEXCEPT
+void SyncDomainImpl::raise_exception (CORBA::SystemException::Code code, unsigned minor)
 {
 	parent_->raise_exception (code, minor);
 }

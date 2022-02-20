@@ -33,7 +33,7 @@ Binary* Singleton::binary () NIRVANA_NOEXCEPT
 	return this;
 }
 
-void Singleton::raise_exception (CORBA::SystemException::Code code, unsigned minor) NIRVANA_NOEXCEPT
+void Singleton::raise_exception (CORBA::SystemException::Code code, unsigned minor)
 {
 	Module::raise_exception (code, minor);
 }

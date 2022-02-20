@@ -60,7 +60,7 @@ public:
 
 	virtual Heap* stateless_memory () NIRVANA_NOEXCEPT;
 	virtual Binary* binary () NIRVANA_NOEXCEPT;
-	virtual void raise_exception (CORBA::SystemException::Code code, unsigned minor) NIRVANA_NOEXCEPT;
+	virtual void raise_exception (CORBA::SystemException::Code code, unsigned minor);
 
 private:
 	void _add_ref () NIRVANA_NOEXCEPT

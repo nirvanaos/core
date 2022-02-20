@@ -60,7 +60,7 @@ public:
 
 	virtual void run ();
 	virtual void on_exception () NIRVANA_NOEXCEPT;
-	virtual void on_crash (int signal) NIRVANA_NOEXCEPT;
+	virtual void on_crash (const siginfo_t& signal) NIRVANA_NOEXCEPT;
 
 	void check () const;
 

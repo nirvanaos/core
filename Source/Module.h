@@ -93,7 +93,7 @@ public:
 	virtual void initialize (ModuleInit::_ptr_type entry_point, AtomicCounter <false>::IntegralType initial_ref_cnt);
 	virtual void terminate () NIRVANA_NOEXCEPT;
 
-	void raise_exception (CORBA::SystemException::Code code, unsigned minor) NIRVANA_NOEXCEPT;
+	void raise_exception (CORBA::SystemException::Code code, unsigned minor);
 
 protected:
 	Module (const StringView& name, bool singleton);

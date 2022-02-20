@@ -175,7 +175,7 @@ protected:
 
 	// SyncContext::
 	virtual Binary* binary () NIRVANA_NOEXCEPT;
-	virtual void raise_exception (CORBA::SystemException::Code code, unsigned minor) NIRVANA_NOEXCEPT;
+	virtual void raise_exception (CORBA::SystemException::Code code, unsigned minor);
 
 private:
 	// Parent free sync context.

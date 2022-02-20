@@ -53,7 +53,7 @@ public:
 	}
 
 	virtual Nirvana::Core::Binary* binary () NIRVANA_NOEXCEPT;
-	virtual void raise_exception (CORBA::SystemException::Code code, unsigned minor) NIRVANA_NOEXCEPT;
+	virtual void raise_exception (CORBA::SystemException::Code code, unsigned minor);
 
 private:
 	Main::_ptr_type entry_point_;
