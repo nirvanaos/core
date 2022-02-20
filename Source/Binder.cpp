@@ -254,7 +254,9 @@ const ModuleStartup* Binder::module_bind (::Nirvana::Module::_ptr_type mod, cons
 					Memory::READ_ONLY | Memory::EXACTLY));
 		}
 	} catch (...) {
+		SYNC_BEGIN (mod_context->sync_context, nullptr);
 		module_unbind (mod, { metadata.address, metadata.size });
+		SYNC_END ();
 		exec_domain.binder_context_ = prev_context;
 		throw;
 	}
@@ -332,7 +334,9 @@ CoreRef <Module> Binder::load (string& module_name, bool singleton)
 				}
 
 			} catch (...) {
+				SYNC_BEGIN (context.sync_context, mod);
 				module_unbind (mod->_get_ptr (), mod->metadata ());
+				SYNC_END ();
 				throw;
 			}
 		} catch (...) {
