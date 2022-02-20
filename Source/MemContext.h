@@ -43,9 +43,10 @@ class MemContextObject;
 /// The MemContext implements heap only. Other virtual methods are stubbed.
 ///  only an is intended for use in Core only.
 /// 
-class NIRVANA_NOVTABLE MemContext :
-	public CoreInterface
+class NIRVANA_NOVTABLE MemContext
 {
+	DECLARE_CORE_INTERFACE
+
 	MemContext (const MemContext&) = delete;
 	MemContext& operator = (const MemContext&) = delete;
 

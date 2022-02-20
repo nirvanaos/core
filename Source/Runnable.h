@@ -35,8 +35,9 @@ namespace Nirvana {
 namespace Core {
 
 /// Core implementation of the Runnable interface
-class NIRVANA_NOVTABLE Runnable : public CoreInterface
+class NIRVANA_NOVTABLE Runnable
 {
+	DECLARE_CORE_INTERFACE
 public:
 	virtual void run () = 0;
 	virtual void on_exception () NIRVANA_NOEXCEPT;

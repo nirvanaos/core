@@ -42,17 +42,10 @@ template <class> friend class Nirvana::Core::CoreRef;\
 virtual void _add_ref () NIRVANA_NOEXCEPT = 0;\
 virtual void _remove_ref () NIRVANA_NOEXCEPT = 0;
 
-/// Core interface.
-class NIRVANA_NOVTABLE CoreInterface
-{
-	DECLARE_CORE_INTERFACE
-};
-
 template <class T> class CoreRef;
 
 /// Dynamic implementation of a core object.
 /// \tparam T object class.
-///         Note that T haven't to derive from CoreInterface, but can.
 template <class T>
 class ImplDynamic final :
 	public T
@@ -85,7 +78,6 @@ private:
 
 /// Dynamic implementation of a core object for usage in synchronized scenarios.
 /// \tparam T object class.
-///         Note that T haven't to derive from CoreInterface, but can.
 template <class T>
 class ImplDynamicSync final :
 	public T
@@ -140,7 +132,6 @@ private:
 
 /// Special implementation of a core object.
 /// \tparam T object class.
-///         Note that T haven't to derive from CoreInterface, but can.
 template <class T>
 class ImplNoAddRef final :
 	public T
@@ -170,7 +161,6 @@ protected:
 
 /// Core smart pointer.
 /// \tparam T object or core interface class.
-///           Note that T haven't to derive from CoreInterface, but can.
 template <class T>
 class CoreRef
 {

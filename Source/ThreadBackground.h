@@ -35,10 +35,11 @@ namespace Nirvana {
 namespace Core {
 
 class NIRVANA_NOVTABLE ThreadBackground :
-	public CoreInterface,
 	public SharedObject,
 	public Port::ThreadBackground
 {
+	DECLARE_CORE_INTERFACE
+
 	friend class Port::ThreadBackground;
 	typedef Port::ThreadBackground Base;
 public:

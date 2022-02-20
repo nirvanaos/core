@@ -46,9 +46,9 @@ class Binary;
 ///   - Free synchronization context for core stateless objects
 ///   - Free synchronization context for class library
 ///   - Legacy thread
-class NIRVANA_NOVTABLE SyncContext :
-	public CoreInterface
+class NIRVANA_NOVTABLE SyncContext
 {
+DECLARE_CORE_INTERFACE
 public:
 	/// \returns Current synchronization context.
 	static SyncContext& current () NIRVANA_NOEXCEPT;

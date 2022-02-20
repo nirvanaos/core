@@ -32,8 +32,9 @@
 namespace Nirvana {
 namespace Core {
 
-class NIRVANA_NOVTABLE Executor : public CoreInterface
+class NIRVANA_NOVTABLE Executor
 {
+DECLARE_CORE_INTERFACE
 public:
 	virtual void execute (int scheduler_error) = 0;
 };

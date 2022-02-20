@@ -35,9 +35,9 @@ namespace Core {
 
 /// Implements wait list for asynchronous operations.
 class Event :
-	public CoreInterface,
 	private Stack <ExecDomain>
 {
+	DECLARE_CORE_INTERFACE
 public:
 	Event () NIRVANA_NOEXCEPT :
 		wait_op_ (std::ref (*this)),
