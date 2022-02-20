@@ -201,7 +201,7 @@ public:
 	{
 		if (!mem_context_) {
 			mem_context_ = 
-				mem_context_stack_.top () = std::move (MemContextEx::create ());
+				mem_context_stack_.top () = MemContextEx::create ();
 		}
 		return *mem_context_;
 	}

@@ -637,7 +637,7 @@ bool HeapDirectory <DIRECTORY_SIZE, HEAP_LEVELS, IMPL>::allocate (size_t begin, 
 			volatile uint16_t& free_blocks_cnt = free_block_count (level, bl_number);
 			// Decrement free blocks counter.
 			if (Ops::acquire (&free_blocks_cnt)) {
-				if (success = Ops::bit_clear (bitmap_ptr, mask))
+				if ((success = Ops::bit_clear (bitmap_ptr, mask)))
 					break;
 				Ops::release (&free_blocks_cnt);
 			}
@@ -799,8 +799,6 @@ bool HeapDirectory <DIRECTORY_SIZE, HEAP_LEVELS, IMPL>::check_allocated (size_t 
 {
 	if (begin >= Traits::UNIT_COUNT || end > Traits::UNIT_COUNT || end <= begin)
 		return false;
-
-	uintptr_t page_size = 0;
 
 	// Check for all bits on all levels are 0
 	int level = Traits::HEAP_LEVELS - 1;
