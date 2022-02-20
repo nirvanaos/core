@@ -269,6 +269,12 @@ public:
 		return *this;
 	}
 
+	CoreRef& operator = (nullptr_t) NIRVANA_NOEXCEPT
+	{
+		reset ();
+		return *this;
+	}
+
 	T* operator -> () const NIRVANA_NOEXCEPT
 	{
 		return p_;

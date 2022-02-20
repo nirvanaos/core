@@ -200,7 +200,7 @@ void ExecDomain::cleanup () NIRVANA_NOEXCEPT
 #endif
 	stateless_creation_frame_ = nullptr;
 	binder_context_ = nullptr;
-	sync_context_ = nullptr;
+	sync_context_.reset ();
 	scheduler_error_ = CORBA::SystemException::EC_NO_EXCEPTION;
 	ret_qnodes_clear ();
 	if (scheduler_item_created_) {
@@ -225,7 +225,7 @@ void ExecDomain::run () NIRVANA_NOEXCEPT
 		} catch (...) {
 			runnable_->on_exception ();
 		}
-		runnable_ = nullptr;
+		runnable_.reset ();
 	} else {
 		ExecContext::run ();
 		assert (!runnable_); // Cleaned inside ExecContext::run ();
