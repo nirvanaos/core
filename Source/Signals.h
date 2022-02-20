@@ -28,6 +28,9 @@
 #define NIRVANA_CORE_SIGNALS_H_
 #pragma once
 
+#include <CORBA/CORBA.h>
+#include <signal.h>
+
 namespace Nirvana {
 namespace Core {
 
@@ -36,15 +39,25 @@ class Signals
 public:
 	static const size_t SUPPORTED_COUNT = 5;
 
-	static int signal_index (int signal);
+	static int signal_index (int signal) NIRVANA_NOEXCEPT;
 
-	static bool is_supported (int signal)
+	static bool is_supported (int signal) NIRVANA_NOEXCEPT
 	{
 		return signal_index (signal) >= 0;
 	}
 
+	static CORBA::Exception::Code signal2ex (int signal) NIRVANA_NOEXCEPT;
+
 private:
 	static const int supported_signals_ [SUPPORTED_COUNT];
+
+	struct SigToExc
+	{
+		int signal;
+		CORBA::Exception::Code ec;
+	};
+
+	static const SigToExc sig2exc_ [];
 };
 
 

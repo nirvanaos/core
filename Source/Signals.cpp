@@ -40,12 +40,29 @@ const int Signals::supported_signals_ [SUPPORTED_COUNT] = {
 	SIGTERM
 };
 
-int Signals::signal_index (int signal)
+const Signals::SigToExc Signals::sig2exc_ [] = {
+	{ SIGILL, CORBA::SystemException::EC_ILLEGAL_INSTRUCTION },
+	{ SIGFPE, CORBA::SystemException::EC_ARITHMETIC_ERROR },
+	{ SIGSEGV, CORBA::SystemException::EC_ACCESS_VIOLATION }
+};
+
+int Signals::signal_index (int signal) NIRVANA_NOEXCEPT
 {
 	const int* p = lower_bound (supported_signals_, end (supported_signals_), signal);
 	if (p != end (supported_signals_) && *p == signal)
 		return p - supported_signals_;
 	return -1;
+}
+
+CORBA::Exception::Code Signals::signal2ex (int signal) NIRVANA_NOEXCEPT
+{
+	for (const SigToExc* p = sig2exc_; p != std::end (sig2exc_); ++p) {
+		if (p->signal == signal) {
+			return p->ec;
+		}
+	}
+
+	return CORBA::Exception::EC_NO_EXCEPTION;
 }
 
 }

@@ -177,21 +177,9 @@ public:
 	///          `false` to unwind and call on_crash().
 	bool on_signal (const siginfo_t& signal)
 	{
-		static const struct SigToExc
-		{
-			int signal;
-			CORBA::Exception::Code ec;
-		} sig2exc [] = {
-			{ SIGILL, CORBA::SystemException::EC_ILLEGAL_INSTRUCTION },
-			{ SIGFPE, CORBA::SystemException::EC_ARITHMETIC_ERROR },
-			{ SIGSEGV, CORBA::SystemException::EC_ACCESS_VIOLATION }
-		};
-
-		for (const SigToExc* p = sig2exc; p != std::end (sig2exc); ++p) {
-			if (p->signal == signal.si_signo) {
-				sync_context ().raise_exception (p->ec, signal.si_code);
-				return true;
-			}
+		if (signal.si_excode != CORBA::Exception::EC_NO_EXCEPTION) {
+			sync_context ().raise_exception ((CORBA::SystemException::Code)signal.si_excode, signal.si_code);
+			return true;
 		}
 
 		return false;
