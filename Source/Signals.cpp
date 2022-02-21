@@ -51,7 +51,7 @@ int Signals::signal_index (int signal) NIRVANA_NOEXCEPT
 {
 	const int* p = lower_bound (supported_signals_, end (supported_signals_), signal);
 	if (p != end (supported_signals_) && *p == signal)
-		return p - supported_signals_;
+		return (int)(p - supported_signals_);
 	return -1;
 }
 
