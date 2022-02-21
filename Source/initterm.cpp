@@ -27,6 +27,7 @@
 #include "Binder.h"
 #include "Scheduler.h"
 #include "ExecDomain.h"
+#include "TLS.h"
 
 namespace Nirvana {
 namespace Core {
@@ -34,6 +35,7 @@ namespace Core {
 void initialize0 ()
 {
 	MemContext::initialize ();
+	TLS::initialize ();
 	g_core_free_sync_context.construct ();
 	ExecDomain::initialize ();
 	Scheduler::initialize ();

@@ -25,10 +25,63 @@
 */
 #include "TLS.h"
 
+using namespace std;
+
 namespace Nirvana {
 namespace Core {
 
-BitmapWord TLS::bitmap_ [BITMAP_SIZE];
+TLS::BitmapWord TLS::bitmap_ [BITMAP_SIZE];
+uint16_t TLS::free_count_;
+
+unsigned TLS::allocate ()
+{
+	if (BitmapOps::acquire (&free_count_)) {
+		for (BitmapWord* p = bitmap_;;) {
+			int bit;
+			do {
+				bit = BitmapOps::clear_rightmost_one (p);
+				if (bit >= 0)
+					return (unsigned)((p - bitmap_) * sizeof (BitmapWord) * 8) + bit + CORE_TLS_COUNT;
+			} while (end (bitmap_) != ++p);
+		}
+	} else
+		throw_IMP_LIMIT ();
+}
+
+void TLS::release (unsigned idx)
+{
+	if (idx < CORE_TLS_COUNT || idx >= CORE_TLS_COUNT + USER_TLS_INDEXES_END)
+		throw_BAD_PARAM ();
+	idx -= CORE_TLS_COUNT;
+	size_t i = idx / BW_BITS;
+	BitmapWord mask = (BitmapWord)1 << (idx % BW_BITS);
+	if (BitmapOps::bit_set (bitmap_ + i, mask))
+		BitmapOps::release (&free_count_);
+	else
+		throw_BAD_PARAM ();
+}
+
+void TLS::set (unsigned idx, void* p, Deleter deleter)
+{
+	if (idx >= CORE_TLS_COUNT + USER_TLS_INDEXES_END)
+		throw_BAD_PARAM ();
+	if (!p)
+		deleter = nullptr;
+	if (entries_.size () <= idx) {
+		if (!p)
+			return;
+		entries_.resize (idx + 1);
+	}
+	entries_ [idx] = Entry (p, deleter);
+}
+
+void* TLS::get (unsigned idx) NIRVANA_NOEXCEPT
+{
+	if (entries_.size () <= idx)
+		return nullptr;
+	else
+		return entries_ [idx].value ();
+}
 
 }
 }

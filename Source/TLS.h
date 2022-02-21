@@ -28,6 +28,7 @@
 #define NIRVANA_CORE_TLS_H_
 #pragma once
 
+#include "BitmapOps.h"
 #include "UserAllocator.h"
 
 namespace Nirvana {
@@ -39,7 +40,7 @@ namespace Core {
 /// Thread-local storage.
 class TLS
 {
-	typedef size_t BitmapWord;
+	typedef BitmapOps::BitmapWord BitmapWord;
 	static const unsigned BW_BITS = sizeof (BitmapWord) * 8;
 public:
 	/// Reserved TLS indexes
@@ -54,11 +55,17 @@ public:
 	/// Limit of the user TLS indexes.
 	static const unsigned USER_TLS_INDEXES = 64;
 
-	static unsigned alloc ();
-	static void free (unsigned idx) NIRVANA_NOEXCEPT;
+	static unsigned allocate ();
+	static void release (unsigned idx);
 
 	void set (unsigned idx, void* p, Deleter deleter = nullptr);
-	void* get (unsigned idx);
+	void* get (unsigned idx) NIRVANA_NOEXCEPT;
+
+	static void initialize () NIRVANA_NOEXCEPT
+	{
+		free_count_ = USER_TLS_INDEXES_END;
+		std::fill_n (bitmap_, BITMAP_SIZE, ~0);
+	}
 
 protected:
 	void clear () NIRVANA_NOEXCEPT
@@ -70,6 +77,11 @@ private:
 	class Entry
 	{
 	public:
+		Entry () :
+			ptr_ (nullptr),
+			deleter_ (nullptr)
+		{}
+
 		Entry (void* ptr, Deleter deleter) NIRVANA_NOEXCEPT :
 			ptr_ (ptr),
 			deleter_ (deleter)
@@ -91,8 +103,18 @@ private:
 
 		~Entry ()
 		{
-			if (deleter_ && ptr_)
-				(*deleter_) (ptr_);
+			if (deleter_ && ptr_) {
+				try {
+					(*deleter_) (ptr_);
+				} catch (...) {
+					// TODO: Log
+				}
+			}
+		}
+
+		void* value () const
+		{
+			return ptr_;
 		}
 
 	private:
@@ -107,6 +129,8 @@ private:
 	static BitmapWord bitmap_ [BITMAP_SIZE];
 
 	static const unsigned USER_TLS_INDEXES_END = BITMAP_SIZE * sizeof (BitmapWord) * 8;
+
+	static uint16_t free_count_;
 };
 
 }

@@ -120,7 +120,7 @@ protected:
 /// Shared memory context.
 /// Used for allocation of the core objects to keep g_core_heap
 /// small and fast.
-extern StaticallyAllocated <ImplStatic <MemContext>> g_shared_mem_context;
+extern StaticallyAllocated <ImplStatic <MemContext> > g_shared_mem_context;
 
 inline void MemContext::initialize ()
 {
