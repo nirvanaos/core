@@ -1,4 +1,5 @@
-﻿/*
+﻿/// \file
+/*
 * Nirvana Core.
 *
 * This is a part of the Nirvana project.
@@ -27,13 +28,8 @@
 #define NIRVANA_CORE_HEAPDIRECTORY_H_
 #pragma once
 
-#include <Nirvana/Nirvana.h>
-#include <Nirvana/bitutils.h>
-#include <Port/config.h>
+#include "BitmapOps.h"
 #include <Port/Memory.h>
-#include <stddef.h>
-#include <algorithm>
-#include <atomic>
 
 /*
 Используется алгоритм распределения памяти с двоичным квантованием размеров блоков.
@@ -59,8 +55,6 @@
 namespace Nirvana {
 namespace Core {
 
-typedef size_t BitmapWord;
-
 class HeapDirectoryBase
 {
 	// Copy prohibited.
@@ -78,6 +72,8 @@ protected:
 		else
 			return Port::Memory::query (p, Memory::QueryParam::COMMIT_UNIT);
 	}
+
+	typedef BitmapOps::BitmapWord BitmapWord;
 
 	struct BitmapIndex
 	{
@@ -234,79 +230,6 @@ public:
 	static const BitmapIndex bitmap_index_ [FREE_BLOCK_INDEX_SIZE];
 };
 
-// Multithreaded implementation of HeapDirectory operations.
-struct HeapDirectoryOpsLockFree
-{
-	// Atomic decrement free blocks counter if it is not zero.
-	static bool acquire (volatile uint16_t* pcnt)
-	{
-		assert (::std::atomic_is_lock_free ((volatile ::std::atomic <uint16_t>*)pcnt));
-		uint16_t cnt = ::std::atomic_load ((volatile ::std::atomic <uint16_t>*)pcnt);
-		while ((unsigned)(cnt - 1) < (unsigned)0x7FFF) {	// 0 < cnt && cnt <= 0x8000
-			if (::std::atomic_compare_exchange_strong ((volatile ::std::atomic <uint16_t>*)pcnt, &cnt, cnt - 1))
-				return true;
-		}
-		return false;
-	}
-
-	// Atomic decrement unconditional.
-	static void decrement (volatile uint16_t* pcnt)
-	{
-		::std::atomic_fetch_sub ((volatile ::std::atomic <uint16_t>*)pcnt, 1);
-	}
-
-	// Atomic increment free blocks counter.
-	static void release (volatile uint16_t* pcnt)
-	{
-		assert ((int16_t)*pcnt <= 0x7FFF);
-		::std::atomic_fetch_add ((volatile ::std::atomic <uint16_t>*)pcnt, 1);
-	}
-
-	// Clear rightmost not zero bit and return number of this bit.
-	// Return -1 if all bits are zero.
-	static int clear_rightmost_one (volatile BitmapWord* pbits)
-	{
-		assert (::std::atomic_is_lock_free ((volatile ::std::atomic <BitmapWord>*)pbits));
-		BitmapWord bits = ::std::atomic_load ((volatile ::std::atomic <BitmapWord>*)pbits);
-		while (bits) {
-			BitmapWord rbits = bits;
-			if (::std::atomic_compare_exchange_strong ((volatile ::std::atomic <BitmapWord>*)pbits, &bits, rbits & (rbits - 1)))
-				return ntz (rbits);
-		}
-		return -1;
-	}
-
-	static bool bit_clear (volatile BitmapWord* pbits, BitmapWord mask)
-	{
-		BitmapWord bits = ::std::atomic_load ((volatile ::std::atomic <BitmapWord>*)pbits);
-		while (bits & mask) {
-			BitmapWord rbits = bits & ~mask;
-			if (::std::atomic_compare_exchange_strong ((volatile ::std::atomic <BitmapWord>*)pbits, &bits, rbits))
-				return true;
-		}
-		return false;
-	}
-
-	static void bit_set (volatile BitmapWord* pbits, BitmapWord mask)
-	{
-		assert (!(*pbits & mask));
-		::std::atomic_fetch_or ((volatile ::std::atomic <BitmapWord>*)pbits, mask);
-	}
-
-	static bool bit_set_check_companion (volatile BitmapWord* pbits, BitmapWord mask, BitmapWord companion_mask)
-	{
-		BitmapWord bits = ::std::atomic_load ((volatile ::std::atomic <BitmapWord>*)pbits);
-		assert (!(bits & mask));
-		for (;;) {
-			if (((bits | mask) & companion_mask) == companion_mask) {
-				if (::std::atomic_compare_exchange_strong ((volatile ::std::atomic <BitmapWord>*)pbits, &bits, bits & ~companion_mask))
-					return true;
-			} else if (::std::atomic_compare_exchange_strong ((volatile ::std::atomic <BitmapWord>*)pbits, &bits, bits | mask))
-				return false;
-		}
-	}
-};
-
 /// Information about the heap space controlled by the HeapDirectory.
 /// Used as optional parameter for commit/decommit allocated memory.
 /// Must be NULL if heap allocation/deallocation mustn't cause commit/decommit.
@@ -338,7 +261,8 @@ class HeapDirectory :
 	public HeapDirectoryTraits <DIRECTORY_SIZE, HEAP_LEVELS>
 {
 	typedef HeapDirectoryTraits <DIRECTORY_SIZE, HEAP_LEVELS> Traits;
-	typedef HeapDirectoryOpsLockFree Ops;
+	typedef BitmapOps Ops;
+	typedef BitmapOps::BitmapWord BitmapWord;
 	static_assert (Traits::FREE_BLOCK_INDEX_SIZE <= Traits::FREE_BLOCK_INDEX_MAX, "Traits::FREE_BLOCK_INDEX_SIZE <= Traits::FREE_BLOCK_INDEX_MAX");
 public:
 	static const HeapDirectoryImpl IMPLEMENTATION = IMPL;
@@ -744,7 +668,7 @@ void HeapDirectory <DIRECTORY_SIZE, HEAP_LEVELS, IMPL>::release (size_t begin, s
 		while (level > 0) {
 
 			// Decommit freed memory.
-			if (IMPL != HeapDirectoryImpl::PLAIN_MEMORY && level == decommit_level)
+			if (IMPL != HeapDirectoryImpl::PLAIN_MEMORY && heap_info && level == decommit_level)
 				Port::Memory::decommit ((uint8_t*)(heap_info->heap) + bl_number * heap_info->commit_size, heap_info->commit_size);
 
 			if (Ops::bit_set_check_companion (bitmap_ptr, mask, companion_mask (mask))) {
@@ -769,21 +693,26 @@ void HeapDirectory <DIRECTORY_SIZE, HEAP_LEVELS, IMPL>::release (size_t begin, s
 		if (level == 0) {
 			if (IMPL != HeapDirectoryImpl::PLAIN_MEMORY && decommit_level <= 0) {
 				if (decommit_level == 0) {
-					Port::Memory::decommit ((uint8_t*)(heap_info->heap) + bl_number * heap_info->commit_size, heap_info->commit_size);
-					Ops::bit_set (bitmap_ptr, mask);
+					if (heap_info)
+						Port::Memory::decommit ((uint8_t*)(heap_info->heap) + bl_number * heap_info->commit_size, heap_info->commit_size);
+					if (!Ops::bit_set (bitmap_ptr, mask))
+						throw_FREE_MEM ();
 				} else {
 					unsigned block_size = (unsigned)1 << (unsigned)(-decommit_level);
 					BitmapWord companion_mask = (~((~(BitmapWord)0) << block_size)) << round_down ((unsigned)(bl_number % (sizeof (BitmapWord) * 8)), block_size);
 					if (Ops::bit_set_check_companion (bitmap_ptr, mask, companion_mask)) {
-						try {
-							Port::Memory::decommit ((uint8_t*)(heap_info->heap) + (bl_number >> (unsigned)(-decommit_level)) * heap_info->commit_size, heap_info->commit_size);
-						} catch (...) {
-						}
-						Ops::bit_set (bitmap_ptr, companion_mask);
+						if (heap_info)
+							try {
+								Port::Memory::decommit ((uint8_t*)(heap_info->heap) + (bl_number >> (unsigned)(-decommit_level)) * heap_info->commit_size, heap_info->commit_size);
+							} catch (...) {
+							}
+						if (!Ops::bit_set (bitmap_ptr, companion_mask))
+							throw_FREE_MEM ();
 					}
 				}
 			} else
-				Ops::bit_set (bitmap_ptr, mask);
+				if (!Ops::bit_set (bitmap_ptr, mask))
+					throw_FREE_MEM ();
 		}
 
 		// Блок освобожден

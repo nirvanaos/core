@@ -29,6 +29,7 @@
 #pragma once
 
 #include "HeapDirectory.h"
+#include <Port/config.h>
 #include "SkipList.h"
 #include "StaticallyAllocated.h"
 
