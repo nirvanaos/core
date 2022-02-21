@@ -28,73 +28,41 @@
 #define NIRVANA_CORE_MEMCONTEXTEX_H_
 #pragma once
 
-#include "MemContext.h"
+#include "MemContextCore.h"
 #include "RuntimeSupport.h"
 #include "MemContextObject.h"
 
 namespace Nirvana {
 namespace Core {
 
-/// Memory context with runtime support
-class NIRVANA_NOVTABLE MemContextRS : public MemContext
-{
-protected:
-	/// Search map for runtime proxy for object \p obj.
-	/// If proxy exists, returns it. Otherwise creates a new one.
-	/// 
-	/// \param obj Pointer used as a key.
-	/// \returns RuntimeProxy for obj.
-	virtual RuntimeProxy::_ref_type runtime_proxy_get (const void* obj);
-
-	/// Remove runtime proxy for object \p obj.
-	/// Implemented in MemContextEx.
-	/// 
-	/// \param obj Pointer used as a key.
-	virtual void runtime_proxy_remove (const void* obj);
-
-	void clear () NIRVANA_NOEXCEPT
-	{
-		runtime_support_.clear ();
-		MemContext::clear ();
-	}
-
-private:
-	RuntimeSupport runtime_support_;
-};
-
 /// Memory context full implementation.
-/// Unlike the base MemContext, MemContextEx is not thread-safe and can not be shared by multiple domains.
-class NIRVANA_NOVTABLE MemContextEx : 
-	public std::conditional <RUNTIME_SUPPORT_DISABLE, MemContext, MemContextRS>::type
+class NIRVANA_NOVTABLE MemContextUser : public MemContextCore
 {
-	typedef std::conditional <RUNTIME_SUPPORT_DISABLE, MemContext, MemContextRS>::type Base;
+	typedef MemContextCore Base;
 public:
-	/// Create MemContextEx object.
+	/// Create MemContextUser object.
 	/// 
 	/// \returns MemContext reference.
 	static CoreRef <MemContext> create ()
 	{
-		return CoreRef <MemContext>::create <ImplDynamic <MemContextEx>> ();
+		return CoreRef <MemContext>::create <ImplDynamic <MemContextUser> > ();
 	}
 
 protected:
-	MemContextEx ();
-	~MemContextEx ();
+	MemContextUser () NIRVANA_NOEXCEPT;
+	~MemContextUser ();
 
-	/// Add object to list.
-	/// 
-	/// \param obj New object.
-	virtual void on_object_construct (MemContextObject& obj);
+private:
+	// MemContext methods
 
-	/// Remove object from list.
-	/// 
-	/// \param obj Object.
-	virtual void on_object_destruct (MemContextObject& obj);
-
-	void clear () NIRVANA_NOEXCEPT;
+	virtual RuntimeProxy::_ref_type runtime_proxy_get (const void* obj);
+	virtual void runtime_proxy_remove (const void* obj) NIRVANA_NOEXCEPT;
+	virtual void on_object_construct (MemContextObject& obj) NIRVANA_NOEXCEPT;
+	virtual void on_object_destruct (MemContextObject& obj) NIRVANA_NOEXCEPT;
 
 protected:
-	SimpleList <MemContextObject> object_list_;
+	RuntimeSupportImpl runtime_support_;
+	MemContextObjectList object_list_;
 };
 
 }

@@ -33,7 +33,7 @@
 #include "Stack.h"
 #include "RuntimeGlobal.h"
 #include "PreallocatedStack.h"
-#include "MemContextEx.h"
+#include "MemContextUser.h"
 #include "ObjectPool.h"
 #include "ThreadBackground.h"
 #include <limits>
@@ -200,7 +200,7 @@ public:
 	{
 		if (!mem_context_) {
 			mem_context_ = 
-				mem_context_stack_.top () = MemContextEx::create ();
+				mem_context_stack_.top () = MemContextUser::create ();
 		}
 		return *mem_context_;
 	}
@@ -333,6 +333,8 @@ private:
 			qn->release ();
 		}
 	}
+
+	void unwind_mem_context () NIRVANA_NOEXCEPT;
 
 private:
 	class Schedule : public ImplStatic <Runnable>

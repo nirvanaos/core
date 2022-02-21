@@ -23,40 +23,34 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include <CORBA/Server.h>
-#include <IDL/Legacy_s.h>
-#include <Legacy/Mutex.inl>
+
+#include "RuntimeSupport.h"
 
 namespace Nirvana {
-namespace Legacy {
 namespace Core {
 
-class Factory :
-	public CORBA::servant_traits <Legacy::Factory>::ServantStatic <Factory>
+RuntimeProxy::_ref_type RuntimeSupport::runtime_proxy_get (const void* obj)
 {
-public:
-	static Legacy::Thread::_ref_type create_thread (Runnable::_ptr_type)
-	{
-		throw_NO_IMPLEMENT (); // TODO:
+	auto ins = proxy_map_.emplace (obj, nullptr);
+	if (ins.second) {
+		try {
+			ins.first->second = CoreRef <RuntimeProxyImpl>::template create <RuntimeProxyImpl> (obj);
+		} catch (...) {
+			proxy_map_.erase (ins.first);
+			throw;
+		}
 	}
+	return ins.first->second->_get_ptr ();
+}
 
-	static Legacy::Mutex::_ref_type create_mutex ()
-	{
-		return Mutex::create (ThreadLegacy::current ().process ());
+void RuntimeSupport::runtime_proxy_remove (const void* obj) NIRVANA_NOEXCEPT
+{
+	auto f = proxy_map_.find (obj);
+	if (f != proxy_map_.end ()) {
+		f->second->remove ();
+		proxy_map_.erase (f);
 	}
-};
-
 }
-
-extern const ImportInterfaceT <Factory> g_factory;
-
-__declspec (selectany)
-const ImportInterfaceT <Factory> g_factory = { OLF_IMPORT_INTERFACE,
-"Nirvana/Legacy/g_factory", Factory::repository_id_,
-NIRVANA_STATIC_BRIDGE (Factory, Core::Factory) };
 
 }
 }
-
-NIRVANA_EXPORT (_exp_Nirvana_Legacy_g_factory, "Nirvana/Legacy/g_factory",
-	Nirvana::Legacy::Factory, Nirvana::Legacy::Core::Factory)

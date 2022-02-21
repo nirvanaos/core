@@ -28,8 +28,6 @@
 namespace Nirvana {
 namespace Core {
 
-StaticallyAllocated <ImplStatic <MemContext>> g_shared_mem_context;
-
 MemContext& MemContext::current ()
 {
 	Thread* th = Thread::current_ptr ();
@@ -56,21 +54,6 @@ MemContext::MemContext ()
 {}
 
 MemContext::~MemContext ()
-{}
-
-RuntimeProxy::_ref_type MemContext::runtime_proxy_get (const void* obj)
-{
-	return nullptr;
-}
-
-void MemContext::runtime_proxy_remove (const void* obj)
-{
-}
-
-void MemContext::on_object_construct (MemContextObject& obj)
-{}
-
-void MemContext::on_object_destruct (MemContextObject& obj)
 {}
 
 }

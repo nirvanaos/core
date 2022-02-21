@@ -195,7 +195,11 @@ void ExecDomain::cleanup () NIRVANA_NOEXCEPT
 			sd->leave ();
 	}
 	ret_qnodes_clear ();
-	sync_context_.reset ();
+	sync_context_ = &g_core_free_sync_context;
+	if (background_worker_ && background_worker_->is_legacy ()) {
+		// Clear TLS
+		static_cast <Legacy::Core::ThreadLegacy&> (*background_worker_).clear ();
+	}
 	runtime_global_.cleanup ();
 	assert (!mem_context_stack_.empty ());
 	for (;;) {
@@ -215,6 +219,7 @@ void ExecDomain::cleanup () NIRVANA_NOEXCEPT
 		Scheduler::delete_item ();
 		scheduler_item_created_ = false;
 	}
+	sync_context_.reset ();
 	Thread::current ().exec_domain (nullptr);
 	if (background_worker_) {
 		background_worker_->exec_domain (nullptr);
@@ -241,14 +246,9 @@ void ExecDomain::run () NIRVANA_NOEXCEPT
 	cleanup ();
 }
 
-void ExecDomain::on_crash (const siginfo_t& signal) NIRVANA_NOEXCEPT
+inline
+void ExecDomain::unwind_mem_context () NIRVANA_NOEXCEPT
 {
-	// Leave sync domain if one.
-	SyncDomain* sd = sync_context_->sync_domain ();
-	if (sd)
-		sd->leave ();
-	sync_context_ = &g_core_free_sync_context;
-
 	// Clear memory context stack
 	CoreRef <MemContext> tmp;
 	do {
@@ -257,6 +257,17 @@ void ExecDomain::on_crash (const siginfo_t& signal) NIRVANA_NOEXCEPT
 		mem_context_ = tmp;
 	} while (!mem_context_stack_.empty ());
 	mem_context_stack_.push (move (tmp));
+}
+
+void ExecDomain::on_crash (const siginfo_t& signal) NIRVANA_NOEXCEPT
+{
+	// Leave sync domain if one.
+	SyncDomain* sd = sync_context_->sync_domain ();
+	if (sd)
+		sd->leave ();
+	sync_context_ = &g_core_free_sync_context;
+
+	unwind_mem_context ();
 
 	ExecContext::on_crash (signal);
 	

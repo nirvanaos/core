@@ -35,14 +35,10 @@ namespace Nirvana {
 namespace Core {
 
 class MemContextObject;
+class TLS;
 
 /// Memory context.
 /// Contains heap and some other stuff.
-/// MemContext implementation is thread-safe.
-/// A number of domains can share one MemContext object.
-/// The MemContext implements heap only. Other virtual methods are stubbed.
-///  only an is intended for use in Core only.
-/// 
 class NIRVANA_NOVTABLE MemContext
 {
 	DECLARE_CORE_INTERFACE
@@ -51,29 +47,10 @@ class NIRVANA_NOVTABLE MemContext
 	MemContext& operator = (const MemContext&) = delete;
 
 public:
-	void* operator new (size_t cb);
-	void operator delete (void* p, size_t cb);
-
-	void* operator new (size_t cb, void* place)
-	{
-		return place;
-	}
-
-	void operator delete (void*, void*)
-	{}
-
 	/// \returns Current memory context.
 	static MemContext& current ();
 
 	static bool is_current (MemContext* context);
-
-	/// Creates MemContext object.
-	/// 
-	/// \returns MemContext reference.
-	static CoreRef <MemContext> create ()
-	{
-		return CoreRef <MemContext>::create <ImplDynamic <MemContext>> ();
-	}
 
 	/// \returns User heap.
 	Heap& heap () NIRVANA_NOEXCEPT
@@ -81,21 +58,30 @@ public:
 		return heap_;
 	}
 
-	/// Returns `nullptr`.
-	/// Overridden in MemContextEx.
-	virtual RuntimeProxy::_ref_type runtime_proxy_get (const void* obj);
+	/// Search map for runtime proxy for object \p obj.
+	/// If proxy exists, returns it. Otherwise creates a new one.
+	/// 
+	/// \param obj Pointer used as a key.
+	/// \returns RuntimeProxy for obj.
+	virtual RuntimeProxy::_ref_type runtime_proxy_get (const void* obj) = 0;
 
-	/// Does nothing.
-	/// Overridden in MemContextEx.
-	virtual void runtime_proxy_remove (const void* obj);
+	/// Remove runtime proxy for object \p obj.
+	/// 
+	/// \param obj Pointer used as a key.
+	virtual void runtime_proxy_remove (const void* obj) NIRVANA_NOEXCEPT = 0;
 
-	/// Does nothing.
-	/// Overridden in MemContextEx.
-	virtual void on_object_construct (MemContextObject& obj);
+	/// Add object to list.
+	/// 
+	/// \param obj New object.
+	virtual void on_object_construct (MemContextObject& obj) NIRVANA_NOEXCEPT = 0;
 
-	/// Does nothing.
-	/// Overridden in MemContextEx.
-	virtual void on_object_destruct (MemContextObject& obj);
+	/// Remove object from list.
+	/// 
+	/// \param obj Object.
+	virtual void on_object_destruct (MemContextObject& obj) NIRVANA_NOEXCEPT = 0;
+
+	/// \return Reference to TLS.
+	virtual TLS& get_TLS () NIRVANA_NOEXCEPT = 0;
 
 	/// Global class initialization.
 	static void initialize ();
@@ -116,37 +102,6 @@ protected:
 protected:
 	HeapUser heap_;
 };
-
-/// Shared memory context.
-/// Used for allocation of the core objects to keep g_core_heap
-/// small and fast.
-extern StaticallyAllocated <ImplStatic <MemContext> > g_shared_mem_context;
-
-inline void MemContext::initialize ()
-{
-	Port::Memory::initialize ();
-	g_core_heap.construct ();
-	g_shared_mem_context.construct ();
-}
-
-inline void MemContext::terminate () NIRVANA_NOEXCEPT
-{
-	g_shared_mem_context.destruct ();
-	g_core_heap.destruct ();
-	Port::Memory::terminate ();
-}
-
-inline
-void* MemContext::operator new (size_t cb)
-{
-	return g_shared_mem_context->heap ().allocate (nullptr, cb, 0);
-}
-
-inline
-void MemContext::operator delete (void* p, size_t cb)
-{
-	g_shared_mem_context->heap ().release (p, cb);
-}
 
 }
 }

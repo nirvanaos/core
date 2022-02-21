@@ -28,7 +28,7 @@
 #define NIRVANA_CORE_PREALLOCATEDSTACK_H_
 #pragma once
 
-#include "MemContext.h"
+#include "MemContextCore.h"
 #include <type_traits>
 #include <utility>
 

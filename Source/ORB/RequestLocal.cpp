@@ -39,7 +39,7 @@ Heap& RequestLocal::target_memory ()
 		case State::CALLER:
 		case State::CALL:
 			if (!callee_memory_)
-				callee_memory_ = MemContextEx::create ();
+				callee_memory_ = MemContextUser::create ();
 			return callee_memory_->heap ();
 
 		default:

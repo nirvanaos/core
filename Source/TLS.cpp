@@ -33,6 +33,12 @@ namespace Core {
 TLS::BitmapWord TLS::bitmap_ [BITMAP_SIZE];
 uint16_t TLS::free_count_;
 
+TLS::TLS ()
+{}
+
+TLS::~TLS ()
+{}
+
 unsigned TLS::allocate ()
 {
 	if (BitmapOps::acquire (&free_count_)) {

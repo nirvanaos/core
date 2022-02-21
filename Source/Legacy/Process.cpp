@@ -24,6 +24,7 @@
 *  popov.nirvana@gmail.com
 */
 #include "Process.h"
+#include "ThreadLegacy.h"
 #include <iostream>
 #include <signal.h>
 
@@ -57,11 +58,12 @@ void Process::run ()
 		v.reserve (argv_.size () + envp_.size () + 2);
 		copy_strings (argv_, v);
 		copy_strings (envp_, v);
-		mutex_.construct (std::ref (*this));
+		mutex_ = Mutex::create (*this);
 		ret_ = main ((int)argv_.size (), v.data (), v.data () + argv_.size () + 1);
-		mutex_.destruct ();
+		Legacy::Mutex::_ref_type tmp (move (mutex_));
 	}
-	MemContextEx::clear ();
+	object_list_.clear ();
+	runtime_support_.clear ();
 }
 
 void Process::on_exception () NIRVANA_NOEXCEPT
@@ -81,34 +83,57 @@ void Process::on_crash (const siginfo_t& signal) NIRVANA_NOEXCEPT
 
 RuntimeProxy::_ref_type Process::runtime_proxy_get (const void* obj)
 {
+	RuntimeProxy::_ref_type ret;
 	if (!RUNTIME_SUPPORT_DISABLE) {
-		std::lock_guard <MutexCore> lock (mutex_);
-		return MemContextEx::runtime_proxy_get (obj);
-	} else
-		return nullptr;
+		if (mutex_) {
+			mutex_->lock ();
+			try {
+				ret = runtime_support_.runtime_proxy_get (obj);
+			} catch (...) {
+				mutex_->unlock ();
+				throw;
+			}
+			mutex_->unlock ();
+		} else
+			ret = runtime_support_.runtime_proxy_get (obj);
+	}
+	return ret;
 }
 
-void Process::runtime_proxy_remove (const void* obj)
+void Process::runtime_proxy_remove (const void* obj) NIRVANA_NOEXCEPT
 {
 	if (!RUNTIME_SUPPORT_DISABLE) {
+		if (mutex_) {
+			mutex_->lock ();
+			runtime_support_.runtime_proxy_remove (obj);
+			mutex_->unlock ();
+		} else
+			runtime_support_.runtime_proxy_remove (obj);
+	}
+}
+
+void Process::on_object_construct (MemContextObject& obj) NIRVANA_NOEXCEPT
+{
+	if (mutex_) {
 		mutex_->lock ();
-		MemContextEx::runtime_proxy_remove (obj);
+		object_list_.push_back (obj);
+		mutex_->unlock ();
+	} else
+		object_list_.push_back (obj);
+}
+
+void Process::on_object_destruct (MemContextObject& obj) NIRVANA_NOEXCEPT
+{
+	if (mutex_) {
+		mutex_->lock ();
+		obj.remove ();
 		mutex_->unlock ();
 	}
 }
 
-void Process::on_object_construct (MemContextObject& obj)
+TLS& Process::get_TLS () NIRVANA_NOEXCEPT
 {
-	mutex_->lock ();
-	MemContextEx::on_object_construct (obj);
-	mutex_->unlock ();
-}
-
-void Process::on_object_destruct (MemContextObject& obj)
-{
-	mutex_->lock ();
-	obj.remove ();
-	mutex_->unlock ();
+	return ThreadLegacy::current ().get_TLS ();
 }
 
 }

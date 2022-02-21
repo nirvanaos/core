@@ -29,15 +29,13 @@
 namespace Nirvana {
 namespace Core {
 
-MemContextObject::MemContextObject ()
+void MemContextObjectList::clear () NIRVANA_NOEXCEPT
 {
-	MemContext::current ().on_object_construct (*this);
-}
-
-MemContextObject::~MemContextObject ()
-{
-	if (listed ())
-		MemContext::current ().on_object_destruct (*this);
+	while (!empty ()) {
+		MemContextObject& obj = front ();
+		obj.remove ();
+		delete& obj; // Object is not listed, so it won't call on_object_destruct
+	}
 }
 
 }

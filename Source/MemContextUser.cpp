@@ -23,46 +23,35 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "MemContextEx.h"
+#include "MemContextUser.h"
 
 namespace Nirvana {
 namespace Core {
 
-RuntimeProxy::_ref_type MemContextRS::runtime_proxy_get (const void* obj)
+RuntimeProxy::_ref_type MemContextUser::runtime_proxy_get (const void* obj)
 {
 	return runtime_support_.runtime_proxy_get (obj);
 }
 
-void MemContextRS::runtime_proxy_remove (const void* obj)
+void MemContextUser::runtime_proxy_remove (const void* obj) NIRVANA_NOEXCEPT
 {
 	runtime_support_.runtime_proxy_remove (obj);
 }
 
-MemContextEx::MemContextEx ()
+MemContextUser::MemContextUser () NIRVANA_NOEXCEPT
 {}
 
-MemContextEx::~MemContextEx ()
-{
-	clear ();
-}
+MemContextUser::~MemContextUser ()
+{}
 
-void MemContextEx::clear () NIRVANA_NOEXCEPT
-{
-	while (!object_list_.empty ()) {
-		MemContextObject& obj = object_list_.front ();
-		obj.remove ();
-		delete& obj; // Object is not listed, so it won't call on_object_destruct
-	}
-	Base::clear ();
-}
-
-void MemContextEx::on_object_construct (MemContextObject& obj)
+void MemContextUser::on_object_construct (MemContextObject& obj) NIRVANA_NOEXCEPT
 {
 	object_list_.push_back (obj);
 }
 
-void MemContextEx::on_object_destruct (MemContextObject& obj)
+void MemContextUser::on_object_destruct (MemContextObject& obj) NIRVANA_NOEXCEPT
 {
+	// The object itself will remove from list. Nothing to do.
 }
 
 }

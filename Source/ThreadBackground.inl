@@ -36,8 +36,10 @@ namespace Core {
 inline
 void ThreadBackground::execute () NIRVANA_NOEXCEPT
 {
-	exec_domain ()->switch_to ();
-	ExecContext::neutral_context_loop ();
+	if (exec_domain ()) {
+		exec_domain ()->switch_to ();
+		ExecContext::neutral_context_loop ();
+	}
 }
 
 }

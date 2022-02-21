@@ -32,7 +32,6 @@
 #include <HeapDynamic.h>
 #include <Port/SystemInfo.h>
 #include <Port/Debugger.h>
-#include <Legacy/Mutex.inl>
 #include <Signals.h>
 
 namespace Nirvana {

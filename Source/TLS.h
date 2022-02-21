@@ -29,7 +29,6 @@
 #pragma once
 
 #include "BitmapOps.h"
-#include "UserAllocator.h"
 
 namespace Nirvana {
 
@@ -55,6 +54,9 @@ public:
 	/// Limit of the user TLS indexes.
 	static const unsigned USER_TLS_INDEXES = 64;
 
+	TLS ();
+	~TLS ();
+
 	static unsigned allocate ();
 	static void release (unsigned idx);
 
@@ -67,7 +69,6 @@ public:
 		std::fill_n (bitmap_, BITMAP_SIZE, ~0);
 	}
 
-protected:
 	void clear () NIRVANA_NOEXCEPT
 	{
 		Entries tmp (std::move (entries_));
@@ -99,6 +100,7 @@ private:
 			ptr_ = src.ptr_;
 			deleter_ = src.deleter_;
 			src.deleter_ = nullptr;
+			return *this;
 		}
 
 		~Entry ()
@@ -122,7 +124,10 @@ private:
 		Deleter deleter_;
 	};
 
-	typedef std::vector <Entry, UserAllocator <Entry> > Entries;
+	// Do not use UserAllocator here to avoid infinite recursion in Debug configuration.
+	// std::vector allocates proxy on construct.
+	// We use our vector implementation without proxies.
+	typedef std::vector <Entry> Entries;
 	Entries entries_;
 
 	static const size_t BITMAP_SIZE = (USER_TLS_INDEXES + BW_BITS - 1) / BW_BITS;

@@ -30,13 +30,59 @@
 
 #include "Mutex.h"
 #include "ThreadLegacy.h"
+#include "../Synchronized.h"
+#include "../ExecDomain.h"
 
 namespace Nirvana {
 namespace Legacy {
 namespace Core {
 
+Mutex::Mutex (Process& parent) :
+	Nirvana::Core::SyncDomainImpl (parent, parent),
+	owner_ (nullptr)
+{}
+
+Mutex::~Mutex ()
+{
+	// TODO: Terminate all waiting threads?
+}
+
 inline
-bool MutexUser::try_lock ()
+void Mutex::lock ()
+{
+	ThreadLegacy& thread = ThreadLegacy::current ();
+	SYNC_BEGIN (*this, nullptr);
+	if (!owner_) {
+		owner_ = &thread;
+		return;
+	} else if (owner_ == &thread)
+		throw_BAD_INV_ORDER ();
+	else {
+		queue_.push_back (thread);
+		_sync_frame.suspend_and_return ();
+	}
+	SYNC_END ();
+}
+
+inline
+void Mutex::unlock ()
+{
+	ThreadLegacy& thread = ThreadLegacy::current ();
+	SYNC_BEGIN (*this, nullptr);
+	if (owner_ != &thread)
+		throw_BAD_INV_ORDER ();
+	owner_ = nullptr;
+	if (!queue_.empty ()) {
+		ThreadLegacy& next = queue_.front ();
+		next.remove (); // From queue
+		owner_ = &next;
+		next.exec_domain ()->resume ();
+	}
+	SYNC_END ();
+}
+
+inline
+bool Mutex::try_lock ()
 {
 	SYNC_BEGIN (*this, nullptr);
 	if (!owner_) {

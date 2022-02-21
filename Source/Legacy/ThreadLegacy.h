@@ -31,6 +31,7 @@
 #include "../ThreadBackground.h"
 #include <Nirvana/SimpleList.h>
 #include "Process.h"
+#include "../TLS.h"
 
 namespace Nirvana {
 namespace Legacy {
@@ -70,6 +71,16 @@ public:
 		return *process_;
 	}
 
+	Nirvana::Core::TLS& get_TLS () NIRVANA_NOEXCEPT
+	{
+		return TLS_;
+	}
+
+	void clear () NIRVANA_NOEXCEPT
+	{
+		TLS_.clear ();
+	}
+
 protected:
 	ThreadLegacy (Process& process, Nirvana::Core::ExecDomain& ed) :
 		Base (ed),
@@ -84,6 +95,7 @@ private:
 
 private:
 	Nirvana::Core::CoreRef <Process> process_;
+	Nirvana::Core::TLS TLS_;
 };
 
 }

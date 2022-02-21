@@ -30,7 +30,9 @@
 
 #include "Executable.h"
 #include "ExecDomain.h"
-#include "../MemContextEx.h"
+#include "../MemContext.h"
+#include "../RuntimeSupport.h"
+#include "../MemContextObject.h"
 #include "Console.h"
 #include "Mutex.h"
 
@@ -41,7 +43,7 @@ namespace Core {
 /// Legacy process.
 class NIRVANA_NOVTABLE Process :
 	public Executable,
-	public Nirvana::Core::MemContextEx,
+	public Nirvana::Core::MemContext,
 	public Nirvana::Core::Runnable
 {
 	DECLARE_CORE_INTERFACE
@@ -85,12 +87,15 @@ private:
 	// MemContext methods
 
 	virtual RuntimeProxy::_ref_type runtime_proxy_get (const void* obj);
-	virtual void runtime_proxy_remove (const void* obj);
-	virtual void on_object_construct (Nirvana::Core::MemContextObject& obj);
-	virtual void on_object_destruct (Nirvana::Core::MemContextObject& obj);
+	virtual void runtime_proxy_remove (const void* obj) NIRVANA_NOEXCEPT;
+	virtual void on_object_construct (Nirvana::Core::MemContextObject& obj) NIRVANA_NOEXCEPT;
+	virtual void on_object_destruct (Nirvana::Core::MemContextObject& obj) NIRVANA_NOEXCEPT;
+	virtual Nirvana::Core::TLS& get_TLS () NIRVANA_NOEXCEPT;
 
 private:
-	Nirvana::Core::StaticallyAllocated <Nirvana::Core::ImplStatic <MutexCore> > mutex_;
+	Legacy::Mutex::_ref_type mutex_;
+	Nirvana::Core::RuntimeSupportImpl runtime_support_;
+	Nirvana::Core::MemContextObjectList object_list_;
 	Nirvana::Core::Console console_;
 	Strings argv_, envp_;
 	int ret_;

@@ -273,7 +273,7 @@ private:
 	void delete_module (Module* mod);
 
 private:
-	ImplStatic <MemContext> memory_;
+	ImplStatic <MemContextCore> memory_;
 	ImplStatic <SyncDomainImpl> sync_domain_;
 	ObjectMap object_map_;
 	ModuleMap module_map_;

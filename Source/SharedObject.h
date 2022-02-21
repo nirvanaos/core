@@ -28,7 +28,7 @@
 #define NIRVANA_CORE_SHAREDOBJECT_H_
 #pragma once
 
-#include "MemContext.h"
+#include "MemContextCore.h"
 
 namespace Nirvana {
 namespace Core {

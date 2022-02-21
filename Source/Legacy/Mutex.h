@@ -29,12 +29,10 @@
 #pragma once
 
 #include <CORBA/Server.h>
-#include <Nirvana/SimpleList.h>
 #include "../IDL/Legacy_s.h"
 #include "../LifeCyclePseudo.h"
 #include "../MemContextObject.h"
 #include "../SyncDomain.h"
-#include "../Synchronized.h"
 
 namespace Nirvana {
 namespace Legacy {
@@ -43,26 +41,10 @@ namespace Core {
 class Process;
 class ThreadLegacy;
 
-class MutexCore :
-	public Nirvana::Core::SyncDomainImpl
-{
-public:
-	MutexCore (Process& parent);
-
-	~MutexCore ();
-
-	void lock ();
-	void unlock ();
-
-protected:
-	ThreadLegacy* owner_;
-	SimpleList <ThreadLegacy> queue_;
-};
-
-class MutexUser :
-	public MutexCore,
-	public CORBA::servant_traits <Nirvana::Legacy::Mutex>::Servant <MutexUser>,
-	public Nirvana::Core::LifeCyclePseudo <MutexUser>,
+class Mutex :
+	public CORBA::servant_traits <Nirvana::Legacy::Mutex>::Servant <Mutex>,
+	public Nirvana::Core::LifeCyclePseudo <Mutex>,
+	public Nirvana::Core::SyncDomainImpl,
 	public Nirvana::Core::MemContextObject
 {
 public:
@@ -71,28 +53,29 @@ public:
 
 	static Nirvana::Legacy::Mutex::_ref_type create (Process& parent)
 	{
-		return CORBA::make_pseudo <MutexUser> (std::ref (parent));
+		return CORBA::make_pseudo <Mutex> (std::ref (parent));
 	}
 
-	MutexUser (Process& parent) :
-		MutexCore (parent)
-	{}
+	Mutex (Process& parent);
+	~Mutex ();
 
-	~MutexUser ()
-	{}
-
+	void lock ();
+	void unlock ();
 	bool try_lock ();
 
 	void _add_ref () NIRVANA_NOEXCEPT
 	{
-		Nirvana::Core::LifeCyclePseudo <MutexUser>::_add_ref ();
+		Nirvana::Core::LifeCyclePseudo <Mutex>::_add_ref ();
 	}
 
 	void _remove_ref () NIRVANA_NOEXCEPT
 	{
-		Nirvana::Core::LifeCyclePseudo <MutexUser>::_remove_ref ();
+		Nirvana::Core::LifeCyclePseudo <Mutex>::_remove_ref ();
 	}
 
+private:
+	ThreadLegacy* owner_;
+	SimpleList <ThreadLegacy> queue_;
 };
 
 }

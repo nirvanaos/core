@@ -29,11 +29,13 @@
 #pragma once
 
 #include <CORBA/Server.h>
+#include <signal.h>
 #include "IDL/System_s.h"
 #include "LifeCyclePseudo.h"
 #include "UserObject.h"
 #include "UserAllocator.h"
 #include "CoreInterface.h"
+#include <Port/config.h>
 
 /// 
 /// Currently we use phmap::flat_hash_map:
@@ -79,40 +81,45 @@ class RuntimeSupport
 	};
 
 	typedef phmap::flat_hash_map <const void*, CoreRef <RuntimeProxyImpl>,
-		std::hash <const void*>, std::equal_to <const void*>, UserAllocator <std::pair <const void* const, CoreRef <RuntimeProxyImpl>>>> ProxyMap;
-public:
-	RuntimeProxy::_ref_type runtime_proxy_get (const void* obj)
-	{
-		auto ins = proxy_map_.emplace (obj, nullptr);
-		if (ins.second) {
-			try {
-				ins.first->second = CoreRef <RuntimeProxyImpl>::template create <RuntimeProxyImpl> (obj);
-			} catch (...) {
-				proxy_map_.erase (ins.first);
-				throw;
-			}
-		}
-		return ins.first->second->_get_ptr ();
-	}
+		std::hash <const void*>, std::equal_to <const void*>, UserAllocator <
+		std::pair <const void* const, CoreRef <RuntimeProxyImpl>>>
+	> ProxyMap;
 
-	void runtime_proxy_remove (const void* obj) NIRVANA_NOEXCEPT
-	{
-		auto f = proxy_map_.find (obj);
-		if (f != proxy_map_.end ()) {
-			f->second->remove ();
-			proxy_map_.erase (f);
-		}
-	}
+public:
+	RuntimeProxy::_ref_type runtime_proxy_get (const void* obj);
+	void runtime_proxy_remove (const void* obj) NIRVANA_NOEXCEPT;
 
 	void clear () NIRVANA_NOEXCEPT
 	{
-		ProxyMap tmp;
-		proxy_map_.swap (tmp);
+		ProxyMap tmp = std::move (proxy_map_);
 	}
+
+protected:
+	RuntimeSupport ()
+	{}
 
 private:
 	ProxyMap proxy_map_;
 };
+
+class RuntimeSupportFake
+{
+public:
+	RuntimeProxy::_ref_type runtime_proxy_get (const void* obj)
+	{
+		return RuntimeProxy::_nil ();
+	}
+
+	void runtime_proxy_remove (const void* obj) NIRVANA_NOEXCEPT
+	{}
+
+	void clear () NIRVANA_NOEXCEPT
+	{}
+};
+
+class RuntimeSupportImpl :
+	public std::conditional <RUNTIME_SUPPORT_DISABLE, RuntimeSupportFake, RuntimeSupport>::type
+{};
 
 }
 }

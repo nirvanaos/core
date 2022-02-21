@@ -23,40 +23,38 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include <CORBA/Server.h>
-#include <IDL/Legacy_s.h>
-#include <Legacy/Mutex.inl>
+
+#include "MemContextCore.h"
 
 namespace Nirvana {
-namespace Legacy {
 namespace Core {
 
-class Factory :
-	public CORBA::servant_traits <Legacy::Factory>::ServantStatic <Factory>
+StaticallyAllocated <ImplStatic <MemContextCore> > g_shared_mem_context;
+
+MemContextCore::MemContextCore () NIRVANA_NOEXCEPT
+{}
+
+MemContextCore::~MemContextCore ()
+{}
+
+RuntimeProxy::_ref_type MemContextCore::runtime_proxy_get (const void* obj)
 {
-public:
-	static Legacy::Thread::_ref_type create_thread (Runnable::_ptr_type)
-	{
-		throw_NO_IMPLEMENT (); // TODO:
-	}
-
-	static Legacy::Mutex::_ref_type create_mutex ()
-	{
-		return Mutex::create (ThreadLegacy::current ().process ());
-	}
-};
-
+	return RuntimeProxy::_nil ();
 }
 
-extern const ImportInterfaceT <Factory> g_factory;
+void MemContextCore::runtime_proxy_remove (const void* obj) NIRVANA_NOEXCEPT
+{}
 
-__declspec (selectany)
-const ImportInterfaceT <Factory> g_factory = { OLF_IMPORT_INTERFACE,
-"Nirvana/Legacy/g_factory", Factory::repository_id_,
-NIRVANA_STATIC_BRIDGE (Factory, Core::Factory) };
+void MemContextCore::on_object_construct (MemContextObject& obj) NIRVANA_NOEXCEPT
+{}
+
+void MemContextCore::on_object_destruct (MemContextObject& obj) NIRVANA_NOEXCEPT
+{}
+
+TLS& MemContextCore::get_TLS () NIRVANA_NOEXCEPT
+{
+	return TLS_;
+}
 
 }
 }
-
-NIRVANA_EXPORT (_exp_Nirvana_Legacy_g_factory, "Nirvana/Legacy/g_factory",
-	Nirvana::Legacy::Factory, Nirvana::Legacy::Core::Factory)
