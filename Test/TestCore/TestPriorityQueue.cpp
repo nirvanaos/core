@@ -1,5 +1,5 @@
 #include "../Source/PriorityQueue.h"
-#include "../Source/MemContext.h"
+#include "../Source/MemContextCore.h"
 #include <gtest/gtest.h>
 #include <queue>
 #include <array>
