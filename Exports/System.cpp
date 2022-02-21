@@ -24,6 +24,7 @@
 *  popov.nirvana@gmail.com
 */
 #include <CORBA/Server.h>
+#include <signal.h>
 #include <IDL/System_s.h>
 #include <Binder.h>
 #include <Chrono.h>
@@ -111,6 +112,11 @@ public:
 			Thread::current ().exec_domain ()->raise (signal);
 		else
 			throw_BAD_PARAM ();
+	}
+
+	static void sigaction (int signal, const struct sigaction* act, struct sigaction* oldact)
+	{
+		throw_NO_IMPLEMENT ();
 	}
 
 	static void srand (uint32_t seed)

@@ -33,6 +33,7 @@ namespace Nirvana {
 namespace Core {
 
 const int Signals::supported_signals_ [SUPPORTED_COUNT] = {
+	SIGINT,
 	SIGILL,
 	SIGABRT,
 	SIGFPE,

@@ -39,7 +39,6 @@
 #include <limits>
 #include <utility>
 #include <signal.h>
-#include <siginfo.h>
 
 namespace Nirvana {
 

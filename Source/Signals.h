@@ -37,7 +37,7 @@ namespace Core {
 class Signals
 {
 public:
-	static const size_t SUPPORTED_COUNT = 5;
+	static const size_t SUPPORTED_COUNT = 6;
 
 	static int signal_index (int signal) NIRVANA_NOEXCEPT;
 

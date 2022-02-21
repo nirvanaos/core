@@ -29,7 +29,7 @@
 #pragma once
 
 #include "CoreInterface.h"
-#include <siginfo.h>
+#include <signal.h>
 
 namespace Nirvana {
 namespace Core {
