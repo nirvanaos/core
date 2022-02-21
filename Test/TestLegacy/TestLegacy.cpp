@@ -41,7 +41,7 @@ protected:
 
 TEST_F (TestLegacy, Mutex)
 {
-	Mutex::_ref_type mtx = g_system->create_mutex ();
+	Mutex::_ref_type mtx = g_factory->create_mutex ();
 	ASSERT_TRUE (mtx);
 	mtx->lock ();
 	EXPECT_NO_THROW (mtx->unlock ());

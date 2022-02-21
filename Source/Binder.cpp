@@ -35,6 +35,12 @@
 #include "Legacy/Executable.h"
 
 namespace Nirvana {
+
+namespace Legacy {
+class Factory;
+extern const ImportInterfaceT <Factory> g_factory;
+}
+
 namespace Core {
 
 using namespace std;
@@ -130,6 +136,7 @@ const ModuleStartup* Binder::module_bind (::Nirvana::Module::_ptr_type mod, cons
 		unsigned flags = 0;
 		ObjectKey k_gmodule (g_module.imp.name);
 		ObjectKey k_object_factory (g_object_factory.imp.name);
+		ObjectKey k_legacy (Legacy::g_factory.imp.name);
 		for (OLF_Iterator it (metadata.address, metadata.size); !it.end (); it.next ()) {
 			switch (*it.cur ()) {
 				case OLF_IMPORT_INTERFACE:
@@ -142,7 +149,10 @@ const ModuleStartup* Binder::module_bind (::Nirvana::Module::_ptr_type mod, cons
 								invalid_metadata ();
 							module_entry = ps;
 							break;
-						} else if (!mod_context && key == k_object_factory)
+						} else if (mod_context) {
+							if (key == k_legacy)
+								invalid_metadata (); // Only legacy process can import Legacy::Factory interface
+						} else if (key == k_object_factory)
 							invalid_metadata (); // Legacy process can not import ObjectFactory interface
 					}
 					flags |= MetadataFlags::IMPORT_INTERFACES;

@@ -141,16 +141,6 @@ public:
 		return Thread::current ().is_legacy ();
 	}
 
-	static Legacy::Mutex::_ref_type create_mutex ()
-	{
-		Thread& th = Thread::current ();
-		if (th.is_legacy ())
-			return Nirvana::Legacy::Core::MutexUser::create (
-				static_cast <Legacy::Core::ThreadLegacy&> (th).process ());
-		else
-			return nullptr;
-	}
-
 	static void debug_event (DebugEvent evt, const std::string& msg)
 	{
 		static const char* ev_prefix [3] = {
