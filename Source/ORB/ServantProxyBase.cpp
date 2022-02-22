@@ -64,8 +64,10 @@ ServantProxyBase::ServantProxyBase (AbstractBase::_ptr_type servant,
 	// Fill implementation pointers
 	for (InterfaceEntry* ie = interfaces ().begin (); ie != interfaces ().end (); ++ie) {
 		if (!ie->implementation) {
-			if (!(ie->implementation = servant->_query_interface (ie->iid)))
+			Interface::_ptr_type impl = servant->_query_interface (ie->iid);
+			if (!impl)
 				throw OBJ_ADAPTER (); // Implementation not found. TODO: Log
+			ie->implementation = offset_ptr (impl);
 		}
 	}
 }
