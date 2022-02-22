@@ -29,7 +29,8 @@
 #pragma once
 
 #include <CORBA/Server.h>
-#include "../IDL/Legacy_s.h"
+#include <signal.h>
+#include "../IDL/System_s.h"
 #include "Executable.h"
 #include "ExecDomain.h"
 #include "../MemContext.h"
@@ -44,30 +45,51 @@ namespace Core {
 class ThreadLegacy;
 
 /// Legacy process.
-class NIRVANA_NOVTABLE Process :
-	public Executable,
+class Process :
+	public CORBA::servant_traits <Nirvana::Legacy::Process>::Servant <Process>,
+	public Nirvana::Core::LifeCyclePseudo <Process>,
 	public Nirvana::Core::MemContext,
 	public Nirvana::Core::Runnable
 {
-	DECLARE_CORE_INTERFACE
-
 public:
-	// TODO: MAke static
-	void spawn ()
+	static Legacy::Process::_ref_type spawn (const std::string& file,
+		const std::vector <std::string>& argv, const std::vector <std::string>& envp,
+		ProcessCallback::_ptr_type callback);
+
+	Nirvana::Core::SyncContext& sync_context ()
 	{
-		Nirvana::Core::ExecDomain::start_legacy_thread (*this, *this);
+		return executable_;
 	}
 
-	int ret () const
+	// Legacy::Process::
+
+	bool completed () const
+	{
+		return 0 == thread_count_;
+	}
+
+	int exit_code () const
 	{
 		return ret_;
 	}
+
+	static void wait ()
+	{
+		throw_NO_IMPLEMENT ();
+	}
+
+	static bool kill ()
+	{
+		throw_NO_IMPLEMENT ();
+	}
+
+	// Thread callbacks
 
 	void on_thread_start (ThreadLegacy& thread) NIRVANA_NOEXCEPT
 	{
 		if (!main_thread_) {
 			main_thread_ = &thread;
-			sync_.construct (std::ref (static_cast <SyncContext&> (*this)),
+			sync_.construct (std::ref (executable_),
 				std::ref (static_cast <MemContext&> (*this)));
 		}
 		thread_count_.increment ();
@@ -82,14 +104,14 @@ public:
 		}
 	}
 
-protected:
-	Process (const Nirvana::Core::StringView& file,
-		const std::vector <Nirvana::Core::StringView>& argv,
-		const std::vector <Nirvana::Core::StringView>& envp) :
-		Executable (file),
+	Process (const std::string& file,
+		const std::vector <std::string>& argv, const std::vector <std::string>& envp,
+		ProcessCallback::_ptr_type callback) :
+		executable_ (file),
 		ret_ (-1),
 		main_thread_ (nullptr),
-		thread_count_ (0)
+		thread_count_ (0),
+		callback_ (callback)
 	{
 		copy_strings (argv, argv_);
 		copy_strings (envp, envp_);
@@ -98,16 +120,38 @@ protected:
 	~Process ()
 	{}
 
+	void _add_ref () NIRVANA_NOEXCEPT
+	{
+		Nirvana::Core::LifeCyclePseudo <Process>::_add_ref ();
+	}
+
+	void _remove_ref () NIRVANA_NOEXCEPT
+	{
+		Nirvana::Core::LifeCyclePseudo <Process>::_remove_ref ();
+	}
+
+	Legacy::Process::_ref_type _this ()
+	{
+		if (proxy_)
+			return proxy_;
+		Legacy::Process::_ref_type proxy = 
+			CORBA::servant_traits <Nirvana::Legacy::Process>::Servant <Process>::_this ();
+		if (callback_)
+			proxy_ = proxy;
+		return proxy;
+	}
+
+private:
+
 	virtual void run ();
 	virtual void on_exception () NIRVANA_NOEXCEPT;
 	virtual void on_crash (const siginfo_t& signal) NIRVANA_NOEXCEPT;
 
-private:
 	// Process is shared object, so we must use shared allocators in constructor.
 	typedef std::vector <Nirvana::Core::SharedString, 
 		Nirvana::Core::SharedAllocator <Nirvana::Core::SharedString> > Strings;
 
-	static void copy_strings (const std::vector <Nirvana::Core::StringView>& src,
+	static void copy_strings (const std::vector <std::string>& src,
 		Strings& dst);
 	
 	typedef std::vector <char*, Nirvana::Core::UserAllocator <char*> > Pointers;
@@ -124,6 +168,7 @@ private:
 	virtual Nirvana::Core::TLS& get_TLS () NIRVANA_NOEXCEPT;
 
 private:
+	Nirvana::Core::ImplStatic <Executable> executable_;
 	Nirvana::Core::StaticallyAllocated <Nirvana::Core::ImplStatic <
 		Nirvana::Core::SyncDomainImpl>
 	> sync_;
@@ -134,6 +179,8 @@ private:
 	Strings argv_, envp_;
 	ThreadLegacy* main_thread_;
 	Nirvana::Core::AtomicCounter <false> thread_count_;
+	ProcessCallback::_ref_type callback_;
+	Legacy::Process::_ref_type proxy_;
 };
 
 }

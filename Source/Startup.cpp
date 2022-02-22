@@ -46,19 +46,17 @@ void Startup::launch (DeadlineTime deadline)
 	ExecDomain::async_call (deadline, *this, g_core_free_sync_context, &g_shared_mem_context);
 }
 
-class RunAndShutdown :
-	public Process
+class ShutdownCallback :
+	public CORBA::servant_traits <ProcessCallback>::Servant <ShutdownCallback>
 {
-protected:
-	RunAndShutdown (const vector <StringView>& argv, const vector <StringView>& envp, int& ret) :
-		Process (argv.front (), argv, envp),
+public:
+	ShutdownCallback (int& ret) :
 		ret_ (ret)
 	{}
 
-	virtual void run ()
+	void on_process_finish (Legacy::Process::_ptr_type process) const
 	{
-		Legacy::Core::Process::run ();
-		ret_ = Legacy::Core::Process::ret ();
+		ret_ = process->exit_code ();
 		Scheduler::shutdown ();
 	}
 
@@ -69,18 +67,21 @@ private:
 void Startup::run ()
 {
 	if (argc_ > 1) {
-		std::vector <StringView> argv;
+		
+		vector <string> argv;
 		argv.reserve (argc_ - 1);
 		for (char** arg = argv_ + 1, **end = argv_ + argc_; arg != end; ++arg) {
 			argv.emplace_back (*arg);
 		}
-		std::vector <StringView> envp;
+		std::vector <string> envp;
 		for (char** env = envp_; *env; ++env) {
 			envp.emplace_back (*env);
 		}
-		CoreRef <RunAndShutdown> process = CoreRef <RunAndShutdown>::create
-			<ImplDynamic <RunAndShutdown> > (ref (argv), ref (envp), ref (ret_));
-		process->spawn ();
+
+		CORBA::servant_reference <ShutdownCallback> cb =
+			CORBA::make_stateless <ShutdownCallback> (ref (ret_));
+
+		Legacy::Core::Process::spawn (argv [0], argv, envp, cb->_this ());
 	}
 }
 

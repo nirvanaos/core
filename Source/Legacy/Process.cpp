@@ -35,7 +35,18 @@ namespace Nirvana {
 namespace Legacy {
 namespace Core {
 
-void Process::copy_strings (const vector <StringView>& src, Strings& dst)
+Legacy::Process::_ref_type Process::spawn (const std::string& file,
+	const std::vector <std::string>& argv, const std::vector <std::string>& envp,
+	ProcessCallback::_ptr_type callback)
+{
+	CORBA::servant_reference <Process> servant = CORBA::make_reference <Process> (
+		ref (file), ref (argv), ref (envp), callback);
+	Legacy::Process::_ref_type ret = servant->_this ();
+	Nirvana::Core::ExecDomain::start_legacy_thread (*servant, *servant);
+	return ret;
+}
+
+void Process::copy_strings (const vector <string>& src, Strings& dst)
 {
 	dst.reserve (src.size ());
 	for (const auto& sv : src) {
@@ -57,7 +68,12 @@ void Process::run ()
 	v.reserve (argv_.size () + envp_.size () + 2);
 	copy_strings (argv_, v);
 	copy_strings (envp_, v);
-	ret_ = main ((int)argv_.size (), v.data (), v.data () + argv_.size () + 1);
+	ret_ = executable_.main ((int)argv_.size (), v.data (), v.data () + argv_.size () + 1);
+	if (callback_) {
+		callback_->on_process_finish (proxy_);
+		callback_ = nullptr;
+		proxy_ = nullptr;
+	}
 }
 
 void Process::on_exception () NIRVANA_NOEXCEPT

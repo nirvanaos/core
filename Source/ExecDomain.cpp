@@ -177,7 +177,7 @@ void ExecDomain::start_legacy_thread (Legacy::Core::Process& process, Runnable& 
 {
 	CoreRef <ExecDomain> exec_domain = create (INFINITE_DEADLINE, runnable, &process);
 	exec_domain->background_worker_ = Legacy::Core::ThreadLegacy::create (process, *exec_domain);
-	exec_domain->spawn (process);
+	exec_domain->spawn (process.sync_context ());
 }
 
 void ExecDomain::execute (int scheduler_error)
