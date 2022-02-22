@@ -60,7 +60,7 @@ public:
 	}
 
 	Mutex (Process& parent) :
-		Nirvana::Core::SyncDomainImpl (parent.sync_context (), parent),
+		Nirvana::Core::SyncDomainImpl (parent.free_sync_context (), parent),
 		owner_ (nullptr)
 	{}
 

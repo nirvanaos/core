@@ -55,7 +55,7 @@ public:
 		const std::vector <std::string>& argv, const std::vector <std::string>& envp,
 		ProcessCallback::_ptr_type callback);
 
-	Nirvana::Core::SyncContext& sync_context ()
+	Nirvana::Core::SyncContext& free_sync_context ()
 	{
 		return executable_;
 	}
@@ -86,11 +86,9 @@ public:
 
 	void on_thread_start (ThreadLegacy& thread) NIRVANA_NOEXCEPT
 	{
-		if (!main_thread_) {
+		if (!main_thread_)
 			main_thread_ = &thread;
-			sync_.construct (std::ref (executable_),
-				std::ref (static_cast <MemContext&> (*this)));
-		}
+
 		thread_count_.increment ();
 	}
 
@@ -99,7 +97,6 @@ public:
 		if (0 == thread_count_.decrement ()) {
 			object_list_.clear ();
 			runtime_support_.clear ();
-			sync_.destruct ();
 		}
 	}
 
@@ -110,7 +107,8 @@ public:
 		ret_ (-1),
 		main_thread_ (nullptr),
 		thread_count_ (0),
-		callback_ (callback)
+		callback_ (callback),
+		sync_ (Nirvana::Core::SyncContext::current ())
 	{
 		copy_strings (argv, argv_);
 		copy_strings (envp, envp_);
@@ -168,9 +166,6 @@ private:
 
 private:
 	Nirvana::Core::ImplStatic <Executable> executable_;
-	Nirvana::Core::StaticallyAllocated <Nirvana::Core::ImplStatic <
-		Nirvana::Core::SyncDomainImpl>
-	> sync_;
 	int ret_;
 	Nirvana::Core::RuntimeSupportImpl runtime_support_;
 	Nirvana::Core::MemContextObjectList object_list_;
@@ -180,6 +175,7 @@ private:
 	Nirvana::Core::AtomicCounter <false> thread_count_;
 	ProcessCallback::_ref_type callback_;
 	Legacy::Process::_ref_type proxy_;
+	Nirvana::Core::SyncContext& sync_; // Sync domain
 };
 
 }
