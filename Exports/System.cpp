@@ -159,6 +159,28 @@ public:
 	{
 		return ExecDomain::yield ();
 	}
+
+	static uint16_t TLS_alloc ()
+	{
+		return TLS::allocate ();
+	}
+
+	static void TLS_free (uint16_t idx)
+	{
+		TLS::release (idx);
+	}
+
+	static void TLS_set (uint16_t idx, void* ptr, Deleter del)
+	{
+		if (idx < TLS::CORE_TLS_COUNT)
+			throw_BAD_PARAM ();
+		MemContext::current ().get_TLS ().set (idx, ptr, del);
+	}
+
+	static void* TLS_get (uint16_t idx)
+	{
+		return MemContext::current ().get_TLS ().get (idx);
+	}
 };
 
 }

@@ -86,7 +86,7 @@ void* TLS::get (unsigned idx) NIRVANA_NOEXCEPT
 	if (entries_.size () <= idx)
 		return nullptr;
 	else
-		return entries_ [idx].value ();
+		return entries_ [idx].ptr ();
 }
 
 }

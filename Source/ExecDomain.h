@@ -243,14 +243,17 @@ public:
 		NO_RESTRICTIONS,
 		CLASS_LIBRARY_INIT,
 		MODULE_TERMINATE
+	};
+
+	RestrictedMode restricted_mode () const NIRVANA_NOEXCEPT
+	{
+		return restricted_mode_;
 	}
-	restricted_mode_;
 
-	/// Used by CORBA::Internal::ObjectFactory
-	void* stateless_creation_frame_;
-
-	/// Used by Binder
-	void* binder_context_;
+	void restricted_mode (RestrictedMode rm) NIRVANA_NOEXCEPT
+	{
+		restricted_mode_ = rm;
+	}
 
 	/// Run-time global state
 	RuntimeGlobal runtime_global_;
@@ -268,8 +271,6 @@ private:
 		dbg_context_stack_size_ (0),
 #endif
 		restricted_mode_ (RestrictedMode::NO_RESTRICTIONS),
-		stateless_creation_frame_ (nullptr),
-		binder_context_ (nullptr),
 		ref_cnt_ (1),
 		ret_qnodes_ (nullptr),
 		scheduler_item_created_ (false),
@@ -409,6 +410,7 @@ private:
 	Yield yield_;
 	CoreRef <Runnable> deleter_;
 	CoreRef <ThreadBackground> background_worker_;
+	RestrictedMode restricted_mode_;
 };
 
 }

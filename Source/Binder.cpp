@@ -100,6 +100,7 @@ void Binder::initialize ()
 
 void Binder::terminate ()
 {
+	SYNC_BEGIN (g_core_free_sync_context, &(singleton_->memory_));
 	SYNC_BEGIN (singleton_->sync_domain_, nullptr);
 	assert (initialized_);
 	initialized_ = false;
@@ -107,6 +108,7 @@ void Binder::terminate ()
 		singleton_->unload (singleton_->module_map_.begin ());
 	SYNC_END ();
 	singleton_.destruct ();
+	SYNC_END ();
 }
 
 NIRVANA_NORETURN void Binder::invalid_metadata ()
@@ -117,8 +119,9 @@ NIRVANA_NORETURN void Binder::invalid_metadata ()
 const ModuleStartup* Binder::module_bind (::Nirvana::Module::_ptr_type mod, const Section& metadata, ModuleContext* mod_context)
 {
 	ExecDomain& exec_domain = ExecDomain::current ();
-	void* prev_context = exec_domain.binder_context_;
-	exec_domain.binder_context_ = mod_context;
+	TLS& tls = MemContext::current ().get_TLS ();
+	void* prev_context = tls.get (TLS::CORE_TLS_BINDER);
+	tls.set (TLS::CORE_TLS_BINDER, mod_context);
 
 	enum MetadataFlags
 	{
@@ -267,11 +270,11 @@ const ModuleStartup* Binder::module_bind (::Nirvana::Module::_ptr_type mod, cons
 		SYNC_BEGIN (mod_context->sync_context, nullptr);
 		module_unbind (mod, { metadata.address, metadata.size });
 		SYNC_END ();
-		exec_domain.binder_context_ = prev_context;
+		tls.set (TLS::CORE_TLS_BINDER, prev_context);
 		throw;
 	}
 
-	exec_domain.binder_context_ = prev_context;
+	tls.set (TLS::CORE_TLS_BINDER, prev_context);
 
 	return module_startup;
 }
@@ -430,9 +433,9 @@ void Binder::release_imports (Nirvana::Module::_ptr_type mod, const Section& met
 Binder::InterfaceRef Binder::find (const ObjectKey& name)
 {
 	const ExecDomain& exec_domain = ExecDomain::current ();
-	if (ExecDomain::RestrictedMode::MODULE_TERMINATE == exec_domain.restricted_mode_)
+	if (ExecDomain::RestrictedMode::MODULE_TERMINATE == exec_domain.restricted_mode ())
 		throw_NO_PERMISSION ();
-	ModuleContext* context = reinterpret_cast <ModuleContext*> (exec_domain.binder_context_);
+	ModuleContext* context = reinterpret_cast <ModuleContext*> (MemContext::current ().get_TLS ().get (TLS::CORE_TLS_BINDER));
 	InterfaceRef itf;
 	if (context)
 		itf = context->exports.find (name);

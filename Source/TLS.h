@@ -114,7 +114,7 @@ private:
 			}
 		}
 
-		void* value () const
+		void* ptr () const
 		{
 			return ptr_;
 		}

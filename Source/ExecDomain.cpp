@@ -212,8 +212,6 @@ void ExecDomain::cleanup () NIRVANA_NOEXCEPT
 #ifdef _DEBUG
 	dbg_context_stack_size_ = 0;
 #endif
-	stateless_creation_frame_ = nullptr;
-	binder_context_ = nullptr;
 	scheduler_error_ = CORBA::SystemException::EC_NO_EXCEPTION;
 	if (scheduler_item_created_) {
 		Scheduler::delete_item ();

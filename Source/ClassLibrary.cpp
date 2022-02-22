@@ -32,11 +32,11 @@ void ClassLibrary::initialize (ModuleInit::_ptr_type entry_point, AtomicCounter 
 {
 	ExecDomain& ed = ExecDomain::current ();
 	assert (MemContext::is_current (this));
-	ed.restricted_mode_ = ExecDomain::RestrictedMode::CLASS_LIBRARY_INIT;
+	ed.restricted_mode (ExecDomain::RestrictedMode::CLASS_LIBRARY_INIT);
 	try {
 		Module::initialize (entry_point, initial_ref_cnt);
 	} catch (...) {
-		ed.restricted_mode_ = ExecDomain::RestrictedMode::NO_RESTRICTIONS;
+		ed.restricted_mode (ExecDomain::RestrictedMode::NO_RESTRICTIONS);
 		throw;
 	}
 	if (Port::Memory::FLAGS & Memory::ACCESS_CHECK) {
@@ -48,7 +48,7 @@ void ClassLibrary::initialize (ModuleInit::_ptr_type entry_point, AtomicCounter 
 			Port::Memory::copy (p, p, it->size, Memory::READ_ONLY | Memory::EXACTLY);
 		}*/
 	}
-	ed.restricted_mode_ = ExecDomain::RestrictedMode::NO_RESTRICTIONS;
+	ed.restricted_mode (ExecDomain::RestrictedMode::NO_RESTRICTIONS);
 }
 
 void ClassLibrary::terminate () NIRVANA_NOEXCEPT

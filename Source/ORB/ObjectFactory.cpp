@@ -38,17 +38,16 @@ CORBA::Internal::ObjectFactory::StatelessCreationFrame* ObjectFactory::
 	stateless_creation_frame ()
 {
 	ExecDomain& ed = ::Nirvana::Core::ExecDomain::current ();
-	if (ExecDomain::RestrictedMode::NO_RESTRICTIONS != ed.restricted_mode_)
+	if (ExecDomain::RestrictedMode::NO_RESTRICTIONS != ed.restricted_mode ())
 		throw_NO_PERMISSION ();
 	return reinterpret_cast <CORBA::Internal::ObjectFactory::StatelessCreationFrame*>
-		(ed.stateless_creation_frame_);
+		(MemContext::current ().get_TLS ().get (TLS::CORE_TLS_OBJECT_FACTORY));
 }
 
 void ObjectFactory::stateless_creation_frame (CORBA::Internal::ObjectFactory::
 	StatelessCreationFrame* scf)
 {
-	ExecDomain& ed = ::Nirvana::Core::ExecDomain::current ();
-	ed.stateless_creation_frame_ = scf;
+	MemContext::current ().get_TLS ().set (TLS::CORE_TLS_OBJECT_FACTORY, scf);
 }
 
 size_t ObjectFactory::offset_ptr ()
