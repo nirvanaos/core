@@ -29,8 +29,7 @@
 #pragma once
 
 #include <CORBA/Server.h>
-#include <signal.h>
-#include "../IDL/System_s.h"
+#include "../IDL/Legacy_Process_s.h"
 #include "Executable.h"
 #include "ExecDomain.h"
 #include "../MemContext.h"

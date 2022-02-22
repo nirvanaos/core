@@ -9,4 +9,4 @@
 /Exports/TypeCode_p.cpp
 /Exports/PortableServer_p.cpp
 /Exports/ORB_p.cpp
-/Exports/System_p.cpp
+/Exports/Legacy_Process_p.cpp
