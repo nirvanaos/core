@@ -48,9 +48,4 @@ TEST_F (TestLegacy, Mutex)
 	EXPECT_THROW (mtx->unlock (), BAD_INV_ORDER);
 }
 
-TEST_F (TestLegacy, Yield)
-{
-	EXPECT_FALSE (g_system->yield ());
-}
-
 }

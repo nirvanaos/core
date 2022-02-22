@@ -118,7 +118,6 @@ NIRVANA_NORETURN void Binder::invalid_metadata ()
 
 const ModuleStartup* Binder::module_bind (::Nirvana::Module::_ptr_type mod, const Section& metadata, ModuleContext* mod_context)
 {
-	ExecDomain& exec_domain = ExecDomain::current ();
 	TLS& tls = MemContext::current ().get_TLS ();
 	void* prev_context = tls.get (TLS::CORE_TLS_BINDER);
 	tls.set (TLS::CORE_TLS_BINDER, mod_context);

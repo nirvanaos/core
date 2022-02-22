@@ -270,14 +270,14 @@ private:
 #ifdef _DEBUG
 		dbg_context_stack_size_ (0),
 #endif
-		restricted_mode_ (RestrictedMode::NO_RESTRICTIONS),
 		ref_cnt_ (1),
 		ret_qnodes_ (nullptr),
 		scheduler_item_created_ (false),
 		scheduler_error_ (CORBA::SystemException::EC_NO_EXCEPTION),
 		schedule_ (*this),
 		yield_ (*this),
-		deleter_ (CoreRef <Runnable>::create <ImplDynamic <Deleter> > (std::ref (*this)))
+		deleter_ (CoreRef <Runnable>::create <ImplDynamic <Deleter> > (std::ref (*this))),
+		restricted_mode_ (RestrictedMode::NO_RESTRICTIONS)
 	{}
 
 	class WithPool;

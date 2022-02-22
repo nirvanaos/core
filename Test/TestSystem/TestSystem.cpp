@@ -57,4 +57,9 @@ TEST_F (TestSystem, HeapFactory)
 	}
 }
 
+TEST_F (TestSystem, Yield)
+{
+	EXPECT_FALSE (g_system->yield ());
+}
+
 }
