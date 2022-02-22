@@ -45,7 +45,7 @@ class ProxyObject :
 protected:
 	ProxyObject (PortableServer::Servant servant) :
 		ServantProxyBase (servant, object_ops_, this),
-		servant_ (servant),
+		servant_ (offset_ptr (servant)),
 		implicit_activation_ (false)
 	{}
 

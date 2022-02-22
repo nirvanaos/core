@@ -129,6 +129,12 @@ protected:
 		}
 	}
 
+	template <class I>
+	static I_ptr <I> offset_ptr (I_ptr <I> p) NIRVANA_NOEXCEPT
+	{
+		return reinterpret_cast <I*> ((Octet*)&p + offset_ptr ());
+	}
+
 	typedef void (*RqProcInternal) (void* servant, IORequest::_ptr_type call);
 
 	static bool call_request_proc (RqProcInternal proc, void* servant, Interface* call);
@@ -147,6 +153,8 @@ private:
 			throw OBJ_ADAPTER (); // TODO: Log
 		return primary->_epv ().interface_id;
 	}
+
+	static size_t offset_ptr () NIRVANA_NOEXCEPT;
 
 private:
 	AbstractBase::_ptr_type servant_;

@@ -3,10 +3,10 @@
 /Test/TestORB/module/IDL/
 /Test/TestORB/process/IDL/
 /Exports/File_p.cpp
-/Exports/Legacy_p.cpp
 /Exports/OctetSeq_p.cpp
 /Exports/RuntimeError_p.cpp
 /Exports/TCKind_p.cpp
 /Exports/TypeCode_p.cpp
 /Exports/PortableServer_p.cpp
 /Exports/ORB_p.cpp
+/Exports/System_p.cpp

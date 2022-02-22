@@ -34,35 +34,33 @@ namespace Core {
 using namespace ::Nirvana;
 using namespace ::Nirvana::Core;
 
-CORBA::Internal::ObjectFactory::StatelessCreationFrame* ObjectFactory::
-	stateless_creation_frame ()
-{
-	ExecDomain& ed = ::Nirvana::Core::ExecDomain::current ();
-	if (ExecDomain::RestrictedMode::NO_RESTRICTIONS != ed.restricted_mode ())
-		throw_NO_PERMISSION ();
-	return reinterpret_cast <CORBA::Internal::ObjectFactory::StatelessCreationFrame*>
-		(MemContext::current ().get_TLS ().get (TLS::CORE_TLS_OBJECT_FACTORY));
-}
-
 void ObjectFactory::stateless_creation_frame (CORBA::Internal::ObjectFactory::
 	StatelessCreationFrame* scf)
 {
 	MemContext::current ().get_TLS ().set (TLS::CORE_TLS_OBJECT_FACTORY, scf);
 }
 
-size_t ObjectFactory::offset_ptr ()
+CORBA::Internal::ObjectFactory::StatelessCreationFrame* ObjectFactory::
+stateless_creation_frame ()
 {
+	return reinterpret_cast <CORBA::Internal::ObjectFactory::StatelessCreationFrame*>
+		(MemContext::current ().get_TLS ().get (TLS::CORE_TLS_OBJECT_FACTORY));
+}
+
+void ObjectFactory::check_context ()
+{
+	if (ExecDomain::RestrictedMode::NO_RESTRICTIONS != 
+		Nirvana::Core::ExecDomain::current ().restricted_mode ())
+		throw_NO_PERMISSION ();
+
 	CORBA::Internal::ObjectFactory::StatelessCreationFrame* scs =
 		stateless_creation_frame ();
-	if (scs)
-		return scs->offset ();
-	else {
+	if (!scs) {
 		// Stateful object must be created in the sync doimain only.
 		ExecDomain* ed = ::Nirvana::Core::Thread::current ().exec_domain ();
 		if (!ed || !ed->sync_context ().sync_domain ())
 			throw_BAD_INV_ORDER ();
 	}
-	return 0;
 }
 
 }

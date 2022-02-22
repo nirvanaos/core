@@ -41,7 +41,7 @@ class ProxyLocal :
 protected:
 	ProxyLocal (LocalObject::_ptr_type servant, AbstractBase::_ptr_type abstract_base) :
 		ServantProxyBase (abstract_base, object_ops_, this),
-		servant_ (servant)
+		servant_ (offset_ptr (servant))
 	{}
 
 private:

@@ -76,6 +76,7 @@ public:
 			throw BAD_OPERATION ();
 		void* p = stateless_memory->allocate (0, scs.size (), Nirvana::Memory::READ_ONLY | Nirvana::Memory::RESERVED);
 		scs.offset ((uint8_t*)p - (uint8_t*)scs.tmp ());
+		scs.next (stateless_creation_frame ());
 		stateless_creation_frame (&scs);
 	}
 
@@ -84,7 +85,7 @@ public:
 		StatelessCreationFrame* scs = stateless_creation_frame ();
 		if (!scs)
 			throw BAD_INV_ORDER ();
-		stateless_creation_frame (nullptr);
+		stateless_creation_frame ((StatelessCreationFrame*)scs->next ());
 		void* p = (Octet*)scs->tmp () + scs->offset ();
 		Nirvana::Core::Heap* stateless_memory = Nirvana::Core::SyncContext::current ().stateless_memory ();
 		assert (stateless_memory);
@@ -99,30 +100,26 @@ public:
 
 	static I_ref <CORBA::Internal::ReferenceCounter> create_reference_counter (CORBA::Internal::DynamicServant::_ptr_type dynamic)
 	{
-		return make_pseudo <ReferenceCounter> (offset_ptr (dynamic));
+		return make_pseudo <ReferenceCounter> (dynamic);
 	}
 
 	static I_ref <PortableServer::ServantBase> create_servant (PortableServer::Servant servant)
 	{
-		return make_pseudo <PortableServer::Core::ServantBase> (offset_ptr (servant));
+		check_context ();
+		return make_pseudo <PortableServer::Core::ServantBase> (servant);
 	}
 
 	static I_ref <CORBA::LocalObject> create_local_object (I_ptr <CORBA::LocalObject> servant, I_ptr <AbstractBase> abstract_base)
 	{
-		return make_pseudo <LocalObject> (offset_ptr (servant), offset_ptr (abstract_base));
+		check_context ();
+		return make_pseudo <LocalObject> (servant, abstract_base);
 	}
 
 private:
 	static CORBA::Internal::ObjectFactory::StatelessCreationFrame* stateless_creation_frame ();
 	static void stateless_creation_frame (CORBA::Internal::ObjectFactory::StatelessCreationFrame*);
 
-	template <class I>
-	static I_ptr <I> offset_ptr (I_ptr <I> p)
-	{
-		return reinterpret_cast <I*> ((Octet*)&p + offset_ptr ());
-	}
-
-	static size_t offset_ptr ();
+	static void check_context ();
 };
 
 }

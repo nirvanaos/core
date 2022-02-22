@@ -57,7 +57,7 @@ ServantProxyBase::ServantProxyBase (AbstractBase::_ptr_type servant,
 	ProxyManager (Skeleton <ServantProxyBase, IOReference>::epv_, 
 		Skeleton <ServantProxyBase, Object>::epv_, primary_interface_id (servant), 
 		object_ops, object_impl),
-	servant_ (servant),
+	servant_ (offset_ptr (servant)),
 	ref_cnt_ (0),
 	sync_context_ (&SyncContext::current ())
 {
@@ -139,6 +139,15 @@ bool ServantProxyBase::call_request_proc (RqProcInternal proc, void* servant, In
 		rq->set_exception (any);
 	}
 	return true;
+}
+
+size_t ServantProxyBase::offset_ptr () NIRVANA_NOEXCEPT
+{
+	ObjectFactory::StatelessCreationFrame* scf = reinterpret_cast <ObjectFactory::StatelessCreationFrame*>
+		(MemContext::current ().get_TLS ().get (TLS::CORE_TLS_OBJECT_FACTORY));
+	if (scf)
+		return scf->offset ();
+	return 0;
 }
 
 }
