@@ -25,7 +25,7 @@
 */
 #include <CORBA/Server.h>
 #include <IDL/Legacy_s.h>
-#include <Legacy/Mutex.inl>
+#include <Legacy/Mutex.h>
 
 namespace Nirvana {
 namespace Legacy {

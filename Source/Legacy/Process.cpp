@@ -25,8 +25,8 @@
 */
 #include "Process.h"
 #include "ThreadLegacy.h"
+#include "Synchronized.h"
 #include <iostream>
-#include <signal.h>
 
 using namespace std;
 using namespace Nirvana::Core;
@@ -53,17 +53,11 @@ void Process::copy_strings (Strings& src, Pointers& dst)
 
 void Process::run ()
 {
-	{
-		Pointers v;
-		v.reserve (argv_.size () + envp_.size () + 2);
-		copy_strings (argv_, v);
-		copy_strings (envp_, v);
-		mutex_ = Mutex::create (*this);
-		ret_ = main ((int)argv_.size (), v.data (), v.data () + argv_.size () + 1);
-		Legacy::Mutex::_ref_type tmp (move (mutex_));
-	}
-	object_list_.clear ();
-	runtime_support_.clear ();
+	Pointers v;
+	v.reserve (argv_.size () + envp_.size () + 2);
+	copy_strings (argv_, v);
+	copy_strings (envp_, v);
+	ret_ = main ((int)argv_.size (), v.data (), v.data () + argv_.size () + 1);
 }
 
 void Process::on_exception () NIRVANA_NOEXCEPT
@@ -85,17 +79,9 @@ RuntimeProxy::_ref_type Process::runtime_proxy_get (const void* obj)
 {
 	RuntimeProxy::_ref_type ret;
 	if (!RUNTIME_SUPPORT_DISABLE) {
-		if (mutex_) {
-			mutex_->lock ();
-			try {
-				ret = runtime_support_.runtime_proxy_get (obj);
-			} catch (...) {
-				mutex_->unlock ();
-				throw;
-			}
-			mutex_->unlock ();
-		} else
-			ret = runtime_support_.runtime_proxy_get (obj);
+		SYNC_BEGIN (sync_, nullptr);
+		ret = runtime_support_.runtime_proxy_get (obj);
+		SYNC_END ();
 	}
 	return ret;
 }
@@ -103,32 +89,24 @@ RuntimeProxy::_ref_type Process::runtime_proxy_get (const void* obj)
 void Process::runtime_proxy_remove (const void* obj) NIRVANA_NOEXCEPT
 {
 	if (!RUNTIME_SUPPORT_DISABLE) {
-		if (mutex_) {
-			mutex_->lock ();
-			runtime_support_.runtime_proxy_remove (obj);
-			mutex_->unlock ();
-		} else
-			runtime_support_.runtime_proxy_remove (obj);
+		SYNC_BEGIN (sync_, nullptr);
+		runtime_support_.runtime_proxy_remove (obj);
+		SYNC_END ();
 	}
 }
 
 void Process::on_object_construct (MemContextObject& obj) NIRVANA_NOEXCEPT
 {
-	if (mutex_) {
-		mutex_->lock ();
-		object_list_.push_back (obj);
-		mutex_->unlock ();
-	} else
-		object_list_.push_back (obj);
+	SYNC_BEGIN (sync_, nullptr);
+	object_list_.push_back (obj);
+	SYNC_END ();
 }
 
 void Process::on_object_destruct (MemContextObject& obj) NIRVANA_NOEXCEPT
 {
-	if (mutex_) {
-		mutex_->lock ();
-		obj.remove ();
-		mutex_->unlock ();
-	}
+	SYNC_BEGIN (sync_, nullptr);
+	obj.remove ();
+	SYNC_END ();
 }
 
 TLS& Process::get_TLS () NIRVANA_NOEXCEPT

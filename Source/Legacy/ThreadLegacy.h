@@ -57,6 +57,9 @@ public:
 		using namespace Nirvana::Core;
 		CoreRef <ThreadLegacy> obj = CoreRef <ThreadLegacy>::create <
 			ImplDynamic <ThreadLegacy> > (std::ref (process), std::ref (ed));
+
+		process.on_thread_start (*obj);
+
 		obj->start ();
 		return obj;
 	}
@@ -76,9 +79,10 @@ public:
 		return TLS_;
 	}
 
-	void clear () NIRVANA_NOEXCEPT
+	void finish () NIRVANA_NOEXCEPT
 	{
 		TLS_.clear ();
+		process_->on_thread_finish (*this);
 	}
 
 protected:

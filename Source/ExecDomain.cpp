@@ -197,8 +197,8 @@ void ExecDomain::cleanup () NIRVANA_NOEXCEPT
 	ret_qnodes_clear ();
 	sync_context_ = &g_core_free_sync_context;
 	if (background_worker_ && background_worker_->is_legacy ()) {
-		// Clear TLS
-		static_cast <Legacy::Core::ThreadLegacy&> (*background_worker_).clear ();
+		// Clear resources
+		static_cast <Legacy::Core::ThreadLegacy&> (*background_worker_).finish ();
 	}
 	runtime_global_.cleanup ();
 	assert (!mem_context_stack_.empty ());

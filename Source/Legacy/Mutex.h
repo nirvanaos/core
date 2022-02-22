@@ -33,6 +33,9 @@
 #include "../LifeCyclePseudo.h"
 #include "../MemContextObject.h"
 #include "../SyncDomain.h"
+#include "../Synchronized.h"
+#include "../ExecDomain.h"
+#include "ThreadLegacy.h"
 
 namespace Nirvana {
 namespace Legacy {
@@ -56,12 +59,58 @@ public:
 		return CORBA::make_pseudo <Mutex> (std::ref (parent));
 	}
 
-	Mutex (Process& parent);
-	~Mutex ();
+	Mutex (Process& parent) :
+		Nirvana::Core::SyncDomainImpl (parent, parent),
+		owner_ (nullptr)
+	{}
 
-	void lock ();
-	void unlock ();
-	bool try_lock ();
+	~Mutex ()
+	{
+		// TODO: Terminate all waiting threads?
+	}
+
+	void lock ()
+	{
+		ThreadLegacy& thread = ThreadLegacy::current ();
+		SYNC_BEGIN (*this, nullptr);
+		if (!owner_) {
+			owner_ = &thread;
+			return;
+		} else if (owner_ == &thread)
+			throw_BAD_INV_ORDER ();
+		else {
+			queue_.push_back (thread);
+			_sync_frame.suspend_and_return ();
+		}
+		SYNC_END ();
+	}
+
+	void unlock ()
+	{
+		ThreadLegacy& thread = ThreadLegacy::current ();
+		SYNC_BEGIN (*this, nullptr);
+		if (owner_ != &thread)
+			throw_BAD_INV_ORDER ();
+		owner_ = nullptr;
+		if (!queue_.empty ()) {
+			ThreadLegacy& next = queue_.front ();
+			next.remove (); // From queue
+			owner_ = &next;
+			next.exec_domain ()->resume ();
+		}
+		SYNC_END ();
+	}
+
+	bool try_lock ()
+	{
+		SYNC_BEGIN (*this, nullptr);
+		if (!owner_) {
+			owner_ = &ThreadLegacy::current ();
+			return true;
+		}
+		SYNC_END ();
+		return false;
+	}
 
 	void _add_ref () NIRVANA_NOEXCEPT
 	{
