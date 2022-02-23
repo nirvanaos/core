@@ -36,7 +36,7 @@ class Launcher :
 {
 public:
 	static Legacy::Process::_ref_type spawn (const std::string& file,
-		const StringSeq& argv, const StringSeq& envp,
+		StringSeq& argv, StringSeq& envp,
 		ProcessCallback::_ref_type callback)
 	{
 		throw_NO_IMPLEMENT ();
