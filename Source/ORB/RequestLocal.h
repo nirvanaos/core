@@ -72,7 +72,7 @@ public:
 	void marshal (size_t align, size_t size, const void* data)
 	{
 		marshal_op ();
-		Nirvana::real_copy ((const Octet*)data, (const Octet*)data + size, (Octet*)allocate_space (align, size));
+		Nirvana::real_copy ((const Octet*)data, (const Octet*)data + size, (Octet*)allocate_space (align, size, size));
 	}
 
 	/// Unmarshal CDR data.
@@ -83,7 +83,7 @@ public:
 	/// \returns `true` if the byte order must be swapped after unmarshaling.
 	bool unmarshal (size_t align, size_t size, void*& data)
 	{
-		data = get_data (align, size);
+		data = get_data (align, size, size);
 		return false;
 	}
 
@@ -122,7 +122,7 @@ public:
 	void marshal_seq_begin (size_t element_count)
 	{
 		marshal_op ();
-		*(size_t*)allocate_space (alignof (size_t), sizeof (size_t)) = element_count;
+		*(size_t*)allocate_space (alignof (size_t), sizeof (size_t), sizeof (size_t)) = element_count;
 	}
 
 	/// Get unmarshalling sequence size.
@@ -130,7 +130,7 @@ public:
 	/// \returns The sequence size.
 	size_t unmarshal_seq_begin ()
 	{
-		return *(size_t*)get_data (alignof (size_t), sizeof (size_t));
+		return *(size_t*)get_data (alignof (size_t), sizeof (size_t), sizeof (size_t));
 	}
 
 	///@}
@@ -147,7 +147,8 @@ public:
 	template <typename C>
 	void unmarshal_char (size_t count, C* data)
 	{
-		const C* chars = (const C*)get_data (alignof (C), count * sizeof (C));
+		size_t cb = count * sizeof (C);
+		const C* chars = (const C*)get_data (alignof (C), cb, cb);
 		Nirvana::real_copy (chars, chars + count, data);
 	}
 
@@ -462,8 +463,8 @@ protected:
 	}
 
 	void marshal_op () NIRVANA_NOEXCEPT;
-	void* allocate_space (size_t align, size_t size);
-	void* get_data (size_t align, size_t size);
+	void* allocate_space (size_t align, size_t size, size_t reserve);
+	void* get_data (size_t align, size_t size, size_t reserve);
 
 	void rewind () NIRVANA_NOEXCEPT;
 
