@@ -111,10 +111,6 @@ bool operator != (const HeapAllocator <T>& l, const HeapAllocator <U>& r)
 /// Heap implementation.
 class Heap
 {
-	// Skip list level count for heap skip list.
-	// May be moved to Port/config.h
-	static const unsigned SKIP_LIST_LEVELS = 10;
-
 	Heap (const Heap&) = delete;
 	Heap& operator = (const Heap&) = delete;
 
@@ -163,6 +159,13 @@ public:
 	void change_protection (bool read_only);
 
 	bool check_owner (const void* p, size_t size);
+
+	void swap (Heap& other)
+	{
+		std::swap (allocation_unit_, other.allocation_unit_);
+		std::swap (part_list_, other.part_list_);
+		block_list_.swap (other.block_list_);
+	}
 
 protected:
 	Heap (size_t allocation_unit = HEAP_UNIT_DEFAULT) NIRVANA_NOEXCEPT;
@@ -258,9 +261,9 @@ protected:
 		};
 	};
 
-	class BlockList : public SkipList <MemoryBlock, SKIP_LIST_LEVELS>
+	class BlockList : public SkipList <MemoryBlock, HEAP_SKIP_LIST_LEVELS>
 	{
-		typedef SkipList <MemoryBlock, SKIP_LIST_LEVELS> Base;
+		typedef SkipList <MemoryBlock, HEAP_SKIP_LIST_LEVELS> Base;
 	public:
 		void insert (NodeVal*& node)
 		{
@@ -391,8 +394,8 @@ protected:
 
 protected:
 	size_t allocation_unit_;
-	BlockList block_list_;
 	MemoryBlock* part_list_;
+	BlockList block_list_;
 };
 
 class HeapCore : public Heap

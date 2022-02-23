@@ -195,6 +195,18 @@ protected:
 	/// Only `Node::level` member is valid on return.
 	Node* allocate_node (unsigned level);
 
+	void swap (SkipListBase& other) NIRVANA_NOEXCEPT
+	{
+		assert (node_size_ == other.node_size_);
+#ifdef _DEBUG
+		AtomicCounter <false>::IntegralType tmp = node_cnt_;
+		new (&node_cnt_) AtomicCounter <false> (
+			(AtomicCounter <false>::IntegralType)other.node_cnt_);
+		new (&other.node_cnt_) AtomicCounter <false> (tmp);
+#endif
+		std::swap (rndgen_, other.rndgen_);
+	}
+
 private:
 	static Node* read_node (Link::Lockable& node) NIRVANA_NOEXCEPT;
 
@@ -221,9 +233,9 @@ protected:
 #endif
 
 private:
-	Node* head_;
-	Node* tail_;
-	unsigned node_size_;
+	Node* const head_;
+	Node* const tail_;
+	const unsigned node_size_;
 	RandomGenAtomic rndgen_;
 };
 
@@ -242,9 +254,17 @@ public:
 		return Base::allocate_node (random_level ());
 	}
 
+	void swap (SkipListL& other) NIRVANA_NOEXCEPT
+	{
+		Base::swap (other);
+		HeadTailSpace tmp = head_tail_;
+		head_tail_ = other.head_tail_;
+		other.head_tail_ = tmp;
+	}
+
 protected:
 	SkipListL (unsigned node_size) NIRVANA_NOEXCEPT :
-		Base (node_size, MAX_LEVEL, head_tail_)
+		Base (node_size, MAX_LEVEL, &head_tail_)
 	{}
 
 	Node* insert (Node* new_node) NIRVANA_NOEXCEPT
@@ -260,8 +280,12 @@ protected:
 
 private:
 	// Memory space for head and tail nodes.
-	// Add extra space for tail node alignment.
-	uint8_t head_tail_ [Node::size (sizeof (Node), MAX_LEVEL) + Node::size (sizeof (Node), 1) + NODE_ALIGN - 1];
+	// Added extra space for tail node alignment.
+	struct HeadTailSpace
+	{
+		uint8_t space_ [Node::size (sizeof (Node), MAX_LEVEL) + Node::size (sizeof (Node), 1) + NODE_ALIGN - 1];
+	};
+	HeadTailSpace head_tail_;
 };
 
 /// Skip list implementation for the given node value type and maximal level count.

@@ -47,7 +47,7 @@ void Startup::launch (DeadlineTime deadline)
 }
 
 class ShutdownCallback :
-	public CORBA::servant_traits <ProcessCallback>::Servant <ShutdownCallback>
+	public CORBA::servant_traits <Legacy::ProcessCallback>::Servant <ShutdownCallback>
 {
 public:
 	ShutdownCallback (int& ret) :
