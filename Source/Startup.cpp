@@ -25,10 +25,11 @@
 */
 #include "Startup.h"
 #include "ExecDomain.h"
-#include "Legacy/Process.h"
+#include <Nirvana/Launcher.h>
+#include "IDL/Legacy_Process_s.h"
 
 using namespace std;
-using namespace Nirvana::Legacy::Core;
+using namespace Nirvana::Legacy;
 
 namespace Nirvana {
 namespace Core {
@@ -47,14 +48,14 @@ void Startup::launch (DeadlineTime deadline)
 }
 
 class ShutdownCallback :
-	public CORBA::servant_traits <Legacy::ProcessCallback>::Servant <ShutdownCallback>
+	public CORBA::servant_traits <ProcessCallback>::Servant <ShutdownCallback>
 {
 public:
 	ShutdownCallback (int& ret) :
 		ret_ (ret)
 	{}
 
-	void on_process_finish (Legacy::Process::_ptr_type process) const
+	void on_process_finish (Process::_ptr_type process) const
 	{
 		ret_ = process->exit_code ();
 		Scheduler::shutdown ();
@@ -81,7 +82,7 @@ void Startup::run ()
 		CORBA::servant_reference <ShutdownCallback> cb =
 			CORBA::make_stateless <ShutdownCallback> (ref (ret_));
 
-		Legacy::Core::Process::spawn (argv [0], argv, envp, cb->_this ());
+		Static <Launcher>::ptr ()->spawn (argv [0], argv, envp, cb->_this ());
 	}
 }
 

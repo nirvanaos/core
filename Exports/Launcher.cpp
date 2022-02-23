@@ -24,37 +24,26 @@
 *  popov.nirvana@gmail.com
 */
 #include <CORBA/Server.h>
-#include <IDL/Legacy_s.h>
-#include <Legacy/Mutex.h>
+#include <IDL/Legacy_Process_s.h>
+#include <Nirvana/Launcher.h>
+#include <Legacy/Process.h>
 
 namespace Nirvana {
 namespace Legacy {
-namespace Core {
 
-class Factory :
-	public CORBA::servant_traits <Legacy::Factory>::ServantStatic <Factory>
+class Launcher :
+	public CORBA::servant_traits <ProcessFactory>::ServantStatic <Launcher>
 {
 public:
-	static Legacy::Thread::_ref_type create_thread (Runnable::_ptr_type)
+	static Legacy::Process::_ref_type spawn (const std::string& file,
+		const StringSeq& argv, const StringSeq& envp,
+		ProcessCallback::_ref_type callback)
 	{
-		throw_NO_IMPLEMENT (); // TODO:
-	}
-
-	static Legacy::Mutex::_ref_type create_mutex ()
-	{
-		return Mutex::create (ThreadLegacy::current ().process ());
+		throw_NO_IMPLEMENT ();
 	}
 };
 
 }
-
-__declspec (selectany) extern
-const ImportInterfaceT <Factory> g_factory = { OLF_IMPORT_INTERFACE,
-"Nirvana/Legacy/g_factory", Factory::repository_id_,
-NIRVANA_STATIC_BRIDGE (Factory, Core::Factory) };
-
-}
 }
 
-NIRVANA_EXPORT (_exp_Nirvana_Legacy_g_factory, "Nirvana/Legacy/g_factory",
-	Nirvana::Legacy::Factory, Nirvana::Legacy::Core::Factory)
+NIRVANA_STATIC_EXP (Nirvana, Legacy, Launcher)

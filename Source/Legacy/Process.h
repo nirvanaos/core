@@ -48,7 +48,7 @@ class Process :
 	public CORBA::servant_traits <Nirvana::Legacy::Process>::Servant <Process>,
 	public Nirvana::Core::LifeCyclePseudo <Process>,
 	public Nirvana::Core::MemContext,
-	public Nirvana::Core::Runnable
+	private Nirvana::Core::Runnable
 {
 public:
 	static Legacy::Process::_ref_type spawn (const std::string& file,
