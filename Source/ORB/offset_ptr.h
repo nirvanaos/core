@@ -24,35 +24,40 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_ORB_CORE_PROXYLOCAL_H_
-#define NIRVANA_ORB_CORE_PROXYLOCAL_H_
+#ifndef NIRVANA_ORB_CORE_OFFSET_PTR_H_
+#define NIRVANA_ORB_CORE_OFFSET_PTR_H_
 #pragma once
 
-#include "ServantProxyBase.inl"
-#include "offset_ptr.h"
+#include <CORBA/CORBA.h>
+#include "../TLS.h"
+#include "IDL/ObjectFactory.h"
 
 namespace CORBA {
 namespace Internal {
 namespace Core {
 
-/// LocalObject operations proxy
-class ProxyLocal :
-	public ServantProxyBase
+inline
+size_t offset_ptr () NIRVANA_NOEXCEPT
 {
-protected:
-	ProxyLocal (LocalObject::_ptr_type servant, AbstractBase::_ptr_type abstract_base) :
-		ServantProxyBase (abstract_base, object_ops_, this),
-		servant_ (offset_ptr (servant))
-	{}
+	ObjectFactory::StatelessCreationFrame* scf =
+		(ObjectFactory::StatelessCreationFrame*)Nirvana::Core::TLS::current ()
+		.get (Nirvana::Core::TLS::CORE_TLS_OBJECT_FACTORY);
+	if (scf)
+		return scf->offset ();
+	return 0;
+}
 
-private:
-	static void non_existent_request (ProxyLocal* servant, IORequest::_ptr_type call);
+template <class I> inline
+I_ptr <I> offset_ptr (I_ptr <I> p, size_t cb) NIRVANA_NOEXCEPT
+{
+	return reinterpret_cast <I*> ((Octet*)&p + cb);
+}
 
-private:
-	LocalObject::_ptr_type servant_;
-
-	static const Operation object_ops_ [3];
-};
+template <class I> inline
+I_ptr <I> offset_ptr (I_ptr <I> p) NIRVANA_NOEXCEPT
+{
+	return offset_ptr (p, offset_ptr ());
+}
 
 }
 }

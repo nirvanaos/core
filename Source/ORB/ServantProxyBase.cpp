@@ -24,6 +24,7 @@
 *  popov.nirvana@gmail.com
 */
 #include "ServantProxyBase.inl"
+#include "offset_ptr.h"
 
 namespace CORBA {
 namespace Internal {

@@ -29,6 +29,7 @@
 #pragma once
 
 #include "ServantProxyBase.inl"
+#include "offset_ptr.h"
 #include <atomic>
 
 namespace CORBA {

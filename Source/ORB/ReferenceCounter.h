@@ -28,10 +28,12 @@
 #define NIRVANA_ORB_CORE_REFERENCECOUNTER_H_
 #pragma once
 
+#include <CORBA/Server.h>
 #include <CORBA/ReferenceCounter_s.h>
 #include <CORBA/DynamicServant_s.h>
 #include <CORBA/ImplementationPseudo.h>
 #include "../AtomicCounter.h"
+#include "offset_ptr.h"
 #include <limits>
 
 namespace CORBA {
@@ -44,7 +46,7 @@ class ReferenceCounter :
 {
 public:
 	ReferenceCounter (DynamicServant::_ptr_type dynamic) :
-		dynamic_ (dynamic)
+		dynamic_ (offset_ptr (dynamic))
 	{}
 
 	void _add_ref ()

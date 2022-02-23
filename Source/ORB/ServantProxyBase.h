@@ -129,18 +129,6 @@ protected:
 		}
 	}
 
-	template <class I>
-	static I_ptr <I> offset_ptr (I_ptr <I> p, size_t cb) NIRVANA_NOEXCEPT
-	{
-		return reinterpret_cast <I*> ((Octet*)&p + cb);
-	}
-
-	template <class I>
-	static I_ptr <I> offset_ptr (I_ptr <I> p) NIRVANA_NOEXCEPT
-	{
-		return offset_ptr (p, offset_ptr ());
-	}
-
 	typedef void (*RqProcInternal) (void* servant, IORequest::_ptr_type call);
 
 	static bool call_request_proc (RqProcInternal proc, void* servant, Interface* call);
@@ -158,16 +146,6 @@ private:
 		if (!primary)
 			throw OBJ_ADAPTER (); // TODO: Log
 		return primary->_epv ().interface_id;
-	}
-
-	static size_t offset_ptr () NIRVANA_NOEXCEPT
-	{
-		ObjectFactory::StatelessCreationFrame* scf =
-			(ObjectFactory::StatelessCreationFrame*)Nirvana::Core::TLS::current ()
-			.get (Nirvana::Core::TLS::CORE_TLS_OBJECT_FACTORY);
-		if (scf)
-			return scf->offset ();
-		return 0;
 	}
 
 private:
