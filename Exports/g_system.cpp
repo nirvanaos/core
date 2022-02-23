@@ -33,7 +33,6 @@
 #include <Port/SystemInfo.h>
 #include <Port/Debugger.h>
 #include <Signals.h>
-#include <Legacy/Process.h>
 
 using namespace std;
 
@@ -185,12 +184,6 @@ public:
 		return MemContext::current ().get_TLS ().get (idx);
 	}
 
-	static Legacy::Process::_ref_type spawn (const string& file,
-		const vector <string>& argv, const vector <string>& envp,
-		ProcessCallback::_ptr_type callback)
-	{
-		return Legacy::Core::Process::spawn (file, argv, envp, callback);
-	}
 };
 
 }

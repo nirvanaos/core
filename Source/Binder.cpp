@@ -118,7 +118,7 @@ NIRVANA_NORETURN void Binder::invalid_metadata ()
 
 const ModuleStartup* Binder::module_bind (::Nirvana::Module::_ptr_type mod, const Section& metadata, ModuleContext* mod_context)
 {
-	TLS& tls = MemContext::current ().get_TLS ();
+	TLS& tls = TLS::current ();
 	void* prev_context = tls.get (TLS::CORE_TLS_BINDER);
 	tls.set (TLS::CORE_TLS_BINDER, mod_context);
 
@@ -434,7 +434,7 @@ Binder::InterfaceRef Binder::find (const ObjectKey& name)
 	const ExecDomain& exec_domain = ExecDomain::current ();
 	if (ExecDomain::RestrictedMode::MODULE_TERMINATE == exec_domain.restricted_mode ())
 		throw_NO_PERMISSION ();
-	ModuleContext* context = reinterpret_cast <ModuleContext*> (MemContext::current ().get_TLS ().get (TLS::CORE_TLS_BINDER));
+	ModuleContext* context = reinterpret_cast <ModuleContext*> (TLS::current ().get (TLS::CORE_TLS_BINDER));
 	InterfaceRef itf;
 	if (context)
 		itf = context->exports.find (name);

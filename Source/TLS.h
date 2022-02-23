@@ -29,6 +29,7 @@
 #pragma once
 
 #include "BitmapOps.h"
+#include "MemContext.h"
 
 namespace Nirvana {
 
@@ -42,6 +43,12 @@ class TLS
 	typedef BitmapOps::BitmapWord BitmapWord;
 	static const unsigned BW_BITS = sizeof (BitmapWord) * 8;
 public:
+	/// \returns Current TLS.
+	static TLS& current ()
+	{
+		return MemContext::current ().get_TLS ();
+	}
+
 	/// Reserved TLS indexes
 	enum
 	{

@@ -67,33 +67,35 @@ public:
 		return Nirvana::Core::SyncContext::current ().stateless_memory () != nullptr;
 	}
 
-	void stateless_begin (CORBA::Internal::ObjectFactory::StatelessCreationFrame& scs)
+	void stateless_begin (CORBA::Internal::ObjectFactory::StatelessCreationFrame& scf)
 	{
-		if (!(scs.tmp () && scs.size ()))
+		if (!(scf.tmp () && scf.size ()))
 			throw BAD_PARAM ();
 		Nirvana::Core::Heap* stateless_memory = Nirvana::Core::SyncContext::current ().stateless_memory ();
 		if (!stateless_memory)
 			throw BAD_OPERATION ();
-		void* p = stateless_memory->allocate (0, scs.size (), Nirvana::Memory::READ_ONLY | Nirvana::Memory::RESERVED);
-		scs.offset ((uint8_t*)p - (uint8_t*)scs.tmp ());
-		scs.next (stateless_creation_frame ());
-		stateless_creation_frame (&scs);
+		void* p = stateless_memory->allocate (0, scf.size (), Nirvana::Memory::READ_ONLY | Nirvana::Memory::RESERVED);
+		scf.offset ((uint8_t*)p - (uint8_t*)scf.tmp ());
+		Nirvana::Core::TLS& tls = Nirvana::Core::TLS::current ();
+		scf.next (tls.get (Nirvana::Core::TLS::CORE_TLS_OBJECT_FACTORY));
+		tls.set (Nirvana::Core::TLS::CORE_TLS_OBJECT_FACTORY, &scf);
 	}
 
 	void* stateless_end (bool success)
 	{
-		StatelessCreationFrame* scs = stateless_creation_frame ();
-		if (!scs)
+		Nirvana::Core::TLS& tls = Nirvana::Core::TLS::current ();
+		StatelessCreationFrame* scf = (StatelessCreationFrame*)tls.get (Nirvana::Core::TLS::CORE_TLS_OBJECT_FACTORY);
+		if (!scf)
 			throw BAD_INV_ORDER ();
-		stateless_creation_frame ((StatelessCreationFrame*)scs->next ());
-		void* p = (Octet*)scs->tmp () + scs->offset ();
+		tls.set (Nirvana::Core::TLS::CORE_TLS_OBJECT_FACTORY, scf->next ());
+		void* p = (Octet*)scf->tmp () + scf->offset ();
 		Nirvana::Core::Heap* stateless_memory = Nirvana::Core::SyncContext::current ().stateless_memory ();
 		assert (stateless_memory);
 		if (success) {
-			stateless_memory->copy (p, const_cast <void*> (scs->tmp ()), scs->size (), Nirvana::Memory::READ_ONLY);
+			stateless_memory->copy (p, const_cast <void*> (scf->tmp ()), scf->size (), Nirvana::Memory::READ_ONLY);
 			return p;
 		} else {
-			stateless_memory->release (p, scs->size ());
+			stateless_memory->release (p, scf->size ());
 			return nullptr;
 		}
 	}
@@ -116,9 +118,6 @@ public:
 	}
 
 private:
-	static CORBA::Internal::ObjectFactory::StatelessCreationFrame* stateless_creation_frame ();
-	static void stateless_creation_frame (CORBA::Internal::ObjectFactory::StatelessCreationFrame*);
-
 	static void check_context ();
 };
 
