@@ -175,6 +175,7 @@ void ExecDomain::async_call (const DeadlineTime& deadline, Runnable& runnable, S
 void ExecDomain::start_legacy_process (Legacy::Core::Process& process)
 {
 	ExecDomain& cur = current ();
+	cur.mem_context_->get_TLS ().clear ();
 	static_cast <Nirvana::Core::MemContext&> (process) = std::move (*cur.mem_context_stack_.top ());
 	cur.mem_context_stack_.top () = &process;
 	cur.mem_context_ = &process;
