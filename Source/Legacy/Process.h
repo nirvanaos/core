@@ -100,9 +100,6 @@ public:
 		sync_ (std::ref (*this))
 	{
 		assert (Nirvana::Core::SyncContext::current ().is_free_sync_context ());
-
-		// Adopt current heap
-		heap ().swap (Nirvana::Core::MemContext::current ().heap ());
 	}
 
 	~Process ()

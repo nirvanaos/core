@@ -195,16 +195,11 @@ protected:
 	/// Only `Node::level` member is valid on return.
 	Node* allocate_node (unsigned level);
 
-	void swap (SkipListBase& other) NIRVANA_NOEXCEPT
+	SkipListBase& operator = (SkipListBase&& other) NIRVANA_NOEXCEPT
 	{
 		assert (node_size_ == other.node_size_);
-#ifdef _DEBUG
-		AtomicCounter <false>::IntegralType tmp = node_cnt_;
-		new (&node_cnt_) AtomicCounter <false> (
-			(AtomicCounter <false>::IntegralType)other.node_cnt_);
-		new (&other.node_cnt_) AtomicCounter <false> (tmp);
-#endif
-		std::swap (rndgen_, other.rndgen_);
+		rndgen_ = other.rndgen_;
+		return *this;
 	}
 
 private:
@@ -254,14 +249,6 @@ public:
 		return Base::allocate_node (random_level ());
 	}
 
-	void swap (SkipListL& other) NIRVANA_NOEXCEPT
-	{
-		Base::swap (other);
-		HeadTailSpace tmp = head_tail_;
-		head_tail_ = other.head_tail_;
-		other.head_tail_ = tmp;
-	}
-
 protected:
 	SkipListL (unsigned node_size) NIRVANA_NOEXCEPT :
 		Base (node_size, MAX_LEVEL, &head_tail_)
@@ -276,6 +263,30 @@ protected:
 	unsigned random_level () NIRVANA_NOEXCEPT
 	{
 		return MAX_LEVEL > 1 ? std::min (Base::random_level (), MAX_LEVEL) : 1;
+	}
+
+	SkipListL& operator = (SkipListL&& other) NIRVANA_NOEXCEPT
+	{
+		Base::operator = (std::move (other));
+
+		// Clear this list
+		while (Node* node = delete_min ()) {
+			release_node (node);
+		}
+
+		// Move nodes
+		while (Node* node = other.delete_min ()) {
+			node->deleted = false;
+			node = insert (node);
+			release_node (node);
+		}
+
+#ifdef _DEBUG
+		new (&node_cnt_) AtomicCounter <false> ((AtomicCounter <false>::IntegralType)other.node_cnt_);
+		new (&other.node_cnt_) AtomicCounter <false> (0);
+#endif
+
+		return *this;
 	}
 
 private:
@@ -483,6 +494,12 @@ public:
 	bool remove (NodeVal* node) NIRVANA_NOEXCEPT
 	{
 		return Base::remove (node);
+	}
+
+	SkipList& operator = (SkipList&& other) NIRVANA_NOEXCEPT
+	{
+		Base::operator = (std::move (other));
+		return *this;
 	}
 };
 

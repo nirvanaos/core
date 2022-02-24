@@ -51,6 +51,16 @@ public:
 	/// \brief Releases all memory.
 	/// \returns `true` if no memory leaks.
 	bool cleanup ();
+
+	HeapUser& operator = (HeapUser&& other) NIRVANA_NOEXCEPT
+	{
+		cleanup ();
+		allocation_unit_ = other.allocation_unit_;
+		part_list_ = other.part_list_;
+		other.part_list_ = nullptr;
+		block_list_ = std::move (other.block_list_);
+		return *this;
+	}
 };
 
 }

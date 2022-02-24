@@ -160,13 +160,6 @@ public:
 
 	bool check_owner (const void* p, size_t size);
 
-	void swap (Heap& other)
-	{
-		std::swap (allocation_unit_, other.allocation_unit_);
-		std::swap (part_list_, other.part_list_);
-		block_list_.swap (other.block_list_);
-	}
-
 protected:
 	Heap (size_t allocation_unit = HEAP_UNIT_DEFAULT) NIRVANA_NOEXCEPT;
 

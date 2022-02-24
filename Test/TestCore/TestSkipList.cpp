@@ -35,7 +35,7 @@ protected:
 	}
 };
 
-TEST_F (TestSkipList, Swap)
+TEST_F (TestSkipList, Move)
 {
 	typedef SkipList <int, 10> SL;
 
@@ -45,7 +45,7 @@ TEST_F (TestSkipList, Swap)
 	sl.release_node (sl.insert (2).first);
 
 	SL sl1;
-	sl.swap (sl1);
+	sl1 = move (sl);
 	ASSERT_FALSE (sl.get_min_node ());
 
 	int i;

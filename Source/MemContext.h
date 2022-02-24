@@ -89,6 +89,12 @@ public:
 	/// Global class temination.
 	static void terminate () NIRVANA_NOEXCEPT;
 
+	MemContext& operator = (MemContext&& other) NIRVANA_NOEXCEPT
+	{
+		heap_ = std::move (other.heap_);
+		return *this;
+	}
+
 protected:
 	MemContext ();
 	~MemContext ();
