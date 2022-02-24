@@ -24,7 +24,7 @@
 *  popov.nirvana@gmail.com
 */
 #include "Process.h"
-#include "ThreadLegacy.h"
+#include "ThreadBase.h"
 #include "Synchronized.h"
 #include <iostream>
 

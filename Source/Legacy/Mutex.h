@@ -35,7 +35,7 @@
 #include "../SyncDomain.h"
 #include "../Synchronized.h"
 #include "../ExecDomain.h"
-#include "ThreadLegacy.h"
+#include "ThreadBase.h"
 
 namespace Nirvana {
 namespace Legacy {

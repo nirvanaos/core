@@ -24,7 +24,7 @@
 *  popov.nirvana@gmail.com
 */
 #include "ExecDomain.h"
-#include "Legacy/ThreadLegacy.h"
+#include "Legacy/ThreadBase.h"
 #include "Legacy/Process.h"
 #include <Port/SystemInfo.h>
 
