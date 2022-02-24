@@ -73,12 +73,6 @@ protected:
 	{}
 
 private:
-	void on_thread_proc_end ()
-	{
-		_remove_ref ();
-	}
-
-private:
 	Nirvana::Core::TLS TLS_;
 };
 

@@ -50,6 +50,12 @@ protected:
 		implicit_activation_ (false)
 	{}
 
+	~ProxyObject ()
+	{
+		assert (implicit_activated_id_.empty ());
+		release_object_id (implicit_activated_id_);
+	}
+
 private:
 	enum ActivationState
 	{
@@ -91,6 +97,8 @@ private:
 		}
 		return 0;
 	}
+
+	void release_object_id (PortableServer::ObjectId& oid) const NIRVANA_NOEXCEPT;
 
 private:
 	PortableServer::Servant servant_;

@@ -63,6 +63,12 @@ void Process::run ()
 	get_TLS ().clear ();
 	object_list_.clear ();
 	runtime_support_.clear ();
+	{
+		Strings tmp (move (argv_));
+	}
+	{
+		Strings tmp (move (envp_));
+	}
 
 	completed_ = true;
 	if (callback_) {

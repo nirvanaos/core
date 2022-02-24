@@ -134,25 +134,32 @@ void ProxyObject::implicit_deactivate ()
 		if (!change_state (DEACTIVATION_CANCELLED, ACTIVE))
 			::Nirvana::throw_BAD_INV_ORDER ();
 	}
-	if (!tmp.empty () && sync_context ().is_free_sync_context ()) {
-		// If target in a free sync context, implicit_activated_id_ must be
-		// allocated in the g_shared_mem_context.
-		assert (g_shared_mem_context->heap ().check_owner (
-			tmp.data (), tmp.capacity ()));
-		ExecDomain& ed = ExecDomain::current ();
-		ed.mem_context_push (&g_shared_mem_context);
-		try {
-			tmp.clear ();
-			tmp.shrink_to_fit ();
-		} catch (...) {
+	release_object_id (tmp);
+}
+
+void ProxyObject::release_object_id (PortableServer::ObjectId& oid) const NIRVANA_NOEXCEPT
+{
+	if (oid.capacity ()) {
+		if (sync_context ().is_free_sync_context ()) {
+			// If target in a free sync context, implicit_activated_id_ must be
+			// allocated in the g_shared_mem_context.
+			assert (g_shared_mem_context->heap ().check_owner (
+				oid.data (), oid.capacity ()));
+			ExecDomain& ed = ExecDomain::current ();
+			ed.mem_context_push (&g_shared_mem_context);
+			try {
+				PortableServer::ObjectId tmp (move (oid));
+			} catch (...) {
+				assert (false); // TODO: Log
+				ed.mem_context_pop ();
+			}
 			ed.mem_context_pop ();
-			throw;
+		} else {
+			assert (sync_context ().sync_domain ()->mem_context ().heap ().check_owner (
+				oid.data (), oid.capacity ()));
+			assert (&MemContext::current () == &sync_context ().sync_domain ()->mem_context ());
+			PortableServer::ObjectId tmp (move (oid));
 		}
-		ed.mem_context_pop ();
-	} else {
-		assert (sync_context ().sync_domain ()->mem_context ().heap ().check_owner (
-			tmp.data (), tmp.capacity ()));
-		assert (&MemContext::current () == &sync_context ().sync_domain ()->mem_context ());
 	}
 }
 
