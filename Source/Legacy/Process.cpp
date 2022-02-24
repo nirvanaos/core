@@ -24,7 +24,6 @@
 *  popov.nirvana@gmail.com
 */
 #include "Process.h"
-#include "ThreadBase.h"
 #include "Synchronized.h"
 #include <iostream>
 
@@ -125,6 +124,11 @@ void Process::on_object_destruct (MemContextObject& obj) NIRVANA_NOEXCEPT
 TLS& Process::get_TLS () NIRVANA_NOEXCEPT
 {
 	return ThreadBase::current ().get_TLS ();
+}
+
+Process& Process::process () NIRVANA_NOEXCEPT
+{
+	return *this;
 }
 
 }

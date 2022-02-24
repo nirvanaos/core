@@ -102,23 +102,33 @@ public:
 
 	static I_ref <CORBA::Internal::ReferenceCounter> create_reference_counter (CORBA::Internal::DynamicServant::_ptr_type dynamic)
 	{
+		Frame frame;
 		return make_pseudo <ReferenceCounter> (dynamic);
 	}
 
 	static I_ref <PortableServer::ServantBase> create_servant (PortableServer::Servant servant)
 	{
-		check_context ();
+		Frame frame;
 		return make_pseudo <PortableServer::Core::ServantBase> (servant);
 	}
 
 	static I_ref <CORBA::LocalObject> create_local_object (I_ptr <CORBA::LocalObject> servant, I_ptr <AbstractBase> abstract_base)
 	{
-		check_context ();
+		Frame frame;
 		return make_pseudo <LocalObject> (servant, abstract_base);
 	}
 
 private:
-	static void check_context ();
+	class Frame : public StatelessCreationFrame
+	{
+	public:
+		Frame ();
+		~Frame ();
+
+	private:
+		bool pop_;
+	};
+
 };
 
 }

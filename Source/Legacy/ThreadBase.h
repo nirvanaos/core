@@ -36,6 +36,8 @@ namespace Nirvana {
 namespace Legacy {
 namespace Core {
 
+class Process;
+
 /// Legacy thread base.
 class NIRVANA_NOVTABLE ThreadBase :
 	public Nirvana::Core::ThreadBackground,
@@ -63,6 +65,8 @@ public:
 	{
 		return TLS_;
 	}
+
+	virtual Process& process () NIRVANA_NOEXCEPT = 0;
 
 protected:
 	ThreadBase ()

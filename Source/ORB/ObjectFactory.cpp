@@ -34,18 +34,29 @@ namespace Core {
 using namespace ::Nirvana;
 using namespace ::Nirvana::Core;
 
-void ObjectFactory::check_context ()
+ObjectFactory::Frame::Frame () :
+	StatelessCreationFrame (nullptr, 0, 0, nullptr),
+	pop_ (false)
 {
-	if (ExecDomain::RestrictedMode::NO_RESTRICTIONS != 
-		Nirvana::Core::ExecDomain::current ().restricted_mode ())
+	ExecDomain* ed = ::Nirvana::Core::Thread::current ().exec_domain ();
+	if (!ed)
+		throw_BAD_INV_ORDER ();
+
+	if (ExecDomain::RestrictedMode::MODULE_TERMINATE == ed->restricted_mode ())
 		throw_NO_PERMISSION ();
 
-	if (!TLS::current ().get (TLS::CORE_TLS_OBJECT_FACTORY)) {
-		// Stateful object must be created in the sync doimain only.
-		ExecDomain* ed = ::Nirvana::Core::Thread::current ().exec_domain ();
-		if (!ed || !ed->sync_context ().sync_domain ())
-			throw_BAD_INV_ORDER ();
+	if (ed->sync_context ().sync_domain ()) {
+		TLS& tls = TLS::current ();
+		next (tls.get (TLS::CORE_TLS_OBJECT_FACTORY));
+		tls.set (TLS::CORE_TLS_OBJECT_FACTORY, static_cast <StatelessCreationFrame*> (this));
+		pop_ = true;
 	}
+}
+
+ObjectFactory::Frame::~Frame ()
+{
+	if (pop_)
+		TLS::current ().set (TLS::CORE_TLS_OBJECT_FACTORY, next ());
 }
 
 }

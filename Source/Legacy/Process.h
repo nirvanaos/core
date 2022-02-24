@@ -56,6 +56,8 @@ public:
 		std::vector <std::string>& argv, std::vector <std::string>& envp,
 		ProcessCallback::_ptr_type callback)
 	{
+		CORBA::Internal::ObjectFactory::StatelessCreationFrame scf (nullptr, 0, 0, nullptr);
+
 		CORBA::servant_reference <Process> servant = CORBA::make_reference <Process> (
 			std::ref (file), std::ref (argv), std::ref (envp), callback);
 		Legacy::Process::_ref_type ret = servant->_this ();
@@ -152,6 +154,10 @@ private:
 	virtual void on_object_destruct (Nirvana::Core::MemContextObject& obj)
 		NIRVANA_NOEXCEPT;
 	virtual Nirvana::Core::TLS& get_TLS () NIRVANA_NOEXCEPT;
+
+	// ThreadBase::
+
+	virtual Process& process () NIRVANA_NOEXCEPT;
 
 private:
 	typedef std::vector <std::string> Strings;

@@ -28,14 +28,10 @@
 #define NIRVANA_LEGACY_CORE_MUTEX_H_
 #pragma once
 
-#include <CORBA/Server.h>
+#include "Process.h"
 #include "../IDL/Legacy_s.h"
 #include "../LifeCyclePseudo.h"
-#include "../MemContextObject.h"
-#include "../SyncDomain.h"
 #include "../Synchronized.h"
-#include "../ExecDomain.h"
-#include "ThreadBase.h"
 
 namespace Nirvana {
 namespace Legacy {
@@ -60,7 +56,7 @@ public:
 	}
 
 	Mutex (Process& parent) :
-		Nirvana::Core::SyncDomainImpl (parent.free_sync_context (), parent),
+		Nirvana::Core::SyncDomainImpl (parent.sync_context (), parent),
 		owner_ (nullptr)
 	{}
 
