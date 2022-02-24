@@ -24,7 +24,6 @@
 *  popov.nirvana@gmail.com
 */
 #include "ExecDomain.h"
-#include "Legacy/ThreadBase.h"
 #include "Legacy/Process.h"
 #include <Port/SystemInfo.h>
 
@@ -173,11 +172,18 @@ void ExecDomain::async_call (const DeadlineTime& deadline, Runnable& runnable, S
 	exec_domain->spawn (target);
 }
 
-void ExecDomain::start_legacy_thread (Legacy::Core::Process& process, Runnable& runnable)
+void ExecDomain::start_legacy_process (Legacy::Core::Process& process)
 {
-	CoreRef <ExecDomain> exec_domain = create (INFINITE_DEADLINE, runnable, &process);
-	exec_domain->background_worker_ = Legacy::Core::ThreadBase::create (process, *exec_domain);
-	exec_domain->spawn (process.free_sync_context ());
+	current ().mem_context_stack_.top () = &process;
+	start_legacy_thread (process, process);
+}
+
+void ExecDomain::start_legacy_thread (Legacy::Core::Process& process, Legacy::Core::ThreadBase& thread)
+{
+	CoreRef <ExecDomain> exec_domain = create (INFINITE_DEADLINE, thread, &process);
+	exec_domain->background_worker_ = &thread;
+	thread.start (*exec_domain);
+	exec_domain->spawn (process.sync_context ());
 }
 
 void ExecDomain::execute (int scheduler_error)
@@ -196,10 +202,6 @@ void ExecDomain::cleanup () NIRVANA_NOEXCEPT
 	}
 	ret_qnodes_clear ();
 	sync_context_ = &g_core_free_sync_context;
-	if (background_worker_ && background_worker_->is_legacy ()) {
-		// Clear resources
-		static_cast <Legacy::Core::ThreadBase&> (*background_worker_).finish ();
-	}
 	runtime_global_.cleanup ();
 	assert (!mem_context_stack_.empty ());
 	for (;;) {
@@ -281,9 +283,11 @@ void ExecDomain::schedule (SyncContext& target, bool ret)
 	bool background = false;
 	if (!sync_domain) {
 		if (INFINITE_DEADLINE == deadline ()) {
-			if (!background_worker_)
-				background_worker_ = ThreadBackground::create (*this);
 			background = true;
+			if (!background_worker_) {
+				background_worker_ = ThreadBackground::create ();
+				background_worker_->start (*this);
+			}
 		} else if (!scheduler_item_created_) {
 			Scheduler::create_item ();
 			scheduler_item_created_ = true;

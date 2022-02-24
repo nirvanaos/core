@@ -35,23 +35,14 @@ namespace Nirvana {
 namespace Legacy {
 namespace Core {
 
-Legacy::Process::_ref_type Process::spawn (const std::string& file,
-	const std::vector <std::string>& argv, const std::vector <std::string>& envp,
-	ProcessCallback::_ptr_type callback)
+Binary* Process::Sync::binary () NIRVANA_NOEXCEPT
 {
-	CORBA::servant_reference <Process> servant = CORBA::make_reference <Process> (
-		ref (file), ref (argv), ref (envp), callback);
-	Legacy::Process::_ref_type ret = servant->_this ();
-	Nirvana::Core::ExecDomain::start_legacy_thread (*servant, *servant);
-	return ret;
+	return process_.sync_context ().binary ();
 }
 
-void Process::copy_strings (const vector <string>& src, Strings& dst)
+void Process::Sync::raise_exception (CORBA::SystemException::Code code, unsigned minor)
 {
-	dst.reserve (src.size ());
-	for (const auto& sv : src) {
-		dst.emplace_back (sv.data (), sv.size ());
-	}
+	process_.sync_context ().raise_exception (code, minor);
 }
 
 void Process::copy_strings (Strings& src, Pointers& dst)
@@ -69,6 +60,12 @@ void Process::run ()
 	copy_strings (argv_, v);
 	copy_strings (envp_, v);
 	ret_ = executable_.main ((int)argv_.size (), v.data (), v.data () + argv_.size () + 1);
+
+	get_TLS ().clear ();
+	object_list_.clear ();
+	runtime_support_.clear ();
+
+	completed_ = true;
 	if (callback_) {
 		callback_->on_process_finish (proxy_);
 		callback_ = nullptr;

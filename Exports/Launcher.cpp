@@ -39,7 +39,7 @@ public:
 		StringSeq& argv, StringSeq& envp,
 		ProcessCallback::_ref_type callback)
 	{
-		throw_NO_IMPLEMENT ();
+		return Core::Process::spawn (file, argv, envp, callback);
 	}
 };
 

@@ -30,18 +30,20 @@
 
 #include "../ThreadBackground.h"
 #include <Nirvana/SimpleList.h>
-#include "Process.h"
 #include "../TLS.h"
 
 namespace Nirvana {
 namespace Legacy {
 namespace Core {
 
-/// Background thread.
+/// Legacy thread base.
 class NIRVANA_NOVTABLE ThreadBase :
 	public Nirvana::Core::ThreadBackground,
-	public SimpleList <ThreadBase>::Element
+	public SimpleList <ThreadBase>::Element,
+	public Nirvana::Core::Runnable
 {
+	DECLARE_CORE_INTERFACE
+
 	typedef Nirvana::Core::ThreadBackground Base;
 public:
 	/// When we run in the legacy subsystem, every thread is a ThreadLegacy instance.
@@ -52,26 +54,9 @@ public:
 		return static_cast <ThreadBase&> (base);
 	}
 
-	static Nirvana::Core::CoreRef <ThreadBase> create (Process& process, Nirvana::Core::ExecDomain& ed)
-	{
-		using namespace Nirvana::Core;
-		CoreRef <ThreadBase> obj = CoreRef <ThreadBase>::create <
-			ImplDynamic <ThreadBase> > (std::ref (process), std::ref (ed));
-
-		process.on_thread_start (*obj);
-
-		obj->start ();
-		return obj;
-	}
-
 	virtual bool is_legacy () const NIRVANA_NOEXCEPT
 	{
 		return true;
-	}
-
-	Process& process () const NIRVANA_NOEXCEPT
-	{
-		return *process_;
 	}
 
 	Nirvana::Core::TLS& get_TLS () NIRVANA_NOEXCEPT
@@ -79,16 +64,8 @@ public:
 		return TLS_;
 	}
 
-	void finish () NIRVANA_NOEXCEPT
-	{
-		TLS_.clear ();
-		process_->on_thread_finish (*this);
-	}
-
 protected:
-	ThreadBase (Process& process, Nirvana::Core::ExecDomain& ed) :
-		Base (ed),
-		process_ (&process)
+	ThreadBase ()
 	{}
 
 private:
@@ -98,7 +75,6 @@ private:
 	}
 
 private:
-	Nirvana::Core::CoreRef <Process> process_;
 	Nirvana::Core::TLS TLS_;
 };
 

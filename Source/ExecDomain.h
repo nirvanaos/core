@@ -45,6 +45,7 @@ namespace Nirvana {
 namespace Legacy {
 namespace Core {
 class Process;
+class ThreadBase;
 }
 }
 
@@ -76,11 +77,10 @@ public:
 	static void async_call (const DeadlineTime& deadline, Runnable& runnable,
 		SyncContext& target, MemContext* mem_context = nullptr);
 
-	/// Start legacy thread.
+	/// Start legacy process.
 	/// 
 	/// \param process   The Process object.
-	/// \param runnable  Runnable object to execute.
-	static void start_legacy_thread (Legacy::Core::Process& process, Runnable& runnable);
+	static void start_legacy_process (Legacy::Core::Process& process);
 
 	DeadlineTime deadline () const
 	{
@@ -336,6 +336,8 @@ private:
 	}
 
 	void unwind_mem_context () NIRVANA_NOEXCEPT;
+
+	static void start_legacy_thread (Legacy::Core::Process& process, Legacy::Core::ThreadBase& thread);
 
 private:
 	class Schedule : public ImplStatic <Runnable>

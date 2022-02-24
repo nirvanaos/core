@@ -43,21 +43,14 @@ class NIRVANA_NOVTABLE ThreadBackground :
 	friend class Port::ThreadBackground;
 	typedef Port::ThreadBackground Base;
 public:
-	static CoreRef <ThreadBackground> create (ExecDomain& ed)
+	static CoreRef <ThreadBackground> create ()
 	{
-		CoreRef <ThreadBackground> obj = CoreRef <ThreadBackground>::create <ImplDynamic <ThreadBackground> > (std::ref (ed));
-		obj->start ();
-		return obj;
+		return CoreRef <ThreadBackground>::create <ImplDynamic <ThreadBackground> > ();
 	}
 
-protected:
-	ThreadBackground (ExecDomain& ed) NIRVANA_NOEXCEPT
+	void start (ExecDomain& ed)
 	{
 		exec_domain (ed);
-	}
-
-	void start ()
-	{
 		Scheduler::activity_begin ();
 		_add_ref ();
 		try {

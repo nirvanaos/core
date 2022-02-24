@@ -44,7 +44,7 @@ class Executable :
 	public CORBA::Internal::Core::LifeCycleStack
 {
 public:
-	Executable (const Nirvana::Core::StringView& file);
+	Executable (const std::string& file);
 	~Executable ();
 
 	int main (int argc, char* argv [], char* envp [])

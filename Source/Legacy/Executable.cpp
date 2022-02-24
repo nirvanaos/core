@@ -30,7 +30,7 @@ namespace Nirvana {
 namespace Legacy {
 namespace Core {
 
-Executable::Executable (const Nirvana::Core::StringView& file) :
+Executable::Executable (const std::string& file) :
 	Nirvana::Core::Binary (file),
 	entry_point_ (Nirvana::Core::Binder::bind (*this))
 {}
