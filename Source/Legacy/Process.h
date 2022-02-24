@@ -41,7 +41,7 @@ namespace Nirvana {
 namespace Legacy {
 namespace Core {
 
-class ThreadLegacy;
+class ThreadBase;
 
 /// Legacy process.
 class Process :
@@ -84,7 +84,7 @@ public:
 
 	// Thread callbacks
 
-	void on_thread_start (ThreadLegacy& thread) NIRVANA_NOEXCEPT
+	void on_thread_start (ThreadBase& thread) NIRVANA_NOEXCEPT
 	{
 		if (!main_thread_)
 			main_thread_ = &thread;
@@ -92,7 +92,7 @@ public:
 		thread_count_.increment ();
 	}
 
-	void on_thread_finish (ThreadLegacy& thread) NIRVANA_NOEXCEPT
+	void on_thread_finish (ThreadBase& thread) NIRVANA_NOEXCEPT
 	{
 		if (0 == thread_count_.decrement ()) {
 			object_list_.clear ();
@@ -171,7 +171,7 @@ private:
 	Nirvana::Core::MemContextObjectList object_list_;
 	Nirvana::Core::Console console_;
 	Strings argv_, envp_;
-	ThreadLegacy* main_thread_;
+	ThreadBase* main_thread_;
 	Nirvana::Core::AtomicCounter <false> thread_count_;
 	ProcessCallback::_ref_type callback_;
 	Legacy::Process::_ref_type proxy_;

@@ -38,25 +38,25 @@ namespace Legacy {
 namespace Core {
 
 /// Background thread.
-class NIRVANA_NOVTABLE ThreadLegacy :
+class NIRVANA_NOVTABLE ThreadBase :
 	public Nirvana::Core::ThreadBackground,
-	public SimpleList <ThreadLegacy>::Element
+	public SimpleList <ThreadBase>::Element
 {
 	typedef Nirvana::Core::ThreadBackground Base;
 public:
 	/// When we run in the legacy subsystem, every thread is a ThreadLegacy instance.
-	static ThreadLegacy& current () NIRVANA_NOEXCEPT
+	static ThreadBase& current () NIRVANA_NOEXCEPT
 	{
 		Nirvana::Core::Thread& base = Base::current ();
 		assert (base.is_legacy ());
-		return static_cast <ThreadLegacy&> (base);
+		return static_cast <ThreadBase&> (base);
 	}
 
-	static Nirvana::Core::CoreRef <ThreadLegacy> create (Process& process, Nirvana::Core::ExecDomain& ed)
+	static Nirvana::Core::CoreRef <ThreadBase> create (Process& process, Nirvana::Core::ExecDomain& ed)
 	{
 		using namespace Nirvana::Core;
-		CoreRef <ThreadLegacy> obj = CoreRef <ThreadLegacy>::create <
-			ImplDynamic <ThreadLegacy> > (std::ref (process), std::ref (ed));
+		CoreRef <ThreadBase> obj = CoreRef <ThreadBase>::create <
+			ImplDynamic <ThreadBase> > (std::ref (process), std::ref (ed));
 
 		process.on_thread_start (*obj);
 
@@ -86,7 +86,7 @@ public:
 	}
 
 protected:
-	ThreadLegacy (Process& process, Nirvana::Core::ExecDomain& ed) :
+	ThreadBase (Process& process, Nirvana::Core::ExecDomain& ed) :
 		Base (ed),
 		process_ (&process)
 	{}

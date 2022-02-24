@@ -42,7 +42,7 @@ public:
 
 	static Legacy::Mutex::_ref_type create_mutex ()
 	{
-		return Mutex::create (ThreadLegacy::current ().process ());
+		return Mutex::create (ThreadBase::current ().process ());
 	}
 };
 

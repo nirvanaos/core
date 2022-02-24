@@ -127,7 +127,7 @@ void Process::on_object_destruct (MemContextObject& obj) NIRVANA_NOEXCEPT
 
 TLS& Process::get_TLS () NIRVANA_NOEXCEPT
 {
-	return ThreadLegacy::current ().get_TLS ();
+	return ThreadBase::current ().get_TLS ();
 }
 
 }

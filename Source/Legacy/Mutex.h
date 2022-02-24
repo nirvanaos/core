@@ -42,7 +42,7 @@ namespace Legacy {
 namespace Core {
 
 class Process;
-class ThreadLegacy;
+class ThreadBase;
 
 class Mutex :
 	public CORBA::servant_traits <Nirvana::Legacy::Mutex>::Servant <Mutex>,
@@ -71,7 +71,7 @@ public:
 
 	void lock ()
 	{
-		ThreadLegacy& thread = ThreadLegacy::current ();
+		ThreadBase& thread = ThreadBase::current ();
 		SYNC_BEGIN (*this, nullptr);
 		if (!owner_) {
 			owner_ = &thread;
@@ -87,13 +87,13 @@ public:
 
 	void unlock ()
 	{
-		ThreadLegacy& thread = ThreadLegacy::current ();
+		ThreadBase& thread = ThreadBase::current ();
 		SYNC_BEGIN (*this, nullptr);
 		if (owner_ != &thread)
 			throw_BAD_INV_ORDER ();
 		owner_ = nullptr;
 		if (!queue_.empty ()) {
-			ThreadLegacy& next = queue_.front ();
+			ThreadBase& next = queue_.front ();
 			next.remove (); // From queue
 			owner_ = &next;
 			next.exec_domain ()->resume ();
@@ -105,7 +105,7 @@ public:
 	{
 		SYNC_BEGIN (*this, nullptr);
 		if (!owner_) {
-			owner_ = &ThreadLegacy::current ();
+			owner_ = &ThreadBase::current ();
 			return true;
 		}
 		SYNC_END ();
@@ -123,8 +123,8 @@ public:
 	}
 
 private:
-	ThreadLegacy* owner_;
-	SimpleList <ThreadLegacy> queue_;
+	ThreadBase* owner_;
+	SimpleList <ThreadBase> queue_;
 };
 
 }

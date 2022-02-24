@@ -176,7 +176,7 @@ void ExecDomain::async_call (const DeadlineTime& deadline, Runnable& runnable, S
 void ExecDomain::start_legacy_thread (Legacy::Core::Process& process, Runnable& runnable)
 {
 	CoreRef <ExecDomain> exec_domain = create (INFINITE_DEADLINE, runnable, &process);
-	exec_domain->background_worker_ = Legacy::Core::ThreadLegacy::create (process, *exec_domain);
+	exec_domain->background_worker_ = Legacy::Core::ThreadBase::create (process, *exec_domain);
 	exec_domain->spawn (process.free_sync_context ());
 }
 
@@ -198,7 +198,7 @@ void ExecDomain::cleanup () NIRVANA_NOEXCEPT
 	sync_context_ = &g_core_free_sync_context;
 	if (background_worker_ && background_worker_->is_legacy ()) {
 		// Clear resources
-		static_cast <Legacy::Core::ThreadLegacy&> (*background_worker_).finish ();
+		static_cast <Legacy::Core::ThreadBase&> (*background_worker_).finish ();
 	}
 	runtime_global_.cleanup ();
 	assert (!mem_context_stack_.empty ());
