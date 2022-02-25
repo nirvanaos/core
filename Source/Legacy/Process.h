@@ -69,7 +69,7 @@ public:
 
 	bool completed () const
 	{
-		return completed_;
+		return COMPLETED == state_;
 	}
 
 	int exit_code () const
@@ -92,12 +92,11 @@ public:
 		std::vector <std::string>& argv, std::vector <std::string>& envp,
 		ProcessCallback::_ptr_type callback) :
 		executable_ (std::ref (file)),
-		completed_ (false),
+		state_ (INIT),
 		ret_ (-1),
 		argv_ (std::move (argv)),
 		envp_ (std::move (envp)),
-		callback_ (callback),
-		sync_ (std::ref (*this))
+		callback_ (callback)
 	{
 		assert (Nirvana::Core::SyncContext::current ().is_free_sync_context ());
 	}
@@ -160,9 +159,16 @@ private:
 	typedef std::vector <std::string> Strings;
 	typedef std::vector <char*, Nirvana::Core::UserAllocator <char*> > Pointers;
 	static void copy_strings (Strings& src, Pointers& dst);
+	void finish () NIRVANA_NOEXCEPT;
 
 private:
-	bool completed_;
+	enum
+	{
+		INIT,
+		RUNNING,
+		COMPLETED
+	} state_;
+
 	int ret_;
 	Nirvana::Core::ImplStatic <Executable> executable_;
 	Nirvana::Core::RuntimeSupportImpl runtime_support_;
@@ -172,26 +178,9 @@ private:
 	ProcessCallback::_ref_type callback_;
 	Legacy::Process::_ref_type proxy_;
 
-
 	// Synchronizer
-	class Sync : public Nirvana::Core::SyncDomain
-	{
-	public:
-		Sync (Process& parent) :
-			SyncDomain (parent),
-			process_ (parent)
-		{}
-
-	private:
-		// SyncContext::
-		virtual Nirvana::Core::Binary* binary () NIRVANA_NOEXCEPT;
-		virtual void raise_exception (CORBA::SystemException::Code code, unsigned minor);
-
-	private:
-		Process& process_;
-	};
-
-	Nirvana::Core::ImplStatic <Sync> sync_;
+	Nirvana::Core::StaticallyAllocated <Nirvana::Core::ImplStatic <
+		Nirvana::Core::SyncDomainImpl> > sync_;
 };
 
 }

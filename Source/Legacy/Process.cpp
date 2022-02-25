@@ -34,16 +34,6 @@ namespace Nirvana {
 namespace Legacy {
 namespace Core {
 
-Binary* Process::Sync::binary () NIRVANA_NOEXCEPT
-{
-	return process_.sync_context ().binary ();
-}
-
-void Process::Sync::raise_exception (CORBA::SystemException::Code code, unsigned minor)
-{
-	process_.sync_context ().raise_exception (code, minor);
-}
-
 void Process::copy_strings (Strings& src, Pointers& dst)
 {
 	for (auto& s : src) {
@@ -54,12 +44,21 @@ void Process::copy_strings (Strings& src, Pointers& dst)
 
 void Process::run ()
 {
+	assert (INIT == state_);
+	state_ = RUNNING;
+
+	sync_.construct (ref (sync_context ()), ref (*this));
+
 	Pointers v;
 	v.reserve (argv_.size () + envp_.size () + 2);
 	copy_strings (argv_, v);
 	copy_strings (envp_, v);
 	ret_ = executable_.main ((int)argv_.size (), v.data (), v.data () + argv_.size () + 1);
+	finish ();
+}
 
+void Process::finish () NIRVANA_NOEXCEPT
+{
 	get_TLS ().clear ();
 	object_list_.clear ();
 	runtime_support_.clear ();
@@ -70,17 +69,22 @@ void Process::run ()
 		Strings tmp (move (envp_));
 	}
 	executable_.unbind ();
-	completed_ = true;
+	state_ = COMPLETED;
 	if (callback_) {
-		callback_->on_process_finish (proxy_);
+		try {
+			callback_->on_process_finish (proxy_);
+		} catch (...) {
+		}
 		callback_ = nullptr;
 		proxy_ = nullptr;
 	}
+	sync_.destruct ();
 }
 
 void Process::on_exception () NIRVANA_NOEXCEPT
 {
 	ret_ = -1;
+	finish ();
 	console_ << "Unhandled exception.\n";
 }
 
@@ -90,6 +94,7 @@ void Process::on_crash (const siginfo_t& signal) NIRVANA_NOEXCEPT
 		ret_ = 3;
 	else
 		ret_ = -1;
+	finish ();
 	console_ << "Process crashed.\n";
 }
 
@@ -106,6 +111,12 @@ RuntimeProxy::_ref_type Process::runtime_proxy_get (const void* obj)
 
 void Process::runtime_proxy_remove (const void* obj) NIRVANA_NOEXCEPT
 {
+	// Debug iterators
+#ifdef _DEBUG
+	if (RUNNING != state_)
+		return;
+#endif
+
 	if (!RUNTIME_SUPPORT_DISABLE) {
 		SYNC_BEGIN (sync_, nullptr);
 		runtime_support_.runtime_proxy_remove (obj);

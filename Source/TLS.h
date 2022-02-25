@@ -131,8 +131,9 @@ private:
 		Deleter deleter_;
 	};
 
-	// Do not use UserAllocator here to avoid infinite recursion in Debug configuration.
-	// std::vector allocates proxy on construct.
+	// Do not use UserAllocator here to avoid problems in Debug configuration.
+	// std::vector allocates proxy on construct. It happens on the MemContextCore construct.
+	// But constructing memory context is not current yet.
 	// We use our vector implementation without proxies.
 	typedef std::vector <Entry> Entries;
 	Entries entries_;
