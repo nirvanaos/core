@@ -69,7 +69,7 @@ void Process::run ()
 	{
 		Strings tmp (move (envp_));
 	}
-
+	executable_.unbind ();
 	completed_ = true;
 	if (callback_) {
 		callback_->on_process_finish (proxy_);

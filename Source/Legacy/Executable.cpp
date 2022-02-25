@@ -32,12 +32,22 @@ namespace Core {
 
 Executable::Executable (const std::string& file) :
 	Nirvana::Core::Binary (file),
-	entry_point_ (Nirvana::Core::Binder::bind (*this))
+	entry_point_ (Nirvana::Core::Binder::bind (*this)),
+	bound_ (true)
 {}
 
 Executable::~Executable ()
 {
-	Nirvana::Core::Binder::unbind (*this);
+	if (bound_)
+		Nirvana::Core::Binder::unbind (*this);
+}
+
+void Executable::unbind () NIRVANA_NOEXCEPT
+{
+	if (bound_) {
+		bound_ = false;
+		Nirvana::Core::Binder::unbind (*this);
+	}
 }
 
 Nirvana::Core::Binary* Executable::binary () NIRVANA_NOEXCEPT
