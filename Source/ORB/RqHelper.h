@@ -24,8 +24,8 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_ORB_CORE_MARSHALHELPER_H_
-#define NIRVANA_ORB_CORE_MARSHALHELPER_H_
+#ifndef NIRVANA_ORB_CORE_RQHELPER_H_
+#define NIRVANA_ORB_CORE_RQHELPER_H_
 #pragma once
 
 #include <CORBA/CORBA.h>
@@ -34,7 +34,14 @@ namespace CORBA {
 namespace Internal {
 namespace Core {
 
-class MarshalHelper
+enum class RqKind
+{
+	SYNC,
+	ONEWAY,
+	ASYNC
+};
+
+class RqHelper
 {
 public:
 	static Object::_ptr_type interface2object (Interface::_ptr_type itf);

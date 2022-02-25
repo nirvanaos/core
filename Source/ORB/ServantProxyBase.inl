@@ -37,7 +37,54 @@ namespace Core {
 inline
 IORequest::_ref_type ServantProxyBase::create_request (OperationIndex op)
 {
-	return make_pseudo <RequestLocalImpl <RequestLocal> > (std::ref (*this), op);
+	return make_pseudo <RequestLocalImpl <RequestLocal> > (std::ref (*this), op,
+		mem_context ());
+}
+
+inline
+IORequest::_ref_type ServantProxyBase::create_oneway (OperationIndex op)
+{
+	Nirvana::Core::CoreRef <Nirvana::Core::MemContext> target_memory = mem_context ();
+	if (!target_memory)
+		target_memory = Nirvana::Core::MemContextUser::create ();
+	Nirvana::Core::ExecDomain& ed = Nirvana::Core::ExecDomain::current ();
+	ed.mem_context_push (target_memory);
+	IORequest::_ref_type ret;
+	try {
+		ret = make_pseudo <RequestLocalImpl <RequestLocalOneway> > (std::ref (*this),
+			op, target_memory);
+	} catch (...) {
+		ed.mem_context_pop ();
+		throw;
+	}
+	ed.mem_context_pop ();
+	return ret;
+}
+
+inline
+void ServantProxyBase::send (IORequest::_ref_type& rq,
+	const Nirvana::DeadlineTime& deadline)
+{
+	if (!rq)
+		throw BAD_PARAM ();
+	RequestLocal* prq = static_cast <RequestLocal*> (&(IORequest::_ptr_type)rq);
+	switch (prq->kind ()) {
+		case RqKind::SYNC:
+			Nirvana::throw_BAD_PARAM ();
+			break;
+
+		case RqKind::ONEWAY:
+		{
+			Nirvana::Core::CoreRef <Nirvana::Core::Runnable> ref =
+				&static_cast <RequestLocalOneway&> (*prq);
+			rq = nullptr;
+			Nirvana::Core::ExecDomain::async_call (deadline, std::move (ref), sync_context (), prq->memory ());
+		} break;
+
+		default:
+			Nirvana::Core::ExecDomain::async_call (deadline,
+				&static_cast <RequestLocalAsync&> (*prq), sync_context (), prq->memory ());
+	}
 }
 
 }

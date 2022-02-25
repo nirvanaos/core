@@ -23,13 +23,13 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "MarshalHelper.h"
+#include "RqHelper.h"
 
 namespace CORBA {
 namespace Internal {
 namespace Core {
 
-Object::_ptr_type MarshalHelper::interface2object (Interface::_ptr_type itf)
+Object::_ptr_type RqHelper::interface2object (Interface::_ptr_type itf)
 {
 	Object::_ptr_type obj;
 	const StringBase <Char> interface_id = itf->_epv ().interface_id;
@@ -44,7 +44,7 @@ Object::_ptr_type MarshalHelper::interface2object (Interface::_ptr_type itf)
 	return obj;
 }
 
-ValueBase::_ptr_type MarshalHelper::value_type2base (Interface::_ptr_type val)
+ValueBase::_ptr_type RqHelper::value_type2base (Interface::_ptr_type val)
 {
 	ValueBase::_ptr_type base;
 	const StringBase <Char> interface_id = val->_epv ().interface_id;
@@ -59,7 +59,7 @@ ValueBase::_ptr_type MarshalHelper::value_type2base (Interface::_ptr_type val)
 	return base;
 }
 
-AbstractBase::_ptr_type MarshalHelper::abstract_interface2base (Interface::_ptr_type itf)
+AbstractBase::_ptr_type RqHelper::abstract_interface2base (Interface::_ptr_type itf)
 {
 	AbstractBase::_ptr_type base;
 	Environment env;

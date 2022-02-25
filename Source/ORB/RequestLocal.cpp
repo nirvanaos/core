@@ -33,6 +33,11 @@ using namespace Nirvana;
 using namespace Nirvana::Core;
 using namespace std;
 
+RqKind RequestLocal::kind () const NIRVANA_NOEXCEPT
+{
+	return RqKind::SYNC;
+}
+
 Heap& RequestLocal::target_memory ()
 {
 	switch (state_) {
@@ -269,6 +274,21 @@ void RequestLocal::marshal_value_copy (ValueBase::_ptr_type base, String_in inte
 	if (!itf)
 		Nirvana::throw_MARSHAL ();
 	marshal_interface (itf);
+}
+
+RqKind RequestLocalAsync::kind () const NIRVANA_NOEXCEPT
+{
+	return RqKind::ASYNC;
+}
+
+void RequestLocalAsync::run ()
+{
+	invoke ();
+}
+
+RqKind RequestLocalOneway::kind () const NIRVANA_NOEXCEPT
+{
+	return RqKind::ONEWAY;
 }
 
 }

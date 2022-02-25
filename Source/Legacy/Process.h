@@ -91,8 +91,8 @@ public:
 	Process (const std::string& file,
 		std::vector <std::string>& argv, std::vector <std::string>& envp,
 		ProcessCallback::_ptr_type callback) :
-		executable_ (std::ref (file)),
 		state_ (INIT),
+		executable_ (std::ref (file)),
 		ret_ (-1),
 		argv_ (std::move (argv)),
 		envp_ (std::move (envp)),

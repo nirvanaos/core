@@ -74,7 +74,7 @@ public:
 	/// \param runnable    Runnable object to execute.
 	/// \param target      Target Synchronization context.
 	/// \param mem_context Target memory context (optional).
-	static void async_call (const DeadlineTime& deadline, Runnable& runnable,
+	static void async_call (const DeadlineTime& deadline, CoreRef <Runnable> runnable,
 		SyncContext& target, MemContext* mem_context = nullptr);
 
 	/// Start legacy process.
@@ -285,9 +285,7 @@ private:
 
 	using Creator = std::conditional <EXEC_DOMAIN_POOLING, WithPool, NoPool>::type;
 
-	static CoreRef <ExecDomain> create (const DeadlineTime deadline, Runnable& runnable, MemContext* mem_context = nullptr);
-
-	void final_construct (const DeadlineTime& deadline, Runnable& runnable, MemContext* mem_context);
+	static CoreRef <ExecDomain> create (const DeadlineTime deadline, CoreRef <Runnable> runnable, MemContext* mem_context = nullptr);
 
 	~ExecDomain () NIRVANA_NOEXCEPT
 	{}

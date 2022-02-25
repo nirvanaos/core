@@ -33,7 +33,7 @@ namespace Core {
 using namespace ::Nirvana::Core;
 
 class ServantProxyBase::GarbageCollector :
-	public SharedObject,
+	public UserObject,
 	public Runnable
 {
 public:
@@ -93,7 +93,19 @@ ServantProxyBase::RefCnt::IntegralType ServantProxyBase::_remove_ref () NIRVANA_
 	return cnt;
 }
 
-void ServantProxyBase::call (RequestLocal& rq) NIRVANA_NOEXCEPT
+CoreRef <MemContext> ServantProxyBase::push_GC_mem_context (Nirvana::Core::ExecDomain& ed) const
+{
+	CoreRef <MemContext> mc = mem_context ();
+	if (!mc) {
+		mc = ed.mem_context_ptr ();
+		if (!mc)
+			mc = MemContextUser::create ();
+	}
+	ed.mem_context_push (mc);
+	return mc;
+}
+
+void ServantProxyBase::invoke (RequestLocal& rq) NIRVANA_NOEXCEPT
 {
 	try {
 		OperationIndex op = rq.op_idx ();

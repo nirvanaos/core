@@ -95,24 +95,18 @@ void ExecDomain::terminate () NIRVANA_NOEXCEPT
 	Creator::terminate ();
 }
 
-inline
-void ExecDomain::final_construct (const DeadlineTime& deadline, Runnable& runnable, MemContext* mem_context)
-{
-	Scheduler::activity_begin ();
-	deadline_ = deadline;
-	assert (mem_context_stack_.empty ());
-	mem_context_stack_.push (mem_context);
-	mem_context_ = mem_context;
-#ifdef _DEBUG
-	assert (!dbg_context_stack_size_++);
-#endif
-	runnable_ = &runnable;
-}
-
-CoreRef <ExecDomain> ExecDomain::create (const DeadlineTime deadline, Runnable& runnable, MemContext* memory)
+CoreRef <ExecDomain> ExecDomain::create (const DeadlineTime deadline, CoreRef <Runnable> runnable, MemContext* mem_context)
 {
 	CoreRef <ExecDomain> ed = Creator::create ();
-	ed->final_construct (deadline, runnable, memory);
+	Scheduler::activity_begin ();
+	ed->deadline_ = deadline;
+	assert (ed->mem_context_stack_.empty ());
+	ed->mem_context_stack_.push (mem_context);
+	ed->mem_context_ = mem_context;
+#ifdef _DEBUG
+	assert (!ed->dbg_context_stack_size_++);
+#endif
+	ed->runnable_ = move (runnable);
 	return ed;
 }
 
@@ -161,14 +155,14 @@ void ExecDomain::spawn (SyncContext& sync_context)
 	}
 }
 
-void ExecDomain::async_call (const DeadlineTime& deadline, Runnable& runnable, SyncContext& target, MemContext* mem_context)
+void ExecDomain::async_call (const DeadlineTime& deadline, CoreRef <Runnable> runnable, SyncContext& target, MemContext* mem_context)
 {
 	SyncDomain* sd = target.sync_domain ();
 	if (sd) {
 		assert (!mem_context || mem_context == &sd->mem_context ());
 		mem_context = &sd->mem_context ();
 	}
-	CoreRef <ExecDomain> exec_domain = create (deadline, runnable, mem_context);
+	CoreRef <ExecDomain> exec_domain = create (deadline, move (runnable), mem_context);
 	exec_domain->spawn (target);
 }
 
@@ -184,7 +178,7 @@ void ExecDomain::start_legacy_process (Legacy::Core::Process& process)
 
 void ExecDomain::start_legacy_thread (Legacy::Core::Process& process, Legacy::Core::ThreadBase& thread)
 {
-	CoreRef <ExecDomain> exec_domain = create (INFINITE_DEADLINE, thread, &process);
+	CoreRef <ExecDomain> exec_domain = create (INFINITE_DEADLINE, &thread, &process);
 	exec_domain->background_worker_ = &thread;
 	thread.start (*exec_domain);
 	exec_domain->spawn (process.sync_context ());

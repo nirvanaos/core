@@ -77,7 +77,12 @@ public:
 	inline
 	IORequest::_ref_type create_request (OperationIndex op);
 
-	void call (RequestLocal& rq) NIRVANA_NOEXCEPT;
+	inline
+	IORequest::_ref_type create_oneway (OperationIndex op);
+
+	void invoke (RequestLocal& rq) NIRVANA_NOEXCEPT;
+
+	void send (IORequest::_ref_type& rq, const Nirvana::DeadlineTime& deadline);
 
 	Nirvana::Core::MemContext* mem_context () const
 	{
@@ -110,11 +115,26 @@ protected:
 	{
 		try {
 			using namespace ::Nirvana::Core;
-			auto gc = CoreRef <Runnable>::create <ImplDynamic <GC> > (std::forward <Args> (args)...);
-			Nirvana::DeadlineTime deadline = 
-				Nirvana::Core::PROXY_GC_DEADLINE == Nirvana::INFINITE_DEADLINE ?
-				Nirvana::INFINITE_DEADLINE : Nirvana::Core::Chrono::make_deadline (Nirvana::Core::PROXY_GC_DEADLINE);
-			Nirvana::Core::ExecDomain::async_call (deadline, *gc, *sync_context_);
+
+			ExecDomain& ed = ExecDomain::current ();
+			CoreRef <MemContext> mc = push_GC_mem_context (ed);
+
+			try {
+				auto gc = CoreRef <Runnable>::create <ImplDynamic <GC> > (std::forward <Args> (args)...);
+
+				Nirvana::DeadlineTime deadline =
+					Nirvana::Core::PROXY_GC_DEADLINE == Nirvana::INFINITE_DEADLINE ?
+					Nirvana::INFINITE_DEADLINE : Nirvana::Core::Chrono::make_deadline (
+						Nirvana::Core::PROXY_GC_DEADLINE);
+
+				// in the current memory context.
+				Nirvana::Core::ExecDomain::async_call (deadline, std::move (gc), *sync_context_, mc);
+			} catch (...) {
+				ed.mem_context_pop ();
+				throw;
+			}
+			ed.mem_context_pop ();
+
 		} catch (...) {
 			// Async call failed, maybe resources are exausted.
 			// Fallback to collect garbage in the current thread.
@@ -147,6 +167,8 @@ private:
 			throw OBJ_ADAPTER (); // TODO: Log
 		return primary->_epv ().interface_id;
 	}
+
+	Nirvana::Core::CoreRef <Nirvana::Core::MemContext> push_GC_mem_context (Nirvana::Core::ExecDomain& ed) const;
 
 private:
 	AbstractBase::_ptr_type servant_;

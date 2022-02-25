@@ -54,7 +54,7 @@ void Scheduler::activity_end () NIRVANA_NOEXCEPT
 				State state = State::SHUTDOWN_STARTED;
 				if (global_->state.compare_exchange_strong (state, State::TERMINATE)) {
 					try {
-						ExecDomain::async_call (INFINITE_DEADLINE, global_->terminator, g_core_free_sync_context);
+						ExecDomain::async_call (INFINITE_DEADLINE, &global_->terminator, g_core_free_sync_context);
 					} catch (...) {
 						// Fallback
 						activity_begin ();

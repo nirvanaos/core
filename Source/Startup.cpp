@@ -44,7 +44,7 @@ Startup::Startup (int argc, char* argv [], char* envp []) :
 
 void Startup::launch (DeadlineTime deadline)
 {
-	ExecDomain::async_call (deadline, *this, g_core_free_sync_context, &g_shared_mem_context);
+	ExecDomain::async_call (deadline, this, g_core_free_sync_context, &g_shared_mem_context);
 }
 
 class ShutdownCallback :
