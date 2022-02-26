@@ -99,7 +99,7 @@ CoreRef <MemContext> ServantProxyBase::push_GC_mem_context (Nirvana::Core::ExecD
 	if (!mc) {
 		mc = ed.mem_context_ptr ();
 		if (!mc)
-			mc = MemContextUser::create ();
+			mc = &g_shared_mem_context;
 	}
 	ed.mem_context_push (mc);
 	return mc;
