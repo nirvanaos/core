@@ -29,6 +29,7 @@
 #pragma once
 
 #include <CORBA/Server.h>
+#include "ServantProxyBase.h"
 #include "LifeCycleNoCopy.h"
 
 namespace CORBA {
@@ -58,15 +59,21 @@ public:
 		return ServantTraits <T>::template _wide <Base, Derived> (derived, id, env);
 	}
 
-	template <>
-	static Bridge <ReferenceCounter>* _wide <ReferenceCounter, I> (Bridge <I>* derived, String_in id, Interface* env)
-	{
-		return nullptr; // ReferenceCounter base is not implemented, return nullptr.
-	}
-
-	I_ptr <I> _get_ptr ()
+	I_ptr <I> _get_ptr () NIRVANA_NOEXCEPT
 	{
 		return I_ptr <I> (&static_cast <I&> (static_cast <Bridge <I>&> (*this)));
+	}
+
+	virtual void _remove_ref () NIRVANA_NOEXCEPT
+	{
+		if (!ServantProxyBase::ref_cnt_servant_.decrement ()) {
+			assert (&Nirvana::Core::SyncContext::current () == &ServantProxyBase::sync_context ());
+			try {
+				Proxy::servant_->__delete_object ();
+			} catch (...) {
+				assert (false); // TODO: Swallow exception or log
+			}
+		}
 	}
 
 protected:

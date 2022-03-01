@@ -102,9 +102,9 @@ void ProxyObject::add_ref_1 ()
 	}
 }
 
-::Nirvana::Core::RefCounter::IntegralType ProxyObject::_remove_ref () NIRVANA_NOEXCEPT
+::Nirvana::Core::RefCounter::IntegralType ProxyObject::_remove_ref_proxy () NIRVANA_NOEXCEPT
 {
-	::Nirvana::Core::RefCounter::IntegralType cnt = Base::_remove_ref ();
+	::Nirvana::Core::RefCounter::IntegralType cnt = Base::_remove_ref_proxy ();
 	if (implicit_activation_ && 1 == cnt) {
 		// Launch deactivator
 		if (

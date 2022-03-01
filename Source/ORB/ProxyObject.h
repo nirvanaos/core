@@ -67,7 +67,7 @@ private:
 	};
 
 	virtual void add_ref_1 ();
-	virtual ::Nirvana::Core::RefCounter::IntegralType _remove_ref () NIRVANA_NOEXCEPT;
+	virtual ::Nirvana::Core::RefCounter::IntegralType _remove_ref_proxy () NIRVANA_NOEXCEPT;
 
 	void implicit_deactivate ();
 
@@ -100,8 +100,10 @@ private:
 
 	void release_object_id (PortableServer::ObjectId& oid) const NIRVANA_NOEXCEPT;
 
-private:
+protected:
 	PortableServer::Servant servant_;
+
+private:
 	std::atomic <ActivationState> activation_state_;
 	PortableServer::ObjectId implicit_activated_id_;
 	bool implicit_activation_;

@@ -31,7 +31,6 @@
 #include "IDL/ObjectFactory_s.h"
 #include "ServantBase.h"
 #include "LocalObject.h"
-#include "ReferenceCounter.h"
 #include "SyncDomain.h"
 
 namespace CORBA {
@@ -98,12 +97,6 @@ public:
 			stateless_memory->release (p, scf->size ());
 			return nullptr;
 		}
-	}
-
-	static I_ref <CORBA::Internal::ReferenceCounter> create_reference_counter (CORBA::Internal::DynamicServant::_ptr_type dynamic)
-	{
-		Frame frame;
-		return make_pseudo <ReferenceCounter> (dynamic);
 	}
 
 	static I_ref <PortableServer::ServantBase> create_servant (PortableServer::Servant servant)

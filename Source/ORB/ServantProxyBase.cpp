@@ -58,7 +58,7 @@ ServantProxyBase::ServantProxyBase (AbstractBase::_ptr_type servant,
 	ProxyManager (Skeleton <ServantProxyBase, IOReference>::epv_, 
 		Skeleton <ServantProxyBase, Object>::epv_, primary_interface_id (servant), 
 		object_ops, object_impl),
-	ref_cnt_ (0),
+	ref_cnt_proxy_ (0),
 	sync_context_ (&SyncContext::current ())
 {
 	size_t offset = offset_ptr ();
@@ -79,14 +79,14 @@ void ServantProxyBase::add_ref_1 ()
 	interface_duplicate (&servant_);
 }
 
-ServantProxyBase::RefCnt::IntegralType ServantProxyBase::_remove_ref () NIRVANA_NOEXCEPT
+ServantProxyBase::RefCnt::IntegralType ServantProxyBase::_remove_ref_proxy () NIRVANA_NOEXCEPT
 {
-	RefCnt::IntegralType cnt = ref_cnt_.decrement ();
+	RefCnt::IntegralType cnt = ref_cnt_proxy_.decrement ();
 	if (!cnt) {
 		run_garbage_collector <GarbageCollector> (servant_);
 	} else if (cnt < 0) {
 		// TODO: Log error
-		ref_cnt_.increment ();
+		ref_cnt_proxy_.increment ();
 		cnt = 0;
 	}
 		

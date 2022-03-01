@@ -48,9 +48,10 @@ protected:
 private:
 	static void non_existent_request (ProxyLocal* servant, IORequest::_ptr_type call);
 
-private:
+protected:
 	LocalObject::_ptr_type servant_;
 
+private:
 	static const Operation object_ops_ [3];
 };
 

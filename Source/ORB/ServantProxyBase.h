@@ -47,7 +47,7 @@ class RequestLocal;
 /// \brief Base for servant-side proxies.
 class ServantProxyBase :
 	public ServantTraits <ServantProxyBase>,
-	public LifeCycleRefCnt <ServantProxyBase>,
+	public LifeCycleDynamic <ServantProxyBase>,
 	public InterfaceImplBase <ServantProxyBase, AbstractBase>,
 	public Skeleton <ServantProxyBase, Object>,
 	public Skeleton <ServantProxyBase, IOReference>,
@@ -57,22 +57,37 @@ class ServantProxyBase :
 public:
 	typedef ::Nirvana::Core::AtomicCounter <false> RefCnt;
 
-	void _add_ref ()
+	template <class I>
+	static Bridge <I>* _duplicate (Bridge <I>* itf)
 	{
-		RefCnt::IntegralType cnt = ref_cnt_.increment ();
+		if (itf)
+			_implementation (itf)._add_ref_proxy ();
+		return itf;
+	}
+
+	template <class I>
+	static void _release (Bridge <I>* itf)
+	{
+		if (itf)
+			_implementation (itf)._remove_ref_proxy ();
+	}
+
+	void _add_ref_proxy ()
+	{
+		RefCnt::IntegralType cnt = ref_cnt_proxy_.increment ();
 		if (1 == cnt) {
 			try {
 				SYNC_BEGIN (*sync_context_, nullptr);
 				add_ref_1 ();
 				SYNC_END ();
 			} catch (...) {
-				ref_cnt_.decrement ();
+				ref_cnt_proxy_.decrement ();
 				throw;
 			}
 		}
 	}
 
-	virtual RefCnt::IntegralType _remove_ref () NIRVANA_NOEXCEPT;
+	virtual RefCnt::IntegralType _remove_ref_proxy () NIRVANA_NOEXCEPT;
 
 	inline
 	IORequest::_ref_type create_request (OperationIndex op);
@@ -84,7 +99,7 @@ public:
 
 	void send (IORequest::_ref_type& rq, const Nirvana::DeadlineTime& deadline);
 
-	Nirvana::Core::MemContext* mem_context () const
+	Nirvana::Core::MemContext* mem_context () const NIRVANA_NOEXCEPT
 	{
 		Nirvana::Core::SyncDomain* sd = sync_context_->sync_domain ();
 		if (sd)
@@ -93,9 +108,27 @@ public:
 	}
 
 	/// Returns synchronization context for the target object.
-	Nirvana::Core::SyncContext& sync_context () const
+	Nirvana::Core::SyncContext& sync_context () const NIRVANA_NOEXCEPT
 	{
 		return *sync_context_;
+	}
+
+	void _add_ref () NIRVANA_NOEXCEPT
+	{
+		ref_cnt_servant_.increment ();
+	}
+
+	virtual void _remove_ref () NIRVANA_NOEXCEPT = 0;
+
+	ULong _refcount_value () const NIRVANA_NOEXCEPT
+	{
+		Nirvana::Core::RefCounter::IntegralType ucnt = ref_cnt_servant_;
+		return ucnt > std::numeric_limits <ULong>::max () ? std::numeric_limits <ULong>::max () : (ULong)ucnt;
+	}
+
+	void __delete_object ()
+	{
+		Nirvana::throw_NO_IMPLEMENT ();
 	}
 
 protected:
@@ -170,9 +203,12 @@ private:
 
 	Nirvana::Core::CoreRef <Nirvana::Core::MemContext> push_GC_mem_context (Nirvana::Core::ExecDomain& ed) const;
 
+protected:
+	Nirvana::Core::RefCounter ref_cnt_servant_;
+
 private:
 	AbstractBase::_ptr_type servant_;
-	RefCnt ref_cnt_;
+	RefCnt ref_cnt_proxy_;
 	Nirvana::Core::CoreRef <Nirvana::Core::SyncContext> sync_context_;
 };
 

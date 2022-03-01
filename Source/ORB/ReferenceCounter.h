@@ -29,26 +29,16 @@
 #pragma once
 
 #include <CORBA/Server.h>
-#include <CORBA/ReferenceCounter_s.h>
-#include <CORBA/DynamicServant_s.h>
-#include <CORBA/ImplementationPseudo.h>
 #include "../AtomicCounter.h"
-#include "offset_ptr.h"
 #include <limits>
 
 namespace CORBA {
 namespace Internal {
 namespace Core {
 
-class ReferenceCounter :
-	public LifeCycleNoCopy <ReferenceCounter>,
-	public ImplementationPseudo <ReferenceCounter, CORBA::Internal::ReferenceCounter>
+class ReferenceCounter
 {
 public:
-	ReferenceCounter (DynamicServant::_ptr_type dynamic) :
-		dynamic_ (offset_ptr (dynamic))
-	{}
-
 	void _add_ref ()
 	{
 		ref_cnt_.increment ();
@@ -67,13 +57,12 @@ public:
 
 	ULong _refcount_value () const
 	{
-		::Nirvana::Core::RefCounter::IntegralType ucnt = ref_cnt_;
+		Nirvana::Core::RefCounter::IntegralType ucnt = ref_cnt_;
 		return ucnt > std::numeric_limits <ULong>::max () ? std::numeric_limits <ULong>::max () : (ULong)ucnt;
 	}
 
 private:
-	::Nirvana::Core::RefCounter ref_cnt_;
-	DynamicServant::_ptr_type dynamic_;
+	Nirvana::Core::RefCounter ref_cnt_;
 };
 
 }
