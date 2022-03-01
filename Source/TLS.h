@@ -104,6 +104,7 @@ private:
 
 		Entry& operator = (Entry&& src) NIRVANA_NOEXCEPT
 		{
+			destruct ();
 			ptr_ = src.ptr_;
 			deleter_ = src.deleter_;
 			src.deleter_ = nullptr;
@@ -112,19 +113,16 @@ private:
 
 		~Entry ()
 		{
-			if (deleter_ && ptr_) {
-				try {
-					(*deleter_) (ptr_);
-				} catch (...) {
-					// TODO: Log
-				}
-			}
+			destruct ();
 		}
 
 		void* ptr () const
 		{
 			return ptr_;
 		}
+
+	private:
+		void destruct () NIRVANA_NOEXCEPT;
 
 	private:
 		void* ptr_;

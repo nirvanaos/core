@@ -33,6 +33,17 @@ namespace Core {
 TLS::BitmapWord TLS::bitmap_ [BITMAP_SIZE];
 uint16_t TLS::free_count_;
 
+void TLS::Entry::destruct () NIRVANA_NOEXCEPT
+{
+	if (deleter_ && ptr_) {
+		try {
+			(*deleter_) (ptr_);
+		} catch (...) {
+			// TODO: Log
+		}
+	}
+}
+
 TLS::TLS ()
 {}
 
