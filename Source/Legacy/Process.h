@@ -99,8 +99,8 @@ public:
 		std::vector <std::string>& argv, std::vector <std::string>& envp,
 		ProcessCallback::_ptr_type callback) :
 		state_ (INIT),
-		executable_ (std::ref (file)),
 		ret_ (-1),
+		executable_ (std::ref (file)),
 		argv_ (std::move (argv)),
 		envp_ (std::move (envp)),
 		callback_ (callback)
