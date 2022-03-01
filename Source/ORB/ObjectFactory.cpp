@@ -44,13 +44,16 @@ ObjectFactory::Frame::Frame () :
 
 	if (ExecDomain::RestrictedMode::MODULE_TERMINATE == ed->restricted_mode ())
 		throw_NO_PERMISSION ();
+	
+	TLS& tls = TLS::current ();
+	StatelessCreationFrame* scf = (StatelessCreationFrame*)tls.get (TLS::CORE_TLS_OBJECT_FACTORY);
 
 	if (ed->sync_context ().sync_domain ()) {
-		TLS& tls = TLS::current ();
 		next (tls.get (TLS::CORE_TLS_OBJECT_FACTORY));
 		tls.set (TLS::CORE_TLS_OBJECT_FACTORY, static_cast <StatelessCreationFrame*> (this));
 		pop_ = true;
-	}
+	} else if (!scf || !scf->size ())
+		throw_BAD_INV_ORDER ();
 }
 
 ObjectFactory::Frame::~Frame ()

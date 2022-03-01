@@ -56,10 +56,17 @@ public:
 		std::vector <std::string>& argv, std::vector <std::string>& envp,
 		ProcessCallback::_ptr_type callback)
 	{
-		CORBA::Internal::ObjectFactory::StatelessCreationFrame scf (nullptr, 0, 0, nullptr);
+		// Cheat ObjectFactory
+		Nirvana::Core::TLS& tls = Nirvana::Core::TLS::current ();
+		CORBA::Internal::ObjectFactory::StatelessCreationFrame scf (nullptr, 1, 0,
+			tls.get (Nirvana::Core::TLS::CORE_TLS_OBJECT_FACTORY));
+		tls.set (Nirvana::Core::TLS::CORE_TLS_OBJECT_FACTORY, &scf);
 
 		CORBA::servant_reference <Process> servant = CORBA::make_reference <Process> (
 			std::ref (file), std::ref (argv), std::ref (envp), callback);
+
+		tls.set (Nirvana::Core::TLS::CORE_TLS_OBJECT_FACTORY, scf.next ());
+
 		Legacy::Process::_ref_type ret = servant->_this ();
 		Nirvana::Core::ExecDomain::start_legacy_process (*servant);
 		return ret;

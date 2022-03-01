@@ -60,8 +60,13 @@ Heap& RequestLocal::source_memory ()
 			return caller_memory_->heap ();
 
 		default:
-			if (!callee_memory_)
-				throw_MARSHAL ();
+			if (!callee_memory_) {
+				ExecDomain& ed = ExecDomain::current ();
+				if (&ed.sync_context () == &proxy_->sync_context ())
+					callee_memory_ = ed.mem_context_ptr ();
+				if (!callee_memory_)
+					throw_MARSHAL ();
+			}
 			return callee_memory_->heap ();
 	}
 }
