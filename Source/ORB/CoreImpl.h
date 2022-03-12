@@ -69,7 +69,7 @@ public:
 		if (!ServantProxyBase::ref_cnt_servant_.decrement ()) {
 			assert (&Nirvana::Core::SyncContext::current () == &ServantProxyBase::sync_context ());
 			try {
-				Proxy::servant_->__delete_object ();
+				Proxy::servant_->_delete_object ();
 			} catch (...) {
 				assert (false); // TODO: Swallow exception or log
 			}

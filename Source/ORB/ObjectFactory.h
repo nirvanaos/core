@@ -28,10 +28,10 @@
 #pragma once
 
 #include <CORBA/Server.h>
-#include "IDL/ObjectFactory_s.h"
 #include "ServantBase.h"
 #include "LocalObject.h"
 #include "SyncDomain.h"
+#include "ReferenceCounter.h"
 
 namespace CORBA {
 namespace Internal {
@@ -109,6 +109,11 @@ public:
 	{
 		Frame frame;
 		return make_pseudo <LocalObject> (servant, abstract_base);
+	}
+
+	static I_ref <CORBA::Internal::ReferenceCounter> create_reference_counter (I_ptr <ValueBase> value)
+	{
+		return make_pseudo <ReferenceCounter> (value);
 	}
 
 private:

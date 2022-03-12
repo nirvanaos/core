@@ -35,6 +35,7 @@
 #include "../SharedAllocator.h"
 #include <CORBA/Proxy/InterfaceMetadata.h>
 #include <CORBA/Proxy/ProxyFactory.h>
+#include <CORBA/DynamicServant.h>
 
 namespace CORBA {
 namespace Internal {

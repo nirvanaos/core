@@ -126,7 +126,7 @@ public:
 		return ucnt > std::numeric_limits <ULong>::max () ? std::numeric_limits <ULong>::max () : (ULong)ucnt;
 	}
 
-	void __delete_object ()
+	void _delete_object ()
 	{
 		Nirvana::throw_NO_IMPLEMENT ();
 	}

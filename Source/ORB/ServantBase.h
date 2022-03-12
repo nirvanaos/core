@@ -51,7 +51,7 @@ public:
 
 	// ServantBase default implementation
 
-	Servant __core_servant ()
+	Servant _core_servant ()
 	{
 		return this;
 	}
@@ -69,7 +69,7 @@ public:
 inline
 CORBA::Object::_ptr_type servant2object (Servant servant)
 {
-	Servant ps = servant->__core_servant ();
+	Servant ps = servant->_core_servant ();
 	Core::ServantBase* core_obj = static_cast <Core::ServantBase*> (&ps);
 	return core_obj->get_proxy ();
 }
