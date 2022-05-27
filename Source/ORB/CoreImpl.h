@@ -42,7 +42,7 @@ class CoreImpl :
 	public Proxy,
 	public LifeCycleNoCopy <T>,
 	public ServantTraits <T>,
-	public InterfaceImplBase <T, I>
+	public ValueImplBase <T, I>
 {
 public:
 	typedef I PrimaryInterface;
@@ -52,6 +52,7 @@ public:
 	using LifeCycleNoCopy <T>::__release;
 	using Skeleton <T, I>::__non_existent;
 	using ServantTraits <T>::_wide_object;
+	using Skeleton <T, I>::__query_interface;
 
 	template <class Base, class Derived>
 	static Bridge <Base>* _wide (Bridge <Derived>* derived, String_in id, Interface* env)
@@ -69,7 +70,7 @@ public:
 		if (!ServantProxyBase::ref_cnt_servant_.decrement ()) {
 			assert (&Nirvana::Core::SyncContext::current () == &ServantProxyBase::sync_context ());
 			try {
-				Proxy::servant_->_delete_object ();
+				Proxy::servant ()->_delete_object ();
 			} catch (...) {
 				assert (false); // TODO: Swallow exception or log
 			}
@@ -77,9 +78,9 @@ public:
 	}
 
 protected:
-	template <class ... Args>
-	CoreImpl (Args ... args) :
-		Proxy (std::forward <Args> (args)...)
+	template <class S>
+	CoreImpl (S servant) :
+		Proxy (servant)
 	{}
 };
 

@@ -37,6 +37,7 @@
 #include <CORBA/AbstractBase_s.h>
 #include <CORBA/Object_s.h>
 #include "IDL/IOReference_s.h"
+#include "offset_ptr.h"
 
 namespace CORBA {
 namespace Internal {
@@ -131,8 +132,45 @@ public:
 		Nirvana::throw_NO_IMPLEMENT ();
 	}
 
+	// Abstract base implementation
+
+	I_ref <Object> _to_object () NIRVANA_NOEXCEPT
+	{
+		return object ();
+	}
+
+	I_ref <ValueBase> _to_value () NIRVANA_NOEXCEPT
+	{
+		return nullptr;
+	}
+
 protected:
-	ServantProxyBase (AbstractBase::_ptr_type servant, const Operation object_ops [3], void* object_impl);
+	template <class I>
+	ServantProxyBase (I_ptr <I> servant,
+		const Operation object_ops [3], void* object_impl) :
+		ProxyManager (Skeleton <ServantProxyBase, IOReference>::epv_,
+			Skeleton <ServantProxyBase, Object>::epv_, primary_interface_id (servant),
+			object_ops, object_impl),
+		ref_cnt_proxy_ (0),
+		sync_context_ (&Nirvana::Core::SyncContext::current ())
+	{
+		size_t offset = offset_ptr ();
+		servant_ = offset_ptr (static_cast <Interface::_ptr_type> (servant), offset);
+		// Fill implementation pointers
+		for (InterfaceEntry* ie = interfaces ().begin (); ie != interfaces ().end (); ++ie) {
+			if (!ie->implementation) {
+				Interface::_ptr_type impl = servant->_query_interface (ie->iid);
+				if (!impl)
+					throw OBJ_ADAPTER (); // Implementation not found. TODO: Log
+				ie->implementation = offset_ptr (impl, offset);
+			}
+		}
+	}
+
+	Interface::_ptr_type servant () const NIRVANA_NOEXCEPT
+	{
+		return servant_;
+	}
 
 	virtual void add_ref_1 ();
 
@@ -193,7 +231,8 @@ protected:
 	}
 
 private:
-	static const Char* primary_interface_id (AbstractBase::_ptr_type servant)
+	template <class I>
+	static const Char* primary_interface_id (I_ptr <I> servant)
 	{
 		Interface::_ptr_type primary = servant->_query_interface (0);
 		if (!primary)
@@ -207,7 +246,7 @@ protected:
 	Nirvana::Core::RefCounter ref_cnt_servant_;
 
 private:
-	AbstractBase::_ptr_type servant_;
+	Interface::_ptr_type servant_;
 	RefCnt ref_cnt_proxy_;
 	Nirvana::Core::CoreRef <Nirvana::Core::SyncContext> sync_context_;
 };

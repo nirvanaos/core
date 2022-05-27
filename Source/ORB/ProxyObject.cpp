@@ -66,7 +66,7 @@ void ProxyObject::add_ref_1 ()
 		change_state (INACTIVE, ACTIVATION)
 	) {
 		try {
-			PortableServer::POA::_ref_type poa = servant_->_default_POA ();
+			PortableServer::POA::_ref_type poa = servant ()->_default_POA ();
 			// TODO: Query poa for the implicit activation policy
 			// While assume that implicit activation is on
 			implicit_activation_ = true;
@@ -80,7 +80,7 @@ void ProxyObject::add_ref_1 ()
 				ExecDomain& ed = ExecDomain::current ();
 				ed.mem_context_push (&g_shared_mem_context);
 				try {
-					implicit_activated_id_ = poa->activate_object (servant_);
+					implicit_activated_id_ = poa->activate_object (servant ());
 				} catch (...) {
 					ed.mem_context_pop ();
 					throw;
@@ -89,7 +89,7 @@ void ProxyObject::add_ref_1 ()
 				assert (g_shared_mem_context->heap ().check_owner (
 					implicit_activated_id_.data (), implicit_activated_id_.capacity ()));
 			} else {
-				implicit_activated_id_ = poa->activate_object (servant_);
+				implicit_activated_id_ = poa->activate_object (servant ());
 				assert (sync_context ().sync_domain ()->mem_context ().heap ().check_owner (
 					implicit_activated_id_.data (), implicit_activated_id_.capacity ()));
 				assert (&MemContext::current () == &sync_context ().sync_domain ()->mem_context ());
@@ -126,7 +126,7 @@ void ProxyObject::implicit_deactivate ()
 	// Object may be re-activated later. So we clear implicit_activated_id_ here.
 	PortableServer::ObjectId tmp = std::move (implicit_activated_id_);
 	if (change_state (DEACTIVATION_SCHEDULED, INACTIVE)) {
-		servant_->_default_POA ()->deactivate_object (tmp);
+		servant ()->_default_POA ()->deactivate_object (tmp);
 	} else {
 		// Restore implicit_activated_id_
 		implicit_activated_id_ = std::move (tmp);
@@ -163,9 +163,9 @@ void ProxyObject::release_object_id (PortableServer::ObjectId& oid) const NIRVAN
 	}
 }
 
-void ProxyObject::non_existent_request (ProxyObject* _servant, IORequest::_ptr_type _rq)
+void ProxyObject::non_existent_request (ProxyObject* servant, IORequest::_ptr_type _rq)
 {
-	Boolean _ret = _servant->servant_->_non_existent ();
+	Boolean _ret = servant->servant ()->_non_existent ();
 	Type <Boolean>::marshal_out (_ret, _rq);
 }
 

@@ -29,7 +29,6 @@
 #pragma once
 
 #include "ServantProxyBase.inl"
-#include "offset_ptr.h"
 #include <atomic>
 
 namespace CORBA {
@@ -46,7 +45,6 @@ class ProxyObject :
 protected:
 	ProxyObject (PortableServer::Servant servant) :
 		ServantProxyBase (servant, object_ops_, this),
-		servant_ (offset_ptr (servant)),
 		implicit_activation_ (false)
 	{}
 
@@ -54,6 +52,11 @@ protected:
 	{
 		assert (implicit_activated_id_.empty ());
 		release_object_id (implicit_activated_id_);
+	}
+
+	PortableServer::Servant servant () const NIRVANA_NOEXCEPT
+	{
+		return static_cast <PortableServer::ServantBase*> (&Base::servant ());
 	}
 
 private:
@@ -81,7 +84,7 @@ private:
 	PortableServer::ServantBase::_ref_type _get_servant () const
 	{
 		if (&sync_context () == &::Nirvana::Core::SyncContext::current ())
-			return servant_;
+			return servant ();
 		else
 			throw MARSHAL ();
 	}
@@ -99,9 +102,6 @@ private:
 	}
 
 	void release_object_id (PortableServer::ObjectId& oid) const NIRVANA_NOEXCEPT;
-
-protected:
-	PortableServer::Servant servant_;
 
 private:
 	std::atomic <ActivationState> activation_state_;

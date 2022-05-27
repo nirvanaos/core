@@ -24,13 +24,12 @@
 *  popov.nirvana@gmail.com
 */
 #include "ServantProxyBase.inl"
-#include "offset_ptr.h"
 
 namespace CORBA {
 namespace Internal {
 namespace Core {
 
-using namespace ::Nirvana::Core;
+using namespace Nirvana::Core;
 
 class ServantProxyBase::GarbageCollector :
 	public UserObject,
@@ -52,27 +51,6 @@ public:
 private:
 	Interface::_ptr_type servant_;
 };
-
-ServantProxyBase::ServantProxyBase (AbstractBase::_ptr_type servant, 
-	const Operation object_ops [3], void* object_impl) :
-	ProxyManager (Skeleton <ServantProxyBase, IOReference>::epv_, 
-		Skeleton <ServantProxyBase, Object>::epv_, primary_interface_id (servant), 
-		object_ops, object_impl),
-	ref_cnt_proxy_ (0),
-	sync_context_ (&SyncContext::current ())
-{
-	size_t offset = offset_ptr ();
-	servant_ = offset_ptr (servant, offset);
-	// Fill implementation pointers
-	for (InterfaceEntry* ie = interfaces ().begin (); ie != interfaces ().end (); ++ie) {
-		if (!ie->implementation) {
-			Interface::_ptr_type impl = servant->_query_interface (ie->iid);
-			if (!impl)
-				throw OBJ_ADAPTER (); // Implementation not found. TODO: Log
-			ie->implementation = offset_ptr (impl, offset);
-		}
-	}
-}
 
 void ServantProxyBase::add_ref_1 ()
 {

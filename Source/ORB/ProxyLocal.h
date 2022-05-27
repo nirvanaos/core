@@ -29,7 +29,6 @@
 #pragma once
 
 #include "ServantProxyBase.inl"
-#include "offset_ptr.h"
 
 namespace CORBA {
 namespace Internal {
@@ -39,17 +38,20 @@ namespace Core {
 class ProxyLocal :
 	public ServantProxyBase
 {
+	typedef ServantProxyBase Base;
+
 protected:
-	ProxyLocal (LocalObject::_ptr_type servant, AbstractBase::_ptr_type abstract_base) :
-		ServantProxyBase (abstract_base, object_ops_, this),
-		servant_ (offset_ptr (servant))
+	ProxyLocal (LocalObject::_ptr_type servant) :
+		ServantProxyBase (servant, object_ops_, this)
 	{}
+
+	LocalObject::_ptr_type servant () const NIRVANA_NOEXCEPT
+	{
+		return static_cast <LocalObject*> (&Base::servant ());
+	}
 
 private:
 	static void non_existent_request (ProxyLocal* servant, IORequest::_ptr_type call);
-
-protected:
-	LocalObject::_ptr_type servant_;
 
 private:
 	static const Operation object_ops_ [3];

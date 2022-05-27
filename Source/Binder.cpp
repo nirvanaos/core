@@ -222,7 +222,7 @@ const ModuleStartup* Binder::module_bind (::Nirvana::Module::_ptr_type mod, cons
 								new PortableServer::Core::ServantBase (
 									Type <PortableServer::Servant>::in (ps->servant_base)
 								))->_get_ptr ();
-							Object::_ptr_type obj = AbstractBase::_ptr_type (core_obj)->_query_interface <Object> ();
+							Object::_ptr_type obj = core_obj->_query_interface <Object> ();
 							ps->core_object = &core_obj;
 							mod_context->exports.insert (ps->name, obj);
 						} break;
@@ -231,8 +231,7 @@ const ModuleStartup* Binder::module_bind (::Nirvana::Module::_ptr_type mod, cons
 							ExportLocal* ps = reinterpret_cast <ExportLocal*> (it.cur ());
 							LocalObject::_ptr_type core_obj;
 							core_obj = (
-								new CORBA::Internal::Core::LocalObject (Type <LocalObject>::in (ps->local_object),
-									Type <AbstractBase>::in (ps->abstract_base)))->_get_ptr ();
+								new CORBA::Internal::Core::LocalObject (Type <LocalObject>::in (ps->local_object)))->_get_ptr ();
 							Object::_ptr_type obj = core_obj;
 							ps->core_object = &core_obj;
 							mod_context->exports.insert (ps->name, obj);
@@ -252,7 +251,7 @@ const ModuleStartup* Binder::module_bind (::Nirvana::Module::_ptr_type mod, cons
 						if (RepId::compatible (obj->_epv ().header.interface_id, requested_iid))
 							reinterpret_cast <Object::_ref_type&> (ps->itf) = move (obj);
 						else {
-							InterfacePtr itf = AbstractBase::_ptr_type (obj)->_query_interface (requested_iid);
+							InterfacePtr itf = obj->_query_interface (requested_iid);
 							if (!itf)
 								throw_INV_OBJREF ();
 							ps->itf = interface_duplicate (&itf);
@@ -458,10 +457,10 @@ Binder::InterfaceRef Binder::bind_interface_sync (const ObjectKey& name, String_
 	InterfaceRef itf = find (name);
 	StringBase <char> itf_id = itf->_epv ().interface_id;
 	if (!RepId::compatible (itf_id, iid)) {
-		if (!RepId::compatible (itf_id, AbstractBase::repository_id_))
+		if (!RepId::compatible (itf_id, PseudoBase::repository_id_))
 			throw_INV_OBJREF ();
-		AbstractBase::_ptr_type ab = static_cast <AbstractBase*> (&InterfacePtr (itf));
-		InterfacePtr qi = ab->_query_interface (iid);
+		PseudoBase::_ptr_type b = static_cast <PseudoBase*> (&InterfacePtr (itf));
+		InterfacePtr qi = b->_query_interface (iid);
 		if (!qi)
 			throw_INV_OBJREF ();
 		itf = qi;

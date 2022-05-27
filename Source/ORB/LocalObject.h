@@ -41,8 +41,8 @@ class LocalObject final :
 {
 	typedef CoreImpl <LocalObject, CORBA::LocalObject, ProxyLocal> Base;
 public:
-	LocalObject (CORBA::LocalObject::_ptr_type servant, AbstractBase::_ptr_type abstract_base) :
-		Base (servant, abstract_base)
+	LocalObject (CORBA::LocalObject::_ptr_type servant) :
+		Base (servant)
 	{}
 
 	// LocalObject default implementation

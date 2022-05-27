@@ -51,7 +51,7 @@ public:
 
 	// ServantBase default implementation
 
-	Servant _core_servant ()
+	Servant _core_servant () NIRVANA_NOEXCEPT
 	{
 		return this;
 	}
@@ -79,7 +79,7 @@ inline
 PortableServer::ServantBase::_ref_type object2servant (CORBA::Object::_ptr_type obj)
 {
 	CORBA::Internal::Environment _env;
-	CORBA::Internal::I_ret <PortableServer::ServantBase> _ret = (obj->_epv ().internal.get_servant) (&obj, &_env);
+	CORBA::Internal::I_ret <PortableServer::ServantBase> _ret = (obj->_epv ().epv.get_servant) (&obj, &_env);
 	_env.check ();
 	return _ret;
 }

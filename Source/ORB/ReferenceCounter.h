@@ -29,7 +29,7 @@
 #pragma once
 
 #include <CORBA/Server.h>
-#include "IDL/ObjectFactory_s.h"
+#include "IDL/ReferenceCounter_s.h"
 #include <CORBA/ImplementationPseudo.h>
 #include "LifeCycleNoCopy.h"
 

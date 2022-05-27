@@ -32,6 +32,7 @@
 #include "LocalObject.h"
 #include "SyncDomain.h"
 #include "ReferenceCounter.h"
+#include "IDL/ObjectFactory_s.h"
 
 namespace CORBA {
 namespace Internal {
@@ -105,10 +106,10 @@ public:
 		return make_pseudo <PortableServer::Core::ServantBase> (servant);
 	}
 
-	static I_ref <CORBA::LocalObject> create_local_object (I_ptr <CORBA::LocalObject> servant, I_ptr <AbstractBase> abstract_base)
+	static I_ref <CORBA::LocalObject> create_local_object (I_ptr <CORBA::LocalObject> servant)
 	{
 		Frame frame;
-		return make_pseudo <LocalObject> (servant, abstract_base);
+		return make_pseudo <LocalObject> (servant);
 	}
 
 	static I_ref <CORBA::Internal::ReferenceCounter> create_reference_counter (I_ptr <ValueBase> value)
