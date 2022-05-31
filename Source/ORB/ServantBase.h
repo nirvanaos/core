@@ -53,7 +53,8 @@ public:
 
 	Servant _core_servant () NIRVANA_NOEXCEPT
 	{
-		return this;
+		return &static_cast <PortableServer::ServantBase&> (
+			static_cast <CORBA::Internal::Bridge <PortableServer::ServantBase>&> (*this));
 	}
 
 	static PortableServer::POA::_ref_type _default_POA ();
