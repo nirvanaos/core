@@ -135,10 +135,12 @@ void ProxyManager::check_type_code (I_ptr <TypeCode> tc)
 		throw OBJ_ADAPTER (); // TODO: Log
 }
 
-ProxyManager::ProxyManager (const Bridge <IOReference>::EPV& epv_ior, const Bridge <Object>::EPV& epv_obj,
+ProxyManager::ProxyManager (const Bridge <IOReference>::EPV& epv_ior,
+	const Bridge <Object>::EPV& epv_obj, const Bridge <AbstractBase>::EPV& epv_ab,
 	String_in primary_iid, const Operation object_ops [3], void* object_impl) :
 	Bridge <IOReference> (epv_ior),
-	Bridge <Object> (epv_obj)
+	Bridge <Object> (epv_obj),
+	Bridge <AbstractBase> (epv_ab)
 {
 	ProxyFactory::_ref_type proxy_factory = Nirvana::Core::Binder::bind_interface <ProxyFactory> (primary_iid);
 

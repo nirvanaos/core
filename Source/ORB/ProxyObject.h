@@ -70,7 +70,7 @@ private:
 	};
 
 	virtual void add_ref_1 ();
-	virtual ::Nirvana::Core::RefCounter::IntegralType _remove_ref_proxy () NIRVANA_NOEXCEPT;
+	virtual RefCnt::IntegralType _remove_ref_proxy () NIRVANA_NOEXCEPT;
 
 	void implicit_deactivate ();
 

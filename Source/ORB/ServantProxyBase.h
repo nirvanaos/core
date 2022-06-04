@@ -30,7 +30,6 @@
 
 #include <CORBA/Server.h>
 #include "../AtomicCounter.h"
-#include "../Synchronized.h"
 #include "../ExecDomain.h"
 #include "../Chrono.h"
 #include "ProxyManager.h"
@@ -49,14 +48,14 @@ class RequestLocal;
 class ServantProxyBase :
 	public ServantTraits <ServantProxyBase>,
 	public LifeCycleDynamic <ServantProxyBase>,
-	public InterfaceImplBase <ServantProxyBase, AbstractBase>,
 	public Skeleton <ServantProxyBase, Object>,
 	public Skeleton <ServantProxyBase, IOReference>,
+	public Skeleton <ServantProxyBase, AbstractBase>,
 	public ProxyManager
 {
 	class GarbageCollector;
 public:
-	typedef ::Nirvana::Core::AtomicCounter <false> RefCnt;
+	typedef ::Nirvana::Core::AtomicCounter <true> RefCnt;
 
 	template <class I>
 	static Bridge <I>* _duplicate (Bridge <I>* itf)
@@ -132,24 +131,14 @@ public:
 		Nirvana::throw_NO_IMPLEMENT ();
 	}
 
-	// Abstract base implementation
-
-	I_ref <Object> _to_object () NIRVANA_NOEXCEPT
-	{
-		return get_proxy ();
-	}
-
-	I_ref <ValueBase> _to_value () NIRVANA_NOEXCEPT
-	{
-		return nullptr;
-	}
-
 protected:
 	template <class I>
 	ServantProxyBase (I_ptr <I> servant,
 		const Operation object_ops [3], void* object_impl) :
 		ProxyManager (Skeleton <ServantProxyBase, IOReference>::epv_,
-			Skeleton <ServantProxyBase, Object>::epv_, primary_interface_id (servant),
+			Skeleton <ServantProxyBase, Object>::epv_, 
+			Skeleton <ServantProxyBase, AbstractBase>::epv_,
+			primary_interface_id (servant),
 			object_ops, object_impl),
 		ref_cnt_proxy_ (0),
 		sync_context_ (&Nirvana::Core::SyncContext::current ())

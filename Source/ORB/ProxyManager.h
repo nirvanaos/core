@@ -45,7 +45,8 @@ namespace Core {
 class ProxyManager :
 	public Nirvana::Core::SharedObject,
 	public Bridge <IOReference>,
-	public Bridge <Object>
+	public Bridge <Object>,
+	public Bridge <AbstractBase>
 {
 public:
 	Bridge <Object>* get_object (String_in iid) NIRVANA_NOEXCEPT
@@ -53,6 +54,13 @@ public:
 		if (RepId::check (Object::repository_id_, iid) != RepId::COMPATIBLE)
 			::Nirvana::throw_INV_OBJREF ();
 		return static_cast <Bridge <Object>*> (this);
+	}
+
+	Bridge <AbstractBase>* get_abstract_base (String_in iid) NIRVANA_NOEXCEPT
+	{
+		if (RepId::check (AbstractBase::repository_id_, iid) != RepId::COMPATIBLE)
+			::Nirvana::throw_INV_OBJREF ();
+		return static_cast <Bridge <AbstractBase>*> (this);
 	}
 
 	Object::_ptr_type get_proxy () NIRVANA_NOEXCEPT
@@ -114,8 +122,21 @@ public:
 
 	// TODO: More Object operations shall be here...
 
+	// Abstract base implementation
+
+	I_ref <Object> _to_object () NIRVANA_NOEXCEPT
+	{
+		return get_proxy ();
+	}
+
+	I_ref <ValueBase> _to_value () NIRVANA_NOEXCEPT
+	{
+		return nullptr;
+	}
+
 protected:
-	ProxyManager (const Bridge <IOReference>::EPV& epv_ior, const Bridge <Object>::EPV& epv_obj,
+	ProxyManager (const Bridge <IOReference>::EPV& epv_ior,
+		const Bridge <Object>::EPV& epv_obj, const Bridge <AbstractBase>::EPV& epv_ab,
 		String_in primary_iid, const Operation object_ops [3], void* object_impl);
 
 	~ProxyManager ();
