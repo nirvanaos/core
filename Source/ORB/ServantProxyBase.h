@@ -136,7 +136,7 @@ public:
 
 	I_ref <Object> _to_object () NIRVANA_NOEXCEPT
 	{
-		return object ();
+		return get_proxy ();
 	}
 
 	I_ref <ValueBase> _to_value () NIRVANA_NOEXCEPT

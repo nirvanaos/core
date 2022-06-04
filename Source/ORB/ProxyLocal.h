@@ -40,6 +40,12 @@ class ProxyLocal :
 {
 	typedef ServantProxyBase Base;
 
+public:
+	Bridge <Object>* _get_object (String_in iid)
+	{
+		return Base::get_object (iid);
+	}
+
 protected:
 	ProxyLocal (LocalObject::_ptr_type servant) :
 		ServantProxyBase (servant, object_ops_, this)
