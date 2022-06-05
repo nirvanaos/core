@@ -55,7 +55,7 @@ public:
 	using Skeleton <T, I>::__query_interface;
 
 	template <class Base, class Derived>
-	static Bridge <Base>* _wide (Bridge <Derived>* derived, String_in id, Interface* env)
+	static Bridge <Base>* _wide (Bridge <Derived>* derived, Type <String>::ABI_in id, Interface* env)
 	{
 		return ServantTraits <T>::template _wide <Base, Derived> (derived, id, env);
 	}

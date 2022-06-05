@@ -41,9 +41,9 @@ class ProxyLocal :
 	typedef ServantProxyBase Base;
 
 public:
-	Bridge <Object>* _get_object (String_in iid, Interface* env) NIRVANA_NOEXCEPT
+	Bridge <Object>* _get_object (Type <String>::ABI_in iid, Interface* env) NIRVANA_NOEXCEPT
 	{
-		return static_cast <Bridge <Object>*> (Base::_get_object (this, &iid, env));
+		return static_cast <Bridge <Object>*> (Base::_get_object (this, iid, env));
 	}
 
 protected:
