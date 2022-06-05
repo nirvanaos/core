@@ -267,7 +267,7 @@ void ProxyManager::create_proxy (InterfaceEntry& ie)
 		ie.iid = *base; // Base proxy may have greater minor number.
 		++base;
 		for (; base != base_end; ++base) {
-			InterfaceEntry* base_ie = const_cast <InterfaceEntry*> (find_interface (iid));
+			InterfaceEntry* base_ie = const_cast <InterfaceEntry*> (find_interface (*base));
 			if (!base_ie)
 				throw OBJ_ADAPTER (); // Base is not listed in the primary interface base list. TODO: Log
 			create_proxy (*base_ie);
