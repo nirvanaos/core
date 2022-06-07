@@ -31,7 +31,6 @@
 #include "ServantBase.h"
 #include "LocalObject.h"
 #include "SyncDomain.h"
-#include "ReferenceCounter.h"
 #include "IDL/ObjectFactory_s.h"
 
 namespace CORBA {
@@ -110,11 +109,6 @@ public:
 	{
 		Frame frame;
 		return make_pseudo <LocalObject> (servant);
-	}
-
-	static I_ref <CORBA::Internal::ReferenceCounter> create_reference_counter (I_ptr <ValueBase> value)
-	{
-		return make_pseudo <ReferenceCounter> (value);
 	}
 
 private:

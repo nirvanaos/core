@@ -26,6 +26,7 @@
 #include <CORBA/Server.h>
 #include <ORB/IDL/ORB_s.h>
 #include <Binder.h>
+#include <ORB/ReferenceCounter.h>
 
 using namespace Nirvana;
 using namespace Nirvana::Core;
@@ -38,9 +39,14 @@ class ORB :
 	public CORBA::servant_traits <CORBA::ORB>::ServantStatic <ORB>
 {
 public:
-	Object::_ref_type resolve_initial_references (const ObjectId& identifier)
+	static Object::_ref_type resolve_initial_references (const ObjectId& identifier)
 	{
 		return Binder::bind_service (identifier);
+	}
+
+	static CORBA::Internal::ReferenceCounter::_ref_type create_reference_counter (ValueBase::_ptr_type value)
+	{
+		return make_pseudo <CORBA::Internal::Core::ReferenceCounter> (value);
 	}
 };
 
