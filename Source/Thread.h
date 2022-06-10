@@ -86,11 +86,6 @@ public:
 
 	virtual void yield () NIRVANA_NOEXCEPT = 0;
 
-	virtual bool is_legacy () const NIRVANA_NOEXCEPT
-	{
-		return false;
-	}
-
 protected:
 	Thread () :
 		exec_domain_ (nullptr),

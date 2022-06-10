@@ -112,10 +112,13 @@ void SyncDomain::leave () NIRVANA_NOEXCEPT
 
 SyncDomain& SyncDomain::enter ()
 {
+	Thread& thread = Thread::current ();
 	ExecDomain& exec_domain = ExecDomain::current ();
 	SyncContext& sync_context = exec_domain.sync_context ();
 	SyncDomain* psd = sync_context.sync_domain ();
 	if (!psd) {
+		if (!sync_context.is_free_sync_context ())
+			throw_NO_PERMISSION (); // Legacy process called value factory with interface support
 		CoreRef <SyncDomain> sd = CoreRef <SyncDomain>::create
 			<ImplDynamic <SyncDomainImpl> > (ref (sync_context),
 				ref (exec_domain.mem_context ()));

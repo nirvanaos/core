@@ -52,13 +52,7 @@ public:
 	static ThreadBase& current () NIRVANA_NOEXCEPT
 	{
 		Nirvana::Core::Thread& base = Base::current ();
-		assert (base.is_legacy ());
 		return static_cast <ThreadBase&> (base);
-	}
-
-	virtual bool is_legacy () const NIRVANA_NOEXCEPT
-	{
-		return true;
 	}
 
 	Nirvana::Core::TLS& get_TLS () NIRVANA_NOEXCEPT

@@ -139,7 +139,8 @@ public:
 
 	static bool is_legacy_mode ()
 	{
-		return Thread::current ().is_legacy ();
+		SyncContext& sc = SyncContext::current ();
+		return !sc.sync_domain () && !sc.is_free_sync_context ();
 	}
 
 	static void debug_event (DebugEvent evt, const std::string& msg)
