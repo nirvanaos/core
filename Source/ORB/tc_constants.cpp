@@ -25,6 +25,7 @@
 */
 #include <CORBA/CORBA.h>
 #include <CORBA/Proxy/TypeCodeString.h>
+#include <CORBA/Proxy/TypeCodeInterface.h>
 #include "tc_impex.h"
 
 namespace CORBA {
@@ -34,25 +35,15 @@ template <typename T, TCKind tk>
 class TypeCodeScalar : public TypeCodeStatic <TypeCodeScalar <T, tk>,
 	TypeCodeTK <tk>, TypeCodeOps <T> > {};
 
-class TC_Object : public TypeCodeStatic <TC_Object,
-	TypeCodeWithId <TCKind::tk_objref, Object>, TypeCodeOps <Object> >
-{
-public:
-	static Type <String>::ABI_ret _name (Bridge <TypeCode>* _b, Interface* _env)
-	{
-		return const_string_ret ("Object");
-	}
-};
+typedef TypeCodeInterface <Object> TC_Object;
 
-class TC_ValueBase : public TypeCodeStatic <TC_ValueBase,
-	TypeCodeWithId <TCKind::tk_value, ValueBase>, TypeCodeOps <ValueBase> >
-{
-public:
-	static Type <String>::ABI_ret _name (Bridge <TypeCode>* _b, Interface* _env)
-	{
-		return const_string_ret ("ValueBase");
-	}
-};
+template <>
+const Char TypeCodeName <Object>::name_ [] = "Object";
+
+typedef TypeCodeInterface <ValueBase> TC_ValueBase;
+
+template <>
+const Char TypeCodeName <ValueBase>::name_ [] = "ValueBase";
 
 class TC_TypeCode : public TypeCodeStatic <TC_TypeCode,
 	TypeCodeTK <TCKind::tk_TypeCode>, TypeCodeOps <TypeCode> >

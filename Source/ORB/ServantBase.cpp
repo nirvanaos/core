@@ -25,7 +25,7 @@
 */
 #include "ServantBase.h"
 #include "POA.h"
-#include <CORBA/Proxy/TypeCodeImpl.h>
+#include <CORBA/Proxy/TypeCodeNative.h>
 #include "../Binder.inl"
 
 using namespace CORBA::Internal;
@@ -51,16 +51,15 @@ PortableServer::POA::_ref_type ServantBase::_default_POA ()
 		return PortableServer::POA::_ptr_type (default_POA_);
 }
 
-class TC_Servant : public TypeCodeStatic <TC_Servant,
-	TypeCodeWithId <TCKind::tk_native, PortableServer::ServantBase>, TypeCodeOps <void> >
-{
-public:
-	static Type <String>::ABI_ret _name (Bridge <TypeCode>* _b, Interface* _env)
-	{
-		return const_string_ret ("Servant");
-	}
-};
+typedef TypeCodeNative <PortableServer::ServantBase> TC_Servant;
 
+}
+}
+
+namespace CORBA {
+namespace Internal {
+template <>
+const Char TypeCodeName <PortableServer::ServantBase>::name_ [] = "Servant";
 }
 }
 
