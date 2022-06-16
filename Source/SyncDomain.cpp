@@ -112,7 +112,6 @@ void SyncDomain::leave () NIRVANA_NOEXCEPT
 
 SyncDomain& SyncDomain::enter ()
 {
-	Thread& thread = Thread::current ();
 	ExecDomain& exec_domain = ExecDomain::current ();
 	SyncContext& sync_context = exec_domain.sync_context ();
 	SyncDomain* psd = sync_context.sync_domain ();
