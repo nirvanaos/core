@@ -557,7 +557,7 @@ void* Heap::copy (void* dst, void* src, size_t size, unsigned flags)
 		if (flags & Memory::SIMPLE_COPY)
 			throw_INV_FLAG ();
 
-		if (!(dst = allocate (size, (flags & ~Memory::READ_ONLY) | Memory::RESERVED))) {
+		if (!(dst = allocate (size, (flags & ~(Memory::READ_ONLY | Memory::DST_ALLOCATE)) | Memory::RESERVED))) {
 			assert (flags & Memory::EXACTLY);
 			return nullptr;
 		}
