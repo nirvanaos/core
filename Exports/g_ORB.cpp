@@ -26,7 +26,6 @@
 #include <CORBA/Server.h>
 #include <ORB/IDL/ORB_s.h>
 #include <Binder.h>
-#include <ORB/ReferenceCounter.h>
 
 using namespace Nirvana;
 using namespace Nirvana::Core;
@@ -44,10 +43,6 @@ public:
 		return Binder::bind_service (identifier);
 	}
 
-	static CORBA::Internal::ReferenceCounter::_ref_type create_reference_counter (ValueBase::_ptr_type value)
-	{
-		return make_pseudo <CORBA::Internal::Core::ReferenceCounter> (value);
-	}
 };
 
 }
