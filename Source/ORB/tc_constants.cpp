@@ -74,4 +74,4 @@ TC_IMPEX (wstring, CORBA::Internal::TypeCodeString <CORBA::Internal::WString, 0>
 
 TC_IMPEX_BY_ID (Object)
 TC_IMPEX_BY_ID (ValueBase)
-TC_IMPEX_EX (TypeCode, CORBA::Internal::RepIdOf <CORBA::TypeCode>::id_, CORBA::Internal::TC_TypeCode)
+TC_IMPEX_EX (TypeCode, CORBA::Internal::RepIdOf <CORBA::TypeCode>::id, CORBA::Internal::TC_TypeCode)
