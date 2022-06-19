@@ -102,7 +102,7 @@ public:
 	template <class I>
 	static CORBA::Internal::I_ref <I> bind_interface (CORBA::Internal::String_in name)
 	{
-		return bind_interface (name, CORBA::Internal::RepIdOf <I>::repository_id_).template downcast <I> ();
+		return bind_interface (name, CORBA::Internal::RepIdOf <I>::id_).template downcast <I> ();
 	}
 
 	/// Bind legacy process executable.

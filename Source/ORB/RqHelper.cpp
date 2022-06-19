@@ -33,11 +33,11 @@ Object::_ptr_type RqHelper::interface2object (Interface::_ptr_type itf)
 {
 	Object::_ptr_type obj;
 	const StringBase <Char> interface_id = itf->_epv ().interface_id;
-	if (RepId::compatible (interface_id, RepIdOf <Object>::repository_id_))
+	if (RepId::compatible (interface_id, RepIdOf <Object>::id_))
 		obj = (Object*)&itf;
 	else {
 		Environment env;
-		Interface* p = ((const EPV_Header&)itf->_epv ()).base.to_base (&itf, RepIdOf <ValueBase>::repository_id_, &env);
+		Interface* p = ((const EPV_Header&)itf->_epv ()).base.to_base (&itf, RepIdOf <ValueBase>::id_, &env);
 		env.check ();
 		obj = Object::_check (p);
 	}
@@ -48,11 +48,11 @@ ValueBase::_ptr_type RqHelper::value_type2base (Interface::_ptr_type val)
 {
 	ValueBase::_ptr_type base;
 	const StringBase <Char> interface_id = val->_epv ().interface_id;
-	if (RepId::compatible (interface_id, RepIdOf <ValueBase>::repository_id_))
+	if (RepId::compatible (interface_id, RepIdOf <ValueBase>::id_))
 		base = (ValueBase*)&val;
 	else {
 		Environment env;
-		Interface* p = ((const EPV_Header&)val->_epv ()).base.to_base (&val, RepIdOf <ValueBase>::repository_id_, &env);
+		Interface* p = ((const EPV_Header&)val->_epv ()).base.to_base (&val, RepIdOf <ValueBase>::id_, &env);
 		env.check ();
 		base = ValueBase::_check (p);
 	}
@@ -63,7 +63,7 @@ AbstractBase::_ptr_type RqHelper::abstract_interface2base (Interface::_ptr_type 
 {
 	AbstractBase::_ptr_type base;
 	Environment env;
-	Interface* p = ((const EPV_Header&)itf->_epv ()).base.to_base (&itf, RepIdOf <AbstractBase>::repository_id_, &env);
+	Interface* p = ((const EPV_Header&)itf->_epv ()).base.to_base (&itf, RepIdOf <AbstractBase>::id_, &env);
 	env.check ();
 	base = AbstractBase::_check (p);
 	return base;

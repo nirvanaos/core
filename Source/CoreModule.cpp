@@ -53,7 +53,7 @@ public:
 }
 
 extern const ImportInterfaceT <Module> g_module = { OLF_IMPORT_INTERFACE,
-"Nirvana/g_module", CORBA::Internal::RepIdOf <Module>::repository_id_,
+"Nirvana/g_module", CORBA::Internal::RepIdOf <Module>::id_,
 NIRVANA_STATIC_BRIDGE (Module, Core::CoreModule) };
 
 }

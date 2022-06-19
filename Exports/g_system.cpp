@@ -191,7 +191,7 @@ public:
 
 __declspec (selectany)
 const ImportInterfaceT <System> g_system = { OLF_IMPORT_INTERFACE,
-	"Nirvana/g_system", CORBA::Internal::RepIdOf <System>::repository_id_,
+	"Nirvana/g_system", CORBA::Internal::RepIdOf <System>::id_,
 	NIRVANA_STATIC_BRIDGE (System, Core::System) };
 
 }
