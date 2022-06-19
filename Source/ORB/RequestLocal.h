@@ -287,7 +287,7 @@ public:
 	/// \returns TypeCode.
 	TypeCode::_ref_type unmarshal_type_code ()
 	{
-		return unmarshal_interface (TypeCode::repository_id_).template downcast <TypeCode> ();
+		return unmarshal_interface (RepIdOf <TypeCode>::repository_id_).template downcast <TypeCode> ();
 	}
 
 	/// Marshal value type.

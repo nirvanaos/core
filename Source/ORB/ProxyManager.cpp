@@ -152,8 +152,8 @@ ProxyManager::ProxyManager (const Bridge <IOReference>::EPV& epv_ior,
 	InterfaceEntry* ie = interfaces_.begin ();
 
 	{ // Interface Object
-		ie->iid = Object::repository_id_;
-		ie->iid_len = countof (Object::repository_id_) - 1;
+		ie->iid = RepIdOf <Object>::repository_id_;
+		ie->iid_len = countof (RepIdOf <Object>::repository_id_) - 1;
 		ie->proxy = &static_cast <Bridge <Object>&> (*this);
 		ie->operations.p = object_ops;
 		ie->operations.size = 3;
@@ -189,7 +189,7 @@ ProxyManager::ProxyManager (const Bridge <IOReference>::EPV& epv_ior,
 		const Char* iid = ie->iid;
 		if (iid == proxy_primary_iid)
 			primary = ie;
-		else if (iid == Object::repository_id_)
+		else if (iid == RepIdOf <Object>::repository_id_)
 			object_itf_idx_ = (UShort)(ie - interfaces_.begin ());
 		else
 			create_proxy (*ie);

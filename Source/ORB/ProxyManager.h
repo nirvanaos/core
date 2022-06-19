@@ -51,14 +51,14 @@ class ProxyManager :
 public:
 	Bridge <Object>* get_object (String_in iid)
 	{
-		if (RepId::check (Object::repository_id_, iid) != RepId::COMPATIBLE)
+		if (RepId::check (RepIdOf <Object>::repository_id_, iid) != RepId::COMPATIBLE)
 			::Nirvana::throw_INV_OBJREF ();
 		return static_cast <Bridge <Object>*> (this);
 	}
 
 	Bridge <AbstractBase>* get_abstract_base (String_in iid) NIRVANA_NOEXCEPT
 	{
-		if (RepId::check (AbstractBase::repository_id_, iid) != RepId::COMPATIBLE)
+		if (RepId::check (RepIdOf <AbstractBase>::repository_id_, iid) != RepId::COMPATIBLE)
 			::Nirvana::throw_INV_OBJREF ();
 		return static_cast <Bridge <AbstractBase>*> (this);
 	}

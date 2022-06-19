@@ -49,7 +49,8 @@ public:
 
 __declspec (selectany)
 const ImportInterfaceT <ORB> g_ORB = { OLF_IMPORT_INTERFACE,
-"CORBA/g_ORB", ORB::repository_id_, NIRVANA_STATIC_BRIDGE (ORB, Core::ORB) };
+	"CORBA/g_ORB", CORBA::Internal::RepIdOf <ORB>::repository_id_,
+	NIRVANA_STATIC_BRIDGE (ORB, Core::ORB) };
 
 }
 

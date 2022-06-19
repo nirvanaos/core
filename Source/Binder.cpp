@@ -457,7 +457,7 @@ Binder::InterfaceRef Binder::bind_interface_sync (const ObjectKey& name, String_
 	InterfaceRef itf = find (name);
 	StringBase <char> itf_id = itf->_epv ().interface_id;
 	if (!RepId::compatible (itf_id, iid)) {
-		if (!RepId::compatible (itf_id, PseudoBase::repository_id_))
+		if (!RepId::compatible (itf_id, RepIdOf <PseudoBase>::repository_id_))
 			throw_INV_OBJREF ();
 		PseudoBase::_ptr_type b = static_cast <PseudoBase*> (&InterfacePtr (itf));
 		InterfacePtr qi = b->_query_interface (iid);
@@ -472,7 +472,7 @@ Binder::InterfaceRef Binder::bind_interface_sync (const ObjectKey& name, String_
 Object::_ref_type Binder::bind_sync (const ObjectKey& name)
 {
 	InterfaceRef itf = find (name);
-	if (RepId::compatible (itf->_epv ().interface_id, Object::repository_id_))
+	if (RepId::compatible (itf->_epv ().interface_id, RepIdOf <Object>::repository_id_))
 		return reinterpret_cast <Object::_ref_type&&> (itf);
 	else
 		throw_INV_OBJREF ();

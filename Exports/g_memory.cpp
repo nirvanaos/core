@@ -90,7 +90,9 @@ public:
 }
 
 __declspec (selectany)
-const ImportInterfaceT <Memory> g_memory = { OLF_IMPORT_INTERFACE, "Nirvana/g_memory", Memory::repository_id_, NIRVANA_STATIC_BRIDGE (Memory, Core::Memory) };
+const ImportInterfaceT <Memory> g_memory = { OLF_IMPORT_INTERFACE,
+	"Nirvana/g_memory", CORBA::Internal::RepIdOf <Memory>::repository_id_,
+	NIRVANA_STATIC_BRIDGE (Memory, Core::Memory) };
 
 }
 

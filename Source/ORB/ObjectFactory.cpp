@@ -66,7 +66,7 @@ ObjectFactory::Frame::~Frame ()
 
 extern const ::Nirvana::ImportInterfaceT <ObjectFactory> g_object_factory = {
 	::Nirvana::OLF_IMPORT_INTERFACE, "CORBA/Internal/g_object_factory",
-	ObjectFactory::repository_id_, NIRVANA_STATIC_BRIDGE (ObjectFactory,
+	RepIdOf <ObjectFactory>::repository_id_, NIRVANA_STATIC_BRIDGE (ObjectFactory,
 	Core::ObjectFactory)
 };
 
