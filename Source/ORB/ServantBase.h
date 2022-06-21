@@ -71,7 +71,8 @@ inline
 CORBA::Object::_ptr_type servant2object (Servant servant)
 {
 	Servant ps = servant->_core_servant ();
-	Core::ServantBase* core_obj = static_cast <Core::ServantBase*> (&ps);
+	Core::ServantBase* core_obj = static_cast <Core::ServantBase *> (
+		static_cast <CORBA::Internal::Bridge <PortableServer::ServantBase>*> (&ps));
 	return core_obj->get_proxy ();
 }
 
@@ -80,7 +81,8 @@ inline
 PortableServer::ServantBase::_ref_type object2servant (CORBA::Object::_ptr_type obj)
 {
 	CORBA::Internal::Environment _env;
-	CORBA::Internal::I_ret <PortableServer::ServantBase> _ret = (obj->_epv ().epv.get_servant) (&obj, &_env);
+	CORBA::Internal::I_ret <PortableServer::ServantBase> _ret = (obj->_epv ().epv.get_servant) (
+		static_cast <CORBA::Internal::Bridge <CORBA::Object>*> (&obj), &_env);
 	_env.check ();
 	return _ret;
 }

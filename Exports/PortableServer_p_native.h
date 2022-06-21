@@ -41,7 +41,9 @@ void Proxy <PortableServer::POA>::__rq_activate_object (
 	{
 		Environment _env;
 		Type <PortableServer::ObjectId>::C_ret _ret = 
-			(_servant->_epv ().epv.activate_object) (&_servant, &Object::_ptr_type (p_servant), &_env);
+			(_servant->_epv ().epv.activate_object) (
+				static_cast <Bridge <PortableServer::POA>*> (&_servant),
+				&Object::_ptr_type (p_servant), &_env);
 		_env.check ();
 		ret = _ret;
 	}
