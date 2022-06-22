@@ -44,9 +44,6 @@ class HeapDynamic :
 	public MemContextObject
 {
 public:
-	using CORBA::servant_traits <Nirvana::Memory>::Servant <HeapDynamic>::_release;
-	using LifeCyclePseudo <HeapDynamic>::_release;
-
 	static Nirvana::Memory::_ref_type create (uint16_t allocation_unit)
 	{
 		return CORBA::make_pseudo <HeapDynamic> (allocation_unit);

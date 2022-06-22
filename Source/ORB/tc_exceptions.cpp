@@ -57,11 +57,11 @@ class TypeCodeSystemException :
 	public TypeCodeMembers <SystemException>
 {
 public:
-	using TypeCodeMembers <SystemException>::_member_count;
-	using TypeCodeMembers <SystemException>::_member_name;
-	using TypeCodeMembers <SystemException>::_member_type;
+	using TypeCodeMembers <SystemException>::_s_member_count;
+	using TypeCodeMembers <SystemException>::_s_member_name;
+	using TypeCodeMembers <SystemException>::_s_member_type;
 
-	static Type <String>::ABI_ret _name (Bridge <TypeCode>* _b, Interface* _env)
+	static Type <String>::ABI_ret _s_name (Bridge <TypeCode>* _b, Interface* _env)
 	{
 		return const_string_ret_p (E::__name ());
 	}

@@ -47,7 +47,7 @@ public:
 	~POA ()
 	{}
 
-	static CORBA::Internal::Type <ObjectId>::ABI_ret _activate_object (
+	static CORBA::Internal::Type <ObjectId>::ABI_ret _s_activate_object (
 		CORBA::Internal::Bridge <PortableServer::POA>* _b, Interface* servant,
 		Interface* env)
 	{

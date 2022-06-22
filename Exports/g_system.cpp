@@ -67,17 +67,17 @@ public:
 		return Binder::bind_interface (name, iid);
 	}
 
-	static uint16_t __get_epoch (CORBA::Internal::Bridge <Nirvana::System>* _b, CORBA::Internal::Interface* _env)
+	static uint16_t _s_get_epoch (CORBA::Internal::Bridge <Nirvana::System>* _b, CORBA::Internal::Interface* _env)
 	{
 		return Chrono::epoch ();
 	}
 
-	static Duration __get_system_clock (CORBA::Internal::Bridge <Nirvana::System>* _b, CORBA::Internal::Interface* _env)
+	static Duration _s_get_system_clock (CORBA::Internal::Bridge <Nirvana::System>* _b, CORBA::Internal::Interface* _env)
 	{
 		return Chrono::system_clock ();
 	}
 
-	static Duration __get_steady_clock (CORBA::Internal::Bridge <Nirvana::System>* _b, CORBA::Internal::Interface* _env)
+	static Duration _s_get_steady_clock (CORBA::Internal::Bridge <Nirvana::System>* _b, CORBA::Internal::Interface* _env)
 	{
 		return Chrono::steady_clock ();
 	}
@@ -132,7 +132,7 @@ public:
 		return (unsigned int)(next >> 16) % 32768;
 	}
 
-	static size_t __get_hardware_concurrency (CORBA::Internal::Bridge <Nirvana::System>* _b, CORBA::Internal::Interface* _env)
+	static size_t _s_get_hardware_concurrency (CORBA::Internal::Bridge <Nirvana::System>* _b, CORBA::Internal::Interface* _env)
 	{
 		return Port::SystemInfo::hardware_concurrency ();
 	}
