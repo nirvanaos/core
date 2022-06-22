@@ -10,3 +10,4 @@
 /Exports/PortableServer_p.cpp
 /Exports/ORB_p.cpp
 /Exports/Legacy_Process_p.cpp
+/Exports/InterfaceRepository_p.cpp

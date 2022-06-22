@@ -43,6 +43,20 @@ public:
 		return Binder::bind_service (identifier);
 	}
 
+	static ValueFactoryBase::_ref_type register_value_factory (const RepositoryId&, ValueFactoryBase::_ptr_type)
+	{
+		throw NO_IMPLEMENT ();
+	}
+
+	static void unregister_value_factory (const RepositoryId&)
+	{
+		throw NO_IMPLEMENT ();
+	}
+
+	static ValueFactoryBase::_ref_type lookup_value_factory (const RepositoryId&)
+	{
+		throw NO_IMPLEMENT (); // TODO: Implement
+	}
 };
 
 }
