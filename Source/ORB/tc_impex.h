@@ -39,8 +39,8 @@ NIRVANA_EXPORT (_exp_CORBA_##t, id, CORBA::TypeCode, __VA_ARGS__);
 
 // Import and export for interface exception
 #define INTERFACE_EXC_IMPEX(ns, I, E)\
-const ::Nirvana::ImportInterfaceT <CORBA::TypeCode> CORBA::Internal::Definitions < ns::I>::_tc_##E =\
-{ ::Nirvana::OLF_IMPORT_INTERFACE, 0, 0, NIRVANA_STATIC_BRIDGE (CORBA::TypeCode, CORBA::Internal::TypeCodeException <CORBA::Internal::Definitions < ns::I>::E, false>) };\
-NIRVANA_EXPORT (_exp_##ns##_##I##_##E, CORBA::Internal::RepIdOf < ns::I::E>::id, CORBA::TypeCode, CORBA::Internal::TypeCodeException <CORBA::Internal::Definitions < ns::I>::E, false>);
+const ::Nirvana::ImportInterfaceT <CORBA::TypeCode> CORBA::Internal::Decls < ns::I>::_tc_##E =\
+{ ::Nirvana::OLF_IMPORT_INTERFACE, 0, 0, NIRVANA_STATIC_BRIDGE (CORBA::TypeCode, CORBA::Internal::TypeCodeException <CORBA::Internal::Decls < ns::I>::E, false>) };\
+NIRVANA_EXPORT (_exp_##ns##_##I##_##E, CORBA::Internal::RepIdOf < ns::I::E>::id, CORBA::TypeCode, CORBA::Internal::TypeCodeException <CORBA::Internal::Decls < ns::I>::E, false>);
 
 #endif
