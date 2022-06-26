@@ -1,5 +1,7 @@
 # Nirvana Core
 
+## Content
+
 This is a part of the Nirvana project.
 
 This repository contains source code for the Nirvana core.
@@ -8,7 +10,7 @@ This repository contains source code for the Nirvana core.
 
 ### Source
 
-This folder contains sources and headers for the CoreLib.
+Sources and headers for the CoreLib.
 CoreLib is a library of different core classes that may be tested separately,
 without the Core build.
 
