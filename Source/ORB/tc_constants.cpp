@@ -26,6 +26,7 @@
 #include <CORBA/CORBA.h>
 #include <CORBA/Proxy/TypeCodeString.h>
 #include <CORBA/Proxy/TypeCodeInterface.h>
+#include <CORBA/Proxy/TypeCodeValue.h>
 #include "tc_impex.h"
 
 namespace CORBA {
@@ -40,7 +41,11 @@ typedef TypeCodeInterface <Object> TC_Object;
 template <>
 const Char TypeCodeName <Object>::name_ [] = "Object";
 
-typedef TypeCodeInterface <ValueBase> TC_ValueBase;
+template <>
+class TypeCodeValue <ValueBase> : public TypeCodeValueConcrete <ValueBase, VM_NONE, false, nullptr>
+{};
+
+typedef TypeCodeValue <ValueBase> TC_ValueBase;
 
 template <>
 const Char TypeCodeName <ValueBase>::name_ [] = "ValueBase";
