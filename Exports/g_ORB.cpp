@@ -53,9 +53,9 @@ public:
 		throw NO_IMPLEMENT ();
 	}
 
-	static ValueFactoryBase::_ref_type lookup_value_factory (const RepositoryId&)
+	static ValueFactoryBase::_ref_type lookup_value_factory (const RepositoryId& id)
 	{
-		throw NO_IMPLEMENT (); // TODO: Implement
+		return Binder::bind_interface <ValueFactoryBase> (id);
 	}
 };
 
