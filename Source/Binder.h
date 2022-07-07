@@ -185,9 +185,7 @@ private:
 
 		bool compatible (const ObjectKey& rhs) const NIRVANA_NOEXCEPT
 		{
-			return length_ == rhs.length_
-				&& !RepId::lex_compare (name_, name_ + length_, rhs.name_, rhs.name_ + length_)
-				&& version_.compatible (rhs.version_);
+			return operator == (rhs) && version_.compatible (rhs.version_);
 		}
 
 	private:

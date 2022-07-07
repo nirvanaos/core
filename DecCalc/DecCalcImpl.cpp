@@ -13,20 +13,12 @@ static_assert (sizeof (decNumber) == sizeof (DecCalc::Number), "Check decNumber 
 
 struct Context : decContext
 {
-	Context ()
+	Context (int32_t digits = DECNUMDIGITS)
 	{
 		decContextDefault (this, DEC_INIT_BASE);
 		this->digits = DECNUMDIGITS;
 	}
-
-	void check () const;
 };
-
-void Context::check () const
-{
-	if (status)
-		throw runtime_error (decContextStatusToString (this));
-}
 
 class DecCalcImpl :
 	public servant_traits <DecCalc>::ServantStatic <DecCalcImpl>
@@ -36,9 +28,34 @@ public:
 	{
 		Context ctx;
 		decNumberFromString ((decNumber*)&n, s.c_str (), &ctx);
+		if (ctx.status)
+			throw_DATA_CONVERSION ();
 	}
 
-	string to_string (const Number& n);
-	void from_BCD (Number& n, short digits, short scale, const void* bcd);
-	void to_BCD (const Number& n, short digits, short scale, void* bcd);
+	string to_string (const Number& n)
+	{
+		char buf [DECNUMDIGITS + 14];
+		decNumberToEngString ((const decNumber*)&n, buf);
+		return buf;
+	}
+
+	void from_BCD (Number& n, short digits, int32_t scale, const void* bcd)
+	{
+		if (!decPackedToNumber ((const uint8_t*)bcd, (digits + 2) / 2, &scale, (decNumber*)&n))
+			throw_DATA_CONVERSION ();
+	}
+
+	void to_BCD (const Number& n, short digits, short scale, void* bcd)
+	{
+		decContext ctx;
+		decContextDefault (&ctx, DEC_INIT_BASE);
+		ctx.digits = digits;
+		decNumber rounded;
+		decNumberReduce (&rounded, (const decNumber*)&n, &ctx);
+		int32_t s;
+		decPackedFromNumber ((uint8_t*)bcd, (digits + 2) / 2, &s, &rounded);
+		assert (s == scale);
+	}
 };
+
+NIRVANA_EXPORT (_exp_Nirvana_g_dec_calc, "Nirvana/g_dec_calc", DecCalc, DecCalcImpl)

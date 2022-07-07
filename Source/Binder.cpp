@@ -442,7 +442,11 @@ Binder::InterfaceRef Binder::find (const ObjectKey& name)
 			throw_OBJECT_NOT_EXIST ();
 		itf = object_map_.find (name);
 		if (!itf) {
-			string module_name = "TestModule.olf";
+			string module_name;
+			if (ObjectKey ("Nirvana/g_dec_calc") == name)
+				module_name = "DecCalc.olf";
+			else
+				module_name = "TestModule.olf";
 			CoreRef <Module> mod = load (module_name, false);
 			itf = object_map_.find (name);
 			if (!itf)
