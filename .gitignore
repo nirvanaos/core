@@ -11,3 +11,5 @@
 /Exports/ORB_p.cpp
 /Exports/Legacy_Process_p.cpp
 /Exports/InterfaceRepository_p.cpp
+/DecCalc/DecCalc.h
+/DecCalc/DecCalc_s.h
