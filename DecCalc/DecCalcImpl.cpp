@@ -16,6 +16,7 @@ struct Context : decContext
 	Context (int32_t digits = DECNUMDIGITS)
 	{
 		decContextDefault (this, DEC_INIT_BASE);
+		traps = 0;
 		this->digits = DECNUMDIGITS;
 	}
 };
