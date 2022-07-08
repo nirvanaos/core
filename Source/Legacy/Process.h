@@ -62,9 +62,14 @@ public:
 			tls.get (Nirvana::Core::TLS::CORE_TLS_OBJECT_FACTORY));
 		tls.set (Nirvana::Core::TLS::CORE_TLS_OBJECT_FACTORY, &scf);
 
-		CORBA::servant_reference <Process> servant = CORBA::make_reference <Process> (
-			std::ref (file), std::ref (argv), std::ref (envp), callback);
-
+		CORBA::servant_reference <Process> servant;
+		try {
+			servant = CORBA::make_reference <Process> (
+				std::ref (file), std::ref (argv), std::ref (envp), callback);
+		} catch (...) {
+			tls.set (Nirvana::Core::TLS::CORE_TLS_OBJECT_FACTORY, scf.next ());
+			throw;
+		}
 		tls.set (Nirvana::Core::TLS::CORE_TLS_OBJECT_FACTORY, scf.next ());
 
 		Legacy::Process::_ref_type ret = servant->_this ();
