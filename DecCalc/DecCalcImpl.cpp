@@ -17,7 +17,7 @@ struct Context : decContext
 	{
 		decContextDefault (this, DEC_INIT_BASE);
 		traps = 0;
-		this->digits = DECNUMDIGITS;
+		this->digits = digits;
 	}
 };
 
@@ -25,9 +25,19 @@ class DecCalcImpl :
 	public servant_traits <DecCalc>::ServantStatic <DecCalcImpl>
 {
 public:
+	void from_long (Number& n, int32_t l)
+	{
+		decNumberFromInt32 ((decNumber*)&n, l);
+	}
+
+	void from_ulong (Number& n, uint32_t u)
+	{
+		decNumberFromUInt32 ((decNumber*)&n, u);
+	}
+
 	void from_string (Number& n, const string& s)
 	{
-		Context ctx;
+		Context ctx (31);
 		decNumberFromString ((decNumber*)&n, s.c_str (), &ctx);
 		if (ctx.status)
 			throw_DATA_CONVERSION ();
@@ -48,14 +58,32 @@ public:
 
 	void to_BCD (const Number& n, short digits, short scale, void* bcd)
 	{
-		decContext ctx;
-		decContextDefault (&ctx, DEC_INIT_BASE);
-		ctx.digits = digits;
+		Context ctx (digits);
 		decNumber rounded;
 		decNumberReduce (&rounded, (const decNumber*)&n, &ctx);
 		int32_t s;
 		decPackedFromNumber ((uint8_t*)bcd, (digits + 2) / 2, &s, &rounded);
 		assert (s == scale);
+	}
+
+	void round (Number& n, short scale)
+	{
+		int trim = -n.exponent () - scale;
+		if (trim > 0) {
+			Context ctx (n.digits () - trim);
+			decNumberReduce ((decNumber*)&n, (const decNumber*)&n, &ctx);
+		}
+	}
+
+	void truncate (Number& n, short scale)
+	{
+		int trim = -n.exponent () - scale;
+		if (trim > 0) {
+			decNumber rem = (const decNumber&)n;
+			rem.digits = trim;
+			Context ctx (n.digits () - trim);
+			decNumberSubtract ((decNumber*)&n, (const decNumber*)&n, &rem, &ctx);
+		}
 	}
 };
 
