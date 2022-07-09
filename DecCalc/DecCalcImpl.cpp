@@ -35,10 +35,10 @@ public:
 		decNumberFromUInt32 ((decNumber*)&n, u);
 	}
 
-	void from_string (Number& n, const string& s)
+	void from_string (Number& n, const char* s)
 	{
-		Context ctx (31);
-		decNumberFromString ((decNumber*)&n, s.c_str (), &ctx);
+		Context ctx;
+		decNumberFromString ((decNumber*)&n, s, &ctx);
 		if (ctx.status)
 			throw_DATA_CONVERSION ();
 	}
@@ -50,19 +50,19 @@ public:
 		return buf;
 	}
 
-	void from_BCD (Number& n, short digits, int32_t scale, const void* bcd)
+	void from_BCD (Number& n, short digits, int32_t scale, const uint8_t* bcd)
 	{
-		if (!decPackedToNumber ((const uint8_t*)bcd, (digits + 2) / 2, &scale, (decNumber*)&n))
+		if (!decPackedToNumber (bcd, (digits + 2) / 2, &scale, (decNumber*)&n))
 			throw_DATA_CONVERSION ();
 	}
 
-	void to_BCD (const Number& n, short digits, short scale, void* bcd)
+	void to_BCD (const Number& n, short digits, short scale, uint8_t* bcd)
 	{
 		Context ctx (digits);
 		decNumber rounded;
 		decNumberReduce (&rounded, (const decNumber*)&n, &ctx);
 		int32_t s;
-		decPackedFromNumber ((uint8_t*)bcd, (digits + 2) / 2, &s, &rounded);
+		decPackedFromNumber (bcd, (digits + 2) / 2, &s, &rounded);
 		assert (s == scale);
 	}
 
@@ -85,6 +85,7 @@ public:
 			decNumberSubtract ((decNumber*)&n, (const decNumber*)&n, &rem, &ctx);
 		}
 	}
+
 };
 
 NIRVANA_EXPORT (_exp_Nirvana_g_dec_calc, "Nirvana/g_dec_calc", DecCalc, DecCalcImpl)
