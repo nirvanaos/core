@@ -35,6 +35,25 @@ public:
 		decNumberFromUInt32 ((decNumber*)&n, u);
 	}
 
+	void from_longlong (Number& n, int64_t l)
+	{
+		decNumberFromInt64 ((decNumber*)&n, l);
+	}
+
+	void from_ulonglong (Number& n, uint64_t u)
+	{
+		decNumberFromUInt64 ((decNumber*)&n, u);
+	}
+
+	int64_t to_longlong (const Number& n)
+	{
+		Context ctx;
+		int64_t ret = decNumberToInt64 ((const decNumber*)&n, &ctx);
+		if (ctx.status)
+			throw_DATA_CONVERSION ();
+		return ret;
+	}
+
 	void from_string (Number& n, const char* s)
 	{
 		Context ctx;
