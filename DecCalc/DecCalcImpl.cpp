@@ -25,27 +25,27 @@ class DecCalcImpl :
 	public servant_traits <DecCalc>::ServantStatic <DecCalcImpl>
 {
 public:
-	void from_long (Number& n, int32_t l)
+	static void from_long (Number& n, int32_t l)
 	{
 		decNumberFromInt32 ((decNumber*)&n, l);
 	}
 
-	void from_ulong (Number& n, uint32_t u)
+	static void from_ulong (Number& n, uint32_t u)
 	{
 		decNumberFromUInt32 ((decNumber*)&n, u);
 	}
 
-	void from_longlong (Number& n, int64_t l)
+	static void from_longlong (Number& n, int64_t l)
 	{
 		decNumberFromInt64 ((decNumber*)&n, l);
 	}
 
-	void from_ulonglong (Number& n, uint64_t u)
+	static void from_ulonglong (Number& n, uint64_t u)
 	{
 		decNumberFromUInt64 ((decNumber*)&n, u);
 	}
 
-	int64_t to_longlong (const Number& n)
+	static int64_t to_longlong (const Number& n)
 	{
 		Context ctx;
 		int64_t ret = decNumberToInt64 ((const decNumber*)&n, &ctx);
@@ -54,7 +54,7 @@ public:
 		return ret;
 	}
 
-	void from_string (Number& n, const char* s)
+	static void from_string (Number& n, const char* s)
 	{
 		Context ctx;
 		decNumberFromString ((decNumber*)&n, s, &ctx);
@@ -62,20 +62,20 @@ public:
 			throw_DATA_CONVERSION ();
 	}
 
-	string to_string (const Number& n)
+	static string to_string (const Number& n)
 	{
 		char buf [DECNUMDIGITS + 14];
 		decNumberToEngString ((const decNumber*)&n, buf);
 		return buf;
 	}
 
-	void from_BCD (Number& n, short digits, int32_t scale, const uint8_t* bcd)
+	static void from_BCD (Number& n, short digits, int32_t scale, const uint8_t* bcd)
 	{
 		if (!decPackedToNumber (bcd, (digits + 2) / 2, &scale, (decNumber*)&n))
 			throw_DATA_CONVERSION ();
 	}
 
-	void to_BCD (const Number& n, short digits, short scale, uint8_t* bcd)
+	static void to_BCD (const Number& n, short digits, short scale, uint8_t* bcd)
 	{
 		Context ctx (digits);
 		decNumber rounded;
@@ -85,7 +85,7 @@ public:
 		assert (s == scale);
 	}
 
-	void round (Number& n, short scale)
+	static void round (Number& n, short scale)
 	{
 		int trim = -n.exponent () - scale;
 		if (trim > 0) {
@@ -94,7 +94,7 @@ public:
 		}
 	}
 
-	void truncate (Number& n, short scale)
+	static void truncate (Number& n, short scale)
 	{
 		int trim = -n.exponent () - scale;
 		if (trim > 0) {
@@ -105,6 +105,43 @@ public:
 		}
 	}
 
+	static void add (Number& n, const Number& x)
+	{
+		Context ctx;
+		decNumberAdd ((decNumber*)&n, (decNumber*)&n, (const decNumber*)&x, &ctx);
+		if (ctx.status)
+			throw_DATA_CONVERSION ();
+	}
+
+	static void subtract (Number& n, const Number& x)
+	{
+		Context ctx;
+		decNumberSubtract ((decNumber*)&n, (decNumber*)&n, (const decNumber*)&x, &ctx);
+		if (ctx.status)
+			throw_DATA_CONVERSION ();
+	}
+
+	static void multiply (Number& n, const Number& x)
+	{
+		Context ctx;
+		decNumberMultiply ((decNumber*)&n, (decNumber*)&n, (const decNumber*)&x, &ctx);
+		if (ctx.status)
+			throw_DATA_CONVERSION ();
+	}
+
+	static void divide (Number& n, const Number& x)
+	{
+		Context ctx;
+		decNumberDivide ((decNumber*)&n, (decNumber*)&n, (const decNumber*)&x, &ctx);
+		if (ctx.status)
+			throw_DATA_CONVERSION ();
+	}
+
+	static void minus (Number& n)
+	{
+		Context ctx;
+		decNumberMinus ((decNumber*)&n, (const decNumber*)&n, &ctx);
+	}
 };
 
 NIRVANA_EXPORT (_exp_Nirvana_g_dec_calc, "Nirvana/g_dec_calc", DecCalc, DecCalcImpl)
