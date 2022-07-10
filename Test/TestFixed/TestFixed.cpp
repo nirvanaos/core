@@ -73,6 +73,8 @@ TEST (TestFixed, Conversion)
 	}
 
 	EXPECT_EQ (-12345LL, static_cast <long long> (Fixed (-12345)));
+	EXPECT_EQ (1.5, static_cast <long double> (Fixed ("1.5")));
+	EXPECT_EQ (2, static_cast <long long> (Fixed ("1.5")));
 }
 
 TEST (TestFixed, RoundTruncate)

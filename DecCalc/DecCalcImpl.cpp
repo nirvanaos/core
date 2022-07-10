@@ -66,7 +66,15 @@ public:
 	static int64_t to_longlong (const Number& n)
 	{
 		Context ctx;
-		int64_t ret = decNumberToInt64 ((const decNumber*)&n, &ctx);
+		int64_t ret;
+		if (n.exponent ()) {
+			decNumber integral;
+			decNumberToIntegralValue (&integral, (const decNumber*)&n, &ctx);
+			if (ctx.status)
+				throw_DATA_CONVERSION ();
+			ret = decNumberToInt64 (&integral, &ctx);
+		} else
+			ret = decNumberToInt64 ((const decNumber*)&n, &ctx);
 		if (ctx.status)
 			throw_DATA_CONVERSION ();
 		return ret;
@@ -95,11 +103,23 @@ public:
 
 	static void to_BCD (const Number& n, short digits, short scale, uint8_t* bcd)
 	{
-		Context ctx (digits);
-		decNumber rounded;
-		decNumberReduce (&rounded, (const decNumber*)&n, &ctx);
 		int32_t s;
-		decPackedFromNumber (bcd, (digits + 2) / 2, &s, &rounded);
+		if (n.digits () == digits && n.exponent () == -scale)
+			decPackedFromNumber (bcd, (digits + 2) / 2, &s, (const decNumber*)&n);
+		else {
+			Context ctx (digits);
+			decNumber exp;
+			decNumberZero (&exp);
+			exp.digits = digits;
+			exp.exponent = -scale;
+			decNumber tmp;
+			decNumberQuantize (&tmp, (const decNumber*)&n, &exp, &ctx);
+			if (ctx.status)
+				throw_DATA_CONVERSION ();
+			assert (tmp.digits <= digits);
+			tmp.digits = digits;
+			decPackedFromNumber (bcd, (digits + 2) / 2, &s, &tmp);
+		}
 		assert (s == scale);
 	}
 
