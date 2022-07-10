@@ -1,6 +1,5 @@
 
 #include <Nirvana/Nirvana.h>
-#include <Nirvana/Decimal.h>
 #include <gtest/gtest.h>
 #include <sstream>
 
@@ -10,19 +9,54 @@ using namespace CORBA;
 
 TEST (TestFixed, Conversion)
 {
-	EXPECT_EQ (Fixed ().to_string (), "0");
+	{
+		Fixed f;
+		EXPECT_EQ (f.to_string (), "0");
+		EXPECT_EQ (f.fixed_digits (), 1);
+		EXPECT_EQ (f.fixed_scale (), 0);
+	}
 
-	EXPECT_EQ (Fixed (-12345).to_string (), "-12345");
+	{
+		Fixed f (-12345);
+		EXPECT_EQ (f.to_string (), "-12345");
+		EXPECT_EQ (f.fixed_digits (), 5);
+		EXPECT_EQ (f.fixed_scale (), 0);
+	}
 
-	EXPECT_EQ (Fixed (12345U).to_string (), "12345");
+	{
+		Fixed f (12345U);
+		EXPECT_EQ (f.to_string (), "12345");
+		EXPECT_EQ (f.fixed_digits (), 5);
+		EXPECT_EQ (f.fixed_scale (), 0);
+	}
 
-	EXPECT_EQ (Fixed (-12345LL).to_string (), "-12345");
+	{
+		Fixed f (-12345LL);
+		EXPECT_EQ (f.to_string (), "-12345");
+		EXPECT_EQ (f.fixed_digits (), 5);
+		EXPECT_EQ (f.fixed_scale (), 0);
+	}
 
-	EXPECT_EQ (Fixed (12345ULL).to_string (), "12345");
+	{
+		Fixed f (12345ULL);
+		EXPECT_EQ (f.to_string (), "12345");
+		EXPECT_EQ (f.fixed_digits (), 5);
+		EXPECT_EQ (f.fixed_scale (), 0);
+	}
 
-	EXPECT_EQ (Fixed (1.2345).to_string (), "1.2345");
+	{
+		Fixed f (1.2345);
+		EXPECT_EQ (f.to_string (), "1.2345");
+		EXPECT_EQ (f.fixed_digits (), 5);
+		EXPECT_EQ (f.fixed_scale (), 4);
+	}
 
-	EXPECT_EQ (Fixed ("1.2345").to_string (), "1.2345");
+	{
+		Fixed f ("1.2345");
+		EXPECT_EQ (f.to_string (), "1.2345");
+		EXPECT_EQ (f.fixed_digits (), 5);
+		EXPECT_EQ (f.fixed_scale (), 4);
+	}
 
 	// Invalid string
 	EXPECT_THROW (Fixed ("invalid"), DATA_CONVERSION);
@@ -30,8 +64,13 @@ TEST (TestFixed, Conversion)
 	// Too many digits > 62
 	EXPECT_THROW (Fixed ("12345678901234567890123456789012345678901234567890123456789012.3"), DATA_CONVERSION);
 
-	static const IDL::FixedCDR <5, 4> cdr = { { 0x12, 0x34, 0x5C } };
-	EXPECT_EQ (Fixed (cdr).to_string (), "1.2345");
+	{
+		static const IDL::FixedCDR <5, 4> cdr = { { 0x12, 0x34, 0x5C } };
+		Fixed f (cdr);
+		EXPECT_EQ (f.to_string (), "1.2345");
+		EXPECT_EQ (f.fixed_digits (), 5);
+		EXPECT_EQ (f.fixed_scale (), 4);
+	}
 
 	EXPECT_EQ (-12345LL, static_cast <long long> (Fixed (-12345)));
 }
@@ -84,6 +123,19 @@ TEST (TestFixed, Arithmetic)
 		ok = true;
 	}
 	EXPECT_TRUE (ok);
+}
+
+TEST (TestFixed, IncDec)
+{
+	Fixed f (1);
+	EXPECT_EQ (++f, Fixed (2));
+	EXPECT_EQ (f, Fixed (2));
+	EXPECT_EQ (--f, Fixed (1));
+	EXPECT_EQ (f, Fixed (1));
+	EXPECT_EQ (f++, Fixed (1));
+	EXPECT_EQ (f, Fixed (2));
+	EXPECT_EQ (f--, Fixed (2));
+	EXPECT_EQ (f, Fixed (1));
 }
 
 TEST (TestFixed, Compare)
