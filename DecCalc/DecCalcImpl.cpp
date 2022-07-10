@@ -113,6 +113,7 @@ public:
 			exp.digits = digits;
 			exp.exponent = -scale;
 			decNumber tmp;
+			memset (tmp.lsu, 0, sizeof (tmp.lsu));
 			decNumberQuantize (&tmp, (const decNumber*)&n, &exp, &ctx);
 			if (ctx.status)
 				throw_DATA_CONVERSION ();
