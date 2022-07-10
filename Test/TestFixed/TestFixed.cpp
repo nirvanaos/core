@@ -2,15 +2,27 @@
 #include <Nirvana/Nirvana.h>
 #include <Nirvana/Decimal.h>
 #include <gtest/gtest.h>
+#include <sstream>
 
 using namespace Nirvana;
 using namespace std;
 using namespace CORBA;
 
-TEST (TestFixed, String)
+TEST (TestFixed, Conversion)
 {
-	Fixed f = "1.2345";
-	EXPECT_EQ (f.to_string (), "1.2345");
+	EXPECT_EQ (Fixed ().to_string (), "0");
+
+	EXPECT_EQ (Fixed (-12345).to_string (), "-12345");
+
+	EXPECT_EQ (Fixed (12345U).to_string (), "12345");
+
+	EXPECT_EQ (Fixed (-12345LL).to_string (), "-12345");
+
+	EXPECT_EQ (Fixed (12345ULL).to_string (), "12345");
+
+	EXPECT_EQ (Fixed (1.2345).to_string (), "1.2345");
+
+	EXPECT_EQ (Fixed ("1.2345").to_string (), "1.2345");
 
 	// Invalid string
 	EXPECT_THROW (Fixed ("invalid"), DATA_CONVERSION);
@@ -18,6 +30,10 @@ TEST (TestFixed, String)
 	// Too many digits > 62
 	EXPECT_THROW (Fixed ("12345678901234567890123456789012345678901234567890123456789012.3"), DATA_CONVERSION);
 
+	static const IDL::FixedCDR <5, 4> cdr = { { 0x12, 0x34, 0x5C } };
+	EXPECT_EQ (Fixed (cdr).to_string (), "1.2345");
+
+	EXPECT_EQ (-12345LL, static_cast <long long> (Fixed (-12345)));
 }
 
 TEST (TestFixed, RoundTruncate)
@@ -34,3 +50,51 @@ TEST (TestFixed, RoundTruncate)
 	EXPECT_EQ (f3.truncate (2).to_string (), "0.00");
 }
 
+TEST (TestFixed, Stream)
+{
+	Fixed a = 1.234;
+	stringstream ss;
+	ss << a;
+	Fixed b;
+	ss >> b;
+	EXPECT_FALSE (ss.fail ());
+	EXPECT_EQ (a, b);
+}
+
+TEST (TestFixed, Arithmetic)
+{
+	EXPECT_EQ (Fixed (2) + Fixed (2), Fixed (4));
+	EXPECT_EQ (Fixed (2) * Fixed (2), Fixed (4));
+	EXPECT_EQ (Fixed (10) / Fixed (2), Fixed (5));
+
+	bool ok = false;
+	try {
+		Fixed (10) / Fixed (0);
+	} catch (const ARITHMETIC_ERROR& ex) {
+		EXPECT_EQ (ex.minor (), FPE_FLTDIV);
+		ok = true;
+	}
+	EXPECT_TRUE (ok);
+
+	ok = false;
+	try {
+		Fixed (0) / Fixed (0);
+	} catch (const ARITHMETIC_ERROR& ex) {
+		EXPECT_EQ (ex.minor (), FPE_FLTDIV);
+		ok = true;
+	}
+	EXPECT_TRUE (ok);
+}
+
+TEST (TestFixed, Compare)
+{
+	EXPECT_EQ (Fixed (10), Fixed (10));
+	EXPECT_LE (Fixed (10), Fixed (10));
+	EXPECT_GE (Fixed (10), Fixed (10));
+	EXPECT_NE (Fixed (1), Fixed (2));
+	EXPECT_LT (Fixed (1), Fixed (2));
+	EXPECT_GT (Fixed (2), Fixed (1));
+
+	EXPECT_TRUE (Fixed (1));
+	EXPECT_FALSE (Fixed (0));
+}

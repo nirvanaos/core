@@ -19,7 +19,25 @@ struct Context : decContext
 		traps = 0;
 		this->digits = digits;
 	}
+
+	void check () const;
 };
+
+void Context::check () const
+{
+	if (status) {
+		if ((DEC_Division_by_zero | DEC_Division_undefined) & status)
+			throw_ARITHMETIC_ERROR (FPE_FLTDIV);
+		else if (DEC_Overflow & status)
+			throw_ARITHMETIC_ERROR (FPE_FLTOVF);
+		else if (DEC_Underflow & status)
+			throw_ARITHMETIC_ERROR (FPE_FLTUND);
+		else if (DEC_Inexact & status)
+			throw_ARITHMETIC_ERROR (FPE_FLTRES);
+		else
+			throw_BAD_PARAM ();
+	}
+}
 
 class DecCalcImpl :
 	public servant_traits <DecCalc>::ServantStatic <DecCalcImpl>
@@ -109,38 +127,55 @@ public:
 	{
 		Context ctx;
 		decNumberAdd ((decNumber*)&n, (decNumber*)&n, (const decNumber*)&x, &ctx);
-		if (ctx.status)
-			throw_DATA_CONVERSION ();
+		ctx.check ();
 	}
 
 	static void subtract (Number& n, const Number& x)
 	{
 		Context ctx;
 		decNumberSubtract ((decNumber*)&n, (decNumber*)&n, (const decNumber*)&x, &ctx);
-		if (ctx.status)
-			throw_DATA_CONVERSION ();
+		ctx.check ();
 	}
 
 	static void multiply (Number& n, const Number& x)
 	{
 		Context ctx;
 		decNumberMultiply ((decNumber*)&n, (decNumber*)&n, (const decNumber*)&x, &ctx);
-		if (ctx.status)
-			throw_DATA_CONVERSION ();
+		ctx.check ();
 	}
 
 	static void divide (Number& n, const Number& x)
 	{
 		Context ctx;
 		decNumberDivide ((decNumber*)&n, (decNumber*)&n, (const decNumber*)&x, &ctx);
-		if (ctx.status)
-			throw_DATA_CONVERSION ();
+		ctx.check ();
 	}
 
 	static void minus (Number& n)
 	{
 		Context ctx;
 		decNumberMinus ((decNumber*)&n, (const decNumber*)&n, &ctx);
+		ctx.check ();
+	}
+
+	static bool is_zero (const Number& n)
+	{
+		decNumber z;
+		decNumberZero (&z);
+		Context ctx;
+		decNumber res;
+		decNumberCompare (&res, (const decNumber*)&n, &z, &ctx);
+		ctx.check ();
+		return decNumberToInt32 (&res, &ctx) == 0;
+	}
+
+	static int16_t compare (const Number& lhs, const Number& rhs)
+	{
+		Context ctx;
+		decNumber res;
+		decNumberCompare (&res, (const decNumber*)&lhs, (const decNumber*)&rhs, &ctx);
+		ctx.check ();
+		return (int16_t)decNumberToInt32 (&res, &ctx);
 	}
 };
 
