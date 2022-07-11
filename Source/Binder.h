@@ -234,6 +234,9 @@ private:
 	};
 
 	// Map of the loaded modules.
+	// Map must provide the pointer stability.
+	// phmap::node_hash_map is declared as with pointer stability,
+	// but it seems that not.
 	typedef WaitableRef <Module*> ModulePtr;
 	typedef 
 #ifndef BINDER_USE_STD_MODULE_MAP
