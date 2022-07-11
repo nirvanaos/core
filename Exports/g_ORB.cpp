@@ -43,6 +43,124 @@ public:
 		return Binder::bind_service (identifier);
 	}
 
+	static TypeCode::_ref_type create_struct_tc (const RepositoryId& id,
+		const Identifier& name, const StructMemberSeq& members)
+	{
+		throw NO_IMPLEMENT ();
+	}
+
+	static TypeCode::_ref_type create_union_tc (const RepositoryId& id,
+		const Identifier& name, TypeCode::_ptr_type discriminator_type, const UnionMemberSeq& members)
+	{
+		throw NO_IMPLEMENT ();
+	}
+
+	static TypeCode::_ref_type create_enum_tc (const RepositoryId& id,
+		const Identifier& name, const EnumMemberSeq& members)
+	{
+		throw NO_IMPLEMENT ();
+	}
+
+	static TypeCode::_ref_type create_alias_tc (const RepositoryId& id,
+		const Identifier& name, TypeCode::_ptr_type original_type)
+	{
+		throw NO_IMPLEMENT ();
+	}
+
+	static TypeCode::_ref_type create_exception_tc (const RepositoryId& id,
+		const Identifier& name, const StructMemberSeq& members)
+	{
+		throw NO_IMPLEMENT ();
+	}
+
+	static TypeCode::_ref_type create_interface_tc (const RepositoryId& id,
+		const Identifier& name)
+	{
+		throw NO_IMPLEMENT ();
+	}
+
+	static TypeCode::_ref_type create_string_tc (ULong bound)
+	{
+		throw NO_IMPLEMENT ();
+	}
+
+	static TypeCode::_ref_type create_wstring_tc (ULong bound)
+	{
+		throw NO_IMPLEMENT ();
+	}
+
+	static TypeCode::_ref_type create_fixed_tc (UShort digits, Short scale)
+	{
+		throw NO_IMPLEMENT ();
+	}
+
+	static TypeCode::_ref_type create_sequence_tc (ULong bound,
+		TypeCode::_ptr_type element_type)
+	{
+		throw NO_IMPLEMENT ();
+	}
+
+	static TypeCode::_ref_type create_array_tc (ULong length,
+		TypeCode::_ptr_type element_type)
+	{
+		throw NO_IMPLEMENT ();
+	}
+
+	static TypeCode::_ref_type create_value_tc (const RepositoryId& id,
+		const Identifier& name, ValueModifier type_modifier,
+		TypeCode::_ptr_type concrete_base, const ValueMemberSeq& members)
+	{
+		throw NO_IMPLEMENT ();
+	}
+
+	static TypeCode::_ref_type create_value_box_tc (const RepositoryId& id,
+		const Identifier& name, TypeCode::_ptr_type boxed_type)
+	{
+		throw NO_IMPLEMENT ();
+	}
+
+	static TypeCode::_ref_type create_native_tc (const RepositoryId& id,
+		const Identifier& name)
+	{
+		throw NO_IMPLEMENT ();
+	}
+
+	static TypeCode::_ref_type create_recursive_tc (const RepositoryId& id)
+	{
+		throw NO_IMPLEMENT ();
+	}
+
+	static TypeCode::_ref_type create_abstract_interface_tc (const RepositoryId& id,
+		const Identifier& name)
+	{
+		throw NO_IMPLEMENT ();
+	}
+
+	static TypeCode::_ref_type create_local_interface_tc (const RepositoryId& id,
+		const Identifier& name)
+	{
+		throw NO_IMPLEMENT ();
+	}
+
+	static TypeCode::_ref_type create_component_tc (const RepositoryId& id,
+		const Identifier& name)
+	{
+		throw NO_IMPLEMENT ();
+	}
+
+	static TypeCode::_ref_type create_home_tc (const RepositoryId& id,
+		const Identifier& name)
+	{
+		throw NO_IMPLEMENT ();
+	}
+
+	static TypeCode::_ref_type create_event_tc (const RepositoryId& id,
+		const Identifier& name, ValueModifier type_modifier,
+		TypeCode::_ptr_type concrete_base, const ValueMemberSeq& members)
+	{
+		throw NO_IMPLEMENT ();
+	}
+
 	static ValueFactoryBase::_ref_type register_value_factory (const RepositoryId&, ValueFactoryBase::_ptr_type)
 	{
 		throw NO_IMPLEMENT ();
