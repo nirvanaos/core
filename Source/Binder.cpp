@@ -110,8 +110,8 @@ void Binder::terminate ()
 		singleton_->unload (singleton_->module_map_.begin ());
 	SYNC_END ();
 	singleton_.destruct ();
-	SYNC_END ();
 	memory_.destruct ();
+	SYNC_END ();
 }
 
 NIRVANA_NORETURN void Binder::invalid_metadata ()
