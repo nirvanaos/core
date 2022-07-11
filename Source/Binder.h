@@ -40,11 +40,19 @@
 #include "WaitableRef.h"
 #include "ORB/Services.h"
 
+#define BINDER_USE_STD_MODULE_MAP
+
 #pragma push_macro ("verify")
 #undef verify
 #include "parallel-hashmap/parallel_hashmap/btree.h"
+#ifndef BINDER_USE_STD_MODULE_MAP
 #include "parallel-hashmap/parallel_hashmap/phmap.h"
+#endif
 #pragma pop_macro ("verify")
+
+#ifdef BINDER_USE_STD_MODULE_MAP
+#include <unordered_map>
+#endif
 
 namespace Nirvana {
 
@@ -227,7 +235,13 @@ private:
 
 	// Map of the loaded modules.
 	typedef WaitableRef <Module*> ModulePtr;
-	typedef phmap::flat_hash_map <std::string, ModulePtr, phmap::Hash <std::string>,
+	typedef 
+#ifndef BINDER_USE_STD_MODULE_MAP
+		phmap::node_hash_map
+#else
+		std::unordered_map
+#endif
+		<std::string, ModulePtr, phmap::Hash <std::string>,
 		phmap::EqualTo <std::string>, Allocator <std::pair <std::string, ModulePtr> >
 	> ModuleMap;
 

@@ -36,8 +36,8 @@
 namespace Nirvana {
 namespace Core {
 
-#define DEFINE_ALLOCATOR(Name) template <class U> operator Name <U>& ()\
-NIRVANA_NOEXCEPT { return *reinterpret_cast <Name <U>*> (this); }\
+#define DEFINE_ALLOCATOR(Name) template <class U> operator const Name <U>& () const \
+NIRVANA_NOEXCEPT { return *reinterpret_cast <const Name <U>*> (this); }\
 template <class U> struct rebind { typedef Name <U> other; }
 
 //#define DEFINE_ALLOCATOR(Name)
