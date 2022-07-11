@@ -47,6 +47,7 @@ using namespace std;
 using namespace CORBA;
 using namespace CORBA::Internal;
 
+StaticallyAllocated <ImplStatic <MemContextCore> > Binder::memory_;
 StaticallyAllocated <Binder> Binder::singleton_;
 bool Binder::initialized_ = false;
 
@@ -85,6 +86,7 @@ Binder::InterfacePtr Binder::ObjectMap::find (const ObjectKey& key) const
 
 void Binder::initialize ()
 {
+	memory_.construct ();
 	singleton_.construct ();
 	Section metadata;
 	if (!Port::SystemInfo::get_OLF_section (metadata))
@@ -100,7 +102,7 @@ void Binder::initialize ()
 
 void Binder::terminate ()
 {
-	SYNC_BEGIN (g_core_free_sync_context, &(singleton_->memory_));
+	SYNC_BEGIN (g_core_free_sync_context, &memory_);
 	SYNC_BEGIN (singleton_->sync_domain_, nullptr);
 	assert (initialized_);
 	initialized_ = false;
@@ -109,6 +111,7 @@ void Binder::terminate ()
 	SYNC_END ();
 	singleton_.destruct ();
 	SYNC_END ();
+	memory_.destruct ();
 }
 
 NIRVANA_NORETURN void Binder::invalid_metadata ()

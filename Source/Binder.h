@@ -80,7 +80,7 @@ public:
 
 	Binder () :
 		sync_domain_ (std::ref (static_cast <SyncContextCore&> (g_core_free_sync_context)),
-			std::ref (memory_))
+			std::ref (static_cast <MemContextCore&> (memory_)))
 	{}
 
 	static void initialize ();
@@ -210,12 +210,12 @@ private:
 
 		static void deallocate (T* p, size_t cnt)
 		{
-			singleton_->memory_.heap ().release (p, cnt * sizeof (T));
+			memory_->heap ().release (p, cnt * sizeof (T));
 		}
 
 		static T* allocate (size_t cnt)
 		{
-			return (T*)singleton_->memory_.heap ().allocate (nullptr, cnt * sizeof (T), 0);
+			return (T*)memory_->heap ().allocate (nullptr, cnt * sizeof (T), 0);
 		}
 	};
 
@@ -285,7 +285,7 @@ private:
 	void delete_module (Module* mod);
 
 private:
-	ImplStatic <MemContextCore> memory_;
+	static StaticallyAllocated <ImplStatic <MemContextCore> > memory_;
 	ImplStatic <SyncDomainImpl> sync_domain_;
 	ObjectMap object_map_;
 	ModuleMap module_map_;
