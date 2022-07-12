@@ -91,17 +91,28 @@ public:
 	static string to_string (const Number& n)
 	{
 		char buf [DECNUMDIGITS + 14];
+		assert (n.exponent () <= 0);
 		decNumberToEngString ((const decNumber*)&n, buf);
 		return buf;
 	}
 
-	static void from_BCD (Number& n, short digits, int32_t scale, const uint8_t* bcd)
+	static void from_BCD (Number& n, unsigned short digits, short scale, const uint8_t* bcd)
 	{
-		if (!decPackedToNumber (bcd, (digits + 2) / 2, &scale, (decNumber*)&n))
+		int32_t s = scale;
+		if (!decPackedToNumber (bcd, (digits + 2) / 2, &s, (decNumber*)&n))
 			throw_DATA_CONVERSION ();
+		assert (s == scale);
+		if (s < 0) {
+			decNumber exp;
+			decNumberZero (&exp);
+			Context ctx (DECNUMDIGITS);
+			decNumberRescale ((decNumber*)&n, (const decNumber*)&n, &exp, &ctx);
+			ctx.check ();
+			assert (n.exponent () <= 0);
+		}
 	}
 
-	static void to_BCD (const Number& n, short digits, short scale, uint8_t* bcd)
+	static void to_BCD (const Number& n, unsigned short digits, short scale, uint8_t* bcd)
 	{
 		int32_t s;
 		if (n.digits () == digits && n.exponent () == -scale)

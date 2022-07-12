@@ -11,30 +11,30 @@ TEST (TestDecimal, Conversion)
 {
 	{
 		Decimal <5, 4> d;
-		EXPECT_EQ (d.to_string (), "0.0000");
+		EXPECT_EQ (Fixed (d).to_string (), "0.0000");
 	}
 
 	{
-		Decimal <5, 4> d = "1.2345";
-		EXPECT_EQ (d.to_string (), "1.2345");
+		Decimal <5, 4> d ("1.2345");
+		EXPECT_EQ (1.2345, d);
 	}
 
 	{
-		Decimal <5, 4> d = 1;
+		Decimal <5, 4> d (1);
 		d = 2;
 		EXPECT_THROW (d = 20, CORBA::DATA_CONVERSION);
 	}
 
 	{
-		Decimal <6, 0> d = 1;
+		Decimal <6, 0> d (1);
 		d = 20;
-		EXPECT_EQ (20LL, static_cast <int64_t> (d));
+		EXPECT_EQ (20LL, d);
 	}
 }
 
 TEST (TestDecimal, Stream)
 {
-	Decimal <8, 4> a = 1.234;
+	Decimal <8, 4> a (1.234);
 	stringstream ss;
 	ss << a;
 	Decimal <8, 4> b;
@@ -49,8 +49,6 @@ TEST (TestDecimal, Arithmetic)
 	EXPECT_EQ ((Decimal <8, 4> (2) * Decimal <8, 4> (2)), Fixed (4));
 	Decimal <8, 4> x (10);
 	Decimal <8, 4> y (2);
-	string sx = x.to_string ();
-	string sy = y.to_string ();
 	Fixed r = x / y;
 	EXPECT_EQ (5LL, static_cast <int64_t> (r));
 }

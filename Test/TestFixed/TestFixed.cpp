@@ -5,7 +5,6 @@
 
 using namespace Nirvana;
 using namespace std;
-using namespace CORBA;
 
 TEST (TestFixed, Conversion)
 {
@@ -59,17 +58,25 @@ TEST (TestFixed, Conversion)
 	}
 
 	// Invalid string
-	EXPECT_THROW (Fixed ("invalid"), DATA_CONVERSION);
+	EXPECT_THROW (Fixed ("invalid"), CORBA::DATA_CONVERSION);
 
 	// Too many digits > 62
-	EXPECT_THROW (Fixed ("12345678901234567890123456789012345678901234567890123456789012.3"), DATA_CONVERSION);
+	EXPECT_THROW (Fixed ("12345678901234567890123456789012345678901234567890123456789012.3"), CORBA::DATA_CONVERSION);
 
 	{
-		static const IDL::FixedCDR <5, 4> cdr = { { 0x12, 0x34, 0x5C } };
+		static const FixedBCD <5, 4> cdr = { 0x12, 0x34, 0x5C };
 		Fixed f (cdr);
 		EXPECT_EQ (f.to_string (), "1.2345");
 		EXPECT_EQ (f.fixed_digits (), 5);
 		EXPECT_EQ (f.fixed_scale (), 4);
+	}
+
+	{
+		static const FixedBCD <1, -3> cdr = { 0x5C };
+		Fixed f (cdr);
+		EXPECT_EQ (f.to_string (), "5000");
+		EXPECT_EQ (f.fixed_digits (), 4);
+		EXPECT_EQ (f.fixed_scale (), 0);
 	}
 
 	EXPECT_EQ (-12345LL, static_cast <long long> (Fixed (-12345)));
@@ -111,7 +118,7 @@ TEST (TestFixed, Arithmetic)
 	bool ok = false;
 	try {
 		Fixed (10) / Fixed (0);
-	} catch (const ARITHMETIC_ERROR& ex) {
+	} catch (const CORBA::ARITHMETIC_ERROR& ex) {
 		EXPECT_EQ (ex.minor (), FPE_FLTDIV);
 		ok = true;
 	}
@@ -120,7 +127,7 @@ TEST (TestFixed, Arithmetic)
 	ok = false;
 	try {
 		Fixed (0) / Fixed (0);
-	} catch (const ARITHMETIC_ERROR& ex) {
+	} catch (const CORBA::ARITHMETIC_ERROR& ex) {
 		EXPECT_EQ (ex.minor (), FPE_FLTDIV);
 		ok = true;
 	}
