@@ -92,6 +92,8 @@ public:
 
 	static TypeCode::_ref_type create_fixed_tc (UShort digits, Short scale)
 	{
+		if (digits > 31 || scale > digits || scale < 0)
+			throw BAD_PARAM ();
 		return make_pseudo <TC_Fixed> (digits, scale);
 	}
 

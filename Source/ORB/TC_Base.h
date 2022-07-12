@@ -28,7 +28,8 @@
 #pragma once
 
 #include <CORBA/Proxy/TypeCodeImpl.h>
-#include "LifeCyclePseudo.h"
+#include "../LifeCyclePseudo.h"
+#include "../SharedObject.h"
 
 namespace CORBA {
 namespace Core {
@@ -37,6 +38,7 @@ template <class S>
 class TC_Base :
 	public servant_traits <TypeCode>::Servant <S>,
 	public Nirvana::Core::LifeCyclePseudo <S>,
+	public Nirvana::Core::SharedObject,
 	public CORBA::Internal::TypeCodeBase
 {
 public:
