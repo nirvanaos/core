@@ -26,6 +26,7 @@
 #include <CORBA/Server.h>
 #include <ORB/IDL/ORB_s.h>
 #include <Binder.h>
+#include <ORB/TC_Fixed.h>
 
 using namespace Nirvana;
 using namespace Nirvana::Core;
@@ -91,7 +92,7 @@ public:
 
 	static TypeCode::_ref_type create_fixed_tc (UShort digits, Short scale)
 	{
-		throw NO_IMPLEMENT ();
+		return make_pseudo <TC_Fixed> (digits, scale);
 	}
 
 	static TypeCode::_ref_type create_sequence_tc (ULong bound,
