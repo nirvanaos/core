@@ -84,7 +84,7 @@ TEST (TestDecimal, Compare)
 	EXPECT_TRUE (Fixed (1));
 	EXPECT_FALSE (Fixed (0));
 }
-/*
+
 TEST (TestDecimal, Any)
 {
 	Decimal <5, 4> d (1.2345);
@@ -94,4 +94,4 @@ TEST (TestDecimal, Any)
 	EXPECT_TRUE (any >>= d1);
 	EXPECT_EQ (d, d1);
 }
-*/
+

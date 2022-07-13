@@ -27,7 +27,7 @@
 #define NIRVANA_ORB_CORE_TC_BASE_H_
 #pragma once
 
-#include <CORBA/Proxy/TypeCodeImpl.h>
+#include <CORBA/Server.h>
 #include "../LifeCyclePseudo.h"
 #include "../SharedObject.h"
 
