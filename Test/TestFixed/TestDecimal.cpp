@@ -4,8 +4,8 @@
 #include <gtest/gtest.h>
 
 using namespace Nirvana;
-using namespace std;
 using namespace CORBA;
+using namespace std;
 
 TEST (TestDecimal, Conversion)
 {
@@ -84,4 +84,14 @@ TEST (TestDecimal, Compare)
 	EXPECT_TRUE (Fixed (1));
 	EXPECT_FALSE (Fixed (0));
 }
-
+/*
+TEST (TestDecimal, Any)
+{
+	Decimal <5, 4> d (1.2345);
+	Any any;
+	any <<= d;
+	Decimal <5, 4> d1;
+	EXPECT_TRUE (any >>= d1);
+	EXPECT_EQ (d, d1);
+}
+*/

@@ -4,6 +4,7 @@
 #include <sstream>
 
 using namespace Nirvana;
+using namespace CORBA;
 using namespace std;
 
 TEST (TestFixed, Conversion)
@@ -118,7 +119,7 @@ TEST (TestFixed, Arithmetic)
 	bool ok = false;
 	try {
 		Fixed (10) / Fixed (0);
-	} catch (const CORBA::ARITHMETIC_ERROR& ex) {
+	} catch (const ARITHMETIC_ERROR& ex) {
 		EXPECT_EQ (ex.minor (), FPE_FLTDIV);
 		ok = true;
 	}
@@ -127,7 +128,7 @@ TEST (TestFixed, Arithmetic)
 	ok = false;
 	try {
 		Fixed (0) / Fixed (0);
-	} catch (const CORBA::ARITHMETIC_ERROR& ex) {
+	} catch (const ARITHMETIC_ERROR& ex) {
 		EXPECT_EQ (ex.minor (), FPE_FLTDIV);
 		ok = true;
 	}
@@ -158,4 +159,20 @@ TEST (TestFixed, Compare)
 
 	EXPECT_TRUE (Fixed (1));
 	EXPECT_FALSE (Fixed (0));
+}
+
+TEST (TestFixed, Any)
+{
+	Fixed f (1.2345);
+	Any any;
+	any <<= Any::from_fixed (f, 5, 4);
+	Fixed f1;
+	EXPECT_TRUE (any >>= Any::to_fixed (f1, 5, 4));
+	EXPECT_EQ (f, f1);
+	EXPECT_EQ (f1.fixed_digits (), 5);
+	EXPECT_EQ (f1.fixed_scale (), 4);
+	EXPECT_TRUE (any >>= Any::to_fixed (f1, 8, 5));
+	EXPECT_EQ (f, f1);
+	EXPECT_EQ (f1.fixed_digits (), 5);
+	EXPECT_EQ (f1.fixed_scale (), 4);
 }
