@@ -24,7 +24,6 @@
 *  popov.nirvana@gmail.com
 */
 #include <ORB/ObjectFactory.h>
-#include "Thread.h"
 #include <Nirvana/OLF.h>
 
 namespace CORBA {

@@ -29,8 +29,6 @@
 #include <Nirvana/OLF.h>
 #include <CORBA/system_exceptions.h>
 
-NIRVANA_LINK_SYMBOL (_exp_CORBA_Internal_g_object_factory)
-
 #define EXPORT_TC(t) NIRVANA_LINK_SYMBOL (_exp_CORBA_##t)
 EXPORT_TC (void)
 EXPORT_TC (short)
@@ -58,4 +56,5 @@ EXPORT_TC (ValueBase)
 
 SYSTEM_EXCEPTIONS(EXPORT_TC)
 
+// TODO: Temporary solution, remove
 NIRVANA_LINK_SYMBOL (exp_Nirvana_file_factory)
