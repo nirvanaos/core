@@ -23,7 +23,7 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "ObjectFactory.h"
+#include <ORB/ObjectFactory.h>
 #include "Thread.h"
 #include <Nirvana/OLF.h>
 
