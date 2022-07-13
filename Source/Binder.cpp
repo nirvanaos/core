@@ -147,6 +147,7 @@ const ModuleStartup* Binder::module_bind (::Nirvana::Module::_ptr_type mod, cons
 				case OLF_IMPORT_INTERFACE:
 					if (!module_entry) {
 						ImportInterface* ps = reinterpret_cast <ImportInterface*> (it.cur ());
+						assert (!ps->itf);
 						ObjectKey key (ps->name);
 						if (key == k_gmodule) {
 							assert (mod);
