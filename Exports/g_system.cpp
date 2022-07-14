@@ -154,8 +154,10 @@ public:
 		s += msg;
 		s += '\n';
 		Port::Debugger::output_debug_string (s.c_str ());
-		if (DebugEvent::DEBUG_ERROR == evt)
-			Port::Debugger::debug_break ();
+		if (DebugEvent::DEBUG_ERROR == evt) {
+			if (!Port::Debugger::debug_break ())
+				raise (SIGABRT);
+		}
 	}
 
 	static bool yield ()
