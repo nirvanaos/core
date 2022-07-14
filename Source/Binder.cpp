@@ -100,14 +100,47 @@ void Binder::initialize ()
 	SYNC_END ();
 }
 
+inline
+void Binder::unload_modules ()
+{
+	bool unloaded;
+	do {
+		// Unload unbound modules
+		unloaded = false;
+		for (auto it = module_map_.begin (); it != module_map_.end ();) {
+			Module* pmod = it->second.get_if_constructed ();
+			// if pmod == nullptr, then module loading error was occurred.
+			// Module was not loaded.
+			// Just remove the entry from table.
+			if (!pmod || !pmod->bound ()) {
+				it = module_map_.erase (it);
+				if (pmod)
+					unload (pmod);
+				unloaded = true;
+			} else
+				++it;
+		}
+	} while (unloaded);
+
+	// If everything is OK, molule map must be empty
+	assert (module_map_.empty ());
+
+	// If so, unload the bound modules also.
+	while (!module_map_.empty ()) {
+		auto it = module_map_.begin ();
+		Module* pmod = it->second.get ();
+		module_map_.erase (it);
+		unload (pmod);
+	}
+}
+
 void Binder::terminate ()
 {
 	SYNC_BEGIN (g_core_free_sync_context, &memory_);
 	SYNC_BEGIN (singleton_->sync_domain_, nullptr);
 	assert (initialized_);
 	initialized_ = false;
-	while (!singleton_->module_map_.empty ())
-		singleton_->unload (singleton_->module_map_.begin ());
+	singleton_->unload_modules ();
 	SYNC_END ();
 	singleton_.destruct ();
 	memory_.destruct ();
@@ -371,26 +404,14 @@ CoreRef <Module> Binder::load (string& module_name, bool singleton)
 	return mod;
 }
 
-void Binder::unload (ModuleMap::iterator mod)
+void Binder::unload (Module* pmod)
 {
-	Module* pmod = nullptr;
-	try {
-		pmod = mod->second.get ();
-		assert (!pmod->bound ());
-	} catch (...) {
-		// Module loading error was occurred.
-		// Module was not loaded.
-		// Just remove the entry from table.
-	}
-	module_map_.erase (mod);
-	if (pmod) {
-		remove_exports (pmod->metadata ());
-		SYNC_BEGIN (pmod->sync_context (), pmod);
-		pmod->terminate ();
-		module_unbind (pmod->_get_ptr (), pmod->metadata ());
-		SYNC_END ();
-		delete_module (pmod);
-	}
+	remove_exports (pmod->metadata ());
+	SYNC_BEGIN (pmod->sync_context (), pmod);
+	pmod->terminate ();
+	module_unbind (pmod->_get_ptr (), pmod->metadata ());
+	SYNC_END ();
+	delete_module (pmod);
 }
 
 inline
@@ -491,13 +512,15 @@ void Binder::housekeeping ()
 	for (;;) {
 		bool found = false;
 		Chrono::Duration t = Chrono::steady_clock () - MODULE_UNLOAD_TIMEOUT;
-		for (auto it = module_map_.begin (); it != module_map_.end (); ++it) {
+		for (auto it = module_map_.begin (); it != module_map_.end ();) {
 			Module* pmod = it->second.get_if_constructed ();
 			if (pmod && pmod->can_be_unloaded (t)) {
 				found = true;
-				unload (it);
+				it = module_map_.erase (it);
+				unload (pmod);
 				break;
-			}
+			} else
+				++it;
 		}
 		if (!found)
 			break;
