@@ -167,7 +167,8 @@ void PreallocatedStack <El, PREALLOCATE, MIN_BLOCK>::allocate ()
 	El* end = last_block_ ? (El*)&(last_block_->storage) + BLOCK_ELEMENTS : (El*)&preallocated_ + PREALLOCATE;
 	if (top_ == end) {
 		// Allocate new block
-		Block* block = (Block*)g_shared_mem_context->heap ().allocate (nullptr, sizeof (Block), 0);
+		size_t cb = sizeof (Block);
+		Block* block = (Block*)g_shared_mem_context->heap ().allocate (nullptr, cb, 0);
 		block->prev = last_block_;
 		last_block_ = block;
 		top_ = (El*)&(block->storage);

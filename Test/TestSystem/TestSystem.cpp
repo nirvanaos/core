@@ -46,7 +46,8 @@ TEST_F (TestSystem, HeapFactory)
 	EXPECT_EQ (GRANULARITY, heap->query (0, Memory::QueryParam::ALLOCATION_UNIT));
 
 	for (int i = 0; i < COUNT; ++i) {
-		blocks [i] = heap->allocate (0, BLOCK_SIZE, 0);
+		size_t cb = BLOCK_SIZE;
+		blocks [i] = heap->allocate (nullptr, cb, 0);
 		ASSERT_TRUE (blocks [i]);
 		UIntPtr au = heap->query (blocks [i], Memory::QueryParam::ALLOCATION_UNIT);
 		ASSERT_EQ (GRANULARITY, au);

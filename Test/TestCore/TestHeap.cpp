@@ -74,8 +74,10 @@ bool check_writeable (void* p, size_t cb, size_t tag)
 
 TEST_F (TestHeap, Allocate)
 {
-	int* p = (int*)heap_.allocate (nullptr, sizeof (int), Memory::ZERO_INIT);
+	size_t cb = sizeof (int);
+	int* p = (int*)heap_.allocate (nullptr, cb, Memory::ZERO_INIT);
 	EXPECT_EQ (*p, 0);
+	EXPECT_EQ (cb, HEAP_UNIT_DEFAULT);
 	*p = 1;
 	heap_.release (p, sizeof (int));
 	EXPECT_THROW (heap_.release (p, sizeof (int)), CORBA::FREE_MEM);
@@ -89,11 +91,15 @@ TEST_F (TestHeap, LargeBlock)
 	// Allocate contiguous blocks and release them as an one block
 	for (unsigned bc_max = 1; bc_max <= BLOCK_COUNT_MAX; ++bc_max) {
 		uint8_t* blocks [BLOCK_COUNT_MAX];
-		uint8_t* p = (uint8_t*)heap_.allocate (nullptr, BLOCK_SIZE, 0);
+		size_t cb = BLOCK_SIZE;
+		uint8_t* p = (uint8_t*)heap_.allocate (nullptr, cb, 0);
+		EXPECT_EQ (cb, BLOCK_SIZE);
 		ASSERT_TRUE (p);
 		blocks [0] = p;
 		for (unsigned i = 1; i < bc_max; ++i) {
-			p = (uint8_t*)heap_.allocate (p + BLOCK_SIZE, BLOCK_SIZE, 0);
+			size_t cb = BLOCK_SIZE;
+			p = (uint8_t*)heap_.allocate (p + BLOCK_SIZE, cb, 0);
+			EXPECT_EQ (cb, BLOCK_SIZE);
 			ASSERT_TRUE (p);
 			blocks [i] = p;
 		}
@@ -113,7 +119,8 @@ TEST_F (TestHeap, LargeBlock)
 
 	// Allocate large block and release smaller blocks from begin to end
 	for (unsigned bc_max = 2; bc_max <= BLOCK_COUNT_MAX; ++bc_max) {
-		uint8_t* p = (uint8_t*)heap_.allocate (nullptr, BLOCK_SIZE * bc_max, 0);
+		size_t cb = BLOCK_SIZE * bc_max;
+		uint8_t* p = (uint8_t*)heap_.allocate (nullptr, cb, 0);
 		ASSERT_TRUE (p);
 		for (unsigned i = 0; i < bc_max; ++i) {
 			heap_.release (p + BLOCK_SIZE * i, BLOCK_SIZE);
@@ -123,7 +130,8 @@ TEST_F (TestHeap, LargeBlock)
 
 	// Allocate large block and release smaller blocks from end to begin
 	for (unsigned bc_max = 2; bc_max <= BLOCK_COUNT_MAX; ++bc_max) {
-		uint8_t* p = (uint8_t*)heap_.allocate (nullptr, BLOCK_SIZE * bc_max, 0);
+		size_t cb = BLOCK_SIZE * bc_max;
+		uint8_t* p = (uint8_t*)heap_.allocate (nullptr, cb, 0);
 		ASSERT_TRUE (p);
 		for (int i = bc_max - 1; i >= 0; --i) {
 			heap_.release (p + BLOCK_SIZE * i, BLOCK_SIZE);
@@ -133,7 +141,8 @@ TEST_F (TestHeap, LargeBlock)
 
 	// Allocate large block and release smaller blocks even and odd
 	for (unsigned bc_max = 2; bc_max <= BLOCK_COUNT_MAX; ++bc_max) {
-		uint8_t* p = (uint8_t*)heap_.allocate (nullptr, BLOCK_SIZE * bc_max, 0);
+		size_t cb = BLOCK_SIZE * bc_max;
+		uint8_t* p = (uint8_t*)heap_.allocate (nullptr, cb, 0);
 		ASSERT_TRUE (p);
 		for (int i = 1; i < bc_max; i += 2) {
 			heap_.release (p + BLOCK_SIZE * i, BLOCK_SIZE);
@@ -439,8 +448,11 @@ TEST_F (TestHeap, MultiThreadCopy)
 	const int iterations = 100;
 
 	size_t block_size = (size_t)heap_.query (nullptr, Memory::QueryParam::SHARING_ASSOCIATIVITY);
-	uint8_t* src = (uint8_t*)heap_.allocate (nullptr, block_size, 0);
-	uint8_t* dst = (uint8_t*)heap_.allocate (nullptr, block_size * thread_count, Memory::RESERVED);
+	size_t cb = block_size;
+	uint8_t* src = (uint8_t*)heap_.allocate (nullptr, cb, 0);
+	EXPECT_EQ (block_size, cb);
+	cb = block_size * thread_count;
+	uint8_t* dst = (uint8_t*)heap_.allocate (nullptr, cb, Memory::RESERVED);
 	size_t thr_size = block_size / thread_count;
 	vector <thread> threads;
 	threads.reserve (thread_count);

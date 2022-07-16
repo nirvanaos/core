@@ -49,7 +49,8 @@ public:
 
 	static T* allocate (size_t cnt)
 	{
-		return (T*)MemContext::current ().heap ().allocate (nullptr, cnt * sizeof (T), 0);
+		size_t cb = cnt * sizeof (T);
+		return (T*)MemContext::current ().heap ().allocate (nullptr, cb, 0);
 	}
 };
 

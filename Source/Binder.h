@@ -215,7 +215,8 @@ private:
 
 		static T* allocate (size_t cnt)
 		{
-			return (T*)memory_->heap ().allocate (nullptr, cnt * sizeof (T), 0);
+			size_t cb = cnt * sizeof (T);
+			return (T*)memory_->heap ().allocate (nullptr, cb, 0);
 		}
 	};
 

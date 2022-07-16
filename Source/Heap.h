@@ -115,7 +115,7 @@ class Heap
 	Heap& operator = (const Heap&) = delete;
 
 public:
-	void* allocate (void* p, size_t size, unsigned flags);
+	void* allocate (void* p, size_t& size, unsigned flags);
 	void release (void* p, size_t size);
 
 	void commit (void* p, size_t size)
@@ -132,7 +132,7 @@ public:
 		Port::Memory::decommit (p, size);
 	}
 
-	void* copy (void* dst, void* src, size_t size, unsigned flags);
+	void* copy (void* dst, void* src, size_t& size, unsigned flags);
 
 	static bool is_readable (const void* p, size_t size)
 	{
@@ -283,7 +283,8 @@ protected:
 		NodeVal* insert (Directory* part, size_t allocation_unit) NIRVANA_NOEXCEPT
 		{
 			unsigned level = Base::random_level ();
-			auto ins = Base::insert (new (Heap::allocate (*part, Base::node_size (level), 0, allocation_unit)) NodeVal (level, part));
+			size_t cb = Base::node_size (level);
+			auto ins = Base::insert (new (Heap::allocate (*part, cb, 0, allocation_unit)) NodeVal (level, part));
 			assert (ins.second);
 #ifdef _DEBUG
 			node_cnt_.increment ();
@@ -321,16 +322,16 @@ protected:
 
 	Directory* get_partition (const void* p) NIRVANA_NOEXCEPT;
 
-	static void* allocate (Directory& part, size_t size, unsigned flags, size_t allocation_unit) NIRVANA_NOEXCEPT;
+	static void* allocate (Directory& part, size_t& size, unsigned flags, size_t allocation_unit) NIRVANA_NOEXCEPT;
 
-	void* allocate (Directory& part, size_t size, unsigned flags) const NIRVANA_NOEXCEPT
+	void* allocate (Directory& part, size_t& size, unsigned flags) const NIRVANA_NOEXCEPT
 	{
 		return allocate (part, size, flags, allocation_unit_);
 	}
 
-	void* allocate (Directory& part, void* p, size_t size, unsigned flags) const NIRVANA_NOEXCEPT;
+	void* allocate (Directory& part, void* p, size_t& size, unsigned flags) const NIRVANA_NOEXCEPT;
 
-	void* allocate (size_t size, unsigned flags);
+	void* allocate (size_t& size, unsigned flags);
 
 	void release (Directory& part, void* p, size_t size) const;
 
@@ -413,7 +414,8 @@ void CoreAllocator <T>::deallocate (T* p, size_t cnt)
 template <class T> inline
 T* CoreAllocator <T>::allocate (size_t cnt)
 {
-	return (T*)g_core_heap->allocate (nullptr, cnt * sizeof (T), 0);
+	size_t cb = cnt * sizeof (T);
+	return (T*)g_core_heap->allocate (nullptr, cb, 0);
 }
 
 template <class T> inline
@@ -425,7 +427,8 @@ void HeapAllocator <T>::deallocate (T* p, size_t cnt) const
 template <class T> inline
 T* HeapAllocator <T>::allocate (size_t cnt) const
 {
-	return (T*)heap_->allocate (nullptr, cnt * sizeof (T), 0);
+	size_t cb = cnt * sizeof (T);
+	return (T*)heap_->allocate (nullptr, cb, 0);
 }
 
 }

@@ -229,7 +229,7 @@ const ModuleStartup* Binder::module_bind (::Nirvana::Module::_ptr_type mod, cons
 		if (flags || module_entry) {
 			if (Port::Memory::FLAGS & Memory::ACCESS_CHECK)
 				verify (Port::Memory::copy (const_cast <void*> (metadata.address),
-					const_cast <void*> (metadata.address), metadata.size,
+					const_cast <void*> (metadata.address), const_cast <size_t&> (metadata.size),
 					Memory::READ_WRITE | Memory::EXACTLY));
 
 			if (module_entry)
@@ -298,7 +298,7 @@ const ModuleStartup* Binder::module_bind (::Nirvana::Module::_ptr_type mod, cons
 
 			if (Port::Memory::FLAGS & Memory::ACCESS_CHECK)
 				verify (Port::Memory::copy (const_cast <void*> (metadata.address),
-					const_cast <void*> (metadata.address), metadata.size,
+					const_cast <void*> (metadata.address), const_cast <size_t&> (metadata.size),
 					Memory::READ_ONLY | Memory::EXACTLY));
 		}
 	} catch (...) {

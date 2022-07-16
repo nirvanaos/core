@@ -86,10 +86,12 @@ TEST_F (TestMemory, Allocate)
 		Port::Memory::release (block + BLOCK_SIZE / 4 * 3, BLOCK_SIZE / 4);
 
 		// Allocate the first half.
-		ASSERT_EQ (block, (uint8_t*)Port::Memory::allocate (block, BLOCK_SIZE / 2, flags));
+		size_t cb = BLOCK_SIZE / 2;
+		ASSERT_EQ (block, (uint8_t*)Port::Memory::allocate (block, cb, flags));
 		
 		// Allocate the second half.
-		ASSERT_EQ (Port::Memory::allocate (block + BLOCK_SIZE / 2, BLOCK_SIZE / 2, flags), block + BLOCK_SIZE / 2);
+		cb = BLOCK_SIZE / 2;
+		ASSERT_EQ (Port::Memory::allocate (block + BLOCK_SIZE / 2, cb, flags), block + BLOCK_SIZE / 2);
 		
 		// Release all range
 		Port::Memory::release (block, BLOCK_SIZE);
@@ -103,7 +105,8 @@ TEST_F (TestMemory, Allocate)
 TEST_F (TestMemory, Commit)
 {
 	size_t BLOCK_SIZE = 0x20000000;	// 512M
-	uint8_t* block = (uint8_t*)Port::Memory::allocate (0, BLOCK_SIZE, Memory::READ_WRITE | Memory::RESERVED);
+	size_t cb = BLOCK_SIZE;
+	uint8_t* block = (uint8_t*)Port::Memory::allocate (0, cb, Memory::READ_WRITE | Memory::RESERVED);
 	ASSERT_TRUE (block);
 	
 	EXPECT_FALSE (Port::Memory::is_writable (block, 1));
@@ -127,7 +130,8 @@ TEST_F (TestMemory, Commit)
 TEST_F (TestMemory, Share)
 {
 	size_t BLOCK_SIZE = 0x20000000;	// 512M
-	uint8_t* block = (uint8_t*)Port::Memory::allocate (0, BLOCK_SIZE, 0);
+	size_t cb = BLOCK_SIZE;
+	uint8_t* block = (uint8_t*)Port::Memory::allocate (0, cb, 0);
 	ASSERT_TRUE (block);
 	uint8_t* end = block + BLOCK_SIZE;
 
@@ -190,7 +194,8 @@ TEST_F (TestMemory, Move)
 	size_t BLOCK_SIZE = 0x20000000;	// 512M
 	size_t SHIFT = Port::Memory::SHARING_ASSOCIATIVITY;
 	// Allocate block.
-	int* block = (int*)Port::Memory::allocate (0, BLOCK_SIZE + SHIFT, Memory::ZERO_INIT | Memory::RESERVED);
+	size_t cb = BLOCK_SIZE + SHIFT;
+	int* block = (int*)Port::Memory::allocate (0, cb, Memory::ZERO_INIT | Memory::RESERVED);
 	ASSERT_TRUE (block);
 	Port::Memory::commit (block, BLOCK_SIZE);
 
@@ -199,7 +204,8 @@ TEST_F (TestMemory, Move)
 		*p = ++i;
 
 	// Shift block right on SHIFT
-	int* shifted = (int*)Port::Memory::copy (block + SHIFT / sizeof (int), block, BLOCK_SIZE, Memory::EXACTLY | Memory::SRC_RELEASE);
+	cb = BLOCK_SIZE;
+	int* shifted = (int*)Port::Memory::copy (block + SHIFT / sizeof (int), block, cb, Memory::EXACTLY | Memory::SRC_RELEASE);
 	EXPECT_EQ (shifted, block + SHIFT / sizeof (int));
 	i = 0;
 	for (int* p = shifted, *end = shifted + BLOCK_SIZE / sizeof (int); p != end; ++p)
@@ -207,18 +213,21 @@ TEST_F (TestMemory, Move)
 	EXPECT_TRUE (Port::Memory::is_private (shifted, BLOCK_SIZE));
 
 	// Allocate region to ensure that it is free.
-	EXPECT_TRUE (Port::Memory::allocate (block, SHIFT, Memory::RESERVED | Memory::EXACTLY));
+	cb = SHIFT;
+	EXPECT_TRUE (Port::Memory::allocate (block, cb, Memory::RESERVED | Memory::EXACTLY));
 	Port::Memory::release (block, SHIFT);
 
 	// Shift it back.
-	EXPECT_EQ (block, (int*)Port::Memory::copy (block, shifted, BLOCK_SIZE, Memory::DST_ALLOCATE | Memory::EXACTLY | Memory::SRC_RELEASE));
+	cb = BLOCK_SIZE;
+	EXPECT_EQ (block, (int*)Port::Memory::copy (block, shifted, cb, Memory::DST_ALLOCATE | Memory::EXACTLY | Memory::SRC_RELEASE));
 	i = 0;
 	for (int* p = block, *end = block + BLOCK_SIZE / sizeof (int); p != end; ++p)
 		EXPECT_EQ (*p, ++i);
 	EXPECT_TRUE (Port::Memory::is_private (block, BLOCK_SIZE));
 
 	// Allocate region to ensure that it is free.
-	EXPECT_TRUE (Port::Memory::allocate (block + BLOCK_SIZE / sizeof (int), SHIFT, Memory::RESERVED | Memory::EXACTLY));
+	cb = SHIFT;
+	EXPECT_TRUE (Port::Memory::allocate (block + BLOCK_SIZE / sizeof (int), cb, Memory::RESERVED | Memory::EXACTLY));
 	Port::Memory::release (block + BLOCK_SIZE / sizeof (int), SHIFT);
 
 	Port::Memory::release (block, BLOCK_SIZE);
@@ -226,12 +235,14 @@ TEST_F (TestMemory, Move)
 
 TEST_F (TestMemory, SmallBlock)
 {
-	int* block = (int*)Port::Memory::allocate (0, sizeof (int), Memory::ZERO_INIT);
+	size_t cb = sizeof (int);
+	int* block = (int*)Port::Memory::allocate (nullptr, cb, Memory::ZERO_INIT);
 	ASSERT_TRUE (block);
 	EXPECT_TRUE (Port::Memory::is_private (block, sizeof (int)));
 	*block = 1;
 	{
-		int* copy = (int*)Port::Memory::copy (0, block, sizeof (int), 0);
+		cb = sizeof (int);
+		int* copy = (int*)Port::Memory::copy (0, block, cb, 0);
 		ASSERT_TRUE (copy);
 		EXPECT_EQ (*copy, *block);
 		EXPECT_TRUE (Port::Memory::is_readable (copy, sizeof (int)));
@@ -243,7 +254,8 @@ TEST_F (TestMemory, SmallBlock)
 		Port::Memory::release (copy, sizeof (int));
 	}
 	{
-		int* copy = (int*)Port::Memory::copy (0, block, sizeof (int), Memory::READ_ONLY);
+		cb = sizeof (int);
+		int* copy = (int*)Port::Memory::copy (0, block, cb, Memory::READ_ONLY);
 		ASSERT_TRUE (copy);
 		EXPECT_EQ (*copy, *block);
 		EXPECT_TRUE (Port::Memory::is_readable (copy, sizeof (int)));
@@ -257,7 +269,8 @@ TEST_F (TestMemory, SmallBlock)
 	*block = 1;
 	{
 		EXPECT_TRUE (Port::Memory::is_private (block, sizeof (int)));
-		int* copy = (int*)Port::Memory::copy (0, block, Port::Memory::FIXED_COMMIT_UNIT, Memory::SRC_DECOMMIT);
+		cb = Port::Memory::FIXED_COMMIT_UNIT;
+		int* copy = (int*)Port::Memory::copy (0, block, cb, Memory::SRC_DECOMMIT);
 		EXPECT_EQ (*copy, 1);
 		EXPECT_TRUE (Port::Memory::is_readable (copy, sizeof (int)));
 		EXPECT_TRUE (Port::Memory::is_writable (copy, sizeof (int)));
@@ -272,7 +285,8 @@ TEST_F (TestMemory, SmallBlock)
 		Port::Memory::release (copy, sizeof (int));
 	}
 	{
-		int* copy = (int*)Port::Memory::copy (0, block, sizeof (int), Memory::SRC_RELEASE);
+		cb = sizeof (int);
+		int* copy = (int*)Port::Memory::copy (0, block, cb, Memory::SRC_RELEASE);
 		ASSERT_EQ (copy, block);
 	}
 	Port::Memory::release (block, sizeof (int));
@@ -281,9 +295,11 @@ TEST_F (TestMemory, SmallBlock)
 TEST_F (TestMemory, NotShared)
 {
 	static const char test_const [] = "test";
-	char* copy = (char*)Port::Memory::copy (0, (void*)test_const, sizeof (test_const), Memory::DST_ALLOCATE);
+	size_t cb = sizeof (test_const);
+	char* copy = (char*)Port::Memory::copy (0, (void*)test_const, cb, Memory::DST_ALLOCATE);
 	static char test [sizeof (test_const)];
-	Port::Memory::copy (test, copy, sizeof (test_const), 0);
+	cb = sizeof (test_const);
+	Port::Memory::copy (test, copy, cb, 0);
 	EXPECT_STREQ (test, test_const);
 	Port::Memory::release (copy, sizeof (test_const));
 }

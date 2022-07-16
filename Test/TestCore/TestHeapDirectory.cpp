@@ -21,7 +21,8 @@ public:
 
 	static DirectoryType* create ()
 	{
-		return new (Port::Memory::allocate (nullptr, sizeof (DirectoryType), 
+		size_t cb = sizeof (DirectoryType);
+		return new (Port::Memory::allocate (nullptr, cb, 
 				IMPL > HeapDirectoryImpl::COMMITTED_BITMAP ? Memory::RESERVED : Memory::ZERO_INIT)
 			) DirectoryType ();
 	}

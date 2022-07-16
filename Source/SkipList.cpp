@@ -73,7 +73,8 @@ SkipListBase::SkipListBase (unsigned node_size, unsigned max_level, void* head_t
 
 SkipListBase::Node* SkipListBase::allocate_node (unsigned level)
 {
-	Node* p = (Node*)g_core_heap->allocate (0, node_size (level), 0);
+	size_t cb = node_size (level);
+	Node* p = (Node*)g_core_heap->allocate (0, cb, 0);
 	p->level = (Level)level;
 #ifdef _DEBUG
 	node_cnt_.increment ();

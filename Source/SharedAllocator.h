@@ -48,7 +48,8 @@ public:
 
 	static T* allocate (size_t cnt, void* hint = nullptr, unsigned flags = 0)
 	{
-		return (T*)g_shared_mem_context->heap ().allocate (hint, cnt * sizeof (T), flags);
+		size_t cb = cnt * sizeof (T);
+		return (T*)g_shared_mem_context->heap ().allocate (hint, cb, flags);
 	}
 };
 

@@ -239,7 +239,7 @@ Heap::Directory* Heap::get_partition (const void* p) NIRVANA_NOEXCEPT
 	return part;
 }
 
-void* Heap::allocate (void* p, size_t size, unsigned flags)
+void* Heap::allocate (void* p, size_t& size, unsigned flags)
 {
 	if (!size)
 		THROW (BAD_PARAM);
@@ -269,7 +269,7 @@ void* Heap::allocate (void* p, size_t size, unsigned flags)
 	return p;
 }
 
-void* Heap::allocate (size_t size, unsigned flags)
+void* Heap::allocate (size_t& size, unsigned flags)
 {
 	void* p;
 	const size_t max_block_size = Directory::MAX_BLOCK_SIZE * allocation_unit_;
@@ -319,7 +319,7 @@ void Heap::add_large_block (void* p, size_t size)
 	}
 }
 
-void* Heap::allocate (Directory& part, size_t size, unsigned flags, size_t allocation_unit) NIRVANA_NOEXCEPT
+void* Heap::allocate (Directory& part, size_t& size, unsigned flags, size_t allocation_unit) NIRVANA_NOEXCEPT
 {
 	size_t units = (size + allocation_unit - 1) / allocation_unit;
 	uint8_t* heap = (uint8_t*)(&part + 1);
@@ -330,13 +330,15 @@ void* Heap::allocate (Directory& part, size_t size, unsigned flags, size_t alloc
 		void* p = heap + unit * allocation_unit;
 		if (flags & Memory::ZERO_INIT)
 			zero ((size_t*)p, (size_t*)p + (size + sizeof (size_t) - 1) / sizeof (size_t));
+		size = units * allocation_unit;
 		return p;
 	}
 	return nullptr;
 }
 
-void* Heap::allocate (Directory& part, void* p, size_t size, unsigned flags) const NIRVANA_NOEXCEPT
+void* Heap::allocate (Directory& part, void* p, size_t& size, unsigned flags) const NIRVANA_NOEXCEPT
 {
+	assert (size);
 	uint8_t* heap = (uint8_t*)(&part + 1);
 	size_t offset = (uint8_t*)p - heap;
 	size_t begin = offset / allocation_unit_;
@@ -350,12 +352,12 @@ void* Heap::allocate (Directory& part, void* p, size_t size, unsigned flags) con
 	HeapInfo hi = {heap, allocation_unit_, Port::Memory::OPTIMAL_COMMIT_UNIT};
 	if (part.allocate (begin, end, flags & Memory::RESERVED ? nullptr : &hi)) {
 		uint8_t* pbegin = heap + begin * allocation_unit_;
-		if (!(flags & Memory::EXACTLY))
-			p = pbegin;
+		p = pbegin;
 
 		if (flags & Memory::ZERO_INIT)
 			zero ((size_t*)pbegin, (size_t*)(heap + end * allocation_unit_));
 
+		size = (end - begin) * allocation_unit_;
 		return p;
 	}
 	return nullptr;
@@ -420,7 +422,7 @@ Heap::MemoryBlock* HeapCore::add_new_partition (MemoryBlock*& tail)
 	return ret;
 }
 
-void* Heap::copy (void* dst, void* src, size_t size, unsigned flags)
+void* Heap::copy (void* dst, void* src, size_t& size, unsigned flags)
 {
 	if (!size)
 		return dst;
@@ -454,12 +456,8 @@ void* Heap::copy (void* dst, void* src, size_t size, unsigned flags)
 			try {
 				new_node = block_list_.create_node ();
 				dst = Port::Memory::copy (dst, src, size, flags);
-				if (dst) {
-					const uintptr_t au = Port::Memory::ALLOCATION_UNIT;
-					uint8_t* begin = round_down ((uint8_t*)dst, au);
-					uint8_t* end = round_up ((uint8_t*)dst + size, au);
-					new_node->value () = MemoryBlock (begin, end - begin);
-				}
+				if (dst)
+					new_node->value () = MemoryBlock (dst, size);
 			} catch (...) {
 				if (new_node)
 					block_list_.release_node (new_node);
@@ -509,7 +507,8 @@ void* Heap::copy (void* dst, void* src, size_t size, unsigned flags)
 						alloc_begin = tmp;
 					}
 
-					if (!allocate (alloc_begin, alloc_end - alloc_begin, (flags & ~Memory::READ_ONLY) | Memory::RESERVED | Memory::EXACTLY)) {
+					size_t cb = alloc_end - alloc_begin;
+					if (!allocate (alloc_begin, cb, (flags & ~Memory::READ_ONLY) | Memory::RESERVED | Memory::EXACTLY)) {
 						if (flags & Memory::EXACTLY)
 							return nullptr;
 						dst = allocate (size, (flags & ~Memory::READ_ONLY) | Memory::RESERVED);
@@ -575,7 +574,9 @@ void* Heap::copy (void* dst, void* src, size_t size, unsigned flags)
 			if (alloc_begin < src_end)
 				alloc_begin = round_up (src_end, au);
 		}
-		if (!allocate (alloc_begin, alloc_end - alloc_begin, (flags & ~Memory::READ_ONLY) | Memory::RESERVED | Memory::EXACTLY)) {
+
+		size_t cb = alloc_end - alloc_begin;
+		if (!allocate (alloc_begin, cb, (flags & ~Memory::READ_ONLY) | Memory::RESERVED | Memory::EXACTLY)) {
 			if (flags & Memory::EXACTLY)
 				return nullptr;
 			dst = allocate (size, flags | Memory::RESERVED);
@@ -689,7 +690,8 @@ void Heap::change_protection (bool read_only)
 						break;
 					commit_end += commit_unit;
 				}
-				Port::Memory::copy (begin, begin, commit_end - begin, protection);
+				size_t cb = commit_end - begin;
+				Port::Memory::copy (begin, begin, cb, protection);
 				begin = commit_end;
 			}
 		} while (begin < end);
