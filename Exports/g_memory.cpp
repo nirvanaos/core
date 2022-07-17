@@ -36,7 +36,7 @@ class Memory :
 {
 public:
 	// Memory::
-	static void* allocate (void* dst, size_t size, unsigned flags)
+	static void* allocate (void* dst, size_t& size, unsigned flags)
 	{
 		return MemContext::current ().heap ().allocate (dst, size, flags);
 	}
@@ -56,7 +56,7 @@ public:
 		return MemContext::current ().heap ().decommit (p, size);
 	}
 
-	static void* copy (void* dst, void* src, size_t size, unsigned flags)
+	static void* copy (void* dst, void* src, size_t& size, unsigned flags)
 	{
 		return MemContext::current ().heap ().copy (dst, src, size, flags);
 	}

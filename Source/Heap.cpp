@@ -443,6 +443,7 @@ void* Heap::copy (void* dst, void* src, size_t& size, unsigned flags)
 		return dst;
 	}
 
+	size_t cb_copy = size;
 	unsigned release_flags = flags & Memory::SRC_RELEASE;
 	if (release_flags == Memory::SRC_RELEASE) {
 		BlockList::NodeVal* node = block_list_.lower_bound (src);
@@ -525,9 +526,9 @@ void* Heap::copy (void* dst, void* src, size_t& size, unsigned flags)
 
 				try {
 					if (dst_own)
-						dst = Port::Memory::copy (dst, src, size, (flags & ~Memory::SRC_RELEASE) | Memory::SRC_DECOMMIT);
+						dst = Port::Memory::copy (dst, src, cb_copy, (flags & ~Memory::SRC_RELEASE) | Memory::SRC_DECOMMIT);
 					else
-						real_copy ((uint8_t*)src, (uint8_t*)src + size, (uint8_t*)dst);
+						real_copy ((uint8_t*)src, (uint8_t*)src + cb_copy, (uint8_t*)dst);
 				} catch (...) {
 					Port::Memory::release (alloc_begin, alloc_end - alloc_begin);
 					throw;
@@ -591,9 +592,9 @@ void* Heap::copy (void* dst, void* src, size_t& size, unsigned flags)
 
 	try {
 		if (dst_own)
-			dst = Port::Memory::copy (dst, src, size, flags & ~Memory::DST_ALLOCATE);
+			dst = Port::Memory::copy (dst, src, cb_copy, flags & ~Memory::DST_ALLOCATE);
 		else
-			real_copy ((uint8_t*)src, (uint8_t*)src + size, (uint8_t*)dst);
+			real_copy ((uint8_t*)src, (uint8_t*)src + cb_copy, (uint8_t*)dst);
 	} catch (...) {
 		Port::Memory::release (alloc_begin, alloc_end - alloc_begin);
 		throw;
