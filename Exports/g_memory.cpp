@@ -61,24 +61,9 @@ public:
 		return MemContext::current ().heap ().copy (dst, src, size, flags);
 	}
 
-	static bool is_readable (const void* p, size_t size)
-	{
-		return MemContext::current ().heap ().is_readable (p, size);
-	}
-
-	static bool is_writable (const void* p, size_t size)
-	{
-		return MemContext::current ().heap ().is_writable (p, size);
-	}
-
 	static bool is_private (const void* p, size_t size)
 	{
 		return MemContext::current ().heap ().is_private (p, size);
-	}
-
-	static bool is_copy (const void* p1, const void* p2, size_t size)
-	{
-		return MemContext::current ().heap ().is_copy (p1, p2, size);
 	}
 
 	static intptr_t query (const void* p, Memory::QueryParam q)

@@ -436,9 +436,10 @@ void* Heap::copy (void* dst, void* src, size_t& size, unsigned flags)
 		throw_INV_FLAG ();
 
 	if (dst == src) {
+		// Special case: change protection
 		if (check_owner (dst, size))
 			return Port::Memory::copy (dst, src, size, flags);
-		else if ((flags & Memory::READ_ONLY) || !Port::Memory::is_writable (dst, size))
+		else if (flags & Memory::READ_ONLY)
 			THROW (NO_PERMISSION);
 		return dst;
 	}

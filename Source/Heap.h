@@ -134,24 +134,9 @@ public:
 
 	void* copy (void* dst, void* src, size_t& size, unsigned flags);
 
-	static bool is_readable (const void* p, size_t size)
-	{
-		return Port::Memory::is_readable (p, size);
-	}
-
-	static bool is_writable (const void* p, size_t size)
-	{
-		return Port::Memory::is_writable (p, size);
-	}
-
 	static bool is_private (const void* p, size_t size)
 	{
 		return Port::Memory::is_private (p, size);
-	}
-
-	static bool is_copy (const void* p1, const void* p2, size_t size)
-	{
-		return Port::Memory::is_copy (p1, p2, size);
 	}
 
 	uintptr_t query (const void* p, Memory::QueryParam param);
