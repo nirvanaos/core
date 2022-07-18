@@ -157,16 +157,22 @@ TEST_F (TestHeap, LargeBlock)
 TEST_F (TestHeap, ReadOnly)
 {
 	size_t pu = (size_t)heap_.query (nullptr, Memory::QueryParam::PROTECTION_UNIT);
-	size_t* p = (size_t*)heap_.allocate (nullptr, pu, 0);
+	size_t cb = pu;
+	size_t* p = (size_t*)heap_.allocate (nullptr, cb, 0);
+	EXPECT_EQ (cb, pu);
 	size_t au = (size_t)heap_.query (p, Memory::QueryParam::ALLOCATION_UNIT);
 	if (au < pu) {
 		fill_n (p, pu / sizeof (size_t), 1);
-		size_t* pro = (size_t*)heap_.copy (nullptr, p, pu, Memory::READ_ONLY);
+		cb = pu;
+		size_t* pro = (size_t*)heap_.copy (nullptr, p, cb, Memory::READ_ONLY);
+		EXPECT_EQ (cb, pu);
 		EXPECT_TRUE (check_readable (pro, pu, 1));
 		size_t pu2 = (size_t)pu / 2;
 		size_t* p1 = pro + pu2 / sizeof (size_t);
 		heap_.release (p1, pu2);
-		size_t* p2 = (size_t*)heap_.allocate (p1, pu2, 0);
+		cb = pu2;
+		size_t* p2 = (size_t*)heap_.allocate (p1, cb, 0);
+		EXPECT_EQ (cb, pu2);
 		EXPECT_EQ (p1, p2);
 		fill_n (p2, pu2 / sizeof (size_t), 1);
 		heap_.release (pro, pu);
@@ -249,7 +255,8 @@ void RandomAllocator::run (Core::Heap& memory, int iterations)
 					case OP_ALLOCATE:
 					{
 						size_t size = uniform_int_distribution <size_t> (1, MAX_BLOCK / sizeof (size_t))(rndgen_) * sizeof (size_t);
-						size_t* block = (size_t*)memory.allocate (nullptr, size, Memory::ZERO_INIT);
+						size_t cb = size;
+						size_t* block = (size_t*)memory.allocate (nullptr, cb, Memory::ZERO_INIT);
 						EXPECT_TRUE (check_readable (block, size, 0)); // Check for ZERO_INIT
 						total_allocated_ += size;
 						size_t tag = next_tag_++;
@@ -265,7 +272,8 @@ void RandomAllocator::run (Core::Heap& memory, int iterations)
 						Block& src = allocated_ [idx];
 						size_t size = (src.end - src.begin) * sizeof (size_t);
 						bool read_only = OP_COPY_RO == op;
-						size_t* block = (size_t*)memory.copy (nullptr, src.begin, size, read_only ? Memory::READ_ONLY : 0);
+						size_t cb = size;
+						size_t* block = (size_t*)memory.copy (nullptr, src.begin, cb, read_only ? Memory::READ_ONLY : 0);
 						total_allocated_ += size;
 						allocated_.push_back ({ src.tag, block, block + size / sizeof (size_t), read_only ? Block::READ_ONLY : Block::READ_WRITE });
 					}
@@ -337,7 +345,8 @@ void AllocatedBlocks::check (Core::Heap& memory)
 	for (auto p = cbegin (); p != cend (); ++p) {
 		size_t size = (p->end - p->begin) * sizeof (size_t);
 		memory.release (p->begin, size);
-		size_t* bl = (size_t*)memory.allocate (p->begin, size, Memory::EXACTLY | ((Block::RESERVED == p->state) ? Memory::RESERVED : 0));
+		size_t cb = size;
+		size_t* bl = (size_t*)memory.allocate (p->begin, cb, Memory::EXACTLY | ((Block::RESERVED == p->state) ? Memory::RESERVED : 0));
 		assert (bl);
 		ASSERT_EQ (p->begin, bl);
 		fill (p->begin, p->end, p->tag);
@@ -427,7 +436,9 @@ void write_copy (Core::Heap& memory, void* src, void* dst, size_t size, int iter
 			*p = i++;
 		}
 
-		ASSERT_EQ (memory.copy (dst, src, size, 0), dst);
+		size_t cb = size;
+		ASSERT_EQ (memory.copy (dst, src, cb, 0), dst);
+		EXPECT_EQ (cb, size);
 		i = 0;
 		for (const int* p = (const int*)dst, *end = p + size / sizeof (int); p != end; ++p) {
 			ASSERT_EQ (*p, i);
