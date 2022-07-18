@@ -58,6 +58,41 @@ TEST_F (TestSystem, HeapFactory)
 	}
 }
 
+TEST_F (TestSystem, AccessViolation)
+{
+	Memory::_ref_type heap = g_system->create_heap (0);
+	size_t cb = (size_t)heap->query (nullptr, Memory::QueryParam::PROTECTION_UNIT);
+	if (!cb)
+		return;
+
+	void* p = heap->allocate (0, cb, Memory::RESERVED);
+	bool OK = false;
+	int minor;
+	try {
+		*(int*)p = 1;
+	} catch (const CORBA::ACCESS_VIOLATION& ex) {
+		OK = true;
+		minor = ex.minor ();
+	}
+	heap->release (p, cb);
+	EXPECT_TRUE (OK);
+	EXPECT_EQ (SEGV_MAPERR, minor);
+
+	p = heap->allocate (0, cb, 0);
+	void* p1 = heap->copy (nullptr, p, cb, Memory::READ_ONLY);
+	OK = false;
+	try {
+		*(int*)p1 = 1;
+	} catch (const CORBA::ACCESS_VIOLATION& ex) {
+		OK = true;
+		minor = ex.minor ();
+	}
+	heap->release (p, cb);
+	heap->release (p1, cb);
+	EXPECT_TRUE (OK);
+	EXPECT_EQ (SEGV_ACCERR, minor);
+}
+
 TEST_F (TestSystem, Yield)
 {
 	EXPECT_FALSE (g_system->yield ());
