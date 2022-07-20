@@ -205,8 +205,7 @@ void RequestLocal::marshal_seq (size_t align, size_t element_size,
 				if (max_inline_string)
 					size += element_size;
 				void* p = tm.copy (nullptr, data, size, 0);
-				uintptr_t au = tm.query (p, Memory::QueryParam::ALLOCATION_UNIT);
-				segment->allocated_size = round_up (size, au);
+				segment->allocated_size = size;
 				segment->allocated_memory = p;
 				if (allocated_size)
 					source_memory ().release (data, allocated_size);
