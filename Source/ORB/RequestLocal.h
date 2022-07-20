@@ -112,9 +112,10 @@ public:
 	/// \param align Data alignment
 	/// \param element_size Element size.
 	/// \param [out] element_count Count of elements.
-	/// \param [out] data Pointer to the data with common-data-representation (CDR).
-	/// \param [out] allocated_size If this parameter is not zero, the caller
-	///              becomes an owner of the memory block.
+	/// \param [out] data Pointer to the allocated memory block with common-data-representation (CDR).
+	///                   The caller becomes an owner of this memory block.
+	/// \param [out] allocated_size Size of the allocated memory block.
+	///              
 	/// \returns `true` if the byte order must be swapped after unmarshaling.
 	bool unmarshal_seq (size_t align, size_t element_size,
 		size_t& element_count, void*& data, size_t& allocated_size);
