@@ -487,10 +487,7 @@ protected:
 		size_t element_count, void* data, size_t allocated_size);
 	void unmarshal_segment (void*& data, size_t& allocated_size);
 
-	void set_ptr (const void* p)
-	{
-		cur_ptr_ = (Octet*)p;
-	}
+	void set_ptr (const void* p);
 
 	void rewind () NIRVANA_NOEXCEPT;
 

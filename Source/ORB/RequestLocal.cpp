@@ -225,6 +225,28 @@ const void* RequestLocal::read (size_t align, size_t size, void* data)
 	return begin;
 }
 
+void RequestLocal::set_ptr (const void* p)
+{
+	const Octet* block_begin = (const Octet*)this;
+	const Octet* block_end = block_begin + BLOCK_SIZE;
+	if (block_begin < p && p < block_end)
+		cur_block_ = nullptr;
+	else {
+		BlockHdr* block = first_block_;
+		while (block) {
+			block_begin = (const Octet*)(block + 1);
+			block_end = (const Octet*)block + block->size;
+			if (block_begin < p && p < block_end)
+				break;
+			block = block->next;
+		}
+		assert (block);
+		cur_block_ = block;
+	}
+
+	cur_ptr_ = (Octet*)p;
+}
+
 void RequestLocal::marshal_segment (size_t align, size_t element_size,
 	size_t element_count, void* data, size_t allocated_size)
 {
