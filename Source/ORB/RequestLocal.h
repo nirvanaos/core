@@ -79,19 +79,21 @@ public:
 	/// \param data  Pointer to the data with common-data-representation (CDR).
 	void marshal (size_t align, size_t size, const void* data)
 	{
+		check_align (align);
 		marshal_op ();
-		Nirvana::real_copy ((const Octet*)data, (const Octet*)data + size, (Octet*)allocate_space (align, size, size));
+		write (align, size, data);
 	}
 
 	/// Unmarshal CDR data.
 	/// 
 	/// \param align Data alignment
 	/// \param size  Data size.
-	/// \param [out] data Pointer to the internal data buffer.
+	/// \param data Pointer to the data buffer.
 	/// \returns `true` if the byte order must be swapped after unmarshaling.
-	bool unmarshal (size_t align, size_t size, void*& data)
+	bool unmarshal (size_t align, size_t size, void* data)
 	{
-		data = get_data (align, size, size);
+		check_align (align);
+		read (align, size, data);
 		return false;
 	}
 
@@ -104,8 +106,17 @@ public:
 	/// \param allocated_size If this parameter is not zero, the request
 	///        object becomes an owner of the memory block.
 	void marshal_seq (size_t align, size_t element_size,
-		size_t element_count, void* data, size_t allocated_size,
-		size_t max_inline_string = 0);
+		size_t element_count, void* data, size_t allocated_size)
+	{
+		check_align (align);
+		marshal_op ();
+
+		write (alignof (size_t), sizeof (size_t), &element_count);
+		if (element_count)
+			marshal_segment (align, element_size, element_count, data, allocated_size);
+		else if (allocated_size)
+			source_memory ().release (data, allocated_size);
+	}
 
 	/// Unmarshal CDR sequence.
 	/// 
@@ -118,7 +129,18 @@ public:
 	///              
 	/// \returns `true` if the byte order must be swapped after unmarshaling.
 	bool unmarshal_seq (size_t align, size_t element_size,
-		size_t& element_count, void*& data, size_t& allocated_size);
+		size_t& element_count, void*& data, size_t& allocated_size)
+	{
+		check_align (align);
+		read (alignof (size_t), sizeof (size_t), &element_count);
+		if (element_count)
+			unmarshal_segment (data, allocated_size);
+		else {
+			data = nullptr;
+			allocated_size = 0;
+		}
+		return false;
+	}
 
 	///@}
 
@@ -131,7 +153,7 @@ public:
 	void marshal_seq_begin (size_t element_count)
 	{
 		marshal_op ();
-		*(size_t*)allocate_space (alignof (size_t), sizeof (size_t), sizeof (size_t)) = element_count;
+		write (alignof (size_t), sizeof (size_t), &element_count);
 	}
 
 	/// Get unmarshalling sequence size.
@@ -139,7 +161,9 @@ public:
 	/// \returns The sequence size.
 	size_t unmarshal_seq_begin ()
 	{
-		return *(size_t*)get_data (alignof (size_t), sizeof (size_t), sizeof (size_t));
+		size_t element_count;
+		read (alignof (size_t), sizeof (size_t), &element_count);
+		return element_count;
 	}
 
 	///@}
@@ -150,20 +174,21 @@ public:
 	template <typename C>
 	void marshal_char (size_t count, const C* data)
 	{
-		marshal (alignof (C), count * sizeof (C), data);
+		marshal_op ();
+		write (alignof (C), count * sizeof (C), data);
 	}
 
 	template <typename C>
 	void unmarshal_char (size_t count, C* data)
 	{
-		size_t cb = count * sizeof (C);
-		const C* chars = (const C*)get_data (alignof (C), cb, cb);
-		Nirvana::real_copy (chars, chars + count, data);
+		read (alignof (C), count * sizeof (C), data);
 	}
 
 	template <typename C>
 	void marshal_string (StringT <C>& s, bool move)
 	{
+		marshal_op ();
+
 		typedef typename Type <StringT <C> >::ABI ABI;
 		ABI& abi = (ABI&)s;
 		size_t size;
@@ -175,28 +200,41 @@ public:
 			size = abi.small_size ();
 			ptr = abi.small_pointer ();
 		}
-		marshal_seq (alignof (C), sizeof (C), size, ptr,
-			move ? abi.allocated () : 0, ABI::SMALL_CAPACITY);
-		if (move)
-			abi.reset ();
+		write (alignof (size_t), sizeof (size_t), &size);
+		if (size <= ABI::SMALL_CAPACITY)
+			write (alignof (C), size * sizeof (C), ptr);
+		else {
+			marshal_segment (alignof (C), sizeof (C), size + 1, ptr, move ? abi.allocated () : 0);
+			if (move)
+				abi.reset ();
+		}
 	}
 
 	template <typename C>
 	void unmarshal_string (StringT <C>& s)
 	{
-		size_t size, allocated;
-		void* ptr;
-		unmarshal_seq (alignof (C), sizeof (C), size, ptr, allocated);
-		if (allocated) {
-			s.clear ();
-			s.shrink_to_fit ();
-			typedef typename Type <StringT <C> >::ABI ABI;
-			ABI& abi = (ABI&)s;
+		typedef typename Type <StringT <C> >::ABI ABI;
+
+		size_t size;
+		read (alignof (size_t), sizeof (size_t), &size);
+		StringT <C> tmp;
+		ABI& abi = (ABI&)tmp;
+		if (size <= ABI::SMALL_CAPACITY) {
+			if (size) {
+				abi.small_size (size);
+				C* p = abi.small_pointer ();
+				read (alignof (C), sizeof (C) * size, p);
+				p [size] = 0;
+			}
+		} else {
+			void* data;
+			size_t allocated_size;
+			unmarshal_segment (data, allocated_size);
 			abi.large_size (size);
-			abi.allocated (allocated);
-			abi.large_pointer ((C*)ptr);
-		} else
-			s.assign ((const C*)ptr, size);
+			abi.large_pointer ((C*)data);
+			abi.allocated (allocated_size);
+		}
+		s = std::move (tmp);
 	}
 
 	template <typename C>
@@ -213,19 +251,11 @@ public:
 	template <typename C>
 	void unmarshal_char_seq (Sequence <C>& s)
 	{
-		size_t size, allocated;
-		void* ptr;
-		unmarshal_seq (alignof (C), sizeof (C), size, ptr, allocated);
-		if (allocated) {
-			s.clear ();
-			s.shrink_to_fit ();
-			typedef typename Type <Sequence <C> >::ABI ABI;
-			ABI& abi = (ABI&)s;
-			abi.size = size;
-			abi.allocated = allocated;
-			abi.ptr = (C*)ptr;
-		} else
-			s.assign ((const C*)ptr, (const C*)ptr + size);
+		typedef typename Type <Sequence <C> >::ABI ABI;
+		Sequence <C> tmp;
+		ABI& abi = (ABI&)tmp;
+		unmarshal_seq (alignof (C), sizeof (C), abi.size, (void*&)abi.ptr, abi.allocated);
+		s = std::move (tmp);
 	}
 
 	void marshal_wchar (size_t count, const WChar* data)
@@ -450,8 +480,17 @@ protected:
 	}
 
 	void marshal_op () NIRVANA_NOEXCEPT;
-	void* allocate_space (size_t align, size_t size, size_t reserve);
-	void* get_data (size_t align, size_t size, size_t reserve);
+	void check_align (size_t align);
+	void* write (size_t align, size_t size, const void* data);
+	const void* read (size_t align, size_t size, void* data);
+	void marshal_segment (size_t align, size_t element_size,
+		size_t element_count, void* data, size_t allocated_size);
+	void unmarshal_segment (void*& data, size_t& allocated_size);
+
+	void set_ptr (const void* p)
+	{
+		cur_ptr_ = (Octet*)p;
+	}
 
 	void rewind () NIRVANA_NOEXCEPT;
 
@@ -468,18 +507,7 @@ protected:
 
 	void cleanup () NIRVANA_NOEXCEPT;
 
-	template <typename Elem>
-	void invert_list (Elem*& head)
-	{
-		Elem* p = head;
-		head = nullptr;
-		while (p) {
-			Elem* next = p->next;
-			p->next = head;
-			head = p;
-			p = next;
-		}
-	}
+	void invert_list (void*& head);
 
 protected:
 	Nirvana::Core::RefCounter ref_cnt_;
@@ -494,31 +522,26 @@ private:
 		BlockHdr* next;
 	};
 
-	struct Segment
+	struct Element
+	{
+		void* ptr;
+		void* next;
+	};
+
+	struct Segment : Element
 	{
 		size_t allocated_size;
-
-		// If allocated_size is not zero, following members are present.
-		// Otherwise, the sequence data are follows immediate
-		// after allocated_size.
-		void* allocated_memory;
-		Segment* next;
 	};
 
-	struct ItfRecord
-	{
-		Interface* ptr;
-		// next is present if ptr != nullptr
-		ItfRecord* next;
-	};
+	typedef Element ItfRecord;
 
 	CoreRef <ServantProxyBase> proxy_;
 	IOReference::OperationIndex op_idx_;
 	State state_;
 	BlockHdr* first_block_;
 	BlockHdr* cur_block_;
-	ItfRecord* interfaces_;
-	Segment* segments_;
+	void* interfaces_;
+	void* segments_;
 };
 
 class NIRVANA_NOVTABLE RequestLocalAsync :
