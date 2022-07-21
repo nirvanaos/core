@@ -384,7 +384,7 @@ void FileAccessDirect::write (uint64_t pos, const std::vector <uint8_t>& data)
 				not_cached_end = std::min (end_block, cached_block->first);
 			if (cur_block < not_cached_end) {
 				// Insert new blocks to cache
-				Size cb = (Size)(not_cached_end - cur_block) * block_size_;
+				size_t cb = (not_cached_end - cur_block) * block_size_;
 				uint8_t* buffer = nullptr;
 				CacheRange new_blocks (cache_);
 				try {

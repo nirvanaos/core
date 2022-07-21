@@ -18,7 +18,7 @@ FileAccessDirect::CacheRange FileAccessDirect::request_read (BlockIdx begin_bloc
 				not_cached_end = min (end_block, cached_block->first);
 			if (begin_block < not_cached_end) {
 				// Issue new read request
-				Size cb = (Size)(not_cached_end - begin_block) * block_size_;
+				size_t cb = (Size)(not_cached_end - begin_block) * block_size_;
 				void* buffer = Port::Memory::allocate (nullptr, cb, 0);
 				CoreRef <Request> request;
 				unsigned new_blocks = 0;
@@ -28,7 +28,7 @@ FileAccessDirect::CacheRange FileAccessDirect::request_read (BlockIdx begin_bloc
 						blocks.append (it);
 						++new_blocks;
 						if (!request)
-							request = CoreRef <Request>::create <ImplDynamic <Request>> (IO_Request::OP_READ, (Pos)begin_block * (Pos)block_size_, buffer, cb, it);
+							request = CoreRef <Request>::create <ImplDynamic <Request>> (IO_Request::OP_READ, (Pos)begin_block * (Pos)block_size_, buffer, (Size)cb, it);
 						it->second.request = request;
 						if (not_cached_end == ++begin_block)
 							break;
