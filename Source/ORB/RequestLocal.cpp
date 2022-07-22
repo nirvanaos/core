@@ -236,7 +236,7 @@ void RequestLocal::set_ptr (const void* p)
 		while (block) {
 			block_begin = (const Octet*)(block + 1);
 			block_end = (const Octet*)block + block->size;
-			if (block_begin < p && p < block_end)
+			if (block_begin <= p && p < block_end)
 				break;
 			block = block->next;
 		}

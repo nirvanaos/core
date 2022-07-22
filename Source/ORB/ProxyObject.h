@@ -81,26 +81,6 @@ private:
 
 	static void non_existent_request (ProxyObject* servant, IORequest::_ptr_type call);
 
-	PortableServer::ServantBase::_ref_type _get_servant () const
-	{
-		if (&sync_context () == &::Nirvana::Core::SyncContext::current ())
-			return servant ();
-		else
-			throw MARSHAL ();
-	}
-
-	static Interface* __get_servant (Bridge <Object>* obj, Interface* env)
-	{
-		try {
-			return Type <PortableServer::Servant>::ret (static_cast <ProxyObject&> (_implementation (obj))._get_servant ());
-		} catch (Exception& e) {
-			set_exception (env, e);
-		} catch (...) {
-			set_unknown_exception (env);
-		}
-		return 0;
-	}
-
 	void release_object_id (PortableServer::ObjectId& oid) const NIRVANA_NOEXCEPT;
 
 private:

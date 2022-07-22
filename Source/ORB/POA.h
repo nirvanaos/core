@@ -47,30 +47,19 @@ public:
 	~POA ()
 	{}
 
-	static CORBA::Internal::Type <ObjectId>::ABI_ret _s_activate_object (
-		CORBA::Internal::Bridge <PortableServer::POA>* _b, Interface* servant,
-		Interface* env)
-	{
-		try {
-			return CORBA::Internal::Type <ObjectId>::ret (_implementation (_b).
-				activate_object (CORBA::Internal::Type <CORBA::Object>::in (servant)));
-		} catch (CORBA::Exception& e) {
-			set_exception (env, e);
-		} catch (...) {
-			set_unknown_exception (env);
-		}
-		return CORBA::Internal::Type <ObjectId>::ret ();
-	}
-
-	ObjectId activate_object (CORBA::Object::_ptr_type proxy)
+	ObjectId activate_object (PortableServer::ServantBase::_ptr_type p_servant)
 	{
 		if (active_object_map_.empty ())
 			_add_ref ();
-		uintptr_t ptr = (uintptr_t)&proxy;
+
+		uintptr_t ptr = (uintptr_t)&p_servant;
 		ObjectId objid ((const CORBA::Octet*)&ptr, (const CORBA::Octet*)(&ptr + 1));
-		std::pair <AOM::iterator, bool> ins = active_object_map_.emplace (objid, proxy);
+		CORBA::Object::_ptr_type obj = servant2object (p_servant);
+		std::pair <AOM::iterator, bool> ins = active_object_map_.emplace (objid, AOM_Val());
 		if (!ins.second)
 			throw PortableServer::POA::ServantAlreadyActive ();
+		ins.first->second.servant = p_servant;
+		ins.first->second.object = obj;
 		return objid;
 	}
 
@@ -84,12 +73,16 @@ public:
 
 private:
 	// Active Object Map (AOM)
-	typedef ObjectId Key;
-	typedef CORBA::Object::_ref_type Val;
+	typedef ObjectId AOM_Key;
+	struct AOM_Val
+	{
+		CORBA::Object::_ref_type object;
+		PortableServer::ServantBase::_ref_type servant;
+	};
 
-	typedef phmap::flat_hash_map <Key, Val, 
-		std::hash <Key>, std::equal_to <Key>, Nirvana::Core::UserAllocator
-		<std::pair <Key, Val> > > AOM;
+	typedef phmap::flat_hash_map <AOM_Key, AOM_Val,
+		std::hash <AOM_Key>, std::equal_to <AOM_Key>, Nirvana::Core::UserAllocator
+		<std::pair <AOM_Key, AOM_Val> > > AOM;
 
 	AOM active_object_map_;
 };

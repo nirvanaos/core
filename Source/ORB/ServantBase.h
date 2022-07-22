@@ -76,17 +76,6 @@ CORBA::Object::_ptr_type servant2object (Servant servant)
 	return core_obj->get_proxy ();
 }
 
-/// Returns nil for objects from other domains and for local objects
-inline
-PortableServer::ServantBase::_ref_type object2servant (CORBA::Object::_ptr_type obj)
-{
-	CORBA::Internal::Environment _env;
-	CORBA::Internal::I_ret <PortableServer::ServantBase> _ret = (obj->_epv ().epv.get_servant) (
-		static_cast <CORBA::Internal::Bridge <CORBA::Object>*> (&obj), &_env);
-	_env.check ();
-	return _ret;
-}
-
 }
 }
 
