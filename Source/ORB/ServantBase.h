@@ -64,17 +64,16 @@ public:
 		return false;
 	}
 
+	Servant servant () const NIRVANA_NOEXCEPT
+	{
+		return Base::servant ();
+	}
+
 	static PortableServer::POA* default_POA_;
 };
 
-inline
-CORBA::Object::_ptr_type servant2object (Servant servant)
-{
-	Servant ps = servant->_core_servant ();
-	Core::ServantBase* core_obj = static_cast <Core::ServantBase *> (
-		static_cast <CORBA::Internal::Bridge <PortableServer::ServantBase>*> (&ps));
-	return core_obj->get_proxy ();
-}
+CORBA::Object::_ptr_type servant2object (Servant servant);
+PortableServer::ServantBase::_ref_type object2servant (CORBA::Object::_ptr_type obj);
 
 }
 }

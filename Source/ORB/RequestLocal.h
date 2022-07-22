@@ -377,16 +377,6 @@ public:
 		return unmarshal_interface (interface_id);
 	}
 
-	void marshal_servant (PortableServer::ServantBase::_ptr_type servant)
-	{
-		marshal_interface (servant);
-	}
-
-	PortableServer::ServantBase::_ref_type unmarshal_servant ()
-	{
-		return unmarshal_interface (RepIdOf <PortableServer::ServantBase>::id).template downcast <PortableServer::ServantBase> ();
-	}
-
 	///@}
 
 	///@{

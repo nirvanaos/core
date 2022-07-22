@@ -53,6 +53,30 @@ PortableServer::POA::_ref_type ServantBase::_default_POA ()
 
 typedef TypeCodeNative <PortableServer::ServantBase> TC_Servant;
 
+Object::_ptr_type servant2object (Servant servant)
+{
+	if (servant) {
+		Servant ps = servant->_core_servant ();
+		Core::ServantBase* core_obj = static_cast <Core::ServantBase*> (
+			static_cast <CORBA::Internal::Bridge <PortableServer::ServantBase>*> (&ps));
+		return core_obj->get_proxy ();
+	} else
+		return nullptr;
+}
+
+PortableServer::ServantBase::_ref_type object2servant (CORBA::Object::_ptr_type obj)
+{
+	if (obj) {
+		const Core::ServantBase& svt = static_cast <const ServantBase&> (
+			*static_cast <CORBA::Internal::Bridge <CORBA::Object>*> (&obj));
+
+		if (&svt.sync_context () != &Nirvana::Core::SyncContext::current ())
+			throw CORBA::OBJ_ADAPTER ();
+		return svt.servant ();
+	}
+	return nullptr;
+}
+
 }
 }
 

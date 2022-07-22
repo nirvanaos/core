@@ -47,42 +47,166 @@ public:
 	~POA ()
 	{}
 
-	ObjectId activate_object (PortableServer::ServantBase::_ptr_type p_servant)
+	static CORBA::Internal::Type <ObjectId>::ABI_ret _s_activate_object (
+		CORBA::Internal::Bridge <PortableServer::POA>* _b, Interface* servant,
+		Interface* env)
 	{
-		if (active_object_map_.empty ())
-			_add_ref ();
+		try {
+			return CORBA::Internal::Type <ObjectId>::ret (_implementation (_b).
+				activate_object (CORBA::Internal::Type <CORBA::Object>::in (servant)));
+		} catch (CORBA::Exception& e) {
+			set_exception (env, e);
+		} catch (...) {
+			set_unknown_exception (env);
+		}
+		return CORBA::Internal::Type <ObjectId>::ret ();
+	}
 
-		uintptr_t ptr = (uintptr_t)&p_servant;
+	ObjectId activate_object (CORBA::Object::_ptr_type proxy)
+	{
+		if (!proxy)
+			throw CORBA::BAD_PARAM ();
+
+		if (active_object_map_.empty ()) // TODO: Remove?
+			_add_ref ();
+		uintptr_t ptr = (uintptr_t)&proxy;
 		ObjectId objid ((const CORBA::Octet*)&ptr, (const CORBA::Octet*)(&ptr + 1));
-		CORBA::Object::_ptr_type obj = servant2object (p_servant);
-		std::pair <AOM::iterator, bool> ins = active_object_map_.emplace (objid, AOM_Val());
+		std::pair <AOM::iterator, bool> ins = active_object_map_.emplace (objid, proxy);
 		if (!ins.second)
-			throw PortableServer::POA::ServantAlreadyActive ();
-		ins.first->second.servant = p_servant;
-		ins.first->second.object = obj;
+			throw ServantAlreadyActive ();
 		return objid;
 	}
 
 	void deactivate_object (const ObjectId& oid)
 	{
 		if (!active_object_map_.erase (oid))
-			throw PortableServer::POA::ObjectNotActive ();
-		if (active_object_map_.empty ())
+			throw ObjectNotActive ();
+		if (active_object_map_.empty ()) // TODO: Remove?
 			_remove_ref ();
+	}
+
+	static CORBA::Internal::Type <ObjectId>::ABI_ret _s_servant_to_id (
+		CORBA::Internal::Bridge <PortableServer::POA>* _b, Interface* servant,
+		Interface* env)
+	{
+		try {
+			return CORBA::Internal::Type <ObjectId>::ret (_implementation (_b).
+				servant_to_id (CORBA::Internal::Type <CORBA::Object>::in (servant)));
+		} catch (CORBA::Exception& e) {
+			set_exception (env, e);
+		} catch (...) {
+			set_unknown_exception (env);
+		}
+		return CORBA::Internal::Type <ObjectId>::ret ();
+	}
+
+	ObjectId servant_to_id (CORBA::Object::_ptr_type proxy) const
+	{
+		for (AOM::const_iterator it = active_object_map_.begin (); it != active_object_map_.end (); ++it) {
+			if (&proxy == &CORBA::Object::_ptr_type (it->second))
+				return it->first;
+		}
+		throw ServantNotActive ();
+	}
+
+	static Interface* _s_servant_to_reference (
+		CORBA::Internal::Bridge <PortableServer::POA>* _b, Interface* servant,
+		Interface* env)
+	{
+		try {
+			return CORBA::Internal::Type <CORBA::Object>::ret (_implementation (_b).
+				servant_to_reference (CORBA::Internal::Type <CORBA::Object>::in (servant)));
+		} catch (CORBA::Exception& e) {
+			set_exception (env, e);
+		} catch (...) {
+			set_unknown_exception (env);
+		}
+		return CORBA::Internal::Type <CORBA::Object>::ret ();
+	}
+
+	CORBA::Object::_ref_type servant_to_reference (CORBA::Object::_ptr_type proxy) const
+	{
+		for (AOM::const_iterator it = active_object_map_.begin (); it != active_object_map_.end (); ++it) {
+			if (&proxy == &CORBA::Object::_ptr_type (it->second))
+				return proxy;
+		}
+		throw ServantNotActive ();
+	}
+
+	static Interface* _s_reference_to_servant (
+		CORBA::Internal::Bridge <PortableServer::POA>* _b, Interface* reference,
+		Interface* env)
+	{
+		try {
+			return CORBA::Internal::Type <CORBA::Object>::ret (_implementation (_b).
+				reference_to_servant (CORBA::Internal::Type <CORBA::Object>::in (reference)));
+		} catch (CORBA::Exception& e) {
+			set_exception (env, e);
+		} catch (...) {
+			set_unknown_exception (env);
+		}
+		return CORBA::Internal::Type <CORBA::Object>::ret ();
+	}
+
+	CORBA::Object::_ref_type reference_to_servant (CORBA::Object::_ptr_type proxy) const
+	{
+		for (AOM::const_iterator it = active_object_map_.begin (); it != active_object_map_.end (); ++it) {
+			if (&proxy == &CORBA::Object::_ptr_type (it->second))
+				return proxy;
+		}
+		throw ObjectNotActive ();
+	}
+
+	ObjectId reference_to_id (CORBA::Object::_ptr_type reference) const
+	{
+		for (AOM::const_iterator it = active_object_map_.begin (); it != active_object_map_.end (); ++it) {
+			if (&reference == &CORBA::Object::_ptr_type (it->second))
+				return it->first;
+		}
+		throw WrongAdapter ();
+	}
+
+	static Interface* _s_id_to_servant (
+		CORBA::Internal::Bridge <PortableServer::POA>* _b, CORBA::Internal::Type <ObjectId>::ABI_in oid,
+		Interface* env)
+	{
+		try {
+			return CORBA::Internal::Type <CORBA::Object>::ret (_implementation (_b).
+				id_to_servant (CORBA::Internal::Type <ObjectId>::in (oid)));
+		} catch (CORBA::Exception& e) {
+			set_exception (env, e);
+		} catch (...) {
+			set_unknown_exception (env);
+		}
+		return CORBA::Internal::Type <CORBA::Object>::ret ();
+	}
+
+	CORBA::Object::_ref_type id_to_servant (const ObjectId& oid) const
+	{
+		AOM::const_iterator it = active_object_map_.find (oid);
+		if (it != active_object_map_.end ())
+			return it->second;
+
+		throw ObjectNotActive ();
+	}
+
+	CORBA::Object::_ref_type id_to_reference (const ObjectId& oid) const
+	{
+		AOM::const_iterator it = active_object_map_.find (oid);
+		if (it != active_object_map_.end ())
+			return it->second;
+
+		throw ObjectNotActive ();
 	}
 
 private:
 	// Active Object Map (AOM)
-	typedef ObjectId AOM_Key;
-	struct AOM_Val
-	{
-		CORBA::Object::_ref_type object;
-		PortableServer::ServantBase::_ref_type servant;
-	};
+	typedef ObjectId Key;
+	typedef CORBA::Object::_ref_type Val;
 
-	typedef phmap::flat_hash_map <AOM_Key, AOM_Val,
-		std::hash <AOM_Key>, std::equal_to <AOM_Key>, Nirvana::Core::UserAllocator
-		<std::pair <AOM_Key, AOM_Val> > > AOM;
+	typedef phmap::flat_hash_map <Key, Val, 
+		std::hash <Key>, std::equal_to <Key>, Nirvana::Core::UserAllocator
+		<std::pair <Key, Val> > > AOM;
 
 	AOM active_object_map_;
 };
