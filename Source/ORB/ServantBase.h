@@ -46,7 +46,8 @@ public:
 	using Skeleton <ServantBase, PortableServer::ServantBase>::__is_a;
 
 	ServantBase (Servant servant) :
-		Base (servant)
+		Base (servant),
+		timestamp_ (next_timestamp_++)
 	{}
 
 	// ServantBase default implementation
@@ -57,22 +58,45 @@ public:
 			static_cast <CORBA::Internal::Bridge <PortableServer::ServantBase>&> (*this));
 	}
 
-	static PortableServer::POA::_ref_type _default_POA ();
+	static POA::_ref_type _default_POA ();
 
 	bool _non_existent () const
 	{
 		return false;
 	}
 
+	// Returns user servant implementation pointer
 	Servant servant () const NIRVANA_NOEXCEPT
 	{
 		return Base::servant ();
 	}
 
-	static PortableServer::POA* default_POA_;
+	static void initialize () NIRVANA_NOEXCEPT
+	{
+		next_timestamp_ = (int)(Nirvana::Core::Chrono::system_clock () / Nirvana::System::SECOND);
+	}
+
+	int timestamp () const NIRVANA_NOEXCEPT
+	{
+		return timestamp_;
+	}
+
+private:
+	const int timestamp_;
+
+	static POA* default_POA_;
+	static std::atomic <int> next_timestamp_;
 };
 
 CORBA::Object::_ptr_type servant2object (Servant servant);
+
+inline
+PortableServer::Core::ServantBase* object2servant_core (CORBA::Object::_ptr_type obj)
+{
+	return static_cast <PortableServer::Core::ServantBase*> (
+		static_cast <CORBA::Internal::Bridge <CORBA::Object>*> (&obj));
+}
+
 PortableServer::ServantBase::_ref_type object2servant (CORBA::Object::_ptr_type obj);
 
 }

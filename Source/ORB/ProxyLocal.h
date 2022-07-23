@@ -34,7 +34,7 @@ namespace CORBA {
 namespace Internal {
 namespace Core {
 
-/// LocalObject operations proxy
+/// LocalObject operations servant-side proxy
 class ProxyLocal :
 	public ServantProxyBase
 {

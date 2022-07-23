@@ -41,12 +41,22 @@ class Services
 public:
 	enum Service
 	{
-		DefaultPOA,
+		RootPOA,
 
 		SERVICE_COUNT
 	};
 
 protected:
+	Services ()
+	{}
+
+	~Services ()
+	{
+		PortableServer::POA::_ref_type root_POA = PortableServer::POA::_narrow (services_ [Service::RootPOA].get_if_constructed ());
+		if (root_POA)
+			root_POA->destroy (true, true);
+	}
+
 	static Service find_service (const char* id) NIRVANA_NOEXCEPT
 	{
 		const Factory* f = std::lower_bound (factories_, std::end (factories_), id, Less ());
@@ -75,17 +85,9 @@ protected:
 		return svc;
 	}
 
-	void reset () NIRVANA_NOEXCEPT
-	{
-		for (ServiceRef* p = services_; p != std::end (services_); ++p) {
-			p->reset ();
-		}
-	}
-
 private:
 	// Service factories
-
-	static Object::_ref_type create_DefaultPOA ();
+	static Object::_ref_type create_RootPOA ();
 
 private:
 	struct Factory

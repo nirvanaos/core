@@ -25,7 +25,7 @@
 */
 #include "ProxyObject.h"
 #include "../Runnable.h"
-#include "IDL/PortableServer.h"
+#include "POA.h"
 
 namespace CORBA {
 namespace Internal {
@@ -60,44 +60,18 @@ private:
 void ProxyObject::add_ref_1 ()
 {
 	Base::add_ref_1 ();
-	if (
-		!change_state (DEACTIVATION_SCHEDULED, DEACTIVATION_CANCELLED)
-	&&
-		change_state (INACTIVE, ACTIVATION)
-	) {
-		try {
-			PortableServer::POA::_ref_type poa = servant ()->_default_POA ();
-			// TODO: Query poa for the implicit activation policy
-			// While assume that implicit activation is on
-			implicit_activation_ = true;
 
-			assert (&sync_context () == &SyncContext::current ());
-
-			if (sync_context ().is_free_sync_context ()) {
-				// If target in a free sync context, implicit_activated_id_ must be
-				// allocated in the g_shared_mem_context.
-				// Otherwise it's data will be lost on the pop current memory context.
-				ExecDomain& ed = ExecDomain::current ();
-				ed.mem_context_push (&g_shared_mem_context);
-				try {
-					implicit_activated_id_ = poa->activate_object (servant ());
-				} catch (...) {
-					ed.mem_context_pop ();
+	if (!change_state (DEACTIVATION_SCHEDULED, DEACTIVATION_CANCELLED)) {
+		PortableServer::POA::_ref_type poa = servant ()->_default_POA ();
+		// Query poa for the implicit activation policy
+		bool implicit_activation = PortableServer::Core::POA_Impl::implicit_activation (poa);
+		if (implicit_activation && change_state (INACTIVE, ACTIVATION)) {
+			try {
+				poa->activate_object (servant ());
+			} catch (...) {
+				if (change_state (ACTIVATION, INACTIVE))
 					throw;
-				}
-				ed.mem_context_pop ();
-				assert (g_shared_mem_context->heap ().check_owner (
-					implicit_activated_id_.data (), implicit_activated_id_.capacity ()));
-			} else {
-				implicit_activated_id_ = poa->activate_object (servant ());
-				assert (sync_context ().sync_domain ()->mem_context ().heap ().check_owner (
-					implicit_activated_id_.data (), implicit_activated_id_.capacity ()));
-				assert (&MemContext::current () == &sync_context ().sync_domain ()->mem_context ());
 			}
-			activation_state_ = ACTIVE;
-		} catch (...) {
-			activation_state_ = INACTIVE;
-			throw;
 		}
 	}
 }
@@ -124,42 +98,13 @@ void ProxyObject::implicit_deactivate ()
 	assert (&sync_context () == &SyncContext::current ());
 
 	// Object may be re-activated later. So we clear implicit_activated_id_ here.
-	PortableServer::ObjectId tmp = std::move (implicit_activated_id_);
 	if (change_state (DEACTIVATION_SCHEDULED, INACTIVE)) {
-		servant ()->_default_POA ()->deactivate_object (tmp);
+		activated_POA_->deactivate_object (*activated_id_);
 	} else {
 		// Restore implicit_activated_id_
-		implicit_activated_id_ = std::move (tmp);
 		assert (DEACTIVATION_CANCELLED == activation_state_);
 		if (!change_state (DEACTIVATION_CANCELLED, ACTIVE))
 			::Nirvana::throw_BAD_INV_ORDER ();
-	}
-	release_object_id (tmp);
-}
-
-void ProxyObject::release_object_id (PortableServer::ObjectId& oid) const NIRVANA_NOEXCEPT
-{
-	if (oid.capacity ()) {
-		if (sync_context ().is_free_sync_context ()) {
-			// If target in a free sync context, implicit_activated_id_ must be
-			// allocated in the g_shared_mem_context.
-			assert (g_shared_mem_context->heap ().check_owner (
-				oid.data (), oid.capacity ()));
-			ExecDomain& ed = ExecDomain::current ();
-			ed.mem_context_push (&g_shared_mem_context);
-			try {
-				PortableServer::ObjectId tmp (move (oid));
-			} catch (...) {
-				assert (false); // TODO: Log
-				ed.mem_context_pop ();
-			}
-			ed.mem_context_pop ();
-		} else {
-			assert (sync_context ().sync_domain ()->mem_context ().heap ().check_owner (
-				oid.data (), oid.capacity ()));
-			assert (&MemContext::current () == &sync_context ().sync_domain ()->mem_context ());
-			PortableServer::ObjectId tmp (move (oid));
-		}
 	}
 }
 

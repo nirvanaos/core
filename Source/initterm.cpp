@@ -28,6 +28,7 @@
 #include "Scheduler.h"
 #include "ExecDomain.h"
 #include "TLS.h"
+#include "ORB/ServantBase.h"
 
 namespace Nirvana {
 namespace Core {
@@ -43,6 +44,7 @@ void initialize0 ()
 
 void initialize ()
 {
+	PortableServer::Core::ServantBase::initialize ();
 	Binder::initialize ();
 }
 

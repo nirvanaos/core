@@ -80,7 +80,7 @@ public:
 
 	static DeadlineTime make_deadline (Duration timeout) NIRVANA_NOEXCEPT
 	{
-		// TODO: If steady_clock_resoluion () is too low (1 sec?) we can implement advanced
+		// TODO: If steady_clock_resolution () is too low (1 sec?) we can implement advanced
 		// algorithm to create diffirent deadlines inside one clock tick,
 		// based on atomic counter.
 		DeadlineTime dt = steady_clock ();

@@ -36,12 +36,13 @@ using namespace Nirvana;
 namespace PortableServer {
 namespace Core {
 
-PortableServer::POA* ServantBase::default_POA_ = nullptr;
+POA* ServantBase::default_POA_ = nullptr;
+std::atomic <int> ServantBase::next_timestamp_;
 
 PortableServer::POA::_ref_type ServantBase::_default_POA ()
 {
 	if (!default_POA_) {
-		Object::_ref_type svc = Binder::bind_service (CORBA::Internal::Core::Services::DefaultPOA);
+		Object::_ref_type svc = Binder::bind_service (CORBA::Internal::Core::Services::RootPOA);
 		PortableServer::POA::_ref_type poa = PortableServer::POA::_narrow (svc);
 		if (!poa)
 			throw_INV_OBJREF ();
@@ -67,8 +68,7 @@ Object::_ptr_type servant2object (Servant servant)
 PortableServer::ServantBase::_ref_type object2servant (CORBA::Object::_ptr_type obj)
 {
 	if (obj) {
-		const Core::ServantBase& svt = static_cast <const ServantBase&> (
-			*static_cast <CORBA::Internal::Bridge <CORBA::Object>*> (&obj));
+		const Core::ServantBase& svt = *object2servant_core (obj);
 
 		if (&svt.sync_context () != &Nirvana::Core::SyncContext::current ())
 			throw CORBA::OBJ_ADAPTER ();

@@ -35,23 +35,56 @@ namespace CORBA {
 namespace Internal {
 namespace Core {
 
-/// Object operations proxy.
+/// Object operations servant-side proxy.
 class ProxyObject :
 	public ServantProxyBase
 {
 	typedef ServantProxyBase Base;
 	class Deactivator;
 
+public:
+	// Called from the POA synchronization domain
+	void activate (PortableServer::POA::_ptr_type poa,
+		const PortableServer::ObjectId& oid, bool implicit) NIRVANA_NOEXCEPT
+	{
+		assert (!activated_POA_);
+		activated_POA_ = poa;
+		activated_id_ = &oid;
+		implicit_activation_ = implicit;
+		activation_state_ = ACTIVE;
+	}
+
+	// Called from the POA synchronization domain
+	PortableServer::POA::_ptr_type activated_POA () const NIRVANA_NOEXCEPT
+	{
+		return activated_POA_;
+	}
+
+	// Called from the POA synchronization domain
+	const PortableServer::ObjectId* activated_id () const NIRVANA_NOEXCEPT
+	{
+		return activated_id_;
+	}
+
+	// Called from the POA synchronization domain
+	void deactivate () NIRVANA_NOEXCEPT
+	{
+		activated_POA_ = nullptr;
+		activated_id_ = nullptr;
+		implicit_activation_ = false;
+		activation_state_ = INACTIVE;
+	}
+
 protected:
 	ProxyObject (PortableServer::Servant servant) :
 		ServantProxyBase (servant, object_ops_, this),
+		activated_id_ (nullptr),
 		implicit_activation_ (false)
 	{}
 
 	~ProxyObject ()
 	{
-		assert (implicit_activated_id_.empty ());
-		release_object_id (implicit_activated_id_);
+		assert (!activated_id_);
 	}
 
 	PortableServer::Servant servant () const NIRVANA_NOEXCEPT
@@ -81,11 +114,10 @@ private:
 
 	static void non_existent_request (ProxyObject* servant, IORequest::_ptr_type call);
 
-	void release_object_id (PortableServer::ObjectId& oid) const NIRVANA_NOEXCEPT;
-
 private:
 	std::atomic <ActivationState> activation_state_;
-	PortableServer::ObjectId implicit_activated_id_;
+	PortableServer::POA::_ref_type activated_POA_;
+	const PortableServer::ObjectId* activated_id_;
 	bool implicit_activation_;
 
 	static const Operation object_ops_ [3];
