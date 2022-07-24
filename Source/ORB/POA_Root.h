@@ -23,33 +23,43 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
+#ifndef NIRVANA_ORB_CORE_POA_ROOT_H_
+#define NIRVANA_ORB_CORE_POA_ROOT_H_
+#pragma once
 
-#include "Services.h"
-#include "../Synchronized.h"
-#include "POA_Root.h"
+#include "POA_ImplicitUnique.h"
 
-namespace CORBA {
-namespace Internal {
+namespace PortableServer {
 namespace Core {
 
-using namespace Nirvana::Core;
-using namespace Nirvana;
+class POA_Root :
+	public POA_ImplicitUnique
+{
+public:
+	POA_Root () :
+		POA_ImplicitUnique (nullptr)
+	{}
 
-// Initial services. Must be lexicographically ordered.
+	~POA_Root ()
+	{}
 
-const Services::Factory Services::factories_ [Service::SERVICE_COUNT] = {
-	{ "RootPOA", create_RootPOA, System::MILLISECOND }
+	virtual IDL::String the_name () const override
+	{
+		return "RootPOA";
+	}
+
+	virtual POA::_ref_type the_parent () const NIRVANA_NOEXCEPT override
+	{
+		return nullptr;
+	}
+
+	virtual CORBA::OctetSeq id () const override
+	{
+		return CORBA::OctetSeq ();
+	}
 };
 
-// Service factories
-
-Object::_ref_type Services::create_RootPOA ()
-{
-	SYNC_BEGIN (g_core_free_sync_context, nullptr);
-	return make_reference <PortableServer::Core::POA_Root> ()->_this ();
-	SYNC_END ();
+}
 }
 
-}
-}
-}
+#endif

@@ -32,14 +32,15 @@
 #include "ProxyLocal.h"
 
 namespace CORBA {
-namespace Internal {
 namespace Core {
 
 /// \brief Core implementation of LocalObject default operations.
 class LocalObject final :
-	public CoreImpl <LocalObject, CORBA::LocalObject, ProxyLocal>
+	public CORBA::Internal::Core::CoreImpl <LocalObject, CORBA::LocalObject, 
+		CORBA::Internal::Core::ProxyLocal>
 {
-	typedef CoreImpl <LocalObject, CORBA::LocalObject, ProxyLocal> Base;
+	typedef CORBA::Internal::Core::CoreImpl <LocalObject, CORBA::LocalObject,
+		CORBA::Internal::Core::ProxyLocal> Base;
 public:
 	LocalObject (CORBA::LocalObject::_ptr_type servant) :
 		Base (servant)
@@ -53,7 +54,6 @@ public:
 	}
 };
 
-}
 }
 }
 

@@ -24,32 +24,24 @@
 *  popov.nirvana@gmail.com
 */
 
-#include "Services.h"
-#include "../Synchronized.h"
-#include "POA_Root.h"
+#include "POA_SystemId.h"
 
-namespace CORBA {
-namespace Internal {
-namespace Core {
-
-using namespace Nirvana::Core;
+using namespace CORBA;
 using namespace Nirvana;
 
-// Initial services. Must be lexicographically ordered.
+namespace PortableServer {
+namespace Core {
 
-const Services::Factory Services::factories_ [Service::SERVICE_COUNT] = {
-	{ "RootPOA", create_RootPOA, System::MILLISECOND }
-};
-
-// Service factories
-
-Object::_ref_type Services::create_RootPOA ()
+ObjectId POA_SystemId::unique_id (ServantBase* proxy)
 {
-	SYNC_BEGIN (g_core_free_sync_context, nullptr);
-	return make_reference <PortableServer::Core::POA_Root> ()->_this ();
-	SYNC_END ();
+	int timestamp = proxy->timestamp ();
+	ObjectId oid;
+	oid.resize (sizeof (proxy) + sizeof (timestamp));
+	real_copy ((const Octet*)&timestamp, (const Octet*)(&timestamp + 1),
+		real_copy ((const Octet*)&proxy, (const Octet*)(&proxy + 1), oid.data ()));
+	return oid;
 }
 
 }
 }
-}
+

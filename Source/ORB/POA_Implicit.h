@@ -23,33 +23,33 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
+#ifndef NIRVANA_ORB_CORE_POA_IMPLICIT_H_
+#define NIRVANA_ORB_CORE_POA_IMPLICIT_H_
+#pragma once
 
-#include "Services.h"
-#include "../Synchronized.h"
-#include "POA_Root.h"
+#include "POA_AOM.h"
 
-namespace CORBA {
-namespace Internal {
+namespace PortableServer {
 namespace Core {
 
-using namespace Nirvana::Core;
-using namespace Nirvana;
+// POA with IMPLICIT_ACTIVATION
+class POA_Implicit :
+	public POA_AOM
+{
+	typedef POA_AOM Base;
+public:
+	virtual bool implicit_activation () const NIRVANA_NOEXCEPT
+	{
+		return true;
+	}
 
-// Initial services. Must be lexicographically ordered.
-
-const Services::Factory Services::factories_ [Service::SERVICE_COUNT] = {
-	{ "RootPOA", create_RootPOA, System::MILLISECOND }
+protected:
+	POA_Implicit (POAManager::_ptr_type manager) :
+		Base (manager)
+	{}
 };
 
-// Service factories
-
-Object::_ref_type Services::create_RootPOA ()
-{
-	SYNC_BEGIN (g_core_free_sync_context, nullptr);
-	return make_reference <PortableServer::Core::POA_Root> ()->_this ();
-	SYNC_END ();
+}
 }
 
-}
-}
-}
+#endif

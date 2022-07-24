@@ -23,33 +23,33 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
+#ifndef NIRVANA_ORB_CORE_POA_AOM_H_
+#define NIRVANA_ORB_CORE_POA_AOM_H_
+#pragma once
 
-#include "Services.h"
-#include "../Synchronized.h"
-#include "POA_Root.h"
+#include "POA_Base.h"
 
-namespace CORBA {
-namespace Internal {
+namespace PortableServer {
 namespace Core {
 
-using namespace Nirvana::Core;
-using namespace Nirvana;
+class NIRVANA_NOVTABLE POA_AOM : public POA_Base
+{
+	typedef POA_Base Base;
+public:
+	virtual void destroy (bool etherealize_objects, bool wait_for_completion) override;
+	virtual void deactivate_object (const ObjectId& oid) override;
+	virtual CORBA::Object::_ref_type id_to_reference (const ObjectId& oid) override;
 
-// Initial services. Must be lexicographically ordered.
+protected:
+	POA_AOM (POAManager::_ptr_type manager) :
+		Base (manager)
+	{}
 
-const Services::Factory Services::factories_ [Service::SERVICE_COUNT] = {
-	{ "RootPOA", create_RootPOA, System::MILLISECOND }
+protected:
+	AOM active_object_map_;
 };
 
-// Service factories
-
-Object::_ref_type Services::create_RootPOA ()
-{
-	SYNC_BEGIN (g_core_free_sync_context, nullptr);
-	return make_reference <PortableServer::Core::POA_Root> ()->_this ();
-	SYNC_END ();
+}
 }
 
-}
-}
-}
+#endif

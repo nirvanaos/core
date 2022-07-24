@@ -108,7 +108,7 @@ public:
 	static I_ref <CORBA::LocalObject> create_local_object (I_ptr <CORBA::LocalObject> servant)
 	{
 		Frame frame;
-		return make_pseudo <LocalObject> (servant);
+		return make_pseudo <CORBA::Core::LocalObject> (servant);
 	}
 
 private:

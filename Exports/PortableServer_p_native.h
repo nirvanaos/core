@@ -32,6 +32,68 @@
 namespace CORBA {
 namespace Internal {
 
+PortableServer::ServantBase::_ref_type Proxy <PortableServer::POA>::get_servant () const
+{
+	IORequest::_ref_type _call = _target ()->create_request (_make_op_idx (__OPIDX_get_servant));
+	_call->invoke ();
+	check_request (_call);
+	Object::_ref_type _ret;
+	Type <Object>::unmarshal (_call, _ret);
+	return PortableServer::Core::object2servant (_ret);
+}
+
+void Proxy <PortableServer::POA>::__rq_get_servant (
+	PortableServer::POA::_ptr_type _servant, IORequest::_ptr_type _call)
+{
+	Object::_ref_type ret;
+	{
+		Environment _env;
+		Type <Object>::C_ret _ret (
+			(_servant->_epv ().epv.get_servant) (
+				static_cast <Bridge <PortableServer::POA>*> (&_servant),
+				&_env));
+		_env.check ();
+		ret = _ret;
+	}
+	// Marshal output
+	Type <Object>::marshal_out (ret, _call);
+}
+
+void Proxy <PortableServer::POA>::set_servant (PortableServer::Servant p_servant) const
+{
+	IORequest::_ref_type _call = _target ()->create_request (_make_op_idx (__OPIDX_set_servant));
+	Type <Object>::marshal_in (PortableServer::Core::servant2object (p_servant), _call);
+	_call->invoke ();
+	check_request (_call);
+}
+
+void Proxy <PortableServer::POA>::__rq_set_servant (
+	PortableServer::POA::_ptr_type _servant, IORequest::_ptr_type _call)
+{
+	Object::_ref_type p_servant;
+	Type <Object>::unmarshal (_call, p_servant);
+	{
+		Environment _env;
+			(_servant->_epv ().epv.set_servant) (
+				static_cast <Bridge <PortableServer::POA>*> (&_servant),
+				&Object::_ptr_type (p_servant),
+				&_env);
+		_env.check ();
+	}
+}
+
+PortableServer::ObjectId Proxy <PortableServer::POA>::activate_object (PortableServer::Servant p_servant) const
+{
+	Object::_ptr_type proxy = PortableServer::Core::servant2object (p_servant);
+	IORequest::_ref_type _call = _target ()->create_request (_make_op_idx (__OPIDX_activate_object));
+	Type <Object>::marshal_in (proxy, _call);
+	_call->invoke ();
+	check_request (_call);
+	PortableServer::ObjectId _ret;
+	Type <PortableServer::ObjectId>::unmarshal (_call, _ret);
+	return _ret;
+}
+
 void Proxy <PortableServer::POA>::__rq_activate_object (
 	PortableServer::POA::_ptr_type _servant, IORequest::_ptr_type _call)
 {
@@ -44,7 +106,8 @@ void Proxy <PortableServer::POA>::__rq_activate_object (
 		Type <PortableServer::ObjectId>::C_ret _ret = 
 			(_servant->_epv ().epv.activate_object) (
 				static_cast <Bridge <PortableServer::POA>*> (&_servant),
-				&Object::_ptr_type (p_servant), &_env);
+				&Object::_ptr_type (p_servant),
+				&_env);
 		_env.check ();
 		ret = _ret;
 	}
@@ -52,10 +115,10 @@ void Proxy <PortableServer::POA>::__rq_activate_object (
 	Type <PortableServer::ObjectId>::marshal_out (ret, _call);
 }
 
-PortableServer::ObjectId Proxy <PortableServer::POA>::activate_object (PortableServer::Servant p_servant) const
+PortableServer::ObjectId Proxy <PortableServer::POA>::servant_to_id (PortableServer::Servant p_servant) const
 {
 	Object::_ptr_type proxy = PortableServer::Core::servant2object (p_servant);
-	IORequest::_ref_type _call = _target ()->create_request (_make_op_idx (__OPIDX_activate_object));
+	IORequest::_ref_type _call = _target ()->create_request (_make_op_idx (__OPIDX_servant_to_id));
 	Type <Object>::marshal_in (proxy, _call);
 	_call->invoke ();
 	check_request (_call);
@@ -84,15 +147,15 @@ void Proxy <PortableServer::POA>::__rq_servant_to_id (
 	Type <PortableServer::ObjectId>::marshal_out (ret, _call);
 }
 
-PortableServer::ObjectId Proxy <PortableServer::POA>::servant_to_id (PortableServer::Servant p_servant) const
+Object::_ref_type Proxy <PortableServer::POA>::servant_to_reference (PortableServer::Servant p_servant) const
 {
 	Object::_ptr_type proxy = PortableServer::Core::servant2object (p_servant);
-	IORequest::_ref_type _call = _target ()->create_request (_make_op_idx (__OPIDX_servant_to_id));
+	IORequest::_ref_type _call = _target ()->create_request (_make_op_idx (__OPIDX_servant_to_reference));
 	Type <Object>::marshal_in (proxy, _call);
 	_call->invoke ();
 	check_request (_call);
-	PortableServer::ObjectId _ret;
-	Type <PortableServer::ObjectId>::unmarshal (_call, _ret);
+	Object::_ref_type _ret;
+	Type <Object>::unmarshal (_call, _ret);
 	return _ret;
 }
 
@@ -116,16 +179,15 @@ void Proxy <PortableServer::POA>::__rq_servant_to_reference (
 	Type <Object>::marshal_out (ret, _call);
 }
 
-Object::_ref_type Proxy <PortableServer::POA>::servant_to_reference (PortableServer::Servant p_servant) const
+PortableServer::ServantBase::_ref_type Proxy <PortableServer::POA>::reference_to_servant (Object::_ptr_type reference) const
 {
-	Object::_ptr_type proxy = PortableServer::Core::servant2object (p_servant);
-	IORequest::_ref_type _call = _target ()->create_request (_make_op_idx (__OPIDX_servant_to_reference));
-	Type <Object>::marshal_in (proxy, _call);
+	IORequest::_ref_type _call = _target ()->create_request (_make_op_idx (__OPIDX_reference_to_servant));
+	Type <Object>::marshal_in (reference, _call);
 	_call->invoke ();
 	check_request (_call);
 	Object::_ref_type _ret;
 	Type <Object>::unmarshal (_call, _ret);
-	return _ret;
+	return PortableServer::Core::object2servant (_ret);
 }
 
 void Proxy <PortableServer::POA>::__rq_reference_to_servant (
@@ -148,10 +210,10 @@ void Proxy <PortableServer::POA>::__rq_reference_to_servant (
 	Type <Object>::marshal_out (ret, _call);
 }
 
-PortableServer::ServantBase::_ref_type Proxy <PortableServer::POA>::reference_to_servant (Object::_ptr_type reference) const
+PortableServer::ServantBase::_ref_type Proxy <PortableServer::POA>::id_to_servant (const PortableServer::ObjectId& oid) const
 {
-	IORequest::_ref_type _call = _target ()->create_request (_make_op_idx (__OPIDX_reference_to_servant));
-	Type <Object>::marshal_in (reference, _call);
+	IORequest::_ref_type _call = _target ()->create_request (_make_op_idx (__OPIDX_id_to_servant));
+	Type <PortableServer::ObjectId>::marshal_in (oid, _call);
 	_call->invoke ();
 	check_request (_call);
 	Object::_ref_type _ret;
@@ -177,17 +239,6 @@ void Proxy <PortableServer::POA>::__rq_id_to_servant (
 	}
 	// Marshal output
 	Type <Object>::marshal_out (ret, _call);
-}
-
-PortableServer::ServantBase::_ref_type Proxy <PortableServer::POA>::id_to_servant (const PortableServer::ObjectId& oid) const
-{
-	IORequest::_ref_type _call = _target ()->create_request (_make_op_idx (__OPIDX_id_to_servant));
-	Type <PortableServer::ObjectId>::marshal_in (oid, _call);
-	_call->invoke ();
-	check_request (_call);
-	Object::_ref_type _ret;
-	Type <Object>::unmarshal (_call, _ret);
-	return PortableServer::Core::object2servant (_ret);
 }
 
 }

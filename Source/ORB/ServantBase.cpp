@@ -24,7 +24,6 @@
 *  popov.nirvana@gmail.com
 */
 #include "ServantBase.h"
-#include "POA.h"
 #include <CORBA/Proxy/TypeCodeNative.h>
 #include "../Binder.inl"
 

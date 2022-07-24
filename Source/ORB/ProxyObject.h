@@ -75,6 +75,12 @@ public:
 		activation_state_ = INACTIVE;
 	}
 
+	// Returns user ServantBase implementation
+	PortableServer::Servant servant () const NIRVANA_NOEXCEPT
+	{
+		return static_cast <PortableServer::ServantBase*> (&Base::servant ());
+	}
+
 protected:
 	ProxyObject (PortableServer::Servant servant) :
 		ServantProxyBase (servant, object_ops_, this),
@@ -85,11 +91,6 @@ protected:
 	~ProxyObject ()
 	{
 		assert (!activated_id_);
-	}
-
-	PortableServer::Servant servant () const NIRVANA_NOEXCEPT
-	{
-		return static_cast <PortableServer::ServantBase*> (&Base::servant ());
 	}
 
 private:

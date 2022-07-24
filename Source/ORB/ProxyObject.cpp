@@ -25,7 +25,7 @@
 */
 #include "ProxyObject.h"
 #include "../Runnable.h"
-#include "POA.h"
+#include "POA_Root.h"
 
 namespace CORBA {
 namespace Internal {
@@ -64,7 +64,7 @@ void ProxyObject::add_ref_1 ()
 	if (!change_state (DEACTIVATION_SCHEDULED, DEACTIVATION_CANCELLED)) {
 		PortableServer::POA::_ref_type poa = servant ()->_default_POA ();
 		// Query poa for the implicit activation policy
-		bool implicit_activation = PortableServer::Core::POA_Impl::implicit_activation (poa);
+		bool implicit_activation = PortableServer::Core::POA_Base::implicit_activation (poa);
 		if (implicit_activation && change_state (INACTIVE, ACTIVATION)) {
 			try {
 				poa->activate_object (servant ());

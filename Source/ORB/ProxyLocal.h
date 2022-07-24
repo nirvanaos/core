@@ -46,15 +46,16 @@ public:
 		return static_cast <Bridge <Object>*> (Base::_s_get_object (this, iid, env));
 	}
 
-protected:
-	ProxyLocal (LocalObject::_ptr_type servant) :
-		ServantProxyBase (servant, object_ops_, this)
-	{}
-
+	// Returns user LocalObject implementation
 	LocalObject::_ptr_type servant () const NIRVANA_NOEXCEPT
 	{
 		return static_cast <LocalObject*> (&Base::servant ());
 	}
+
+protected:
+	ProxyLocal (LocalObject::_ptr_type servant) :
+		ServantProxyBase (servant, object_ops_, this)
+	{}
 
 private:
 	static void non_existent_request (ProxyLocal* servant, IORequest::_ptr_type call);

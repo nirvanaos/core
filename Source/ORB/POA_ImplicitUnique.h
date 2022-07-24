@@ -23,28 +23,35 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "POA.h"
+#ifndef NIRVANA_ORB_CORE_POA_IMPLICITUNIQUE_H_
+#define NIRVANA_ORB_CORE_POA_IMPLICITUNIQUE_H_
+#pragma once
 
-using namespace std;
-using namespace CORBA;
+#include "POA_Implicit.h"
 
 namespace PortableServer {
 namespace Core {
 
-AOM::const_iterator POA_Root::AOM_insert (Object::_ptr_type proxy, ObjectId& objid)
+// POA with IMPLICIT_ACTIVATION and UNIQUE_ID
+class POA_ImplicitUnique : public POA_Implicit
 {
-	assert (proxy);
-	auto servant = object2servant_core (proxy);
-	int timestamp = servant->timestamp ();
-	objid.resize (sizeof (&servant) + sizeof (timestamp));
-	Nirvana::real_copy ((const Octet*)&timestamp, (const Octet*)(&timestamp + 1),
-		Nirvana::real_copy ((const Octet*)&servant, (const Octet*)(&servant + 1), objid.data ()));
-	auto ins = active_object_map_.emplace (objid, proxy);
-	assert (ins.second);
-	if (!ins.second)
-		throw CORBA::OBJ_ADAPTER ();
-	return ins.first;
-}
+	typedef POA_Implicit Base;
+public:
+	virtual ObjectId activate_object (CORBA::Object::_ptr_type p_servant) override;
+	virtual ObjectId servant_to_id (CORBA::Object::_ptr_type p_servant) override;
+	virtual CORBA::Object::_ref_type servant_to_reference (CORBA::Object::_ptr_type p_servant) override;
+
+protected:
+	POA_ImplicitUnique (POAManager::_ptr_type manager) :
+		Base (manager)
+	{}
+
+private:
+	AOM::const_iterator AOM_insert (CORBA::Object::_ptr_type p_servant, ObjectId& oid);
+
+};
 
 }
 }
+
+#endif

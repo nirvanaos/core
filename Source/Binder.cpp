@@ -268,7 +268,7 @@ const ModuleStartup* Binder::module_bind (::Nirvana::Module::_ptr_type mod, cons
 							ExportLocal* ps = reinterpret_cast <ExportLocal*> (it.cur ());
 							LocalObject::_ptr_type core_obj;
 							core_obj = (
-								new CORBA::Internal::Core::LocalObject (Type <LocalObject>::in (ps->local_object)))->_get_ptr ();
+								new CORBA::Core::LocalObject (Type <LocalObject>::in (ps->local_object)))->_get_ptr ();
 							Object::_ptr_type obj = core_obj;
 							ps->core_object = &core_obj;
 							mod_context->exports.insert (ps->name, obj);

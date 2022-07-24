@@ -65,12 +65,6 @@ public:
 		return false;
 	}
 
-	// Returns user servant implementation pointer
-	Servant servant () const NIRVANA_NOEXCEPT
-	{
-		return Base::servant ();
-	}
-
 	static void initialize () NIRVANA_NOEXCEPT
 	{
 		next_timestamp_ = (int)(Nirvana::Core::Chrono::system_clock () / Nirvana::System::SECOND);
