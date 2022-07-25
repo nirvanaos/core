@@ -76,7 +76,7 @@ void Proxy <PortableServer::POA>::__rq_set_servant (
 		Environment _env;
 			(_servant->_epv ().epv.set_servant) (
 				static_cast <Bridge <PortableServer::POA>*> (&_servant),
-				&Object::_ptr_type (p_servant),
+				&Type <Object>::C_in (p_servant),
 				&_env);
 		_env.check ();
 	}
@@ -106,7 +106,7 @@ void Proxy <PortableServer::POA>::__rq_activate_object (
 		Type <PortableServer::ObjectId>::C_ret _ret = 
 			(_servant->_epv ().epv.activate_object) (
 				static_cast <Bridge <PortableServer::POA>*> (&_servant),
-				&Object::_ptr_type (p_servant),
+				&Type <Object>::C_in (p_servant),
 				&_env);
 		_env.check ();
 		ret = _ret;
@@ -139,7 +139,8 @@ void Proxy <PortableServer::POA>::__rq_servant_to_id (
 		Type <PortableServer::ObjectId>::C_ret _ret =
 			(_servant->_epv ().epv.servant_to_id) (
 				static_cast <Bridge <PortableServer::POA>*> (&_servant),
-				&Object::_ptr_type (p_servant), &_env);
+				&Type <Object>::C_in (p_servant),
+				&_env);
 		_env.check ();
 		ret = _ret;
 	}
@@ -171,7 +172,8 @@ void Proxy <PortableServer::POA>::__rq_servant_to_reference (
 		Type <Object>::C_ret _ret =
 			(_servant->_epv ().epv.servant_to_reference) (
 				static_cast <Bridge <PortableServer::POA>*> (&_servant),
-				&Object::_ptr_type (p_servant), &_env);
+				&Type <Object>::C_in (p_servant),
+				&_env);
 		_env.check ();
 		ret = _ret;
 	}
@@ -202,7 +204,8 @@ void Proxy <PortableServer::POA>::__rq_reference_to_servant (
 		Type <Object>::C_ret _ret =
 			(_servant->_epv ().epv.reference_to_servant) (
 				static_cast <Bridge <PortableServer::POA>*> (&_servant),
-				&Object::_ptr_type (reference), &_env);
+				&Type <Object>::C_in (reference),
+				&_env);
 		_env.check ();
 		ret = _ret;
 	}
@@ -233,12 +236,91 @@ void Proxy <PortableServer::POA>::__rq_id_to_servant (
 		Type <Object>::C_ret _ret =
 			(_servant->_epv ().epv.id_to_servant) (
 				static_cast <Bridge <PortableServer::POA>*> (&_servant),
-				&Type <PortableServer::ObjectId>::C_in (oid), &_env);
+				&Type <PortableServer::ObjectId>::C_in (oid),
+				&_env);
 		_env.check ();
 		ret = _ret;
 	}
 	// Marshal output
 	Type <Object>::marshal_out (ret, _call);
+}
+
+PortableServer::ServantBase::_ref_type Proxy <PortableServer::ServantActivator>::incarnate (
+	const PortableServer::ObjectId& oid, PortableServer::POA::_ptr_type adapter) const
+{
+	IORequest::_ref_type _call = _target ()->create_request (_make_op_idx (__OPIDX_incarnate));
+	Type <PortableServer::ObjectId>::marshal_in (oid, _call);
+	Type <PortableServer::POA>::marshal_in (adapter, _call);
+	_call->invoke ();
+	check_request (_call);
+
+	// Actually, the method returns Obect, not ServantBase, so it must be called via EPV,
+	// not via the client call.
+	PortableServer::ServantBase::_ref_type _ret;
+	Type <Object>::unmarshal (_call, reinterpret_cast <Object::_ref_type&> (_ret));
+
+	return _ret;
+}
+
+void Proxy <PortableServer::ServantActivator>::__rq_incarnate (
+	PortableServer::ServantActivator::_ptr_type _servant, IORequest::_ptr_type _call)
+{
+	PortableServer::ObjectId oid;
+	Type <PortableServer::ObjectId>::unmarshal (_call, oid);
+	PortableServer::POA::_ref_type adapter;
+	Type <PortableServer::POA>::unmarshal (_call, adapter);
+	_call->unmarshal_end ();
+	Object::_ref_type ret;
+	{
+		Environment _env;
+		Type <Object>::C_ret _ret =
+			(_servant->_epv ().epv.incarnate) (
+				static_cast <Bridge <PortableServer::ServantActivator>*> (&_servant),
+				&Type <PortableServer::ObjectId>::C_in (oid),
+				&Type <PortableServer::POA>::C_in (adapter),
+				&_env);
+		_env.check ();
+		ret = _ret;
+	}
+	// Marshal output
+	Type <Object>::marshal_out (ret, _call);
+}
+
+void Proxy <PortableServer::ServantActivator>::etherealize (
+	const PortableServer::ObjectId& oid, PortableServer::POA::_ptr_type adapter,
+	PortableServer::Servant serv, Boolean cleanup_in_progress,
+	Boolean remaining_activations) const
+{
+	IORequest::_ref_type _call = _target ()->create_request (_make_op_idx (__OPIDX_etherealize));
+	Type <PortableServer::ObjectId>::marshal_in (oid, _call);
+	Type <PortableServer::POA>::marshal_in (adapter, _call);
+	Type <Object>::marshal_in (PortableServer::Core::servant2object (serv), _call);
+	Type <Boolean>::marshal_in (cleanup_in_progress, _call);
+	Type <Boolean>::marshal_in (remaining_activations, _call);
+	_call->invoke ();
+	check_request (_call);
+}
+
+void Proxy <PortableServer::ServantActivator>::__rq_etherealize (
+	PortableServer::ServantActivator::_ptr_type _servant, IORequest::_ptr_type _call)
+{
+	PortableServer::ObjectId oid;
+	Type <PortableServer::ObjectId>::unmarshal (_call, oid);
+	PortableServer::POA::_ref_type adapter;
+	Type <PortableServer::POA>::unmarshal (_call, adapter);
+	Object::_ref_type obj;
+	Type <Object>::unmarshal (_call, obj);
+	Boolean cleanup_in_progress;
+	Boolean remaining_activations;
+	Type <Boolean>::unmarshal (_call, cleanup_in_progress);
+	Type <Boolean>::unmarshal (_call, remaining_activations);
+	_call->unmarshal_end ();
+	
+	// Target synchronization context must be the same as servant synchronization context,
+	// otherwise an exception will be thrown.
+	PortableServer::ServantBase::_ref_type serv = PortableServer::Core::object2servant (obj);
+
+	_servant->etherealize (oid, adapter, serv, cleanup_in_progress, remaining_activations);
 }
 
 }

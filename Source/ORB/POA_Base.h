@@ -42,9 +42,10 @@ namespace Core {
 // Release of the ServantBase reference must be performed in the ServantBase
 // synchronization context, so the reference counting of the ServantBase is
 // responsibility of proxy.
+// The POA never communicates with user ServantBase directly.
 
 // Active Object Map (AOM)
-
+// TODO: Use another fast implementation with the pointer stability.
 typedef ObjectId AOM_Key;
 typedef CORBA::Object::_ref_type AOM_Val;
 
@@ -56,6 +57,8 @@ class NIRVANA_NOVTABLE POA_Base :
 	public CORBA::servant_traits <POA>::Servant <POA_Base>
 {
 protected:
+	// Children map.
+	// TODO: Use another fast implementation with the pointer stability.
 	typedef std::unordered_map <IDL::String, POA::_ref_type> Children;
 
 public:
