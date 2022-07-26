@@ -170,17 +170,17 @@ protected:
 		return *sync_context_;
 	}
 
-	template <class GC, class ... Args>
-	void run_garbage_collector (Args ... args) const NIRVANA_NOEXCEPT
+	template <class GC, class Arg>
+	void run_garbage_collector (Arg arg, Nirvana::Core::SyncContext& sync_context) const NIRVANA_NOEXCEPT
 	{
 		try {
 			using namespace ::Nirvana::Core;
 
 			ExecDomain& ed = ExecDomain::current ();
-			CoreRef <MemContext> mc = push_GC_mem_context (ed);
+			CoreRef <MemContext> mc = push_GC_mem_context (ed, sync_context);
 
 			try {
-				auto gc = CoreRef <Runnable>::create <ImplDynamic <GC> > (std::forward <Args> (args)...);
+				auto gc = CoreRef <Runnable>::create <ImplDynamic <GC> > (arg);
 
 				Nirvana::DeadlineTime deadline =
 					Nirvana::Core::PROXY_GC_DEADLINE == Nirvana::INFINITE_DEADLINE ?
@@ -188,7 +188,7 @@ protected:
 						Nirvana::Core::PROXY_GC_DEADLINE);
 
 				// in the current memory context.
-				Nirvana::Core::ExecDomain::async_call (deadline, std::move (gc), *sync_context_, mc);
+				ExecDomain::async_call (deadline, std::move (gc), sync_context, mc);
 			} catch (...) {
 				ed.mem_context_pop ();
 				throw;
@@ -197,10 +197,10 @@ protected:
 
 		} catch (...) {
 			// Async call failed, maybe resources are exausted.
-			// Fallback to collect garbage in the current thread.
+			// Fallback to collect garbage in the current ED.
 			try {
-				SYNC_BEGIN (*sync_context_, nullptr)
-				::Nirvana::Core::ImplStatic <GC> (std::forward <Args> (args)...).run ();
+				SYNC_BEGIN (sync_context, nullptr)
+				::Nirvana::Core::ImplStatic <GC> (arg).run ();
 				SYNC_END ()
 			} catch (...) {
 				// Swallow exceptions.
@@ -229,7 +229,8 @@ private:
 		return primary->_epv ().interface_id;
 	}
 
-	Nirvana::Core::CoreRef <Nirvana::Core::MemContext> push_GC_mem_context (Nirvana::Core::ExecDomain& ed) const;
+	Nirvana::Core::CoreRef <Nirvana::Core::MemContext> push_GC_mem_context (
+		Nirvana::Core::ExecDomain& ed, Nirvana::Core::SyncContext& sc) const;
 
 protected:
 	Nirvana::Core::RefCounter ref_cnt_servant_;

@@ -67,7 +67,7 @@ TEST_F (TestSystem, AccessViolation)
 
 	void* p = heap->allocate (0, cb, Memory::RESERVED);
 	bool OK = false;
-	int minor;
+	int minor = 0;
 	try {
 		*(int*)p = 1;
 	} catch (const CORBA::ACCESS_VIOLATION& ex) {

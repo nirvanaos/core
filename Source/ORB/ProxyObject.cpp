@@ -86,7 +86,9 @@ ProxyObject::RefCnt::IntegralType ProxyObject::_remove_ref_proxy () NIRVANA_NOEX
 		&&
 			change_state (ACTIVE, DEACTIVATION_SCHEDULED)
 		) {
-			run_garbage_collector <Deactivator> (std::ref (*this));
+			assert (activated_POA_ && activated_id_);
+			run_garbage_collector <Deactivator> (std::ref (*this),
+				PortableServer::Core::POA_Base::get_proxy (activated_POA_)->sync_context ());
 		}
 	}
 	return cnt;
@@ -95,11 +97,16 @@ ProxyObject::RefCnt::IntegralType ProxyObject::_remove_ref_proxy () NIRVANA_NOEX
 // Called from Deactivator in the servant synchronization context.
 void ProxyObject::implicit_deactivate ()
 {
-	assert (&sync_context () == &SyncContext::current ());
-
 	// Object may be re-activated later. So we clear implicit_activated_id_ here.
 	if (change_state (DEACTIVATION_SCHEDULED, INACTIVE)) {
-		activated_POA_->deactivate_object (*activated_id_);
+		assert (activated_POA_ && activated_id_);
+		assert (&PortableServer::Core::POA_Base::get_proxy (activated_POA_)->sync_context () == &SyncContext::current ());
+		PortableServer::Core::POA_Base* poa_impl = PortableServer::Core::POA_Base::get_implementation (activated_POA_);
+		assert (poa_impl);
+		if (poa_impl)
+			poa_impl->deactivate_object (*activated_id_);
+		else // Custom POA?
+			activated_POA_->deactivate_object (*activated_id_);
 	} else {
 		// Restore implicit_activated_id_
 		assert (DEACTIVATION_CANCELLED == activation_state_);

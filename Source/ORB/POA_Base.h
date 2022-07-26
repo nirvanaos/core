@@ -221,15 +221,14 @@ public:
 		throw CORBA::NO_IMPLEMENT ();
 	}
 
+	static const CORBA::Core::LocalObject* get_proxy (POA::_ptr_type poa) NIRVANA_NOEXCEPT;
+	static POA_Base* get_implementation (POA::_ptr_type poa) NIRVANA_NOEXCEPT;
+
 	static bool implicit_activation (POA::_ptr_type poa) NIRVANA_NOEXCEPT
 	{
 		if (poa) {
-			CORBA::Object::_ptr_type obj (poa);
-			const CORBA::Core::LocalObject& proxy = static_cast <const CORBA::Core::LocalObject&> (
-				*static_cast <CORBA::Internal::Bridge <CORBA::Object>*> (&obj));
-			const POA_Base* impl = static_cast <const POA_Base*> (
-				static_cast <CORBA::Internal::Bridge <CORBA::LocalObject>*> (&proxy.servant ()));
-			if (impl->signature_ == SIGNATURE)
+			const POA_Base* impl = get_implementation (poa);
+			if (impl)
 				return impl->implicit_activation ();
 		}
 		return false;

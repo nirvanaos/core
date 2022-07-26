@@ -154,5 +154,27 @@ ObjectId POA_Base::reference_to_id (Object::_ptr_type reference)
 	return *servant->activated_id ();
 }
 
+const CORBA::Core::LocalObject* POA_Base::get_proxy (POA::_ptr_type poa) NIRVANA_NOEXCEPT
+{
+	if (poa) {
+		CORBA::Object::_ptr_type obj (poa);
+		return &static_cast <const CORBA::Core::LocalObject&> (
+			*static_cast <CORBA::Internal::Bridge <CORBA::Object>*> (&obj));
+	}
+	return nullptr;
+}
+
+POA_Base* POA_Base::get_implementation (POA::_ptr_type poa) NIRVANA_NOEXCEPT
+{
+	if (poa) {
+		const CORBA::Core::LocalObject* proxy = get_proxy (poa);
+		POA_Base* impl = static_cast <POA_Base*> (
+			static_cast <CORBA::Internal::Bridge <CORBA::LocalObject>*> (&proxy->servant ()));
+		if (impl->signature_ == SIGNATURE)
+			return impl;
+	}
+	return nullptr;
+}
+
 }
 }

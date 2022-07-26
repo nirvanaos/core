@@ -61,7 +61,7 @@ ServantProxyBase::RefCnt::IntegralType ServantProxyBase::_remove_ref_proxy () NI
 {
 	RefCnt::IntegralType cnt = ref_cnt_proxy_.decrement ();
 	if (!cnt) {
-		run_garbage_collector <GarbageCollector> (servant_);
+		run_garbage_collector <GarbageCollector> (servant_, *sync_context_);
 	} else if (cnt < 0) {
 		// TODO: Log error
 		ref_cnt_proxy_.increment ();
@@ -71,10 +71,14 @@ ServantProxyBase::RefCnt::IntegralType ServantProxyBase::_remove_ref_proxy () NI
 	return cnt;
 }
 
-CoreRef <MemContext> ServantProxyBase::push_GC_mem_context (Nirvana::Core::ExecDomain& ed) const
+CoreRef <MemContext> ServantProxyBase::push_GC_mem_context (ExecDomain& ed,
+	SyncContext& sc) const
 {
-	CoreRef <MemContext> mc = mem_context ();
-	if (!mc) {
+	CoreRef <MemContext> mc;
+	SyncDomain* sd = sc.sync_domain ();
+	if (sd)
+		mc = &sd->mem_context ();
+	else {
 		mc = ed.mem_context_ptr ();
 		if (!mc)
 			mc = &g_shared_mem_context;
