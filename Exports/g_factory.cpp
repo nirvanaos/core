@@ -48,7 +48,7 @@ public:
 
 }
 
-__declspec (selectany) extern
+NIRVANA_SELECTANY extern
 const ImportInterfaceT <Factory> g_factory = { OLF_IMPORT_INTERFACE,
 "Nirvana/Legacy/g_factory", CORBA::Internal::RepIdOf <Factory>::id,
 NIRVANA_STATIC_BRIDGE (Factory, Core::Factory) };
