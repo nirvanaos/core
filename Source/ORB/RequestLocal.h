@@ -480,7 +480,6 @@ protected:
 	}
 
 	void marshal_op () NIRVANA_NOEXCEPT;
-	void check_align (size_t align);
 	void* write (size_t align, size_t size, const void* data);
 	const void* read (size_t align, size_t size, void* data);
 	void marshal_segment (size_t align, size_t element_size,

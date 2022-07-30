@@ -24,41 +24,37 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_ORB_CORE_RQHELPER_H_
-#define NIRVANA_ORB_CORE_RQHELPER_H_
+#ifndef NIRVANA_ORB_CORE_OTHERMEMORY_H_
+#define NIRVANA_ORB_CORE_OTHERMEMORY_H_
 #pragma once
 
-#include <CORBA/CORBA.h>
+#include "../CoreInterface.h"
+#include <Port/config.h>
 
 namespace CORBA {
 namespace Internal {
 namespace Core {
 
-enum class RqKind
+/// Access to other protection domain memory
+class OtherMemory
 {
-	SYNC,
-	ONEWAY,
-	ASYNC
-};
+	DECLARE_CORE_INTERFACE
 
-class RqHelper
-{
 public:
-	static Object::_ptr_type interface2object (Interface::_ptr_type itf);
-	static ValueBase::_ptr_type value_type2base (Interface::_ptr_type val);
-	static AbstractBase::_ptr_type abstract_interface2base (Interface::_ptr_type itf);
-	static void check_align (size_t align);
+	typedef Nirvana::Core::MaxPlatformPtr Pointer;
 
-private:
-	struct EPV_Header
+	struct Sizes
 	{
-		Interface::EPV header;
-		struct
-		{
-			Interface* (*to_base) (Interface*, String_in, Interface*);
-		} base;
+		size_t block_size;
+		size_t sizeof_pointer;
+		size_t sizeof_size;
 	};
 
+	virtual Pointer copy (void* src, size_t& size, unsigned flags) = 0;
+	virtual void release (Pointer p, size_t size) = 0;
+	virtual void get_sizes (Sizes& sizes) = 0;
+	virtual void* store_pointer (void* where, Pointer p) = 0;
+	virtual void* store_size (void* where, size_t size) = 0;
 };
 
 }

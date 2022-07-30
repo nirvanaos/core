@@ -69,6 +69,12 @@ AbstractBase::_ptr_type RqHelper::abstract_interface2base (Interface::_ptr_type 
 	return base;
 }
 
+void RqHelper::check_align (size_t align)
+{
+	if (!(align == 1 || align == 2 || align == 4 || align == 8))
+		throw BAD_PARAM ();
+}
+
 }
 }
 }

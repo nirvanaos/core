@@ -141,12 +141,6 @@ void RequestLocal::cleanup () NIRVANA_NOEXCEPT
 	}
 }
 
-void RequestLocal::check_align (size_t align)
-{
-	if (!(align == 1 || align == 2 || align == 4 || align == 8))
-		throw_BAD_PARAM ();
-}
-
 void* RequestLocal::write (size_t align, size_t size, const void* data)
 {
 	if (!size)

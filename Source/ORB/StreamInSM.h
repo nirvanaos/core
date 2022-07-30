@@ -24,41 +24,54 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_ORB_CORE_RQHELPER_H_
-#define NIRVANA_ORB_CORE_RQHELPER_H_
+#ifndef NIRVANA_ORB_CORE_STREAMINSM_H_
+#define NIRVANA_ORB_CORE_STREAMINSM_H_
 #pragma once
 
-#include <CORBA/CORBA.h>
+#include "StreamIn.h"
 
 namespace CORBA {
 namespace Internal {
 namespace Core {
 
-enum class RqKind
+class StreamInSM : public StreamIn
 {
-	SYNC,
-	ONEWAY,
-	ASYNC
-};
-
-class RqHelper
-{
-public:
-	static Object::_ptr_type interface2object (Interface::_ptr_type itf);
-	static ValueBase::_ptr_type value_type2base (Interface::_ptr_type val);
-	static AbstractBase::_ptr_type abstract_interface2base (Interface::_ptr_type itf);
-	static void check_align (size_t align);
-
-private:
-	struct EPV_Header
+	struct BlockHdr
 	{
-		Interface::EPV header;
-		struct
-		{
-			Interface* (*to_base) (Interface*, String_in, Interface*);
-		} base;
+		BlockHdr* next;
+		size_t size;
 	};
 
+	struct Segment
+	{
+		Segment* next;
+		void* pointer;
+		size_t allocated_size;
+	};
+
+	struct StreamHdr : BlockHdr
+	{
+		Segment* segments;
+	};
+
+public:
+	StreamInSM (void* mem)
+	{
+		StreamHdr* hdr = (StreamHdr*)mem;
+		cur_block_ = hdr;
+		cur_ptr_ = (const Octet*)(hdr + 1);
+		segments_ = hdr->segments;
+	}
+
+	~StreamInSM ();
+
+	virtual void read (size_t align, size_t size, void* buf);
+	virtual void* read (size_t align, size_t& size);
+
+private:
+	BlockHdr* cur_block_;
+	const Octet* cur_ptr_;
+	Segment* segments_;
 };
 
 }
