@@ -41,10 +41,12 @@ class StreamOutSM : public StreamOut
 {
 	struct Block
 	{
+		OtherMemory::Pointer other_ptr;
 		void* ptr;
 		size_t size;
 
 		Block () :
+			other_ptr (0),
 			ptr (nullptr),
 			size (0)
 		{}
@@ -54,6 +56,11 @@ class StreamOutSM : public StreamOut
 	{
 		OtherMemory::Pointer ptr;
 		size_t size;
+
+		OtherAllocated () :
+			ptr (0),
+			size (0)
+		{}
 	};
 
 public:
@@ -61,16 +68,10 @@ public:
 		other_memory_ (&mem)
 	{
 		mem.get_sizes (sizes_);
-		allocate_block (sizes_.block_size);
-		const Block& block = cur_block ();
-		void* p = block.ptr;
-
-		// Stream header
-		p = other_memory_->store_pointer (p, 0); // next block
-		p = other_memory_->store_size (p, block.size); // block size
-		segments_tail_ = p;
-		p = other_memory_->store_pointer (p, 0); // segments
-		cur_ptr_ = p;
+		allocate_block (sizes_.sizeof_pointer, sizes_.sizeof_pointer);
+		stream_hdr_ = cur_block ().other_ptr;
+		segments_tail_ = cur_ptr_;
+		cur_ptr_ = (Octet*)other_memory_->store_pointer (segments_tail_, 0); // segments
 	}
 
 	~StreamOutSM ()
@@ -79,26 +80,43 @@ public:
 			other_memory_->release (a.ptr, a.size);
 		}
 		for (const auto& a : blocks_) {
-			Nirvana::Core::Port::Memory::release (a.ptr, a.size);
+			if (a.other_ptr)
+				other_memory_->release (a.other_ptr, a.size);
+			if (a.ptr)
+				Nirvana::Core::Port::Memory::release (a.ptr, a.size);
 		}
 	}
 
-	virtual void write (size_t align, size_t size, const void* buf, size_t allocated_size);
+	virtual void write (size_t align, size_t size, void* data, size_t* allocated_size);
+
+	void* store_stream_ptr (void* where) const
+	{
+		void* p = other_memory_->store_pointer (where, stream_hdr_);
+	}
+
+	void detach_data ()
+	{
+		blocks_.clear ();
+		other_allocated_.clear ();
+	}
 
 private:
-	void allocate_block (size_t cb);
+	void allocate_block (size_t align, size_t size);
 	
 	const Block& cur_block () const
 	{
 		return blocks_.back ();
 	}
 
+	void purge ();
+
 private:
 	Nirvana::Core::CoreRef <OtherMemory> other_memory_;
 	OtherMemory::Sizes sizes_;
+	OtherMemory::Pointer stream_hdr_;
 	std::vector <Block, Nirvana::Core::UserAllocator <Block> > blocks_;
-	std::vector <OtherAllocated> other_allocated_;
-	void* cur_ptr_;
+	std::vector <OtherAllocated, Nirvana::Core::UserAllocator <OtherAllocated> > other_allocated_;
+	Octet* cur_ptr_;
 	void* segments_tail_;
 };
 

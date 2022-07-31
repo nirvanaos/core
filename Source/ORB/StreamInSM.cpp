@@ -57,11 +57,11 @@ void StreamInSM::read (size_t align, size_t size, void* buf)
 		return;
 	if (!cur_block_)
 		throw MARSHAL ();
-	const Octet* p = round_up (cur_ptr_, align);
+	const Octet* src = round_up (cur_ptr_, align);
 	Octet* dst = (Octet*)buf;
 	do {
 		const Octet* block_end = (const Octet*)cur_block_ + cur_block_->size;
-		ptrdiff_t cb = block_end - p;
+		ptrdiff_t cb = block_end - src;
 		if (cb < (ptrdiff_t)align) {
 			BlockHdr* block = cur_block_;
 			cur_block_ = cur_block_->next;
@@ -70,12 +70,15 @@ void StreamInSM::read (size_t align, size_t size, void* buf)
 				throw MARSHAL ();
 			cur_ptr_ = (const Octet*)(cur_block_ + 1);
 		} else {
-			if (size < (size_t)cb)
+			if ((size_t)cb > size)
 				cb = size;
-			const Octet* end = p + cb;
-			dst = real_copy (p, end, dst);
-			p = end;
+			const Octet* end = src + cb;
+			dst = real_copy (src, end, dst);
+			src = end;
 			size -= cb;
+			// Adjust alignment if the remaining size less then it
+			if (align < size)
+				align = size;
 		}
 	} while (size);
 }
@@ -86,18 +89,31 @@ void* StreamInSM::read (size_t align, size_t& size)
 		return nullptr;
 	if (!cur_block_)
 		throw MARSHAL ();
-	const Octet* p = round_up (cur_ptr_, alignof (Segment));
-	if (p == (const Octet*)segments_) {
-		Segment* seg = segments_;
+	// Find potential segment
+	const Segment* seg = (const Segment*)round_up (cur_ptr_, alignof (Segment));
+	const Octet* block_end = (const Octet*)cur_block_ + cur_block_->size;
+	if (block_end - (const Octet*)seg < sizeof (Segment)) {
+		BlockHdr* next_block = cur_block_->next;
+		if (next_block) {
+			seg = (const Segment*)round_up ((const Octet*)(next_block + 1), alignof (Segment));
+			if (seg != segments_)
+				seg = nullptr;
+		} else
+			seg = nullptr;
+	} else if (seg != segments_)
+		seg = nullptr;
+
+	if (seg) {
 		segments_ = seg->next;
-		cur_ptr_ = p + sizeof (Segment);
+		cur_ptr_ = (const Octet*)(seg + 1);
 		size = seg->allocated_size;
 		return seg->pointer;
+	} else {
+		size_t cb_read = size;
+		void* buf = MemContext::current ().heap ().allocate (nullptr, size, 0);
+		read (align, cb_read, buf);
+		return buf;
 	}
-	size_t cb_read = size;
-	void* buf = MemContext::current ().heap ().allocate (nullptr, size, 0);
-	read (align, cb_read, buf);
-	return buf;
 }
 
 }

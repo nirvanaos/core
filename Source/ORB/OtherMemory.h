@@ -50,11 +50,12 @@ public:
 		size_t sizeof_size;
 	};
 
-	virtual Pointer copy (void* src, size_t& size, unsigned flags) = 0;
+	virtual Pointer reserve (size_t size) = 0;
+	virtual Pointer copy (Pointer reserved, void* src, size_t& size, bool release_src) = 0;
 	virtual void release (Pointer p, size_t size) = 0;
-	virtual void get_sizes (Sizes& sizes) = 0;
-	virtual void* store_pointer (void* where, Pointer p) = 0;
-	virtual void* store_size (void* where, size_t size) = 0;
+	virtual void get_sizes (Sizes& sizes) NIRVANA_NOEXCEPT = 0;
+	virtual void* store_pointer (void* where, Pointer p) NIRVANA_NOEXCEPT = 0;
+	virtual void* store_size (void* where, size_t size) NIRVANA_NOEXCEPT = 0;
 };
 
 }

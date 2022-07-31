@@ -39,7 +39,7 @@ class StreamOut
 	DECLARE_CORE_INTERFACE
 
 public:
-	virtual void write (size_t align, size_t size, const void* buf, size_t allocated_size) = 0;
+	virtual void write (size_t align, size_t size, void* data, size_t* allocated_size) = 0;
 };
 
 }
