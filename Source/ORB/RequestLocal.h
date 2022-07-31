@@ -480,13 +480,11 @@ protected:
 	}
 
 	void marshal_op () NIRVANA_NOEXCEPT;
-	void* write (size_t align, size_t size, const void* data);
+	void write (size_t align, size_t size, const void* data);
 	const void* read (size_t align, size_t size, void* data);
 	void marshal_segment (size_t align, size_t element_size,
 		size_t element_count, void* data, size_t allocated_size);
 	void unmarshal_segment (void*& data, size_t& allocated_size);
-
-	void set_ptr (const void* p);
 
 	void rewind () NIRVANA_NOEXCEPT;
 
@@ -503,8 +501,6 @@ protected:
 
 	void cleanup () NIRVANA_NOEXCEPT;
 
-	void invert_list (void*& head);
-
 protected:
 	Nirvana::Core::RefCounter ref_cnt_;
 	CoreRef <MemContext> caller_memory_;
@@ -514,30 +510,40 @@ protected:
 private:
 	struct BlockHdr
 	{
-		size_t size;
 		BlockHdr* next;
+		size_t size;
 	};
 
 	struct Element
 	{
-		void* ptr;
-		void* next;
+		Element* next;
 	};
 
 	struct Segment : Element
 	{
+		void* ptr;
 		size_t allocated_size;
 	};
 
-	typedef Element ItfRecord;
+	struct ItfRecord : Element
+	{
+		Interface* ptr;
+	};
 
+	Element* get_element_buffer (size_t size);
+
+	void allocate_block (size_t align, size_t size);
+
+	void invert_list (Element*& head);
+
+private:
 	CoreRef <ServantProxyBase> proxy_;
 	IOReference::OperationIndex op_idx_;
 	State state_;
 	BlockHdr* first_block_;
 	BlockHdr* cur_block_;
-	void* interfaces_;
-	void* segments_;
+	ItfRecord* interfaces_;
+	Segment* segments_;
 };
 
 class NIRVANA_NOVTABLE RequestLocalAsync :

@@ -89,31 +89,31 @@ void* StreamInSM::read (size_t align, size_t& size)
 		return nullptr;
 	if (!cur_block_)
 		throw MARSHAL ();
-	// Find potential segment
-	const Segment* seg = (const Segment*)round_up (cur_ptr_, alignof (Segment));
-	const Octet* block_end = (const Octet*)cur_block_ + cur_block_->size;
-	if (block_end - (const Octet*)seg < sizeof (Segment)) {
-		BlockHdr* next_block = cur_block_->next;
-		if (next_block) {
-			seg = (const Segment*)round_up ((const Octet*)(next_block + 1), alignof (Segment));
-			if (seg != segments_)
-				seg = nullptr;
-		} else
-			seg = nullptr;
-	} else if (seg != segments_)
-		seg = nullptr;
-
-	if (seg) {
-		segments_ = seg->next;
-		cur_ptr_ = (const Octet*)(seg + 1);
-		size = seg->allocated_size;
-		return seg->pointer;
-	} else {
-		size_t cb_read = size;
-		void* buf = MemContext::current ().heap ().allocate (nullptr, size, 0);
-		read (align, cb_read, buf);
-		return buf;
+	if (segments_) {
+		// Find potential segment
+		const Segment* segment = (const Segment*)round_up (cur_ptr_, alignof (Segment));
+		const Octet* block_end = (const Octet*)cur_block_ + cur_block_->size;
+		if (block_end - (const Octet*)segment < sizeof (Segment)) {
+			BlockHdr* next_block = cur_block_->next;
+			if (next_block)
+				segment = (const Segment*)round_up ((const Octet*)(next_block + 1), alignof (Segment));
+			else
+				segment = nullptr;
+		}
+		if (segment == segments_) {
+			// Adopt segment
+			segments_ = segment->next;
+			cur_ptr_ = (const Octet*)(segment + 1);
+			size = segment->allocated_size;
+			return segment->pointer;
+		}
 	}
+
+	// Allocate buffer and read
+	size_t cb_read = size;
+	void* buf = MemContext::current ().heap ().allocate (nullptr, size, 0);
+	read (align, cb_read, buf);
+	return buf;
 }
 
 }

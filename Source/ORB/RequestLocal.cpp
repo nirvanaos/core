@@ -81,50 +81,40 @@ void RequestLocal::marshal_op () NIRVANA_NOEXCEPT
 
 void RequestLocal::rewind () NIRVANA_NOEXCEPT
 {
-	invert_list (interfaces_);
-	invert_list (segments_);
+	invert_list ((Element*&)interfaces_);
+	invert_list ((Element*&)segments_);
 	reset ();
 }
 
-void RequestLocal::invert_list (void*& head)
+void RequestLocal::invert_list (Element*& head)
 {
-	void* p = head;
-	head = nullptr;
+	Element* p = head;
+	Element* tail = nullptr;
 	while (p) {
-		Element elem;
-		set_ptr (p);
-		read (alignof (void*), sizeof (Element), &elem);
-		void* next = elem.next;
-		elem.next = head;
-		set_ptr (p);
-		write (alignof (void*), sizeof (Element), &elem);
-		head = (void*)p;
+		Element* next = p->next;
+		p->next = tail;
+		tail = p;
 		p = next;
 	}
+	head = tail;
 }
 
 void RequestLocal::cleanup () NIRVANA_NOEXCEPT
 {
 	{
-		void* p = interfaces_;
+		const ItfRecord* p = interfaces_;
 		interfaces_ = nullptr;
 		while (p) {
-			set_ptr (p);
-			ItfRecord itf;
-			read (alignof (void*), sizeof (ItfRecord), &itf);
-			interface_release ((Interface*)itf.ptr);
-			p = itf.next;
+			interface_release (p->ptr);
+			p = (const ItfRecord*)p->next;
 		}
 	}
 	{
-		void* p = segments_;
+		const Segment* p = segments_;
 		segments_ = nullptr;
 		while (p) {
-			set_ptr (p);
-			Segment seg;
-			read (alignof (void*), sizeof (Segment), &seg);
-			caller_memory_->heap ().release (seg.ptr, seg.allocated_size);
-			p = seg.next;
+			caller_memory_->heap ().release (p->ptr, p->allocated_size);
+			p = (const Segment*)p->next;
 		}
 	}
 	{
@@ -141,42 +131,47 @@ void RequestLocal::cleanup () NIRVANA_NOEXCEPT
 	}
 }
 
-void* RequestLocal::write (size_t align, size_t size, const void* data)
+void RequestLocal::write (size_t align, size_t size, const void* data)
 {
 	if (!size)
-		return nullptr;
+		return;
+	if (!data)
+		throw BAD_PARAM ();
 
-	Octet* begin = nullptr;
 	const Octet* src = (const Octet*)data;
 	const Octet* block_end = cur_block_end ();
 	Octet* dst = round_up (cur_ptr_, align);
-	if (dst < block_end) {
-		begin = dst;
-		size_t cb = min ((size_t)(block_end - dst), size);
-		real_copy (src, src + cb, dst);
+	ptrdiff_t cb = block_end - dst;
+	if (cb > (ptrdiff_t)align) {
+		if ((size_t)cb > size)
+			cb = size;
+		const Octet* end = src + cb;
+		dst = real_copy (src, end, dst);
+		src = end;
 		size -= cb;
-		src += cb;
-		dst += cb;
+		// Adjust alignment if the remaining size less then it
+		if (align < size)
+			align = size;
 	}
 	if (size) {
-		// Allocate new block
-		size_t block_size = max (BLOCK_SIZE, sizeof (BlockHdr) + size);
-		BlockHdr* block = (BlockHdr*)caller_memory_->heap ().allocate (nullptr, block_size, 0);
-		block->size = block_size;
-		block->next = nullptr;
-		if (!first_block_)
-			first_block_ = block;
-		if (cur_block_)
-			cur_block_->next = block;
-		cur_block_ = block;
-		dst = (Octet*)(block + 1);
-		if (!begin)
-			begin = dst;
-		real_copy (src, src + size, dst);
-		dst += size;
+		allocate_block (align, size);
+		cur_ptr_ = real_copy (src, src + size, cur_ptr_);
 	}
-	cur_ptr_ = dst;
-	return begin;
+}
+
+void RequestLocal::allocate_block (size_t align, size_t size)
+{
+	size_t data_offset = round_up (sizeof (BlockHdr), align);
+	size_t block_size = max (BLOCK_SIZE, data_offset + size);
+	BlockHdr* block = (BlockHdr*)caller_memory_->heap ().allocate (nullptr, block_size, 0);
+	block->size = block_size;
+	block->next = nullptr;
+	if (!first_block_)
+		first_block_ = block;
+	if (cur_block_)
+		cur_block_->next = block;
+	cur_block_ = block;
+	cur_ptr_ = (Octet*)block + data_offset;
 }
 
 const void* RequestLocal::read (size_t align, size_t size, void* data)
@@ -219,26 +214,17 @@ const void* RequestLocal::read (size_t align, size_t size, void* data)
 	return begin;
 }
 
-void RequestLocal::set_ptr (const void* p)
+RequestLocal::Element* RequestLocal::get_element_buffer (size_t size)
 {
-	const Octet* block_begin = (const Octet*)this;
-	const Octet* block_end = block_begin + BLOCK_SIZE;
-	if (block_begin < p && p < block_end)
-		cur_block_ = nullptr;
-	else {
-		BlockHdr* block = first_block_;
-		while (block) {
-			block_begin = (const Octet*)(block + 1);
-			block_end = (const Octet*)block + block->size;
-			if (block_begin <= p && p < block_end)
-				break;
-			block = block->next;
-		}
-		assert (block);
-		cur_block_ = block;
+	const Octet* block_end = cur_block_end ();
+	Octet* dst = round_up (cur_ptr_, alignof (Element));
+	ptrdiff_t cb = block_end - dst;
+	if (cb < (ptrdiff_t)size) {
+		allocate_block (alignof (Element), size);
+		dst = cur_ptr_;
 	}
-
-	cur_ptr_ = (Octet*)p;
+	cur_ptr_ = dst + size;
+	return (Element*)dst;
 }
 
 void RequestLocal::marshal_segment (size_t align, size_t element_size,
@@ -248,47 +234,49 @@ void RequestLocal::marshal_segment (size_t align, size_t element_size,
 	size_t size = element_count * round_up (element_size, align);
 	if (allocated_size && allocated_size < size)
 		throw_BAD_PARAM ();
-	Segment segment;
+	Segment* segment = (Segment*)get_element_buffer (sizeof (Segment));
 	if (allocated_size && &caller_memory_->heap () == &callee_memory_->heap ()) {
-		segment.allocated_size = allocated_size;
-		segment.ptr = data;
+		segment->allocated_size = allocated_size;
+		segment->ptr = data;
 	} else {
 		Heap& tm = target_memory ();
 		void* p = tm.copy (nullptr, data, size, 0);
-		segment.allocated_size = size;
-		segment.ptr = p;
+		segment->allocated_size = size;
+		segment->ptr = p;
 		if (allocated_size)
 			source_memory ().release (data, allocated_size);
 	}
-	segment.next = segments_;
-	try {
-		segments_ = write (alignof (void*), sizeof (Segment), &segment);
-	} catch (...) {
-		target_memory ().release (segment.ptr, segment.allocated_size);
-		throw;
-	}
+	segment->next = segments_;
+	segments_ = segment;
 }
 
 void RequestLocal::unmarshal_segment (void*& data, size_t& allocated_size)
 {
-	Segment segment;
-	const void* ps = read (alignof (void*), sizeof (Segment), &segment);
-	if (segments_ != ps)
+	const Segment* segment = (const Segment*)round_up (cur_ptr_, alignof (Element));
+	const Octet* block_end = cur_block_end ();
+	if (block_end - (const Octet*)segment < sizeof (Segment)) {
+		BlockHdr* next_block = cur_block_->next;
+		if (next_block)
+			segment = (const Segment*)round_up ((const Octet*)(next_block + 1), alignof (Element));
+		else
+			segment = nullptr;
+	}
+	if (segments_ != segment)
 		throw_MARSHAL ();
-	allocated_size = segment.allocated_size;
-	data = segment.ptr;
-	segments_ = segment.next;
+	segments_ = (Segment*)segment->next;
+	cur_ptr_ = (Octet*)(segment + 1);
+	allocated_size = segment->allocated_size;
+	data = segment->ptr;
 }
 
 void RequestLocal::marshal_interface (Interface::_ptr_type itf)
 {
 	marshal_op ();
 	if (itf) {
-		ItfRecord rec;
-		rec.ptr = &itf;
-		rec.next = interfaces_;
-		interfaces_ = write (alignof (void*), sizeof (ItfRecord), &rec);
-		interface_duplicate ((Interface*)rec.ptr); // If no exception in write
+		ItfRecord* itf_rec = (ItfRecord*)get_element_buffer (sizeof (ItfRecord));
+		itf_rec->ptr = interface_duplicate (&itf);
+		itf_rec->next = interfaces_;
+		interfaces_ = itf_rec;
 	} else {
 		Interface* nil = nullptr;
 		write (alignof (Interface*), sizeof (Interface*), &nil);
@@ -297,17 +285,24 @@ void RequestLocal::marshal_interface (Interface::_ptr_type itf)
 
 Interface::_ref_type RequestLocal::unmarshal_interface (String_in interface_id)
 {
-	ItfRecord rec;
-	const void* pr = read (alignof (void*), sizeof (Interface*), &rec.ptr);
-	if (rec.ptr) {
-		if (interfaces_ != pr)
-			Nirvana::throw_MARSHAL ();
-		read (alignof (void*), sizeof (void*), &rec.next);
-		Interface::_check ((Interface*)rec.ptr, interface_id);
-		interfaces_ = rec.next;
-		return move ((Interface::_ref_type&)(rec.ptr));
-	} else
-		return nullptr;
+	if (interfaces_) {
+		// Find potential ItfRecord
+		ItfRecord* itf_rec = (ItfRecord*)round_up (cur_ptr_, alignof (Element));
+		const Octet* block_end = cur_block_end ();
+		if (block_end - (const Octet*)itf_rec < sizeof (ItfRecord)) {
+			BlockHdr* next_block = cur_block_->next;
+			if (next_block)
+				itf_rec = (ItfRecord*)round_up ((const Octet*)(next_block + 1), alignof (Element));
+			else
+				itf_rec = nullptr;
+		}
+		if (interfaces_ == itf_rec) {
+			Interface::_check (itf_rec->ptr, interface_id);
+			interfaces_ = (ItfRecord*)itf_rec->next;
+			return move ((Interface::_ref_type&)(itf_rec->ptr));
+		}
+	}
+	return nullptr;
 }
 
 void RequestLocal::marshal_value_copy (ValueBase::_ptr_type base, String_in interface_id)
