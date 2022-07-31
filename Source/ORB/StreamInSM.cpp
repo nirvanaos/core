@@ -62,6 +62,8 @@ void StreamInSM::read (size_t align, size_t size, void* buf)
 	do {
 		const Octet* block_end = (const Octet*)cur_block_ + cur_block_->size;
 		ptrdiff_t cb = block_end - src;
+
+
 		if (cb < (ptrdiff_t)align) {
 			BlockHdr* block = cur_block_;
 			cur_block_ = cur_block_->next;
@@ -77,7 +79,7 @@ void StreamInSM::read (size_t align, size_t size, void* buf)
 			src = end;
 			size -= cb;
 			// Adjust alignment if the remaining size less then it
-			if (align < size)
+			if (align > size)
 				align = size;
 		}
 	} while (size);
@@ -93,16 +95,18 @@ void* StreamInSM::read (size_t align, size_t& size)
 		// Find potential segment
 		const Segment* segment = (const Segment*)round_up (cur_ptr_, alignof (Segment));
 		const Octet* block_end = (const Octet*)cur_block_ + cur_block_->size;
+		BlockHdr* seg_block = cur_block_;
 		if (block_end - (const Octet*)segment < sizeof (Segment)) {
-			BlockHdr* next_block = cur_block_->next;
-			if (next_block)
-				segment = (const Segment*)round_up ((const Octet*)(next_block + 1), alignof (Segment));
+			seg_block = cur_block_->next;
+			if (seg_block)
+				segment = (const Segment*)round_up ((const Octet*)(seg_block + 1), alignof (Segment));
 			else
 				segment = nullptr;
 		}
 		if (segment == segments_) {
 			// Adopt segment
 			segments_ = segment->next;
+			cur_block_ = seg_block;
 			cur_ptr_ = (const Octet*)(segment + 1);
 			size = segment->allocated_size;
 			return segment->pointer;

@@ -94,7 +94,7 @@ void StreamOutSM::write (size_t align, size_t size, void* data, size_t* allocate
 			src = end;
 			size -= cb;
 			// Adjust alignment if the remaining size less then it
-			if (align < size)
+			if (align > size)
 				align = size;
 		} while (size);
 	}

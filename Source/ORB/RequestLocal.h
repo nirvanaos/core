@@ -481,7 +481,7 @@ protected:
 
 	void marshal_op () NIRVANA_NOEXCEPT;
 	void write (size_t align, size_t size, const void* data);
-	const void* read (size_t align, size_t size, void* data);
+	void read (size_t align, size_t size, void* data);
 	void marshal_segment (size_t align, size_t element_size,
 		size_t element_count, void* data, size_t allocated_size);
 	void unmarshal_segment (void*& data, size_t& allocated_size);
@@ -516,23 +516,21 @@ private:
 
 	struct Element
 	{
+		void* ptr; // Can not be null
 		Element* next;
 	};
 
 	struct Segment : Element
 	{
-		void* ptr;
 		size_t allocated_size;
 	};
 
-	struct ItfRecord : Element
-	{
-		Interface* ptr;
-	};
+	typedef Element ItfRecord;
 
 	Element* get_element_buffer (size_t size);
 
 	void allocate_block (size_t align, size_t size);
+	void next_block ();
 
 	void invert_list (Element*& head);
 

@@ -91,7 +91,7 @@ public:
 
 	void* store_stream_ptr (void* where) const
 	{
-		void* p = other_memory_->store_pointer (where, stream_hdr_);
+		return other_memory_->store_pointer (where, stream_hdr_);
 	}
 
 	void detach_data ()
