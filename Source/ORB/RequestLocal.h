@@ -182,6 +182,7 @@ public:
 	void unmarshal_char (size_t count, C* data)
 	{
 		read (alignof (C), count * sizeof (C), data);
+		check_char (data, count);
 	}
 
 	template <typename C>
@@ -255,6 +256,7 @@ public:
 		Sequence <C> tmp;
 		ABI& abi = (ABI&)tmp;
 		unmarshal_seq (alignof (C), sizeof (C), abi.size, (void*&)abi.ptr, abi.allocated);
+		check_char (abi.ptr, abi.size);
 		s = std::move (tmp);
 	}
 
@@ -533,6 +535,15 @@ private:
 	void next_block ();
 
 	void invert_list (Element*& head);
+
+	void check_char (const Char* p, size_t count)
+	{
+		for (const Char* end = p + count; p != end; ++p)
+			Type <Char>::check (*p);
+	}
+	
+	void check_char (const WChar* p, size_t count)
+	{}
 
 private:
 	CoreRef <ServantProxyBase> proxy_;
