@@ -36,7 +36,7 @@ namespace Internal {
 namespace Core {
 
 /// Access to other protection domain memory
-class OtherMemory
+class NIRVANA_NOVTABLE OtherMemory
 {
 	DECLARE_CORE_INTERFACE
 

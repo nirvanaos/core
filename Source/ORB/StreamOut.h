@@ -34,7 +34,7 @@ namespace CORBA {
 namespace Internal {
 namespace Core {
 
-class StreamOut
+class NIRVANA_NOVTABLE StreamOut
 {
 	DECLARE_CORE_INTERFACE
 

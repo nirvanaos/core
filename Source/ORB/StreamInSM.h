@@ -34,7 +34,7 @@ namespace CORBA {
 namespace Internal {
 namespace Core {
 
-class StreamInSM : public StreamIn
+class NIRVANA_NOVTABLE StreamInSM : public StreamIn
 {
 	struct BlockHdr
 	{

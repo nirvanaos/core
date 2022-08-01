@@ -37,7 +37,7 @@ namespace CORBA {
 namespace Internal {
 namespace Core {
 
-class StreamOutSM : public StreamOut
+class NIRVANA_NOVTABLE StreamOutSM : public StreamOut
 {
 	struct Block
 	{
