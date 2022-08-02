@@ -40,7 +40,7 @@ class NIRVANA_NOVTABLE OtherMemory
 	DECLARE_CORE_INTERFACE
 
 public:
-	typedef Nirvana::Core::Port::MaxPlatformPtr Pointer;
+	typedef MaxPlatformPtr Pointer;
 
 	struct Sizes
 	{
@@ -58,7 +58,7 @@ public:
 };
 
 /// OtherMemory factory. Must be implemented in the port library.
-Core::CoreRef <OtherMemory> other_domain_memory (Nirvana::Core::Port::ProtDomainHandle& prot_domain);
+Core::CoreRef <OtherMemory> other_domain_memory (ProtDomainHandle& prot_domain);
 
 }
 }
