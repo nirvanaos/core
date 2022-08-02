@@ -47,36 +47,27 @@ struct Message
 	/// Message type
 	enum Type : uint16_t
 	{
-		REQUEST, ///< GIOP request
-		REPLY, ///< GIOP reply
-		SYSTEM_EXCEPTION, ///< GIOP reply with system exception
-		CANCEL_REQUEST, ///< GIOP cancel request
+		REQUEST, ///< GIOP Request or LocateRequest message
+		REPLY, ///< GIOP Reply message
+		SYSTEM_EXCEPTION, ///< GIOP Reply with system exception
+		CANCEL_REQUEST, ///< GIOP CancelRequest
+		LOCATE_REPLY, ///< GIOP LocateReply
 
 		/// Number of the ESIOP messages.
 		/// Host system may add own message types.
 		MESSAGES_CNT
 	};
 
-	/// Message flags
-	typedef uint16_t Flags;
-
 	/// A message header
 	struct Header
 	{
 		Type  type;  ///< Message type
-		Flags flags; ///< Message flags
 
 		Header ()
 		{}
 
 		Header (Type t) :
-			type (t),
-			flags (0)
-		{}
-
-		Header (Type t, Flags f) :
-			type (t),
-			flags (f)
+			type (t)
 		{}
 	};
 
@@ -84,32 +75,35 @@ struct Message
 	/// Sender allocates the message data via OtherMemory interface.
 	/// Core::Port::MaxPlatformPtr size is enough to store memory address
 	/// for any supported platform.
-	typedef Nirvana::Core::Port::MaxPlatformPtr DataPtr;
+	typedef MaxPlatformPtr DataPtr;
 
-	/// GIOP request
+	/// GIOP Request
 	struct Request : Header
 	{
 		/// Sender protection domain address.
-		Nirvana::Core::Port::ProtDomainId client_address;
+		ProtDomainHandle client_address;
 
 		/// User security token
-		Nirvana::Core::Port::UserToken user;
+		UserToken user;
 
 		/// The request data (GIOP message header) in the recipient memory.
 		DataPtr data_ptr;
 	};
 
-	/// GIOP reply
+	/// GIOP Reply
 	struct Reply : Header
 	{
+		/// Flags
+		uint16_t flags;
+
+		/// If data sent immediate, Reply::IMMEDIATE_DATA is set in flags.
+		static const uint8_t IMMEDIATE_DATA = 0x01;
+
 		/// The request id
 		uint32_t request_id;
 
 		/// If reply data size is quite small, it can be sent without allocation of shared memory.
 		static const size_t IMMEDIATE_DATA_SIZE = sizeof (Request) - sizeof (request_id);
-
-		/// If data sent immediate, Reply::IMMEDIATE_DATA is set in message flags.
-		static const Flags IMMEDIATE_DATA = 0x0001;
 
 		union
 		{
@@ -121,7 +115,7 @@ struct Message
 		};
 	};
 
-	/// If GIOP reply is system exception, it can be sent without allocation of shared memory.
+	/// If GIOP Reply contains system exception, it can be sent without allocation of shared memory.
 	struct SystemException : Header
 	{
 		/// The request id
@@ -134,14 +128,22 @@ struct Message
 		CORBA::SystemException::_Data data;
 	};
 
-	/// GIOP cancel request
+	/// GIOP CancelRequest
 	struct CancelRequest : Header
 	{
 		/// The client address
-		Nirvana::Core::Port::ProtDomainId client_address;
+		ProtDomainId client_address;
 
 		/// The request id
 		uint32_t request_id;
+	};
+
+	/// GIOP LocateReply
+	struct LocateReply : Header
+	{
+		/// The request id
+		uint32_t request_id;
+		uint32_t locate_status;
 	};
 
 	/// The message buffer
