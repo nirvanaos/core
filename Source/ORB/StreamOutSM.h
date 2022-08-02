@@ -33,11 +33,10 @@
 #include "../UserAllocator.h"
 #include <vector>
 
-namespace CORBA {
-namespace Internal {
-namespace Core {
+namespace Nirvana {
+namespace ESIOP {
 
-class NIRVANA_NOVTABLE StreamOutSM : public StreamOut
+class NIRVANA_NOVTABLE StreamOutSM : public CORBA::Internal::Core::StreamOut
 {
 	struct Block
 	{
@@ -71,7 +70,7 @@ public:
 		allocate_block (sizes_.sizeof_pointer, sizes_.sizeof_pointer);
 		stream_hdr_ = cur_block ().other_ptr;
 		segments_tail_ = cur_ptr_;
-		cur_ptr_ = (Octet*)other_memory_->store_pointer (segments_tail_, 0); // segments
+		cur_ptr_ = (uint8_t*)other_memory_->store_pointer (segments_tail_, 0); // segments
 	}
 
 	~StreamOutSM ()
@@ -116,11 +115,10 @@ private:
 	OtherMemory::Pointer stream_hdr_;
 	std::vector <Block, Nirvana::Core::UserAllocator <Block> > blocks_;
 	std::vector <OtherAllocated, Nirvana::Core::UserAllocator <OtherAllocated> > other_allocated_;
-	Octet* cur_ptr_;
+	uint8_t* cur_ptr_;
 	void* segments_tail_;
 };
 
-}
 }
 }
 

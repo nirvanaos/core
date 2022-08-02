@@ -29,11 +29,10 @@
 #pragma once
 
 #include "../CoreInterface.h"
-#include <Port/config.h>
+#include <Port/ESIOP.h>
 
-namespace CORBA {
-namespace Internal {
-namespace Core {
+namespace Nirvana {
+namespace ESIOP {
 
 /// Access to other protection domain memory
 class NIRVANA_NOVTABLE OtherMemory
@@ -41,7 +40,7 @@ class NIRVANA_NOVTABLE OtherMemory
 	DECLARE_CORE_INTERFACE
 
 public:
-	typedef Nirvana::Core::MaxPlatformPtr Pointer;
+	typedef Nirvana::Core::Port::MaxPlatformPtr Pointer;
 
 	struct Sizes
 	{
@@ -58,7 +57,9 @@ public:
 	virtual void* store_size (void* where, size_t size) NIRVANA_NOEXCEPT = 0;
 };
 
-}
+/// OtherMemory factory. Must be implemented in the port library.
+Core::CoreRef <OtherMemory> other_domain_memory (Nirvana::Core::Port::ProtDomainHandle& prot_domain);
+
 }
 }
 

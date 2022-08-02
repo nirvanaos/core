@@ -30,11 +30,10 @@
 
 #include "StreamIn.h"
 
-namespace CORBA {
-namespace Internal {
-namespace Core {
+namespace Nirvana {
+namespace ESIOP {
 
-class NIRVANA_NOVTABLE StreamInSM : public StreamIn
+class NIRVANA_NOVTABLE StreamInSM : public CORBA::Internal::Core::StreamIn
 {
 	struct BlockHdr
 	{
@@ -59,7 +58,7 @@ public:
 	{
 		StreamHdr* hdr = (StreamHdr*)mem;
 		cur_block_ = hdr;
-		cur_ptr_ = (const Octet*)(hdr + 1);
+		cur_ptr_ = (const uint8_t*)(hdr + 1);
 		segments_ = hdr->segments;
 	}
 
@@ -70,11 +69,10 @@ public:
 
 private:
 	BlockHdr* cur_block_;
-	const Octet* cur_ptr_;
+	const uint8_t* cur_ptr_;
 	Segment* segments_;
 };
 
-}
 }
 }
 

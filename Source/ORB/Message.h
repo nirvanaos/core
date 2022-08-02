@@ -30,60 +30,127 @@
 #pragma once
 
 #include <CORBA/SystemException.h>
-#include <Port/config.h>
+#include <Port/ESIOP.h>
 
 namespace Nirvana {
+
+/// Environment-specific inter-ORB protocol.
+/// Implements communication between protection domains
+/// in one system domain.
 namespace ESIOP {
 
+/// Nirvana ESIOP message.
+/// Can be sent between different protection domains inside one
+/// system domain.
 struct Message
 {
-	enum class Type : uint16_t
+	/// Message type
+	enum Type : uint16_t
 	{
-		REQUEST,
-		REPLY,
-		USER_EXCEPTION,
-		SYSTEM_EXCEPTION,
+		REQUEST, ///< GIOP request
+		REPLY, ///< GIOP reply
+		SYSTEM_EXCEPTION, ///< GIOP reply with system exception
+		CANCEL_REQUEST, ///< GIOP cancel request
 
-		RESERVED_MESSAGES = 8
+		/// Number of the ESIOP messages.
+		/// Host system may add own message types.
+		MESSAGES_CNT
 	};
 
-	struct ObjRef
-	{
-		uintptr_t address;
-		Core::ObjRefSignature signature;
-	};
+	/// Message flags
+	typedef uint16_t Flags;
 
-	struct ObjRefLocal : ObjRef
-	{
-		Core::ProtDomainId prot_domain;
-	};
-
+	/// A message header
 	struct Header
 	{
-		Type type;
+		Type  type;  ///< Message type
+		Flags flags; ///< Message flags
 
-		uint16_t flags;
-		static const uint16_t IMMEDIATE_DATA = 0x0001;
+		Header ()
+		{}
 
-		ObjRef target;
+		Header (Type t) :
+			type (t),
+			flags (0)
+		{}
+
+		Header (Type t, Flags f) :
+			type (t),
+			flags (f)
+		{}
 	};
 
+	/// DataPtr points to recipient protection domain memory.
+	/// Sender allocates the message data via OtherMemory interface.
+	/// Core::Port::MaxPlatformPtr size is enough to store memory address
+	/// for any supported platform.
+	typedef Nirvana::Core::Port::MaxPlatformPtr DataPtr;
+
+	/// GIOP request
 	struct Request : Header
 	{
-		ObjRefLocal reply_target; // Zero for oneway requests
-		Core::UserToken user;
+		/// Sender protection domain address.
+		Nirvana::Core::Port::ProtDomainId client_address;
+
+		/// User security token
+		Nirvana::Core::Port::UserToken user;
+
+		/// The request data (GIOP message header) in the recipient memory.
+		DataPtr data_ptr;
 	};
 
+	/// GIOP reply
+	struct Reply : Header
+	{
+		/// The request id
+		uint32_t request_id;
+
+		/// If reply data size is quite small, it can be sent without allocation of shared memory.
+		static const size_t IMMEDIATE_DATA_SIZE = sizeof (Request) - sizeof (request_id);
+
+		/// If data sent immediate, Reply::IMMEDIATE_DATA is set in message flags.
+		static const Flags IMMEDIATE_DATA = 0x0001;
+
+		union
+		{
+			/// Valid if flags & IMMEDIATE_DATA == 0
+			DataPtr data_ptr;
+
+			/// Valid if flags & IMMEDIATE_DATA != 0
+			uint8_t immediate_data [IMMEDIATE_DATA_SIZE];
+		};
+	};
+
+	/// If GIOP reply is system exception, it can be sent without allocation of shared memory.
 	struct SystemException : Header
 	{
-		CORBA::SystemException::Code code;
+		/// The request id
+		uint32_t request_id;
+
+		/// The exception code
+		int32_t code;
+
+		// The exception data
 		CORBA::SystemException::_Data data;
 	};
 
+	/// GIOP cancel request
+	struct CancelRequest : Header
+	{
+		/// The client address
+		Nirvana::Core::Port::ProtDomainId client_address;
+
+		/// The request id
+		uint32_t request_id;
+	};
+
+	/// The message buffer
 	union Buffer
 	{
 		Request request;
+		Reply reply;
 		SystemException system_exception;
+		CancelRequest cancel_request;
 	};
 };
 

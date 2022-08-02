@@ -27,12 +27,10 @@
 #include <Nirvana/bitutils.h>
 #include "../MemContext.h"
 
-using namespace Nirvana;
 using namespace Nirvana::Core;
 
-namespace CORBA {
-namespace Internal {
-namespace Core {
+namespace Nirvana {
+namespace ESIOP {
 
 StreamInSM::~StreamInSM ()
 {
@@ -56,11 +54,11 @@ void StreamInSM::read (size_t align, size_t size, void* buf)
 	if (!size)
 		return;
 	if (!cur_block_)
-		throw MARSHAL ();
-	const Octet* src = round_up (cur_ptr_, align);
-	Octet* dst = (Octet*)buf;
+		throw_MARSHAL ();
+	const uint8_t* src = round_up (cur_ptr_, align);
+	uint8_t* dst = (uint8_t*)buf;
 	do {
-		const Octet* block_end = (const Octet*)cur_block_ + cur_block_->size;
+		const uint8_t* block_end = (const uint8_t*)cur_block_ + cur_block_->size;
 		ptrdiff_t cb = block_end - src;
 
 
@@ -69,16 +67,16 @@ void StreamInSM::read (size_t align, size_t size, void* buf)
 			cur_block_ = cur_block_->next;
 			Port::Memory::release (block, block->size);
 			if (!cur_block_)
-				throw MARSHAL ();
-			cur_ptr_ = (const Octet*)(cur_block_ + 1);
+				throw_MARSHAL ();
+			cur_ptr_ = (const uint8_t*)(cur_block_ + 1);
 		} else {
 			if ((size_t)cb > size)
 				cb = size;
-			const Octet* end = src + cb;
+			const uint8_t* end = src + cb;
 			dst = real_copy (src, end, dst);
 			src = end;
 			size -= cb;
-			// Adjust alignment if the remaining size less then it
+			// Adjust alignment if the remaining size less than it
 			if (align > size)
 				align = size;
 		}
@@ -90,16 +88,16 @@ void* StreamInSM::read (size_t align, size_t& size)
 	if (!size)
 		return nullptr;
 	if (!cur_block_)
-		throw MARSHAL ();
+		throw_MARSHAL ();
 	if (segments_) {
 		// Find potential segment
 		const Segment* segment = (const Segment*)round_up (cur_ptr_, alignof (Segment));
-		const Octet* block_end = (const Octet*)cur_block_ + cur_block_->size;
+		const uint8_t* block_end = (const uint8_t*)cur_block_ + cur_block_->size;
 		BlockHdr* seg_block = cur_block_;
-		if (block_end - (const Octet*)segment < sizeof (Segment)) {
+		if (block_end - (const uint8_t*)segment < sizeof (Segment)) {
 			seg_block = cur_block_->next;
 			if (seg_block)
-				segment = (const Segment*)round_up ((const Octet*)(seg_block + 1), alignof (Segment));
+				segment = (const Segment*)round_up ((const uint8_t*)(seg_block + 1), alignof (Segment));
 			else
 				segment = nullptr;
 		}
@@ -107,7 +105,7 @@ void* StreamInSM::read (size_t align, size_t& size)
 			// Adopt segment
 			segments_ = segment->next;
 			cur_block_ = seg_block;
-			cur_ptr_ = (const Octet*)(segment + 1);
+			cur_ptr_ = (const uint8_t*)(segment + 1);
 			size = segment->allocated_size;
 			return segment->pointer;
 		}
@@ -120,6 +118,5 @@ void* StreamInSM::read (size_t align, size_t& size)
 	return buf;
 }
 
-}
 }
 }

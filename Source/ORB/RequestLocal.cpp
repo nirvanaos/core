@@ -149,7 +149,7 @@ void RequestLocal::write (size_t align, size_t size, const void* data)
 		dst = real_copy (src, end, dst);
 		src = end;
 		size -= cb;
-		// Adjust alignment if the remaining size less then it
+		// Adjust alignment if the remaining size less than it
 		if (align > size)
 			align = size;
 	}
@@ -195,7 +195,7 @@ void RequestLocal::read (size_t align, size_t size, void* data)
 			size -= cb;
 			if (!size)
 				break;
-			// Adjust alignment if the remaining size less then it
+			// Adjust alignment if the remaining size less than it
 			if (align > size)
 				align = size;
 		}
