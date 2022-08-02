@@ -36,11 +36,9 @@ namespace Core {
 
 /// \brief Core implementation of LocalObject default operations.
 class LocalObject final :
-	public CORBA::Internal::Core::CoreImpl <LocalObject, CORBA::LocalObject, 
-		CORBA::Internal::Core::ProxyLocal>
+	public CoreImpl <LocalObject, CORBA::LocalObject, ProxyLocal>
 {
-	typedef CORBA::Internal::Core::CoreImpl <LocalObject, CORBA::LocalObject,
-		CORBA::Internal::Core::ProxyLocal> Base;
+	typedef CoreImpl <LocalObject, CORBA::LocalObject, ProxyLocal> Base;
 public:
 	LocalObject (CORBA::LocalObject::_ptr_type servant) :
 		Base (servant)

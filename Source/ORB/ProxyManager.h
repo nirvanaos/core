@@ -39,38 +39,37 @@
 #include <CORBA/DynamicServant.h>
 
 namespace CORBA {
-namespace Internal {
 namespace Core {
 
 /// \brief Base for all proxies.
 class ProxyManager :
 	public Nirvana::Core::SharedObject,
-	public Bridge <IOReference>,
-	public Bridge <Object>,
-	public Bridge <AbstractBase>
+	public Internal::Bridge <Internal::IOReference>,
+	public Internal::Bridge <Object>,
+	public Internal::Bridge <AbstractBase>
 {
 public:
-	Bridge <Object>* get_object (String_in iid)
+	Internal::Bridge <Object>* get_object (Internal::String_in iid)
 	{
-		if (RepId::check (RepIdOf <Object>::id, iid) != RepId::COMPATIBLE)
-			::Nirvana::throw_INV_OBJREF ();
-		return static_cast <Bridge <Object>*> (this);
+		if (Internal::RepId::check (Internal::RepIdOf <Object>::id, iid) != Internal::RepId::COMPATIBLE)
+			Nirvana::throw_INV_OBJREF ();
+		return static_cast <Internal::Bridge <Object>*> (this);
 	}
 
-	Bridge <AbstractBase>* get_abstract_base (String_in iid) NIRVANA_NOEXCEPT
+	Internal::Bridge <AbstractBase>* get_abstract_base (Internal::String_in iid) NIRVANA_NOEXCEPT
 	{
-		if (RepId::check (RepIdOf <AbstractBase>::id, iid) != RepId::COMPATIBLE)
-			::Nirvana::throw_INV_OBJREF ();
-		return static_cast <Bridge <AbstractBase>*> (this);
+		if (Internal::RepId::check (Internal::RepIdOf <AbstractBase>::id, iid) != Internal::RepId::COMPATIBLE)
+			Nirvana::throw_INV_OBJREF ();
+		return static_cast <Internal::Bridge <AbstractBase>*> (this);
 	}
 
 	Object::_ptr_type get_proxy () NIRVANA_NOEXCEPT
 	{
-		return &static_cast <Object&> (static_cast <Bridge <Object>&> (*this));
+		return &static_cast <Object&> (static_cast <Internal::Bridge <Object>&> (*this));
 	}
 
 	// Abstract base
-	Interface* _query_interface (const String& type_id) const
+	Internal::Interface* _query_interface (const IDL::String& type_id) const
 	{
 		if (type_id.empty ())
 			return primary_interface_->proxy;
@@ -85,16 +84,16 @@ public:
 
 	// Object operations
 
-	I_ref <InterfaceDef> _get_interface () const
+	InterfaceDef::_ref_type _get_interface () const
 	{
 		SYNC_BEGIN (Nirvana::Core::g_core_free_sync_context, nullptr);
 		return InterfaceDef::_nil (); // TODO: Implement.
 		SYNC_END ();
 	}
 
-	Boolean _is_a (const String& type_id) const
+	Boolean _is_a (const IDL::String& type_id) const
 	{
-		String tmp (type_id);
+		IDL::String tmp (type_id);
 		SYNC_BEGIN (Nirvana::Core::g_core_free_sync_context, nullptr);
 		return find_interface (tmp) != nullptr;
 		SYNC_END ();
@@ -102,22 +101,22 @@ public:
 
 	Boolean _non_existent ()
 	{
-		IORequest::_ref_type rq = ior ()->create_request (_make_op_idx (OBJ_OP_NON_EXISTENT));
+		Internal::IORequest::_ref_type rq = ior ()->create_request (_make_op_idx (OBJ_OP_NON_EXISTENT));
 		rq->invoke ();
 		Boolean _ret;
-		Type <Boolean>::unmarshal (rq, _ret);
+		Internal::Type <Boolean>::unmarshal (rq, _ret);
 		return _ret;
 	}
 
 	Boolean _is_equivalent (Object::_ptr_type other_object) const
 	{
-		return &static_cast <const Bridge <Object>&> (*this) == &other_object;
+		return &static_cast <const Internal::Bridge <Object>&> (*this) == &other_object;
 	}
 
 	ULong _hash (ULong maximum) const
 	{
 		return (ULong)((uintptr_t)this 
-			- ::Nirvana::Core::Port::Memory::query (nullptr, ::Nirvana::Memory::QueryParam::ALLOCATION_SPACE_BEGIN)
+			- ::Nirvana::Core::Port::Memory::query (nullptr, Nirvana::Memory::QueryParam::ALLOCATION_SPACE_BEGIN)
 			) % maximum;
 	}
 
@@ -125,61 +124,61 @@ public:
 
 	// Abstract base implementation
 
-	I_ref <Object> _to_object () NIRVANA_NOEXCEPT
+	Object::_ref_type _to_object () NIRVANA_NOEXCEPT
 	{
 		return get_proxy ();
 	}
 
-	I_ref <ValueBase> _to_value () NIRVANA_NOEXCEPT
+	ValueBase::_ref_type _to_value () NIRVANA_NOEXCEPT
 	{
 		return nullptr;
 	}
 
 protected:
-	ProxyManager (const Bridge <IOReference>::EPV& epv_ior,
-		const Bridge <Object>::EPV& epv_obj, const Bridge <AbstractBase>::EPV& epv_ab,
-		String_in primary_iid, const Operation object_ops [3], void* object_impl);
+	ProxyManager (const Internal::Bridge <Internal::IOReference>::EPV& epv_ior,
+		const Internal::Bridge <Object>::EPV& epv_obj, const Internal::Bridge <AbstractBase>::EPV& epv_ab,
+		Internal::String_in primary_iid, const Internal::Operation object_ops [3], void* object_impl);
 
 	~ProxyManager ();
 
-	IOReference::_ptr_type ior ()
+	Internal::IOReference::_ptr_type ior ()
 	{
-		return &static_cast <IOReference&> (static_cast <Bridge <IOReference>&> (*this));
+		return &static_cast <Internal::IOReference&> (static_cast <Internal::Bridge <Internal::IOReference>&> (*this));
 	}
 
 	struct InterfaceEntry
 	{
 		const Char* iid;
 		size_t iid_len;
-		Interface* proxy;
-		DynamicServant::_ptr_type deleter;
-		Interface::_ptr_type implementation;
-		CountedArray <Operation> operations;
+		Internal::Interface* proxy;
+		Internal::DynamicServant::_ptr_type deleter;
+		Internal::Interface::_ptr_type implementation;
+		Internal::CountedArray <Internal::Operation> operations;
 	};
 
 	struct OperationEntry
 	{
 		const Char* name;
 		size_t name_len;
-		IOReference::OperationIndex idx;
+		Internal::IOReference::OperationIndex idx;
 	};
 
-	::Nirvana::Core::Array <InterfaceEntry, ::Nirvana::Core::SharedAllocator>& interfaces ()
+	Nirvana::Core::Array <InterfaceEntry, Nirvana::Core::SharedAllocator>& interfaces ()
 	{
 		return interfaces_;
 	}
 
-	const InterfaceEntry* find_interface (String_in iid) const;
-	const OperationEntry* find_operation (String_in name) const;
+	const InterfaceEntry* find_interface (Internal::String_in iid) const;
+	const OperationEntry* find_operation (Internal::String_in name) const;
 
 	UShort object_itf_idx () const
 	{
 		return object_itf_idx_;
 	}
 
-	IOReference::OperationIndex _make_op_idx (UShort op_idx) const
+	Internal::IOReference::OperationIndex _make_op_idx (UShort op_idx) const
 	{
-		return IOReference::OperationIndex (object_itf_idx_, op_idx);
+		return Internal::IOReference::OperationIndex (object_itf_idx_, op_idx);
 	}
 
 	// Object operation indexes
@@ -190,26 +189,8 @@ protected:
 		OBJ_OP_NON_EXISTENT
 	};
 
-	// Metadata details
-
-	// Output param structure for Boolean returning operations.
-	struct BooleanRet
-	{
-		Type <Boolean>::ABI _ret;
-	};
-
-	struct get_interface_out
-	{
-		Interface* _ret;
-	};
-
-	struct is_a_in
-	{
-		ABI <String> logical_type_id;
-	};
-
 	// Input parameter metadata for `is_a` operation.
-	static const Parameter is_a_param_;
+	static const Internal::Parameter is_a_param_;
 
 	// Implicit operation names
 	static const Char op_get_interface_ [];
@@ -221,11 +202,11 @@ private:
 	struct OEPred;
 
 	void create_proxy (InterfaceEntry& ie);
-	void create_proxy (ProxyFactory::_ptr_type pf, InterfaceEntry& ie);
+	void create_proxy (Internal::ProxyFactory::_ptr_type pf, InterfaceEntry& ie);
 
-	static void check_metadata (const InterfaceMetadata* metadata, String_in primary);
-	static void check_parameters (CountedArray <Parameter> parameters);
-	static void check_type_code (I_ptr <TypeCode> tc);
+	static void check_metadata (const Internal::InterfaceMetadata* metadata, Internal::String_in primary);
+	static void check_parameters (Internal::CountedArray <Internal::Parameter> parameters);
+	static void check_type_code (TypeCode::_ptr_type tc);
 	
 	template <class It, class Pr>
 	static bool is_unique (It begin, It end, Pr pred)
@@ -241,14 +222,13 @@ private:
 	}
 
 private:
-	::Nirvana::Core::Array <InterfaceEntry, ::Nirvana::Core::SharedAllocator> interfaces_;
-	::Nirvana::Core::Array <OperationEntry, ::Nirvana::Core::SharedAllocator> operations_;
+	Nirvana::Core::Array <InterfaceEntry, Nirvana::Core::SharedAllocator> interfaces_;
+	Nirvana::Core::Array <OperationEntry, Nirvana::Core::SharedAllocator> operations_;
 
 	const InterfaceEntry* primary_interface_;
 	UShort object_itf_idx_;
 };
 
-}
 }
 }
 

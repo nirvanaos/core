@@ -33,7 +33,6 @@
 #include <algorithm>
 
 namespace CORBA {
-namespace Internal {
 namespace Core {
 
 class Services
@@ -119,7 +118,6 @@ private:
 	static const Factory factories_ [Service::SERVICE_COUNT];
 };
 
-}
 }
 }
 

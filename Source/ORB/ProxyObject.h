@@ -32,7 +32,6 @@
 #include <atomic>
 
 namespace CORBA {
-namespace Internal {
 namespace Core {
 
 /// Object operations servant-side proxy.
@@ -113,7 +112,7 @@ private:
 		return activation_state_.compare_exchange_strong (from, to);
 	}
 
-	static void non_existent_request (ProxyObject* servant, IORequest::_ptr_type call);
+	static void non_existent_request (ProxyObject* servant, Internal::IORequest::_ptr_type call);
 
 private:
 	std::atomic <ActivationState> activation_state_;
@@ -121,10 +120,9 @@ private:
 	const PortableServer::ObjectId* activated_id_;
 	bool implicit_activation_;
 
-	static const Operation object_ops_ [3];
+	static const Internal::Operation object_ops_ [3];
 };
 
-}
 }
 }
 

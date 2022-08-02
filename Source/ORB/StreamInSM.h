@@ -33,7 +33,7 @@
 namespace Nirvana {
 namespace ESIOP {
 
-class NIRVANA_NOVTABLE StreamInSM : public CORBA::Internal::Core::StreamIn
+class NIRVANA_NOVTABLE StreamInSM : public CORBA::Core::StreamIn
 {
 	struct BlockHdr
 	{

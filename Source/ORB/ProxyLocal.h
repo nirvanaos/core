@@ -31,7 +31,6 @@
 #include "ServantProxyBase.inl"
 
 namespace CORBA {
-namespace Internal {
 namespace Core {
 
 /// LocalObject operations servant-side proxy
@@ -41,7 +40,7 @@ class ProxyLocal :
 	typedef ServantProxyBase Base;
 
 public:
-	Bridge <Object>* _get_object (Type <String>::ABI_in iid, Interface* env) NIRVANA_NOEXCEPT
+	Bridge <Object>* _get_object (Internal::Type <IDL::String>::ABI_in iid, Interface* env) NIRVANA_NOEXCEPT
 	{
 		return static_cast <Bridge <Object>*> (Base::_s_get_object (this, iid, env));
 	}
@@ -58,13 +57,12 @@ protected:
 	{}
 
 private:
-	static void non_existent_request (ProxyLocal* servant, IORequest::_ptr_type call);
+	static void non_existent_request (ProxyLocal* servant, Internal::IORequest::_ptr_type call);
 
 private:
-	static const Operation object_ops_ [3];
+	static const Internal::Operation object_ops_ [3];
 };
 
-}
 }
 }
 

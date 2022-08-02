@@ -30,7 +30,6 @@
 #include <CORBA/set_exception.h>
 
 namespace CORBA {
-namespace Internal {
 namespace Core {
 
 //! Non copyable reference.
@@ -39,23 +38,22 @@ class LifeCycleNoCopy
 {
 public:
 	template <class I>
-	static Interface* __duplicate (Interface* itf, Interface* env)
+	static Internal::Interface* __duplicate (Internal::Interface* itf, Internal::Interface* env)
 	{
-		set_NO_IMPLEMENT (env);
+		Internal::set_NO_IMPLEMENT (env);
 		return nullptr;
 	}
 
 	template <class I>
-	static void __release (Interface* itf)
+	static void __release (Internal::Interface* itf)
 	{
 		try {
-			delete& S::_implementation (static_cast <Bridge <I>*> (itf));
+			delete& S::_implementation (static_cast <Internal::Bridge <I>*> (itf));
 		} catch (...) {
 		}
 	}
 };
 
-}
 }
 }
 

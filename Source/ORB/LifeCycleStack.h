@@ -28,9 +28,10 @@
 #pragma once
 
 namespace CORBA {
-namespace Internal {
 
+namespace Internal {
 class Interface;
+}
 
 namespace Core {
 
@@ -39,17 +40,16 @@ class LifeCycleStack
 {
 public:
 	template <class I>
-	static Interface* __duplicate (Interface* itf, Interface* env)
+	static Internal::Interface* __duplicate (Internal::Interface* itf, Internal::Interface* env)
 	{
 		return itf;
 	}
 
 	template <class I>
-	static void __release (Interface* itf)
+	static void __release (Internal::Interface* itf)
 	{}
 };
 
-}
 }
 }
 

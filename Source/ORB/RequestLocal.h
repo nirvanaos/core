@@ -35,14 +35,13 @@
 #include "RqHelper.h"
 
 namespace CORBA {
-namespace Internal {
 namespace Core {
 
 class ServantProxyBase;
 
 class RequestLocal :
-	public servant_traits <IORequest>::Servant <RequestLocal>,
-	public LifeCycleRefCnt <RequestLocal>,
+	public servant_traits <Internal::IORequest>::Servant <RequestLocal>,
+	public Internal::LifeCycleRefCnt <RequestLocal>,
 	public Nirvana::Core::UserObject,
 	private RqHelper
 {
@@ -57,7 +56,7 @@ public:
 
 	virtual void _remove_ref () NIRVANA_NOEXCEPT = 0;
 
-	IOReference::OperationIndex op_idx () const NIRVANA_NOEXCEPT
+	Internal::IOReference::OperationIndex op_idx () const NIRVANA_NOEXCEPT
 	{
 		return op_idx_;
 	}
@@ -185,11 +184,11 @@ public:
 	}
 
 	template <typename C>
-	void marshal_string (StringT <C>& s, bool move)
+	void marshal_string (Internal::StringT <C>& s, bool move)
 	{
 		marshal_op ();
 
-		typedef typename Type <StringT <C> >::ABI ABI;
+		typedef typename Internal::Type <Internal::StringT <C> >::ABI ABI;
 		ABI& abi = (ABI&)s;
 		size_t size;
 		C* ptr;
@@ -211,13 +210,13 @@ public:
 	}
 
 	template <typename C>
-	void unmarshal_string (StringT <C>& s)
+	void unmarshal_string (Internal::StringT <C>& s)
 	{
-		typedef typename Type <StringT <C> >::ABI ABI;
+		typedef typename Internal::Type <Internal::StringT <C> >::ABI ABI;
 
 		size_t size;
 		read (alignof (size_t), sizeof (size_t), &size);
-		StringT <C> tmp;
+		Internal::StringT <C> tmp;
 		ABI& abi = (ABI&)tmp;
 		if (size <= ABI::SMALL_CAPACITY) {
 			if (size) {
@@ -238,9 +237,9 @@ public:
 	}
 
 	template <typename C>
-	void marshal_char_seq (Sequence <C>& s, bool move)
+	void marshal_char_seq (IDL::Sequence <C>& s, bool move)
 	{
-		typedef typename Type <Sequence <C> >::ABI ABI;
+		typedef typename Internal::Type <IDL::Sequence <C> >::ABI ABI;
 		ABI& abi = (ABI&)s;
 		marshal_seq (alignof (C), sizeof (C), abi.size, abi.ptr,
 			move ? abi.allocated : 0);
@@ -249,10 +248,10 @@ public:
 	}
 
 	template <typename C>
-	void unmarshal_char_seq (Sequence <C>& s)
+	void unmarshal_char_seq (IDL::Sequence <C>& s)
 	{
-		typedef typename Type <Sequence <C> >::ABI ABI;
-		Sequence <C> tmp;
+		typedef typename Internal::Type <IDL::Sequence <C> >::ABI ABI;
+		IDL::Sequence <C> tmp;
 		ABI& abi = (ABI&)tmp;
 		unmarshal_seq (alignof (C), sizeof (C), abi.size, (void*&)abi.ptr, abi.allocated);
 		s = std::move (tmp);
@@ -268,12 +267,12 @@ public:
 		unmarshal_char (count, data);
 	}
 
-	void marshal_wstring (WString& s, bool move)
+	void marshal_wstring (IDL::WString& s, bool move)
 	{
 		marshal_string (s, move);
 	}
 
-	void unmarshal_wstring (WString& s)
+	void unmarshal_wstring (IDL::WString& s)
 	{
 		unmarshal_string (s);
 	}
@@ -303,7 +302,7 @@ public:
 	/// \param rep_id The interface repository id.
 	/// 
 	/// \returns Interface.
-	Interface::_ref_type unmarshal_interface (String_in interface_id);
+	Interface::_ref_type unmarshal_interface (const IDL::String& interface_id);
 
 	/// Marshal TypeCode.
 	/// 
@@ -318,14 +317,14 @@ public:
 	/// \returns TypeCode.
 	TypeCode::_ref_type unmarshal_type_code ()
 	{
-		return unmarshal_interface (RepIdOf <TypeCode>::id).template downcast <TypeCode> ();
+		return unmarshal_interface (Internal::RepIdOf <TypeCode>::id).template downcast <TypeCode> ();
 	}
 
 	/// Marshal value type.
 	/// 
 	/// \param val  ValueBase.
 	/// \param output Output parameter marshaling. Haven't to perform deep copy.
-	void marshal_value (Interface::_ptr_type val, bool output)
+	void marshal_value (Internal::Interface::_ptr_type val, bool output)
 	{
 		if (output || !val || caller_memory_ == callee_memory_)
 			marshal_interface (val);
@@ -333,14 +332,14 @@ public:
 			marshal_value_copy (value_type2base (val), val->_epv ().interface_id);
 	}
 
-	void marshal_value_copy (ValueBase::_ptr_type base, String_in interface_id);
+	void marshal_value_copy (ValueBase::_ptr_type base, const IDL::String& interface_id);
 
 	/// Unmarshal value type.
 	/// 
 	/// \param rep_id The value type repository id.
 	/// 
 	/// \returns Value type interface.
-	Interface::_ref_type unmarshal_value (String_in interface_id)
+	Interface::_ref_type unmarshal_value (const IDL::String& interface_id)
 	{
 		return unmarshal_interface (interface_id);
 	}
@@ -372,7 +371,7 @@ public:
 	/// \param rep_id The interface repository id.
 	/// 
 	/// \returns Interface.
-	Interface::_ref_type unmarshal_abstract (String_in interface_id)
+	Interface::_ref_type unmarshal_abstract (const IDL::String& interface_id)
 	{
 		return unmarshal_interface (interface_id);
 	}
@@ -397,7 +396,7 @@ public:
 	void set_exception (Any& e)
 	{
 		clear ();
-		Type <Any>::marshal_out (e, _get_ptr ());
+		Internal::Type <Any>::marshal_out (e, _get_ptr ());
 		rewind ();
 		state_ = State::EXCEPTION;
 	}
@@ -453,7 +452,7 @@ protected:
 		EXCEPTION
 	};
 
-	RequestLocal (ServantProxyBase& proxy, IOReference::OperationIndex op_idx,
+	RequestLocal (ServantProxyBase& proxy, Internal::IOReference::OperationIndex op_idx,
 		Nirvana::Core::MemContext* callee_memory) NIRVANA_NOEXCEPT :
 		caller_memory_ (&MemContext::current ()),
 		callee_memory_ (callee_memory),
@@ -536,7 +535,7 @@ private:
 
 private:
 	CoreRef <ServantProxyBase> proxy_;
-	IOReference::OperationIndex op_idx_;
+	Internal::IOReference::OperationIndex op_idx_;
 	State state_;
 	BlockHdr* first_block_;
 	BlockHdr* cur_block_;
@@ -549,7 +548,7 @@ class NIRVANA_NOVTABLE RequestLocalAsync :
 	public Nirvana::Core::Runnable
 {
 protected:
-	RequestLocalAsync (ServantProxyBase& proxy, IOReference::OperationIndex op_idx,
+	RequestLocalAsync (ServantProxyBase& proxy, Internal::IOReference::OperationIndex op_idx,
 		Nirvana::Core::MemContext* callee_memory) NIRVANA_NOEXCEPT :
 		RequestLocal (proxy, op_idx, callee_memory)
 	{}
@@ -570,7 +569,7 @@ class NIRVANA_NOVTABLE RequestLocalOneway :
 	public RequestLocalAsync
 {
 protected:
-	RequestLocalOneway (ServantProxyBase& proxy, IOReference::OperationIndex op_idx,
+	RequestLocalOneway (ServantProxyBase& proxy, Internal::IOReference::OperationIndex op_idx,
 		Nirvana::Core::MemContext* callee_memory) NIRVANA_NOEXCEPT :
 		RequestLocalAsync (proxy, op_idx, callee_memory)
 	{
@@ -586,7 +585,7 @@ class RequestLocalImpl :
 	public Base
 {
 public:
-	RequestLocalImpl (ServantProxyBase& proxy, IOReference::OperationIndex op_idx,
+	RequestLocalImpl (ServantProxyBase& proxy, Internal::IOReference::OperationIndex op_idx,
 		Nirvana::Core::MemContext* callee_memory) NIRVANA_NOEXCEPT :
 		Base (proxy, op_idx, callee_memory)
 	{
@@ -621,7 +620,6 @@ static_assert (
 	sizeof (RequestLocalImpl <RequestLocalOneway>) == RequestLocal::BLOCK_SIZE,
 	"sizeof (RequestLocal)");
 
-}
 }
 }
 

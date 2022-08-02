@@ -31,7 +31,6 @@
 #include "../CoreInterface.h"
 
 namespace CORBA {
-namespace Internal {
 namespace Core {
 
 class NIRVANA_NOVTABLE StreamIn
@@ -43,7 +42,6 @@ public:
 	virtual void* read (size_t align, size_t& size) = 0;
 };
 
-}
 }
 }
 

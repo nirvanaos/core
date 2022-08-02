@@ -31,25 +31,24 @@
 #include "RequestLocal.h"
 
 namespace CORBA {
-namespace Internal {
 namespace Core {
 
 inline
-IORequest::_ref_type ServantProxyBase::create_request (OperationIndex op)
+Internal::IORequest::_ref_type ServantProxyBase::create_request (OperationIndex op)
 {
 	return make_pseudo <RequestLocalImpl <RequestLocal> > (std::ref (*this), op,
 		mem_context ());
 }
 
 inline
-IORequest::_ref_type ServantProxyBase::create_oneway (OperationIndex op)
+Internal::IORequest::_ref_type ServantProxyBase::create_oneway (OperationIndex op)
 {
 	Nirvana::Core::CoreRef <Nirvana::Core::MemContext> target_memory = mem_context ();
 	if (!target_memory)
 		target_memory = Nirvana::Core::MemContextUser::create ();
 	Nirvana::Core::ExecDomain& ed = Nirvana::Core::ExecDomain::current ();
 	ed.mem_context_push (target_memory);
-	IORequest::_ref_type ret;
+	Internal::IORequest::_ref_type ret;
 	try {
 		ret = make_pseudo <RequestLocalImpl <RequestLocalOneway> > (std::ref (*this),
 			op, target_memory);
@@ -62,12 +61,12 @@ IORequest::_ref_type ServantProxyBase::create_oneway (OperationIndex op)
 }
 
 inline
-void ServantProxyBase::send (IORequest::_ref_type& rq,
+void ServantProxyBase::send (Internal::IORequest::_ref_type& rq,
 	const Nirvana::DeadlineTime& deadline)
 {
 	if (!rq)
 		throw BAD_PARAM ();
-	RequestLocal* prq = static_cast <RequestLocal*> (&(IORequest::_ptr_type)rq);
+	RequestLocal* prq = static_cast <RequestLocal*> (&(Internal::IORequest::_ptr_type)rq);
 	switch (prq->kind ()) {
 		case RqKind::SYNC:
 			Nirvana::throw_BAD_PARAM ();
@@ -87,7 +86,6 @@ void ServantProxyBase::send (IORequest::_ref_type& rq,
 	}
 }
 
-}
 }
 }
 

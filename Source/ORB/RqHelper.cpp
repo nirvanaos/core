@@ -26,7 +26,9 @@
 #include "RqHelper.h"
 
 namespace CORBA {
-namespace Internal {
+
+using namespace Internal;
+
 namespace Core {
 
 Object::_ptr_type RqHelper::interface2object (Interface::_ptr_type itf)
@@ -36,8 +38,8 @@ Object::_ptr_type RqHelper::interface2object (Interface::_ptr_type itf)
 	if (RepId::compatible (interface_id, RepIdOf <Object>::id))
 		obj = (Object*)&itf;
 	else {
-		Environment env;
-		Interface* p = ((const EPV_Header&)itf->_epv ()).base.to_base (&itf, RepIdOf <ValueBase>::id, &env);
+		Internal::Environment env;
+		Interface* p = ((const EPV_Header&)itf->_epv ()).base.to_base (&itf, &Type <IDL::String>::C_in (RepIdOf <ValueBase>::id), &env);
 		env.check ();
 		obj = Object::_check (p);
 	}
@@ -51,8 +53,8 @@ ValueBase::_ptr_type RqHelper::value_type2base (Interface::_ptr_type val)
 	if (RepId::compatible (interface_id, RepIdOf <ValueBase>::id))
 		base = (ValueBase*)&val;
 	else {
-		Environment env;
-		Interface* p = ((const EPV_Header&)val->_epv ()).base.to_base (&val, RepIdOf <ValueBase>::id, &env);
+		Internal::Environment env;
+		Interface* p = ((const EPV_Header&)val->_epv ()).base.to_base (&val, &Type <IDL::String>::C_in (RepIdOf <ValueBase>::id), &env);
 		env.check ();
 		base = ValueBase::_check (p);
 	}
@@ -62,8 +64,8 @@ ValueBase::_ptr_type RqHelper::value_type2base (Interface::_ptr_type val)
 AbstractBase::_ptr_type RqHelper::abstract_interface2base (Interface::_ptr_type itf)
 {
 	AbstractBase::_ptr_type base;
-	Environment env;
-	Interface* p = ((const EPV_Header&)itf->_epv ()).base.to_base (&itf, RepIdOf <AbstractBase>::id, &env);
+	Internal::Environment env;
+	Interface* p = ((const EPV_Header&)itf->_epv ()).base.to_base (&itf, &Type <IDL::String>::C_in (RepIdOf <AbstractBase>::id), &env);
 	env.check ();
 	base = AbstractBase::_check (p);
 	return base;
@@ -75,6 +77,5 @@ void RqHelper::check_align (size_t align)
 		throw BAD_PARAM ();
 }
 
-}
 }
 }

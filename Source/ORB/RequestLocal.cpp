@@ -25,13 +25,15 @@
 */
 #include "RequestLocal.h"
 
-namespace CORBA {
-namespace Internal {
-namespace Core {
-
 using namespace Nirvana;
 using namespace Nirvana::Core;
 using namespace std;
+
+namespace CORBA {
+
+using namespace Internal;
+
+namespace Core {
 
 RqKind RequestLocal::kind () const NIRVANA_NOEXCEPT
 {
@@ -294,7 +296,7 @@ void RequestLocal::marshal_interface (Interface::_ptr_type itf)
 	}
 }
 
-Interface::_ref_type RequestLocal::unmarshal_interface (String_in interface_id)
+Interface::_ref_type RequestLocal::unmarshal_interface (const IDL::String& interface_id)
 {
 	Interface** pitf = (Interface**)round_up (cur_ptr_, alignof (Interface*));
 	const Octet* block_end = cur_block_end ();
@@ -323,7 +325,7 @@ Interface::_ref_type RequestLocal::unmarshal_interface (String_in interface_id)
 	return move ((Interface::_ref_type&)(itf_rec->ptr));
 }
 
-void RequestLocal::marshal_value_copy (ValueBase::_ptr_type base, String_in interface_id)
+void RequestLocal::marshal_value_copy (ValueBase::_ptr_type base, const IDL::String& interface_id)
 {
 	ValueBase::_ref_type copy = base->_copy_value ();
 	Interface::_ptr_type itf = copy->_query_valuetype (interface_id);
@@ -347,6 +349,5 @@ RqKind RequestLocalOneway::kind () const NIRVANA_NOEXCEPT
 	return RqKind::ONEWAY;
 }
 
-}
 }
 }

@@ -39,23 +39,22 @@
 #include "offset_ptr.h"
 
 namespace CORBA {
-namespace Internal {
 namespace Core {
 
 class RequestLocal;
 
 /// \brief Base for servant-side proxies.
 class ServantProxyBase :
-	public ServantTraits <ServantProxyBase>,
-	public LifeCycleDynamic <ServantProxyBase>,
-	public Skeleton <ServantProxyBase, Object>,
-	public Skeleton <ServantProxyBase, IOReference>,
-	public Skeleton <ServantProxyBase, AbstractBase>,
+	public Internal::ServantTraits <ServantProxyBase>,
+	public Internal::LifeCycleDynamic <ServantProxyBase>,
+	public Internal::Skeleton <ServantProxyBase, Object>,
+	public Internal::Skeleton <ServantProxyBase, Internal::IOReference>,
+	public Internal::Skeleton <ServantProxyBase, AbstractBase>,
 	public ProxyManager
 {
 	class GarbageCollector;
 public:
-	typedef ::Nirvana::Core::AtomicCounter <true> RefCnt;
+	typedef Nirvana::Core::AtomicCounter <true> RefCnt;
 
 	template <class I>
 	static Bridge <I>* _duplicate (Bridge <I>* itf)
@@ -90,14 +89,14 @@ public:
 	virtual RefCnt::IntegralType _remove_ref_proxy () NIRVANA_NOEXCEPT;
 
 	inline
-	IORequest::_ref_type create_request (OperationIndex op);
+	Internal::IORequest::_ref_type create_request (OperationIndex op);
 
 	inline
-	IORequest::_ref_type create_oneway (OperationIndex op);
+	Internal::IORequest::_ref_type create_oneway (OperationIndex op);
 
 	void invoke (RequestLocal& rq) NIRVANA_NOEXCEPT;
 
-	void send (IORequest::_ref_type& rq, const Nirvana::DeadlineTime& deadline);
+	void send (Internal::IORequest::_ref_type& rq, const Nirvana::DeadlineTime& deadline);
 
 	Nirvana::Core::MemContext* mem_context () const NIRVANA_NOEXCEPT
 	{
@@ -133,22 +132,22 @@ public:
 
 protected:
 	template <class I>
-	ServantProxyBase (I_ptr <I> servant,
-		const Operation object_ops [3], void* object_impl) :
-		ProxyManager (Skeleton <ServantProxyBase, IOReference>::epv_,
-			Skeleton <ServantProxyBase, Object>::epv_, 
-			Skeleton <ServantProxyBase, AbstractBase>::epv_,
+	ServantProxyBase (Internal::I_ptr <I> servant,
+		const Internal::Operation object_ops [3], void* object_impl) :
+		ProxyManager (Internal::Skeleton <ServantProxyBase, Internal::IOReference>::epv_,
+			Internal::Skeleton <ServantProxyBase, Object>::epv_,
+			Internal::Skeleton <ServantProxyBase, AbstractBase>::epv_,
 			primary_interface_id (servant),
 			object_ops, object_impl),
 		ref_cnt_proxy_ (0),
 		sync_context_ (&Nirvana::Core::SyncContext::current ())
 	{
 		size_t offset = offset_ptr ();
-		servant_ = offset_ptr (static_cast <Interface::_ptr_type> (servant), offset);
+		servant_ = offset_ptr (static_cast <Internal::Interface::_ptr_type> (servant), offset);
 		// Fill implementation pointers
 		for (InterfaceEntry* ie = interfaces ().begin (); ie != interfaces ().end (); ++ie) {
 			if (!ie->implementation) {
-				Interface::_ptr_type impl = servant->_query_interface (ie->iid);
+				Internal::Interface::_ptr_type impl = servant->_query_interface (ie->iid);
 				if (!impl)
 					throw OBJ_ADAPTER (); // Implementation not found. TODO: Log
 				ie->implementation = offset_ptr (impl, offset);
@@ -156,7 +155,7 @@ protected:
 		}
 	}
 
-	Interface::_ptr_type servant () const NIRVANA_NOEXCEPT
+	Internal::Interface::_ptr_type servant () const NIRVANA_NOEXCEPT
 	{
 		return servant_;
 	}
@@ -165,7 +164,7 @@ protected:
 
 	/// Returns synchronization context for the specific operation.
 	/// For some Object operations may return free context.
-	virtual Nirvana::Core::SyncContext& get_sync_context (IOReference::OperationIndex op)
+	virtual Nirvana::Core::SyncContext& get_sync_context (Internal::IOReference::OperationIndex op)
 	{
 		return *sync_context_;
 	}
@@ -174,7 +173,7 @@ protected:
 	void run_garbage_collector (Arg arg, Nirvana::Core::SyncContext& sync_context) const NIRVANA_NOEXCEPT
 	{
 		try {
-			using namespace ::Nirvana::Core;
+			using namespace Nirvana::Core;
 
 			ExecDomain& ed = ExecDomain::current ();
 			CoreRef <MemContext> mc = push_GC_mem_context (ed, sync_context);
@@ -200,7 +199,7 @@ protected:
 			// Fallback to collect garbage in the current ED.
 			try {
 				SYNC_BEGIN (sync_context, nullptr)
-				::Nirvana::Core::ImplStatic <GC> (arg).run ();
+				Nirvana::Core::ImplStatic <GC> (arg).run ();
 				SYNC_END ()
 			} catch (...) {
 				// Swallow exceptions.
@@ -209,21 +208,21 @@ protected:
 		}
 	}
 
-	typedef void (*RqProcInternal) (void* servant, IORequest::_ptr_type call);
+	typedef void (*RqProcInternal) (void* servant, Internal::IORequest::_ptr_type call);
 
 	static bool call_request_proc (RqProcInternal proc, void* servant, Interface* call);
 
-	template <class Impl, void (*proc) (Impl*, IORequest::_ptr_type)>
-	static bool ObjProcWrapper (Interface* servant, Interface* call)
+	template <class Impl, void (*proc) (Impl*, Internal::IORequest::_ptr_type)>
+	static bool ObjProcWrapper (Internal::Interface* servant, Internal::Interface* call)
 	{
 		return call_request_proc ((RqProcInternal)proc, servant, call);
 	}
 
 private:
 	template <class I>
-	static const Char* primary_interface_id (I_ptr <I> servant)
+	static const Char* primary_interface_id (Internal::I_ptr <I> servant)
 	{
-		Interface::_ptr_type primary = servant->_query_interface (0);
+		Internal::Interface::_ptr_type primary = servant->_query_interface (0);
 		if (!primary)
 			throw OBJ_ADAPTER (); // TODO: Log
 		return primary->_epv ().interface_id;
@@ -236,12 +235,11 @@ protected:
 	Nirvana::Core::RefCounter ref_cnt_servant_;
 
 private:
-	Interface::_ptr_type servant_;
+	Internal::Interface::_ptr_type servant_;
 	RefCnt ref_cnt_proxy_;
 	Nirvana::Core::CoreRef <Nirvana::Core::SyncContext> sync_context_;
 };
 
-}
 }
 }
 

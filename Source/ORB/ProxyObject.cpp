@@ -27,11 +27,13 @@
 #include "../Runnable.h"
 #include "POA_Root.h"
 
-namespace CORBA {
-namespace Internal {
-namespace Core {
+using namespace Nirvana::Core;
 
-using namespace ::Nirvana::Core;
+namespace CORBA {
+
+using namespace Internal;
+
+namespace Core {
 
 class ProxyObject::Deactivator :
 	public UserObject,
@@ -127,6 +129,5 @@ const Operation ProxyObject::object_ops_ [3] = {
 	{ op_non_existent_, {0, 0}, {0, 0}, Type <Boolean>::type_code, ObjProcWrapper <ProxyObject, non_existent_request> }
 };
 
-}
 }
 }

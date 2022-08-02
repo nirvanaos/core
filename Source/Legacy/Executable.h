@@ -41,7 +41,7 @@ class Executable :
 	public Nirvana::Core::Binary,
 	public Nirvana::Core::SyncContext,
 	public CORBA::servant_traits <Nirvana::Module>::Servant <Executable>,
-	public CORBA::Internal::Core::LifeCycleStack
+	public CORBA::Core::LifeCycleStack
 {
 public:
 	Executable (const std::string& file);

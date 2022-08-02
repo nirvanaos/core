@@ -36,7 +36,7 @@
 namespace Nirvana {
 namespace ESIOP {
 
-class NIRVANA_NOVTABLE StreamOutSM : public CORBA::Internal::Core::StreamOut
+class NIRVANA_NOVTABLE StreamOutSM : public CORBA::Core::StreamOut
 {
 	struct Block
 	{

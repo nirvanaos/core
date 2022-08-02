@@ -33,14 +33,13 @@
 #include "IDL/ObjectFactory.h"
 
 namespace CORBA {
-namespace Internal {
 namespace Core {
 
 inline
 size_t offset_ptr () NIRVANA_NOEXCEPT
 {
-	ObjectFactory::StatelessCreationFrame* scf =
-		(ObjectFactory::StatelessCreationFrame*)Nirvana::Core::TLS::current ()
+	Internal::ObjectFactory::StatelessCreationFrame* scf =
+		(Internal::ObjectFactory::StatelessCreationFrame*)Nirvana::Core::TLS::current ()
 		.get (Nirvana::Core::TLS::CORE_TLS_OBJECT_FACTORY);
 	if (scf)
 		return scf->offset ();
@@ -48,18 +47,17 @@ size_t offset_ptr () NIRVANA_NOEXCEPT
 }
 
 template <class I> inline
-I_ptr <I> offset_ptr (I_ptr <I> p, size_t cb) NIRVANA_NOEXCEPT
+Internal::I_ptr <I> offset_ptr (Internal::I_ptr <I> p, size_t cb) NIRVANA_NOEXCEPT
 {
 	return reinterpret_cast <I*> ((Octet*)&p + cb);
 }
 
 template <class I> inline
-I_ptr <I> offset_ptr (I_ptr <I> p) NIRVANA_NOEXCEPT
+Internal::I_ptr <I> offset_ptr (Internal::I_ptr <I> p) NIRVANA_NOEXCEPT
 {
 	return offset_ptr (p, offset_ptr ());
 }
 
-}
 }
 }
 

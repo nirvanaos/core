@@ -34,11 +34,10 @@
 #include "IDL/ObjectFactory_s.h"
 
 namespace CORBA {
-namespace Internal {
 namespace Core {
 
 class ObjectFactory :
-	public ServantStatic <ObjectFactory, CORBA::Internal::ObjectFactory>
+	public servant_traits <Internal::ObjectFactory>::ServantStatic <ObjectFactory>
 {
 public:
 	static void* memory_allocate (size_t size)
@@ -66,7 +65,7 @@ public:
 		return Nirvana::Core::SyncContext::current ().stateless_memory () != nullptr;
 	}
 
-	void stateless_begin (CORBA::Internal::ObjectFactory::StatelessCreationFrame& scf)
+	void stateless_begin (StatelessCreationFrame& scf)
 	{
 		if (!(scf.tmp () && scf.size ()))
 			throw BAD_PARAM ();
@@ -99,13 +98,13 @@ public:
 		}
 	}
 
-	static I_ref <PortableServer::ServantBase> create_servant (PortableServer::Servant servant)
+	static PortableServer::ServantBase::_ref_type create_servant (PortableServer::Servant servant)
 	{
 		Frame frame;
 		return make_pseudo <PortableServer::Core::ServantBase> (servant);
 	}
 
-	static I_ref <CORBA::LocalObject> create_local_object (I_ptr <CORBA::LocalObject> servant)
+	static CORBA::LocalObject::_ref_type create_local_object (CORBA::LocalObject::_ptr_type servant)
 	{
 		Frame frame;
 		return make_pseudo <CORBA::Core::LocalObject> (servant);
@@ -124,7 +123,6 @@ private:
 
 };
 
-}
 }
 }
 

@@ -27,12 +27,12 @@
 #include "../Binder.h"
 #include <algorithm>
 
-namespace CORBA {
-namespace Internal {
-namespace Core {
-
-using namespace ::Nirvana;
+using namespace Nirvana;
+using namespace CORBA::Internal;
 using namespace std;
+
+namespace CORBA {
+namespace Core {
 
 struct ProxyManager::IEPred
 {
@@ -295,6 +295,5 @@ const ProxyManager::OperationEntry* ProxyManager::find_operation (String_in name
 	return nullptr;
 }
 
-}
 }
 }

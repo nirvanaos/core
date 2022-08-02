@@ -26,12 +26,11 @@
 #include <ORB/ObjectFactory.h>
 #include <Nirvana/OLF.h>
 
-namespace CORBA {
-namespace Internal {
-namespace Core {
-
 using namespace ::Nirvana;
 using namespace ::Nirvana::Core;
+
+namespace CORBA {
+namespace Core {
 
 ObjectFactory::Frame::Frame () :
 	StatelessCreationFrame (nullptr, 0, 0, nullptr),
@@ -63,6 +62,8 @@ ObjectFactory::Frame::~Frame ()
 
 }
 
+namespace Internal {
+
 extern const ::Nirvana::ImportInterfaceT <ObjectFactory> g_object_factory = {
 	::Nirvana::OLF_IMPORT_INTERFACE, "CORBA/Internal/g_object_factory",
 	RepIdOf <ObjectFactory>::id, NIRVANA_STATIC_BRIDGE (ObjectFactory,
@@ -72,4 +73,4 @@ extern const ::Nirvana::ImportInterfaceT <ObjectFactory> g_object_factory = {
 }
 }
 
-NIRVANA_EXPORT (_exp_CORBA_Internal_g_object_factory, "CORBA/Internal/g_object_factory", CORBA::Internal::ObjectFactory, CORBA::Internal::Core::ObjectFactory)
+NIRVANA_EXPORT (_exp_CORBA_Internal_g_object_factory, "CORBA/Internal/g_object_factory", CORBA::Internal::ObjectFactory, CORBA::Core::ObjectFactory)

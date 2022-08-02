@@ -68,7 +68,7 @@ class ClassLibrary;
 class Singleton;
 
 /// Implements object binding and module loading.
-class Binder : private CORBA::Internal::Core::Services
+class Binder : private CORBA::Core::Services
 {
 	/// To avoid priority inversion, if module loader deadline is too far,
 	/// it will be temporary adjusted.

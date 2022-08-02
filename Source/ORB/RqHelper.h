@@ -31,7 +31,6 @@
 #include <CORBA/CORBA.h>
 
 namespace CORBA {
-namespace Internal {
 namespace Core {
 
 enum class RqKind
@@ -44,24 +43,24 @@ enum class RqKind
 class RqHelper
 {
 public:
-	static Object::_ptr_type interface2object (Interface::_ptr_type itf);
-	static ValueBase::_ptr_type value_type2base (Interface::_ptr_type val);
-	static AbstractBase::_ptr_type abstract_interface2base (Interface::_ptr_type itf);
+	static Object::_ptr_type interface2object (Internal::Interface::_ptr_type itf);
+	static ValueBase::_ptr_type value_type2base (Internal::Interface::_ptr_type val);
+	static AbstractBase::_ptr_type abstract_interface2base (Internal::Interface::_ptr_type itf);
 	static void check_align (size_t align);
 
 private:
 	struct EPV_Header
 	{
-		Interface::EPV header;
+		Internal::Interface::EPV header;
 		struct
 		{
-			Interface* (*to_base) (Interface*, String_in, Interface*);
-		} base;
+			Internal::Interface* (*to_base) (Internal::Interface*, const Internal::ABI <IDL::String>*, Internal::Interface*);
+		}
+		base;
 	};
 
 };
 
-}
 }
 }
 

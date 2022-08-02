@@ -31,7 +31,6 @@
 #include "../CoreInterface.h"
 
 namespace CORBA {
-namespace Internal {
 namespace Core {
 
 class NIRVANA_NOVTABLE StreamOut
@@ -42,7 +41,6 @@ public:
 	virtual void write (size_t align, size_t size, void* data, size_t* allocated_size) = 0;
 };
 
-}
 }
 }
 

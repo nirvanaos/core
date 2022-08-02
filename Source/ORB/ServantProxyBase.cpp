@@ -25,11 +25,13 @@
 */
 #include "ServantProxyBase.inl"
 
-namespace CORBA {
-namespace Internal {
-namespace Core {
-
 using namespace Nirvana::Core;
+
+namespace CORBA {
+
+using namespace Internal;
+
+namespace Core {
 
 class ServantProxyBase::GarbageCollector :
 	public UserObject,
@@ -139,6 +141,5 @@ bool ServantProxyBase::call_request_proc (RqProcInternal proc, void* servant, In
 	return true;
 }
 
-}
 }
 }

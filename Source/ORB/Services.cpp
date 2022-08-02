@@ -28,12 +28,11 @@
 #include "../Synchronized.h"
 #include "POA_Root.h"
 
-namespace CORBA {
-namespace Internal {
-namespace Core {
-
 using namespace Nirvana::Core;
 using namespace Nirvana;
+
+namespace CORBA {
+namespace Core {
 
 // Initial services. Must be lexicographically ordered.
 
@@ -50,6 +49,5 @@ Object::_ref_type Services::create_RootPOA ()
 	SYNC_END ();
 }
 
-}
 }
 }

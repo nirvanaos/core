@@ -25,11 +25,13 @@
 */
 #include "ProxyLocal.h"
 
-namespace CORBA {
-namespace Internal {
-namespace Core {
+using namespace Nirvana::Core;
 
-using namespace ::Nirvana::Core;
+namespace CORBA {
+
+using namespace Internal;
+
+namespace Core {
 
 void ProxyLocal::non_existent_request (ProxyLocal* servant, IORequest::_ptr_type _rq)
 {
@@ -43,6 +45,5 @@ const Operation ProxyLocal::object_ops_ [3] = {
 	{ op_non_existent_, {0, 0}, {0, 0}, Type <Boolean>::type_code, ObjProcWrapper <ProxyLocal, non_existent_request> }
 };
 
-}
 }
 }

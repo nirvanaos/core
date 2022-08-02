@@ -33,7 +33,6 @@
 #include "LifeCycleNoCopy.h"
 
 namespace CORBA {
-namespace Internal {
 namespace Core {
 
 /// \brief Core implementation of ServantBase and LocalObject.
@@ -41,28 +40,28 @@ template <class T, class I, class Proxy>
 class CoreImpl :
 	public Proxy,
 	public LifeCycleNoCopy <T>,
-	public ServantTraits <T>,
-	public ValueImplBase <T, I>
+	public Internal::ServantTraits <T>,
+	public Internal::ValueImplBase <T, I>
 {
 public:
 	typedef I PrimaryInterface;
 
-	using ServantTraits <T>::_implementation;
+	using Internal::ServantTraits <T>::_implementation;
 	using LifeCycleNoCopy <T>::__duplicate;
 	using LifeCycleNoCopy <T>::__release;
-	using Skeleton <T, I>::__non_existent;
-	using ServantTraits <T>::_wide_object;
-	using Skeleton <T, I>::__query_interface;
+	using Internal::Skeleton <T, I>::__non_existent;
+	using Internal::ServantTraits <T>::_wide_object;
+	using Internal::Skeleton <T, I>::__query_interface;
 
 	template <class Base, class Derived>
-	static Bridge <Base>* _wide (Bridge <Derived>* derived, Type <String>::ABI_in id, Interface* env)
+	static Internal::Bridge <Base>* _wide (Internal::Bridge <Derived>* derived, Internal::Type <IDL::String>::ABI_in id, Internal::Interface* env)
 	{
-		return ServantTraits <T>::template _wide <Base, Derived> (derived, id, env);
+		return Internal::ServantTraits <T>::template _wide <Base, Derived> (derived, id, env);
 	}
 
-	I_ptr <I> _get_ptr () NIRVANA_NOEXCEPT
+	Internal::I_ptr <I> _get_ptr () NIRVANA_NOEXCEPT
 	{
-		return I_ptr <I> (&static_cast <I&> (static_cast <Bridge <I>&> (*this)));
+		return Internal::I_ptr <I> (&static_cast <I&> (static_cast <Internal::Bridge <I>&> (*this)));
 	}
 
 	virtual void _remove_ref () NIRVANA_NOEXCEPT
@@ -84,7 +83,6 @@ protected:
 	{}
 };
 
-}
 }
 }
 
