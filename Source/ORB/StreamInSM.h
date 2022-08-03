@@ -36,8 +36,8 @@ namespace ESIOP {
 class NIRVANA_NOVTABLE StreamInSM : public CORBA::Core::StreamIn
 {
 public:
-	virtual void read (size_t align, size_t size, void* buf);
-	virtual void* read (size_t align, size_t& size);
+	virtual void read (size_t align, size_t size, void* buf) override;
+	virtual void* read (size_t align, size_t& size) override;
 
 protected:
 	StreamInSM (void* mem)

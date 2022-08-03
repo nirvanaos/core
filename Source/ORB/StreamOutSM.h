@@ -39,13 +39,17 @@ namespace ESIOP {
 class NIRVANA_NOVTABLE StreamOutSM : public CORBA::Core::StreamOut
 {
 public:
-	virtual void write (size_t align, size_t size, void* data, size_t* allocated_size);
+	virtual void write (size_t align, size_t size, void* data, size_t* allocated_size) override;
 
-	SharedMemPtr detach () NIRVANA_NOEXCEPT
+	SharedMemPtr stream_hdr () const NIRVANA_NOEXCEPT
+	{
+		return stream_hdr_;
+	}
+
+	void detach () NIRVANA_NOEXCEPT
 	{
 		blocks_.clear ();
 		other_allocated_.clear ();
-		return stream_hdr_;
 	}
 
 protected:

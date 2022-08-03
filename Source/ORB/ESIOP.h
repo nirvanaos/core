@@ -143,7 +143,13 @@ static_assert (sizeof (MessageBuffer) == sizeof (ReplyImmediate), "sizeof (Messa
 
 /// Message dispatch function.
 /// Must be called from the portability layer.
-void dispatch_message (const MessageHeader* message);
+void dispatch_message (const MessageHeader& message);
+
+/// Initialize ESIOP on startup.
+void initialize ();
+
+/// Terminate ESIOP on shutdown.
+void terminate () NIRVANA_NOEXCEPT;
 
 }
 }

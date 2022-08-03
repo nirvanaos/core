@@ -23,38 +23,15 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "ESIOP.h"
 #include "IncomingRequests.h"
-#include "StreamInSM.h"
 
-using namespace CORBA::Core;
+namespace CORBA {
+namespace Core {
 
-namespace Nirvana {
+Nirvana::Core::StaticallyAllocated <IncomingRequests::RequestMap> IncomingRequests::request_map_;
 
-using namespace Core;
-
-namespace ESIOP {
-
-void initialize ()
-{
-	IncomingRequests::initialize ();
-}
-
-void terminate () NIRVANA_NOEXCEPT
-{
-	IncomingRequests::terminate ();
-}
-
-void dispatch_message (const MessageHeader& message)
-{
-	switch (message.message_type) {
-		case MessageType::REQUEST: {
-			const auto& msg = static_cast <const Request&> (message);
-			CoreRef <StreamIn> stm = CoreRef <StreamIn>::create <ImplDynamic <StreamInSM> > ((void*)msg.GIOP_message);
-			IncomingRequests::receive (msg.client_domain, *stm);
-		} break;
-	}
-}
+void IncomingRequests::receive (const ClientAddr& source, StreamIn& message)
+{}
 
 }
 }

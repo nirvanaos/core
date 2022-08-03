@@ -29,6 +29,7 @@
 #include "ExecDomain.h"
 #include "TLS.h"
 #include "ORB/ServantBase.h"
+#include "ORB/ESIOP.h"
 
 namespace Nirvana {
 namespace Core {
@@ -46,10 +47,12 @@ void initialize ()
 {
 	PortableServer::Core::ServantBase::initialize ();
 	Binder::initialize ();
+	ESIOP::initialize ();
 }
 
 void terminate ()
 {
+	ESIOP::terminate ();
 	Binder::terminate ();
 }
 
