@@ -38,31 +38,17 @@ namespace ESIOP {
 
 class NIRVANA_NOVTABLE StreamOutSM : public CORBA::Core::StreamOut
 {
-	struct Block
-	{
-		OtherMemory::Pointer other_ptr;
-		void* ptr;
-		size_t size;
-
-		Block () :
-			other_ptr (0),
-			ptr (nullptr),
-			size (0)
-		{}
-	};
-
-	struct OtherAllocated
-	{
-		OtherMemory::Pointer ptr;
-		size_t size;
-
-		OtherAllocated () :
-			ptr (0),
-			size (0)
-		{}
-	};
-
 public:
+	virtual void write (size_t align, size_t size, void* data, size_t* allocated_size);
+
+	SharedMemPtr detach () NIRVANA_NOEXCEPT
+	{
+		blocks_.clear ();
+		other_allocated_.clear ();
+		return stream_hdr_;
+	}
+
+protected:
 	StreamOutSM (OtherMemory& mem) :
 		other_memory_ (&mem)
 	{
@@ -86,22 +72,33 @@ public:
 		}
 	}
 
-	virtual void write (size_t align, size_t size, void* data, size_t* allocated_size);
-
-	void* store_stream_ptr (void* where) const
-	{
-		return other_memory_->store_pointer (where, stream_hdr_);
-	}
-
-	void detach_data ()
-	{
-		blocks_.clear ();
-		other_allocated_.clear ();
-	}
-
 private:
+	struct Block
+	{
+		SharedMemPtr other_ptr;
+		void* ptr;
+		size_t size;
+
+		Block () :
+			other_ptr (0),
+			ptr (nullptr),
+			size (0)
+		{}
+	};
+
+	struct OtherAllocated
+	{
+		SharedMemPtr ptr;
+		size_t size;
+
+		OtherAllocated () :
+			ptr (0),
+			size (0)
+		{}
+	};
+
 	void allocate_block (size_t align, size_t size);
-	
+
 	const Block& cur_block () const
 	{
 		return blocks_.back ();
@@ -112,7 +109,7 @@ private:
 private:
 	Nirvana::Core::CoreRef <OtherMemory> other_memory_;
 	OtherMemory::Sizes sizes_;
-	OtherMemory::Pointer stream_hdr_;
+	SharedMemPtr stream_hdr_;
 	std::vector <Block, Nirvana::Core::UserAllocator <Block> > blocks_;
 	std::vector <OtherAllocated, Nirvana::Core::UserAllocator <OtherAllocated> > other_allocated_;
 	uint8_t* cur_ptr_;

@@ -40,8 +40,6 @@ class NIRVANA_NOVTABLE OtherMemory
 	DECLARE_CORE_INTERFACE
 
 public:
-	typedef MaxPlatformPtr Pointer;
-
 	struct Sizes
 	{
 		size_t block_size;
@@ -49,16 +47,13 @@ public:
 		size_t sizeof_size;
 	};
 
-	virtual Pointer reserve (size_t size) = 0;
-	virtual Pointer copy (Pointer reserved, void* src, size_t& size, bool release_src) = 0;
-	virtual void release (Pointer p, size_t size) = 0;
+	virtual SharedMemPtr reserve (size_t size) = 0;
+	virtual SharedMemPtr copy (SharedMemPtr reserved, void* src, size_t& size, bool release_src) = 0;
+	virtual void release (SharedMemPtr p, size_t size) = 0;
 	virtual void get_sizes (Sizes& sizes) NIRVANA_NOEXCEPT = 0;
-	virtual void* store_pointer (void* where, Pointer p) NIRVANA_NOEXCEPT = 0;
+	virtual void* store_pointer (void* where, SharedMemPtr p) NIRVANA_NOEXCEPT = 0;
 	virtual void* store_size (void* where, size_t size) NIRVANA_NOEXCEPT = 0;
 };
-
-/// OtherMemory factory. Must be implemented in the port library.
-Core::CoreRef <OtherMemory> other_domain_memory (ProtDomainHandle& prot_domain);
 
 }
 }

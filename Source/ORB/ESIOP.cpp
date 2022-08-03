@@ -1,4 +1,3 @@
-/// \file
 /*
 * Nirvana Core.
 *
@@ -24,58 +23,15 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_ORB_CORE_STREAMINSM_H_
-#define NIRVANA_ORB_CORE_STREAMINSM_H_
-#pragma once
-
-#include "StreamIn.h"
+#include "ESIOP.h"
 
 namespace Nirvana {
 namespace ESIOP {
 
-class NIRVANA_NOVTABLE StreamInSM : public CORBA::Core::StreamIn
+void dispatch_message (const MessageHeader* message)
 {
-public:
-	virtual void read (size_t align, size_t size, void* buf);
-	virtual void* read (size_t align, size_t& size);
-
-protected:
-	StreamInSM (void* mem)
-	{
-		StreamHdr* hdr = (StreamHdr*)mem;
-		cur_block_ = hdr;
-		cur_ptr_ = (const uint8_t*)(hdr + 1);
-		segments_ = hdr->segments;
-	}
-
-	~StreamInSM ();
-
-private:
-	struct BlockHdr
-	{
-		BlockHdr* next;
-		size_t size;
-	};
-
-	struct Segment
-	{
-		Segment* next;
-		void* pointer;
-		size_t allocated_size;
-	};
-
-	struct StreamHdr : BlockHdr
-	{
-		Segment* segments;
-	};
-
-private:
-	BlockHdr* cur_block_;
-	const uint8_t* cur_ptr_;
-	Segment* segments_;
-};
+	// TODO: Implement
+}
 
 }
 }
-
-#endif
