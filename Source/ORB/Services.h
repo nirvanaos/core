@@ -30,6 +30,7 @@
 
 #include <CORBA/CORBA.h>
 #include "../WaitableRef.h"
+#include "../Synchronized.h"
 #include <algorithm>
 
 namespace CORBA {
@@ -72,7 +73,9 @@ protected:
 		Object::_ref_type svc;
 		if (ref.initialize (f.creation_deadline)) {
 			try {
+				SYNC_BEGIN (Nirvana::Core::g_core_free_sync_context, new_service_memory ());
 				svc = (f.factory) ();
+				SYNC_END ();
 				ref.finish_construction (svc);
 			} catch (...) {
 				ref.on_exception ();
@@ -85,6 +88,14 @@ protected:
 	}
 
 private:
+	static Nirvana::Core::MemContext* new_service_memory () NIRVANA_NOEXCEPT
+	{
+		return sizeof (void*) > 4 ?
+			nullptr // Create new memory context
+			:
+			&Nirvana::Core::g_shared_mem_context;
+	}
+
 	// Service factories
 	static Object::_ref_type create_RootPOA ();
 

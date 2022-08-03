@@ -25,7 +25,6 @@
 */
 
 #include "Services.h"
-#include "../Synchronized.h"
 #include "POA_Root.h"
 
 using namespace Nirvana::Core;
@@ -44,9 +43,7 @@ const Services::Factory Services::factories_ [Service::SERVICE_COUNT] = {
 
 Object::_ref_type Services::create_RootPOA ()
 {
-	SYNC_BEGIN (g_core_free_sync_context, nullptr);
 	return make_reference <PortableServer::Core::POA_Root> ()->_this ();
-	SYNC_END ();
 }
 
 }

@@ -41,7 +41,8 @@
 #include "ORB/Services.h"
 
 #define BINDER_USE_STD_MODULE_MAP
-#if UINTPTR_MAX >= UINT64_MAX
+
+#if UINTPTR_MAX > UINT32_MAX
 #define BINDER_USE_SEPARATE_MEMORY
 #endif
 
