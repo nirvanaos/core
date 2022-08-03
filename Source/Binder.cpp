@@ -47,7 +47,9 @@ using namespace std;
 using namespace CORBA;
 using namespace CORBA::Internal;
 
+#ifdef BINDER_USE_SEPARATE_MEMORY
 StaticallyAllocated <ImplStatic <MemContextCore> > Binder::memory_;
+#endif
 StaticallyAllocated <Binder> Binder::singleton_;
 bool Binder::initialized_ = false;
 
@@ -86,7 +88,9 @@ Binder::InterfacePtr Binder::ObjectMap::find (const ObjectKey& key) const
 
 void Binder::initialize ()
 {
+#ifdef BINDER_USE_SEPARATE_MEMORY
 	memory_.construct ();
+#endif
 	singleton_.construct ();
 	Section metadata;
 	if (!Port::SystemInfo::get_OLF_section (metadata))
@@ -136,14 +140,16 @@ void Binder::unload_modules ()
 
 void Binder::terminate ()
 {
-	SYNC_BEGIN (g_core_free_sync_context, &memory_);
+	SYNC_BEGIN (g_core_free_sync_context, &memory ());
 	SYNC_BEGIN (singleton_->sync_domain_, nullptr);
 	assert (initialized_);
 	initialized_ = false;
 	singleton_->unload_modules ();
 	SYNC_END ();
 	singleton_.destruct ();
+#ifdef BINDER_USE_SEPARATE_MEMORY
 	memory_.destruct ();
+#endif
 	SYNC_END ();
 }
 
@@ -338,7 +344,7 @@ void Binder::module_unbind (Nirvana::Module::_ptr_type mod, const Section& metad
 void Binder::delete_module (Module* mod)
 {
 	if (mod) {
-		SYNC_BEGIN (g_core_free_sync_context, &memory_);
+		SYNC_BEGIN (g_core_free_sync_context, &memory ());
 		delete mod;
 		SYNC_END ();
 	}
@@ -353,7 +359,7 @@ CoreRef <Module> Binder::load (string& module_name, bool singleton)
 	if (ins.second) {
 		try {
 
-			SYNC_BEGIN (g_core_free_sync_context, &memory_);
+			SYNC_BEGIN (g_core_free_sync_context, &memory ());
 			if (singleton)
 				mod = new Singleton (ins.first->first);
 			else

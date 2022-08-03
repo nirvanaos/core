@@ -41,6 +41,9 @@
 #include "ORB/Services.h"
 
 #define BINDER_USE_STD_MODULE_MAP
+#if UINTPTR_MAX >= UINT64_MAX
+#define BINDER_USE_SEPARATE_MEMORY
+#endif
 
 #pragma push_macro ("verify")
 #undef verify
@@ -80,7 +83,7 @@ public:
 
 	Binder () :
 		sync_domain_ (std::ref (static_cast <SyncContextCore&> (g_core_free_sync_context)),
-			std::ref (static_cast <MemContextCore&> (memory_)))
+			std::ref (static_cast <MemContextCore&> (memory ())))
 	{}
 
 	static void initialize ();
@@ -202,6 +205,7 @@ private:
 		Version version_;
 	};
 
+#ifdef BINDER_USE_SEPARATE_MEMORY
 	template <class T>
 	class Allocator : public std::allocator <T>
 	{
@@ -219,6 +223,10 @@ private:
 			return (T*)memory_->heap ().allocate (nullptr, cb, 0);
 		}
 	};
+#else
+	template <class T>
+	using Allocator = SharedAllocator <T>;
+#endif
 
 	// We use phmap::btree_map as fast binary tree without the iterator stability.
 	typedef phmap::btree_map <ObjectKey, InterfacePtr, std::less <ObjectKey>,
@@ -290,8 +298,19 @@ private:
 
 	void unload_modules ();
 
+	static MemContext& memory () NIRVANA_NOEXCEPT
+	{
+#ifdef BINDER_USE_SEPARATE_MEMORY
+		return memory_;
+#else
+		return g_shared_mem_context;
+#endif
+	}
+
 private:
+#ifdef BINDER_USE_SEPARATE_MEMORY
 	static StaticallyAllocated <ImplStatic <MemContextCore> > memory_;
+#endif
 	ImplStatic <SyncDomainImpl> sync_domain_;
 	ObjectMap object_map_;
 	ModuleMap module_map_;
