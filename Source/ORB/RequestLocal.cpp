@@ -234,7 +234,7 @@ RequestLocal::Element* RequestLocal::get_element_buffer (size_t size)
 }
 
 void RequestLocal::marshal_segment (size_t align, size_t element_size,
-	size_t element_count, void* data, size_t allocated_size)
+	size_t element_count, void* data, size_t& allocated_size)
 {
 	assert (element_count);
 	size_t size = element_count * round_up (element_size, align);
@@ -244,13 +244,18 @@ void RequestLocal::marshal_segment (size_t align, size_t element_size,
 	if (allocated_size && &caller_memory_->heap () == &callee_memory_->heap ()) {
 		segment->allocated_size = allocated_size;
 		segment->ptr = data;
+		allocated_size = 0;
 	} else {
 		Heap& tm = target_memory ();
-		void* p = tm.copy (nullptr, data, size, 0);
+		void* p = tm.copy (nullptr, data, size, allocated_size != 0 ? Memory::SRC_RELEASE : 0);
 		segment->allocated_size = size;
 		segment->ptr = p;
-		if (allocated_size)
-			source_memory ().release (data, allocated_size);
+		if (allocated_size) {
+			size_t cb_release = allocated_size - size;
+			allocated_size = 0;
+			if (cb_release)
+				source_memory ().release ((Octet*)data + size, cb_release);
+		}
 	}
 	segment->next = segments_;
 	segments_ = segment;

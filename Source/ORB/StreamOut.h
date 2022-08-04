@@ -43,10 +43,9 @@ public:
   /// \param align Data alignment
   /// \param size Data size.
   /// \param data Data pointer.
-  /// \param allocated_size If this parameter is not zero, the stream
-  ///        object becomes an owner of the memory block.
-  ///        The stream must not throw an exception after releasing this memory block.
-  virtual void write (size_t align, size_t size, void* data, size_t allocated_size) = 0;
+  /// \param allocated_size If this parameter is not zero, the stream may adopt the memory block.
+  ///   When stream adopts the memory block, it sets \p allocated_size to 0.
+  virtual void write (size_t align, size_t size, void* data, size_t& allocated_size) = 0;
 
   /// \returns The data size included any alignment gaps.
   virtual size_t size () const = 0;

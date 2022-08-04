@@ -31,7 +31,7 @@ using namespace std;
 namespace Nirvana {
 namespace ESIOP {
 
-void StreamOutSM::write (size_t align, size_t size, void* data, size_t allocated_size)
+void StreamOutSM::write (size_t align, size_t size, void* data, size_t& allocated_size)
 {
 	if (!size)
 		return;
@@ -48,8 +48,6 @@ void StreamOutSM::write (size_t align, size_t size, void* data, size_t allocated
 	Block block = cur_block ();
 	uint8_t* block_end = (uint8_t*)block.ptr + block.size;
 
-	size_t cb_release = allocated_size;
-	void* p_release = data;
 	if ((uintptr_t)data % sizes_.block_size == 0 && size >= sizes_.block_size / 2) {
 		// Virtual copy
 
@@ -57,11 +55,11 @@ void StreamOutSM::write (size_t align, size_t size, void* data, size_t allocated
 		OtherAllocated& oa = other_allocated_.back ();
 		oa.ptr = other_memory_->copy (0, data, size, allocated_size != 0);
 		oa.size = size;
-		if (cb_release > size) {
-			cb_release -= size;
-			p_release = (uint8_t*)data + size;
-		} else {
-			cb_release = 0;
+		if (allocated_size) {
+			size_t cb_release = allocated_size - size;
+			allocated_size = 0;
+			if (cb_release)
+				MemContext::current ().heap ().release ((uint8_t*)data + size, cb_release);
 		}
 
 		// Reserve space for StreeamInSM::Segment
@@ -109,8 +107,6 @@ void StreamOutSM::write (size_t align, size_t size, void* data, size_t allocated
 				align = size;
 		} while (size);
 	}
-	if (cb_release)
-		MemContext::current ().heap ().release (p_release, cb_release);
 
 	size_ = new_size;
 }

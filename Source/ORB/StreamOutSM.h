@@ -42,7 +42,7 @@ class NIRVANA_NOVTABLE StreamOutSM :
 	public Nirvana::Core::UserObject
 {
 public:
-	virtual void write (size_t align, size_t size, void* data, size_t allocated_size) override;
+	virtual void write (size_t align, size_t size, void* data, size_t& allocated_size) override;
 	virtual size_t size () const override;
 	virtual void* header (size_t hdr_size) override;
 

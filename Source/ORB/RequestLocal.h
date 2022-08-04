@@ -102,10 +102,10 @@ public:
 	/// \param element_size Element size.
 	/// \param element_count Count of elements.
 	/// \param data Pointer to the data with common-data-representation (CDR).
-	/// \param allocated_size If this parameter is not zero, the request
-	///        object becomes an owner of the memory block.
+	/// \param allocated_size If this parameter is not zero, the request may adopt the memory block.
+	///   If request adopts the memory block, it sets \p allocated_size to 0.
 	void marshal_seq (size_t align, size_t element_size,
-		size_t element_count, void* data, size_t allocated_size)
+		size_t element_count, void* data, size_t& allocated_size)
 	{
 		check_align (align);
 		marshal_op ();
@@ -113,8 +113,6 @@ public:
 		write (alignof (size_t), sizeof (size_t), &element_count);
 		if (element_count)
 			marshal_segment (align, element_size, element_count, data, allocated_size);
-		else if (allocated_size)
-			source_memory ().release (data, allocated_size);
 	}
 
 	/// Unmarshal CDR sequence.
@@ -203,8 +201,9 @@ public:
 		if (size <= ABI::SMALL_CAPACITY)
 			write (alignof (C), size * sizeof (C), ptr);
 		else {
-			marshal_segment (alignof (C), sizeof (C), size + 1, ptr, move ? abi.allocated () : 0);
-			if (move)
+			size_t allocated = move ? abi.allocated () : 0;
+			marshal_segment (alignof (C), sizeof (C), size + 1, ptr, allocated);
+			if (move && !allocated)
 				abi.reset ();
 		}
 	}
@@ -241,10 +240,14 @@ public:
 	{
 		typedef typename Internal::Type <IDL::Sequence <C> >::ABI ABI;
 		ABI& abi = (ABI&)s;
-		marshal_seq (alignof (C), sizeof (C), abi.size, abi.ptr,
-			move ? abi.allocated : 0);
-		if (move)
-			abi.reset ();
+		if (move) {
+			marshal_seq (alignof (C), sizeof (C), abi.size, abi.ptr, abi.allocated);
+			if (!abi.allocated)
+				abi.reset ();
+		} else {
+			size_t zero = 0;
+			marshal_seq (alignof (C), sizeof (C), abi.size, abi.ptr, zero);
+		}
 	}
 
 	template <typename C>
@@ -482,7 +485,7 @@ protected:
 	void write (size_t align, size_t size, const void* data);
 	void read (size_t align, size_t size, void* data);
 	void marshal_segment (size_t align, size_t element_size,
-		size_t element_count, void* data, size_t allocated_size);
+		size_t element_count, void* data, size_t& allocated_size);
 	void unmarshal_segment (void*& data, size_t& allocated_size);
 
 	void rewind () NIRVANA_NOEXCEPT;
