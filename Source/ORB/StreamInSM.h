@@ -29,24 +29,34 @@
 #pragma once
 
 #include "StreamIn.h"
+#include "../CoreObject.h"
 
 namespace Nirvana {
 namespace ESIOP {
 
-class NIRVANA_NOVTABLE StreamInSM : public CORBA::Core::StreamIn
+/// Shared memory input stream
+/// 
+/// This object is created from the postman context.
+/// So it should be CoreObject for quick creation.
+/// 
+class NIRVANA_NOVTABLE StreamInSM :
+	public CORBA::Core::StreamIn,
+	public Nirvana::Core::CoreObject
 {
 public:
 	virtual void read (size_t align, size_t size, void* buf) override;
 	virtual void* read (size_t align, size_t& size) override;
+	virtual void set_size (size_t size) override;
+	virtual bool end () const override;
 
 protected:
-	StreamInSM (void* mem)
-	{
-		StreamHdr* hdr = (StreamHdr*)mem;
-		cur_block_ = hdr;
-		cur_ptr_ = (const uint8_t*)(hdr + 1);
-		segments_ = hdr->segments;
-	}
+	StreamInSM (void* mem) :
+		cur_block_ ((StreamHdr*)mem),
+		cur_ptr_ ((const uint8_t*)((StreamHdr*)mem + 1)),
+		segments_ (((StreamHdr*)mem)->segments),
+		size_ (std::numeric_limits <size_t>::max ()),
+		position_ (0)
+	{}
 
 	~StreamInSM ();
 
@@ -69,10 +79,18 @@ private:
 		Segment* segments;
 	};
 
+	void next_block ();
+	const Segment* get_segment (size_t align, size_t size);
+	void physical_read (size_t align, size_t size, void* buf);
+	void check_position (size_t align, size_t size) const;
+	void set_position (size_t align, size_t size) NIRVANA_NOEXCEPT;
+
 private:
 	BlockHdr* cur_block_;
 	const uint8_t* cur_ptr_;
 	Segment* segments_;
+	size_t size_;
+	size_t position_; // virtual stream position
 };
 
 }

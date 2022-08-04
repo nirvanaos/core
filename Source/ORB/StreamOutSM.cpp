@@ -26,31 +26,43 @@
 #include "StreamOutSM.h"
 
 using namespace Nirvana::Core;
+using namespace std;
 
 namespace Nirvana {
 namespace ESIOP {
 
-void StreamOutSM::write (size_t align, size_t size, void* data, size_t* allocated_size)
+void StreamOutSM::write (size_t align, size_t size, void* data, size_t allocated_size)
 {
 	if (!size)
 		return;
 	if (!data)
 		throw_BAD_PARAM ();
+
+	if (numeric_limits <size_t>::max () - size_ < size)
+		throw_IMP_LIMIT ();
+	size_t new_size = round_up (size_, align);
+	if (numeric_limits <size_t>::max () - new_size < size)
+		throw_IMP_LIMIT ();
+	new_size += size;
+
 	Block block = cur_block ();
 	uint8_t* block_end = (uint8_t*)block.ptr + block.size;
 
-	size_t cb_release = allocated_size ? *allocated_size : 0;
+	size_t cb_release = allocated_size;
+	void* p_release = data;
 	if ((uintptr_t)data % sizes_.block_size == 0 && size >= sizes_.block_size / 2) {
 		// Virtual copy
 
 		other_allocated_.emplace_back ();
 		OtherAllocated& oa = other_allocated_.back ();
-		oa.ptr = other_memory_->copy (0, data, size, cb_release != 0);
+		oa.ptr = other_memory_->copy (0, data, size, allocated_size != 0);
 		oa.size = size;
-		if (cb_release > size)
-			MemContext::current ().heap ().release ((uint8_t*)data + size, cb_release - size);
-		if (cb_release)
-			*allocated_size = 0;
+		if (cb_release > size) {
+			cb_release -= size;
+			p_release = (uint8_t*)data + size;
+		} else {
+			cb_release = 0;
+		}
 
 		// Reserve space for StreeamInSM::Segment
 		ptrdiff_t cb_segment = 2 * sizes_.sizeof_pointer + sizes_.sizeof_size;
@@ -74,6 +86,7 @@ void StreamOutSM::write (size_t align, size_t size, void* data, size_t* allocate
 		purge ();
 	} else {
 		// Physical copy
+		
 		const uint8_t* src = (const uint8_t*)data;
 		do {
 			uint8_t* dst = round_up (cur_ptr_, align);
@@ -96,6 +109,10 @@ void StreamOutSM::write (size_t align, size_t size, void* data, size_t* allocate
 				align = size;
 		} while (size);
 	}
+	if (cb_release)
+		MemContext::current ().heap ().release (p_release, cb_release);
+
+	size_ = new_size;
 }
 
 void StreamOutSM::allocate_block (size_t align, size_t size)
@@ -103,6 +120,7 @@ void StreamOutSM::allocate_block (size_t align, size_t size)
 	size_t hdr_size = sizes_.sizeof_pointer + sizes_.sizeof_size;
 	size_t data_offset = round_up (hdr_size, align);
 	size_t cb = round_up (data_offset + size, sizes_.block_size);
+
 	blocks_.emplace_back ();
 	Block& block = blocks_.back ();
 	block.ptr = Port::Memory::allocate (nullptr, cb, 0);
@@ -124,18 +142,31 @@ void StreamOutSM::allocate_block (size_t align, size_t size)
 // Release local memory
 void StreamOutSM::purge ()
 {
-	if (blocks_.size () > 1) {
+	if (blocks_.size () > 2) { // Never purge the first block with stream header
 		for (auto it = blocks_.begin () + blocks_.size () - 2;;) {
 			// If prev block does not contain the segment tail, purge it
 			if (it->ptr && !(it->ptr < segments_tail_ && segments_tail_ < (uint8_t*)it->ptr + it->size)) {
 				other_memory_->copy (it->other_ptr, it->ptr, it->size, true);
 				it->ptr = nullptr;
 			}
-			if (it == blocks_.begin ())
+			if (blocks_.begin () == --it)
 				break;
-			--it;
 		}
 	}
+}
+
+size_t StreamOutSM::size () const
+{
+	return size_;
+}
+
+void* StreamOutSM::header (size_t hdr_size)
+{
+	assert (!blocks_.empty ());
+	assert (blocks_.front ().ptr);
+
+	size_t stream_hdr_size = round_up (sizes_.sizeof_pointer + sizes_.sizeof_size, sizes_.sizeof_pointer) + sizes_.sizeof_pointer;
+	return (uint8_t*)blocks_.front ().ptr + stream_hdr_size;
 }
 
 }

@@ -24,37 +24,37 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_ORB_CORE_STREAMOUT_H_
-#define NIRVANA_ORB_CORE_STREAMOUT_H_
+#ifndef NIRVANA_ORB_CORE_REQUESTIN_H_
+#define NIRVANA_ORB_CORE_REQUESTIN_H_
 #pragma once
 
-#include "../CoreInterface.h"
+#include <CORBA/Server.h>
+#include "StreamIn.h"
+#include "IDL/IORequest_s.h"
+#include "RqHelper.h"
+#include "../CoreObject.h"
+#include "../LifeCyclePseudo.h"
 
 namespace CORBA {
 namespace Core {
 
-class NIRVANA_NOVTABLE StreamOut
+/// Implements IORequest for GIOP messages
+class RequestIn :
+	public servant_traits <Internal::IORequest>::Servant <RequestIn>,
+	private RqHelper,
+	public Nirvana::Core::CoreObject, // quick create, short life
+	public Nirvana::Core::LifeCyclePseudo <RequestIn>
 {
-	DECLARE_CORE_INTERFACE
-
 public:
-  /// Marshal data.
-  /// 
-  /// \param align Data alignment
-  /// \param size Data size.
-  /// \param data Data pointer.
-  /// \param allocated_size If this parameter is not zero, the stream
-  ///        object becomes an owner of the memory block.
-  ///        The stream must not throw an exception after releasing this memory block.
-  virtual void write (size_t align, size_t size, void* data, size_t allocated_size) = 0;
+	RequestIn (StreamIn& stream) :
+		stream_ (&stream)
+	{}
 
-  /// \returns The data size included any alignment gaps.
-  virtual size_t size () const = 0;
+private:
+	void marshal_op ();
 
-  /// \returns Pointer to the stream begin.
-  /// 
-  /// \param hdr_size The header size.
-  virtual void* header (size_t hdr_size) = 0;
+private:
+	Nirvana::Core::CoreRef <StreamIn> stream_;
 };
 
 }

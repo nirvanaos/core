@@ -29,11 +29,11 @@
 #pragma once
 
 #include <Nirvana/Nirvana.h>
-#include "IDL/GIOP.h"
 #include "ESIOP.h"
 #include "StreamIn.h"
 #include "../SkipList.h"
 #include "../ExecDomain.h"
+#include "IDL/GIOP.h"
 
 namespace CORBA {
 namespace Core {
@@ -41,17 +41,21 @@ namespace Core {
 /// Incoming requests manager
 class IncomingRequests
 {
+	static const unsigned SKIP_LIST_LEVELS = 10; // TODO: config.h
 public:
+	/// Called on system startup
 	static void initialize ()
 	{
 		request_map_.construct ();
 	}
 
+	/// Called on system shutdown
 	static void terminate ()
 	{
 		request_map_.destruct ();
 	}
 
+	/// Internet address
 	template <typename IP>
 	struct InetAddr
 	{
@@ -74,11 +78,36 @@ public:
 		IP ip_address;
 	};
 
+	/// IP
 	typedef InetAddr <uint32_t> Inet;
+	
+	/// IPv6
 	typedef InetAddr <uint64_t> Inet6;
 
+	struct Request
+	{
+		/// The request data. Data is positioned after the MessageHeader.
+		Nirvana::Core::CoreRef <StreamIn> data;
+
+		GIOP::Version GIOP_version; ///< GIOP version
+		bool other_endian; ///< `true` if the request endian is differ from the native
+	};
+
+	/// Recieve incoming request.
+	/// 
+	/// \typeparam Addr Client address type.
+	/// \param source The client address.
+	/// \param rq Request struct.
 	template <class Addr>
-	static void receive (const Addr& source, StreamIn& message);
+	static void receive (const Addr& source, const Request& rq);
+
+	/// Cancel incoming request.
+	/// 
+	/// \typeparam Addr Client address type.
+	/// \param source The client address.
+	/// \param request_id Id of request to cancel.
+	template <class Addr>
+	static void cancel (const Addr& source, uint32_t request_id) NIRVANA_NOEXCEPT;
 
 private:
 	// The client address
@@ -173,17 +202,27 @@ private:
 		Nirvana::Core::CoreRef <Nirvana::Core::ExecDomain> exec_domain;
 	};
 
-	typedef Nirvana::Core::SkipList <RequestVal, 10> RequestMap;
+	// The request map
+	typedef Nirvana::Core::SkipList <RequestVal, SKIP_LIST_LEVELS> RequestMap;
 
-	static void receive (const ClientAddr& source, StreamIn& message);
+	class Process;
+
+	static void receive (const ClientAddr& source, const Request& rq);
+	static void cancel (const ClientAddr& source, uint32_t request_id) NIRVANA_NOEXCEPT;
 
 	static Nirvana::Core::StaticallyAllocated <RequestMap> request_map_;
 };
 
 template <class Addr> inline
-void IncomingRequests::receive (const Addr& source, StreamIn& message)
+void IncomingRequests::receive (const Addr& source, const Request& rq)
 {
-	receive (ClientAddr (source), message);
+	return receive (ClientAddr (source), rq);
+}
+
+template <class Addr> inline
+void IncomingRequests::cancel (const Addr& source, uint32_t request_id) NIRVANA_NOEXCEPT
+{
+	cancel (ClientAddr (source), request_id);
 }
 
 }

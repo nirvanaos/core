@@ -49,73 +49,153 @@ StreamInSM::~StreamInSM ()
 	}
 }
 
+void StreamInSM::next_block ()
+{
+	BlockHdr* block = cur_block_;
+	const uint8_t* block_end = (const uint8_t*)block + block->size;
+	assert (cur_ptr_ <= block_end);
+	size_t align_gap = block_end - cur_ptr_;
+	if (size_ - position_ < align_gap)
+		throw_MARSHAL (MARSHAL_MINOR_FEWER);
+	position_ += align_gap;
+	cur_block_ = block->next;
+	Port::Memory::release (block, block->size);
+	if (!cur_block_)
+		throw_MARSHAL (9);
+	cur_ptr_ = (const uint8_t*)(cur_block_ + 1);
+}
+
+void StreamInSM::check_position (size_t align, size_t size) const
+{
+	assert (size); // must be checked before
+
+	size_t pos = round_up (position_, align);
+	if ((pos > size_) || (size_ - pos < size) || !cur_block_)
+		throw_MARSHAL (MARSHAL_MINOR_FEWER);
+}
+
+void StreamInSM::set_position (size_t align, size_t size) NIRVANA_NOEXCEPT
+{
+	position_ = round_up (position_, align) + size;
+}
+
+const StreamInSM::Segment* StreamInSM::get_segment (size_t align, size_t size)
+{
+	if (!segments_)
+		return nullptr;
+
+	// Potential data begin without segment
+	const uint8_t* data = round_up (cur_ptr_, align);
+
+	// Find potential segment
+	const Segment* segment = (const Segment*)round_up (cur_ptr_, alignof (Segment));
+	const uint8_t* block_end = (const uint8_t*)cur_block_ + cur_block_->size;
+	BlockHdr* seg_block = cur_block_;
+	ptrdiff_t space_to_segment = (const uint8_t*)segment - data;
+	if (block_end - (const uint8_t*)segment < sizeof (Segment)) {
+		// Segment may be in the next block
+		seg_block = cur_block_->next;
+		if (seg_block) {
+			segment = (const Segment*)((const uint8_t*)seg_block + 1);
+			space_to_segment = block_end - data;
+		} else
+			segment = nullptr;
+	}
+	if (space_to_segment < 0)
+		space_to_segment = 0;
+	if (segment == segments_ && (size_t)space_to_segment < size) {
+		// Adopt segment
+		assert (segment->allocated_size >= size);
+		if (segment->allocated_size < size)
+			throw_MARSHAL (); // Unexpected
+		segments_ = segment->next;
+		if (seg_block != cur_block_)
+			next_block ();
+		cur_ptr_ = (const uint8_t*)(segment + 1);
+		return segment;
+	}
+	return nullptr;
+}
+
+void StreamInSM::physical_read (size_t align, size_t size, void* buf)
+{
+	uint8_t* dst = (uint8_t*)buf;
+	do {
+		const uint8_t* src = round_up (cur_ptr_, align);
+		const uint8_t* block_end = (const uint8_t*)cur_block_ + cur_block_->size;
+		ptrdiff_t cb = block_end - src;
+
+		if (cb < (ptrdiff_t)align) {
+			next_block ();
+			src = round_up (cur_ptr_, align);
+			const uint8_t* block_end = (const uint8_t*)cur_block_ + cur_block_->size;
+			ptrdiff_t cb = block_end - src;
+		}
+
+		if ((size_t)cb > size)
+			cb = size;
+		const uint8_t* end = src + cb;
+		dst = real_copy (src, end, dst);
+		cur_ptr_ = end;
+		size -= cb;
+		// Adjust alignment if the remaining size less than it
+		if (align > size)
+			align = size;
+	} while (size);
+}
+
 void StreamInSM::read (size_t align, size_t size, void* buf)
 {
 	if (!size)
 		return;
-	if (!cur_block_)
-		throw_MARSHAL ();
-	const uint8_t* src = round_up (cur_ptr_, align);
-	uint8_t* dst = (uint8_t*)buf;
-	do {
-		const uint8_t* block_end = (const uint8_t*)cur_block_ + cur_block_->size;
-		ptrdiff_t cb = block_end - src;
+	check_position (align, size);
 
+	const Segment* segment = get_segment (align, size);
+	if (segment) {
+		Port::Memory::copy (buf, segment->pointer, size, Memory::SRC_DECOMMIT);
+		Port::Memory::release (segment->pointer, segment->allocated_size);
+	} else
+		physical_read (align, size, buf);
 
-		if (cb < (ptrdiff_t)align) {
-			BlockHdr* block = cur_block_;
-			cur_block_ = cur_block_->next;
-			Port::Memory::release (block, block->size);
-			if (!cur_block_)
-				throw_MARSHAL ();
-			cur_ptr_ = (const uint8_t*)(cur_block_ + 1);
-		} else {
-			if ((size_t)cb > size)
-				cb = size;
-			const uint8_t* end = src + cb;
-			dst = real_copy (src, end, dst);
-			src = end;
-			size -= cb;
-			// Adjust alignment if the remaining size less than it
-			if (align > size)
-				align = size;
-		}
-	} while (size);
+	set_position (align, size);
 }
 
 void* StreamInSM::read (size_t align, size_t& size)
 {
 	if (!size)
 		return nullptr;
-	if (!cur_block_)
-		throw_MARSHAL ();
-	if (segments_) {
-		// Find potential segment
-		const Segment* segment = (const Segment*)round_up (cur_ptr_, alignof (Segment));
-		const uint8_t* block_end = (const uint8_t*)cur_block_ + cur_block_->size;
-		BlockHdr* seg_block = cur_block_;
-		if (block_end - (const uint8_t*)segment < sizeof (Segment)) {
-			seg_block = cur_block_->next;
-			if (seg_block)
-				segment = (const Segment*)round_up ((const uint8_t*)(seg_block + 1), alignof (Segment));
-			else
-				segment = nullptr;
-		}
-		if (segment == segments_) {
-			// Adopt segment
-			segments_ = segment->next;
-			cur_block_ = seg_block;
-			cur_ptr_ = (const uint8_t*)(segment + 1);
-			size = segment->allocated_size;
-			return segment->pointer;
+	check_position (align, size);
+
+	void* ret = nullptr;
+	const Segment* segment = get_segment (align, size);
+	if (segment) {
+		// Adopt segment
+		size = segment->allocated_size;
+		ret = segment->pointer;
+	} else {
+		// Allocate buffer and read
+		size_t cb_read = size;
+		ret = MemContext::current ().heap ().allocate (nullptr, size, 0);
+		try {
+			physical_read (align, cb_read, ret);
+		} catch (...) {
+			MemContext::current ().heap ().release (ret, size);
+			throw;
 		}
 	}
+	return ret;
+}
 
-	// Allocate buffer and read
-	size_t cb_read = size;
-	void* buf = MemContext::current ().heap ().allocate (nullptr, size, 0);
-	read (align, cb_read, buf);
-	return buf;
+void StreamInSM::set_size (size_t size)
+{
+	if (size < position_)
+		throw_BAD_PARAM ();
+	size_ = position_ + size;
+}
+
+bool StreamInSM::end () const
+{
+	return position_ >= size_;
 }
 
 }

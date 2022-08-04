@@ -29,6 +29,7 @@
 #define NIRVANA_ORB_CORE_ESIOP_H_
 #pragma once
 
+#include <CORBA/CORBA.h>
 #include <Port/ESIOP.h>
 
 namespace Nirvana {
@@ -74,6 +75,9 @@ struct Request : MessageHeader
 
 	/// The GIOP message in the recipient memory.
 	SharedMemPtr GIOP_message;
+
+	/// The request id.
+	uint32_t request_id;
 };
 
 /// GIOP Reply
@@ -97,6 +101,14 @@ struct ReplySystemException : MessageHeader
 
 	/// The request id
 	uint32_t request_id;
+
+	ReplySystemException (uint32_t rq_id, const CORBA::SystemException& ex) :
+		MessageHeader (REPLY_SYSTEM_EXCEPTION),
+		completed ((uint8_t)ex.completed ()),
+		code (ex.__code ()),
+		minor (ex.minor ()),
+		request_id (rq_id)
+	{}
 };
 
 /// GIOP CancelRequest
@@ -142,8 +154,8 @@ struct ReplyImmediate : MessageHeader
 static_assert (sizeof (MessageBuffer) == sizeof (ReplyImmediate), "sizeof (MessageBuffer) == sizeof (ReplyImmediate)");
 
 /// Message dispatch function.
-/// Must be called from the portability layer.
-void dispatch_message (const MessageHeader& message);
+/// Called by the postman from portability layer.
+void dispatch_message (const MessageHeader& message) NIRVANA_NOEXCEPT;
 
 /// Initialize ESIOP on startup.
 void initialize ();

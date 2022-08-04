@@ -31,18 +31,30 @@
 #include "StreamOut.h"
 #include "OtherMemory.h"
 #include "../UserAllocator.h"
+#include "../UserObject.h"
 #include <vector>
 
 namespace Nirvana {
 namespace ESIOP {
 
-class NIRVANA_NOVTABLE StreamOutSM : public CORBA::Core::StreamOut
+class NIRVANA_NOVTABLE StreamOutSM :
+	public CORBA::Core::StreamOut,
+	public Nirvana::Core::UserObject
 {
 public:
-	virtual void write (size_t align, size_t size, void* data, size_t* allocated_size) override;
+	virtual void write (size_t align, size_t size, void* data, size_t allocated_size) override;
+	virtual size_t size () const override;
+	virtual void* header (size_t hdr_size) override;
 
-	SharedMemPtr stream_hdr () const NIRVANA_NOEXCEPT
+	SharedMemPtr get_shared () NIRVANA_NOEXCEPT
 	{
+		// Purge all blocks
+		for (auto it = blocks_.begin (); it != blocks_.end (); ++it) {
+			if (it->ptr) {
+				other_memory_->copy (it->other_ptr, it->ptr, it->size, true);
+				it->ptr = nullptr;
+			}
+		}
 		return stream_hdr_;
 	}
 
@@ -54,7 +66,8 @@ public:
 
 protected:
 	StreamOutSM (OtherMemory& mem) :
-		other_memory_ (&mem)
+		other_memory_ (&mem),
+		size_ (0)
 	{
 		mem.get_sizes (sizes_);
 		allocate_block (sizes_.sizeof_pointer, sizes_.sizeof_pointer);
@@ -118,6 +131,7 @@ private:
 	std::vector <OtherAllocated, Nirvana::Core::UserAllocator <OtherAllocated> > other_allocated_;
 	uint8_t* cur_ptr_;
 	void* segments_tail_;
+	size_t size_;
 };
 
 }

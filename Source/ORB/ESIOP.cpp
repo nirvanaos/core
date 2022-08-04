@@ -28,6 +28,7 @@
 #include "StreamInSM.h"
 
 using namespace CORBA::Core;
+using namespace std;
 
 namespace Nirvana {
 
@@ -45,14 +46,43 @@ void terminate () NIRVANA_NOEXCEPT
 	IncomingRequests::terminate ();
 }
 
-void dispatch_message (const MessageHeader& message)
+void dispatch_message (const MessageHeader& message) NIRVANA_NOEXCEPT
 {
 	switch (message.message_type) {
 		case MessageType::REQUEST: {
 			const auto& msg = static_cast <const Request&> (message);
-			CoreRef <StreamIn> stm = CoreRef <StreamIn>::create <ImplDynamic <StreamInSM> > ((void*)msg.GIOP_message);
-			IncomingRequests::receive (msg.client_domain, *stm);
+
+			IncomingRequests::Request rq;
+			rq.data = CoreRef <StreamIn>::create <ImplDynamic <StreamInSM> > ((void*)msg.GIOP_message);
+			GIOP::MessageHeader_1_1 msg_hdr;
+			rq.data->read (1, sizeof (msg_hdr), &msg_hdr);
+			assert (equal (begin (msg_hdr.magic ()), end (msg_hdr.magic ()), "GIOP"));
+			assert ((msg_hdr.GIOP_version ().major () == 1) && (msg_hdr.GIOP_version ().minor () <= 3));
+			assert (GIOP::MsgType::Request == (GIOP::MsgType)msg_hdr.message_type ());
+			assert ((msg_hdr.flags () & 2) == 0); // Framentation is not allowed in ESIOP.
+
+			rq.GIOP_version = msg_hdr.GIOP_version ();
+
+			rq.other_endian = endian::native != ((msg_hdr.flags () & 1) ? endian::little : endian::big);
+			uint32_t msg_size = msg_hdr.message_size ();
+			if (rq.other_endian)
+				byteswap (msg_size);
+			rq.data->set_size (msg_size);
+
+			try {
+				IncomingRequests::receive (msg.client_domain, rq);
+			} catch (const CORBA::SystemException& ex) {
+				// Highly likely we are out of resources here, so we don't use asyncronous call.
+				ReplySystemException reply (msg.request_id, ex);
+				send_error_message (msg.client_domain, &reply, sizeof (reply));
+			}
 		} break;
+
+		case MessageType::CANCEL_REQUEST: {
+			const auto& msg = static_cast <const CancelRequest&> (message);
+			IncomingRequests::cancel (msg.client_domain, msg.request_id);
+		} break;
+
 	}
 }
 
