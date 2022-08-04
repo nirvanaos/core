@@ -40,7 +40,7 @@ struct IO_Result
 };
 
 /// Input/output request.
-class IO_Request :
+class NIRVANA_NOVTABLE IO_Request :
 	public Event
 {
 public:
@@ -51,10 +51,6 @@ public:
 		OP_WRITE = 2,
 		OP_SET_SIZE = 3
 	};
-
-	IO_Request (Operation operation) NIRVANA_NOEXCEPT :
-		operation_ (operation)
-	{}
 
 	/// \returns I/O operation code.
 	Operation operation () const NIRVANA_NOEXCEPT
@@ -72,6 +68,11 @@ public:
 	{
 		return result_;
 	}
+
+protected:
+	IO_Request (Operation operation) NIRVANA_NOEXCEPT :
+		operation_ (operation)
+	{}
 
 private:
 	const Operation operation_;

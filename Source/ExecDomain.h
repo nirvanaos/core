@@ -357,9 +357,9 @@ private:
 		ExecDomain& exec_domain_;
 	};
 
-	class Deleter : public Runnable
+	class NIRVANA_NOVTABLE Deleter : public Runnable
 	{
-	public:
+	protected:
 		Deleter (ExecDomain& ed) :
 			exec_domain_ (ed)
 		{}

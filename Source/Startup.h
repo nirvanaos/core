@@ -46,11 +46,6 @@ namespace Core {
 class NIRVANA_NOVTABLE Startup : public ImplStatic <Runnable>
 {
 public:
-	Startup (int argc, char* argv [], char* envp []);
-
-	~Startup ()
-	{}
-
 	/// Called once by a host/kernel in a neutral execution context
 	/// on the protection domain launch.
 	/// All life in the domain started from this asynchronous call.
@@ -68,6 +63,12 @@ public:
 	{
 		return ret_;
 	}
+
+protected:
+	Startup (int argc, char* argv [], char* envp []);
+
+	~Startup ()
+	{}
 
 protected:
 	int argc_;

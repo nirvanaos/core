@@ -33,22 +33,23 @@ using namespace Internal;
 
 namespace Core {
 
-class ServantProxyBase::GarbageCollector :
+class NIRVANA_NOVTABLE ServantProxyBase::GarbageCollector :
 	public UserObject,
 	public Runnable
 {
 public:
+	void run ()
+	{
+		interface_release (&servant_);
+	}
+
+protected:
 	GarbageCollector (Interface::_ptr_type servant) :
 		servant_ (servant)
 	{}
 
 	~GarbageCollector ()
 	{}
-
-	void run ()
-	{
-		interface_release (&servant_);
-	}
 
 private:
 	Interface::_ptr_type servant_;

@@ -62,6 +62,10 @@ public:
 		}
 	}
 
+protected:
+	ThreadBackground ()
+	{}
+
 private:
 	/// Called from port.
 	inline void execute () NIRVANA_NOEXCEPT;

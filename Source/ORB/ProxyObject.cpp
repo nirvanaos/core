@@ -35,22 +35,23 @@ using namespace Internal;
 
 namespace Core {
 
-class ProxyObject::Deactivator :
+class NIRVANA_NOVTABLE ProxyObject::Deactivator :
 	public UserObject,
 	public Runnable
 {
 public:
+	void run ()
+	{
+		proxy_.implicit_deactivate ();
+	}
+
+protected:
 	Deactivator (ProxyObject& proxy) :
 		proxy_ (proxy)
 	{}
 
 	~Deactivator ()
 	{}
-
-	void run ()
-	{
-		proxy_.implicit_deactivate ();
-	}
 
 private:
 	ProxyObject& proxy_;
