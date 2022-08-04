@@ -247,15 +247,16 @@ void RequestLocal::marshal_segment (size_t align, size_t element_size,
 		allocated_size = 0;
 	} else {
 		Heap& tm = target_memory ();
-		void* p = tm.copy (nullptr, data, size, allocated_size != 0 ? Memory::SRC_RELEASE : 0);
-		segment->allocated_size = size;
-		segment->ptr = p;
 		if (allocated_size) {
+			Heap& sm = source_memory ();
+			segment->ptr = tm.move (sm, data, size);
 			size_t cb_release = allocated_size - size;
 			allocated_size = 0;
 			if (cb_release)
-				source_memory ().release ((Octet*)data + size, cb_release);
-		}
+				sm.release ((Octet*)data + size, cb_release);
+		} else
+			segment->ptr = tm.copy (nullptr, data, size, 0);
+		segment->allocated_size = size;
 	}
 	segment->next = segments_;
 	segments_ = segment;

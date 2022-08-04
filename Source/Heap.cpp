@@ -209,6 +209,48 @@ void Heap::release (void* p, size_t size)
 	}
 }
 
+void* Heap::move (Heap& other, void* p, size_t& size)
+{
+	if (!p || !size)
+		return nullptr;
+
+	// Search memory block
+	BlockList::NodeVal* node = other.block_list_.lower_bound (p);
+	if (!node)
+		THROW (BAD_PARAM);
+	const MemoryBlock& block = node->value ();
+	if (!block.is_large_block ()) {
+		// Copy
+		void* pc = copy (nullptr, p, size, 0);
+		// Release from other heap partition
+		uint8_t* part_end = block.begin () + other.partition_size ();
+		other.block_list_.release_node (node);
+		if ((uint8_t*)p + size <= part_end)
+			other.release (block.directory (), p, size);
+		else {
+			// Something is wrong. Release copy and rethrow.
+			release (pc, size);
+			THROW (FREE_MEM);
+		}
+		p = pc;
+	} else {
+		// Adopt large block
+		const uintptr_t au = Port::Memory::ALLOCATION_UNIT;
+		uint8_t* end = round_up ((uint8_t*)p + size, au);
+		size = end - (uint8_t*)p;
+		LBErase lberase (other, node);
+		lberase.prepare (p, size);
+		try {
+			add_large_block (p, size);
+		} catch (...) {
+			lberase.rollback ();
+			throw;
+		}
+		lberase.commit ();
+	}
+	return p;
+}
+
 void Heap::release (Directory& part, void* p, size_t size) const
 {
 	uint8_t* heap = (uint8_t*)(&part + 1);

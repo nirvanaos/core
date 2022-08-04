@@ -115,9 +115,13 @@ class Heap
 	Heap& operator = (const Heap&) = delete;
 
 public:
+	/// See Nirvana::Memory::allocate
 	void* allocate (void* p, size_t& size, unsigned flags);
+
+	/// See Nirvana::Memory::release
 	void release (void* p, size_t size);
 
+	/// See Nirvana::Memory::commit
 	void commit (void* p, size_t size)
 	{
 		if (!check_owner (p, size))
@@ -125,6 +129,7 @@ public:
 		Port::Memory::commit (p, size);
 	}
 
+	/// See Nirvana::Memory::decommit
 	void decommit (void* p, size_t size)
 	{
 		if (!check_owner (p, size))
@@ -132,18 +137,38 @@ public:
 		Port::Memory::decommit (p, size);
 	}
 
+	/// See Nirvana::Memory::copy
 	void* copy (void* dst, void* src, size_t& size, unsigned flags);
 
+	/// See Nirvana::Memory::is_private
 	static bool is_private (const void* p, size_t size)
 	{
 		return Port::Memory::is_private (p, size);
 	}
 
+	/// See Nirvana::Memory::query
 	uintptr_t query (const void* p, Memory::QueryParam param);
 
+	/// Changes the entire heap protection.
+	/// 
+	/// \param read_only If `true`, makes this heap read-only.
+	///   Otherwise, makes this heap read-write.
 	void change_protection (bool read_only);
 
+	/// Checks that memory block is owned by this heap.
+	/// 
+	/// \param p The memory block pointer.
+	/// \param size The memory block size.
+	/// \returns `true` if entire memory block is owned by this heap.
 	bool check_owner (const void* p, size_t size);
+
+	/// Moves memory block from other heap to this heap.
+	/// 
+	/// \param other Other heap.
+	/// \param p Memory block in \p other.
+	/// \param size Memory block size.
+	/// \returns Pointer of the memory block in this heap.
+	void* move (Heap& other, void* p, size_t& size);
 
 protected:
 	Heap (size_t allocation_unit = HEAP_UNIT_DEFAULT) NIRVANA_NOEXCEPT;
@@ -370,6 +395,8 @@ protected:
 		BlockList::NodeVal* new_node_;
 		size_t shrink_size_;
 	};
+
+	void* adopt_large_block (Heap& other, void* p, size_t size);
 
 protected:
 	size_t allocation_unit_;
