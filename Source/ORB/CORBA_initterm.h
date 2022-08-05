@@ -24,39 +24,19 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_ORB_CORE_REQUESTIN_H_
-#define NIRVANA_ORB_CORE_REQUESTIN_H_
-#pragma once
+#ifndef NIRVANA_ORB_CORE_INITTERM_H_
+#define NIRVANA_ORB_CORE_INITTERM_H_
 
-#include "Request.h"
-#include "../CoreObject.h"
+#include <Nirvana/NirvanaBase.h>
 
 namespace CORBA {
 namespace Core {
 
-/// Implements IORequest for GIOP messages
-class RequestIn :
-	public Request,
-	public Nirvana::Core::CoreObject
-{
-public:
-	RequestIn (GIOP::Version GIOP_version, StreamIn& stream, StreamOutFactory& out_factory) :
-		Request (GIOP_version, false),
-		out_factory_ (&out_factory)
-	{
-		stream_in_ = &stream;
-	}
+/// Initialize CORBA core on startup.
+void initialize ();
 
-private:
-	virtual void unmarshal_end () override;
-	virtual void marshal_op () override;
-	virtual void success () override;
-
-	void switch_to_reply ();
-
-private:
-	Nirvana::Core::CoreRef <StreamOutFactory> out_factory_;
-};
+/// Terminate CORBA core on shutdown.
+void terminate () NIRVANA_NOEXCEPT;
 
 }
 }

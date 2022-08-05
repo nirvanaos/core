@@ -104,8 +104,8 @@ public:
 	/// \param data Pointer to the data with common-data-representation (CDR).
 	/// \param allocated_size If this parameter is not zero, the request may adopt the memory block.
 	///   If request adopts the memory block, it sets \p allocated_size to 0.
-	void marshal_seq (size_t align, size_t element_size,
-		size_t element_count, void* data, size_t& allocated_size)
+	void marshal_seq (size_t align, size_t element_size, size_t element_count, void* data,
+		size_t& allocated_size)
 	{
 		check_align (align);
 		marshal_op ();
@@ -125,8 +125,8 @@ public:
 	/// \param [out] allocated_size Size of the allocated memory block.
 	///              
 	/// \returns `true` if the byte order must be swapped after unmarshaling.
-	bool unmarshal_seq (size_t align, size_t element_size,
-		size_t& element_count, void*& data, size_t& allocated_size)
+	bool unmarshal_seq (size_t align, size_t element_size, size_t& element_count, void*& data,
+		size_t& allocated_size)
 	{
 		check_align (align);
 		read (alignof (size_t), sizeof (size_t), &element_count);
@@ -198,13 +198,15 @@ public:
 			ptr = abi.small_pointer ();
 		}
 		write (alignof (size_t), sizeof (size_t), &size);
-		if (size <= ABI::SMALL_CAPACITY)
-			write (alignof (C), size * sizeof (C), ptr);
-		else {
-			size_t allocated = move ? abi.allocated () : 0;
-			marshal_segment (alignof (C), sizeof (C), size + 1, ptr, allocated);
-			if (move && !allocated)
-				abi.reset ();
+		if (size) {
+			if (size <= ABI::SMALL_CAPACITY)
+				write (alignof (C), size * sizeof (C), ptr);
+			else {
+				size_t allocated = move ? abi.allocated () : 0;
+				marshal_segment (alignof (C), sizeof (C), size + 1, ptr, allocated);
+				if (move && !allocated)
+					abi.reset ();
+			}
 		}
 	}
 
@@ -298,14 +300,14 @@ public:
 	/// Marshal interface.
 	/// 
 	/// \param itf The interface derived from Object or LocalObject.
-	void marshal_interface (Interface::_ptr_type itf);
+	void marshal_interface (Internal::Interface::_ptr_type itf);
 
 	/// Unmarshal interface.
 	/// 
 	/// \param rep_id The interface repository id.
 	/// 
 	/// \returns Interface.
-	Interface::_ref_type unmarshal_interface (const IDL::String& interface_id);
+	Internal::Interface::_ref_type unmarshal_interface (const IDL::String& interface_id);
 
 	/// Marshal TypeCode.
 	/// 
@@ -342,7 +344,7 @@ public:
 	/// \param rep_id The value type repository id.
 	/// 
 	/// \returns Value type interface.
-	Interface::_ref_type unmarshal_value (const IDL::String& interface_id)
+	Internal::Interface::_ref_type unmarshal_value (const IDL::String& interface_id)
 	{
 		return unmarshal_interface (interface_id);
 	}
@@ -351,7 +353,7 @@ public:
 	/// 
 	/// \param itf The interface derived from AbstractBase.
 	/// \param output Output parameter marshaling. Haven't to perform deep copy.
-	void marshal_abstract (Interface::_ptr_type itf, bool output)
+	void marshal_abstract (Internal::Interface::_ptr_type itf, bool output)
 	{
 		if (output || !itf || caller_memory_ == callee_memory_)
 			marshal_interface (itf);
@@ -374,7 +376,7 @@ public:
 	/// \param rep_id The interface repository id.
 	/// 
 	/// \returns Interface.
-	Interface::_ref_type unmarshal_abstract (const IDL::String& interface_id)
+	Internal::Interface::_ref_type unmarshal_abstract (const IDL::String& interface_id)
 	{
 		return unmarshal_interface (interface_id);
 	}
@@ -425,18 +427,34 @@ public:
 		proxy_->invoke (*this);
 	}
 
-	bool completed () const
-	{
-		return State::EXCEPTION == state_ || State::SUCCESS == state_;
-	}
-
-	bool is_exception () const
+	/// Check if the request is completed with an exception.
+	bool is_exception () const NIRVANA_NOEXCEPT
 	{
 		return State::EXCEPTION == state_;
 	}
 
-	void wait ()
-	{}
+	///@}
+
+	///@{
+	/// Asynchronous operations.
+
+	/// Non-blocking check for the request completion.
+	/// 
+	/// \returns `true` if request is completed.
+	bool completed () const NIRVANA_NOEXCEPT
+	{
+		return State::EXCEPTION == state_ || State::SUCCESS == state_;
+	}
+
+	/// Blocking check for the request completion.
+	/// 
+	/// \param timeout The wait timeout.
+	/// 
+	/// \returns `true` if request is completed.
+	bool wait (uint64_t timeout)
+	{
+		Nirvana::throw_NO_IMPLEMENT ();
+	}
 
 	///@}
 

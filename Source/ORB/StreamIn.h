@@ -86,6 +86,29 @@ public:
 	/// 
 	/// \returns `true` if no more data in stream.
 	virtual bool end () const = 0;
+
+	/// Set stream endian.
+	/// 
+	/// \param little `true` for little endian, `false` for big endian.
+	void little_endian (bool little) NIRVANA_NOEXCEPT
+	{
+		Nirvana::endian stream_endian = little ? Nirvana::endian::little : Nirvana::endian::big;
+		other_endian_ = Nirvana::endian::native != stream_endian;
+	}
+
+	/// \returns `true` if the stream endian is differ from the native platform endian.
+	bool other_endian () const NIRVANA_NOEXCEPT
+	{
+		return other_endian_;
+	}
+
+protected:
+	StreamIn () :
+		other_endian_ (false)
+	{}
+
+private:
+	bool other_endian_;
 };
 
 }

@@ -28,8 +28,7 @@
 #include "Scheduler.h"
 #include "ExecDomain.h"
 #include "TLS.h"
-#include "ORB/ServantBase.h"
-#include "ORB/ESIOP.h"
+#include "ORB/CORBA_initterm.h"
 
 namespace Nirvana {
 namespace Core {
@@ -45,15 +44,14 @@ void initialize0 ()
 
 void initialize ()
 {
-	PortableServer::Core::ServantBase::initialize ();
+	CORBA::Core::initialize ();
 	Binder::initialize ();
-	ESIOP::initialize ();
 }
 
 void terminate ()
 {
-	ESIOP::terminate ();
 	Binder::terminate ();
+	CORBA::Core::terminate ();
 }
 
 void terminate0 () NIRVANA_NOEXCEPT

@@ -36,16 +36,6 @@ using namespace Core;
 
 namespace ESIOP {
 
-void initialize ()
-{
-	IncomingRequests::initialize ();
-}
-
-void terminate () NIRVANA_NOEXCEPT
-{
-	IncomingRequests::terminate ();
-}
-
 void dispatch_message (const MessageHeader& message) NIRVANA_NOEXCEPT
 {
 	switch (message.message_type) {
@@ -57,15 +47,17 @@ void dispatch_message (const MessageHeader& message) NIRVANA_NOEXCEPT
 			GIOP::MessageHeader_1_1 msg_hdr;
 			rq.data->read (1, sizeof (msg_hdr), &msg_hdr);
 			assert (equal (begin (msg_hdr.magic ()), end (msg_hdr.magic ()), "GIOP"));
-			assert ((msg_hdr.GIOP_version ().major () == 1) && (msg_hdr.GIOP_version ().minor () <= 3));
+
+			// We always use GIOP 1.1 in ESIOP for the native marshaling of wide characters.
+			assert ((msg_hdr.GIOP_version ().major () == 1) && (msg_hdr.GIOP_version ().minor () == 1));
+			
 			assert (GIOP::MsgType::Request == (GIOP::MsgType)msg_hdr.message_type ());
 			assert ((msg_hdr.flags () & 2) == 0); // Framentation is not allowed in ESIOP.
 
 			rq.GIOP_version = msg_hdr.GIOP_version ();
-
-			rq.other_endian = endian::native != ((msg_hdr.flags () & 1) ? endian::little : endian::big);
+			rq.data->little_endian (msg_hdr.flags () & 1);
 			uint32_t msg_size = msg_hdr.message_size ();
-			if (rq.other_endian)
+			if (rq.data->other_endian ())
 				byteswap (msg_size);
 			rq.data->set_size (msg_size);
 

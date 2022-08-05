@@ -157,12 +157,6 @@ static_assert (sizeof (MessageBuffer) == sizeof (ReplyImmediate), "sizeof (Messa
 /// Called by the postman from portability layer.
 void dispatch_message (const MessageHeader& message) NIRVANA_NOEXCEPT;
 
-/// Initialize ESIOP on startup.
-void initialize ();
-
-/// Terminate ESIOP on shutdown.
-void terminate () NIRVANA_NOEXCEPT;
-
 }
 }
 

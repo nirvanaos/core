@@ -45,6 +45,7 @@ public:
 		size_t block_size;
 		size_t sizeof_pointer;
 		size_t sizeof_size;
+		size_t max_size;
 	};
 
 	virtual SharedMemPtr reserve (size_t size) = 0;

@@ -38,10 +38,10 @@ void StreamOutSM::write (size_t align, size_t size, void* data, size_t& allocate
 	if (!data)
 		throw_BAD_PARAM ();
 
-	if (numeric_limits <size_t>::max () - size_ < size)
+	if (sizes_.max_size - size_ < size)
 		throw_IMP_LIMIT ();
 	size_t new_size = round_up (size_, align);
-	if (numeric_limits <size_t>::max () - new_size < size)
+	if (sizes_.max_size - new_size < size)
 		throw_IMP_LIMIT ();
 	new_size += size;
 

@@ -47,6 +47,17 @@ public:
   ///   When stream adopts the memory block, it sets \p allocated_size to 0.
   virtual void write (size_t align, size_t size, void* data, size_t& allocated_size) = 0;
 
+  /// Marshal data.
+  /// 
+  /// \param align Data alignment
+  /// \param size Data size.
+  /// \param data Data pointer.
+  void write (size_t align, size_t size, const void* data)
+  {
+    size_t zero = 0;
+    write (align, size, const_cast <void*> (data), zero);
+  }
+
   /// \returns The data size included any alignment gaps.
   virtual size_t size () const = 0;
 
@@ -54,6 +65,14 @@ public:
   /// 
   /// \param hdr_size The header size.
   virtual void* header (size_t hdr_size) = 0;
+};
+
+class NIRVANA_NOVTABLE StreamOutFactory
+{
+  DECLARE_CORE_INTERFACE
+
+public:
+  virtual Nirvana::Core::CoreRef <StreamOut> create () = 0;
 };
 
 }

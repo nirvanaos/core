@@ -90,7 +90,6 @@ public:
 		Nirvana::Core::CoreRef <StreamIn> data;
 
 		GIOP::Version GIOP_version; ///< GIOP version
-		bool other_endian; ///< `true` if the request endian is differ from the native
 	};
 
 	/// Recieve incoming request.

@@ -1,4 +1,3 @@
-/// \file
 /*
 * Nirvana Core.
 *
@@ -24,41 +23,37 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_ORB_CORE_REQUESTIN_H_
-#define NIRVANA_ORB_CORE_REQUESTIN_H_
-#pragma once
-
-#include "Request.h"
-#include "../CoreObject.h"
+#include "RequestIn.h"
 
 namespace CORBA {
 namespace Core {
 
-/// Implements IORequest for GIOP messages
-class RequestIn :
-	public Request,
-	public Nirvana::Core::CoreObject
+void RequestIn::switch_to_reply ()
 {
-public:
-	RequestIn (GIOP::Version GIOP_version, StreamIn& stream, StreamOutFactory& out_factory) :
-		Request (GIOP_version, false),
-		out_factory_ (&out_factory)
-	{
-		stream_in_ = &stream;
+	if (stream_in_) {
+		bool more_data = !stream_in_->end ();
+		stream_in_.reset ();
+		if (more_data)
+			throw MARSHAL (StreamIn::MARSHAL_MINOR_MORE);
 	}
+}
 
-private:
-	virtual void unmarshal_end () override;
-	virtual void marshal_op () override;
-	virtual void success () override;
+void RequestIn::unmarshal_end ()
+{
+	switch_to_reply ();
+}
 
-	void switch_to_reply ();
+void RequestIn::marshal_op ()
+{
+	switch_to_reply ();
+	if (!stream_out_)
+		stream_out_ = out_factory_->create ();
+}
 
-private:
-	Nirvana::Core::CoreRef <StreamOutFactory> out_factory_;
-};
+void RequestIn::success ()
+{
+	switch_to_reply ();
+}
 
 }
 }
-
-#endif
