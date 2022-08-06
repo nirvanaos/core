@@ -26,6 +26,7 @@
 #include "ESIOP.h"
 #include "IncomingRequests.h"
 #include "StreamInSM.h"
+#include "StreamOutSM.h"
 
 using namespace CORBA::Core;
 using namespace std;
@@ -35,6 +36,11 @@ namespace Nirvana {
 using namespace Core;
 
 namespace ESIOP {
+
+class NIRVANA_NOVTABLE Streams :
+	public StreamInSM,
+	public StreamOutSM
+{};
 
 void dispatch_message (const MessageHeader& message) NIRVANA_NOEXCEPT
 {

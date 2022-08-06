@@ -1,3 +1,4 @@
+/// \file
 /*
 * Nirvana Core.
 *
@@ -23,28 +24,24 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "CORBA_initterm.h"
-#include "ServantBase.h"
-#include "IncomingRequests.h"
-#include "OtherDomains.h"
-#include "CodeSetConverter.h"
+#ifndef NIRVANA_ORB_CORE_MAPORDEREDUNSTABLE_H_
+#define NIRVANA_ORB_CORE_MAPORDEREDUNSTABLE_H_
+#pragma once
 
-namespace CORBA {
+#pragma push_macro ("verify")
+#undef verify
+#include "parallel-hashmap/parallel_hashmap/btree.h"
+#pragma pop_macro ("verify")
+
+namespace Nirvana {
 namespace Core {
 
-void initialize ()
-{
-	PortableServer::Core::ServantBase::initialize ();
-	IncomingRequests::initialize ();
-	Nirvana::ESIOP::OtherDomains::initialize ();
-	CodeSetConverter::initialize ();
-}
-
-void terminate () NIRVANA_NOEXCEPT
-{
-	IncomingRequests::terminate ();
-	Nirvana::ESIOP::OtherDomains::terminate ();
-}
+/// Fast ordered map without the pointer stability.
+template <class Key, class T, class Compare = std::less <Key>,
+	class Allocator = std::allocator <std::pair <const Key, T> > >
+using MapOrderedUnstable = phmap::btree_map <Key, T, Compare, Allocator>;
 
 }
 }
+
+#endif

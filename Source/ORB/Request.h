@@ -133,12 +133,12 @@ public:
 	void marshal_string (IDL::String& s, bool move)
 	{
 		marshal_op ();
-		code_set_conv_->marshal_string (s, move, *stream_out_);
+		code_set_conv_->marshal_string (s, move, *this);
 	}
 
 	void unmarshal_string (IDL::String& s)
 	{
-		code_set_conv_->unmarshal_string (*stream_in_, s);
+		code_set_conv_->unmarshal_string (*this, s);
 	}
 
 	template <typename C>
@@ -179,12 +179,12 @@ public:
 
 	void marshal_wstring (IDL::WString& s, bool move)
 	{
-		code_set_conv_w_->marshal_string (s, move, *stream_out_);
+		code_set_conv_w_->marshal_string (s, move, *this);
 	}
 
 	void unmarshal_wstring (IDL::WString& s)
 	{
-		code_set_conv_w_->unmarshal_string (*stream_in_, s);
+		code_set_conv_w_->unmarshal_string (*this, s);
 	}
 
 	void marshal_wchar_seq (WCharSeq& s, bool move)
@@ -297,15 +297,97 @@ public:
 	/// \returns `true` if request is completed.
 	bool wait (uint64_t timeout);
 
+	/// Cancel the request.
+	virtual void cancel () = 0;
+
 	///@}
 
 	virtual ~Request ()
 	{}
 
+	///@{
+	/// API for code set converters.
+
+	void marshal_string_encoded (IDL::String& s, bool move);
+	void unmarshal_string_encoded (IDL::String& s);
+	void marshal_string_encoded (IDL::WString& s, bool move);
+	void unmarshal_string_encoded (IDL::WString& s);
+
+	StreamIn* stream_in () const
+	{
+		return stream_in_;
+	}
+
+	StreamOut* stream_out () const
+	{
+		return stream_out_;
+	}
+
+	///@}
+	/// 
 protected:
-	Request (GIOP::Version GIOP_version, bool client_side);
+	Request (StreamIn* sin, StreamOut* sout, CodeSetConverterW& cscw);
 
 	virtual void marshal_op () = 0;
+
+	template <typename C>
+	void marshal_string_t (Internal::StringT <C>& s, bool move)
+	{
+		if (sizeof (size_t) > sizeof (uint32_t) && s.size () > std::numeric_limits <uint32_t>::max ())
+			throw IMP_LIMIT ();
+
+		typedef typename Internal::Type <Internal::StringT <C> >::ABI ABI;
+		ABI& abi = (ABI&)s;
+		uint32_t size;
+		C* ptr;
+		if (abi.is_large ()) {
+			size = (uint32_t)abi.large_size ();
+			ptr = abi.large_pointer ();
+		} else {
+			size = (uint32_t)abi.small_size ();
+			ptr = abi.small_pointer ();
+		}
+		stream_out_->write (alignof (uint32_t), sizeof (size), &size);
+		if (size <= ABI::SMALL_CAPACITY)
+			stream_out_->write (alignof (C), (size + 1) * sizeof (C), ptr);
+		else {
+			size_t allocated = move ? abi.allocated () : 0;
+			stream_out_->write (alignof (C), (size + 1) * sizeof (C), ptr, allocated);
+			if (move && !allocated)
+				abi.reset ();
+		}
+	}
+
+	template <typename C>
+	void unmarshal_string_t (Internal::StringT <C>& s)
+	{
+		typedef typename Internal::Type <Internal::StringT <C> >::ABI ABI;
+
+		uint32_t size;
+		stream_in_->read (alignof (uint32_t), sizeof (size), &size);
+		if (sizeof (uint32_t) > sizeof (size_t) && size > std::numeric_limits <size_t>::max ())
+			throw IMP_LIMIT ();
+
+		Internal::StringT <C> tmp;
+		ABI& abi = (ABI&)tmp;
+		C* p;
+		if (size <= ABI::SMALL_CAPACITY) {
+			if (size) {
+				abi.small_size (size);
+				p = abi.small_pointer ();
+				stream_in_->read (alignof (C), (size + 1) * sizeof (C), p);
+			}
+		} else {
+			size_t allocated_size = size + 1;
+			void* data = stream_in_->read (alignof (C), allocated_size);
+			abi.large_size (size);
+			abi.large_pointer (p = (C*)data);
+			abi.allocated (allocated_size);
+		}
+
+		s = std::move (tmp);
+	}
+
 
 protected:
 	Nirvana::Core::CoreRef <StreamIn> stream_in_;

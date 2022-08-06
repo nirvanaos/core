@@ -24,21 +24,24 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_ORB_CORE_OTHERMEMORY_H_
-#define NIRVANA_ORB_CORE_OTHERMEMORY_H_
+#ifndef NIRVANA_ORB_CORE_OTHERDOMAIN_H_
+#define NIRVANA_ORB_CORE_OTHERDOMAIN_H_
 #pragma once
 
 #include "../CoreInterface.h"
 #include <Port/ESIOP.h>
+#include "../SharedObject.h"
+#include "../Chrono.h"
 
 namespace Nirvana {
 namespace ESIOP {
 
-/// Access to other protection domain memory
-class NIRVANA_NOVTABLE OtherMemory
-{
-	DECLARE_CORE_INTERFACE
+class OtherDomains;
 
+/// Other protection domain communication endpoint.
+class NIRVANA_NOVTABLE OtherDomain :
+	public Core::SharedObject
+{
 public:
 	struct Sizes
 	{
@@ -54,6 +57,45 @@ public:
 	virtual void get_sizes (Sizes& sizes) NIRVANA_NOEXCEPT = 0;
 	virtual void* store_pointer (void* where, SharedMemPtr p) NIRVANA_NOEXCEPT = 0;
 	virtual void* store_size (void* where, size_t size) NIRVANA_NOEXCEPT = 0;
+
+	virtual void send_message (const void* msg, size_t size) = 0;
+
+	virtual bool is_alive (ProtDomainId domain_id) = 0;
+
+	/// Factory method must be implemented in the Port layer.
+	/// 
+	/// \param domain_id Protection domain id.
+	/// \returns Reference to created OtherDomain object.
+	static OtherDomain* create (ProtDomainId domain_id);
+
+protected:
+	OtherDomain ()
+	{}
+	
+	virtual ~OtherDomain ()
+	{}
+
+private:
+	friend class Core::CoreRef <OtherDomain>;
+	friend class OtherDomains;
+
+	void _add_ref () NIRVANA_NOEXCEPT
+	{
+		ref_cnt_.increment ();
+	}
+
+	void _remove_ref () NIRVANA_NOEXCEPT
+	{
+		Core::RefCounter::IntegralType cnt = ref_cnt_.decrement ();
+		if (1 == cnt)
+			release_time_ = Core::Chrono::steady_clock ();
+		else if (0 == cnt)
+			delete this;
+	}
+
+private:
+	Core::RefCounter ref_cnt_;
+	Core::Chrono::Duration release_time_;
 };
 
 }

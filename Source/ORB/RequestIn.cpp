@@ -31,9 +31,9 @@ namespace Core {
 void RequestIn::switch_to_reply ()
 {
 	if (stream_in_) {
-		bool more_data = !stream_in_->end ();
+		size_t more_data = !stream_in_->end ();
 		stream_in_.reset ();
-		if (more_data)
+		if (more_data > 7) // 8-byte alignment is ignored
 			throw MARSHAL (StreamIn::MARSHAL_MINOR_MORE);
 	}
 }
@@ -46,13 +46,16 @@ void RequestIn::unmarshal_end ()
 void RequestIn::marshal_op ()
 {
 	switch_to_reply ();
-	if (!stream_out_)
-		stream_out_ = out_factory_->create ();
 }
 
 void RequestIn::success ()
 {
 	switch_to_reply ();
+}
+
+void RequestIn::cancel ()
+{
+	throw BAD_INV_ORDER ();
 }
 
 }

@@ -159,12 +159,15 @@ protected:
 	}
 };
 
+template <class T> class WeakPtr;
+
 /// Core smart pointer.
 /// \tparam T object or core interface class.
 template <class T>
 class CoreRef
 {
 	template <class T1> friend class CoreRef;
+	friend class WeakPtr <T>;
 public:
 	CoreRef () NIRVANA_NOEXCEPT :
 		p_ (nullptr)

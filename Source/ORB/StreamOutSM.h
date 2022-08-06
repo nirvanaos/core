@@ -29,10 +29,11 @@
 #pragma once
 
 #include "StreamOut.h"
-#include "OtherMemory.h"
+#include "OtherDomain.h"
 #include "../UserAllocator.h"
 #include "../UserObject.h"
 #include <vector>
+#include <memory>
 
 namespace Nirvana {
 namespace ESIOP {
@@ -51,7 +52,7 @@ public:
 		// Purge all blocks
 		for (auto it = blocks_.begin (); it != blocks_.end (); ++it) {
 			if (it->ptr) {
-				other_memory_->copy (it->other_ptr, it->ptr, it->size, true);
+				other_domain_->copy (it->other_ptr, it->ptr, it->size, true);
 				it->ptr = nullptr;
 			}
 		}
@@ -65,25 +66,25 @@ public:
 	}
 
 protected:
-	StreamOutSM (OtherMemory& mem) :
-		other_memory_ (&mem),
+	StreamOutSM (OtherDomain& mem) :
+		other_domain_ (&mem),
 		size_ (0)
 	{
 		mem.get_sizes (sizes_);
 		allocate_block (sizes_.sizeof_pointer, sizes_.sizeof_pointer);
 		stream_hdr_ = cur_block ().other_ptr;
 		segments_tail_ = cur_ptr_;
-		cur_ptr_ = (uint8_t*)other_memory_->store_pointer (segments_tail_, 0); // segments
+		cur_ptr_ = (uint8_t*)other_domain_->store_pointer (segments_tail_, 0); // segments
 	}
 
 	~StreamOutSM ()
 	{
 		for (const auto& a : other_allocated_) {
-			other_memory_->release (a.ptr, a.size);
+			other_domain_->release (a.ptr, a.size);
 		}
 		for (const auto& a : blocks_) {
 			if (a.other_ptr)
-				other_memory_->release (a.other_ptr, a.size);
+				other_domain_->release (a.other_ptr, a.size);
 			if (a.ptr)
 				Nirvana::Core::Port::Memory::release (a.ptr, a.size);
 		}
@@ -124,8 +125,8 @@ private:
 	void purge ();
 
 private:
-	Nirvana::Core::CoreRef <OtherMemory> other_memory_;
-	OtherMemory::Sizes sizes_;
+	Core::CoreRef <OtherDomain> other_domain_;
+	OtherDomain::Sizes sizes_;
 	SharedMemPtr stream_hdr_;
 	std::vector <Block, Nirvana::Core::UserAllocator <Block> > blocks_;
 	std::vector <OtherAllocated, Nirvana::Core::UserAllocator <OtherAllocated> > other_allocated_;

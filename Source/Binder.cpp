@@ -355,10 +355,9 @@ CoreRef <Module> Binder::load (string& module_name, bool singleton)
 	if (!initialized_)
 		throw_INITIALIZE ();
 	Module* mod = nullptr;
-	auto ins = module_map_.emplace (move (module_name), MODULE_LOADING_DEADLINE_MIN);
+	auto ins = module_map_.emplace (move (module_name), MODULE_LOADING_DEADLINE_MAX);
 	if (ins.second) {
 		try {
-
 			SYNC_BEGIN (g_core_free_sync_context, &memory ());
 			if (singleton)
 				mod = new Singleton (ins.first->first);

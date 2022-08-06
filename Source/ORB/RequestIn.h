@@ -34,28 +34,43 @@
 namespace CORBA {
 namespace Core {
 
-/// Implements IORequest for GIOP messages
-class RequestIn :
+/// Implements server-side IORequest for GIOP.
+class NIRVANA_NOVTABLE RequestIn :
 	public Request,
-	public Nirvana::Core::CoreObject
+	public Nirvana::Core::CoreObject // Must be created quickly
 {
-public:
-	RequestIn (GIOP::Version GIOP_version, StreamIn& stream, StreamOutFactory& out_factory) :
-		Request (GIOP_version, false),
-		out_factory_ (&out_factory)
-	{
-		stream_in_ = &stream;
-	}
+protected:
+	RequestIn (StreamIn& stream, CodeSetConverterW& cscw) :
+		Request (&stream, nullptr, cscw)
+	{}
 
 private:
 	virtual void unmarshal_end () override;
 	virtual void marshal_op () override;
 	virtual void success () override;
+	virtual void cancel () override;
 
 	void switch_to_reply ();
+};
+
+/// Implements server-side IORequest for GIOP 1.0.
+class NIRVANA_NOVTABLE RequestIn_1_0 : public RequestIn
+{
+public:
+	const GIOP::RequestHeader_1_0& header () const NIRVANA_NOEXCEPT
+	{
+		return header_;
+	}
+
+protected:
+	RequestIn_1_0 (StreamIn& stream) :
+		RequestIn (stream, *CodeSetConverterW_1_0::get_default (false))
+	{
+		Internal::Type <GIOP::RequestHeader_1_0>::unmarshal (_get_ptr (), header_);
+	}
 
 private:
-	Nirvana::Core::CoreRef <StreamOutFactory> out_factory_;
+	GIOP::RequestHeader_1_0 header_;
 };
 
 }

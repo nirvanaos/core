@@ -193,7 +193,7 @@ void StreamInSM::set_size (size_t size)
 	size_ = position_ + size;
 }
 
-bool StreamInSM::end () const
+size_t StreamInSM::end ()
 {
 	return size_ - position_ < 8; // 8-byte alignment ignored
 }

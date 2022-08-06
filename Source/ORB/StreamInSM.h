@@ -47,7 +47,7 @@ public:
 	virtual void read (size_t align, size_t size, void* buf) override;
 	virtual void* read (size_t align, size_t& size) override;
 	virtual void set_size (size_t size) override;
-	virtual bool end () const override;
+	virtual size_t end () override;
 
 protected:
 	StreamInSM (void* mem) :

@@ -28,11 +28,16 @@
 using namespace Nirvana;
 
 namespace CORBA {
+
+using namespace Internal;
+
 namespace Core {
 
-Request::Request (GIOP::Version GIOP_version, bool client_side) :
-	code_set_conv_ (&CodeSetConverter::get_default ()),
-	code_set_conv_w_ (&CodeSetConverterW::get_default (GIOP_version.minor (), client_side))
+Request::Request (StreamIn* sin, StreamOut* sout, CodeSetConverterW& cscw) :
+	stream_in_ (sin),
+	stream_out_ (sout),
+	code_set_conv_ (CodeSetConverter::get_default ()),
+	code_set_conv_w_ (&cscw)
 {}
 
 void Request::marshal_seq_begin (size_t element_count)
@@ -81,6 +86,30 @@ bool Request::unmarshal_seq (size_t align, size_t element_size, size_t& element_
 		allocated_size = 0;
 	}
 	return stream_in_->other_endian ();
+}
+
+void Request::marshal_string_encoded (IDL::String& s, bool move)
+{
+	marshal_string_t (s, move);
+}
+
+void Request::unmarshal_string_encoded (IDL::String& s)
+{
+	unmarshal_string_t (s);
+}
+
+void Request::marshal_string_encoded (IDL::WString& s, bool move)
+{
+	marshal_string_t (s, move);
+}
+
+void Request::unmarshal_string_encoded (IDL::WString& s)
+{
+	unmarshal_string_t (s);
+	if (stream_in_->other_endian ())
+		for (IDL::WString::iterator p = s.begin (), end = s.end (); p != end; ++p) {
+			Type <WChar>::byteswap (*p);
+		}
 }
 
 }

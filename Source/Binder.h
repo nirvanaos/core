@@ -76,7 +76,7 @@ class Binder : private CORBA::Core::Services
 {
 	/// To avoid priority inversion, if module loader deadline is too far,
 	/// it will be temporary adjusted.
-	static const DeadlineTime MODULE_LOADING_DEADLINE_MIN = 1 * System::SECOND;
+	static const DeadlineTime MODULE_LOADING_DEADLINE_MAX = 1 * System::SECOND;
 
 public:
 	typedef CORBA::Internal::Interface::_ref_type InterfaceRef;

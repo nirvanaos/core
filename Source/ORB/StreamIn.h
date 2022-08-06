@@ -82,10 +82,12 @@ public:
 	///   message terminate on an 8 - byte boundary).
 	virtual void set_size (size_t size) = 0;
 
-	/// Check for stream end.
+	/// End of the data reading.
 	/// 
-	/// \returns `true` if no more data in stream.
-	virtual bool end () const = 0;
+	/// Stream can release resources, close socket etc.
+	/// 
+	/// \returns Count of the remaining bytes in stream.
+	virtual size_t end () = 0;
 
 	/// Set stream endian.
 	/// 

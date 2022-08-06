@@ -1,3 +1,4 @@
+/// \file
 /*
 * Nirvana Core.
 *
@@ -23,28 +24,32 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "CORBA_initterm.h"
-#include "ServantBase.h"
-#include "IncomingRequests.h"
-#include "OtherDomains.h"
-#include "CodeSetConverter.h"
+#ifndef NIRVANA_ORB_CORE_REQUESTOUT_H_
+#define NIRVANA_ORB_CORE_REQUESTOUT_H_
+#pragma once
+
+#include "Request.h"
+#include "../UserObject.h"
 
 namespace CORBA {
 namespace Core {
 
-void initialize ()
+/// Implements client-side IORequest for GIOP.
+class RequestOut :
+	public Request,
+	public Nirvana::Core::UserObject
 {
-	PortableServer::Core::ServantBase::initialize ();
-	IncomingRequests::initialize ();
-	Nirvana::ESIOP::OtherDomains::initialize ();
-	CodeSetConverter::initialize ();
+public:
+	RequestOut (StreamOut& stream, const GIOP::MessageHeader_1_3& hdr);
+
+private:
+	virtual void unmarshal_end () override;
+	virtual void marshal_op () override;
+	virtual void success () override;
+	virtual void cancel () override;
+};
+
+}
 }
 
-void terminate () NIRVANA_NOEXCEPT
-{
-	IncomingRequests::terminate ();
-	Nirvana::ESIOP::OtherDomains::terminate ();
-}
-
-}
-}
+#endif

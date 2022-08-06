@@ -456,6 +456,12 @@ public:
 		Nirvana::throw_NO_IMPLEMENT ();
 	}
 
+	/// Cancel the request.
+	void cancel ()
+	{
+		Nirvana::throw_NO_IMPLEMENT ();
+	}
+
 	///@}
 
 protected:

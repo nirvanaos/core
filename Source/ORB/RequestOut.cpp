@@ -23,28 +23,9 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "CORBA_initterm.h"
-#include "ServantBase.h"
-#include "IncomingRequests.h"
-#include "OtherDomains.h"
-#include "CodeSetConverter.h"
+#include "RequestOut.h"
 
 namespace CORBA {
 namespace Core {
-
-void initialize ()
-{
-	PortableServer::Core::ServantBase::initialize ();
-	IncomingRequests::initialize ();
-	Nirvana::ESIOP::OtherDomains::initialize ();
-	CodeSetConverter::initialize ();
-}
-
-void terminate () NIRVANA_NOEXCEPT
-{
-	IncomingRequests::terminate ();
-	Nirvana::ESIOP::OtherDomains::terminate ();
-}
-
 }
 }

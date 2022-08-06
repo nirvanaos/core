@@ -35,41 +35,75 @@ using namespace Internal;
 
 namespace Core {
 
-StaticallyAllocated <ImplStatic <CodeSetConverter> > default_;
+// Default code set converter for the narrow characters.
 
-void CodeSetConverter::marshal_string (IDL::String& s, bool move, StreamOut& out)
+void CodeSetConverter::marshal_string (IDL::String& s, bool move, Request& out)
 {
-	Base::marshal_string (s, move, out);
+	out.marshal_string_encoded (s, move);
 }
 
-void CodeSetConverter::unmarshal_string (StreamIn& in, IDL::String& s)
+void CodeSetConverter::unmarshal_string (Request& in, IDL::String& s)
 {
-	Base::unmarshal_string (in, s);
+	in.unmarshal_string_encoded (s);
 }
 
-// Default code set converter for the wide characters.
+StaticallyAllocated <ImplStatic <CodeSetConverter> > CodeSetConverter::default_;
 
-void CodeSetConverterW::marshal_string (IDL::WString& s, bool move, StreamOut& out)
+// Default wide code set converter for GIOP 1.0.
+
+CoreRef <CodeSetConverterW> CodeSetConverterW_1_0::get_default (bool client_side)
 {
-	Base::marshal_string (s, move, out);
+	return CoreRef <CodeSetConverterW>::create <ImplDynamic <CodeSetConverterW_1_0> > (client_side);
 }
 
-void CodeSetConverterW::unmarshal_string (StreamIn& in, IDL::WString& s)
+void CodeSetConverterW_1_0::marshal_string (IDL::WString& s, bool move, Request& out)
 {
-	Base::unmarshal_string (in, s);
-
-	if (in.other_endian ()) {
-		for (auto p = s.begin (), end = s.end (); p != end; ++p)
-			byteswap (*p);
-	}
+	throw MARSHAL (marshal_minor_);
 }
 
-void CodeSetConverterW::marshal_char (size_t count, const WChar* data, StreamOut& out)
+void CodeSetConverterW_1_0::unmarshal_string (Request& in, IDL::WString& s)
+{
+	throw MARSHAL ();
+}
+
+void CodeSetConverterW_1_0::marshal_char (size_t count, const WChar* data, StreamOut& out)
+{
+	throw MARSHAL (marshal_minor_);
+}
+
+void CodeSetConverterW_1_0::unmarshal_char (StreamIn& in, size_t count, WChar* data)
+{
+	throw MARSHAL ();
+}
+
+void CodeSetConverterW_1_0::marshal_char_seq (IDL::Sequence <WChar>& s, bool move, Request& out)
+{
+	throw MARSHAL (marshal_minor_);
+}
+
+void CodeSetConverterW_1_0::unmarshal_char_seq (Request& in, IDL::Sequence <WChar>& s)
+{
+	throw MARSHAL ();
+}
+
+// Default wide code set converter for GIOP 1.1.
+
+void CodeSetConverterW_1_1::marshal_string (IDL::WString& s, bool move, Request& out)
+{
+	out.marshal_string_encoded (s, move);
+}
+
+void CodeSetConverterW_1_1::unmarshal_string (Request& in, IDL::WString& s)
+{
+	in.unmarshal_string_encoded (s);
+}
+
+void CodeSetConverterW_1_1::marshal_char (size_t count, const WChar* data, StreamOut& out)
 {
 	out.write (alignof (WChar), count * sizeof (WChar), data);
 }
 
-void CodeSetConverterW::unmarshal_char (StreamIn& in, size_t count, WChar* data)
+void CodeSetConverterW_1_1::unmarshal_char (StreamIn& in, size_t count, WChar* data)
 {
 	in.read (alignof (WChar), count * sizeof (WChar), data);
 	if (in.other_endian ()) {
@@ -78,18 +112,83 @@ void CodeSetConverterW::unmarshal_char (StreamIn& in, size_t count, WChar* data)
 	}
 }
 
-void CodeSetConverterW::marshal_char_seq (IDL::Sequence <WChar>& s, bool move, Request& out)
+void CodeSetConverterW_1_1::marshal_char_seq (IDL::Sequence <WChar>& s, bool move, Request& out)
 {
 	out.marshal_char_seq (s, move);
 }
 
-void CodeSetConverterW::unmarshal_char_seq (Request& in, IDL::Sequence <WChar>& s)
+void CodeSetConverterW_1_1::unmarshal_char_seq (Request& in, IDL::Sequence <WChar>& s)
 {
 	if (in.unmarshal_char_seq (s)) {
 		for (auto p = s.begin (), end = s.end (); p != end; ++p)
 			byteswap (*p);
 	}
 }
+
+StaticallyAllocated <ImplStatic <CodeSetConverterW_1_1> > CodeSetConverterW_1_1::default_;
+
+/// Default wide code set converter for GIOP 1.2.
+
+void CodeSetConverterW_1_2::marshal_string (IDL::WString& s, bool move, Request& out)
+{
+	out.marshal_seq_begin (s.size ());
+	for (auto c : s) {
+		write (c, *out.stream_out ());
+	}
+}
+
+void CodeSetConverterW_1_2::unmarshal_string (Request& in, IDL::WString& s)
+{
+	s.clear ();
+	size_t count = in.unmarshal_seq_begin ();
+	s.reserve (count);
+	for (; count; --count) {
+		uint32_t c = read (*in.stream_in ());
+		if (sizeof (WChar) < sizeof (uint32_t) && ((~(uint32_t)1 << (sizeof (WChar) * 8)) & c))
+			throw_DATA_CONVERSION ();
+		s.push_back ((WChar)c);
+	}
+}
+
+void CodeSetConverterW_1_2::marshal_char (size_t count, const WChar* data, StreamOut& out)
+{
+	for (const WChar* end = data + count; data != end; ++data) {
+		write (*data, out);
+	}
+}
+
+void CodeSetConverterW_1_2::unmarshal_char (StreamIn& in, size_t count, WChar* data)
+{
+	for (; count; --count) {
+		uint32_t c = read (in);
+		if (sizeof (WChar) < sizeof (uint32_t) && ((~(uint32_t)1 << (sizeof (WChar) * 8)) & c))
+			throw_DATA_CONVERSION ();
+		*(data++) = (WChar)c;
+	}
+}
+
+void CodeSetConverterW_1_2::marshal_char_seq (IDL::Sequence <WChar>& s, bool move, Request& out)
+{
+	out.marshal_seq_begin (s.size ());
+	for (auto c : s) {
+		write (c, *out.stream_out ());
+	}
+}
+
+void CodeSetConverterW_1_2::unmarshal_char_seq (Request& in, IDL::Sequence <WChar>& s)
+{
+	s.clear ();
+	size_t count = in.unmarshal_seq_begin ();
+	s.reserve (count);
+	for (; count; --count) {
+		uint32_t c = read (*in.stream_in ());
+		if (sizeof (WChar) < sizeof (uint32_t) && ((~(uint32_t)1 << (sizeof (WChar) * 8)) & c))
+			throw_DATA_CONVERSION ();
+		s.push_back ((WChar)c);
+	}
+}
+
+StaticallyAllocated <ImplStatic <CodeSetConverterW_1_2> > CodeSetConverterW_1_2::default_;
 
 }
 }
