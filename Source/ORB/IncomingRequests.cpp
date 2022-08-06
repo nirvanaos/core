@@ -34,38 +34,41 @@ using namespace Nirvana::Core;
 namespace CORBA {
 namespace Core {
 
-Nirvana::Core::StaticallyAllocated <IncomingRequests::RequestMap> IncomingRequests::request_map_;
+Nirvana::Core::StaticallyAllocated <IncomingRequests::RequestMap> IncomingRequests::map_;
 
 class NIRVANA_NOVTABLE IncomingRequests::Process : public Runnable
 {
 protected:
-	Process (const Request& rq) :
-		request_ (rq)
+	Process (const ClientAddr client_addr, CoreRef <RequestIn>& rq) :
+		client_addr_ (client_addr),
+		request_ (move (rq))
 	{}
 
 	virtual void run ();
 
 private:
-	Request request_;
+	ClientAddr client_addr_;
+	CoreRef <RequestIn> request_;
 };
 
-void IncomingRequests::receive (const ClientAddr& source, const Request& rq)
+void IncomingRequests::receive (const ClientAddr& source, CoreRef <RequestIn>& rq)
 {
-	assert (rq.GIOP_version.major () == 1 && rq.GIOP_version.minor () <= 3);
-
 	// Initially schedule async_call with zero deadline because we don't know the deadline yet.
-	ExecDomain::async_call (0, CoreRef <Runnable>::create <ImplDynamic <Process> > (ref (rq)),
+	ExecDomain::async_call (0, CoreRef <Runnable>::
+		create <ImplDynamic <Process> > (ref (source), ref (rq)),
 		g_core_free_sync_context);
+}
+
+void IncomingRequests::Process::run ()
+{
+	request_->read_header ();
+	uint32_t request_id = request_->request_id ();
+	auto ins = IncomingRequests::map_->insert (ref (client_addr_), request_id);
 }
 
 void IncomingRequests::cancel (const ClientAddr& source, uint32_t request_id) NIRVANA_NOEXCEPT
 {
 	// TODO: Implement
-}
-
-void IncomingRequests::Process::run ()
-{
-
 }
 
 }

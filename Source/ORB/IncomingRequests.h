@@ -30,7 +30,7 @@
 
 #include <Nirvana/Nirvana.h>
 #include "ESIOP.h"
-#include "StreamIn.h"
+#include "RequestIn.h"
 #include "../SkipList.h"
 #include "../ExecDomain.h"
 #include "IDL/GIOP.h"
@@ -46,13 +46,13 @@ public:
 	/// Called on system startup
 	static void initialize ()
 	{
-		request_map_.construct ();
+		map_.construct ();
 	}
 
 	/// Called on system shutdown
 	static void terminate ()
 	{
-		request_map_.destruct ();
+		map_.destruct ();
 	}
 
 	/// Internet address
@@ -84,21 +84,13 @@ public:
 	/// IPv6
 	typedef InetAddr <uint64_t> Inet6;
 
-	struct Request
-	{
-		/// The request data. Data is positioned after the MessageHeader.
-		Nirvana::Core::CoreRef <StreamIn> data;
-
-		GIOP::Version GIOP_version; ///< GIOP version
-	};
-
 	/// Recieve incoming request.
 	/// 
 	/// \typeparam Addr Client address type.
 	/// \param source The client address.
-	/// \param rq Request struct.
+	/// \param rq The input request.
 	template <class Addr>
-	static void receive (const Addr& source, const Request& rq);
+	static void receive (const Addr& source, Nirvana::Core::CoreRef <RequestIn>& rq);
 
 	/// Cancel incoming request.
 	/// 
@@ -183,6 +175,11 @@ private:
 
 	struct RequestKey : ClientAddr
 	{
+		RequestKey (const ClientAddr& addr, uint32_t rq_id) :
+			ClientAddr (addr),
+			request_id (rq_id)
+		{}
+
 		uint32_t request_id;
 
 		bool operator < (const RequestKey& rhs) const NIRVANA_NOEXCEPT
@@ -198,6 +195,11 @@ private:
 
 	struct RequestVal : RequestKey
 	{
+		RequestVal (const ClientAddr& addr, uint32_t rq_id) :
+			RequestKey (addr, rq_id),
+			exec_domain (&Nirvana::Core::ExecDomain::current ())
+		{}
+
 		Nirvana::Core::CoreRef <Nirvana::Core::ExecDomain> exec_domain;
 	};
 
@@ -206,14 +208,14 @@ private:
 
 	class Process;
 
-	static void receive (const ClientAddr& source, const Request& rq);
+	static void receive (const ClientAddr& source, Nirvana::Core::CoreRef <RequestIn>& rq);
 	static void cancel (const ClientAddr& source, uint32_t request_id) NIRVANA_NOEXCEPT;
 
-	static Nirvana::Core::StaticallyAllocated <RequestMap> request_map_;
+	static Nirvana::Core::StaticallyAllocated <RequestMap> map_;
 };
 
 template <class Addr> inline
-void IncomingRequests::receive (const Addr& source, const Request& rq)
+void IncomingRequests::receive (const Addr& source, Nirvana::Core::CoreRef <RequestIn>& rq)
 {
 	return receive (ClientAddr (source), rq);
 }

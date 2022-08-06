@@ -39,9 +39,13 @@ class NIRVANA_NOVTABLE RequestIn :
 	public Request,
 	public Nirvana::Core::CoreObject // Must be created quickly
 {
+public:
+	virtual void read_header () = 0;
+	virtual uint32_t request_id () const NIRVANA_NOEXCEPT = 0;
+
 protected:
-	RequestIn (StreamIn& stream, CodeSetConverterW& cscw) :
-		Request (&stream, nullptr, cscw)
+	RequestIn (StreamIn& in, StreamOut& out, CodeSetConverterW& cscw) :
+		Request (&in, &out, cscw)
 	{}
 
 private:
@@ -57,20 +61,84 @@ private:
 class NIRVANA_NOVTABLE RequestIn_1_0 : public RequestIn
 {
 public:
+	virtual void read_header ()
+	{
+		Internal::Type <GIOP::RequestHeader_1_0>::unmarshal (_get_ptr (), header_);
+	}
+
+	virtual uint32_t request_id () const NIRVANA_NOEXCEPT
+	{
+		return header_.request_id ();
+	}
+
 	const GIOP::RequestHeader_1_0& header () const NIRVANA_NOEXCEPT
 	{
 		return header_;
 	}
 
 protected:
-	RequestIn_1_0 (StreamIn& stream) :
-		RequestIn (stream, *CodeSetConverterW_1_0::get_default (false))
-	{
-		Internal::Type <GIOP::RequestHeader_1_0>::unmarshal (_get_ptr (), header_);
-	}
+	RequestIn_1_0 (StreamIn& in, StreamOut& out) :
+		RequestIn (in, out, *CodeSetConverterW_1_0::get_default (false))
+	{}
 
 private:
 	GIOP::RequestHeader_1_0 header_;
+};
+
+/// Implements server-side IORequest for GIOP 1.1.
+class NIRVANA_NOVTABLE RequestIn_1_1 : public RequestIn
+{
+public:
+	virtual void read_header ()
+	{
+		Internal::Type <GIOP::RequestHeader_1_1>::unmarshal (_get_ptr (), header_);
+	}
+
+	virtual uint32_t request_id () const NIRVANA_NOEXCEPT
+	{
+		return header_.request_id ();
+	}
+
+	const GIOP::RequestHeader_1_1& header () const NIRVANA_NOEXCEPT
+	{
+		return header_;
+	}
+
+protected:
+	RequestIn_1_1 (StreamIn& in, StreamOut& out) :
+		RequestIn (in, out, *CodeSetConverterW_1_1::get_default ())
+	{}
+
+private:
+	GIOP::RequestHeader_1_1 header_;
+};
+
+/// Implements server-side IORequest for GIOP 1.2 and later.
+class NIRVANA_NOVTABLE RequestIn_1_2 : public RequestIn
+{
+public:
+	virtual void read_header ()
+	{
+		Internal::Type <GIOP::RequestHeader_1_2>::unmarshal (_get_ptr (), header_);
+	}
+
+	virtual uint32_t request_id () const NIRVANA_NOEXCEPT
+	{
+		return header_.request_id ();
+	}
+
+	const GIOP::RequestHeader_1_2& header () const NIRVANA_NOEXCEPT
+	{
+		return header_;
+	}
+
+protected:
+	RequestIn_1_2 (StreamIn& in, StreamOut& out) :
+		RequestIn (in, out, *CodeSetConverterW_1_2::get_default ())
+	{}
+
+private:
+	GIOP::RequestHeader_1_2 header_;
 };
 
 }

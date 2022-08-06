@@ -37,10 +37,47 @@ using namespace Core;
 
 namespace ESIOP {
 
-class NIRVANA_NOVTABLE Streams :
-	public StreamInSM,
+class NIRVANA_NOVTABLE StreamReply :
 	public StreamOutSM
-{};
+{
+public:
+	StreamReply (ProtDomainId client_id) :
+		StreamOutSM (message_.reply_immediate.data),
+		client_id_ (client_id)
+	{}
+
+private:
+	ProtDomainId client_id_;
+
+	union Message
+	{
+		ReplyImmediate reply_immediate;
+		Reply reply;
+		ReplySystemException system_exception;
+
+		Message () :
+			reply_immediate ()
+		{}
+	}
+	message_;
+};
+
+/// ESIOP incoming request.
+class NIRVANA_NOVTABLE RequestIn : 
+	private ImplStatic <StreamInSM>,
+	private ImplStatic <StreamReply>,
+	public CORBA::Core::RequestIn_1_1
+{
+protected:
+	using CORBA::Core::RequestIn_1_1::operator new;
+	using CORBA::Core::RequestIn_1_1::operator delete;
+
+	RequestIn (SharedMemPtr mem, ProtDomainId client_id) :
+		ImplStatic <StreamInSM> ((void*)mem),
+		ImplStatic <StreamReply> (client_id),
+		CORBA::Core::RequestIn_1_1 (static_cast <StreamIn&> (*this), static_cast <StreamOut&> (*this))
+	{}
+};
 
 void dispatch_message (const MessageHeader& message) NIRVANA_NOEXCEPT
 {
@@ -48,24 +85,20 @@ void dispatch_message (const MessageHeader& message) NIRVANA_NOEXCEPT
 		case MessageType::REQUEST: {
 			const auto& msg = static_cast <const Request&> (message);
 
-			IncomingRequests::Request rq;
-			rq.data = CoreRef <StreamIn>::create <ImplDynamic <StreamInSM> > ((void*)msg.GIOP_message);
+			CoreRef <CORBA::Core::RequestIn> rq = CoreRef <CORBA::Core::RequestIn>::create <ImplDynamic <RequestIn> > (msg.GIOP_message, msg.client_domain);
 			GIOP::MessageHeader_1_1 msg_hdr;
-			rq.data->read (1, sizeof (msg_hdr), &msg_hdr);
+			rq->stream_in ()->read (1, sizeof (msg_hdr), &msg_hdr);
 			assert (equal (begin (msg_hdr.magic ()), end (msg_hdr.magic ()), "GIOP"));
 
 			// We always use GIOP 1.1 in ESIOP for the native marshaling of wide characters.
 			assert ((msg_hdr.GIOP_version ().major () == 1) && (msg_hdr.GIOP_version ().minor () == 1));
-			
 			assert (GIOP::MsgType::Request == (GIOP::MsgType)msg_hdr.message_type ());
 			assert ((msg_hdr.flags () & 2) == 0); // Framentation is not allowed in ESIOP.
 
-			rq.GIOP_version = msg_hdr.GIOP_version ();
-			rq.data->little_endian (msg_hdr.flags () & 1);
 			uint32_t msg_size = msg_hdr.message_size ();
-			if (rq.data->other_endian ())
-				byteswap (msg_size);
-			rq.data->set_size (msg_size);
+			if (rq->stream_in ()->other_endian ())
+				msg_size = byteswap (msg_size);
+			rq->stream_in ()->set_size (msg_size);
 
 			try {
 				IncomingRequests::receive (msg.client_domain, rq);

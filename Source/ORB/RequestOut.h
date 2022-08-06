@@ -42,6 +42,8 @@ class RequestOut :
 public:
 	RequestOut (StreamOut& stream, const GIOP::MessageHeader_1_3& hdr);
 
+	void reply (StreamIn& data);
+
 private:
 	virtual void unmarshal_end () override;
 	virtual void marshal_op () override;

@@ -149,6 +149,11 @@ struct ReplyImmediate : MessageHeader
 	static const size_t MAX_DATA_SIZE = sizeof (MessageBuffer) - sizeof (MessageHeader) - 1 - sizeof (uint32_t);
 	uint8_t data [MAX_DATA_SIZE];
 	uint32_t request_id;
+
+	ReplyImmediate () :
+		MessageHeader (REPLY_IMMEDIATE),
+		data_size (0)
+	{}
 };
 
 static_assert (sizeof (MessageBuffer) == sizeof (ReplyImmediate), "sizeof (MessageBuffer) == sizeof (ReplyImmediate)");

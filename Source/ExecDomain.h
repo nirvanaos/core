@@ -59,7 +59,6 @@ class ExecDomain final :
 	public StackElem
 {
 public:
-
 	/// \returns Current execution domain.
 	static ExecDomain& current () NIRVANA_NOEXCEPT
 	{

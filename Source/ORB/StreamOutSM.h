@@ -66,6 +66,11 @@ public:
 	}
 
 protected:
+	StreamOutSM (uint8_t* buf) :
+		cur_ptr_ (buf),
+		size_ (0)
+	{}
+
 	StreamOutSM (OtherDomain& mem) :
 		other_domain_ (&mem),
 		size_ (0)
