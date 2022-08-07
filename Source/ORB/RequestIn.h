@@ -29,7 +29,7 @@
 #pragma once
 
 #include "Request.h"
-#include "../CoreObject.h"
+#include "../UserObject.h"
 
 namespace CORBA {
 namespace Core {
@@ -37,33 +37,37 @@ namespace Core {
 /// Implements server-side IORequest for GIOP.
 class NIRVANA_NOVTABLE RequestIn :
 	public Request,
-	public Nirvana::Core::CoreObject // Must be created quickly
+	public Nirvana::Core::UserObject
 {
 public:
-	virtual void read_header () = 0;
 	virtual uint32_t request_id () const NIRVANA_NOEXCEPT = 0;
+	virtual const IOP::ServiceContextList& service_context () const NIRVANA_NOEXCEPT = 0;
+	virtual const IOP::ObjectKey& object_key () const = 0;
+	virtual const IDL::String& operation () const NIRVANA_NOEXCEPT = 0;
 
 protected:
-	RequestIn (StreamIn& in, StreamOut& out, CodeSetConverterW& cscw) :
-		Request (&in, &out, cscw)
-	{}
+	RequestIn (Nirvana::Core::CoreRef <StreamIn>&& in,
+		Nirvana::Core::CoreRef <CodeSetConverterW>&& cscw);
 
-private:
 	virtual void unmarshal_end () override;
 	virtual void marshal_op () override;
 	virtual void success () override;
 	virtual void cancel () override;
 
+private:
 	void switch_to_reply ();
 };
 
-/// Implements server-side IORequest for GIOP 1.0.
-class NIRVANA_NOVTABLE RequestIn_1_0 : public RequestIn
+/// Implements server-side IORequest for GIOP version.
+/// 
+/// \typeparam Hdr RequestHeader type.
+template <class Hdr>
+class NIRVANA_NOVTABLE RequestInVer : public RequestIn
 {
-public:
-	virtual void read_header ()
+protected:
+	const Hdr& header () const NIRVANA_NOEXCEPT
 	{
-		Internal::Type <GIOP::RequestHeader_1_0>::unmarshal (_get_ptr (), header_);
+		return header_;
 	}
 
 	virtual uint32_t request_id () const NIRVANA_NOEXCEPT
@@ -71,74 +75,81 @@ public:
 		return header_.request_id ();
 	}
 
-	const GIOP::RequestHeader_1_0& header () const NIRVANA_NOEXCEPT
+	virtual const IOP::ServiceContextList& service_context () const NIRVANA_NOEXCEPT
 	{
-		return header_;
+		return header_.service_context ();
+	}
+
+	virtual const IDL::String& operation () const NIRVANA_NOEXCEPT
+	{
+		return header_.operation ();
 	}
 
 protected:
-	RequestIn_1_0 (StreamIn& in, StreamOut& out) :
-		RequestIn (in, out, *CodeSetConverterW_1_0::get_default (false))
-	{}
+	RequestInVer (Nirvana::Core::CoreRef <StreamIn>&& in,
+		Nirvana::Core::CoreRef <CodeSetConverterW>&& cscw) :
+		RequestIn (std::move (in), std::move (cscw))
+	{
+		Internal::Type <Hdr>::unmarshal (_get_ptr (), header_);
+	}
 
 private:
-	GIOP::RequestHeader_1_0 header_;
+	Hdr header_;
+};
+
+/// Implements server-side IORequest for GIOP 1.0.
+class NIRVANA_NOVTABLE RequestIn_1_0 : public RequestInVer <GIOP::RequestHeader_1_0>
+{
+	typedef RequestInVer <GIOP::RequestHeader_1_0> Base;
+
+public:
+	RequestIn_1_0 (Nirvana::Core::CoreRef <StreamIn>&& in) :
+		Base (std::move (in), CodeSetConverterW_1_0::get_default (false))
+	{}
+
+protected:
+	virtual const IOP::ObjectKey& object_key () const
+	{
+		return header ().object_key ();
+	}
 };
 
 /// Implements server-side IORequest for GIOP 1.1.
-class NIRVANA_NOVTABLE RequestIn_1_1 : public RequestIn
+class NIRVANA_NOVTABLE RequestIn_1_1 : public RequestInVer <GIOP::RequestHeader_1_1>
 {
+	typedef RequestInVer <GIOP::RequestHeader_1_1> Base;
+
 public:
-	virtual void read_header ()
-	{
-		Internal::Type <GIOP::RequestHeader_1_1>::unmarshal (_get_ptr (), header_);
-	}
-
-	virtual uint32_t request_id () const NIRVANA_NOEXCEPT
-	{
-		return header_.request_id ();
-	}
-
-	const GIOP::RequestHeader_1_1& header () const NIRVANA_NOEXCEPT
-	{
-		return header_;
-	}
-
-protected:
-	RequestIn_1_1 (StreamIn& in, StreamOut& out) :
-		RequestIn (in, out, *CodeSetConverterW_1_1::get_default ())
+	RequestIn_1_1 (Nirvana::Core::CoreRef <StreamIn>&& in) :
+		Base (std::move (in), CodeSetConverterW_1_1::get_default ())
 	{}
 
-private:
-	GIOP::RequestHeader_1_1 header_;
+protected:
+	virtual const IOP::ObjectKey& object_key () const
+	{
+		return header ().object_key ();
+	}
 };
 
 /// Implements server-side IORequest for GIOP 1.2 and later.
-class NIRVANA_NOVTABLE RequestIn_1_2 : public RequestIn
+class NIRVANA_NOVTABLE RequestIn_1_2 : public RequestInVer <GIOP::RequestHeader_1_2>
 {
+	typedef RequestInVer <GIOP::RequestHeader_1_2> Base;
+
 public:
-	virtual void read_header ()
-	{
-		Internal::Type <GIOP::RequestHeader_1_2>::unmarshal (_get_ptr (), header_);
-	}
-
-	virtual uint32_t request_id () const NIRVANA_NOEXCEPT
-	{
-		return header_.request_id ();
-	}
-
-	const GIOP::RequestHeader_1_2& header () const NIRVANA_NOEXCEPT
-	{
-		return header_;
-	}
-
-protected:
-	RequestIn_1_2 (StreamIn& in, StreamOut& out) :
-		RequestIn (in, out, *CodeSetConverterW_1_2::get_default ())
+	RequestIn_1_2 (Nirvana::Core::CoreRef <StreamIn>&& in) :
+		Base (std::move (in), CodeSetConverterW_1_2::get_default ())
 	{}
 
+protected:
+	virtual const IOP::ObjectKey& object_key () const;
+
 private:
-	GIOP::RequestHeader_1_2 header_;
+	static const IOP::ObjectKey& key_from_profile (const IOP::TaggedProfile& profile)
+	{
+		// TODO: Some check of the profile id?
+		return profile.profile_data ();
+	}
 };
 
 }

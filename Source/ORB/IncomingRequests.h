@@ -38,10 +38,119 @@
 namespace CORBA {
 namespace Core {
 
+/// Internet address
+/// 
+/// \tparam U IP address type
+template <typename U>
+struct IP
+{
+	/// Construct
+	/// 
+	/// \param h Host address.
+	/// \param p Port number.
+	IP (U h, uint16_t p) :
+		port (p),
+		host (h)
+	{}
+
+	bool operator < (const IP& rhs) const NIRVANA_NOEXCEPT
+	{
+		if (host < rhs.host)
+			return true;
+		else if (host > rhs.host)
+			return false;
+		else
+			return port < rhs.port;
+	}
+
+	uint16_t port;
+	U host;
+};
+
+/// IPv4
+typedef IP <uint32_t> IPv4;
+
+/// IPv6
+typedef IP <uint64_t> IPv6;
+
+/// A client address.
+struct ClientAddress
+{
+	enum class Family : uint16_t
+	{
+		ESIOP,
+		INET,
+		INET6
+	};
+
+	ClientAddress (Nirvana::ESIOP::ProtDomainId client) :
+		family (Family::ESIOP),
+		address (client)
+	{}
+
+	ClientAddress (const IPv4& client) :
+		family (Family::INET),
+		address (client)
+	{}
+
+	ClientAddress (const IPv6& client) :
+		family (Family::INET6),
+		address (client)
+	{}
+
+	bool operator < (const ClientAddress& rhs) const NIRVANA_NOEXCEPT
+	{
+		if (family < rhs.family)
+			return true;
+		else if (family > rhs.family)
+			return false;
+		else {
+			switch (family) {
+				case Family::ESIOP:
+					return address.esiop < rhs.address.esiop;
+
+				case Family::INET:
+					return address.inet < rhs.address.inet;
+
+				default:
+					return address.inet6 < rhs.address.inet6;
+			}
+		}
+	}
+
+	Family family;
+
+	union Address
+	{
+		Address (Nirvana::ESIOP::ProtDomainId addr) :
+			esiop (addr)
+		{}
+
+		Address (const IPv4& addr) :
+			inet (addr)
+		{}
+
+		Address (const IPv6& addr) :
+			inet6 (addr)
+		{}
+
+		// family == ESIOP
+		Nirvana::ESIOP::ProtDomainId esiop;
+
+		// family == INET
+		IPv4 inet;
+
+		// family == INET6
+		IPv6 inet6;
+	}
+	address;
+};
+
 /// Incoming requests manager
 class IncomingRequests
 {
 	static const unsigned SKIP_LIST_LEVELS = 10; // TODO: config.h
+
 public:
 	/// Called on system startup
 	static void initialize ()
@@ -55,132 +164,25 @@ public:
 		map_.destruct ();
 	}
 
-	/// Internet address
-	template <typename IP>
-	struct InetAddr
-	{
-		InetAddr (IP ip, uint16_t p) :
-			port (p),
-			ip_address (ip)
-		{}
-
-		bool operator < (const InetAddr& rhs) const NIRVANA_NOEXCEPT
-		{
-			if (ip_address < rhs.ip_address)
-				return true;
-			else if (ip_address > rhs.ip_address)
-				return false;
-			else
-				return port < rhs.port;
-		}
-
-		uint16_t port;
-		IP ip_address;
-	};
-
-	/// IP
-	typedef InetAddr <uint32_t> Inet;
-	
-	/// IPv6
-	typedef InetAddr <uint64_t> Inet6;
-
 	/// Recieve incoming request.
 	/// 
-	/// \typeparam Addr Client address type.
 	/// \param source The client address.
 	/// \param rq The input request.
-	template <class Addr>
-	static void receive (const Addr& source, Nirvana::Core::CoreRef <RequestIn>& rq);
+	static void receive (const ClientAddress& source, RequestIn& rq);
 
 	/// Cancel incoming request.
 	/// 
-	/// \typeparam Addr Client address type.
 	/// \param source The client address.
 	/// \param request_id Id of request to cancel.
-	template <class Addr>
-	static void cancel (const Addr& source, uint32_t request_id) NIRVANA_NOEXCEPT;
+	static void cancel (const ClientAddress& source, uint32_t request_id) NIRVANA_NOEXCEPT;
 
 private:
-	// The client address
-	struct ClientAddr
+	struct RequestKey : ClientAddress
 	{
-		enum class Family : uint16_t
-		{
-			ESIOP,
-			INET,
-			INET6
-		}
-		family;
-
-		union Address
-		{
-			Address (Nirvana::ESIOP::ProtDomainId addr) :
-				esiop (addr)
-			{}
-
-			Address (const Inet& addr) :
-				inet (addr)
-			{}
-
-			Address (const Inet6& addr) :
-				inet6 (addr)
-			{}
-
-			// family == ESIOP
-			Nirvana::ESIOP::ProtDomainId esiop;
-
-			// family == INET
-			Inet inet;
-
-			// family == INET6
-			Inet6 inet6;
-		}
-		address;
-
-		ClientAddr (Nirvana::ESIOP::ProtDomainId client) :
-			family (Family::ESIOP),
-			address (client)
-		{}
-
-		ClientAddr (const Inet& client) :
-			family (Family::INET),
-			address (client)
-		{}
-
-		ClientAddr (const Inet6& client) :
-			family (Family::INET6),
-			address (client)
-		{}
-
-		bool operator < (const ClientAddr& rhs) const NIRVANA_NOEXCEPT
-		{
-			if (family < rhs.family)
-				return true;
-			else if (family > rhs.family)
-				return false;
-			else {
-				switch (family) {
-					case Family::ESIOP:
-						return address.esiop < rhs.address.esiop;
-
-					case Family::INET:
-						return address.inet < rhs.address.inet;
-
-					default:
-						return address.inet6 < rhs.address.inet6;
-				}
-			}
-		}
-	};
-
-	struct RequestKey : ClientAddr
-	{
-		RequestKey (const ClientAddr& addr, uint32_t rq_id) :
-			ClientAddr (addr),
+		RequestKey (const ClientAddress& addr, uint32_t rq_id) :
+			ClientAddress (addr),
 			request_id (rq_id)
 		{}
-
-		uint32_t request_id;
 
 		bool operator < (const RequestKey& rhs) const NIRVANA_NOEXCEPT
 		{
@@ -189,15 +191,17 @@ private:
 			else if (request_id > rhs.request_id)
 				return false;
 			else
-				return ClientAddr::operator < (rhs);
+				return ClientAddress::operator < (rhs);
 		}
+
+		uint32_t request_id;
 	};
 
 	struct RequestVal : RequestKey
 	{
-		RequestVal (const ClientAddr& addr, uint32_t rq_id) :
+		RequestVal (const ClientAddress& addr, uint32_t rq_id, Nirvana::Core::ExecDomain* ed) :
 			RequestKey (addr, rq_id),
-			exec_domain (&Nirvana::Core::ExecDomain::current ())
+			exec_domain (ed)
 		{}
 
 		Nirvana::Core::CoreRef <Nirvana::Core::ExecDomain> exec_domain;
@@ -206,25 +210,8 @@ private:
 	// The request map
 	typedef Nirvana::Core::SkipList <RequestVal, SKIP_LIST_LEVELS> RequestMap;
 
-	class Process;
-
-	static void receive (const ClientAddr& source, Nirvana::Core::CoreRef <RequestIn>& rq);
-	static void cancel (const ClientAddr& source, uint32_t request_id) NIRVANA_NOEXCEPT;
-
 	static Nirvana::Core::StaticallyAllocated <RequestMap> map_;
 };
-
-template <class Addr> inline
-void IncomingRequests::receive (const Addr& source, Nirvana::Core::CoreRef <RequestIn>& rq)
-{
-	return receive (ClientAddr (source), rq);
-}
-
-template <class Addr> inline
-void IncomingRequests::cancel (const Addr& source, uint32_t request_id) NIRVANA_NOEXCEPT
-{
-	cancel (ClientAddr (source), request_id);
-}
 
 }
 }

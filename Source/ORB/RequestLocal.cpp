@@ -216,7 +216,7 @@ void RequestLocal::next_block ()
 	else
 		cur_block_ = cur_block_->next;
 	if (!cur_block_)
-		throw MARSHAL ();
+		throw MARSHAL (MARSHAL_MINOR_FEWER);
 	cur_ptr_ = (Octet*)(cur_block_ + 1);
 }
 
@@ -265,7 +265,7 @@ void RequestLocal::marshal_segment (size_t align, size_t element_size,
 void RequestLocal::unmarshal_segment (void*& data, size_t& allocated_size)
 {
 	if (!segments_)
-		throw MARSHAL ();
+		throw MARSHAL (MARSHAL_MINOR_FEWER);
 
 	const Segment* segment = (const Segment*)round_up (cur_ptr_, alignof (Element));
 	const Octet* block_end = cur_block_end ();
@@ -318,7 +318,7 @@ Interface::_ref_type RequestLocal::unmarshal_interface (const IDL::String& inter
 	}
 		
 	if (!interfaces_)
-		throw MARSHAL ();
+		throw MARSHAL (MARSHAL_MINOR_FEWER);
 	if (block_end - (const Octet*)pitf < sizeof (ItfRecord))
 		next_block ();
 	ItfRecord* itf_rec = (ItfRecord*)round_up (cur_ptr_, alignof (Element));
@@ -336,7 +336,7 @@ void RequestLocal::marshal_value_copy (ValueBase::_ptr_type base, const IDL::Str
 	ValueBase::_ref_type copy = base->_copy_value ();
 	Interface::_ptr_type itf = copy->_query_valuetype (interface_id);
 	if (!itf)
-		Nirvana::throw_MARSHAL ();
+		throw MARSHAL ();
 	marshal_interface (itf);
 }
 

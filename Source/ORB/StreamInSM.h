@@ -29,19 +29,15 @@
 #pragma once
 
 #include "StreamIn.h"
-#include "../CoreObject.h"
+#include "../UserObject.h"
 
 namespace Nirvana {
 namespace ESIOP {
 
 /// Shared memory input stream
-/// 
-/// This object is created from the postman context.
-/// So it should be CoreObject for quick creation.
-/// 
 class NIRVANA_NOVTABLE StreamInSM :
 	public CORBA::Core::StreamIn,
-	public Nirvana::Core::CoreObject
+	public Nirvana::Core::UserObject
 {
 public:
 	virtual void read (size_t align, size_t size, void* buf) override;
@@ -50,7 +46,7 @@ public:
 	virtual size_t end () override;
 
 protected:
-	StreamInSM (void* mem) :
+	StreamInSM (void* mem) NIRVANA_NOEXCEPT :
 		cur_block_ ((StreamHdr*)mem),
 		cur_ptr_ ((const uint8_t*)((StreamHdr*)mem + 1)),
 		segments_ (((StreamHdr*)mem)->segments),

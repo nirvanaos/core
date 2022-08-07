@@ -45,6 +45,12 @@ class RequestLocal :
 	public Nirvana::Core::UserObject,
 	private RqHelper
 {
+	/// A MARSHAL exception with minor code 9 indicates that fewer bytes were present in a message
+	/// than indicated by	the count. This condition can arise if the sender sends a message
+	/// in fragments, and the receiver detects that the final fragment was received but contained
+	/// insufficient data for all parameters to be unmarshaled.
+	static const uint32_t MARSHAL_MINOR_FEWER = MAKE_OMG_MINOR (9);
+
 public:
 	static const size_t BLOCK_SIZE = (32 * sizeof (size_t)
 		+ alignof (max_align_t) - 1) / alignof (max_align_t) * alignof (max_align_t);
@@ -389,7 +395,6 @@ public:
 	/// End of input data marshaling.
 	/// 
 	/// Marshaling resources may be released.
-	/// This operation is called only if the input data is not empty.
 	void unmarshal_end () NIRVANA_NOEXCEPT
 	{
 		clear ();

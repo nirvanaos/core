@@ -36,39 +36,56 @@ namespace Core {
 
 Nirvana::Core::StaticallyAllocated <IncomingRequests::RequestMap> IncomingRequests::map_;
 
-class NIRVANA_NOVTABLE IncomingRequests::Process : public Runnable
+void IncomingRequests::receive (const ClientAddress& source, RequestIn& rq)
 {
-protected:
-	Process (const ClientAddr client_addr, CoreRef <RequestIn>& rq) :
-		client_addr_ (client_addr),
-		request_ (move (rq))
-	{}
+	try {
+		uint32_t request_id = rq.request_id ();
+		ExecDomain& ed = ExecDomain::current ();
+		auto ins = map_->insert (ref (source), request_id, &ed);
+		bool cancelled = false;
+		if (!ins.second) {
+			cancelled = !ins.first->value ().exec_domain;
+			if (cancelled)
+				map_->erase (ins.first->value ());
+		}
+		map_->release_node (ins.first);
+		if (cancelled)
+			return;
+		if (!ins.second) // Request id collision for this client
+			throw BAD_PARAM ();
 
-	virtual void run ();
+		// Currently we run with minimal initial deadline.
+		// Now we must obtain the deadline value from the service context.
+		const IOP::ServiceContextList& sc = rq.service_context ();
 
-private:
-	ClientAddr client_addr_;
-	CoreRef <RequestIn> request_;
-};
+		// Stub. TODO: Implement.
+		DeadlineTime deadline = INFINITE_DEADLINE;
+		ed.deadline (deadline);
+		ed.yield (); // Reschedule
 
-void IncomingRequests::receive (const ClientAddr& source, CoreRef <RequestIn>& rq)
-{
-	// Initially schedule async_call with zero deadline because we don't know the deadline yet.
-	ExecDomain::async_call (0, CoreRef <Runnable>::
-		create <ImplDynamic <Process> > (ref (source), ref (rq)),
-		g_core_free_sync_context);
+		// Now we obtain the target object key
+		rq.object_key ();
+
+		// TODO: Implement
+
+	} catch (Exception& ex) {
+		Any any;
+		try {
+			any <<= move (ex);
+			rq.set_exception (any);
+		} catch (...) {
+		}
+	}
 }
 
-void IncomingRequests::Process::run ()
+void IncomingRequests::cancel (const ClientAddress& source, uint32_t request_id) NIRVANA_NOEXCEPT
 {
-	request_->read_header ();
-	uint32_t request_id = request_->request_id ();
-	auto ins = IncomingRequests::map_->insert (ref (client_addr_), request_id);
-}
-
-void IncomingRequests::cancel (const ClientAddr& source, uint32_t request_id) NIRVANA_NOEXCEPT
-{
-	// TODO: Implement
+	auto ins = map_->insert (ref (source), request_id, nullptr);
+	if (ins.first->value ().exec_domain) {
+		// TODO: We must call exec_domain->abort () here but it is not implemented yet
+		map_->erase (ins.first->value ());
+		map_->release_node (ins.first);
+	}
 }
 
 }

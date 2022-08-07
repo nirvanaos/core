@@ -70,7 +70,7 @@ public:
 	/// Asynchronous call.
 	/// 
 	/// \param deadline    Deadline.
-	/// \param runnable    Runnable object to execute.
+	/// \param runnable    Runnable object to execute. TODO: Use move semantic.
 	/// \param target      Target Synchronization context.
 	/// \param mem_context Target memory context (optional).
 	static void async_call (const DeadlineTime& deadline, CoreRef <Runnable> runnable,

@@ -25,8 +25,18 @@
 */
 #include "RequestIn.h"
 
+using namespace Nirvana;
+using namespace Nirvana::Core;
+using namespace std;
+
 namespace CORBA {
 namespace Core {
+
+RequestIn::RequestIn (CoreRef <StreamIn>&& in, CoreRef <CodeSetConverterW>&& cscw) :
+	Request (move (cscw))
+{
+	stream_in_ = move (in);
+}
 
 void RequestIn::switch_to_reply ()
 {
@@ -56,6 +66,28 @@ void RequestIn::success ()
 void RequestIn::cancel ()
 {
 	throw BAD_INV_ORDER ();
+}
+
+const IOP::ObjectKey& RequestIn_1_2::object_key () const
+{
+	switch (header ().target ()._d ()) {
+		case GIOP::KeyAddr:
+			return header ().target ().object_key ();
+
+		case GIOP::ProfileAddr:
+			return key_from_profile (header ().target ().profile ());
+
+		case GIOP::ReferenceAddr:
+		{
+			const GIOP::IORAddressingInfo& ior = header ().target ().ior ();
+			const IOP::TaggedProfileSeq& profiles = ior.ior ().profiles ();
+			if (profiles.size () <= ior.selected_profile_index ())
+				throw OBJECT_NOT_EXIST ();
+			return key_from_profile (profiles [ior.selected_profile_index ()]);
+		}
+	}
+
+	throw UNKNOWN ();
 }
 
 }

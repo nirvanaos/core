@@ -26,6 +26,8 @@
 #include "Request.h"
 
 using namespace Nirvana;
+using namespace Nirvana::Core;
+using namespace std;
 
 namespace CORBA {
 
@@ -33,11 +35,9 @@ using namespace Internal;
 
 namespace Core {
 
-Request::Request (StreamIn* sin, StreamOut* sout, CodeSetConverterW& cscw) :
-	stream_in_ (sin),
-	stream_out_ (sout),
+Request::Request (CoreRef <CodeSetConverterW>&& cscw) :
 	code_set_conv_ (CodeSetConverter::get_default ()),
-	code_set_conv_w_ (&cscw)
+	code_set_conv_w_ (move (cscw))
 {}
 
 void Request::marshal_seq_begin (size_t element_count)

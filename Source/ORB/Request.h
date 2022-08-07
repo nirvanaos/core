@@ -323,10 +323,20 @@ public:
 		return stream_out_;
 	}
 
+	void code_set_converter (Nirvana::Core::CoreRef <CodeSetConverter>&& csc) NIRVANA_NOEXCEPT
+	{
+		code_set_conv_ = std::move (csc);
+	}
+
+	void code_set_converter (Nirvana::Core::CoreRef <CodeSetConverterW>&& csc) NIRVANA_NOEXCEPT
+	{
+		code_set_conv_w_ = std::move (csc);
+	}
+
 	///@}
-	/// 
+
 protected:
-	Request (StreamIn* sin, StreamOut* sout, CodeSetConverterW& cscw);
+	Request (Nirvana::Core::CoreRef <CodeSetConverterW>&& cscw);
 
 	virtual void marshal_op () = 0;
 
