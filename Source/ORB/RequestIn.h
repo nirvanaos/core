@@ -30,6 +30,7 @@
 
 #include "Request.h"
 #include "../UserObject.h"
+#include "IDL/GIOP.h"
 
 namespace CORBA {
 namespace Core {
@@ -45,20 +46,56 @@ public:
 	virtual const IOP::ObjectKey& object_key () const = 0;
 	virtual const IDL::String& operation () const NIRVANA_NOEXCEPT = 0;
 
+	void set_context (IOP::ServiceContextList&& context) NIRVANA_NOEXCEPT
+	{
+		context_ = std::move (context);
+	}
+
+	/// Return exception to caller.
+	/// Operation has move semantics so \p e may be cleared.
+	/// Must be overridden in the derived class to send reply.
+	virtual void set_exception (Any& e) override = 0;
+
+	/// Marks request as successful.
+	/// Must be overridden in the derived class to send reply.
+	virtual void success () override = 0;
+
 protected:
 	RequestIn (Nirvana::Core::CoreRef <StreamIn>&& in,
 		Nirvana::Core::CoreRef <CodeSetConverterW>&& cscw);
 
-	virtual void unmarshal_end () override;
-	virtual void marshal_op () override;
-	virtual void success () override;
-	virtual void cancel () override;
+	/// Output stream factory.
+	/// Must be overridden in a derived class.
+	/// 
+	/// \param [out] GIOP_minor GIOP version minor number.
+	/// \returns The output stream reference.
+	virtual Nirvana::Core::CoreRef <StreamOut> create_output (unsigned& GIOP_minor) = 0;
+
+	/// Set the size of message in the message header.
+	/// Must be called in send_reply() for remote messages.
+	/// In the ESIOP we do not use the message size to allow > 4GB data transferring.
+	void set_reply_size ();
 
 private:
-	void switch_to_reply ();
+	// Caller operations throw BAD_INV_ORDER or return `false`
+	virtual void invoke () override;
+	virtual bool is_exception () const NIRVANA_NOEXCEPT override;
+	virtual bool completed () const NIRVANA_NOEXCEPT override;
+	virtual bool wait (uint64_t timeout) override;
+	virtual void cancel () override;
+
+	virtual void unmarshal_end () override;
+	virtual void marshal_op () override;
+
+	void switch_to_reply (GIOP::ReplyStatusType status = GIOP::ReplyStatusType::NO_EXCEPTION);
+
+private:
+	size_t reply_status_offset_;
+	size_t reply_header_end_;
+	IOP::ServiceContextList context_;
 };
 
-/// Implements server-side IORequest for GIOP version.
+/// Implements server-side IORequest for the particular GIOP version.
 /// 
 /// \typeparam Hdr RequestHeader type.
 template <class Hdr>

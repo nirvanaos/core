@@ -30,6 +30,9 @@ using namespace Nirvana::Core;
 using namespace std;
 
 namespace CORBA {
+
+using namespace Internal;
+
 namespace Core {
 
 RequestIn::RequestIn (CoreRef <StreamIn>&& in, CoreRef <CodeSetConverterW>&& cscw) :
@@ -38,19 +41,40 @@ RequestIn::RequestIn (CoreRef <StreamIn>&& in, CoreRef <CodeSetConverterW>&& csc
 	stream_in_ = move (in);
 }
 
-void RequestIn::switch_to_reply ()
+void RequestIn::unmarshal_end ()
 {
 	if (stream_in_) {
 		size_t more_data = !stream_in_->end ();
-		stream_in_.reset ();
+		stream_in_ = nullptr;
 		if (more_data > 7) // 8-byte alignment is ignored
 			throw MARSHAL (StreamIn::MARSHAL_MINOR_MORE);
 	}
 }
 
-void RequestIn::unmarshal_end ()
+void RequestIn::switch_to_reply (GIOP::ReplyStatusType status)
 {
-	switch_to_reply ();
+	stream_in_ = nullptr;
+	if (!stream_out_) {
+		unsigned GIOP_minor;
+		stream_out_ = create_output (GIOP_minor);
+		stream_out_->write_message_header (GIOP::MsgType::Reply, GIOP_minor);
+		if (GIOP_minor <= 1) {
+			GIOP::ReplyHeader_1_0 hdr;
+			hdr.service_context (move (context_));
+			hdr.request_id (request_id ());
+			hdr.reply_status (status);
+			Type <GIOP::ReplyHeader_1_0>::marshal_out (hdr, _get_ptr ());
+			reply_status_offset_ = stream_out_->size () - 4;
+		} else {
+			GIOP::ReplyHeader_1_2 hdr;
+			hdr.service_context (move (context_));
+			hdr.request_id (request_id ());
+			hdr.reply_status (status);
+			reply_status_offset_ = stream_out_->size () + 4;
+			Type <GIOP::ReplyHeader_1_2>::marshal_out (hdr, _get_ptr ());
+		}
+		reply_header_end_ = stream_out_->size ();
+	}
 }
 
 void RequestIn::marshal_op ()
@@ -63,9 +87,28 @@ void RequestIn::success ()
 	switch_to_reply ();
 }
 
-void RequestIn::cancel ()
+void RequestIn::set_exception (Any& e)
 {
-	throw BAD_INV_ORDER ();
+	GIOP::ReplyStatusType status = e.is_system_exception () ?
+		GIOP::ReplyStatusType::SYSTEM_EXCEPTION
+		:
+		GIOP::ReplyStatusType::USER_EXCEPTION;
+
+	if (!stream_out_)
+		switch_to_reply (status);
+	else {
+		stream_out_->rewind (reply_header_end_);
+		*(GIOP::ReplyStatusType*)((Octet*)stream_out_->header (reply_header_end_) + reply_status_offset_) = status;
+	}
+	Type <Any>::marshal_out (e, _get_ptr ());
+}
+
+void RequestIn::set_reply_size ()
+{
+	size_t size = stream_out_->size () - sizeof (GIOP::MessageHeader_1_3);
+	if (sizeof (size_t) > sizeof (uint32_t) && size > numeric_limits <uint32_t>::max ())
+		throw IMP_LIMIT ();
+	((GIOP::MessageHeader_1_3*)stream_out_->header (sizeof (GIOP::MessageHeader_1_3)))->message_size ((uint32_t)size);
 }
 
 const IOP::ObjectKey& RequestIn_1_2::object_key () const
@@ -88,6 +131,31 @@ const IOP::ObjectKey& RequestIn_1_2::object_key () const
 	}
 
 	throw UNKNOWN ();
+}
+
+void RequestIn::invoke ()
+{
+	throw BAD_INV_ORDER ();
+}
+
+bool RequestIn::is_exception () const NIRVANA_NOEXCEPT
+{
+	return false;
+}
+
+bool RequestIn::completed () const NIRVANA_NOEXCEPT
+{
+	return false;
+}
+
+bool RequestIn::wait (uint64_t)
+{
+	throw BAD_INV_ORDER ();
+}
+
+void RequestIn::cancel ()
+{
+	throw BAD_INV_ORDER ();
 }
 
 }

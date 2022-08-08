@@ -43,6 +43,8 @@ class NIRVANA_NOVTABLE OtherDomain :
 	public Core::SharedObject
 {
 public:
+	typedef CORBA::servant_reference <OtherDomain> Reference;
+
 	struct Sizes
 	{
 		size_t block_size;
@@ -60,13 +62,21 @@ public:
 
 	virtual void send_message (const void* msg, size_t size) = 0;
 
+	/// Check for protection domain is alive.
+	/// Protection domain may be killed by system when we hold OtherDomain for it.
+	/// But when OtherDomain object exists, id of this domain can't be reused even if the domain is dead.
+	/// 
+	/// \param domain_id The protection domain id.
+	/// \returns `true` if the domain is alive.
 	virtual bool is_alive (ProtDomainId domain_id) = 0;
 
 	/// Factory method must be implemented in the Port layer.
+	/// Use CORBA::make_reference for the object creation.
 	/// 
 	/// \param domain_id Protection domain id.
 	/// \returns Reference to created OtherDomain object.
-	static OtherDomain* create (ProtDomainId domain_id);
+	///   If the \p domain_id is not exists, return `nullptr`.
+	static Reference create (ProtDomainId domain_id);
 
 protected:
 	OtherDomain ()
@@ -76,7 +86,7 @@ protected:
 	{}
 
 private:
-	friend class Core::CoreRef <OtherDomain>;
+	friend CORBA::servant_reference <OtherDomain>;
 	friend class OtherDomains;
 
 	void _add_ref () NIRVANA_NOEXCEPT

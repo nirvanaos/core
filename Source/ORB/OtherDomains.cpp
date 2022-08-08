@@ -26,6 +26,8 @@
 #include "OtherDomains.h"
 #include "../Synchronized.h"
 
+using namespace CORBA;
+
 namespace Nirvana {
 
 using namespace Core;
@@ -35,17 +37,18 @@ namespace ESIOP {
 Core::StaticallyAllocated <OtherDomains> OtherDomains::singleton_;
 
 inline
-WeakPtr <OtherDomain> OtherDomains::get_sync (ProtDomainId domain_id)
+OtherDomain::Reference OtherDomains::get_sync (ProtDomainId domain_id)
 {
-	WeakPtr <OtherDomain> ret;
+	OtherDomain::Reference ret;
 
-retry:
 	auto ins = map_.emplace (domain_id, DEADLINE_MAX);
 	if (ins.second) {
 		try {
 			SYNC_BEGIN (g_core_free_sync_context, &sync_domain_.mem_context ());
-			ret = WeakPtr <OtherDomain> (OtherDomain::create (domain_id));
+			ret = OtherDomain::create (domain_id);
 			SYNC_END ();
+			if (!ret)
+				throw OBJECT_NOT_EXIST ();
 			ins.first->second.finish_construction (ret);
 		} catch (...) {
 			ins.first->second.on_exception ();
@@ -55,11 +58,9 @@ retry:
 	} else {
 		ret = ins.first->second.get_if_constructed ();
 		if (ret) {
-			CoreRef <OtherDomain> p = ret.get ();
-			if (p && !p->is_alive (domain_id)) {
-				ret.release ();
+			if (!ret->is_alive (domain_id)) {
 				map_.erase (ins.first);
-				goto retry;
+				throw OBJECT_NOT_EXIST ();
 			}
 		} else
 			ret = ins.first->second.get ();
@@ -67,7 +68,7 @@ retry:
 	return ret;
 }
 
-WeakPtr <OtherDomain> OtherDomains::get (ProtDomainId domain_id)
+OtherDomain::Reference OtherDomains::get (ProtDomainId domain_id)
 {
 	SYNC_BEGIN (singleton_->sync_domain_, nullptr);
 	return singleton_->get_sync (domain_id);
@@ -77,8 +78,12 @@ WeakPtr <OtherDomain> OtherDomains::get (ProtDomainId domain_id)
 inline
 void OtherDomains::housekeeping_sync ()
 {
-	for (auto it = map_.begin (); it != map_.end (); ++it) {
-
+	for (auto it = map_.begin (); it != map_.end ();) {
+		OtherDomain::Reference ref = it->second.get_if_constructed ();
+		if (ref && ref->ref_cnt_ == 1 && ref->release_time_ <= Chrono::steady_clock () - DELETE_TIMEOUT)
+			it = map_.erase (it);
+		else
+			++it;
 	}
 }
 

@@ -104,6 +104,8 @@ public:
 	virtual void unmarshal_char (StreamIn& in, size_t count, WChar* data) = 0;
 	virtual void marshal_char_seq (IDL::Sequence <WChar>& s, bool move, Request& out) = 0;
 	virtual void unmarshal_char_seq (Request& in, IDL::Sequence <WChar>& s) = 0;
+
+	static Nirvana::Core::CoreRef <CodeSetConverterW> get_default (unsigned GIOP_minor, bool client_side);
 };
 
 /// Default wide code set converter for GIOP 1.0.

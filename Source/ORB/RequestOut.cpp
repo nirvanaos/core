@@ -24,8 +24,29 @@
 *  popov.nirvana@gmail.com
 */
 #include "RequestOut.h"
+#include "CodeSetConverter.h"
+#include "../AtomicCounter.h"
+
+using namespace std;
+using namespace Nirvana;
+using namespace Nirvana::Core;
 
 namespace CORBA {
+
+using namespace Internal;
+
 namespace Core {
+
+static AtomicCounter <false> request_id (0);
+
+RequestOut::RequestOut (unsigned GIOP_minor, CoreRef <StreamOut>&& stream) :
+	Request (CodeSetConverterW::get_default (GIOP_minor, false)),
+	id_ ((uint32_t)request_id.increment ())
+{
+	assert (stream);
+	stream_out_ = move (stream);
+	stream_out_->write_message_header (GIOP::MsgType::Request, GIOP_minor);
+}
+
 }
 }

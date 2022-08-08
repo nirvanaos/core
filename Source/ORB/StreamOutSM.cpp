@@ -31,6 +31,37 @@ using namespace std;
 namespace Nirvana {
 namespace ESIOP {
 
+void StreamOutSM::initialize ()
+{
+	other_domain_->get_sizes (sizes_);
+	allocate_block (sizes_.sizeof_pointer, sizes_.sizeof_pointer);
+	stream_hdr_ = cur_block ().other_ptr;
+	segments_tail_ = cur_ptr_;
+	cur_ptr_ = (uint8_t*)other_domain_->store_pointer (segments_tail_, 0); // segments
+}
+
+void StreamOutSM::clear () NIRVANA_NOEXCEPT
+{
+	try {
+		while (!other_allocated_.empty ()) {
+			const auto& a = other_allocated_.back ();
+			other_domain_->release (a.ptr, a.size);
+			other_allocated_.pop_back ();
+		}
+		while (!blocks_.empty ()) {
+			const auto& a = blocks_.back ();
+			if (a.other_ptr)
+				other_domain_->release (a.other_ptr, a.size);
+			if (a.ptr)
+				Nirvana::Core::Port::Memory::release (a.ptr, a.size);
+			blocks_.pop_back ();
+		}
+	} catch (...) {
+		other_allocated_.clear ();
+		blocks_.clear ();
+	}
+}
+
 void StreamOutSM::write (size_t align, size_t size, void* data, size_t& allocated_size)
 {
 	if (!size)

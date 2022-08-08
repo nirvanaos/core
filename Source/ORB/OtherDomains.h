@@ -30,7 +30,6 @@
 
 #include "OtherDomain.h"
 #include "../MapUnorderedStable.h"
-#include "../WeakPtr.h"
 #include "../WaitableRef.h"
 #include "../SharedAllocator.h"
 
@@ -48,7 +47,7 @@ public:
 			std::ref (static_cast <Core::MemContextCore&> (Core::g_shared_mem_context)))
 	{}
 
-	static Core::WeakPtr <OtherDomain> get (ProtDomainId domain_id);
+	static OtherDomain::Reference get (ProtDomainId domain_id);
 
 	static void housekeeping ();
 
@@ -63,14 +62,14 @@ public:
 	}
 
 private:
-	Core::WeakPtr <OtherDomain> get_sync (ProtDomainId domain_id);
+	OtherDomain::Reference get_sync (ProtDomainId domain_id);
 	void housekeeping_sync ();
 
 private:
-	typedef Core::WaitableRef <Core::WeakPtr <OtherDomain> > Reference;
+	typedef Core::WaitableRef <OtherDomain::Reference> WaitableReference;
 
-	typedef Core::MapUnorderedStable <ProtDomainId, Reference, std::hash <ProtDomainId>,
-		std::equal_to <ProtDomainId>, Core::SharedAllocator <std::pair <ProtDomainId, Reference> > >
+	typedef Core::MapUnorderedStable <ProtDomainId, WaitableReference, std::hash <ProtDomainId>,
+		std::equal_to <ProtDomainId>, Core::SharedAllocator <std::pair <ProtDomainId, WaitableReference> > >
 	Map;
 
 	Core::ImplStatic <Core::SyncDomainImpl> sync_domain_;

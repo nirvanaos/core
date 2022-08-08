@@ -44,8 +44,11 @@ namespace Core {
 class NIRVANA_NOVTABLE Request :
 	public servant_traits <Internal::IORequest>::Servant <Request>,
 	protected RqHelper,
-	public Nirvana::Core::LifeCyclePseudo <Request>
+	public Internal::LifeCycleRefCnt <Request>
 {
+	DECLARE_CORE_INTERFACE
+	friend class Internal::LifeCycleRefCnt <Request>;
+
 public:
 	///@{
 	/// Marshal/unmarshal data that meet the common data representation.
@@ -262,8 +265,8 @@ public:
 	virtual void unmarshal_end () = 0;
 
 	/// Return exception to caller.
-	/// Operation has move semantics so `e` may be cleared.
-	void set_exception (Any& e);
+	/// Operation has move semantics so \p e may be cleared.
+	virtual void set_exception (Any& e) = 0;
 
 	/// Marks request as successful.
 	virtual void success () = 0;
@@ -275,27 +278,27 @@ public:
 
 	/// Invoke request.
 	/// 
-	void invoke ();
+	virtual void invoke () = 0;
 
 	/// Check if the request is completed with an exception.
-	bool is_exception () const NIRVANA_NOEXCEPT;
+	virtual bool is_exception () const NIRVANA_NOEXCEPT = 0;
 
 	///@}
 
 	///@{
-	/// Asynchronous operations.
+	/// Asynchronous caller operations.
 
 	/// Non-blocking check for the request completion.
 	/// 
 	/// \returns `true` if request is completed.
-	bool completed () const NIRVANA_NOEXCEPT;
+	virtual bool completed () const NIRVANA_NOEXCEPT = 0;
 
 	/// Blocking check for the request completion.
 	/// 
 	/// \param timeout The wait timeout.
 	/// 
 	/// \returns `true` if request is completed.
-	bool wait (uint64_t timeout);
+	virtual bool wait (uint64_t timeout) = 0;
 
 	/// Cancel the request.
 	virtual void cancel () = 0;

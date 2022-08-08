@@ -27,9 +27,12 @@
 #include "ESIOP.h"
 #include "RequestIn.h"
 #include "StreamInSM.h"
+#include "StreamReply.h"
 #include "IncomingRequests.h"
 #include "../Runnable.h"
 #include "../CoreObject.h"
+#include "../Chrono.h"
+#include "OtherDomains.h"
 
 using namespace CORBA;
 using namespace CORBA::Core;
@@ -52,11 +55,46 @@ public:
 		client_id_ (client_id)
 	{}
 
+protected:
+	virtual CoreRef <StreamOut> create_output (unsigned& GIOP_minor) override;
+	virtual void set_exception (Any& e) override;
+	virtual void success () override;
+
 private:
 	ProtDomainId client_id_;
 };
 
-/// Receive request
+CoreRef <StreamOut> RequestIn::create_output (unsigned& GIOP_minor)
+{
+	GIOP_minor = 1;
+	return CoreRef <StreamOut>::create <ImplDynamic <StreamReply> > (client_id_, request_id ());
+}
+
+void RequestIn::set_exception (Any& e)
+{
+	aligned_storage <sizeof (SystemException), alignof (SystemException)>::type buf;
+	SystemException& ex = (SystemException&)buf;
+	if (e >>= ex) {
+		if (stream_out_)
+			static_cast <StreamReply&> (*stream_out_).system_exception (ex);
+		else {
+			ReplySystemException reply (request_id (), ex);
+			send_error_message (client_id_, &reply, sizeof (reply));
+		}
+	} else {
+		assert (stream_out_);
+		Base::set_exception (e);
+		static_cast <StreamReply&> (*stream_out_).send ();
+	}
+}
+
+void RequestIn::success ()
+{
+	Base::success ();
+	static_cast <StreamReply&> (*stream_out_).send ();
+}
+
+/// Receive request Runnable
 class NIRVANA_NOVTABLE ReceiveRequest :
 	public Runnable,
 	public CoreObject // Must be created quickly
@@ -78,7 +116,6 @@ private:
 
 void ReceiveRequest::run ()
 {
-	servant_reference <RequestIn> rq;
 	try {
 		// Create input stream
 		CoreRef <StreamIn> in;
@@ -104,25 +141,27 @@ void ReceiveRequest::run ()
 		// Set endian
 		in->little_endian (msg_hdr.flags () & 1);
 
+		// In the ESIOP we do not use the message size to allow > 4GB data transferring.
+		/*
 		// Set size
 		uint32_t msg_size = msg_hdr.message_size ();
 		if (in->other_endian ())
 			msg_size = byteswap (msg_size);
 		in->set_size (msg_size);
+		*/
 
-		// Create request
-		rq = make_reference <RequestIn> (client_id_, move (in));
+		// Create and receive the request
+		ImplStatic <RequestIn> request (client_id_, move (in));
+		IncomingRequests::receive (client_id_, request);
+
 	} catch (const CORBA::SystemException& ex) {
 		ReplySystemException reply (request_id_, ex);
 		send_error_message (client_id_, &reply, sizeof (reply));
 		return;
 	}
-
-	// We have a request, receive it
-	IncomingRequests::receive (client_id_, *rq);
 }
 
-/// Cancel request
+/// Cancel request Runnable
 class NIRVANA_NOVTABLE Cancel :
 	public Runnable,
 	public CoreObject // Must be created quickly
@@ -151,7 +190,7 @@ void dispatch_message (const MessageHeader& message) NIRVANA_NOEXCEPT
 		case MessageType::REQUEST: {
 			const auto& msg = static_cast <const Request&> (message);
 			try {
-				ExecDomain::async_call (INITIAL_REQUEST_DEADLINE_LOCAL,
+				ExecDomain::async_call (Chrono::make_deadline (INITIAL_REQUEST_DEADLINE_LOCAL),
 					CoreRef <Runnable>::create <ImplDynamic <ReceiveRequest> > (msg.client_domain, msg.request_id, (void*)msg.GIOP_message),
 					g_core_free_sync_context);
 			} catch (const CORBA::SystemException& ex) {
@@ -169,7 +208,7 @@ void dispatch_message (const MessageHeader& message) NIRVANA_NOEXCEPT
 		case MessageType::CANCEL_REQUEST: {
 			const auto& msg = static_cast <const CancelRequest&> (message);
 			try {
-				ExecDomain::async_call (CANCEL_REQUEST_DEADLINE,
+				ExecDomain::async_call (Chrono::make_deadline (CANCEL_REQUEST_DEADLINE),
 					CoreRef <Runnable>::create <ImplDynamic <Cancel> > (msg.client_domain, msg.request_id),
 					g_core_free_sync_context);
 			} catch (...) {

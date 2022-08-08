@@ -402,7 +402,7 @@ public:
 	}
 
 	/// Return exception to caller.
-	/// Operation has move semantics so `e` may be cleared.
+	/// Operation has move semantics so \p e may be cleared.
 	void set_exception (Any& e)
 	{
 		clear ();
@@ -441,7 +441,7 @@ public:
 	///@}
 
 	///@{
-	/// Asynchronous operations.
+	/// Asynchronous caller operations.
 
 	/// Non-blocking check for the request completion.
 	/// 

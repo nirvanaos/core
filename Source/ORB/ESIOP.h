@@ -85,6 +85,11 @@ struct Reply : MessageHeader
 {
 	/// The GIOP message in the recipient memory.
 	SharedMemPtr GIOP_message;
+
+	Reply (SharedMemPtr mem) :
+		MessageHeader (REPLY),
+		GIOP_message (mem)
+	{}
 };
 
 /// If GIOP Reply contains system exception, it can be sent without allocation of shared memory.
@@ -145,15 +150,21 @@ union MessageBuffer
 /// allocation of the shared memory.
 struct ReplyImmediate : MessageHeader
 {
-	uint8_t data_size;
+	uint8_t data_size_and_flag;
 	static const size_t MAX_DATA_SIZE = sizeof (MessageBuffer) - sizeof (MessageHeader) - 1 - sizeof (uint32_t);
+	static_assert (MAX_DATA_SIZE < 127, "MAX_DATA_SIZE < 127");
+
 	uint8_t data [MAX_DATA_SIZE];
 	uint32_t request_id;
 
-	ReplyImmediate () :
+	ReplyImmediate (const void* data, size_t size) :
 		MessageHeader (REPLY_IMMEDIATE),
-		data_size (0)
-	{}
+		data_size_and_flag ((uint8_t)(size << 1))
+	{
+		assert (size <= MAX_DATA_SIZE);
+		if (endian::native == endian::little)
+			data_size_and_flag |= 1;
+	}
 };
 
 static_assert (sizeof (MessageBuffer) == sizeof (ReplyImmediate), "sizeof (MessageBuffer) == sizeof (ReplyImmediate)");

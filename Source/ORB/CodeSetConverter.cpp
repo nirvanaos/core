@@ -190,5 +190,17 @@ void CodeSetConverterW_1_2::unmarshal_char_seq (Request& in, IDL::Sequence <WCha
 
 StaticallyAllocated <ImplStatic <CodeSetConverterW_1_2> > CodeSetConverterW_1_2::default_;
 
+CoreRef <CodeSetConverterW> CodeSetConverterW::get_default (unsigned GIOP_minor, bool client_side)
+{
+	switch (GIOP_minor) {
+		case 0:
+			return CodeSetConverterW_1_0::get_default (client_side);
+		case 1:
+			return CodeSetConverterW_1_1::get_default ();
+		default:
+			return CodeSetConverterW_1_2::get_default ();
+	}
+}
+
 }
 }

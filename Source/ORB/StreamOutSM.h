@@ -46,6 +46,7 @@ public:
 	virtual void write (size_t align, size_t size, void* data, size_t& allocated_size) override;
 	virtual size_t size () const override;
 	virtual void* header (size_t hdr_size) override;
+	virtual void rewind (size_t hdr_size) override;
 
 	SharedMemPtr get_shared () NIRVANA_NOEXCEPT
 	{
@@ -66,34 +67,29 @@ public:
 	}
 
 protected:
-	StreamOutSM (uint8_t* buf) :
-		cur_ptr_ (buf),
+	StreamOutSM (OtherDomain::Reference&& target) :
+		other_domain_ (std::move (target)),
+		size_ (0)
+	{
+		initialize ();
+	}
+
+	StreamOutSM () :
 		size_ (0)
 	{}
 
-	StreamOutSM (OtherDomain& mem) :
-		other_domain_ (&mem),
-		size_ (0)
+	void initialize (OtherDomain& target)
 	{
-		mem.get_sizes (sizes_);
-		allocate_block (sizes_.sizeof_pointer, sizes_.sizeof_pointer);
-		stream_hdr_ = cur_block ().other_ptr;
-		segments_tail_ = cur_ptr_;
-		cur_ptr_ = (uint8_t*)other_domain_->store_pointer (segments_tail_, 0); // segments
+		other_domain_ = &target;
+		initialize ();
 	}
 
 	~StreamOutSM ()
 	{
-		for (const auto& a : other_allocated_) {
-			other_domain_->release (a.ptr, a.size);
-		}
-		for (const auto& a : blocks_) {
-			if (a.other_ptr)
-				other_domain_->release (a.other_ptr, a.size);
-			if (a.ptr)
-				Nirvana::Core::Port::Memory::release (a.ptr, a.size);
-		}
+		clear ();
 	}
+
+	void clear () NIRVANA_NOEXCEPT;
 
 private:
 	struct Block
@@ -120,6 +116,7 @@ private:
 		{}
 	};
 
+	void initialize ();
 	void allocate_block (size_t align, size_t size);
 
 	const Block& cur_block () const
@@ -130,7 +127,7 @@ private:
 	void purge ();
 
 private:
-	Core::CoreRef <OtherDomain> other_domain_;
+	OtherDomain::Reference other_domain_;
 	OtherDomain::Sizes sizes_;
 	SharedMemPtr stream_hdr_;
 	std::vector <Block, Nirvana::Core::UserAllocator <Block> > blocks_;

@@ -29,6 +29,7 @@
 #pragma once
 
 #include "../CoreInterface.h"
+#include "IDL/GIOP.h"
 
 namespace CORBA {
 namespace Core {
@@ -47,7 +48,25 @@ public:
 	///   When stream adopts the memory block, it sets \p allocated_size to 0.
 	virtual void write (size_t align, size_t size, void* data, size_t& allocated_size) = 0;
 
-	/// Marshal data.
+	/// \returns The data size include any alignment gaps.
+	virtual size_t size () const = 0;
+
+	/// Get stream buffer header.
+	/// 
+	/// \param hdr_size The header size in bytes.
+	///   This parameter used only for check.
+	///   At least \p hdr_size contiguous bytes must be available for writing.
+	/// \returns Pointer to the stream begin.
+	virtual void* header (size_t hdr_size) = 0;
+
+	/// Rewind stream to the header size.
+	/// Stream must drop all data after \p hdr_size bytes
+	/// and set write position after hdr_size.
+	/// 
+	/// \param hdr_size Header size in bytes.
+	virtual void rewind (size_t hdr_size) = 0;
+
+	/// Marshal data helper.
 	/// 
 	/// \param align Data alignment
 	/// \param size Data size.
@@ -58,15 +77,8 @@ public:
 		write (align, size, const_cast <void*> (data), zero);
 	}
 
-	/// \returns The data size included any alignment gaps.
-	virtual size_t size () const = 0;
-
-	/// \returns Pointer to the stream begin.
-	/// 
-	/// \param hdr_size The header size.
-	///   This parameter used only for check.
-	///   At least \p hdr_size contiguous bytes must be available for writing.
-	virtual void* header (size_t hdr_size) = 0;
+	/// Write GIOP message header.
+	void write_message_header (GIOP::MsgType msg_type, unsigned GIOP_minor);
 };
 
 }

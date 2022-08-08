@@ -1,4 +1,3 @@
-/// \file
 /*
 * Nirvana Core.
 *
@@ -24,46 +23,23 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_ORB_CORE_REQUESTOUT_H_
-#define NIRVANA_ORB_CORE_REQUESTOUT_H_
-#pragma once
+#include "StreamOut.h"
 
-#include "Request.h"
-#include "../UserObject.h"
+using namespace Nirvana;
 
 namespace CORBA {
 namespace Core {
 
-/// Implements client-side IORequest for GIOP.
-class RequestOut :
-	public Request,
-	public Nirvana::Core::UserObject
+void StreamOut::write_message_header (GIOP::MsgType msg_type, unsigned GIOP_minor)
 {
-public:
-	RequestOut (unsigned GIOP_minor,
-		Nirvana::Core::CoreRef <StreamOut>&& stream);
-
-	uint32_t id () const NIRVANA_NOEXCEPT
-	{
-		return id_;
-	}
-
-	void reply (Nirvana::Core::CoreRef <StreamIn>&& data) NIRVANA_NOEXCEPT
-	{
-		stream_in_ = std::move (data);
-	}
-
-protected:
-	virtual void unmarshal_end () override;
-	virtual void marshal_op () override;
-	virtual void success () override;
-	virtual void cancel () override;
-
-private:
-	uint32_t id_;
-};
+	GIOP::MessageHeader_1_3 hdr;
+	hdr.magic ({ 'G', 'I', 'O', 'P' });
+	hdr.GIOP_version ().major (1);
+	hdr.GIOP_version ().minor ((Octet)GIOP_minor);
+	hdr.flags (endian::native == endian::little ? 1 : 0);
+	hdr.message_type ((Octet)msg_type);
+	write (1, sizeof (hdr), &hdr);
+}
 
 }
 }
-
-#endif
