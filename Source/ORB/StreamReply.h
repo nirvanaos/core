@@ -31,7 +31,6 @@
 #include <CORBA/CORBA.h>
 #include "ESIOP.h"
 #include "StreamOutSM.h"
-#include "OtherDomains.h"
 
 namespace Nirvana {
 namespace ESIOP {
@@ -43,23 +42,22 @@ public:
 	// Size of GIOP MessageHeader + size of GIOP ReplyHeader with empty service_context.
 	static const size_t REPLY_HEADERS_SIZE = 24;
 
-	StreamReply (ProtDomainId client_id, uint32_t request_id) :
-		client_domain_ (OtherDomains::get (client_id)),
-		request_id_ (request_id),
+	StreamReply (ProtDomainId client_id) :
+		StreamOutSM (client_id),
 		small_ptr_ (small_buffer_)
 	{}
 
-	void system_exception (const CORBA::SystemException& ex) NIRVANA_NOEXCEPT
+	void system_exception (uint32_t request_id, const CORBA::SystemException& ex) NIRVANA_NOEXCEPT
 	{
 		try {
 			StreamOutSM::clear ();
-			ReplySystemException reply (request_id_, ex);
-			client_domain_->send_message (&reply, sizeof (reply));
+			ReplySystemException reply (request_id, ex);
+			other_domain ().send_message (&reply, sizeof (reply));
 		} catch (...) {
 		}
 	}
 
-	void send () NIRVANA_NOEXCEPT;
+	void send (uint32_t request_id) NIRVANA_NOEXCEPT;
 
 	virtual void write (size_t align, size_t size, void* data, size_t& allocated_size) override;
 	virtual size_t size () const override;
@@ -67,8 +65,6 @@ public:
 	virtual void rewind (size_t hdr_size) override;
 
 private:
-	OtherDomain::Reference client_domain_;
-	uint32_t request_id_;
 	uint8_t* small_ptr_;
 	uint8_t small_buffer_ [REPLY_HEADERS_SIZE + ReplyImmediate::MAX_DATA_SIZE];
 };

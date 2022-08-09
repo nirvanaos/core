@@ -33,9 +33,11 @@
 namespace Nirvana {
 namespace Core {
 
-/// \brief Object allocated from the core heap.
-/// 
+/// Object allocated from the core heap.
+///
 /// Rarely used. Use SharedObject instead.
+/// The core heap is relatively small and therefore fast.
+/// Use CoreObject only when an object should be created extrememly quickly.
 class CoreObject
 {
 public:

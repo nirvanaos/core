@@ -29,7 +29,7 @@
 #pragma once
 
 #include "StreamOut.h"
-#include "OtherDomain.h"
+#include "OtherDomains.h"
 #include "../UserAllocator.h"
 #include "../UserObject.h"
 #include <vector>
@@ -67,29 +67,29 @@ public:
 	}
 
 protected:
-	StreamOutSM (OtherDomain::Reference&& target) :
-		other_domain_ (std::move (target)),
-		size_ (0)
+	StreamOutSM (OtherDomain& target) :
+		other_domain_ (&target)
 	{
 		initialize ();
 	}
 
-	StreamOutSM () :
-		size_ (0)
-	{}
+	StreamOutSM (ProtDomainId client_id) :
+		other_domain_ (OtherDomains::get (client_id))
+	{} // initialize () can be called later
 
-	void initialize (OtherDomain& target)
-	{
-		other_domain_ = &target;
-		initialize ();
-	}
+	void initialize ();
 
 	~StreamOutSM ()
 	{
 		clear ();
 	}
 
-	void clear () NIRVANA_NOEXCEPT;
+	void clear (size_t leave_header = 0) NIRVANA_NOEXCEPT;
+
+	OtherDomain& other_domain () const NIRVANA_NOEXCEPT
+	{
+		return *other_domain_;
+	}
 
 private:
 	struct Block
@@ -116,7 +116,6 @@ private:
 		{}
 	};
 
-	void initialize ();
 	void allocate_block (size_t align, size_t size);
 
 	const Block& cur_block () const
@@ -125,6 +124,8 @@ private:
 	}
 
 	void purge ();
+
+	size_t stream_hdr_size () const NIRVANA_NOEXCEPT;
 
 private:
 	OtherDomain::Reference other_domain_;

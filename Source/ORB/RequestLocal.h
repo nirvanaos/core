@@ -405,6 +405,8 @@ public:
 	/// Operation has move semantics so \p e may be cleared.
 	void set_exception (Any& e)
 	{
+		if (e.type ()->kind () != TCKind::tk_except)
+			throw BAD_PARAM (MAKE_OMG_MINOR (21));
 		clear ();
 		Internal::Type <Any>::marshal_out (e, _get_ptr ());
 		rewind ();

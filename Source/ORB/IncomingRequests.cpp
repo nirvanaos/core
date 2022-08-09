@@ -24,7 +24,6 @@
 *  popov.nirvana@gmail.com
 */
 #include "IncomingRequests.h"
-//#include "RequestIn.h"
 #include <algorithm>
 
 using namespace std;
@@ -36,23 +35,27 @@ namespace Core {
 
 Nirvana::Core::StaticallyAllocated <IncomingRequests::RequestMap> IncomingRequests::map_;
 
-void IncomingRequests::receive (const ClientAddress& source, RequestIn& rq)
+void IncomingRequests::receive (RequestIn& rq, uint64_t timestamp)
 {
 	try {
-		uint32_t request_id = rq.request_id ();
-		ExecDomain& ed = ExecDomain::current ();
-		auto ins = map_->insert (ref (source), request_id, &ed);
-		bool cancelled = false;
-		if (!ins.second) {
-			cancelled = !ins.first->value ().exec_domain;
+		if (rq.response_flags ()) {
+			RequestVal val (rq.key (), &rq, timestamp);
+			auto ins = map_->insert (val);
+			bool cancelled = false;
+			if (!ins.second) {
+				cancelled = !ins.first->value ().request && ins.first->value ().timestamp >= timestamp;
+				if (cancelled)
+					map_->erase (val);
+			}
+			map_->release_node (ins.first);
 			if (cancelled)
-				map_->erase (ins.first->value ());
+				return;
+			if (!ins.second) // Request id collision for this client
+				throw BAD_PARAM ();
+
 		}
-		map_->release_node (ins.first);
-		if (cancelled)
-			return;
-		if (!ins.second) // Request id collision for this client
-			throw BAD_PARAM ();
+		ExecDomain& ed = ExecDomain::current ();
+		rq.exec_domain (&ed);
 
 		// Currently we run with minimal initial deadline.
 		// Now we must obtain the deadline value from the service context.
@@ -67,6 +70,7 @@ void IncomingRequests::receive (const ClientAddress& source, RequestIn& rq)
 		rq.object_key ();
 
 		// TODO: Implement
+		throw NO_IMPLEMENT ();
 
 	} catch (Exception& ex) {
 		Any any;
@@ -78,14 +82,19 @@ void IncomingRequests::receive (const ClientAddress& source, RequestIn& rq)
 	}
 }
 
-void IncomingRequests::cancel (const ClientAddress& source, uint32_t request_id) NIRVANA_NOEXCEPT
+void IncomingRequests::cancel (const RequestKey& key, uint64_t timestamp) NIRVANA_NOEXCEPT
 {
-	auto ins = map_->insert (ref (source), request_id, nullptr);
-	if (ins.first->value ().exec_domain) {
-		// TODO: We must call exec_domain->abort () here but it is not implemented yet
-		map_->erase (ins.first->value ());
-		map_->release_node (ins.first);
+	RequestVal val (key, nullptr, timestamp);
+	auto ins = map_->insert (val);
+	if (!ins.second) {
+		RequestIn* request = ins.first->value ().request;
+		if (request) {
+			map_->erase (val);
+			request->cancel ();
+		} else
+			ins.first->value ().timestamp = timestamp;
 	}
+	map_->release_node (ins.first);
 }
 
 }

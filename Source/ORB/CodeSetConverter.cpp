@@ -131,10 +131,10 @@ StaticallyAllocated <ImplStatic <CodeSetConverterW_1_1> > CodeSetConverterW_1_1:
 
 void CodeSetConverterW_1_2::marshal_string (IDL::WString& s, bool move, Request& out)
 {
-	out.marshal_seq_begin (s.size ());
-	for (auto c : s) {
-		write (c, *out.stream_out ());
-	}
+	if (out.marshal_seq_begin (s.size ()))
+		for (auto c : s) {
+			write (c, *out.stream_out ());
+		}
 }
 
 void CodeSetConverterW_1_2::unmarshal_string (Request& in, IDL::WString& s)
@@ -169,10 +169,10 @@ void CodeSetConverterW_1_2::unmarshal_char (StreamIn& in, size_t count, WChar* d
 
 void CodeSetConverterW_1_2::marshal_char_seq (IDL::Sequence <WChar>& s, bool move, Request& out)
 {
-	out.marshal_seq_begin (s.size ());
-	for (auto c : s) {
-		write (c, *out.stream_out ());
-	}
+	if (out.marshal_seq_begin (s.size ()))
+		for (auto c : s) {
+			write (c, *out.stream_out ());
+		}
 }
 
 void CodeSetConverterW_1_2::unmarshal_char_seq (Request& in, IDL::Sequence <WChar>& s)

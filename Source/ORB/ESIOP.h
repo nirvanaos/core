@@ -77,6 +77,8 @@ struct Request : MessageHeader
 	SharedMemPtr GIOP_message;
 
 	/// The request id.
+	/// If response is not expected, request_id = 0.
+	/// The real request id is never be 0.
 	uint32_t request_id;
 };
 
@@ -157,9 +159,10 @@ struct ReplyImmediate : MessageHeader
 	uint8_t data [MAX_DATA_SIZE];
 	uint32_t request_id;
 
-	ReplyImmediate (const void* data, size_t size) :
+	ReplyImmediate (uint32_t rq_id, const void* data, size_t size) :
 		MessageHeader (REPLY_IMMEDIATE),
-		data_size_and_flag ((uint8_t)(size << 1))
+		data_size_and_flag ((uint8_t)(size << 1)),
+		request_id (rq_id)
 	{
 		assert (size <= MAX_DATA_SIZE);
 		if (endian::native == endian::little)

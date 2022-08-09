@@ -36,7 +36,7 @@ void StreamReply::write (size_t align, size_t size, void* data, size_t& allocate
 		uint8_t* p = round_up (small_ptr_, align);
 		if (allocated_size || p > end (small_buffer_) || (size_t)(end (small_buffer_) - p) < size) {
 			// Switch to StreamOutSM
-			StreamOutSM::initialize (*client_domain_);
+			StreamOutSM::initialize ();
 			ptrdiff_t cb = small_ptr_ - begin (small_buffer_);
 			small_ptr_ = nullptr;
 			if (cb > 0) {
@@ -76,18 +76,18 @@ void StreamReply::rewind (size_t hdr_size)
 		StreamOutSM::rewind (hdr_size);
 }
 
-void StreamReply::send () NIRVANA_NOEXCEPT
+void StreamReply::send (uint32_t request_id) NIRVANA_NOEXCEPT
 {
 	try {
 		if (small_ptr_) {
 			assert (REPLY_HEADERS_SIZE <= small_ptr_ - small_buffer_);
 			const uint8_t* p = small_buffer_ + REPLY_HEADERS_SIZE;
 			size_t size = small_ptr_ - p;
-			ReplyImmediate reply (p, size);
-			client_domain_->send_message (&reply, sizeof (reply));
+			ReplyImmediate reply (request_id, p, size);
+			other_domain ().send_message (&reply, sizeof (reply));
 		} else {
 			Reply reply (StreamOutSM::get_shared ());
-			client_domain_->send_message (&reply, sizeof (reply));
+			other_domain ().send_message (&reply, sizeof (reply));
 			StreamOutSM::detach ();
 		}
 	} catch (...) {

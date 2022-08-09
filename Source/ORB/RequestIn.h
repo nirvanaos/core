@@ -29,11 +29,38 @@
 #pragma once
 
 #include "Request.h"
+#include "ClientAddress.h"
 #include "../UserObject.h"
+#include "../ExecDomain.h"
 #include "IDL/GIOP.h"
 
 namespace CORBA {
 namespace Core {
+
+/// Unique id of an incoming request.
+struct RequestKey : ClientAddress
+{
+	RequestKey (const ClientAddress& addr, uint32_t rq_id) :
+		ClientAddress (addr),
+		request_id (rq_id)
+	{}
+
+	RequestKey (const ClientAddress& addr) :
+		ClientAddress (addr)
+	{}
+
+	bool operator < (const RequestKey& rhs) const NIRVANA_NOEXCEPT
+	{
+		if (request_id < rhs.request_id)
+			return true;
+		else if (request_id > rhs.request_id)
+			return false;
+		else
+			return ClientAddress::operator < (rhs);
+	}
+
+	uint32_t request_id;
+};
 
 /// Implements server-side IORequest for GIOP.
 class NIRVANA_NOVTABLE RequestIn :
@@ -41,14 +68,55 @@ class NIRVANA_NOVTABLE RequestIn :
 	public Nirvana::Core::UserObject
 {
 public:
-	virtual uint32_t request_id () const NIRVANA_NOEXCEPT = 0;
+	const RequestKey& key () const NIRVANA_NOEXCEPT
+	{
+		return key_;
+	}
+
+	uint32_t request_id () const NIRVANA_NOEXCEPT
+	{
+		return key_.request_id;
+	}
+
+	Nirvana::Core::ExecDomain* exec_domain () const NIRVANA_NOEXCEPT
+	{
+		return exec_domain_;
+	}
+
+	void exec_domain (Nirvana::Core::ExecDomain* ed) NIRVANA_NOEXCEPT
+	{
+		exec_domain_ = ed;
+	}
+
 	virtual const IOP::ServiceContextList& service_context () const NIRVANA_NOEXCEPT = 0;
 	virtual const IOP::ObjectKey& object_key () const = 0;
 	virtual const IDL::String& operation () const NIRVANA_NOEXCEPT = 0;
 
-	void set_context (IOP::ServiceContextList&& context) NIRVANA_NOEXCEPT
+	///@{
+	/// Response flags.
+
+	unsigned response_flags () const NIRVANA_NOEXCEPT
 	{
-		context_ = std::move (context);
+		return response_flags_;
+	}
+
+	/// Response is expected.
+	static const unsigned RESPONSE_EXPECTED = 1;
+
+	/// Response is expected with output data.
+	/// If this flag is not set, a non exception reply should contain an empty body, i.e.,
+	/// the equivalent of a void operation with no out/inout parameters.
+	static const unsigned RESPONSE_DATA = 2;
+
+	///@}
+
+	/// Cancel the request.
+	/// Called from the IncomingRequests class.
+	virtual void cancel () override;
+
+	bool cancelled () const NIRVANA_NOEXCEPT
+	{
+		return !exec_domain_;
 	}
 
 	/// Return exception to caller.
@@ -56,12 +124,8 @@ public:
 	/// Must be overridden in the derived class to send reply.
 	virtual void set_exception (Any& e) override = 0;
 
-	/// Marks request as successful.
-	/// Must be overridden in the derived class to send reply.
-	virtual void success () override = 0;
-
 protected:
-	RequestIn (Nirvana::Core::CoreRef <StreamIn>&& in,
+	RequestIn (const ClientAddress& client, Nirvana::Core::CoreRef <StreamIn>&& in,
 		Nirvana::Core::CoreRef <CodeSetConverterW>&& cscw);
 
 	/// Output stream factory.
@@ -76,23 +140,35 @@ protected:
 	/// In the ESIOP we do not use the message size to allow > 4GB data transferring.
 	void set_reply_size ();
 
+	/// Finalizes the request.
+	/// 
+	/// \returns `true` if the reply must be sent.
+	bool finalize ();
+
+	/// Marks request as successful.
+	/// Must be overridden in the derived class to send reply.
+	virtual void success () override = 0;
+
 private:
-	// Caller operations throw BAD_INV_ORDER or return `false`
+	// Caller operations throw BAD_INV_ORDER or just return `false`
 	virtual void invoke () override;
 	virtual bool is_exception () const NIRVANA_NOEXCEPT override;
 	virtual bool completed () const NIRVANA_NOEXCEPT override;
 	virtual bool wait (uint64_t timeout) override;
-	virtual void cancel () override;
 
 	virtual void unmarshal_end () override;
-	virtual void marshal_op () override;
+	virtual bool marshal_op () override;
 
 	void switch_to_reply (GIOP::ReplyStatusType status = GIOP::ReplyStatusType::NO_EXCEPTION);
 
+protected:
+	RequestKey key_;
+	unsigned response_flags_;
+
 private:
+	Nirvana::Core::CoreRef <Nirvana::Core::ExecDomain> exec_domain_;
 	size_t reply_status_offset_;
 	size_t reply_header_end_;
-	IOP::ServiceContextList context_;
 };
 
 /// Implements server-side IORequest for the particular GIOP version.
@@ -107,11 +183,6 @@ protected:
 		return header_;
 	}
 
-	virtual uint32_t request_id () const NIRVANA_NOEXCEPT
-	{
-		return header_.request_id ();
-	}
-
 	virtual const IOP::ServiceContextList& service_context () const NIRVANA_NOEXCEPT
 	{
 		return header_.service_context ();
@@ -123,11 +194,12 @@ protected:
 	}
 
 protected:
-	RequestInVer (Nirvana::Core::CoreRef <StreamIn>&& in,
+	RequestInVer (const ClientAddress& client, Nirvana::Core::CoreRef <StreamIn>&& in,
 		Nirvana::Core::CoreRef <CodeSetConverterW>&& cscw) :
-		RequestIn (std::move (in), std::move (cscw))
+		RequestIn (client, std::move (in), std::move (cscw))
 	{
 		Internal::Type <Hdr>::unmarshal (_get_ptr (), header_);
+		key_.request_id = header_.request_id ();
 	}
 
 private:
@@ -140,9 +212,11 @@ class NIRVANA_NOVTABLE RequestIn_1_0 : public RequestInVer <GIOP::RequestHeader_
 	typedef RequestInVer <GIOP::RequestHeader_1_0> Base;
 
 public:
-	RequestIn_1_0 (Nirvana::Core::CoreRef <StreamIn>&& in) :
-		Base (std::move (in), CodeSetConverterW_1_0::get_default (false))
-	{}
+	RequestIn_1_0 (const ClientAddress& client, Nirvana::Core::CoreRef <StreamIn>&& in) :
+		Base (client, std::move (in), CodeSetConverterW_1_0::get_default (false))
+	{
+		response_flags_ = header ().response_expected () ? (RESPONSE_EXPECTED | RESPONSE_DATA) : 0;
+	}
 
 protected:
 	virtual const IOP::ObjectKey& object_key () const
@@ -157,9 +231,11 @@ class NIRVANA_NOVTABLE RequestIn_1_1 : public RequestInVer <GIOP::RequestHeader_
 	typedef RequestInVer <GIOP::RequestHeader_1_1> Base;
 
 public:
-	RequestIn_1_1 (Nirvana::Core::CoreRef <StreamIn>&& in) :
-		Base (std::move (in), CodeSetConverterW_1_1::get_default ())
-	{}
+	RequestIn_1_1 (const ClientAddress& client, Nirvana::Core::CoreRef <StreamIn>&& in) :
+		Base (client, std::move (in), CodeSetConverterW_1_1::get_default ())
+	{
+		response_flags_ = header ().response_expected () ? (RESPONSE_EXPECTED | RESPONSE_DATA) : 0;
+	}
 
 protected:
 	virtual const IOP::ObjectKey& object_key () const
@@ -174,9 +250,13 @@ class NIRVANA_NOVTABLE RequestIn_1_2 : public RequestInVer <GIOP::RequestHeader_
 	typedef RequestInVer <GIOP::RequestHeader_1_2> Base;
 
 public:
-	RequestIn_1_2 (Nirvana::Core::CoreRef <StreamIn>&& in) :
-		Base (std::move (in), CodeSetConverterW_1_2::get_default ())
-	{}
+	RequestIn_1_2 (const ClientAddress& client, Nirvana::Core::CoreRef <StreamIn>&& in) :
+		Base (client, std::move (in), CodeSetConverterW_1_2::get_default ())
+	{
+		response_flags_ = header ().response_flags ();
+		if ((response_flags_ & RESPONSE_EXPECTED | RESPONSE_DATA) == RESPONSE_DATA)
+			throw INV_FLAG ();
+	}
 
 protected:
 	virtual const IOP::ObjectKey& object_key () const;

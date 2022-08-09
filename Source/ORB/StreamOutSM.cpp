@@ -33,6 +33,7 @@ namespace ESIOP {
 
 void StreamOutSM::initialize ()
 {
+	size_ = 0;
 	other_domain_->get_sizes (sizes_);
 	allocate_block (sizes_.sizeof_pointer, sizes_.sizeof_pointer);
 	stream_hdr_ = cur_block ().other_ptr;
@@ -40,7 +41,7 @@ void StreamOutSM::initialize ()
 	cur_ptr_ = (uint8_t*)other_domain_->store_pointer (segments_tail_, 0); // segments
 }
 
-void StreamOutSM::clear () NIRVANA_NOEXCEPT
+void StreamOutSM::clear (size_t leave_header) NIRVANA_NOEXCEPT
 {
 	try {
 		while (!other_allocated_.empty ()) {
@@ -48,7 +49,7 @@ void StreamOutSM::clear () NIRVANA_NOEXCEPT
 			other_domain_->release (a.ptr, a.size);
 			other_allocated_.pop_back ();
 		}
-		while (!blocks_.empty ()) {
+		while (blocks_.size () > leave_header) {
 			const auto& a = blocks_.back ();
 			if (a.other_ptr)
 				other_domain_->release (a.other_ptr, a.size);
@@ -58,7 +59,7 @@ void StreamOutSM::clear () NIRVANA_NOEXCEPT
 		}
 	} catch (...) {
 		other_allocated_.clear ();
-		blocks_.clear ();
+		blocks_.resize (leave_header);
 	}
 }
 
@@ -187,13 +188,23 @@ size_t StreamOutSM::size () const
 	return size_;
 }
 
+size_t StreamOutSM::stream_hdr_size () const NIRVANA_NOEXCEPT
+{
+	return round_up (sizes_.sizeof_pointer + sizes_.sizeof_size, sizes_.sizeof_pointer) + sizes_.sizeof_pointer;
+}
+
 void* StreamOutSM::header (size_t hdr_size)
 {
 	assert (!blocks_.empty ());
 	assert (blocks_.front ().ptr);
 
-	size_t stream_hdr_size = round_up (sizes_.sizeof_pointer + sizes_.sizeof_size, sizes_.sizeof_pointer) + sizes_.sizeof_pointer;
-	return (uint8_t*)blocks_.front ().ptr + stream_hdr_size;
+	return (uint8_t*)blocks_.front ().ptr + stream_hdr_size ();
+}
+
+void StreamOutSM::rewind (size_t hdr_size)
+{
+	clear (true);
+	cur_ptr_ = (uint8_t*)blocks_.front ().ptr + stream_hdr_size () + hdr_size;
 }
 
 }

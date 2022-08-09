@@ -24,6 +24,7 @@
 *  popov.nirvana@gmail.com
 */
 #include "RequestIn.h"
+#include "IncomingRequests.h"
 
 using namespace Nirvana;
 using namespace Nirvana::Core;
@@ -35,8 +36,9 @@ using namespace Internal;
 
 namespace Core {
 
-RequestIn::RequestIn (CoreRef <StreamIn>&& in, CoreRef <CodeSetConverterW>&& cscw) :
-	Request (move (cscw))
+RequestIn::RequestIn (const ClientAddress& client, CoreRef <StreamIn>&& in, CoreRef <CodeSetConverterW>&& cscw) :
+	Request (move (cscw)),
+	key_ (client)
 {
 	stream_in_ = move (in);
 }
@@ -60,14 +62,14 @@ void RequestIn::switch_to_reply (GIOP::ReplyStatusType status)
 		stream_out_->write_message_header (GIOP::MsgType::Reply, GIOP_minor);
 		if (GIOP_minor <= 1) {
 			GIOP::ReplyHeader_1_0 hdr;
-			hdr.service_context (move (context_));
+			// hdr.service_context (move (context_)); TODO: decide
 			hdr.request_id (request_id ());
 			hdr.reply_status (status);
 			Type <GIOP::ReplyHeader_1_0>::marshal_out (hdr, _get_ptr ());
 			reply_status_offset_ = stream_out_->size () - 4;
 		} else {
 			GIOP::ReplyHeader_1_2 hdr;
-			hdr.service_context (move (context_));
+			// hdr.service_context (move (context_)); TODO: decide
 			hdr.request_id (request_id ());
 			hdr.reply_status (status);
 			reply_status_offset_ = stream_out_->size () + 4;
@@ -77,9 +79,18 @@ void RequestIn::switch_to_reply (GIOP::ReplyStatusType status)
 	}
 }
 
-void RequestIn::marshal_op ()
+bool RequestIn::marshal_op ()
 {
 	switch_to_reply ();
+	return (response_flags_ & RESPONSE_DATA) != 0;
+}
+
+bool RequestIn::finalize ()
+{
+	if (response_flags_)
+		return IncomingRequests::finalize (key_);
+	else
+		return false;
 }
 
 void RequestIn::success ()
@@ -89,6 +100,9 @@ void RequestIn::success ()
 
 void RequestIn::set_exception (Any& e)
 {
+	if (e.type ()->kind () != TCKind::tk_except)
+		throw BAD_PARAM (MAKE_OMG_MINOR (21));
+
 	GIOP::ReplyStatusType status = e.is_system_exception () ?
 		GIOP::ReplyStatusType::SYSTEM_EXCEPTION
 		:
@@ -100,6 +114,8 @@ void RequestIn::set_exception (Any& e)
 		stream_out_->rewind (reply_header_end_);
 		*(GIOP::ReplyStatusType*)((Octet*)stream_out_->header (reply_header_end_) + reply_status_offset_) = status;
 	}
+	if (response_flags_)
+		response_flags_ |= RESPONSE_DATA; // To marshal Any.
 	Type <Any>::marshal_out (e, _get_ptr ());
 }
 
@@ -111,26 +127,13 @@ void RequestIn::set_reply_size ()
 	((GIOP::MessageHeader_1_3*)stream_out_->header (sizeof (GIOP::MessageHeader_1_3)))->message_size ((uint32_t)size);
 }
 
-const IOP::ObjectKey& RequestIn_1_2::object_key () const
+void RequestIn::cancel ()
 {
-	switch (header ().target ()._d ()) {
-		case GIOP::KeyAddr:
-			return header ().target ().object_key ();
-
-		case GIOP::ProfileAddr:
-			return key_from_profile (header ().target ().profile ());
-
-		case GIOP::ReferenceAddr:
-		{
-			const GIOP::IORAddressingInfo& ior = header ().target ().ior ();
-			const IOP::TaggedProfileSeq& profiles = ior.ior ().profiles ();
-			if (profiles.size () <= ior.selected_profile_index ())
-				throw OBJECT_NOT_EXIST ();
-			return key_from_profile (profiles [ior.selected_profile_index ()]);
-		}
-	}
-
-	throw UNKNOWN ();
+	response_flags_ = 0;
+	CoreRef <ExecDomain> ed = move (exec_domain_);
+	// TODO: We must call ed->abort () here but it is not implemented yet.
+	// if (ed)
+	//   ed->abort ();
 }
 
 void RequestIn::invoke ()
@@ -153,9 +156,26 @@ bool RequestIn::wait (uint64_t)
 	throw BAD_INV_ORDER ();
 }
 
-void RequestIn::cancel ()
+const IOP::ObjectKey& RequestIn_1_2::object_key () const
 {
-	throw BAD_INV_ORDER ();
+	switch (header ().target ()._d ()) {
+		case GIOP::KeyAddr:
+			return header ().target ().object_key ();
+
+		case GIOP::ProfileAddr:
+			return key_from_profile (header ().target ().profile ());
+
+		case GIOP::ReferenceAddr:
+		{
+			const GIOP::IORAddressingInfo& ior = header ().target ().ior ();
+			const IOP::TaggedProfileSeq& profiles = ior.ior ().profiles ();
+			if (profiles.size () <= ior.selected_profile_index ())
+				throw OBJECT_NOT_EXIST ();
+			return key_from_profile (profiles [ior.selected_profile_index ()]);
+		}
+	}
+
+	throw UNKNOWN ();
 }
 
 }

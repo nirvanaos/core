@@ -40,13 +40,17 @@ Request::Request (CoreRef <CodeSetConverterW>&& cscw) :
 	code_set_conv_w_ (move (cscw))
 {}
 
-void Request::marshal_seq_begin (size_t element_count)
+bool Request::marshal_seq_begin (size_t element_count)
 {
-	marshal_op ();
+	if (!marshal_op ())
+		return false;
+
 	if (sizeof (size_t) > sizeof (uint32_t) && element_count > std::numeric_limits <uint32_t>::max ())
 		throw IMP_LIMIT ();
 	uint32_t count = (uint32_t)element_count;
 	stream_out_->write (alignof (uint32_t), sizeof (count), &count);
+
+	return true;
 }
 
 size_t Request::unmarshal_seq_begin ()
@@ -64,7 +68,8 @@ void Request::marshal_seq (size_t align, size_t element_size, size_t element_cou
 	size_t& allocated_size)
 {
 	check_align (align);
-	marshal_seq_begin (element_count);
+	if (!marshal_seq_begin (element_count))
+		return;
 
 	if (element_count)
 		stream_out_->write (align, element_size * element_count, data, allocated_size);

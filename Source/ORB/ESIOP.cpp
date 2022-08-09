@@ -25,7 +25,6 @@
 */
 #include <CORBA/CORBA.h>
 #include "ESIOP.h"
-#include "RequestIn.h"
 #include "StreamInSM.h"
 #include "StreamReply.h"
 #include "IncomingRequests.h"
@@ -51,47 +50,57 @@ class NIRVANA_NOVTABLE RequestIn :
 	typedef RequestIn_1_1 Base;
 public:
 	RequestIn (ProtDomainId client_id, CoreRef <StreamIn>&& in) :
-		Base (move (in)),
-		client_id_ (client_id)
+		Base (client_id, move (in))
 	{}
+
+	ProtDomainId client_id () const NIRVANA_NOEXCEPT
+	{
+		return key ().address.esiop;
+	}
 
 protected:
 	virtual CoreRef <StreamOut> create_output (unsigned& GIOP_minor) override;
 	virtual void set_exception (Any& e) override;
 	virtual void success () override;
-
-private:
-	ProtDomainId client_id_;
 };
 
 CoreRef <StreamOut> RequestIn::create_output (unsigned& GIOP_minor)
 {
 	GIOP_minor = 1;
-	return CoreRef <StreamOut>::create <ImplDynamic <StreamReply> > (client_id_, request_id ());
+	return CoreRef <StreamOut>::create <ImplDynamic <StreamReply> > (client_id ());
 }
 
 void RequestIn::set_exception (Any& e)
 {
+	if (e.type ()->kind () != TCKind::tk_except)
+		throw BAD_PARAM (MAKE_OMG_MINOR (21));
+
+	if (!finalize ())
+		return;
+
 	aligned_storage <sizeof (SystemException), alignof (SystemException)>::type buf;
 	SystemException& ex = (SystemException&)buf;
 	if (e >>= ex) {
 		if (stream_out_)
-			static_cast <StreamReply&> (*stream_out_).system_exception (ex);
+			static_cast <StreamReply&> (*stream_out_).system_exception (request_id (), ex);
 		else {
 			ReplySystemException reply (request_id (), ex);
-			send_error_message (client_id_, &reply, sizeof (reply));
+			send_error_message (client_id (), &reply, sizeof (reply));
 		}
 	} else {
 		assert (stream_out_);
 		Base::set_exception (e);
-		static_cast <StreamReply&> (*stream_out_).send ();
+		static_cast <StreamReply&> (*stream_out_).send (request_id ());
 	}
 }
 
 void RequestIn::success ()
 {
+	if (!finalize ())
+		return;
+
 	Base::success ();
-	static_cast <StreamReply&> (*stream_out_).send ();
+	static_cast <StreamReply&> (*stream_out_).send (request_id ());
 }
 
 /// Receive request Runnable
@@ -102,6 +111,7 @@ class NIRVANA_NOVTABLE ReceiveRequest :
 protected:
 	ReceiveRequest (ProtDomainId client_id, uint32_t request_id, void* data) :
 		data_ (data),
+		timestamp_ (Core::Chrono::steady_clock ()),
 		client_id_ (client_id),
 		request_id_ (request_id)
 	{}
@@ -109,6 +119,7 @@ protected:
 	virtual void run () override;
 
 private:
+	uint64_t timestamp_;
 	void* data_;
 	ProtDomainId client_id_;
 	uint32_t request_id_;
@@ -152,11 +163,14 @@ void ReceiveRequest::run ()
 
 		// Create and receive the request
 		ImplStatic <RequestIn> request (client_id_, move (in));
-		IncomingRequests::receive (client_id_, request);
+		IncomingRequests::receive (request, timestamp_);
 
 	} catch (const CORBA::SystemException& ex) {
-		ReplySystemException reply (request_id_, ex);
-		send_error_message (client_id_, &reply, sizeof (reply));
+		if (request_id_) {
+			// Responce expected
+			ReplySystemException reply (request_id_, ex);
+			send_error_message (client_id_, &reply, sizeof (reply));
+		}
 		return;
 	}
 }
@@ -168,6 +182,7 @@ class NIRVANA_NOVTABLE Cancel :
 {
 protected:
 	Cancel (ProtDomainId client_id, uint32_t request_id) :
+		timestamp_ (Core::Chrono::steady_clock ()),
 		client_id_ (client_id),
 		request_id_ (request_id)
 	{}
@@ -175,13 +190,14 @@ protected:
 	virtual void run () override;
 
 private:
+	uint64_t timestamp_;
 	ProtDomainId client_id_;
 	uint32_t request_id_;
 };
 
 void Cancel::run ()
 {
-	IncomingRequests::cancel (client_id_, request_id_);
+	IncomingRequests::cancel (RequestKey (client_id_, request_id_), timestamp_);
 }
 
 void dispatch_message (const MessageHeader& message) NIRVANA_NOEXCEPT
@@ -199,9 +215,11 @@ void dispatch_message (const MessageHeader& message) NIRVANA_NOEXCEPT
 				{
 					ImplStatic <StreamInSM> tmp ((void*)msg.GIOP_message);
 				}
-				// Highly likely we are out of resources here, so we shouldn't use the asyncronous call.
-				ReplySystemException reply (msg.request_id, ex);
-				send_error_message (msg.client_domain, &reply, sizeof (reply));
+				if (msg.request_id) { // Responce expected
+					// Highly likely we are out of resources here, so we shouldn't use the asyncronous call.
+					ReplySystemException reply (msg.request_id, ex);
+					send_error_message (msg.client_domain, &reply, sizeof (reply));
+				}
 			}
 		} break;
 

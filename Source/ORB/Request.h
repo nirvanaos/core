@@ -61,8 +61,8 @@ public:
 	void marshal (size_t align, size_t size, const void* data)
 	{
 		check_align (align);
-		marshal_op ();
-		stream_out_->write (align, size, data);
+		if (marshal_op ())
+			stream_out_->write (align, size, data);
 	}
 
 	/// Unmarshal CDR data.
@@ -110,7 +110,7 @@ public:
 	/// Write marshaling sequence size.
 	/// 
 	/// \param element_count The sequence size.
-	void marshal_seq_begin (size_t element_count);
+	bool marshal_seq_begin (size_t element_count);
 
 	/// Get unmarshalling sequence size.
 	/// 
@@ -124,8 +124,8 @@ public:
 
 	void marshal_char (size_t count, const Char* data)
 	{
-		marshal_op ();
-		stream_out_->write (alignof (Char), count * sizeof (Char), data);
+		if (marshal_op ())
+			stream_out_->write (alignof (Char), count * sizeof (Char), data);
 	}
 
 	void unmarshal_char (size_t count, Char* data)
@@ -135,8 +135,8 @@ public:
 
 	void marshal_string (IDL::String& s, bool move)
 	{
-		marshal_op ();
-		code_set_conv_->marshal_string (s, move, *this);
+		if (marshal_op ())
+			code_set_conv_->marshal_string (s, move, *this);
 	}
 
 	void unmarshal_string (IDL::String& s)
@@ -341,7 +341,7 @@ public:
 protected:
 	Request (Nirvana::Core::CoreRef <CodeSetConverterW>&& cscw);
 
-	virtual void marshal_op () = 0;
+	virtual bool marshal_op () = 0;
 
 	template <typename C>
 	void marshal_string_t (Internal::StringT <C>& s, bool move)

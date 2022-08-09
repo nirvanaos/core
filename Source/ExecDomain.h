@@ -36,6 +36,7 @@
 #include "MemContextUser.h"
 #include "ObjectPool.h"
 #include "ThreadBackground.h"
+#include "CoreObject.h"
 #include <limits>
 #include <utility>
 #include <signal.h>
@@ -53,7 +54,7 @@ namespace Core {
 
 /// Execution domain (coroutine, fiber).
 class ExecDomain final :
-	public SharedObject,
+	public CoreObject, // Execution domains must be created quickly.
 	public ExecContext,
 	public Executor,
 	public StackElem
