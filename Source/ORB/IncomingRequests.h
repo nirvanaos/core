@@ -28,15 +28,13 @@
 #define NIRVANA_ORB_CORE_INCOMINGREQUESTS_H_
 #pragma once
 
-#include <Nirvana/Nirvana.h>
-#include "ESIOP.h"
 #include "RequestIn.h"
 #include "../SkipList.h"
-#include "../ExecDomain.h"
-#include "IDL/GIOP.h"
 
 namespace CORBA {
 namespace Core {
+
+class RequestIn;
 
 /// Incoming requests manager
 class IncomingRequests
@@ -72,20 +70,31 @@ public:
 	/// \returns `true` if response must be sent.
 	static bool finalize (const RequestKey& key) NIRVANA_NOEXCEPT
 	{
-		return map_->erase (std::ref (key), nullptr, 0);
+		return map_->erase (std::ref (key));
 	}
 
 private:
 	struct RequestVal : RequestKey
 	{
-		RequestVal (const RequestKey& key, RequestIn* rq, uint64_t time) :
-			timestamp (time),
+		RequestVal (const RequestKey& key, RequestIn& rq, uint64_t time) NIRVANA_NOEXCEPT :
 			RequestKey (key),
-			request (rq)
+			timestamp (time),
+			request (&rq)
+		{}
+
+		RequestVal (const RequestKey& key, uint64_t time) NIRVANA_NOEXCEPT :
+			RequestKey (key),
+			timestamp (time),
+			request (nullptr)
+		{}
+
+		RequestVal (const RequestKey& key) NIRVANA_NOEXCEPT :
+			RequestKey (key),
+			request (nullptr) // Is not make sense to initialize timestamp here.
 		{}
 
 		uint64_t timestamp;
-		Nirvana::Core::CoreRef <RequestIn> request;
+		RequestIn* request;
 	};
 
 	// The request map

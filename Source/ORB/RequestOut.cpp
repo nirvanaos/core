@@ -24,8 +24,7 @@
 *  popov.nirvana@gmail.com
 */
 #include "RequestOut.h"
-#include "CodeSetConverter.h"
-#include "../AtomicCounter.h"
+#include "OutgoingRequests.h"
 
 using namespace std;
 using namespace Nirvana;
@@ -37,15 +36,61 @@ using namespace Internal;
 
 namespace Core {
 
-static AtomicCounter <false> request_id (0);
-
-RequestOut::RequestOut (unsigned GIOP_minor, CoreRef <StreamOut>&& stream) :
+RequestOut::RequestOut (const IOP::ObjectKey& object_key, const IDL::String& operation,
+	unsigned GIOP_minor, unsigned response_flags, IOP::ServiceContextList&& context,
+	CoreRef <StreamOut>&& stream) :
 	Request (CodeSetConverterW::get_default (GIOP_minor, false)),
-	id_ ((uint32_t)request_id.increment ())
+	id_ (response_flags ? OutgoingRequests::new_request (*this)
+		: OutgoingRequests::new_request_oneway ())
 {
+	// While request in map, exec_domain_ is not nullptr.
+	// For the oneway requests, exec_domain_ is nullptr.
+	if (response_flags)
+		exec_domain_ = &ExecDomain::current ();
+
 	assert (stream);
 	stream_out_ = move (stream);
 	stream_out_->write_message_header (GIOP::MsgType::Request, GIOP_minor);
+
+	switch (GIOP_minor) {
+		case 0: {
+			GIOP::RequestHeader_1_0 hdr;
+			hdr.service_context (move (context));
+			hdr.request_id (id_);
+			hdr.response_expected (response_flags != 0);
+			hdr.object_key (object_key);
+			hdr.operation (operation);
+			Type <GIOP::RequestHeader_1_0>::marshal_out (hdr, _get_ptr ());
+		} break;
+
+		case 1: {
+			GIOP::RequestHeader_1_1 hdr;
+			hdr.service_context (move (context));
+			hdr.request_id (id_);
+			hdr.response_expected (response_flags != 0);
+			hdr.object_key (object_key);
+			hdr.operation (operation);
+			Type <GIOP::RequestHeader_1_1>::marshal_out (hdr, _get_ptr ());
+		} break;
+
+		default: {
+			GIOP::RequestHeader_1_2 hdr;
+			hdr.request_id (id_);
+			hdr.response_flags (response_flags);
+			hdr.target ().object_key (object_key);
+			hdr.operation (operation);
+			hdr.service_context (move (context));
+			Type <GIOP::RequestHeader_1_2>::marshal_out (hdr, _get_ptr ());
+		}
+	}
+}
+
+RequestOut::~RequestOut ()
+{
+	// While request in map, exec_domain_ is not nullptr.
+	// For the oneway requests, exec_domain_ is nullptr.
+	if (exec_domain_)
+		OutgoingRequests::remove_request (id_);
 }
 
 }

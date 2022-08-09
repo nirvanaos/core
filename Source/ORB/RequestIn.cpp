@@ -43,6 +43,14 @@ RequestIn::RequestIn (const ClientAddress& client, CoreRef <StreamIn>&& in, Core
 	stream_in_ = move (in);
 }
 
+RequestIn::~RequestIn ()
+{
+	// While request in map, exec_domain_ is not nullptr.
+	// For the oneway requests, exec_domain_ is always nullptr.
+	if (exec_domain_)
+		finalize (); // Remove from the map
+}
+
 void RequestIn::unmarshal_end ()
 {
 	if (stream_in_) {
@@ -87,10 +95,13 @@ bool RequestIn::marshal_op ()
 
 bool RequestIn::finalize ()
 {
-	if (response_flags_)
+	if (response_flags_) {
+		exec_domain_ = nullptr;
 		return IncomingRequests::finalize (key_);
-	else
+	} else {
+		assert (!exec_domain_);
 		return false;
+	}
 }
 
 void RequestIn::success ()
@@ -119,14 +130,6 @@ void RequestIn::set_exception (Any& e)
 	Type <Any>::marshal_out (e, _get_ptr ());
 }
 
-void RequestIn::set_reply_size ()
-{
-	size_t size = stream_out_->size () - sizeof (GIOP::MessageHeader_1_3);
-	if (sizeof (size_t) > sizeof (uint32_t) && size > numeric_limits <uint32_t>::max ())
-		throw IMP_LIMIT ();
-	((GIOP::MessageHeader_1_3*)stream_out_->header (sizeof (GIOP::MessageHeader_1_3)))->message_size ((uint32_t)size);
-}
-
 void RequestIn::cancel ()
 {
 	response_flags_ = 0;
@@ -138,7 +141,7 @@ void RequestIn::cancel ()
 
 void RequestIn::invoke ()
 {
-	throw BAD_INV_ORDER ();
+	throw BAD_OPERATION ();
 }
 
 bool RequestIn::is_exception () const NIRVANA_NOEXCEPT
@@ -153,7 +156,7 @@ bool RequestIn::completed () const NIRVANA_NOEXCEPT
 
 bool RequestIn::wait (uint64_t)
 {
-	throw BAD_INV_ORDER ();
+	throw BAD_OPERATION ();
 }
 
 const IOP::ObjectKey& RequestIn_1_2::object_key () const

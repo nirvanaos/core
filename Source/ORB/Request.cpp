@@ -117,5 +117,13 @@ void Request::unmarshal_string_encoded (IDL::WString& s)
 		}
 }
 
+void Request::set_out_size ()
+{
+	size_t size = stream_out_->size () - sizeof (GIOP::MessageHeader_1_3);
+	if (sizeof (size_t) > sizeof (uint32_t) && size > numeric_limits <uint32_t>::max ())
+		throw IMP_LIMIT ();
+	((GIOP::MessageHeader_1_3*)stream_out_->header (sizeof (GIOP::MessageHeader_1_3)))->message_size ((uint32_t)size);
+}
+
 }
 }

@@ -24,7 +24,6 @@
 *  popov.nirvana@gmail.com
 */
 #include "IncomingRequests.h"
-#include <algorithm>
 
 using namespace std;
 using namespace Nirvana;
@@ -38,24 +37,22 @@ Nirvana::Core::StaticallyAllocated <IncomingRequests::RequestMap> IncomingReques
 void IncomingRequests::receive (RequestIn& rq, uint64_t timestamp)
 {
 	try {
+		ExecDomain& ed = ExecDomain::current ();
 		if (rq.response_flags ()) {
-			RequestVal val (rq.key (), &rq, timestamp);
-			auto ins = map_->insert (val);
+			auto ins = map_->insert (ref (rq.key ()), ref (rq), timestamp);
 			bool cancelled = false;
 			if (!ins.second) {
 				cancelled = !ins.first->value ().request && ins.first->value ().timestamp >= timestamp;
 				if (cancelled)
-					map_->erase (val);
+					map_->remove (ins.first);
 			}
 			map_->release_node (ins.first);
 			if (cancelled)
 				return;
 			if (!ins.second) // Request id collision for this client
 				throw BAD_PARAM ();
-
+			rq.exec_domain (&ed);
 		}
-		ExecDomain& ed = ExecDomain::current ();
-		rq.exec_domain (&ed);
 
 		// Currently we run with minimal initial deadline.
 		// Now we must obtain the deadline value from the service context.
@@ -84,14 +81,13 @@ void IncomingRequests::receive (RequestIn& rq, uint64_t timestamp)
 
 void IncomingRequests::cancel (const RequestKey& key, uint64_t timestamp) NIRVANA_NOEXCEPT
 {
-	RequestVal val (key, nullptr, timestamp);
-	auto ins = map_->insert (val);
+	auto ins = map_->insert (key, timestamp);
 	if (!ins.second) {
 		RequestIn* request = ins.first->value ().request;
 		if (request) {
-			map_->erase (val);
+			map_->remove (ins.first);
 			request->cancel ();
-		} else
+		} else // Probably the old orphan cancel request with the same id
 			ins.first->value ().timestamp = timestamp;
 	}
 	map_->release_node (ins.first);

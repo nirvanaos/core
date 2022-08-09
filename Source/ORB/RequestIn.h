@@ -92,32 +92,16 @@ public:
 	virtual const IOP::ObjectKey& object_key () const = 0;
 	virtual const IDL::String& operation () const NIRVANA_NOEXCEPT = 0;
 
-	///@{
 	/// Response flags.
-
 	unsigned response_flags () const NIRVANA_NOEXCEPT
 	{
 		return response_flags_;
 	}
 
-	/// Response is expected.
-	static const unsigned RESPONSE_EXPECTED = 1;
-
-	/// Response is expected with output data.
-	/// If this flag is not set, a non exception reply should contain an empty body, i.e.,
-	/// the equivalent of a void operation with no out/inout parameters.
-	static const unsigned RESPONSE_DATA = 2;
-
-	///@}
-
 	/// Cancel the request.
 	/// Called from the IncomingRequests class.
+	/// Request is already removed from map on this call.
 	virtual void cancel () override;
-
-	bool cancelled () const NIRVANA_NOEXCEPT
-	{
-		return !exec_domain_;
-	}
 
 	/// Return exception to caller.
 	/// Operation has move semantics so \p e may be cleared.
@@ -128,17 +112,14 @@ protected:
 	RequestIn (const ClientAddress& client, Nirvana::Core::CoreRef <StreamIn>&& in,
 		Nirvana::Core::CoreRef <CodeSetConverterW>&& cscw);
 
+	~RequestIn ();
+
 	/// Output stream factory.
 	/// Must be overridden in a derived class.
 	/// 
 	/// \param [out] GIOP_minor GIOP version minor number.
 	/// \returns The output stream reference.
 	virtual Nirvana::Core::CoreRef <StreamOut> create_output (unsigned& GIOP_minor) = 0;
-
-	/// Set the size of message in the message header.
-	/// Must be called in send_reply() for remote messages.
-	/// In the ESIOP we do not use the message size to allow > 4GB data transferring.
-	void set_reply_size ();
 
 	/// Finalizes the request.
 	/// 
@@ -150,7 +131,7 @@ protected:
 	virtual void success () override = 0;
 
 private:
-	// Caller operations throw BAD_INV_ORDER or just return `false`
+	// Caller operations throw BAD_OPERATION or just return `false`
 	virtual void invoke () override;
 	virtual bool is_exception () const NIRVANA_NOEXCEPT override;
 	virtual bool completed () const NIRVANA_NOEXCEPT override;

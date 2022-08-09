@@ -51,6 +51,19 @@ class NIRVANA_NOVTABLE Request :
 
 public:
 	///@{
+	/// Response flags.
+
+	/// Response is expected.
+	static const unsigned RESPONSE_EXPECTED = 1;
+
+	/// Response is expected with output data.
+	/// If this flag is not set, a non exception reply should contain an empty body, i.e.,
+	/// the equivalent of a void operation with no out/inout parameters.
+	static const unsigned RESPONSE_DATA = 2;
+
+	///@}
+
+	///@{
 	/// Marshal/unmarshal data that meet the common data representation.
 
 	/// Marshal CDR data.
@@ -401,6 +414,10 @@ protected:
 		s = std::move (tmp);
 	}
 
+	/// Set the size of message in the output message header.
+	/// Must be called for remote messages.
+	/// In the ESIOP we do not use the message size to allow > 4GB data transferring.
+	void set_out_size ();
 
 protected:
 	Nirvana::Core::CoreRef <StreamIn> stream_in_;

@@ -29,6 +29,7 @@
 #pragma once
 
 #include "Request.h"
+#include "../ExecDomain.h"
 #include "../UserObject.h"
 
 namespace CORBA {
@@ -40,8 +41,10 @@ class RequestOut :
 	public Nirvana::Core::UserObject
 {
 public:
-	RequestOut (unsigned GIOP_minor,
-		Nirvana::Core::CoreRef <StreamOut>&& stream);
+	RequestOut (const IOP::ObjectKey& object_key, const IDL::String& operation,
+		unsigned GIOP_minor, unsigned response_flags,
+		IOP::ServiceContextList&& context, Nirvana::Core::CoreRef <StreamOut>&& stream);
+	~RequestOut ();
 
 	uint32_t id () const NIRVANA_NOEXCEPT
 	{
@@ -50,6 +53,10 @@ public:
 
 	void reply (Nirvana::Core::CoreRef <StreamIn>&& data) NIRVANA_NOEXCEPT
 	{
+		// While request in map, exec_domain_ is not nullptr.
+		// For the oneway requests, exec_domain_ is nullptr.
+		assert (exec_domain_);
+		exec_domain_ = nullptr;
 		stream_in_ = std::move (data);
 	}
 
@@ -60,6 +67,7 @@ protected:
 	virtual void cancel () override;
 
 private:
+	Nirvana::Core::CoreRef <Nirvana::Core::ExecDomain> exec_domain_;
 	uint32_t id_;
 };
 

@@ -23,30 +23,26 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "CORBA_initterm.h"
-#include "ServantBase.h"
-#include "IncomingRequests.h"
 #include "OutgoingRequests.h"
-#include "OtherDomains.h"
-#include "CodeSetConverter.h"
+#include "RequestOut.h"
+
+using namespace std;
+using namespace Nirvana;
+using namespace Nirvana::Core;
 
 namespace CORBA {
 namespace Core {
 
-void initialize ()
-{
-	PortableServer::Core::ServantBase::initialize ();
-	OutgoingRequests::initialize ();
-	IncomingRequests::initialize ();
-	Nirvana::ESIOP::OtherDomains::initialize ();
-	CodeSetConverter::initialize ();
-}
+Nirvana::Core::StaticallyAllocated <OutgoingRequests::RequestMap> OutgoingRequests::map_;
 
-void terminate () NIRVANA_NOEXCEPT
+void OutgoingRequests::reply (uint32_t request_id, CoreRef <StreamIn>&& data)
 {
-	IncomingRequests::terminate ();
-	OutgoingRequests::terminate ();
-	Nirvana::ESIOP::OtherDomains::terminate ();
+	RequestMap::NodeVal* p = map_->find_and_delete (request_id);
+	assert (p);
+	if (p) {
+		p->value ().request->reply (move (data));
+		map_->release_node (p);
+	}
 }
 
 }
