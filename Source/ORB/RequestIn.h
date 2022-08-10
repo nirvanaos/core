@@ -108,6 +108,15 @@ public:
 	/// Must be overridden in the derived class to send reply.
 	virtual void set_exception (Any& e) override = 0;
 
+	/// Marks request as successful.
+	/// Must be overridden in the derived class to send reply.
+	virtual void success () override = 0;
+
+	/// Finalizes the request.
+	/// 
+	/// \returns `true` if the reply must be sent.
+	bool finalize ();
+
 protected:
 	RequestIn (const ClientAddress& client, Nirvana::Core::CoreRef <StreamIn>&& in,
 		Nirvana::Core::CoreRef <CodeSetConverterW>&& cscw);
@@ -120,15 +129,6 @@ protected:
 	/// \param [out] GIOP_minor GIOP version minor number.
 	/// \returns The output stream reference.
 	virtual Nirvana::Core::CoreRef <StreamOut> create_output (unsigned& GIOP_minor) = 0;
-
-	/// Finalizes the request.
-	/// 
-	/// \returns `true` if the reply must be sent.
-	bool finalize ();
-
-	/// Marks request as successful.
-	/// Must be overridden in the derived class to send reply.
-	virtual void success () override = 0;
 
 private:
 	// Caller operations throw BAD_OPERATION or just return `false`
@@ -147,7 +147,7 @@ protected:
 	unsigned response_flags_;
 
 private:
-	Nirvana::Core::CoreRef <Nirvana::Core::ExecDomain> exec_domain_;
+	Nirvana::Core::ExecDomain* exec_domain_;
 	size_t reply_status_offset_;
 	size_t reply_header_end_;
 };

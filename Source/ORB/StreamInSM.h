@@ -49,9 +49,7 @@ protected:
 	StreamInSM (void* mem) NIRVANA_NOEXCEPT :
 		cur_block_ ((StreamHdr*)mem),
 		cur_ptr_ ((const uint8_t*)((StreamHdr*)mem + 1)),
-		segments_ (((StreamHdr*)mem)->segments),
-		size_ (std::numeric_limits <size_t>::max ()),
-		position_ (0)
+		segments_ (((StreamHdr*)mem)->segments)
 	{}
 
 	~StreamInSM ();
@@ -67,7 +65,7 @@ private:
 	{
 		Segment* next;
 		void* pointer;
-		size_t allocated_size;
+		size_t size;
 	};
 
 	struct StreamHdr : BlockHdr
@@ -77,16 +75,13 @@ private:
 
 	void next_block ();
 	const Segment* get_segment (size_t align, size_t size);
-	void physical_read (size_t align, size_t size, void* buf);
-	void check_position (size_t align, size_t size) const;
-	void set_position (size_t align, size_t size) NIRVANA_NOEXCEPT;
+	void physical_read (size_t& align, size_t& size, void* buf);
+	static void release_block (BlockHdr* block);
 
 private:
 	BlockHdr* cur_block_;
 	const uint8_t* cur_ptr_;
 	Segment* segments_;
-	size_t size_;
-	size_t position_; // virtual stream position
 };
 
 }

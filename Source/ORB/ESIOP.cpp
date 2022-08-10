@@ -44,64 +44,80 @@ using namespace Core;
 namespace ESIOP {
 
 /// ESIOP incoming request.
-class NIRVANA_NOVTABLE RequestIn : 
-	public RequestIn_1_1
+class RequestInESIOP
 {
-	typedef RequestIn_1_1 Base;
-public:
-	RequestIn (ProtDomainId client_id, CoreRef <StreamIn>&& in) :
-		Base (client_id, move (in))
-	{}
-
-	ProtDomainId client_id () const NIRVANA_NOEXCEPT
-	{
-		return key ().address.esiop;
-	}
-
 protected:
-	virtual CoreRef <StreamOut> create_output (unsigned& GIOP_minor) override;
-	virtual void set_exception (Any& e) override;
-	virtual void success () override;
+	static CoreRef <StreamOut> create_output (CORBA::Core::RequestIn& request, unsigned& GIOP_minor);
+	static void set_exception (CORBA::Core::RequestIn& request, Any& e);
+	static void success (CORBA::Core::RequestIn& request);
 };
 
-CoreRef <StreamOut> RequestIn::create_output (unsigned& GIOP_minor)
+CoreRef <StreamOut> RequestInESIOP::create_output (CORBA::Core::RequestIn& request, unsigned& GIOP_minor)
 {
 	GIOP_minor = 1;
-	return CoreRef <StreamOut>::create <ImplDynamic <StreamReply> > (client_id ());
+	return CoreRef <StreamOut>::create <ImplDynamic <StreamReply> > (request.key ().address.esiop);
 }
 
-void RequestIn::set_exception (Any& e)
+void RequestInESIOP::set_exception (CORBA::Core::RequestIn& request, Any& e)
 {
 	if (e.type ()->kind () != TCKind::tk_except)
 		throw BAD_PARAM (MAKE_OMG_MINOR (21));
 
-	if (!finalize ())
+	if (!request.finalize ())
 		return;
 
 	aligned_storage <sizeof (SystemException), alignof (SystemException)>::type buf;
 	SystemException& ex = (SystemException&)buf;
 	if (e >>= ex) {
-		if (stream_out_)
-			static_cast <StreamReply&> (*stream_out_).system_exception (request_id (), ex);
+		if (request.stream_out ())
+			static_cast <StreamReply&> (*request.stream_out ()).system_exception (request.request_id (), ex);
 		else {
-			ReplySystemException reply (request_id (), ex);
-			send_error_message (client_id (), &reply, sizeof (reply));
+			ReplySystemException reply (request.request_id (), ex);
+			send_error_message (request.key ().address.esiop, &reply, sizeof (reply));
 		}
 	} else {
-		assert (stream_out_);
-		Base::set_exception (e);
-		static_cast <StreamReply&> (*stream_out_).send (request_id ());
+		assert (request.stream_out ());
+		request.set_exception (e);
+		static_cast <StreamReply&> (*request.stream_out ()).send (request.request_id ());
 	}
 }
 
-void RequestIn::success ()
+void RequestInESIOP::success (CORBA::Core::RequestIn& request)
 {
-	if (!finalize ())
+	if (!request.finalize ())
 		return;
 
-	Base::success ();
-	static_cast <StreamReply&> (*stream_out_).send (request_id ());
+	request.success ();
+	static_cast <StreamReply&> (*request.stream_out ()).send (request.request_id ());
 }
+
+template <class RqVer>
+class NIRVANA_NOVTABLE RequestIn :
+	public RqVer,
+	public RequestInESIOP
+{
+	typedef RqVer Base;
+public:
+	RequestIn (ProtDomainId client_id, CoreRef <StreamIn>&& in) :
+		RqVer (client_id, move (in))
+	{}
+
+protected:
+	virtual CoreRef <StreamOut> create_output (unsigned& GIOP_minor) override
+	{
+		return RequestInESIOP::create_output (*this, GIOP_minor);
+	}
+
+	virtual void set_exception (Any& e) override
+	{
+		return RequestInESIOP::set_exception (*this, e);
+	}
+
+	virtual void success () override
+	{
+		RequestInESIOP::success (*this);
+	}
+};
 
 /// Receive request Runnable
 class NIRVANA_NOVTABLE ReceiveRequest :
@@ -141,29 +157,24 @@ void ReceiveRequest::run ()
 
 		// Read GIOP message header
 		GIOP::MessageHeader_1_1 msg_hdr;
-		in->read (1, sizeof (msg_hdr), &msg_hdr);
-		assert (equal (begin (msg_hdr.magic ()), end (msg_hdr.magic ()), "GIOP"));
+		in->read_message_header (msg_hdr);
 
-		// We always use GIOP 1.1 in ESIOP for the native marshaling of wide characters.
-		assert ((msg_hdr.GIOP_version ().major () == 1) && (msg_hdr.GIOP_version ().minor () == 1));
+		// We do not use GIOP 1.0 in ESIOP.
+		assert ((msg_hdr.GIOP_version ().major () == 1) && (msg_hdr.GIOP_version ().minor () > 0));
 		assert (GIOP::MsgType::Request == (GIOP::MsgType)msg_hdr.message_type ());
 		assert ((msg_hdr.flags () & 2) == 0); // Framentation is not allowed in ESIOP.
 
-		// Set endian
-		in->little_endian (msg_hdr.flags () & 1);
-
 		// In the ESIOP we do not use the message size to allow > 4GB data transferring.
-		/*
-		// Set size
-		uint32_t msg_size = msg_hdr.message_size ();
-		if (in->other_endian ())
-			msg_size = byteswap (msg_size);
-		in->set_size (msg_size);
-		*/
+		// in->set_size (msg_hdr.message_size ());
 
 		// Create and receive the request
-		ImplStatic <RequestIn> request (client_id_, move (in));
-		IncomingRequests::receive (request, timestamp_);
+		if (msg_hdr.GIOP_version ().minor () <= 1) {
+			ImplStatic <RequestIn <RequestIn_1_1> > request (client_id_, move (in));
+			IncomingRequests::receive (request, timestamp_);
+		} else {
+			ImplStatic <RequestIn <RequestIn_1_2> > request (client_id_, move (in));
+			IncomingRequests::receive (request, timestamp_);
+		}
 
 	} catch (const CORBA::SystemException& ex) {
 		if (request_id_) {

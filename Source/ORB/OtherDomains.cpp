@@ -37,38 +37,31 @@ namespace ESIOP {
 Core::StaticallyAllocated <OtherDomains> OtherDomains::singleton_;
 
 inline
-OtherDomain::Reference OtherDomains::get_sync (ProtDomainId domain_id)
+CoreRef <OtherDomain> OtherDomains::get_sync (ProtDomainId domain_id)
 {
-	OtherDomain::Reference ret;
+	CoreRef <OtherDomain> ret;
 
 	auto ins = map_.emplace (domain_id, DEADLINE_MAX);
 	if (ins.second) {
 		try {
+			OtherDomain* p;
 			SYNC_BEGIN (g_core_free_sync_context, &sync_domain_.mem_context ());
-			ret = OtherDomain::create (domain_id);
+			p = OtherDomain::create (domain_id);
 			SYNC_END ();
-			if (!ret)
+			if (!p)
 				throw OBJECT_NOT_EXIST ();
-			ins.first->second.finish_construction (ret);
+			ins.first->second.finish_construction (p);
 		} catch (...) {
 			ins.first->second.on_exception ();
 			map_.erase (ins.first);
 			throw;
 		}
-	} else {
-		ret = ins.first->second.get_if_constructed ();
-		if (ret) {
-			if (!ret->is_alive (domain_id)) {
-				map_.erase (ins.first);
-				throw OBJECT_NOT_EXIST ();
-			}
-		} else
-			ret = ins.first->second.get ();
-	}
+	} else
+		ret = ins.first->second.get ();
 	return ret;
 }
 
-OtherDomain::Reference OtherDomains::get (ProtDomainId domain_id)
+CoreRef <OtherDomain> OtherDomains::get (ProtDomainId domain_id)
 {
 	SYNC_BEGIN (singleton_->sync_domain_, nullptr);
 	return singleton_->get_sync (domain_id);
@@ -79,10 +72,11 @@ inline
 void OtherDomains::housekeeping_sync ()
 {
 	for (auto it = map_.begin (); it != map_.end ();) {
-		OtherDomain::Reference ref = it->second.get_if_constructed ();
-		if (ref && ref->ref_cnt_ == 1 && ref->release_time_ <= Chrono::steady_clock () - DELETE_TIMEOUT)
+		OtherDomain* p = it->second.get_if_constructed ();
+		if (p && p->ref_cnt_ == 0 && p->release_time_ <= Chrono::steady_clock () - DELETE_TIMEOUT) {
 			it = map_.erase (it);
-		else
+			delete p;
+		} else
 			++it;
 	}
 }

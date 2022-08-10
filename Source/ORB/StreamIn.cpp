@@ -23,27 +23,20 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "OutgoingRequests.h"
-#include "RequestOut.h"
-
-using namespace std;
-using namespace Nirvana;
-using namespace Nirvana::Core;
+#include "StreamIn.h"
+#include <algorithm>
 
 namespace CORBA {
 namespace Core {
 
-StaticallyAllocated <OutgoingRequests::RequestMap> OutgoingRequests::map_;
-StaticallyAllocated <OutgoingRequests::IdGen> OutgoingRequests::last_id_;
-
-void OutgoingRequests::reply (uint32_t request_id, CoreRef <StreamIn>&& data)
+void StreamIn::read_message_header (GIOP::MessageHeader_1_3& msg_hdr)
 {
-	RequestMap::NodeVal* p = map_->find_and_delete (request_id);
-	assert (p);
-	if (p) {
-		p->value ().request->reply (move (data));
-		map_->release_node (p);
-	}
+	read (1, sizeof (msg_hdr), &msg_hdr);
+	if (!std::equal (msg_hdr.magic ().begin (), msg_hdr.magic ().end (), "GIOP"))
+		throw MARSHAL ();
+	little_endian (msg_hdr.flags () & 1);
+	if (other_endian_)
+		msg_hdr.message_size (Nirvana::byteswap (msg_hdr.message_size ()));
 }
 
 }

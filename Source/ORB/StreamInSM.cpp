@@ -26,25 +26,38 @@
 #include "StreamInSM.h"
 #include <Nirvana/bitutils.h>
 #include "../MemContext.h"
+#include <limits>
 
 using namespace Nirvana::Core;
 
 namespace Nirvana {
 namespace ESIOP {
 
+inline
+void StreamInSM::release_block (BlockHdr* block)
+{
+	size_t size = block->size;
+
+	// The blocks allocated size is always aligned to max (ALLOCATION_UNIT, SHARING_ASSOCIATIVITY).
+	// Real size of the last block may be less.
+	if (Port::Memory::SHARING_ASSOCIATIVITY > Port::Memory::ALLOCATION_UNIT)
+		size = round_up (size, Port::Memory::SHARING_ASSOCIATIVITY);
+	Port::Memory::release (block, size);
+}
+
 StreamInSM::~StreamInSM ()
 {
 	// Release segments
 	for (Segment* p = segments_; p;) {
 		Segment* next = p->next;
-		Port::Memory::release (p, p->allocated_size);
+		Port::Memory::release (p->pointer, p->size);
 		p = next;
 	}
 
 	// Release blocks
 	for (BlockHdr* p = cur_block_; p;) {
 		BlockHdr* next = p->next;
-		Port::Memory::release (p, p->size);
+		release_block (p);
 		p = next;
 	}
 }
@@ -54,29 +67,11 @@ void StreamInSM::next_block ()
 	BlockHdr* block = cur_block_;
 	const uint8_t* block_end = (const uint8_t*)block + block->size;
 	assert (cur_ptr_ <= block_end);
-	size_t align_gap = block_end - cur_ptr_;
-	if (size_ - position_ < align_gap)
-		throw_MARSHAL (MARSHAL_MINOR_FEWER);
-	position_ += align_gap;
 	cur_block_ = block->next;
-	Port::Memory::release (block, block->size);
+	release_block (block);
 	if (!cur_block_)
 		throw_MARSHAL (9);
 	cur_ptr_ = (const uint8_t*)(cur_block_ + 1);
-}
-
-void StreamInSM::check_position (size_t align, size_t size) const
-{
-	assert (size); // must be checked before
-
-	size_t pos = round_up (position_, align);
-	if ((pos > size_) || (size_ - pos < size) || !cur_block_)
-		throw_MARSHAL (MARSHAL_MINOR_FEWER);
-}
-
-void StreamInSM::set_position (size_t align, size_t size) NIRVANA_NOEXCEPT
-{
-	position_ = round_up (position_, align) + size;
 }
 
 const StreamInSM::Segment* StreamInSM::get_segment (size_t align, size_t size)
@@ -105,8 +100,7 @@ const StreamInSM::Segment* StreamInSM::get_segment (size_t align, size_t size)
 		space_to_segment = 0;
 	if (segment == segments_ && (size_t)space_to_segment < size) {
 		// Adopt segment
-		assert (segment->allocated_size >= size);
-		if (segment->allocated_size < size)
+		if (segment->size != size)
 			throw_MARSHAL (); // Unexpected
 		segments_ = segment->next;
 		if (seg_block != cur_block_)
@@ -117,30 +111,44 @@ const StreamInSM::Segment* StreamInSM::get_segment (size_t align, size_t size)
 	return nullptr;
 }
 
-void StreamInSM::physical_read (size_t align, size_t size, void* buf)
+inline
+void StreamInSM::physical_read (size_t& align, size_t& size, void* buf)
 {
 	uint8_t* dst = (uint8_t*)buf;
 	do {
-		const uint8_t* src = round_up (cur_ptr_, align);
-		const uint8_t* block_end = (const uint8_t*)cur_block_ + cur_block_->size;
-		ptrdiff_t cb = block_end - src;
-
-		if (cb < (ptrdiff_t)align) {
-			next_block ();
+		const uint8_t* src;
+		size_t cb;
+		for (;;) {
 			src = round_up (cur_ptr_, align);
-			const uint8_t* block_end = (const uint8_t*)cur_block_ + cur_block_->size;
-			ptrdiff_t cb = block_end - src;
+			const uint8_t* end = (const uint8_t*)cur_block_ + cur_block_->size;
+			const uint8_t* next_segment = nullptr;
+			if (segments_ && (const uint8_t*)segments_ < end) {
+				next_segment = (const uint8_t*)segments_;
+				end = next_segment;
+			}
+			if (end < src)
+				cb = 0;
+			else
+				cb = end - src;
+
+			if (cb < align) {
+				if (next_segment)
+					return;
+				next_block ();
+			}
 		}
 
 		if ((size_t)cb > size)
 			cb = size;
 		const uint8_t* end = src + cb;
-		dst = real_copy (src, end, dst);
+		if (dst)
+			dst = real_copy (src, end, dst);
 		cur_ptr_ = end;
 		size -= cb;
 		// Adjust alignment if the remaining size less than it
 		if (align > size)
 			align = size;
+
 	} while (size);
 }
 
@@ -148,36 +156,48 @@ void StreamInSM::read (size_t align, size_t size, void* buf)
 {
 	if (!size)
 		return;
-	check_position (align, size);
 
+	uint8_t* dst = (uint8_t*)buf;
 	const Segment* segment = get_segment (align, size);
-	if (segment) {
-		Port::Memory::copy (buf, segment->pointer, size, Memory::SRC_DECOMMIT);
-		Port::Memory::release (segment->pointer, segment->allocated_size);
-	} else
-		physical_read (align, size, buf);
-
-	set_position (align, size);
+	do {
+		if (segment) {
+			size_t cb = segment->size;
+			if (cb > size) // We can not stop reading in the middle of the segment.
+				throw_MARSHAL (); // Data structure is not valid.
+			if (dst) {
+				Port::Memory::copy (dst, segment->pointer, cb, Memory::SRC_DECOMMIT);
+				dst += cb;
+			}
+			size -= cb;
+			Port::Memory::release (segment->pointer, segment->size);
+		} else {
+			physical_read (align, size, buf);
+			if (size) {
+				segment = get_segment (align, size);
+				if (!segment)
+					throw_MARSHAL (); // Something is wrong
+			}
+		}
+	} while (size);
 }
 
 void* StreamInSM::read (size_t align, size_t& size)
 {
 	if (!size)
 		return nullptr;
-	check_position (align, size);
 
 	void* ret = nullptr;
 	const Segment* segment = get_segment (align, size);
 	if (segment) {
 		// Adopt segment
-		size = segment->allocated_size;
+		size = round_up (segment->size, Port::Memory::ALLOCATION_UNIT);
 		ret = segment->pointer;
 	} else {
 		// Allocate buffer and read
 		size_t cb_read = size;
 		ret = MemContext::current ().heap ().allocate (nullptr, size, 0);
 		try {
-			physical_read (align, cb_read, ret);
+			read (align, cb_read, ret);
 		} catch (...) {
 			MemContext::current ().heap ().release (ret, size);
 			throw;
@@ -188,14 +208,22 @@ void* StreamInSM::read (size_t align, size_t& size)
 
 void StreamInSM::set_size (size_t size)
 {
-	if (size < position_)
-		throw_BAD_PARAM ();
-	size_ = position_ + size;
+	// set_size must not be used in ESIOP
+	throw_BAD_OPERATION ();
 }
 
 size_t StreamInSM::end ()
 {
-	return size_ - position_ < 8; // 8-byte alignment ignored
+	size_t rem_size = 0;
+	if (cur_block_) {
+		if (cur_block_->next)
+			rem_size = std::numeric_limits <size_t>::max ();
+		else {
+			const uint8_t* block_end = (const uint8_t*)cur_block_ + cur_block_->size;
+			rem_size = block_end - cur_ptr_;
+		}
+	}
+	return rem_size;
 }
 
 }

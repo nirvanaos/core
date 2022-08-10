@@ -221,50 +221,74 @@ public:
 	/// Marshal interface.
 	/// 
 	/// \param itf The interface derived from Object.
-	void marshal_interface (Internal::Interface::_ptr_type itf);
+	void marshal_interface (Internal::Interface::_ptr_type itf)
+	{
+		throw NO_IMPLEMENT ();
+	}
 
 	/// Unmarshal interface.
 	/// 
 	/// \param rep_id The interface repository id.
 	/// 
 	/// \returns Interface.
-	Internal::Interface::_ref_type unmarshal_interface (const IDL::String& interface_id);
+	Internal::Interface::_ref_type unmarshal_interface (const IDL::String& interface_id)
+	{
+		throw NO_IMPLEMENT ();
+	}
 
 	/// Marshal TypeCode.
 	/// 
 	/// \param tc TypeCode.
-	void marshal_type_code (TypeCode::_ptr_type tc);
+	void marshal_type_code (TypeCode::_ptr_type tc)
+	{
+		throw NO_IMPLEMENT ();
+	}
 
 	/// Unmarshal TypeCode.
 	/// 
 	/// \returns TypeCode.
-	TypeCode::_ref_type unmarshal_type_code ();
+	TypeCode::_ref_type unmarshal_type_code ()
+	{
+		throw NO_IMPLEMENT ();
+	}
 
 	/// Marshal value type.
 	/// 
 	/// \param val  ValueBase.
 	/// \param output Output parameter marshaling. Haven't to perform deep copy.
-	void marshal_value (Internal::Interface::_ptr_type val, bool output);
+	void marshal_value (Internal::Interface::_ptr_type val, bool output)
+	{
+		throw NO_IMPLEMENT ();
+	}
 
 	/// Unmarshal value type.
 	/// 
 	/// \param rep_id The value type repository id.
 	/// 
 	/// \returns Value type interface.
-	Internal::Interface::_ref_type unmarshal_value (const IDL::String& interface_id);
+	Internal::Interface::_ref_type unmarshal_value (const IDL::String& interface_id)
+	{
+		throw NO_IMPLEMENT ();
+	}
 
 	/// Marshal abstract interface.
 	/// 
 	/// \param itf The interface derived from AbstractBase.
 	/// \param output Output parameter marshaling. Haven't to perform deep copy.
-	void marshal_abstract (Internal::Interface::_ptr_type itf, bool output);
+	void marshal_abstract (Internal::Interface::_ptr_type itf, bool output)
+	{
+		throw NO_IMPLEMENT ();
+	}
 
 	/// Unmarshal abstract interface.
 	/// 
 	/// \param rep_id The interface repository id.
 	/// 
 	/// \returns Interface.
-	Internal::Interface::_ref_type unmarshal_abstract (const IDL::String& interface_id);
+	Internal::Interface::_ref_type unmarshal_abstract (const IDL::String& interface_id)
+	{
+		throw NO_IMPLEMENT ();
+	}
 
 	///@}
 

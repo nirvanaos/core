@@ -38,7 +38,8 @@ namespace Core {
 
 RequestIn::RequestIn (const ClientAddress& client, CoreRef <StreamIn>&& in, CoreRef <CodeSetConverterW>&& cscw) :
 	Request (move (cscw)),
-	key_ (client)
+	key_ (client),
+	exec_domain_ (nullptr)
 {
 	stream_in_ = move (in);
 }
@@ -93,17 +94,6 @@ bool RequestIn::marshal_op ()
 	return (response_flags_ & RESPONSE_DATA) != 0;
 }
 
-bool RequestIn::finalize ()
-{
-	if (response_flags_) {
-		exec_domain_ = nullptr;
-		return IncomingRequests::finalize (key_);
-	} else {
-		assert (!exec_domain_);
-		return false;
-	}
-}
-
 void RequestIn::success ()
 {
 	switch_to_reply ();
@@ -130,10 +120,19 @@ void RequestIn::set_exception (Any& e)
 	Type <Any>::marshal_out (e, _get_ptr ());
 }
 
+bool RequestIn::finalize ()
+{
+	if (response_flags_ && atomic_exchange ((volatile atomic <ExecDomain*>*) & exec_domain_, nullptr))
+		return IncomingRequests::finalize (key_);
+
+	assert (!exec_domain_);
+	return false;
+}
+
 void RequestIn::cancel ()
 {
 	response_flags_ = 0;
-	CoreRef <ExecDomain> ed = move (exec_domain_);
+	ExecDomain* ed = atomic_exchange ((volatile atomic <ExecDomain*>*)&exec_domain_, nullptr);
 	// TODO: We must call ed->abort () here but it is not implemented yet.
 	// if (ed)
 	//   ed->abort ();

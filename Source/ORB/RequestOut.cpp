@@ -40,6 +40,7 @@ RequestOut::RequestOut (const IOP::ObjectKey& object_key, const IDL::String& ope
 	unsigned GIOP_minor, unsigned response_flags, IOP::ServiceContextList&& context,
 	CoreRef <StreamOut>&& stream) :
 	Request (CodeSetConverterW::get_default (GIOP_minor, false)),
+	exec_domain_ (nullptr),
 	id_ (response_flags ? OutgoingRequests::new_request (*this)
 		: OutgoingRequests::new_request_oneway ())
 {

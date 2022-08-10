@@ -47,7 +47,19 @@ public:
 			std::ref (static_cast <Core::MemContextCore&> (Core::g_shared_mem_context)))
 	{}
 
-	static OtherDomain::Reference get (ProtDomainId domain_id);
+	~OtherDomains ()
+	{
+		for (auto it = map_.begin (); it != map_.end ();) {
+			OtherDomain* p = nullptr;
+			try {
+				p = it->second.get ();
+			} catch (...) {
+			}
+			delete p;
+		}
+	}
+
+	static Core::CoreRef <OtherDomain> get (ProtDomainId domain_id);
 
 	static void housekeeping ();
 
@@ -62,11 +74,12 @@ public:
 	}
 
 private:
-	OtherDomain::Reference get_sync (ProtDomainId domain_id);
+	Core::CoreRef <OtherDomain> get_sync (ProtDomainId domain_id);
 	void housekeeping_sync ();
 
 private:
-	typedef Core::WaitableRef <OtherDomain::Reference> WaitableReference;
+	typedef OtherDomain* Ptr;
+	typedef Core::WaitableRef <Ptr> WaitableReference;
 
 	typedef Core::MapUnorderedStable <ProtDomainId, WaitableReference, std::hash <ProtDomainId>,
 		std::equal_to <ProtDomainId>, Core::SharedAllocator <std::pair <ProtDomainId, WaitableReference> > >

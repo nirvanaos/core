@@ -127,6 +127,8 @@ const ServiceId             ExceptionDetailMessage      = 14;
 const ServiceId             SecurityAttributeService    = 15;
 const ServiceId             ActivityService             = 16;
 
+/* Portable interceptors are not yet implemented
+
 // Coder Decoder from Portable Interceptor
 
 local interface Codec {
@@ -162,6 +164,8 @@ local interface CodecFactory {
     Codec create_codec (in Encoding enc)
         raises (UnknownEncoding);
 };
+
+*/
 
 };
 

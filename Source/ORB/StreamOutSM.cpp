@@ -52,7 +52,7 @@ void StreamOutSM::clear (size_t leave_header) NIRVANA_NOEXCEPT
 		while (blocks_.size () > leave_header) {
 			const auto& a = blocks_.back ();
 			if (a.other_ptr)
-				other_domain_->release (a.other_ptr, a.size);
+				other_domain_->release (a.other_ptr, round_up (a.size, sizes_.block_size));
 			if (a.ptr)
 				Nirvana::Core::Port::Memory::release (a.ptr, a.size);
 			blocks_.pop_back ();
@@ -80,18 +80,19 @@ void StreamOutSM::write (size_t align, size_t size, void* data, size_t& allocate
 	Block block = cur_block ();
 	uint8_t* block_end = (uint8_t*)block.ptr + block.size;
 
-	if ((uintptr_t)data % sizes_.block_size == 0 && size >= sizes_.block_size / 2) {
+	if ((uintptr_t)data % sizes_.allocation_unit == 0 && size > sizes_.allocation_unit / 2) {
 		// Virtual copy
 
 		other_allocated_.emplace_back ();
 		OtherAllocated& oa = other_allocated_.back ();
-		oa.ptr = other_domain_->copy (0, data, size, allocated_size != 0);
-		oa.size = size;
+		size_t adopted_size = size;
+		oa.ptr = other_domain_->copy (0, data, adopted_size, allocated_size != 0);
+		oa.size = adopted_size;
 		if (allocated_size) {
-			size_t cb_release = allocated_size - size;
+			size_t cb_release = allocated_size - adopted_size;
 			allocated_size = 0;
 			if (cb_release)
-				MemContext::current ().heap ().release ((uint8_t*)data + size, cb_release);
+				MemContext::current ().heap ().release ((uint8_t*)data + adopted_size, cb_release);
 		}
 
 		// Reserve space for StreeamInSM::Segment
@@ -110,7 +111,7 @@ void StreamOutSM::write (size_t align, size_t size, void* data, size_t& allocate
 		segments_tail_ = p;
 		p = (uint8_t*)other_domain_->store_pointer (p, 0); // next
 		p = (uint8_t*)other_domain_->store_pointer (p, oa.ptr); // address
-		p = (uint8_t*)other_domain_->store_size (p, oa.size);
+		p = (uint8_t*)other_domain_->store_size (p, size);
 		cur_ptr_ = p;
 
 		purge ();

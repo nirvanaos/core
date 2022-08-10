@@ -67,7 +67,7 @@ protected:
 	virtual void cancel () override;
 
 private:
-	Nirvana::Core::CoreRef <Nirvana::Core::ExecDomain> exec_domain_;
+	Nirvana::Core::ExecDomain* exec_domain_;
 	uint32_t id_;
 };
 

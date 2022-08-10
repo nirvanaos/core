@@ -50,6 +50,10 @@ public:
 
 	SharedMemPtr get_shared () NIRVANA_NOEXCEPT
 	{
+		// Truncate size of the last block
+		uint8_t* block = (uint8_t*)cur_block ().ptr;
+		other_domain_->store_size (block + sizes_.sizeof_pointer, cur_ptr_ - block);
+
 		// Purge all blocks
 		for (auto it = blocks_.begin (); it != blocks_.end (); ++it) {
 			if (it->ptr) {
@@ -128,7 +132,7 @@ private:
 	size_t stream_hdr_size () const NIRVANA_NOEXCEPT;
 
 private:
-	OtherDomain::Reference other_domain_;
+	Core::CoreRef <OtherDomain> other_domain_;
 	OtherDomain::Sizes sizes_;
 	SharedMemPtr stream_hdr_;
 	std::vector <Block, Nirvana::Core::UserAllocator <Block> > blocks_;

@@ -29,6 +29,7 @@
 #pragma once
 
 #include "../CoreInterface.h"
+#include "IDL/GIOP.h"
 
 namespace CORBA {
 namespace Core {
@@ -61,7 +62,8 @@ public:
 	/// 
 	/// \param align Data alignment
 	/// \param size  Data size.
-	/// \param data Pointer to the data buffer.
+	/// \param data  Pointer to the data buffer.
+	///              If parameter `nullptr`, the stream must skip \p size bytes.
 	virtual void read (size_t align, size_t size, void* data) = 0;
 
 	/// Allocate buffer and read.
@@ -103,6 +105,12 @@ public:
 	{
 		return other_endian_;
 	}
+
+	/// Read GIOP message header and set stream endian.
+	/// 
+	/// \param [out] msg_hdr GIOP message header.
+	/// \throw MARSHAL if header can't be read or has invalid signature.
+	void read_message_header (GIOP::MessageHeader_1_3& msg_hdr);
 
 protected:
 	StreamIn () :

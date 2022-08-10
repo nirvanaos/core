@@ -43,14 +43,14 @@ class NIRVANA_NOVTABLE OtherDomain :
 	public Core::SharedObject
 {
 public:
-	typedef CORBA::servant_reference <OtherDomain> Reference;
-
+	/// Platform properties.
 	struct Sizes
 	{
-		size_t block_size;
-		size_t sizeof_pointer;
-		size_t sizeof_size;
-		size_t max_size;
+		size_t allocation_unit; ///< Shared memory ALLOCATION_UNIT.
+		size_t block_size; ///< Stream block size granularity.
+		size_t sizeof_pointer; ///< sizeof (void*) on target platform.
+		size_t sizeof_size; ///< sizeof (size_t) on target platform.
+		size_t max_size; ///< maximal size_t value.
 	};
 
 	virtual SharedMemPtr reserve (size_t size) = 0;
@@ -68,25 +68,26 @@ public:
 	/// 
 	/// \param domain_id The protection domain id.
 	/// \returns `true` if the domain is alive.
-	virtual bool is_alive (ProtDomainId domain_id) = 0;
+	// virtual bool is_alive (ProtDomainId domain_id) = 0;
 
 	/// Factory method must be implemented in the Port layer.
 	/// Use CORBA::make_reference for the object creation.
 	/// 
 	/// \param domain_id Protection domain id.
-	/// \returns Reference to created OtherDomain object.
+	/// \returns Created OtherDomain object.
 	///   If the \p domain_id is not exists, return `nullptr`.
-	static Reference create (ProtDomainId domain_id);
+	static OtherDomain* create (ProtDomainId domain_id);
 
 protected:
-	OtherDomain ()
+	OtherDomain () :
+		ref_cnt_ (1)
 	{}
 	
 	virtual ~OtherDomain ()
 	{}
 
 private:
-	friend CORBA::servant_reference <OtherDomain>;
+	friend class Core::CoreRef <OtherDomain>;
 	friend class OtherDomains;
 
 	void _add_ref () NIRVANA_NOEXCEPT
@@ -96,15 +97,12 @@ private:
 
 	void _remove_ref () NIRVANA_NOEXCEPT
 	{
-		Core::RefCounter::IntegralType cnt = ref_cnt_.decrement ();
-		if (1 == cnt)
+		if (!ref_cnt_.decrement ())
 			release_time_ = Core::Chrono::steady_clock ();
-		else if (0 == cnt)
-			delete this;
 	}
 
 private:
-	Core::RefCounter ref_cnt_;
+	Core::AtomicCounter <false> ref_cnt_;
 	Core::Chrono::Duration release_time_;
 };
 
