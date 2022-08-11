@@ -47,14 +47,13 @@ class FileAccessDirect final :
 	typedef Base::Size Size;
 	typedef Base::BlockIdx BlockIdx;
 
-	// Timeouts currently defined as a constant
-	static const Chrono::Duration WRITE_TIMEOUT = 500 * System::MILLISECOND;
-	static const Chrono::Duration DISCARD_TIMEOUT = 500 * System::MILLISECOND;
 public:
 	FileAccessDirect (const std::string& path, int flags) :
 		Base (path, flags, file_size_, base_block_size_),
 		block_size_ (std::max (base_block_size_, (Size)Port::Memory::SHARING_ASSOCIATIVITY)),
-		dirty_blocks_ (0)
+		dirty_blocks_ (0),
+		write_timeout_ (500 * TimeBase::MILLISECOND * Chrono::steady_clock_frequency () / TimeBase::SECOND),
+		discard_timeout_ (500 * TimeBase::MILLISECOND * Chrono::steady_clock_frequency () / TimeBase::SECOND)
 	{
 		if (block_size_ / base_block_size_ > 128)
 			throw RuntimeError (ENOTSUP);
@@ -120,8 +119,8 @@ private:
 
 	struct CacheEntry
 	{
-		Chrono::Duration last_write_time; // Valid only if dirty_begin != dirty_end
-		Chrono::Duration last_read_time;
+		SteadyTime last_write_time; // Valid only if dirty_begin != dirty_end
+		SteadyTime last_read_time;
 		void* buffer;
 		CoreRef <Request> request;
 		unsigned lock_cnt;
@@ -188,13 +187,13 @@ private:
 	void complete_request (CoreRef <Request> request) NIRVANA_NOEXCEPT;
 	void complete_request (Cache::reference entry, int op = 0);
 
-	Cache::iterator release_cache (Cache::iterator it, Chrono::Duration time);
+	Cache::iterator release_cache (Cache::iterator it, SteadyTime time);
 
 	void clear_cache (BlockIdx excl_begin, BlockIdx excl_end);
 
 	CacheRange request_read (BlockIdx begin, BlockIdx end);
 
-	void set_dirty (Cache::reference entry, const Chrono::Duration& time,
+	void set_dirty (Cache::reference entry, const SteadyTime& time,
 		size_t offset, size_t size) NIRVANA_NOEXCEPT
 	{
 		entry.second.last_write_time = time;
@@ -211,7 +210,7 @@ private:
 		}
 	}
 
-	void write_dirty_blocks (Chrono::Duration timeout);
+	void write_dirty_blocks (SteadyTime timeout);
 
 	static void lock (Cache::reference entry) NIRVANA_NOEXCEPT {
 		++(entry.second.lock_cnt);
@@ -233,6 +232,9 @@ private:
 	const Size block_size_;
 	Size base_block_size_;
 	size_t dirty_blocks_;
+
+	const SteadyTime write_timeout_;
+	const SteadyTime discard_timeout_;
 };
 
 void FileAccessDirect::read (uint64_t pos, uint32_t size, std::vector <uint8_t>& data)
@@ -279,7 +281,7 @@ void FileAccessDirect::read (uint64_t pos, uint32_t size, std::vector <uint8_t>&
 			++block;
 		}
 		// Set read time and unlock blocks
-		Chrono::Duration time = Chrono::steady_clock ();
+		SteadyTime time = Chrono::steady_clock ();
 		while (blocks.begin != blocks.end) {
 			blocks.begin->second.last_read_time = time;
 			unlock (*blocks.begin);
@@ -294,7 +296,7 @@ void FileAccessDirect::read (uint64_t pos, uint32_t size, std::vector <uint8_t>&
 		throw;
 	}
 
-	write_dirty_blocks (WRITE_TIMEOUT);
+	write_dirty_blocks (write_timeout_);
 }
 
 void FileAccessDirect::write (uint64_t pos, const std::vector <uint8_t>& data)
@@ -400,7 +402,7 @@ void FileAccessDirect::write (uint64_t pos, const std::vector <uint8_t>& data)
 					src_data += cb_copy;
 					src_size -= cb_copy;
 					Pos end = (Pos)cur_block * (Pos)block_size_ + cb_copy;
-					Chrono::Duration time = Chrono::steady_clock ();
+					SteadyTime time = Chrono::steady_clock ();
 					for (uint8_t* block_buf = buffer;;) {
 						Cache::iterator it = cache_.emplace_hint (cached_block, cur_block, block_buf);
 						size_t dirty_size = std::min ((size_t)block_size_ - block_offset, cb_copy);
@@ -462,7 +464,7 @@ void FileAccessDirect::write (uint64_t pos, const std::vector <uint8_t>& data)
 		throw;
 	}
 
-	write_dirty_blocks (WRITE_TIMEOUT);
+	write_dirty_blocks (write_timeout_);
 }
 
 void FileAccessDirect::flush ()

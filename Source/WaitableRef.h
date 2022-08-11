@@ -52,14 +52,14 @@ public:
 		return pointer_ != 0;
 	}
 
-	bool initialize (DeadlineTime deadline);
+	bool initialize (TimeBase::TimeT deadline);
 
 protected:
 	WaitableRefBase () NIRVANA_NOEXCEPT :
 		pointer_ (0)
 	{}
 
-	WaitableRefBase (DeadlineTime deadline) :
+	WaitableRefBase (TimeBase::TimeT deadline) :
 		pointer_ (0)
 	{
 		initialize (deadline);
@@ -110,7 +110,7 @@ public:
 	///                 it will be temporary decreased.
 	/// 
 	/// \throw CORBA::BAD_OPERATION if called out of a synchronization domain.
-	WaitableRef (DeadlineTime deadline) :
+	WaitableRef (TimeBase::TimeT deadline) :
 		WaitableRefBase (deadline)
 	{}
 

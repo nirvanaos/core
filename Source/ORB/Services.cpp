@@ -36,7 +36,7 @@ namespace Core {
 // Initial services. Must be lexicographically ordered.
 
 const Services::Factory Services::factories_ [Service::SERVICE_COUNT] = {
-	{ "RootPOA", create_RootPOA, System::MILLISECOND }
+	{ "RootPOA", create_RootPOA, 1 * TimeBase::MILLISECOND }
 };
 
 // Service factories

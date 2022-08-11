@@ -76,11 +76,11 @@ void FileAccessDirect::set_dirty (Cache::reference entry, size_t offset, size_t 
 		entry.second.dirty_end = (uint8_t)block;
 }
 
-void FileAccessDirect::write_dirty_blocks (Chrono::Duration timeout)
+void FileAccessDirect::write_dirty_blocks (SteadyTime timeout)
 {
 	for (Cache::iterator block = cache_.begin (); dirty_blocks_ && block != cache_.end (); ) {
 		if (block->second.dirty ()) {
-			Chrono::Duration time = Chrono::steady_clock ();
+			SteadyTime time = Chrono::steady_clock ();
 			if (time - block->second.last_write_time >= timeout) {
 				Cache::iterator first_block = block;
 				BlockIdx idx = first_block->first;
@@ -163,7 +163,7 @@ void FileAccessDirect::complete_size_request () NIRVANA_NOEXCEPT
 	}
 }
 
-FileAccessDirect::Cache::iterator FileAccessDirect::release_cache (Cache::iterator it, Chrono::Duration time)
+FileAccessDirect::Cache::iterator FileAccessDirect::release_cache (Cache::iterator it, SteadyTime time)
 {
 	if (it->second.request && it->second.request->signalled ())
 		complete_request (it->second.request);
@@ -171,7 +171,7 @@ FileAccessDirect::Cache::iterator FileAccessDirect::release_cache (Cache::iterat
 		&& (
 			(Pos)it->first * (Pos)block_size_ >= file_size_
 			|| (!it->second.error && Port::Memory::is_private (it->second.buffer, block_size_)
-				&& time - it->second.last_read_time >= DISCARD_TIMEOUT)))
+				&& it->second.last_read_time <= time)))
 	{
 		Port::Memory::release (it->second.buffer, block_size_);
 		return cache_.erase (it);
@@ -181,7 +181,7 @@ FileAccessDirect::Cache::iterator FileAccessDirect::release_cache (Cache::iterat
 
 void FileAccessDirect::clear_cache (BlockIdx excl_begin, BlockIdx excl_end)
 {
-	Chrono::Duration time = Chrono::steady_clock ();
+	SteadyTime time = Chrono::steady_clock () - discard_timeout_;
 	for (Cache::iterator p = cache_.begin (); p != cache_.end ();) {
 		if (p->first < excl_begin)
 			p = release_cache (p, time);

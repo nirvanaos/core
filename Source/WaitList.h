@@ -29,6 +29,7 @@
 #pragma once
 
 #include "ExecDomain.h"
+#include "Chrono.h"
 #include <exception>
 
 namespace Nirvana {
@@ -46,7 +47,7 @@ public:
 	/// 
 	/// \param deadline Maximal deadline of the object creation.
 	/// \throw BAD_OPERATION if called out of synchronization domain.
-	WaitListImpl (DeadlineTime deadline);
+	WaitListImpl (TimeBase::TimeT deadline);
 
 	~WaitListImpl ()
 	{

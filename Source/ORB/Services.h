@@ -104,7 +104,7 @@ private:
 	{
 		const char* id;
 		Object::_ref_type (*factory) ();
-		Nirvana::DeadlineTime creation_deadline;
+		TimeBase::TimeT creation_deadline;
 	};
 
 	struct Less

@@ -29,65 +29,12 @@
 #pragma once
 
 #include <Port/Chrono.h>
-#include <limits>
-#include <assert.h>
 
 namespace Nirvana {
 namespace Core {
 
-constexpr unsigned year_to_days (unsigned year)
-{
-	return year * 365 + year / 4 - year / 100 + year / 400;
-}
-
-/// Core implementation of the Nirvana::Chrono service
-class Chrono :
-	private Port::Chrono
-{
-	static constexpr unsigned EPOCH_DAYS = year_to_days (Port::Chrono::epoch);
-	static const unsigned SECONDS_PER_DAY = 86400;
-public:
-
-	static uint16_t epoch () NIRVANA_NOEXCEPT
-	{
-		return Port::Chrono::epoch;
-	}
-
-	typedef uint64_t Duration;
-
-	static Duration system_clock () NIRVANA_NOEXCEPT
-	{
-		return Port::Chrono::system_clock ();
-	}
-
-	static Duration steady_clock () NIRVANA_NOEXCEPT
-	{
-		return Port::Chrono::steady_clock ();
-	}
-
-	static Duration system_to_steady (uint16_t _epoch, Duration system) NIRVANA_NOEXCEPT
-	{
-		Duration t = system - (system_clock () - steady_clock ());
-		if (_epoch != epoch ())
-			t += (int64_t)(year_to_days (_epoch) - EPOCH_DAYS) * (int64_t)SECONDS_PER_DAY * 1000000000LL;
-		return t;
-	}
-
-	static Duration steady_to_system (Duration steady) NIRVANA_NOEXCEPT
-	{
-		return steady + (system_clock () - steady_clock ());
-	}
-
-	static DeadlineTime make_deadline (Duration timeout) NIRVANA_NOEXCEPT
-	{
-		// TODO: If steady_clock_resolution () is too low (1 sec?) we can implement advanced
-		// algorithm to create diffirent deadlines inside one clock tick,
-		// based on atomic counter.
-		DeadlineTime dt = steady_clock ();
-		assert (std::numeric_limits <DeadlineTime>::max () - timeout > dt);
-		return dt + timeout;
-	}
-};
+/// Core time service.
+using Chrono = Port::Chrono;
 
 }
 }

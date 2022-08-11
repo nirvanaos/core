@@ -67,7 +67,7 @@ public:
 
 	static void initialize () NIRVANA_NOEXCEPT
 	{
-		next_timestamp_ = (int)(Nirvana::Core::Chrono::system_clock () / Nirvana::System::SECOND);
+		next_timestamp_ = (int)(Nirvana::Core::Chrono::UTC () / TimeBase::SECOND);
 	}
 
 	int timestamp () const NIRVANA_NOEXCEPT

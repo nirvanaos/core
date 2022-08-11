@@ -71,9 +71,11 @@ CoreRef <OtherDomain> OtherDomains::get (ProtDomainId domain_id)
 inline
 void OtherDomains::housekeeping_sync ()
 {
+	SteadyTime delete_timeout = (DELETE_TIMEOUT + TimeBase::SECOND - 1) / TimeBase::SECOND
+		* Chrono::steady_clock_frequency ();
 	for (auto it = map_.begin (); it != map_.end ();) {
 		OtherDomain* p = it->second.get_if_constructed ();
-		if (p && p->ref_cnt_ == 0 && p->release_time_ <= Chrono::steady_clock () - DELETE_TIMEOUT) {
+		if (p && p->ref_cnt_ == 0 && p->release_time_ <= Chrono::steady_clock () - delete_timeout) {
 			it = map_.erase (it);
 			delete p;
 		} else

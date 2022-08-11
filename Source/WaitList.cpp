@@ -24,14 +24,13 @@
 *  popov.nirvana@gmail.com
 */
 #include "WaitList.h"
-#include "Chrono.h"
 
 using namespace std;
 
 namespace Nirvana {
 namespace Core {
 
-WaitListImpl::WaitListImpl (DeadlineTime deadline) :
+WaitListImpl::WaitListImpl (TimeBase::TimeT deadline) :
 	worker_ (&ExecDomain::current ()),
 	worker_deadline_ (worker_->deadline ()),
 	wait_list_ (nullptr)

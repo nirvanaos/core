@@ -38,8 +38,8 @@ namespace ESIOP {
 
 class OtherDomains
 {
-	static const DeadlineTime DEADLINE_MAX = 10 * System::MILLISECOND;
-	static const Core::Chrono::Duration DELETE_TIMEOUT = 30 * System::SECOND;
+	static const TimeBase::TimeT DEADLINE_MAX = 10 * TimeBase::MILLISECOND;
+	static const TimeBase::TimeT DELETE_TIMEOUT = 30 * TimeBase::SECOND;
 
 public:
 	OtherDomains () :

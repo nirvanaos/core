@@ -46,7 +46,7 @@ void WaitableRefBase::detach (CoreRef <WaitList>& ref) NIRVANA_NOEXCEPT
 	assert (up == 0);
 }
 
-bool WaitableRefBase::initialize (DeadlineTime deadline)
+bool WaitableRefBase::initialize (TimeBase::TimeT deadline)
 {
 	if (pointer_ == 0) {
 		::new (&pointer_) CoreRef <WaitList> (CoreRef <WaitList>::create <WaitList> (deadline));

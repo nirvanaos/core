@@ -86,7 +86,7 @@ public:
 		return initial_ref_cnt_ < ref_cnt_;
 	}
 
-	bool can_be_unloaded (const Chrono::Duration& t) const
+	bool can_be_unloaded (const SteadyTime& t) const
 	{
 		return !bound () && release_time_ <= t;
 	}
@@ -107,7 +107,7 @@ protected:
 	AtomicCounter <false> ref_cnt_;
 	AtomicCounter <false>::IntegralType initial_ref_cnt_;
 	ModuleInit::_ptr_type entry_point_;
-	Chrono::Duration release_time_;
+	SteadyTime release_time_;
 };
 
 }

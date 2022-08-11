@@ -67,34 +67,44 @@ public:
 		return Binder::bind_interface (name, iid);
 	}
 
-	static uint16_t _s_get_epoch (CORBA::Internal::Bridge <Nirvana::System>* _b, CORBA::Internal::Interface* _env)
-	{
-		return Chrono::epoch ();
-	}
-
-	static Duration _s_get_system_clock (CORBA::Internal::Bridge <Nirvana::System>* _b, CORBA::Internal::Interface* _env)
+	static TimeBase::UtcT _s_system_clock (CORBA::Internal::Bridge <Nirvana::System>* _b, CORBA::Internal::Interface* _env)
 	{
 		return Chrono::system_clock ();
 	}
 
-	static Duration _s_get_steady_clock (CORBA::Internal::Bridge <Nirvana::System>* _b, CORBA::Internal::Interface* _env)
+	static TimeBase::TimeT _s_UTC (CORBA::Internal::Bridge <Nirvana::System>* _b, CORBA::Internal::Interface* _env)
+	{
+		return Chrono::UTC ();
+	}
+
+	static SteadyTime _s_steady_clock (CORBA::Internal::Bridge <Nirvana::System>* _b, CORBA::Internal::Interface* _env)
 	{
 		return Chrono::steady_clock ();
 	}
 
-	static Duration system_to_steady (const uint16_t& epoch, const Duration& clock)
+	static SteadyTime _s_get_steady_clock_frequency (CORBA::Internal::Bridge <Nirvana::System>* _b, CORBA::Internal::Interface* _env)
 	{
-		return Chrono::system_to_steady (epoch, clock);
+		return Chrono::steady_clock_frequency ();
 	}
 
-	static Duration steady_to_system (const Duration& steady)
+	static SteadyTime UTC_to_steady (const TimeBase::TimeT& utc)
 	{
-		return Chrono::steady_to_system (steady);
+		return Chrono::UTC_to_steady (utc);
 	}
 
-	static Duration deadline ()
+	static TimeBase::TimeT steady_to_UTC (const SteadyTime& steady)
+	{
+		return Chrono::steady_to_UTC (steady);
+	}
+
+	static DeadlineTime deadline ()
 	{
 		return Thread::current ().exec_domain ()->deadline ();
+	}
+
+	static DeadlineTime make_deadline (const TimeBase::TimeT& timeout)
+	{
+		return Chrono::make_deadline (timeout);
 	}
 
 	static int* error_number ()

@@ -103,7 +103,7 @@ private:
 
 private:
 	Core::AtomicCounter <false> ref_cnt_;
-	Core::Chrono::Duration release_time_;
+	SteadyTime release_time_;
 };
 
 }

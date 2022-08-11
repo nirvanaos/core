@@ -39,6 +39,7 @@
 #include <Nirvana/ModuleInit.h>
 #include "WaitableRef.h"
 #include "ORB/Services.h"
+#include "Chrono.h"
 
 #define BINDER_USE_STD_MODULE_MAP
 
@@ -75,8 +76,8 @@ class Singleton;
 class Binder : private CORBA::Core::Services
 {
 	/// To avoid priority inversion, if module loader deadline is too far,
-	/// it will be temporary adjusted.
-	static const DeadlineTime MODULE_LOADING_DEADLINE_MAX = 1 * System::SECOND;
+	/// it will be temporary adjusted. TODO: config.h
+	static const TimeBase::TimeT MODULE_LOADING_DEADLINE_MAX = 1 * TimeBase::SECOND;
 
 public:
 	typedef CORBA::Internal::Interface::_ref_type InterfaceRef;
