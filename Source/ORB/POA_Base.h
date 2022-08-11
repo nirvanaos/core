@@ -254,6 +254,9 @@ public:
 		CORBA::Internal::Bridge <POA>* _b, CORBA::Internal::Type <ObjectId>::ABI_in oid,
 		Interface* env);
 
+	virtual ~POA_Base ()
+	{}
+
 protected:
 	POA_Base (POAManager::_ptr_type manager) :
 		the_POAManager_ (manager),
