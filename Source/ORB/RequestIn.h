@@ -235,7 +235,7 @@ public:
 		Base (client, std::move (in), CodeSetConverterW_1_2::get_default ())
 	{
 		response_flags_ = header ().response_flags ();
-		if ((response_flags_ & RESPONSE_EXPECTED | RESPONSE_DATA) == RESPONSE_DATA)
+		if ((response_flags_ & (RESPONSE_EXPECTED | RESPONSE_DATA)) == RESPONSE_DATA)
 			throw INV_FLAG ();
 	}
 

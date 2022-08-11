@@ -126,8 +126,8 @@ class NIRVANA_NOVTABLE ReceiveRequest :
 {
 protected:
 	ReceiveRequest (ProtDomainId client_id, uint32_t request_id, void* data) :
-		data_ (data),
 		timestamp_ (Core::Chrono::steady_clock ()),
+		data_ (data),
 		client_id_ (client_id),
 		request_id_ (request_id)
 	{}
