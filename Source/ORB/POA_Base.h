@@ -29,7 +29,8 @@
 
 #include <CORBA/Server.h>
 #include "ServantBase.h"
-#include <unordered_map>
+#include "MapUnorderedStable.h"
+#include "MapUnorderedUnstable.h"
 #include "HashOctetSeq.h"
 #include "IDL/PortableServer_s.h"
 #include "LocalObject.h"
@@ -45,21 +46,21 @@ namespace Core {
 // The POA never communicates with user ServantBase directly.
 
 // Active Object Map (AOM)
-// TODO: Use another fast implementation with the pointer stability.
 typedef ObjectId AOM_Key;
 typedef CORBA::Object::_ref_type AOM_Val;
 
-typedef std::unordered_map <AOM_Key, AOM_Val,
-	std::hash <AOM_Key>, std::equal_to <AOM_Key>, Nirvana::Core::UserAllocator
-	<std::pair <AOM_Key, AOM_Val> > > AOM;
+typedef Nirvana::Core::MapUnorderedStable <AOM_Key, AOM_Val,
+	std::hash <AOM_Key>, std::equal_to <AOM_Key>,
+	Nirvana::Core::UserAllocator <std::pair <AOM_Key, AOM_Val> > > AOM;
 
 class NIRVANA_NOVTABLE POA_Base :
 	public CORBA::servant_traits <POA>::Servant <POA_Base>
 {
 protected:
 	// Children map.
-	// TODO: Use another fast implementation with the pointer stability.
-	typedef std::unordered_map <IDL::String, POA::_ref_type> Children;
+	typedef Nirvana::Core::MapUnorderedUnstable <IDL::String, POA::_ref_type,
+		std::hash <IDL::String>, std::equal_to <IDL::String>,
+		Nirvana::Core::UserAllocator <std::pair <IDL::String, POA::_ref_type> > > Children;
 
 public:
 	// POA creation and destruction

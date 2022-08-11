@@ -40,24 +40,8 @@
 #include "WaitableRef.h"
 #include "ORB/Services.h"
 #include "Chrono.h"
-
-#define BINDER_USE_STD_MODULE_MAP
-
-#if UINTPTR_MAX > UINT32_MAX
-#define BINDER_USE_SEPARATE_MEMORY
-#endif
-
-#pragma push_macro ("verify")
-#undef verify
-#include "parallel-hashmap/parallel_hashmap/btree.h"
-#ifndef BINDER_USE_STD_MODULE_MAP
-#include "parallel-hashmap/parallel_hashmap/phmap.h"
-#endif
-#pragma pop_macro ("verify")
-
-#ifdef BINDER_USE_STD_MODULE_MAP
-#include <unordered_map>
-#endif
+#include "MapOrderedUnstable.h"
+#include "MapUnorderedStable.h"
 
 namespace Nirvana {
 
@@ -230,8 +214,8 @@ private:
 	using Allocator = SharedAllocator <T>;
 #endif
 
-	// We use phmap::btree_map as fast binary tree without the iterator stability.
-	typedef phmap::btree_map <ObjectKey, InterfacePtr, std::less <ObjectKey>,
+	// We use fast binary tree without the iterator stability.
+	typedef MapOrderedUnstable <ObjectKey, InterfacePtr, std::less <ObjectKey>,
 		Allocator <std::pair <ObjectKey, InterfacePtr> > > ObjectMapBase;
 
 	// Name->interface map.
@@ -249,14 +233,9 @@ private:
 	// phmap::node_hash_map is declared as with pointer stability,
 	// but it seems that not.
 	typedef WaitableRef <Module*> ModulePtr;
-	typedef 
-#ifndef BINDER_USE_STD_MODULE_MAP
-		phmap::node_hash_map
-#else
-		std::unordered_map
-#endif
-		<std::string, ModulePtr, phmap::Hash <std::string>,
-		phmap::EqualTo <std::string>, Allocator <std::pair <std::string, ModulePtr> >
+	typedef MapUnorderedStable
+		<std::string, ModulePtr, std::hash <std::string>,
+		std::equal_to <std::string>, Allocator <std::pair <std::string, ModulePtr> >
 	> ModuleMap;
 
 	/// Module binding context
