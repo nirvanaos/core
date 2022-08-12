@@ -516,8 +516,10 @@ void Binder::housekeeping ()
 {
 	for (;;) {
 		bool found = false;
-		SteadyTime t = Chrono::steady_clock () - (MODULE_UNLOAD_TIMEOUT + TimeBase::SECOND - 1)
-			/ TimeBase::SECOND * Chrono::steady_clock_frequency ();
+		SteadyTime t = Chrono::steady_clock ();
+		if (1 <= MODULE_UNLOAD_TIMEOUT)
+			break;
+		t -= MODULE_UNLOAD_TIMEOUT;
 		for (auto it = module_map_.begin (); it != module_map_.end ();) {
 			Module* pmod = it->second.get_if_constructed ();
 			if (pmod && pmod->can_be_unloaded (t)) {

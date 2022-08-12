@@ -82,24 +82,24 @@ public:
 		return Chrono::steady_clock ();
 	}
 
-	static SteadyTime _s_get_steady_clock_frequency (CORBA::Internal::Bridge <Nirvana::System>* _b, CORBA::Internal::Interface* _env)
+	static DeadlineTime _s_deadline_clock (CORBA::Internal::Bridge <Nirvana::System>* _b, CORBA::Internal::Interface* _env)
 	{
-		return Chrono::steady_clock_frequency ();
+		return Chrono::deadline_clock ();
 	}
 
-	static SteadyTime UTC_to_steady (const TimeBase::TimeT& utc)
+	static CORBA::Internal::Type <DeadlineTime>::ConstRef _s_get_deadline_clock_frequency (CORBA::Internal::Bridge <Nirvana::System>* _b, CORBA::Internal::Interface* _env)
 	{
-		return Chrono::UTC_to_steady (utc);
+		return CORBA::Internal::Type <DeadlineTime>::ret (Chrono::deadline_clock_frequency ());
 	}
 
-	static TimeBase::TimeT steady_to_UTC (const SteadyTime& steady)
+	static DeadlineTime deadline_from_UTC (const TimeBase::TimeT& utc)
 	{
-		return Chrono::steady_to_UTC (steady);
+		return Chrono::deadline_from_UTC (utc);
 	}
 
-	static DeadlineTime deadline ()
+	static TimeBase::TimeT deadline_to_UTC (const DeadlineTime& deadline)
 	{
-		return Thread::current ().exec_domain ()->deadline ();
+		return Chrono::deadline_to_UTC (deadline);
 	}
 
 	static DeadlineTime make_deadline (const TimeBase::TimeT& timeout)

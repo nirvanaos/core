@@ -48,12 +48,15 @@ class FileAccessDirect final :
 	typedef Base::BlockIdx BlockIdx;
 
 public:
+	static const SteadyTime DEFAULT_WRITE_TIMEOUT = 500 * TimeBase::MILLISECOND;
+	static const SteadyTime DEFAULT_DISCARD_TIMEOUT = 500 * TimeBase::MILLISECOND;
+
 	FileAccessDirect (const std::string& path, int flags) :
 		Base (path, flags, file_size_, base_block_size_),
 		block_size_ (std::max (base_block_size_, (Size)Port::Memory::SHARING_ASSOCIATIVITY)),
 		dirty_blocks_ (0),
-		write_timeout_ (500 * TimeBase::MILLISECOND * Chrono::steady_clock_frequency () / TimeBase::SECOND),
-		discard_timeout_ (500 * TimeBase::MILLISECOND * Chrono::steady_clock_frequency () / TimeBase::SECOND)
+		write_timeout_ (DEFAULT_WRITE_TIMEOUT),
+		discard_timeout_ (DEFAULT_DISCARD_TIMEOUT)
 	{
 		if (block_size_ / base_block_size_ > 128)
 			throw RuntimeError (ENOTSUP);

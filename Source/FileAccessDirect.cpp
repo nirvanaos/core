@@ -181,7 +181,10 @@ FileAccessDirect::Cache::iterator FileAccessDirect::release_cache (Cache::iterat
 
 void FileAccessDirect::clear_cache (BlockIdx excl_begin, BlockIdx excl_end)
 {
-	SteadyTime time = Chrono::steady_clock () - discard_timeout_;
+	SteadyTime time = Chrono::steady_clock ();
+	if (time < discard_timeout_)
+		return;
+	time -= discard_timeout_;
 	for (Cache::iterator p = cache_.begin (); p != cache_.end ();) {
 		if (p->first < excl_begin)
 			p = release_cache (p, time);
