@@ -23,7 +23,7 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "StreamReply.h"
+#include "StreamOutReply.h"
 
 using namespace std;
 
