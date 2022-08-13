@@ -26,7 +26,7 @@
 #include <CORBA/CORBA.h>
 #include "ESIOP.h"
 #include "StreamInSM.h"
-#include "StreamReply.h"
+#include "StreamOutReply.h"
 #include "IncomingRequests.h"
 #include "../Runnable.h"
 #include "../CoreObject.h"
@@ -47,15 +47,14 @@ namespace ESIOP {
 class RequestInESIOP
 {
 protected:
-	static CoreRef <StreamOut> create_output (CORBA::Core::RequestIn& request, unsigned& GIOP_minor);
+	static CoreRef <StreamOut> create_output (CORBA::Core::RequestIn& request);
 	static void set_exception (CORBA::Core::RequestIn& request, Any& e);
 	static void success (CORBA::Core::RequestIn& request);
 };
 
-CoreRef <StreamOut> RequestInESIOP::create_output (CORBA::Core::RequestIn& request, unsigned& GIOP_minor)
+CoreRef <StreamOut> RequestInESIOP::create_output (CORBA::Core::RequestIn& request)
 {
-	GIOP_minor = 1;
-	return CoreRef <StreamOut>::create <ImplDynamic <StreamReply> > (request.key ().address.esiop);
+	return CoreRef <StreamOut>::create <ImplDynamic <StreamOutReply> > (request.key ().address.esiop);
 }
 
 void RequestInESIOP::set_exception (CORBA::Core::RequestIn& request, Any& e)
@@ -70,7 +69,7 @@ void RequestInESIOP::set_exception (CORBA::Core::RequestIn& request, Any& e)
 	SystemException& ex = (SystemException&)buf;
 	if (e >>= ex) {
 		if (request.stream_out ())
-			static_cast <StreamReply&> (*request.stream_out ()).system_exception (request.request_id (), ex);
+			static_cast <StreamOutReply&> (*request.stream_out ()).system_exception (request.request_id (), ex);
 		else {
 			ReplySystemException reply (request.request_id (), ex);
 			send_error_message (request.key ().address.esiop, &reply, sizeof (reply));
@@ -78,7 +77,7 @@ void RequestInESIOP::set_exception (CORBA::Core::RequestIn& request, Any& e)
 	} else {
 		assert (request.stream_out ());
 		request.set_exception (e);
-		static_cast <StreamReply&> (*request.stream_out ()).send (request.request_id ());
+		static_cast <StreamOutReply&> (*request.stream_out ()).send (request.request_id ());
 	}
 }
 
@@ -88,7 +87,7 @@ void RequestInESIOP::success (CORBA::Core::RequestIn& request)
 		return;
 
 	request.success ();
-	static_cast <StreamReply&> (*request.stream_out ()).send (request.request_id ());
+	static_cast <StreamOutReply&> (*request.stream_out ()).send (request.request_id ());
 }
 
 template <class RqVer>
@@ -98,14 +97,14 @@ class NIRVANA_NOVTABLE RequestIn :
 {
 	typedef RqVer Base;
 public:
-	RequestIn (ProtDomainId client_id, CoreRef <StreamIn>&& in) :
-		RqVer (client_id, move (in))
+	RequestIn (ProtDomainId client_id, unsigned GIOP_minor, CoreRef <StreamIn>&& in) :
+		RqVer (client_id, GIOP_minor, move (in))
 	{}
 
 protected:
-	virtual CoreRef <StreamOut> create_output (unsigned& GIOP_minor) override
+	virtual CoreRef <StreamOut> create_output () override
 	{
-		return RequestInESIOP::create_output (*this, GIOP_minor);
+		return RequestInESIOP::create_output (*this);
 	}
 
 	virtual void set_exception (Any& e) override
@@ -126,7 +125,7 @@ class NIRVANA_NOVTABLE ReceiveRequest :
 {
 protected:
 	ReceiveRequest (ProtDomainId client_id, uint32_t request_id, void* data) :
-		timestamp_ (Core::Chrono::steady_clock ()),
+		timestamp_ (Core::Chrono::deadline_clock ()),
 		data_ (data),
 		client_id_ (client_id),
 		request_id_ (request_id)
@@ -168,11 +167,12 @@ void ReceiveRequest::run ()
 		// in->set_size (msg_hdr.message_size ());
 
 		// Create and receive the request
-		if (msg_hdr.GIOP_version ().minor () <= 1) {
-			ImplStatic <RequestIn <RequestIn_1_1> > request (client_id_, move (in));
+		unsigned minor = msg_hdr.GIOP_version ().minor ();
+		if (minor <= 1) {
+			ImplStatic <RequestIn <RequestIn_1_1> > request (client_id_, minor, move (in));
 			IncomingRequests::receive (request, timestamp_);
 		} else {
-			ImplStatic <RequestIn <RequestIn_1_2> > request (client_id_, move (in));
+			ImplStatic <RequestIn <RequestIn_1_2> > request (client_id_, minor, move (in));
 			IncomingRequests::receive (request, timestamp_);
 		}
 
@@ -193,7 +193,7 @@ class NIRVANA_NOVTABLE Cancel :
 {
 protected:
 	Cancel (ProtDomainId client_id, uint32_t request_id) :
-		timestamp_ (Core::Chrono::steady_clock ()),
+		timestamp_ (Core::Chrono::deadline_clock ()),
 		client_id_ (client_id),
 		request_id_ (request_id)
 	{}

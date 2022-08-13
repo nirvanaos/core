@@ -35,14 +35,14 @@
 namespace Nirvana {
 namespace ESIOP {
 
-class NIRVANA_NOVTABLE StreamReply :
+class NIRVANA_NOVTABLE StreamOutReply :
 	public StreamOutSM
 {
 public:
 	// Size of GIOP MessageHeader + size of GIOP ReplyHeader with empty service_context.
 	static const size_t REPLY_HEADERS_SIZE = 24;
 
-	StreamReply (ProtDomainId client_id) :
+	StreamOutReply (ProtDomainId client_id) :
 		StreamOutSM (client_id),
 		small_ptr_ (small_buffer_)
 	{}
@@ -63,6 +63,9 @@ public:
 	virtual size_t size () const override;
 	virtual void* header (size_t hdr_size) override;
 	virtual void rewind (size_t hdr_size) override;
+
+private:
+	void switch_to_base ();
 
 private:
 	uint8_t* small_ptr_;

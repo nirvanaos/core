@@ -30,19 +30,12 @@ using namespace std;
 namespace Nirvana {
 namespace ESIOP {
 
-void StreamReply::write (size_t align, size_t size, void* data, size_t& allocated_size)
+void StreamOutReply::write (size_t align, size_t size, void* data, size_t& allocated_size)
 {
 	if (small_ptr_) {
 		uint8_t* p = round_up (small_ptr_, align);
 		if (allocated_size || p > end (small_buffer_) || (size_t)(end (small_buffer_) - p) < size) {
-			// Switch to StreamOutSM
-			StreamOutSM::initialize ();
-			ptrdiff_t cb = small_ptr_ - begin (small_buffer_);
-			small_ptr_ = nullptr;
-			if (cb > 0) {
-				size_t zero = 0;
-				StreamOutSM::write (1, cb, small_buffer_, zero);
-			}
+			switch_to_base ();
 			StreamOutSM::write (align, size, data, allocated_size);
 		} else
 			small_ptr_ = real_copy ((const uint8_t*)data, (const uint8_t*)data + size, p);
@@ -50,7 +43,18 @@ void StreamReply::write (size_t align, size_t size, void* data, size_t& allocate
 		StreamOutSM::write (align, size, data, allocated_size);
 }
 
-size_t StreamReply::size () const
+void StreamOutReply::switch_to_base ()
+{
+	StreamOutSM::initialize ();
+	ptrdiff_t cb = small_ptr_ - begin (small_buffer_);
+	small_ptr_ = nullptr;
+	if (cb > 0) {
+		size_t zero = 0;
+		StreamOutSM::write (1, cb, small_buffer_, zero);
+	}
+}
+
+size_t StreamOutReply::size () const
 {
 	if (small_ptr_)
 		return small_ptr_ - begin (small_buffer_);
@@ -58,7 +62,7 @@ size_t StreamReply::size () const
 		return StreamOutSM::size ();
 }
 
-void* StreamReply::header (size_t hdr_size)
+void* StreamOutReply::header (size_t hdr_size)
 {
 	if (small_ptr_) {
 		assert (hdr_size < sizeof (small_buffer_));
@@ -67,7 +71,7 @@ void* StreamReply::header (size_t hdr_size)
 		return StreamOutSM::header (hdr_size);
 }
 
-void StreamReply::rewind (size_t hdr_size)
+void StreamOutReply::rewind (size_t hdr_size)
 {
 	if (small_ptr_) {
 		assert (hdr_size < sizeof (small_buffer_));
@@ -76,20 +80,33 @@ void StreamReply::rewind (size_t hdr_size)
 		StreamOutSM::rewind (hdr_size);
 }
 
-void StreamReply::send (uint32_t request_id) NIRVANA_NOEXCEPT
+void StreamOutReply::send (uint32_t request_id) NIRVANA_NOEXCEPT
 {
 	try {
 		if (small_ptr_) {
-			assert (REPLY_HEADERS_SIZE <= small_ptr_ - small_buffer_);
-			const uint8_t* p = small_buffer_ + REPLY_HEADERS_SIZE;
-			size_t size = small_ptr_ - p;
-			ReplyImmediate reply (request_id, p, size);
-			other_domain ().send_message (&reply, sizeof (reply));
-		} else {
-			Reply reply (StreamOutSM::get_shared ());
-			other_domain ().send_message (&reply, sizeof (reply));
-			StreamOutSM::detach ();
+			// Check that the reply header context is empty
+			const GIOP::MessageHeader_1_3* msg_hdr = (const GIOP::MessageHeader_1_3*)small_buffer_;
+			uint32_t context_cnt;
+			if (msg_hdr->GIOP_version ().minor () <= 1)
+				context_cnt = *(const uint32_t*)(msg_hdr + 1);
+			else
+				context_cnt = *((const uint32_t*)(msg_hdr + 1) + 2);
+
+			if (context_cnt)
+				switch_to_base ();
+			else {
+				// Send reply with immediate data
+				const uint8_t* p = small_buffer_ + REPLY_HEADERS_SIZE;
+				size_t size = small_ptr_ - p;
+				ReplyImmediate reply (request_id, p, size);
+				other_domain ().send_message (&reply, sizeof (reply));
+				return;
+			}
 		}
+
+		Reply reply (StreamOutSM::get_shared ());
+		other_domain ().send_message (&reply, sizeof (reply));
+		StreamOutSM::detach ();
 	} catch (...) {
 	}
 }

@@ -30,12 +30,11 @@ using namespace Nirvana;
 namespace CORBA {
 namespace Core {
 
-void StreamOut::write_message_header (GIOP::MsgType msg_type, unsigned GIOP_minor)
+void StreamOut::write_message_header (unsigned GIOP_minor, GIOP::MsgType msg_type)
 {
 	GIOP::MessageHeader_1_3 hdr;
 	hdr.magic ({ 'G', 'I', 'O', 'P' });
-	hdr.GIOP_version ().major (1);
-	hdr.GIOP_version ().minor ((Octet)GIOP_minor);
+	hdr.GIOP_version (GIOP::Version (1, (Octet)GIOP_minor));
 	hdr.flags (endian::native == endian::little ? 1 : 0);
 	hdr.message_type ((Octet)msg_type);
 	write (1, sizeof (hdr), &hdr);

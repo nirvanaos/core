@@ -118,8 +118,8 @@ public:
 	bool finalize ();
 
 protected:
-	RequestIn (const ClientAddress& client, Nirvana::Core::CoreRef <StreamIn>&& in,
-		Nirvana::Core::CoreRef <CodeSetConverterW>&& cscw);
+	RequestIn (const ClientAddress& client, unsigned GIOP_minor,
+		Nirvana::Core::CoreRef <StreamIn>&& in, Nirvana::Core::CoreRef <CodeSetConverterW>&& cscw);
 
 	~RequestIn ();
 
@@ -128,7 +128,7 @@ protected:
 	/// 
 	/// \param [out] GIOP_minor GIOP version minor number.
 	/// \returns The output stream reference.
-	virtual Nirvana::Core::CoreRef <StreamOut> create_output (unsigned& GIOP_minor) = 0;
+	virtual Nirvana::Core::CoreRef <StreamOut> create_output () = 0;
 
 private:
 	// Caller operations throw BAD_OPERATION or just return `false`
@@ -145,6 +145,7 @@ private:
 protected:
 	RequestKey key_;
 	unsigned response_flags_;
+	unsigned GIOP_minor_;
 
 private:
 	Nirvana::Core::ExecDomain* exec_domain_;
@@ -175,9 +176,9 @@ protected:
 	}
 
 protected:
-	RequestInVer (const ClientAddress& client, Nirvana::Core::CoreRef <StreamIn>&& in,
-		Nirvana::Core::CoreRef <CodeSetConverterW>&& cscw) :
-		RequestIn (client, std::move (in), std::move (cscw))
+	RequestInVer (const ClientAddress& client, unsigned GIOP_minor,
+		Nirvana::Core::CoreRef <StreamIn>&& in, Nirvana::Core::CoreRef <CodeSetConverterW>&& cscw) :
+		RequestIn (client, GIOP_minor, std::move (in), std::move (cscw))
 	{
 		Internal::Type <Hdr>::unmarshal (_get_ptr (), header_);
 		key_.request_id = header_.request_id ();
@@ -193,8 +194,8 @@ class NIRVANA_NOVTABLE RequestIn_1_0 : public RequestInVer <GIOP::RequestHeader_
 	typedef RequestInVer <GIOP::RequestHeader_1_0> Base;
 
 public:
-	RequestIn_1_0 (const ClientAddress& client, Nirvana::Core::CoreRef <StreamIn>&& in) :
-		Base (client, std::move (in), CodeSetConverterW_1_0::get_default (false))
+	RequestIn_1_0 (const ClientAddress& client, unsigned GIOP_minor, Nirvana::Core::CoreRef <StreamIn>&& in) :
+		Base (client, GIOP_minor, std::move (in), CodeSetConverterW_1_0::get_default (false))
 	{
 		response_flags_ = header ().response_expected () ? (RESPONSE_EXPECTED | RESPONSE_DATA) : 0;
 	}
@@ -212,8 +213,8 @@ class NIRVANA_NOVTABLE RequestIn_1_1 : public RequestInVer <GIOP::RequestHeader_
 	typedef RequestInVer <GIOP::RequestHeader_1_1> Base;
 
 public:
-	RequestIn_1_1 (const ClientAddress& client, Nirvana::Core::CoreRef <StreamIn>&& in) :
-		Base (client, std::move (in), CodeSetConverterW_1_1::get_default ())
+	RequestIn_1_1 (const ClientAddress& client, unsigned GIOP_minor, Nirvana::Core::CoreRef <StreamIn>&& in) :
+		Base (client, GIOP_minor, std::move (in), CodeSetConverterW_1_1::get_default ())
 	{
 		response_flags_ = header ().response_expected () ? (RESPONSE_EXPECTED | RESPONSE_DATA) : 0;
 	}
@@ -231,8 +232,8 @@ class NIRVANA_NOVTABLE RequestIn_1_2 : public RequestInVer <GIOP::RequestHeader_
 	typedef RequestInVer <GIOP::RequestHeader_1_2> Base;
 
 public:
-	RequestIn_1_2 (const ClientAddress& client, Nirvana::Core::CoreRef <StreamIn>&& in) :
-		Base (client, std::move (in), CodeSetConverterW_1_2::get_default ())
+	RequestIn_1_2 (const ClientAddress& client, unsigned GIOP_minor, Nirvana::Core::CoreRef <StreamIn>&& in) :
+		Base (client, GIOP_minor, std::move (in), CodeSetConverterW_1_2::get_default ())
 	{
 		response_flags_ = header ().response_flags ();
 		if ((response_flags_ & (RESPONSE_EXPECTED | RESPONSE_DATA)) == RESPONSE_DATA)

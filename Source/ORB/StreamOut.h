@@ -78,7 +78,7 @@ public:
 	}
 
 	/// Write GIOP message header.
-	void write_message_header (GIOP::MsgType msg_type, unsigned GIOP_minor);
+	void write_message_header (unsigned GIOP_minor, GIOP::MsgType msg_type);
 };
 
 }

@@ -51,7 +51,7 @@ RequestOut::RequestOut (const IOP::ObjectKey& object_key, const IDL::String& ope
 
 	assert (stream);
 	stream_out_ = move (stream);
-	stream_out_->write_message_header (GIOP::MsgType::Request, GIOP_minor);
+	stream_out_->write_message_header (GIOP_minor, GIOP::MsgType::Request);
 
 	switch (GIOP_minor) {
 		case 0: {

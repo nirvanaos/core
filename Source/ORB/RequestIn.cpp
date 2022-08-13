@@ -36,9 +36,10 @@ using namespace Internal;
 
 namespace Core {
 
-RequestIn::RequestIn (const ClientAddress& client, CoreRef <StreamIn>&& in, CoreRef <CodeSetConverterW>&& cscw) :
+RequestIn::RequestIn (const ClientAddress& client, unsigned GIOP_minor, CoreRef <StreamIn>&& in, CoreRef <CodeSetConverterW>&& cscw) :
 	Request (move (cscw)),
 	key_ (client),
+	GIOP_minor_ (GIOP_minor),
 	exec_domain_ (nullptr)
 {
 	stream_in_ = move (in);
@@ -66,16 +67,16 @@ void RequestIn::switch_to_reply (GIOP::ReplyStatusType status)
 {
 	stream_in_ = nullptr;
 	if (!stream_out_) {
-		unsigned GIOP_minor;
-		stream_out_ = create_output (GIOP_minor);
-		stream_out_->write_message_header (GIOP::MsgType::Reply, GIOP_minor);
-		if (GIOP_minor <= 1) {
+		stream_out_ = create_output ();
+		stream_out_->write_message_header (GIOP_minor_, GIOP::MsgType::Reply);
+		if (GIOP_minor_ <= 1) {
 			GIOP::ReplyHeader_1_0 hdr;
 			// hdr.service_context (move (context_)); TODO: decide
 			hdr.request_id (request_id ());
 			hdr.reply_status (status);
 			Type <GIOP::ReplyHeader_1_0>::marshal_out (hdr, _get_ptr ());
-			reply_status_offset_ = stream_out_->size () - 4;
+			reply_header_end_ = stream_out_->size ();
+			reply_status_offset_ = reply_header_end_ - 4;
 		} else {
 			GIOP::ReplyHeader_1_2 hdr;
 			// hdr.service_context (move (context_)); TODO: decide
@@ -83,8 +84,8 @@ void RequestIn::switch_to_reply (GIOP::ReplyStatusType status)
 			hdr.reply_status (status);
 			reply_status_offset_ = stream_out_->size () + 4;
 			Type <GIOP::ReplyHeader_1_2>::marshal_out (hdr, _get_ptr ());
+			reply_header_end_ = stream_out_->size ();
 		}
-		reply_header_end_ = stream_out_->size ();
 	}
 }
 
