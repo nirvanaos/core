@@ -6,7 +6,7 @@
 #ifndef _GIOP_IDL_
 #define _GIOP_IDL_
 
-#include "IOP.idl"
+#include <CORBA/IOP.idl>
 
 module GIOP {                   // IDL extended for version 1.1 and 1.2
 

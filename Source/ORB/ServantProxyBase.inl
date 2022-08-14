@@ -61,15 +61,18 @@ Internal::IORequest::_ref_type ServantProxyBase::create_oneway (OperationIndex o
 }
 
 inline
-void ServantProxyBase::send (Internal::IORequest::_ref_type& rq,
-	const Nirvana::DeadlineTime& deadline)
+void ServantProxyBase::send (Internal::IORequest::_ref_type& rq, Nirvana::DeadlineTime deadline)
 {
 	if (!rq)
 		throw BAD_PARAM ();
+
+	if (!deadline)
+		deadline = Nirvana::Core::ExecDomain::current ().deadline ();
+
 	RequestLocal* prq = static_cast <RequestLocal*> (&(Internal::IORequest::_ptr_type)rq);
 	switch (prq->kind ()) {
 		case RqKind::SYNC:
-			Nirvana::throw_BAD_PARAM ();
+			throw BAD_PARAM ();
 			break;
 
 		case RqKind::ONEWAY:

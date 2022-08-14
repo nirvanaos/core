@@ -29,7 +29,6 @@
 #pragma once
 
 #include <CORBA/CORBA.h>
-#include <CORBA/OctetSeq.h>
 #include <Nirvana/Hash.h>
 #include <functional>
 

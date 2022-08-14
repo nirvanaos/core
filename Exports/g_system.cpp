@@ -72,7 +72,7 @@ public:
 		return Chrono::system_clock ();
 	}
 
-	static TimeBase::TimeT _s_UTC (CORBA::Internal::Bridge <Nirvana::System>* _b, CORBA::Internal::Interface* _env)
+	static TimeBase::UtcT _s_UTC (CORBA::Internal::Bridge <Nirvana::System>* _b, CORBA::Internal::Interface* _env)
 	{
 		return Chrono::UTC ();
 	}
@@ -92,12 +92,12 @@ public:
 		return CORBA::Internal::Type <DeadlineTime>::ret (Chrono::deadline_clock_frequency ());
 	}
 
-	static DeadlineTime deadline_from_UTC (const TimeBase::TimeT& utc)
+	static DeadlineTime deadline_from_UTC (const TimeBase::UtcT& utc)
 	{
 		return Chrono::deadline_from_UTC (utc);
 	}
 
-	static TimeBase::TimeT deadline_to_UTC (const DeadlineTime& deadline)
+	static TimeBase::UtcT deadline_to_UTC (const DeadlineTime& deadline)
 	{
 		return Chrono::deadline_to_UTC (deadline);
 	}

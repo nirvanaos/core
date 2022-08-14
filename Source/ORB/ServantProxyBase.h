@@ -96,7 +96,7 @@ public:
 
 	void invoke (RequestLocal& rq) NIRVANA_NOEXCEPT;
 
-	void send (Internal::IORequest::_ref_type& rq, const Nirvana::DeadlineTime& deadline);
+	void send (Internal::IORequest::_ref_type& rq, Nirvana::DeadlineTime deadline);
 
 	Nirvana::Core::MemContext* mem_context () const NIRVANA_NOEXCEPT
 	{
