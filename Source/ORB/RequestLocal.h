@@ -337,7 +337,7 @@ public:
 	/// \param output Output parameter marshaling. Haven't to perform deep copy.
 	void marshal_value (Internal::Interface::_ptr_type val, bool output)
 	{
-		if (output || !val || caller_memory_ == callee_memory_)
+		if (!val || (output && caller_memory_ == callee_memory_))
 			marshal_interface (val);
 		else
 			marshal_value_copy (value_type2base (val), val->_epv ().interface_id);
@@ -361,7 +361,7 @@ public:
 	/// \param output Output parameter marshaling. Haven't to perform deep copy.
 	void marshal_abstract (Internal::Interface::_ptr_type itf, bool output)
 	{
-		if (output || !itf || caller_memory_ == callee_memory_)
+		if (!itf || (output && caller_memory_ == callee_memory_))
 			marshal_interface (itf);
 		else {
 			// Downcast to AbstractBase
@@ -501,8 +501,8 @@ protected:
 		assert ((uintptr_t)this % BLOCK_SIZE == 0);
 	}
 
-	Nirvana::Core::Heap& target_memory ();
-	Nirvana::Core::Heap& source_memory ();
+	Nirvana::Core::MemContext& target_memory ();
+	Nirvana::Core::MemContext& source_memory ();
 
 	const Octet* cur_block_end () const NIRVANA_NOEXCEPT
 	{

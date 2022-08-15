@@ -40,26 +40,26 @@ RqKind RequestLocal::kind () const NIRVANA_NOEXCEPT
 	return RqKind::SYNC;
 }
 
-Heap& RequestLocal::target_memory ()
+MemContext& RequestLocal::target_memory ()
 {
 	switch (state_) {
 		case State::CALLER:
 		case State::CALL:
 			if (!callee_memory_)
 				callee_memory_ = MemContextUser::create ();
-			return callee_memory_->heap ();
+			return *callee_memory_;
 
 		default:
-			return caller_memory_->heap ();
+			return *caller_memory_;
 	}
 }
 
-Heap& RequestLocal::source_memory ()
+MemContext& RequestLocal::source_memory ()
 {
 	switch (state_) {
 		case State::CALLER:
 		case State::CALL:
-			return caller_memory_->heap ();
+			return *caller_memory_;
 
 		default:
 			if (!callee_memory_) {
@@ -69,7 +69,7 @@ Heap& RequestLocal::source_memory ()
 				if (!callee_memory_)
 					throw MARSHAL ();
 			}
-			return callee_memory_->heap ();
+			return *callee_memory_;
 	}
 }
 
@@ -246,9 +246,9 @@ void RequestLocal::marshal_segment (size_t align, size_t element_size,
 		segment->ptr = data;
 		allocated_size = 0;
 	} else {
-		Heap& tm = target_memory ();
+		Heap& tm = target_memory ().heap ();
 		if (allocated_size) {
-			Heap& sm = source_memory ();
+			Heap& sm = source_memory ().heap ();
 			segment->ptr = tm.move (sm, data, size);
 			size_t cb_release = allocated_size - size;
 			allocated_size = 0;
@@ -333,11 +333,19 @@ Interface::_ref_type RequestLocal::unmarshal_interface (const IDL::String& inter
 
 void RequestLocal::marshal_value_copy (ValueBase::_ptr_type base, const IDL::String& interface_id)
 {
-	ValueBase::_ref_type copy = base->_copy_value ();
-	Interface::_ptr_type itf = copy->_query_valuetype (interface_id);
-	if (!itf)
-		throw MARSHAL ();
-	marshal_interface (itf);
+	ExecDomain& ed = ExecDomain::current ();
+	ed.mem_context_push (&target_memory ());
+	try {
+		ValueBase::_ref_type copy = base->_copy_value ();
+		Interface::_ptr_type itf = copy->_query_valuetype (interface_id);
+		if (!itf)
+			throw MARSHAL (); // Unexpected
+		marshal_interface (itf);
+	} catch (...) {
+		ed.mem_context_pop ();
+		throw;
+	}
+	ed.mem_context_pop ();
 }
 
 RqKind RequestLocalAsync::kind () const NIRVANA_NOEXCEPT
