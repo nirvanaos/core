@@ -29,7 +29,7 @@
 #pragma once
 
 #include "../CoreInterface.h"
-#include "IDL/GIOP.h"
+#include "GIOP.h"
 
 namespace CORBA {
 namespace Core {

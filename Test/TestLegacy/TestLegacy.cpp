@@ -1,5 +1,5 @@
 #include <Nirvana/Nirvana.h>
-#include <Nirvana/Legacy.h>
+#include <Nirvana/Legacy/Legacy.h>
 #include <gtest/gtest.h>
 
 // Test for the Nirvana::Legacy API

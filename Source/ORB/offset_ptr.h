@@ -30,7 +30,7 @@
 
 #include <CORBA/CORBA.h>
 #include "../TLS.h"
-#include "IDL/ObjectFactory.h"
+#include <CORBA/ObjectFactory.h>
 
 namespace CORBA {
 namespace Core {

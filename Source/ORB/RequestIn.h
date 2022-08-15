@@ -32,7 +32,7 @@
 #include "ClientAddress.h"
 #include "../UserObject.h"
 #include "../ExecDomain.h"
-#include "IDL/GIOP.h"
+#include "GIOP.h"
 
 namespace CORBA {
 namespace Core {

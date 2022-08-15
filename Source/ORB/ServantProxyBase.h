@@ -35,7 +35,7 @@
 #include "ProxyManager.h"
 #include <CORBA/AbstractBase_s.h>
 #include <CORBA/Object_s.h>
-#include "IDL/Proxy/IOReference_s.h"
+#include <CORBA/Proxy/IOReference_s.h>
 #include "offset_ptr.h"
 
 namespace CORBA {

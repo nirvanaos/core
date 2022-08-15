@@ -1,7 +1,3 @@
-/Source/IDL/
-/Source/ORB/IDL/
-/Test/TestORB/module/IDL/
-/Test/TestORB/process/IDL/
 /Exports/File_p.cpp
 /Exports/OctetSeq_p.cpp
 /Exports/RuntimeError_p.cpp
@@ -16,3 +12,12 @@
 /Exports/Current_p.cpp
 /Exports/Policy_p.cpp
 /Exports/TimeBase_p.cpp
+/Exports/Dynamic_p.cpp
+/Exports/Messaging_p.cpp
+/Exports/Pollable_p.cpp
+/Source/CORBA/
+/Source/Nirvana/
+/Source/ORB/GIOP.cpp
+/Source/ORB/GIOP.h
+/Source/ORB/IIOP.cpp
+/Source/ORB/IIOP.h

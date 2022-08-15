@@ -32,7 +32,7 @@
 #include "MapUnorderedStable.h"
 #include "MapUnorderedUnstable.h"
 #include "HashOctetSeq.h"
-#include "IDL/PortableServer_s.h"
+#include <CORBA/PortableServer_s.h>
 #include "LocalObject.h"
 
 namespace PortableServer {

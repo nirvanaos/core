@@ -29,7 +29,7 @@
 #pragma once
 
 #include <CORBA/Server.h>
-#include "IDL/Module_s.h"
+#include <Nirvana/Module_s.h>
 #include <Port/Module.h>
 
 namespace Nirvana {

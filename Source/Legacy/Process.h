@@ -29,7 +29,7 @@
 #pragma once
 
 #include <CORBA/Server.h>
-#include "../IDL/Legacy_Process_s.h"
+#include <Nirvana/Legacy/Legacy_Process_s.h>
 #include "../ExecDomain.h"
 #include "../MemContext.h"
 #include "../RuntimeSupport.h"

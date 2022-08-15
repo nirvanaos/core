@@ -24,7 +24,7 @@
 *  popov.nirvana@gmail.com
 */
 #include <CORBA/Server.h>
-#include <IDL/Legacy_Process_s.h>
+#include <Nirvana/Legacy/Legacy_Process_s.h>
 #include <Nirvana/Launcher.h>
 #include <Legacy/Process.h>
 

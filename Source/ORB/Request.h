@@ -31,10 +31,10 @@
 #include <CORBA/Server.h>
 #include "StreamIn.h"
 #include "StreamOut.h"
-#include "IDL/IORequest_s.h"
+#include <CORBA/IORequest_s.h>
 #include "RqHelper.h"
 #include "../LifeCyclePseudo.h"
-#include "IDL/GIOP.h"
+#include "GIOP.h"
 #include "CodeSetConverter.h"
 
 namespace CORBA {

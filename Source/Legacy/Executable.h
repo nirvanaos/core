@@ -30,7 +30,7 @@
 
 #include "../SyncContext.h"
 #include "../Binary.h"
-#include <Nirvana/Main.h>
+#include <Nirvana/Legacy/Main.h>
 #include "../ORB/LifeCycleStack.h"
 
 namespace Nirvana {

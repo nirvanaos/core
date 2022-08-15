@@ -24,7 +24,7 @@
 *  popov.nirvana@gmail.com
 */
 #include <CORBA/Server.h>
-#include <ORB/IDL/ORB_s.h>
+#include <CORBA/ORB_s.h>
 #include <Binder.h>
 #include <ORB/TC_Fixed.h>
 

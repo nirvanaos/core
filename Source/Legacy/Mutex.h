@@ -29,7 +29,7 @@
 #pragma once
 
 #include "Process.h"
-#include "../IDL/Legacy_s.h"
+#include <Nirvana/Legacy/Legacy_s.h>
 #include "../LifeCyclePseudo.h"
 #include "../Synchronized.h"
 

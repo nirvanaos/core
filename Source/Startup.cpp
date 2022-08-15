@@ -26,7 +26,7 @@
 #include "Startup.h"
 #include "ExecDomain.h"
 #include <Nirvana/Launcher.h>
-#include "IDL/Legacy_Process_s.h"
+#include <Nirvana/Legacy/Legacy_Process_s.h>
 
 using namespace std;
 using namespace Nirvana::Legacy;

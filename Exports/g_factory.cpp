@@ -24,7 +24,7 @@
 *  popov.nirvana@gmail.com
 */
 #include <CORBA/Server.h>
-#include <IDL/Legacy_s.h>
+#include <Nirvana/Legacy/Legacy_s.h>
 #include <Legacy/Mutex.h>
 
 namespace Nirvana {

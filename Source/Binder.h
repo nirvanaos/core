@@ -35,7 +35,7 @@
 #include "Module.h"
 #include "StaticallyAllocated.h"
 #include <CORBA/RepId.h>
-#include <Nirvana/Main.h>
+#include <Nirvana/Legacy/Main.h>
 #include <Nirvana/ModuleInit.h>
 #include "WaitableRef.h"
 #include "ORB/Services.h"

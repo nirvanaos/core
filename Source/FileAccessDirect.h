@@ -33,7 +33,7 @@
 #include "UserObject.h"
 #include "Chrono.h"
 #include <map>
-#include "IDL/File_s.h"
+#include <Nirvana/File_s.h>
 
 namespace Nirvana {
 namespace Core {

@@ -30,7 +30,7 @@
 
 #include "Heap.h"
 #include <CORBA/Server.h>
-#include "IDL/Memory_s.h"
+#include <Nirvana/Memory_s.h>
 #include "LifeCyclePseudo.h"
 #include "MemContextObject.h"
 

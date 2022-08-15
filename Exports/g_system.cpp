@@ -25,7 +25,7 @@
 */
 #include <CORBA/Server.h>
 #include <signal.h>
-#include <IDL/System_s.h>
+#include <Nirvana/System_s.h>
 #include <Binder.h>
 #include <Chrono.h>
 #include <ExecDomain.h>

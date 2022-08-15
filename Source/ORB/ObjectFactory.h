@@ -31,7 +31,7 @@
 #include "ServantBase.h"
 #include "LocalObject.h"
 #include "SyncDomain.h"
-#include "IDL/ObjectFactory_s.h"
+#include <CORBA/ObjectFactory_s.h>
 
 namespace CORBA {
 namespace Core {

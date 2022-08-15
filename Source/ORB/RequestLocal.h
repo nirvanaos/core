@@ -31,7 +31,7 @@
 #include "ServantProxyBase.h"
 #include "../ExecDomain.h"
 #include "../MemContext.h"
-#include "IDL/IORequest_s.h"
+#include <CORBA/IORequest_s.h>
 #include "RqHelper.h"
 
 namespace CORBA {

@@ -24,7 +24,7 @@
 *  popov.nirvana@gmail.com
 */
 #include <CORBA/Server.h>
-#include <IDL/Memory_s.h>
+#include <Nirvana/Memory_s.h>
 #include <ExecDomain.h>
 
 namespace Nirvana {
