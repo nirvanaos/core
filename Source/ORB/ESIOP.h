@@ -176,6 +176,17 @@ static_assert (sizeof (MessageBuffer) == sizeof (ReplyImmediate), "sizeof (Messa
 /// Called by the postman from portability layer.
 void dispatch_message (const MessageHeader& message) NIRVANA_NOEXCEPT;
 
+/// Vendor service context ID. Used only in ESIOP messages.
+const uint32_t VSCID = 0xFFFFFF;
+
+///@{ Service context IDs
+
+/// Local deadline.
+/// context_data contains the local DeadlineTime, 8 bytes.
+const uint32_t CONTEXT_ID_DEADLINE = (VSCID << 8) | 0;
+
+///@}
+
 }
 }
 

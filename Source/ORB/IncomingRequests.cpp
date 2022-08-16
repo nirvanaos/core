@@ -24,6 +24,7 @@
 *  popov.nirvana@gmail.com
 */
 #include "IncomingRequests.h"
+#include "Chrono.h"
 
 using namespace std;
 using namespace Nirvana;
@@ -58,8 +59,26 @@ void IncomingRequests::receive (RequestIn& rq, uint64_t timestamp)
 		// Now we must obtain the deadline value from the service context.
 		const IOP::ServiceContextList& sc = rq.service_context ();
 
-		// Stub. TODO: Implement.
 		DeadlineTime deadline = INFINITE_DEADLINE;
+		for (const auto& context : sc) {
+			if (ESIOP::CONTEXT_ID_DEADLINE == context.context_id ()) {
+				if (context.context_data ().size () != 8)
+					throw BAD_PARAM ();
+				deadline = *(DeadlineTime*)context.context_data ().data ();
+				if (rq.stream_in ()->other_endian ())
+					deadline = byteswap (deadline);
+				break;
+			} else if (IOP::RTCorbaPriority == context.context_id ()) {
+				if (context.context_data ().size () != 2)
+					throw BAD_PARAM ();
+				int16_t priority = *(int16_t*)context.context_data ().data ();
+				if (rq.stream_in ()->other_endian ())
+					priority = byteswap ((uint16_t)priority);
+				deadline = Chrono::deadline_from_priority (priority);
+				break;
+			}
+		}
+
 		ed.deadline (deadline);
 		ed.yield (); // Reschedule
 

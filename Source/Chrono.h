@@ -29,12 +29,32 @@
 #pragma once
 
 #include <Port/Chrono.h>
+#include <Nirvana/rescale.h>
 
 namespace Nirvana {
 namespace Core {
 
 /// Core time service.
-using Chrono = Port::Chrono;
+class Chrono : public Port::Chrono
+{
+public:
+	static DeadlineTime deadline_from_priority (int16_t priority)
+	{
+		assert (priority >= 0);
+		return deadline_clock () + deadline_clock_frequency () * ((int32_t)std::numeric_limits <int16_t>::max () - (int32_t)priority + 1) / TimeBase::MILLISECOND;
+	}
+
+	static int16_t deadline_to_priority (DeadlineTime deadline)
+	{
+		int64_t rem = deadline - deadline_clock ();
+		if (rem < 0)
+			rem = 0;
+		int64_t ms = rescale64 (rem, TimeBase::MILLISECOND, deadline_clock_frequency () - 1, deadline_clock_frequency ());
+		if (ms > std::numeric_limits <int16_t>::max ())
+			ms = std::numeric_limits <int16_t>::max ();
+		return std::numeric_limits <int16_t>::max () - (int16_t)ms;
+	}
+};
 
 }
 }
