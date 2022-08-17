@@ -73,26 +73,25 @@ public:
 		return key_;
 	}
 
+	/// \returns The request id.
 	uint32_t request_id () const NIRVANA_NOEXCEPT
 	{
 		return key_.request_id;
 	}
 
-	Nirvana::Core::ExecDomain* exec_domain () const NIRVANA_NOEXCEPT
+	/// \returns Target object key.
+	const IOP::ObjectKey& object_key () const NIRVANA_NOEXCEPT
 	{
-		return exec_domain_;
+		return object_key_;
 	}
 
-	void exec_domain (Nirvana::Core::ExecDomain* ed) NIRVANA_NOEXCEPT
-	{
-		exec_domain_ = ed;
-	}
-
-	virtual const IOP::ServiceContextList& service_context () const NIRVANA_NOEXCEPT = 0;
-	virtual const IOP::ObjectKey& object_key () const = 0;
+	/// \returns Operation name.
 	virtual const IDL::String& operation () const NIRVANA_NOEXCEPT = 0;
 
-	/// Response flags.
+	/// \returns Service context.
+	virtual const IOP::ServiceContextList& service_context () const NIRVANA_NOEXCEPT = 0;
+
+	/// \returns  Response flags.
 	unsigned response_flags () const NIRVANA_NOEXCEPT
 	{
 		return response_flags_;
@@ -116,6 +115,16 @@ public:
 	/// 
 	/// \returns `true` if the reply must be sent.
 	bool finalize ();
+
+	Nirvana::Core::ExecDomain* exec_domain () const NIRVANA_NOEXCEPT
+	{
+		return exec_domain_;
+	}
+
+	void exec_domain (Nirvana::Core::ExecDomain* ed) NIRVANA_NOEXCEPT
+	{
+		exec_domain_ = ed;
+	}
 
 protected:
 	RequestIn (const ClientAddress& client, unsigned GIOP_minor,
@@ -144,6 +153,7 @@ private:
 
 protected:
 	RequestKey key_;
+	IOP::ObjectKey object_key_;
 	unsigned response_flags_;
 	unsigned GIOP_minor_;
 
@@ -160,11 +170,6 @@ template <class Hdr>
 class NIRVANA_NOVTABLE RequestInVer : public RequestIn
 {
 protected:
-	const Hdr& header () const NIRVANA_NOEXCEPT
-	{
-		return header_;
-	}
-
 	virtual const IOP::ServiceContextList& service_context () const NIRVANA_NOEXCEPT
 	{
 		return header_.service_context ();
@@ -184,7 +189,7 @@ protected:
 		key_.request_id = header_.request_id ();
 	}
 
-private:
+protected:
 	Hdr header_;
 };
 
@@ -197,13 +202,8 @@ public:
 	RequestIn_1_0 (const ClientAddress& client, unsigned GIOP_minor, Nirvana::Core::CoreRef <StreamIn>&& in) :
 		Base (client, GIOP_minor, std::move (in), CodeSetConverterW_1_0::get_default (false))
 	{
-		response_flags_ = header ().response_expected () ? (RESPONSE_EXPECTED | RESPONSE_DATA) : 0;
-	}
-
-protected:
-	virtual const IOP::ObjectKey& object_key () const
-	{
-		return header ().object_key ();
+		response_flags_ = header_.response_expected () ? (RESPONSE_EXPECTED | RESPONSE_DATA) : 0;
+		object_key_ = std::move (header_.object_key ());
 	}
 };
 
@@ -213,17 +213,7 @@ class NIRVANA_NOVTABLE RequestIn_1_1 : public RequestInVer <GIOP::RequestHeader_
 	typedef RequestInVer <GIOP::RequestHeader_1_1> Base;
 
 public:
-	RequestIn_1_1 (const ClientAddress& client, unsigned GIOP_minor, Nirvana::Core::CoreRef <StreamIn>&& in) :
-		Base (client, GIOP_minor, std::move (in), CodeSetConverterW_1_1::get_default ())
-	{
-		response_flags_ = header ().response_expected () ? (RESPONSE_EXPECTED | RESPONSE_DATA) : 0;
-	}
-
-protected:
-	virtual const IOP::ObjectKey& object_key () const
-	{
-		return header ().object_key ();
-	}
+	RequestIn_1_1 (const ClientAddress& client, unsigned GIOP_minor, Nirvana::Core::CoreRef <StreamIn>&& in);
 };
 
 /// Implements server-side IORequest for GIOP 1.2 and later.
@@ -232,23 +222,10 @@ class NIRVANA_NOVTABLE RequestIn_1_2 : public RequestInVer <GIOP::RequestHeader_
 	typedef RequestInVer <GIOP::RequestHeader_1_2> Base;
 
 public:
-	RequestIn_1_2 (const ClientAddress& client, unsigned GIOP_minor, Nirvana::Core::CoreRef <StreamIn>&& in) :
-		Base (client, GIOP_minor, std::move (in), CodeSetConverterW_1_2::get_default ())
-	{
-		response_flags_ = header ().response_flags ();
-		if ((response_flags_ & (RESPONSE_EXPECTED | RESPONSE_DATA)) == RESPONSE_DATA)
-			throw INV_FLAG ();
-	}
-
-protected:
-	virtual const IOP::ObjectKey& object_key () const;
+	RequestIn_1_2 (const ClientAddress& client, unsigned GIOP_minor, Nirvana::Core::CoreRef <StreamIn>&& in);
 
 private:
-	static const IOP::ObjectKey& key_from_profile (const IOP::TaggedProfile& profile)
-	{
-		// TODO: Some check of the profile id?
-		return profile.profile_data ();
-	}
+	void get_object_key (const IOP::TaggedProfile& profile);
 };
 
 }

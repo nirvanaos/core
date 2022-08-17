@@ -61,7 +61,6 @@ public:
 	}
 
 protected:
-	virtual void unmarshal_end () override;
 	virtual bool marshal_op () override;
 	virtual void success () override;
 	virtual void cancel () override;

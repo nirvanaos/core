@@ -298,8 +298,7 @@ public:
 	/// End of input data marshaling.
 	/// 
 	/// Marshaling resources may be released.
-	/// This operation is called only if the input data is not empty.
-	virtual void unmarshal_end () = 0;
+	virtual void unmarshal_end ();
 
 	/// Return exception to caller.
 	/// Operation has move semantics so \p e may be cleared.
@@ -377,6 +376,11 @@ public:
 
 protected:
 	Request (Nirvana::Core::CoreRef <CodeSetConverterW>&& cscw);
+
+	Request (const Request& src) :
+		code_set_conv_ (src.code_set_conv_),
+		code_set_conv_w_ (src.code_set_conv_w_)
+	{}
 
 	virtual bool marshal_op () = 0;
 

@@ -125,5 +125,15 @@ void Request::set_out_size ()
 	((GIOP::MessageHeader_1_3*)stream_out_->header (sizeof (GIOP::MessageHeader_1_3)))->message_size ((uint32_t)size);
 }
 
+void Request::unmarshal_end ()
+{
+	if (stream_in_) {
+		size_t more_data = !stream_in_->end ();
+		stream_in_ = nullptr;
+		if (more_data > 7) // 8-byte alignment is ignored
+			throw MARSHAL (StreamIn::MARSHAL_MINOR_MORE);
+	}
+}
+
 }
 }

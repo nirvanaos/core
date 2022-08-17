@@ -25,6 +25,8 @@
 */
 #include "RequestIn.h"
 #include "IncomingRequests.h"
+#include "RequestEncapIn.h"
+#include "IIOP.h"
 
 using namespace Nirvana;
 using namespace Nirvana::Core;
@@ -55,12 +57,8 @@ RequestIn::~RequestIn ()
 
 void RequestIn::unmarshal_end ()
 {
-	if (stream_in_) {
-		size_t more_data = !stream_in_->end ();
-		stream_in_ = nullptr;
-		if (more_data > 7) // 8-byte alignment is ignored
-			throw MARSHAL (StreamIn::MARSHAL_MINOR_MORE);
-	}
+	Request::unmarshal_end ();
+	// TODO: Here we must enter the target sync domain.
 }
 
 void RequestIn::switch_to_reply (GIOP::ReplyStatusType status)
@@ -159,26 +157,49 @@ bool RequestIn::wait (uint64_t)
 	throw BAD_OPERATION ();
 }
 
-const IOP::ObjectKey& RequestIn_1_2::object_key () const
+RequestIn_1_1::RequestIn_1_1 (const ClientAddress& client, unsigned GIOP_minor, Nirvana::Core::CoreRef <StreamIn>&& in) :
+	Base (client, GIOP_minor, std::move (in), CodeSetConverterW_1_1::get_default ())
 {
-	switch (header ().target ()._d ()) {
+	response_flags_ = header_.response_expected () ? (RESPONSE_EXPECTED | RESPONSE_DATA) : 0;
+	object_key_ = std::move (header_.object_key ());
+}
+
+RequestIn_1_2::RequestIn_1_2 (const ClientAddress& client, unsigned GIOP_minor, Nirvana::Core::CoreRef <StreamIn>&& in) :
+	Base (client, GIOP_minor, std::move (in), CodeSetConverterW_1_2::get_default ())
+{
+	response_flags_ = header_.response_flags ();
+	if ((response_flags_ & (RESPONSE_EXPECTED | RESPONSE_DATA)) == RESPONSE_DATA)
+		throw INV_FLAG ();
+
+	switch (header_.target ()._d ()) {
 		case GIOP::KeyAddr:
-			return header ().target ().object_key ();
+			object_key_ = move (header_.target ().object_key ());
+			break;
 
 		case GIOP::ProfileAddr:
-			return key_from_profile (header ().target ().profile ());
+			get_object_key (header_.target ().profile ());
+			break;
 
-		case GIOP::ReferenceAddr:
-		{
-			const GIOP::IORAddressingInfo& ior = header ().target ().ior ();
+		case GIOP::ReferenceAddr: {
+			const GIOP::IORAddressingInfo& ior = header_.target ().ior ();
 			const IOP::TaggedProfileSeq& profiles = ior.ior ().profiles ();
 			if (profiles.size () <= ior.selected_profile_index ())
 				throw OBJECT_NOT_EXIST ();
-			return key_from_profile (profiles [ior.selected_profile_index ()]);
-		}
+			get_object_key (profiles [ior.selected_profile_index ()]);
+		} break;
 	}
+}
 
-	throw UNKNOWN ();
+void RequestIn_1_2::get_object_key (const IOP::TaggedProfile& profile)
+{
+	if (IOP::TAG_INTERNET_IOP == profile.tag ()) {
+		ImplStatic <RequestEncapIn> rq (ref (*this), ref (profile.profile_data ()));
+
+		IIOP::ProfileBody_1_0 body;
+		Type <IIOP::ProfileBody_1_0>::unmarshal (rq._get_ptr (), body);
+		object_key_ = move (body.object_key ());
+	}
+	throw OBJECT_NOT_EXIST ();
 }
 
 }
