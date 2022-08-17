@@ -76,6 +76,10 @@ MemContext& RequestLocal::source_memory ()
 void RequestLocal::marshal_op () NIRVANA_NOEXCEPT
 {
 	if (State::CALL == state_) {
+		// Leave sync domain, if any.
+		// Output data marshaling performed out of sync domain.
+		ExecDomain::current ().leave_sync_domain ();
+
 		clear ();
 		state_ = State::CALLEE;
 	}

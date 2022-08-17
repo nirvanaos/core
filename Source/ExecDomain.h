@@ -195,6 +195,16 @@ public:
 		sync_context_ = &sync_context;
 	}
 
+	/// Leave the current sync domain, if any.
+	void leave_sync_domain () NIRVANA_NOEXCEPT
+	{
+		SyncDomain* sd = sync_context ().sync_domain ();
+		if (sd) {
+			sync_context (g_core_free_sync_context);
+			sd->leave ();
+		}
+	}
+
 	/// \returns Current memory context.
 	MemContext& mem_context ()
 	{
