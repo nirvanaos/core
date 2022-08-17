@@ -42,15 +42,20 @@ class ProxyObject :
 	class Deactivator;
 
 public:
-	// Called from the POA synchronization domain
+	/// Called from the POA synchronization domain.
+	/// 
+	/// \param poa Activation POA
+	/// \param oid Pointer to the activated ObjectId. 
+	///   `nullptr` if servant activated via set_servant.
+	/// \param implicit `true` for implicit activation, `false` for explicit activation.
 	void activate (PortableServer::POA::_ptr_type poa,
-		const PortableServer::ObjectId& oid, bool implicit) NIRVANA_NOEXCEPT
+		const PortableServer::ObjectId* oid, bool implicit) NIRVANA_NOEXCEPT
 	{
 		assert (!activated_POA_);
 		activated_POA_ = poa;
-		activated_id_ = &oid;
+		activated_id_ = oid;
 		implicit_activation_ = implicit;
-		activation_state_ = ACTIVE;
+		activation_state_ = ActivationState::ACTIVE;
 	}
 
 	// Called from the POA synchronization domain
@@ -71,7 +76,7 @@ public:
 		activated_POA_ = nullptr;
 		activated_id_ = nullptr;
 		implicit_activation_ = false;
-		activation_state_ = INACTIVE;
+		activation_state_ = ActivationState::INACTIVE;
 	}
 
 	// Returns user ServantBase implementation
@@ -83,6 +88,7 @@ public:
 protected:
 	ProxyObject (PortableServer::Servant servant) :
 		ServantProxyBase (servant, object_ops_, this),
+		activation_state_ (ActivationState::INACTIVE),
 		activated_id_ (nullptr),
 		implicit_activation_ (false)
 	{}

@@ -45,7 +45,7 @@ ObjectId POA_ImplicitUnique::activate_object (Object::_ptr_type p_servant)
 	AOM::const_iterator it = AOM_insert (p_servant, oid);
 
 	if (!activated_POA)
-		proxy->activate (_this (), it->first, true);
+		proxy->activate (_this (), &it->first, true);
 
 	return it->first;
 }
@@ -68,7 +68,7 @@ void POA_ImplicitUnique::activate_object_with_id (const ObjectId& oid, CORBA::Ob
 	}
 
 	if (!activated_POA)
-		proxy->activate (_this (), it->first, true);
+		proxy->activate (_this (), &it->first, true);
 }
 
 ObjectId POA_ImplicitUnique::servant_to_id (Object::_ptr_type p_servant)
@@ -83,8 +83,9 @@ ObjectId POA_ImplicitUnique::servant_to_id (Object::_ptr_type p_servant)
 
 	ObjectId oid;
 	AOM::const_iterator it = AOM_insert (p_servant, oid);
+
 	if (!activated_POA)
-		proxy->activate (_this (), it->first, true);
+		proxy->activate (_this (), &it->first, true);
 	return oid;
 }
 
@@ -98,7 +99,7 @@ Object::_ref_type POA_ImplicitUnique::servant_to_reference (Object::_ptr_type p_
 	if (!activated_POA) {
 		ObjectId oid;
 		AOM::const_iterator it = AOM_insert (p_servant, oid);
-		proxy->activate (_this (), it->first, true);
+		proxy->activate (_this (), &it->first, true);
 	}
 	return p_servant;
 }
