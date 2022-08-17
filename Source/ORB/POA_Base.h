@@ -194,6 +194,7 @@ public:
 
 	// object activation and deactivation
 	virtual ObjectId activate_object (CORBA::Object::_ptr_type p_servant) = 0;
+	virtual void activate_object_with_id (const ObjectId& oid, CORBA::Object::_ptr_type p_servant) = 0;
 	virtual void deactivate_object (const ObjectId& oid) = 0;
 
 	// reference creation operations
@@ -240,6 +241,9 @@ public:
 	static void _s_set_servant (CORBA::Internal::Bridge <POA>* _b, Interface* p_servant, Interface* _env);
 	static CORBA::Internal::Type <ObjectId>::ABI_ret _s_activate_object (
 		CORBA::Internal::Bridge <POA>* _b, Interface* p_servant,
+		Interface* env);
+	static void _s_activate_object_with_id (
+		CORBA::Internal::Bridge <POA>* _b, CORBA::Internal::Type <ObjectId>::ABI_in oid, Interface* p_servant,
 		Interface* env);
 	static CORBA::Internal::Type <ObjectId>::ABI_ret _s_servant_to_id (
 		CORBA::Internal::Bridge <POA>* _b, Interface* p_servant,

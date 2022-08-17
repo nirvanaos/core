@@ -50,6 +50,27 @@ ObjectId POA_ImplicitUnique::activate_object (Object::_ptr_type p_servant)
 	return it->first;
 }
 
+void POA_ImplicitUnique::activate_object_with_id (const ObjectId& oid, CORBA::Object::_ptr_type p_servant)
+{
+	if (!p_servant)
+		throw BAD_PARAM ();
+
+	auto proxy = object2servant_core (p_servant);
+	POA::_ptr_type activated_POA = proxy->activated_POA ();
+	if (activated_POA && activated_POA->_is_equivalent (_this ()))
+		throw ServantAlreadyActive (); // This servant already activated in this POA
+
+	ObjectId soid;
+	AOM::const_iterator it = AOM_insert (p_servant, soid);
+	if (soid != oid) {
+		active_object_map_.erase (it);
+		throw BAD_PARAM ();
+	}
+
+	if (!activated_POA)
+		proxy->activate (_this (), it->first, true);
+}
+
 ObjectId POA_ImplicitUnique::servant_to_id (Object::_ptr_type p_servant)
 {
 	if (!p_servant)

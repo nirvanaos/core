@@ -44,4 +44,3 @@ ObjectId POA_SystemId::unique_id (ServantBase* proxy)
 
 }
 }
-

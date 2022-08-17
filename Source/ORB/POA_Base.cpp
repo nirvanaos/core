@@ -43,12 +43,12 @@ Interface* POA_Base::_s_get_servant (Bridge <POA>* _b, Interface* _env)
 	return Type <Object>::ret ();
 }
 
-void POA_Base::_s_set_servant (CORBA::Internal::Bridge <POA>* _b,
+void POA_Base::_s_set_servant (Bridge <POA>* _b,
 	Interface* p_servant,
 	Interface* _env)
 {
 	try {
-		_implementation (_b).set_servant (CORBA::Internal::Type <CORBA::Object>::in (p_servant));
+		_implementation (_b).set_servant (Type <Object>::in (p_servant));
 	} catch (Exception& e) {
 		set_exception (_env, e);
 	} catch (...) {
@@ -69,6 +69,19 @@ Type <ObjectId>::ABI_ret POA_Base::_s_activate_object (Bridge <POA>* _b,
 		set_unknown_exception (env);
 	}
 	return Type <ObjectId>::ret ();
+}
+
+void POA_Base::_s_activate_object_with_id (Bridge <POA>* _b,
+	Type <ObjectId>::ABI_in oid, Interface* p_servant,
+	Interface* env)
+{
+	try {
+		_implementation (_b).activate_object_with_id (Type <ObjectId>::in (oid), Type <Object>::in (p_servant));
+	} catch (Exception& e) {
+		set_exception (env, e);
+	} catch (...) {
+		set_unknown_exception (env);
+	}
 }
 
 Type <ObjectId>::ABI_ret POA_Base::_s_servant_to_id (Bridge <POA>* _b,
@@ -157,9 +170,9 @@ ObjectId POA_Base::reference_to_id (Object::_ptr_type reference)
 const CORBA::Core::LocalObject* POA_Base::get_proxy (POA::_ptr_type poa) NIRVANA_NOEXCEPT
 {
 	if (poa) {
-		CORBA::Object::_ptr_type obj (poa);
+		Object::_ptr_type obj (poa);
 		return &static_cast <const CORBA::Core::LocalObject&> (
-			*static_cast <CORBA::Internal::Bridge <CORBA::Object>*> (&obj));
+			*static_cast <Bridge <Object>*> (&obj));
 	}
 	return nullptr;
 }
@@ -169,7 +182,7 @@ POA_Base* POA_Base::get_implementation (POA::_ptr_type poa) NIRVANA_NOEXCEPT
 	if (poa) {
 		const CORBA::Core::LocalObject* proxy = get_proxy (poa);
 		POA_Base* impl = static_cast <POA_Base*> (
-			static_cast <CORBA::Internal::Bridge <CORBA::LocalObject>*> (&proxy->servant ()));
+			static_cast <Bridge <LocalObject>*> (&proxy->servant ()));
 		if (impl->signature_ == SIGNATURE)
 			return impl;
 	}

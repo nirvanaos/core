@@ -38,6 +38,7 @@ class POA_ImplicitUnique : public POA_Implicit
 	typedef POA_Implicit Base;
 public:
 	virtual ObjectId activate_object (CORBA::Object::_ptr_type p_servant) override;
+	virtual void activate_object_with_id (const ObjectId& oid, CORBA::Object::_ptr_type p_servant) override;
 	virtual ObjectId servant_to_id (CORBA::Object::_ptr_type p_servant) override;
 	virtual CORBA::Object::_ref_type servant_to_reference (CORBA::Object::_ptr_type p_servant) override;
 
@@ -48,7 +49,6 @@ protected:
 
 private:
 	AOM::const_iterator AOM_insert (CORBA::Object::_ptr_type p_servant, ObjectId& oid);
-
 };
 
 }
