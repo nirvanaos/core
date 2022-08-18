@@ -44,79 +44,58 @@ using namespace Core;
 namespace ESIOP {
 
 /// ESIOP incoming request.
-class RequestInESIOP
+class NIRVANA_NOVTABLE RequestIn :
+	public CORBA::Core::RequestIn
 {
+	typedef CORBA::Core::RequestIn Base;
+
 protected:
-	static CoreRef <StreamOut> create_output (CORBA::Core::RequestIn& request);
-	static void set_exception (CORBA::Core::RequestIn& request, Any& e);
-	static void success (CORBA::Core::RequestIn& request);
+	RequestIn (ProtDomainId client_id, unsigned GIOP_minor, CoreRef <StreamIn>&& in) :
+		Base (client_id, GIOP_minor, move (in))
+	{}
+
+	virtual CoreRef <StreamOut> create_output () override;
+	virtual void set_exception (Any& e) override;
+	virtual void success () override;
 };
 
-CoreRef <StreamOut> RequestInESIOP::create_output (CORBA::Core::RequestIn& request)
+CoreRef <StreamOut> RequestIn::create_output ()
 {
-	return CoreRef <StreamOut>::create <ImplDynamic <StreamOutReply> > (request.key ().address.esiop);
+	return CoreRef <StreamOut>::create <ImplDynamic <StreamOutReply> > (key ().address.esiop);
 }
 
-void RequestInESIOP::set_exception (CORBA::Core::RequestIn& request, Any& e)
+void RequestIn::set_exception (Any& e)
 {
 	if (e.type ()->kind () != TCKind::tk_except)
 		throw BAD_PARAM (MAKE_OMG_MINOR (21));
 
-	if (!request.finalize ())
+	if (!finalize ())
 		return;
 
 	aligned_storage <sizeof (SystemException), alignof (SystemException)>::type buf;
 	SystemException& ex = (SystemException&)buf;
 	if (e >>= ex) {
-		if (request.stream_out ())
-			static_cast <StreamOutReply&> (*request.stream_out ()).system_exception (request.request_id (), ex);
+		if (stream_out ())
+			static_cast <StreamOutReply&> (*stream_out ()).system_exception (request_id (), ex);
 		else {
-			ReplySystemException reply (request.request_id (), ex);
-			send_error_message (request.key ().address.esiop, &reply, sizeof (reply));
+			ReplySystemException reply (request_id (), ex);
+			send_error_message (key ().address.esiop, &reply, sizeof (reply));
 		}
 	} else {
-		assert (request.stream_out ());
-		request.set_exception (e);
-		static_cast <StreamOutReply&> (*request.stream_out ()).send (request.request_id ());
+		assert (stream_out ());
+		Base::set_exception (e);
+		static_cast <StreamOutReply&> (*stream_out ()).send (request_id ());
 	}
 }
 
-void RequestInESIOP::success (CORBA::Core::RequestIn& request)
+void RequestIn::success ()
 {
-	if (!request.finalize ())
+	if (!finalize ())
 		return;
 
-	request.success ();
-	static_cast <StreamOutReply&> (*request.stream_out ()).send (request.request_id ());
+	Base::success ();
+	static_cast <StreamOutReply&> (*stream_out ()).send (request_id ());
 }
-
-template <class RqVer>
-class NIRVANA_NOVTABLE RequestIn :
-	public RqVer,
-	public RequestInESIOP
-{
-	typedef RqVer Base;
-public:
-	RequestIn (ProtDomainId client_id, unsigned GIOP_minor, CoreRef <StreamIn>&& in) :
-		RqVer (client_id, GIOP_minor, move (in))
-	{}
-
-protected:
-	virtual CoreRef <StreamOut> create_output () override
-	{
-		return RequestInESIOP::create_output (*this);
-	}
-
-	virtual void set_exception (Any& e) override
-	{
-		return RequestInESIOP::set_exception (*this, e);
-	}
-
-	virtual void success () override
-	{
-		RequestInESIOP::success (*this);
-	}
-};
 
 /// Receive request Runnable
 class NIRVANA_NOVTABLE ReceiveRequest :
@@ -168,13 +147,8 @@ void ReceiveRequest::run ()
 
 		// Create and receive the request
 		unsigned minor = msg_hdr.GIOP_version ().minor ();
-		if (minor <= 1) {
-			ImplStatic <RequestIn <RequestIn_1_1> > request (client_id_, minor, move (in));
-			IncomingRequests::receive (request, timestamp_);
-		} else {
-			ImplStatic <RequestIn <RequestIn_1_2> > request (client_id_, minor, move (in));
-			IncomingRequests::receive (request, timestamp_);
-		}
+		ImplStatic <RequestIn> request (client_id_, minor, move (in));
+		IncomingRequests::receive (request, timestamp_);
 
 	} catch (const CORBA::SystemException& ex) {
 		if (request_id_) {

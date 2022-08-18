@@ -375,7 +375,7 @@ public:
 	///@}
 
 protected:
-	Request (Nirvana::Core::CoreRef <CodeSetConverterW>&& cscw);
+	Request (unsigned GIOP_minor, bool client_side);
 
 	Request (const Request& src) :
 		code_set_conv_ (src.code_set_conv_),

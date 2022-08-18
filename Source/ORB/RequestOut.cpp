@@ -39,7 +39,7 @@ namespace Core {
 RequestOut::RequestOut (const IOP::ObjectKey& object_key, const IDL::String& operation,
 	unsigned GIOP_minor, unsigned response_flags, IOP::ServiceContextList&& context,
 	CoreRef <StreamOut>&& stream) :
-	Request (CodeSetConverterW::get_default (GIOP_minor, false)),
+	Request (GIOP_minor, true),
 	exec_domain_ (nullptr),
 	id_ (response_flags ? OutgoingRequests::new_request (*this)
 		: OutgoingRequests::new_request_oneway ())
@@ -82,7 +82,7 @@ RequestOut::RequestOut (const IOP::ObjectKey& object_key, const IDL::String& ope
 			hdr.operation (operation);
 			hdr.service_context (move (context));
 			Type <GIOP::RequestHeader_1_2>::marshal_out (hdr, _get_ptr ());
-		}
+		} break;
 	}
 }
 

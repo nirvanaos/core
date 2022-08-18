@@ -35,9 +35,9 @@ using namespace Internal;
 
 namespace Core {
 
-Request::Request (CoreRef <CodeSetConverterW>&& cscw) :
+Request::Request (unsigned GIOP_minor, bool client_side) :
 	code_set_conv_ (CodeSetConverter::get_default ()),
-	code_set_conv_w_ (move (cscw))
+	code_set_conv_w_ (CodeSetConverterW::get_default (GIOP_minor, client_side))
 {}
 
 bool Request::marshal_seq_begin (size_t element_count)

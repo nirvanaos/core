@@ -86,10 +86,16 @@ public:
 	}
 
 	/// \returns Operation name.
-	virtual const IDL::String& operation () const NIRVANA_NOEXCEPT = 0;
+	const IDL::String& operation () const NIRVANA_NOEXCEPT
+	{
+		return operation_;
+	}
 
 	/// \returns Service context.
-	virtual const IOP::ServiceContextList& service_context () const NIRVANA_NOEXCEPT = 0;
+	const IOP::ServiceContextList& service_context () const NIRVANA_NOEXCEPT
+	{
+		return service_context_;
+	}
 
 	/// \returns  Response flags.
 	unsigned response_flags () const NIRVANA_NOEXCEPT
@@ -127,8 +133,7 @@ public:
 	}
 
 protected:
-	RequestIn (const ClientAddress& client, unsigned GIOP_minor,
-		Nirvana::Core::CoreRef <StreamIn>&& in, Nirvana::Core::CoreRef <CodeSetConverterW>&& cscw);
+	RequestIn (const ClientAddress& client, unsigned GIOP_minor, Nirvana::Core::CoreRef <StreamIn>&& in);
 
 	~RequestIn ();
 
@@ -140,6 +145,8 @@ protected:
 	virtual Nirvana::Core::CoreRef <StreamOut> create_output () = 0;
 
 private:
+	void get_object_key (const IOP::TaggedProfile& profile);
+
 	// Caller operations throw BAD_OPERATION or just return `false`
 	virtual void invoke () override;
 	virtual bool is_exception () const NIRVANA_NOEXCEPT override;
@@ -154,6 +161,8 @@ private:
 protected:
 	RequestKey key_;
 	IOP::ObjectKey object_key_;
+	IDL::String operation_;
+	IOP::ServiceContextList service_context_;
 	unsigned response_flags_;
 	unsigned GIOP_minor_;
 
@@ -161,71 +170,6 @@ private:
 	Nirvana::Core::ExecDomain* exec_domain_;
 	size_t reply_status_offset_;
 	size_t reply_header_end_;
-};
-
-/// Implements server-side IORequest for the particular GIOP version.
-/// 
-/// \typeparam Hdr RequestHeader type.
-template <class Hdr>
-class NIRVANA_NOVTABLE RequestInVer : public RequestIn
-{
-protected:
-	virtual const IOP::ServiceContextList& service_context () const NIRVANA_NOEXCEPT
-	{
-		return header_.service_context ();
-	}
-
-	virtual const IDL::String& operation () const NIRVANA_NOEXCEPT
-	{
-		return header_.operation ();
-	}
-
-protected:
-	RequestInVer (const ClientAddress& client, unsigned GIOP_minor,
-		Nirvana::Core::CoreRef <StreamIn>&& in, Nirvana::Core::CoreRef <CodeSetConverterW>&& cscw) :
-		RequestIn (client, GIOP_minor, std::move (in), std::move (cscw))
-	{
-		Internal::Type <Hdr>::unmarshal (_get_ptr (), header_);
-		key_.request_id = header_.request_id ();
-	}
-
-protected:
-	Hdr header_;
-};
-
-/// Implements server-side IORequest for GIOP 1.0.
-class NIRVANA_NOVTABLE RequestIn_1_0 : public RequestInVer <GIOP::RequestHeader_1_0>
-{
-	typedef RequestInVer <GIOP::RequestHeader_1_0> Base;
-
-public:
-	RequestIn_1_0 (const ClientAddress& client, unsigned GIOP_minor, Nirvana::Core::CoreRef <StreamIn>&& in) :
-		Base (client, GIOP_minor, std::move (in), CodeSetConverterW_1_0::get_default (false))
-	{
-		response_flags_ = header_.response_expected () ? (RESPONSE_EXPECTED | RESPONSE_DATA) : 0;
-		object_key_ = std::move (header_.object_key ());
-	}
-};
-
-/// Implements server-side IORequest for GIOP 1.1.
-class NIRVANA_NOVTABLE RequestIn_1_1 : public RequestInVer <GIOP::RequestHeader_1_1>
-{
-	typedef RequestInVer <GIOP::RequestHeader_1_1> Base;
-
-public:
-	RequestIn_1_1 (const ClientAddress& client, unsigned GIOP_minor, Nirvana::Core::CoreRef <StreamIn>&& in);
-};
-
-/// Implements server-side IORequest for GIOP 1.2 and later.
-class NIRVANA_NOVTABLE RequestIn_1_2 : public RequestInVer <GIOP::RequestHeader_1_2>
-{
-	typedef RequestInVer <GIOP::RequestHeader_1_2> Base;
-
-public:
-	RequestIn_1_2 (const ClientAddress& client, unsigned GIOP_minor, Nirvana::Core::CoreRef <StreamIn>&& in);
-
-private:
-	void get_object_key (const IOP::TaggedProfile& profile);
 };
 
 }
