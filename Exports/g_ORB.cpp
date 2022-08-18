@@ -32,6 +32,9 @@ using namespace Nirvana;
 using namespace Nirvana::Core;
 
 namespace CORBA {
+
+using namespace Internal;
+
 namespace Core {
 
 /// Implementation of the CORBA::ORB interface.
@@ -39,6 +42,66 @@ class ORB :
 	public CORBA::servant_traits <CORBA::ORB>::ServantStatic <ORB>
 {
 public:
+	static Type <ORBid>::ABI_ret _s_id (Bridge <CORBA::ORB>*, Interface*)
+	{
+		return Type <ORBid>::ret ();
+	}
+
+	static IDL::String object_to_string (Object::_ptr_type obj)
+	{
+		throw NO_IMPLEMENT ();
+	}
+
+	static Object::_ref_type string_to_object (const IDL::String& str)
+	{
+		throw NO_IMPLEMENT ();
+	}
+
+	void create_list (Long count, NVList::_ref_type& new_list)
+	{
+		throw NO_IMPLEMENT ();
+	}
+
+	void create_operation_list (OperationDef::_ptr_type oper, NVList::_ref_type& new_list)
+	{
+		throw NO_IMPLEMENT ();
+	}
+
+	void get_default_context (Context::_ref_type& ctx)
+	{
+		throw NO_IMPLEMENT ();
+	}
+
+	void send_multiple_requests_oneway (const RequestSeq& req)
+	{
+		throw NO_IMPLEMENT ();
+	}
+
+	void send_multiple_requests_deferred (const RequestSeq& req)
+	{
+		throw NO_IMPLEMENT ();
+	}
+
+	bool poll_next_response ()
+	{
+		throw NO_IMPLEMENT ();
+	}
+
+	void get_next_response (Request::_ref_type& req)
+	{
+		throw NO_IMPLEMENT ();
+	}
+
+	bool get_service_information (ServiceType service_type, ServiceInformation& service_information)
+	{
+		throw NO_IMPLEMENT ();
+	}
+
+	ObjectIdList list_initial_services ()
+	{
+		throw NO_IMPLEMENT ();
+	}
+
 	static Object::_ref_type resolve_initial_references (const ObjectId& identifier)
 	{
 		return Binder::bind_service (identifier);
@@ -163,6 +226,36 @@ public:
 	{
 		throw NO_IMPLEMENT ();
 	}
+
+	// Thread related operations
+
+	bool work_pending ()
+	{
+		return false;
+	}
+
+	void perform_work ()
+	{}
+
+	void run ()
+	{}
+
+	void shutdown (bool wait_for_completion)
+	{
+		throw NO_IMPLEMENT ();
+	}
+
+	void destroy ()
+	{}
+
+	// Policy related operations
+
+	Policy::_ref_type create_policy (PolicyType type, const Any& val)
+	{
+		throw NO_IMPLEMENT ();
+	}
+
+	// Value factory operations
 
 	static ValueFactoryBase::_ref_type register_value_factory (const RepositoryId&, ValueFactoryBase::_ptr_type)
 	{

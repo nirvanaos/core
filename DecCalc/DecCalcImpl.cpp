@@ -2,7 +2,6 @@
 #include "DecCalc_s.h"
 
 using namespace Nirvana;
-using namespace CORBA;
 using namespace std;
 
 #if DECNUMDIGITS != 62
@@ -40,7 +39,7 @@ void Context::check () const
 }
 
 class DecCalcImpl :
-	public servant_traits <DecCalc>::ServantStatic <DecCalcImpl>
+	public CORBA::servant_traits <DecCalc>::ServantStatic <DecCalcImpl>
 {
 public:
 	static void from_long (Number& n, int32_t l)

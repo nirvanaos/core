@@ -42,12 +42,12 @@ public:
 		return type;
 	}
 
-	Policy::_ref_type copy () const
+	typename PolicyItf::_ref_type copy ()
 	{
-		return _this ();
+		return this->_this ();
 	}
 
-	static void _s_destroy (Bridge <Policy>* _b, Interface* _env)
+	static void _s_destroy (Internal::Bridge <Policy>* _b, Internal::Interface* _env)
 	{}
 
 	ValueType value () const
@@ -57,7 +57,7 @@ public:
 
 	static typename PolicyItf::_ref_type create (ValueType val)
 	{
-		return make_stateless <PolicyImpl> (val);
+		return make_stateless <PolicyImpl> (val)->_this ();
 	}
 
 	static typename PolicyItf::_ref_type create (const Any& a)

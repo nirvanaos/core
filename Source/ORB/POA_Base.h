@@ -34,6 +34,7 @@
 #include "HashOctetSeq.h"
 #include <CORBA/PortableServer_s.h>
 #include "LocalObject.h"
+#include "PolicyImpl.h"
 
 namespace PortableServer {
 namespace Core {
@@ -106,37 +107,37 @@ public:
 
 	static ThreadPolicy::_ref_type create_thread_policy (ThreadPolicyValue value)
 	{
-		throw CORBA::NO_IMPLEMENT ();
+		return CORBA::Core::PolicyImpl <ThreadPolicy, THREAD_POLICY_ID, ThreadPolicyValue>::create (value);
 	}
 
 	static LifespanPolicy::_ref_type create_lifespan_policy (LifespanPolicyValue value)
 	{
-		throw CORBA::NO_IMPLEMENT ();
+		return CORBA::Core::PolicyImpl <LifespanPolicy, LIFESPAN_POLICY_ID, LifespanPolicyValue>::create (value);
 	}
 
 	static IdUniquenessPolicy::_ref_type create_id_uniqueness_policy (IdUniquenessPolicyValue value)
 	{
-		throw CORBA::NO_IMPLEMENT ();
+		return CORBA::Core::PolicyImpl <IdUniquenessPolicy, ID_UNIQUENESS_POLICY_ID, IdUniquenessPolicyValue>::create (value);
 	}
 
 	static IdAssignmentPolicy::_ref_type  create_id_assignment_policy (IdAssignmentPolicyValue value)
 	{
-		throw CORBA::NO_IMPLEMENT ();
+		return CORBA::Core::PolicyImpl <IdAssignmentPolicy, ID_ASSIGNMENT_POLICY_ID, IdAssignmentPolicyValue>::create (value);
 	}
 
 	static ImplicitActivationPolicy::_ref_type create_implicit_activation_policy (ImplicitActivationPolicyValue value)
 	{
-		throw CORBA::NO_IMPLEMENT ();
+		return CORBA::Core::PolicyImpl <ImplicitActivationPolicy, IMPLICIT_ACTIVATION_POLICY_ID, ImplicitActivationPolicyValue>::create (value);
 	}
 
 	static ServantRetentionPolicy::_ref_type create_servant_retention_policy (ServantRetentionPolicyValue value)
 	{
-		throw CORBA::NO_IMPLEMENT ();
+		return CORBA::Core::PolicyImpl <ServantRetentionPolicy, SERVANT_RETENTION_POLICY_ID, ServantRetentionPolicyValue>::create (value);
 	}
 
 	static RequestProcessingPolicy::_ref_type create_request_processing_policy (RequestProcessingPolicyValue value)
 	{
-		throw CORBA::NO_IMPLEMENT ();
+		return CORBA::Core::PolicyImpl <RequestProcessingPolicy, REQUEST_PROCESSING_POLICY_ID, RequestProcessingPolicyValue>::create (value);
 	}
 
 	// POA attributes
