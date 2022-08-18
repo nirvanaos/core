@@ -35,11 +35,6 @@ using namespace Internal;
 
 namespace Core {
 
-RqKind RequestLocal::kind () const NIRVANA_NOEXCEPT
-{
-	return RqKind::SYNC;
-}
-
 MemContext& RequestLocal::target_memory ()
 {
 	switch (state_) {
@@ -352,19 +347,42 @@ void RequestLocal::marshal_value_copy (ValueBase::_ptr_type base, const IDL::Str
 	ed.mem_context_pop ();
 }
 
-RqKind RequestLocalAsync::kind () const NIRVANA_NOEXCEPT
+void RequestLocal::invoke ()
 {
-	return RqKind::ASYNC;
+	rewind ();
+	state_ = State::CALL;
+	proxy_->invoke (*this);
+}
+
+void RequestLocalAsync::invoke (const ExecDomain& ed, const System::DeadlinePolicy& dp)
+{
+	DeadlineTime dl = INFINITE_DEADLINE;
+	switch (dp._d ()) {
+		case System::DeadlinePolicyType::DEADLINE_INHERIT:
+			dl = ed.deadline ();
+			break;
+		case System::DeadlinePolicyType::DEADLINE_TIMEOUT:
+			dl = Chrono::make_deadline (dp.timeout ());
+			break;
+	}
+	ExecDomain::async_call (dl, this, proxy ()->sync_context (), memory ());
+}
+
+void RequestLocalAsync::invoke ()
+{
+	const ExecDomain& ed = ExecDomain::current ();
+	invoke (ed, ed.deadline_policy_async ());
 }
 
 void RequestLocalAsync::run ()
 {
-	invoke ();
+	RequestLocal::invoke ();
 }
 
-RqKind RequestLocalOneway::kind () const NIRVANA_NOEXCEPT
+void RequestLocalOneway::invoke ()
 {
-	return RqKind::ONEWAY;
+	const ExecDomain& ed = ExecDomain::current ();
+	RequestLocalAsync::invoke (ed, ed.deadline_policy_oneway ());
 }
 
 }

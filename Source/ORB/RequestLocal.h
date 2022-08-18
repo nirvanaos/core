@@ -72,8 +72,6 @@ public:
 		return callee_memory_;
 	}
 
-	virtual RqKind kind () const NIRVANA_NOEXCEPT;
-
 	///@{
 	/// Marshal/unmarshal data that meet the common data representation.
 
@@ -427,12 +425,7 @@ public:
 
 	/// Invoke request.
 	/// 
-	void invoke ()
-	{
-		rewind ();
-		state_ = State::CALL;
-		proxy_->invoke (*this);
-	}
+	virtual void invoke ();
 
 	/// Check if the request is completed with an exception.
 	bool is_exception () const NIRVANA_NOEXCEPT
@@ -534,6 +527,11 @@ protected:
 
 	void cleanup () NIRVANA_NOEXCEPT;
 
+	ServantProxyBase* proxy () const NIRVANA_NOEXCEPT
+	{
+		return proxy_;
+	}
+
 protected:
 	Nirvana::Core::RefCounter ref_cnt_;
 	CoreRef <MemContext> caller_memory_;
@@ -587,12 +585,14 @@ protected:
 		RequestLocal (proxy, op_idx, callee_memory)
 	{}
 
-	virtual RqKind kind () const NIRVANA_NOEXCEPT;
-
 	void _add_ref () NIRVANA_NOEXCEPT
 	{
 		RequestLocal::_add_ref ();
 	}
+
+	virtual void invoke ();
+
+	void invoke (const Nirvana::Core::ExecDomain& ed, const Nirvana::System::DeadlinePolicy& dp);
 
 private:
 	virtual void run ();
@@ -610,8 +610,7 @@ protected:
 		caller_memory_ = callee_memory_;
 	}
 
-	virtual RqKind kind () const NIRVANA_NOEXCEPT;
-
+	virtual void invoke ();
 };
 
 template <class Base>

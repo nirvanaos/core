@@ -61,32 +61,10 @@ Internal::IORequest::_ref_type ServantProxyBase::create_oneway (OperationIndex o
 }
 
 inline
-void ServantProxyBase::send (Internal::IORequest::_ref_type& rq, Nirvana::DeadlineTime deadline)
+Internal::IORequest::_ref_type ServantProxyBase::create_async (OperationIndex op)
 {
-	if (!rq)
-		throw BAD_PARAM ();
-
-	if (!deadline)
-		deadline = Nirvana::Core::ExecDomain::current ().deadline ();
-
-	RequestLocal* prq = static_cast <RequestLocal*> (&(Internal::IORequest::_ptr_type)rq);
-	switch (prq->kind ()) {
-		case RqKind::SYNC:
-			throw BAD_PARAM ();
-			break;
-
-		case RqKind::ONEWAY:
-		{
-			Nirvana::Core::CoreRef <Nirvana::Core::Runnable> ref =
-				&static_cast <RequestLocalOneway&> (*prq);
-			rq = nullptr;
-			Nirvana::Core::ExecDomain::async_call (deadline, std::move (ref), sync_context (), prq->memory ());
-		} break;
-
-		default:
-			Nirvana::Core::ExecDomain::async_call (deadline,
-				&static_cast <RequestLocalAsync&> (*prq), sync_context (), prq->memory ());
-	}
+	return make_pseudo <RequestLocalImpl <RequestLocalAsync> > (std::ref (*this), op,
+		mem_context ());
 }
 
 }

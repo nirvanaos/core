@@ -94,9 +94,10 @@ public:
 	inline
 	Internal::IORequest::_ref_type create_oneway (OperationIndex op);
 
-	void invoke (RequestLocal& rq) NIRVANA_NOEXCEPT;
+	inline
+	Internal::IORequest::_ref_type create_async (OperationIndex op);
 
-	void send (Internal::IORequest::_ref_type& rq, Nirvana::DeadlineTime deadline);
+	void invoke (RequestLocal& rq) NIRVANA_NOEXCEPT;
 
 	Nirvana::Core::MemContext* mem_context () const NIRVANA_NOEXCEPT
 	{
