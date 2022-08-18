@@ -82,14 +82,34 @@ public:
 	/// \param process   The Process object.
 	static void start_legacy_process (Legacy::Core::Process& process);
 
-	DeadlineTime deadline () const
+	const DeadlineTime& deadline () const NIRVANA_NOEXCEPT
 	{
 		return deadline_;
 	}
 
-	void deadline (const DeadlineTime& dt)
+	void deadline (const DeadlineTime& dt) NIRVANA_NOEXCEPT
 	{
 		deadline_ = dt;
+	}
+
+	const System::DeadlinePolicy& deadline_policy_async () const NIRVANA_NOEXCEPT
+	{
+		return deadline_policy_async_;
+	}
+
+	void deadline_policy_async (const System::DeadlinePolicy& dp) NIRVANA_NOEXCEPT
+	{
+		deadline_policy_async_ = dp;
+	}
+
+	const System::DeadlinePolicy& deadline_policy_oneway () const NIRVANA_NOEXCEPT
+	{
+		return deadline_policy_oneway_;
+	}
+
+	void deadline_policy_oneway (const System::DeadlinePolicy& dp) NIRVANA_NOEXCEPT
+	{
+		deadline_policy_oneway_ = dp;
 	}
 
 	// Made inline because the only one call in Synchronized constructor.
@@ -288,7 +308,9 @@ private:
 		yield_ (*this),
 		deleter_ (CoreRef <Runnable>::create <ImplDynamic <Deleter> > (std::ref (*this))),
 		restricted_mode_ (RestrictedMode::NO_RESTRICTIONS)
-	{}
+	{
+		deadline_policy_oneway_._d (System::DeadlinePolicyType::DEADLINE_INFINITE);
+	}
 
 	class WithPool;
 	class NoPool;
@@ -421,6 +443,9 @@ private:
 	CoreRef <Runnable> deleter_;
 	CoreRef <ThreadBackground> background_worker_;
 	RestrictedMode restricted_mode_;
+
+	System::DeadlinePolicy deadline_policy_async_;
+	System::DeadlinePolicy deadline_policy_oneway_;
 };
 
 }

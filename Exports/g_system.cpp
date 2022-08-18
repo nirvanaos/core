@@ -107,6 +107,31 @@ public:
 		return Chrono::make_deadline (timeout);
 	}
 
+	static const DeadlineTime& deadline ()
+	{
+		return ExecDomain::current ().deadline ();
+	}
+
+	static const DeadlinePolicy& deadline_policy_async ()
+	{
+		return ExecDomain::current ().deadline_policy_async ();
+	}
+
+	static void deadline_policy_async (const DeadlinePolicy& dp)
+	{
+		ExecDomain::current ().deadline_policy_async (dp);
+	}
+
+	static const DeadlinePolicy& deadline_policy_oneway ()
+	{
+		return ExecDomain::current ().deadline_policy_oneway ();
+	}
+
+	static void deadline_policy_oneway (const DeadlinePolicy& dp)
+	{
+		ExecDomain::current ().deadline_policy_oneway (dp);
+	}
+
 	static int* error_number ()
 	{
 		return &Thread::current ().exec_domain ()->runtime_global_.error_number;
