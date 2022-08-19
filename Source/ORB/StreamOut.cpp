@@ -40,5 +40,21 @@ void StreamOut::write_message_header (unsigned GIOP_minor, GIOP::MsgType msg_typ
 	write (1, sizeof (hdr), &hdr);
 }
 
+void StreamOut::write_size (size_t size)
+{
+	if (sizeof (size_t) > sizeof (uint32_t) && size > std::numeric_limits <uint32_t>::max ())
+		throw IMP_LIMIT ();
+	uint32_t count = (uint32_t)size;
+	write (alignof (uint32_t), sizeof (count), &count);
+}
+
+void StreamOut::write_seq (size_t align, size_t element_size, size_t element_count, void* data,
+	size_t& allocated_size)
+{
+	write_size (element_count);
+	if (element_count)
+		write (align, element_size * element_count, data, allocated_size);
+}
+
 }
 }

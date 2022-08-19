@@ -26,6 +26,8 @@
 #include "StreamIn.h"
 #include <algorithm>
 
+using namespace Nirvana;
+
 namespace CORBA {
 namespace Core {
 
@@ -37,6 +39,33 @@ void StreamIn::read_message_header (GIOP::MessageHeader_1_3& msg_hdr)
 	little_endian (msg_hdr.flags () & 1);
 	if (other_endian_)
 		msg_hdr.message_size (Nirvana::byteswap (msg_hdr.message_size ()));
+}
+
+size_t StreamIn::read_size ()
+{
+	uint32_t count;
+	read (alignof (uint32_t), sizeof (count), &count);
+	if (other_endian ())
+		byteswap (count);
+	if (sizeof (size_t) < sizeof (uint32_t) && count > std::numeric_limits <size_t>::max ())
+		throw IMP_LIMIT ();
+	return (size_t)count;
+}
+
+bool StreamIn::read_seq (size_t align, size_t element_size, size_t& element_count, void*& data,
+	size_t& allocated_size)
+{
+	size_t count = read_size ();
+
+	if ((element_count = count)) {
+		size_t size = element_size * element_count;
+		data = read (align, size);
+		allocated_size = size;
+	} else {
+		data = nullptr;
+		allocated_size = 0;
+	}
+	return other_endian ();
 }
 
 }

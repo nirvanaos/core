@@ -100,7 +100,14 @@ public:
 	/// \param allocated_size If this parameter is not zero, the request may adopt the memory block.
 	///   If request adopts the memory block, it sets \p allocated_size to 0.
 	void marshal_seq (size_t align, size_t element_size, size_t element_count, void* data,
-		size_t& allocated_size);
+		size_t& allocated_size)
+	{
+		check_align (align);
+		if (!marshal_op ())
+			return;
+
+		stream_out_->write_seq (align, element_size, element_count, data, allocated_size);
+	}
 
 	/// Unmarshal CDR sequence.
 	/// 
@@ -113,7 +120,11 @@ public:
 	///              
 	/// \returns `true` if the byte order must be swapped after unmarshaling.
 	bool unmarshal_seq (size_t align, size_t element_size, size_t& element_count, void*& data,
-		size_t& allocated_size);
+		size_t& allocated_size)
+	{
+		check_align (align);
+		return stream_in_->read_seq (align, element_size, element_count, data, allocated_size);
+	}
 
 	///@}
 
@@ -123,12 +134,21 @@ public:
 	/// Write marshaling sequence size.
 	/// 
 	/// \param element_count The sequence size.
-	bool marshal_seq_begin (size_t element_count);
+	bool marshal_seq_begin (size_t element_count)
+	{
+		if (!marshal_op ())
+			return false;
+		stream_out_->write_size (element_count);
+		return true;
+	}
 
-	/// Get unmarshalling sequence size.
+	/// Get unmarshaling sequence size.
 	/// 
 	/// \returns The sequence size.
-	size_t unmarshal_seq_begin ();
+	size_t unmarshal_seq_begin ()
+	{
+		return stream_in_->read_size ();
+	}
 
 	///@}
 
@@ -149,38 +169,25 @@ public:
 	void marshal_string (IDL::String& s, bool move)
 	{
 		if (marshal_op ())
-			code_set_conv_->marshal_string (s, move, *this);
+			code_set_conv_->marshal_string (s, move, *stream_out_);
 	}
 
 	void unmarshal_string (IDL::String& s)
 	{
-		code_set_conv_->unmarshal_string (*this, s);
+		code_set_conv_->unmarshal_string (*stream_in_, s);
 	}
 
 	template <typename C>
 	void marshal_char_seq (IDL::Sequence <C>& s, bool move)
 	{
-		typedef typename Internal::Type <IDL::Sequence <C> >::ABI ABI;
-		ABI& abi = (ABI&)s;
-		if (move) {
-			marshal_seq (alignof (C), sizeof (C), abi.size, abi.ptr, abi.allocated);
-			if (!abi.allocated)
-				abi.reset ();
-		} else {
-			size_t zero = 0;
-			marshal_seq (alignof (C), sizeof (C), abi.size, abi.ptr, zero);
-		}
+		if (marshal_op ())
+			stream_out_->write_seq (s, move);
 	}
 
 	template <typename C>
-	bool unmarshal_char_seq (IDL::Sequence <C>& s)
+	void unmarshal_char_seq (IDL::Sequence <C>& s)
 	{
-		typedef typename Internal::Type <IDL::Sequence <C> >::ABI ABI;
-		IDL::Sequence <C> tmp;
-		ABI& abi = (ABI&)tmp;
-		bool bs = unmarshal_seq (alignof (C), sizeof (C), abi.size, (void*&)abi.ptr, abi.allocated);
-		s = std::move (tmp);
-		return bs;
+		stream_in_->read_seq (s);
 	}
 
 	void marshal_wchar (size_t count, const WChar* data)
@@ -195,22 +202,22 @@ public:
 
 	void marshal_wstring (IDL::WString& s, bool move)
 	{
-		code_set_conv_w_->marshal_string (s, move, *this);
+		code_set_conv_w_->marshal_string (s, move, *stream_out_);
 	}
 
 	void unmarshal_wstring (IDL::WString& s)
 	{
-		code_set_conv_w_->unmarshal_string (*this, s);
+		code_set_conv_w_->unmarshal_string (*stream_in_, s);
 	}
 
 	void marshal_wchar_seq (WCharSeq& s, bool move)
 	{
-		code_set_conv_w_->marshal_char_seq (s, move, *this);
+		code_set_conv_w_->marshal_char_seq (s, move, *stream_out_);
 	}
 
 	void unmarshal_wchar_seq (WCharSeq& s)
 	{
-		code_set_conv_w_->unmarshal_char_seq (*this, s);
+		code_set_conv_w_->unmarshal_char_seq (*stream_in_, s);
 	}
 
 	///@}
@@ -347,11 +354,6 @@ public:
 	///@{
 	/// API for code set converters.
 
-	void marshal_string_encoded (IDL::String& s, bool move);
-	void unmarshal_string_encoded (IDL::String& s);
-	void marshal_string_encoded (IDL::WString& s, bool move);
-	void unmarshal_string_encoded (IDL::WString& s);
-
 	StreamIn* stream_in () const
 	{
 		return stream_in_;
@@ -383,64 +385,6 @@ protected:
 	{}
 
 	virtual bool marshal_op () = 0;
-
-	template <typename C>
-	void marshal_string_t (Internal::StringT <C>& s, bool move)
-	{
-		if (sizeof (size_t) > sizeof (uint32_t) && s.size () > std::numeric_limits <uint32_t>::max ())
-			throw IMP_LIMIT ();
-
-		typedef typename Internal::Type <Internal::StringT <C> >::ABI ABI;
-		ABI& abi = (ABI&)s;
-		uint32_t size;
-		C* ptr;
-		if (abi.is_large ()) {
-			size = (uint32_t)abi.large_size ();
-			ptr = abi.large_pointer ();
-		} else {
-			size = (uint32_t)abi.small_size ();
-			ptr = abi.small_pointer ();
-		}
-		stream_out_->write (alignof (uint32_t), sizeof (size), &size);
-		if (size <= ABI::SMALL_CAPACITY)
-			stream_out_->write (alignof (C), (size + 1) * sizeof (C), ptr);
-		else {
-			size_t allocated = move ? abi.allocated () : 0;
-			stream_out_->write (alignof (C), (size + 1) * sizeof (C), ptr, allocated);
-			if (move && !allocated)
-				abi.reset ();
-		}
-	}
-
-	template <typename C>
-	void unmarshal_string_t (Internal::StringT <C>& s)
-	{
-		typedef typename Internal::Type <Internal::StringT <C> >::ABI ABI;
-
-		uint32_t size;
-		stream_in_->read (alignof (uint32_t), sizeof (size), &size);
-		if (sizeof (uint32_t) > sizeof (size_t) && size > std::numeric_limits <size_t>::max ())
-			throw IMP_LIMIT ();
-
-		Internal::StringT <C> tmp;
-		ABI& abi = (ABI&)tmp;
-		C* p;
-		if (size <= ABI::SMALL_CAPACITY) {
-			if (size) {
-				abi.small_size (size);
-				p = abi.small_pointer ();
-				stream_in_->read (alignof (C), (size + 1) * sizeof (C), p);
-			}
-		} else {
-			size_t allocated_size = size + 1;
-			void* data = stream_in_->read (alignof (C), allocated_size);
-			abi.large_size (size);
-			abi.large_pointer (p = (C*)data);
-			abi.allocated (allocated_size);
-		}
-
-		s = std::move (tmp);
-	}
 
 	/// Set the size of message in the output message header.
 	/// Must be called for remote messages.

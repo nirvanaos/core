@@ -23,7 +23,7 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "Request.h"
+#include "CodeSetConverter.h"
 
 using namespace Nirvana;
 using namespace Nirvana::Core;
@@ -37,14 +37,14 @@ namespace Core {
 
 // Default code set converter for the narrow characters.
 
-void CodeSetConverter::marshal_string (IDL::String& s, bool move, Request& out)
+void CodeSetConverter::marshal_string (IDL::String& s, bool move, StreamOut& out)
 {
-	out.marshal_string_encoded (s, move);
+	out.write_string (s, move);
 }
 
-void CodeSetConverter::unmarshal_string (Request& in, IDL::String& s)
+void CodeSetConverter::unmarshal_string (StreamIn& in, IDL::String& s)
 {
-	in.unmarshal_string_encoded (s);
+	in.read_string (s);
 }
 
 StaticallyAllocated <ImplStatic <CodeSetConverter> > CodeSetConverter::default_;
@@ -56,12 +56,12 @@ CoreRef <CodeSetConverterW> CodeSetConverterW_1_0::get_default (bool client_side
 	return CoreRef <CodeSetConverterW>::create <ImplDynamic <CodeSetConverterW_1_0> > (client_side);
 }
 
-void CodeSetConverterW_1_0::marshal_string (IDL::WString& s, bool move, Request& out)
+void CodeSetConverterW_1_0::marshal_string (IDL::WString& s, bool move, StreamOut& out)
 {
 	throw MARSHAL (marshal_minor_);
 }
 
-void CodeSetConverterW_1_0::unmarshal_string (Request& in, IDL::WString& s)
+void CodeSetConverterW_1_0::unmarshal_string (StreamIn& in, IDL::WString& s)
 {
 	throw MARSHAL ();
 }
@@ -76,26 +76,26 @@ void CodeSetConverterW_1_0::unmarshal_char (StreamIn& in, size_t count, WChar* d
 	throw MARSHAL ();
 }
 
-void CodeSetConverterW_1_0::marshal_char_seq (IDL::Sequence <WChar>& s, bool move, Request& out)
+void CodeSetConverterW_1_0::marshal_char_seq (IDL::Sequence <WChar>& s, bool move, StreamOut& out)
 {
 	throw MARSHAL (marshal_minor_);
 }
 
-void CodeSetConverterW_1_0::unmarshal_char_seq (Request& in, IDL::Sequence <WChar>& s)
+void CodeSetConverterW_1_0::unmarshal_char_seq (StreamIn& in, IDL::Sequence <WChar>& s)
 {
 	throw MARSHAL ();
 }
 
 // Default wide code set converter for GIOP 1.1.
 
-void CodeSetConverterW_1_1::marshal_string (IDL::WString& s, bool move, Request& out)
+void CodeSetConverterW_1_1::marshal_string (IDL::WString& s, bool move, StreamOut& out)
 {
-	out.marshal_string_encoded (s, move);
+	out.write_string (s, move);
 }
 
-void CodeSetConverterW_1_1::unmarshal_string (Request& in, IDL::WString& s)
+void CodeSetConverterW_1_1::unmarshal_string (StreamIn& in, IDL::WString& s)
 {
-	in.unmarshal_string_encoded (s);
+	in.read_string (s);
 }
 
 void CodeSetConverterW_1_1::marshal_char (size_t count, const WChar* data, StreamOut& out)
@@ -112,39 +112,36 @@ void CodeSetConverterW_1_1::unmarshal_char (StreamIn& in, size_t count, WChar* d
 	}
 }
 
-void CodeSetConverterW_1_1::marshal_char_seq (IDL::Sequence <WChar>& s, bool move, Request& out)
+void CodeSetConverterW_1_1::marshal_char_seq (IDL::Sequence <WChar>& s, bool move, StreamOut& out)
 {
-	out.marshal_char_seq (s, move);
+	out.write_seq (s, move);
 }
 
-void CodeSetConverterW_1_1::unmarshal_char_seq (Request& in, IDL::Sequence <WChar>& s)
+void CodeSetConverterW_1_1::unmarshal_char_seq (StreamIn& in, IDL::Sequence <WChar>& s)
 {
-	if (in.unmarshal_char_seq (s)) {
-		for (auto p = s.begin (), end = s.end (); p != end; ++p)
-			byteswap (*p);
-	}
+	in.read_seq (s);
 }
 
 StaticallyAllocated <ImplStatic <CodeSetConverterW_1_1> > CodeSetConverterW_1_1::default_;
 
 /// Default wide code set converter for GIOP 1.2.
 
-void CodeSetConverterW_1_2::marshal_string (IDL::WString& s, bool move, Request& out)
+void CodeSetConverterW_1_2::marshal_string (IDL::WString& s, bool move, StreamOut& out)
 {
-	if (out.marshal_seq_begin (s.size ()))
-		for (auto c : s) {
-			write (c, *out.stream_out ());
-		}
+	out.write_size (s.size ());
+	for (auto c : s) {
+		write (c, out);
+	}
 }
 
-void CodeSetConverterW_1_2::unmarshal_string (Request& in, IDL::WString& s)
+void CodeSetConverterW_1_2::unmarshal_string (StreamIn& in, IDL::WString& s)
 {
+	size_t count = in.read_size ();
 	s.clear ();
-	size_t count = in.unmarshal_seq_begin ();
 	s.reserve (count);
 	for (; count; --count) {
-		uint32_t c = read (*in.stream_in ());
-		if (sizeof (WChar) < sizeof (uint32_t) && ((~(uint32_t)1 << (sizeof (WChar) * 8)) & c))
+		uint32_t c = read (in);
+		if (sizeof (WChar) < sizeof (uint32_t) && ((~(uint32_t)0 << (sizeof (WChar) * 8)) & c))
 			throw_DATA_CONVERSION ();
 		s.push_back ((WChar)c);
 	}
@@ -161,28 +158,28 @@ void CodeSetConverterW_1_2::unmarshal_char (StreamIn& in, size_t count, WChar* d
 {
 	for (; count; --count) {
 		uint32_t c = read (in);
-		if (sizeof (WChar) < sizeof (uint32_t) && ((~(uint32_t)1 << (sizeof (WChar) * 8)) & c))
+		if (sizeof (WChar) < sizeof (uint32_t) && ((~(uint32_t)0 << (sizeof (WChar) * 8)) & c))
 			throw_DATA_CONVERSION ();
 		*(data++) = (WChar)c;
 	}
 }
 
-void CodeSetConverterW_1_2::marshal_char_seq (IDL::Sequence <WChar>& s, bool move, Request& out)
+void CodeSetConverterW_1_2::marshal_char_seq (IDL::Sequence <WChar>& s, bool move, StreamOut& out)
 {
-	if (out.marshal_seq_begin (s.size ()))
-		for (auto c : s) {
-			write (c, *out.stream_out ());
-		}
+	out.write_size (s.size ());
+	for (auto c : s) {
+		write (c, out);
+	}
 }
 
-void CodeSetConverterW_1_2::unmarshal_char_seq (Request& in, IDL::Sequence <WChar>& s)
+void CodeSetConverterW_1_2::unmarshal_char_seq (StreamIn& in, IDL::Sequence <WChar>& s)
 {
+	size_t count = in.read_size ();
 	s.clear ();
-	size_t count = in.unmarshal_seq_begin ();
 	s.reserve (count);
 	for (; count; --count) {
-		uint32_t c = read (*in.stream_in ());
-		if (sizeof (WChar) < sizeof (uint32_t) && ((~(uint32_t)1 << (sizeof (WChar) * 8)) & c))
+		uint32_t c = read (in);
+		if (sizeof (WChar) < sizeof (uint32_t) && ((~(uint32_t)0 << (sizeof (WChar) * 8)) & c))
 			throw_DATA_CONVERSION ();
 		s.push_back ((WChar)c);
 	}

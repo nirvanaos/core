@@ -28,6 +28,7 @@
 #define NIRVANA_ORB_CORE_STREAMIN_H_
 #pragma once
 
+#include <CORBA/CORBA.h>
 #include "../CoreInterface.h"
 #include "GIOP.h"
 
@@ -112,6 +113,37 @@ public:
 	/// \throw MARSHAL if header can't be read or has invalid signature.
 	void read_message_header (GIOP::MessageHeader_1_3& msg_hdr);
 
+	/// Read string.
+	/// 
+	/// \tparam C The character type.
+	/// \param [out] s The string.
+	template <typename C>
+	void read_string (Internal::StringT <C>& s);
+
+	/// Read size of sequence or string.
+	/// \returns The size.
+	size_t read_size ();
+
+	/// Read CDR sequence.
+	/// 
+	/// \param align Data alignment
+	/// \param element_size Element size.
+	/// \param [out] element_count Count of elements.
+	/// \param [out] data Pointer to the allocated memory block with common-data-representation (CDR).
+	///                   The caller becomes an owner of this memory block.
+	/// \param [out] allocated_size Size of the allocated memory block.
+	///              
+	/// \returns `true` if the byte order must be swapped after unmarshaling.
+	bool read_seq (size_t align, size_t element_size, size_t& element_count, void*& data,
+		size_t& allocated_size);
+
+	/// Read CDR sequence.
+	/// 
+	/// \typeparam T The sequence element type.
+	/// \param s The sequence.
+	template <typename T>
+	void read_seq (IDL::Sequence <T>& s);
+
 protected:
 	StreamIn () :
 		other_endian_ (false)
@@ -120,6 +152,57 @@ protected:
 private:
 	bool other_endian_;
 };
+
+template <typename C>
+void StreamIn::read_string (Internal::StringT <C>& s)
+{
+	typedef typename Internal::Type <Internal::StringT <C> >::ABI ABI;
+
+	uint32_t size;
+	read (alignof (uint32_t), sizeof (size), &size);
+	if (sizeof (uint32_t) > sizeof (size_t) && size > std::numeric_limits <size_t>::max ())
+		throw IMP_LIMIT ();
+
+	Internal::StringT <C> tmp;
+	ABI& abi = (ABI&)tmp;
+	C* p;
+	if (size <= ABI::SMALL_CAPACITY) {
+		if (size) {
+			abi.small_size (size);
+			p = abi.small_pointer ();
+			read (alignof (C), (size + 1) * sizeof (C), p);
+		}
+	} else {
+		size_t allocated_size = size + 1;
+		void* data = read (alignof (C), allocated_size);
+		abi.large_size (size);
+		abi.large_pointer (p = (C*)data);
+		abi.allocated (allocated_size);
+	}
+
+	if (sizeof (C) > 1 && other_endian ())
+		for (C& c : tmp) {
+			Internal::Type <C>::byteswap (c);
+		}
+
+	s = std::move (tmp);
+}
+
+template <typename T>
+void StreamIn::read_seq (IDL::Sequence <T>& s)
+{
+	typedef typename Internal::Type <IDL::Sequence <T> >::ABI ABI;
+	IDL::Sequence <T> tmp;
+	ABI& abi = (ABI&)tmp;
+	read_seq (alignof (T), sizeof (T), abi.size, (void*&)abi.ptr, abi.allocated);
+	
+	if (sizeof (T) > 1 && other_endian ())
+		for (T* p = tmp.data (), *e = p + tmp.size (); p != e; ++p) {
+			Internal::Type <T>::byteswap (*p);
+		}
+
+	s = std::move (tmp);
+}
 
 }
 }

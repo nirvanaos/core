@@ -36,10 +36,6 @@
 namespace CORBA {
 namespace Core {
 
-class Request;
-class StreamIn;
-class StreamOut;
-
 /// Code set converter for the narrow characters if other side encoding is not UTF-8.
 /// Note that we convert only strings.
 /// Single characters and characters array/sequences always must be ASCII.
@@ -54,16 +50,16 @@ public:
 	/// 
 	/// \param [in, out] s The string.
 	/// \param move `true` for move semantic.
-	/// \param out The request.
-	virtual void marshal_string (IDL::String& s, bool move, Request& out);
+	/// \param out The output stream.
+	virtual void marshal_string (IDL::String& s, bool move, StreamOut& out);
 
 	/// Unmarshal string.
 	/// 
 	/// Default implementation does not perform any conversion.
 	/// 
-	/// \param in The request.
+	/// \param in The input stream.
 	/// \param [out] s The string.
-	virtual void unmarshal_string (Request& in, IDL::String& s);
+	virtual void unmarshal_string (StreamIn& in, IDL::String& s);
 
 	static Nirvana::Core::CoreRef <CodeSetConverter> get_default () NIRVANA_NOEXCEPT
 	{
@@ -82,28 +78,28 @@ class NIRVANA_NOVTABLE CodeSetConverterW
 
 public:
 	/// Marshal string.
-	/// 
+	///
 	/// Default implementation does not perform any conversion.
-	/// 
+	///
 	/// \param [in, out] s The string.
 	/// \param move `true` for move semantic.
-	/// \param out The request.
-	virtual void marshal_string (IDL::WString& s, bool move, Request& out) = 0;
+	/// \param out The output stream.
+	virtual void marshal_string (IDL::WString& s, bool move, StreamOut& out) = 0;
 
 	/// Unmarshal string.
-	/// 
+	///
 	/// Default implementation does not perform any conversion.
-	/// 
-	/// \param in The request.
+	///
+	/// \param in The input stream.
 	/// \param [out] s The string.
-	virtual void unmarshal_string (Request& in, IDL::WString& s) = 0;
+	virtual void unmarshal_string (StreamIn& in, IDL::WString& s) = 0;
 
 	/// Marshal wide characters.
 	/// 
 	virtual void marshal_char (size_t count, const WChar* data, StreamOut& out) = 0;
 	virtual void unmarshal_char (StreamIn& in, size_t count, WChar* data) = 0;
-	virtual void marshal_char_seq (IDL::Sequence <WChar>& s, bool move, Request& out) = 0;
-	virtual void unmarshal_char_seq (Request& in, IDL::Sequence <WChar>& s) = 0;
+	virtual void marshal_char_seq (IDL::Sequence <WChar>& s, bool move, StreamOut& out) = 0;
+	virtual void unmarshal_char_seq (StreamIn& in, IDL::Sequence <WChar>& s) = 0;
 
 	static Nirvana::Core::CoreRef <CodeSetConverterW> get_default (unsigned GIOP_minor, bool client_side);
 };
@@ -125,12 +121,12 @@ protected:
 		marshal_minor_ (client_side ? MAKE_OMG_MINOR (5) : MAKE_OMG_MINOR (6))
 	{}
 
-	virtual void marshal_string (IDL::WString& s, bool move, Request& out) override;
-	virtual void unmarshal_string (Request& in, IDL::WString& s) override;
+	virtual void marshal_string (IDL::WString& s, bool move, StreamOut& out) override;
+	virtual void unmarshal_string (StreamIn& in, IDL::WString& s) override;
 	virtual void marshal_char (size_t count, const WChar* data, StreamOut& out) override;
 	virtual void unmarshal_char (StreamIn& in, size_t count, WChar* data) override;
-	virtual void marshal_char_seq (IDL::Sequence <WChar>& s, bool move, Request& out) override;
-	virtual void unmarshal_char_seq (Request& in, IDL::Sequence <WChar>& s) override;
+	virtual void marshal_char_seq (IDL::Sequence <WChar>& s, bool move, StreamOut& out) override;
+	virtual void unmarshal_char_seq (StreamIn& in, IDL::Sequence <WChar>& s) override;
 
 private:
 	const ULong marshal_minor_;
@@ -153,12 +149,12 @@ protected:
 	CodeSetConverterW_1_1 ()
 	{}
 
-	virtual void marshal_string (IDL::WString& s, bool move, Request& out) override;
-	virtual void unmarshal_string (Request& in, IDL::WString& s) override;
+	virtual void marshal_string (IDL::WString& s, bool move, StreamOut& out) override;
+	virtual void unmarshal_string (StreamIn& in, IDL::WString& s) override;
 	virtual void marshal_char (size_t count, const WChar* data, StreamOut& out) override;
 	virtual void unmarshal_char (StreamIn& in, size_t count, WChar* data) override;
-	virtual void marshal_char_seq (IDL::Sequence <WChar>& s, bool move, Request& out) override;
-	virtual void unmarshal_char_seq (Request& in, IDL::Sequence <WChar>& s) override;
+	virtual void marshal_char_seq (IDL::Sequence <WChar>& s, bool move, StreamOut& out) override;
+	virtual void unmarshal_char_seq (StreamIn& in, IDL::Sequence <WChar>& s) override;
 };
 
 /// Default wide code set converter for GIOP 1.2.
@@ -177,12 +173,12 @@ protected:
 	CodeSetConverterW_1_2 ()
 	{}
 
-	virtual void marshal_string (IDL::WString& s, bool move, Request& out) override;
-	virtual void unmarshal_string (Request& in, IDL::WString& s) override;
+	virtual void marshal_string (IDL::WString& s, bool move, StreamOut& out) override;
+	virtual void unmarshal_string (StreamIn& in, IDL::WString& s) override;
 	virtual void marshal_char (size_t count, const WChar* data, StreamOut& out) override;
 	virtual void unmarshal_char (StreamIn& in, size_t count, WChar* data) override;
-	virtual void marshal_char_seq (IDL::Sequence <WChar>& s, bool move, Request& out) override;
-	virtual void unmarshal_char_seq (Request& in, IDL::Sequence <WChar>& s) override;
+	virtual void marshal_char_seq (IDL::Sequence <WChar>& s, bool move, StreamOut& out) override;
+	virtual void unmarshal_char_seq (StreamIn& in, IDL::Sequence <WChar>& s) override;
 
 	template <class U>
 	static void write (U c, StreamOut& out)

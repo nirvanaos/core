@@ -151,10 +151,12 @@ public:
 	/// Write marshaling sequence size.
 	/// 
 	/// \param element_count The sequence size.
-	void marshal_seq_begin (size_t element_count)
+	/// \returns `false` to skip marshaling.
+	bool marshal_seq_begin (size_t element_count)
 	{
 		marshal_op ();
 		write (alignof (size_t), sizeof (size_t), &element_count);
+		return true;
 	}
 
 	/// Get unmarshalling sequence size.

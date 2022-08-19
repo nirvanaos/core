@@ -104,11 +104,13 @@ RequestIn::RequestIn (const ClientAddress& client, unsigned GIOP_minor, CoreRef 
 void RequestIn::get_object_key (const IOP::TaggedProfile& profile)
 {
 	if (IOP::TAG_INTERNET_IOP == profile.tag ()) {
-		ImplStatic <RequestEncapIn> rq (ref (*this), ref (profile.profile_data ()));
+		ImplStatic <StreamInEncap> s (ref (profile.profile_data ()));
 
-		IIOP::ProfileBody_1_0 body;
-		Type <IIOP::ProfileBody_1_0>::unmarshal (rq._get_ptr (), body);
-		object_key_ = move (body.object_key ());
+		s.read (alignof (IIOP::Version), sizeof (IIOP::Version), nullptr);
+		size_t host_len = s.read_size ();
+		s.read (1, host_len + 1, nullptr);
+		s.read (2, 2, nullptr);
+		s.read_seq (object_key_);
 	}
 	throw OBJECT_NOT_EXIST ();
 }

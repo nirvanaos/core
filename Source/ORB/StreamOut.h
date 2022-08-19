@@ -28,6 +28,7 @@
 #define NIRVANA_ORB_CORE_STREAMOUT_H_
 #pragma once
 
+#include <CORBA/CORBA.h>
 #include "../CoreInterface.h"
 #include "GIOP.h"
 
@@ -79,7 +80,72 @@ public:
 
 	/// Write GIOP message header.
 	void write_message_header (unsigned GIOP_minor, GIOP::MsgType msg_type);
+
+	/// Write string.
+	/// 
+	/// \tparam C The character type.
+	/// \param [in,out] s The string.
+	/// \param move If `true`, use move semantic.
+	template <typename C>
+	void write_string (Internal::StringT <C>& s, bool move);
+
+	/// Write size of sequence or string.
+	/// \param size The size.
+	void write_size (size_t size);
+
+	/// Write CDR sequence.
+	/// 
+	/// \param align Data alignment
+	/// \param element_size Element size.
+	/// \param element_count Count of elements.
+	/// \param data Pointer to the data with common-data-representation (CDR).
+	/// \param allocated_size If this parameter is not zero, the request may adopt the memory block.
+	///   If stream adopts the memory block, it sets \p allocated_size to 0.
+	void write_seq (size_t align, size_t element_size, size_t element_count, void* data,
+		size_t& allocated_size);
+
+	template <typename T>
+	void write_seq (IDL::Sequence <T>& s, bool move);
+
 };
+
+template <typename C>
+void StreamOut::write_string (Internal::StringT <C>& s, bool move)
+{
+	typedef typename Internal::Type <Internal::StringT <C> >::ABI ABI;
+	ABI& abi = (ABI&)s;
+	uint32_t size;
+	C* ptr;
+	if (abi.is_large ()) {
+		size = (uint32_t)abi.large_size ();
+		ptr = abi.large_pointer ();
+	} else {
+		size = (uint32_t)abi.small_size ();
+		ptr = abi.small_pointer ();
+	}
+	write_size (size);
+	if (move && size <= ABI::SMALL_CAPACITY)
+		move = false;
+	size_t allocated = move ? abi.allocated () : 0;
+	write (alignof (C), (size + 1) * sizeof (C), ptr, allocated);
+	if (move && !allocated)
+		abi.reset ();
+}
+
+template <typename T>
+void StreamOut::write_seq (IDL::Sequence <T>& s, bool move)
+{
+	typedef typename Internal::Type <IDL::Sequence <T> >::ABI ABI;
+	ABI& abi = (ABI&)s;
+	if (move) {
+		write_seq (alignof (T), sizeof (T), abi.size, abi.ptr, abi.allocated);
+		if (!abi.allocated)
+			abi.reset ();
+	} else {
+		size_t zero = 0;
+		write_seq (alignof (T), sizeof (T), abi.size, abi.ptr, zero);
+	}
+}
 
 }
 }
