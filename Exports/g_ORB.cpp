@@ -27,6 +27,7 @@
 #include <CORBA/ORB_s.h>
 #include <Binder.h>
 #include <ORB/TC_Fixed.h>
+#include <ORB/PolicyFactory.h>
 
 using namespace Nirvana;
 using namespace Nirvana::Core;
@@ -39,7 +40,8 @@ namespace Core {
 
 /// Implementation of the CORBA::ORB interface.
 class ORB :
-	public CORBA::servant_traits <CORBA::ORB>::ServantStatic <ORB>
+	public CORBA::servant_traits <CORBA::ORB>::ServantStatic <ORB>,
+	public PolicyFactory
 {
 public:
 	static Type <ORBid>::ABI_ret _s_id (Bridge <CORBA::ORB>*, Interface*)
@@ -247,13 +249,6 @@ public:
 
 	void destroy ()
 	{}
-
-	// Policy related operations
-
-	Policy::_ref_type create_policy (PolicyType type, const Any& val)
-	{
-		throw NO_IMPLEMENT ();
-	}
 
 	// Value factory operations
 

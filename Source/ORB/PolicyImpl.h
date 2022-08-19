@@ -24,8 +24,9 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_ORB_CORE_POLICY_H_
-#define NIRVANA_ORB_CORE_POLICY_H_
+#ifndef NIRVANA_ORB_CORE_POLICYIMPL_H_
+#define NIRVANA_ORB_CORE_POLICYIMPL_H_
+#pragma once
 
 #include <CORBA/Server.h>
 #include <CORBA/Policy_s.h>
@@ -33,16 +34,18 @@
 namespace CORBA {
 namespace Core {
 
-template <class PolicyItf, PolicyType type, typename ValueType>
-class PolicyImpl : public servant_traits <PolicyItf>::Servant <PolicyImpl <PolicyItf, type, ValueType> >
+template <PolicyType type> class PolicyImpl;
+
+template <class PolicyItf, PolicyType id, typename ValueType>
+class PolicyImplBase : public servant_traits <PolicyItf>::template Servant <PolicyImpl <id> >
 {
 public:
 	static PolicyType _s_get_policy_type (Internal::Bridge <Policy>*, Internal::Interface*)
 	{
-		return type;
+		return id;
 	}
 
-	typename PolicyItf::_ref_type copy ()
+	typename Policy::_ref_type copy ()
 	{
 		return this->_this ();
 	}
@@ -50,33 +53,28 @@ public:
 	static void _s_destroy (Internal::Bridge <Policy>* _b, Internal::Interface* _env)
 	{}
 
-	ValueType value () const
+	static typename PolicyItf::_ref_type create (const ValueType& val)
 	{
-		return value_;
+		return make_stateless <PolicyImpl <id> > (std::ref (val))->_this ();
 	}
 
-	static typename PolicyItf::_ref_type create (ValueType val)
-	{
-		return make_stateless <PolicyImpl> (val)->_this ();
-	}
-
-	static typename PolicyItf::_ref_type create (const Any& a)
+	static Policy::_ref_type create_policy (const Any& a)
 	{
 		ValueType val;
 		if (a >>= val)
 			return create (val);
-		throw BAD_PARAM;
+		throw PolicyError (BAD_POLICY_TYPE);
 	}
-
-	PolicyImpl (ValueType val) :
-		value_ (val)
-	{}
-
-private:
-	ValueType value_;
 };
 
 }
 }
+
+#define DEFINE_POLICY(id, Itf, ValType, att_name) template <>\
+class PolicyImpl <id> : public PolicyImplBase <Itf, id, ValType> {\
+public: typedef ValType ValueType;\
+  PolicyImpl (const ValType& v) : value_ (v) {}\
+  ValType att_name () const NIRVANA_NOEXCEPT { return value_; }\
+private: ValType value_; }
 
 #endif

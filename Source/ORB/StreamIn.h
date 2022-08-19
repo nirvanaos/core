@@ -196,7 +196,7 @@ void StreamIn::read_seq (IDL::Sequence <T>& s)
 	ABI& abi = (ABI&)tmp;
 	read_seq (alignof (T), sizeof (T), abi.size, (void*&)abi.ptr, abi.allocated);
 	
-	if (sizeof (T) > 1 && other_endian ())
+	if (sizeof (Internal::Type <T>::ABI) > 1 && other_endian ())
 		for (T* p = tmp.data (), *e = p + tmp.size (); p != e; ++p) {
 			Internal::Type <T>::byteswap (*p);
 		}

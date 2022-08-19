@@ -32,9 +32,8 @@
 #include "MapUnorderedStable.h"
 #include "MapUnorderedUnstable.h"
 #include "HashOctetSeq.h"
-#include <CORBA/PortableServer_s.h>
+#include "PortableServer_policies.h"
 #include "LocalObject.h"
-#include "PolicyImpl.h"
 
 namespace PortableServer {
 namespace Core {
@@ -107,37 +106,37 @@ public:
 
 	static ThreadPolicy::_ref_type create_thread_policy (ThreadPolicyValue value)
 	{
-		return CORBA::Core::PolicyImpl <ThreadPolicy, THREAD_POLICY_ID, ThreadPolicyValue>::create (value);
+		return CORBA::Core::PolicyImpl <THREAD_POLICY_ID>::create (value);
 	}
 
 	static LifespanPolicy::_ref_type create_lifespan_policy (LifespanPolicyValue value)
 	{
-		return CORBA::Core::PolicyImpl <LifespanPolicy, LIFESPAN_POLICY_ID, LifespanPolicyValue>::create (value);
+		return CORBA::Core::PolicyImpl <LIFESPAN_POLICY_ID>::create (value);
 	}
 
 	static IdUniquenessPolicy::_ref_type create_id_uniqueness_policy (IdUniquenessPolicyValue value)
 	{
-		return CORBA::Core::PolicyImpl <IdUniquenessPolicy, ID_UNIQUENESS_POLICY_ID, IdUniquenessPolicyValue>::create (value);
+		return CORBA::Core::PolicyImpl <ID_UNIQUENESS_POLICY_ID>::create (value);
 	}
 
 	static IdAssignmentPolicy::_ref_type  create_id_assignment_policy (IdAssignmentPolicyValue value)
 	{
-		return CORBA::Core::PolicyImpl <IdAssignmentPolicy, ID_ASSIGNMENT_POLICY_ID, IdAssignmentPolicyValue>::create (value);
+		return CORBA::Core::PolicyImpl <ID_ASSIGNMENT_POLICY_ID>::create (value);
 	}
 
 	static ImplicitActivationPolicy::_ref_type create_implicit_activation_policy (ImplicitActivationPolicyValue value)
 	{
-		return CORBA::Core::PolicyImpl <ImplicitActivationPolicy, IMPLICIT_ACTIVATION_POLICY_ID, ImplicitActivationPolicyValue>::create (value);
+		return CORBA::Core::PolicyImpl <IMPLICIT_ACTIVATION_POLICY_ID>::create (value);
 	}
 
 	static ServantRetentionPolicy::_ref_type create_servant_retention_policy (ServantRetentionPolicyValue value)
 	{
-		return CORBA::Core::PolicyImpl <ServantRetentionPolicy, SERVANT_RETENTION_POLICY_ID, ServantRetentionPolicyValue>::create (value);
+		return CORBA::Core::PolicyImpl <SERVANT_RETENTION_POLICY_ID>::create (value);
 	}
 
 	static RequestProcessingPolicy::_ref_type create_request_processing_policy (RequestProcessingPolicyValue value)
 	{
-		return CORBA::Core::PolicyImpl <RequestProcessingPolicy, REQUEST_PROCESSING_POLICY_ID, RequestProcessingPolicyValue>::create (value);
+		return CORBA::Core::PolicyImpl <REQUEST_PROCESSING_POLICY_ID>::create (value);
 	}
 
 	// POA attributes
