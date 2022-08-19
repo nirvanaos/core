@@ -45,7 +45,7 @@ public:
 		if (pc != std::end (creators))
 			return (pc->creator) (val);
 
-		throw PolicyError (UNSUPPORTED_POLICY);
+		throw PolicyError (BAD_POLICY);
 	}
 
 private:

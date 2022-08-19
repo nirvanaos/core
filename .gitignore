@@ -21,3 +21,10 @@
 /Source/ORB/GIOP.h
 /Source/ORB/IIOP.cpp
 /Source/ORB/IIOP.h
+/Exports/DomainManager_p.cpp
+/Source/ORB/CSI.cpp
+/Source/ORB/CSI.h
+/Source/ORB/CSIIOP.cpp
+/Source/ORB/CSIIOP.h
+/Source/ORB/GSSUP.cpp
+/Source/ORB/GSSUP.h

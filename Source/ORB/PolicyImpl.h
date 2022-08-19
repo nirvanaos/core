@@ -30,11 +30,19 @@
 
 #include <CORBA/Server.h>
 #include <CORBA/Policy_s.h>
+#include "../Synchronized.h"
 
 namespace CORBA {
 namespace Core {
 
-template <PolicyType type> class PolicyImpl;
+template <PolicyType type> class PolicyImpl
+{
+public:
+	static Policy::_ref_type create_policy (const Any& a)
+	{
+		throw PolicyError (UNSUPPORTED_POLICY);
+	}
+};
 
 template <class PolicyItf, PolicyType id, typename ValueType>
 class PolicyImplBase : public servant_traits <PolicyItf>::template Servant <PolicyImpl <id> >
@@ -55,7 +63,9 @@ public:
 
 	static typename PolicyItf::_ref_type create (const ValueType& val)
 	{
+		SYNC_BEGIN (Nirvana::Core::g_core_free_sync_context, nullptr)
 		return make_stateless <PolicyImpl <id> > (std::ref (val))->_this ();
+		SYNC_END ()
 	}
 
 	static Policy::_ref_type create_policy (const Any& a)
