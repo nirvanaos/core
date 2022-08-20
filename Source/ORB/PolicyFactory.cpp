@@ -25,20 +25,15 @@
 */
 #include "PolicyFactory.h"
 #include "PortableServer_policies.h"
+#include <boost/preprocessor/repetition/repeat.hpp>
 
-#define DEFINE_CREATOR(id) { id, PolicyImpl <id>::create_policy }
+#define CREATOR(z, n, d) PolicyImpl <n + 1>::create_policy,
 
 namespace CORBA {
 namespace Core {
 
-const PolicyFactory::Creator PolicyFactory::creators [SUPPORTED_CNT] = {
-	DEFINE_CREATOR(PortableServer::THREAD_POLICY_ID),
-	DEFINE_CREATOR (PortableServer::LIFESPAN_POLICY_ID),
-	DEFINE_CREATOR (PortableServer::ID_UNIQUENESS_POLICY_ID),
-	DEFINE_CREATOR (PortableServer::ID_ASSIGNMENT_POLICY_ID),
-	DEFINE_CREATOR (PortableServer::IMPLICIT_ACTIVATION_POLICY_ID),
-	DEFINE_CREATOR (PortableServer::SERVANT_RETENTION_POLICY_ID),
-	DEFINE_CREATOR (PortableServer::REQUEST_PROCESSING_POLICY_ID)
+const PolicyFactory::Creator PolicyFactory::creators_ [MAX_KNOWN_POLICY_ID] = {
+	BOOST_PP_REPEAT (MAX_KNOWN_POLICY_ID, CREATOR, 0)
 };
 
 }

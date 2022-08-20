@@ -29,38 +29,28 @@
 #pragma once
 
 #include <CORBA/CORBA.h>
-#include <algorithm>
+
+/// COMPRESSION_MIN_RATIO_POLICY_ID = 67.
+/// See ZIOP::CompressionMinRatioPolicy.
+#define MAX_KNOWN_POLICY_ID 67
 
 namespace CORBA {
 namespace Core {
 
 class PolicyFactory
 {
-	static const size_t SUPPORTED_CNT = 7;
-
 public:
 	static Policy::_ref_type create_policy (PolicyType type, const Any& val)
 	{
-		auto* pc = std::lower_bound (creators, std::end (creators), type, comp);
-		if (pc != std::end (creators))
-			return (pc->creator) (val);
-
-		throw PolicyError (BAD_POLICY);
+		if (type == 0 || type > MAX_KNOWN_POLICY_ID)
+			throw PolicyError (BAD_POLICY);
+		return (creators_ [type - 1]) (val);
 	}
 
 private:
-	struct Creator
-	{
-		PolicyType type;
-		Policy::_ref_type (*creator) (const Any&);
-	};
+	typedef Policy::_ref_type (*Creator) (const Any&);
 
-	static bool comp (const Creator& l, PolicyType r) NIRVANA_NOEXCEPT
-	{
-		return l.type < r;
-	}
-
-	static const Creator creators [SUPPORTED_CNT];
+	static const Creator creators_ [MAX_KNOWN_POLICY_ID];
 };
 
 }
