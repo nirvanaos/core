@@ -120,6 +120,17 @@ public:
 			) % maximum;
 	}
 
+	void _create_request (Context::_ptr_type ctx, const IDL::String& operation, NVList::_ptr_type arg_list,
+		NamedValue::_ptr_type result, Request::_ref_type& request, Flags req_flags)
+	{
+		throw NO_IMPLEMENT ();
+	}
+
+	Policy::_ref_type _get_policy (PolicyType policy_type)
+	{
+		throw NO_IMPLEMENT ();
+	}
+
 	// TODO: More Object operations shall be here...
 
 	// Abstract base implementation

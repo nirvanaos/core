@@ -225,7 +225,6 @@ void ExecDomain::cleanup () NIRVANA_NOEXCEPT
 	}
 	
 	deadline_policy_async_._default ();
-	deadline_policy_oneway_._default ();
 	deadline_policy_oneway_._d (System::DeadlinePolicyType::DEADLINE_INFINITE);
 
 	_remove_ref ();
