@@ -41,6 +41,11 @@
 namespace CORBA {
 namespace Core {
 
+/// The implicit object reference operations non_existent, is_a, repository_id and get_interface
+/// may be invoked using DII. No other implicit object reference operations may be invoked via DII.
+/// Metadata of the operations: non_existent, is_a, repository_id and get_interface, in any order.
+typedef Internal::Operation OperationsDII [4];
+
 /// \brief Base for all proxies.
 class ProxyManager :
 	public Nirvana::Core::SharedObject,
@@ -68,7 +73,7 @@ public:
 		return &static_cast <Object&> (static_cast <Internal::Bridge <Object>&> (*this));
 	}
 
-	// Abstract base
+	// Query interface
 	Internal::Interface* _query_interface (const IDL::String& type_id) const
 	{
 		if (type_id.empty ())
@@ -126,12 +131,52 @@ public:
 		throw NO_IMPLEMENT ();
 	}
 
+	void _create_request (Context::_ptr_type ctx, const IDL::String& operation, NVList::_ptr_type arg_list,
+		NamedValue::_ptr_type result, const ExceptionList& exclist, const ContextList& ctxlist,
+		Request::_ref_type& request, Flags req_flags)
+	{
+		throw NO_IMPLEMENT ();
+	}
+
 	Policy::_ref_type _get_policy (PolicyType policy_type)
 	{
 		throw NO_IMPLEMENT ();
 	}
 
-	// TODO: More Object operations shall be here...
+	DomainManagersList _get_domain_managers ()
+	{
+		throw NO_IMPLEMENT ();
+	}
+
+	Object::_ref_type _set_policy_overrides (const PolicyList& policies, SetOverrideType set_or_add)
+	{
+		throw NO_IMPLEMENT ();
+	}
+
+	Policy::_ref_type _get_client_policy (PolicyType type)
+	{
+		throw NO_IMPLEMENT ();
+	}
+
+	PolicyList _get_policy_overrides (const PolicyTypeSeq& types)
+	{
+		throw NO_IMPLEMENT ();
+	}
+
+	Boolean _validate_connection (PolicyList& inconsistent_policies)
+	{
+		throw NO_IMPLEMENT ();
+	}
+
+	IDL::String _repository_id ()
+	{
+		return IDL::String (primary_interface_->iid, primary_interface_->iid_len);
+	}
+	
+	Object::_ref_type _get_component ()
+	{
+		return Object::_nil ();
+	}
 
 	// Abstract base implementation
 
@@ -148,7 +193,7 @@ public:
 protected:
 	ProxyManager (const Internal::Bridge <Internal::IOReference>::EPV& epv_ior,
 		const Internal::Bridge <Object>::EPV& epv_obj, const Internal::Bridge <AbstractBase>::EPV& epv_ab,
-		Internal::String_in primary_iid, const Internal::Operation object_ops [3], void* object_impl);
+		Internal::String_in primary_iid, const OperationsDII& object_ops, void* object_impl);
 
 	~ProxyManager ();
 
@@ -207,6 +252,7 @@ protected:
 	static const Char op_get_interface_ [];
 	static const Char op_is_a_ [];
 	static const Char op_non_existent_ [];
+	static const Char op_repository_id_ [];
 
 private:
 	struct IEPred;

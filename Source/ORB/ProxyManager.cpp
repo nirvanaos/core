@@ -89,6 +89,7 @@ const Parameter ProxyManager::is_a_param_ = { "logical_type_id", Type <String>::
 const Char ProxyManager::op_get_interface_ [] = "_get_interface";
 const Char ProxyManager::op_is_a_ []= "_is_a";
 const Char ProxyManager::op_non_existent_ [] = "_non_existent";
+const Char ProxyManager::op_repository_id_ [] = "_repository_id";
 
 void ProxyManager::check_metadata (const InterfaceMetadata* metadata, String_in primary)
 {
@@ -137,7 +138,7 @@ void ProxyManager::check_type_code (I_ptr <TypeCode> tc)
 
 ProxyManager::ProxyManager (const Bridge <IOReference>::EPV& epv_ior,
 	const Bridge <Object>::EPV& epv_obj, const Bridge <AbstractBase>::EPV& epv_ab,
-	String_in primary_iid, const Operation object_ops [3], void* object_impl) :
+	String_in primary_iid, const OperationsDII& object_ops, void* object_impl) :
 	Bridge <IOReference> (epv_ior),
 	Bridge <Object> (epv_obj),
 	Bridge <AbstractBase> (epv_ab)
@@ -156,7 +157,7 @@ ProxyManager::ProxyManager (const Bridge <IOReference>::EPV& epv_ior,
 		ie->iid_len = countof (RepIdOf <Object>::id) - 1;
 		ie->proxy = &static_cast <Bridge <Object>&> (*this);
 		ie->operations.p = object_ops;
-		ie->operations.size = 3;
+		ie->operations.size = size (object_ops);
 		ie->implementation = reinterpret_cast <Interface*> (object_impl);
 		++ie;
 	}

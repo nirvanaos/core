@@ -60,7 +60,7 @@ private:
 	static void non_existent_request (ProxyLocal* servant, Internal::IORequest::_ptr_type call);
 
 private:
-	static const Internal::Operation object_ops_ [3];
+	static const OperationsDII object_ops_;
 };
 
 }

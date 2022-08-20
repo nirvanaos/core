@@ -134,7 +134,7 @@ public:
 protected:
 	template <class I>
 	ServantProxyBase (Internal::I_ptr <I> servant,
-		const Internal::Operation object_ops [3], void* object_impl) :
+		const OperationsDII& object_ops, void* object_impl) :
 		ProxyManager (Internal::Skeleton <ServantProxyBase, Internal::IOReference>::epv_,
 			Internal::Skeleton <ServantProxyBase, Object>::epv_,
 			Internal::Skeleton <ServantProxyBase, AbstractBase>::epv_,

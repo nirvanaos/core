@@ -126,7 +126,7 @@ private:
 	const PortableServer::ObjectId* activated_id_;
 	bool implicit_activation_;
 
-	static const Internal::Operation object_ops_ [3];
+	static const OperationsDII object_ops_;
 };
 
 }
