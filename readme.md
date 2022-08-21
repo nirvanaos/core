@@ -22,6 +22,10 @@ This folder contains sources which must be included directly into the core build
 
 Various tests.
 
+### DecCalc
+
+Decimal calculations module.
+
 ## How to build
 This repository does not contain any project files.
 It must be included as a Git submodule in a Nirvana library project.
