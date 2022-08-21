@@ -48,7 +48,7 @@ void Scheduler::shutdown () NIRVANA_NOEXCEPT
 
 void Scheduler::activity_end () NIRVANA_NOEXCEPT
 {
-	if (!global_->activity_cnt.decrement ()) {
+	if (!global_->activity_cnt.decrement_fence0 ()) {
 		switch (global_->state) {
 			case State::SHUTDOWN_STARTED: {
 				State state = State::SHUTDOWN_STARTED;

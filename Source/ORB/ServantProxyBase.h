@@ -73,7 +73,7 @@ public:
 
 	void _add_ref_proxy ()
 	{
-		RefCnt::IntegralType cnt = ref_cnt_proxy_.increment ();
+		RefCnt::IntegralType cnt = ref_cnt_proxy_.increment_seq ();
 		if (1 == cnt) {
 			try {
 				SYNC_BEGIN (*sync_context_, nullptr);

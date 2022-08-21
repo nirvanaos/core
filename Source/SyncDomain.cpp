@@ -90,13 +90,13 @@ void SyncDomain::execute (int scheduler_error)
 
 void SyncDomain::activity_begin ()
 {
-	if (1 == activity_cnt_.increment ())
+	if (1 == activity_cnt_.increment_seq ())
 		Scheduler::create_item ();
 }
 
 void SyncDomain::activity_end () NIRVANA_NOEXCEPT
 {
-	if (0 == activity_cnt_.decrement ())
+	if (0 == activity_cnt_.decrement_seq ())
 		Scheduler::delete_item ();
 }
 

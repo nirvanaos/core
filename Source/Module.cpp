@@ -40,8 +40,8 @@ Module::Module (const StringView& name, bool singleton) :
 
 void Module::_remove_ref () NIRVANA_NOEXCEPT
 {
-	if (ref_cnt_.decrement () == initial_ref_cnt_) {
-		if (ref_cnt_.increment () == initial_ref_cnt_ + 1) {
+	if (ref_cnt_.decrement_seq () == initial_ref_cnt_) {
+		if (ref_cnt_.increment_seq () == initial_ref_cnt_ + 1) {
 			release_time_ = Chrono::steady_clock ();
 			ref_cnt_.decrement ();
 		}

@@ -74,9 +74,9 @@ private:
 
 	static RequestId get_new_id () NIRVANA_NOEXCEPT
 	{
-		RequestId id = (RequestId)(last_id_->increment ());
+		RequestId id = (RequestId)(last_id_->increment_seq ());
 		if (!id)
-			id = (RequestId)(last_id_->increment ());
+			id = (RequestId)(last_id_->increment_seq ());
 		return id;
 	}
 

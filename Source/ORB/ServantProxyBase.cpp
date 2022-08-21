@@ -62,7 +62,7 @@ void ServantProxyBase::add_ref_1 ()
 
 ServantProxyBase::RefCnt::IntegralType ServantProxyBase::_remove_ref_proxy () NIRVANA_NOEXCEPT
 {
-	RefCnt::IntegralType cnt = ref_cnt_proxy_.decrement ();
+	RefCnt::IntegralType cnt = ref_cnt_proxy_.decrement_seq ();
 	if (!cnt) {
 		run_garbage_collector <GarbageCollector> (servant_, *sync_context_);
 	} else if (cnt < 0) {

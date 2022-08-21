@@ -635,7 +635,7 @@ public:
 
 	virtual void _remove_ref () NIRVANA_NOEXCEPT
 	{
-		if (!Base::ref_cnt_.decrement ()) {
+		if (0 == Base::ref_cnt_.decrement ()) {
 			Nirvana::Core::CoreRef <Nirvana::Core::MemContext> mc =
 				std::move (Base::caller_memory_);
 			this->RequestLocalImpl::~RequestLocalImpl ();

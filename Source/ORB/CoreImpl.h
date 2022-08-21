@@ -66,7 +66,7 @@ public:
 
 	virtual void _remove_ref () NIRVANA_NOEXCEPT
 	{
-		if (!ServantProxyBase::ref_cnt_servant_.decrement ()) {
+		if (0 == ServantProxyBase::ref_cnt_servant_.decrement ()) {
 			assert (&Nirvana::Core::SyncContext::current () == &ServantProxyBase::sync_context ());
 			try {
 				Proxy::servant ()->_delete_object ();

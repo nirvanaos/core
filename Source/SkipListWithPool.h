@@ -110,7 +110,7 @@ private:
 
 	virtual void deallocate_node (SkipListBase::Node* node) NIRVANA_NOEXCEPT
 	{
-		if (purge_count_.decrement () >= 0)
+		if (purge_count_.decrement_seq () >= 0)
 			SkipListBase::deallocate_node (node);
 		else {
 			purge_count_.increment ();

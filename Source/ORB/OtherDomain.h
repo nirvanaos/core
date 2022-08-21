@@ -97,7 +97,7 @@ private:
 
 	void _remove_ref () NIRVANA_NOEXCEPT
 	{
-		if (!ref_cnt_.decrement ())
+		if (!ref_cnt_.decrement_seq ())
 			release_time_ = Core::Chrono::steady_clock ();
 	}
 

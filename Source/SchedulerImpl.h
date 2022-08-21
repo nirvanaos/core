@@ -102,9 +102,9 @@ void SchedulerImpl <T, ExecutorRef>::execute_next () NIRVANA_NOEXCEPT
 
 		// Acquire processor core
 		for (;;) {
-			if (free_cores_.decrement () >= 0)
+			if (free_cores_.decrement_seq () >= 0)
 				break;
-			if (free_cores_.increment () <= 0)
+			if (free_cores_.increment_seq () <= 0)
 				return;
 		}
 
