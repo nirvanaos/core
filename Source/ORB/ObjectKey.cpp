@@ -23,40 +23,27 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_ORB_CORE_POA_AOM_H_
-#define NIRVANA_ORB_CORE_POA_AOM_H_
-#pragma once
+#include "ObjectKey.h"
+#include "StreamInEncap.h"
 
-#include "POA_Base.h"
+using Nirvana::Core::ImplStatic;
 
-namespace PortableServer {
+namespace CORBA {
 namespace Core {
 
-// Active Object Map (AOM)
-typedef ObjectId AOM_Key;
-typedef CORBA::Object::_ref_type AOM_Val;
-typedef Nirvana::Core::MapUnorderedStable <AOM_Key, AOM_Val,
-	std::hash <AOM_Key>, std::equal_to <AOM_Key>,
-	Nirvana::Core::UserAllocator <std::pair <AOM_Key, AOM_Val> > > AOM;
-
-class NIRVANA_NOVTABLE POA_AOM : public POA_Base
+void ObjectKey::unmarshal (StreamIn& in)
 {
-	typedef POA_Base Base;
-public:
-	virtual void destroy (bool etherealize_objects, bool wait_for_completion) override;
-	virtual void deactivate_object (const ObjectId& oid) override;
-	virtual CORBA::Object::_ref_type id_to_reference (const ObjectId& oid) override;
+	in.read_string (POA_path);
+	in.read_seq (object_id);
+}
 
-protected:
-	POA_AOM (POAManager::_ptr_type manager) :
-		Base (manager)
-	{}
-
-protected:
-	AOM active_object_map_;
-};
+void ObjectKey::unmarshal (const IOP::ObjectKey& object_key)
+{
+	ImplStatic <StreamInEncap> stm (std::ref (object_key));
+	unmarshal (stm);
+	if (stm.end () != 0)
+		throw MARSHAL (StreamIn::MARSHAL_MINOR_MORE);
+}
 
 }
 }
-
-#endif

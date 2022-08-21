@@ -1,3 +1,4 @@
+/// \file
 /*
 * Nirvana Core.
 *
@@ -30,10 +31,10 @@
 #include <CORBA/Server.h>
 #include "ServantBase.h"
 #include "MapUnorderedStable.h"
-#include "MapUnorderedUnstable.h"
 #include "HashOctetSeq.h"
 #include "PortableServer_policies.h"
 #include "LocalObject.h"
+#include "ObjectKey.h"
 
 namespace PortableServer {
 namespace Core {
@@ -42,26 +43,12 @@ namespace Core {
 // not to ServantBase.
 // Release of the ServantBase reference must be performed in the ServantBase
 // synchronization context, so the reference counting of the ServantBase is
-// responsibility of proxy.
+// responsibility of the proxy.
 // The POA never communicates with user ServantBase directly.
-
-// Active Object Map (AOM)
-typedef ObjectId AOM_Key;
-typedef CORBA::Object::_ref_type AOM_Val;
-
-typedef Nirvana::Core::MapUnorderedStable <AOM_Key, AOM_Val,
-	std::hash <AOM_Key>, std::equal_to <AOM_Key>,
-	Nirvana::Core::UserAllocator <std::pair <AOM_Key, AOM_Val> > > AOM;
 
 class NIRVANA_NOVTABLE POA_Base :
 	public CORBA::servant_traits <POA>::Servant <POA_Base>
 {
-protected:
-	// Children map.
-	typedef Nirvana::Core::MapUnorderedUnstable <IDL::String, POA::_ref_type,
-		std::hash <IDL::String>, std::equal_to <IDL::String>,
-		Nirvana::Core::UserAllocator <std::pair <IDL::String, POA::_ref_type> > > Children;
-
 public:
 	// POA creation and destruction
 
@@ -73,34 +60,12 @@ public:
 
 	POA::_ref_type find_POA (const IDL::String& adapter_name, bool activate_it)
 	{
-		auto it = children_.find (adapter_name);
-		if (it == children_.end ()) {
-			if (activate_it && the_activator_) {
-				bool created = false;
-				try {
-					created = the_activator_->unknown_adapter (_this (), adapter_name);
-				} catch (const CORBA::SystemException&) {
-					throw CORBA::OBJ_ADAPTER (1);
-				}
-				if (created)
-					it = children_.find (adapter_name);
-				else
-					throw CORBA::OBJECT_NOT_EXIST (2);
-			}
-		}
-		if (it == children_.end ())
-			throw AdapterNonExistent ();
-		else
-			return it->second;
+		return find_child (adapter_name, activate_it)._this ();
 	}
 
-	virtual void destroy (bool etherealize_objects, bool wait_for_completion)
-	{
-		Children tmp (std::move (children_));
-		while (!tmp.empty ()) {
-			tmp.begin ()->second->destroy (etherealize_objects, wait_for_completion);
-		}
-	}
+	POA_Base& find_child (CORBA::Internal::String_in adapter_name, bool activate_it);
+
+	virtual void destroy (bool etherealize_objects, bool wait_for_completion);
 
 	// Factories for Policy objects
 
@@ -140,15 +105,28 @@ public:
 	}
 
 	// POA attributes
-	virtual IDL::String the_name () const = 0;
-	virtual POA::_ref_type the_parent () const NIRVANA_NOEXCEPT = 0;
+	virtual IDL::String the_name () const
+	{
+		if (parent_)
+			return iterator_->first;
+		else
+			return "RootPOA";
+	}
+
+	POA::_ref_type the_parent () const NIRVANA_NOEXCEPT
+	{
+		if (parent_)
+			return parent_->_this ();
+		else
+			return POA::_nil ();
+	}
 	
 	POAList the_children () const
 	{
 		POAList list;
 		list.reserve (children_.size ());
 		for (auto it = children_.begin (); it != children_.end (); ++it) {
-			list.push_back (it->second);
+			list.push_back (it->second->_this ());
 		}
 		return list;
 	}
@@ -216,6 +194,7 @@ public:
 	virtual CORBA::Object::_ref_type id_to_reference (const ObjectId& oid) = 0;
 
 	// Additional attributes
+
 	virtual CORBA::OctetSeq id () const = 0;
 	
 	POAManagerFactory::_ref_type the_POAManagerFactory ()
@@ -223,18 +202,19 @@ public:
 		throw CORBA::NO_IMPLEMENT ();
 	}
 
-	static const CORBA::Core::LocalObject* get_proxy (POA::_ptr_type poa) NIRVANA_NOEXCEPT;
-	static POA_Base* get_implementation (POA::_ptr_type poa) NIRVANA_NOEXCEPT;
-
+	// Internal
 	static bool implicit_activation (POA::_ptr_type poa) NIRVANA_NOEXCEPT
 	{
 		if (poa) {
-			const POA_Base* impl = get_implementation (poa);
+			const POA_Base* impl = get_implementation (get_proxy (poa));
 			if (impl)
 				return impl->implicit_activation ();
 		}
 		return false;
 	}
+
+	static const CORBA::Core::LocalObject* get_proxy (POA::_ptr_type poa) NIRVANA_NOEXCEPT;
+	static POA_Base* get_implementation (const CORBA::Core::LocalObject* proxy) NIRVANA_NOEXCEPT;
 
 	// Entry point vector overrides
 	static CORBA::Internal::Interface* _s_get_servant (CORBA::Internal::Bridge <POA>* _b, Interface* _env);
@@ -262,15 +242,22 @@ public:
 	{}
 
 protected:
-	POA_Base (POAManager::_ptr_type manager) :
-		the_POAManager_ (manager),
-		signature_ (SIGNATURE)
-	{}
+	POA_Base (POAManager::_ptr_type manager);
 
-	// Nirvana extension
 	virtual bool implicit_activation () const NIRVANA_NOEXCEPT = 0;
 
+	void get_path (IDL::String& path) const;
+
 protected:
+	// Children map.
+	typedef CORBA::servant_reference <POA_Base> Ref;
+
+	typedef Nirvana::Core::MapUnorderedStable <IDL::String, Ref,
+		std::hash <IDL::String>, std::equal_to <IDL::String>,
+		Nirvana::Core::UserAllocator <std::pair <IDL::String, Ref> > > Children;
+
+	POA_Base* parent_;
+	Children::iterator iterator_;
 	Children children_;
 	POAManager::_ref_type the_POAManager_;
 	AdapterActivator::_ref_type the_activator_;

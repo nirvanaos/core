@@ -30,6 +30,7 @@
 
 #include "Request.h"
 #include "ClientAddress.h"
+#include "ObjectKey.h"
 #include "../UserObject.h"
 #include "../ExecDomain.h"
 #include "GIOP.h"
@@ -80,7 +81,7 @@ public:
 	}
 
 	/// \returns Target object key.
-	const IOP::ObjectKey& object_key () const NIRVANA_NOEXCEPT
+	const ObjectKey& object_key () const NIRVANA_NOEXCEPT
 	{
 		return object_key_;
 	}
@@ -160,7 +161,7 @@ private:
 
 protected:
 	RequestKey key_;
-	IOP::ObjectKey object_key_;
+	ObjectKey object_key_;
 	IDL::String operation_;
 	IOP::ServiceContextList service_context_;
 	unsigned response_flags_;

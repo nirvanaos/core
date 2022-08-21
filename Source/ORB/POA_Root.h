@@ -28,6 +28,7 @@
 #pragma once
 
 #include "POA_ImplicitUnique.h"
+#include <algorithm>
 
 namespace PortableServer {
 namespace Core {
@@ -37,7 +38,7 @@ class POA_Root :
 {
 public:
 	POA_Root () :
-		POA_ImplicitUnique (nullptr)
+		POA_ImplicitUnique (POAManager::_nil ())
 	{}
 
 	~POA_Root ()
@@ -48,14 +49,32 @@ public:
 		return "RootPOA";
 	}
 
-	virtual POA::_ref_type the_parent () const NIRVANA_NOEXCEPT override
-	{
-		return nullptr;
-	}
-
 	virtual CORBA::OctetSeq id () const override
 	{
 		return CORBA::OctetSeq ();
+	}
+
+	static CORBA::Object::_ref_type get_object (const CORBA::Core::ObjectKey& key)
+	{
+		POA::_ref_type root = ServantBase::_default_POA ();
+		const CORBA::Core::LocalObject* proxy = get_proxy (root);
+		POA_Base* adapter = get_implementation (proxy);
+		assert (adapter);
+		const char* path = key.POA_path.c_str ();
+		const char* end = path + key.POA_path.size ();
+		SYNC_BEGIN (proxy->sync_context (), nullptr);
+		while (path != end) {
+			const char* name_end = std::find (path, end, '/');
+			if (name_end == end) {
+				adapter = &adapter->find_child (CORBA::Internal::StringBase <char> (path, name_end - path), true);
+				path = end;
+			} else {
+				adapter = &adapter->find_child (IDL::String (path, name_end - path), true);
+				path = name_end + 1;
+			}
+		}
+		return adapter->id_to_reference (key.object_id);
+		SYNC_END ();
 	}
 };
 

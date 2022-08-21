@@ -1,3 +1,4 @@
+/// \file
 /*
 * Nirvana Core.
 *
@@ -23,38 +24,33 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_ORB_CORE_POA_AOM_H_
-#define NIRVANA_ORB_CORE_POA_AOM_H_
+#ifndef NIRVANA_ORB_CORE_OBJECTKEY_H_
+#define NIRVANA_ORB_CORE_OBJECTKEY_H_
 #pragma once
 
-#include "POA_Base.h"
+#include "StreamOut.h"
 
-namespace PortableServer {
+namespace CORBA {
 namespace Core {
 
-// Active Object Map (AOM)
-typedef ObjectId AOM_Key;
-typedef CORBA::Object::_ref_type AOM_Val;
-typedef Nirvana::Core::MapUnorderedStable <AOM_Key, AOM_Val,
-	std::hash <AOM_Key>, std::equal_to <AOM_Key>,
-	Nirvana::Core::UserAllocator <std::pair <AOM_Key, AOM_Val> > > AOM;
+class StreamIn;
 
-class NIRVANA_NOVTABLE POA_AOM : public POA_Base
+/// ObjectKey internal structure.
+struct ObjectKey
 {
-	typedef POA_Base Base;
-public:
-	virtual void destroy (bool etherealize_objects, bool wait_for_completion) override;
-	virtual void deactivate_object (const ObjectId& oid) override;
-	virtual CORBA::Object::_ref_type id_to_reference (const ObjectId& oid) override;
+	IDL::String POA_path;
+	OctetSeq object_id;
 
-protected:
-	POA_AOM (POAManager::_ptr_type manager) :
-		Base (manager)
-	{}
+	void marshal (StreamOut& out) const
+	{
+		out.write_string (const_cast <IDL::String&> (POA_path), false);
+		out.write_seq (const_cast <OctetSeq&> (object_id), false);
+	}
 
-protected:
-	AOM active_object_map_;
+	void unmarshal (StreamIn& in);
+	void unmarshal (const IOP::ObjectKey& object_key);
 };
+
 
 }
 }

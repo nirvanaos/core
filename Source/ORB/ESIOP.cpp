@@ -193,7 +193,7 @@ void dispatch_message (const MessageHeader& message) NIRVANA_NOEXCEPT
 			try {
 				ExecDomain::async_call (Chrono::make_deadline (INITIAL_REQUEST_DEADLINE_LOCAL),
 					CoreRef <Runnable>::create <ImplDynamic <ReceiveRequest> > (msg.client_domain, msg.request_id, (void*)msg.GIOP_message),
-					g_core_free_sync_context);
+					g_core_free_sync_context, &g_shared_mem_context);
 			} catch (const CORBA::SystemException& ex) {
 				// Not enough memory?
 				// Create and destruct object in stack to release stream memory.
@@ -213,7 +213,7 @@ void dispatch_message (const MessageHeader& message) NIRVANA_NOEXCEPT
 			try {
 				ExecDomain::async_call (Chrono::make_deadline (CANCEL_REQUEST_DEADLINE),
 					CoreRef <Runnable>::create <ImplDynamic <Cancel> > (msg.client_domain, msg.request_id),
-					g_core_free_sync_context);
+					g_core_free_sync_context, &g_shared_mem_context);
 			} catch (...) {
 			}
 		} break;

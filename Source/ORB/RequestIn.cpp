@@ -52,7 +52,7 @@ RequestIn::RequestIn (const ClientAddress& client, unsigned GIOP_minor, CoreRef 
 			Hdr hdr;
 			Type <Hdr>::unmarshal (_get_ptr (), hdr);
 			key_.request_id = hdr.request_id ();
-			object_key_ = move (hdr.object_key ());
+			object_key_.unmarshal (hdr.object_key ());
 			operation_ = move (hdr.operation ());
 			service_context_ = move (hdr.service_context ());
 			response_flags_ = hdr.response_expected () ? (RESPONSE_EXPECTED | RESPONSE_DATA) : 0;
@@ -63,7 +63,7 @@ RequestIn::RequestIn (const ClientAddress& client, unsigned GIOP_minor, CoreRef 
 			Hdr hdr;
 			Type <Hdr>::unmarshal (_get_ptr (), hdr);
 			key_.request_id = hdr.request_id ();
-			object_key_ = move (hdr.object_key ());
+			object_key_.unmarshal (hdr.object_key ());
 			operation_ = move (hdr.operation ());
 			service_context_ = move (hdr.service_context ());
 			response_flags_ = hdr.response_expected () ? (RESPONSE_EXPECTED | RESPONSE_DATA) : 0;
@@ -82,7 +82,7 @@ RequestIn::RequestIn (const ClientAddress& client, unsigned GIOP_minor, CoreRef 
 
 			switch (hdr.target ()._d ()) {
 				case GIOP::KeyAddr:
-					object_key_ = move (hdr.target ().object_key ());
+					object_key_.unmarshal (hdr.target ().object_key ());
 					break;
 
 				case GIOP::ProfileAddr:
@@ -110,7 +110,7 @@ void RequestIn::get_object_key (const IOP::TaggedProfile& profile)
 		size_t host_len = s.read_size ();
 		s.read (1, host_len + 1, nullptr);
 		s.read (2, 2, nullptr);
-		s.read_seq (object_key_);
+		object_key_.unmarshal (s);
 	}
 	throw OBJECT_NOT_EXIST ();
 }

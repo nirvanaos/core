@@ -144,6 +144,14 @@ Interface* POA_Base::_s_id_to_servant (Bridge <POA>* _b,
 	return Type <Object>::ret ();
 }
 
+POA_Base::POA_Base (POAManager::_ptr_type manager) :
+	parent_ (nullptr),
+	the_POAManager_ (manager),
+	signature_ (SIGNATURE)
+{
+	// TODO: If manager is nil, create a new.
+}
+
 Object::_ref_type POA_Base::reference_to_servant (Object::_ptr_type reference)
 {
 	if (!reference)
@@ -177,16 +185,63 @@ const CORBA::Core::LocalObject* POA_Base::get_proxy (POA::_ptr_type poa) NIRVANA
 	return nullptr;
 }
 
-POA_Base* POA_Base::get_implementation (POA::_ptr_type poa) NIRVANA_NOEXCEPT
+POA_Base* POA_Base::get_implementation (const CORBA::Core::LocalObject* proxy) NIRVANA_NOEXCEPT
 {
-	if (poa) {
-		const CORBA::Core::LocalObject* proxy = get_proxy (poa);
+	if (proxy) {
 		POA_Base* impl = static_cast <POA_Base*> (
 			static_cast <Bridge <LocalObject>*> (&proxy->servant ()));
 		if (impl->signature_ == SIGNATURE)
 			return impl;
 	}
 	return nullptr;
+}
+
+void POA_Base::get_path (IDL::String& path) const
+{
+	if (parent_) {
+		parent_->get_path (path);
+		static const IDL::String& name = iterator_->first;
+		if (!path.empty ()) {
+			path.reserve (path.size () + name.size () + 1);
+			path += '/';
+		}
+		path += name;
+	}
+}
+
+POA_Base& POA_Base::find_child (CORBA::Internal::String_in adapter_name, bool activate_it)
+{
+	auto it = children_.find (static_cast <const IDL::String&> (adapter_name));
+	if (it == children_.end ()) {
+		if (activate_it && the_activator_) {
+			bool created = false;
+			try {
+				created = the_activator_->unknown_adapter (_this (), adapter_name);
+			} catch (const CORBA::SystemException&) {
+				throw CORBA::OBJ_ADAPTER (1);
+			}
+			if (created)
+				it = children_.find (static_cast <const IDL::String&> (adapter_name));
+			else
+				throw CORBA::OBJECT_NOT_EXIST (2);
+		}
+	}
+	if (it == children_.end ())
+		throw AdapterNonExistent ();
+	else
+		return *it->second;
+}
+
+void POA_Base::destroy (bool etherealize_objects, bool wait_for_completion)
+{
+	Children tmp (std::move (children_));
+	while (!tmp.empty ()) {
+		tmp.begin ()->second->destroy (etherealize_objects, wait_for_completion);
+	}
+	if (parent_) {
+		parent_->children_.erase (iterator_);
+		parent_ = nullptr; // the_name will return "RootPOA"
+	}
 }
 
 }
