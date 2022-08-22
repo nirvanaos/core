@@ -150,7 +150,7 @@ protected:
 /// - Hidden in copy construction and assignments.
 /// - Incrementing from 0 is prohibited.
 /// 
-class RefCounter : private AtomicCounter <false>
+class RefCounter : public AtomicCounter <false>
 {
 	typedef AtomicCounter <false> Base;
 public:
@@ -207,6 +207,16 @@ public:
 	{
 		return Base::decrement_fence0 ();
 	}
+
+	/// Check that reference counter is zero.
+	/// Guarantees the counter consistency.
+	/// 
+	/// \returns `true` if reference counter is zero.
+	bool is_zero () const NIRVANA_NOEXCEPT
+	{
+		return cnt_.load (std::memory_order_acquire) == 0;
+	}
+
 };
 
 }

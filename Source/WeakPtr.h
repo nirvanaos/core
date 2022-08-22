@@ -29,14 +29,80 @@
 #define NIRVANA_CORE_WEAKPTR_H_
 #pragma once
 
-#include "AtomicCounter.h"
-#include "TaggedPtr.h"
+#include "CoreInterface.h"
 #include "SharedObject.h"
-#include <assert.h>
-#include <Nirvana/throw_exception.h>
 
 namespace Nirvana {
 namespace Core {
+
+struct ControlBlock
+{
+	AtomicCounter <false> ref_cnt_, ref_cnt_weak_;
+};
+
+/// Shared implementation of a core object.
+/// \tparam T object class.
+template <class T>
+class ImplShared final :
+	public T,
+	public SharedObject
+{
+protected:
+	template <class> friend class CoreRef;
+
+	template <class ... Args>
+	ImplShared (Args ... args) :
+		T (std::forward <Args> (args)...),
+		ref_cnt_weak_ (0)
+	{}
+
+	~ImplShared ()
+	{}
+
+	void _add_ref () NIRVANA_NOEXCEPT
+	{
+		ref_cnt_.increment ();
+	}
+
+	void _remove_ref () NIRVANA_NOEXCEPT
+	{
+		if (!ref_cnt_.decrement ()) {
+			if (0 == ref_cnt_weak_)
+				delete this;
+			else {
+				static_cast <T*> (this)->~T ();
+				size_t cb_rel = round_down (sizeof (*this), HEAP_UNIT_DEFAULT);
+				if (cb_rel)
+					g_shared_mem_context->heap ().release (this, cb_rel);
+			}
+		}
+	}
+
+	void _add_ref_weak ()
+	{
+		ref_cnt_weak_.increment ();
+	}
+
+	void _remove_ref_weak ()
+	{
+		if (!ref_cnt_weak_.decrement_seq ()) {
+			if (ref_cnt_.is_zero ())
+				g_shared_mem_context->heap ().release ((uint8_t*)this + sizeof (T), sizeof (*this) - sizeof (T));
+		}
+	}
+
+	CoreRef <ImplShared <T> > _get_ref ()
+	{
+		CoreRef <ImplShared <T> > ret;
+		if (!ref_cnt_.is_zero ())
+			ret = this;
+		return ret;
+	}
+
+private:
+	RefCounter ref_cnt_;
+	AtomicCounter <false> ref_cnt_weak_;
+};
 
 /// Weak object reference.
 /// 
@@ -52,24 +118,21 @@ public:
 	~WeakPtr ()
 	{
 		if (control_block_)
-			control_block_->remove_ref ();
+			control_block_->_remove_ref_weak ();
 	}
 
-	WeakPtr (T* p) :
-		control_block_ (new ControlBlock (p))
-	{}
-
-	WeakPtr (CoreRef <T>&& ref) :
-		control_block_ (new ControlBlock (ref.p_))
+	WeakPtr (CoreRef <ImplShared <T> > p) :
+		control_block_ (p)
 	{
-		ref.p_ = nullptr;
+		if (p)
+			p->_add_ref_weak ();
 	}
 
 	WeakPtr (const WeakPtr& src) NIRVANA_NOEXCEPT :
 		control_block_ (src.control_block_)
 	{
 		if (control_block_)
-			control_block_->add_ref ();
+			control_block_->_add_ref_weak ();
 	}
 
 	WeakPtr (WeakPtr&& src) NIRVANA_NOEXCEPT :
@@ -80,46 +143,38 @@ public:
 
 	WeakPtr& operator = (const WeakPtr& src) NIRVANA_NOEXCEPT
 	{
-		if (control_block_)
-			control_block_->remove_ref ();
-		if ((control_block_ = src.control_block_))
-			control_block_->add_ref ();
+		if (control_block_ != src.control_block_) {
+			if (control_block_)
+				control_block_->_remove_ref_weak ();
+			if ((control_block_ = src.control_block_))
+				control_block_->_add_ref_weak ();
+		}
 		return *this;
 	}
 
 	WeakPtr& operator = (WeakPtr&& src) NIRVANA_NOEXCEPT
 	{
 		if (control_block_)
-			control_block_->remove_ref ();
+			control_block_->_remove_ref_weak ();
 		control_block_ = src.control_block_;
 		src.control_block_ = nullptr;
 		return *this;
 	}
 
 	/// Get strong reference to object.
-	CoreRef <T> get () const NIRVANA_NOEXCEPT
+	CoreRef <ImplShared <T> > lock () const NIRVANA_NOEXCEPT
 	{
 		if (control_block_)
-			return control_block_->get ();
+			return control_block_->_get_ref ();
 		else
 			return nullptr;
-	}
-
-	/// After this call get() for all copies of this weak pointer returns `nullptr` reference.
-	void release () NIRVANA_NOEXCEPT
-	{
-		if (control_block_) {
-			control_block_->release ();
-			control_block_->remove_ref ();
-			control_block_ = nullptr;
-		}
 	}
 
 	/// Releases the reference to the managed object. After the call `*this` manages no object.
 	void reset () NIRVANA_NOEXCEPT
 	{
 		if (control_block_) {
-			control_block_->remove_ref ();
+			control_block_->_remove_ref_weak ();
 			control_block_ = nullptr;
 		}
 	}
@@ -135,56 +190,10 @@ public:
 	}
 
 private:
-	class ControlBlock :
-		public SharedObject
-	{
-	public:
-		void add_ref () NIRVANA_NOEXCEPT
-		{
-			ref_cnt_.increment ();
-		}
-
-		void remove_ref () NIRVANA_NOEXCEPT
-		{
-			if (!ref_cnt_.decrement ())
-				delete this;
-		}
-
-		ControlBlock (T* p) NIRVANA_NOEXCEPT :
-		ptr_ (p)
-		{}
-
-		~ControlBlock ()
-		{
-			reinterpret_cast <CoreRef <T>&> (ptr_).~CoreRef ();
-		}
-
-		CoreRef <T> get () NIRVANA_NOEXCEPT
-		{
-			CoreRef <T> ref (ptr_.lock ());
-			ptr_.unlock ();
-			return ref;
-		}
-
-		void release () NIRVANA_NOEXCEPT
-		{
-			typedef typename LockablePtrT <T, 0>::Ptr Ptr;
-			Ptr p = ptr_.load ();
-			if ((T*)p) {
-				Ptr nil (nullptr);
-				if (ptr_.cas (p, nil))
-					reinterpret_cast <CoreRef <T>&> (p).~CoreRef ();
-			}
-		}
-
-	private:
-		LockablePtrT <T, 0> ptr_;
-		RefCounter ref_cnt_;
-	};
-
-	ControlBlock* control_block_;
+	ImplShared <T>* control_block_;
 };
 
 }
 }
+
 #endif
