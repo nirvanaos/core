@@ -139,6 +139,15 @@ public:
 		return ret;
 	}
 
+	/// Check that reference counter is zero.
+	/// Guarantees the counter consistency.
+	/// 
+	/// \returns `true` if reference counter is zero.
+	bool is_zero () const NIRVANA_NOEXCEPT
+	{
+		return cnt_.load (std::memory_order_acquire) == 0;
+	}
+
 protected:
 	std::atomic <IntegralType> cnt_;
 };
@@ -195,7 +204,7 @@ public:
 	///   If we have no references we can't add a new one.
 	void increment () NIRVANA_NOEXCEPT
 	{
-		assert (cnt_ > 0);
+		assert (*this > 0);
 		Base::increment ();
 	}
 
@@ -206,15 +215,6 @@ public:
 	IntegralType decrement () NIRVANA_NOEXCEPT
 	{
 		return Base::decrement_fence0 ();
-	}
-
-	/// Check that reference counter is zero.
-	/// Guarantees the counter consistency.
-	/// 
-	/// \returns `true` if reference counter is zero.
-	bool is_zero () const NIRVANA_NOEXCEPT
-	{
-		return cnt_.load (std::memory_order_acquire) == 0;
 	}
 
 };

@@ -25,8 +25,8 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_CORE_WEAKPTR_H_
-#define NIRVANA_CORE_WEAKPTR_H_
+#ifndef NIRVANA_CORE_WEAKREF_H_
+#define NIRVANA_CORE_WEAKREF_H_
 #pragma once
 
 #include "CoreInterface.h"
@@ -35,10 +35,7 @@
 namespace Nirvana {
 namespace Core {
 
-struct ControlBlock
-{
-	AtomicCounter <false> ref_cnt_, ref_cnt_weak_;
-};
+template <class T> class WeakRef;
 
 /// Shared implementation of a core object.
 /// \tparam T object class.
@@ -47,101 +44,131 @@ class ImplShared final :
 	public T,
 	public SharedObject
 {
-protected:
+private:
 	template <class> friend class CoreRef;
 
 	template <class ... Args>
 	ImplShared (Args ... args) :
-		T (std::forward <Args> (args)...),
-		ref_cnt_weak_ (0)
-	{}
-
-	~ImplShared ()
+		T (std::forward <Args> (args)...)
 	{}
 
 	void _add_ref () NIRVANA_NOEXCEPT
 	{
-		ref_cnt_.increment ();
+		control_block_.ref_cnt.increment ();
 	}
 
 	void _remove_ref () NIRVANA_NOEXCEPT
 	{
-		if (!ref_cnt_.decrement ()) {
-			if (0 == ref_cnt_weak_)
+		if (!control_block_.ref_cnt.decrement ()) {
+			if (control_block_.ref_cnt_weak.is_zero ())
 				delete this;
 			else {
 				static_cast <T*> (this)->~T ();
-				size_t cb_rel = round_down (sizeof (*this), HEAP_UNIT_DEFAULT);
+				size_t cb_rel = sizeof (T) / HEAP_UNIT_DEFAULT * HEAP_UNIT_DEFAULT;
 				if (cb_rel)
 					g_shared_mem_context->heap ().release (this, cb_rel);
 			}
 		}
 	}
 
-	void _add_ref_weak ()
+	friend class WeakRef <T>;
+
+	void _add_ref_weak () NIRVANA_NOEXCEPT
 	{
-		ref_cnt_weak_.increment ();
+		control_block_.ref_cnt_weak.increment ();
 	}
 
-	void _remove_ref_weak ()
+	void _remove_ref_weak () NIRVANA_NOEXCEPT
 	{
-		if (!ref_cnt_weak_.decrement_seq ()) {
-			if (ref_cnt_.is_zero ())
+		if (!control_block_.ref_cnt_weak.decrement_seq ()) {
+			if (control_block_.ref_cnt.is_zero ())
 				g_shared_mem_context->heap ().release ((uint8_t*)this + sizeof (T), sizeof (*this) - sizeof (T));
 		}
 	}
 
-	CoreRef <ImplShared <T> > _get_ref ()
+	CoreRef <ImplShared <T> > _get_ref () NIRVANA_NOEXCEPT
 	{
 		CoreRef <ImplShared <T> > ret;
-		if (!ref_cnt_.is_zero ())
+		if (!control_block_.ref_cnt.is_zero ())
 			ret = this;
 		return ret;
 	}
 
 private:
-	RefCounter ref_cnt_;
-	AtomicCounter <false> ref_cnt_weak_;
+	struct ControlBlock
+	{
+		RefCounter ref_cnt;
+		AtomicCounter <false> ref_cnt_weak;
+
+		ControlBlock () :
+			ref_cnt_weak (0)
+		{}
+
+		ControlBlock (const ControlBlock&) :
+			ref_cnt_weak (0)
+		{}
+
+		ControlBlock (ControlBlock&&) :
+			ref_cnt_weak (0)
+		{}
+
+		ControlBlock& operator = (const ControlBlock&)
+		{
+			return *this;
+		}
+
+		ControlBlock& operator = (ControlBlock&&)
+		{
+			return *this;
+		}
+	}
+	control_block_;
 };
+
+/// Shared object reference.
+/// 
+/// \typeparam T The object type.
+template <class T>
+using SharedRef = CoreRef <ImplShared <T> >;
 
 /// Weak object reference.
 /// 
 /// \typeparam T The object type.
 template <class T>
-class WeakPtr
+class WeakRef
 {
 public:
-	WeakPtr () NIRVANA_NOEXCEPT :
+	WeakRef () NIRVANA_NOEXCEPT :
 		control_block_ (nullptr)
 	{}
 
-	~WeakPtr ()
+	~WeakRef ()
 	{
 		if (control_block_)
 			control_block_->_remove_ref_weak ();
 	}
 
-	WeakPtr (CoreRef <ImplShared <T> > p) :
+	WeakRef (SharedRef <T> p) :
 		control_block_ (p)
 	{
 		if (p)
 			p->_add_ref_weak ();
 	}
 
-	WeakPtr (const WeakPtr& src) NIRVANA_NOEXCEPT :
+	WeakRef (const WeakRef& src) NIRVANA_NOEXCEPT :
 		control_block_ (src.control_block_)
 	{
 		if (control_block_)
 			control_block_->_add_ref_weak ();
 	}
 
-	WeakPtr (WeakPtr&& src) NIRVANA_NOEXCEPT :
+	WeakRef (WeakRef&& src) NIRVANA_NOEXCEPT :
 		control_block_ (src.control_block_)
 	{
 		src.control_block_ = nullptr;
 	}
 
-	WeakPtr& operator = (const WeakPtr& src) NIRVANA_NOEXCEPT
+	WeakRef& operator = (const WeakRef& src) NIRVANA_NOEXCEPT
 	{
 		if (control_block_ != src.control_block_) {
 			if (control_block_)
@@ -152,7 +179,7 @@ public:
 		return *this;
 	}
 
-	WeakPtr& operator = (WeakPtr&& src) NIRVANA_NOEXCEPT
+	WeakRef& operator = (WeakRef&& src) NIRVANA_NOEXCEPT
 	{
 		if (control_block_)
 			control_block_->_remove_ref_weak ();
@@ -162,7 +189,7 @@ public:
 	}
 
 	/// Get strong reference to object.
-	CoreRef <ImplShared <T> > lock () const NIRVANA_NOEXCEPT
+	SharedRef <T> lock () const NIRVANA_NOEXCEPT
 	{
 		if (control_block_)
 			return control_block_->_get_ref ();
