@@ -58,6 +58,11 @@ public:
 	/// On resume, return to call context.
 	void suspend_and_return ();
 
+	/// Return to caller synchronization context.
+	/// Skip rescehdule if possible.
+	///  
+	void return_to_caller_context ();
+
 	/// Called on exception inside synchronization frame.
 	NIRVANA_NORETURN void on_exception ();
 

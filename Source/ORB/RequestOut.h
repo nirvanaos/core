@@ -28,7 +28,7 @@
 #define NIRVANA_ORB_CORE_REQUESTOUT_H_
 #pragma once
 
-#include "Request.h"
+#include "RequestGIOP.h"
 #include "../ExecDomain.h"
 #include "../UserObject.h"
 
@@ -37,7 +37,7 @@ namespace Core {
 
 /// Implements client-side IORequest for GIOP.
 class RequestOut :
-	public Request,
+	public RequestGIOP,
 	public Nirvana::Core::UserObject
 {
 public:

@@ -28,16 +28,16 @@
 #define NIRVANA_ORB_CORE_REQUESTENCAP_H_
 #pragma once
 
-#include "Request.h"
+#include "RequestGIOP.h"
 
 namespace CORBA {
 namespace Core {
 
 /// Implements IORequest for encapsulated data.
-class NIRVANA_NOVTABLE RequestEncap : public Request
+class NIRVANA_NOVTABLE RequestEncap : public RequestGIOP
 {
 protected:
-	RequestEncap (const Request& parent);
+	RequestEncap (const RequestGIOP& parent);
 
 private:
 	virtual void set_exception (Any& e) override;

@@ -97,7 +97,7 @@ public:
 	inline
 	Internal::IORequest::_ref_type create_async (OperationIndex op);
 
-	void invoke (RequestLocal& rq) NIRVANA_NOEXCEPT;
+	void invoke (OperationIndex op, Internal::IORequest::_ptr_type rq) NIRVANA_NOEXCEPT;
 
 	Nirvana::Core::MemContext* mem_context () const NIRVANA_NOEXCEPT
 	{
@@ -110,6 +110,15 @@ public:
 	/// Returns synchronization context for the target object.
 	Nirvana::Core::SyncContext& sync_context () const NIRVANA_NOEXCEPT
 	{
+		return *sync_context_;
+	}
+
+	/// Returns synchronization context for the specific operation.
+	/// For some Object operations may return free context.
+	Nirvana::Core::SyncContext& get_sync_context (Internal::IOReference::OperationIndex op)
+	{
+		if (op.interface_idx () == object_itf_idx () && op.operation_idx () != (UShort)ObjectOp::NON_EXISTENT)
+			return Nirvana::Core::g_core_free_sync_context;
 		return *sync_context_;
 	}
 
@@ -162,13 +171,6 @@ protected:
 	}
 
 	virtual void add_ref_1 ();
-
-	/// Returns synchronization context for the specific operation.
-	/// For some Object operations may return free context.
-	virtual Nirvana::Core::SyncContext& get_sync_context (Internal::IOReference::OperationIndex op)
-	{
-		return *sync_context_;
-	}
 
 	template <class GC, class Arg>
 	void run_garbage_collector (Arg arg, Nirvana::Core::SyncContext& sync_context) const NIRVANA_NOEXCEPT

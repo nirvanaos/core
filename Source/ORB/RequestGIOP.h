@@ -24,8 +24,8 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_ORB_CORE_REQUEST_H_
-#define NIRVANA_ORB_CORE_REQUEST_H_
+#ifndef NIRVANA_ORB_CORE_REQUESTGIOP_H_
+#define NIRVANA_ORB_CORE_REQUESTGIOP_H_
 #pragma once
 
 #include <CORBA/Server.h>
@@ -41,13 +41,13 @@ namespace CORBA {
 namespace Core {
 
 /// Implements IORequest for GIOP messages
-class NIRVANA_NOVTABLE Request :
-	public servant_traits <Internal::IORequest>::Servant <Request>,
+class NIRVANA_NOVTABLE RequestGIOP :
+	public servant_traits <Internal::IORequest>::Servant <RequestGIOP>,
 	protected RqHelper,
-	public Internal::LifeCycleRefCnt <Request>
+	public Internal::LifeCycleRefCnt <RequestGIOP>
 {
 	DECLARE_CORE_INTERFACE
-	friend class Internal::LifeCycleRefCnt <Request>;
+	friend class Internal::LifeCycleRefCnt <RequestGIOP>;
 
 public:
 	///@{
@@ -348,7 +348,7 @@ public:
 
 	///@}
 
-	virtual ~Request ()
+	virtual ~RequestGIOP ()
 	{}
 
 	///@{
@@ -377,9 +377,9 @@ public:
 	///@}
 
 protected:
-	Request (unsigned GIOP_minor, bool client_side);
+	RequestGIOP (unsigned GIOP_minor, bool client_side);
 
-	Request (const Request& src) :
+	RequestGIOP (const RequestGIOP& src) :
 		code_set_conv_ (src.code_set_conv_),
 		code_set_conv_w_ (src.code_set_conv_w_)
 	{}

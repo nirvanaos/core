@@ -41,9 +41,23 @@
 namespace CORBA {
 namespace Core {
 
-/// The implicit object reference operations non_existent, is_a, repository_id and get_interface
+/// The implicit object reference operations _non_existent, _is_a, _repository_id and _get_interface
 /// may be invoked using DII. No other implicit object reference operations may be invoked via DII.
-/// Metadata of the operations: non_existent, is_a, repository_id and get_interface, in any order.
+/// Only _non_existent operation can cause the call to servant.
+/// Object operation indexes.
+enum class ObjectOp : UShort
+{
+	GET_INTERFACE,
+	IS_A,
+	NON_EXISTENT,
+	REPOSITORY_ID
+};
+
+/// This array contains metadata of the operations:
+/// - _get_interface
+/// - _is_a
+/// - _non_existent
+/// - _repository_id
 typedef Internal::Operation OperationsDII [4];
 
 /// \brief Base for all proxies.
@@ -89,27 +103,28 @@ public:
 
 	// Object operations
 
-	InterfaceDef::_ref_type _get_interface () const
+	static InterfaceDef::_ref_type _get_interface ()
 	{
 		SYNC_BEGIN (Nirvana::Core::g_core_free_sync_context, nullptr);
-		return InterfaceDef::_nil (); // TODO: Implement.
+		return get_interface ();
 		SYNC_END ();
 	}
-
+	
 	Boolean _is_a (const IDL::String& type_id) const
 	{
 		IDL::String tmp (type_id);
 		SYNC_BEGIN (Nirvana::Core::g_core_free_sync_context, nullptr);
-		return find_interface (tmp) != nullptr;
+		return is_a (tmp);
 		SYNC_END ();
 	}
 
 	Boolean _non_existent ()
 	{
-		Internal::IORequest::_ref_type rq = ior ()->create_request (_make_op_idx (OBJ_OP_NON_EXISTENT));
+		Internal::IORequest::_ref_type rq = ior ()->create_request (_make_op_idx ((UShort)ObjectOp::NON_EXISTENT));
 		rq->invoke ();
 		Boolean _ret;
 		Internal::Type <Boolean>::unmarshal (rq, _ret);
+		rq->unmarshal_end ();
 		return _ret;
 	}
 
@@ -168,9 +183,10 @@ public:
 		throw NO_IMPLEMENT ();
 	}
 
-	IDL::String _repository_id ()
+	IDL::String _repository_id () const
 	{
-		return IDL::String (primary_interface_->iid, primary_interface_->iid_len);
+		//Nirvana::Core::ExecDomain::yield ();
+		return repository_id ();
 	}
 	
 	Object::_ref_type _get_component ()
@@ -189,6 +205,8 @@ public:
 	{
 		return nullptr;
 	}
+
+	Internal::IOReference::OperationIndex find_operation (const IDL::String& name) const;
 
 protected:
 	ProxyManager (const Internal::Bridge <Internal::IOReference>::EPV& epv_ior,
@@ -225,7 +243,6 @@ protected:
 	}
 
 	const InterfaceEntry* find_interface (Internal::String_in iid) const;
-	const OperationEntry* find_operation (Internal::String_in name) const;
 
 	UShort object_itf_idx () const
 	{
@@ -237,13 +254,19 @@ protected:
 		return Internal::IOReference::OperationIndex (object_itf_idx_, op_idx);
 	}
 
-	// Object operation indexes
-	enum
+	static InterfaceDef::_ref_type get_interface ();
+
+	Boolean is_a (const IDL::String& type_id) const
 	{
-		OBJ_OP_GET_INTERFACE,
-		OBJ_OP_IS_A,
-		OBJ_OP_NON_EXISTENT
-	};
+		return find_interface (type_id) != nullptr;
+	}
+
+	IDL::String repository_id () const
+	{
+		return IDL::String (primary_interface_->iid, primary_interface_->iid_len);
+	}
+
+	void serve_object_request (ObjectOp op, Internal::IORequest::_ptr_type rq);
 
 	// Input parameter metadata for `is_a` operation.
 	static const Internal::Parameter is_a_param_;

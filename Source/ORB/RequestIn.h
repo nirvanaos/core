@@ -28,12 +28,14 @@
 #define NIRVANA_ORB_CORE_REQUESTIN_H_
 #pragma once
 
-#include "Request.h"
+#include "RequestGIOP.h"
+#include "RequestInBase.h"
 #include "ClientAddress.h"
 #include "ObjectKey.h"
 #include "../UserObject.h"
 #include "../ExecDomain.h"
 #include "GIOP.h"
+#include <CORBA/Proxy/IOReference.h>
 
 namespace CORBA {
 namespace Core {
@@ -65,7 +67,8 @@ struct RequestKey : ClientAddress
 
 /// Implements server-side IORequest for GIOP.
 class NIRVANA_NOVTABLE RequestIn :
-	public Request,
+	public RequestGIOP,
+	public RequestInBase,
 	public Nirvana::Core::UserObject
 {
 public:
@@ -84,12 +87,6 @@ public:
 	const ObjectKey& object_key () const NIRVANA_NOEXCEPT
 	{
 		return object_key_;
-	}
-
-	/// \returns Operation name.
-	const IDL::String& operation () const NIRVANA_NOEXCEPT
-	{
-		return operation_;
 	}
 
 	/// \returns Service context.
@@ -158,17 +155,24 @@ private:
 	virtual bool marshal_op () override;
 
 	void switch_to_reply (GIOP::ReplyStatusType status = GIOP::ReplyStatusType::NO_EXCEPTION);
+	virtual void serve_request (ServantProxyBase& proxy);
 
 protected:
 	RequestKey key_;
 	ObjectKey object_key_;
-	IDL::String operation_;
 	IOP::ServiceContextList service_context_;
 	unsigned response_flags_;
 	unsigned GIOP_minor_;
 
 private:
+	/// ExecDomain pointer if request is in cancellable state, otherwise `nullptr`.
 	Nirvana::Core::ExecDomain* exec_domain_;
+
+	Internal::IOReference::OperationIndex operation_idx_;
+
+	/// SyncDomain of the target object.
+	Nirvana::Core::SyncDomain* sync_domain_;
+
 	size_t reply_status_offset_;
 	size_t reply_header_end_;
 };

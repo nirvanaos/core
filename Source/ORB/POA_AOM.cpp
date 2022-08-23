@@ -24,8 +24,10 @@
 *  popov.nirvana@gmail.com
 */
 #include "POA_AOM.h"
+#include "RequestInBase.h"
 
 using namespace CORBA;
+using Nirvana::Core::ExecDomain;
 
 namespace PortableServer {
 namespace Core {
@@ -68,6 +70,15 @@ Object::_ref_type POA_AOM::id_to_reference (const ObjectId& oid)
 	throw ObjectNotActive ();
 }
 
+void POA_AOM::invoke (const ObjectId& oid, CORBA::Core::RequestInBase& request) const
+{
+	auto it = active_object_map_.find (oid);
+	if (it == active_object_map_.end ())
+		throw OBJECT_NOT_EXIST (MAKE_OMG_MINOR (1));
+	Nirvana::Core::CoreRef <CORBA::Core::ServantProxyBase> proxy = object2servant_core (it->second);
+	ExecDomain::current ().leave_sync_domain ();
+	request.serve_request (*proxy);
+}
 
 }
 }

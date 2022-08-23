@@ -25,10 +25,42 @@
 */
 #include "IncomingRequests.h"
 #include "Chrono.h"
+#include "POA_Root.h"
+#include <algorithm>
 
 using namespace std;
 using namespace Nirvana;
 using namespace Nirvana::Core;
+
+inline void PortableServer::Core::POA_Root::invoke (CORBA::Core::RequestIn& request)
+{
+	ExecDomain& ed = ExecDomain::current ();
+	// Called from free sync context
+	assert (!ed.sync_context ().sync_domain ());
+
+	POA::_ref_type root = ServantBase::_default_POA ();
+	const CORBA::Core::LocalObject* proxy = get_proxy (root);
+	POA_Base* adapter = get_implementation (proxy);
+	assert (adapter);
+	const char* path = request.object_key ().POA_path.c_str ();
+	const char* end = path + request.object_key ().POA_path.size ();
+
+	SYNC_BEGIN (proxy->sync_context (), ed.mem_context_ptr ());
+	while (path != end) {
+		const char* name_end = std::find (path, end, '/');
+		if (name_end == end) {
+			adapter = &adapter->find_child (CORBA::Internal::StringBase <char> (path, name_end - path), true);
+			path = end;
+		} else {
+			adapter = &adapter->find_child (IDL::String (path, name_end - path), true);
+			path = name_end + 1;
+		}
+	}
+	adapter->invoke (request.object_key ().object_id, request);
+
+	_sync_frame.return_to_caller_context ();
+	SYNC_END ();
+}
 
 namespace CORBA {
 namespace Core {
@@ -80,13 +112,10 @@ void IncomingRequests::receive (RequestIn& rq, uint64_t timestamp)
 		}
 
 		ed.deadline (deadline);
-		ed.yield (); // Reschedule
 
-		// Now we obtain the target object key
-		rq.object_key ();
-
-		// TODO: Implement
-		throw NO_IMPLEMENT ();
+		// Execution domain will be rescheduled with new deadline
+		// on entering to the POA synchronization domain.
+		PortableServer::Core::POA_Root::invoke (rq);
 
 	} catch (Exception& ex) {
 		Any any;

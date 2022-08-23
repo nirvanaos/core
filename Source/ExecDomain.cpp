@@ -315,15 +315,63 @@ void ExecDomain::schedule (SyncContext& target, bool ret)
 	}
 }
 
-void ExecDomain::schedule_return (SyncContext& target) NIRVANA_NOEXCEPT
+void ExecDomain::schedule_call_no_push_mem (SyncContext& target)
+{
+	SyncContext& old_context = sync_context ();
+
+	// If old context is a synchronization domain, we
+	// allocate queue node to perform return without a risk
+	// of memory allocation failure.
+	SyncDomain* old_sd = old_context.sync_domain ();
+	if (old_sd) {
+		ret_qnode_push (*old_sd);
+		old_sd->leave ();
+	}
+
+	if (target.sync_domain () || !(deadline () == INFINITE_DEADLINE && &Thread::current () == background_worker_)) {
+		// Need to schedule
+
+		// Call schedule() in the neutral context
+		schedule_.sync_context_ = &target;
+		schedule_.ret_ = false;
+		run_in_neutral_context (schedule_);
+
+		// Handle possible schedule() exceptions
+		if (schedule_.exception_) {
+			std::exception_ptr ex = schedule_.exception_;
+			schedule_.exception_ = nullptr;
+			// We leaved old sync domain so we must enter into prev synchronization domain back before throwing the exception.
+			schedule_return (old_context, true);
+			rethrow_exception (ex);
+		}
+
+		// Now ED in the scheduler queue.
+		// Now ED is again executed by the scheduler.
+		// But maybe a schedule error occurs.
+		CORBA::Exception::Code err = scheduler_error ();
+		if (err >= 0) {
+			// We must return to prev synchronization context back before throwing the exception.
+			schedule_return (old_context, true);
+			CORBA::SystemException::_raise_by_code (err);
+		}
+	} else
+		sync_context (target);
+}
+
+void ExecDomain::schedule_return (SyncContext& target, bool no_reschedule) NIRVANA_NOEXCEPT
 {
 	mem_context_pop ();
+
+	if (no_reschedule && (&sync_context () == &target))
+		return;
 
 	SyncDomain* old_sd = sync_context ().sync_domain ();
 	if (old_sd)
 		old_sd->leave ();
 
-	if (target.sync_domain () || !(deadline () == INFINITE_DEADLINE && &Thread::current () == background_worker_)) {
+	if (target.sync_domain ()
+		|| (!no_reschedule
+			&& !(deadline () == INFINITE_DEADLINE && &Thread::current () == background_worker_))) {
 
 		schedule_.sync_context_ = &target;
 		schedule_.ret_ = true;

@@ -27,6 +27,7 @@
 #include "IncomingRequests.h"
 #include "RequestEncapIn.h"
 #include "IIOP.h"
+#include "ServantProxyBase.h"
 
 using namespace Nirvana;
 using namespace Nirvana::Core;
@@ -39,10 +40,11 @@ using namespace Internal;
 namespace Core {
 
 RequestIn::RequestIn (const ClientAddress& client, unsigned GIOP_minor, CoreRef <StreamIn>&& in) :
-	Request (GIOP_minor, false),
+	RequestGIOP (GIOP_minor, false),
 	key_ (client),
 	GIOP_minor_ (GIOP_minor),
-	exec_domain_ (nullptr)
+	exec_domain_ (nullptr),
+	sync_domain_ (nullptr)
 {
 	stream_in_ = move (in);
 
@@ -123,14 +125,11 @@ RequestIn::~RequestIn ()
 		finalize (); // Remove from the map
 }
 
-void RequestIn::unmarshal_end ()
-{
-	Request::unmarshal_end ();
-	// TODO: Here we must enter the target sync domain.
-}
-
 void RequestIn::switch_to_reply (GIOP::ReplyStatusType status)
 {
+	// Leave the object synchronization domain, if any.
+	ExecDomain::current ().leave_sync_domain ();
+
 	stream_in_ = nullptr;
 	if (!stream_out_) {
 		stream_out_ = create_output ();
@@ -159,6 +158,28 @@ bool RequestIn::marshal_op ()
 {
 	switch_to_reply ();
 	return (response_flags_ & RESPONSE_DATA) != 0;
+}
+
+void RequestIn::serve_request (ServantProxyBase& proxy)
+{
+	IOReference::OperationIndex op_idx = proxy.find_operation (operation ());
+	sync_domain_ = proxy.get_sync_context (op_idx).sync_domain ();
+	ExecDomain& ed = ExecDomain::current ();
+	ed.mem_context_push (&sync_domain_->mem_context ());
+	proxy.invoke (op_idx, _get_ptr ());
+	ed.mem_context_pop ();
+	ed.leave_sync_domain ();
+}
+
+void RequestIn::unmarshal_end ()
+{
+	RequestGIOP::unmarshal_end ();
+	// Here we must enter the target sync domain, if any.
+	SyncDomain* sd;
+	if ((sd = sync_domain_)) {
+		sync_domain_ = nullptr;
+		ExecDomain::current ().schedule_call_no_push_mem (*sd);
+	}
 }
 
 void RequestIn::success ()

@@ -48,7 +48,7 @@ public:
 	// Returns user LocalObject implementation
 	LocalObject::_ptr_type servant () const NIRVANA_NOEXCEPT
 	{
-		return static_cast <LocalObject*> (&Base::servant ());
+		return static_cast <CORBA::LocalObject*> (&Base::servant ());
 	}
 
 protected:

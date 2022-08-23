@@ -351,7 +351,10 @@ void RequestLocal::invoke ()
 {
 	rewind ();
 	state_ = State::CALL;
-	proxy_->invoke (*this);
+	// We don't need to handle exceptions here, because ServantProxyBase::invoke ()
+	// does not throw exceptions.
+	Nirvana::Core::Synchronized _sync_frame (proxy_->get_sync_context (op_idx ()), memory ());
+	proxy_->invoke (op_idx (), _get_ptr ());
 }
 
 void RequestLocalAsync::invoke (const ExecDomain& ed, const System::DeadlinePolicy& dp)

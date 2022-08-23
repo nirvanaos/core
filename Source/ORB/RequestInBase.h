@@ -1,3 +1,4 @@
+/// \file
 /*
 * Nirvana Core.
 *
@@ -23,40 +24,36 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "Request.h"
+#ifndef NIRVANA_ORB_CORE_REQUESTINBASE_H_
+#define NIRVANA_ORB_CORE_REQUESTINBASE_H_
+#pragma once
 
-using namespace Nirvana;
-using namespace Nirvana::Core;
-using namespace std;
+#include <CORBA/CORBA.h>
 
 namespace CORBA {
-
-using namespace Internal;
-
 namespace Core {
 
-Request::Request (unsigned GIOP_minor, bool client_side) :
-	code_set_conv_ (CodeSetConverter::get_default ()),
-	code_set_conv_w_ (CodeSetConverterW::get_default (GIOP_minor, client_side))
-{}
+class ServantProxyBase;
 
-void Request::set_out_size ()
+class RequestInBase
 {
-	size_t size = stream_out_->size () - sizeof (GIOP::MessageHeader_1_3);
-	if (sizeof (size_t) > sizeof (uint32_t) && size > numeric_limits <uint32_t>::max ())
-		throw IMP_LIMIT ();
-	((GIOP::MessageHeader_1_3*)stream_out_->header (sizeof (GIOP::MessageHeader_1_3)))->message_size ((uint32_t)size);
-}
-
-void Request::unmarshal_end ()
-{
-	if (stream_in_) {
-		size_t more_data = !stream_in_->end ();
-		stream_in_ = nullptr;
-		if (more_data > 7) // 8-byte alignment is ignored
-			throw MARSHAL (StreamIn::MARSHAL_MINOR_MORE);
+public:
+	/// \returns Operation name.
+	const IDL::String& operation () const NIRVANA_NOEXCEPT
+	{
+		return operation_;
 	}
-}
+
+	/// Serve the request.
+	/// 
+	/// \param proxy The servant proxy.
+	virtual void serve_request (ServantProxyBase& proxy) = 0;
+
+protected:
+	IDL::String operation_;
+};
 
 }
 }
+
+#endif

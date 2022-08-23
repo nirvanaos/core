@@ -36,6 +36,12 @@
 #include "LocalObject.h"
 #include "ObjectKey.h"
 
+namespace CORBA {
+namespace Core {
+class RequestInBase;
+}
+}
+
 namespace PortableServer {
 namespace Core {
 
@@ -212,6 +218,8 @@ public:
 		}
 		return false;
 	}
+
+	virtual void invoke (const ObjectId& oid, CORBA::Core::RequestInBase& request) const = 0;
 
 	static const CORBA::Core::LocalObject* get_proxy (POA::_ptr_type poa) NIRVANA_NOEXCEPT;
 	static POA_Base* get_implementation (const CORBA::Core::LocalObject* proxy) NIRVANA_NOEXCEPT;

@@ -29,8 +29,8 @@
 namespace CORBA {
 namespace Core {
 
-RequestEncap::RequestEncap (const Request& parent) :
-	Request (parent)
+RequestEncap::RequestEncap (const RequestGIOP& parent) :
+	RequestGIOP (parent)
 {}
 
 void RequestEncap::set_exception (Any& e)

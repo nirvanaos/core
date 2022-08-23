@@ -38,7 +38,7 @@ namespace Core {
 class NIRVANA_NOVTABLE RequestEncapIn : public RequestEncap
 {
 protected:
-	RequestEncapIn (const Request& parent, const IDL::Sequence <Octet>& data) NIRVANA_NOEXCEPT :
+	RequestEncapIn (const RequestGIOP& parent, const IDL::Sequence <Octet>& data) NIRVANA_NOEXCEPT :
 		RequestEncap (parent),
 		stream_ (std::ref (data))
 	{

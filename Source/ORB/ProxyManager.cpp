@@ -287,13 +287,46 @@ const ProxyManager::InterfaceEntry* ProxyManager::find_interface (String_in iid)
 	return nullptr;
 }
 
-const ProxyManager::OperationEntry* ProxyManager::find_operation (String_in name) const
+IOReference::OperationIndex ProxyManager::find_operation (const IDL::String& name) const
 {
-	const String& sname = static_cast <const String&> (name);
-	const OperationEntry* pf = lower_bound (operations_.begin (), operations_.end (), sname, OEPred ());
-	if (pf != operations_.end () && !OEPred () (sname, *pf))
-		return pf;
-	return nullptr;
+	const OperationEntry* pf = lower_bound (operations_.begin (), operations_.end (), name, OEPred ());
+	if (pf != operations_.end () && !OEPred () (name, *pf))
+		return pf->idx;
+	throw BAD_OPERATION (MAKE_OMG_MINOR (2));
+}
+
+void ProxyManager::serve_object_request (ObjectOp op, Internal::IORequest::_ptr_type rq)
+{
+	switch (op) {
+		case ObjectOp::GET_INTERFACE: {
+			rq->unmarshal_end ();
+			InterfaceDef::_ref_type ref = get_interface ();
+			Type <InterfaceDef>::marshal_out (ref, rq);
+		} break;
+
+		case ObjectOp::IS_A: {
+			IDL::String type_id;
+			Type <IDL::String>::unmarshal (rq, type_id);
+			rq->unmarshal_end ();
+			Boolean ret = is_a (type_id);
+			Type <Boolean>::marshal_out (ret, rq);
+		} break;
+
+		case ObjectOp::REPOSITORY_ID: {
+			rq->unmarshal_end ();
+			IDL::String ret = repository_id ();
+			Type <IDL::String>::marshal_out (ret, rq);
+		} break;
+
+		default:
+			assert (false);
+	}
+	rq->success ();
+}
+
+InterfaceDef::_ref_type ProxyManager::get_interface ()
+{
+	return InterfaceDef::_nil (); // TODO: Implement.
 }
 
 }

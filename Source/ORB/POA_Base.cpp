@@ -218,12 +218,12 @@ POA_Base& POA_Base::find_child (CORBA::Internal::String_in adapter_name, bool ac
 			try {
 				created = the_activator_->unknown_adapter (_this (), adapter_name);
 			} catch (const CORBA::SystemException&) {
-				throw CORBA::OBJ_ADAPTER (1);
+				throw CORBA::OBJ_ADAPTER (MAKE_OMG_MINOR (1));
 			}
 			if (created)
 				it = children_.find (static_cast <const IDL::String&> (adapter_name));
 			else
-				throw CORBA::OBJECT_NOT_EXIST (2);
+				throw CORBA::OBJECT_NOT_EXIST (MAKE_OMG_MINOR (2));
 		}
 	}
 	if (it == children_.end ())

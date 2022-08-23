@@ -23,46 +23,40 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_ORB_CORE_POA_ROOT_H_
-#define NIRVANA_ORB_CORE_POA_ROOT_H_
-#pragma once
+#include "RequestGIOP.h"
 
-#include "POA_ImplicitUnique.h"
+using namespace Nirvana;
+using namespace Nirvana::Core;
+using namespace std;
 
 namespace CORBA {
-namespace Core {
-class RequestIn;
-}
-}
 
-namespace PortableServer {
+using namespace Internal;
+
 namespace Core {
 
-class POA_Root :
-	public POA_ImplicitUnique
+RequestGIOP::RequestGIOP (unsigned GIOP_minor, bool client_side) :
+	code_set_conv_ (CodeSetConverter::get_default ()),
+	code_set_conv_w_ (CodeSetConverterW::get_default (GIOP_minor, client_side))
+{}
+
+void RequestGIOP::set_out_size ()
 {
-public:
-	POA_Root () :
-		POA_ImplicitUnique (POAManager::_nil ())
-	{}
+	size_t size = stream_out_->size () - sizeof (GIOP::MessageHeader_1_3);
+	if (sizeof (size_t) > sizeof (uint32_t) && size > numeric_limits <uint32_t>::max ())
+		throw IMP_LIMIT ();
+	((GIOP::MessageHeader_1_3*)stream_out_->header (sizeof (GIOP::MessageHeader_1_3)))->message_size ((uint32_t)size);
+}
 
-	~POA_Root ()
-	{}
-
-	virtual IDL::String the_name () const override
-	{
-		return "RootPOA";
+void RequestGIOP::unmarshal_end ()
+{
+	if (stream_in_) {
+		size_t more_data = !stream_in_->end ();
+		stream_in_ = nullptr;
+		if (more_data > 7) // 8-byte alignment is ignored
+			throw MARSHAL (StreamIn::MARSHAL_MINOR_MORE);
 	}
-
-	virtual CORBA::OctetSeq id () const override
-	{
-		return CORBA::OctetSeq ();
-	}
-
-	static void invoke (CORBA::Core::RequestIn& request);
-};
+}
 
 }
 }
-
-#endif
