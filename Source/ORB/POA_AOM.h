@@ -52,7 +52,7 @@ protected:
 		Base (manager)
 	{}
 
-	virtual void invoke (const ObjectId& oid, CORBA::Core::RequestInBase& request) const;
+	virtual void invoke (const ObjectId& oid, CORBA::Core::RequestInBase& request) const override;
 
 protected:
 	AOM active_object_map_;

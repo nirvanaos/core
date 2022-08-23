@@ -28,3 +28,7 @@
 /Source/ORB/CSIIOP.h
 /Source/ORB/GSSUP.cpp
 /Source/ORB/GSSUP.h
+/Exports/BiDirPolicy.cpp
+/Exports/BiDirPolicy_p.cpp
+/Source/ORB/BiDirPolicy.h
+/Source/ORB/BiDirPolicy_s.h

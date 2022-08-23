@@ -35,7 +35,6 @@
 #include "../UserObject.h"
 #include "../ExecDomain.h"
 #include "GIOP.h"
-#include <CORBA/Proxy/IOReference.h>
 
 namespace CORBA {
 namespace Core {
@@ -155,7 +154,7 @@ private:
 	virtual bool marshal_op () override;
 
 	void switch_to_reply (GIOP::ReplyStatusType status = GIOP::ReplyStatusType::NO_EXCEPTION);
-	virtual void serve_request (ServantProxyBase& proxy);
+	virtual void serve_request (ServantProxyBase& proxy) override;
 
 protected:
 	RequestKey key_;
@@ -167,8 +166,6 @@ protected:
 private:
 	/// ExecDomain pointer if request is in cancellable state, otherwise `nullptr`.
 	Nirvana::Core::ExecDomain* exec_domain_;
-
-	Internal::IOReference::OperationIndex operation_idx_;
 
 	/// SyncDomain of the target object.
 	Nirvana::Core::SyncDomain* sync_domain_;
