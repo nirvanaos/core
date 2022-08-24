@@ -534,6 +534,8 @@ protected:
 		return proxy_;
 	}
 
+	void invoke_sync () NIRVANA_NOEXCEPT;
+
 protected:
 	Nirvana::Core::RefCounter ref_cnt_;
 	CoreRef <MemContext> caller_memory_;

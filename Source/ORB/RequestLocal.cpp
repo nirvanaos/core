@@ -349,11 +349,16 @@ void RequestLocal::marshal_value_copy (ValueBase::_ptr_type base, const IDL::Str
 
 void RequestLocal::invoke ()
 {
-	rewind ();
-	state_ = State::CALL;
-	// We don't need to handle exceptions here, because ServantProxyBase::invoke ()
+	// We don't need to handle exceptions here, because invoke_sync ()
 	// does not throw exceptions.
 	Nirvana::Core::Synchronized _sync_frame (proxy_->get_sync_context (op_idx ()), memory ());
+	invoke_sync ();
+}
+
+void RequestLocal::invoke_sync () NIRVANA_NOEXCEPT
+{
+	rewind ();
+	state_ = State::CALL;
 	proxy_->invoke (op_idx (), _get_ptr ());
 }
 
@@ -379,7 +384,7 @@ void RequestLocalAsync::invoke ()
 
 void RequestLocalAsync::run ()
 {
-	RequestLocal::invoke ();
+	RequestLocal::invoke_sync ();
 }
 
 void RequestLocalOneway::invoke ()
