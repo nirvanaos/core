@@ -68,7 +68,7 @@ MemContext& RequestLocal::source_memory ()
 	}
 }
 
-void RequestLocal::marshal_op () NIRVANA_NOEXCEPT
+bool RequestLocal::marshal_op () NIRVANA_NOEXCEPT
 {
 	if (State::CALL == state_) {
 		// Leave sync domain, if any.
@@ -78,6 +78,7 @@ void RequestLocal::marshal_op () NIRVANA_NOEXCEPT
 		clear ();
 		state_ = State::CALLEE;
 	}
+	return true;
 }
 
 void RequestLocal::rewind () NIRVANA_NOEXCEPT
@@ -282,22 +283,23 @@ void RequestLocal::unmarshal_segment (void*& data, size_t& allocated_size)
 
 void RequestLocal::marshal_interface (Interface::_ptr_type itf)
 {
-	marshal_op ();
-	if (itf) {
-		const Octet* block_end = cur_block_end ();
-		Octet* dst = round_up (cur_ptr_, alignof (Interface*));
-		ptrdiff_t tail = block_end - dst;
-		if (sizeof (Interface*) <= tail && tail < sizeof (ItfRecord)) {
-			// Mark interface non-null
-			*(Interface**)dst = &itf;
+	if (marshal_op ()) {
+		if (itf) {
+			const Octet* block_end = cur_block_end ();
+			Octet* dst = round_up (cur_ptr_, alignof (Interface*));
+			ptrdiff_t tail = block_end - dst;
+			if (sizeof (Interface*) <= tail && tail < sizeof (ItfRecord)) {
+				// Mark interface non-null
+				*(Interface**)dst = &itf;
+			}
+			ItfRecord* itf_rec = (ItfRecord*)get_element_buffer (sizeof (ItfRecord));
+			itf_rec->ptr = interface_duplicate (&itf);
+			itf_rec->next = interfaces_;
+			interfaces_ = itf_rec;
+		} else {
+			Interface* nil = nullptr;
+			write (alignof (Interface*), sizeof (Interface*), &nil);
 		}
-		ItfRecord* itf_rec = (ItfRecord*)get_element_buffer (sizeof (ItfRecord));
-		itf_rec->ptr = interface_duplicate (&itf);
-		itf_rec->next = interfaces_;
-		interfaces_ = itf_rec;
-	} else {
-		Interface* nil = nullptr;
-		write (alignof (Interface*), sizeof (Interface*), &nil);
 	}
 }
 
@@ -351,7 +353,7 @@ void RequestLocal::invoke ()
 {
 	// We don't need to handle exceptions here, because invoke_sync ()
 	// does not throw exceptions.
-	Nirvana::Core::Synchronized _sync_frame (proxy_->get_sync_context (op_idx ()), memory ());
+	Nirvana::Core::Synchronized _sync_frame (proxy ()->get_sync_context (op_idx ()), memory ());
 	invoke_sync ();
 }
 
@@ -359,7 +361,7 @@ void RequestLocal::invoke_sync () NIRVANA_NOEXCEPT
 {
 	rewind ();
 	state_ = State::CALL;
-	proxy_->invoke (op_idx (), _get_ptr ());
+	proxy ()->invoke (op_idx (), _get_ptr ());
 }
 
 void RequestLocalAsync::invoke (const ExecDomain& ed, const System::DeadlinePolicy& dp)
@@ -373,7 +375,7 @@ void RequestLocalAsync::invoke (const ExecDomain& ed, const System::DeadlinePoli
 			dl = Chrono::make_deadline (dp.timeout ());
 			break;
 	}
-	ExecDomain::async_call (dl, this, proxy ()->sync_context (), memory ());
+	ExecDomain::async_call (dl, this, proxy ()->get_sync_context (op_idx ()), memory ());
 }
 
 void RequestLocalAsync::invoke ()
@@ -384,7 +386,8 @@ void RequestLocalAsync::invoke ()
 
 void RequestLocalAsync::run ()
 {
-	RequestLocal::invoke_sync ();
+	assert (&SyncContext::current () == &proxy ()->get_sync_context (op_idx ()));
+	Base::invoke_sync ();
 }
 
 void RequestLocalOneway::invoke ()

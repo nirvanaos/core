@@ -83,8 +83,8 @@ public:
 	void marshal (size_t align, size_t size, const void* data)
 	{
 		check_align (align);
-		marshal_op ();
-		write (align, size, data);
+		if (marshal_op ())
+			write (align, size, data);
 	}
 
 	/// Unmarshal CDR data.
@@ -112,11 +112,11 @@ public:
 		size_t& allocated_size)
 	{
 		check_align (align);
-		marshal_op ();
-
-		write (alignof (size_t), sizeof (size_t), &element_count);
-		if (element_count)
-			marshal_segment (align, element_size, element_count, data, allocated_size);
+		if (marshal_op ()) {
+			write (alignof (size_t), sizeof (size_t), &element_count);
+			if (element_count)
+				marshal_segment (align, element_size, element_count, data, allocated_size);
+		}
 	}
 
 	/// Unmarshal CDR sequence.
@@ -154,9 +154,11 @@ public:
 	/// \returns `false` to skip marshaling.
 	bool marshal_seq_begin (size_t element_count)
 	{
-		marshal_op ();
-		write (alignof (size_t), sizeof (size_t), &element_count);
-		return true;
+		if (marshal_op ()) {
+			write (alignof (size_t), sizeof (size_t), &element_count);
+			return true;
+		} else
+			return false;
 	}
 
 	/// Get unmarshalling sequence size.
@@ -177,8 +179,8 @@ public:
 	template <typename C>
 	void marshal_char (size_t count, const C* data)
 	{
-		marshal_op ();
-		write (alignof (C), count * sizeof (C), data);
+		if (marshal_op ())
+			write (alignof (C), count * sizeof (C), data);
 	}
 
 	template <typename C>
@@ -190,28 +192,28 @@ public:
 	template <typename C>
 	void marshal_string (Internal::StringT <C>& s, bool move)
 	{
-		marshal_op ();
-
-		typedef typename Internal::Type <Internal::StringT <C> >::ABI ABI;
-		ABI& abi = (ABI&)s;
-		size_t size;
-		C* ptr;
-		if (abi.is_large ()) {
-			size = abi.large_size ();
-			ptr = abi.large_pointer ();
-		} else {
-			size = abi.small_size ();
-			ptr = abi.small_pointer ();
-		}
-		write (alignof (size_t), sizeof (size_t), &size);
-		if (size) {
-			if (size <= ABI::SMALL_CAPACITY)
-				write (alignof (C), size * sizeof (C), ptr);
-			else {
-				size_t allocated = move ? abi.allocated () : 0;
-				marshal_segment (alignof (C), sizeof (C), size + 1, ptr, allocated);
-				if (move && !allocated)
-					abi.reset ();
+		if (marshal_op ()) {
+			typedef typename Internal::Type <Internal::StringT <C> >::ABI ABI;
+			ABI& abi = (ABI&)s;
+			size_t size;
+			C* ptr;
+			if (abi.is_large ()) {
+				size = abi.large_size ();
+				ptr = abi.large_pointer ();
+			} else {
+				size = abi.small_size ();
+				ptr = abi.small_pointer ();
+			}
+			write (alignof (size_t), sizeof (size_t), &size);
+			if (size) {
+				if (size <= ABI::SMALL_CAPACITY)
+					write (alignof (C), size * sizeof (C), ptr);
+				else {
+					size_t allocated = move ? abi.allocated () : 0;
+					marshal_segment (alignof (C), sizeof (C), size + 1, ptr, allocated);
+					if (move && !allocated)
+						abi.reset ();
+				}
 			}
 		}
 	}
@@ -507,7 +509,7 @@ protected:
 			return (const Octet*)cur_block_ + cur_block_->size;
 	}
 
-	void marshal_op () NIRVANA_NOEXCEPT;
+	bool marshal_op () NIRVANA_NOEXCEPT;
 	void write (size_t align, size_t size, const void* data);
 	void read (size_t align, size_t size, void* data);
 	void marshal_segment (size_t align, size_t element_size,
@@ -583,6 +585,7 @@ class NIRVANA_NOVTABLE RequestLocalAsync :
 	public RequestLocal,
 	public Nirvana::Core::Runnable
 {
+	typedef RequestLocal Base;
 protected:
 	RequestLocalAsync (ServantProxyBase& proxy, Internal::IOReference::OperationIndex op_idx,
 		Nirvana::Core::MemContext* callee_memory) NIRVANA_NOEXCEPT :
@@ -606,6 +609,7 @@ private:
 class NIRVANA_NOVTABLE RequestLocalOneway :
 	public RequestLocalAsync
 {
+	typedef RequestLocalAsync Base;
 protected:
 	RequestLocalOneway (ServantProxyBase& proxy, Internal::IOReference::OperationIndex op_idx,
 		Nirvana::Core::MemContext* callee_memory) NIRVANA_NOEXCEPT :

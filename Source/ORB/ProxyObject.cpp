@@ -84,9 +84,11 @@ void ProxyObject::add_ref_1 ()
 		PortableServer::POA::_ref_type poa = servant ()->_default_POA ();
 		// Query poa for the implicit activation policy
 		if (PortableServer::Core::POA_Base::implicit_activation (poa) && change_state (INACTIVE, ACTIVATION)) {
+			implicit_POA_ = move (poa);
 			try {
-				poa->activate_object (servant ());
+				implicit_POA_->activate_object (servant ());
 			} catch (...) {
+				implicit_POA_ = nullptr;
 				if (change_state (ACTIVATION, INACTIVE))
 					throw;
 			}
@@ -118,7 +120,8 @@ void ProxyObject::implicit_deactivate ()
 	if (change_state (DEACTIVATION_SCHEDULED, INACTIVE)) {
 		ActivationKeyRef key = activation_key_.get ();
 		assert (implicit_POA_ && key);
-		const Core::LocalObject* proxy = PortableServer::Core::POA_Base::get_proxy (implicit_POA_);
+		PortableServer::POA::_ref_type poa (move (implicit_POA_));
+		const Core::LocalObject* proxy = PortableServer::Core::POA_Base::get_proxy (poa);
 		assert (&proxy->sync_context () == &SyncContext::current ());
 		PortableServer::Core::POA_Base* poa_impl = PortableServer::Core::POA_Base::get_implementation (proxy);
 		assert (poa_impl);

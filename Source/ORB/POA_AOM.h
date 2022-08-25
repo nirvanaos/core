@@ -34,6 +34,7 @@ namespace PortableServer {
 namespace Core {
 
 // Active Object Map (AOM)
+
 typedef ObjectId AOM_Key;
 
 class AOM_Val : public CORBA::Object::_ref_type
@@ -43,6 +44,12 @@ public:
 	AOM_Val (CORBA::Object::_ptr_type p) :
 		Base (p)
 	{}
+
+	AOM_Val (const AOM_Val&) = delete;
+	AOM_Val (AOM_Val&&) = default;
+
+	AOM_Val& operator = (const AOM_Val&) = delete;
+	AOM_Val& operator = (AOM_Val&&) = default;
 
 	~AOM_Val ()
 	{
