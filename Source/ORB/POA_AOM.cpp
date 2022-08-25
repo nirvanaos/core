@@ -35,30 +35,13 @@ namespace Core {
 void POA_AOM::destroy (bool etherealize_objects, bool wait_for_completion)
 {
 	Base::destroy (etherealize_objects, wait_for_completion);
-
-	AOM tmp (std::move (active_object_map_));
-	POA::_ref_type self = _this ();
-	while (!tmp.empty ()) {
-		auto it = tmp.begin ();
-		ServantBase* proxy = object2servant_core (it->second);
-		POA::_ptr_type activated_POA = proxy->activated_POA ();
-		if (activated_POA && activated_POA->_is_equivalent (self))
-			proxy->deactivate ();
-		tmp.erase (it);
-	}
+	active_object_map_.clear ();
 }
 
 void POA_AOM::deactivate_object (const ObjectId& oid)
 {
-	auto it = active_object_map_.find (oid);
-	if (it == active_object_map_.end ())
+	if (!active_object_map_.erase (oid))
 		throw ObjectNotActive ();
-	ServantBase* proxy = object2servant_core (it->second);
-	POA::_ptr_type activated_POA = proxy->activated_POA ();
-	assert (activated_POA);
-	if (activated_POA && activated_POA->_is_equivalent (_this ()))
-		proxy->deactivate ();
-	active_object_map_.erase (it);
 }
 
 Object::_ref_type POA_AOM::id_to_reference (const ObjectId& oid)

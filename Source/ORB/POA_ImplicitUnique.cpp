@@ -27,6 +27,8 @@
 #include "POA_SystemId.h"
 
 using namespace CORBA;
+using namespace CORBA::Core;
+using namespace Nirvana::Core;
 
 namespace PortableServer {
 namespace Core {
@@ -36,18 +38,10 @@ ObjectId POA_ImplicitUnique::activate_object (Object::_ptr_type p_servant)
 	if (!p_servant)
 		throw BAD_PARAM ();
 
-	auto proxy = object2servant_core (p_servant);
-	POA::_ptr_type activated_POA = proxy->activated_POA ();
-	if (activated_POA && activated_POA->_is_equivalent (_this ()))
-		throw ServantAlreadyActive (); // This servant already activated in this POA
-
-	ObjectId oid;
-	AOM::const_iterator it = AOM_insert (p_servant, oid);
-
-	if (!activated_POA)
-		proxy->activate (_this (), &it->first, true);
-
-	return it->first;
+	ObjectId oid = POA_SystemId::unique_id (object2servant_core (p_servant));
+	if (!AOM_insert (oid, p_servant))
+		throw ServantAlreadyActive ();
+	return oid;
 }
 
 void POA_ImplicitUnique::activate_object_with_id (const ObjectId& oid, CORBA::Object::_ptr_type p_servant)
@@ -55,20 +49,10 @@ void POA_ImplicitUnique::activate_object_with_id (const ObjectId& oid, CORBA::Ob
 	if (!p_servant)
 		throw BAD_PARAM ();
 
-	auto proxy = object2servant_core (p_servant);
-	POA::_ptr_type activated_POA = proxy->activated_POA ();
-	if (activated_POA && activated_POA->_is_equivalent (_this ()))
-		throw ServantAlreadyActive (); // This servant already activated in this POA
-
-	ObjectId soid;
-	AOM::const_iterator it = AOM_insert (p_servant, soid);
-	if (soid != oid) {
-		active_object_map_.erase (it);
+	if (oid != POA_SystemId::unique_id (object2servant_core (p_servant)))
 		throw BAD_PARAM ();
-	}
-
-	if (!activated_POA)
-		proxy->activate (_this (), &it->first, true);
+	if (!AOM_insert (oid, p_servant))
+		throw ServantAlreadyActive ();
 }
 
 ObjectId POA_ImplicitUnique::servant_to_id (Object::_ptr_type p_servant)
@@ -76,16 +60,8 @@ ObjectId POA_ImplicitUnique::servant_to_id (Object::_ptr_type p_servant)
 	if (!p_servant)
 		throw BAD_PARAM ();
 
-	auto proxy = object2servant_core (p_servant);
-	POA::_ptr_type activated_POA = proxy->activated_POA ();
-	if (activated_POA && activated_POA->_is_equivalent (_this ()))
-		return *proxy->activated_id ();
-
-	ObjectId oid;
-	AOM::const_iterator it = AOM_insert (p_servant, oid);
-
-	if (!activated_POA)
-		proxy->activate (_this (), &it->first, true);
+	ObjectId oid = POA_SystemId::unique_id (object2servant_core (p_servant));
+	AOM_insert (oid, p_servant);
 	return oid;
 }
 
@@ -94,26 +70,27 @@ Object::_ref_type POA_ImplicitUnique::servant_to_reference (Object::_ptr_type p_
 	if (!p_servant)
 		throw BAD_PARAM ();
 
-	auto proxy = object2servant_core (p_servant);
-	POA::_ptr_type activated_POA = proxy->activated_POA ();
-	if (!activated_POA) {
-		ObjectId oid;
-		AOM::const_iterator it = AOM_insert (p_servant, oid);
-		proxy->activate (_this (), &it->first, true);
-	}
+	AOM_insert (POA_SystemId::unique_id (object2servant_core (p_servant)), p_servant);
+
 	return p_servant;
 }
 
-AOM::const_iterator POA_ImplicitUnique::AOM_insert (Object::_ptr_type p_servant, ObjectId& oid)
+bool POA_ImplicitUnique::AOM_insert (const ObjectId& oid, Object::_ptr_type p_servant)
 {
 	assert (p_servant);
-	auto proxy = object2servant_core (p_servant);
-	oid = POA_SystemId::unique_id (proxy);
 	auto ins = active_object_map_.emplace (oid, p_servant);
-	assert (ins.second);
-	if (!ins.second)
-		throw CORBA::OBJ_ADAPTER ();
-	return ins.first;
+	if (ins.second) {
+		try {
+			ActivationKeyRef key = ActivationKeyRef::create <ActivationKeyImpl> ();
+			get_path (key->POA_path);
+			key->object_id = oid;
+			object2servant_core (p_servant)->activate (std::move (key));
+		} catch (...) {
+			active_object_map_.erase (ins.first);
+			throw;
+		}
+	}
+	return ins.second;
 }
 
 }

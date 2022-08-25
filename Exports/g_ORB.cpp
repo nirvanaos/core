@@ -264,7 +264,11 @@ public:
 
 	static ValueFactoryBase::_ref_type lookup_value_factory (const RepositoryId& id)
 	{
-		return Binder::bind_interface <ValueFactoryBase> (id);
+		try {
+			return Binder::bind_interface <ValueFactoryBase> (id);
+		} catch (...) {
+			throw BAD_PARAM (MAKE_OMG_MINOR (1));
+		}
 	}
 };
 

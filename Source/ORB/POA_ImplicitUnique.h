@@ -48,7 +48,7 @@ protected:
 	{}
 
 private:
-	AOM::const_iterator AOM_insert (CORBA::Object::_ptr_type p_servant, ObjectId& oid);
+	bool AOM_insert (const ObjectId& oid, CORBA::Object::_ptr_type p_servant);
 };
 
 }

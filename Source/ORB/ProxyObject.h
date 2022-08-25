@@ -29,10 +29,20 @@
 #pragma once
 
 #include "ServantProxyBase.inl"
+#include "ObjectKey.h"
+#include "../LockableRef.h"
 #include <atomic>
 
 namespace CORBA {
 namespace Core {
+
+struct ActivationKey :
+	public ObjectKey,
+	public Nirvana::Core::UserObject
+{};
+
+typedef Nirvana::Core::ImplDynamic <ActivationKey> ActivationKeyImpl;
+typedef Nirvana::Core::CoreRef <ActivationKeyImpl> ActivationKeyRef;
 
 /// Object operations servant-side proxy.
 class ProxyObject :
@@ -42,42 +52,22 @@ class ProxyObject :
 	class Deactivator;
 
 public:
+	///@{
 	/// Called from the POA synchronization domain.
-	/// 
-	/// \param poa Activation POA
-	/// \param oid Pointer to the activated ObjectId. 
-	///   `nullptr` if servant activated via set_servant.
-	/// \param implicit `true` for implicit activation, `false` for explicit activation.
-	void activate (PortableServer::POA::_ptr_type poa,
-		const PortableServer::ObjectId* oid, bool implicit) NIRVANA_NOEXCEPT
+	/// So calls to activate() and deactivate() are always serialized.
+	/// NOTE: The ActivationKey structure is allocated in the POA memory context.
+	/// And must be released in the POA memory context.
+	void activate (ActivationKeyRef&& key) NIRVANA_NOEXCEPT;
+	void deactivate () NIRVANA_NOEXCEPT;
+
+	ActivationKeyRef get_object_key () NIRVANA_NOEXCEPT
 	{
-		assert (!activated_POA_);
-		activated_POA_ = poa;
-		activated_id_ = oid;
-		implicit_activation_ = implicit;
-		activation_state_ = ActivationState::ACTIVE;
+		ActivationKeyRef ref = activation_key_.get ();
+		assert (!ref || activation_key_memory_ == &Nirvana::Core::MemContext::current ());
+		return ref;
 	}
 
-	// Called from the POA synchronization domain
-	PortableServer::POA::_ptr_type activated_POA () const NIRVANA_NOEXCEPT
-	{
-		return activated_POA_;
-	}
-
-	// Called from the POA synchronization domain
-	const PortableServer::ObjectId* activated_id () const NIRVANA_NOEXCEPT
-	{
-		return activated_id_;
-	}
-
-	// Called from the POA synchronization domain
-	void deactivate () NIRVANA_NOEXCEPT
-	{
-		activated_POA_ = nullptr;
-		activated_id_ = nullptr;
-		implicit_activation_ = false;
-		activation_state_ = ActivationState::INACTIVE;
-	}
+	///@}
 
 	// Returns user ServantBase implementation
 	PortableServer::Servant servant () const NIRVANA_NOEXCEPT
@@ -88,14 +78,12 @@ public:
 protected:
 	ProxyObject (PortableServer::Servant servant) :
 		ServantProxyBase (servant, object_ops_, this),
-		activation_state_ (ActivationState::INACTIVE),
-		activated_id_ (nullptr),
-		implicit_activation_ (false)
+		activation_state_ (ActivationState::INACTIVE)
 	{}
 
 	~ProxyObject ()
 	{
-		assert (!activated_id_);
+		assert (!activation_key_.get ());
 	}
 
 private:
@@ -113,6 +101,22 @@ private:
 
 	void implicit_deactivate ();
 
+	void marshal_object_key (StreamOut& out)
+	{
+		ActivationKeyRef ref = activation_key_.get ();
+		if (!ref)
+			throw OBJECT_NOT_EXIST (MAKE_OMG_MINOR (1));
+		Nirvana::Core::ExecDomain& ed = Nirvana::Core::ExecDomain::current ();
+		ed.mem_context_push (activation_key_memory_);
+		try {
+			ref->marshal (out);
+		} catch (...) {
+			ed.mem_context_pop ();
+			throw;
+		}
+		ed.mem_context_pop ();
+	}
+
 	bool change_state (ActivationState from, ActivationState to) NIRVANA_NOEXCEPT
 	{
 		return activation_state_.compare_exchange_strong (from, to);
@@ -122,9 +126,9 @@ private:
 
 private:
 	std::atomic <ActivationState> activation_state_;
-	PortableServer::POA::_ref_type activated_POA_;
-	const PortableServer::ObjectId* activated_id_;
-	bool implicit_activation_;
+	PortableServer::POA::_ref_type implicit_POA_;
+	Nirvana::Core::LockableRef <ActivationKeyImpl> activation_key_;
+	Nirvana::Core::CoreRef <Nirvana::Core::MemContext> activation_key_memory_;
 
 	static const OperationsDII object_ops_;
 };

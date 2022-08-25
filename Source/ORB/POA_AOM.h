@@ -28,14 +28,30 @@
 #pragma once
 
 #include "POA_Base.h"
+#include "../MapUnorderedUnstable.h"
 
 namespace PortableServer {
 namespace Core {
 
 // Active Object Map (AOM)
 typedef ObjectId AOM_Key;
-typedef CORBA::Object::_ref_type AOM_Val;
-typedef Nirvana::Core::MapUnorderedStable <AOM_Key, AOM_Val,
+
+class AOM_Val : public CORBA::Object::_ref_type
+{
+	typedef CORBA::Object::_ref_type Base;
+public:
+	AOM_Val (CORBA::Object::_ptr_type p) :
+		Base (p)
+	{}
+
+	~AOM_Val ()
+	{
+		if (p_) // Not moved
+			object2servant_core (p_)->deactivate ();
+	}
+};
+
+typedef Nirvana::Core::MapUnorderedUnstable <AOM_Key, AOM_Val,
 	std::hash <AOM_Key>, std::equal_to <AOM_Key>,
 	Nirvana::Core::UserAllocator <std::pair <AOM_Key, AOM_Val> > > AOM;
 
@@ -50,6 +66,9 @@ public:
 protected:
 	POA_AOM (POAManager::_ptr_type manager) :
 		Base (manager)
+	{}
+
+	~POA_AOM ()
 	{}
 
 	virtual void invoke (const ObjectId& oid, CORBA::Core::RequestInBase& request) const override;

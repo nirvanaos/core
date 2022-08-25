@@ -82,10 +82,10 @@ private:
 	static std::atomic <int> next_timestamp_;
 };
 
-CORBA::Object::_ptr_type servant2object (Servant servant);
+CORBA::Object::_ptr_type servant2object (Servant servant) NIRVANA_NOEXCEPT;
 
 inline
-PortableServer::Core::ServantBase* object2servant_core (CORBA::Object::_ptr_type obj)
+PortableServer::Core::ServantBase* object2servant_core (CORBA::Object::_ptr_type obj) NIRVANA_NOEXCEPT
 {
 	return static_cast <PortableServer::Core::ServantBase*> (
 		static_cast <CORBA::Internal::Bridge <CORBA::Object>*> (&obj));

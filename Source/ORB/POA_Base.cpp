@@ -27,6 +27,7 @@
 
 using namespace CORBA;
 using namespace CORBA::Internal;
+using namespace CORBA::Core;
 
 namespace PortableServer {
 namespace Core {
@@ -157,22 +158,31 @@ Object::_ref_type POA_Base::reference_to_servant (Object::_ptr_type reference)
 	if (!reference)
 		throw BAD_PARAM ();
 
-	auto servant = object2servant_core (reference);
-	POA::_ptr_type activated_POA = servant->activated_POA ();
-	if (!activated_POA)
+	auto proxy = object2servant_core (reference);
+	ActivationKeyRef key = proxy->get_object_key ();
+	if (!key)
 		throw ObjectNotActive ();
-	if (!activated_POA->_is_equivalent (_this ()))
+	IDL::String path;
+	get_path (path);
+	if (path != key->POA_path)
 		throw WrongAdapter ();
 	return reference;
 }
 
 ObjectId POA_Base::reference_to_id (Object::_ptr_type reference)
 {
-	auto servant = object2servant_core (reference);
-	POA::_ptr_type activated_POA = servant->activated_POA ();
-	if (!activated_POA || !activated_POA->_is_equivalent (_this ()))
+	if (!reference)
+		throw BAD_PARAM ();
+
+	auto proxy = object2servant_core (reference);
+	ActivationKeyRef key = proxy->get_object_key ();
+	if (!key)
 		throw WrongAdapter ();
-	return *servant->activated_id ();
+	IDL::String path;
+	get_path (path);
+	if (path != key->POA_path)
+		throw WrongAdapter ();
+	return key->object_id;
 }
 
 const CORBA::Core::LocalObject* POA_Base::get_proxy (POA::_ptr_type poa) NIRVANA_NOEXCEPT
@@ -189,7 +199,7 @@ POA_Base* POA_Base::get_implementation (const CORBA::Core::LocalObject* proxy) N
 {
 	if (proxy) {
 		POA_Base* impl = static_cast <POA_Base*> (
-			static_cast <Bridge <LocalObject>*> (&proxy->servant ()));
+			static_cast <Bridge <CORBA::LocalObject>*> (&proxy->servant ()));
 		if (impl->signature_ == SIGNATURE)
 			return impl;
 	}
@@ -240,7 +250,7 @@ void POA_Base::destroy (bool etherealize_objects, bool wait_for_completion)
 	}
 	if (parent_) {
 		parent_->children_.erase (iterator_);
-		parent_ = nullptr; // the_name will return "RootPOA"
+		parent_ = nullptr;
 	}
 }
 

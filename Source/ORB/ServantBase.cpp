@@ -53,7 +53,7 @@ PortableServer::POA::_ref_type ServantBase::_default_POA ()
 
 typedef TypeCodeNative <PortableServer::ServantBase> TC_Servant;
 
-Object::_ptr_type servant2object (Servant servant)
+Object::_ptr_type servant2object (Servant servant) NIRVANA_NOEXCEPT
 {
 	if (servant) {
 		Servant ps = servant->_core_servant ();
