@@ -34,37 +34,17 @@ namespace CORBA {
 namespace Core {
 
 inline
-Internal::IORequest::_ref_type ServantProxyBase::create_request (OperationIndex op)
+Internal::IORequest::_ref_type ServantProxyBase::create_request (OperationIndex op, UShort flags)
 {
-	return make_pseudo <RequestLocalImpl <RequestLocal> > (std::ref (*this), op,
-		mem_context ());
-}
-
-inline
-Internal::IORequest::_ref_type ServantProxyBase::create_oneway (OperationIndex op)
-{
-	Nirvana::Core::CoreRef <Nirvana::Core::MemContext> target_memory = mem_context ();
-	if (!target_memory)
-		target_memory = Nirvana::Core::MemContextUser::create ();
-	Nirvana::Core::ExecDomain& ed = Nirvana::Core::ExecDomain::current ();
-	ed.mem_context_push (target_memory);
-	Internal::IORequest::_ref_type ret;
-	try {
-		ret = make_pseudo <RequestLocalImpl <RequestLocalOneway> > (std::ref (*this),
-			op, target_memory);
-	} catch (...) {
-		ed.mem_context_pop ();
-		throw;
-	}
-	ed.mem_context_pop ();
-	return ret;
-}
-
-inline
-Internal::IORequest::_ref_type ServantProxyBase::create_async (OperationIndex op)
-{
-	return make_pseudo <RequestLocalImpl <RequestLocalAsync> > (std::ref (*this), op,
-		mem_context ());
+	UShort response_flags = flags & 3;
+	if (response_flags == 2)
+		throw INV_FLAG ();
+	if (flags & REQUEST_ASYNC)
+		return make_pseudo <RequestLocalImpl <RequestLocalAsync> > (std::ref (*this), op,
+			mem_context (), response_flags);
+	else
+		return make_pseudo <RequestLocalImpl <RequestLocal> > (std::ref (*this), op,
+			mem_context (), response_flags);
 }
 
 }

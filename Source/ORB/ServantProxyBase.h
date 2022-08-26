@@ -89,13 +89,7 @@ public:
 	virtual RefCnt::IntegralType _remove_ref_proxy () NIRVANA_NOEXCEPT;
 
 	inline
-	Internal::IORequest::_ref_type create_request (OperationIndex op);
-
-	inline
-	Internal::IORequest::_ref_type create_oneway (OperationIndex op);
-
-	inline
-	Internal::IORequest::_ref_type create_async (OperationIndex op);
+	Internal::IORequest::_ref_type create_request (OperationIndex op, UShort flags);
 
 	void invoke (OperationIndex op, Internal::IORequest::_ptr_type rq) NIRVANA_NOEXCEPT;
 

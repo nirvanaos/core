@@ -94,12 +94,6 @@ public:
 		return service_context_;
 	}
 
-	/// \returns  Response flags.
-	unsigned response_flags () const NIRVANA_NOEXCEPT
-	{
-		return response_flags_;
-	}
-
 	/// Cancel the request.
 	/// Called from the IncomingRequests class.
 	/// Request is already removed from map on this call.
@@ -160,7 +154,6 @@ protected:
 	RequestKey key_;
 	ObjectKey object_key_;
 	IOP::ServiceContextList service_context_;
-	unsigned response_flags_;
 	unsigned GIOP_minor_;
 
 private:

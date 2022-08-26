@@ -410,9 +410,11 @@ public:
 		if (e.type ()->kind () != TCKind::tk_except)
 			throw BAD_PARAM (MAKE_OMG_MINOR (21));
 		clear ();
-		Internal::Type <Any>::marshal_out (e, _get_ptr ());
-		rewind ();
 		state_ = State::EXCEPTION;
+		if (response_flags_) {
+			Internal::Type <Any>::marshal_out (e, _get_ptr ());
+			rewind ();
+		}
 	}
 
 	/// Marks request as successful.
@@ -468,13 +470,18 @@ public:
 
 	///@}
 
+	UShort response_flags () const NIRVANA_NOEXCEPT
+	{
+		return response_flags_;
+	}
+
 protected:
 	using MemContext = Nirvana::Core::MemContext;
 
 	template <class T>
 	using CoreRef = Nirvana::Core::CoreRef <T>;
 
-	enum class State
+	enum class State : uint8_t
 	{
 		CALLER,
 		CALL,
@@ -484,12 +491,13 @@ protected:
 	};
 
 	RequestLocal (ServantProxyBase& proxy, Internal::IOReference::OperationIndex op_idx,
-		Nirvana::Core::MemContext* callee_memory) NIRVANA_NOEXCEPT :
+		Nirvana::Core::MemContext* callee_memory, UShort response_flags) NIRVANA_NOEXCEPT :
 		caller_memory_ (&MemContext::current ()),
 		callee_memory_ (callee_memory),
 		proxy_ (&proxy),
 		op_idx_ (op_idx),
 		state_ (State::CALLER),
+		response_flags_ ((uint8_t)response_flags),
 		first_block_ (nullptr),
 		cur_block_ (nullptr),
 		interfaces_ (nullptr),
@@ -575,6 +583,7 @@ private:
 	CoreRef <ServantProxyBase> proxy_;
 	Internal::IOReference::OperationIndex op_idx_;
 	State state_;
+	uint8_t response_flags_;
 	BlockHdr* first_block_;
 	BlockHdr* cur_block_;
 	ItfRecord* interfaces_;
@@ -588,8 +597,8 @@ class NIRVANA_NOVTABLE RequestLocalAsync :
 	typedef RequestLocal Base;
 protected:
 	RequestLocalAsync (ServantProxyBase& proxy, Internal::IOReference::OperationIndex op_idx,
-		Nirvana::Core::MemContext* callee_memory) NIRVANA_NOEXCEPT :
-		RequestLocal (proxy, op_idx, callee_memory)
+		Nirvana::Core::MemContext* callee_memory, UShort response_flags) NIRVANA_NOEXCEPT :
+		RequestLocal (proxy, op_idx, callee_memory, response_flags)
 	{}
 
 	void _add_ref () NIRVANA_NOEXCEPT
@@ -599,26 +608,9 @@ protected:
 
 	virtual void invoke ();
 
-	void invoke (const Nirvana::Core::ExecDomain& ed, const Nirvana::System::DeadlinePolicy& dp);
-
 private:
 	virtual void run ();
 
-};
-
-class NIRVANA_NOVTABLE RequestLocalOneway :
-	public RequestLocalAsync
-{
-	typedef RequestLocalAsync Base;
-protected:
-	RequestLocalOneway (ServantProxyBase& proxy, Internal::IOReference::OperationIndex op_idx,
-		Nirvana::Core::MemContext* callee_memory) NIRVANA_NOEXCEPT :
-		RequestLocalAsync (proxy, op_idx, callee_memory)
-	{
-		caller_memory_ = callee_memory_;
-	}
-
-	virtual void invoke ();
 };
 
 template <class Base>
@@ -627,8 +619,8 @@ class RequestLocalImpl :
 {
 public:
 	RequestLocalImpl (ServantProxyBase& proxy, Internal::IOReference::OperationIndex op_idx,
-		Nirvana::Core::MemContext* callee_memory) NIRVANA_NOEXCEPT :
-		Base (proxy, op_idx, callee_memory)
+		Nirvana::Core::MemContext* callee_memory, UShort response_flags) NIRVANA_NOEXCEPT :
+		Base (proxy, op_idx, callee_memory, response_flags)
 	{
 		Base::cur_ptr_ = block_;
 	}
@@ -656,9 +648,7 @@ private:
 static_assert (
 	sizeof (RequestLocalImpl <RequestLocal>) == RequestLocal::BLOCK_SIZE
 	&&
-	sizeof (RequestLocalImpl <RequestLocalAsync>) == RequestLocal::BLOCK_SIZE
-	&&
-	sizeof (RequestLocalImpl <RequestLocalOneway>) == RequestLocal::BLOCK_SIZE,
+	sizeof (RequestLocalImpl <RequestLocalAsync>) == RequestLocal::BLOCK_SIZE,
 	"sizeof (RequestLocal)");
 
 }

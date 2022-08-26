@@ -120,7 +120,7 @@ public:
 
 	Boolean _non_existent ()
 	{
-		Internal::IORequest::_ref_type rq = ior ()->create_request (_make_op_idx ((UShort)ObjectOp::NON_EXISTENT));
+		Internal::IORequest::_ref_type rq = ior ()->create_request (_make_op_idx ((UShort)ObjectOp::NON_EXISTENT), 3);
 		rq->invoke ();
 		Boolean _ret;
 		Internal::Type <Boolean>::unmarshal (rq, _ret);

@@ -51,19 +51,6 @@ class NIRVANA_NOVTABLE RequestGIOP :
 
 public:
 	///@{
-	/// Response flags.
-
-	/// Response is expected.
-	static const unsigned RESPONSE_EXPECTED = 1;
-
-	/// Response is expected with output data.
-	/// If this flag is not set, a non exception reply should contain an empty body, i.e.,
-	/// the equivalent of a void operation with no out/inout parameters.
-	static const unsigned RESPONSE_DATA = 2;
-
-	///@}
-
-	///@{
 	/// Marshal/unmarshal data that meet the common data representation.
 
 	/// Marshal CDR data.
@@ -299,6 +286,12 @@ public:
 
 	///@}
 
+	/// \returns Response flags.
+	UShort response_flags () const NIRVANA_NOEXCEPT
+	{
+		return response_flags_;
+	}
+
 	///@{
 	/// Callee operations.
 
@@ -392,6 +385,7 @@ protected:
 	void set_out_size ();
 
 protected:
+	unsigned response_flags_;
 	Nirvana::Core::CoreRef <StreamIn> stream_in_;
 	Nirvana::Core::CoreRef <StreamOut> stream_out_;
 

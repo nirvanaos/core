@@ -78,7 +78,8 @@ bool RequestLocal::marshal_op () NIRVANA_NOEXCEPT
 		clear ();
 		state_ = State::CALLEE;
 	}
-	return true;
+	return state_ == State::CALLER || (response_flags_ & RESPONSE_DATA)
+		|| (state_ == State::EXCEPTION && response_flags_);
 }
 
 void RequestLocal::rewind () NIRVANA_NOEXCEPT
@@ -364,8 +365,10 @@ void RequestLocal::invoke_sync () NIRVANA_NOEXCEPT
 	proxy ()->invoke (op_idx (), _get_ptr ());
 }
 
-void RequestLocalAsync::invoke (const ExecDomain& ed, const System::DeadlinePolicy& dp)
+void RequestLocalAsync::invoke ()
 {
+	const ExecDomain& ed = ExecDomain::current ();
+	const System::DeadlinePolicy& dp = response_flags () ? ed.deadline_policy_async () : ed.deadline_policy_oneway ();
 	DeadlineTime dl = INFINITE_DEADLINE;
 	switch (dp._d ()) {
 		case System::DeadlinePolicyType::DEADLINE_INHERIT:
@@ -378,22 +381,10 @@ void RequestLocalAsync::invoke (const ExecDomain& ed, const System::DeadlinePoli
 	ExecDomain::async_call (dl, this, proxy ()->get_sync_context (op_idx ()), memory ());
 }
 
-void RequestLocalAsync::invoke ()
-{
-	const ExecDomain& ed = ExecDomain::current ();
-	invoke (ed, ed.deadline_policy_async ());
-}
-
 void RequestLocalAsync::run ()
 {
 	assert (&SyncContext::current () == &proxy ()->get_sync_context (op_idx ()));
 	Base::invoke_sync ();
-}
-
-void RequestLocalOneway::invoke ()
-{
-	const ExecDomain& ed = ExecDomain::current ();
-	RequestLocalAsync::invoke (ed, ed.deadline_policy_oneway ());
 }
 
 }
