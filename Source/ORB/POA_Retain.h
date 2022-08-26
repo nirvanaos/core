@@ -23,8 +23,8 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_ORB_CORE_POA_AOM_H_
-#define NIRVANA_ORB_CORE_POA_AOM_H_
+#ifndef NIRVANA_ORB_CORE_POA_RETAIN_H_
+#define NIRVANA_ORB_CORE_POA_RETAIN_H_
 #pragma once
 
 #include "POA_Base.h"
@@ -33,10 +33,7 @@
 namespace PortableServer {
 namespace Core {
 
-// Active Object Map (AOM)
-
-typedef ObjectId AOM_Key;
-
+// Active Object Map (AOM) value.
 class AOM_Val : public CORBA::Object::_ref_type
 {
 	typedef CORBA::Object::_ref_type Base;
@@ -58,11 +55,7 @@ public:
 	}
 };
 
-typedef Nirvana::Core::MapUnorderedUnstable <AOM_Key, AOM_Val,
-	std::hash <AOM_Key>, std::equal_to <AOM_Key>,
-	Nirvana::Core::UserAllocator <std::pair <AOM_Key, AOM_Val> > > AOM;
-
-class NIRVANA_NOVTABLE POA_AOM : public POA_Base
+class NIRVANA_NOVTABLE POA_Retain : public POA_Base
 {
 	typedef POA_Base Base;
 public:
@@ -71,16 +64,21 @@ public:
 	virtual CORBA::Object::_ref_type id_to_reference (const ObjectId& oid) override;
 
 protected:
-	POA_AOM (POAManager::_ptr_type manager) :
+	POA_Retain (POAManager::_ptr_type manager) :
 		Base (manager)
 	{}
 
-	~POA_AOM ()
+	~POA_Retain ()
 	{}
 
 	virtual void invoke (const ObjectId& oid, CORBA::Core::RequestInBase& request) const override;
 
 protected:
+	// Active Object Map (AOM)
+	typedef Nirvana::Core::MapUnorderedUnstable <ObjectId, AOM_Val,
+		std::hash <ObjectId>, std::equal_to <ObjectId>,
+		Nirvana::Core::UserAllocator <std::pair <ObjectId, AOM_Val> > > AOM;
+
 	AOM active_object_map_;
 };
 

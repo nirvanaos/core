@@ -27,16 +27,16 @@
 #define NIRVANA_ORB_CORE_POA_IMPLICIT_H_
 #pragma once
 
-#include "POA_AOM.h"
+#include "POA_Retain.h"
 
 namespace PortableServer {
 namespace Core {
 
 // POA with IMPLICIT_ACTIVATION
 class POA_Implicit :
-	public POA_AOM
+	public POA_Retain
 {
-	typedef POA_AOM Base;
+	typedef POA_Retain Base;
 public:
 	virtual bool implicit_activation () const NIRVANA_NOEXCEPT
 	{

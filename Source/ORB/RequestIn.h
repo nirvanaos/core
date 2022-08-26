@@ -30,7 +30,7 @@
 
 #include "RequestGIOP.h"
 #include "RequestInBase.h"
-#include "ClientAddress.h"
+#include "DomainAddress.h"
 #include "ObjectKey.h"
 #include "../UserObject.h"
 #include "../ExecDomain.h"
@@ -40,15 +40,15 @@ namespace CORBA {
 namespace Core {
 
 /// Unique id of an incoming request.
-struct RequestKey : ClientAddress
+struct RequestKey : DomainAddress
 {
-	RequestKey (const ClientAddress& addr, uint32_t rq_id) :
-		ClientAddress (addr),
+	RequestKey (const DomainAddress& addr, uint32_t rq_id) :
+		DomainAddress (addr),
 		request_id (rq_id)
 	{}
 
-	RequestKey (const ClientAddress& addr) :
-		ClientAddress (addr)
+	RequestKey (const DomainAddress& addr) :
+		DomainAddress (addr)
 	{}
 
 	bool operator < (const RequestKey& rhs) const NIRVANA_NOEXCEPT
@@ -58,7 +58,7 @@ struct RequestKey : ClientAddress
 		else if (request_id > rhs.request_id)
 			return false;
 		else
-			return ClientAddress::operator < (rhs);
+			return DomainAddress::operator < (rhs);
 	}
 
 	uint32_t request_id;
@@ -124,7 +124,7 @@ public:
 	}
 
 protected:
-	RequestIn (const ClientAddress& client, unsigned GIOP_minor, Nirvana::Core::CoreRef <StreamIn>&& in);
+	RequestIn (const DomainAddress& client, unsigned GIOP_minor, Nirvana::Core::CoreRef <StreamIn>&& in);
 
 	~RequestIn ();
 

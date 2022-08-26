@@ -23,7 +23,7 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "POA_AOM.h"
+#include "POA_Retain.h"
 #include "RequestInBase.h"
 
 using namespace CORBA;
@@ -32,19 +32,19 @@ using Nirvana::Core::ExecDomain;
 namespace PortableServer {
 namespace Core {
 
-void POA_AOM::destroy (bool etherealize_objects, bool wait_for_completion)
+void POA_Retain::destroy (bool etherealize_objects, bool wait_for_completion)
 {
 	Base::destroy (etherealize_objects, wait_for_completion);
 	active_object_map_.clear ();
 }
 
-void POA_AOM::deactivate_object (const ObjectId& oid)
+void POA_Retain::deactivate_object (const ObjectId& oid)
 {
 	if (!active_object_map_.erase (oid))
 		throw ObjectNotActive ();
 }
 
-Object::_ref_type POA_AOM::id_to_reference (const ObjectId& oid)
+Object::_ref_type POA_Retain::id_to_reference (const ObjectId& oid)
 {
 	AOM::const_iterator it = active_object_map_.find (oid);
 	if (it != active_object_map_.end ())
@@ -53,7 +53,7 @@ Object::_ref_type POA_AOM::id_to_reference (const ObjectId& oid)
 	throw ObjectNotActive ();
 }
 
-void POA_AOM::invoke (const ObjectId& oid, CORBA::Core::RequestInBase& request) const
+void POA_Retain::invoke (const ObjectId& oid, CORBA::Core::RequestInBase& request) const
 {
 	auto it = active_object_map_.find (oid);
 	if (it == active_object_map_.end ())

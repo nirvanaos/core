@@ -23,8 +23,8 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_ORB_CORE_CLIENTADDRESS_H_
-#define NIRVANA_ORB_CORE_CLIENTADDRESS_H_
+#ifndef NIRVANA_ORB_CORE_DOMAINADDRESS_H_
+#define NIRVANA_ORB_CORE_DOMAINADDRESS_H_
 #pragma once
 
 #include "ESIOP.h"
@@ -67,8 +67,8 @@ typedef IP <uint32_t> IPv4;
 /// IPv6
 typedef IP <uint64_t> IPv6;
 
-/// A client address.
-struct ClientAddress
+/// A domain address.
+struct DomainAddress
 {
 	enum class Family : uint16_t
 	{
@@ -77,22 +77,22 @@ struct ClientAddress
 		INET6
 	};
 
-	ClientAddress (Nirvana::ESIOP::ProtDomainId client) :
+	DomainAddress (Nirvana::ESIOP::ProtDomainId client) :
 		family (Family::ESIOP),
 		address (client)
 	{}
 
-	ClientAddress (const IPv4& client) :
+	DomainAddress (const IPv4& client) :
 		family (Family::INET),
 		address (client)
 	{}
 
-	ClientAddress (const IPv6& client) :
+	DomainAddress (const IPv6& client) :
 		family (Family::INET6),
 		address (client)
 	{}
 
-	bool operator < (const ClientAddress& rhs) const NIRVANA_NOEXCEPT
+	bool operator < (const DomainAddress& rhs) const NIRVANA_NOEXCEPT
 	{
 		if (family < rhs.family)
 			return true;

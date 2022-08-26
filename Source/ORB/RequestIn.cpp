@@ -39,7 +39,7 @@ using namespace Internal;
 
 namespace Core {
 
-RequestIn::RequestIn (const ClientAddress& client, unsigned GIOP_minor, CoreRef <StreamIn>&& in) :
+RequestIn::RequestIn (const DomainAddress& client, unsigned GIOP_minor, CoreRef <StreamIn>&& in) :
 	RequestGIOP (GIOP_minor, false),
 	key_ (client),
 	GIOP_minor_ (GIOP_minor),
