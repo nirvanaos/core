@@ -82,7 +82,7 @@ bool POA_ImplicitUnique::AOM_insert (const ObjectId& oid, Object::_ptr_type p_se
 	if (ins.second) {
 		try {
 			ActivationKeyRef key = ActivationKeyRef::create <ActivationKeyImpl> ();
-			get_path (key->POA_path);
+			get_path (key->adapter_path);
 			key->object_id = oid;
 			object2servant_core (p_servant)->activate (std::move (key));
 		} catch (...) {

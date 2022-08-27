@@ -162,9 +162,11 @@ bool RequestIn::marshal_op ()
 
 void RequestIn::serve_request (ServantProxyBase& proxy)
 {
+	ExecDomain& ed = ExecDomain::current ();
+	if (response_flags_)
+		exec_domain_ = &ed; // Save ED pointer for cancel
 	IOReference::OperationIndex op_idx = proxy.find_operation (operation ());
 	sync_domain_ = proxy.get_sync_context (op_idx).sync_domain ();
-	ExecDomain& ed = ExecDomain::current ();
 	ed.mem_context_push (&sync_domain_->mem_context ());
 	proxy.invoke (op_idx, _get_ptr ());
 	ed.mem_context_pop ();

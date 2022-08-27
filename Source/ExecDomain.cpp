@@ -261,7 +261,7 @@ void ExecDomain::unwind_mem_context () NIRVANA_NOEXCEPT
 	mem_context_stack_.push (move (tmp));
 }
 
-void ExecDomain::on_crash (const siginfo_t& signal) NIRVANA_NOEXCEPT
+void ExecDomain::on_crash (const siginfo& signal) NIRVANA_NOEXCEPT
 {
 	// Leave sync domain if one.
 	SyncDomain* sd = sync_context_->sync_domain ();

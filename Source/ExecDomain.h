@@ -39,7 +39,8 @@
 #include "CoreObject.h"
 #include <limits>
 #include <utility>
-#include <signal.h>
+
+struct siginfo;
 
 namespace Nirvana {
 
@@ -151,7 +152,7 @@ public:
 
 	/// Called from the Port implementation in case of the unrecoverable error.
 	/// \param signal The signal information.
-	void on_crash (const siginfo_t& signal) NIRVANA_NOEXCEPT;
+	void on_crash (const siginfo& signal) NIRVANA_NOEXCEPT;
 
 	/// Called from the Port implementation in case of the signal.
 	/// \param signal The signal information.

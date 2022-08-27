@@ -40,7 +40,7 @@ void ExecContext::run () NIRVANA_NOEXCEPT
 	runnable_.reset ();
 }
 
-void ExecContext::on_crash (const siginfo_t& signal) NIRVANA_NOEXCEPT
+void ExecContext::on_crash (const siginfo& signal) NIRVANA_NOEXCEPT
 {
 	runnable_->on_crash (signal);
 	runnable_.reset ();

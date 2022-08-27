@@ -53,9 +53,9 @@ Object::_ref_type POA_Retain::id_to_reference (const ObjectId& oid)
 	throw ObjectNotActive ();
 }
 
-void POA_Retain::invoke (const ObjectId& oid, CORBA::Core::RequestInBase& request) const
+void POA_Retain::serve (CORBA::Core::RequestInBase& request) const
 {
-	auto it = active_object_map_.find (oid);
+	auto it = active_object_map_.find (request.object_key ().object_id);
 	if (it == active_object_map_.end ())
 		throw OBJECT_NOT_EXIST (MAKE_OMG_MINOR (1));
 	Nirvana::Core::CoreRef <CORBA::Core::ServantProxyBase> proxy = object2servant_core (it->second);

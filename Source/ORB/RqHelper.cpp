@@ -24,6 +24,7 @@
 *  popov.nirvana@gmail.com
 */
 #include "RqHelper.h"
+#include <signal.h>
 
 namespace CORBA {
 
@@ -75,6 +76,21 @@ void RqHelper::check_align (size_t align)
 {
 	if (!(align == 1 || align == 2 || align == 4 || align == 8))
 		throw BAD_PARAM ();
+}
+
+Any RqHelper::signal2exception (const siginfo& signal) NIRVANA_NOEXCEPT
+{
+	Exception::Code ec ;
+	if (signal.si_excode != Exception::EC_NO_EXCEPTION)
+		ec = (Exception::Code)signal.si_excode;
+	else
+		ec = SystemException::EC_UNKNOWN;
+	const ExceptionEntry* ee = SystemException::_get_exception_entry (ec);
+	std::aligned_storage <sizeof (SystemException), alignof (SystemException)>::type buf;
+	(ee->construct) (&buf);
+	Any a;
+	a <<= (const Exception&)buf;
+	return a;
 }
 
 }

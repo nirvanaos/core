@@ -111,6 +111,7 @@ protected:
 	{}
 
 	virtual void run () override;
+	virtual void on_crash (const siginfo& signal) NIRVANA_NOEXCEPT override;
 
 private:
 	uint64_t timestamp_;
@@ -147,16 +148,28 @@ void ReceiveRequest::run ()
 
 		// Create and receive the request
 		unsigned minor = msg_hdr.GIOP_version ().minor ();
-		ImplStatic <RequestIn> request (client_id_, minor, move (in));
-		IncomingRequests::receive (request, timestamp_);
-
-	} catch (const CORBA::SystemException& ex) {
+		CoreRef <RequestIn> request = CoreRef <RequestIn>::create <ImplDynamic <RequestIn> > (client_id_, minor, move (in));
+		IncomingRequests::receive (*request, timestamp_);
+	} catch (const SystemException& ex) {
 		if (request_id_) {
 			// Responce expected
 			ReplySystemException reply (request_id_, ex);
 			send_error_message (client_id_, &reply, sizeof (reply));
 		}
-		return;
+	}
+}
+
+void ReceiveRequest::on_crash (const siginfo& signal) NIRVANA_NOEXCEPT
+{
+	if (request_id_) {
+		// Responce expected
+		Exception::Code ec;
+		if (signal.si_excode != Exception::EC_NO_EXCEPTION)
+			ec = (Exception::Code)signal.si_excode;
+		else
+			ec = SystemException::EC_UNKNOWN;
+		ReplySystemException reply (request_id_, ec);
+		send_error_message (client_id_, &reply, sizeof (reply));
 	}
 }
 

@@ -88,7 +88,7 @@ void Process::on_exception () NIRVANA_NOEXCEPT
 	console_ << "Unhandled exception.\n";
 }
 
-void Process::on_crash (const siginfo_t& signal) NIRVANA_NOEXCEPT
+void Process::on_crash (const siginfo& signal) NIRVANA_NOEXCEPT
 {
 	if (SIGABRT == signal.si_signo)
 		ret_ = 3;

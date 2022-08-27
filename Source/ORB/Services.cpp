@@ -43,7 +43,7 @@ const Services::Factory Services::factories_ [Service::SERVICE_COUNT] = {
 
 Object::_ref_type Services::create_RootPOA ()
 {
-	return make_reference <PortableServer::Core::POA_Root> ()->_this ();
+	return PortableServer::Core::POA_Root::create ();
 }
 
 }

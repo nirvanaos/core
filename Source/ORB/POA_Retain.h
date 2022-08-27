@@ -64,14 +64,14 @@ public:
 	virtual CORBA::Object::_ref_type id_to_reference (const ObjectId& oid) override;
 
 protected:
-	POA_Retain (POAManager::_ptr_type manager) :
-		Base (manager)
+	POA_Retain (CORBA::servant_reference <POAManager>&& manager) :
+		Base (std::move (manager))
 	{}
 
 	~POA_Retain ()
 	{}
 
-	virtual void invoke (const ObjectId& oid, CORBA::Core::RequestInBase& request) const override;
+	virtual void serve (CORBA::Core::RequestInBase& request) const override;
 
 protected:
 	// Active Object Map (AOM)

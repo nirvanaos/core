@@ -23,7 +23,7 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "POA_Base.h"
+#include "POAManagerFactory.h"
 
 using namespace CORBA;
 using namespace CORBA::Internal;
@@ -145,12 +145,18 @@ Interface* POA_Base::_s_id_to_servant (Bridge <POA>* _b,
 	return Type <Object>::ret ();
 }
 
-POA_Base::POA_Base (POAManager::_ptr_type manager) :
+POA_Base::POA_Base (CORBA::servant_reference <POAManager>&& manager) :
 	parent_ (nullptr),
-	the_POAManager_ (manager),
-	signature_ (SIGNATURE)
+	the_POAManager_ (std::move (manager)),
+	signature_ (SIGNATURE),
+	destroyed_ (false)
 {
-	// TODO: If manager is nil, create a new.
+	the_POAManager_->on_adapter_create (*this);
+}
+
+POA_Base::~POA_Base ()
+{
+	the_POAManager_->on_adapter_destroy (*this);
 }
 
 Object::_ref_type POA_Base::reference_to_servant (Object::_ptr_type reference)
@@ -162,9 +168,9 @@ Object::_ref_type POA_Base::reference_to_servant (Object::_ptr_type reference)
 	ActivationKeyRef key = proxy->get_object_key ();
 	if (!key)
 		throw ObjectNotActive ();
-	IDL::String path;
+	AdapterPath path;
 	get_path (path);
-	if (path != key->POA_path)
+	if (path != key->adapter_path)
 		throw WrongAdapter ();
 	return reference;
 }
@@ -178,50 +184,40 @@ ObjectId POA_Base::reference_to_id (Object::_ptr_type reference)
 	ActivationKeyRef key = proxy->get_object_key ();
 	if (!key)
 		throw WrongAdapter ();
-	IDL::String path;
+	AdapterPath path;
 	get_path (path);
-	if (path != key->POA_path)
+	if (path != key->adapter_path)
 		throw WrongAdapter ();
 	return key->object_id;
 }
 
-const CORBA::Core::LocalObject* POA_Base::get_proxy (POA::_ptr_type poa) NIRVANA_NOEXCEPT
-{
-	if (poa) {
-		Object::_ptr_type obj (poa);
-		return &static_cast <const CORBA::Core::LocalObject&> (
-			*static_cast <Bridge <Object>*> (&obj));
-	}
-	return nullptr;
-}
-
-POA_Base* POA_Base::get_implementation (const CORBA::Core::LocalObject* proxy) NIRVANA_NOEXCEPT
+POA_Base* POA_Base::get_implementation (const CORBA::Core::ProxyLocal* proxy)
 {
 	if (proxy) {
 		POA_Base* impl = static_cast <POA_Base*> (
 			static_cast <Bridge <CORBA::LocalObject>*> (&proxy->servant ()));
 		if (impl->signature_ == SIGNATURE)
 			return impl;
+		else
+			throw CORBA::OBJ_ADAPTER (); // User try to create own POA implementation?
 	}
 	return nullptr;
 }
 
-void POA_Base::get_path (IDL::String& path) const
+void POA_Base::get_path (AdapterPath& path, size_t size) const
 {
 	if (parent_) {
-		parent_->get_path (path);
-		static const IDL::String& name = iterator_->first;
-		if (!path.empty ()) {
-			path.reserve (path.size () + name.size () + 1);
-			path += '/';
-		}
-		path += name;
+		parent_->get_path (path, size + 1);
+		path.push_back (iterator_->first);
+	} else {
+		path.clear ();
+		path.reserve (size);
 	}
 }
 
-POA_Base& POA_Base::find_child (CORBA::Internal::String_in adapter_name, bool activate_it)
+POA_Base& POA_Base::find_child (const IDL::String& adapter_name, bool activate_it)
 {
-	auto it = children_.find (static_cast <const IDL::String&> (adapter_name));
+	auto it = children_.find (adapter_name);
 	if (it == children_.end ()) {
 		if (activate_it && the_activator_) {
 			bool created = false;
@@ -244,6 +240,7 @@ POA_Base& POA_Base::find_child (CORBA::Internal::String_in adapter_name, bool ac
 
 void POA_Base::destroy (bool etherealize_objects, bool wait_for_completion)
 {
+	destroyed_ = true;
 	Children tmp (std::move (children_));
 	while (!tmp.empty ()) {
 		tmp.begin ()->second->destroy (etherealize_objects, wait_for_completion);

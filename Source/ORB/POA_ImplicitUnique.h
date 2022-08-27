@@ -43,8 +43,8 @@ public:
 	virtual CORBA::Object::_ref_type servant_to_reference (CORBA::Object::_ptr_type p_servant) override;
 
 protected:
-	POA_ImplicitUnique (POAManager::_ptr_type manager) :
-		Base (manager)
+	POA_ImplicitUnique (CORBA::servant_reference <POAManager>&& manager) :
+		Base (std::move (manager))
 	{}
 
 private:

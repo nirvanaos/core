@@ -112,8 +112,16 @@ struct ReplySystemException : MessageHeader
 	ReplySystemException (uint32_t rq_id, const CORBA::SystemException& ex) :
 		MessageHeader (REPLY_SYSTEM_EXCEPTION),
 		completed ((uint8_t)ex.completed ()),
-		code (ex.__code ()),
+		code ((int16_t)ex.__code ()),
 		minor (ex.minor ()),
+		request_id (rq_id)
+	{}
+
+	ReplySystemException (uint32_t rq_id, CORBA::SystemException::Code code) :
+		MessageHeader (REPLY_SYSTEM_EXCEPTION),
+		completed ((uint8_t)CORBA::CompletionStatus::COMPLETED_MAYBE),
+		code ((int16_t)code),
+		minor (0),
 		request_id (rq_id)
 	{}
 };

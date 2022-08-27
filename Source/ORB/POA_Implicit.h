@@ -44,8 +44,8 @@ public:
 	}
 
 protected:
-	POA_Implicit (POAManager::_ptr_type manager) :
-		Base (manager)
+	POA_Implicit (CORBA::servant_reference <POAManager>&& manager) :
+		Base (std::move (manager))
 	{}
 };
 

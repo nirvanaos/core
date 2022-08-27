@@ -60,8 +60,6 @@ private:
 	static const SigToExc sig2exc_ [];
 };
 
-
-
 }
 }
 

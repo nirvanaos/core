@@ -45,10 +45,20 @@ public:
 		return static_cast <Bridge <Object>*> (Base::_s_get_object (this, iid, env));
 	}
 
-	// Returns user LocalObject implementation
+	/// \returns User LocalObject implementation
 	LocalObject::_ptr_type servant () const NIRVANA_NOEXCEPT
 	{
 		return static_cast <CORBA::LocalObject*> (&Base::servant ());
+	}
+
+	/// Get proxy for local object.
+	/// 
+	/// \param obj Local object pointer.
+	///   Ensure that it is really local object.
+	/// \returns Proxy pointer.
+	static const ProxyLocal* get_proxy (Object::_ptr_type obj) NIRVANA_NOEXCEPT
+	{
+		return static_cast <const ProxyLocal*> (static_cast <Bridge <Object>*> (&obj));
 	}
 
 protected:

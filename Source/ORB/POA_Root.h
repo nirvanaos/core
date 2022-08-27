@@ -28,12 +28,7 @@
 #pragma once
 
 #include "POA_ImplicitUnique.h"
-
-namespace CORBA {
-namespace Core {
-class RequestIn;
-}
-}
+#include "POAManagerFactory.h"
 
 namespace PortableServer {
 namespace Core {
@@ -41,9 +36,12 @@ namespace Core {
 class POA_Root :
 	public POA_ImplicitUnique
 {
+	typedef POA_ImplicitUnique Base;
 public:
-	POA_Root () :
-		POA_ImplicitUnique (POAManager::_nil ())
+	POA_Root (CORBA::servant_reference <POAManager>&& manager,
+		CORBA::servant_reference <POAManagerFactory>&& manager_factory) :
+		Base (std::move (manager)),
+		manager_factory_ (std::move (manager_factory))
 	{}
 
 	~POA_Root ()
@@ -59,7 +57,17 @@ public:
 		return CORBA::OctetSeq ();
 	}
 
-	static void invoke (CORBA::Core::RequestIn& request);
+	static void invoke (CORBA::Core::RequestInBase& request) NIRVANA_NOEXCEPT;
+
+	static PortableServer::POA::_ref_type create ()
+	{
+		auto manager_factory = CORBA::make_reference <POAManagerFactory> ();
+		auto manager = manager_factory->create ("RootPOAManager", CORBA::PolicyList ());
+		return CORBA::make_reference <POA_Root> (std::move (manager), std::move (manager_factory))->_this ();
+	}
+
+private:
+	CORBA::servant_reference <POAManagerFactory> manager_factory_;
 };
 
 }

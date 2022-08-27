@@ -31,7 +31,6 @@
 #include "RequestGIOP.h"
 #include "RequestInBase.h"
 #include "DomainAddress.h"
-#include "ObjectKey.h"
 #include "../UserObject.h"
 #include "../ExecDomain.h"
 #include "GIOP.h"
@@ -70,6 +69,8 @@ class NIRVANA_NOVTABLE RequestIn :
 	public RequestInBase,
 	public Nirvana::Core::UserObject
 {
+	DECLARE_CORE_INTERFACE
+
 public:
 	const RequestKey& key () const NIRVANA_NOEXCEPT
 	{
@@ -80,12 +81,6 @@ public:
 	uint32_t request_id () const NIRVANA_NOEXCEPT
 	{
 		return key_.request_id;
-	}
-
-	/// \returns Target object key.
-	const ObjectKey& object_key () const NIRVANA_NOEXCEPT
-	{
-		return object_key_;
 	}
 
 	/// \returns Service context.
@@ -112,16 +107,6 @@ public:
 	/// 
 	/// \returns `true` if the reply must be sent.
 	bool finalize ();
-
-	Nirvana::Core::ExecDomain* exec_domain () const NIRVANA_NOEXCEPT
-	{
-		return exec_domain_;
-	}
-
-	void exec_domain (Nirvana::Core::ExecDomain* ed) NIRVANA_NOEXCEPT
-	{
-		exec_domain_ = ed;
-	}
 
 protected:
 	RequestIn (const DomainAddress& client, unsigned GIOP_minor, Nirvana::Core::CoreRef <StreamIn>&& in);
@@ -152,7 +137,6 @@ private:
 
 protected:
 	RequestKey key_;
-	ObjectKey object_key_;
 	IOP::ServiceContextList service_context_;
 	unsigned GIOP_minor_;
 

@@ -34,7 +34,7 @@
 #include "HashOctetSeq.h"
 #include "PortableServer_policies.h"
 #include "LocalObject.h"
-#include "ObjectKey.h"
+#include "RequestInBase.h"
 
 namespace CORBA {
 namespace Core {
@@ -44,6 +44,8 @@ class RequestInBase;
 
 namespace PortableServer {
 namespace Core {
+
+class POAManager;
 
 // POA implementation always operates the reference to Object interface (proxy),
 // not to ServantBase.
@@ -59,7 +61,7 @@ public:
 	// POA creation and destruction
 
 	POA::_ref_type create_POA (const IDL::String& adapter_name,
-		POAManager::_ptr_type a_POAManager, const CORBA::PolicyList& policies)
+		PortableServer::POAManager::_ptr_type a_POAManager, const CORBA::PolicyList& policies)
 	{
 		throw CORBA::NO_IMPLEMENT ();
 	}
@@ -69,9 +71,16 @@ public:
 		return find_child (adapter_name, activate_it)._this ();
 	}
 
-	POA_Base& find_child (CORBA::Internal::String_in adapter_name, bool activate_it);
+	POA_Base& find_child (const IDL::String& adapter_name, bool activate_it);
 
 	virtual void destroy (bool etherealize_objects, bool wait_for_completion);
+
+	bool is_destroyed () const NIRVANA_NOEXCEPT
+	{
+		return destroyed_;
+	}
+
+	virtual void etherealize_objects () {}
 
 	// Factories for Policy objects
 
@@ -137,10 +146,7 @@ public:
 		return list;
 	}
 
-	POAManager::_ref_type the_POAManager () const
-	{
-		return the_POAManager_;
-	}
+	PortableServer::POAManager::_ref_type the_POAManager () const;
 
 	AdapterActivator::_ref_type the_activator () const
 	{
@@ -203,26 +209,24 @@ public:
 
 	virtual CORBA::OctetSeq id () const = 0;
 	
-	POAManagerFactory::_ref_type the_POAManagerFactory ()
-	{
-		throw CORBA::NO_IMPLEMENT ();
-	}
+	PortableServer::POAManagerFactory::_ref_type the_POAManagerFactory ();
 
 	// Internal
 	static bool implicit_activation (POA::_ptr_type poa) NIRVANA_NOEXCEPT
 	{
 		if (poa) {
-			const POA_Base* impl = get_implementation (get_proxy (poa));
+			const POA_Base* impl = get_implementation (CORBA::Core::ProxyLocal::get_proxy (poa));
 			if (impl)
 				return impl->implicit_activation ();
 		}
 		return false;
 	}
 
-	virtual void invoke (const ObjectId& oid, CORBA::Core::RequestInBase& request) const = 0;
+	void invoke (CORBA::Core::RequestInBase& request, Nirvana::Core::CoreRef <Nirvana::Core::MemContext>&& memory);
 
-	static const CORBA::Core::LocalObject* get_proxy (POA::_ptr_type poa) NIRVANA_NOEXCEPT;
-	static POA_Base* get_implementation (const CORBA::Core::LocalObject* proxy) NIRVANA_NOEXCEPT;
+	virtual void serve (CORBA::Core::RequestInBase& request) const = 0;
+
+	static POA_Base* get_implementation (const CORBA::Core::ProxyLocal* proxy);
 
 	// Entry point vector overrides
 	static CORBA::Internal::Interface* _s_get_servant (CORBA::Internal::Bridge <POA>* _b, Interface* _env);
@@ -246,17 +250,16 @@ public:
 		CORBA::Internal::Bridge <POA>* _b, CORBA::Internal::Type <ObjectId>::ABI_in oid,
 		Interface* env);
 
-	virtual ~POA_Base ()
-	{}
+	virtual ~POA_Base ();
 
 protected:
-	POA_Base (POAManager::_ptr_type manager);
+	POA_Base (CORBA::servant_reference <POAManager>&& manager);
 
 	virtual bool implicit_activation () const NIRVANA_NOEXCEPT = 0;
 
-	void get_path (IDL::String& path) const;
+	void get_path (AdapterPath& path, size_t size = 0) const;
 
-protected:
+private:
 	// Children map.
 	typedef CORBA::servant_reference <POA_Base> Ref;
 
@@ -267,12 +270,11 @@ protected:
 	POA_Base* parent_;
 	Children::iterator iterator_;
 	Children children_;
-	POAManager::_ref_type the_POAManager_;
+	CORBA::servant_reference <POAManager> the_POAManager_;
 	AdapterActivator::_ref_type the_activator_;
-
-private:
 	static const int32_t SIGNATURE = 'POA_';
 	const int32_t signature_;
+	bool destroyed_;
 };
 
 }

@@ -32,22 +32,34 @@
 
 namespace CORBA {
 namespace Core {
-
 class StreamIn;
+}
+}
+
+namespace PortableServer {
+
+typedef CORBA::OctetSeq ObjectId;
+
+namespace Core {
+
+typedef IDL::Sequence <IDL::String> AdapterPath;
 
 /// ObjectKey internal structure.
 struct ObjectKey
 {
-	IDL::String POA_path;
-	OctetSeq object_id;
+	AdapterPath adapter_path;
+	ObjectId object_id;
 
-	void marshal (StreamOut& out) const
+	void marshal (CORBA::Core::StreamOut& out) const
 	{
-		out.write_string (const_cast <IDL::String&> (POA_path), false);
-		out.write_seq (const_cast <OctetSeq&> (object_id), false);
+		out.write_size (adapter_path.size ());
+		for (const auto& name : adapter_path) {
+			out.write_string (const_cast <IDL::String&> (name), false);
+		}
+		out.write_seq (const_cast <ObjectId&> (object_id), false);
 	}
 
-	void unmarshal (StreamIn& in);
+	void unmarshal (CORBA::Core::StreamIn& in);
 	void unmarshal (const IOP::ObjectKey& object_key);
 };
 

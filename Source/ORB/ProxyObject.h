@@ -37,7 +37,7 @@ namespace CORBA {
 namespace Core {
 
 struct ActivationKey :
-	public ObjectKey,
+	public PortableServer::Core::ObjectKey,
 	public Nirvana::Core::UserObject
 {};
 

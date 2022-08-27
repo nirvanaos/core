@@ -29,7 +29,8 @@
 #pragma once
 
 #include "CoreInterface.h"
-#include <signal.h>
+
+struct siginfo;
 
 namespace Nirvana {
 namespace Core {
@@ -41,7 +42,7 @@ class NIRVANA_NOVTABLE Runnable
 public:
 	virtual void run () = 0;
 	virtual void on_exception () NIRVANA_NOEXCEPT;
-	virtual void on_crash (const siginfo_t& signal) NIRVANA_NOEXCEPT;
+	virtual void on_crash (const siginfo& signal) NIRVANA_NOEXCEPT;
 };
 
 void run_in_neutral_context (Runnable& runnable) NIRVANA_NOEXCEPT;

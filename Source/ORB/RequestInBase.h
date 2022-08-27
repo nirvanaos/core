@@ -28,16 +28,24 @@
 #define NIRVANA_ORB_CORE_REQUESTINBASE_H_
 #pragma once
 
-#include <CORBA/CORBA.h>
+#include "../CoreInterface.h"
+#include "ObjectKey.h"
 
 namespace CORBA {
 namespace Core {
 
 class ServantProxyBase;
 
-class RequestInBase
+class NIRVANA_NOVTABLE RequestInBase
 {
+	DECLARE_CORE_INTERFACE
 public:
+	/// \returns Target object key.
+	const PortableServer::Core::ObjectKey& object_key () const NIRVANA_NOEXCEPT
+	{
+		return object_key_;
+	}
+
 	/// \returns Operation name.
 	const IDL::String& operation () const NIRVANA_NOEXCEPT
 	{
@@ -49,8 +57,29 @@ public:
 	/// \param proxy The servant proxy.
 	virtual void serve_request (ServantProxyBase& proxy) = 0;
 
+	/// Return exception to caller.
+	/// Operation has move semantics so \p e may be cleared.
+	virtual void set_exception (Any& e) = 0;
+
+	bool is_cancelled () const NIRVANA_NOEXCEPT
+	{
+		return cancelled_;
+	}
+
+	void cancel () NIRVANA_NOEXCEPT
+	{
+		cancelled_ = true;
+	}
+
 protected:
+	RequestInBase () :
+		cancelled_ (false)
+	{}
+
+protected:
+	PortableServer::Core::ObjectKey object_key_;
 	IDL::String operation_;
+	std::atomic <bool> cancelled_;
 };
 
 }

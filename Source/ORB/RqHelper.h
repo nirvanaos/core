@@ -30,15 +30,10 @@
 
 #include <CORBA/CORBA.h>
 
+struct siginfo;
+
 namespace CORBA {
 namespace Core {
-
-enum class RqKind
-{
-	SYNC,
-	ONEWAY,
-	ASYNC
-};
 
 class RqHelper
 {
@@ -47,6 +42,7 @@ public:
 	static ValueBase::_ptr_type value_type2base (Internal::Interface::_ptr_type val);
 	static AbstractBase::_ptr_type abstract_interface2base (Internal::Interface::_ptr_type itf);
 	static void check_align (size_t align);
+	static Any signal2exception (const siginfo& signal) NIRVANA_NOEXCEPT;
 
 private:
 	struct EPV_Header

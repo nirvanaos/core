@@ -27,13 +27,18 @@
 #include "StreamInEncap.h"
 
 using Nirvana::Core::ImplStatic;
+using namespace CORBA::Core;
 
-namespace CORBA {
+namespace PortableServer {
 namespace Core {
 
 void ObjectKey::unmarshal (StreamIn& in)
 {
-	in.read_string (POA_path);
+	size_t size = in.read_size ();
+	adapter_path.resize (size);
+	for (auto& name : adapter_path) {
+		in.read_string (name);
+	}
 	in.read_seq (object_id);
 }
 
@@ -42,7 +47,7 @@ void ObjectKey::unmarshal (const IOP::ObjectKey& object_key)
 	ImplStatic <StreamInEncap> stm (std::ref (object_key));
 	unmarshal (stm);
 	if (stm.end () != 0)
-		throw MARSHAL (StreamIn::MARSHAL_MINOR_MORE);
+		throw CORBA::MARSHAL (StreamIn::MARSHAL_MINOR_MORE);
 }
 
 }

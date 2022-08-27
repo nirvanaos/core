@@ -92,7 +92,7 @@ void Startup::on_exception () NIRVANA_NOEXCEPT
 	Scheduler::shutdown ();
 }
 
-void Startup::on_crash (const siginfo_t& signal) NIRVANA_NOEXCEPT
+void Startup::on_crash (const siginfo& signal) NIRVANA_NOEXCEPT
 {
 	if (signal.si_excode == CORBA::Exception::EC_NO_EXCEPTION)
 		exception_code_ = CORBA::SystemException::EC_UNKNOWN;
