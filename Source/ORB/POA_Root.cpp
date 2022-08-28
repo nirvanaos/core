@@ -25,6 +25,7 @@
 */
 
 #include "POA_Root.h"
+#include "../Binder.inl"
 
 using namespace Nirvana::Core;
 using namespace CORBA;
@@ -32,14 +33,28 @@ using namespace CORBA;
 namespace PortableServer {
 namespace Core {
 
+POA* POA_Root::root_ = nullptr;
+
+POA::_ref_type POA_Root::get_root ()
+{
+	if (!root_) {
+		Object::_ref_type svc = Binder::bind_service (CORBA::Core::Services::RootPOA);
+		POA::_ref_type adapter = POA::_narrow (svc);
+		if (!adapter)
+			throw INV_OBJREF ();
+		root_ = static_cast <POA*> (&(POA::_ptr_type)adapter);
+		return adapter;
+	} else
+		return POA::_ptr_type (root_);
+}
+
 void POA_Root::invoke (CORBA::Core::RequestInBase& request) NIRVANA_NOEXCEPT
 {
 	try {
 
 		ExecDomain& ed = ExecDomain::current ();
 		CoreRef <MemContext> memory (ed.mem_context_ptr ());
-		POA::_ref_type root = ServantBase::_default_POA ();
-		const CORBA::Core::ProxyLocal* proxy = CORBA::Core::ProxyLocal::get_proxy (root);
+		const CORBA::Core::ProxyLocal* proxy = CORBA::Core::ProxyLocal::get_proxy (get_root ());
 		POA_Base* adapter = get_implementation (proxy);
 		assert (adapter);
 

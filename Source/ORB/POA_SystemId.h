@@ -35,7 +35,7 @@ namespace Core {
 class POA_SystemId
 {
 public:
-	static ObjectId unique_id (ServantBase* proxy);
+	static ObjectId unique_id (CORBA::Core::ProxyObject* proxy);
 };
 
 }

@@ -38,7 +38,7 @@ ObjectId POA_ImplicitUnique::activate_object (Object::_ptr_type p_servant)
 	if (!p_servant)
 		throw BAD_PARAM ();
 
-	ObjectId oid = POA_SystemId::unique_id (object2servant_core (p_servant));
+	ObjectId oid = POA_SystemId::unique_id (object2proxy (p_servant));
 	if (!AOM_insert (oid, p_servant))
 		throw ServantAlreadyActive ();
 	return oid;
@@ -49,7 +49,7 @@ void POA_ImplicitUnique::activate_object_with_id (const ObjectId& oid, CORBA::Ob
 	if (!p_servant)
 		throw BAD_PARAM ();
 
-	if (oid != POA_SystemId::unique_id (object2servant_core (p_servant)))
+	if (oid != POA_SystemId::unique_id (object2proxy (p_servant)))
 		throw BAD_PARAM ();
 	if (!AOM_insert (oid, p_servant))
 		throw ServantAlreadyActive ();
@@ -60,7 +60,7 @@ ObjectId POA_ImplicitUnique::servant_to_id (Object::_ptr_type p_servant)
 	if (!p_servant)
 		throw BAD_PARAM ();
 
-	ObjectId oid = POA_SystemId::unique_id (object2servant_core (p_servant));
+	ObjectId oid = POA_SystemId::unique_id (object2proxy (p_servant));
 	AOM_insert (oid, p_servant);
 	return oid;
 }
@@ -70,7 +70,7 @@ Object::_ref_type POA_ImplicitUnique::servant_to_reference (Object::_ptr_type p_
 	if (!p_servant)
 		throw BAD_PARAM ();
 
-	AOM_insert (POA_SystemId::unique_id (object2servant_core (p_servant)), p_servant);
+	AOM_insert (POA_SystemId::unique_id (object2proxy (p_servant)), p_servant);
 
 	return p_servant;
 }
@@ -84,7 +84,7 @@ bool POA_ImplicitUnique::AOM_insert (const ObjectId& oid, Object::_ptr_type p_se
 			ActivationKeyRef key = ActivationKeyRef::create <ActivationKeyImpl> ();
 			get_path (key->adapter_path);
 			key->object_id = oid;
-			object2servant_core (p_servant)->activate (std::move (key));
+			object2proxy (p_servant)->activate (std::move (key));
 		} catch (...) {
 			active_object_map_.erase (ins.first);
 			throw;

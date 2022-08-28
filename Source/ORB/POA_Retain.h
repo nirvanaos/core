@@ -51,7 +51,7 @@ public:
 	~AOM_Val ()
 	{
 		if (p_) // Not moved
-			object2servant_core (p_)->deactivate ();
+			CORBA::Core::object2proxy (p_)->deactivate ();
 	}
 };
 

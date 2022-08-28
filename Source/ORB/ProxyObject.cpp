@@ -23,7 +23,7 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "ProxyObject.h"
+#include "ServantBase.h"
 #include "../Runnable.h"
 #include "POA_Root.h"
 
@@ -35,6 +35,28 @@ namespace CORBA {
 using namespace Internal;
 
 namespace Core {
+
+Object::_ptr_type servant2object (PortableServer::Servant servant) NIRVANA_NOEXCEPT
+{
+	if (servant) {
+		PortableServer::Servant ps = servant->_core_servant ();
+		return static_cast <PortableServer::Core::ServantBase*> (
+			static_cast <CORBA::Internal::Bridge <PortableServer::ServantBase>*> (&ps))->get_proxy ();
+	} else
+		return nullptr;
+}
+
+PortableServer::ServantBase::_ref_type object2servant (CORBA::Object::_ptr_type obj)
+{
+	if (obj) {
+		const CORBA::Core::ProxyObject* proxy = object2proxy (obj);
+
+		if (&proxy->sync_context () != &Nirvana::Core::SyncContext::current ())
+			throw CORBA::OBJ_ADAPTER ();
+		return proxy->servant ();
+	}
+	return nullptr;
+}
 
 class NIRVANA_NOVTABLE ProxyObject::Deactivator :
 	public UserObject,

@@ -32,7 +32,7 @@ using namespace Nirvana;
 namespace PortableServer {
 namespace Core {
 
-ObjectId POA_SystemId::unique_id (ServantBase* proxy)
+ObjectId POA_SystemId::unique_id (CORBA::Core::ProxyObject* proxy)
 {
 	int timestamp = proxy->timestamp ();
 	ObjectId oid;

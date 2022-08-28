@@ -27,7 +27,7 @@
 #ifndef NIRVANA_ORB_CORE_PORTABLESERVER_P_NATIVE_H_
 #define NIRVANA_ORB_CORE_PORTABLESERVER_P_NATIVE_H_
 
-#include <ORB/ServantBase.h>
+#include <ORB/ProxyObject.h>
 
 namespace CORBA {
 namespace Internal {
@@ -40,7 +40,7 @@ PortableServer::ServantBase::_ref_type Proxy <PortableServer::POA>::get_servant 
 	Object::_ref_type _ret;
 	Type <Object>::unmarshal (_call, _ret);
 	_call->unmarshal_end ();
-	return PortableServer::Core::object2servant (_ret);
+	return Core::object2servant (_ret);
 }
 
 void Proxy <PortableServer::POA>::__rq_get_servant (
@@ -64,7 +64,7 @@ void Proxy <PortableServer::POA>::__rq_get_servant (
 void Proxy <PortableServer::POA>::set_servant (PortableServer::Servant p_servant) const
 {
 	IORequest::_ref_type _call = _target ()->create_request (_make_op_idx (__OPIDX_set_servant), 3);
-	Type <Object>::marshal_in (PortableServer::Core::servant2object (p_servant), _call);
+	Type <Object>::marshal_in (Core::servant2object (p_servant), _call);
 	_call->invoke ();
 	check_request (_call);
 	_call->unmarshal_end ();
@@ -88,7 +88,7 @@ void Proxy <PortableServer::POA>::__rq_set_servant (
 
 PortableServer::ObjectId Proxy <PortableServer::POA>::activate_object (PortableServer::Servant p_servant) const
 {
-	Object::_ptr_type proxy = PortableServer::Core::servant2object (p_servant);
+	Object::_ptr_type proxy = Core::servant2object (p_servant);
 	IORequest::_ref_type _call = _target ()->create_request (_make_op_idx (__OPIDX_activate_object), 3);
 	Type <Object>::marshal_in (proxy, _call);
 	_call->invoke ();
@@ -122,7 +122,7 @@ void Proxy <PortableServer::POA>::__rq_activate_object (
 
 void Proxy <PortableServer::POA>::activate_object_with_id (const PortableServer::ObjectId& oid, PortableServer::Servant p_servant) const
 {
-	Object::_ptr_type proxy = PortableServer::Core::servant2object (p_servant);
+	Object::_ptr_type proxy = Core::servant2object (p_servant);
 	IORequest::_ref_type _call = _target ()->create_request (_make_op_idx (__OPIDX_activate_object_with_id), 3);
 	Type <PortableServer::ObjectId>::marshal_in (oid, _call);
 	Type <Object>::marshal_in (proxy, _call);
@@ -156,7 +156,7 @@ void Proxy <PortableServer::POA>::__rq_activate_object_with_id (
 
 PortableServer::ObjectId Proxy <PortableServer::POA>::servant_to_id (PortableServer::Servant p_servant) const
 {
-	Object::_ptr_type proxy = PortableServer::Core::servant2object (p_servant);
+	Object::_ptr_type proxy = Core::servant2object (p_servant);
 	IORequest::_ref_type _call = _target ()->create_request (_make_op_idx (__OPIDX_servant_to_id), 3);
 	Type <Object>::marshal_in (proxy, _call);
 	_call->invoke ();
@@ -190,7 +190,7 @@ void Proxy <PortableServer::POA>::__rq_servant_to_id (
 
 Object::_ref_type Proxy <PortableServer::POA>::servant_to_reference (PortableServer::Servant p_servant) const
 {
-	Object::_ptr_type proxy = PortableServer::Core::servant2object (p_servant);
+	Object::_ptr_type proxy = Core::servant2object (p_servant);
 	IORequest::_ref_type _call = _target ()->create_request (_make_op_idx (__OPIDX_servant_to_reference), 3);
 	Type <Object>::marshal_in (proxy, _call);
 	_call->invoke ();
@@ -231,7 +231,7 @@ PortableServer::ServantBase::_ref_type Proxy <PortableServer::POA>::reference_to
 	Object::_ref_type _ret;
 	Type <Object>::unmarshal (_call, _ret);
 	_call->unmarshal_end ();
-	return PortableServer::Core::object2servant (_ret);
+	return Core::object2servant (_ret);
 }
 
 void Proxy <PortableServer::POA>::__rq_reference_to_servant (
@@ -264,7 +264,7 @@ PortableServer::ServantBase::_ref_type Proxy <PortableServer::POA>::id_to_servan
 	Object::_ref_type _ret;
 	Type <Object>::unmarshal (_call, _ret);
 	_call->unmarshal_end ();
-	return PortableServer::Core::object2servant (_ret);
+	return Core::object2servant (_ret);
 }
 
 void Proxy <PortableServer::POA>::__rq_id_to_servant (
@@ -316,7 +316,7 @@ void Proxy <PortableServer::ServantActivator>::__rq_incarnate (
 	_call->unmarshal_end ();
 	PortableServer::ServantBase::_ref_type _ret = _servant->incarnate (oid, adapter);
 	// Marshal output
-	Object::_ref_type obj = PortableServer::Core::servant2object (_ret);
+	Object::_ref_type obj = Core::servant2object (_ret);
 	Type <Object>::marshal_out (obj, _call);
 }
 
@@ -328,7 +328,7 @@ void Proxy <PortableServer::ServantActivator>::etherealize (
 	IORequest::_ref_type _call = _target ()->create_request (_make_op_idx (__OPIDX_etherealize), 3);
 	Type <PortableServer::ObjectId>::marshal_in (oid, _call);
 	Type <PortableServer::POA>::marshal_in (adapter, _call);
-	Type <Object>::marshal_in (PortableServer::Core::servant2object (serv), _call);
+	Type <Object>::marshal_in (Core::servant2object (serv), _call);
 	Type <Boolean>::marshal_in (cleanup_in_progress, _call);
 	Type <Boolean>::marshal_in (remaining_activations, _call);
 	_call->invoke ();
@@ -353,7 +353,7 @@ void Proxy <PortableServer::ServantActivator>::__rq_etherealize (
 	
 	// The ServantActivator implementation must be in the same synchronization context as the servant,
 	// otherwise an exception will be thrown.
-	PortableServer::ServantBase::_ref_type serv = PortableServer::Core::object2servant (obj);
+	PortableServer::ServantBase::_ref_type serv = Core::object2servant (obj);
 
 	_servant->etherealize (oid, adapter, serv, cleanup_in_progress, remaining_activations);
 }
@@ -397,7 +397,7 @@ void Proxy <PortableServer::ServantLocator>::__rq_preinvoke (
 	_call->marshal (alignof (PortableServer::ServantLocator::Cookie),
 		sizeof (PortableServer::ServantLocator::Cookie), &the_cookie);
 
-	Object::_ref_type obj = PortableServer::Core::servant2object (_ret);
+	Object::_ref_type obj = Core::servant2object (_ret);
 	Type <Object>::marshal_out (obj, _call);
 }
 
@@ -411,7 +411,7 @@ void Proxy <PortableServer::ServantLocator>::postinvoke (
 	Type <Identifier>::marshal_in (operation, _call);
 	_call->marshal (alignof (PortableServer::ServantLocator::Cookie),
 		sizeof (PortableServer::ServantLocator::Cookie), &the_cookie);
-	Type <Object>::marshal_in (PortableServer::Core::servant2object (the_servant), _call);
+	Type <Object>::marshal_in (Core::servant2object (the_servant), _call);
 	_call->invoke ();
 	check_request (_call);
 	_call->unmarshal_end ();
@@ -435,7 +435,7 @@ void Proxy <PortableServer::ServantLocator>::__rq_postinvoke (
 
 	// The ServantActivator implementation must be in the same synchronization context as the servant,
 	// otherwise an exception will be thrown.
-	PortableServer::ServantBase::_ref_type the_servant = PortableServer::Core::object2servant (obj);
+	PortableServer::ServantBase::_ref_type the_servant = Core::object2servant (obj);
 	_servant->postinvoke (oid, adapter, operation, the_cookie, the_servant);
 }
 

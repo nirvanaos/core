@@ -133,7 +133,7 @@ public:
 		return iterator_->first;
 	}
 
-	static POAManager* get_implementation (const CORBA::Core::LocalObject* proxy)
+	static POAManager* get_implementation (const CORBA::Core::ProxyLocal* proxy)
 	{
 		if (proxy) {
 			POAManager* impl = static_cast <POAManager*> (

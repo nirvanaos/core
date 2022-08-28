@@ -164,7 +164,7 @@ Object::_ref_type POA_Base::reference_to_servant (Object::_ptr_type reference)
 	if (!reference)
 		throw BAD_PARAM ();
 
-	auto proxy = object2servant_core (reference);
+	auto proxy = object2proxy (reference);
 	ActivationKeyRef key = proxy->get_object_key ();
 	if (!key)
 		throw ObjectNotActive ();
@@ -180,7 +180,7 @@ ObjectId POA_Base::reference_to_id (Object::_ptr_type reference)
 	if (!reference)
 		throw BAD_PARAM ();
 
-	auto proxy = object2servant_core (reference);
+	auto proxy = object2proxy (reference);
 	ActivationKeyRef key = proxy->get_object_key ();
 	if (!key)
 		throw WrongAdapter ();

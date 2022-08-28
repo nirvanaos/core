@@ -29,11 +29,11 @@
 #pragma once
 
 #include <CORBA/Server.h>
-#include "ServantBase.h"
+#include "ProxyObject.h"
+#include "ProxyLocal.h"
 #include "MapUnorderedStable.h"
 #include "HashOctetSeq.h"
 #include "PortableServer_policies.h"
-#include "LocalObject.h"
 #include "RequestInBase.h"
 
 namespace CORBA {

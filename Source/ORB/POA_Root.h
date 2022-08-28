@@ -66,8 +66,12 @@ public:
 		return CORBA::make_reference <POA_Root> (std::move (manager), std::move (manager_factory))->_this ();
 	}
 
+	static POA::_ref_type get_root ();
+
 private:
 	CORBA::servant_reference <POAManagerFactory> manager_factory_;
+
+	static POA* root_;
 };
 
 }

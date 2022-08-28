@@ -69,10 +69,16 @@ public:
 
 	///@}
 
-	// Returns user ServantBase implementation
+	/// Returns user ServantBase implementation
 	PortableServer::Servant servant () const NIRVANA_NOEXCEPT
 	{
 		return static_cast <PortableServer::ServantBase*> (&Base::servant ());
+	}
+
+	/// The unique stamp is assigned when ServantBase is created.
+	int timestamp () const NIRVANA_NOEXCEPT
+	{
+		return timestamp_;
 	}
 
 protected:
@@ -124,6 +130,9 @@ private:
 
 	static void non_existent_request (ProxyObject* servant, Internal::IORequest::_ptr_type call);
 
+protected:
+	int timestamp_;
+
 private:
 	std::atomic <ActivationState> activation_state_;
 	PortableServer::POA::_ref_type implicit_POA_;
@@ -132,6 +141,17 @@ private:
 
 	static const OperationsDII object_ops_;
 };
+
+CORBA::Object::_ptr_type servant2object (PortableServer::Servant servant) NIRVANA_NOEXCEPT;
+
+inline
+CORBA::Core::ProxyObject* object2proxy (CORBA::Object::_ptr_type obj) NIRVANA_NOEXCEPT
+{
+	return static_cast <CORBA::Core::ProxyObject*> (
+		static_cast <CORBA::Internal::Bridge <CORBA::Object>*> (&obj));
+}
+
+PortableServer::ServantBase::_ref_type object2servant (CORBA::Object::_ptr_type obj);
 
 }
 }

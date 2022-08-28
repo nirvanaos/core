@@ -25,7 +25,6 @@
 */
 #include "ServantBase.h"
 #include <CORBA/Proxy/TypeCodeNative.h>
-#include "../Binder.inl"
 
 using namespace CORBA::Internal;
 using namespace CORBA;
@@ -35,46 +34,9 @@ using namespace Nirvana;
 namespace PortableServer {
 namespace Core {
 
-POA* ServantBase::default_POA_ = nullptr;
 std::atomic <int> ServantBase::next_timestamp_;
 
-PortableServer::POA::_ref_type ServantBase::_default_POA ()
-{
-	if (!default_POA_) {
-		Object::_ref_type svc = Binder::bind_service (CORBA::Core::Services::RootPOA);
-		PortableServer::POA::_ref_type poa = PortableServer::POA::_narrow (svc);
-		if (!poa)
-			throw_INV_OBJREF ();
-		default_POA_ = static_cast <PortableServer::POA*> (&(PortableServer::POA::_ptr_type)poa);
-		return poa;
-	} else
-		return PortableServer::POA::_ptr_type (default_POA_);
-}
-
 typedef TypeCodeNative <PortableServer::ServantBase> TC_Servant;
-
-Object::_ptr_type servant2object (Servant servant) NIRVANA_NOEXCEPT
-{
-	if (servant) {
-		Servant ps = servant->_core_servant ();
-		Core::ServantBase* core_obj = static_cast <Core::ServantBase*> (
-			static_cast <CORBA::Internal::Bridge <PortableServer::ServantBase>*> (&ps));
-		return core_obj->get_proxy ();
-	} else
-		return nullptr;
-}
-
-PortableServer::ServantBase::_ref_type object2servant (CORBA::Object::_ptr_type obj)
-{
-	if (obj) {
-		const Core::ServantBase& svt = *object2servant_core (obj);
-
-		if (&svt.sync_context () != &Nirvana::Core::SyncContext::current ())
-			throw CORBA::OBJ_ADAPTER ();
-		return svt.servant ();
-	}
-	return nullptr;
-}
 
 }
 }

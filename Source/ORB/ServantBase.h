@@ -29,7 +29,7 @@
 #pragma once
 
 #include "CoreImpl.h"
-#include "ProxyObject.h"
+#include "POA_Root.h"
 
 namespace PortableServer {
 namespace Core {
@@ -46,9 +46,10 @@ public:
 	using Skeleton <ServantBase, PortableServer::ServantBase>::__is_a;
 
 	ServantBase (Servant servant) :
-		Base (servant),
-		timestamp_ (next_timestamp_++)
-	{}
+		Base (servant)
+	{
+		timestamp_ = next_timestamp_++;
+	}
 
 	// ServantBase default implementation
 
@@ -58,7 +59,10 @@ public:
 			static_cast <CORBA::Internal::Bridge <PortableServer::ServantBase>&> (*this));
 	}
 
-	static POA::_ref_type _default_POA ();
+	static POA::_ref_type _default_POA ()
+	{
+		return POA_Root::get_root ();
+	}
 
 	bool _non_existent () const
 	{
@@ -70,28 +74,10 @@ public:
 		next_timestamp_ = (int)(Nirvana::Core::Chrono::UTC ().time () / TimeBase::SECOND);
 	}
 
-	int timestamp () const NIRVANA_NOEXCEPT
-	{
-		return timestamp_;
-	}
-
 private:
-	const int timestamp_;
-
 	static POA* default_POA_;
 	static std::atomic <int> next_timestamp_;
 };
-
-CORBA::Object::_ptr_type servant2object (Servant servant) NIRVANA_NOEXCEPT;
-
-inline
-PortableServer::Core::ServantBase* object2servant_core (CORBA::Object::_ptr_type obj) NIRVANA_NOEXCEPT
-{
-	return static_cast <PortableServer::Core::ServantBase*> (
-		static_cast <CORBA::Internal::Bridge <CORBA::Object>*> (&obj));
-}
-
-PortableServer::ServantBase::_ref_type object2servant (CORBA::Object::_ptr_type obj);
 
 }
 }
