@@ -221,6 +221,7 @@ bool RequestIn::finalize ()
 
 void RequestIn::cancel ()
 {
+	RequestInBase::cancel ();
 	response_flags_ = 0;
 	ExecDomain* ed = atomic_exchange ((volatile atomic <ExecDomain*>*)&exec_domain_, nullptr);
 	// TODO: We must call ed->abort () here but it is not implemented yet.

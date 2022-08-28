@@ -282,7 +282,7 @@ private:
 	struct OEPred;
 
 	void create_proxy (InterfaceEntry& ie);
-	void create_proxy (Internal::ProxyFactory::_ptr_type pf, InterfaceEntry& ie);
+	void create_proxy (Internal::ProxyFactory::_ptr_type pf, const Internal::InterfaceMetadata* metadata, InterfaceEntry& ie);
 
 	static void check_metadata (const Internal::InterfaceMetadata* metadata, Internal::String_in primary);
 	static void check_parameters (Internal::CountedArray <Internal::Parameter> parameters);

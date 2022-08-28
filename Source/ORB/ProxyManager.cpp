@@ -130,9 +130,9 @@ void ProxyManager::check_parameters (CountedArray <Parameter> parameters)
 	}
 }
 
-void ProxyManager::check_type_code (I_ptr <TypeCode> tc)
+void ProxyManager::check_type_code (TypeCode::_ptr_type tc)
 {
-	if (!tc)
+	if (!tc || !RepId::compatible (tc->_epv ().header.interface_id, RepIdOf <TypeCode>::id))
 		throw OBJ_ADAPTER (); // TODO: Log
 }
 
@@ -198,7 +198,7 @@ ProxyManager::ProxyManager (const Bridge <IOReference>::EPV& epv_ior,
 
 	// Create primary proxy
 	assert (primary);
-	create_proxy (proxy_factory, *primary);
+	create_proxy (proxy_factory, metadata, *primary);
 	primary->operations = metadata->operations;
 	primary_interface_ = primary;
 
@@ -241,18 +241,22 @@ ProxyManager::~ProxyManager ()
 	}
 }
 
-void ProxyManager::create_proxy (ProxyFactory::_ptr_type pf, InterfaceEntry& ie)
+void ProxyManager::create_proxy (ProxyFactory::_ptr_type pf, const InterfaceMetadata* metadata, InterfaceEntry& ie)
 {
-	Interface* deleter;
-	Interface* proxy = pf->create_proxy (ior (), (UShort)(&ie - interfaces_.begin ()), deleter);
-	if (!proxy || !deleter)
-		throw MARSHAL ();
-	ie.deleter = DynamicServant::_check (deleter);
-	try {
-		ie.proxy = Interface::_check (proxy, ie.iid);
-	} catch (...) {
-		ie.deleter->delete_object ();
-		throw;
+	if (metadata->flags & InterfaceMetadata::FLAG_NO_PROXY)
+		ie.proxy = &ie.implementation;
+	else {
+		Interface* deleter;
+		Interface* proxy = pf->create_proxy (ior (), (UShort)(&ie - interfaces_.begin ()), deleter);
+		if (!proxy || !deleter)
+			throw MARSHAL ();
+		ie.deleter = DynamicServant::_check (deleter);
+		try {
+			ie.proxy = Interface::_check (proxy, ie.iid);
+		} catch (...) {
+			ie.deleter->delete_object ();
+			throw;
+		}
 	}
 }
 
@@ -273,7 +277,7 @@ void ProxyManager::create_proxy (InterfaceEntry& ie)
 				throw OBJ_ADAPTER (); // Base is not listed in the primary interface base list. TODO: Log
 			create_proxy (*base_ie);
 		}
-		create_proxy (pf, ie);
+		create_proxy (pf, metadata, ie);
 		ie.operations = metadata->operations;
 	}
 }
