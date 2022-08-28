@@ -44,7 +44,7 @@ public:
 	/// \returns `true` if object creation is not completed.
 	bool is_wait_list () const NIRVANA_NOEXCEPT
 	{
-		return pointer_ & 1;
+		return is_wait_list (pointer_);
 	}
 
 	bool initialized () const NIRVANA_NOEXCEPT
@@ -80,6 +80,11 @@ protected:
 	void wait_construction () const;
 
 	void reset () NIRVANA_NOEXCEPT;
+
+	static bool is_wait_list (uintptr_t pointer) NIRVANA_NOEXCEPT
+	{
+		return pointer & 1;
+	}
 
 private:
 	WaitList* wait_list () const NIRVANA_NOEXCEPT;
@@ -147,10 +152,11 @@ public:
 	/// \returns Pointer or `nullptr`.
 	PtrType get_if_constructed () const NIRVANA_NOEXCEPT
 	{
-		if (is_wait_list ())
+		uintptr_t p = pointer_;
+		if (is_wait_list (p))
 			return nullptr;
 		else
-			return reinterpret_cast <const PtrType&> (pointer_);
+			return reinterpret_cast <const PtrType&> (p);
 	}
 
 	void reset () NIRVANA_NOEXCEPT

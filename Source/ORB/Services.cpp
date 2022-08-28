@@ -33,6 +33,44 @@ using namespace Nirvana;
 namespace CORBA {
 namespace Core {
 
+Nirvana::Core::StaticallyAllocated <Services> Services::singleton_;
+
+Object::_ref_type Services::bind (Service sidx)
+{
+	if ((size_t)sidx >= Service::SERVICE_COUNT)
+		throw ORB::InvalidName ();
+
+	Object::_ref_type ret = singleton_->services_ [sidx].get_if_constructed ();
+	if (!ret) {
+		SYNC_BEGIN (singleton_->sync_domain_, nullptr);
+		ret = singleton_->bind_service_sync (sidx);
+		SYNC_END ();
+	}
+	return ret;
+}
+
+Object::_ref_type Services::bind_service_sync (Service sidx)
+{
+	assert ((size_t)sidx < Service::SERVICE_COUNT);
+	ServiceRef& ref = services_ [sidx];
+	const Factory& f = factories_ [sidx];
+	Object::_ref_type svc;
+	if (ref.initialize (f.creation_deadline)) {
+		try {
+			SYNC_BEGIN (Nirvana::Core::g_core_free_sync_context, new_service_memory ());
+			svc = (f.factory) ();
+			SYNC_END ();
+			ref.finish_construction (svc);
+		} catch (...) {
+			ref.on_exception ();
+			ref.reset ();
+			throw;
+		}
+	} else
+		svc = ref.get ();
+	return svc;
+}
+
 // Initial services. Must be lexicographically ordered.
 
 const Services::Factory Services::factories_ [Service::SERVICE_COUNT] = {

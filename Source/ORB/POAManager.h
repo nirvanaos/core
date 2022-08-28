@@ -59,12 +59,19 @@ public:
 			case State::HOLDING:
 				state_ = State::ACTIVE;
 				while (!queue_.empty ()) {
-					if (!queue_.top ().request->is_cancelled ()) {
-						auto runnable = Nirvana::Core::CoreRef <Nirvana::Core::Runnable>::
-							create <Nirvana::Core::ImplDynamic <ServeRequest> > (
-								std::move (queue_.top ().adapter), std::move (queue_.top ().request));
-						Nirvana::Core::ExecDomain::async_call (queue_.top ().deadline, runnable,
-							Nirvana::Core::g_core_free_sync_context, queue_.top ().memory);
+					const QElem& top = queue_.top ();
+					if (!top.request->is_cancelled ()) {
+						try {
+							if (top.adapter->is_destroyed ())
+								throw POA::AdapterNonExistent ();
+							auto runnable = Nirvana::Core::CoreRef <Nirvana::Core::Runnable>::
+								create <Nirvana::Core::ImplDynamic <ServeRequest> > (
+									std::move (top.adapter), std::move (top.request));
+							Nirvana::Core::ExecDomain::async_call (top.deadline, runnable,
+								Nirvana::Core::g_core_free_sync_context, top.memory);
+						} catch (CORBA::Exception& e) {
+							top.request->set_exception (std::move (e));
+						}
 					}
 					queue_.pop ();
 				}

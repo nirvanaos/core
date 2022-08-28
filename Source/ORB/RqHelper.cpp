@@ -93,5 +93,12 @@ Any RqHelper::signal2exception (const siginfo& signal) NIRVANA_NOEXCEPT
 	return a;
 }
 
+Any RqHelper::exception2any (Exception&& e)
+{
+	Any a;
+	a <<= std::move (e);
+	return a;
+}
+
 }
 }

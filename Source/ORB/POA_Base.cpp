@@ -220,16 +220,19 @@ POA_Base& POA_Base::find_child (const IDL::String& adapter_name, bool activate_i
 	auto it = children_.find (adapter_name);
 	if (it == children_.end ()) {
 		if (activate_it && the_activator_) {
+			if (is_destroyed ())
+				throw TRANSIENT (MAKE_OMG_MINOR (4));
+
 			bool created = false;
 			try {
 				created = the_activator_->unknown_adapter (_this (), adapter_name);
-			} catch (const CORBA::SystemException&) {
-				throw CORBA::OBJ_ADAPTER (MAKE_OMG_MINOR (1));
+			} catch (const SystemException&) {
+				throw OBJ_ADAPTER (MAKE_OMG_MINOR (1));
 			}
 			if (created)
 				it = children_.find (static_cast <const IDL::String&> (adapter_name));
 			else
-				throw CORBA::OBJECT_NOT_EXIST (MAKE_OMG_MINOR (2));
+				throw OBJECT_NOT_EXIST (MAKE_OMG_MINOR (2));
 		}
 	}
 	if (it == children_.end ())
@@ -240,6 +243,10 @@ POA_Base& POA_Base::find_child (const IDL::String& adapter_name, bool activate_i
 
 void POA_Base::destroy (bool etherealize_objects, bool wait_for_completion)
 {
+	// Currently we do not support wait_for_completion.
+	if (wait_for_completion)
+		throw CORBA::BAD_INV_ORDER (MAKE_OMG_MINOR (3));
+
 	destroyed_ = true;
 	Children tmp (std::move (children_));
 	while (!tmp.empty ()) {

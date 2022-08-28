@@ -43,6 +43,7 @@ public:
 	static AbstractBase::_ptr_type abstract_interface2base (Internal::Interface::_ptr_type itf);
 	static void check_align (size_t align);
 	static Any signal2exception (const siginfo& signal) NIRVANA_NOEXCEPT;
+	static Any exception2any (Exception&& e);
 
 private:
 	struct EPV_Header

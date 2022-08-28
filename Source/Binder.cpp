@@ -535,19 +535,5 @@ void Binder::housekeeping ()
 	}
 }
 
-CORBA::Object::_ref_type Binder::bind_service (CORBA::Internal::String_in id)
-{
-	return bind_service (find_service (static_cast <const string&> (id).c_str ()));
-}
-
-CORBA::Object::_ref_type Binder::bind_service (Service sidx)
-{
-	if ((size_t)sidx >= Service::SERVICE_COUNT)
-		throw ORB::InvalidName ();
-	SYNC_BEGIN (singleton_->sync_domain_, nullptr);
-	return singleton_->bind_service_sync (sidx);
-	SYNC_END ();
-}
-
 }
 }

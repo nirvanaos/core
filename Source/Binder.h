@@ -38,7 +38,6 @@
 #include <Nirvana/Legacy/Main.h>
 #include <Nirvana/ModuleInit.h>
 #include "WaitableRef.h"
-#include "ORB/Services.h"
 #include "Chrono.h"
 #include "MapOrderedUnstable.h"
 #include "MapUnorderedStable.h"
@@ -57,7 +56,7 @@ class ClassLibrary;
 class Singleton;
 
 /// Implements object binding and module loading.
-class Binder : private CORBA::Core::Services
+class Binder
 {
 	/// To avoid priority inversion, if module loader deadline is too far,
 	/// it will be temporary adjusted. TODO: config.h
@@ -114,18 +113,6 @@ public:
 	/// \param mod The Nirvana::Module interface.
 	/// \param metadata Module metadata.
 	static void unbind (Legacy::Core::Executable& mod) NIRVANA_NOEXCEPT;
-
-	/// Bind service.
-	/// 
-	/// \param id Service identifier.
-	/// \returns Service object reference.
-	static ObjectRef bind_service (CORBA::Internal::String_in id);
-
-	/// Bind service.
-	/// 
-	/// \param sidx Service index.
-	/// \returns Service object reference.
-	static ObjectRef bind_service (Service sidx);
 
 private:
 	typedef CORBA::Internal::RepId RepId;

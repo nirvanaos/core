@@ -26,6 +26,7 @@
 #include <CORBA/Server.h>
 #include <CORBA/ORB_s.h>
 #include <Binder.h>
+#include <ORB/Services.h>
 #include <ORB/TC_Fixed.h>
 #include <ORB/PolicyFactory.h>
 
@@ -106,7 +107,7 @@ public:
 
 	static Object::_ref_type resolve_initial_references (const ObjectId& identifier)
 	{
-		return Binder::bind_service (identifier);
+		return Services::bind (identifier.c_str ());
 	}
 
 	static TypeCode::_ref_type create_struct_tc (const RepositoryId& id,

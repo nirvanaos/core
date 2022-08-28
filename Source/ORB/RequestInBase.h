@@ -61,6 +61,8 @@ public:
 	/// Operation has move semantics so \p e may be cleared.
 	virtual void set_exception (Any& e) = 0;
 
+	void set_exception (Exception&& e) NIRVANA_NOEXCEPT;
+
 	bool is_cancelled () const NIRVANA_NOEXCEPT
 	{
 		return cancelled_;

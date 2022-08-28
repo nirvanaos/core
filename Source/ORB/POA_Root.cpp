@@ -25,7 +25,7 @@
 */
 
 #include "POA_Root.h"
-#include "../Binder.inl"
+#include "Services.h"
 
 using namespace Nirvana::Core;
 using namespace CORBA;
@@ -38,7 +38,7 @@ POA* POA_Root::root_ = nullptr;
 POA::_ref_type POA_Root::get_root ()
 {
 	if (!root_) {
-		Object::_ref_type svc = Binder::bind_service (CORBA::Core::Services::RootPOA);
+		Object::_ref_type svc = CORBA::Core::Services::bind (CORBA::Core::Services::RootPOA);
 		POA::_ref_type adapter = POA::_narrow (svc);
 		if (!adapter)
 			throw INV_OBJREF ();
@@ -51,7 +51,6 @@ POA::_ref_type POA_Root::get_root ()
 void POA_Root::invoke (CORBA::Core::RequestInBase& request) NIRVANA_NOEXCEPT
 {
 	try {
-
 		ExecDomain& ed = ExecDomain::current ();
 		CoreRef <MemContext> memory (ed.mem_context_ptr ());
 		const CORBA::Core::ProxyLocal* proxy = CORBA::Core::ProxyLocal::get_proxy (get_root ());
@@ -70,17 +69,7 @@ void POA_Root::invoke (CORBA::Core::RequestInBase& request) NIRVANA_NOEXCEPT
 		SYNC_END ();
 
 	} catch (Exception& e) {
-		Any a;
-		a <<= std::move (e);
-		try {
-			request.set_exception (a);
-		} catch (...) {}
-	} catch (...) {
-		Any a;
-		a <<= UNKNOWN ();
-		try {
-			request.set_exception (a);
-		} catch (...) {}
+		request.set_exception (std::move (e));
 	}
 }
 

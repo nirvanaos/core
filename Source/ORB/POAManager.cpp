@@ -43,33 +43,23 @@ void POAManager::ServeRequest::run ()
 		}
 		SYNC_END ();
 	} catch (Exception& e) {
-		Any a;
-		a <<= std::move (e);
-		try {
-			request->set_exception (a);
-		} catch (...) {}
-	} catch (...) {
-		Any a;
-		a <<= UNKNOWN ();
-		try {
-			request->set_exception (a);
-		} catch (...) {}
+		request->set_exception (std::move (e));
 	}
 }
 
 void POAManager::ServeRequest::on_crash (const siginfo& signal) NIRVANA_NOEXCEPT
 {
 	Any ex = CORBA::Core::RqHelper::signal2exception (signal);
-	request->set_exception (ex);
+	try {
+		request->set_exception (ex);
+	} catch (...) {}
 }
 
 void POAManager::discard_queued_requests ()
 {
 	while (!queue_.empty ()) {
 		if (!queue_.top ().request->is_cancelled ()) {
-			CORBA::Any a;
-			a <<= CORBA::TRANSIENT (MAKE_OMG_MINOR (1));
-			queue_.top ().request->set_exception (a);
+			queue_.top ().request->set_exception (TRANSIENT (MAKE_OMG_MINOR (1)));
 		}
 		queue_.pop ();
 	}

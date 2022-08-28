@@ -23,33 +23,22 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "CORBA_initterm.h"
-#include "ServantBase.h"
-#include "IncomingRequests.h"
-#include "OutgoingRequests.h"
-#include "OtherDomains.h"
-#include "CodeSetConverter.h"
-#include "Services.h"
+#include "RequestInBase.h"
+#include "RqHelper.h"
 
 namespace CORBA {
 namespace Core {
 
-void initialize ()
+void RequestInBase::set_exception (Exception&& e) NIRVANA_NOEXCEPT
 {
-	Services::initialize ();
-	PortableServer::Core::ServantBase::initialize ();
-	OutgoingRequests::initialize ();
-	IncomingRequests::initialize ();
-	Nirvana::ESIOP::OtherDomains::initialize ();
-	CodeSetConverter::initialize ();
-}
-
-void terminate () NIRVANA_NOEXCEPT
-{
-	IncomingRequests::terminate ();
-	OutgoingRequests::terminate ();
-	Nirvana::ESIOP::OtherDomains::terminate ();
-	Services::terminate ();
+	Any a = RqHelper::exception2any (std::move (e));
+	try {
+		set_exception (a);
+	} catch (...) {
+		try {
+			set_exception (UNKNOWN ());
+		} catch (...) {}
+	}
 }
 
 }
