@@ -129,7 +129,7 @@ ProxyObject::RefCnt::IntegralType ProxyObject::_remove_ref_proxy () NIRVANA_NOEX
 			change_state (ACTIVE, DEACTIVATION_SCHEDULED)
 		) {
 			run_garbage_collector <Deactivator> (std::ref (*this),
-				ProxyLocal::get_proxy (implicit_POA_)->sync_context ());
+				local2proxy (implicit_POA_)->sync_context ());
 		}
 	}
 	return cnt;
@@ -143,7 +143,7 @@ void ProxyObject::implicit_deactivate ()
 		ActivationKeyRef key = activation_key_.get ();
 		assert (implicit_POA_ && key);
 		PortableServer::POA::_ref_type poa (move (implicit_POA_));
-		const ProxyLocal* proxy = ProxyLocal::get_proxy (poa);
+		const ProxyLocal* proxy = local2proxy (poa);
 		assert (&proxy->sync_context () == &SyncContext::current ());
 		PortableServer::Core::POA_Base* poa_impl = PortableServer::Core::POA_Base::get_implementation (proxy);
 		assert (poa_impl);

@@ -51,16 +51,6 @@ public:
 		return static_cast <CORBA::LocalObject*> (&Base::servant ());
 	}
 
-	/// Get proxy for local object.
-	/// 
-	/// \param obj Local object pointer.
-	///   Ensure that it is really local object.
-	/// \returns Proxy pointer.
-	static const ProxyLocal* get_proxy (Object::_ptr_type obj) NIRVANA_NOEXCEPT
-	{
-		return static_cast <const ProxyLocal*> (static_cast <Bridge <Object>*> (&obj));
-	}
-
 protected:
 	ProxyLocal (LocalObject::_ptr_type servant) :
 		ServantProxyBase (servant, object_ops_, this)
@@ -72,6 +62,16 @@ private:
 private:
 	static const OperationsDII object_ops_;
 };
+
+/// Get proxy for local object.
+/// 
+/// \param obj Local object pointer.
+///   Ensure that it is really local object.
+/// \returns Proxy pointer.
+inline const ProxyLocal* local2proxy (Object::_ptr_type obj) NIRVANA_NOEXCEPT
+{
+	return static_cast <const ProxyLocal*> (static_cast <Internal::Bridge <Object>*> (&obj));
+}
 
 }
 }

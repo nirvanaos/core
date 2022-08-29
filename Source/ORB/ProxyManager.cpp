@@ -141,34 +141,24 @@ ProxyManager::ProxyManager (const Bridge <IOReference>::EPV& epv_ior,
 	String_in primary_iid, const OperationsDII& object_ops, void* object_impl) :
 	Bridge <IOReference> (epv_ior),
 	Bridge <Object> (epv_obj),
-	Bridge <AbstractBase> (epv_ab)
+	Bridge <AbstractBase> (epv_ab),
+	object_ops_ (object_ops),
+	object_impl_ (object_impl)
 {
 	ProxyFactory::_ref_type proxy_factory = Nirvana::Core::Binder::bind_interface <ProxyFactory> (primary_iid);
 
 	const InterfaceMetadata* metadata = proxy_factory->metadata ();
 	check_metadata (metadata, primary_iid);
 
-	size_t itf_cnt = metadata->interfaces.size;
-	interfaces_.allocate (itf_cnt + 1);
-	InterfaceEntry* ie = interfaces_.begin ();
-
-	{ // Interface Object
-		ie->iid = RepIdOf <Object>::id;
-		ie->iid_len = countof (RepIdOf <Object>::id) - 1;
-		ie->proxy = &static_cast <Bridge <Object>&> (*this);
-		ie->operations.p = object_ops;
-		ie->operations.size = size (object_ops);
-		ie->implementation = reinterpret_cast <Interface*> (object_impl);
-		++ie;
-	}
-
 	// Proxy interface version can be different
-	const Char* proxy_primary_iid;
+	const Char* proxy_primary_iid = metadata->interfaces.p [0];
 
-	{ // Fill interface table
+	// Fill interface table
+	size_t itf_cnt = metadata->interfaces.size;
+	interfaces_.allocate (itf_cnt);
+	InterfaceEntry* ie = interfaces_.begin ();
+	{
 		const Char* const* itf = metadata->interfaces.p;
-		proxy_primary_iid = *itf;
-
 		do {
 			const Char* iid = *itf;
 			ie->iid = iid;
@@ -190,8 +180,6 @@ ProxyManager::ProxyManager (const Bridge <IOReference>::EPV& epv_ior,
 		const Char* iid = ie->iid;
 		if (iid == proxy_primary_iid)
 			primary = ie;
-		else if (iid == RepIdOf <Object>::id)
-			object_itf_idx_ = (UShort)(ie - interfaces_.begin ());
 		else
 			create_proxy (*ie);
 	} while (interfaces_.end () != ++ie);
@@ -203,7 +191,7 @@ ProxyManager::ProxyManager (const Bridge <IOReference>::EPV& epv_ior,
 	primary_interface_ = primary;
 
 	// Total count of operations
-	size_t op_cnt = 0;
+	size_t op_cnt = size (object_ops_);
 	ie = interfaces_.begin ();
 	do {
 		op_cnt += ie->operations.size;
@@ -212,9 +200,22 @@ ProxyManager::ProxyManager (const Bridge <IOReference>::EPV& epv_ior,
 	// Fill operation table
 	operations_.allocate (op_cnt);
 	OperationEntry* op = operations_.begin ();
+
+	// Object operations
+	IOReference::OperationIndex idx (0, 0);
+	for (const Operation* p = object_ops_, *e = end (object_ops_); p != e; ++p) {
+		const Char* name = p->name;
+		op->name = name;
+		op->name_len = strlen (name);
+		op->idx = idx;
+		++idx.operation_idx ();
+		++op;
+	}
+
+	// Interface operations
 	ie = interfaces_.begin ();
 	do {
-		IOReference::OperationIndex idx ((UShort)(ie - interfaces_.begin ()), 0);
+		++idx.interface_idx ();
 		for (const Operation* p = ie->operations.p, *end = p + ie->operations.size; p != end; ++p) {
 			const Char* name = p->name;
 			op->name = name;
@@ -247,7 +248,7 @@ void ProxyManager::create_proxy (ProxyFactory::_ptr_type pf, const InterfaceMeta
 		ie.proxy = &ie.implementation;
 	else {
 		Interface* deleter;
-		Interface* proxy = pf->create_proxy (ior (), (UShort)(&ie - interfaces_.begin ()), deleter);
+		Interface* proxy = pf->create_proxy (ior (), (UShort)(&ie - interfaces_.begin () + 1), deleter);
 		if (!proxy || !deleter)
 			throw MARSHAL ();
 		ie.deleter = DynamicServant::_check (deleter);
@@ -301,31 +302,39 @@ IOReference::OperationIndex ProxyManager::find_operation (const IDL::String& nam
 
 void ProxyManager::serve_object_request (ObjectOp op, Internal::IORequest::_ptr_type rq)
 {
-	switch (op) {
-		case ObjectOp::GET_INTERFACE: {
-			rq->unmarshal_end ();
-			InterfaceDef::_ref_type ref = get_interface ();
-			Type <InterfaceDef>::marshal_out (ref, rq);
-		} break;
+	assert (op < ObjectOp::OBJECT_OP_CNT);
+	RequestProc invoke = object_ops_ [(size_t)op].invoke;
+	if (invoke) {
+		if (!(*invoke) ((Interface*)object_impl_, &rq))
+			throw UNKNOWN ();
+	} else {
+		if (object_ops_)
+			switch (op) {
+				case ObjectOp::GET_INTERFACE: {
+					rq->unmarshal_end ();
+					InterfaceDef::_ref_type ref = get_interface ();
+					Type <InterfaceDef>::marshal_out (ref, rq);
+				} break;
 
-		case ObjectOp::IS_A: {
-			IDL::String type_id;
-			Type <IDL::String>::unmarshal (rq, type_id);
-			rq->unmarshal_end ();
-			Boolean ret = is_a (type_id);
-			Type <Boolean>::marshal_out (ret, rq);
-		} break;
+				case ObjectOp::IS_A: {
+					IDL::String type_id;
+					Type <IDL::String>::unmarshal (rq, type_id);
+					rq->unmarshal_end ();
+					Boolean ret = is_a (type_id);
+					Type <Boolean>::marshal_out (ret, rq);
+				} break;
 
-		case ObjectOp::REPOSITORY_ID: {
-			rq->unmarshal_end ();
-			IDL::String ret = repository_id ();
-			Type <IDL::String>::marshal_out (ret, rq);
-		} break;
+				case ObjectOp::REPOSITORY_ID: {
+					rq->unmarshal_end ();
+					IDL::String ret = repository_id ();
+					Type <IDL::String>::marshal_out (ret, rq);
+				} break;
 
-		default:
-			assert (false);
+				default:
+					assert (false);
+			}
+		rq->success ();
 	}
-	rq->success ();
 }
 
 InterfaceDef::_ref_type ProxyManager::get_interface ()

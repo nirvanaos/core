@@ -53,7 +53,7 @@ void POA_Root::invoke (CORBA::Core::RequestInBase& request) NIRVANA_NOEXCEPT
 	try {
 		ExecDomain& ed = ExecDomain::current ();
 		CoreRef <MemContext> memory (ed.mem_context_ptr ());
-		const CORBA::Core::ProxyLocal* proxy = CORBA::Core::ProxyLocal::get_proxy (get_root ());
+		const CORBA::Core::ProxyLocal* proxy = CORBA::Core::local2proxy (get_root ());
 		POA_Base* adapter = get_implementation (proxy);
 		assert (adapter);
 

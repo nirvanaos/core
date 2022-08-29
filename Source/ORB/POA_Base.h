@@ -215,7 +215,7 @@ public:
 	static bool implicit_activation (POA::_ptr_type poa) NIRVANA_NOEXCEPT
 	{
 		if (poa) {
-			const POA_Base* impl = get_implementation (CORBA::Core::ProxyLocal::get_proxy (poa));
+			const POA_Base* impl = get_implementation (CORBA::Core::local2proxy (poa));
 			if (impl)
 				return impl->implicit_activation ();
 		}

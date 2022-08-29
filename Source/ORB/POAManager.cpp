@@ -33,7 +33,7 @@ namespace Core {
 void POAManager::ServeRequest::run ()
 {
 	try {
-		const CORBA::Core::ProxyLocal* proxy = CORBA::Core::ProxyLocal::get_proxy (adapter->_this ());
+		const CORBA::Core::ProxyLocal* proxy = CORBA::Core::local2proxy (adapter->_this ());
 		SYNC_BEGIN (proxy->sync_context (), nullptr);
 		if (!request->is_cancelled ()) {
 			// Check that adapter is not destroyed.

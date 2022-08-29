@@ -50,7 +50,9 @@ enum class ObjectOp : UShort
 	GET_INTERFACE,
 	IS_A,
 	NON_EXISTENT,
-	REPOSITORY_ID
+	REPOSITORY_ID,
+
+	OBJECT_OP_CNT
 };
 
 /// This array contains metadata of the operations:
@@ -58,7 +60,7 @@ enum class ObjectOp : UShort
 /// - _is_a
 /// - _non_existent
 /// - _repository_id
-typedef Internal::Operation OperationsDII [4];
+typedef Internal::Operation OperationsDII [(size_t)ObjectOp::OBJECT_OP_CNT];
 
 /// \brief Base for all proxies.
 class ProxyManager :
@@ -244,21 +246,19 @@ protected:
 
 	const InterfaceEntry* find_interface (Internal::String_in iid) const;
 
-	UShort object_itf_idx () const
-	{
-		return object_itf_idx_;
-	}
-
 	Internal::IOReference::OperationIndex _make_op_idx (UShort op_idx) const
 	{
-		return Internal::IOReference::OperationIndex (object_itf_idx_, op_idx);
+		return Internal::IOReference::OperationIndex (0, op_idx);
 	}
 
 	static InterfaceDef::_ref_type get_interface ();
 
 	Boolean is_a (const IDL::String& type_id) const
 	{
-		return find_interface (type_id) != nullptr;
+		if (find_interface (type_id) != nullptr)
+			return true;
+		else
+			return Internal::RepId::compatible (Internal::RepIdOf <Object>::id, type_id);
 	}
 
 	IDL::String repository_id () const
@@ -302,11 +302,12 @@ private:
 	}
 
 private:
+	const OperationsDII& object_ops_;
+	void* object_impl_;
 	Nirvana::Core::Array <InterfaceEntry, Nirvana::Core::SharedAllocator> interfaces_;
 	Nirvana::Core::Array <OperationEntry, Nirvana::Core::SharedAllocator> operations_;
 
 	const InterfaceEntry* primary_interface_;
-	UShort object_itf_idx_;
 };
 
 }

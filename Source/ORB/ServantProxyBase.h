@@ -111,7 +111,7 @@ public:
 	/// For some Object operations may return free context.
 	Nirvana::Core::SyncContext& get_sync_context (Internal::IOReference::OperationIndex op)
 	{
-		if (op.interface_idx () == object_itf_idx () && op.operation_idx () != (UShort)ObjectOp::NON_EXISTENT)
+		if (op.interface_idx () == 0 && op.operation_idx () != (UShort)ObjectOp::NON_EXISTENT)
 			return Nirvana::Core::g_core_free_sync_context;
 		return *sync_context_;
 	}
