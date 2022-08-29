@@ -100,14 +100,14 @@ public:
 		throw NO_IMPLEMENT ();
 	}
 
-	ObjectIdList list_initial_services ()
+	static ObjectIdList list_initial_services ()
 	{
-		throw NO_IMPLEMENT ();
+		return Services::list_initial_services ();
 	}
 
 	static Object::_ref_type resolve_initial_references (const ObjectId& identifier)
 	{
-		return Services::bind (identifier.c_str ());
+		return Services::bind (identifier);
 	}
 
 	static TypeCode::_ref_type create_struct_tc (const RepositoryId& id,

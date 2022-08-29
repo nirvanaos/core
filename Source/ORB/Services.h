@@ -56,9 +56,18 @@ public:
 	/// 
 	/// \param id Service identifier.
 	/// \returns Service object reference.
-	static Object::_ref_type bind (const Char* id)
+	static Object::_ref_type bind (const IDL::String& id)
 	{
-		return bind (find_service (id));
+		return bind (find_service (id.c_str ()));
+	}
+
+	static ORB::ObjectIdList list_initial_services ()
+	{
+		ORB::ObjectIdList list;
+		list.reserve (SERVICE_COUNT);
+		for (const Factory* f = factories_; f != std::end (factories_); ++f)
+			list.emplace_back (f->id);
+		return list;
 	}
 
 	Services () :
