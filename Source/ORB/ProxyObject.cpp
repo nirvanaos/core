@@ -118,7 +118,7 @@ void ProxyObject::add_ref_1 ()
 	}
 }
 
-ProxyObject::RefCnt::IntegralType ProxyObject::_remove_ref_proxy () NIRVANA_NOEXCEPT
+void ProxyObject::_remove_ref () NIRVANA_NOEXCEPT
 {
 	ProxyObject::RefCnt::IntegralType cnt = Base::_remove_ref_proxy ();
 	if (1 == cnt && implicit_POA_) {
@@ -132,7 +132,6 @@ ProxyObject::RefCnt::IntegralType ProxyObject::_remove_ref_proxy () NIRVANA_NOEX
 				local2proxy (implicit_POA_)->sync_context ());
 		}
 	}
-	return cnt;
 }
 
 // Called from Deactivator in the POA synchronization context.

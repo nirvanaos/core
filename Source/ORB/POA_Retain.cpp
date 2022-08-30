@@ -58,7 +58,7 @@ void POA_Retain::serve (CORBA::Core::RequestInBase& request) const
 	auto it = active_object_map_.find (request.object_key ().object_id);
 	if (it == active_object_map_.end ())
 		throw OBJECT_NOT_EXIST (MAKE_OMG_MINOR (1));
-	Nirvana::Core::CoreRef <CORBA::Core::ServantProxyBase> proxy = CORBA::Core::object2proxy (it->second);
+	Nirvana::Core::CoreRef <CORBA::Core::ProxyObject> proxy = CORBA::Core::object2proxy (it->second);
 	ExecDomain::current ().leave_sync_domain ();
 	request.serve_request (*proxy);
 }

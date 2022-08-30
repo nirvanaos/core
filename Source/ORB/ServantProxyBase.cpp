@@ -23,7 +23,8 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "ServantProxyBase.inl"
+#include "ServantProxyBase.h"
+#include "RequestLocal.h"
 
 using namespace Nirvana::Core;
 
@@ -60,6 +61,26 @@ void ServantProxyBase::add_ref_1 ()
 	interface_duplicate (&servant_);
 }
 
+void ServantProxyBase::_add_ref ()
+{
+	RefCnt::IntegralType cnt = ref_cnt_proxy_.increment_seq ();
+	if (1 == cnt) {
+		try {
+			SYNC_BEGIN (*sync_context_, nullptr);
+			add_ref_1 ();
+			SYNC_END ();
+		} catch (...) {
+			ref_cnt_proxy_.decrement ();
+			throw;
+		}
+	}
+}
+
+void ServantProxyBase::_remove_ref () NIRVANA_NOEXCEPT
+{
+	_remove_ref_proxy ();
+}
+
 ServantProxyBase::RefCnt::IntegralType ServantProxyBase::_remove_ref_proxy () NIRVANA_NOEXCEPT
 {
 	RefCnt::IntegralType cnt = ref_cnt_proxy_.decrement_seq ();
@@ -72,6 +93,28 @@ ServantProxyBase::RefCnt::IntegralType ServantProxyBase::_remove_ref_proxy () NI
 	}
 		
 	return cnt;
+}
+
+IORequest::_ref_type ServantProxyBase::create_request (OperationIndex op, UShort flags)
+{
+	if (is_object_op (op))
+		return ProxyManager::create_request (op, flags);
+
+	UShort response_flags = flags & 3;
+	if (response_flags == 2)
+		throw INV_FLAG ();
+
+	MemContext* memory = nullptr;
+	SyncDomain* sd = sync_context_->sync_domain ();
+	if (sd)
+		memory = &sd->mem_context ();
+
+	if (flags & REQUEST_ASYNC)
+		return make_pseudo <RequestLocalImpl <RequestLocalAsync> > (std::ref (*this), op,
+			memory, response_flags);
+	else
+		return make_pseudo <RequestLocalImpl <RequestLocal> > (std::ref (*this), op,
+			memory, response_flags);
 }
 
 CoreRef <MemContext> ServantProxyBase::push_GC_mem_context (ExecDomain& ed,

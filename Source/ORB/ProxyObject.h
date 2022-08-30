@@ -103,7 +103,8 @@ private:
 	};
 
 	virtual void add_ref_1 () override;
-	virtual RefCnt::IntegralType _remove_ref_proxy () NIRVANA_NOEXCEPT override;
+	virtual void _remove_ref () NIRVANA_NOEXCEPT override;
+	template <class> friend class Nirvana::Core::CoreRef;
 
 	void implicit_deactivate ();
 

@@ -64,9 +64,51 @@ public:
 		return Internal::I_ptr <I> (&static_cast <I&> (static_cast <Internal::Bridge <I>&> (*this)));
 	}
 
-	virtual void _remove_ref () NIRVANA_NOEXCEPT
+	static void __add_ref (Internal::Bridge <I>* obj, Internal::Interface* env)
 	{
-		if (0 == ServantProxyBase::ref_cnt_servant_.decrement ()) {
+		try {
+			T::_implementation (obj).add_ref_servant ();
+		} catch (Exception& e) {
+			set_exception (env, e);
+		} catch (...) {
+			set_unknown_exception (env);
+		}
+	}
+
+	static void __remove_ref (Internal::Bridge <I>* obj, Internal::Interface* env)
+	{
+		try {
+			T::_implementation (obj).remove_ref_servant ();
+		} catch (Exception& e) {
+			set_exception (env, e);
+		} catch (...) {
+			set_unknown_exception (env);
+		}
+	}
+
+	static ULong __refcount_value (Internal::Bridge <I>* obj, Internal::Interface* env)
+	{
+		try {
+			return T::_implementation (obj).refcount_servant ();
+		} catch (Exception& e) {
+			set_exception (env, e);
+		} catch (...) {
+			set_unknown_exception (env);
+		}
+		return 0;
+	}
+
+	static void __delete_object (Internal::Bridge <I>* obj, Internal::Interface* env)
+	{}
+
+	void add_ref_servant () NIRVANA_NOEXCEPT
+	{
+		ref_cnt_servant_.increment ();
+	}
+
+	void remove_ref_servant () NIRVANA_NOEXCEPT
+	{
+		if (0 == ref_cnt_servant_.decrement ()) {
 			assert (&Nirvana::Core::SyncContext::current () == &ServantProxyBase::sync_context ());
 			try {
 				Proxy::servant ()->_delete_object ();
@@ -76,11 +118,20 @@ public:
 		}
 	}
 
+	ULong refcount_servant () NIRVANA_NOEXCEPT
+	{
+		Nirvana::Core::RefCounter::IntegralType ucnt = ref_cnt_servant_;
+		return ucnt > std::numeric_limits <ULong>::max () ? std::numeric_limits <ULong>::max () : (ULong)ucnt;
+	}
+
 protected:
 	template <class S>
 	CoreImpl (S servant) :
 		Proxy (servant)
 	{}
+
+private:
+	Nirvana::Core::RefCounter ref_cnt_servant_;
 };
 
 }

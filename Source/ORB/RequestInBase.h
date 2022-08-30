@@ -34,7 +34,7 @@
 namespace CORBA {
 namespace Core {
 
-class ServantProxyBase;
+class ProxyObject;
 
 class NIRVANA_NOVTABLE RequestInBase
 {
@@ -55,7 +55,7 @@ public:
 	/// Serve the request.
 	/// 
 	/// \param proxy The servant proxy.
-	virtual void serve_request (ServantProxyBase& proxy) = 0;
+	virtual void serve_request (ProxyObject& proxy) = 0;
 
 	/// Return exception to caller.
 	/// Operation has move semantics so \p e may be cleared.

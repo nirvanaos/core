@@ -27,7 +27,7 @@
 #include "IncomingRequests.h"
 #include "RequestEncapIn.h"
 #include "IIOP.h"
-#include "ServantProxyBase.h"
+#include "ProxyObject.h"
 
 using namespace Nirvana;
 using namespace Nirvana::Core;
@@ -160,7 +160,7 @@ bool RequestIn::marshal_op ()
 	return (response_flags_ & RESPONSE_DATA) != 0;
 }
 
-void RequestIn::serve_request (ServantProxyBase& proxy)
+void RequestIn::serve_request (ProxyObject& proxy)
 {
 	ExecDomain& ed = ExecDomain::current ();
 	if (response_flags_)

@@ -133,7 +133,7 @@ private:
 	virtual bool marshal_op () override;
 
 	void switch_to_reply (GIOP::ReplyStatusType status = GIOP::ReplyStatusType::NO_EXCEPTION);
-	virtual void serve_request (ServantProxyBase& proxy) override;
+	virtual void serve_request (ProxyObject& proxy) override;
 
 protected:
 	RequestKey key_;

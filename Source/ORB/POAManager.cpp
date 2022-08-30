@@ -24,6 +24,7 @@
 *  popov.nirvana@gmail.com
 */
 #include "POAManager.h"
+#include "RqHelper.h"
 
 using namespace CORBA;
 

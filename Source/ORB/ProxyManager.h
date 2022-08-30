@@ -37,6 +37,9 @@
 #include <CORBA/Proxy/ProxyFactory.h>
 #include <CORBA/Proxy/IOReference.h>
 #include <CORBA/DynamicServant.h>
+#include <CORBA/AbstractBase_s.h>
+#include <CORBA/Object_s.h>
+#include <CORBA/Proxy/IOReference_s.h>
 
 namespace CORBA {
 namespace Core {
@@ -65,11 +68,18 @@ typedef Internal::Operation OperationsDII [(size_t)ObjectOp::OBJECT_OP_CNT];
 /// \brief Base for all proxies.
 class ProxyManager :
 	public Nirvana::Core::SharedObject,
-	public Internal::Bridge <Internal::IOReference>,
-	public Internal::Bridge <Object>,
-	public Internal::Bridge <AbstractBase>
+	public Internal::ServantTraits <ProxyManager>,
+	public Internal::LifeCycleRefCnt <ProxyManager>,
+	public Internal::InterfaceImplBase <ProxyManager, Internal::IOReference>,
+	public Internal::InterfaceImplBase <ProxyManager, Object>,
+	public Internal::InterfaceImplBase <ProxyManager, AbstractBase>
 {
-	DECLARE_CORE_INTERFACE
+protected:
+	virtual void _add_ref () = 0;
+	virtual void _remove_ref () NIRVANA_NOEXCEPT = 0;
+	template <class> friend class Nirvana::Core::CoreRef;
+	friend class Internal::LifeCycleRefCnt <ProxyManager>;
+
 public:
 	// IOReference operations
 
@@ -87,7 +97,7 @@ public:
 		return static_cast <Internal::Bridge <AbstractBase>*> (this);
 	}
 
-	Internal::IORequest::_ref_type create_request (Internal::IOReference::OperationIndex op, UShort flags);
+	virtual Internal::IORequest::_ref_type create_request (Internal::IOReference::OperationIndex op, UShort flags);
 
 	// Get Object proxy
 	Object::_ptr_type get_proxy () NIRVANA_NOEXCEPT
@@ -239,13 +249,10 @@ public:
 	}
 
 protected:
-	ProxyManager (const Internal::Bridge <Internal::IOReference>::EPV& epv_ior,
-		const Internal::Bridge <Object>::EPV& epv_obj, const Internal::Bridge <AbstractBase>::EPV& epv_ab,
-		Internal::String_in primary_iid);
+	ProxyManager (Internal::String_in primary_iid);
+	virtual ~ProxyManager ();
 
-	~ProxyManager ();
-
-	Internal::IOReference::_ptr_type ior ()
+	Internal::IOReference::_ptr_type ior () NIRVANA_NOEXCEPT
 	{
 		return &static_cast <Internal::IOReference&> (static_cast <Internal::Bridge <Internal::IOReference>&> (*this));
 	}
@@ -307,7 +314,7 @@ protected:
 	template <RqProcInternal proc>
 	static bool ObjProcWrapper (Internal::Interface* servant, Internal::Interface* call)
 	{
-		return call_request_proc (proc, reinterpret_cast <ProxyManager*> (servant), call);
+		return call_request_proc (proc, reinterpret_cast <ProxyManager*> ((void*)servant), call);
 	}
 
 private:
@@ -335,10 +342,12 @@ private:
 	}
 
 private:
-	// Input parameter metadata for `is_a` operation.
+	// Input parameter metadata for Object::_is_a () operation.
 	static const Internal::Parameter is_a_param_;
 
+	// Object operations metadata.
 	static const OperationsDII object_ops_;
+	
 	Nirvana::Core::Array <InterfaceEntry, Nirvana::Core::SharedAllocator> interfaces_;
 	Nirvana::Core::Array <OperationEntry, Nirvana::Core::SharedAllocator> operations_;
 

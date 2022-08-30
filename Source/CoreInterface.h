@@ -37,10 +37,24 @@ namespace Core {
 
 template <class> class CoreRef;
 
+#if defined (__GNUG__) || defined (__clang__)
+
+#define DECLARE_CORE_INTERFACE protected:\
+template <class> friend class Nirvana::Core::CoreRef;\
+_Pragma ("GCC diagnostic push")\
+_Pragma ("GCC diagnostic ignored \"-Winconsistent-missing-override\"")\
+virtual void _add_ref () NIRVANA_NOEXCEPT = 0;\
+virtual void _remove_ref () NIRVANA_NOEXCEPT = 0;\
+_Pragma ("GCC diagnostic pop")
+
+#else
+
 #define DECLARE_CORE_INTERFACE protected:\
 template <class> friend class Nirvana::Core::CoreRef;\
 virtual void _add_ref () NIRVANA_NOEXCEPT = 0;\
 virtual void _remove_ref () NIRVANA_NOEXCEPT = 0;
+
+#endif
 
 template <class T> class CoreRef;
 

@@ -32,85 +32,21 @@
 #include "../AtomicCounter.h"
 #include "../ExecDomain.h"
 #include "../Chrono.h"
-#include "RequestLocal.h"
-#include <CORBA/AbstractBase_s.h>
-#include <CORBA/Object_s.h>
-#include <CORBA/Proxy/IOReference_s.h>
+#include "ProxyManager.h"
 #include "offset_ptr.h"
 
 namespace CORBA {
 namespace Core {
 
-class RequestLocal;
-
 /// \brief Base for servant-side proxies.
 class ServantProxyBase :
-	public Internal::ServantTraits <ServantProxyBase>,
-	public Internal::LifeCycleDynamic <ServantProxyBase>,
-	public Internal::Skeleton <ServantProxyBase, Object>,
-	public Internal::Skeleton <ServantProxyBase, Internal::IOReference>,
-	public Internal::Skeleton <ServantProxyBase, AbstractBase>,
 	public ProxyManager
 {
 	class GarbageCollector;
 public:
 	typedef Nirvana::Core::AtomicCounter <true> RefCnt;
 
-	template <class I>
-	static Bridge <I>* _duplicate (Bridge <I>* itf)
-	{
-		if (itf)
-			_implementation (itf)._add_ref_proxy ();
-		return itf;
-	}
-
-	template <class I>
-	static void _release (Bridge <I>* itf)
-	{
-		if (itf)
-			_implementation (itf)._remove_ref_proxy ();
-	}
-
-	void _add_ref_proxy ()
-	{
-		RefCnt::IntegralType cnt = ref_cnt_proxy_.increment_seq ();
-		if (1 == cnt) {
-			try {
-				SYNC_BEGIN (*sync_context_, nullptr);
-				add_ref_1 ();
-				SYNC_END ();
-			} catch (...) {
-				ref_cnt_proxy_.decrement ();
-				throw;
-			}
-		}
-	}
-
-	virtual RefCnt::IntegralType _remove_ref_proxy () NIRVANA_NOEXCEPT;
-
-	Internal::IORequest::_ref_type create_request (OperationIndex op, UShort flags)
-	{
-		if (is_object_op (op))
-			return ProxyManager::create_request (op, flags);
-
-		UShort response_flags = flags & 3;
-		if (response_flags == 2)
-			throw INV_FLAG ();
-		if (flags & REQUEST_ASYNC)
-			return make_pseudo <RequestLocalImpl <RequestLocalAsync> > (std::ref (*this), op,
-				mem_context (), response_flags);
-		else
-			return make_pseudo <RequestLocalImpl <RequestLocal> > (std::ref (*this), op,
-				mem_context (), response_flags);
-	}
-
-	Nirvana::Core::MemContext* mem_context () const NIRVANA_NOEXCEPT
-	{
-		Nirvana::Core::SyncDomain* sd = sync_context_->sync_domain ();
-		if (sd)
-			return &sd->mem_context ();
-		return nullptr;
-	}
+	virtual Internal::IORequest::_ref_type create_request (OperationIndex op, UShort flags) override;
 
 	/// Returns synchronization context for the target object.
 	Nirvana::Core::SyncContext& sync_context () const NIRVANA_NOEXCEPT
@@ -128,29 +64,10 @@ public:
 		return *sync_context_;
 	}
 
-	virtual void _add_ref () NIRVANA_NOEXCEPT override
-	{
-		ref_cnt_servant_.increment ();
-	}
-
-	ULong _refcount_value () const NIRVANA_NOEXCEPT
-	{
-		Nirvana::Core::RefCounter::IntegralType ucnt = ref_cnt_servant_;
-		return ucnt > std::numeric_limits <ULong>::max () ? std::numeric_limits <ULong>::max () : (ULong)ucnt;
-	}
-
-	void _delete_object ()
-	{
-		Nirvana::throw_NO_IMPLEMENT ();
-	}
-
 protected:
 	template <class I>
 	ServantProxyBase (Internal::I_ptr <I> servant) :
-		ProxyManager (Internal::Skeleton <ServantProxyBase, Internal::IOReference>::epv_,
-			Internal::Skeleton <ServantProxyBase, Object>::epv_,
-			Internal::Skeleton <ServantProxyBase, AbstractBase>::epv_,
-			primary_interface_id (servant)),
+		ProxyManager (primary_interface_id (servant)),
 		ref_cnt_proxy_ (0),
 		sync_context_ (&Nirvana::Core::SyncContext::current ())
 	{
@@ -173,6 +90,11 @@ protected:
 	}
 
 	virtual void add_ref_1 ();
+	virtual void _add_ref () override;
+	virtual void _remove_ref () NIRVANA_NOEXCEPT override;
+	template <class> friend class Nirvana::Core::CoreRef;
+
+	RefCnt::IntegralType _remove_ref_proxy () NIRVANA_NOEXCEPT;
 
 	template <class GC, class Arg>
 	void run_garbage_collector (Arg arg, Nirvana::Core::SyncContext& sync_context) const NIRVANA_NOEXCEPT
@@ -225,9 +147,6 @@ private:
 
 	Nirvana::Core::CoreRef <Nirvana::Core::MemContext> push_GC_mem_context (
 		Nirvana::Core::ExecDomain& ed, Nirvana::Core::SyncContext& sc) const;
-
-protected:
-	Nirvana::Core::RefCounter ref_cnt_servant_;
 
 private:
 	Internal::Interface::_ptr_type servant_;
