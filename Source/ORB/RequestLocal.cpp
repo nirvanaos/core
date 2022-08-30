@@ -24,6 +24,7 @@
 *  popov.nirvana@gmail.com
 */
 #include "RequestLocal.h"
+#include "../Chrono.h"
 
 using namespace Nirvana;
 using namespace Nirvana::Core;
@@ -59,7 +60,7 @@ MemContext& RequestLocal::source_memory ()
 		default:
 			if (!callee_memory_) {
 				ExecDomain& ed = ExecDomain::current ();
-				if (&ed.sync_context () == &proxy_->sync_context ())
+				if (&ed.sync_context () == &proxy_->get_sync_context (op_idx_))
 					callee_memory_ = ed.mem_context_ptr ();
 				if (!callee_memory_)
 					throw MARSHAL ();

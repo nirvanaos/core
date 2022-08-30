@@ -28,7 +28,7 @@
 #define NIRVANA_ORB_CORE_PROXYLOCAL_H_
 #pragma once
 
-#include "ServantProxyBase.inl"
+#include "ServantProxyBase.h"
 
 namespace CORBA {
 namespace Core {
@@ -53,14 +53,11 @@ public:
 
 protected:
 	ProxyLocal (LocalObject::_ptr_type servant) :
-		ServantProxyBase (servant, object_ops_, this)
+		ServantProxyBase (servant)
 	{}
 
 private:
-	static void non_existent_request (ProxyLocal* servant, Internal::IORequest::_ptr_type call);
-
-private:
-	static const OperationsDII object_ops_;
+	virtual Boolean non_existent () override;
 };
 
 /// Get proxy for local object.

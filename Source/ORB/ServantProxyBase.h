@@ -32,7 +32,7 @@
 #include "../AtomicCounter.h"
 #include "../ExecDomain.h"
 #include "../Chrono.h"
-#include "ProxyManager.h"
+#include "RequestLocal.h"
 #include <CORBA/AbstractBase_s.h>
 #include <CORBA/Object_s.h>
 #include <CORBA/Proxy/IOReference_s.h>
@@ -88,10 +88,21 @@ public:
 
 	virtual RefCnt::IntegralType _remove_ref_proxy () NIRVANA_NOEXCEPT;
 
-	inline
-	Internal::IORequest::_ref_type create_request (OperationIndex op, UShort flags);
+	Internal::IORequest::_ref_type create_request (OperationIndex op, UShort flags)
+	{
+		if (is_object_op (op))
+			return ProxyManager::create_request (op, flags);
 
-	void invoke (OperationIndex op, Internal::IORequest::_ptr_type rq) NIRVANA_NOEXCEPT;
+		UShort response_flags = flags & 3;
+		if (response_flags == 2)
+			throw INV_FLAG ();
+		if (flags & REQUEST_ASYNC)
+			return make_pseudo <RequestLocalImpl <RequestLocalAsync> > (std::ref (*this), op,
+				mem_context (), response_flags);
+		else
+			return make_pseudo <RequestLocalImpl <RequestLocal> > (std::ref (*this), op,
+				mem_context (), response_flags);
+	}
 
 	Nirvana::Core::MemContext* mem_context () const NIRVANA_NOEXCEPT
 	{
@@ -109,19 +120,18 @@ public:
 
 	/// Returns synchronization context for the specific operation.
 	/// For some Object operations may return free context.
-	Nirvana::Core::SyncContext& get_sync_context (Internal::IOReference::OperationIndex op)
+	virtual Nirvana::Core::SyncContext& get_sync_context (Internal::IOReference::OperationIndex op)
+		const NIRVANA_NOEXCEPT override
 	{
 		if (op.interface_idx () == 0 && op.operation_idx () != (UShort)ObjectOp::NON_EXISTENT)
-			return Nirvana::Core::g_core_free_sync_context;
+			return ProxyManager::get_sync_context (op);
 		return *sync_context_;
 	}
 
-	void _add_ref () NIRVANA_NOEXCEPT
+	virtual void _add_ref () NIRVANA_NOEXCEPT override
 	{
 		ref_cnt_servant_.increment ();
 	}
-
-	virtual void _remove_ref () NIRVANA_NOEXCEPT = 0;
 
 	ULong _refcount_value () const NIRVANA_NOEXCEPT
 	{
@@ -136,13 +146,11 @@ public:
 
 protected:
 	template <class I>
-	ServantProxyBase (Internal::I_ptr <I> servant,
-		const OperationsDII& object_ops, void* object_impl) :
+	ServantProxyBase (Internal::I_ptr <I> servant) :
 		ProxyManager (Internal::Skeleton <ServantProxyBase, Internal::IOReference>::epv_,
 			Internal::Skeleton <ServantProxyBase, Object>::epv_,
 			Internal::Skeleton <ServantProxyBase, AbstractBase>::epv_,
-			primary_interface_id (servant),
-			object_ops, object_impl),
+			primary_interface_id (servant)),
 		ref_cnt_proxy_ (0),
 		sync_context_ (&Nirvana::Core::SyncContext::current ())
 	{
@@ -203,16 +211,6 @@ protected:
 				// TODO: Log error.
 			}
 		}
-	}
-
-	typedef void (*RqProcInternal) (void* servant, Internal::IORequest::_ptr_type call);
-
-	static bool call_request_proc (RqProcInternal proc, void* servant, Interface* call);
-
-	template <class Impl, void (*proc) (Impl*, Internal::IORequest::_ptr_type)>
-	static bool ObjProcWrapper (Internal::Interface* servant, Internal::Interface* call)
-	{
-		return call_request_proc ((RqProcInternal)proc, servant, call);
 	}
 
 private:

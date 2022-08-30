@@ -33,18 +33,10 @@ using namespace Internal;
 
 namespace Core {
 
-void ProxyLocal::non_existent_request (ProxyLocal* servant, IORequest::_ptr_type _rq)
+Boolean ProxyLocal::non_existent ()
 {
-	Boolean _ret = servant->servant ()->_non_existent ();
-	Type <Boolean>::marshal_out (_ret, _rq);
+	return servant ()->_non_existent ();
 }
-
-const OperationsDII ProxyLocal::object_ops_ = {
-	{ op_get_interface_, {0, 0}, {0, 0}, Type <InterfaceDef>::type_code, nullptr },
-	{ op_is_a_, {&is_a_param_, 1}, {0, 0}, Type <Boolean>::type_code, nullptr },
-	{ op_non_existent_, {0, 0}, {0, 0}, Type <Boolean>::type_code, ObjProcWrapper <ProxyLocal, non_existent_request> },
-	{ op_repository_id_, {0, 0}, {0, 0}, Type <String>::type_code, nullptr }
-};
 
 }
 }

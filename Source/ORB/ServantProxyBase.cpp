@@ -90,55 +90,5 @@ CoreRef <MemContext> ServantProxyBase::push_GC_mem_context (ExecDomain& ed,
 	return mc;
 }
 
-void ServantProxyBase::invoke (OperationIndex op, Internal::IORequest::_ptr_type rq) NIRVANA_NOEXCEPT
-{
-	try {
-		try {
-			size_t itf_idx = op.interface_idx ();
-			size_t op_idx = op.operation_idx ();
-			if (0 == itf_idx) { // Object operation
-				serve_object_request ((ObjectOp)op_idx, rq);
-			} else {
-				--itf_idx;
-				assert (itf_idx < interfaces ().size ());
-				const InterfaceEntry& ie = interfaces () [itf_idx];
-				assert (op_idx < ie.operations.size);
-				RequestProc invoke = ie.operations.p [op_idx].invoke;
-				if (!(*invoke) (&ie.implementation, &rq))
-					throw UNKNOWN ();
-			}
-		} catch (Exception& e) {
-			Any any;
-			any <<= std::move (e);
-			rq->set_exception (any);
-		}
-	} catch (...) {
-		Any any;
-		try {
-			any <<= UNKNOWN ();
-			rq->set_exception (any);
-		} catch (...) {
-		}
-	}
-}
-
-bool ServantProxyBase::call_request_proc (RqProcInternal proc, void* servant, Interface* call)
-{
-	IORequest::_ptr_type rq = IORequest::_nil ();
-	try {
-		rq = IORequest::_check (call);
-		proc (servant, rq);
-		rq->success ();
-	} catch (Exception& e) {
-		if (!rq)
-			return false;
-
-		Any any;
-		any <<= std::move (e);
-		rq->set_exception (any);
-	}
-	return true;
-}
-
 }
 }

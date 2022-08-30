@@ -69,7 +69,10 @@ class ProxyManager :
 	public Internal::Bridge <Object>,
 	public Internal::Bridge <AbstractBase>
 {
+	DECLARE_CORE_INTERFACE
 public:
+	// IOReference operations
+
 	Internal::Bridge <Object>* get_object (Internal::String_in iid)
 	{
 		if (Internal::RepId::check (Internal::RepIdOf <Object>::id, iid) != Internal::RepId::COMPATIBLE)
@@ -84,6 +87,9 @@ public:
 		return static_cast <Internal::Bridge <AbstractBase>*> (this);
 	}
 
+	Internal::IORequest::_ref_type create_request (Internal::IOReference::OperationIndex op, UShort flags);
+
+	// Get Object proxy
 	Object::_ptr_type get_proxy () NIRVANA_NOEXCEPT
 	{
 		return &static_cast <Object&> (static_cast <Internal::Bridge <Object>&> (*this));
@@ -103,6 +109,14 @@ public:
 		}
 	}
 
+	/// Returns synchronization context for the specific operation.
+	virtual Nirvana::Core::SyncContext& get_sync_context (Internal::IOReference::OperationIndex op)
+		const NIRVANA_NOEXCEPT
+	{
+		assert (op.interface_idx () == 0 && op.operation_idx () != (UShort)ObjectOp::NON_EXISTENT);
+		return Nirvana::Core::g_core_free_sync_context;
+	}
+
 	// Object operations
 
 	static InterfaceDef::_ref_type _get_interface ()
@@ -111,7 +125,7 @@ public:
 		return get_interface ();
 		SYNC_END ();
 	}
-	
+
 	Boolean _is_a (const IDL::String& type_id) const
 	{
 		IDL::String tmp (type_id);
@@ -210,10 +224,24 @@ public:
 
 	Internal::IOReference::OperationIndex find_operation (const IDL::String& name) const;
 
+	void invoke (Internal::IOReference::OperationIndex op, Internal::IORequest::_ptr_type rq) NIRVANA_NOEXCEPT;
+
+	const Internal::Operation& operation_metadata (Internal::IOReference::OperationIndex op) NIRVANA_NOEXCEPT
+	{
+		assert (op.interface_idx () <= interfaces_.size ());
+		if (op.interface_idx () == 0) {
+			assert (op.operation_idx () < std::size (object_ops_));
+			return object_ops_ [op.operation_idx ()];
+		} else {
+			const InterfaceEntry& itf = interfaces_ [op.interface_idx () - 1];
+			return itf.operations.p [op.operation_idx ()];
+		}
+	}
+
 protected:
 	ProxyManager (const Internal::Bridge <Internal::IOReference>::EPV& epv_ior,
 		const Internal::Bridge <Object>::EPV& epv_obj, const Internal::Bridge <AbstractBase>::EPV& epv_ab,
-		Internal::String_in primary_iid, const OperationsDII& object_ops, void* object_impl);
+		Internal::String_in primary_iid);
 
 	~ProxyManager ();
 
@@ -251,31 +279,36 @@ protected:
 		return Internal::IOReference::OperationIndex (0, op_idx);
 	}
 
-	static InterfaceDef::_ref_type get_interface ();
-
-	Boolean is_a (const IDL::String& type_id) const
+	static bool is_object_op (Internal::IOReference::OperationIndex op) NIRVANA_NOEXCEPT
 	{
-		if (find_interface (type_id) != nullptr)
-			return true;
-		else
-			return Internal::RepId::compatible (Internal::RepIdOf <Object>::id, type_id);
+		return op.interface_idx () == 0 && op.operation_idx () != (UShort)ObjectOp::NON_EXISTENT;
 	}
+
+	static InterfaceDef::_ref_type get_interface ();
+	static void rq_get_interface (ProxyManager* servant, CORBA::Internal::IORequest::_ptr_type _rq);
+
+	Boolean is_a (const IDL::String& type_id) const;
+	static void rq_is_a (ProxyManager* servant, CORBA::Internal::IORequest::_ptr_type _rq);
+
+	virtual Boolean non_existent () = 0;
+	static void rq_non_existent (ProxyManager* servant, CORBA::Internal::IORequest::_ptr_type _rq);
 
 	IDL::String repository_id () const
 	{
 		return IDL::String (primary_interface_->iid, primary_interface_->iid_len);
 	}
 
-	void serve_object_request (ObjectOp op, Internal::IORequest::_ptr_type rq);
+	static void rq_repository_id (ProxyManager* servant, CORBA::Internal::IORequest::_ptr_type _rq);
 
-	// Input parameter metadata for `is_a` operation.
-	static const Internal::Parameter is_a_param_;
+	typedef void (*RqProcInternal) (ProxyManager* servant, Internal::IORequest::_ptr_type call);
 
-	// Implicit operation names
-	static const Char op_get_interface_ [];
-	static const Char op_is_a_ [];
-	static const Char op_non_existent_ [];
-	static const Char op_repository_id_ [];
+	static bool call_request_proc (RqProcInternal proc, ProxyManager* servant, Interface* call);
+
+	template <RqProcInternal proc>
+	static bool ObjProcWrapper (Internal::Interface* servant, Internal::Interface* call)
+	{
+		return call_request_proc (proc, reinterpret_cast <ProxyManager*> (servant), call);
+	}
 
 private:
 	struct IEPred;
@@ -302,8 +335,10 @@ private:
 	}
 
 private:
-	const OperationsDII& object_ops_;
-	void* object_impl_;
+	// Input parameter metadata for `is_a` operation.
+	static const Internal::Parameter is_a_param_;
+
+	static const OperationsDII object_ops_;
 	Nirvana::Core::Array <InterfaceEntry, Nirvana::Core::SharedAllocator> interfaces_;
 	Nirvana::Core::Array <OperationEntry, Nirvana::Core::SharedAllocator> operations_;
 

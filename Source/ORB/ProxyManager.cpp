@@ -25,13 +25,14 @@
 */
 #include "ProxyManager.h"
 #include "../Binder.h"
+#include "RequestLocal.h"
 #include <algorithm>
 
 using namespace Nirvana;
-using namespace CORBA::Internal;
 using namespace std;
 
 namespace CORBA {
+using namespace Internal;
 namespace Core {
 
 struct ProxyManager::IEPred
@@ -83,14 +84,6 @@ bool ProxyManager::OEPred::compare (const Char* lhs, size_t lhs_len, const Char*
 	return lexicographical_compare (lhs, lhs + lhs_len, rhs, rhs + rhs_len, less_no_case);
 }
 
-const Parameter ProxyManager::is_a_param_ = { "logical_type_id", Type <String>::type_code };
-
-// Implicit operation names
-const Char ProxyManager::op_get_interface_ [] = "_get_interface";
-const Char ProxyManager::op_is_a_ []= "_is_a";
-const Char ProxyManager::op_non_existent_ [] = "_non_existent";
-const Char ProxyManager::op_repository_id_ [] = "_repository_id";
-
 void ProxyManager::check_metadata (const InterfaceMetadata* metadata, String_in primary)
 {
 	if (!metadata)
@@ -138,12 +131,10 @@ void ProxyManager::check_type_code (TypeCode::_ptr_type tc)
 
 ProxyManager::ProxyManager (const Bridge <IOReference>::EPV& epv_ior,
 	const Bridge <Object>::EPV& epv_obj, const Bridge <AbstractBase>::EPV& epv_ab,
-	String_in primary_iid, const OperationsDII& object_ops, void* object_impl) :
+	String_in primary_iid) :
 	Bridge <IOReference> (epv_ior),
 	Bridge <Object> (epv_obj),
-	Bridge <AbstractBase> (epv_ab),
-	object_ops_ (object_ops),
-	object_impl_ (object_impl)
+	Bridge <AbstractBase> (epv_ab)
 {
 	ProxyFactory::_ref_type proxy_factory = Nirvana::Core::Binder::bind_interface <ProxyFactory> (primary_iid);
 
@@ -300,40 +291,57 @@ IOReference::OperationIndex ProxyManager::find_operation (const IDL::String& nam
 	throw BAD_OPERATION (MAKE_OMG_MINOR (2));
 }
 
-void ProxyManager::serve_object_request (ObjectOp op, Internal::IORequest::_ptr_type rq)
+IORequest::_ref_type ProxyManager::create_request (IOReference::OperationIndex op, UShort flags)
 {
-	assert (op < ObjectOp::OBJECT_OP_CNT);
-	RequestProc invoke = object_ops_ [(size_t)op].invoke;
-	if (invoke) {
-		if (!(*invoke) ((Interface*)object_impl_, &rq))
-			throw UNKNOWN ();
-	} else {
-		if (object_ops_)
-			switch (op) {
-				case ObjectOp::GET_INTERFACE: {
-					rq->unmarshal_end ();
-					InterfaceDef::_ref_type ref = get_interface ();
-					Type <InterfaceDef>::marshal_out (ref, rq);
-				} break;
+	assert (is_object_op (op));
+	UShort response_flags = flags & 3;
+	if (response_flags == 2)
+		throw INV_FLAG ();
+	if (flags & IOReference::REQUEST_ASYNC)
+		return make_pseudo <RequestLocalImpl <RequestLocalAsync> > (std::ref (*this), op,
+			nullptr, response_flags);
+	else
+		return make_pseudo <RequestLocalImpl <RequestLocal> > (std::ref (*this), op,
+			nullptr, response_flags);
+}
 
-				case ObjectOp::IS_A: {
-					IDL::String type_id;
-					Type <IDL::String>::unmarshal (rq, type_id);
-					rq->unmarshal_end ();
-					Boolean ret = is_a (type_id);
-					Type <Boolean>::marshal_out (ret, rq);
-				} break;
-
-				case ObjectOp::REPOSITORY_ID: {
-					rq->unmarshal_end ();
-					IDL::String ret = repository_id ();
-					Type <IDL::String>::marshal_out (ret, rq);
-				} break;
-
-				default:
-					assert (false);
+void ProxyManager::invoke (IOReference::OperationIndex op, IORequest::_ptr_type rq) NIRVANA_NOEXCEPT
+{
+	try {
+		try {
+			size_t itf_idx = op.interface_idx ();
+			size_t op_idx = op.operation_idx ();
+			Interface* implementation;
+			const Operation* op_metadata;
+			if (0 == itf_idx) { // Object operation
+				assert (op_idx < std::size (object_ops_));
+				implementation = reinterpret_cast <Interface*> (this);
+				op_metadata = object_ops_ + op_idx;
+			} else {
+				--itf_idx;
+				const InterfaceEntry& ie = interfaces () [itf_idx];
+				implementation = &ie.implementation;
+				if (!implementation)
+					throw NO_IMPLEMENT ();
+				assert (op_idx < ie.operations.size);
+				op_metadata = ie.operations.p + op_idx;
 			}
-		rq->success ();
+
+			if (!(*(op_metadata->invoke)) (implementation, &rq))
+				throw UNKNOWN ();
+
+		} catch (Exception& e) {
+			Any any;
+			any <<= std::move (e);
+			rq->set_exception (any);
+		}
+	} catch (...) {
+		Any any;
+		try {
+			any <<= UNKNOWN ();
+			rq->set_exception (any);
+		} catch (...) {
+		}
 	}
 }
 
@@ -341,6 +349,71 @@ InterfaceDef::_ref_type ProxyManager::get_interface ()
 {
 	return InterfaceDef::_nil (); // TODO: Implement.
 }
+
+void ProxyManager::rq_get_interface (ProxyManager* servant, CORBA::Internal::IORequest::_ptr_type _rq)
+{
+	_rq->unmarshal_end ();
+	InterfaceDef::_ref_type ret = servant->get_interface ();
+	Type <InterfaceDef>::marshal_out (ret, _rq);
+}
+
+Boolean ProxyManager::is_a (const IDL::String& type_id) const
+{
+	if (find_interface (type_id) != nullptr)
+		return true;
+	else
+		return Internal::RepId::compatible (Internal::RepIdOf <Object>::id, type_id);
+}
+
+void ProxyManager::rq_is_a (ProxyManager* servant, IORequest::_ptr_type _rq)
+{
+	IDL::String iid;
+	Type <IDL::String>::unmarshal (_rq, iid);
+	_rq->unmarshal_end ();
+	Boolean ret = servant->is_a (iid);
+	Type <Boolean>::marshal_out (ret, _rq);
+}
+
+void ProxyManager::rq_non_existent (ProxyManager* servant, CORBA::Internal::IORequest::_ptr_type _rq)
+{
+	_rq->unmarshal_end ();
+	Boolean ret = servant->non_existent ();
+	Type <Boolean>::marshal_out (ret, _rq);
+}
+
+void ProxyManager::rq_repository_id (ProxyManager* servant, CORBA::Internal::IORequest::_ptr_type _rq)
+{
+	_rq->unmarshal_end ();
+	IDL::String ret = servant->repository_id ();
+	Type <IDL::String>::marshal_out (ret, _rq);
+}
+
+bool ProxyManager::call_request_proc (RqProcInternal proc, ProxyManager* servant, Interface* call)
+{
+	IORequest::_ptr_type rq = IORequest::_nil ();
+	try {
+		rq = IORequest::_check (call);
+		proc (servant, rq);
+		rq->success ();
+	} catch (Exception& e) {
+		if (!rq)
+			return false;
+
+		Any any;
+		any <<= std::move (e);
+		rq->set_exception (any);
+	}
+	return true;
+}
+
+const Parameter ProxyManager::is_a_param_ = { "logical_type_id", Type <String>::type_code };
+
+const OperationsDII ProxyManager::object_ops_ = {
+	{ "_get_interface", {0, 0}, {0, 0}, Type <InterfaceDef>::type_code, ObjProcWrapper <rq_get_interface> },
+	{ "_is_a", {&is_a_param_, 1}, {0, 0}, Type <Boolean>::type_code, ObjProcWrapper <rq_is_a> },
+	{ "_non_existent", {0, 0}, {0, 0}, Type <Boolean>::type_code, ObjProcWrapper <rq_non_existent> },
+	{ "_repository_id", {0, 0}, {0, 0}, Type <String>::type_code, ObjProcWrapper <rq_repository_id> }
+};
 
 }
 }

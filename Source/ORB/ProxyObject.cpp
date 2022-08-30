@@ -156,18 +156,10 @@ void ProxyObject::implicit_deactivate ()
 	}
 }
 
-void ProxyObject::non_existent_request (ProxyObject* servant, IORequest::_ptr_type _rq)
+Boolean ProxyObject::non_existent ()
 {
-	Boolean _ret = servant->servant ()->_non_existent ();
-	Type <Boolean>::marshal_out (_ret, _rq);
+	return servant ()->_non_existent ();
 }
-
-const OperationsDII ProxyObject::object_ops_ = {
-	{ op_get_interface_, {0, 0}, {0, 0}, Type <InterfaceDef>::type_code, nullptr },
-	{ op_is_a_, {&is_a_param_, 1}, {0, 0}, Type <Boolean>::type_code, nullptr },
-	{ op_non_existent_, {0, 0}, {0, 0}, Type <Boolean>::type_code, ObjProcWrapper <ProxyObject, non_existent_request> },
-	{ op_repository_id_, {0, 0}, {0, 0}, Type <String>::type_code, nullptr }
-};
 
 }
 }

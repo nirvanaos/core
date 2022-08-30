@@ -28,7 +28,7 @@
 #define NIRVANA_ORB_CORE_PROXYOBJECT_H_
 #pragma once
 
-#include "ServantProxyBase.inl"
+#include "ServantProxyBase.h"
 #include "ObjectKey.h"
 #include "../LockableRef.h"
 #include <atomic>
@@ -83,7 +83,7 @@ public:
 
 protected:
 	ProxyObject (PortableServer::Servant servant) :
-		ServantProxyBase (servant, object_ops_, this),
+		ServantProxyBase (servant),
 		activation_state_ (ActivationState::INACTIVE)
 	{}
 
@@ -102,8 +102,8 @@ private:
 		DEACTIVATION_CANCELLED
 	};
 
-	virtual void add_ref_1 ();
-	virtual RefCnt::IntegralType _remove_ref_proxy () NIRVANA_NOEXCEPT;
+	virtual void add_ref_1 () override;
+	virtual RefCnt::IntegralType _remove_ref_proxy () NIRVANA_NOEXCEPT override;
 
 	void implicit_deactivate ();
 
@@ -128,7 +128,7 @@ private:
 		return activation_state_.compare_exchange_strong (from, to);
 	}
 
-	static void non_existent_request (ProxyObject* servant, Internal::IORequest::_ptr_type call);
+	virtual Boolean non_existent () override;
 
 protected:
 	int timestamp_;
@@ -138,8 +138,6 @@ private:
 	PortableServer::POA::_ref_type implicit_POA_;
 	Nirvana::Core::LockableRef <ActivationKeyImpl> activation_key_;
 	Nirvana::Core::CoreRef <Nirvana::Core::MemContext> activation_key_memory_;
-
-	static const OperationsDII object_ops_;
 };
 
 CORBA::Object::_ptr_type servant2object (PortableServer::Servant servant) NIRVANA_NOEXCEPT;
