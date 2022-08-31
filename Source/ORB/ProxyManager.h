@@ -248,24 +248,22 @@ public:
 		}
 	}
 
-	void set_repository_id (Internal::String_in primary_iid);
-
 	static bool is_object_op (Internal::IOReference::OperationIndex op) NIRVANA_NOEXCEPT
 	{
 		return op.interface_idx () == 0 && op.operation_idx () != (UShort)ObjectOp::NON_EXISTENT;
 	}
 
 protected:
-	ProxyManager (Internal::String_in primary_iid) :
-		primary_interface_ (nullptr)
+	ProxyManager (Internal::String_in primary_iid);
+	
+	ProxyManager (const ProxyManager& src)
 	{
-		initialize (primary_iid);
+		copy (src);
 	}
 
-	ProxyManager (const ProxyManager&);
 	virtual ~ProxyManager ();
 
-	ProxyManager& operator = (const ProxyManager&) = delete;
+	ProxyManager& operator = (const ProxyManager& src);
 
 	Internal::IOReference::_ptr_type ior () NIRVANA_NOEXCEPT
 	{
@@ -278,11 +276,28 @@ protected:
 	{
 		const Char* iid;
 		size_t iid_len;
+		Internal::Interface::_ptr_type implementation;
+		Internal::CountedArray <Internal::Operation> operations;
 		Internal::ProxyFactory::_ref_type proxy_factory;
 		Internal::Interface* proxy;
 		Internal::DynamicServant::_ptr_type deleter;
-		Internal::Interface::_ptr_type implementation;
-		Internal::CountedArray <Internal::Operation> operations;
+
+		InterfaceEntry (const InterfaceEntry& src) :
+			iid (src.iid),
+			iid_len (src.iid_len),
+			implementation (src.implementation),
+			operations (src.operations),
+			proxy_factory (src.proxy_factory),
+			// proxy and deleter are not copied
+			proxy (nullptr),
+			deleter (nullptr)
+		{}
+
+		~InterfaceEntry ()
+		{
+			if (deleter)
+				deleter->delete_object ();
+		}
 	};
 
 	Nirvana::Core::Array <InterfaceEntry, Nirvana::Core::SharedAllocator>& interfaces ()
@@ -294,7 +309,7 @@ protected:
 	const InterfaceEntry* find_interface (Internal::String_in iid) const NIRVANA_NOEXCEPT;
 
 private:
-	void initialize (Internal::String_in primary_iid);
+	void copy (const ProxyManager& src);
 
 	struct OperationEntry
 	{

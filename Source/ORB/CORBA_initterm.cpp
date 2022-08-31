@@ -24,7 +24,7 @@
 *  popov.nirvana@gmail.com
 */
 #include "CORBA_initterm.h"
-#include "ServantBase.h"
+#include "ProxyObject.h"
 #include "IncomingRequests.h"
 #include "OutgoingRequests.h"
 #include "OtherDomains.h"
@@ -37,7 +37,7 @@ namespace Core {
 void initialize ()
 {
 	Services::initialize ();
-	PortableServer::Core::ServantBase::initialize ();
+	ProxyObject::initialize ();
 	OutgoingRequests::initialize ();
 	IncomingRequests::initialize ();
 	Nirvana::ESIOP::OtherDomains::initialize ();

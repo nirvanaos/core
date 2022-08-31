@@ -36,6 +36,8 @@ using namespace Internal;
 
 namespace Core {
 
+std::atomic <int> ProxyObject::next_timestamp_;
+
 Object::_ptr_type servant2object (PortableServer::Servant servant) NIRVANA_NOEXCEPT
 {
 	if (servant) {

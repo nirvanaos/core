@@ -48,7 +48,6 @@ public:
 	ServantBase (Servant servant) :
 		Base (servant)
 	{
-		timestamp_ = next_timestamp_++;
 	}
 
 	// ServantBase default implementation
@@ -69,14 +68,8 @@ public:
 		return false;
 	}
 
-	static void initialize () NIRVANA_NOEXCEPT
-	{
-		next_timestamp_ = (int)(Nirvana::Core::Chrono::UTC ().time () / TimeBase::SECOND);
-	}
-
 private:
 	static POA* default_POA_;
-	static std::atomic <int> next_timestamp_;
 };
 
 }

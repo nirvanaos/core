@@ -44,7 +44,7 @@ struct ActivationKey :
 typedef Nirvana::Core::ImplDynamic <ActivationKey> ActivationKeyImpl;
 typedef Nirvana::Core::CoreRef <ActivationKeyImpl> ActivationKeyRef;
 
-/// Object operations servant-side proxy.
+/// Server-side object reference.
 class ProxyObject :
 	public ServantProxyBase
 {
@@ -75,15 +75,23 @@ public:
 		return static_cast <PortableServer::ServantBase*> (&Base::servant ());
 	}
 
-	/// The unique stamp is assigned when ServantBase is created.
+	/// The unique stamp is assigned when object reference is created.
+	/// The timestamp together with the ProxyObject pointer let to create
+	/// the unique system id for the reference.
 	int timestamp () const NIRVANA_NOEXCEPT
 	{
 		return timestamp_;
 	}
 
+	static void initialize () NIRVANA_NOEXCEPT
+	{
+		next_timestamp_ = (int)(Nirvana::Core::Chrono::UTC ().time () / TimeBase::SECOND);
+	}
+
 protected:
 	ProxyObject (PortableServer::Servant servant) :
 		ServantProxyBase (servant),
+		timestamp_ (next_timestamp_++),
 		activation_state_ (ActivationState::INACTIVE)
 	{}
 
@@ -131,14 +139,14 @@ private:
 
 	virtual Boolean non_existent () override;
 
-protected:
-	int timestamp_;
-
 private:
+	int timestamp_;
 	std::atomic <ActivationState> activation_state_;
 	PortableServer::POA::_ref_type implicit_POA_;
 	Nirvana::Core::LockableRef <ActivationKeyImpl> activation_key_;
 	Nirvana::Core::CoreRef <Nirvana::Core::MemContext> activation_key_memory_;
+
+	static std::atomic <int> next_timestamp_;
 };
 
 CORBA::Object::_ptr_type servant2object (PortableServer::Servant servant) NIRVANA_NOEXCEPT;

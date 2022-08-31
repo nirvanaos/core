@@ -34,8 +34,6 @@ using namespace Nirvana;
 namespace PortableServer {
 namespace Core {
 
-std::atomic <int> ServantBase::next_timestamp_;
-
 typedef TypeCodeNative <PortableServer::ServantBase> TC_Servant;
 
 }

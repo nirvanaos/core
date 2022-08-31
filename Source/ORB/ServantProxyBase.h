@@ -38,14 +38,12 @@
 namespace CORBA {
 namespace Core {
 
-/// \brief Base for servant-side proxies.
+/// \brief Base for server-side proxies.
 class ServantProxyBase :
 	public ProxyManager
 {
 	class GarbageCollector;
 public:
-	typedef Nirvana::Core::AtomicCounter <true> RefCnt;
-
 	virtual Internal::IORequest::_ref_type create_request (OperationIndex op, UShort flags) override;
 
 	/// Returns synchronization context for the target object.
@@ -65,10 +63,22 @@ public:
 	}
 
 protected:
+	class RefCnt : public Nirvana::Core::AtomicCounter <true>
+	{
+		typedef Nirvana::Core::AtomicCounter <true> Base;
+	public:
+		RefCnt () :
+			Base (0)
+		{}
+
+		RefCnt (const RefCnt&) :
+			Base (0)
+		{}
+	};
+
 	template <class I>
 	ServantProxyBase (Internal::I_ptr <I> servant) :
 		ProxyManager (primary_interface_id (servant)),
-		ref_cnt_proxy_ (0),
 		sync_context_ (&Nirvana::Core::SyncContext::current ())
 	{
 		size_t offset = offset_ptr ();
@@ -83,6 +93,13 @@ protected:
 			}
 		}
 	}
+
+	ServantProxyBase (Internal::String_in primary_iid) :
+		ProxyManager (primary_iid),
+		servant_ (nullptr)
+	{}
+
+	ServantProxyBase (const ServantProxyBase&) = default;
 
 	Internal::Interface::_ptr_type servant () const NIRVANA_NOEXCEPT
 	{

@@ -52,6 +52,12 @@ public:
 		begin_ (nullptr),
 		end_ (nullptr)
 	{
+		copy (src);
+	}
+
+	void copy (const Array& src)
+	{
+		assert (!begin_ && !end_);
 		size_t size = src.size ();
 		if (size) {
 			begin_ = Al <T>::allocate (size);

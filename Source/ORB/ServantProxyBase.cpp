@@ -63,17 +63,20 @@ void ServantProxyBase::add_ref_1 ()
 
 void ServantProxyBase::_add_ref ()
 {
-	RefCnt::IntegralType cnt = ref_cnt_proxy_.increment_seq ();
-	if (1 == cnt) {
-		try {
-			SYNC_BEGIN (*sync_context_, nullptr);
-			add_ref_1 ();
-			SYNC_END ();
-		} catch (...) {
-			ref_cnt_proxy_.decrement ();
-			throw;
+	if (servant_) {
+		RefCnt::IntegralType cnt = ref_cnt_proxy_.increment_seq ();
+		if (1 == cnt) {
+			try {
+				SYNC_BEGIN (*sync_context_, nullptr);
+				add_ref_1 ();
+				SYNC_END ();
+			} catch (...) {
+				ref_cnt_proxy_.decrement ();
+				throw;
+			}
 		}
-	}
+	} else
+		ref_cnt_proxy_.increment ();
 }
 
 void ServantProxyBase::_remove_ref () NIRVANA_NOEXCEPT
@@ -84,14 +87,14 @@ void ServantProxyBase::_remove_ref () NIRVANA_NOEXCEPT
 ServantProxyBase::RefCnt::IntegralType ServantProxyBase::_remove_ref_proxy () NIRVANA_NOEXCEPT
 {
 	RefCnt::IntegralType cnt = ref_cnt_proxy_.decrement_seq ();
-	if (!cnt) {
+	if (0 == cnt && servant_) {
 		run_garbage_collector <GarbageCollector> (servant_, *sync_context_);
 	} else if (cnt < 0) {
 		// TODO: Log error
 		ref_cnt_proxy_.increment ();
 		cnt = 0;
 	}
-		
+
 	return cnt;
 }
 
@@ -99,6 +102,9 @@ IORequest::_ref_type ServantProxyBase::create_request (OperationIndex op, UShort
 {
 	if (is_object_op (op))
 		return ProxyManager::create_request (op, flags);
+
+	if (!servant_)
+		throw NO_IMPLEMENT ();
 
 	UShort response_flags = flags & 3;
 	if (response_flags == 2)

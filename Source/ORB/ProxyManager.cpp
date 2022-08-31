@@ -130,29 +130,8 @@ void ProxyManager::check_type_code (TypeCode::_ptr_type tc)
 		throw OBJ_ADAPTER (); // TODO: Log
 }
 
-ProxyManager::ProxyManager (const ProxyManager& src) :
-	primary_interface_ (src.primary_interface_),
-	interfaces_ (src.interfaces_),
-	operations_ (src.operations_)
-{
-	for (InterfaceEntry* ie = interfaces_.begin (); ie != interfaces_.end (); ++ie) {
-		ie->proxy = nullptr;
-		ie->deleter = nullptr;
-	}
-	for (InterfaceEntry* ie = interfaces_.begin (); ie != interfaces_.end (); ++ie) {
-		create_proxy (*ie);
-	}
-}
-
-ProxyManager::~ProxyManager ()
-{
-	for (InterfaceEntry* ie = interfaces_.begin (); ie != interfaces_.end (); ++ie) {
-		if (ie->deleter)
-			ie->deleter->delete_object ();
-	}
-}
-
-void ProxyManager::initialize (String_in primary_iid)
+ProxyManager::ProxyManager (Internal::String_in primary_iid) :
+	primary_interface_ (nullptr)
 {
 	if (!primary_iid.empty ()) {
 		ProxyFactory::_ref_type proxy_factory = Nirvana::Core::Binder::bind_interface <ProxyFactory> (primary_iid);
@@ -243,25 +222,54 @@ void ProxyManager::initialize (String_in primary_iid)
 		throw OBJ_ADAPTER (); // TODO: Log
 }
 
-void ProxyManager::set_repository_id (String_in primary_iid)
+ProxyManager::~ProxyManager ()
+{}
+
+void ProxyManager::copy (const ProxyManager& src)
 {
-	if (primary_interface_) {
-		const IDL::String& iid = static_cast <const IDL::String&> (primary_iid);
-		if (iid != primary_interface_->iid)
-			throw BAD_PARAM ();
-	} else if (!primary_iid.empty ()) {
-		Array <OperationEntry, SharedAllocator> ops;
-		Array <InterfaceEntry, SharedAllocator> itfs;
-		operations_.swap (ops);
+	interfaces_.copy (src.interfaces_);
+	operations_.copy (src.operations_);
+	primary_interface_ = src.primary_interface_;
+
+	for (InterfaceEntry* ie = interfaces_.begin (); ie != interfaces_.end (); ++ie) {
+		create_proxy (*ie);
+	}
+}
+
+ProxyManager& ProxyManager::operator = (const ProxyManager& src)
+{
+	if (!src.primary_interface_)
+		throw BAD_PARAM ();
+
+	if (!primary_interface_) {
+		Array <InterfaceEntry, SharedAllocator> tmpi;
+		Array <OperationEntry, SharedAllocator> tmpo;
+		operations_.swap (tmpo);
 		try {
-			initialize (primary_iid);
+			copy (src);
 		} catch (...) {
-			operations_.swap (ops);
-			interfaces_.swap (itfs);
 			primary_interface_ = nullptr;
+			operations_.swap (tmpo);
+			interfaces_.swap (tmpi);
 			throw;
 		}
+	} else {
+		if (
+			primary_interface_->iid_len != src.primary_interface_->iid_len
+			|| (primary_interface_->iid != src.primary_interface_->iid
+				&& !equal (primary_interface_->iid, primary_interface_->iid + primary_interface_->iid_len,
+					src.primary_interface_->iid)))
+			throw BAD_PARAM ();
+
+		assert (interfaces_.size () == src.interfaces_.size ());
+		assert (operations_.size () == src.operations_.size ());
+		const InterfaceEntry* si = src.interfaces_.begin ();
+		for (InterfaceEntry* di = interfaces_.begin (); di != interfaces_.end (); ++si, ++di) {
+			di->implementation = si->implementation;
+		}
 	}
+
+	return *this;
 }
 
 void ProxyManager::create_proxy (ProxyFactory::_ptr_type pf, const InterfaceMetadata* metadata, InterfaceEntry& ie)
