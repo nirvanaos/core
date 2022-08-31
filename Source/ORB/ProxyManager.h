@@ -248,24 +248,53 @@ public:
 		}
 	}
 
+	void set_repository_id (Internal::String_in primary_iid);
+
+	static bool is_object_op (Internal::IOReference::OperationIndex op) NIRVANA_NOEXCEPT
+	{
+		return op.interface_idx () == 0 && op.operation_idx () != (UShort)ObjectOp::NON_EXISTENT;
+	}
+
 protected:
-	ProxyManager (Internal::String_in primary_iid);
+	ProxyManager (Internal::String_in primary_iid) :
+		primary_interface_ (nullptr)
+	{
+		initialize (primary_iid);
+	}
+
+	ProxyManager (const ProxyManager&);
 	virtual ~ProxyManager ();
+
+	ProxyManager& operator = (const ProxyManager&) = delete;
 
 	Internal::IOReference::_ptr_type ior () NIRVANA_NOEXCEPT
 	{
 		return &static_cast <Internal::IOReference&> (static_cast <Internal::Bridge <Internal::IOReference>&> (*this));
 	}
 
+	virtual Boolean non_existent () = 0;
+
 	struct InterfaceEntry
 	{
 		const Char* iid;
 		size_t iid_len;
+		Internal::ProxyFactory::_ref_type proxy_factory;
 		Internal::Interface* proxy;
 		Internal::DynamicServant::_ptr_type deleter;
 		Internal::Interface::_ptr_type implementation;
 		Internal::CountedArray <Internal::Operation> operations;
 	};
+
+	Nirvana::Core::Array <InterfaceEntry, Nirvana::Core::SharedAllocator>& interfaces ()
+		NIRVANA_NOEXCEPT
+	{
+		return interfaces_;
+	}
+
+	const InterfaceEntry* find_interface (Internal::String_in iid) const NIRVANA_NOEXCEPT;
+
+private:
+	void initialize (Internal::String_in primary_iid);
 
 	struct OperationEntry
 	{
@@ -274,21 +303,9 @@ protected:
 		Internal::IOReference::OperationIndex idx;
 	};
 
-	Nirvana::Core::Array <InterfaceEntry, Nirvana::Core::SharedAllocator>& interfaces ()
-	{
-		return interfaces_;
-	}
-
-	const InterfaceEntry* find_interface (Internal::String_in iid) const;
-
 	Internal::IOReference::OperationIndex _make_op_idx (UShort op_idx) const
 	{
 		return Internal::IOReference::OperationIndex (0, op_idx);
-	}
-
-	static bool is_object_op (Internal::IOReference::OperationIndex op) NIRVANA_NOEXCEPT
-	{
-		return op.interface_idx () == 0 && op.operation_idx () != (UShort)ObjectOp::NON_EXISTENT;
 	}
 
 	static InterfaceDef::_ref_type get_interface ();
@@ -297,7 +314,6 @@ protected:
 	Boolean is_a (const IDL::String& type_id) const;
 	static void rq_is_a (ProxyManager* servant, CORBA::Internal::IORequest::_ptr_type _rq);
 
-	virtual Boolean non_existent () = 0;
 	static void rq_non_existent (ProxyManager* servant, CORBA::Internal::IORequest::_ptr_type _rq);
 
 	IDL::String repository_id () const
@@ -317,7 +333,6 @@ protected:
 		return call_request_proc (proc, reinterpret_cast <ProxyManager*> ((void*)servant), call);
 	}
 
-private:
 	struct IEPred;
 	struct OEPred;
 
@@ -347,11 +362,11 @@ private:
 
 	// Object operations metadata.
 	static const OperationsDII object_ops_;
-	
-	Nirvana::Core::Array <InterfaceEntry, Nirvana::Core::SharedAllocator> interfaces_;
-	Nirvana::Core::Array <OperationEntry, Nirvana::Core::SharedAllocator> operations_;
 
 	const InterfaceEntry* primary_interface_;
+
+	Nirvana::Core::Array <InterfaceEntry, Nirvana::Core::SharedAllocator> interfaces_;
+	Nirvana::Core::Array <OperationEntry, Nirvana::Core::SharedAllocator> operations_;
 };
 
 }

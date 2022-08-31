@@ -36,16 +36,39 @@ template <class T, template <class> class Al>
 class Array
 {
 public:
-	Array () :
+	Array () NIRVANA_NOEXCEPT :
 		begin_ (nullptr),
 		end_ (nullptr)
 	{}
 
-	Array (Array&& src) :
+	Array (Array&& src) NIRVANA_NOEXCEPT :
 		begin_ (src.begin_),
 		end_ (src.end_)
 	{
 		src.begin_ = src.end_ = nullptr;
+	}
+
+	Array (const Array& src) :
+		begin_ (nullptr),
+		end_ (nullptr)
+	{
+		size_t size = src.size ();
+		if (size) {
+			begin_ = Al <T>::allocate (size);
+			end_ = begin_ + size;
+			T* pd = begin_;
+			const T* ps = src.begin_;
+			try {
+				do {
+					new (pd) T (*(ps++));
+				} while (end_ != ++pd);
+			} catch (...) {
+				while (pd > begin_) {
+					(--pd)->~T ();
+				}
+				throw;
+			}
+		}
 	}
 
 	/// \brief Allocate memory and initialize it with zeroes.
@@ -126,6 +149,16 @@ public:
 	{
 		assert (i < (size_t)(end_ - begin_));
 		return begin_ [i];
+	}
+
+	void swap (Array& rhs) NIRVANA_NOEXCEPT
+	{
+		T* tmp = rhs.begin_;
+		rhs.begin_ = begin_;
+		begin_ = tmp;
+		tmp = rhs.end_;
+		rhs.end_ = end_;
+		end_ = tmp;
 	}
 
 private:

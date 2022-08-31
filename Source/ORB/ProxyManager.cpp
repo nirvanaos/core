@@ -29,6 +29,7 @@
 #include <algorithm>
 
 using namespace Nirvana;
+using namespace Nirvana::Core;
 using namespace std;
 
 namespace CORBA {
@@ -129,59 +130,82 @@ void ProxyManager::check_type_code (TypeCode::_ptr_type tc)
 		throw OBJ_ADAPTER (); // TODO: Log
 }
 
-ProxyManager::ProxyManager (String_in primary_iid)
+ProxyManager::ProxyManager (const ProxyManager& src) :
+	primary_interface_ (src.primary_interface_),
+	interfaces_ (src.interfaces_),
+	operations_ (src.operations_)
 {
-	ProxyFactory::_ref_type proxy_factory = Nirvana::Core::Binder::bind_interface <ProxyFactory> (primary_iid);
-
-	const InterfaceMetadata* metadata = proxy_factory->metadata ();
-	check_metadata (metadata, primary_iid);
-
-	// Proxy interface version can be different
-	const Char* proxy_primary_iid = metadata->interfaces.p [0];
-
-	// Fill interface table
-	size_t itf_cnt = metadata->interfaces.size;
-	interfaces_.allocate (itf_cnt);
-	InterfaceEntry* ie = interfaces_.begin ();
-	{
-		const Char* const* itf = metadata->interfaces.p;
-		do {
-			const Char* iid = *itf;
-			ie->iid = iid;
-			ie->iid_len = strlen (iid);
-			++itf;
-		} while (interfaces_.end () != ++ie);
+	for (InterfaceEntry* ie = interfaces_.begin (); ie != interfaces_.end (); ++ie) {
+		ie->proxy = nullptr;
+		ie->deleter = nullptr;
 	}
+	for (InterfaceEntry* ie = interfaces_.begin (); ie != interfaces_.end (); ++ie) {
+		create_proxy (*ie);
+	}
+}
 
-	sort (interfaces_.begin (), interfaces_.end (), IEPred ());
+ProxyManager::~ProxyManager ()
+{
+	for (InterfaceEntry* ie = interfaces_.begin (); ie != interfaces_.end (); ++ie) {
+		if (ie->deleter)
+			ie->deleter->delete_object ();
+	}
+}
 
-	// Check that all interfaces are unique
-	if (!is_unique (interfaces_.begin (), interfaces_.end (), IEPred ()))
-		throw OBJ_ADAPTER (); // TODO: Log
+void ProxyManager::initialize (String_in primary_iid)
+{
+	if (!primary_iid.empty ()) {
+		ProxyFactory::_ref_type proxy_factory = Nirvana::Core::Binder::bind_interface <ProxyFactory> (primary_iid);
 
-	// Create base proxies
-	ie = interfaces_.begin ();
-	InterfaceEntry* primary = nullptr;
-	do {
-		const Char* iid = ie->iid;
-		if (iid == proxy_primary_iid)
-			primary = ie;
-		else
-			create_proxy (*ie);
-	} while (interfaces_.end () != ++ie);
+		const InterfaceMetadata* metadata = proxy_factory->metadata ();
+		check_metadata (metadata, primary_iid);
 
-	// Create primary proxy
-	assert (primary);
-	create_proxy (proxy_factory, metadata, *primary);
-	primary->operations = metadata->operations;
-	primary_interface_ = primary;
+		// Proxy interface version can be different
+		const Char* proxy_primary_iid = metadata->interfaces.p [0];
+
+		// Fill interface table
+		size_t itf_cnt = metadata->interfaces.size;
+		interfaces_.allocate (itf_cnt);
+		InterfaceEntry* ie = interfaces_.begin ();
+		{
+			const Char* const* itf = metadata->interfaces.p;
+			do {
+				const Char* iid = *itf;
+				ie->iid = iid;
+				ie->iid_len = strlen (iid);
+				++itf;
+			} while (interfaces_.end () != ++ie);
+		}
+
+		sort (interfaces_.begin (), interfaces_.end (), IEPred ());
+
+		// Check that all interfaces are unique
+		if (!is_unique (interfaces_.begin (), interfaces_.end (), IEPred ()))
+			throw OBJ_ADAPTER (); // TODO: Log
+
+		// Create base proxies
+		InterfaceEntry* primary = nullptr;
+		ie = interfaces_.begin ();
+		do {
+			const Char* iid = ie->iid;
+			if (iid == proxy_primary_iid)
+				primary = ie;
+			else
+				create_proxy (*ie);
+		} while (interfaces_.end () != ++ie);
+
+		// Create primary proxy
+		assert (primary);
+		create_proxy (proxy_factory, metadata, *primary);
+		primary->operations = metadata->operations;
+		primary_interface_ = primary;
+	}
 
 	// Total count of operations
 	size_t op_cnt = size (object_ops_);
-	ie = interfaces_.begin ();
-	do {
+	for (const InterfaceEntry* ie = interfaces_.begin (); ie != interfaces_.end (); ++ie) {
 		op_cnt += ie->operations.size;
-	} while (interfaces_.end () != ++ie);
+	}
 
 	// Fill operation table
 	operations_.allocate (op_cnt);
@@ -199,8 +223,7 @@ ProxyManager::ProxyManager (String_in primary_iid)
 	}
 
 	// Interface operations
-	ie = interfaces_.begin ();
-	do {
+	for (const InterfaceEntry* ie = interfaces_.begin (); ie != interfaces_.end (); ++ie) {
 		++idx.interface_idx ();
 		for (const Operation* p = ie->operations.p, *end = p + ie->operations.size; p != end; ++p) {
 			const Char* name = p->name;
@@ -210,21 +233,34 @@ ProxyManager::ProxyManager (String_in primary_iid)
 			++idx.operation_idx ();
 			++op;
 		}
-	} while (interfaces_.end () != ++ie);
+	}
 
 	sort (operations_.begin (), operations_.end (), OEPred ());
-	
+
 	// Check name uniqueness
 
 	if (!is_unique (operations_.begin (), operations_.end (), OEPred ()))
 		throw OBJ_ADAPTER (); // TODO: Log
 }
 
-ProxyManager::~ProxyManager ()
+void ProxyManager::set_repository_id (String_in primary_iid)
 {
-	for (InterfaceEntry* ie = interfaces_.begin (); ie != interfaces_.end (); ++ie) {
-		if (ie->deleter)
-			ie->deleter->delete_object ();
+	if (primary_interface_) {
+		const IDL::String& iid = static_cast <const IDL::String&> (primary_iid);
+		if (iid != primary_interface_->iid)
+			throw BAD_PARAM ();
+	} else if (!primary_iid.empty ()) {
+		Array <OperationEntry, SharedAllocator> ops;
+		Array <InterfaceEntry, SharedAllocator> itfs;
+		operations_.swap (ops);
+		try {
+			initialize (primary_iid);
+		} catch (...) {
+			operations_.swap (ops);
+			interfaces_.swap (itfs);
+			primary_interface_ = nullptr;
+			throw;
+		}
 	}
 }
 
@@ -250,10 +286,14 @@ void ProxyManager::create_proxy (ProxyFactory::_ptr_type pf, const InterfaceMeta
 void ProxyManager::create_proxy (InterfaceEntry& ie)
 {
 	if (!ie.proxy) {
-		StringBase <Char> iid (ie.iid);
-		ProxyFactory::_ref_type pf = Nirvana::Core::Binder::bind_interface <ProxyFactory> (iid);
-		const InterfaceMetadata* metadata = pf->metadata ();
-		check_metadata (metadata, iid);
+		const InterfaceMetadata* metadata;
+		if (!ie.proxy_factory) {
+			StringBase <Char> iid (ie.iid);
+			ie.proxy_factory = Nirvana::Core::Binder::bind_interface <ProxyFactory> (iid);
+			metadata = ie.proxy_factory->metadata ();
+			check_metadata (metadata, iid);
+		} else
+			metadata = ie.proxy_factory->metadata ();
 		const Char* const* base = metadata->interfaces.p;
 		const Char* const* base_end = base + metadata->interfaces.size;
 		ie.iid = *base; // Base proxy may have greater minor number.
@@ -264,12 +304,13 @@ void ProxyManager::create_proxy (InterfaceEntry& ie)
 				throw OBJ_ADAPTER (); // Base is not listed in the primary interface base list. TODO: Log
 			create_proxy (*base_ie);
 		}
-		create_proxy (pf, metadata, ie);
 		ie.operations = metadata->operations;
+		create_proxy (ie.proxy_factory, metadata, ie);
 	}
 }
 
 const ProxyManager::InterfaceEntry* ProxyManager::find_interface (String_in iid) const
+	NIRVANA_NOEXCEPT
 {
 	const String& siid = static_cast <const String&> (iid);
 	const InterfaceEntry* pf = lower_bound (interfaces_.begin (), interfaces_.end (), siid, IEPred ());
