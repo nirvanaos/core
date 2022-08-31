@@ -452,7 +452,7 @@ bool ProxyManager::call_request_proc (RqProcInternal proc, ProxyManager* servant
 
 const Parameter ProxyManager::is_a_param_ = { "logical_type_id", Type <String>::type_code };
 
-const OperationsDII ProxyManager::object_ops_ = {
+const Operation ProxyManager::object_ops_ [(size_t)ObjectOp::OBJECT_OP_CNT] = {
 	{ "_get_interface", {0, 0}, {0, 0}, Type <InterfaceDef>::type_code, ObjProcWrapper <rq_get_interface> },
 	{ "_is_a", {&is_a_param_, 1}, {0, 0}, Type <Boolean>::type_code, ObjProcWrapper <rq_is_a> },
 	{ "_non_existent", {0, 0}, {0, 0}, Type <Boolean>::type_code, ObjProcWrapper <rq_non_existent> },

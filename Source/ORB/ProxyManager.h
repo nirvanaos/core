@@ -44,27 +44,6 @@
 namespace CORBA {
 namespace Core {
 
-/// The implicit object reference operations _non_existent, _is_a, _repository_id and _get_interface
-/// may be invoked using DII. No other implicit object reference operations may be invoked via DII.
-/// Only _non_existent operation can cause the call to servant.
-/// Object operation indexes.
-enum class ObjectOp : UShort
-{
-	GET_INTERFACE,
-	IS_A,
-	NON_EXISTENT,
-	REPOSITORY_ID,
-
-	OBJECT_OP_CNT
-};
-
-/// This array contains metadata of the operations:
-/// - _get_interface
-/// - _is_a
-/// - _non_existent
-/// - _repository_id
-typedef Internal::Operation OperationsDII [(size_t)ObjectOp::OBJECT_OP_CNT];
-
 /// \brief Base for all proxies.
 class ProxyManager :
 	public Nirvana::Core::SharedObject,
@@ -375,8 +354,26 @@ private:
 	// Input parameter metadata for Object::_is_a () operation.
 	static const Internal::Parameter is_a_param_;
 
-	// Object operations metadata.
-	static const OperationsDII object_ops_;
+	// The implicit object reference operations _non_existent, _is_a, _repository_id and _get_interface
+	// may be invoked using DII. No other implicit object reference operations may be invoked via DII.
+	// Only _non_existent operation can cause the call to servant.
+	// Object operation indexes.
+	enum class ObjectOp : UShort
+	{
+		GET_INTERFACE,
+		IS_A,
+		NON_EXISTENT,
+		REPOSITORY_ID,
+
+		OBJECT_OP_CNT
+	};
+
+	// This array contains metadata of the operations:
+	// - _get_interface
+	// - _is_a
+	// - _non_existent
+	// - _repository_id
+	static const Internal::Operation object_ops_ [(size_t)ObjectOp::OBJECT_OP_CNT];
 
 	const InterfaceEntry* primary_interface_;
 

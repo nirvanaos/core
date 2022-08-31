@@ -25,7 +25,7 @@
 */
 #include "ServantBase.h"
 #include "../Runnable.h"
-#include "POA_Root.h"
+#include "POA_Base.h"
 
 using namespace Nirvana::Core;
 using namespace std;

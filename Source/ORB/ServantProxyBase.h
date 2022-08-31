@@ -57,7 +57,7 @@ public:
 	virtual Nirvana::Core::SyncContext& get_sync_context (Internal::IOReference::OperationIndex op)
 		const NIRVANA_NOEXCEPT override
 	{
-		if (op.interface_idx () == 0 && op.operation_idx () != (UShort)ObjectOp::NON_EXISTENT)
+		if (ProxyManager::is_object_op (op))
 			return ProxyManager::get_sync_context (op);
 		return *sync_context_;
 	}
