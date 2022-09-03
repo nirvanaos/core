@@ -28,20 +28,12 @@
 #define NIRVANA_ORB_CORE_MAPUNORDEREDSTABLE_H_
 #pragma once
 
-// phmap::node_hash_map is declared as with pointer stability,
-// but it seems that not. While we use STL implementation.
-// We need more testing.
-#define MAPUNORDEREDSTABLE_STL
+// phmap::node_hash_map is quick unordered map with pointer stability.
 
-#ifdef MAPUNORDEREDSTABLE_STL
-#include <unordered_map>
-#include <unordered_set>
-#else
 #pragma push_macro ("verify")
 #undef verify
 #include "parallel-hashmap/parallel_hashmap/phmap.h"
 #pragma pop_macro ("verify")
-#endif
 
 namespace Nirvana {
 namespace Core {
@@ -49,24 +41,7 @@ namespace Core {
 /// Unordered map with pointer stability.
 template <class Key, class T, class Hash = std::hash <Key>, class KeyEqual = std::equal_to <Key>,
 	class Allocator = std::allocator <std::pair <const Key, T> > >
-using MapUnorderedStable =
-#ifdef MAPUNORDEREDSTABLE_STL
-	std::unordered_map
-#else
-	phmap::node_hash_map
-#endif
-	<Key, T, Hash, KeyEqual, Allocator>;
-
-/// Unordered set with pointer stability.
-template <class Key, class Hash = std::hash <Key>, class KeyEqual = std::equal_to <Key>,
-	class Allocator = std::allocator <Key> >
-	using SetUnorderedStable =
-#ifdef MAPUNORDEREDSTABLE_STL
-	std::unordered_set
-#else
-	phmap::node_hash_set
-#endif
-	<Key, Hash, KeyEqual, Allocator>;
+using MapUnorderedStable = phmap::node_hash_map <Key, T, Hash, KeyEqual, Allocator>;
 
 }
 }

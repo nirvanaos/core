@@ -279,11 +279,11 @@ protected:
 
 private:
 	// Children map.
-	typedef CORBA::servant_reference <POA_Base> Ref;
+	typedef CORBA::servant_reference <POA_Base> POA_Ref;
 
-	typedef Nirvana::Core::MapUnorderedStable <IDL::String, Ref,
+	typedef Nirvana::Core::MapUnorderedStable <IDL::String, POA_Ref,
 		std::hash <IDL::String>, std::equal_to <IDL::String>,
-		Nirvana::Core::UserAllocator <std::pair <IDL::String, Ref> > > Children;
+		Nirvana::Core::UserAllocator <std::pair <IDL::String, POA_Ref> > > Children;
 
 	POA_Base* parent_;
 	Children::iterator iterator_;

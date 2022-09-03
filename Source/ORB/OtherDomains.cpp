@@ -43,6 +43,7 @@ CoreRef <OtherDomain> OtherDomains::get_sync (ProtDomainId domain_id)
 
 	auto ins = map_.emplace (domain_id, DEADLINE_MAX);
 	if (ins.second) {
+		Map::reference entry = *ins.first;
 		try {
 			OtherDomain* p;
 			SYNC_BEGIN (g_core_free_sync_context, &sync_domain_.mem_context ());
@@ -50,10 +51,10 @@ CoreRef <OtherDomain> OtherDomains::get_sync (ProtDomainId domain_id)
 			SYNC_END ();
 			if (!p)
 				throw OBJECT_NOT_EXIST ();
-			ins.first->second.finish_construction (p);
+			entry.second.finish_construction (p);
 		} catch (...) {
-			ins.first->second.on_exception ();
-			map_.erase (ins.first);
+			entry.second.on_exception ();
+			map_.erase (entry.first);
 			throw;
 		}
 	} else

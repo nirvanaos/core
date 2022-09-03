@@ -353,12 +353,13 @@ CoreRef <Module> Binder::load (string& module_name, bool singleton)
 	Module* mod = nullptr;
 	auto ins = module_map_.emplace (move (module_name), MODULE_LOADING_DEADLINE_MAX);
 	if (ins.second) {
+		ModuleMap::reference entry = *ins.first;
 		try {
 			SYNC_BEGIN (g_core_free_sync_context, &memory ());
 			if (singleton)
-				mod = new Singleton (ins.first->first);
+				mod = new Singleton (entry.first);
 			else
-				mod = new ClassLibrary (ins.first->first);
+				mod = new ClassLibrary (entry.first);
 			SYNC_END ();
 			
 			assert (mod->_refcount_value () == 0);
@@ -389,13 +390,13 @@ CoreRef <Module> Binder::load (string& module_name, bool singleton)
 				throw;
 			}
 		} catch (...) {
-			ins.first->second.on_exception ();
+			entry.second.on_exception ();
 			delete_module (mod);
-			module_map_.erase (ins.first);
+			module_map_.erase (entry.first);
 			throw;
 		}
 
-		ins.first->second.finish_construction (mod);
+		entry.second.finish_construction (mod);
 
 	} else {
 		mod = ins.first->second.get ();
