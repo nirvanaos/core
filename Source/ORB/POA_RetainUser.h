@@ -1,3 +1,4 @@
+/// \file
 /*
 * Nirvana Core.
 *
@@ -23,24 +24,20 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
+#ifndef NIRVANA_ORB_CORE_POA_RETAINUSER_H_
+#define NIRVANA_ORB_CORE_POA_RETAINUSER_H_
+#pragma once
 
-#include "POA_SystemId.h"
-
-using namespace CORBA;
-using namespace Nirvana;
+#include "POA_Retain.h"
 
 namespace PortableServer {
 namespace Core {
 
-ObjectId POA_SystemId::unique_id (CORBA::Core::ProxyObject* proxy)
-{
-	int timestamp = proxy->timestamp ();
-	ObjectId oid;
-	oid.resize (sizeof (proxy) + sizeof (timestamp));
-	real_copy ((const Octet*)&timestamp, (const Octet*)(&timestamp + 1),
-		real_copy ((const Octet*)&proxy, (const Octet*)(&proxy + 1), oid.data ()));
-	return oid;
-}
+using AOM_User = Nirvana::Core::MapUnorderedStable <ObjectId, AOM_Val, std::hash <ObjectId>,
+	std::equal_to <ObjectId>, Nirvana::Core::UserAllocator <std::pair <ObjectId, AOM_Val> > >;
+
 
 }
 }
+
+#endif

@@ -1,3 +1,4 @@
+/// \file
 /*
 * Nirvana Core.
 *
@@ -23,19 +24,18 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_ORB_CORE_POA_SYSTEMID_H_
-#define NIRVANA_ORB_CORE_POA_SYSTEMID_H_
+#ifndef NIRVANA_ORB_CORE_PROXYOBJECTDGC_H_
+#define NIRVANA_ORB_CORE_PROXYOBJECTDGC_H_
 #pragma once
 
-#include "POA_Base.h"
+#include "ProxyObject.h"
 
-namespace PortableServer {
+namespace CORBA {
 namespace Core {
 
-class POA_SystemId
+class ProxyObjectDGC : public ProxyObject
 {
-public:
-	static ObjectId unique_id (CORBA::Core::ProxyObject* proxy);
+
 };
 
 }

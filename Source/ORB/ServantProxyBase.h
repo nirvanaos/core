@@ -67,13 +67,18 @@ protected:
 	{
 		typedef Nirvana::Core::AtomicCounter <true> Base;
 	public:
-		RefCnt () :
+		RefCnt () NIRVANA_NOEXCEPT :
 			Base (0)
 		{}
 
-		RefCnt (const RefCnt&) :
+		RefCnt (const RefCnt&) NIRVANA_NOEXCEPT :
 			Base (0)
 		{}
+
+		RefCnt& operator = (const RefCnt&) NIRVANA_NOEXCEPT
+		{
+			return *this;
+		}
 	};
 
 	template <class I>

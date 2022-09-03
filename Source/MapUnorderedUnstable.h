@@ -41,6 +41,10 @@ template <class Key, class T, class Hash = std::hash <Key>, class KeyEqual = std
 	class Allocator = std::allocator <std::pair <const Key, T> > >
 	using MapUnorderedUnstable = phmap::flat_hash_map <Key, T, Hash, KeyEqual, Allocator>;
 
+template <class Key, class Hash = std::hash <Key>, class KeyEqual = std::equal_to <Key>,
+	class Allocator = std::allocator <Key> >
+	using SetUnorderedUnstable = phmap::flat_hash_set <Key, Hash, KeyEqual, Allocator>;
+
 }
 }
 

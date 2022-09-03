@@ -24,43 +24,20 @@
 *  popov.nirvana@gmail.com
 */
 #include "POA_Retain.h"
-#include "RequestInBase.h"
-
-using namespace CORBA;
-using Nirvana::Core::ExecDomain;
 
 namespace PortableServer {
 namespace Core {
 
-void POA_Retain::destroy (bool etherealize_objects, bool wait_for_completion)
-{
-	Base::destroy (etherealize_objects, wait_for_completion);
-	active_object_map_.clear ();
-}
+using namespace CORBA;
+using namespace CORBA::Core;
 
-void POA_Retain::deactivate_object (const ObjectId& oid)
+POA_Retain::UserServantPtr POA_Retain::get_servant (CORBA::Object::_ptr_type p_servant)
 {
-	if (!active_object_map_.erase (oid))
-		throw ObjectNotActive ();
-}
-
-Object::_ref_type POA_Retain::id_to_reference (const ObjectId& oid)
-{
-	AOM::const_iterator it = active_object_map_.find (oid);
-	if (it != active_object_map_.end ())
-		return it->second;
-
-	throw ObjectNotActive ();
-}
-
-void POA_Retain::serve (CORBA::Core::RequestInBase& request) const
-{
-	auto it = active_object_map_.find (request.object_key ().object_id);
-	if (it == active_object_map_.end ())
-		throw OBJECT_NOT_EXIST (MAKE_OMG_MINOR (1));
-	Nirvana::Core::CoreRef <CORBA::Core::ProxyObject> proxy = CORBA::Core::object2proxy (it->second);
-	ExecDomain::current ().leave_sync_domain ();
-	request.serve_request (*proxy);
+	ProxyObject* proxy = object2proxy (p_servant);
+	if (!proxy)
+		throw BAD_PARAM ();
+	assert (proxy->servant ()); // p_servant reference was obtained from the real servant.
+	return static_cast <UserServantPtr> (&proxy->servant ());
 }
 
 }

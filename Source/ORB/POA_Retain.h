@@ -1,3 +1,4 @@
+/// \file
 /*
 * Nirvana Core.
 *
@@ -28,58 +29,66 @@
 #pragma once
 
 #include "POA_Base.h"
+#include "../MapUnorderedStable.h"
 #include "../MapUnorderedUnstable.h"
 
 namespace PortableServer {
 namespace Core {
 
-// Active Object Map (AOM) value.
-class AOM_Val : public CORBA::Object::_ref_type
-{
-	typedef CORBA::Object::_ref_type Base;
-public:
-	AOM_Val (CORBA::Object::_ptr_type p) :
-		Base (p)
-	{}
-
-	AOM_Val (const AOM_Val&) = delete;
-	AOM_Val (AOM_Val&&) = default;
-
-	AOM_Val& operator = (const AOM_Val&) = delete;
-	AOM_Val& operator = (AOM_Val&&) = default;
-
-	~AOM_Val ()
-	{
-		if (p_) // Not moved
-			CORBA::Core::object2proxy (p_)->deactivate ();
-	}
-};
-
-class NIRVANA_NOVTABLE POA_Retain : public POA_Base
+class POA_Retain : public POA_Base
 {
 	typedef POA_Base Base;
-public:
-	virtual void destroy (bool etherealize_objects, bool wait_for_completion) override;
-	virtual void deactivate_object (const ObjectId& oid) override;
-	virtual CORBA::Object::_ref_type id_to_reference (const ObjectId& oid) override;
 
 protected:
 	POA_Retain (CORBA::servant_reference <POAManager>&& manager) :
 		Base (std::move (manager))
 	{}
 
-	~POA_Retain ()
-	{}
+	// Active Object Map (AOM) value.
+	class AOM_Val : public Nirvana::Core::CoreRef <CORBA::Core::ProxyObject>
+	{
+		typedef Nirvana::Core::CoreRef <CORBA::Core::ProxyObject> Base;
+	public:
+		AOM_Val (Base&& proxy) NIRVANA_NOEXCEPT :
+			Base (std::move (proxy))
+		{}
 
-	virtual void serve (CORBA::Core::RequestInBase& request) const override;
+		AOM_Val (CORBA::Core::ProxyObject& proxy) NIRVANA_NOEXCEPT :
+			Base (&proxy)
+		{}
 
-protected:
-	// Active Object Map (AOM)
-	typedef Nirvana::Core::MapUnorderedUnstable <ObjectId, AOM_Val,
-		std::hash <ObjectId>, std::equal_to <ObjectId>,
-		Nirvana::Core::UserAllocator <std::pair <ObjectId, AOM_Val> > > AOM;
+		AOM_Val (AOM_Val&& src) NIRVANA_NOEXCEPT :
+			Base (std::move (src))
+		{}
 
-	AOM active_object_map_;
+		AOM_Val& operator = (AOM_Val&& src) NIRVANA_NOEXCEPT
+		{
+			Base::operator = (std::move (src));
+			return *this;
+		}
+
+		~AOM_Val ()
+		{
+			CORBA::Core::ProxyObject* p = *this;
+			if (p)
+				p->deactivate ();
+		}
+	};
+
+	// We always use stable map for AOM, because POA_Activator uses WaitableRef which requires the
+	// pointer stability.
+
+	template <class Key>
+	using ObjectMap = Nirvana::Core::MapUnorderedStable <Key, AOM_Val, std::hash <Key>,
+		std::equal_to <Key>, Nirvana::Core::UserAllocator <std::pair <Key, AOM_Val> > >;
+
+	typedef const PortableServer::ServantBase* UserServantPtr;
+
+	template <class AOM>
+	using ServantMap = Nirvana::Core::MapUnorderedUnstable <UserServantPtr, const typename AOM::value_type*, std::hash <UserServantPtr>,
+		std::equal_to <UserServantPtr>, Nirvana::Core::UserAllocator <std::pair <UserServantPtr, const typename AOM::value_type*> > >;
+
+	static UserServantPtr get_servant (CORBA::Object::_ptr_type p_servant);
 };
 
 }

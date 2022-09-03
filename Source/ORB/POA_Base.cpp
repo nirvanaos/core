@@ -159,18 +159,32 @@ POA_Base::~POA_Base ()
 	the_POAManager_->on_adapter_destroy (*this);
 }
 
+Object::_ref_type POA_Base::servant_to_reference (Object::_ptr_type p_servant)
+{
+	Object::_ref_type ret = servant_to_reference_nothrow (p_servant);
+	if (!ret)
+		throw WrongPolicy ();
+	return ret;
+}
+
+Object::_ref_type POA_Base::servant_to_reference_nothrow (Object::_ptr_type p_servant)
+{
+	const Context* ctx = (const Context*)Nirvana::Core::TLS::current ().get (Nirvana::Core::TLS::CORE_TLS_PORTABLE_SERVER);
+	if (ctx && (&ctx->servant == &p_servant))
+		return ctx->reference;
+	return Object::_nil ();
+}
+
 Object::_ref_type POA_Base::reference_to_servant (Object::_ptr_type reference)
 {
 	if (!reference)
 		throw BAD_PARAM ();
 
 	auto proxy = object2proxy (reference);
-	ActivationKeyRef key = proxy->get_object_key ();
+	ObjectKeyRef key = proxy->object_key ();
 	if (!key)
 		throw ObjectNotActive ();
-	AdapterPath path;
-	get_path (path);
-	if (path != key->adapter_path)
+	if (!check_path (key->adapter_path ()))
 		throw WrongAdapter ();
 	return reference;
 }
@@ -181,14 +195,12 @@ ObjectId POA_Base::reference_to_id (Object::_ptr_type reference)
 		throw BAD_PARAM ();
 
 	auto proxy = object2proxy (reference);
-	ActivationKeyRef key = proxy->get_object_key ();
+	ObjectKeyRef key = proxy->object_key ();
 	if (!key)
 		throw WrongAdapter ();
-	AdapterPath path;
-	get_path (path);
-	if (path != key->adapter_path)
+	if (!check_path (key->adapter_path ()))
 		throw WrongAdapter ();
-	return key->object_id;
+	return key->object_id ();
 }
 
 POA_Base* POA_Base::get_implementation (const CORBA::Core::ProxyLocal* proxy)
@@ -213,6 +225,22 @@ void POA_Base::get_path (AdapterPath& path, size_t size) const
 		path.clear ();
 		path.reserve (size);
 	}
+}
+
+bool POA_Base::check_path (const AdapterPath& path, AdapterPath::const_iterator it)
+	const NIRVANA_NOEXCEPT
+{
+	if (parent_) {
+		if (it == path.begin ())
+			return false;
+		--it;
+		if (iterator_->first.size () != it->size ())
+			return false;
+		if (iterator_->first != *it)
+			return false;
+		return parent_->check_path (path, it);
+	} else
+		return it == path.begin ();
 }
 
 POA_Base& POA_Base::find_child (const IDL::String& adapter_name, bool activate_it)
@@ -256,6 +284,11 @@ void POA_Base::destroy (bool etherealize_objects, bool wait_for_completion)
 		parent_->children_.erase (iterator_);
 		parent_ = nullptr;
 	}
+}
+
+ObjectId POA_Base::servant_to_id (CORBA::Object::_ptr_type p_servant)
+{
+	throw WrongPolicy ();
 }
 
 }

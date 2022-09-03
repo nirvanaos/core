@@ -29,6 +29,7 @@
 #pragma once
 
 #include "StreamOut.h"
+#include "SharedObject.h"
 
 namespace CORBA {
 namespace Core {
@@ -45,24 +46,81 @@ namespace Core {
 typedef IDL::Sequence <IDL::String> AdapterPath;
 
 /// ObjectKey internal structure.
-struct ObjectKey
+class ObjectKey
 {
-	AdapterPath adapter_path;
-	ObjectId object_id;
+public:
+	const AdapterPath& adapter_path () const NIRVANA_NOEXCEPT
+	{
+		return adapter_path_;
+	}
+
+	AdapterPath& adapter_path () NIRVANA_NOEXCEPT
+	{
+		return adapter_path_;
+	}
+
+	const ObjectId& object_id () const NIRVANA_NOEXCEPT
+	{
+		return object_id_;
+	}
+
+	void object_id (const ObjectId& oid)
+	{
+		object_id_ = oid;
+	}
+
+	void object_id (ObjectId&& oid) NIRVANA_NOEXCEPT
+	{
+		object_id_ = std::move (oid);
+	}
 
 	void marshal (CORBA::Core::StreamOut& out) const
 	{
-		out.write_size (adapter_path.size ());
-		for (const auto& name : adapter_path) {
+		out.write_size (adapter_path_.size ());
+		for (const auto& name : adapter_path_) {
 			out.write_string (const_cast <IDL::String&> (name), false);
 		}
-		out.write_seq (const_cast <ObjectId&> (object_id), false);
+		out.write_seq (const_cast <ObjectId&> (object_id_), false);
 	}
 
 	void unmarshal (CORBA::Core::StreamIn& in);
 	void unmarshal (const IOP::ObjectKey& object_key);
+
+private:
+	AdapterPath adapter_path_;
+	ObjectId object_id_;
 };
 
+class ObjectKeyShared :
+	public Nirvana::Core::SharedObject
+{
+public:
+	const AdapterPath& adapter_path () const NIRVANA_NOEXCEPT
+	{
+		return key_.adapter_path ();
+	}
+
+	const ObjectId& object_id () const NIRVANA_NOEXCEPT
+	{
+		return key_.object_id ();
+	}
+
+	void marshal (CORBA::Core::StreamOut& out) const
+	{
+		key_.marshal (out);
+	}
+
+protected:
+	ObjectKeyShared (ObjectKey&& key) NIRVANA_NOEXCEPT;
+	~ObjectKeyShared ();
+
+private:
+	ObjectKey key_;
+	Nirvana::Core::CoreRef <Nirvana::Core::MemContext> memory_;
+};
+
+typedef Nirvana::Core::ImplDynamic <ObjectKeyShared> ObjectKeyImpl;
+typedef Nirvana::Core::CoreRef <ObjectKeyImpl> ObjectKeyRef;
 
 }
 }

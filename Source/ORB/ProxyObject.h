@@ -36,14 +36,6 @@
 namespace CORBA {
 namespace Core {
 
-struct ActivationKey :
-	public PortableServer::Core::ObjectKey,
-	public Nirvana::Core::UserObject
-{};
-
-typedef Nirvana::Core::ImplDynamic <ActivationKey> ActivationKeyImpl;
-typedef Nirvana::Core::CoreRef <ActivationKeyImpl> ActivationKeyRef;
-
 /// Server-side object reference.
 class ProxyObject :
 	public ServantProxyBase
@@ -54,17 +46,13 @@ class ProxyObject :
 public:
 	///@{
 	/// Called from the POA synchronization domain.
-	/// So calls to activate() and deactivate() are always serialized.
-	/// NOTE: The ActivationKey structure is allocated in the POA memory context.
-	/// And must be released in the POA memory context.
-	void activate (ActivationKeyRef&& key) NIRVANA_NOEXCEPT;
+	/// So calls to activate () and deactivate () are always serialized.
+	void activate (PortableServer::Core::ObjectKeyRef&& key) NIRVANA_NOEXCEPT;
 	void deactivate () NIRVANA_NOEXCEPT;
 
-	ActivationKeyRef get_object_key () NIRVANA_NOEXCEPT
+	PortableServer::Core::ObjectKeyRef object_key () NIRVANA_NOEXCEPT
 	{
-		ActivationKeyRef ref = activation_key_.get ();
-		assert (!ref || activation_key_memory_ == &Nirvana::Core::MemContext::current ());
-		return ref;
+		return object_key_.get ();
 	}
 
 	///@}
@@ -78,27 +66,23 @@ public:
 	/// The unique stamp is assigned when object reference is created.
 	/// The timestamp together with the ProxyObject pointer let to create
 	/// the unique system id for the reference.
-	int timestamp () const NIRVANA_NOEXCEPT
+	typedef int Timestamp;
+	Timestamp timestamp () const NIRVANA_NOEXCEPT
 	{
 		return timestamp_;
 	}
 
 	static void initialize () NIRVANA_NOEXCEPT
 	{
-		next_timestamp_ = (int)(Nirvana::Core::Chrono::UTC ().time () / TimeBase::SECOND);
+		next_timestamp_ = (Timestamp)(Nirvana::Core::Chrono::UTC ().time () / TimeBase::SECOND);
 	}
 
 protected:
-	ProxyObject (PortableServer::Servant servant) :
-		ServantProxyBase (servant),
-		timestamp_ (next_timestamp_++),
-		activation_state_ (ActivationState::INACTIVE)
-	{}
+	ProxyObject (PortableServer::Servant servant);
+	ProxyObject (const ProxyObject& src);
 
 	~ProxyObject ()
-	{
-		assert (!activation_key_.get ());
-	}
+	{}
 
 private:
 	enum ActivationState
@@ -118,18 +102,10 @@ private:
 
 	void marshal_object_key (StreamOut& out)
 	{
-		ActivationKeyRef ref = activation_key_.get ();
+		PortableServer::Core::ObjectKeyRef ref = object_key_.get ();
 		if (!ref)
 			throw OBJECT_NOT_EXIST (MAKE_OMG_MINOR (1));
-		Nirvana::Core::ExecDomain& ed = Nirvana::Core::ExecDomain::current ();
-		ed.mem_context_push (activation_key_memory_);
-		try {
-			ref->marshal (out);
-		} catch (...) {
-			ed.mem_context_pop ();
-			throw;
-		}
-		ed.mem_context_pop ();
+		ref->marshal (out);
 	}
 
 	bool change_state (ActivationState from, ActivationState to) NIRVANA_NOEXCEPT
@@ -140,13 +116,30 @@ private:
 	virtual Boolean non_existent () override;
 
 private:
-	int timestamp_;
+	Timestamp timestamp_;
 	std::atomic <ActivationState> activation_state_;
 	PortableServer::POA::_ref_type implicit_POA_;
-	Nirvana::Core::LockableRef <ActivationKeyImpl> activation_key_;
-	Nirvana::Core::CoreRef <Nirvana::Core::MemContext> activation_key_memory_;
+	Nirvana::Core::LockableRef <PortableServer::Core::ObjectKeyImpl> object_key_;
 
-	static std::atomic <int> next_timestamp_;
+	static std::atomic <Timestamp> next_timestamp_;
+};
+
+template <class Base>
+class ProxyObjectImpl :
+	public Base
+{
+	template <class> friend class Nirvana::Core::CoreRef;
+
+	template <class ... Args>
+	ProxyObjectImpl (Args ... args) :
+		Base (std::forward <Args> (args)...)
+	{}
+
+	virtual void _remove_ref () NIRVANA_NOEXCEPT override
+	{
+		if (0 == Base::_remove_ref_proxy ())
+			delete this;
+	}
 };
 
 CORBA::Object::_ptr_type servant2object (PortableServer::Servant servant) NIRVANA_NOEXCEPT;

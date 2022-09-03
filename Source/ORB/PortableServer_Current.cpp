@@ -23,35 +23,25 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_ORB_CORE_POA_IMPLICITUNIQUE_H_
-#define NIRVANA_ORB_CORE_POA_IMPLICITUNIQUE_H_
-#pragma once
+#include "PortableServer_Current.h"
 
-#include "POA_Implicit.h"
+using namespace CORBA;
+using namespace CORBA::Internal;
 
 namespace PortableServer {
 namespace Core {
 
-// POA with IMPLICIT_ACTIVATION and UNIQUE_ID
-class POA_ImplicitUnique : public POA_Implicit
+Interface* Current::_s_get_servant (Bridge <PortableServer::Current>* _b, Interface* _env)
 {
-	typedef POA_Implicit Base;
-public:
-	virtual ObjectId activate_object (CORBA::Object::_ptr_type p_servant) override;
-	virtual void activate_object_with_id (const ObjectId& oid, CORBA::Object::_ptr_type p_servant) override;
-	virtual ObjectId servant_to_id (CORBA::Object::_ptr_type p_servant) override;
-	virtual CORBA::Object::_ref_type servant_to_reference (CORBA::Object::_ptr_type p_servant) override;
-
-protected:
-	POA_ImplicitUnique (CORBA::servant_reference <POAManager>&& manager) :
-		Base (std::move (manager))
-	{}
-
-private:
-	bool AOM_insert (const ObjectId& oid, CORBA::Object::_ptr_type p_servant);
-};
+	try {
+		return Type <Object>::ret (_implementation (_b).get_servant ());
+	} catch (Exception& e) {
+		set_exception (_env, e);
+	} catch (...) {
+		set_unknown_exception (_env);
+	}
+	return Type <Object>::ret ();
+}
 
 }
 }
-
-#endif

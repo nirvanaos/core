@@ -41,6 +41,7 @@ class Services
 public:
 	enum Service
 	{
+		POACurrent,
 		RootPOA,
 
 		SERVICE_COUNT
@@ -111,6 +112,7 @@ private:
 
 	// Service factories
 	static Object::_ref_type create_RootPOA ();
+	static Object::_ref_type create_POACurrent ();
 
 private:
 	struct Factory

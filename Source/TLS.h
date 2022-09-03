@@ -49,11 +49,12 @@ public:
 		return MemContext::current ().get_TLS ();
 	}
 
-	/// Reserved TLS indexes
+	/// Reserved TLS indexes.
 	enum
 	{
-		CORE_TLS_BINDER, ///< Binder context
-		CORE_TLS_OBJECT_FACTORY, ///< ObjectFactory stateless creation frame
+		CORE_TLS_BINDER, ///< Binder context.
+		CORE_TLS_OBJECT_FACTORY, ///< ObjectFactory stateless creation frame.
+		CORE_TLS_PORTABLE_SERVER, ///< PortableServer::Current context.
 
 		CORE_TLS_COUNT
 	};

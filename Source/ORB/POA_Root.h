@@ -27,7 +27,7 @@
 #define NIRVANA_ORB_CORE_POA_ROOT_H_
 #pragma once
 
-#include "POA_ImplicitUnique.h"
+#include "POA_Implicit.h"
 #include "POAManagerFactory.h"
 
 namespace PortableServer {

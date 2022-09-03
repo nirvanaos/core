@@ -35,6 +35,7 @@
 
 #ifdef MAPUNORDEREDSTABLE_STL
 #include <unordered_map>
+#include <unordered_set>
 #else
 #pragma push_macro ("verify")
 #undef verify
@@ -55,6 +56,17 @@ using MapUnorderedStable =
 	phmap::node_hash_map
 #endif
 	<Key, T, Hash, KeyEqual, Allocator>;
+
+/// Unordered set with pointer stability.
+template <class Key, class Hash = std::hash <Key>, class KeyEqual = std::equal_to <Key>,
+	class Allocator = std::allocator <Key> >
+	using SetUnorderedStable =
+#ifdef MAPUNORDEREDSTABLE_STL
+	std::unordered_set
+#else
+	phmap::node_hash_set
+#endif
+	<Key, Hash, KeyEqual, Allocator>;
 
 }
 }

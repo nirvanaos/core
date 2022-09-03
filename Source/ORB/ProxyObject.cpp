@@ -24,11 +24,9 @@
 *  popov.nirvana@gmail.com
 */
 #include "ServantBase.h"
-#include "../Runnable.h"
 #include "POA_Base.h"
 
 using namespace Nirvana::Core;
-using namespace std;
 
 namespace CORBA {
 
@@ -82,18 +80,27 @@ private:
 	ProxyObject& proxy_;
 };
 
-void ProxyObject::activate (ActivationKeyRef&& key) NIRVANA_NOEXCEPT
+ProxyObject::ProxyObject (PortableServer::Servant servant) :
+	ServantProxyBase (servant),
+	timestamp_ (next_timestamp_++),
+	activation_state_ (ActivationState::INACTIVE)
+{}
+
+ProxyObject::ProxyObject (const ProxyObject& src) :
+	ServantProxyBase (src),
+	timestamp_ (next_timestamp_++),
+	activation_state_ (ActivationState::INACTIVE)
+{}
+
+void ProxyObject::activate (PortableServer::Core::ObjectKeyRef&& key) NIRVANA_NOEXCEPT
 {
-	activation_key_ = std::move (key);
-	activation_key_memory_ = &MemContext::current ();
+	object_key_ = std::move (key);
 	activation_state_ = ActivationState::ACTIVE;
 }
 
 void ProxyObject::deactivate () NIRVANA_NOEXCEPT
 {
-	// Called from POA sync domain, so memory context must be the same.
-	activation_key_.reset ();
-	activation_key_memory_.reset ();
+	object_key_.reset ();
 	activation_state_ = ActivationState::INACTIVE;
 }
 
@@ -108,7 +115,7 @@ void ProxyObject::add_ref_1 ()
 		PortableServer::POA::_ref_type poa = servant ()->_default_POA ();
 		// Query poa for the implicit activation policy
 		if (PortableServer::Core::POA_Base::implicit_activation (poa) && change_state (INACTIVE, ACTIVATION)) {
-			implicit_POA_ = move (poa);
+			implicit_POA_ = std::move (poa);
 			try {
 				implicit_POA_->activate_object (servant ());
 			} catch (...) {
@@ -141,14 +148,14 @@ void ProxyObject::implicit_deactivate ()
 {
 	// Object may be re-activated later. So we clear implicit_activated_id_ here.
 	if (change_state (DEACTIVATION_SCHEDULED, INACTIVE)) {
-		ActivationKeyRef key = activation_key_.get ();
+		PortableServer::Core::ObjectKeyRef key = object_key_.get ();
 		assert (implicit_POA_ && key);
-		PortableServer::POA::_ref_type poa (move (implicit_POA_));
+		PortableServer::POA::_ref_type poa (std::move (implicit_POA_));
 		const ProxyLocal* proxy = local2proxy (poa);
 		assert (&proxy->sync_context () == &SyncContext::current ());
 		PortableServer::Core::POA_Base* poa_impl = PortableServer::Core::POA_Base::get_implementation (proxy);
 		assert (poa_impl);
-		poa_impl->deactivate_object (key->object_id);
+		poa_impl->deactivate_object (key->object_id ());
 	} else {
 		// Restore implicit_activated_id_
 		assert (DEACTIVATION_CANCELLED == activation_state_);

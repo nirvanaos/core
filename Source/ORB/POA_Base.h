@@ -35,6 +35,7 @@
 #include "HashOctetSeq.h"
 #include "PortableServer_policies.h"
 #include "RequestInBase.h"
+#include "../TLS.h"
 
 namespace CORBA {
 namespace Core {
@@ -46,6 +47,14 @@ namespace PortableServer {
 namespace Core {
 
 class POAManager;
+
+struct Context
+{
+	POA::_ptr_type adapter;
+	const ObjectId& object_id;
+	CORBA::Object::_ptr_type reference;
+	CORBA::Object::_ptr_type servant;
+};
 
 // POA implementation always operates the reference to Object interface (proxy),
 // not to ServantBase.
@@ -199,8 +208,8 @@ public:
 	}
 
 	// Identity mapping operations:
-	virtual ObjectId servant_to_id (CORBA::Object::_ptr_type p_servant) = 0;
-	virtual CORBA::Object::_ref_type servant_to_reference (CORBA::Object::_ptr_type p_servant) = 0;
+	virtual ObjectId servant_to_id (CORBA::Object::_ptr_type p_servant);
+	virtual CORBA::Object::_ref_type servant_to_reference (CORBA::Object::_ptr_type p_servant);
 	virtual CORBA::Object::_ref_type reference_to_servant (CORBA::Object::_ptr_type reference);
 	virtual ObjectId reference_to_id (CORBA::Object::_ptr_type reference);
 	virtual CORBA::Object::_ref_type id_to_reference (const ObjectId& oid) = 0;
@@ -258,6 +267,15 @@ protected:
 	virtual bool implicit_activation () const NIRVANA_NOEXCEPT = 0;
 
 	void get_path (AdapterPath& path, size_t size = 0) const;
+	bool check_path (const AdapterPath& path, AdapterPath::const_iterator it) const
+		NIRVANA_NOEXCEPT;
+
+	bool check_path (const AdapterPath& path) const NIRVANA_NOEXCEPT
+	{
+		return check_path (path, path.end ());
+	}
+
+	CORBA::Object::_ref_type servant_to_reference_nothrow (CORBA::Object::_ptr_type p_servant);
 
 private:
 	// Children map.

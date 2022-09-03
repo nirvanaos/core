@@ -27,26 +27,53 @@
 #define NIRVANA_ORB_CORE_POA_IMPLICIT_H_
 #pragma once
 
-#include "POA_Retain.h"
+#include "POA_RetainSystem.h"
 
 namespace PortableServer {
 namespace Core {
 
 // POA with IMPLICIT_ACTIVATION
 class POA_Implicit :
-	public POA_Retain
+	public POA_RetainSystem
 {
-	typedef POA_Retain Base;
+	typedef POA_RetainSystem Base;
+
 public:
 	virtual bool implicit_activation () const NIRVANA_NOEXCEPT
 	{
 		return true;
 	}
 
+	virtual ObjectId servant_to_id (CORBA::Object::_ptr_type p_servant) override;
+	virtual CORBA::Object::_ref_type servant_to_reference (CORBA::Object::_ptr_type p_servant) override;
+
 protected:
 	POA_Implicit (CORBA::servant_reference <POAManager>&& manager) :
 		Base (std::move (manager))
 	{}
+};
+
+// POA with IMPLICIT_ACTIVATION and UNIQUE_ID
+class POA_ImplicitUnique : public POA_RetainSystemUnique
+{
+	typedef POA_RetainSystemUnique Base;
+
+public:
+	virtual bool implicit_activation () const NIRVANA_NOEXCEPT
+	{
+		return true;
+	}
+
+	virtual ObjectId servant_to_id (CORBA::Object::_ptr_type p_servant) override;
+	virtual CORBA::Object::_ref_type servant_to_reference (CORBA::Object::_ptr_type p_servant) override;
+
+protected:
+	POA_ImplicitUnique (CORBA::servant_reference <POAManager>&& manager) :
+		Base (std::move (manager))
+	{}
+
+private:
+	bool AOM_insert (const ObjectId& oid, CORBA::Object::_ptr_type p_servant);
 };
 
 }

@@ -26,6 +26,7 @@
 
 #include "Services.h"
 #include "POA_Root.h"
+#include "PortableServer_Current.h"
 
 using namespace Nirvana::Core;
 using namespace Nirvana;
@@ -74,6 +75,7 @@ Object::_ref_type Services::bind_service_sync (Service sidx)
 // Initial services. Must be lexicographically ordered.
 
 const Services::Factory Services::factories_ [Service::SERVICE_COUNT] = {
+	{ "POACurrent", create_POACurrent, 1 * TimeBase::MILLISECOND },
 	{ "RootPOA", create_RootPOA, 1 * TimeBase::MILLISECOND }
 };
 
@@ -82,6 +84,11 @@ const Services::Factory Services::factories_ [Service::SERVICE_COUNT] = {
 Object::_ref_type Services::create_RootPOA ()
 {
 	return PortableServer::Core::POA_Root::create ();
+}
+
+Object::_ref_type Services::create_POACurrent ()
+{
+	return make_reference <PortableServer::Core::Current> ()->_this ();
 }
 
 }

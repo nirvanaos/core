@@ -89,6 +89,9 @@ public:
 	template <typename C>
 	void write_string (Internal::StringT <C>& s, bool move);
 
+	template <class Al>
+	void write_string (const std::basic_string <Char, std::char_traits <Char>, Al>& s);
+
 	/// Write size of sequence or string.
 	/// \param size The size.
 	void write_size (size_t size);
@@ -107,6 +110,8 @@ public:
 	template <typename T>
 	void write_seq (IDL::Sequence <T>& s, bool move);
 
+	template <typename T, class Al>
+	void write_seq (const std::vector <T, Al>& s);
 };
 
 template <typename C>
@@ -132,6 +137,14 @@ void StreamOut::write_string (Internal::StringT <C>& s, bool move)
 		abi.reset ();
 }
 
+template <class Al>
+void StreamOut::write_string (const std::basic_string <Char, std::char_traits <Char>, Al>& s)
+{
+	size_t size = s.size ();
+	write_size (size);
+	write (1, size + 1, s.c_str ());
+}
+
 template <typename T>
 void StreamOut::write_seq (IDL::Sequence <T>& s, bool move)
 {
@@ -145,6 +158,15 @@ void StreamOut::write_seq (IDL::Sequence <T>& s, bool move)
 		size_t zero = 0;
 		write_seq (alignof (T), sizeof (T), abi.size, abi.ptr, zero);
 	}
+}
+
+template <typename T, class Al>
+void write_seq (const std::vector <T, Al>& s)
+{
+	size_t size = s.size ();
+	write_size (size);
+	if (size)
+		write (alignof (T), size * sizeof (T), s.data ());
 }
 
 }

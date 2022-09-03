@@ -1,3 +1,4 @@
+/// \file
 /*
 * Nirvana Core.
 *
@@ -23,48 +24,51 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "ObjectKey.h"
-#include "StreamInEncap.h"
-#include "ExecDomain.h"
+#ifndef NIRVANA_ORB_CORE_PORTABLESERVER_CURRENT_H_
+#define NIRVANA_ORB_CORE_PORTABLESERVER_CURRENT_H_
+#pragma once
 
-using namespace Nirvana::Core;
-using namespace CORBA::Core;
+#include "POA_Base.h"
 
 namespace PortableServer {
 namespace Core {
 
-void ObjectKey::unmarshal (StreamIn& in)
+class Current : public CORBA::servant_traits <PortableServer::Current>::Servant <Current>
 {
-	size_t size = in.read_size ();
-	adapter_path_.resize (size);
-	for (auto& name : adapter_path_) {
-		in.read_string (name);
-	}
-	in.read_seq (object_id_);
-}
-
-void ObjectKey::unmarshal (const IOP::ObjectKey& object_key)
-{
-	ImplStatic <StreamInEncap> stm (std::ref (object_key));
-	unmarshal (stm);
-	if (stm.end () != 0)
-		throw CORBA::MARSHAL (StreamIn::MARSHAL_MINOR_MORE);
-}
-
-ObjectKeyShared::ObjectKeyShared (ObjectKey&& key) NIRVANA_NOEXCEPT :
-key_ (std::move (key)),
-memory_ (&MemContext::current ())
-{}
-
-ObjectKeyShared::~ObjectKeyShared ()
-{
-	ExecDomain& ed = ExecDomain::current ();
-	ed.mem_context_push (memory_);
+public:
+	static POA::_ref_type get_POA ()
 	{
-		ObjectKey tmp (std::move (key_));
+		return context ().adapter;
 	}
-	ed.mem_context_pop ();
-}
+
+	static ObjectId get_object_id ()
+	{
+		return context ().object_id;
+	}
+
+	static CORBA::Object::_ref_type get_reference ()
+	{
+		return context ().reference;
+	}
+
+	static CORBA::Internal::Interface* _s_get_servant (CORBA::Internal::Bridge <PortableServer::Current>* _b, Interface* _env);
+
+	static CORBA::Object::_ref_type get_servant ()
+	{
+		return context ().servant;
+	}
+
+private:
+	static const Context& context ()
+	{
+		const Context* ctx = (const Context*)Nirvana::Core::TLS::current ().get (Nirvana::Core::TLS::CORE_TLS_PORTABLE_SERVER);
+		if (!ctx)
+			throw NoContext ();
+		return *ctx;
+	}
+};
 
 }
 }
+
+#endif

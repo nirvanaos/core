@@ -59,7 +59,7 @@ void POA_Root::invoke (CORBA::Core::RequestInBase& request) NIRVANA_NOEXCEPT
 
 		SYNC_BEGIN (proxy->sync_context (), nullptr);
 
-		for (const auto& name : request.object_key ().adapter_path) {
+		for (const auto& name : request.object_key ().adapter_path ()) {
 			adapter = &adapter->find_child (name, true);
 		}
 		adapter->invoke (request, std::move (memory));
