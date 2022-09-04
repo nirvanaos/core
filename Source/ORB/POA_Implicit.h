@@ -39,7 +39,7 @@ class POA_Implicit :
 	typedef POA_RetainSystem Base;
 
 public:
-	virtual bool implicit_activation () const NIRVANA_NOEXCEPT
+	virtual bool implicit_activation () const NIRVANA_NOEXCEPT override
 	{
 		return true;
 	}
@@ -59,7 +59,7 @@ class POA_ImplicitUnique : public POA_RetainSystemUnique
 	typedef POA_RetainSystemUnique Base;
 
 public:
-	virtual bool implicit_activation () const NIRVANA_NOEXCEPT
+	virtual bool implicit_activation () const NIRVANA_NOEXCEPT override
 	{
 		return true;
 	}

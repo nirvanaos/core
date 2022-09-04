@@ -99,12 +99,9 @@ protected:
 		}
 	}
 
-	ServantProxyBase (Internal::String_in primary_iid) :
-		ProxyManager (primary_iid),
-		servant_ (nullptr)
-	{}
-
 	ServantProxyBase (const ServantProxyBase&) = default;
+
+	~ServantProxyBase ();
 
 	Internal::Interface::_ptr_type servant () const NIRVANA_NOEXCEPT
 	{

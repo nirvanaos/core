@@ -35,7 +35,47 @@ namespace Core {
 
 class ProxyObjectDGC : public ProxyObject
 {
+	typedef ProxyObject Base;
 
+public:
+	virtual void activate (PortableServer::Core::ObjectKeyRef&& key) NIRVANA_NOEXCEPT override;
+	virtual void deactivate () NIRVANA_NOEXCEPT override;
+
+protected:
+	ProxyObjectDGC (PortableServer::Servant servant) :
+		Base (servant),
+		activation_state_ (ActivationState::INACTIVE)
+	{}
+
+	ProxyObjectDGC (PortableServer::Servant servant, PortableServer::POA::_ptr_type adapter);
+	ProxyObjectDGC (const ProxyObject& src, PortableServer::POA::_ptr_type adapter);
+
+	enum ActivationState
+	{
+		INACTIVE,
+		IMPLICIT_ACTIVATION,
+		ACTIVE,
+		DEACTIVATION_SCHEDULED,
+		DEACTIVATION_CANCELLED,
+		ACTIVE_EXPLICIT
+	};
+
+	class Deactivator;
+
+	bool change_state (ActivationState from, ActivationState to) NIRVANA_NOEXCEPT
+	{
+		return activation_state_.compare_exchange_strong (from, to);
+	}
+
+	void implicit_deactivate ();
+
+private:
+	virtual void _remove_ref () NIRVANA_NOEXCEPT override;
+	template <class> friend class Nirvana::Core::CoreRef;
+
+protected:
+	PortableServer::POA::_ref_type adapter_;
+	std::atomic <ActivationState> activation_state_;
 };
 
 }

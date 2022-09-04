@@ -23,24 +23,26 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "ProxyLocal.h"
-
-using namespace Nirvana::Core;
+#include "LocalObject.h"
 
 namespace CORBA {
-
-using namespace Internal;
-
 namespace Core {
 
-Boolean ProxyLocal::non_existent ()
+class LocalObjectImpl :
+	public LocalObject,
+	public ProxyLocal
 {
-	return servant ()->_non_existent ();
-}
+public:
+	LocalObjectImpl (CORBA::LocalObject::_ptr_type user_servant) :
+		LocalObject (static_cast <ProxyLocal&> (*this)),
+		ProxyLocal (user_servant)
+	{}
 
-void ProxyLocal::marshal (StreamOut& out)
+};
+
+LocalObject* LocalObject::create (CORBA::LocalObject::_ptr_type user_servant)
 {
-	throw MARSHAL (MAKE_OMG_MINOR (4));
+	return new LocalObjectImpl (user_servant);
 }
 
 }

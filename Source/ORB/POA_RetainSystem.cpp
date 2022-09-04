@@ -25,6 +25,7 @@
 */
 #include "POA_RetainSystem.h"
 #include "RequestInBase.h"
+#include "Reference.h"
 
 using namespace CORBA;
 using namespace CORBA::Core;
@@ -55,11 +56,11 @@ CoreRef <ProxyObject> POA_RetainSystem::get_proxy (Object::_ptr_type p_servant)
 
 POA_RetainSystem::AOM::iterator POA_RetainSystem::activate (const ObjectIdSys& oid, CoreRef <ProxyObject>&& proxy)
 {
-	ObjectKey object_key;
-	get_path (object_key.adapter_path ());
 	auto ins = active_object_map_.emplace (oid, std::move (proxy));
 	assert (ins.second);
 	try {
+		ObjectKey object_key;
+		get_path (object_key.adapter_path ());
 		object_key.object_id (ins.first->first.to_object_id ());
 		ins.first->second->activate (ObjectKeyRef::create <ObjectKeyImpl> (std::move (object_key)));
 	} catch (...) {
@@ -107,6 +108,28 @@ POA_RetainSystem::AOM_Val POA_RetainSystem::deactivate (const ObjectId& oid)
 void POA_RetainSystem::deactivate_object (const ObjectId& oid)
 {
 	deactivate (oid);
+}
+
+CORBA::Object::_ref_type POA_RetainSystem::create_reference (const CORBA::RepositoryId& intf)
+{
+	CoreRef <Reference> ref = CoreRef <Reference>::create <ImplDynamic <Reference> > (std::ref (intf));
+	ObjectKey object_key;
+	get_path (object_key.adapter_path ());
+	object_key.object_id (ObjectIdSys (*ref).to_object_id ());
+	ref->object_key (ObjectKeyRef::create <ObjectKeyImpl> (std::move (object_key)));
+	return ref->get_proxy ();
+}
+
+CORBA::Object::_ref_type POA_RetainSystem::create_reference_with_id (const ObjectId& oid, const CORBA::RepositoryId& intf)
+{
+	if (!ObjectIdSys::from_object_id (oid))
+		throw BAD_PARAM ();
+	CoreRef <Reference> ref = CoreRef <Reference>::create <ImplDynamic <Reference> > (std::ref (intf));
+	ObjectKey object_key;
+	get_path (object_key.adapter_path ());
+	object_key.object_id (oid);
+	ref->object_key (ObjectKeyRef::create <ObjectKeyImpl> (std::move (object_key)));
+	return ref->get_proxy ();
 }
 
 Object::_ref_type POA_RetainSystem::id_to_reference (const ObjectId& oid)

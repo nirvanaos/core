@@ -62,7 +62,7 @@ public:
 		return *this;
 	}
 
-	CoreRef <T> get () NIRVANA_NOEXCEPT
+	CoreRef <T> get () const NIRVANA_NOEXCEPT
 	{
 		CoreRef <T> ref (p_.lock ());
 		p_.unlock ();
@@ -86,7 +86,7 @@ public:
 	}
 
 private:
-	LockablePtrT <T, 0> p_;
+	mutable LockablePtrT <T, 0> p_;
 };
 
 }

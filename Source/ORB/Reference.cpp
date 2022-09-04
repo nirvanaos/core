@@ -23,24 +23,22 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "ProxyLocal.h"
-
-using namespace Nirvana::Core;
+#include "Reference.h"
 
 namespace CORBA {
-
-using namespace Internal;
-
 namespace Core {
 
-Boolean ProxyLocal::non_existent ()
+Internal::IORequest::_ref_type Reference::create_request (OperationIndex op, UShort flags)
 {
-	return servant ()->_non_existent ();
+	if (is_object_op (op))
+		return ProxyManager::create_request (op, flags);
+
+	throw NO_IMPLEMENT (); // TODO: Implement.
 }
 
-void ProxyLocal::marshal (StreamOut& out)
+void Reference::marshal (StreamOut& out)
 {
-	throw MARSHAL (MAKE_OMG_MINOR (4));
+	ReferenceLocal::marshal (primary_interface_id (), out);
 }
 
 }

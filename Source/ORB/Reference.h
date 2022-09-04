@@ -1,3 +1,4 @@
+/// \file
 /*
 * Nirvana Core.
 *
@@ -23,25 +24,31 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "ProxyLocal.h"
+#ifndef NIRVANA_ORB_CORE_REFERENCE_H_
+#define NIRVANA_ORB_CORE_REFERENCE_H_
+#pragma once
 
-using namespace Nirvana::Core;
+#include "ProxyManager.h"
+#include "ReferenceLocal.h"
 
 namespace CORBA {
-
-using namespace Internal;
-
 namespace Core {
 
-Boolean ProxyLocal::non_existent ()
+class Reference :
+	public ProxyManager,
+	public ReferenceLocal
 {
-	return servant ()->_non_existent ();
+public:
+	Reference (Internal::String_in primary_iid) :
+		ProxyManager (primary_iid)
+	{}
+
+private:
+	virtual Internal::IORequest::_ref_type create_request (OperationIndex op, UShort flags) override;
+	virtual void marshal (StreamOut& out) override;
+};
+
+}
 }
 
-void ProxyLocal::marshal (StreamOut& out)
-{
-	throw MARSHAL (MAKE_OMG_MINOR (4));
-}
-
-}
-}
+#endif

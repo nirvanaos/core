@@ -38,12 +38,12 @@ namespace Core {
 struct ObjectIdSys
 {
 	void* address;
-	typedef CORBA::Core::ProxyObject::Timestamp Timestamp;
+	typedef CORBA::Core::ReferenceLocal::Timestamp Timestamp;
 	Timestamp timestamp;
 
-	ObjectIdSys (CORBA::Core::ProxyObject& proxy) :
-		address (&proxy),
-		timestamp (proxy.timestamp ())
+	ObjectIdSys (CORBA::Core::ReferenceLocal& reference) :
+		address (&reference),
+		timestamp (reference.timestamp ())
 	{}
 
 	size_t hash () const NIRVANA_NOEXCEPT
@@ -103,9 +103,17 @@ class NIRVANA_NOVTABLE POA_RetainSystem : public POA_Retain
 
 public:
 	virtual void destroy (bool etherealize_objects, bool wait_for_completion) override;
+	
+	// Object activation and deactivation
 	virtual ObjectId activate_object (CORBA::Object::_ptr_type p_servant) override;
 	virtual void activate_object_with_id (const ObjectId& oid, CORBA::Object::_ptr_type p_servant) override;
 	virtual void deactivate_object (const ObjectId& oid) override;
+
+	// Reference creation operations
+	virtual CORBA::Object::_ref_type create_reference (const CORBA::RepositoryId& intf) override;
+	virtual CORBA::Object::_ref_type create_reference_with_id (const ObjectId& oid, const CORBA::RepositoryId& intf) override;
+	
+	// Identity mapping operations:
 	virtual CORBA::Object::_ref_type id_to_reference (const ObjectId& oid) override;
 
 protected:
@@ -134,9 +142,13 @@ class NIRVANA_NOVTABLE POA_RetainSystemUnique : public POA_RetainSystem
 
 public:
 	virtual void destroy (bool etherealize_objects, bool wait_for_completion) override;
+
+	// Object activation and deactivation
 	virtual ObjectId activate_object (CORBA::Object::_ptr_type p_servant) override;
 	virtual void activate_object_with_id (const ObjectId& oid, CORBA::Object::_ptr_type p_servant) override;
 	virtual void deactivate_object (const ObjectId& oid) override;
+
+	// Identity mapping operations:
 	virtual ObjectId servant_to_id (CORBA::Object::_ptr_type p_servant) override;
 	virtual CORBA::Object::_ref_type servant_to_reference (CORBA::Object::_ptr_type p_servant) override;
 

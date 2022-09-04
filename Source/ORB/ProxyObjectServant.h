@@ -1,3 +1,4 @@
+/// \file
 /*
 * Nirvana Core.
 *
@@ -23,25 +24,32 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "ProxyLocal.h"
+#ifndef NIRVANA_ORB_CORE_PROXYOBJECTSERVANT_H_
+#define NIRVANA_ORB_CORE_PROXYOBJECTSERVANT_H_
+#pragma once
 
-using namespace Nirvana::Core;
+#include "ProxyObjectDGC.h"
 
 namespace CORBA {
-
-using namespace Internal;
-
 namespace Core {
 
-Boolean ProxyLocal::non_existent ()
+class ProxyObjectServant : public ProxyObjectDGC
 {
-	return servant ()->_non_existent ();
+	typedef ProxyObjectDGC Base;
+
+public:
+	virtual void activate (PortableServer::Core::ObjectKeyRef&& key) NIRVANA_NOEXCEPT override;
+
+protected:
+	ProxyObjectServant (PortableServer::Servant servant) :
+		Base (servant)
+	{}
+
+private:
+	virtual void add_ref_1 () override;
+};
+
+}
 }
 
-void ProxyLocal::marshal (StreamOut& out)
-{
-	throw MARSHAL (MAKE_OMG_MINOR (4));
-}
-
-}
-}
+#endif

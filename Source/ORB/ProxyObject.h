@@ -29,30 +29,32 @@
 #pragma once
 
 #include "ServantProxyBase.h"
-#include "ObjectKey.h"
-#include "../LockableRef.h"
-#include <atomic>
+#include "ReferenceLocal.h"
 
 namespace CORBA {
 namespace Core {
 
 /// Server-side object reference.
 class ProxyObject :
-	public ServantProxyBase
+	public ServantProxyBase,
+	public ReferenceLocal
 {
 	typedef ServantProxyBase Base;
-	class Deactivator;
 
 public:
+	typedef PortableServer::ServantBase ServantInterface;
+
 	///@{
 	/// Called from the POA synchronization domain.
 	/// So calls to activate () and deactivate () are always serialized.
-	void activate (PortableServer::Core::ObjectKeyRef&& key) NIRVANA_NOEXCEPT;
-	void deactivate () NIRVANA_NOEXCEPT;
-
-	PortableServer::Core::ObjectKeyRef object_key () NIRVANA_NOEXCEPT
+	virtual void activate (PortableServer::Core::ObjectKeyRef&& key) NIRVANA_NOEXCEPT
 	{
-		return object_key_.get ();
+		ReferenceLocal::object_key (std::move (key));
+	}
+
+	virtual void deactivate () NIRVANA_NOEXCEPT
+	{
+		object_key_.reset ();
 	}
 
 	///@}
@@ -63,65 +65,13 @@ public:
 		return static_cast <PortableServer::ServantBase*> (&Base::servant ());
 	}
 
-	/// The unique stamp is assigned when object reference is created.
-	/// The timestamp together with the ProxyObject pointer let to create
-	/// the unique system id for the reference.
-	typedef int Timestamp;
-	Timestamp timestamp () const NIRVANA_NOEXCEPT
-	{
-		return timestamp_;
-	}
-
-	static void initialize () NIRVANA_NOEXCEPT
-	{
-		next_timestamp_ = (Timestamp)(Nirvana::Core::Chrono::UTC ().time () / TimeBase::SECOND);
-	}
-
 protected:
 	ProxyObject (PortableServer::Servant servant);
 	ProxyObject (const ProxyObject& src);
 
-	~ProxyObject ()
-	{}
-
 private:
-	enum ActivationState
-	{
-		INACTIVE,
-		ACTIVATION,
-		ACTIVE,
-		DEACTIVATION_SCHEDULED,
-		DEACTIVATION_CANCELLED
-	};
-
-	virtual void add_ref_1 () override;
-	virtual void _remove_ref () NIRVANA_NOEXCEPT override;
-	template <class> friend class Nirvana::Core::CoreRef;
-
-	void implicit_deactivate ();
-
-	void marshal_object_key (StreamOut& out)
-	{
-		PortableServer::Core::ObjectKeyRef ref = object_key_.get ();
-		if (!ref)
-			throw OBJECT_NOT_EXIST (MAKE_OMG_MINOR (1));
-		ref->marshal (out);
-	}
-
-	bool change_state (ActivationState from, ActivationState to) NIRVANA_NOEXCEPT
-	{
-		return activation_state_.compare_exchange_strong (from, to);
-	}
-
 	virtual Boolean non_existent () override;
-
-private:
-	Timestamp timestamp_;
-	std::atomic <ActivationState> activation_state_;
-	PortableServer::POA::_ref_type implicit_POA_;
-	Nirvana::Core::LockableRef <PortableServer::Core::ObjectKeyImpl> object_key_;
-
-	static std::atomic <Timestamp> next_timestamp_;
+	virtual void marshal (StreamOut& out) override;
 };
 
 template <class Base>

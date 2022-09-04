@@ -418,6 +418,12 @@ void ProxyManager::rq_is_a (ProxyManager* servant, IORequest::_ptr_type _rq)
 	Type <Boolean>::marshal_out (ret, _rq);
 }
 
+Boolean ProxyManager::non_existent ()
+{
+	assert (false); // Must not be called in this class.
+	return false;
+}
+
 void ProxyManager::rq_non_existent (ProxyManager* servant, CORBA::Internal::IORequest::_ptr_type _rq)
 {
 	_rq->unmarshal_end ();

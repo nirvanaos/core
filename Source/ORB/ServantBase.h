@@ -35,20 +35,13 @@ namespace PortableServer {
 namespace Core {
 
 /// \brief Core implementation of ServantBase default operations.
-class ServantBase final :
-	public CORBA::Core::CoreImpl <ServantBase, PortableServer::ServantBase,
-		CORBA::Core::ProxyObject>
+class NIRVANA_NOVTABLE ServantBase :
+	public CORBA::Core::CoreServant <ServantBase, CORBA::Core::ProxyObject>
 {
-	typedef CORBA::Core::CoreImpl <ServantBase, PortableServer::ServantBase,
-		CORBA::Core::ProxyObject> Base;
-public:
-	using Skeleton <ServantBase, PortableServer::ServantBase>::__get_interface;
-	using Skeleton <ServantBase, PortableServer::ServantBase>::__is_a;
+	typedef CORBA::Core::CoreServant <ServantBase, CORBA::Core::ProxyObject> Base;
 
-	ServantBase (Servant servant) :
-		Base (servant)
-	{
-	}
+public:
+	static ServantBase* create (Servant user_servant);
 
 	// ServantBase default implementation
 
@@ -63,13 +56,25 @@ public:
 		return POA_Root::get_root ();
 	}
 
-	bool _non_existent () const
+	CORBA::InterfaceDef::_ref_type _get_interface ()
+	{
+		return proxy ()._get_interface ();
+	}
+
+	bool _is_a (const IDL::String& type_id)
+	{
+		return proxy ()._is_a (type_id);
+	}
+
+	static bool _non_existent ()
 	{
 		return false;
 	}
 
-private:
-	static POA* default_POA_;
+protected:
+	ServantBase (CORBA::Core::ProxyObject& proxy) :
+		Base (proxy)
+	{}
 };
 
 }

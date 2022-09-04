@@ -40,6 +40,8 @@ class ProxyLocal :
 	typedef ServantProxyBase Base;
 
 public:
+	typedef CORBA::LocalObject ServantInterface;
+
 	Bridge <Object>* _get_object (Internal::Type <IDL::String>::ABI_in iid, Interface* env) NIRVANA_NOEXCEPT
 	{
 		return static_cast <Bridge <Object>*> (Base::_s_get_object (this, iid, env));
@@ -58,6 +60,7 @@ protected:
 
 private:
 	virtual Boolean non_existent () override;
+	virtual void marshal (StreamOut& out) override;
 };
 
 /// Get proxy for local object.

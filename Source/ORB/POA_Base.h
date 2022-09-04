@@ -179,7 +179,7 @@ public:
 		throw WrongPolicy ();
 	}
 
-	// operations for the USE_DEFAULT_SERVANT policy
+	// Operations for the USE_DEFAULT_SERVANT policy
 
 	virtual CORBA::Object::_ref_type get_servant ()
 	{
@@ -191,21 +191,14 @@ public:
 		throw WrongPolicy ();
 	}
 
-	// object activation and deactivation
+	// Object activation and deactivation
 	virtual ObjectId activate_object (CORBA::Object::_ptr_type p_servant) = 0;
 	virtual void activate_object_with_id (const ObjectId& oid, CORBA::Object::_ptr_type p_servant) = 0;
 	virtual void deactivate_object (const ObjectId& oid) = 0;
 
-	// reference creation operations
-	CORBA::Object::_ref_type create_reference (const CORBA::RepositoryId& intf)
-	{
-		throw CORBA::NO_IMPLEMENT ();
-	}
-
-	CORBA::Object::_ref_type create_reference_with_id (const ObjectId& oid, const CORBA::RepositoryId& intf)
-	{
-		throw CORBA::NO_IMPLEMENT ();
-	}
+	// Reference creation operations
+	virtual CORBA::Object::_ref_type create_reference (const CORBA::RepositoryId& intf) = 0;
+	virtual CORBA::Object::_ref_type create_reference_with_id (const ObjectId& oid, const CORBA::RepositoryId& intf) = 0;
 
 	// Identity mapping operations:
 	virtual ObjectId servant_to_id (CORBA::Object::_ptr_type p_servant);

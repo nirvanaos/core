@@ -35,21 +35,29 @@ namespace CORBA {
 namespace Core {
 
 /// \brief Core implementation of LocalObject default operations.
-class LocalObject final :
-	public CoreImpl <LocalObject, CORBA::LocalObject, ProxyLocal>
+class LocalObject :
+	public CoreServant <LocalObject, ProxyLocal>
 {
-	typedef CoreImpl <LocalObject, CORBA::LocalObject, ProxyLocal> Base;
+	typedef CoreServant <LocalObject, ProxyLocal> Base;
 public:
-	LocalObject (CORBA::LocalObject::_ptr_type servant) :
-		Base (servant)
-	{}
+	static LocalObject* create (CORBA::LocalObject::_ptr_type user_servant);
 
 	// LocalObject default implementation
 
-	Boolean _non_existent () const
+	static Boolean _non_existent () NIRVANA_NOEXCEPT
 	{
 		return false;
 	}
+
+	Bridge <Object>* _get_object (Internal::Type <IDL::String>::ABI_in iid, Interface* env) NIRVANA_NOEXCEPT
+	{
+		return proxy ()._get_object (iid, env);
+	}
+
+protected:
+	LocalObject (ProxyLocal& proxy) :
+		Base (proxy)
+	{}
 };
 
 }

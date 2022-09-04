@@ -44,6 +44,8 @@
 namespace CORBA {
 namespace Core {
 
+class StreamOut;
+
 /// \brief Base for all proxies.
 class ProxyManager :
 	public Nirvana::Core::SharedObject,
@@ -211,6 +213,8 @@ public:
 		return nullptr;
 	}
 
+	// Misc
+
 	Internal::IOReference::OperationIndex find_operation (const IDL::String& name) const;
 
 	void invoke (Internal::IOReference::OperationIndex op, Internal::IORequest::_ptr_type rq) NIRVANA_NOEXCEPT;
@@ -232,6 +236,16 @@ public:
 		return op.interface_idx () == 0 && op.operation_idx () != (UShort)ObjectOp::NON_EXISTENT;
 	}
 
+	virtual void marshal (StreamOut& out) = 0;
+
+	const Internal::StringBase <Char> primary_interface_id () const NIRVANA_NOEXCEPT
+	{
+		if (primary_interface_)
+			return Internal::StringBase <Char> (primary_interface_->iid, primary_interface_->iid_len);
+		else
+			return Internal::StringBase <Char> (Internal::RepIdOf <Object>::id);
+	}
+
 protected:
 	ProxyManager (Internal::String_in primary_iid);
 	
@@ -248,8 +262,6 @@ protected:
 	{
 		return &static_cast <Internal::IOReference&> (static_cast <Internal::Bridge <Internal::IOReference>&> (*this));
 	}
-
-	virtual Boolean non_existent () = 0;
 
 	struct InterfaceEntry
 	{
@@ -308,6 +320,7 @@ private:
 	Boolean is_a (const IDL::String& type_id) const;
 	static void rq_is_a (ProxyManager* servant, CORBA::Internal::IORequest::_ptr_type _rq);
 
+	virtual Boolean non_existent ();
 	static void rq_non_existent (ProxyManager* servant, CORBA::Internal::IORequest::_ptr_type _rq);
 
 	IDL::String repository_id () const

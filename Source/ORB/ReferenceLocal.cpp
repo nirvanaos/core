@@ -23,24 +23,21 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "ProxyLocal.h"
-
-using namespace Nirvana::Core;
+#include "ReferenceLocal.h"
 
 namespace CORBA {
-
-using namespace Internal;
-
 namespace Core {
 
-Boolean ProxyLocal::non_existent ()
-{
-	return servant ()->_non_existent ();
-}
+Nirvana::Core::StaticallyAllocated <Nirvana::Core::AtomicCounter <false> > ReferenceLocal::next_timestamp_;
 
-void ProxyLocal::marshal (StreamOut& out)
+void ReferenceLocal::marshal (Internal::String_in primary_iid, StreamOut& out) const
 {
-	throw MARSHAL (MAKE_OMG_MINOR (4));
+	out.write_string (static_cast <const IDL::String&> (primary_iid));
+	throw NO_IMPLEMENT (); // TODO: Implement.
+	PortableServer::Core::ObjectKeyRef ref = object_key_.get ();
+	if (!ref)
+		throw OBJECT_NOT_EXIST (MAKE_OMG_MINOR (1));
+	ref->marshal (out);
 }
 
 }

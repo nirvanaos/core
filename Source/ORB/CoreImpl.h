@@ -36,6 +36,75 @@ namespace CORBA {
 namespace Core {
 
 /// \brief Core implementation of ServantBase and LocalObject.
+/// 
+/// \tparam S Servant implementation derived from this.
+/// \tparam Proxy Proxy type.
+template <class S, class Proxy>
+class NIRVANA_NOVTABLE CoreServant :
+	public LifeCycleNoCopy <S>,
+	public Internal::ServantTraits <S>,
+	public Internal::ValueImplBase <S, typename Proxy::ServantInterface>
+{
+public:
+	typedef typename Proxy::ServantInterface PrimaryInterface;
+
+	Internal::I_ptr <PrimaryInterface> _get_ptr () NIRVANA_NOEXCEPT
+	{
+		return Internal::I_ptr <PrimaryInterface> (&static_cast <PrimaryInterface&> (
+			static_cast <Internal::Bridge <PrimaryInterface>&> (*this)));
+	}
+
+	Proxy& proxy () NIRVANA_NOEXCEPT
+	{
+		return proxy_;
+	}
+
+	static void __delete_object (Internal::Bridge <PrimaryInterface>* obj, Internal::Interface* env)
+	{
+		assert (false);
+	}
+
+	void _add_ref () NIRVANA_NOEXCEPT
+	{
+		ref_cnt_.increment ();
+	}
+
+	void _remove_ref () NIRVANA_NOEXCEPT
+	{
+		if (0 == ref_cnt_.decrement_seq ()) {
+			try {
+				proxy_.servant ()->_delete_object ();
+			} catch (...) {
+				assert (false); // TODO: Swallow exception or log
+			}
+		}
+	}
+
+	ULong _refcount_value () const NIRVANA_NOEXCEPT
+	{
+		Nirvana::Core::RefCounter::IntegralType ucnt = ref_cnt_;
+		return ucnt > std::numeric_limits <ULong>::max () ? std::numeric_limits <ULong>::max () : (ULong)ucnt;
+	}
+
+	Internal::Interface* _query_interface (const IDL::String& type_id) const
+	{
+		return proxy_._query_interface (type_id);
+	}
+
+protected:
+	CoreServant (Proxy& proxy) :
+		proxy_ (proxy)
+	{}
+
+	virtual ~CoreServant ()
+	{}
+
+private:
+	Nirvana::Core::RefCounter ref_cnt_;
+	Proxy& proxy_;
+};
+
+/// \brief Core implementation of ServantBase and LocalObject.
 template <class T, class I, class Proxy>
 class CoreImpl :
 	public Proxy,
@@ -47,10 +116,10 @@ public:
 	typedef I PrimaryInterface;
 
 	using Internal::ServantTraits <T>::_implementation;
+	using Internal::ServantTraits <T>::_wide_object;
 	using LifeCycleNoCopy <T>::__duplicate;
 	using LifeCycleNoCopy <T>::__release;
 	using Internal::Skeleton <T, I>::__non_existent;
-	using Internal::ServantTraits <T>::_wide_object;
 	using Internal::Skeleton <T, I>::__query_interface;
 
 	template <class Base, class Derived>

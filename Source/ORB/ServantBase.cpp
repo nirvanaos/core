@@ -24,6 +24,7 @@
 *  popov.nirvana@gmail.com
 */
 #include "ServantBase.h"
+#include "ProxyObjectServant.h"
 #include <CORBA/Proxy/TypeCodeNative.h>
 
 using namespace CORBA::Internal;
@@ -35,6 +36,22 @@ namespace PortableServer {
 namespace Core {
 
 typedef TypeCodeNative <PortableServer::ServantBase> TC_Servant;
+
+class ServantBaseImpl :
+	public ServantBase,
+	public CORBA::Core::ProxyObjectServant
+{
+public:
+	ServantBaseImpl (Servant user_servant) :
+		ServantBase (static_cast <CORBA::Core::ProxyObjectServant&> (*this)),
+		CORBA::Core::ProxyObjectServant (user_servant)
+	{}
+};
+
+ServantBase* ServantBase::create (Servant user_servant)
+{
+	return new ServantBaseImpl (user_servant);
+}
 
 }
 }

@@ -89,8 +89,15 @@ public:
 	template <typename C>
 	void write_string (Internal::StringT <C>& s, bool move);
 
-	template <class Al>
-	void write_string (const std::basic_string <Char, std::char_traits <Char>, Al>& s);
+	/// Write string.
+	/// 
+	/// \tparam C The character type.
+	/// \param s The string.
+	template <typename C>
+	void write_string (const Internal::StringT <C>& s)
+	{
+		write_string (const_cast <Internal::StringT <C>&> (s), false);
+	}
 
 	/// Write size of sequence or string.
 	/// \param size The size.
@@ -107,11 +114,23 @@ public:
 	void write_seq (size_t align, size_t element_size, size_t element_count, void* data,
 		size_t& allocated_size);
 
+	/// Write CDR sequence.
+	///
+	/// \tparam T Type of the sequence element.
+	/// \param s The sequence.
+	/// \param move If `true`, use move semantic.
 	template <typename T>
 	void write_seq (IDL::Sequence <T>& s, bool move);
 
-	template <typename T, class Al>
-	void write_seq (const std::vector <T, Al>& s);
+	/// Write CDR sequence.
+	///
+	/// \tparam T Type of the sequence element.
+	/// \param s The sequence.
+	template <typename T>
+	void write_seq (const IDL::Sequence <T>& s)
+	{
+		write_seq (const_cast <IDL::Sequence <T>&> (s), false);
+	}
 };
 
 template <typename C>
@@ -137,14 +156,6 @@ void StreamOut::write_string (Internal::StringT <C>& s, bool move)
 		abi.reset ();
 }
 
-template <class Al>
-void StreamOut::write_string (const std::basic_string <Char, std::char_traits <Char>, Al>& s)
-{
-	size_t size = s.size ();
-	write_size (size);
-	write (1, size + 1, s.c_str ());
-}
-
 template <typename T>
 void StreamOut::write_seq (IDL::Sequence <T>& s, bool move)
 {
@@ -158,15 +169,6 @@ void StreamOut::write_seq (IDL::Sequence <T>& s, bool move)
 		size_t zero = 0;
 		write_seq (alignof (T), sizeof (T), abi.size, abi.ptr, zero);
 	}
-}
-
-template <typename T, class Al>
-void write_seq (const std::vector <T, Al>& s)
-{
-	size_t size = s.size ();
-	write_size (size);
-	if (size)
-		write (alignof (T), size * sizeof (T), s.data ());
 }
 
 }
