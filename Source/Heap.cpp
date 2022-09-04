@@ -209,7 +209,7 @@ void Heap::release (void* p, size_t size)
 	}
 }
 
-void* Heap::move (Heap& other, void* p, size_t& size)
+void* Heap::move_from (Heap& other, void* p, size_t& size)
 {
 	if (!p || !size)
 		return nullptr;

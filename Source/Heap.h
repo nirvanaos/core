@@ -168,7 +168,7 @@ public:
 	/// \param p Memory block in \p other.
 	/// \param size Memory block size.
 	/// \returns Pointer of the memory block in this heap.
-	void* move (Heap& other, void* p, size_t& size);
+	void* move_from (Heap& other, void* p, size_t& size);
 
 protected:
 	Heap (size_t allocation_unit = HEAP_UNIT_DEFAULT) NIRVANA_NOEXCEPT;

@@ -341,12 +341,17 @@ IORequest::_ref_type ProxyManager::create_request (IOReference::OperationIndex o
 	UShort response_flags = flags & 3;
 	if (response_flags == 2)
 		throw INV_FLAG ();
+
+	// Do not create new memory context for the trivial object operations.
+	// New memory context may be created only for _get_interface () because it can create a new object.
+	MemContext* memory = (op.operation_idx () == (UShort)ObjectOp::GET_INTERFACE) ? nullptr : &g_shared_mem_context;
+
 	if (flags & IOReference::REQUEST_ASYNC)
 		return make_pseudo <RequestLocalImpl <RequestLocalAsync> > (std::ref (*this), op,
-			nullptr, response_flags);
+			memory, response_flags);
 	else
 		return make_pseudo <RequestLocalImpl <RequestLocal> > (std::ref (*this), op,
-			nullptr, response_flags);
+			memory, response_flags);
 }
 
 void ProxyManager::invoke (IOReference::OperationIndex op, IORequest::_ptr_type rq) NIRVANA_NOEXCEPT

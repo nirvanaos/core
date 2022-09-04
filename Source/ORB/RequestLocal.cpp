@@ -248,16 +248,16 @@ void RequestLocal::marshal_segment (size_t align, size_t element_size,
 		segment->ptr = data;
 		allocated_size = 0;
 	} else {
-		Heap& tm = target_memory ().heap ();
+		Heap& target_heap = target_memory ().heap ();
 		if (allocated_size) {
-			Heap& sm = source_memory ().heap ();
-			segment->ptr = tm.move (sm, data, size);
+			Heap& source_heap = source_memory ().heap ();
+			segment->ptr = target_heap.move_from (source_heap, data, size);
 			size_t cb_release = allocated_size - size;
 			allocated_size = 0;
 			if (cb_release)
-				sm.release ((Octet*)data + size, cb_release);
+				source_heap.release ((Octet*)data + size, cb_release);
 		} else
-			segment->ptr = tm.copy (nullptr, data, size, 0);
+			segment->ptr = target_heap.copy (nullptr, data, size, 0);
 		segment->allocated_size = size;
 	}
 	segment->next = segments_;
@@ -279,8 +279,22 @@ void RequestLocal::unmarshal_segment (void*& data, size_t& allocated_size)
 		throw MARSHAL ();
 	segments_ = (Segment*)(segment->next);
 	cur_ptr_ = (Octet*)(segment + 1);
-	allocated_size = segment->allocated_size;
-	data = segment->ptr;
+
+	void* p = segment->ptr;
+	size_t size = segment->allocated_size;
+
+	Heap& cur_heap = MemContext::current ().heap ();
+	Heap& target_heap = target_memory ().heap ();
+	if (&cur_heap != &target_heap) {
+		try {
+			p = cur_heap.move_from (target_heap, p, size);
+		} catch (...) {
+			target_heap.release (p, size);
+			throw;
+		}
+	}
+	allocated_size = size;
+	data = p;
 }
 
 void RequestLocal::marshal_interface (Interface::_ptr_type itf)
