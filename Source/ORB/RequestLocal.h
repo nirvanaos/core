@@ -39,9 +39,9 @@ namespace Core {
 
 class ServantProxyBase;
 
-class RequestLocal :
-	public servant_traits <Internal::IORequest>::Servant <RequestLocal>,
-	public Internal::LifeCycleRefCnt <RequestLocal>,
+class NIRVANA_NOVTABLE RequestLocalBase :
+	public servant_traits <Internal::IORequest>::Servant <RequestLocalBase>,
+	public Internal::LifeCycleRefCnt <RequestLocalBase>,
 	public Nirvana::Core::UserObject,
 	private RqHelper
 {
@@ -61,11 +61,6 @@ public:
 	}
 
 	virtual void _remove_ref () NIRVANA_NOEXCEPT = 0;
-
-	Internal::IOReference::OperationIndex op_idx () const NIRVANA_NOEXCEPT
-	{
-		return op_idx_;
-	}
 
 	Nirvana::Core::MemContext* memory () const NIRVANA_NOEXCEPT
 	{
@@ -490,12 +485,10 @@ protected:
 		EXCEPTION
 	};
 
-	RequestLocal (ProxyManager& proxy, Internal::IOReference::OperationIndex op_idx,
-		Nirvana::Core::MemContext* callee_memory, UShort response_flags) NIRVANA_NOEXCEPT :
+	RequestLocalBase (Nirvana::Core::MemContext* callee_memory, UShort response_flags)
+		NIRVANA_NOEXCEPT :
 		caller_memory_ (&MemContext::current ()),
 		callee_memory_ (callee_memory),
-		proxy_ (&proxy),
-		op_idx_ (op_idx),
 		state_ (State::CALLER),
 		response_flags_ ((uint8_t)response_flags),
 		first_block_ (nullptr),
@@ -539,12 +532,10 @@ protected:
 
 	void cleanup () NIRVANA_NOEXCEPT;
 
-	ProxyManager* proxy () const NIRVANA_NOEXCEPT
+	State state () const NIRVANA_NOEXCEPT
 	{
-		return proxy_;
+		return state_;
 	}
-
-	void invoke_sync () NIRVANA_NOEXCEPT;
 
 protected:
 	Nirvana::Core::RefCounter ref_cnt_;
@@ -580,14 +571,41 @@ private:
 	void invert_list (Element*& head);
 
 private:
-	CoreRef <ProxyManager> proxy_;
-	Internal::IOReference::OperationIndex op_idx_;
 	State state_;
 	uint8_t response_flags_;
 	BlockHdr* first_block_;
 	BlockHdr* cur_block_;
 	ItfRecord* interfaces_;
 	Segment* segments_;
+};
+
+class NIRVANA_NOVTABLE RequestLocal :
+	public RequestLocalBase
+{
+protected:
+	RequestLocal (ProxyManager& proxy, Internal::IOReference::OperationIndex op_idx,
+		Nirvana::Core::MemContext* callee_memory, UShort response_flags) NIRVANA_NOEXCEPT :
+		RequestLocalBase (callee_memory, response_flags),
+		proxy_ (&proxy),
+		op_idx_ (op_idx)
+	{}
+
+	ProxyManager* proxy () const NIRVANA_NOEXCEPT
+	{
+		return proxy_;
+	}
+
+	Internal::IOReference::OperationIndex op_idx () const NIRVANA_NOEXCEPT
+	{
+		return op_idx_;
+	}
+
+	virtual void invoke () override;
+	void invoke_sync () NIRVANA_NOEXCEPT;
+
+private:
+	CoreRef <ProxyManager> proxy_;
+	Internal::IOReference::OperationIndex op_idx_;
 };
 
 class NIRVANA_NOVTABLE RequestLocalAsync :
@@ -601,6 +619,7 @@ protected:
 		RequestLocal (proxy, op_idx, callee_memory, response_flags)
 	{}
 
+	// Override Runnable::_add_ref ()
 	void _add_ref () NIRVANA_NOEXCEPT
 	{
 		RequestLocal::_add_ref ();
@@ -617,9 +636,9 @@ class RequestLocalImpl :
 	public Base
 {
 public:
-	RequestLocalImpl (ProxyManager& proxy, Internal::IOReference::OperationIndex op_idx,
-		Nirvana::Core::MemContext* callee_memory, UShort response_flags) NIRVANA_NOEXCEPT :
-		Base (proxy, op_idx, callee_memory, response_flags)
+	template <class ... Args>
+	RequestLocalImpl (Args ... args) NIRVANA_NOEXCEPT :
+		Base (std::forward <Args> (args)...)
 	{
 		Base::cur_ptr_ = block_;
 	}

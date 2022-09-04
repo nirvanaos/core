@@ -344,7 +344,8 @@ IORequest::_ref_type ProxyManager::create_request (IOReference::OperationIndex o
 
 	// Do not create new memory context for the trivial object operations.
 	// New memory context may be created only for _get_interface () because it can create a new object.
-	MemContext* memory = (op.operation_idx () == (UShort)ObjectOp::GET_INTERFACE) ? nullptr : &g_shared_mem_context;
+	MemContext* memory = (op.operation_idx () == (UShort)ObjectOp::GET_INTERFACE)
+		? nullptr : &MemContext::current ();
 
 	if (flags & IOReference::REQUEST_ASYNC)
 		return make_pseudo <RequestLocalImpl <RequestLocalAsync> > (std::ref (*this), op,

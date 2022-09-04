@@ -24,6 +24,7 @@
 *  popov.nirvana@gmail.com
 */
 #include "Reference.h"
+#include "RequestLocalPOA.h"
 
 namespace CORBA {
 namespace Core {

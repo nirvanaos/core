@@ -41,10 +41,7 @@ class NIRVANA_NOVTABLE RequestInBase
 	DECLARE_CORE_INTERFACE
 public:
 	/// \returns Target object key.
-	const PortableServer::Core::ObjectKey& object_key () const NIRVANA_NOEXCEPT
-	{
-		return object_key_;
-	}
+	virtual const PortableServer::Core::ObjectKey& object_key () const NIRVANA_NOEXCEPT = 0;
 
 	/// \returns Operation name.
 	const IDL::String& operation () const NIRVANA_NOEXCEPT
@@ -79,7 +76,6 @@ protected:
 	{}
 
 protected:
-	PortableServer::Core::ObjectKey object_key_;
 	IDL::String operation_;
 	std::atomic <bool> cancelled_;
 };

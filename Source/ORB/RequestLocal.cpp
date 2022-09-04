@@ -36,7 +36,7 @@ using namespace Internal;
 
 namespace Core {
 
-MemContext& RequestLocal::target_memory ()
+MemContext& RequestLocalBase::target_memory ()
 {
 	switch (state_) {
 		case State::CALLER:
@@ -50,7 +50,7 @@ MemContext& RequestLocal::target_memory ()
 	}
 }
 
-MemContext& RequestLocal::source_memory ()
+MemContext& RequestLocalBase::source_memory ()
 {
 	switch (state_) {
 		case State::CALLER:
@@ -59,9 +59,7 @@ MemContext& RequestLocal::source_memory ()
 
 		default:
 			if (!callee_memory_) {
-				ExecDomain& ed = ExecDomain::current ();
-				if (&ed.sync_context () == &proxy_->get_sync_context (op_idx_))
-					callee_memory_ = ed.mem_context_ptr ();
+				callee_memory_ = ExecDomain::current ().mem_context_ptr ();
 				if (!callee_memory_)
 					throw MARSHAL ();
 			}
@@ -69,7 +67,7 @@ MemContext& RequestLocal::source_memory ()
 	}
 }
 
-bool RequestLocal::marshal_op () NIRVANA_NOEXCEPT
+bool RequestLocalBase::marshal_op () NIRVANA_NOEXCEPT
 {
 	if (State::CALL == state_) {
 		// Leave sync domain, if any.
@@ -83,14 +81,14 @@ bool RequestLocal::marshal_op () NIRVANA_NOEXCEPT
 		|| (state_ == State::EXCEPTION && response_flags_);
 }
 
-void RequestLocal::rewind () NIRVANA_NOEXCEPT
+void RequestLocalBase::rewind () NIRVANA_NOEXCEPT
 {
 	invert_list ((Element*&)interfaces_);
 	invert_list ((Element*&)segments_);
 	reset ();
 }
 
-void RequestLocal::invert_list (Element*& head)
+void RequestLocalBase::invert_list (Element*& head)
 {
 	Element* p = head;
 	Element* tail = nullptr;
@@ -103,7 +101,7 @@ void RequestLocal::invert_list (Element*& head)
 	head = tail;
 }
 
-void RequestLocal::cleanup () NIRVANA_NOEXCEPT
+void RequestLocalBase::cleanup () NIRVANA_NOEXCEPT
 {
 	{
 		const ItfRecord* p = interfaces_;
@@ -135,7 +133,7 @@ void RequestLocal::cleanup () NIRVANA_NOEXCEPT
 	}
 }
 
-void RequestLocal::write (size_t align, size_t size, const void* data)
+void RequestLocalBase::write (size_t align, size_t size, const void* data)
 {
 	if (!size)
 		return;
@@ -164,7 +162,7 @@ void RequestLocal::write (size_t align, size_t size, const void* data)
 	cur_ptr_ = dst;
 }
 
-void RequestLocal::allocate_block (size_t align, size_t size)
+void RequestLocalBase::allocate_block (size_t align, size_t size)
 {
 	size_t data_offset = round_up (sizeof (BlockHdr), align);
 	size_t block_size = max (BLOCK_SIZE, data_offset + size);
@@ -179,7 +177,7 @@ void RequestLocal::allocate_block (size_t align, size_t size)
 	cur_ptr_ = (Octet*)block + data_offset;
 }
 
-void RequestLocal::read (size_t align, size_t size, void* data)
+void RequestLocalBase::read (size_t align, size_t size, void* data)
 {
 	if (!size)
 		return;
@@ -211,7 +209,7 @@ void RequestLocal::read (size_t align, size_t size, void* data)
 	cur_ptr_ = (Octet*)src;
 }
 
-void RequestLocal::next_block ()
+void RequestLocalBase::next_block ()
 {
 	if (!cur_block_)
 		cur_block_ = first_block_;
@@ -222,7 +220,7 @@ void RequestLocal::next_block ()
 	cur_ptr_ = (Octet*)(cur_block_ + 1);
 }
 
-RequestLocal::Element* RequestLocal::get_element_buffer (size_t size)
+RequestLocal::Element* RequestLocalBase::get_element_buffer (size_t size)
 {
 	const Octet* block_end = cur_block_end ();
 	Octet* dst = round_up (cur_ptr_, alignof (Element));
@@ -235,7 +233,7 @@ RequestLocal::Element* RequestLocal::get_element_buffer (size_t size)
 	return (Element*)dst;
 }
 
-void RequestLocal::marshal_segment (size_t align, size_t element_size,
+void RequestLocalBase::marshal_segment (size_t align, size_t element_size,
 	size_t element_count, void* data, size_t& allocated_size)
 {
 	assert (element_count);
@@ -264,7 +262,7 @@ void RequestLocal::marshal_segment (size_t align, size_t element_size,
 	segments_ = segment;
 }
 
-void RequestLocal::unmarshal_segment (void*& data, size_t& allocated_size)
+void RequestLocalBase::unmarshal_segment (void*& data, size_t& allocated_size)
 {
 	if (!segments_)
 		throw MARSHAL (MARSHAL_MINOR_FEWER);
@@ -297,7 +295,7 @@ void RequestLocal::unmarshal_segment (void*& data, size_t& allocated_size)
 	data = p;
 }
 
-void RequestLocal::marshal_interface (Interface::_ptr_type itf)
+void RequestLocalBase::marshal_interface (Interface::_ptr_type itf)
 {
 	if (marshal_op ()) {
 		if (itf) {
@@ -319,7 +317,7 @@ void RequestLocal::marshal_interface (Interface::_ptr_type itf)
 	}
 }
 
-Interface::_ref_type RequestLocal::unmarshal_interface (const IDL::String& interface_id)
+Interface::_ref_type RequestLocalBase::unmarshal_interface (const IDL::String& interface_id)
 {
 	Interface** pitf = (Interface**)round_up (cur_ptr_, alignof (Interface*));
 	const Octet* block_end = cur_block_end ();
@@ -348,7 +346,7 @@ Interface::_ref_type RequestLocal::unmarshal_interface (const IDL::String& inter
 	return move ((Interface::_ref_type&)(itf_rec->ptr));
 }
 
-void RequestLocal::marshal_value_copy (ValueBase::_ptr_type base, const IDL::String& interface_id)
+void RequestLocalBase::marshal_value_copy (ValueBase::_ptr_type base, const IDL::String& interface_id)
 {
 	ExecDomain& ed = ExecDomain::current ();
 	ed.mem_context_push (&target_memory ());
@@ -365,8 +363,15 @@ void RequestLocal::marshal_value_copy (ValueBase::_ptr_type base, const IDL::Str
 	ed.mem_context_pop ();
 }
 
+void RequestLocalBase::invoke ()
+{
+	rewind ();
+	state_ = State::CALL;
+}
+
 void RequestLocal::invoke ()
 {
+	RequestLocalBase::invoke ();
 	// We don't need to handle exceptions here, because invoke_sync ()
 	// does not throw exceptions.
 	Nirvana::Core::Synchronized _sync_frame (proxy ()->get_sync_context (op_idx ()), memory ());
@@ -375,13 +380,13 @@ void RequestLocal::invoke ()
 
 void RequestLocal::invoke_sync () NIRVANA_NOEXCEPT
 {
-	rewind ();
-	state_ = State::CALL;
+	assert (State::CALL == state ()); // RequestLocalBase::invoke () must be called
 	proxy ()->invoke (op_idx (), _get_ptr ());
 }
 
 void RequestLocalAsync::invoke ()
 {
+	RequestLocalBase::invoke ();
 	const ExecDomain& ed = ExecDomain::current ();
 	const System::DeadlinePolicy& dp = response_flags () ? ed.deadline_policy_async () : ed.deadline_policy_oneway ();
 	DeadlineTime dl = INFINITE_DEADLINE;

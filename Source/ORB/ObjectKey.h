@@ -110,6 +110,11 @@ public:
 		key_.marshal (out);
 	}
 
+	operator const ObjectKey& () const NIRVANA_NOEXCEPT
+	{
+		return key_;
+	}
+
 protected:
 	ObjectKeyShared (ObjectKey&& key) NIRVANA_NOEXCEPT;
 	~ObjectKeyShared ();

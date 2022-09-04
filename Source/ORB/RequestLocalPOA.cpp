@@ -1,4 +1,3 @@
-/// \file
 /*
 * Nirvana Core.
 *
@@ -24,33 +23,20 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_ORB_CORE_REFERENCE_H_
-#define NIRVANA_ORB_CORE_REFERENCE_H_
-#pragma once
-
-#include "ProxyManager.h"
-#include "ReferenceLocal.h"
+#include "RequestLocalPOA.h"
+#include "POA_Root.h"
 
 namespace CORBA {
 namespace Core {
 
-class Reference :
-	public ProxyManager,
-	public ReferenceLocal
+void RequestLocalPOA::serve_request (ProxyObject& proxy)
 {
-public:
-	Reference (Internal::String_in primary_iid) :
-		ProxyManager (primary_iid)
-	{}
+}
 
-	virtual Internal::IORequest::_ref_type create_request (OperationIndex op, UShort flags) override;
-	Internal::IORequest::_ref_type create_request (const IDL::String& op, UShort flags);
-
-private:
-	virtual void marshal (StreamOut& out) override;
-};
+void RequestLocalPOA::invoke ()
+{
+	PortableServer::Core::POA_Root::invoke (*this);
+}
 
 }
 }
-
-#endif

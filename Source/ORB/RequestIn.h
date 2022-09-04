@@ -89,6 +89,11 @@ public:
 		return service_context_;
 	}
 
+	virtual const PortableServer::Core::ObjectKey& object_key () const NIRVANA_NOEXCEPT override
+	{
+		return object_key_;
+	}
+
 	/// Cancel the request.
 	/// Called from the IncomingRequests class.
 	/// Request is already removed from map on this call.
@@ -141,6 +146,8 @@ protected:
 	unsigned GIOP_minor_;
 
 private:
+	PortableServer::Core::ObjectKey object_key_;
+
 	/// ExecDomain pointer if request is in cancellable state, otherwise `nullptr`.
 	Nirvana::Core::ExecDomain* exec_domain_;
 
