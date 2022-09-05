@@ -85,6 +85,8 @@ void ServantProxyBase::_add_ref ()
 			add_ref_1 ();
 			SYNC_END ();
 		} catch (...) {
+			if (mod)
+				mod->_remove_ref ();
 			ref_cnt_proxy_.decrement ();
 			throw;
 		}
