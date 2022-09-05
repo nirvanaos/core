@@ -28,7 +28,7 @@
 namespace Nirvana {
 namespace Core {
 
-Binary* Singleton::binary () NIRVANA_NOEXCEPT
+Module* Singleton::module () NIRVANA_NOEXCEPT
 {
 	return this;
 }

@@ -25,6 +25,7 @@
 */
 #include "ServantProxyBase.h"
 #include "RequestLocal.h"
+#include "../Module.h"
 
 using namespace Nirvana::Core;
 
@@ -42,6 +43,10 @@ public:
 	void run ()
 	{
 		interface_release (&servant_);
+		// Unlock module.
+		Module* mod = SyncContext::current ().module ();
+		if (mod)
+			mod->_remove_ref ();
 	}
 
 protected:
@@ -70,6 +75,11 @@ void ServantProxyBase::_add_ref ()
 {
 	RefCnt::IntegralType cnt = ref_cnt_proxy_.increment_seq ();
 	if (1 == cnt) {
+		// Lock module to prevent the binary unloading while there are references
+		// to a servant proxy.
+		Module* mod = sync_context_->module ();
+		if (mod)
+			mod->_add_ref ();
 		try {
 			SYNC_BEGIN (*sync_context_, nullptr);
 			add_ref_1 ();

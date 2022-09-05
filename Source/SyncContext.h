@@ -38,7 +38,7 @@ class Heap;
 class ExecDomain;
 class SyncDomain;
 class MemContext;
-class Binary;
+class Module;
 
 /// Synchronization context pure interface.
 /// Synchronization context may be associated with:
@@ -71,13 +71,13 @@ public:
 	///          Other sync contexts return `nullptr`.
 	virtual Heap* stateless_memory () NIRVANA_NOEXCEPT;
 
-	/// Each sync context associated with some Binary (Module or Executable).
+	/// Returns the Module object associated with this context.
 	/// 
-	/// \returns Pointer to the Binary object.
-	///          SyncContextCore returns `nullptr`.
-	virtual Binary* binary () NIRVANA_NOEXCEPT = 0;
+	/// \returns Pointer to the Module object.
+	///          Core and legacy executable contexts return `nullptr`.
+	virtual Module* module () NIRVANA_NOEXCEPT = 0;
 
-	/// Raise system exception in the module.
+	/// Raise system exception in the binary object (Module or Executable).
 	/// 
 	/// \code  System exception code.
 	/// \minor System exception minor code.
@@ -98,7 +98,7 @@ class SyncContextCore :
 {
 public:
 	virtual Heap* stateless_memory () NIRVANA_NOEXCEPT;
-	virtual Binary* binary () NIRVANA_NOEXCEPT;
+	virtual Module* module () NIRVANA_NOEXCEPT;
 	virtual void raise_exception (CORBA::SystemException::Code code, unsigned minor);
 };
 

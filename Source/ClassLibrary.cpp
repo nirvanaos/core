@@ -76,7 +76,7 @@ Heap* ClassLibrary::stateless_memory () NIRVANA_NOEXCEPT
 	return &heap ();
 }
 
-Binary* ClassLibrary::binary () NIRVANA_NOEXCEPT
+Module* ClassLibrary::module () NIRVANA_NOEXCEPT
 {
 	return this;
 }

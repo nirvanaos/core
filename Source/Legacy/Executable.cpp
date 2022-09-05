@@ -50,9 +50,9 @@ void Executable::unbind () NIRVANA_NOEXCEPT
 	}
 }
 
-Nirvana::Core::Binary* Executable::binary () NIRVANA_NOEXCEPT
+Nirvana::Core::Module* Executable::module () NIRVANA_NOEXCEPT
 {
-	return this;
+	return nullptr;
 }
 
 void Executable::raise_exception (CORBA::SystemException::Code code, unsigned minor)

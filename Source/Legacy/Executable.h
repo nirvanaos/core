@@ -52,7 +52,7 @@ public:
 		return (int)entry_point_->main (argc, argv, envp);
 	}
 
-	virtual Nirvana::Core::Binary* binary () NIRVANA_NOEXCEPT;
+	virtual Nirvana::Core::Module* module () NIRVANA_NOEXCEPT;
 	virtual void raise_exception (CORBA::SystemException::Code code, unsigned minor);
 
 	void unbind () NIRVANA_NOEXCEPT;

@@ -169,7 +169,7 @@ protected:
 	{}
 
 	// SyncContext::
-	virtual Binary* binary () NIRVANA_NOEXCEPT;
+	virtual Module* module () NIRVANA_NOEXCEPT;
 	virtual void raise_exception (CORBA::SystemException::Code code, unsigned minor);
 
 private:

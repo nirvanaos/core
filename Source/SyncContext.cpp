@@ -52,7 +52,7 @@ Heap* SyncContextCore::stateless_memory () NIRVANA_NOEXCEPT
 	return &g_core_heap;
 }
 
-Binary* SyncContextCore::binary () NIRVANA_NOEXCEPT
+Module* SyncContextCore::module () NIRVANA_NOEXCEPT
 {
 	return nullptr;
 }
