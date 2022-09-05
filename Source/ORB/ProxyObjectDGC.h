@@ -33,6 +33,9 @@
 namespace CORBA {
 namespace Core {
 
+/// \brief Server-side Object proxy with implicit deactivation.
+/// 
+/// This object is involved in Distributed Garbage Collection (DGC).
 class ProxyObjectDGC : public ProxyObject
 {
 	typedef ProxyObject Base;
@@ -42,11 +45,6 @@ public:
 	virtual void deactivate () NIRVANA_NOEXCEPT override;
 
 protected:
-	ProxyObjectDGC (PortableServer::Servant servant) :
-		Base (servant),
-		activation_state_ (ActivationState::INACTIVE)
-	{}
-
 	ProxyObjectDGC (PortableServer::Servant servant, PortableServer::POA::_ptr_type adapter);
 	ProxyObjectDGC (const ProxyObject& src, PortableServer::POA::_ptr_type adapter);
 

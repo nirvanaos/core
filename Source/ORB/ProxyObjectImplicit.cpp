@@ -23,7 +23,7 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "ProxyObjectServant.h"
+#include "ProxyObjectImplicit.h"
 #include "POA_Base.h"
 
 namespace CORBA {
@@ -32,17 +32,11 @@ namespace Core {
 // Called in the servant synchronization context.
 // Note that sync context may be out of synchronization domain
 // for the stateless objects.
-void ProxyObjectServant::add_ref_1 ()
+void ProxyObjectImplicit::add_ref_1 ()
 {
 	Base::add_ref_1 ();
 
 	if (!change_state (DEACTIVATION_SCHEDULED, DEACTIVATION_CANCELLED)) {
-		if (!adapter_) {
-			PortableServer::POA::_ref_type adapter = servant ()->_default_POA ();
-			if (!PortableServer::Core::POA_Base::implicit_activation (adapter))
-				return;
-			adapter_ = std::move (adapter);
-		}
 		if (change_state (INACTIVE, IMPLICIT_ACTIVATION)) {
 			try {
 				adapter_->activate_object (servant ());
@@ -54,7 +48,7 @@ void ProxyObjectServant::add_ref_1 ()
 	}
 }
 
-void ProxyObjectServant::activate (PortableServer::Core::ObjectKeyRef&& key) NIRVANA_NOEXCEPT
+void ProxyObjectImplicit::activate (PortableServer::Core::ObjectKeyRef&& key) NIRVANA_NOEXCEPT
 {
 	Base::activate (std::move (key));
 	if (!change_state (IMPLICIT_ACTIVATION, ACTIVE))

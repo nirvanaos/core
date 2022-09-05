@@ -24,7 +24,7 @@
 *  popov.nirvana@gmail.com
 */
 #include "ServantBase.h"
-#include "ProxyObjectServant.h"
+#include "ProxyObjectImplicit.h"
 #include <CORBA/Proxy/TypeCodeNative.h>
 
 using namespace CORBA::Internal;
@@ -37,20 +37,35 @@ namespace Core {
 
 typedef TypeCodeNative <PortableServer::ServantBase> TC_Servant;
 
-class ServantBaseImpl :
+class ServantBaseImplicit :
 	public ServantBase,
-	public CORBA::Core::ProxyObjectServant
+	public CORBA::Core::ProxyObjectImplicit
 {
 public:
-	ServantBaseImpl (Servant user_servant) :
-		ServantBase (static_cast <CORBA::Core::ProxyObjectServant&> (*this)),
-		CORBA::Core::ProxyObjectServant (user_servant)
+	ServantBaseImplicit (Servant user_servant, POA::_ptr_type adapter) :
+		ServantBase (static_cast <CORBA::Core::ProxyObject&> (*this)),
+		CORBA::Core::ProxyObjectImplicit (user_servant, adapter)
+	{}
+};
+
+class ServantBaseExplicit :
+	public ServantBase,
+	public CORBA::Core::ProxyObject
+{
+public:
+	ServantBaseExplicit (Servant user_servant) :
+		ServantBase (static_cast <CORBA::Core::ProxyObject&> (*this)),
+		CORBA::Core::ProxyObject (user_servant)
 	{}
 };
 
 ServantBase* ServantBase::create (Servant user_servant)
 {
-	return new ServantBaseImpl (user_servant);
+	POA::_ref_type adapter = user_servant->_default_POA ();
+	if (POA_Base::implicit_activation (adapter))
+		return new ServantBaseImplicit (user_servant, adapter);
+	else
+		return new ServantBaseExplicit (user_servant);
 }
 
 }

@@ -24,8 +24,8 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_ORB_CORE_PROXYOBJECTSERVANT_H_
-#define NIRVANA_ORB_CORE_PROXYOBJECTSERVANT_H_
+#ifndef NIRVANA_ORB_CORE_PROXYOBJECTIMPLICIT_H_
+#define NIRVANA_ORB_CORE_PROXYOBJECTIMPLICIT_H_
 #pragma once
 
 #include "ProxyObjectDGC.h"
@@ -33,7 +33,8 @@
 namespace CORBA {
 namespace Core {
 
-class ProxyObjectServant : public ProxyObjectDGC
+/// \brief Server-side Object proxy with implicit activation and deactivation.
+class ProxyObjectImplicit : public ProxyObjectDGC
 {
 	typedef ProxyObjectDGC Base;
 
@@ -41,8 +42,8 @@ public:
 	virtual void activate (PortableServer::Core::ObjectKeyRef&& key) NIRVANA_NOEXCEPT override;
 
 protected:
-	ProxyObjectServant (PortableServer::Servant servant) :
-		Base (servant)
+	ProxyObjectImplicit (PortableServer::Servant servant, PortableServer::POA::_ptr_type adapter) :
+		Base (servant, adapter)
 	{}
 
 private:

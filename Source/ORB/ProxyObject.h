@@ -34,7 +34,7 @@
 namespace CORBA {
 namespace Core {
 
-/// Server-side object reference.
+/// \brief Server-side Object proxy.
 class ProxyObject :
 	public ServantProxyBase,
 	public ReferenceLocal
