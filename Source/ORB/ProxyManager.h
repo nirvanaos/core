@@ -47,7 +47,7 @@ namespace Core {
 class StreamOut;
 
 /// \brief Base for all proxies.
-class ProxyManager :
+class NIRVANA_NOVTABLE ProxyManager :
 	public Nirvana::Core::SharedObject,
 	public Internal::ServantTraits <ProxyManager>,
 	public Internal::LifeCycleRefCnt <ProxyManager>,

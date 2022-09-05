@@ -40,7 +40,7 @@ class ReferenceLocal
 {
 public:
 	/// Called from the POA synchronization domain.
-	virtual void object_key (PortableServer::Core::ObjectKeyRef&& key) NIRVANA_NOEXCEPT
+	void object_key (PortableServer::Core::ObjectKeyRef&& key) NIRVANA_NOEXCEPT
 	{
 		object_key_ = std::move (key);
 	}

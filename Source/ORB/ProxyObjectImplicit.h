@@ -34,7 +34,7 @@ namespace CORBA {
 namespace Core {
 
 /// \brief Server-side Object proxy with implicit activation and deactivation.
-class ProxyObjectImplicit : public ProxyObjectDGC
+class NIRVANA_NOVTABLE ProxyObjectImplicit : public ProxyObjectDGC
 {
 	typedef ProxyObjectDGC Base;
 

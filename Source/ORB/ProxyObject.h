@@ -35,7 +35,7 @@ namespace CORBA {
 namespace Core {
 
 /// \brief Server-side Object proxy.
-class ProxyObject :
+class NIRVANA_NOVTABLE ProxyObject :
 	public ServantProxyBase,
 	public ReferenceLocal
 {

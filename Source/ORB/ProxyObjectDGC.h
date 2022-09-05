@@ -36,7 +36,7 @@ namespace Core {
 /// \brief Server-side Object proxy with implicit deactivation.
 /// 
 /// This object is involved in Distributed Garbage Collection (DGC).
-class ProxyObjectDGC : public ProxyObject
+class NIRVANA_NOVTABLE ProxyObjectDGC : public ProxyObject
 {
 	typedef ProxyObject Base;
 

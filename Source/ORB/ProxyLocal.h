@@ -34,7 +34,7 @@ namespace CORBA {
 namespace Core {
 
 /// LocalObject operations servant-side proxy
-class ProxyLocal :
+class NIRVANA_NOVTABLE ProxyLocal :
 	public ServantProxyBase
 {
 	typedef ServantProxyBase Base;
