@@ -86,7 +86,7 @@ void IncomingRequests::receive (CoreRef <RequestIn> rq, uint64_t timestamp)
 
 	// Execution domain will be rescheduled with new deadline
 	// on entering to the POA synchronization domain.
-	PortableServer::Core::POA_Root::invoke (std::move (rq), true);
+	PortableServer::Core::POA_Root::invoke (CoreRef <RequestInPOA> (std::move (rq)), true);
 }
 
 void IncomingRequests::cancel (const RequestKey& key, uint64_t timestamp) NIRVANA_NOEXCEPT

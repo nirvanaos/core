@@ -292,20 +292,33 @@ ObjectId POA_Base::servant_to_id (Object::_ptr_type p_servant)
 	throw WrongPolicy ();
 }
 
-void POA_Base::serve (RequestInPOA& request, ProxyObject& proxy, MemContext* memory)
+void POA_Base::serve (const RequestRef& request, ProxyObject& proxy)
 {
-	IOReference::OperationIndex op_idx = proxy.find_operation (request.operation ());
+	IOReference::OperationIndex op = proxy.find_operation (request->operation ());
 	TLS& tls = TLS::current ();
 	Context* ctx_prev = (Context*)tls.get (TLS::CORE_TLS_PORTABLE_SERVER);
-	Context ctx (_this (), request.object_key ().object_id (), proxy);
+	Context ctx (_this (), request->object_key ().object_id (), proxy);
 	tls.set (TLS::CORE_TLS_PORTABLE_SERVER, &ctx);
 	try {
-		request.serve_request (proxy, op_idx, memory);
+		request->serve_request (proxy, op, request.memory ());
 	} catch (...) {
 		tls.set (TLS::CORE_TLS_PORTABLE_SERVER, ctx_prev);
 		throw;
 	}
 	tls.set (TLS::CORE_TLS_PORTABLE_SERVER, ctx_prev);
+}
+
+void RequestRef::reset () NIRVANA_NOEXCEPT
+{
+	ExecDomain& ed = ExecDomain::current ();
+	try {
+		ed.mem_context_push (memory_);
+		{
+			Base::reset ();
+		}
+		ed.mem_context_pop ();
+	} catch (...) {}
+	memory_.reset ();
 }
 
 }

@@ -27,6 +27,8 @@
 #include "RqHelper.h"
 
 using namespace CORBA;
+using namespace CORBA::Core;
+using namespace Nirvana::Core;
 
 namespace PortableServer {
 namespace Core {
@@ -37,7 +39,7 @@ void POAManager::ServeRequest::run ()
 		// Check that adapter is not destroyed.
 		if (adapter_->is_destroyed ())
 			throw POA::AdapterNonExistent ();
-		adapter_->serve (*request_, memory_);
+		adapter_->serve (request_);
 	} catch (Exception& e) {
 		request_->set_exception (std::move (e));
 	}

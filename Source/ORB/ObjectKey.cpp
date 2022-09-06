@@ -52,18 +52,20 @@ void ObjectKey::unmarshal (const IOP::ObjectKey& object_key)
 }
 
 ObjectKeyShared::ObjectKeyShared (ObjectKey&& key) NIRVANA_NOEXCEPT :
-key_ (std::move (key)),
-memory_ (&MemContext::current ())
+	key_ (std::move (key)),
+	memory_ (&MemContext::current ())
 {}
 
 ObjectKeyShared::~ObjectKeyShared ()
 {
 	ExecDomain& ed = ExecDomain::current ();
-	ed.mem_context_push (memory_);
-	{
-		ObjectKey tmp (std::move (key_));
-	}
-	ed.mem_context_pop ();
+	try {
+		ed.mem_context_push (memory_);
+		{
+			ObjectKey tmp (std::move (key_));
+		}
+		ed.mem_context_pop ();
+	} catch (...) {}
 }
 
 }

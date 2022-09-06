@@ -143,9 +143,9 @@ Object::_ref_type POA_RetainSystem::id_to_reference (const ObjectId& oid)
 	throw ObjectNotActive ();
 }
 
-void POA_RetainSystem::serve (CORBA::Core::RequestInPOA& request, Nirvana::Core::MemContext* memory)
+void POA_RetainSystem::serve (const RequestRef& request)
 {
-	const ObjectIdSys* sys_id = ObjectIdSys::from_object_id (request.object_key ().object_id ());
+	const ObjectIdSys* sys_id = ObjectIdSys::from_object_id (request->object_key ().object_id ());
 	if (!sys_id)
 		throw OBJECT_NOT_EXIST (MAKE_OMG_MINOR (1));
 	auto it = active_object_map_.find (*sys_id);
@@ -153,7 +153,7 @@ void POA_RetainSystem::serve (CORBA::Core::RequestInPOA& request, Nirvana::Core:
 		throw OBJECT_NOT_EXIST (MAKE_OMG_MINOR (1));
 
 	CoreRef <ProxyObject> proxy = it->second;
-	POA_Base::serve (request, *proxy, memory);
+	POA_Base::serve (request, *proxy);
 }
 
 void POA_RetainSystemUnique::destroy (bool etherealize_objects, bool wait_for_completion)

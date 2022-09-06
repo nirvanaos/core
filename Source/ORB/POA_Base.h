@@ -61,6 +61,42 @@ struct Context
 	{}
 };
 
+class RequestRef : public Nirvana::Core::CoreRef <CORBA::Core::RequestInPOA>
+{
+	typedef Nirvana::Core::CoreRef <CORBA::Core::RequestInPOA> Base;
+public:
+	RequestRef (CORBA::Core::RequestInPOA& rq) :
+		Base (&rq),
+		memory_ (&Nirvana::Core::MemContext::current ())
+	{}
+
+	RequestRef (Nirvana::Core::CoreRef <CORBA::Core::RequestInPOA>&& rq) :
+		Base (std::move (rq)),
+		memory_ (&Nirvana::Core::MemContext::current ())
+	{}
+
+	RequestRef (const RequestRef&) = default;
+	RequestRef (RequestRef&&) = default;
+
+	~RequestRef ()
+	{
+		reset ();
+	}
+
+	RequestRef& operator = (const RequestRef&) = default;
+	RequestRef& operator = (RequestRef&&) = default;
+
+	void reset () NIRVANA_NOEXCEPT;
+
+	Nirvana::Core::MemContext* memory () const NIRVANA_NOEXCEPT
+	{
+		return memory_;
+	}
+
+private:
+	Nirvana::Core::CoreRef <Nirvana::Core::MemContext> memory_;
+};
+
 // POA implementation always operates the reference to Object interface (proxy),
 // not to ServantBase.
 // Release of the ServantBase reference must be performed in the ServantBase
@@ -229,9 +265,9 @@ public:
 		return false;
 	}
 
-	void invoke (CORBA::Core::RequestInPOA& request, Nirvana::Core::MemContext* memory);
+	void invoke (const RequestRef& request);
 
-	virtual void serve (CORBA::Core::RequestInPOA& request, Nirvana::Core::MemContext* memory) = 0;
+	virtual void serve (const RequestRef& request) = 0;
 
 	static POA_Base* get_implementation (const CORBA::Core::ProxyLocal* proxy);
 
@@ -277,8 +313,7 @@ protected:
 
 	CORBA::Object::_ref_type servant_to_reference_nothrow (CORBA::Object::_ptr_type p_servant);
 
-	void serve (CORBA::Core::RequestInPOA& request, CORBA::Core::ProxyObject& proxy,
-		Nirvana::Core::MemContext* memory);
+	void serve (const RequestRef& request, CORBA::Core::ProxyObject& proxy);
 
 private:
 	// Children map.

@@ -51,7 +51,7 @@ POA::_ref_type POA_Root::get_root ()
 		return POA::_ptr_type (root_);
 }
 
-void POA_Root::invoke (CoreRef <RequestInPOA> request, bool async) NIRVANA_NOEXCEPT
+void POA_Root::invoke (RequestRef request, bool async) NIRVANA_NOEXCEPT
 {
 	try {
 		POA::_ref_type root = get_root (); // Hold root POA reference
@@ -59,11 +59,9 @@ void POA_Root::invoke (CoreRef <RequestInPOA> request, bool async) NIRVANA_NOEXC
 		POA_Ref adapter = get_implementation (proxy);
 		assert (adapter);
 
-		CoreRef <MemContext> memory (ExecDomain::current ().mem_context_ptr ());
-
 		SYNC_BEGIN (proxy->sync_context (), nullptr);
 
-		invoke_sync (std::move (adapter), *request, memory);
+		invoke_sync (std::move (adapter), request);
 
 		if (async) // Do not reschedule exec domain, it will be released immediately.
 			_sync_frame.return_to_caller_context ();
@@ -77,13 +75,13 @@ void POA_Root::invoke (CoreRef <RequestInPOA> request, bool async) NIRVANA_NOEXC
 	}
 }
 
-void POA_Root::invoke_sync (POA_Ref adapter, RequestInPOA& request, MemContext* memory)
+void POA_Root::invoke_sync (POA_Ref adapter, const RequestRef& request)
 {
-	const ObjectKey& object_key = request.object_key ();
+	const ObjectKey& object_key = request->object_key ();
 	for (const auto& name : object_key.adapter_path ()) {
 		adapter = &adapter->find_child (name, true);
 	}
-	adapter->invoke (request, memory);
+	adapter->invoke (request);
 }
 
 class POA_Root::InvokeAsync :
@@ -91,9 +89,8 @@ class POA_Root::InvokeAsync :
 	public SharedObject
 {
 public:
-	InvokeAsync (POA_Base* root, CoreRef <RequestInPOA>&& request) :
+	InvokeAsync (POA_Base* root, RequestRef&& request) :
 		root_ (root),
-		memory_ (ExecDomain::current ().mem_context_ptr ()),
 		request_ (std::move (request))
 	{}
 
@@ -104,12 +101,10 @@ private:
 
 private:
 	servant_reference <POA_Base> root_;
-	// The memory reference must be destructed after the request reference.
-	CoreRef <MemContext> memory_;
-	CoreRef <RequestInPOA> request_;
+	RequestRef request_;
 };
 
-void POA_Root::invoke_async (CoreRef <RequestInPOA> request, DeadlineTime deadline)
+void POA_Root::invoke_async (RequestRef request, DeadlineTime deadline)
 {
 	const ProxyLocal* proxy = CORBA::Core::local2proxy (get_root ());
 	POA_Base* adapter = get_implementation (proxy);
@@ -122,7 +117,7 @@ void POA_Root::invoke_async (CoreRef <RequestInPOA> request, DeadlineTime deadli
 void POA_Root::InvokeAsync::run ()
 {
 	try {
-		invoke_sync (std::move (root_), *request_, memory_);
+		invoke_sync (std::move (root_), request_);
 	} catch (Exception& e) {
 		request_->set_exception (std::move (e));
 	}

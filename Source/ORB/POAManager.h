@@ -34,7 +34,6 @@
 namespace PortableServer {
 namespace Core {
 
-class POA_Base;
 class POAManager;
 
 typedef Nirvana::Core::MapUnorderedStable <IDL::String, POAManager*,
@@ -69,8 +68,7 @@ public:
 									throw POA::AdapterNonExistent ();
 								Nirvana::Core::ExecDomain::async_call (top.deadline,
 									Nirvana::Core::CoreRef <Nirvana::Core::Runnable>::
-									create <Nirvana::Core::ImplDynamic <ServeRequest> > (
-										std::move (top.adapter), std::move (top.request), std::move (top.memory)), sc);
+									create <Nirvana::Core::ImplDynamic <ServeRequest> > (std::ref (top)), sc);
 							} catch (CORBA::Exception& e) {
 								top.request->set_exception (std::move (e));
 							}
@@ -156,14 +154,14 @@ public:
 		return nullptr;
 	}
 
-	void invoke (POA_Base& adapter, CORBA::Core::RequestInPOA& request, Nirvana::Core::MemContext* memory)
+	void invoke (POA_Base& adapter, const RequestRef& request)
 	{
 		switch (state_) {
 			case State::HOLDING:
-				queue_.emplace (adapter, request, memory);
+				queue_.emplace (adapter, request);
 				break;
 			case State::ACTIVE:
-				adapter.serve (request, memory);
+				adapter.serve (request);
 				break;
 			case State::DISCARDING:
 				throw CORBA::TRANSIENT (MAKE_OMG_MINOR (1));
@@ -189,15 +187,30 @@ private:
 	POAManagerFactory& factory_;
 	POAManagerMap::iterator iterator_;
 
+	struct QElem
+	{
+		Nirvana::DeadlineTime deadline;
+		CORBA::servant_reference <POA_Base> adapter;
+		RequestRef request;
+
+		QElem (POA_Base& a, const RequestRef& r) :
+			deadline (Nirvana::Core::ExecDomain::current ().deadline ()),
+			adapter (&a),
+			request (r)
+		{}
+
+		bool operator < (const QElem& rhs) const NIRVANA_NOEXCEPT
+		{
+			return deadline < rhs.deadline;
+		}
+	};
+
 	class ServeRequest : public Nirvana::Core::Runnable
 	{
 	protected:
-		ServeRequest (CORBA::servant_reference <POA_Base>&& adapter,
-			Nirvana::Core::CoreRef <CORBA::Core::RequestInPOA>&& request,
-			Nirvana::Core::CoreRef <Nirvana::Core::MemContext>&& memory) :
-			adapter_ (std::move (adapter)),
-			memory_ (std::move (memory)),
-			request_ (std::move (request))
+		ServeRequest (const QElem& qelem) :
+			adapter_ (qelem.adapter),
+			request_ (qelem.request)
 		{}
 
 	private:
@@ -206,31 +219,7 @@ private:
 
 	private:
 		CORBA::servant_reference <POA_Base> adapter_;
-		// The memory reference must be destructed after the request reference.
-		Nirvana::Core::CoreRef <Nirvana::Core::MemContext> memory_;
-		Nirvana::Core::CoreRef <CORBA::Core::RequestInPOA> request_;
-	};
-
-	struct QElem
-	{
-		Nirvana::DeadlineTime deadline;
-		CORBA::servant_reference <POA_Base> adapter;
-		// The memory reference must be destructed after the request reference.
-		Nirvana::Core::CoreRef <Nirvana::Core::MemContext> memory;
-		Nirvana::Core::CoreRef <CORBA::Core::RequestInPOA> request;
-
-		QElem (POA_Base& a, CORBA::Core::RequestInPOA& r,
-			Nirvana::Core::CoreRef <Nirvana::Core::MemContext>&& m) :
-			deadline (Nirvana::Core::ExecDomain::current ().deadline ()),
-			adapter (&a),
-			memory (std::move (m)),
-			request (&r)
-		{}
-
-		bool operator < (const QElem& rhs) const NIRVANA_NOEXCEPT
-		{
-			return deadline < rhs.deadline;
-		}
+		RequestRef request_;
 	};
 
 	std::vector <POA_Base*> associated_adapters_;
@@ -247,9 +236,9 @@ PortableServer::POAManager::_ref_type POA_Base::the_POAManager () const
 }
 
 inline
-void POA_Base::invoke (CORBA::Core::RequestInPOA& request, Nirvana::Core::MemContext* memory)
+void POA_Base::invoke (const RequestRef& request)
 {
-	the_POAManager_->invoke (*this, request, memory);
+	the_POAManager_->invoke (*this, request);
 }
 
 }
