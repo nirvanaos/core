@@ -24,7 +24,7 @@
 *  popov.nirvana@gmail.com
 */
 #include "POA_RetainSystem.h"
-#include "RequestInBase.h"
+#include "RequestInPOA.h"
 #include "Reference.h"
 
 using namespace CORBA;
@@ -143,7 +143,7 @@ Object::_ref_type POA_RetainSystem::id_to_reference (const ObjectId& oid)
 	throw ObjectNotActive ();
 }
 
-void POA_RetainSystem::serve (CORBA::Core::RequestInBase& request) const
+void POA_RetainSystem::serve (CORBA::Core::RequestInPOA& request, Nirvana::Core::MemContext* memory)
 {
 	const ObjectIdSys* sys_id = ObjectIdSys::from_object_id (request.object_key ().object_id ());
 	if (!sys_id)
@@ -153,8 +153,7 @@ void POA_RetainSystem::serve (CORBA::Core::RequestInBase& request) const
 		throw OBJECT_NOT_EXIST (MAKE_OMG_MINOR (1));
 
 	CoreRef <ProxyObject> proxy = it->second;
-	ExecDomain::current ().leave_sync_domain ();
-	request.serve_request (*proxy);
+	POA_Base::serve (request, *proxy, memory);
 }
 
 void POA_RetainSystemUnique::destroy (bool etherealize_objects, bool wait_for_completion)

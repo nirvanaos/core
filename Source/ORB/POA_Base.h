@@ -34,12 +34,12 @@
 #include "MapUnorderedStable.h"
 #include "HashOctetSeq.h"
 #include "PortableServer_policies.h"
-#include "RequestInBase.h"
+#include "RequestInPOA.h"
 #include "../TLS.h"
 
 namespace CORBA {
 namespace Core {
-class RequestInBase;
+class RequestInPOA;
 }
 }
 
@@ -50,10 +50,15 @@ class POAManager;
 
 struct Context
 {
-	POA::_ptr_type adapter;
+	POA::_ref_type adapter;
 	const ObjectId& object_id;
-	CORBA::Object::_ptr_type reference;
-	CORBA::Object::_ptr_type servant;
+	CORBA::Object::_ptr_type object;
+
+	Context (POA::_ref_type&& poa, const ObjectId& oid, CORBA::Core::ProxyObject& proxy) :
+		adapter (std::move (poa)),
+		object_id (oid),
+		object (proxy.get_proxy ())
+	{}
 };
 
 // POA implementation always operates the reference to Object interface (proxy),
@@ -224,9 +229,9 @@ public:
 		return false;
 	}
 
-	void invoke (CORBA::Core::RequestInBase& request, Nirvana::Core::CoreRef <Nirvana::Core::MemContext>&& memory);
+	void invoke (CORBA::Core::RequestInPOA& request, Nirvana::Core::MemContext* memory);
 
-	virtual void serve (CORBA::Core::RequestInBase& request) const = 0;
+	virtual void serve (CORBA::Core::RequestInPOA& request, Nirvana::Core::MemContext* memory) = 0;
 
 	static POA_Base* get_implementation (const CORBA::Core::ProxyLocal* proxy);
 
@@ -254,6 +259,8 @@ public:
 
 	virtual ~POA_Base ();
 
+	typedef CORBA::servant_reference <POA_Base> POA_Ref;
+
 protected:
 	POA_Base (CORBA::servant_reference <POAManager>&& manager);
 
@@ -270,10 +277,11 @@ protected:
 
 	CORBA::Object::_ref_type servant_to_reference_nothrow (CORBA::Object::_ptr_type p_servant);
 
+	void serve (CORBA::Core::RequestInPOA& request, CORBA::Core::ProxyObject& proxy,
+		Nirvana::Core::MemContext* memory);
+
 private:
 	// Children map.
-	typedef CORBA::servant_reference <POA_Base> POA_Ref;
-
 	typedef Nirvana::Core::MapUnorderedStable <IDL::String, POA_Ref,
 		std::hash <IDL::String>, std::equal_to <IDL::String>,
 		Nirvana::Core::UserAllocator <std::pair <IDL::String, POA_Ref> > > Children;

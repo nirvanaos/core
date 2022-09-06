@@ -29,7 +29,7 @@
 #pragma once
 
 #include "RequestLocal.h"
-#include "RequestInBase.h"
+#include "RequestInPOA.h"
 #include "ObjectKey.h"
 
 namespace CORBA {
@@ -37,7 +37,7 @@ namespace Core {
 
 class NIRVANA_NOVTABLE RequestLocalPOA :
 	public RequestLocalBase,
-	public RequestInBase
+	public RequestInPOA
 {
 public:
 	virtual const PortableServer::Core::ObjectKey& object_key () const NIRVANA_NOEXCEPT override
@@ -46,13 +46,13 @@ public:
 	}
 
 protected:
-	RequestLocalPOA (ProxyManager& proxy, Internal::IOReference::OperationIndex op_idx,
+	RequestLocalPOA (ProxyManager& proxy, Internal::IOReference::OperationIndex op,
 		PortableServer::Core::ObjectKeyRef&& obj_key, UShort response_flags) :
 		RequestLocalBase (nullptr, response_flags),
 		object_key_ (std::move (obj_key))
 	{
 		callee_memory_ = caller_memory_;
-		operation_ = proxy.operation_metadata (op_idx).name;
+		operation_ = proxy.operation_metadata (op).name;
 	}
 
 	virtual void set_exception (Any& e) override
@@ -60,10 +60,16 @@ protected:
 		RequestLocalBase::set_exception (e);
 	}
 
-	virtual void serve_request (ProxyObject& proxy) override;
 	virtual void invoke () override;
+	virtual void serve_request (ProxyObject& proxy, Internal::IOReference::OperationIndex op,
+		Nirvana::Core::MemContext* memory) override;
 
-	// Override RequestInBase::_add_ref ()
+	virtual bool is_cancelled () const NIRVANA_NOEXCEPT override
+	{
+		return RequestLocalBase::is_cancelled ();
+	}
+
+	// Override RequestInPOA::_add_ref ()
 	void _add_ref () NIRVANA_NOEXCEPT
 	{
 		RequestLocalBase::_add_ref ();
@@ -74,25 +80,21 @@ private:
 };
 
 class NIRVANA_NOVTABLE RequestLocalAsyncPOA :
-	public RequestLocalPOA,
-	public Nirvana::Core::Runnable
+	public RequestLocalPOA
 {
 protected:
-	RequestLocalAsyncPOA (ProxyManager& proxy, Internal::IOReference::OperationIndex op_idx,
+	RequestLocalAsyncPOA (ProxyManager& proxy, Internal::IOReference::OperationIndex op,
 		PortableServer::Core::ObjectKeyRef&& obj_key, UShort response_flags) :
-		RequestLocalPOA (proxy, op_idx, std::move (obj_key), response_flags)
+		RequestLocalPOA (proxy, op, std::move (obj_key), response_flags)
 	{}
 
-	// Override Runnable::_add_ref ()
-	void _add_ref () NIRVANA_NOEXCEPT
-	{
-		RequestLocalPOA::_add_ref ();
-	}
-
-	virtual void invoke ();
+	virtual void invoke () override;
+	virtual void serve_request (ProxyObject& proxy, Internal::IOReference::OperationIndex op,
+		Nirvana::Core::MemContext* memory) override;
+	virtual void cancel () NIRVANA_NOEXCEPT;
 
 private:
-	virtual void run ();
+	Nirvana::Core::CoreRef <Nirvana::Core::ExecDomain> exec_domain_;
 };
 
 }

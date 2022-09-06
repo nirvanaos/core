@@ -35,7 +35,7 @@ namespace Core {
 
 /// \brief Server-side Object proxy with implicit deactivation.
 /// 
-/// This object is involved in Distributed Garbage Collection (DGC).
+/// This object is subject of the Distributed Garbage Collection (DGC).
 class NIRVANA_NOVTABLE ProxyObjectDGC : public ProxyObject
 {
 	typedef ProxyObject Base;
@@ -63,6 +63,11 @@ protected:
 	bool change_state (ActivationState from, ActivationState to) NIRVANA_NOEXCEPT
 	{
 		return activation_state_.compare_exchange_strong (from, to);
+	}
+
+	bool is_DGC_subject () const NIRVANA_NOEXCEPT
+	{
+		return activation_state_ != ACTIVE_EXPLICIT;
 	}
 
 	void implicit_deactivate ();

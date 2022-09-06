@@ -28,13 +28,27 @@
 
 using namespace Nirvana;
 using namespace Nirvana::Core;
-using namespace std;
 
 namespace CORBA {
 
 using namespace Internal;
 
 namespace Core {
+
+RequestLocalBase::RequestLocalBase (MemContext* callee_memory, UShort response_flags)
+NIRVANA_NOEXCEPT :
+	caller_memory_ (&MemContext::current ()),
+	callee_memory_ (callee_memory),
+	state_ (State::CALLER),
+	response_flags_ ((uint8_t)response_flags),
+	cancelled_ (false),
+	first_block_ (nullptr),
+	cur_block_ (nullptr),
+	interfaces_ (nullptr),
+	segments_ (nullptr)
+{
+	assert ((uintptr_t)this % BLOCK_SIZE == 0);
+}
 
 MemContext& RequestLocalBase::target_memory ()
 {
@@ -165,7 +179,7 @@ void RequestLocalBase::write (size_t align, size_t size, const void* data)
 void RequestLocalBase::allocate_block (size_t align, size_t size)
 {
 	size_t data_offset = round_up (sizeof (BlockHdr), align);
-	size_t block_size = max (BLOCK_SIZE, data_offset + size);
+	size_t block_size = std::max (BLOCK_SIZE, data_offset + size);
 	BlockHdr* block = (BlockHdr*)caller_memory_->heap ().allocate (nullptr, block_size, 0);
 	block->size = block_size;
 	block->next = nullptr;
@@ -343,7 +357,7 @@ Interface::_ref_type RequestLocalBase::unmarshal_interface (const IDL::String& i
 	Interface::_check ((Interface*)itf_rec->ptr, interface_id);
 	interfaces_ = (ItfRecord*)(itf_rec->next);
 	cur_ptr_ = (Octet*)(itf_rec + 1);
-	return move ((Interface::_ref_type&)(itf_rec->ptr));
+	return std::move ((Interface::_ref_type&)(itf_rec->ptr));
 }
 
 void RequestLocalBase::marshal_value_copy (ValueBase::_ptr_type base, const IDL::String& interface_id)
@@ -369,6 +383,13 @@ void RequestLocalBase::invoke ()
 	state_ = State::CALL;
 }
 
+RequestLocal::RequestLocal (ProxyManager& proxy, Internal::IOReference::OperationIndex op_idx,
+	Nirvana::Core::MemContext* callee_memory, UShort response_flags) NIRVANA_NOEXCEPT :
+	RequestLocalBase (callee_memory, response_flags),
+	proxy_ (&proxy),
+	op_idx_ (op_idx)
+{}
+
 void RequestLocal::invoke ()
 {
 	RequestLocalBase::invoke ();
@@ -386,25 +407,29 @@ void RequestLocal::invoke_sync () NIRVANA_NOEXCEPT
 
 void RequestLocalAsync::invoke ()
 {
-	RequestLocalBase::invoke ();
-	const ExecDomain& ed = ExecDomain::current ();
-	const System::DeadlinePolicy& dp = response_flags () ? ed.deadline_policy_async () : ed.deadline_policy_oneway ();
-	DeadlineTime dl = INFINITE_DEADLINE;
-	switch (dp._d ()) {
-		case System::DeadlinePolicyType::DEADLINE_INHERIT:
-			dl = ed.deadline ();
-			break;
-		case System::DeadlinePolicyType::DEADLINE_TIMEOUT:
-			dl = Chrono::make_deadline (dp.timeout ());
-			break;
-	}
-	ExecDomain::async_call (dl, this, proxy ()->get_sync_context (op_idx ()), memory ());
+	RequestLocalBase::invoke (); // rewind
+	ExecDomain::async_call (ExecDomain::current ().get_request_deadline (!response_flags ()),
+		this, proxy ()->get_sync_context (op_idx ()), memory ());
 }
 
 void RequestLocalAsync::run ()
 {
 	assert (&SyncContext::current () == &proxy ()->get_sync_context (op_idx ()));
+	// Oneway requests (response_flags () == 0) are not cancellable,
+	// so we don't store ExecDomain for them.
+	if (response_flags ())
+		exec_domain_ = &ExecDomain::current ();
 	Base::invoke_sync ();
+}
+
+void RequestLocalAsync::cancel () NIRVANA_NOEXCEPT
+{
+	if (set_cancelled ()) {
+		assert (exec_domain_);
+		try {
+			exec_domain_->abort ();
+		} catch (...) {}
+	}
 }
 
 }

@@ -26,9 +26,12 @@
 
 #include "POA_Root.h"
 #include "Services.h"
+#include "RqHelper.h"
 
+using namespace Nirvana;
 using namespace Nirvana::Core;
 using namespace CORBA;
+using namespace CORBA::Core;
 
 namespace PortableServer {
 namespace Core {
@@ -48,30 +51,92 @@ POA::_ref_type POA_Root::get_root ()
 		return POA::_ptr_type (root_);
 }
 
-void POA_Root::invoke (CORBA::Core::RequestInBase& request) NIRVANA_NOEXCEPT
+void POA_Root::invoke (CoreRef <RequestInPOA> request, bool async) NIRVANA_NOEXCEPT
 {
 	try {
-		ExecDomain& ed = ExecDomain::current ();
-		CoreRef <MemContext> memory (ed.mem_context_ptr ());
-		const CORBA::Core::ProxyLocal* proxy = CORBA::Core::local2proxy (get_root ());
-		POA_Base* adapter = get_implementation (proxy);
+		POA::_ref_type root = get_root (); // Hold root POA reference
+		const ProxyLocal* proxy = local2proxy (root);
+		POA_Ref adapter = get_implementation (proxy);
 		assert (adapter);
+
+		CoreRef <MemContext> memory (ExecDomain::current ().mem_context_ptr ());
 
 		SYNC_BEGIN (proxy->sync_context (), nullptr);
 
-		const ObjectKey& object_key = request.object_key ();
-		for (const auto& name : object_key.adapter_path ()) {
-			adapter = &adapter->find_child (name, true);
-		}
-		adapter->invoke (request, std::move (memory));
+		invoke_sync (std::move (adapter), *request, memory);
 
-		_sync_frame.return_to_caller_context ();
+		if (async) // Do not reschedule exec domain, it will be released immediately.
+			_sync_frame.return_to_caller_context ();
 
 		SYNC_END ();
 
 	} catch (Exception& e) {
-		request.set_exception (std::move (e));
+		request->set_exception (std::move (e));
+	} catch (...) {
+		request->set_unknown_exception ();
 	}
+}
+
+void POA_Root::invoke_sync (POA_Ref adapter, RequestInPOA& request, MemContext* memory)
+{
+	const ObjectKey& object_key = request.object_key ();
+	for (const auto& name : object_key.adapter_path ()) {
+		adapter = &adapter->find_child (name, true);
+	}
+	adapter->invoke (request, memory);
+}
+
+class POA_Root::InvokeAsync :
+	public Runnable,
+	public SharedObject
+{
+public:
+	InvokeAsync (POA_Base* root, CoreRef <RequestInPOA>&& request) :
+		root_ (root),
+		memory_ (ExecDomain::current ().mem_context_ptr ()),
+		request_ (std::move (request))
+	{}
+
+private:
+	virtual void run ();
+	virtual void on_exception () NIRVANA_NOEXCEPT;
+	virtual void on_crash (const siginfo& signal) NIRVANA_NOEXCEPT;
+
+private:
+	servant_reference <POA_Base> root_;
+	// The memory reference must be destructed after the request reference.
+	CoreRef <MemContext> memory_;
+	CoreRef <RequestInPOA> request_;
+};
+
+void POA_Root::invoke_async (CoreRef <RequestInPOA> request, DeadlineTime deadline)
+{
+	const ProxyLocal* proxy = CORBA::Core::local2proxy (get_root ());
+	POA_Base* adapter = get_implementation (proxy);
+	assert (adapter);
+
+	ExecDomain::async_call (deadline, CoreRef <Runnable>::create <ImplDynamic <InvokeAsync> >
+		(adapter, std::move (request)), proxy->sync_context ());
+}
+
+void POA_Root::InvokeAsync::run ()
+{
+	try {
+		invoke_sync (std::move (root_), *request_, memory_);
+	} catch (Exception& e) {
+		request_->set_exception (std::move (e));
+	}
+}
+
+void POA_Root::InvokeAsync::on_exception () NIRVANA_NOEXCEPT
+{
+	request_->set_unknown_exception ();
+}
+
+void POA_Root::InvokeAsync::on_crash (const siginfo& signal) NIRVANA_NOEXCEPT
+{
+	Any a = RqHelper::signal2exception (signal);
+	request_->set_exception (a);
 }
 
 }

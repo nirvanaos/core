@@ -98,18 +98,6 @@ public:
 		return cnt_.fetch_add (1, std::memory_order_release) + 1;
 	}
 
-	/// Strong increment.
-	/// Guarantees the memory consistency if 1 is returned.
-	/// 
-	/// \returns The incremented value.
-	IntegralType increment_fence1 () NIRVANA_NOEXCEPT
-	{
-		IntegralType ret = increment_seq ();
-		if (1 == ret)
-			std::atomic_thread_fence (std::memory_order_acquire);
-		return ret;
-	}
-
 	/// Relaxed decrement.
 	void decrement () NIRVANA_NOEXCEPT
 	{
@@ -125,18 +113,6 @@ public:
 	{
 		assert (SIGNED || cnt_ > 0);
 		return cnt_.fetch_sub (1, std::memory_order_release) - 1;
-	}
-
-	/// Strong decrement.
-	/// Guarantees the memory consistency if 0 is returned.
-	/// 
-	/// \returns The decremented value.
-	IntegralType decrement_fence0 () NIRVANA_NOEXCEPT
-	{
-		IntegralType ret = decrement_seq ();
-		if (0 == ret)
-			std::atomic_thread_fence (std::memory_order_acquire);
-		return ret;
 	}
 
 	/// Check that reference counter is zero.
@@ -214,7 +190,10 @@ public:
 	/// \returns The decremented value.
 	IntegralType decrement () NIRVANA_NOEXCEPT
 	{
-		return Base::decrement_fence0 ();
+		IntegralType ret = decrement_seq ();
+		if (0 == ret)
+			std::atomic_thread_fence (std::memory_order_acquire);
+		return ret;
 	}
 
 };

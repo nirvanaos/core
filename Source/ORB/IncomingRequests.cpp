@@ -23,12 +23,11 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "IncomingRequests.h"
+#include "RequestIn.h"
 #include "Chrono.h"
 #include "POA_Root.h"
 #include <algorithm>
 
-using namespace std;
 using namespace Nirvana;
 using namespace Nirvana::Core;
 
@@ -37,27 +36,31 @@ namespace Core {
 
 Nirvana::Core::StaticallyAllocated <IncomingRequests::RequestMap> IncomingRequests::map_;
 
-void IncomingRequests::receive (RequestIn& rq, uint64_t timestamp)
+void IncomingRequests::receive (CoreRef <RequestIn> rq, uint64_t timestamp)
 {
 	ExecDomain& ed = ExecDomain::current ();
-	if (rq.response_flags ()) {
-		auto ins = map_->insert (ref (rq.key ()), ref (rq), timestamp);
+	if (rq->response_flags ()) {
+		auto ins = map_->insert (std::ref (rq->key ()), std::ref (*rq), timestamp);
 		bool cancelled = false;
 		if (!ins.second) {
 			cancelled = !ins.first->value ().request && ins.first->value ().timestamp >= timestamp;
 			if (cancelled)
 				map_->remove (ins.first);
 		}
-		map_->release_node (ins.first);
-		if (cancelled)
+		if (cancelled) {
+			map_->release_node (ins.first);
 			return;
-		if (!ins.second) // Request id collision for this client
+		}
+		if (!ins.second) { // Request id collision for this client
+			map_->release_node (ins.first);
 			throw BAD_PARAM ();
+		}
+		rq->inserted_to_map (ins.first);
 	}
 
 	// Currently we run with minimal initial deadline.
 	// Now we must obtain the deadline value from the service context.
-	const IOP::ServiceContextList& sc = rq.service_context ();
+	const IOP::ServiceContextList& sc = rq->service_context ();
 
 	DeadlineTime deadline = INFINITE_DEADLINE;
 	for (const auto& context : sc) {
@@ -65,14 +68,14 @@ void IncomingRequests::receive (RequestIn& rq, uint64_t timestamp)
 			if (context.context_data ().size () != 8)
 				throw BAD_PARAM ();
 			deadline = *(DeadlineTime*)context.context_data ().data ();
-			if (rq.stream_in ()->other_endian ())
+			if (rq->stream_in ()->other_endian ())
 				deadline = byteswap (deadline);
 			break;
 		} else if (IOP::RTCorbaPriority == context.context_id ()) {
 			if (context.context_data ().size () != 2)
 				throw BAD_PARAM ();
 			int16_t priority = *(int16_t*)context.context_data ().data ();
-			if (rq.stream_in ()->other_endian ())
+			if (rq->stream_in ()->other_endian ())
 				priority = byteswap ((uint16_t)priority);
 			deadline = Chrono::deadline_from_priority (priority);
 			break;
@@ -83,7 +86,7 @@ void IncomingRequests::receive (RequestIn& rq, uint64_t timestamp)
 
 	// Execution domain will be rescheduled with new deadline
 	// on entering to the POA synchronization domain.
-	PortableServer::Core::POA_Root::invoke (rq);
+	PortableServer::Core::POA_Root::invoke (std::move (rq), true);
 }
 
 void IncomingRequests::cancel (const RequestKey& key, uint64_t timestamp) NIRVANA_NOEXCEPT

@@ -36,14 +36,7 @@
 #include "UserAllocator.h"
 #include "CoreInterface.h"
 #include <Port/config.h>
-
-/// 
-/// Currently we use phmap::flat_hash_map:
-/// https://github.com/greg7mdp/parallel-hashmap
-/// See also:
-/// https://martin.ankerl.com/2019/04/01/hashmap-benchmarks-01-overview/
-/// 
-#include "parallel-hashmap/parallel_hashmap/phmap.h"
+#include "MapUnorderedUnstable.h"
 
 namespace Nirvana {
 namespace Core {
@@ -80,7 +73,7 @@ class RuntimeSupport
 		const void* object_;
 	};
 
-	typedef phmap::flat_hash_map <const void*, CoreRef <RuntimeProxyImpl>,
+	typedef MapUnorderedUnstable <const void*, CoreRef <RuntimeProxyImpl>,
 		std::hash <const void*>, std::equal_to <const void*>, UserAllocator <
 		std::pair <const void* const, CoreRef <RuntimeProxyImpl>>>
 	> ProxyMap;

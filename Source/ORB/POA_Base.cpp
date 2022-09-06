@@ -28,6 +28,7 @@
 using namespace CORBA;
 using namespace CORBA::Internal;
 using namespace CORBA::Core;
+using namespace Nirvana::Core;
 
 namespace PortableServer {
 namespace Core {
@@ -170,8 +171,8 @@ Object::_ref_type POA_Base::servant_to_reference (Object::_ptr_type p_servant)
 Object::_ref_type POA_Base::servant_to_reference_nothrow (Object::_ptr_type p_servant)
 {
 	const Context* ctx = (const Context*)Nirvana::Core::TLS::current ().get (Nirvana::Core::TLS::CORE_TLS_PORTABLE_SERVER);
-	if (ctx && (&ctx->servant == &p_servant))
-		return ctx->reference;
+	if (ctx && (&ctx->object == &p_servant))
+		return p_servant;
 	return Object::_nil ();
 }
 
@@ -273,7 +274,7 @@ void POA_Base::destroy (bool etherealize_objects, bool wait_for_completion)
 {
 	// Currently we do not support wait_for_completion.
 	if (wait_for_completion)
-		throw CORBA::BAD_INV_ORDER (MAKE_OMG_MINOR (3));
+		throw BAD_INV_ORDER (MAKE_OMG_MINOR (3));
 
 	destroyed_ = true;
 	Children tmp (std::move (children_));
@@ -286,9 +287,25 @@ void POA_Base::destroy (bool etherealize_objects, bool wait_for_completion)
 	}
 }
 
-ObjectId POA_Base::servant_to_id (CORBA::Object::_ptr_type p_servant)
+ObjectId POA_Base::servant_to_id (Object::_ptr_type p_servant)
 {
 	throw WrongPolicy ();
+}
+
+void POA_Base::serve (RequestInPOA& request, ProxyObject& proxy, MemContext* memory)
+{
+	IOReference::OperationIndex op_idx = proxy.find_operation (request.operation ());
+	TLS& tls = TLS::current ();
+	Context* ctx_prev = (Context*)tls.get (TLS::CORE_TLS_PORTABLE_SERVER);
+	Context ctx (_this (), request.object_key ().object_id (), proxy);
+	tls.set (TLS::CORE_TLS_PORTABLE_SERVER, &ctx);
+	try {
+		request.serve_request (proxy, op_idx, memory);
+	} catch (...) {
+		tls.set (TLS::CORE_TLS_PORTABLE_SERVER, ctx_prev);
+		throw;
+	}
+	tls.set (TLS::CORE_TLS_PORTABLE_SERVER, ctx_prev);
 }
 
 }

@@ -28,11 +28,36 @@
 #define NIRVANA_ORB_CORE_INCOMINGREQUESTS_H_
 #pragma once
 
-#include "RequestIn.h"
+#include "DomainAddress.h"
 #include "../SkipList.h"
 
 namespace CORBA {
 namespace Core {
+
+/// Unique id of an incoming request.
+struct RequestKey : DomainAddress
+{
+	RequestKey (const DomainAddress& addr, uint32_t rq_id) :
+		DomainAddress (addr),
+		request_id (rq_id)
+	{}
+
+	RequestKey (const DomainAddress& addr) :
+		DomainAddress (addr)
+	{}
+
+	bool operator < (const RequestKey& rhs) const NIRVANA_NOEXCEPT
+	{
+		if (request_id < rhs.request_id)
+			return true;
+		else if (request_id > rhs.request_id)
+			return false;
+		else
+			return DomainAddress::operator < (rhs);
+	}
+
+	uint32_t request_id;
+};
 
 class RequestIn;
 
@@ -54,26 +79,6 @@ public:
 		map_.destruct ();
 	}
 
-	/// Recieve incoming request.
-	/// 
-	/// \param rq The input request.
-	static void receive (RequestIn& rq, uint64_t timestamp);
-
-	/// Cancel incoming request.
-	/// 
-	/// \param key The request key.
-	static void cancel (const RequestKey& key, uint64_t timestamp) NIRVANA_NOEXCEPT;
-
-	/// Finalize incoming request.
-	/// 
-	/// \param key The request key.
-	/// \returns `true` if response must be sent.
-	static bool finalize (const RequestKey& key) NIRVANA_NOEXCEPT
-	{
-		return map_->erase (std::ref (key));
-	}
-
-private:
 	struct RequestVal : RequestKey
 	{
 		RequestVal (const RequestKey& key, RequestIn& rq, uint64_t time) NIRVANA_NOEXCEPT :
@@ -88,11 +93,6 @@ private:
 			request (nullptr)
 		{}
 
-		RequestVal (const RequestKey& key) NIRVANA_NOEXCEPT :
-			RequestKey (key),
-			request (nullptr) // Is not make sense to initialize timestamp here.
-		{}
-
 		uint64_t timestamp;
 		RequestIn* request;
 	};
@@ -100,6 +100,30 @@ private:
 	// The request map
 	typedef Nirvana::Core::SkipList <RequestVal, SKIP_LIST_LEVELS> RequestMap;
 
+	typedef RequestMap::NodeVal* MapIter;
+
+	/// Recieve incoming request.
+	/// 
+	/// \param rq The input request.
+	static void receive (Nirvana::Core::CoreRef <RequestIn> rq, uint64_t timestamp);
+
+	/// Cancel incoming request.
+	/// 
+	/// \param key The request key.
+	static void cancel (const RequestKey& key, uint64_t timestamp) NIRVANA_NOEXCEPT;
+
+	/// Remove request from map.
+	/// 
+	/// \param iter The map iterator.
+	/// \returns `true` if response must be sent.
+	static bool finalize (MapIter iter) NIRVANA_NOEXCEPT
+	{
+		bool ret = map_->remove (iter);
+		map_->release_node (iter);
+		return ret;
+	}
+
+private:
 	static Nirvana::Core::StaticallyAllocated <RequestMap> map_;
 };
 

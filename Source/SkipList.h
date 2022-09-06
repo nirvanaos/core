@@ -184,8 +184,7 @@ protected:
 	/// But it does not use the comparison and exactly removes the specified node.
 	bool remove (Node* node) NIRVANA_NOEXCEPT
 	{
-		bool f = false;
-		if (node->deleted.compare_exchange_strong (f, true)) {
+		if (!node->deleted.exchange (true)) {
 			final_delete (node);
 			return true;
 		}
@@ -491,6 +490,7 @@ public:
 
 	/// Removes node from list.
 	/// `remove (find (key));` works slower then `erase (key);`.
+	/// But it does not use the comparison and exactly removes the specified node.
 	bool remove (NodeVal* node) NIRVANA_NOEXCEPT
 	{
 		return Base::remove (node);

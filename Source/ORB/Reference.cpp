@@ -26,6 +26,8 @@
 #include "Reference.h"
 #include "RequestLocalPOA.h"
 
+using namespace Nirvana::Core;
+
 namespace CORBA {
 namespace Core {
 
@@ -34,7 +36,15 @@ Internal::IORequest::_ref_type Reference::create_request (OperationIndex op, USh
 	if (is_object_op (op))
 		return ProxyManager::create_request (op, flags);
 
-	throw NO_IMPLEMENT (); // TODO: Implement.
+	check_create_request (op, flags);
+
+	UShort response_flags = flags & 3;
+	if (flags & REQUEST_ASYNC)
+		return make_pseudo <RequestLocalImpl <RequestLocalAsyncPOA> > (std::ref (*this), op,
+			object_key (), response_flags);
+	else
+		return make_pseudo <RequestLocalImpl <RequestLocalPOA> > (std::ref (*this), op,
+			object_key (), response_flags);
 }
 
 void Reference::marshal (StreamOut& out)

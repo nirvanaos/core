@@ -454,13 +454,13 @@ public:
 	/// \returns `true` if request is completed.
 	bool wait (uint64_t timeout)
 	{
-		Nirvana::throw_NO_IMPLEMENT ();
+		Nirvana::throw_BAD_OPERATION ();
 	}
 
 	/// Cancel the request.
-	void cancel ()
+	virtual void cancel ()
 	{
-		Nirvana::throw_NO_IMPLEMENT ();
+		Nirvana::throw_BAD_OPERATION ();
 	}
 
 	///@}
@@ -486,18 +486,7 @@ protected:
 	};
 
 	RequestLocalBase (Nirvana::Core::MemContext* callee_memory, UShort response_flags)
-		NIRVANA_NOEXCEPT :
-		caller_memory_ (&MemContext::current ()),
-		callee_memory_ (callee_memory),
-		state_ (State::CALLER),
-		response_flags_ ((uint8_t)response_flags),
-		first_block_ (nullptr),
-		cur_block_ (nullptr),
-		interfaces_ (nullptr),
-		segments_ (nullptr)
-	{
-		assert ((uintptr_t)this % BLOCK_SIZE == 0);
-	}
+		NIRVANA_NOEXCEPT;
 
 	Nirvana::Core::MemContext& target_memory ();
 	Nirvana::Core::MemContext& source_memory ();
@@ -537,11 +526,24 @@ protected:
 		return state_;
 	}
 
+	bool is_cancelled () const NIRVANA_NOEXCEPT
+	{
+		return cancelled_.load (std::memory_order_acquire);
+	}
+
+	bool set_cancelled () NIRVANA_NOEXCEPT
+	{
+		return response_flags () && !cancelled_.exchange (true, std::memory_order_release);
+	}
+
 protected:
 	Nirvana::Core::RefCounter ref_cnt_;
 	CoreRef <MemContext> caller_memory_;
 	CoreRef <MemContext> callee_memory_;
 	Octet* cur_ptr_;
+	State state_;
+	uint8_t response_flags_;
+	std::atomic <bool> cancelled_;
 
 private:
 	struct BlockHdr
@@ -571,8 +573,6 @@ private:
 	void invert_list (Element*& head);
 
 private:
-	State state_;
-	uint8_t response_flags_;
 	BlockHdr* first_block_;
 	BlockHdr* cur_block_;
 	ItfRecord* interfaces_;
@@ -584,11 +584,7 @@ class NIRVANA_NOVTABLE RequestLocal :
 {
 protected:
 	RequestLocal (ProxyManager& proxy, Internal::IOReference::OperationIndex op_idx,
-		Nirvana::Core::MemContext* callee_memory, UShort response_flags) NIRVANA_NOEXCEPT :
-		RequestLocalBase (callee_memory, response_flags),
-		proxy_ (&proxy),
-		op_idx_ (op_idx)
-	{}
+		Nirvana::Core::MemContext* callee_memory, UShort response_flags) NIRVANA_NOEXCEPT;
 
 	ProxyManager* proxy () const NIRVANA_NOEXCEPT
 	{
@@ -616,7 +612,8 @@ class NIRVANA_NOVTABLE RequestLocalAsync :
 protected:
 	RequestLocalAsync (ProxyManager& proxy, Internal::IOReference::OperationIndex op_idx,
 		Nirvana::Core::MemContext* callee_memory, UShort response_flags) NIRVANA_NOEXCEPT :
-		RequestLocal (proxy, op_idx, callee_memory, response_flags)
+		RequestLocal (proxy, op_idx, callee_memory, response_flags),
+		exec_domain_ (nullptr)
 	{}
 
 	// Override Runnable::_add_ref ()
@@ -626,9 +623,13 @@ protected:
 	}
 
 	virtual void invoke ();
+	virtual void cancel () NIRVANA_NOEXCEPT;
 
 private:
 	virtual void run ();
+
+private:
+	Nirvana::Core::CoreRef <Nirvana::Core::ExecDomain> exec_domain_;
 };
 
 template <class Base>

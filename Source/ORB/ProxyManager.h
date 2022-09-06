@@ -78,7 +78,7 @@ public:
 		return static_cast <Internal::Bridge <AbstractBase>*> (this);
 	}
 
-	virtual Internal::IORequest::_ref_type create_request (Internal::IOReference::OperationIndex op, UShort flags);
+	virtual Internal::IORequest::_ref_type create_request (OperationIndex op, UShort flags);
 
 	// Get Object proxy
 	Object::_ptr_type get_proxy () NIRVANA_NOEXCEPT
@@ -101,7 +101,7 @@ public:
 	}
 
 	/// Returns synchronization context for the specific operation.
-	virtual Nirvana::Core::SyncContext& get_sync_context (Internal::IOReference::OperationIndex op)
+	virtual Nirvana::Core::SyncContext& get_sync_context (OperationIndex op)
 		const NIRVANA_NOEXCEPT
 	{
 		assert (op.interface_idx () == 0 && op.operation_idx () != (UShort)ObjectOp::NON_EXISTENT);
@@ -215,11 +215,11 @@ public:
 
 	// Misc
 
-	Internal::IOReference::OperationIndex find_operation (const IDL::String& name) const;
+	OperationIndex find_operation (const IDL::String& name) const;
 
-	void invoke (Internal::IOReference::OperationIndex op, Internal::IORequest::_ptr_type rq) NIRVANA_NOEXCEPT;
+	void invoke (OperationIndex op, Internal::IORequest::_ptr_type rq) NIRVANA_NOEXCEPT;
 
-	const Internal::Operation& operation_metadata (Internal::IOReference::OperationIndex op) NIRVANA_NOEXCEPT
+	const Internal::Operation& operation_metadata (OperationIndex op) NIRVANA_NOEXCEPT
 	{
 		assert (op.interface_idx () <= interfaces_.size ());
 		if (op.interface_idx () == 0) {
@@ -231,10 +231,12 @@ public:
 		}
 	}
 
-	static bool is_object_op (Internal::IOReference::OperationIndex op) NIRVANA_NOEXCEPT
+	static bool is_object_op (OperationIndex op) NIRVANA_NOEXCEPT
 	{
 		return op.interface_idx () == 0 && op.operation_idx () != (UShort)ObjectOp::NON_EXISTENT;
 	}
+
+	void check_create_request (OperationIndex op, UShort flags) const;
 
 	virtual void marshal (StreamOut& out) = 0;
 
@@ -306,12 +308,12 @@ private:
 	{
 		const Char* name;
 		size_t name_len;
-		Internal::IOReference::OperationIndex idx;
+		OperationIndex idx;
 	};
 
-	Internal::IOReference::OperationIndex _make_op_idx (UShort op_idx) const
+	OperationIndex _make_op_idx (UShort op_idx) const
 	{
-		return Internal::IOReference::OperationIndex (0, op_idx);
+		return OperationIndex (0, op_idx);
 	}
 
 	static InterfaceDef::_ref_type get_interface ();

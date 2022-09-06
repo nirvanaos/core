@@ -26,16 +26,55 @@
 #include "RequestLocalPOA.h"
 #include "POA_Root.h"
 
+using namespace Nirvana;
+using namespace Nirvana::Core;
+
 namespace CORBA {
 namespace Core {
 
-void RequestLocalPOA::serve_request (ProxyObject& proxy)
+void RequestLocalPOA::serve_request (ProxyObject& proxy, Internal::IOReference::OperationIndex op,
+	MemContext* memory)
 {
+	SyncContext& sc = proxy.get_sync_context (op);
+	if (sc.sync_domain ())
+		memory = nullptr;
+	SYNC_BEGIN (sc, memory);
+	proxy.invoke (op, _get_ptr ());
+	SYNC_END ();
 }
 
 void RequestLocalPOA::invoke ()
 {
-	PortableServer::Core::POA_Root::invoke (*this);
+	RequestLocalBase::invoke (); // rewind etc.
+	PortableServer::Core::POA_Root::invoke (CoreRef <RequestInPOA> (this), false);
+}
+
+void RequestLocalAsyncPOA::invoke ()
+{
+	RequestLocalBase::invoke (); // rewind etc.
+	PortableServer::Core::POA_Root::invoke_async (CoreRef <RequestInPOA> (this),
+		ExecDomain::current ().get_request_deadline (!response_flags ()));
+}
+
+void RequestLocalAsyncPOA::serve_request (ProxyObject& proxy, Internal::IOReference::OperationIndex op,
+	Nirvana::Core::MemContext* memory)
+{
+	if (response_flags ()) {
+		exec_domain_ = &ExecDomain::current ();
+		if (RequestLocalAsyncPOA::is_cancelled ())
+			return;
+	}
+	RequestLocalPOA::serve_request (proxy, op, memory);
+}
+
+void RequestLocalAsyncPOA::cancel () NIRVANA_NOEXCEPT
+{
+	if (set_cancelled ()) {
+		assert (exec_domain_);
+		try {
+			exec_domain_->abort ();
+		} catch (...) {}
+	}
 }
 
 }

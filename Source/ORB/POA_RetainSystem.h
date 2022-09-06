@@ -121,7 +121,7 @@ protected:
 		Base (std::move (manager))
 	{}
 
-	virtual void serve (CORBA::Core::RequestInBase& request) const override;
+	virtual void serve (CORBA::Core::RequestInPOA& request, Nirvana::Core::MemContext* memory) override;
 
 	// Active Object Map (AOM)
 	typedef ObjectMap <ObjectIdSys> AOM;

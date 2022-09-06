@@ -62,6 +62,8 @@ public:
 		return *sync_context_;
 	}
 
+	Nirvana::Core::MemContext* memory () const NIRVANA_NOEXCEPT;
+
 protected:
 	class RefCnt : public Nirvana::Core::AtomicCounter <true>
 	{

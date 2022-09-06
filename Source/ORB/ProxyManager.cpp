@@ -191,7 +191,7 @@ ProxyManager::ProxyManager (Internal::String_in primary_iid) :
 	OperationEntry* op = operations_.begin ();
 
 	// Object operations
-	IOReference::OperationIndex idx (0, 0);
+	OperationIndex idx (0, 0);
 	for (const Operation* p = object_ops_, *e = end (object_ops_); p != e; ++p) {
 		const Char* name = p->name;
 		op->name = name;
@@ -335,7 +335,7 @@ IOReference::OperationIndex ProxyManager::find_operation (const IDL::String& nam
 	throw BAD_OPERATION (MAKE_OMG_MINOR (2));
 }
 
-IORequest::_ref_type ProxyManager::create_request (IOReference::OperationIndex op, UShort flags)
+IORequest::_ref_type ProxyManager::create_request (OperationIndex op, UShort flags)
 {
 	assert (is_object_op (op));
 	UShort response_flags = flags & 3;
@@ -355,7 +355,23 @@ IORequest::_ref_type ProxyManager::create_request (IOReference::OperationIndex o
 			memory, response_flags);
 }
 
-void ProxyManager::invoke (IOReference::OperationIndex op, IORequest::_ptr_type rq) NIRVANA_NOEXCEPT
+void ProxyManager::check_create_request (OperationIndex op, UShort flags) const
+{
+	if ((flags & 3) == 2)
+		throw INV_FLAG ();
+	size_t itf = op.interface_idx ();
+	size_t op_cnt;
+	if (0 == itf)
+		op_cnt = (size_t)ObjectOp::OBJECT_OP_CNT;
+	else if (itf > interfaces_.size ())
+		throw BAD_PARAM ();
+	else
+		op_cnt = interfaces_ [itf - 1].operations.size;
+	if (op.operation_idx () >= op_cnt)
+		throw BAD_PARAM ();
+}
+
+void ProxyManager::invoke (OperationIndex op, IORequest::_ptr_type rq) NIRVANA_NOEXCEPT
 {
 	try {
 		try {

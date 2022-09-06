@@ -25,6 +25,7 @@
 */
 #include "ExecDomain.h"
 #include "Legacy/Process.h"
+#include "Chrono.h"
 #include <Port/SystemInfo.h>
 
 using namespace std;
@@ -385,6 +386,21 @@ void ExecDomain::schedule_return (SyncContext& target, bool no_reschedule) NIRVA
 			CORBA::SystemException::_raise_by_code (err);
 	} else
 		sync_context (target);
+}
+
+DeadlineTime ExecDomain::get_request_deadline (bool oneway) const NIRVANA_NOEXCEPT
+{
+	const System::DeadlinePolicy& dp = oneway ? deadline_policy_oneway_ : deadline_policy_async_;
+	DeadlineTime dl = INFINITE_DEADLINE;
+	switch (dp._d ()) {
+		case System::DeadlinePolicyType::DEADLINE_INHERIT:
+			dl = deadline ();
+			break;
+		case System::DeadlinePolicyType::DEADLINE_TIMEOUT:
+			dl = Chrono::make_deadline (dp.timeout ());
+			break;
+	}
+	return dl;
 }
 
 void ExecDomain::Schedule::run ()

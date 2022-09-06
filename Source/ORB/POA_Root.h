@@ -61,7 +61,8 @@ public:
 		return CORBA::OctetSeq ();
 	}
 
-	static void invoke (CORBA::Core::RequestInBase& request) NIRVANA_NOEXCEPT;
+	static void invoke (Nirvana::Core::CoreRef <CORBA::Core::RequestInPOA> request, bool async) NIRVANA_NOEXCEPT;
+	static void invoke_async (Nirvana::Core::CoreRef <CORBA::Core::RequestInPOA> request, Nirvana::DeadlineTime deadline);
 
 	static PortableServer::POA::_ref_type create ()
 	{
@@ -71,6 +72,11 @@ public:
 	}
 
 	static POA::_ref_type get_root ();
+
+private:
+	class InvokeAsync;
+
+	static void invoke_sync (POA_Ref adapter, CORBA::Core::RequestInPOA& request, Nirvana::Core::MemContext* memory);
 
 private:
 	CORBA::servant_reference <POAManagerFactory> manager_factory_;

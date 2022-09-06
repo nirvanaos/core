@@ -27,7 +27,7 @@
 #include "ESIOP.h"
 #include "StreamInSM.h"
 #include "StreamOutReply.h"
-#include "IncomingRequests.h"
+#include "RequestIn.h"
 #include "../Runnable.h"
 #include "../CoreObject.h"
 #include "../Chrono.h"
@@ -148,8 +148,8 @@ void ReceiveRequest::run ()
 
 		// Create and receive the request
 		unsigned minor = msg_hdr.GIOP_version ().minor ();
-		CoreRef <RequestIn> request = CoreRef <RequestIn>::create <ImplDynamic <RequestIn> > (client_id_, minor, move (in));
-		IncomingRequests::receive (*request, timestamp_);
+		IncomingRequests::receive (CoreRef <RequestIn>::create
+			<ImplDynamic <RequestIn> > (client_id_, minor, move (in)), timestamp_);
 	} catch (const SystemException& ex) {
 		if (request_id_) {
 			// Responce expected

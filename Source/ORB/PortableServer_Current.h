@@ -48,14 +48,14 @@ public:
 
 	static CORBA::Object::_ref_type get_reference ()
 	{
-		return context ().reference;
+		return context ().object;
 	}
 
 	static CORBA::Internal::Interface* _s_get_servant (CORBA::Internal::Bridge <PortableServer::Current>* _b, Interface* _env);
 
 	static CORBA::Object::_ref_type get_servant ()
 	{
-		return context ().servant;
+		return context ().object;
 	}
 
 private:

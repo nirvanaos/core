@@ -113,6 +113,8 @@ public:
 		deadline_policy_oneway_ = dp;
 	}
 
+	DeadlineTime get_request_deadline (bool oneway) const NIRVANA_NOEXCEPT;
+
 	/// Schedule a call to a synchronization context.
 	/// Made inline because it is called only once in Synchronized constructor.
 	void schedule_call (SyncContext& target, MemContext* mem_context)
@@ -252,6 +254,13 @@ public:
 
 	/// Run-time global state
 	RuntimeGlobal runtime_global_;
+
+	/// Abort execution with SIGTERM signal.
+	void abort ()
+	{
+		// TODO: Implement
+		throw_NO_IMPLEMENT ();
+	}
 
 	/// Called on core startup.
 	static void initialize ();

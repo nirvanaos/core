@@ -36,6 +36,7 @@ namespace Core {
 
 class POA_Base;
 class POAManager;
+
 typedef Nirvana::Core::MapUnorderedStable <IDL::String, POAManager*,
 	std::hash <IDL::String>, std::equal_to <IDL::String>,
 	Nirvana::Core::UserAllocator <std::pair <IDL::String, POAManager*> > > POAManagerMap;
@@ -58,22 +59,24 @@ public:
 		switch (state_) {
 			case State::HOLDING:
 				state_ = State::ACTIVE;
-				while (!queue_.empty ()) {
-					const QElem& top = queue_.top ();
-					if (!top.request->is_cancelled ()) {
-						try {
-							if (top.adapter->is_destroyed ())
-								throw POA::AdapterNonExistent ();
-							auto runnable = Nirvana::Core::CoreRef <Nirvana::Core::Runnable>::
-								create <Nirvana::Core::ImplDynamic <ServeRequest> > (
-									std::move (top.adapter), std::move (top.request));
-							Nirvana::Core::ExecDomain::async_call (top.deadline, runnable,
-								Nirvana::Core::g_core_free_sync_context, top.memory);
-						} catch (CORBA::Exception& e) {
-							top.request->set_exception (std::move (e));
+				if (!queue_.empty ()) {
+					Nirvana::Core::SyncContext& sc = CORBA::Core::local2proxy (_this ())->sync_context ();
+					do {
+						const QElem& top = queue_.top ();
+						if (!top.request->is_cancelled ()) {
+							try {
+								if (top.adapter->is_destroyed ())
+									throw POA::AdapterNonExistent ();
+								Nirvana::Core::ExecDomain::async_call (top.deadline,
+									Nirvana::Core::CoreRef <Nirvana::Core::Runnable>::
+									create <Nirvana::Core::ImplDynamic <ServeRequest> > (
+										std::move (top.adapter), std::move (top.request), std::move (top.memory)), sc);
+							} catch (CORBA::Exception& e) {
+								top.request->set_exception (std::move (e));
+							}
 						}
-					}
-					queue_.pop ();
+						queue_.pop ();
+					} while (!queue_.empty ());
 				}
 				break;
 
@@ -153,14 +156,14 @@ public:
 		return nullptr;
 	}
 
-	void invoke (POA_Base& adapter, CORBA::Core::RequestInBase& request, Nirvana::Core::CoreRef <Nirvana::Core::MemContext>&& memory)
+	void invoke (POA_Base& adapter, CORBA::Core::RequestInPOA& request, Nirvana::Core::MemContext* memory)
 	{
 		switch (state_) {
 			case State::HOLDING:
-				queue_.emplace (adapter, request, std::move (memory));
+				queue_.emplace (adapter, request, memory);
 				break;
 			case State::ACTIVE:
-				adapter.serve (request);
+				adapter.serve (request, memory);
 				break;
 			case State::DISCARDING:
 				throw CORBA::TRANSIENT (MAKE_OMG_MINOR (1));
@@ -189,10 +192,12 @@ private:
 	class ServeRequest : public Nirvana::Core::Runnable
 	{
 	protected:
-		ServeRequest (CORBA::servant_reference <POA_Base>&& a,
-			Nirvana::Core::CoreRef <CORBA::Core::RequestInBase>&& r) :
-			adapter (std::move (a)),
-			request (std::move (r))
+		ServeRequest (CORBA::servant_reference <POA_Base>&& adapter,
+			Nirvana::Core::CoreRef <CORBA::Core::RequestInPOA>&& request,
+			Nirvana::Core::CoreRef <Nirvana::Core::MemContext>&& memory) :
+			adapter_ (std::move (adapter)),
+			memory_ (std::move (memory)),
+			request_ (std::move (request))
 		{}
 
 	private:
@@ -200,23 +205,26 @@ private:
 		virtual void on_crash (const siginfo& signal) NIRVANA_NOEXCEPT override;
 
 	private:
-		CORBA::servant_reference <POA_Base> adapter;
-		Nirvana::Core::CoreRef <CORBA::Core::RequestInBase> request;
+		CORBA::servant_reference <POA_Base> adapter_;
+		// The memory reference must be destructed after the request reference.
+		Nirvana::Core::CoreRef <Nirvana::Core::MemContext> memory_;
+		Nirvana::Core::CoreRef <CORBA::Core::RequestInPOA> request_;
 	};
 
 	struct QElem
 	{
 		Nirvana::DeadlineTime deadline;
 		CORBA::servant_reference <POA_Base> adapter;
-		Nirvana::Core::CoreRef <CORBA::Core::RequestInBase> request;
+		// The memory reference must be destructed after the request reference.
 		Nirvana::Core::CoreRef <Nirvana::Core::MemContext> memory;
+		Nirvana::Core::CoreRef <CORBA::Core::RequestInPOA> request;
 
-		QElem (POA_Base& a, CORBA::Core::RequestInBase& r,
+		QElem (POA_Base& a, CORBA::Core::RequestInPOA& r,
 			Nirvana::Core::CoreRef <Nirvana::Core::MemContext>&& m) :
 			deadline (Nirvana::Core::ExecDomain::current ().deadline ()),
 			adapter (&a),
-			request (&r),
-			memory (std::move (m))
+			memory (std::move (m)),
+			request (&r)
 		{}
 
 		bool operator < (const QElem& rhs) const NIRVANA_NOEXCEPT
@@ -239,9 +247,9 @@ PortableServer::POAManager::_ref_type POA_Base::the_POAManager () const
 }
 
 inline
-void POA_Base::invoke (CORBA::Core::RequestInBase& request, Nirvana::Core::CoreRef <Nirvana::Core::MemContext>&& memory)
+void POA_Base::invoke (CORBA::Core::RequestInPOA& request, Nirvana::Core::MemContext* memory)
 {
-	the_POAManager_->invoke (*this, request, std::move (memory));
+	the_POAManager_->invoke (*this, request, memory);
 }
 
 }

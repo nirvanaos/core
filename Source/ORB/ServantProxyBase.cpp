@@ -113,26 +113,30 @@ ServantProxyBase::RefCnt::IntegralType ServantProxyBase::_remove_ref_proxy () NI
 	return cnt;
 }
 
+MemContext* ServantProxyBase::memory () const NIRVANA_NOEXCEPT
+{
+	MemContext* mc = nullptr;
+	SyncDomain* sd = sync_context_->sync_domain ();
+	if (sd)
+		mc = &sd->mem_context ();
+	return mc;
+}
+
 IORequest::_ref_type ServantProxyBase::create_request (OperationIndex op, UShort flags)
 {
 	if (is_object_op (op))
 		return ProxyManager::create_request (op, flags);
 
+	check_create_request (op, flags);
+
 	UShort response_flags = flags & 3;
-	if (response_flags == 2)
-		throw INV_FLAG ();
-
-	MemContext* memory = nullptr;
-	SyncDomain* sd = sync_context_->sync_domain ();
-	if (sd)
-		memory = &sd->mem_context ();
-
+	MemContext* mem = memory ();
 	if (flags & REQUEST_ASYNC)
 		return make_pseudo <RequestLocalImpl <RequestLocalAsync> > (std::ref (*this), op,
-			memory, response_flags);
+			mem, response_flags);
 	else
 		return make_pseudo <RequestLocalImpl <RequestLocal> > (std::ref (*this), op,
-			memory, response_flags);
+			mem, response_flags);
 }
 
 CoreRef <MemContext> ServantProxyBase::push_GC_mem_context (ExecDomain& ed,

@@ -24,19 +24,21 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_ORB_CORE_REQUESTINBASE_H_
-#define NIRVANA_ORB_CORE_REQUESTINBASE_H_
+#ifndef NIRVANA_ORB_CORE_REQUESTINPOA_H_
+#define NIRVANA_ORB_CORE_REQUESTINPOA_H_
 #pragma once
 
 #include "../CoreInterface.h"
 #include "ObjectKey.h"
+#include <CORBA/Proxy/IOReference.h>
 
 namespace CORBA {
 namespace Core {
 
 class ProxyObject;
 
-class NIRVANA_NOVTABLE RequestInBase
+/// \brief Request for the POA processing.
+class NIRVANA_NOVTABLE RequestInPOA
 {
 	DECLARE_CORE_INTERFACE
 public:
@@ -52,32 +54,24 @@ public:
 	/// Serve the request.
 	/// 
 	/// \param proxy The servant proxy.
-	virtual void serve_request (ProxyObject& proxy) = 0;
+	virtual void serve_request (ProxyObject& proxy, Internal::IOReference::OperationIndex op_idx,
+		Nirvana::Core::MemContext* memory) = 0;
 
 	/// Return exception to caller.
 	/// Operation has move semantics so \p e may be cleared.
 	virtual void set_exception (Any& e) = 0;
 
 	void set_exception (Exception&& e) NIRVANA_NOEXCEPT;
+	void set_unknown_exception () NIRVANA_NOEXCEPT;
 
-	bool is_cancelled () const NIRVANA_NOEXCEPT
-	{
-		return cancelled_;
-	}
-
-	void cancel () NIRVANA_NOEXCEPT
-	{
-		cancelled_ = true;
-	}
+	virtual bool is_cancelled () const NIRVANA_NOEXCEPT = 0;
 
 protected:
-	RequestInBase () :
-		cancelled_ (false)
+	RequestInPOA ()
 	{}
 
 protected:
 	IDL::String operation_;
-	std::atomic <bool> cancelled_;
 };
 
 }

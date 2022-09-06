@@ -23,22 +23,27 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "RequestInBase.h"
+#include "RequestInPOA.h"
 #include "RqHelper.h"
 
 namespace CORBA {
 namespace Core {
 
-void RequestInBase::set_exception (Exception&& e) NIRVANA_NOEXCEPT
+void RequestInPOA::set_exception (Exception&& e) NIRVANA_NOEXCEPT
 {
 	Any a = RqHelper::exception2any (std::move (e));
 	try {
 		set_exception (a);
 	} catch (...) {
-		try {
-			set_exception (UNKNOWN ());
-		} catch (...) {}
+		set_unknown_exception ();
 	}
+}
+
+void RequestInPOA::set_unknown_exception () NIRVANA_NOEXCEPT
+{
+	try {
+		set_exception (UNKNOWN ());
+	} catch (...) {}
 }
 
 }

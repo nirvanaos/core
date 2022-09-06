@@ -43,8 +43,10 @@ RequestIn::RequestIn (const DomainAddress& client, unsigned GIOP_minor, CoreRef 
 	RequestGIOP (GIOP_minor, false),
 	key_ (client),
 	GIOP_minor_ (GIOP_minor),
+	map_iterator_ (nullptr),
 	exec_domain_ (nullptr),
-	sync_domain_ (nullptr)
+	sync_domain_ (nullptr),
+	cancelled_ (false)
 {
 	stream_in_ = move (in);
 
@@ -119,10 +121,7 @@ void RequestIn::get_object_key (const IOP::TaggedProfile& profile)
 
 RequestIn::~RequestIn ()
 {
-	// While request in map, exec_domain_ is not nullptr.
-	// For the oneway requests, exec_domain_ is always nullptr.
-	if (exec_domain_)
-		finalize (); // Remove from the map
+	finalize (); // Remove from the map if not yet.
 }
 
 void RequestIn::switch_to_reply (GIOP::ReplyStatusType status)
@@ -160,18 +159,20 @@ bool RequestIn::marshal_op ()
 	return (response_flags_ & RESPONSE_DATA) != 0;
 }
 
-void RequestIn::serve_request (ProxyObject& proxy)
+void RequestIn::serve_request (ProxyObject& proxy, IOReference::OperationIndex op, MemContext* memory)
 {
-	ExecDomain& ed = ExecDomain::current ();
-	if (response_flags_)
-		exec_domain_ = &ed; // Save ED pointer for cancel
-	IOReference::OperationIndex op_idx = proxy.find_operation (operation ());
-	// We don't need to handle exceptions here, because invoke_sync ()
-	// does not throw exceptions.
-	Nirvana::Core::Synchronized _sync_frame (proxy.get_sync_context (op_idx), nullptr);
+	if (response_flags_) {
+		exec_domain_ = &ExecDomain::current (); // Save ED pointer for cancel
+		if (is_cancelled ())
+			return;
+	}
+	sync_domain_ = proxy.get_sync_context (op).sync_domain ();
+	if (sync_domain_)
+		memory = proxy.memory ();
+	// We don't need to handle exceptions here, because invoke () does not throw exceptions.
+	Nirvana::Core::Synchronized _sync_frame (g_core_free_sync_context, memory);
 	if (!is_cancelled ())
-		proxy.invoke (op_idx, _get_ptr ());
-	ed.leave_sync_domain ();
+		proxy.invoke (op, _get_ptr ());
 }
 
 void RequestIn::unmarshal_end ()
@@ -206,28 +207,39 @@ void RequestIn::set_exception (Any& e)
 		stream_out_->rewind (reply_header_end_);
 		*(GIOP::ReplyStatusType*)((Octet*)stream_out_->header (reply_header_end_) + reply_status_offset_) = status;
 	}
-	if (response_flags_)
+	unsigned rf = response_flags_;
+	if (rf)
 		response_flags_ |= RESPONSE_DATA; // To marshal Any.
 	Type <Any>::marshal_out (e, _get_ptr ());
+	response_flags_ = rf;
 }
 
 bool RequestIn::finalize ()
 {
-	if (response_flags_ && atomic_exchange ((volatile atomic <ExecDomain*>*) & exec_domain_, nullptr))
-		return IncomingRequests::finalize (key_);
+	if (map_iterator_) {
+		bool ret = IncomingRequests::finalize (map_iterator_);
+		map_iterator_ = nullptr;
+		return ret;
+	}
 
-	assert (!exec_domain_);
 	return false;
 }
 
-void RequestIn::cancel ()
+void RequestIn::cancel () NIRVANA_NOEXCEPT
 {
-	RequestInBase::cancel ();
-	response_flags_ = 0;
-	ExecDomain* ed = atomic_exchange ((volatile atomic <ExecDomain*>*)&exec_domain_, nullptr);
-	// TODO: We must call ed->abort () here but it is not implemented yet.
-	// if (ed)
-	//   ed->abort ();
+	// Oneway requests (response_flags_ == 0) are not cancellable.
+	if (response_flags_ && !cancelled_.exchange (true, std::memory_order_release)) {
+		if (exec_domain_) {
+			try {
+				exec_domain_->abort ();
+			} catch (...) {}
+		}
+	}
+}
+
+bool RequestIn::is_cancelled () const NIRVANA_NOEXCEPT
+{
+	return cancelled_.load (std::memory_order_acquire);
 }
 
 void RequestIn::invoke ()

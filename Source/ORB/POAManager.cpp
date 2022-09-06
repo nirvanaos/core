@@ -34,17 +34,12 @@ namespace Core {
 void POAManager::ServeRequest::run ()
 {
 	try {
-		const CORBA::Core::ProxyLocal* proxy = CORBA::Core::local2proxy (adapter->_this ());
-		SYNC_BEGIN (proxy->sync_context (), nullptr);
-		if (!request->is_cancelled ()) {
-			// Check that adapter is not destroyed.
-			if (adapter->is_destroyed ())
-				throw POA::AdapterNonExistent ();
-			adapter->serve (*request);
-		}
-		SYNC_END ();
+		// Check that adapter is not destroyed.
+		if (adapter_->is_destroyed ())
+			throw POA::AdapterNonExistent ();
+		adapter_->serve (*request_, memory_);
 	} catch (Exception& e) {
-		request->set_exception (std::move (e));
+		request_->set_exception (std::move (e));
 	}
 }
 
@@ -52,7 +47,7 @@ void POAManager::ServeRequest::on_crash (const siginfo& signal) NIRVANA_NOEXCEPT
 {
 	Any ex = CORBA::Core::RqHelper::signal2exception (signal);
 	try {
-		request->set_exception (ex);
+		request_->set_exception (ex);
 	} catch (...) {}
 }
 

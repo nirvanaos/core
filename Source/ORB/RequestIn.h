@@ -29,8 +29,8 @@
 #pragma once
 
 #include "RequestGIOP.h"
-#include "RequestInBase.h"
-#include "DomainAddress.h"
+#include "RequestInPOA.h"
+#include "IncomingRequests.h"
 #include "../UserObject.h"
 #include "../ExecDomain.h"
 #include "GIOP.h"
@@ -38,35 +38,10 @@
 namespace CORBA {
 namespace Core {
 
-/// Unique id of an incoming request.
-struct RequestKey : DomainAddress
-{
-	RequestKey (const DomainAddress& addr, uint32_t rq_id) :
-		DomainAddress (addr),
-		request_id (rq_id)
-	{}
-
-	RequestKey (const DomainAddress& addr) :
-		DomainAddress (addr)
-	{}
-
-	bool operator < (const RequestKey& rhs) const NIRVANA_NOEXCEPT
-	{
-		if (request_id < rhs.request_id)
-			return true;
-		else if (request_id > rhs.request_id)
-			return false;
-		else
-			return DomainAddress::operator < (rhs);
-	}
-
-	uint32_t request_id;
-};
-
 /// Implements server-side IORequest for GIOP.
 class NIRVANA_NOVTABLE RequestIn :
 	public RequestGIOP,
-	public RequestInBase,
+	public RequestInPOA,
 	public Nirvana::Core::UserObject
 {
 	DECLARE_CORE_INTERFACE
@@ -97,7 +72,8 @@ public:
 	/// Cancel the request.
 	/// Called from the IncomingRequests class.
 	/// Request is already removed from map on this call.
-	virtual void cancel () override;
+	virtual void cancel () NIRVANA_NOEXCEPT override;
+	virtual bool is_cancelled () const NIRVANA_NOEXCEPT override;
 
 	/// Return exception to caller.
 	/// Operation has move semantics so \p e may be cleared.
@@ -108,6 +84,11 @@ public:
 	/// Must be overridden in the derived class to send reply.
 	virtual void success () override = 0;
 
+	void inserted_to_map (IncomingRequests::MapIter it) NIRVANA_NOEXCEPT
+	{
+		map_iterator_ = it;
+	}
+
 	/// Finalizes the request.
 	/// 
 	/// \returns `true` if the reply must be sent.
@@ -115,7 +96,6 @@ public:
 
 protected:
 	RequestIn (const DomainAddress& client, unsigned GIOP_minor, Nirvana::Core::CoreRef <StreamIn>&& in);
-
 	~RequestIn ();
 
 	/// Output stream factory.
@@ -138,7 +118,8 @@ private:
 	virtual bool marshal_op () override;
 
 	void switch_to_reply (GIOP::ReplyStatusType status = GIOP::ReplyStatusType::NO_EXCEPTION);
-	virtual void serve_request (ProxyObject& proxy) override;
+	virtual void serve_request (ProxyObject& proxy, Internal::IOReference::OperationIndex op,
+		Nirvana::Core::MemContext* memory) override;
 
 protected:
 	RequestKey key_;
@@ -147,8 +128,11 @@ protected:
 
 private:
 	PortableServer::Core::ObjectKey object_key_;
+	IncomingRequests::MapIter map_iterator_;
 
 	/// ExecDomain pointer if request is in cancellable state, otherwise `nullptr`.
+	/// While request in map, exec_domain_ is not `nullptr`.
+	/// For the oneway requests, exec_domain_ is always `nullptr`.
 	Nirvana::Core::ExecDomain* exec_domain_;
 
 	/// SyncDomain of the target object.
@@ -156,6 +140,7 @@ private:
 
 	size_t reply_status_offset_;
 	size_t reply_header_end_;
+	std::atomic <bool> cancelled_;
 };
 
 }
