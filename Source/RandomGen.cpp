@@ -32,8 +32,6 @@
 namespace Nirvana {
 namespace Core {
 
-using namespace std;
-
 inline
 uint16_t RandomGen::xorshift (uint16_t x) NIRVANA_NOEXCEPT
 {
@@ -68,13 +66,13 @@ RandomGen::result_type RandomGen::operator () () NIRVANA_NOEXCEPT
 
 RandomGen::result_type RandomGenAtomic::operator () () NIRVANA_NOEXCEPT
 {
-	volatile atomic <RandomGen::result_type>* ps = (volatile atomic<RandomGen::result_type>*) & state_;
-	assert (atomic_is_lock_free (ps));
-	RandomGen::result_type s = atomic_load(ps);
+	volatile std::atomic <RandomGen::result_type>* ps = (volatile std::atomic<RandomGen::result_type>*) & state_;
+	assert (std::atomic_is_lock_free (ps));
+	RandomGen::result_type s = std::atomic_load(ps);
 	RandomGen::result_type x;
 	do {
 		x = xorshift (s);
-	} while (!atomic_compare_exchange_weak (ps, &s, x));
+	} while (!std::atomic_compare_exchange_weak (ps, &s, x));
 	return x;
 }
 

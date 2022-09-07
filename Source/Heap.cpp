@@ -33,8 +33,6 @@
 namespace Nirvana {
 namespace Core {
 
-using namespace std;
-
 StaticallyAllocated <HeapCore> g_core_heap;
 
 inline
@@ -42,7 +40,7 @@ bool Heap::MemoryBlock::collapse_large_block (size_t size) NIRVANA_NOEXCEPT
 {
 	assert (is_large_block ());
 	size |= 1;
-	return atomic_compare_exchange_strong ((volatile atomic <size_t>*) & large_block_size_, &size, 1);
+	return std::atomic_compare_exchange_strong ((volatile std::atomic <size_t>*) & large_block_size_, &size, 1);
 }
 
 inline
@@ -417,7 +415,7 @@ Heap::MemoryBlock* Heap::add_new_partition (MemoryBlock*& tail)
 	}
 	MemoryBlock* part = &node->value ();
 	MemoryBlock* next = nullptr;
-	if (!atomic_compare_exchange_strong ((volatile atomic <MemoryBlock*>*)&tail, &next, part)) {
+	if (!std::atomic_compare_exchange_strong ((volatile std::atomic <MemoryBlock*>*)&tail, &next, part)) {
 		// New partition was already added in another thread.
 		part = next;
 		block_list_.remove (node);
@@ -449,7 +447,7 @@ Heap::MemoryBlock* HeapCore::add_new_partition (MemoryBlock*& tail)
 	MemoryBlock** link = &tail;
 	MemoryBlock* next = nullptr;
 	MemoryBlock* ret = part;
-	while (!atomic_compare_exchange_weak ((volatile atomic <MemoryBlock*>*)link, &next, part)) {
+	while (!std::atomic_compare_exchange_weak ((volatile std::atomic <MemoryBlock*>*)link, &next, part)) {
 		// New partition was already added in another thread.
 		if (ret == part)
 			ret = next; // Return the first new partition added.

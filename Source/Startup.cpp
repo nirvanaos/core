@@ -28,7 +28,6 @@
 #include <Nirvana/Launcher.h>
 #include <Nirvana/Legacy/Legacy_Process_s.h>
 
-using namespace std;
 using namespace Nirvana::Legacy;
 
 namespace Nirvana {
@@ -69,18 +68,18 @@ void Startup::run ()
 {
 	if (argc_ > 1) {
 		
-		vector <string> argv;
+		std::vector <std::string> argv;
 		argv.reserve (argc_ - 1);
 		for (char** arg = argv_ + 1, **end = argv_ + argc_; arg != end; ++arg) {
 			argv.emplace_back (*arg);
 		}
-		std::vector <string> envp;
+		std::vector <std::string> envp;
 		for (char** env = envp_; *env; ++env) {
 			envp.emplace_back (*env);
 		}
 
 		CORBA::servant_reference <ShutdownCallback> cb =
-			CORBA::make_stateless <ShutdownCallback> (ref (ret_));
+			CORBA::make_stateless <ShutdownCallback> (std::ref (ret_));
 
 		Static <Launcher>::ptr ()->spawn (argv [0], argv, envp, cb->_this ());
 	}

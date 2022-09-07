@@ -34,8 +34,6 @@
 #include <Port/Debugger.h>
 #include <Signals.h>
 
-using namespace std;
-
 namespace Nirvana {
 namespace Core {
 

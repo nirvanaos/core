@@ -26,7 +26,6 @@
 #include "StreamOutSM.h"
 
 using namespace Nirvana::Core;
-using namespace std;
 
 namespace Nirvana {
 namespace ESIOP {

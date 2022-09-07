@@ -27,7 +27,6 @@
 
 using namespace Nirvana;
 using namespace Nirvana::Core;
-using namespace std;
 
 namespace CORBA {
 
@@ -43,7 +42,7 @@ RequestGIOP::RequestGIOP (unsigned GIOP_minor, bool client_side) :
 void RequestGIOP::set_out_size ()
 {
 	size_t size = stream_out_->size () - sizeof (GIOP::MessageHeader_1_3);
-	if (sizeof (size_t) > sizeof (uint32_t) && size > numeric_limits <uint32_t>::max ())
+	if (sizeof (size_t) > sizeof (uint32_t) && size > std::numeric_limits <uint32_t>::max ())
 		throw IMP_LIMIT ();
 	((GIOP::MessageHeader_1_3*)stream_out_->header (sizeof (GIOP::MessageHeader_1_3)))->message_size ((uint32_t)size);
 }

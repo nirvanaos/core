@@ -29,8 +29,6 @@
 namespace Nirvana {
 namespace Core {
 
-using namespace std;
-
 #ifdef _DEBUG
 #define CHECK_VALID_LEVEL(lev, nod) assert(lev < nod->level)
 #else
@@ -67,7 +65,7 @@ SkipListBase::SkipListBase (unsigned node_size, unsigned max_level, void* head_t
 	tail_ (new (round_up ((uint8_t*)head_tail + Node::size (sizeof (Node), max_level), NODE_ALIGN)) Node (1)),
 	node_size_ (node_size)
 {
-	fill_n (head_->next, max_level, tail_);
+	std::fill_n (head_->next, max_level, tail_);
 	head_->valid_level = max_level;
 }
 

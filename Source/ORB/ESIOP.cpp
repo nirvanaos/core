@@ -35,7 +35,6 @@
 
 using namespace CORBA;
 using namespace CORBA::Core;
-using namespace std;
 
 namespace Nirvana {
 
@@ -51,7 +50,7 @@ class NIRVANA_NOVTABLE RequestIn :
 
 protected:
 	RequestIn (ProtDomainId client_id, unsigned GIOP_minor, CoreRef <StreamIn>&& in) :
-		Base (client_id, GIOP_minor, move (in))
+		Base (client_id, GIOP_minor, std::move (in))
 	{}
 
 	virtual CoreRef <StreamOut> create_output () override;
@@ -72,7 +71,7 @@ void RequestIn::set_exception (Any& e)
 	if (!finalize ())
 		return;
 
-	aligned_storage <sizeof (SystemException), alignof (SystemException)>::type buf;
+	std::aligned_storage <sizeof (SystemException), alignof (SystemException)>::type buf;
 	SystemException& ex = (SystemException&)buf;
 	if (e >>= ex) {
 		if (stream_out ())
@@ -149,7 +148,7 @@ void ReceiveRequest::run ()
 		// Create and receive the request
 		unsigned minor = msg_hdr.GIOP_version ().minor ();
 		IncomingRequests::receive (CoreRef <RequestIn>::create
-			<ImplDynamic <RequestIn> > (client_id_, minor, move (in)), timestamp_);
+			<ImplDynamic <RequestIn> > (client_id_, minor, std::move (in)), timestamp_);
 	} catch (const SystemException& ex) {
 		if (request_id_) {
 			// Responce expected

@@ -27,8 +27,6 @@
 #include <signal.h>
 #include <algorithm>
 
-using namespace std;
-
 namespace Nirvana {
 namespace Core {
 
@@ -49,8 +47,8 @@ const Signals::SigToExc Signals::sig2exc_ [] = {
 
 int Signals::signal_index (int signal) NIRVANA_NOEXCEPT
 {
-	const int* p = lower_bound (supported_signals_, end (supported_signals_), signal);
-	if (p != end (supported_signals_) && *p == signal)
+	const int* p = std::lower_bound (supported_signals_, std::end (supported_signals_), signal);
+	if (p != std::end (supported_signals_) && *p == signal)
 		return (int)(p - supported_signals_);
 	return -1;
 }

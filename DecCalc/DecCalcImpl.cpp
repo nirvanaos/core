@@ -2,7 +2,6 @@
 #include "DecCalc_s.h"
 
 using namespace Nirvana;
-using namespace std;
 
 #if DECNUMDIGITS != 62
 #error decNumber DECNUMDIGITS must be 62.
@@ -87,7 +86,7 @@ public:
 			throw_DATA_CONVERSION ();
 	}
 
-	static string to_string (const Number& n)
+	static std::string to_string (const Number& n)
 	{
 		char buf [DECNUMDIGITS + 14];
 		assert (n.exponent () <= 0);

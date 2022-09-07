@@ -28,8 +28,6 @@
 #include "Thread.h"
 #include <utility>
 
-using namespace std;
-
 namespace Nirvana {
 namespace Core {
 

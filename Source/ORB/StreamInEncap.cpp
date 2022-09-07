@@ -28,7 +28,6 @@
 
 using namespace Nirvana;
 using namespace Nirvana::Core;
-using namespace std;
 
 namespace CORBA {
 namespace Core {

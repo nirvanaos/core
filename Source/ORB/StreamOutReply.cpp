@@ -25,8 +25,6 @@
 */
 #include "StreamOutReply.h"
 
-using namespace std;
-
 namespace Nirvana {
 namespace ESIOP {
 
@@ -34,7 +32,7 @@ void StreamOutReply::write (size_t align, size_t size, void* data, size_t& alloc
 {
 	if (small_ptr_) {
 		uint8_t* p = round_up (small_ptr_, align);
-		if (allocated_size || p > end (small_buffer_) || (size_t)(end (small_buffer_) - p) < size) {
+		if (allocated_size || p > std::end (small_buffer_) || (size_t)(std::end (small_buffer_) - p) < size) {
 			switch_to_base ();
 			StreamOutSM::write (align, size, data, allocated_size);
 		} else
@@ -46,7 +44,7 @@ void StreamOutReply::write (size_t align, size_t size, void* data, size_t& alloc
 void StreamOutReply::switch_to_base ()
 {
 	StreamOutSM::initialize ();
-	ptrdiff_t cb = small_ptr_ - begin (small_buffer_);
+	ptrdiff_t cb = small_ptr_ - std::begin (small_buffer_);
 	small_ptr_ = nullptr;
 	if (cb > 0) {
 		size_t zero = 0;
@@ -57,7 +55,7 @@ void StreamOutReply::switch_to_base ()
 size_t StreamOutReply::size () const
 {
 	if (small_ptr_)
-		return small_ptr_ - begin (small_buffer_);
+		return small_ptr_ - std::begin (small_buffer_);
 	else
 		return StreamOutSM::size ();
 }

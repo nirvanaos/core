@@ -31,7 +31,6 @@
 
 using namespace Nirvana;
 using namespace Nirvana::Core;
-using namespace std;
 
 namespace CORBA {
 
@@ -48,7 +47,7 @@ RequestIn::RequestIn (const DomainAddress& client, unsigned GIOP_minor, CoreRef 
 	sync_domain_ (nullptr),
 	cancelled_ (false)
 {
-	stream_in_ = move (in);
+	stream_in_ = std::move (in);
 
 	switch (GIOP_minor) {
 		case 0: {

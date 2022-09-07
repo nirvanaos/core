@@ -30,7 +30,6 @@
 
 using namespace Nirvana;
 using namespace Nirvana::Core;
-using namespace std;
 
 namespace CORBA {
 using namespace Internal;
@@ -82,7 +81,7 @@ struct ProxyManager::OEPred
 
 bool ProxyManager::OEPred::compare (const Char* lhs, size_t lhs_len, const Char* rhs, size_t rhs_len)
 {
-	return lexicographical_compare (lhs, lhs + lhs_len, rhs, rhs + rhs_len, less_no_case);
+	return std::lexicographical_compare (lhs, lhs + lhs_len, rhs, rhs + rhs_len, less_no_case);
 }
 
 void ProxyManager::check_metadata (const InterfaceMetadata* metadata, String_in primary)
@@ -92,7 +91,7 @@ void ProxyManager::check_metadata (const InterfaceMetadata* metadata, String_in 
 
 	{ // Check interfaces
 		size_t itf_cnt = metadata->interfaces.size;
-		if (!itf_cnt || itf_cnt > numeric_limits <UShort>::max ())
+		if (!itf_cnt || itf_cnt > std::numeric_limits <UShort>::max ())
 			throw OBJ_ADAPTER (); // TODO: Log
 		const Char* const* itf = metadata->interfaces.p;
 		const Char* iid = *itf;
@@ -156,7 +155,7 @@ ProxyManager::ProxyManager (Internal::String_in primary_iid) :
 			} while (interfaces_.end () != ++ie);
 		}
 
-		sort (interfaces_.begin (), interfaces_.end (), IEPred ());
+		std::sort (interfaces_.begin (), interfaces_.end (), IEPred ());
 
 		// Check that all interfaces are unique
 		if (!is_unique (interfaces_.begin (), interfaces_.end (), IEPred ()))
@@ -181,7 +180,7 @@ ProxyManager::ProxyManager (Internal::String_in primary_iid) :
 	}
 
 	// Total count of operations
-	size_t op_cnt = size (object_ops_);
+	size_t op_cnt = std::size (object_ops_);
 	for (const InterfaceEntry* ie = interfaces_.begin (); ie != interfaces_.end (); ++ie) {
 		op_cnt += ie->operations.size;
 	}
@@ -192,7 +191,7 @@ ProxyManager::ProxyManager (Internal::String_in primary_iid) :
 
 	// Object operations
 	OperationIndex idx (0, 0);
-	for (const Operation* p = object_ops_, *e = end (object_ops_); p != e; ++p) {
+	for (const Operation* p = object_ops_, *e = std::end (object_ops_); p != e; ++p) {
 		const Char* name = p->name;
 		op->name = name;
 		op->name_len = strlen (name);
@@ -214,7 +213,7 @@ ProxyManager::ProxyManager (Internal::String_in primary_iid) :
 		}
 	}
 
-	sort (operations_.begin (), operations_.end (), OEPred ());
+	std::sort (operations_.begin (), operations_.end (), OEPred ());
 
 	// Check name uniqueness
 
@@ -257,7 +256,7 @@ ProxyManager& ProxyManager::operator = (const ProxyManager& src)
 		if (
 			primary_interface_->iid_len != src.primary_interface_->iid_len
 			|| (primary_interface_->iid != src.primary_interface_->iid
-				&& !equal (primary_interface_->iid, primary_interface_->iid + primary_interface_->iid_len,
+				&& !std::equal (primary_interface_->iid, primary_interface_->iid + primary_interface_->iid_len,
 					src.primary_interface_->iid)))
 			throw BAD_PARAM ();
 

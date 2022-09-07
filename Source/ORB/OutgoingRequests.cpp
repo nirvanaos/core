@@ -26,7 +26,6 @@
 #include "OutgoingRequests.h"
 #include "RequestOut.h"
 
-using namespace std;
 using namespace Nirvana;
 using namespace Nirvana::Core;
 
@@ -41,7 +40,7 @@ void OutgoingRequests::reply (uint32_t request_id, CoreRef <StreamIn>&& data)
 	RequestMap::NodeVal* p = map_->find_and_delete (request_id);
 	assert (p);
 	if (p) {
-		p->value ().request->reply (move (data));
+		p->value ().request->reply (std::move (data));
 		map_->release_node (p);
 	}
 }

@@ -25,8 +25,6 @@
 */
 #include "WaitList.h"
 
-using namespace std;
-
 namespace Nirvana {
 namespace Core {
 
@@ -63,7 +61,7 @@ void WaitListImpl::on_exception () NIRVANA_NOEXCEPT
 {
 	assert (!finished ());
 	assert (!exception_);
-	exception_ = current_exception ();
+	exception_ = std::current_exception ();
 	finish ();
 }
 

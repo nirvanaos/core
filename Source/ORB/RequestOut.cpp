@@ -26,7 +26,6 @@
 #include "RequestOut.h"
 #include "OutgoingRequests.h"
 
-using namespace std;
 using namespace Nirvana;
 using namespace Nirvana::Core;
 
@@ -50,7 +49,7 @@ RequestOut::RequestOut (const IOP::ObjectKey& object_key, const IDL::String& ope
 		exec_domain_ = &ExecDomain::current ();
 
 	assert (stream);
-	stream_out_ = move (stream);
+	stream_out_ = std::move (stream);
 	stream_out_->write_message_header (GIOP_minor, GIOP::MsgType::Request);
 
 	switch (GIOP_minor) {

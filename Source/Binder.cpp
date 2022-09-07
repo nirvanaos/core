@@ -43,7 +43,6 @@ extern const ImportInterfaceT <Factory> g_factory;
 
 namespace Core {
 
-using namespace std;
 using namespace CORBA;
 using namespace CORBA::Internal;
 
@@ -155,7 +154,7 @@ void Binder::terminate ()
 
 NIRVANA_NORETURN void Binder::invalid_metadata ()
 {
-	throw runtime_error ("Invalid file format");
+	throw std::runtime_error ("Invalid file format");
 }
 
 const ModuleStartup* Binder::module_bind (::Nirvana::Module::_ptr_type mod, const Section& metadata, ModuleContext* mod_context)
@@ -288,7 +287,7 @@ const ModuleStartup* Binder::module_bind (::Nirvana::Module::_ptr_type mod, cons
 						Object::_ref_type obj = bind_sync (ps->name);
 						const StringBase <char> requested_iid (ps->interface_id);
 						if (RepId::compatible (obj->_epv ().header.interface_id, requested_iid))
-							reinterpret_cast <Object::_ref_type&> (ps->itf) = move (obj);
+							reinterpret_cast <Object::_ref_type&> (ps->itf) = std::move (obj);
 						else {
 							InterfacePtr itf = obj->_query_interface (requested_iid);
 							if (!itf)
@@ -346,12 +345,12 @@ void Binder::delete_module (Module* mod)
 	}
 }
 
-CoreRef <Module> Binder::load (string& module_name, bool singleton)
+CoreRef <Module> Binder::load (std::string& module_name, bool singleton)
 {
 	if (!initialized_)
 		throw_INITIALIZE ();
 	Module* mod = nullptr;
-	auto ins = module_map_.emplace (move (module_name), MODULE_LOADING_DEADLINE_MAX);
+	auto ins = module_map_.emplace (std::move (module_name), MODULE_LOADING_DEADLINE_MAX);
 	if (ins.second) {
 		ModuleMap::reference entry = *ins.first;
 		try {
@@ -469,7 +468,7 @@ Binder::InterfaceRef Binder::find (const ObjectKey& name)
 			throw_OBJECT_NOT_EXIST ();
 		itf = object_map_.find (name);
 		if (!itf) {
-			string module_name;
+			std::string module_name;
 			if (ObjectKey ("Nirvana/g_dec_calc") == name)
 				module_name = "DecCalc.olf";
 			else

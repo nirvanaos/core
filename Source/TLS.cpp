@@ -25,8 +25,6 @@
 */
 #include "TLS.h"
 
-using namespace std;
-
 namespace Nirvana {
 namespace Core {
 
@@ -59,7 +57,7 @@ unsigned TLS::allocate ()
 				bit = BitmapOps::clear_rightmost_one (p);
 				if (bit >= 0)
 					return (unsigned)((p - bitmap_) * sizeof (BitmapWord) * 8) + bit + CORE_TLS_COUNT;
-			} while (end (bitmap_) != ++p);
+			} while (std::end (bitmap_) != ++p);
 		}
 	} else
 		throw_IMP_LIMIT ();

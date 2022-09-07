@@ -27,7 +27,6 @@
 #include "Synchronized.h"
 #include <iostream>
 
-using namespace std;
 using namespace Nirvana::Core;
 
 namespace Nirvana {
@@ -47,7 +46,7 @@ void Process::run ()
 	assert (INIT == state_);
 	state_ = RUNNING;
 
-	sync_.construct (ref (sync_context ()), ref (*this));
+	sync_.construct (std::ref (sync_context ()), std::ref (*this));
 
 	Pointers v;
 	v.reserve (argv_.size () + envp_.size () + 2);

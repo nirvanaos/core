@@ -1,8 +1,6 @@
 #include "FileAccessDirect.h"
 #include <Port/Memory.h>
 
-using namespace std;
-
 namespace Nirvana {
 namespace Core {
 
@@ -15,7 +13,7 @@ FileAccessDirect::CacheRange FileAccessDirect::request_read (BlockIdx begin_bloc
 			if (cached_block == cache_.end ())
 				not_cached_end = end_block;
 			else
-				not_cached_end = min (end_block, cached_block->first);
+				not_cached_end = std::min (end_block, cached_block->first);
 			if (begin_block < not_cached_end) {
 				// Issue new read request
 				size_t cb = (Size)(not_cached_end - begin_block) * block_size_;
@@ -84,7 +82,7 @@ void FileAccessDirect::write_dirty_blocks (SteadyTime timeout)
 			if (time - block->second.last_write_time >= timeout) {
 				Cache::iterator first_block = block;
 				BlockIdx idx = first_block->first;
-				BlockIdx max_idx = idx + numeric_limits <Size>::max () / block_size_;
+				BlockIdx max_idx = idx + std::numeric_limits <Size>::max () / block_size_;
 				uint8_t* buf = (uint8_t*)first_block->second.buffer;
 				size_t dirty_begin = block->second.dirty_begin;
 				size_t dirty_end;

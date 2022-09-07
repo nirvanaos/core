@@ -28,8 +28,6 @@
 namespace Nirvana {
 namespace Core {
 
-using namespace std;
-
 const size_t HeapDirectoryTraits <0x10000, 11>::block_index_offset_ [HEAP_LEVELS] =
 { // FREE_BLOCK_INDEX_SIZE == 15
 	0,  // разделен на 4 части

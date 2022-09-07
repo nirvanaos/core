@@ -28,8 +28,6 @@
 #include "Chrono.h"
 #include <Port/SystemInfo.h>
 
-using namespace std;
-
 namespace Nirvana {
 namespace Core {
 
@@ -107,7 +105,7 @@ CoreRef <ExecDomain> ExecDomain::create (const DeadlineTime deadline, CoreRef <R
 #ifdef _DEBUG
 	assert (!ed->dbg_context_stack_size_++);
 #endif
-	ed->runnable_ = move (runnable);
+	ed->runnable_ = std::move (runnable);
 	return ed;
 }
 
@@ -163,7 +161,7 @@ void ExecDomain::async_call (const DeadlineTime& deadline, CoreRef <Runnable> ru
 		assert (!mem_context || mem_context == &sd->mem_context ());
 		mem_context = &sd->mem_context ();
 	}
-	CoreRef <ExecDomain> exec_domain = create (deadline, move (runnable), mem_context);
+	CoreRef <ExecDomain> exec_domain = create (deadline, std::move (runnable), mem_context);
 	exec_domain->spawn (target);
 }
 
@@ -255,11 +253,11 @@ void ExecDomain::unwind_mem_context () NIRVANA_NOEXCEPT
 	// Clear memory context stack
 	CoreRef <MemContext> tmp;
 	do {
-		tmp = move (mem_context_stack_.top ());
+		tmp = std::move (mem_context_stack_.top ());
 		mem_context_stack_.pop ();
 		mem_context_ = tmp;
 	} while (!mem_context_stack_.empty ());
-	mem_context_stack_.push (move (tmp));
+	mem_context_stack_.push (std::move (tmp));
 }
 
 void ExecDomain::on_crash (const siginfo& signal) NIRVANA_NOEXCEPT
@@ -281,7 +279,7 @@ void ExecDomain::schedule (SyncContext& target, bool ret)
 {
 	assert (ExecContext::current_ptr () != this);
 
-	CoreRef <SyncContext> old_context = move (sync_context_);
+	CoreRef <SyncContext> old_context = std::move (sync_context_);
 	SyncDomain* sync_domain = target.sync_domain ();
 	bool background = false;
 	if (!sync_domain) {
@@ -311,7 +309,7 @@ void ExecDomain::schedule (SyncContext& target, bool ret)
 				Scheduler::schedule (deadline (), *this);
 		}
 	} catch (...) {
-		sync_context_ = move (old_context);
+		sync_context_ = std::move (old_context);
 		throw;
 	}
 }
@@ -412,7 +410,7 @@ void ExecDomain::Schedule::run ()
 void ExecDomain::Schedule::on_exception () NIRVANA_NOEXCEPT
 {
 	assert (!ret_);
-	exception_ = current_exception ();
+	exception_ = std::current_exception ();
 }
 
 void ExecDomain::suspend (SyncContext* resume_context)

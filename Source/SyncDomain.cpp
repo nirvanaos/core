@@ -25,8 +25,6 @@
 */
 #include "ExecDomain.h"
 
-using namespace std;
-
 namespace Nirvana {
 namespace Core {
 
@@ -119,8 +117,8 @@ SyncDomain& SyncDomain::enter ()
 		if (!sync_context.is_free_sync_context ())
 			throw_NO_PERMISSION (); // Legacy process called value factory with interface support
 		CoreRef <SyncDomain> sd = CoreRef <SyncDomain>::create
-			<ImplDynamic <SyncDomainImpl> > (ref (sync_context),
-				ref (exec_domain.mem_context ()));
+			<ImplDynamic <SyncDomainImpl> > (std::ref (sync_context),
+				std::ref (exec_domain.mem_context ()));
 		sd->activity_begin ();
 		sd->state_ = State::RUNNING;
 		exec_domain.sync_context (*sd);
