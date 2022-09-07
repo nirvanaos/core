@@ -63,9 +63,5 @@ void POAManager::discard_queued_requests ()
 	}
 }
 
-void POAManager::on_request_finish () NIRVANA_NOEXCEPT
-{
-}
-
 }
 }

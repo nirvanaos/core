@@ -274,20 +274,14 @@ POA_Base& POA_Base::find_child (const IDL::String& adapter_name, bool activate_i
 		return *it->second;
 }
 
-void POA_Base::destroy (bool etherealize_objects, bool wait_for_completion)
+void POA_Base::destroy (bool etherealize_objects) NIRVANA_NOEXCEPT
 {
-	// Currently we do not support wait_for_completion.
-	if (wait_for_completion)
-		throw BAD_INV_ORDER (MAKE_OMG_MINOR (3));
-
 	destroyed_ = true;
+	name_ = nullptr;
 	Children tmp (std::move (children_));
 	while (!tmp.empty ()) {
-		tmp.begin ()->second->destroy (etherealize_objects, wait_for_completion);
-	}
-	if (parent_) {
-		parent_->children_.erase (*name_);
-		parent_ = nullptr;
+		tmp.begin ()->second->destroy (etherealize_objects);
+		tmp.erase (tmp.begin ());
 	}
 }
 
@@ -317,8 +311,18 @@ void POA_Base::serve (const RequestRef& request, ProxyObject& proxy)
 
 void POA_Base::on_request_finish () NIRVANA_NOEXCEPT
 {
-	--request_cnt_;
+	if (!--request_cnt_ && destroyed_)
+		destroy_completed_.signal ();
 	the_POAManager_->on_request_finish ();
+}
+
+void POA_Base::check_wait_completion ()
+{
+	// If wait_for_completion is TRUE and the current thread is in an invocation context dispatched
+	// from some POA belonging to the same ORB as this POA, the BAD_INV_ORDER system exception with
+	// standard minor code 3 is raised and POA destruction does not occur.
+	if (Nirvana::Core::TLS::current ().get (Nirvana::Core::TLS::CORE_TLS_PORTABLE_SERVER))
+		throw CORBA::BAD_INV_ORDER (MAKE_OMG_MINOR (3));
 }
 
 void RequestRef::reset () NIRVANA_NOEXCEPT

@@ -48,7 +48,7 @@ public:
 	~POA_Root ()
 	{
 		if (!is_destroyed ())
-			destroy (true, false);
+			destroy (false);
 	}
 
 	virtual IDL::String the_name () const override

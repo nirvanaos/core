@@ -35,9 +35,9 @@ using namespace Nirvana::Core;
 namespace PortableServer {
 namespace Core {
 
-void POA_RetainSystem::destroy (bool etherealize_objects, bool wait_for_completion)
+void POA_RetainSystem::destroy (bool etherealize_objects) NIRVANA_NOEXCEPT
 {
-	Base::destroy (etherealize_objects, wait_for_completion);
+	Base::destroy (etherealize_objects);
 	active_object_map_.clear ();
 }
 
@@ -156,9 +156,9 @@ void POA_RetainSystem::serve (const RequestRef& request)
 	POA_Base::serve (request, *proxy);
 }
 
-void POA_RetainSystemUnique::destroy (bool etherealize_objects, bool wait_for_completion)
+void POA_RetainSystemUnique::destroy (bool etherealize_objects) NIRVANA_NOEXCEPT
 {
-	Base::destroy (etherealize_objects, wait_for_completion);
+	Base::destroy (etherealize_objects);
 	servant_map_.clear ();
 }
 

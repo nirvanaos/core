@@ -102,7 +102,7 @@ class NIRVANA_NOVTABLE POA_RetainSystem : public POA_Retain
 	typedef POA_Retain Base;
 
 public:
-	virtual void destroy (bool etherealize_objects, bool wait_for_completion) override;
+	virtual void destroy (bool etherealize_objects) NIRVANA_NOEXCEPT override;
 	
 	// Object activation and deactivation
 	virtual ObjectId activate_object (CORBA::Object::_ptr_type p_servant) override;
@@ -141,7 +141,7 @@ class NIRVANA_NOVTABLE POA_RetainSystemUnique : public POA_RetainSystem
 	typedef POA_RetainSystem Base;
 
 public:
-	virtual void destroy (bool etherealize_objects, bool wait_for_completion) override;
+	virtual void destroy (bool etherealize_objects) NIRVANA_NOEXCEPT override;
 
 	// Object activation and deactivation
 	virtual ObjectId activate_object (CORBA::Object::_ptr_type p_servant) override;

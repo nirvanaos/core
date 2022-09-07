@@ -124,7 +124,27 @@ public:
 
 	POA_Base& find_child (const IDL::String& adapter_name, bool activate_it);
 
-	virtual void destroy (bool etherealize_objects, bool wait_for_completion);
+	static void check_wait_completion ();
+
+	void destroy (bool etherealize_objects, bool wait_for_completion)
+	{
+		if (wait_for_completion)
+			check_wait_completion ();
+
+		if (!destroyed_) {
+			if (parent_) {
+				parent_->children_.erase (*name_);
+				parent_ = nullptr;
+			}
+
+			destroy (etherealize_objects);
+		}
+
+		if (wait_for_completion)
+			destroy_completed_.wait ();
+	}
+
+	virtual void destroy (bool etherealize_objects) NIRVANA_NOEXCEPT;
 
 	bool is_destroyed () const NIRVANA_NOEXCEPT
 	{
@@ -332,7 +352,7 @@ private:
 	AdapterActivator::_ref_type the_activator_;
 	unsigned int request_cnt_;
 	bool destroyed_;
-	//Nirvana::Core::Event destroy_completed_;
+	Nirvana::Core::Event destroy_completed_;
 
 	static const int32_t SIGNATURE = 'POA_';
 	const int32_t signature_;

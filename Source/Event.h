@@ -38,6 +38,19 @@ class Event :
 	private Stack <ExecDomain>
 {
 public:
+	/// Constructor.
+	/// 
+	/// \param signalled Initial state. Default is not signalled.
+	Event (bool signalled = false) NIRVANA_NOEXCEPT :
+		wait_op_ (std::ref (*this)),
+		signalled_ (signalled)
+	{}
+
+	~Event ()
+	{
+		assert (signalled_);
+	}
+
 	/// Suspend current execution domain until the event will be signalled.
 	void wait () NIRVANA_NOEXCEPT {
 		if (!signalled_)
@@ -54,15 +67,10 @@ public:
 	/// Sets object into the signalled state.
 	void signal () NIRVANA_NOEXCEPT;
 
-protected:
-	Event () NIRVANA_NOEXCEPT :
-		wait_op_ (std::ref (*this)),
-		signalled_ (false)
-	{}
-
-	~Event ()
+	/// Reset object into the non-signalled state.
+	void reset () NIRVANA_NOEXCEPT
 	{
-		assert (signalled_);
+		signalled_ = false;
 	}
 
 private:

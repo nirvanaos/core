@@ -44,6 +44,7 @@ public:
 		id_ (&id),
 		state_ (State::HOLDING),
 		request_cnt_ (0),
+		requests_completed_ (true),
 		signature_ (SIGNATURE)
 	{}
 
@@ -66,7 +67,7 @@ public:
 						if (!top.request->is_cancelled ()) {
 							if (top.adapter->is_destroyed ())
 								top.request->set_exception (POA::AdapterNonExistent ());
-							++request_cnt_;
+							on_request_start ();
 							try {
 								Nirvana::Core::ExecDomain::async_call (top.deadline,
 									Nirvana::Core::CoreRef <Nirvana::Core::Runnable>::
@@ -96,11 +97,13 @@ public:
 		if (State::INACTIVE == state_)
 			throw AdapterInactive ();
 
-		// Currently we do not support wait_for_completion.
 		if (wait_for_completion)
-			throw CORBA::BAD_INV_ORDER (MAKE_OMG_MINOR (3));
+			POA_Base::check_wait_completion ();
 
 		state_ = State::HOLDING;
+
+		if (wait_for_completion)
+			requests_completed_.wait ();
 	}
 
 	void discard_requests (bool wait_for_completion)
@@ -108,21 +111,24 @@ public:
 		if (State::INACTIVE == state_)
 			throw AdapterInactive ();
 
-		// Currently we do not support wait_for_completion.
 		if (wait_for_completion)
-			throw CORBA::BAD_INV_ORDER (MAKE_OMG_MINOR (3));
+			POA_Base::check_wait_completion ();
 
-		state_ = State::DISCARDING;
-		discard_queued_requests ();
+		if (state_ != State::DISCARDING) {
+			state_ = State::DISCARDING;
+			discard_queued_requests ();
+		}
+
+		if (wait_for_completion)
+			requests_completed_.wait ();
 	}
 
 	void discard_queued_requests ();
 
 	void deactivate (bool etherealize_objects, bool wait_for_completion)
 	{
-		// Currently we do not support wait_for_completion.
 		if (wait_for_completion)
-			throw CORBA::BAD_INV_ORDER (MAKE_OMG_MINOR (3));
+			POA_Base::check_wait_completion ();
 
 		if (State::INACTIVE != state_) {
 			state_ = State::INACTIVE;
@@ -132,6 +138,9 @@ public:
 					p->etherealize_objects ();
 				}
 		}
+
+		if (wait_for_completion)
+			requests_completed_.wait ();
 	}
 
 	State get_state () const NIRVANA_NOEXCEPT
@@ -164,7 +173,7 @@ public:
 				queue_.emplace (adapter, request);
 				break;
 			case State::ACTIVE:
-				++request_cnt_;
+				on_request_start ();
 				adapter.serve (request);
 				break;
 			case State::DISCARDING:
@@ -187,7 +196,17 @@ public:
 			std::find (associated_adapters_.begin (), associated_adapters_.end (), &adapter));
 	}
 
-	void on_request_finish () NIRVANA_NOEXCEPT;
+	void on_request_start () NIRVANA_NOEXCEPT
+	{
+		if (1 == ++request_cnt_)
+			requests_completed_.reset ();
+	}
+
+	void on_request_finish () NIRVANA_NOEXCEPT
+	{
+		if (0 == --request_cnt_)
+			requests_completed_.signal ();
+	}
 
 private:
 	struct QElem
@@ -231,6 +250,7 @@ private:
 	std::priority_queue <QElem> queue_;
 	State state_;
 	unsigned int request_cnt_;
+	Nirvana::Core::Event requests_completed_;
 	static const int32_t SIGNATURE = 'POAM';
 	const int32_t signature_;
 };
