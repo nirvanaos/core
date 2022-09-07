@@ -70,7 +70,7 @@ protected:
 	}
 
 	// Override RequestInPOA::_add_ref ()
-	void _add_ref () NIRVANA_NOEXCEPT
+	void _add_ref () NIRVANA_NOEXCEPT override
 	{
 		RequestLocalBase::_add_ref ();
 	}
@@ -91,7 +91,7 @@ protected:
 	virtual void invoke () override;
 	virtual void serve_request (ProxyObject& proxy, Internal::IOReference::OperationIndex op,
 		Nirvana::Core::MemContext* memory) override;
-	virtual void cancel () NIRVANA_NOEXCEPT;
+	virtual void cancel () NIRVANA_NOEXCEPT override;
 
 private:
 	Nirvana::Core::CoreRef <Nirvana::Core::ExecDomain> exec_domain_;

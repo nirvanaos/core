@@ -184,8 +184,13 @@ static_assert (sizeof (MessageBuffer) == sizeof (ReplyImmediate), "sizeof (Messa
 /// Called by the postman from portability layer.
 void dispatch_message (const MessageHeader& message) NIRVANA_NOEXCEPT;
 
-/// Vendor service context ID. Used only in ESIOP messages.
+/// Vendor service context ID. TODO: Obtain from OMG.
 const uint32_t VSCID = 0xFFFFFF;
+
+/// Nirvana ESIOP profile tag. TODO: Obtain from OMG.
+/// profile_data contains the local protection domain ID.
+/// If this profile is not present, the local system domain is assumed.
+const uint32_t TAG_PROTECTION_DOMAIN_ID = 0xFFFFFFFF;
 
 ///@{ Service context IDs
 

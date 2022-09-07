@@ -152,8 +152,8 @@ POA_Base::POA_Base (POA_Base* parent, const IDL::String* name,
 	name_ (name),
 	the_POAManager_ (std::move (manager)),
 	request_cnt_ (0),
-	signature_ (SIGNATURE),
-	destroyed_ (false)
+	destroyed_ (false),
+	signature_ (SIGNATURE)
 {
 	the_POAManager_->on_adapter_create (*this);
 }
