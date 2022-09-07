@@ -23,48 +23,24 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "POAManager.h"
-#include "RqHelper.h"
-
-using namespace CORBA;
-using namespace CORBA::Core;
-using namespace Nirvana::Core;
+#include "POAManagerFactory.h"
 
 namespace PortableServer {
 namespace Core {
 
-void POAManager::ServeRequest::run ()
+CORBA::servant_reference <POAManager> POAManagerFactory::create (const IDL::String& id, const CORBA::PolicyList& policies)
 {
-	try {
-		// Check that adapter is not destroyed.
-		if (adapter_->is_destroyed ())
-			throw POA::AdapterNonExistent ();
-		adapter_->serve (request_);
-	} catch (Exception& e) {
-		request_->set_exception (std::move (e));
-	}
-}
-
-void POAManager::ServeRequest::on_crash (const siginfo& signal) NIRVANA_NOEXCEPT
-{
-	Any ex = CORBA::Core::RqHelper::signal2exception (signal);
-	try {
-		request_->set_exception (ex);
-	} catch (...) {}
-}
-
-void POAManager::discard_queued_requests ()
-{
-	while (!queue_.empty ()) {
-		if (!queue_.top ().request->is_cancelled ()) {
-			queue_.top ().request->set_exception (TRANSIENT (MAKE_OMG_MINOR (1)));
+	CORBA::servant_reference <POAManager> manager;
+	auto ins = managers_.emplace (id, nullptr);
+	if (ins.second) {
+		try {
+			manager = CORBA::make_reference <POAManager> (std::ref (*this), std::ref (ins.first->first), std::ref (policies));
+		} catch (...) {
+			managers_.erase (ins.first);
+			throw;
 		}
-		queue_.pop ();
 	}
-}
-
-void POAManager::on_request_finish () NIRVANA_NOEXCEPT
-{
+	return manager;
 }
 
 }

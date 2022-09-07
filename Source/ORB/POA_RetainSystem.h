@@ -117,8 +117,8 @@ public:
 	virtual CORBA::Object::_ref_type id_to_reference (const ObjectId& oid) override;
 
 protected:
-	POA_RetainSystem (CORBA::servant_reference <POAManager>&& manager) :
-		Base (std::move (manager))
+	POA_RetainSystem (POA_Base* parent, const IDL::String* name, CORBA::servant_reference <POAManager>&& manager) :
+		Base (parent, name, std::move (manager))
 	{}
 
 	virtual void serve (const RequestRef& request) override;
@@ -153,8 +153,8 @@ public:
 	virtual CORBA::Object::_ref_type servant_to_reference (CORBA::Object::_ptr_type p_servant) override;
 
 protected:
-	POA_RetainSystemUnique (CORBA::servant_reference <POAManager>&& manager) :
-		Base (std::move (manager))
+	POA_RetainSystemUnique (POA_Base* parent, const IDL::String* name, CORBA::servant_reference <POAManager>&& manager) :
+		Base (parent, name, std::move (manager))
 	{}
 
 	typedef POA_Retain::ServantMap <AOM> ServantMap;

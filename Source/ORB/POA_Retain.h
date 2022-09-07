@@ -40,8 +40,8 @@ class POA_Retain : public POA_Base
 	typedef POA_Base Base;
 
 protected:
-	POA_Retain (CORBA::servant_reference <POAManager>&& manager) :
-		Base (std::move (manager))
+	POA_Retain (POA_Base* parent, const IDL::String* name, CORBA::servant_reference <POAManager>&& manager) :
+		Base (parent, name, std::move (manager))
 	{}
 
 	// Active Object Map (AOM) value.

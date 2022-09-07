@@ -229,6 +229,7 @@ void RequestIn::cancel () NIRVANA_NOEXCEPT
 {
 	// Oneway requests (response_flags_ == 0) are not cancellable.
 	if (response_flags_ && !cancelled_.exchange (true, std::memory_order_release)) {
+		response_flags_ = 0; // Prevent marshaling
 		if (exec_domain_) {
 			try {
 				exec_domain_->abort ();

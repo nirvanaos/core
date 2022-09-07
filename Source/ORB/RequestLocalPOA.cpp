@@ -70,10 +70,12 @@ void RequestLocalAsyncPOA::serve_request (ProxyObject& proxy, Internal::IORefere
 void RequestLocalAsyncPOA::cancel () NIRVANA_NOEXCEPT
 {
 	if (set_cancelled ()) {
-		assert (exec_domain_);
-		try {
-			exec_domain_->abort ();
-		} catch (...) {}
+		response_flags_ = 0; // Prevent marshaling
+		if (exec_domain_) {
+			try {
+				exec_domain_->abort ();
+			} catch (...) {}
+		}
 	}
 }
 

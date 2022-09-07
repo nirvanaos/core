@@ -41,7 +41,7 @@ class POA_Root :
 public:
 	POA_Root (CORBA::servant_reference <POAManager>&& manager,
 		CORBA::servant_reference <POAManagerFactory>&& manager_factory) :
-		Base (std::move (manager)),
+		Base (nullptr, nullptr, std::move (manager)),
 		manager_factory_ (std::move (manager_factory))
 	{}
 

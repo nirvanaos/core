@@ -146,9 +146,12 @@ Interface* POA_Base::_s_id_to_servant (Bridge <POA>* _b,
 	return Type <Object>::ret ();
 }
 
-POA_Base::POA_Base (CORBA::servant_reference <POAManager>&& manager) :
-	parent_ (nullptr),
+POA_Base::POA_Base (POA_Base* parent, const IDL::String* name,
+	CORBA::servant_reference <POAManager>&& manager) :
+	parent_ (parent),
+	name_ (name),
 	the_POAManager_ (std::move (manager)),
+	request_cnt_ (0),
 	signature_ (SIGNATURE),
 	destroyed_ (false)
 {
@@ -221,7 +224,7 @@ void POA_Base::get_path (AdapterPath& path, size_t size) const
 {
 	if (parent_) {
 		parent_->get_path (path, size + 1);
-		path.push_back (iterator_->first);
+		path.push_back (*name_);
 	} else {
 		path.clear ();
 		path.reserve (size);
@@ -232,12 +235,13 @@ bool POA_Base::check_path (const AdapterPath& path, AdapterPath::const_iterator 
 	const NIRVANA_NOEXCEPT
 {
 	if (parent_) {
+		assert (name_);
 		if (it == path.begin ())
 			return false;
 		--it;
-		if (iterator_->first.size () != it->size ())
+		if (name_->size () != it->size ())
 			return false;
-		if (iterator_->first != *it)
+		if (*name_ != *it)
 			return false;
 		return parent_->check_path (path, it);
 	} else
@@ -282,7 +286,7 @@ void POA_Base::destroy (bool etherealize_objects, bool wait_for_completion)
 		tmp.begin ()->second->destroy (etherealize_objects, wait_for_completion);
 	}
 	if (parent_) {
-		parent_->children_.erase (iterator_);
+		parent_->children_.erase (*name_);
 		parent_ = nullptr;
 	}
 }
@@ -299,13 +303,22 @@ void POA_Base::serve (const RequestRef& request, ProxyObject& proxy)
 	Context* ctx_prev = (Context*)tls.get (TLS::CORE_TLS_PORTABLE_SERVER);
 	Context ctx (_this (), request->object_key ().object_id (), proxy);
 	tls.set (TLS::CORE_TLS_PORTABLE_SERVER, &ctx);
+	++request_cnt_;
 	try {
 		request->serve_request (proxy, op, request.memory ());
 	} catch (...) {
+		on_request_finish ();
 		tls.set (TLS::CORE_TLS_PORTABLE_SERVER, ctx_prev);
 		throw;
 	}
+	on_request_finish ();
 	tls.set (TLS::CORE_TLS_PORTABLE_SERVER, ctx_prev);
+}
+
+void POA_Base::on_request_finish () NIRVANA_NOEXCEPT
+{
+	--request_cnt_;
+	the_POAManager_->on_request_finish ();
 }
 
 void RequestRef::reset () NIRVANA_NOEXCEPT

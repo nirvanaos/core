@@ -36,6 +36,7 @@
 #include "PortableServer_policies.h"
 #include "RequestInPOA.h"
 #include "../TLS.h"
+#include "../Event.h"
 
 namespace CORBA {
 namespace Core {
@@ -172,10 +173,10 @@ public:
 	// POA attributes
 	virtual IDL::String the_name () const
 	{
-		if (parent_)
-			return iterator_->first;
-		else
-			return "RootPOA";
+		IDL::String name;
+		if (name_)
+			name = *name_;
+		return name;
 	}
 
 	POA::_ref_type the_parent () const NIRVANA_NOEXCEPT
@@ -298,7 +299,7 @@ public:
 	typedef CORBA::servant_reference <POA_Base> POA_Ref;
 
 protected:
-	POA_Base (CORBA::servant_reference <POAManager>&& manager);
+	POA_Base (POA_Base* parent, const IDL::String* name, CORBA::servant_reference <POAManager>&& manager);
 
 	virtual bool implicit_activation () const NIRVANA_NOEXCEPT = 0;
 
@@ -316,19 +317,25 @@ protected:
 	void serve (const RequestRef& request, CORBA::Core::ProxyObject& proxy);
 
 private:
+	void on_request_finish () NIRVANA_NOEXCEPT;
+
+private:
 	// Children map.
 	typedef Nirvana::Core::MapUnorderedStable <IDL::String, POA_Ref,
 		std::hash <IDL::String>, std::equal_to <IDL::String>,
 		Nirvana::Core::UserAllocator <std::pair <IDL::String, POA_Ref> > > Children;
 
 	POA_Base* parent_;
-	Children::iterator iterator_;
+	const IDL::String* name_;
 	Children children_;
 	CORBA::servant_reference <POAManager> the_POAManager_;
 	AdapterActivator::_ref_type the_activator_;
+	unsigned int request_cnt_;
+	bool destroyed_;
+	//Nirvana::Core::Event destroy_completed_;
+
 	static const int32_t SIGNATURE = 'POA_';
 	const int32_t signature_;
-	bool destroyed_;
 };
 
 }

@@ -48,8 +48,8 @@ public:
 	virtual CORBA::Object::_ref_type servant_to_reference (CORBA::Object::_ptr_type p_servant) override;
 
 protected:
-	POA_Implicit (CORBA::servant_reference <POAManager>&& manager) :
-		Base (std::move (manager))
+	POA_Implicit (POA_Base* parent, const IDL::String* name, CORBA::servant_reference <POAManager>&& manager) :
+		Base (parent, name, std::move (manager))
 	{}
 };
 
@@ -68,8 +68,8 @@ public:
 	virtual CORBA::Object::_ref_type servant_to_reference (CORBA::Object::_ptr_type p_servant) override;
 
 protected:
-	POA_ImplicitUnique (CORBA::servant_reference <POAManager>&& manager) :
-		Base (std::move (manager))
+	POA_ImplicitUnique (POA_Base* parent, const IDL::String* name, CORBA::servant_reference <POAManager>&& manager) :
+		Base (parent, name, std::move (manager))
 	{}
 
 private:

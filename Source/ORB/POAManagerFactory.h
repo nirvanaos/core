@@ -39,12 +39,25 @@ class POAManagerFactory :
 public:
 	PortableServer::POAManager::_ref_type create_POAManager (const IDL::String& id, const CORBA::PolicyList& policies)
 	{
-		return create (id, policies)->_this ();
+		CORBA::servant_reference <POAManager> manager = create (id, policies);
+		if (!manager)
+			throw ManagerAlreadyExists ();
+		return manager->_this ();
 	}
 
-	CORBA::servant_reference <POAManager> create (const IDL::String& id, const CORBA::PolicyList& policies)
+	CORBA::servant_reference <POAManager> create (const IDL::String& id, const CORBA::PolicyList& policies);
+
+	CORBA::servant_reference <POAManager> create_auto (const IDL::String& adapter_name)
 	{
-		return CORBA::make_reference <POAManager> (std::ref (*this), std::ref (id));
+		IDL::String name = adapter_name + "Manager";
+		CORBA::servant_reference <POAManager> manager;
+		unsigned suffix = 0;
+		size_t len = name.size ();
+		while (!(manager = create (name, CORBA::PolicyList ()))) {
+			name.resize (len);
+			name += std::to_string (++suffix);
+		}
+		return manager;
 	}
 
 	POAManagerSeq list ()
@@ -68,25 +81,18 @@ public:
 
 private:
 	friend class POAManager;
-	POAManagerMap managers_;
-};
 
-inline
-POAManager::POAManager (POAManagerFactory& factory, const IDL::String& id) :
-	factory_ (factory),
-	state_ (State::HOLDING),
-	signature_ (SIGNATURE)
-{
-	auto ins = factory.managers_.emplace (id, this);
-	if (!ins.second)
-		throw PortableServer::POAManagerFactory::ManagerAlreadyExists ();
-	iterator_ = ins.first;
-}
+	typedef Nirvana::Core::MapUnorderedStable <IDL::String, POAManager*,
+		std::hash <IDL::String>, std::equal_to <IDL::String>,
+		Nirvana::Core::UserAllocator <std::pair <IDL::String, POAManager*> > > ManagerMap;
+
+	ManagerMap managers_;
+};
 
 inline
 POAManager::~POAManager ()
 {
-	factory_.managers_.erase (iterator_);
+	factory_.managers_.erase (*id_);
 }
 
 inline

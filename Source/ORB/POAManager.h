@@ -34,18 +34,19 @@
 namespace PortableServer {
 namespace Core {
 
-class POAManager;
-
-typedef Nirvana::Core::MapUnorderedStable <IDL::String, POAManager*,
-	std::hash <IDL::String>, std::equal_to <IDL::String>,
-	Nirvana::Core::UserAllocator <std::pair <IDL::String, POAManager*> > > POAManagerMap;
-
 class POAManagerFactory;
 
 class POAManager : public CORBA::servant_traits <PortableServer::POAManager>::Servant <POAManager>
 {
 public:
-	POAManager (POAManagerFactory& factory, const IDL::String& id);
+	POAManager (POAManagerFactory& factory, const IDL::String& id, const CORBA::PolicyList& policies) :
+		factory_ (factory),
+		id_ (&id),
+		state_ (State::HOLDING),
+		request_cnt_ (0),
+		signature_ (SIGNATURE)
+	{}
+
 	~POAManager ();
 
 	POAManagerFactory& factory () const NIRVANA_NOEXCEPT
@@ -63,14 +64,16 @@ public:
 					do {
 						const QElem& top = queue_.top ();
 						if (!top.request->is_cancelled ()) {
+							if (top.adapter->is_destroyed ())
+								top.request->set_exception (POA::AdapterNonExistent ());
+							++request_cnt_;
 							try {
-								if (top.adapter->is_destroyed ())
-									throw POA::AdapterNonExistent ();
 								Nirvana::Core::ExecDomain::async_call (top.deadline,
 									Nirvana::Core::CoreRef <Nirvana::Core::Runnable>::
 									create <Nirvana::Core::ImplDynamic <ServeRequest> > (std::ref (top)), sc);
 							} catch (CORBA::Exception& e) {
 								top.request->set_exception (std::move (e));
+								on_request_finish ();
 							}
 						}
 						queue_.pop ();
@@ -138,7 +141,7 @@ public:
 
 	const IDL::String& get_id () const NIRVANA_NOEXCEPT
 	{
-		return iterator_->first;
+		return *id_;
 	}
 
 	static POAManager* get_implementation (const CORBA::Core::ProxyLocal* proxy)
@@ -161,6 +164,7 @@ public:
 				queue_.emplace (adapter, request);
 				break;
 			case State::ACTIVE:
+				++request_cnt_;
 				adapter.serve (request);
 				break;
 			case State::DISCARDING:
@@ -183,10 +187,9 @@ public:
 			std::find (associated_adapters_.begin (), associated_adapters_.end (), &adapter));
 	}
 
-private:
-	POAManagerFactory& factory_;
-	POAManagerMap::iterator iterator_;
+	void on_request_finish () NIRVANA_NOEXCEPT;
 
+private:
 	struct QElem
 	{
 		Nirvana::DeadlineTime deadline;
@@ -222,9 +225,12 @@ private:
 		RequestRef request_;
 	};
 
+	POAManagerFactory& factory_;
+	const IDL::String* id_;
 	std::vector <POA_Base*> associated_adapters_;
 	std::priority_queue <QElem> queue_;
 	State state_;
+	unsigned int request_cnt_;
 	static const int32_t SIGNATURE = 'POAM';
 	const int32_t signature_;
 };
