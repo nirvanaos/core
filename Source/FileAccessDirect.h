@@ -171,8 +171,7 @@ private:
 
 	typedef Base::Request RequestBase;
 	class Request :
-		public RequestBase,
-		public UserObject
+		public RequestBase
 	{
 		typedef RequestBase Base;
 	public:
@@ -186,6 +185,12 @@ private:
 
 		Cache::iterator first_block_;
 	};
+
+	void issue_request (Request& request) NIRVANA_NOEXCEPT
+	{
+		request.prepare_to_issue ();
+		Base::issue_request (request);
+	}
 
 	void complete_request (CoreRef <Request> request) NIRVANA_NOEXCEPT;
 	void complete_request (Cache::reference entry, int op = 0);

@@ -41,8 +41,10 @@ struct IO_Result
 
 /// Input/output request.
 class NIRVANA_NOVTABLE IO_Request :
-	public Event
+	public Event,
+	public SharedObject
 {
+	DECLARE_CORE_INTERFACE
 public:
 	/// I/O operation code.
 	enum Operation
@@ -58,10 +60,16 @@ public:
 		return operation_;
 	}
 
+	void prepare_to_issue () NIRVANA_NOEXCEPT
+	{
+		_add_ref ();
+	}
+
 	void signal (const IO_Result& result) NIRVANA_NOEXCEPT
 	{
 		result_ = result;
 		Event::signal ();
+		_remove_ref ();
 	}
 
 	const IO_Result& result () const NIRVANA_NOEXCEPT

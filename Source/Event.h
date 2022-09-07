@@ -34,17 +34,14 @@ namespace Nirvana {
 namespace Core {
 
 /// Implements wait list for asynchronous operations.
-class NIRVANA_NOVTABLE Event :
+class Event :
 	private Stack <ExecDomain>
 {
-	DECLARE_CORE_INTERFACE
 public:
 	/// Suspend current execution domain until the event will be signalled.
 	void wait () NIRVANA_NOEXCEPT {
-		if (!signalled_) {
-			CoreRef <Event> hold (this);
+		if (!signalled_)
 			run_in_neutral_context (wait_op_);
-		}
 	}
 
 	/// Tests event state without wait.
@@ -62,6 +59,11 @@ protected:
 		wait_op_ (std::ref (*this)),
 		signalled_ (false)
 	{}
+
+	~Event ()
+	{
+		assert (signalled_);
+	}
 
 private:
 	class WaitOp : public Runnable
