@@ -165,11 +165,21 @@ void RequestIn::serve_request (ProxyObject& proxy, IOReference::OperationIndex o
 		if (is_cancelled ())
 			return;
 	}
-	sync_domain_ = proxy.get_sync_context (op).sync_domain ();
-	if (sync_domain_)
-		memory = proxy.memory ();
+	SyncContext* sync_context = &proxy.get_sync_context (op);
+	SyncDomain* sync_domain = sync_context->sync_domain ();
+	if (sync_domain)
+		memory = &sync_domain->mem_context ();
+
+	const Operation& op_md = proxy.operation_metadata (op);
+	if (sync_domain && (op_md.flags & Operation::FLAG_IN_OBJ)) {
+		// Do not enter sync domain immediately.
+		// We enter to free sync context now and will enter sync_domain_
+		// in unmarshal_end () when all input objects unmarshaled.
+		sync_domain_ = sync_domain;
+		sync_context = &g_core_free_sync_context;
+	}
 	// We don't need to handle exceptions here, because invoke () does not throw exceptions.
-	Nirvana::Core::Synchronized _sync_frame (g_core_free_sync_context, memory);
+	Nirvana::Core::Synchronized _sync_frame (*sync_context, memory);
 	if (!is_cancelled ())
 		proxy.invoke (op, _get_ptr ());
 }
