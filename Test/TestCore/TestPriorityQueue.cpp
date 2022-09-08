@@ -152,7 +152,6 @@ class ThreadTest
 	static const int MAX_QUEUE_SIZE = 10000;
 public:
 	ThreadTest () :
-		distr_ (0, NUM_PRIORITIES - 1),
 		queue_ (),
 		queue_size_ (0)
 	{
@@ -166,7 +165,6 @@ public:
 
 private:
 	array <atomic <int>, NUM_PRIORITIES> counters_;
-	const uniform_int_distribution <int> distr_;
 	PQ queue_;
 	atomic <int> queue_size_;
 };
@@ -175,10 +173,11 @@ template <class PQ>
 void ThreadTest <PQ>::thread_proc ()
 {
 	RandomGen rndgen;
+	uniform_int_distribution <int> distr (0, NUM_PRIORITIES - 1);
 
 	for (int i = NUM_ITERATIONS; i > 0; --i) {
 		if (!bernoulli_distribution (min (1., ((double)queue_size_ / (double)MAX_QUEUE_SIZE))) (rndgen)) {
-			unsigned deadline = distr_ (rndgen);
+			unsigned deadline = distr (rndgen);
 			++counters_ [deadline];
 			++queue_size_;
 			Value val = {g_timestamp++, deadline};
