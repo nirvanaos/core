@@ -28,7 +28,7 @@
 #define NIRVANA_ORB_CORE_LOCALOBJECT_H_
 #pragma once
 
-#include "CoreImpl.h"
+#include "CoreServant.h"
 #include "ProxyLocal.h"
 
 namespace CORBA {

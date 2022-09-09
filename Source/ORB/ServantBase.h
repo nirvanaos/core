@@ -28,7 +28,7 @@
 #define NIRVANA_ORB_CORE_SERVANTBASE_H_
 #pragma once
 
-#include "CoreImpl.h"
+#include "CoreServant.h"
 #include "POA_Root.h"
 
 namespace PortableServer {
