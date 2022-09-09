@@ -72,9 +72,8 @@ public:
 	}
 
 	Services () :
-		sync_domain_ (
-			std::ref (static_cast <Nirvana::Core::SyncContextCore&> (Nirvana::Core::g_core_free_sync_context)),
-			std::ref (static_cast <Nirvana::Core::MemContextCore&> (Nirvana::Core::g_shared_mem_context)))
+		sync_domain_ (std::ref (static_cast <Nirvana::Core::MemContextCore&> (
+			Nirvana::Core::g_shared_mem_context)))
 	{}
 
 	~Services ()
@@ -138,7 +137,7 @@ private:
 	typedef Nirvana::Core::WaitableRef <Object::_ref_type> ServiceRef;
 
 private:
-	Nirvana::Core::ImplStatic <Nirvana::Core::SyncDomainImpl> sync_domain_;
+	Nirvana::Core::ImplStatic <Nirvana::Core::SyncDomainCore> sync_domain_;
 	ServiceRef services_ [Service::SERVICE_COUNT];
 
 	static Nirvana::Core::StaticallyAllocated <Services> singleton_;

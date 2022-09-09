@@ -177,6 +177,18 @@ private:
 	CoreRef <SyncContext> parent_;
 };
 
+class SyncDomainCore : public SyncDomain
+{
+protected:
+	SyncDomainCore (MemContext& memory) NIRVANA_NOEXCEPT :
+		SyncDomain (memory)
+	{}
+
+	// SyncContext::
+	virtual Module* module () NIRVANA_NOEXCEPT;
+	virtual void raise_exception (CORBA::SystemException::Code code, unsigned minor);
+};
+
 }
 }
 

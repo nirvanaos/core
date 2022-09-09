@@ -150,5 +150,15 @@ void SyncDomainImpl::raise_exception (CORBA::SystemException::Code code, unsigne
 	parent_->raise_exception (code, minor);
 }
 
+Module* SyncDomainCore::module () NIRVANA_NOEXCEPT
+{
+	return nullptr;
+}
+
+void SyncDomainCore::raise_exception (CORBA::SystemException::Code code, unsigned minor)
+{
+	CORBA::SystemException::_raise_by_code (code, minor);
+}
+
 }
 }

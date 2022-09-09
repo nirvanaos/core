@@ -67,8 +67,7 @@ public:
 	typedef CORBA::Object::_ref_type ObjectRef;
 
 	Binder () :
-		sync_domain_ (std::ref (static_cast <SyncContextCore&> (g_core_free_sync_context)),
-			std::ref (static_cast <MemContextCore&> (memory ())))
+		sync_domain_ (std::ref (static_cast <MemContextCore&> (memory ())))
 	{}
 
 	static void initialize ();
@@ -279,13 +278,12 @@ private:
 #ifdef BINDER_USE_SEPARATE_MEMORY
 	static StaticallyAllocated <ImplStatic <MemContextCore> > memory_;
 #endif
-	ImplStatic <SyncDomainImpl> sync_domain_;
+	ImplStatic <SyncDomainCore> sync_domain_;
 	ObjectMap object_map_;
 	ModuleMap module_map_;
 
 	static StaticallyAllocated <Binder> singleton_;
 	static bool initialized_;
-
 };
 
 }
