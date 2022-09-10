@@ -41,7 +41,7 @@ class NIRVANA_NOVTABLE ProxyObjectDGC : public ProxyObject
 	typedef ProxyObject Base;
 
 public:
-	virtual void activate (PortableServer::Core::ObjectKeyRef&& key) NIRVANA_NOEXCEPT override;
+	virtual void activate (PortableServer::Core::ObjectKey&& key) override;
 	virtual void deactivate () NIRVANA_NOEXCEPT override;
 
 protected:

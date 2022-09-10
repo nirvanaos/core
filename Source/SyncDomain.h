@@ -155,9 +155,14 @@ private:
 	AtomicCounter <false> activity_cnt_;
 };
 
+/// User sync domain implementation.
 class SyncDomainImpl : public SyncDomain
 {
 protected:
+	/// Constructor.
+	/// 
+	/// param parent Parent free sync context.
+	/// param memory Memory context.
 	SyncDomainImpl (SyncContext& parent, MemContext& memory) NIRVANA_NOEXCEPT :
 		SyncDomain (memory),
 		parent_ (&parent)
@@ -177,9 +182,13 @@ private:
 	CoreRef <SyncContext> parent_;
 };
 
+/// Core sync domain implementation.
 class SyncDomainCore : public SyncDomain
 {
 protected:
+	/// Constructor.
+	/// 
+	/// \param memory Memory context.
 	SyncDomainCore (MemContext& memory) NIRVANA_NOEXCEPT :
 		SyncDomain (memory)
 	{}

@@ -23,36 +23,34 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "ProxyObjectImplicit.h"
-#include "POA_Base.h"
+#include "StreamOutEncap.h"
+
+using namespace Nirvana;
 
 namespace CORBA {
 namespace Core {
 
-// Called in the servant synchronization context.
-// Note that sync context may be out of synchronization domain
-// for the stateless objects.
-void ProxyObjectImplicit::add_ref_1 ()
+void StreamOutEncap::write (size_t align, size_t size, void* data, size_t& allocated_size)
 {
-	Base::add_ref_1 ();
-
-	if (!change_state (DEACTIVATION_SCHEDULED, DEACTIVATION_CANCELLED)) {
-		if (change_state (INACTIVE, IMPLICIT_ACTIVATION)) {
-			try {
-				adapter_->activate_object (servant ());
-			} catch (...) {
-				if (change_state (IMPLICIT_ACTIVATION, INACTIVE))
-					throw;
-			}
-		}
-	}
+	size_t begin = round_up (buffer_.size (), align);
+	size_t end = begin + size;
+	buffer_.resize (end);
+	real_copy ((const Octet*)data, (const Octet*)data + size, buffer_.data () + begin);
 }
 
-void ProxyObjectImplicit::activate (PortableServer::Core::ObjectKey&& key)
+size_t StreamOutEncap::size () const
 {
-	ReferenceLocal::object_key (std::move (key));
-	if (!change_state (IMPLICIT_ACTIVATION, ACTIVE))
-		change_state (INACTIVE, ACTIVE_EXPLICIT);
+	return buffer_.size ();
+}
+
+void* StreamOutEncap::header (size_t hdr_size)
+{
+	return buffer_.data ();
+}
+
+void StreamOutEncap::rewind (size_t hdr_size)
+{
+	buffer_.clear ();
 }
 
 }

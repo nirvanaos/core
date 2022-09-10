@@ -34,19 +34,17 @@ using namespace Core;
 
 namespace ESIOP {
 
-Core::StaticallyAllocated <OtherDomains> OtherDomains::singleton_;
-
-inline
-CoreRef <OtherDomain> OtherDomains::get_sync (ProtDomainId domain_id)
+CoreRef <OtherDomain> OtherDomains::get (ProtDomainId domain_id)
 {
 	CoreRef <OtherDomain> ret;
+	SYNC_BEGIN (sync_domain (), nullptr);
 
 	auto ins = map_.emplace (domain_id, DEADLINE_MAX);
 	if (ins.second) {
 		Map::reference entry = *ins.first;
 		try {
 			OtherDomain* p;
-			SYNC_BEGIN (g_core_free_sync_context, &sync_domain_.mem_context ());
+			SYNC_BEGIN (g_core_free_sync_context, &memory ());
 			p = OtherDomain::create (domain_id);
 			SYNC_END ();
 			if (!p)
@@ -59,14 +57,9 @@ CoreRef <OtherDomain> OtherDomains::get_sync (ProtDomainId domain_id)
 		}
 	} else
 		ret = ins.first->second.get ();
-	return ret;
-}
 
-CoreRef <OtherDomain> OtherDomains::get (ProtDomainId domain_id)
-{
-	SYNC_BEGIN (singleton_->sync_domain_, nullptr);
-	return singleton_->get_sync (domain_id);
 	SYNC_END ();
+	return ret;
 }
 
 inline

@@ -124,8 +124,9 @@ protected:
 			using namespace Nirvana::Core;
 
 			ExecDomain& ed = ExecDomain::current ();
-			CoreRef <MemContext> mc = push_GC_mem_context (ed, sync_context);
-
+			CoreRef <MemContext> mc = GC_mem_context (ed, sync_context);
+			CoreRef <MemContext> tmp = mc;
+			ed.mem_context_swap (tmp);
 			try {
 				auto gc = CoreRef <Runnable>::create <ImplDynamic <GC> > (arg);
 
@@ -137,10 +138,10 @@ protected:
 				// in the current memory context.
 				ExecDomain::async_call (deadline, std::move (gc), sync_context, mc);
 			} catch (...) {
-				ed.mem_context_pop ();
+				ed.mem_context_swap (tmp);
 				throw;
 			}
-			ed.mem_context_pop ();
+			ed.mem_context_swap (tmp);
 
 		} catch (...) {
 			// Async call failed, maybe resources are exausted.
@@ -166,8 +167,8 @@ private:
 		return primary->_epv ().interface_id;
 	}
 
-	Nirvana::Core::CoreRef <Nirvana::Core::MemContext> push_GC_mem_context (
-		Nirvana::Core::ExecDomain& ed, Nirvana::Core::SyncContext& sc) const;
+	static Nirvana::Core::CoreRef <Nirvana::Core::MemContext> GC_mem_context (
+		const Nirvana::Core::ExecDomain& ed, Nirvana::Core::SyncContext& sc) NIRVANA_NOEXCEPT;
 
 private:
 	Internal::Interface::_ptr_type servant_;

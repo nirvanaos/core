@@ -40,7 +40,6 @@ void initialize ()
 	ReferenceLocal::initialize ();
 	OutgoingRequests::initialize ();
 	IncomingRequests::initialize ();
-	Nirvana::ESIOP::OtherDomains::initialize ();
 	CodeSetConverter::initialize ();
 }
 
@@ -48,7 +47,6 @@ void terminate () NIRVANA_NOEXCEPT
 {
 	IncomingRequests::terminate ();
 	OutgoingRequests::terminate ();
-	Nirvana::ESIOP::OtherDomains::terminate ();
 	Services::terminate ();
 }
 

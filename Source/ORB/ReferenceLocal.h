@@ -40,10 +40,7 @@ class ReferenceLocal
 {
 public:
 	/// Called from the POA synchronization domain.
-	void object_key (PortableServer::Core::ObjectKeyRef&& key) NIRVANA_NOEXCEPT
-	{
-		object_key_ = std::move (key);
-	}
+	void object_key (PortableServer::Core::ObjectKey&& key);
 
 	PortableServer::Core::ObjectKeyRef object_key () const NIRVANA_NOEXCEPT
 	{
@@ -73,7 +70,7 @@ protected:
 	void marshal (Internal::String_in primary_iid, StreamOut& out) const;
 
 protected:
-	Nirvana::Core::LockableRef <PortableServer::Core::ObjectKeyImpl> object_key_;
+	Nirvana::Core::LockableRef <PortableServer::Core::ObjectKeyBoxed> object_key_;
 
 private:
 	Timestamp timestamp_;

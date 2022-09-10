@@ -30,7 +30,7 @@
 
 #include <CORBA/CORBA.h>
 #include "../WaitableRef.h"
-#include "../Synchronized.h"
+#include "../Service.h"
 #include <algorithm>
 
 namespace CORBA {
@@ -47,11 +47,21 @@ public:
 		SERVICE_COUNT
 	};
 
+	enum CoreService
+	{
+		OtherDomains,
+
+		CORE_SERVICE_COUNT
+	};
+
 	/// Bind service.
 	/// 
 	/// \param sidx Service index.
 	/// \returns Service object reference.
-	static Object::_ref_type bind (Service sidx);
+	static Object::_ref_type bind (Service sidx)
+	{
+		return singleton_->bind_internal (sidx);
+	}
 
 	/// Bind service.
 	/// 
@@ -69,6 +79,11 @@ public:
 		for (const Factory* f = factories_; f != std::end (factories_); ++f)
 			list.emplace_back (f->id);
 		return list;
+	}
+
+	static Nirvana::Core::CoreRef <Nirvana::Core::Service> bind (CoreService sidx)
+	{
+		return singleton_->bind_internal (sidx);
 	}
 
 	Services () :
@@ -89,7 +104,7 @@ public:
 		singleton_.destruct ();
 	}
 
-protected:
+private:
 	static Service find_service (const Char* id) NIRVANA_NOEXCEPT
 	{
 		const Factory* f = std::lower_bound (factories_, std::end (factories_), id, Less ());
@@ -98,7 +113,8 @@ protected:
 		return (Service)(f - factories_);
 	}
 
-	Object::_ref_type bind_service_sync (Service sidx);
+	Object::_ref_type bind_internal (Service sidx);
+	Nirvana::Core::CoreRef <Nirvana::Core::Service> bind_internal (CoreService sidx);
 
 private:
 	static Nirvana::Core::MemContext* new_service_memory () NIRVANA_NOEXCEPT
@@ -113,11 +129,19 @@ private:
 	static Object::_ref_type create_RootPOA ();
 	static Object::_ref_type create_POACurrent ();
 
+	static Nirvana::Core::CoreRef <Nirvana::Core::Service> create_OtherDomains ();
+
 private:
 	struct Factory
 	{
 		const Char* id;
 		Object::_ref_type (*factory) ();
+		TimeBase::TimeT creation_deadline;
+	};
+
+	struct CoreFactory
+	{
+		Nirvana::Core::CoreRef <Nirvana::Core::Service> (*factory) ();
 		TimeBase::TimeT creation_deadline;
 	};
 
@@ -135,15 +159,16 @@ private:
 	};
 
 	typedef Nirvana::Core::WaitableRef <Object::_ref_type> ServiceRef;
+	typedef Nirvana::Core::WaitableRef <Nirvana::Core::CoreRef <Nirvana::Core::Service> > CoreServiceRef;
 
-private:
 	Nirvana::Core::ImplStatic <Nirvana::Core::SyncDomainCore> sync_domain_;
-	ServiceRef services_ [Service::SERVICE_COUNT];
+	ServiceRef services_ [SERVICE_COUNT];
+	CoreServiceRef core_services_ [CORE_SERVICE_COUNT];
 
 	static Nirvana::Core::StaticallyAllocated <Services> singleton_;
 
-	// Services
-	static const Factory factories_ [Service::SERVICE_COUNT];
+	static const Factory factories_ [SERVICE_COUNT];
+	static const CoreFactory core_factories_ [CORE_SERVICE_COUNT];
 };
 
 }

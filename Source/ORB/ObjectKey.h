@@ -124,8 +124,8 @@ private:
 	Nirvana::Core::CoreRef <Nirvana::Core::MemContext> memory_;
 };
 
-typedef Nirvana::Core::ImplDynamic <ObjectKeyShared> ObjectKeyImpl;
-typedef Nirvana::Core::CoreRef <ObjectKeyImpl> ObjectKeyRef;
+typedef Nirvana::Core::ImplDynamic <ObjectKeyShared> ObjectKeyBoxed;
+typedef Nirvana::Core::CoreRef <ObjectKeyBoxed> ObjectKeyRef;
 
 }
 }

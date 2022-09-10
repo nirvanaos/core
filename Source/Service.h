@@ -1,3 +1,4 @@
+/// \file
 /*
 * Nirvana Core.
 *
@@ -23,37 +24,57 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "ProxyObjectImplicit.h"
-#include "POA_Base.h"
+#ifndef NIRVANA_CORE_SERVICE_H_
+#define NIRVANA_CORE_SERVICE_H_
+#pragma once
 
-namespace CORBA {
+#include "SyncDomain.h"
+
+namespace Nirvana {
 namespace Core {
 
-// Called in the servant synchronization context.
-// Note that sync context may be out of synchronization domain
-// for the stateless objects.
-void ProxyObjectImplicit::add_ref_1 ()
+class ServiceMemorySeparate
 {
-	Base::add_ref_1 ();
-
-	if (!change_state (DEACTIVATION_SCHEDULED, DEACTIVATION_CANCELLED)) {
-		if (change_state (INACTIVE, IMPLICIT_ACTIVATION)) {
-			try {
-				adapter_->activate_object (servant ());
-			} catch (...) {
-				if (change_state (IMPLICIT_ACTIVATION, INACTIVE))
-					throw;
-			}
-		}
+public:
+	MemContext& memory () NIRVANA_NOEXCEPT
+	{
+		return memory_;
 	}
-}
 
-void ProxyObjectImplicit::activate (PortableServer::Core::ObjectKey&& key)
+private:
+	ImplStatic <MemContextCore> memory_;
+};
+
+class ServiceMemoryShared
 {
-	ReferenceLocal::object_key (std::move (key));
-	if (!change_state (IMPLICIT_ACTIVATION, ACTIVE))
-		change_state (INACTIVE, ACTIVE_EXPLICIT);
-}
+public:
+	static MemContext& memory () NIRVANA_NOEXCEPT
+	{
+		return g_shared_mem_context;
+	}
+};
+
+using ServiceMemory = std::conditional_t <(sizeof (void*) > 4), ServiceMemorySeparate, ServiceMemoryShared>;
+
+class Service : protected ServiceMemory
+{
+	DECLARE_CORE_INTERFACE
+
+protected:
+	Service () :
+		sync_domain_ (std::ref (memory ()))
+	{}
+
+	SyncDomain& sync_domain () NIRVANA_NOEXCEPT
+	{
+		return sync_domain_;
+	}
+
+private:
+	ImplStatic <SyncDomainCore> sync_domain_;
+};
 
 }
 }
+
+#endif

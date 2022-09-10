@@ -78,7 +78,7 @@ protected:
 	}
 
 	StreamOutSM (ProtDomainId client_id) :
-		other_domain_ (OtherDomains::get (client_id))
+		other_domain_ (OtherDomains::singleton ().get (client_id))
 	{} // initialize () can be called later
 
 	void initialize ();

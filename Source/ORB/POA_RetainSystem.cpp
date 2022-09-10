@@ -62,7 +62,7 @@ POA_RetainSystem::AOM::iterator POA_RetainSystem::activate (const ObjectIdSys& o
 		ObjectKey object_key;
 		get_path (object_key.adapter_path ());
 		object_key.object_id (ins.first->first.to_object_id ());
-		ins.first->second->activate (ObjectKeyRef::create <ObjectKeyImpl> (std::move (object_key)));
+		ins.first->second->activate (std::move (object_key));
 	} catch (...) {
 		active_object_map_.erase (ins.first);
 		throw;
@@ -116,7 +116,7 @@ CORBA::Object::_ref_type POA_RetainSystem::create_reference (const CORBA::Reposi
 	ObjectKey object_key;
 	get_path (object_key.adapter_path ());
 	object_key.object_id (ObjectIdSys (*ref).to_object_id ());
-	ref->object_key (ObjectKeyRef::create <ObjectKeyImpl> (std::move (object_key)));
+	ref->object_key (std::move (object_key));
 	return ref->get_proxy ();
 }
 
@@ -128,7 +128,7 @@ CORBA::Object::_ref_type POA_RetainSystem::create_reference_with_id (const Objec
 	ObjectKey object_key;
 	get_path (object_key.adapter_path ());
 	object_key.object_id (oid);
-	ref->object_key (ObjectKeyRef::create <ObjectKeyImpl> (std::move (object_key)));
+	ref->object_key (std::move (object_key));
 	return ref->get_proxy ();
 }
 

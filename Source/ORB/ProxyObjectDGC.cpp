@@ -25,13 +25,13 @@
 */
 #include "ProxyObjectDGC.h"
 #include "POA_Base.h"
+#include "StreamOutEncap.h"
 
 using namespace Nirvana::Core;
+using namespace PortableServer;
+using namespace PortableServer::Core;
 
 namespace CORBA {
-
-using namespace Internal;
-
 namespace Core {
 
 class NIRVANA_NOVTABLE ProxyObjectDGC::Deactivator :
@@ -56,19 +56,19 @@ private:
 	ProxyObjectDGC& proxy_;
 };
 
-ProxyObjectDGC::ProxyObjectDGC (PortableServer::Servant servant, PortableServer::POA::_ptr_type adapter) :
+ProxyObjectDGC::ProxyObjectDGC (PortableServer::Servant servant, POA::_ptr_type adapter) :
 	Base (servant),
 	adapter_ (adapter),
 	activation_state_ (ActivationState::INACTIVE)
 {}
 
-ProxyObjectDGC::ProxyObjectDGC (const ProxyObject& src, PortableServer::POA::_ptr_type adapter) :
+ProxyObjectDGC::ProxyObjectDGC (const ProxyObject& src, POA::_ptr_type adapter) :
 	Base (src),
 	adapter_ (adapter),
 	activation_state_ (ActivationState::INACTIVE)
 {}
 
-void ProxyObjectDGC::activate (PortableServer::Core::ObjectKeyRef&& key) NIRVANA_NOEXCEPT
+void ProxyObjectDGC::activate (ObjectKey&& key)
 {
 	Base::activate (std::move (key));
 	activation_state_ = ActivationState::ACTIVE;

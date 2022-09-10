@@ -27,54 +27,78 @@
 #include "Services.h"
 #include "POA_Root.h"
 #include "PortableServer_Current.h"
+#include "OtherDomains.h"
 
 using namespace Nirvana::Core;
 using namespace Nirvana;
 
 namespace CORBA {
+
+using namespace Internal;
+
 namespace Core {
 
 Nirvana::Core::StaticallyAllocated <Services> Services::singleton_;
 
-Object::_ref_type Services::bind (Service sidx)
+Object::_ref_type Services::bind_internal (Service sidx)
 {
-	if ((size_t)sidx >= Service::SERVICE_COUNT)
+	if (sidx >= SERVICE_COUNT)
 		throw ORB::InvalidName ();
 
-	Object::_ref_type ret = singleton_->services_ [sidx].get_if_constructed ();
+	ServiceRef& ref = services_ [sidx];
+	Object::_ref_type ret = ref.get_if_constructed ();
 	if (!ret) {
-		SYNC_BEGIN (singleton_->sync_domain_, nullptr);
-		ret = singleton_->bind_service_sync (sidx);
+		const Factory& f = factories_ [sidx];
+		SYNC_BEGIN (sync_domain_, nullptr);
+		if (ref.initialize (f.creation_deadline)) {
+			try {
+				SYNC_BEGIN (Nirvana::Core::g_core_free_sync_context, new_service_memory ());
+				ret = (f.factory) ();
+				SYNC_END ();
+				ref.finish_construction (ret);
+			} catch (...) {
+				ref.on_exception ();
+				ref.reset ();
+				throw;
+			}
+		} else
+			ret = ref.get ();
 		SYNC_END ();
 	}
 	return ret;
 }
 
-Object::_ref_type Services::bind_service_sync (Service sidx)
+CoreRef <Service> Services::bind_internal (CoreService sidx)
 {
-	assert ((size_t)sidx < Service::SERVICE_COUNT);
-	ServiceRef& ref = services_ [sidx];
-	const Factory& f = factories_ [sidx];
-	Object::_ref_type svc;
-	if (ref.initialize (f.creation_deadline)) {
-		try {
-			SYNC_BEGIN (Nirvana::Core::g_core_free_sync_context, new_service_memory ());
-			svc = (f.factory) ();
-			SYNC_END ();
-			ref.finish_construction (svc);
-		} catch (...) {
-			ref.on_exception ();
-			ref.reset ();
-			throw;
-		}
-	} else
-		svc = ref.get ();
-	return svc;
+	if (sidx >= CORE_SERVICE_COUNT)
+		throw ORB::InvalidName ();
+
+	CoreServiceRef& ref = core_services_ [sidx];
+	CoreRef <Nirvana::Core::Service> ret = ref.get_if_constructed ();
+	if (!ret) {
+		const CoreFactory& f = core_factories_ [sidx];
+		SYNC_BEGIN (sync_domain_, nullptr);
+		if (ref.initialize (f.creation_deadline)) {
+			try {
+				SYNC_BEGIN (Nirvana::Core::g_core_free_sync_context, new_service_memory ());
+				ret = (f.factory) ();
+				SYNC_END ();
+				ref.finish_construction (ret);
+			} catch (...) {
+				ref.on_exception ();
+				ref.reset ();
+				throw;
+			}
+		} else
+			ret = ref.get ();
+		SYNC_END ();
+	}
+	return ret;
 }
 
 // Initial services. Must be lexicographically ordered.
 
-const Services::Factory Services::factories_ [Service::SERVICE_COUNT] = {
+const Services::Factory Services::factories_ [SERVICE_COUNT] = {
 	{ "POACurrent", create_POACurrent, 1 * TimeBase::MILLISECOND },
 	{ "RootPOA", create_RootPOA, 1 * TimeBase::MILLISECOND }
 };
@@ -89,6 +113,19 @@ Object::_ref_type Services::create_RootPOA ()
 Object::_ref_type Services::create_POACurrent ()
 {
 	return make_reference <PortableServer::Core::Current> ()->_this ();
+}
+
+// Core services.
+
+const Services::CoreFactory Services::core_factories_ [CORE_SERVICE_COUNT] = {
+	create_OtherDomains, 1 * TimeBase::MILLISECOND
+};
+
+// Core service factories
+
+CoreRef <Service> Services::create_OtherDomains ()
+{
+	return CoreRef <Nirvana::Core::Service>::create <ImplDynamic <ESIOP::OtherDomains> > ();
 }
 
 }

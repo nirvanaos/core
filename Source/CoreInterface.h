@@ -307,6 +307,13 @@ public:
 		}
 	}
 
+	void swap (CoreRef& other) NIRVANA_NOEXCEPT
+	{
+		T* tmp = p_;
+		p_ = other.p_;
+		other.p_ = tmp;
+	}
+
 private:
 	void reset (T* p) NIRVANA_NOEXCEPT
 	{

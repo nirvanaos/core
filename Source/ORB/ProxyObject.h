@@ -47,7 +47,7 @@ public:
 	///@{
 	/// Called from the POA synchronization domain.
 	/// So calls to activate () and deactivate () are always serialized.
-	virtual void activate (PortableServer::Core::ObjectKeyRef&& key) NIRVANA_NOEXCEPT
+	virtual void activate (PortableServer::Core::ObjectKey&& key)
 	{
 		ReferenceLocal::object_key (std::move (key));
 	}

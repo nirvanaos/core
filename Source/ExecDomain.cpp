@@ -94,7 +94,7 @@ void ExecDomain::terminate () NIRVANA_NOEXCEPT
 	Creator::terminate ();
 }
 
-CoreRef <ExecDomain> ExecDomain::create (const DeadlineTime deadline, CoreRef <Runnable> runnable, MemContext* mem_context)
+CoreRef <ExecDomain> ExecDomain::create (const DeadlineTime deadline, CoreRef <Runnable>&& runnable, MemContext* mem_context)
 {
 	CoreRef <ExecDomain> ed = Creator::create ();
 	Scheduler::activity_begin ();
@@ -154,7 +154,7 @@ void ExecDomain::spawn (SyncContext& sync_context)
 	}
 }
 
-void ExecDomain::async_call (const DeadlineTime& deadline, CoreRef <Runnable> runnable, SyncContext& target, MemContext* mem_context)
+void ExecDomain::async_call (const DeadlineTime& deadline, CoreRef <Runnable>&& runnable, SyncContext& target, MemContext* mem_context)
 {
 	SyncDomain* sd = target.sync_domain ();
 	if (sd) {

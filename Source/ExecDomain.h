@@ -72,10 +72,10 @@ public:
 	/// Asynchronous call.
 	/// 
 	/// \param deadline    Deadline.
-	/// \param runnable    Runnable object to execute. TODO: Use move semantic.
+	/// \param runnable    Runnable object to execute.
 	/// \param target      Target Synchronization context.
 	/// \param mem_context Target memory context (optional).
-	static void async_call (const DeadlineTime& deadline, CoreRef <Runnable> runnable,
+	static void async_call (const DeadlineTime& deadline, CoreRef <Runnable>&& runnable,
 		SyncContext& target, MemContext* mem_context = nullptr);
 
 	/// Start legacy process.
@@ -202,9 +202,15 @@ public:
 		return *mem_context_;
 	}
 
-	MemContext* mem_context_ptr () NIRVANA_NOEXCEPT
+	MemContext* mem_context_ptr () const NIRVANA_NOEXCEPT
 	{
 		return mem_context_;
+	}
+
+	void mem_context_swap (CoreRef <MemContext>& other) NIRVANA_NOEXCEPT
+	{
+		mem_context_ = other;
+		mem_context_stack_.top ().swap (other);
 	}
 
 	/// Push new memory context.
@@ -291,7 +297,7 @@ private:
 
 	using Creator = std::conditional <EXEC_DOMAIN_POOLING, WithPool, NoPool>::type;
 
-	static CoreRef <ExecDomain> create (const DeadlineTime deadline, CoreRef <Runnable> runnable, MemContext* mem_context = nullptr);
+	static CoreRef <ExecDomain> create (const DeadlineTime deadline, CoreRef <Runnable>&& runnable, MemContext* mem_context = nullptr);
 
 	~ExecDomain () NIRVANA_NOEXCEPT
 	{}

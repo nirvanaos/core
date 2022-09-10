@@ -40,5 +40,10 @@ void ReferenceLocal::marshal (Internal::String_in primary_iid, StreamOut& out) c
 	ref->marshal (out);
 }
 
+void ReferenceLocal::object_key (PortableServer::Core::ObjectKey&& key)
+{
+	object_key_ = PortableServer::Core::ObjectKeyRef::create <PortableServer::Core::ObjectKeyBoxed> (std::move (key));
+}
+
 }
 }

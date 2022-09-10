@@ -29,6 +29,7 @@
 #pragma once
 
 #include "OtherDomain.h"
+#include "Services.h"
 #include "../MapUnorderedStable.h"
 #include "../WaitableRef.h"
 #include "../SharedAllocator.h"
@@ -36,15 +37,24 @@
 namespace Nirvana {
 namespace ESIOP {
 
-class OtherDomains
+class OtherDomains :
+	public Nirvana::Core::Service
 {
 	static const TimeBase::TimeT DEADLINE_MAX = 10 * TimeBase::MILLISECOND;
 	static const TimeBase::TimeT DELETE_TIMEOUT = 30 * TimeBase::SECOND;
 
 public:
-	OtherDomains () :
-		sync_domain_ (std::ref (static_cast <Core::SyncContextCore&> (Core::g_core_free_sync_context)),
-			std::ref (static_cast <Core::MemContextCore&> (Core::g_shared_mem_context)))
+	static OtherDomains& singleton ()
+	{
+		return static_cast <OtherDomains&> (*CORBA::Core::Services::bind (CORBA::Core::Services::OtherDomains));
+	}
+
+	Core::CoreRef <OtherDomain> get (ProtDomainId domain_id);
+
+	static void housekeeping ();
+
+protected:
+	OtherDomains ()
 	{}
 
 	~OtherDomains ()
@@ -59,22 +69,7 @@ public:
 		}
 	}
 
-	static Core::CoreRef <OtherDomain> get (ProtDomainId domain_id);
-
-	static void housekeeping ();
-
-	static void initialize ()
-	{
-		singleton_.construct ();
-	}
-
-	static void terminate () NIRVANA_NOEXCEPT
-	{
-		singleton_.destruct ();
-	}
-
 private:
-	Core::CoreRef <OtherDomain> get_sync (ProtDomainId domain_id);
 	void housekeeping_sync ();
 
 private:
@@ -85,10 +80,7 @@ private:
 		std::equal_to <ProtDomainId>, Core::SharedAllocator <std::pair <ProtDomainId, WaitableReference> > >
 	Map;
 
-	Core::ImplStatic <Core::SyncDomainImpl> sync_domain_;
 	Map map_;
-
-	static Core::StaticallyAllocated <OtherDomains> singleton_;
 };
 
 }

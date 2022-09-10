@@ -28,9 +28,6 @@
 using namespace Nirvana::Core;
 
 namespace CORBA {
-
-using namespace Internal;
-
 namespace Core {
 
 Object::_ptr_type servant2object (PortableServer::Servant servant) NIRVANA_NOEXCEPT
@@ -43,7 +40,7 @@ Object::_ptr_type servant2object (PortableServer::Servant servant) NIRVANA_NOEXC
 		return nullptr;
 }
 
-PortableServer::ServantBase::_ref_type object2servant (CORBA::Object::_ptr_type obj)
+PortableServer::ServantBase::_ref_type object2servant (Object::_ptr_type obj)
 {
 	if (obj) {
 		const CORBA::Core::ProxyObject* proxy = object2proxy (obj);

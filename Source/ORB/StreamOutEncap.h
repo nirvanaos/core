@@ -1,3 +1,4 @@
+/// \file
 /*
 * Nirvana Core.
 *
@@ -23,37 +24,35 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "ProxyObjectImplicit.h"
-#include "POA_Base.h"
+#ifndef NIRVANA_ORB_CORE_STREAMOUTENCAP_H_
+#define NIRVANA_ORB_CORE_STREAMOUTENCAP_H_
+#pragma once
+
+#include "StreamOut.h"
 
 namespace CORBA {
 namespace Core {
 
-// Called in the servant synchronization context.
-// Note that sync context may be out of synchronization domain
-// for the stateless objects.
-void ProxyObjectImplicit::add_ref_1 ()
+/// Output stream for data encapsulated as octet sequence.
+class NIRVANA_NOVTABLE StreamOutEncap
+	: public StreamOut
 {
-	Base::add_ref_1 ();
+public:
+	virtual void write (size_t align, size_t size, void* data, size_t& allocated_size) override;
+	virtual size_t size () const override;
+	virtual void* header (size_t hdr_size) override;
+	virtual void rewind (size_t hdr_size) override;
 
-	if (!change_state (DEACTIVATION_SCHEDULED, DEACTIVATION_CANCELLED)) {
-		if (change_state (INACTIVE, IMPLICIT_ACTIVATION)) {
-			try {
-				adapter_->activate_object (servant ());
-			} catch (...) {
-				if (change_state (IMPLICIT_ACTIVATION, INACTIVE))
-					throw;
-			}
-		}
+	OctetSeq& data () NIRVANA_NOEXCEPT
+	{
+		return buffer_;
 	}
-}
 
-void ProxyObjectImplicit::activate (PortableServer::Core::ObjectKey&& key)
-{
-	ReferenceLocal::object_key (std::move (key));
-	if (!change_state (IMPLICIT_ACTIVATION, ACTIVE))
-		change_state (INACTIVE, ACTIVE_EXPLICIT);
-}
+private:
+	OctetSeq buffer_;
+};
 
 }
 }
+
+#endif

@@ -39,7 +39,7 @@ class NIRVANA_NOVTABLE ProxyObjectImplicit : public ProxyObjectDGC
 	typedef ProxyObjectDGC Base;
 
 public:
-	virtual void activate (PortableServer::Core::ObjectKeyRef&& key) NIRVANA_NOEXCEPT override;
+	virtual void activate (PortableServer::Core::ObjectKey&& key) override;
 
 protected:
 	ProxyObjectImplicit (PortableServer::Servant servant, PortableServer::POA::_ptr_type adapter) :

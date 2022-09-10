@@ -59,13 +59,11 @@ ObjectKeyShared::ObjectKeyShared (ObjectKey&& key) NIRVANA_NOEXCEPT :
 ObjectKeyShared::~ObjectKeyShared ()
 {
 	ExecDomain& ed = ExecDomain::current ();
-	try {
-		ed.mem_context_push (memory_);
-		{
-			ObjectKey tmp (std::move (key_));
-		}
-		ed.mem_context_pop ();
-	} catch (...) {}
+	ed.mem_context_swap (memory_);
+	{
+		ObjectKey tmp (std::move (key_));
+	}
+	ed.mem_context_swap (memory_);
 }
 
 }

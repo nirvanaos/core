@@ -139,8 +139,7 @@ IORequest::_ref_type ServantProxyBase::create_request (OperationIndex op, UShort
 			mem, response_flags);
 }
 
-CoreRef <MemContext> ServantProxyBase::push_GC_mem_context (ExecDomain& ed,
-	SyncContext& sc) const
+CoreRef <MemContext> ServantProxyBase::GC_mem_context (const ExecDomain& ed, SyncContext& sc) NIRVANA_NOEXCEPT
 {
 	CoreRef <MemContext> mc;
 	SyncDomain* sd = sc.sync_domain ();
@@ -151,7 +150,6 @@ CoreRef <MemContext> ServantProxyBase::push_GC_mem_context (ExecDomain& ed,
 		if (!mc)
 			mc = &g_shared_mem_context;
 	}
-	ed.mem_context_push (mc);
 	return mc;
 }
 
