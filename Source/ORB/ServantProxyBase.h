@@ -44,6 +44,24 @@ class ServantProxyBase :
 {
 	class GarbageCollector;
 public:
+	class RefCnt : public Nirvana::Core::AtomicCounter <true>
+	{
+		typedef Nirvana::Core::AtomicCounter <true> Base;
+	public:
+		RefCnt () NIRVANA_NOEXCEPT :
+			Base (0)
+		{}
+
+		RefCnt (const RefCnt&) NIRVANA_NOEXCEPT :
+			Base (0)
+		{}
+
+		RefCnt& operator = (const RefCnt&) NIRVANA_NOEXCEPT
+		{
+			return *this;
+		}
+	};
+
 	virtual Internal::IORequest::_ref_type create_request (OperationIndex op, UShort flags) override;
 
 	/// Returns synchronization context for the target object.
@@ -64,25 +82,12 @@ public:
 
 	Nirvana::Core::MemContext* memory () const NIRVANA_NOEXCEPT;
 
-protected:
-	class RefCnt : public Nirvana::Core::AtomicCounter <true>
+	RefCnt::IntegralType _refcount_value () const NIRVANA_NOEXCEPT
 	{
-		typedef Nirvana::Core::AtomicCounter <true> Base;
-	public:
-		RefCnt () NIRVANA_NOEXCEPT :
-			Base (0)
-		{}
+		return ref_cnt_.load ();
+	}
 
-		RefCnt (const RefCnt&) NIRVANA_NOEXCEPT :
-			Base (0)
-		{}
-
-		RefCnt& operator = (const RefCnt&) NIRVANA_NOEXCEPT
-		{
-			return *this;
-		}
-	};
-
+protected:
 	template <class I>
 	ServantProxyBase (Internal::I_ptr <I> servant) :
 		ProxyManager (primary_interface_id (servant)),
@@ -115,7 +120,7 @@ protected:
 	virtual void _remove_ref () NIRVANA_NOEXCEPT override;
 	template <class> friend class Nirvana::Core::CoreRef;
 
-	RefCnt::IntegralType _remove_ref_proxy () NIRVANA_NOEXCEPT;
+	RefCnt::IntegralType remove_ref_proxy () NIRVANA_NOEXCEPT;
 
 	template <class GC, class Arg>
 	void run_garbage_collector (Arg arg, Nirvana::Core::SyncContext& sync_context) const NIRVANA_NOEXCEPT
@@ -172,7 +177,7 @@ private:
 
 private:
 	Internal::Interface::_ptr_type servant_;
-	RefCnt ref_cnt_proxy_;
+	RefCnt ref_cnt_;
 	Nirvana::Core::CoreRef <Nirvana::Core::SyncContext> sync_context_;
 };
 

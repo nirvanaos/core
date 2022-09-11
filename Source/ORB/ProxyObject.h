@@ -87,7 +87,7 @@ class ProxyObjectImpl :
 
 	virtual void _remove_ref () NIRVANA_NOEXCEPT override
 	{
-		if (0 == Base::_remove_ref_proxy ())
+		if (0 == Base::remove_ref_proxy ())
 			delete this;
 	}
 };

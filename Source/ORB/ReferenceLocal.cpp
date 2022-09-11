@@ -37,7 +37,7 @@ void ReferenceLocal::marshal (Internal::String_in primary_iid, StreamOut& out) c
 	PortableServer::Core::ObjectKeyRef ref = object_key_.get ();
 	if (!ref)
 		throw OBJECT_NOT_EXIST (MAKE_OMG_MINOR (1));
-	ref->marshal (out);
+	ref->key ().marshal (out);
 }
 
 void ReferenceLocal::object_key (PortableServer::Core::ObjectKey&& key)

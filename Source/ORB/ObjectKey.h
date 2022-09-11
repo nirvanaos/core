@@ -86,6 +86,10 @@ public:
 	void unmarshal (CORBA::Core::StreamIn& in);
 	void unmarshal (const IOP::ObjectKey& object_key);
 
+	size_t hash () const NIRVANA_NOEXCEPT;
+
+	bool operator == (const ObjectKey& other) const NIRVANA_NOEXCEPT;
+
 private:
 	AdapterPath adapter_path_;
 	ObjectId object_id_;
@@ -95,19 +99,9 @@ class ObjectKeyShared :
 	public Nirvana::Core::SharedObject
 {
 public:
-	const AdapterPath& adapter_path () const NIRVANA_NOEXCEPT
+	const ObjectKey& key () const NIRVANA_NOEXCEPT
 	{
-		return key_.adapter_path ();
-	}
-
-	const ObjectId& object_id () const NIRVANA_NOEXCEPT
-	{
-		return key_.object_id ();
-	}
-
-	void marshal (CORBA::Core::StreamOut& out) const
-	{
-		key_.marshal (out);
+		return key_;
 	}
 
 	operator const ObjectKey& () const NIRVANA_NOEXCEPT
@@ -128,6 +122,40 @@ typedef Nirvana::Core::ImplDynamic <ObjectKeyShared> ObjectKeyBoxed;
 typedef Nirvana::Core::CoreRef <ObjectKeyBoxed> ObjectKeyRef;
 
 }
+}
+
+namespace std {
+
+template <>
+struct hash <PortableServer::Core::ObjectKey>
+{
+	size_t operator () (const PortableServer::Core::ObjectKey& key) const NIRVANA_NOEXCEPT
+	{
+		return key.hash ();
+	}
+};
+
+template <>
+struct hash <PortableServer::Core::ObjectKeyRef>
+{
+	size_t operator () (const PortableServer::Core::ObjectKeyRef& ref) const NIRVANA_NOEXCEPT
+	{
+		return ref->key ().hash ();
+	}
+};
+
+template <>
+struct equal_to <PortableServer::Core::ObjectKeyRef>
+{
+	bool operator () (const PortableServer::Core::ObjectKeyRef& left,
+		const PortableServer::Core::ObjectKeyRef& right) const NIRVANA_NOEXCEPT
+	{
+		return (static_cast <const PortableServer::Core::ObjectKeyBoxed*> (left) ==
+			static_cast <const PortableServer::Core::ObjectKeyBoxed*> (right))
+			|| (left->key () == right->key ());
+	}
+};
+
 }
 
 #endif

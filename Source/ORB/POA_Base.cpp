@@ -188,7 +188,7 @@ Object::_ref_type POA_Base::reference_to_servant (Object::_ptr_type reference)
 	ObjectKeyRef key = proxy->object_key ();
 	if (!key)
 		throw ObjectNotActive ();
-	if (!check_path (key->adapter_path ()))
+	if (!check_path (key->key ().adapter_path ()))
 		throw WrongAdapter ();
 	return reference;
 }
@@ -202,9 +202,9 @@ ObjectId POA_Base::reference_to_id (Object::_ptr_type reference)
 	ObjectKeyRef key = proxy->object_key ();
 	if (!key)
 		throw WrongAdapter ();
-	if (!check_path (key->adapter_path ()))
+	if (!check_path (key->key ().adapter_path ()))
 		throw WrongAdapter ();
-	return key->object_id ();
+	return key->key ().object_id ();
 }
 
 POA_Base* POA_Base::get_implementation (const CORBA::Core::ProxyLocal* proxy)

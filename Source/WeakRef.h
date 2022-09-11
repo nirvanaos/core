@@ -60,7 +60,7 @@ private:
 	void _remove_ref () NIRVANA_NOEXCEPT
 	{
 		if (!control_block_.ref_cnt.decrement ()) {
-			if (control_block_.ref_cnt_weak.is_zero ())
+			if (0 == control_block_.ref_cnt_weak.load ())
 				delete this;
 			else {
 				static_cast <T*> (this)->~T ();
@@ -81,7 +81,7 @@ private:
 	void _remove_ref_weak () NIRVANA_NOEXCEPT
 	{
 		if (!control_block_.ref_cnt_weak.decrement_seq ()) {
-			if (control_block_.ref_cnt.is_zero ())
+			if (0 == control_block_.ref_cnt.load ())
 				g_shared_mem_context->heap ().release ((uint8_t*)this + sizeof (T), sizeof (*this) - sizeof (T));
 		}
 	}
@@ -89,7 +89,7 @@ private:
 	CoreRef <ImplShared <T> > _get_ref () NIRVANA_NOEXCEPT
 	{
 		CoreRef <ImplShared <T> > ret;
-		if (!control_block_.ref_cnt.is_zero ())
+		if (0 != control_block_.ref_cnt.load ())
 			ret = this;
 		return ret;
 	}

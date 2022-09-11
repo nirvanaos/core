@@ -82,7 +82,7 @@ void ProxyObjectDGC::deactivate () NIRVANA_NOEXCEPT
 
 void ProxyObjectDGC::_remove_ref () NIRVANA_NOEXCEPT
 {
-	ProxyObject::RefCnt::IntegralType cnt = Base::_remove_ref_proxy ();
+	ProxyObject::RefCnt::IntegralType cnt = Base::remove_ref_proxy ();
 	if (1 == cnt) {
 		// Launch deactivator
 		if (
@@ -106,7 +106,7 @@ void ProxyObjectDGC::implicit_deactivate ()
 		assert (&proxy->sync_context () == &SyncContext::current ());
 		PortableServer::Core::POA_Base* poa_impl = PortableServer::Core::POA_Base::get_implementation (proxy);
 		assert (poa_impl);
-		poa_impl->deactivate_object (key->object_id ());
+		poa_impl->deactivate_object (key->key ().object_id ());
 	} else {
 		// Restore implicit_activated_id_
 		assert (DEACTIVATION_CANCELLED == activation_state_);

@@ -26,6 +26,7 @@
 #include "ObjectKey.h"
 #include "StreamInEncap.h"
 #include "ExecDomain.h"
+#include <Nirvana/Hash.h>
 
 using namespace Nirvana::Core;
 using namespace CORBA::Core;
@@ -49,6 +50,23 @@ void ObjectKey::unmarshal (const IOP::ObjectKey& object_key)
 	unmarshal (stm);
 	if (stm.end () != 0)
 		throw CORBA::MARSHAL (StreamIn::MARSHAL_MINOR_MORE);
+}
+
+size_t ObjectKey::hash () const NIRVANA_NOEXCEPT
+{
+	size_t size = adapter_path_.size ();
+	size_t h = Nirvana::Hash::hash_bytes (&size, sizeof (size));
+	for (const auto& s : adapter_path_) {
+		size = s.size ();
+		h = Nirvana::Hash::append_bytes (Nirvana::Hash::append_bytes (h, &size, sizeof (size)), s.data (), size);
+	}
+	size = object_id_.size ();
+	return Nirvana::Hash::append_bytes (Nirvana::Hash::append_bytes (h, &size, sizeof (size)), object_id_.data (), size);
+}
+
+bool ObjectKey::operator == (const ObjectKey& other) const NIRVANA_NOEXCEPT
+{
+	return adapter_path_ == other.adapter_path_ && object_id_ == other.object_id_;
 }
 
 ObjectKeyShared::ObjectKeyShared (ObjectKey&& key) NIRVANA_NOEXCEPT :

@@ -37,7 +37,7 @@ namespace std {
 template <>
 struct hash <CORBA::OctetSeq>
 {
-	size_t operator () (const CORBA::OctetSeq& seq) const
+	size_t operator () (const CORBA::OctetSeq& seq) const NIRVANA_NOEXCEPT
 	{
 		return Nirvana::Hash::hash_bytes (seq.data (), seq.size ());
 	}

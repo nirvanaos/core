@@ -83,6 +83,16 @@ public:
 		return cnt_.load (std::memory_order_relaxed);
 	}
 
+	/// Get the current counter value.
+	/// Guarantees the counter consistency.
+	/// Operation is performed in acquire order.
+	/// 
+	/// \returns Integral value.
+	IntegralType load () const NIRVANA_NOEXCEPT
+	{
+		return cnt_.load (std::memory_order_acquire);
+	}
+
 	/// Relaxed increment.
 	void increment () NIRVANA_NOEXCEPT
 	{
@@ -113,15 +123,6 @@ public:
 	{
 		assert (SIGNED || cnt_ > 0);
 		return cnt_.fetch_sub (1, std::memory_order_release) - 1;
-	}
-
-	/// Check that reference counter is zero.
-	/// Guarantees the counter consistency.
-	/// 
-	/// \returns `true` if reference counter is zero.
-	bool is_zero () const NIRVANA_NOEXCEPT
-	{
-		return cnt_.load (std::memory_order_acquire) == 0;
 	}
 
 protected:

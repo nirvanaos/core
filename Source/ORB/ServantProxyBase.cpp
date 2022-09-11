@@ -73,13 +73,15 @@ void ServantProxyBase::add_ref_1 ()
 
 void ServantProxyBase::_add_ref ()
 {
-	RefCnt::IntegralType cnt = ref_cnt_proxy_.increment_seq ();
+	RefCnt::IntegralType cnt = ref_cnt_.increment_seq ();
 	if (1 == cnt) {
 		// Lock module to prevent the binary unloading while there are references
 		// to a servant proxy.
 		Module* mod = sync_context_->module ();
 		if (mod)
 			mod->_add_ref ();
+
+		// Call add_ref_1 () in the servant sync context.
 		try {
 			SYNC_BEGIN (*sync_context_, nullptr);
 			add_ref_1 ();
@@ -87,7 +89,7 @@ void ServantProxyBase::_add_ref ()
 		} catch (...) {
 			if (mod)
 				mod->_remove_ref ();
-			ref_cnt_proxy_.decrement ();
+			ref_cnt_.decrement ();
 			throw;
 		}
 	}
@@ -95,18 +97,18 @@ void ServantProxyBase::_add_ref ()
 
 void ServantProxyBase::_remove_ref () NIRVANA_NOEXCEPT
 {
-	_remove_ref_proxy ();
+	remove_ref_proxy ();
 }
 
-ServantProxyBase::RefCnt::IntegralType ServantProxyBase::_remove_ref_proxy () NIRVANA_NOEXCEPT
+ServantProxyBase::RefCnt::IntegralType ServantProxyBase::remove_ref_proxy () NIRVANA_NOEXCEPT
 {
-	RefCnt::IntegralType cnt = ref_cnt_proxy_.decrement_seq ();
+	RefCnt::IntegralType cnt = ref_cnt_.decrement_seq ();
 	if (0 == cnt) {
 		run_garbage_collector <GarbageCollector> (servant_, *sync_context_);
 	} else if (cnt < 0) {
 		// User violate reference counter rules.
 		// TODO: Log error
-		ref_cnt_proxy_.increment ();
+		ref_cnt_.increment ();
 		cnt = 0;
 	}
 
