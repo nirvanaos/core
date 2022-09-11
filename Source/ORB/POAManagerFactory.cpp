@@ -24,22 +24,17 @@
 *  popov.nirvana@gmail.com
 */
 #include "POAManagerFactory.h"
+#include <CORBA/Servant_var.h>
 
 namespace PortableServer {
 namespace Core {
 
 CORBA::servant_reference <POAManager> POAManagerFactory::create (const IDL::String& id, const CORBA::PolicyList& policies)
 {
-	CORBA::servant_reference <POAManager> manager;
-	auto ins = managers_.emplace (id, nullptr);
-	if (ins.second) {
-		try {
-			manager = CORBA::make_reference <POAManager> (std::ref (*this), std::ref (ins.first->first), std::ref (policies));
-		} catch (...) {
-			managers_.erase (ins.first);
-			throw;
-		}
-	}
+	Servant_var <POAManager> manager;
+	auto ins = managers_.emplace (std::ref (*this), std::ref (id), std::ref (policies));
+	if (ins.second)
+		manager = &const_cast <POAManager&> (*ins.first);
 	return manager;
 }
 

@@ -37,6 +37,12 @@ class POAManagerFactory :
 	public CORBA::servant_traits <PortableServer::POAManagerFactory>::Servant <POAManagerFactory>
 {
 public:
+	POAManagerFactory ()
+	{}
+
+	~POAManagerFactory ()
+	{}
+
 	PortableServer::POAManager::_ref_type create_POAManager (const IDL::String& id, const CORBA::PolicyList& policies)
 	{
 		CORBA::servant_reference <POAManager> manager = create (id, policies);
@@ -60,45 +66,49 @@ public:
 		return manager;
 	}
 
-	POAManagerSeq list ()
+	POAManagerSeq list () const
 	{
 		POAManagerSeq ret;
 		ret.reserve (managers_.size ());
-		for (const auto& entry : managers_) {
-			ret.push_back (entry.second->_this ());
+		for (auto& entry : managers_) {
+			ret.push_back (entry._this ());
 		}
 		return ret;
 	}
 
-	PortableServer::POAManager::_ref_type find (const IDL::String& id)
+	PortableServer::POAManager::_ref_type find (const IDL::String& id) const NIRVANA_NOEXCEPT
 	{
 		PortableServer::POAManager::_ref_type ret;
-		auto f = managers_.find (id);
+		auto f = managers_.find (static_cast <const POAManager&> (id));
 		if (f != managers_.end ())
-			ret = f->second->_this ();
+			ret = (*f)._this ();
 		return ret;
 	}
 
 private:
 	friend class POAManager;
 
-	typedef Nirvana::Core::MapUnorderedStable <IDL::String, POAManager*,
-		std::hash <IDL::String>, std::equal_to <IDL::String>,
-		Nirvana::Core::UserAllocator <std::pair <IDL::String, POAManager*> > > ManagerMap;
+	typedef Nirvana::Core::SetUnorderedStable <POAManager, POAManager::Hash, std::equal_to <POAManager>,
+		Nirvana::Core::UserAllocator <POAManager> > ManagerMap;
 
 	ManagerMap managers_;
 };
 
 inline
-POAManager::~POAManager ()
-{
-	factory_.managers_.erase (*id_);
-}
+POAManager::POAManager (POAManagerFactory& factory, const IDL::String& id, const CORBA::PolicyList& policies) :
+	IDL::String (id),
+	factory_ (&factory),
+	state_ (State::HOLDING),
+	request_cnt_ (0),
+	requests_completed_ (true),
+	signature_ (SIGNATURE)
+{}
 
 inline
-PortableServer::POAManagerFactory::_ref_type POA_Base::the_POAManagerFactory ()
+void POAManager::_delete_object () NIRVANA_NOEXCEPT
 {
-	return the_POAManager_->factory ()._this ();
+	CORBA::servant_reference <POAManagerFactory> tmp (std::move (factory_));
+	tmp->managers_.erase (*this);
 }
 
 }

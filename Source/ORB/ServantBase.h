@@ -29,7 +29,8 @@
 #pragma once
 
 #include "CoreServant.h"
-#include "POA_Root.h"
+#include "ProxyObject.h"
+#include "Services.h"
 
 namespace PortableServer {
 namespace Core {
@@ -53,7 +54,7 @@ public:
 
 	static POA::_ref_type _default_POA ()
 	{
-		return POA_Root::get_root ();
+		return POA::_narrow (CORBA::Core::Services::bind (CORBA::Core::Services::RootPOA));
 	}
 
 	CORBA::InterfaceDef::_ref_type _get_interface ()

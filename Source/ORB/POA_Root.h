@@ -43,12 +43,15 @@ public:
 		CORBA::servant_reference <POAManagerFactory>&& manager_factory) :
 		Base (nullptr, nullptr, std::move (manager)),
 		manager_factory_ (std::move (manager_factory))
-	{}
+	{
+		root_ = this;
+	}
 
 	~POA_Root ()
 	{
 		if (!is_destroyed ())
 			destroy (false);
+		root_ = nullptr;
 	}
 
 	virtual IDL::String the_name () const override
@@ -71,18 +74,27 @@ public:
 		return CORBA::make_reference <POA_Root> (std::move (manager), std::move (manager_factory))->_this ();
 	}
 
-	static POA::_ref_type get_root ();
+	POAManagerFactory& manager_factory () NIRVANA_NOEXCEPT
+	{
+		return *manager_factory_;
+	}
 
 private:
 	class InvokeAsync;
 
 	static void invoke_sync (POA_Ref adapter, const RequestRef& request);
 
+	static CORBA::Object::_ref_type get_root ();
+
 private:
 	CORBA::servant_reference <POAManagerFactory> manager_factory_;
-
-	static POA* root_;
 };
+
+inline
+PortableServer::POAManagerFactory::_ref_type POA_Base::the_POAManagerFactory () NIRVANA_NOEXCEPT
+{
+	return root_->manager_factory ()._this ();
+}
 
 }
 }

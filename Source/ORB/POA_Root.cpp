@@ -36,30 +36,19 @@ using namespace CORBA::Core;
 namespace PortableServer {
 namespace Core {
 
-POA* POA_Root::root_ = nullptr;
-
-POA::_ref_type POA_Root::get_root ()
+CORBA::Object::_ref_type POA_Root::get_root ()
 {
-	if (!root_) {
-		Object::_ref_type svc = CORBA::Core::Services::bind (CORBA::Core::Services::RootPOA);
-		POA::_ref_type adapter = POA::_narrow (svc);
-		if (!adapter)
-			throw INV_OBJREF ();
-		root_ = static_cast <POA*> (&(POA::_ptr_type)adapter);
-		return adapter;
-	} else
-		return POA::_ptr_type (root_);
+	return CORBA::Core::Services::bind (CORBA::Core::Services::RootPOA);
 }
 
 void POA_Root::invoke (RequestRef request, bool async) NIRVANA_NOEXCEPT
 {
 	try {
-		POA::_ref_type root = get_root (); // Hold root POA reference
-		const ProxyLocal* proxy = local2proxy (root);
-		POA_Ref adapter = get_implementation (proxy);
+		Object::_ref_type root = get_root (); // Hold root POA reference
+		POA_Ref adapter = root_;
 		assert (adapter);
 
-		SYNC_BEGIN (proxy->sync_context (), nullptr);
+		SYNC_BEGIN (local2proxy (root)->sync_context (), nullptr);
 
 		invoke_sync (std::move (adapter), request);
 

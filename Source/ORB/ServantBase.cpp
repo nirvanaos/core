@@ -25,6 +25,7 @@
 */
 #include "ServantBase.h"
 #include "ProxyObjectImplicit.h"
+#include "POA_Base.h"
 #include <CORBA/Proxy/TypeCodeNative.h>
 
 using namespace CORBA::Internal;

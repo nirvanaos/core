@@ -36,24 +36,35 @@ namespace Core {
 
 class POAManagerFactory;
 
-class POAManager : public CORBA::servant_traits <PortableServer::POAManager>::Servant <POAManager>
+class POAManager :
+	public IDL::String,
+	public CORBA::servant_traits <PortableServer::POAManager>::Servant <POAManager>
 {
 public:
-	POAManager (POAManagerFactory& factory, const IDL::String& id, const CORBA::PolicyList& policies) :
-		factory_ (factory),
-		id_ (&id),
-		state_ (State::HOLDING),
-		request_cnt_ (0),
-		requests_completed_ (true),
-		signature_ (SIGNATURE)
+	struct Hash
+	{
+		size_t operator () (const POAManager& obj) const NIRVANA_NOEXCEPT
+		{
+			return std::hash <IDL::String> () (obj);
+		}
+	};
+
+	POAManager (POAManagerFactory& factory, const IDL::String& id, const CORBA::PolicyList& policies);
+
+	~POAManager ()
 	{}
 
-	~POAManager ();
-
-	POAManagerFactory& factory () const NIRVANA_NOEXCEPT
+	POAManager* operator & ()
 	{
-		return factory_;
+		return this;
 	}
+
+	const POAManager* operator & () const
+	{
+		return this;
+	}
+
+	void _delete_object () NIRVANA_NOEXCEPT;
 
 	void activate ()
 	{
@@ -150,7 +161,7 @@ public:
 
 	const IDL::String& get_id () const NIRVANA_NOEXCEPT
 	{
-		return *id_;
+		return *this;
 	}
 
 	static POAManager* get_implementation (const CORBA::Core::ProxyLocal* proxy)
@@ -244,10 +255,9 @@ private:
 		RequestRef request_;
 	};
 
-	POAManagerFactory& factory_;
-	const IDL::String* id_;
-	std::vector <POA_Base*> associated_adapters_;
-	std::priority_queue <QElem> queue_;
+	CORBA::servant_reference <POAManagerFactory> factory_;
+	std::vector <POA_Base*, Nirvana::Core::UserAllocator <POA_Base*> > associated_adapters_;
+	std::priority_queue <QElem, std::vector <QElem, Nirvana::Core::UserAllocator <QElem> > > queue_;
 	State state_;
 	unsigned int request_cnt_;
 	Nirvana::Core::Event requests_completed_;

@@ -61,13 +61,14 @@ void Module::terminate () NIRVANA_NOEXCEPT
 {
 	if (entry_point_) {
 		ExecDomain& ed = ExecDomain::current ();
+		ExecDomain::RestrictedMode rm = ed.restricted_mode ();
 		ed.restricted_mode (ExecDomain::RestrictedMode::MODULE_TERMINATE);
 		try {
 			entry_point_->terminate ();
 		} catch (...) {
 			// TODO: Log
 		}
-		ed.restricted_mode (ExecDomain::RestrictedMode::NO_RESTRICTIONS);
+		ed.restricted_mode (rm);
 	}
 }
 

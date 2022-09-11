@@ -145,6 +145,9 @@ void Binder::terminate ()
 	initialized_ = false;
 	singleton_->unload_modules ();
 	SYNC_END ();
+	Section metadata;
+	Port::SystemInfo::get_OLF_section (metadata);
+	singleton_->module_unbind (nullptr, metadata);
 	singleton_.destruct ();
 #ifdef BINDER_USE_SEPARATE_MEMORY
 	memory_.destruct ();
@@ -442,6 +445,9 @@ void Binder::remove_exports (const Section& metadata) NIRVANA_NOEXCEPT
 
 void Binder::release_imports (Nirvana::Module::_ptr_type mod, const Section& metadata)
 {
+	ExecDomain& ed = ExecDomain::current ();
+	ExecDomain::RestrictedMode rm = ed.restricted_mode ();
+	ed.restricted_mode (ExecDomain::RestrictedMode::SUPPRESS_ASYNC_GC);
 	for (OLF_Iterator it (metadata.address, metadata.size); !it.end (); it.next ()) {
 		switch (*it.cur ()) {
 			case OLF_IMPORT_INTERFACE:
@@ -452,6 +458,7 @@ void Binder::release_imports (Nirvana::Module::_ptr_type mod, const Section& met
 			} break;
 		}
 	}
+	ed.restricted_mode (rm);
 }
 
 Binder::InterfaceRef Binder::find (const ObjectKey& name)

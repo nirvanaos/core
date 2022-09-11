@@ -245,7 +245,8 @@ public:
 	{
 		NO_RESTRICTIONS,
 		CLASS_LIBRARY_INIT,
-		MODULE_TERMINATE
+		MODULE_TERMINATE,
+		SUPPRESS_ASYNC_GC
 	};
 
 	RestrictedMode restricted_mode () const NIRVANA_NOEXCEPT

@@ -98,13 +98,14 @@ private:
 	Nirvana::Core::CoreRef <Nirvana::Core::MemContext> memory_;
 };
 
+class POA_Root;
+
 // POA implementation always operates the reference to Object interface (proxy),
 // not to ServantBase.
 // Release of the ServantBase reference must be performed in the ServantBase
 // synchronization context, so the reference counting of the ServantBase is
 // responsibility of the proxy.
 // The POA never communicates with user ServantBase directly.
-
 class NIRVANA_NOVTABLE POA_Base :
 	public CORBA::servant_traits <POA>::Servant <POA_Base>
 {
@@ -273,7 +274,7 @@ public:
 
 	virtual CORBA::OctetSeq id () const = 0;
 	
-	PortableServer::POAManagerFactory::_ref_type the_POAManagerFactory ();
+	static PortableServer::POAManagerFactory::_ref_type the_POAManagerFactory () NIRVANA_NOEXCEPT;
 
 	// Internal
 	static bool implicit_activation (POA::_ptr_type poa) NIRVANA_NOEXCEPT
@@ -339,6 +340,10 @@ protected:
 private:
 	void on_request_finish () NIRVANA_NOEXCEPT;
 
+protected:
+	static POA_Root* root_;
+	CORBA::servant_reference <POAManager> the_POAManager_;
+
 private:
 	// Children map.
 	typedef Nirvana::Core::MapUnorderedStable <IDL::String, POA_Ref,
@@ -348,7 +353,6 @@ private:
 	POA_Base* parent_;
 	const IDL::String* name_;
 	Children children_;
-	CORBA::servant_reference <POAManager> the_POAManager_;
 	AdapterActivator::_ref_type the_activator_;
 	unsigned int request_cnt_;
 	bool destroyed_;

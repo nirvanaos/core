@@ -75,7 +75,7 @@ public:
 		swap (tmp);
 	}
 
-	void swap (CoreRef <T> ref) NIRVANA_NOEXCEPT
+	void swap (CoreRef <T>& ref) NIRVANA_NOEXCEPT
 	{
 		typename LockablePtrT <T, 0>::Ptr from;
 		typename LockablePtrT <T, 0>::Ptr to (ref);

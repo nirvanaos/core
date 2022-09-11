@@ -23,7 +23,8 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "POAManagerFactory.h"
+#include "POA_Root.h"
+#include "Services.h"
 
 using namespace CORBA;
 using namespace CORBA::Internal;
@@ -32,6 +33,8 @@ using namespace Nirvana::Core;
 
 namespace PortableServer {
 namespace Core {
+
+POA_Root* POA_Base::root_ = nullptr;
 
 Interface* POA_Base::_s_get_servant (Bridge <POA>* _b, Interface* _env)
 {
@@ -283,6 +286,8 @@ void POA_Base::destroy (bool etherealize_objects) NIRVANA_NOEXCEPT
 		tmp.begin ()->second->destroy (etherealize_objects);
 		tmp.erase (tmp.begin ());
 	}
+	if (!request_cnt_)
+		destroy_completed_.signal ();
 }
 
 ObjectId POA_Base::servant_to_id (Object::_ptr_type p_servant)
@@ -328,13 +333,9 @@ void POA_Base::check_wait_completion ()
 void RequestRef::reset () NIRVANA_NOEXCEPT
 {
 	ExecDomain& ed = ExecDomain::current ();
-	try {
-		ed.mem_context_push (memory_);
-		{
-			Base::reset ();
-		}
-		ed.mem_context_pop ();
-	} catch (...) {}
+	ed.mem_context_swap (memory_);
+	Base::reset ();
+	ed.mem_context_swap (memory_);
 	memory_.reset ();
 }
 

@@ -23,7 +23,7 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "POAManager.h"
+#include "POAManagerFactory.h"
 #include "RqHelper.h"
 
 using namespace CORBA;

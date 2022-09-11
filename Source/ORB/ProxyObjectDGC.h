@@ -48,6 +48,9 @@ protected:
 	ProxyObjectDGC (PortableServer::Servant servant, PortableServer::POA::_ptr_type adapter);
 	ProxyObjectDGC (const ProxyObject& src, PortableServer::POA::_ptr_type adapter);
 
+	~ProxyObjectDGC ()
+	{}
+
 	enum ActivationState
 	{
 		INACTIVE,

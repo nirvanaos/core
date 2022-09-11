@@ -143,7 +143,7 @@ void ExecDomain::Deleter::run ()
 
 void ExecDomain::spawn (SyncContext& sync_context)
 {
-	assert (&ExecContext::current () != this);
+	assert (ExecContext::current_ptr () != this);
 	assert (runnable_);
 	_add_ref ();
 	try {
