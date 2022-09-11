@@ -35,7 +35,7 @@ namespace Core {
 Object::_ptr_type RqHelper::interface2object (Interface::_ptr_type itf)
 {
 	Object::_ptr_type obj;
-	const StringBase <Char> interface_id = itf->_epv ().interface_id;
+	const StringView <Char> interface_id = itf->_epv ().interface_id;
 	if (RepId::compatible (interface_id, RepIdOf <Object>::id))
 		obj = (Object*)&itf;
 	else {
@@ -50,7 +50,7 @@ Object::_ptr_type RqHelper::interface2object (Interface::_ptr_type itf)
 ValueBase::_ptr_type RqHelper::value_type2base (Interface::_ptr_type val)
 {
 	ValueBase::_ptr_type base;
-	const StringBase <Char> interface_id = val->_epv ().interface_id;
+	const StringView <Char> interface_id = val->_epv ().interface_id;
 	if (RepId::compatible (interface_id, RepIdOf <ValueBase>::id))
 		base = (ValueBase*)&val;
 	else {

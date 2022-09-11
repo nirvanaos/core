@@ -41,28 +41,10 @@ class POAManager :
 	public CORBA::servant_traits <PortableServer::POAManager>::Servant <POAManager>
 {
 public:
-	struct Hash
-	{
-		size_t operator () (const POAManager& obj) const NIRVANA_NOEXCEPT
-		{
-			return std::hash <IDL::String> () (obj);
-		}
-	};
-
 	POAManager (POAManagerFactory& factory, const IDL::String& id, const CORBA::PolicyList& policies);
 
 	~POAManager ()
 	{}
-
-	POAManager* operator & ()
-	{
-		return this;
-	}
-
-	const POAManager* operator & () const
-	{
-		return this;
-	}
 
 	void _delete_object () NIRVANA_NOEXCEPT;
 

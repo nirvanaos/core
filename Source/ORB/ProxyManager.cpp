@@ -295,7 +295,7 @@ void ProxyManager::create_proxy (InterfaceEntry& ie)
 	if (!ie.proxy) {
 		const InterfaceMetadata* metadata;
 		if (!ie.proxy_factory) {
-			StringBase <Char> iid (ie.iid);
+			StringView <Char> iid (ie.iid);
 			ie.proxy_factory = Nirvana::Core::Binder::bind_interface <ProxyFactory> (iid);
 			metadata = ie.proxy_factory->metadata ();
 			check_metadata (metadata, iid);

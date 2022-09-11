@@ -39,7 +39,7 @@ class Reference :
 	public ReferenceLocal
 {
 public:
-	Reference (Internal::String_in primary_iid) :
+	Reference (const IDL::String& primary_iid) :
 		ProxyManager (primary_iid)
 	{}
 

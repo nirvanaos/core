@@ -88,7 +88,7 @@ public:
 private:
 	friend class POAManager;
 
-	typedef Nirvana::Core::SetUnorderedStable <POAManager, POAManager::Hash, std::equal_to <POAManager>,
+	typedef Nirvana::Core::SetUnorderedStable <POAManager, std::hash <IDL::String>, std::equal_to <IDL::String>,
 		Nirvana::Core::UserAllocator <POAManager> > ManagerMap;
 
 	ManagerMap managers_;

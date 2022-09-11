@@ -288,7 +288,7 @@ const ModuleStartup* Binder::module_bind (::Nirvana::Module::_ptr_type mod, cons
 					if (OLF_IMPORT_OBJECT == *it.cur ()) {
 						ImportInterface* ps = reinterpret_cast <ImportInterface*> (it.cur ());
 						Object::_ref_type obj = bind_sync (ps->name);
-						const StringBase <char> requested_iid (ps->interface_id);
+						const CORBA::Internal::StringView <char> requested_iid (ps->interface_id);
 						if (RepId::compatible (obj->_epv ().header.interface_id, requested_iid))
 							reinterpret_cast <Object::_ref_type&> (ps->itf) = std::move (obj);
 						else {
@@ -492,7 +492,7 @@ Binder::InterfaceRef Binder::find (const ObjectKey& name)
 Binder::InterfaceRef Binder::bind_interface_sync (const ObjectKey& name, String_in iid)
 {
 	InterfaceRef itf = find (name);
-	StringBase <char> itf_id = itf->_epv ().interface_id;
+	CORBA::Internal::StringView <char> itf_id = itf->_epv ().interface_id;
 	if (!RepId::compatible (itf_id, iid)) {
 		if (!RepId::compatible (itf_id, RepIdOf <PseudoBase>::id))
 			throw_INV_OBJREF ();

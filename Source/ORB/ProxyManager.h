@@ -240,12 +240,12 @@ public:
 
 	virtual void marshal (StreamOut& out) = 0;
 
-	const Internal::StringBase <Char> primary_interface_id () const NIRVANA_NOEXCEPT
+	const Internal::StringView <Char> primary_interface_id () const NIRVANA_NOEXCEPT
 	{
 		if (primary_interface_)
-			return Internal::StringBase <Char> (primary_interface_->iid, primary_interface_->iid_len);
+			return Internal::StringView <Char> (primary_interface_->iid, primary_interface_->iid_len);
 		else
-			return Internal::StringBase <Char> (Internal::RepIdOf <Object>::id);
+			return Internal::StringView <Char> (Internal::RepIdOf <Object>::id);
 	}
 
 protected:
