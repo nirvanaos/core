@@ -31,7 +31,12 @@
 #include "POA_Implicit.h"
 #include "POAManagerFactory.h"
 #include "../MapUnorderedStable.h"
+#include <CORBA/Servant_var.h>
 #include <random>
+
+namespace IOP {
+typedef CORBA::OctetSeq ObjectKey;
+}
 
 namespace PortableServer {
 namespace Core {
@@ -71,6 +76,30 @@ public:
 
 	static void invoke (RequestRef request, bool async) NIRVANA_NOEXCEPT;
 	static void invoke_async (RequestRef request, Nirvana::DeadlineTime deadline);
+
+	static POA_Ref find_child (const AdapterPath& path) NIRVANA_NOEXCEPT;
+
+	static CORBA::Object::_ref_type unmarshal (const IDL::String& iid, const IOP::ObjectKey& iop_key)
+	{
+		ObjectKey key;
+		key.unmarshal (iop_key);
+		CORBA::Object::_ref_type root = get_root (); // Hold root POA reference
+		SYNC_BEGIN (CORBA::Core::local2proxy (root)->sync_context (), nullptr)
+			CORBA::Core::ReferenceLocalRef ref = root_->find_reference (key);
+			if (ref)
+				ref->set_primary_interface (iid);
+			else {
+
+				POA_Ref adapter = find_child (key.adapter_path ());
+				if (adapter)
+					return adapter->create_reference (std::move (key), iid);
+
+				ref = Servant_var <CORBA::Core::ReferenceLocal> (&const_cast <CORBA::Core::ReferenceLocal&> (
+					*root_->create_reference (std::move (key), iid, false).first));
+			}
+			return CORBA::Object::_ref_type (ref->get_proxy ());
+		SYNC_END ();
+	}
 
 	static PortableServer::POA::_ref_type create ();
 

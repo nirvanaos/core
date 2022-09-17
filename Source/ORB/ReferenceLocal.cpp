@@ -158,13 +158,7 @@ void ReferenceLocal::on_destruct_implicit (PortableServer::Core::ServantBase& se
 	if (servant_.cas (ptr, nullptr)) {
 		garbage_collection_ = false;
 		
-		PortableServer::Core::POA_Ref adapter = root_;
-		for (const auto& name : adapter_path ()) {
-			adapter = adapter->find_child (name, false);
-			if (!adapter)
-				break;
-		}
-
+		PortableServer::Core::POA_Ref adapter = PortableServer::Core::POA_Root::find_child (adapter_path ());
 		if (adapter)
 			adapter->implicit_deactivate (*this, servant.proxy ());
 

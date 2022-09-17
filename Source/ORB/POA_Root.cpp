@@ -26,7 +26,6 @@
 
 #include "POA_Root.h"
 #include "RqHelper.h"
-#include <CORBA/Servant_var.h>
 
 using namespace Nirvana;
 using namespace Nirvana::Core;
@@ -49,8 +48,19 @@ ReferenceLocalRef POA_Root::get_reference (const ObjectKey& key)
 {
 	ReferenceLocalRef ref = find_reference (key);
 	if (!ref)
-		ref = &const_cast <ReferenceLocal&> (*create_reference (ObjectKey (key), IDL::String (), false).first);
+		ref = Servant_var <ReferenceLocal> (&const_cast <ReferenceLocal&> (*create_reference (ObjectKey (key), IDL::String (), false).first));
 	return ref;
+}
+
+POA_Ref POA_Root::find_child (const AdapterPath& path) NIRVANA_NOEXCEPT
+{
+	POA_Ref adapter = root_;
+	for (const auto& name : path) {
+		adapter = adapter->find_child (name, false);
+		if (!adapter)
+			break;
+	}
+	return adapter;
 }
 
 void POA_Root::invoke (RequestRef request, bool async) NIRVANA_NOEXCEPT

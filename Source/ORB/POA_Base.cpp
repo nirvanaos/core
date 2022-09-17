@@ -193,12 +193,6 @@ Object::_ref_type POA_Base::create_reference (const RepositoryId& intf)
 	return create_reference (intf, false)->get_proxy ();
 }
 
-Object::_ref_type POA_Base::create_reference_with_id (const ObjectId& oid,
-	const RepositoryId& intf)
-{
-	return create_reference (oid, intf, false)->get_proxy ();
-}
-
 ReferenceLocalRef POA_Base::create_reference (const RepositoryId& intf, bool garbage_collection)
 {
 	for (;;) {
@@ -209,10 +203,16 @@ ReferenceLocalRef POA_Base::create_reference (const RepositoryId& intf, bool gar
 	}
 }
 
-ReferenceLocalRef POA_Base::create_reference (const ObjectId& oid, const RepositoryId& intf,
+CORBA::Object::_ref_type POA_Base::create_reference (ObjectKey&& key,
+	const CORBA::RepositoryId& intf)
+{
+	return CORBA::Object::_ref_type (create_reference (std::move (key), intf, false)->get_proxy ());
+}
+
+ReferenceLocalRef POA_Base::create_reference (ObjectKey&& key, const RepositoryId& intf,
 	bool garbage_collection)
 {
-	auto ins = root_->create_reference (ObjectKey (*this, oid), std::ref (intf), garbage_collection);
+	auto ins = root_->create_reference (std::move (key), std::ref (intf), garbage_collection);
 	CORBA::Core::ReferenceLocal& ref = const_cast <CORBA::Core::ReferenceLocal&> (*ins.first);
 	if (!ins.second)
 		ref.set_primary_interface (intf);

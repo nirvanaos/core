@@ -295,12 +295,20 @@ public:
 
 	// Reference creation operations
 	virtual CORBA::Object::_ref_type create_reference (const CORBA::RepositoryId& intf);
-	virtual CORBA::Object::_ref_type create_reference_with_id (const ObjectId& oid,
-		const CORBA::RepositoryId& intf);
-
+	
 	CORBA::Core::ReferenceLocalRef create_reference (const CORBA::RepositoryId& intf,
 		bool garbage_collection);
-	CORBA::Core::ReferenceLocalRef create_reference (const ObjectId& oid,
+
+	CORBA::Object::_ref_type create_reference_with_id (const ObjectId& oid,
+		const CORBA::RepositoryId& intf)
+	{
+		return create_reference (ObjectKey (*this, oid), intf);
+	}
+
+	virtual CORBA::Object::_ref_type create_reference (ObjectKey&& key,
+		const CORBA::RepositoryId& intf);
+
+	static CORBA::Core::ReferenceLocalRef create_reference (ObjectKey&& key,
 		const CORBA::RepositoryId& intf, bool garbage_collection);
 
 	// Identity mapping operations:

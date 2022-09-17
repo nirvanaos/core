@@ -274,7 +274,7 @@ ProxyManager& ProxyManager::operator = (const ProxyManager& src)
 void ProxyManager::set_primary_interface (const IDL::String& primary_iid)
 {
 	// Empty primary IID does not change anything
-	if (!primary_iid.empty ()) {
+	if (!(primary_iid.empty () || RepId::compatible (RepIdOf <Object>::id, primary_iid))) {
 		if (!primary_interface_) {
 			Array <InterfaceEntry, SharedAllocator> tmpi;
 			Array <OperationEntry, SharedAllocator> tmpo;
