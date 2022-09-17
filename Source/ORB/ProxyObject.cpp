@@ -78,15 +78,5 @@ ReferenceRef ProxyObject::get_reference ()
 	return ref;
 }
 
-void ProxyObject::activate (ReferenceLocal& reference) NIRVANA_NOEXCEPT
-{
-	reference_ = &reference;
-}
-
-void ProxyObject::deactivate (ReferenceLocal& reference) NIRVANA_NOEXCEPT
-{
-	reference_.cas (&reference, nullptr);
-}
-
 }
 }

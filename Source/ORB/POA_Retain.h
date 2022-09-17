@@ -29,7 +29,7 @@
 #pragma once
 
 #include "POA_Base.h"
-#include "../MapOrderedUnstable.h"
+#include "../PointerSet.h"
 
 namespace PortableServer {
 namespace Core {
@@ -64,9 +64,7 @@ protected:
 
 private:
 	// This map contains active references and references with GC
-	typedef CORBA::Core::ReferenceLocal* RefPtr;
-	typedef Nirvana::Core::SetUnorderedUnstable <RefPtr, std::hash <RefPtr>, std::equal_to <RefPtr>,
-		Nirvana::Core::UserAllocator <RefPtr> > References;
+	typedef Nirvana::Core::PointerSet References;
 	References references_;
 };
 

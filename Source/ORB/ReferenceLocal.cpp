@@ -128,9 +128,9 @@ void ReferenceLocal::activate (PortableServer::Core::ServantBase& servant)
 
 	ProxyObject& proxy = servant.proxy ();
 	ProxyManager::operator = (proxy);
+	proxy.activate (*this);
 	proxy._add_ref ();
 	servant_ = &servant;
-	proxy.activate (*this);
 }
 
 servant_reference <ProxyObject> ReferenceLocal::deactivate () NIRVANA_NOEXCEPT
@@ -152,7 +152,7 @@ servant_reference <ProxyObject> ReferenceLocal::deactivate () NIRVANA_NOEXCEPT
 	return p;
 }
 
-void ReferenceLocal::on_delete_implicit (PortableServer::Core::ServantBase& servant) NIRVANA_NOEXCEPT
+void ReferenceLocal::on_destruct_implicit (PortableServer::Core::ServantBase& servant) NIRVANA_NOEXCEPT
 {
 	ServantPtr::Ptr ptr (&servant);
 	if (servant_.cas (ptr, nullptr)) {

@@ -24,9 +24,11 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_ORB_CORE_MAPORDEREDUNSTABLE_H_
-#define NIRVANA_ORB_CORE_MAPORDEREDUNSTABLE_H_
+#ifndef NIRVANA_CORE_MAPORDEREDUNSTABLE_H_
+#define NIRVANA_CORE_MAPORDEREDUNSTABLE_H_
 #pragma once
+
+#include <CORBA/CORBA.h>
 
 #pragma push_macro ("verify")
 #undef verify

@@ -30,6 +30,7 @@
 
 #include "ServantProxyBase.h"
 #include "../TaggedPtr.h"
+#include "../PointerSet.h"
 #include "Reference.h"
 #include "ObjectKey.h"
 
@@ -59,8 +60,23 @@ public:
 	///@{
 	/// Called from the POA synchronization domain.
 	/// So calls to activate () and deactivate () are always serialized.
-	virtual void activate (ReferenceLocal& reference) NIRVANA_NOEXCEPT;
-	virtual void deactivate (ReferenceLocal& reference) NIRVANA_NOEXCEPT;
+	void activate (ReferenceLocal& reference)
+	{
+		ReferenceLocal* old = reference_.exchange (&reference);
+		// If the set is empty, object can have one reference stored in reference_.
+		// If the set is not empty, it must contain all the references include stored in reference_.
+		if (old) {
+			references_.insert (old);
+			references_.insert (&reference);
+		}
+	}
+
+	void deactivate (ReferenceLocal& reference) NIRVANA_NOEXCEPT
+	{
+		references_.erase (&reference);
+		ReferenceLocal* p = references_.empty () ? nullptr : reinterpret_cast <ReferenceLocal*> (*references_.begin ());
+		reference_.cas (&reference, p);
+	}
 	///@}
 
 	/// Returns user ServantBase implementation
@@ -78,6 +94,11 @@ protected:
 	ProxyObject (PortableServer::Core::ServantBase& core_servant,
 		PortableServer::Servant user_servant);
 
+	~ProxyObject ()
+	{
+		assert (references_.empty ());
+	}
+
 	virtual Boolean non_existent () override;
 	virtual ReferenceRef get_reference () override;
 
@@ -91,6 +112,11 @@ protected:
 	typedef Nirvana::Core::LockablePtrT <ReferenceLocal, 0, REF_ALIGN> RefPtr;
 
 	mutable RefPtr reference_;
+
+	// The set of references.
+	// If the set is empty, object can have one reference stored in reference_.
+	// If the set is not empty, it contains all the references include stored in reference_.
+	Nirvana::Core::PointerSet references_;
 };
 
 CORBA::Object::_ptr_type servant2object (PortableServer::Servant servant) NIRVANA_NOEXCEPT;

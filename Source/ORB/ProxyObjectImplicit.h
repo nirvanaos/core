@@ -28,7 +28,7 @@
 #define NIRVANA_ORB_CORE_PROXYOBJECTIMPLICIT_H_
 #pragma once
 
-#include "ReferenceLocal.h"
+#include "ProxyObject.h"
 
 namespace CORBA {
 namespace Core {
@@ -45,15 +45,9 @@ protected:
 		adapter_ (adapter)
 	{}
 
-	~ProxyObjectImplicit ()
-	{
-		ReferenceLocal* ref = reference_.exchange (nullptr);
-		if (ref)
-			ref->on_delete_implicit (core_servant ());
-	}
+	~ProxyObjectImplicit ();
 
 private:
-	virtual void activate (ReferenceLocal& reference) NIRVANA_NOEXCEPT override;
 	virtual void add_ref_1 () override;
 
 private:

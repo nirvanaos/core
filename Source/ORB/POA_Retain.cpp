@@ -108,8 +108,8 @@ void POA_Retain::destroy_internal (bool etherealize_objects) NIRVANA_NOEXCEPT
 		POA_Retain::etherealize_objects ();
 	else {
 		References tmp (std::move (references_));
-		for (ReferenceLocal* ref : tmp) {
-			ReferenceLocalRef (ref)->deactivate ();
+		for (void* p : tmp) {
+			ReferenceLocalRef (reinterpret_cast <ReferenceLocal*> (p))->deactivate ();
 		}
 	}
 }
@@ -117,8 +117,9 @@ void POA_Retain::destroy_internal (bool etherealize_objects) NIRVANA_NOEXCEPT
 void POA_Retain::etherealize_objects () NIRVANA_NOEXCEPT
 {
 	References tmp (std::move (references_));
-	for (ReferenceLocal* ref : tmp) {
-		servant_reference <ProxyObject> servant = ReferenceLocalRef (ref)->deactivate ();
+	for (void* p : tmp) {
+		servant_reference <ProxyObject> servant =
+			ReferenceLocalRef (reinterpret_cast <ReferenceLocal*> (p))->deactivate ();
 		if (servant)
 			etherialize (*servant);
 	}

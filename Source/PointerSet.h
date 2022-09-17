@@ -24,28 +24,17 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_CORE_MAPUNORDEREDUNSTABLE_H_
-#define NIRVANA_CORE_MAPUNORDEREDUNSTABLE_H_
+#ifndef NIRVANA_CORE_POINTERSET_H_
+#define NIRVANA_CORE_POINTERSET_H_
 #pragma once
 
-#include <CORBA/CORBA.h>
-
-#pragma push_macro ("verify")
-#undef verify
-#include "parallel-hashmap/parallel_hashmap/phmap.h"
-#pragma pop_macro ("verify")
+#include "MapOrderedUnstable.h"
 
 namespace Nirvana {
 namespace Core {
 
-/// Unordered map without the pointer stability.
-template <class Key, class T, class Hash = std::hash <Key>, class KeyEqual = std::equal_to <Key>,
-	class Allocator = std::allocator <std::pair <const Key, T> > >
-	using MapUnorderedUnstable = phmap::flat_hash_map <Key, T, Hash, KeyEqual, Allocator>;
-
-template <class Key, class Hash = std::hash <Key>, class KeyEqual = std::equal_to <Key>,
-	class Allocator = std::allocator <Key> >
-	using SetUnorderedUnstable = phmap::flat_hash_set <Key, Hash, KeyEqual, Allocator>;
+typedef SetUnorderedUnstable <void*, std::hash <void*>,
+	std::equal_to <void*>, UserAllocator <void*> > PointerSet;
 
 }
 }

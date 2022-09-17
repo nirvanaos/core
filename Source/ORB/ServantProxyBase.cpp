@@ -126,6 +126,7 @@ void ServantProxyBase::run_garbage_collector () const NIRVANA_NOEXCEPT
 			collect_garbage (servant_);
 		SYNC_END ()
 	} catch (...) {
+		assert (false);
 		// Swallow exceptions.
 	}
 }

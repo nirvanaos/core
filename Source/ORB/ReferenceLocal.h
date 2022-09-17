@@ -57,7 +57,7 @@ public:
 	void activate (PortableServer::Core::ServantBase& servant);
 	servant_reference <ProxyObject> deactivate () NIRVANA_NOEXCEPT;
 
-	void on_delete_implicit (PortableServer::Core::ServantBase& servant) NIRVANA_NOEXCEPT;
+	void on_destruct_implicit (PortableServer::Core::ServantBase& servant) NIRVANA_NOEXCEPT;
 
 	virtual void _add_ref () override;
 	virtual void _remove_ref () NIRVANA_NOEXCEPT override;

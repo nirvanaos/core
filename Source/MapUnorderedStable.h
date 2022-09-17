@@ -24,9 +24,11 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_ORB_CORE_MAPUNORDEREDSTABLE_H_
-#define NIRVANA_ORB_CORE_MAPUNORDEREDSTABLE_H_
+#ifndef NIRVANA_CORE_MAPUNORDEREDSTABLE_H_
+#define NIRVANA_CORE_MAPUNORDEREDSTABLE_H_
 #pragma once
+
+#include <CORBA/CORBA.h>
 
 // phmap::node_hash_map is quick unordered map with pointer stability.
 
