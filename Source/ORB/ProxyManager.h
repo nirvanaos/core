@@ -62,7 +62,7 @@ protected:
 	virtual void _add_ref () = 0;
 	virtual void _remove_ref () NIRVANA_NOEXCEPT = 0;
 	template <class> friend class Nirvana::Core::CoreRef;
-	template <class> friend class servant_reference;
+	template <class> friend class CORBA::servant_reference;
 	friend class Internal::LifeCycleRefCnt <ProxyManager>;
 
 public:

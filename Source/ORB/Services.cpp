@@ -118,7 +118,7 @@ Object::_ref_type Services::create_POACurrent ()
 // Core services.
 
 const Services::CoreFactory Services::core_factories_ [CORE_SERVICE_COUNT] = {
-	create_OtherDomains, 1 * TimeBase::MILLISECOND
+	{ create_OtherDomains, 1 * TimeBase::MILLISECOND }
 };
 
 // Core service factories
