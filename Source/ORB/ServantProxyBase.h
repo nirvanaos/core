@@ -42,7 +42,7 @@ namespace Core {
 class ServantProxyBase :
 	public ProxyManager
 {
-	class GarbageCollector;
+	class GC;
 public:
 	virtual Internal::IORequest::_ref_type create_request (OperationIndex op, UShort flags) override;
 
@@ -105,60 +105,19 @@ protected:
 
 	RefCntProxy::IntegralType remove_ref_proxy () NIRVANA_NOEXCEPT;
 
-	template <class GC, class Arg>
-	void run_garbage_collector (Arg arg, Nirvana::Core::SyncContext& sync_context) const NIRVANA_NOEXCEPT
-	{
-		using namespace Nirvana::Core;
+	void run_garbage_collector () const NIRVANA_NOEXCEPT;
 
-		ExecDomain& ed = ExecDomain::current ();
-		if (ed.restricted_mode () != ExecDomain::RestrictedMode::SUPPRESS_ASYNC_GC) {
-			try {
-				CoreRef <MemContext> mc = GC_mem_context (ed, sync_context);
-				CoreRef <MemContext> tmp = mc;
-				ed.mem_context_swap (tmp);
-				try {
-					auto gc = CoreRef <Runnable>::create <ImplDynamic <GC> > (arg);
-
-					Nirvana::DeadlineTime deadline =
-						Nirvana::Core::PROXY_GC_DEADLINE == Nirvana::INFINITE_DEADLINE ?
-						Nirvana::INFINITE_DEADLINE : Nirvana::Core::Chrono::make_deadline (
-							Nirvana::Core::PROXY_GC_DEADLINE);
-
-					// in the current memory context.
-					ExecDomain::async_call (deadline, std::move (gc), sync_context, mc);
-				} catch (...) {
-					ed.mem_context_swap (tmp);
-					throw;
-				}
-				ed.mem_context_swap (tmp);
-				return;
-			} catch (...) {
-				// Async call failed, maybe resources are exausted.
-				// Fallback to collect garbage in the current ED.
-			}
-		}
-		try {
-			SYNC_BEGIN (sync_context, nullptr)
-			Nirvana::Core::ImplStatic <GC> (arg).run ();
-			SYNC_END ()
-		} catch (...) {
-			// Swallow exceptions.
-			// TODO: Log error.
-		}
-	}
+	static void collect_garbage (Internal::Interface::_ptr_type servant) NIRVANA_NOEXCEPT;
 
 private:
 	template <class I>
 	static const Char* primary_interface_id (Internal::I_ptr <I> servant)
 	{
-		Internal::Interface::_ptr_type primary = servant->_query_interface (0);
+		Internal::Interface::_ptr_type primary = servant->_query_interface (nullptr);
 		if (!primary)
 			throw OBJ_ADAPTER (); // TODO: Log
 		return primary->_epv ().interface_id;
 	}
-
-	static Nirvana::Core::CoreRef <Nirvana::Core::MemContext> GC_mem_context (
-		const Nirvana::Core::ExecDomain& ed, Nirvana::Core::SyncContext& sc) NIRVANA_NOEXCEPT;
 
 private:
 	Internal::Interface::_ptr_type servant_;

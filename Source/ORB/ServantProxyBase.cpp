@@ -35,26 +35,22 @@ using namespace Internal;
 
 namespace Core {
 
-class NIRVANA_NOVTABLE ServantProxyBase::GarbageCollector :
-	public UserObject,
+class NIRVANA_NOVTABLE ServantProxyBase::GC :
+	public SharedObject,
 	public Runnable
 {
 public:
 	void run ()
 	{
-		interface_release (&servant_);
-		// Unlock module.
-		Module* mod = SyncContext::current ().module ();
-		if (mod)
-			mod->_remove_ref ();
+		collect_garbage (servant_);
 	}
 
 protected:
-	GarbageCollector (Interface::_ptr_type servant) :
+	GC (Interface::_ptr_type servant) :
 		servant_ (servant)
 	{}
 
-	~GarbageCollector ()
+	~GC ()
 	{}
 
 private:
@@ -103,11 +99,50 @@ void ServantProxyBase::_remove_ref () NIRVANA_NOEXCEPT
 	remove_ref_proxy ();
 }
 
+inline
+void ServantProxyBase::run_garbage_collector () const NIRVANA_NOEXCEPT
+{
+	using namespace Nirvana::Core;
+
+	ExecDomain& ed = ExecDomain::current ();
+	if (ed.restricted_mode () != ExecDomain::RestrictedMode::SUPPRESS_ASYNC_GC) {
+		try {
+			Nirvana::DeadlineTime deadline =
+				Nirvana::Core::PROXY_GC_DEADLINE == Nirvana::INFINITE_DEADLINE ?
+				Nirvana::INFINITE_DEADLINE : Nirvana::Core::Chrono::make_deadline (
+					Nirvana::Core::PROXY_GC_DEADLINE);
+
+			// in the current memory context.
+			ExecDomain::async_call (deadline, CoreRef <Runnable>::create <ImplDynamic <GC> > (servant_),
+				sync_context ());
+			return;
+		} catch (...) {
+			// Async call failed, maybe resources are exausted.
+			// Fallback to collect garbage in the current ED.
+		}
+	}
+	try {
+		SYNC_BEGIN (sync_context (), nullptr)
+			collect_garbage (servant_);
+		SYNC_END ()
+	} catch (...) {
+		// Swallow exceptions.
+	}
+}
+
+void ServantProxyBase::collect_garbage (Internal::Interface::_ptr_type servant) NIRVANA_NOEXCEPT
+{
+	interface_release (&servant);
+	Module* mod = SyncContext::current ().module ();
+	if (mod)
+		mod->_remove_ref ();
+}
+
 RefCntProxy::IntegralType ServantProxyBase::remove_ref_proxy () NIRVANA_NOEXCEPT
 {
 	RefCntProxy::IntegralType cnt = ref_cnt_.decrement_seq ();
 	if (0 == cnt)
-		run_garbage_collector <GarbageCollector> (servant_, *sync_context_);
+		run_garbage_collector ();
 
 	return cnt;
 }
@@ -136,20 +171,6 @@ IORequest::_ref_type ServantProxyBase::create_request (OperationIndex op, UShort
 	else
 		return make_pseudo <RequestLocalImpl <RequestLocal> > (std::ref (*this), op,
 			mem, response_flags);
-}
-
-CoreRef <MemContext> ServantProxyBase::GC_mem_context (const ExecDomain& ed, SyncContext& sc) NIRVANA_NOEXCEPT
-{
-	CoreRef <MemContext> mc;
-	SyncDomain* sd = sc.sync_domain ();
-	if (sd)
-		mc = &sd->mem_context ();
-	else {
-		mc = ed.mem_context_ptr ();
-		if (!mc)
-			mc = &g_shared_mem_context;
-	}
-	return mc;
 }
 
 }
