@@ -29,25 +29,47 @@
 #pragma once
 
 #include "ProxyManager.h"
-#include "ReferenceLocal.h"
+#include "RefCntProxy.h"
 
 namespace CORBA {
 namespace Core {
 
+class ReferenceLocal;
+
 class Reference :
-	public ProxyManager,
-	public ReferenceLocal
+	public ProxyManager
 {
 public:
-	Reference (const IDL::String& primary_iid) :
-		ProxyManager (primary_iid)
+	Reference (const IDL::String& primary_iid, bool garbage_collection) :
+		CORBA::Core::ProxyManager (primary_iid),
+		ref_cnt_ (1),
+		garbage_collection_ (garbage_collection)
 	{}
 
-	virtual Internal::IORequest::_ref_type create_request (OperationIndex op, UShort flags) override;
-	Internal::IORequest::_ref_type create_request (const IDL::String& op, UShort flags);
+	Reference (const ProxyManager& proxy, bool garbage_collection) :
+		CORBA::Core::ProxyManager (proxy),
+		ref_cnt_ (1),
+		garbage_collection_ (garbage_collection)
+	{}
 
-private:
-	virtual void marshal (StreamOut& out) override;
+	/// Marshal reference to stream.
+	/// 
+	/// \param out Stream.
+	virtual void marshal (StreamOut& out) const = 0;
+
+	virtual ReferenceRef get_reference () override;
+
+	/// Dymamic cast to ReferenceLocal. We do not use RTTI and dynamic_cast<>.
+	virtual ReferenceLocal* local_reference ();
+
+	RefCntProxy::IntegralType _refcount_value () const NIRVANA_NOEXCEPT
+	{
+		return ref_cnt_.load ();
+	}
+
+protected:
+	RefCntProxy ref_cnt_;
+	bool garbage_collection_;
 };
 
 }

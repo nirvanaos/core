@@ -25,8 +25,8 @@
 */
 
 #include "POA_Root.h"
-#include "Services.h"
 #include "RqHelper.h"
+#include <CORBA/Servant_var.h>
 
 using namespace Nirvana;
 using namespace Nirvana::Core;
@@ -36,9 +36,21 @@ using namespace CORBA::Core;
 namespace PortableServer {
 namespace Core {
 
-CORBA::Object::_ref_type POA_Root::get_root ()
+ReferenceLocalRef POA_Root::find_reference (const ObjectKey& key) NIRVANA_NOEXCEPT
 {
-	return CORBA::Core::Services::bind (CORBA::Core::Services::RootPOA);
+	References::iterator it = references_.find (static_cast <const ReferenceLocal&> (key));
+	ReferenceLocalRef ref;
+	if (it != references_.end ())
+		ref = Servant_var <ReferenceLocal> (&const_cast <ReferenceLocal&> (*it));
+	return ref;
+}
+
+ReferenceLocalRef POA_Root::get_reference (const ObjectKey& key)
+{
+	ReferenceLocalRef ref = find_reference (key);
+	if (!ref)
+		ref = &const_cast <ReferenceLocal&> (*create_reference (ObjectKey (key), IDL::String (), false).first);
+	return ref;
 }
 
 void POA_Root::invoke (RequestRef request, bool async) NIRVANA_NOEXCEPT
@@ -68,7 +80,7 @@ void POA_Root::invoke_sync (POA_Ref adapter, const RequestRef& request)
 {
 	const ObjectKey& object_key = request->object_key ();
 	for (const auto& name : object_key.adapter_path ()) {
-		adapter = &adapter->find_child (name, true);
+		adapter = adapter->find_child (name, true);
 	}
 	adapter->invoke (request);
 }
@@ -89,7 +101,7 @@ private:
 	virtual void on_crash (const siginfo& signal) NIRVANA_NOEXCEPT;
 
 private:
-	servant_reference <POA_Base> root_;
+	POA_Ref root_;
 	RequestRef request_;
 };
 

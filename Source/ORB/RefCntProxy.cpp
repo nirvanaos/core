@@ -23,45 +23,19 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "initterm.h"
-#include "Binder.h"
-#include "Scheduler.h"
-#include "ExecDomain.h"
-#include "TLS.h"
-#include "ORB/ORB_initterm.h"
+#include "RefCntProxy.h"
 
-namespace Nirvana {
+namespace CORBA {
 namespace Core {
 
-void initialize0 ()
+RefCntProxy::IntegralType RefCntProxy::decrement ()
 {
-	MemContext::initialize ();
-	TLS::initialize ();
-	g_core_free_sync_context.construct ();
-	ExecDomain::initialize ();
-	Scheduler::initialize ();
-}
-
-void initialize ()
-{
-	CORBA::Core::initialize ();
-	Binder::initialize ();
-}
-
-void terminate ()
-{
-	Binder::terminate ();
-	CORBA::Core::terminate ();
-}
-
-void terminate0 () NIRVANA_NOEXCEPT
-{
-	Scheduler::terminate ();
-	ExecDomain::terminate ();
-#ifdef _DEBUG
-	g_core_free_sync_context.destruct ();
-	MemContext::terminate ();
-#endif
+	IntegralType cnt = Base::decrement_seq ();
+	if (cnt < 0) {
+		Base::increment ();
+		throw BAD_INV_ORDER ();
+	}
+	return cnt;
 }
 
 }

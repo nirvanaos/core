@@ -38,9 +38,9 @@ Boolean ProxyLocal::non_existent ()
 	return servant ()->_non_existent ();
 }
 
-void ProxyLocal::marshal (StreamOut& out)
+ReferenceRef ProxyLocal::get_reference ()
 {
-	throw MARSHAL (MAKE_OMG_MINOR (4));
+	throw MARSHAL (MAKE_OMG_MINOR (4)); // Attempt to marshal Local object.
 }
 
 }

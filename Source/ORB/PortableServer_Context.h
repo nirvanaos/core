@@ -1,3 +1,4 @@
+/// \file
 /*
 * Nirvana Core.
 *
@@ -23,46 +24,32 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "initterm.h"
-#include "Binder.h"
-#include "Scheduler.h"
-#include "ExecDomain.h"
-#include "TLS.h"
-#include "ORB/ORB_initterm.h"
+#ifndef NIRVANA_ORB_CORE_PORTABLESERVER_CONTEXT_H_
+#define NIRVANA_ORB_CORE_PORTABLESERVER_CONTEXT_H_
+#pragma once
 
-namespace Nirvana {
+#include <CORBA/Server.h>
+#include "ProxyObject.h"
+
+namespace PortableServer {
 namespace Core {
 
-void initialize0 ()
+struct Context
 {
-	MemContext::initialize ();
-	TLS::initialize ();
-	g_core_free_sync_context.construct ();
-	ExecDomain::initialize ();
-	Scheduler::initialize ();
+	POA::_ref_type adapter;
+	const ObjectId& object_id;
+	CORBA::Object::_ptr_type reference;
+	CORBA::Object::_ptr_type servant;
+
+	Context (POA::_ref_type&& poa, const ObjectId& oid, CORBA::Object::_ptr_type ref, CORBA::Core::ProxyObject& proxy) :
+		adapter (std::move (poa)),
+		object_id (oid),
+		reference (ref),
+		servant (proxy.get_proxy ())
+	{}
+};
+
+}
 }
 
-void initialize ()
-{
-	CORBA::Core::initialize ();
-	Binder::initialize ();
-}
-
-void terminate ()
-{
-	Binder::terminate ();
-	CORBA::Core::terminate ();
-}
-
-void terminate0 () NIRVANA_NOEXCEPT
-{
-	Scheduler::terminate ();
-	ExecDomain::terminate ();
-#ifdef _DEBUG
-	g_core_free_sync_context.destruct ();
-	MemContext::terminate ();
 #endif
-}
-
-}
-}

@@ -25,12 +25,36 @@
 */
 #include "RequestLocalPOA.h"
 #include "POA_Root.h"
+#include "ReferenceLocal.h"
 
 using namespace Nirvana;
 using namespace Nirvana::Core;
 
 namespace CORBA {
+
+using namespace Internal;
+
 namespace Core {
+
+RequestLocalPOA::RequestLocalPOA (ReferenceLocal& reference, IOReference::OperationIndex op,
+	UShort response_flags) :
+	RequestLocalBase (nullptr, response_flags),
+	reference_ (&reference),
+	operation_ (reference.operation_metadata (op).name)
+{
+	callee_memory_ = caller_memory_;
+	operation_ = reference.operation_metadata (op).name;
+}
+
+const PortableServer::Core::ObjectKey& RequestLocalPOA::object_key () const NIRVANA_NOEXCEPT
+{
+	return *reference_;
+}
+
+CORBA::Internal::StringView <Char> RequestLocalPOA::operation () const NIRVANA_NOEXCEPT
+{
+	return CORBA::Internal::StringView <Char> (operation_);
+}
 
 void RequestLocalPOA::serve_request (ProxyObject& proxy, Internal::IOReference::OperationIndex op,
 	MemContext* memory)

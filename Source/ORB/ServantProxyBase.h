@@ -29,10 +29,10 @@
 #pragma once
 
 #include <CORBA/Server.h>
-#include "../AtomicCounter.h"
 #include "../ExecDomain.h"
 #include "../Chrono.h"
 #include "ProxyManager.h"
+#include "RefCntProxy.h"
 #include "offset_ptr.h"
 
 namespace CORBA {
@@ -44,24 +44,6 @@ class ServantProxyBase :
 {
 	class GarbageCollector;
 public:
-	class RefCnt : public Nirvana::Core::AtomicCounter <true>
-	{
-		typedef Nirvana::Core::AtomicCounter <true> Base;
-	public:
-		RefCnt () NIRVANA_NOEXCEPT :
-			Base (0)
-		{}
-
-		RefCnt (const RefCnt&) NIRVANA_NOEXCEPT :
-			Base (0)
-		{}
-
-		RefCnt& operator = (const RefCnt&) NIRVANA_NOEXCEPT
-		{
-			return *this;
-		}
-	};
-
 	virtual Internal::IORequest::_ref_type create_request (OperationIndex op, UShort flags) override;
 
 	/// Returns synchronization context for the target object.
@@ -82,7 +64,10 @@ public:
 
 	Nirvana::Core::MemContext* memory () const NIRVANA_NOEXCEPT;
 
-	RefCnt::IntegralType _refcount_value () const NIRVANA_NOEXCEPT
+	virtual void _add_ref () override;
+	virtual void _remove_ref () NIRVANA_NOEXCEPT override;
+
+	RefCntProxy::IntegralType _refcount_value () const NIRVANA_NOEXCEPT
 	{
 		return ref_cnt_.load ();
 	}
@@ -91,6 +76,7 @@ protected:
 	template <class I>
 	ServantProxyBase (Internal::I_ptr <I> servant) :
 		ProxyManager (primary_interface_id (servant)),
+		ref_cnt_ (0),
 		sync_context_ (&Nirvana::Core::SyncContext::current ())
 	{
 		size_t offset = offset_ptr ();
@@ -116,11 +102,8 @@ protected:
 	}
 
 	virtual void add_ref_1 ();
-	virtual void _add_ref () override;
-	virtual void _remove_ref () NIRVANA_NOEXCEPT override;
-	template <class> friend class Nirvana::Core::CoreRef;
 
-	RefCnt::IntegralType remove_ref_proxy () NIRVANA_NOEXCEPT;
+	RefCntProxy::IntegralType remove_ref_proxy () NIRVANA_NOEXCEPT;
 
 	template <class GC, class Arg>
 	void run_garbage_collector (Arg arg, Nirvana::Core::SyncContext& sync_context) const NIRVANA_NOEXCEPT
@@ -179,7 +162,7 @@ private:
 
 private:
 	Internal::Interface::_ptr_type servant_;
-	RefCnt ref_cnt_;
+	RefCntProxy ref_cnt_;
 	Nirvana::Core::CoreRef <Nirvana::Core::SyncContext> sync_context_;
 };
 

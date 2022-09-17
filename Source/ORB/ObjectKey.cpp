@@ -25,14 +25,26 @@
 */
 #include "ObjectKey.h"
 #include "StreamInEncap.h"
-#include "ExecDomain.h"
 #include <Nirvana/Hash.h>
+#include "POAManagerFactory.h"
 
 using namespace Nirvana::Core;
 using namespace CORBA::Core;
 
 namespace PortableServer {
 namespace Core {
+
+ObjectKey::ObjectKey (POA_Base& adapter) :
+	object_id_ (adapter.generate_object_id ())
+{
+	adapter.get_path (adapter_path_);
+}
+
+ObjectKey::ObjectKey (const POA_Base& adapter, const ObjectId& oid) :
+	object_id_ (oid)
+{
+	adapter.get_path (adapter_path_);
+}
 
 void ObjectKey::unmarshal (StreamIn& in)
 {
@@ -67,21 +79,6 @@ size_t ObjectKey::hash () const NIRVANA_NOEXCEPT
 bool ObjectKey::operator == (const ObjectKey& other) const NIRVANA_NOEXCEPT
 {
 	return adapter_path_ == other.adapter_path_ && object_id_ == other.object_id_;
-}
-
-ObjectKeyShared::ObjectKeyShared (ObjectKey&& key) NIRVANA_NOEXCEPT :
-	key_ (std::move (key)),
-	memory_ (&MemContext::current ())
-{}
-
-ObjectKeyShared::~ObjectKeyShared ()
-{
-	ExecDomain& ed = ExecDomain::current ();
-	ed.mem_context_swap (memory_);
-	{
-		ObjectKey tmp (std::move (key_));
-	}
-	ed.mem_context_swap (memory_);
 }
 
 }

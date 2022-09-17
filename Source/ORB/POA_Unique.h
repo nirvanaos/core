@@ -24,19 +24,22 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_ORB_CORE_POA_RETAIN_H_
-#define NIRVANA_ORB_CORE_POA_RETAIN_H_
+#ifndef NIRVANA_ORB_CORE_POA_RETAINUSER_H_
+#define NIRVANA_ORB_CORE_POA_RETAINUSER_H_
 #pragma once
 
-#include "POA_Base.h"
-#include "../MapOrderedUnstable.h"
+#include "POA_Retain.h"
 
 namespace PortableServer {
 namespace Core {
 
-// RETAIN policy
-class POA_Retain : public virtual POA_Base
+// UNIQUE_ID, RETAIN
+class POA_Unique : 
+	public virtual POA_Base,
+	public POA_Retain
 {
+	typedef POA_Retain Base;
+
 public:
 	virtual CORBA::Core::ReferenceLocalRef activate_object (ObjectKey&& key,
 		CORBA::Core::ProxyObject& proxy, bool implicit) override;
@@ -44,30 +47,31 @@ public:
 	virtual CORBA::servant_reference <CORBA::Core::ProxyObject> deactivate_object (
 		const ObjectId& oid) override;
 
-	virtual CORBA::Object::_ref_type reference_to_servant (CORBA::Object::_ptr_type reference) override;
-	virtual CORBA::Object::_ref_type id_to_servant (const ObjectId& oid) override;
-	virtual CORBA::Object::_ref_type id_to_reference (const ObjectId& oid) override;
+	virtual ObjectId servant_to_id (CORBA::Core::ProxyObject& proxy) override;
+	virtual CORBA::Object::_ref_type servant_to_reference (CORBA::Core::ProxyObject& proxy) override;
 
 protected:
-	POA_Retain ()
+	POA_Unique ()
 	{}
 
-	POA_Retain (POA_Base* parent, const IDL::String* name, CORBA::servant_reference <POAManager>&& manager) :
+	POA_Unique (POA_Base* parent, const IDL::String* name, CORBA::servant_reference <POAManager>&& manager) :
 		POA_Base (parent, name, std::move (manager))
 	{}
 
-	virtual void serve (const RequestRef& request, CORBA::Core::ReferenceLocal& reference) override;
 	virtual void destroy_internal (bool etherealize_objects) NIRVANA_NOEXCEPT override;
 	virtual void etherealize_objects () NIRVANA_NOEXCEPT override;
 	virtual void implicit_deactivate (CORBA::Core::ReferenceLocal& ref,
 		CORBA::Core::ProxyObject& proxy) NIRVANA_NOEXCEPT override;
 
-private:
-	// This map contains active references and references with GC
-	typedef CORBA::Core::ReferenceLocal* RefPtr;
-	typedef Nirvana::Core::SetUnorderedUnstable <RefPtr, std::hash <RefPtr>, std::equal_to <RefPtr>,
-		Nirvana::Core::UserAllocator <RefPtr> > References;
-	References references_;
+	typedef const CORBA::Core::ProxyObject* ServantPtr;
+	typedef CORBA::Core::ReferenceLocal* ReferencePtr;
+
+	ReferencePtr find_servant (const CORBA::Core::ProxyObject& proxy) NIRVANA_NOEXCEPT;
+
+	using ServantMap = Nirvana::Core::MapUnorderedUnstable <ServantPtr, ReferencePtr, std::hash <ServantPtr>,
+		std::equal_to <ServantPtr>, Nirvana::Core::UserAllocator <std::pair <ServantPtr, ReferencePtr> > >;
+
+	ServantMap servant_map_;
 };
 
 }

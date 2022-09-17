@@ -64,10 +64,8 @@ public:
 		return service_context_;
 	}
 
-	virtual const PortableServer::Core::ObjectKey& object_key () const NIRVANA_NOEXCEPT override
-	{
-		return object_key_;
-	}
+	virtual const PortableServer::Core::ObjectKey& object_key () const NIRVANA_NOEXCEPT override;
+	virtual Internal::StringView <Char> operation () const NIRVANA_NOEXCEPT override;
 
 	/// Cancel the request.
 	/// Called from the IncomingRequests class.
@@ -128,6 +126,7 @@ protected:
 
 private:
 	PortableServer::Core::ObjectKey object_key_;
+	IDL::String operation_;
 	IncomingRequests::MapIter map_iterator_;
 
 	/// ExecDomain pointer if request is in cancellable state, otherwise `nullptr`.

@@ -24,6 +24,7 @@
 *  popov.nirvana@gmail.com
 */
 #include "ServantBase.h"
+#include "ReferenceLocal.h"
 
 using namespace Nirvana::Core;
 
@@ -52,12 +53,9 @@ PortableServer::ServantBase::_ref_type object2servant (Object::_ptr_type obj)
 	return nullptr;
 }
 
-ProxyObject::ProxyObject (PortableServer::Servant servant) :
-	ServantProxyBase (servant)
-{}
-
-ProxyObject::ProxyObject (const ProxyObject& src) :
-	ServantProxyBase (src)
+ProxyObject::ProxyObject (PortableServer::Core::ServantBase& core_servant, PortableServer::Servant user_servant) :
+	ServantProxyBase (user_servant),
+	core_servant_ (core_servant)
 {}
 
 Boolean ProxyObject::non_existent ()
@@ -65,9 +63,29 @@ Boolean ProxyObject::non_existent ()
 	return servant ()->_non_existent ();
 }
 
-void ProxyObject::marshal (StreamOut& out)
+ReferenceLocalRef ProxyObject::get_reference_local () const NIRVANA_NOEXCEPT
 {
-	ReferenceLocal::marshal (ProxyManager::primary_interface_id (), out);
+	ReferenceLocalRef ref (reference_.lock ());
+	reference_.unlock ();
+	return ref;
+}
+
+ReferenceRef ProxyObject::get_reference ()
+{
+	ReferenceRef ref (get_reference_local ());
+	if (!ref) // Attempt to pass an unactivated (unregistered) value as an object reference.
+		throw OBJECT_NOT_EXIST (MAKE_OMG_MINOR (1));
+	return ref;
+}
+
+void ProxyObject::activate (ReferenceLocal& reference) NIRVANA_NOEXCEPT
+{
+	reference_ = &reference;
+}
+
+void ProxyObject::deactivate (ReferenceLocal& reference) NIRVANA_NOEXCEPT
+{
+	reference_.cas (&reference, nullptr);
 }
 
 }

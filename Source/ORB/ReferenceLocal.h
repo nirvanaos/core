@@ -24,58 +24,65 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_ORB_CORE_REFERENCEBASE_H_
-#define NIRVANA_ORB_CORE_REFERENCEBASE_H_
+#ifndef NIRVANA_ORB_CORE_REFERENCELOCAL_H_
+#define NIRVANA_ORB_CORE_REFERENCELOCAL_H_
 #pragma once
 
+#include "Reference.h"
+#include "ServantBase.h"
 #include "ObjectKey.h"
-#include "../LockableRef.h"
-#include "../Chrono.h"
+
+namespace PortableServer {
+namespace Core {
+
+class POA_Root;
+
+}
+}
 
 namespace CORBA {
 namespace Core {
 
-/// Local reference. Holds the object key.
-class ReferenceLocal
+/// Base for all POA references.
+class ReferenceLocal :
+	public PortableServer::Core::ObjectKey,
+	public Reference
 {
 public:
-	/// Called from the POA synchronization domain.
-	void object_key (PortableServer::Core::ObjectKey&& key);
+	ReferenceLocal (PortableServer::Core::ObjectKey&& key, const IDL::String& primary_iid,
+		bool garbage_collection);
+	ReferenceLocal (PortableServer::Core::ObjectKey&& key, PortableServer::Core::ServantBase& servant,
+		bool garbage_collection);
 
-	PortableServer::Core::ObjectKeyRef object_key () const NIRVANA_NOEXCEPT
-	{
-		return object_key_.get ();
-	}
+	void activate (PortableServer::Core::ServantBase& servant);
+	servant_reference <ProxyObject> deactivate () NIRVANA_NOEXCEPT;
 
-	/// The unique stamp is assigned when object reference is created.
-	/// The timestamp together with the ProxyObject pointer let to create
-	/// the unique system id for the reference.
-	typedef Nirvana::Core::AtomicCounter <false>::IntegralType Timestamp;
+	void on_delete_implicit (PortableServer::Core::ServantBase& servant) NIRVANA_NOEXCEPT;
 
-	Timestamp timestamp () const NIRVANA_NOEXCEPT
-	{
-		return timestamp_;
-	}
+	virtual void _add_ref () override;
+	virtual void _remove_ref () NIRVANA_NOEXCEPT override;
 
-	static void initialize () NIRVANA_NOEXCEPT
-	{
-		next_timestamp_.construct ((Timestamp)(Nirvana::Core::Chrono::UTC ().time () / TimeBase::SECOND));
-	}
-
-protected:
-	ReferenceLocal () :
-		timestamp_ (next_timestamp_->increment_seq ())
-	{}
-
-	void marshal (Internal::String_in primary_iid, StreamOut& out) const;
-
-protected:
-	Nirvana::Core::LockableRef <PortableServer::Core::ObjectKeyBoxed> object_key_;
+	Nirvana::Core::CoreRef <ProxyObject> get_servant () const NIRVANA_NOEXCEPT;
 
 private:
-	Timestamp timestamp_;
-	static Nirvana::Core::StaticallyAllocated <Nirvana::Core::AtomicCounter <false> > next_timestamp_;
+	virtual ReferenceLocal* local_reference () override;
+
+	virtual void marshal (StreamOut& out) const override;
+	virtual Internal::IORequest::_ref_type create_request (OperationIndex op, UShort flags) override;
+
+	class GC;
+
+private:
+	servant_reference <PortableServer::Core::POA_Root> root_;
+
+	static const size_t SERVANT_ALIGN = Nirvana::Core::core_object_align (
+		sizeof (PortableServer::Core::ServantBase) + sizeof (ProxyObject));
+	typedef Nirvana::Core::LockablePtrT <PortableServer::Core::ServantBase, 0, SERVANT_ALIGN> ServantPtr;
+
+	mutable ServantPtr servant_;
 };
+
+typedef servant_reference <ReferenceLocal> ReferenceLocalRef;
 
 }
 }

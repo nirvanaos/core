@@ -60,7 +60,7 @@ protected:
 
 private:
 	virtual Boolean non_existent () override;
-	virtual void marshal (StreamOut& out) override;
+	virtual ReferenceRef get_reference () override;
 };
 
 /// Get proxy for local object.

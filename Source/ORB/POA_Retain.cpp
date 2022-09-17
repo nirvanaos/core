@@ -23,21 +23,113 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "POA_Retain.h"
+#include "POA_Root.h"
+#include <CORBA/Servant_var.h>
+
+using namespace CORBA;
+using namespace CORBA::Core;
+using namespace Nirvana::Core;
 
 namespace PortableServer {
 namespace Core {
 
-using namespace CORBA;
-using namespace CORBA::Core;
-
-POA_Retain::UserServantPtr POA_Retain::get_servant (CORBA::Object::_ptr_type p_servant)
+servant_reference <ReferenceLocal> POA_Retain::activate_object (ObjectKey&& key, ProxyObject& proxy, bool implicit)
 {
-	ProxyObject* proxy = object2proxy (p_servant);
-	if (!proxy)
+	auto ins = root_->create_reference (std::move (key), std::ref (proxy.core_servant ()), implicit);
+	if (!ins.second)
+		throw ObjectAlreadyActive ();
+	Servant_var <ReferenceLocal> ref (&const_cast <ReferenceLocal&> (*ins.first));
+	proxy.activate (*ref);
+	references_.insert (ref);
+	return ref;
+}
+
+servant_reference <ProxyObject> POA_Retain::deactivate_object (const ObjectId& oid)
+{
+	ReferenceLocalRef ref = root_->find_reference (ObjectKey (*this, oid));
+	if (!ref)
+		throw ObjectNotActive ();
+	servant_reference <ProxyObject> ret = ref->deactivate ();
+	if (!ret)
+		throw ObjectNotActive ();
+	references_.erase (ref);
+	etherialize (*ret);
+	return ret;
+}
+
+void POA_Retain::implicit_deactivate (ReferenceLocal& ref, ProxyObject& proxy) NIRVANA_NOEXCEPT
+{
+	references_.erase (&ref);
+}
+
+Object::_ref_type POA_Retain::reference_to_servant (Object::_ptr_type reference)
+{
+	if (!reference)
 		throw BAD_PARAM ();
-	assert (proxy->servant ()); // p_servant reference was obtained from the real servant.
-	return static_cast <UserServantPtr> (&proxy->servant ());
+
+	ReferenceRef ref = ProxyManager::cast (reference)->get_reference ();
+	if (!ref)
+		throw WrongAdapter ();
+	ReferenceLocal* loc = ref->local_reference ();
+	if (!loc)
+		throw WrongAdapter ();
+	if (!check_path (loc->adapter_path ()))
+		throw WrongAdapter ();
+	CoreRef <ProxyObject> servant = loc->get_servant ();
+	if (servant)
+		return servant->get_proxy ();
+
+	return reference_to_servant_default (true);
+}
+
+Object::_ref_type POA_Retain::id_to_servant (const ObjectId& oid)
+{
+	ReferenceLocalRef ref = root_->find_reference (ObjectKey (*this, oid));
+	if (ref) {
+		CoreRef <ProxyObject> servant = ref->get_servant ();
+		if (servant)
+			return servant->get_proxy ();
+	}
+	return id_to_servant_default (true);
+}
+
+Object::_ref_type POA_Retain::id_to_reference (const ObjectId& oid)
+{
+	ReferenceLocalRef ref = root_->find_reference (ObjectKey (*this, oid));
+	if (ref && ref->get_servant ())
+		return ref->get_proxy ();
+	throw ObjectNotActive ();
+}
+
+void POA_Retain::destroy_internal (bool etherealize_objects) NIRVANA_NOEXCEPT
+{
+	POA_Base::destroy_internal (etherealize_objects);
+	if (etherealize_objects)
+		POA_Retain::etherealize_objects ();
+	else {
+		References tmp (std::move (references_));
+		for (ReferenceLocal* ref : tmp) {
+			ReferenceLocalRef (ref)->deactivate ();
+		}
+	}
+}
+
+void POA_Retain::etherealize_objects () NIRVANA_NOEXCEPT
+{
+	References tmp (std::move (references_));
+	for (ReferenceLocal* ref : tmp) {
+		servant_reference <ProxyObject> servant = ReferenceLocalRef (ref)->deactivate ();
+		if (servant)
+			etherialize (*servant);
+	}
+}
+
+void POA_Retain::serve (const RequestRef& request, ReferenceLocal& reference)
+{
+	CoreRef <ProxyObject> servant = reference.get_servant ();
+	if (servant)
+		POA_Base::serve (request, reference, *servant);
+	serve_default (request, reference);
 }
 
 }

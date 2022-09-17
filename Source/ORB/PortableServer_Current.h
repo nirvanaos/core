@@ -28,7 +28,8 @@
 #define NIRVANA_ORB_CORE_PORTABLESERVER_CURRENT_H_
 #pragma once
 
-#include "POA_Base.h"
+#include "PortableServer_Context.h"
+#include <CORBA/PortableServer_s.h>
 
 namespace PortableServer {
 namespace Core {
@@ -48,14 +49,14 @@ public:
 
 	static CORBA::Object::_ref_type get_reference ()
 	{
-		return context ().object;
+		return context ().reference;
 	}
 
 	static CORBA::Internal::Interface* _s_get_servant (CORBA::Internal::Bridge <PortableServer::Current>* _b, Interface* _env);
 
 	static CORBA::Object::_ref_type get_servant ()
 	{
-		return context ().object;
+		return context ().servant;
 	}
 
 private:

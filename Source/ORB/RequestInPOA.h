@@ -46,10 +46,7 @@ public:
 	virtual const PortableServer::Core::ObjectKey& object_key () const NIRVANA_NOEXCEPT = 0;
 
 	/// \returns Operation name.
-	const IDL::String& operation () const NIRVANA_NOEXCEPT
-	{
-		return operation_;
-	}
+	virtual Internal::StringView <Char> operation () const NIRVANA_NOEXCEPT = 0;
 
 	/// Serve the request.
 	/// 
@@ -69,9 +66,6 @@ public:
 protected:
 	RequestInPOA ()
 	{}
-
-protected:
-	IDL::String operation_;
 };
 
 }

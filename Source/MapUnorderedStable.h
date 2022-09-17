@@ -45,7 +45,7 @@ using MapUnorderedStable = phmap::node_hash_map <Key, T, Hash, KeyEqual, Allocat
 
 /// Unordered set with pointer stability.
 template <class Key, class Hash = std::hash <Key>, class KeyEqual = std::equal_to <Key>,
-	class Allocator = std::allocator <const Key> >
+	class Allocator = std::allocator <Key> >
 using SetUnorderedStable = phmap::node_hash_set <Key, Hash, KeyEqual, Allocator>;
 
 }

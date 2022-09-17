@@ -25,7 +25,7 @@
 */
 #include "ServantBase.h"
 #include "ProxyObjectImplicit.h"
-#include "POA_Base.h"
+#include "POAManagerFactory.h"
 #include <CORBA/Proxy/TypeCodeNative.h>
 
 using namespace CORBA::Internal;
@@ -45,7 +45,7 @@ class ServantBaseImplicit :
 public:
 	ServantBaseImplicit (Servant user_servant, POA::_ptr_type adapter) :
 		ServantBase (static_cast <CORBA::Core::ProxyObject&> (*this)),
-		CORBA::Core::ProxyObjectImplicit (user_servant, adapter)
+		CORBA::Core::ProxyObjectImplicit (*this, user_servant, adapter)
 	{}
 };
 
@@ -56,7 +56,7 @@ class ServantBaseExplicit :
 public:
 	ServantBaseExplicit (Servant user_servant) :
 		ServantBase (static_cast <CORBA::Core::ProxyObject&> (*this)),
-		CORBA::Core::ProxyObject (user_servant)
+		CORBA::Core::ProxyObject (*this, user_servant)
 	{}
 };
 

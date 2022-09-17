@@ -30,30 +30,24 @@
 
 #include "RequestLocal.h"
 #include "RequestInPOA.h"
-#include "ObjectKey.h"
 
 namespace CORBA {
 namespace Core {
+
+class ReferenceLocal;
+typedef servant_reference <ReferenceLocal> ReferenceLocalRef;
 
 class NIRVANA_NOVTABLE RequestLocalPOA :
 	public RequestLocalBase,
 	public RequestInPOA
 {
 public:
-	virtual const PortableServer::Core::ObjectKey& object_key () const NIRVANA_NOEXCEPT override
-	{
-		return *object_key_;
-	}
+	virtual const PortableServer::Core::ObjectKey& object_key () const NIRVANA_NOEXCEPT override;
+	virtual Internal::StringView <Char> operation () const NIRVANA_NOEXCEPT override;
 
 protected:
-	RequestLocalPOA (ProxyManager& proxy, Internal::IOReference::OperationIndex op,
-		PortableServer::Core::ObjectKeyRef&& obj_key, UShort response_flags) :
-		RequestLocalBase (nullptr, response_flags),
-		object_key_ (std::move (obj_key))
-	{
-		callee_memory_ = caller_memory_;
-		operation_ = proxy.operation_metadata (op).name;
-	}
+	RequestLocalPOA (ReferenceLocal& reference, Internal::IOReference::OperationIndex op,
+		UShort response_flags);
 
 	virtual void set_exception (Any& e) override
 	{
@@ -76,16 +70,17 @@ protected:
 	}
 
 private:
-	PortableServer::Core::ObjectKeyRef object_key_;
+	ReferenceLocalRef reference_;
+	const Char* operation_;
 };
 
 class NIRVANA_NOVTABLE RequestLocalAsyncPOA :
 	public RequestLocalPOA
 {
 protected:
-	RequestLocalAsyncPOA (ProxyManager& proxy, Internal::IOReference::OperationIndex op,
-		PortableServer::Core::ObjectKeyRef&& obj_key, UShort response_flags) :
-		RequestLocalPOA (proxy, op, std::move (obj_key), response_flags)
+	RequestLocalAsyncPOA (ReferenceLocal& reference, Internal::IOReference::OperationIndex op,
+		UShort response_flags) :
+		RequestLocalPOA (reference, op, response_flags)
 	{}
 
 	virtual void invoke () override;

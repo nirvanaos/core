@@ -23,45 +23,36 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "initterm.h"
-#include "Binder.h"
-#include "Scheduler.h"
-#include "ExecDomain.h"
-#include "TLS.h"
-#include "ORB/ORB_initterm.h"
+#include "POA_Root.h"
 
-namespace Nirvana {
+namespace PortableServer {
 namespace Core {
 
-void initialize0 ()
+ObjectId POA_System::generate_object_id ()
 {
-	MemContext::initialize ();
-	TLS::initialize ();
-	g_core_free_sync_context.construct ();
-	ExecDomain::initialize ();
-	Scheduler::initialize ();
+	const CORBA::Octet* p = (const CORBA::Octet*)&next_id_;
+	ObjectId ret (p, p + sizeof (ID));
+	++next_id_;
+	return ret;
 }
 
-void initialize ()
+void POA_System::check_object_id (const ObjectId& oid)
 {
-	CORBA::Core::initialize ();
-	Binder::initialize ();
+	if (oid.size () != sizeof (ID))
+		throw CORBA::BAD_PARAM ();
+	ID id = *(const ID*)oid.data ();
+	if (id >= next_id_)
+		throw CORBA::BAD_PARAM ();
 }
 
-void terminate ()
+ObjectId POA_SystemPersistent::generate_object_id ()
 {
-	Binder::terminate ();
-	CORBA::Core::terminate ();
+	return root_->generate_persistent_id ();
 }
 
-void terminate0 () NIRVANA_NOEXCEPT
+void POA_SystemPersistent::check_object_id (const ObjectId& oid)
 {
-	Scheduler::terminate ();
-	ExecDomain::terminate ();
-#ifdef _DEBUG
-	g_core_free_sync_context.destruct ();
-	MemContext::terminate ();
-#endif
+	POA_Root::check_persistent_id (oid);
 }
 
 }

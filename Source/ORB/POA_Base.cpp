@@ -24,7 +24,8 @@
 *  popov.nirvana@gmail.com
 */
 #include "POA_Root.h"
-#include "Services.h"
+#include "PortableServer_Context.h"
+#include <CORBA/Servant_var.h>
 
 using namespace CORBA;
 using namespace CORBA::Internal;
@@ -151,9 +152,9 @@ Interface* POA_Base::_s_id_to_servant (Bridge <POA>* _b,
 
 POA_Base::POA_Base (POA_Base* parent, const IDL::String* name,
 	CORBA::servant_reference <POAManager>&& manager) :
+	the_POAManager_ (std::move (manager)),
 	parent_ (parent),
 	name_ (name),
-	the_POAManager_ (std::move (manager)),
 	request_cnt_ (0),
 	destroyed_ (false),
 	signature_ (SIGNATURE)
@@ -166,34 +167,99 @@ POA_Base::~POA_Base ()
 	the_POAManager_->on_adapter_destroy (*this);
 }
 
-Object::_ref_type POA_Base::servant_to_reference (Object::_ptr_type p_servant)
+ReferenceLocalRef POA_Base::activate_object (ObjectKey&&, ProxyObject&, bool implicit)
 {
-	Object::_ref_type ret = servant_to_reference_nothrow (p_servant);
-	if (!ret)
-		throw WrongPolicy ();
-	return ret;
+	throw WrongPolicy ();
 }
 
-Object::_ref_type POA_Base::servant_to_reference_nothrow (Object::_ptr_type p_servant)
+bool POA_Base::implicit_activation () const NIRVANA_NOEXCEPT
 {
-	const Context* ctx = (const Context*)Nirvana::Core::TLS::current ().get (Nirvana::Core::TLS::CORE_TLS_PORTABLE_SERVER);
-	if (ctx && (&ctx->object == &p_servant))
-		return p_servant;
-	return Object::_nil ();
+	return false;
+}
+
+servant_reference <ProxyObject> POA_Base::deactivate_object (const ObjectId& oid)
+{
+	throw WrongPolicy ();
+}
+
+void POA_Base::implicit_deactivate (CORBA::Core::ReferenceLocal& ref,
+	CORBA::Core::ProxyObject& proxy) NIRVANA_NOEXCEPT
+{
+	NIRVANA_UNREACHABLE_CODE ();
+}
+
+Object::_ref_type POA_Base::create_reference (const RepositoryId& intf)
+{
+	return create_reference (intf, false)->get_proxy ();
+}
+
+Object::_ref_type POA_Base::create_reference_with_id (const ObjectId& oid,
+	const RepositoryId& intf)
+{
+	return create_reference (oid, intf, false)->get_proxy ();
+}
+
+ReferenceLocalRef POA_Base::create_reference (const RepositoryId& intf, bool garbage_collection)
+{
+	for (;;) {
+		auto ins = root_->create_reference (ObjectKey (*this), std::ref (intf), garbage_collection);
+		if (ins.second)
+			return Servant_var <ReferenceLocal> (&const_cast <CORBA::Core::ReferenceLocal&> (*ins.first));
+		assert (false); // Unique ID collision.
+	}
+}
+
+ReferenceLocalRef POA_Base::create_reference (const ObjectId& oid, const RepositoryId& intf,
+	bool garbage_collection)
+{
+	auto ins = root_->create_reference (ObjectKey (*this, oid), std::ref (intf), garbage_collection);
+	CORBA::Core::ReferenceLocal& ref = const_cast <CORBA::Core::ReferenceLocal&> (*ins.first);
+	if (!ins.second)
+		ref.set_primary_interface (intf);
+	return Servant_var <ReferenceLocal> (&ref);
+}
+
+ObjectId POA_Base::servant_to_id (ProxyObject& proxy)
+{
+	return servant_to_id_default (proxy, false);
+}
+
+ObjectId POA_Base::servant_to_id_default (ProxyObject& proxy, bool not_found)
+{
+	if (not_found)
+		throw ServantNotActive ();
+	else
+		throw WrongPolicy ();
+}
+
+Object::_ref_type POA_Base::servant_to_reference (ProxyObject& proxy)
+{
+	return servant_to_reference_default (proxy, false);
+}
+
+Object::_ref_type POA_Base::servant_to_reference_default (ProxyObject& proxy, bool not_found)
+{
+	if (not_found) {
+		const Context* ctx = (const Context*)Nirvana::Core::TLS::current ().get (
+			Nirvana::Core::TLS::CORE_TLS_PORTABLE_SERVER);
+		if (ctx && (&ctx->servant == &proxy.get_proxy ()))
+			return ctx->servant;
+		throw ServantNotActive ();
+	} else
+		throw WrongPolicy ();
 }
 
 Object::_ref_type POA_Base::reference_to_servant (Object::_ptr_type reference)
 {
-	if (!reference)
-		throw BAD_PARAM ();
+	return reference_to_servant_default (false);
+}
 
-	auto proxy = object2proxy (reference);
-	ObjectKeyRef key = proxy->object_key ();
-	if (!key)
+Object::_ref_type POA_Base::reference_to_servant_default (bool not_active)
+{
+	if (not_active)
 		throw ObjectNotActive ();
-	if (!check_path (key->key ().adapter_path ()))
-		throw WrongAdapter ();
-	return reference;
+	else
+		throw WrongPolicy ();
 }
 
 ObjectId POA_Base::reference_to_id (Object::_ptr_type reference)
@@ -201,13 +267,33 @@ ObjectId POA_Base::reference_to_id (Object::_ptr_type reference)
 	if (!reference)
 		throw BAD_PARAM ();
 
-	auto proxy = object2proxy (reference);
-	ObjectKeyRef key = proxy->object_key ();
-	if (!key)
+	ReferenceRef ref = ProxyManager::cast (reference)->get_reference ();
+	if (!ref)
 		throw WrongAdapter ();
-	if (!check_path (key->key ().adapter_path ()))
+	ReferenceLocal* loc = ref->local_reference ();
+	if (!loc)
 		throw WrongAdapter ();
-	return key->key ().object_id ();
+	if (!check_path (loc->adapter_path ()))
+		throw WrongAdapter ();
+	return loc->object_id ();
+}
+
+Object::_ref_type POA_Base::id_to_servant (const ObjectId& oid)
+{
+	return id_to_servant_default (false);
+}
+
+Object::_ref_type POA_Base::id_to_servant_default (bool not_active)
+{
+	if (not_active)
+		throw ObjectNotActive ();
+	else
+		throw WrongPolicy ();
+}
+
+Object::_ref_type POA_Base::id_to_reference (const ObjectId& oid)
+{
+	throw WrongPolicy ();
 }
 
 POA_Base* POA_Base::get_implementation (const CORBA::Core::ProxyLocal* proxy)
@@ -251,7 +337,7 @@ bool POA_Base::check_path (const AdapterPath& path, AdapterPath::const_iterator 
 		return it == path.begin ();
 }
 
-POA_Base& POA_Base::find_child (const IDL::String& adapter_name, bool activate_it)
+POA_Ref POA_Base::find_child (const IDL::String& adapter_name, bool activate_it)
 {
 	auto it = children_.find (adapter_name);
 	if (it == children_.end ()) {
@@ -271,13 +357,13 @@ POA_Base& POA_Base::find_child (const IDL::String& adapter_name, bool activate_i
 				throw OBJECT_NOT_EXIST (MAKE_OMG_MINOR (2));
 		}
 	}
-	if (it == children_.end ())
-		throw AdapterNonExistent ();
+	if (it != children_.end ())
+		return Servant_var <POA_Base> (&*it->second);
 	else
-		return *it->second;
+		return nullptr;
 }
 
-void POA_Base::destroy (bool etherealize_objects) NIRVANA_NOEXCEPT
+void POA_Base::destroy_internal (bool etherealize_objects) NIRVANA_NOEXCEPT
 {
 	destroyed_ = true;
 	name_ = nullptr;
@@ -286,21 +372,38 @@ void POA_Base::destroy (bool etherealize_objects) NIRVANA_NOEXCEPT
 		tmp.begin ()->second->destroy (etherealize_objects);
 		tmp.erase (tmp.begin ());
 	}
-	if (!request_cnt_)
-		destroy_completed_.signal ();
 }
 
-ObjectId POA_Base::servant_to_id (Object::_ptr_type p_servant)
+ObjectId POA_Base::generate_object_id ()
 {
 	throw WrongPolicy ();
 }
 
-void POA_Base::serve (const RequestRef& request, ProxyObject& proxy)
+void POA_Base::check_object_id (const ObjectId& oid)
+{}
+
+void POA_Base::serve (const RequestRef& request)
+{
+	ReferenceLocalRef ref = root_->get_reference (request->object_key ());
+	serve (request, *ref);
+}
+
+void POA_Base::serve (const RequestRef& request, ReferenceLocal& reference)
+{
+	serve_default (request, reference);
+}
+
+void POA_Base::serve_default (const RequestRef& request, ReferenceLocal& reference)
+{
+	throw OBJECT_NOT_EXIST (MAKE_OMG_MINOR (2));
+}
+
+void POA_Base::serve (const RequestRef& request, ReferenceLocal& reference, ProxyObject& proxy)
 {
 	IOReference::OperationIndex op = proxy.find_operation (request->operation ());
 	TLS& tls = TLS::current ();
 	Context* ctx_prev = (Context*)tls.get (TLS::CORE_TLS_PORTABLE_SERVER);
-	Context ctx (_this (), request->object_key ().object_id (), proxy);
+	Context ctx (_this (), request->object_key ().object_id (), reference.get_proxy (), proxy);
 	tls.set (TLS::CORE_TLS_PORTABLE_SERVER, &ctx);
 	++request_cnt_;
 	try {

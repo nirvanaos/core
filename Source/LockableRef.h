@@ -35,8 +35,7 @@
 namespace Nirvana {
 namespace Core {
 
-// TODO: Move to a separate file
-template <class T>
+template <class T, unsigned ALIGN = core_object_align (sizeof (T))>
 class LockableRef
 {
 	LockableRef (const LockableRef&) = delete;
@@ -55,10 +54,9 @@ public:
 		ref.p_ = p_.load ();
 	}
 
-	LockableRef& operator = (CoreRef <T>&& src) NIRVANA_NOEXCEPT
+	LockableRef& operator = (CoreRef <T> src) NIRVANA_NOEXCEPT
 	{
-		CoreRef <T> tmp = std::move (src);
-		swap (tmp);
+		swap (src);
 		return *this;
 	}
 
@@ -77,8 +75,8 @@ public:
 
 	void swap (CoreRef <T>& ref) NIRVANA_NOEXCEPT
 	{
-		typename LockablePtrT <T, 0>::Ptr from;
-		typename LockablePtrT <T, 0>::Ptr to (ref);
+		typename LockablePtrT <T, 0, ALIGN>::Ptr from;
+		typename LockablePtrT <T, 0, ALIGN>::Ptr to (ref);
 		do {
 			from = p_.load ();
 		} while (!p_.cas (from, to));
@@ -86,7 +84,7 @@ public:
 	}
 
 private:
-	mutable LockablePtrT <T, 0> p_;
+	mutable LockablePtrT <T, 0, ALIGN> p_;
 };
 
 }

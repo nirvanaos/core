@@ -28,26 +28,36 @@
 #define NIRVANA_ORB_CORE_PROXYOBJECTIMPLICIT_H_
 #pragma once
 
-#include "ProxyObjectDGC.h"
+#include "ReferenceLocal.h"
 
 namespace CORBA {
 namespace Core {
 
-/// \brief Server-side Object proxy with implicit activation and deactivation.
-class NIRVANA_NOVTABLE ProxyObjectImplicit : public ProxyObjectDGC
+/// \brief Server-side Object proxy with implicit activation.
+class NIRVANA_NOVTABLE ProxyObjectImplicit : public ProxyObject
 {
-	typedef ProxyObjectDGC Base;
-
-public:
-	virtual void activate (PortableServer::Core::ObjectKey&& key) override;
+	typedef ProxyObject Base;
 
 protected:
-	ProxyObjectImplicit (PortableServer::Servant servant, PortableServer::POA::_ptr_type adapter) :
-		Base (servant, adapter)
+	ProxyObjectImplicit (PortableServer::Core::ServantBase& core_servant,
+		PortableServer::Servant user_servant, PortableServer::POA::_ptr_type adapter) :
+		Base (core_servant, user_servant),
+		adapter_ (adapter)
 	{}
 
+	~ProxyObjectImplicit ()
+	{
+		ReferenceLocal* ref = reference_.exchange (nullptr);
+		if (ref)
+			ref->on_delete_implicit (core_servant ());
+	}
+
 private:
+	virtual void activate (ReferenceLocal& reference) NIRVANA_NOEXCEPT override;
 	virtual void add_ref_1 () override;
+
+private:
+	PortableServer::POA::_ref_type adapter_;
 };
 
 }

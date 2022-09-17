@@ -24,18 +24,29 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_ORB_CORE_POA_RETAINUSER_H_
-#define NIRVANA_ORB_CORE_POA_RETAINUSER_H_
+#ifndef NIRVANA_ORB_CORE_REFCNTPROXY_H_
+#define NIRVANA_ORB_CORE_REFCNTPROXY_H_
 #pragma once
 
-#include "POA_Retain.h"
+#include "../AtomicCounter.h"
 
-namespace PortableServer {
+namespace CORBA {
 namespace Core {
 
-using AOM_User = Nirvana::Core::MapUnorderedStable <ObjectId, AOM_Val, std::hash <ObjectId>,
-	std::equal_to <ObjectId>, Nirvana::Core::UserAllocator <std::pair <ObjectId, AOM_Val> > >;
+class RefCntProxy : public Nirvana::Core::AtomicCounter <true>
+{
+	typedef Nirvana::Core::AtomicCounter <true> Base;
 
+public:
+	RefCntProxy (IntegralType init) NIRVANA_NOEXCEPT :
+		Base (init)
+	{}
+
+	RefCntProxy (const RefCntProxy&) = delete;
+	RefCntProxy& operator = (const RefCntProxy&) = delete;
+
+	IntegralType decrement ();
+};
 
 }
 }

@@ -1,3 +1,4 @@
+/// \file
 /*
 * Nirvana Core.
 *
@@ -23,32 +24,21 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "CORBA_initterm.h"
-#include "ReferenceLocal.h"
-#include "IncomingRequests.h"
-#include "OutgoingRequests.h"
-#include "OtherDomains.h"
-#include "CodeSetConverter.h"
-#include "Services.h"
+#ifndef NIRVANA_ORB_CORE_ORB_INITTERM_H_
+#define NIRVANA_ORB_CORE_ORB_INITTERM_H_
+
+#include <Nirvana/NirvanaBase.h>
 
 namespace CORBA {
 namespace Core {
 
-void initialize ()
-{
-	Services::initialize ();
-	ReferenceLocal::initialize ();
-	OutgoingRequests::initialize ();
-	IncomingRequests::initialize ();
-	CodeSetConverter::initialize ();
-}
+/// Initialize CORBA core on startup.
+void initialize ();
 
-void terminate () NIRVANA_NOEXCEPT
-{
-	IncomingRequests::terminate ();
-	OutgoingRequests::terminate ();
-	Services::terminate ();
-}
+/// Terminate CORBA core on shutdown.
+void terminate () NIRVANA_NOEXCEPT;
 
 }
 }
+
+#endif

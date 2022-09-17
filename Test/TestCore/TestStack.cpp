@@ -44,7 +44,7 @@ public:
 
 	void* operator new (size_t size)
 	{
-		return _aligned_malloc (size, core_object_align <Value> ());
+		return _aligned_malloc (size, Nirvana::Core::core_object_align (sizeof (Value)));
 	}
 
 	void operator delete (void* p)

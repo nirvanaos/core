@@ -27,53 +27,91 @@
 #define NIRVANA_ORB_CORE_POA_IMPLICIT_H_
 #pragma once
 
-#include "POA_RetainSystem.h"
+#include "POA_Unique.h"
+#include "POA_System.h"
 
 namespace PortableServer {
 namespace Core {
 
 // POA with IMPLICIT_ACTIVATION
 class POA_Implicit :
-	public POA_RetainSystem
+	public virtual POA_Base
 {
-	typedef POA_RetainSystem Base;
-
 public:
 	virtual bool implicit_activation () const NIRVANA_NOEXCEPT override
 	{
 		return true;
 	}
 
-	virtual ObjectId servant_to_id (CORBA::Object::_ptr_type p_servant) override;
-	virtual CORBA::Object::_ref_type servant_to_reference (CORBA::Object::_ptr_type p_servant) override;
+	virtual ObjectId servant_to_id_default (CORBA::Core::ProxyObject& proxy, bool not_found) override;
+	virtual CORBA::Object::_ref_type servant_to_reference_default (CORBA::Core::ProxyObject& proxy, bool not_found) override;
+};
 
+class POA_ImplicitRetain :
+	public POA_Implicit,
+	public POA_Retain
+{};
+
+class POA_ImplicitUnique :
+	public POA_Implicit,
+	public POA_Unique
+{};
+
+
+class POA_ImplicitTransient :
+	public virtual POA_Base,
+	public POA_ImplicitRetain,
+	public POA_System
+{
 protected:
-	POA_Implicit (POA_Base* parent, const IDL::String* name, CORBA::servant_reference <POAManager>&& manager) :
-		Base (parent, name, std::move (manager))
+	POA_ImplicitTransient ()
+	{}
+
+	POA_ImplicitTransient (POA_Base* parent, const IDL::String* name, CORBA::servant_reference <POAManager>&& manager) :
+		POA_Base (parent, name, std::move (manager))
 	{}
 };
 
-// POA with IMPLICIT_ACTIVATION and UNIQUE_ID
-class POA_ImplicitUnique : public POA_RetainSystemUnique
+class POA_ImplicitUniqueTransient :
+	public virtual POA_Base,
+	public POA_ImplicitUnique,
+	public POA_System
 {
-	typedef POA_RetainSystemUnique Base;
-
-public:
-	virtual bool implicit_activation () const NIRVANA_NOEXCEPT override
-	{
-		return true;
-	}
-
-	virtual ObjectId servant_to_id (CORBA::Object::_ptr_type p_servant) override;
-	virtual CORBA::Object::_ref_type servant_to_reference (CORBA::Object::_ptr_type p_servant) override;
-
 protected:
-	POA_ImplicitUnique (POA_Base* parent, const IDL::String* name, CORBA::servant_reference <POAManager>&& manager) :
-		Base (parent, name, std::move (manager))
+	POA_ImplicitUniqueTransient ()
 	{}
 
-private:
-	bool AOM_insert (const ObjectId& oid, CORBA::Object::_ptr_type p_servant);
+	POA_ImplicitUniqueTransient (POA_Base* parent, const IDL::String* name, CORBA::servant_reference <POAManager>&& manager) :
+		POA_Base (parent, name, std::move (manager))
+	{}
+};
+
+class POA_ImplicitPersistent :
+	public virtual POA_Base,
+	public POA_ImplicitRetain,
+	public POA_SystemPersistent
+{
+protected:
+	POA_ImplicitPersistent ()
+	{}
+
+	POA_ImplicitPersistent (POA_Base* parent, const IDL::String* name, CORBA::servant_reference <POAManager>&& manager) :
+		POA_Base (parent, name, std::move (manager))
+	{}
+};
+
+class POA_ImplicitUniquePersistent :
+	public virtual POA_Base,
+	public POA_ImplicitUnique,
+	public POA_SystemPersistent
+{
+protected:
+	POA_ImplicitUniquePersistent ()
+	{}
+
+	POA_ImplicitUniquePersistent (POA_Base* parent, const IDL::String* name, CORBA::servant_reference <POAManager>&& manager) :
+		POA_Base (parent, name, std::move (manager))
+	{}
 };
 
 }

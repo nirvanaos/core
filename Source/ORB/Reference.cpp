@@ -24,32 +24,23 @@
 *  popov.nirvana@gmail.com
 */
 #include "Reference.h"
-#include "RequestLocalPOA.h"
 
 using namespace Nirvana::Core;
+using namespace CORBA;
+using namespace CORBA::Internal;
+using namespace CORBA::Core;
 
 namespace CORBA {
 namespace Core {
 
-Internal::IORequest::_ref_type Reference::create_request (OperationIndex op, UShort flags)
+ReferenceRef Reference::get_reference ()
 {
-	if (is_object_op (op))
-		return ProxyManager::create_request (op, flags);
-
-	check_create_request (op, flags);
-
-	UShort response_flags = flags & 3;
-	if (flags & REQUEST_ASYNC)
-		return make_pseudo <RequestLocalImpl <RequestLocalAsyncPOA> > (std::ref (*this), op,
-			object_key (), response_flags);
-	else
-		return make_pseudo <RequestLocalImpl <RequestLocalPOA> > (std::ref (*this), op,
-			object_key (), response_flags);
+	return this;
 }
 
-void Reference::marshal (StreamOut& out)
+ReferenceLocal* Reference::local_reference ()
 {
-	ReferenceLocal::marshal (primary_interface_id (), out);
+	throw BAD_PARAM ();
 }
 
 }

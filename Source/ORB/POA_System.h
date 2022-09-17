@@ -1,3 +1,4 @@
+/// \file
 /*
 * Nirvana Core.
 *
@@ -23,46 +24,40 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "initterm.h"
-#include "Binder.h"
-#include "Scheduler.h"
-#include "ExecDomain.h"
-#include "TLS.h"
-#include "ORB/ORB_initterm.h"
+#ifndef NIRVANA_ORB_CORE_POA_SYSTEM_H_
+#define NIRVANA_ORB_CORE_POA_SYSTEM_H_
+#pragma once
 
-namespace Nirvana {
+#include "POA_Base.h"
+
+namespace PortableServer {
 namespace Core {
 
-void initialize0 ()
+/// SYSTEM_ID, TRANSIENT
+class NIRVANA_NOVTABLE POA_System : public virtual POA_Base
 {
-	MemContext::initialize ();
-	TLS::initialize ();
-	g_core_free_sync_context.construct ();
-	ExecDomain::initialize ();
-	Scheduler::initialize ();
+protected:
+	POA_System () :
+		next_id_ (0)
+	{}
+
+	virtual ObjectId generate_object_id ();
+	virtual void check_object_id (const ObjectId& oid);
+
+protected:
+	typedef unsigned int ID;
+	ID next_id_;
+};
+
+/// SYSTEM_ID, PERSISTENT
+class NIRVANA_NOVTABLE POA_SystemPersistent : public virtual POA_Base
+{
+protected:
+	virtual ObjectId generate_object_id ();
+	virtual void check_object_id (const ObjectId& oid);
+};
+
+}
 }
 
-void initialize ()
-{
-	CORBA::Core::initialize ();
-	Binder::initialize ();
-}
-
-void terminate ()
-{
-	Binder::terminate ();
-	CORBA::Core::terminate ();
-}
-
-void terminate0 () NIRVANA_NOEXCEPT
-{
-	Scheduler::terminate ();
-	ExecDomain::terminate ();
-#ifdef _DEBUG
-	g_core_free_sync_context.destruct ();
-	MemContext::terminate ();
 #endif
-}
-
-}
-}

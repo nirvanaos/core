@@ -29,15 +29,27 @@
 #pragma once
 
 #include "ServantProxyBase.h"
-#include "ReferenceLocal.h"
+#include "../TaggedPtr.h"
+#include "Reference.h"
+#include "ObjectKey.h"
+
+namespace PortableServer {
+namespace Core {
+
+class ServantBase;
+
+}
+}
 
 namespace CORBA {
 namespace Core {
 
+class ReferenceLocal;
+typedef servant_reference <ReferenceLocal> ReferenceLocalRef;
+
 /// \brief Server-side Object proxy.
 class NIRVANA_NOVTABLE ProxyObject :
-	public ServantProxyBase,
-	public ReferenceLocal
+	public ServantProxyBase
 {
 	typedef ServantProxyBase Base;
 
@@ -47,16 +59,8 @@ public:
 	///@{
 	/// Called from the POA synchronization domain.
 	/// So calls to activate () and deactivate () are always serialized.
-	virtual void activate (PortableServer::Core::ObjectKey&& key)
-	{
-		ReferenceLocal::object_key (std::move (key));
-	}
-
-	virtual void deactivate () NIRVANA_NOEXCEPT
-	{
-		object_key_.reset ();
-	}
-
+	virtual void activate (ReferenceLocal& reference) NIRVANA_NOEXCEPT;
+	virtual void deactivate (ReferenceLocal& reference) NIRVANA_NOEXCEPT;
 	///@}
 
 	/// Returns user ServantBase implementation
@@ -65,31 +69,28 @@ public:
 		return static_cast <PortableServer::ServantBase*> (&Base::servant ());
 	}
 
-protected:
-	ProxyObject (PortableServer::Servant servant);
-	ProxyObject (const ProxyObject& src);
-
-private:
-	virtual Boolean non_existent () override;
-	virtual void marshal (StreamOut& out) override;
-};
-
-template <class Base>
-class ProxyObjectImpl :
-	public Base
-{
-	template <class> friend class Nirvana::Core::CoreRef;
-
-	template <class ... Args>
-	ProxyObjectImpl (Args ... args) :
-		Base (std::forward <Args> (args)...)
-	{}
-
-	virtual void _remove_ref () NIRVANA_NOEXCEPT override
+	PortableServer::Core::ServantBase& core_servant () const NIRVANA_NOEXCEPT
 	{
-		if (0 == Base::remove_ref_proxy ())
-			delete this;
+		return core_servant_;
 	}
+
+protected:
+	ProxyObject (PortableServer::Core::ServantBase& core_servant,
+		PortableServer::Servant user_servant);
+
+	virtual Boolean non_existent () override;
+	virtual ReferenceRef get_reference () override;
+
+	ReferenceLocalRef get_reference_local () const NIRVANA_NOEXCEPT;
+
+protected:
+	PortableServer::Core::ServantBase& core_servant_;
+
+	static const size_t REF_ALIGN = Nirvana::Core::core_object_align (
+		sizeof (PortableServer::Core::ObjectKey) + sizeof (Reference));
+	typedef Nirvana::Core::LockablePtrT <ReferenceLocal, 0, REF_ALIGN> RefPtr;
+
+	mutable RefPtr reference_;
 };
 
 CORBA::Object::_ptr_type servant2object (PortableServer::Servant servant) NIRVANA_NOEXCEPT;
@@ -97,8 +98,7 @@ CORBA::Object::_ptr_type servant2object (PortableServer::Servant servant) NIRVAN
 inline
 CORBA::Core::ProxyObject* object2proxy (CORBA::Object::_ptr_type obj) NIRVANA_NOEXCEPT
 {
-	return static_cast <CORBA::Core::ProxyObject*> (
-		static_cast <CORBA::Internal::Bridge <CORBA::Object>*> (&obj));
+	return static_cast <ProxyObject*> (ProxyManager::cast (obj));
 }
 
 PortableServer::ServantBase::_ref_type object2servant (CORBA::Object::_ptr_type obj);

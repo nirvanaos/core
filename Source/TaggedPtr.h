@@ -38,14 +38,13 @@
 #error Atomic pointer is required.
 #endif
 
-template <class T>
-constexpr unsigned core_object_align ()
-{
-	return std::max ((unsigned)::Nirvana::Core::HEAP_UNIT_CORE, (unsigned)(1 << ::Nirvana::log2_ceil (sizeof (T))));
-}
-
 namespace Nirvana {
 namespace Core {
+
+constexpr unsigned core_object_align (size_t size)
+{
+	return std::max ((unsigned)::Nirvana::Core::HEAP_UNIT_CORE, (unsigned)(1 << ::Nirvana::log2_ceil (size)));
+}
 
 template <unsigned TAG_BITS, unsigned ALIGN> class AtomicPtr;
 template <unsigned TAG_BITS, unsigned ALIGN> class LockablePtr;
@@ -61,16 +60,16 @@ public:
 	typedef AtomicPtr <TAG_BITS, ALIGN> Atomic;
 	typedef LockablePtr <TAG_BITS, ALIGN> Lockable;
 
-	TaggedPtr ()
+	TaggedPtr () NIRVANA_NOEXCEPT
 	{}
 
-	TaggedPtr (void* p)
+	TaggedPtr (void* p) NIRVANA_NOEXCEPT
 	{
 		assert (!((uintptr_t)p & ALIGN_MASK));
 		ptr_ = (uintptr_t)p;
 	}
 
-	TaggedPtr (void* p, uintptr_t tag_bits)
+	TaggedPtr (void* p, uintptr_t tag_bits) NIRVANA_NOEXCEPT
 	{
 		assert (!((uintptr_t)p & ALIGN_MASK));
 		assert (!(tag_bits & ~TAG_MASK));
@@ -78,56 +77,58 @@ public:
 	}
 
 	template <unsigned A>
-	TaggedPtr (const TaggedPtr <TAG_BITS, A>& src) :
+	TaggedPtr (const TaggedPtr <TAG_BITS, A>& src) NIRVANA_NOEXCEPT :
 		ptr_ (src.ptr_)
 	{
 		static_assert (A > ALIGN_MASK, "Alignment decreasing.");
 	}
 
 	template <unsigned A>
-	TaggedPtr <TAG_BITS, ALIGN>& operator = (const TaggedPtr <TAG_BITS, A>& src)
+	TaggedPtr <TAG_BITS, ALIGN>& operator = (const TaggedPtr <TAG_BITS, A>& src) NIRVANA_NOEXCEPT
 	{
 		static_assert (A > ALIGN_MASK, "Alignment decreasing.");
 		ptr_ = src.ptr_;
 		return *this;
 	}
 
-	void* operator = (void* p)
+	void* operator = (void* p) NIRVANA_NOEXCEPT
 	{
 		assert (!((uintptr_t)p & ALIGN_MASK));
 		ptr_ = (uintptr_t)p;
 		return p;
 	}
 
-	operator void* () const
+	operator void* () const NIRVANA_NOEXCEPT
 	{
 		return (void*)(ptr_ & ~TAG_MASK);
 	}
 
-	unsigned tag_bits () const
+	unsigned tag_bits () const NIRVANA_NOEXCEPT
 	{
 		return (unsigned)ptr_ & TAG_MASK;
 	}
 
-	TaggedPtr <TAG_BITS, ALIGN> untagged () const
+	TaggedPtr <TAG_BITS, ALIGN> untagged () const NIRVANA_NOEXCEPT
 	{
 		return TaggedPtr <TAG_BITS, ALIGN> (ptr_ & ~TAG_MASK);
 	}
 
 	template <unsigned A>
-	bool operator == (const TaggedPtr <TAG_BITS, A>& rhs) const
+	bool operator == (const TaggedPtr <TAG_BITS, A>& rhs) const NIRVANA_NOEXCEPT
 	{
 		return ptr_ == rhs.ptr_;
 	}
 
 private:
-	explicit TaggedPtr (uintptr_t val) :
+	explicit TaggedPtr (uintptr_t val) NIRVANA_NOEXCEPT :
 		ptr_ (val)
 	{}
 
 private:
 	friend class AtomicPtr <TAG_BITS, ALIGN>;
 	friend class LockablePtr <TAG_BITS, ALIGN>;
+	template <unsigned, unsigned>
+	friend class TaggedPtr;
 
 	uintptr_t ptr_;
 };
@@ -138,39 +139,39 @@ class AtomicPtr
 public:
 	typedef TaggedPtr <TAG_BITS, ALIGN> Ptr;
 
-	AtomicPtr ()
+	AtomicPtr () NIRVANA_NOEXCEPT
 	{
 		assert (ptr_.is_lock_free ());
 	}
 
-	AtomicPtr (Ptr src) :
+	AtomicPtr (Ptr src) NIRVANA_NOEXCEPT :
 		ptr_ (src.ptr_)
 	{
 		assert (ptr_.is_lock_free ());
 	}
 
-	Ptr load () const
+	Ptr load () const NIRVANA_NOEXCEPT
 	{
-		return Ptr (ptr_.load ());
+		return Ptr (ptr_.load (std::memory_order_acquire));
 	}
 
-	Ptr operator = (Ptr src)
+	Ptr operator = (Ptr src) NIRVANA_NOEXCEPT
 	{
-		ptr_.store (src.ptr_);
+		ptr_.store (src.ptr_, std::memory_order_release);
 		return src;
 	}
 
-	bool cas (Ptr from, const Ptr& to)
+	bool cas (Ptr from, const Ptr& to) NIRVANA_NOEXCEPT
 	{
 		return compare_exchange (from, to);
 	}
 
-	bool compare_exchange (Ptr& cur, const Ptr& to)
+	bool compare_exchange (Ptr& cur, const Ptr& to) NIRVANA_NOEXCEPT
 	{
 		return ptr_.compare_exchange_weak (cur.ptr_, to.ptr_);
 	}
 
-	Ptr exchange (Ptr& to)
+	Ptr exchange (const Ptr& to) NIRVANA_NOEXCEPT
 	{
 		return Ptr (ptr_.exchange (to.ptr_));
 	}
@@ -185,12 +186,12 @@ class LockablePtr
 public:
 	typedef TaggedPtr <TAG_BITS, ALIGN> Ptr;
 
-	LockablePtr ()
+	LockablePtr () NIRVANA_NOEXCEPT
 	{
 		assert (ptr_.is_lock_free ());
 	}
 
-	LockablePtr (Ptr src) :
+	LockablePtr (Ptr src) NIRVANA_NOEXCEPT :
 		ptr_ (src.ptr_)
 	{
 		assert (ptr_.is_lock_free ());
@@ -198,35 +199,45 @@ public:
 
 	LockablePtr (const LockablePtr&) = delete;
 
-	Ptr load () const
+	Ptr load () const NIRVANA_NOEXCEPT
 	{
-		return Ptr (ptr_.load () & ~SPIN_MASK);
+		return Ptr (ptr_.load (std::memory_order_acquire) & ~SPIN_MASK);
 	}
 
 	LockablePtr& operator = (const LockablePtr&) = delete;
 
-	Ptr operator = (Ptr src)
+	Ptr operator = (Ptr src) NIRVANA_NOEXCEPT
 	{
 		assert ((src.ptr_ & SPIN_MASK) == 0);
-		uintptr_t p = ptr_.load () & ~SPIN_MASK;
+		uintptr_t p = ptr_.load (std::memory_order_acquire) & ~SPIN_MASK;
 		while (!ptr_.compare_exchange_weak (p, src.ptr_)) {
 			p &= ~SPIN_MASK;
 		}
 		return src;
 	}
 
-	bool cas (Ptr from, const Ptr& to)
+	bool cas (Ptr from, const Ptr& to) NIRVANA_NOEXCEPT
 	{
 		return compare_exchange (from, to);
 	}
 
-	bool compare_exchange (Ptr& cur, const Ptr& to);
+	bool compare_exchange (Ptr& cur, const Ptr& to) NIRVANA_NOEXCEPT;
 
-	Ptr lock ();
+	Ptr lock () NIRVANA_NOEXCEPT;
 
-	void unlock ()
+	void unlock () NIRVANA_NOEXCEPT
 	{
 		ptr_.fetch_sub (Ptr::TAG_MASK + 1, std::memory_order_release);
+	}
+
+	Ptr exchange (const Ptr& to) NIRVANA_NOEXCEPT
+	{
+		Ptr cur = load ();
+		
+		while (!compare_exchange (cur, to)) {
+		}
+
+		return cur;
 	}
 
 private:
@@ -237,7 +248,7 @@ private:
 };
 
 template <unsigned TAG_BITS, unsigned ALIGN>
-bool LockablePtr <TAG_BITS, ALIGN>::compare_exchange (Ptr& cur, const Ptr& to)
+bool LockablePtr <TAG_BITS, ALIGN>::compare_exchange (Ptr& cur, const Ptr& to) NIRVANA_NOEXCEPT
 {
 	uintptr_t tcur = cur.ptr_;
 	assert ((tcur & SPIN_MASK) == 0);
@@ -252,7 +263,7 @@ bool LockablePtr <TAG_BITS, ALIGN>::compare_exchange (Ptr& cur, const Ptr& to)
 }
 
 template <unsigned TAG_BITS, unsigned ALIGN>
-typename LockablePtr <TAG_BITS, ALIGN>::Ptr LockablePtr <TAG_BITS, ALIGN>::lock ()
+typename LockablePtr <TAG_BITS, ALIGN>::Ptr LockablePtr <TAG_BITS, ALIGN>::lock () NIRVANA_NOEXCEPT
 {
 	for (BackOff bo; true; bo ()) {
 		uintptr_t cur = ptr_.load ();
@@ -266,7 +277,7 @@ typename LockablePtr <TAG_BITS, ALIGN>::Ptr LockablePtr <TAG_BITS, ALIGN>::lock 
 template <class T, unsigned TAG_BITS, unsigned ALIGN> class AtomicPtrT;
 template <class T, unsigned TAG_BITS, unsigned ALIGN> class LockablePtrT;
 
-template <class T, unsigned TAG_BITS, unsigned ALIGN = core_object_align <T> ()>
+template <class T, unsigned TAG_BITS, unsigned ALIGN = core_object_align (sizeof (T))>
 class TaggedPtrT : public TaggedPtr <TAG_BITS, ALIGN>
 {
 	typedef TaggedPtr <TAG_BITS, ALIGN> Base;
@@ -274,45 +285,46 @@ public:
 	typedef AtomicPtrT <T, TAG_BITS, ALIGN> Atomic;
 	typedef LockablePtrT <T, TAG_BITS, ALIGN> Lockable;
 
-	TaggedPtrT ()
+	TaggedPtrT () NIRVANA_NOEXCEPT
 	{}
 
-	TaggedPtrT (T* p) :
+	TaggedPtrT (T* p) NIRVANA_NOEXCEPT :
 		Base (p)
 	{}
 
-	TaggedPtrT (T* p, unsigned tag_bits) :
+	TaggedPtrT (T* p, unsigned tag_bits) NIRVANA_NOEXCEPT :
 		Base (p, tag_bits)
 	{}
 
 	template <unsigned A>
-	TaggedPtrT (const TaggedPtrT <T, TAG_BITS, A>& src) :
+	TaggedPtrT (const TaggedPtrT <T, TAG_BITS, A>& src) NIRVANA_NOEXCEPT :
 		Base (src)
 	{}
 
-	T* operator = (T* p)
+	T* operator = (T* p) NIRVANA_NOEXCEPT
 	{
 		return (T*)Base::operator = (p);
 	}
 
 	template <unsigned A>
 	TaggedPtrT <T, TAG_BITS, ALIGN>& operator = (const TaggedPtrT <T, TAG_BITS, A>& src)
+		NIRVANA_NOEXCEPT
 	{
 		Base::operator = (src);
 		return *this;
 	}
 
-	operator T* () const
+	operator T* () const NIRVANA_NOEXCEPT
 	{
 		return (T*)Base::operator void* ();
 	}
 
-	T* operator -> () const
+	T* operator -> () const NIRVANA_NOEXCEPT
 	{
 		return operator T* ();
 	}
 
-	TaggedPtrT <T, TAG_BITS, ALIGN> untagged () const
+	TaggedPtrT <T, TAG_BITS, ALIGN> untagged () const NIRVANA_NOEXCEPT
 	{
 		return TaggedPtrT <T, TAG_BITS, ALIGN> (Base::untagged ());
 	}
@@ -326,76 +338,81 @@ private:
 	{}
 };
 
-template <class T, unsigned TAG_BITS, unsigned ALIGN = core_object_align <T> ()>
+template <class T, unsigned TAG_BITS, unsigned ALIGN = core_object_align (sizeof (T))>
 class AtomicPtrT : public AtomicPtr <TAG_BITS, ALIGN>
 {
 	typedef AtomicPtr <TAG_BITS, ALIGN> Base;
 public:
 	typedef TaggedPtrT <T, TAG_BITS, ALIGN> Ptr;
 
-	AtomicPtrT ()
+	AtomicPtrT () NIRVANA_NOEXCEPT
 	{}
 
-	AtomicPtrT (Ptr src) :
+	AtomicPtrT (Ptr src) NIRVANA_NOEXCEPT :
 		Base (src)
 	{}
 
-	Ptr load () const
+	Ptr load () const NIRVANA_NOEXCEPT
 	{
 		return Ptr (Base::load ());
 	}
 
-	Ptr operator = (Ptr src)
+	Ptr operator = (Ptr src) NIRVANA_NOEXCEPT
 	{
 		return Ptr (Base::operator = (src));
 	}
 
-	bool cas (const Ptr& from, const Ptr& to)
+	bool cas (const Ptr& from, const Ptr& to) NIRVANA_NOEXCEPT
 	{
 		return Base::cas (from, to);
 	}
 
-	bool compare_exchange (Ptr& cur, const Ptr& to)
+	bool compare_exchange (Ptr& cur, const Ptr& to) NIRVANA_NOEXCEPT
 	{
 		return Base::compare_exchange (cur, to);
 	}
 };
 
-template <class T, unsigned TAG_BITS, unsigned ALIGN = core_object_align <T> ()>
+template <class T, unsigned TAG_BITS = 0, unsigned ALIGN = core_object_align (sizeof (T))>
 class LockablePtrT : public LockablePtr <TAG_BITS, ALIGN>
 {
 	typedef LockablePtr <TAG_BITS, ALIGN> Base;
 public:
 	typedef TaggedPtrT <T, TAG_BITS, ALIGN> Ptr;
 
-	LockablePtrT ()
+	LockablePtrT () NIRVANA_NOEXCEPT
 	{}
 
-	LockablePtrT (Ptr src) :
+	LockablePtrT (Ptr src) NIRVANA_NOEXCEPT :
 		Base (src)
 	{}
 
-	Ptr load () const
+	Ptr load () const NIRVANA_NOEXCEPT
 	{
 		return Ptr (Base::load ());
 	}
 
-	Ptr operator = (Ptr src)
+	Ptr operator = (Ptr src) NIRVANA_NOEXCEPT
 	{
 		return Ptr (Base::operator = (src));
 	}
 
-	bool cas (const Ptr& from, const Ptr& to)
+	bool cas (const Ptr& from, const Ptr& to) NIRVANA_NOEXCEPT
 	{
 		return Base::cas (from, to);
 	}
 
-	bool compare_exchange (Ptr& cur, const Ptr& to)
+	bool compare_exchange (Ptr& cur, const Ptr& to) NIRVANA_NOEXCEPT
 	{
 		return Base::compare_exchange (cur, to);
 	}
 
-	Ptr lock ()
+	Ptr exchange (const Ptr& to) NIRVANA_NOEXCEPT
+	{
+		return Ptr (Base::exchange (to));
+	}
+
+	Ptr lock () NIRVANA_NOEXCEPT
 	{
 		return Ptr (Base::lock ());
 	}

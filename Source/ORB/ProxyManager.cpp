@@ -55,17 +55,17 @@ struct ProxyManager::IEPred
 
 struct ProxyManager::OEPred
 {
-	bool operator () (const OperationEntry& lhs, const OperationEntry& rhs) const
+	bool operator () (const OperationEntry& lhs, const OperationEntry& rhs) const NIRVANA_NOEXCEPT
 	{
 		return compare (lhs.name, lhs.name_len, rhs.name, rhs.name_len);
 	}
 
-	bool operator () (const String& lhs, const OperationEntry& rhs) const
+	bool operator () (String_in lhs, const OperationEntry& rhs) const NIRVANA_NOEXCEPT
 	{
 		return compare (lhs.data (), lhs.size (), rhs.name, rhs.name_len);
 	}
 
-	bool operator () (const OperationEntry& lhs, const String& rhs) const
+	bool operator () (const OperationEntry& lhs, String_in rhs) const NIRVANA_NOEXCEPT
 	{
 		return compare (lhs.name, lhs.name_len, rhs.data (), rhs.size ());
 	}
@@ -129,8 +129,7 @@ void ProxyManager::check_type_code (TypeCode::_ptr_type tc)
 		throw OBJ_ADAPTER (); // TODO: Log
 }
 
-ProxyManager::ProxyManager (Internal::String_in primary_iid) :
-	primary_interface_ (nullptr)
+void ProxyManager::init (Internal::String_in primary_iid)
 {
 	if (!primary_iid.empty ()) {
 		ProxyFactory::_ref_type proxy_factory = Nirvana::Core::Binder::bind_interface <ProxyFactory> (primary_iid);
@@ -231,6 +230,7 @@ void ProxyManager::copy (const ProxyManager& src)
 	primary_interface_ = src.primary_interface_;
 
 	for (InterfaceEntry* ie = interfaces_.begin (); ie != interfaces_.end (); ++ie) {
+		ie->implementation = nullptr;
 		create_proxy (*ie);
 	}
 }
@@ -271,6 +271,29 @@ ProxyManager& ProxyManager::operator = (const ProxyManager& src)
 	return *this;
 }
 
+void ProxyManager::set_primary_interface (const IDL::String& primary_iid)
+{
+	// Empty primary IID does not change anything
+	if (!primary_iid.empty ()) {
+		if (!primary_interface_) {
+			Array <InterfaceEntry, SharedAllocator> tmpi;
+			Array <OperationEntry, SharedAllocator> tmpo;
+			operations_.swap (tmpo);
+			try {
+				init (primary_iid);
+			} catch (...) {
+				primary_interface_ = nullptr;
+				operations_.swap (tmpo);
+				interfaces_.swap (tmpi);
+				throw;
+			}
+		} else if (primary_interface_->iid_len != primary_iid.length ()
+				|| !std::equal (primary_interface_->iid, primary_interface_->iid + primary_interface_->iid_len,
+						primary_iid.c_str ()))
+				throw BAD_PARAM ();
+	}
+}
+
 void ProxyManager::create_proxy (ProxyFactory::_ptr_type pf, const InterfaceMetadata* metadata, InterfaceEntry& ie)
 {
 	if (metadata->flags & InterfaceMetadata::FLAG_NO_PROXY)
@@ -295,7 +318,7 @@ void ProxyManager::create_proxy (InterfaceEntry& ie)
 	if (!ie.proxy) {
 		const InterfaceMetadata* metadata;
 		if (!ie.proxy_factory) {
-			StringView <Char> iid (ie.iid);
+			CORBA::Internal::StringView <Char> iid (ie.iid);
 			ie.proxy_factory = Nirvana::Core::Binder::bind_interface <ProxyFactory> (iid);
 			metadata = ie.proxy_factory->metadata ();
 			check_metadata (metadata, iid);
@@ -320,15 +343,15 @@ const ProxyManager::InterfaceEntry* ProxyManager::find_interface (String_in iid)
 	NIRVANA_NOEXCEPT
 {
 	const String& siid = static_cast <const String&> (iid);
-	const InterfaceEntry* pf = lower_bound (interfaces_.begin (), interfaces_.end (), siid, IEPred ());
+	const InterfaceEntry* pf = std::lower_bound (interfaces_.begin (), interfaces_.end (), siid, IEPred ());
 	if (pf != interfaces_.end () && RepId::compatible (pf->iid, pf->iid_len, siid))
 		return pf;
 	return nullptr;
 }
 
-IOReference::OperationIndex ProxyManager::find_operation (const IDL::String& name) const
+IOReference::OperationIndex ProxyManager::find_operation (String_in name) const
 {
-	const OperationEntry* pf = lower_bound (operations_.begin (), operations_.end (), name, OEPred ());
+	const OperationEntry* pf = std::lower_bound (operations_.begin (), operations_.end (), name, OEPred ());
 	if (pf != operations_.end () && !OEPred () (name, *pf))
 		return pf->idx;
 	throw BAD_OPERATION (MAKE_OMG_MINOR (2));

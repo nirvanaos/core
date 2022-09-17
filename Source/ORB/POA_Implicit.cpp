@@ -24,6 +24,7 @@
 *  popov.nirvana@gmail.com
 */
 #include "POA_Implicit.h"
+#include "POAManagerFactory.h"
 
 using namespace CORBA;
 using namespace CORBA::Core;
@@ -32,43 +33,17 @@ using namespace Nirvana::Core;
 namespace PortableServer {
 namespace Core {
 
-ObjectId POA_Implicit::servant_to_id (Object::_ptr_type p_servant)
+ObjectId POA_Implicit::servant_to_id_default (ProxyObject& proxy, bool not_found)
 {
-	return activate_object (p_servant);
+	assert (not_found);
+	ObjectId oid = generate_object_id ();
+	activate_object (ObjectKey (*this, oid), proxy, true);
+	return oid;
 }
 
-Object::_ref_type POA_Implicit::servant_to_reference (Object::_ptr_type p_servant)
+Object::_ref_type POA_Implicit::servant_to_reference_default (ProxyObject& proxy, bool not_found)
 {
-	CoreRef <ProxyObject> proxy = get_proxy (p_servant);
-	ObjectIdSys id (*proxy);
-	AOM::iterator it = activate (id, std::move (proxy));
-	return it->second->get_proxy ();
-}
-
-ObjectId POA_ImplicitUnique::servant_to_id (Object::_ptr_type p_servant)
-{
-	auto it = servant_find (p_servant);
-	if (it != servant_map_.end ())
-		return it->second->first.to_object_id ();
-	else
-		return activate_object (p_servant);
-}
-
-Object::_ref_type POA_ImplicitUnique::servant_to_reference (Object::_ptr_type p_servant)
-{
-	Object::_ref_type ret;
-	auto it = servant_find (p_servant);
-	if (it != servant_map_.end ())
-		ret = it->second->second->get_proxy ();
-	else {
-		ServantMap::iterator it_servant = servant_add (p_servant);
-		CoreRef <ProxyObject> proxy = get_proxy (p_servant);
-		ObjectIdSys id (*proxy);
-		ret = proxy->get_proxy ();
-		AOM::iterator it_object = activate (id, std::move (proxy));
-		it_servant->second = &*it_object;
-	}
-	return ret;
+	return activate_object (ObjectKey (*this), proxy, true)->get_proxy ();
 }
 
 }

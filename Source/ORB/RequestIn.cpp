@@ -123,6 +123,16 @@ RequestIn::~RequestIn ()
 	finalize (); // Remove from the map if not yet.
 }
 
+const PortableServer::Core::ObjectKey& RequestIn::object_key () const NIRVANA_NOEXCEPT
+{
+	return object_key_;
+}
+
+Internal::StringView <Char> RequestIn::operation () const NIRVANA_NOEXCEPT
+{
+	return operation_;
+}
+
 void RequestIn::switch_to_reply (GIOP::ReplyStatusType status)
 {
 	// Leave the object synchronization domain, if any.

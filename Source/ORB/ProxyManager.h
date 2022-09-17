@@ -46,6 +46,9 @@ namespace Core {
 
 class StreamOut;
 
+class Reference;
+typedef servant_reference <Reference> ReferenceRef;
+
 /// \brief Base for all proxies.
 class NIRVANA_NOVTABLE ProxyManager :
 	public Nirvana::Core::SharedObject,
@@ -59,6 +62,7 @@ protected:
 	virtual void _add_ref () = 0;
 	virtual void _remove_ref () NIRVANA_NOEXCEPT = 0;
 	template <class> friend class Nirvana::Core::CoreRef;
+	template <class> friend class servant_reference;
 	friend class Internal::LifeCycleRefCnt <ProxyManager>;
 
 public:
@@ -215,7 +219,7 @@ public:
 
 	// Misc
 
-	OperationIndex find_operation (const IDL::String& name) const;
+	OperationIndex find_operation (Internal::String_in name) const;
 
 	void invoke (OperationIndex op, Internal::IORequest::_ptr_type rq) NIRVANA_NOEXCEPT;
 
@@ -238,7 +242,7 @@ public:
 
 	void check_create_request (OperationIndex op, UShort flags) const;
 
-	virtual void marshal (StreamOut& out) = 0;
+	virtual ReferenceRef get_reference () = 0;
 
 	const Internal::StringView <Char> primary_interface_id () const NIRVANA_NOEXCEPT
 	{
@@ -248,8 +252,19 @@ public:
 			return Internal::StringView <Char> (Internal::RepIdOf <Object>::id);
 	}
 
+	void set_primary_interface (const IDL::String& primary_iid);
+
+	static ProxyManager* cast (Object::_ptr_type obj) NIRVANA_NOEXCEPT
+	{
+		return static_cast <ProxyManager*> (static_cast <Internal::Bridge <Object>*> (&obj));
+	}
+
 protected:
-	ProxyManager (Internal::String_in primary_iid);
+	ProxyManager (Internal::String_in primary_iid) :
+		primary_interface_ (nullptr)
+	{
+		init (primary_iid);
+	}
 	
 	ProxyManager (const ProxyManager& src)
 	{
@@ -278,7 +293,7 @@ protected:
 		InterfaceEntry (const InterfaceEntry& src) :
 			iid (src.iid),
 			iid_len (src.iid_len),
-			implementation (src.implementation),
+			implementation (nullptr), // implementation is not copied
 			operations (src.operations),
 			proxy_factory (src.proxy_factory),
 			// proxy and deleter are not copied
@@ -303,6 +318,7 @@ protected:
 
 private:
 	void copy (const ProxyManager& src);
+	void init (Internal::String_in primary_iid);
 
 	struct OperationEntry
 	{

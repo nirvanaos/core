@@ -26,6 +26,7 @@
 #include "Scheduler.h"
 #include "ExecDomain.h"
 #include "initterm.h"
+#include "ORB/POAManagerFactory.h"
 
 namespace Nirvana {
 namespace Core {
@@ -40,9 +41,15 @@ StaticallyAllocated <Scheduler::GlobalData> Scheduler::global_;
 void Scheduler::shutdown () NIRVANA_NOEXCEPT
 {
 	State state = State::RUNNING;
-	if (global_->state.compare_exchange_strong (state, State::SHUTDOWN_STARTED) && !global_->activity_cnt) {
-		global_->activity_cnt.increment ();
-		activity_end ();
+	if (global_->state.compare_exchange_strong (state, State::SHUTDOWN_STARTED)) {
+		// Block remote requests and complete currently executed.
+		PortableServer::Core::POA_Base::shutdown ();
+
+		// If no activity - toggle it.
+		if (!global_->activity_cnt) {
+			global_->activity_cnt.increment ();
+			activity_end ();
+		}
 	}
 }
 

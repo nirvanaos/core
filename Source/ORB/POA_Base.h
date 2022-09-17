@@ -32,15 +32,18 @@
 #include "ProxyObject.h"
 #include "ProxyLocal.h"
 #include "MapUnorderedStable.h"
-#include "HashOctetSeq.h"
 #include "PortableServer_policies.h"
 #include "RequestInPOA.h"
+#include "Services.h"
+#include "ReferenceLocal.h"
 #include "../TLS.h"
 #include "../Event.h"
 
 namespace CORBA {
 namespace Core {
+
 class RequestInPOA;
+
 }
 }
 
@@ -48,19 +51,6 @@ namespace PortableServer {
 namespace Core {
 
 class POAManager;
-
-struct Context
-{
-	POA::_ref_type adapter;
-	const ObjectId& object_id;
-	CORBA::Object::_ptr_type object;
-
-	Context (POA::_ref_type&& poa, const ObjectId& oid, CORBA::Core::ProxyObject& proxy) :
-		adapter (std::move (poa)),
-		object_id (oid),
-		object (proxy.get_proxy ())
-	{}
-};
 
 class RequestRef : public Nirvana::Core::CoreRef <CORBA::Core::RequestInPOA>
 {
@@ -99,6 +89,9 @@ private:
 };
 
 class POA_Root;
+class POA_Base;
+
+typedef CORBA::servant_reference <POA_Base> POA_Ref;
 
 // POA implementation always operates the reference to Object interface (proxy),
 // not to ServantBase.
@@ -120,10 +113,14 @@ public:
 
 	POA::_ref_type find_POA (const IDL::String& adapter_name, bool activate_it)
 	{
-		return find_child (adapter_name, activate_it)._this ();
+		POA_Ref p = find_child (adapter_name, activate_it);
+		if (p)
+			return p->_this ();
+		else
+			throw AdapterNonExistent ();
 	}
 
-	POA_Base& find_child (const IDL::String& adapter_name, bool activate_it);
+	POA_Ref find_child (const IDL::String& adapter_name, bool activate_it);
 
 	static void check_wait_completion ();
 
@@ -145,14 +142,21 @@ public:
 			destroy_completed_.wait ();
 	}
 
-	virtual void destroy (bool etherealize_objects) NIRVANA_NOEXCEPT;
+	void destroy (bool etherealize_objects) NIRVANA_NOEXCEPT
+	{
+		destroy_internal (etherealize_objects);
+		if (!request_cnt_)
+			destroy_completed_.signal ();
+	}
 
 	bool is_destroyed () const NIRVANA_NOEXCEPT
 	{
 		return destroyed_;
 	}
 
-	virtual void etherealize_objects () {}
+	virtual void destroy_internal (bool etherealize_objects) NIRVANA_NOEXCEPT;
+	virtual void etherealize_objects () NIRVANA_NOEXCEPT {}
+	virtual void etherialize (CORBA::Core::ProxyObject& proxy) NIRVANA_NOEXCEPT {};
 
 	// Factories for Policy objects
 
@@ -255,20 +259,82 @@ public:
 	}
 
 	// Object activation and deactivation
-	virtual ObjectId activate_object (CORBA::Object::_ptr_type p_servant) = 0;
-	virtual void activate_object_with_id (const ObjectId& oid, CORBA::Object::_ptr_type p_servant) = 0;
-	virtual void deactivate_object (const ObjectId& oid) = 0;
+	ObjectId activate_object (CORBA::Object::_ptr_type p_servant)
+	{
+		CORBA::Core::ProxyObject* proxy = CORBA::Core::object2proxy (p_servant);
+		if (!proxy)
+			throw CORBA::BAD_PARAM ();
+		return activate_object (*proxy);
+	}
+
+	ObjectId activate_object (CORBA::Core::ProxyObject& proxy)
+	{
+		ObjectId oid = generate_object_id ();
+		activate_object (ObjectKey (*this, oid), proxy, false);
+		return oid;
+	}
+
+	void activate_object_with_id (const ObjectId& oid, CORBA::Object::_ptr_type p_servant)
+	{
+		CORBA::Core::ProxyObject* proxy = CORBA::Core::object2proxy (p_servant);
+		if (!proxy)
+			throw CORBA::BAD_PARAM ();
+		check_object_id (oid);
+		activate_object (ObjectKey (*this, oid), *proxy, false);
+	}
+
+	virtual CORBA::Core::ReferenceLocalRef activate_object (ObjectKey&& key,
+		CORBA::Core::ProxyObject& proxy, bool implicit);
+
+	virtual CORBA::servant_reference <CORBA::Core::ProxyObject>
+		deactivate_object (const ObjectId& oid);
+
+	static void implicit_activate (POA::_ptr_type adapter, CORBA::Core::ProxyObject& proxy);
+	virtual void implicit_deactivate (CORBA::Core::ReferenceLocal& ref,
+		CORBA::Core::ProxyObject& proxy) NIRVANA_NOEXCEPT;
 
 	// Reference creation operations
-	virtual CORBA::Object::_ref_type create_reference (const CORBA::RepositoryId& intf) = 0;
-	virtual CORBA::Object::_ref_type create_reference_with_id (const ObjectId& oid, const CORBA::RepositoryId& intf) = 0;
+	virtual CORBA::Object::_ref_type create_reference (const CORBA::RepositoryId& intf);
+	virtual CORBA::Object::_ref_type create_reference_with_id (const ObjectId& oid,
+		const CORBA::RepositoryId& intf);
+
+	CORBA::Core::ReferenceLocalRef create_reference (const CORBA::RepositoryId& intf,
+		bool garbage_collection);
+	CORBA::Core::ReferenceLocalRef create_reference (const ObjectId& oid,
+		const CORBA::RepositoryId& intf, bool garbage_collection);
 
 	// Identity mapping operations:
-	virtual ObjectId servant_to_id (CORBA::Object::_ptr_type p_servant);
-	virtual CORBA::Object::_ref_type servant_to_reference (CORBA::Object::_ptr_type p_servant);
+	ObjectId servant_to_id (CORBA::Object::_ptr_type p_servant)
+	{
+		CORBA::Core::ProxyObject* proxy = CORBA::Core::object2proxy (p_servant);
+		if (!proxy)
+			throw CORBA::BAD_PARAM ();
+		return servant_to_id (*proxy);
+	}
+
+	virtual ObjectId servant_to_id (CORBA::Core::ProxyObject& proxy);
+	virtual ObjectId servant_to_id_default (CORBA::Core::ProxyObject& proxy, bool not_found);
+
+	CORBA::Object::_ref_type servant_to_reference (CORBA::Object::_ptr_type p_servant)
+	{
+		CORBA::Core::ProxyObject* proxy = CORBA::Core::object2proxy (p_servant);
+		if (!proxy)
+			throw CORBA::BAD_PARAM ();
+		return servant_to_reference (*proxy);
+	}
+
+	virtual CORBA::Object::_ref_type servant_to_reference (CORBA::Core::ProxyObject& proxy);
+	virtual CORBA::Object::_ref_type servant_to_reference_default (CORBA::Core::ProxyObject& proxy, bool not_found);
+
 	virtual CORBA::Object::_ref_type reference_to_servant (CORBA::Object::_ptr_type reference);
-	virtual ObjectId reference_to_id (CORBA::Object::_ptr_type reference);
-	virtual CORBA::Object::_ref_type id_to_reference (const ObjectId& oid) = 0;
+	virtual CORBA::Object::_ref_type reference_to_servant_default (bool not_active);
+
+	ObjectId reference_to_id (CORBA::Object::_ptr_type reference);
+
+	virtual CORBA::Object::_ref_type id_to_servant (const ObjectId& oid);
+	virtual CORBA::Object::_ref_type id_to_servant_default (bool not_active);
+
+	virtual CORBA::Object::_ref_type id_to_reference (const ObjectId& oid);
 
 	// Additional attributes
 
@@ -288,8 +354,13 @@ public:
 	}
 
 	void invoke (const RequestRef& request);
+	void serve (const RequestRef& request);
 
-	virtual void serve (const RequestRef& request) = 0;
+	static void shutdown ()
+	{
+		if (root_) // POA was used in some way
+			POA::_narrow (get_root ())->destroy (true, true);
+	}
 
 	static POA_Base* get_implementation (const CORBA::Core::ProxyLocal* proxy);
 
@@ -317,14 +388,27 @@ public:
 
 	virtual ~POA_Base ();
 
-	typedef CORBA::servant_reference <POA_Base> POA_Ref;
+	virtual ObjectId generate_object_id ();
+	virtual void check_object_id (const ObjectId& oid);
+	void get_path (AdapterPath& path, size_t size = 0) const;
+
+	static POA_Root* root () NIRVANA_NOEXCEPT
+	{
+		assert (root_);
+		return root_;
+	}
 
 protected:
+	POA_Base () :
+		signature_ (0)
+	{
+		NIRVANA_UNREACHABLE_CODE ();
+	}
+
 	POA_Base (POA_Base* parent, const IDL::String* name, CORBA::servant_reference <POAManager>&& manager);
 
-	virtual bool implicit_activation () const NIRVANA_NOEXCEPT = 0;
+	virtual bool implicit_activation () const NIRVANA_NOEXCEPT;
 
-	void get_path (AdapterPath& path, size_t size = 0) const;
 	bool check_path (const AdapterPath& path, AdapterPath::const_iterator it) const
 		NIRVANA_NOEXCEPT;
 
@@ -333,13 +417,18 @@ protected:
 		return check_path (path, path.end ());
 	}
 
-	CORBA::Object::_ref_type servant_to_reference_nothrow (CORBA::Object::_ptr_type p_servant);
+	virtual void serve (const RequestRef& request, CORBA::Core::ReferenceLocal& reference);
+	virtual void serve_default (const RequestRef& request, CORBA::Core::ReferenceLocal& reference);
+	void serve (const RequestRef& request, CORBA::Core::ReferenceLocal& reference, CORBA::Core::ProxyObject& proxy);
 
-	void serve (const RequestRef& request, CORBA::Core::ProxyObject& proxy);
+	static CORBA::Object::_ref_type get_root ()
+	{
+		return CORBA::Core::Services::bind (CORBA::Core::Services::RootPOA);
+	}
 
 private:
 	void on_request_finish () NIRVANA_NOEXCEPT;
-
+	
 protected:
 	static POA_Root* root_;
 	CORBA::servant_reference <POAManager> the_POAManager_;
