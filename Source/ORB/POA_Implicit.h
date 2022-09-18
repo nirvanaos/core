@@ -48,34 +48,10 @@ public:
 	virtual CORBA::Object::_ref_type servant_to_reference_default (CORBA::Core::ProxyObject& proxy, bool not_found) override;
 };
 
-class POA_ImplicitRetain :
-	public POA_Implicit,
-	public POA_Retain
-{};
-
 class POA_ImplicitUnique :
 	public POA_Implicit,
-	public POA_Unique
-{};
-
-class POA_ImplicitTransient :
-	public POA_ImplicitRetain,
+	public POA_Unique,
 	public POA_System
-{};
-
-class POA_ImplicitUniqueTransient :
-	public POA_ImplicitUnique,
-	public POA_System
-{};
-
-class POA_ImplicitPersistent :
-	public POA_ImplicitRetain,
-	public POA_SystemPersistent
-{};
-
-class POA_ImplicitUniquePersistent :
-	public POA_ImplicitUnique,
-	public POA_SystemPersistent
 {};
 
 }

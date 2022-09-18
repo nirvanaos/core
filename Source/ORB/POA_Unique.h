@@ -35,7 +35,6 @@ namespace Core {
 
 // UNIQUE_ID, RETAIN
 class POA_Unique : 
-	public virtual POA_Base,
 	public POA_Retain
 {
 	typedef POA_Retain Base;
@@ -45,13 +44,6 @@ public:
 	virtual CORBA::Object::_ref_type servant_to_reference (CORBA::Core::ProxyObject& proxy) override;
 
 protected:
-	POA_Unique ()
-	{}
-
-	POA_Unique (POA_Base* parent, const IDL::String* name, CORBA::servant_reference <POAManager>&& manager) :
-		POA_Base (parent, name, std::move (manager))
-	{}
-
 	virtual void activate_object (CORBA::Core::ReferenceLocal& ref, CORBA::Core::ProxyObject& proxy,
 		unsigned flags) override;
 

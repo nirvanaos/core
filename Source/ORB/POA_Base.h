@@ -93,6 +93,32 @@ class POA_Base;
 
 typedef CORBA::servant_reference <POA_Base> POA_Ref;
 
+typedef POA_Ref (*POA_Factory) (POA_Base* parent, const IDL::String* name,
+	CORBA::servant_reference <POAManager>&& manager);
+
+struct PolicyVal
+{
+	unsigned type;
+	unsigned value;
+
+	bool operator < (const PolicyVal& rhs) const NIRVANA_NOEXCEPT
+	{
+		return type < rhs.type;
+	}
+
+	bool operator == (const PolicyVal& rhs) const NIRVANA_NOEXCEPT
+	{
+		return type == rhs.type && value == rhs.value;
+	}
+};
+
+struct POA_FactoryEntry
+{
+	size_t policy_count;
+	const PolicyVal* policy_values;
+	POA_Factory factory;
+};
+
 // POA implementation always operates the reference to Object interface (proxy),
 // not to ServantBase.
 // Release of the ServantBase reference must be performed in the ServantBase
@@ -106,10 +132,7 @@ public:
 	// POA creation and destruction
 
 	POA::_ref_type create_POA (const IDL::String& adapter_name,
-		PortableServer::POAManager::_ptr_type a_POAManager, const CORBA::PolicyList& policies)
-	{
-		throw CORBA::NO_IMPLEMENT ();
-	}
+		PortableServer::POAManager::_ptr_type a_POAManager, const CORBA::PolicyList& policies);
 
 	POA::_ref_type find_POA (const IDL::String& adapter_name, bool activate_it)
 	{
@@ -418,7 +441,8 @@ protected:
 		NIRVANA_UNREACHABLE_CODE ();
 	}
 
-	POA_Base (POA_Base* parent, const IDL::String* name, CORBA::servant_reference <POAManager>&& manager);
+	POA_Base (POA_Base* parent, const IDL::String* name,
+		CORBA::servant_reference <POAManager>&& manager);
 
 	virtual bool implicit_activation () const NIRVANA_NOEXCEPT;
 

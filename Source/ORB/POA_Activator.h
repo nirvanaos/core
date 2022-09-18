@@ -34,7 +34,6 @@
 namespace PortableServer {
 namespace Core {
 
-// ForwardRequest behaviour is not supported for incoming request
 class POA_Activator : public virtual POA_Base
 {
 	static const TimeBase::TimeT ACTIVATION_TIMEOUT = 100 * TimeBase::MILLISECOND;
@@ -51,8 +50,6 @@ protected:
 
 	virtual void etherialize (const ObjectId& oid, CORBA::Core::ProxyObject& proxy,
 		bool cleanup_in_progress) NIRVANA_NOEXCEPT override;
-
-private:
 
 private:
 	ServantActivator::_ref_type activator_;

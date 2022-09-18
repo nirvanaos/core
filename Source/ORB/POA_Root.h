@@ -42,8 +42,8 @@ namespace PortableServer {
 namespace Core {
 
 class POA_Root :
-	public virtual POA_Base,
-	public POA_ImplicitUniqueTransient
+	public POA_ImplicitUnique,
+	public virtual POA_Base
 {
 	typedef std::conditional_t <(sizeof (size_t) > 4), std::mt19937_64, std::mt19937> RandomGen;
 
@@ -172,14 +172,6 @@ void POA_Base::implicit_activate (POA::_ptr_type adapter, CORBA::Core::ProxyObje
 	adapter_impl->activate_object (ObjectKey (*adapter_impl), std::ref (proxy),
 		CORBA::Core::ReferenceLocal::LOCAL_WEAK | CORBA::Core::Reference::GARBAGE_COLLECTION);
 	SYNC_END ();
-}
-
-inline
-PortableServer::POA::_ref_type POA_Root::create ()
-{
-	auto manager_factory = CORBA::make_reference <POAManagerFactory> ();
-	auto manager = manager_factory->create ("RootPOAManager", CORBA::PolicyList ());
-	return CORBA::make_reference <POA_Root> (std::move (manager), std::move (manager_factory))->_this ();
 }
 
 }

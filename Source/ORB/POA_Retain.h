@@ -45,13 +45,6 @@ public:
 	virtual CORBA::Object::_ref_type id_to_reference (const ObjectId& oid) override;
 
 protected:
-	POA_Retain ()
-	{}
-
-	POA_Retain (POA_Base* parent, const IDL::String* name, CORBA::servant_reference <POAManager>&& manager) :
-		POA_Base (parent, name, std::move (manager))
-	{}
-
 	virtual CORBA::Core::ReferenceLocalRef activate_object (ObjectKey&& key,
 		CORBA::Core::ProxyObject& proxy, unsigned flags) override;
 

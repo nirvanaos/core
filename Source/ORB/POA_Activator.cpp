@@ -46,13 +46,16 @@ void POA_Activator::serve_default (const RequestRef& request, ReferenceLocal& re
 		try {
 			Bridge <ServantActivator>* bridge = static_cast <Bridge <ServantActivator>*>
 				(&ServantActivator::_ptr_type (activator_));
-			{
+			try {
 				EnvironmentEx <ForwardRequest> env;
 				Type <Object>::C_ret ret ((activator_->_epv ().epv.incarnate) (bridge,
 					&Type <ObjectId>::C_in (oid),
 					&POA::_ptr_type (_this ()), &env));
 				env.check ();
 				servant = ret;
+			} catch (const ForwardRequest&) {
+				// ForwardRequest behaviour is not supported for incoming request
+				throw OBJECT_NOT_EXIST (MAKE_OMG_MINOR (2));
 			}
 			try {
 				activate_object (reference, *object2proxy (servant), 
