@@ -271,7 +271,7 @@ public:
 	ObjectId activate_object (CORBA::Core::ProxyObject& proxy)
 	{
 		ObjectId oid = generate_object_id ();
-		activate_object (ObjectKey (*this, oid), proxy, false);
+		activate_object (ObjectKey (*this, oid), proxy, 0);
 		return oid;
 	}
 
@@ -281,16 +281,18 @@ public:
 		if (!proxy)
 			throw CORBA::BAD_PARAM ();
 		check_object_id (oid);
-		activate_object (ObjectKey (*this, oid), *proxy, false);
+		activate_object (ObjectKey (*this, oid), *proxy, 0);
 	}
 
 	virtual CORBA::Core::ReferenceLocalRef activate_object (ObjectKey&& key,
-		CORBA::Core::ProxyObject& proxy, bool implicit);
+		CORBA::Core::ProxyObject& proxy, unsigned flags);
 
-	virtual void activate_object (CORBA::Core::ReferenceLocal& ref, CORBA::Core::ProxyObject& proxy);
+	virtual void activate_object (CORBA::Core::ReferenceLocal& ref, CORBA::Core::ProxyObject& proxy,
+		unsigned flags);
 
-	virtual CORBA::servant_reference <CORBA::Core::ProxyObject>
-		deactivate_object (const ObjectId& oid);
+	virtual void deactivate_object (const ObjectId& oid);
+	virtual CORBA::servant_reference <CORBA::Core::ProxyObject> deactivate_object (
+		CORBA::Core::ReferenceLocal& ref);
 
 	static void implicit_activate (POA::_ptr_type adapter, CORBA::Core::ProxyObject& proxy);
 	virtual void implicit_deactivate (CORBA::Core::ReferenceLocal& ref,
@@ -300,7 +302,7 @@ public:
 	virtual CORBA::Object::_ref_type create_reference (const CORBA::RepositoryId& intf);
 	
 	CORBA::Core::ReferenceLocalRef create_reference (const CORBA::RepositoryId& intf,
-		bool garbage_collection);
+		unsigned flags);
 
 	CORBA::Object::_ref_type create_reference_with_id (const ObjectId& oid,
 		const CORBA::RepositoryId& intf)
@@ -312,7 +314,7 @@ public:
 		const CORBA::RepositoryId& intf);
 
 	static CORBA::Core::ReferenceLocalRef create_reference (ObjectKey&& key,
-		const CORBA::RepositoryId& intf, bool garbage_collection);
+		const CORBA::RepositoryId& intf, unsigned flags);
 
 	// Identity mapping operations:
 	ObjectId servant_to_id (CORBA::Object::_ptr_type p_servant)

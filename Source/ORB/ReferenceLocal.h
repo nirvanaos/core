@@ -49,12 +49,18 @@ class ReferenceLocal :
 	public Reference
 {
 public:
-	ReferenceLocal (PortableServer::Core::ObjectKey&& key, const IDL::String& primary_iid,
-		bool garbage_collection);
-	ReferenceLocal (PortableServer::Core::ObjectKey&& key, PortableServer::Core::ServantBase& servant,
-		bool garbage_collection);
+	enum
+	{
+		LOCAL_WEAK            = 0x0004,
+		LOCAL_AUTO_DEACTIVATE = 0x0008
+	};
 
-	void activate (PortableServer::Core::ServantBase& servant);
+	ReferenceLocal (PortableServer::Core::ObjectKey&& key, const IDL::String& primary_iid,
+		unsigned flags);
+	ReferenceLocal (PortableServer::Core::ObjectKey&& key, PortableServer::Core::ServantBase& servant,
+		unsigned flags);
+
+	void activate (PortableServer::Core::ServantBase& servant, unsigned flags);
 	servant_reference <ProxyObject> deactivate () NIRVANA_NOEXCEPT;
 
 	void on_destruct_implicit (PortableServer::Core::ServantBase& servant) NIRVANA_NOEXCEPT;
@@ -65,8 +71,6 @@ public:
 	Nirvana::Core::CoreRef <ProxyObject> get_servant () const NIRVANA_NOEXCEPT;
 
 private:
-	virtual ReferenceLocal* local_reference () override;
-
 	virtual void marshal (StreamOut& out) const override;
 	virtual Internal::IORequest::_ref_type create_request (OperationIndex op, UShort flags) override;
 

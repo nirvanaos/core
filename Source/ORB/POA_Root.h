@@ -169,7 +169,8 @@ void POA_Base::implicit_activate (POA::_ptr_type adapter, CORBA::Core::ProxyObje
 	if (!adapter_impl)
 		throw CORBA::OBJ_ADAPTER ();
 	SYNC_BEGIN (adapter_proxy->sync_context (), nullptr);
-	adapter_impl->activate_object (ObjectKey (*adapter_impl), std::ref (proxy), true);
+	adapter_impl->activate_object (ObjectKey (*adapter_impl), std::ref (proxy),
+		CORBA::Core::ReferenceLocal::LOCAL_WEAK | CORBA::Core::Reference::GARBAGE_COLLECTION);
 	SYNC_END ();
 }
 

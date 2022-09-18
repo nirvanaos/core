@@ -38,8 +38,7 @@ namespace Core {
 class POA_Retain : public virtual POA_Base
 {
 public:
-	virtual CORBA::servant_reference <CORBA::Core::ProxyObject> deactivate_object (
-		const ObjectId& oid) override;
+	virtual void deactivate_object (const ObjectId& oid) override;
 
 	virtual CORBA::Object::_ref_type reference_to_servant (CORBA::Object::_ptr_type reference) override;
 	virtual CORBA::Object::_ref_type id_to_servant (const ObjectId& oid) override;
@@ -54,15 +53,18 @@ protected:
 	{}
 
 	virtual CORBA::Core::ReferenceLocalRef activate_object (ObjectKey&& key,
-		CORBA::Core::ProxyObject& proxy, bool implicit) override;
+		CORBA::Core::ProxyObject& proxy, unsigned flags) override;
 
-	virtual void activate_object (CORBA::Core::ReferenceLocal& ref, CORBA::Core::ProxyObject& proxy) override;
+	virtual void activate_object (CORBA::Core::ReferenceLocal& ref, CORBA::Core::ProxyObject& proxy,
+		unsigned flags) override;
 
 	virtual void serve (const RequestRef& request, CORBA::Core::ReferenceLocal& reference) override;
 	virtual void destroy_internal (bool etherealize_objects) NIRVANA_NOEXCEPT override;
 	virtual void etherealize_objects () NIRVANA_NOEXCEPT override;
 	virtual void implicit_deactivate (CORBA::Core::ReferenceLocal& ref,
 		CORBA::Core::ProxyObject& proxy) NIRVANA_NOEXCEPT override;
+	virtual CORBA::servant_reference <CORBA::Core::ProxyObject> deactivate_object (
+		CORBA::Core::ReferenceLocal& ref) override;
 
 private:
 	// This map contains active references and references with GC

@@ -52,6 +52,7 @@ ProxyObjectImplicit::~ProxyObjectImplicit ()
 			for (void* p : references_) {
 				reinterpret_cast <ReferenceLocal*> (p)->on_destruct_implicit (servant);
 			}
+			references_.clear ();
 		}
 	} catch (...) {
 		assert (false);

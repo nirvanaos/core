@@ -38,10 +38,5 @@ ReferenceRef Reference::get_reference ()
 	return this;
 }
 
-ReferenceLocal* Reference::local_reference ()
-{
-	throw BAD_PARAM ();
-}
-
 }
 }

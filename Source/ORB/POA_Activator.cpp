@@ -44,7 +44,8 @@ void POA_Activator::serve_default (const RequestRef& request, ReferenceLocal& re
 	Object::_ref_type servant;
 	if (ins.second) {
 		try {
-			Bridge <ServantActivator>* bridge = static_cast <Bridge <ServantActivator>*> (&ServantActivator::_ptr_type (activator_));
+			Bridge <ServantActivator>* bridge = static_cast <Bridge <ServantActivator>*>
+				(&ServantActivator::_ptr_type (activator_));
 			{
 				EnvironmentEx <ForwardRequest> env;
 				Type <Object>::C_ret ret ((activator_->_epv ().epv.incarnate) (bridge,
@@ -54,7 +55,8 @@ void POA_Activator::serve_default (const RequestRef& request, ReferenceLocal& re
 				servant = ret;
 			}
 			try {
-				activate_object (reference, *object2proxy (servant));
+				activate_object (reference, *object2proxy (servant), 
+					ReferenceLocal::LOCAL_AUTO_DEACTIVATE | Reference::GARBAGE_COLLECTION);
 			} catch (const ServantAlreadyActive&) {
 				etherialize (oid, *object2proxy (servant), false);
 				throw OBJ_ADAPTER ();
@@ -91,14 +93,16 @@ void POA_Activator::set_servant_manager (ServantManager::_ptr_type imgr)
 Object::_ref_type POA_Activator::create_reference (ObjectKey&& key,
 	const CORBA::RepositoryId& intf)
 {
-	return POA_Base::create_reference (std::move (key), intf, true)->get_proxy ();
+	return POA_Base::create_reference (std::move (key), intf,
+		ReferenceLocal::LOCAL_AUTO_DEACTIVATE | Reference::GARBAGE_COLLECTION) ->get_proxy ();
 }
 
 void POA_Activator::etherialize (const ObjectId& oid, ProxyObject& proxy,
 	bool cleanup_in_progress) NIRVANA_NOEXCEPT
 {
 	if (activator_) {
-		Bridge <ServantActivator>* bridge = static_cast <Bridge <ServantActivator>*> (&ServantActivator::_ptr_type (activator_));
+		Bridge <ServantActivator>* bridge = static_cast <Bridge <ServantActivator>*>
+			(&ServantActivator::_ptr_type (activator_));
 		(activator_->_epv ().epv.etherealize) (bridge, &Type <ObjectId>::C_in (oid), &POA::_ptr_type (_this ()),
 			&proxy.get_proxy (), cleanup_in_progress, proxy.is_active (), nullptr); // Ignore exceptions
 	}

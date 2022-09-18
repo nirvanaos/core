@@ -40,16 +40,22 @@ class Reference :
 	public ProxyManager
 {
 public:
-	Reference (const IDL::String& primary_iid, bool garbage_collection) :
+	enum
+	{
+		LOCAL              = 0x0001, //< Is ReferenceLocal
+		GARBAGE_COLLECTION = 0x0002  //< The reference is involved in DGC
+	};
+
+	Reference (const IDL::String& primary_iid, unsigned flags) :
 		CORBA::Core::ProxyManager (primary_iid),
 		ref_cnt_ (1),
-		garbage_collection_ (garbage_collection)
+		flags_ (flags)
 	{}
 
-	Reference (const ProxyManager& proxy, bool garbage_collection) :
+	Reference (const ProxyManager& proxy, unsigned flags) :
 		CORBA::Core::ProxyManager (proxy),
 		ref_cnt_ (1),
-		garbage_collection_ (garbage_collection)
+		flags_ (flags)
 	{}
 
 	/// Marshal reference to stream.
@@ -59,17 +65,19 @@ public:
 
 	virtual ReferenceRef get_reference () override;
 
-	/// Dymamic cast to ReferenceLocal. We do not use RTTI and dynamic_cast<>.
-	virtual ReferenceLocal* local_reference ();
-
 	RefCntProxy::IntegralType _refcount_value () const NIRVANA_NOEXCEPT
 	{
 		return ref_cnt_.load ();
 	}
 
+	unsigned flags () const NIRVANA_NOEXCEPT
+	{
+		return flags_;
+	}
+
 protected:
 	RefCntProxy ref_cnt_;
-	bool garbage_collection_;
+	unsigned flags_;
 };
 
 }

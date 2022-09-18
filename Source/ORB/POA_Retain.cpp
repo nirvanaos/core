@@ -33,12 +33,12 @@ using namespace Nirvana::Core;
 namespace PortableServer {
 namespace Core {
 
-servant_reference <ReferenceLocal> POA_Retain::activate_object (ObjectKey&& key, ProxyObject& proxy, bool implicit)
+servant_reference <ReferenceLocal> POA_Retain::activate_object (ObjectKey&& key, ProxyObject& proxy, unsigned flags)
 {
-	auto ins = root_->create_reference (std::move (key), std::ref (proxy.core_servant ()), implicit);
+	auto ins = root_->create_reference (std::move (key), std::ref (proxy.core_servant ()), flags);
 	ReferenceLocal& ref = const_cast <ReferenceLocal&> (*ins.first);
 	try {
-		activate_object (ref, proxy);
+		activate_object (ref, proxy, flags);
 	} catch (...) {
 		if (ins.second)
 			root_->remove_reference (ins.first);
@@ -46,22 +46,27 @@ servant_reference <ReferenceLocal> POA_Retain::activate_object (ObjectKey&& key,
 	return Servant_var <ReferenceLocal> (&ref);
 }
 
-void POA_Retain::activate_object (ReferenceLocal& ref, ProxyObject& proxy)
+void POA_Retain::activate_object (ReferenceLocal& ref, ProxyObject& proxy, unsigned flags)
 {
-	ref.activate (proxy.core_servant ());
+	ref.activate (proxy.core_servant (), flags);
 	references_.insert (&ref);
 }
 
-servant_reference <ProxyObject> POA_Retain::deactivate_object (const ObjectId& oid)
+void POA_Retain::deactivate_object (const ObjectId& oid)
 {
 	ReferenceLocalRef ref = root_->find_reference (ObjectKey (*this, oid));
 	if (!ref)
 		throw ObjectNotActive ();
-	servant_reference <ProxyObject> ret = ref->deactivate ();
+	deactivate_object (*ref);
+}
+
+servant_reference <CORBA::Core::ProxyObject> POA_Retain::deactivate_object (ReferenceLocal& ref)
+{
+	servant_reference <ProxyObject> ret = ref.deactivate ();
 	if (!ret)
 		throw ObjectNotActive ();
-	references_.erase (ref);
-	etherialize (oid, *ret, false);
+	references_.erase (&ref);
+	etherialize (ref.object_id (), *ret, false);
 	return ret;
 }
 
@@ -78,12 +83,12 @@ Object::_ref_type POA_Retain::reference_to_servant (Object::_ptr_type reference)
 	ReferenceRef ref = ProxyManager::cast (reference)->get_reference ();
 	if (!ref)
 		throw WrongAdapter ();
-	ReferenceLocal* loc = ref->local_reference ();
-	if (!loc)
+	if (!(ref->flags () & Reference::LOCAL))
 		throw WrongAdapter ();
-	if (!check_path (loc->adapter_path ()))
+	const ReferenceLocal& loc = static_cast <const ReferenceLocal&> (*ref);
+	if (!check_path (loc.adapter_path ()))
 		throw WrongAdapter ();
-	CoreRef <ProxyObject> servant = loc->get_servant ();
+	CoreRef <ProxyObject> servant = loc.get_servant ();
 	if (servant)
 		return servant->get_proxy ();
 

@@ -55,29 +55,24 @@ private:
 };
 
 ReferenceLocal::ReferenceLocal (PortableServer::Core::ObjectKey&& key,
-	const IDL::String& primary_iid, bool garbage_collection) :
+	const IDL::String& primary_iid, unsigned flags) :
 	PortableServer::Core::ObjectKey (std::move (key)),
-	Reference (primary_iid, garbage_collection),
+	Reference (primary_iid, flags | LOCAL),
 	root_ (PortableServer::Core::POA_Base::root ()),
 	servant_ (nullptr)
 {}
 
 ReferenceLocal::ReferenceLocal (PortableServer::Core::ObjectKey&& key,
-	PortableServer::Core::ServantBase& servant, bool garbage_collection) :
+	PortableServer::Core::ServantBase& servant, unsigned flags) :
 	PortableServer::Core::ObjectKey (std::move (key)),
-	Reference (servant.proxy (), garbage_collection),
+	Reference (servant.proxy (), flags | LOCAL),
 	root_ (PortableServer::Core::POA_Base::root ()),
 	servant_ (nullptr)
 {}
 
-ReferenceLocal* ReferenceLocal::local_reference ()
-{
-	return this;
-}
-
 void ReferenceLocal::_add_ref ()
 {
-	if (garbage_collection_) {
+	if (flags_ & LOCAL_WEAK) {
 		if (1 == ref_cnt_.increment_seq ()) {
 			PortableServer::Core::ServantBase* servant = servant_.lock ();
 			if (servant)
@@ -92,16 +87,31 @@ void ReferenceLocal::_remove_ref () NIRVANA_NOEXCEPT
 {
 	if (0 == ref_cnt_.decrement_seq ()) {
 		PortableServer::Core::ServantBase* servant = servant_.load ();
-		if (garbage_collection_ && servant) {
+		if ((flags_ & LOCAL_WEAK) && servant) {
 			servant->proxy ()._remove_ref ();
 			servant = servant_.load ();
 		}
 
-		if (!servant && !garbage_collection_) { // Can be removed
+		bool need_GC;
+		if (!servant)
+			need_GC = (flags_ & LOCAL_AUTO_DEACTIVATE) == 0;
+		else
+			need_GC = (flags_ & LOCAL_AUTO_DEACTIVATE) != 0;
+		if (need_GC) {
+			// Need GC
 			SyncContext& adapter_context = local2proxy (Services::bind (Services::RootPOA))->sync_context ();
-			if (&SyncContext::current () == &adapter_context)
-				root_->remove_reference (*this);
-			else {
+			if (&SyncContext::current () == &adapter_context) {
+				// Do GC
+				if (!servant) {
+					if (!(flags_ & LOCAL_AUTO_DEACTIVATE))
+						root_->remove_reference (*this);
+				} else if (flags_ & LOCAL_AUTO_DEACTIVATE) {
+					PortableServer::Core::POA_Ref adapter = PortableServer::Core::POA_Root::find_child (adapter_path ());
+					if (adapter)
+						adapter->deactivate_object (*this);
+				}
+			} else {
+				// Schedule GC async
 				try {
 					Nirvana::DeadlineTime deadline =
 						Nirvana::Core::PROXY_GC_DEADLINE == Nirvana::INFINITE_DEADLINE ?
@@ -119,8 +129,11 @@ void ReferenceLocal::_remove_ref () NIRVANA_NOEXCEPT
 	}
 }
 
-void ReferenceLocal::activate (PortableServer::Core::ServantBase& servant)
+void ReferenceLocal::activate (PortableServer::Core::ServantBase& servant, unsigned flags)
 {
+	// Caller must hold reference.
+	assert (_refcount_value ());
+
 	if (static_cast <PortableServer::Core::ServantBase*> (servant_.load ()))
 		throw PortableServer::POA::ObjectAlreadyActive ();
 
@@ -129,6 +142,7 @@ void ReferenceLocal::activate (PortableServer::Core::ServantBase& servant)
 	proxy.activate (*this);
 	proxy._add_ref ();
 	servant_ = &servant;
+	flags_ = flags | LOCAL;
 }
 
 servant_reference <ProxyObject> ReferenceLocal::deactivate () NIRVANA_NOEXCEPT
@@ -142,8 +156,8 @@ servant_reference <ProxyObject> ReferenceLocal::deactivate () NIRVANA_NOEXCEPT
 	if (servant)
 		p = &servant->proxy (); // Servant_var do not call _add_ref
 
-	// Explicitly deactivated objects do not involved in GC
-	garbage_collection_ = false;
+	if (flags_ & LOCAL_WEAK)
+		flags_ &= ~(GARBAGE_COLLECTION | LOCAL_WEAK);
 
 	if (p)
 		p->deactivate (*this);
@@ -154,8 +168,8 @@ void ReferenceLocal::on_destruct_implicit (PortableServer::Core::ServantBase& se
 {
 	ServantPtr::Ptr ptr (&servant);
 	if (servant_.cas (ptr, nullptr)) {
-		garbage_collection_ = false;
-		
+		flags_ &= LOCAL;
+
 		PortableServer::Core::POA_Ref adapter = PortableServer::Core::POA_Root::find_child (adapter_path ());
 		if (adapter)
 			adapter->implicit_deactivate (*this, servant.proxy ());

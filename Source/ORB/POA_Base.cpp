@@ -167,12 +167,12 @@ POA_Base::~POA_Base ()
 	the_POAManager_->on_adapter_destroy (*this);
 }
 
-ReferenceLocalRef POA_Base::activate_object (ObjectKey&&, ProxyObject&, bool implicit)
+ReferenceLocalRef POA_Base::activate_object (ObjectKey&&, ProxyObject&, unsigned flags)
 {
 	throw WrongPolicy ();
 }
 
-void POA_Base::activate_object (ReferenceLocal& ref, ProxyObject& proxy)
+void POA_Base::activate_object (ReferenceLocal& ref, ProxyObject& proxy, unsigned flags)
 {
 	NIRVANA_UNREACHABLE_CODE ();
 }
@@ -182,9 +182,15 @@ bool POA_Base::implicit_activation () const NIRVANA_NOEXCEPT
 	return false;
 }
 
-servant_reference <ProxyObject> POA_Base::deactivate_object (const ObjectId& oid)
+void POA_Base::deactivate_object (const ObjectId& oid)
 {
 	throw WrongPolicy ();
+}
+
+servant_reference <CORBA::Core::ProxyObject> POA_Base::deactivate_object (ReferenceLocal& ref)
+{
+	NIRVANA_UNREACHABLE_CODE ();
+	return nullptr;
 }
 
 void POA_Base::implicit_deactivate (CORBA::Core::ReferenceLocal& ref,
@@ -195,13 +201,13 @@ void POA_Base::implicit_deactivate (CORBA::Core::ReferenceLocal& ref,
 
 Object::_ref_type POA_Base::create_reference (const RepositoryId& intf)
 {
-	return create_reference (intf, false)->get_proxy ();
+	return create_reference (intf, 0)->get_proxy ();
 }
 
-ReferenceLocalRef POA_Base::create_reference (const RepositoryId& intf, bool garbage_collection)
+ReferenceLocalRef POA_Base::create_reference (const RepositoryId& intf, unsigned flags)
 {
 	for (;;) {
-		auto ins = root_->create_reference (ObjectKey (*this), std::ref (intf), garbage_collection);
+		auto ins = root_->create_reference (ObjectKey (*this), std::ref (intf), flags);
 		if (ins.second)
 			return Servant_var <ReferenceLocal> (&const_cast <CORBA::Core::ReferenceLocal&> (*ins.first));
 		assert (false); // Unique ID collision.
@@ -211,13 +217,13 @@ ReferenceLocalRef POA_Base::create_reference (const RepositoryId& intf, bool gar
 CORBA::Object::_ref_type POA_Base::create_reference (ObjectKey&& key,
 	const CORBA::RepositoryId& intf)
 {
-	return CORBA::Object::_ref_type (create_reference (std::move (key), intf, false)->get_proxy ());
+	return CORBA::Object::_ref_type (create_reference (std::move (key), intf, 0)->get_proxy ());
 }
 
 ReferenceLocalRef POA_Base::create_reference (ObjectKey&& key, const RepositoryId& intf,
-	bool garbage_collection)
+	unsigned flags)
 {
-	auto ins = root_->create_reference (std::move (key), std::ref (intf), garbage_collection);
+	auto ins = root_->create_reference (std::move (key), std::ref (intf), flags);
 	CORBA::Core::ReferenceLocal& ref = const_cast <CORBA::Core::ReferenceLocal&> (*ins.first);
 	if (!ins.second)
 		ref.set_primary_interface (intf);
@@ -275,12 +281,12 @@ ObjectId POA_Base::reference_to_id (Object::_ptr_type reference)
 	ReferenceRef ref = ProxyManager::cast (reference)->get_reference ();
 	if (!ref)
 		throw WrongAdapter ();
-	ReferenceLocal* loc = ref->local_reference ();
-	if (!loc)
+	if (!(ref->flags () & Reference::LOCAL))
 		throw WrongAdapter ();
-	if (!check_path (loc->adapter_path ()))
+	const ReferenceLocal& loc = static_cast <const ReferenceLocal&> (*ref);
+	if (!check_path (loc.adapter_path ()))
 		throw WrongAdapter ();
-	return loc->object_id ();
+	return loc.object_id ();
 }
 
 Object::_ref_type POA_Base::id_to_servant (const ObjectId& oid)

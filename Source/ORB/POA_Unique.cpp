@@ -42,22 +42,22 @@ POA_Unique::ReferencePtr POA_Unique::find_servant (const ProxyObject& proxy) NIR
 		return nullptr;
 }
 
-void POA_Unique::activate_object (ReferenceLocal& ref, ProxyObject& proxy)
+void POA_Unique::activate_object (ReferenceLocal& ref, ProxyObject& proxy, unsigned flags)
 {
 	auto ins = servant_map_.emplace (&proxy, &ref);
 	if (!ins.second)
 		throw ServantAlreadyActive ();
 	try {
-		Base::activate_object (ref, proxy);
+		Base::activate_object (ref, proxy, flags);
 	} catch (...) {
 		servant_map_.erase (ins.first);
 		throw;
 	}
 }
 
-servant_reference <ProxyObject> POA_Unique::deactivate_object (const ObjectId& oid)
+servant_reference <ProxyObject> POA_Unique::deactivate_object (ReferenceLocal& ref)
 {
-	servant_reference <ProxyObject> p (Base::deactivate_object (oid));
+	servant_reference <ProxyObject> p (Base::deactivate_object (ref));
 	servant_map_.erase (p);
 	return p;
 }
