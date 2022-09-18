@@ -139,9 +139,10 @@ void Binder::unload_modules ()
 
 void Binder::terminate ()
 {
+	if (!initialized_)
+		return;
 	SYNC_BEGIN (g_core_free_sync_context, &memory ());
 	SYNC_BEGIN (singleton_->sync_domain_, nullptr);
-	assert (initialized_);
 	initialized_ = false;
 	singleton_->unload_modules ();
 	SYNC_END ();
@@ -354,8 +355,8 @@ CoreRef <Module> Binder::load (std::string& module_name, bool singleton)
 		throw_INITIALIZE ();
 	Module* mod = nullptr;
 	auto ins = module_map_.emplace (std::move (module_name), MODULE_LOADING_DEADLINE_MAX);
+	ModuleMap::reference entry = *ins.first;
 	if (ins.second) {
-		ModuleMap::reference entry = *ins.first;
 		try {
 			SYNC_BEGIN (g_core_free_sync_context, &memory ());
 			if (singleton)
@@ -401,7 +402,7 @@ CoreRef <Module> Binder::load (std::string& module_name, bool singleton)
 		entry.second.finish_construction (mod);
 
 	} else {
-		mod = ins.first->second.get ();
+		mod = entry.second.get ();
 		if (mod->singleton () != singleton)
 			throw_BAD_PARAM ();
 	}
