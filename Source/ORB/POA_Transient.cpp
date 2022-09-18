@@ -1,4 +1,3 @@
-/// \file
 /*
 * Nirvana Core.
 *
@@ -24,41 +23,20 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_ORB_CORE_POA_SYSTEM_H_
-#define NIRVANA_ORB_CORE_POA_SYSTEM_H_
-#pragma once
-
 #include "POA_Transient.h"
-#include "POA_Persistent.h"
+#include "POAManagerFactory.h"
+
+using namespace CORBA;
 
 namespace PortableServer {
 namespace Core {
 
-/// SYSTEM_ID, TRANSIENT
-class NIRVANA_NOVTABLE POA_System : public POA_Transient
+unsigned POA_Transient::next_id_;
+
+OctetSeq POA_Transient::id () const
 {
-protected:
-	POA_System () :
-		next_id_ (0)
-	{}
-
-	virtual ObjectId generate_object_id ();
-	virtual void check_object_id (const ObjectId& oid);
-
-protected:
-	typedef unsigned int ID;
-	ID next_id_;
-};
-
-/// SYSTEM_ID, PERSISTENT
-class NIRVANA_NOVTABLE POA_SystemPersistent : public POA_Persistent
-{
-protected:
-	virtual ObjectId generate_object_id ();
-	virtual void check_object_id (const ObjectId& oid);
-};
+	return OctetSeq ((const Octet*)&id_, (const Octet*)&id_ + sizeof (id_));
+}
 
 }
 }
-
-#endif

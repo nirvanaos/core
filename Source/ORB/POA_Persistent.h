@@ -24,38 +24,19 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_ORB_CORE_POA_SYSTEM_H_
-#define NIRVANA_ORB_CORE_POA_SYSTEM_H_
+#ifndef NIRVANA_ORB_CORE_POA_PERSISTENT_H_
+#define NIRVANA_ORB_CORE_POA_PERSISTENT_H_
 #pragma once
 
-#include "POA_Transient.h"
-#include "POA_Persistent.h"
+#include "POA_Base.h"
 
 namespace PortableServer {
 namespace Core {
 
-/// SYSTEM_ID, TRANSIENT
-class NIRVANA_NOVTABLE POA_System : public POA_Transient
+class POA_Persistent : public virtual POA_Base
 {
-protected:
-	POA_System () :
-		next_id_ (0)
-	{}
-
-	virtual ObjectId generate_object_id ();
-	virtual void check_object_id (const ObjectId& oid);
-
-protected:
-	typedef unsigned int ID;
-	ID next_id_;
-};
-
-/// SYSTEM_ID, PERSISTENT
-class NIRVANA_NOVTABLE POA_SystemPersistent : public POA_Persistent
-{
-protected:
-	virtual ObjectId generate_object_id ();
-	virtual void check_object_id (const ObjectId& oid);
+public:
+	virtual CORBA::OctetSeq id () const override;
 };
 
 }

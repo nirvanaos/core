@@ -156,7 +156,8 @@ public:
 
 	virtual void destroy_internal (bool etherealize_objects) NIRVANA_NOEXCEPT;
 	virtual void etherealize_objects () NIRVANA_NOEXCEPT {}
-	virtual void etherialize (CORBA::Core::ProxyObject& proxy) NIRVANA_NOEXCEPT {};
+	virtual void etherialize (const ObjectId& oid, CORBA::Core::ProxyObject& proxy,
+		bool cleanup_in_progress) NIRVANA_NOEXCEPT {};
 
 	// Factories for Policy objects
 
@@ -285,6 +286,8 @@ public:
 
 	virtual CORBA::Core::ReferenceLocalRef activate_object (ObjectKey&& key,
 		CORBA::Core::ProxyObject& proxy, bool implicit);
+
+	virtual void activate_object (CORBA::Core::ReferenceLocal& ref, CORBA::Core::ProxyObject& proxy);
 
 	virtual CORBA::servant_reference <CORBA::Core::ProxyObject>
 		deactivate_object (const ObjectId& oid);

@@ -86,7 +86,7 @@ public:
 	{
 		out.write_size (adapter_path_.size ());
 		for (const auto& name : adapter_path_) {
-			out.write_string (const_cast <IDL::String&> (name), false);
+			out.write_string (name);
 		}
 		out.write_seq (const_cast <ObjectId&> (object_id_), false);
 	}

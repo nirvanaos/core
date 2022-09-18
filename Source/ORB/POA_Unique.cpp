@@ -42,15 +42,13 @@ POA_Unique::ReferencePtr POA_Unique::find_servant (const ProxyObject& proxy) NIR
 		return nullptr;
 }
 
-ReferenceLocalRef POA_Unique::activate_object (ObjectKey&& key, ProxyObject& proxy, bool implicit)
+void POA_Unique::activate_object (ReferenceLocal& ref, ProxyObject& proxy)
 {
-	auto ins = servant_map_.emplace (&proxy, nullptr);
+	auto ins = servant_map_.emplace (&proxy, &ref);
 	if (!ins.second)
 		throw ServantAlreadyActive ();
 	try {
-		ReferenceLocalRef ret (Base::activate_object (std::move (key), proxy, implicit));
-		ins.first->second = ret;
-		return ret;
+		Base::activate_object (ref, proxy);
 	} catch (...) {
 		servant_map_.erase (ins.first);
 		throw;

@@ -38,9 +38,6 @@ namespace Core {
 class POA_Retain : public virtual POA_Base
 {
 public:
-	virtual CORBA::Core::ReferenceLocalRef activate_object (ObjectKey&& key,
-		CORBA::Core::ProxyObject& proxy, bool implicit) override;
-
 	virtual CORBA::servant_reference <CORBA::Core::ProxyObject> deactivate_object (
 		const ObjectId& oid) override;
 
@@ -55,6 +52,11 @@ protected:
 	POA_Retain (POA_Base* parent, const IDL::String* name, CORBA::servant_reference <POAManager>&& manager) :
 		POA_Base (parent, name, std::move (manager))
 	{}
+
+	virtual CORBA::Core::ReferenceLocalRef activate_object (ObjectKey&& key,
+		CORBA::Core::ProxyObject& proxy, bool implicit) override;
+
+	virtual void activate_object (CORBA::Core::ReferenceLocal& ref, CORBA::Core::ProxyObject& proxy) override;
 
 	virtual void serve (const RequestRef& request, CORBA::Core::ReferenceLocal& reference) override;
 	virtual void destroy_internal (bool etherealize_objects) NIRVANA_NOEXCEPT override;

@@ -172,6 +172,11 @@ ReferenceLocalRef POA_Base::activate_object (ObjectKey&&, ProxyObject&, bool imp
 	throw WrongPolicy ();
 }
 
+void POA_Base::activate_object (ReferenceLocal& ref, ProxyObject& proxy)
+{
+	NIRVANA_UNREACHABLE_CODE ();
+}
+
 bool POA_Base::implicit_activation () const NIRVANA_NOEXCEPT
 {
 	return false;

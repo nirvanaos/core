@@ -36,12 +36,20 @@ namespace Core {
 servant_reference <ReferenceLocal> POA_Retain::activate_object (ObjectKey&& key, ProxyObject& proxy, bool implicit)
 {
 	auto ins = root_->create_reference (std::move (key), std::ref (proxy.core_servant ()), implicit);
-	if (!ins.second)
-		throw ObjectAlreadyActive ();
-	Servant_var <ReferenceLocal> ref (&const_cast <ReferenceLocal&> (*ins.first));
-	proxy.activate (*ref);
-	references_.insert (ref);
-	return ref;
+	ReferenceLocal& ref = const_cast <ReferenceLocal&> (*ins.first);
+	try {
+		activate_object (ref, proxy);
+	} catch (...) {
+		if (ins.second)
+			root_->remove_reference (ins.first);
+	}
+	return Servant_var <ReferenceLocal> (&ref);
+}
+
+void POA_Retain::activate_object (ReferenceLocal& ref, ProxyObject& proxy)
+{
+	ref.activate (proxy.core_servant ());
+	references_.insert (&ref);
 }
 
 servant_reference <ProxyObject> POA_Retain::deactivate_object (const ObjectId& oid)
@@ -53,7 +61,7 @@ servant_reference <ProxyObject> POA_Retain::deactivate_object (const ObjectId& o
 	if (!ret)
 		throw ObjectNotActive ();
 	references_.erase (ref);
-	etherialize (*ret);
+	etherialize (oid, *ret, false);
 	return ret;
 }
 
@@ -118,10 +126,10 @@ void POA_Retain::etherealize_objects () NIRVANA_NOEXCEPT
 {
 	References tmp (std::move (references_));
 	for (void* p : tmp) {
-		servant_reference <ProxyObject> servant =
-			ReferenceLocalRef (reinterpret_cast <ReferenceLocal*> (p))->deactivate ();
+		ReferenceLocalRef ref (reinterpret_cast <ReferenceLocal*> (p));
+		servant_reference <ProxyObject> servant = ref->deactivate ();
 		if (servant)
-			etherialize (*servant);
+			etherialize (ref->object_id (), *servant, true);
 	}
 }
 

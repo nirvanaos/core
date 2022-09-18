@@ -67,10 +67,8 @@ ReferenceLocal::ReferenceLocal (PortableServer::Core::ObjectKey&& key,
 	PortableServer::Core::ObjectKey (std::move (key)),
 	Reference (servant.proxy (), garbage_collection),
 	root_ (PortableServer::Core::POA_Base::root ()),
-	servant_ (&servant)
-{
-	servant.proxy ()._add_ref ();
-}
+	servant_ (nullptr)
+{}
 
 ReferenceLocal* ReferenceLocal::local_reference ()
 {

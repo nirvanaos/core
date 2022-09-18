@@ -45,7 +45,6 @@ class POA_Root :
 	public virtual POA_Base,
 	public POA_ImplicitUniqueTransient
 {
-	typedef POA_ImplicitUniqueTransient Base;
 	typedef std::conditional_t <(sizeof (size_t) > 4), std::mt19937_64, std::mt19937> RandomGen;
 
 public:
@@ -67,11 +66,6 @@ public:
 	virtual IDL::String the_name () const override
 	{
 		return "RootPOA";
-	}
-
-	virtual CORBA::OctetSeq id () const override
-	{
-		return CORBA::OctetSeq ();
 	}
 
 	static void invoke (RequestRef request, bool async) NIRVANA_NOEXCEPT;
@@ -127,11 +121,6 @@ public:
 			throw CORBA::BAD_PARAM ();
 	}
 
-	void remove_reference (const CORBA::Core::ReferenceLocal& ref) NIRVANA_NOEXCEPT
-	{
-		references_.erase (ref);
-	}
-
 	typedef Nirvana::Core::SetUnorderedStable <CORBA::Core::ReferenceLocal, std::hash <ObjectKey>,
 		std::equal_to <ObjectKey>, Nirvana::Core::UserAllocator <CORBA::Core::ReferenceLocal> > References;
 
@@ -139,6 +128,16 @@ public:
 	std::pair <References::iterator, bool> create_reference (Args ... args)
 	{
 		return references_.emplace (std::forward <Args> (args)...);
+	}
+
+	void remove_reference (const CORBA::Core::ReferenceLocal& ref) NIRVANA_NOEXCEPT
+	{
+		references_.erase (ref);
+	}
+
+	void remove_reference (References::iterator it) NIRVANA_NOEXCEPT
+	{
+		references_.erase (it);
 	}
 
 	CORBA::Core::ReferenceLocalRef get_reference (const ObjectKey& key);

@@ -59,7 +59,7 @@ public:
 
 	///@{
 	/// Called from the POA synchronization domain.
-	/// So calls to activate () and deactivate () are always serialized.
+	/// So calls to activate (), deactivate () and is_active () are always serialized.
 	void activate (ReferenceLocal& reference)
 	{
 		ReferenceLocal* old = reference_.exchange (&reference);
@@ -76,6 +76,11 @@ public:
 		references_.erase (&reference);
 		ReferenceLocal* p = references_.empty () ? nullptr : reinterpret_cast <ReferenceLocal*> (*references_.begin ());
 		reference_.cas (&reference, p);
+	}
+
+	bool is_active () const NIRVANA_NOEXCEPT
+	{
+		return static_cast <ReferenceLocal*> (reference_.load ()) != nullptr;
 	}
 	///@}
 

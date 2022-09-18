@@ -1,3 +1,4 @@
+/// \file
 /*
 * Nirvana Core.
 *
@@ -57,62 +58,25 @@ class POA_ImplicitUnique :
 	public POA_Unique
 {};
 
-
 class POA_ImplicitTransient :
-	public virtual POA_Base,
 	public POA_ImplicitRetain,
 	public POA_System
-{
-protected:
-	POA_ImplicitTransient ()
-	{}
-
-	POA_ImplicitTransient (POA_Base* parent, const IDL::String* name, CORBA::servant_reference <POAManager>&& manager) :
-		POA_Base (parent, name, std::move (manager))
-	{}
-};
+{};
 
 class POA_ImplicitUniqueTransient :
-	public virtual POA_Base,
 	public POA_ImplicitUnique,
 	public POA_System
-{
-protected:
-	POA_ImplicitUniqueTransient ()
-	{}
-
-	POA_ImplicitUniqueTransient (POA_Base* parent, const IDL::String* name, CORBA::servant_reference <POAManager>&& manager) :
-		POA_Base (parent, name, std::move (manager))
-	{}
-};
+{};
 
 class POA_ImplicitPersistent :
-	public virtual POA_Base,
 	public POA_ImplicitRetain,
 	public POA_SystemPersistent
-{
-protected:
-	POA_ImplicitPersistent ()
-	{}
-
-	POA_ImplicitPersistent (POA_Base* parent, const IDL::String* name, CORBA::servant_reference <POAManager>&& manager) :
-		POA_Base (parent, name, std::move (manager))
-	{}
-};
+{};
 
 class POA_ImplicitUniquePersistent :
-	public virtual POA_Base,
 	public POA_ImplicitUnique,
 	public POA_SystemPersistent
-{
-protected:
-	POA_ImplicitUniquePersistent ()
-	{}
-
-	POA_ImplicitUniquePersistent (POA_Base* parent, const IDL::String* name, CORBA::servant_reference <POAManager>&& manager) :
-		POA_Base (parent, name, std::move (manager))
-	{}
-};
+{};
 
 }
 }

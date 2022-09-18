@@ -41,9 +41,6 @@ class POA_Unique :
 	typedef POA_Retain Base;
 
 public:
-	virtual CORBA::Core::ReferenceLocalRef activate_object (ObjectKey&& key,
-		CORBA::Core::ProxyObject& proxy, bool implicit) override;
-
 	virtual CORBA::servant_reference <CORBA::Core::ProxyObject> deactivate_object (
 		const ObjectId& oid) override;
 
@@ -57,6 +54,8 @@ protected:
 	POA_Unique (POA_Base* parent, const IDL::String* name, CORBA::servant_reference <POAManager>&& manager) :
 		POA_Base (parent, name, std::move (manager))
 	{}
+
+	virtual void activate_object (CORBA::Core::ReferenceLocal& ref, CORBA::Core::ProxyObject& proxy) override;
 
 	virtual void destroy_internal (bool etherealize_objects) NIRVANA_NOEXCEPT override;
 	virtual void etherealize_objects () NIRVANA_NOEXCEPT override;
