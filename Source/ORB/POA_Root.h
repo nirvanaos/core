@@ -193,13 +193,9 @@ POA::_ref_type POA_Base::create_POA (const IDL::String& adapter_name,
 			manager = root_->manager_factory ().create_auto (adapter_name);
 
 		POA_Ref ref;
-		for (const POA_FactoryEntry* pf = factories_, *end = factories_ + FACTORY_COUNT;
-			pf != end; ++pf) {
-			if (pf->policies == pols) {
-				ref = (pf->factory) (this, &ins.first->first, std::move (manager), policies);
-				break;
-			}
-		}
+		const POA_FactoryEntry* pf = std::lower_bound (factories_, factories_ + FACTORY_COUNT, pols);
+		if (pf != factories_ + FACTORY_COUNT && !(pols < *pf))
+			ref = (pf->factory) (this, &ins.first->first, std::move (manager), policies);
 		
 		if (!ref)
 			throw InvalidPolicy (); // Do not return the index, it's too complex to calculate it.

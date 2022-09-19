@@ -33,6 +33,29 @@ using namespace CORBA::Core;
 namespace PortableServer {
 namespace Core {
 
+Object::_ref_type POA_Activator::incarnate (Type <ObjectId>::C_in oid)
+{
+	Bridge <ServantActivator>* bridge = static_cast <Bridge <ServantActivator>*>
+		(&ServantActivator::_ptr_type (activator_));
+	EnvironmentEx <ForwardRequest> env;
+	Type <Object>::C_ret ret ((bridge->_epv ().epv.incarnate) (bridge,
+		&Type <ObjectId>::C_in (oid),
+		&POA::_ptr_type (_this ()), &env));
+	env.check ();
+	return ret;
+}
+
+void POA_Activator::etherialize (Type <ObjectId>::C_in oid, Object::_ptr_type serv,
+	bool cleanup_in_progress,
+	bool remaining_activations)
+{
+	Bridge <ServantActivator>* bridge = static_cast <Bridge <ServantActivator>*>
+		(&ServantActivator::_ptr_type (activator_));
+	(activator_->_epv ().epv.etherealize) (bridge, &oid, &POA::_ptr_type (_this ()),
+		&serv, cleanup_in_progress, remaining_activations,
+		nullptr); // Ignore exceptions
+}
+
 void POA_Activator::serve_default (const RequestRef& request, ReferenceLocal& reference)
 {
 	if (!activator_)
@@ -44,24 +67,22 @@ void POA_Activator::serve_default (const RequestRef& request, ReferenceLocal& re
 	Object::_ref_type servant;
 	if (ins.second) {
 		try {
-			Bridge <ServantActivator>* bridge = static_cast <Bridge <ServantActivator>*>
-				(&ServantActivator::_ptr_type (activator_));
 			try {
-				EnvironmentEx <ForwardRequest> env;
-				Type <Object>::C_ret ret ((activator_->_epv ().epv.incarnate) (bridge,
-					&Type <ObjectId>::C_in (oid),
-					&POA::_ptr_type (_this ()), &env));
-				env.check ();
-				servant = ret;
+				servant = incarnate (oid);
 			} catch (const ForwardRequest&) {
-				// ForwardRequest behaviour is not supported for incoming request
+				// ForwardRequest behaviour is not supported for incoming request.
+				// TODO: Log to let an user understand the restriction.
 				throw OBJECT_NOT_EXIST (MAKE_OMG_MINOR (2));
 			}
+
+			if (!servant) // User code returned nil servant
+				throw OBJECT_NOT_EXIST (MAKE_OMG_MINOR (2));
+
 			try {
 				activate_object (reference, *object2proxy (servant), 
 					ReferenceLocal::LOCAL_AUTO_DEACTIVATE | Reference::GARBAGE_COLLECTION);
 			} catch (const ServantAlreadyActive&) {
-				etherialize (oid, *object2proxy (servant), false);
+				etherialize (oid, servant, false, false);
 				throw OBJ_ADAPTER ();
 			}
 			entry.second.finish_construction (servant);
@@ -73,8 +94,6 @@ void POA_Activator::serve_default (const RequestRef& request, ReferenceLocal& re
 		}
 	} else
 		servant = entry.second.get ();
-
-	// ForwardRequest behaviour is not supported for incoming request
 
 	serve (request, reference, *object2proxy (servant));
 }
@@ -103,12 +122,8 @@ Object::_ref_type POA_Activator::create_reference (ObjectKey&& key,
 void POA_Activator::etherialize (const ObjectId& oid, ProxyObject& proxy,
 	bool cleanup_in_progress) NIRVANA_NOEXCEPT
 {
-	if (activator_) {
-		Bridge <ServantActivator>* bridge = static_cast <Bridge <ServantActivator>*>
-			(&ServantActivator::_ptr_type (activator_));
-		(activator_->_epv ().epv.etherealize) (bridge, &Type <ObjectId>::C_in (oid), &POA::_ptr_type (_this ()),
-			&proxy.get_proxy (), cleanup_in_progress, proxy.is_active (), nullptr); // Ignore exceptions
-	}
+	if (activator_)
+		etherialize (oid, proxy.get_proxy (), cleanup_in_progress, proxy.is_active ());
 }
 
 }

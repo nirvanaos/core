@@ -160,6 +160,12 @@ POA_Base::POA_Base (POA_Base* parent, const IDL::String* name,
 	signature_ (SIGNATURE)
 {
 	the_POAManager_->on_adapter_create (*this);
+
+#ifdef _DEBUG
+	for (size_t i = 1; i < FACTORY_COUNT; ++i) {
+		assert (factories_ [i - 1].policies < factories_ [i].policies);
+	}
+#endif
 }
 
 POA_Base::~POA_Base ()

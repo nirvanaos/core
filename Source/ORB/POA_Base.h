@@ -138,22 +138,34 @@ struct POA_Policies
 		}
 	}
 
+	bool operator < (const POA_Policies& rhs) const NIRVANA_NOEXCEPT
+	{
+		typedef CORBA::Internal::ABI_enum Int;
+		return std::lexicographical_compare (
+			(const Int*)this, (const Int*)(this + 1),
+			(const Int*)&rhs, (const Int*)(&rhs + 1));
+	}
+
 	static const POA_Policies default_;
 };
-
-inline bool operator == (const POA_Policies& l, const POA_Policies& r) NIRVANA_NOEXCEPT
-{
-	using Int = std::conditional_t <(sizeof (size_t) >= 8), uint64_t, uint32_t>;
-	auto pl = reinterpret_cast <const Int*> (&l);
-	return std::equal (pl, pl + sizeof (POA_Policies) / sizeof (Int),
-		reinterpret_cast <const Int*> (&r));
-}
 
 struct POA_FactoryEntry
 {
 	POA_Policies policies;
 	POA_Factory factory;
 };
+
+inline
+bool operator < (const POA_FactoryEntry& l, const POA_Policies& r) NIRVANA_NOEXCEPT
+{
+	return l.policies < r;
+}
+
+inline
+bool operator < (const POA_Policies& l, const POA_FactoryEntry& r) NIRVANA_NOEXCEPT
+{
+	return l < r.policies;
+}
 
 // POA implementation always operates the reference to Object interface (proxy),
 // not to ServantBase.
@@ -313,7 +325,7 @@ public:
 		throw WrongPolicy ();
 	}
 
-	virtual void set_servant (CORBA::Object::_ptr_type proxy)
+	virtual void set_servant (CORBA::Object::_ptr_type p_servant)
 	{
 		throw WrongPolicy ();
 	}
