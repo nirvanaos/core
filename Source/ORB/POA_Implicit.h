@@ -35,7 +35,7 @@ namespace PortableServer {
 namespace Core {
 
 // POA with IMPLICIT_ACTIVATION
-class POA_Implicit :
+class NIRVANA_NOVTABLE POA_Implicit :
 	public virtual POA_Base
 {
 public:
@@ -48,7 +48,7 @@ public:
 	virtual CORBA::Object::_ref_type servant_to_reference_default (CORBA::Core::ProxyObject& proxy, bool not_found) override;
 };
 
-class POA_ImplicitUnique :
+class NIRVANA_NOVTABLE POA_ImplicitUnique :
 	public POA_Implicit,
 	public POA_Unique,
 	public POA_System

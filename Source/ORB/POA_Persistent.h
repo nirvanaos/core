@@ -33,7 +33,7 @@
 namespace PortableServer {
 namespace Core {
 
-class POA_Persistent : public virtual POA_Base
+class NIRVANA_NOVTABLE POA_Persistent : public virtual POA_Base
 {
 public:
 	virtual CORBA::OctetSeq id () const override;

@@ -34,7 +34,7 @@ namespace PortableServer {
 namespace Core {
 
 // UNIQUE_ID, RETAIN
-class POA_Unique : 
+class NIRVANA_NOVTABLE POA_Unique :
 	public POA_Retain
 {
 	typedef POA_Retain Base;

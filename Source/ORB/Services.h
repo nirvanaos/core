@@ -126,7 +126,6 @@ private:
 	}
 
 	// Service factories
-	static Object::_ref_type create_RootPOA ();
 	static Object::_ref_type create_POACurrent ();
 
 	static Nirvana::Core::CoreRef <Nirvana::Core::Service> create_OtherDomains ();

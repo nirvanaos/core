@@ -35,6 +35,13 @@ using namespace CORBA::Core;
 namespace PortableServer {
 namespace Core {
 
+Object::_ref_type POA_Root::create ()
+{
+	auto manager_factory = CORBA::make_reference <POAManagerFactory> ();
+	auto manager = manager_factory->create ("RootPOAManager", CORBA::PolicyList ());
+	return CORBA::make_reference <POA_Root> (std::move (manager), std::move (manager_factory))->_this ();
+}
+
 ReferenceLocalRef POA_Root::find_reference (const ObjectKey& key) NIRVANA_NOEXCEPT
 {
 	References::iterator it = references_.find (static_cast <const ReferenceLocal&> (key));

@@ -100,15 +100,10 @@ CoreRef <Service> Services::bind_internal (CoreService sidx)
 
 const Services::Factory Services::factories_ [SERVICE_COUNT] = {
 	{ "POACurrent", create_POACurrent, 1 * TimeBase::MILLISECOND },
-	{ "RootPOA", create_RootPOA, 1 * TimeBase::MILLISECOND }
+	{ "RootPOA", PortableServer::Core::POA_Root::create, 1 * TimeBase::MILLISECOND }
 };
 
 // Service factories
-
-Object::_ref_type Services::create_RootPOA ()
-{
-	return PortableServer::Core::POA_Root::create ();
-}
 
 Object::_ref_type Services::create_POACurrent ()
 {

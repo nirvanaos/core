@@ -35,7 +35,7 @@ namespace PortableServer {
 namespace Core {
 
 // RETAIN policy
-class POA_Retain : public virtual POA_Base
+class NIRVANA_NOVTABLE POA_Retain : public virtual POA_Base
 {
 public:
 	virtual void deactivate_object (const ObjectId& oid) override;

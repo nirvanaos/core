@@ -65,8 +65,7 @@ StreamInSM::~StreamInSM ()
 void StreamInSM::next_block ()
 {
 	BlockHdr* block = cur_block_;
-	const uint8_t* block_end = (const uint8_t*)block + block->size;
-	assert (cur_ptr_ <= block_end);
+	assert (cur_ptr_ <= (const uint8_t*)block + block->size);
 	cur_block_ = block->next;
 	release_block (block);
 	if (!cur_block_)

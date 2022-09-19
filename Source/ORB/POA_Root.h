@@ -95,7 +95,7 @@ public:
 		SYNC_END ();
 	}
 
-	static PortableServer::POA::_ref_type create ();
+	static CORBA::Object::_ref_type create ();
 
 	POAManagerFactory& manager_factory () NIRVANA_NOEXCEPT
 	{
