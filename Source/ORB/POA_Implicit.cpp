@@ -23,8 +23,7 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "POA_Implicit.h"
-#include "POAManagerFactory.h"
+#include "POA_Root.h"
 
 using namespace CORBA;
 using namespace CORBA::Core;

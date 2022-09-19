@@ -94,28 +94,64 @@ class POA_Base;
 typedef CORBA::servant_reference <POA_Base> POA_Ref;
 
 typedef POA_Ref (*POA_Factory) (POA_Base* parent, const IDL::String* name,
-	CORBA::servant_reference <POAManager>&& manager);
+	CORBA::servant_reference <POAManager>&& manager, const CORBA::PolicyList& policies);
 
-struct PolicyVal
+struct POA_Policies
 {
-	unsigned type;
-	unsigned value;
+	LifespanPolicyValue lifespan;
+	IdUniquenessPolicyValue id_uniqueness;
+	IdAssignmentPolicyValue id_assignment;
+	ImplicitActivationPolicyValue implicit_activation;
+	ServantRetentionPolicyValue servant_retention;
+	RequestProcessingPolicyValue request_processing;
 
-	bool operator < (const PolicyVal& rhs) const NIRVANA_NOEXCEPT
+	void set_values (const CORBA::PolicyList& policies)
 	{
-		return type < rhs.type;
+		*this = default_;
+		for (auto it = policies.begin (); it != policies.end (); ++it) {
+			CORBA::Policy::_ptr_type policy = *it;
+			CORBA::PolicyType type = policy->policy_type ();
+			switch (type) {
+				case THREAD_POLICY_ID:
+					if (ThreadPolicyValue::ORB_CTRL_MODEL != ThreadPolicy::_narrow (policy)->value ())
+						throw POA::InvalidPolicy (it - policies.begin ());
+					break;
+				case LIFESPAN_POLICY_ID:
+					lifespan = LifespanPolicy::_narrow (policy)->value ();
+					break;
+				case ID_UNIQUENESS_POLICY_ID:
+					id_uniqueness = IdUniquenessPolicy::_narrow (policy)->value ();
+					break;
+				case ID_ASSIGNMENT_POLICY_ID:
+					id_assignment = IdAssignmentPolicy::_narrow (policy)->value ();
+					break;
+				case IMPLICIT_ACTIVATION_POLICY_ID:
+					implicit_activation = ImplicitActivationPolicy::_narrow (policy)->value ();
+					break;
+				case SERVANT_RETENTION_POLICY_ID:
+					servant_retention = ServantRetentionPolicy::_narrow (policy)->value ();
+					break;
+				case REQUEST_PROCESSING_POLICY_ID:
+					request_processing = RequestProcessingPolicy::_narrow (policy)->value ();
+					break;
+			}
+		}
 	}
 
-	bool operator == (const PolicyVal& rhs) const NIRVANA_NOEXCEPT
-	{
-		return type == rhs.type && value == rhs.value;
-	}
+	static const POA_Policies default_;
 };
+
+inline bool operator == (const POA_Policies& l, const POA_Policies& r) NIRVANA_NOEXCEPT
+{
+	using Int = std::conditional_t <(sizeof (size_t) >= 8), uint64_t, uint32_t>;
+	auto pl = reinterpret_cast <const Int*> (&l);
+	return std::equal (pl, pl + sizeof (POA_Policies) / sizeof (Int),
+		reinterpret_cast <const Int*> (&r));
+}
 
 struct POA_FactoryEntry
 {
-	size_t policy_count;
-	const PolicyVal* policy_values;
+	POA_Policies policies;
 	POA_Factory factory;
 };
 
@@ -131,7 +167,7 @@ class NIRVANA_NOVTABLE POA_Base :
 public:
 	// POA creation and destruction
 
-	POA::_ref_type create_POA (const IDL::String& adapter_name,
+	inline POA::_ref_type create_POA (const IDL::String& adapter_name,
 		PortableServer::POAManager::_ptr_type a_POAManager, const CORBA::PolicyList& policies);
 
 	POA::_ref_type find_POA (const IDL::String& adapter_name, bool activate_it)
@@ -486,6 +522,9 @@ private:
 
 	static const int32_t SIGNATURE = 'POA_';
 	const int32_t signature_;
+
+	static const size_t FACTORY_COUNT;
+	static const POA_FactoryEntry factories_ [];
 };
 
 }

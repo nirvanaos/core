@@ -24,7 +24,7 @@
 *  popov.nirvana@gmail.com
 */
 #include "POA_Activator.h"
-#include "POAManagerFactory.h"
+#include "POA_Root.h"
 
 using namespace CORBA;
 using namespace CORBA::Internal;

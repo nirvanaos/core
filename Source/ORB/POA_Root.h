@@ -174,6 +174,46 @@ void POA_Base::implicit_activate (POA::_ptr_type adapter, CORBA::Core::ProxyObje
 	SYNC_END ();
 }
 
+inline
+POA::_ref_type POA_Base::create_POA (const IDL::String& adapter_name,
+	PortableServer::POAManager::_ptr_type a_POAManager, const CORBA::PolicyList& policies)
+{
+	POA_Policies pols;
+	pols.set_values (policies);
+
+	auto ins = children_.emplace (adapter_name, POA_Ref ());
+	if (!ins.second)
+		throw AdapterAlreadyExists ();
+
+	try {
+
+		CORBA::servant_reference <POAManager> manager = POAManager::get_implementation (
+			CORBA::Core::local2proxy (a_POAManager));
+		if (!manager)
+			manager = root_->manager_factory ().create_auto (adapter_name);
+
+		POA_Ref ref;
+		for (const POA_FactoryEntry* pf = factories_, *end = factories_ + FACTORY_COUNT;
+			pf != end; ++pf) {
+			if (pf->policies == pols) {
+				ref = (pf->factory) (this, &ins.first->first, std::move (manager), policies);
+				break;
+			}
+		}
+		
+		if (!ref)
+			throw InvalidPolicy (); // Do not return the index, it's too complex to calculate it.
+		else
+			ins.first->second = std::move (ref);
+
+	} catch (...) {
+		children_.erase (ins.first);
+		throw;
+	}
+
+	return ins.first->second->_this ();
+}
+
 }
 }
 

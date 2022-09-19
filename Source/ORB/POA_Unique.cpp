@@ -23,8 +23,7 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "POA_Unique.h"
-#include "POAManagerFactory.h"
+#include "POA_Root.h"
 
 using namespace Nirvana::Core;
 using namespace CORBA;

@@ -26,7 +26,7 @@
 #include "ObjectKey.h"
 #include "StreamInEncap.h"
 #include <Nirvana/Hash.h>
-#include "POAManagerFactory.h"
+#include "POA_Root.h"
 
 using namespace Nirvana::Core;
 using namespace CORBA::Core;

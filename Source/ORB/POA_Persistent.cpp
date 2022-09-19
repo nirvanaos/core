@@ -24,7 +24,7 @@
 *  popov.nirvana@gmail.com
 */
 #include "POA_Persistent.h"
-#include "POAManagerFactory.h"
+#include "POA_Root.h"
 #include "StreamOutEncap.h"
 
 namespace PortableServer {

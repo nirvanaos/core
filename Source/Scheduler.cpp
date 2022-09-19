@@ -26,7 +26,7 @@
 #include "Scheduler.h"
 #include "ExecDomain.h"
 #include "initterm.h"
-#include "ORB/POAManagerFactory.h"
+#include "ORB/POA_Root.h"
 
 namespace Nirvana {
 namespace Core {
