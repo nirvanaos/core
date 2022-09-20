@@ -27,6 +27,7 @@
 #include "POA_Root.h"
 
 using namespace CORBA;
+using namespace CORBA::Core;
 
 namespace PortableServer {
 namespace Core {
@@ -63,7 +64,8 @@ void POA_Default::serve_default (const RequestRef& request, CORBA::Core::Referen
 	if (!servant_)
 		throw OBJ_ADAPTER (MAKE_OMG_MINOR (3));
 
-	serve (request, reference, *CORBA::Core::object2proxy (servant_));
+	servant_reference <ProxyObject> hold (object2proxy (servant_));
+	serve (request, reference, *hold);
 }
 
 }

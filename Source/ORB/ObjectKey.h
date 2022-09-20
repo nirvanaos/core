@@ -47,7 +47,7 @@ typedef IDL::Sequence <IDL::String> AdapterPath;
 
 class POA_Base;
 
-	/// Object key internal structure.
+/// Object key internal structure.
 class ObjectKey
 {
 public:

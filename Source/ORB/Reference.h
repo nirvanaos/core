@@ -34,8 +34,6 @@
 namespace CORBA {
 namespace Core {
 
-class ReferenceLocal;
-
 class Reference :
 	public ProxyManager
 {
