@@ -31,7 +31,6 @@
 #include "StreamIn.h"
 #include "../UserObject.h"
 
-namespace Nirvana {
 namespace ESIOP {
 
 /// Shared memory input stream
@@ -84,7 +83,6 @@ private:
 	Segment* segments_;
 };
 
-}
 }
 
 #endif

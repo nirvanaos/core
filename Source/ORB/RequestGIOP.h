@@ -29,13 +29,16 @@
 #pragma once
 
 #include <CORBA/Server.h>
-#include "StreamIn.h"
+#include "StreamInEncap.h"
 #include "StreamOut.h"
 #include <CORBA/IORequest_s.h>
 #include "RqHelper.h"
 #include "../LifeCyclePseudo.h"
-#include "GIOP.h"
+#include "IIOP.h"
 #include "CodeSetConverter.h"
+#include "POA_Root.h"
+#include "LocalAddress.h"
+#include "RemoteReferences.h"
 
 namespace CORBA {
 namespace Core {
@@ -227,7 +230,76 @@ public:
 	/// \returns Interface.
 	Internal::Interface::_ref_type unmarshal_interface (const IDL::String& interface_id)
 	{
-		throw NO_IMPLEMENT ();
+		Object::_ref_type obj;
+		{
+			IDL::String primary_iid;
+			stream_in_->read_string (primary_iid);
+			if (primary_iid.empty ())
+				return nullptr; // nil reference
+
+			IOP::TaggedProfileSeq addr;
+			stream_in_->read_tagged (addr);
+
+			IIOP::ListenPoint listen_point;
+			IOP::ObjectKey object_key;
+			IOP::TaggedComponentSeq components;
+			bool found_internet = false, found_components = false;
+			for (const IOP::TaggedProfile& profile : addr) {
+				if (profile.tag () == IOP::TAG_INTERNET_IOP) {
+					found_internet = true;
+					Nirvana::Core::ImplStatic <StreamInEncap> stm (std::ref (profile.profile_data ()));
+					IIOP::Version ver;
+					stm.read (alignof (IIOP::Version), sizeof (IIOP::Version), &ver);
+					if (ver.major () != 1)
+						throw NO_IMPLEMENT (MAKE_OMG_MINOR (3));
+					stm.read_string (listen_point.host ());
+					stm.read (alignof (uint16_t), sizeof (uint16_t), &listen_point.port ());
+					stm.read_seq (object_key);
+					if (found_components)
+						break;
+					if (ver.minor () >= 1) {
+						stm.read_tagged (components);
+						if (!components.empty ())
+							break;
+					}
+#ifdef SINGLE_DOMAIN
+					break;
+#else
+				} else if (profile.tag () == IOP::TAG_MULTIPLE_COMPONENTS) {
+					Nirvana::Core::ImplStatic <StreamInEncap> stm (std::ref (profile.profile_data ()));
+					stm.read_tagged (components);
+					found_components = true;
+					if (found_internet)
+						break;
+#endif
+				}
+			}
+
+			if (LocalAddress::singleton () == listen_point) {
+				// Local system
+#ifndef SINGLE_DOMAIN
+				ESIOP::ProtDomainId domain_id;
+				for (const IOP::TaggedComponent& comp : components) {
+					if (comp.tag () == ESIOP::TAG_DOMAIN_ADDRESS) {
+						if (comp.component_data ().size () == sizeof (ESIOP::ProtDomainId)) {
+							domain_id = *(const ESIOP::ProtDomainId*)comp.component_data ().data ();
+						} else
+							throw BAD_PARAM ();
+						break;
+					}
+				}
+				if (!(ESIOP::current_domain_id () == domain_id))
+					obj = RemoteReferences::singleton ().unmarshal (primary_iid, std::move (addr), domain_id);
+				else
+#endif
+					obj = PortableServer::Core::POA_Root::unmarshal (primary_iid, object_key);
+			} else
+				obj = RemoteReferences::singleton ().unmarshal (primary_iid, std::move (addr), std::move (listen_point));
+		}
+		if (Internal::RepId::compatible (Internal::RepIdOf <Object>::id, interface_id))
+			return obj;
+		else
+			return obj->_query_interface (interface_id);
 	}
 
 	/// Marshal TypeCode.

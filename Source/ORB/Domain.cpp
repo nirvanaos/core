@@ -23,36 +23,27 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "POA_Root.h"
+#include "RemoteReferences.h"
 
-namespace PortableServer {
+using namespace Nirvana::Core;
+
+namespace CORBA {
 namespace Core {
 
-ObjectId POA_System::generate_object_id ()
+void Domain::_add_ref () NIRVANA_NOEXCEPT
 {
-	const CORBA::Octet* p = (const CORBA::Octet*)&next_id_;
-	ObjectId ret (p, p + sizeof (ID));
-	++next_id_;
-	return ret;
+	ref_cnt_.increment ();
 }
 
-void POA_System::check_object_id (const ObjectId& oid)
+void Domain::_remove_ref () NIRVANA_NOEXCEPT
 {
-	if (oid.size () != sizeof (ID))
-		throw CORBA::BAD_PARAM (MAKE_OMG_MINOR (14));
-	ID id = *(const ID*)oid.data ();
-	if (id >= next_id_)
-		throw CORBA::BAD_PARAM ();
-}
-
-ObjectId POA_SystemPersistent::generate_object_id ()
-{
-	return root_->generate_persistent_id ();
-}
-
-void POA_SystemPersistent::check_object_id (const ObjectId& oid)
-{
-	POA_Root::check_persistent_id (oid);
+	if (!ref_cnt_.decrement_seq ()) {
+		SyncContext& sc = service_->sync_domain ();
+		if (&SyncContext::current () == &sc)
+			destroy ();
+		else
+			GarbageCollector::schedule (*this, sc);
+	}
 }
 
 }

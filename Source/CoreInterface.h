@@ -51,6 +51,7 @@ _Pragma ("GCC diagnostic pop")
 
 #define DECLARE_CORE_INTERFACE protected:\
 template <class> friend class Nirvana::Core::CoreRef;\
+template <class> friend class CORBA::servant_reference;\
 virtual void _add_ref () NIRVANA_NOEXCEPT = 0;\
 virtual void _remove_ref () NIRVANA_NOEXCEPT = 0;
 

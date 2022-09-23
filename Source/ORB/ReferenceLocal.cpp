@@ -192,7 +192,7 @@ Nirvana::Core::CoreRef <ProxyObject> ReferenceLocal::get_servant () const NIRVAN
 
 void ReferenceLocal::marshal (StreamOut& out) const
 {
-	out.write_string (static_cast <const IDL::String&> (primary_interface_id ()));
+	out.write_string (primary_interface_id ());
 	throw NO_IMPLEMENT (); // TODO: Implement.
 	PortableServer::Core::ObjectKey::marshal (out);
 }

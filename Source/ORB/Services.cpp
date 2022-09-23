@@ -27,7 +27,7 @@
 #include "Services.h"
 #include "POA_Root.h"
 #include "PortableServer_Current.h"
-#include "OtherDomains.h"
+#include "RemoteReferences.h"
 
 using namespace Nirvana::Core;
 using namespace Nirvana;
@@ -113,14 +113,14 @@ Object::_ref_type Services::create_POACurrent ()
 // Core services.
 
 const Services::CoreFactory Services::core_factories_ [CORE_SERVICE_COUNT] = {
-	{ create_OtherDomains, 1 * TimeBase::MILLISECOND }
+	{ create_RemoteReferences, 1 * TimeBase::MILLISECOND }
 };
 
 // Core service factories
 
-CoreRef <Service> Services::create_OtherDomains ()
+CoreRef <Service> Services::create_RemoteReferences ()
 {
-	return CoreRef <Nirvana::Core::Service>::create <ImplDynamic <ESIOP::OtherDomains> > ();
+	return CoreRef <Nirvana::Core::Service>::create <ImplDynamic <CORBA::Core::RemoteReferences> > ();
 }
 
 }

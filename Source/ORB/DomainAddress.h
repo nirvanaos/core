@@ -77,7 +77,7 @@ struct DomainAddress
 		INET6
 	};
 
-	DomainAddress (Nirvana::ESIOP::ProtDomainId client) :
+	DomainAddress (ESIOP::ProtDomainId client) :
 		family (Family::ESIOP),
 		address (client)
 	{}
@@ -116,7 +116,7 @@ struct DomainAddress
 
 	union Address
 	{
-		Address (Nirvana::ESIOP::ProtDomainId addr) :
+		Address (ESIOP::ProtDomainId addr) :
 			esiop (addr)
 		{}
 
@@ -129,7 +129,7 @@ struct DomainAddress
 		{}
 
 		// family == ESIOP
-		Nirvana::ESIOP::ProtDomainId esiop;
+		ESIOP::ProtDomainId esiop;
 
 		// family == INET
 		IPv4 inet;

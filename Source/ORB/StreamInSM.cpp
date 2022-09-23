@@ -28,9 +28,9 @@
 #include "../MemContext.h"
 #include <limits>
 
+using namespace Nirvana;
 using namespace Nirvana::Core;
 
-namespace Nirvana {
 namespace ESIOP {
 
 inline
@@ -225,5 +225,4 @@ size_t StreamInSM::end ()
 	return rem_size;
 }
 
-}
 }

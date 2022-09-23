@@ -24,55 +24,52 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_CORE_SERVICE_H_
-#define NIRVANA_CORE_SERVICE_H_
+#ifndef NIRVANA_ORB_CORE_DOMAIN_H_
+#define NIRVANA_ORB_CORE_DOMAIN_H_
 #pragma once
 
-#include "SyncDomain.h"
+#include "CORBA/CORBA.h"
+#include "../AtomicCounter.h"
+#include "../Service.h"
+#include "GarbageCollector.h"
 
-namespace Nirvana {
+namespace CORBA {
 namespace Core {
 
-class ServiceMemorySeparate
+class NIRVANA_NOVTABLE Domain : public SyncGC
 {
-public:
-	MemContext& memory () NIRVANA_NOEXCEPT
-	{
-		return memory_;
-	}
-
-private:
-	ImplStatic <MemContextCore> memory_;
-};
-
-class ServiceMemoryShared
-{
-public:
-	static MemContext& memory () NIRVANA_NOEXCEPT
-	{
-		return g_shared_mem_context;
-	}
-};
-
-using ServiceMemory = std::conditional_t <(sizeof (void*) > 4), ServiceMemorySeparate, ServiceMemoryShared>;
-
-class Service : public ServiceMemory
-{
-	DECLARE_CORE_INTERFACE
+	template <class D> friend class CORBA::servant_reference;
 
 public:
-	SyncDomain& sync_domain () NIRVANA_NOEXCEPT
+	Nirvana::Core::Service& service () const NIRVANA_NOEXCEPT
 	{
-		return sync_domain_;
+		return *service_;
 	}
 
 protected:
-	Service () :
-		sync_domain_ (std::ref (memory ()))
+	Domain (Nirvana::Core::Service& service) :
+		service_ (&service)
 	{}
 
+	virtual void _add_ref () NIRVANA_NOEXCEPT override;
+	virtual void _remove_ref () NIRVANA_NOEXCEPT override;
+	virtual void destroy () NIRVANA_NOEXCEPT = 0;
+
 private:
-	ImplStatic <SyncDomainCore> sync_domain_;
+	servant_reference <Nirvana::Core::Service> service_;
+
+	class RefCnt : public Nirvana::Core::AtomicCounter <false>
+	{
+	public:
+		RefCnt () :
+			Nirvana::Core::AtomicCounter <false> (1)
+		{}
+
+		RefCnt (const RefCnt&) = delete;
+		RefCnt& operator = (const RefCnt&) = delete;
+	};
+
+	RefCnt ref_cnt_;
 };
 
 }

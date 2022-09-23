@@ -144,6 +144,13 @@ public:
 	template <typename T>
 	void read_seq (IDL::Sequence <T>& s);
 
+	void read_tagged (IOP::TaggedProfileSeq& seq);
+
+	void read_tagged (IOP::TaggedComponentSeq& seq)
+	{
+		read_tagged (reinterpret_cast <IOP::TaggedProfileSeq&> (seq));
+	}
+
 protected:
 	StreamIn () :
 		other_endian_ (false)

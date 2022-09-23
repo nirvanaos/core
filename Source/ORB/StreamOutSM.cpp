@@ -25,9 +25,9 @@
 */
 #include "StreamOutSM.h"
 
+using namespace Nirvana;
 using namespace Nirvana::Core;
 
-namespace Nirvana {
 namespace ESIOP {
 
 void StreamOutSM::initialize ()
@@ -207,5 +207,4 @@ void StreamOutSM::rewind (size_t hdr_size)
 	cur_ptr_ = (uint8_t*)blocks_.front ().ptr + stream_hdr_size () + hdr_size;
 }
 
-}
 }

@@ -1,3 +1,4 @@
+/// \file
 /*
 * Nirvana Core.
 *
@@ -23,37 +24,35 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "POA_Root.h"
+#ifndef NIRVANA_ORB_CORE_DOMAINREMOTE_H_
+#define NIRVANA_ORB_CORE_DOMAINREMOTE_H_
+#pragma once
 
-namespace PortableServer {
+#include "Domain.h"
+#include "IIOP.h"
+
+namespace CORBA {
 namespace Core {
 
-ObjectId POA_System::generate_object_id ()
+/// Other protection domain on the same system.
+class DomainRemote :
+	public IIOP::ListenPoint,
+	public Domain
 {
-	const CORBA::Octet* p = (const CORBA::Octet*)&next_id_;
-	ObjectId ret (p, p + sizeof (ID));
-	++next_id_;
-	return ret;
-}
+public:
+	DomainRemote (Nirvana::Core::Service& service, IIOP::ListenPoint&& lp) :
+		IIOP::ListenPoint (std::move (lp)),
+		Domain (service)
+	{}
 
-void POA_System::check_object_id (const ObjectId& oid)
-{
-	if (oid.size () != sizeof (ID))
-		throw CORBA::BAD_PARAM (MAKE_OMG_MINOR (14));
-	ID id = *(const ID*)oid.data ();
-	if (id >= next_id_)
-		throw CORBA::BAD_PARAM ();
-}
+	~DomainRemote ()
+	{}
 
-ObjectId POA_SystemPersistent::generate_object_id ()
-{
-	return root_->generate_persistent_id ();
-}
-
-void POA_SystemPersistent::check_object_id (const ObjectId& oid)
-{
-	POA_Root::check_persistent_id (oid);
-}
+protected:
+	virtual void destroy () NIRVANA_NOEXCEPT;
+};
 
 }
 }
+
+#endif

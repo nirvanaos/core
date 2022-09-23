@@ -68,5 +68,15 @@ bool StreamIn::read_seq (size_t align, size_t element_size, size_t& element_coun
 	return other_endian ();
 }
 
+void StreamIn::read_tagged (IOP::TaggedProfileSeq& seq)
+{
+	size_t cnt = read_size ();
+	seq.resize (cnt);
+	for (IOP::TaggedProfile& profile : seq) {
+		read (alignof (uint32_t), sizeof (uint32_t), &profile.tag ());
+		read_seq (profile.profile_data ());
+	}
+}
+
 }
 }

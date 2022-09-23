@@ -32,8 +32,6 @@
 #include <CORBA/CORBA.h>
 #include <Port/ESIOP.h>
 
-namespace Nirvana {
-
 /// Environment-specific inter-ORB protocol.
 /// Implements communication between protection domains
 /// in one system domain.
@@ -173,7 +171,7 @@ struct ReplyImmediate : MessageHeader
 		request_id (rq_id)
 	{
 		assert (size <= MAX_DATA_SIZE);
-		if (endian::native == endian::little)
+		if (Nirvana::endian::native == Nirvana::endian::little)
 			data_size_and_flag |= 1;
 	}
 };
@@ -184,23 +182,42 @@ static_assert (sizeof (MessageBuffer) == sizeof (ReplyImmediate), "sizeof (Messa
 /// Called by the postman from portability layer.
 void dispatch_message (const MessageHeader& message) NIRVANA_NOEXCEPT;
 
+/// Other domain platform properties.
+struct PlatformSizes
+{
+	size_t allocation_unit; ///< Shared memory ALLOCATION_UNIT.
+	size_t block_size; ///< Stream block size granularity.
+	size_t sizeof_pointer; ///< sizeof (void*) on target platform.
+	size_t sizeof_size; ///< sizeof (size_t) on target platform.
+	size_t max_size; ///< maximal size_t value.
+};
+
+/// Nirvana ORB type.
+///
+/// The TAG_ORB_TYPE component has an associated value of type unsigned long, encoded as a CDR
+/// encapsulation, designating an ORB type ID allocated by the OMG for the ORB type of the
+/// originating ORB. Anyone may register any ORB types by submitting a short (one - paragraph)
+/// description of the ORB type to the OMG, and will receive a new ORB type ID in return.
+/// A list of ORB type descriptions and values will be made available on the OMG web server.
+const uint32_t ORB_TYPE = 0xFFFFFFFF;
+
 /// Vendor service context ID. TODO: Obtain from OMG.
 const uint32_t VSCID = 0xFFFFFF;
-
-/// Nirvana ESIOP profile tag. TODO: Obtain from OMG.
-/// profile_data contains the local protection domain ID.
-/// If this profile is not present, the local system domain is assumed.
-const uint32_t TAG_PROTECTION_DOMAIN_ID = 0xFFFFFFFF;
 
 ///@{ Service context IDs
 
 /// Local deadline.
 /// context_data contains the local DeadlineTime, 8 bytes.
+/// Used only for calls inside the local system domain.
 const uint32_t CONTEXT_ID_DEADLINE = (VSCID << 8) | 0;
 
 ///@}
 
-}
+/// Nirvana ESIOP component tag. TODO: Obtain from OMG.
+/// profile_data contains the local protection domain ID.
+/// If this profile is not present, the local system domain is assumed.
+const uint32_t TAG_DOMAIN_ADDRESS = 0xFFFFFFFF;
+
 }
 
 #endif

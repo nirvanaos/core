@@ -31,14 +31,11 @@
 #include "../Runnable.h"
 #include "../CoreObject.h"
 #include "../Chrono.h"
-#include "OtherDomains.h"
 
 using namespace CORBA;
 using namespace CORBA::Core;
 
-namespace Nirvana {
-
-using namespace Core;
+using namespace Nirvana::Core;
 
 namespace ESIOP {
 
@@ -103,7 +100,7 @@ class NIRVANA_NOVTABLE ReceiveRequest :
 {
 protected:
 	ReceiveRequest (ProtDomainId client_id, uint32_t request_id, void* data) :
-		timestamp_ (Core::Chrono::deadline_clock ()),
+		timestamp_ (Nirvana::Core::Chrono::deadline_clock ()),
 		data_ (data),
 		client_id_ (client_id),
 		request_id_ (request_id)
@@ -179,7 +176,7 @@ class NIRVANA_NOVTABLE Cancel :
 {
 protected:
 	Cancel (ProtDomainId client_id, uint32_t request_id) :
-		timestamp_ (Core::Chrono::deadline_clock ()),
+		timestamp_ (Nirvana::Core::Chrono::deadline_clock ()),
 		client_id_ (client_id),
 		request_id_ (request_id)
 	{}
@@ -233,5 +230,4 @@ void dispatch_message (const MessageHeader& message) NIRVANA_NOEXCEPT
 	}
 }
 
-}
 }

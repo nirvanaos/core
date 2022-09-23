@@ -32,7 +32,6 @@
 #include "ESIOP.h"
 #include "StreamOutSM.h"
 
-namespace Nirvana {
 namespace ESIOP {
 
 class NIRVANA_NOVTABLE StreamOutReply :
@@ -72,7 +71,6 @@ private:
 	uint8_t small_buffer_ [REPLY_HEADERS_SIZE + ReplyImmediate::MAX_DATA_SIZE];
 };
 
-}
 }
 
 #endif

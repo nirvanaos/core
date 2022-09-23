@@ -118,7 +118,7 @@ public:
 	static void check_persistent_id (const ObjectId& oid)
 	{
 		if (oid.size () != 8 + sizeof (RandomGen::result_type))
-			throw CORBA::BAD_PARAM ();
+			throw CORBA::BAD_PARAM (MAKE_OMG_MINOR (14));
 	}
 
 	typedef Nirvana::Core::SetUnorderedStable <CORBA::Core::ReferenceLocal, std::hash <ObjectKey>,

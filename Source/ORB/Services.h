@@ -49,7 +49,7 @@ public:
 
 	enum CoreService
 	{
-		OtherDomains,
+		RemoteReferences,
 
 		CORE_SERVICE_COUNT
 	};
@@ -128,7 +128,7 @@ private:
 	// Service factories
 	static Object::_ref_type create_POACurrent ();
 
-	static Nirvana::Core::CoreRef <Nirvana::Core::Service> create_OtherDomains ();
+	static Nirvana::Core::CoreRef <Nirvana::Core::Service> create_RemoteReferences ();
 
 private:
 	struct Factory

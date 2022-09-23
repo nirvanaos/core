@@ -99,6 +99,16 @@ public:
 		write_string (const_cast <Internal::StringT <C>&> (s), false);
 	}
 
+	/// Write string.
+	/// 
+	/// \tparam C The character type.
+	/// \param s The string.
+	template <typename C>
+	void write_string (const Internal::StringView <C>& s)
+	{
+		write_string (static_cast <const Internal::StringT <C>&> (s));
+	}
+
 	/// Write size of sequence or string.
 	/// \param size The size.
 	void write_size (size_t size);

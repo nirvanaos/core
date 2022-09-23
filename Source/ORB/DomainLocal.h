@@ -1,3 +1,4 @@
+/// \file
 /*
 * Nirvana Core.
 *
@@ -23,37 +24,39 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "POA_Root.h"
+#ifndef NIRVANA_ORB_CORE_DOMAINLOCAL_H_
+#define NIRVANA_ORB_CORE_DOMAINLOCAL_H_
+#pragma once
 
-namespace PortableServer {
+#include "Domain.h"
+#include <Port/OtherDomain.h>
+
+namespace CORBA {
 namespace Core {
 
-ObjectId POA_System::generate_object_id ()
+/// Other protection domain on the same system.
+class DomainLocal :
+	public Domain,
+	public ESIOP::OtherDomain
 {
-	const CORBA::Octet* p = (const CORBA::Octet*)&next_id_;
-	ObjectId ret (p, p + sizeof (ID));
-	++next_id_;
-	return ret;
-}
+public:
+	DomainLocal (Nirvana::Core::Service& service, ESIOP::ProtDomainId id) :
+		Domain (service),
+		ESIOP::OtherDomain (id),
+		id_ (id)
+	{}
+	
+	~DomainLocal ()
+	{}
 
-void POA_System::check_object_id (const ObjectId& oid)
-{
-	if (oid.size () != sizeof (ID))
-		throw CORBA::BAD_PARAM (MAKE_OMG_MINOR (14));
-	ID id = *(const ID*)oid.data ();
-	if (id >= next_id_)
-		throw CORBA::BAD_PARAM ();
-}
+protected:
+	virtual void destroy () NIRVANA_NOEXCEPT;
 
-ObjectId POA_SystemPersistent::generate_object_id ()
-{
-	return root_->generate_persistent_id ();
-}
-
-void POA_SystemPersistent::check_object_id (const ObjectId& oid)
-{
-	POA_Root::check_persistent_id (oid);
-}
+private:
+	ESIOP::ProtDomainId id_;
+};
 
 }
 }
+
+#endif

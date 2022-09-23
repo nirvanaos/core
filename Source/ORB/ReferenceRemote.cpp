@@ -23,32 +23,41 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "ORB_initterm.h"
-#include "ReferenceLocal.h"
-#include "IncomingRequests.h"
-#include "OutgoingRequests.h"
-#include "CodeSetConverter.h"
-#include "Services.h"
-#include "LocalAddress.h"
+#include "RemoteReferences.h"
+#include "Domain.h"
+#include "StreamOut.h"
+
+using namespace Nirvana::Core;
 
 namespace CORBA {
 namespace Core {
 
-void initialize ()
+void ReferenceRemote::_add_ref () NIRVANA_NOEXCEPT
 {
-	Services::initialize ();
-	LocalAddress::initialize ();
-	OutgoingRequests::initialize ();
-	IncomingRequests::initialize ();
-	CodeSetConverter::initialize ();
+	ref_cnt_.increment ();
 }
 
-void terminate () NIRVANA_NOEXCEPT
+void ReferenceRemote::_remove_ref () NIRVANA_NOEXCEPT
 {
-	IncomingRequests::terminate ();
-	OutgoingRequests::terminate ();
-	LocalAddress::terminate ();
-	Services::terminate ();
+	if (!ref_cnt_.decrement_seq ()) {
+		RemoteReferences& service = static_cast <RemoteReferences&> (domain_->service ());
+		SyncContext& sc = service.sync_domain ();
+		if (&SyncContext::current () == &sc)
+			service.erase (address_);
+		else
+			GarbageCollector::schedule (*this, sc);
+	}
+}
+
+void ReferenceRemote::marshal (StreamOut& out) const
+{
+	out.write_string (primary_interface_id ());
+	out.write_size (address_.size ());
+	for (const IOP::TaggedProfile& profile : address_) {
+		IOP::ProfileId tag = profile.tag ();
+		out.write (alignof (IOP::ProfileId), sizeof (tag), &tag);
+		out.write_seq (profile.profile_data ());
+	}
 }
 
 }

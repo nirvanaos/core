@@ -25,7 +25,8 @@
 */
 #include "StreamOutReply.h"
 
-namespace Nirvana {
+using namespace Nirvana;
+
 namespace ESIOP {
 
 void StreamOutReply::write (size_t align, size_t size, void* data, size_t& allocated_size)
@@ -109,5 +110,4 @@ void StreamOutReply::send (uint32_t request_id) NIRVANA_NOEXCEPT
 	}
 }
 
-}
 }

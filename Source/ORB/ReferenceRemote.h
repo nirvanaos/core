@@ -1,3 +1,4 @@
+/// \file
 /*
 * Nirvana Core.
 *
@@ -23,37 +24,42 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "POA_Root.h"
+#ifndef NIRVANA_ORB_CORE_REFERENCEREMOTE_H_
+#define NIRVANA_ORB_CORE_REFERENCEREMOTE_H_
+#pragma once
 
-namespace PortableServer {
+#include "Reference.h"
+#include <CORBA/IOP.h>
+#include "GarbageCollector.h"
+
+namespace CORBA {
 namespace Core {
 
-ObjectId POA_System::generate_object_id ()
-{
-	const CORBA::Octet* p = (const CORBA::Octet*)&next_id_;
-	ObjectId ret (p, p + sizeof (ID));
-	++next_id_;
-	return ret;
-}
+class Domain;
 
-void POA_System::check_object_id (const ObjectId& oid)
+/// Base for remote references.
+class ReferenceRemote :
+	public Reference,
+	public SyncGC
 {
-	if (oid.size () != sizeof (ID))
-		throw CORBA::BAD_PARAM (MAKE_OMG_MINOR (14));
-	ID id = *(const ID*)oid.data ();
-	if (id >= next_id_)
-		throw CORBA::BAD_PARAM ();
-}
+public:
+	ReferenceRemote (servant_reference <Domain>&& domain, const IOP::TaggedProfileSeq& addr, const IDL::String& primary_iid, unsigned flags) :
+		Reference (primary_iid, flags),
+		domain_ (std::move (domain)),
+		address_ (addr)
+	{}
 
-ObjectId POA_SystemPersistent::generate_object_id ()
-{
-	return root_->generate_persistent_id ();
-}
+protected:
+	virtual void _add_ref () NIRVANA_NOEXCEPT override;
+	virtual void _remove_ref () NIRVANA_NOEXCEPT override;
+	virtual void marshal (StreamOut& out) const override;
 
-void POA_SystemPersistent::check_object_id (const ObjectId& oid)
-{
-	POA_Root::check_persistent_id (oid);
-}
+private:
+	servant_reference <Domain> domain_;
+	const IOP::TaggedProfileSeq& address_;
+};
 
 }
 }
+
+#endif

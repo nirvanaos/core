@@ -34,7 +34,7 @@
 namespace CORBA {
 namespace Core {
 
-class Reference :
+class NIRVANA_NOVTABLE Reference :
 	public ProxyManager
 {
 public:

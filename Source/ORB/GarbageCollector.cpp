@@ -23,36 +23,39 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "POA_Root.h"
+#include "GarbageCollector.h"
+#include "../ExecDomain.h"
+#include "../Chrono.h"
+#include "../Synchronized.h"
 
-namespace PortableServer {
+using namespace Nirvana;
+using namespace Nirvana::Core;
+
+namespace CORBA {
 namespace Core {
 
-ObjectId POA_System::generate_object_id ()
+void GarbageCollector::schedule (SyncGC& garbage, Nirvana::Core::SyncContext& sync_context)
+NIRVANA_NOEXCEPT
 {
-	const CORBA::Octet* p = (const CORBA::Octet*)&next_id_;
-	ObjectId ret (p, p + sizeof (ID));
-	++next_id_;
-	return ret;
-}
+	assert (sync_context.sync_domain ());
 
-void POA_System::check_object_id (const ObjectId& oid)
-{
-	if (oid.size () != sizeof (ID))
-		throw CORBA::BAD_PARAM (MAKE_OMG_MINOR (14));
-	ID id = *(const ID*)oid.data ();
-	if (id >= next_id_)
-		throw CORBA::BAD_PARAM ();
-}
+	CoreRef <Runnable> gc = 
+		CoreRef <Runnable>::create <ImplDynamic <GarbageCollector> > (std::ref (garbage));
+	try {
+		DeadlineTime deadline =
+			PROXY_GC_DEADLINE == INFINITE_DEADLINE ?
+			INFINITE_DEADLINE : Chrono::make_deadline (PROXY_GC_DEADLINE);
 
-ObjectId POA_SystemPersistent::generate_object_id ()
-{
-	return root_->generate_persistent_id ();
-}
-
-void POA_SystemPersistent::check_object_id (const ObjectId& oid)
-{
-	POA_Root::check_persistent_id (oid);
+		ExecDomain::async_call (deadline, CoreRef <Runnable> (gc), sync_context, nullptr);
+	} catch (...) {
+		try {
+			SYNC_BEGIN (sync_context, nullptr)
+				gc = nullptr;
+			SYNC_END ()
+		} catch (...) {
+			assert (false);
+		}
+	}
 }
 
 }

@@ -29,13 +29,12 @@
 #pragma once
 
 #include "StreamOut.h"
-#include "OtherDomains.h"
+#include "RemoteReferences.h"
 #include "../UserAllocator.h"
 #include "../UserObject.h"
 #include <vector>
 #include <memory>
 
-namespace Nirvana {
 namespace ESIOP {
 
 class NIRVANA_NOVTABLE StreamOutSM :
@@ -71,14 +70,14 @@ public:
 	}
 
 protected:
-	StreamOutSM (OtherDomain& target) :
+	StreamOutSM (CORBA::Core::DomainLocal& target) :
 		other_domain_ (&target)
 	{
 		initialize ();
 	}
 
 	StreamOutSM (ProtDomainId client_id) :
-		other_domain_ (OtherDomains::singleton ().get (client_id))
+		other_domain_ (CORBA::Core::RemoteReferences::singleton ().get_domain (client_id))
 	{} // initialize () can be called later
 
 	void initialize ();
@@ -132,8 +131,8 @@ private:
 	size_t stream_hdr_size () const NIRVANA_NOEXCEPT;
 
 private:
-	Core::CoreRef <OtherDomain> other_domain_;
-	OtherDomain::Sizes sizes_;
+	CORBA::servant_reference <CORBA::Core::DomainLocal> other_domain_;
+	PlatformSizes sizes_;
 	SharedMemPtr stream_hdr_;
 	std::vector <Block, Nirvana::Core::UserAllocator <Block> > blocks_;
 	std::vector <OtherAllocated, Nirvana::Core::UserAllocator <OtherAllocated> > other_allocated_;
@@ -142,7 +141,6 @@ private:
 	size_t size_;
 };
 
-}
 }
 
 #endif
