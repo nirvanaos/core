@@ -48,7 +48,7 @@ RequestLocalPOA::RequestLocalPOA (ReferenceLocal& reference, IOReference::Operat
 
 const PortableServer::Core::ObjectKey& RequestLocalPOA::object_key () const NIRVANA_NOEXCEPT
 {
-	return *reference_;
+	return reference_->object_key ();
 }
 
 CORBA::Internal::StringView <Char> RequestLocalPOA::operation () const NIRVANA_NOEXCEPT

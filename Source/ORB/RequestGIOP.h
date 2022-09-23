@@ -253,7 +253,11 @@ public:
 					if (ver.major () != 1)
 						throw NO_IMPLEMENT (MAKE_OMG_MINOR (3));
 					stm.read_string (listen_point.host ());
-					stm.read (alignof (uint16_t), sizeof (uint16_t), &listen_point.port ());
+					CORBA::UShort port;
+					stm.read (alignof (CORBA::UShort), sizeof (CORBA::UShort), &port);
+					if (stm.other_endian ())
+						Nirvana::byteswap (port);
+					listen_point.port (port);
 					stm.read_seq (object_key);
 					if (found_components)
 						break;

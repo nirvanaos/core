@@ -26,6 +26,7 @@
 
 #include "POA_Root.h"
 #include "RqHelper.h"
+#include <CORBA/Servant_var.h>
 
 using namespace Nirvana;
 using namespace Nirvana::Core;
@@ -42,28 +43,58 @@ Object::_ref_type POA_Root::create ()
 	return CORBA::make_reference <POA_Root> (std::move (manager), std::move (manager_factory))->_this ();
 }
 
+ReferenceLocalRef POA_Root::create_reference (ObjectKey&& key, bool unique, const IDL::String& primary_iid,
+	unsigned flags)
+{
+	auto ins = references_.emplace (std::move (key), Reference::DEADLINE_MAX);
+	References::reference entry = *ins.first;
+	if (ins.second) {
+		RefPtr p (new ReferenceLocal (entry.first, primary_iid, flags));
+		Servant_var <ReferenceLocal> ret (p.get ());
+		entry.second.finish_construction (std::move (p));
+		return ret;
+	} else if (unique)
+		return nullptr;
+	else {
+		const RefPtr& p = entry.second.get ();
+		p->check_primary_interface (primary_iid);
+		return p.get ();
+	}
+}
+
+ReferenceLocalRef POA_Root::create_reference (ObjectKey&& key, bool unique, ServantBase& servant,
+	unsigned flags)
+{
+	auto ins = references_.emplace (std::move (key), Reference::DEADLINE_MAX);
+	References::reference entry = *ins.first;
+	if (ins.second) {
+		RefPtr p (new ReferenceLocal (entry.first, servant, flags));
+		Servant_var <ReferenceLocal> ret (p.get ());
+		entry.second.finish_construction (std::move (p));
+		return ret;
+	} else if (unique)
+		return nullptr;
+	else {
+		const RefPtr& p = entry.second.get ();
+		p->check_primary_interface (servant.proxy ().primary_interface_id ());
+		return p.get ();
+	}
+}
+
 ReferenceLocalRef POA_Root::find_reference (const ObjectKey& key) NIRVANA_NOEXCEPT
 {
-	References::iterator it = references_.find (static_cast <const ReferenceLocal&> (key));
+	References::iterator it = references_.find (key);
 	ReferenceLocalRef ref;
 	if (it != references_.end ())
-		ref = Servant_var <ReferenceLocal> (&const_cast <ReferenceLocal&> (*it));
+		ref = it->second.get ().get ();
 	return ref;
 }
 
-ReferenceLocalRef POA_Root::get_reference (const ObjectKey& key)
-{
-	ReferenceLocalRef ref = find_reference (key);
-	if (!ref)
-		ref = Servant_var <ReferenceLocal> (&const_cast <ReferenceLocal&> (*create_reference (ObjectKey (key), IDL::String (), false).first));
-	return ref;
-}
-
-POA_Ref POA_Root::find_child (const AdapterPath& path) NIRVANA_NOEXCEPT
+POA_Ref POA_Root::find_child (const AdapterPath& path, bool activate_it)
 {
 	POA_Ref adapter = root_;
 	for (const auto& name : path) {
-		adapter = adapter->find_child (name, false);
+		adapter = adapter->find_child (name, activate_it);
 		if (!adapter)
 			break;
 	}
@@ -74,12 +105,9 @@ void POA_Root::invoke (RequestRef request, bool async) NIRVANA_NOEXCEPT
 {
 	try {
 		Object::_ref_type root = get_root (); // Hold root POA reference
-		POA_Ref adapter = root_;
-		assert (adapter);
-
 		SYNC_BEGIN (local2proxy (root)->sync_context (), nullptr);
 
-		invoke_sync (std::move (adapter), request);
+		invoke_sync (request);
 
 		if (async) // Do not reschedule exec domain, it will be released immediately.
 			_sync_frame.return_to_caller_context ();
@@ -93,13 +121,9 @@ void POA_Root::invoke (RequestRef request, bool async) NIRVANA_NOEXCEPT
 	}
 }
 
-void POA_Root::invoke_sync (POA_Ref adapter, const RequestRef& request)
+void POA_Root::invoke_sync (const RequestRef& request)
 {
-	const ObjectKey& object_key = request->object_key ();
-	for (const auto& name : object_key.adapter_path ()) {
-		adapter = adapter->find_child (name, true);
-	}
-	adapter->invoke (request);
+	find_child (request->object_key ().adapter_path (), true)->invoke (request);
 }
 
 class POA_Root::InvokeAsync :
@@ -135,7 +159,7 @@ void POA_Root::invoke_async (RequestRef request, DeadlineTime deadline)
 void POA_Root::InvokeAsync::run ()
 {
 	try {
-		invoke_sync (std::move (root_), request_);
+		invoke_sync (request_);
 	} catch (Exception& e) {
 		request_->set_exception (std::move (e));
 	}

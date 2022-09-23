@@ -43,7 +43,7 @@ public:
 	virtual void set_servant_manager (ServantManager::_ptr_type imgr) override;
 
 protected:
-	virtual CORBA::Object::_ref_type create_reference (ObjectKey&& key,
+	virtual CORBA::Core::ReferenceLocalRef create_reference (ObjectKey&& key,
 		const CORBA::RepositoryId& intf) override;
 
 	virtual void serve_default (const RequestRef& request, CORBA::Core::ReferenceLocal& reference)

@@ -71,7 +71,7 @@ ObjectId POA_Unique::servant_to_id (ProxyObject& proxy)
 {
 	ReferencePtr ref = find_servant (proxy);
 	if (ref)
-		return ref->object_id ();
+		return ref->object_key ().object_id ();
 	return servant_to_id_default (proxy, true);
 }
 

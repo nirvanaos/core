@@ -252,7 +252,7 @@ public:
 			return Internal::StringView <Char> (Internal::RepIdOf <Object>::id);
 	}
 
-	void set_primary_interface (const IDL::String& primary_iid);
+	void check_primary_interface (Internal::String_in primary_iid) const;
 
 	static ProxyManager* cast (Object::_ptr_type obj) NIRVANA_NOEXCEPT
 	{
@@ -260,20 +260,10 @@ public:
 	}
 
 protected:
-	ProxyManager (Internal::String_in primary_iid) :
-		primary_interface_ (nullptr)
-	{
-		init (primary_iid);
-	}
-	
-	ProxyManager (const ProxyManager& src)
-	{
-		copy (src);
-	}
+	ProxyManager (Internal::String_in primary_iid);
+	ProxyManager (const ProxyManager& src);
 
 	virtual ~ProxyManager ();
-
-	ProxyManager& operator = (const ProxyManager& src);
 
 	Internal::IOReference::_ptr_type ior () NIRVANA_NOEXCEPT
 	{
@@ -317,9 +307,6 @@ protected:
 	const InterfaceEntry* find_interface (Internal::String_in iid) const NIRVANA_NOEXCEPT;
 
 private:
-	void copy (const ProxyManager& src);
-	void init (Internal::String_in primary_iid);
-
 	struct OperationEntry
 	{
 		const Char* name;

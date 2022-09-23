@@ -32,6 +32,15 @@ using namespace Nirvana::Core;
 namespace CORBA {
 namespace Core {
 
+ReferenceRemote::ReferenceRemote (servant_reference <Domain>&& domain, const IOP::TaggedProfileSeq& addr, const IDL::String& primary_iid, unsigned flags) :
+	Reference (primary_iid, flags),
+	domain_ (std::move (domain)),
+	address_ (addr)
+{}
+
+ReferenceRemote::~ReferenceRemote ()
+{}
+
 void ReferenceRemote::_add_ref () NIRVANA_NOEXCEPT
 {
 	ref_cnt_.increment ();

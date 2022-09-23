@@ -30,7 +30,6 @@
 
 #include "Reference.h"
 #include <CORBA/IOP.h>
-#include "GarbageCollector.h"
 
 namespace CORBA {
 namespace Core {
@@ -39,15 +38,11 @@ class Domain;
 
 /// Base for remote references.
 class ReferenceRemote :
-	public Reference,
-	public SyncGC
+	public Reference
 {
 public:
-	ReferenceRemote (servant_reference <Domain>&& domain, const IOP::TaggedProfileSeq& addr, const IDL::String& primary_iid, unsigned flags) :
-		Reference (primary_iid, flags),
-		domain_ (std::move (domain)),
-		address_ (addr)
-	{}
+	ReferenceRemote (servant_reference <Domain>&& domain, const IOP::TaggedProfileSeq& addr, const IDL::String& primary_iid, unsigned flags);
+	~ReferenceRemote ();
 
 protected:
 	virtual void _add_ref () NIRVANA_NOEXCEPT override;

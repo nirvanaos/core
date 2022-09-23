@@ -30,14 +30,24 @@
 
 #include "ProxyManager.h"
 #include "RefCntProxy.h"
+#include "GarbageCollector.h"
 
 namespace CORBA {
 namespace Core {
 
 class NIRVANA_NOVTABLE Reference :
-	public ProxyManager
+	public ProxyManager,
+	public SyncGC
 {
+	template <class> friend class CORBA::servant_reference;
+	virtual void _add_ref () = 0;
+	virtual void _remove_ref () NIRVANA_NOEXCEPT = 0;
+
 public:
+	/// Reference creation deadline.
+	/// The reference creation can cause binding and loading modules.
+	static const TimeBase::TimeT DEADLINE_MAX = 10 * TimeBase::MILLISECOND;
+
 	enum
 	{
 		LOCAL              = 0x0001, //< Is ReferenceLocal

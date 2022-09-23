@@ -57,7 +57,7 @@ namespace Core {
 std::pair <RemoteReferences::References::iterator, bool> RemoteReferences::emplace_reference (
 	IOP::TaggedProfileSeq&& addr)
 {
-	return references_.emplace (std::move (addr), DEADLINE_MAX);
+	return references_.emplace (std::move (addr), Reference::DEADLINE_MAX);
 }
 
 }

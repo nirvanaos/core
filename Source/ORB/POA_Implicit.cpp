@@ -35,14 +35,14 @@ namespace Core {
 ObjectId POA_Implicit::servant_to_id_default (ProxyObject& proxy, bool not_found)
 {
 	assert (not_found);
-	ObjectId oid = generate_object_id ();
-	activate_object (ObjectKey (*this, oid), proxy, true);
+	ObjectId oid;
+	activate_object (proxy, oid);
 	return oid;
 }
 
 Object::_ref_type POA_Implicit::servant_to_reference_default (ProxyObject& proxy, bool not_found)
 {
-	return activate_object (ObjectKey (*this), proxy, true)->get_proxy ();
+	return activate_object (proxy)->get_proxy ();
 }
 
 }

@@ -33,17 +33,12 @@ using namespace Nirvana::Core;
 namespace PortableServer {
 namespace Core {
 
-servant_reference <ReferenceLocal> POA_Retain::activate_object (ObjectKey&& key, ProxyObject& proxy, unsigned flags)
+ReferenceLocalRef POA_Retain::activate_object (ObjectKey&& key, bool unique, ProxyObject& proxy, unsigned flags)
 {
-	auto ins = root_->create_reference (std::move (key), std::ref (proxy.core_servant ()), flags);
-	ReferenceLocal& ref = const_cast <ReferenceLocal&> (*ins.first);
-	try {
-		activate_object (ref, proxy, flags);
-	} catch (...) {
-		if (ins.second)
-			root_->remove_reference (ins.first);
-	}
-	return Servant_var <ReferenceLocal> (&ref);
+	ReferenceLocalRef ref = root_->create_reference (std::move (key), unique, std::ref (proxy.core_servant ()), flags);
+	if (ref)
+		activate_object (*ref, proxy, flags);
+	return ref;
 }
 
 void POA_Retain::activate_object (ReferenceLocal& ref, ProxyObject& proxy, unsigned flags)
@@ -66,7 +61,7 @@ servant_reference <CORBA::Core::ProxyObject> POA_Retain::deactivate_object (Refe
 	if (!ret)
 		throw ObjectNotActive ();
 	references_.erase (&ref);
-	etherialize (ref.object_id (), *ret, false);
+	etherialize (ref.object_key ().object_id (), *ret, false);
 	return ret;
 }
 
@@ -86,7 +81,7 @@ Object::_ref_type POA_Retain::reference_to_servant (Object::_ptr_type reference)
 	if (!(ref->flags () & Reference::LOCAL))
 		throw WrongAdapter ();
 	const ReferenceLocal& loc = static_cast <const ReferenceLocal&> (*ref);
-	if (!check_path (loc.adapter_path ()))
+	if (!check_path (loc.object_key ().adapter_path ()))
 		throw WrongAdapter ();
 	CoreRef <ProxyObject> servant = loc.get_servant ();
 	if (servant)
@@ -134,7 +129,7 @@ void POA_Retain::etherealize_objects () NIRVANA_NOEXCEPT
 		ReferenceLocalRef ref (reinterpret_cast <ReferenceLocal*> (p));
 		servant_reference <ProxyObject> servant = ref->deactivate ();
 		if (servant)
-			etherialize (ref->object_id (), *servant, true);
+			etherialize (ref->object_key ().object_id (), *servant, true);
 	}
 }
 

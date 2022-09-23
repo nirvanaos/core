@@ -71,7 +71,7 @@ public:
 	static void invoke (RequestRef request, bool async) NIRVANA_NOEXCEPT;
 	static void invoke_async (RequestRef request, Nirvana::DeadlineTime deadline);
 
-	static POA_Ref find_child (const AdapterPath& path) NIRVANA_NOEXCEPT;
+	static POA_Ref find_child (const AdapterPath& path, bool activate_it);
 
 	static CORBA::Object::_ref_type unmarshal (const IDL::String& iid, const IOP::ObjectKey& iop_key)
 	{
@@ -79,19 +79,12 @@ public:
 		key.unmarshal (iop_key);
 		CORBA::Object::_ref_type root = get_root (); // Hold root POA reference
 		SYNC_BEGIN (CORBA::Core::local2proxy (root)->sync_context (), nullptr)
-			CORBA::Core::ReferenceLocalRef ref = root_->find_reference (key);
-			if (ref)
-				ref->set_primary_interface (iid);
-			else {
-
-				POA_Ref adapter = find_child (key.adapter_path ());
-				if (adapter)
-					return adapter->create_reference (std::move (key), iid);
-
-				ref = Servant_var <CORBA::Core::ReferenceLocal> (&const_cast <CORBA::Core::ReferenceLocal&> (
-					*root_->create_reference (std::move (key), iid, false).first));
-			}
-			return CORBA::Object::_ref_type (ref->get_proxy ());
+		CORBA::Core::ReferenceLocalRef ref = root_->find_reference (key);
+		if (ref)
+			ref->check_primary_interface (iid);
+		else
+			ref = find_child (key.adapter_path (), true)->create_reference (std::move (key), iid);
+		return CORBA::Object::_ref_type (ref->get_proxy ());
 		SYNC_END ();
 	}
 
@@ -121,18 +114,20 @@ public:
 			throw CORBA::BAD_PARAM (MAKE_OMG_MINOR (14));
 	}
 
-	typedef Nirvana::Core::SetUnorderedStable <CORBA::Core::ReferenceLocal, std::hash <ObjectKey>,
-		std::equal_to <ObjectKey>, Nirvana::Core::UserAllocator <CORBA::Core::ReferenceLocal> > References;
+	typedef std::unique_ptr <CORBA::Core::ReferenceLocal> RefPtr;
+	typedef Nirvana::Core::WaitableRef <RefPtr> RefVal;
+	typedef Nirvana::Core::MapUnorderedStable <ObjectKey, RefVal, std::hash <ObjectKey>,
+		std::equal_to <ObjectKey>, Nirvana::Core::UserAllocator <std::pair <ObjectKey, CORBA::Core::ReferenceLocal> > >
+		References;
 
-	template <class ... Args>
-	std::pair <References::iterator, bool> create_reference (Args ... args)
-	{
-		return references_.emplace (std::forward <Args> (args)...);
-	}
+	CORBA::Core::ReferenceLocalRef create_reference (ObjectKey&& key, bool unique, const IDL::String& primary_iid,
+		unsigned flags);
+	CORBA::Core::ReferenceLocalRef create_reference (ObjectKey&& key, bool unique, PortableServer::Core::ServantBase& servant,
+		unsigned flags);
 
-	void remove_reference (const CORBA::Core::ReferenceLocal& ref) NIRVANA_NOEXCEPT
+	void remove_reference (const ObjectKey& key) NIRVANA_NOEXCEPT
 	{
-		references_.erase (ref);
+		references_.erase (key);
 	}
 
 	void remove_reference (References::iterator it) NIRVANA_NOEXCEPT
@@ -140,13 +135,12 @@ public:
 		references_.erase (it);
 	}
 
-	CORBA::Core::ReferenceLocalRef get_reference (const ObjectKey& key);
 	CORBA::Core::ReferenceLocalRef find_reference (const ObjectKey& key) NIRVANA_NOEXCEPT;
 
 private:
 	class InvokeAsync;
 
-	static void invoke_sync (POA_Ref adapter, const RequestRef& request);
+	static void invoke_sync (const RequestRef& request);
 
 private:
 	References references_;
@@ -169,7 +163,7 @@ void POA_Base::implicit_activate (POA::_ptr_type adapter, CORBA::Core::ProxyObje
 	if (!adapter_impl)
 		throw CORBA::OBJ_ADAPTER ();
 	SYNC_BEGIN (adapter_proxy->sync_context (), nullptr);
-	adapter_impl->activate_object (ObjectKey (*adapter_impl), std::ref (proxy),
+	adapter_impl->activate_object (std::ref (proxy),
 		CORBA::Core::ReferenceLocal::LOCAL_WEAK | CORBA::Core::Reference::GARBAGE_COLLECTION);
 	SYNC_END ();
 }

@@ -75,7 +75,7 @@ public:
 protected:
 	template <class I>
 	ServantProxyBase (Internal::I_ptr <I> servant) :
-		ProxyManager (primary_interface_id (servant)),
+		ProxyManager (get_primary_interface_id (servant)),
 		ref_cnt_ (0),
 		sync_context_ (&Nirvana::Core::SyncContext::current ())
 	{
@@ -109,7 +109,7 @@ protected:
 
 private:
 	template <class I>
-	static const Char* primary_interface_id (Internal::I_ptr <I> servant)
+	static const Char* get_primary_interface_id (Internal::I_ptr <I> servant)
 	{
 		Internal::Interface::_ptr_type primary = servant->_query_interface (nullptr);
 		if (!primary)

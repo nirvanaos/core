@@ -129,7 +129,8 @@ void ProxyManager::check_type_code (TypeCode::_ptr_type tc)
 		throw OBJ_ADAPTER (); // TODO: Log
 }
 
-void ProxyManager::init (Internal::String_in primary_iid)
+ProxyManager::ProxyManager (String_in primary_iid) :
+	primary_interface_ (nullptr)
 {
 	if (!primary_iid.empty ()) {
 		ProxyFactory::_ref_type proxy_factory = Nirvana::Core::Binder::bind_interface <ProxyFactory> (primary_iid);
@@ -220,77 +221,27 @@ void ProxyManager::init (Internal::String_in primary_iid)
 		throw OBJ_ADAPTER (); // TODO: Log
 }
 
-ProxyManager::~ProxyManager ()
-{}
-
-void ProxyManager::copy (const ProxyManager& src)
+ProxyManager::ProxyManager (const ProxyManager& src) :
+	primary_interface_ (src.primary_interface_),
+	interfaces_ (src.interfaces_),
+	operations_ (src.operations_)
 {
-	interfaces_.copy (src.interfaces_);
-	operations_.copy (src.operations_);
-	primary_interface_ = src.primary_interface_;
-
 	for (InterfaceEntry* ie = interfaces_.begin (); ie != interfaces_.end (); ++ie) {
-		ie->implementation = nullptr;
 		create_proxy (*ie);
 	}
 }
 
-ProxyManager& ProxyManager::operator = (const ProxyManager& src)
-{
-	if (!src.primary_interface_)
-		throw BAD_PARAM ();
+ProxyManager::~ProxyManager ()
+{}
 
-	if (!primary_interface_) {
-		Array <InterfaceEntry, SharedAllocator> tmpi;
-		Array <OperationEntry, SharedAllocator> tmpo;
-		operations_.swap (tmpo);
-		try {
-			copy (src);
-		} catch (...) {
-			primary_interface_ = nullptr;
-			operations_.swap (tmpo);
-			interfaces_.swap (tmpi);
-			throw;
-		}
-	} else {
-		if (
-			primary_interface_->iid_len != src.primary_interface_->iid_len
-			|| (primary_interface_->iid != src.primary_interface_->iid
-				&& !std::equal (primary_interface_->iid, primary_interface_->iid + primary_interface_->iid_len,
-					src.primary_interface_->iid)))
-			throw BAD_PARAM ();
-
-		assert (interfaces_.size () == src.interfaces_.size ());
-		assert (operations_.size () == src.operations_.size ());
-		const InterfaceEntry* si = src.interfaces_.begin ();
-		for (InterfaceEntry* di = interfaces_.begin (); di != interfaces_.end (); ++si, ++di) {
-			di->implementation = si->implementation;
-		}
-	}
-
-	return *this;
-}
-
-void ProxyManager::set_primary_interface (const IDL::String& primary_iid)
+void ProxyManager::check_primary_interface (String_in primary_iid) const
 {
 	// Empty primary IID does not change anything
 	if (!(primary_iid.empty () || RepId::compatible (RepIdOf <Object>::id, primary_iid))) {
-		if (!primary_interface_) {
-			Array <InterfaceEntry, SharedAllocator> tmpi;
-			Array <OperationEntry, SharedAllocator> tmpo;
-			operations_.swap (tmpo);
-			try {
-				init (primary_iid);
-			} catch (...) {
-				primary_interface_ = nullptr;
-				operations_.swap (tmpo);
-				interfaces_.swap (tmpi);
-				throw;
-			}
-		} else if (primary_interface_->iid_len != primary_iid.length ()
-				|| !std::equal (primary_interface_->iid, primary_interface_->iid + primary_interface_->iid_len,
-						primary_iid.c_str ()))
-				throw BAD_PARAM ();
+		const InterfaceEntry* pi = primary_interface_;
+		if (pi && (pi->iid_len != primary_iid.size () ||
+			!std::equal (pi->iid, pi->iid + pi->iid_len, primary_iid.data ())))
+			throw BAD_PARAM ();
 	}
 }
 

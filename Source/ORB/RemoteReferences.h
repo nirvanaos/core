@@ -33,6 +33,7 @@
 #include "DomainsLocal.h"
 #include "DomainRemote.h"
 #include <CORBA/IOP.h>
+#include <CORBA/I_var.h>
 
 namespace std {
 
@@ -78,8 +79,6 @@ class RemoteReferences :
 		std::equal_to <RefKey>, Nirvana::Core::UserAllocator <std::pair <RefKey, RefVal> > >
 		References;
 
-	static const TimeBase::TimeT DEADLINE_MAX = 10 * TimeBase::MILLISECOND;
-
 public:
 	static RemoteReferences& singleton ()
 	{
@@ -95,7 +94,7 @@ public:
 			if (ins.second) {
 				try {
 					RefPtr p (new ReferenceRemote (get_domain_sync (std::move (domain)), ins.first->first, iid, 0));
-					Object::_ref_type ret = p->get_proxy ();
+					Internal::I_var <Object> ret (p->get_proxy ());
 					entry.second.finish_construction (std::move (p));
 					return ret;
 				} catch (...) {
@@ -103,8 +102,11 @@ public:
 					references_.erase (ins.first->first);
 					throw;
 				}
-			} else
-				return entry.second.get ()->get_proxy ();
+			} else {
+				const RefPtr& p = entry.second.get ();
+				p->check_primary_interface (iid);
+				return p->get_proxy ();
+			}
 		SYNC_END ();
 	}
 

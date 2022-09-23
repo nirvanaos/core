@@ -45,7 +45,6 @@ namespace Core {
 
 /// Base for all POA references.
 class ReferenceLocal :
-	public PortableServer::Core::ObjectKey,
 	public Reference
 {
 public:
@@ -55,10 +54,17 @@ public:
 		LOCAL_AUTO_DEACTIVATE = 0x0008
 	};
 
-	ReferenceLocal (PortableServer::Core::ObjectKey&& key, const IDL::String& primary_iid,
+	ReferenceLocal (const PortableServer::Core::ObjectKey& key, const IDL::String& primary_iid,
 		unsigned flags);
-	ReferenceLocal (PortableServer::Core::ObjectKey&& key, PortableServer::Core::ServantBase& servant,
+	ReferenceLocal (const PortableServer::Core::ObjectKey& key, PortableServer::Core::ServantBase& servant,
 		unsigned flags);
+
+	~ReferenceLocal ();
+
+	const PortableServer::Core::ObjectKey& object_key () const NIRVANA_NOEXCEPT
+	{
+		return object_key_;
+	}
 
 	void activate (PortableServer::Core::ServantBase& servant, unsigned flags);
 	servant_reference <ProxyObject> deactivate () NIRVANA_NOEXCEPT;
@@ -74,9 +80,9 @@ private:
 	virtual void marshal (StreamOut& out) const override;
 	virtual Internal::IORequest::_ref_type create_request (OperationIndex op, UShort flags) override;
 
-	class GC;
-
 private:
+	const PortableServer::Core::ObjectKey& object_key_;
+
 	servant_reference <PortableServer::Core::POA_Root> root_;
 
 	static const size_t SERVANT_ALIGN = Nirvana::Core::core_object_align (

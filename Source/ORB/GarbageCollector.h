@@ -42,7 +42,9 @@ namespace Core {
 
 class NIRVANA_NOVTABLE SyncGC
 {
-	DECLARE_CORE_INTERFACE
+	template <class> friend class CORBA::servant_reference;
+	virtual void _add_ref () = 0;
+	virtual void _remove_ref () NIRVANA_NOEXCEPT = 0;
 };
 
 class GarbageCollector :

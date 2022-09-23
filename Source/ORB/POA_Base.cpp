@@ -173,7 +173,26 @@ POA_Base::~POA_Base ()
 	the_POAManager_->on_adapter_destroy (*this);
 }
 
-ReferenceLocalRef POA_Base::activate_object (ObjectKey&&, ProxyObject&, unsigned flags)
+void POA_Base::activate_object (CORBA::Core::ProxyObject& proxy, ObjectId& oid, unsigned flags)
+{
+	for (;;) {
+		oid = generate_object_id ();
+		ReferenceLocalRef ref = activate_object (ObjectKey (*this, oid), true, proxy, 0);
+		if (ref)
+			return;
+	}
+}
+
+ReferenceLocalRef POA_Base::activate_object (CORBA::Core::ProxyObject& proxy, unsigned flags)
+{
+	for (;;) {
+		ReferenceLocalRef ref = activate_object (ObjectKey (*this), true, proxy, 0);
+		if (ref)
+			return ref;
+	}
+}
+
+ReferenceLocalRef POA_Base::activate_object (ObjectKey&&, bool unique, ProxyObject&, unsigned flags)
 {
 	throw WrongPolicy ();
 }
@@ -213,27 +232,23 @@ Object::_ref_type POA_Base::create_reference (const RepositoryId& intf)
 ReferenceLocalRef POA_Base::create_reference (const RepositoryId& intf, unsigned flags)
 {
 	for (;;) {
-		auto ins = root_->create_reference (ObjectKey (*this), std::ref (intf), flags);
-		if (ins.second)
-			return Servant_var <ReferenceLocal> (&const_cast <CORBA::Core::ReferenceLocal&> (*ins.first));
+		ReferenceLocalRef ref = root_->create_reference (ObjectKey (*this), true, std::ref (intf), flags);
+		if (ref)
+			return ref;
 		assert (false); // Unique ID collision.
 	}
 }
 
-CORBA::Object::_ref_type POA_Base::create_reference (ObjectKey&& key,
+ReferenceLocalRef POA_Base::create_reference (ObjectKey&& key,
 	const CORBA::RepositoryId& intf)
 {
-	return CORBA::Object::_ref_type (create_reference (std::move (key), intf, 0)->get_proxy ());
+	return create_reference (std::move (key), intf, 0);
 }
 
 ReferenceLocalRef POA_Base::create_reference (ObjectKey&& key, const RepositoryId& intf,
 	unsigned flags)
 {
-	auto ins = root_->create_reference (std::move (key), std::ref (intf), flags);
-	CORBA::Core::ReferenceLocal& ref = const_cast <CORBA::Core::ReferenceLocal&> (*ins.first);
-	if (!ins.second)
-		ref.set_primary_interface (intf);
-	return Servant_var <ReferenceLocal> (&ref);
+	return root_->create_reference (std::move (key), false, std::ref (intf), flags);
 }
 
 ObjectId POA_Base::servant_to_id (ProxyObject& proxy)
@@ -290,9 +305,9 @@ ObjectId POA_Base::reference_to_id (Object::_ptr_type reference)
 	if (!(ref->flags () & Reference::LOCAL))
 		throw WrongAdapter ();
 	const ReferenceLocal& loc = static_cast <const ReferenceLocal&> (*ref);
-	if (!check_path (loc.adapter_path ()))
+	if (!check_path (loc.object_key ().adapter_path ()))
 		throw WrongAdapter ();
-	return loc.object_id ();
+	return loc.object_key ().object_id ();
 }
 
 Object::_ref_type POA_Base::id_to_servant (const ObjectId& oid)
@@ -401,7 +416,9 @@ void POA_Base::check_object_id (const ObjectId& oid)
 
 void POA_Base::serve (const RequestRef& request)
 {
-	ReferenceLocalRef ref = root_->get_reference (request->object_key ());
+	ReferenceLocalRef ref = root_->find_reference (request->object_key ());
+	if (!ref)
+		ref = create_reference (ObjectKey (request->object_key ()), IDL::String ());
 	serve (request, *ref);
 }
 

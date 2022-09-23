@@ -336,15 +336,14 @@ public:
 		CORBA::Core::ProxyObject* proxy = CORBA::Core::object2proxy (p_servant);
 		if (!proxy)
 			throw CORBA::BAD_PARAM ();
-		return activate_object (*proxy);
-	}
-
-	ObjectId activate_object (CORBA::Core::ProxyObject& proxy)
-	{
-		ObjectId oid = generate_object_id ();
-		activate_object (ObjectKey (*this, oid), proxy, 0);
+		ObjectId oid;
+		activate_object (*proxy, oid);
 		return oid;
 	}
+
+	void activate_object (CORBA::Core::ProxyObject& proxy, ObjectId& oid, unsigned flags = 0);
+	CORBA::Core::ReferenceLocalRef activate_object (CORBA::Core::ProxyObject& proxy,
+		unsigned flags = 0);
 
 	void activate_object_with_id (const ObjectId& oid, CORBA::Object::_ptr_type p_servant)
 	{
@@ -352,10 +351,10 @@ public:
 		if (!proxy)
 			throw CORBA::BAD_PARAM ();
 		check_object_id (oid);
-		activate_object (ObjectKey (*this, oid), *proxy, 0);
+		activate_object (ObjectKey (*this, oid), false, *proxy, 0);
 	}
 
-	virtual CORBA::Core::ReferenceLocalRef activate_object (ObjectKey&& key,
+	virtual CORBA::Core::ReferenceLocalRef activate_object (ObjectKey&& key, bool unique,
 		CORBA::Core::ProxyObject& proxy, unsigned flags);
 
 	virtual void activate_object (CORBA::Core::ReferenceLocal& ref, CORBA::Core::ProxyObject& proxy,
@@ -378,10 +377,10 @@ public:
 	CORBA::Object::_ref_type create_reference_with_id (const ObjectId& oid,
 		const CORBA::RepositoryId& intf)
 	{
-		return create_reference (ObjectKey (*this, oid), intf);
+		return CORBA::Object::_ref_type (create_reference (ObjectKey (*this, oid), intf)->get_proxy ());
 	}
 
-	virtual CORBA::Object::_ref_type create_reference (ObjectKey&& key,
+	virtual CORBA::Core::ReferenceLocalRef create_reference (ObjectKey&& key,
 		const CORBA::RepositoryId& intf);
 
 	static CORBA::Core::ReferenceLocalRef create_reference (ObjectKey&& key,

@@ -45,7 +45,7 @@ public:
 	virtual CORBA::Object::_ref_type id_to_reference (const ObjectId& oid) override;
 
 protected:
-	virtual CORBA::Core::ReferenceLocalRef activate_object (ObjectKey&& key,
+	virtual CORBA::Core::ReferenceLocalRef activate_object (ObjectKey&& key, bool unique,
 		CORBA::Core::ProxyObject& proxy, unsigned flags) override;
 
 	virtual void activate_object (CORBA::Core::ReferenceLocal& ref, CORBA::Core::ProxyObject& proxy,

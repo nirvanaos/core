@@ -36,38 +36,23 @@ using namespace Internal;
 
 namespace Core {
 
-class ReferenceLocal::GC :
-	public Runnable,
-	public SharedObject
-{
-public:
-	GC (ReferenceLocal& ref) :
-		ref_ (&ref)
-	{}
-
-	virtual void run () override
-	{
-		ref_ = nullptr;
-	}
-
-private:
-	ReferenceLocalRef ref_;
-};
-
-ReferenceLocal::ReferenceLocal (PortableServer::Core::ObjectKey&& key,
+ReferenceLocal::ReferenceLocal (const PortableServer::Core::ObjectKey& key,
 	const IDL::String& primary_iid, unsigned flags) :
-	PortableServer::Core::ObjectKey (std::move (key)),
 	Reference (primary_iid, flags | LOCAL),
+	object_key_ (key),
 	root_ (PortableServer::Core::POA_Base::root ()),
 	servant_ (nullptr)
 {}
 
-ReferenceLocal::ReferenceLocal (PortableServer::Core::ObjectKey&& key,
+ReferenceLocal::ReferenceLocal (const PortableServer::Core::ObjectKey& key,
 	PortableServer::Core::ServantBase& servant, unsigned flags) :
-	PortableServer::Core::ObjectKey (std::move (key)),
 	Reference (servant.proxy (), flags | LOCAL),
+	object_key_ (key),
 	root_ (PortableServer::Core::POA_Base::root ()),
 	servant_ (nullptr)
+{}
+
+ReferenceLocal::~ReferenceLocal ()
 {}
 
 void ReferenceLocal::_add_ref ()
@@ -92,39 +77,24 @@ void ReferenceLocal::_remove_ref () NIRVANA_NOEXCEPT
 			servant = servant_.load ();
 		}
 
-		bool need_GC;
-		if (!servant)
-			need_GC = (flags_ & LOCAL_AUTO_DEACTIVATE) == 0;
-		else
-			need_GC = (flags_ & LOCAL_AUTO_DEACTIVATE) != 0;
-		if (need_GC) {
+		if (!servant || (flags_ & LOCAL_AUTO_DEACTIVATE)) {
 			// Need GC
 			SyncContext& adapter_context = local2proxy (Services::bind (Services::RootPOA))->sync_context ();
 			if (&SyncContext::current () == &adapter_context) {
 				// Do GC
-				if (!servant) {
-					if (!(flags_ & LOCAL_AUTO_DEACTIVATE))
-						root_->remove_reference (*this);
-				} else if (flags_ & LOCAL_AUTO_DEACTIVATE) {
-					PortableServer::Core::POA_Ref adapter = PortableServer::Core::POA_Root::find_child (adapter_path ());
+				if (!servant)
+					root_->remove_reference (object_key_);
+				else if (flags_ & LOCAL_AUTO_DEACTIVATE) {
+					PortableServer::Core::POA_Ref adapter = PortableServer::Core::POA_Root::find_child (object_key_.adapter_path (), false);
 					if (adapter)
 						adapter->deactivate_object (*this);
+					else {
+						ReferenceLocalRef ref (this);
+						deactivate ();
+					}
 				}
-			} else {
-				// Schedule GC async
-				try {
-					Nirvana::DeadlineTime deadline =
-						Nirvana::Core::PROXY_GC_DEADLINE == Nirvana::INFINITE_DEADLINE ?
-						Nirvana::INFINITE_DEADLINE : Nirvana::Core::Chrono::make_deadline (
-							Nirvana::Core::PROXY_GC_DEADLINE);
-
-					ExecDomain::async_call (deadline,
-						CoreRef <Runnable>::create <ImplDynamic <GC> > (std::ref (*this)),
-						adapter_context);
-				} catch (...) {
-					// TODO: Log
-				}
-			}
+			} else // Schedule GC
+				GarbageCollector::schedule (*this, adapter_context);
 		}
 	}
 }
@@ -138,7 +108,7 @@ void ReferenceLocal::activate (PortableServer::Core::ServantBase& servant, unsig
 		throw PortableServer::POA::ObjectAlreadyActive ();
 
 	ProxyObject& proxy = servant.proxy ();
-	ProxyManager::operator = (proxy);
+	check_primary_interface (proxy.primary_interface_id ());
 	proxy.activate (*this);
 	proxy._add_ref ();
 	servant_ = &servant;
@@ -170,7 +140,7 @@ void ReferenceLocal::on_destruct_implicit (PortableServer::Core::ServantBase& se
 	if (servant_.cas (ptr, nullptr)) {
 		flags_ &= LOCAL;
 
-		PortableServer::Core::POA_Ref adapter = PortableServer::Core::POA_Root::find_child (adapter_path ());
+		PortableServer::Core::POA_Ref adapter = PortableServer::Core::POA_Root::find_child (object_key_.adapter_path (), false);
 		if (adapter)
 			adapter->implicit_deactivate (*this, servant.proxy ());
 
@@ -194,7 +164,7 @@ void ReferenceLocal::marshal (StreamOut& out) const
 {
 	out.write_string (primary_interface_id ());
 	throw NO_IMPLEMENT (); // TODO: Implement.
-	PortableServer::Core::ObjectKey::marshal (out);
+	object_key_.marshal (out);
 }
 
 IORequest::_ref_type ReferenceLocal::create_request (OperationIndex op, UShort flags)
