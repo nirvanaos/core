@@ -35,7 +35,7 @@ namespace Core {
 
 ReferenceLocalRef POA_Retain::activate_object (ObjectKey&& key, bool unique, ProxyObject& proxy, unsigned flags)
 {
-	ReferenceLocalRef ref = root_->create_reference (std::move (key), unique, std::ref (proxy.core_servant ()), flags);
+	ReferenceLocalRef ref = root_->emplace_reference (std::move (key), unique, std::ref (proxy.core_servant ()), flags);
 	if (ref)
 		activate_object (*ref, proxy, flags);
 	return ref;

@@ -56,8 +56,8 @@ public:
 
 	ReferenceLocal (const PortableServer::Core::ObjectKey& key, const IDL::String& primary_iid,
 		unsigned flags);
-	ReferenceLocal (const PortableServer::Core::ObjectKey& key, PortableServer::Core::ServantBase& servant,
-		unsigned flags);
+	ReferenceLocal (const PortableServer::Core::ObjectKey& key,
+		PortableServer::Core::ServantBase& servant, unsigned flags);
 
 	~ReferenceLocal ();
 

@@ -120,9 +120,9 @@ public:
 		std::equal_to <ObjectKey>, Nirvana::Core::UserAllocator <std::pair <ObjectKey, CORBA::Core::ReferenceLocal> > >
 		References;
 
-	CORBA::Core::ReferenceLocalRef create_reference (ObjectKey&& key, bool unique, const IDL::String& primary_iid,
+	CORBA::Core::ReferenceLocalRef emplace_reference (ObjectKey&& key, bool unique, const IDL::String& primary_iid,
 		unsigned flags);
-	CORBA::Core::ReferenceLocalRef create_reference (ObjectKey&& key, bool unique, PortableServer::Core::ServantBase& servant,
+	CORBA::Core::ReferenceLocalRef emplace_reference (ObjectKey&& key, bool unique, PortableServer::Core::ServantBase& servant,
 		unsigned flags);
 
 	void remove_reference (const ObjectKey& key) NIRVANA_NOEXCEPT

@@ -41,6 +41,7 @@ template <class> class CoreRef;
 
 #define DECLARE_CORE_INTERFACE protected:\
 template <class> friend class Nirvana::Core::CoreRef;\
+template <class> friend class CORBA::servant_reference;\
 _Pragma ("GCC diagnostic push")\
 _Pragma ("GCC diagnostic ignored \"-Winconsistent-missing-override\"")\
 virtual void _add_ref () NIRVANA_NOEXCEPT = 0;\

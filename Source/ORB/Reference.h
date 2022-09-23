@@ -40,8 +40,8 @@ class NIRVANA_NOVTABLE Reference :
 	public SyncGC
 {
 	template <class> friend class CORBA::servant_reference;
-	virtual void _add_ref () = 0;
-	virtual void _remove_ref () NIRVANA_NOEXCEPT = 0;
+	virtual void _add_ref () override = 0;
+	virtual void _remove_ref () NIRVANA_NOEXCEPT override = 0;
 
 public:
 	/// Reference creation deadline.

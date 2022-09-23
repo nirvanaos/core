@@ -35,6 +35,16 @@
 #include <CORBA/IOP.h>
 #include <CORBA/I_var.h>
 
+namespace IOP {
+
+inline
+bool operator == (const TaggedProfile& l, const TaggedProfile& r) NIRVANA_NOEXCEPT
+{
+	return l.tag () == r.tag () && l.profile_data () == r.profile_data ();
+}
+
+}
+
 namespace std {
 
 template <>
@@ -42,12 +52,6 @@ struct hash <IOP::TaggedProfileSeq>
 {
 	size_t operator () (const IOP::TaggedProfileSeq& seq) const NIRVANA_NOEXCEPT;
 };
-
-inline
-bool operator == (const IOP::TaggedProfile& l, const IOP::TaggedProfile& r) NIRVANA_NOEXCEPT
-{
-	return l.tag () == r.tag () && l.profile_data () == r.profile_data ();
-}
 
 template <>
 struct hash <IIOP::ListenPoint>

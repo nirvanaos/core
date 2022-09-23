@@ -232,7 +232,7 @@ Object::_ref_type POA_Base::create_reference (const RepositoryId& intf)
 ReferenceLocalRef POA_Base::create_reference (const RepositoryId& intf, unsigned flags)
 {
 	for (;;) {
-		ReferenceLocalRef ref = root_->create_reference (ObjectKey (*this), true, std::ref (intf), flags);
+		ReferenceLocalRef ref = root_->emplace_reference (ObjectKey (*this), true, std::ref (intf), flags);
 		if (ref)
 			return ref;
 		assert (false); // Unique ID collision.
@@ -248,7 +248,7 @@ ReferenceLocalRef POA_Base::create_reference (ObjectKey&& key,
 ReferenceLocalRef POA_Base::create_reference (ObjectKey&& key, const RepositoryId& intf,
 	unsigned flags)
 {
-	return root_->create_reference (std::move (key), false, std::ref (intf), flags);
+	return root_->emplace_reference (std::move (key), false, std::ref (intf), flags);
 }
 
 ObjectId POA_Base::servant_to_id (ProxyObject& proxy)

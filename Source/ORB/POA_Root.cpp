@@ -43,7 +43,7 @@ Object::_ref_type POA_Root::create ()
 	return CORBA::make_reference <POA_Root> (std::move (manager), std::move (manager_factory))->_this ();
 }
 
-ReferenceLocalRef POA_Root::create_reference (ObjectKey&& key, bool unique, const IDL::String& primary_iid,
+ReferenceLocalRef POA_Root::emplace_reference (ObjectKey&& key, bool unique, const IDL::String& primary_iid,
 	unsigned flags)
 {
 	auto ins = references_.emplace (std::move (key), Reference::DEADLINE_MAX);
@@ -62,7 +62,7 @@ ReferenceLocalRef POA_Root::create_reference (ObjectKey&& key, bool unique, cons
 	}
 }
 
-ReferenceLocalRef POA_Root::create_reference (ObjectKey&& key, bool unique, ServantBase& servant,
+ReferenceLocalRef POA_Root::emplace_reference (ObjectKey&& key, bool unique, ServantBase& servant,
 	unsigned flags)
 {
 	auto ins = references_.emplace (std::move (key), Reference::DEADLINE_MAX);

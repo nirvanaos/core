@@ -41,7 +41,8 @@ class ReferenceRemote :
 	public Reference
 {
 public:
-	ReferenceRemote (servant_reference <Domain>&& domain, const IOP::TaggedProfileSeq& addr, const IDL::String& primary_iid, unsigned flags);
+	ReferenceRemote (servant_reference <Domain>&& domain, const IOP::TaggedProfileSeq& addr,
+		const IDL::String& primary_iid, unsigned flags);
 	~ReferenceRemote ();
 
 protected:
