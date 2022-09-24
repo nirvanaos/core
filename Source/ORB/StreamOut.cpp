@@ -66,5 +66,13 @@ void StreamOut::write_tagged (const IOP::TaggedProfileSeq& seq)
 	}
 }
 
+void StreamOut::write_id_name (TypeCode::_ptr_type tc)
+{
+	IDL::String s = tc->id ();
+	write_string (s, true);
+	s = tc->name ();
+	write_string (s, true);
+}
+
 }
 }

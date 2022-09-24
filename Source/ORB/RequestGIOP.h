@@ -30,7 +30,7 @@
 
 #include <CORBA/Server.h>
 #include "StreamInEncap.h"
-#include "StreamOut.h"
+#include "StreamOutEncap.h"
 #include <CORBA/IORequest_s.h>
 #include "RqHelper.h"
 #include "../LifeCyclePseudo.h"
@@ -360,18 +360,12 @@ public:
 	/// Marshal TypeCode.
 	/// 
 	/// \param tc TypeCode.
-	void marshal_type_code (TypeCode::_ptr_type tc)
-	{
-		throw NO_IMPLEMENT ();
-	}
+	inline void marshal_type_code (TypeCode::_ptr_type tc);
 
 	/// Unmarshal TypeCode.
 	/// 
 	/// \returns TypeCode.
-	TypeCode::_ref_type unmarshal_type_code ()
-	{
-		throw NO_IMPLEMENT ();
-	}
+	inline TypeCode::_ref_type unmarshal_type_code ();
 
 	/// Marshal value type.
 	/// 

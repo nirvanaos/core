@@ -248,7 +248,7 @@ protected:
 				return false;
 		}
 
-		bool collapse_large_block (size_t size) NIRVANA_NOEXCEPT;
+		inline bool collapse_large_block (size_t size) NIRVANA_NOEXCEPT;
 
 		void restore_large_block (size_t size) NIRVANA_NOEXCEPT;
 

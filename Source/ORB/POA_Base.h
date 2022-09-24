@@ -294,7 +294,7 @@ public:
 		return list;
 	}
 
-	PortableServer::POAManager::_ref_type the_POAManager () const;
+	inline PortableServer::POAManager::_ref_type the_POAManager () const;
 
 	AdapterActivator::_ref_type the_activator () const
 	{
@@ -364,7 +364,7 @@ public:
 	virtual CORBA::servant_reference <CORBA::Core::ProxyObject> deactivate_object (
 		CORBA::Core::ReferenceLocal& ref);
 
-	static void implicit_activate (POA::_ptr_type adapter, CORBA::Core::ProxyObject& proxy);
+	inline static void implicit_activate (POA::_ptr_type adapter, CORBA::Core::ProxyObject& proxy);
 	virtual void implicit_deactivate (CORBA::Core::ReferenceLocal& ref,
 		CORBA::Core::ProxyObject& proxy) NIRVANA_NOEXCEPT;
 
@@ -422,7 +422,8 @@ public:
 	// Additional attributes
 
 	virtual CORBA::OctetSeq id () const = 0;
-	
+
+	inline
 	static PortableServer::POAManagerFactory::_ref_type the_POAManagerFactory () NIRVANA_NOEXCEPT;
 
 	// Internal
@@ -436,7 +437,7 @@ public:
 		return false;
 	}
 
-	void invoke (const RequestRef& request);
+	inline void invoke (const RequestRef& request);
 	void serve (const RequestRef& request);
 
 	static void shutdown ()

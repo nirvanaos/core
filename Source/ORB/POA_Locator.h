@@ -45,6 +45,7 @@ protected:
 		override;
 
 private:
+	inline
 	CORBA::Object::_ref_type preinvoke (CORBA::Internal::Type <ObjectId>::C_in oid,
 		CORBA::Internal::String_in operation, void*& the_cookie);
 

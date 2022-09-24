@@ -28,7 +28,8 @@
 #define NIRVANA_ORB_CORE_REQUESTIN_H_
 #pragma once
 
-#include "RequestGIOP.h"
+#include "RequestEncapIn.h"
+#include "RequestEncapOut.h"
 #include "RequestInPOA.h"
 #include "IncomingRequests.h"
 #include "../UserObject.h"

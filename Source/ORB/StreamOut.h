@@ -138,6 +138,7 @@ public:
 		write_tagged (reinterpret_cast <const IOP::TaggedProfileSeq&> (seq));
 	}
 
+	void write_id_name (TypeCode::_ptr_type tc);
 };
 
 template <typename C>

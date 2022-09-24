@@ -23,7 +23,8 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "RequestGIOP.h"
+#include "RequestEncapIn.h"
+#include "RequestEncapOut.h"
 
 using namespace Nirvana;
 using namespace Nirvana::Core;

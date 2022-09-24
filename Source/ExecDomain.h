@@ -346,7 +346,7 @@ private:
 		}
 	}
 
-	void unwind_mem_context () NIRVANA_NOEXCEPT;
+	inline void unwind_mem_context () NIRVANA_NOEXCEPT;
 
 	static void start_legacy_thread (Legacy::Core::Process& process, Legacy::Core::ThreadBase& thread);
 

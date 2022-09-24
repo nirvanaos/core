@@ -66,7 +66,7 @@ public:
 		return &default_;
 	}
 
-	static void initialize () NIRVANA_NOEXCEPT;
+	inline static void initialize () NIRVANA_NOEXCEPT;
 
 	static Nirvana::Core::StaticallyAllocated <Nirvana::Core::ImplStatic <CodeSetConverter> > default_;
 };

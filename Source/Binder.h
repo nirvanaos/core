@@ -105,13 +105,13 @@ public:
 	/// \param mod Module interface.
 	/// \param metadata Module OLF metadata section.
 	/// \returns The Main interface pointer.
-	static Legacy::Main::_ptr_type bind (Legacy::Core::Executable& mod);
+	inline static Legacy::Main::_ptr_type bind (Legacy::Core::Executable& mod);
 
 	/// Unbind legacy executable.
 	/// 
 	/// \param mod The Nirvana::Module interface.
 	/// \param metadata Module metadata.
-	static void unbind (Legacy::Core::Executable& mod) NIRVANA_NOEXCEPT;
+	inline static void unbind (Legacy::Core::Executable& mod) NIRVANA_NOEXCEPT;
 
 private:
 	typedef CORBA::Internal::RepId RepId;
@@ -246,7 +246,7 @@ private:
 	/// \returns Pointer to the ModuleStartup metadata structure, if found. Otherwise `nullptr`.
 	const ModuleStartup* module_bind (Nirvana::Module::_ptr_type mod, const Section& metadata, ModuleContext* mod_context);
 	static void module_unbind (Nirvana::Module::_ptr_type mod, const Section& metadata) NIRVANA_NOEXCEPT;
-	void remove_exports (const Section& metadata) NIRVANA_NOEXCEPT;
+	inline void remove_exports (const Section& metadata) NIRVANA_NOEXCEPT;
 	static void release_imports (Nirvana::Module::_ptr_type mod, const Section& metadata);
 
 	InterfaceRef bind_interface_sync (const ObjectKey& name, CORBA::Internal::String_in iid);
@@ -263,7 +263,7 @@ private:
 
 	void delete_module (Module* mod);
 
-	void unload_modules ();
+	inline void unload_modules ();
 
 	static MemContext& memory () NIRVANA_NOEXCEPT
 	{

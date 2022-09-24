@@ -87,7 +87,7 @@ protected:
 	}
 
 private:
-	WaitList* wait_list () const NIRVANA_NOEXCEPT;
+	inline WaitList* wait_list () const NIRVANA_NOEXCEPT;
 	void detach (CoreRef <WaitList>& ref) NIRVANA_NOEXCEPT;
 
 protected:

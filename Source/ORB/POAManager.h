@@ -41,12 +41,13 @@ class POAManager :
 	public CORBA::servant_traits <PortableServer::POAManager>::Servant <POAManager>
 {
 public:
+	inline
 	POAManager (POAManagerFactory& factory, const IDL::String& id, const CORBA::PolicyList& policies);
 
 	~POAManager ()
 	{}
 
-	void _delete_object () NIRVANA_NOEXCEPT;
+	inline void _delete_object () NIRVANA_NOEXCEPT;
 
 	void activate ()
 	{

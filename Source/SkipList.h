@@ -219,7 +219,7 @@ private:
 
 	void remove_node (Node* node, Node*& prev, int level) NIRVANA_NOEXCEPT;
 	void final_delete (Node* node) NIRVANA_NOEXCEPT;
-	void delete_node (Node* node) NIRVANA_NOEXCEPT;
+	inline void delete_node (Node* node) NIRVANA_NOEXCEPT;
 
 protected:
 #ifdef _DEBUG

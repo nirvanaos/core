@@ -74,8 +74,8 @@ private:
 
 	void next_block ();
 	const Segment* get_segment (size_t align, size_t size);
-	void physical_read (size_t& align, size_t& size, void* buf);
-	static void release_block (BlockHdr* block);
+	inline void physical_read (size_t& align, size_t& size, void* buf);
+	inline static void release_block (BlockHdr* block);
 
 private:
 	BlockHdr* cur_block_;

@@ -56,11 +56,11 @@ public:
 		map_.destruct ();
 	}
 
-	static uint32_t new_request (RequestOut& rq);
+	inline static uint32_t new_request (RequestOut& rq);
 
-	static void remove_request (uint32_t request_id);
+	inline static void remove_request (uint32_t request_id);
 
-	static uint32_t new_request_oneway ();
+	inline static uint32_t new_request_oneway ();
 
 	static void reply (uint32_t request_id, Nirvana::Core::CoreRef <StreamIn>&& data);
 
