@@ -196,10 +196,10 @@ protected:
 			cnt = 0;
 
 		Octet ocnt = (Octet)cnt;
-		out.write (1, 1, &ocnt);
+		out.write_c (1, 1, &ocnt);
 		if (Nirvana::endian::native != Nirvana::endian::little)
 			Internal::Type <U>::byteswap (c);
-		out.write (1, cnt, &c);
+		out.write_c (1, cnt, &c);
 	}
 
 	static uint32_t read (StreamIn& in)

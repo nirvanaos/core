@@ -37,7 +37,7 @@ void StreamOut::write_message_header (unsigned GIOP_minor, GIOP::MsgType msg_typ
 	hdr.GIOP_version (GIOP::Version (1, (Octet)GIOP_minor));
 	hdr.flags (endian::native == endian::little ? 1 : 0);
 	hdr.message_type ((Octet)msg_type);
-	write (1, sizeof (hdr), &hdr);
+	write_c (1, sizeof (hdr), &hdr);
 }
 
 void StreamOut::write_size (size_t size)
@@ -45,7 +45,7 @@ void StreamOut::write_size (size_t size)
 	if (sizeof (size_t) > sizeof (uint32_t) && size > std::numeric_limits <uint32_t>::max ())
 		throw IMP_LIMIT ();
 	uint32_t count = (uint32_t)size;
-	write (alignof (uint32_t), sizeof (count), &count);
+	write_c (alignof (uint32_t), sizeof (count), &count);
 }
 
 void StreamOut::write_seq (size_t align, size_t element_size, size_t element_count, void* data,
@@ -54,6 +54,16 @@ void StreamOut::write_seq (size_t align, size_t element_size, size_t element_cou
 	write_size (element_count);
 	if (element_count)
 		write (align, element_size * element_count, data, allocated_size);
+}
+
+void StreamOut::write_tagged (const IOP::TaggedProfileSeq& seq)
+{
+	write_size (seq.size ());
+	for (const IOP::TaggedProfile& profile : seq) {
+		IOP::ProfileId tag = profile.tag ();
+		write_c (alignof (IOP::ProfileId), sizeof (tag), &tag);
+		write_seq (profile.profile_data ());
+	}
 }
 
 }

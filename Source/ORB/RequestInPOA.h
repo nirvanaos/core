@@ -32,6 +32,14 @@
 #include "ObjectKey.h"
 #include <CORBA/Proxy/IOReference.h>
 
+namespace Nirvana {
+namespace Core {
+
+class MemContext;
+
+}
+}
+
 namespace CORBA {
 namespace Core {
 

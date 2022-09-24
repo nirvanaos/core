@@ -50,8 +50,8 @@ class ReferenceLocal :
 public:
 	enum
 	{
-		LOCAL_WEAK            = 0x0004,
-		LOCAL_AUTO_DEACTIVATE = 0x0008
+		LOCAL_WEAK            = 0x4000,
+		LOCAL_AUTO_DEACTIVATE = 0x2000
 	};
 
 	ReferenceLocal (const PortableServer::Core::ObjectKey& key, const IDL::String& primary_iid,

@@ -37,7 +37,7 @@ CORBA::OctetSeq POA_Persistent::id () const
 	Nirvana::Core::ImplStatic <CORBA::Core::StreamOutEncap> stm;
 	stm.write_size (path.size ());
 	for (const auto& name : path) {
-		stm.write_string (name);
+		stm.write_string_c (name);
 	}
 	return std::move (stm.data ());
 }

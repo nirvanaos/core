@@ -60,13 +60,8 @@ void ReferenceRemote::_remove_ref () NIRVANA_NOEXCEPT
 
 void ReferenceRemote::marshal (StreamOut& out) const
 {
-	out.write_string (primary_interface_id ());
-	out.write_size (address_.size ());
-	for (const IOP::TaggedProfile& profile : address_) {
-		IOP::ProfileId tag = profile.tag ();
-		out.write (alignof (IOP::ProfileId), sizeof (tag), &tag);
-		out.write_seq (profile.profile_data ());
-	}
+	out.write_string_c (primary_interface_id ());
+	out.write_tagged (address_);
 }
 
 }

@@ -44,8 +44,6 @@
 namespace CORBA {
 namespace Core {
 
-class StreamOut;
-
 class Reference;
 typedef servant_reference <Reference> ReferenceRef;
 
@@ -244,7 +242,7 @@ public:
 
 	virtual ReferenceRef get_reference () = 0;
 
-	const Internal::StringView <Char> primary_interface_id () const NIRVANA_NOEXCEPT
+	Internal::StringView <Char> primary_interface_id () const NIRVANA_NOEXCEPT
 	{
 		if (primary_interface_)
 			return Internal::StringView <Char> (primary_interface_->iid, primary_interface_->iid_len);

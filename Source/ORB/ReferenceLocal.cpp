@@ -26,6 +26,10 @@
 #include "ReferenceLocal.h"
 #include "RequestLocalPOA.h"
 #include "POA_Root.h"
+#include "LocalAddress.h"
+#include "StreamOutEncap.h"
+#include "IIOP.h"
+#include "ESIOP.h"
 #include <CORBA/Servant_var.h>
 
 using namespace Nirvana::Core;
@@ -162,9 +166,33 @@ Nirvana::Core::CoreRef <ProxyObject> ReferenceLocal::get_servant () const NIRVAN
 
 void ReferenceLocal::marshal (StreamOut& out) const
 {
-	out.write_string (primary_interface_id ());
-	throw NO_IMPLEMENT (); // TODO: Implement.
-	object_key_.marshal (out);
+	out.write_string_c (primary_interface_id ());
+	ImplStatic <StreamOutEncap> encap;
+	{
+		IIOP::Version ver (1, 1);
+		encap.write_c (alignof (IIOP::Version), sizeof (IIOP::Version), &ver);
+	}
+	encap.write_string_c (LocalAddress::singleton ().host ());
+	UShort port = LocalAddress::singleton ().port ();
+	encap.write_c (alignof (UShort), sizeof (UShort), &port);
+	object_key_.marshal (encap);
+
+	uint32_t ORB_type = ESIOP::ORB_TYPE;
+	ESIOP::ProtDomainId domain_id = ESIOP::current_domain_id ();
+
+	IOP::TaggedComponentSeq components{
+		IOP::TaggedComponent (IOP::TAG_ORB_TYPE, { (const Octet*)&ORB_type, (const Octet*)(&ORB_type + 1) }),
+#ifndef SINGLE_DOMAIN
+		IOP::TaggedComponent (ESIOP::TAG_DOMAIN_ADDRESS, { (const Octet*)&domain_id, (const Octet*)(&domain_id + 1) }),
+#endif
+		IOP::TaggedComponent (ESIOP::TAG_FLAGS, { 1, (Octet)flags_ })
+	};
+	encap.write_tagged (components);
+
+	IOP::TaggedProfileSeq addr{
+		IOP::TaggedProfile (IOP::TAG_INTERNET_IOP, std::move (encap.data ()))
+	};
+	out.write_tagged (addr);
 }
 
 IORequest::_ref_type ReferenceLocal::create_request (OperationIndex op, UShort flags)

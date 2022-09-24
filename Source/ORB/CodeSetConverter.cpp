@@ -99,7 +99,7 @@ void CodeSetConverterW_1_1::unmarshal_string (StreamIn& in, IDL::WString& s)
 
 void CodeSetConverterW_1_1::marshal_char (size_t count, const WChar* data, StreamOut& out)
 {
-	out.write (alignof (WChar), count * sizeof (WChar), data);
+	out.write_c (alignof (WChar), count * sizeof (WChar), data);
 }
 
 void CodeSetConverterW_1_1::unmarshal_char (StreamIn& in, size_t count, WChar* data)

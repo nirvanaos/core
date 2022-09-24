@@ -72,7 +72,7 @@ public:
 	/// \param align Data alignment
 	/// \param size Data size.
 	/// \param data Data pointer.
-	void write (size_t align, size_t size, const void* data)
+	void write_c (size_t align, size_t size, const void* data)
 	{
 		size_t zero = 0;
 		write (align, size, const_cast <void*> (data), zero);
@@ -91,22 +91,11 @@ public:
 
 	/// Write string.
 	/// 
-	/// \tparam C The character type.
 	/// \param s The string.
-	template <typename C>
-	void write_string (const Internal::StringT <C>& s)
+	void write_string_c (const Internal::StringView <Char>& s)
 	{
-		write_string (const_cast <Internal::StringT <C>&> (s), false);
-	}
-
-	/// Write string.
-	/// 
-	/// \tparam C The character type.
-	/// \param s The string.
-	template <typename C>
-	void write_string (const Internal::StringView <C>& s)
-	{
-		write_string (static_cast <const Internal::StringT <C>&> (s));
+		write_string (const_cast <IDL::String&> (
+			static_cast <const IDL::String&> (s)), false);
 	}
 
 	/// Write size of sequence or string.
@@ -141,6 +130,14 @@ public:
 	{
 		write_seq (const_cast <IDL::Sequence <T>&> (s), false);
 	}
+
+	void write_tagged (const IOP::TaggedProfileSeq& seq);
+
+	void write_tagged (const IOP::TaggedComponentSeq& seq)
+	{
+		write_tagged (reinterpret_cast <const IOP::TaggedProfileSeq&> (seq));
+	}
+
 };
 
 template <typename C>

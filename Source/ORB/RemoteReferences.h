@@ -90,14 +90,14 @@ public:
 	}
 
 	template <typename DomainKey>
-	Object::_ref_type unmarshal (const IDL::String& iid, IOP::TaggedProfileSeq&& addr, DomainKey domain)
+	Object::_ref_type unmarshal (const IDL::String& iid, IOP::TaggedProfileSeq&& addr, unsigned flags, DomainKey domain)
 	{
 		SYNC_BEGIN (sync_domain (), nullptr)
 			auto ins = emplace_reference (std::move (addr));
 			References::reference entry = *ins.first;
 			if (ins.second) {
 				try {
-					RefPtr p (new ReferenceRemote (get_domain_sync (std::move (domain)), ins.first->first, iid, 0));
+					RefPtr p (new ReferenceRemote (get_domain_sync (std::move (domain)), ins.first->first, iid, flags));
 					Internal::I_var <Object> ret (p->get_proxy ());
 					entry.second.finish_construction (std::move (p));
 					return ret;
@@ -129,20 +129,24 @@ public:
 		references_.erase (ref);
 	}
 
+#ifndef SINGLE_DOMAIN
 	servant_reference <DomainLocal> get_domain (ESIOP::ProtDomainId id)
 	{
 		SYNC_BEGIN (sync_domain (), nullptr)
 			return get_domain_sync (id);
 		SYNC_END ();
 	}
+#endif
 
 private:
 	std::pair <References::iterator, bool> emplace_reference (IOP::TaggedProfileSeq&& addr);
 
+#ifndef SINGLE_DOMAIN
 	servant_reference <DomainLocal> get_domain_sync (ESIOP::ProtDomainId id)
 	{
 		return domains_local_.get (*this, id);
 	}
+#endif
 
 	servant_reference <Domain> get_domain_sync (IIOP::ListenPoint&& lp)
 	{
@@ -156,7 +160,9 @@ private:
 
 
 private:
+#ifndef SINGLE_DOMAIN
 	DomainsLocal domains_local_;
+#endif
 
 	typedef Nirvana::Core::SetUnorderedStable <DomainRemote, std::hash <IIOP::ListenPoint>,
 		std::equal_to <IIOP::ListenPoint>, Nirvana::Core::UserAllocator <DomainRemote> >

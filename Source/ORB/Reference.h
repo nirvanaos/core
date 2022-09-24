@@ -35,6 +35,8 @@
 namespace CORBA {
 namespace Core {
 
+class StreamOut;
+
 class NIRVANA_NOVTABLE Reference :
 	public ProxyManager,
 	public SyncGC
@@ -50,8 +52,8 @@ public:
 
 	enum
 	{
-		LOCAL              = 0x0001, //< Is ReferenceLocal
-		GARBAGE_COLLECTION = 0x0002  //< The reference is involved in DGC
+		GARBAGE_COLLECTION = 0x0001, //< The reference is involved in DGC
+		LOCAL              = 0x8000  //< Is ReferenceLocal
 	};
 
 	Reference (const IDL::String& primary_iid, unsigned flags) :

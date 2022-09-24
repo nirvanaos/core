@@ -47,6 +47,16 @@ public:
 		port_ (lp.port ())
 	{}
 
+	const Nirvana::Core::SharedString& host () const NIRVANA_NOEXCEPT
+	{
+		return host_;
+	}
+
+	UShort port () const NIRVANA_NOEXCEPT
+	{
+		return port_;
+	}
+
 	LocalAddress& operator = (const IIOP::ListenPoint& lp)
 	{
 		host_.assign (lp.host ().data (), lp.host ().size ());

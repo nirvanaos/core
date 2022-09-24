@@ -218,6 +218,12 @@ const uint32_t CONTEXT_ID_DEADLINE = (VSCID << 8) | 0;
 /// If this profile is not present, the local system domain is assumed.
 const uint32_t TAG_DOMAIN_ADDRESS = 0xFFFFFFFF;
 
+/// profile_data contains single octet with IOR flags.
+const uint32_t TAG_FLAGS = 0xFFFFFFFE;
+
+/// IOR is a subgect of the Distributed Garbage Collection.
+const uint8_t IOR_FLAG_DGC = 0x01;
+
 }
 
 #endif

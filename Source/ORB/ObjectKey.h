@@ -28,19 +28,19 @@
 #define NIRVANA_ORB_CORE_OBJECTKEY_H_
 #pragma once
 
+#include <CORBA/Server.h>
+#include <CORBA/IOP.h>
 #include "StreamOut.h"
-#include "SharedObject.h"
 
 namespace CORBA {
 namespace Core {
+
 class StreamIn;
+
 }
 }
 
 namespace PortableServer {
-
-typedef CORBA::OctetSeq ObjectId;
-
 namespace Core {
 
 typedef IDL::Sequence <IDL::String> AdapterPath;
@@ -86,13 +86,13 @@ public:
 	{
 		out.write_size (adapter_path_.size ());
 		for (const auto& name : adapter_path_) {
-			out.write_string (static_cast <const CORBA::Internal::StringView <CORBA::Char>&> (name));
+			out.write_string_c (name);
 		}
-		out.write_seq (const_cast <ObjectId&> (object_id_), false);
+		out.write_seq (object_id_);
 	}
 
-	void unmarshal (CORBA::Core::StreamIn& in);
 	void unmarshal (const IOP::ObjectKey& object_key);
+	void unmarshal (CORBA::Core::StreamIn& in);
 
 	size_t hash () const NIRVANA_NOEXCEPT;
 

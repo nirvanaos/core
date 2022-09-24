@@ -65,7 +65,7 @@ public:
 	{
 		check_align (align);
 		if (marshal_op ())
-			stream_out_->write (align, size, data);
+			stream_out_->write_c (align, size, data);
 	}
 
 	/// Unmarshal CDR data.
@@ -148,7 +148,7 @@ public:
 	void marshal_char (size_t count, const Char* data)
 	{
 		if (marshal_op ())
-			stream_out_->write (alignof (Char), count * sizeof (Char), data);
+			stream_out_->write_c (alignof (Char), count * sizeof (Char), data);
 	}
 
 	void unmarshal_char (size_t count, Char* data)
@@ -220,7 +220,8 @@ public:
 	/// \param itf The interface derived from Object.
 	void marshal_interface (Internal::Interface::_ptr_type itf)
 	{
-		throw NO_IMPLEMENT ();
+		if (marshal_op ())
+			ProxyManager::cast (interface2object (itf))->get_reference ()->marshal (*stream_out_);
 	}
 
 	/// Unmarshal interface.
@@ -242,63 +243,113 @@ public:
 
 			IIOP::ListenPoint listen_point;
 			IOP::ObjectKey object_key;
+			bool object_key_found = false;
 			IOP::TaggedComponentSeq components;
-			bool found_internet = false, found_components = false;
 			for (const IOP::TaggedProfile& profile : addr) {
-				if (profile.tag () == IOP::TAG_INTERNET_IOP) {
-					found_internet = true;
-					Nirvana::Core::ImplStatic <StreamInEncap> stm (std::ref (profile.profile_data ()));
-					IIOP::Version ver;
-					stm.read (alignof (IIOP::Version), sizeof (IIOP::Version), &ver);
-					if (ver.major () != 1)
-						throw NO_IMPLEMENT (MAKE_OMG_MINOR (3));
-					stm.read_string (listen_point.host ());
-					CORBA::UShort port;
-					stm.read (alignof (CORBA::UShort), sizeof (CORBA::UShort), &port);
-					if (stm.other_endian ())
-						Nirvana::byteswap (port);
-					listen_point.port (port);
-					stm.read_seq (object_key);
-					if (found_components)
-						break;
-					if (ver.minor () >= 1) {
-						stm.read_tagged (components);
-						if (!components.empty ())
-							break;
-					}
-#ifdef SINGLE_DOMAIN
-					break;
-#else
-				} else if (profile.tag () == IOP::TAG_MULTIPLE_COMPONENTS) {
-					Nirvana::Core::ImplStatic <StreamInEncap> stm (std::ref (profile.profile_data ()));
-					stm.read_tagged (components);
-					found_components = true;
-					if (found_internet)
-						break;
-#endif
+				switch (profile.tag ()) {
+					case IOP::TAG_INTERNET_IOP: {
+						Nirvana::Core::ImplStatic <StreamInEncap> stm (std::ref (profile.profile_data ()));
+						IIOP::Version ver;
+						stm.read (alignof (IIOP::Version), sizeof (IIOP::Version), &ver);
+						if (ver.major () != 1)
+							throw NO_IMPLEMENT (MAKE_OMG_MINOR (3));
+						stm.read_string (listen_point.host ());
+						CORBA::UShort port;
+						stm.read (alignof (CORBA::UShort), sizeof (CORBA::UShort), &port);
+						if (stm.other_endian ())
+							Nirvana::byteswap (port);
+						listen_point.port (port);
+						stm.read_seq (object_key);
+						object_key_found = true;
+						if (ver.minor () >= 1) {
+							if (components.empty ())
+								stm.read_tagged (components);
+							else {
+								IOP::TaggedComponentSeq comp;
+								stm.read_tagged (comp);
+								components.insert (components.end (), comp.begin (), comp.end ());
+							}
+						}
+					} break;
+
+					case IOP::TAG_MULTIPLE_COMPONENTS: {
+						Nirvana::Core::ImplStatic <StreamInEncap> stm (std::ref (profile.profile_data ()));
+						if (components.empty ())
+							stm.read_tagged (components);
+						else {
+							IOP::TaggedComponentSeq comp;
+							stm.read_tagged (comp);
+							components.insert (components.end (), comp.begin (), comp.end ());
+						}
+					} break;
 				}
 			}
 
-			if (LocalAddress::singleton () == listen_point) {
-				// Local system
-#ifndef SINGLE_DOMAIN
-				ESIOP::ProtDomainId domain_id;
+			if (!object_key_found)
+				throw IMP_LIMIT (MAKE_OMG_MINOR (1)); // Unable to use any profile in IOR.
+
+			bool nirvana = false;
+			for (const IOP::TaggedComponent& comp : components) {
+				if (comp.tag () == IOP::TAG_ORB_TYPE) {
+					if (comp.component_data ().size () == sizeof (ULong)) {
+						ULong type = *(const ULong*)comp.component_data ().data ();
+						if (stream_in_->other_endian ())
+							Nirvana::byteswap (type);
+						if (ESIOP::ORB_TYPE == type)
+							nirvana = true;
+					} else
+						throw BAD_PARAM ();
+					break;
+				}
+			}
+
+			ESIOP::ProtDomainId domain_id;
+			Octet flags = 0;
+			bool domain_found = false;
+			if (nirvana) {
 				for (const IOP::TaggedComponent& comp : components) {
-					if (comp.tag () == ESIOP::TAG_DOMAIN_ADDRESS) {
-						if (comp.component_data ().size () == sizeof (ESIOP::ProtDomainId)) {
-							domain_id = *(const ESIOP::ProtDomainId*)comp.component_data ().data ();
-						} else
-							throw BAD_PARAM ();
-						break;
+					switch (comp.tag ()) {
+						case ESIOP::TAG_DOMAIN_ADDRESS:
+							if (comp.component_data ().size () == sizeof (ESIOP::ProtDomainId)) {
+								domain_id = *(const ESIOP::ProtDomainId*)comp.component_data ().data ();
+								if (stream_in_->other_endian ())
+									Nirvana::byteswap (domain_id);
+								domain_found = true;
+							} else
+								throw INV_OBJREF ();
+							break;
+
+						case ESIOP::TAG_FLAGS:
+							flags = *(const Octet*)comp.component_data ().data ();
+							break;
 					}
 				}
-				if (!(ESIOP::current_domain_id () == domain_id))
-					obj = RemoteReferences::singleton ().unmarshal (primary_iid, std::move (addr), domain_id);
-				else
+			}
+
+			size_t host_len = listen_point.host ().size ();
+			const Char* host = listen_point.host ().data ();
+			if (0 == host_len ||
+				(LocalAddress::singleton ().host ().size () == host_len &&
+				std::equal (host, host + host_len, LocalAddress::singleton ().host ().data ()))) {
+
+				// Local system
+				if (!nirvana)
+					throw INV_OBJREF ();
+
+				if (host_len && listen_point.port () != LocalAddress::singleton ().port ()) {
+#ifdef SINGLE_DOMAIN
+					throw INV_OBJREF ();
+#else
+					if (!domain_found)
+						throw INV_OBJREF ();
+					if (ESIOP::current_domain_id () != domain_id)
+						obj = RemoteReferences::singleton ().unmarshal (primary_iid, std::move (addr), flags, domain_id);
+					else
 #endif
-					obj = PortableServer::Core::POA_Root::unmarshal (primary_iid, object_key);
+						obj = PortableServer::Core::POA_Root::unmarshal (primary_iid, object_key);
+				}
 			} else
-				obj = RemoteReferences::singleton ().unmarshal (primary_iid, std::move (addr), std::move (listen_point));
+				obj = RemoteReferences::singleton ().unmarshal (primary_iid, std::move (addr), flags, std::move (listen_point));
 		}
 		if (Internal::RepId::compatible (Internal::RepIdOf <Object>::id, interface_id))
 			return obj;
