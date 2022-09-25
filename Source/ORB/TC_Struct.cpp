@@ -23,53 +23,30 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-
-#include "RequestEncapIn.h"
-#include "RequestEncapOut.h"
+#include "TC_Struct.h"
 
 namespace CORBA {
 namespace Core {
 
-RequestEncap::RequestEncap (const RequestGIOP& parent) :
-	RequestGIOP (parent)
-{}
-
-void RequestEncap::set_exception (Any& e)
+TC_Struct::TC_Struct (IDL::String id, IDL::String name, Members&& members) NIRVANA_NOEXCEPT :
+	Impl (TCKind::tk_struct, std::move (id), std::move (name)),
+	members_ (std::move (members))
 {
-	assert (false);
-}
-
-void RequestEncap::success ()
-{
-	assert (false);
-}
-
-void RequestEncap::invoke ()
-{
-	assert (false);
-}
-
-bool RequestEncap::is_exception () const NIRVANA_NOEXCEPT
-{
-	assert (false);
-	return false;
-}
-
-bool RequestEncap::completed () const NIRVANA_NOEXCEPT
-{
-	assert (false);
-	return false;
-}
-
-bool RequestEncap::wait (uint64_t timeout)
-{
-	assert (false);
-	return false;
-}
-
-void RequestEncap::cancel ()
-{
-	assert (false);
+	size_t off = 0, align = 1;
+	bool cdr = true;
+	for (auto& m : members_) {
+		size_t a = m.type->n_align ();
+		if (align < a)
+			align = a;
+		off = Nirvana::round_up (off, a);
+		m.offset = off;
+		off += m.type->n_size ();
+		if (cdr && !m.type->n_is_CDR ())
+			cdr = false;
+	}
+	size_ = off;
+	align_ = align;
+	is_CDR_ = cdr;
 }
 
 }

@@ -94,14 +94,24 @@ void RequestGIOP::marshal_type_code (TypeCode::_ptr_type tc)
 		case TCKind::tk_union: {
 			Nirvana::Core::ImplStatic <RequestEncapOut> encap (std::ref (*this));
 			encap.stream_out ()->write_id_name (tc);
+			TypeCode::_ref_type discriminator_type = tc->discriminator_type ();
 			encap.marshal_type_code (tc->discriminator_type ());
-			long def = tc->default_index ();
-			encap.stream_out ()->write_c (alignof (long), sizeof (long), &def);
+			Long default_index = tc->default_index ();
+			encap.stream_out ()->write_c (alignof (long), sizeof (long), &default_index);
 			ULong cnt = tc->member_count ();
 			encap.stream_out ()->write_c (alignof (ULong), sizeof (ULong), &cnt);
 			for (ULong i = 0; i < cnt; ++i) {
-				Any label = tc->member_label (i);
-				Internal::Type <Any>::marshal_out (label, _get_ptr ());
+				if (i != default_index) {
+					Any label = tc->member_label (i);
+					discriminator_type->n_marshal_in (label.data (), 1, encap._get_ptr ());
+				} else {
+					// The discriminant value used in the actual typecode parameter associated with the default
+					// member position in the list, may be any valid value of the discriminant type, and has no
+					// semantic significance (i.e., it should be ignored and is only included for syntactic
+					// completeness of union type code marshaling).
+					ULongLong def = 0;
+					discriminator_type->n_marshal_in (&def, 1, encap._get_ptr ());
+				}
 				IDL::String name = tc->member_name (i);
 				encap.stream_out ()->write_string (name, true);
 				encap.marshal_type_code (tc->member_type (i));

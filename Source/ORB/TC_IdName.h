@@ -1,3 +1,4 @@
+/// \file
 /*
 * Nirvana Core.
 *
@@ -23,54 +24,50 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
+#ifndef NIRVANA_ORB_CORE_TC_IDNAME_H_
+#define NIRVANA_ORB_CORE_TC_IDNAME_H_
+#pragma once
 
-#include "RequestEncapIn.h"
-#include "RequestEncapOut.h"
+#include "TC_Base.h"
 
 namespace CORBA {
 namespace Core {
 
-RequestEncap::RequestEncap (const RequestGIOP& parent) :
-	RequestGIOP (parent)
-{}
-
-void RequestEncap::set_exception (Any& e)
+class TC_IdName : public TC_Base
 {
-	assert (false);
-}
+public:
+	TC_IdName (TCKind kind, IDL::String&& id, IDL::String&& name) NIRVANA_NOEXCEPT :
+		TC_Base (kind),
+		id_ (std::move (id)),
+		name_ (std::move (name))
+	{}
 
-void RequestEncap::success ()
-{
-	assert (false);
-}
+	bool equal (TypeCode::_ptr_type other) const
+	{
+		return equivalent (other) && name_ == other->name ();
+	}
 
-void RequestEncap::invoke ()
-{
-	assert (false);
-}
+	bool equivalent (TypeCode::_ptr_type other) const
+	{
+		return kind_ == other->kind () && id_ == other->id ();
+	}
 
-bool RequestEncap::is_exception () const NIRVANA_NOEXCEPT
-{
-	assert (false);
-	return false;
-}
+	IDL::String id () const
+	{
+		return id_;
+	}
 
-bool RequestEncap::completed () const NIRVANA_NOEXCEPT
-{
-	assert (false);
-	return false;
-}
+	IDL::String name () const
+	{
+		return name_;
+	}
 
-bool RequestEncap::wait (uint64_t timeout)
-{
-	assert (false);
-	return false;
-}
-
-void RequestEncap::cancel ()
-{
-	assert (false);
-}
+protected:
+	const IDL::String id_;
+	const IDL::String name_;
+};
 
 }
 }
+
+#endif

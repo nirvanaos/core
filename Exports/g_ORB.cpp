@@ -28,6 +28,9 @@
 #include <Binder.h>
 #include <ORB/Services.h>
 #include <ORB/TC_Fixed.h>
+#include <ORB/TC_ObjRef.h>
+#include <ORB/TC_Struct.h>
+#include <ORB/TC_Union.h>
 #include <ORB/PolicyFactory.h>
 
 using namespace Nirvana;
@@ -113,13 +116,67 @@ public:
 	static TypeCode::_ref_type create_struct_tc (const RepositoryId& id,
 		const Identifier& name, const StructMemberSeq& members)
 	{
-		throw NO_IMPLEMENT ();
+		TC_Struct::Members smembers;
+		smembers.construct (members.size ());
+		TC_Struct::Member* pm = smembers.begin ();
+		for (const StructMember& m : members) {
+			pm->name = m.name ();
+			pm->type = m.type ();
+			++pm;
+		}
+		return make_pseudo <TC_Struct> (id, name, std::move (smembers));
 	}
 
 	static TypeCode::_ref_type create_union_tc (const RepositoryId& id,
 		const Identifier& name, TypeCode::_ptr_type discriminator_type, const UnionMemberSeq& members)
 	{
-		throw NO_IMPLEMENT ();
+		// The create_union_tc operation shall also check that the supplied discriminator type is
+		// legitimate, and if the check fails, raise BAD_PARAM with standard minor code 20.
+		switch (discriminator_type->kind ()) {
+			case TCKind::tk_short:
+			case TCKind::tk_long:
+			case TCKind::tk_ushort:
+			case TCKind::tk_ulong:
+			case TCKind::tk_boolean:
+			case TCKind::tk_char:
+			case TCKind::tk_enum:
+			case TCKind::tk_longlong:
+			case TCKind::tk_ulonglong:
+				break;
+			default:
+				throw BAD_PARAM (MAKE_OMG_MINOR (20));
+		}
+		TC_Union::Members smembers;
+		smembers.construct (members.size ());
+		TC_Union::Member* pm = smembers.begin ();
+		Nirvana::Core::SetUnorderedUnstable <ULongLong> labels;
+		Long default_index = -1;
+		for (auto it = members.begin (); it != members.end (); ++it, ++pm) {
+			// If the TypeCode of a label is not equivalent to the TypeCode of the discriminator (other than
+			// the octet TypeCode to indicate the default label), the operation shall raise BAD_PARAM with
+			// standard minor code 19.
+			TypeCode::_ref_type label_type = it->label ().type ();
+			if (label_type->kind () != TCKind::tk_octet) {
+				if (!label_type->equivalent (discriminator_type))
+					throw BAD_PARAM (MAKE_OMG_MINOR (19));
+
+				// If a duplicate label is found, raise BAD_PARAM with standard minor code 18.
+				ULongLong val = 0;
+				discriminator_type->n_copy (&val, it->label ().data ());
+				if (!labels.insert (val).second)
+					throw BAD_PARAM (MAKE_OMG_MINOR (18));
+
+			} else if (default_index >= 0) {
+				throw BAD_PARAM (MAKE_OMG_MINOR (19));
+			} else
+				default_index = it - members.begin ();
+
+			pm->label = it->label ();
+			pm->name = it->name ();
+			pm->type = it->type ();
+		}
+		return make_pseudo <TC_Union> (id, name, std::move (discriminator_type), default_index,
+			std::move (smembers));
 	}
 
 	static TypeCode::_ref_type create_enum_tc (const RepositoryId& id,
@@ -143,7 +200,7 @@ public:
 	static TypeCode::_ref_type create_interface_tc (const RepositoryId& id,
 		const Identifier& name)
 	{
-		throw NO_IMPLEMENT ();
+		return make_pseudo <TC_ObjRef> (id, name);
 	}
 
 	static TypeCode::_ref_type create_string_tc (ULong bound)

@@ -33,11 +33,13 @@
 namespace CORBA {
 namespace Core {
 
-class TC_Fixed : public TC_Base <TC_Fixed>
+class TC_Fixed :
+	public TC_Impl <TC_Fixed, TC_Base>
 {
+	typedef TC_Impl <TC_Fixed, TC_Base> Impl;
 public:
 	TC_Fixed (UShort digits, Short scale) NIRVANA_NOEXCEPT :
-		TC_Base (TCKind::tk_fixed),
+		Impl (TCKind::tk_fixed),
 		digits_ (digits),
 		scale_ (scale)
 	{}
@@ -70,6 +72,11 @@ public:
 	size_t n_size () const NIRVANA_NOEXCEPT
 	{
 		return size ();
+	}
+
+	static size_t _s_n_align (Bridge <TypeCode>*, Interface*)
+	{
+		return 1;
 	}
 
 	static Octet _s_n_is_CDR (Bridge <TypeCode>*, Interface*)

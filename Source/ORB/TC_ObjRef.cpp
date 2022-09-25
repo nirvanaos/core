@@ -23,53 +23,22 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-
-#include "RequestEncapIn.h"
-#include "RequestEncapOut.h"
+#include "TC_ObjRef.h"
 
 namespace CORBA {
 namespace Core {
 
-RequestEncap::RequestEncap (const RequestGIOP& parent) :
-	RequestGIOP (parent)
+TC_ObjRef::TC_ObjRef (IDL::String id, IDL::String name) NIRVANA_NOEXCEPT :
+Impl (TCKind::tk_objref, std::move (id), std::move (name))
 {}
 
-void RequestEncap::set_exception (Any& e)
+void TC_ObjRef::n_marshal_in (const void* src, size_t count, Internal::IORequest_ptr rq)
 {
-	assert (false);
-}
-
-void RequestEncap::success ()
-{
-	assert (false);
-}
-
-void RequestEncap::invoke ()
-{
-	assert (false);
-}
-
-bool RequestEncap::is_exception () const NIRVANA_NOEXCEPT
-{
-	assert (false);
-	return false;
-}
-
-bool RequestEncap::completed () const NIRVANA_NOEXCEPT
-{
-	assert (false);
-	return false;
-}
-
-bool RequestEncap::wait (uint64_t timeout)
-{
-	assert (false);
-	return false;
-}
-
-void RequestEncap::cancel ()
-{
-	assert (false);
+	Internal::check_pointer (src);
+	for (Internal::Interface* const* p = reinterpret_cast <Internal::Interface* const*> (src);
+		count; ++p, --count) {
+		rq->marshal_interface (*p);
+	}
 }
 
 }

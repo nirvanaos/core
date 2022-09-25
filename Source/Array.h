@@ -85,7 +85,7 @@ public:
 		end_ = begin_ + size;
 	}
 
-	/// \brief Allocate and call default constructors. Rarely used.
+	/// \brief Allocate and call default constructors.
 	void construct (size_t size)
 	{
 		assert (!begin_ && !end_);

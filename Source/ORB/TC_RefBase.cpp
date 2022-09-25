@@ -23,53 +23,24 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-
-#include "RequestEncapIn.h"
-#include "RequestEncapOut.h"
+#include "TC_RefBase.h"
 
 namespace CORBA {
 namespace Core {
 
-RequestEncap::RequestEncap (const RequestGIOP& parent) :
-	RequestGIOP (parent)
-{}
-
-void RequestEncap::set_exception (Any& e)
+size_t TC_RefBase::_s_n_size (Internal::Bridge <TypeCode>*, Internal::Interface*)
 {
-	assert (false);
+	return sizeof (Internal::Interface*);
 }
 
-void RequestEncap::success ()
+size_t TC_RefBase::_s_n_align (Internal::Bridge <TypeCode>*, Internal::Interface*)
 {
-	assert (false);
+	return alignof (Internal::Interface*);
 }
 
-void RequestEncap::invoke ()
+Octet TC_RefBase::_s_n_is_CDR (Internal::Bridge <TypeCode>*, Internal::Interface*)
 {
-	assert (false);
-}
-
-bool RequestEncap::is_exception () const NIRVANA_NOEXCEPT
-{
-	assert (false);
 	return false;
-}
-
-bool RequestEncap::completed () const NIRVANA_NOEXCEPT
-{
-	assert (false);
-	return false;
-}
-
-bool RequestEncap::wait (uint64_t timeout)
-{
-	assert (false);
-	return false;
-}
-
-void RequestEncap::cancel ()
-{
-	assert (false);
 }
 
 }

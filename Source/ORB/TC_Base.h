@@ -34,37 +34,31 @@
 namespace CORBA {
 namespace Core {
 
-template <class S>
-class TC_Base :
+template <class S, class Base>
+class TC_Impl :
+	public Base,
 	public servant_traits <TypeCode>::Servant <S>,
-	public Nirvana::Core::LifeCyclePseudo <S>,
-	public Nirvana::Core::SharedObject,
-	public CORBA::Internal::TypeCodeBase
+	public Nirvana::Core::LifeCyclePseudo <S>
 {
 public:
 	typedef servant_traits <TypeCode>::Servant <S> Servant;
-	typedef CORBA::Internal::TypeCodeBase BaseImpl;
-	using BaseImpl::_s_id;
-	using BaseImpl::_s_name;
-	using BaseImpl::_s_member_count;
-	using BaseImpl::_s_member_name;
-	using BaseImpl::_s_member_type;
-	using BaseImpl::_s_member_label;
-	using BaseImpl::_s_discriminator_type;
-	using BaseImpl::_s_default_index;
-	using BaseImpl::_s_length;
-	using BaseImpl::_s_content_type;
-	using BaseImpl::_s_fixed_digits;
-	using BaseImpl::_s_fixed_scale;
-	using BaseImpl::_s_member_visibility;
-	using BaseImpl::_s_type_modifier;
-	using BaseImpl::_s_concrete_base_type;
 
-	TCKind kind () const NIRVANA_NOEXCEPT
-	{
-		return kind_;
-	}
-	
+	using Base::_s_id;
+	using Base::_s_name;
+	using Base::_s_member_count;
+	using Base::_s_member_name;
+	using Base::_s_member_type;
+	using Base::_s_member_label;
+	using Base::_s_discriminator_type;
+	using Base::_s_default_index;
+	using Base::_s_length;
+	using Base::_s_content_type;
+	using Base::_s_fixed_digits;
+	using Base::_s_fixed_scale;
+	using Base::_s_member_visibility;
+	using Base::_s_type_modifier;
+	using Base::_s_concrete_base_type;
+
 	TypeCode::_ref_type get_compact_typecode () NIRVANA_NOEXCEPT
 	{
 		// By default just return this type code.
@@ -72,7 +66,24 @@ public:
 	}
 
 protected:
-	TC_Base (TCKind kind) :
+	template <class ... Args>
+	TC_Impl (Args ... args) :
+		Base (std::forward <Args> (args)...)
+	{}
+};
+
+class TC_Base :
+	public Nirvana::Core::SharedObject,
+	public CORBA::Internal::TypeCodeBase
+{
+public:
+	TCKind kind () const NIRVANA_NOEXCEPT
+	{
+		return kind_;
+	}
+	
+protected:
+	TC_Base (TCKind kind) NIRVANA_NOEXCEPT :
 		kind_ (kind)
 	{}
 
