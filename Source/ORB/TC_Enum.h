@@ -24,63 +24,73 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_ORB_CORE_TC_FIXED_H_
-#define NIRVANA_ORB_CORE_TC_FIXED_H_
+#ifndef NIRVANA_ORB_CORE_TC_ENUM_H_
+#define NIRVANA_ORB_CORE_TC_ENUM_H_
 #pragma once
 
-#include "TC_Base.h"
+#include "TC_IdName.h"
 #include "TC_Impl.h"
+#include "../Array.h"
 
 namespace CORBA {
 namespace Core {
 
-class TC_Fixed :
-	public TC_Impl <TC_Fixed, TC_Base>
+class TC_Enum :
+	public TC_Impl <TC_Enum, TC_IdName>
 {
-	typedef TC_Impl <TC_Fixed, TC_Base> Impl;
+	typedef TC_Impl <TC_Enum, TC_IdName> Impl;
+
 public:
-	TC_Fixed (UShort digits, Short scale) NIRVANA_NOEXCEPT :
-		Impl (TCKind::tk_fixed),
-		digits_ (digits),
-		scale_ (scale)
-	{}
+	using Servant::_s_id;
+	using Servant::_s_name;
+	using Servant::_s_member_count;
+	using Servant::_s_member_name;
+
+	typedef Nirvana::Core::Array <String, Nirvana::Core::SharedAllocator> Members;
+
+	TC_Enum (String&& id, String&& name, Members&& members) NIRVANA_NOEXCEPT;
 
 	bool equal (TypeCode::_ptr_type other) const
 	{
-		return kind_ == other->kind ()
-			&& digits_ == other->fixed_digits ()
-			&& scale_ == other->fixed_scale ();
+		if (!TC_IdName::equal (other))
+			return false;
+
+		for (ULong i = 0, cnt = (ULong)members_.size (); i < cnt; ++i) {
+			if (!(members_ [i] == other->member_name (i)))
+				return false;
+		}
+		return true;
 	}
-	
+
 	bool equivalent (TypeCode::_ptr_type other) const
 	{
-		return equal (dereference_alias (other));
+		TypeCode::_ptr_type tc = dereference_alias (other);
+		return TC_IdName::equivalent_no_alias (tc) && members_.size () == tc->member_count ();
 	}
 
-	using Servant::_s_fixed_digits;
-	using Servant::_s_fixed_scale;
-
-	UShort fixed_digits () const NIRVANA_NOEXCEPT
+	ULong member_count () const NIRVANA_NOEXCEPT
 	{
-		return digits_;
+		return (ULong)members_.size ();
 	}
 
-	Short fixed_scale () const NIRVANA_NOEXCEPT
+	IDL::String member_name (ULong i) const
 	{
-		return scale_;
+		if (i >= members_.size ())
+			throw Bounds ();
+		return members_ [i];
 	}
 
 	size_t n_size () const NIRVANA_NOEXCEPT
 	{
-		return size ();
+		return sizeof (Internal::ABI_enum);
 	}
 
-	static size_t _s_n_align (Bridge <TypeCode>*, Interface*)
+	size_t n_align () const NIRVANA_NOEXCEPT
 	{
-		return 1;
+		return alignof (Internal::ABI_enum);
 	}
 
-	static Octet _s_n_is_CDR (Bridge <TypeCode>*, Interface*)
+	bool n_is_CDR () const NIRVANA_NOEXCEPT
 	{
 		return true;
 	}
@@ -88,14 +98,14 @@ public:
 	void n_construct (void* p) const
 	{
 		Internal::check_pointer (p);
-		Nirvana::BCD_zero ((Octet*)p, size ());
+		*(Internal::ABI_enum*)p = 0;
 	}
 
-	static void _s_n_destruct (Bridge <TypeCode>*, void* p, Interface*)
+	void n_destruct (void* p) const
 	{}
 
 	void n_copy (void* dst, const void* src) const;
-	
+
 	void n_move (void* dst, void* src) const
 	{
 		n_copy (dst, src);
@@ -111,25 +121,19 @@ public:
 	void n_unmarshal (Internal::IORequest_ptr rq, size_t count, void* dst) const
 	{
 		Internal::check_pointer (dst);
-		void* data;
-		size_t cb = size ();
-		size_t total = cb * count;
-		rq->unmarshal (1, total, data);
-		for (const Octet* p = (const Octet*)data, *end = p + total; p != end; p += cb) {
-			Internal::BCD_check (p, cb);
-		}
-		Nirvana::real_copy ((const Octet*)data, (const Octet*)data + total, (Octet*)dst);
+		Internal::ABI_enum* p = (Internal::ABI_enum*)dst;
+		if (rq->unmarshal (alignof (Internal::ABI_enum), sizeof (Internal::ABI_enum) * count, p))
+			for (Internal::ABI_enum* pv = p, *end = pv + count; pv != end; ++pv) {
+				Nirvana::byteswap (*pv);
+			}
+		check (p, count);
 	}
 
 private:
-	size_t size () const NIRVANA_NOEXCEPT
-	{
-		return (digits_ + 2) / 2;
-	}
+	void check (const void* p, size_t count) const;
 
 private:
-	const UShort digits_;
-	const Short  scale_;
+	Members members_;
 };
 
 }

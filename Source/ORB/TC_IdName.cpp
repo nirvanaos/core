@@ -23,22 +23,25 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "TC_ObjRef.h"
+#include "TC_IdName.h"
 
 namespace CORBA {
 namespace Core {
 
-TC_ObjRef::TC_ObjRef (String&& id, String&& name) NIRVANA_NOEXCEPT :
-Impl (TCKind::tk_objref, std::move (id), std::move (name))
+TC_IdName::TC_IdName (TCKind kind, String&& id, String&& name) NIRVANA_NOEXCEPT :
+	TC_Base (kind),
+	id_ (std::move (id)),
+	name_ (std::move (name))
 {}
 
-void TC_ObjRef::n_marshal_in (const void* src, size_t count, Internal::IORequest_ptr rq)
+bool TC_IdName::equal (TypeCode::_ptr_type other) const
 {
-	Internal::check_pointer (src);
-	for (Internal::Interface* const* p = reinterpret_cast <Internal::Interface* const*> (src);
-		count; ++p, --count) {
-		rq->marshal_interface (*p);
-	}
+	return equivalent_no_alias (other) && name_ == other->name ();
+}
+
+bool TC_IdName::equivalent_no_alias (TypeCode::_ptr_type other) const
+{
+	return kind_ == other->kind () && id_ == other->id ();
 }
 
 }

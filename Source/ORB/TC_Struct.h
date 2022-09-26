@@ -29,8 +29,9 @@
 #pragma once
 
 #include "TC_IdName.h"
+#include "TC_Impl.h"
+#include "TC_Ref.h"
 #include "../Array.h"
-#include "../SharedAllocator.h"
 
 namespace CORBA {
 namespace Core {
@@ -49,14 +50,35 @@ public:
 
 	struct Member
 	{
-		IDL::String name;
-		TypeCode::_ref_type type;
+		String name;
+		TC_Ref type;
 		size_t offset;
 	};
 
 	typedef Nirvana::Core::Array <Member, Nirvana::Core::SharedAllocator> Members;
 
-	TC_Struct (IDL::String id, IDL::String name, Members&& members) NIRVANA_NOEXCEPT;
+	TC_Struct (String&& id, String&& name, Members&& members) NIRVANA_NOEXCEPT;
+
+	bool equal (TypeCode::_ptr_type other) const
+	{
+		if (!TC_IdName::equal (other))
+			return false;
+		if (!equivalent_no_alias (other))
+			return false;
+		for (ULong i = 0, cnt = (ULong)members_.size (); i < cnt; ++i) {
+			if (!(members_ [i].name == other->member_name (i)))
+				return false;
+		}
+		return true;
+	}
+
+	bool equivalent (TypeCode::_ptr_type other) const
+	{
+		TypeCode::_ptr_type tc = dereference_alias (other);
+		if (!TC_IdName::equivalent_no_alias (tc))
+			return false;
+		return equivalent_no_alias (tc);
+	}
 
 	ULong member_count () const NIRVANA_NOEXCEPT
 	{
@@ -161,15 +183,15 @@ public:
 	void n_unmarshal (Internal::IORequest_ptr rq, size_t count, void* dst) const
 	{
 		Internal::check_pointer (dst);
-		if (is_CDR_)
-			rq->unmarshal (align_, size_ * count, dst);
-		else
-			for (Octet* odst = (Octet*)dst; count; odst += size_, --count) {
-				for (const auto& m : members_) {
-					m.type->n_unmarshal (rq, 1, odst + m.offset);
-				}
+		for (Octet* odst = (Octet*)dst; count; odst += size_, --count) {
+			for (const auto& m : members_) {
+				m.type->n_unmarshal (rq, 1, odst + m.offset);
 			}
+		}
 	}
+
+private:
+	bool equivalent_no_alias (TypeCode::_ptr_type other) const;
 
 private:
 	Members members_;

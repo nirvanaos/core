@@ -23,22 +23,34 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "TC_ObjRef.h"
+#include "TC_Base.h"
 
 namespace CORBA {
 namespace Core {
 
-TC_ObjRef::TC_ObjRef (String&& id, String&& name) NIRVANA_NOEXCEPT :
-Impl (TCKind::tk_objref, std::move (id), std::move (name))
+TC_Base::String::String (const IDL::String& s) :
+	Base (s.data (), s.size ())
 {}
 
-void TC_ObjRef::n_marshal_in (const void* src, size_t count, Internal::IORequest_ptr rq)
+TC_Base::String& TC_Base::String::operator = (const IDL::String& s)
 {
-	Internal::check_pointer (src);
-	for (Internal::Interface* const* p = reinterpret_cast <Internal::Interface* const*> (src);
-		count; ++p, --count) {
-		rq->marshal_interface (*p);
+	assign (s.data (), s.size ());
+	return *this;
+}
+
+bool TC_Base::String::operator == (const IDL::String& s) const NIRVANA_NOEXCEPT
+{
+	size_t cc = size ();
+	if (cc == s.size ()) {
+		const Char* p = data ();
+		return std::equal (p, p + cc, s.data ());
 	}
+	return false;
+}
+
+TC_Base::String::operator IDL::String () const
+{
+	return IDL::String (data (), size ());
 }
 
 }

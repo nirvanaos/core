@@ -25,6 +25,11 @@
 */
 #include "RequestEncapIn.h"
 #include "RequestEncapOut.h"
+#include "TC_ObjRef.h"
+#include "TC_Fixed.h"
+#include "TC_Struct.h"
+#include "TC_Union.h"
+#include "TC_Enum.h"
 
 using namespace Nirvana;
 using namespace Nirvana::Core;
@@ -56,6 +61,328 @@ void RequestGIOP::unmarshal_end ()
 		if (more_data > 7) // 8-byte alignment is ignored
 			throw MARSHAL (StreamIn::MARSHAL_MINOR_MORE);
 	}
+}
+
+void RequestGIOP::marshal_type_code (TypeCode::_ptr_type tc, TC_IndirectionMarshal& map, size_t parent_offset)
+{
+	if (!marshal_op ())
+		return;
+
+	if (!tc) {
+		ULong kind = 0;
+		stream_out_->write_c (alignof (ULong), sizeof (ULong), &kind);
+		return;
+	}
+
+	size_t off = stream_out_->size () + parent_offset;
+	auto ins = map.emplace (&tc, off);
+	if (!ins.second) {
+		ULong indirection = 0xFFFFFFFF;
+		stream_out_->write_c (alignof (ULong), sizeof (ULong), &indirection);
+		Long offset = (Long)(ins.first->second - (off + 4));
+		stream_out_->write_c (alignof (Long), sizeof (Long), &offset);
+		return;
+	}
+
+	ULong kind = (ULong)tc->kind ();
+	stream_out_->write_c (alignof (ULong), sizeof (ULong), &kind);
+	switch ((TCKind)kind) {
+		case TCKind::tk_objref:
+		case TCKind::tk_native:
+		case TCKind::tk_abstract_interface:
+		case TCKind::tk_local_interface: {
+			Nirvana::Core::ImplStatic <StreamOutEncap> encap;
+			encap.write_id_name (tc);
+			stream_out_->write_seq (encap.data (), true);
+		} break;
+
+		case TCKind::tk_struct:
+		case TCKind::tk_except: {
+			size_t off = parent_offset + stream_out_->size () + 4;
+			Nirvana::Core::ImplStatic <RequestEncapOut> encap (std::ref (*this));
+			encap.stream_out ()->write_id_name (tc);
+			ULong cnt = tc->member_count ();
+			encap.stream_out ()->write_c (alignof (ULong), sizeof (ULong), &cnt);
+			for (ULong i = 0; i < cnt; ++i) {
+				IDL::String name = tc->member_name (i);
+				encap.stream_out ()->write_string (name, true);
+				encap.marshal_type_code (tc->member_type (i), map, off);
+			}
+			stream_out_->write_seq (encap.data (), true);
+		} break;
+
+		case TCKind::tk_union: {
+			size_t off = parent_offset + stream_out_->size () + 4;
+			Nirvana::Core::ImplStatic <RequestEncapOut> encap (std::ref (*this));
+			encap.stream_out ()->write_id_name (tc);
+			TypeCode::_ref_type discriminator_type = tc->discriminator_type ();
+			encap.marshal_type_code (tc->discriminator_type (), map, off);
+			Long default_index = tc->default_index ();
+			encap.stream_out ()->write_c (alignof (long), sizeof (long), &default_index);
+			ULong cnt = tc->member_count ();
+			encap.stream_out ()->write_c (alignof (ULong), sizeof (ULong), &cnt);
+			for (ULong i = 0; i < cnt; ++i) {
+				if (i != default_index) {
+					Any label = tc->member_label (i);
+					discriminator_type->n_marshal_in (label.data (), 1, encap._get_ptr ());
+				} else {
+					// The discriminant value used in the actual typecode parameter associated with the default
+					// member position in the list, may be any valid value of the discriminant type, and has no
+					// semantic significance (i.e., it should be ignored and is only included for syntactic
+					// completeness of union type code marshaling).
+					ULongLong def = 0;
+					discriminator_type->n_marshal_in (&def, 1, encap._get_ptr ());
+				}
+				IDL::String name = tc->member_name (i);
+				encap.stream_out ()->write_string (name, true);
+				encap.marshal_type_code (tc->member_type (i), map, off);
+			}
+			stream_out_->write_seq (encap.data (), true);
+		} break;
+
+		case TCKind::tk_enum: {
+			Nirvana::Core::ImplStatic <StreamOutEncap> encap;
+			encap.write_id_name (tc);
+			ULong cnt = tc->member_count ();
+			encap.write_c (alignof (ULong), sizeof (ULong), &cnt);
+			for (ULong i = 0; i < cnt; ++i) {
+				IDL::String name = tc->member_name (i);
+				encap.write_string (name, true);
+			}
+			stream_out_->write_seq (encap.data (), true);
+		} break;
+
+		case TCKind::tk_string:
+		case TCKind::tk_wstring: {
+			ULong len = tc->length ();
+			stream_out_->write_c (alignof (ULong), sizeof (ULong), &len);
+		} break;
+
+		case TCKind::tk_sequence:
+		case TCKind::tk_array: {
+			Nirvana::Core::ImplStatic <RequestEncapOut> encap (std::ref (*this));
+			encap.marshal_type_code (tc->content_type (), map, parent_offset + stream_out_->size () + 4);
+			ULong len = tc->length ();
+			encap.stream_out ()->write_c (alignof (ULong), sizeof (ULong), &len);
+			stream_out_->write_seq (encap.data (), true);
+		} break;
+
+		case TCKind::tk_alias: {
+			Nirvana::Core::ImplStatic <RequestEncapOut> encap (std::ref (*this));
+			encap.stream_out ()->write_id_name (tc);
+			encap.marshal_type_code (tc->content_type (), map, parent_offset + stream_out_->size () + 4);
+			stream_out_->write_seq (encap.data (), true);
+		} break;
+
+		case TCKind::tk_fixed: {
+			struct
+			{
+				UShort d;
+				Short s;
+			} ds{ tc->fixed_digits (), tc->fixed_scale () };
+			stream_out_->write_c (2, 4, &ds);
+		} break;
+
+		case TCKind::tk_value: {
+			size_t off = parent_offset + stream_out_->size () + 4;
+			Nirvana::Core::ImplStatic <RequestEncapOut> encap (std::ref (*this));
+			encap.stream_out ()->write_id_name (tc);
+			ValueModifier mod = tc->type_modifier ();
+			encap.stream_out ()->write_c (alignof (ValueModifier), sizeof (ValueModifier), &mod);
+			encap.marshal_type_code (tc->concrete_base_type (), map, off);
+			ULong cnt = tc->member_count ();
+			encap.stream_out ()->write_c (alignof (ULong), sizeof (ULong), &cnt);
+			for (ULong i = 0; i < cnt; ++i) {
+				IDL::String name = tc->member_name (i);
+				encap.stream_out ()->write_string (name, true);
+				encap.marshal_type_code (tc->member_type (i), map, off);
+				Visibility vis = tc->member_visibility (i);
+				encap.stream_out ()->write_c (alignof (Visibility), sizeof (Visibility), &vis);
+			}
+			stream_out_->write_seq (encap.data (), true);
+		} break;
+
+		case TCKind::tk_value_box: {
+			Nirvana::Core::ImplStatic <RequestEncapOut> encap (std::ref (*this));
+			encap.stream_out ()->write_id_name (tc);
+			encap.marshal_type_code (tc->content_type (), map, parent_offset + stream_out_->size () + 4);
+			stream_out_->write_seq (encap.data (), true);
+		} break;
+
+		{
+
+		} break;
+	}
+}
+
+TC_Ref RequestGIOP::unmarshal_type_code (TC_IndirectionUnmarshal& map, size_t parent_offset)
+{
+	ULong kind;
+	size_t start_pos = stream_in_->position () + parent_offset;
+	stream_in_->read (alignof (ULong), sizeof (ULong), &kind);
+
+	if (0xFFFFFFFF == kind) {
+		Long off;
+		stream_in_->read (alignof (Long), sizeof (Long), &off);
+		size_t pos = start_pos + 4 + off;
+		TC_IndirectionUnmarshal* pmap = parent_offset ? &map : &top_level_indirection_;
+		TC_IndirectionUnmarshal::iterator it = pmap->find (off);
+		if (it == pmap->end ())
+			throw BAD_TYPECODE ();
+		return TC_Ref (it->second, !parent_offset);
+	}
+
+	TC_Ref ret;
+	switch ((TCKind)kind) {
+		case TCKind::tk_void:
+			ret = _tc_void;
+			break;
+
+		case TCKind::tk_short:
+			ret = _tc_short;
+			break;
+
+		case TCKind::tk_long:
+			ret = _tc_long;
+			break;
+
+		case TCKind::tk_ushort:
+			ret = _tc_ushort;
+			break;
+
+		case TCKind::tk_ulong:
+			ret = _tc_ulong;
+			break;
+
+		case TCKind::tk_float:
+			ret = _tc_float;
+			break;
+
+		case TCKind::tk_double:
+			ret = _tc_double;
+			break;
+
+		case TCKind::tk_boolean:
+			ret = _tc_boolean;
+			break;
+
+		case TCKind::tk_char:
+			ret = _tc_char;
+			break;
+
+		case TCKind::tk_octet:
+			ret = _tc_octet;
+			break;
+
+		case TCKind::tk_any:
+			ret = _tc_any;
+			break;
+
+		case TCKind::tk_TypeCode:
+			ret = _tc_TypeCode;
+			break;
+
+		case TCKind::tk_objref: {
+			OctetSeq encap;
+			stream_in_->read_seq (encap);
+			Nirvana::Core::ImplStatic <StreamInEncap> stm (std::ref (encap));
+			TC_Base::String id, name;
+			stm.read_string (id);
+			stm.read_string (name);
+			if (stm.end () != 0)
+				throw CORBA::MARSHAL (StreamIn::MARSHAL_MINOR_MORE);
+			ret = make_pseudo <TC_ObjRef> (std::move (id), std::move (name));
+		} break;
+
+		case TCKind::tk_struct: {
+			size_t pos = start_pos + 8;
+			OctetSeq encap;
+			stream_in_->read_seq (encap);
+			Nirvana::Core::ImplStatic <RequestEncapIn> rq (std::ref (*this), std::ref (encap));
+			TC_Base::String id, name;
+			rq.stream_in ()->read_string (id);
+			rq.stream_in ()->read_string (name);
+			ULong cnt;
+			rq.stream_in ()->read (alignof (ULong), sizeof (ULong), &cnt);
+			TC_Struct::Members members;
+			members.construct (cnt);
+			TC_Struct::Member* pm = members.begin ();
+			while (cnt--) {
+				rq.stream_in ()->read_string (pm->name);
+				pm->type = rq.unmarshal_type_code (map, pos);
+				++pm;
+			}
+			if (rq.stream_in ()->end () != 0)
+				throw CORBA::MARSHAL (StreamIn::MARSHAL_MINOR_MORE);
+			ret = make_pseudo <TC_Struct> (std::move (id), std::move (name), std::move (members));
+		} break;
+
+		case TCKind::tk_union: {
+			size_t pos = start_pos + 8;
+			OctetSeq encap;
+			stream_in_->read_seq (encap);
+			Nirvana::Core::ImplStatic <RequestEncapIn> rq (std::ref (*this), std::ref (encap));
+			TC_Base::String id, name;
+			rq.stream_in ()->read_string (id);
+			rq.stream_in ()->read_string (name);
+			TypeCode::_ref_type discriminator_type = rq.unmarshal_type_code (map, pos);
+			Long default_index;
+			rq.stream_in ()->read (alignof (Long), sizeof (Long), &default_index);
+			ULong cnt;
+			rq.stream_in ()->read (alignof (ULong), sizeof (ULong), &cnt);
+			TC_Union::Members members;
+			members.construct (cnt);
+			TC_Union::Member* pm = members.begin ();
+			for (ULong i = 0; i < cnt; ++pm, ++i) {
+				ULongLong buf;
+				discriminator_type->n_unmarshal (rq._get_ptr (), 1, &buf);
+				// The discriminant value used in the actual typecode parameter associated with the default
+				// member position in the list, may be any valid value of the discriminant type, and has no
+				// semantic significance (i.e., it should be ignored and is only included for syntactic
+				// completeness of union type code marshaling).
+				if (i != default_index)
+					pm->label.copy_from (discriminator_type, &buf);
+				else
+					pm->label <<= Any::from_octet (0);
+				rq.stream_in ()->read_string (pm->name);
+				pm->type = rq.unmarshal_type_code (map, pos);
+			}
+			if (rq.stream_in ()->end () != 0)
+				throw CORBA::MARSHAL (StreamIn::MARSHAL_MINOR_MORE);
+			ret = make_pseudo <TC_Union> (id, name, std::move (discriminator_type), default_index,
+				std::move (members));
+		} break;
+
+		case TCKind::tk_enum: {
+			OctetSeq encap;
+			stream_in_->read_seq (encap);
+			Nirvana::Core::ImplStatic <StreamInEncap> stm (std::ref (encap));
+			TC_Base::String id, name;
+			stm.read_string (id);
+			stm.read_string (name);
+			ULong cnt;
+			stm.read (alignof (ULong), sizeof (ULong), &cnt);
+			TC_Enum::Members members;
+			members.construct (cnt);
+			TC_Base::String* pm = members.begin ();
+			while (cnt--) {
+				stm.read_string (*pm);
+				++pm;
+			}
+			if (stm.end () != 0)
+				throw CORBA::MARSHAL (StreamIn::MARSHAL_MINOR_MORE);
+			ret = make_pseudo <TC_Enum> (std::move (id), std::move (name), std::move (members));
+		} break;
+
+		default:
+			throw BAD_TYPECODE ();
+	}
+
+	map.emplace (start_pos, ret);
+	if (!parent_offset)
+		top_level_indirection_.emplace (start_pos, ret);
+
+	return ret;
 }
 
 }

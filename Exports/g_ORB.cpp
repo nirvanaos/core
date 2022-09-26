@@ -31,6 +31,7 @@
 #include <ORB/TC_ObjRef.h>
 #include <ORB/TC_Struct.h>
 #include <ORB/TC_Union.h>
+#include <ORB/TC_Enum.h>
 #include <ORB/PolicyFactory.h>
 
 using namespace Nirvana;
@@ -182,7 +183,13 @@ public:
 	static TypeCode::_ref_type create_enum_tc (const RepositoryId& id,
 		const Identifier& name, const EnumMemberSeq& members)
 	{
-		throw NO_IMPLEMENT ();
+		TC_Enum::Members smembers;
+		smembers.construct (members.size ());
+		TC_Base::String* pm = smembers.begin ();
+		for (const Identifier& m : members) {
+			*pm = m;
+		}
+		return make_pseudo <TC_Enum> (id, name, std::move (smembers));
 	}
 
 	static TypeCode::_ref_type create_alias_tc (const RepositoryId& id,

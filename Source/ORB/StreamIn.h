@@ -92,6 +92,9 @@ public:
 	/// \returns Count of the remaining bytes in stream.
 	virtual size_t end () = 0;
 
+	/// \returns Current position.
+	virtual size_t position () = 0;
+
 	/// Set stream endian.
 	/// 
 	/// \param little `true` for little endian, `false` for big endian.
@@ -117,8 +120,11 @@ public:
 	/// 
 	/// \tparam C The character type.
 	/// \param [out] s The string.
+	template <typename C, class A>
+	void read_string (std::basic_string <C, std::char_traits <C>, A>& s);
+
 	template <typename C>
-	void read_string (Internal::StringT <C>& s);
+	void read_string (std::basic_string <C, std::char_traits <C>, std::allocator <C> >& s);
 
 	/// Read size of sequence or string.
 	/// \returns The size.
@@ -160,15 +166,20 @@ private:
 	bool other_endian_;
 };
 
+template <typename C, class A>
+void StreamIn::read_string (std::basic_string <C, std::char_traits <C>, A>& s)
+{
+	uint32_t size = read_size ();
+	s.resize (size);
+	read (alignof (C), (size + 1) * sizeof (C), &*s.begin ());
+}
+
 template <typename C>
-void StreamIn::read_string (Internal::StringT <C>& s)
+void StreamIn::read_string (std::basic_string <C, std::char_traits <C>, std::allocator <C> >& s)
 {
 	typedef typename Internal::Type <Internal::StringT <C> >::ABI ABI;
 
-	uint32_t size;
-	read (alignof (uint32_t), sizeof (size), &size);
-	if (sizeof (uint32_t) > sizeof (size_t) && size > std::numeric_limits <size_t>::max ())
-		throw IMP_LIMIT ();
+	uint32_t size = read_size ();
 
 	Internal::StringT <C> tmp;
 	ABI& abi = (ABI&)tmp;

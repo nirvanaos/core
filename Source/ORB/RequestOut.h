@@ -28,8 +28,7 @@
 #define NIRVANA_ORB_CORE_REQUESTOUT_H_
 #pragma once
 
-#include "RequestEncapIn.h"
-#include "RequestEncapOut.h"
+#include "RequestGIOP.h"
 #include "../ExecDomain.h"
 #include "../UserObject.h"
 

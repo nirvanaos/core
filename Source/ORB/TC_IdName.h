@@ -36,20 +36,13 @@ namespace Core {
 class TC_IdName : public TC_Base
 {
 public:
-	TC_IdName (TCKind kind, IDL::String&& id, IDL::String&& name) NIRVANA_NOEXCEPT :
-		TC_Base (kind),
-		id_ (std::move (id)),
-		name_ (std::move (name))
-	{}
+	TC_IdName (TCKind kind, String&& id, String&& name) NIRVANA_NOEXCEPT;
 
-	bool equal (TypeCode::_ptr_type other) const
-	{
-		return equivalent (other) && name_ == other->name ();
-	}
+	bool equal (TypeCode::_ptr_type other) const;
 
 	bool equivalent (TypeCode::_ptr_type other) const
 	{
-		return kind_ == other->kind () && id_ == other->id ();
+		return equivalent_no_alias (dereference_alias (other));
 	}
 
 	IDL::String id () const
@@ -63,8 +56,11 @@ public:
 	}
 
 protected:
-	const IDL::String id_;
-	const IDL::String name_;
+	bool equivalent_no_alias (TypeCode::_ptr_type other) const;
+
+protected:
+	const String id_;
+	const String name_;
 };
 
 }

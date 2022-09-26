@@ -42,10 +42,12 @@ public:
 	virtual void* read (size_t align, size_t& size) override;
 	virtual void set_size (size_t size) override;
 	virtual size_t end () override;
+	virtual size_t position () override;
 
 protected:
 	StreamInEncap (const IDL::Sequence <Octet>& data) NIRVANA_NOEXCEPT :
 		cur_ptr_ (data.data ()),
+		begin_ (data.data ()),
 		end_ (data.data () + data.size ())
 	{}
 
@@ -57,6 +59,7 @@ private:
 
 private:
 	const Octet* cur_ptr_;
+	const Octet* begin_;
 	const Octet* end_;
 };
 

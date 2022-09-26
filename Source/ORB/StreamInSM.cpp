@@ -144,6 +144,7 @@ void StreamInSM::physical_read (size_t& align, size_t& size, void* buf)
 			dst = real_copy (src, end, dst);
 		cur_ptr_ = end;
 		size -= cb;
+		position_ += cb;
 		// Adjust alignment if the remaining size less than it
 		if (align > size)
 			align = size;
@@ -168,6 +169,7 @@ void StreamInSM::read (size_t align, size_t size, void* buf)
 				dst += cb;
 			}
 			size -= cb;
+			position_ += cb;
 			Port::Memory::release (segment->pointer, segment->size);
 		} else {
 			physical_read (align, size, buf);
@@ -188,6 +190,7 @@ void* StreamInSM::read (size_t align, size_t& size)
 	void* ret = nullptr;
 	const Segment* segment = get_segment (align, size);
 	if (segment) {
+		position_ += size;
 		// Adopt segment
 		size = round_up (segment->size, Port::Memory::ALLOCATION_UNIT);
 		ret = segment->pointer;
@@ -223,6 +226,11 @@ size_t StreamInSM::end ()
 		}
 	}
 	return rem_size;
+}
+
+size_t StreamInSM::position ()
+{
+	return position_;
 }
 
 }

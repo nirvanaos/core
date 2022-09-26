@@ -39,6 +39,7 @@
 #include "POA_Root.h"
 #include "LocalAddress.h"
 #include "RemoteReferences.h"
+#include "TC_Ref.h"
 
 namespace CORBA {
 namespace Core {
@@ -357,15 +358,29 @@ public:
 			return obj->_query_interface (interface_id);
 	}
 
+	typedef Nirvana::Core::MapUnorderedUnstable <void*, size_t> TC_IndirectionMarshal;
+	void marshal_type_code (TypeCode::_ptr_type tc, TC_IndirectionMarshal& map, size_t parent_offset);
+
 	/// Marshal TypeCode.
 	/// 
 	/// \param tc TypeCode.
-	inline void marshal_type_code (TypeCode::_ptr_type tc);
+	void marshal_type_code (TypeCode::_ptr_type tc)
+	{
+		TC_IndirectionMarshal map;
+		marshal_type_code (tc, map, 0);
+	}
+
+	typedef Nirvana::Core::MapUnorderedUnstable <size_t, TypeCode::_ptr_type> TC_IndirectionUnmarshal;
+	TC_Ref unmarshal_type_code (TC_IndirectionUnmarshal& map, size_t parent_offset);
 
 	/// Unmarshal TypeCode.
 	/// 
 	/// \returns TypeCode.
-	inline TypeCode::_ref_type unmarshal_type_code ();
+	TypeCode::_ref_type unmarshal_type_code ()
+	{
+		TC_IndirectionUnmarshal map;
+		return unmarshal_type_code (map, 0);
+	}
 
 	/// Marshal value type.
 	/// 
@@ -513,6 +528,7 @@ protected:
 private:
 	Nirvana::Core::CoreRef <CodeSetConverter> code_set_conv_;
 	Nirvana::Core::CoreRef <CodeSetConverterW> code_set_conv_w_;
+	TC_IndirectionUnmarshal top_level_indirection_;
 };
 
 }

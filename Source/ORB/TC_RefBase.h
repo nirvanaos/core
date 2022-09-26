@@ -37,7 +37,7 @@ class TC_RefBase :
 	public TC_IdName
 {
 public:
-	TC_RefBase (TCKind kind, IDL::String&& id, IDL::String&& name) NIRVANA_NOEXCEPT :
+	TC_RefBase (TCKind kind, String&& id, String&& name) NIRVANA_NOEXCEPT :
 		TC_IdName (kind, std::move (id), std::move (name))
 	{}
 

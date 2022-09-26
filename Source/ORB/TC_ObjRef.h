@@ -29,6 +29,7 @@
 #pragma once
 
 #include "TC_RefBase.h"
+#include "TC_Impl.h"
 
 namespace CORBA {
 namespace Core {
@@ -45,7 +46,7 @@ public:
 	using Servant::_s_id;
 	using Servant::_s_name;
 
-	TC_ObjRef (IDL::String id, IDL::String name) NIRVANA_NOEXCEPT;
+	TC_ObjRef (String&& id, String&& name) NIRVANA_NOEXCEPT;
 
 	static void n_marshal_in (const void* src, size_t count, Internal::IORequest_ptr rq);
 

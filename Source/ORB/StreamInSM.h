@@ -43,12 +43,14 @@ public:
 	virtual void* read (size_t align, size_t& size) override;
 	virtual void set_size (size_t size) override;
 	virtual size_t end () override;
+	virtual size_t position () override;
 
 protected:
 	StreamInSM (void* mem) NIRVANA_NOEXCEPT :
 		cur_block_ ((StreamHdr*)mem),
 		cur_ptr_ ((const uint8_t*)((StreamHdr*)mem + 1)),
-		segments_ (((StreamHdr*)mem)->segments)
+		segments_ (((StreamHdr*)mem)->segments),
+		position_ (0)
 	{}
 
 	~StreamInSM ();
@@ -81,6 +83,7 @@ private:
 	BlockHdr* cur_block_;
 	const uint8_t* cur_ptr_;
 	Segment* segments_;
+	size_t position_;
 };
 
 }

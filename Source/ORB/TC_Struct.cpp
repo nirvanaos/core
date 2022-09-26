@@ -28,7 +28,7 @@
 namespace CORBA {
 namespace Core {
 
-TC_Struct::TC_Struct (IDL::String id, IDL::String name, Members&& members) NIRVANA_NOEXCEPT :
+TC_Struct::TC_Struct (String&& id, String&& name, Members&& members) NIRVANA_NOEXCEPT :
 	Impl (TCKind::tk_struct, std::move (id), std::move (name)),
 	members_ (std::move (members))
 {
@@ -47,6 +47,17 @@ TC_Struct::TC_Struct (IDL::String id, IDL::String name, Members&& members) NIRVA
 	size_ = off;
 	align_ = align;
 	is_CDR_ = cdr;
+}
+
+bool TC_Struct::equivalent_no_alias (TypeCode::_ptr_type other) const
+{
+	if (members_.size () != other->member_count ())
+		return false;
+	for (ULong i = 0, cnt = (ULong)members_.size (); i < cnt; ++i) {
+		if (!members_ [i].type->equivalent (other->member_type (i)))
+			return false;
+	}
+	return true;
 }
 
 }
