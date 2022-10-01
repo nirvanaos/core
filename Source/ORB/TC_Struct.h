@@ -57,7 +57,7 @@ public:
 
 	typedef Nirvana::Core::Array <Member, Nirvana::Core::SharedAllocator> Members;
 
-	TC_Struct (String&& id, String&& name, Members&& members) NIRVANA_NOEXCEPT;
+	TC_Struct (String&& id, String&& name, Members&& members);
 
 	bool equal (TypeCode::_ptr_type other) const
 	{

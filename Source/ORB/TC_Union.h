@@ -61,8 +61,8 @@ public:
 
 	typedef Nirvana::Core::Array <Member, Nirvana::Core::SharedAllocator> Members;
 
-	TC_Union (String&& id, String&& name, TypeCode::_ref_type&& discriminator_type, Long default_index,
-		Members&& members) NIRVANA_NOEXCEPT;
+	TC_Union (String&& id, String&& name, TC_Ref&& discriminator_type, Long default_index,
+		Members&& members);
 
 	bool equal (TypeCode::_ptr_type other) const
 	{
@@ -233,7 +233,7 @@ private:
 	}
 
 private:
-	const TypeCode::_ref_type discriminator_type_;
+	const TC_Ref discriminator_type_;
 	Members members_;
 	size_t align_;
 	size_t size_;

@@ -30,6 +30,7 @@
 #include "TC_Struct.h"
 #include "TC_Union.h"
 #include "TC_Enum.h"
+#include "TC_String.h"
 
 using namespace Nirvana;
 using namespace Nirvana::Core;
@@ -325,7 +326,7 @@ TC_Ref RequestGIOP::unmarshal_type_code (TC_IndirectionUnmarshal& map, size_t pa
 			TC_Base::String id, name;
 			rq.stream_in ()->read_string (id);
 			rq.stream_in ()->read_string (name);
-			TypeCode::_ref_type discriminator_type = rq.unmarshal_type_code (map, pos);
+			TC_Ref discriminator_type = rq.unmarshal_type_code (map, pos);
 			Long default_index;
 			rq.stream_in ()->read (alignof (Long), sizeof (Long), &default_index);
 			ULong cnt;
@@ -372,6 +373,24 @@ TC_Ref RequestGIOP::unmarshal_type_code (TC_IndirectionUnmarshal& map, size_t pa
 			if (stm.end () != 0)
 				throw CORBA::MARSHAL (StreamIn::MARSHAL_MINOR_MORE);
 			ret = make_pseudo <TC_Enum> (std::move (id), std::move (name), std::move (members));
+		} break;
+
+		case TCKind::tk_string: {
+			ULong bound;
+			stream_in_->read (alignof (ULong), sizeof (ULong), &bound);
+			if (0 == bound)
+				ret = _tc_string;
+			else
+				ret = make_pseudo <TC_String> (bound);
+		} break;
+
+		case TCKind::tk_wstring: {
+			ULong bound;
+			stream_in_->read (alignof (ULong), sizeof (ULong), &bound);
+			if (0 == bound)
+				ret = _tc_wstring;
+			else
+				ret = make_pseudo <TC_WString> (bound);
 		} break;
 
 		default:

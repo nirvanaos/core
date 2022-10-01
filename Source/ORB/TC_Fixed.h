@@ -47,7 +47,7 @@ public:
 
 	bool equal (TypeCode::_ptr_type other) const
 	{
-		return kind_ == other->kind ()
+		return TCKind::tk_fixed == other->kind ()
 			&& digits_ == other->fixed_digits ()
 			&& scale_ == other->fixed_scale ();
 	}
@@ -75,12 +75,12 @@ public:
 		return size ();
 	}
 
-	static size_t _s_n_align (Bridge <TypeCode>*, Interface*)
+	static size_t _s_n_align (Internal::Bridge <TypeCode>*, Internal::Interface*)
 	{
 		return 1;
 	}
 
-	static Octet _s_n_is_CDR (Bridge <TypeCode>*, Interface*)
+	static Octet _s_n_is_CDR (Internal::Bridge <TypeCode>*, Internal::Interface*)
 	{
 		return true;
 	}
@@ -91,7 +91,7 @@ public:
 		Nirvana::BCD_zero ((Octet*)p, size ());
 	}
 
-	static void _s_n_destruct (Bridge <TypeCode>*, void* p, Interface*)
+	static void _s_n_destruct (Internal::Bridge <TypeCode>*, void* p, Internal::Interface*)
 	{}
 
 	void n_copy (void* dst, const void* src) const;

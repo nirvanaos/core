@@ -28,7 +28,7 @@
 namespace CORBA {
 namespace Core {
 
-TC_Struct::TC_Struct (String&& id, String&& name, Members&& members) NIRVANA_NOEXCEPT :
+TC_Struct::TC_Struct (String&& id, String&& name, Members&& members) :
 	Impl (TCKind::tk_struct, std::move (id), std::move (name)),
 	members_ (std::move (members))
 {
@@ -44,7 +44,7 @@ TC_Struct::TC_Struct (String&& id, String&& name, Members&& members) NIRVANA_NOE
 		if (cdr && !m.type->n_is_CDR ())
 			cdr = false;
 	}
-	size_ = off;
+	size_ = Nirvana::round_up (off, align);
 	align_ = align;
 	is_CDR_ = cdr;
 }

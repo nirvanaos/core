@@ -23,34 +23,18 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "TC_Union.h"
+#include "TC_Sequence.h"
 
 namespace CORBA {
 namespace Core {
 
-TC_Union::TC_Union (String&& id, String&& name, TC_Ref&& discriminator_type,
-	Long default_index, Members&& members) :
-	Impl (TCKind::tk_union, std::move (id), std::move (name)),
-	discriminator_type_ (std::move (discriminator_type)),
-	members_ (std::move (members)),
-	default_index_ (default_index)
-{
-	discriminator_size_ = discriminator_type_->n_size ();
-	size_t align = discriminator_type_->n_align ();
-	size_t size = discriminator_size_;
-	for (auto& m : members_) {
-		size_t a = m.type->n_align ();
-		if (align < a)
-			align = a;
-		size_t off = Nirvana::round_up (discriminator_size_, a);
-		m.offset = off;
-		off += m.type->n_size ();
-		if (size < off)
-			size = off;
-	}
-	size_ = size;
-	align_ = align;
-}
+TC_Sequence::TC_Sequence (TC_Ref&& content_type, ULong bound) :
+	Impl (TCKind::tk_sequence),
+	content_type_ (std::move (content_type)),
+	bound_ (bound),
+	element_size_ (content_type_->n_size ()),
+	is_CDR_ (content_type_->n_is_CDR ())
+{}
 
 }
 }

@@ -32,6 +32,8 @@
 #include <ORB/TC_Struct.h>
 #include <ORB/TC_Union.h>
 #include <ORB/TC_Enum.h>
+#include <ORB/TC_String.h>
+#include <ORB/TC_Sequence.h>
 #include <ORB/PolicyFactory.h>
 
 using namespace Nirvana;
@@ -48,6 +50,8 @@ class ORB :
 	public CORBA::servant_traits <CORBA::ORB>::ServantStatic <ORB>,
 	public PolicyFactory
 {
+	typedef Nirvana::Core::SetUnorderedUnstable <IDL::String> NameSet;
+
 public:
 	static Type <ORBid>::ABI_ret _s_id (Bridge <CORBA::ORB>*, Interface*)
 	{
@@ -117,10 +121,16 @@ public:
 	static TypeCode::_ref_type create_struct_tc (const RepositoryId& id,
 		const Identifier& name, const StructMemberSeq& members)
 	{
+		check_id (id);
+		check_name (name);
+		
+		NameSet names;
 		TC_Struct::Members smembers;
 		smembers.construct (members.size ());
 		TC_Struct::Member* pm = smembers.begin ();
 		for (const StructMember& m : members) {
+			check_member_name (names, m.name ());
+			check_type (m.type ());
 			pm->name = m.name ();
 			pm->type = m.type ();
 			++pm;
@@ -131,6 +141,9 @@ public:
 	static TypeCode::_ref_type create_union_tc (const RepositoryId& id,
 		const Identifier& name, TypeCode::_ptr_type discriminator_type, const UnionMemberSeq& members)
 	{
+		check_id (id);
+		check_name (name);
+
 		// The create_union_tc operation shall also check that the supplied discriminator type is
 		// legitimate, and if the check fails, raise BAD_PARAM with standard minor code 20.
 		switch (discriminator_type->kind ()) {
@@ -147,12 +160,16 @@ public:
 			default:
 				throw BAD_PARAM (MAKE_OMG_MINOR (20));
 		}
+		NameSet names;
 		TC_Union::Members smembers;
 		smembers.construct (members.size ());
 		TC_Union::Member* pm = smembers.begin ();
 		Nirvana::Core::SetUnorderedUnstable <ULongLong> labels;
 		Long default_index = -1;
 		for (auto it = members.begin (); it != members.end (); ++it, ++pm) {
+			check_member_name (names, it->name ());
+			check_type (it->type ());
+
 			// If the TypeCode of a label is not equivalent to the TypeCode of the discriminator (other than
 			// the octet TypeCode to indicate the default label), the operation shall raise BAD_PARAM with
 			// standard minor code 19.
@@ -176,17 +193,22 @@ public:
 			pm->name = it->name ();
 			pm->type = it->type ();
 		}
-		return make_pseudo <TC_Union> (id, name, std::move (discriminator_type), default_index,
+		return make_pseudo <TC_Union> (id, name, TC_Ref (discriminator_type, true), default_index,
 			std::move (smembers));
 	}
 
 	static TypeCode::_ref_type create_enum_tc (const RepositoryId& id,
 		const Identifier& name, const EnumMemberSeq& members)
 	{
+		check_id (id);
+		check_name (name);
+		
+		NameSet names;
 		TC_Enum::Members smembers;
 		smembers.construct (members.size ());
 		TC_Base::String* pm = smembers.begin ();
 		for (const Identifier& m : members) {
+			check_member_name (names, m);
 			*pm = m;
 		}
 		return make_pseudo <TC_Enum> (id, name, std::move (smembers));
@@ -212,12 +234,18 @@ public:
 
 	static TypeCode::_ref_type create_string_tc (ULong bound)
 	{
-		throw NO_IMPLEMENT ();
+		if (0 == bound)
+			return TypeCode::_ptr_type (_tc_string);
+		else
+			return make_pseudo <TC_String> (bound);
 	}
 
 	static TypeCode::_ref_type create_wstring_tc (ULong bound)
 	{
-		throw NO_IMPLEMENT ();
+		if (0 == bound)
+			return TypeCode::_ptr_type (_tc_wstring);
+		else
+			return make_pseudo <TC_WString> (bound);
 	}
 
 	static TypeCode::_ref_type create_fixed_tc (UShort digits, Short scale)
@@ -335,7 +363,79 @@ public:
 			throw BAD_PARAM (MAKE_OMG_MINOR (1));
 		}
 	}
+private:
+	static void check_name (const IDL::String& name, ULong minor);
+	
+	static void check_name (const IDL::String& name)
+	{
+		// Typecode creation operations that take name as an argument shall check that the name is
+		// a valid IDL name or is an empty string. If not, they shall raise the BAD_PARAM exception
+		// with standard minor code 15.
+		if (!name.empty ())
+			check_name (name, MAKE_OMG_MINOR (15));
+	}
+
+	static void check_member_name (NameSet& names, const IDL::String& name);
+
+	static void check_id (const IDL::String& id);
+
+	static void check_type (TypeCode::_ptr_type tc);
 };
+
+void ORB::check_name (const IDL::String& name, ULong minor)
+{
+	if (!name.empty ()) {
+		Char c = name.front ();
+		if (('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z')) {
+			const Char* p = name.data () + 1, * end = p + name.size () - 1;
+			for (; p != end; ++p) {
+				c = *p;
+				if (!(('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z') || ('0' <= c && c <= '9') || '_' == c))
+					break;
+			}
+			if (p == end)
+				return;
+		}
+	}
+	throw BAD_PARAM (minor);
+}
+
+void ORB::check_member_name (NameSet& names, const IDL::String& name)
+{
+	// Operations that take members shall check that the member names are valid IDL names
+	// and that they are unique within the member list, and if the name is found to be incorrect,
+	// they shall raise a BAD_PARAM with standard minor code 17.
+	check_name (name, MAKE_OMG_MINOR (17));
+	if (!names.insert (name).second)
+		throw BAD_PARAM (MAKE_OMG_MINOR (17));
+}
+
+void ORB::check_id (const IDL::String& id)
+{
+	// Operations that take a RepositoryId argument shall check that the argument passed in is
+	// a string of the form <format> : <string>and if not, then raise a BAD_PARAM exception with
+	// standard minor code 16.
+	size_t col = id.find (':');
+	if (col == IDL::String::npos || col == 0 || col == id.size () - 1)
+		throw BAD_PARAM (MAKE_OMG_MINOR (16));
+}
+
+void ORB::check_type (TypeCode::_ptr_type tc)
+{
+	// Operations that take content or member types as arguments shall check that they are legitimate
+	// (i.e., that they don’t have kinds tk_null, tk_void, or tk_exception). If not, they shall raise
+	// the BAD_TYPECODE exception with standard minor code 2.
+	if (tc)
+		switch (tc->kind ()) {
+			case TCKind::tk_null:
+			case TCKind::tk_void:
+			case TCKind::tk_except:
+				break;
+			default:
+				return;
+		}
+	throw BAD_TYPECODE (MAKE_OMG_MINOR (2));
+}
 
 }
 
