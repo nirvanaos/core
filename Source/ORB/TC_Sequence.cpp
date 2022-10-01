@@ -31,10 +31,61 @@ namespace Core {
 TC_Sequence::TC_Sequence (TC_Ref&& content_type, ULong bound) :
 	Impl (TCKind::tk_sequence),
 	content_type_ (std::move (content_type)),
-	bound_ (bound),
 	element_size_ (content_type_->n_size ()),
-	is_CDR_ (content_type_->n_is_CDR ())
-{}
+	element_align_ (content_type_->n_align ()),
+	bound_ (bound)
+{
+	switch (content_type_->kind ()) {
+		case TCKind::tk_char:
+			kind_ = KIND_CHAR;
+			break;
+		case TCKind::tk_wchar:
+			kind_ = KIND_WCHAR;
+			break;
+		default:
+			if (content_type_->n_is_CDR ())
+				kind_ = KIND_CDR;
+			else
+				kind_ = KIND_NONCDR;
+	}
+}
+
+void TC_Sequence::marshal (const void* src, size_t count, Internal::IORequest_ptr rq, bool out) const
+{
+	Internal::check_pointer (src);
+	ABI* psrc = (ABI*)src, *end = psrc + count;
+	switch (kind_) {
+		case KIND_CHAR:
+			for (; psrc != end; ++psrc) {
+				rq->marshal_char_seq ((IDL::Sequence <Char>&)*psrc, out);
+			}
+			break;
+		case KIND_WCHAR:
+			for (; psrc != end; ++psrc) {
+				rq->marshal_wchar_seq ((IDL::Sequence <WChar>&)*psrc, out);
+			}
+			break;
+		case KIND_CDR:
+			for (; psrc != end; ++psrc) {
+				size_t zero = 0;
+				rq->marshal_seq (element_align_, element_size_, psrc->size, psrc->ptr, out ? psrc->allocated : zero);
+			}
+			break;
+		default:
+			for (; psrc != end; ++psrc) {
+				size_t size = psrc->size;
+				rq->marshal_seq_begin (size);
+				if (size) {
+					Octet* p = (Octet*)psrc->ptr;
+					if (out)
+						content_type_->n_marshal_out (p, size, rq);
+					else
+						content_type_->n_marshal_in (p, size, rq);
+				}
+			}
+			break;
+	}
+}
 
 }
 }

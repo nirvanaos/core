@@ -53,5 +53,8 @@ TC_Base::String::operator IDL::String () const
 	return IDL::String (data (), size ());
 }
 
+void TC_Base::_s_n_byteswap (Internal::Bridge <TypeCode>*, void*, size_t, Internal::Interface*)
+{}
+
 }
 }

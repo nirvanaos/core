@@ -121,6 +121,8 @@ public:
 		Nirvana::real_copy ((const Octet*)data, (const Octet*)data + total, (Octet*)dst);
 	}
 
+	using TC_Base::_s_n_byteswap;
+
 private:
 	size_t size () const NIRVANA_NOEXCEPT
 	{

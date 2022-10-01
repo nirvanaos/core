@@ -258,7 +258,8 @@ public:
 	static TypeCode::_ref_type create_sequence_tc (ULong bound,
 		TypeCode::_ptr_type element_type)
 	{
-		throw NO_IMPLEMENT ();
+		check_type (element_type);
+		return make_pseudo <TC_Sequence> (TC_Ref (element_type, true), bound);
 	}
 
 	static TypeCode::_ref_type create_array_tc (ULong length,

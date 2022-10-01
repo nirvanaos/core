@@ -183,15 +183,31 @@ public:
 	void n_unmarshal (Internal::IORequest_ptr rq, size_t count, void* dst) const
 	{
 		Internal::check_pointer (dst);
-		for (Octet* odst = (Octet*)dst; count; odst += size_, --count) {
-			for (const auto& m : members_) {
-				m.type->n_unmarshal (rq, 1, odst + m.offset);
+		if (is_CDR_) {
+			if (rq->unmarshal (align_, size_ * count, dst))
+				byteswap (dst, count);
+		} else {
+			for (Octet* odst = (Octet*)dst; count; odst += size_, --count) {
+				for (const auto& m : members_) {
+					m.type->n_unmarshal (rq, 1, odst + m.offset);
+				}
 			}
+		}
+	}
+
+	using Servant::_s_n_byteswap;
+
+	void n_byteswap (void* p, size_t count) const
+	{
+		if (is_CDR_) {
+			Internal::check_pointer (p);
+			byteswap (p, count);
 		}
 	}
 
 private:
 	bool equivalent_no_alias (TypeCode::_ptr_type other) const;
+	void byteswap (void* p, size_t count) const;
 
 private:
 	Members members_;

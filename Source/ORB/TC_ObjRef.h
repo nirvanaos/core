@@ -43,6 +43,7 @@ public:
 	using TC_RefBase::_s_n_size;
 	using TC_RefBase::_s_n_align;
 	using TC_RefBase::_s_n_is_CDR;
+	using TC_RefBase::_s_n_byteswap;
 	using Servant::_s_id;
 	using Servant::_s_name;
 

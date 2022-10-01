@@ -129,6 +129,16 @@ public:
 		check (p, count);
 	}
 
+	using Servant::_s_n_byteswap;
+
+	static void n_byteswap (void* p, size_t count)
+	{
+		Internal::check_pointer (p);
+		for (Internal::ABI_enum* pv = (Internal::ABI_enum*)p, *end = pv + count; pv != end; ++pv) {
+			Nirvana::byteswap (*pv);
+		}
+	}
+
 private:
 	void check (const void* p, size_t count) const;
 

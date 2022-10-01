@@ -60,6 +60,8 @@ public:
 		return kind_;
 	}
 	
+	static void _s_n_byteswap (Internal::Bridge <TypeCode>*, void*, size_t, Internal::Interface*);
+
 protected:
 	TC_Base (TCKind kind) NIRVANA_NOEXCEPT :
 		kind_ (kind)

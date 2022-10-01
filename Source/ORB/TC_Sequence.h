@@ -91,25 +91,152 @@ public:
 	{
 		Internal::check_pointer (p);
 		ABI& abi = *reinterpret_cast <ABI*> (p);
+		size_t size = abi.size;
+		if (size) {
+			Internal::check_pointer (abi.ptr);
+			if (kind_ == KIND_NONCDR) {
+				Octet* p = (Octet*)abi.ptr;
+				do {
+					content_type_->n_destruct (p);
+					p += element_size_;
+				} while (--size);
+			}
+		}
+		abi.size = 0;
+		if (abi.allocated) {
+			Nirvana::g_memory->release (abi.ptr, abi.allocated);
+			abi.allocated = 0;
+			abi.ptr = nullptr;
+		}
 	}
 
 	void n_copy (void* dst, const void* src) const
 	{
+		Internal::check_pointer (dst);
+		Internal::check_pointer (src);
+		const ABI& abi_src = *(const ABI*)src;
+		ABI& abi_dst = *(ABI*)dst;
+		abi_dst.reset ();
+		size_t count = abi_src.size;
+		if (count) {
+			Internal::check_pointer (abi_src.ptr);
+			size_t size = count * element_size_;
+			if (abi_src.allocated < size)
+				throw BAD_PARAM ();
+
+			if (kind_ != KIND_NONCDR) {
+				abi_dst.ptr = Nirvana::g_memory->copy (nullptr, abi_src.ptr, size, 0);
+				abi_dst.size = count;
+				abi_dst.allocated = size;
+			} else {
+				const Octet* psrc = (const Octet*)abi_src.ptr;
+				const Octet* src_end = psrc + size;
+				void* ptr = Nirvana::g_memory->allocate (nullptr, size, 0);
+				Octet* pdst = (Octet*)ptr;
+				try {
+					do {
+						content_type_->n_copy (pdst, psrc);
+						pdst += element_size_;
+						psrc += element_size_;
+					} while (psrc != src_end);
+				} catch (...) {
+					while (pdst > ptr) {
+						content_type_->n_destruct (pdst);
+						pdst -= element_size_;
+					}
+					Nirvana::g_memory->release (ptr, size);
+					throw;
+				}
+				abi_dst.ptr = ptr;
+				abi_dst.size = count;
+				abi_dst.allocated = size;
+			}
+		}
 	}
 
-	void n_move (void* dst, void* src) const
-	{}
+	static void n_move (void* dst, void* src)
+	{
+		Internal::check_pointer (dst);
+		Internal::check_pointer (src);
+		ABI* abi_src = (ABI*)src;
+		ABI* abi_dst = (ABI*)dst;
+		*abi_dst = *abi_src;
+		abi_src->reset ();
+	}
 
-	void n_marshal_in (const void* src, size_t count, Internal::IORequest_ptr rq) const;
+	void n_marshal_in (const void* src, size_t count, Internal::IORequest_ptr rq) const
+	{
+		marshal (src, count, rq, false);
+	}
 
-	void n_marshal_out (void* src, size_t count, Internal::IORequest_ptr rq) const;
-	void n_unmarshal (Internal::IORequest_ptr rq, size_t count, void* dst) const;
+	void n_marshal_out (void* src, size_t count, Internal::IORequest_ptr rq) const
+	{
+		marshal (src, count, rq, true);
+	}
+
+	void n_unmarshal (Internal::IORequest_ptr rq, size_t count, void* dst) const
+	{
+		Internal::check_pointer (dst);
+		ABI* pdst = (ABI*)dst, * end = pdst + count;
+		switch (kind_) {
+			case KIND_CHAR:
+				for (; pdst != end; ++pdst) {
+					rq->unmarshal_char_seq ((IDL::Sequence <Char>&)*pdst);
+				}
+				break;
+
+			case KIND_WCHAR:
+				for (; pdst != end; ++pdst) {
+					rq->unmarshal_wchar_seq ((IDL::Sequence <WChar>&)*pdst);
+				}
+				break;
+
+			case KIND_CDR:
+				for (; pdst != end; ++pdst) {
+					if (rq->unmarshal_seq (element_align_, element_size_, pdst->size, pdst->ptr, pdst->allocated))
+						content_type_->n_byteswap (pdst->ptr, pdst->size);
+				}
+				break;
+
+			default:
+				for (; pdst != end; ++pdst) {
+					content_type_->n_destruct (pdst);
+					pdst->reset ();
+					size_t size = rq->unmarshal_seq_begin ();
+					if (size) {
+						size_t cb = size * element_size_;
+						void* p = Nirvana::g_memory->allocate (nullptr, cb, 0);
+						try {
+							content_type_->n_unmarshal (rq, size, p);
+						} catch (...) {
+							Nirvana::g_memory->release (p, cb);
+							throw;
+						}
+					}
+				}
+				break;
+		}
+	}
+
+	using TC_Base::_s_n_byteswap;
+
+private:
+	void marshal (const void* src, size_t count, Internal::IORequest_ptr rq, bool out) const;
 
 private:
 	TC_Ref content_type_;
-	ULong bound_;
 	size_t element_size_;
-	bool is_CDR_;
+	size_t element_align_;
+
+	enum
+	{
+		KIND_CHAR,
+		KIND_WCHAR,
+		KIND_CDR,
+		KIND_NONCDR
+	} kind_;
+
+	ULong bound_;
 };
 
 }

@@ -75,6 +75,7 @@ public:
 	using Ops::_s_n_size;
 	using Ops::_s_n_align;
 	using Ops::_s_n_is_CDR;
+	using TC_Base::_s_n_byteswap;
 
 	TC_StringT (ULong bound) NIRVANA_NOEXCEPT;
 };

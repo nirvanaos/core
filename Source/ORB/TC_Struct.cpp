@@ -60,5 +60,14 @@ bool TC_Struct::equivalent_no_alias (TypeCode::_ptr_type other) const
 	return true;
 }
 
+void TC_Struct::byteswap (void* p, size_t count) const
+{
+	for (Octet* pv = (Octet*)p; count; pv += size_, --count) {
+		for (const auto& m : members_) {
+			m.type->n_byteswap (pv + m.offset, 1);
+		}
+	}
+}
+
 }
 }

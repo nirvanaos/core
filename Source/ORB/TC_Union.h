@@ -220,6 +220,8 @@ public:
 		}
 	}
 
+	using TC_Base::_s_n_byteswap;
+
 private:
 	int find_index (const void* p) const
 	{
