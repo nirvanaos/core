@@ -34,6 +34,7 @@
 #include <ORB/TC_Enum.h>
 #include <ORB/TC_String.h>
 #include <ORB/TC_Sequence.h>
+#include <ORB/TC_Array.h>
 #include <ORB/PolicyFactory.h>
 
 using namespace Nirvana;
@@ -265,7 +266,8 @@ public:
 	static TypeCode::_ref_type create_array_tc (ULong length,
 		TypeCode::_ptr_type element_type)
 	{
-		throw NO_IMPLEMENT ();
+		check_type (element_type);
+		return make_pseudo <TC_Array> (TC_Ref (element_type, true), length);
 	}
 
 	static TypeCode::_ref_type create_value_tc (const RepositoryId& id,

@@ -32,6 +32,7 @@
 #include "TC_Enum.h"
 #include "TC_String.h"
 #include "TC_Sequence.h"
+#include "TC_Array.h"
 
 using namespace Nirvana;
 using namespace Nirvana::Core;
@@ -395,14 +396,23 @@ TC_Ref RequestGIOP::unmarshal_type_code (TC_IndirectionUnmarshal& map, size_t pa
 		} break;
 
 		case TCKind::tk_sequence: {
-			size_t pos = start_pos + 8;
 			OctetSeq encap;
 			stream_in_->read_seq (encap);
 			Nirvana::Core::ImplStatic <RequestEncapIn> rq (std::ref (*this), std::ref (encap));
-			TC_Ref content_type = rq.unmarshal_type_code (map, pos);
+			TC_Ref content_type = rq.unmarshal_type_code (map, start_pos + 8);
 			ULong bound;
 			rq.stream_in ()->read (alignof (ULong), sizeof (ULong), &bound);
 			ret = make_pseudo <TC_Sequence> (std::move (content_type), bound);
+		} break;
+
+		case TCKind::tk_array: {
+			OctetSeq encap;
+			stream_in_->read_seq (encap);
+			Nirvana::Core::ImplStatic <RequestEncapIn> rq (std::ref (*this), std::ref (encap));
+			TC_Ref content_type = rq.unmarshal_type_code (map, start_pos + 8);
+			ULong bound;
+			rq.stream_in ()->read (alignof (ULong), sizeof (ULong), &bound);
+			ret = make_pseudo <TC_Array> (std::move (content_type), bound);
 		} break;
 
 		default:

@@ -28,16 +28,15 @@
 #define NIRVANA_ORB_CORE_TC_SEQUENCE_H_
 #pragma once
 
-#include "TC_Base.h"
+#include "TC_ArrayBase.h"
 #include "TC_Impl.h"
-#include "TC_Ref.h"
 
 namespace CORBA {
 namespace Core {
 
-class TC_Sequence : public TC_Impl <TC_Sequence, TC_Base>
+class TC_Sequence : public TC_Impl <TC_Sequence, TC_ArrayBase>
 {
-	typedef TC_Impl <TC_Sequence, TC_Base> Impl;
+	typedef TC_Impl <TC_Sequence, TC_ArrayBase> Impl;
 	typedef Internal::ABI <Internal::Sequence <void> > ABI;
 
 public:
@@ -45,26 +44,6 @@ public:
 	using Servant::_s_content_type;
 
 	TC_Sequence (TC_Ref&& content_type, ULong bound);
-
-	bool equal (TypeCode::_ptr_type other) const
-	{
-		return TCKind::tk_sequence == other->kind () && bound_ == other->length ();
-	}
-
-	bool equivalent (TypeCode::_ptr_type other) const
-	{
-		return equal (dereference_alias (other));
-	}
-
-	ULong length () const NIRVANA_NOEXCEPT
-	{
-		return bound_;
-	}
-
-	TypeCode::_ref_type content_type () const NIRVANA_NOEXCEPT
-	{
-		return content_type_;
-	}
 
 	static size_t _s_n_size (Internal::Bridge <TypeCode>*, Internal::Interface*)
 	{
@@ -94,7 +73,7 @@ public:
 		size_t size = abi.size;
 		if (size) {
 			Internal::check_pointer (abi.ptr);
-			if (kind_ == KIND_NONCDR) {
+			if (content_kind_ == KIND_NONCDR) {
 				Octet* p = (Octet*)abi.ptr;
 				do {
 					content_type_->n_destruct (p);
@@ -124,7 +103,7 @@ public:
 			if (abi_src.allocated < size)
 				throw BAD_PARAM ();
 
-			if (kind_ != KIND_NONCDR) {
+			if (content_kind_ != KIND_NONCDR) {
 				abi_dst.ptr = Nirvana::g_memory->copy (nullptr, abi_src.ptr, size, 0);
 				abi_dst.size = count;
 				abi_dst.allocated = size;
@@ -178,7 +157,7 @@ public:
 	{
 		Internal::check_pointer (dst);
 		ABI* pdst = (ABI*)dst, * end = pdst + count;
-		switch (kind_) {
+		switch (content_kind_) {
 			case KIND_CHAR:
 				for (; pdst != end; ++pdst) {
 					rq->unmarshal_char_seq ((IDL::Sequence <Char>&)*pdst);
@@ -222,21 +201,6 @@ public:
 
 private:
 	void marshal (const void* src, size_t count, Internal::IORequest_ptr rq, bool out) const;
-
-private:
-	TC_Ref content_type_;
-	size_t element_size_;
-	size_t element_align_;
-
-	enum
-	{
-		KIND_CHAR,
-		KIND_WCHAR,
-		KIND_CDR,
-		KIND_NONCDR
-	} kind_;
-
-	ULong bound_;
 };
 
 }

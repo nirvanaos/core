@@ -23,48 +23,33 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "TC_Sequence.h"
+#include "TC_Array.h"
 
 namespace CORBA {
 namespace Core {
 
-TC_Sequence::TC_Sequence (TC_Ref&& content_type, ULong bound) :
-	Impl (TCKind::tk_sequence, std::move (content_type), bound)
+TC_Array::TC_Array (TC_Ref&& content_type, ULong bound) :
+	Impl (TCKind::tk_array, std::move (content_type), bound)
 {}
 
-void TC_Sequence::marshal (const void* src, size_t count, Internal::IORequest_ptr rq, bool out) const
+void TC_Array::marshal (const void* src, size_t count, Internal::IORequest_ptr rq, bool out) const
 {
 	Internal::check_pointer (src);
-	ABI* psrc = (ABI*)src, *end = psrc + count;
 	switch (content_kind_) {
 		case KIND_CHAR:
-			for (; psrc != end; ++psrc) {
-				rq->marshal_char_seq ((IDL::Sequence <Char>&)*psrc, out);
-			}
+			rq->marshal_char (count * element_size_, (const Char*)src);
 			break;
 		case KIND_WCHAR:
-			for (; psrc != end; ++psrc) {
-				rq->marshal_wchar_seq ((IDL::Sequence <WChar>&)*psrc, out);
-			}
+			rq->marshal_wchar (count * element_size_ / sizeof (WChar), (const WChar*)src);
 			break;
 		case KIND_CDR:
-			for (; psrc != end; ++psrc) {
-				size_t zero = 0;
-				rq->marshal_seq (element_align_, element_size_, psrc->size, psrc->ptr, out ? psrc->allocated : zero);
-			}
+			rq->marshal (element_align_, element_size_ * count, src);
 			break;
 		default:
-			for (; psrc != end; ++psrc) {
-				size_t size = psrc->size;
-				rq->marshal_seq_begin (size);
-				if (size) {
-					if (out)
-						content_type_->n_marshal_out (psrc->ptr, size, rq);
-					else
-						content_type_->n_marshal_in (psrc->ptr, size, rq);
-				}
-			}
-			break;
+			if (out)
+				content_type_->n_marshal_out (const_cast <void*> (src), count, rq);
+			else
+				content_type_->n_marshal_in (src, count, rq);
 	}
 }
 
