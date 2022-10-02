@@ -25,7 +25,7 @@
 */
 #include "RequestEncapIn.h"
 #include "RequestEncapOut.h"
-#include "TC_ObjRef.h"
+#include "TC_Interface.h"
 #include "TC_Fixed.h"
 #include "TC_Struct.h"
 #include "TC_Union.h"
@@ -33,6 +33,11 @@
 #include "TC_String.h"
 #include "TC_Sequence.h"
 #include "TC_Array.h"
+#include "TC_Alias.h"
+#include "TC_Value.h"
+#include "TC_ValueBox.h"
+#include "TC_Abstract.h"
+#include "TC_Native.h"
 
 using namespace Nirvana;
 using namespace Nirvana::Core;
@@ -235,6 +240,10 @@ TC_Ref RequestGIOP::unmarshal_type_code (TC_IndirectionUnmarshal& map, size_t pa
 		return TC_Ref (it->second, !parent_offset);
 	}
 
+	// Parent offset of the encapsulated data:
+	// start_pos + 4 byte kind + 4 byte encaplulated sequence size
+	size_t encap_pos = start_pos + 8;
+
 	TC_Ref ret;
 	switch ((TCKind)kind) {
 		case TCKind::tk_void:
@@ -285,7 +294,10 @@ TC_Ref RequestGIOP::unmarshal_type_code (TC_IndirectionUnmarshal& map, size_t pa
 			ret = _tc_TypeCode;
 			break;
 
-		case TCKind::tk_objref: {
+		case TCKind::tk_objref:
+		case TCKind::tk_abstract_interface:
+		case TCKind::tk_local_interface:
+		case TCKind::tk_native: {
 			OctetSeq encap;
 			stream_in_->read_seq (encap);
 			Nirvana::Core::ImplStatic <StreamInEncap> stm (std::ref (encap));
@@ -294,11 +306,20 @@ TC_Ref RequestGIOP::unmarshal_type_code (TC_IndirectionUnmarshal& map, size_t pa
 			stm.read_string (name);
 			if (stm.end () != 0)
 				throw CORBA::MARSHAL (StreamIn::MARSHAL_MINOR_MORE);
-			ret = make_pseudo <TC_ObjRef> (std::move (id), std::move (name));
+			switch ((TCKind)kind) {
+				case TCKind::tk_abstract_interface:
+					ret = make_pseudo <TC_Abstract> (std::move (id), std::move (name));
+					break;
+				case TCKind::tk_native:
+					ret = make_pseudo <TC_Native> (std::move (id), std::move (name));
+					break;
+				default:
+					ret = make_pseudo <TC_Interface> ((TCKind)kind, std::move (id), std::move (name));
+			}
 		} break;
 
-		case TCKind::tk_struct: {
-			size_t pos = start_pos + 8;
+		case TCKind::tk_struct:
+		case TCKind::tk_except: {
 			OctetSeq encap;
 			stream_in_->read_seq (encap);
 			Nirvana::Core::ImplStatic <RequestEncapIn> rq (std::ref (*this), std::ref (encap));
@@ -307,32 +328,37 @@ TC_Ref RequestGIOP::unmarshal_type_code (TC_IndirectionUnmarshal& map, size_t pa
 			rq.stream_in ()->read_string (name);
 			ULong cnt;
 			rq.stream_in ()->read (alignof (ULong), sizeof (ULong), &cnt);
+			if (TCKind::tk_struct == (TCKind)kind && !cnt)
+				throw BAD_TYPECODE (MAKE_OMG_MINOR (1));
 			TC_Struct::Members members;
-			members.construct (cnt);
-			TC_Struct::Member* pm = members.begin ();
-			while (cnt--) {
-				rq.stream_in ()->read_string (pm->name);
-				pm->type = rq.unmarshal_type_code (map, pos);
-				++pm;
+			if (cnt) {
+				members.construct (cnt);
+				TC_Struct::Member* pm = members.begin ();
+				while (cnt--) {
+					rq.stream_in ()->read_string (pm->name);
+					pm->type = rq.unmarshal_type_code (map, encap_pos);
+					++pm;
+				}
 			}
 			if (rq.stream_in ()->end () != 0)
 				throw CORBA::MARSHAL (StreamIn::MARSHAL_MINOR_MORE);
-			ret = make_pseudo <TC_Struct> (std::move (id), std::move (name), std::move (members));
+			ret = make_pseudo <TC_Struct> ((TCKind)kind, std::move (id), std::move (name), std::move (members));
 		} break;
 
 		case TCKind::tk_union: {
-			size_t pos = start_pos + 8;
 			OctetSeq encap;
 			stream_in_->read_seq (encap);
 			Nirvana::Core::ImplStatic <RequestEncapIn> rq (std::ref (*this), std::ref (encap));
 			TC_Base::String id, name;
 			rq.stream_in ()->read_string (id);
 			rq.stream_in ()->read_string (name);
-			TC_Ref discriminator_type = rq.unmarshal_type_code (map, pos);
+			TC_Ref discriminator_type = rq.unmarshal_type_code (map, encap_pos);
 			Long default_index;
 			rq.stream_in ()->read (alignof (Long), sizeof (Long), &default_index);
 			ULong cnt;
 			rq.stream_in ()->read (alignof (ULong), sizeof (ULong), &cnt);
+			if (!cnt)
+				throw BAD_TYPECODE (MAKE_OMG_MINOR (1));
 			TC_Union::Members members;
 			members.construct (cnt);
 			TC_Union::Member* pm = members.begin ();
@@ -348,7 +374,7 @@ TC_Ref RequestGIOP::unmarshal_type_code (TC_IndirectionUnmarshal& map, size_t pa
 				else
 					pm->label <<= Any::from_octet (0);
 				rq.stream_in ()->read_string (pm->name);
-				pm->type = rq.unmarshal_type_code (map, pos);
+				pm->type = rq.unmarshal_type_code (map, encap_pos);
 			}
 			if (rq.stream_in ()->end () != 0)
 				throw CORBA::MARSHAL (StreamIn::MARSHAL_MINOR_MORE);
@@ -365,6 +391,8 @@ TC_Ref RequestGIOP::unmarshal_type_code (TC_IndirectionUnmarshal& map, size_t pa
 			stm.read_string (name);
 			ULong cnt;
 			stm.read (alignof (ULong), sizeof (ULong), &cnt);
+			if (!cnt)
+				throw BAD_TYPECODE (MAKE_OMG_MINOR (1));
 			TC_Enum::Members members;
 			members.construct (cnt);
 			TC_Base::String* pm = members.begin ();
@@ -399,9 +427,11 @@ TC_Ref RequestGIOP::unmarshal_type_code (TC_IndirectionUnmarshal& map, size_t pa
 			OctetSeq encap;
 			stream_in_->read_seq (encap);
 			Nirvana::Core::ImplStatic <RequestEncapIn> rq (std::ref (*this), std::ref (encap));
-			TC_Ref content_type = rq.unmarshal_type_code (map, start_pos + 8);
+			TC_Ref content_type = rq.unmarshal_type_code (map, encap_pos);
 			ULong bound;
 			rq.stream_in ()->read (alignof (ULong), sizeof (ULong), &bound);
+			if (rq.stream_in ()->end () != 0)
+				throw CORBA::MARSHAL (StreamIn::MARSHAL_MINOR_MORE);
 			ret = make_pseudo <TC_Sequence> (std::move (content_type), bound);
 		} break;
 
@@ -409,10 +439,91 @@ TC_Ref RequestGIOP::unmarshal_type_code (TC_IndirectionUnmarshal& map, size_t pa
 			OctetSeq encap;
 			stream_in_->read_seq (encap);
 			Nirvana::Core::ImplStatic <RequestEncapIn> rq (std::ref (*this), std::ref (encap));
-			TC_Ref content_type = rq.unmarshal_type_code (map, start_pos + 8);
+			TC_Ref content_type = rq.unmarshal_type_code (map, encap_pos);
 			ULong bound;
 			rq.stream_in ()->read (alignof (ULong), sizeof (ULong), &bound);
+			if (rq.stream_in ()->end () != 0)
+				throw CORBA::MARSHAL (StreamIn::MARSHAL_MINOR_MORE);
 			ret = make_pseudo <TC_Array> (std::move (content_type), bound);
+		} break;
+
+		case TCKind::tk_alias: {
+			OctetSeq encap;
+			stream_in_->read_seq (encap);
+			Nirvana::Core::ImplStatic <RequestEncapIn> rq (std::ref (*this), std::ref (encap));
+			TC_Base::String id, name;
+			rq.stream_in ()->read_string (id);
+			rq.stream_in ()->read_string (name);
+			TC_Ref content_type = rq.unmarshal_type_code (map, encap_pos);
+			if (rq.stream_in ()->end () != 0)
+				throw CORBA::MARSHAL (StreamIn::MARSHAL_MINOR_MORE);
+			ret = make_pseudo <TC_Alias> (std::move (id), std::move (name), std::move (content_type));
+		} break;
+
+		case TCKind::tk_longlong:
+			ret = _tc_longlong;
+			break;
+
+		case TCKind::tk_ulonglong:
+			ret = _tc_ulonglong;
+			break;
+
+		case TCKind::tk_longdouble:
+			ret = _tc_longdouble;
+			break;
+
+		case TCKind::tk_wchar:
+			ret = _tc_wchar;
+			break;
+
+		case TCKind::tk_fixed: {
+			UShort digits;
+			stream_in_->read (alignof (UShort), sizeof (UShort), &digits);
+			Short scale;
+			stream_in_->read (alignof (Short), sizeof (Short), &scale);
+			ret = make_pseudo <TC_Fixed> (digits, scale);
+		} break;
+
+		case TCKind::tk_value: {
+			OctetSeq encap;
+			stream_in_->read_seq (encap);
+			Nirvana::Core::ImplStatic <RequestEncapIn> rq (std::ref (*this), std::ref (encap));
+			TC_Base::String id, name;
+			rq.stream_in ()->read_string (id);
+			rq.stream_in ()->read_string (name);
+			ValueModifier modifier;
+			rq.stream_in ()->read (alignof (ValueModifier), sizeof (ValueModifier), &modifier);
+			TC_Ref concrete_base = rq.unmarshal_type_code (map, encap_pos);
+			ULong cnt;
+			rq.stream_in ()->read (alignof (ULong), sizeof (ULong), &cnt);
+			TC_Value::Members members;
+			if (cnt) {
+				members.construct (cnt);
+				TC_Value::Member* pm = members.begin ();
+				while (cnt--) {
+					rq.stream_in ()->read_string (pm->name);
+					pm->type = rq.unmarshal_type_code (map, encap_pos);
+					rq.stream_in ()->read (alignof (Short), sizeof (Short), &pm->visibility);
+					++pm;
+				}
+			}
+			if (rq.stream_in ()->end () != 0)
+				throw CORBA::MARSHAL (StreamIn::MARSHAL_MINOR_MORE);
+			ret = make_pseudo <TC_Value> (std::move (id), std::move (name), modifier,
+				std::move (concrete_base), std::move (members));
+		} break;
+
+		case TCKind::tk_value_box: {
+			OctetSeq encap;
+			stream_in_->read_seq (encap);
+			Nirvana::Core::ImplStatic <RequestEncapIn> rq (std::ref (*this), std::ref (encap));
+			TC_Base::String id, name;
+			rq.stream_in ()->read_string (id);
+			rq.stream_in ()->read_string (name);
+			TC_Ref content_type = rq.unmarshal_type_code (map, encap_pos);
+			if (rq.stream_in ()->end () != 0)
+				throw CORBA::MARSHAL (StreamIn::MARSHAL_MINOR_MORE);
+			ret = make_pseudo <TC_ValueBox> (std::move (id), std::move (name), std::move (content_type));
 		} break;
 
 		default:

@@ -23,21 +23,21 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "TC_ObjRef.h"
+#include "TC_Abstract.h"
 
 namespace CORBA {
 namespace Core {
 
-TC_ObjRef::TC_ObjRef (String&& id, String&& name) NIRVANA_NOEXCEPT :
-Impl (TCKind::tk_objref, std::move (id), std::move (name))
+TC_Abstract::TC_Abstract (String&& id, String&& name) NIRVANA_NOEXCEPT :
+	Impl (TCKind::tk_abstract_interface, std::move (id), std::move (name))
 {}
 
-void TC_ObjRef::n_marshal_in (const void* src, size_t count, Internal::IORequest_ptr rq)
+void TC_Abstract::marshal (const void* src, size_t count, Internal::IORequest_ptr rq, bool out)
 {
 	Internal::check_pointer (src);
 	for (Internal::Interface* const* p = reinterpret_cast <Internal::Interface* const*> (src);
 		count; ++p, --count) {
-		rq->marshal_interface (*p);
+		rq->marshal_abstract (*p, out);
 	}
 }
 

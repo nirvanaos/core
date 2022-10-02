@@ -23,26 +23,18 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "TC_IdName.h"
+#include "TC_Value.h"
 
 namespace CORBA {
 namespace Core {
 
-TC_IdName::TC_IdName (TCKind kind, String&& id, String&& name) NIRVANA_NOEXCEPT :
-	TC_Base (kind),
-	id_ (std::move (id)),
-	name_ (std::move (name))
+TC_Value::TC_Value (String&& id, String&& name, ValueModifier modifier, TC_Ref&& concrete_base,
+	Members&& members) NIRVANA_NOEXCEPT :
+	Impl (TCKind::tk_value, std::move (id), std::move (name)),
+	modifier_ (modifier),
+	concrete_base_ (std::move (concrete_base)),
+	members_ (std::move (members))
 {}
-
-bool TC_IdName::equal (TypeCode::_ptr_type other) const
-{
-	return equivalent_no_alias (other) && name_ == other->name ();
-}
-
-bool TC_IdName::equivalent_no_alias (TypeCode::_ptr_type other) const
-{
-	return kind_ == other->kind () && !id_.empty () && id_ == other->id ();
-}
 
 }
 }

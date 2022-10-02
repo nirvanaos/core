@@ -1,3 +1,4 @@
+/// \file
 /*
 * Nirvana Core.
 *
@@ -23,26 +24,42 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "TC_IdName.h"
+#ifndef NIRVANA_ORB_CORE_TC_VALUEBOX_H_
+#define NIRVANA_ORB_CORE_TC_VALUEBOX_H_
+#pragma once
+
+#include "TC_ValueBase.h"
+#include "TC_Impl.h"
+#include "TC_Ref.h"
 
 namespace CORBA {
 namespace Core {
 
-TC_IdName::TC_IdName (TCKind kind, String&& id, String&& name) NIRVANA_NOEXCEPT :
-	TC_Base (kind),
-	id_ (std::move (id)),
-	name_ (std::move (name))
-{}
-
-bool TC_IdName::equal (TypeCode::_ptr_type other) const
+class TC_ValueBox :
+	public TC_Impl <TC_ValueBox, TC_ValueBase>
 {
-	return equivalent_no_alias (other) && name_ == other->name ();
-}
+	typedef TC_Impl <TC_ValueBox, TC_ValueBase> Impl;
 
-bool TC_IdName::equivalent_no_alias (TypeCode::_ptr_type other) const
-{
-	return kind_ == other->kind () && !id_.empty () && id_ == other->id ();
-}
+public:
+	using TC_RefBase::_s_n_size;
+	using TC_RefBase::_s_n_align;
+	using TC_RefBase::_s_n_is_CDR;
+	using TC_RefBase::_s_n_byteswap;
+	using Servant::_s_id;
+	using Servant::_s_name;
+	using Servant::_s_content_type;
+
+	TC_ValueBox (String&& id, String&& name, TC_Ref&& content_type) NIRVANA_NOEXCEPT;
+
+	TypeCode::_ref_type content_type () const NIRVANA_NOEXCEPT
+	{
+		return content_type_;
+	}
+
+private:
+	TC_Ref content_type_;
+};
 
 }
 }
+#endif

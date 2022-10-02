@@ -28,13 +28,18 @@
 #include <Binder.h>
 #include <ORB/Services.h>
 #include <ORB/TC_Fixed.h>
-#include <ORB/TC_ObjRef.h>
+#include <ORB/TC_Interface.h>
 #include <ORB/TC_Struct.h>
 #include <ORB/TC_Union.h>
 #include <ORB/TC_Enum.h>
 #include <ORB/TC_String.h>
 #include <ORB/TC_Sequence.h>
 #include <ORB/TC_Array.h>
+#include <ORB/TC_Alias.h>
+#include <ORB/TC_Value.h>
+#include <ORB/TC_ValueBox.h>
+#include <ORB/TC_Abstract.h>
+#include <ORB/TC_Native.h>
 #include <ORB/PolicyFactory.h>
 
 using namespace Nirvana;
@@ -122,21 +127,9 @@ public:
 	static TypeCode::_ref_type create_struct_tc (const RepositoryId& id,
 		const Identifier& name, const StructMemberSeq& members)
 	{
-		check_id (id);
-		check_name (name);
-		
-		NameSet names;
-		TC_Struct::Members smembers;
-		smembers.construct (members.size ());
-		TC_Struct::Member* pm = smembers.begin ();
-		for (const StructMember& m : members) {
-			check_member_name (names, m.name ());
-			check_type (m.type ());
-			pm->name = m.name ();
-			pm->type = m.type ();
-			++pm;
-		}
-		return make_pseudo <TC_Struct> (id, name, std::move (smembers));
+		if (members.empty ())
+			throw BAD_PARAM ();
+		return create_struct_tc (TCKind::tk_struct, id, name, members);
 	}
 
 	static TypeCode::_ref_type create_union_tc (const RepositoryId& id,
@@ -144,6 +137,8 @@ public:
 	{
 		check_id (id);
 		check_name (name);
+		if (members.empty ())
+			throw BAD_PARAM ();
 
 		// The create_union_tc operation shall also check that the supplied discriminator type is
 		// legitimate, and if the check fails, raise BAD_PARAM with standard minor code 20.
@@ -203,7 +198,9 @@ public:
 	{
 		check_id (id);
 		check_name (name);
-		
+		if (members.empty ())
+			throw BAD_PARAM ();
+
 		NameSet names;
 		TC_Enum::Members smembers;
 		smembers.construct (members.size ());
@@ -211,6 +208,7 @@ public:
 		for (const Identifier& m : members) {
 			check_member_name (names, m);
 			*pm = m;
+			++pm;
 		}
 		return make_pseudo <TC_Enum> (id, name, std::move (smembers));
 	}
@@ -218,19 +216,23 @@ public:
 	static TypeCode::_ref_type create_alias_tc (const RepositoryId& id,
 		const Identifier& name, TypeCode::_ptr_type original_type)
 	{
-		throw NO_IMPLEMENT ();
+		check_id (id);
+		check_name (name);
+		check_type (original_type);
+
+		return make_pseudo <TC_Alias> (id, name, TC_Ref (original_type, true));
 	}
 
 	static TypeCode::_ref_type create_exception_tc (const RepositoryId& id,
 		const Identifier& name, const StructMemberSeq& members)
 	{
-		throw NO_IMPLEMENT ();
+		return create_struct_tc (TCKind::tk_except, id, name, members);
 	}
 
 	static TypeCode::_ref_type create_interface_tc (const RepositoryId& id,
 		const Identifier& name)
 	{
-		return make_pseudo <TC_ObjRef> (id, name);
+		return create_interface_tc (TCKind::tk_objref, id, name);
 	}
 
 	static TypeCode::_ref_type create_string_tc (ULong bound)
@@ -274,19 +276,43 @@ public:
 		const Identifier& name, ValueModifier type_modifier,
 		TypeCode::_ptr_type concrete_base, const ValueMemberSeq& members)
 	{
-		throw NO_IMPLEMENT ();
+		check_id (id);
+		check_name (name);
+		NameSet names;
+		TC_Value::Members smembers;
+		if (members.size ()) {
+			smembers.construct (members.size ());
+			TC_Value::Member* pm = smembers.begin ();
+			for (const ValueMember& m : members) {
+				check_member_name (names, m.name ());
+				check_type (m.type ());
+				pm->name = m.name ();
+				pm->type = m.type ();
+				pm->visibility = m.access ();
+				++pm;
+			}
+		}
+		return make_pseudo <TC_Value> (id, name, type_modifier,
+			TC_Ref (concrete_base, true), std::move (smembers));
 	}
 
 	static TypeCode::_ref_type create_value_box_tc (const RepositoryId& id,
 		const Identifier& name, TypeCode::_ptr_type boxed_type)
 	{
-		throw NO_IMPLEMENT ();
+		check_id (id);
+		check_name (name);
+		check_type (boxed_type);
+
+		return make_pseudo <TC_ValueBox> (id, name, TC_Ref (boxed_type, true));
 	}
 
 	static TypeCode::_ref_type create_native_tc (const RepositoryId& id,
 		const Identifier& name)
 	{
-		throw NO_IMPLEMENT ();
+		check_id (id);
+		check_name (name);
+
+		return make_pseudo <TC_Native> (id, name);
 	}
 
 	static TypeCode::_ref_type create_recursive_tc (const RepositoryId& id)
@@ -297,13 +323,16 @@ public:
 	static TypeCode::_ref_type create_abstract_interface_tc (const RepositoryId& id,
 		const Identifier& name)
 	{
-		throw NO_IMPLEMENT ();
+		check_id (id);
+		check_name (name);
+
+		return make_pseudo <TC_Abstract> (id, name);
 	}
 
 	static TypeCode::_ref_type create_local_interface_tc (const RepositoryId& id,
 		const Identifier& name)
 	{
-		throw NO_IMPLEMENT ();
+		return create_interface_tc (TCKind::tk_local_interface, id, name);
 	}
 
 	static TypeCode::_ref_type create_component_tc (const RepositoryId& id,
@@ -383,6 +412,12 @@ private:
 	static void check_id (const IDL::String& id);
 
 	static void check_type (TypeCode::_ptr_type tc);
+
+	static TypeCode::_ref_type create_struct_tc (TCKind kind, const RepositoryId& id,
+		const Identifier& name, const StructMemberSeq& members);
+
+	static TypeCode::_ref_type create_interface_tc (TCKind kind, const RepositoryId& id,
+		const Identifier& name);
 };
 
 void ORB::check_name (const IDL::String& name, ULong minor)
@@ -438,6 +473,35 @@ void ORB::check_type (TypeCode::_ptr_type tc)
 				return;
 		}
 	throw BAD_TYPECODE (MAKE_OMG_MINOR (2));
+}
+
+TypeCode::_ref_type ORB::create_struct_tc (TCKind kind, const RepositoryId& id,
+	const Identifier& name, const StructMemberSeq& members)
+{
+	check_id (id);
+	check_name (name);
+	NameSet names;
+	TC_Struct::Members smembers;
+	if (members.size ()) {
+		smembers.construct (members.size ());
+		TC_Struct::Member* pm = smembers.begin ();
+		for (const StructMember& m : members) {
+			check_member_name (names, m.name ());
+			check_type (m.type ());
+			pm->name = m.name ();
+			pm->type = m.type ();
+			++pm;
+		}
+	}
+	return make_pseudo <TC_Struct> (kind, id, name, std::move (smembers));
+}
+
+TypeCode::_ref_type ORB::create_interface_tc (TCKind kind, const RepositoryId& id,
+	const Identifier& name)
+{
+	check_id (id);
+	check_name (name);
+	return make_pseudo <TC_Interface> (kind, id, name);
 }
 
 }

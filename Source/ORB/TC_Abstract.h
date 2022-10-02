@@ -24,8 +24,8 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_ORB_CORE_TC_OBJREF_H_
-#define NIRVANA_ORB_CORE_TC_OBJREF_H_
+#ifndef NIRVANA_ORB_CORE_TC_ABSTRACT_H_
+#define NIRVANA_ORB_CORE_TC_ABSTRACT_H_
 #pragma once
 
 #include "TC_RefBase.h"
@@ -34,10 +34,10 @@
 namespace CORBA {
 namespace Core {
 
-class TC_ObjRef :
-	public TC_Impl <TC_ObjRef, TC_RefBase>
+class TC_Abstract :
+	public TC_Impl <TC_Abstract, TC_RefBase>
 {
-	typedef TC_Impl <TC_ObjRef, TC_RefBase> Impl;
+	typedef TC_Impl <TC_Abstract, TC_RefBase> Impl;
 
 public:
 	using TC_RefBase::_s_n_size;
@@ -47,13 +47,16 @@ public:
 	using Servant::_s_id;
 	using Servant::_s_name;
 
-	TC_ObjRef (String&& id, String&& name) NIRVANA_NOEXCEPT;
+	TC_Abstract (String&& id, String&& name) NIRVANA_NOEXCEPT;
 
-	static void n_marshal_in (const void* src, size_t count, Internal::IORequest_ptr rq);
+	static void n_marshal_in (const void* src, size_t count, Internal::IORequest_ptr rq)
+	{
+		marshal (src, count, rq, false);
+	}
 
 	static void n_marshal_out (void* src, size_t count, Internal::IORequest_ptr rq)
 	{
-		n_marshal_in (src, count, rq);
+		marshal (src, count, rq, true);
 	}
 
 	void n_unmarshal (Internal::IORequest_ptr rq, size_t count, void* dst) const
@@ -61,9 +64,12 @@ public:
 		Internal::check_pointer (dst);
 		for (Internal::Interface::_ref_type* p = reinterpret_cast <Internal::Interface::_ref_type*> (dst);
 			count; ++p, --count) {
-			*p = rq->unmarshal_interface (id_);
+			*p = rq->unmarshal_abstract (id_);
 		}
 	}
+
+private:
+	static void marshal (const void* src, size_t count, Internal::IORequest_ptr rq, bool out);
 };
 
 }

@@ -1,3 +1,4 @@
+/// \file
 /*
 * Nirvana Core.
 *
@@ -23,26 +24,44 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
+#ifndef NIRVANA_ORB_CORE_TC_NATIVE_H_
+#define NIRVANA_ORB_CORE_TC_NATIVE_H_
+#pragma once
+
 #include "TC_IdName.h"
+#include "TC_Impl.h"
 
 namespace CORBA {
 namespace Core {
 
-TC_IdName::TC_IdName (TCKind kind, String&& id, String&& name) NIRVANA_NOEXCEPT :
-	TC_Base (kind),
-	id_ (std::move (id)),
-	name_ (std::move (name))
-{}
-
-bool TC_IdName::equal (TypeCode::_ptr_type other) const
+class TC_Native :
+	public TC_Impl <TC_Native, TC_IdName>,
+	public Internal::TypeCodeOps <void>
 {
-	return equivalent_no_alias (other) && name_ == other->name ();
+	typedef TC_Impl <TC_Native, TC_IdName> Impl;
+	typedef Internal::TypeCodeOps <void> Ops;
+
+public:
+	using Servant::_s_id;
+	using Servant::_s_name;
+	using Ops::_s_n_size;
+	using Ops::_s_n_align;
+	using Ops::_s_n_is_CDR;
+	using Ops::_s_n_construct;
+	using Ops::_s_n_destruct;
+	using Ops::_s_n_copy;
+	using Ops::_s_n_move;
+	using Ops::_s_n_marshal_in;
+	using Ops::_s_n_marshal_out;
+	using Ops::_s_n_unmarshal;
+	using Ops::_s_n_byteswap;
+
+	TC_Native (String&& id, String&& name) NIRVANA_NOEXCEPT :
+		Impl (TCKind::tk_native, std::move (id), std::move (name))
+	{}
+};
+
+}
 }
 
-bool TC_IdName::equivalent_no_alias (TypeCode::_ptr_type other) const
-{
-	return kind_ == other->kind () && !id_.empty () && id_ == other->id ();
-}
-
-}
-}
+#endif

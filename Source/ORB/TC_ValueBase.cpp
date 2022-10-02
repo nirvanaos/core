@@ -23,25 +23,22 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "TC_IdName.h"
+#include "TC_ValueBase.h"
 
 namespace CORBA {
 namespace Core {
 
-TC_IdName::TC_IdName (TCKind kind, String&& id, String&& name) NIRVANA_NOEXCEPT :
-	TC_Base (kind),
-	id_ (std::move (id)),
-	name_ (std::move (name))
+TC_ValueBase::TC_ValueBase (TCKind kind, String&& id, String&& name) NIRVANA_NOEXCEPT :
+	TC_RefBase (kind, std::move (id), std::move (name))
 {}
 
-bool TC_IdName::equal (TypeCode::_ptr_type other) const
+void TC_ValueBase::marshal (const void* src, size_t count, Internal::IORequest_ptr rq, bool out)
 {
-	return equivalent_no_alias (other) && name_ == other->name ();
-}
-
-bool TC_IdName::equivalent_no_alias (TypeCode::_ptr_type other) const
-{
-	return kind_ == other->kind () && !id_.empty () && id_ == other->id ();
+	Internal::check_pointer (src);
+	for (Internal::Interface* const* p = reinterpret_cast <Internal::Interface* const*> (src);
+		count; ++p, --count) {
+		rq->marshal_value (*p, out);
+	}
 }
 
 }

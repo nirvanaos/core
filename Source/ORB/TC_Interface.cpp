@@ -23,25 +23,22 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "TC_IdName.h"
+#include "TC_Interface.h"
 
 namespace CORBA {
 namespace Core {
 
-TC_IdName::TC_IdName (TCKind kind, String&& id, String&& name) NIRVANA_NOEXCEPT :
-	TC_Base (kind),
-	id_ (std::move (id)),
-	name_ (std::move (name))
+TC_Interface::TC_Interface (TCKind kind, String&& id, String&& name) NIRVANA_NOEXCEPT :
+Impl (kind, std::move (id), std::move (name))
 {}
 
-bool TC_IdName::equal (TypeCode::_ptr_type other) const
+void TC_Interface::n_marshal_in (const void* src, size_t count, Internal::IORequest_ptr rq)
 {
-	return equivalent_no_alias (other) && name_ == other->name ();
-}
-
-bool TC_IdName::equivalent_no_alias (TypeCode::_ptr_type other) const
-{
-	return kind_ == other->kind () && !id_.empty () && id_ == other->id ();
+	Internal::check_pointer (src);
+	for (Internal::Interface* const* p = reinterpret_cast <Internal::Interface* const*> (src);
+		count; ++p, --count) {
+		rq->marshal_interface (*p);
+	}
 }
 
 }

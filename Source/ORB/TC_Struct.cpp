@@ -28,8 +28,8 @@
 namespace CORBA {
 namespace Core {
 
-TC_Struct::TC_Struct (String&& id, String&& name, Members&& members) :
-	Impl (TCKind::tk_struct, std::move (id), std::move (name)),
+TC_Struct::TC_Struct (TCKind kind, String&& id, String&& name, Members&& members) :
+	Impl (kind, std::move (id), std::move (name)),
 	members_ (std::move (members))
 {
 	size_t off = 0, align = 1;

@@ -81,8 +81,10 @@ public:
 	void allocate (size_t size)
 	{
 		assert (!begin_ && !end_);
-		begin_ = Al <T>::allocate (size, nullptr, Memory::ZERO_INIT);
-		end_ = begin_ + size;
+		if (size) {
+			begin_ = Al <T>::allocate (size, nullptr, Memory::ZERO_INIT);
+			end_ = begin_ + size;
+		}
 	}
 
 	/// \brief Allocate and call default constructors.
