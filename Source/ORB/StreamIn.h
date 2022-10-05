@@ -157,6 +157,15 @@ public:
 		read_tagged (reinterpret_cast <IOP::TaggedProfileSeq&> (seq));
 	}
 
+	ULong read32 ()
+	{
+		ULong val;
+		read (alignof (ULong), sizeof (ULong), &val);
+		if (other_endian ())
+			Nirvana::byteswap (val);
+		return val;
+	}
+
 protected:
 	StreamIn () :
 		other_endian_ (false)
@@ -170,8 +179,10 @@ template <typename C, class A>
 void StreamIn::read_string (std::basic_string <C, std::char_traits <C>, A>& s)
 {
 	uint32_t size = read_size ();
-	s.resize (size);
-	read (alignof (C), (size + 1) * sizeof (C), &*s.begin ());
+	if (!size)
+		throw MARSHAL (); // String length includes the terminating zero.
+	s.resize (size - 1);
+	read (alignof (C), (size) * sizeof (C), &*s.begin ());
 }
 
 template <typename C>
@@ -180,6 +191,9 @@ void StreamIn::read_string (std::basic_string <C, std::char_traits <C>, std::all
 	typedef typename Internal::Type <Internal::StringT <C> >::ABI ABI;
 
 	uint32_t size = read_size ();
+	if (!size)
+		throw MARSHAL (); // String length includes the terminating zero.
+	--size;
 
 	Internal::StringT <C> tmp;
 	ABI& abi = (ABI&)tmp;

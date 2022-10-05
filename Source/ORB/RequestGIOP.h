@@ -53,6 +53,8 @@ class NIRVANA_NOVTABLE RequestGIOP :
 	DECLARE_CORE_INTERFACE
 	friend class Internal::LifeCycleRefCnt <RequestGIOP>;
 
+	static const ULong INDIRECTION_TAG = 0xFFFFFFFF;
+
 public:
 	///@{
 	/// Marshal/unmarshal data that meet the common data representation.
@@ -358,48 +360,48 @@ public:
 			return obj->_query_interface (interface_id);
 	}
 
-	typedef Nirvana::Core::MapUnorderedUnstable <void*, size_t> TC_IndirectionMarshal;
-	void marshal_type_code (TypeCode::_ptr_type tc, TC_IndirectionMarshal& map, size_t parent_offset);
+	typedef Nirvana::Core::MapUnorderedUnstable <void*, size_t> IndirectMapMarshal;
+	void marshal_type_code (TypeCode::_ptr_type tc, IndirectMapMarshal& map, size_t parent_offset);
 
 	/// Marshal TypeCode.
 	/// 
 	/// \param tc TypeCode.
 	void marshal_type_code (TypeCode::_ptr_type tc)
 	{
-		TC_IndirectionMarshal map;
+		if (!marshal_op ())
+			return;
+
+		IndirectMapMarshal map;
 		marshal_type_code (tc, map, 0);
 	}
 
-	typedef Nirvana::Core::MapUnorderedUnstable <size_t, TypeCode::_ptr_type> TC_IndirectionUnmarshal;
-	TC_Ref unmarshal_type_code (TC_IndirectionUnmarshal& map, size_t parent_offset);
+	typedef Nirvana::Core::MapUnorderedUnstable <size_t, Interface*> IndirectMapUnmarshal;
+	TC_Ref unmarshal_type_code (IndirectMapUnmarshal& map, size_t parent_offset);
 
 	/// Unmarshal TypeCode.
 	/// 
 	/// \returns TypeCode.
 	TypeCode::_ref_type unmarshal_type_code ()
 	{
-		TC_IndirectionUnmarshal map;
+		IndirectMapUnmarshal map;
 		return unmarshal_type_code (map, 0);
 	}
+
+	typedef Nirvana::Core::MapUnorderedUnstable <RepositoryId, size_t> IndirectRepIdMarshal;
+	typedef Nirvana::Core::MapUnorderedUnstable <size_t, RepositoryId> IndirectRepIdUnmarshal;
 
 	/// Marshal value type.
 	/// 
 	/// \param val  ValueBase.
 	/// \param output Output parameter marshaling. Haven't to perform deep copy.
-	void marshal_value (Internal::Interface::_ptr_type val, bool output)
-	{
-		throw NO_IMPLEMENT ();
-	}
+	void marshal_value (Internal::Interface::_ptr_type val, bool output);
 
 	/// Unmarshal value type.
 	/// 
 	/// \param rep_id The value type repository id.
 	/// 
 	/// \returns Value type interface.
-	Internal::Interface::_ref_type unmarshal_value (const IDL::String& interface_id)
-	{
-		throw NO_IMPLEMENT ();
-	}
+	Internal::Interface::_ref_type unmarshal_value (const IDL::String& interface_id);
 
 	/// Marshal abstract interface.
 	/// 
@@ -520,6 +522,9 @@ protected:
 	/// In the ESIOP we do not use the message size to allow > 4GB data transferring.
 	void set_out_size ();
 
+private:
+	void marshal_rep_id (IDL::String&& id);
+
 protected:
 	unsigned response_flags_;
 	Nirvana::Core::CoreRef <StreamIn> stream_in_;
@@ -528,7 +533,11 @@ protected:
 private:
 	Nirvana::Core::CoreRef <CodeSetConverter> code_set_conv_;
 	Nirvana::Core::CoreRef <CodeSetConverterW> code_set_conv_w_;
-	TC_IndirectionUnmarshal top_level_indirection_;
+	IndirectMapUnmarshal top_level_tc_unmarshal_;
+	IndirectMapMarshal value_map_marshal_;
+	IndirectMapUnmarshal value_map_unmarshal_;
+	IndirectRepIdMarshal rep_id_map_marshal_;
+	IndirectRepIdUnmarshal rep_id_map_unmarshal_;
 };
 
 }

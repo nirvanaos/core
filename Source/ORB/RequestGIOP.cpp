@@ -61,9 +61,18 @@ void RequestGIOP::set_out_size ()
 	((GIOP::MessageHeader_1_3*)stream_out_->header (sizeof (GIOP::MessageHeader_1_3)))->message_size ((uint32_t)size);
 }
 
+void RequestGIOP::invoke ()
+{
+	value_map_marshal_.clear ();
+	rep_id_map_marshal_.clear ();
+}
+
 void RequestGIOP::unmarshal_end ()
 {
 	if (stream_in_) {
+		top_level_tc_unmarshal_.clear ();
+		value_map_marshal_.clear ();
+		rep_id_map_unmarshal_.clear ();
 		size_t more_data = !stream_in_->end ();
 		stream_in_ = nullptr;
 		if (more_data > 7) // 8-byte alignment is ignored
@@ -71,29 +80,24 @@ void RequestGIOP::unmarshal_end ()
 	}
 }
 
-void RequestGIOP::marshal_type_code (TypeCode::_ptr_type tc, TC_IndirectionMarshal& map, size_t parent_offset)
+void RequestGIOP::marshal_type_code (TypeCode::_ptr_type tc, IndirectMapMarshal& map, size_t parent_offset)
 {
-	if (!marshal_op ())
-		return;
-
 	if (!tc) {
-		ULong kind = 0;
-		stream_out_->write_c (alignof (ULong), sizeof (ULong), &kind);
+		stream_out_->write32 (0);
 		return;
 	}
 
 	size_t off = stream_out_->size () + parent_offset;
 	auto ins = map.emplace (&tc, off);
 	if (!ins.second) {
-		ULong indirection = 0xFFFFFFFF;
-		stream_out_->write_c (alignof (ULong), sizeof (ULong), &indirection);
+		stream_out_->write32 (INDIRECTION_TAG);
 		Long offset = (Long)(ins.first->second - (off + 4));
-		stream_out_->write_c (alignof (Long), sizeof (Long), &offset);
+		stream_out_->write32 (offset);
 		return;
 	}
 
 	ULong kind = (ULong)tc->kind ();
-	stream_out_->write_c (alignof (ULong), sizeof (ULong), &kind);
+	stream_out_->write32 (kind);
 	switch ((TCKind)kind) {
 		case TCKind::tk_objref:
 		case TCKind::tk_native:
@@ -110,7 +114,7 @@ void RequestGIOP::marshal_type_code (TypeCode::_ptr_type tc, TC_IndirectionMarsh
 			Nirvana::Core::ImplStatic <RequestEncapOut> encap (std::ref (*this));
 			encap.stream_out ()->write_id_name (tc);
 			ULong cnt = tc->member_count ();
-			encap.stream_out ()->write_c (alignof (ULong), sizeof (ULong), &cnt);
+			encap.stream_out ()->write32 (cnt);
 			for (ULong i = 0; i < cnt; ++i) {
 				IDL::String name = tc->member_name (i);
 				encap.stream_out ()->write_string (name, true);
@@ -128,7 +132,7 @@ void RequestGIOP::marshal_type_code (TypeCode::_ptr_type tc, TC_IndirectionMarsh
 			Long default_index = tc->default_index ();
 			encap.stream_out ()->write_c (alignof (long), sizeof (long), &default_index);
 			ULong cnt = tc->member_count ();
-			encap.stream_out ()->write_c (alignof (ULong), sizeof (ULong), &cnt);
+			encap.stream_out ()->write32 (cnt);
 			for (ULong i = 0; i < cnt; ++i) {
 				if (i != default_index) {
 					Any label = tc->member_label (i);
@@ -152,7 +156,7 @@ void RequestGIOP::marshal_type_code (TypeCode::_ptr_type tc, TC_IndirectionMarsh
 			Nirvana::Core::ImplStatic <StreamOutEncap> encap;
 			encap.write_id_name (tc);
 			ULong cnt = tc->member_count ();
-			encap.write_c (alignof (ULong), sizeof (ULong), &cnt);
+			encap.write32 (cnt);
 			for (ULong i = 0; i < cnt; ++i) {
 				IDL::String name = tc->member_name (i);
 				encap.write_string (name, true);
@@ -161,17 +165,15 @@ void RequestGIOP::marshal_type_code (TypeCode::_ptr_type tc, TC_IndirectionMarsh
 		} break;
 
 		case TCKind::tk_string:
-		case TCKind::tk_wstring: {
-			ULong len = tc->length ();
-			stream_out_->write_c (alignof (ULong), sizeof (ULong), &len);
-		} break;
+		case TCKind::tk_wstring:
+			stream_out_->write32 (tc->length ());
+			break;
 
 		case TCKind::tk_sequence:
 		case TCKind::tk_array: {
 			Nirvana::Core::ImplStatic <RequestEncapOut> encap (std::ref (*this));
 			encap.marshal_type_code (tc->content_type (), map, parent_offset + stream_out_->size () + 4);
-			ULong len = tc->length ();
-			encap.stream_out ()->write_c (alignof (ULong), sizeof (ULong), &len);
+			encap.stream_out ()->write32 (tc->length ());
 			stream_out_->write_seq (encap.data (), true);
 		} break;
 
@@ -199,7 +201,7 @@ void RequestGIOP::marshal_type_code (TypeCode::_ptr_type tc, TC_IndirectionMarsh
 			encap.stream_out ()->write_c (alignof (ValueModifier), sizeof (ValueModifier), &mod);
 			encap.marshal_type_code (tc->concrete_base_type (), map, off);
 			ULong cnt = tc->member_count ();
-			encap.stream_out ()->write_c (alignof (ULong), sizeof (ULong), &cnt);
+			encap.stream_out ()->write32 (cnt);
 			for (ULong i = 0; i < cnt; ++i) {
 				IDL::String name = tc->member_name (i);
 				encap.stream_out ()->write_string (name, true);
@@ -217,27 +219,24 @@ void RequestGIOP::marshal_type_code (TypeCode::_ptr_type tc, TC_IndirectionMarsh
 			stream_out_->write_seq (encap.data (), true);
 		} break;
 
-		{
-
-		} break;
+		default:
+			throw BAD_TYPECODE ();
 	}
 }
 
-TC_Ref RequestGIOP::unmarshal_type_code (TC_IndirectionUnmarshal& map, size_t parent_offset)
+TC_Ref RequestGIOP::unmarshal_type_code (IndirectMapUnmarshal& map, size_t parent_offset)
 {
-	ULong kind;
 	size_t start_pos = stream_in_->position () + parent_offset;
-	stream_in_->read (alignof (ULong), sizeof (ULong), &kind);
+	ULong kind = stream_in_->read32 ();
 
-	if (0xFFFFFFFF == kind) {
-		Long off;
-		stream_in_->read (alignof (Long), sizeof (Long), &off);
+	if (INDIRECTION_TAG == kind) {
+		Long off = stream_in_->read32 ();
 		size_t pos = start_pos + 4 + off;
-		TC_IndirectionUnmarshal* pmap = parent_offset ? &map : &top_level_indirection_;
-		TC_IndirectionUnmarshal::iterator it = pmap->find (pos);
+		IndirectMapUnmarshal* pmap = parent_offset ? &map : &top_level_tc_unmarshal_;
+		IndirectMapUnmarshal::iterator it = pmap->find (pos);
 		if (it == pmap->end ())
 			throw BAD_TYPECODE ();
-		return TC_Ref (it->second, !parent_offset);
+		return TC_Ref (static_cast <TypeCode*> (it->second), !parent_offset);
 	}
 
 	// Parent offset of the encapsulated data:
@@ -326,8 +325,7 @@ TC_Ref RequestGIOP::unmarshal_type_code (TC_IndirectionUnmarshal& map, size_t pa
 			TC_Base::String id, name;
 			rq.stream_in ()->read_string (id);
 			rq.stream_in ()->read_string (name);
-			ULong cnt;
-			rq.stream_in ()->read (alignof (ULong), sizeof (ULong), &cnt);
+			ULong cnt = rq.stream_in ()->read32 ();
 			if (TCKind::tk_struct == (TCKind)kind && !cnt)
 				throw BAD_TYPECODE (MAKE_OMG_MINOR (1));
 			TC_Struct::Members members;
@@ -353,10 +351,8 @@ TC_Ref RequestGIOP::unmarshal_type_code (TC_IndirectionUnmarshal& map, size_t pa
 			rq.stream_in ()->read_string (id);
 			rq.stream_in ()->read_string (name);
 			TC_Ref discriminator_type = rq.unmarshal_type_code (map, encap_pos);
-			Long default_index;
-			rq.stream_in ()->read (alignof (Long), sizeof (Long), &default_index);
-			ULong cnt;
-			rq.stream_in ()->read (alignof (ULong), sizeof (ULong), &cnt);
+			Long default_index = rq.stream_in ()->read32 ();
+			ULong cnt = rq.stream_in ()->read32 ();
 			if (!cnt)
 				throw BAD_TYPECODE (MAKE_OMG_MINOR (1));
 			TC_Union::Members members;
@@ -389,8 +385,7 @@ TC_Ref RequestGIOP::unmarshal_type_code (TC_IndirectionUnmarshal& map, size_t pa
 			TC_Base::String id, name;
 			stm.read_string (id);
 			stm.read_string (name);
-			ULong cnt;
-			stm.read (alignof (ULong), sizeof (ULong), &cnt);
+			ULong cnt = stm.read32 ();
 			if (!cnt)
 				throw BAD_TYPECODE (MAKE_OMG_MINOR (1));
 			TC_Enum::Members members;
@@ -406,8 +401,7 @@ TC_Ref RequestGIOP::unmarshal_type_code (TC_IndirectionUnmarshal& map, size_t pa
 		} break;
 
 		case TCKind::tk_string: {
-			ULong bound;
-			stream_in_->read (alignof (ULong), sizeof (ULong), &bound);
+			ULong bound = stream_in_->read32 ();
 			if (0 == bound)
 				ret = _tc_string;
 			else
@@ -415,8 +409,7 @@ TC_Ref RequestGIOP::unmarshal_type_code (TC_IndirectionUnmarshal& map, size_t pa
 		} break;
 
 		case TCKind::tk_wstring: {
-			ULong bound;
-			stream_in_->read (alignof (ULong), sizeof (ULong), &bound);
+			ULong bound = stream_in_->read32 ();
 			if (0 == bound)
 				ret = _tc_wstring;
 			else
@@ -428,8 +421,7 @@ TC_Ref RequestGIOP::unmarshal_type_code (TC_IndirectionUnmarshal& map, size_t pa
 			stream_in_->read_seq (encap);
 			Nirvana::Core::ImplStatic <RequestEncapIn> rq (std::ref (*this), std::ref (encap));
 			TC_Ref content_type = rq.unmarshal_type_code (map, encap_pos);
-			ULong bound;
-			rq.stream_in ()->read (alignof (ULong), sizeof (ULong), &bound);
+			ULong bound = rq.stream_in ()->read32 ();
 			if (rq.stream_in ()->end () != 0)
 				throw CORBA::MARSHAL (StreamIn::MARSHAL_MINOR_MORE);
 			ret = make_pseudo <TC_Sequence> (std::move (content_type), bound);
@@ -440,8 +432,7 @@ TC_Ref RequestGIOP::unmarshal_type_code (TC_IndirectionUnmarshal& map, size_t pa
 			stream_in_->read_seq (encap);
 			Nirvana::Core::ImplStatic <RequestEncapIn> rq (std::ref (*this), std::ref (encap));
 			TC_Ref content_type = rq.unmarshal_type_code (map, encap_pos);
-			ULong bound;
-			rq.stream_in ()->read (alignof (ULong), sizeof (ULong), &bound);
+			ULong bound = rq.stream_in ()->read32 ();
 			if (rq.stream_in ()->end () != 0)
 				throw CORBA::MARSHAL (StreamIn::MARSHAL_MINOR_MORE);
 			ret = make_pseudo <TC_Array> (std::move (content_type), bound);
@@ -481,6 +472,10 @@ TC_Ref RequestGIOP::unmarshal_type_code (TC_IndirectionUnmarshal& map, size_t pa
 			stream_in_->read (alignof (UShort), sizeof (UShort), &digits);
 			Short scale;
 			stream_in_->read (alignof (Short), sizeof (Short), &scale);
+			if (stream_in_->other_endian ()) {
+				byteswap (digits);
+				byteswap (scale);
+			}
 			ret = make_pseudo <TC_Fixed> (digits, scale);
 		} break;
 
@@ -493,9 +488,10 @@ TC_Ref RequestGIOP::unmarshal_type_code (TC_IndirectionUnmarshal& map, size_t pa
 			rq.stream_in ()->read_string (name);
 			ValueModifier modifier;
 			rq.stream_in ()->read (alignof (ValueModifier), sizeof (ValueModifier), &modifier);
+			if (rq.stream_in ()->other_endian ())
+				byteswap (modifier);
 			TC_Ref concrete_base = rq.unmarshal_type_code (map, encap_pos);
-			ULong cnt;
-			rq.stream_in ()->read (alignof (ULong), sizeof (ULong), &cnt);
+			ULong cnt = rq.stream_in ()->read32 ();
 			TC_Value::Members members;
 			if (cnt) {
 				members.construct (cnt);
@@ -530,11 +526,125 @@ TC_Ref RequestGIOP::unmarshal_type_code (TC_IndirectionUnmarshal& map, size_t pa
 			throw BAD_TYPECODE ();
 	}
 
-	map.emplace (start_pos, ret);
+	map.emplace (start_pos, &ret);
 	if (!parent_offset)
-		top_level_indirection_.emplace (start_pos, ret);
+		top_level_tc_unmarshal_.emplace (start_pos, &ret);
 
 	return ret;
+}
+
+void RequestGIOP::marshal_value (Interface::_ptr_type val, bool output)
+{
+	if (!marshal_op ())
+		return;
+
+	if (!val) {
+		stream_out_->write32 (0);
+		return;
+	}
+
+	ValueBase::_ptr_type base = value_type2base (val);
+	size_t pos = stream_out_->size ();
+	auto ins = value_map_marshal_.emplace (&base, pos);
+	if (!ins.second) {
+		stream_out_->write32 (INDIRECTION_TAG);
+		Long off = ins.first->second - (pos + 4);
+		stream_out_->write32 (off);
+		return;
+	}
+	Internal::Interface::_ptr_type primary = base->_query_valuetype (nullptr);
+	Long tag = 0x7FFFFF00;
+	if (&primary != &val) {
+		// Parameter type corresponds to the primary type - we need to provide type information.
+		TypeCode::_ref_type truncatable_base = base->_truncatable_base ();
+		if (truncatable_base) {
+			// Truncatable - provide a list of repository IDs
+			tag |= 6 | 8; // List of IDs and chunking
+			std::vector <IDL::String> list;
+			list.reserve (4); // More than enough
+			list.emplace_back (primary->_epv ().interface_id);
+			for (;;) {
+				list.emplace_back (truncatable_base->id ());
+				truncatable_base = truncatable_base->concrete_base_type ();
+				if (!truncatable_base || truncatable_base->type_modifier () != VM_TRUNCATABLE)
+					break;
+			}
+			stream_out_->write32 (tag);
+			stream_out_->write_size (list.size ());
+			for (IDL::String& id : list) {
+				marshal_rep_id (std::move (id));
+			}
+		} else {
+			// Single ID
+			tag |= 2; // Single ID, no chunking
+			marshal_rep_id (primary->_epv ().interface_id);
+		}
+	}
+}
+
+void RequestGIOP::marshal_rep_id (IDL::String&& id)
+{
+	size_t pos = stream_out_->size ();
+	auto ins = rep_id_map_marshal_.emplace (std::move (id), pos);
+	if (!ins.second) {
+		stream_out_->write32 (INDIRECTION_TAG);
+		Long off = (Long)(ins.first->second - (pos + 4));
+		stream_out_->write32 (off);
+	} else {
+		stream_out_->write_string_c (ins.first->first);
+	}
+}
+
+Interface::_ref_type RequestGIOP::unmarshal_value (const IDL::String& interface_id)
+{
+	Long value_tag = stream_in_->read32 ();
+	if (0 == value_tag)
+		return nullptr;
+
+	if (INDIRECTION_TAG == value_tag) {
+		size_t pos = stream_in_->position ();
+		Long off = stream_in_->read32 ();
+		pos += off;
+		auto it = value_map_unmarshal_.find (pos);
+		if (it == value_map_unmarshal_.end ())
+			throw MARSHAL ();
+		Interface::_ptr_type itf = static_cast <ValueBase*> (it->second)->_query_valuetype (interface_id);
+		if (!itf)
+			throw MARSHAL (); // Unexpected
+		return itf;
+	}
+
+	// Skip codebase_URL, if any
+	if (value_tag & 1) {
+		ULong string_len = stream_in_->read32 ();
+		if (INDIRECTION_TAG == string_len)
+			stream_in_->read (alignof (Long), sizeof (Long), nullptr);
+		else
+			stream_in_->read (alignof (Char), string_len, nullptr);
+	}
+
+	// Read type information
+	std::vector <IDL::String> type_info;
+	switch (value_tag & 0x00000006) {
+		case 0: // No type information
+			break;
+		case 2: // Single repository id
+			type_info.emplace_back ();
+			stream_in_->read_string (type_info.front ());
+			break;
+		case 6: { // Sequence of the repository IDs
+			ULong count = stream_in_->read32 ();
+			type_info.resize (count);
+			for (IDL::String& s : type_info) {
+				stream_in_->read_string (s);
+			}
+		} break;
+
+		default: // 4 is illegal value
+			throw MARSHAL ();
+	}
+
+	return nullptr;
 }
 
 }

@@ -139,6 +139,11 @@ public:
 	}
 
 	void write_id_name (TypeCode::_ptr_type tc);
+
+	void write32 (ULong val)
+	{
+		write_c (alignof (ULong), sizeof (ULong), &val);
+	}
 };
 
 template <typename C>
@@ -155,7 +160,7 @@ void StreamOut::write_string (Internal::StringT <C>& s, bool move)
 		size = (uint32_t)abi.small_size ();
 		ptr = abi.small_pointer ();
 	}
-	write_size (size);
+	write_size (size + 1); // String length includes the terminating zero.
 	if (move && size <= ABI::SMALL_CAPACITY)
 		move = false;
 	size_t allocated = move ? abi.allocated () : 0;
