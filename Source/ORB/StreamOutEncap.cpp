@@ -51,6 +51,7 @@ void* StreamOutEncap::header (size_t hdr_size)
 void StreamOutEncap::rewind (size_t hdr_size)
 {
 	buffer_.resize (hdr_size);
+	chunk_begin_ = 0;
 }
 
 void StreamOutEncap::chunk_begin ()

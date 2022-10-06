@@ -195,7 +195,10 @@ size_t StreamOutSM::size () const
 
 size_t StreamOutSM::stream_hdr_size () const NIRVANA_NOEXCEPT
 {
-	return round_up (sizes_.sizeof_pointer + sizes_.sizeof_size, sizes_.sizeof_pointer) + sizes_.sizeof_pointer;
+	return round_up (
+		sizes_.sizeof_pointer // BlockHdr* next;
+		+ sizes_.sizeof_size, // size_t size;
+		sizes_.sizeof_pointer) + sizes_.sizeof_pointer; // Segment* segments;
 }
 
 void* StreamOutSM::header (size_t hdr_size)
@@ -208,8 +211,10 @@ void* StreamOutSM::header (size_t hdr_size)
 
 void StreamOutSM::rewind (size_t hdr_size)
 {
-	clear (true);
+	clear (1);
 	cur_ptr_ = (uint8_t*)blocks_.front ().ptr + stream_hdr_size () + hdr_size;
+	segments_tail_ = cur_ptr_ - sizes_.sizeof_pointer;
+	chunk_ = nullptr;
 }
 
 void StreamOutSM::chunk_begin ()
