@@ -55,6 +55,9 @@ class NIRVANA_NOVTABLE RequestGIOP :
 
 	static const ULong INDIRECTION_TAG = 0xFFFFFFFF;
 
+	static const size_t CHUNK_SIZE_LIMIT = 0x10000;
+
+protected:
 public:
 	///@{
 	/// Marshal/unmarshal data that meet the common data representation.
@@ -67,7 +70,7 @@ public:
 	void marshal (size_t align, size_t size, const void* data)
 	{
 		check_align (align);
-		if (marshal_op ())
+		if (marshal_chunk ())
 			stream_out_->write_c (align, size, data);
 	}
 
@@ -96,7 +99,7 @@ public:
 		size_t& allocated_size)
 	{
 		check_align (align);
-		if (!marshal_op ())
+		if (!marshal_chunk ())
 			return;
 
 		stream_out_->write_seq (align, element_size, element_count, data, allocated_size);
@@ -129,7 +132,7 @@ public:
 	/// \param element_count The sequence size.
 	bool marshal_seq_begin (size_t element_count)
 	{
-		if (!marshal_op ())
+		if (!marshal_chunk ())
 			return false;
 		stream_out_->write_size (element_count);
 		return true;
@@ -150,7 +153,7 @@ public:
 
 	void marshal_char (size_t count, const Char* data)
 	{
-		if (marshal_op ())
+		if (marshal_chunk ())
 			stream_out_->write_c (alignof (Char), count * sizeof (Char), data);
 	}
 
@@ -161,7 +164,7 @@ public:
 
 	void marshal_string (IDL::String& s, bool move)
 	{
-		if (marshal_op ())
+		if (marshal_chunk ())
 			code_set_conv_->marshal_string (s, move, *stream_out_);
 	}
 
@@ -173,7 +176,7 @@ public:
 	template <typename C>
 	void marshal_char_seq (IDL::Sequence <C>& s, bool move)
 	{
-		if (marshal_op ())
+		if (marshal_chunk ())
 			stream_out_->write_seq (s, move);
 	}
 
@@ -223,7 +226,7 @@ public:
 	/// \param itf The interface derived from Object.
 	void marshal_interface (Internal::Interface::_ptr_type itf)
 	{
-		if (marshal_op ())
+		if (marshal_chunk ())
 			ProxyManager::cast (interface2object (itf))->get_reference ()->marshal (*stream_out_);
 	}
 
@@ -368,7 +371,7 @@ public:
 	/// \param tc TypeCode.
 	void marshal_type_code (TypeCode::_ptr_type tc)
 	{
-		if (!marshal_op ())
+		if (!marshal_chunk ())
 			return;
 
 		IndirectMapMarshal map;
@@ -509,11 +512,7 @@ public:
 
 protected:
 	RequestGIOP (unsigned GIOP_minor, bool client_side);
-
-	RequestGIOP (const RequestGIOP& src) :
-		code_set_conv_ (src.code_set_conv_),
-		code_set_conv_w_ (src.code_set_conv_w_)
-	{}
+	RequestGIOP (const RequestGIOP& src);
 
 	virtual bool marshal_op () = 0;
 
@@ -524,6 +523,8 @@ protected:
 
 private:
 	void marshal_rep_id (IDL::String&& id);
+	const IDL::String& unmarshal_rep_id ();
+	bool marshal_chunk ();
 
 protected:
 	unsigned response_flags_;
@@ -538,6 +539,7 @@ private:
 	IndirectMapUnmarshal value_map_unmarshal_;
 	IndirectRepIdMarshal rep_id_map_marshal_;
 	IndirectRepIdUnmarshal rep_id_map_unmarshal_;
+	Long chunk_level_;
 };
 
 }

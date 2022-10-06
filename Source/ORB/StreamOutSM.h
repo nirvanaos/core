@@ -46,6 +46,9 @@ public:
 	virtual size_t size () const override;
 	virtual void* header (size_t hdr_size) override;
 	virtual void rewind (size_t hdr_size) override;
+	virtual void chunk_begin () override;
+	virtual bool chunk_end () override;
+	virtual CORBA::Long chunk_size () const override;
 
 	SharedMemPtr get_shared () NIRVANA_NOEXCEPT
 	{
@@ -139,6 +142,8 @@ private:
 	uint8_t* cur_ptr_;
 	void* segments_tail_;
 	size_t size_;
+	size_t chunk_begin_;
+	int32_t* chunk_;
 };
 
 }

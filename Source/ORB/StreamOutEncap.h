@@ -38,10 +38,17 @@ class NIRVANA_NOVTABLE StreamOutEncap
 	: public StreamOut
 {
 public:
+	StreamOutEncap () :
+		chunk_begin_ (0)
+	{}
+
 	virtual void write (size_t align, size_t size, void* data, size_t& allocated_size) override;
 	virtual size_t size () const override;
 	virtual void* header (size_t hdr_size) override;
 	virtual void rewind (size_t hdr_size) override;
+	virtual void chunk_begin () override;
+	virtual bool chunk_end () override;
+	virtual Long chunk_size () const override;
 
 	OctetSeq& data () NIRVANA_NOEXCEPT
 	{
@@ -50,6 +57,7 @@ public:
 
 private:
 	OctetSeq buffer_;
+	size_t chunk_begin_;
 };
 
 }

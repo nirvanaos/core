@@ -50,7 +50,14 @@ namespace Core {
 
 RequestGIOP::RequestGIOP (unsigned GIOP_minor, bool client_side) :
 	code_set_conv_ (CodeSetConverter::get_default ()),
-	code_set_conv_w_ (CodeSetConverterW::get_default (GIOP_minor, client_side))
+	code_set_conv_w_ (CodeSetConverterW::get_default (GIOP_minor, client_side)),
+	chunk_level_ (0)
+{}
+
+RequestGIOP::RequestGIOP (const RequestGIOP& src) :
+	code_set_conv_ (src.code_set_conv_),
+	code_set_conv_w_ (src.code_set_conv_w_),
+	chunk_level_ (0)
 {}
 
 void RequestGIOP::set_out_size ()
@@ -78,6 +85,18 @@ void RequestGIOP::unmarshal_end ()
 		if (more_data > 7) // 8-byte alignment is ignored
 			throw MARSHAL (StreamIn::MARSHAL_MINOR_MORE);
 	}
+}
+
+bool RequestGIOP::marshal_chunk ()
+{
+	if (!marshal_op ())
+		return false;
+	if (chunk_level_) {
+		if (stream_out_->chunk_size () >= CHUNK_SIZE_LIMIT)
+			stream_out_->chunk_end ();
+		stream_out_->chunk_begin ();
+	}
+	return true;
 }
 
 void RequestGIOP::marshal_type_code (TypeCode::_ptr_type tc, IndirectMapMarshal& map, size_t parent_offset)
@@ -538,6 +557,9 @@ void RequestGIOP::marshal_value (Interface::_ptr_type val, bool output)
 	if (!marshal_op ())
 		return;
 
+	if (chunk_level_)
+		stream_out_->chunk_end ();
+
 	if (!val) {
 		stream_out_->write32 (0);
 		return;
@@ -560,6 +582,7 @@ void RequestGIOP::marshal_value (Interface::_ptr_type val, bool output)
 		if (truncatable_base) {
 			// Truncatable - provide a list of repository IDs
 			tag |= 6 | 8; // List of IDs and chunking
+			--chunk_level_;
 			std::vector <IDL::String> list;
 			list.reserve (4); // More than enough
 			list.emplace_back (primary->_epv ().interface_id);
@@ -576,9 +599,26 @@ void RequestGIOP::marshal_value (Interface::_ptr_type val, bool output)
 			}
 		} else {
 			// Single ID
-			tag |= 2; // Single ID, no chunking
+			tag |= 2; // Single ID
+			if (chunk_level_) {
+				--chunk_level_;
+				tag |= 8;
+			}
+			stream_out_->write32 (tag);
 			marshal_rep_id (primary->_epv ().interface_id);
 		}
+	} else {
+		if (chunk_level_) {
+			--chunk_level_;
+			tag |= 8;
+		}
+		stream_out_->write32 (tag);
+	}
+	base->_marshal (_get_ptr ());
+	if (chunk_level_) {
+		stream_out_->chunk_end ();
+		stream_out_->write32 (chunk_level_);
+		++chunk_level_;
 	}
 }
 
@@ -597,12 +637,12 @@ void RequestGIOP::marshal_rep_id (IDL::String&& id)
 
 Interface::_ref_type RequestGIOP::unmarshal_value (const IDL::String& interface_id)
 {
+	size_t pos = stream_in_->position ();
 	Long value_tag = stream_in_->read32 ();
 	if (0 == value_tag)
 		return nullptr;
 
 	if (INDIRECTION_TAG == value_tag) {
-		size_t pos = stream_in_->position ();
 		Long off = stream_in_->read32 ();
 		pos += off;
 		auto it = value_map_unmarshal_.find (pos);
@@ -614,13 +654,16 @@ Interface::_ref_type RequestGIOP::unmarshal_value (const IDL::String& interface_
 		return itf;
 	}
 
+	if (value_tag < 0x7FFFFF00)
+		throw MARSHAL (); // Unexpected
+
 	// Skip codebase_URL, if any
 	if (value_tag & 1) {
 		ULong string_len = stream_in_->read32 ();
 		if (INDIRECTION_TAG == string_len)
-			stream_in_->read (alignof (Long), sizeof (Long), nullptr);
+			stream_in_->read (alignof (Long), sizeof (Long), nullptr); // Skip offset
 		else
-			stream_in_->read (alignof (Char), string_len, nullptr);
+			stream_in_->read (alignof (Char), string_len, nullptr); // Skip string
 	}
 
 	// Read type information
@@ -645,6 +688,27 @@ Interface::_ref_type RequestGIOP::unmarshal_value (const IDL::String& interface_
 	}
 
 	return nullptr;
+}
+
+const IDL::String& RequestGIOP::unmarshal_rep_id ()
+{
+	size_t pos = stream_in_->position ();
+	ULong size = stream_in_->read32 ();
+	if (INDIRECTION_TAG == size) {
+		Long off = stream_in_->read32 ();
+		pos += off + 4;
+		auto it = rep_id_map_unmarshal_.find (pos);
+		if (it == rep_id_map_unmarshal_.end ())
+			throw MARSHAL ();
+		return it->second;
+	}
+	IDL::String id;
+	id.resize (size - 1);
+	Char* buf = &*id.begin ();
+	stream_in_->read (1, size, buf);
+	if (buf [size - 1]) // Not zero-terminated
+		throw MARSHAL ();
+	return rep_id_map_unmarshal_.emplace (pos, std::move (id)).first->second;
 }
 
 }

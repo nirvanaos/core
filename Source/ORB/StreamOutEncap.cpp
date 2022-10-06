@@ -50,7 +50,39 @@ void* StreamOutEncap::header (size_t hdr_size)
 
 void StreamOutEncap::rewind (size_t hdr_size)
 {
-	buffer_.clear ();
+	buffer_.resize (hdr_size);
+}
+
+void StreamOutEncap::chunk_begin ()
+{
+	if (!chunk_begin_) {
+		size_t end = round_up (buffer_.size (), (size_t)4) + 4;
+		buffer_.resize (end);
+		chunk_begin_ = end;
+	}
+}
+
+bool StreamOutEncap::chunk_end ()
+{
+	Long cs = StreamOutEncap::chunk_size ();
+	assert (cs != 0);
+	if (cs > 0) {
+		*(Long*)(buffer_.data () + (chunk_begin_ - 4)) = cs;
+		chunk_begin_ = 0;
+		return true;
+	}
+	return false;
+}
+
+Long StreamOutEncap::chunk_size () const
+{
+	if (chunk_begin_) {
+		size_t cb = buffer_.size () - chunk_begin_;
+		if (cb >= 0x7FFFFF00)
+			throw MARSHAL ();
+		return (Long)cb;
+	} else
+		return -1;
 }
 
 }

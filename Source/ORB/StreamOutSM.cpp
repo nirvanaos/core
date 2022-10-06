@@ -33,6 +33,7 @@ namespace ESIOP {
 void StreamOutSM::initialize ()
 {
 	size_ = 0;
+	chunk_ = nullptr;
 	other_domain_->get_sizes (sizes_);
 	allocate_block (sizes_.sizeof_pointer, sizes_.sizeof_pointer);
 	stream_hdr_ = cur_block ().other_ptr;
@@ -172,10 +173,14 @@ void StreamOutSM::purge ()
 {
 	if (blocks_.size () > 2) { // Never purge the first block with stream header
 		for (auto it = blocks_.begin () + blocks_.size () - 2;;) {
-			// If prev block does not contain the segment tail, purge it
-			if (it->ptr && !(it->ptr < segments_tail_ && segments_tail_ < (uint8_t*)it->ptr + it->size)) {
-				other_domain_->copy (it->other_ptr, it->ptr, it->size, true);
-				it->ptr = nullptr;
+			// If prev block does not contain the segment tail or chunk start, purge it
+			void* ptr = it->ptr;
+			if (ptr) { // Is not purged
+				const void* end = (uint8_t*)ptr + it->size;
+				if (!(ptr < segments_tail_ && segments_tail_ < end) && !(ptr < chunk_ && chunk_ < end)) {
+					other_domain_->copy (it->other_ptr, it->ptr, it->size, true);
+					it->ptr = nullptr;
+				}
 			}
 			if (blocks_.begin () == --it)
 				break;
@@ -205,6 +210,50 @@ void StreamOutSM::rewind (size_t hdr_size)
 {
 	clear (true);
 	cur_ptr_ = (uint8_t*)blocks_.front ().ptr + stream_hdr_size () + hdr_size;
+}
+
+void StreamOutSM::chunk_begin ()
+{
+	if (!chunk_) {
+		Block block = cur_block ();
+		uint8_t* block_end = (uint8_t*)block.ptr + block.size;
+		uint8_t* p = round_up (cur_ptr_, 4);
+		if (4 > block_end - p) {
+			// We need a new block
+			allocate_block (4, 4);
+			block = cur_block ();
+			p = cur_ptr_;
+		}
+
+		chunk_ = (int32_t*)(p += 4);
+		cur_ptr_ = p;
+		size_ += 4;
+		chunk_begin_ = size_;
+	}
+}
+
+CORBA::Long StreamOutSM::chunk_size () const
+{
+	if (chunk_) {
+		size_t cb = size_ - chunk_begin_;
+		if (cb >= 0x7FFFFF00)
+			throw_MARSHAL ();
+		return (CORBA::Long)cb;
+	} else
+		return -1;
+}
+
+bool StreamOutSM::chunk_end ()
+{
+	int32_t cs = StreamOutSM::chunk_size ();
+	assert (cs != 0);
+	if (cs > 0) {
+		*chunk_ = cs;
+		chunk_ = nullptr;
+		purge ();
+		return true;
+	} else
+		return false;
 }
 
 }

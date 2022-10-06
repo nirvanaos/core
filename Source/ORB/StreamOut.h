@@ -67,6 +67,18 @@ public:
 	/// \param hdr_size Header size in bytes.
 	virtual void rewind (size_t hdr_size) = 0;
 
+	/// Start chunk.
+	/// If chunk is already started, does nothing.
+	virtual void chunk_begin () = 0;
+
+	/// Closes current chunk, started with chunk_begin ().
+	///
+	/// Returns `true` if chunk was closed. `false` if no chunk was started.
+	virtual bool chunk_end () = 0;
+
+	/// \returns Current chunk size or -1 if no chunk was started.
+	virtual Long chunk_size () const = 0;
+
 	/// Marshal data helper.
 	/// 
 	/// \param align Data alignment
