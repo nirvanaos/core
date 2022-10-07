@@ -50,7 +50,8 @@ protected:
 		cur_block_ ((StreamHdr*)mem),
 		cur_ptr_ ((const uint8_t*)((StreamHdr*)mem + 1)),
 		segments_ (((StreamHdr*)mem)->segments),
-		position_ (0)
+		position_ (0),
+		chunk_end_ (0)
 	{}
 
 	~StreamInSM ();
@@ -84,6 +85,7 @@ private:
 	const uint8_t* cur_ptr_;
 	Segment* segments_;
 	size_t position_;
+	size_t chunk_end_;
 };
 
 }

@@ -166,13 +166,24 @@ public:
 		return val;
 	}
 
+	void chunk_mode (bool on) NIRVANA_NOEXCEPT
+	{
+		chunk_mode_ = on;
+	}
+
+	bool chunk_mode () const NIRVANA_NOEXCEPT
+	{
+		return chunk_mode_;
+	}
+
 protected:
 	StreamIn () :
 		other_endian_ (false)
 	{}
 
-private:
+protected:
 	bool other_endian_;
+	bool chunk_mode_;
 };
 
 template <typename C, class A>

@@ -38,6 +38,8 @@
 #include "TC_ValueBox.h"
 #include "TC_Abstract.h"
 #include "TC_Native.h"
+#include "../Binder.h"
+#include <list>
 
 using namespace Nirvana;
 using namespace Nirvana::Core;
@@ -250,9 +252,10 @@ TC_Ref RequestGIOP::unmarshal_type_code (IndirectMapUnmarshal& map, size_t paren
 
 	if (INDIRECTION_TAG == kind) {
 		Long off = stream_in_->read32 ();
-		size_t pos = start_pos + 4 + off;
+		if (off >= -4)
+			throw MARSHAL ();
 		IndirectMapUnmarshal* pmap = parent_offset ? &map : &top_level_tc_unmarshal_;
-		IndirectMapUnmarshal::iterator it = pmap->find (pos);
+		IndirectMapUnmarshal::iterator it = pmap->find (start_pos + 4 + off);
 		if (it == pmap->end ())
 			throw BAD_TYPECODE ();
 		return TC_Ref (static_cast <TypeCode*> (it->second), !parent_offset);
@@ -583,8 +586,7 @@ void RequestGIOP::marshal_value (Interface::_ptr_type val, bool output)
 			// Truncatable - provide a list of repository IDs
 			tag |= 6 | 8; // List of IDs and chunking
 			--chunk_level_;
-			std::vector <IDL::String> list;
-			list.reserve (4); // More than enough
+			std::list <IDL::String> list;
 			list.emplace_back (primary->_epv ().interface_id);
 			for (;;) {
 				list.emplace_back (truncatable_base->id ());
@@ -637,15 +639,16 @@ void RequestGIOP::marshal_rep_id (IDL::String&& id)
 
 Interface::_ref_type RequestGIOP::unmarshal_value (const IDL::String& interface_id)
 {
-	size_t pos = stream_in_->position ();
+	size_t start_pos = stream_in_->position ();
 	Long value_tag = stream_in_->read32 ();
 	if (0 == value_tag)
 		return nullptr;
 
 	if (INDIRECTION_TAG == value_tag) {
 		Long off = stream_in_->read32 ();
-		pos += off;
-		auto it = value_map_unmarshal_.find (pos);
+		if (off >= -4)
+			throw MARSHAL ();
+		auto it = value_map_unmarshal_.find (start_pos + 4 + off);
 		if (it == value_map_unmarshal_.end ())
 			throw MARSHAL ();
 		Interface::_ptr_type itf = static_cast <ValueBase*> (it->second)->_query_valuetype (interface_id);
@@ -670,6 +673,7 @@ Interface::_ref_type RequestGIOP::unmarshal_value (const IDL::String& interface_
 	std::vector <IDL::String> type_info;
 	switch (value_tag & 0x00000006) {
 		case 0: // No type information
+			type_info.emplace_back (interface_id);
 			break;
 		case 2: // Single repository id
 			type_info.emplace_back ();
@@ -687,7 +691,34 @@ Interface::_ref_type RequestGIOP::unmarshal_value (const IDL::String& interface_
 			throw MARSHAL ();
 	}
 
-	return nullptr;
+	ValueFactoryBase::_ref_type factory;
+	bool truncate = false;
+	for (const IDL::String& id : type_info) {
+		try {
+			factory = Binder::bind_interface <ValueFactoryBase> (id);
+		} catch (...) {
+			truncate = true;
+		}
+	}
+
+	if (!factory)
+		throw MARSHAL (MAKE_OMG_MINOR (1)); // Unable to locate value factory.
+
+	ValueBase::_ref_type base (factory->create_for_unmarshal ());
+	Interface::_ref_type ret (base->_query_valuetype (interface_id));
+	if (!ret)
+		throw MARSHAL (); // Unexpected
+
+	value_map_unmarshal_.emplace (start_pos, &ValueBase::_ptr_type (base));
+
+	if (value_tag & 0x00000008) {
+		stream_in_->chunk_mode (true);
+		--chunk_level_;
+	}
+
+	base->_unmarshal (_get_ptr ());
+
+	return ret;
 }
 
 const IDL::String& RequestGIOP::unmarshal_rep_id ()
