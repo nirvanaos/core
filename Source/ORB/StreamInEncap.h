@@ -42,7 +42,7 @@ public:
 	virtual void* read (size_t align, size_t& size) override;
 	virtual void set_size (size_t size) override;
 	virtual size_t end () override;
-	virtual size_t position () override;
+	virtual size_t position () const override;
 
 protected:
 	StreamInEncap (const IDL::Sequence <Octet>& data) NIRVANA_NOEXCEPT :

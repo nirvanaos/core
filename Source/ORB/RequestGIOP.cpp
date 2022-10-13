@@ -639,6 +639,11 @@ void RequestGIOP::marshal_rep_id (IDL::String&& id)
 
 Interface::_ref_type RequestGIOP::unmarshal_value (const IDL::String& interface_id)
 {
+	if (chunk_level_) {
+		if (stream_in_->chunk_tail ())
+			throw MARSHAL (); // Unexpected
+		stream_in_->chunk_mode (false);
+	}
 	size_t start_pos = stream_in_->position ();
 	Long value_tag = stream_in_->read32 ();
 	if (0 == value_tag)
@@ -717,6 +722,22 @@ Interface::_ref_type RequestGIOP::unmarshal_value (const IDL::String& interface_
 	}
 
 	base->_unmarshal (_get_ptr ());
+
+	Long end_tag;
+	if (truncate)
+		end_tag = stream_in_->skip_chunks ();
+	else if (chunk_level_) {
+		if (stream_in_->chunk_tail ())
+			throw MARSHAL ();
+		stream_in_->chunk_mode (false);
+		end_tag = stream_in_->read32 ();
+	}
+	
+	if (chunk_level_) {
+		if (end_tag >= 0 || end_tag < chunk_level_)
+			throw MARSHAL ();
+		chunk_level_ = end_tag + 1;
+	}
 
 	return ret;
 }

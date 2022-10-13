@@ -43,7 +43,9 @@ public:
 	virtual void* read (size_t align, size_t& size) override;
 	virtual void set_size (size_t size) override;
 	virtual size_t end () override;
-	virtual size_t position () override;
+	virtual size_t position () const override;
+	virtual size_t chunk_tail () const override;
+	virtual CORBA::Long skip_chunks () override;
 
 protected:
 	StreamInSM (void* mem) NIRVANA_NOEXCEPT :
@@ -79,6 +81,7 @@ private:
 	const Segment* get_segment (size_t align, size_t size);
 	inline void physical_read (size_t& align, size_t& size, void* buf);
 	inline static void release_block (BlockHdr* block);
+	void inc_position (size_t cb);
 
 private:
 	BlockHdr* cur_block_;

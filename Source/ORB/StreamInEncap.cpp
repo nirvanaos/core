@@ -80,7 +80,7 @@ size_t StreamInEncap::end ()
 	return end_ - cur_ptr_;
 }
 
-size_t StreamInEncap::position ()
+size_t StreamInEncap::position () const
 {
 	return cur_ptr_ - begin_;
 }

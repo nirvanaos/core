@@ -75,6 +75,17 @@ void StreamInSM::next_block ()
 
 const StreamInSM::Segment* StreamInSM::get_segment (size_t align, size_t size)
 {
+	if (chunk_mode_) {
+		if (chunk_end_ <= position_) {
+			chunk_mode_ = false;
+			int32_t chunk_size = read32 ();
+			chunk_mode_ = true;
+			if (chunk_size <= 0 || chunk_size >= 0x7FFFFF00)
+				throw_MARSHAL ();
+			chunk_end_ = position_ + chunk_size;
+		}
+	}
+
 	if (!segments_)
 		return nullptr;
 
@@ -108,6 +119,13 @@ const StreamInSM::Segment* StreamInSM::get_segment (size_t align, size_t size)
 		return segment;
 	}
 	return nullptr;
+}
+
+void StreamInSM::inc_position (size_t cb)
+{
+	position_ += cb;
+	if (chunk_mode_ && position_ > chunk_end_)
+		throw_MARSHAL ();
 }
 
 inline
@@ -144,7 +162,7 @@ void StreamInSM::physical_read (size_t& align, size_t& size, void* buf)
 			dst = real_copy (src, end, dst);
 		cur_ptr_ = end;
 		size -= cb;
-		position_ += cb;
+		inc_position (cb);
 		// Adjust alignment if the remaining size less than it
 		if (align > size)
 			align = size;
@@ -168,9 +186,9 @@ void StreamInSM::read (size_t align, size_t size, void* buf)
 				Port::Memory::copy (dst, segment->pointer, cb, Memory::SRC_DECOMMIT);
 				dst += cb;
 			}
-			size -= cb;
-			position_ += cb;
 			Port::Memory::release (segment->pointer, segment->size);
+			size -= cb;
+			inc_position (cb);
 		} else {
 			physical_read (align, size, buf);
 			if (size) {
@@ -190,7 +208,7 @@ void* StreamInSM::read (size_t align, size_t& size)
 	void* ret = nullptr;
 	const Segment* segment = get_segment (align, size);
 	if (segment) {
-		position_ += size;
+		inc_position (size);
 		// Adopt segment
 		size = round_up (segment->size, Port::Memory::ALLOCATION_UNIT);
 		ret = segment->pointer;
@@ -228,9 +246,36 @@ size_t StreamInSM::end ()
 	return rem_size;
 }
 
-size_t StreamInSM::position ()
+size_t StreamInSM::position () const
 {
 	return position_;
+}
+
+size_t StreamInSM::chunk_tail () const
+{
+	assert (chunk_mode_);
+	if (chunk_end_ <= position_)
+		return 0;
+	else
+		return chunk_end_ - position_;
+}
+
+CORBA::Long StreamInSM::skip_chunks ()
+{
+	assert (chunk_mode_);
+	while (chunk_end_ > position_) {
+		read (1, chunk_end_ - position_, nullptr);
+		chunk_mode_ = false;
+		CORBA::Long l = read32 ();
+		chunk_mode_ = true;
+		if (l <= 0 || l >= 0x7FFFFF00)
+			return l;
+		chunk_end_ = position_ + l;
+	}
+	chunk_mode_ = false;
+	CORBA::Long l = read32 ();
+	chunk_mode_ = true;
+	return l;
 }
 
 }

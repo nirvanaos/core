@@ -78,5 +78,17 @@ void StreamIn::read_tagged (IOP::TaggedProfileSeq& seq)
 	}
 }
 
+size_t StreamIn::chunk_tail () const
+{
+	NIRVANA_UNREACHABLE_CODE ();
+	return 0;
+}
+
+Long StreamIn::skip_chunks ()
+{
+	NIRVANA_UNREACHABLE_CODE ();
+	throw MARSHAL ();
+}
+
 }
 }

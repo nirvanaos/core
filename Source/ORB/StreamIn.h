@@ -93,7 +93,15 @@ public:
 	virtual size_t end () = 0;
 
 	/// \returns Current position.
-	virtual size_t position () = 0;
+	virtual size_t position () const = 0;
+
+	/// \returns The current chunk remaining size.
+	virtual size_t chunk_tail () const;
+
+	/// Skip all chunks until the tag.
+	/// 
+	/// \returns Tag.
+	virtual CORBA::Long skip_chunks ();
 
 	/// Set stream endian.
 	/// 
