@@ -267,6 +267,9 @@ TC_Ref RequestGIOP::unmarshal_type_code (IndirectMapUnmarshal& map, size_t paren
 
 	TC_Ref ret;
 	switch ((TCKind)kind) {
+		case TCKind::tk_null:
+			break;
+
 		case TCKind::tk_void:
 			ret = _tc_void;
 			break;
@@ -356,7 +359,8 @@ TC_Ref RequestGIOP::unmarshal_type_code (IndirectMapUnmarshal& map, size_t paren
 				TC_Struct::Member* pm = members.begin ();
 				while (cnt--) {
 					rq.stream_in ()->read_string (pm->name);
-					pm->type = rq.unmarshal_type_code (map, encap_pos);
+					if (!(pm->type = rq.unmarshal_type_code (map, encap_pos)))
+						throw BAD_TYPECODE ();
 					++pm;
 				}
 			}
@@ -392,7 +396,8 @@ TC_Ref RequestGIOP::unmarshal_type_code (IndirectMapUnmarshal& map, size_t paren
 				else
 					pm->label <<= Any::from_octet (0);
 				rq.stream_in ()->read_string (pm->name);
-				pm->type = rq.unmarshal_type_code (map, encap_pos);
+				if (!(pm->type = rq.unmarshal_type_code (map, encap_pos)))
+					throw BAD_TYPECODE ();
 			}
 			if (rq.stream_in ()->end () != 0)
 				throw CORBA::MARSHAL (StreamIn::MARSHAL_MINOR_MORE);
@@ -468,6 +473,8 @@ TC_Ref RequestGIOP::unmarshal_type_code (IndirectMapUnmarshal& map, size_t paren
 			rq.stream_in ()->read_string (id);
 			rq.stream_in ()->read_string (name);
 			TC_Ref content_type = rq.unmarshal_type_code (map, encap_pos);
+			if (!content_type)
+				throw BAD_TYPECODE ();
 			if (rq.stream_in ()->end () != 0)
 				throw CORBA::MARSHAL (StreamIn::MARSHAL_MINOR_MORE);
 			ret = make_pseudo <TC_Alias> (std::move (id), std::move (name), std::move (content_type));
@@ -520,7 +527,8 @@ TC_Ref RequestGIOP::unmarshal_type_code (IndirectMapUnmarshal& map, size_t paren
 				TC_Value::Member* pm = members.begin ();
 				while (cnt--) {
 					rq.stream_in ()->read_string (pm->name);
-					pm->type = rq.unmarshal_type_code (map, encap_pos);
+					if (!(pm->type = rq.unmarshal_type_code (map, encap_pos)))
+						throw BAD_TYPECODE ();
 					rq.stream_in ()->read (alignof (Short), sizeof (Short), &pm->visibility);
 					++pm;
 				}
@@ -539,6 +547,8 @@ TC_Ref RequestGIOP::unmarshal_type_code (IndirectMapUnmarshal& map, size_t paren
 			rq.stream_in ()->read_string (id);
 			rq.stream_in ()->read_string (name);
 			TC_Ref content_type = rq.unmarshal_type_code (map, encap_pos);
+			if (!content_type)
+				throw BAD_TYPECODE ();
 			if (rq.stream_in ()->end () != 0)
 				throw CORBA::MARSHAL (StreamIn::MARSHAL_MINOR_MORE);
 			ret = make_pseudo <TC_ValueBox> (std::move (id), std::move (name), std::move (content_type));

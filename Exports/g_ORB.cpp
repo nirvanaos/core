@@ -129,13 +129,16 @@ public:
 	{
 		if (members.empty ())
 			throw BAD_PARAM ();
+		if (!id.empty ())
+			check_id (id);
 		return create_struct_tc (TCKind::tk_struct, id, name, members);
 	}
 
 	static TypeCode::_ref_type create_union_tc (const RepositoryId& id,
 		const Identifier& name, TypeCode::_ptr_type discriminator_type, const UnionMemberSeq& members)
 	{
-		check_id (id);
+		if (!id.empty ())
+			check_id (id);
 		check_name (name);
 		if (members.empty ())
 			throw BAD_PARAM ();
@@ -196,7 +199,8 @@ public:
 	static TypeCode::_ref_type create_enum_tc (const RepositoryId& id,
 		const Identifier& name, const EnumMemberSeq& members)
 	{
-		check_id (id);
+		if (!id.empty ())
+			check_id (id);
 		check_name (name);
 		if (members.empty ())
 			throw BAD_PARAM ();
@@ -216,7 +220,8 @@ public:
 	static TypeCode::_ref_type create_alias_tc (const RepositoryId& id,
 		const Identifier& name, TypeCode::_ptr_type original_type)
 	{
-		check_id (id);
+		if (!id.empty ())
+			check_id (id);
 		check_name (name);
 		check_type (original_type);
 
@@ -226,6 +231,7 @@ public:
 	static TypeCode::_ref_type create_exception_tc (const RepositoryId& id,
 		const Identifier& name, const StructMemberSeq& members)
 	{
+		check_id (id);
 		return create_struct_tc (TCKind::tk_except, id, name, members);
 	}
 
@@ -478,7 +484,6 @@ void ORB::check_type (TypeCode::_ptr_type tc)
 TypeCode::_ref_type ORB::create_struct_tc (TCKind kind, const RepositoryId& id,
 	const Identifier& name, const StructMemberSeq& members)
 {
-	check_id (id);
 	check_name (name);
 	NameSet names;
 	TC_Struct::Members smembers;
