@@ -29,8 +29,6 @@
 #pragma once
 
 #include <CORBA/Server.h>
-#include "../LifeCyclePseudo.h"
-#include "../SharedObject.h"
 
 namespace CORBA {
 namespace Core {
@@ -39,8 +37,7 @@ template <class S, class Base>
 class TC_Impl :
 	public Base,
 	public servant_traits <TypeCode>::Servant <S>,
-	public Nirvana::Core::LifeCyclePseudo <S>,
-	public Nirvana::Core::SharedObject
+	public Internal::LifeCycleRefCnt <S>
 {
 public:
 	typedef servant_traits <TypeCode>::Servant <S> Servant;
@@ -63,7 +60,8 @@ public:
 
 	TypeCode::_ref_type get_compact_typecode () NIRVANA_NOEXCEPT
 	{
-		// By default just return this type code.
+		// For now just return this type code.
+		// TODO: Implement.
 		return Servant::_get_ptr ();
 	}
 

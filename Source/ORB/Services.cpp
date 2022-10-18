@@ -28,6 +28,7 @@
 #include "POA_Root.h"
 #include "PortableServer_Current.h"
 #include "RemoteReferences.h"
+#include "TC_FactoryImpl.h"
 
 using namespace Nirvana::Core;
 using namespace Nirvana;
@@ -100,7 +101,8 @@ CoreRef <Service> Services::bind_internal (CoreService sidx)
 
 const Services::Factory Services::factories_ [SERVICE_COUNT] = {
 	{ "POACurrent", create_POACurrent, 1 * TimeBase::MILLISECOND },
-	{ "RootPOA", PortableServer::Core::POA_Root::create, 1 * TimeBase::MILLISECOND }
+	{ "RootPOA", PortableServer::Core::POA_Root::create, 1 * TimeBase::MILLISECOND },
+	{ "TC_Factory", create_TC_Factory, 1 * TimeBase::MILLISECOND }
 };
 
 // Service factories
@@ -108,6 +110,11 @@ const Services::Factory Services::factories_ [SERVICE_COUNT] = {
 Object::_ref_type Services::create_POACurrent ()
 {
 	return make_reference <PortableServer::Core::Current> ()->_this ();
+}
+
+Object::_ref_type Services::create_TC_Factory ()
+{
+	return make_reference <TC_FactoryImpl> ()->_this ();
 }
 
 // Core services.

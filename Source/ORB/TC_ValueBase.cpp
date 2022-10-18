@@ -28,8 +28,8 @@
 namespace CORBA {
 namespace Core {
 
-TC_ValueBase::TC_ValueBase (TCKind kind, String&& id, String&& name) NIRVANA_NOEXCEPT :
-	TC_RefBase (kind, std::move (id), std::move (name))
+TC_ValueBase::TC_ValueBase (TCKind kind, IDL::String&& id, IDL::String&& name) NIRVANA_NOEXCEPT :
+	TC_Complex <TC_RefBase> (kind, std::move (id), std::move (name))
 {}
 
 void TC_ValueBase::marshal (const void* src, size_t count, Internal::IORequest_ptr rq, bool out)

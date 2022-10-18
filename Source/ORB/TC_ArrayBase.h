@@ -34,7 +34,7 @@
 namespace CORBA {
 namespace Core {
 
-class TC_ArrayBase : public TC_Base
+class TC_ArrayBase : public TC_Complex <TC_Base>
 {
 public:
 	bool equal (TypeCode::_ptr_type other) const
@@ -59,6 +59,8 @@ public:
 
 protected:
 	TC_ArrayBase (TCKind kind, TC_Ref&& content_type, ULong bound);
+
+	virtual bool mark () NIRVANA_NOEXCEPT override;
 
 private:
 	static TCKind get_array_kind (TypeCode::_ptr_type tc);

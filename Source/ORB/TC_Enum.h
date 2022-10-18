@@ -31,6 +31,7 @@
 #include "TC_IdName.h"
 #include "TC_Impl.h"
 #include "../Array.h"
+#include "../UserAllocator.h"
 
 namespace CORBA {
 namespace Core {
@@ -46,9 +47,9 @@ public:
 	using Servant::_s_member_count;
 	using Servant::_s_member_name;
 
-	typedef Nirvana::Core::Array <String, Nirvana::Core::SharedAllocator> Members;
+	typedef Nirvana::Core::Array <IDL::String, Nirvana::Core::UserAllocator> Members;
 
-	TC_Enum (String&& id, String&& name, Members&& members) NIRVANA_NOEXCEPT;
+	TC_Enum (IDL::String&& id, IDL::String&& name, Members&& members) NIRVANA_NOEXCEPT;
 
 	bool equal (TypeCode::_ptr_type other) const
 	{

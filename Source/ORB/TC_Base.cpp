@@ -24,37 +24,38 @@
 *  popov.nirvana@gmail.com
 */
 #include "TC_Base.h"
+#include "Services.h"
+#include "ProxyLocal.h"
+
+using Nirvana::Core::SyncContext;
 
 namespace CORBA {
 namespace Core {
 
-TC_Base::String::String (const IDL::String& s) :
-	Base (s.data (), s.size ())
-{}
-
-TC_Base::String& TC_Base::String::operator = (const IDL::String& s)
-{
-	assign (s.data (), s.size ());
-	return *this;
-}
-
-bool TC_Base::String::operator == (const IDL::String& s) const NIRVANA_NOEXCEPT
-{
-	size_t cc = size ();
-	if (cc == s.size ()) {
-		const Char* p = data ();
-		return std::equal (p, p + cc, s.data ());
-	}
-	return false;
-}
-
-TC_Base::String::operator IDL::String () const
-{
-	return IDL::String (data (), size ());
-}
-
 void TC_Base::_s_n_byteswap (Internal::Bridge <TypeCode>*, void*, size_t, Internal::Interface*)
 {}
+
+void TC_Base::_add_ref () NIRVANA_NOEXCEPT
+{
+	ref_cnt_.increment ();
+}
+
+void TC_Base::_remove_ref () NIRVANA_NOEXCEPT
+{
+	if (0 == ref_cnt_.decrement ())
+		collect_garbage ();
+}
+
+void TC_Base::collect_garbage () NIRVANA_NOEXCEPT
+{
+	try {
+		SyncContext& sc = local2proxy (Services::bind (Services::TC_Factory))->sync_context ();
+		if (&SyncContext::current () == &sc)
+			delete this;
+		else
+			GarbageCollector::schedule (*this, sc);
+	} catch (...) {}
+}
 
 }
 }

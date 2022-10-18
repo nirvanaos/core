@@ -43,6 +43,7 @@ public:
 	{
 		POACurrent,
 		RootPOA,
+		TC_Factory,
 
 		SERVICE_COUNT
 	};
@@ -127,6 +128,7 @@ private:
 
 	// Service factories
 	static Object::_ref_type create_POACurrent ();
+	static Object::_ref_type create_TC_Factory ();
 
 	static Nirvana::Core::CoreRef <Nirvana::Core::Service> create_RemoteReferences ();
 

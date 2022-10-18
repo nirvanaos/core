@@ -30,7 +30,6 @@
 
 #include "TC_ValueBase.h"
 #include "TC_Impl.h"
-#include "TC_Ref.h"
 
 namespace CORBA {
 namespace Core {
@@ -49,12 +48,15 @@ public:
 	using Servant::_s_name;
 	using Servant::_s_content_type;
 
-	TC_ValueBox (String&& id, String&& name, TC_Ref&& content_type) NIRVANA_NOEXCEPT;
+	TC_ValueBox (IDL::String&& id, IDL::String&& name, TC_Ref&& content_type) NIRVANA_NOEXCEPT;
 
 	TypeCode::_ref_type content_type () const NIRVANA_NOEXCEPT
 	{
 		return content_type_;
 	}
+
+protected:
+	virtual bool mark () NIRVANA_NOEXCEPT override;
 
 private:
 	TC_Ref content_type_;

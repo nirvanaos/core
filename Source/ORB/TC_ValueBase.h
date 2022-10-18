@@ -29,11 +29,12 @@
 #pragma once
 
 #include "TC_RefBase.h"
+#include "TC_Ref.h"
 
 namespace CORBA {
 namespace Core {
 
-class TC_ValueBase : public TC_RefBase
+class TC_ValueBase : public TC_Complex <TC_RefBase>
 {
 public:
 	static void n_marshal_in (const void* src, size_t count, Internal::IORequest_ptr rq)
@@ -56,7 +57,7 @@ public:
 	}
 
 protected:
-	TC_ValueBase (TCKind kind, String&& id, String&& name) NIRVANA_NOEXCEPT;
+	TC_ValueBase (TCKind kind, IDL::String&& id, IDL::String&& name) NIRVANA_NOEXCEPT;
 
 private:
 	static void marshal (const void* src, size_t count, Internal::IORequest_ptr rq, bool out);

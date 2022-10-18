@@ -35,9 +35,9 @@
 namespace CORBA {
 namespace Core {
 
-class TC_Alias : public TC_Impl <TC_Alias, TC_IdName>
+class TC_Alias : public TC_Impl <TC_Alias, TC_Complex <TC_IdName> >
 {
-	typedef TC_Impl <TC_Alias, TC_IdName> Impl;
+	typedef TC_Impl <TC_Alias, TC_Complex <TC_IdName> > Impl;
 
 public:
 	using Servant::_s_id;
@@ -46,7 +46,7 @@ public:
 	using Servant::_s_n_size;
 	using Servant::_s_n_byteswap;
 
-	TC_Alias (String&& id, String&& name, TC_Ref&& content_type) NIRVANA_NOEXCEPT;
+	TC_Alias (IDL::String&& id, IDL::String&& name, TC_Ref&& content_type) NIRVANA_NOEXCEPT;
 
 	bool equal (TypeCode::_ptr_type other) const
 	{
@@ -117,6 +117,9 @@ public:
 	{
 		return content_type_->n_byteswap (p, count);
 	}
+
+protected:
+	virtual bool mark () NIRVANA_NOEXCEPT override;
 
 private:
 	TC_Ref content_type_;

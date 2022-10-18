@@ -36,7 +36,7 @@ namespace Core {
 class TC_IdName : public TC_Base
 {
 public:
-	TC_IdName (TCKind kind, String&& id, String&& name) NIRVANA_NOEXCEPT;
+	TC_IdName (TCKind kind, IDL::String&& id, IDL::String&& name) NIRVANA_NOEXCEPT;
 
 	bool equal (TypeCode::_ptr_type other) const;
 
@@ -59,8 +59,8 @@ protected:
 	bool equivalent_no_alias (TypeCode::_ptr_type other) const;
 
 protected:
-	const String id_;
-	const String name_;
+	const IDL::String id_;
+	const IDL::String name_;
 };
 
 }

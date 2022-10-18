@@ -47,7 +47,7 @@ public:
 	using Servant::_s_id;
 	using Servant::_s_name;
 
-	TC_Abstract (String&& id, String&& name) NIRVANA_NOEXCEPT;
+	TC_Abstract (IDL::String&& id, IDL::String&& name) NIRVANA_NOEXCEPT;
 
 	static void n_marshal_in (const void* src, size_t count, Internal::IORequest_ptr rq)
 	{

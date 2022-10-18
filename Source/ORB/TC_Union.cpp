@@ -28,7 +28,7 @@
 namespace CORBA {
 namespace Core {
 
-TC_Union::TC_Union (String&& id, String&& name, TC_Ref&& discriminator_type,
+TC_Union::TC_Union (IDL::String&& id, IDL::String&& name, TC_Ref&& discriminator_type,
 	Long default_index, Members&& members) :
 	Impl (TCKind::tk_union, std::move (id), std::move (name)),
 	discriminator_type_ (std::move (discriminator_type)),
@@ -50,6 +50,16 @@ TC_Union::TC_Union (String&& id, String&& name, TC_Ref&& discriminator_type,
 	}
 	size_ = size;
 	align_ = align;
+}
+
+bool TC_Union::mark () NIRVANA_NOEXCEPT
+{
+	if (!TC_ComplexBase::mark ())
+		return false;
+	for (auto& m : members_) {
+		m.type.mark ();
+	}
+	return true;
 }
 
 }

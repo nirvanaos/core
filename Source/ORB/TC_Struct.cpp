@@ -28,7 +28,7 @@
 namespace CORBA {
 namespace Core {
 
-TC_Struct::TC_Struct (TCKind kind, String&& id, String&& name, Members&& members) :
+TC_Struct::TC_Struct (TCKind kind, IDL::String&& id, IDL::String&& name, Members&& members) :
 	Impl (kind, std::move (id), std::move (name)),
 	members_ (std::move (members))
 {
@@ -67,6 +67,16 @@ void TC_Struct::byteswap (void* p, size_t count) const
 			m.type->n_byteswap (pv + m.offset, 1);
 		}
 	}
+}
+
+bool TC_Struct::mark () NIRVANA_NOEXCEPT
+{
+	if (!TC_ComplexBase::mark ())
+		return false;
+	for (auto& m : members_) {
+		m.type.mark ();
+	}
+	return true;
 }
 
 }

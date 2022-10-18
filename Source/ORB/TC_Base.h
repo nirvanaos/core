@@ -29,31 +29,19 @@
 #pragma once
 
 #include <CORBA/CORBA.h>
-#include "../SharedAllocator.h"
+#include "RefCntProxy.h"
+#include "GarbageCollector.h"
 
 namespace CORBA {
 namespace Core {
 
 class TC_Base :
-	public CORBA::Internal::TypeCodeBase
+	public CORBA::Internal::TypeCodeBase,
+	public SyncGC
 {
 public:
-	class String : public Nirvana::Core::SharedString
-	{
-		typedef Nirvana::Core::SharedString Base;
-
-	public:
-		String ()
-		{}
-
-		String (const IDL::String& s);
-
-		String& operator = (const IDL::String& s);
-
-		bool operator == (const IDL::String& s) const NIRVANA_NOEXCEPT;
-
-		operator IDL::String () const;
-	};
+	virtual void _add_ref () NIRVANA_NOEXCEPT override;
+	virtual void _remove_ref () NIRVANA_NOEXCEPT override;
 
 	TCKind kind () const NIRVANA_NOEXCEPT
 	{
@@ -64,10 +52,17 @@ public:
 
 protected:
 	TC_Base (TCKind kind) NIRVANA_NOEXCEPT :
+		ref_cnt_ (1),
 		kind_ (kind)
 	{}
 
+	virtual ~TC_Base ()
+	{}
+
+	virtual void collect_garbage () NIRVANA_NOEXCEPT;
+
 protected:
+	RefCntProxy ref_cnt_;
 	const TCKind kind_;
 };
 

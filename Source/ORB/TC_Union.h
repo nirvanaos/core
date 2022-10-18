@@ -32,14 +32,15 @@
 #include "TC_Impl.h"
 #include "TC_Ref.h"
 #include "../Array.h"
+#include "../UserAllocator.h"
 
 namespace CORBA {
 namespace Core {
 
 class TC_Union :
-	public TC_Impl <TC_Union, TC_IdName>
+	public TC_Impl <TC_Union, TC_Complex <TC_IdName> >
 {
-	typedef TC_Impl <TC_Union, TC_IdName> Impl;
+	typedef TC_Impl <TC_Union, TC_Complex <TC_IdName> > Impl;
 
 public:
 	using Servant::_s_id;
@@ -54,14 +55,14 @@ public:
 	struct Member
 	{
 		Any label;
-		String name;
+		IDL::String name;
 		TC_Ref type;
 		size_t offset;
 	};
 
-	typedef Nirvana::Core::Array <Member, Nirvana::Core::SharedAllocator> Members;
+	typedef Nirvana::Core::Array <Member, Nirvana::Core::UserAllocator> Members;
 
-	TC_Union (String&& id, String&& name, TC_Ref&& discriminator_type, Long default_index,
+	TC_Union (IDL::String&& id, IDL::String&& name, TC_Ref&& discriminator_type, Long default_index,
 		Members&& members);
 
 	bool equal (TypeCode::_ptr_type other) const
@@ -221,6 +222,9 @@ public:
 	}
 
 	using TC_Base::_s_n_byteswap;
+
+protected:
+	virtual bool mark () NIRVANA_NOEXCEPT override;
 
 private:
 	int find_index (const void* p) const

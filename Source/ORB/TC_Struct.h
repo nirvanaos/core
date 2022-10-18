@@ -32,14 +32,15 @@
 #include "TC_Impl.h"
 #include "TC_Ref.h"
 #include "../Array.h"
+#include "../UserAllocator.h"
 
 namespace CORBA {
 namespace Core {
 
 class TC_Struct :
-	public TC_Impl <TC_Struct, TC_IdName>
+	public TC_Impl <TC_Struct, TC_Complex <TC_IdName> >
 {
-	typedef TC_Impl <TC_Struct, TC_IdName> Impl;
+	typedef TC_Impl <TC_Struct, TC_Complex <TC_IdName> > Impl;
 
 public:
 	using Servant::_s_id;
@@ -50,14 +51,14 @@ public:
 
 	struct Member
 	{
-		String name;
+		IDL::String name;
 		TC_Ref type;
 		size_t offset;
 	};
 
-	typedef Nirvana::Core::Array <Member, Nirvana::Core::SharedAllocator> Members;
+	typedef Nirvana::Core::Array <Member, Nirvana::Core::UserAllocator> Members;
 
-	TC_Struct (TCKind kind, String&& id, String&& name, Members&& members);
+	TC_Struct (TCKind kind, IDL::String&& id, IDL::String&& name, Members&& members);
 
 	bool equal (TypeCode::_ptr_type other) const
 	{
@@ -204,6 +205,9 @@ public:
 			byteswap (p, count);
 		}
 	}
+
+protected:
+	virtual bool mark () NIRVANA_NOEXCEPT override;
 
 private:
 	bool equivalent_no_alias (TypeCode::_ptr_type other) const;

@@ -29,7 +29,7 @@ namespace CORBA {
 namespace Core {
 
 TC_ArrayBase::TC_ArrayBase (TCKind kind, TC_Ref&& content_type, ULong bound) :
-	TC_Base (kind),
+	TC_Complex <TC_Base> (kind),
 	content_type_ (std::move (content_type)),
 	element_size_ (content_type_->n_size ()),
 	element_align_ (content_type_->n_align ()),
@@ -59,6 +59,14 @@ TCKind TC_ArrayBase::get_array_kind (TypeCode::_ptr_type tc)
 		return get_array_kind (tc->content_type ());
 	else
 		return kind;
+}
+
+bool TC_ArrayBase::mark () NIRVANA_NOEXCEPT
+{
+	if (!TC_ComplexBase::mark ())
+		return false;
+	content_type_.mark ();
+	return true;
 }
 
 }

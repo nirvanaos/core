@@ -28,13 +28,24 @@
 namespace CORBA {
 namespace Core {
 
-TC_Value::TC_Value (String&& id, String&& name, ValueModifier modifier, TC_Ref&& concrete_base,
+TC_Value::TC_Value (IDL::String&& id, IDL::String&& name, ValueModifier modifier, TC_Ref&& concrete_base,
 	Members&& members) NIRVANA_NOEXCEPT :
 	Impl (TCKind::tk_value, std::move (id), std::move (name)),
 	modifier_ (modifier),
 	concrete_base_ (std::move (concrete_base)),
 	members_ (std::move (members))
 {}
+
+bool TC_Value::mark () NIRVANA_NOEXCEPT
+{
+	if (!TC_ValueBase::mark ())
+		return false;
+	for (auto& m : members_) {
+		m.type.mark ();
+	}
+	return true;
+}
+
 
 }
 }

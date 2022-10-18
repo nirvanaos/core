@@ -33,41 +33,131 @@
 namespace CORBA {
 namespace Core {
 
+/// Complex TypeCode uses mark-and-sweep garbage collection algorithm.
+class TC_ComplexBase
+{
+public:
+	virtual bool mark () NIRVANA_NOEXCEPT = 0
+	{
+		if (!marked_) {
+			marked_ = true;
+			return true;
+		} else
+			return false;
+	}
+
+	bool sweep () NIRVANA_NOEXCEPT
+	{
+		if (marked_) {
+			marked_ = false;
+			return false;
+		} else {
+			delete this;
+			return true;
+		}
+	}
+
+	virtual bool has_extern_ref () const NIRVANA_NOEXCEPT = 0;
+
+protected:
+	TC_ComplexBase () :
+		marked_ (false)
+	{}
+
+	virtual ~TC_ComplexBase ()
+	{}
+
+	void collect_garbage () NIRVANA_NOEXCEPT;
+
+private:
+	bool marked_;
+};
+
+template <class Base>
+class TC_Complex :
+	public Base,
+	public TC_ComplexBase
+{
+protected:
+	template <class ... Args>
+	TC_Complex (Args ... args) :
+		Base (std::forward <Args> (args)...)
+	{}
+
+	virtual void collect_garbage () NIRVANA_NOEXCEPT override
+	{
+		TC_ComplexBase::collect_garbage ();
+	}
+
+	virtual bool has_extern_ref () const NIRVANA_NOEXCEPT override
+	{
+		return Base::ref_cnt_.load () != 0;
+	}
+};
+
 class TC_Ref : public TypeCode::_ptr_type
 {
 public:
 	TC_Ref () :
-		strong_ (false)
+		complex_ (nullptr)
 	{}
 
-	TC_Ref (TypeCode::_ptr_type p, bool strong) NIRVANA_NOEXCEPT :
+	TC_Ref (TypeCode::_ptr_type p, TC_ComplexBase* complex) NIRVANA_NOEXCEPT :
 		TypeCode::_ptr_type (p),
-		strong_ (strong)
+		complex_ (complex)
 	{
-		if (strong)
-			Internal::interface_duplicate (&p);
+		if (!complex)
+			Internal::interface_duplicate (p_);
 	}
+
+	TC_Ref (TypeCode::_ptr_type p) NIRVANA_NOEXCEPT :
+	TypeCode::_ptr_type (p),
+		complex_ (nullptr)
+	{
+		Internal::interface_duplicate (p_);
+	}
+
+	TC_Ref (const TC_Ref& src) NIRVANA_NOEXCEPT :
+		TypeCode::_ptr_type (src),
+		complex_ (src.complex_)
+	{
+		if (!complex_)
+			Internal::interface_duplicate (p_);
+		}
 
 	TC_Ref (TC_Ref&& src) NIRVANA_NOEXCEPT :
 		TypeCode::_ptr_type (src),
-		strong_ (src.strong_)
+		complex_ (src.complex_)
 	{
-		src.strong_ = false;
+		src.p_ = nullptr;
+		src.complex_ = nullptr;
 	}
 
 	~TC_Ref ()
 	{
-		if (strong_)
+		if (!complex_)
 			Internal::interface_release (p_);
+	}
+
+	TC_Ref& operator = (const TC_Ref& src) NIRVANA_NOEXCEPT
+	{
+		if (!complex_)
+			Internal::interface_release (p_);
+		p_ = src.p_;
+		complex_ = src.complex_;
+		if (!complex_)
+			Internal::interface_duplicate (p_);
+		return *this;
 	}
 
 	TC_Ref& operator = (TC_Ref&& src) NIRVANA_NOEXCEPT
 	{
-		if (strong_)
+		if (!complex_)
 			Internal::interface_release (p_);
 		p_ = src.p_;
-		strong_ = src.strong_;
-		src.strong_ = false;
+		complex_ = src.complex_;
+		src.p_ = nullptr;
+		src.complex_ = nullptr;
 		return *this;
 	}
 
@@ -75,18 +165,27 @@ public:
 	{
 		TypeCode::_ptr_type::operator = (p);
 		Internal::interface_duplicate (&p);
-		strong_ = true;
+		complex_ = nullptr;
 		return *this;
 	}
 
 	TC_Ref& operator = (TypeCode::_ref_type&& src) NIRVANA_NOEXCEPT
 	{
+		if (!complex_)
+			Internal::interface_release (p_);
 		reinterpret_cast <TypeCode::_ref_type&> (*this) = std::move (src);
+		complex_ = nullptr;
 		return *this;
 	}
 
+	void mark () NIRVANA_NOEXCEPT
+	{
+		if (complex_)
+			complex_->mark ();
+	}
+
 private:
-	bool strong_;
+	TC_ComplexBase* complex_;
 };
 
 }

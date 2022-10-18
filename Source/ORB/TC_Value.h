@@ -30,8 +30,8 @@
 
 #include "TC_ValueBase.h"
 #include "TC_Impl.h"
-#include "TC_Ref.h"
 #include "../Array.h"
+#include "../UserAllocator.h"
 
 namespace CORBA {
 namespace Core {
@@ -57,14 +57,14 @@ public:
 
 	struct Member
 	{
-		String name;
+		IDL::String name;
 		TC_Ref type;
 		Short visibility;
 	};
 
-	typedef Nirvana::Core::Array <Member, Nirvana::Core::SharedAllocator> Members;
+	typedef Nirvana::Core::Array <Member, Nirvana::Core::UserAllocator> Members;
 
-	TC_Value (String&& id, String&& name, ValueModifier modifier, TC_Ref&& concrete_base,
+	TC_Value (IDL::String&& id, IDL::String&& name, ValueModifier modifier, TC_Ref&& concrete_base,
 		Members&& members) NIRVANA_NOEXCEPT;
 
 	ValueModifier type_modifier () const NIRVANA_NOEXCEPT
@@ -102,6 +102,9 @@ public:
 			throw Bounds ();
 		return members_ [i].visibility;
 	}
+
+protected:
+	virtual bool mark () NIRVANA_NOEXCEPT override;
 
 private:
 	ValueModifier modifier_;
