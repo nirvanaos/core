@@ -41,5 +41,11 @@ bool TC_ValueBox::mark () NIRVANA_NOEXCEPT
 	return true;
 }
 
+bool TC_ValueBox::set_recursive (const IDL::String& id, const TC_Ref& ref) NIRVANA_NOEXCEPT
+{
+	content_type_.replace_recursive_placeholder (id, ref);
+	return false;
+}
+
 }
 }

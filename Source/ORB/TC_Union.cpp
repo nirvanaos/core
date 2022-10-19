@@ -38,7 +38,9 @@ TC_Union::TC_Union (IDL::String&& id, IDL::String&& name, TC_Ref&& discriminator
 	discriminator_size_ = discriminator_type_->n_size ();
 	size_t align = discriminator_type_->n_align ();
 	size_t size = discriminator_size_;
+	TC_Ref self (_get_ptr (), this);
 	for (auto& m : members_) {
+		m.type.replace_recursive_placeholder (id_, self);
 		size_t a = m.type->n_align ();
 		if (align < a)
 			align = a;
@@ -60,6 +62,14 @@ bool TC_Union::mark () NIRVANA_NOEXCEPT
 		m.type.mark ();
 	}
 	return true;
+}
+
+bool TC_Union::set_recursive (const IDL::String& id, const TC_Ref& ref) NIRVANA_NOEXCEPT
+{
+	for (auto& m : members_) {
+		m.type.replace_recursive_placeholder (id, ref);
+	}
+	return false;
 }
 
 }

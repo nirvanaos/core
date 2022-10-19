@@ -208,6 +208,7 @@ public:
 
 protected:
 	virtual bool mark () NIRVANA_NOEXCEPT override;
+	virtual bool set_recursive (const IDL::String& id, const TC_Ref& ref) NIRVANA_NOEXCEPT override;
 
 private:
 	bool equivalent_no_alias (TypeCode::_ptr_type other) const;

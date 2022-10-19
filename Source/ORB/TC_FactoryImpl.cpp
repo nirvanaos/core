@@ -27,6 +27,9 @@
 #include "Services.h"
 #include "ProxyLocal.h"
 
+using namespace Nirvana;
+using namespace Nirvana::Core;
+
 namespace CORBA {
 namespace Core {
 
@@ -35,10 +38,18 @@ std::atomic_flag TC_FactoryImpl::GC_scheduled_ = ATOMIC_FLAG_INIT;
 inline void TC_FactoryImpl::schedule_GC () NIRVANA_NOEXCEPT
 {
 	if (!GC_scheduled_.test_and_set ()) {
+		auto saved = g_system->deadline_policy_oneway ();
 		try {
+			System::DeadlinePolicy dp;
+			if (PROXY_GC_DEADLINE == INFINITE_DEADLINE)
+				dp._d (System::DeadlinePolicyType::DEADLINE_INFINITE);
+			else
+				dp.timeout (PROXY_GC_DEADLINE);
+			Nirvana::g_system->deadline_policy_oneway (dp);
 			TC_Factory::_narrow (Services::bind (Services::TC_Factory))->collect_garbage ();
 		} catch (...) {
 		}
+		Nirvana::g_system->deadline_policy_oneway (saved);
 	}
 }
 

@@ -115,11 +115,12 @@ public:
 
 	void n_byteswap (void* p, size_t count) const
 	{
-		return content_type_->n_byteswap (p, count);
+		content_type_->n_byteswap (p, count);
 	}
 
 protected:
 	virtual bool mark () NIRVANA_NOEXCEPT override;
+	virtual bool set_recursive (const IDL::String& id, const TC_Ref& ref) NIRVANA_NOEXCEPT override;
 
 private:
 	TC_Ref content_type_;

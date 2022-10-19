@@ -225,6 +225,7 @@ public:
 
 protected:
 	virtual bool mark () NIRVANA_NOEXCEPT override;
+	virtual bool set_recursive (const IDL::String& id, const TC_Ref& ref) NIRVANA_NOEXCEPT override;
 
 private:
 	int find_index (const void* p) const

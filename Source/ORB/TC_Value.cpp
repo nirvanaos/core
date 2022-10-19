@@ -34,7 +34,12 @@ TC_Value::TC_Value (IDL::String&& id, IDL::String&& name, ValueModifier modifier
 	modifier_ (modifier),
 	concrete_base_ (std::move (concrete_base)),
 	members_ (std::move (members))
-{}
+{
+	TC_Ref self (_get_ptr (), this);
+	for (auto& m : members_) {
+		m.type.replace_recursive_placeholder (id_, self);
+	}
+}
 
 bool TC_Value::mark () NIRVANA_NOEXCEPT
 {
@@ -46,6 +51,13 @@ bool TC_Value::mark () NIRVANA_NOEXCEPT
 	return true;
 }
 
+bool TC_Value::set_recursive (const IDL::String& id, const TC_Ref& ref) NIRVANA_NOEXCEPT
+{
+	for (auto& m : members_) {
+		m.type.replace_recursive_placeholder (id, ref);
+	}
+	return false;
+}
 
 }
 }

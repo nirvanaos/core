@@ -61,6 +61,7 @@ protected:
 	TC_ArrayBase (TCKind kind, TC_Ref&& content_type, ULong bound);
 
 	virtual bool mark () NIRVANA_NOEXCEPT override;
+	virtual bool set_recursive (const IDL::String& id, const TC_Ref& ref) NIRVANA_NOEXCEPT override;
 
 private:
 	static TCKind get_array_kind (TypeCode::_ptr_type tc);

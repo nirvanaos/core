@@ -43,10 +43,13 @@
 #include <ORB/TC_ValueBox.h>
 #include <ORB/TC_Abstract.h>
 #include <ORB/TC_Native.h>
+#include <ORB/TC_Recursive.h>
 #include "../MapUnorderedUnstable.h"
 
 namespace CORBA {
 namespace Core {
+
+class StreamIn;
 
 class TC_FactoryImpl : public servant_traits <TC_Factory>::Servant <TC_FactoryImpl>
 {
@@ -266,9 +269,14 @@ public:
 		return make_pseudo <TC_Native> (std::move (id), std::move (name));
 	}
 
-	TypeCode::_ref_type create_recursive_tc (const RepositoryId& id)
+	TypeCode::_ref_type create_recursive_tc (RepositoryId& id)
 	{
-		throw NO_IMPLEMENT ();
+		if (!id.empty ())
+			check_id (id);
+		servant_reference <TC_Recursive> ref = make_reference <TC_Recursive> (std::move (id));
+		TypeCode::_ptr_type tc = ref->_get_ptr ();
+		complex_objects_.emplace (&tc, ref);
+		return tc;
 	}
 
 	static TypeCode::_ref_type create_abstract_interface_tc (RepositoryId& id, Identifier& name)
@@ -320,6 +328,8 @@ public:
 
 	static void schedule_GC () NIRVANA_NOEXCEPT;
 
+	static TypeCode::_ref_type unmarshal_type_code (StreamIn& stream);
+
 private:
 	static void check_name (const IDL::String& name, ULong minor);
 
@@ -348,7 +358,8 @@ private:
 
 private:
 	Nirvana::Core::MapUnorderedUnstable <void*, TC_ComplexBase*,
-	std::hash <void*>, std::equal_to <void*>, Nirvana::Core::UserAllocator <std::pair <void*, TC_ComplexBase*> > > complex_objects_;
+		std::hash <void*>, std::equal_to <void*>,
+		Nirvana::Core::UserAllocator <std::pair <void*, TC_ComplexBase*> > > complex_objects_;
 
 	static std::atomic_flag GC_scheduled_;
 };
