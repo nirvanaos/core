@@ -59,7 +59,7 @@ public:
 
 	void set_content_type (TC_Ref&& content_type) NIRVANA_NOEXCEPT
 	{
-		content_type_ = std::move (content_type_);
+		content_type_ = std::move (content_type);
 	}
 
 	TypeCode::_ref_type content_type () const NIRVANA_NOEXCEPT

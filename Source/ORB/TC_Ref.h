@@ -39,7 +39,7 @@ class TC_Ref;
 class TC_ComplexBase
 {
 public:
-	virtual bool mark () NIRVANA_NOEXCEPT = 0
+	virtual bool mark () NIRVANA_NOEXCEPT
 	{
 		if (!marked_) {
 			marked_ = true;

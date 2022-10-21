@@ -46,7 +46,7 @@ public:
 		ref_cnt_ (1)
 	{}
 
-	virtual bool set_recursive (const IDL::String& id, const TC_Ref& ref) NIRVANA_NOEXCEPT
+	virtual bool set_recursive (const IDL::String& id, const TC_Ref& ref) NIRVANA_NOEXCEPT override
 	{
 		if (id_ == id) {
 			content_ = ref;

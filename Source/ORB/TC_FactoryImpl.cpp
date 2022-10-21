@@ -455,7 +455,6 @@ TypeCode::_ref_type TC_FactoryImpl::unmarshal_type_code (ULong kind, StreamIn& s
 				TC_Ref content_type = unmarshal_type_code (stm, indirect_map, encap_pos);
 				if (!content_type)
 					throw BAD_TYPECODE ();
-				ULong bound = stm.read32 ();
 				if (stm.end () != 0)
 					throw CORBA::MARSHAL (StreamIn::MARSHAL_MINOR_MORE);
 				ref->set_content_type (TC_Ref (content_type, complex_base (content_type)));
