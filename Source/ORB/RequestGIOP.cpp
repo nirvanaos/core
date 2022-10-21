@@ -103,7 +103,7 @@ bool RequestGIOP::unmarshal_seq (size_t align, size_t element_size, size_t& elem
 	return stream_in_->read_seq (align, element_size, element_count, data, allocated_size);
 }
 
-Internal::Interface::_ref_type RequestGIOP::unmarshal_interface (const IDL::String& interface_id)
+Interface::_ref_type RequestGIOP::unmarshal_interface (const IDL::String& interface_id)
 {
 	Object::_ref_type obj;
 	{
@@ -225,7 +225,7 @@ Internal::Interface::_ref_type RequestGIOP::unmarshal_interface (const IDL::Stri
 		} else
 			obj = RemoteReferences::singleton ().unmarshal (primary_iid, std::move (addr), flags, std::move (listen_point));
 	}
-	if (Internal::RepId::compatible (Internal::RepIdOf <Object>::id, interface_id))
+	if (RepId::compatible (RepIdOf <Object>::id, interface_id))
 		return obj;
 	else
 		return obj->_query_interface (interface_id);
@@ -440,7 +440,11 @@ void RequestGIOP::marshal_value (Interface::_ptr_type val, bool output)
 		return;
 	}
 
-	ValueBase::_ptr_type base = value_type2base (val);
+	marshal_value (value_type2base (val), val, output);
+}
+
+void RequestGIOP::marshal_value (ValueBase::_ptr_type base, Interface::_ptr_type val, bool output)
+{
 	size_t pos = stream_out_->size ();
 	auto ins = value_map_marshal_.emplace (&base, pos);
 	if (!ins.second) {
@@ -449,7 +453,7 @@ void RequestGIOP::marshal_value (Interface::_ptr_type val, bool output)
 		stream_out_->write32 (off);
 		return;
 	}
-	Internal::Interface::_ptr_type primary = base->_query_valuetype (nullptr);
+	Interface::_ptr_type primary = base->_query_valuetype (nullptr);
 	Long tag = 0x7FFFFF00;
 	if (&primary != &val) {
 		// Parameter type corresponds to the primary type - we need to provide type information.
@@ -633,6 +637,16 @@ const IDL::String& RequestGIOP::unmarshal_rep_id ()
 	if (buf [size - 1]) // Not zero-terminated
 		throw MARSHAL ();
 	return rep_id_map_unmarshal_.emplace (pos, std::move (id)).first->second;
+}
+
+Interface::_ref_type RequestGIOP::unmarshal_abstract (const IDL::String& interface_id)
+{
+	Boolean is_object = false;
+	stream_in_->read (1, 1, &is_object);
+	if (is_object)
+		return RequestGIOP::unmarshal_interface (interface_id);
+	else
+		return RequestGIOP::unmarshal_value (interface_id);
 }
 
 }

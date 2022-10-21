@@ -259,6 +259,8 @@ public:
 	/// \param output Output parameter marshaling. Haven't to perform deep copy.
 	void marshal_value (Internal::Interface::_ptr_type val, bool output);
 
+	void marshal_value (ValueBase::_ptr_type base, Interface::_ptr_type val, bool output);
+
 	/// Unmarshal value type.
 	/// 
 	/// \param rep_id The value type repository id.
@@ -272,7 +274,30 @@ public:
 	/// \param output Output parameter marshaling. Haven't to perform deep copy.
 	void marshal_abstract (Internal::Interface::_ptr_type itf, bool output)
 	{
-		throw NO_IMPLEMENT ();
+		if (!marshal_chunk ())
+			return;
+
+		if (itf) {
+			// Downcast to AbstractBase
+			AbstractBase::_ptr_type base = abstract_interface2base (itf);
+			Object::_ref_type obj = base->_to_object ();
+			if (obj) {
+				Boolean is_object = true;
+				stream_out_->write_c (1, 1, &is_object);
+				ProxyManager::cast (obj)->get_reference ()->marshal (*stream_out_);
+			} else {
+				ValueBase::_ref_type value = base->_to_value ();
+				if (!value)
+					Nirvana::throw_MARSHAL ();
+				Boolean is_object = false;
+				stream_out_->write_c (1, 1, &is_object);
+				marshal_value (value, itf, output);
+			}
+		} else {
+			Boolean is_object = false;
+			stream_out_->write_c (1, 1, &is_object);
+			stream_out_->write32 (0);
+		}
 	}
 
 	/// Unmarshal abstract interface.
@@ -280,10 +305,7 @@ public:
 	/// \param rep_id The interface repository id.
 	/// 
 	/// \returns Interface.
-	Internal::Interface::_ref_type unmarshal_abstract (const IDL::String& interface_id)
-	{
-		throw NO_IMPLEMENT ();
-	}
+	virtual Internal::Interface::_ref_type unmarshal_abstract (const IDL::String& interface_id);
 
 	///@}
 
