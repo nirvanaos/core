@@ -114,7 +114,7 @@ struct POA_Policies
 			switch (type) {
 				case THREAD_POLICY_ID:
 					if (ThreadPolicyValue::ORB_CTRL_MODEL != ThreadPolicy::_narrow (policy)->value ())
-						throw POA::InvalidPolicy (it - policies.begin ());
+						throw POA::InvalidPolicy (CORBA::UShort (it - policies.begin ()));
 					break;
 				case LIFESPAN_POLICY_ID:
 					lifespan = LifespanPolicy::_narrow (policy)->value ();

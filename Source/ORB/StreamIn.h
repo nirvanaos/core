@@ -197,7 +197,7 @@ protected:
 template <typename C, class A>
 void StreamIn::read_string (std::basic_string <C, std::char_traits <C>, A>& s)
 {
-	uint32_t size = read_size ();
+	size_t size = read_size ();
 	if (!size)
 		throw MARSHAL (); // String length includes the terminating zero.
 	s.resize (size - 1);
@@ -209,7 +209,7 @@ void StreamIn::read_string (std::basic_string <C, std::char_traits <C>, std::all
 {
 	typedef typename Internal::Type <Internal::StringT <C> >::ABI ABI;
 
-	uint32_t size = read_size ();
+	size_t size = read_size ();
 	if (!size)
 		throw MARSHAL (); // String length includes the terminating zero.
 	--size;

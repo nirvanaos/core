@@ -445,7 +445,7 @@ void RequestGIOP::marshal_value (Interface::_ptr_type val, bool output)
 	auto ins = value_map_marshal_.emplace (&base, pos);
 	if (!ins.second) {
 		stream_out_->write32 (INDIRECTION_TAG);
-		Long off = ins.first->second - (pos + 4);
+		Long off = Long (ins.first->second - (pos + 4));
 		stream_out_->write32 (off);
 		return;
 	}

@@ -244,7 +244,7 @@ private:
 	{
 		Internal::check_pointer (p);
 
-		for (ULong i = 0, cnt = members_.size (); i < cnt; ++i) {
+		for (ULong i = 0, cnt = (ULong)members_.size (); i < cnt; ++i) {
 			if (i != default_index_ && !memcmp (p, members_ [i].label.data (), discriminator_size_))
 				return i;
 		}

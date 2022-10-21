@@ -121,7 +121,7 @@ public:
 			} else if (default_index >= 0) {
 				throw BAD_PARAM (MAKE_OMG_MINOR (19));
 			} else
-				default_index = it - members.begin ();
+				default_index = Long (it - members.begin ());
 
 			pm->label = it->label ();
 			pm->name = std::move (it->name ());
