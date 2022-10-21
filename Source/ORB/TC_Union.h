@@ -62,8 +62,20 @@ public:
 
 	typedef Nirvana::Core::Array <Member, Nirvana::Core::UserAllocator> Members;
 
-	TC_Union (IDL::String&& id, IDL::String&& name, TC_Ref&& discriminator_type, Long default_index,
-		Members&& members);
+	TC_Union (IDL::String&& id, IDL::String&& name, TypeCode::_ref_type&& discriminator_type, Long default_index);
+
+	TC_Union (IDL::String&& id, IDL::String&& name, TypeCode::_ptr_type discriminator_type, Long default_index,
+		Members&& members) :
+		TC_Union (std::move (id), std::move (name), TypeCode::_ref_type (discriminator_type), default_index)
+	{
+		set_members (std::move (members));
+		TC_Ref self (_get_ptr (), this);
+		for (auto& m : members_) {
+			m.type.replace_recursive_placeholder (id_, self);
+		}
+	}
+
+	void set_members (Members&& members);
 
 	bool equal (TypeCode::_ptr_type other) const
 	{
@@ -240,7 +252,7 @@ private:
 	}
 
 private:
-	const TC_Ref discriminator_type_;
+	const TypeCode::_ref_type discriminator_type_;
 	Members members_;
 	size_t align_;
 	size_t size_;

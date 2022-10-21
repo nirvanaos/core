@@ -57,8 +57,18 @@ public:
 		return content_type_;
 	}
 
+	void set_content_type (TC_Ref&& content_type, ULong bound);
+
 protected:
-	TC_ArrayBase (TCKind kind, TC_Ref&& content_type, ULong bound);
+	TC_ArrayBase (TCKind kind) :
+		TC_Complex <TC_Base> (kind)
+	{}
+
+	TC_ArrayBase (TCKind kind, TC_Ref&& content_type, ULong bound) :
+		TC_ArrayBase (kind)
+	{
+		set_content_type (std::move (content_type), bound);
+	}
 
 	virtual bool mark () NIRVANA_NOEXCEPT override;
 	virtual bool set_recursive (const IDL::String& id, const TC_Ref& ref) NIRVANA_NOEXCEPT override;

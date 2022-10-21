@@ -28,11 +28,6 @@
 namespace CORBA {
 namespace Core {
 
-TC_ValueBox::TC_ValueBox (IDL::String&& id, IDL::String&& name, TC_Ref&& content_type) NIRVANA_NOEXCEPT :
-	Impl (TCKind::tk_value_box, std::move (id), std::move (name)),
-	content_type_ (std::move (content_type))
-{}
-
 bool TC_ValueBox::mark () NIRVANA_NOEXCEPT
 {
 	if (!TC_ValueBase::mark ())

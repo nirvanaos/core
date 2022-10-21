@@ -48,7 +48,19 @@ public:
 	using Servant::_s_name;
 	using Servant::_s_content_type;
 
-	TC_ValueBox (IDL::String&& id, IDL::String&& name, TC_Ref&& content_type) NIRVANA_NOEXCEPT;
+	TC_ValueBox (IDL::String&& id, IDL::String&& name) NIRVANA_NOEXCEPT :
+		Impl (TCKind::tk_value_box, std::move (id), std::move (name))
+	{}
+
+	TC_ValueBox (IDL::String&& id, IDL::String&& name, TC_Ref&& content_type) NIRVANA_NOEXCEPT :
+		Impl (TCKind::tk_value_box, std::move (id), std::move (name)),
+		content_type_ (std::move (content_type))
+	{}
+
+	void set_content_type (TC_Ref&& content_type) NIRVANA_NOEXCEPT
+	{
+		content_type_ = std::move (content_type_);
+	}
 
 	TypeCode::_ref_type content_type () const NIRVANA_NOEXCEPT
 	{

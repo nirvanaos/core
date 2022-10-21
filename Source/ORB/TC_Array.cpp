@@ -28,10 +28,6 @@
 namespace CORBA {
 namespace Core {
 
-TC_Array::TC_Array (TC_Ref&& content_type, ULong bound) :
-	Impl (TCKind::tk_array, std::move (content_type), bound)
-{}
-
 void TC_Array::marshal (const void* src, size_t count, Internal::IORequest_ptr rq, bool out) const
 {
 	Internal::check_pointer (src);

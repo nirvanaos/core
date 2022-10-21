@@ -64,8 +64,29 @@ public:
 
 	typedef Nirvana::Core::Array <Member, Nirvana::Core::UserAllocator> Members;
 
+	TC_Value (IDL::String&& id, IDL::String&& name, ValueModifier modifier) NIRVANA_NOEXCEPT :
+		Impl (TCKind::tk_value, std::move (id), std::move (name)),
+		modifier_ (modifier)
+	{}
+
 	TC_Value (IDL::String&& id, IDL::String&& name, ValueModifier modifier, TC_Ref&& concrete_base,
-		Members&& members) NIRVANA_NOEXCEPT;
+		Members&& members) NIRVANA_NOEXCEPT :
+		Impl (TCKind::tk_value, std::move (id), std::move (name)),
+		modifier_ (modifier),
+		concrete_base_ (std::move (concrete_base)),
+		members_ (std::move (members))
+	{
+		TC_Ref self (_get_ptr (), this);
+		for (auto& m : members_) {
+			m.type.replace_recursive_placeholder (id_, self);
+		}
+	}
+
+	void set_members (TC_Ref&& concrete_base, Members&& members) NIRVANA_NOEXCEPT
+	{
+		concrete_base_ = std::move (concrete_base);
+		members_ = std::move (members);
+	}
 
 	ValueModifier type_modifier () const NIRVANA_NOEXCEPT
 	{

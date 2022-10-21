@@ -1,3 +1,4 @@
+/// \file
 /*
 * Nirvana Core.
 *
@@ -23,28 +24,21 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "TC_Value.h"
+#ifndef NIRVANA_ORB_CORE_INDIRECTMAPUNMARSHAL_H_
+#define NIRVANA_ORB_CORE_INDIRECTMAPUNMARSHAL_H_
+#pragma once
+
+#include <CORBA/CORBA.h>
+#include "../MapUnorderedUnstable.h"
 
 namespace CORBA {
 namespace Core {
 
-bool TC_Value::mark () NIRVANA_NOEXCEPT
-{
-	if (!TC_ValueBase::mark ())
-		return false;
-	for (auto& m : members_) {
-		m.type.mark ();
-	}
-	return true;
-}
+static const ULong INDIRECTION_TAG = 0xFFFFFFFF;
 
-bool TC_Value::set_recursive (const IDL::String& id, const TC_Ref& ref) NIRVANA_NOEXCEPT
-{
-	for (auto& m : members_) {
-		m.type.replace_recursive_placeholder (id, ref);
-	}
-	return false;
-}
+typedef Nirvana::Core::MapUnorderedUnstable <size_t, Internal::Interface*> IndirectMapUnmarshal;
 
 }
 }
+
+#endif

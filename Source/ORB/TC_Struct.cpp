@@ -28,15 +28,12 @@
 namespace CORBA {
 namespace Core {
 
-TC_Struct::TC_Struct (TCKind kind, IDL::String&& id, IDL::String&& name, Members&& members) :
-	Impl (kind, std::move (id), std::move (name)),
-	members_ (std::move (members))
+void TC_Struct::set_members (Members&& members)
 {
+	members_ = std::move (members);
 	size_t off = 0, align = 1;
 	bool cdr = true;
-	TC_Ref self (_get_ptr (), this);
 	for (auto& m : members_) {
-		m.type.replace_recursive_placeholder (id_, self);
 		size_t a = m.type->n_align ();
 		if (align < a)
 			align = a;

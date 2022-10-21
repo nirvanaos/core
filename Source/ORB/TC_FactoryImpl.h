@@ -44,7 +44,10 @@
 #include <ORB/TC_Abstract.h>
 #include <ORB/TC_Native.h>
 #include <ORB/TC_Recursive.h>
-#include "../MapUnorderedUnstable.h"
+#include "IndirectMapUnmarshal.h"
+#include "Services.h"
+#include "ProxyLocal.h"
+#include "../Synchronized.h"
 
 namespace CORBA {
 namespace Core {
@@ -125,7 +128,7 @@ public:
 			pm->type = TC_Ref (it->type (), complex_base (it->type ()));
 		}
 		servant_reference <TC_Union> ref = make_reference <TC_Union> (std::move (id), std::move (name),
-			TC_Ref (discriminator_type), default_index, std::move (smembers));
+			discriminator_type, default_index, std::move (smembers));
 		TypeCode::_ptr_type tc = ref->_get_ptr ();
 		complex_objects_.emplace (&tc, ref);
 		return tc;
@@ -328,7 +331,17 @@ public:
 
 	static void schedule_GC () NIRVANA_NOEXCEPT;
 
-	static TypeCode::_ref_type unmarshal_type_code (StreamIn& stream);
+	static TypeCode::_ref_type unmarshal_type_code (ULong kind, StreamIn& stream)
+	{
+		Object::_ref_type factory = Services::bind (Services::TC_Factory);
+		const ProxyLocal* proxy = local2proxy (factory);
+		TC_FactoryImpl* impl = static_cast <TC_FactoryImpl*> (
+			static_cast <Bridge <CORBA::LocalObject>*> (&proxy->servant ()));
+		SYNC_BEGIN (proxy->sync_context (), nullptr);
+		IndirectMapUnmarshal indirect_map;
+		return impl->unmarshal_type_code (kind, stream, indirect_map, 0);
+		SYNC_END ();
+	}
 
 private:
 	static void check_name (const IDL::String& name, ULong minor);
@@ -355,6 +368,9 @@ private:
 		const Identifier& name);
 
 	TC_ComplexBase* complex_base (TypeCode::_ptr_type p) const NIRVANA_NOEXCEPT;
+
+	TypeCode::_ref_type unmarshal_type_code (StreamIn& stream, IndirectMapUnmarshal& indirect_map, size_t parent_offset);
+	TypeCode::_ref_type unmarshal_type_code (ULong kind, StreamIn& stream, IndirectMapUnmarshal& indirect_map, size_t parent_offset);
 
 private:
 	Nirvana::Core::MapUnorderedUnstable <void*, TC_ComplexBase*,

@@ -28,10 +28,6 @@
 namespace CORBA {
 namespace Core {
 
-TC_Sequence::TC_Sequence (TC_Ref&& content_type, ULong bound) :
-	Impl (TCKind::tk_sequence, std::move (content_type), bound)
-{}
-
 void TC_Sequence::marshal (const void* src, size_t count, Internal::IORequest_ptr rq, bool out) const
 {
 	Internal::check_pointer (src);

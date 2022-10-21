@@ -45,7 +45,13 @@ public:
 	using Servant::_s_n_align;
 	using Servant::_s_n_byteswap;
 
-	TC_Array (TC_Ref&& content_type, ULong bound);
+	TC_Array () :
+		Impl (TCKind::tk_array)
+	{}
+
+	TC_Array (TC_Ref&& content_type, ULong bound) :
+		Impl (TCKind::tk_array, std::move (content_type), bound)
+	{}
 
 	size_t n_size () const NIRVANA_NOEXCEPT
 	{

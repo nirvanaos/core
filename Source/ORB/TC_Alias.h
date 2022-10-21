@@ -46,7 +46,19 @@ public:
 	using Servant::_s_n_size;
 	using Servant::_s_n_byteswap;
 
-	TC_Alias (IDL::String&& id, IDL::String&& name, TC_Ref&& content_type) NIRVANA_NOEXCEPT;
+	TC_Alias (IDL::String&& id, IDL::String&& name) NIRVANA_NOEXCEPT :
+		Impl (TCKind::tk_alias, std::move (id), std::move (name))
+	{}
+
+	TC_Alias (IDL::String&& id, IDL::String&& name, TC_Ref&& content_type) NIRVANA_NOEXCEPT :
+		Impl (TCKind::tk_alias, std::move (id), std::move (name)),
+		content_type_ (std::move (content_type))
+	{}
+
+	void set_content_type (TC_Ref&& content_type) NIRVANA_NOEXCEPT
+	{
+		content_type_ = std::move (content_type);
+	}
 
 	bool equal (TypeCode::_ptr_type other) const
 	{

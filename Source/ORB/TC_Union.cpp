@@ -28,14 +28,17 @@
 namespace CORBA {
 namespace Core {
 
-TC_Union::TC_Union (IDL::String&& id, IDL::String&& name, TC_Ref&& discriminator_type,
-	Long default_index, Members&& members) :
+TC_Union::TC_Union (IDL::String&& id, IDL::String&& name, TypeCode::_ref_type&& discriminator_type, Long default_index) :
 	Impl (TCKind::tk_union, std::move (id), std::move (name)),
 	discriminator_type_ (std::move (discriminator_type)),
-	members_ (std::move (members)),
 	default_index_ (default_index)
 {
 	discriminator_size_ = discriminator_type_->n_size ();
+}
+
+void TC_Union::set_members (Members&& members)
+{
+	members_ = std::move (members);
 	size_t align = discriminator_type_->n_align ();
 	size_t size = discriminator_size_;
 	TC_Ref self (_get_ptr (), this);

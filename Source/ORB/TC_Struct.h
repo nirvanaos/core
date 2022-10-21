@@ -58,7 +58,21 @@ public:
 
 	typedef Nirvana::Core::Array <Member, Nirvana::Core::UserAllocator> Members;
 
-	TC_Struct (TCKind kind, IDL::String&& id, IDL::String&& name, Members&& members);
+	TC_Struct (TCKind kind, IDL::String&& id, IDL::String&& name, Members&& members) :
+		Impl (kind, std::move (id), std::move (name))
+	{
+		set_members (std::move (members));
+		TC_Ref self (_get_ptr (), this);
+		for (auto& m : members_) {
+			m.type.replace_recursive_placeholder (id_, self);
+		}
+	}
+
+	TC_Struct (TCKind kind, IDL::String&& id, IDL::String&& name) :
+		Impl (kind, std::move (id), std::move (name))
+	{}
+
+	void set_members (Members&& members);
 
 	bool equal (TypeCode::_ptr_type other) const
 	{

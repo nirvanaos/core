@@ -77,6 +77,16 @@ public:
 		}
 	}
 
+	Array& operator = (Array&& src)
+	{
+		assert (!begin_);
+		begin_ = src.begin_;
+		end_ = src.end_;
+		src.begin_ = nullptr;
+		src.end_ = nullptr;
+		return *this;
+	}
+
 	/// \brief Allocate memory and initialize it with zeroes.
 	void allocate (size_t size)
 	{

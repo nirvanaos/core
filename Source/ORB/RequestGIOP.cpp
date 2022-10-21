@@ -25,19 +25,7 @@
 */
 #include "RequestEncapIn.h"
 #include "RequestEncapOut.h"
-#include "TC_Interface.h"
-#include "TC_Fixed.h"
-#include "TC_Struct.h"
-#include "TC_Union.h"
-#include "TC_Enum.h"
-#include "TC_String.h"
-#include "TC_Sequence.h"
-#include "TC_Array.h"
-#include "TC_Alias.h"
-#include "TC_Value.h"
-#include "TC_ValueBox.h"
-#include "TC_Abstract.h"
-#include "TC_Native.h"
+#include "TC_FactoryImpl.h"
 #include "../Binder.h"
 #include <list>
 
@@ -101,6 +89,148 @@ bool RequestGIOP::marshal_chunk ()
 	return true;
 }
 
+bool RequestGIOP::unmarshal (size_t align, size_t size, void* data)
+{
+	check_align (align);
+	stream_in_->read (align, size, data);
+	return stream_in_->other_endian ();
+}
+
+bool RequestGIOP::unmarshal_seq (size_t align, size_t element_size, size_t& element_count, void*& data,
+	size_t& allocated_size)
+{
+	check_align (align);
+	return stream_in_->read_seq (align, element_size, element_count, data, allocated_size);
+}
+
+Internal::Interface::_ref_type RequestGIOP::unmarshal_interface (const IDL::String& interface_id)
+{
+	Object::_ref_type obj;
+	{
+		IDL::String primary_iid;
+		stream_in_->read_string (primary_iid);
+		if (primary_iid.empty ())
+			return nullptr; // nil reference
+
+		IOP::TaggedProfileSeq addr;
+		stream_in_->read_tagged (addr);
+
+		IIOP::ListenPoint listen_point;
+		IOP::ObjectKey object_key;
+		bool object_key_found = false;
+		IOP::TaggedComponentSeq components;
+		for (const IOP::TaggedProfile& profile : addr) {
+			switch (profile.tag ()) {
+				case IOP::TAG_INTERNET_IOP: {
+					Nirvana::Core::ImplStatic <StreamInEncap> stm (std::ref (profile.profile_data ()));
+					IIOP::Version ver;
+					stm.read (alignof (IIOP::Version), sizeof (IIOP::Version), &ver);
+					if (ver.major () != 1)
+						throw NO_IMPLEMENT (MAKE_OMG_MINOR (3));
+					stm.read_string (listen_point.host ());
+					CORBA::UShort port;
+					stm.read (alignof (CORBA::UShort), sizeof (CORBA::UShort), &port);
+					if (stm.other_endian ())
+						Nirvana::byteswap (port);
+					listen_point.port (port);
+					stm.read_seq (object_key);
+					object_key_found = true;
+					if (ver.minor () >= 1) {
+						if (components.empty ())
+							stm.read_tagged (components);
+						else {
+							IOP::TaggedComponentSeq comp;
+							stm.read_tagged (comp);
+							components.insert (components.end (), comp.begin (), comp.end ());
+						}
+					}
+				} break;
+
+				case IOP::TAG_MULTIPLE_COMPONENTS: {
+					Nirvana::Core::ImplStatic <StreamInEncap> stm (std::ref (profile.profile_data ()));
+					if (components.empty ())
+						stm.read_tagged (components);
+					else {
+						IOP::TaggedComponentSeq comp;
+						stm.read_tagged (comp);
+						components.insert (components.end (), comp.begin (), comp.end ());
+					}
+				} break;
+			}
+		}
+
+		if (!object_key_found)
+			throw IMP_LIMIT (MAKE_OMG_MINOR (1)); // Unable to use any profile in IOR.
+
+		bool nirvana = false;
+		for (const IOP::TaggedComponent& comp : components) {
+			if (comp.tag () == IOP::TAG_ORB_TYPE) {
+				if (comp.component_data ().size () == sizeof (ULong)) {
+					ULong type = *(const ULong*)comp.component_data ().data ();
+					if (stream_in_->other_endian ())
+						Nirvana::byteswap (type);
+					if (ESIOP::ORB_TYPE == type)
+						nirvana = true;
+				} else
+					throw BAD_PARAM ();
+				break;
+			}
+		}
+
+		ESIOP::ProtDomainId domain_id;
+		Octet flags = 0;
+		bool domain_found = false;
+		if (nirvana) {
+			for (const IOP::TaggedComponent& comp : components) {
+				switch (comp.tag ()) {
+					case ESIOP::TAG_DOMAIN_ADDRESS:
+						if (comp.component_data ().size () == sizeof (ESIOP::ProtDomainId)) {
+							domain_id = *(const ESIOP::ProtDomainId*)comp.component_data ().data ();
+							if (stream_in_->other_endian ())
+								Nirvana::byteswap (domain_id);
+							domain_found = true;
+						} else
+							throw INV_OBJREF ();
+						break;
+
+					case ESIOP::TAG_FLAGS:
+						flags = *(const Octet*)comp.component_data ().data ();
+						break;
+				}
+			}
+		}
+
+		size_t host_len = listen_point.host ().size ();
+		const Char* host = listen_point.host ().data ();
+		if (0 == host_len ||
+			(LocalAddress::singleton ().host ().size () == host_len &&
+				std::equal (host, host + host_len, LocalAddress::singleton ().host ().data ()))) {
+
+			// Local system
+			if (!nirvana)
+				throw INV_OBJREF ();
+
+			if (host_len && listen_point.port () != LocalAddress::singleton ().port ()) {
+#ifdef SINGLE_DOMAIN
+				throw INV_OBJREF ();
+#else
+				if (!domain_found)
+					throw INV_OBJREF ();
+				if (ESIOP::current_domain_id () != domain_id)
+					obj = RemoteReferences::singleton ().unmarshal (primary_iid, std::move (addr), flags, domain_id);
+				else
+#endif
+					obj = PortableServer::Core::POA_Root::unmarshal (primary_iid, object_key);
+			}
+		} else
+			obj = RemoteReferences::singleton ().unmarshal (primary_iid, std::move (addr), flags, std::move (listen_point));
+	}
+	if (Internal::RepId::compatible (Internal::RepIdOf <Object>::id, interface_id))
+		return obj;
+	else
+		return obj->_query_interface (interface_id);
+}
+
 void RequestGIOP::marshal_type_code (TypeCode::_ptr_type tc, IndirectMapMarshal& map, size_t parent_offset)
 {
 	if (!tc) {
@@ -108,7 +238,57 @@ void RequestGIOP::marshal_type_code (TypeCode::_ptr_type tc, IndirectMapMarshal&
 		return;
 	}
 
-	size_t off = stream_out_->size () + parent_offset;
+	ULong kind;
+	try {
+		kind = (ULong)tc->kind ();
+	} catch (...) {
+		throw BAD_TYPECODE (MAKE_OMG_MINOR (1)); // Attempt to marshal incomplete TypeCode.
+	}
+
+	static const TCKind simple_types [] = {
+		TCKind::tk_short,
+		TCKind::tk_long,
+		TCKind::tk_ushort,
+		TCKind::tk_ulong,
+		TCKind::tk_float,
+		TCKind::tk_double,
+		TCKind::tk_boolean,
+		TCKind::tk_char,
+		TCKind::tk_octet,
+		TCKind::tk_any,
+		TCKind::tk_TypeCode,
+		TCKind::tk_longlong,
+		TCKind::tk_ulonglong,
+		TCKind::tk_longdouble,
+		TCKind::tk_wchar
+	};
+
+	const TCKind* f = std::lower_bound (simple_types, std::end (simple_types), (TCKind)kind);
+	if (f != std::end (simple_types) && *f == (TCKind)kind) {
+		stream_out_->write32 (kind);
+		return;
+	}
+
+	switch ((TCKind)kind) {
+		case TCKind::tk_string:
+		case TCKind::tk_wstring:
+			stream_out_->write32 (kind);
+			stream_out_->write32 (tc->length ());
+			return;
+
+		case TCKind::tk_fixed: {
+			stream_out_->write32 (kind);
+
+			struct
+			{
+				UShort d;
+				Short s;
+			} ds { tc->fixed_digits (), tc->fixed_scale () };
+			stream_out_->write_c (2, 4, &ds);
+		} return;
+	}
+
+	size_t off = stream_out_->size () + parent_offset - 4;
 	auto ins = map.emplace (&tc, off);
 	if (!ins.second) {
 		stream_out_->write32 (INDIRECTION_TAG);
@@ -117,8 +297,6 @@ void RequestGIOP::marshal_type_code (TypeCode::_ptr_type tc, IndirectMapMarshal&
 		return;
 	}
 
-	ULong kind = (ULong)tc->kind ();
-	stream_out_->write32 (kind);
 	switch ((TCKind)kind) {
 		case TCKind::tk_objref:
 		case TCKind::tk_native:
@@ -185,11 +363,6 @@ void RequestGIOP::marshal_type_code (TypeCode::_ptr_type tc, IndirectMapMarshal&
 			stream_out_->write_seq (encap.data (), true);
 		} break;
 
-		case TCKind::tk_string:
-		case TCKind::tk_wstring:
-			stream_out_->write32 (tc->length ());
-			break;
-
 		case TCKind::tk_sequence:
 		case TCKind::tk_array: {
 			Nirvana::Core::ImplStatic <RequestEncapOut> encap (std::ref (*this));
@@ -203,15 +376,6 @@ void RequestGIOP::marshal_type_code (TypeCode::_ptr_type tc, IndirectMapMarshal&
 			encap.stream_out ()->write_id_name (tc);
 			encap.marshal_type_code (tc->content_type (), map, parent_offset + stream_out_->size () + 4);
 			stream_out_->write_seq (encap.data (), true);
-		} break;
-
-		case TCKind::tk_fixed: {
-			struct
-			{
-				UShort d;
-				Short s;
-			} ds{ tc->fixed_digits (), tc->fixed_scale () };
-			stream_out_->write_c (2, 4, &ds);
 		} break;
 
 		case TCKind::tk_value: {
@@ -245,324 +409,22 @@ void RequestGIOP::marshal_type_code (TypeCode::_ptr_type tc, IndirectMapMarshal&
 	}
 }
 
-TC_Ref RequestGIOP::unmarshal_type_code (IndirectMapUnmarshal& map, size_t parent_offset)
+TypeCode::_ref_type RequestGIOP::unmarshal_type_code ()
 {
-	size_t start_pos = stream_in_->position () + parent_offset;
+	size_t start_pos = stream_in_->position ();
 	ULong kind = stream_in_->read32 ();
-
 	if (INDIRECTION_TAG == kind) {
 		Long off = stream_in_->read32 ();
 		if (off >= -4)
 			throw MARSHAL ();
-		IndirectMapUnmarshal* pmap = parent_offset ? &map : &top_level_tc_unmarshal_;
-		IndirectMapUnmarshal::iterator it = pmap->find (start_pos + 4 + off);
-		if (it == pmap->end ())
+		IndirectMapUnmarshal::iterator it = top_level_tc_unmarshal_.find (start_pos + 4 + off);
+		if (it == top_level_tc_unmarshal_.end ())
 			throw BAD_TYPECODE ();
-		return TC_Ref (static_cast <TypeCode*> (it->second), !parent_offset);
+		return TypeCode::_ptr_type (static_cast <TypeCode*> (it->second));
 	}
-
-	// Parent offset of the encapsulated data:
-	// start_pos + 4 byte kind + 4 byte encaplulated sequence size
-	size_t encap_pos = start_pos + 8;
-
-	TC_Ref ret;
-	switch ((TCKind)kind) {
-		case TCKind::tk_null:
-			break;
-
-		case TCKind::tk_void:
-			ret = _tc_void;
-			break;
-
-		case TCKind::tk_short:
-			ret = _tc_short;
-			break;
-
-		case TCKind::tk_long:
-			ret = _tc_long;
-			break;
-
-		case TCKind::tk_ushort:
-			ret = _tc_ushort;
-			break;
-
-		case TCKind::tk_ulong:
-			ret = _tc_ulong;
-			break;
-
-		case TCKind::tk_float:
-			ret = _tc_float;
-			break;
-
-		case TCKind::tk_double:
-			ret = _tc_double;
-			break;
-
-		case TCKind::tk_boolean:
-			ret = _tc_boolean;
-			break;
-
-		case TCKind::tk_char:
-			ret = _tc_char;
-			break;
-
-		case TCKind::tk_octet:
-			ret = _tc_octet;
-			break;
-
-		case TCKind::tk_any:
-			ret = _tc_any;
-			break;
-
-		case TCKind::tk_TypeCode:
-			ret = _tc_TypeCode;
-			break;
-
-		case TCKind::tk_objref:
-		case TCKind::tk_abstract_interface:
-		case TCKind::tk_local_interface:
-		case TCKind::tk_native: {
-			OctetSeq encap;
-			stream_in_->read_seq (encap);
-			Nirvana::Core::ImplStatic <StreamInEncap> stm (std::ref (encap));
-			TC_Base::String id, name;
-			stm.read_string (id);
-			stm.read_string (name);
-			if (stm.end () != 0)
-				throw CORBA::MARSHAL (StreamIn::MARSHAL_MINOR_MORE);
-			switch ((TCKind)kind) {
-				case TCKind::tk_abstract_interface:
-					ret = make_pseudo <TC_Abstract> (std::move (id), std::move (name));
-					break;
-				case TCKind::tk_native:
-					ret = make_pseudo <TC_Native> (std::move (id), std::move (name));
-					break;
-				default:
-					ret = make_pseudo <TC_Interface> ((TCKind)kind, std::move (id), std::move (name));
-			}
-		} break;
-
-		case TCKind::tk_struct:
-		case TCKind::tk_except: {
-			OctetSeq encap;
-			stream_in_->read_seq (encap);
-			Nirvana::Core::ImplStatic <RequestEncapIn> rq (std::ref (*this), std::ref (encap));
-			TC_Base::String id, name;
-			rq.stream_in ()->read_string (id);
-			rq.stream_in ()->read_string (name);
-			ULong cnt = rq.stream_in ()->read32 ();
-			if (TCKind::tk_struct == (TCKind)kind && !cnt)
-				throw BAD_TYPECODE (MAKE_OMG_MINOR (1));
-			TC_Struct::Members members;
-			if (cnt) {
-				members.construct (cnt);
-				TC_Struct::Member* pm = members.begin ();
-				while (cnt--) {
-					rq.stream_in ()->read_string (pm->name);
-					if (!(pm->type = rq.unmarshal_type_code (map, encap_pos)))
-						throw BAD_TYPECODE ();
-					++pm;
-				}
-			}
-			if (rq.stream_in ()->end () != 0)
-				throw CORBA::MARSHAL (StreamIn::MARSHAL_MINOR_MORE);
-			ret = make_pseudo <TC_Struct> ((TCKind)kind, std::move (id), std::move (name), std::move (members));
-		} break;
-
-		case TCKind::tk_union: {
-			OctetSeq encap;
-			stream_in_->read_seq (encap);
-			Nirvana::Core::ImplStatic <RequestEncapIn> rq (std::ref (*this), std::ref (encap));
-			TC_Base::String id, name;
-			rq.stream_in ()->read_string (id);
-			rq.stream_in ()->read_string (name);
-			TC_Ref discriminator_type = rq.unmarshal_type_code (map, encap_pos);
-			Long default_index = rq.stream_in ()->read32 ();
-			ULong cnt = rq.stream_in ()->read32 ();
-			if (!cnt)
-				throw BAD_TYPECODE (MAKE_OMG_MINOR (1));
-			TC_Union::Members members;
-			members.construct (cnt);
-			TC_Union::Member* pm = members.begin ();
-			for (ULong i = 0; i < cnt; ++pm, ++i) {
-				ULongLong buf;
-				discriminator_type->n_unmarshal (rq._get_ptr (), 1, &buf);
-				// The discriminant value used in the actual typecode parameter associated with the default
-				// member position in the list, may be any valid value of the discriminant type, and has no
-				// semantic significance (i.e., it should be ignored and is only included for syntactic
-				// completeness of union type code marshaling).
-				if (i != default_index)
-					pm->label.copy_from (discriminator_type, &buf);
-				else
-					pm->label <<= Any::from_octet (0);
-				rq.stream_in ()->read_string (pm->name);
-				if (!(pm->type = rq.unmarshal_type_code (map, encap_pos)))
-					throw BAD_TYPECODE ();
-			}
-			if (rq.stream_in ()->end () != 0)
-				throw CORBA::MARSHAL (StreamIn::MARSHAL_MINOR_MORE);
-			ret = make_pseudo <TC_Union> (id, name, std::move (discriminator_type), default_index,
-				std::move (members));
-		} break;
-
-		case TCKind::tk_enum: {
-			OctetSeq encap;
-			stream_in_->read_seq (encap);
-			Nirvana::Core::ImplStatic <StreamInEncap> stm (std::ref (encap));
-			TC_Base::String id, name;
-			stm.read_string (id);
-			stm.read_string (name);
-			ULong cnt = stm.read32 ();
-			if (!cnt)
-				throw BAD_TYPECODE (MAKE_OMG_MINOR (1));
-			TC_Enum::Members members;
-			members.construct (cnt);
-			TC_Base::String* pm = members.begin ();
-			while (cnt--) {
-				stm.read_string (*pm);
-				++pm;
-			}
-			if (stm.end () != 0)
-				throw CORBA::MARSHAL (StreamIn::MARSHAL_MINOR_MORE);
-			ret = make_pseudo <TC_Enum> (std::move (id), std::move (name), std::move (members));
-		} break;
-
-		case TCKind::tk_string: {
-			ULong bound = stream_in_->read32 ();
-			if (0 == bound)
-				ret = _tc_string;
-			else
-				ret = make_pseudo <TC_String> (bound);
-		} break;
-
-		case TCKind::tk_wstring: {
-			ULong bound = stream_in_->read32 ();
-			if (0 == bound)
-				ret = _tc_wstring;
-			else
-				ret = make_pseudo <TC_WString> (bound);
-		} break;
-
-		case TCKind::tk_sequence: {
-			OctetSeq encap;
-			stream_in_->read_seq (encap);
-			Nirvana::Core::ImplStatic <RequestEncapIn> rq (std::ref (*this), std::ref (encap));
-			TC_Ref content_type = rq.unmarshal_type_code (map, encap_pos);
-			ULong bound = rq.stream_in ()->read32 ();
-			if (rq.stream_in ()->end () != 0)
-				throw CORBA::MARSHAL (StreamIn::MARSHAL_MINOR_MORE);
-			ret = make_pseudo <TC_Sequence> (std::move (content_type), bound);
-		} break;
-
-		case TCKind::tk_array: {
-			OctetSeq encap;
-			stream_in_->read_seq (encap);
-			Nirvana::Core::ImplStatic <RequestEncapIn> rq (std::ref (*this), std::ref (encap));
-			TC_Ref content_type = rq.unmarshal_type_code (map, encap_pos);
-			ULong bound = rq.stream_in ()->read32 ();
-			if (rq.stream_in ()->end () != 0)
-				throw CORBA::MARSHAL (StreamIn::MARSHAL_MINOR_MORE);
-			ret = make_pseudo <TC_Array> (std::move (content_type), bound);
-		} break;
-
-		case TCKind::tk_alias: {
-			OctetSeq encap;
-			stream_in_->read_seq (encap);
-			Nirvana::Core::ImplStatic <RequestEncapIn> rq (std::ref (*this), std::ref (encap));
-			TC_Base::String id, name;
-			rq.stream_in ()->read_string (id);
-			rq.stream_in ()->read_string (name);
-			TC_Ref content_type = rq.unmarshal_type_code (map, encap_pos);
-			if (!content_type)
-				throw BAD_TYPECODE ();
-			if (rq.stream_in ()->end () != 0)
-				throw CORBA::MARSHAL (StreamIn::MARSHAL_MINOR_MORE);
-			ret = make_pseudo <TC_Alias> (std::move (id), std::move (name), std::move (content_type));
-		} break;
-
-		case TCKind::tk_longlong:
-			ret = _tc_longlong;
-			break;
-
-		case TCKind::tk_ulonglong:
-			ret = _tc_ulonglong;
-			break;
-
-		case TCKind::tk_longdouble:
-			ret = _tc_longdouble;
-			break;
-
-		case TCKind::tk_wchar:
-			ret = _tc_wchar;
-			break;
-
-		case TCKind::tk_fixed: {
-			UShort digits;
-			stream_in_->read (alignof (UShort), sizeof (UShort), &digits);
-			Short scale;
-			stream_in_->read (alignof (Short), sizeof (Short), &scale);
-			if (stream_in_->other_endian ()) {
-				byteswap (digits);
-				byteswap (scale);
-			}
-			ret = make_pseudo <TC_Fixed> (digits, scale);
-		} break;
-
-		case TCKind::tk_value: {
-			OctetSeq encap;
-			stream_in_->read_seq (encap);
-			Nirvana::Core::ImplStatic <RequestEncapIn> rq (std::ref (*this), std::ref (encap));
-			TC_Base::String id, name;
-			rq.stream_in ()->read_string (id);
-			rq.stream_in ()->read_string (name);
-			ValueModifier modifier;
-			rq.stream_in ()->read (alignof (ValueModifier), sizeof (ValueModifier), &modifier);
-			if (rq.stream_in ()->other_endian ())
-				byteswap (modifier);
-			TC_Ref concrete_base = rq.unmarshal_type_code (map, encap_pos);
-			ULong cnt = rq.stream_in ()->read32 ();
-			TC_Value::Members members;
-			if (cnt) {
-				members.construct (cnt);
-				TC_Value::Member* pm = members.begin ();
-				while (cnt--) {
-					rq.stream_in ()->read_string (pm->name);
-					if (!(pm->type = rq.unmarshal_type_code (map, encap_pos)))
-						throw BAD_TYPECODE ();
-					rq.stream_in ()->read (alignof (Short), sizeof (Short), &pm->visibility);
-					++pm;
-				}
-			}
-			if (rq.stream_in ()->end () != 0)
-				throw CORBA::MARSHAL (StreamIn::MARSHAL_MINOR_MORE);
-			ret = make_pseudo <TC_Value> (std::move (id), std::move (name), modifier,
-				std::move (concrete_base), std::move (members));
-		} break;
-
-		case TCKind::tk_value_box: {
-			OctetSeq encap;
-			stream_in_->read_seq (encap);
-			Nirvana::Core::ImplStatic <RequestEncapIn> rq (std::ref (*this), std::ref (encap));
-			TC_Base::String id, name;
-			rq.stream_in ()->read_string (id);
-			rq.stream_in ()->read_string (name);
-			TC_Ref content_type = rq.unmarshal_type_code (map, encap_pos);
-			if (!content_type)
-				throw BAD_TYPECODE ();
-			if (rq.stream_in ()->end () != 0)
-				throw CORBA::MARSHAL (StreamIn::MARSHAL_MINOR_MORE);
-			ret = make_pseudo <TC_ValueBox> (std::move (id), std::move (name), std::move (content_type));
-		} break;
-
-		default:
-			throw BAD_TYPECODE ();
-	}
-
-	map.emplace (start_pos, &ret);
-	if (!parent_offset)
-		top_level_tc_unmarshal_.emplace (start_pos, &ret);
-
-	return ret;
+	TypeCode::_ref_type tc = TC_FactoryImpl::unmarshal_type_code (kind, *stream_in_);
+	top_level_tc_unmarshal_.emplace (start_pos, &TypeCode::_ptr_type (tc));
+	return tc;
 }
 
 void RequestGIOP::marshal_value (Interface::_ptr_type val, bool output)

@@ -62,8 +62,10 @@ public:
 
 	virtual bool mark () NIRVANA_NOEXCEPT override
 	{
-		if (TC_ComplexBase::mark ())
-			content_.mark ();
+		if (!TC_ComplexBase::mark ())
+			return false;
+		content_.mark ();
+		return true;
 	}
 
 	Boolean equal (TypeCode::_ptr_type other) const
@@ -231,6 +233,7 @@ private:
 	{
 		if (!content_)
 			throw BAD_PARAM (MAKE_OMG_MINOR (13)); // Attempt to use an incomplete TypeCode as a parameter.
+		return content_;
 	}
 
 private:

@@ -28,14 +28,13 @@
 namespace CORBA {
 namespace Core {
 
-TC_ArrayBase::TC_ArrayBase (TCKind kind, TC_Ref&& content_type, ULong bound) :
-	TC_Complex <TC_Base> (kind),
-	content_type_ (std::move (content_type)),
-	element_size_ (content_type_->n_size ()),
-	element_align_ (content_type_->n_align ()),
-	bound_ (bound)
+void TC_ArrayBase::set_content_type (TC_Ref&& content_type, ULong bound)
 {
-	TCKind element_kind = TCKind::tk_array == kind
+	content_type_ = std::move (content_type);
+	bound_ = bound;
+	element_size_ = content_type_->n_size ();
+	element_align_ = content_type_->n_align ();
+	TCKind element_kind = TCKind::tk_array == kind_
 		? get_array_kind (content_type_) : content_type_->kind ();
 	switch (element_kind) {
 		case TCKind::tk_char:

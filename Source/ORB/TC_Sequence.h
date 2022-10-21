@@ -43,7 +43,13 @@ public:
 	using Servant::_s_length;
 	using Servant::_s_content_type;
 
-	TC_Sequence (TC_Ref&& content_type, ULong bound);
+	TC_Sequence () :
+		Impl (TCKind::tk_sequence)
+	{}
+
+	TC_Sequence (TC_Ref&& content_type, ULong bound) :
+		Impl (TCKind::tk_sequence, std::move (content_type), bound)
+	{}
 
 	static size_t _s_n_size (Internal::Bridge <TypeCode>*, Internal::Interface*)
 	{

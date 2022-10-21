@@ -28,11 +28,6 @@
 namespace CORBA {
 namespace Core {
 
-TC_Alias::TC_Alias (IDL::String&& id, IDL::String&& name, TC_Ref&& content_type) NIRVANA_NOEXCEPT :
-	Impl (TCKind::tk_alias, std::move (id), std::move (name)),
-	content_type_ (std::move (content_type))
-{}
-
 bool TC_Alias::mark () NIRVANA_NOEXCEPT
 {
 	if (!TC_ComplexBase::mark ())
