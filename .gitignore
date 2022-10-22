@@ -32,7 +32,7 @@
 /Exports/BiDirPolicy_p.cpp
 /Source/ORB/BiDirPolicy.h
 /Source/ORB/BiDirPolicy_s.h
-/Source/ORB/TC_Factory_p.cpp
 /Source/ORB/TC_Factory_s.h
 /Source/ORB/TC_Factory.h
-/Source/ORB/TC_Factory.cpp
+/Exports/TC_Factory.cpp
+/Exports/TC_Factory_p.cpp
