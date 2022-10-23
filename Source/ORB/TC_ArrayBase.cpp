@@ -32,6 +32,14 @@ void TC_ArrayBase::set_content_type (TC_Ref&& content_type, ULong bound)
 {
 	content_type_ = std::move (content_type);
 	bound_ = bound;
+	initialize ();
+}
+
+void TC_ArrayBase::initialize ()
+{
+	if (content_type_.is_recursive ())
+		return;
+
 	element_size_ = content_type_->n_size ();
 	element_align_ = content_type_->n_align ();
 	TCKind element_kind = TCKind::tk_array == kind_
@@ -70,7 +78,8 @@ bool TC_ArrayBase::mark () NIRVANA_NOEXCEPT
 
 bool TC_ArrayBase::set_recursive (const IDL::String& id, const TC_Ref& ref) NIRVANA_NOEXCEPT
 {
-	content_type_.replace_recursive_placeholder (id, ref);
+	if (content_type_.replace_recursive_placeholder (id, ref))
+		initialize ();
 	return false;
 }
 

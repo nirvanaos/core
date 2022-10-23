@@ -42,6 +42,7 @@ class TC_Recursive :
 {
 public:
 	TC_Recursive (IDL::String&& id) :
+		TC_ComplexBase (true),
 		id_ (std::move (id)),
 		ref_cnt_ (1)
 	{}

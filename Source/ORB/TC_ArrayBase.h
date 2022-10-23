@@ -65,9 +65,11 @@ protected:
 	{}
 
 	TC_ArrayBase (TCKind kind, TC_Ref&& content_type, ULong bound) :
-		TC_ArrayBase (kind)
+		TC_Complex <TC_Base> (kind),
+		content_type_ (std::move (content_type)),
+		bound_ (bound)
 	{
-		set_content_type (std::move (content_type), bound);
+		initialize ();
 	}
 
 	virtual bool mark () NIRVANA_NOEXCEPT override;
@@ -75,6 +77,7 @@ protected:
 
 private:
 	static TCKind get_array_kind (TypeCode::_ptr_type tc);
+	void initialize ();
 
 protected:
 	TC_Ref content_type_;

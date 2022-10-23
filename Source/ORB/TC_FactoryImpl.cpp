@@ -83,9 +83,11 @@ void TC_FactoryImpl::check_member_name (NameSet& names, const IDL::String& name)
 	// Operations that take members shall check that the member names are valid IDL names
 	// and that they are unique within the member list, and if the name is found to be incorrect,
 	// they shall raise a BAD_PARAM with standard minor code 17.
-	check_name (name, MAKE_OMG_MINOR (17));
-	if (!names.insert (name).second)
-		throw BAD_PARAM (MAKE_OMG_MINOR (17));
+	if (!name.empty ()) {
+		check_name (name, MAKE_OMG_MINOR (17));
+		if (!names.insert (name).second)
+			throw BAD_PARAM (MAKE_OMG_MINOR (17));
+	}
 }
 
 void TC_FactoryImpl::check_id (const IDL::String& id)
@@ -98,20 +100,27 @@ void TC_FactoryImpl::check_id (const IDL::String& id)
 		throw BAD_PARAM (MAKE_OMG_MINOR (16));
 }
 
-void TC_FactoryImpl::check_type (TypeCode::_ptr_type tc)
+TC_Ref TC_FactoryImpl::check_type (TypeCode::_ptr_type tc) const
 {
 	// Operations that take content or member types as arguments shall check that they are legitimate
 	// (i.e., that they don’t have kinds tk_null, tk_void, or tk_exception). If not, they shall raise
 	// the BAD_TYPECODE exception with standard minor code 2.
-	if (tc)
-		switch (tc->kind ()) {
-			case TCKind::tk_null:
-			case TCKind::tk_void:
-			case TCKind::tk_except:
-				break;
-			default:
-				return;
+	if (tc) {
+		TC_ComplexBase* complex = complex_base (tc);
+		if (complex) {
+			if (complex->is_recursive () || tc->kind () != TCKind::tk_except)
+				return TC_Ref (tc, complex);
+		} else {
+			switch (tc->kind ()) {
+				case TCKind::tk_null:
+				case TCKind::tk_void:
+				case TCKind::tk_except:
+					break;
+				default:
+					return TC_Ref (tc);
+			}
 		}
+	}
 	throw BAD_TYPECODE (MAKE_OMG_MINOR (2));
 }
 
@@ -126,9 +135,8 @@ TypeCode::_ref_type TC_FactoryImpl::create_struct_tc (TCKind kind, RepositoryId&
 		TC_Struct::Member* pm = smembers.begin ();
 		for (StructMember& m : members) {
 			check_member_name (names, m.name ());
-			check_type (m.type ());
 			pm->name = std::move (m.name ());
-			pm->type = TC_Ref (m.type (), complex_base (m.type ()));
+			pm->type = check_type (m.type ());
 			++pm;
 		}
 	}

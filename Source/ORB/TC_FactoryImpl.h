@@ -102,7 +102,6 @@ public:
 		Long default_index = -1;
 		for (auto it = members.begin (); it != members.end (); ++it, ++pm) {
 			check_member_name (names, it->name ());
-			check_type (it->type ());
 
 			// If the TypeCode of a label is not equivalent to the TypeCode of the discriminator (other than
 			// the octet TypeCode to indicate the default label), the operation shall raise BAD_PARAM with
@@ -125,7 +124,7 @@ public:
 
 			pm->label = it->label ();
 			pm->name = std::move (it->name ());
-			pm->type = TC_Ref (it->type (), complex_base (it->type ()));
+			pm->type = check_type (it->type ());
 		}
 		servant_reference <TC_Union> ref = make_reference <TC_Union> (std::move (id), std::move (name),
 			discriminator_type, default_index, std::move (smembers));
@@ -161,8 +160,7 @@ public:
 		if (!id.empty ())
 			check_id (id);
 		check_name (name);
-		check_type (original_type);
-		servant_reference <TC_Alias> ref = make_reference <TC_Alias> (std::move (id), std::move (name), TC_Ref (original_type, complex_base (original_type)));
+		servant_reference <TC_Alias> ref = make_reference <TC_Alias> (std::move (id), std::move (name), check_type (original_type));
 		TypeCode::_ptr_type tc = ref->_get_ptr ();
 		complex_objects_.emplace (&tc, ref);
 		return tc;
@@ -205,9 +203,8 @@ public:
 
 	TypeCode::_ref_type create_sequence_tc (ULong bound, TypeCode::_ptr_type element_type)
 	{
-		check_type (element_type);
 		servant_reference <TC_Sequence> ref = 
-			make_reference <TC_Sequence> (TC_Ref (element_type, complex_base (element_type)), bound);
+			make_reference <TC_Sequence> (check_type (element_type), bound);
 		TypeCode::_ptr_type tc = ref->_get_ptr ();
 		complex_objects_.emplace (&tc, ref);
 		return tc;
@@ -215,9 +212,8 @@ public:
 
 	TypeCode::_ref_type create_array_tc (ULong length, TypeCode::_ptr_type element_type)
 	{
-		check_type (element_type);
 		servant_reference <TC_Array> ref =
-			make_reference <TC_Array> (TC_Ref (element_type, complex_base (element_type)), length);
+			make_reference <TC_Array> (check_type (element_type), length);
 		TypeCode::_ptr_type tc = ref->_get_ptr ();
 		complex_objects_.emplace (&tc, ref);
 		return tc;
@@ -228,6 +224,13 @@ public:
 	{
 		check_id (id);
 		check_name (name);
+		TC_Ref ref_base;
+		if (concrete_base) {
+			if (concrete_base->kind () != TCKind::tk_value
+				|| concrete_base->type_modifier () == VM_ABSTRACT)
+				throw BAD_TYPECODE (MAKE_OMG_MINOR (2));
+			ref_base = TC_Ref (concrete_base, complex_base (concrete_base));
+		}
 		NameSet names;
 		TC_Value::Members smembers;
 		if (members.size ()) {
@@ -235,16 +238,15 @@ public:
 			TC_Value::Member* pm = smembers.begin ();
 			for (ValueMember& m : members) {
 				check_member_name (names, m.name ());
-				check_type (m.type ());
 				pm->name = std::move (m.name ());
-				pm->type = TC_Ref (m.type (), complex_base (m.type ()));
+				pm->type = check_type (m.type ());
 				pm->visibility = m.access ();
 				++pm;
 			}
 		}
 		servant_reference <TC_Value> ref =
 			make_reference <TC_Value> (std::move (id), std::move (name), type_modifier,
-				TC_Ref (concrete_base, complex_base (concrete_base)), std::move (smembers));
+				ref_base, std::move (smembers));
 		TypeCode::_ptr_type tc = ref->_get_ptr ();
 		complex_objects_.emplace (&tc, ref);
 		return tc;
@@ -255,10 +257,8 @@ public:
 	{
 		check_id (id);
 		check_name (name);
-		check_type (boxed_type);
 		servant_reference <TC_ValueBox> ref =
-			make_reference <TC_ValueBox> (std::move (id), std::move (name),
-				TC_Ref (boxed_type, complex_base (boxed_type)));
+			make_reference <TC_ValueBox> (std::move (id), std::move (name), check_type (boxed_type));
 		TypeCode::_ptr_type tc = ref->_get_ptr ();
 		complex_objects_.emplace (&tc, ref);
 		return tc;
@@ -359,7 +359,7 @@ private:
 
 	static void check_id (const IDL::String& id);
 
-	static void check_type (TypeCode::_ptr_type tc);
+	TC_Ref check_type (TypeCode::_ptr_type tc) const;
 
 	TypeCode::_ref_type create_struct_tc (TCKind kind, RepositoryId&& id,
 		Identifier&& name, StructMemberSeq& members);

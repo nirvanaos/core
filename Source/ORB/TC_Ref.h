@@ -66,9 +66,15 @@ public:
 		return false;
 	}
 
+	bool is_recursive () const NIRVANA_NOEXCEPT
+	{
+		return recursive_;
+	}
+
 protected:
-	TC_ComplexBase () :
-		marked_ (false)
+	TC_ComplexBase (bool recursive = false) :
+		marked_ (false),
+		recursive_ (recursive)
 	{}
 
 	virtual ~TC_ComplexBase ()
@@ -78,6 +84,7 @@ protected:
 
 private:
 	bool marked_;
+	bool recursive_;
 };
 
 template <class Base>
@@ -146,10 +153,18 @@ public:
 			complex_->mark ();
 	}
 
-	void replace_recursive_placeholder (const IDL::String& id, const TC_Ref& ref) NIRVANA_NOEXCEPT
+	bool replace_recursive_placeholder (const IDL::String& id, const TC_Ref& ref) NIRVANA_NOEXCEPT
 	{
-		if (complex_ && complex_->set_recursive (id, ref))
+		if (complex_ && complex_->set_recursive (id, ref)) {
 			*this = ref;
+			return true;
+		}
+		return false;
+	}
+
+	bool is_recursive () const NIRVANA_NOEXCEPT
+	{
+		return complex_ && complex_->is_recursive ();
 	}
 
 private:
