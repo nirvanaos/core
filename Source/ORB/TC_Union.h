@@ -77,36 +77,29 @@ public:
 
 	void set_members (Members&& members);
 
-	bool equal (TypeCode::_ptr_type other) const
+	bool equal (TypeCode::_ptr_type other)
 	{
 		if (!TC_IdName::equal (other))
 			return false;
 		if (!discriminator_type_->equal (other))
 			return false;
-		if (members_.size () != other->member_count ())
+		if (!equivalent_members (other))
 			return false;
 		for (ULong i = 0, cnt = (ULong)members_.size (); i < cnt; ++i) {
-			const Member& m = members_ [i];
-			if (!m.type->equal (other->member_type (i)))
-				return false;
-			if (!(m.name == other->member_name (i)))
+			if (members_ [i].name != other->member_name (i))
 				return false;
 		}
 		return true;
 	}
 
-	bool equivalent (TypeCode::_ptr_type other) const
+	bool equivalent (TypeCode::_ptr_type other)
 	{
 		TypeCode::_ptr_type tc = dereference_alias (other);
-		if (!TC_IdName::equivalent_no_alias (tc))
-			return false;
-		if (members_.size () != tc->member_count ())
-			return false;
-		for (ULong i = 0, cnt = (ULong)members_.size (); i < cnt; ++i) {
-			if (!members_ [i].type->equivalent (tc->member_type (i)))
-				return false;
-		}
-		return true;
+		EqResult eq = TypeCodeBase::equivalent_ (kind_, id_, tc);
+		if (EqResult::UNKNOWN != eq)
+			return eq == EqResult::YES;
+
+		return equivalent_members (tc);
 	}
 
 	TypeCode::_ref_type discriminator_type () const NIRVANA_NOEXCEPT
@@ -250,6 +243,8 @@ private:
 		}
 		return default_index_;
 	}
+
+	bool equivalent_members (TypeCode::_ptr_type other);
 
 private:
 	const TypeCode::_ref_type discriminator_type_;

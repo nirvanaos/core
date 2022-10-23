@@ -60,12 +60,12 @@ public:
 		content_type_ = std::move (content_type);
 	}
 
-	bool equal (TypeCode::_ptr_type other) const
+	Boolean equal (TypeCode::_ptr_type other) const
 	{
-		return TC_IdName::equal (other) && content_type_->equal (other->content_type ());
+		return TypeCodeBase::equal (TCKind::tk_alias, id_, name_, content_type_);
 	}
 
-	bool equivalent (TypeCode::_ptr_type other) const
+	Boolean equivalent (TypeCode::_ptr_type other) const
 	{
 		return content_type_->equivalent (other);
 	}

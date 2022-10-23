@@ -65,6 +65,18 @@ public:
 		return Servant::_get_ptr ();
 	}
 
+	Boolean equal (TypeCode::_ptr_type other)
+	{
+		return &Servant::_get_ptr () == &other ||
+			Base::equal (other);
+	}
+
+	Boolean equivalent (TypeCode::_ptr_type other)
+	{
+		return &Servant::_get_ptr () == &other ||
+			Base::equivalent (other);
+	}
+
 protected:
 	template <class ... Args>
 	TC_Impl (Args ... args) :

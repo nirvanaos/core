@@ -37,12 +37,12 @@ namespace Core {
 class TC_StringBase : public TC_Base
 {
 public:
-	bool equal (TypeCode::_ptr_type other) const
+	Boolean equal (TypeCode::_ptr_type other) const
 	{
 		return kind_ == other->kind () && bound_ == other->length ();
 	}
 
-	bool equivalent (TypeCode::_ptr_type other) const
+	Boolean equivalent (TypeCode::_ptr_type other) const
 	{
 		return equal (dereference_alias (other));
 	}

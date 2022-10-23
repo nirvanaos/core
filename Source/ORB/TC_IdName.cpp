@@ -34,15 +34,5 @@ TC_IdName::TC_IdName (TCKind kind, IDL::String&& id, IDL::String&& name) NIRVANA
 	name_ (std::move (name))
 {}
 
-bool TC_IdName::equal (TypeCode::_ptr_type other) const
-{
-	return equivalent_no_alias (other) && name_ == other->name ();
-}
-
-bool TC_IdName::equivalent_no_alias (TypeCode::_ptr_type other) const
-{
-	return kind_ == other->kind () && !id_.empty () && id_ == other->id ();
-}
-
 }
 }

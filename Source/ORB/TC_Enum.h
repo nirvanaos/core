@@ -51,9 +51,12 @@ public:
 
 	TC_Enum (IDL::String&& id, IDL::String&& name, Members&& members) NIRVANA_NOEXCEPT;
 
-	bool equal (TypeCode::_ptr_type other) const
+	Boolean equal (TypeCode::_ptr_type other) const
 	{
 		if (!TC_IdName::equal (other))
+			return false;
+
+		if (other->member_count () != (ULong)members_.size ())
 			return false;
 
 		for (ULong i = 0, cnt = (ULong)members_.size (); i < cnt; ++i) {
@@ -63,10 +66,10 @@ public:
 		return true;
 	}
 
-	bool equivalent (TypeCode::_ptr_type other) const
+	Boolean equivalent (TypeCode::_ptr_type other) const
 	{
-		TypeCode::_ptr_type tc = dereference_alias (other);
-		return TC_IdName::equivalent_no_alias (tc) && members_.size () == tc->member_count ();
+		return TypeCodeBase::equivalent_ (TCKind::tk_enum, id_,
+			(ULong)members_.size (), TypeCodeBase::dereference_alias (other)) != TypeCodeBase::EqResult::NO;
 	}
 
 	ULong member_count () const NIRVANA_NOEXCEPT

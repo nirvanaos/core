@@ -74,25 +74,29 @@ public:
 
 	void set_members (Members&& members);
 
-	bool equal (TypeCode::_ptr_type other) const
+	Boolean equal (TypeCode::_ptr_type other)
 	{
 		if (!TC_IdName::equal (other))
 			return false;
-		if (!equivalent_no_alias (other))
+
+		if (!equivalent_members (other))
 			return false;
+
 		for (ULong i = 0, cnt = (ULong)members_.size (); i < cnt; ++i) {
-			if (!(members_ [i].name == other->member_name (i)))
+			if (other->member_name (i) != members_ [i].name)
 				return false;
 		}
 		return true;
 	}
 
-	bool equivalent (TypeCode::_ptr_type other) const
+	bool equivalent (TypeCode::_ptr_type other)
 	{
 		TypeCode::_ptr_type tc = dereference_alias (other);
-		if (!TC_IdName::equivalent_no_alias (tc))
-			return false;
-		return equivalent_no_alias (tc);
+		EqResult eq = TypeCodeBase::equivalent_ (kind_, id_, tc);
+		if (EqResult::UNKNOWN != eq)
+			return eq == EqResult::YES;
+
+		return equivalent_members (tc);
 	}
 
 	ULong member_count () const NIRVANA_NOEXCEPT
@@ -225,7 +229,7 @@ protected:
 	virtual bool set_recursive (const IDL::String& id, const TC_Ref& ref) NIRVANA_NOEXCEPT override;
 
 private:
-	bool equivalent_no_alias (TypeCode::_ptr_type other) const;
+	bool equivalent_members (TypeCode::_ptr_type other);
 	void byteswap (void* p, size_t count) const;
 
 private:

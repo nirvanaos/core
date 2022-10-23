@@ -62,6 +62,16 @@ public:
 		content_type_ = std::move (content_type);
 	}
 
+	Boolean equal (TypeCode::_ptr_type other) const
+	{
+		return TypeCodeBase::equal (TCKind::tk_value_box, id_, name_, content_type_, other);
+	}
+
+	Boolean equivalent (TypeCode::_ptr_type other) const
+	{
+		return TypeCodeBase::equivalent (TCKind::tk_value_box, id_, content_type_, other);
+	}
+
 	TypeCode::_ref_type content_type () const NIRVANA_NOEXCEPT
 	{
 		return content_type_;

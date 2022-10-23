@@ -37,14 +37,14 @@ namespace Core {
 class TC_ArrayBase : public TC_Complex <TC_Base>
 {
 public:
-	bool equal (TypeCode::_ptr_type other) const
+	Boolean equal (TypeCode::_ptr_type other) const
 	{
-		return TC_Base::kind_ == other->kind () && bound_ == other->length ();
+		return TypeCodeBase::equal (kind_, bound_, content_type_, other);
 	}
 
-	bool equivalent (TypeCode::_ptr_type other) const
+	Boolean equivalent (TypeCode::_ptr_type other) const
 	{
-		return equal (dereference_alias (other));
+		return TypeCodeBase::equivalent (kind_, bound_, content_type_, other);
 	}
 
 	ULong length () const NIRVANA_NOEXCEPT

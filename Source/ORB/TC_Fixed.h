@@ -45,14 +45,14 @@ public:
 		scale_ (scale)
 	{}
 
-	bool equal (TypeCode::_ptr_type other) const
+	Boolean equal (TypeCode::_ptr_type other) const
 	{
 		return TCKind::tk_fixed == other->kind ()
 			&& digits_ == other->fixed_digits ()
 			&& scale_ == other->fixed_scale ();
 	}
 	
-	bool equivalent (TypeCode::_ptr_type other) const
+	Boolean equivalent (TypeCode::_ptr_type other) const
 	{
 		return equal (dereference_alias (other));
 	}
