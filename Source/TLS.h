@@ -55,6 +55,7 @@ public:
 		CORE_TLS_BINDER, ///< Binder context.
 		CORE_TLS_OBJECT_FACTORY, ///< ObjectFactory stateless creation frame.
 		CORE_TLS_PORTABLE_SERVER, ///< PortableServer::Current context.
+		CORE_TLS_TYPE_CODE, ///< ORB::type_code_pair_push ().
 
 		CORE_TLS_COUNT
 	};
