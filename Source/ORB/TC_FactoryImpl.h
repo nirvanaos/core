@@ -59,6 +59,11 @@ class TC_FactoryImpl : public servant_traits <TC_Factory>::Servant <TC_FactoryIm
 	typedef Nirvana::Core::SetUnorderedUnstable <IDL::String> NameSet;
 
 public:
+	~TC_FactoryImpl ()
+	{
+		assert (complex_objects_.empty ());
+	}
+
 	TypeCode::_ref_type create_struct_tc (RepositoryId& id, Identifier& name,
 		StructMemberSeq& members)
 	{

@@ -41,6 +41,8 @@ class RequestOut :
 	public Nirvana::Core::UserObject
 {
 public:
+	unsigned FLAG_PREUNMARSHAL = 8;
+
 	RequestOut (const IOP::ObjectKey& object_key, const IDL::String& operation,
 		unsigned GIOP_minor, unsigned response_flags,
 		IOP::ServiceContextList&& context, Nirvana::Core::CoreRef <StreamOut>&& stream);

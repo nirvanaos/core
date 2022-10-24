@@ -40,12 +40,12 @@ RequestOut::RequestOut (const IOP::ObjectKey& object_key, const IDL::String& ope
 	CoreRef <StreamOut>&& stream) :
 	RequestGIOP (GIOP_minor, true),
 	exec_domain_ (nullptr),
-	id_ (response_flags ? OutgoingRequests::new_request (*this)
+	id_ ((response_flags & 3) ? OutgoingRequests::new_request (*this)
 		: OutgoingRequests::new_request_oneway ())
 {
 	// While request in map, exec_domain_ is not nullptr.
-	// For the oneway requests, exec_domain_ is nullptr.
-	if (response_flags)
+	// For the oneway and async requests, exec_domain_ is nullptr.
+	if ((response_flags & 3) && !(response_flags & IOReference::REQUEST_ASYNC))
 		exec_domain_ = &ExecDomain::current ();
 
 	assert (stream);
