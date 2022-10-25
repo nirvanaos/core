@@ -157,14 +157,14 @@ MemContext* ServantProxyBase::memory () const NIRVANA_NOEXCEPT
 	return mc;
 }
 
-IORequest::_ref_type ServantProxyBase::create_request (OperationIndex op, UShort flags)
+IORequest::_ref_type ServantProxyBase::create_request (OperationIndex op, unsigned flags)
 {
 	if (is_object_op (op))
 		return ProxyManager::create_request (op, flags);
 
 	check_create_request (op, flags);
 
-	UShort response_flags = flags & 3;
+	unsigned response_flags = flags & 3;
 	MemContext* mem = memory ();
 	if (flags & REQUEST_ASYNC)
 		return make_pseudo <RequestLocalImpl <RequestLocalAsync> > (std::ref (*this), op,

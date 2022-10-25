@@ -310,7 +310,7 @@ public:
 	///@}
 
 	/// \returns Response flags.
-	UShort response_flags () const NIRVANA_NOEXCEPT
+	unsigned response_flags () const NIRVANA_NOEXCEPT
 	{
 		return response_flags_;
 	}

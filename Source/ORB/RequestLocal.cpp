@@ -35,7 +35,7 @@ using namespace Internal;
 
 namespace Core {
 
-RequestLocalBase::RequestLocalBase (MemContext* callee_memory, UShort response_flags)
+RequestLocalBase::RequestLocalBase (MemContext* callee_memory, unsigned response_flags)
 NIRVANA_NOEXCEPT :
 	caller_memory_ (&MemContext::current ()),
 	callee_memory_ (callee_memory),
@@ -384,7 +384,7 @@ void RequestLocalBase::invoke ()
 }
 
 RequestLocal::RequestLocal (ProxyManager& proxy, Internal::IOReference::OperationIndex op_idx,
-	Nirvana::Core::MemContext* callee_memory, UShort response_flags) NIRVANA_NOEXCEPT :
+	Nirvana::Core::MemContext* callee_memory, unsigned response_flags) NIRVANA_NOEXCEPT :
 	RequestLocalBase (callee_memory, response_flags),
 	proxy_ (&proxy),
 	op_idx_ (op_idx)

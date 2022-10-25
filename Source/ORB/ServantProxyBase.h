@@ -44,7 +44,7 @@ class ServantProxyBase :
 {
 	class GC;
 public:
-	virtual Internal::IORequest::_ref_type create_request (OperationIndex op, UShort flags) override;
+	virtual Internal::IORequest::_ref_type create_request (OperationIndex op, unsigned flags) override;
 
 	/// Returns synchronization context for the target object.
 	Nirvana::Core::SyncContext& sync_context () const NIRVANA_NOEXCEPT

@@ -465,7 +465,7 @@ public:
 
 	///@}
 
-	UShort response_flags () const NIRVANA_NOEXCEPT
+	unsigned response_flags () const NIRVANA_NOEXCEPT
 	{
 		return response_flags_;
 	}
@@ -485,7 +485,7 @@ protected:
 		EXCEPTION
 	};
 
-	RequestLocalBase (Nirvana::Core::MemContext* callee_memory, UShort response_flags)
+	RequestLocalBase (Nirvana::Core::MemContext* callee_memory, unsigned response_flags)
 		NIRVANA_NOEXCEPT;
 
 	Nirvana::Core::MemContext& target_memory ();
@@ -584,7 +584,7 @@ class NIRVANA_NOVTABLE RequestLocal :
 {
 protected:
 	RequestLocal (ProxyManager& proxy, Internal::IOReference::OperationIndex op_idx,
-		Nirvana::Core::MemContext* callee_memory, UShort response_flags) NIRVANA_NOEXCEPT;
+		Nirvana::Core::MemContext* callee_memory, unsigned response_flags) NIRVANA_NOEXCEPT;
 
 	ProxyManager* proxy () const NIRVANA_NOEXCEPT
 	{
@@ -611,7 +611,7 @@ class NIRVANA_NOVTABLE RequestLocalAsync :
 	typedef RequestLocal Base;
 protected:
 	RequestLocalAsync (ProxyManager& proxy, Internal::IOReference::OperationIndex op_idx,
-		Nirvana::Core::MemContext* callee_memory, UShort response_flags) NIRVANA_NOEXCEPT :
+		Nirvana::Core::MemContext* callee_memory, unsigned response_flags) NIRVANA_NOEXCEPT :
 		RequestLocal (proxy, op_idx, callee_memory, response_flags),
 		exec_domain_ (nullptr)
 	{}

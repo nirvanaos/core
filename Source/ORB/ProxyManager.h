@@ -80,7 +80,7 @@ public:
 		return static_cast <Internal::Bridge <AbstractBase>*> (this);
 	}
 
-	virtual Internal::IORequest::_ref_type create_request (OperationIndex op, UShort flags);
+	virtual Internal::IORequest::_ref_type create_request (OperationIndex op, unsigned flags);
 
 	// Get Object proxy
 	Object::_ptr_type get_proxy () NIRVANA_NOEXCEPT
@@ -238,7 +238,7 @@ public:
 		return op.interface_idx () == 0 && op.operation_idx () != (UShort)ObjectOp::NON_EXISTENT;
 	}
 
-	void check_create_request (OperationIndex op, UShort flags) const;
+	void check_create_request (OperationIndex op, unsigned flags) const;
 
 	virtual ReferenceRef get_reference () = 0;
 

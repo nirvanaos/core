@@ -195,7 +195,7 @@ void ReferenceLocal::marshal (StreamOut& out) const
 	out.write_tagged (addr);
 }
 
-IORequest::_ref_type ReferenceLocal::create_request (OperationIndex op, UShort flags)
+IORequest::_ref_type ReferenceLocal::create_request (OperationIndex op, unsigned flags)
 {
 	if (is_object_op (op))
 		return ProxyManager::create_request (op, flags);
@@ -206,7 +206,7 @@ IORequest::_ref_type ReferenceLocal::create_request (OperationIndex op, UShort f
 
 	check_create_request (op, flags);
 
-	UShort response_flags = flags & 3;
+	unsigned response_flags = flags & 3;
 	if (flags & REQUEST_ASYNC)
 		return make_pseudo <RequestLocalImpl <RequestLocalAsyncPOA> > (std::ref (*this), op,
 			response_flags);

@@ -308,10 +308,10 @@ IOReference::OperationIndex ProxyManager::find_operation (String_in name) const
 	throw BAD_OPERATION (MAKE_OMG_MINOR (2));
 }
 
-IORequest::_ref_type ProxyManager::create_request (OperationIndex op, UShort flags)
+IORequest::_ref_type ProxyManager::create_request (OperationIndex op, unsigned flags)
 {
 	assert (is_object_op (op));
-	UShort response_flags = flags & 3;
+	unsigned response_flags = flags & 3;
 	if (response_flags == 2)
 		throw INV_FLAG ();
 
@@ -328,7 +328,7 @@ IORequest::_ref_type ProxyManager::create_request (OperationIndex op, UShort fla
 			memory, response_flags);
 }
 
-void ProxyManager::check_create_request (OperationIndex op, UShort flags) const
+void ProxyManager::check_create_request (OperationIndex op, unsigned flags) const
 {
 	if ((flags & 3) == 2)
 		throw INV_FLAG ();

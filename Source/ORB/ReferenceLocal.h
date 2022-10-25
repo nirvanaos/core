@@ -78,7 +78,7 @@ public:
 
 private:
 	virtual void marshal (StreamOut& out) const override;
-	virtual Internal::IORequest::_ref_type create_request (OperationIndex op, UShort flags) override;
+	virtual Internal::IORequest::_ref_type create_request (OperationIndex op, unsigned flags) override;
 
 private:
 	const PortableServer::Core::ObjectKey& object_key_;

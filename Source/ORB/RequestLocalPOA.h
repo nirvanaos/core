@@ -47,7 +47,7 @@ public:
 
 protected:
 	RequestLocalPOA (ReferenceLocal& reference, Internal::IOReference::OperationIndex op,
-		UShort response_flags);
+		unsigned response_flags);
 
 	virtual void set_exception (Any& e) override
 	{
@@ -79,7 +79,7 @@ class NIRVANA_NOVTABLE RequestLocalAsyncPOA :
 {
 protected:
 	RequestLocalAsyncPOA (ReferenceLocal& reference, Internal::IOReference::OperationIndex op,
-		UShort response_flags) :
+		unsigned response_flags) :
 		RequestLocalPOA (reference, op, response_flags)
 	{}
 
