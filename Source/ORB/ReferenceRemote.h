@@ -41,8 +41,8 @@ class ReferenceRemote :
 	public Reference
 {
 public:
-	ReferenceRemote (servant_reference <Domain>&& domain, const IOP::TaggedProfileSeq& addr,
-		const IDL::String& primary_iid, unsigned flags);
+	ReferenceRemote (servant_reference <Domain>&& domain, const IOP::ObjectKey& key,
+		const IOP::TaggedProfileSeq& addr, const IDL::String& primary_iid, unsigned flags);
 	~ReferenceRemote ();
 
 protected:
@@ -52,7 +52,8 @@ protected:
 
 private:
 	servant_reference <Domain> domain_;
-	const IOP::TaggedProfileSeq& address_;
+	const IOP::ObjectKey& object_key_;
+	const IOP::TaggedProfileSeq address_;
 };
 
 }

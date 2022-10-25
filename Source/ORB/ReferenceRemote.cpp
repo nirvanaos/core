@@ -32,9 +32,11 @@ using namespace Nirvana::Core;
 namespace CORBA {
 namespace Core {
 
-ReferenceRemote::ReferenceRemote (servant_reference <Domain>&& domain, const IOP::TaggedProfileSeq& addr, const IDL::String& primary_iid, unsigned flags) :
+ReferenceRemote::ReferenceRemote (servant_reference <Domain>&& domain, const IOP::ObjectKey& key,
+	const IOP::TaggedProfileSeq& addr, const IDL::String& primary_iid, unsigned flags) :
 	Reference (primary_iid, flags),
 	domain_ (std::move (domain)),
+	object_key_ (key),
 	address_ (addr)
 {}
 
@@ -52,7 +54,7 @@ void ReferenceRemote::_remove_ref () NIRVANA_NOEXCEPT
 		RemoteReferences& service = static_cast <RemoteReferences&> (domain_->service ());
 		SyncContext& sc = service.sync_domain ();
 		if (&SyncContext::current () == &sc)
-			service.erase (address_);
+			service.erase (object_key_);
 		else
 			GarbageCollector::schedule (*this, sc);
 	}

@@ -217,13 +217,13 @@ Interface::_ref_type RequestGIOP::unmarshal_interface (const IDL::String& interf
 				if (!domain_found)
 					throw INV_OBJREF ();
 				if (ESIOP::current_domain_id () != domain_id)
-					obj = RemoteReferences::singleton ().unmarshal (primary_iid, std::move (addr), flags, domain_id);
+					obj = RemoteReferences::singleton ().unmarshal (domain_id, std::move (object_key), primary_iid, std::move (addr), flags);
 				else
 #endif
 					obj = PortableServer::Core::POA_Root::unmarshal (primary_iid, object_key);
 			}
 		} else
-			obj = RemoteReferences::singleton ().unmarshal (primary_iid, std::move (addr), flags, std::move (listen_point));
+			obj = RemoteReferences::singleton ().unmarshal (std::move (listen_point), std::move (object_key), primary_iid, std::move (addr), flags);
 	}
 	if (RepId::compatible (RepIdOf <Object>::id, interface_id))
 		return obj;

@@ -28,20 +28,6 @@
 
 namespace std {
 
-size_t hash <IOP::TaggedProfileSeq>::operator () (const IOP::TaggedProfileSeq& seq) const
-NIRVANA_NOEXCEPT
-{
-	size_t size = seq.size ();
-	size_t h = Nirvana::Hash::hash_bytes (&size, sizeof (size));
-	for (const IOP::TaggedProfile& profile : seq) {
-		IOP::ProfileId tag = profile.tag ();
-		h = Nirvana::Hash::append_bytes (h, &tag, sizeof (tag));
-		h = Nirvana::Hash::append_bytes (h, profile.profile_data ().data (),
-			profile.profile_data ().size ());
-	}
-	return h;
-}
-
 size_t hash <IIOP::ListenPoint>::operator () (const IIOP::ListenPoint& lp) const NIRVANA_NOEXCEPT
 {
 	size_t h = Nirvana::Hash::hash_bytes (lp.host ().data (), lp.host ().size ());
@@ -55,9 +41,9 @@ namespace CORBA {
 namespace Core {
 
 std::pair <RemoteReferences::References::iterator, bool> RemoteReferences::emplace_reference (
-	IOP::TaggedProfileSeq&& addr)
+	IOP::ObjectKey&& key)
 {
-	return references_.emplace (std::move (addr), Reference::DEADLINE_MAX);
+	return references_.emplace (std::move (key), Reference::DEADLINE_MAX);
 }
 
 }

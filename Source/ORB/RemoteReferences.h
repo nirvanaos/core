@@ -32,26 +32,11 @@
 #include "ReferenceRemote.h"
 #include "DomainsLocal.h"
 #include "DomainRemote.h"
+#include "HashOctetSeq.h"
 #include <CORBA/IOP.h>
 #include <CORBA/I_var.h>
 
-namespace IOP {
-
-inline
-bool operator == (const TaggedProfile& l, const TaggedProfile& r) NIRVANA_NOEXCEPT
-{
-	return l.tag () == r.tag () && l.profile_data () == r.profile_data ();
-}
-
-}
-
 namespace std {
-
-template <>
-struct hash <IOP::TaggedProfileSeq>
-{
-	size_t operator () (const IOP::TaggedProfileSeq& seq) const NIRVANA_NOEXCEPT;
-};
 
 template <>
 struct hash <IIOP::ListenPoint>
@@ -78,7 +63,7 @@ class RemoteReferences :
 {
 	typedef std::unique_ptr <ReferenceRemote> RefPtr;
 	typedef Nirvana::Core::WaitableRef <RefPtr> RefVal;
-	typedef IOP::TaggedProfileSeq RefKey;
+	typedef IOP::ObjectKey RefKey;
 	typedef Nirvana::Core::MapUnorderedStable <RefKey, RefVal, std::hash <RefKey>,
 		std::equal_to <RefKey>, Nirvana::Core::UserAllocator <std::pair <RefKey, RefVal> > >
 		References;
@@ -90,14 +75,14 @@ public:
 	}
 
 	template <typename DomainKey>
-	Object::_ref_type unmarshal (const IDL::String& iid, IOP::TaggedProfileSeq&& addr, unsigned flags, DomainKey domain)
+	Object::_ref_type unmarshal (DomainKey domain, IOP::ObjectKey&& key, const IDL::String& iid, IOP::TaggedProfileSeq&& addr, unsigned flags)
 	{
 		SYNC_BEGIN (sync_domain (), nullptr)
-			auto ins = emplace_reference (std::move (addr));
+			auto ins = emplace_reference (std::move (key));
 			References::reference entry = *ins.first;
 			if (ins.second) {
 				try {
-					RefPtr p (new ReferenceRemote (get_domain_sync (std::move (domain)), ins.first->first, iid, flags));
+					RefPtr p (new ReferenceRemote (get_domain_sync (std::move (domain)), ins.first->first, std::move (addr), iid, flags));
 					Internal::I_var <Object> ret (p->get_proxy ());
 					entry.second.finish_construction (std::move (p));
 					return ret;
@@ -139,7 +124,7 @@ public:
 #endif
 
 private:
-	std::pair <References::iterator, bool> emplace_reference (IOP::TaggedProfileSeq&& addr);
+	std::pair <References::iterator, bool> emplace_reference (IOP::ObjectKey&& key);
 
 #ifndef SINGLE_DOMAIN
 	servant_reference <DomainLocal> get_domain_sync (ESIOP::ProtDomainId id)
