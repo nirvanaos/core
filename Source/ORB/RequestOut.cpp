@@ -38,7 +38,7 @@ namespace Core {
 RequestOut::RequestOut (const IOP::ObjectKey& object_key, const IDL::String& operation,
 	unsigned GIOP_minor, unsigned response_flags, IOP::ServiceContextList&& context,
 	CoreRef <StreamOut>&& stream, IdPolicy id_policy) :
-	RequestGIOP (GIOP_minor, true),
+	RequestGIOP (GIOP_minor, true, response_flags),
 	exec_domain_ (nullptr),
 	id_ ((response_flags & 3) ? OutgoingRequests::new_request (*this, id_policy)
 		: OutgoingRequests::new_request_oneway (id_policy))

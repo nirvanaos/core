@@ -229,9 +229,11 @@ public:
 	/// \returns Interface.
 	virtual Internal::Interface::_ref_type unmarshal_interface (const IDL::String& interface_id);
 
+private:
 	typedef Nirvana::Core::MapUnorderedUnstable <void*, size_t> IndirectMapMarshal;
-	void marshal_type_code (TypeCode::_ptr_type tc, IndirectMapMarshal& map, size_t parent_offset);
+	static void marshal_type_code (StreamOut& stream, TypeCode::_ptr_type tc, IndirectMapMarshal& map, size_t parent_offset);
 
+public:
 	/// Marshal TypeCode.
 	/// 
 	/// \param tc TypeCode.
@@ -241,7 +243,7 @@ public:
 			return;
 
 		IndirectMapMarshal map;
-		marshal_type_code (tc, map, 0);
+		marshal_type_code (*stream_out_, tc, map, 0);
 	}
 
 	/// Unmarshal TypeCode.
@@ -363,8 +365,7 @@ public:
 
 	///@}
 
-	virtual ~RequestGIOP ()
-	{}
+	~RequestGIOP ();
 
 	///@{
 	/// API for code set converters.
@@ -392,7 +393,7 @@ public:
 	///@}
 
 protected:
-	RequestGIOP (unsigned GIOP_minor, bool client_side);
+	RequestGIOP (unsigned GIOP_minor, bool client_side, unsigned response_flags);
 	RequestGIOP (const RequestGIOP& src);
 
 	virtual bool marshal_op () = 0;

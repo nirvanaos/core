@@ -25,7 +25,6 @@
 */
 #include "RequestIn.h"
 #include "IncomingRequests.h"
-#include "RequestEncapIn.h"
 #include "IIOP.h"
 #include "ProxyObject.h"
 
@@ -39,7 +38,7 @@ using namespace Internal;
 namespace Core {
 
 RequestIn::RequestIn (const DomainAddress& client, unsigned GIOP_minor, CoreRef <StreamIn>&& in) :
-	RequestGIOP (GIOP_minor, false),
+	RequestGIOP (GIOP_minor, false, 0),
 	key_ (client),
 	GIOP_minor_ (GIOP_minor),
 	map_iterator_ (nullptr),

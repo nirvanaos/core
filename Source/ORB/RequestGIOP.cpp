@@ -23,8 +23,8 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "RequestEncapIn.h"
-#include "RequestEncapOut.h"
+#include "RequestGIOP.h"
+#include "StreamOutEncap.h"
 #include "TC_FactoryImpl.h"
 #include "../Binder.h"
 #include <list>
@@ -38,16 +38,21 @@ using namespace Internal;
 
 namespace Core {
 
-RequestGIOP::RequestGIOP (unsigned GIOP_minor, bool client_side) :
+RequestGIOP::RequestGIOP (unsigned GIOP_minor, bool client_side, unsigned response_flags) :
+	response_flags_ (response_flags),
 	code_set_conv_ (CodeSetConverter::get_default ()),
 	code_set_conv_w_ (CodeSetConverterW::get_default (GIOP_minor, client_side)),
 	chunk_level_ (0)
 {}
 
 RequestGIOP::RequestGIOP (const RequestGIOP& src) :
+	response_flags_ (src.response_flags_),
 	code_set_conv_ (src.code_set_conv_),
 	code_set_conv_w_ (src.code_set_conv_w_),
 	chunk_level_ (0)
+{}
+
+RequestGIOP::~RequestGIOP ()
 {}
 
 void RequestGIOP::set_out_size ()
@@ -231,10 +236,10 @@ Interface::_ref_type RequestGIOP::unmarshal_interface (const IDL::String& interf
 		return obj->_query_interface (interface_id);
 }
 
-void RequestGIOP::marshal_type_code (TypeCode::_ptr_type tc, IndirectMapMarshal& map, size_t parent_offset)
+void RequestGIOP::marshal_type_code (StreamOut& stream, TypeCode::_ptr_type tc, IndirectMapMarshal& map, size_t parent_offset)
 {
 	if (!tc) {
-		stream_out_->write32 (0);
+		stream.write32 (0);
 		return;
 	}
 
@@ -265,94 +270,96 @@ void RequestGIOP::marshal_type_code (TypeCode::_ptr_type tc, IndirectMapMarshal&
 
 	const TCKind* f = std::lower_bound (simple_types, std::end (simple_types), (TCKind)kind);
 	if (f != std::end (simple_types) && *f == (TCKind)kind) {
-		stream_out_->write32 (kind);
+		stream.write32 (kind);
 		return;
 	}
 
 	switch ((TCKind)kind) {
 		case TCKind::tk_string:
 		case TCKind::tk_wstring:
-			stream_out_->write32 (kind);
-			stream_out_->write32 (tc->length ());
+			stream.write32 (kind);
+			stream.write32 (tc->length ());
 			return;
 
 		case TCKind::tk_fixed: {
-			stream_out_->write32 (kind);
+			stream.write32 (kind);
 
 			struct
 			{
 				UShort d;
 				Short s;
 			} ds { tc->fixed_digits (), tc->fixed_scale () };
-			stream_out_->write_c (2, 4, &ds);
+			stream.write_c (2, 4, &ds);
 		} return;
 	}
 
-	size_t off = stream_out_->size () + parent_offset - 4;
-	auto ins = map.emplace (&tc, off);
-	if (!ins.second) {
-		stream_out_->write32 (INDIRECTION_TAG);
-		Long offset = (Long)(ins.first->second - (off + 4));
-		stream_out_->write32 (offset);
-		return;
+	{
+		size_t pos = stream.size () + parent_offset - 4;
+		auto ins = map.emplace (&tc, pos);
+		if (!ins.second) {
+			stream.write32 (INDIRECTION_TAG);
+			Long offset = (Long)(ins.first->second - (pos + 4));
+			stream.write32 (offset);
+			return;
+		}
 	}
 
+	size_t next_pos = parent_offset + stream.size () + 4;
 	switch ((TCKind)kind) {
 		case TCKind::tk_objref:
 		case TCKind::tk_native:
 		case TCKind::tk_abstract_interface:
 		case TCKind::tk_local_interface: {
-			Nirvana::Core::ImplStatic <StreamOutEncap> encap;
+			ImplStatic <StreamOutEncap> encap;
 			encap.write_id_name (tc);
-			stream_out_->write_seq (encap.data (), true);
+			stream.write_seq (encap.data (), true);
 		} break;
 
 		case TCKind::tk_struct:
 		case TCKind::tk_except: {
-			size_t off = parent_offset + stream_out_->size () + 4;
-			Nirvana::Core::ImplStatic <RequestEncapOut> encap (std::ref (*this));
-			encap.stream_out ()->write_id_name (tc);
+			ImplStatic <StreamOutEncap> encap;
+			encap.write_id_name (tc);
 			ULong cnt = tc->member_count ();
-			encap.stream_out ()->write32 (cnt);
+			encap.write32 (cnt);
 			for (ULong i = 0; i < cnt; ++i) {
 				IDL::String name = tc->member_name (i);
-				encap.stream_out ()->write_string (name, true);
-				encap.marshal_type_code (tc->member_type (i), map, off);
+				encap.write_string (name, true);
+				marshal_type_code (encap, tc->member_type (i), map, next_pos);
 			}
-			stream_out_->write_seq (encap.data (), true);
+			stream.write_seq (encap.data (), true);
 		} break;
 
 		case TCKind::tk_union: {
-			size_t off = parent_offset + stream_out_->size () + 4;
-			Nirvana::Core::ImplStatic <RequestEncapOut> encap (std::ref (*this));
-			encap.stream_out ()->write_id_name (tc);
+			ImplStatic <StreamOutEncap> encap;
+			encap.write_id_name (tc);
 			TypeCode::_ref_type discriminator_type = tc->discriminator_type ();
-			encap.marshal_type_code (tc->discriminator_type (), map, off);
+			marshal_type_code (encap, discriminator_type, map, next_pos);
+			size_t discriminator_size = discriminator_type->n_size ();
 			Long default_index = tc->default_index ();
-			encap.stream_out ()->write_c (alignof (long), sizeof (long), &default_index);
+			encap.write_c (alignof (long), sizeof (long), &default_index);
 			ULong cnt = tc->member_count ();
-			encap.stream_out ()->write32 (cnt);
+			encap.write32 (cnt);
 			for (ULong i = 0; i < cnt; ++i) {
 				if (i != default_index) {
 					Any label = tc->member_label (i);
-					discriminator_type->n_marshal_in (label.data (), 1, encap._get_ptr ());
+					encap.write_c (discriminator_size, discriminator_size, label.data ());
 				} else {
 					// The discriminant value used in the actual typecode parameter associated with the default
 					// member position in the list, may be any valid value of the discriminant type, and has no
 					// semantic significance (i.e., it should be ignored and is only included for syntactic
 					// completeness of union type code marshaling).
 					ULongLong def = 0;
-					discriminator_type->n_marshal_in (&def, 1, encap._get_ptr ());
+					encap.write_c (discriminator_size, discriminator_size, &def);
 				}
 				IDL::String name = tc->member_name (i);
-				encap.stream_out ()->write_string (name, true);
-				encap.marshal_type_code (tc->member_type (i), map, off);
+				encap.write_string (name, true);
+				marshal_type_code (encap, tc->member_type (i), map, next_pos);
 			}
-			stream_out_->write_seq (encap.data (), true);
+			stream.write_seq (encap.data (), true);
 		} break;
 
 		case TCKind::tk_enum: {
-			Nirvana::Core::ImplStatic <StreamOutEncap> encap;
+			ImplStatic <StreamOutEncap> encap;
 			encap.write_id_name (tc);
 			ULong cnt = tc->member_count ();
 			encap.write32 (cnt);
@@ -360,48 +367,47 @@ void RequestGIOP::marshal_type_code (TypeCode::_ptr_type tc, IndirectMapMarshal&
 				IDL::String name = tc->member_name (i);
 				encap.write_string (name, true);
 			}
-			stream_out_->write_seq (encap.data (), true);
+			stream.write_seq (encap.data (), true);
 		} break;
 
 		case TCKind::tk_sequence:
 		case TCKind::tk_array: {
-			Nirvana::Core::ImplStatic <RequestEncapOut> encap (std::ref (*this));
-			encap.marshal_type_code (tc->content_type (), map, parent_offset + stream_out_->size () + 4);
-			encap.stream_out ()->write32 (tc->length ());
-			stream_out_->write_seq (encap.data (), true);
+			ImplStatic <StreamOutEncap> encap;
+			marshal_type_code (encap, tc->content_type (), map, next_pos);
+			encap.write32 (tc->length ());
+			stream.write_seq (encap.data (), true);
 		} break;
 
 		case TCKind::tk_alias: {
-			Nirvana::Core::ImplStatic <RequestEncapOut> encap (std::ref (*this));
-			encap.stream_out ()->write_id_name (tc);
-			encap.marshal_type_code (tc->content_type (), map, parent_offset + stream_out_->size () + 4);
-			stream_out_->write_seq (encap.data (), true);
+			ImplStatic <StreamOutEncap> encap;
+			encap.write_id_name (tc);
+			marshal_type_code (encap, tc->content_type (), map, next_pos);
+			stream.write_seq (encap.data (), true);
 		} break;
 
 		case TCKind::tk_value: {
-			size_t off = parent_offset + stream_out_->size () + 4;
-			Nirvana::Core::ImplStatic <RequestEncapOut> encap (std::ref (*this));
-			encap.stream_out ()->write_id_name (tc);
+			ImplStatic <StreamOutEncap> encap;
+			encap.write_id_name (tc);
 			ValueModifier mod = tc->type_modifier ();
-			encap.stream_out ()->write_c (alignof (ValueModifier), sizeof (ValueModifier), &mod);
-			encap.marshal_type_code (tc->concrete_base_type (), map, off);
+			encap.write_c (alignof (ValueModifier), sizeof (ValueModifier), &mod);
+			marshal_type_code (encap, tc->concrete_base_type (), map, next_pos);
 			ULong cnt = tc->member_count ();
-			encap.stream_out ()->write32 (cnt);
+			encap.write32 (cnt);
 			for (ULong i = 0; i < cnt; ++i) {
 				IDL::String name = tc->member_name (i);
-				encap.stream_out ()->write_string (name, true);
-				encap.marshal_type_code (tc->member_type (i), map, off);
+				encap.write_string (name, true);
+				marshal_type_code (encap, tc->member_type (i), map, next_pos);
 				Visibility vis = tc->member_visibility (i);
-				encap.stream_out ()->write_c (alignof (Visibility), sizeof (Visibility), &vis);
+				encap.write_c (alignof (Visibility), sizeof (Visibility), &vis);
 			}
-			stream_out_->write_seq (encap.data (), true);
+			stream.write_seq (encap.data (), true);
 		} break;
 
 		case TCKind::tk_value_box: {
-			Nirvana::Core::ImplStatic <RequestEncapOut> encap (std::ref (*this));
-			encap.stream_out ()->write_id_name (tc);
-			encap.marshal_type_code (tc->content_type (), map, parent_offset + stream_out_->size () + 4);
-			stream_out_->write_seq (encap.data (), true);
+			ImplStatic <StreamOutEncap> encap;
+			encap.write_id_name (tc);
+			marshal_type_code (encap, tc->content_type (), map, next_pos);
+			stream.write_seq (encap.data (), true);
 		} break;
 
 		default:
