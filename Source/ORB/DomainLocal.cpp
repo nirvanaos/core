@@ -24,13 +24,23 @@
 *  popov.nirvana@gmail.com
 */
 #include "RemoteReferences.h"
+#include "RequestOut.h"
 
 namespace CORBA {
+
+using namespace Internal;
+
 namespace Core {
 
 void DomainLocal::destroy () NIRVANA_NOEXCEPT
 {
 	static_cast <RemoteReferences&> (service ()).erase (id_);
+}
+
+IORequest::_ref_type DomainLocal::create_request (const IOP::ObjectKey& object_key,
+	IDL::String operation, unsigned flags)
+{
+	throw NO_IMPLEMENT ();
 }
 
 }

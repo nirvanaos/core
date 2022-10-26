@@ -37,11 +37,11 @@ namespace Core {
 
 RequestOut::RequestOut (const IOP::ObjectKey& object_key, const IDL::String& operation,
 	unsigned GIOP_minor, unsigned response_flags, IOP::ServiceContextList&& context,
-	CoreRef <StreamOut>&& stream) :
+	CoreRef <StreamOut>&& stream, IdPolicy id_policy) :
 	RequestGIOP (GIOP_minor, true),
 	exec_domain_ (nullptr),
-	id_ ((response_flags & 3) ? OutgoingRequests::new_request (*this)
-		: OutgoingRequests::new_request_oneway ())
+	id_ ((response_flags & 3) ? OutgoingRequests::new_request (*this, id_policy)
+		: OutgoingRequests::new_request_oneway (id_policy))
 {
 	// While request in map, exec_domain_ is not nullptr.
 	// For the oneway and async requests, exec_domain_ is nullptr.

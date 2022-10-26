@@ -26,11 +26,20 @@
 #include "RemoteReferences.h"
 
 namespace CORBA {
+
+using namespace Internal;
+
 namespace Core {
 
 void DomainRemote::destroy () NIRVANA_NOEXCEPT
 {
 	static_cast <RemoteReferences&> (service ()).erase (*this);
+}
+
+IORequest::_ref_type DomainRemote::create_request (const IOP::ObjectKey& object_key,
+	IDL::String operation, unsigned flags)
+{
+	throw NO_IMPLEMENT ();
 }
 
 }

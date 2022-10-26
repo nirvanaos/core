@@ -55,7 +55,6 @@ class NIRVANA_NOVTABLE RequestGIOP :
 
 	static const size_t CHUNK_SIZE_LIMIT = 0x10000;
 
-protected:
 public:
 	///@{
 	/// Marshal/unmarshal data that meet the common data representation.

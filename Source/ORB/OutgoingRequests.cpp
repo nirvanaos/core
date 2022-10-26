@@ -32,17 +32,17 @@ using namespace Nirvana::Core;
 namespace CORBA {
 namespace Core {
 
-StaticallyAllocated <OutgoingRequests::RequestMap> OutgoingRequests::map_;
-StaticallyAllocated <OutgoingRequests::IdGen> OutgoingRequests::last_id_;
+StaticallyAllocated <OutgoingRequests> OutgoingRequests::singleton_;
 
-void OutgoingRequests::reply (uint32_t request_id, CoreRef <StreamIn>&& data)
+servant_reference <RequestOut> OutgoingRequests::remove_request_internal (uint32_t request_id) NIRVANA_NOEXCEPT
 {
-	RequestMap::NodeVal* p = map_->find_and_delete (request_id);
-	assert (p);
+	RequestMap::NodeVal* p = map_.find_and_delete (request_id);
+	servant_reference <RequestOut> ret;
 	if (p) {
-		p->value ().request->reply (std::move (data));
-		map_->release_node (p);
+		ret = std::move (p->value ().request);
+		map_.release_node (p);
 	}
+	return ret;
 }
 
 }

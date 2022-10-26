@@ -41,11 +41,20 @@ class RequestOut :
 	public Nirvana::Core::UserObject
 {
 public:
-	unsigned FLAG_PREUNMARSHAL = 8;
+	static const unsigned FLAG_PREUNMARSHAL = 8;
+
+	enum class IdPolicy
+	{
+		ANY,
+		EVEN,
+		ODD
+	};
 
 	RequestOut (const IOP::ObjectKey& object_key, const IDL::String& operation,
 		unsigned GIOP_minor, unsigned response_flags,
-		IOP::ServiceContextList&& context, Nirvana::Core::CoreRef <StreamOut>&& stream);
+		IOP::ServiceContextList&& context, Nirvana::Core::CoreRef <StreamOut>&& stream,
+		IdPolicy id_policy = IdPolicy::ANY);
+
 	~RequestOut ();
 
 	uint32_t id () const NIRVANA_NOEXCEPT

@@ -25,11 +25,14 @@
 */
 #include "RemoteReferences.h"
 #include "Domain.h"
-#include "StreamOut.h"
+#include "RequestOut.h"
 
 using namespace Nirvana::Core;
 
 namespace CORBA {
+
+using namespace Internal;
+
 namespace Core {
 
 ReferenceRemote::ReferenceRemote (servant_reference <Domain>&& domain, const IOP::ObjectKey& key,
@@ -64,6 +67,21 @@ void ReferenceRemote::marshal (StreamOut& out) const
 {
 	out.write_string_c (primary_interface_id ());
 	out.write_tagged (address_);
+}
+
+IORequest::_ref_type ReferenceRemote::create_request (OperationIndex op, unsigned flags)
+{
+	if (is_object_op (op))
+		return ProxyManager::create_request (op, flags);
+
+	check_create_request (op, flags);
+
+	const Operation& metadata = operation_metadata (op);
+
+	if (metadata.flags & Operation::FLAG_OUT_OBJ)
+		flags |= RequestOut::FLAG_PREUNMARSHAL;
+
+	return domain_->create_request (object_key_, metadata.name, flags);
 }
 
 }

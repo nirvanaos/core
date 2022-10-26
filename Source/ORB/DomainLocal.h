@@ -49,8 +49,11 @@ public:
 	~DomainLocal ()
 	{}
 
+	virtual Internal::IORequest::_ref_type create_request (const IOP::ObjectKey& object_key,
+		IDL::String operation, unsigned flags) override;
+
 protected:
-	virtual void destroy () NIRVANA_NOEXCEPT;
+	virtual void destroy () NIRVANA_NOEXCEPT override;
 
 private:
 	ESIOP::ProtDomainId id_;
