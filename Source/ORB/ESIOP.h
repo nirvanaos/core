@@ -45,7 +45,7 @@ enum MessageType
 	REPLY_IMMEDIATE, ///< GIOP Reply with small data
 	REPLY_SYSTEM_EXCEPTION, ///< GIOP Reply with system exception
 	CANCEL_REQUEST, ///< GIOP CancelRequest
-	LOCATE_REPLY, ///< GIOP LocateReply
+	LOCATE_REPLY, ///< GIOP LocateReply - currently unused
 
 	/// Number of the ESIOP messages.
 	/// Host system may add own message types.
@@ -57,10 +57,10 @@ struct MessageHeader
 {
 	uint8_t message_type;  ///< Message type
 
-	MessageHeader ()
+	MessageHeader () NIRVANA_NOEXCEPT
 	{}
 
-	MessageHeader (uint8_t type) :
+	MessageHeader (uint8_t type) NIRVANA_NOEXCEPT :
 		message_type (type)
 	{}
 };
@@ -68,16 +68,23 @@ struct MessageHeader
 /// GIOP Request
 struct Request : MessageHeader
 {
-	/// Sender protection domain id.
-	ProtDomainId client_domain;
-
 	/// The GIOP message in the recipient memory.
 	SharedMemPtr GIOP_message;
+
+	/// Sender protection domain id.
+	ProtDomainId client_domain;
 
 	/// The request id.
 	/// If response is not expected, request_id = 0.
 	/// The real request id is never be 0.
 	uint32_t request_id;
+
+	Request (ProtDomainId client, SharedMemPtr mem, uint32_t rq_id) NIRVANA_NOEXCEPT :
+		MessageHeader (REQUEST),
+		GIOP_message (mem),
+		client_domain (client),
+		request_id (rq_id)
+	{}
 };
 
 /// GIOP Reply
@@ -86,9 +93,13 @@ struct Reply : MessageHeader
 	/// The GIOP message in the recipient memory.
 	SharedMemPtr GIOP_message;
 
-	Reply (SharedMemPtr mem) :
+	/// The request id.
+	uint32_t request_id;
+
+	Reply (SharedMemPtr mem, uint32_t rq_id) NIRVANA_NOEXCEPT :
 		MessageHeader (REPLY),
-		GIOP_message (mem)
+		GIOP_message (mem),
+		request_id (rq_id)
 	{}
 };
 
@@ -107,7 +118,7 @@ struct ReplySystemException : MessageHeader
 	/// The request id
 	uint32_t request_id;
 
-	ReplySystemException (uint32_t rq_id, const CORBA::SystemException& ex) :
+	ReplySystemException (uint32_t rq_id, const CORBA::SystemException& ex) NIRVANA_NOEXCEPT :
 		MessageHeader (REPLY_SYSTEM_EXCEPTION),
 		completed ((uint8_t)ex.completed ()),
 		code ((int16_t)ex.__code ()),
@@ -115,7 +126,7 @@ struct ReplySystemException : MessageHeader
 		request_id (rq_id)
 	{}
 
-	ReplySystemException (uint32_t rq_id, CORBA::SystemException::Code code) :
+	ReplySystemException (uint32_t rq_id, CORBA::SystemException::Code code) NIRVANA_NOEXCEPT :
 		MessageHeader (REPLY_SYSTEM_EXCEPTION),
 		completed ((uint8_t)CORBA::CompletionStatus::COMPLETED_MAYBE),
 		code ((int16_t)code),
@@ -132,16 +143,12 @@ struct CancelRequest : MessageHeader
 
 	/// The request id
 	uint32_t request_id;
-};
 
-/// GIOP LocateReply
-struct LocateReply : MessageHeader
-{
-	/// The request id
-	uint32_t request_id;
-
-	/// Locate status
-	uint32_t locate_status;
+	CancelRequest (ProtDomainId sender, uint32_t rq_id) NIRVANA_NOEXCEPT :
+		MessageHeader (CANCEL_REQUEST),
+		client_domain (sender),
+		request_id (rq_id)
+	{}
 };
 
 /// The message buffer enough for any message
@@ -151,7 +158,6 @@ union MessageBuffer
 	Reply reply;
 	ReplySystemException system_exception;
 	CancelRequest cancel_request;
-	LocateReply locate_reply;
 };
 
 /// If reply data size is zero or small, the reply can be sent without
@@ -160,12 +166,12 @@ struct ReplyImmediate : MessageHeader
 {
 	uint8_t data_size_and_flag;
 	static const size_t MAX_DATA_SIZE = sizeof (MessageBuffer) - sizeof (MessageHeader) - 1 - sizeof (uint32_t);
-	static_assert (MAX_DATA_SIZE < 127, "MAX_DATA_SIZE < 127");
+	static_assert (MAX_DATA_SIZE <= 127, "MAX_DATA_SIZE <= 127");
 
 	uint8_t data [MAX_DATA_SIZE];
 	uint32_t request_id;
 
-	ReplyImmediate (uint32_t rq_id, const void* data, size_t size) :
+	ReplyImmediate (uint32_t rq_id, const void* p, size_t size) NIRVANA_NOEXCEPT :
 		MessageHeader (REPLY_IMMEDIATE),
 		data_size_and_flag ((uint8_t)(size << 1)),
 		request_id (rq_id)
@@ -173,6 +179,7 @@ struct ReplyImmediate : MessageHeader
 		assert (size <= MAX_DATA_SIZE);
 		if (Nirvana::endian::native == Nirvana::endian::little)
 			data_size_and_flag |= 1;
+		std::copy ((const uint8_t*)p, (const uint8_t*)p + size, data);
 	}
 };
 

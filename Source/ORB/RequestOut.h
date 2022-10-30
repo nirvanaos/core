@@ -37,23 +37,12 @@ namespace Core {
 
 /// Implements client-side IORequest for GIOP.
 class RequestOut :
-	public RequestGIOP,
-	public Nirvana::Core::UserObject
+	public RequestGIOP
 {
 public:
 	static const unsigned FLAG_PREUNMARSHAL = 8;
 
-	enum class IdPolicy
-	{
-		ANY,
-		EVEN,
-		ODD
-	};
-
-	RequestOut (const IOP::ObjectKey& object_key, const IDL::String& operation,
-		unsigned GIOP_minor, unsigned response_flags,
-		IOP::ServiceContextList&& context, Nirvana::Core::CoreRef <StreamOut>&& stream,
-		IdPolicy id_policy = IdPolicy::ANY);
+	RequestOut (unsigned GIOP_minor, unsigned response_flags);
 
 	~RequestOut ();
 
@@ -62,23 +51,44 @@ public:
 		return id_;
 	}
 
-	void reply (Nirvana::Core::CoreRef <StreamIn>&& data) NIRVANA_NOEXCEPT
+	void set_reply (unsigned status, IOP::ServiceContextList&& context,
+		Nirvana::Core::CoreRef <StreamIn>&& stream)
 	{
-		// While request in map, exec_domain_ is not nullptr.
-		// For the oneway requests, exec_domain_ is nullptr.
-		assert (exec_domain_);
-		exec_domain_ = nullptr;
-		stream_in_ = std::move (data);
+		status_ = (Status)status;
+		stream_in_ = std::move (stream);
 	}
 
+	void set_system_exception (const Char* rep_id, uint32_t minor, CompletionStatus completed)
+		NIRVANA_NOEXCEPT;
+
 protected:
+	void write_header (IOP::ObjectKey& object_key, IDL::String& operation, IOP::ServiceContextList& context);
+
 	virtual bool marshal_op () override;
 	virtual void success () override;
-	virtual void cancel () override;
+	virtual void set_exception (Any& e) override;
+	virtual bool is_exception () const NIRVANA_NOEXCEPT override;
+	virtual bool completed () const NIRVANA_NOEXCEPT override;
+	virtual bool wait (uint64_t timeout) override;
 
-private:
-	Nirvana::Core::ExecDomain* exec_domain_;
+	bool cancel_internal ();
+
+protected:
+	Nirvana::Core::CoreRef <Nirvana::Core::ExecDomain> exec_domain_;
+
 	uint32_t id_;
+
+	enum class Status
+	{
+		CANCELLED = -2,
+		IN_PROGRESS = -1,
+		NO_EXCEPTION,
+		USER_EXCEPTION,
+		SYSTEM_EXCEPTION,
+		LOCATION_FORWARD,
+		LOCATION_FORWARD_PERM,
+		NEEDS_ADDRESSING_MODE
+	} status_;
 };
 
 }

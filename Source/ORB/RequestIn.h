@@ -41,10 +41,14 @@ namespace Core {
 /// Implements server-side IORequest for GIOP.
 class NIRVANA_NOVTABLE RequestIn :
 	public RequestGIOP,
-	public RequestInPOA,
-	public Nirvana::Core::UserObject
+	public RequestInPOA
 {
-	DECLARE_CORE_INTERFACE
+protected:
+	template <class T>
+	friend class Nirvana::Core::CoreRef;
+	virtual void _add_ref () NIRVANA_NOEXCEPT override;
+	virtual void _remove_ref () NIRVANA_NOEXCEPT override;
+	virtual Nirvana::Core::MemContext* memory () const NIRVANA_NOEXCEPT override;
 
 public:
 	const RequestKey& key () const NIRVANA_NOEXCEPT
@@ -122,7 +126,6 @@ private:
 protected:
 	RequestKey key_;
 	IOP::ServiceContextList service_context_;
-	unsigned GIOP_minor_;
 
 private:
 	PortableServer::Core::ObjectKey object_key_;

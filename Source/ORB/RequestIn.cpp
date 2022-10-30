@@ -40,7 +40,6 @@ namespace Core {
 RequestIn::RequestIn (const DomainAddress& client, unsigned GIOP_minor, CoreRef <StreamIn>&& in) :
 	RequestGIOP (GIOP_minor, false, 0),
 	key_ (client),
-	GIOP_minor_ (GIOP_minor),
 	map_iterator_ (nullptr),
 	exec_domain_ (nullptr),
 	sync_domain_ (nullptr),
@@ -120,6 +119,21 @@ void RequestIn::get_object_key (const IOP::TaggedProfile& profile)
 RequestIn::~RequestIn ()
 {
 	finalize (); // Remove from the map if not yet.
+}
+
+void RequestIn::_add_ref () NIRVANA_NOEXCEPT
+{
+	RequestGIOP::_add_ref ();
+}
+
+void RequestIn::_remove_ref () NIRVANA_NOEXCEPT
+{
+	RequestGIOP::_remove_ref ();
+}
+
+MemContext* RequestIn::memory () const NIRVANA_NOEXCEPT
+{
+	return RequestGIOP::memory ();
 }
 
 const PortableServer::Core::ObjectKey& RequestIn::object_key () const NIRVANA_NOEXCEPT
@@ -228,7 +242,9 @@ void RequestIn::set_exception (Any& e)
 	unsigned rf = response_flags_;
 	if (rf)
 		response_flags_ |= RESPONSE_DATA; // To marshal Any.
-	Type <Any>::marshal_out (e, _get_ptr ());
+	try {
+		Type <Any>::marshal_out (e, _get_ptr ());
+	} catch (...) {}
 	response_flags_ = rf;
 }
 

@@ -34,15 +34,97 @@ namespace Core {
 
 StaticallyAllocated <OutgoingRequests> OutgoingRequests::singleton_;
 
-servant_reference <RequestOut> OutgoingRequests::remove_request_internal (uint32_t request_id) NIRVANA_NOEXCEPT
+OutgoingRequests::RequestId OutgoingRequests::get_new_id (IdPolicy id_policy) NIRVANA_NOEXCEPT
+{
+	IdGenType id;
+	do {
+		switch (id_policy) {
+			case IdPolicy::ANY:
+				id = last_id_.fetch_add (1, std::memory_order_release) + 1;
+				break;
+
+			case IdPolicy::EVEN: {
+				IdGenType last = last_id_.load (std::memory_order_acquire);
+				IdGenType id;
+				do {
+					id = last + 2 - (last & 1);
+				} while (!last_id_.compare_exchange_weak (last, id));
+			} break;
+
+			case IdPolicy::ODD: {
+				IdGenType last = last_id_.load (std::memory_order_acquire);
+				IdGenType id;
+				do {
+					id = last + 1 + (last & 1);
+				} while (!last_id_.compare_exchange_weak (last, id));
+			} break;
+		}
+	} while (0 == id);
+	return (RequestId)id;
+}
+
+inline
+uint32_t OutgoingRequests::new_request_internal (RequestOut& rq, IdPolicy id_policy)
+{
+	RequestId id;
+	for (;;) {
+		id = get_new_id (id_policy);
+		auto ins = map_.insert (id, std::ref (rq));
+		map_.release_node (ins.first);
+		if (ins.second)
+			break;
+	}
+	return id;
+}
+
+uint32_t OutgoingRequests::new_request (RequestOut& rq, IdPolicy id_policy)
+{
+	return singleton_->new_request_internal (rq, id_policy);
+}
+
+inline
+CoreRef <RequestOut> OutgoingRequests::remove_request_internal (uint32_t request_id) NIRVANA_NOEXCEPT
 {
 	RequestMap::NodeVal* p = map_.find_and_delete (request_id);
-	servant_reference <RequestOut> ret;
+	CoreRef <RequestOut> ret;
 	if (p) {
 		ret = std::move (p->value ().request);
 		map_.release_node (p);
 	}
 	return ret;
+}
+
+CoreRef <RequestOut> OutgoingRequests::remove_request (uint32_t request_id) NIRVANA_NOEXCEPT
+{
+	return singleton_->remove_request_internal (request_id);
+}
+
+void OutgoingRequests::set_system_exception (uint32_t request_id, const Char* rep_id,
+	uint32_t minor, CompletionStatus completed) NIRVANA_NOEXCEPT
+{
+	CoreRef <RequestOut> rq = remove_request (request_id);
+	if (rq)
+		rq->set_system_exception (rep_id, minor, completed);
+}
+
+void OutgoingRequests::receive_reply (unsigned GIOP_minor, CoreRef <StreamIn>&& stream)
+{
+	IOP::ServiceContextList context;
+	uint32_t request_id;
+	uint32_t status;
+	if (GIOP_minor <= 1) {
+		stream->read_tagged (context);
+		request_id = stream->read32 ();
+		status = stream->read32 ();
+	} else {
+		request_id = stream->read32 ();
+		status = stream->read32 ();
+		stream->read_tagged (context);
+	}
+
+	CoreRef <RequestOut> rq = remove_request (request_id);
+	if (rq)
+		rq->set_reply (status, std::move (context), std::move (stream));
 }
 
 }

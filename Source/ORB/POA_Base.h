@@ -51,45 +51,10 @@ namespace PortableServer {
 namespace Core {
 
 class POAManager;
-
-class RequestRef : public Nirvana::Core::CoreRef <CORBA::Core::RequestInPOA>
-{
-	typedef Nirvana::Core::CoreRef <CORBA::Core::RequestInPOA> Base;
-public:
-	RequestRef (CORBA::Core::RequestInPOA& rq) :
-		Base (&rq),
-		memory_ (&Nirvana::Core::MemContext::current ())
-	{}
-
-	RequestRef (Nirvana::Core::CoreRef <CORBA::Core::RequestInPOA>&& rq) :
-		Base (std::move (rq)),
-		memory_ (&Nirvana::Core::MemContext::current ())
-	{}
-
-	RequestRef (const RequestRef&) = default;
-	RequestRef (RequestRef&&) = default;
-
-	~RequestRef ()
-	{
-		reset ();
-	}
-
-	RequestRef& operator = (const RequestRef&) = default;
-	RequestRef& operator = (RequestRef&&) = default;
-
-	void reset () NIRVANA_NOEXCEPT;
-
-	Nirvana::Core::MemContext* memory () const NIRVANA_NOEXCEPT
-	{
-		return memory_;
-	}
-
-private:
-	Nirvana::Core::CoreRef <Nirvana::Core::MemContext> memory_;
-};
-
 class POA_Root;
 class POA_Base;
+
+typedef Nirvana::Core::CoreRef <CORBA::Core::RequestInPOA> RequestRef;
 
 typedef CORBA::servant_reference <POA_Base> POA_Ref;
 

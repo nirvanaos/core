@@ -407,7 +407,9 @@ public:
 		clear ();
 		state_ = State::EXCEPTION;
 		if (response_flags_) {
-			Internal::Type <Any>::marshal_out (e, _get_ptr ());
+			try {
+				Internal::Type <Any>::marshal_out (e, _get_ptr ());
+			} catch (...) {}
 			rewind ();
 		}
 	}

@@ -1,3 +1,4 @@
+/// \file
 /*
 * Nirvana Core.
 *
@@ -23,28 +24,32 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "RequestInPOA.h"
-#include "RqHelper.h"
+#ifndef NIRVANA_ORB_CORE_REQUESTINESIOP_H_
+#define NIRVANA_ORB_CORE_REQUESTINESIOP_H_
+#pragma once
 
-namespace CORBA {
-namespace Core {
+#include "RequestIn.h"
+#include "ESIOP.h"
 
-void RequestInPOA::set_exception (Exception&& e) NIRVANA_NOEXCEPT
+namespace ESIOP {
+
+/// ESIOP incoming request.
+class NIRVANA_NOVTABLE RequestIn : public CORBA::Core::RequestIn
 {
-	try {
-		Any a = RqHelper::exception2any (std::move (e));
-		set_exception (a);
-	} catch (...) {
-		set_unknown_exception ();
-	}
+	typedef CORBA::Core::RequestIn Base;
+
+public:
+	RequestIn (ProtDomainId client_id, unsigned GIOP_minor,
+		Nirvana::Core::CoreRef <CORBA::Core::StreamIn>&& in) :
+		Base (client_id, GIOP_minor, std::move (in))
+	{}
+
+protected:
+	virtual Nirvana::Core::CoreRef <CORBA::Core::StreamOut> create_output () override;
+	virtual void set_exception (CORBA::Any& e) override;
+	virtual void success () override;
+};
+
 }
 
-void RequestInPOA::set_unknown_exception () NIRVANA_NOEXCEPT
-{
-	try {
-		set_exception (UNKNOWN ());
-	} catch (...) {}
-}
-
-}
-}
+#endif

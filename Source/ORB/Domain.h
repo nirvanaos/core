@@ -28,7 +28,8 @@
 #define NIRVANA_ORB_CORE_DOMAIN_H_
 #pragma once
 
-#include "CORBA/CORBA.h"
+#include <CORBA/CORBA.h>
+#include <CORBA/IOP.h>
 #include "../AtomicCounter.h"
 #include "../Service.h"
 #include "GarbageCollector.h"

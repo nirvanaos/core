@@ -46,6 +46,16 @@ RequestLocalPOA::RequestLocalPOA (ReferenceLocal& reference, IOReference::Operat
 	operation_ = reference.operation_metadata (op).name;
 }
 
+void RequestLocalPOA::_add_ref () NIRVANA_NOEXCEPT
+{
+	RequestLocalBase::_add_ref ();
+}
+
+MemContext* RequestLocalPOA::memory () const NIRVANA_NOEXCEPT
+{
+	return caller_memory_;
+}
+
 const PortableServer::Core::ObjectKey& RequestLocalPOA::object_key () const NIRVANA_NOEXCEPT
 {
 	return reference_->object_key ();
@@ -54,6 +64,11 @@ const PortableServer::Core::ObjectKey& RequestLocalPOA::object_key () const NIRV
 CORBA::Internal::StringView <Char> RequestLocalPOA::operation () const NIRVANA_NOEXCEPT
 {
 	return CORBA::Internal::StringView <Char> (operation_);
+}
+
+void RequestLocalPOA::set_exception (Any& e)
+{
+	RequestLocalBase::set_exception (e);
 }
 
 void RequestLocalPOA::serve_request (ProxyObject& proxy, Internal::IOReference::OperationIndex op,
@@ -71,6 +86,11 @@ void RequestLocalPOA::invoke ()
 {
 	RequestLocalBase::invoke (); // rewind etc.
 	PortableServer::Core::POA_Root::invoke (CoreRef <RequestInPOA> (this), false);
+}
+
+bool RequestLocalPOA::is_cancelled () const NIRVANA_NOEXCEPT
+{
+	return RequestLocalBase::is_cancelled ();
 }
 
 void RequestLocalAsyncPOA::invoke ()

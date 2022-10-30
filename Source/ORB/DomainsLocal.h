@@ -35,15 +35,14 @@
 #include "../Synchronized.h"
 #include <CORBA/Servant_var.h>
 
-namespace CORBA {
-namespace Core {
+namespace ESIOP {
 
 class DomainsLocalWaitable
 {
 	static const TimeBase::TimeT DEADLINE_MAX = 10 * TimeBase::MILLISECOND;
 
 public:
-	servant_reference <DomainLocal> get (Nirvana::Core::Service& service, ESIOP::ProtDomainId domain_id)
+	CORBA::servant_reference <DomainLocal> get (Nirvana::Core::Service& service, ProtDomainId domain_id)
 	{
 		auto ins = map_.emplace (domain_id, DEADLINE_MAX);
 		if (ins.second) {
@@ -65,13 +64,13 @@ public:
 			return ins.first->second.get ().get ();
 	}
 
-	void erase (ESIOP::ProtDomainId domain_id)
+	void erase (ProtDomainId domain_id)
 	{
 		map_.erase (domain_id);
 	}
 
 private:
-	typedef ESIOP::ProtDomainId Key;
+	typedef ProtDomainId Key;
 	typedef std::unique_ptr <DomainLocal> Ptr;
 	typedef Nirvana::Core::WaitableRef <Ptr> Val;
 
@@ -85,9 +84,9 @@ private:
 class DomainsLocalSimple
 {
 public:
-	servant_reference <Domain> get (Nirvana::Core::Service& service, ESIOP::ProtDomainId domain_id)
+	CORBA::servant_reference <DomainLocal> get (Nirvana::Core::Service& service, ESIOP::ProtDomainId domain_id)
 	{
-		return PortableServer::Servant_var <Domain> (&map_.emplace (
+		return PortableServer::Servant_var <DomainLocal> (&map_.emplace (
 			std::piecewise_construct, std::forward_as_tuple (domain_id),
 			std::forward_as_tuple (std::ref (service), domain_id)).first->second);
 	}
@@ -98,7 +97,7 @@ public:
 	}
 
 private:
-	typedef ESIOP::ProtDomainId Key;
+	typedef ProtDomainId Key;
 	typedef DomainLocal Val;
 
 	typedef Nirvana::Core::MapUnorderedStable <Key, Val, std::hash <Key>,
@@ -108,9 +107,8 @@ private:
 	Map map_;
 };
 
-using DomainsLocal = std::conditional_t <ESIOP::OtherDomain::slow_creation, DomainsLocalWaitable, DomainsLocalSimple>;
+using DomainsLocal = std::conditional_t <OtherDomain::slow_creation, DomainsLocalWaitable, DomainsLocalSimple>;
 
-}
 }
 
 #endif

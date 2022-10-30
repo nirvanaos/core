@@ -31,35 +31,33 @@
 #include "Domain.h"
 #include <Port/OtherDomain.h>
 
-namespace CORBA {
-namespace Core {
+namespace ESIOP {
 
 /// Other protection domain on the same system.
 class DomainLocal :
-	public Domain,
-	public ESIOP::OtherDomain
+	public CORBA::Core::Domain,
+	public OtherDomain
 {
 public:
 	DomainLocal (Nirvana::Core::Service& service, ESIOP::ProtDomainId id) :
-		Domain (service),
-		ESIOP::OtherDomain (id),
+		CORBA::Core::Domain (service),
+		OtherDomain (id),
 		id_ (id)
 	{}
 	
 	~DomainLocal ()
 	{}
 
-	virtual Internal::IORequest::_ref_type create_request (const IOP::ObjectKey& object_key,
+	virtual CORBA::Internal::IORequest::_ref_type create_request (const IOP::ObjectKey& object_key,
 		IDL::String operation, unsigned flags) override;
 
 protected:
 	virtual void destroy () NIRVANA_NOEXCEPT override;
 
 private:
-	ESIOP::ProtDomainId id_;
+	ProtDomainId id_;
 };
 
-}
 }
 
 #endif

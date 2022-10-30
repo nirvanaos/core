@@ -53,22 +53,26 @@ public:
 		singleton_.destruct ();
 	}
 
-	static uint32_t new_request (RequestOut& rq, RequestOut::IdPolicy id_policy)
+	enum class IdPolicy
 	{
-		return singleton_->new_request_internal (rq, id_policy);
-	}
+		ANY,
+		EVEN,
+		ODD
+	};
 
-	static uint32_t new_request_oneway (RequestOut::IdPolicy id_policy)
+	static uint32_t new_request (RequestOut& rq, IdPolicy id_policy);
+
+	static uint32_t new_request_oneway (IdPolicy id_policy)
 	{
 		return singleton_->new_request_oneway_internal (id_policy);
 	}
 
-	static servant_reference <RequestOut> remove_request (uint32_t request_id) NIRVANA_NOEXCEPT
-	{
-		return singleton_->remove_request_internal (request_id);
-	}
+	static Nirvana::Core::CoreRef <RequestOut> remove_request (uint32_t request_id) NIRVANA_NOEXCEPT;
 
-	static void reply (uint32_t request_id, Nirvana::Core::CoreRef <StreamIn>&& data);
+	static void receive_reply (unsigned GIOP_minor, Nirvana::Core::CoreRef <StreamIn>&& stream);
+
+	static void set_system_exception (uint32_t request_id, const Char* rep_id,
+		uint32_t minor, CompletionStatus completed) NIRVANA_NOEXCEPT;
 
 private:
 	// Request id generator.
@@ -87,32 +91,7 @@ private:
 	// IdGen may have different sizes. We need 32-bit max, if possible.
 	typedef std::conditional_t <(sizeof (IdGenType) <= 4), IdGenType, uint32_t> RequestId;
 
-	RequestId get_new_id (RequestOut::IdPolicy id_type) NIRVANA_NOEXCEPT
-	{
-		IdGenType id;
-		do {
-			switch (id_type) {
-				case RequestOut::IdPolicy::ANY:
-					id = last_id_.fetch_add (1, std::memory_order_release) + 1;
-					break;
-				case RequestOut::IdPolicy::EVEN: {
-					IdGenType last = last_id_.load (std::memory_order_acquire);
-					IdGenType id;
-					do {
-						id = last + 2 - (last & 1);
-					} while (!last_id_.compare_exchange_weak (last, id));
-				} break;
-				case RequestOut::IdPolicy::ODD: {
-					IdGenType last = last_id_.load (std::memory_order_acquire);
-					IdGenType id;
-					do {
-						id = last + 1 + (last & 1);
-					} while (!last_id_.compare_exchange_weak (last, id));
-				} break;
-			}
-		} while (0 == id);
-		return (RequestId)id;
-	}
+	RequestId get_new_id (IdPolicy id_policy) NIRVANA_NOEXCEPT;
 
 	struct RequestVal
 	{
@@ -131,30 +110,19 @@ private:
 		}
 
 		RequestId request_id;
-		servant_reference <RequestOut> request;
+		Nirvana::Core::CoreRef <RequestOut> request;
 	};
 
 	// The request map
 	typedef Nirvana::Core::SkipList <RequestVal, SKIP_LIST_LEVELS> RequestMap;
 
-	uint32_t new_request_internal (RequestOut& rq, RequestOut::IdPolicy id_type)
-	{
-		RequestId id;
-		for (;;) {
-			id = get_new_id (id_type);
-			auto ins = map_.insert (id, std::ref (rq));
-			map_.release_node (ins.first);
-			if (ins.second)
-				break;
-		}
-		return id;
-	}
+	uint32_t new_request_internal (RequestOut& rq, IdPolicy id_policy);
 
-	uint32_t new_request_oneway_internal (RequestOut::IdPolicy id_type)
+	uint32_t new_request_oneway_internal (IdPolicy id_policy)
 	{
 		RequestId id;
 		for (;;) {
-			id = get_new_id (id_type);
+			id = get_new_id (id_policy);
 			auto ins = map_.insert (id);
 			if (ins.second) {
 				// Ensure that id is unique but remove it from the map.
@@ -167,7 +135,7 @@ private:
 		return id;
 	}
 
-	servant_reference <RequestOut> remove_request_internal (uint32_t request_id) NIRVANA_NOEXCEPT;
+	Nirvana::Core::CoreRef <RequestOut> remove_request_internal (uint32_t request_id) NIRVANA_NOEXCEPT;
 
 	RequestMap map_;
 	std::atomic <IdGenType> last_id_;

@@ -115,7 +115,7 @@ public:
 	}
 
 #ifndef SINGLE_DOMAIN
-	servant_reference <DomainLocal> get_domain (ESIOP::ProtDomainId id)
+	servant_reference <ESIOP::DomainLocal> get_domain (ESIOP::ProtDomainId id)
 	{
 		SYNC_BEGIN (sync_domain (), nullptr)
 			return get_domain_sync (id);
@@ -127,7 +127,7 @@ private:
 	std::pair <References::iterator, bool> emplace_reference (IOP::ObjectKey&& key);
 
 #ifndef SINGLE_DOMAIN
-	servant_reference <DomainLocal> get_domain_sync (ESIOP::ProtDomainId id)
+	servant_reference <ESIOP::DomainLocal> get_domain_sync (ESIOP::ProtDomainId id)
 	{
 		return domains_local_.get (*this, id);
 	}
@@ -146,7 +146,7 @@ private:
 
 private:
 #ifndef SINGLE_DOMAIN
-	DomainsLocal domains_local_;
+	ESIOP::DomainsLocal domains_local_;
 #endif
 
 	typedef Nirvana::Core::SetUnorderedStable <DomainRemote, std::hash <IIOP::ListenPoint>,

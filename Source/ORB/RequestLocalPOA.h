@@ -49,25 +49,15 @@ protected:
 	RequestLocalPOA (ReferenceLocal& reference, Internal::IOReference::OperationIndex op,
 		unsigned response_flags);
 
-	virtual void set_exception (Any& e) override
-	{
-		RequestLocalBase::set_exception (e);
-	}
+	virtual void _add_ref () NIRVANA_NOEXCEPT override;
+	virtual Nirvana::Core::MemContext* memory () const NIRVANA_NOEXCEPT override;
 
+	virtual void set_exception (Any& e) override;
 	virtual void invoke () override;
 	virtual void serve_request (ProxyObject& proxy, Internal::IOReference::OperationIndex op,
 		Nirvana::Core::MemContext* memory) override;
 
-	virtual bool is_cancelled () const NIRVANA_NOEXCEPT override
-	{
-		return RequestLocalBase::is_cancelled ();
-	}
-
-	// Override RequestInPOA::_add_ref ()
-	void _add_ref () NIRVANA_NOEXCEPT override
-	{
-		RequestLocalBase::_add_ref ();
-	}
+	virtual bool is_cancelled () const NIRVANA_NOEXCEPT override;
 
 private:
 	ReferenceLocalRef reference_;

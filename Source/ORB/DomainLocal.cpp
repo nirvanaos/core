@@ -23,25 +23,32 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "RemoteReferences.h"
-#include "RequestOut.h"
+#include "DomainLocal.h"
+#include "RequestOutESIOP.h"
+#include "../ExecDomain.h"
 
-namespace CORBA {
+using namespace Nirvana;
+using namespace Nirvana::Core;
+using namespace CORBA;
 
-using namespace Internal;
-
-namespace Core {
+namespace ESIOP {
 
 void DomainLocal::destroy () NIRVANA_NOEXCEPT
 {
-	static_cast <RemoteReferences&> (service ()).erase (id_);
+	static_cast <CORBA::Core::RemoteReferences&> (service ()).erase (id_);
 }
 
-IORequest::_ref_type DomainLocal::create_request (const IOP::ObjectKey& object_key,
+CORBA::Internal::IORequest::_ref_type DomainLocal::create_request (const IOP::ObjectKey& object_key,
 	IDL::String operation, unsigned flags)
 {
-	throw NO_IMPLEMENT ();
+	IOP::ServiceContextList context;
+	DeadlineTime deadline = ExecDomain::current ().deadline ();
+	if (INFINITE_DEADLINE != deadline) {
+		context.emplace_back ();
+		context.back ().context_id (CONTEXT_ID_DEADLINE);
+		context.back ().context_data ().assign ((const Octet*)&deadline, (const Octet*)&deadline + sizeof (deadline));
+	}
+	return make_pseudo <RequestOut> (std::ref (*this), object_key, std::move (operation), flags, std::move (context));
 }
 
-}
 }

@@ -71,6 +71,8 @@ public:
 
 	virtual bool is_cancelled () const NIRVANA_NOEXCEPT = 0;
 
+	virtual Nirvana::Core::MemContext* memory () const NIRVANA_NOEXCEPT = 0;
+
 protected:
 	RequestInPOA ()
 	{}

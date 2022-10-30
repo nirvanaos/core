@@ -73,7 +73,7 @@ public:
 	}
 
 protected:
-	StreamOutSM (CORBA::Core::DomainLocal& target) :
+	StreamOutSM (DomainLocal& target) :
 		other_domain_ (&target)
 	{
 		initialize ();
@@ -134,7 +134,7 @@ private:
 	size_t stream_hdr_size () const NIRVANA_NOEXCEPT;
 
 private:
-	CORBA::servant_reference <CORBA::Core::DomainLocal> other_domain_;
+	CORBA::servant_reference <DomainLocal> other_domain_;
 	PlatformSizes sizes_;
 	SharedMemPtr stream_hdr_;
 	std::vector <Block, Nirvana::Core::UserAllocator <Block> > blocks_;

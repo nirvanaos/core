@@ -39,21 +39,27 @@ using namespace Internal;
 namespace Core {
 
 RequestGIOP::RequestGIOP (unsigned GIOP_minor, bool client_side, unsigned response_flags) :
+	GIOP_minor_ (GIOP_minor),
 	response_flags_ (response_flags),
+	mem_context_ (&MemContext::current ()),
+	chunk_level_ (0),
 	code_set_conv_ (CodeSetConverter::get_default ()),
-	code_set_conv_w_ (CodeSetConverterW::get_default (GIOP_minor, client_side)),
-	chunk_level_ (0)
-{}
-
-RequestGIOP::RequestGIOP (const RequestGIOP& src) :
-	response_flags_ (src.response_flags_),
-	code_set_conv_ (src.code_set_conv_),
-	code_set_conv_w_ (src.code_set_conv_w_),
-	chunk_level_ (0)
+	code_set_conv_w_ (CodeSetConverterW::get_default (GIOP_minor, client_side))
 {}
 
 RequestGIOP::~RequestGIOP ()
 {}
+
+void RequestGIOP::_remove_ref () NIRVANA_NOEXCEPT
+{
+	if (!ref_cnt_.decrement ()) {
+		ExecDomain& ed = ExecDomain::current ();
+		CoreRef <MemContext> mem_context (std::move (mem_context_));
+		ed.mem_context_swap (mem_context);
+		delete this;
+		ed.mem_context_swap (mem_context);
+	}
+}
 
 void RequestGIOP::set_out_size ()
 {

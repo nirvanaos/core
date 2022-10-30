@@ -165,6 +165,11 @@ public:
 		read_tagged (reinterpret_cast <IOP::TaggedProfileSeq&> (seq));
 	}
 
+	void read_tagged (IOP::ServiceContextList& seq)
+	{
+		read_tagged (reinterpret_cast <IOP::TaggedProfileSeq&> (seq));
+	}
+
 	ULong read32 ()
 	{
 		ULong val;

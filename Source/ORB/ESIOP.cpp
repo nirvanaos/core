@@ -24,10 +24,9 @@
 *  popov.nirvana@gmail.com
 */
 #include <CORBA/CORBA.h>
-#include "ESIOP.h"
+#include "RequestInESIOP.h"
 #include "StreamInSM.h"
-#include "StreamOutReply.h"
-#include "RequestIn.h"
+#include "OutgoingRequests.h"
 #include "../Runnable.h"
 #include "../CoreObject.h"
 #include "../Chrono.h"
@@ -39,67 +38,13 @@ using namespace Nirvana::Core;
 
 namespace ESIOP {
 
-/// ESIOP incoming request.
-class NIRVANA_NOVTABLE RequestIn :
-	public CORBA::Core::RequestIn
-{
-	typedef CORBA::Core::RequestIn Base;
-
-protected:
-	RequestIn (ProtDomainId client_id, unsigned GIOP_minor, CoreRef <StreamIn>&& in) :
-		Base (client_id, GIOP_minor, std::move (in))
-	{}
-
-	virtual CoreRef <StreamOut> create_output () override;
-	virtual void set_exception (Any& e) override;
-	virtual void success () override;
-};
-
-CoreRef <StreamOut> RequestIn::create_output ()
-{
-	return CoreRef <StreamOut>::create <ImplDynamic <StreamOutReply> > (key ().address.esiop);
-}
-
-void RequestIn::set_exception (Any& e)
-{
-	if (e.type ()->kind () != TCKind::tk_except)
-		throw BAD_PARAM (MAKE_OMG_MINOR (21));
-
-	if (!finalize ())
-		return;
-
-	std::aligned_storage <sizeof (SystemException), alignof (SystemException)>::type buf;
-	SystemException& ex = (SystemException&)buf;
-	if (e >>= ex) {
-		if (stream_out ())
-			static_cast <StreamOutReply&> (*stream_out ()).system_exception (request_id (), ex);
-		else {
-			ReplySystemException reply (request_id (), ex);
-			send_error_message (key ().address.esiop, &reply, sizeof (reply));
-		}
-	} else {
-		assert (stream_out ());
-		Base::set_exception (e);
-		static_cast <StreamOutReply&> (*stream_out ()).send (request_id ());
-	}
-}
-
-void RequestIn::success ()
-{
-	if (!finalize ())
-		return;
-
-	Base::success ();
-	static_cast <StreamOutReply&> (*stream_out ()).send (request_id ());
-}
-
 /// Receive request Runnable
 class NIRVANA_NOVTABLE ReceiveRequest :
 	public Runnable,
 	public CoreObject // Must be created quickly
 {
 protected:
-	ReceiveRequest (ProtDomainId client_id, uint32_t request_id, void* data) :
+	ReceiveRequest (ProtDomainId client_id, uint32_t request_id, void* data) NIRVANA_NOEXCEPT :
 		timestamp_ (Nirvana::Core::Chrono::deadline_clock ()),
 		data_ (data),
 		client_id_ (client_id),
@@ -144,8 +89,8 @@ void ReceiveRequest::run ()
 
 		// Create and receive the request
 		unsigned minor = msg_hdr.GIOP_version ().minor ();
-		IncomingRequests::receive (CoreRef <RequestIn>::create
-			<ImplDynamic <RequestIn> > (client_id_, minor, std::move (in)), timestamp_);
+		IncomingRequests::receive (CoreRef <CORBA::Core::RequestIn>::create <RequestIn> (
+			client_id_, minor, std::move (in)), timestamp_);
 	} catch (const SystemException& ex) {
 		if (request_id_) {
 			// Responce expected
@@ -175,7 +120,7 @@ class NIRVANA_NOVTABLE Cancel :
 	public CoreObject // Must be created quickly
 {
 protected:
-	Cancel (ProtDomainId client_id, uint32_t request_id) :
+	Cancel (ProtDomainId client_id, uint32_t request_id) NIRVANA_NOEXCEPT :
 		timestamp_ (Nirvana::Core::Chrono::deadline_clock ()),
 		client_id_ (client_id),
 		request_id_ (request_id)
@@ -194,6 +139,106 @@ void Cancel::run ()
 	IncomingRequests::cancel (RequestKey (client_id_, request_id_), timestamp_);
 }
 
+/// Receive reply Runnable
+class NIRVANA_NOVTABLE ReceiveReply :
+	public Runnable,
+	public CoreObject // Must be created quickly
+{
+protected:
+	ReceiveReply (uint32_t request_id, void* data) NIRVANA_NOEXCEPT :
+		data_ (data),
+		request_id_ (request_id)
+	{}
+
+	virtual void run () override;
+
+private:
+	void* data_;
+	uint32_t request_id_;
+};
+
+void ReceiveReply::run ()
+{
+	try {
+		// Create input stream
+		CoreRef <StreamIn> in;
+		try {
+			in = CoreRef <StreamIn>::create <ImplDynamic <StreamInSM> > (data_);
+		} catch (...) {
+			// Not enough memory?
+			// Create and destruct object in stack to release stream memory.
+			ImplStatic <StreamInSM> tmp (data_);
+			throw;
+		}
+
+		// Read GIOP message header
+		GIOP::MessageHeader_1_1 msg_hdr;
+		in->read_message_header (msg_hdr);
+
+		// We do not use GIOP 1.0 in ESIOP.
+		assert ((msg_hdr.GIOP_version ().major () == 1) && (msg_hdr.GIOP_version ().minor () > 0));
+		assert (GIOP::MsgType::Reply == (GIOP::MsgType)msg_hdr.message_type ());
+		assert ((msg_hdr.flags () & 2) == 0); // Framentation is not allowed in ESIOP.
+
+		// In the ESIOP we do not use the message size to allow > 4GB data transferring.
+		// in->set_size (msg_hdr.message_size ());
+
+		// Create and receive the request
+		unsigned minor = msg_hdr.GIOP_version ().minor ();
+		OutgoingRequests::receive_reply (minor, std::move (in));
+	} catch (const SystemException& ex) {
+		OutgoingRequests::set_system_exception (request_id_, ex._rep_id (), ex.minor (), ex.completed ());
+	}
+}
+
+/// Receive reply immediate Runnable
+class NIRVANA_NOVTABLE ReceiveReplyImmediate :
+	public Runnable,
+	public CoreObject // Must be created quickly
+{
+protected:
+	ReceiveReplyImmediate (uint32_t request_id, unsigned size_and_flag, const void* data)
+		NIRVANA_NOEXCEPT :
+		request_id_ (request_id),
+		size_and_flag_ (size_and_flag)
+	{
+		std::copy ((const uint8_t*)data, (const uint8_t*)data + ReplyImmediate::MAX_DATA_SIZE, data_);
+	}
+
+	virtual void run () override;
+
+private:
+	uint32_t request_id_;
+	unsigned size_and_flag_;
+	uint8_t data_ [ReplyImmediate::MAX_DATA_SIZE];
+};
+
+class StreamInImmediate :
+	public StreamInEncap,
+	public UserObject
+{
+protected:
+	StreamInImmediate (unsigned size_and_flag, const uint8_t* data) :
+		StreamInEncap (data_, data_ + (size_and_flag >> 1))
+	{
+		std::copy ((const uint8_t*)data, (const uint8_t*)data + ReplyImmediate::MAX_DATA_SIZE, data_);
+		little_endian (size_and_flag & 1);
+	}
+
+private:
+	uint8_t data_ [ReplyImmediate::MAX_DATA_SIZE];
+};
+
+void ReceiveReplyImmediate::run ()
+{
+	try {
+		OutgoingRequests::receive_reply (1, CoreRef <StreamIn>::create <ImplDynamic <StreamInImmediate> >
+			(size_and_flag_, data_));
+	} catch (const SystemException& ex) {
+		OutgoingRequests::set_system_exception (request_id_, ex._rep_id (), ex.minor (), ex.completed ());
+	}
+}
+
 void dispatch_message (const MessageHeader& message) NIRVANA_NOEXCEPT
 {
 	switch (message.message_type) {
@@ -203,7 +248,7 @@ void dispatch_message (const MessageHeader& message) NIRVANA_NOEXCEPT
 				ExecDomain::async_call (Chrono::make_deadline (INITIAL_REQUEST_DEADLINE_LOCAL),
 					CoreRef <Runnable>::create <ImplDynamic <ReceiveRequest> > (msg.client_domain, msg.request_id, (void*)msg.GIOP_message),
 					g_core_free_sync_context, &g_shared_mem_context);
-			} catch (const CORBA::SystemException& ex) {
+			} catch (const SystemException& ex) {
 				// Not enough memory?
 				// Create and destruct object in stack to release stream memory.
 				{
@@ -215,6 +260,43 @@ void dispatch_message (const MessageHeader& message) NIRVANA_NOEXCEPT
 					send_error_message (msg.client_domain, &reply, sizeof (reply));
 				}
 			}
+		} break;
+
+		case MessageType::REPLY: {
+			const auto& msg = static_cast <const Reply&> (message);
+			try {
+				ExecDomain::async_call (Chrono::make_deadline (INITIAL_REQUEST_DEADLINE_LOCAL),
+					CoreRef <Runnable>::create <ImplDynamic <ReceiveReply> > (msg.request_id,
+						(void*)msg.GIOP_message),
+					g_core_free_sync_context, &g_shared_mem_context);
+			} catch (const SystemException& ex) {
+				// Not enough memory?
+				// Create and destruct object in stack to release stream memory.
+				{
+					ImplStatic <StreamInSM> tmp ((void*)msg.GIOP_message);
+				}
+				OutgoingRequests::set_system_exception (msg.request_id, ex._rep_id (),
+					ex.minor (), ex.completed ());
+			}
+		} break;
+
+		case MessageType::REPLY_IMMEDIATE: {
+			const auto& msg = static_cast <const ReplyImmediate&> (message);
+			try {
+				ExecDomain::async_call (Chrono::make_deadline (INITIAL_REQUEST_DEADLINE_LOCAL),
+					CoreRef <Runnable>::create <ImplDynamic <ReceiveReplyImmediate> > (msg.request_id,
+						msg.data_size_and_flag, msg.data),
+					g_core_free_sync_context, &g_shared_mem_context);
+			} catch (const SystemException& ex) {
+				OutgoingRequests::set_system_exception (msg.request_id, ex._rep_id (), ex.minor (), ex.completed ());
+			}
+		} break;
+
+		case MessageType::REPLY_SYSTEM_EXCEPTION: {
+			const auto& msg = static_cast <const ReplySystemException&> (message);
+			OutgoingRequests::set_system_exception (msg.request_id,
+				SystemException::_get_exception_entry (msg.code)->rep_id, msg.minor,
+				(CompletionStatus)msg.completed);
 		} break;
 
 		case MessageType::CANCEL_REQUEST: {

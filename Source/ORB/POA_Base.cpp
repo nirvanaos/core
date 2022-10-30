@@ -441,7 +441,7 @@ void POA_Base::serve (const RequestRef& request, ReferenceLocal& reference, Prox
 	tls.set (TLS::CORE_TLS_PORTABLE_SERVER, &ctx);
 	++request_cnt_;
 	try {
-		request->serve_request (proxy, op, request.memory ());
+		request->serve_request (proxy, op, request->memory ());
 	} catch (...) {
 		on_request_finish ();
 		tls.set (TLS::CORE_TLS_PORTABLE_SERVER, ctx_prev);
@@ -465,15 +465,6 @@ void POA_Base::check_wait_completion ()
 	// standard minor code 3 is raised and POA destruction does not occur.
 	if (Nirvana::Core::TLS::current ().get (Nirvana::Core::TLS::CORE_TLS_PORTABLE_SERVER))
 		throw CORBA::BAD_INV_ORDER (MAKE_OMG_MINOR (3));
-}
-
-void RequestRef::reset () NIRVANA_NOEXCEPT
-{
-	ExecDomain& ed = ExecDomain::current ();
-	ed.mem_context_swap (memory_);
-	Base::reset ();
-	ed.mem_context_swap (memory_);
-	memory_.reset ();
 }
 
 }

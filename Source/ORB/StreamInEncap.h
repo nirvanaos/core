@@ -29,13 +29,13 @@
 #pragma once
 
 #include "StreamIn.h"
+#include "../UserObject.h"
 
 namespace CORBA {
 namespace Core {
 
 /// Input stream for data encapsulated as octet sequence.
-class NIRVANA_NOVTABLE StreamInEncap :
-	public CORBA::Core::StreamIn
+class NIRVANA_NOVTABLE StreamInEncap : public StreamIn
 {
 public:
 	virtual void read (size_t align, size_t size, void* buf) override;
@@ -45,10 +45,16 @@ public:
 	virtual size_t position () const override;
 
 protected:
-	StreamInEncap (const IDL::Sequence <Octet>& data) NIRVANA_NOEXCEPT :
+	StreamInEncap (const OctetSeq& data) NIRVANA_NOEXCEPT :
 		cur_ptr_ (data.data ()),
 		begin_ (data.data ()),
 		end_ (data.data () + data.size ())
+	{}
+
+	StreamInEncap (const Octet* begin, const Octet* end) NIRVANA_NOEXCEPT :
+		cur_ptr_ (begin),
+		begin_ (begin),
+		end_ (end)
 	{}
 
 private:
@@ -61,6 +67,21 @@ private:
 	const Octet* cur_ptr_;
 	const Octet* begin_;
 	const Octet* end_;
+};
+
+/// Input stream for data encapsulated as octet sequence.
+class NIRVANA_NOVTABLE StreamInEncapData :
+	public StreamInEncap,
+	public Nirvana::Core::UserObject
+{
+protected:
+	StreamInEncapData (OctetSeq&& data) NIRVANA_NOEXCEPT :
+		StreamInEncap (data),
+		data_ (std::move (data))
+	{}
+
+private:
+	OctetSeq data_;
 };
 
 }

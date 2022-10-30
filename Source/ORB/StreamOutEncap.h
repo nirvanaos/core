@@ -34,8 +34,7 @@ namespace CORBA {
 namespace Core {
 
 /// Output stream for data encapsulated as octet sequence.
-class NIRVANA_NOVTABLE StreamOutEncap
-	: public StreamOut
+class NIRVANA_NOVTABLE StreamOutEncap : public StreamOut
 {
 public:
 	StreamOutEncap () :

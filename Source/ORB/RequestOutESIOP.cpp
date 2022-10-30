@@ -23,28 +23,27 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "RequestInPOA.h"
-#include "RqHelper.h"
+#include "RequestOutESIOP.h"
 
-namespace CORBA {
-namespace Core {
+using namespace CORBA;
 
-void RequestInPOA::set_exception (Exception&& e) NIRVANA_NOEXCEPT
+namespace ESIOP {
+
+void RequestOut::invoke ()
 {
-	try {
-		Any a = RqHelper::exception2any (std::move (e));
-		set_exception (a);
-	} catch (...) {
-		set_unknown_exception ();
+	if (!stream_out_)
+		throw BAD_INV_ORDER ();
+	Request msg (current_domain_id (), static_cast <StreamOutSM&> (*stream_out_).get_shared (), id_);
+	domain_->send_message (&msg, sizeof (msg));
+	stream_out_ = nullptr;
+}
+
+void RequestOut::cancel ()
+{
+	if (cancel_internal ()) {
+		CancelRequest msg (current_domain_id (), id_);
+		domain_->send_message (&msg, sizeof (msg));
 	}
 }
 
-void RequestInPOA::set_unknown_exception () NIRVANA_NOEXCEPT
-{
-	try {
-		set_exception (UNKNOWN ());
-	} catch (...) {}
-}
-
-}
 }

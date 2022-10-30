@@ -48,14 +48,35 @@ namespace Core {
 class NIRVANA_NOVTABLE RequestGIOP :
 	public servant_traits <Internal::IORequest>::Servant <RequestGIOP>,
 	protected RqHelper,
-	public Internal::LifeCycleRefCnt <RequestGIOP>
+	public Internal::LifeCycleRefCnt <RequestGIOP>,
+	public Nirvana::Core::UserObject
 {
-	DECLARE_CORE_INTERFACE
-	friend class Internal::LifeCycleRefCnt <RequestGIOP>;
-
 	static const size_t CHUNK_SIZE_LIMIT = 0x10000;
 
+protected:
+	void _add_ref () NIRVANA_NOEXCEPT
+	{
+		ref_cnt_.increment ();
+	}
+
+	void _remove_ref () NIRVANA_NOEXCEPT;
+
+	friend class Internal::LifeCycleRefCnt <RequestGIOP>;
+
+	template <class T>
+	friend class CORBA::servant_reference;
+
+	template <class T>
+	friend class Nirvana::Core::CoreRef;
+
 public:
+	/// When request object is created, it saves the current memory context reference.
+	///
+	Nirvana::Core::MemContext* memory () const NIRVANA_NOEXCEPT
+	{
+		return mem_context_;
+	}
+
 	///@{
 	/// Marshal/unmarshal data that meet the common data representation.
 
@@ -365,7 +386,7 @@ public:
 
 	///@}
 
-	~RequestGIOP ();
+	virtual ~RequestGIOP ();
 
 	///@{
 	/// API for code set converters.
@@ -394,7 +415,6 @@ public:
 
 protected:
 	RequestGIOP (unsigned GIOP_minor, bool client_side, unsigned response_flags);
-	RequestGIOP (const RequestGIOP& src);
 
 	virtual bool marshal_op () = 0;
 
@@ -409,11 +429,15 @@ private:
 	bool marshal_chunk ();
 
 protected:
+	unsigned GIOP_minor_;
 	unsigned response_flags_;
 	Nirvana::Core::CoreRef <StreamIn> stream_in_;
 	Nirvana::Core::CoreRef <StreamOut> stream_out_;
 
 private:
+	Nirvana::Core::CoreRef <Nirvana::Core::MemContext> mem_context_;
+	Nirvana::Core::RefCounter ref_cnt_;
+	Long chunk_level_;
 	Nirvana::Core::CoreRef <CodeSetConverter> code_set_conv_;
 	Nirvana::Core::CoreRef <CodeSetConverterW> code_set_conv_w_;
 	IndirectMapUnmarshal top_level_tc_unmarshal_;
@@ -421,7 +445,6 @@ private:
 	IndirectMapUnmarshal value_map_unmarshal_;
 	IndirectRepIdMarshal rep_id_map_marshal_;
 	IndirectRepIdUnmarshal rep_id_map_unmarshal_;
-	Long chunk_level_;
 };
 
 }

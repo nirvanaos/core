@@ -34,8 +34,7 @@
 
 namespace ESIOP {
 
-class NIRVANA_NOVTABLE StreamOutReply :
-	public StreamOutSM
+class NIRVANA_NOVTABLE StreamOutReply : public StreamOutSM
 {
 public:
 	// Size of GIOP MessageHeader + size of GIOP ReplyHeader with empty service_context.
