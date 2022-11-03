@@ -33,7 +33,7 @@ void RequestOut::invoke ()
 {
 	if (!stream_out_)
 		throw BAD_INV_ORDER ();
-	Request msg (current_domain_id (), static_cast <StreamOutSM&> (*stream_out_).get_shared (), id_);
+	Request msg (current_domain_id (), static_cast <StreamOutSM&> (*stream_out_), id_);
 	domain_->send_message (&msg, sizeof (msg));
 	stream_out_ = nullptr;
 }

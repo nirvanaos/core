@@ -56,14 +56,27 @@ enum MessageType
 struct MessageHeader
 {
 	uint8_t message_type;  ///< Message type
+	uint8_t flags; ///< Flags
 
-	MessageHeader () NIRVANA_NOEXCEPT
+	static const uint8_t FLAG_LITTLE_ENDIAN = 0x80;
+
+	MessageHeader (uint8_t type, uint8_t flags = 0) NIRVANA_NOEXCEPT :
+		message_type (type),
+		flags ((PLATFORMS_ENDIAN_DIFFERENT && Nirvana::endian::native == Nirvana::endian::little ?
+			FLAG_LITTLE_ENDIAN : 0) | flags)
 	{}
 
-	MessageHeader (uint8_t type) NIRVANA_NOEXCEPT :
-		message_type (type)
-	{}
+	bool other_endian () const NIRVANA_NOEXCEPT
+	{
+		if (PLATFORMS_ENDIAN_DIFFERENT)
+			return (flags & FLAG_LITTLE_ENDIAN) ? Nirvana::endian::native != Nirvana::endian::little
+			: Nirvana::endian::native == Nirvana::endian::little;
+		else
+			return false;
+	}
 };
+
+class StreamOutSM;
 
 /// GIOP Request
 struct Request : MessageHeader
@@ -79,12 +92,18 @@ struct Request : MessageHeader
 	/// The real request id is never be 0.
 	uint32_t request_id;
 
-	Request (ProtDomainId client, SharedMemPtr mem, uint32_t rq_id) NIRVANA_NOEXCEPT :
-		MessageHeader (REQUEST),
-		GIOP_message (mem),
-		client_domain (client),
-		request_id (rq_id)
-	{}
+	Request (ProtDomainId client, StreamOutSM& stream, uint32_t rq_id);
+
+	static Request& receive (MessageHeader& hdr) NIRVANA_NOEXCEPT
+	{
+		assert (hdr.message_type == MessageType::REQUEST);
+		Request& msg = static_cast <Request&> (hdr);
+		if (hdr.other_endian ()) {
+			Nirvana::byteswap (msg.client_domain);
+			Nirvana::byteswap (msg.request_id);
+		}
+		return msg;
+	}
 };
 
 /// GIOP Reply
@@ -96,11 +115,16 @@ struct Reply : MessageHeader
 	/// The request id.
 	uint32_t request_id;
 
-	Reply (SharedMemPtr mem, uint32_t rq_id) NIRVANA_NOEXCEPT :
-		MessageHeader (REPLY),
-		GIOP_message (mem),
-		request_id (rq_id)
-	{}
+	Reply (StreamOutSM& stream, uint32_t rq_id);
+
+	static Reply& receive (MessageHeader& hdr) NIRVANA_NOEXCEPT
+	{
+		assert (hdr.message_type == MessageType::REPLY);
+		Reply& msg = static_cast <Reply&> (hdr);
+		if (hdr.other_endian ())
+			Nirvana::byteswap (msg.request_id);
+		return msg;
+	}
 };
 
 /// If GIOP Reply contains system exception, it can be sent without allocation of shared memory.
@@ -133,6 +157,18 @@ struct ReplySystemException : MessageHeader
 		minor (0),
 		request_id (rq_id)
 	{}
+
+	static ReplySystemException& receive (MessageHeader& hdr) NIRVANA_NOEXCEPT
+	{
+		assert (hdr.message_type == MessageType::REPLY_SYSTEM_EXCEPTION);
+		ReplySystemException& msg = static_cast <ReplySystemException&> (hdr);
+		if (hdr.other_endian ()) {
+			Nirvana::byteswap (msg.code);
+			Nirvana::byteswap (msg.minor);
+			Nirvana::byteswap (msg.request_id);
+		}
+		return msg;
+	}
 };
 
 /// GIOP CancelRequest
@@ -149,6 +185,17 @@ struct CancelRequest : MessageHeader
 		client_domain (sender),
 		request_id (rq_id)
 	{}
+
+	static CancelRequest& receive (MessageHeader& hdr) NIRVANA_NOEXCEPT
+	{
+		assert (hdr.message_type == MessageType::REPLY_SYSTEM_EXCEPTION);
+		CancelRequest& msg = static_cast <CancelRequest&> (hdr);
+		if (hdr.other_endian ()) {
+			Nirvana::byteswap (msg.client_domain);
+			Nirvana::byteswap (msg.request_id);
+		}
+		return msg;
+	}
 };
 
 /// The message buffer enough for any message
@@ -164,7 +211,6 @@ union MessageBuffer
 /// allocation of the shared memory.
 struct ReplyImmediate : MessageHeader
 {
-	uint8_t data_size_and_flag;
 	static const size_t MAX_DATA_SIZE = sizeof (MessageBuffer) - sizeof (MessageHeader) - 1 - sizeof (uint32_t);
 	static_assert (MAX_DATA_SIZE <= 127, "MAX_DATA_SIZE <= 127");
 
@@ -172,14 +218,21 @@ struct ReplyImmediate : MessageHeader
 	uint32_t request_id;
 
 	ReplyImmediate (uint32_t rq_id, const void* p, size_t size) NIRVANA_NOEXCEPT :
-		MessageHeader (REPLY_IMMEDIATE),
-		data_size_and_flag ((uint8_t)(size << 1)),
+		MessageHeader (REPLY_IMMEDIATE, (uint8_t)size),
 		request_id (rq_id)
 	{
 		assert (size <= MAX_DATA_SIZE);
-		if (Nirvana::endian::native == Nirvana::endian::little)
-			data_size_and_flag |= 1;
 		std::copy ((const uint8_t*)p, (const uint8_t*)p + size, data);
+	}
+
+	static ReplyImmediate& receive (MessageHeader& hdr) NIRVANA_NOEXCEPT
+	{
+		assert (hdr.message_type == MessageType::REPLY_SYSTEM_EXCEPTION);
+		ReplyImmediate& msg = static_cast <ReplyImmediate&> (hdr);
+		if (hdr.other_endian ()) {
+			Nirvana::byteswap (msg.request_id);
+		}
+		return msg;
 	}
 };
 
@@ -187,7 +240,7 @@ static_assert (sizeof (MessageBuffer) == sizeof (ReplyImmediate), "sizeof (Messa
 
 /// Message dispatch function.
 /// Called by the postman from portability layer.
-void dispatch_message (const MessageHeader& message) NIRVANA_NOEXCEPT;
+void dispatch_message (MessageHeader& message) NIRVANA_NOEXCEPT;
 
 /// Other domain platform properties.
 struct PlatformSizes

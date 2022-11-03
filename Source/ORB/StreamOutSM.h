@@ -50,7 +50,7 @@ public:
 	virtual bool chunk_end () override;
 	virtual CORBA::Long chunk_size () const override;
 
-	SharedMemPtr get_shared () NIRVANA_NOEXCEPT
+	void store_stream (SharedMemPtr& where)
 	{
 		// Truncate size of the last block
 		uint8_t* block = (uint8_t*)cur_block ().ptr;
@@ -63,7 +63,7 @@ public:
 				it->ptr = nullptr;
 			}
 		}
-		return stream_hdr_;
+		other_domain_->store_pointer (&where, stream_hdr_);
 	}
 
 	void detach () NIRVANA_NOEXCEPT
@@ -145,6 +145,23 @@ private:
 	size_t chunk_begin_;
 	int32_t* chunk_;
 };
+
+inline
+Request::Request (ProtDomainId client, StreamOutSM& stream, uint32_t rq_id) :
+	MessageHeader (REQUEST),
+	client_domain (client),
+request_id (rq_id)
+{
+	stream.store_stream (GIOP_message);
+}
+
+inline
+Reply::Reply (StreamOutSM& stream, uint32_t rq_id) :
+	MessageHeader (REPLY),
+	request_id (rq_id)
+{
+	stream.store_stream (GIOP_message);
+}
 
 }
 

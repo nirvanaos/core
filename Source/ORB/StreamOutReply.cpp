@@ -103,7 +103,7 @@ void StreamOutReply::send (uint32_t request_id) NIRVANA_NOEXCEPT
 			}
 		}
 
-		Reply reply (StreamOutSM::get_shared (), request_id);
+		Reply reply (*this, request_id);
 		other_domain ().send_message (&reply, sizeof (reply));
 		StreamOutSM::detach ();
 	} catch (...) {
