@@ -117,9 +117,7 @@ void RequestIn::get_object_key (const IOP::TaggedProfile& profile)
 }
 
 RequestIn::~RequestIn ()
-{
-	finalize (); // Remove from the map if not yet.
-}
+{}
 
 void RequestIn::_add_ref () NIRVANA_NOEXCEPT
 {
@@ -268,6 +266,10 @@ void RequestIn::cancel () NIRVANA_NOEXCEPT
 			try {
 				exec_domain_->abort ();
 			} catch (...) {}
+		}
+		if (map_iterator_) {
+			IncomingRequests::release_iterator (map_iterator_);
+			map_iterator_ = nullptr;
 		}
 	}
 }

@@ -28,38 +28,11 @@
 #define NIRVANA_ORB_CORE_INCOMINGREQUESTS_H_
 #pragma once
 
-#include "DomainAddress.h"
+#include "RequestIn.h"
 #include "../SkipList.h"
 
 namespace CORBA {
 namespace Core {
-
-/// Unique id of an incoming request.
-struct RequestKey : DomainAddress
-{
-	RequestKey (const DomainAddress& addr, uint32_t rq_id) :
-		DomainAddress (addr),
-		request_id (rq_id)
-	{}
-
-	RequestKey (const DomainAddress& addr) :
-		DomainAddress (addr)
-	{}
-
-	bool operator < (const RequestKey& rhs) const NIRVANA_NOEXCEPT
-	{
-		if (request_id < rhs.request_id)
-			return true;
-		else if (request_id > rhs.request_id)
-			return false;
-		else
-			return DomainAddress::operator < (rhs);
-	}
-
-	uint32_t request_id;
-};
-
-class RequestIn;
 
 /// Incoming requests manager
 class IncomingRequests
@@ -94,13 +67,11 @@ public:
 		{}
 
 		uint64_t timestamp;
-		RequestIn* request;
+		Nirvana::Core::CoreRef <RequestIn> request;
 	};
 
 	// The request map
 	typedef Nirvana::Core::SkipList <RequestVal, SKIP_LIST_LEVELS> RequestMap;
-
-	typedef RequestMap::NodeVal* MapIter;
 
 	/// Recieve incoming request.
 	/// 
@@ -116,11 +87,17 @@ public:
 	/// 
 	/// \param iter The map iterator.
 	/// \returns `true` if response must be sent.
-	static bool finalize (MapIter iter) NIRVANA_NOEXCEPT
+	static bool finalize (void* iter) NIRVANA_NOEXCEPT
 	{
-		bool ret = map_->remove (iter);
-		map_->release_node (iter);
+		RequestMap::NodeVal* node = (RequestMap::NodeVal*)iter;
+		bool ret = map_->remove (node);
+		map_->release_node (node);
 		return ret;
+	}
+
+	static void release_iterator (void* iter) NIRVANA_NOEXCEPT
+	{
+		map_->release_node ((RequestMap::NodeVal*)iter);
 	}
 
 private:

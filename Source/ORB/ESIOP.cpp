@@ -27,6 +27,7 @@
 #include "RequestInESIOP.h"
 #include "StreamInSM.h"
 #include "OutgoingRequests.h"
+#include "IncomingRequests.h"
 #include "../Runnable.h"
 #include "../CoreObject.h"
 #include "../Chrono.h"

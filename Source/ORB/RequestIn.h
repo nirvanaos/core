@@ -28,15 +28,38 @@
 #define NIRVANA_ORB_CORE_REQUESTIN_H_
 #pragma once
 
+#include "DomainAddress.h"
 #include "RequestGIOP.h"
 #include "RequestInPOA.h"
-#include "IncomingRequests.h"
-#include "../UserObject.h"
 #include "../ExecDomain.h"
-#include "GIOP.h"
 
 namespace CORBA {
 namespace Core {
+
+/// Unique id of an incoming request.
+struct RequestKey : DomainAddress
+{
+	RequestKey (const DomainAddress& addr, uint32_t rq_id) :
+		DomainAddress (addr),
+		request_id (rq_id)
+	{}
+
+	RequestKey (const DomainAddress& addr) :
+		DomainAddress (addr)
+	{}
+
+	bool operator < (const RequestKey& rhs) const NIRVANA_NOEXCEPT
+	{
+		if (request_id < rhs.request_id)
+			return true;
+		else if (request_id > rhs.request_id)
+			return false;
+		else
+			return DomainAddress::operator < (rhs);
+	}
+
+	uint32_t request_id;
+};
 
 /// Implements server-side IORequest for GIOP.
 class NIRVANA_NOVTABLE RequestIn :
@@ -86,9 +109,9 @@ public:
 	/// Must be overridden in the derived class to send reply.
 	virtual void success () override = 0;
 
-	void inserted_to_map (IncomingRequests::MapIter it) NIRVANA_NOEXCEPT
+	void inserted_to_map (void* iter) NIRVANA_NOEXCEPT
 	{
-		map_iterator_ = it;
+		map_iterator_ = iter;
 	}
 
 	/// Finalizes the request.
@@ -130,7 +153,7 @@ protected:
 private:
 	PortableServer::Core::ObjectKey object_key_;
 	IDL::String operation_;
-	IncomingRequests::MapIter map_iterator_;
+	void* map_iterator_;
 
 	/// ExecDomain pointer if request is in cancellable state, otherwise `nullptr`.
 	/// While request in map, exec_domain_ is not `nullptr`.

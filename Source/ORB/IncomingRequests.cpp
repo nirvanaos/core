@@ -23,7 +23,7 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "RequestIn.h"
+#include "IncomingRequests.h"
 #include "Chrono.h"
 #include "POA_Root.h"
 #include <algorithm>
@@ -93,7 +93,7 @@ void IncomingRequests::cancel (const RequestKey& key, uint64_t timestamp) NIRVAN
 {
 	auto ins = map_->insert (key, timestamp);
 	if (!ins.second) {
-		RequestIn* request = ins.first->value ().request;
+		Nirvana::Core::CoreRef <RequestIn> request = std::move (ins.first->value ().request);
 		if (request) {
 			map_->remove (ins.first);
 			request->cancel ();
