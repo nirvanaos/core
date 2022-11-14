@@ -37,6 +37,7 @@ void RequestOut::invoke ()
 	Request msg (current_domain_id (), static_cast <StreamOutSM&> (*stream_out_), id_);
 	domain_->send_message (&msg, sizeof (msg));
 	stream_out_ = nullptr;
+	post_invoke ();
 }
 
 void RequestOut::cancel ()

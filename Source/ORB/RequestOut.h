@@ -29,8 +29,10 @@
 #pragma once
 
 #include "RequestGIOP.h"
+#include "RequestLocal.h"
 #include "../ExecDomain.h"
 #include "../UserObject.h"
+#include "../Event.h"
 
 namespace CORBA {
 namespace Core {
@@ -51,18 +53,16 @@ public:
 		return id_;
 	}
 
-	void set_reply (unsigned status, IOP::ServiceContextList&& context,
-		Nirvana::Core::CoreRef <StreamIn>&& stream)
-	{
-		status_ = (Status)status;
-		stream_in_ = std::move (stream);
-	}
+	virtual void set_reply (unsigned status, IOP::ServiceContextList&& context,
+		Nirvana::Core::CoreRef <StreamIn>&& stream);
 
 	void set_system_exception (const Char* rep_id, uint32_t minor, CompletionStatus completed)
 		NIRVANA_NOEXCEPT;
 
 protected:
 	void write_header (IOP::ObjectKey& object_key, IDL::String& operation, IOP::ServiceContextList& context);
+
+	virtual bool unmarshal (size_t align, size_t size, void* data) override;
 
 	virtual bool marshal_op () override;
 	virtual void success () override;
@@ -72,6 +72,20 @@ protected:
 	virtual bool wait (uint64_t timeout) override;
 
 	bool cancel_internal ();
+
+	void post_invoke () NIRVANA_NOEXCEPT
+	{
+		if (!(response_flags_ & Internal::IOReference::REQUEST_ASYNC)) {
+			assert (response_flags_ & 3);
+			event_.wait ();
+		}
+	}
+
+private:
+	void finalize () NIRVANA_NOEXCEPT
+	{
+		event_.signal ();
+	}
 
 protected:
 	Nirvana::Core::CoreRef <Nirvana::Core::ExecDomain> exec_domain_;
@@ -89,6 +103,9 @@ protected:
 		LOCATION_FORWARD_PERM,
 		NEEDS_ADDRESSING_MODE
 	} status_;
+
+	Nirvana::Core::Event event_;
+	Nirvana::Core::CoreRef <RequestLocalBase> preunmarshaled_;
 };
 
 }

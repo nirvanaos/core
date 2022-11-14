@@ -95,6 +95,41 @@ void RequestOut::write_header (IOP::ObjectKey& object_key, IDL::String& operatio
 	}
 }
 
+void RequestOut::set_reply (unsigned status, IOP::ServiceContextList&& context,
+	CoreRef <StreamIn>&& stream)
+{
+	assert (response_flags_ & 3); // No oneway
+	status_ = (Status)status;
+	if (Status::NO_EXCEPTION == status_ && !(response_flags_ & 2)) {
+		assert (false); // No data was expected, but received. Ignore it.
+		finalize ();
+		return;
+	}
+	stream_in_ = std::move (stream);
+	if (Status::NO_EXCEPTION == status_ && (FLAG_PREUNMARSHAL & response_flags_)) {
+		// Preunmarshal data.
+		CoreRef <RequestLocalBase> pre = CoreRef <RequestLocalBase>::
+			create <RequestLocalImpl <RequestLocalBase> > (memory (), 3);
+
+	} else if (Status::USER_EXCEPTION == status_) {
+		// Preunmarshal user exception.
+		CoreRef <RequestLocalBase> pre = CoreRef <RequestLocalBase>::
+			create <RequestLocalImpl <RequestLocalBase> > (memory (), 3);
+		Any exc;
+		Type <Any>::unmarshal (_get_ptr (), exc);
+		Type <Any>::marshal_out (exc, pre->_get_ptr ());
+		preunmarshaled_ = std::move (pre);
+	}
+}
+
+bool RequestOut::unmarshal (size_t align, size_t size, void* data)
+{
+	if (preunmarshaled_)
+		return preunmarshaled_->unmarshal (align, size, data);
+	else
+		return RequestGIOP::unmarshal (align, size, data);
+}
+
 bool RequestOut::marshal_op ()
 {
 	return true;
