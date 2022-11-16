@@ -219,7 +219,7 @@ const POA_FactoryEntry POA_Base::factories_ [] = {
 	}
 };
 
-const size_t POA_Base::FACTORY_COUNT = std::size (POA_Base::factories_);
+const size_t POA_Base::FACTORY_COUNT = countof (POA_Base::factories_);
 
 }
 }

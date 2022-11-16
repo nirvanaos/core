@@ -192,7 +192,7 @@ void RequestIn::serve_request (ProxyObject& proxy, IOReference::OperationIndex o
 		memory = &sync_domain->mem_context ();
 
 	const Operation& op_md = proxy.operation_metadata (op);
-	if (sync_domain && (op_md.flags & Operation::FLAG_IN_OBJ)) {
+	if (sync_domain && (op_md.flags & Operation::FLAG_IN_CPLX)) {
 		// Do not enter sync domain immediately.
 		// We enter to free sync context now and will enter sync_domain_
 		// in unmarshal_end () when all input objects unmarshaled.

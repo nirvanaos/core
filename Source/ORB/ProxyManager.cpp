@@ -180,7 +180,7 @@ ProxyManager::ProxyManager (String_in primary_iid) :
 	}
 
 	// Total count of operations
-	size_t op_cnt = std::size (object_ops_);
+	size_t op_cnt = countof (object_ops_);
 	for (const InterfaceEntry* ie = interfaces_.begin (); ie != interfaces_.end (); ++ie) {
 		op_cnt += ie->operations.size;
 	}
@@ -353,7 +353,7 @@ void ProxyManager::invoke (OperationIndex op, IORequest::_ptr_type rq) NIRVANA_N
 			Interface* implementation;
 			const Operation* op_metadata;
 			if (0 == itf_idx) { // Object operation
-				assert (op_idx < std::size (object_ops_));
+				assert (op_idx < countof (object_ops_));
 				implementation = reinterpret_cast <Interface*> ((void*)this);
 				op_metadata = object_ops_ + op_idx;
 			} else {
@@ -454,10 +454,10 @@ bool ProxyManager::call_request_proc (RqProcInternal proc, ProxyManager* servant
 const Parameter ProxyManager::is_a_param_ = { "logical_type_id", Type <String>::type_code };
 
 const Operation ProxyManager::object_ops_ [(size_t)ObjectOp::OBJECT_OP_CNT] = {
-	{ "_get_interface", {0, 0}, {0, 0}, Type <InterfaceDef>::type_code, ObjProcWrapper <rq_get_interface>, Operation::FLAG_OUT_OBJ },
-	{ "_is_a", {&is_a_param_, 1}, {0, 0}, Type <Boolean>::type_code, ObjProcWrapper <rq_is_a>, 0 },
-	{ "_non_existent", {0, 0}, {0, 0}, Type <Boolean>::type_code, ObjProcWrapper <rq_non_existent>, 0 },
-	{ "_repository_id", {0, 0}, {0, 0}, Type <String>::type_code, ObjProcWrapper <rq_repository_id>, 0 }
+	{ "_get_interface", {0, 0}, {0, 0}, {0, 0}, Type <InterfaceDef>::type_code, ObjProcWrapper <rq_get_interface>, Operation::FLAG_OUT_CPLX },
+	{ "_is_a", {&is_a_param_, 1}, {0, 0}, {0, 0}, Type <Boolean>::type_code, ObjProcWrapper <rq_is_a>, 0 },
+	{ "_non_existent", {0, 0}, {0, 0}, {0, 0}, Type <Boolean>::type_code, ObjProcWrapper <rq_non_existent>, 0 },
+	{ "_repository_id", {0, 0}, {0, 0}, {0, 0}, Type <String>::type_code, ObjProcWrapper <rq_repository_id>, 0 }
 };
 
 }

@@ -225,7 +225,7 @@ public:
 	{
 		assert (op.interface_idx () <= interfaces_.size ());
 		if (op.interface_idx () == 0) {
-			assert (op.operation_idx () < std::size (object_ops_));
+			assert (op.operation_idx () < countof (object_ops_));
 			return object_ops_ [op.operation_idx ()];
 		} else {
 			const InterfaceEntry& itf = interfaces_ [op.interface_idx () - 1];
