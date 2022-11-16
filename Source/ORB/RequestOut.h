@@ -41,10 +41,10 @@ namespace Core {
 class RequestOut :
 	public RequestGIOP
 {
-public:
 	static const unsigned FLAG_PREUNMARSHAL = 8;
 
-	RequestOut (unsigned GIOP_minor, unsigned response_flags);
+public:
+	RequestOut (unsigned GIOP_minor, unsigned response_flags, const Internal::Operation& metadata);
 
 	~RequestOut ();
 
@@ -63,6 +63,9 @@ protected:
 	void write_header (IOP::ObjectKey& object_key, IDL::String& operation, IOP::ServiceContextList& context);
 
 	virtual bool unmarshal (size_t align, size_t size, void* data) override;
+	virtual bool unmarshal_seq(size_t align, size_t element_size, size_t& element_count, void*& data,
+		size_t& allocated_size) override;
+	virtual size_t unmarshal_seq_begin() override;
 
 	virtual bool marshal_op () override;
 	virtual void success () override;
@@ -87,8 +90,10 @@ private:
 		event_.signal ();
 	}
 
+	void preunmarshal(TypeCode::_ptr_type tc, std::vector <Octet> buf, Internal::IORequest::_ptr_type out);
+
 protected:
-	Nirvana::Core::CoreRef <Nirvana::Core::ExecDomain> exec_domain_;
+	const Internal::Operation* metadata_;
 
 	uint32_t id_;
 

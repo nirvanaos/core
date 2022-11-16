@@ -35,15 +35,14 @@ using namespace Internal;
 
 namespace Core {
 
-RequestOut::RequestOut (unsigned GIOP_minor, unsigned response_flags) :
+RequestOut::RequestOut (unsigned GIOP_minor, unsigned response_flags, const Internal::Operation& metadata) :
 	RequestGIOP (GIOP_minor, true, response_flags),
+	metadata_(&metadata),
 	id_ (0),
 	status_ (Status::IN_PROGRESS)
 {
-	// While request in map, exec_domain_ is not nullptr.
-	// For the oneway and async requests, exec_domain_ is nullptr.
-	if ((response_flags & 3) && !(response_flags & IOReference::REQUEST_ASYNC))
-		exec_domain_ = &ExecDomain::current ();
+	if (metadata.flags & Operation::FLAG_OUT_CPLX)
+		response_flags_ |= FLAG_PREUNMARSHAL;
 }
 
 RequestOut::~RequestOut ()
@@ -99,27 +98,49 @@ void RequestOut::set_reply (unsigned status, IOP::ServiceContextList&& context,
 	CoreRef <StreamIn>&& stream)
 {
 	assert (response_flags_ & 3); // No oneway
-	status_ = (Status)status;
-	if (Status::NO_EXCEPTION == status_ && !(response_flags_ & 2)) {
-		assert (false); // No data was expected, but received. Ignore it.
-		finalize ();
-		return;
-	}
-	stream_in_ = std::move (stream);
-	if (Status::NO_EXCEPTION == status_ && (FLAG_PREUNMARSHAL & response_flags_)) {
-		// Preunmarshal data.
-		CoreRef <RequestLocalBase> pre = CoreRef <RequestLocalBase>::
-			create <RequestLocalImpl <RequestLocalBase> > (memory (), 3);
+	switch (status_ = (Status)status) {
+		case Status::NO_EXCEPTION:
+			if (!(response_flags_ & 2)) {
+				assert(false); // No data was expected, but received. Ignore it.
+				finalize();
+				break;
+			}
+			stream_in_ = std::move(stream);
+			if (FLAG_PREUNMARSHAL & response_flags_) {
+				// Preunmarshal data.
+				CoreRef <RequestLocalBase> pre = CoreRef <RequestLocalBase>::
+					create <RequestLocalImpl <RequestLocalBase> >(memory(), 3);
+				IORequest::_ptr_type rq = pre->_get_ptr();
+				std::vector <Octet> buf;
+				buf.resize(3 * sizeof(void*));
+				for (const Parameter* param = metadata_->output.p, *end = param + metadata_->output.size; param != end; ++param) {
+					preunmarshal((param->type) (), buf, rq);
+				}
+				if (metadata_->return_type) {
+					preunmarshal((metadata_->return_type) (), buf, rq);
+				}
+				preunmarshaled_ = std::move(pre);
+				stream_in_ = nullptr;
+			}
+			finalize();
+			break;
 
-	} else if (Status::USER_EXCEPTION == status_) {
-		// Preunmarshal user exception.
-		CoreRef <RequestLocalBase> pre = CoreRef <RequestLocalBase>::
-			create <RequestLocalImpl <RequestLocalBase> > (memory (), 3);
-		Any exc;
-		Type <Any>::unmarshal (_get_ptr (), exc);
-		Type <Any>::marshal_out (exc, pre->_get_ptr ());
-		preunmarshaled_ = std::move (pre);
+		case Status::USER_EXCEPTION:
+		case Status::SYSTEM_EXCEPTION:
+			stream_in_ = std::move(stream);
+			finalize();
+			break;
 	}
+}
+
+void RequestOut::preunmarshal(TypeCode::_ptr_type tc, std::vector <Octet> buf, Internal::IORequest::_ptr_type out)
+{
+	size_t cb = tc->n_size();
+	if (buf.size() < cb)
+		buf.resize(cb);
+	tc->n_construct (buf.data());
+	tc->n_unmarshal(_get_ptr(), 1, buf.data());
+	tc->n_marshal_out(buf.data(), 1, out);
 }
 
 bool RequestOut::unmarshal (size_t align, size_t size, void* data)
@@ -128,6 +149,23 @@ bool RequestOut::unmarshal (size_t align, size_t size, void* data)
 		return preunmarshaled_->unmarshal (align, size, data);
 	else
 		return RequestGIOP::unmarshal (align, size, data);
+}
+
+bool RequestOut::unmarshal_seq(size_t align, size_t element_size, size_t& element_count, void*& data,
+	size_t& allocated_size)
+{
+	if (preunmarshaled_)
+		return preunmarshaled_->unmarshal_seq(align, element_size, element_count, data, allocated_size);
+	else
+		return RequestGIOP::unmarshal_seq(align, element_size, element_count, data, allocated_size);
+}
+
+size_t RequestOut::unmarshal_seq_begin()
+{
+	if (preunmarshaled_)
+		return preunmarshaled_->unmarshal_seq_begin();
+	else
+		return RequestGIOP::unmarshal_seq_begin();
 }
 
 bool RequestOut::marshal_op ()

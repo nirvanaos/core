@@ -39,7 +39,7 @@ void DomainLocal::destroy () NIRVANA_NOEXCEPT
 }
 
 CORBA::Internal::IORequest::_ref_type DomainLocal::create_request (const IOP::ObjectKey& object_key,
-	IDL::String operation, unsigned flags)
+	const Internal::Operation& metadata, unsigned flags)
 {
 	IOP::ServiceContextList context;
 	DeadlineTime deadline = ExecDomain::current ().deadline ();
@@ -48,7 +48,7 @@ CORBA::Internal::IORequest::_ref_type DomainLocal::create_request (const IOP::Ob
 		context.back ().context_id (CONTEXT_ID_DEADLINE);
 		context.back ().context_data ().assign ((const Octet*)&deadline, (const Octet*)&deadline + sizeof (deadline));
 	}
-	return make_pseudo <RequestOut> (std::ref (*this), object_key, std::move (operation), flags, std::move (context));
+	return make_pseudo <RequestOut> (std::ref (*this), object_key, metadata, flags, std::move (context));
 }
 
 }

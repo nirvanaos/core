@@ -76,12 +76,7 @@ IORequest::_ref_type ReferenceRemote::create_request (OperationIndex op, unsigne
 
 	check_create_request (op, flags);
 
-	const Operation& metadata = operation_metadata (op);
-
-	if (metadata.flags & Operation::FLAG_OUT_CPLX)
-		flags |= RequestOut::FLAG_PREUNMARSHAL;
-
-	return domain_->create_request (object_key_, metadata.name, flags);
+	return domain_->create_request (object_key_, operation_metadata(op), flags);
 }
 
 }

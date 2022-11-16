@@ -48,7 +48,7 @@ public:
 	}
 
 	virtual Internal::IORequest::_ref_type create_request (const IOP::ObjectKey& object_key,
-		IDL::String operation, unsigned flags) = 0;
+		const Internal::Operation& metadata, unsigned flags) = 0;
 
 protected:
 	Domain (Nirvana::Core::Service& service) :

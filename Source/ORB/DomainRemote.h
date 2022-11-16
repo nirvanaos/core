@@ -49,7 +49,7 @@ public:
 	{}
 
 	virtual Internal::IORequest::_ref_type create_request (const IOP::ObjectKey& object_key,
-		IDL::String operation, unsigned flags) override;
+		const Internal::Operation& metadata, unsigned flags) override;
 
 protected:
 	virtual void destroy () NIRVANA_NOEXCEPT override;

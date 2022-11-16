@@ -42,14 +42,16 @@ class RequestOut : public CORBA::Core::RequestOut
 
 public:
 	RequestOut (DomainLocal& domain, IOP::ObjectKey object_key,
-		IDL::String operation, unsigned response_flags, IOP::ServiceContextList context) :
-		Base ((response_flags & 3) == 1 ? 2 : 1, response_flags),
+		const CORBA::Internal::Operation& metadata, unsigned response_flags,
+		IOP::ServiceContextList context) :
+		Base ((response_flags & 3) == 1 ? 2 : 1, response_flags, metadata),
 		domain_ (&domain)
 	{
 		stream_out_ = Nirvana::Core::CoreRef <CORBA::Core::StreamOut>::create
 			<Nirvana::Core::ImplDynamic <StreamOutSM> > (std::ref (domain));
 		if (response_flags & 3)
 			id_ = OutgoingRequests::new_request (*this, OutgoingRequests::IdPolicy::ANY);
+		IDL::String operation = metadata.name;
 		write_header (object_key, operation, context);
 	}
 

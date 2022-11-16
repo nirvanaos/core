@@ -223,7 +223,8 @@ void RequestIn::success ()
 
 void RequestIn::set_exception (Any& e)
 {
-	if (e.type ()->kind () != TCKind::tk_except)
+	TypeCode::_ptr_type type = e.type();
+	if (type->kind () != TCKind::tk_except)
 		throw BAD_PARAM (MAKE_OMG_MINOR (21));
 
 	GIOP::ReplyStatusType status = e.is_system_exception () ?
@@ -239,9 +240,9 @@ void RequestIn::set_exception (Any& e)
 	}
 	unsigned rf = response_flags_;
 	if (rf)
-		response_flags_ |= RESPONSE_DATA; // To marshal Any.
+		response_flags_ |= RESPONSE_DATA; // To marshal exception data.
 	try {
-		Type <Any>::marshal_out (e, _get_ptr ());
+		type->n_marshal_out (e.data (), 1, _get_ptr());
 	} catch (...) {}
 	response_flags_ = rf;
 }
