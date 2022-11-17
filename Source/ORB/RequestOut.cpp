@@ -43,6 +43,12 @@ RequestOut::RequestOut (unsigned GIOP_minor, unsigned response_flags, const Inte
 {
 	if (metadata.flags & Operation::FLAG_OUT_CPLX)
 		response_flags_ |= FLAG_PREUNMARSHAL;
+
+	ExecDomain& ed = ExecDomain::current();
+	if ((response_flags & (1 | IOReference::REQUEST_ASYNC)) == 1)
+		deadline_ = ed.deadline();
+	else
+		deadline_ = ed.get_request_deadline(!(response_flags & 1));
 }
 
 RequestOut::~RequestOut ()
@@ -108,19 +114,28 @@ void RequestOut::set_reply (unsigned status, IOP::ServiceContextList&& context,
 			stream_in_ = std::move(stream);
 			if (FLAG_PREUNMARSHAL & response_flags_) {
 				// Preunmarshal data.
-				CoreRef <RequestLocalBase> pre = CoreRef <RequestLocalBase>::
-					create <RequestLocalImpl <RequestLocalBase> >(memory(), 3);
-				IORequest::_ptr_type rq = pre->_get_ptr();
-				std::vector <Octet> buf;
-				buf.resize(3 * sizeof(void*));
-				for (const Parameter* param = metadata_->output.p, *end = param + metadata_->output.size; param != end; ++param) {
-					preunmarshal((param->type) (), buf, rq);
+				ExecDomain& ed = ExecDomain::current();
+				ed.deadline(deadline_);
+				ed.mem_context_push(memory());
+				try {
+					CoreRef <RequestLocalBase> pre = CoreRef <RequestLocalBase>::
+						create <RequestLocalImpl <RequestLocalBase> >(memory(), 3);
+					IORequest::_ptr_type rq = pre->_get_ptr();
+					std::vector <Octet> buf;
+					buf.resize(3 * sizeof(void*));
+					for (const Parameter* param = metadata_->output.p, *end = param + metadata_->output.size; param != end; ++param) {
+						preunmarshal((param->type) (), buf, rq);
+					}
+					if (metadata_->return_type) {
+						preunmarshal((metadata_->return_type) (), buf, rq);
+					}
+					preunmarshaled_ = std::move(pre);
+					stream_in_ = nullptr;
+				} catch (...) {
+					ed.mem_context_pop();
+					throw;
 				}
-				if (metadata_->return_type) {
-					preunmarshal((metadata_->return_type) (), buf, rq);
-				}
-				preunmarshaled_ = std::move(pre);
-				stream_in_ = nullptr;
+				ed.mem_context_pop();
 			}
 			finalize();
 			break;
@@ -130,6 +145,9 @@ void RequestOut::set_reply (unsigned status, IOP::ServiceContextList&& context,
 			stream_in_ = std::move(stream);
 			finalize();
 			break;
+
+		default:
+			throw UNKNOWN(); // Unexpected reply
 	}
 }
 
