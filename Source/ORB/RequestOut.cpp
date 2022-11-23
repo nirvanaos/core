@@ -225,9 +225,38 @@ bool RequestOut::cancel_internal ()
 	return false;
 }
 
-bool RequestOut::is_exception () const NIRVANA_NOEXCEPT
+bool RequestOut::get_exception (Any& e)
 {
-	return Status::SYSTEM_EXCEPTION == status_ || Status::USER_EXCEPTION == status_;
+	switch (status_) {
+		case Status::SYSTEM_EXCEPTION:
+		case Status::USER_EXCEPTION: {
+			IDL::String id;
+			stream_in_->read_string (id);
+			TypeCode::_ptr_type tc;
+			if (Status::SYSTEM_EXCEPTION == status_) {
+				const ExceptionEntry* ee = SystemException::_get_exception_entry (id);
+				if (ee) {
+					std::aligned_storage <sizeof (SystemException), alignof (SystemException)>::type se;
+					(ee->construct) (&se);
+					tc = reinterpret_cast <SystemException&> (se).__type_code ();
+				}
+			} else {
+				for (auto p = metadata_->user_exceptions.p, end = p + metadata_->user_exceptions.size; p != end; ++p) {
+					TypeCode::_ptr_type tcp = **p;
+					if (RepId::compatible (tcp->id (), id)) {
+						tc = tcp;
+						break;
+					}
+				}
+			}
+			if (tc)
+				Type <Any>::unmarshal (tc, _get_ptr (), e);
+			else
+				e <<= UNKNOWN (Status::SYSTEM_EXCEPTION == status_ ? MAKE_OMG_MINOR (1) : MAKE_OMG_MINOR (2));
+			return true;
+		}
+	}
+	return false;
 }
 
 bool RequestOut::completed () const NIRVANA_NOEXCEPT

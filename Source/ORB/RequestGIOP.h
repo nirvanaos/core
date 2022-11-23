@@ -361,8 +361,11 @@ public:
 	/// 
 	virtual void invoke () = 0;
 
-	/// Check if the request is completed with an exception.
-	virtual bool is_exception () const NIRVANA_NOEXCEPT = 0;
+	/// Unmarshal exception.
+	/// \param [out] e If request completed with exception, receives the exception.
+	///                Otherwise unchanged.
+	/// \returns `true` if e contains an exception.
+	virtual bool get_exception (Any& e) = 0;
 
 	///@}
 

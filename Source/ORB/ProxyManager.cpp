@@ -110,7 +110,8 @@ void ProxyManager::check_metadata (const InterfaceMetadata* metadata, String_in 
 			throw OBJ_ADAPTER (); // TODO: Log
 		check_parameters (op->input);
 		check_parameters (op->output);
-		check_type_code ((op->return_type) ());
+		if (op->return_type)
+			check_type_code ((op->return_type) ());
 	}
 }
 
@@ -454,10 +455,10 @@ bool ProxyManager::call_request_proc (RqProcInternal proc, ProxyManager* servant
 const Parameter ProxyManager::is_a_param_ = { "logical_type_id", Type <String>::type_code };
 
 const Operation ProxyManager::object_ops_ [(size_t)ObjectOp::OBJECT_OP_CNT] = {
-	{ "_get_interface", {0, 0}, {0, 0}, {0, 0}, Type <InterfaceDef>::type_code, ObjProcWrapper <rq_get_interface>, Operation::FLAG_OUT_CPLX },
-	{ "_is_a", {&is_a_param_, 1}, {0, 0}, {0, 0}, Type <Boolean>::type_code, ObjProcWrapper <rq_is_a>, 0 },
-	{ "_non_existent", {0, 0}, {0, 0}, {0, 0}, Type <Boolean>::type_code, ObjProcWrapper <rq_non_existent>, 0 },
-	{ "_repository_id", {0, 0}, {0, 0}, {0, 0}, Type <String>::type_code, ObjProcWrapper <rq_repository_id>, 0 }
+	{ "_get_interface", {0, 0}, {0, 0}, {0, 0}, {0, 0}, Type <InterfaceDef>::type_code, ObjProcWrapper <rq_get_interface>, Operation::FLAG_OUT_CPLX },
+	{ "_is_a", {&is_a_param_, 1}, {0, 0}, {0, 0}, {0, 0}, Type <Boolean>::type_code, ObjProcWrapper <rq_is_a>, 0 },
+	{ "_non_existent", {0, 0}, {0, 0}, {0, 0}, {0, 0}, Type <Boolean>::type_code, ObjProcWrapper <rq_non_existent>, 0 },
+	{ "_repository_id", {0, 0}, {0, 0}, {0, 0}, {0, 0}, Type <String>::type_code, ObjProcWrapper <rq_repository_id>, 0 }
 };
 
 }

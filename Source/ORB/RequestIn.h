@@ -135,7 +135,7 @@ private:
 
 	// Caller operations throw BAD_OPERATION or just return `false`
 	virtual void invoke () override;
-	virtual bool is_exception () const NIRVANA_NOEXCEPT override;
+	virtual bool get_exception (Any& e) override;
 	virtual bool completed () const NIRVANA_NOEXCEPT override;
 	virtual bool wait (uint64_t timeout) override;
 

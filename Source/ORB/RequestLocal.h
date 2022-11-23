@@ -430,10 +430,17 @@ public:
 	/// 
 	virtual void invoke ();
 
-	/// Check if the request is completed with an exception.
-	bool is_exception () const NIRVANA_NOEXCEPT
+	/// Unmarshal exception.
+	/// \param [out] e If request completed with exception, receives the exception.
+	///                Otherwise unchanged.
+	/// \returns `true` if e contains an exception.
+	bool get_exception (Any& e) NIRVANA_NOEXCEPT
 	{
-		return State::EXCEPTION == state_;
+		if (State::EXCEPTION == state_) {
+			Internal::Type <Any>::unmarshal (_get_ptr (), e);
+			return true;
+		} else
+			return false;
 	}
 
 	///@}

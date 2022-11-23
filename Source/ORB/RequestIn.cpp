@@ -285,7 +285,7 @@ void RequestIn::invoke ()
 	throw BAD_OPERATION ();
 }
 
-bool RequestIn::is_exception () const NIRVANA_NOEXCEPT
+bool RequestIn::get_exception (Any& e)
 {
 	return false;
 }

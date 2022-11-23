@@ -75,7 +75,7 @@ protected:
 	virtual bool marshal_op () override;
 	virtual void success () override;
 	virtual void set_exception (Any& e) override;
-	virtual bool is_exception () const NIRVANA_NOEXCEPT override;
+	virtual bool get_exception (Any& e) override;
 	virtual bool completed () const NIRVANA_NOEXCEPT override;
 	virtual bool wait (uint64_t timeout) override;
 
