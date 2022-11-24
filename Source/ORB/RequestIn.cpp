@@ -43,7 +43,8 @@ RequestIn::RequestIn (const DomainAddress& client, unsigned GIOP_minor, CoreRef 
 	map_iterator_ (nullptr),
 	exec_domain_ (nullptr),
 	sync_domain_ (nullptr),
-	cancelled_ (false)
+	cancelled_ (false),
+	has_context_ (false)
 {
 	stream_in_ = std::move (in);
 
@@ -98,6 +99,11 @@ RequestIn::RequestIn (const DomainAddress& client, unsigned GIOP_minor, CoreRef 
 					get_object_key (profiles [ior.selected_profile_index ()]);
 				} break;
 			}
+
+			// In GIOP version 1.2 and 1.3, the Request Body is always aligned on an 8-octet boundary.
+			size_t unaligned = stream_in_->position() % 8;
+			if (unaligned)
+				stream_in_->read(1, 8 - unaligned, nullptr);
 		}
 	}
 }
@@ -199,6 +205,9 @@ void RequestIn::serve_request (ProxyObject& proxy, IOReference::OperationIndex o
 		sync_domain_ = sync_domain;
 		sync_context = &g_core_free_sync_context;
 	}
+
+	has_context_ = op_md.context.size != 0;
+
 	// We don't need to handle exceptions here, because invoke () does not throw exceptions.
 	Nirvana::Core::Synchronized _sync_frame (*sync_context, memory);
 	if (!is_cancelled ())
@@ -208,6 +217,13 @@ void RequestIn::serve_request (ProxyObject& proxy, IOReference::OperationIndex o
 void RequestIn::unmarshal_end ()
 {
 	RequestGIOP::unmarshal_end ();
+
+	if (has_context_) {
+		IDL::Sequence <IDL::String> context;
+		Type <IDL::Sequence <IDL::String> >::unmarshal (_get_ptr (), context);
+		ExecDomain::current ().set_context (context);
+	}
+
 	// Here we must enter the target sync domain, if any.
 	SyncDomain* sd;
 	if ((sd = sync_domain_)) {

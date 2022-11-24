@@ -41,6 +41,7 @@ namespace Core {
 class RequestOut :
 	public RequestGIOP
 {
+	typedef RequestGIOP Base;
 	static const unsigned FLAG_PREUNMARSHAL = 8;
 
 public:
@@ -80,6 +81,8 @@ protected:
 	virtual bool wait (uint64_t timeout) override;
 
 	bool cancel_internal ();
+
+	void pre_invoke ();
 
 	void post_invoke () NIRVANA_NOEXCEPT
 	{

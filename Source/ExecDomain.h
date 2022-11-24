@@ -259,6 +259,16 @@ public:
 		restricted_mode_ = rm;
 	}
 
+	void get_context (const char* const* ids, size_t id_cnt, std::vector <std::string>& context)
+	{
+		// TODO: Implement
+	}
+
+	void set_context (std::vector <std::string>& context)
+	{
+		// TODO: Implement
+	}
+
 	/// Run-time global state
 	RuntimeGlobal runtime_global_;
 

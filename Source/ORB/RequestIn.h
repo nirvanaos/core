@@ -166,6 +166,7 @@ private:
 	size_t reply_status_offset_;
 	size_t reply_header_end_;
 	std::atomic <bool> cancelled_;
+	bool has_context_;
 };
 
 }

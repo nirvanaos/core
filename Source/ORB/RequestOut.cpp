@@ -96,6 +96,13 @@ void RequestOut::write_header (IOP::ObjectKey& object_key, IDL::String& operatio
 			hdr.service_context ().swap (context);
 			hdr.target ().object_key ().swap (object_key);
 			hdr.operation ().swap (operation);
+
+			// In GIOP version 1.2 and 1.3, the Request Body is always aligned on an 8-octet boundary.
+			size_t unaligned = stream_out_->size () % 8;
+			if (unaligned) {
+				Octet zero [8] = { 0 };
+				stream_out_->write_c (1, 8 - unaligned, zero);
+			}
 		}
 	}
 }
@@ -189,6 +196,18 @@ size_t RequestOut::unmarshal_seq_begin()
 bool RequestOut::marshal_op ()
 {
 	return true;
+}
+
+void RequestOut::pre_invoke ()
+{
+	if (!stream_out_)
+		throw BAD_INV_ORDER ();
+	Base::invoke ();
+	if (metadata_->context.size != 0) {
+		IDL::Sequence <IDL::String> context;
+		ExecDomain::current ().get_context (metadata_->context.p, metadata_->context.size, context);
+		Type <IDL::Sequence <IDL::String> >::marshal_out (context, _get_ptr ());
+	}
 }
 
 void RequestOut::set_exception (Any& e)
