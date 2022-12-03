@@ -246,7 +246,7 @@ void dispatch_message (MessageHeader& message) NIRVANA_NOEXCEPT;
 struct PlatformSizes
 {
 	size_t allocation_unit; ///< Shared memory ALLOCATION_UNIT.
-	size_t block_size; ///< Stream block size granularity.
+	size_t block_size; ///< Stream block size. >= allocation_unit.
 	size_t sizeof_pointer; ///< sizeof (void*) on target platform.
 	size_t sizeof_size; ///< sizeof (size_t) on target platform.
 	size_t max_size; ///< maximal size_t value.

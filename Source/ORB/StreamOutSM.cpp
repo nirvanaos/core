@@ -80,7 +80,7 @@ void StreamOutSM::write (size_t align, size_t size, void* data, size_t& allocate
 	Block block = cur_block ();
 	uint8_t* block_end = (uint8_t*)block.ptr + block.size;
 
-	if ((uintptr_t)data % sizes_.allocation_unit == 0 && size > sizes_.allocation_unit / 2) {
+	if (size > sizes_.allocation_unit / 2) {
 		// Virtual copy
 
 		other_allocated_.emplace_back ();
