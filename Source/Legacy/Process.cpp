@@ -62,10 +62,10 @@ void Process::finish () NIRVANA_NOEXCEPT
 	object_list_.clear ();
 	runtime_support_.clear ();
 	{
-		Strings tmp (move (argv_));
+		Strings tmp (std::move (argv_));
 	}
 	{
-		Strings tmp (move (envp_));
+		Strings tmp (std::move (envp_));
 	}
 	executable_.unbind ();
 	state_ = COMPLETED;

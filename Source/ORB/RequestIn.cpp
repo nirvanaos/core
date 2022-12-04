@@ -55,8 +55,8 @@ RequestIn::RequestIn (const DomainAddress& client, unsigned GIOP_minor, CoreRef 
 			Type <Hdr>::unmarshal (_get_ptr (), hdr);
 			key_.request_id = hdr.request_id ();
 			object_key_.unmarshal (hdr.object_key ());
-			operation_ = move (hdr.operation ());
-			service_context_ = move (hdr.service_context ());
+			operation_ = std::move (hdr.operation ());
+			service_context_ = std::move (hdr.service_context ());
 			response_flags_ = hdr.response_expected () ? (RESPONSE_EXPECTED | RESPONSE_DATA) : 0;
 		} break;
 
@@ -66,8 +66,8 @@ RequestIn::RequestIn (const DomainAddress& client, unsigned GIOP_minor, CoreRef 
 			Type <Hdr>::unmarshal (_get_ptr (), hdr);
 			key_.request_id = hdr.request_id ();
 			object_key_.unmarshal (hdr.object_key ());
-			operation_ = move (hdr.operation ());
-			service_context_ = move (hdr.service_context ());
+			operation_ = std::move (hdr.operation ());
+			service_context_ = std::move (hdr.service_context ());
 			response_flags_ = hdr.response_expected () ? (RESPONSE_EXPECTED | RESPONSE_DATA) : 0;
 		} break;
 
@@ -76,8 +76,8 @@ RequestIn::RequestIn (const DomainAddress& client, unsigned GIOP_minor, CoreRef 
 			Hdr hdr;
 			Type <Hdr>::unmarshal (_get_ptr (), hdr);
 			key_.request_id = hdr.request_id ();
-			operation_ = move (hdr.operation ());
-			service_context_ = move (hdr.service_context ());
+			operation_ = std::move (hdr.operation ());
+			service_context_ = std::move (hdr.service_context ());
 			response_flags_ = hdr.response_flags ();
 			if ((response_flags_ & (RESPONSE_EXPECTED | RESPONSE_DATA)) == RESPONSE_DATA)
 				throw INV_FLAG ();
