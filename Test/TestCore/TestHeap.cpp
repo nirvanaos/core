@@ -395,7 +395,7 @@ public:
 
 TEST_F (TestHeap, MultiThread)
 {
-	const unsigned int thread_cnt = max (thread::hardware_concurrency (), (unsigned)2);
+	const unsigned int thread_cnt = thread::hardware_concurrency ();
 	static const int ITERATIONS
 #ifdef _DEBUG
 		= 5;
@@ -455,7 +455,7 @@ void write_copy (Core::Heap& memory, void* src, void* dst, size_t size, int iter
 // Test multithread memory sharing. Exception handler must be called during this test.
 TEST_F (TestHeap, MultiThreadCopy)
 {
-	const unsigned thread_count = max (thread::hardware_concurrency (), (unsigned)2);
+	const unsigned thread_count = thread::hardware_concurrency ();
 	const int iterations = 100;
 
 	size_t block_size = (size_t)heap_.query (nullptr, Memory::QueryParam::SHARING_ASSOCIATIVITY);
