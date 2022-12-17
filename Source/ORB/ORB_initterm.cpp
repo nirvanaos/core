@@ -36,7 +36,6 @@ namespace Core {
 
 void initialize ()
 {
-	ESIOP::OtherDomain::initialize ();
 	Services::initialize ();
 	LocalAddress::initialize ();
 	OutgoingRequests::initialize ();
@@ -50,7 +49,6 @@ void terminate () NIRVANA_NOEXCEPT
 	OutgoingRequests::terminate ();
 	LocalAddress::terminate ();
 	Services::terminate ();
-	ESIOP::OtherDomain::terminate ();
 }
 
 }
