@@ -36,3 +36,4 @@
 /Source/ORB/TC_Factory.h
 /Exports/TC_Factory.cpp
 /Exports/TC_Factory_p.cpp
+/Exports/Domains_p.cpp
