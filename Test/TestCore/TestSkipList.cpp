@@ -3,7 +3,6 @@
 #include <gtest/gtest.h>
 
 
-using namespace std;
 using ::Nirvana::Core::SkipList;
 
 namespace TestSkipList {
@@ -45,7 +44,7 @@ TEST_F (TestSkipList, Move)
 	sl.release_node (sl.insert (2).first);
 
 	SL sl1;
-	sl1 = move (sl);
+	sl1 = std::move (sl);
 	ASSERT_FALSE (sl.get_min_node ());
 
 	int i;
