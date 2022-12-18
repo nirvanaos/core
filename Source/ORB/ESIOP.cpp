@@ -35,6 +35,7 @@
 using namespace CORBA;
 using namespace CORBA::Core;
 
+using namespace Nirvana;
 using namespace Nirvana::Core;
 
 namespace ESIOP {
@@ -270,6 +271,20 @@ void ReceiveSystemException::run ()
 		SystemException::_get_exception_entry (code_)->rep_id, minor_, completed_);
 }
 
+/// Shutdown Runnable
+class NIRVANA_NOVTABLE ReceiveShutdown :
+	public Runnable,
+	public CoreObject // Must be created quickly
+{
+protected:
+	virtual void run () override;
+};
+
+void ReceiveShutdown::run ()
+{
+	Scheduler::shutdown ();
+}
+
 void dispatch_message (MessageHeader& message) NIRVANA_NOEXCEPT
 {
 	switch (message.message_type) {
@@ -344,6 +359,14 @@ void dispatch_message (MessageHeader& message) NIRVANA_NOEXCEPT
 			}
 		} break;
 
+		case MessageType::SHUTDOWN:
+			try {
+				ExecDomain::async_call (INFINITE_DEADLINE,
+					CoreRef <Runnable>::create <ImplDynamic <ReceiveShutdown> > (),
+					g_core_free_sync_context, &g_shared_mem_context);
+			} catch (...) {
+			}
+			break;
 	}
 }
 

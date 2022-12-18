@@ -30,7 +30,6 @@
 
 #include <CORBA/Server.h>
 #include "SharedObject.h"
-#include <Port/SysDomain.h>
 #include "Nirvana/Domains_s.h"
 
 namespace Nirvana {
@@ -38,15 +37,9 @@ namespace Core {
 
 /// System domain.
 class SysDomain :
-	public CORBA::servant_traits <Nirvana::SysDomain>::Servant <SysDomain>,
-	private Port::SysDomain
+	public CORBA::servant_traits <Nirvana::SysDomain>::Servant <SysDomain>
 {
 public:
-	Port::SysDomain& port ()
-	{
-		return *this;
-	}
-
 	void get_bind_info (const std::string& obj_name, BindInfo& bind_info)
 	{
 		if (obj_name == "Nirvana/g_dec_calc")
@@ -54,21 +47,6 @@ public:
 		else
 			bind_info.module_name ("TestModule.olf");
 	}
-
-	class ProtDomainInfo :
-		private Port::SysDomain::ProtDomainInfo
-	{
-	public:
-		Port::SysDomain::ProtDomainInfo& port ()
-		{
-			return *this;
-		}
-
-		template <typename T>
-		ProtDomainInfo (T p) :
-			Port::SysDomain::ProtDomainInfo (p)
-		{}
-	};
 };
 
 }

@@ -46,6 +46,7 @@ enum MessageType
 	REPLY_SYSTEM_EXCEPTION, ///< GIOP Reply with system exception
 	CANCEL_REQUEST, ///< GIOP CancelRequest
 	LOCATE_REPLY, ///< GIOP LocateReply - currently unused
+	SHUTDOWN, ///< Shutdown domain
 
 	/// Number of the ESIOP messages.
 	/// Host system may add own message types.
@@ -188,7 +189,7 @@ struct CancelRequest : MessageHeader
 
 	static CancelRequest& receive (MessageHeader& hdr) NIRVANA_NOEXCEPT
 	{
-		assert (hdr.message_type == MessageType::REPLY_SYSTEM_EXCEPTION);
+		assert (hdr.message_type == MessageType::CANCEL_REQUEST);
 		CancelRequest& msg = static_cast <CancelRequest&> (hdr);
 		if (hdr.other_endian ()) {
 			Nirvana::byteswap (msg.client_domain);
@@ -227,7 +228,7 @@ struct ReplyImmediate : MessageHeader
 
 	static ReplyImmediate& receive (MessageHeader& hdr) NIRVANA_NOEXCEPT
 	{
-		assert (hdr.message_type == MessageType::REPLY_SYSTEM_EXCEPTION);
+		assert (hdr.message_type == MessageType::REPLY_IMMEDIATE);
 		ReplyImmediate& msg = static_cast <ReplyImmediate&> (hdr);
 		if (hdr.other_endian ()) {
 			Nirvana::byteswap (msg.request_id);
@@ -237,6 +238,20 @@ struct ReplyImmediate : MessageHeader
 };
 
 static_assert (sizeof (MessageBuffer) == sizeof (ReplyImmediate), "sizeof (MessageBuffer) == sizeof (ReplyImmediate)");
+
+struct Shutdown : MessageHeader
+{
+	Shutdown () NIRVANA_NOEXCEPT :
+	MessageHeader (SHUTDOWN)
+	{}
+
+	static Shutdown& receive (MessageHeader& hdr) NIRVANA_NOEXCEPT
+	{
+		assert (hdr.message_type == MessageType::SHUTDOWN);
+		Shutdown& msg = static_cast <Shutdown&> (hdr);
+		return msg;
+	}
+};
 
 /// Message dispatch function.
 /// Called by the postman from portability layer.
