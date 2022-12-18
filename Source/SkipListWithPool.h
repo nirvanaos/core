@@ -60,7 +60,10 @@ public:
 
 	void create_item ()
 	{
-		push_node ();
+		if (purge_count_.decrement_seq () < 0) {
+			purge_count_.increment ();
+			push_node ();
+		}
 	}
 
 	void delete_item ()

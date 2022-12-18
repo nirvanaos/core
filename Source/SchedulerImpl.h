@@ -45,20 +45,17 @@ class SchedulerImpl
 public:
 	SchedulerImpl () NIRVANA_NOEXCEPT :
 		free_cores_ (Port::SystemInfo::hardware_concurrency ()),
-		queue_ (Port::SystemInfo::hardware_concurrency ()),
-		active_items_ (0)
+		queue_ (Port::SystemInfo::hardware_concurrency ())
 	{}
 
 	void create_item ()
 	{
 		queue_.create_item ();
-		active_items_.increment ();
 	}
 
 	void delete_item () NIRVANA_NOEXCEPT
 	{
 		queue_.delete_item ();
-		active_items_.decrement ();
 	}
 
 	void schedule (const DeadlineTime& deadline, const ExecutorRef& executor) NIRVANA_NOEXCEPT
@@ -78,11 +75,6 @@ public:
 		execute_next ();
 	}
 
-	AtomicCounter <false>::IntegralType active_items () const
-	{
-		return active_items_;
-	}
-
 private:
 	void execute_next () NIRVANA_NOEXCEPT;
 
@@ -91,7 +83,6 @@ protected:
 
 private:
 	Queue queue_;
-	AtomicCounter <false> active_items_;
 };
 
 template <class T, class ExecutorRef>
