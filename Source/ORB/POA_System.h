@@ -46,7 +46,7 @@ protected:
 	virtual void check_object_id (const ObjectId& oid);
 
 protected:
-	typedef unsigned int ID;
+	typedef uint32_t ID;
 	ID next_id_;
 };
 

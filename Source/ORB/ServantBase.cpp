@@ -63,7 +63,7 @@ public:
 ServantBase* ServantBase::create (Servant user_servant)
 {
 	POA::_ref_type adapter = user_servant->_default_POA ();
-	if (POA_Base::implicit_activation (adapter))
+	if (adapter && POA_Base::implicit_activation (adapter))
 		return new ServantBaseImplicit (user_servant, adapter);
 	else
 		return new ServantBaseExplicit (user_servant);

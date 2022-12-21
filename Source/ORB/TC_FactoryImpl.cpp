@@ -36,6 +36,11 @@ namespace Core {
 
 std::atomic_flag TC_FactoryImpl::GC_scheduled_ = ATOMIC_FLAG_INIT;
 
+Object::_ref_type create_TC_Factory ()
+{
+	return make_reference <TC_FactoryImpl> ()->_this ();
+}
+
 inline void TC_FactoryImpl::schedule_GC () NIRVANA_NOEXCEPT
 {
 	if (!GC_scheduled_.test_and_set ()) {

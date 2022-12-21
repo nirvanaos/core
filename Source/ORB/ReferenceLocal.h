@@ -76,7 +76,6 @@ public:
 
 	Nirvana::Core::CoreRef <ProxyObject> get_servant () const NIRVANA_NOEXCEPT;
 
-private:
 	virtual void marshal (StreamOut& out) const override;
 	virtual Internal::IORequest::_ref_type create_request (OperationIndex op, unsigned flags) override;
 

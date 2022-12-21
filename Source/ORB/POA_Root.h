@@ -63,6 +63,8 @@ public:
 		root_ = nullptr;
 	}
 
+	virtual void check_object_id (const ObjectId& oid) override;
+
 	virtual IDL::String the_name () const override
 	{
 		return "RootPOA";
@@ -87,8 +89,6 @@ public:
 		return CORBA::Object::_ref_type (ref->get_proxy ());
 		SYNC_END ();
 	}
-
-	static CORBA::Object::_ref_type create ();
 
 	POAManagerFactory& manager_factory () NIRVANA_NOEXCEPT
 	{

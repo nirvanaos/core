@@ -205,7 +205,10 @@ Interface::_ref_type RequestGIOP::unmarshal_interface (const IDL::String& interf
 						break;
 
 					case ESIOP::TAG_FLAGS:
-						flags = *(const Octet*)comp.component_data ().data ();
+						if (comp.component_data ().size () == 1)
+							flags = *(const Octet*)comp.component_data ().data ();
+						else
+							throw INV_OBJREF ();
 						break;
 				}
 			}
@@ -222,7 +225,7 @@ Interface::_ref_type RequestGIOP::unmarshal_interface (const IDL::String& interf
 				throw INV_OBJREF ();
 
 			if (host_len && listen_point.port () != LocalAddress::singleton ().port ()) {
-#ifdef SINGLE_DOMAIN
+#ifdef NIRVANA_SINGLE_DOMAIN
 				throw INV_OBJREF ();
 #else
 				if (!domain_found)

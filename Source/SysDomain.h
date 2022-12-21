@@ -29,8 +29,8 @@
 #pragma once
 
 #include <CORBA/Server.h>
-#include "SharedObject.h"
 #include "Nirvana/Domains_s.h"
+#include "ORB/Services.h"
 
 namespace Nirvana {
 namespace Core {
@@ -40,12 +40,23 @@ class SysDomain :
 	public CORBA::servant_traits <Nirvana::SysDomain>::Servant <SysDomain>
 {
 public:
-	void get_bind_info (const std::string& obj_name, BindInfo& bind_info)
+	static PortableServer::POA::_ref_type _default_POA () NIRVANA_NOEXCEPT
+	{
+		// Disable implicit activation
+		return PortableServer::POA::_nil ();
+	}
+
+	void get_bind_info (const IDL::String& obj_name, unsigned platform, BindInfo& bind_info)
 	{
 		if (obj_name == "Nirvana/g_dec_calc")
 			bind_info.module_name ("DecCalc.olf");
 		else
 			bind_info.module_name ("TestModule.olf");
+	}
+
+	CORBA::Object::_ref_type get_service (const IDL::String& id)
+	{
+		return CORBA::Core::Services::bind (id);
 	}
 };
 

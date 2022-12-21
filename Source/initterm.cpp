@@ -29,6 +29,7 @@
 #include "ExecDomain.h"
 #include "TLS.h"
 #include "ORB/ORB_initterm.h"
+#include "ORB/Services.h"
 
 namespace Nirvana {
 namespace Core {
@@ -46,6 +47,7 @@ void initialize ()
 {
 	CORBA::Core::initialize ();
 	Binder::initialize ();
+	CORBA::Core::Services::bind (CORBA::Core::Services::SysDomain);
 }
 
 void terminate ()
