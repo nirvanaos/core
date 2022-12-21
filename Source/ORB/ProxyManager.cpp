@@ -204,6 +204,7 @@ ProxyManager::ProxyManager (String_in primary_iid) :
 	// Interface operations
 	for (const InterfaceEntry* ie = interfaces_.begin (); ie != interfaces_.end (); ++ie) {
 		++idx.interface_idx ();
+		idx.operation_idx (0);
 		for (const Operation* p = ie->operations.p, *end = p + ie->operations.size; p != end; ++p) {
 			const Char* name = p->name;
 			op->name = name;
