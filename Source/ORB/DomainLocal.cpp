@@ -41,7 +41,8 @@ void DomainLocal::destroy () NIRVANA_NOEXCEPT
 CORBA::Internal::IORequest::_ref_type DomainLocal::create_request (const IOP::ObjectKey& object_key,
 	const Internal::Operation& metadata, unsigned flags)
 {
-	return make_pseudo <RequestOut> (std::ref (*this), object_key, metadata, flags, IOP::ServiceContextList ());
+	return make_pseudo <RequestOut> (std::ref (*this), std::ref (object_key), std::ref (metadata),
+		flags, IOP::ServiceContextList ());
 }
 
 }

@@ -76,7 +76,7 @@ IORequest::_ref_type ReferenceRemote::create_request (OperationIndex op, unsigne
 
 	check_create_request (op, flags);
 
-	return domain_->create_request (object_key_, operation_metadata(op), flags);
+	return domain_->create_request (object_key_, operation_metadata (op), flags);
 }
 
 }

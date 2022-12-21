@@ -150,7 +150,7 @@ inline
 Request::Request (ProtDomainId client, StreamOutSM& stream, uint32_t rq_id) :
 	MessageHeader (REQUEST),
 	client_domain (client),
-request_id (rq_id)
+	request_id (rq_id)
 {
 	stream.store_stream (GIOP_message);
 }

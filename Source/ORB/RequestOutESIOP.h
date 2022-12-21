@@ -54,11 +54,11 @@ public:
 		if (response_flags & 3)
 			id_ = OutgoingRequests::new_request (*this, OutgoingRequests::IdPolicy::ANY);
 		IDL::String operation = metadata.name;
-		DeadlineTime dl = deadline();
+		DeadlineTime dl = deadline ();
 		if (INFINITE_DEADLINE != dl) {
-			context.emplace_back();
-			context.back().context_id(CONTEXT_ID_DEADLINE);
-			context.back().context_data().assign((const Octet*)&dl, (const Octet*)&dl + sizeof(dl));
+			context.emplace_back ();
+			context.back ().context_id (CONTEXT_ID_DEADLINE);
+			context.back ().context_data ().assign ((const Octet*)&dl, (const Octet*)&dl + sizeof (dl));
 		}
 		write_header (object_key, operation, context);
 	}

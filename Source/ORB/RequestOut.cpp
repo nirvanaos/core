@@ -37,18 +37,18 @@ namespace Core {
 
 RequestOut::RequestOut (unsigned GIOP_minor, unsigned response_flags, const Internal::Operation& metadata) :
 	RequestGIOP (GIOP_minor, true, response_flags),
-	metadata_(&metadata),
+	metadata_ (&metadata),
 	id_ (0),
 	status_ (Status::IN_PROGRESS)
 {
 	if (metadata.flags & Operation::FLAG_OUT_CPLX)
 		response_flags_ |= FLAG_PREUNMARSHAL;
 
-	ExecDomain& ed = ExecDomain::current();
+	ExecDomain& ed = ExecDomain::current ();
 	if ((response_flags & (1 | IOReference::REQUEST_ASYNC)) == 1)
-		deadline_ = ed.deadline();
+		deadline_ = ed.deadline ();
 	else
-		deadline_ = ed.get_request_deadline(!(response_flags & 1));
+		deadline_ = ed.get_request_deadline (!(response_flags & 1));
 }
 
 RequestOut::~RequestOut ()
