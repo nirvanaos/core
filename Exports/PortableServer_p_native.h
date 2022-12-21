@@ -139,19 +139,14 @@ void Proxy <PortableServer::POA>::__rq_activate_object_with_id (
 	Object::_ref_type p_servant;
 	Type <Object>::unmarshal (_call, p_servant);
 	_call->unmarshal_end ();
-	PortableServer::ObjectId ret;
 	{
 		Environment _env;
-		Type <PortableServer::ObjectId>::C_ret _ret =
-			(_servant->_epv ().epv.activate_object) (
-				static_cast <Bridge <PortableServer::POA>*> (&_servant),
-				&Type <Object>::C_in (p_servant),
-				&_env);
+		(_servant->_epv ().epv.activate_object_with_id) (
+			static_cast <Bridge <PortableServer::POA>*> (&_servant),
+			&Type <PortableServer::ObjectId>::C_in (oid),
+			&Type <Object>::C_in (p_servant), &_env);
 		_env.check ();
-		ret = _ret;
 	}
-	// Marshal output
-	Type <PortableServer::ObjectId>::marshal_out (ret, _call);
 }
 
 PortableServer::ObjectId Proxy <PortableServer::POA>::servant_to_id (PortableServer::Servant p_servant) const
