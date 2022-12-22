@@ -32,8 +32,10 @@ namespace ESIOP {
 void RequestOut::invoke ()
 {
 	pre_invoke ();
-	Request msg (current_domain_id (), static_cast <StreamOutSM&> (*stream_out_), id_);
+	StreamOutSM& stm = static_cast <StreamOutSM&> (*stream_out_);
+	Request msg (current_domain_id (), stm, id_);
 	domain_->send_message (&msg, sizeof (msg));
+	stm.detach ();
 	stream_out_ = nullptr;
 	post_invoke ();
 }

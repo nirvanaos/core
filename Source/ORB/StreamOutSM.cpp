@@ -132,7 +132,7 @@ void StreamOutSM::write (size_t align, size_t size, void* data, size_t& allocate
 			if ((size_t)cb > size)
 				cb = size;
 			const uint8_t* end = src + cb;
-			dst = real_copy (src, end, dst);
+			cur_ptr_ = real_copy (src, end, dst);
 			src = end;
 			size -= cb;
 			// Adjust alignment if the remaining size less than it

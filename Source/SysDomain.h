@@ -40,6 +40,9 @@ class SysDomain :
 	public CORBA::servant_traits <Nirvana::SysDomain>::Servant <SysDomain>
 {
 public:
+	~SysDomain ()
+	{}
+
 	static PortableServer::POA::_ref_type _default_POA () NIRVANA_NOEXCEPT
 	{
 		// Disable implicit activation

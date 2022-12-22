@@ -152,7 +152,8 @@ void StreamInSM::physical_read (size_t& align, size_t& size, void* buf)
 				if (next_segment)
 					return;
 				next_block ();
-			}
+			} else
+				break;
 		}
 
 		if ((size_t)cb > size)
