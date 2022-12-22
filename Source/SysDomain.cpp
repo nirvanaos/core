@@ -51,7 +51,7 @@ Object::_ref_type create_SysDomain ()
 		ReferenceRemote ref (RemoteReferences::singleton ().get_domain (ESIOP::sys_domain_id ()), object_key,
 			IOP::TaggedProfileSeq (), CORBA::Internal::RepIdOf <Nirvana::SysDomain>::id, 0);
 		IORequest::_ref_type rq = ref.create_request (ref.find_operation ("get_service"), 3);
-		Type <IDL::String>::marshal_in ("SysDomain", rq);
+		Type <IDL::String>::marshal_in (CORBA::Internal::StringView <char> ("SysDomain"), rq);
 		rq->invoke ();
 		ProxyRoot::check_request (rq);
 		Nirvana::SysDomain::_ref_type obj;
