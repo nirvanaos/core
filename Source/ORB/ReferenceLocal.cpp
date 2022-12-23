@@ -180,13 +180,32 @@ void ReferenceLocal::marshal (StreamOut& out) const
 	uint32_t ORB_type = ESIOP::ORB_TYPE;
 	ESIOP::ProtDomainId domain_id = ESIOP::current_domain_id ();
 
-	IOP::TaggedComponentSeq components {
-		IOP::TaggedComponent (IOP::TAG_ORB_TYPE, { (const Octet*)&ORB_type, (const Octet*)(&ORB_type + 1) }),
+	IOP::TaggedComponentSeq components;
 #ifndef NIRVANA_SINGLE_DOMAIN
-		IOP::TaggedComponent (ESIOP::TAG_DOMAIN_ADDRESS, { (const Octet*)&domain_id, (const Octet*)(&domain_id + 1) }),
+	components.reserve (3);
+#else
+	components.reserve (2);
 #endif
-		IOP::TaggedComponent (ESIOP::TAG_FLAGS, { 1, (Octet)flags_ })
-	};
+
+	{
+		ImplStatic <StreamOutEncap> encap;
+		encap.write_c (4, 4, &ORB_type);
+		components.emplace_back (IOP::TAG_ORB_TYPE, std::move (encap.data ()));
+	}
+#ifndef NIRVANA_SINGLE_DOMAIN
+	{
+		ImplStatic <StreamOutEncap> encap;
+		encap.write_c (alignof (ESIOP::ProtDomainId), sizeof (ESIOP::ProtDomainId), &domain_id);
+		components.emplace_back (ESIOP::TAG_DOMAIN_ADDRESS, std::move (encap.data ()));
+	}
+#endif
+	{
+		ImplStatic <StreamOutEncap> encap;
+		Octet flags = (Octet)flags_;
+		encap.write_c (1, 1, &flags);
+		components.emplace_back (ESIOP::TAG_FLAGS, std::move (encap.data ()));
+	}
+
 	encap.write_tagged (components);
 
 	IOP::TaggedProfileSeq addr {

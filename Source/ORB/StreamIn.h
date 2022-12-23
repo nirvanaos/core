@@ -227,7 +227,8 @@ void StreamIn::read_string (std::basic_string <C, std::char_traits <C>, std::all
 			abi.small_size (size);
 			p = abi.small_pointer ();
 			read (alignof (C), (size + 1) * sizeof (C), p);
-		}
+		} else
+			read (alignof (C), sizeof (C), nullptr); // Read terminating zero
 	} else {
 		size_t allocated_size = size + 1;
 		void* data = read (alignof (C), allocated_size);

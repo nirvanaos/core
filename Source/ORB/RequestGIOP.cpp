@@ -190,14 +190,12 @@ Interface::_ref_type RequestGIOP::unmarshal_interface (const IDL::String& interf
 		bool nirvana = false;
 		for (const IOP::TaggedComponent& comp : components) {
 			if (comp.tag () == IOP::TAG_ORB_TYPE) {
-				if (comp.component_data ().size () == sizeof (ULong)) {
-					ULong type = *(const ULong*)comp.component_data ().data ();
-					if (stream_in_->other_endian ())
-						Nirvana::byteswap (type);
-					if (ESIOP::ORB_TYPE == type)
-						nirvana = true;
-				} else
-					throw BAD_PARAM ();
+				Nirvana::Core::ImplStatic <StreamInEncap> stm (std::ref (comp.component_data ()));
+				ULong type = stm.read32 ();
+				if (ESIOP::ORB_TYPE == type)
+					nirvana = true;
+				if (stm.end ())
+					throw INV_OBJREF ();
 				break;
 			}
 		}
@@ -208,22 +206,21 @@ Interface::_ref_type RequestGIOP::unmarshal_interface (const IDL::String& interf
 		if (nirvana) {
 			for (const IOP::TaggedComponent& comp : components) {
 				switch (comp.tag ()) {
-					case ESIOP::TAG_DOMAIN_ADDRESS:
-						if (comp.component_data ().size () == sizeof (ESIOP::ProtDomainId)) {
-							domain_id = *(const ESIOP::ProtDomainId*)comp.component_data ().data ();
-							if (stream_in_->other_endian ())
-								Nirvana::byteswap (domain_id);
-							domain_found = true;
-						} else
+					case ESIOP::TAG_DOMAIN_ADDRESS: {
+						Nirvana::Core::ImplStatic <StreamInEncap> stm (std::ref (comp.component_data ()));
+						stm.read (alignof (ESIOP::ProtDomainId), sizeof (ESIOP::ProtDomainId), &domain_id);
+						if (stm.other_endian ())
+							domain_id = Nirvana::byteswap (domain_id);
+						if (stm.end ())
 							throw INV_OBJREF ();
-						break;
+					} break;
 
-					case ESIOP::TAG_FLAGS:
-						if (comp.component_data ().size () == 1)
-							flags = *(const Octet*)comp.component_data ().data ();
-						else
+					case ESIOP::TAG_FLAGS: {
+						Nirvana::Core::ImplStatic <StreamInEncap> stm (std::ref (comp.component_data ()));
+						stm.read (1, 1, &flags);
+						if (stm.end ())
 							throw INV_OBJREF ();
-						break;
+					} break;
 				}
 			}
 		}

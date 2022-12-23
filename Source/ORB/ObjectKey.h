@@ -30,7 +30,7 @@
 
 #include <CORBA/Server.h>
 #include <CORBA/IOP.h>
-#include "StreamOut.h"
+#include "StreamOutEncap.h"
 
 namespace CORBA {
 namespace Core {
@@ -84,11 +84,19 @@ public:
 
 	void marshal (CORBA::Core::StreamOut& out) const
 	{
-		out.write_size (adapter_path_.size ());
-		for (const auto& name : adapter_path_) {
-			out.write_string_c (name);
+		if (!adapter_path_.empty ()) {
+			Nirvana::Core::ImplStatic <CORBA::Core::StreamOutEncap> encap;
+			encap.write_size (adapter_path_.size ());
+			for (const auto& name : adapter_path_) {
+				encap.write_string_c (name);
+			}
+			encap.write_seq (object_id_);
+			out.write_seq (encap.data ());
+		} else {
+			out.write_size (object_id_.size () + 8);
+			out.write_size (0);
+			out.write_seq (object_id_);
 		}
-		out.write_seq (object_id_);
 	}
 
 	void unmarshal (const IOP::ObjectKey& object_key);

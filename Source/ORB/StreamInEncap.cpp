@@ -55,7 +55,10 @@ void StreamInEncap::read (size_t align, size_t size, void* buf)
 
 	Range range;
 	prepare (align, size, range);
-	read (range, buf);
+	if (buf)
+		read (range, buf);
+	else
+		cur_ptr_ = range.second;
 }
 
 void* StreamInEncap::read (size_t align, size_t& size)
