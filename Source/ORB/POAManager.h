@@ -117,8 +117,6 @@ public:
 			requests_completed_.wait ();
 	}
 
-	void discard_queued_requests ();
-
 	void deactivate (bool etherealize_objects, bool wait_for_completion)
 	{
 		if (wait_for_completion)
@@ -190,17 +188,20 @@ public:
 			std::find (associated_adapters_.begin (), associated_adapters_.end (), &adapter));
 	}
 
+	void on_request_finish () NIRVANA_NOEXCEPT
+	{
+		if (0 == --request_cnt_)
+			requests_completed_.signal ();
+	}
+
+private:
 	void on_request_start () NIRVANA_NOEXCEPT
 	{
 		if (1 == ++request_cnt_)
 			requests_completed_.reset ();
 	}
 
-	void on_request_finish () NIRVANA_NOEXCEPT
-	{
-		if (0 == --request_cnt_)
-			requests_completed_.signal ();
-	}
+	void discard_queued_requests ();
 
 private:
 	struct QElem
