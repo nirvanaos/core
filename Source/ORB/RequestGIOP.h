@@ -426,6 +426,8 @@ protected:
 	/// In the ESIOP we do not use the message size to allow > 4GB data transferring.
 	void set_out_size ();
 
+	void release_stream_in () NIRVANA_NOEXCEPT;
+
 private:
 	void marshal_rep_id (IDL::String&& id);
 	const IDL::String& unmarshal_rep_id ();

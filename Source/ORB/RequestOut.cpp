@@ -137,7 +137,7 @@ void RequestOut::set_reply (unsigned status, IOP::ServiceContextList&& context,
 						preunmarshal ((metadata_->return_type) (), buf, rq);
 					}
 					preunmarshaled_ = std::move (pre);
-					stream_in_ = nullptr;
+					release_stream_in ();
 				} catch (...) {
 					ed.mem_context_pop ();
 					throw;

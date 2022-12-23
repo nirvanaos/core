@@ -105,6 +105,8 @@ void StreamOutReply::send (uint32_t request_id) NIRVANA_NOEXCEPT
 
 		Reply reply (*this, request_id);
 		other_domain ().send_message (&reply, sizeof (reply));
+		// After successfull sending the message we detach the output data.
+		// Now it is responsibility of the target domain to release it.
 		StreamOutSM::detach ();
 	} catch (...) {
 	}

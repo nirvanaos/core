@@ -119,7 +119,7 @@ public:
 	/// Finalizes the request.
 	/// 
 	/// \returns `true` if the reply must be sent.
-	bool finalize ();
+	bool finalize () NIRVANA_NOEXCEPT;
 
 protected:
 	RequestIn (const DomainAddress& client, unsigned GIOP_minor);

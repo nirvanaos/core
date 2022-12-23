@@ -81,10 +81,24 @@ void RequestGIOP::unmarshal_end ()
 		top_level_tc_unmarshal_.clear ();
 		value_map_marshal_.clear ();
 		rep_id_map_unmarshal_.clear ();
-		size_t more_data = !stream_in_->end ();
-		stream_in_ = nullptr;
+		size_t more_data = stream_in_->end ();
+		release_stream_in ();
 		if (more_data > 7) // 8-byte alignment is ignored
 			throw MARSHAL (StreamIn::MARSHAL_MINOR_MORE);
+	}
+}
+
+void RequestGIOP::release_stream_in () NIRVANA_NOEXCEPT
+{
+	if (stream_in_) {
+		// Release input stream in the request memory context
+		ExecDomain& ed = ExecDomain::current ();
+		CoreRef <MemContext> mc = memory ();
+		ed.mem_context_swap (mc);
+		try {
+			stream_in_ = nullptr;
+		} catch (...) {}
+		ed.mem_context_swap (mc);
 	}
 }
 

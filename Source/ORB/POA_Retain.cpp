@@ -138,7 +138,8 @@ void POA_Retain::serve (const RequestRef& request, ReferenceLocal& reference)
 	CoreRef <ProxyObject> servant = reference.get_servant ();
 	if (servant)
 		POA_Base::serve (request, reference, *servant);
-	serve_default (request, reference);
+	else
+		serve_default (request, reference);
 }
 
 }

@@ -42,23 +42,28 @@ void RequestIn::set_exception (Any& e)
 	if (e.type ()->kind () != TCKind::tk_except)
 		throw BAD_PARAM (MAKE_OMG_MINOR (21));
 
-	if (!finalize ())
-		return;
-
-	std::aligned_storage <sizeof (SystemException), alignof (SystemException)>::type buf;
-	SystemException& ex = (SystemException&)buf;
-	if (e >>= ex) {
-		if (stream_out ())
-			static_cast <StreamOutReply&> (*stream_out ()).system_exception (request_id (), ex);
-		else {
-			ReplySystemException reply (request_id (), ex);
-			send_error_message (key ().address.esiop, &reply, sizeof (reply));
+	try {
+		if (finalize ()) {
+			std::aligned_storage <sizeof (SystemException), alignof (SystemException)>::type buf;
+			SystemException& ex = (SystemException&)buf;
+			if (e >>= ex) {
+				if (stream_out ())
+					static_cast <StreamOutReply&> (*stream_out ()).system_exception (request_id (), ex);
+				else {
+					ReplySystemException reply (request_id (), ex);
+					send_error_message (key ().address.esiop, &reply, sizeof (reply));
+				}
+			} else {
+				assert (stream_out ());
+				Base::set_exception (e);
+				static_cast <StreamOutReply&> (*stream_out ()).send (request_id ());
+			}
 		}
-	} else {
-		assert (stream_out ());
-		Base::set_exception (e);
-		static_cast <StreamOutReply&> (*stream_out ()).send (request_id ());
+	} catch (...) {
+		stream_out_ = nullptr;
+		throw;
 	}
+	stream_out_ = nullptr;
 }
 
 void RequestIn::success ()
@@ -68,6 +73,7 @@ void RequestIn::success ()
 
 	Base::success ();
 	static_cast <StreamOutReply&> (*stream_out ()).send (request_id ());
+	stream_out_ = nullptr;
 }
 
 }
