@@ -74,6 +74,8 @@ protected:
 	virtual Nirvana::Core::MemContext* memory () const NIRVANA_NOEXCEPT override;
 
 public:
+	void initialize (Nirvana::Core::CoreRef <StreamIn>&& in);
+
 	const RequestKey& key () const NIRVANA_NOEXCEPT
 	{
 		return key_;
@@ -120,7 +122,7 @@ public:
 	bool finalize ();
 
 protected:
-	RequestIn (const DomainAddress& client, unsigned GIOP_minor, Nirvana::Core::CoreRef <StreamIn>&& in);
+	RequestIn (const DomainAddress& client, unsigned GIOP_minor);
 	~RequestIn ();
 
 	/// Output stream factory.

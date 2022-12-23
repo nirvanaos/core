@@ -35,6 +35,8 @@ void RequestOut::invoke ()
 	StreamOutSM& stm = static_cast <StreamOutSM&> (*stream_out_);
 	Request msg (current_domain_id (), stm, id_);
 	domain_->send_message (&msg, sizeof (msg));
+	// After successfull sending the message we detach the output data.
+	// Now it is responsibility of the target domain to release it.
 	stm.detach ();
 	stream_out_ = nullptr;
 	post_invoke ();

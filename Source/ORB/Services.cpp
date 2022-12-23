@@ -118,7 +118,7 @@ CoreRef <Service> Services::bind_internal (CoreService sidx)
 const Services::Factory Services::factories_ [SERVICE_COUNT] = {
 	{ "POACurrent", create_POACurrent, 1 * TimeBase::MILLISECOND },
 	{ "RootPOA", PortableServer::Core::create_RootPOA, 1 * TimeBase::MILLISECOND },
-	{ "SysDomain", create_SysDomain, 1 * TimeBase::MILLISECOND },
+	{ "SysDomain", create_SysDomain, 10 * TimeBase::MILLISECOND }, // May cause inter-domain call
 	{ "TC_Factory", create_TC_Factory, 1 * TimeBase::MILLISECOND }
 };
 

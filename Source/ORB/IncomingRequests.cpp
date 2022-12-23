@@ -65,9 +65,8 @@ void IncomingRequests::receive (CoreRef <RequestIn> rq, uint64_t timestamp)
 	DeadlineTime deadline = INFINITE_DEADLINE;
 	for (const auto& context : sc) {
 		if (ESIOP::CONTEXT_ID_DEADLINE == context.context_id ()) {
-			if (context.context_data ().size () != 8)
-				throw BAD_PARAM ();
-			deadline = *(DeadlineTime*)context.context_data ().data ();
+			ImplStatic <StreamInEncap> dl (std::ref (context.context_data ()));
+			dl.read (alignof (DeadlineTime), sizeof (DeadlineTime), &deadline);
 			if (rq->stream_in ()->other_endian ())
 				deadline = byteswap (deadline);
 			break;

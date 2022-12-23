@@ -34,14 +34,13 @@
 namespace ESIOP {
 
 /// ESIOP incoming request.
-class NIRVANA_NOVTABLE RequestIn : public CORBA::Core::RequestIn
+class RequestIn : public CORBA::Core::RequestIn
 {
 	typedef CORBA::Core::RequestIn Base;
 
 public:
-	RequestIn (ProtDomainId client_id, unsigned GIOP_minor,
-		Nirvana::Core::CoreRef <CORBA::Core::StreamIn>&& in) :
-		Base (client_id, GIOP_minor, std::move (in))
+	RequestIn (ProtDomainId client_id, unsigned GIOP_minor) :
+		Base (client_id, GIOP_minor)
 	{}
 
 protected:

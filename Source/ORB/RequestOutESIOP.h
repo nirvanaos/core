@@ -35,6 +35,7 @@
 using namespace CORBA;
 using namespace CORBA::Core;
 using namespace Nirvana;
+using namespace Nirvana::Core;
 
 namespace ESIOP {
 
@@ -49,16 +50,18 @@ public:
 		Base ((response_flags & 3) == 1 ? 2 : 1, response_flags, metadata),
 		domain_ (&domain)
 	{
-		stream_out_ = Nirvana::Core::CoreRef <CORBA::Core::StreamOut>::create
-			<Nirvana::Core::ImplDynamic <StreamOutSM> > (std::ref (domain));
+		stream_out_ = CoreRef <StreamOut>::create
+			<ImplDynamic <StreamOutSM> > (std::ref (domain));
 		if (response_flags & 3)
 			id_ = OutgoingRequests::new_request (*this, OutgoingRequests::IdPolicy::ANY);
 		IDL::String operation = metadata.name;
 		DeadlineTime dl = deadline ();
 		if (INFINITE_DEADLINE != dl) {
+			ImplStatic <StreamOutEncap> dl;
+			dl.write_c (alignof (DeadlineTime), sizeof (DeadlineTime), &dl);
 			context.emplace_back ();
 			context.back ().context_id (CONTEXT_ID_DEADLINE);
-			context.back ().context_data ().assign ((const Octet*)&dl, (const Octet*)&dl + sizeof (dl));
+			context.back ().context_data (std::move (dl.data ()));
 		}
 		write_header (object_key, operation, context);
 	}

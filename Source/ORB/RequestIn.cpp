@@ -37,7 +37,7 @@ using namespace Internal;
 
 namespace Core {
 
-RequestIn::RequestIn (const DomainAddress& client, unsigned GIOP_minor, CoreRef <StreamIn>&& in) :
+RequestIn::RequestIn (const DomainAddress& client, unsigned GIOP_minor) :
 	RequestGIOP (GIOP_minor, false, 0),
 	key_ (client),
 	map_iterator_ (nullptr),
@@ -45,10 +45,13 @@ RequestIn::RequestIn (const DomainAddress& client, unsigned GIOP_minor, CoreRef 
 	sync_domain_ (nullptr),
 	cancelled_ (false),
 	has_context_ (false)
+{}
+
+void RequestIn::initialize (CoreRef <StreamIn>&& in)
 {
 	stream_in_ = std::move (in);
 
-	switch (GIOP_minor) {
+	switch (GIOP_minor_) {
 		case 0: {
 			typedef GIOP::RequestHeader_1_0 Hdr;
 			Hdr hdr;

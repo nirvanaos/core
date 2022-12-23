@@ -66,7 +66,7 @@ void RequestOut::write_header (IOP::ObjectKey& object_key, IDL::String& operatio
 			hdr.response_expected (response_flags_ != 0);
 			hdr.object_key ().swap (object_key);
 			hdr.operation ().swap (operation);
-			Type <GIOP::RequestHeader_1_0>::marshal_out (hdr, _get_ptr ());
+			Type <GIOP::RequestHeader_1_0>::marshal_in (hdr, _get_ptr ());
 			hdr.service_context ().swap (context);
 			hdr.object_key ().swap (object_key);
 			hdr.operation ().swap (operation);
@@ -79,7 +79,7 @@ void RequestOut::write_header (IOP::ObjectKey& object_key, IDL::String& operatio
 			hdr.response_expected (response_flags_ != 0);
 			hdr.object_key ().swap (object_key);
 			hdr.operation ().swap (operation);
-			Type <GIOP::RequestHeader_1_1>::marshal_out (hdr, _get_ptr ());
+			Type <GIOP::RequestHeader_1_1>::marshal_in (hdr, _get_ptr ());
 			hdr.service_context ().swap (context);
 			hdr.object_key ().swap (object_key);
 			hdr.operation ().swap (operation);
@@ -92,7 +92,7 @@ void RequestOut::write_header (IOP::ObjectKey& object_key, IDL::String& operatio
 			hdr.target ().object_key ().swap (object_key);
 			hdr.operation ().swap (operation);
 			hdr.service_context ().swap (context);
-			Type <GIOP::RequestHeader_1_2>::marshal_out (hdr, _get_ptr ());
+			Type <GIOP::RequestHeader_1_2>::marshal_in (hdr, _get_ptr ());
 			hdr.service_context ().swap (context);
 			hdr.target ().object_key ().swap (object_key);
 			hdr.operation ().swap (operation);
@@ -114,58 +114,58 @@ void RequestOut::set_reply (unsigned status, IOP::ServiceContextList&& context,
 	switch (status_ = (Status)status) {
 		case Status::NO_EXCEPTION:
 			if (!(response_flags_ & 2)) {
-				assert(false); // No data was expected, but received. Ignore it.
-				finalize();
+				assert (false); // No data was expected, but received. Ignore it.
+				finalize ();
 				break;
 			}
-			stream_in_ = std::move(stream);
+			stream_in_ = std::move (stream);
 			if (FLAG_PREUNMARSHAL & response_flags_) {
 				// Preunmarshal data.
-				ExecDomain& ed = ExecDomain::current();
-				ed.deadline(deadline_);
-				ed.mem_context_push(memory());
+				ExecDomain& ed = ExecDomain::current ();
+				ed.deadline (deadline_);
+				ed.mem_context_push (memory ());
 				try {
 					CoreRef <RequestLocalBase> pre = CoreRef <RequestLocalBase>::
-						create <RequestLocalImpl <RequestLocalBase> >(memory(), 3);
-					IORequest::_ptr_type rq = pre->_get_ptr();
+						create <RequestLocalImpl <RequestLocalBase> > (memory (), 3);
+					IORequest::_ptr_type rq = pre->_get_ptr ();
 					std::vector <Octet> buf;
-					buf.resize(3 * sizeof(void*));
+					buf.resize (3 * sizeof (void*));
 					for (const Parameter* param = metadata_->output.p, *end = param + metadata_->output.size; param != end; ++param) {
-						preunmarshal((param->type) (), buf, rq);
+						preunmarshal ((param->type) (), buf, rq);
 					}
 					if (metadata_->return_type) {
-						preunmarshal((metadata_->return_type) (), buf, rq);
+						preunmarshal ((metadata_->return_type) (), buf, rq);
 					}
-					preunmarshaled_ = std::move(pre);
+					preunmarshaled_ = std::move (pre);
 					stream_in_ = nullptr;
 				} catch (...) {
-					ed.mem_context_pop();
+					ed.mem_context_pop ();
 					throw;
 				}
-				ed.mem_context_pop();
+				ed.mem_context_pop ();
 			}
-			finalize();
+			finalize ();
 			break;
 
 		case Status::USER_EXCEPTION:
 		case Status::SYSTEM_EXCEPTION:
-			stream_in_ = std::move(stream);
-			finalize();
+			stream_in_ = std::move (stream);
+			finalize ();
 			break;
 
 		default:
-			throw UNKNOWN(); // Unexpected reply
+			throw UNKNOWN (); // Unexpected reply
 	}
 }
 
-void RequestOut::preunmarshal(TypeCode::_ptr_type tc, std::vector <Octet> buf, Internal::IORequest::_ptr_type out)
+void RequestOut::preunmarshal (TypeCode::_ptr_type tc, std::vector <Octet> buf, Internal::IORequest::_ptr_type out)
 {
-	size_t cb = tc->n_size();
-	if (buf.size() < cb)
-		buf.resize(cb);
-	tc->n_construct (buf.data());
-	tc->n_unmarshal(_get_ptr(), 1, buf.data());
-	tc->n_marshal_out(buf.data(), 1, out);
+	size_t cb = tc->n_size ();
+	if (buf.size () < cb)
+		buf.resize (cb);
+	tc->n_construct (buf.data ());
+	tc->n_unmarshal (_get_ptr (), 1, buf.data ());
+	tc->n_marshal_out (buf.data (), 1, out);
 }
 
 bool RequestOut::unmarshal (size_t align, size_t size, void* data)
@@ -176,21 +176,21 @@ bool RequestOut::unmarshal (size_t align, size_t size, void* data)
 		return RequestGIOP::unmarshal (align, size, data);
 }
 
-bool RequestOut::unmarshal_seq(size_t align, size_t element_size, size_t& element_count, void*& data,
+bool RequestOut::unmarshal_seq (size_t align, size_t element_size, size_t& element_count, void*& data,
 	size_t& allocated_size)
 {
 	if (preunmarshaled_)
-		return preunmarshaled_->unmarshal_seq(align, element_size, element_count, data, allocated_size);
+		return preunmarshaled_->unmarshal_seq (align, element_size, element_count, data, allocated_size);
 	else
-		return RequestGIOP::unmarshal_seq(align, element_size, element_count, data, allocated_size);
+		return RequestGIOP::unmarshal_seq (align, element_size, element_count, data, allocated_size);
 }
 
-size_t RequestOut::unmarshal_seq_begin()
+size_t RequestOut::unmarshal_seq_begin ()
 {
 	if (preunmarshaled_)
-		return preunmarshaled_->unmarshal_seq_begin();
+		return preunmarshaled_->unmarshal_seq_begin ();
 	else
-		return RequestGIOP::unmarshal_seq_begin();
+		return RequestGIOP::unmarshal_seq_begin ();
 }
 
 bool RequestOut::marshal_op ()

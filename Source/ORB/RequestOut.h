@@ -38,8 +38,7 @@ namespace CORBA {
 namespace Core {
 
 /// Implements client-side IORequest for GIOP.
-class RequestOut :
-	public RequestGIOP
+class NIRVANA_NOVTABLE RequestOut : public RequestGIOP
 {
 	typedef RequestGIOP Base;
 	static const unsigned FLAG_PREUNMARSHAL = 8;
