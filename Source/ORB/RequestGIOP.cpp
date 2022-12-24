@@ -176,28 +176,48 @@ Interface::_ref_type RequestGIOP::unmarshal_interface (const IDL::String& interf
 		if (!object_key_found)
 			throw IMP_LIMIT (MAKE_OMG_MINOR (1)); // Unable to use any profile in IOR.
 
-		bool nirvana = false;
-		for (const IOP::TaggedComponent& comp : components) {
-			if (comp.tag () == IOP::TAG_ORB_TYPE) {
-				Nirvana::Core::ImplStatic <StreamInEncap> stm (std::ref (comp.component_data ()));
-				ULong type = stm.read32 ();
-				if (ESIOP::ORB_TYPE == type)
-					nirvana = true;
-				if (stm.end ())
-					throw INV_OBJREF ();
-				break;
-			}
+		sort (components);
+		ULong ORB_type = 0;
+		auto it = find (components, IOP::TAG_ORB_TYPE);
+		if (it != components.end ()) {
+			Nirvana::Core::ImplStatic <StreamInEncap> stm (std::ref (it->component_data ()));
+			ORB_type = stm.read32 ();
+			if (stm.other_endian ())
+				Internal::byteswap (ORB_type);
+			if (stm.end ())
+				throw INV_OBJREF ();
 		}
 
 		size_t host_len = listen_point.host ().size ();
 		const Char* host = listen_point.host ().data ();
-		bool local_host = 0 == host_len ||
-			(LocalAddress::singleton ().host ().size () == host_len
-				&& std::equal (host, host + host_len, LocalAddress::singleton ().host ().data ()));
-		if (local_host && LocalAddress::singleton ().port () == listen_point.port ())
+		if (ORB_type == ESIOP::ORB_TYPE
+			&& (0 == host_len ||
+				(LocalAddress::singleton ().host ().size () == host_len
+					&& std::equal (host, host + host_len, LocalAddress::singleton ().host ().data ())))) {
+			// Local Nirvana system
+#ifdef NIRVANA_SINGLE_DOMAIN
 			obj = PortableServer::Core::POA_Root::unmarshal (primary_iid, object_key); // Local reference
-		else
-			obj = RemoteReferences::singleton ().unmarshal (primary_iid, addr, std::move (listen_point), local_host, std::move (object_key), components);
+#else
+			ESIOP::ProtDomainId domain_id;
+			it = find (components, ESIOP::TAG_DOMAIN_ADDRESS);
+			if (it != components.end ()) {
+				Nirvana::Core::ImplStatic <StreamInEncap> stm (std::ref (it->component_data ()));
+				stm.read (alignof (ESIOP::ProtDomainId), sizeof (ESIOP::ProtDomainId), &domain_id);
+				if (stm.other_endian ())
+					Internal::byteswap (domain_id);
+				if (stm.end ())
+					throw INV_OBJREF ();
+			} else
+				domain_id = ESIOP::sys_domain_id ();
+			if (ESIOP::current_domain_id () == domain_id)
+				obj = PortableServer::Core::POA_Root::unmarshal (primary_iid, object_key); // Local reference
+			else
+				obj = RemoteReferences::singleton ().unmarshal (domain_id, primary_iid, addr,
+					std::move (object_key), ORB_type, components);
+#endif
+		} else
+			obj = RemoteReferences::singleton ().unmarshal (std::move (listen_point), primary_iid, addr,
+				std::move (object_key), ORB_type, components);
 	}
 	if (RepId::compatible (RepIdOf <Object>::id, interface_id))
 		return obj;

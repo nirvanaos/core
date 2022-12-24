@@ -80,9 +80,9 @@ public:
 	RemoteReferences ()
 	{}
 
-	Object::_ref_type unmarshal (const IDL::String& iid, IOP::TaggedProfileSeq& addr,
-		IIOP::ListenPoint&& listen_point, bool local_host, IOP::ObjectKey&& object_key,
-		IOP::TaggedComponentSeq& components)
+	template <class DomainKey>
+	Object::_ref_type unmarshal (DomainKey domain, const IDL::String& iid, IOP::TaggedProfileSeq& addr,
+		IOP::ObjectKey&& object_key, ULong ORB_type, IOP::TaggedComponentSeq& components)
 	{
 		Nirvana::Core::ImplStatic <StreamOutEncap> stm;
 		stm.write_tagged (addr);
@@ -96,40 +96,7 @@ public:
 			References::reference entry = *ins.first;
 			if (ins.second) {
 				try {
-					// New reference.
-					servant_reference <Domain> domain;
-					sort (components);
-
-					ULong ORB_type = 0;
-					auto it = find (components, IOP::TAG_ORB_TYPE);
-					if (it != components.end ()) {
-						Nirvana::Core::ImplStatic <StreamInEncap> stm (std::ref (it->component_data ()));
-						ORB_type = stm.read32 ();
-						if (stm.end ())
-							throw INV_OBJREF ();
-					}
-
-					if (local_host && ORB_type == ESIOP::ORB_TYPE) {
-#ifdef NIRVANA_SINGLE_DOMAIN
-						throw INV_OBJREF ();
-#else
-						ESIOP::ProtDomainId domain_id;
-						it = find (components, ESIOP::TAG_DOMAIN_ADDRESS);
-						if (it != components.end ()) {
-							Nirvana::Core::ImplStatic <StreamInEncap> stm (std::ref (it->component_data ()));
-							stm.read (alignof (ESIOP::ProtDomainId), sizeof (ESIOP::ProtDomainId), &domain_id);
-							if (stm.other_endian ())
-								domain_id = Nirvana::byteswap (domain_id);
-							if (stm.end ())
-								throw INV_OBJREF ();
-						} else
-							domain_id = ESIOP::sys_domain_id ();
-						domain = get_domain_sync (domain_id);
-#endif
-					} else
-						domain = get_domain_sync (std::move (listen_point));
-
-					RefPtr p (new ReferenceRemote (ins.first->first, std::move (domain),
+					RefPtr p (new ReferenceRemote (ins.first->first, get_domain_sync (std::move (domain)),
 						std::move (object_key), iid, ORB_type, components));
 					Internal::I_var <Object> ret (p->get_proxy ()); // Use I_var to avoid reference counter increment
 					entry.second.finish_construction (std::move (p));
