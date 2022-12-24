@@ -177,7 +177,7 @@ public:
 			code_set_conv_->marshal_string (s, move, *stream_out_);
 	}
 
-	virtual void unmarshal_string (IDL::String& s)
+	void unmarshal_string (IDL::String& s)
 	{
 		code_set_conv_->unmarshal_string (*stream_in_, s);
 	}
@@ -204,7 +204,7 @@ public:
 		code_set_conv_w_->marshal_char (count, data, *stream_out_);
 	}
 
-	virtual void unmarshal_wchar (size_t count, WChar* data)
+	void unmarshal_wchar (size_t count, WChar* data)
 	{
 		code_set_conv_w_->unmarshal_char (*stream_in_, count, data);
 	}
@@ -214,7 +214,7 @@ public:
 		code_set_conv_w_->marshal_string (s, move, *stream_out_);
 	}
 
-	virtual void unmarshal_wstring (IDL::WString& s)
+	void unmarshal_wstring (IDL::WString& s)
 	{
 		code_set_conv_w_->unmarshal_string (*stream_in_, s);
 	}
@@ -224,7 +224,7 @@ public:
 		code_set_conv_w_->marshal_char_seq (s, move, *stream_out_);
 	}
 
-	virtual void unmarshal_wchar_seq (WCharSeq& s)
+	void unmarshal_wchar_seq (WCharSeq& s)
 	{
 		code_set_conv_w_->unmarshal_char_seq (*stream_in_, s);
 	}
@@ -425,8 +425,6 @@ protected:
 	/// Must be called for remote messages.
 	/// In the ESIOP we do not use the message size to allow > 4GB data transferring.
 	void set_out_size ();
-
-	void release_stream_in () NIRVANA_NOEXCEPT;
 
 private:
 	void marshal_rep_id (IDL::String&& id);

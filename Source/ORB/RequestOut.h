@@ -71,6 +71,13 @@ protected:
 	virtual bool unmarshal_seq(size_t align, size_t element_size, size_t& element_count, void*& data,
 		size_t& allocated_size) override;
 	virtual size_t unmarshal_seq_begin() override;
+	virtual void unmarshal_char (size_t count, Char* data) override;
+	virtual void unmarshal_char_seq (IDL::Sequence <Char>& s) override;
+	virtual void unmarshal_char_seq (IDL::Sequence <WChar>& s) override;
+	virtual Internal::Interface::_ref_type unmarshal_interface (const IDL::String& interface_id) override;
+	virtual TypeCode::_ref_type unmarshal_type_code () override;
+	virtual Internal::Interface::_ref_type unmarshal_value (const IDL::String& interface_id) override;
+	virtual Internal::Interface::_ref_type unmarshal_abstract (const IDL::String& interface_id) override;
 
 	virtual bool marshal_op () override;
 	virtual void success () override;
@@ -115,7 +122,8 @@ protected:
 		LOCATION_FORWARD,
 		LOCATION_FORWARD_PERM,
 		NEEDS_ADDRESSING_MODE
-	} status_;
+	}
+	status_;
 
 	Nirvana::Core::Event event_;
 	Nirvana::Core::CoreRef <RequestLocalBase> preunmarshaled_;

@@ -29,14 +29,14 @@
 #pragma once
 
 #include "StreamIn.h"
-#include "../UserObject.h"
+#include "../SharedObject.h"
 
 namespace ESIOP {
 
 /// Shared memory input stream
 class NIRVANA_NOVTABLE StreamInSM :
 	public CORBA::Core::StreamIn,
-	public Nirvana::Core::UserObject
+	public Nirvana::Core::SharedObject
 {
 public:
 	virtual void read (size_t align, size_t size, void* buf) override;

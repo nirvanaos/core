@@ -158,7 +158,7 @@ void RequestIn::switch_to_reply (GIOP::ReplyStatusType status)
 	// Leave the object synchronization domain, if any.
 	ExecDomain::current ().leave_sync_domain ();
 
-	release_stream_in ();
+	stream_in_ = nullptr;
 	if (!stream_out_) {
 		stream_out_ = create_output ();
 		stream_out_->write_message_header (GIOP_minor_, GIOP::MsgType::Reply);

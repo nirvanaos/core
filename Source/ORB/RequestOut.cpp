@@ -133,11 +133,11 @@ void RequestOut::set_reply (unsigned status, IOP::ServiceContextList&& context,
 					for (const Parameter* param = metadata_->output.p, *end = param + metadata_->output.size; param != end; ++param) {
 						preunmarshal ((param->type) (), buf, rq);
 					}
-					if (metadata_->return_type) {
+					if (metadata_->return_type)
 						preunmarshal ((metadata_->return_type) (), buf, rq);
-					}
+					unmarshal_end ();
+					pre->invoke (); // Rewind to begin
 					preunmarshaled_ = std::move (pre);
-					release_stream_in ();
 				} catch (...) {
 					ed.mem_context_pop ();
 					throw;
@@ -191,6 +191,62 @@ size_t RequestOut::unmarshal_seq_begin ()
 		return preunmarshaled_->unmarshal_seq_begin ();
 	else
 		return RequestGIOP::unmarshal_seq_begin ();
+}
+
+void RequestOut::unmarshal_char (size_t count, Char* data)
+{
+	if (preunmarshaled_)
+		preunmarshaled_->unmarshal_char (count, data);
+	else
+		RequestGIOP::unmarshal_char (count, data);
+}
+
+void RequestOut::unmarshal_char_seq (IDL::Sequence <Char>& s)
+{
+	if (preunmarshaled_)
+		preunmarshaled_->unmarshal_char_seq (s);
+	else
+		RequestGIOP::unmarshal_char_seq (s);
+}
+
+void RequestOut::unmarshal_char_seq (IDL::Sequence <WChar>& s)
+{
+	if (preunmarshaled_)
+		preunmarshaled_->unmarshal_char_seq (s);
+	else
+		RequestGIOP::unmarshal_char_seq (s);
+}
+
+Interface::_ref_type RequestOut::unmarshal_interface (const IDL::String& interface_id)
+{
+	if (preunmarshaled_)
+		return preunmarshaled_->unmarshal_interface (interface_id);
+	else
+		return RequestGIOP::unmarshal_interface (interface_id);
+}
+
+TypeCode::_ref_type RequestOut::unmarshal_type_code ()
+{
+	if (preunmarshaled_)
+		return preunmarshaled_->unmarshal_type_code ();
+	else
+		return RequestGIOP::unmarshal_type_code ();
+}
+
+Interface::_ref_type RequestOut::unmarshal_value (const IDL::String& interface_id)
+{
+	if (preunmarshaled_)
+		return preunmarshaled_->unmarshal_value (interface_id);
+	else
+		return RequestGIOP::unmarshal_value (interface_id);
+}
+
+Interface::_ref_type RequestOut::unmarshal_abstract (const IDL::String& interface_id)
+{
+	if (preunmarshaled_)
+		return preunmarshaled_->unmarshal_abstract (interface_id);
+	else
+		return RequestGIOP::unmarshal_abstract (interface_id);
 }
 
 bool RequestOut::marshal_op ()

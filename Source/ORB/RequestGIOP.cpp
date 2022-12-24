@@ -82,23 +82,9 @@ void RequestGIOP::unmarshal_end ()
 		value_map_marshal_.clear ();
 		rep_id_map_unmarshal_.clear ();
 		size_t more_data = stream_in_->end ();
-		release_stream_in ();
+		stream_in_ = nullptr;
 		if (more_data > 7) // 8-byte alignment is ignored
 			throw MARSHAL (StreamIn::MARSHAL_MINOR_MORE);
-	}
-}
-
-void RequestGIOP::release_stream_in () NIRVANA_NOEXCEPT
-{
-	if (stream_in_) {
-		// Release input stream in the request memory context
-		ExecDomain& ed = ExecDomain::current ();
-		CoreRef <MemContext> mc = memory ();
-		ed.mem_context_swap (mc);
-		try {
-			stream_in_ = nullptr;
-		} catch (...) {}
-		ed.mem_context_swap (mc);
 	}
 }
 
@@ -169,6 +155,8 @@ Interface::_ref_type RequestGIOP::unmarshal_interface (const IDL::String& interf
 							components.insert (components.end (), comp.begin (), comp.end ());
 						}
 					}
+					if (stm.end ())
+						throw INV_OBJREF ();
 				} break;
 
 				case IOP::TAG_MULTIPLE_COMPONENTS: {
@@ -180,6 +168,8 @@ Interface::_ref_type RequestGIOP::unmarshal_interface (const IDL::String& interf
 						stm.read_tagged (comp);
 						components.insert (components.end (), comp.begin (), comp.end ());
 					}
+					if (stm.end ())
+						throw INV_OBJREF ();
 				} break;
 			}
 		}
@@ -213,6 +203,7 @@ Interface::_ref_type RequestGIOP::unmarshal_interface (const IDL::String& interf
 							domain_id = Nirvana::byteswap (domain_id);
 						if (stm.end ())
 							throw INV_OBJREF ();
+						domain_found = true;
 					} break;
 
 					case ESIOP::TAG_FLAGS: {
@@ -235,18 +226,16 @@ Interface::_ref_type RequestGIOP::unmarshal_interface (const IDL::String& interf
 			if (!nirvana)
 				throw INV_OBJREF ();
 
-			if (host_len && listen_point.port () != LocalAddress::singleton ().port ()) {
 #ifdef NIRVANA_SINGLE_DOMAIN
-				throw INV_OBJREF ();
+			throw INV_OBJREF ();
 #else
-				if (!domain_found)
-					throw INV_OBJREF ();
-				if (ESIOP::current_domain_id () != domain_id)
-					obj = RemoteReferences::singleton ().unmarshal (domain_id, std::move (object_key), primary_iid, std::move (addr), flags);
-				else
+			if (!domain_found)
+				throw INV_OBJREF ();
+			if (ESIOP::current_domain_id () != domain_id)
+				obj = RemoteReferences::singleton ().unmarshal (domain_id, std::move (object_key), primary_iid, std::move (addr), flags);
+			else
 #endif
-					obj = PortableServer::Core::POA_Root::unmarshal (primary_iid, object_key);
-			}
+				obj = PortableServer::Core::POA_Root::unmarshal (primary_iid, object_key);
 		} else
 			obj = RemoteReferences::singleton ().unmarshal (std::move (listen_point), std::move (object_key), primary_iid, std::move (addr), flags);
 	}

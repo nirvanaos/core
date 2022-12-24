@@ -54,8 +54,9 @@ Object::_ref_type create_SysDomain ()
 		Type <IDL::String>::marshal_in (CORBA::Internal::StringView <char> ("SysDomain"), rq);
 		rq->invoke ();
 		ProxyRoot::check_request (rq);
-		Nirvana::SysDomain::_ref_type obj;
-		Type <Nirvana::SysDomain>::unmarshal (rq, obj);
+		Object::_ref_type obj;
+		Type <Object>::unmarshal (rq, obj);
+		rq->unmarshal_end ();
 		return obj;
 	}
 }

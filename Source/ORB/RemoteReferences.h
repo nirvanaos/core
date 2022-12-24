@@ -83,7 +83,7 @@ public:
 			if (ins.second) {
 				try {
 					RefPtr p (new ReferenceRemote (get_domain_sync (std::move (domain)), ins.first->first, std::move (addr), iid, flags));
-					Internal::I_var <Object> ret (p->get_proxy ());
+					Internal::I_var <Object> ret (p->get_proxy ()); // Use I_var to avoid reference counter increment
 					entry.second.finish_construction (std::move (p));
 					return ret;
 				} catch (...) {
