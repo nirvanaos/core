@@ -78,6 +78,7 @@ protected:
 	virtual TypeCode::_ref_type unmarshal_type_code () override;
 	virtual Internal::Interface::_ref_type unmarshal_value (const IDL::String& interface_id) override;
 	virtual Internal::Interface::_ref_type unmarshal_abstract (const IDL::String& interface_id) override;
+	virtual void unmarshal_end () override;
 
 	virtual bool marshal_op () override;
 	virtual void success () override;

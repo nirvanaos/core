@@ -135,7 +135,7 @@ void RequestOut::set_reply (unsigned status, IOP::ServiceContextList&& context,
 					}
 					if (metadata_->return_type)
 						preunmarshal ((metadata_->return_type) (), buf, rq);
-					unmarshal_end ();
+					Base::unmarshal_end ();
 					pre->invoke (); // Rewind to begin
 					preunmarshaled_ = std::move (pre);
 				} catch (...) {
@@ -247,6 +247,14 @@ Interface::_ref_type RequestOut::unmarshal_abstract (const IDL::String& interfac
 		return preunmarshaled_->unmarshal_abstract (interface_id);
 	else
 		return RequestGIOP::unmarshal_abstract (interface_id);
+}
+
+void RequestOut::unmarshal_end ()
+{
+	if (preunmarshaled_)
+		preunmarshaled_->unmarshal_end ();
+	else
+		RequestGIOP::unmarshal_end ();
 }
 
 bool RequestOut::marshal_op ()
