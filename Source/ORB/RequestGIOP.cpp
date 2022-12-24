@@ -123,13 +123,12 @@ Interface::_ref_type RequestGIOP::unmarshal_interface (const IDL::String& interf
 		if (primary_iid.empty ())
 			return nullptr; // nil reference
 
-		IOP::TaggedProfileSeq addr;
-		stream_in_->read_tagged (addr);
-
 		IIOP::ListenPoint listen_point;
 		IOP::ObjectKey object_key;
 		bool object_key_found = false;
 		IOP::TaggedComponentSeq components;
+		IOP::TaggedProfileSeq addr;
+		stream_in_->read_tagged (addr);
 		for (const IOP::TaggedProfile& profile : addr) {
 			switch (profile.tag ()) {
 				case IOP::TAG_INTERNET_IOP: {
@@ -190,54 +189,15 @@ Interface::_ref_type RequestGIOP::unmarshal_interface (const IDL::String& interf
 			}
 		}
 
-		ESIOP::ProtDomainId domain_id;
-		Octet flags = 0;
-		bool domain_found = false;
-		if (nirvana) {
-			for (const IOP::TaggedComponent& comp : components) {
-				switch (comp.tag ()) {
-					case ESIOP::TAG_DOMAIN_ADDRESS: {
-						Nirvana::Core::ImplStatic <StreamInEncap> stm (std::ref (comp.component_data ()));
-						stm.read (alignof (ESIOP::ProtDomainId), sizeof (ESIOP::ProtDomainId), &domain_id);
-						if (stm.other_endian ())
-							domain_id = Nirvana::byteswap (domain_id);
-						if (stm.end ())
-							throw INV_OBJREF ();
-						domain_found = true;
-					} break;
-
-					case ESIOP::TAG_FLAGS: {
-						Nirvana::Core::ImplStatic <StreamInEncap> stm (std::ref (comp.component_data ()));
-						stm.read (1, 1, &flags);
-						if (stm.end ())
-							throw INV_OBJREF ();
-					} break;
-				}
-			}
-		}
-
 		size_t host_len = listen_point.host ().size ();
 		const Char* host = listen_point.host ().data ();
-		if (0 == host_len ||
-			(LocalAddress::singleton ().host ().size () == host_len &&
-				std::equal (host, host + host_len, LocalAddress::singleton ().host ().data ()))) {
-
-			// Local system
-			if (!nirvana)
-				throw INV_OBJREF ();
-
-#ifdef NIRVANA_SINGLE_DOMAIN
-			throw INV_OBJREF ();
-#else
-			if (!domain_found)
-				throw INV_OBJREF ();
-			if (ESIOP::current_domain_id () != domain_id)
-				obj = RemoteReferences::singleton ().unmarshal (domain_id, std::move (object_key), primary_iid, std::move (addr), flags);
-			else
-#endif
-				obj = PortableServer::Core::POA_Root::unmarshal (primary_iid, object_key);
-		} else
-			obj = RemoteReferences::singleton ().unmarshal (std::move (listen_point), std::move (object_key), primary_iid, std::move (addr), flags);
+		bool local_host = 0 == host_len ||
+			(LocalAddress::singleton ().host ().size () == host_len
+				&& std::equal (host, host + host_len, LocalAddress::singleton ().host ().data ()));
+		if (local_host && LocalAddress::singleton ().port () == listen_point.port ())
+			obj = PortableServer::Core::POA_Root::unmarshal (primary_iid, object_key); // Local reference
+		else
+			obj = RemoteReferences::singleton ().unmarshal (primary_iid, addr, std::move (listen_point), local_host, std::move (object_key), components);
 	}
 	if (RepId::compatible (RepIdOf <Object>::id, interface_id))
 		return obj;

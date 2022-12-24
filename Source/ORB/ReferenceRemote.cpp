@@ -25,7 +25,6 @@
 */
 #include "RemoteReferences.h"
 #include "Domain.h"
-#include "RequestOut.h"
 
 using namespace Nirvana::Core;
 
@@ -35,13 +34,37 @@ using namespace Internal;
 
 namespace Core {
 
-ReferenceRemote::ReferenceRemote (servant_reference <Domain>&& domain, const IOP::ObjectKey& key,
-	const IOP::TaggedProfileSeq& addr, const IDL::String& primary_iid, unsigned flags) :
-	Reference (primary_iid, flags),
+IOP::TaggedComponentSeq::const_iterator find (
+	const IOP::TaggedComponentSeq& components, IOP::ComponentId id) NIRVANA_NOEXCEPT
+{
+	IOP::TaggedComponentSeq::const_iterator it = std::lower_bound (components.begin (), components.end (),
+		id, ComponentPred ());
+	if (it != components.end () && it->tag () == id)
+		return it;
+	else
+		return components.end ();
+}
+
+ReferenceRemote::ReferenceRemote (const OctetSeq& addr, servant_reference <Domain>&& domain,
+	IOP::ObjectKey&& object_key, const IDL::String& primary_iid,
+	ULong ORB_type, const IOP::TaggedComponentSeq& components) :
+	Reference (primary_iid, 0),
+	address_ (addr),
 	domain_ (std::move (domain)),
-	object_key_ (key),
-	address_ (addr)
-{}
+	object_key_ (std::move (object_key))
+{
+	if (ESIOP::ORB_TYPE == ORB_type) {
+		auto it = find (components, ESIOP::TAG_FLAGS);
+		if (it != components.end ()) {
+			Octet flags;
+			Nirvana::Core::ImplStatic <StreamInEncap> stm (std::ref (it->component_data ()));
+			stm.read (1, 1, &flags);
+			if (stm.end ())
+				throw INV_OBJREF ();
+			flags_ = flags;
+		}
+	}
+}
 
 ReferenceRemote::~ReferenceRemote ()
 {}
@@ -66,7 +89,7 @@ void ReferenceRemote::_remove_ref () NIRVANA_NOEXCEPT
 void ReferenceRemote::marshal (StreamOut& out) const
 {
 	out.write_string_c (primary_interface_id ());
-	out.write_tagged (address_);
+	out.write_c (4, address_.size (), address_.data ());
 }
 
 IORequest::_ref_type ReferenceRemote::create_request (OperationIndex op, unsigned flags)

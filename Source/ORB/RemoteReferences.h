@@ -33,6 +33,8 @@
 #include "DomainsLocal.h"
 #include "DomainRemote.h"
 #include "HashOctetSeq.h"
+#include "StreamOutEncap.h"
+#include "StreamInEncap.h"
 #include <CORBA/IOP.h>
 #include <CORBA/I_var.h>
 
@@ -63,7 +65,7 @@ class RemoteReferences :
 {
 	typedef std::unique_ptr <ReferenceRemote> RefPtr;
 	typedef Nirvana::Core::WaitableRef <RefPtr> RefVal;
-	typedef IOP::ObjectKey RefKey;
+	typedef OctetSeq RefKey;
 	typedef Nirvana::Core::MapUnorderedStable <RefKey, RefVal, std::hash <RefKey>,
 		std::equal_to <RefKey>, Nirvana::Core::UserAllocator <std::pair <RefKey, RefVal> > >
 		References;
@@ -71,21 +73,64 @@ class RemoteReferences :
 public:
 	static RemoteReferences& singleton ()
 	{
-		return static_cast <RemoteReferences&> (*CORBA::Core::Services::bind (CORBA::Core::Services::RemoteReferences));
+		return static_cast <RemoteReferences&> (*CORBA::Core::Services::bind (
+			CORBA::Core::Services::RemoteReferences));
 	}
 
 	RemoteReferences ()
 	{}
 
-	template <typename DomainKey>
-	Object::_ref_type unmarshal (DomainKey domain, IOP::ObjectKey&& key, const IDL::String& iid, IOP::TaggedProfileSeq&& addr, unsigned flags)
+	Object::_ref_type unmarshal (const IDL::String& iid, IOP::TaggedProfileSeq& addr,
+		IIOP::ListenPoint&& listen_point, bool local_host, IOP::ObjectKey&& object_key,
+		IOP::TaggedComponentSeq& components)
 	{
+		Nirvana::Core::ImplStatic <StreamOutEncap> stm;
+		stm.write_tagged (addr);
+		{ // Release addr memory
+			IOP::TaggedProfileSeq tmp;
+			addr.swap (tmp);
+		}
+
 		SYNC_BEGIN (sync_domain (), nullptr)
-			auto ins = emplace_reference (std::move (key));
+			auto ins = emplace_reference (std::move (stm.data ()));
 			References::reference entry = *ins.first;
 			if (ins.second) {
 				try {
-					RefPtr p (new ReferenceRemote (get_domain_sync (std::move (domain)), ins.first->first, std::move (addr), iid, flags));
+					// New reference.
+					servant_reference <Domain> domain;
+					sort (components);
+
+					ULong ORB_type = 0;
+					auto it = find (components, IOP::TAG_ORB_TYPE);
+					if (it != components.end ()) {
+						Nirvana::Core::ImplStatic <StreamInEncap> stm (std::ref (it->component_data ()));
+						ORB_type = stm.read32 ();
+						if (stm.end ())
+							throw INV_OBJREF ();
+					}
+
+					if (local_host && ORB_type == ESIOP::ORB_TYPE) {
+#ifdef NIRVANA_SINGLE_DOMAIN
+						throw INV_OBJREF ();
+#else
+						ESIOP::ProtDomainId domain_id;
+						it = find (components, ESIOP::TAG_DOMAIN_ADDRESS);
+						if (it != components.end ()) {
+							Nirvana::Core::ImplStatic <StreamInEncap> stm (std::ref (it->component_data ()));
+							stm.read (alignof (ESIOP::ProtDomainId), sizeof (ESIOP::ProtDomainId), &domain_id);
+							if (stm.other_endian ())
+								domain_id = Nirvana::byteswap (domain_id);
+							if (stm.end ())
+								throw INV_OBJREF ();
+						} else
+							domain_id = ESIOP::sys_domain_id ();
+						domain = get_domain_sync (domain_id);
+#endif
+					} else
+						domain = get_domain_sync (std::move (listen_point));
+
+					RefPtr p (new ReferenceRemote (ins.first->first, std::move (domain),
+						std::move (object_key), iid, ORB_type, components));
 					Internal::I_var <Object> ret (p->get_proxy ()); // Use I_var to avoid reference counter increment
 					entry.second.finish_construction (std::move (p));
 					return ret;

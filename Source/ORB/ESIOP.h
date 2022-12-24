@@ -267,7 +267,7 @@ struct PlatformSizes
 	size_t max_size; ///< maximal size_t value.
 };
 
-/// Nirvana ORB type.
+/// Nirvana ORB type. TODO: Obtain from OMG.
 ///
 /// The TAG_ORB_TYPE component has an associated value of type unsigned long, encoded as a CDR
 /// encapsulation, designating an ORB type ID allocated by the OMG for the ORB type of the
@@ -296,7 +296,7 @@ const uint32_t TAG_DOMAIN_ADDRESS = 0xFFFFFFFF;
 /// profile_data contains single octet with IOR flags.
 const uint32_t TAG_FLAGS = 0xFFFFFFFE;
 
-/// IOR is a subgect of the Distributed Garbage Collection.
+/// IOR flag: IOR is a subject of the Distributed Garbage Collection.
 const uint8_t IOR_FLAG_DGC = 0x01;
 
 }

@@ -34,6 +34,32 @@
 namespace CORBA {
 namespace Core {
 
+struct ComponentPred
+{
+	bool operator () (const IOP::TaggedComponent& l, const IOP::TaggedComponent& r) const
+	{
+		return l.tag () < r.tag ();
+	}
+
+	bool operator () (const IOP::ComponentId l, const IOP::TaggedComponent& r) const
+	{
+		return l < r.tag ();
+	}
+
+	bool operator () (const IOP::TaggedComponent& l, const IOP::ComponentId& r) const
+	{
+		return l.tag () < r;
+	}
+};
+
+inline void sort (IOP::TaggedComponentSeq& components) NIRVANA_NOEXCEPT
+{
+	std::sort (components.begin (), components.end (), ComponentPred ());
+}
+
+IOP::TaggedComponentSeq::const_iterator find (const IOP::TaggedComponentSeq& components,
+	IOP::ComponentId id) NIRVANA_NOEXCEPT;
+
 class Domain;
 
 /// Base for remote references.
@@ -41,8 +67,8 @@ class ReferenceRemote :
 	public Reference
 {
 public:
-	ReferenceRemote (servant_reference <Domain>&& domain, const IOP::ObjectKey& key,
-		const IOP::TaggedProfileSeq& addr, const IDL::String& primary_iid, unsigned flags);
+	ReferenceRemote (const OctetSeq& addr, servant_reference <Domain>&& domain, IOP::ObjectKey&& object_key,
+		const IDL::String& primary_iid, ULong ORB_type, const IOP::TaggedComponentSeq& components);
 	~ReferenceRemote ();
 
 	virtual void marshal (StreamOut& out) const override;
@@ -53,9 +79,9 @@ protected:
 	virtual void _remove_ref () NIRVANA_NOEXCEPT override;
 
 private:
+	const OctetSeq& address_;
 	servant_reference <Domain> domain_;
-	const IOP::ObjectKey& object_key_;
-	const IOP::TaggedProfileSeq address_;
+	const IOP::ObjectKey object_key_;
 };
 
 }
