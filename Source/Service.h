@@ -29,50 +29,55 @@
 #pragma once
 
 #include "SyncDomain.h"
+#include "Synchronized.h"
+#include "UserObject.h"
 
 namespace Nirvana {
 namespace Core {
 
-class ServiceMemorySeparate
+/// The core object which works in the own SyncDomain but does not derive from CORBA::Object.
+class Service :
+	public UserObject // Created in the sync domain memory context
 {
-public:
-	MemContext& memory () NIRVANA_NOEXCEPT
-	{
-		return memory_;
-	}
-
-private:
-	ImplStatic <MemContextCore> memory_;
-};
-
-class ServiceMemoryShared
-{
-public:
-	static MemContext& memory () NIRVANA_NOEXCEPT
-	{
-		return g_shared_mem_context;
-	}
-};
-
-using ServiceMemory = std::conditional_t <(sizeof (void*) > 4), ServiceMemorySeparate, ServiceMemoryShared>;
-
-class Service : public ServiceMemory
-{
-	DECLARE_CORE_INTERFACE
-
 public:
 	SyncDomain& sync_domain () NIRVANA_NOEXCEPT
 	{
-		return sync_domain_;
+		return *sync_domain_;
+	}
+
+	MemContext& memory () NIRVANA_NOEXCEPT
+	{
+		return sync_domain_->mem_context ();
 	}
 
 protected:
 	Service () :
-		sync_domain_ (std::ref (memory ()))
+		sync_domain_ (&SyncDomain::enter ())
+	{}
+
+	virtual ~Service ()
 	{}
 
 private:
-	ImplStatic <SyncDomainCore> sync_domain_;
+	template <class> friend class Nirvana::Core::CoreRef;
+	template <class> friend class CORBA::servant_reference;
+
+	void _add_ref () NIRVANA_NOEXCEPT
+	{
+		ref_cnt_.increment ();
+	}
+
+	void _remove_ref () NIRVANA_NOEXCEPT
+	{
+		if (0 == ref_cnt_.decrement ()) {
+			Synchronized _sync_frame (sync_domain (), nullptr);
+			delete this;
+		}
+	}
+
+private:
+	RefCounter ref_cnt_;
+	CoreRef <SyncDomain> sync_domain_;
 };
 
 }

@@ -74,6 +74,9 @@ public:
 		return static_cast <RemoteReferences&> (*CORBA::Core::Services::bind (CORBA::Core::Services::RemoteReferences));
 	}
 
+	RemoteReferences ()
+	{}
+
 	template <typename DomainKey>
 	Object::_ref_type unmarshal (DomainKey domain, IOP::ObjectKey&& key, const IDL::String& iid, IOP::TaggedProfileSeq&& addr, unsigned flags)
 	{
@@ -142,7 +145,6 @@ private:
 		else
 			return p;
 	}
-
 
 private:
 #ifndef SINGLE_DOMAIN

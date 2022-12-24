@@ -139,7 +139,7 @@ const Services::CoreFactory Services::core_factories_ [CORE_SERVICE_COUNT] = {
 
 CoreRef <Service> Services::create_RemoteReferences ()
 {
-	return CoreRef <Nirvana::Core::Service>::create <ImplDynamic <CORBA::Core::RemoteReferences> > ();
+	return CoreRef <Nirvana::Core::Service>::create <CORBA::Core::RemoteReferences> ();
 }
 
 }
