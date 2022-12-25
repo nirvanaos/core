@@ -65,7 +65,7 @@ public:
 		NIRVANA_NOEXCEPT;
 
 protected:
-	void write_header (IOP::ObjectKey& object_key, IDL::String& operation, IOP::ServiceContextList& context);
+	void write_header (const IOP::ObjectKey& object_key, IDL::String& operation, IOP::ServiceContextList& context);
 
 	virtual bool unmarshal (size_t align, size_t size, void* data) override;
 	virtual bool unmarshal_seq(size_t align, size_t element_size, size_t& element_count, void*& data,

@@ -44,7 +44,7 @@ class RequestOut : public CORBA::Core::RequestOut
 	typedef CORBA::Core::RequestOut Base;
 
 public:
-	RequestOut (DomainLocal& domain, IOP::ObjectKey object_key,
+	RequestOut (DomainLocal& domain, const IOP::ObjectKey& object_key,
 		const CORBA::Internal::Operation& metadata, unsigned response_flags,
 		IOP::ServiceContextList context) :
 		Base ((response_flags & 3) == 1 ? 2 : 1, response_flags, metadata),
