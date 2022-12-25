@@ -25,6 +25,7 @@
 */
 #include "StartupSys.h"
 #include "initterm.h"
+#include "ORB/Services.h"
 
 namespace Nirvana {
 namespace Core {
@@ -32,7 +33,7 @@ namespace Core {
 void StartupSys::run ()
 {
 	initialize ();
-	// TODO: System domain startup code.
+	CORBA::Core::Services::bind (CORBA::Core::Services::SysDomain);
 	Startup::run ();
 }
 

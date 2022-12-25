@@ -65,17 +65,21 @@ void IncomingRequests::receive (CoreRef <RequestIn> rq, uint64_t timestamp)
 	DeadlineTime deadline = INFINITE_DEADLINE;
 	for (const auto& context : sc) {
 		if (ESIOP::CONTEXT_ID_DEADLINE == context.context_id ()) {
-			ImplStatic <StreamInEncap> dl (std::ref (context.context_data ()));
-			dl.read (alignof (DeadlineTime), sizeof (DeadlineTime), &deadline);
+			ImplStatic <StreamInEncap> encap (std::ref (context.context_data ()));
+			encap.read (alignof (DeadlineTime), sizeof (DeadlineTime), &deadline);
+			if (encap.end ())
+				throw BAD_PARAM ();
 			if (rq->stream_in ()->other_endian ())
-				deadline = byteswap (deadline);
+				Internal::byteswap (deadline);
 			break;
 		} else if (IOP::RTCorbaPriority == context.context_id ()) {
-			if (context.context_data ().size () != 2)
+			ImplStatic <StreamInEncap> encap (std::ref (context.context_data ()));
+			int16_t priority;
+			encap.read (alignof (int16_t), sizeof (int16_t), &priority);
+			if (encap.end ())
 				throw BAD_PARAM ();
-			int16_t priority = *(int16_t*)context.context_data ().data ();
 			if (rq->stream_in ()->other_endian ())
-				priority = byteswap ((uint16_t)priority);
+				Internal::byteswap (priority);
 			deadline = Chrono::deadline_from_priority (priority);
 			break;
 		}

@@ -171,6 +171,11 @@ private:
 			return operator == (rhs) && version_.compatible (rhs.version_);
 		}
 
+		const char* name () const NIRVANA_NOEXCEPT
+		{
+			return name_;
+		}
+
 	private:
 		const char* name_;
 		size_t length_;

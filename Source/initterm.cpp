@@ -47,7 +47,6 @@ void initialize ()
 {
 	CORBA::Core::initialize ();
 	Binder::initialize ();
-	CORBA::Core::Services::bind (CORBA::Core::Services::SysDomain);
 }
 
 void terminate ()

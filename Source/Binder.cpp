@@ -33,6 +33,7 @@
 #include "ClassLibrary.h"
 #include "Singleton.h"
 #include "Legacy/Executable.h"
+#include "Nirvana/Domains.h"
 
 namespace Nirvana {
 
@@ -45,6 +46,7 @@ namespace Core {
 
 using namespace CORBA;
 using namespace CORBA::Internal;
+using namespace CORBA::Core;
 
 #ifdef BINDER_USE_SEPARATE_MEMORY
 StaticallyAllocated <ImplStatic <MemContextCore> > Binder::memory_;
@@ -273,7 +275,7 @@ const ModuleStartup* Binder::module_bind (::Nirvana::Module::_ptr_type mod, cons
 						case OLF_EXPORT_LOCAL: {
 							ExportLocal* ps = reinterpret_cast <ExportLocal*> (it.cur ());
 							CORBA::Core::LocalObject* core_object = CORBA::Core::LocalObject::create (
-									Type <LocalObject>::in (ps->local_object));
+									Type <CORBA::LocalObject>::in (ps->local_object));
 							Object::_ptr_type obj = core_object->proxy ().get_proxy ();
 							ps->core_object = &CORBA::LocalObject::_ptr_type (core_object);
 							mod_context->exports.insert (ps->name, obj);
@@ -476,15 +478,16 @@ Binder::InterfaceRef Binder::find (const ObjectKey& name)
 			throw_OBJECT_NOT_EXIST ();
 		itf = object_map_.find (name);
 		if (!itf) {
-			std::string module_name;
-			if (ObjectKey ("Nirvana/g_dec_calc") == name)
-				module_name = "DecCalc.olf";
-			else
-				module_name = "TestModule.olf";
-			CoreRef <Module> mod = load (module_name, false);
-			itf = object_map_.find (name);
-			if (!itf)
-				throw_OBJECT_NOT_EXIST ();
+			SysDomain::_ref_type sys_domain = SysDomain::_narrow (Services::bind (Services::SysDomain));
+			BindInfo bind_info;
+			sys_domain->get_bind_info (name.name (), 0, bind_info);
+			if (bind_info._d ()) {
+				CoreRef <Module> mod = load (bind_info.module_name (), false);
+				itf = object_map_.find (name);
+				if (!itf)
+					throw_OBJECT_NOT_EXIST ();
+			} else
+				return bind_info.obj ();
 		}
 	}
 	return itf;
