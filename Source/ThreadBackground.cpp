@@ -1,4 +1,3 @@
-/// \file
 /*
 * Nirvana Core.
 *
@@ -24,51 +23,24 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_CORE_THREADBACKGROUND_H_
-#define NIRVANA_CORE_THREADBACKGROUND_H_
-#pragma once
-
-#include "SharedObject.h"
-#include "Scheduler.h"
-#include <Port/ThreadBackground.h>
+#include "ThreadBackground.h"
 
 namespace Nirvana {
 namespace Core {
 
-class NIRVANA_NOVTABLE ThreadBackground :
-	public SharedObject,
-	public Port::ThreadBackground
+void ThreadBackground::start (ExecDomain& ed)
 {
-	DECLARE_CORE_INTERFACE
-
-	friend class Port::ThreadBackground;
-	typedef Port::ThreadBackground Base;
-public:
-	void start (ExecDomain& ed);
-
-	void finish () NIRVANA_NOEXCEPT
-	{
-		Base::exec_domain (nullptr);
-		resume ();
-	}
-
-protected:
-	ThreadBackground ()
-	{}
-
-private:
-	// Called from port.
-	inline void execute () NIRVANA_NOEXCEPT;
-
-	// Called from port.
-	void on_thread_proc_end () NIRVANA_NOEXCEPT
-	{
+	Base::exec_domain (ed);
+	Scheduler::activity_begin ();
+	_add_ref ();
+	try {
+		Base::start ();
+	} catch (...) {
 		_remove_ref ();
 		Scheduler::activity_end ();
+		throw;
 	}
-};
+}
 
 }
 }
-
-#endif

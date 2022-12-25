@@ -219,7 +219,7 @@ void ExecDomain::cleanup () NIRVANA_NOEXCEPT
 	sync_context_.reset ();
 	Thread::current ().exec_domain (nullptr);
 	if (background_worker_) {
-		background_worker_->exec_domain (nullptr);
+		background_worker_->finish ();
 		background_worker_.reset ();
 	}
 	
@@ -286,7 +286,7 @@ void ExecDomain::schedule (SyncContext& target, bool ret)
 		if (INFINITE_DEADLINE == deadline ()) {
 			background = true;
 			if (!background_worker_) {
-				background_worker_ = ThreadBackground::create ();
+				background_worker_ = CoreRef <ThreadBackground>::create <ImplDynamic <ThreadBackground> > ();
 				background_worker_->start (*this);
 			}
 		} else if (!scheduler_item_created_) {

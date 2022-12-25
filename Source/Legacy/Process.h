@@ -42,8 +42,6 @@ namespace Nirvana {
 namespace Legacy {
 namespace Core {
 
-class ThreadBase;
-
 /// Legacy process.
 class Process :
 	public CORBA::servant_traits <Nirvana::Legacy::Process>::Servant <Process>,
