@@ -33,6 +33,7 @@ namespace ESIOP {
 void StreamOutSM::initialize ()
 {
 	size_ = 0;
+	commit_unit_ = 0;
 	chunk_ = nullptr;
 	other_domain_->get_sizes (sizes_);
 	allocate_block (sizes_.sizeof_pointer, sizes_.sizeof_pointer);
@@ -109,6 +110,11 @@ void StreamOutSM::write (size_t align, size_t size, void* data, size_t& allocate
 		size_t offset = (uint8_t*)block.ptr - p;
 		other_domain_->store_pointer (segments_tail_, block.other_ptr + offset);
 		segments_tail_ = p;
+		if (commit_unit_) {
+			size_t segment_size = sizes_.sizeof_pointer * 2 + sizes_.sizeof_size;
+			if ((offset + segment_size) / commit_unit_ != offset / commit_unit_)
+				Port::Memory::commit (p, segment_size);
+		}
 		p = (uint8_t*)other_domain_->store_pointer (p, 0); // next
 		p = (uint8_t*)other_domain_->store_pointer (p, oa.ptr); // address
 		p = (uint8_t*)other_domain_->store_size (p, size);
@@ -132,6 +138,10 @@ void StreamOutSM::write (size_t align, size_t size, void* data, size_t& allocate
 			if ((size_t)cb > size)
 				cb = size;
 			const uint8_t* end = src + cb;
+			if (commit_unit_) {
+				if (((uintptr_t)dst + cb) / commit_unit_ != (uintptr_t)dst / commit_unit_)
+					Port::Memory::commit (dst, cb);
+			}
 			cur_ptr_ = real_copy (src, end, dst);
 			src = end;
 			size -= cb;
@@ -152,14 +162,21 @@ void StreamOutSM::allocate_block (size_t align, size_t size)
 
 	blocks_.emplace_back ();
 	Block& block = blocks_.back ();
-	block.ptr = Port::Memory::allocate (nullptr, cb, 0);
+	if (Port::Memory::FLAGS & Nirvana::Memory::SPACE_RESERVATION) {
+		block.ptr = Port::Memory::allocate (nullptr, cb, Nirvana::Memory::RESERVED);
+		if (Port::Memory::FIXED_COMMIT_UNIT)
+			commit_unit_ = Port::Memory::FIXED_COMMIT_UNIT;
+		else
+			commit_unit_ = (size_t)Port::Memory::query (block.ptr, Nirvana::Memory::QueryParam::COMMIT_UNIT);
+		Port::Memory::commit (block.ptr, commit_unit_);
+	} else
+		block.ptr = Port::Memory::allocate (nullptr, cb, 0);
 	block.size = cb;
 	block.other_ptr = other_domain_->reserve (cb);
 	void* p = other_domain_->store_pointer (block.ptr, 0); // next = nullptr;
 	other_domain_->store_size (p, cb); // size
 
 	cur_ptr_ = (uint8_t*)block.ptr + data_offset;
-
 	// Link to prev block
 	if (blocks_.size () > 1) {
 		auto prev = blocks_.begin () + blocks_.size () - 2;
@@ -259,6 +276,25 @@ bool StreamOutSM::chunk_end ()
 		return true;
 	} else
 		return false;
+}
+
+void StreamOutSM::store_stream (SharedMemPtr& where)
+{
+	// Truncate size of the last block
+	Block& last_block = blocks_.back ();
+	uint8_t* last_block_begin = (uint8_t*)last_block.ptr;
+	size_t last_block_size = cur_ptr_ - last_block_begin;
+	other_domain_->store_size (last_block_begin + sizes_.sizeof_pointer, last_block_size);
+	last_block.size = last_block_size;
+
+	// Purge all blocks
+	for (auto it = blocks_.begin (); it != blocks_.end (); ++it) {
+		if (it->ptr) {
+			other_domain_->copy (it->other_ptr, it->ptr, it->size, true);
+			it->ptr = nullptr;
+		}
+	}
+	other_domain_->store_pointer (&where, stream_hdr_);
 }
 
 }

@@ -50,21 +50,7 @@ public:
 	virtual bool chunk_end () override;
 	virtual CORBA::Long chunk_size () const override;
 
-	void store_stream (SharedMemPtr& where)
-	{
-		// Truncate size of the last block
-		uint8_t* block = (uint8_t*)cur_block ().ptr;
-		other_domain_->store_size (block + sizes_.sizeof_pointer, cur_ptr_ - block);
-
-		// Purge all blocks
-		for (auto it = blocks_.begin (); it != blocks_.end (); ++it) {
-			if (it->ptr) {
-				other_domain_->copy (it->other_ptr, it->ptr, it->size, true);
-				it->ptr = nullptr;
-			}
-		}
-		other_domain_->store_pointer (&where, stream_hdr_);
-	}
+	void store_stream (SharedMemPtr& where);
 
 	void detach () NIRVANA_NOEXCEPT
 	{
@@ -144,6 +130,7 @@ private:
 	size_t size_;
 	size_t chunk_begin_;
 	int32_t* chunk_;
+	size_t commit_unit_;
 };
 
 inline
