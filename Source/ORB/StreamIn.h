@@ -191,7 +191,8 @@ public:
 
 protected:
 	StreamIn () :
-		other_endian_ (false)
+		other_endian_ (false),
+		chunk_mode_ (false)
 	{}
 
 protected:
