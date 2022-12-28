@@ -40,8 +40,8 @@ class DomainRemote :
 	public Domain
 {
 public:
-	DomainRemote (Nirvana::Core::Service& service, IIOP::ListenPoint&& lp) :
-		IIOP::ListenPoint (std::move (lp)),
+	DomainRemote (Nirvana::Core::Service& service, const IIOP::ListenPoint& lp) :
+		IIOP::ListenPoint (lp),
 		Domain (service)
 	{}
 

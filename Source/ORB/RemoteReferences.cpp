@@ -41,9 +41,9 @@ namespace CORBA {
 namespace Core {
 
 std::pair <RemoteReferences::References::iterator, bool> RemoteReferences::emplace_reference (
-	IOP::ObjectKey&& key)
+	OctetSeq&& addr)
 {
-	return references_.emplace (std::move (key), Reference::DEADLINE_MAX);
+	return references_.emplace (std::move (addr), Reference::DEADLINE_MAX);
 }
 
 }

@@ -81,22 +81,18 @@ public:
 	{}
 
 	template <class DomainKey>
-	Object::_ref_type unmarshal (DomainKey domain, const IDL::String& iid, IOP::TaggedProfileSeq& addr,
-		IOP::ObjectKey&& object_key, ULong ORB_type, IOP::TaggedComponentSeq& components)
+	Object::_ref_type unmarshal (DomainKey domain, const IDL::String& iid, const IOP::TaggedProfileSeq& addr,
+		const IOP::ObjectKey& object_key, ULong ORB_type, const IOP::TaggedComponentSeq& components)
 	{
-		Nirvana::Core::ImplStatic <StreamOutEncap> stm;
-		stm.write_tagged (addr);
-		{ // Release addr memory
-			IOP::TaggedProfileSeq tmp;
-			addr.swap (tmp);
-		}
 
 		SYNC_BEGIN (sync_domain (), nullptr)
+			Nirvana::Core::ImplStatic <StreamOutEncap> stm;
+			stm.write_tagged (addr);
 			auto ins = emplace_reference (std::move (stm.data ()));
 			References::reference entry = *ins.first;
 			if (ins.second) {
 				try {
-					RefPtr p (new ReferenceRemote (ins.first->first, get_domain_sync (std::move (domain)),
+					RefPtr p (new ReferenceRemote (ins.first->first, get_domain_sync (domain),
 						std::move (object_key), iid, ORB_type, components));
 					Internal::I_var <Object> ret (p->get_proxy ()); // Use I_var to avoid reference counter increment
 					entry.second.finish_construction (std::move (p));
@@ -139,7 +135,7 @@ public:
 #endif
 
 private:
-	std::pair <References::iterator, bool> emplace_reference (IOP::ObjectKey&& key);
+	std::pair <References::iterator, bool> emplace_reference (OctetSeq&& addr);
 
 #ifndef SINGLE_DOMAIN
 	servant_reference <ESIOP::DomainLocal> get_domain_sync (ESIOP::ProtDomainId id)
@@ -148,9 +144,9 @@ private:
 	}
 #endif
 
-	servant_reference <Domain> get_domain_sync (IIOP::ListenPoint&& lp)
+	servant_reference <Domain> get_domain_sync (const IIOP::ListenPoint& lp)
 	{
-		auto ins = domains_remote_.emplace (std::ref (*this), std::move (lp));
+		auto ins = domains_remote_.emplace (std::ref (*this), std::ref (lp));
 		DomainRemote* p = &const_cast <DomainRemote&> (*ins.first);
 		if (ins.second)
 			return PortableServer::Servant_var <Domain> (p);

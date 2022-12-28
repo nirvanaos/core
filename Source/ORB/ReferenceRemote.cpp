@@ -46,12 +46,12 @@ IOP::TaggedComponentSeq::const_iterator find (
 }
 
 ReferenceRemote::ReferenceRemote (const OctetSeq& addr, servant_reference <Domain>&& domain,
-	IOP::ObjectKey&& object_key, const IDL::String& primary_iid,
+	const IOP::ObjectKey& object_key, const IDL::String& primary_iid,
 	ULong ORB_type, const IOP::TaggedComponentSeq& components) :
 	Reference (primary_iid, 0),
 	address_ (addr),
 	domain_ (std::move (domain)),
-	object_key_ (std::move (object_key))
+	object_key_ (object_key)
 {
 	if (ESIOP::ORB_TYPE == ORB_type) {
 		auto it = find (components, ESIOP::TAG_FLAGS);

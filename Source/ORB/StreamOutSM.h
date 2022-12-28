@@ -72,6 +72,11 @@ public:
 		other_allocated_.clear ();
 	}
 
+	OtherDomain& other_domain () const NIRVANA_NOEXCEPT
+	{
+		return *other_domain_;
+	}
+
 protected:
 	StreamOutSM (DomainLocal& target) :
 		other_domain_ (&target)
@@ -91,11 +96,6 @@ protected:
 	}
 
 	void clear (size_t leave_header = 0) NIRVANA_NOEXCEPT;
-
-	OtherDomain& other_domain () const NIRVANA_NOEXCEPT
-	{
-		return *other_domain_;
-	}
 
 private:
 	struct Block
