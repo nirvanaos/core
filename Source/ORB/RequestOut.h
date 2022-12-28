@@ -59,7 +59,7 @@ public:
 	}
 
 	virtual void set_reply (unsigned status, IOP::ServiceContextList&& context,
-		Nirvana::Core::CoreRef <StreamIn>&& stream);
+		Nirvana::Core::Ref <StreamIn>&& stream);
 
 	void set_system_exception (const Char* rep_id, uint32_t minor, CompletionStatus completed)
 		NIRVANA_NOEXCEPT;
@@ -127,7 +127,7 @@ protected:
 	status_;
 
 	Nirvana::Core::Event event_;
-	Nirvana::Core::CoreRef <RequestLocalBase> preunmarshaled_;
+	Nirvana::Core::Ref <RequestLocalBase> preunmarshaled_;
 };
 
 }

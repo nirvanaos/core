@@ -62,15 +62,15 @@ public:
 	/// Tries to get object from the pool.
 	/// If the pool is empty, creates a new object.
 	/// 
-	/// \returns CoreRef <T>.
-	CoreRef <T> create ()
+	/// \returns Ref <T>.
+	Ref <T> create ()
 	{
 		T* obj = stack_.pop ();
 		if (obj) {
 			--size_;
 			return obj;
 		} else
-			return CoreRef <T>::template create <T> ();
+			return Ref <T>::template create <T> ();
 	}
 
 	/// Release object to the pool.

@@ -50,30 +50,30 @@ public:
 
 	~LockableRef ()
 	{
-		CoreRef <T> ref;
+		Ref <T> ref;
 		ref.p_ = p_.load ();
 	}
 
-	LockableRef& operator = (CoreRef <T> src) NIRVANA_NOEXCEPT
+	LockableRef& operator = (Ref <T> src) NIRVANA_NOEXCEPT
 	{
 		swap (src);
 		return *this;
 	}
 
-	CoreRef <T> get () const NIRVANA_NOEXCEPT
+	Ref <T> get () const NIRVANA_NOEXCEPT
 	{
-		CoreRef <T> ref (p_.lock ());
+		Ref <T> ref (p_.lock ());
 		p_.unlock ();
 		return ref;
 	}
 
 	void reset () NIRVANA_NOEXCEPT
 	{
-		CoreRef <T> tmp;
+		Ref <T> tmp;
 		swap (tmp);
 	}
 
-	void swap (CoreRef <T>& ref) NIRVANA_NOEXCEPT
+	void swap (Ref <T>& ref) NIRVANA_NOEXCEPT
 	{
 		typename LockablePtrT <T, 0, ALIGN>::Ptr from;
 		typename LockablePtrT <T, 0, ALIGN>::Ptr to (ref);

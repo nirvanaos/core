@@ -482,9 +482,6 @@ public:
 protected:
 	using MemContext = Nirvana::Core::MemContext;
 
-	template <class T>
-	using CoreRef = Nirvana::Core::CoreRef <T>;
-
 	enum class State : uint8_t
 	{
 		CALLER,
@@ -547,8 +544,8 @@ protected:
 
 protected:
 	Nirvana::Core::RefCounter ref_cnt_;
-	CoreRef <MemContext> caller_memory_;
-	CoreRef <MemContext> callee_memory_;
+	Nirvana::Core::Ref <MemContext> caller_memory_;
+	Nirvana::Core::Ref <MemContext> callee_memory_;
 	Octet* cur_ptr_;
 	State state_;
 	uint8_t response_flags_;
@@ -609,7 +606,7 @@ protected:
 	void invoke_sync () NIRVANA_NOEXCEPT;
 
 private:
-	CoreRef <ProxyManager> proxy_;
+	Nirvana::Core::Ref <ProxyManager> proxy_;
 	Internal::IOReference::OperationIndex op_idx_;
 };
 
@@ -638,7 +635,7 @@ private:
 	virtual void run ();
 
 private:
-	Nirvana::Core::CoreRef <Nirvana::Core::ExecDomain> exec_domain_;
+	Nirvana::Core::Ref <Nirvana::Core::ExecDomain> exec_domain_;
 };
 
 template <class Base>
@@ -662,7 +659,7 @@ public:
 	virtual void _remove_ref () NIRVANA_NOEXCEPT
 	{
 		if (0 == Base::ref_cnt_.decrement ()) {
-			Nirvana::Core::CoreRef <Nirvana::Core::MemContext> mc =
+			Nirvana::Core::Ref <Nirvana::Core::MemContext> mc =
 				std::move (Base::caller_memory_);
 			this->RequestLocalImpl::~RequestLocalImpl ();
 			mc->heap ().release (this, sizeof (*this));

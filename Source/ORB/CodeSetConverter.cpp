@@ -50,9 +50,9 @@ StaticallyAllocated <ImplStatic <CodeSetConverter> > CodeSetConverter::default_;
 
 // Default wide code set converter for GIOP 1.0.
 
-CoreRef <CodeSetConverterW> CodeSetConverterW_1_0::get_default (bool client_side)
+Ref <CodeSetConverterW> CodeSetConverterW_1_0::get_default (bool client_side)
 {
-	return CoreRef <CodeSetConverterW>::create <ImplDynamic <CodeSetConverterW_1_0> > (client_side);
+	return Ref <CodeSetConverterW>::create <ImplDynamic <CodeSetConverterW_1_0> > (client_side);
 }
 
 void CodeSetConverterW_1_0::marshal_string (IDL::WString& s, bool move, StreamOut& out)
@@ -186,7 +186,7 @@ void CodeSetConverterW_1_2::unmarshal_char_seq (StreamIn& in, IDL::Sequence <WCh
 
 StaticallyAllocated <ImplStatic <CodeSetConverterW_1_2> > CodeSetConverterW_1_2::default_;
 
-CoreRef <CodeSetConverterW> CodeSetConverterW::get_default (unsigned GIOP_minor, bool client_side)
+Ref <CodeSetConverterW> CodeSetConverterW::get_default (unsigned GIOP_minor, bool client_side)
 {
 	switch (GIOP_minor) {
 		case 0:

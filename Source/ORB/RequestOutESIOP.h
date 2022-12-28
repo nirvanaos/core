@@ -50,7 +50,7 @@ public:
 		Base ((response_flags & 3) == 1 ? 2 : 1, response_flags, metadata),
 		domain_ (&domain)
 	{
-		stream_out_ = CoreRef <StreamOut>::create <ImplDynamic <StreamOutSM> > (std::ref (domain));
+		stream_out_ = Ref <StreamOut>::create <ImplDynamic <StreamOutSM> > (std::ref (domain));
 		if (response_flags & 3)
 			id_ = OutgoingRequests::new_request (*this, OutgoingRequests::IdPolicy::ANY);
 		IDL::String operation = metadata.name;

@@ -79,7 +79,7 @@ protected:
 	virtual void cancel () NIRVANA_NOEXCEPT override;
 
 private:
-	Nirvana::Core::CoreRef <Nirvana::Core::ExecDomain> exec_domain_;
+	Nirvana::Core::Ref <Nirvana::Core::ExecDomain> exec_domain_;
 };
 
 }

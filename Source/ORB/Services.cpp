@@ -85,13 +85,13 @@ Object::_ref_type Services::bind_internal (Service sidx)
 	return ret;
 }
 
-CoreRef <Service> Services::bind_internal (CoreService sidx)
+Ref <Service> Services::bind_internal (CoreService sidx)
 {
 	if (sidx >= CORE_SERVICE_COUNT)
 		throw ORB::InvalidName ();
 
 	CoreServiceRef& ref = core_services_ [sidx];
-	CoreRef <Nirvana::Core::Service> ret = ref.get_if_constructed ();
+	Ref <Nirvana::Core::Service> ret = ref.get_if_constructed ();
 	if (!ret) {
 		const CoreFactory& f = core_factories_ [sidx];
 		SYNC_BEGIN (sync_domain_, nullptr);
@@ -137,9 +137,9 @@ const Services::CoreFactory Services::core_factories_ [CORE_SERVICE_COUNT] = {
 
 // Core service factories
 
-CoreRef <Service> Services::create_RemoteReferences ()
+Ref <Service> Services::create_RemoteReferences ()
 {
-	return CoreRef <Nirvana::Core::Service>::create <CORBA::Core::RemoteReferences> ();
+	return Ref <Nirvana::Core::Service>::create <CORBA::Core::RemoteReferences> ();
 }
 
 }

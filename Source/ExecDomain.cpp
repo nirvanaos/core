@@ -45,7 +45,7 @@ public:
 		pool_.destruct ();
 	}
 
-	static CoreRef <ExecDomain> create ()
+	static Ref <ExecDomain> create ()
 	{
 		return pool_->create ();
 	}
@@ -70,9 +70,9 @@ public:
 	static void terminate () NIRVANA_NOEXCEPT
 	{}
 
-	static CoreRef <ExecDomain> create ()
+	static Ref <ExecDomain> create ()
 	{
-		return CoreRef <ExecDomain>::create <ExecDomain> ();
+		return Ref <ExecDomain>::create <ExecDomain> ();
 	}
 
 	static void release (ExecDomain& ed)
@@ -94,9 +94,9 @@ void ExecDomain::terminate () NIRVANA_NOEXCEPT
 	Creator::terminate ();
 }
 
-CoreRef <ExecDomain> ExecDomain::create (const DeadlineTime deadline, CoreRef <Runnable>&& runnable, MemContext* mem_context)
+Ref <ExecDomain> ExecDomain::create (const DeadlineTime deadline, Ref <Runnable>&& runnable, MemContext* mem_context)
 {
-	CoreRef <ExecDomain> ed = Creator::create ();
+	Ref <ExecDomain> ed = Creator::create ();
 	Scheduler::activity_begin ();
 	ed->deadline_ = deadline;
 	assert (ed->mem_context_stack_.empty ());
@@ -154,14 +154,14 @@ void ExecDomain::spawn (SyncContext& sync_context)
 	}
 }
 
-void ExecDomain::async_call (const DeadlineTime& deadline, CoreRef <Runnable>&& runnable, SyncContext& target, MemContext* mem_context)
+void ExecDomain::async_call (const DeadlineTime& deadline, Ref <Runnable>&& runnable, SyncContext& target, MemContext* mem_context)
 {
 	SyncDomain* sd = target.sync_domain ();
 	if (sd) {
 		assert (!mem_context || mem_context == &sd->mem_context ());
 		mem_context = &sd->mem_context ();
 	}
-	CoreRef <ExecDomain> exec_domain = create (deadline, std::move (runnable), mem_context);
+	Ref <ExecDomain> exec_domain = create (deadline, std::move (runnable), mem_context);
 	exec_domain->spawn (target);
 }
 
@@ -177,7 +177,7 @@ void ExecDomain::start_legacy_process (Legacy::Core::Process& process)
 
 void ExecDomain::start_legacy_thread (Legacy::Core::Process& process, Legacy::Core::ThreadBase& thread)
 {
-	CoreRef <ExecDomain> exec_domain = create (INFINITE_DEADLINE, &thread, &process);
+	Ref <ExecDomain> exec_domain = create (INFINITE_DEADLINE, &thread, &process);
 	exec_domain->background_worker_ = &thread;
 	thread.start (*exec_domain);
 	exec_domain->spawn (process.sync_context ());
@@ -251,7 +251,7 @@ inline
 void ExecDomain::unwind_mem_context () NIRVANA_NOEXCEPT
 {
 	// Clear memory context stack
-	CoreRef <MemContext> tmp;
+	Ref <MemContext> tmp;
 	do {
 		tmp = std::move (mem_context_stack_.top ());
 		mem_context_stack_.pop ();
@@ -279,14 +279,14 @@ void ExecDomain::schedule (SyncContext& target, bool ret)
 {
 	assert (ExecContext::current_ptr () != this);
 
-	CoreRef <SyncContext> old_context = std::move (sync_context_);
+	Ref <SyncContext> old_context = std::move (sync_context_);
 	SyncDomain* sync_domain = target.sync_domain ();
 	bool background = false;
 	if (!sync_domain) {
 		if (INFINITE_DEADLINE == deadline ()) {
 			background = true;
 			if (!background_worker_) {
-				background_worker_ = CoreRef <ThreadBackground>::create <ImplDynamic <ThreadBackground> > ();
+				background_worker_ = Ref <ThreadBackground>::create <ImplDynamic <ThreadBackground> > ();
 				background_worker_->start (*this);
 			}
 		} else if (!scheduler_item_created_) {

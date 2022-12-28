@@ -83,7 +83,7 @@ public:
 		return list;
 	}
 
-	static Nirvana::Core::CoreRef <Nirvana::Core::Service> bind (CoreService sidx)
+	static Nirvana::Core::Ref <Nirvana::Core::Service> bind (CoreService sidx)
 	{
 		return singleton_->bind_internal (sidx);
 	}
@@ -116,7 +116,7 @@ private:
 	}
 
 	Object::_ref_type bind_internal (Service sidx);
-	Nirvana::Core::CoreRef <Nirvana::Core::Service> bind_internal (CoreService sidx);
+	Nirvana::Core::Ref <Nirvana::Core::Service> bind_internal (CoreService sidx);
 
 private:
 	static Nirvana::Core::MemContext* new_service_memory () NIRVANA_NOEXCEPT
@@ -130,7 +130,7 @@ private:
 	// Service factories
 	static Object::_ref_type create_POACurrent ();
 
-	static Nirvana::Core::CoreRef <Nirvana::Core::Service> create_RemoteReferences ();
+	static Nirvana::Core::Ref <Nirvana::Core::Service> create_RemoteReferences ();
 
 private:
 	struct Factory
@@ -142,7 +142,7 @@ private:
 
 	struct CoreFactory
 	{
-		Nirvana::Core::CoreRef <Nirvana::Core::Service> (*factory) ();
+		Nirvana::Core::Ref <Nirvana::Core::Service> (*factory) ();
 		TimeBase::TimeT creation_deadline;
 	};
 
@@ -160,7 +160,7 @@ private:
 	};
 
 	typedef Nirvana::Core::WaitableRef <Object::_ref_type> ServiceRef;
-	typedef Nirvana::Core::WaitableRef <Nirvana::Core::CoreRef <Nirvana::Core::Service> > CoreServiceRef;
+	typedef Nirvana::Core::WaitableRef <Nirvana::Core::Ref <Nirvana::Core::Service> > CoreServiceRef;
 
 	Nirvana::Core::ImplStatic <Nirvana::Core::SyncDomainCore> sync_domain_;
 	ServiceRef services_ [SERVICE_COUNT];

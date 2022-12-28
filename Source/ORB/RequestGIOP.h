@@ -67,7 +67,7 @@ protected:
 	friend class CORBA::servant_reference;
 
 	template <class T>
-	friend class Nirvana::Core::CoreRef;
+	friend class Nirvana::Core::Ref;
 
 public:
 	/// When request object is created, it saves the current memory context reference.
@@ -404,12 +404,12 @@ public:
 		return stream_out_;
 	}
 
-	void code_set_converter (Nirvana::Core::CoreRef <CodeSetConverter>&& csc) NIRVANA_NOEXCEPT
+	void code_set_converter (Nirvana::Core::Ref <CodeSetConverter>&& csc) NIRVANA_NOEXCEPT
 	{
 		code_set_conv_ = std::move (csc);
 	}
 
-	void code_set_converter (Nirvana::Core::CoreRef <CodeSetConverterW>&& csc) NIRVANA_NOEXCEPT
+	void code_set_converter (Nirvana::Core::Ref <CodeSetConverterW>&& csc) NIRVANA_NOEXCEPT
 	{
 		code_set_conv_w_ = std::move (csc);
 	}
@@ -434,15 +434,15 @@ private:
 protected:
 	unsigned GIOP_minor_;
 	unsigned response_flags_;
-	Nirvana::Core::CoreRef <StreamIn> stream_in_;
-	Nirvana::Core::CoreRef <StreamOut> stream_out_;
+	Nirvana::Core::Ref <StreamIn> stream_in_;
+	Nirvana::Core::Ref <StreamOut> stream_out_;
 
 private:
-	Nirvana::Core::CoreRef <Nirvana::Core::MemContext> mem_context_;
+	Nirvana::Core::Ref <Nirvana::Core::MemContext> mem_context_;
 	Nirvana::Core::RefCounter ref_cnt_;
 	Long chunk_level_;
-	Nirvana::Core::CoreRef <CodeSetConverter> code_set_conv_;
-	Nirvana::Core::CoreRef <CodeSetConverterW> code_set_conv_w_;
+	Nirvana::Core::Ref <CodeSetConverter> code_set_conv_;
+	Nirvana::Core::Ref <CodeSetConverterW> code_set_conv_w_;
 	IndirectMapUnmarshal top_level_tc_unmarshal_;
 	IndirectMapMarshal value_map_marshal_;
 	IndirectMapUnmarshal value_map_unmarshal_;

@@ -67,9 +67,9 @@ public:
 		return singleton_->new_request_oneway_internal (id_policy);
 	}
 
-	static Nirvana::Core::CoreRef <RequestOut> remove_request (uint32_t request_id) NIRVANA_NOEXCEPT;
+	static Nirvana::Core::Ref <RequestOut> remove_request (uint32_t request_id) NIRVANA_NOEXCEPT;
 
-	static void receive_reply (unsigned GIOP_minor, Nirvana::Core::CoreRef <StreamIn>&& stream);
+	static void receive_reply (unsigned GIOP_minor, Nirvana::Core::Ref <StreamIn>&& stream);
 
 	static void set_system_exception (uint32_t request_id, const Char* rep_id,
 		uint32_t minor, CompletionStatus completed) NIRVANA_NOEXCEPT;
@@ -110,7 +110,7 @@ private:
 		}
 
 		RequestId request_id;
-		Nirvana::Core::CoreRef <RequestOut> request;
+		Nirvana::Core::Ref <RequestOut> request;
 	};
 
 	// The request map
@@ -135,7 +135,7 @@ private:
 		return id;
 	}
 
-	Nirvana::Core::CoreRef <RequestOut> remove_request_internal (uint32_t request_id) NIRVANA_NOEXCEPT;
+	Nirvana::Core::Ref <RequestOut> remove_request_internal (uint32_t request_id) NIRVANA_NOEXCEPT;
 
 	RequestMap map_;
 	std::atomic <IdGenType> last_id_;

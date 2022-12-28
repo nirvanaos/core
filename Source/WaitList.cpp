@@ -47,7 +47,7 @@ void WaitListImpl::wait ()
 		if (&ed == worker_)
 			throw_BAD_INV_ORDER ();
 		// Hold reference to this object
-		CoreRef <WaitList> ref = static_cast <WaitList*> (this);
+		Ref <WaitList> ref = static_cast <WaitList*> (this);
 		static_cast <StackElem&> (ed).next = wait_list_;
 		wait_list_ = &ed;
 		ed.suspend ();

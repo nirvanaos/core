@@ -47,7 +47,7 @@ RequestIn::RequestIn (const DomainAddress& client, unsigned GIOP_minor) :
 	has_context_ (false)
 {}
 
-void RequestIn::initialize (CoreRef <StreamIn>&& in)
+void RequestIn::initialize (Ref <StreamIn>&& in)
 {
 	stream_in_ = std::move (in);
 

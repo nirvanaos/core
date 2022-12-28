@@ -137,7 +137,7 @@ private:
 
 private:
 	Queue queue_;
-	CoreRef <MemContext> mem_context_;
+	Ref <MemContext> mem_context_;
 
 	// Thread that acquires this flag become a scheduling thread.
 	std::atomic_flag scheduling_;
@@ -179,7 +179,7 @@ protected:
 
 private:
 	// Parent free sync context.
-	CoreRef <SyncContext> parent_;
+	Ref <SyncContext> parent_;
 };
 
 /// Core sync domain implementation.

@@ -159,7 +159,7 @@ void POA_Root::invoke_async (RequestRef request, DeadlineTime deadline)
 	POA_Base* adapter = get_implementation (proxy);
 	assert (adapter);
 
-	ExecDomain::async_call (deadline, CoreRef <Runnable>::create <ImplDynamic <InvokeAsync> >
+	ExecDomain::async_call (deadline, Ref <Runnable>::create <ImplDynamic <InvokeAsync> >
 		(adapter, std::move (request)), proxy->sync_context ());
 }
 

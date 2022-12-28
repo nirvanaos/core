@@ -98,7 +98,7 @@ protected:
 	void on_crash (const siginfo& signal) NIRVANA_NOEXCEPT;
 
 protected:
-	CoreRef <Runnable> runnable_;
+	Ref <Runnable> runnable_;
 };
 
 }

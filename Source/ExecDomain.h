@@ -75,7 +75,7 @@ public:
 	/// \param runnable    Runnable object to execute.
 	/// \param target      Target Synchronization context.
 	/// \param mem_context Target memory context (optional).
-	static void async_call (const DeadlineTime& deadline, CoreRef <Runnable>&& runnable,
+	static void async_call (const DeadlineTime& deadline, Ref <Runnable>&& runnable,
 		SyncContext& target, MemContext* mem_context = nullptr);
 
 	/// Start legacy process.
@@ -207,7 +207,7 @@ public:
 		return mem_context_;
 	}
 
-	void mem_context_swap (CoreRef <MemContext>& other) NIRVANA_NOEXCEPT
+	void mem_context_swap (Ref <MemContext>& other) NIRVANA_NOEXCEPT
 	{
 		mem_context_ = other;
 		mem_context_stack_.top ().swap (other);
@@ -297,7 +297,7 @@ private:
 		scheduler_error_ (CORBA::SystemException::EC_NO_EXCEPTION),
 		schedule_ (*this),
 		yield_ (*this),
-		deleter_ (CoreRef <Runnable>::create <ImplDynamic <Deleter> > (std::ref (*this))),
+		deleter_ (Ref <Runnable>::create <ImplDynamic <Deleter> > (std::ref (*this))),
 		restricted_mode_ (RestrictedMode::NO_RESTRICTIONS)
 	{
 		deadline_policy_oneway_._d (System::DeadlinePolicyType::DEADLINE_INFINITE);
@@ -308,14 +308,14 @@ private:
 
 	using Creator = std::conditional <EXEC_DOMAIN_POOLING, WithPool, NoPool>::type;
 
-	static CoreRef <ExecDomain> create (const DeadlineTime deadline, CoreRef <Runnable>&& runnable, MemContext* mem_context = nullptr);
+	static Ref <ExecDomain> create (const DeadlineTime deadline, Ref <Runnable>&& runnable, MemContext* mem_context = nullptr);
 
 	~ExecDomain () NIRVANA_NOEXCEPT
 	{}
 
 	void final_release () NIRVANA_NOEXCEPT;
 
-	friend class CoreRef <ExecDomain>;
+	friend class Ref <ExecDomain>;
 	friend class ObjectPool <ExecDomain>;
 	void _add_ref () NIRVANA_NOEXCEPT;
 	void _remove_ref () NIRVANA_NOEXCEPT;
@@ -418,10 +418,10 @@ private:
 
 	AtomicCounter <false> ref_cnt_;
 	DeadlineTime deadline_;
-	CoreRef <SyncContext> sync_context_;
+	Ref <SyncContext> sync_context_;
 	SyncDomain::QueueNode* ret_qnodes_;
 	
-	PreallocatedStack <CoreRef <MemContext> > mem_context_stack_;
+	PreallocatedStack <Ref <MemContext> > mem_context_stack_;
 	// When we perform mem_context_stack_.pop (), the top memory context is still
 	// current. This is necessary for correct memory deallocations in MemContext
 	// destructor.
@@ -431,8 +431,8 @@ private:
 	CORBA::Exception::Code scheduler_error_;
 	Schedule schedule_;
 	Yield yield_;
-	CoreRef <Runnable> deleter_;
-	CoreRef <ThreadBackground> background_worker_;
+	Ref <Runnable> deleter_;
+	Ref <ThreadBackground> background_worker_;
 	RestrictedMode restricted_mode_;
 
 	System::DeadlinePolicy deadline_policy_async_;

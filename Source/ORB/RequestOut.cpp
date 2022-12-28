@@ -105,7 +105,7 @@ void RequestOut::write_header (const IOP::ObjectKey& object_key, IDL::String& op
 }
 
 void RequestOut::set_reply (unsigned status, IOP::ServiceContextList&& context,
-	CoreRef <StreamIn>&& stream)
+	Ref <StreamIn>&& stream)
 {
 	assert (response_flags_ & 3); // No oneway
 	switch (status_ = (Status)status) {
@@ -122,7 +122,7 @@ void RequestOut::set_reply (unsigned status, IOP::ServiceContextList&& context,
 				ed.deadline (deadline_);
 				ed.mem_context_push (memory ());
 				try {
-					CoreRef <RequestLocalBase> pre = CoreRef <RequestLocalBase>::
+					Ref <RequestLocalBase> pre = Ref <RequestLocalBase>::
 						create <RequestLocalImpl <RequestLocalBase> > (memory (), 3);
 					IORequest::_ptr_type rq = pre->_get_ptr ();
 					std::vector <Octet> buf;
@@ -284,7 +284,7 @@ void RequestOut::set_system_exception (const Char* rep_id, uint32_t minor, Compl
 		sout.write_string_c (rep_id);
 		SystemException::_Data data{ minor, completed };
 		sout.write_c (alignof (SystemException::_Data), sizeof (SystemException::_Data), &data);
-		stream_in_ = CoreRef <StreamIn>::create <ImplDynamic <StreamInEncapData> > (std::move (sout.data ()));
+		stream_in_ = Ref <StreamIn>::create <ImplDynamic <StreamInEncapData> > (std::move (sout.data ()));
 	} catch (...) {}
 }
 

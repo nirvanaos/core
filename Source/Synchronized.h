@@ -67,7 +67,7 @@ public:
 	NIRVANA_NORETURN void on_exception ();
 
 private:
-	CoreRef <SyncContext> call_context_;
+	Ref <SyncContext> call_context_;
 	ExecDomain& exec_domain_;
 };
 

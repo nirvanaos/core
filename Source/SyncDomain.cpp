@@ -116,7 +116,7 @@ SyncDomain& SyncDomain::enter ()
 	if (!psd) {
 		if (!sync_context.is_free_sync_context ())
 			throw_NO_PERMISSION (); // Legacy process called value factory with interface support
-		CoreRef <SyncDomain> sd = CoreRef <SyncDomain>::create
+		Ref <SyncDomain> sd = Ref <SyncDomain>::create
 			<ImplDynamic <SyncDomainImpl> > (std::ref (sync_context),
 				std::ref (exec_domain.mem_context ()));
 		sd->activity_begin ();

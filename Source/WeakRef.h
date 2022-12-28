@@ -45,7 +45,7 @@ class ImplShared final :
 	public SharedObject
 {
 private:
-	template <class> friend class CoreRef;
+	template <class> friend class Ref;
 
 	template <class ... Args>
 	ImplShared (Args ... args) :
@@ -86,9 +86,9 @@ private:
 		}
 	}
 
-	CoreRef <ImplShared <T> > _get_ref () NIRVANA_NOEXCEPT
+	Ref <ImplShared <T> > _get_ref () NIRVANA_NOEXCEPT
 	{
-		CoreRef <ImplShared <T> > ret;
+		Ref <ImplShared <T> > ret;
 		if (0 != control_block_.ref_cnt.load ())
 			ret = this;
 		return ret;
@@ -129,7 +129,7 @@ private:
 /// 
 /// \typeparam T The object type.
 template <class T>
-using SharedRef = CoreRef <ImplShared <T> >;
+using SharedRef = Ref <ImplShared <T> >;
 
 /// Weak object reference.
 /// 

@@ -36,7 +36,7 @@ namespace Core {
 
 Nirvana::Core::StaticallyAllocated <IncomingRequests::RequestMap> IncomingRequests::map_;
 
-void IncomingRequests::receive (CoreRef <RequestIn> rq, uint64_t timestamp)
+void IncomingRequests::receive (Ref <RequestIn> rq, uint64_t timestamp)
 {
 	ExecDomain& ed = ExecDomain::current ();
 	if (rq->response_flags ()) {
@@ -89,14 +89,14 @@ void IncomingRequests::receive (CoreRef <RequestIn> rq, uint64_t timestamp)
 
 	// Execution domain will be rescheduled with new deadline
 	// on entering to the POA synchronization domain.
-	PortableServer::Core::POA_Root::invoke (CoreRef <RequestInPOA> (std::move (rq)), true);
+	PortableServer::Core::POA_Root::invoke (Ref <RequestInPOA> (std::move (rq)), true);
 }
 
 void IncomingRequests::cancel (const RequestKey& key, uint64_t timestamp) NIRVANA_NOEXCEPT
 {
 	auto ins = map_->insert (key, timestamp);
 	if (!ins.second) {
-		Nirvana::Core::CoreRef <RequestIn> request = std::move (ins.first->value ().request);
+		Nirvana::Core::Ref <RequestIn> request = std::move (ins.first->value ().request);
 		if (request) {
 			map_->remove (ins.first);
 			request->cancel ();

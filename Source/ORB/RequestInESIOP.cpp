@@ -32,9 +32,9 @@ using namespace CORBA::Core;
 
 namespace ESIOP {
 
-CoreRef <StreamOut> RequestIn::create_output ()
+Ref <StreamOut> RequestIn::create_output ()
 {
-	return CoreRef <StreamOut>::create <ImplDynamic <StreamOutReply> > (key ().address.esiop);
+	return Ref <StreamOut>::create <ImplDynamic <StreamOutReply> > (key ().address.esiop);
 }
 
 void RequestIn::set_exception (Any& e)

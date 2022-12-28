@@ -125,7 +125,7 @@ private:
 		SteadyTime last_write_time; // Valid only if dirty_begin != dirty_end
 		SteadyTime last_read_time;
 		void* buffer;
-		CoreRef <Request> request;
+		Ref <Request> request;
 		unsigned lock_cnt;
 		short error;
 		// Dirty base blocks
@@ -192,7 +192,7 @@ private:
 		Base::issue_request (request);
 	}
 
-	void complete_request (CoreRef <Request> request) NIRVANA_NOEXCEPT;
+	void complete_request (Ref <Request> request) NIRVANA_NOEXCEPT;
 	void complete_request (Cache::reference entry, int op = 0);
 
 	Cache::iterator release_cache (Cache::iterator it, SteadyTime time);
@@ -236,7 +236,7 @@ private:
 private:
 	Pos file_size_;
 	Cache cache_;
-	CoreRef <Request> size_request_;
+	Ref <Request> size_request_;
 	const Size block_size_;
 	Size base_block_size_;
 	size_t dirty_blocks_;

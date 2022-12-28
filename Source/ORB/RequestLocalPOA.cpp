@@ -85,7 +85,7 @@ void RequestLocalPOA::serve_request (ProxyObject& proxy, Internal::IOReference::
 void RequestLocalPOA::invoke ()
 {
 	RequestLocalBase::invoke (); // rewind etc.
-	PortableServer::Core::POA_Root::invoke (CoreRef <RequestInPOA> (this), false);
+	PortableServer::Core::POA_Root::invoke (Ref <RequestInPOA> (this), false);
 }
 
 bool RequestLocalPOA::is_cancelled () const NIRVANA_NOEXCEPT
@@ -96,7 +96,7 @@ bool RequestLocalPOA::is_cancelled () const NIRVANA_NOEXCEPT
 void RequestLocalAsyncPOA::invoke ()
 {
 	RequestLocalBase::invoke (); // rewind etc.
-	PortableServer::Core::POA_Root::invoke_async (CoreRef <RequestInPOA> (this),
+	PortableServer::Core::POA_Root::invoke_async (Ref <RequestInPOA> (this),
 		ExecDomain::current ().get_request_deadline (!response_flags ()));
 }
 

@@ -35,12 +35,12 @@
 namespace Nirvana {
 namespace Core {
 
-template <class> class CoreRef;
+template <class> class Ref;
 
 #if defined (__GNUG__) || defined (__clang__)
 
 #define DECLARE_CORE_INTERFACE protected:\
-template <class> friend class Nirvana::Core::CoreRef;\
+template <class> friend class Nirvana::Core::Ref;\
 template <class> friend class CORBA::servant_reference;\
 _Pragma ("GCC diagnostic push")\
 _Pragma ("GCC diagnostic ignored \"-Winconsistent-missing-override\"")\
@@ -51,14 +51,14 @@ _Pragma ("GCC diagnostic pop")
 #else
 
 #define DECLARE_CORE_INTERFACE protected:\
-template <class> friend class Nirvana::Core::CoreRef;\
+template <class> friend class Nirvana::Core::Ref;\
 template <class> friend class CORBA::servant_reference;\
 virtual void _add_ref () NIRVANA_NOEXCEPT = 0;\
 virtual void _remove_ref () NIRVANA_NOEXCEPT = 0;
 
 #endif
 
-template <class T> class CoreRef;
+template <class T> class Ref;
 
 /// Dynamic implementation of a core object.
 /// \tparam T object class.
@@ -67,7 +67,7 @@ class ImplDynamic final :
 	public T
 {
 protected:
-	template <class> friend class CoreRef;
+	template <class> friend class Ref;
 
 	template <class ... Args>
 	ImplDynamic (Args ... args) :
@@ -99,7 +99,7 @@ class ImplDynamicSync final :
 	public T
 {
 protected:
-	template <class> friend class CoreRef;
+	template <class> friend class Ref;
 
 	template <class ... Args>
 	ImplDynamicSync (Args ... args) :
@@ -153,7 +153,7 @@ class ImplNoAddRef final :
 	public T
 {
 protected:
-	template <class> friend class CoreRef;
+	template <class> friend class Ref;
 
 	template <class ... Args>
 	ImplNoAddRef (Args ... args) :
@@ -180,44 +180,44 @@ template <class T, unsigned ALIGN> class LockableRef;
 /// Core smart pointer.
 /// \tparam T object or core interface class.
 template <class T>
-class CoreRef
+class Ref
 {
-	template <class> friend class CoreRef;
+	template <class> friend class Ref;
 	template <class, unsigned> friend class LockableRef;
 public:
-	CoreRef () NIRVANA_NOEXCEPT :
+	Ref () NIRVANA_NOEXCEPT :
 		p_ (nullptr)
 	{}
 
-	CoreRef (nullptr_t) NIRVANA_NOEXCEPT :
+	Ref (nullptr_t) NIRVANA_NOEXCEPT :
 		p_ (nullptr)
 	{}
 
 	/// Increments reference counter unlike I_var.
-	CoreRef (T* p) NIRVANA_NOEXCEPT :
+	Ref (T* p) NIRVANA_NOEXCEPT :
 		p_ (p)
 	{
 		if (p_)
 			p_->_add_ref ();
 	}
 
-	CoreRef (const CoreRef& src) NIRVANA_NOEXCEPT :
-		CoreRef (src.p_)
+	Ref (const Ref& src) NIRVANA_NOEXCEPT :
+		Ref (src.p_)
 	{}
 
-	CoreRef (CoreRef&& src) NIRVANA_NOEXCEPT :
+	Ref (Ref&& src) NIRVANA_NOEXCEPT :
 		p_ (src.p_)
 	{
 		src.p_ = nullptr;
 	}
 
 	template <class T1>
-	CoreRef (const CoreRef <T1>& src) NIRVANA_NOEXCEPT :
-		CoreRef (static_cast <T*> (src.p_))
+	Ref (const Ref <T1>& src) NIRVANA_NOEXCEPT :
+		Ref (static_cast <T*> (src.p_))
 	{}
 
 	template <class T1>
-	CoreRef (CoreRef <T1>&& src) NIRVANA_NOEXCEPT :
+	Ref (Ref <T1>&& src) NIRVANA_NOEXCEPT :
 		p_ (static_cast <T*> (src.p_))
 	{
 		src.p_ = nullptr;
@@ -226,21 +226,21 @@ public:
 	/// Creates an object.
 	/// \tparam Impl Object implementation class.
 	template <class Impl, class ... Args>
-	static CoreRef create (Args ... args)
+	static Ref create (Args ... args)
 	{
-		CoreRef v;
+		Ref v;
 		v.p_ = new Impl (std::forward <Args> (args)...);
 		return v;
 	}
 
-	~CoreRef () NIRVANA_NOEXCEPT
+	~Ref () NIRVANA_NOEXCEPT
 	{
 		if (p_)
 			p_->_remove_ref ();
 	}
 
 	/// Increments reference counter unlike I_var.
-	CoreRef& operator = (T* p) NIRVANA_NOEXCEPT
+	Ref& operator = (T* p) NIRVANA_NOEXCEPT
 	{
 		if (p_ != p) {
 			reset (p);
@@ -250,12 +250,12 @@ public:
 		return *this;
 	}
 
-	CoreRef& operator = (const CoreRef& src) NIRVANA_NOEXCEPT
+	Ref& operator = (const Ref& src) NIRVANA_NOEXCEPT
 	{
 		return operator = (src.p_);
 	}
 
-	CoreRef& operator = (CoreRef&& src) NIRVANA_NOEXCEPT
+	Ref& operator = (Ref&& src) NIRVANA_NOEXCEPT
 	{
 		if (this != &src) {
 			reset (src.p_);
@@ -265,20 +265,20 @@ public:
 	}
 
 	template <class T1>
-	CoreRef& operator = (const CoreRef <T1>& src) NIRVANA_NOEXCEPT
+	Ref& operator = (const Ref <T1>& src) NIRVANA_NOEXCEPT
 	{
 		return operator = (static_cast <T*> (src.p_));
 	}
 
 	template <class T1>
-	CoreRef& operator = (CoreRef <T1>&& src) NIRVANA_NOEXCEPT
+	Ref& operator = (Ref <T1>&& src) NIRVANA_NOEXCEPT
 	{
 		reset (src.p_);
 		src.p_ = nullptr;
 		return *this;
 	}
 
-	CoreRef& operator = (nullptr_t) NIRVANA_NOEXCEPT
+	Ref& operator = (nullptr_t) NIRVANA_NOEXCEPT
 	{
 		reset ();
 		return *this;
@@ -309,7 +309,7 @@ public:
 		}
 	}
 
-	void swap (CoreRef& other) NIRVANA_NOEXCEPT
+	void swap (Ref& other) NIRVANA_NOEXCEPT
 	{
 		T* tmp = p_;
 		p_ = other.p_;

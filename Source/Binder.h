@@ -261,7 +261,7 @@ private:
 
 	NIRVANA_NORETURN static void invalid_metadata ();
 
-	CoreRef <Module> load (std::string& module_name, bool singleton);
+	Ref <Module> load (std::string& module_name, bool singleton);
 	void unload (Module* pmod);
 
 	void housekeeping ();

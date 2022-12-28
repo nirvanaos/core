@@ -64,7 +64,7 @@ public:
 							on_request_start ();
 							try {
 								Nirvana::Core::ExecDomain::async_call (top.deadline,
-									Nirvana::Core::CoreRef <Nirvana::Core::Runnable>::
+									Nirvana::Core::Ref <Nirvana::Core::Runnable>::
 									create <Nirvana::Core::ImplDynamic <ServeRequest> > (std::ref (top)), sc);
 							} catch (CORBA::Exception& e) {
 								top.request->set_exception (std::move (e));

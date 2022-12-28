@@ -59,7 +59,7 @@ protected:
 	{}
 
 private:
-	template <class> friend class Nirvana::Core::CoreRef;
+	template <class> friend class Nirvana::Core::Ref;
 	template <class> friend class CORBA::servant_reference;
 
 	void _add_ref () NIRVANA_NOEXCEPT
@@ -77,7 +77,7 @@ private:
 
 private:
 	RefCounter ref_cnt_;
-	CoreRef <SyncDomain> sync_domain_;
+	Ref <SyncDomain> sync_domain_;
 };
 
 }

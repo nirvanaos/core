@@ -154,9 +154,9 @@ void ReferenceLocal::on_destruct_implicit (PortableServer::Core::ServantBase& se
 	}
 }
 
-Nirvana::Core::CoreRef <ProxyObject> ReferenceLocal::get_servant () const NIRVANA_NOEXCEPT
+Nirvana::Core::Ref <ProxyObject> ReferenceLocal::get_servant () const NIRVANA_NOEXCEPT
 {
-	Nirvana::Core::CoreRef <ProxyObject> ret;
+	Nirvana::Core::Ref <ProxyObject> ret;
 	PortableServer::Core::ServantBase* servant = servant_.lock ();
 	if (servant)
 		ret = &servant->proxy ();
@@ -219,7 +219,7 @@ IORequest::_ref_type ReferenceLocal::create_request (OperationIndex op, unsigned
 	if (is_object_op (op))
 		return ProxyManager::create_request (op, flags);
 
-	CoreRef <ProxyObject> servant = get_servant ();
+	Ref <ProxyObject> servant = get_servant ();
 	if (servant)
 		return servant->create_request (op, flags);
 

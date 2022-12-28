@@ -113,7 +113,7 @@ void ServantProxyBase::run_garbage_collector () const NIRVANA_NOEXCEPT
 					Nirvana::Core::PROXY_GC_DEADLINE);
 
 			// in the current memory context.
-			ExecDomain::async_call (deadline, CoreRef <Runnable>::create <ImplDynamic <GC> > (servant_),
+			ExecDomain::async_call (deadline, Ref <Runnable>::create <ImplDynamic <GC> > (servant_),
 				sync_context ());
 			return;
 		} catch (...) {

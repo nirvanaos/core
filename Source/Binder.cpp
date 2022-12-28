@@ -351,7 +351,7 @@ void Binder::delete_module (Module* mod)
 	}
 }
 
-CoreRef <Module> Binder::load (std::string& module_name, bool singleton)
+Ref <Module> Binder::load (std::string& module_name, bool singleton)
 {
 	if (!initialized_)
 		throw_INITIALIZE ();
@@ -482,7 +482,7 @@ Binder::InterfaceRef Binder::find (const ObjectKey& name)
 			BindInfo bind_info;
 			sys_domain->get_bind_info (name.name (), 0, bind_info);
 			if (bind_info._d ()) {
-				CoreRef <Module> mod = load (bind_info.module_name (), false);
+				Ref <Module> mod = load (bind_info.module_name (), false);
 				itf = object_map_.find (name);
 				if (!itf)
 					throw_OBJECT_NOT_EXIST ();

@@ -34,7 +34,7 @@ RuntimeProxy::_ref_type RuntimeSupport::runtime_proxy_get (const void* obj)
 	auto ins = proxy_map_.emplace (obj, nullptr);
 	if (ins.second) {
 		try {
-			ins.first->second = CoreRef <RuntimeProxyImpl>::template create <RuntimeProxyImpl> (obj);
+			ins.first->second = Ref <RuntimeProxyImpl>::template create <RuntimeProxyImpl> (obj);
 		} catch (...) {
 			proxy_map_.erase (ins.first);
 			throw;

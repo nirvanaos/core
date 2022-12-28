@@ -39,14 +39,14 @@ NIRVANA_NOEXCEPT
 {
 	assert (sync_context.sync_domain ());
 
-	CoreRef <Runnable> gc = 
-		CoreRef <Runnable>::create <ImplDynamic <GarbageCollector> > (std::ref (garbage));
+	Ref <Runnable> gc = 
+		Ref <Runnable>::create <ImplDynamic <GarbageCollector> > (std::ref (garbage));
 	try {
 		DeadlineTime deadline =
 			PROXY_GC_DEADLINE == INFINITE_DEADLINE ?
 			INFINITE_DEADLINE : Chrono::make_deadline (PROXY_GC_DEADLINE);
 
-		ExecDomain::async_call (deadline, CoreRef <Runnable> (gc), sync_context, nullptr);
+		ExecDomain::async_call (deadline, Ref <Runnable> (gc), sync_context, nullptr);
 	} catch (...) {
 		try {
 			SYNC_BEGIN (sync_context, nullptr)

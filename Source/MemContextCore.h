@@ -42,9 +42,9 @@ public:
 	/// Creates MemContext object.
 	/// 
 	/// \returns MemContext reference.
-	static CoreRef <MemContext> create ()
+	static Ref <MemContext> create ()
 	{
-		return CoreRef <MemContext>::create <ImplDynamic <MemContextCore> > ();
+		return Ref <MemContext>::create <ImplDynamic <MemContextCore> > ();
 	}
 
 	void* operator new (size_t cb);

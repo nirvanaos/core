@@ -37,19 +37,19 @@ WaitList* WaitableRefBase::wait_list () const NIRVANA_NOEXCEPT
 	return reinterpret_cast <WaitList*> (pointer_ & ~1);
 }
 
-void WaitableRefBase::detach (CoreRef <WaitList>& ref) NIRVANA_NOEXCEPT
+void WaitableRefBase::detach (Ref <WaitList>& ref) NIRVANA_NOEXCEPT
 {
 	assert (is_wait_list ());
 	uintptr_t up = pointer_ & ~1;
 	pointer_ = 0;
-	ref = std::move (reinterpret_cast <CoreRef <WaitList>&> (up));
+	ref = std::move (reinterpret_cast <Ref <WaitList>&> (up));
 	assert (up == 0);
 }
 
 bool WaitableRefBase::initialize (TimeBase::TimeT deadline)
 {
 	if (pointer_ == 0) {
-		::new (&pointer_) CoreRef <WaitList> (CoreRef <WaitList>::create <WaitList> (deadline));
+		::new (&pointer_) Ref <WaitList> (Ref <WaitList>::create <WaitList> (deadline));
 		assert (!(pointer_ & 1));
 		pointer_ |= 1;
 		return true;
@@ -60,7 +60,7 @@ bool WaitableRefBase::initialize (TimeBase::TimeT deadline)
 void WaitableRefBase::reset () NIRVANA_NOEXCEPT
 {
 	if (is_wait_list ()) {
-		CoreRef <WaitList> wait_list;
+		Ref <WaitList> wait_list;
 		detach (wait_list);
 	}
 }
@@ -74,7 +74,7 @@ void WaitableRefBase::on_exception () NIRVANA_NOEXCEPT
 void WaitableRefBase::finish_construction (uintptr_t p) NIRVANA_NOEXCEPT
 {
 	assert (!(p & 1));
-	CoreRef <WaitList> wait_list;
+	Ref <WaitList> wait_list;
 	detach (wait_list);
 	pointer_ = p;
 	wait_list->finish ();

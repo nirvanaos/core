@@ -44,7 +44,7 @@ public:
 	{}
 
 protected:
-	virtual Nirvana::Core::CoreRef <CORBA::Core::StreamOut> create_output () override;
+	virtual Nirvana::Core::Ref <CORBA::Core::StreamOut> create_output () override;
 	virtual void set_exception (CORBA::Any& e) override;
 	virtual void success () override;
 };

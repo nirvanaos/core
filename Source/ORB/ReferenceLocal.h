@@ -74,7 +74,7 @@ public:
 	virtual void _add_ref () override;
 	virtual void _remove_ref () NIRVANA_NOEXCEPT override;
 
-	Nirvana::Core::CoreRef <ProxyObject> get_servant () const NIRVANA_NOEXCEPT;
+	Nirvana::Core::Ref <ProxyObject> get_servant () const NIRVANA_NOEXCEPT;
 
 	virtual void marshal (StreamOut& out) const override;
 	virtual Internal::IORequest::_ref_type create_request (OperationIndex op, unsigned flags) override;

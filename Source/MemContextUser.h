@@ -43,9 +43,9 @@ public:
 	/// Create MemContextUser object.
 	/// 
 	/// \returns MemContext reference.
-	static CoreRef <MemContext> create ()
+	static Ref <MemContext> create ()
 	{
-		return CoreRef <MemContext>::create <ImplDynamic <MemContextUser> > ();
+		return Ref <MemContext>::create <ImplDynamic <MemContextUser> > ();
 	}
 
 protected:

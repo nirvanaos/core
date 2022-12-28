@@ -67,9 +67,9 @@ void ReceiveRequest::run ()
 {
 	try {
 		// Create input stream
-		CoreRef <StreamIn> in;
+		Ref <StreamIn> in;
 		try {
-			in = CoreRef <StreamIn>::create <ImplDynamic <StreamInSM> > (data_);
+			in = Ref <StreamIn>::create <ImplDynamic <StreamInSM> > (data_);
 		} catch (...) {
 			// Not enough memory?
 			// Create and destruct object in stack to release stream memory.
@@ -91,7 +91,7 @@ void ReceiveRequest::run ()
 
 		// Create and receive the request
 		unsigned minor = msg_hdr.GIOP_version ().minor ();
-		CoreRef <CORBA::Core::RequestIn> rq = CoreRef <CORBA::Core::RequestIn>::create <RequestIn> (
+		Ref <CORBA::Core::RequestIn> rq = Ref <CORBA::Core::RequestIn>::create <RequestIn> (
 			client_id_, minor);
 		rq->initialize (std::move (in));
 		IncomingRequests::receive (std::move (rq), timestamp_);
@@ -165,9 +165,9 @@ void ReceiveReply::run ()
 {
 	try {
 		// Create input stream
-		CoreRef <StreamIn> in;
+		Ref <StreamIn> in;
 		try {
-			in = CoreRef <StreamIn>::create <ImplDynamic <StreamInSM> > (data_);
+			in = Ref <StreamIn>::create <ImplDynamic <StreamInSM> > (data_);
 		} catch (...) {
 			// Not enough memory?
 			// Create and destruct object in stack to release stream memory.
@@ -237,7 +237,7 @@ private:
 void ReceiveReplyImmediate::run ()
 {
 	try {
-		OutgoingRequests::receive_reply (1, CoreRef <StreamIn>::create <ImplDynamic <StreamInImmediate> >
+		OutgoingRequests::receive_reply (1, Ref <StreamIn>::create <ImplDynamic <StreamInImmediate> >
 			(size_and_flag_, data_));
 	} catch (const SystemException& ex) {
 		OutgoingRequests::set_system_exception (request_id_, ex._rep_id (), ex.minor (), ex.completed ());
@@ -294,7 +294,7 @@ void dispatch_message (MessageHeader& message) NIRVANA_NOEXCEPT
 			const auto& msg = Request::receive (message);
 			try {
 				ExecDomain::async_call (Chrono::make_deadline (INITIAL_REQUEST_DEADLINE_LOCAL),
-					CoreRef <Runnable>::create <ImplDynamic <ReceiveRequest> > (std::ref (msg)),
+					Ref <Runnable>::create <ImplDynamic <ReceiveRequest> > (std::ref (msg)),
 					g_core_free_sync_context, nullptr);
 			} catch (const SystemException& ex) {
 				// Not enough memory?
@@ -314,7 +314,7 @@ void dispatch_message (MessageHeader& message) NIRVANA_NOEXCEPT
 			const auto& msg = Reply::receive (message);
 			try {
 				ExecDomain::async_call (Chrono::make_deadline (INITIAL_REQUEST_DEADLINE_LOCAL),
-					CoreRef <Runnable>::create <ImplDynamic <ReceiveReply> > (std::ref (msg)),
+					Ref <Runnable>::create <ImplDynamic <ReceiveReply> > (std::ref (msg)),
 					g_core_free_sync_context, nullptr);
 			} catch (const SystemException& ex) {
 				// Not enough memory?
@@ -331,7 +331,7 @@ void dispatch_message (MessageHeader& message) NIRVANA_NOEXCEPT
 			const auto& msg = ReplyImmediate::receive (message);
 			try {
 				ExecDomain::async_call (Chrono::make_deadline (INITIAL_REQUEST_DEADLINE_LOCAL),
-					CoreRef <Runnable>::create <ImplDynamic <ReceiveReplyImmediate> > (std::ref (msg)),
+					Ref <Runnable>::create <ImplDynamic <ReceiveReplyImmediate> > (std::ref (msg)),
 					g_core_free_sync_context, nullptr);
 			} catch (const SystemException& ex) {
 				OutgoingRequests::set_system_exception (msg.request_id, ex._rep_id (), ex.minor (), ex.completed ());
@@ -342,7 +342,7 @@ void dispatch_message (MessageHeader& message) NIRVANA_NOEXCEPT
 			const auto& msg = ReplySystemException::receive (message);
 			try {
 				ExecDomain::async_call (Chrono::make_deadline (INITIAL_REQUEST_DEADLINE_LOCAL),
-					CoreRef <Runnable>::create <ImplDynamic <ReceiveSystemException> > (std::ref (msg)),
+					Ref <Runnable>::create <ImplDynamic <ReceiveSystemException> > (std::ref (msg)),
 					g_core_free_sync_context, nullptr);
 			} catch (...) {
 				OutgoingRequests::set_system_exception (msg.request_id,
@@ -355,7 +355,7 @@ void dispatch_message (MessageHeader& message) NIRVANA_NOEXCEPT
 			const auto& msg = CancelRequest::receive (message);
 			try {
 				ExecDomain::async_call (Chrono::make_deadline (CANCEL_REQUEST_DEADLINE),
-					CoreRef <Runnable>::create <ImplDynamic <ReceiveCancel> > (std::ref (msg)),
+					Ref <Runnable>::create <ImplDynamic <ReceiveCancel> > (std::ref (msg)),
 					g_core_free_sync_context, &g_shared_mem_context);
 			} catch (...) {
 			}
@@ -364,7 +364,7 @@ void dispatch_message (MessageHeader& message) NIRVANA_NOEXCEPT
 		case MessageType::SHUTDOWN:
 			try {
 				ExecDomain::async_call (INFINITE_DEADLINE,
-					CoreRef <Runnable>::create <ImplDynamic <ReceiveShutdown> > (),
+					Ref <Runnable>::create <ImplDynamic <ReceiveShutdown> > (),
 					g_core_free_sync_context, &g_shared_mem_context);
 			} catch (...) {
 			}

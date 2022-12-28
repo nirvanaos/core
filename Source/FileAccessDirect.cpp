@@ -18,7 +18,7 @@ FileAccessDirect::CacheRange FileAccessDirect::request_read (BlockIdx begin_bloc
 				// Issue new read request
 				size_t cb = (Size)(not_cached_end - begin_block) * block_size_;
 				void* buffer = Port::Memory::allocate (nullptr, cb, 0);
-				CoreRef <Request> request;
+				Ref <Request> request;
 				unsigned new_blocks = 0;
 				try {
 					for (uint8_t* block_buf = (uint8_t*)buffer;;) {
@@ -26,7 +26,7 @@ FileAccessDirect::CacheRange FileAccessDirect::request_read (BlockIdx begin_bloc
 						blocks.append (it);
 						++new_blocks;
 						if (!request)
-							request = CoreRef <Request>::create <ImplDynamic <Request>> (IO_Request::OP_READ, (Pos)begin_block * (Pos)block_size_, buffer, (Size)cb, it);
+							request = Ref <Request>::create <ImplDynamic <Request>> (IO_Request::OP_READ, (Pos)begin_block * (Pos)block_size_, buffer, (Size)cb, it);
 						it->second.request = request;
 						if (not_cached_end == ++begin_block)
 							break;
@@ -101,7 +101,7 @@ void FileAccessDirect::write_dirty_blocks (SteadyTime timeout)
 				dirty_end *= base_block_size_;
 				Pos pos = (Pos)first_block->first * (Pos)block_size_ + (Pos)dirty_begin;
 				Size size = (Size)((Pos)(idx - 1) * (Pos)block_size_ + (Pos)dirty_end - pos);
-				CoreRef <Request> request = CoreRef <Request>::create <ImplDynamic <Request>> (Request::OP_WRITE, pos,
+				Ref <Request> request = Ref <Request>::create <ImplDynamic <Request>> (Request::OP_WRITE, pos,
 					(uint8_t*)first_block->second.buffer + dirty_begin, size, first_block);
 
 				do {
@@ -117,7 +117,7 @@ void FileAccessDirect::write_dirty_blocks (SteadyTime timeout)
 	}
 }
 
-void FileAccessDirect::complete_request (CoreRef <Request> request) NIRVANA_NOEXCEPT
+void FileAccessDirect::complete_request (Ref <Request> request) NIRVANA_NOEXCEPT
 {
 	request->wait ();
 	if (request->first_block_ != cache_.end ()) {
@@ -203,7 +203,7 @@ void FileAccessDirect::set_size (Pos new_size)
 	while (size_request_)
 		complete_size_request ();
 
-	CoreRef <Request> request = CoreRef <Request>::create <ImplDynamic <Request>>
+	Ref <Request> request = Ref <Request>::create <ImplDynamic <Request>>
 		(Request::OP_SET_SIZE, new_size, nullptr, 0, cache_.end ());
 	size_request_ = request;
 	issue_request (*request);

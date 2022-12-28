@@ -73,9 +73,9 @@ class RuntimeSupport
 		const void* object_;
 	};
 
-	typedef MapUnorderedUnstable <const void*, CoreRef <RuntimeProxyImpl>,
+	typedef MapUnorderedUnstable <const void*, Ref <RuntimeProxyImpl>,
 		std::hash <const void*>, std::equal_to <const void*>, UserAllocator <
-		std::pair <const void* const, CoreRef <RuntimeProxyImpl>>>
+		std::pair <const void* const, Ref <RuntimeProxyImpl>>>
 	> ProxyMap;
 
 public:
