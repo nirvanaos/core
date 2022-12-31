@@ -212,11 +212,11 @@ Interface::_ref_type RequestGIOP::unmarshal_interface (const IDL::String& interf
 			if (ESIOP::current_domain_id () == domain_id)
 				obj = PortableServer::Core::POA_Root::unmarshal (primary_iid, object_key); // Local reference
 			else
-				obj = RemoteReferences::singleton ().unmarshal (domain_id, primary_iid, addr,
+				obj = Binder::unmarshal_remote_reference (domain_id, primary_iid, addr,
 					std::move (object_key), ORB_type, components);
 #endif
 		} else
-			obj = RemoteReferences::singleton ().unmarshal (std::move (listen_point), primary_iid, addr,
+			obj = Binder::unmarshal_remote_reference (std::move (listen_point), primary_iid, addr,
 				std::move (object_key), ORB_type, components);
 	}
 	if (RepId::compatible (RepIdOf <Object>::id, interface_id))

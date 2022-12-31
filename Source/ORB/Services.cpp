@@ -26,7 +26,6 @@
 
 #include "Services.h"
 #include "PortableServer_Current.h"
-#include "RemoteReferences.h"
 
 namespace Nirvana {
 namespace Core {
@@ -85,34 +84,6 @@ Object::_ref_type Services::bind_internal (Service sidx)
 	return ret;
 }
 
-Ref <Service> Services::bind_internal (CoreService sidx)
-{
-	if (sidx >= CORE_SERVICE_COUNT)
-		throw ORB::InvalidName ();
-
-	CoreServiceRef& ref = core_services_ [sidx];
-	Ref <Nirvana::Core::Service> ret = ref.get_if_constructed ();
-	if (!ret) {
-		const CoreFactory& f = core_factories_ [sidx];
-		SYNC_BEGIN (sync_domain_, nullptr);
-		if (ref.initialize (f.creation_deadline)) {
-			try {
-				SYNC_BEGIN (Nirvana::Core::g_core_free_sync_context, new_service_memory ());
-				ret = (f.factory) ();
-				SYNC_END ();
-				ref.finish_construction (ret);
-			} catch (...) {
-				ref.on_exception ();
-				ref.reset ();
-				throw;
-			}
-		} else
-			ret = ref.get ();
-		SYNC_END ();
-	}
-	return ret;
-}
-
 // Initial services. Must be lexicographically ordered.
 
 const Services::Factory Services::factories_ [SERVICE_COUNT] = {
@@ -127,19 +98,6 @@ const Services::Factory Services::factories_ [SERVICE_COUNT] = {
 Object::_ref_type Services::create_POACurrent ()
 {
 	return make_reference <PortableServer::Core::Current> ()->_this ();
-}
-
-// Core services.
-
-const Services::CoreFactory Services::core_factories_ [CORE_SERVICE_COUNT] = {
-	{ create_RemoteReferences, 1 * TimeBase::MILLISECOND }
-};
-
-// Core service factories
-
-Ref <Service> Services::create_RemoteReferences ()
-{
-	return Ref <Nirvana::Core::Service>::create <CORBA::Core::RemoteReferences> ();
 }
 
 }

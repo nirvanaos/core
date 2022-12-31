@@ -28,7 +28,6 @@
 #define NIRVANA_ORB_CORE_REMOTEREFERENCES_H_
 #pragma once
 
-#include "Services.h"
 #include "ReferenceRemote.h"
 #include "DomainsLocal.h"
 #include "DomainRemote.h"
@@ -60,8 +59,7 @@ struct equal_to <IIOP::ListenPoint>
 namespace CORBA {
 namespace Core {
 
-class RemoteReferences :
-	public Nirvana::Core::Service
+class RemoteReferences
 {
 	typedef std::unique_ptr <ReferenceRemote> RefPtr;
 	typedef Nirvana::Core::WaitableRef <RefPtr> RefVal;
@@ -71,12 +69,6 @@ class RemoteReferences :
 		References;
 
 public:
-	static RemoteReferences& singleton ()
-	{
-		return static_cast <RemoteReferences&> (*CORBA::Core::Services::bind (
-			CORBA::Core::Services::RemoteReferences));
-	}
-
 	RemoteReferences ()
 	{}
 
@@ -84,38 +76,35 @@ public:
 	Object::_ref_type unmarshal (DomainKey domain, const IDL::String& iid, const IOP::TaggedProfileSeq& addr,
 		const IOP::ObjectKey& object_key, ULong ORB_type, const IOP::TaggedComponentSeq& components)
 	{
-
-		SYNC_BEGIN (sync_domain (), nullptr)
-			Nirvana::Core::ImplStatic <StreamOutEncap> stm;
-			stm.write_tagged (addr);
-			auto ins = emplace_reference (std::move (stm.data ()));
-			References::reference entry = *ins.first;
-			if (ins.second) {
-				try {
-					RefPtr p (new ReferenceRemote (ins.first->first, get_domain_sync (domain),
-						std::move (object_key), iid, ORB_type, components));
-					Internal::I_var <Object> ret (p->get_proxy ()); // Use I_var to avoid reference counter increment
-					entry.second.finish_construction (std::move (p));
-					return ret;
-				} catch (...) {
-					entry.second.on_exception ();
-					references_.erase (ins.first->first);
-					throw;
-				}
-			} else {
-				const RefPtr& p = entry.second.get ();
-				p->check_primary_interface (iid);
-				return p->get_proxy ();
+		Nirvana::Core::ImplStatic <StreamOutEncap> stm;
+		stm.write_tagged (addr);
+		auto ins = emplace_reference (std::move (stm.data ()));
+		References::reference entry = *ins.first;
+		if (ins.second) {
+			try {
+				RefPtr p (new ReferenceRemote (ins.first->first, get_domain_sync (domain),
+					std::move (object_key), iid, ORB_type, components));
+				Internal::I_var <Object> ret (p->get_proxy ()); // Use I_var to avoid reference counter increment
+				entry.second.finish_construction (std::move (p));
+				return ret;
+			} catch (...) {
+				entry.second.on_exception ();
+				references_.erase (ins.first->first);
+				throw;
 			}
-		SYNC_END ();
+		} else {
+			const RefPtr& p = entry.second.get ();
+			p->check_primary_interface (iid);
+			return p->get_proxy ();
+		}
 	}
 
-	void erase (ESIOP::ProtDomainId id) NIRVANA_NOEXCEPT
+	void erase_domain (ESIOP::ProtDomainId id) NIRVANA_NOEXCEPT
 	{
 		domains_local_.erase (id);
 	}
 
-	void erase (const DomainRemote& domain) NIRVANA_NOEXCEPT
+	void erase_domain (const DomainRemote& domain) NIRVANA_NOEXCEPT
 	{
 		domains_remote_.erase (domain);
 	}
@@ -126,33 +115,24 @@ public:
 	}
 
 #ifndef SINGLE_DOMAIN
-	servant_reference <ESIOP::DomainLocal> get_domain (ESIOP::ProtDomainId id)
-	{
-		SYNC_BEGIN (sync_domain (), nullptr)
-			return get_domain_sync (id);
-		SYNC_END ();
-	}
-#endif
-
-private:
-	std::pair <References::iterator, bool> emplace_reference (OctetSeq&& addr);
-
-#ifndef SINGLE_DOMAIN
 	servant_reference <ESIOP::DomainLocal> get_domain_sync (ESIOP::ProtDomainId id)
 	{
-		return domains_local_.get (*this, id);
+		return domains_local_.get (id);
 	}
 #endif
 
 	servant_reference <Domain> get_domain_sync (const IIOP::ListenPoint& lp)
 	{
-		auto ins = domains_remote_.emplace (std::ref (*this), std::ref (lp));
+		auto ins = domains_remote_.emplace (std::ref (lp));
 		DomainRemote* p = &const_cast <DomainRemote&> (*ins.first);
 		if (ins.second)
 			return PortableServer::Servant_var <Domain> (p);
 		else
 			return p;
 	}
+
+private:
+	std::pair <References::iterator, bool> emplace_reference (OctetSeq&& addr);
 
 private:
 #ifndef SINGLE_DOMAIN

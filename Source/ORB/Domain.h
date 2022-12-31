@@ -31,7 +31,6 @@
 #include <CORBA/CORBA.h>
 #include <CORBA/IOP.h>
 #include "../AtomicCounter.h"
-#include "../Service.h"
 #include "GarbageCollector.h"
 
 namespace CORBA {
@@ -42,17 +41,11 @@ class NIRVANA_NOVTABLE Domain : public SyncGC
 	template <class D> friend class CORBA::servant_reference;
 
 public:
-	Nirvana::Core::Service& service () const NIRVANA_NOEXCEPT
-	{
-		return *service_;
-	}
-
 	virtual Internal::IORequest::_ref_type create_request (const IOP::ObjectKey& object_key,
 		const Internal::Operation& metadata, unsigned flags) = 0;
 
 protected:
-	Domain (Nirvana::Core::Service& service) :
-		service_ (&service)
+	Domain ()
 	{}
 
 	virtual void _add_ref () NIRVANA_NOEXCEPT override;
@@ -60,8 +53,6 @@ protected:
 	virtual void destroy () NIRVANA_NOEXCEPT = 0;
 
 private:
-	servant_reference <Nirvana::Core::Service> service_;
-
 	class RefCnt : public Nirvana::Core::AtomicCounter <false>
 	{
 	public:

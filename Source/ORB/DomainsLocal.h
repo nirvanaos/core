@@ -42,27 +42,7 @@ class DomainsLocalWaitable
 	static const TimeBase::TimeT DEADLINE_MAX = 10 * TimeBase::MILLISECOND;
 
 public:
-	CORBA::servant_reference <DomainLocal> get (Nirvana::Core::Service& service, ProtDomainId domain_id)
-	{
-		auto ins = map_.emplace (domain_id, DEADLINE_MAX);
-		if (ins.second) {
-			Map::reference entry = *ins.first;
-			try {
-				Ptr p;
-				SYNC_BEGIN (Nirvana::Core::g_core_free_sync_context, &service.memory ());
-				p.reset (new DomainLocal (std::ref (service), domain_id));
-				SYNC_END ();
-				PortableServer::Servant_var <DomainLocal> ret (p.get ());
-				entry.second.finish_construction (std::move (p));
-				return ret;
-			} catch (...) {
-				entry.second.on_exception ();
-				map_.erase (domain_id);
-				throw;
-			}
-		} else
-			return ins.first->second.get ().get ();
-	}
+	CORBA::servant_reference <DomainLocal> get (ProtDomainId domain_id);
 
 	void erase (ProtDomainId domain_id)
 	{
@@ -84,14 +64,14 @@ private:
 class DomainsLocalSimple
 {
 public:
-	CORBA::servant_reference <DomainLocal> get (Nirvana::Core::Service& service, ESIOP::ProtDomainId domain_id)
+	CORBA::servant_reference <DomainLocal> get (ProtDomainId domain_id)
 	{
 		return PortableServer::Servant_var <DomainLocal> (&map_.emplace (
 			std::piecewise_construct, std::forward_as_tuple (domain_id),
-			std::forward_as_tuple (std::ref (service), domain_id)).first->second);
+			std::forward_as_tuple (domain_id)).first->second);
 	}
 
-	void erase (ESIOP::ProtDomainId domain_id) NIRVANA_NOEXCEPT
+	void erase (ProtDomainId domain_id) NIRVANA_NOEXCEPT
 	{
 		map_.erase (domain_id);
 	}

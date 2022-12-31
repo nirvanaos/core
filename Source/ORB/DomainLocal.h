@@ -39,8 +39,7 @@ class DomainLocal :
 	public OtherDomain
 {
 public:
-	DomainLocal (Nirvana::Core::Service& service, ESIOP::ProtDomainId id) :
-		CORBA::Core::Domain (service),
+	DomainLocal (ESIOP::ProtDomainId id) :
 		OtherDomain (id),
 		id_ (id)
 	{}

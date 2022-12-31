@@ -30,7 +30,6 @@
 
 #include <CORBA/CORBA.h>
 #include "../WaitableRef.h"
-#include "../Service.h"
 #include <algorithm>
 
 namespace CORBA {
@@ -47,13 +46,6 @@ public:
 		TC_Factory,
 
 		SERVICE_COUNT
-	};
-
-	enum CoreService
-	{
-		RemoteReferences,
-
-		CORE_SERVICE_COUNT
 	};
 
 	/// Bind service.
@@ -81,11 +73,6 @@ public:
 		for (const Factory* f = factories_; f != std::end (factories_); ++f)
 			list.emplace_back (f->id);
 		return list;
-	}
-
-	static Nirvana::Core::Ref <Nirvana::Core::Service> bind (CoreService sidx)
-	{
-		return singleton_->bind_internal (sidx);
 	}
 
 	Services () :
@@ -116,7 +103,6 @@ private:
 	}
 
 	Object::_ref_type bind_internal (Service sidx);
-	Nirvana::Core::Ref <Nirvana::Core::Service> bind_internal (CoreService sidx);
 
 private:
 	static Nirvana::Core::MemContext* new_service_memory () NIRVANA_NOEXCEPT
@@ -130,19 +116,11 @@ private:
 	// Service factories
 	static Object::_ref_type create_POACurrent ();
 
-	static Nirvana::Core::Ref <Nirvana::Core::Service> create_RemoteReferences ();
-
 private:
 	struct Factory
 	{
 		const Char* id;
 		Object::_ref_type (*factory) ();
-		TimeBase::TimeT creation_deadline;
-	};
-
-	struct CoreFactory
-	{
-		Nirvana::Core::Ref <Nirvana::Core::Service> (*factory) ();
 		TimeBase::TimeT creation_deadline;
 	};
 
@@ -160,16 +138,13 @@ private:
 	};
 
 	typedef Nirvana::Core::WaitableRef <Object::_ref_type> ServiceRef;
-	typedef Nirvana::Core::WaitableRef <Nirvana::Core::Ref <Nirvana::Core::Service> > CoreServiceRef;
 
 	Nirvana::Core::ImplStatic <Nirvana::Core::SyncDomainCore> sync_domain_;
 	ServiceRef services_ [SERVICE_COUNT];
-	CoreServiceRef core_services_ [CORE_SERVICE_COUNT];
 
 	static Nirvana::Core::StaticallyAllocated <Services> singleton_;
 
 	static const Factory factories_ [SERVICE_COUNT];
-	static const CoreFactory core_factories_ [CORE_SERVICE_COUNT];
 };
 
 }

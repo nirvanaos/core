@@ -41,6 +41,7 @@
 #include "Chrono.h"
 #include "MapOrderedUnstable.h"
 #include "MapUnorderedStable.h"
+#include "ORB/RemoteReferences.h"
 
 namespace Nirvana {
 
@@ -112,6 +113,60 @@ public:
 	/// \param mod The Nirvana::Module interface.
 	/// \param metadata Module metadata.
 	inline static void unbind (Legacy::Core::Executable& mod) NIRVANA_NOEXCEPT;
+
+	/// Unmarshal remote reference.
+	/// 
+	/// \tparam DomainKey Domain key type: ESIOP::ProtDomainId or const IIOP::ListenPoint&.
+	/// \param domain Domain key value.
+	/// \param iid Primary interface id.
+	/// \param addr IOR address.
+	/// \param object_key Domain-relative object key.
+	/// \param ORB_type The ORB type.
+	/// \param components Tagged components.
+	/// \returns CORBA::Object reference.
+	template <class DomainKey>
+	static CORBA::Object::_ref_type unmarshal_remote_reference (DomainKey domain, const IDL::String& iid,
+		const IOP::TaggedProfileSeq& addr, const IOP::ObjectKey& object_key, uint32_t ORB_type,
+		const IOP::TaggedComponentSeq& components) {
+		SYNC_BEGIN (singleton_->sync_domain (), nullptr)
+			return singleton_->remote_references_.unmarshal (domain, iid, addr, object_key, ORB_type, components);
+		SYNC_END ();
+	}
+
+	/// Get CORBA::Core::Domain reference.
+	/// 
+	/// \param domain Domain id.
+	/// \returns Reference to ESIOP::DomainLocal.
+	static CORBA::servant_reference <ESIOP::DomainLocal> get_domain (ESIOP::ProtDomainId domain)
+	{
+		SYNC_BEGIN (singleton_->sync_domain (), nullptr)
+			return singleton_->remote_references_.get_domain_sync (domain);
+		SYNC_END ();
+	}
+
+	static Binder& singleton () NIRVANA_NOEXCEPT
+	{
+		return singleton_;
+	}
+
+	SyncDomain& sync_domain () NIRVANA_NOEXCEPT
+	{
+		return sync_domain_;
+	}
+
+	static MemContext& memory () NIRVANA_NOEXCEPT
+	{
+#ifdef BINDER_USE_SEPARATE_MEMORY
+		return memory_;
+#else
+		return g_shared_mem_context;
+#endif
+	}
+
+	CORBA::Core::RemoteReferences& remote_references () NIRVANA_NOEXCEPT
+	{
+		return remote_references_;
+	}
 
 private:
 	typedef CORBA::Internal::RepId RepId;
@@ -270,15 +325,6 @@ private:
 
 	inline void unload_modules ();
 
-	static MemContext& memory () NIRVANA_NOEXCEPT
-	{
-#ifdef BINDER_USE_SEPARATE_MEMORY
-		return memory_;
-#else
-		return g_shared_mem_context;
-#endif
-	}
-
 private:
 #ifdef BINDER_USE_SEPARATE_MEMORY
 	static StaticallyAllocated <ImplStatic <MemContextCore> > memory_;
@@ -286,12 +332,40 @@ private:
 	ImplStatic <SyncDomainCore> sync_domain_;
 	ObjectMap object_map_;
 	ModuleMap module_map_;
+	CORBA::Core::RemoteReferences remote_references_;
 
 	static StaticallyAllocated <Binder> singleton_;
 	static bool initialized_;
 };
 
 }
+}
+
+namespace ESIOP {
+
+inline
+CORBA::servant_reference <DomainLocal> DomainsLocalWaitable::get (ProtDomainId domain_id)
+{
+	auto ins = map_.emplace (domain_id, DEADLINE_MAX);
+	if (ins.second) {
+		Map::reference entry = *ins.first;
+		try {
+			Ptr p;
+			SYNC_BEGIN (Nirvana::Core::g_core_free_sync_context, &Nirvana::Core::Binder::memory ());
+			p.reset (new DomainLocal (domain_id));
+			SYNC_END ();
+			PortableServer::Servant_var <DomainLocal> ret (p.get ());
+			entry.second.finish_construction (std::move (p));
+			return ret;
+		} catch (...) {
+			entry.second.on_exception ();
+			map_.erase (domain_id);
+			throw;
+		}
+	} else
+		return ins.first->second.get ().get ();
+}
+
 }
 
 #endif

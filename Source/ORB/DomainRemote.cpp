@@ -23,7 +23,7 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "RemoteReferences.h"
+#include "../Binder.h"
 
 namespace CORBA {
 
@@ -33,7 +33,7 @@ namespace Core {
 
 void DomainRemote::destroy () NIRVANA_NOEXCEPT
 {
-	static_cast <RemoteReferences&> (service ()).erase (*this);
+	Nirvana::Core::Binder::singleton ().remote_references ().erase_domain (*this);
 }
 
 IORequest::_ref_type DomainRemote::create_request (const IOP::ObjectKey& object_key,

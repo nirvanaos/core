@@ -23,7 +23,7 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "RemoteReferences.h"
+#include "../Binder.h"
 
 using namespace Nirvana::Core;
 
@@ -38,7 +38,7 @@ void Domain::_add_ref () NIRVANA_NOEXCEPT
 void Domain::_remove_ref () NIRVANA_NOEXCEPT
 {
 	if (!ref_cnt_.decrement_seq ()) {
-		SyncContext& sc = service_->sync_domain ();
+		SyncContext& sc = Binder::singleton ().sync_domain ();
 		if (&SyncContext::current () == &sc)
 			destroy ();
 		else

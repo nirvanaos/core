@@ -23,8 +23,7 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "RemoteReferences.h"
-#include "Domain.h"
+#include "../Binder.h"
 
 using namespace Nirvana::Core;
 
@@ -77,10 +76,9 @@ void ReferenceRemote::_add_ref () NIRVANA_NOEXCEPT
 void ReferenceRemote::_remove_ref () NIRVANA_NOEXCEPT
 {
 	if (!ref_cnt_.decrement_seq ()) {
-		RemoteReferences& service = static_cast <RemoteReferences&> (domain_->service ());
-		SyncContext& sc = service.sync_domain ();
+		SyncContext& sc = Binder::singleton ().sync_domain ();
 		if (&SyncContext::current () == &sc)
-			service.erase (object_key_);
+			Binder::singleton ().remote_references ().erase (address_);
 		else
 			GarbageCollector::schedule (*this, sc);
 	}
