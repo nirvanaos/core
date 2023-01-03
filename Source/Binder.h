@@ -156,7 +156,7 @@ public:
 
 	static MemContext& memory () NIRVANA_NOEXCEPT
 	{
-#ifdef BINDER_USE_SEPARATE_MEMORY
+#ifndef BINDER_USE_SHARED_MEMORY
 		return memory_;
 #else
 		return g_shared_mem_context;
@@ -237,7 +237,7 @@ private:
 		Version version_;
 	};
 
-#ifdef BINDER_USE_SEPARATE_MEMORY
+#ifndef BINDER_USE_SHARED_MEMORY
 	template <class T>
 	class Allocator : public std::allocator <T>
 	{
@@ -326,7 +326,7 @@ private:
 	inline void unload_modules ();
 
 private:
-#ifdef BINDER_USE_SEPARATE_MEMORY
+#ifndef BINDER_USE_SHARED_MEMORY
 	static StaticallyAllocated <ImplStatic <MemContextCore> > memory_;
 #endif
 	ImplStatic <SyncDomainCore> sync_domain_;

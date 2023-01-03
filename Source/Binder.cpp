@@ -48,7 +48,7 @@ using namespace CORBA;
 using namespace CORBA::Internal;
 using namespace CORBA::Core;
 
-#ifdef BINDER_USE_SEPARATE_MEMORY
+#ifndef BINDER_USE_SHARED_MEMORY
 StaticallyAllocated <ImplStatic <MemContextCore> > Binder::memory_;
 #endif
 StaticallyAllocated <Binder> Binder::singleton_;
@@ -89,7 +89,7 @@ Binder::InterfacePtr Binder::ObjectMap::find (const ObjectKey& key) const
 
 void Binder::initialize ()
 {
-#ifdef BINDER_USE_SEPARATE_MEMORY
+#ifndef BINDER_USE_SHARED_MEMORY
 	memory_.construct ();
 #endif
 	singleton_.construct ();
