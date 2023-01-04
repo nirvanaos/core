@@ -152,7 +152,7 @@ void Binder::terminate ()
 	Port::SystemInfo::get_OLF_section (metadata);
 	singleton_->module_unbind (nullptr, metadata);
 	singleton_.destruct ();
-#ifdef BINDER_USE_SEPARATE_MEMORY
+#ifndef BINDER_USE_SHARED_MEMORY
 	memory_.destruct ();
 #endif
 	SYNC_END ();

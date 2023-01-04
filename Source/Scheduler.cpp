@@ -27,12 +27,16 @@
 #include "ExecDomain.h"
 #include "initterm.h"
 #include "ORB/POA_Root.h"
+#include "Binder.h"
 
 namespace Nirvana {
 namespace Core {
 
 void Scheduler::Terminator::run ()
 {
+	// Block remote requests and complete currently executed.
+	PortableServer::Core::POA_Base::shutdown ();
+	// Terminate
 	Core::terminate ();
 }
 
@@ -42,9 +46,6 @@ void Scheduler::shutdown () NIRVANA_NOEXCEPT
 {
 	State state = State::RUNNING;
 	if (global_->state.compare_exchange_strong (state, State::SHUTDOWN_STARTED)) {
-		// Block remote requests and complete currently executed.
-		PortableServer::Core::POA_Base::shutdown ();
-
 		// If no activity - toggle it.
 		if (!global_->activity_cnt) {
 			global_->activity_cnt.increment ();

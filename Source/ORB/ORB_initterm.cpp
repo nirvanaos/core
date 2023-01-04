@@ -36,19 +36,19 @@ namespace Core {
 
 void initialize ()
 {
-	Services::initialize ();
 	LocalAddress::initialize ();
 	OutgoingRequests::initialize ();
 	IncomingRequests::initialize ();
 	CodeSetConverter::initialize ();
+	Services::initialize ();
 }
 
 void terminate () NIRVANA_NOEXCEPT
 {
+	Services::terminate ();
 	IncomingRequests::terminate ();
 	OutgoingRequests::terminate ();
 	LocalAddress::terminate ();
-	Services::terminate ();
 }
 
 }

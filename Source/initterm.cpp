@@ -45,7 +45,7 @@ void initialize0 ()
 
 void initialize ()
 {
-	CORBA::Core::initialize ();
+	CORBA::Core::initialize (); // CORBA::Core::Services must be initialized before Binder
 	Binder::initialize ();
 }
 
