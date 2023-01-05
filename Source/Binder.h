@@ -31,7 +31,6 @@
 #include "SyncDomain.h"
 #include "Section.h"
 #include "Synchronized.h"
-#include "HeapUser.h"
 #include "Module.h"
 #include "StaticallyAllocated.h"
 #include <CORBA/RepId.h>
@@ -67,8 +66,7 @@ public:
 	typedef CORBA::Internal::Interface::_ref_type InterfaceRef;
 	typedef CORBA::Object::_ref_type ObjectRef;
 
-	Binder () :
-		sync_domain_ (std::ref (static_cast <MemContextCore&> (memory ())))
+	Binder ()
 	{}
 
 	static void initialize ();
@@ -79,7 +77,7 @@ public:
 	{
 		const std::string& sname = static_cast <const std::string&> (name);
 		SharedString name_copy (sname.c_str (), sname.length ());
-		SYNC_BEGIN (singleton_->sync_domain_, nullptr);
+		SYNC_BEGIN (sync_domain (), nullptr);
 		return singleton_->bind_sync (name_copy);
 		SYNC_END ();
 	}
@@ -90,7 +88,7 @@ public:
 		const std::string& sname = static_cast <const std::string&> (name);
 		const std::string& siid = static_cast <const std::string&> (iid);
 		SharedString name_copy (sname.c_str (), sname.length ()), iid_copy (siid.c_str (), siid.length ());
-		SYNC_BEGIN (singleton_->sync_domain_, nullptr);
+		SYNC_BEGIN (sync_domain (), nullptr);
 		return singleton_->bind_interface_sync (name_copy, iid_copy);
 		SYNC_END ();
 	}
@@ -128,7 +126,7 @@ public:
 	static CORBA::Object::_ref_type unmarshal_remote_reference (DomainKey domain, const IDL::String& iid,
 		const IOP::TaggedProfileSeq& addr, const IOP::ObjectKey& object_key, uint32_t ORB_type,
 		const IOP::TaggedComponentSeq& components) {
-		SYNC_BEGIN (singleton_->sync_domain (), nullptr)
+		SYNC_BEGIN (sync_domain (), nullptr)
 			return singleton_->remote_references_.unmarshal (domain, iid, addr, object_key, ORB_type, components);
 		SYNC_END ();
 	}
@@ -139,7 +137,7 @@ public:
 	/// \returns Reference to ESIOP::DomainLocal.
 	static CORBA::servant_reference <ESIOP::DomainLocal> get_domain (ESIOP::ProtDomainId domain)
 	{
-		SYNC_BEGIN (singleton_->sync_domain (), nullptr)
+		SYNC_BEGIN (sync_domain (), nullptr)
 			return singleton_->remote_references_.get_domain_sync (domain);
 		SYNC_END ();
 	}
@@ -149,7 +147,7 @@ public:
 		return singleton_;
 	}
 
-	SyncDomain& sync_domain () NIRVANA_NOEXCEPT
+	static SyncDomain& sync_domain () NIRVANA_NOEXCEPT
 	{
 		return sync_domain_;
 	}
@@ -163,9 +161,19 @@ public:
 #endif
 	}
 
-	CORBA::Core::RemoteReferences& remote_references () NIRVANA_NOEXCEPT
+	void erase_domain (ESIOP::ProtDomainId id) NIRVANA_NOEXCEPT
 	{
-		return remote_references_;
+		remote_references_.erase_domain (id);
+	}
+
+	void erase_domain (const CORBA::Core::DomainRemote& domain) NIRVANA_NOEXCEPT
+	{
+		remote_references_.erase_domain (domain);
+	}
+
+	void erase_reference (const CORBA::OctetSeq& ref) NIRVANA_NOEXCEPT
+	{
+		remote_references_.erase (ref);
 	}
 
 private:
@@ -329,10 +337,10 @@ private:
 #ifndef BINDER_USE_SHARED_MEMORY
 	static StaticallyAllocated <ImplStatic <MemContextCore> > memory_;
 #endif
-	ImplStatic <SyncDomainCore> sync_domain_;
+	static StaticallyAllocated <ImplStatic <SyncDomainCore> > sync_domain_;
 	ObjectMap object_map_;
 	ModuleMap module_map_;
-	CORBA::Core::RemoteReferences remote_references_;
+	CORBA::Core::RemoteReferences <Allocator> remote_references_;
 
 	static StaticallyAllocated <Binder> singleton_;
 	static bool initialized_;
@@ -343,12 +351,12 @@ private:
 
 namespace ESIOP {
 
-inline
-CORBA::servant_reference <DomainLocal> DomainsLocalWaitable::get (ProtDomainId domain_id)
+template <template <class> class Al>
+inline CORBA::servant_reference <DomainLocal> DomainsLocalWaitable <Al>::get (ProtDomainId domain_id)
 {
 	auto ins = map_.emplace (domain_id, DEADLINE_MAX);
 	if (ins.second) {
-		Map::reference entry = *ins.first;
+		typename Map::reference entry = *ins.first;
 		try {
 			Ptr p;
 			SYNC_BEGIN (Nirvana::Core::g_core_free_sync_context, &Nirvana::Core::Binder::memory ());

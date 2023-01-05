@@ -36,15 +36,3 @@ size_t hash <IIOP::ListenPoint>::operator () (const IIOP::ListenPoint& lp) const
 }
 
 }
-
-namespace CORBA {
-namespace Core {
-
-std::pair <RemoteReferences::References::iterator, bool> RemoteReferences::emplace_reference (
-	OctetSeq&& addr)
-{
-	return references_.emplace (std::move (addr), Reference::DEADLINE_MAX);
-}
-
-}
-}

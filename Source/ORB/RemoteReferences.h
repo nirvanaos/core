@@ -59,13 +59,14 @@ struct equal_to <IIOP::ListenPoint>
 namespace CORBA {
 namespace Core {
 
+template <template <class> class Al>
 class RemoteReferences
 {
 	typedef std::unique_ptr <ReferenceRemote> RefPtr;
 	typedef Nirvana::Core::WaitableRef <RefPtr> RefVal;
 	typedef OctetSeq RefKey;
 	typedef Nirvana::Core::MapUnorderedStable <RefKey, RefVal, std::hash <RefKey>,
-		std::equal_to <RefKey>, Nirvana::Core::UserAllocator <std::pair <RefKey, RefVal> > >
+		std::equal_to <RefKey>, Al <std::pair <RefKey, RefVal> > >
 		References;
 
 public:
@@ -79,7 +80,7 @@ public:
 		Nirvana::Core::ImplStatic <StreamOutEncap> stm;
 		stm.write_tagged (addr);
 		auto ins = emplace_reference (std::move (stm.data ()));
-		References::reference entry = *ins.first;
+		typename References::reference entry = *ins.first;
 		if (ins.second) {
 			try {
 				RefPtr p (new ReferenceRemote (ins.first->first, get_domain_sync (domain),
@@ -132,21 +133,28 @@ public:
 	}
 
 private:
-	std::pair <References::iterator, bool> emplace_reference (OctetSeq&& addr);
+	std::pair <typename References::iterator, bool> emplace_reference (OctetSeq&& addr);
 
 private:
 #ifndef SINGLE_DOMAIN
-	ESIOP::DomainsLocal domains_local_;
+	ESIOP::DomainsLocal <Al> domains_local_;
 #endif
 
 	typedef Nirvana::Core::SetUnorderedStable <DomainRemote, std::hash <IIOP::ListenPoint>,
-		std::equal_to <IIOP::ListenPoint>, Nirvana::Core::UserAllocator <DomainRemote> >
+		std::equal_to <IIOP::ListenPoint>, Al <DomainRemote> >
 		DomainsRemote;
 
 	DomainsRemote domains_remote_;
 
 	References references_;
 };
+
+template <template <class> class Al>
+std::pair <typename RemoteReferences <Al>::References::iterator, bool>
+RemoteReferences <Al>::emplace_reference (OctetSeq&& addr)
+{
+	return references_.emplace (std::move (addr), Reference::DEADLINE_MAX);
+}
 
 }
 }

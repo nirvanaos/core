@@ -34,7 +34,7 @@ namespace ESIOP {
 
 void DomainLocal::destroy () NIRVANA_NOEXCEPT
 {
-	Binder::singleton ().remote_references ().erase_domain (id_);
+	Binder::singleton ().erase_domain (id_);
 }
 
 CORBA::Internal::IORequest::_ref_type DomainLocal::create_request (const IOP::ObjectKey& object_key,

@@ -31,12 +31,11 @@
 #include "DomainLocal.h"
 #include "../MapUnorderedStable.h"
 #include "../WaitableRef.h"
-#include "../UserAllocator.h"
-#include "../Synchronized.h"
 #include <CORBA/Servant_var.h>
 
 namespace ESIOP {
 
+template <template <class> class Al>
 class DomainsLocalWaitable
 {
 	static const TimeBase::TimeT DEADLINE_MAX = 10 * TimeBase::MILLISECOND;
@@ -55,12 +54,13 @@ private:
 	typedef Nirvana::Core::WaitableRef <Ptr> Val;
 
 	typedef Nirvana::Core::MapUnorderedStable <Key, Val, std::hash <Key>,
-		std::equal_to <Key>, Nirvana::Core::UserAllocator <std::pair <Key, Val> > >
+		std::equal_to <Key>, Al <std::pair <Key, Val> > >
 		Map;
 
 	Map map_;
 };
 
+template <template <class> class Al>
 class DomainsLocalSimple
 {
 public:
@@ -81,13 +81,14 @@ private:
 	typedef DomainLocal Val;
 
 	typedef Nirvana::Core::MapUnorderedStable <Key, Val, std::hash <Key>,
-		std::equal_to <Key>, Nirvana::Core::UserAllocator <std::pair <Key, Val> > >
+		std::equal_to <Key>, Al <std::pair <Key, Val> > >
 		Map;
 
 	Map map_;
 };
 
-using DomainsLocal = std::conditional_t <OtherDomain::slow_creation, DomainsLocalWaitable, DomainsLocalSimple>;
+template <template <class> class Al>
+using DomainsLocal = std::conditional_t < OtherDomain::slow_creation, DomainsLocalWaitable <Al>, DomainsLocalSimple <Al> > ;
 
 }
 

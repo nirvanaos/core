@@ -51,6 +51,7 @@ using namespace CORBA::Core;
 #ifndef BINDER_USE_SHARED_MEMORY
 StaticallyAllocated <ImplStatic <MemContextCore> > Binder::memory_;
 #endif
+StaticallyAllocated <ImplStatic <SyncDomainCore> > Binder::sync_domain_;
 StaticallyAllocated <Binder> Binder::singleton_;
 bool Binder::initialized_ = false;
 
@@ -92,12 +93,13 @@ void Binder::initialize ()
 #ifndef BINDER_USE_SHARED_MEMORY
 	memory_.construct ();
 #endif
+	sync_domain_.construct (std::ref (static_cast <MemContextCore&> (memory ())));
 	singleton_.construct ();
 	Section metadata;
 	if (!Port::SystemInfo::get_OLF_section (metadata))
 		throw_INITIALIZE ();
 
-	SYNC_BEGIN (singleton_->sync_domain_, nullptr);
+	SYNC_BEGIN (sync_domain (), nullptr);
 	ModuleContext context{ g_core_free_sync_context };
 	singleton_->module_bind (nullptr, metadata, &context);
 	singleton_->object_map_ = std::move (context.exports);
@@ -144,17 +146,24 @@ void Binder::terminate ()
 	if (!initialized_)
 		return;
 	SYNC_BEGIN (g_core_free_sync_context, &memory ());
-	SYNC_BEGIN (singleton_->sync_domain_, nullptr);
+
+	SYNC_BEGIN (sync_domain (), nullptr);
 	initialized_ = false;
 	singleton_->unload_modules ();
 	SYNC_END ();
 	Section metadata;
 	Port::SystemInfo::get_OLF_section (metadata);
 	singleton_->module_unbind (nullptr, metadata);
+	
+	SYNC_BEGIN (sync_domain (), nullptr);
 	singleton_.destruct ();
+	SYNC_END ();
+
+	sync_domain_.destruct ();
 #ifndef BINDER_USE_SHARED_MEMORY
 	memory_.destruct ();
 #endif
+
 	SYNC_END ();
 }
 

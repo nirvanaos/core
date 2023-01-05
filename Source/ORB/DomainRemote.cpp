@@ -33,7 +33,7 @@ namespace Core {
 
 void DomainRemote::destroy () NIRVANA_NOEXCEPT
 {
-	Nirvana::Core::Binder::singleton ().remote_references ().erase_domain (*this);
+	Nirvana::Core::Binder::singleton ().erase_domain (*this);
 }
 
 IORequest::_ref_type DomainRemote::create_request (const IOP::ObjectKey& object_key,

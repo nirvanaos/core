@@ -78,7 +78,7 @@ void ReferenceRemote::_remove_ref () NIRVANA_NOEXCEPT
 	if (!ref_cnt_.decrement_seq ()) {
 		SyncContext& sc = Binder::singleton ().sync_domain ();
 		if (&SyncContext::current () == &sc)
-			Binder::singleton ().remote_references ().erase (address_);
+			Binder::singleton ().erase_reference (address_);
 		else
 			GarbageCollector::schedule (*this, sc);
 	}
