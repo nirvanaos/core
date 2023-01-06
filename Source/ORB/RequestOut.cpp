@@ -280,7 +280,7 @@ void RequestOut::set_system_exception (const Char* rep_id, uint32_t minor, Compl
 {
 	status_ = Status::SYSTEM_EXCEPTION;
 	try {
-		ImplStatic <StreamOutEncap> sout;
+		ImplStatic <StreamOutEncap> sout (true);
 		sout.write_string_c (rep_id);
 		SystemException::_Data data{ minor, completed };
 		sout.write_c (alignof (SystemException::_Data), sizeof (SystemException::_Data), &data);

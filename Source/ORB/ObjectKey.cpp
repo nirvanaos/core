@@ -58,7 +58,7 @@ void ObjectKey::unmarshal (StreamIn& in)
 
 void ObjectKey::unmarshal (const IOP::ObjectKey& object_key)
 {
-	ImplStatic <StreamInEncap> stm (std::ref (object_key));
+	ImplStatic <StreamInEncap> stm (std::ref (object_key), true);
 	unmarshal (stm);
 	if (stm.end () != 0)
 		throw CORBA::MARSHAL (StreamIn::MARSHAL_MINOR_MORE);

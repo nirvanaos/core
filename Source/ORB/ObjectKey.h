@@ -85,7 +85,7 @@ public:
 	void marshal (CORBA::Core::StreamOut& out) const
 	{
 		if (!adapter_path_.empty ()) {
-			Nirvana::Core::ImplStatic <CORBA::Core::StreamOutEncap> encap;
+			Nirvana::Core::ImplStatic <CORBA::Core::StreamOutEncap> encap (true);
 			encap.write_size (adapter_path_.size ());
 			for (const auto& name : adapter_path_) {
 				encap.write_string_c (name);

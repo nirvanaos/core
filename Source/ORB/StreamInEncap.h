@@ -45,11 +45,7 @@ public:
 	virtual size_t position () const override;
 
 protected:
-	StreamInEncap (const OctetSeq& data) NIRVANA_NOEXCEPT :
-		cur_ptr_ (data.data ()),
-		begin_ (data.data ()),
-		end_ (data.data () + data.size ())
-	{}
+	StreamInEncap (const OctetSeq& data, bool skip_endian = false);
 
 	StreamInEncap (const Octet* begin, const Octet* end) NIRVANA_NOEXCEPT :
 		cur_ptr_ (begin),
@@ -76,7 +72,7 @@ class NIRVANA_NOVTABLE StreamInEncapData :
 {
 protected:
 	StreamInEncapData (OctetSeq&& data) NIRVANA_NOEXCEPT :
-		StreamInEncap (data),
+		StreamInEncap (data, true),
 		data_ (std::move (data))
 	{}
 

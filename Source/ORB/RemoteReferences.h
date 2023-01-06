@@ -77,7 +77,7 @@ public:
 	Object::_ref_type unmarshal (DomainKey domain, const IDL::String& iid, const IOP::TaggedProfileSeq& addr,
 		const IOP::ObjectKey& object_key, ULong ORB_type, const IOP::TaggedComponentSeq& components)
 	{
-		Nirvana::Core::ImplStatic <StreamOutEncap> stm;
+		Nirvana::Core::ImplStatic <StreamOutEncap> stm (true);
 		stm.write_tagged (addr);
 		auto ins = emplace_reference (std::move (stm.data ()));
 		typename References::reference entry = *ins.first;

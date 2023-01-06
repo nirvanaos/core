@@ -30,6 +30,21 @@ using namespace Nirvana;
 namespace CORBA {
 namespace Core {
 
+StreamOutEncap::StreamOutEncap (bool no_endian) :
+	chunk_begin_ (0)
+#ifdef _DEBUG
+	, endian_ (false)
+#endif
+{
+	if (!no_endian) {
+		buffer_.resize (1);
+		buffer_.front () = endian::native == endian::little ? 1 : 0;
+#ifdef _DEBUG
+		endian_ = true;
+#endif
+	}
+}
+
 void StreamOutEncap::write (size_t align, size_t size, void* data, size_t& allocated_size)
 {
 	size_t begin = round_up (buffer_.size (), align);
@@ -56,6 +71,7 @@ void StreamOutEncap::rewind (size_t hdr_size)
 
 void StreamOutEncap::chunk_begin ()
 {
+	assert (!endian_);
 	if (!chunk_begin_) {
 		size_t end = round_up (buffer_.size (), (size_t)4) + 4;
 		buffer_.resize (end);
@@ -65,6 +81,7 @@ void StreamOutEncap::chunk_begin ()
 
 bool StreamOutEncap::chunk_end ()
 {
+	assert (!endian_);
 	Long cs = StreamOutEncap::chunk_size ();
 	assert (cs != 0);
 	if (cs > 0) {
@@ -77,6 +94,7 @@ bool StreamOutEncap::chunk_end ()
 
 Long StreamOutEncap::chunk_size () const
 {
+	assert (!endian_);
 	if (chunk_begin_) {
 		size_t cb = buffer_.size () - chunk_begin_;
 		if (cb >= 0x7FFFFF00)
