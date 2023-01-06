@@ -488,5 +488,15 @@ SkipListBase::Node* SkipListBase::find_and_delete (const Node* keynode) NIRVANA_
 	}
 }
 
+bool SkipListBase::empty () NIRVANA_NOEXCEPT
+{
+	Node* prev = copy_node (head ());
+	Node* node = read_next (prev, 0);
+	bool ret = node == tail ();
+	release_node (prev);
+	release_node (node);
+	return ret;
+}
+
 }
 }

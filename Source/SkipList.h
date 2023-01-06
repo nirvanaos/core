@@ -51,15 +51,7 @@ class SkipListBase
 public:
 	typedef uint_fast8_t Level;
 
-	bool empty () NIRVANA_NOEXCEPT
-	{
-		Node* prev = copy_node (head ());
-		Node* node = read_next (prev, 0);
-		bool ret = node == tail ();
-		release_node (prev);
-		release_node (node);
-		return ret;
-	}
+	bool empty () NIRVANA_NOEXCEPT;
 
 	struct Node;
 

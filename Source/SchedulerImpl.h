@@ -72,7 +72,8 @@ public:
 	void core_free () NIRVANA_NOEXCEPT
 	{
 		free_cores_.increment ();
-		execute_next ();
+		if (!queue_.empty ())
+			execute_next ();
 	}
 
 private:
@@ -88,7 +89,6 @@ private:
 template <class T, class ExecutorRef>
 void SchedulerImpl <T, ExecutorRef>::execute_next () NIRVANA_NOEXCEPT
 {
-	ExecutorRef val;
 	do {
 
 		// Acquire processor core
@@ -100,6 +100,7 @@ void SchedulerImpl <T, ExecutorRef>::execute_next () NIRVANA_NOEXCEPT
 		}
 
 		// Get first item
+		ExecutorRef val;
 		if (queue_.delete_min (val)) {
 			static_cast <T*> (this)->execute (val);
 			break;
