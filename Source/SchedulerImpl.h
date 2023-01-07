@@ -99,7 +99,7 @@ void SchedulerImpl <T, ExecutorRef>::execute_next () NIRVANA_NOEXCEPT
 		unsigned free_cores = free_cores_.load ();
 		for (;;) {
 			if (!free_cores)
-				return;
+				return; // All cores are busy
 			if (free_cores_.compare_exchange_weak (free_cores, free_cores - 1))
 				break; // We successfully acquired the processor core
 		}
@@ -114,6 +114,8 @@ void SchedulerImpl <T, ExecutorRef>::execute_next () NIRVANA_NOEXCEPT
 		// Release processor core
 		free_cores_.fetch_add (1, std::memory_order_relaxed);
 
+		// Other thread may add item to the queue but fail to acquire the core,
+		// because this thread was holded it. So we must retry if the queue is not empty.
 	} while (!queue_.empty ());
 }
 
