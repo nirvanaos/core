@@ -87,9 +87,9 @@ TEST (TestFixed, Conversion)
 
 TEST (TestFixed, RoundTruncate)
 {
-	Fixed f1 = "0.1";
-	Fixed f2 = "0.05";
-	Fixed f3 = "-0.005";
+	Fixed f1 ("0.1");
+	Fixed f2 ("0.05");
+	Fixed f3 ("-0.005");
 
 	EXPECT_EQ (f1.round (0).to_string (), "0");
 	EXPECT_EQ (f1.truncate (0).to_string (), "0");
@@ -101,7 +101,7 @@ TEST (TestFixed, RoundTruncate)
 
 TEST (TestFixed, Stream)
 {
-	Fixed a = 1.234;
+	Fixed a (1.234);
 	stringstream ss;
 	ss << a;
 	Fixed b;

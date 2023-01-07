@@ -16,19 +16,19 @@ TEST (TestDecimal, Conversion)
 
 	{
 		Decimal <5, 4> d ("1.2345");
-		EXPECT_EQ (1.2345, d);
+		EXPECT_EQ (Fixed (1.2345), d);
 	}
 
 	{
 		Decimal <5, 4> d (1);
-		d = 2;
-		EXPECT_THROW (d = 20, CORBA::DATA_CONVERSION);
+		d = Decimal <5, 4> (2);
+		EXPECT_THROW ((d = Decimal <5, 4> (20)), CORBA::DATA_CONVERSION);
 	}
 
 	{
 		Decimal <6, 0> d (1);
-		d = 20;
-		EXPECT_EQ (20LL, d);
+		d = Decimal <6, 0> (20);
+		EXPECT_EQ (Fixed (20LL), d);
 	}
 }
 
