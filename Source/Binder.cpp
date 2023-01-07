@@ -495,8 +495,19 @@ Binder::InterfaceRef Binder::find (const ObjectKey& name)
 				itf = object_map_.find (name);
 				if (!itf)
 					throw_OBJECT_NOT_EXIST ();
-			} else
-				return bind_info.obj ();
+			} else {
+				CORBA::Object::_ptr_type obj = bind_info.obj ();
+				CORBA::Core::ReferenceRemote* ref = static_cast <CORBA::Core::ReferenceRemote*> (
+					CORBA::Core::ProxyManager::cast (obj));
+				if (!ref)
+					throw_OBJECT_NOT_EXIST ();
+				try {
+					object_map_.insert (ref->set_object_name (name.name ()), &obj);
+				} catch (...) {
+					assert (false);
+				}
+				return std::move (bind_info.obj ());
+			}
 		}
 	}
 	return itf;

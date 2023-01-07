@@ -74,6 +74,12 @@ public:
 	virtual void marshal (StreamOut& out) const override;
 	virtual Internal::IORequest::_ref_type create_request (OperationIndex op, unsigned flags) override;
 
+	const Char* set_object_name (const Char* name)
+	{
+		object_name_ = name;
+		return object_name_.c_str ();
+	}
+
 protected:
 	virtual void _add_ref () NIRVANA_NOEXCEPT override;
 	virtual void _remove_ref () NIRVANA_NOEXCEPT override;
@@ -82,6 +88,7 @@ private:
 	const OctetSeq& address_;
 	servant_reference <Domain> domain_;
 	const IOP::ObjectKey object_key_;
+	IDL::String object_name_;
 };
 
 }

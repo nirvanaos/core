@@ -171,8 +171,10 @@ public:
 		remote_references_.erase_domain (domain);
 	}
 
-	void erase_reference (const CORBA::OctetSeq& ref) NIRVANA_NOEXCEPT
+	void erase_reference (const CORBA::OctetSeq& ref, const char* object_name) NIRVANA_NOEXCEPT
 	{
+		if (object_name)
+			object_map_.erase (object_name);
 		remote_references_.erase (ref);
 	}
 
