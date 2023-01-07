@@ -75,7 +75,7 @@ public:
 
 	void core_free () NIRVANA_NOEXCEPT
 	{
-		free_cores_.increment ();
+		free_cores_.fetch_add (1, std::memory_order_relaxed);
 		if (!queue_.empty ())
 			execute_next ();
 	}
@@ -84,7 +84,7 @@ private:
 	void execute_next () NIRVANA_NOEXCEPT;
 
 protected:
-	AtomicCounter <true> free_cores_;
+	std::atomic <unsigned> free_cores_;
 
 private:
 	Queue queue_;
@@ -96,11 +96,12 @@ void SchedulerImpl <T, ExecutorRef>::execute_next () NIRVANA_NOEXCEPT
 	do {
 
 		// Acquire processor core
+		unsigned free_cores = free_cores_.load ();
 		for (;;) {
-			if (free_cores_.decrement_seq () >= 0)
+			if (!free_cores)
+				return;
+			if (free_cores_.compare_exchange_weak (free_cores, free_cores - 1))
 				break; // We successfully acquired the processor core
-			if (free_cores_.increment_seq () <= 0)
-				return; // All cores are busy
 		}
 
 		// Get first item
@@ -111,7 +112,7 @@ void SchedulerImpl <T, ExecutorRef>::execute_next () NIRVANA_NOEXCEPT
 		}
 
 		// Release processor core
-		free_cores_.increment ();
+		free_cores_.fetch_add (1, std::memory_order_relaxed);
 
 	} while (!queue_.empty ());
 }
