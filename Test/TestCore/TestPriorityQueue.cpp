@@ -90,6 +90,7 @@ TYPED_TEST (TestPriorityQueue, SingleThread)
 
 	Value v;
 	ASSERT_FALSE (queue.delete_min (v));
+	EXPECT_TRUE (queue.empty ());
 
 	static const int MAX_COUNT = 1000;
 	for (int i = 0; i < MAX_COUNT; ++i) {
@@ -98,6 +99,7 @@ TYPED_TEST (TestPriorityQueue, SingleThread)
 		node.deadline = deadline;
 		node.idx = i;
 		ASSERT_TRUE (queue.insert (deadline, node));
+		EXPECT_FALSE (queue.empty ());
 		queue_std.push (node);
 	}
 
@@ -110,6 +112,8 @@ TYPED_TEST (TestPriorityQueue, SingleThread)
 		ASSERT_EQ (val.deadline, queue_std.top ().deadline);
 		queue_std.pop ();
 	}
+
+	EXPECT_TRUE (queue.empty ());
 }
 
 TYPED_TEST (TestPriorityQueue, Equal)
