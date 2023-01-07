@@ -66,7 +66,11 @@ public:
 
 	bool reschedule (const DeadlineTime& deadline, const ExecutorRef& executor, const DeadlineTime& deadline_prev) NIRVANA_NOEXCEPT
 	{
-		return queue_.reorder (deadline, executor, deadline_prev);
+		if (queue_.reorder (deadline, executor, deadline_prev)) {
+			execute_next ();
+			return true;
+		}
+		return false;
 	}
 
 	void core_free () NIRVANA_NOEXCEPT
@@ -94,9 +98,9 @@ void SchedulerImpl <T, ExecutorRef>::execute_next () NIRVANA_NOEXCEPT
 		// Acquire processor core
 		for (;;) {
 			if (free_cores_.decrement_seq () >= 0)
-				break;
+				break; // We successfully acquired the processor core
 			if (free_cores_.increment_seq () <= 0)
-				return;
+				return; // All cores are busy
 		}
 
 		// Get first item
