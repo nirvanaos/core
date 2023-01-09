@@ -75,12 +75,15 @@ public:
 
 	void core_free () NIRVANA_NOEXCEPT
 	{
+		if (execute ())
+			return;
 		free_cores_.fetch_add (1, std::memory_order_relaxed);
 		if (!queue_.empty ())
 			execute_next ();
 	}
 
 private:
+	bool execute () NIRVANA_NOEXCEPT;
 	void execute_next () NIRVANA_NOEXCEPT;
 
 protected:
@@ -91,10 +94,21 @@ private:
 };
 
 template <class T, class ExecutorRef>
+bool SchedulerImpl <T, ExecutorRef>::execute () NIRVANA_NOEXCEPT
+{
+	// Get first item
+	ExecutorRef val;
+	if (queue_.delete_min (val)) {
+		static_cast <T*> (this)->execute (val);
+		return true;
+	}
+	return false;
+}
+
+template <class T, class ExecutorRef>
 void SchedulerImpl <T, ExecutorRef>::execute_next () NIRVANA_NOEXCEPT
 {
 	do {
-
 		// Acquire processor core
 		unsigned free_cores = free_cores_.load ();
 		for (;;) {
@@ -104,12 +118,8 @@ void SchedulerImpl <T, ExecutorRef>::execute_next () NIRVANA_NOEXCEPT
 				break; // We successfully acquired the processor core
 		}
 
-		// Get first item
-		ExecutorRef val;
-		if (queue_.delete_min (val)) {
-			static_cast <T*> (this)->execute (val);
+		if (execute ())
 			break;
-		}
 
 		// Release processor core
 		free_cores_.fetch_add (1, std::memory_order_relaxed);
