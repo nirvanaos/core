@@ -110,7 +110,7 @@ void SchedulerImpl <T, ExecutorRef>::execute_next () NIRVANA_NOEXCEPT
 {
 	do {
 		// Acquire processor core
-		unsigned free_cores = free_cores_.load ();
+		unsigned free_cores = free_cores_.load (std::memory_order_acquire);
 		for (;;) {
 			if (!free_cores)
 				return; // All cores are busy
