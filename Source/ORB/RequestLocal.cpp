@@ -408,18 +408,13 @@ void RequestLocal::invoke_sync () NIRVANA_NOEXCEPT
 void RequestLocalAsync::invoke ()
 {
 	RequestLocalBase::invoke (); // rewind
-	ExecDomain::async_call (ExecDomain::current ().get_request_deadline (!response_flags ()),
-		this, proxy ()->get_sync_context (op_idx ()), memory ());
+	ExecDomain::async_call <Runnable> (ExecDomain::current ().get_request_deadline (!response_flags ()),
+		proxy ()->get_sync_context (op_idx ()), memory (), std::ref (*this));
 }
 
-void RequestLocalAsync::run ()
+void RequestLocalAsync::Runnable::run ()
 {
-	assert (&SyncContext::current () == &proxy ()->get_sync_context (op_idx ()));
-	// Oneway requests (response_flags () == 0) are not cancellable,
-	// so we don't store ExecDomain for them.
-	if (response_flags ())
-		exec_domain_ = &ExecDomain::current ();
-	Base::invoke_sync ();
+	request_->run ();
 }
 
 void RequestLocalAsync::cancel () NIRVANA_NOEXCEPT

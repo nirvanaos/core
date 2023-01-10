@@ -544,8 +544,8 @@ protected:
 
 protected:
 	Nirvana::Core::RefCounter ref_cnt_;
-	Nirvana::Core::Ref <MemContext> caller_memory_;
-	Nirvana::Core::Ref <MemContext> callee_memory_;
+	servant_reference <MemContext> caller_memory_;
+	servant_reference <MemContext> callee_memory_;
 	Octet* cur_ptr_;
 	State state_;
 	uint8_t response_flags_;
@@ -606,14 +606,16 @@ protected:
 	void invoke_sync () NIRVANA_NOEXCEPT;
 
 private:
-	Nirvana::Core::Ref <ProxyManager> proxy_;
+	servant_reference <ProxyManager> proxy_;
 	Internal::IOReference::OperationIndex op_idx_;
 };
 
 class NIRVANA_NOVTABLE RequestLocalAsync :
-	public RequestLocal,
-	public Nirvana::Core::Runnable
+	public RequestLocal
 {
+	template <class> friend class Nirvana::Core::Ref;
+	template <class> friend class CORBA::servant_reference;
+
 	typedef RequestLocal Base;
 protected:
 	RequestLocalAsync (ProxyManager& proxy, Internal::IOReference::OperationIndex op_idx,
@@ -632,10 +634,32 @@ protected:
 	virtual void cancel () NIRVANA_NOEXCEPT;
 
 private:
-	virtual void run ();
+	class Runnable : public Nirvana::Core::Runnable
+	{
+	public:
+		Runnable (RequestLocalAsync& rq) :
+			request_ (&rq)
+		{}
+
+	private:
+		virtual void run ();
+
+	private:
+		servant_reference <RequestLocalAsync> request_;
+	};
+
+	void run ()
+	{
+		assert (&Nirvana::Core::SyncContext::current () == &proxy ()->get_sync_context (op_idx ()));
+		// Oneway requests (response_flags () == 0) are not cancellable,
+		// so we don't store ExecDomain for them.
+		if (response_flags ())
+			exec_domain_ = &Nirvana::Core::ExecDomain::current ();
+		Base::invoke_sync ();
+	}
 
 private:
-	Nirvana::Core::Ref <Nirvana::Core::ExecDomain> exec_domain_;
+	servant_reference <Nirvana::Core::ExecDomain> exec_domain_;
 };
 
 template <class Base>
@@ -659,7 +683,7 @@ public:
 	virtual void _remove_ref () NIRVANA_NOEXCEPT
 	{
 		if (0 == Base::ref_cnt_.decrement ()) {
-			Nirvana::Core::Ref <Nirvana::Core::MemContext> mc =
+			servant_reference <Nirvana::Core::MemContext> mc =
 				std::move (Base::caller_memory_);
 			this->RequestLocalImpl::~RequestLocalImpl ();
 			mc->heap ().release (this, sizeof (*this));

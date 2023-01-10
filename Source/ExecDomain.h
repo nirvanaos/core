@@ -95,18 +95,14 @@ public:
 		exec_domain->spawn (target);
 	}
 
+	/// Asynchronous call.
+	/// 
+	/// \param deadline    Deadline.
+	/// \param runnable    Pointer to the Runnable object.
+	/// \param target      Target Synchronization context.
+	/// \param mem_context Target memory context (optional).
 	static void async_call (const DeadlineTime& deadline, Runnable* runnable,
-		SyncContext& target, MemContext* mem_context) {
-		assert (runnable);
-		SyncDomain* sd = target.sync_domain ();
-		if (sd) {
-			assert (!mem_context || mem_context == &sd->mem_context ());
-			mem_context = &sd->mem_context ();
-		}
-		Ref <ExecDomain> exec_domain = create (deadline, mem_context);
-		exec_domain->runnable_ = runnable;
-		exec_domain->spawn (target);
-	}
+		SyncContext& target, MemContext* mem_context);
 
 	/// Start legacy process.
 	/// 
@@ -346,6 +342,7 @@ private:
 	void final_release () NIRVANA_NOEXCEPT;
 
 	friend class Ref <ExecDomain>;
+	template <class> friend class CORBA::servant_reference;
 	friend class ObjectPool <ExecDomain>;
 	void _add_ref () NIRVANA_NOEXCEPT;
 	void _remove_ref () NIRVANA_NOEXCEPT;
