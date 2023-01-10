@@ -66,7 +66,7 @@ public:
 		}
 	}
 
-	void delete_item ()
+	void delete_item () NIRVANA_NOEXCEPT
 	{
 		if (!pop_node ())
 			purge_count_.increment ();
