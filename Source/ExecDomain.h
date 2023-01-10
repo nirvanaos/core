@@ -61,6 +61,8 @@ class ExecDomain final :
 	public StackElem
 {
 public:
+	static const size_t MAX_RUNNABLE_SIZE = sizeof (void*) * 8;
+
 	/// \returns Current execution domain.
 	static ExecDomain& current () NIRVANA_NOEXCEPT
 	{
@@ -70,13 +72,41 @@ public:
 	}
 
 	/// Asynchronous call.
-	/// 
+	///
+	/// \tparam R Runnable class
 	/// \param deadline    Deadline.
-	/// \param runnable    Runnable object to execute.
 	/// \param target      Target Synchronization context.
 	/// \param mem_context Target memory context (optional).
-	static void async_call (const DeadlineTime& deadline, Ref <Runnable>&& runnable,
-		SyncContext& target, MemContext* mem_context = nullptr);
+	/// \param args        Arguments for R constructor.
+	/// 
+	template <class R, class ... Args>
+	static void async_call (const DeadlineTime& deadline,
+		SyncContext& target, MemContext* mem_context, Args ... args) 
+	{
+		static_assert (sizeof (R) <= MAX_RUNNABLE_SIZE, "Runnable too large");
+
+		SyncDomain* sd = target.sync_domain ();
+		if (sd) {
+			assert (!mem_context || mem_context == &sd->mem_context ());
+			mem_context = &sd->mem_context ();
+		}
+		Ref <ExecDomain> exec_domain = create (deadline, mem_context);
+		exec_domain->runnable_ = new (&exec_domain->runnable_space_) R (std::forward <Args> (args)...);
+		exec_domain->spawn (target);
+	}
+
+	static void async_call (const DeadlineTime& deadline, Runnable* runnable,
+		SyncContext& target, MemContext* mem_context) {
+		assert (runnable);
+		SyncDomain* sd = target.sync_domain ();
+		if (sd) {
+			assert (!mem_context || mem_context == &sd->mem_context ());
+			mem_context = &sd->mem_context ();
+		}
+		Ref <ExecDomain> exec_domain = create (deadline, mem_context);
+		exec_domain->runnable_ = runnable;
+		exec_domain->spawn (target);
+	}
 
 	/// Start legacy process.
 	/// 
@@ -297,7 +327,7 @@ private:
 		scheduler_error_ (CORBA::SystemException::EC_NO_EXCEPTION),
 		schedule_ (*this),
 		yield_ (*this),
-		deleter_ (Ref <Runnable>::create <ImplDynamic <Deleter> > (std::ref (*this))),
+		deleter_ (*this),
 		restricted_mode_ (RestrictedMode::NO_RESTRICTIONS)
 	{
 		deadline_policy_oneway_._d (System::DeadlinePolicyType::DEADLINE_INFINITE);
@@ -308,7 +338,7 @@ private:
 
 	using Creator = std::conditional <EXEC_DOMAIN_POOLING, WithPool, NoPool>::type;
 
-	static Ref <ExecDomain> create (const DeadlineTime deadline, Ref <Runnable>&& runnable, MemContext* mem_context = nullptr);
+	static Ref <ExecDomain> create (const DeadlineTime deadline, MemContext* mem_context = nullptr);
 
 	~ExecDomain () NIRVANA_NOEXCEPT
 	{}
@@ -361,7 +391,7 @@ private:
 	static void start_legacy_thread (Legacy::Core::Process& process, Legacy::Core::ThreadBase& thread);
 
 private:
-	class Schedule : public ImplStatic <Runnable>
+	class Schedule : public Runnable
 	{
 	public:
 		Schedule (ExecDomain& ed) :
@@ -380,9 +410,9 @@ private:
 		ExecDomain& exec_domain_;
 	};
 
-	class NIRVANA_NOVTABLE Deleter : public Runnable
+	class Deleter : public Runnable
 	{
-	protected:
+	public:
 		Deleter (ExecDomain& ed) :
 			exec_domain_ (ed)
 		{}
@@ -394,18 +424,19 @@ private:
 		ExecDomain& exec_domain_;
 	};
 
-	class Suspend : public ImplStatic <Runnable>
+	class Suspend : public Runnable
 	{
 	private:
 		virtual void run ();
 	};
 
-	class Yield : public ImplStatic <Runnable>
+	class Yield : public Runnable
 	{
 	public:
 		Yield (ExecDomain& ed) :
 			exec_domain_ (ed)
 		{}
+
 	private:
 		virtual void run ();
 
@@ -431,12 +462,14 @@ private:
 	CORBA::Exception::Code scheduler_error_;
 	Schedule schedule_;
 	Yield yield_;
-	Ref <Runnable> deleter_;
+	Deleter deleter_;
 	Ref <ThreadBackground> background_worker_;
 	RestrictedMode restricted_mode_;
 
 	System::DeadlinePolicy deadline_policy_async_;
 	System::DeadlinePolicy deadline_policy_oneway_;
+
+	typename std::aligned_storage <MAX_RUNNABLE_SIZE>::type runnable_space_;
 };
 
 }

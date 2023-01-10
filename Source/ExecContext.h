@@ -29,6 +29,7 @@
 #pragma once
 
 #include "Runnable.h"
+#include <assert.h>
 #include <Port/ExecContext.h>
 #include <Port/Thread.h>
 
@@ -98,7 +99,7 @@ protected:
 	void on_crash (const siginfo& signal) NIRVANA_NOEXCEPT;
 
 protected:
-	Ref <Runnable> runnable_;
+	Runnable* runnable_;
 };
 
 }

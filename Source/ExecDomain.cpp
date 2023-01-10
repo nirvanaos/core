@@ -94,7 +94,7 @@ void ExecDomain::terminate () NIRVANA_NOEXCEPT
 	Creator::terminate ();
 }
 
-Ref <ExecDomain> ExecDomain::create (const DeadlineTime deadline, Ref <Runnable>&& runnable, MemContext* mem_context)
+Ref <ExecDomain> ExecDomain::create (const DeadlineTime deadline, MemContext* mem_context)
 {
 	Ref <ExecDomain> ed = Creator::create ();
 	Scheduler::activity_begin ();
@@ -105,7 +105,6 @@ Ref <ExecDomain> ExecDomain::create (const DeadlineTime deadline, Ref <Runnable>
 #ifdef _DEBUG
 	assert (!ed->dbg_context_stack_size_++);
 #endif
-	ed->runnable_ = std::move (runnable);
 	return ed;
 }
 
@@ -130,7 +129,7 @@ void ExecDomain::_remove_ref () NIRVANA_NOEXCEPT
 {
 	if (0 == ref_cnt_.decrement_seq ()) {
 		if (&ExecContext::current () == this)
-			run_in_neutral_context (*deleter_);
+			run_in_neutral_context (deleter_);
 		else
 			final_release ();
 	}
@@ -154,17 +153,6 @@ void ExecDomain::spawn (SyncContext& sync_context)
 	}
 }
 
-void ExecDomain::async_call (const DeadlineTime& deadline, Ref <Runnable>&& runnable, SyncContext& target, MemContext* mem_context)
-{
-	SyncDomain* sd = target.sync_domain ();
-	if (sd) {
-		assert (!mem_context || mem_context == &sd->mem_context ());
-		mem_context = &sd->mem_context ();
-	}
-	Ref <ExecDomain> exec_domain = create (deadline, std::move (runnable), mem_context);
-	exec_domain->spawn (target);
-}
-
 void ExecDomain::start_legacy_process (Legacy::Core::Process& process)
 {
 	ExecDomain& cur = current ();
@@ -177,7 +165,8 @@ void ExecDomain::start_legacy_process (Legacy::Core::Process& process)
 
 void ExecDomain::start_legacy_thread (Legacy::Core::Process& process, Legacy::Core::ThreadBase& thread)
 {
-	Ref <ExecDomain> exec_domain = create (INFINITE_DEADLINE, &thread, &process);
+	Ref <ExecDomain> exec_domain = create (INFINITE_DEADLINE, &process);
+	exec_domain->runnable_ = &thread;
 	exec_domain->background_worker_ = &thread;
 	thread.start (*exec_domain);
 	exec_domain->spawn (process.sync_context ());
@@ -233,17 +222,20 @@ void ExecDomain::run () NIRVANA_NOEXCEPT
 {
 	assert (Thread::current ().exec_domain () == this);
 	assert (runnable_);
+	Runnable* runnable = runnable_;
 	if (scheduler_error_ >= 0) {
 		try {
 			CORBA::SystemException::_raise_by_code (scheduler_error_);
 		} catch (...) {
 			runnable_->on_exception ();
 		}
-		runnable_.reset ();
+		runnable_ = nullptr;
 	} else {
 		ExecContext::run ();
 		assert (!runnable_); // Cleaned inside ExecContext::run ();
 	}
+	if (runnable == (Runnable*)&runnable_space_)
+		runnable->~Runnable ();
 	cleanup ();
 }
 

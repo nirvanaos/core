@@ -29,7 +29,6 @@
 #include "OutgoingRequests.h"
 #include "IncomingRequests.h"
 #include "../Runnable.h"
-#include "../CoreObject.h"
 #include "../Chrono.h"
 
 using namespace CORBA;
@@ -41,11 +40,10 @@ using namespace Nirvana::Core;
 namespace ESIOP {
 
 /// Receive request Runnable
-class NIRVANA_NOVTABLE ReceiveRequest :
-	public Runnable,
-	public CoreObject // Must be created quickly
+class ReceiveRequest :
+	public Runnable
 {
-protected:
+public:
 	ReceiveRequest (const Request& msg) NIRVANA_NOEXCEPT :
 		timestamp_ (Nirvana::Core::Chrono::deadline_clock ()),
 		data_ ((void*)msg.GIOP_message),
@@ -53,6 +51,7 @@ protected:
 		request_id_ (msg.request_id)
 	{}
 
+private:
 	virtual void run () override;
 	virtual void on_crash (const siginfo& signal) NIRVANA_NOEXCEPT override;
 
@@ -119,17 +118,17 @@ void ReceiveRequest::on_crash (const siginfo& signal) NIRVANA_NOEXCEPT
 }
 
 /// Cancel request Runnable
-class NIRVANA_NOVTABLE ReceiveCancel :
-	public Runnable,
-	public CoreObject // Must be created quickly
+class ReceiveCancel :
+	public Runnable
 {
-protected:
+public:
 	ReceiveCancel (const CancelRequest& msg) NIRVANA_NOEXCEPT :
 		timestamp_ (Nirvana::Core::Chrono::deadline_clock ()),
 		client_id_ (msg.client_domain),
 		request_id_ (msg.request_id)
 	{}
 
+private:
 	virtual void run () override;
 
 private:
@@ -144,16 +143,16 @@ void ReceiveCancel::run ()
 }
 
 /// Receive reply Runnable
-class NIRVANA_NOVTABLE ReceiveReply :
-	public Runnable,
-	public CoreObject // Must be created quickly
+class ReceiveReply :
+	public Runnable
 {
-protected:
+public:
 	ReceiveReply (const Reply& msg) NIRVANA_NOEXCEPT :
 		data_ ((void*)msg.GIOP_message),
 		request_id_ (msg.request_id)
 	{}
 
+private:
 	virtual void run () override;
 
 private:
@@ -196,11 +195,10 @@ void ReceiveReply::run ()
 }
 
 /// Receive reply immediate Runnable
-class NIRVANA_NOVTABLE ReceiveReplyImmediate :
-	public Runnable,
-	public CoreObject // Must be created quickly
+class ReceiveReplyImmediate :
+	public Runnable
 {
-protected:
+public:
 	ReceiveReplyImmediate (const ReplyImmediate& msg)
 		NIRVANA_NOEXCEPT :
 		request_id_ (msg.request_id),
@@ -209,6 +207,7 @@ protected:
 		std::copy (msg.data, msg.data + ReplyImmediate::MAX_DATA_SIZE, data_);
 	}
 
+private:
 	virtual void run () override;
 
 private:
@@ -245,11 +244,10 @@ void ReceiveReplyImmediate::run ()
 }
 
 /// Receive system exception Runnable
-class NIRVANA_NOVTABLE ReceiveSystemException :
-	public Runnable,
-	public CoreObject // Must be created quickly
+class ReceiveSystemException :
+	public Runnable
 {
-protected:
+public:
 	ReceiveSystemException (const ReplySystemException& msg)
 		NIRVANA_NOEXCEPT :
 		completed_ ((CompletionStatus)msg.completed),
@@ -258,6 +256,7 @@ protected:
 		request_id_ (msg.request_id)
 	{}
 
+private:
 	virtual void run () override;
 
 private:
@@ -274,11 +273,10 @@ void ReceiveSystemException::run ()
 }
 
 /// Shutdown Runnable
-class NIRVANA_NOVTABLE ReceiveShutdown :
-	public Runnable,
-	public CoreObject // Must be created quickly
+class ReceiveShutdown :
+	public Runnable
 {
-protected:
+private:
 	virtual void run () override;
 };
 
@@ -293,11 +291,11 @@ void dispatch_message (MessageHeader& message) NIRVANA_NOEXCEPT
 		case MessageType::REQUEST: {
 			const auto& msg = Request::receive (message);
 			try {
-				ExecDomain::async_call (Chrono::make_deadline (INITIAL_REQUEST_DEADLINE_LOCAL),
-					Ref <Runnable>::create <ImplDynamic <ReceiveRequest> > (std::ref (msg)),
-					g_core_free_sync_context, nullptr);
+				ExecDomain::async_call <ReceiveRequest> (
+					Chrono::make_deadline (INITIAL_REQUEST_DEADLINE_LOCAL), g_core_free_sync_context, nullptr,
+					std::ref (msg));
 			} catch (const SystemException& ex) {
-				// Not enough memory?
+				// async_call failed.
 				// Create and destruct object in stack to release stream memory.
 				{
 					ImplStatic <StreamInSM> tmp ((void*)msg.GIOP_message);
@@ -313,11 +311,11 @@ void dispatch_message (MessageHeader& message) NIRVANA_NOEXCEPT
 		case MessageType::REPLY: {
 			const auto& msg = Reply::receive (message);
 			try {
-				ExecDomain::async_call (Chrono::make_deadline (INITIAL_REQUEST_DEADLINE_LOCAL),
-					Ref <Runnable>::create <ImplDynamic <ReceiveReply> > (std::ref (msg)),
-					g_core_free_sync_context, nullptr);
+				ExecDomain::async_call <ReceiveReply> (
+					Chrono::make_deadline (INITIAL_REQUEST_DEADLINE_LOCAL), g_core_free_sync_context, nullptr,
+					std::ref (msg));
 			} catch (const SystemException& ex) {
-				// Not enough memory?
+				// async_call failed.
 				// Create and destruct object in stack to release stream memory.
 				{
 					ImplStatic <StreamInSM> tmp ((void*)msg.GIOP_message);
@@ -330,9 +328,9 @@ void dispatch_message (MessageHeader& message) NIRVANA_NOEXCEPT
 		case MessageType::REPLY_IMMEDIATE: {
 			const auto& msg = ReplyImmediate::receive (message);
 			try {
-				ExecDomain::async_call (Chrono::make_deadline (INITIAL_REQUEST_DEADLINE_LOCAL),
-					Ref <Runnable>::create <ImplDynamic <ReceiveReplyImmediate> > (std::ref (msg)),
-					g_core_free_sync_context, nullptr);
+				ExecDomain::async_call <ReceiveReplyImmediate> (
+					Chrono::make_deadline (INITIAL_REQUEST_DEADLINE_LOCAL), g_core_free_sync_context, nullptr,
+					std::ref (msg));
 			} catch (const SystemException& ex) {
 				OutgoingRequests::set_system_exception (msg.request_id, ex._rep_id (), ex.minor (), ex.completed ());
 			}
@@ -341,9 +339,9 @@ void dispatch_message (MessageHeader& message) NIRVANA_NOEXCEPT
 		case MessageType::REPLY_SYSTEM_EXCEPTION: {
 			const auto& msg = ReplySystemException::receive (message);
 			try {
-				ExecDomain::async_call (Chrono::make_deadline (INITIAL_REQUEST_DEADLINE_LOCAL),
-					Ref <Runnable>::create <ImplDynamic <ReceiveSystemException> > (std::ref (msg)),
-					g_core_free_sync_context, nullptr);
+				ExecDomain::async_call <ReceiveSystemException> (
+					Chrono::make_deadline (INITIAL_REQUEST_DEADLINE_LOCAL), g_core_free_sync_context, nullptr,
+					std::ref (msg));
 			} catch (...) {
 				OutgoingRequests::set_system_exception (msg.request_id,
 					SystemException::_get_exception_entry (msg.code)->rep_id, msg.minor,
@@ -354,18 +352,17 @@ void dispatch_message (MessageHeader& message) NIRVANA_NOEXCEPT
 		case MessageType::CANCEL_REQUEST: {
 			const auto& msg = CancelRequest::receive (message);
 			try {
-				ExecDomain::async_call (Chrono::make_deadline (CANCEL_REQUEST_DEADLINE),
-					Ref <Runnable>::create <ImplDynamic <ReceiveCancel> > (std::ref (msg)),
-					g_core_free_sync_context, &g_shared_mem_context);
+				ExecDomain::async_call <ReceiveCancel> (
+					Chrono::make_deadline (CANCEL_REQUEST_DEADLINE), g_core_free_sync_context, nullptr,
+					std::ref (msg));
 			} catch (...) {
 			}
 		} break;
 
 		case MessageType::SHUTDOWN:
 			try {
-				ExecDomain::async_call (INFINITE_DEADLINE,
-					Ref <Runnable>::create <ImplDynamic <ReceiveShutdown> > (),
-					g_core_free_sync_context, &g_shared_mem_context);
+				ExecDomain::async_call <ReceiveShutdown> (
+					INFINITE_DEADLINE, g_core_free_sync_context, nullptr);
 			} catch (...) {
 			}
 			break;

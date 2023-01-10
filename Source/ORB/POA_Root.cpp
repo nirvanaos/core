@@ -134,8 +134,7 @@ void POA_Root::invoke_sync (const RequestRef& request)
 }
 
 class POA_Root::InvokeAsync :
-	public Runnable,
-	public SharedObject
+	public Runnable
 {
 public:
 	InvokeAsync (POA_Base* root, RequestRef&& request) :
@@ -159,8 +158,8 @@ void POA_Root::invoke_async (RequestRef request, DeadlineTime deadline)
 	POA_Base* adapter = get_implementation (proxy);
 	assert (adapter);
 
-	ExecDomain::async_call (deadline, Ref <Runnable>::create <ImplDynamic <InvokeAsync> >
-		(adapter, std::move (request)), proxy->sync_context ());
+	ExecDomain::async_call <InvokeAsync> (deadline, proxy->sync_context (), request->memory (),
+		adapter, std::move (request));
 }
 
 void POA_Root::InvokeAsync::run ()

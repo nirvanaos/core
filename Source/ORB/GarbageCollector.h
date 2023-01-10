@@ -48,17 +48,16 @@ class NIRVANA_NOVTABLE SyncGC
 };
 
 class GarbageCollector :
-	public Nirvana::Core::Runnable,
-	public Nirvana::Core::SharedObject
+	public Nirvana::Core::Runnable
 {
 public:
 	static void schedule (SyncGC& garbage, Nirvana::Core::SyncContext& sync_context) NIRVANA_NOEXCEPT;
 
-protected:
 	GarbageCollector (SyncGC& garbage) :
 		ref_ (&garbage)
 	{}
 
+private:
 	virtual void run () override
 	{
 		ref_ = nullptr;

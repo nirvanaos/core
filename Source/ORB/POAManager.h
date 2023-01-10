@@ -63,9 +63,8 @@ public:
 								top.request->set_exception (POA::AdapterNonExistent ());
 							on_request_start ();
 							try {
-								Nirvana::Core::ExecDomain::async_call (top.deadline,
-									Nirvana::Core::Ref <Nirvana::Core::Runnable>::
-									create <Nirvana::Core::ImplDynamic <ServeRequest> > (std::ref (top)), sc);
+								Nirvana::Core::ExecDomain::async_call <ServeRequest> (
+									top.deadline, sc, top.request->memory (), std::ref (top));
 							} catch (CORBA::Exception& e) {
 								top.request->set_exception (std::move (e));
 								on_request_finish ();
@@ -224,7 +223,7 @@ private:
 
 	class ServeRequest : public Nirvana::Core::Runnable
 	{
-	protected:
+	public:
 		ServeRequest (const QElem& qelem) :
 			adapter_ (qelem.adapter),
 			request_ (qelem.request)

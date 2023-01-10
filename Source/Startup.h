@@ -42,8 +42,8 @@ class Executable;
 
 namespace Core {
 
-/// Protection domain startup runnable.
-class NIRVANA_NOVTABLE Startup : public ImplStatic <Runnable>
+/// Startup runnable base.
+class NIRVANA_NOVTABLE Startup : public Runnable
 {
 public:
 	/// Called once by a host/kernel in a neutral execution context

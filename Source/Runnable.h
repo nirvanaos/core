@@ -28,7 +28,7 @@
 #define NIRVANA_CORE_RUNNABLE_H_
 #pragma once
 
-#include "CoreInterface.h"
+#include <Nirvana/Nirvana.h>
 
 struct siginfo;
 
@@ -38,8 +38,8 @@ namespace Core {
 /// Core implementation of the Runnable interface
 class NIRVANA_NOVTABLE Runnable
 {
-	DECLARE_CORE_INTERFACE
 public:
+	virtual ~Runnable () {}
 	virtual void run () = 0;
 	virtual void on_exception () NIRVANA_NOEXCEPT;
 	virtual void on_crash (const siginfo& signal) NIRVANA_NOEXCEPT;

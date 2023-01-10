@@ -35,27 +35,25 @@ using namespace Internal;
 
 namespace Core {
 
-class NIRVANA_NOVTABLE ServantProxyBase::GC :
-	public SharedObject,
+class ServantProxyBase::GC :
 	public Runnable
 {
 public:
-	void run ()
-	{
-		collect_garbage (servant_);
-	}
-
-protected:
 	GC (Interface::_ptr_type servant) :
 		servant_ (servant)
 	{}
 
-	~GC ()
-	{}
+private:
+	virtual void run ();
 
 private:
 	Interface::_ptr_type servant_;
 };
+
+void ServantProxyBase::GC::run ()
+{
+	collect_garbage (servant_);
+}
 
 ServantProxyBase::~ServantProxyBase ()
 {
@@ -113,8 +111,7 @@ void ServantProxyBase::run_garbage_collector () const NIRVANA_NOEXCEPT
 					Nirvana::Core::PROXY_GC_DEADLINE);
 
 			// in the current memory context.
-			ExecDomain::async_call (deadline, Ref <Runnable>::create <ImplDynamic <GC> > (servant_),
-				sync_context ());
+			ExecDomain::async_call <GC> (deadline, sync_context (), nullptr, servant_);
 			return;
 		} catch (...) {
 			// Async call failed, maybe resources are exausted.

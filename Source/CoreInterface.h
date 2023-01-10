@@ -29,7 +29,6 @@
 #pragma once
 
 #include "AtomicCounter.h"
-#include <assert.h>
 #include <Nirvana/throw_exception.h>
 
 namespace Nirvana {

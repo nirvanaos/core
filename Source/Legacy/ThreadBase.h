@@ -24,8 +24,8 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_LEGACY_CORE_THREADBACKGROUND_H_
-#define NIRVANA_LEGACY_CORE_THREADBACKGROUND_H_
+#ifndef NIRVANA_LEGACY_CORE_THREADBASE_H_
+#define NIRVANA_LEGACY_CORE_THREADBASE_H_
 #pragma once
 
 #include "../ThreadBackground.h"

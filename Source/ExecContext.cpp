@@ -37,13 +37,13 @@ void ExecContext::run () NIRVANA_NOEXCEPT
 	} catch (...) {
 		runnable_->on_exception ();
 	}
-	runnable_.reset ();
+	runnable_ = nullptr;
 }
 
 void ExecContext::on_crash (const siginfo& signal) NIRVANA_NOEXCEPT
 {
 	runnable_->on_crash (signal);
-	runnable_.reset ();
+	runnable_ = nullptr;
 }
 
 void ExecContext::neutral_context_loop () NIRVANA_NOEXCEPT

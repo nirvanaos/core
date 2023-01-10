@@ -103,28 +103,43 @@ void OutgoingRequests::set_system_exception (uint32_t request_id, const Char* re
 	uint32_t minor, CompletionStatus completed) NIRVANA_NOEXCEPT
 {
 	Ref <RequestOut> rq = remove_request (request_id);
-	if (rq)
+	if (rq) {
+		ExecDomain& ed = ExecDomain::current ();
+		Ref <MemContext> mc = rq->memory ();
+		ed.mem_context_swap (mc);
 		rq->set_system_exception (rep_id, minor, completed);
+		ed.mem_context_swap (mc);
+	}
 }
 
 void OutgoingRequests::receive_reply (unsigned GIOP_minor, Ref <StreamIn>&& stream)
 {
-	IOP::ServiceContextList context;
+	IOP::ServiceContextList context1;
 	uint32_t request_id;
 	uint32_t status;
-	if (GIOP_minor <= 1) {
-		stream->read_tagged (context);
-		request_id = stream->read32 ();
-		status = stream->read32 ();
-	} else {
-		request_id = stream->read32 ();
-		status = stream->read32 ();
-		stream->read_tagged (context);
-	}
+	if (GIOP_minor <= 1)
+		stream->read_tagged (context1);
+	request_id = stream->read32 ();
+	status = stream->read32 ();
 
 	Ref <RequestOut> rq = remove_request (request_id);
-	if (rq)
-		rq->set_reply (status, std::move (context), std::move (stream));
+	if (rq) {
+		ExecDomain& ed = ExecDomain::current ();
+		Ref <MemContext> mc = rq->memory ();
+		ed.mem_context_swap (mc);
+		try {
+			IOP::ServiceContextList context;
+			if (GIOP_minor > 1)
+				stream->read_tagged (context);
+			else
+				context = context1;
+			rq->set_reply (status, std::move (context), std::move (stream));
+		} catch (...) {
+			ed.mem_context_swap (mc);
+			throw;
+		}
+		ed.mem_context_swap (mc);
+	}
 }
 
 }

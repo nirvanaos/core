@@ -107,7 +107,7 @@ private:
 		SHUTDOWN_FINISH
 	};
 
-	class Terminator : public ImplStatic <Runnable>
+	class Terminator : public Runnable
 	{
 	private:
 		virtual void run ();
@@ -117,7 +117,6 @@ private:
 	{
 		std::atomic <State> state;
 		AtomicCounter <false> activity_cnt;
-		Terminator terminator;
 
 		GlobalData () :
 			state (State::RUNNING),

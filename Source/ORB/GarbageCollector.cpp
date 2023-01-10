@@ -38,19 +38,18 @@ void GarbageCollector::schedule (SyncGC& garbage, Nirvana::Core::SyncContext& sy
 NIRVANA_NOEXCEPT
 {
 	assert (sync_context.sync_domain ());
-
-	Ref <Runnable> gc = 
-		Ref <Runnable>::create <ImplDynamic <GarbageCollector> > (std::ref (garbage));
 	try {
 		DeadlineTime deadline =
 			PROXY_GC_DEADLINE == INFINITE_DEADLINE ?
 			INFINITE_DEADLINE : Chrono::make_deadline (PROXY_GC_DEADLINE);
 
-		ExecDomain::async_call (deadline, Ref <Runnable> (gc), sync_context, nullptr);
+		ExecDomain::async_call <GarbageCollector> (
+			deadline, sync_context, nullptr, std::ref (garbage));
 	} catch (...) {
 		try {
+			servant_reference <SyncGC> ref;
 			SYNC_BEGIN (sync_context, nullptr)
-				gc = nullptr;
+				ref = nullptr;
 			SYNC_END ()
 		} catch (...) {
 			assert (false);

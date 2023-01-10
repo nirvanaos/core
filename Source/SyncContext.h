@@ -28,6 +28,7 @@
 #define NIRVANA_CORE_SYNCCONTEXT_H_
 #pragma once
 
+#include "CoreInterface.h"
 #include "Thread.h"
 #include "StaticallyAllocated.h"
 
