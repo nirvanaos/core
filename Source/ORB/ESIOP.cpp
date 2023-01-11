@@ -45,8 +45,8 @@ class ReceiveRequest :
 {
 public:
 	ReceiveRequest (const Request& msg) NIRVANA_NOEXCEPT :
-		timestamp_ (Nirvana::Core::Chrono::deadline_clock ()),
 		data_ ((void*)msg.GIOP_message),
+		timestamp_ (Nirvana::Core::Chrono::deadline_clock ()),
 		client_id_ (msg.client_domain),
 		request_id_ (msg.request_id)
 	{}
