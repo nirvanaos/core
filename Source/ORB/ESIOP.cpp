@@ -56,8 +56,8 @@ private:
 	virtual void on_crash (const siginfo& signal) NIRVANA_NOEXCEPT override;
 
 private:
-	uint64_t timestamp_;
 	void* data_;
+	uint64_t timestamp_;
 	ProtDomainId client_id_;
 	uint32_t request_id_;
 };
@@ -212,7 +212,7 @@ private:
 
 private:
 	uint32_t request_id_;
-	unsigned size_and_flag_;
+	uint8_t size_and_flag_;
 	uint8_t data_ [ReplyImmediate::MAX_DATA_SIZE];
 };
 

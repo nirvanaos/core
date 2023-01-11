@@ -108,16 +108,22 @@ Ref <ExecDomain> ExecDomain::create (const DeadlineTime deadline, MemContext* me
 	return ed;
 }
 
-void ExecDomain::async_call (const DeadlineTime& deadline, Runnable* runnable,
-	SyncContext& target, MemContext* mem_context)
+Ref <ExecDomain> ExecDomain::ExecDomain::create (const DeadlineTime deadline, SyncContext& target,
+	MemContext* mem_context)
 {
-	assert (runnable);
 	SyncDomain* sd = target.sync_domain ();
 	if (sd) {
 		assert (!mem_context || mem_context == &sd->mem_context ());
 		mem_context = &sd->mem_context ();
 	}
-	Ref <ExecDomain> exec_domain = create (deadline, mem_context);
+	return create (deadline, mem_context);
+}
+
+void ExecDomain::async_call (const DeadlineTime& deadline, Runnable* runnable,
+	SyncContext& target, MemContext* mem_context)
+{
+	assert (runnable);
+	Ref <ExecDomain> exec_domain = create (deadline, target, mem_context);
 	exec_domain->runnable_ = runnable;
 	exec_domain->spawn (target);
 }

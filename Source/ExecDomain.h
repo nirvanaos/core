@@ -61,7 +61,7 @@ class ExecDomain final :
 	public StackElem
 {
 public:
-	static const size_t MAX_RUNNABLE_SIZE = sizeof (void*) * 8;
+	static const size_t MAX_RUNNABLE_SIZE = 2 * sizeof (void*) + 20;
 
 	/// \returns Current execution domain.
 	static ExecDomain& current () NIRVANA_NOEXCEPT
@@ -84,13 +84,7 @@ public:
 		SyncContext& target, MemContext* mem_context, Args ... args) 
 	{
 		static_assert (sizeof (R) <= MAX_RUNNABLE_SIZE, "Runnable too large");
-
-		SyncDomain* sd = target.sync_domain ();
-		if (sd) {
-			assert (!mem_context || mem_context == &sd->mem_context ());
-			mem_context = &sd->mem_context ();
-		}
-		Ref <ExecDomain> exec_domain = create (deadline, mem_context);
+		Ref <ExecDomain> exec_domain = create (deadline, target, mem_context);
 		exec_domain->runnable_ = new (&exec_domain->runnable_space_) R (std::forward <Args> (args)...);
 		exec_domain->spawn (target);
 	}
@@ -335,6 +329,7 @@ private:
 	using Creator = std::conditional <EXEC_DOMAIN_POOLING, WithPool, NoPool>::type;
 
 	static Ref <ExecDomain> create (const DeadlineTime deadline, MemContext* mem_context = nullptr);
+	static Ref <ExecDomain> create (const DeadlineTime deadline, SyncContext& target, MemContext* mem_context = nullptr);
 
 	~ExecDomain () NIRVANA_NOEXCEPT
 	{}
