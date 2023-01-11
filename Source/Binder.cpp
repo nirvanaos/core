@@ -153,6 +153,8 @@ void Binder::terminate ()
 	SYNC_END ();
 	Section metadata;
 	Port::SystemInfo::get_OLF_section (metadata);
+	ExecDomain& ed = ExecDomain::current ();
+	ed.restricted_mode (ExecDomain::RestrictedMode::SUPPRESS_ASYNC_GC);
 	singleton_->module_unbind (nullptr, metadata);
 	
 	SYNC_BEGIN (sync_domain (), nullptr);

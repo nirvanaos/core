@@ -31,16 +31,21 @@ using namespace Nirvana::Core;
 namespace CORBA {
 namespace Core {
 
+ProxyObjectImplicit::ProxyObjectImplicit (PortableServer::Core::ServantBase& core_servant,
+	PortableServer::Servant user_servant, PortableServer::POA::_ptr_type adapter) :
+	Base (core_servant, user_servant),
+	implicit_adapter_ (adapter),
+	adapter_context_ (&local2proxy (adapter)->sync_context ())
+{}
+
 ProxyObjectImplicit::~ProxyObjectImplicit ()
 {
 	PortableServer::Core::ServantBase& servant = core_servant ();
 
 	try {
-		SyncContext& adapter_context = local2proxy (Services::bind (Services::RootPOA))->sync_context ();
-
 		// We don't need exception handling here because on_destruct_implicit is noexcept.
 		// So we don't use SYNC_BEGIN/SYNC_END and just create the sync frame.
-		Nirvana::Core::Synchronized _sync_frame (adapter_context, nullptr);
+		Nirvana::Core::Synchronized _sync_frame (*adapter_context_, nullptr);
 
 		if (references_.empty ()) {
 			// If the set is empty, object can have one reference stored in reference_.
@@ -65,9 +70,9 @@ ProxyObjectImplicit::~ProxyObjectImplicit ()
 void ProxyObjectImplicit::add_ref_1 ()
 {
 	Base::add_ref_1 ();
-	if (adapter_) {
+	if (implicit_adapter_) {
 		// Do only once
-		PortableServer::POA::_ref_type tmp = std::move (adapter_);
+		PortableServer::POA::_ref_type tmp = std::move (implicit_adapter_);
 		assert (!get_reference_local ());
 		if (!get_reference_local ()) // Who knows...
 			PortableServer::Core::POA_Base::implicit_activate (tmp, *this);

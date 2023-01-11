@@ -51,8 +51,8 @@ void initialize ()
 
 void terminate ()
 {
-	Binder::terminate ();
 	CORBA::Core::terminate ();
+	Binder::terminate ();
 }
 
 void terminate0 () NIRVANA_NOEXCEPT

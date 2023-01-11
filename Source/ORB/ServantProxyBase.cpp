@@ -117,15 +117,17 @@ void ServantProxyBase::run_garbage_collector () const NIRVANA_NOEXCEPT
 			// Async call failed, maybe resources are exausted.
 			// Fallback to collect garbage in the current ED.
 		}
-	}
-	try {
-		SYNC_BEGIN (sync_context (), nullptr)
-			collect_garbage (servant_);
-		SYNC_END ()
-	} catch (...) {
-		assert (false);
-		// Swallow exceptions.
-	}
+	} else if (&sync_context () != &SyncContext::current ()) {
+		try {
+			SYNC_BEGIN (sync_context (), nullptr)
+				collect_garbage (servant_);
+			SYNC_END ()
+		} catch (...) {
+				assert (false);
+				// Swallow exceptions.
+			}
+	} else
+		collect_garbage (servant_);
 }
 
 void ServantProxyBase::collect_garbage (Internal::Interface::_ptr_type servant) NIRVANA_NOEXCEPT

@@ -40,10 +40,7 @@ class NIRVANA_NOVTABLE ProxyObjectImplicit : public ProxyObject
 
 protected:
 	ProxyObjectImplicit (PortableServer::Core::ServantBase& core_servant,
-		PortableServer::Servant user_servant, PortableServer::POA::_ptr_type adapter) :
-		Base (core_servant, user_servant),
-		adapter_ (adapter)
-	{}
+		PortableServer::Servant user_servant, PortableServer::POA::_ptr_type adapter);
 
 	~ProxyObjectImplicit ();
 
@@ -51,7 +48,8 @@ private:
 	virtual void add_ref_1 () override;
 
 private:
-	PortableServer::POA::_ref_type adapter_;
+	PortableServer::POA::_ref_type implicit_adapter_;
+	Nirvana::Core::Ref <Nirvana::Core::SyncContext> adapter_context_;
 };
 
 }

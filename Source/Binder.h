@@ -178,6 +178,11 @@ public:
 		remote_references_.erase (ref);
 	}
 
+	static bool initialized () NIRVANA_NOEXCEPT
+	{
+		return initialized_;
+	}
+
 private:
 	typedef CORBA::Internal::RepId RepId;
 	typedef CORBA::Internal::RepId::Version Version;
