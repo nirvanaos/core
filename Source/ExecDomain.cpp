@@ -83,7 +83,7 @@ public:
 
 StaticallyAllocated <ExecDomain::Suspend> ExecDomain::suspend_;
 
-void ExecDomain::initialize ()
+void ExecDomain::initialize () NIRVANA_NOEXCEPT
 {
 	suspend_.construct ();
 	Creator::initialize ();

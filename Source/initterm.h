@@ -35,7 +35,8 @@ namespace Core {
 /// First initialize stage.
 /// Called by kernel.
 /// Initializes Heap and other static stuff.
-void initialize0 ();
+/// Must not use exceptions.
+bool initialize0 () NIRVANA_NOEXCEPT;
 
 //! Called by Startup class from free sync domain after kernel initialization.
 void initialize ();

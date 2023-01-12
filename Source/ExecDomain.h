@@ -300,7 +300,7 @@ public:
 	}
 
 	/// Called on core startup.
-	static void initialize ();
+	static void initialize () NIRVANA_NOEXCEPT;
 	
 	/// Called on core shutdown.
 	static void terminate () NIRVANA_NOEXCEPT;

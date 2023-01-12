@@ -34,13 +34,15 @@
 namespace Nirvana {
 namespace Core {
 
-void initialize0 ()
+bool initialize0 () NIRVANA_NOEXCEPT
 {
-	MemContext::initialize ();
+	if (!MemContext::initialize ())
+		return false;
 	TLS::initialize ();
 	g_core_free_sync_context.construct ();
 	ExecDomain::initialize ();
 	Scheduler::initialize ();
+	return true;
 }
 
 void initialize ()
@@ -51,8 +53,8 @@ void initialize ()
 
 void terminate ()
 {
-	CORBA::Core::terminate ();
 	Binder::terminate ();
+	CORBA::Core::terminate ();
 }
 
 void terminate0 () NIRVANA_NOEXCEPT

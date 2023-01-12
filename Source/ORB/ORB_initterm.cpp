@@ -45,7 +45,6 @@ void initialize ()
 
 void terminate () NIRVANA_NOEXCEPT
 {
-	Services::terminate ();
 	IncomingRequests::terminate ();
 	OutgoingRequests::terminate ();
 	LocalAddress::terminate ();

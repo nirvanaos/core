@@ -84,7 +84,7 @@ public:
 	virtual TLS& get_TLS () NIRVANA_NOEXCEPT = 0;
 
 	/// Global class initialization.
-	inline static void initialize ();
+	inline static bool initialize () NIRVANA_NOEXCEPT;
 
 	/// Global class temination.
 	inline static void terminate () NIRVANA_NOEXCEPT;

@@ -78,11 +78,13 @@ private:
 extern StaticallyAllocated <ImplStatic <MemContextCore> > g_shared_mem_context;
 
 inline
-void MemContext::initialize ()
+bool MemContext::initialize () NIRVANA_NOEXCEPT
 {
-	Port::Memory::initialize ();
+	if (!Port::Memory::initialize ())
+		return false;
 	g_core_heap.construct ();
 	g_shared_mem_context.construct ();
+	return true;
 }
 
 inline
