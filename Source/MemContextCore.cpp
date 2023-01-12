@@ -31,7 +31,8 @@ namespace Core {
 
 StaticallyAllocated <ImplStatic <MemContextCore> > g_shared_mem_context;
 
-MemContextCore::MemContextCore () NIRVANA_NOEXCEPT
+MemContextCore::MemContextCore () NIRVANA_NOEXCEPT :
+TLS_ (heap_)
 {}
 
 MemContextCore::~MemContextCore ()

@@ -63,7 +63,7 @@ public:
 	/// Limit of the user TLS indexes.
 	static const unsigned USER_TLS_INDEXES = 64;
 
-	TLS ();
+	TLS (Heap& heap);
 	~TLS ();
 
 	static unsigned allocate ();
@@ -78,9 +78,13 @@ public:
 		std::fill_n (bitmap_, BITMAP_SIZE, ~0);
 	}
 
-	void clear () NIRVANA_NOEXCEPT
+	void clear () NIRVANA_NOEXCEPT;
+
+	void reset_deleters () NIRVANA_NOEXCEPT
 	{
-		Entries tmp (std::move (entries_));
+		for (Entry& entry : entries_) {
+			entry.reset ();
+		}
 	}
 
 private:
@@ -123,6 +127,12 @@ private:
 			return ptr_;
 		}
 
+		void reset () NIRVANA_NOEXCEPT
+		{
+			ptr_ = nullptr;
+			deleter_ = nullptr;
+		}
+
 	private:
 		void destruct () NIRVANA_NOEXCEPT;
 
@@ -131,11 +141,7 @@ private:
 		Deleter deleter_;
 	};
 
-	// Do not use UserAllocator here to avoid problems in Debug configuration.
-	// std::vector allocates proxy on construct. It happens on the MemContextCore construct.
-	// But constructing memory context is not current yet.
-	// We use our vector implementation without proxies.
-	typedef std::vector <Entry> Entries;
+	typedef std::vector <Entry, HeapAllocator <Entry> > Entries;
 	Entries entries_;
 
 	static const size_t BITMAP_SIZE = (USER_TLS_INDEXES + BW_BITS - 1) / BW_BITS;

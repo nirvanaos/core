@@ -25,9 +25,23 @@
 */
 #include "RequestInPOA.h"
 #include "RqHelper.h"
+#include "../Scheduler.h"
 
 namespace CORBA {
 namespace Core {
+
+RequestInPOA::RequestInPOA ()
+{
+	// RequestInPOA is an activity.
+	// Even if the request is in queue and does not have an associated ExecDomain,
+	// it must counted as an activity.
+	Nirvana::Core::Scheduler::activity_begin ();
+}
+
+RequestInPOA::~RequestInPOA ()
+{
+	Nirvana::Core::Scheduler::activity_end ();
+}
 
 void RequestInPOA::set_exception (Exception&& e) NIRVANA_NOEXCEPT
 {

@@ -42,11 +42,17 @@ void TLS::Entry::destruct () NIRVANA_NOEXCEPT
 	}
 }
 
-TLS::TLS ()
+TLS::TLS (Heap& heap) :
+	entries_ (HeapAllocator <Entry> (heap))
 {}
 
 TLS::~TLS ()
 {}
+
+void TLS::clear () NIRVANA_NOEXCEPT
+{
+	Entries tmp (std::move (entries_));
+}
 
 unsigned TLS::allocate ()
 {

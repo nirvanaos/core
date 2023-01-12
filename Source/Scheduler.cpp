@@ -27,7 +27,7 @@
 #include "ExecDomain.h"
 #include "initterm.h"
 #include "ORB/POA_Root.h"
-#include "Binder.h"
+#include <Port/PostOffice.h>
 
 namespace Nirvana {
 namespace Core {
@@ -44,10 +44,12 @@ void Scheduler::shutdown () NIRVANA_NOEXCEPT
 {
 	State state = State::RUNNING;
 	if (global_->state.compare_exchange_strong (state, State::SHUTDOWN_STARTED)) {
-		// Block remote requests and complete currently executed.
+		// Block incoming requests and complete currently executed ones.
 		PortableServer::Core::POA_Base::shutdown ();
-		// Terminate services
+		// Terminate services to release all proxies
 		CORBA::Core::Services::terminate ();
+		// Stop receiving messages
+		Port::PostOffice::terminate ();
 		// If no activity - toggle it.
 		if (!global_->activity_cnt) {
 			global_->activity_cnt.increment ();

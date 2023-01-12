@@ -74,8 +74,8 @@ public:
 	virtual Nirvana::Core::MemContext* memory () const NIRVANA_NOEXCEPT = 0;
 
 protected:
-	RequestInPOA ()
-	{}
+	RequestInPOA ();
+	~RequestInPOA ();
 };
 
 }

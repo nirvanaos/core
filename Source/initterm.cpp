@@ -30,6 +30,8 @@
 #include "TLS.h"
 #include "ORB/ORB_initterm.h"
 #include "ORB/Services.h"
+#include "ORB/LocalAddress.h"
+#include <Port/PostOffice.h>
 
 namespace Nirvana {
 namespace Core {
@@ -49,6 +51,9 @@ void initialize ()
 {
 	CORBA::Core::initialize (); // CORBA::Core::Services must be initialized before Binder
 	Binder::initialize ();
+
+	// Start receiving messages from other domains
+	Port::PostOffice::initialize (CORBA::Core::LocalAddress::singleton ().host (), CORBA::Core::LocalAddress::singleton ().port ());
 }
 
 void terminate ()

@@ -101,6 +101,7 @@ public:
 	Process (const std::string& file,
 		std::vector <std::string>& argv, std::vector <std::string>& envp,
 		ProcessCallback::_ptr_type callback) :
+		ThreadBase (heap ()),
 		state_ (INIT),
 		ret_ (-1),
 		executable_ (std::ref (file)),
