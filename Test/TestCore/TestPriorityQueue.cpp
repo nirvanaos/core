@@ -8,10 +8,9 @@
 #include <vector>
 #include <atomic>
 
-using namespace std;
-using ::Nirvana::DeadlineTime;
-using ::Nirvana::Core::PriorityQueue;
-using ::Nirvana::Core::RandomGen;
+using Nirvana::DeadlineTime;
+using Nirvana::Core::PriorityQueue;
+using Nirvana::Core::RandomGen;
 
 namespace TestPriorityQueue {
 
@@ -86,7 +85,7 @@ TYPED_TEST (TestPriorityQueue, SingleThread)
 	TypeParam queue;
 	StdPriorityQueue queue_std;
 	RandomGen rndgen;
-	uniform_int_distribution <int> distr;
+	std::uniform_int_distribution <int> distr;
 
 	Value v;
 	ASSERT_FALSE (queue.delete_min (v));
@@ -139,14 +138,14 @@ TYPED_TEST (TestPriorityQueue, MinMax)
 
 	Value val = {1, 1};
 	Value out;
-	ASSERT_TRUE (queue.insert (numeric_limits <DeadlineTime>::max (), val));
+	ASSERT_TRUE (queue.insert (std::numeric_limits <DeadlineTime>::max (), val));
 	ASSERT_TRUE (queue.delete_min (out));
 	ASSERT_TRUE (queue.insert (0, val));
 	ASSERT_TRUE (queue.delete_min (out));
 }
 
 // Ensure that all values are different.
-atomic <int> g_timestamp (0);
+std::atomic <int> g_timestamp (0);
 
 template <class PQ>
 class ThreadTest
@@ -168,19 +167,19 @@ public:
 	void finalize ();
 
 private:
-	array <atomic <int>, NUM_PRIORITIES> counters_;
+	std::array <std::atomic <int>, NUM_PRIORITIES> counters_;
 	PQ queue_;
-	atomic <int> queue_size_;
+	std::atomic <int> queue_size_;
 };
 
 template <class PQ>
 void ThreadTest <PQ>::thread_proc ()
 {
 	RandomGen rndgen;
-	uniform_int_distribution <int> distr (0, NUM_PRIORITIES - 1);
+	std::uniform_int_distribution <int> distr (0, NUM_PRIORITIES - 1);
 
 	for (int i = NUM_ITERATIONS; i > 0; --i) {
-		if (!bernoulli_distribution (min (1., ((double)queue_size_ / (double)MAX_QUEUE_SIZE))) (rndgen)) {
+		if (!std::bernoulli_distribution (std::min (1., ((double)queue_size_ / (double)MAX_QUEUE_SIZE))) (rndgen)) {
 			unsigned deadline = distr (rndgen);
 			++counters_ [deadline];
 			++queue_size_;
@@ -218,8 +217,8 @@ TYPED_TEST (TestPriorityQueue, MultiThread)
 {
 	ThreadTest <TypeParam> test;
 
-	const unsigned int thread_cnt = max (thread::hardware_concurrency (), (unsigned)2);
-	vector <thread> threads;
+	const unsigned int thread_cnt = std::thread::hardware_concurrency ();
+	std::vector <std::thread> threads;
 
 	for (unsigned int i = 0; i < thread_cnt; ++i)
 		threads.emplace_back (&ThreadTest <TypeParam>::thread_proc, &test);
@@ -236,9 +235,9 @@ TYPED_TEST (TestPriorityQueue, Erase)
 	RandomGen rndgen;
 
 	static const unsigned NUM_ELEMENTS = 100;
-	vector <Value> values;
+	std::vector <Value> values;
 	values.reserve (NUM_ELEMENTS);
-	uniform_int_distribution <unsigned> distr;
+	std::uniform_int_distribution <unsigned> distr;
 	for (int i = 0; i < NUM_ELEMENTS; ++i) {
 		values.push_back ({i, distr (rndgen)});
 	}

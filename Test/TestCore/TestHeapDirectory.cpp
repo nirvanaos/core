@@ -7,9 +7,8 @@
 #include <vector>
 #include <set>
 
-using namespace ::Nirvana;
-using namespace ::Nirvana::Core;
-using namespace ::std;
+using namespace Nirvana;
+using namespace Nirvana::Core;
 
 namespace TestHeapDirectory {
 
@@ -215,7 +214,7 @@ struct Block
 class RandomAllocator
 {
 public:
-	RandomAllocator (unsigned seed = mt19937::default_seed) :
+	RandomAllocator (unsigned seed = std::mt19937::default_seed) :
 		rndgen_ (seed)
 	{
 		allocated_.reserve (1024);
@@ -224,18 +223,18 @@ public:
 	template <class DirType>
 	void run (DirType* dir, int iterations);
 
-	const vector <Block>& allocated () const
+	const std::vector <Block>& allocated () const
 	{
 		return allocated_;
 	}
 
 private:
-	mt19937 rndgen_;
-	vector <Block> allocated_;
-	static atomic <unsigned> total_allocated_;
+	std::mt19937 rndgen_;
+	std::vector <Block> allocated_;
+	static std::atomic <unsigned> total_allocated_;
 };
 
-atomic <unsigned> RandomAllocator::total_allocated_ (0);
+std::atomic <unsigned> RandomAllocator::total_allocated_ (0);
 
 template <class DirType>
 void RandomAllocator::run (DirType* dir, int iterations)
@@ -243,7 +242,7 @@ void RandomAllocator::run (DirType* dir, int iterations)
 	for (int i = 0; i < iterations; ++i) {
 		unsigned total = total_allocated_;
 		bool rel = !allocated_.empty () 
-			&& (total >= DirType::UNIT_COUNT || bernoulli_distribution ((double)total_allocated_ / (double)DirType::UNIT_COUNT)(rndgen_));
+			&& (total >= DirType::UNIT_COUNT || std::bernoulli_distribution ((double)total_allocated_ / (double)DirType::UNIT_COUNT)(rndgen_));
 		if (!rel) {
 			unsigned free_cnt = DirType::UNIT_COUNT - total_allocated_;
 			if (!free_cnt)
@@ -253,7 +252,7 @@ void RandomAllocator::run (DirType* dir, int iterations)
 				if (max_size > free_cnt)
 					max_size = 0x80000000 >> nlz ((unsigned)free_cnt);
 
-				unsigned size = uniform_int_distribution <unsigned> (1, max_size)(rndgen_);
+				unsigned size = std::uniform_int_distribution <unsigned> (1, max_size)(rndgen_);
 				unsigned block = dir->allocate (size);
 				if (block >= 0) {
 					total_allocated_ += size;
@@ -266,7 +265,7 @@ void RandomAllocator::run (DirType* dir, int iterations)
 
 		if (rel) {
 			ASSERT_FALSE (allocated_.empty ());
-			size_t idx = uniform_int_distribution <size_t> (0, allocated_.size () - 1)(rndgen_);
+			size_t idx = std::uniform_int_distribution <size_t> (0, allocated_.size () - 1)(rndgen_);
 			Block& block = allocated_ [idx];
 			EXPECT_TRUE (dir->check_allocated (block.begin, block.end));
 			dir->release (block.begin, block.end);
@@ -277,16 +276,16 @@ void RandomAllocator::run (DirType* dir, int iterations)
 }
 
 class AllocatedBlocks :
-	public set <Block>
+	public std::set <Block>
 {
 public:
-	void add (const vector <Block>& blocks);
+	void add (const std::vector <Block>& blocks);
 	
 	template <class DirType>
 	void check (DirType* dir) const;
 };
 
-void AllocatedBlocks::add (const vector <Block>& blocks)
+void AllocatedBlocks::add (const std::vector <Block>& blocks)
 {
 	for (auto p = blocks.cbegin (); p != blocks.cend (); ++p) {
 		auto ins = insert (*p);
@@ -350,7 +349,7 @@ TYPED_TEST (TestHeapDirectory, Random)
 
 class ThreadAllocator :
 	public RandomAllocator,
-	public thread
+	public std::thread
 {
 public:
 	ThreadAllocator (unsigned seed) :
@@ -369,10 +368,10 @@ TYPED_TEST (TestHeapDirectory, MultiThread)
 {
 	EXPECT_TRUE (this->directory_->empty ());
 
-	const size_t thread_cnt = max (thread::hardware_concurrency (), (unsigned)2);
+	const size_t thread_cnt = std::thread::hardware_concurrency ();
 	static const int THREAD_ITERATIONS = 1000;
 	static const int ITERATIONS = 1000;
-	vector <ThreadAllocator> threads;
+	std::vector <ThreadAllocator> threads;
 	threads.reserve (thread_cnt);
 	for (unsigned i = 0; i < thread_cnt; ++i)
 		threads.emplace_back (i + 1);

@@ -2,8 +2,7 @@
 #include "../Source/MemContextCore.h"
 #include <gtest/gtest.h>
 
-
-using ::Nirvana::Core::SkipList;
+using Nirvana::Core::SkipList;
 
 namespace TestSkipList {
 

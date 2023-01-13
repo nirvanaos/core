@@ -4,8 +4,7 @@
 #include <thread>
 #include <vector>
 
-using namespace ::Nirvana::Core;
-using namespace ::std;
+using namespace Nirvana::Core;
 
 namespace TestAtomicPtr {
 
@@ -111,8 +110,8 @@ TYPED_TEST_SUITE (TestAtomicPtr, Alignments);
 
 TYPED_TEST (TestAtomicPtr, Run)
 {
-	const size_t thread_cnt = max (thread::hardware_concurrency (), (unsigned)2);
-	vector <thread> threads;
+	const size_t thread_cnt = std::max (std::thread::hardware_concurrency (), (unsigned)2);
+	std::vector <std::thread> threads;
 	threads.reserve (thread_cnt);
 	for (unsigned int i = 0; i < thread_cnt; ++i)
 		threads.emplace_back (&TestAtomicPtr <TypeParam>::run);

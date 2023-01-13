@@ -1,7 +1,6 @@
 #include "../Source/PreallocatedStack.h"
 #include <gtest/gtest.h>
 
-using namespace std;
 using namespace Nirvana::Core;
 
 namespace TestPreallocatedStack {

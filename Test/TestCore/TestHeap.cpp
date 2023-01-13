@@ -1,13 +1,14 @@
 #include "../Source/SharedAllocator.h"
+#include "../Source/MemContextUser.h"
 #include <gtest/gtest.h>
 #include <random>
 #include <thread>
 #include <atomic>
 #include <forward_list>
+#include <vector>
 
 using namespace Nirvana;
 using namespace Nirvana::Core;
-using namespace std;
 
 namespace TestHeap {
 
@@ -18,6 +19,7 @@ protected:
 	TestHeap ()
 	{
 		MemContext::initialize ();
+		TLS::initialize ();
 	}
 
 	virtual ~TestHeap ()
@@ -162,7 +164,7 @@ TEST_F (TestHeap, ReadOnly)
 	EXPECT_EQ (cb, pu);
 	size_t au = (size_t)heap_.query (p, Memory::QueryParam::ALLOCATION_UNIT);
 	if (au < pu) {
-		fill_n (p, pu / sizeof (size_t), 1);
+		std::fill_n (p, pu / sizeof (size_t), 1);
 		cb = pu;
 		size_t* pro = (size_t*)heap_.copy (nullptr, p, cb, Memory::READ_ONLY);
 		EXPECT_EQ (cb, pu);
@@ -174,7 +176,7 @@ TEST_F (TestHeap, ReadOnly)
 		size_t* p2 = (size_t*)heap_.allocate (p1, cb, 0);
 		EXPECT_EQ (cb, pu2);
 		EXPECT_EQ (p1, p2);
-		fill_n (p2, pu2 / sizeof (size_t), 1);
+		std::fill_n (p2, pu2 / sizeof (size_t), 1);
 		heap_.release (pro, pu);
 	}
 	heap_.release (p, pu);
@@ -211,20 +213,20 @@ public:
 
 	void run (Core::Heap& memory, int iterations);
 
-	const vector <Block>& allocated () const
+	const std::vector <Block>& allocated () const
 	{
 		return allocated_;
 	}
 
 private:
-	mt19937 rndgen_;
-	vector <Block> allocated_;
-	static atomic <size_t> next_tag_;
-	static atomic <size_t> total_allocated_;
+	std::mt19937 rndgen_;
+	std::vector <Block> allocated_;
+	static std::atomic <size_t> next_tag_;
+	static std::atomic <size_t> total_allocated_;
 };
 
-atomic <size_t> RandomAllocator::next_tag_ (1);
-atomic <size_t> RandomAllocator::total_allocated_ (0);
+std::atomic <size_t> RandomAllocator::next_tag_ (1);
+std::atomic <size_t> RandomAllocator::total_allocated_ (0);
 
 void RandomAllocator::run (Core::Heap& memory, int iterations)
 {
@@ -244,23 +246,23 @@ void RandomAllocator::run (Core::Heap& memory, int iterations)
 		Op op;
 		if (allocated_.empty ())
 			op = OP_ALLOCATE;
-		else if (total >= MAX_MEMORY || bernoulli_distribution ((double)total / (double)MAX_MEMORY)(rndgen_))
+		else if (total >= MAX_MEMORY || std::bernoulli_distribution ((double)total / (double)MAX_MEMORY)(rndgen_))
 			op = OP_RELEASE;
 		else
-			op = (Op)uniform_int_distribution <> (OP_ALLOCATE, OP_RELEASE) (rndgen_);
+			op = (Op)std::uniform_int_distribution <> (OP_ALLOCATE, OP_RELEASE) (rndgen_);
 
 		if (op != OP_RELEASE) {
 			try {
 				switch (op) {
 					case OP_ALLOCATE:
 					{
-						size_t size = uniform_int_distribution <size_t> (1, MAX_BLOCK / sizeof (size_t))(rndgen_) * sizeof (size_t);
+						size_t size = std::uniform_int_distribution <size_t> (1, MAX_BLOCK / sizeof (size_t))(rndgen_) * sizeof (size_t);
 						size_t cb = size;
 						size_t* block = (size_t*)memory.allocate (nullptr, cb, Memory::ZERO_INIT);
 						EXPECT_TRUE (check_readable (block, size, 0)); // Check for ZERO_INIT
 						total_allocated_ += size;
 						size_t tag = next_tag_++;
-						fill_n (block, size / sizeof (size_t), tag);
+						std::fill_n (block, size / sizeof (size_t), tag);
 						allocated_.push_back ({ tag, block, block + size / sizeof (size_t), Block::READ_WRITE });
 					}
 					break;
@@ -268,7 +270,7 @@ void RandomAllocator::run (Core::Heap& memory, int iterations)
 					case OP_COPY_RO:
 					case OP_COPY_RW:
 					{
-						size_t idx = uniform_int_distribution <size_t> (0, allocated_.size () - 1)(rndgen_);
+						size_t idx = std::uniform_int_distribution <size_t> (0, allocated_.size () - 1)(rndgen_);
 						Block& src = allocated_ [idx];
 						size_t size = (src.end - src.begin) * sizeof (size_t);
 						bool read_only = OP_COPY_RO == op;
@@ -281,13 +283,13 @@ void RandomAllocator::run (Core::Heap& memory, int iterations)
 
 					case OP_CHANGE_OR_CHECK:
 					{
-						size_t idx = uniform_int_distribution <size_t> (0, allocated_.size () - 1)(rndgen_);
+						size_t idx = std::uniform_int_distribution <size_t> (0, allocated_.size () - 1)(rndgen_);
 						Block& block = allocated_ [idx];
 						if (Block::RESERVED != block.state) {
 							EXPECT_TRUE (check_readable (block.begin, block.end, block.tag));
 							if (Block::READ_WRITE == block.state) {
 								size_t tag = next_tag_++;
-								fill (block.begin, block.end, tag);
+								std::fill (block.begin, block.end, tag);
 								block.tag = tag;
 							}
 						}
@@ -301,7 +303,7 @@ void RandomAllocator::run (Core::Heap& memory, int iterations)
 
 		if (OP_RELEASE == op) {
 			ASSERT_FALSE (allocated_.empty ());
-			size_t idx = uniform_int_distribution <size_t> (0, allocated_.size () - 1)(rndgen_);
+			size_t idx = std::uniform_int_distribution <size_t> (0, allocated_.size () - 1)(rndgen_);
 			Block& block = allocated_ [idx];
 			if (Block::RESERVED != block.state)
 				EXPECT_TRUE (check_readable (block.begin, block.end, block.tag));
@@ -313,14 +315,14 @@ void RandomAllocator::run (Core::Heap& memory, int iterations)
 }
 
 class AllocatedBlocks :
-	public set <Block>
+	public std::set <Block>
 {
 public:
-	void add (const vector <Block>& blocks);
+	void add (const std::vector <Block>& blocks);
 	void check (Core::Heap& memory);
 };
 
-void AllocatedBlocks::add (const vector <Block>& blocks)
+void AllocatedBlocks::add (const std::vector <Block>& blocks)
 {
 	for (auto p = blocks.cbegin (); p != blocks.cend (); ++p) {
 		ASSERT_EQ (p->tag, *p->begin);
@@ -349,7 +351,7 @@ void AllocatedBlocks::check (Core::Heap& memory)
 		size_t* bl = (size_t*)memory.allocate (p->begin, cb, Memory::EXACTLY | ((Block::RESERVED == p->state) ? Memory::RESERVED : 0));
 		assert (bl);
 		ASSERT_EQ (p->begin, bl);
-		fill (p->begin, p->end, p->tag);
+		std::fill (p->begin, p->end, p->tag);
 		if (Block::READ_ONLY == p->state)
 			ASSERT_EQ (memory.copy (p->begin, p->begin, size, Memory::EXACTLY | Memory::READ_ONLY), p->begin);
 	}
@@ -357,7 +359,7 @@ void AllocatedBlocks::check (Core::Heap& memory)
 
 TEST_F (TestHeap, Random)
 {
-	RandomAllocator ra (mt19937::default_seed);
+	RandomAllocator ra (std::mt19937::default_seed);
 	static const int ITERATIONS
 #ifdef _DEBUG
 		= 10;
@@ -379,7 +381,7 @@ TEST_F (TestHeap, Random)
 
 class ThreadAllocator :
 	public RandomAllocator,
-	public thread
+	public std::thread
 {
 public:
 	ThreadAllocator (unsigned seed) :
@@ -388,14 +390,14 @@ public:
 
 	void run (Core::Heap& memory, int iterations)
 	{
-		thread t (&RandomAllocator::run, this, ref (memory), iterations);
+		std::thread t (&RandomAllocator::run, this, std::ref (memory), iterations);
 		swap (t);
 	}
 };
 
 TEST_F (TestHeap, MultiThread)
 {
-	const unsigned int thread_cnt = thread::hardware_concurrency ();
+	const unsigned int thread_cnt = std::thread::hardware_concurrency ();
 	static const int ITERATIONS
 #ifdef _DEBUG
 		= 5;
@@ -403,7 +405,7 @@ TEST_F (TestHeap, MultiThread)
 		= 25;
 #endif
 	static const int THREAD_ITERATIONS = 1000;
-	vector <ThreadAllocator> threads;
+	std::vector <ThreadAllocator> threads;
 	threads.reserve (thread_cnt);
 	for (unsigned int i = 0; i < thread_cnt; ++i)
 		threads.emplace_back (i + 1);
@@ -455,7 +457,7 @@ void write_copy (Core::Heap& memory, void* src, void* dst, size_t size, int iter
 // Test multithread memory sharing. Exception handler must be called during this test.
 TEST_F (TestHeap, MultiThreadCopy)
 {
-	const unsigned thread_count = thread::hardware_concurrency ();
+	const unsigned thread_count = std::thread::hardware_concurrency ();
 	const int iterations = 100;
 
 	size_t block_size = (size_t)heap_.query (nullptr, Memory::QueryParam::SHARING_ASSOCIATIVITY);
@@ -465,13 +467,13 @@ TEST_F (TestHeap, MultiThreadCopy)
 	cb = block_size * thread_count;
 	uint8_t* dst = (uint8_t*)heap_.allocate (nullptr, cb, Memory::RESERVED);
 	size_t thr_size = block_size / thread_count;
-	vector <thread> threads;
+	std::vector <std::thread> threads;
 	threads.reserve (thread_count);
 
 	for (unsigned i = 0; i < thread_count; ++i) {
 		uint8_t* ts = src + thr_size * i;
 		uint8_t* td = dst + (block_size + thr_size) * i;
-		threads.push_back (thread (write_copy, ref (heap_), ts, td, thr_size, iterations));
+		threads.push_back (std::thread (write_copy, std::ref (heap_), ts, td, thr_size, iterations));
 	}
 
 	for (auto p = threads.begin (); p != threads.end (); ++p)
@@ -489,15 +491,42 @@ TEST_F (TestHeap, MultiThreadCopy)
 
 TEST_F (TestHeap, Allocator)
 {
-	typedef forward_list <int, SharedAllocator <int> > FL;
-	typedef allocator_traits <SharedAllocator <int> >::rebind_alloc <double> Rebind;
-	static_assert (is_same <SharedAllocator <double>, Rebind>::value, "Rebind");
+	typedef std::forward_list <int, SharedAllocator <int> > Cont;
+	typedef std::allocator_traits <SharedAllocator <int> >::rebind_alloc <double> Rebind;
+	static_assert (std::is_same <SharedAllocator <double>, Rebind>::value, "Rebind");
 
-	FL fl;
-	fl.push_front (3);
-	fl.push_front (2);
-	fl.push_front (1);
-	fl.clear ();
+	Cont cont;
+	cont.push_front (3);
+	cont.push_front (2);
+	cont.push_front (1);
+	cont.clear ();
+}
+
+TEST_F (TestHeap, HeapAllocator)
+{
+	typedef std::vector <int, HeapAllocator <int> > Cont;
+	{
+		Cont cont (heap_);
+		cont.push_back (1);
+		cont.push_back (2);
+		cont.push_back (3);
+
+		{
+			Cont cont1 (std::move (cont));
+		}
+	}
+}
+
+TEST_F (TestHeap, MemContext)
+{
+	Ref <MemContext> mc = Ref <MemContext>::create <ImplDynamic <MemContextUser> > ();
+
+	unsigned tls_i = TLS::allocate ();
+	mc->get_TLS ().set (tls_i, (void*)1);
+	EXPECT_EQ (mc->get_TLS ().get (tls_i), (void*)1);
+	mc->get_TLS ().set (tls_i, nullptr);
+	mc->get_TLS ().clear ();
+	mc = nullptr;
 }
 
 }

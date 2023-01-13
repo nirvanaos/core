@@ -1,11 +1,11 @@
 #include <Port/Memory.h>
 #include <gtest/gtest.h>
 
-namespace TestMemory {
+using namespace Nirvana;
+using namespace Nirvana::Core;
+using namespace CORBA;
 
-using namespace ::Nirvana;
-using namespace ::Nirvana::Core;
-using namespace ::CORBA;
+namespace TestMemory {
 
 class TestMemory :
 	public ::testing::Test

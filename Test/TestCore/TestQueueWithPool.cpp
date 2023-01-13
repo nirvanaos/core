@@ -5,11 +5,10 @@
 #include <random>
 #include <gtest/gtest.h>
 
-using namespace std;
-using ::Nirvana::DeadlineTime;
-using ::Nirvana::Core::PriorityQueue;
-using ::Nirvana::Core::RandomGen;
-using ::Nirvana::Core::SkipListWithPool;
+using Nirvana::DeadlineTime;
+using Nirvana::Core::PriorityQueue;
+using Nirvana::Core::RandomGen;
+using Nirvana::Core::SkipListWithPool;
 
 namespace TestQueueWithPool {
 
@@ -36,7 +35,7 @@ struct StdNode : Value
 	}
 };
 
-typedef priority_queue <StdNode> StdPriorityQueue;
+typedef std::priority_queue <StdNode> StdPriorityQueue;
 
 typedef SkipListWithPool <PriorityQueue <Value, 10> > Queue;
 
@@ -74,7 +73,7 @@ TEST_F (TestQueueWithPool, SingleThread)
 	Queue queue (MAX_COUNT);
 	StdPriorityQueue queue_std;
 	RandomGen rndgen;
-	uniform_int_distribution <int> distr;
+	std::uniform_int_distribution <int> distr;
 
 	Value v;
 	ASSERT_FALSE (queue.delete_min (v));

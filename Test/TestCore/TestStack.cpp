@@ -5,8 +5,6 @@
 #include <thread>
 #include <random>
 
-using namespace std;
-
 namespace TestStack {
 
 class TestStack :
@@ -72,10 +70,10 @@ TEST_F (TestStack, SingleThread)
 
 void thread_proc (MyStack& stack, unsigned elements, unsigned iterations)
 {
-	random_device rd;
-	mt19937 rndgen (rd ());
-	uniform_int_distribution <> distrib (0, elements);
-	vector <Value*> buf (elements);
+	std::random_device rd;
+	std::mt19937 rndgen (rd ());
+	std::uniform_int_distribution <> distrib (0, elements);
+	std::vector <Value*> buf (elements);
 	while (iterations--) {
 		unsigned cnt = distrib (rndgen);
 		for (unsigned i = 0; i < cnt; ++i) {
@@ -93,21 +91,21 @@ void thread_proc (MyStack& stack, unsigned elements, unsigned iterations)
 
 TEST_F (TestStack, MultiThread)
 {
-	static const unsigned thread_cnt = thread::hardware_concurrency ();
+	static const unsigned thread_cnt = std::thread::hardware_concurrency ();
 	static const unsigned element_cnt = 20;
 	static const unsigned iterations = 10000;
 	MyStack stack;
-	unordered_set <Value*> valset;
+	std::unordered_set <Value*> valset;
 	for (unsigned cnt = thread_cnt * element_cnt; cnt; --cnt) {
 		Value* val = new Value;
 		valset.insert (val);
 		stack.push (*val);
 	}
 
-	vector <thread> threads;
+	std::vector <std::thread> threads;
 	threads.reserve (thread_cnt);
 	for (unsigned cnt = thread_cnt; cnt; --cnt) {
-		threads.emplace_back (thread (thread_proc, ref (stack), element_cnt, iterations));
+		threads.emplace_back (std::thread (thread_proc, std::ref (stack), element_cnt, iterations));
 	}
 
 	for (auto p = threads.begin (); p != threads.end (); ++p) {
