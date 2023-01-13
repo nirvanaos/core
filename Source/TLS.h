@@ -80,13 +80,6 @@ public:
 
 	void clear () NIRVANA_NOEXCEPT;
 
-	void reset_deleters () NIRVANA_NOEXCEPT
-	{
-		for (Entry& entry : entries_) {
-			entry.reset ();
-		}
-	}
-
 private:
 	class Entry
 	{

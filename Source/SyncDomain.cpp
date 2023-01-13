@@ -49,10 +49,6 @@ SyncDomain::~SyncDomain ()
 	assert (!activity_cnt_);
 	if (activity_cnt_)
 		Scheduler::delete_item ();
-
-	// There are no objects associiated with this domain.
-	// So all TLS deleters are probably dangling.
-	mem_context_->get_TLS ().reset_deleters ();
 }
 
 void SyncDomain::schedule () NIRVANA_NOEXCEPT
