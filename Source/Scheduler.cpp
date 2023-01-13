@@ -45,7 +45,7 @@ void Scheduler::shutdown () NIRVANA_NOEXCEPT
 	State state = State::RUNNING;
 	if (global_->state.compare_exchange_strong (state, State::SHUTDOWN_STARTED)) {
 		// Block incoming requests and complete currently executed ones.
-		PortableServer::Core::POA_Base::shutdown ();
+		PortableServer::Core::POA_Root::shutdown ();
 		// Terminate services to release all proxies
 		CORBA::Core::Services::terminate ();
 		// Stop receiving messages

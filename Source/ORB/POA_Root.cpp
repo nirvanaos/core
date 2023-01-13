@@ -111,6 +111,9 @@ POA_Ref POA_Root::find_child (const AdapterPath& path, bool activate_it)
 void POA_Root::invoke (RequestRef request, bool async) NIRVANA_NOEXCEPT
 {
 	try {
+		if (Scheduler::state () != Scheduler::RUNNING)
+			throw CORBA::OBJ_ADAPTER (MAKE_OMG_MINOR (1));
+
 		Object::_ref_type root = get_root (); // Hold root POA reference
 		SYNC_BEGIN (local2proxy (root)->sync_context (), nullptr);
 
@@ -154,6 +157,9 @@ private:
 
 void POA_Root::invoke_async (RequestRef request, DeadlineTime deadline)
 {
+	if (Scheduler::state () != Scheduler::RUNNING)
+		throw CORBA::OBJ_ADAPTER (MAKE_OMG_MINOR (1));
+
 	const ProxyLocal* proxy = CORBA::Core::local2proxy (get_root ());
 	POA_Base* adapter = get_implementation (proxy);
 	assert (adapter);

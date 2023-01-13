@@ -137,6 +137,12 @@ public:
 
 	CORBA::Core::ReferenceLocalRef find_reference (const ObjectKey& key) NIRVANA_NOEXCEPT;
 
+	static void shutdown ()
+	{
+		if (root_) // POA was used in some way
+			root_->_this ()->destroy (true, true);
+	}
+
 private:
 	class InvokeAsync;
 

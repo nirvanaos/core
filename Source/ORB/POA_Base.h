@@ -405,12 +405,6 @@ public:
 	inline void invoke (const RequestRef& request);
 	void serve (const RequestRef& request);
 
-	static void shutdown ()
-	{
-		if (root_) // POA was used in some way
-			POA::_narrow (get_root ())->destroy (true, true);
-	}
-
 	static POA_Base* get_implementation (const CORBA::Core::ProxyLocal* proxy);
 
 	// Entry point vector overrides

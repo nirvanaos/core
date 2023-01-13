@@ -39,6 +39,14 @@ namespace Core {
 class Scheduler
 {
 public:
+	enum State
+	{
+		RUNNING = 0,
+		SHUTDOWN_STARTED,
+		TERMINATE,
+		SHUTDOWN_FINISH
+	};
+
 	static void initialize ()
 	{
 		global_.construct ();
@@ -47,6 +55,11 @@ public:
 	static void terminate () NIRVANA_NOEXCEPT
 	{
 		//global_.destruct ();
+	}
+
+	static State state () NIRVANA_NOEXCEPT
+	{
+		return global_->state;
 	}
 
 	/// Start new activity.
@@ -99,14 +112,6 @@ public:
 	}
 
 private:
-	enum State
-	{
-		RUNNING = 0,
-		SHUTDOWN_STARTED,
-		TERMINATE,
-		SHUTDOWN_FINISH
-	};
-
 	class Terminator : public Runnable
 	{
 	private:
