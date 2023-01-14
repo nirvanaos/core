@@ -24,7 +24,7 @@
 *  popov.nirvana@gmail.com
 */
 #include "StreamInEncap.h"
-#include "../MemContext.h"
+#include "../ExecDomain.h"
 
 using namespace Nirvana;
 using namespace Nirvana::Core;

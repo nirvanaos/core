@@ -25,7 +25,7 @@
 */
 #include "StreamInSM.h"
 #include <Nirvana/bitutils.h>
-#include "../MemContext.h"
+#include "../ExecDomain.h"
 #include <limits>
 
 using namespace Nirvana;

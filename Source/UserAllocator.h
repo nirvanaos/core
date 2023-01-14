@@ -28,7 +28,7 @@
 #define NIRVANA_CORE_USERALLOCATOR_H_
 #pragma once
 
-#include "MemContext.h"
+#include "ExecDomain.h"
 
 namespace Nirvana {
 namespace Core {

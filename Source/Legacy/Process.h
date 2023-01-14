@@ -101,6 +101,8 @@ public:
 	Process (const std::string& file,
 		std::vector <std::string>& argv, std::vector <std::string>& envp,
 		ProcessCallback::_ptr_type callback) :
+		// Inherit the parent heap
+		MemContext (Nirvana::Core::ExecDomain::current ().mem_context ().heap ()),
 		ThreadBase (heap ()),
 		state_ (INIT),
 		ret_ (-1),

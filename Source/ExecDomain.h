@@ -122,7 +122,7 @@ public:
 
 	/// Start legacy process.
 	/// 
-	/// \param process   The Process object.
+	/// \param process The Process object.
 	static void start_legacy_process (Legacy::Core::Process& process);
 
 	const DeadlineTime& deadline () const NIRVANA_NOEXCEPT

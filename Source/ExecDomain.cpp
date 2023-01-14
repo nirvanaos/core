@@ -180,10 +180,8 @@ void ExecDomain::spawn (SyncContext& sync_context)
 
 void ExecDomain::start_legacy_process (Legacy::Core::Process& process)
 {
-	ExecDomain& cur = current ();
-
-	// The process inherits current heap.
-	static_cast <MemContext&> (process) = *cur.mem_context_stack_.top ();
+	// The process must inherit the current heap.
+	assert (&process.heap () == &current ().mem_context ().heap ());
 
 	// Start thread with process as the memory context.
 	start_legacy_thread (process, process);

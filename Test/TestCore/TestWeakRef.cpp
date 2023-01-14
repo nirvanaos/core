@@ -1,4 +1,5 @@
 #include "../Source/WeakRef.h"
+#include "../Source/HeapUser.h"
 #include "gtest/gtest.h"
 
 using namespace std;

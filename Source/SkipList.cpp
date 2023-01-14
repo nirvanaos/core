@@ -23,7 +23,7 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "Heap.h"
+#include "HeapUser.h"
 #include "SkipList.h"
 
 namespace Nirvana {
