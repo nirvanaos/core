@@ -32,6 +32,7 @@ Ref <MemContext> MemContextUser::create ()
 {
 	return Ref <MemContext>::create <ImplDynamic <MemContextUser> > ();
 }
+
 RuntimeProxy::_ref_type MemContextUser::runtime_proxy_get (const void* obj)
 {
 	return runtime_support_.runtime_proxy_get (obj);

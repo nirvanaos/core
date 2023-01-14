@@ -110,7 +110,9 @@ bool operator != (const HeapAllocator <T>& l, const HeapAllocator <U>& r)
 class HeapCore;
 class HeapUser;
 
-/// Heap implementation.
+/// \brief Heap implementation.
+///
+/// The Heap is lock-free object and can be shared a number of threads.
 class Heap
 {
 	Heap (const Heap&) = delete;

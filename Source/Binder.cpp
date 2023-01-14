@@ -144,7 +144,7 @@ void Binder::terminate ()
 {
 	if (!initialized_)
 		return;
-	SYNC_BEGIN (g_core_free_sync_context, &memory ().heap ());
+	SYNC_BEGIN (g_core_free_sync_context, &memory ());
 
 	SYNC_BEGIN (sync_domain (), nullptr);
 	initialized_ = false;
@@ -353,7 +353,7 @@ void Binder::module_unbind (Nirvana::Module::_ptr_type mod, const Section& metad
 void Binder::delete_module (Module* mod)
 {
 	if (mod) {
-		SYNC_BEGIN (g_core_free_sync_context, &memory ().heap ());
+		SYNC_BEGIN (g_core_free_sync_context, &memory ());
 		delete mod;
 		SYNC_END ();
 	}
@@ -368,7 +368,7 @@ Ref <Module> Binder::load (std::string& module_name, bool singleton)
 	ModuleMap::reference entry = *ins.first;
 	if (ins.second) {
 		try {
-			SYNC_BEGIN (g_core_free_sync_context, &memory ().heap ());
+			SYNC_BEGIN (g_core_free_sync_context, &memory ());
 			if (singleton)
 				mod = new Singleton (entry.first);
 			else
@@ -383,21 +383,21 @@ Ref <Module> Binder::load (std::string& module_name, bool singleton)
 					invalid_metadata ();
 
 				auto initial_ref_cnt = mod->_refcount_value ();
-				SYNC_BEGIN (context.sync_context, &mod->heap ());
+				SYNC_BEGIN (context.sync_context, static_cast <MemContext*> (mod));
 				mod->initialize (startup ? ModuleInit::_check (startup->startup) : nullptr, initial_ref_cnt);
 				SYNC_END ();
 
 				try {
 					object_map_.merge (context.exports);
 				} catch (...) {
-					SYNC_BEGIN (context.sync_context, &mod->heap ());
+					SYNC_BEGIN (context.sync_context, static_cast <MemContext*> (mod));
 					mod->terminate ();
 					SYNC_END ();
 					throw;
 				}
 
 			} catch (...) {
-				SYNC_BEGIN (context.sync_context, &mod->heap ());
+				SYNC_BEGIN (context.sync_context, static_cast <MemContext*> (mod));
 				module_unbind (mod->_get_ptr (), mod->metadata ());
 				SYNC_END ();
 				throw;
@@ -422,7 +422,7 @@ Ref <Module> Binder::load (std::string& module_name, bool singleton)
 void Binder::unload (Module* mod)
 {
 	remove_exports (mod->metadata ());
-	SYNC_BEGIN (mod->sync_context (), &mod->heap ());
+	SYNC_BEGIN (mod->sync_context (), static_cast <MemContext*> (mod));
 	mod->terminate ();
 	module_unbind (mod->_get_ptr (), mod->metadata ());
 	SYNC_END ();

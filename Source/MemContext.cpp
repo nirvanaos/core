@@ -40,7 +40,7 @@ bool MemContext::is_current (MemContext* context)
 }
 
 MemContext::MemContext () :
-	heap_ (sizeof (void*) > 16 ? Ref <Heap>::create <ImplDynamic <HeapUser> > () : Ref <Heap> (&Heap::shared_heap ()))
+	heap_ (sizeof (void*) > 2 ? Ref <Heap>::create <ImplDynamic <HeapUser> > () : Ref <Heap> (&Heap::shared_heap ()))
 {}
 
 MemContext::~MemContext ()

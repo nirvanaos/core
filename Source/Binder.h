@@ -64,7 +64,7 @@ class Binder
 
 	// The Binder is high-loaded system service and should have own heap.
 	// Use shared only on systems with low resources.
-	static const bool USE_SHARED_MEMORY = (sizeof (void*) <= 16);
+	static const bool USE_SHARED_MEMORY = (sizeof (void*) <= 2);
 
 public:
 	typedef CORBA::Internal::Interface::_ref_type InterfaceRef;

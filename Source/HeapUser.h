@@ -53,6 +53,7 @@ public:
 	/// \returns `true` if no memory leaks.
 	bool cleanup ();
 
+	/* Unused. Kept just for case.
 	HeapUser& operator = (HeapUser&& other) NIRVANA_NOEXCEPT
 	{
 		cleanup ();
@@ -62,6 +63,7 @@ public:
 		block_list_ = std::move (other.block_list_);
 		return *this;
 	}
+	*/
 };
 
 inline bool Heap::initialize () NIRVANA_NOEXCEPT
@@ -69,14 +71,14 @@ inline bool Heap::initialize () NIRVANA_NOEXCEPT
 	if (!Port::Memory::initialize ())
 		return false;
 	core_heap_.construct ();
-	if (sizeof (void*) > 16)
+	if (sizeof (void*) > 2)
 		shared_heap_.construct ();
 	return true;
 }
 
 inline void Heap::terminate () NIRVANA_NOEXCEPT
 {
-	if (sizeof (void*) > 16)
+	if (sizeof (void*) > 2)
 		shared_heap_.destruct ();
 	core_heap_.destruct ();
 	Port::Memory::terminate ();
@@ -89,7 +91,7 @@ inline Heap& Heap::core_heap () NIRVANA_NOEXCEPT
 
 inline Heap& Heap::shared_heap () NIRVANA_NOEXCEPT
 {
-	if (sizeof (void*) > 16)
+	if (sizeof (void*) > 2)
 		return shared_heap_;
 	else
 		return core_heap_;

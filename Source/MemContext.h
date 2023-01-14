@@ -42,9 +42,6 @@ class NIRVANA_NOVTABLE MemContext
 {
 	DECLARE_CORE_INTERFACE
 
-	MemContext (const MemContext&) = delete;
-	MemContext& operator = (const MemContext&) = delete;
-
 public:
 	/// \returns Current memory context.
 	static MemContext& current ();
@@ -81,12 +78,6 @@ public:
 
 	/// \return Reference to TLS.
 	virtual TLS& get_TLS () NIRVANA_NOEXCEPT = 0;
-
-	MemContext& operator = (MemContext&& other) NIRVANA_NOEXCEPT
-	{
-		heap_ = std::move (other.heap_);
-		return *this;
-	}
 
 protected:
 	MemContext ();

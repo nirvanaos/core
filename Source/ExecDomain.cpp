@@ -181,10 +181,9 @@ void ExecDomain::spawn (SyncContext& sync_context)
 void ExecDomain::start_legacy_process (Legacy::Core::Process& process)
 {
 	ExecDomain& cur = current ();
-	cur.mem_context_->get_TLS ().clear ();
 
-	// Move current memory context into the process.
-	static_cast <MemContext&> (process) = std::move (*cur.mem_context_stack_.top ());
+	// The process inherits current heap.
+	static_cast <MemContext&> (process) = *cur.mem_context_stack_.top ();
 
 	// Start thread with process as the memory context.
 	start_legacy_thread (process, process);
