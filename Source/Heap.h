@@ -31,6 +31,7 @@
 #include "HeapDirectory.h"
 #include <Port/config.h>
 #include "SkipList.h"
+#include "CoreInterface.h"
 #include "StaticallyAllocated.h"
 
 namespace Nirvana {
@@ -39,8 +40,6 @@ namespace Core {
 #define DEFINE_ALLOCATOR(Name) template <class U> operator const Name <U>& () const \
 NIRVANA_NOEXCEPT { return *reinterpret_cast <const Name <U>*> (this); }\
 template <class U> struct rebind { typedef Name <U> other; }
-
-//#define DEFINE_ALLOCATOR(Name)
 
 template <class T>
 class CoreAllocator :
@@ -108,11 +107,16 @@ bool operator != (const HeapAllocator <T>& l, const HeapAllocator <U>& r)
 	return l.heap_ != r.heap_;
 }
 
+class HeapCore;
+class HeapUser;
+
 /// Heap implementation.
 class Heap
 {
 	Heap (const Heap&) = delete;
 	Heap& operator = (const Heap&) = delete;
+
+	DECLARE_CORE_INTERFACE
 
 public:
 	/// See Nirvana::Memory::allocate
@@ -169,6 +173,18 @@ public:
 	/// \param size Memory block size.
 	/// \returns Pointer of the memory block in this heap.
 	void* move_from (Heap& other, void* p, size_t& size);
+
+	/// Returns core heap.
+	static Heap& core_heap () NIRVANA_NOEXCEPT;
+
+	/// Returns shared heap.
+	static Heap& shared_heap () NIRVANA_NOEXCEPT;
+
+	/// Global class initialization.
+	static bool initialize () NIRVANA_NOEXCEPT;
+	
+	/// Global class temination.
+	static void terminate () NIRVANA_NOEXCEPT;
 
 protected:
 	Heap (size_t allocation_unit = HEAP_UNIT_DEFAULT) NIRVANA_NOEXCEPT;
@@ -396,12 +412,14 @@ protected:
 		size_t shrink_size_;
 	};
 
-	void* adopt_large_block (Heap& other, void* p, size_t size);
-
 protected:
 	size_t allocation_unit_;
 	MemoryBlock* part_list_;
 	BlockList block_list_;
+
+private:
+	static StaticallyAllocated <ImplStatic <HeapCore> > core_heap_;
+	static StaticallyAllocated <ImplStatic <HeapUser> > shared_heap_;
 };
 
 class HeapCore : public Heap
@@ -415,19 +433,17 @@ private:
 	virtual MemoryBlock* add_new_partition (MemoryBlock*& tail);
 };
 
-extern StaticallyAllocated <HeapCore> g_core_heap;
-
 template <class T> inline
 void CoreAllocator <T>::deallocate (T* p, size_t cnt)
 {
-	g_core_heap->release (p, cnt * sizeof (T));
+	Heap::core_heap ().release (p, cnt * sizeof (T));
 }
 
 template <class T> inline
 T* CoreAllocator <T>::allocate (size_t cnt)
 {
 	size_t cb = cnt * sizeof (T);
-	return (T*)g_core_heap->allocate (nullptr, cb, 0);
+	return (T*)Heap::core_heap ().allocate (nullptr, cb, 0);
 }
 
 template <class T> inline

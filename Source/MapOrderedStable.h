@@ -24,18 +24,21 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_CORE_POINTERSET_H_
-#define NIRVANA_CORE_POINTERSET_H_
+#ifndef NIRVANA_CORE_MAPORDEREDSTABLE_H_
+#define NIRVANA_CORE_MAPORDEREDSTABLE_H_
 #pragma once
 
-#include "MapUnorderedUnstable.h"
-#include "UserAllocator.h"
+#include <CORBA/CORBA.h>
+
+#include <map>
 
 namespace Nirvana {
 namespace Core {
 
-typedef SetUnorderedUnstable <void*, std::hash <void*>,
-	std::equal_to <void*>, UserAllocator <void*> > PointerSet;
+// Ordered map with pointer stability. Currently use STL map.
+template <class Key, class T, class Compare = std::less <Key>,
+	class Allocator = std::allocator <std::pair <const Key, T> > >
+using MapOrderedStable = std::map <Key, T, Compare, Allocator>;
 
 }
 }

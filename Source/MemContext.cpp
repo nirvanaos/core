@@ -28,17 +28,6 @@
 namespace Nirvana {
 namespace Core {
 
-MemContext& MemContext::current ()
-{
-	Thread* th = Thread::current_ptr ();
-	if (th) {
-		ExecDomain* ed = th->exec_domain ();
-		if (ed)
-			return ed->mem_context ();
-	}
-	return g_shared_mem_context;
-}
-
 bool MemContext::is_current (MemContext* context)
 {
 	Thread* th = Thread::current_ptr ();
@@ -47,10 +36,11 @@ bool MemContext::is_current (MemContext* context)
 		if (ed)
 			return ed->mem_context_ptr () == context;
 	}
-	return &g_shared_mem_context == context;
+	return !context;
 }
 
-MemContext::MemContext ()
+MemContext::MemContext () :
+	heap_ (sizeof (void*) > 16 ? Ref <Heap>::create <ImplDynamic <HeapUser> > () : Ref <Heap> (&Heap::shared_heap ()))
 {}
 
 MemContext::~MemContext ()

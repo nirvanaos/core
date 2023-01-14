@@ -42,7 +42,7 @@ class Singleton :
 public:
 	Singleton (const std::string& name) :
 		Module (name, true),
-		SyncDomain (std::ref (static_cast <MemContext&> (*this)))
+		SyncDomain (Ref <MemContext> (this))
 	{}
 
 	void _add_ref () NIRVANA_NOEXCEPT

@@ -32,14 +32,14 @@ protected:
 	{
 		// Code here will be called immediately after the constructor (right
 		// before each test).
-		Nirvana::Core::MemContext::initialize ();
+		ASSERT_TRUE (Nirvana::Core::Heap::initialize ());
 	}
 
 	virtual void TearDown ()
 	{
 		// Code here will be called immediately after each test (right
 		// before the destructor).
-		Nirvana::Core::MemContext::terminate ();
+		Nirvana::Core::Heap::terminate ();
 	}
 };
 

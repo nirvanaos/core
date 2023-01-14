@@ -28,7 +28,7 @@
 #define NIRVANA_CORE_SHAREDALLOCATOR_H_
 #pragma once
 
-#include "MemContextCore.h"
+#include "HeapUser.h"
 
 namespace Nirvana {
 namespace Core {
@@ -43,13 +43,13 @@ public:
 
 	static void deallocate (T* p, size_t cnt)
 	{
-		g_shared_mem_context->heap ().release (p, cnt * sizeof (T));
+		Heap::shared_heap ().release (p, cnt * sizeof (T));
 	}
 
 	static T* allocate (size_t cnt, void* hint = nullptr, unsigned flags = 0)
 	{
 		size_t cb = cnt * sizeof (T);
-		return (T*)g_shared_mem_context->heap ().allocate (hint, cb, flags);
+		return (T*)Heap::shared_heap ().allocate (hint, cb, flags);
 	}
 };
 

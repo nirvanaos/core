@@ -29,7 +29,6 @@
 #pragma once
 
 #include "HeapUser.h"
-#include "CoreInterface.h"
 
 namespace Nirvana {
 namespace Core {
@@ -52,10 +51,10 @@ public:
 
 	static bool is_current (MemContext* context);
 
-	/// \returns User heap.
+	/// \returns Heap.
 	Heap& heap () NIRVANA_NOEXCEPT
 	{
-		return heap_;
+		return *heap_;
 	}
 
 	/// Search map for runtime proxy for object \p obj.
@@ -83,12 +82,6 @@ public:
 	/// \return Reference to TLS.
 	virtual TLS& get_TLS () NIRVANA_NOEXCEPT = 0;
 
-	/// Global class initialization.
-	inline static bool initialize () NIRVANA_NOEXCEPT;
-
-	/// Global class temination.
-	inline static void terminate () NIRVANA_NOEXCEPT;
-
 	MemContext& operator = (MemContext&& other) NIRVANA_NOEXCEPT
 	{
 		heap_ = std::move (other.heap_);
@@ -97,16 +90,15 @@ public:
 
 protected:
 	MemContext ();
+
+	MemContext (Heap& heap) NIRVANA_NOEXCEPT :
+		heap_ (&heap)
+	{}
+
 	~MemContext ();
 
-	void clear () NIRVANA_NOEXCEPT
-	{
-		heap_.cleanup ();
-		// TODO: Detect and log memory leaks
-	}
-
 protected:
-	HeapUser heap_;
+	Ref <Heap> heap_;
 };
 
 }

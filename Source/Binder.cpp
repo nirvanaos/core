@@ -48,9 +48,7 @@ using namespace CORBA;
 using namespace CORBA::Internal;
 using namespace CORBA::Core;
 
-#ifndef BINDER_USE_SHARED_MEMORY
 StaticallyAllocated <ImplStatic <MemContextCore> > Binder::memory_;
-#endif
 StaticallyAllocated <ImplStatic <SyncDomainCore> > Binder::sync_domain_;
 StaticallyAllocated <Binder> Binder::singleton_;
 bool Binder::initialized_ = false;
@@ -90,10 +88,11 @@ Binder::InterfacePtr Binder::ObjectMap::find (const ObjectKey& key) const
 
 void Binder::initialize ()
 {
-#ifndef BINDER_USE_SHARED_MEMORY
-	memory_.construct ();
-#endif
-	sync_domain_.construct (std::ref (static_cast <MemContextCore&> (memory ())));
+	if (USE_SHARED_MEMORY)
+		memory_.construct (std::ref (Heap::shared_heap ()));
+	else
+		memory_.construct ();
+	sync_domain_.construct (std::ref (memory ().heap ()));
 	singleton_.construct ();
 	Section metadata;
 	if (!Port::SystemInfo::get_OLF_section (metadata))
@@ -145,7 +144,7 @@ void Binder::terminate ()
 {
 	if (!initialized_)
 		return;
-	SYNC_BEGIN (g_core_free_sync_context, &memory ());
+	SYNC_BEGIN (g_core_free_sync_context, &memory ().heap ());
 
 	SYNC_BEGIN (sync_domain (), nullptr);
 	initialized_ = false;
@@ -162,9 +161,7 @@ void Binder::terminate ()
 	SYNC_END ();
 
 	sync_domain_.destruct ();
-#ifndef BINDER_USE_SHARED_MEMORY
 	memory_.destruct ();
-#endif
 
 	SYNC_END ();
 }
@@ -356,7 +353,7 @@ void Binder::module_unbind (Nirvana::Module::_ptr_type mod, const Section& metad
 void Binder::delete_module (Module* mod)
 {
 	if (mod) {
-		SYNC_BEGIN (g_core_free_sync_context, &memory ());
+		SYNC_BEGIN (g_core_free_sync_context, &memory ().heap ());
 		delete mod;
 		SYNC_END ();
 	}
@@ -371,7 +368,7 @@ Ref <Module> Binder::load (std::string& module_name, bool singleton)
 	ModuleMap::reference entry = *ins.first;
 	if (ins.second) {
 		try {
-			SYNC_BEGIN (g_core_free_sync_context, &memory ());
+			SYNC_BEGIN (g_core_free_sync_context, &memory ().heap ());
 			if (singleton)
 				mod = new Singleton (entry.first);
 			else
@@ -386,21 +383,21 @@ Ref <Module> Binder::load (std::string& module_name, bool singleton)
 					invalid_metadata ();
 
 				auto initial_ref_cnt = mod->_refcount_value ();
-				SYNC_BEGIN (context.sync_context, mod);
+				SYNC_BEGIN (context.sync_context, &mod->heap ());
 				mod->initialize (startup ? ModuleInit::_check (startup->startup) : nullptr, initial_ref_cnt);
 				SYNC_END ();
 
 				try {
 					object_map_.merge (context.exports);
 				} catch (...) {
-					SYNC_BEGIN (context.sync_context, mod);
+					SYNC_BEGIN (context.sync_context, &mod->heap ());
 					mod->terminate ();
 					SYNC_END ();
 					throw;
 				}
 
 			} catch (...) {
-				SYNC_BEGIN (context.sync_context, mod);
+				SYNC_BEGIN (context.sync_context, &mod->heap ());
 				module_unbind (mod->_get_ptr (), mod->metadata ());
 				SYNC_END ();
 				throw;
@@ -422,14 +419,14 @@ Ref <Module> Binder::load (std::string& module_name, bool singleton)
 	return mod;
 }
 
-void Binder::unload (Module* pmod)
+void Binder::unload (Module* mod)
 {
-	remove_exports (pmod->metadata ());
-	SYNC_BEGIN (pmod->sync_context (), pmod);
-	pmod->terminate ();
-	module_unbind (pmod->_get_ptr (), pmod->metadata ());
+	remove_exports (mod->metadata ());
+	SYNC_BEGIN (mod->sync_context (), &mod->heap ());
+	mod->terminate ();
+	module_unbind (mod->_get_ptr (), mod->metadata ());
 	SYNC_END ();
-	delete_module (pmod);
+	delete_module (mod);
 }
 
 inline

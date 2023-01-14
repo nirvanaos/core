@@ -29,10 +29,13 @@
 namespace Nirvana {
 namespace Core {
 
-StaticallyAllocated <ImplStatic <MemContextCore> > g_shared_mem_context;
+MemContextCore::MemContextCore () :
+	TLS_ (*heap_)
+{}
 
-MemContextCore::MemContextCore () NIRVANA_NOEXCEPT :
-TLS_ (heap_)
+MemContextCore::MemContextCore (Heap& heap) NIRVANA_NOEXCEPT :
+	MemContext (heap),
+	TLS_ (*heap_)
 {}
 
 MemContextCore::~MemContextCore ()

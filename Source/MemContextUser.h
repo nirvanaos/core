@@ -39,18 +39,19 @@ namespace Core {
 class NIRVANA_NOVTABLE MemContextUser : public MemContextCore
 {
 	typedef MemContextCore Base;
+
 public:
 	/// Create MemContextUser object.
 	/// 
 	/// \returns MemContext reference.
-	static Ref <MemContext> create ()
-	{
-		return Ref <MemContext>::create <ImplDynamic <MemContextUser> > ();
-	}
+	static Ref <MemContext> create ();
 
 protected:
-	MemContextUser () NIRVANA_NOEXCEPT;
-	~MemContextUser ();
+	MemContextUser ()
+	{}
+
+	~MemContextUser ()
+	{}
 
 private:
 	// MemContext methods

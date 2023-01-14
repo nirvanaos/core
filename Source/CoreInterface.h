@@ -52,6 +52,7 @@ _Pragma ("GCC diagnostic pop")
 #define DECLARE_CORE_INTERFACE protected:\
 template <class> friend class Nirvana::Core::Ref;\
 template <class> friend class CORBA::servant_reference;\
+template <class> friend class CORBA::Internal::LifeCycleRefCnt;\
 virtual void _add_ref () NIRVANA_NOEXCEPT = 0;\
 virtual void _remove_ref () NIRVANA_NOEXCEPT = 0;
 
@@ -67,6 +68,9 @@ class ImplDynamic final :
 {
 protected:
 	template <class> friend class Ref;
+
+	template <class S, class ... Args> friend
+	CORBA::Internal::I_ref <typename S::PrimaryInterface> CORBA::make_pseudo (Args ... args);
 
 	template <class ... Args>
 	ImplDynamic (Args ... args) :

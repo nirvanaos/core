@@ -29,10 +29,11 @@
 #pragma once
 
 #include <Nirvana/Nirvana.h>
+#include <CORBA/Server.h>
 #include <Port/FileAccess.h>
-#include "UserObject.h"
+#include "UserAllocator.h"
 #include "Chrono.h"
-#include <map>
+#include "MapOrderedStable.h"
 #include <Nirvana/File_s.h>
 
 namespace Nirvana {
@@ -148,7 +149,7 @@ private:
 	};
 
 	// We can not use `phmap::btree_map` here because we need the iterator stability.
-	typedef std::map <BlockIdx, CacheEntry, std::less <BlockIdx>,
+	typedef MapOrderedStable <BlockIdx, CacheEntry, std::less <BlockIdx>,
 		UserAllocator <std::pair <const BlockIdx, CacheEntry> > > Cache;
 
 	struct CacheRange

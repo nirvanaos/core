@@ -26,6 +26,7 @@
 #include "ExecDomain.h"
 #include "Legacy/Process.h"
 #include "Chrono.h"
+#include "MemContextUser.h"
 #include <Port/SystemInfo.h>
 
 namespace Nirvana {
@@ -94,36 +95,40 @@ void ExecDomain::terminate () NIRVANA_NOEXCEPT
 	Creator::terminate ();
 }
 
-Ref <ExecDomain> ExecDomain::create (const DeadlineTime deadline, MemContext* mem_context)
+Ref <ExecDomain> ExecDomain::create (const DeadlineTime deadline, Ref <MemContext>&& mem_context)
 {
 	Ref <ExecDomain> ed = Creator::create ();
 	Scheduler::activity_begin ();
 	ed->deadline_ = deadline;
 	assert (ed->mem_context_stack_.empty ());
-	ed->mem_context_stack_.push (mem_context);
-	ed->mem_context_ = mem_context;
+
+	MemContext* pmc = mem_context;
+	ed->mem_context_stack_.push (std::move (mem_context));
+	ed->mem_context_ = pmc;
 #ifdef _DEBUG
 	assert (!ed->dbg_context_stack_size_++);
 #endif
 	return ed;
 }
 
-Ref <ExecDomain> ExecDomain::ExecDomain::create (const DeadlineTime deadline, SyncContext& target,
-	MemContext* mem_context)
+Ref <MemContext> ExecDomain::get_mem_context (SyncContext& target, Heap* heap)
 {
+	Ref <MemContext> mem_context;
 	SyncDomain* sd = target.sync_domain ();
 	if (sd) {
-		assert (!mem_context || mem_context == &sd->mem_context ());
+		assert (!heap || heap == &sd->mem_context ().heap ());
 		mem_context = &sd->mem_context ();
-	}
-	return create (deadline, mem_context);
+	} else if (heap)
+		mem_context = Ref <MemContext>::create <ImplDynamic <MemContextCore> > (std::ref (*heap));
+
+	return mem_context;
 }
 
 void ExecDomain::async_call (const DeadlineTime& deadline, Runnable* runnable,
-	SyncContext& target, MemContext* mem_context)
+	SyncContext& target, Heap* heap)
 {
 	assert (runnable);
-	Ref <ExecDomain> exec_domain = create (deadline, target, mem_context);
+	Ref <ExecDomain> exec_domain = create (deadline, target, heap);
 	exec_domain->runnable_ = runnable;
 	exec_domain->spawn (target);
 }
@@ -177,9 +182,11 @@ void ExecDomain::start_legacy_process (Legacy::Core::Process& process)
 {
 	ExecDomain& cur = current ();
 	cur.mem_context_->get_TLS ().clear ();
-	static_cast <Nirvana::Core::MemContext&> (process) = std::move (*cur.mem_context_stack_.top ());
-	cur.mem_context_stack_.top () = &process;
-	cur.mem_context_ = &process;
+
+	// Move current memory context into the process.
+	static_cast <MemContext&> (process) = std::move (*cur.mem_context_stack_.top ());
+
+	// Start thread with process as the memory context.
 	start_legacy_thread (process, process);
 }
 
@@ -257,6 +264,15 @@ void ExecDomain::run () NIRVANA_NOEXCEPT
 	if (runnable == (Runnable*)&runnable_space_)
 		runnable->~Runnable ();
 	cleanup ();
+}
+
+MemContext& ExecDomain::mem_context ()
+{
+	if (!mem_context_) {
+		mem_context_ =
+			mem_context_stack_.top () = MemContextUser::create ();
+	}
+	return *mem_context_;
 }
 
 inline

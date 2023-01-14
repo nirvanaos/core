@@ -42,12 +42,10 @@ protected:
 	TestHeapDirectory () :
 		directory_ (0)
 	{
-		Port::Memory::initialize ();
 	}
 
 	virtual ~TestHeapDirectory ()
 	{
-		Port::Memory::terminate ();
 	}
 
 	// If the constructor and destructor are not enough for setting up
@@ -55,6 +53,7 @@ protected:
 
 	virtual void SetUp ()
 	{
+		ASSERT_TRUE (Port::Memory::initialize ());
 		// Code here will be called immediately after the constructor (right
 		// before each test).
 		directory_ = Factory::create ();
@@ -66,6 +65,7 @@ protected:
 		// Code here will be called immediately after each test (right
 		// before the destructor).
 		Factory::destroy (directory_);
+		Port::Memory::terminate ();
 	}
 
 protected:

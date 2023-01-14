@@ -38,7 +38,7 @@ namespace Core {
 
 bool initialize0 () NIRVANA_NOEXCEPT
 {
-	if (!MemContext::initialize ())
+	if (!Heap::initialize ())
 		return false;
 	TLS::initialize ();
 	g_core_free_sync_context.construct ();
@@ -68,7 +68,7 @@ void terminate0 () NIRVANA_NOEXCEPT
 	ExecDomain::terminate ();
 #ifdef _DEBUG
 	g_core_free_sync_context.destruct ();
-	MemContext::terminate ();
+	Heap::terminate ();
 #endif
 }
 

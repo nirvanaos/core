@@ -33,7 +33,6 @@
 #include "Stack.h"
 #include "RuntimeGlobal.h"
 #include "PreallocatedStack.h"
-#include "MemContextUser.h"
 #include "ObjectPool.h"
 #include "ThreadBackground.h"
 #include "CoreObject.h"
@@ -74,29 +73,52 @@ public:
 	/// Asynchronous call.
 	///
 	/// \tparam R Runnable class
+	/// \param deadline Deadline.
+	/// \param target   Target Synchronization context.
+	/// \param heap     Shared heap (optional).
+	/// \param args     Arguments for R constructor.
+	/// 
+	template <class R, class ... Args>
+	static void async_call (const DeadlineTime& deadline,
+		SyncContext& target, Heap* heap, Args ... args)
+	{
+		async_call <R, Args...> (deadline, target, get_mem_context (target, heap), std::forward <Args> (args)...);
+	}
+
+	/// \brief Asynchronous call.
+	///
+	/// \tparam R Runnable class
 	/// \param deadline    Deadline.
 	/// \param target      Target Synchronization context.
-	/// \param mem_context Target memory context (optional).
+	/// \param mem_context Memory context.
 	/// \param args        Arguments for R constructor.
 	/// 
 	template <class R, class ... Args>
 	static void async_call (const DeadlineTime& deadline,
-		SyncContext& target, MemContext* mem_context, Args ... args) 
+		SyncContext& target, Ref <MemContext>&& mem_context, Args ... args)
 	{
 		static_assert (sizeof (R) <= MAX_RUNNABLE_SIZE, "Runnable too large");
-		Ref <ExecDomain> exec_domain = create (deadline, target, mem_context);
+
+#ifdef _DEBUG
+		{
+			SyncDomain* sd = target.sync_domain ();
+			assert (!sd || &sd->mem_context () == mem_context);
+		}
+#endif
+
+		Ref <ExecDomain> exec_domain = create (deadline, std::move (mem_context));
 		exec_domain->runnable_ = new (&exec_domain->runnable_space_) R (std::forward <Args> (args)...);
 		exec_domain->spawn (target);
 	}
 
 	/// Asynchronous call.
 	/// 
-	/// \param deadline    Deadline.
-	/// \param runnable    Pointer to the Runnable object.
-	/// \param target      Target Synchronization context.
-	/// \param mem_context Target memory context (optional).
+	/// \param deadline Deadline.
+	/// \param runnable Pointer to the Runnable object.
+	/// \param target   Target Synchronization context.
+	/// \param heap     Shared heap (optional).
 	static void async_call (const DeadlineTime& deadline, Runnable* runnable,
-		SyncContext& target, MemContext* mem_context);
+		SyncContext& target, Heap* heap);
 
 	/// Start legacy process.
 	/// 
@@ -137,14 +159,23 @@ public:
 
 	/// Schedule a call to a synchronization context.
 	/// Made inline because it is called only once in Synchronized constructor.
-	void schedule_call (SyncContext& target, MemContext* mem_context)
+	void schedule_call (SyncContext& target, Heap* heap)
 	{
-		SyncDomain* sd = target.sync_domain ();
-		if (sd) {
-			assert (!mem_context || mem_context == &sd->mem_context ());
-			mem_context = &sd->mem_context ();
+		mem_context_push (get_mem_context (target, heap));
+		schedule_call_no_push_mem (target);
+	}
+
+	/// Schedule a call to a synchronization context.
+	/// Made inline because it is called only once in Synchronized constructor.
+	void schedule_call (SyncContext& target, Ref <MemContext>&& mem_context)
+	{
+#ifdef _DEBUG
+		{
+			SyncDomain* sd = target.sync_domain ();
+			assert (!sd || &sd->mem_context () == mem_context);
 		}
-		mem_context_push (mem_context);
+#endif
+		mem_context_push (std::move (mem_context));
 		schedule_call_no_push_mem (target);
 	}
 
@@ -212,15 +243,12 @@ public:
 		}
 	}
 
+	/// \brief Returns current memory context.
+	/// 
+	/// If context is `nullptr`, the new user context will be created.
+	/// 
 	/// \returns Current memory context.
-	MemContext& mem_context ()
-	{
-		if (!mem_context_) {
-			mem_context_ = 
-				mem_context_stack_.top () = MemContextUser::create ();
-		}
-		return *mem_context_;
-	}
+	MemContext& mem_context ();
 
 	MemContext* mem_context_ptr () const NIRVANA_NOEXCEPT
 	{
@@ -234,10 +262,11 @@ public:
 	}
 
 	/// Push new memory context.
-	void mem_context_push (MemContext* context)
+	void mem_context_push (Ref <MemContext> mem_context)
 	{
-		mem_context_stack_.emplace (context);
-		mem_context_ = context;
+		MemContext* p = mem_context;
+		mem_context_stack_.emplace (std::move (mem_context));
+		mem_context_ = p;
 #ifdef _DEBUG
 		++dbg_context_stack_size_;
 #endif
@@ -328,8 +357,13 @@ private:
 
 	using Creator = std::conditional <EXEC_DOMAIN_POOLING, WithPool, NoPool>::type;
 
-	static Ref <ExecDomain> create (const DeadlineTime deadline, MemContext* mem_context = nullptr);
-	static Ref <ExecDomain> create (const DeadlineTime deadline, SyncContext& target, MemContext* mem_context = nullptr);
+	static Ref <ExecDomain> create (const DeadlineTime deadline, Ref <MemContext>&& mem_context);
+	static Ref <MemContext> get_mem_context (SyncContext& target, Heap* heap = nullptr);
+
+	static Ref <ExecDomain> create (const DeadlineTime deadline, SyncContext& target, Heap* heap = nullptr)
+	{
+		return create (deadline, get_mem_context (target, heap));
+	}
 
 	~ExecDomain () NIRVANA_NOEXCEPT
 	{}
@@ -463,6 +497,12 @@ private:
 
 	typename std::aligned_storage <MAX_RUNNABLE_SIZE>::type runnable_space_;
 };
+
+inline
+MemContext& MemContext::current ()
+{
+	return ExecDomain::current ().mem_context ();
+}
 
 }
 }

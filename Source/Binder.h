@@ -62,6 +62,10 @@ class Binder
 	/// it will be temporary adjusted. TODO: config.h
 	static const TimeBase::TimeT MODULE_LOADING_DEADLINE_MAX = 1 * TimeBase::SECOND;
 
+	// The Binder is high-loaded system service and should have own heap.
+	// Use shared only on systems with low resources.
+	static const bool USE_SHARED_MEMORY = (sizeof (void*) <= 16);
+
 public:
 	typedef CORBA::Internal::Interface::_ref_type InterfaceRef;
 	typedef CORBA::Object::_ref_type ObjectRef;
@@ -154,11 +158,7 @@ public:
 
 	static MemContext& memory () NIRVANA_NOEXCEPT
 	{
-#ifndef BINDER_USE_SHARED_MEMORY
 		return memory_;
-#else
-		return g_shared_mem_context;
-#endif
 	}
 
 	void erase_domain (ESIOP::ProtDomainId id) NIRVANA_NOEXCEPT
@@ -252,12 +252,11 @@ private:
 		Version version_;
 	};
 
-#ifndef BINDER_USE_SHARED_MEMORY
 	template <class T>
-	class Allocator : public std::allocator <T>
+	class OwnAllocator : public std::allocator <T>
 	{
 	public:
-		DEFINE_ALLOCATOR (Allocator);
+		DEFINE_ALLOCATOR (OwnAllocator);
 
 		static void deallocate (T* p, size_t cnt)
 		{
@@ -270,10 +269,10 @@ private:
 			return (T*)memory_->heap ().allocate (nullptr, cb, 0);
 		}
 	};
-#else
+
 	template <class T>
-	using Allocator = SharedAllocator <T>;
-#endif
+	using Allocator = std::conditional_t <USE_SHARED_MEMORY,
+		SharedAllocator <T>, OwnAllocator <T> >;
 
 	// We use fast binary tree without the iterator stability.
 	typedef MapOrderedUnstable <ObjectKey, InterfacePtr, std::less <ObjectKey>,
@@ -341,9 +340,7 @@ private:
 	inline void unload_modules ();
 
 private:
-#ifndef BINDER_USE_SHARED_MEMORY
 	static StaticallyAllocated <ImplStatic <MemContextCore> > memory_;
-#endif
 	static StaticallyAllocated <ImplStatic <SyncDomainCore> > sync_domain_;
 	ObjectMap object_map_;
 	ModuleMap module_map_;
@@ -366,7 +363,7 @@ inline CORBA::servant_reference <DomainLocal> DomainsLocalWaitable <Al>::get (Pr
 		typename Map::reference entry = *ins.first;
 		try {
 			Ptr p;
-			SYNC_BEGIN (Nirvana::Core::g_core_free_sync_context, &Nirvana::Core::Binder::memory ());
+			SYNC_BEGIN (Nirvana::Core::g_core_free_sync_context, &Nirvana::Core::Binder::memory ().heap ());
 			p.reset (new DomainLocal (domain_id));
 			SYNC_END ();
 			PortableServer::Servant_var <DomainLocal> ret (p.get ());

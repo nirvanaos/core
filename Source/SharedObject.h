@@ -28,7 +28,7 @@
 #define NIRVANA_CORE_SHAREDOBJECT_H_
 #pragma once
 
-#include "MemContextCore.h"
+#include "Heap.h"
 
 namespace Nirvana {
 namespace Core {
@@ -39,12 +39,12 @@ class SharedObject
 public:
 	void* operator new (size_t cb)
 	{
-		return g_shared_mem_context->heap ().allocate (nullptr, cb, 0);
+		return Heap::shared_heap ().allocate (nullptr, cb, 0);
 	}
 
 	void operator delete (void* p, size_t cb)
 	{
-		g_shared_mem_context->heap ().release (p, cb);
+		Heap::shared_heap ().release (p, cb);
 	}
 
 	void* operator new (size_t cb, void* place)

@@ -39,7 +39,6 @@ GTestSys::GTestSys (int argc, char* argv [], char* envp []) :
 
 void GTestSys::run ()
 {
-	//Thread::current ().exec_domain ()->heap_replace (g_core_heap);
 	StartupSys::run ();
 	ret_ = RUN_ALL_TESTS ();
 	Scheduler::shutdown ();

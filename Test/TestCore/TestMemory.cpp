@@ -24,7 +24,7 @@ protected:
 	{
 		// Code here will be called immediately after the constructor (right
 		// before each test).
-		Port::Memory::initialize ();
+		ASSERT_TRUE (Port::Memory::initialize ());
 	}
 
 	virtual void TearDown ()

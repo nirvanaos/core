@@ -126,7 +126,7 @@ public:
 	void leave () NIRVANA_NOEXCEPT;
 
 protected:
-	SyncDomain (MemContext& memory) NIRVANA_NOEXCEPT;
+	SyncDomain (Ref <MemContext>&& mem_context) NIRVANA_NOEXCEPT;
 	~SyncDomain ();
 
 private:
@@ -163,8 +163,8 @@ protected:
 	/// 
 	/// param parent Parent free sync context.
 	/// param memory Memory context.
-	SyncDomainImpl (SyncContext& parent, MemContext& memory) NIRVANA_NOEXCEPT :
-		SyncDomain (memory),
+	SyncDomainImpl (SyncContext& parent, MemContext& mem_context) NIRVANA_NOEXCEPT :
+		SyncDomain (Ref <MemContext> (&mem_context)),
 		parent_ (&parent)
 	{
 		assert (!parent.sync_domain ());
@@ -188,10 +188,8 @@ class SyncDomainCore : public SyncDomain
 protected:
 	/// Constructor.
 	/// 
-	/// \param memory Memory context.
-	SyncDomainCore (MemContext& memory) NIRVANA_NOEXCEPT :
-		SyncDomain (memory)
-	{}
+	/// \param heap The heap.
+	SyncDomainCore (Heap& heap);
 
 	// SyncContext::
 	virtual Module* module () NIRVANA_NOEXCEPT;

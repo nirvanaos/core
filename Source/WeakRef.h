@@ -66,7 +66,7 @@ private:
 				static_cast <T*> (this)->~T ();
 				size_t cb_rel = sizeof (T) / HEAP_UNIT_DEFAULT * HEAP_UNIT_DEFAULT;
 				if (cb_rel)
-					g_shared_mem_context->heap ().release (this, cb_rel);
+					Heap::shared_heap ().release (this, cb_rel);
 			}
 		}
 	}
@@ -82,7 +82,7 @@ private:
 	{
 		if (!control_block_.ref_cnt_weak.decrement_seq ()) {
 			if (0 == control_block_.ref_cnt.load ())
-				g_shared_mem_context->heap ().release ((uint8_t*)this + sizeof (T), sizeof (*this) - sizeof (T));
+				Heap::shared_heap ().release ((uint8_t*)this + sizeof (T), sizeof (*this) - sizeof (T));
 		}
 	}
 

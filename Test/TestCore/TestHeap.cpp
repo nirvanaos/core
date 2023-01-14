@@ -18,13 +18,11 @@ class TestHeap :
 protected:
 	TestHeap ()
 	{
-		MemContext::initialize ();
 		TLS::initialize ();
 	}
 
 	virtual ~TestHeap ()
 	{
-		MemContext::terminate ();
 	}
 
 	// If the constructor and destructor are not enough for setting up
@@ -34,6 +32,7 @@ protected:
 	{
 		// Code here will be called immediately after the constructor (right
 		// before each test).
+		ASSERT_TRUE (Heap::initialize ());
 		EXPECT_TRUE (heap_.cleanup ());
 	}
 
@@ -42,10 +41,11 @@ protected:
 		// Code here will be called immediately after each test (right
 		// before the destructor).
 		EXPECT_TRUE (heap_.cleanup ());
+		Heap::terminate ();
 	}
 
 protected:
-	HeapUser heap_;
+	ImplStatic <HeapUser> heap_;
 };
 
 bool check_readable (const size_t* begin, const size_t* end, size_t tag)

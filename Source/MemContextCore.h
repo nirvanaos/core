@@ -30,30 +30,19 @@
 
 #include "MemContext.h"
 #include "TLS.h"
-#include "StaticallyAllocated.h"
+#include "SharedObject.h"
 
 namespace Nirvana {
 namespace Core {
 
 class NIRVANA_NOVTABLE MemContextCore :
-	public MemContext
+	public MemContext,
+	public SharedObject
 {
-public:
-	/// Creates MemContext object.
-	/// 
-	/// \returns MemContext reference.
-	static Ref <MemContext> create ()
-	{
-		return Ref <MemContext>::create <ImplDynamic <MemContextCore> > ();
-	}
-
-	void* operator new (size_t cb);
-	void operator delete (void* p, size_t cb);
-	void* operator new (size_t cb, void* place);
-	void operator delete (void*, void*);
-
 protected:
-	MemContextCore () NIRVANA_NOEXCEPT;
+	MemContextCore ();
+	MemContextCore (Heap& heap) NIRVANA_NOEXCEPT;
+
 	~MemContextCore ();
 
 	// MemContext methods
@@ -67,55 +56,6 @@ protected:
 private:
 	TLS TLS_;
 };
-
-/// Shared memory context.
-/// Used for allocation of the core objects to keep g_core_heap
-/// small and fast.
-/// 
-/// NOTE: TLS object is not thread-safe. But TLS may be called only from the
-///       startup execution domain. Do not share g_shared_mem_context with
-///       other execution domains!
-extern StaticallyAllocated <ImplStatic <MemContextCore> > g_shared_mem_context;
-
-inline
-bool MemContext::initialize () NIRVANA_NOEXCEPT
-{
-	if (!Port::Memory::initialize ())
-		return false;
-	g_core_heap.construct ();
-	g_shared_mem_context.construct ();
-	return true;
-}
-
-inline
-void MemContext::terminate () NIRVANA_NOEXCEPT
-{
-	g_shared_mem_context.destruct ();
-	g_core_heap.destruct ();
-	Port::Memory::terminate ();
-}
-
-inline
-void* MemContextCore::operator new (size_t cb)
-{
-	return g_shared_mem_context->heap ().allocate (nullptr, cb, 0);
-}
-
-inline
-void MemContextCore::operator delete (void* p, size_t cb)
-{
-	g_shared_mem_context->heap ().release (p, cb);
-}
-
-inline
-void* MemContextCore::operator new (size_t cb, void* place)
-{
-	return place;
-}
-
-inline
-void MemContextCore::operator delete (void*, void*)
-{}
 
 }
 }

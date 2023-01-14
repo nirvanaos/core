@@ -43,12 +43,12 @@ class CoreObject
 public:
 	void* operator new (size_t cb)
 	{
-		return g_core_heap->allocate (nullptr, cb, 0);
+		return Heap::core_heap ().allocate (nullptr, cb, 0);
 	}
 
 	void operator delete (void* p, size_t cb)
 	{
-		g_core_heap->release (p, cb);
+		Heap::core_heap ().release (p, cb);
 	}
 
 	void* operator new (size_t cb, void* place)

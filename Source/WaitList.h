@@ -30,6 +30,7 @@
 
 #include "ExecDomain.h"
 #include "Chrono.h"
+#include "UserObject.h"
 #include <exception>
 
 namespace Nirvana {

@@ -25,6 +25,7 @@
 */
 #include "RequestLocal.h"
 #include "../Chrono.h"
+#include "../MemContextUser.h"
 
 using namespace Nirvana;
 using namespace Nirvana::Core;

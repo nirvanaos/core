@@ -29,13 +29,22 @@
 namespace Nirvana {
 namespace Core {
 
-Synchronized::Synchronized (SyncContext& target, MemContext* mem_context) :
+Synchronized::Synchronized (SyncContext& target, Heap* heap) :
 	call_context_ (&SyncContext::current ()),
 	exec_domain_ (ExecDomain::current ())
 {
 	// Target can not be legacy thread
 	assert (target.sync_domain () || target.is_free_sync_context ());
-	exec_domain_.schedule_call (target, mem_context);
+	exec_domain_.schedule_call (target, heap);
+}
+
+Synchronized::Synchronized (SyncContext& target, Ref <MemContext>&& mem_context) :
+	call_context_ (&SyncContext::current ()),
+	exec_domain_ (ExecDomain::current ())
+{
+	// Target can not be legacy thread
+	assert (target.sync_domain () || target.is_free_sync_context ());
+	exec_domain_.schedule_call (target, std::move (mem_context));
 }
 
 Synchronized::~Synchronized ()

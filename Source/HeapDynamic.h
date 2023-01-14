@@ -28,7 +28,7 @@
 #define NIRVANA_CORE_HEAPDYNAMIC_H_
 #pragma once
 
-#include "Heap.h"
+#include "HeapUser.h"
 #include <CORBA/Server.h>
 #include <Nirvana/Memory_s.h>
 #include "LifeCyclePseudo.h"
@@ -40,13 +40,16 @@ namespace Core {
 class HeapDynamic :
 	public HeapUser,
 	public CORBA::servant_traits <Nirvana::Memory>::Servant <HeapDynamic>,
-	public LifeCyclePseudo <HeapDynamic>,
+	public CORBA::Internal::LifeCycleRefCnt <HeapDynamic>,
 	public MemContextObject
 {
 public:
+	using MemContextObject::operator new;
+	using MemContextObject::operator delete;
+
 	static Nirvana::Memory::_ref_type create (uint16_t allocation_unit)
 	{
-		return CORBA::make_pseudo <HeapDynamic> (allocation_unit);
+		return CORBA::make_pseudo <ImplDynamic <HeapDynamic> > (allocation_unit);
 	}
 
 	HeapDynamic (uint16_t allocation_unit) :

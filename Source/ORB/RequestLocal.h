@@ -31,6 +31,8 @@
 #include "ProxyManager.h"
 #include "../ExecDomain.h"
 #include "../MemContext.h"
+#include "../UserObject.h"
+#include <CORBA/Server.h>
 #include <CORBA/IORequest_s.h>
 #include "RqHelper.h"
 
@@ -542,15 +544,6 @@ protected:
 		return response_flags () && !cancelled_.exchange (true, std::memory_order_release);
 	}
 
-protected:
-	Nirvana::Core::RefCounter ref_cnt_;
-	servant_reference <MemContext> caller_memory_;
-	servant_reference <MemContext> callee_memory_;
-	Octet* cur_ptr_;
-	State state_;
-	uint8_t response_flags_;
-	std::atomic <bool> cancelled_;
-
 private:
 	struct BlockHdr
 	{
@@ -577,6 +570,15 @@ private:
 	void next_block ();
 
 	void invert_list (Element*& head);
+
+protected:
+	Nirvana::Core::RefCounter ref_cnt_;
+	servant_reference <MemContext> caller_memory_;
+	servant_reference <MemContext> callee_memory_;
+	Octet* cur_ptr_;
+	State state_;
+	uint8_t response_flags_;
+	std::atomic <bool> cancelled_;
 
 private:
 	BlockHdr* first_block_;

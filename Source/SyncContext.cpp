@@ -49,7 +49,7 @@ Heap* SyncContext::stateless_memory () NIRVANA_NOEXCEPT
 
 Heap* SyncContextCore::stateless_memory () NIRVANA_NOEXCEPT
 {
-	return &g_core_heap;
+	return &Heap::shared_heap ();
 }
 
 Module* SyncContextCore::module () NIRVANA_NOEXCEPT

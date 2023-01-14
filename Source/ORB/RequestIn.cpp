@@ -212,7 +212,7 @@ void RequestIn::serve_request (ProxyObject& proxy, IOReference::OperationIndex o
 	has_context_ = op_md.context.size != 0;
 
 	// We don't need to handle exceptions here, because invoke () does not throw exceptions.
-	Nirvana::Core::Synchronized _sync_frame (*sync_context, memory);
+	Nirvana::Core::Synchronized _sync_frame (*sync_context, Ref <MemContext> (memory));
 	if (!is_cancelled ())
 		proxy.invoke (op, _get_ptr ());
 }

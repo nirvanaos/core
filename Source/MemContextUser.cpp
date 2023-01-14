@@ -28,6 +28,10 @@
 namespace Nirvana {
 namespace Core {
 
+Ref <MemContext> MemContextUser::create ()
+{
+	return Ref <MemContext>::create <ImplDynamic <MemContextUser> > ();
+}
 RuntimeProxy::_ref_type MemContextUser::runtime_proxy_get (const void* obj)
 {
 	return runtime_support_.runtime_proxy_get (obj);
@@ -37,12 +41,6 @@ void MemContextUser::runtime_proxy_remove (const void* obj) NIRVANA_NOEXCEPT
 {
 	runtime_support_.runtime_proxy_remove (obj);
 }
-
-MemContextUser::MemContextUser () NIRVANA_NOEXCEPT
-{}
-
-MemContextUser::~MemContextUser ()
-{}
 
 void MemContextUser::on_object_construct (MemContextObject& obj) NIRVANA_NOEXCEPT
 {

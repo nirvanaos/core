@@ -24,12 +24,13 @@
 *  popov.nirvana@gmail.com
 */
 #include "ExecDomain.h"
+#include "MemContextCore.h"
 
 namespace Nirvana {
 namespace Core {
 
-SyncDomain::SyncDomain (MemContext& memory) NIRVANA_NOEXCEPT :
-	mem_context_ (&memory),
+SyncDomain::SyncDomain (Ref <MemContext>&& mem_context) NIRVANA_NOEXCEPT :
+	mem_context_ (std::move (mem_context)),
 	need_schedule_ (false),
 	state_ (State::IDLE),
 	scheduled_deadline_ (0),
@@ -149,6 +150,10 @@ void SyncDomainImpl::raise_exception (CORBA::SystemException::Code code, unsigne
 {
 	parent_->raise_exception (code, minor);
 }
+
+SyncDomainCore::SyncDomainCore (Heap& heap) :
+	SyncDomain (Ref <MemContext>::create <ImplDynamic <MemContextCore> > (std::ref (heap)))
+{}
 
 Module* SyncDomainCore::module () NIRVANA_NOEXCEPT
 {

@@ -23,7 +23,7 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "Heap.h"
+#include "HeapUser.h"
 #include <atomic>
 #include <iostream>
 
@@ -33,7 +33,8 @@
 namespace Nirvana {
 namespace Core {
 
-StaticallyAllocated <HeapCore> g_core_heap;
+StaticallyAllocated <ImplStatic <HeapCore> > Heap::core_heap_;
+StaticallyAllocated <ImplStatic <HeapUser> > Heap::shared_heap_;
 
 inline
 bool Heap::MemoryBlock::collapse_large_block (size_t size) NIRVANA_NOEXCEPT

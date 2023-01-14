@@ -28,14 +28,15 @@
 #define NIRVANA_CORE_HEAPUSER_H_
 #pragma once
 
-#include "Heap.h"
+#include "SharedObject.h"
 
 namespace Nirvana {
 namespace Core {
 
 /// User-mode heap.
 class HeapUser :
-	public Heap
+	public Heap,
+	public SharedObject
 {
 public:
 	HeapUser (size_t allocation_unit = HEAP_UNIT_DEFAULT) :
@@ -62,6 +63,37 @@ public:
 		return *this;
 	}
 };
+
+inline bool Heap::initialize () NIRVANA_NOEXCEPT
+{
+	if (!Port::Memory::initialize ())
+		return false;
+	core_heap_.construct ();
+	if (sizeof (void*) > 16)
+		shared_heap_.construct ();
+	return true;
+}
+
+inline void Heap::terminate () NIRVANA_NOEXCEPT
+{
+	if (sizeof (void*) > 16)
+		shared_heap_.destruct ();
+	core_heap_.destruct ();
+	Port::Memory::terminate ();
+}
+
+inline Heap& Heap::core_heap () NIRVANA_NOEXCEPT
+{
+	return core_heap_;
+}
+
+inline Heap& Heap::shared_heap () NIRVANA_NOEXCEPT
+{
+	if (sizeof (void*) > 16)
+		return shared_heap_;
+	else
+		return core_heap_;
+}
 
 }
 }

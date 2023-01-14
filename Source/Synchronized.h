@@ -38,7 +38,8 @@ class SyncDomain;
 class Synchronized
 {
 public:
-	Synchronized (SyncContext& target, MemContext* mem_context);
+	Synchronized (SyncContext& target, Heap* heap);
+	Synchronized (SyncContext& target, Ref <MemContext>&& mem_context);
 	~Synchronized ();
 
 	/// \returns The caller synchronization context.

@@ -76,8 +76,7 @@ public:
 	}
 
 	Services () :
-		sync_domain_ (std::ref (static_cast <Nirvana::Core::MemContextCore&> (
-			Nirvana::Core::g_shared_mem_context)))
+		sync_domain_ (std::ref (Nirvana::Core::Heap::shared_heap ()))
 	{}
 
 	~Services ()
@@ -105,12 +104,12 @@ private:
 	Object::_ref_type bind_internal (Service sidx);
 
 private:
-	static Nirvana::Core::MemContext* new_service_memory () NIRVANA_NOEXCEPT
+	static Nirvana::Core::Heap* new_service_memory () NIRVANA_NOEXCEPT
 	{
 		return sizeof (void*) > 4 ?
 			nullptr // Create new memory context
 			:
-			&Nirvana::Core::g_shared_mem_context;
+			&Nirvana::Core::Heap::shared_heap ();
 	}
 
 	// Service factories

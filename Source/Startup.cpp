@@ -23,6 +23,7 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
+#include <CORBA/Server.h>
 #include "Startup.h"
 #include "ExecDomain.h"
 #include <Nirvana/Launcher.h>
@@ -43,7 +44,7 @@ Startup::Startup (int argc, char* argv [], char* envp []) :
 
 void Startup::launch (DeadlineTime deadline)
 {
-	ExecDomain::async_call (deadline, this, g_core_free_sync_context, &g_shared_mem_context);
+	ExecDomain::async_call (deadline, this, g_core_free_sync_context, &Heap::shared_heap ());
 }
 
 class ShutdownCallback :
