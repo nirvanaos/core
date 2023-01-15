@@ -29,12 +29,17 @@
 #include "ORB/POA_Root.h"
 #include <Port/PostOffice.h>
 
+#define DEBUG_SHUTDOWN
+
 namespace Nirvana {
 namespace Core {
 
 void Scheduler::Terminator::run ()
 {
 	// Terminate
+#ifdef DEBUG_SHUTDOWN
+	g_system->debug_event (System::DebugEvent::DEBUG_INFO, "Shutdown 1");
+#endif
 	Core::terminate ();
 }
 
@@ -44,7 +49,10 @@ void Scheduler::shutdown () NIRVANA_NOEXCEPT
 {
 	State state = State::RUNNING;
 	if (global_->state.compare_exchange_strong (state, State::SHUTDOWN_STARTED)) {
-		// Block incoming requests and complete currently executed ones.
+#ifdef DEBUG_SHUTDOWN
+		g_system->debug_event (System::DebugEvent::DEBUG_INFO, "Shutdown 0");
+#endif
+			// Block incoming requests and complete currently executed ones.
 		PortableServer::Core::POA_Root::shutdown ();
 		// Terminate services to release all proxies
 		CORBA::Core::Services::terminate ();
