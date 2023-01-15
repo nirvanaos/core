@@ -35,7 +35,7 @@
 namespace Nirvana {
 namespace Core {
 
-/// Memory context full implementation.
+/// \brief Memory context full implementation.
 class NIRVANA_NOVTABLE MemContextUser : public MemContextCore
 {
 	typedef MemContextCore Base;

@@ -35,10 +35,7 @@
 namespace Nirvana {
 namespace Core {
 
-/// \brief The memory context core implementation.
-///
-/// Note that unlike the heap, memory context may not be shared and must be used by exactly one
-/// execution context.
+/// \brief Memory context core implementation.
 class NIRVANA_NOVTABLE MemContextCore :
 	public MemContext,
 	public SharedObject
