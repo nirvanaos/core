@@ -33,6 +33,8 @@
 #include <Port/SystemInfo.h>
 #include <Port/Debugger.h>
 #include <Signals.h>
+#include <Nirvana/Formatter.h>
+#include <unrecoverable_error.h>
 
 namespace Nirvana {
 namespace Core {
@@ -55,12 +57,12 @@ public:
 			MemContext::current ().runtime_proxy_remove (obj);
 	}
 
-	static CORBA::Object::_ref_type bind (const std::string& name)
+	static CORBA::Object::_ref_type bind (const IDL::String& name)
 	{
 		return Binder::bind (name);
 	}
 
-	static CORBA::Internal::Interface::_ref_type bind_interface (const std::string& name, const std::string& iid)
+	static CORBA::Internal::Interface::_ref_type bind_interface (const IDL::String& name, const IDL::String& iid)
 	{
 		return Binder::bind_interface (name, iid);
 	}
@@ -142,10 +144,14 @@ public:
 
 	static void raise (int signal)
 	{
-		if (Signals::is_supported (signal))
-			Thread::current ().exec_domain ()->raise (signal);
-		else
-			throw_BAD_PARAM ();
+		ExecDomain* ed = Thread::current ().exec_domain ();
+		if (ed) {
+			if (Signals::is_supported (signal))
+				ed->raise (signal);
+			else
+				throw_BAD_PARAM ();
+		} else
+			unrecoverable_error ();
 	}
 
 	static void sigaction (int signal, const struct sigaction* act, struct sigaction* oldact)
@@ -176,21 +182,40 @@ public:
 		return !sc.sync_domain () && !sc.is_free_sync_context ();
 	}
 
-	static void debug_event (DebugEvent evt, const std::string& msg)
+	static void debug_event (DebugEvent evt, const IDL::String& msg)
 	{
-		static const char* ev_prefix [3] = {
+		static const char* const ev_prefix [3] = {
 			"INFO: ",
 			"WARNING: ",
 			"ERROR: "
 		};
-		std::string s = ev_prefix [(unsigned)evt];
-		s += msg;
+		// Use shared string to avoid possible problems with the memory context.
+		SharedString s = ev_prefix [(unsigned)evt];
+		s.append (msg.c_str (), msg.size ());
 		s += '\n';
 		Port::Debugger::output_debug_string (s.c_str ());
 		if (DebugEvent::DEBUG_ERROR == evt) {
 			if (!Port::Debugger::debug_break ())
 				raise (SIGABRT);
 		}
+	}
+
+	static void assertion_failed (const IDL::String& expr, const IDL::String& file_name, int32_t line_number)
+	{
+		// Use shared string to avoid possible problems with the memory context.
+		SharedString s;
+		if (!file_name.empty ()) {
+			s.assign (file_name.c_str (), file_name.size ());
+			s += '(';
+			append_format (s, "%i", line_number);
+			s += "): ";
+		}
+		s += "Assertion failed: ";
+		s.append (expr.c_str (), expr.size ());
+		s += '\n';
+		Port::Debugger::output_debug_string (s.c_str ());
+		if (!Port::Debugger::debug_break ())
+			raise (SIGABRT);
 	}
 
 	static bool yield ()
