@@ -151,7 +151,7 @@ public:
 			else
 				throw_BAD_PARAM ();
 		} else
-			unrecoverable_error ();
+			unrecoverable_error (signal);
 	}
 
 	static void sigaction (int signal, const struct sigaction* act, struct sigaction* oldact)

@@ -34,13 +34,13 @@ namespace Nirvana {
 namespace Core {
 namespace Port {
 
-NIRVANA_NORETURN void _unrecoverable_error (const char* file, unsigned line);
+NIRVANA_NORETURN void _unrecoverable_error (int code, const char* file, unsigned line);
 
 }
 }
 }
 
 /// Unrecoverable error macro. Currently unused.
-#define unrecoverable_error() ::Nirvana::Core::Port::_unrecoverable_error (__FILE__, __LINE__)
+#define unrecoverable_error(code) ::Nirvana::Core::Port::_unrecoverable_error (code, __FILE__, __LINE__)
 
 #endif
