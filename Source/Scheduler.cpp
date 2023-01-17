@@ -28,11 +28,17 @@
 #include "initterm.h"
 #include "ORB/POA_Root.h"
 #include <Port/PostOffice.h>
+#include "unrecoverable_error.h"
 
 #define DEBUG_SHUTDOWN
 
 namespace Nirvana {
 namespace Core {
+
+void Scheduler::Shutdown::run ()
+{
+	do_shutdown ();
+}
 
 void Scheduler::Terminator::run ()
 {
@@ -45,6 +51,21 @@ void Scheduler::Terminator::run ()
 
 StaticallyAllocated <Scheduler::GlobalData> Scheduler::global_;
 
+void Scheduler::do_shutdown ()
+{
+	// Block incoming requests and complete currently executed ones.
+	PortableServer::Core::POA_Root::shutdown ();
+	// Terminate services to release all proxies
+	CORBA::Core::Services::terminate ();
+	// Stop receiving messages
+	Port::PostOffice::terminate ();
+	// If no activity - toggle it.
+	if (!global_->activity_cnt) {
+		global_->activity_cnt.increment ();
+		activity_end ();
+	}
+}
+
 void Scheduler::shutdown () NIRVANA_NOEXCEPT
 {
 	State state = State::RUNNING;
@@ -52,16 +73,14 @@ void Scheduler::shutdown () NIRVANA_NOEXCEPT
 #ifdef DEBUG_SHUTDOWN
 		g_system->debug_event (System::DebugEvent::DEBUG_INFO, "Shutdown 0");
 #endif
-			// Block incoming requests and complete currently executed ones.
-		PortableServer::Core::POA_Root::shutdown ();
-		// Terminate services to release all proxies
-		CORBA::Core::Services::terminate ();
-		// Stop receiving messages
-		Port::PostOffice::terminate ();
-		// If no activity - toggle it.
-		if (!global_->activity_cnt) {
-			global_->activity_cnt.increment ();
-			activity_end ();
+		if (Thread::current_ptr ()) // Called from worker thread
+			do_shutdown ();
+		else {
+			try {
+				ExecDomain::async_call <Shutdown> (INFINITE_DEADLINE, g_core_free_sync_context, nullptr);
+			} catch (const CORBA::SystemException& ex) {
+				unrecoverable_error (ex.__code ());
+			}
 		}
 	}
 }

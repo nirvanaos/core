@@ -112,6 +112,14 @@ public:
 	}
 
 private:
+	static void do_shutdown ();
+
+	class Shutdown : public Runnable
+	{
+	private:
+		virtual void run ();
+	};
+
 	class Terminator : public Runnable
 	{
 	private:

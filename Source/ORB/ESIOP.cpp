@@ -272,19 +272,6 @@ void ReceiveSystemException::run ()
 		SystemException::_get_exception_entry (code_)->rep_id, minor_, completed_);
 }
 
-/// Shutdown Runnable
-class ReceiveShutdown :
-	public Runnable
-{
-private:
-	virtual void run () override;
-};
-
-void ReceiveShutdown::run ()
-{
-	Scheduler::shutdown ();
-}
-
 void dispatch_message (MessageHeader& message) NIRVANA_NOEXCEPT
 {
 	switch (message.message_type) {
@@ -360,11 +347,7 @@ void dispatch_message (MessageHeader& message) NIRVANA_NOEXCEPT
 		} break;
 
 		case MessageType::SHUTDOWN:
-			try {
-				ExecDomain::async_call <ReceiveShutdown> (
-					INFINITE_DEADLINE, g_core_free_sync_context, nullptr);
-			} catch (...) {
-			}
+			Scheduler::shutdown ();
 			break;
 	}
 }

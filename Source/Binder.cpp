@@ -488,7 +488,7 @@ Binder::InterfaceRef Binder::find (const ObjectKey& name)
 		if (!itf) {
 			SysDomain::_ref_type sys_domain = SysDomain::_narrow (Services::bind (Services::SysDomain));
 			BindInfo bind_info;
-			sys_domain->get_bind_info (name.name (), 0, bind_info);
+			sys_domain->get_bind_info (name.name (), PLATFORM, bind_info);
 			if (bind_info._d ()) {
 				Ref <Module> mod = load (bind_info.module_name (), false);
 				itf = object_map_.find (name);
