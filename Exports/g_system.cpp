@@ -144,14 +144,18 @@ public:
 
 	static void raise (int signal)
 	{
-		ExecDomain* ed = Thread::current ().exec_domain ();
-		if (ed) {
-			if (Signals::is_supported (signal))
-				ed->raise (signal);
-			else
-				throw_BAD_PARAM ();
-		} else
-			unrecoverable_error (signal);
+		Thread* th = Thread::current_ptr ();
+		if (th) {
+			ExecDomain* ed = th->exec_domain ();
+			if (ed) {
+				if (Signals::is_supported (signal))
+					ed->raise (signal);
+				else
+					throw_BAD_PARAM ();
+			}
+			return;
+		}
+		unrecoverable_error (signal);
 	}
 
 	static void sigaction (int signal, const struct sigaction* act, struct sigaction* oldact)
