@@ -68,6 +68,8 @@ void Scheduler::do_shutdown ()
 
 void Scheduler::shutdown () NIRVANA_NOEXCEPT
 {
+	int* p = nullptr;
+	*p = 0;
 	State state = State::RUNNING;
 	if (global_->state.compare_exchange_strong (state, State::SHUTDOWN_STARTED)) {
 #ifdef DEBUG_SHUTDOWN
