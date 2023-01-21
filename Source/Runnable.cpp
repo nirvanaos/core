@@ -24,6 +24,7 @@
 *  popov.nirvana@gmail.com
 */
 #include "Runnable.h"
+#include "unrecoverable_error.h"
 
 namespace Nirvana {
 namespace Core {
@@ -36,8 +37,7 @@ void Runnable::on_exception () NIRVANA_NOEXCEPT
 
 void Runnable::on_crash (const siginfo& signal) NIRVANA_NOEXCEPT
 {
-	// TODO: Log
-	assert (false);
+	unrecoverable_error (signal.si_signo);
 }
 
 }

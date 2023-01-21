@@ -214,6 +214,7 @@ public:
 	///          `false` to unwind and call on_crash().
 	bool on_signal (const siginfo_t& signal)
 	{
+		// TODO: Check for the signal handlers and return true if signal is handled.
 		if (signal.si_excode != CORBA::Exception::EC_NO_EXCEPTION) {
 			sync_context ().raise_exception ((CORBA::SystemException::Code)signal.si_excode, signal.si_code);
 			return true;

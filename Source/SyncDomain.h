@@ -100,7 +100,7 @@ public:
 
 	void release_queue_node (QueueNode* node) NIRVANA_NOEXCEPT;
 
-	void schedule (QueueNode* node, const DeadlineTime& deadline, Executor& executor) NIRVANA_NOEXCEPT
+	void schedule (QueueNode* node, const DeadlineTime& deadline, Executor& executor)
 	{
 		assert (node);
 		assert (node->domain_ == this);
