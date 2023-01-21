@@ -53,6 +53,8 @@ StaticallyAllocated <Scheduler::GlobalData> Scheduler::global_;
 
 void Scheduler::do_shutdown ()
 {
+	int* p = nullptr;
+	*p = 0;
 	// Block incoming requests and complete currently executed ones.
 	PortableServer::Core::POA_Root::shutdown ();
 	// Terminate services to release all proxies
@@ -66,10 +68,8 @@ void Scheduler::do_shutdown ()
 	}
 }
 
-void Scheduler::shutdown () NIRVANA_NOEXCEPT
+void Scheduler::shutdown ()
 {
-	int* p = nullptr;
-	*p = 0;
 	State state = State::RUNNING;
 	if (global_->state.compare_exchange_strong (state, State::SHUTDOWN_STARTED)) {
 #ifdef DEBUG_SHUTDOWN
@@ -77,13 +77,8 @@ void Scheduler::shutdown () NIRVANA_NOEXCEPT
 #endif
 		if (Thread::current_ptr ()) // Called from worker thread
 			do_shutdown ();
-		else {
-			try {
-				ExecDomain::async_call <Shutdown> (INFINITE_DEADLINE, g_core_free_sync_context, nullptr);
-			} catch (const CORBA::SystemException& ex) {
-				unrecoverable_error (ex.__code ());
-			}
-		}
+		else
+			ExecDomain::async_call <Shutdown> (INFINITE_DEADLINE, g_core_free_sync_context, nullptr);
 	}
 }
 

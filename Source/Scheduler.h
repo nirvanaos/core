@@ -76,7 +76,7 @@ public:
 
 	/// Initiates shutdown.
 	/// Shutdown will be completed when activity count became zero.
-	static void shutdown () NIRVANA_NOEXCEPT;
+	static void shutdown ();
 
 	/// Reserve space for an active item.
 	/// \throws CORBA::NO_MEMORY

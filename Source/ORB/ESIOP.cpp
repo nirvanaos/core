@@ -272,7 +272,7 @@ void ReceiveSystemException::run ()
 		SystemException::_get_exception_entry (code_)->rep_id, minor_, completed_);
 }
 
-void dispatch_message (MessageHeader& message) NIRVANA_NOEXCEPT
+void dispatch_message (MessageHeader& message)
 {
 	switch (message.message_type) {
 		case MessageType::REQUEST: {

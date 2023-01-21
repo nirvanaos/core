@@ -255,7 +255,7 @@ struct Shutdown : MessageHeader
 
 /// Message dispatch function.
 /// Called by the postman from portability layer.
-void dispatch_message (MessageHeader& message) NIRVANA_NOEXCEPT;
+void dispatch_message (MessageHeader& message);
 
 /// Other domain platform properties.
 struct PlatformSizes
