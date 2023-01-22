@@ -59,8 +59,6 @@ void Scheduler::do_shutdown ()
 	CORBA::Core::Services::terminate ();
 	// Stop receiving messages
 	Port::PostOffice::terminate ();
-	int* p = nullptr;
-	*p = 0;
 	// If no activity - toggle it.
 	if (!global_->activity_cnt) {
 		global_->activity_cnt.increment ();
@@ -101,8 +99,11 @@ void Scheduler::activity_end () NIRVANA_NOEXCEPT
 
 			case State::TERMINATE: {
 				State state = State::TERMINATE;
-				if (global_->state.compare_exchange_strong (state, State::SHUTDOWN_FINISH))
+				if (global_->state.compare_exchange_strong (state, State::SHUTDOWN_FINISH)) {
+					int* p = nullptr;
+					*p = 0;
 					Port::Scheduler::shutdown ();
+				}
 			} break;
 		}
 	}
