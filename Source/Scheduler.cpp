@@ -53,10 +53,10 @@ StaticallyAllocated <Scheduler::GlobalData> Scheduler::global_;
 
 void Scheduler::do_shutdown ()
 {
-	int* p = nullptr;
-	*p = 0;
 	// Block incoming requests and complete currently executed ones.
 	PortableServer::Core::POA_Root::shutdown ();
+	int* p = nullptr;
+	*p = 0;
 	// Terminate services to release all proxies
 	CORBA::Core::Services::terminate ();
 	// Stop receiving messages
