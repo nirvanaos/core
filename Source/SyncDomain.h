@@ -109,7 +109,7 @@ public:
 		schedule ();
 	}
 
-	virtual void execute (int scheduler_error);
+	virtual void execute () override;
 
 	virtual SyncDomain* sync_domain () NIRVANA_NOEXCEPT;
 

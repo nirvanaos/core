@@ -32,9 +32,13 @@ namespace Core {
 
 void StartupSys::run ()
 {
-	initialize ();
-	CORBA::Core::Services::bind (CORBA::Core::Services::SysDomain);
-	Startup::run ();
+	try {
+		initialize ();
+		CORBA::Core::Services::bind (CORBA::Core::Services::SysDomain);
+		Startup::run ();
+	} catch (...) {
+		on_exception ();
+	}
 }
 
 }

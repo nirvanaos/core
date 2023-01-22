@@ -46,13 +46,21 @@ void Process::run ()
 	assert (INIT == state_);
 	state_ = RUNNING;
 
-	sync_.construct (std::ref (sync_context ()), std::ref (*this));
+	try {
+		sync_.construct (std::ref (sync_context ()), std::ref (*this));
 
-	Pointers v;
-	v.reserve (argv_.size () + envp_.size () + 2);
-	copy_strings (argv_, v);
-	copy_strings (envp_, v);
-	ret_ = executable_.main ((int)argv_.size (), v.data (), v.data () + argv_.size () + 1);
+		Pointers v;
+		v.reserve (argv_.size () + envp_.size () + 2);
+		copy_strings (argv_, v);
+		copy_strings (envp_, v);
+		ret_ = executable_.main ((int)argv_.size (), v.data (), v.data () + argv_.size () + 1);
+	} catch (const std::exception& ex) {
+		ret_ = -1;
+		console_ << "Unhandled exception: " << ex.what () << '\n';
+	} catch (...) {
+		ret_ = -1;
+		console_ << "Unknown exception\n";
+	}
 	finish ();
 }
 
@@ -80,21 +88,14 @@ void Process::finish () NIRVANA_NOEXCEPT
 	sync_.destruct ();
 }
 
-void Process::on_exception () NIRVANA_NOEXCEPT
-{
-	ret_ = -1;
-	finish ();
-	console_ << "Unhandled exception.\n";
-}
-
 void Process::on_crash (const siginfo& signal) NIRVANA_NOEXCEPT
 {
 	if (SIGABRT == signal.si_signo)
 		ret_ = 3;
 	else
 		ret_ = -1;
-	finish ();
 	console_ << "Process crashed.\n";
+	finish ();
 }
 
 RuntimeProxy::_ref_type Process::runtime_proxy_get (const void* obj)

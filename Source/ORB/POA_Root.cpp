@@ -147,7 +147,6 @@ public:
 
 private:
 	virtual void run ();
-	virtual void on_exception () NIRVANA_NOEXCEPT;
 	virtual void on_crash (const siginfo& signal) NIRVANA_NOEXCEPT;
 
 private:
@@ -174,12 +173,9 @@ void POA_Root::InvokeAsync::run ()
 		invoke_sync (request_);
 	} catch (Exception& e) {
 		request_->set_exception (std::move (e));
+	} catch (...) {
+		request_->set_unknown_exception ();
 	}
-}
-
-void POA_Root::InvokeAsync::on_exception () NIRVANA_NOEXCEPT
-{
-	request_->set_unknown_exception ();
 }
 
 void POA_Root::InvokeAsync::on_crash (const siginfo& signal) NIRVANA_NOEXCEPT

@@ -196,10 +196,9 @@ void ExecDomain::start_legacy_thread (Legacy::Core::Process& process, Legacy::Co
 	exec_domain->spawn (process.sync_context ());
 }
 
-void ExecDomain::execute (int scheduler_error)
+void ExecDomain::execute ()
 {
 	Thread::current ().exec_domain (*this);
-	scheduler_error_ = (CORBA::Exception::Code)scheduler_error;
 	ExecContext::switch_to ();
 }
 
@@ -224,7 +223,6 @@ void ExecDomain::cleanup () NIRVANA_NOEXCEPT
 #ifdef _DEBUG
 	dbg_context_stack_size_ = 0;
 #endif
-	scheduler_error_ = CORBA::SystemException::EC_NO_EXCEPTION;
 	if (scheduler_item_created_) {
 		Scheduler::delete_item ();
 		scheduler_item_created_ = false;
@@ -242,24 +240,18 @@ void ExecDomain::cleanup () NIRVANA_NOEXCEPT
 	_remove_ref ();
 }
 
-void ExecDomain::run () NIRVANA_NOEXCEPT
+void ExecDomain::run ()
 {
 	assert (Thread::current ().exec_domain () == this);
 	assert (runnable_);
 	Runnable* runnable = runnable_;
-	if (scheduler_error_ >= 0) {
-		try {
-			CORBA::SystemException::_raise_by_code (scheduler_error_);
-		} catch (...) {
-			runnable_->on_exception ();
-		}
-		runnable_ = nullptr;
-	} else {
-		ExecContext::run ();
-		assert (!runnable_); // Cleaned inside ExecContext::run ();
-	}
+	ExecContext::run ();
+	assert (!runnable_); // Cleaned inside ExecContext::run ();
+
+	// If Runnable object was constructed in-place, destruct it.
 	if (runnable == (Runnable*)&runnable_space_)
 		runnable->~Runnable ();
+
 	cleanup ();
 }
 
@@ -369,15 +361,6 @@ void ExecDomain::schedule_call_no_push_mem (SyncContext& target)
 			rethrow_exception (ex);
 		}
 
-		// Now ED in the scheduler queue.
-		// Now ED is again executed by the scheduler.
-		// But maybe a schedule error occurs.
-		CORBA::Exception::Code err = scheduler_error ();
-		if (err >= 0) {
-			// We must return to prev synchronization context back before throwing the exception.
-			schedule_return (old_context, true);
-			CORBA::SystemException::_raise_by_code (err);
-		}
 	} else
 		sync_context (target);
 }
@@ -401,12 +384,6 @@ void ExecDomain::schedule_return (SyncContext& target, bool no_reschedule) NIRVA
 		schedule_.ret_ = true;
 		run_in_neutral_context (schedule_);
 		// schedule() can not throw exception in the return mode.
-		// Now ED in the scheduler queue.
-		// Now ED is again executed by the scheduler.
-		// But maybe a schedule error occurs.
-		CORBA::Exception::Code err = scheduler_error ();
-		if (err >= 0)
-			CORBA::SystemException::_raise_by_code (err);
 	} else
 		sync_context (target);
 }
@@ -428,14 +405,12 @@ DeadlineTime ExecDomain::get_request_deadline (bool oneway) const NIRVANA_NOEXCE
 
 void ExecDomain::Schedule::run ()
 {
-	exec_domain_.schedule (*sync_context_, ret_);
-	Thread::current ().yield ();
-}
-
-void ExecDomain::Schedule::on_exception () NIRVANA_NOEXCEPT
-{
-	assert (!ret_);
-	exception_ = std::current_exception ();
+	try {
+		exec_domain_.schedule (*sync_context_, ret_);
+		Thread::current ().yield ();
+	} catch (...) {
+		exception_ = std::current_exception ();
+	}
 }
 
 void ExecDomain::suspend (SyncContext* resume_context)

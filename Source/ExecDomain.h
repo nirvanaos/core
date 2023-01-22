@@ -201,7 +201,7 @@ public:
 	static bool yield ();
 
 	/// \brief Called from the Port implementation.
-	void run () NIRVANA_NOEXCEPT;
+	void run ();
 
 	/// Called from the Port implementation in case of the unrecoverable error.
 	/// \param signal The signal information.
@@ -283,11 +283,6 @@ public:
 		mem_context_ = mem_context_stack_.top ();
 	}
 
-	CORBA::Exception::Code scheduler_error () const NIRVANA_NOEXCEPT
-	{
-		return scheduler_error_;
-	}
-
 #ifdef _DEBUG
 	size_t dbg_context_stack_size_;
 #endif
@@ -344,7 +339,6 @@ private:
 		ref_cnt_ (1),
 		ret_qnodes_ (nullptr),
 		scheduler_item_created_ (false),
-		scheduler_error_ (CORBA::SystemException::EC_NO_EXCEPTION),
 		schedule_ (*this),
 		yield_ (*this),
 		deleter_ (*this),
@@ -389,7 +383,7 @@ private:
 
 	/// Executor::execute ()
 	/// Called from worker thread.
-	void execute (int scheduler_error);
+	virtual void execute () override;
 
 	void ret_qnode_push (SyncDomain& sd)
 	{
@@ -431,7 +425,6 @@ private:
 
 	private:
 		virtual void run ();
-		virtual void on_exception () NIRVANA_NOEXCEPT;
 
 	private:
 		ExecDomain& exec_domain_;
@@ -486,7 +479,6 @@ private:
 	MemContext* mem_context_;
 
 	bool scheduler_item_created_;
-	CORBA::Exception::Code scheduler_error_;
 	Schedule schedule_;
 	Yield yield_;
 	Deleter deleter_;

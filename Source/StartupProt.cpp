@@ -31,8 +31,12 @@ namespace Core {
 
 void StartupProt::run ()
 {
-	initialize ();
-	Startup::run ();
+	try {
+		initialize ();
+		Startup::run ();
+	} catch (...) {
+		on_exception ();
+	}
 }
 
 }

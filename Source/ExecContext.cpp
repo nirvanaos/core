@@ -29,14 +29,10 @@
 namespace Nirvana {
 namespace Core {
 
-void ExecContext::run () NIRVANA_NOEXCEPT
+void ExecContext::run ()
 {
 	assert (runnable_);
-	try {
-		runnable_->run ();
-	} catch (...) {
-		runnable_->on_exception ();
-	}
+	runnable_->run ();
 	runnable_ = nullptr;
 }
 

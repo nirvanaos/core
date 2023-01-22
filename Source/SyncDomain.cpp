@@ -78,13 +78,13 @@ void SyncDomain::schedule () NIRVANA_NOEXCEPT
 	}
 }
 
-void SyncDomain::execute (int scheduler_error)
+void SyncDomain::execute ()
 {
 	assert (State::SCHEDULED == state_);
 	state_ = State::RUNNING;
 	Executor* executor;
 	verify (queue_.delete_min (executor));
-	executor->execute (scheduler_error);
+	executor->execute ();
 }
 
 void SyncDomain::activity_begin ()

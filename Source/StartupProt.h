@@ -48,7 +48,7 @@ public:
 	~StartupProt ()
 	{}
 
-	virtual void run ();
+	virtual void run () override;
 };
 
 }

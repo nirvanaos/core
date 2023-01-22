@@ -94,7 +94,7 @@ public:
 	}
 
 protected:
-	void run () NIRVANA_NOEXCEPT;
+	void run ();
 
 	void on_crash (const siginfo& signal) NIRVANA_NOEXCEPT;
 
