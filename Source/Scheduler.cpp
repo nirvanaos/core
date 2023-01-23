@@ -30,7 +30,7 @@
 #include <Port/PostOffice.h>
 #include "unrecoverable_error.h"
 
-//#define DEBUG_SHUTDOWN
+#define DEBUG_SHUTDOWN
 
 namespace Nirvana {
 namespace Core {
