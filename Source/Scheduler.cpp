@@ -76,7 +76,7 @@ void Scheduler::shutdown ()
 		if (Thread::current_ptr ()) // Called from worker thread
 			do_shutdown ();
 		else
-			ExecDomain::async_call <Shutdown> (INFINITE_DEADLINE, g_core_free_sync_context, nullptr);
+			ExecDomain::async_call <Shutdown> (Chrono::make_deadline (TimeBase::MINUTE), g_core_free_sync_context, nullptr);
 	}
 }
 
@@ -88,7 +88,7 @@ void Scheduler::activity_end () NIRVANA_NOEXCEPT
 				State state = State::SHUTDOWN_STARTED;
 				if (global_->state.compare_exchange_strong (state, State::TERMINATE)) {
 					try {
-						ExecDomain::async_call <Terminator> (INFINITE_DEADLINE, g_core_free_sync_context, nullptr);
+						ExecDomain::async_call <Terminator> (Chrono::make_deadline (TimeBase::MINUTE), g_core_free_sync_context, nullptr);
 					} catch (...) {
 						// Fallback
 						activity_begin ();
