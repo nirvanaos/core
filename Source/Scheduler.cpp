@@ -30,7 +30,13 @@
 #include <Port/PostOffice.h>
 #include "unrecoverable_error.h"
 
-#define DEBUG_SHUTDOWN
+// Output debug messages on shutdown.
+//#define DEBUG_SHUTDOWN
+
+// If we use INFINITE_DEADLINE, the new background thread will be created for shutdown.
+// I'm not sure that it is necessary.
+//#define SHUTDOWN_DEADLINE Chrono::make_deadline (TimeBase::MINUTE)
+#define SHUTDOWN_DEADLINE INFINITE_DEADLINE
 
 namespace Nirvana {
 namespace Core {
@@ -76,7 +82,7 @@ void Scheduler::shutdown ()
 		if (Thread::current_ptr ()) // Called from worker thread
 			do_shutdown ();
 		else
-			ExecDomain::async_call <Shutdown> (Chrono::make_deadline (TimeBase::MINUTE), g_core_free_sync_context, nullptr);
+			ExecDomain::async_call <Shutdown> (SHUTDOWN_DEADLINE, g_core_free_sync_context, nullptr);
 	}
 }
 
@@ -88,7 +94,7 @@ void Scheduler::activity_end () NIRVANA_NOEXCEPT
 				State state = State::SHUTDOWN_STARTED;
 				if (global_->state.compare_exchange_strong (state, State::TERMINATE)) {
 					try {
-						ExecDomain::async_call <Terminator> (Chrono::make_deadline (TimeBase::MINUTE), g_core_free_sync_context, nullptr);
+						ExecDomain::async_call <Terminator> (SHUTDOWN_DEADLINE, g_core_free_sync_context, nullptr);
 					} catch (...) {
 						// Fallback
 						activity_begin ();
