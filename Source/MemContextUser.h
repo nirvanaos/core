@@ -36,30 +36,32 @@ namespace Nirvana {
 namespace Core {
 
 /// \brief Memory context full implementation.
-class NIRVANA_NOVTABLE MemContextUser : public MemContextCore
+class MemContextUser : public MemContextCore
 {
 	typedef MemContextCore Base;
+
+	friend class Nirvana::Core::Ref <MemContext>;
 
 public:
 	/// Create MemContextUser object.
 	/// 
 	/// \returns MemContext reference.
-	static Ref <MemContext> create ();
+	static Ref <MemContext> create ()
+	{
+		return Ref <MemContext>::create <MemContextUser> ();
+	}
 
 protected:
-	MemContextUser ()
-	{}
-
-	~MemContextUser ()
-	{}
+	MemContextUser ();
+	~MemContextUser ();
 
 private:
 	// MemContext methods
 
-	virtual RuntimeProxy::_ref_type runtime_proxy_get (const void* obj);
-	virtual void runtime_proxy_remove (const void* obj) NIRVANA_NOEXCEPT;
-	virtual void on_object_construct (MemContextObject& obj) NIRVANA_NOEXCEPT;
-	virtual void on_object_destruct (MemContextObject& obj) NIRVANA_NOEXCEPT;
+	virtual RuntimeProxy::_ref_type runtime_proxy_get (const void* obj) override;
+	virtual void runtime_proxy_remove (const void* obj) NIRVANA_NOEXCEPT override;
+	virtual void on_object_construct (MemContextObject& obj) NIRVANA_NOEXCEPT override;
+	virtual void on_object_destruct (MemContextObject& obj) NIRVANA_NOEXCEPT override;
 
 protected:
 	RuntimeSupportImpl runtime_support_;

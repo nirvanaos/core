@@ -29,13 +29,11 @@
 namespace Nirvana {
 namespace Core {
 
-MemContextCore::MemContextCore () :
-	TLS_ (*heap_)
+MemContextCore::MemContextCore ()
 {}
 
 MemContextCore::MemContextCore (Heap& heap) NIRVANA_NOEXCEPT :
-	MemContext (heap),
-	TLS_ (*heap_)
+	MemContext (heap)
 {}
 
 MemContextCore::~MemContextCore ()

@@ -42,8 +42,7 @@ void TLS::Entry::destruct () NIRVANA_NOEXCEPT
 	}
 }
 
-TLS::TLS (Heap& heap) :
-	entries_ (heap)
+TLS::TLS ()
 {}
 
 TLS::~TLS ()

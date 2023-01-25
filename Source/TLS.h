@@ -63,7 +63,7 @@ public:
 	/// Limit of the user TLS indexes.
 	static const unsigned USER_TLS_INDEXES = 64;
 
-	TLS (Heap& heap);
+	TLS ();
 	~TLS ();
 
 	static unsigned allocate ();
@@ -134,7 +134,11 @@ private:
 		Deleter deleter_;
 	};
 
-	typedef std::vector <Entry, HeapAllocator <Entry> > Entries;
+	// Do not use UserAllocator here to avoid problems in Debug configuration.
+	// std::vector allocates proxy on construct. It happens on the MemContextCore construct.
+	// But constructing memory context is not current yet.
+	// We use our vector implementation without proxies.
+	typedef std::vector <Entry> Entries;
 	Entries entries_;
 
 	static const size_t BITMAP_SIZE = (USER_TLS_INDEXES + BW_BITS - 1) / BW_BITS;

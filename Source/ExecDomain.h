@@ -262,6 +262,19 @@ public:
 		mem_context_stack_.top ().swap (other);
 	}
 
+	void mem_context_replace (MemContext& tmp) NIRVANA_NOEXCEPT
+	{
+		mem_context_ = &tmp;
+	}
+
+	void mem_context_restore () NIRVANA_NOEXCEPT
+	{
+		if (mem_context_stack_.empty ())
+			mem_context_ = nullptr;
+		else
+			mem_context_ = mem_context_stack_.top ();
+	}
+
 	/// Push new memory context.
 	void mem_context_push (Ref <MemContext> mem_context)
 	{

@@ -42,9 +42,11 @@ class TLS;
 /// Unlike the heap, memory context is not thread-safe and and must be used by exactly one
 /// execution context at the given time.
 /// A number of the memory contexts can share the one heap.
+/// MemContext can not be static.
 class NIRVANA_NOVTABLE MemContext
 {
-	DECLARE_CORE_INTERFACE
+	friend class Nirvana::Core::Ref <MemContext>;
+	friend class CORBA::servant_reference <MemContext>;
 
 public:
 	/// \returns Current memory context.
@@ -90,10 +92,20 @@ protected:
 		heap_ (&heap)
 	{}
 
-	~MemContext ();
+	virtual ~MemContext ();
+
+	void _add_ref () NIRVANA_NOEXCEPT
+	{
+		ref_cnt_.increment ();
+	}
+
+	void _remove_ref () NIRVANA_NOEXCEPT;
 
 protected:
 	Ref <Heap> heap_;
+
+private:
+	RefCounter ref_cnt_;
 };
 
 }

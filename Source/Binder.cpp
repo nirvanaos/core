@@ -48,7 +48,7 @@ using namespace CORBA;
 using namespace CORBA::Internal;
 using namespace CORBA::Core;
 
-StaticallyAllocated <ImplStatic <MemContextCore> > Binder::memory_;
+StaticallyAllocated <ImplStatic <HeapUser> > Binder::heap_;
 StaticallyAllocated <ImplStatic <SyncDomainCore> > Binder::sync_domain_;
 StaticallyAllocated <Binder> Binder::singleton_;
 bool Binder::initialized_ = false;
@@ -89,10 +89,11 @@ Binder::InterfacePtr Binder::ObjectMap::find (const ObjectKey& key) const
 void Binder::initialize ()
 {
 	if (USE_SHARED_MEMORY)
-		memory_.construct (std::ref (Heap::shared_heap ()));
-	else
-		memory_.construct ();
-	sync_domain_.construct (std::ref (memory ().heap ()));
+		sync_domain_.construct (std::ref (Heap::shared_heap ()));
+	else {
+		heap_.construct ();
+		sync_domain_.construct (std::ref (static_cast <Heap&> (heap_)));
+	}
 	singleton_.construct ();
 	Section metadata;
 	if (!Port::SystemInfo::get_OLF_section (metadata))
@@ -161,9 +162,11 @@ void Binder::terminate ()
 	SYNC_END ();
 
 	sync_domain_.destruct ();
-	memory_.destruct ();
 
 	SYNC_END ();
+
+	if (!USE_SHARED_MEMORY)
+		heap_.destruct ();
 }
 
 NIRVANA_NORETURN void Binder::invalid_metadata ()

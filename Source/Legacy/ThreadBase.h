@@ -63,8 +63,7 @@ public:
 	virtual Process& process () NIRVANA_NOEXCEPT = 0;
 
 protected:
-	ThreadBase (Nirvana::Core::Heap& heap) :
-		TLS_ (heap)
+	ThreadBase ()
 	{}
 
 private:

@@ -75,21 +75,17 @@ class RuntimeSupport
 
 	typedef MapUnorderedUnstable <const void*, Ref <RuntimeProxyImpl>,
 		std::hash <const void*>, std::equal_to <const void*>, UserAllocator <
-		std::pair <const void* const, Ref <RuntimeProxyImpl>>>
+		std::pair <const void* const, Ref <RuntimeProxyImpl> > >
 	> ProxyMap;
 
 public:
 	RuntimeProxy::_ref_type runtime_proxy_get (const void* obj);
 	void runtime_proxy_remove (const void* obj) NIRVANA_NOEXCEPT;
 
-	void clear () NIRVANA_NOEXCEPT
-	{
-		ProxyMap tmp = std::move (proxy_map_);
-	}
+	void clear () NIRVANA_NOEXCEPT;
 
-protected:
-	RuntimeSupport ()
-	{}
+	RuntimeSupport ();
+	~RuntimeSupport ();
 
 private:
 	ProxyMap proxy_map_;
@@ -110,9 +106,7 @@ public:
 	{}
 };
 
-class RuntimeSupportImpl :
-	public std::conditional <RUNTIME_SUPPORT_DISABLE, RuntimeSupportFake, RuntimeSupport>::type
-{};
+typedef std::conditional <RUNTIME_SUPPORT_DISABLE, RuntimeSupportFake, RuntimeSupport>::type RuntimeSupportImpl;
 
 }
 }

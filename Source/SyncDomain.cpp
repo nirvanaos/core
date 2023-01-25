@@ -152,7 +152,7 @@ void SyncDomainImpl::raise_exception (CORBA::SystemException::Code code, unsigne
 }
 
 SyncDomainCore::SyncDomainCore (Heap& heap) :
-	SyncDomain (Ref <MemContext>::create <ImplDynamic <MemContextCore> > (std::ref (heap)))
+	SyncDomain (Ref <MemContext>::create <MemContextCore> (std::ref (heap)))
 {}
 
 Module* SyncDomainCore::module () NIRVANA_NOEXCEPT

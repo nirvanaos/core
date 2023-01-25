@@ -28,10 +28,11 @@
 namespace Nirvana {
 namespace Core {
 
-Ref <MemContext> MemContextUser::create ()
-{
-	return Ref <MemContext>::create <ImplDynamic <MemContextUser> > ();
-}
+MemContextUser::MemContextUser ()
+{}
+
+MemContextUser::~MemContextUser ()
+{}
 
 RuntimeProxy::_ref_type MemContextUser::runtime_proxy_get (const void* obj)
 {

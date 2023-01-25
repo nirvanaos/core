@@ -111,7 +111,7 @@ public:
 
 	virtual void execute () override;
 
-	virtual SyncDomain* sync_domain () NIRVANA_NOEXCEPT;
+	virtual SyncDomain* sync_domain () NIRVANA_NOEXCEPT override;
 
 	/// \returns Domain memory context.
 	MemContext& mem_context () NIRVANA_NOEXCEPT

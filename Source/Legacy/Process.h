@@ -103,7 +103,6 @@ public:
 		ProcessCallback::_ptr_type callback) :
 		// Inherit the parent heap
 		MemContext (Nirvana::Core::ExecDomain::current ().mem_context ().heap ()),
-		ThreadBase (heap ()),
 		state_ (INIT),
 		ret_ (-1),
 		executable_ (std::ref (file)),
@@ -136,12 +135,12 @@ public:
 	using Nirvana::Core::SharedObject::operator new;
 	using Nirvana::Core::SharedObject::operator delete;
 
-	void _add_ref () NIRVANA_NOEXCEPT
+	void _add_ref () NIRVANA_NOEXCEPT override
 	{
 		Nirvana::Core::LifeCyclePseudo <Process>::_add_ref ();
 	}
 
-	void _remove_ref () NIRVANA_NOEXCEPT
+	void _remove_ref () NIRVANA_NOEXCEPT override
 	{
 		Nirvana::Core::LifeCyclePseudo <Process>::_remove_ref ();
 	}
@@ -155,17 +154,17 @@ private:
 
 	// Core::MemContext::
 
-	virtual RuntimeProxy::_ref_type runtime_proxy_get (const void* obj);
-	virtual void runtime_proxy_remove (const void* obj) NIRVANA_NOEXCEPT;
+	virtual RuntimeProxy::_ref_type runtime_proxy_get (const void* obj) override;
+	virtual void runtime_proxy_remove (const void* obj) NIRVANA_NOEXCEPT override;
 	virtual void on_object_construct (Nirvana::Core::MemContextObject& obj)
-		NIRVANA_NOEXCEPT;
+		NIRVANA_NOEXCEPT override;
 	virtual void on_object_destruct (Nirvana::Core::MemContextObject& obj)
-		NIRVANA_NOEXCEPT;
-	virtual Nirvana::Core::TLS& get_TLS () NIRVANA_NOEXCEPT;
+		NIRVANA_NOEXCEPT override;
+	virtual Nirvana::Core::TLS& get_TLS () NIRVANA_NOEXCEPT override;
 
 	// ThreadBase::
 
-	virtual Process& process () NIRVANA_NOEXCEPT;
+	virtual Process& process () NIRVANA_NOEXCEPT override;
 
 private:
 	typedef std::vector <std::string> Strings;

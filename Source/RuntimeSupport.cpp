@@ -29,6 +29,17 @@
 namespace Nirvana {
 namespace Core {
 
+RuntimeSupport::RuntimeSupport ()
+{}
+
+RuntimeSupport::~RuntimeSupport ()
+{}
+
+void RuntimeSupport::clear () NIRVANA_NOEXCEPT
+{
+	ProxyMap tmp = std::move (proxy_map_);
+}
+
 RuntimeProxy::_ref_type RuntimeSupport::runtime_proxy_get (const void* obj)
 {
 	auto ins = proxy_map_.emplace (obj, nullptr);

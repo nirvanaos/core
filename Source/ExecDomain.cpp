@@ -119,7 +119,7 @@ Ref <MemContext> ExecDomain::get_mem_context (SyncContext& target, Heap* heap)
 		assert (!heap || heap == &sd->mem_context ().heap ());
 		mem_context = &sd->mem_context ();
 	} else if (heap)
-		mem_context = Ref <MemContext>::create <ImplDynamic <MemContextCore> > (std::ref (*heap));
+		mem_context = Ref <MemContext>::create <MemContextCore> (std::ref (*heap));
 
 	return mem_context;
 }

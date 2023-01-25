@@ -36,10 +36,12 @@ namespace Nirvana {
 namespace Core {
 
 /// \brief Memory context core implementation.
-class NIRVANA_NOVTABLE MemContextCore :
+class MemContextCore :
 	public MemContext,
 	public SharedObject
 {
+	friend class Nirvana::Core::Ref <MemContext>;
+
 protected:
 	MemContextCore ();
 	MemContextCore (Heap& heap) NIRVANA_NOEXCEPT;
@@ -48,11 +50,11 @@ protected:
 
 	// MemContext methods
 
-	virtual RuntimeProxy::_ref_type runtime_proxy_get (const void* obj);
-	virtual void runtime_proxy_remove (const void* obj) NIRVANA_NOEXCEPT;
-	virtual void on_object_construct (MemContextObject& obj) NIRVANA_NOEXCEPT;
-	virtual void on_object_destruct (MemContextObject& obj) NIRVANA_NOEXCEPT;
-	virtual TLS& get_TLS () NIRVANA_NOEXCEPT;
+	virtual RuntimeProxy::_ref_type runtime_proxy_get (const void* obj) override;
+	virtual void runtime_proxy_remove (const void* obj) NIRVANA_NOEXCEPT override;
+	virtual void on_object_construct (MemContextObject& obj) NIRVANA_NOEXCEPT override;
+	virtual void on_object_destruct (MemContextObject& obj) NIRVANA_NOEXCEPT override;
+	virtual TLS& get_TLS () NIRVANA_NOEXCEPT override;
 
 private:
 	TLS TLS_;

@@ -158,7 +158,7 @@ public:
 
 	static MemContext& memory () NIRVANA_NOEXCEPT
 	{
-		return memory_;
+		return sync_domain_->mem_context ();
 	}
 
 	void erase_domain (ESIOP::ProtDomainId id) NIRVANA_NOEXCEPT
@@ -260,13 +260,13 @@ private:
 
 		static void deallocate (T* p, size_t cnt)
 		{
-			memory_->heap ().release (p, cnt * sizeof (T));
+			heap_->release (p, cnt * sizeof (T));
 		}
 
 		static T* allocate (size_t cnt)
 		{
 			size_t cb = cnt * sizeof (T);
-			return (T*)memory_->heap ().allocate (nullptr, cb, 0);
+			return (T*)heap_->allocate (nullptr, cb, 0);
 		}
 	};
 
@@ -340,7 +340,7 @@ private:
 	inline void unload_modules ();
 
 private:
-	static StaticallyAllocated <ImplStatic <MemContextCore> > memory_;
+	static StaticallyAllocated <ImplStatic <HeapUser> > heap_;
 	static StaticallyAllocated <ImplStatic <SyncDomainCore> > sync_domain_;
 	ObjectMap object_map_;
 	ModuleMap module_map_;
