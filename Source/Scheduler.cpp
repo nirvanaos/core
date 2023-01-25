@@ -31,7 +31,7 @@
 #include "unrecoverable_error.h"
 
 // Output debug messages on shutdown.
-//#define DEBUG_SHUTDOWN
+#define DEBUG_SHUTDOWN
 
 // If we use INFINITE_DEADLINE, the new background thread will be created for shutdown.
 // I'm not sure that it is necessary.
@@ -50,7 +50,7 @@ void Scheduler::Terminator::run ()
 {
 	// Terminate
 #ifdef DEBUG_SHUTDOWN
-	g_system->debug_event (System::DebugEvent::DEBUG_INFO, "Shutdown 1");
+	g_system->debug_event (System::DebugEvent::DEBUG_INFO, "Core::terminate ()");
 #endif
 	Core::terminate ();
 }
@@ -59,6 +59,9 @@ StaticallyAllocated <Scheduler::GlobalData> Scheduler::global_;
 
 void Scheduler::do_shutdown ()
 {
+#ifdef DEBUG_SHUTDOWN
+	g_system->debug_event (System::DebugEvent::DEBUG_INFO, "do_shutdown ()");
+#endif
 	// Block incoming requests and complete currently executed ones.
 	PortableServer::Core::POA_Root::shutdown ();
 	// Terminate services to release all proxies
@@ -76,9 +79,6 @@ void Scheduler::shutdown ()
 {
 	State state = State::RUNNING;
 	if (global_->state.compare_exchange_strong (state, State::SHUTDOWN_STARTED)) {
-#ifdef DEBUG_SHUTDOWN
-		g_system->debug_event (System::DebugEvent::DEBUG_INFO, "Shutdown 0");
-#endif
 		if (Thread::current_ptr ()) // Called from worker thread
 			do_shutdown ();
 		else
