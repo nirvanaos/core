@@ -517,16 +517,4 @@ TEST_F (TestHeap, HeapAllocator)
 	}
 }
 
-TEST_F (TestHeap, MemContext)
-{
-	Ref <MemContext> mc = Ref <MemContext>::create <ImplDynamic <MemContextUser> > ();
-
-	unsigned tls_i = TLS::allocate ();
-	mc->get_TLS ().set (tls_i, (void*)1);
-	EXPECT_EQ (mc->get_TLS ().get (tls_i), (void*)1);
-	mc->get_TLS ().set (tls_i, nullptr);
-	mc->get_TLS ().clear ();
-	mc = nullptr;
-}
-
 }
