@@ -251,22 +251,36 @@ public:
 	/// \returns Current memory context.
 	MemContext& mem_context ();
 
+	/// \brief Returns current memory context pointer.
+	///
+	/// \returns Current memory context pointer which can be `nullptr`.
 	MemContext* mem_context_ptr () const NIRVANA_NOEXCEPT
 	{
 		return mem_context_;
 	}
 
+	/// \brief Swap current memory context.
+	/// 
+	/// \param other Other memory context
 	void mem_context_swap (Ref <MemContext>& other) NIRVANA_NOEXCEPT
 	{
 		mem_context_ = other;
 		mem_context_stack_.top ().swap (other);
 	}
 
+	/// \brief Temporary replace current memory context.
+	/// 
+	/// Current memory context then must be restored by call mem_context_restore ().
+	/// Use carefully. When memory context is temporary replaced, no context switch is allowed.
+	/// 
+	/// \param tmp Memory context for temporary replace.
 	void mem_context_replace (MemContext& tmp) NIRVANA_NOEXCEPT
 	{
 		mem_context_ = &tmp;
 	}
 
+	/// \brief Restore the current memory context.
+	/// 
 	void mem_context_restore () NIRVANA_NOEXCEPT
 	{
 		if (mem_context_stack_.empty ())

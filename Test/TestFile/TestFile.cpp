@@ -4,7 +4,6 @@
 #include <gtest/gtest.h>
 
 using namespace Nirvana;
-using namespace std;
 
 namespace TestFile {
 
@@ -36,7 +35,6 @@ protected:
 	}
 };
 
-// This test fails due to error in the heap management
 TEST_F (TestFile, Open)
 {
 	char file_name [L_tmpnam_s];
@@ -44,11 +42,11 @@ TEST_F (TestFile, Open)
 	FileAccessDirect::_ref_type fa = Static <file_factory>::ptr ()->open (file_name, O_CREAT | O_TRUNC);
 
 	EXPECT_EQ (fa->size (), 0);
-	vector <uint8_t> wbuf;
+	std::vector <uint8_t> wbuf;
 	wbuf.resize (1, 1);
 	fa->write (0, wbuf);
 	fa->flush ();
-	vector <uint8_t> rbuf;
+	std::vector <uint8_t> rbuf;
 	fa->read (0, 1, rbuf);
 	EXPECT_EQ (rbuf, wbuf);
 	fa = nullptr;

@@ -54,10 +54,9 @@ void RequestGIOP::_remove_ref () NIRVANA_NOEXCEPT
 {
 	if (!ref_cnt_.decrement ()) {
 		ExecDomain& ed = ExecDomain::current ();
-		Ref <MemContext> mem_context (std::move (mem_context_));
-		ed.mem_context_swap (mem_context);
+		ed.mem_context_replace (*mem_context_);
 		delete this;
-		ed.mem_context_swap (mem_context);
+		ed.mem_context_restore ();
 	}
 }
 

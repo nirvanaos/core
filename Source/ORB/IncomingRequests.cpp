@@ -69,7 +69,7 @@ void IncomingRequests::receive (Ref <RequestIn> rq, uint64_t timestamp)
 			encap.read (alignof (DeadlineTime), sizeof (DeadlineTime), &deadline);
 			if (encap.end ())
 				throw BAD_PARAM ();
-			if (rq->stream_in ()->other_endian ())
+			if (encap.other_endian ())
 				Internal::byteswap (deadline);
 			break;
 		} else if (IOP::RTCorbaPriority == context.context_id ()) {
@@ -78,7 +78,7 @@ void IncomingRequests::receive (Ref <RequestIn> rq, uint64_t timestamp)
 			encap.read (alignof (int16_t), sizeof (int16_t), &priority);
 			if (encap.end ())
 				throw BAD_PARAM ();
-			if (rq->stream_in ()->other_endian ())
+			if (encap.other_endian ())
 				Internal::byteswap (priority);
 			deadline = Chrono::deadline_from_priority (priority);
 			break;

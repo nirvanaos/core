@@ -140,7 +140,7 @@ void RequestIn::_remove_ref () NIRVANA_NOEXCEPT
 
 MemContext* RequestIn::memory () const NIRVANA_NOEXCEPT
 {
-	return RequestGIOP::memory ();
+	return &RequestGIOP::memory ();
 }
 
 const PortableServer::Core::ObjectKey& RequestIn::object_key () const NIRVANA_NOEXCEPT

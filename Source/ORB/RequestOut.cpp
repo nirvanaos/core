@@ -120,26 +120,21 @@ void RequestOut::set_reply (unsigned status, IOP::ServiceContextList&& context,
 				// Preunmarshal data.
 				ExecDomain& ed = ExecDomain::current ();
 				ed.deadline (deadline_);
-				ed.mem_context_push (memory ());
-				try {
-					Ref <RequestLocalBase> pre = Ref <RequestLocalBase>::
-						create <RequestLocalImpl <RequestLocalBase> > (memory (), 3);
-					IORequest::_ptr_type rq = pre->_get_ptr ();
-					std::vector <Octet> buf;
-					buf.resize (3 * sizeof (void*));
-					for (const Parameter* param = metadata_->output.p, *end = param + metadata_->output.size; param != end; ++param) {
-						preunmarshal ((param->type) (), buf, rq);
-					}
-					if (metadata_->return_type)
-						preunmarshal ((metadata_->return_type) (), buf, rq);
-					Base::unmarshal_end ();
-					pre->invoke (); // Rewind to begin
-					preunmarshaled_ = std::move (pre);
-				} catch (...) {
-					ed.mem_context_pop ();
-					throw;
+				// Memory context must be set by caller.
+				assert (ed.mem_context_ptr () == &memory ());
+				Ref <RequestLocalBase> pre = Ref <RequestLocalBase>::
+					create <RequestLocalImpl <RequestLocalBase> > (&memory (), 3);
+				IORequest::_ptr_type rq = pre->_get_ptr ();
+				std::vector <Octet> buf;
+				buf.resize (3 * sizeof (void*));
+				for (const Parameter* param = metadata_->output.p, *end = param + metadata_->output.size; param != end; ++param) {
+					preunmarshal ((param->type) (), buf, rq);
 				}
-				ed.mem_context_pop ();
+				if (metadata_->return_type)
+					preunmarshal ((metadata_->return_type) (), buf, rq);
+				Base::unmarshal_end ();
+				pre->invoke (); // Rewind to begin
+				preunmarshaled_ = std::move (pre);
 			}
 			finalize ();
 			break;
@@ -282,7 +277,7 @@ void RequestOut::set_system_exception (const Char* rep_id, uint32_t minor, Compl
 	try {
 		ImplStatic <StreamOutEncap> sout (true);
 		sout.write_string_c (rep_id);
-		SystemException::_Data data{ minor, completed };
+		SystemException::_Data data { minor, completed };
 		sout.write_c (alignof (SystemException::_Data), sizeof (SystemException::_Data), &data);
 		stream_in_ = Ref <StreamIn>::create <ImplDynamic <StreamInEncapData> > (std::move (sout.data ()));
 	} catch (...) {}

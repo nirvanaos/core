@@ -2,7 +2,6 @@
 #include <gtest/gtest.h>
 
 using namespace Nirvana;
-using namespace std;
 
 // Test for the Nirvana::System interface
 

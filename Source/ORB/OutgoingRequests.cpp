@@ -105,10 +105,9 @@ void OutgoingRequests::set_system_exception (uint32_t request_id, const Char* re
 	Ref <RequestOut> rq = remove_request (request_id);
 	if (rq) {
 		ExecDomain& ed = ExecDomain::current ();
-		Ref <MemContext> mc = rq->memory ();
-		ed.mem_context_swap (mc);
+		ed.mem_context_replace (rq->memory ());
 		rq->set_system_exception (rep_id, minor, completed);
-		ed.mem_context_swap (mc);
+		ed.mem_context_restore ();
 	}
 }
 
@@ -125,7 +124,7 @@ void OutgoingRequests::receive_reply (unsigned GIOP_minor, Ref <StreamIn>&& stre
 	Ref <RequestOut> rq = remove_request (request_id);
 	if (rq) {
 		ExecDomain& ed = ExecDomain::current ();
-		Ref <MemContext> mc = rq->memory ();
+		Ref <MemContext> mc = &rq->memory ();
 		ed.mem_context_swap (mc);
 		try {
 			IOP::ServiceContextList context;

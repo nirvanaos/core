@@ -72,9 +72,9 @@ protected:
 public:
 	/// When request object is created, it saves the current memory context reference.
 	///
-	Nirvana::Core::MemContext* memory () const NIRVANA_NOEXCEPT
+	Nirvana::Core::MemContext& memory () const NIRVANA_NOEXCEPT
 	{
-		return mem_context_;
+		return *mem_context_;
 	}
 
 	///@{

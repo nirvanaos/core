@@ -302,7 +302,8 @@ void ExecDomain::schedule (SyncContext& target, bool ret)
 	if (!sync_domain) {
 		if (INFINITE_DEADLINE == deadline ()) {
 			background = true;
-			if (!background_worker_) {
+			assert (!ret || background_worker_);
+			if (!ret && !background_worker_) {
 				background_worker_ = Ref <ThreadBackground>::create <ImplDynamic <ThreadBackground> > ();
 				background_worker_->start (*this);
 			}
@@ -342,6 +343,11 @@ void ExecDomain::schedule_call_no_push_mem (SyncContext& target)
 	if (old_sd) {
 		ret_qnode_push (*old_sd);
 		old_sd->leave ();
+	} else if (deadline () == INFINITE_DEADLINE) {
+		if (!background_worker_) {
+			background_worker_ = Ref <ThreadBackground>::create <ImplDynamic <ThreadBackground> > ();
+			background_worker_->start (*this);
+		}
 	}
 
 	if (target.sync_domain () || !(deadline () == INFINITE_DEADLINE && &Thread::current () == background_worker_)) {
