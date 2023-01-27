@@ -72,8 +72,11 @@ protected:
 		size_t& allocated_size) override;
 	virtual size_t unmarshal_seq_begin() override;
 	virtual void unmarshal_char (size_t count, Char* data) override;
+	virtual void unmarshal_string (IDL::String& s) override;
 	virtual void unmarshal_char_seq (IDL::Sequence <Char>& s) override;
-	virtual void unmarshal_char_seq (IDL::Sequence <WChar>& s) override;
+	virtual void unmarshal_wchar (size_t count, WChar* data) override;
+	virtual void unmarshal_wstring (IDL::WString& s) override;
+	virtual void unmarshal_wchar_seq (IDL::Sequence <WChar>& s) override;
 	virtual Internal::Interface::_ref_type unmarshal_interface (const IDL::String& interface_id) override;
 	virtual TypeCode::_ref_type unmarshal_type_code () override;
 	virtual Internal::Interface::_ref_type unmarshal_value (const IDL::String& interface_id) override;

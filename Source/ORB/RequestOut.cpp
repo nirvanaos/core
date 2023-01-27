@@ -25,6 +25,7 @@
 */
 #include "RequestOut.h"
 #include "OutgoingRequests.h"
+#include "../MemContextCore.h"
 
 using namespace Nirvana;
 using namespace Nirvana::Core;
@@ -35,12 +36,24 @@ using namespace Internal;
 
 namespace Core {
 
-RequestOut::RequestOut (unsigned GIOP_minor, unsigned response_flags, const Internal::Operation& metadata) :
+RequestOut::RequestOut (unsigned GIOP_minor, unsigned response_flags,
+	const Internal::Operation& metadata) :
 	RequestGIOP (GIOP_minor, true, response_flags),
 	metadata_ (&metadata),
 	id_ (0),
 	status_ (Status::IN_PROGRESS)
 {
+#if (NIRVANA_DEBUG_ITERATORS != 0)
+	SyncContext& sc = SyncContext::current ();
+	if (!sc.sync_domain () && !sc.is_free_sync_context ()) {
+		// Legacy process has memory context with interlocked access to runtime support.
+		// To avoid context switches in iterator debugging during the unmarshaling
+		// we have to create a new memory context with the same heap.
+		mem_context_ = Nirvana::Core::Ref <MemContext>::create <Nirvana::Core::MemContextCore>
+			(std::ref (mem_context_->heap ()));
+	}
+#endif
+
 	if (metadata.flags & Operation::FLAG_OUT_CPLX)
 		response_flags_ |= FLAG_PREUNMARSHAL;
 
@@ -193,6 +206,14 @@ void RequestOut::unmarshal_char (size_t count, Char* data)
 		RequestGIOP::unmarshal_char (count, data);
 }
 
+void RequestOut::unmarshal_string (IDL::String& s)
+{
+	if (preunmarshaled_)
+		preunmarshaled_->unmarshal_string (s);
+	else
+		RequestGIOP::unmarshal_string (s);
+}
+
 void RequestOut::unmarshal_char_seq (IDL::Sequence <Char>& s)
 {
 	if (preunmarshaled_)
@@ -201,12 +222,28 @@ void RequestOut::unmarshal_char_seq (IDL::Sequence <Char>& s)
 		RequestGIOP::unmarshal_char_seq (s);
 }
 
-void RequestOut::unmarshal_char_seq (IDL::Sequence <WChar>& s)
+void RequestOut::unmarshal_wchar (size_t count, WChar* data)
 {
 	if (preunmarshaled_)
-		preunmarshaled_->unmarshal_char_seq (s);
+		preunmarshaled_->unmarshal_wchar (count, data);
 	else
-		RequestGIOP::unmarshal_char_seq (s);
+		RequestGIOP::unmarshal_wchar (count, data);
+}
+
+void RequestOut::unmarshal_wstring (IDL::WString& s)
+{
+	if (preunmarshaled_)
+		preunmarshaled_->unmarshal_wstring (s);
+	else
+		RequestGIOP::unmarshal_wstring (s);
+}
+
+void RequestOut::unmarshal_wchar_seq (IDL::Sequence <WChar>& s)
+{
+	if (preunmarshaled_)
+		preunmarshaled_->unmarshal_wchar_seq (s);
+	else
+		RequestGIOP::unmarshal_wchar_seq (s);
 }
 
 Interface::_ref_type RequestOut::unmarshal_interface (const IDL::String& interface_id)

@@ -177,7 +177,7 @@ public:
 			code_set_conv_->marshal_string (s, move, *stream_out_);
 	}
 
-	void unmarshal_string (IDL::String& s)
+	virtual void unmarshal_string (IDL::String& s)
 	{
 		code_set_conv_->unmarshal_string (*stream_in_, s);
 	}
@@ -194,17 +194,12 @@ public:
 		stream_in_->read_seq (s);
 	}
 
-	virtual void unmarshal_char_seq (IDL::Sequence <WChar>& s)
-	{
-		stream_in_->read_seq (s);
-	}
-
 	void marshal_wchar (size_t count, const WChar* data)
 	{
 		code_set_conv_w_->marshal_char (count, data, *stream_out_);
 	}
 
-	void unmarshal_wchar (size_t count, WChar* data)
+	virtual void unmarshal_wchar (size_t count, WChar* data)
 	{
 		code_set_conv_w_->unmarshal_char (*stream_in_, count, data);
 	}
@@ -214,7 +209,7 @@ public:
 		code_set_conv_w_->marshal_string (s, move, *stream_out_);
 	}
 
-	void unmarshal_wstring (IDL::WString& s)
+	virtual void unmarshal_wstring (IDL::WString& s)
 	{
 		code_set_conv_w_->unmarshal_string (*stream_in_, s);
 	}
@@ -224,7 +219,7 @@ public:
 		code_set_conv_w_->marshal_char_seq (s, move, *stream_out_);
 	}
 
-	void unmarshal_wchar_seq (WCharSeq& s)
+	virtual void unmarshal_wchar_seq (WCharSeq& s)
 	{
 		code_set_conv_w_->unmarshal_char_seq (*stream_in_, s);
 	}
@@ -436,9 +431,9 @@ protected:
 	unsigned response_flags_;
 	Nirvana::Core::Ref <StreamIn> stream_in_;
 	Nirvana::Core::Ref <StreamOut> stream_out_;
+	Nirvana::Core::Ref <Nirvana::Core::MemContext> mem_context_;
 
 private:
-	Nirvana::Core::Ref <Nirvana::Core::MemContext> mem_context_;
 	Nirvana::Core::RefCounter ref_cnt_;
 	Long chunk_level_;
 	Nirvana::Core::Ref <CodeSetConverter> code_set_conv_;
