@@ -75,6 +75,7 @@ void Process::finish () NIRVANA_NOEXCEPT
 	}
 	executable_.unbind ();
 	state_ = COMPLETED;
+	completed_.signal ();
 	if (callback_) {
 		try {
 			callback_->on_process_finish (proxy_);

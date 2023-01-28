@@ -30,7 +30,7 @@
 
 #include <CORBA/Server.h>
 #include <Nirvana/Legacy/Legacy_Process_s.h>
-#include "../ExecDomain.h"
+#include "../Event.h"
 #include "../MemContext.h"
 #include "../RuntimeSupport.h"
 #include "../MemContextObject.h"
@@ -80,12 +80,14 @@ public:
 
 	int exit_code () const
 	{
+		if (COMPLETED != state_)
+			throw_BAD_INV_ORDER ();
 		return ret_;
 	}
 
-	static void wait ()
+	void wait () NIRVANA_NOEXCEPT
 	{
-		throw_NO_IMPLEMENT ();
+		completed_.wait ();
 	}
 
 	static bool kill ()
@@ -180,9 +182,8 @@ private:
 	Strings argv_, envp_;
 	ProcessCallback::_ref_type callback_;
 	Legacy::Process::_ref_type proxy_;
-
-	// Synchronizer
 	Nirvana::Core::Ref <Nirvana::Core::SyncContext> sync_domain_;
+	Nirvana::Core::Event completed_;
 };
 
 }
