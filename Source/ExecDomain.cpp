@@ -327,10 +327,9 @@ void ExecDomain::schedule (SyncContext& target, bool ret)
 			else
 				sync_domain->schedule (deadline (), *this);
 		} else {
-			if (background) {
-				background_worker_->exec_domain (*this);
-				background_worker_->resume ();
-			} else
+			if (background)
+				background_worker_->execute (*this);
+			else
 				Scheduler::schedule (deadline (), *this);
 		}
 	} catch (...) {

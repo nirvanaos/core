@@ -28,15 +28,23 @@
 namespace Nirvana {
 namespace Core {
 
-void ThreadBackground::start ()
+ThreadBackground::ThreadBackground ()
 {
 	Scheduler::activity_begin ();
+}
+
+ThreadBackground::~ThreadBackground ()
+{
+	Scheduler::activity_end ();
+}
+
+void ThreadBackground::start ()
+{
 	_add_ref ();
 	try {
 		Base::start ();
 	} catch (...) {
 		_remove_ref ();
-		Scheduler::activity_end ();
 		throw;
 	}
 }

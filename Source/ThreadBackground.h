@@ -46,15 +46,21 @@ class NIRVANA_NOVTABLE ThreadBackground :
 public:
 	void start ();
 
+	void execute (ExecDomain& exec_domain)
+	{
+		Base::exec_domain (exec_domain);
+		Base::resume ();
+	}
+
 	void finish () NIRVANA_NOEXCEPT
 	{
 		Base::exec_domain (nullptr);
-		resume ();
+		Base::resume ();
 	}
 
 protected:
-	ThreadBackground ()
-	{}
+	ThreadBackground ();
+	~ThreadBackground ();
 
 private:
 	// Called from port.
@@ -64,7 +70,6 @@ private:
 	void on_thread_proc_end () NIRVANA_NOEXCEPT
 	{
 		_remove_ref ();
-		Scheduler::activity_end ();
 	}
 };
 
