@@ -47,8 +47,6 @@ void Process::run ()
 	state_ = RUNNING;
 
 	try {
-		sync_.construct (std::ref (sync_context ()), std::ref (*this));
-
 		Pointers v;
 		v.reserve (argv_.size () + envp_.size () + 2);
 		copy_strings (argv_, v);
@@ -85,7 +83,6 @@ void Process::finish () NIRVANA_NOEXCEPT
 		callback_ = nullptr;
 		proxy_ = nullptr;
 	}
-	sync_.destruct ();
 }
 
 void Process::on_crash (const siginfo& signal) NIRVANA_NOEXCEPT
@@ -102,7 +99,7 @@ RuntimeProxy::_ref_type Process::runtime_proxy_get (const void* obj)
 {
 	RuntimeProxy::_ref_type ret;
 	if (!RUNTIME_SUPPORT_DISABLE) {
-		SYNC_BEGIN (sync_, nullptr);
+		SYNC_BEGIN (*sync_domain_, nullptr);
 		ret = runtime_support_.runtime_proxy_get (obj);
 		SYNC_END ();
 	}
@@ -118,7 +115,7 @@ void Process::runtime_proxy_remove (const void* obj) NIRVANA_NOEXCEPT
 #endif
 
 	if (!RUNTIME_SUPPORT_DISABLE) {
-		SYNC_BEGIN (sync_, nullptr);
+		SYNC_BEGIN (*sync_domain_, nullptr);
 		runtime_support_.runtime_proxy_remove (obj);
 		SYNC_END ();
 	}
@@ -126,14 +123,14 @@ void Process::runtime_proxy_remove (const void* obj) NIRVANA_NOEXCEPT
 
 void Process::on_object_construct (MemContextObject& obj) NIRVANA_NOEXCEPT
 {
-	SYNC_BEGIN (sync_, nullptr);
+	SYNC_BEGIN (*sync_domain_, nullptr);
 	object_list_.push_back (obj);
 	SYNC_END ();
 }
 
 void Process::on_object_destruct (MemContextObject& obj) NIRVANA_NOEXCEPT
 {
-	SYNC_BEGIN (sync_, nullptr);
+	SYNC_BEGIN (*sync_domain_, nullptr);
 	obj.remove ();
 	SYNC_END ();
 }

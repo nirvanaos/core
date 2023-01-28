@@ -48,8 +48,9 @@ void ExecContext::neutral_context_loop () NIRVANA_NOEXCEPT
 	assert (&current () == &thread.neutral_context ());
 	for (;;) {
 		thread.neutral_context ().run ();
-		if (thread.exec_domain ())
-			thread.exec_domain ()->switch_to ();
+		ExecDomain* ed = thread.exec_domain ();
+		if (ed)
+			ed->switch_to ();
 		else
 			break;
 	}

@@ -28,9 +28,8 @@
 namespace Nirvana {
 namespace Core {
 
-void ThreadBackground::start (ExecDomain& ed)
+void ThreadBackground::start ()
 {
-	Base::exec_domain (ed);
 	Scheduler::activity_begin ();
 	_add_ref ();
 	try {

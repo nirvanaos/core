@@ -192,7 +192,7 @@ void ExecDomain::start_legacy_thread (Legacy::Core::Process& process, Legacy::Co
 	Ref <ExecDomain> exec_domain = create (INFINITE_DEADLINE, &process);
 	exec_domain->runnable_ = &thread;
 	exec_domain->background_worker_ = &thread;
-	thread.start (*exec_domain);
+	thread.start ();
 	exec_domain->spawn (process.sync_context ());
 }
 
@@ -292,6 +292,14 @@ void ExecDomain::on_crash (const siginfo& signal) NIRVANA_NOEXCEPT
 	cleanup ();
 }
 
+void ExecDomain::create_background_worker ()
+{
+	if (!background_worker_) {
+		background_worker_ = Ref <ThreadBackground>::create <ImplDynamic <ThreadBackground> > ();
+		background_worker_->start ();
+	}
+}
+
 void ExecDomain::schedule (SyncContext& target, bool ret)
 {
 	assert (ExecContext::current_ptr () != this);
@@ -303,10 +311,8 @@ void ExecDomain::schedule (SyncContext& target, bool ret)
 		if (INFINITE_DEADLINE == deadline ()) {
 			background = true;
 			assert (!ret || background_worker_);
-			if (!ret && !background_worker_) {
-				background_worker_ = Ref <ThreadBackground>::create <ImplDynamic <ThreadBackground> > ();
-				background_worker_->start (*this);
-			}
+			if (!ret)
+				create_background_worker ();
 		} else if (!scheduler_item_created_) {
 			Scheduler::create_item ();
 			scheduler_item_created_ = true;
@@ -321,9 +327,10 @@ void ExecDomain::schedule (SyncContext& target, bool ret)
 			else
 				sync_domain->schedule (deadline (), *this);
 		} else {
-			if (background)
+			if (background) {
+				background_worker_->exec_domain (*this);
 				background_worker_->resume ();
-			else
+			} else
 				Scheduler::schedule (deadline (), *this);
 		}
 	} catch (...) {
@@ -343,12 +350,8 @@ void ExecDomain::schedule_call_no_push_mem (SyncContext& target)
 	if (old_sd) {
 		ret_qnode_push (*old_sd);
 		old_sd->leave ();
-	} else if (deadline () == INFINITE_DEADLINE) {
-		if (!background_worker_) {
-			background_worker_ = Ref <ThreadBackground>::create <ImplDynamic <ThreadBackground> > ();
-			background_worker_->start (*this);
-		}
-	}
+	} else if (deadline () == INFINITE_DEADLINE)
+		create_background_worker (); // Prepare to return to background
 
 	if (target.sync_domain () || !(deadline () == INFINITE_DEADLINE && &Thread::current () == background_worker_)) {
 		// Need to schedule

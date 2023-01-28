@@ -34,12 +34,15 @@ namespace Nirvana {
 namespace Core {
 
 inline
-void ThreadBackground::execute () NIRVANA_NOEXCEPT
+bool ThreadBackground::execute () NIRVANA_NOEXCEPT
 {
-	if (exec_domain ()) {
-		exec_domain ()->switch_to ();
+	ExecDomain* ed = exec_domain ();
+	if (ed) {
+		ed->switch_to ();
 		ExecContext::neutral_context_loop ();
+		return true;
 	}
+	return false;
 }
 
 }

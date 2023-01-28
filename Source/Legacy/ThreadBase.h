@@ -41,6 +41,7 @@ class Process;
 /// Legacy thread base.
 class NIRVANA_NOVTABLE ThreadBase :
 	public Nirvana::Core::ThreadBackground,
+	public Nirvana::Core::UserObject,
 	public SimpleList <ThreadBase>::Element,
 	public Nirvana::Core::Runnable
 {
@@ -48,6 +49,9 @@ class NIRVANA_NOVTABLE ThreadBase :
 
 	typedef Nirvana::Core::ThreadBackground Base;
 public:
+	using Nirvana::Core::UserObject::operator new;
+	using Nirvana::Core::UserObject::operator delete;
+
 	/// When we run in the legacy subsystem, every thread is a ThreadLegacy instance.
 	static ThreadBase& current () NIRVANA_NOEXCEPT
 	{

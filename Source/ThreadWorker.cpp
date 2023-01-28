@@ -42,10 +42,5 @@ void ThreadWorker::execute (Executor& executor) NIRVANA_NOEXCEPT
 	ExecContext::neutral_context_loop ();
 }
 
-void ThreadWorker::yield () NIRVANA_NOEXCEPT
-{
-	exec_domain (nullptr); // Release worker thread to a pool.
-}
-
 }
 }

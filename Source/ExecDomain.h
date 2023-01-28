@@ -290,7 +290,7 @@ public:
 	}
 
 	/// Push new memory context.
-	void mem_context_push (Ref <MemContext> mem_context)
+	void mem_context_push (Ref <MemContext>&& mem_context)
 	{
 		MemContext* p = mem_context;
 		mem_context_stack_.emplace (std::move (mem_context));
@@ -437,6 +437,8 @@ private:
 	inline void unwind_mem_context () NIRVANA_NOEXCEPT;
 
 	static void start_legacy_thread (Legacy::Core::Process& process, Legacy::Core::ThreadBase& thread);
+
+	void create_background_worker ();
 
 private:
 	class Schedule : public Runnable

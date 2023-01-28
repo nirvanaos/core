@@ -364,7 +364,7 @@ Interface::_ref_type RequestLocalBase::unmarshal_interface (const IDL::String& i
 void RequestLocalBase::marshal_value_copy (ValueBase::_ptr_type base, const IDL::String& interface_id)
 {
 	ExecDomain& ed = ExecDomain::current ();
-	ed.mem_context_push (&target_memory ());
+	ed.mem_context_replace (target_memory ());
 	try {
 		ValueBase::_ref_type copy = base->_copy_value ();
 		Interface::_ptr_type itf = copy->_query_valuetype (interface_id);
@@ -372,10 +372,10 @@ void RequestLocalBase::marshal_value_copy (ValueBase::_ptr_type base, const IDL:
 			throw MARSHAL (); // Unexpected
 		marshal_interface (itf);
 	} catch (...) {
-		ed.mem_context_pop ();
+		ed.mem_context_restore ();
 		throw;
 	}
-	ed.mem_context_pop ();
+	ed.mem_context_restore ();
 }
 
 void RequestLocalBase::invoke ()

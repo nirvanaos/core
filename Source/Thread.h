@@ -84,7 +84,11 @@ public:
 		return neutral_context_;
 	}
 
-	virtual void yield () NIRVANA_NOEXCEPT = 0;
+	/// Release worker thread.
+	void yield () NIRVANA_NOEXCEPT
+	{
+		exec_domain (nullptr);
+	}
 
 protected:
 	Thread () :

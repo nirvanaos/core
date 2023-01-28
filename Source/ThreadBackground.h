@@ -44,7 +44,7 @@ class NIRVANA_NOVTABLE ThreadBackground :
 	friend class Port::ThreadBackground;
 	typedef Port::ThreadBackground Base;
 public:
-	void start (ExecDomain& ed);
+	void start ();
 
 	void finish () NIRVANA_NOEXCEPT
 	{
@@ -58,7 +58,7 @@ protected:
 
 private:
 	// Called from port.
-	inline void execute () NIRVANA_NOEXCEPT;
+	inline bool execute () NIRVANA_NOEXCEPT;
 
 	// Called from port.
 	void on_thread_proc_end () NIRVANA_NOEXCEPT

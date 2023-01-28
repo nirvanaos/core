@@ -49,26 +49,22 @@ class Process :
 	public Nirvana::Core::MemContext,
 	public ThreadBase
 {
+	typedef CORBA::servant_traits <Nirvana::Legacy::Process>::Servant <Process> Servant;
+
+protected:
+	template <class T, class ... Args>
+	friend CORBA::servant_reference <T> CORBA::make_reference (Args ... args);
+	using Servant::operator new;
+
 public:
+	using Servant::operator delete;
+
 	static Legacy::Process::_ref_type spawn (const std::string& file,
 		std::vector <std::string>& argv, std::vector <std::string>& envp,
 		ProcessCallback::_ptr_type callback)
 	{
-		// Cheat ObjectFactory
-		Nirvana::Core::TLS& tls = Nirvana::Core::TLS::current ();
-		CORBA::Internal::ObjectFactory::StatelessCreationFrame scf (nullptr, 1, 0,
-			tls.get (Nirvana::Core::TLS::CORE_TLS_OBJECT_FACTORY));
-		tls.set (Nirvana::Core::TLS::CORE_TLS_OBJECT_FACTORY, &scf);
-
-		CORBA::servant_reference <Process> servant;
-		try {
-			servant = CORBA::make_reference <Process> (
+		CORBA::servant_reference <Process> servant = CORBA::make_reference <Process> (
 				std::ref (file), std::ref (argv), std::ref (envp), callback);
-		} catch (...) {
-			tls.set (Nirvana::Core::TLS::CORE_TLS_OBJECT_FACTORY, scf.next ());
-			throw;
-		}
-		tls.set (Nirvana::Core::TLS::CORE_TLS_OBJECT_FACTORY, scf.next ());
 
 		Legacy::Process::_ref_type ret = servant->_this ();
 		Nirvana::Core::ExecDomain::start_legacy_process (*servant);
@@ -108,10 +104,9 @@ public:
 		executable_ (std::ref (file)),
 		argv_ (std::move (argv)),
 		envp_ (std::move (envp)),
-		callback_ (callback)
-	{
-		assert (Nirvana::Core::SyncContext::current ().is_free_sync_context ());
-	}
+		callback_ (callback),
+		sync_domain_ (&Nirvana::Core::SyncDomain::current ())
+	{}
 
 	~Process ()
 	{}
@@ -131,9 +126,6 @@ public:
 	{
 		return executable_;
 	}
-
-	using Nirvana::Core::SharedObject::operator new;
-	using Nirvana::Core::SharedObject::operator delete;
 
 	void _add_ref () NIRVANA_NOEXCEPT override
 	{
@@ -190,8 +182,7 @@ private:
 	Legacy::Process::_ref_type proxy_;
 
 	// Synchronizer
-	Nirvana::Core::StaticallyAllocated <Nirvana::Core::ImplStatic <
-		Nirvana::Core::SyncDomainImpl> > sync_;
+	Nirvana::Core::Ref <Nirvana::Core::SyncContext> sync_domain_;
 };
 
 }
