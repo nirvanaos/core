@@ -159,6 +159,9 @@ public:
 
 	/// Schedule a call to a synchronization context.
 	/// Made inline because it is called only once in Synchronized constructor.
+	/// 
+	/// \param target The target sync context.
+	/// \param heap (optional) The heap pointer for the memory context creation.
 	void schedule_call (SyncContext& target, Heap* heap)
 	{
 		mem_context_push (get_mem_context (target, heap));
@@ -167,6 +170,9 @@ public:
 
 	/// Schedule a call to a synchronization context.
 	/// Made inline because it is called only once in Synchronized constructor.
+	/// 
+	/// \param target The target sync context.
+	/// \param mem_context The memory context.
 	void schedule_call (SyncContext& target, Ref <MemContext>&& mem_context)
 	{
 #ifdef _DEBUG
@@ -181,8 +187,11 @@ public:
 
 	void schedule_call_no_push_mem (SyncContext& target);
 
-	//
-	void schedule_return (SyncContext& target, bool no_reschedule_free = false) NIRVANA_NOEXCEPT;
+	/// Schedule return
+	/// \param target The target sync context.
+	/// \param no_reschedule (optional) Do not re-schedule if the target context is the same
+	///        as current.
+	void schedule_return (SyncContext& target, bool no_reschedule = false) NIRVANA_NOEXCEPT;
 
 	/// Suspend execution
 	/// 

@@ -44,7 +44,7 @@ public:
 	virtual void on_crash (const siginfo& signal) NIRVANA_NOEXCEPT;
 };
 
-void run_in_neutral_context (Runnable& runnable) NIRVANA_NOEXCEPT;
+void run_in_neutral_context (Runnable& runnable);
 
 }
 }

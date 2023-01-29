@@ -79,21 +79,20 @@ public:
 	}
 
 	/// Returns special "neutral" execution context with own stack and CPU state.
-	ExecContext& neutral_context () NIRVANA_NOEXCEPT
+	NeutralContext& neutral_context () NIRVANA_NOEXCEPT
 	{
 		return neutral_context_;
 	}
 
 	/// Release worker thread.
-	void yield () NIRVANA_NOEXCEPT
+	virtual void yield () NIRVANA_NOEXCEPT
 	{
-		exec_domain (nullptr);
+		exec_domain_ = nullptr;
 	}
 
 protected:
 	Thread () :
-		exec_domain_ (nullptr),
-		neutral_context_ (true)
+		exec_domain_ (nullptr)
 	{}
 
 protected:
@@ -102,7 +101,7 @@ protected:
 
 private:
 	/// Special "neutral" execution context with own stack and CPU state.
-	ExecContext neutral_context_;
+	NeutralContext neutral_context_;
 };
 
 }

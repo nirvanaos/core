@@ -64,11 +64,8 @@ public:
 	}
 
 	/// Constructor.
-	/// 
-	/// \param neutral `true` if neutral context is created.
-	ExecContext (bool neutral) :
-		Port::ExecContext (neutral),
-		runnable_ (nullptr)
+	ExecContext () :
+		ExecContext (false)
 	{}
 
 	/// Switch to this context.
@@ -80,13 +77,6 @@ public:
 
 	static void neutral_context_loop () NIRVANA_NOEXCEPT;
 
-	void run_in_context (Runnable& runnable) NIRVANA_NOEXCEPT
-	{
-		assert (this != &current ());
-		runnable_ = &runnable;
-		switch_to ();
-	}
-
 	/// Raise signal.
 	NIRVANA_NORETURN void raise (int signal)
 	{
@@ -94,12 +84,47 @@ public:
 	}
 
 protected:
-	void run ();
+	ExecContext (bool neutral) :
+		Port::ExecContext (neutral),
+		runnable_ (nullptr)
+	{}
 
+	void run ();
 	void on_crash (const siginfo& signal) NIRVANA_NOEXCEPT;
 
 protected:
 	Runnable* runnable_;
+};
+
+class NeutralContext : public ExecContext
+{
+public:
+	NeutralContext () :
+		ExecContext (true)
+	{}
+
+	void run_in_context (Runnable& runnable)
+	{
+		assert (this != &current ());
+		runnable_ = &runnable;
+		switch_to ();
+		if (exception_) {
+			std::exception_ptr tmp (std::move (exception_));
+			std::rethrow_exception (tmp);
+		}
+	}
+
+	void run () NIRVANA_NOEXCEPT
+	{
+		try {
+			ExecContext::run ();
+		} catch (...) {
+			exception_ = std::current_exception ();
+		}
+	}
+
+private:
+	std::exception_ptr exception_;
 };
 
 }

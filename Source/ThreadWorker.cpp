@@ -39,7 +39,7 @@ void ThreadWorker::execute (Executor& executor) NIRVANA_NOEXCEPT
 	// Switch to executor context.
 	executor.execute ();
 	// Perform possible neutral context calls, then return.
-	ExecContext::neutral_context_loop ();
+	current ().neutral_context ().run ();
 }
 
 }

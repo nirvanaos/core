@@ -44,7 +44,12 @@ class NIRVANA_NOVTABLE ThreadBackground :
 	friend class Port::ThreadBackground;
 	typedef Port::ThreadBackground Base;
 public:
-	void start ();
+	static Ref <ThreadBackground> spawn ()
+	{
+		Ref <ThreadBackground> ref = Ref <ThreadBackground>::create <ImplDynamic <ThreadBackground> > ();
+		ref->start ();
+		return ref;
+	}
 
 	void execute (ExecDomain& exec_domain)
 	{
@@ -55,12 +60,17 @@ public:
 	void finish () NIRVANA_NOEXCEPT
 	{
 		Base::exec_domain (nullptr);
+#ifdef _DEBUG
+		finish_called_ = true;
+#endif
 		Base::resume ();
 	}
 
 protected:
 	ThreadBackground ();
 	~ThreadBackground ();
+
+	void start ();
 
 private:
 	// Called from port.
@@ -69,8 +79,13 @@ private:
 	// Called from port.
 	void on_thread_proc_end () NIRVANA_NOEXCEPT
 	{
+		assert (finish_called_);
 		_remove_ref ();
 	}
+
+#ifdef _DEBUG
+	bool finish_called_ = false;
+#endif
 };
 
 }

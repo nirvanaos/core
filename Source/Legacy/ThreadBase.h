@@ -45,9 +45,8 @@ class NIRVANA_NOVTABLE ThreadBase :
 	public SimpleList <ThreadBase>::Element,
 	public Nirvana::Core::Runnable
 {
-	DECLARE_CORE_INTERFACE
-
 	typedef Nirvana::Core::ThreadBackground Base;
+
 public:
 	using Nirvana::Core::UserObject::operator new;
 	using Nirvana::Core::UserObject::operator delete;
@@ -67,8 +66,7 @@ public:
 	virtual Process& process () NIRVANA_NOEXCEPT = 0;
 
 protected:
-	ThreadBase ()
-	{}
+	ThreadBase () = default;
 
 private:
 	Nirvana::Core::TLS TLS_;

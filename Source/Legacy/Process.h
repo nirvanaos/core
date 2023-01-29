@@ -65,6 +65,7 @@ public:
 	{
 		CORBA::servant_reference <Process> servant = CORBA::make_reference <Process> (
 				std::ref (file), std::ref (argv), std::ref (envp), callback);
+		servant->start ();
 
 		Legacy::Process::_ref_type ret = servant->_this ();
 		Nirvana::Core::ExecDomain::start_legacy_process (*servant);
@@ -119,6 +120,8 @@ public:
 			return proxy_;
 		Legacy::Process::_ref_type proxy = 
 			CORBA::servant_traits <Nirvana::Legacy::Process>::Servant <Process>::_this ();
+
+		// Even if proxy is not referenced, it must be holded for the callback.
 		if (callback_)
 			proxy_ = proxy;
 		return proxy;

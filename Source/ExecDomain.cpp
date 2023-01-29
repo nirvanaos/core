@@ -192,7 +192,6 @@ void ExecDomain::start_legacy_thread (Legacy::Core::Process& process, Legacy::Co
 	Ref <ExecDomain> exec_domain = create (INFINITE_DEADLINE, &process);
 	exec_domain->runnable_ = &thread;
 	exec_domain->background_worker_ = &thread;
-	thread.start ();
 	exec_domain->spawn (process.sync_context ());
 }
 
@@ -294,10 +293,8 @@ void ExecDomain::on_crash (const siginfo& signal) NIRVANA_NOEXCEPT
 
 void ExecDomain::create_background_worker ()
 {
-	if (!background_worker_) {
-		background_worker_ = Ref <ThreadBackground>::create <ImplDynamic <ThreadBackground> > ();
-		background_worker_->start ();
-	}
+	if (!background_worker_)
+		background_worker_ = ThreadBackground::spawn ();
 }
 
 void ExecDomain::schedule (SyncContext& target, bool ret)
@@ -327,9 +324,10 @@ void ExecDomain::schedule (SyncContext& target, bool ret)
 			else
 				sync_domain->schedule (deadline (), *this);
 		} else {
-			if (background)
+			if (background) {
+				assert (&Thread::current () != background_worker_);
 				background_worker_->execute (*this);
-			else
+			} else
 				Scheduler::schedule (deadline (), *this);
 		}
 	} catch (...) {
@@ -352,7 +350,8 @@ void ExecDomain::schedule_call_no_push_mem (SyncContext& target)
 	} else if (deadline () == INFINITE_DEADLINE)
 		create_background_worker (); // Prepare to return to background
 
-	if (target.sync_domain () || !(deadline () == INFINITE_DEADLINE && &Thread::current () == background_worker_)) {
+	if (target.sync_domain () ||
+		!(deadline () == INFINITE_DEADLINE && &Thread::current () == background_worker_)) {
 		// Need to schedule
 
 		// Call schedule() in the neutral context
@@ -364,7 +363,8 @@ void ExecDomain::schedule_call_no_push_mem (SyncContext& target)
 		if (schedule_.exception_) {
 			std::exception_ptr ex = schedule_.exception_;
 			schedule_.exception_ = nullptr;
-			// We leaved old sync domain so we must enter into prev synchronization domain back before throwing the exception.
+			// We leaved old sync domain so we must enter into prev synchronization domain back
+			// before throwing the exception.
 			schedule_return (old_context, true);
 			rethrow_exception (ex);
 		}
@@ -385,8 +385,7 @@ void ExecDomain::schedule_return (SyncContext& target, bool no_reschedule) NIRVA
 		old_sd->leave ();
 
 	if (target.sync_domain ()
-		|| (!no_reschedule
-			&& !(deadline () == INFINITE_DEADLINE && &Thread::current () == background_worker_))) {
+		|| !(deadline () == INFINITE_DEADLINE && &Thread::current () == background_worker_)) {
 
 		schedule_.sync_context_ = &target;
 		schedule_.ret_ = true;
@@ -414,8 +413,8 @@ DeadlineTime ExecDomain::get_request_deadline (bool oneway) const NIRVANA_NOEXCE
 void ExecDomain::Schedule::run ()
 {
 	try {
-		exec_domain_.schedule (*sync_context_, ret_);
 		Thread::current ().yield ();
+		exec_domain_.schedule (*sync_context_, ret_);
 	} catch (...) {
 		exception_ = std::current_exception ();
 	}
@@ -431,7 +430,7 @@ void ExecDomain::suspend (SyncContext* resume_context)
 	}
 	if (resume_context)
 		sync_context_ = resume_context;
-	ExecContext& neutral_context = Thread::current ().neutral_context ();
+	NeutralContext& neutral_context = Thread::current ().neutral_context ();
 	if (&neutral_context != &ExecContext::current ())
 		neutral_context.run_in_context (suspend_);
 	else
