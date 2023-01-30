@@ -140,7 +140,6 @@ void ExecDomain::final_release () NIRVANA_NOEXCEPT
 {
 	assert (!runnable_);
 	assert (!sync_context_);
-	Thread::current ().yield ();
 	if (background_worker_) {
 		background_worker_->finish ();
 		background_worker_.reset ();
@@ -168,6 +167,7 @@ void ExecDomain::Deleter::run ()
 {
 	ExecDomain* ed = Thread::current ().exec_domain ();
 	assert (ed);
+	Thread::current ().yield ();
 	ed->final_release ();
 }
 
