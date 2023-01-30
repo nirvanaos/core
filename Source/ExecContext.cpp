@@ -29,26 +29,20 @@
 namespace Nirvana {
 namespace Core {
 
-void ExecContext::run ()
+void ExecContext::run_in_neutral_context (Runnable& runnable) NIRVANA_NOEXCEPT
 {
-	assert (runnable_);
-	runnable_->run ();
-	runnable_ = nullptr;
+	ExecContext& neutral_context = Thread::current ().neutral_context ();
+	neutral_context.runnable_ = &runnable;
+	neutral_context.switch_to ();
 }
 
-void ExecContext::on_crash (const siginfo& signal) NIRVANA_NOEXCEPT
+void ExecContext::neutral_context_loop (Thread& worker) NIRVANA_NOEXCEPT
 {
-	runnable_->on_crash (signal);
-	runnable_ = nullptr;
-}
-
-void ExecContext::neutral_context_loop () NIRVANA_NOEXCEPT
-{
-	Thread& thread = Thread::current ();
-	assert (&current () == &thread.neutral_context ());
+	assert (&current () == &worker.neutral_context ());
 	for (;;) {
-		thread.neutral_context ().run ();
-		ExecDomain* ed = thread.exec_domain ();
+		assert (worker.neutral_context ().runnable_);
+		worker.neutral_context ().run ();
+		ExecDomain* ed = worker.exec_domain ();
 		if (ed)
 			ed->switch_to ();
 		else

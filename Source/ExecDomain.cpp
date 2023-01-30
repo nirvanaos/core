@@ -82,11 +82,8 @@ public:
 	}
 };
 
-StaticallyAllocated <ExecDomain::Suspend> ExecDomain::suspend_;
-
 void ExecDomain::initialize () NIRVANA_NOEXCEPT
 {
-	suspend_.construct ();
 	Creator::initialize ();
 }
 
@@ -137,10 +134,11 @@ void ExecDomain::final_release () NIRVANA_NOEXCEPT
 {
 	assert (!runnable_);
 	assert (!sync_context_);
-#ifdef _DEBUG
-	Thread& thread = Thread::current ();
-	assert (thread.exec_domain () != this);
-#endif
+	Thread::current ().yield ();
+	if (background_worker_) {
+		background_worker_->finish ();
+		background_worker_.reset ();
+	}
 	Scheduler::activity_end ();
 	Creator::release (*this);
 }
@@ -154,7 +152,7 @@ void ExecDomain::_remove_ref () NIRVANA_NOEXCEPT
 {
 	if (0 == ref_cnt_.decrement_seq ()) {
 		if (&ExecContext::current () == this)
-			run_in_neutral_context (deleter_);
+			ExecContext::run_in_neutral_context (deleter_);
 		else
 			final_release ();
 	}
@@ -162,6 +160,8 @@ void ExecDomain::_remove_ref () NIRVANA_NOEXCEPT
 
 void ExecDomain::Deleter::run ()
 {
+	// TODO: Make Runnable static
+	assert (Thread::current ().exec_domain () == &exec_domain_);
 	exec_domain_.final_release ();
 }
 
@@ -192,7 +192,6 @@ void ExecDomain::start_legacy_thread (Legacy::Core::Process& process, Legacy::Co
 	Ref <ExecDomain> exec_domain = create (INFINITE_DEADLINE, &process);
 	exec_domain->runnable_ = &thread;
 	exec_domain->background_worker_ = &thread;
-	thread.start ();
 	exec_domain->spawn (process.sync_context ());
 }
 
@@ -228,11 +227,6 @@ void ExecDomain::cleanup () NIRVANA_NOEXCEPT
 		scheduler_item_created_ = false;
 	}
 	sync_context_.reset ();
-	Thread::current ().exec_domain (nullptr);
-	if (background_worker_) {
-		background_worker_->finish ();
-		background_worker_.reset ();
-	}
 	
 	deadline_policy_async_._default ();
 	deadline_policy_oneway_._d (System::DeadlinePolicyType::DEADLINE_INFINITE);
@@ -264,40 +258,10 @@ MemContext& ExecDomain::mem_context ()
 	return *mem_context_;
 }
 
-inline
-void ExecDomain::unwind_mem_context () NIRVANA_NOEXCEPT
-{
-	// Clear memory context stack
-	Ref <MemContext> tmp;
-	do {
-		tmp = std::move (mem_context_stack_.top ());
-		mem_context_stack_.pop ();
-		mem_context_ = tmp;
-	} while (!mem_context_stack_.empty ());
-	mem_context_stack_.push (std::move (tmp));
-}
-
-void ExecDomain::on_crash (const siginfo& signal) NIRVANA_NOEXCEPT
-{
-	// Leave sync domain if one.
-	SyncDomain* sd = sync_context_->sync_domain ();
-	if (sd)
-		sd->leave ();
-	sync_context_ = &g_core_free_sync_context;
-
-	unwind_mem_context ();
-
-	ExecContext::on_crash (signal);
-	
-	cleanup ();
-}
-
 void ExecDomain::create_background_worker ()
 {
-	if (!background_worker_) {
-		background_worker_ = Ref <ThreadBackground>::create <ImplDynamic <ThreadBackground> > ();
-		background_worker_->start ();
-	}
+	if (!background_worker_)
+		background_worker_ = ThreadBackground::spawn ();
 }
 
 void ExecDomain::schedule (SyncContext& target, bool ret)
@@ -327,9 +291,10 @@ void ExecDomain::schedule (SyncContext& target, bool ret)
 			else
 				sync_domain->schedule (deadline (), *this);
 		} else {
-			if (background)
+			if (background) {
+				assert (&Thread::current () != background_worker_);
 				background_worker_->execute (*this);
-			else
+			} else
 				Scheduler::schedule (deadline (), *this);
 		}
 	} catch (...) {
@@ -352,21 +317,26 @@ void ExecDomain::schedule_call_no_push_mem (SyncContext& target)
 	} else if (deadline () == INFINITE_DEADLINE)
 		create_background_worker (); // Prepare to return to background
 
-	if (target.sync_domain () || !(deadline () == INFINITE_DEADLINE && &Thread::current () == background_worker_)) {
+	if (target.sync_domain () ||
+		!(deadline () == INFINITE_DEADLINE && &Thread::current () == background_worker_)) {
 		// Need to schedule
+
+		// We must hold old SysDomain reference here to avoid release sync domain in
+		// neutral context when exec_domain () is nullptr.
+		Ref <SyncDomain> hold (old_sd);
 
 		// Call schedule() in the neutral context
 		schedule_.sync_context_ = &target;
 		schedule_.ret_ = false;
-		run_in_neutral_context (schedule_);
-
+		ExecContext::run_in_neutral_context (schedule_);
 		// Handle possible schedule() exceptions
 		if (schedule_.exception_) {
-			std::exception_ptr ex = schedule_.exception_;
+			std::exception_ptr exc = schedule_.exception_;
 			schedule_.exception_ = nullptr;
-			// We leaved old sync domain so we must enter into prev synchronization domain back before throwing the exception.
+			// We leaved old sync domain so we must enter into prev synchronization domain back
+			// before throwing the exception.
 			schedule_return (old_context, true);
-			rethrow_exception (ex);
+			std::rethrow_exception (exc);
 		}
 
 	} else
@@ -385,12 +355,15 @@ void ExecDomain::schedule_return (SyncContext& target, bool no_reschedule) NIRVA
 		old_sd->leave ();
 
 	if (target.sync_domain ()
-		|| (!no_reschedule
-			&& !(deadline () == INFINITE_DEADLINE && &Thread::current () == background_worker_))) {
+		|| !(deadline () == INFINITE_DEADLINE && &Thread::current () == background_worker_)) {
+
+		// We must hold old SysDomain reference here to avoid release sync domain in
+		// neutral context when exec_domain () is nullptr.
+		Ref <SyncDomain> hold (old_sd);
 
 		schedule_.sync_context_ = &target;
 		schedule_.ret_ = true;
-		run_in_neutral_context (schedule_);
+		ExecContext::run_in_neutral_context (schedule_);
 		// schedule() can not throw exception in the return mode.
 	} else
 		sync_context (target);
@@ -413,10 +386,11 @@ DeadlineTime ExecDomain::get_request_deadline (bool oneway) const NIRVANA_NOEXCE
 
 void ExecDomain::Schedule::run ()
 {
+	Thread::current ().yield ();
 	try {
 		exec_domain_.schedule (*sync_context_, ret_);
-		Thread::current ().yield ();
 	} catch (...) {
+		Thread::current ().exec_domain (exec_domain_);
 		exception_ = std::current_exception ();
 	}
 }
@@ -432,31 +406,27 @@ void ExecDomain::suspend (SyncContext* resume_context)
 	if (resume_context)
 		sync_context_ = resume_context;
 	ExecContext& neutral_context = Thread::current ().neutral_context ();
-	if (&neutral_context != &ExecContext::current ())
-		neutral_context.run_in_context (suspend_);
-	else
-		Thread::current ().yield ();
-}
-
-void ExecDomain::Suspend::run ()
-{
 	Thread::current ().yield ();
+	if (&neutral_context != &ExecContext::current ())
+		neutral_context.switch_to ();
 }
 
-bool ExecDomain::yield ()
+bool ExecDomain::reschedule ()
 {
 	Thread& thr = Thread::current ();
 	ExecDomain* ed = thr.exec_domain ();
 	assert (ed);
 	if (&thr != ed->background_worker_) {
-		run_in_neutral_context (ed->yield_);
+		ExecContext::run_in_neutral_context (ed->reschedule_);
 		return true;
 	}
 	return false;
 }
 
-void ExecDomain::Yield::run ()
+void ExecDomain::Reschedule::run ()
 {
+	// TODO: Make Runnable static
+	assert (Thread::current ().exec_domain () == &exec_domain_);
 	exec_domain_.suspend (nullptr);
 	exec_domain_.resume ();
 }

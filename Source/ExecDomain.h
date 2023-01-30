@@ -36,6 +36,7 @@
 #include "ObjectPool.h"
 #include "ThreadBackground.h"
 #include "CoreObject.h"
+#include "unrecoverable_error.h"
 #include <limits>
 #include <utility>
 
@@ -159,6 +160,9 @@ public:
 
 	/// Schedule a call to a synchronization context.
 	/// Made inline because it is called only once in Synchronized constructor.
+	/// 
+	/// \param target The target sync context.
+	/// \param heap (optional) The heap pointer for the memory context creation.
 	void schedule_call (SyncContext& target, Heap* heap)
 	{
 		mem_context_push (get_mem_context (target, heap));
@@ -167,6 +171,9 @@ public:
 
 	/// Schedule a call to a synchronization context.
 	/// Made inline because it is called only once in Synchronized constructor.
+	/// 
+	/// \param target The target sync context.
+	/// \param mem_context The memory context.
 	void schedule_call (SyncContext& target, Ref <MemContext>&& mem_context)
 	{
 #ifdef _DEBUG
@@ -181,8 +188,11 @@ public:
 
 	void schedule_call_no_push_mem (SyncContext& target);
 
-	//
-	void schedule_return (SyncContext& target, bool no_reschedule_free = false) NIRVANA_NOEXCEPT;
+	/// Schedule return
+	/// \param target The target sync context.
+	/// \param no_reschedule (optional) Do not re-schedule if the target context is the same
+	///        as current.
+	void schedule_return (SyncContext& target, bool no_reschedule = false) NIRVANA_NOEXCEPT;
 
 	/// Suspend execution
 	/// 
@@ -198,14 +208,31 @@ public:
 	}
 
 	/// Reschedule
-	static bool yield ();
+	static bool reschedule ();
 
 	/// \brief Called from the Port implementation.
 	void run ();
 
 	/// Called from the Port implementation in case of the unrecoverable error.
 	/// \param signal The signal information.
-	void on_crash (const siginfo& signal) NIRVANA_NOEXCEPT;
+	void on_crash (const siginfo& signal) NIRVANA_NOEXCEPT
+	{
+		// Leave sync domain if one.
+		SyncDomain* sd = sync_context_->sync_domain ();
+		if (sd)
+			sd->leave ();
+		sync_context_ = &g_core_free_sync_context;
+
+		unwind_mem_context ();
+
+		if (runnable_) {
+			runnable_->on_crash (signal);
+			runnable_ = nullptr;
+		} else
+			unrecoverable_error (signal.si_signo);
+
+		cleanup ();
+	}
 
 	/// Called from the Port implementation in case of the signal.
 	/// \param signal The signal information.
@@ -365,9 +392,10 @@ private:
 #endif
 		ref_cnt_ (1),
 		ret_qnodes_ (nullptr),
+		mem_context_ (nullptr),
 		scheduler_item_created_ (false),
 		schedule_ (*this),
-		yield_ (*this),
+		reschedule_ (*this),
 		deleter_ (*this),
 		restricted_mode_ (RestrictedMode::NO_RESTRICTIONS)
 	{
@@ -434,7 +462,17 @@ private:
 		}
 	}
 
-	inline void unwind_mem_context () NIRVANA_NOEXCEPT;
+	inline void unwind_mem_context () NIRVANA_NOEXCEPT
+	{
+		// Clear memory context stack
+		Ref <MemContext> tmp;
+		do {
+			tmp = std::move (mem_context_stack_.top ());
+			mem_context_stack_.pop ();
+			mem_context_ = tmp;
+		} while (!mem_context_stack_.empty ());
+		mem_context_stack_.push (std::move (tmp));
+	}
 
 	static void start_legacy_thread (Legacy::Core::Process& process, Legacy::Core::ThreadBase& thread);
 
@@ -473,16 +511,10 @@ private:
 		ExecDomain& exec_domain_;
 	};
 
-	class Suspend : public Runnable
-	{
-	private:
-		virtual void run ();
-	};
-
-	class Yield : public Runnable
+	class Reschedule : public Runnable
 	{
 	public:
-		Yield (ExecDomain& ed) :
+		Reschedule (ExecDomain& ed) :
 			exec_domain_ (ed)
 		{}
 
@@ -494,8 +526,6 @@ private:
 	};
 
 private:
-	static StaticallyAllocated <Suspend> suspend_;
-
 	AtomicCounter <false> ref_cnt_;
 	DeadlineTime deadline_;
 	Ref <SyncContext> sync_context_;
@@ -509,7 +539,7 @@ private:
 
 	bool scheduler_item_created_;
 	Schedule schedule_;
-	Yield yield_;
+	Reschedule reschedule_;
 	Deleter deleter_;
 	Ref <ThreadBackground> background_worker_;
 	RestrictedMode restricted_mode_;

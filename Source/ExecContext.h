@@ -64,8 +64,6 @@ public:
 	}
 
 	/// Constructor.
-	/// 
-	/// \param neutral `true` if neutral context is created.
 	ExecContext (bool neutral) :
 		Port::ExecContext (neutral),
 		runnable_ (nullptr)
@@ -78,25 +76,30 @@ public:
 		Port::ExecContext::switch_to ();
 	}
 
-	static void neutral_context_loop () NIRVANA_NOEXCEPT;
-
-	void run_in_context (Runnable& runnable) NIRVANA_NOEXCEPT
-	{
-		assert (this != &current ());
-		runnable_ = &runnable;
-		switch_to ();
-	}
-
 	/// Raise signal.
 	NIRVANA_NORETURN void raise (int signal)
 	{
 		Port::ExecContext::raise (signal);
 	}
 
-protected:
-	void run ();
+	Runnable* runnable () const NIRVANA_NOEXCEPT
+	{
+		return runnable_;
+	}
 
-	void on_crash (const siginfo& signal) NIRVANA_NOEXCEPT;
+	// Execute Runnable in the neutral context
+	static void run_in_neutral_context (Runnable& runnable) NIRVANA_NOEXCEPT;
+
+	// Call from worker
+	static void neutral_context_loop (Thread& worker) NIRVANA_NOEXCEPT;
+
+protected:
+	void run ()
+	{
+		assert (runnable_);
+		runnable_->run ();
+		runnable_ = nullptr;
+	}
 
 protected:
 	Runnable* runnable_;

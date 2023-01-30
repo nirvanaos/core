@@ -224,7 +224,7 @@ public:
 
 	static bool yield ()
 	{
-		return ExecDomain::yield ();
+		return ExecDomain::reschedule ();
 	}
 
 	static uint16_t TLS_alloc ()

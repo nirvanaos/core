@@ -54,7 +54,7 @@ void WaitListImpl::wait ()
 	}
 	assert (finished ());
 	if (exception_)
-		rethrow_exception (exception_);
+		std::rethrow_exception (exception_);
 }
 
 void WaitListImpl::on_exception () NIRVANA_NOEXCEPT
