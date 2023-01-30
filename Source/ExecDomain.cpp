@@ -82,9 +82,15 @@ public:
 	}
 };
 
+StaticallyAllocated <ExecDomain::Deleter> ExecDomain::deleter_;
+StaticallyAllocated <ExecDomain::Reschedule> ExecDomain::reschedule_;
+
 void ExecDomain::initialize () NIRVANA_NOEXCEPT
 {
 	Creator::initialize ();
+
+	deleter_.construct ();
+	reschedule_.construct ();
 }
 
 void ExecDomain::terminate () NIRVANA_NOEXCEPT
@@ -160,9 +166,9 @@ void ExecDomain::_remove_ref () NIRVANA_NOEXCEPT
 
 void ExecDomain::Deleter::run ()
 {
-	// TODO: Make Runnable static
-	assert (Thread::current ().exec_domain () == &exec_domain_);
-	exec_domain_.final_release ();
+	ExecDomain* ed = Thread::current ().exec_domain ();
+	assert (ed);
+	ed->final_release ();
 }
 
 void ExecDomain::spawn (SyncContext& sync_context)
@@ -386,11 +392,14 @@ DeadlineTime ExecDomain::get_request_deadline (bool oneway) const NIRVANA_NOEXCE
 
 void ExecDomain::Schedule::run ()
 {
-	Thread::current ().yield ();
+	Thread& th = Thread::current ();
+	ExecDomain* ed = th.exec_domain ();
+	assert (ed);
 	try {
-		exec_domain_.schedule (*sync_context_, ret_);
+		th.yield ();
+		ed->schedule (*sync_context_, ret_);
 	} catch (...) {
-		Thread::current ().exec_domain (exec_domain_);
+		th.exec_domain (*ed);
 		exception_ = std::current_exception ();
 	}
 }
@@ -417,7 +426,7 @@ bool ExecDomain::reschedule ()
 	ExecDomain* ed = thr.exec_domain ();
 	assert (ed);
 	if (&thr != ed->background_worker_) {
-		ExecContext::run_in_neutral_context (ed->reschedule_);
+		ExecContext::run_in_neutral_context (reschedule_);
 		return true;
 	}
 	return false;
@@ -425,10 +434,14 @@ bool ExecDomain::reschedule ()
 
 void ExecDomain::Reschedule::run ()
 {
-	// TODO: Make Runnable static
-	assert (Thread::current ().exec_domain () == &exec_domain_);
-	exec_domain_.suspend (nullptr);
-	exec_domain_.resume ();
+	ExecDomain* ed = Thread::current ().exec_domain ();
+	assert (ed);
+	try {
+		ed->suspend (nullptr);
+	} catch (...) {
+		return;
+	}
+	ed->resume ();
 }
 
 }

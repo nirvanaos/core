@@ -394,9 +394,6 @@ private:
 		ret_qnodes_ (nullptr),
 		mem_context_ (nullptr),
 		scheduler_item_created_ (false),
-		schedule_ (*this),
-		reschedule_ (*this),
-		deleter_ (*this),
 		restricted_mode_ (RestrictedMode::NO_RESTRICTIONS)
 	{
 		deadline_policy_oneway_._d (System::DeadlinePolicyType::DEADLINE_INFINITE);
@@ -482,47 +479,24 @@ private:
 	class Schedule : public Runnable
 	{
 	public:
-		Schedule (ExecDomain& ed) :
-			exec_domain_ (ed)
-		{}
-
 		SyncContext* sync_context_;
 		std::exception_ptr exception_;
 		bool ret_;
 
 	private:
 		virtual void run ();
-
-	private:
-		ExecDomain& exec_domain_;
 	};
 
 	class Deleter : public Runnable
 	{
-	public:
-		Deleter (ExecDomain& ed) :
-			exec_domain_ (ed)
-		{}
-
 	private:
 		virtual void run ();
-	
-	private:
-		ExecDomain& exec_domain_;
 	};
 
 	class Reschedule : public Runnable
 	{
-	public:
-		Reschedule (ExecDomain& ed) :
-			exec_domain_ (ed)
-		{}
-
 	private:
 		virtual void run ();
-
-	private:
-		ExecDomain& exec_domain_;
 	};
 
 private:
@@ -539,8 +513,6 @@ private:
 
 	bool scheduler_item_created_;
 	Schedule schedule_;
-	Reschedule reschedule_;
-	Deleter deleter_;
 	Ref <ThreadBackground> background_worker_;
 	RestrictedMode restricted_mode_;
 
@@ -548,6 +520,9 @@ private:
 	System::DeadlinePolicy deadline_policy_oneway_;
 
 	typename std::aligned_storage <MAX_RUNNABLE_SIZE>::type runnable_space_;
+
+	static StaticallyAllocated <Deleter> deleter_;
+	static StaticallyAllocated <Reschedule> reschedule_;
 };
 
 inline
