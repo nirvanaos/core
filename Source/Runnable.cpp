@@ -23,7 +23,7 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "Thread.h"
+#include "Runnable.h"
 #include "unrecoverable_error.h"
 
 namespace Nirvana {
@@ -32,12 +32,6 @@ namespace Core {
 void Runnable::on_crash (const siginfo& signal) NIRVANA_NOEXCEPT
 {
 	unrecoverable_error (signal.si_signo);
-}
-
-void run_in_neutral_context (Runnable& runnable)
-{
-	NeutralContext& neutral_context = Thread::current ().neutral_context ();
-	neutral_context.run_in_context (runnable);
 }
 
 }

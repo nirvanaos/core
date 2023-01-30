@@ -39,7 +39,7 @@ bool ThreadBackground::execute () NIRVANA_NOEXCEPT
 	ExecDomain* ed = exec_domain ();
 	if (ed) {
 		ed->switch_to ();
-		neutral_context ().run ();
+		NeutralContext::execute (*this);
 		return true;
 	}
 	return false;

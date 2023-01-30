@@ -75,12 +75,15 @@ public:
 		Port::ExecContext::switch_to ();
 	}
 
-	static void neutral_context_loop () NIRVANA_NOEXCEPT;
-
 	/// Raise signal.
 	NIRVANA_NORETURN void raise (int signal)
 	{
 		Port::ExecContext::raise (signal);
+	}
+
+	Runnable* runnable () const NIRVANA_NOEXCEPT
+	{
+		return runnable_;
 	}
 
 protected:
@@ -89,8 +92,12 @@ protected:
 		runnable_ (nullptr)
 	{}
 
-	void run ();
-	void on_crash (const siginfo& signal) NIRVANA_NOEXCEPT;
+	void run ()
+	{
+		assert (runnable_);
+		runnable_->run ();
+		runnable_ = nullptr;
+	}
 
 protected:
 	Runnable* runnable_;
@@ -103,25 +110,16 @@ public:
 		ExecContext (true)
 	{}
 
-	void run_in_context (Runnable& runnable)
-	{
-		assert (this != &current ());
-		runnable_ = &runnable;
-		switch_to ();
-		if (exception_) {
-			std::exception_ptr tmp (std::move (exception_));
-			std::rethrow_exception (tmp);
-		}
-	}
+	// Execute Runnable in the neutral context
+	static void run (Runnable& runnable);
 
-	void run () NIRVANA_NOEXCEPT
-	{
-		try {
-			ExecContext::run ();
-		} catch (...) {
-			exception_ = std::current_exception ();
-		}
-	}
+	// Call from worker
+	static void execute (Thread& worker) NIRVANA_NOEXCEPT;
+
+private:
+	void run_in_context (Runnable& runnable);
+
+	void run () NIRVANA_NOEXCEPT;
 
 private:
 	std::exception_ptr exception_;

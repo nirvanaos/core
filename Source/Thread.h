@@ -85,7 +85,7 @@ public:
 	}
 
 	/// Release worker thread.
-	virtual void yield () NIRVANA_NOEXCEPT
+	void yield () NIRVANA_NOEXCEPT
 	{
 		exec_domain_ = nullptr;
 	}
