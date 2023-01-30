@@ -321,6 +321,10 @@ void ExecDomain::schedule_call_no_push_mem (SyncContext& target)
 		!(deadline () == INFINITE_DEADLINE && &Thread::current () == background_worker_)) {
 		// Need to schedule
 
+		// We must hold old SysDomain reference here to avoid release sync domain in
+		// neutral context when exec_domain () is nullptr.
+		Ref <SyncDomain> hold (old_sd);
+
 		// Call schedule() in the neutral context
 		schedule_.sync_context_ = &target;
 		schedule_.ret_ = false;
@@ -352,6 +356,10 @@ void ExecDomain::schedule_return (SyncContext& target, bool no_reschedule) NIRVA
 
 	if (target.sync_domain ()
 		|| !(deadline () == INFINITE_DEADLINE && &Thread::current () == background_worker_)) {
+
+		// We must hold old SysDomain reference here to avoid release sync domain in
+		// neutral context when exec_domain () is nullptr.
+		Ref <SyncDomain> hold (old_sd);
 
 		schedule_.sync_context_ = &target;
 		schedule_.ret_ = true;

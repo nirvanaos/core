@@ -70,12 +70,8 @@ public:
 
 	void exec_domain (ExecDomain& exec_domain) NIRVANA_NOEXCEPT
 	{
+		assert (!exec_domain_);
 		exec_domain_ = &exec_domain;
-	}
-
-	void exec_domain (nullptr_t) NIRVANA_NOEXCEPT
-	{
-		exec_domain_ = nullptr;
 	}
 
 	/// Returns special "neutral" execution context with own stack and CPU state.
@@ -87,6 +83,8 @@ public:
 	/// Release worker thread.
 	void yield () NIRVANA_NOEXCEPT
 	{
+		assert (&ExecContext::current () == &current ().neutral_context ());
+		assert (exec_domain_);
 		exec_domain_ = nullptr;
 	}
 

@@ -31,7 +31,7 @@
 #include "unrecoverable_error.h"
 
 // Output debug messages on shutdown.
-#define DEBUG_SHUTDOWN
+//#define DEBUG_SHUTDOWN
 
 // If we use INFINITE_DEADLINE, the new background thread will be created for shutdown.
 // I'm not sure that it is necessary.
