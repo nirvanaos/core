@@ -34,9 +34,8 @@
 #define DEBUG_SHUTDOWN
 
 // If we use INFINITE_DEADLINE, the new background thread will be created for shutdown.
-// I'm not sure that it is necessary.
-#define SHUTDOWN_DEADLINE Chrono::make_deadline (TimeBase::MINUTE)
-//#define SHUTDOWN_DEADLINE INFINITE_DEADLINE
+//#define SHUTDOWN_DEADLINE Chrono::make_deadline (TimeBase::MINUTE)
+#define SHUTDOWN_DEADLINE INFINITE_DEADLINE
 
 namespace Nirvana {
 namespace Core {

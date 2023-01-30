@@ -145,8 +145,8 @@ void ExecDomain::final_release () NIRVANA_NOEXCEPT
 		background_worker_->finish ();
 		background_worker_.reset ();
 	}
-	Scheduler::activity_end ();
 	Creator::release (*this);
+	Scheduler::activity_end ();
 }
 
 void ExecDomain::_add_ref () NIRVANA_NOEXCEPT
@@ -298,7 +298,7 @@ void ExecDomain::schedule (SyncContext& target, bool ret)
 				sync_domain->schedule (deadline (), *this);
 		} else {
 			if (background) {
-				assert (&Thread::current () != background_worker_);
+				assert (Thread::current_ptr () != background_worker_);
 				background_worker_->execute (*this);
 			} else
 				Scheduler::schedule (deadline (), *this);
