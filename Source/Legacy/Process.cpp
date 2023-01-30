@@ -110,7 +110,7 @@ RuntimeProxy::_ref_type Process::runtime_proxy_get (const void* obj)
 void Process::runtime_proxy_remove (const void* obj) NIRVANA_NOEXCEPT
 {
 	// Debug iterators
-#ifdef _DEBUG
+#ifdef NIRVANA_DEBUG_ITERATORS
 	if (RUNNING != state_)
 		return;
 #endif
