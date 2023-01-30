@@ -64,8 +64,9 @@ public:
 	}
 
 	/// Constructor.
-	ExecContext () :
-		ExecContext (false)
+	ExecContext (bool neutral) :
+		Port::ExecContext (neutral),
+		runnable_ (nullptr)
 	{}
 
 	/// Switch to this context.
@@ -86,12 +87,13 @@ public:
 		return runnable_;
 	}
 
-protected:
-	ExecContext (bool neutral) :
-		Port::ExecContext (neutral),
-		runnable_ (nullptr)
-	{}
+	// Execute Runnable in the neutral context
+	static void run_in_neutral_context (Runnable& runnable) NIRVANA_NOEXCEPT;
 
+	// Call from worker
+	static void neutral_context_loop (Thread& worker) NIRVANA_NOEXCEPT;
+
+protected:
 	void run ()
 	{
 		assert (runnable_);
@@ -101,28 +103,6 @@ protected:
 
 protected:
 	Runnable* runnable_;
-};
-
-class NeutralContext : public ExecContext
-{
-public:
-	NeutralContext () :
-		ExecContext (true)
-	{}
-
-	// Execute Runnable in the neutral context
-	static void run (Runnable& runnable);
-
-	// Call from worker
-	static void execute (Thread& worker) NIRVANA_NOEXCEPT;
-
-private:
-	void run_in_context (Runnable& runnable);
-
-	void run () NIRVANA_NOEXCEPT;
-
-private:
-	std::exception_ptr exception_;
 };
 
 }

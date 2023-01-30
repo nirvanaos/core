@@ -392,6 +392,7 @@ private:
 #endif
 		ref_cnt_ (1),
 		ret_qnodes_ (nullptr),
+		mem_context_ (nullptr),
 		scheduler_item_created_ (false),
 		schedule_ (*this),
 		reschedule_ (*this),
@@ -486,6 +487,7 @@ private:
 		{}
 
 		SyncContext* sync_context_;
+		std::exception_ptr exception_;
 		bool ret_;
 
 	private:

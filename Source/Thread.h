@@ -79,7 +79,7 @@ public:
 	}
 
 	/// Returns special "neutral" execution context with own stack and CPU state.
-	NeutralContext& neutral_context () NIRVANA_NOEXCEPT
+	ExecContext& neutral_context () NIRVANA_NOEXCEPT
 	{
 		return neutral_context_;
 	}
@@ -92,7 +92,8 @@ public:
 
 protected:
 	Thread () :
-		exec_domain_ (nullptr)
+		exec_domain_ (nullptr),
+		neutral_context_ (true)
 	{}
 
 protected:
@@ -101,7 +102,7 @@ protected:
 
 private:
 	/// Special "neutral" execution context with own stack and CPU state.
-	NeutralContext neutral_context_;
+	ExecContext neutral_context_;
 };
 
 }

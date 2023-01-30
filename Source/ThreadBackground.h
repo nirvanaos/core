@@ -59,11 +59,7 @@ public:
 
 	void finish () NIRVANA_NOEXCEPT
 	{
-		Base::exec_domain (nullptr);
-#ifdef _DEBUG
-		finish_called_ = true;
-#endif
-		Base::resume ();
+		Base::finish ();
 	}
 
 protected:
@@ -74,18 +70,13 @@ protected:
 
 private:
 	// Called from port.
-	inline bool execute () NIRVANA_NOEXCEPT;
+	inline void execute () NIRVANA_NOEXCEPT;
 
 	// Called from port.
 	void on_thread_proc_end () NIRVANA_NOEXCEPT
 	{
-		assert (finish_called_);
 		_remove_ref ();
 	}
-
-#ifdef _DEBUG
-	bool finish_called_ = false;
-#endif
 };
 
 }

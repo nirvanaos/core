@@ -29,49 +29,22 @@
 namespace Nirvana {
 namespace Core {
 
-inline void NeutralContext::run_in_context (Runnable& runnable)
+void ExecContext::run_in_neutral_context (Runnable& runnable) NIRVANA_NOEXCEPT
 {
-	assert (this != &current ());
-	runnable_ = &runnable;
-	switch_to ();
-	if (exception_) {
-		std::exception_ptr tmp (std::move (exception_));
-		std::rethrow_exception (tmp);
-	}
+	ExecContext& neutral_context = Thread::current ().neutral_context ();
+	neutral_context.runnable_ = &runnable;
+	neutral_context.switch_to ();
 }
 
-void NeutralContext::run (Runnable& runnable)
-{
-	NeutralContext& neutral_context = Thread::current ().neutral_context ();
-	neutral_context.run_in_context (runnable);
-}
-
-inline void NeutralContext::run () NIRVANA_NOEXCEPT
-{
-	Thread& thr = Thread::current ();
-	ExecDomain* ed = thr.exec_domain ();
-	thr.exec_domain (nullptr);
-	try {
-		ExecContext::run ();
-	} catch (...) {
-		if (ed) {
-			thr.exec_domain (*ed);
-			exception_ = std::current_exception ();
-		} else
-			assert (false);
-	}
-}
-
-void NeutralContext::execute (Thread& worker) NIRVANA_NOEXCEPT
+void ExecContext::neutral_context_loop (Thread& worker) NIRVANA_NOEXCEPT
 {
 	assert (&current () == &worker.neutral_context ());
 	for (;;) {
 		assert (worker.neutral_context ().runnable_);
 		worker.neutral_context ().run ();
-		// worker.exec_domain () is not null if exception was thrown
 		ExecDomain* ed = worker.exec_domain ();
 		if (ed)
-			ed->switch_to (); // Switch back to ED and re-throw exception
+			ed->switch_to ();
 		else
 			break;
 	}
