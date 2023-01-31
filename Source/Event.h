@@ -52,10 +52,7 @@ public:
 	}
 
 	/// Suspend current execution domain until the event will be signalled.
-	void wait () NIRVANA_NOEXCEPT {
-		if (!signalled_)
-			ExecContext::run_in_neutral_context (wait_op_);
-	}
+	void wait ();
 
 	/// Tests event state without wait.
 	/// \returns 'true' if object is already in the signalled state.

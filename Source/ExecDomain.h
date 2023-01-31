@@ -197,7 +197,14 @@ public:
 	/// Suspend execution
 	/// 
 	/// \param resume_context Context where to resume or nullptr for current context.
-	void suspend (SyncContext* resume_context = nullptr);
+	void suspend (SyncContext* resume_context = nullptr)
+	{
+		suspend_prepare (resume_context);
+		suspend_prepared ();
+	}
+
+	void suspend_prepare (SyncContext* resume_context = nullptr);
+	void suspend_prepared () NIRVANA_NOEXCEPT;
 
 	/// Resume suspended domain
 	void resume ()

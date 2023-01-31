@@ -65,7 +65,12 @@ void Synchronized::suspend_and_return ()
 {
 	assert (call_context_);
 	Ref <SyncContext> context = std::move (call_context_);
-	exec_domain_.suspend (context);
+	try {
+		exec_domain_.suspend (context);
+	} catch (...) {
+		call_context_ = std::move (context);
+		throw;
+	}
 }
 
 void Synchronized::return_to_caller_context ()

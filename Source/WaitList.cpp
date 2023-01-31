@@ -48,9 +48,9 @@ void WaitListImpl::wait ()
 			throw_BAD_INV_ORDER ();
 		// Hold reference to this object
 		Ref <WaitList> ref = static_cast <WaitList*> (this);
+		ed.suspend ();
 		static_cast <StackElem&> (ed).next = wait_list_;
 		wait_list_ = &ed;
-		ed.suspend ();
 	}
 	assert (finished ());
 	if (exception_)

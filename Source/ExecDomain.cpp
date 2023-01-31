@@ -389,8 +389,9 @@ void ExecDomain::Schedule::run ()
 	}
 }
 
-void ExecDomain::suspend (SyncContext* resume_context)
+void ExecDomain::suspend_prepare (SyncContext* resume_context)
 {
+	assert (Thread::current ().exec_domain () == this);
 	SyncDomain* sync_domain = sync_context_->sync_domain ();
 	if (sync_domain) {
 		if (!resume_context)
@@ -399,6 +400,11 @@ void ExecDomain::suspend (SyncContext* resume_context)
 	}
 	if (resume_context)
 		sync_context_ = resume_context;
+}
+
+void ExecDomain::suspend_prepared () NIRVANA_NOEXCEPT
+{
+	assert (Thread::current ().exec_domain () == this);
 	ExecContext& neutral_context = Thread::current ().neutral_context ();
 	Thread::current ().yield ();
 	if (&neutral_context != &ExecContext::current ())

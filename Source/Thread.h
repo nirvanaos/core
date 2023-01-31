@@ -95,11 +95,11 @@ protected:
 	{}
 
 protected:
-	/// Pointer to the current execution domain.
+	// Pointer to the current execution domain.
 	ExecDomain* volatile exec_domain_;
 
 private:
-	/// Special "neutral" execution context with own stack and CPU state.
+	// Special "neutral" execution context with own stack and CPU state.
 	ExecContext neutral_context_;
 };
 

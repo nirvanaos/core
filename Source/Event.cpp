@@ -3,17 +3,22 @@
 namespace Nirvana {
 namespace Core {
 
+void Event::wait () {
+	if (!signalled_) {
+		ExecDomain::current ().suspend_prepare ();
+		ExecContext::run_in_neutral_context (wait_op_);
+	}
+}
+
 void Event::WaitOp::run ()
 {
-	if (!obj_.signalled_) {
-		ExecDomain& ed = ExecDomain::current ();
-		ed.suspend ();
-		obj_.push (ed);
-		if (obj_.signalled_) {
-			ExecDomain* ed = obj_.pop ();
-			if (ed)
-				ed->resume ();
-		}
+	ExecDomain& ed = ExecDomain::current ();
+	ed.suspend_prepared ();
+	obj_.push (ed);
+	if (obj_.signalled_) {
+		ExecDomain* ed = obj_.pop ();
+		if (ed)
+			ed->resume ();
 	}
 }
 
