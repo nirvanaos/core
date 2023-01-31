@@ -58,15 +58,27 @@ StaticallyAllocated <Scheduler::GlobalData> Scheduler::global_;
 
 void Scheduler::do_shutdown ()
 {
-#ifdef DEBUG_SHUTDOWN
-	g_system->debug_event (System::DebugEvent::DEBUG_INFO, "do_shutdown ()");
-#endif
 	// Block incoming requests and complete currently executed ones.
+#ifdef DEBUG_SHUTDOWN
+	g_system->debug_event (System::DebugEvent::DEBUG_INFO, "PortableServer::Core::POA_Root::shutdown ()");
+#endif
 	PortableServer::Core::POA_Root::shutdown ();
+
 	// Terminate services to release all proxies
+#ifdef DEBUG_SHUTDOWN
+	g_system->debug_event (System::DebugEvent::DEBUG_INFO, "CORBA::Core::Services::terminate ()");
+#endif
 	CORBA::Core::Services::terminate ();
+
 	// Stop receiving messages
+#ifdef DEBUG_SHUTDOWN
+	g_system->debug_event (System::DebugEvent::DEBUG_INFO, "Port::PostOffice::terminate ()");
+#endif
 	Port::PostOffice::terminate ();
+
+#ifdef DEBUG_SHUTDOWN
+	g_system->debug_event (System::DebugEvent::DEBUG_INFO, "do_shutdown () end");
+#endif
 	// If no activity - toggle it.
 	if (!global_->activity_cnt) {
 		global_->activity_cnt.increment ();

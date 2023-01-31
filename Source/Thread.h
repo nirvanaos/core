@@ -83,7 +83,7 @@ public:
 	/// Release worker thread.
 	void yield () NIRVANA_NOEXCEPT
 	{
-		assert (&ExecContext::current () == &current ().neutral_context ());
+		assert (this == &current ());
 		assert (exec_domain_);
 		exec_domain_ = nullptr;
 	}
