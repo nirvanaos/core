@@ -158,8 +158,12 @@ void ExecDomain::_remove_ref () NIRVANA_NOEXCEPT
 	if (0 == ref_cnt_.decrement_seq ()) {
 		if (&ExecContext::current () == this)
 			ExecContext::run_in_neutral_context (deleter_);
-		else
+		else {
+#ifdef _DEBUG
+			__debugbreak ();
+#endif
 			final_release ();
+		}
 	}
 }
 
