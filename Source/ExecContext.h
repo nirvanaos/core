@@ -102,7 +102,7 @@ protected:
 	}
 
 protected:
-	Runnable* runnable_;
+	Runnable* volatile runnable_;
 };
 
 }

@@ -211,7 +211,20 @@ public:
 	static bool reschedule ();
 
 	/// \brief Called from the Port implementation.
-	void run ();
+	void run ()
+	{
+		assert (Thread::current ().exec_domain () == this);
+		assert (runnable_);
+		Runnable* runnable = runnable_;
+		ExecContext::run ();
+		assert (!runnable_); // Cleaned inside ExecContext::run ();
+
+		// If Runnable object was constructed in-place, destruct it.
+		if (runnable == (Runnable*)&runnable_space_)
+			runnable->~Runnable ();
+
+		cleanup ();
+	}
 
 	/// Called from the Port implementation in case of the unrecoverable error.
 	/// \param signal The signal information.

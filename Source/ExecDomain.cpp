@@ -240,21 +240,6 @@ void ExecDomain::cleanup () NIRVANA_NOEXCEPT
 	_remove_ref ();
 }
 
-void ExecDomain::run ()
-{
-	assert (Thread::current ().exec_domain () == this);
-	assert (runnable_);
-	Runnable* runnable = runnable_;
-	ExecContext::run ();
-	assert (!runnable_); // Cleaned inside ExecContext::run ();
-
-	// If Runnable object was constructed in-place, destruct it.
-	if (runnable == (Runnable*)&runnable_space_)
-		runnable->~Runnable ();
-
-	cleanup ();
-}
-
 MemContext& ExecDomain::mem_context ()
 {
 	if (!mem_context_) {
