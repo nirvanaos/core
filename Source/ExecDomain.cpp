@@ -136,45 +136,6 @@ void ExecDomain::async_call (const DeadlineTime& deadline, Runnable* runnable,
 	exec_domain->spawn (target);
 }
 
-void ExecDomain::final_release () NIRVANA_NOEXCEPT
-{
-	assert (!runnable_);
-	assert (!sync_context_);
-	if (background_worker_) {
-		background_worker_->finish ();
-		background_worker_.reset ();
-	}
-	Creator::release (*this);
-	Scheduler::activity_end ();
-}
-
-void ExecDomain::_add_ref () NIRVANA_NOEXCEPT
-{
-	ref_cnt_.increment ();
-}
-
-void ExecDomain::_remove_ref () NIRVANA_NOEXCEPT
-{
-	if (0 == ref_cnt_.decrement_seq ()) {
-		if (&ExecContext::current () == this)
-			ExecContext::run_in_neutral_context (deleter_);
-		else {
-#ifdef _DEBUG
-			__debugbreak ();
-#endif
-			final_release ();
-		}
-	}
-}
-
-void ExecDomain::Deleter::run ()
-{
-	ExecDomain* ed = Thread::current ().exec_domain ();
-	assert (ed);
-	Thread::current ().yield ();
-	ed->final_release ();
-}
-
 void ExecDomain::spawn (SyncContext& sync_context)
 {
 	assert (ExecContext::current_ptr () != this);
@@ -213,14 +174,18 @@ void ExecDomain::execute ()
 
 void ExecDomain::cleanup () NIRVANA_NOEXCEPT
 {
+	assert (this == &current ());
+	assert (!runnable_);
+
 	{
 		SyncDomain* sd = sync_context_->sync_domain ();
 		if (sd)
 			sd->leave ();
 	}
+	sync_context_.reset ();
+
 	ret_qnodes_clear ();
-	sync_context_ = &g_core_free_sync_context;
-	runtime_global_.cleanup ();
+	
 	assert (!mem_context_stack_.empty ());
 	for (;;) {
 		mem_context_stack_.pop ();
@@ -229,19 +194,41 @@ void ExecDomain::cleanup () NIRVANA_NOEXCEPT
 		mem_context_ = mem_context_stack_.top ();
 	}
 	mem_context_ = nullptr;
+
 #ifdef _DEBUG
 	dbg_context_stack_size_ = 0;
 #endif
+
 	if (scheduler_item_created_) {
 		Scheduler::delete_item ();
 		scheduler_item_created_ = false;
 	}
-	sync_context_.reset ();
 	
+	if (background_worker_) {
+		background_worker_->finish ();
+		background_worker_.reset ();
+	}
+
+	runtime_global_.cleanup ();
+
 	deadline_policy_async_._default ();
 	deadline_policy_oneway_._d (System::DeadlinePolicyType::DEADLINE_INFINITE);
 
-	_remove_ref ();
+	ExecContext::run_in_neutral_context (deleter_);
+}
+
+void ExecDomain::final_release () NIRVANA_NOEXCEPT
+{
+	Creator::release (*this);
+	Scheduler::activity_end ();
+}
+
+void ExecDomain::Deleter::run ()
+{
+	ExecDomain* ed = Thread::current ().exec_domain ();
+	assert (ed);
+	Thread::current ().yield ();
+	ed->_remove_ref ();
 }
 
 MemContext& ExecDomain::mem_context ()

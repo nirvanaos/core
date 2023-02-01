@@ -440,8 +440,18 @@ private:
 	friend class Ref <ExecDomain>;
 	template <class> friend class CORBA::servant_reference;
 	friend class ObjectPool <ExecDomain>;
-	void _add_ref () NIRVANA_NOEXCEPT;
-	void _remove_ref () NIRVANA_NOEXCEPT;
+	
+	void _add_ref () NIRVANA_NOEXCEPT
+	{
+		ref_cnt_.increment ();
+	}
+
+	void _remove_ref () NIRVANA_NOEXCEPT
+	{
+		if (0 == ref_cnt_.decrement_seq ())
+			final_release ();
+	}
+
 	void cleanup () NIRVANA_NOEXCEPT;
 
 	void spawn (SyncContext& sync_context);
