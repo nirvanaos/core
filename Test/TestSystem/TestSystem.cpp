@@ -5,6 +5,8 @@ using namespace Nirvana;
 
 // Test for the Nirvana::System interface
 
+extern void writemem (void* p);
+
 namespace TestSystem {
 
 class TestSystem :
@@ -68,7 +70,7 @@ TEST_F (TestSystem, AccessViolation)
 	bool OK = false;
 	int minor = 0;
 	try {
-		*(int*)p = 1;
+		writemem (p);
 	} catch (const CORBA::ACCESS_VIOLATION& ex) {
 		OK = true;
 		minor = ex.minor ();
@@ -81,7 +83,7 @@ TEST_F (TestSystem, AccessViolation)
 	void* p1 = heap->copy (nullptr, p, cb, Memory::READ_ONLY);
 	OK = false;
 	try {
-		*(int*)p1 = 1;
+		writemem (p1);
 	} catch (const CORBA::ACCESS_VIOLATION& ex) {
 		OK = true;
 		minor = ex.minor ();
