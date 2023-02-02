@@ -30,6 +30,7 @@
 
 #include "TC_RefBase.h"
 #include "TC_Impl.h"
+#include "ORB.h"
 
 namespace CORBA {
 namespace Core {
@@ -48,6 +49,14 @@ public:
 	using Servant::_s_name;
 
 	TC_Interface (TCKind kind, IDL::String&& id, IDL::String&& name) NIRVANA_NOEXCEPT;
+
+	TypeCode::_ref_type get_compact_typecode ()
+	{
+		if (name_.empty ())
+			return Impl::get_compact_typecode ();
+		else
+			return ORB::create_interface_tc (id_, nullptr);
+	}
 
 	static void n_marshal_in (const void* src, size_t count, Internal::IORequest_ptr rq);
 

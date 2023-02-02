@@ -30,6 +30,7 @@
 
 #include "TC_ValueBase.h"
 #include "TC_Impl.h"
+#include "ORB.h"
 #include "../Array.h"
 #include "../UserAllocator.h"
 
@@ -147,6 +148,11 @@ public:
 		if (i >= members_.size ())
 			throw Bounds ();
 		return members_ [i].visibility;
+	}
+
+	TypeCode::_ref_type get_compact_typecode ()
+	{
+		return ORB::get_compact_typecode (_get_ptr ());
 	}
 
 protected:

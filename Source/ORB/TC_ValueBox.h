@@ -30,6 +30,7 @@
 
 #include "TC_ValueBase.h"
 #include "TC_Impl.h"
+#include "ORB.h"
 
 namespace CORBA {
 namespace Core {
@@ -75,6 +76,14 @@ public:
 	TypeCode::_ref_type content_type () const NIRVANA_NOEXCEPT
 	{
 		return content_type_;
+	}
+
+	TypeCode::_ref_type get_compact_typecode ()
+	{
+		if (name_.empty ())
+			return Impl::get_compact_typecode ();
+		else
+			return ORB::create_value_box_tc (id_, nullptr, content_type_);
 	}
 
 protected:

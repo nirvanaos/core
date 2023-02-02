@@ -24,7 +24,7 @@
 *  popov.nirvana@gmail.com
 */
 #include <CORBA/CORBA.h>
-#include <CORBA/Proxy/TypeCodeString.h>
+#include <CORBA/TypeCodeString.h>
 #include <CORBA/Proxy/TypeCodeInterface.h>
 #include <CORBA/Proxy/TypeCodeValue.h>
 #include "tc_impex.h"

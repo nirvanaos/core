@@ -60,8 +60,7 @@ public:
 
 	TypeCode::_ref_type get_compact_typecode () NIRVANA_NOEXCEPT
 	{
-		// For now just return this type code.
-		// TODO: Implement.
+		// By default just return this type code.
 		return Servant::_get_ptr ();
 	}
 

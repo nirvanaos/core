@@ -30,6 +30,7 @@
 
 #include "TC_RefBase.h"
 #include "TC_Impl.h"
+#include "ORB.h"
 
 namespace CORBA {
 namespace Core {
@@ -66,6 +67,14 @@ public:
 			count; ++p, --count) {
 			*p = rq->unmarshal_abstract (id_);
 		}
+	}
+
+	TypeCode::_ref_type get_compact_typecode ()
+	{
+		if (name_.empty ())
+			return Impl::get_compact_typecode ();
+		else
+			return ORB::create_abstract_interface_tc (id_, nullptr);
 	}
 
 private:

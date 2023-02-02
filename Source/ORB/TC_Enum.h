@@ -84,6 +84,25 @@ public:
 		return members_ [i];
 	}
 
+	TypeCode::_ref_type get_compact_typecode ()
+	{
+		bool already_compact = true;
+		if (!name_.empty ())
+			already_compact = false;
+		else {
+			for (const auto& m : members_) {
+				if (!m.empty ()) {
+					already_compact = false;
+					break;
+				}
+			}
+		}
+		if (already_compact)
+			return Servant::_get_ptr ();
+		else
+			return g_ORB->create_enum_tc (id_, nullptr, EnumMemberSeq (members_.size ()));
+	}
+
 	size_t n_size () const NIRVANA_NOEXCEPT
 	{
 		return sizeof (Internal::ABI_enum);

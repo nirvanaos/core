@@ -33,6 +33,7 @@
 #include "TC_Ref.h"
 #include "../Array.h"
 #include "../UserAllocator.h"
+#include "ORB.h"
 
 namespace CORBA {
 namespace Core {
@@ -116,6 +117,11 @@ public:
 		if (i >= members_.size ())
 			throw Bounds ();
 		return members_ [i].type;
+	}
+
+	TypeCode::_ref_type get_compact_typecode ()
+	{
+		return ORB::get_compact_typecode (_get_ptr ());
 	}
 
 	size_t n_size () const NIRVANA_NOEXCEPT

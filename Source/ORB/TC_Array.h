@@ -53,6 +53,15 @@ public:
 		Impl (TCKind::tk_array, std::move (content_type), bound)
 	{}
 
+	TypeCode::_ref_type get_compact_typecode ()
+	{
+		TypeCode::_ref_type compact_content = content_type_->get_compact_typecode ();
+		if (&content_type_ == &TypeCode::_ptr_type (compact_content))
+			return Impl::get_compact_typecode ();
+		else
+			return g_ORB->create_array_tc (bound_, compact_content);
+	}
+
 	size_t n_size () const NIRVANA_NOEXCEPT
 	{
 		return bound_ * element_size_;

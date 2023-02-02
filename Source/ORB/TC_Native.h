@@ -59,6 +59,14 @@ public:
 	TC_Native (IDL::String&& id, IDL::String&& name) NIRVANA_NOEXCEPT :
 		Impl (TCKind::tk_native, std::move (id), std::move (name))
 	{}
+
+	TypeCode::_ref_type get_compact_typecode ()
+	{
+		if (name_.empty ())
+			return Impl::get_compact_typecode ();
+		else
+			return ORB::create_native_tc (id_, nullptr);
+	}
 };
 
 }

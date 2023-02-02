@@ -30,6 +30,7 @@
 
 #include "TC_ArrayBase.h"
 #include "TC_Impl.h"
+#include "ORB.h"
 
 namespace CORBA {
 namespace Core {
@@ -50,6 +51,15 @@ public:
 	TC_Sequence (TC_Ref&& content_type, ULong bound) :
 		Impl (TCKind::tk_sequence, std::move (content_type), bound)
 	{}
+
+	TypeCode::_ref_type get_compact_typecode ()
+	{
+		TypeCode::_ref_type compact_content = content_type_->get_compact_typecode ();
+		if (&content_type_ == &TypeCode::_ptr_type (compact_content))
+			return Impl::get_compact_typecode ();
+		else
+			return ORB::create_sequence_tc (bound_, compact_content);
+	}
 
 	static size_t _s_n_size (Internal::Bridge <TypeCode>*, Internal::Interface*)
 	{

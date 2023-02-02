@@ -31,6 +31,7 @@
 #include "TC_IdName.h"
 #include "TC_Impl.h"
 #include "TC_Ref.h"
+#include "ORB.h"
 #include "../Array.h"
 #include "../UserAllocator.h"
 
@@ -136,6 +137,11 @@ public:
 		if (i >= members_.size ())
 			throw Bounds ();
 		return members_ [i].label;
+	}
+
+	TypeCode::_ref_type get_compact_typecode ()
+	{
+		return ORB::get_compact_typecode (_get_ptr ());
 	}
 
 	size_t n_size () const NIRVANA_NOEXCEPT
