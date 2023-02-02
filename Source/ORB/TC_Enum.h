@@ -30,6 +30,7 @@
 
 #include "TC_IdName.h"
 #include "TC_Impl.h"
+#include "ORB.h"
 #include "../Array.h"
 #include "../UserAllocator.h"
 
@@ -100,7 +101,7 @@ public:
 		if (already_compact)
 			return Servant::_get_ptr ();
 		else
-			return g_ORB->create_enum_tc (id_, nullptr, EnumMemberSeq (members_.size ()));
+			return ORB::create_enum_tc (id_, IDL::String (), EnumMemberSeq (members_.size ()));
 	}
 
 	size_t n_size () const NIRVANA_NOEXCEPT

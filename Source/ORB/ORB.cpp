@@ -21,29 +21,29 @@ TypeCode::_ref_type ORB::get_compact_typecode (TypeCode::_ptr_type tc, const TC_
 					StructMemberSeq members;
 					members.reserve (member_count);
 					for (ULong i = 0; i < member_count; ++i) {
-						members.emplace_back (nullptr, get_compact_typecode (tc->member_type (i), &rec), nullptr);
+						members.emplace_back (IDL::String (), get_compact_typecode (tc->member_type (i), &rec), nullptr);
 					}
-					return create_struct_tc (tc->id (), nullptr, members);
+					return create_struct_tc (tc->id (), IDL::String (), members);
 				}
 
 				case TCKind::tk_union: {
 					UnionMemberSeq members;
 					members.reserve (member_count);
 					for (ULong i = 0; i < member_count; ++i) {
-						members.emplace_back (nullptr, tc->member_label (i),
+						members.emplace_back (IDL::String (), tc->member_label (i),
 							get_compact_typecode (tc->member_type (i), &rec), nullptr);
 					}
-					return create_union_tc (tc->id (), nullptr, tc->discriminator_type (), members);
+					return create_union_tc (tc->id (), IDL::String (), tc->discriminator_type (), members);
 				}
 
 				case TCKind::tk_value: {
 					ValueMemberSeq members;
 					members.reserve (member_count);
 					for (ULong i = 0; i < member_count; ++i) {
-						members.emplace_back (nullptr, nullptr, nullptr, nullptr,
+						members.emplace_back (IDL::String (), IDL::String (), IDL::String (), IDL::String (),
 							get_compact_typecode (tc->member_type (i), &rec), nullptr, tc->member_visibility (i));
 					}
-					return create_value_tc (tc->id (), nullptr, tc->type_modifier (), tc->concrete_base_type (), members);
+					return create_value_tc (tc->id (), IDL::String (), tc->type_modifier (), tc->concrete_base_type (), members);
 				}
 			}
 		}
@@ -62,9 +62,9 @@ TypeCode::_ref_type ORB::get_compact_typecode (TypeCode::_ptr_type tc, const TC_
 			StructMemberSeq members;
 			members.reserve (member_count);
 			for (ULong i = 0; i < member_count; ++i) {
-				members.emplace_back (nullptr, get_compact_typecode (tc->member_type (i), parent), nullptr);
+				members.emplace_back (IDL::String (), get_compact_typecode (tc->member_type (i), parent), nullptr);
 			}
-			return create_exception_tc (tc->id (), nullptr, members);
+			return create_exception_tc (tc->id (), IDL::String (), members);
 		}
 
 		default:

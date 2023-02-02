@@ -30,6 +30,7 @@
 
 #include "TC_ArrayBase.h"
 #include "TC_Impl.h"
+#include "ORB.h"
 
 namespace CORBA {
 namespace Core {
@@ -59,7 +60,7 @@ public:
 		if (&content_type_ == &TypeCode::_ptr_type (compact_content))
 			return Impl::get_compact_typecode ();
 		else
-			return g_ORB->create_array_tc (bound_, compact_content);
+			return ORB::create_array_tc (bound_, compact_content);
 	}
 
 	size_t n_size () const NIRVANA_NOEXCEPT

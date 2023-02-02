@@ -65,7 +65,7 @@ public:
 		if (name_.empty ())
 			return Impl::get_compact_typecode ();
 		else
-			return ORB::create_native_tc (id_, nullptr);
+			return ORB::create_native_tc (id_, IDL::String ());
 	}
 };
 

@@ -53,7 +53,7 @@ bool TC_Struct::equivalent_members (TypeCode::_ptr_type other)
 	if (members_.size () != other->member_count ())
 		return false;
 	ORB::TypeCodePair tcp (&Servant::_get_ptr (), &other, nullptr);
-	if (!g_ORB->type_code_pair_push (tcp))
+	if (!ORB::type_code_pair_push (tcp))
 		return true;
 
 	bool ret = true;
@@ -65,10 +65,10 @@ bool TC_Struct::equivalent_members (TypeCode::_ptr_type other)
 			}
 		}
 	} catch (...) {
-		g_ORB->type_code_pair_pop ();
+		ORB::type_code_pair_pop ();
 		throw;
 	}
-	g_ORB->type_code_pair_pop ();
+	ORB::type_code_pair_pop ();
 	return ret;
 }
 
