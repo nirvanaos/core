@@ -269,31 +269,6 @@ public:
 		}
 	}
 
-	static bool type_code_pair_push (TypeCodePair& pair)
-	{
-		Nirvana::Core::TLS& tls = Nirvana::Core::TLS::current ();
-		TypeCodePair* top = (TypeCodePair*)tls.get (Nirvana::Core::TLS::CORE_TLS_TYPE_CODE);
-		for (const TypeCodePair* p = top; p; p = (const TypeCodePair*)(p->next ())) {
-			if (
-				(p->left () == pair.left () && p->right () == pair.right ())
-				||
-				(p->left () == pair.right () && p->right () == pair.left ())
-				)
-				return false;
-		}
-		pair.next (top);
-		tls.set (Nirvana::Core::TLS::CORE_TLS_TYPE_CODE, &pair);
-		return true;
-	}
-
-	static void type_code_pair_pop ()
-	{
-		Nirvana::Core::TLS& tls = Nirvana::Core::TLS::current ();
-		TypeCodePair* p = (TypeCodePair*)tls.get (Nirvana::Core::TLS::CORE_TLS_TYPE_CODE);
-		if (p)
-			tls.set (Nirvana::Core::TLS::CORE_TLS_TYPE_CODE, p->next ());
-	}
-
 	struct TC_Recurse
 	{
 		const TC_Recurse* prev;
