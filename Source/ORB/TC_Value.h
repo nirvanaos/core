@@ -91,27 +91,12 @@ public:
 
 	Boolean equal (TypeCode::_ptr_type other)
 	{
-		if (!TC_IdName::equal (other))
-			return false;
-
-		if (!equivalent_members (other))
-			return false;
-
-		for (ULong i = 0, cnt = (ULong)members_.size (); i < cnt; ++i) {
-			if (other->member_name (i) != members_ [i].name)
-				return false;
-		}
-		return true;
+		return ORB::tc_equal (Impl::_get_ptr (), other);
 	}
 
 	Boolean equivalent (TypeCode::_ptr_type other)
 	{
-		TypeCode::_ptr_type tc = dereference_alias (other);
-		EqResult eq = TypeCodeBase::equivalent_ (kind_, id_, tc);
-		if (EqResult::UNKNOWN != eq)
-			return eq == EqResult::YES;
-
-		return equivalent_members (tc);
+		return ORB::tc_equivalent (Impl::_get_ptr (), other);
 	}
 
 	ValueModifier type_modifier () const NIRVANA_NOEXCEPT
@@ -158,9 +143,6 @@ public:
 protected:
 	virtual bool mark () NIRVANA_NOEXCEPT override;
 	virtual bool set_recursive (const IDL::String& id, const TC_Ref& ref) NIRVANA_NOEXCEPT override;
-
-private:
-	bool equivalent_members (TypeCode::_ptr_type other);
 
 private:
 	ValueModifier modifier_;

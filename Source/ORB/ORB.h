@@ -302,11 +302,24 @@ public:
 
 	static TypeCode::_ref_type get_compact_typecode (TypeCode::_ptr_type tc, const TC_Recurse* parent = nullptr);
 
+	struct TC_Pair
+	{
+		const TC_Pair* prev;
+		TypeCode::_ptr_type left, right;
+	};
+
+	static bool tc_equal (TypeCode::_ptr_type left, TypeCode::_ptr_type right, const TC_Pair* parent = nullptr);
+	static bool tc_equivalent (TypeCode::_ptr_type left, TypeCode::_ptr_type right, const TC_Pair* parent = nullptr);
+
 private:
 	static TC_Factory::_ptr_type tc_factory ()
 	{
 		return TC_Factory::_narrow (Services::bind (Services::TC_Factory));
 	}
+
+	static ULongLong get_union_label (TypeCode::_ptr_type tc, ULong i);
+
+	static TypeCode::_ref_type dereference_alias (TypeCode::_ptr_type tc);
 };
 
 

@@ -46,31 +46,5 @@ bool TC_Value::set_recursive (const IDL::String& id, const TC_Ref& ref) NIRVANA_
 	return false;
 }
 
-bool TC_Value::equivalent_members (TypeCode::_ptr_type other)
-{
-	if (members_.size () != other->member_count ())
-		return false;
-	ORB::TypeCodePair tcp (&Servant::_get_ptr (), &other, nullptr);
-	if (!ORB::type_code_pair_push (tcp))
-		return true;
-
-	bool ret = true;
-	try {
-		for (ULong i = 0, cnt = (ULong)members_.size (); i < cnt; ++i) {
-			const Member& m = members_ [i];
-			if (!m.type->equivalent (other->member_type (i))
-				|| m.visibility != other->member_visibility (i)) {
-				ret = false;
-				break;
-			}
-		}
-	} catch (...) {
-		ORB::type_code_pair_pop ();
-		throw;
-	}
-	ORB::type_code_pair_pop ();
-	return ret;
-}
-
 }
 }

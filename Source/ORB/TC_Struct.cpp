@@ -48,30 +48,6 @@ void TC_Struct::set_members (Members&& members)
 	is_CDR_ = cdr;
 }
 
-bool TC_Struct::equivalent_members (TypeCode::_ptr_type other)
-{
-	if (members_.size () != other->member_count ())
-		return false;
-	ORB::TypeCodePair tcp (&Servant::_get_ptr (), &other, nullptr);
-	if (!ORB::type_code_pair_push (tcp))
-		return true;
-
-	bool ret = true;
-	try {
-		for (ULong i = 0, cnt = (ULong)members_.size (); i < cnt; ++i) {
-			if (!members_ [i].type->equivalent (other->member_type (i))) {
-				ret = false;
-				break;
-			}
-		}
-	} catch (...) {
-		ORB::type_code_pair_pop ();
-		throw;
-	}
-	ORB::type_code_pair_pop ();
-	return ret;
-}
-
 void TC_Struct::byteswap (void* p, size_t count) const
 {
 	for (Octet* pv = (Octet*)p; count; pv += size_, --count) {
