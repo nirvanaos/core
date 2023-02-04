@@ -108,7 +108,7 @@ void TC_FactoryImpl::check_id (const IDL::String& id)
 TC_Ref TC_FactoryImpl::check_type (TypeCode::_ptr_type tc) const
 {
 	// Operations that take content or member types as arguments shall check that they are legitimate
-	// (i.e., that they don’t have kinds tk_null, tk_void, or tk_exception). If not, they shall raise
+	// (i.e., that they don't have kinds tk_null, tk_void, or tk_exception). If not, they shall raise
 	// the BAD_TYPECODE exception with standard minor code 2.
 	if (tc) {
 		TC_ComplexBase* complex = complex_base (tc);
