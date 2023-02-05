@@ -37,3 +37,7 @@
 /Exports/TC_Factory.cpp
 /Exports/TC_Factory_p.cpp
 /Exports/Domains_p.cpp
+/Exports/CosEventComm_p.cpp
+/Exports/CosNaming_p.cpp
+/Exports/CosTime_p.cpp
+/Exports/CosTimerEvent_p.cpp
