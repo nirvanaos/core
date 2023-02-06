@@ -63,8 +63,15 @@ public:
 	}
 
 protected:
-	ThreadBackground ();
-	~ThreadBackground ();
+	ThreadBackground ()
+	{
+		Scheduler::activity_begin ();
+	}
+
+	~ThreadBackground ()
+	{
+		Scheduler::activity_end ();
+	}
 
 	void start ();
 

@@ -1,3 +1,4 @@
+/// \file
 /*
 * Nirvana Core.
 *
@@ -23,21 +24,38 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "ThreadBackground.h"
+#ifndef NIRVANA_CORE_TIMER_H_
+#define NIRVANA_CORE_TIMER_H_
+#pragma once
+
+#include <Port/Timer.h>
+#include "SharedObject.h"
+#include "Scheduler.h"
 
 namespace Nirvana {
 namespace Core {
 
-void ThreadBackground::start ()
+class Timer : 
+	public SharedObject,
+	public Port::Timer
 {
-	_add_ref ();
-	try {
-		Base::start ();
-	} catch (...) {
-		_remove_ref ();
-		throw;
+public:
+	static const unsigned TIMER_ABSOLUTE = 0x01;
+	static const unsigned TIMER_WAKEUP = 0x02;
+
+protected:
+	Timer ()
+	{
+		Scheduler::activity_begin ();
 	}
-}
+
+	~Timer ()
+	{
+		Scheduler::activity_end ();
+	}
+};
 
 }
 }
+
+#endif
