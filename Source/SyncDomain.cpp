@@ -31,6 +31,7 @@ namespace Core {
 
 SyncDomain::SyncDomain (Ref <MemContext>&& mem_context) NIRVANA_NOEXCEPT :
 	mem_context_ (std::move (mem_context)),
+	scheduling_ { ATOMIC_FLAG_INIT },
 	need_schedule_ (false),
 	state_ (State::IDLE),
 	scheduled_deadline_ (0),

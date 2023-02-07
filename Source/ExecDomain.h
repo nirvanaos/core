@@ -247,6 +247,9 @@ public:
 
 		if (runnable_) {
 			runnable_->on_crash (signal);
+			// If Runnable object was constructed in-place, destruct it.
+			if (runnable_ == (Runnable*)&runnable_space_)
+				runnable_->~Runnable ();
 			runnable_ = nullptr;
 		} else
 			unrecoverable_error (signal.si_signo);
