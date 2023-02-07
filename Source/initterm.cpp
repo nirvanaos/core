@@ -27,10 +27,12 @@
 #include "Binder.h"
 #include "Scheduler.h"
 #include "ExecDomain.h"
+#include "Timer.h"
 #include "TLS.h"
 #include "ORB/ORB_initterm.h"
 #include "ORB/Services.h"
 #include "ORB/LocalAddress.h"
+#include "ORB/POA_Root.h"
 #include <Port/PostOffice.h>
 
 namespace Nirvana {
@@ -49,11 +51,30 @@ bool initialize0 () NIRVANA_NOEXCEPT
 
 void initialize ()
 {
-	CORBA::Core::initialize (); // CORBA::Core::Services must be initialized before Binder
+	Timer::initialize ();
+
+	// CORBA::Core::Services must be initialized before Binder
+	CORBA::Core::initialize ();
+
 	Binder::initialize ();
 
 	// Start receiving messages from other domains
 	Port::PostOffice::initialize (CORBA::Core::LocalAddress::singleton ().host (), CORBA::Core::LocalAddress::singleton ().port ());
+}
+
+void shutdown ()
+{
+	// Disable all timers
+	Timer::terminate ();
+
+	// Block incoming requests and complete currently executed ones.
+	PortableServer::Core::POA_Root::shutdown ();
+
+	// Terminate services to release all proxies
+	CORBA::Core::Services::terminate ();
+
+	// Stop receiving messages
+	Port::PostOffice::terminate ();
 }
 
 void terminate ()

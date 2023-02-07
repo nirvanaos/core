@@ -38,13 +38,16 @@ namespace Core {
 /// Must not use exceptions.
 bool initialize0 () NIRVANA_NOEXCEPT;
 
-//! Called by Startup class from free sync domain after kernel initialization.
+/// Called by Startup class from free sync domain after kernel initialization.
 void initialize ();
 
-//! Called asynchronously before the kernel termination.
+/// Called on shutdown start.
+void shutdown ();
+
+/// Called asynchronously before the kernel termination.
 void terminate ();
 
-//! Called by kernel on the final termination.
+/// Called by kernel on the final termination.
 void terminate0 () NIRVANA_NOEXCEPT;
 
 }

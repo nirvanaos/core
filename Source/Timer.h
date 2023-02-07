@@ -48,6 +48,16 @@ public:
 	{
 		Port::Timer::cancel ();
 	}
+
+	static void initialize ()
+	{
+		Port::Timer::initialize ();
+	}
+
+	static void terminate () NIRVANA_NOEXCEPT
+	{
+		Port::Timer::terminate ();
+	}
 };
 
 }

@@ -26,9 +26,7 @@
 #include "Scheduler.h"
 #include "ExecDomain.h"
 #include "initterm.h"
-#include "ORB/POA_Root.h"
-#include <Port/PostOffice.h>
-#include "unrecoverable_error.h"
+#include "TLS.h"
 
 // Output debug messages on shutdown.
 //#define DEBUG_SHUTDOWN
@@ -58,27 +56,16 @@ StaticallyAllocated <Scheduler::GlobalData> Scheduler::global_;
 
 void Scheduler::do_shutdown ()
 {
-	// Block incoming requests and complete currently executed ones.
 #ifdef DEBUG_SHUTDOWN
-	g_system->debug_event (System::DebugEvent::DEBUG_INFO, "PortableServer::Core::POA_Root::shutdown ()");
+	g_system->debug_event (System::DebugEvent::DEBUG_INFO, "Core::shutdown ()");
 #endif
-	PortableServer::Core::POA_Root::shutdown ();
 
-	// Terminate services to release all proxies
-#ifdef DEBUG_SHUTDOWN
-	g_system->debug_event (System::DebugEvent::DEBUG_INFO, "CORBA::Core::Services::terminate ()");
-#endif
-	CORBA::Core::Services::terminate ();
-
-	// Stop receiving messages
-#ifdef DEBUG_SHUTDOWN
-	g_system->debug_event (System::DebugEvent::DEBUG_INFO, "Port::PostOffice::terminate ()");
-#endif
-	Port::PostOffice::terminate ();
+	Core::shutdown ();
 
 #ifdef DEBUG_SHUTDOWN
-	g_system->debug_event (System::DebugEvent::DEBUG_INFO, "do_shutdown () end");
+	g_system->debug_event (System::DebugEvent::DEBUG_INFO, "Core::shutdown () end");
 #endif
+
 	// If no activity - toggle it.
 	if (!global_->activity_cnt) {
 		global_->activity_cnt.increment ();
