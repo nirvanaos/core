@@ -75,15 +75,16 @@ protected:
 
 	void start ();
 
+	// Called from port.
+	virtual void on_thread_proc_end () NIRVANA_NOEXCEPT
+	{
+		_remove_ref ();
+	}
+
 private:
 	// Called from port.
 	inline void execute () NIRVANA_NOEXCEPT;
 
-	// Called from port.
-	void on_thread_proc_end () NIRVANA_NOEXCEPT
-	{
-		_remove_ref ();
-	}
 };
 
 }

@@ -29,6 +29,7 @@
 #pragma once
 
 #include <CORBA/Server.h>
+#include <CORBA/I_var.h>
 #include <Nirvana/Legacy/Legacy_Process_s.h>
 #include "../Event.h"
 #include "../MemContext.h"
@@ -51,12 +52,8 @@ class Process :
 {
 	typedef CORBA::servant_traits <Nirvana::Legacy::Process>::Servant <Process> Servant;
 
-protected:
-	template <class T, class ... Args>
-	friend CORBA::servant_reference <T> CORBA::make_reference (Args ... args);
-	using Servant::operator new;
-
 public:
+	using Servant::operator new;
 	using Servant::operator delete;
 
 	static Legacy::Process::_ref_type spawn (const std::string& file,
@@ -114,19 +111,6 @@ public:
 	~Process ()
 	{}
 
-	Legacy::Process::_ref_type _this ()
-	{
-		if (proxy_)
-			return proxy_;
-		Legacy::Process::_ref_type proxy = 
-			CORBA::servant_traits <Nirvana::Legacy::Process>::Servant <Process>::_this ();
-
-		// Even if proxy is not referenced, it must be holded for the callback.
-		if (callback_)
-			proxy_ = proxy;
-		return proxy;
-	}
-
 	Nirvana::Core::SyncContext& sync_context () NIRVANA_NOEXCEPT
 	{
 		return executable_;
@@ -143,14 +127,11 @@ public:
 	}
 
 private:
-
 	// Core::Runnable::
-
 	virtual void run () override;
 	virtual void on_crash (const siginfo& signal) NIRVANA_NOEXCEPT override;
 
 	// Core::MemContext::
-
 	virtual RuntimeProxy::_ref_type runtime_proxy_get (const void* obj) override;
 	virtual void runtime_proxy_remove (const void* obj) NIRVANA_NOEXCEPT override;
 	virtual void on_object_construct (Nirvana::Core::MemContextObject& obj)
@@ -160,8 +141,20 @@ private:
 	virtual Nirvana::Core::TLS& get_TLS () NIRVANA_NOEXCEPT override;
 
 	// ThreadBase::
-
 	virtual Process& process () NIRVANA_NOEXCEPT override;
+
+	void start ()
+	{
+		CORBA::Internal::I_var <Legacy::Process> proxy (_this ());
+		Nirvana::Core::Port::ThreadBackground::start ();
+		proxy._retn (); // Keep proxy reference on successfull start
+	}
+
+	virtual void on_thread_proc_end () NIRVANA_NOEXCEPT override
+	{
+		// Release proxy reference on the main thread finish
+		CORBA::Internal::interface_release (&Legacy::Process::_ptr_type (_this ()));
+	}
 
 private:
 	typedef std::vector <std::string> Strings;
@@ -184,7 +177,6 @@ private:
 	Nirvana::Core::Console console_;
 	Strings argv_, envp_;
 	ProcessCallback::_ref_type callback_;
-	Legacy::Process::_ref_type proxy_;
 	Nirvana::Core::Ref <Nirvana::Core::SyncContext> sync_domain_;
 	Nirvana::Core::Event completed_;
 };

@@ -78,11 +78,10 @@ void Process::finish () NIRVANA_NOEXCEPT
 	completed_.signal ();
 	if (callback_) {
 		try {
-			callback_->on_process_finish (proxy_);
+			callback_->on_process_finish (_this ());
 		} catch (...) {
 		}
 		callback_ = nullptr;
-		proxy_ = nullptr;
 	}
 }
 
