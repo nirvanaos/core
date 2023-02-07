@@ -78,8 +78,6 @@ protected:
 		Nirvana::Core::MemContext* memory) override;
 	virtual void cancel () NIRVANA_NOEXCEPT override;
 
-private:
-	Nirvana::Core::Ref <Nirvana::Core::ExecDomain> exec_domain_;
 };
 
 }

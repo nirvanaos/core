@@ -157,11 +157,6 @@ private:
 	IDL::String operation_;
 	void* map_iterator_;
 
-	/// ExecDomain pointer if request is in cancellable state, otherwise `nullptr`.
-	/// While request in map, exec_domain_ is not `nullptr`.
-	/// For the oneway requests, exec_domain_ is always `nullptr`.
-	Nirvana::Core::ExecDomain* exec_domain_;
-
 	/// SyncDomain of the target object.
 	Nirvana::Core::SyncDomain* sync_domain_;
 

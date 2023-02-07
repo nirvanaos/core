@@ -41,7 +41,6 @@ RequestIn::RequestIn (const DomainAddress& client, unsigned GIOP_minor) :
 	RequestGIOP (GIOP_minor, false, 0),
 	key_ (client),
 	map_iterator_ (nullptr),
-	exec_domain_ (nullptr),
 	sync_domain_ (nullptr),
 	cancelled_ (false),
 	has_context_ (false)
@@ -190,11 +189,9 @@ bool RequestIn::marshal_op ()
 
 void RequestIn::serve_request (ProxyObject& proxy, IOReference::OperationIndex op, MemContext* memory)
 {
-	if (response_flags_) {
-		exec_domain_ = &ExecDomain::current (); // Save ED pointer for cancel
-		if (is_cancelled ())
-			return;
-	}
+	if (is_cancelled ())
+		return;
+
 	SyncContext* sync_context = &proxy.get_sync_context (op);
 	SyncDomain* sync_domain = sync_context->sync_domain ();
 	if (sync_domain)
@@ -282,11 +279,6 @@ void RequestIn::cancel () NIRVANA_NOEXCEPT
 	// Oneway requests (response_flags_ == 0) are not cancellable.
 	if (response_flags_ && !cancelled_.exchange (true, std::memory_order_release)) {
 		response_flags_ = 0; // Prevent marshaling
-		if (exec_domain_) {
-			try {
-				exec_domain_->abort ();
-			} catch (...) {}
-		}
 		if (map_iterator_) {
 			IncomingRequests::release_iterator (map_iterator_);
 			map_iterator_ = nullptr;

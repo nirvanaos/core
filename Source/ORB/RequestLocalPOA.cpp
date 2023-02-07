@@ -103,24 +103,15 @@ void RequestLocalAsyncPOA::invoke ()
 void RequestLocalAsyncPOA::serve_request (ProxyObject& proxy, Internal::IOReference::OperationIndex op,
 	Nirvana::Core::MemContext* memory)
 {
-	if (response_flags ()) {
-		exec_domain_ = &ExecDomain::current ();
-		if (RequestLocalAsyncPOA::is_cancelled ())
-			return;
-	}
+	if (RequestLocalAsyncPOA::is_cancelled ())
+		return;
 	RequestLocalPOA::serve_request (proxy, op, memory);
 }
 
 void RequestLocalAsyncPOA::cancel () NIRVANA_NOEXCEPT
 {
-	if (set_cancelled ()) {
+	if (set_cancelled ())
 		response_flags_ = 0; // Prevent marshaling
-		if (exec_domain_) {
-			try {
-				exec_domain_->abort ();
-			} catch (...) {}
-		}
-	}
 }
 
 }

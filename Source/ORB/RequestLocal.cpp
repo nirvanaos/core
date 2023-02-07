@@ -420,12 +420,8 @@ void RequestLocalAsync::Runnable::run ()
 
 void RequestLocalAsync::cancel () NIRVANA_NOEXCEPT
 {
-	if (set_cancelled ()) {
-		assert (exec_domain_);
-		try {
-			exec_domain_->abort ();
-		} catch (...) {}
-	}
+	if (set_cancelled ())
+		response_flags_ = 0; // Prevent marshaling
 }
 
 }

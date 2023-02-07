@@ -622,8 +622,7 @@ class NIRVANA_NOVTABLE RequestLocalAsync :
 protected:
 	RequestLocalAsync (ProxyManager& proxy, Internal::IOReference::OperationIndex op_idx,
 		Nirvana::Core::MemContext* callee_memory, unsigned response_flags) NIRVANA_NOEXCEPT :
-		RequestLocal (proxy, op_idx, callee_memory, response_flags),
-		exec_domain_ (nullptr)
+		RequestLocal (proxy, op_idx, callee_memory, response_flags)
 	{}
 
 	// Override Runnable::_add_ref ()
@@ -653,15 +652,9 @@ private:
 	void run ()
 	{
 		assert (&Nirvana::Core::SyncContext::current () == &proxy ()->get_sync_context (op_idx ()));
-		// Oneway requests (response_flags () == 0) are not cancellable,
-		// so we don't store ExecDomain for them.
-		if (response_flags ())
-			exec_domain_ = &Nirvana::Core::ExecDomain::current ();
 		Base::invoke_sync ();
 	}
 
-private:
-	servant_reference <Nirvana::Core::ExecDomain> exec_domain_;
 };
 
 template <class Base>
