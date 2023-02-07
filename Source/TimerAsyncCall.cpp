@@ -1,4 +1,3 @@
-/// \file
 /*
 * Nirvana Core.
 *
@@ -24,33 +23,33 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_CORE_TIMER_H_
-#define NIRVANA_CORE_TIMER_H_
-#pragma once
-
-#include <Port/Timer.h>
+#include "TimerAsyncCall.h"
+#include "ExecDomain.h"
 
 namespace Nirvana {
 namespace Core {
 
-class Timer : 
-	private Port::Timer
+TimerAsyncCall::TimerAsyncCall (SyncContext& sync_context, const DeadlineTime& deadline) :
+	sync_context_ (&sync_context),
+	deadline_ (deadline),
+	enqueued_ {ATOMIC_FLAG_INIT},
+	overrun_ (0)
+{}
+
+void TimerAsyncCall::signal () NIRVANA_NOEXCEPT
 {
-public:
-	static const unsigned TIMER_ABSOLUTE = 0x01;
+	if (!enqueued_.test_and_set ()) {
+		try {
+			ExecDomain::async_call <Runnable> (deadline_, *sync_context_, nullptr, std::ref (*this));
+		} catch (...) {}
+	} else
+		++overrun_;
+}
 
-	void set (unsigned flags, TimeBase::TimeT due_time, TimeBase::TimeT period)
-	{
-		Port::Timer::set (flags, due_time, period);
-	}
-
-	void cancel () NIRVANA_NOEXCEPT
-	{
-		Port::Timer::cancel ();
-	}
-};
+void TimerAsyncCall::Runnable::run ()
+{
+	timer_->run (signal_time_);
+}
 
 }
 }
-
-#endif
