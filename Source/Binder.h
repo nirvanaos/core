@@ -41,6 +41,7 @@
 #include "MapOrderedUnstable.h"
 #include "MapUnorderedStable.h"
 #include "ORB/RemoteReferences.h"
+#include "TimerAsyncCall.h"
 
 namespace Nirvana {
 
@@ -71,6 +72,9 @@ public:
 	typedef CORBA::Object::_ref_type ObjectRef;
 
 	Binder ()
+	{}
+
+	~Binder ()
 	{}
 
 	static void initialize ();
@@ -339,12 +343,27 @@ private:
 
 	inline void unload_modules ();
 
+	class HousekeepingTimer : public TimerAsyncCall
+	{
+	protected:
+		HousekeepingTimer () :
+			TimerAsyncCall (sync_domain (), INFINITE_DEADLINE)
+		{}
+
+	private:
+		virtual void run (const TimeBase::TimeT& signal_time)
+		{
+			singleton ().housekeeping ();
+		}
+	};
+
 private:
 	static StaticallyAllocated <ImplStatic <HeapUser> > heap_;
 	static StaticallyAllocated <ImplStatic <SyncDomainCore> > sync_domain_;
 	ObjectMap object_map_;
 	ModuleMap module_map_;
 	CORBA::Core::RemoteReferences <Allocator> remote_references_;
+	ImplStatic <HousekeepingTimer> housekeeping_timer_;
 
 	static StaticallyAllocated <Binder> singleton_;
 	static bool initialized_;

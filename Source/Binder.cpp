@@ -110,6 +110,8 @@ void Binder::initialize ()
 inline
 void Binder::unload_modules ()
 {
+	housekeeping_timer_.cancel ();
+
 	bool unloaded;
 	do {
 		// Unload unbound modules
@@ -413,6 +415,8 @@ Ref <Module> Binder::load (std::string& module_name, bool singleton)
 		}
 
 		entry.second.finish_construction (mod);
+		if (module_map_.size () == 1)
+			housekeeping_timer_.set (0, MODULE_UNLOAD_TIMEOUT, MODULE_UNLOAD_TIMEOUT);
 
 	} else {
 		mod = entry.second.get ();
@@ -546,7 +550,7 @@ void Binder::housekeeping ()
 	for (;;) {
 		bool found = false;
 		SteadyTime t = Chrono::steady_clock ();
-		if (1 <= MODULE_UNLOAD_TIMEOUT)
+		if (t <= MODULE_UNLOAD_TIMEOUT)
 			break;
 		t -= MODULE_UNLOAD_TIMEOUT;
 		for (auto it = module_map_.begin (); it != module_map_.end ();) {
@@ -554,7 +558,7 @@ void Binder::housekeeping ()
 			if (pmod && pmod->can_be_unloaded (t)) {
 				found = true;
 				it = module_map_.erase (it);
-				unload (pmod);
+				unload (pmod); // Causes context switch
 				break;
 			} else
 				++it;
@@ -562,6 +566,8 @@ void Binder::housekeeping ()
 		if (!found)
 			break;
 	}
+	if (module_map_.empty ())
+		housekeeping_timer_.cancel ();
 }
 
 }
