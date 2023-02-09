@@ -57,13 +57,13 @@ public:
 	};
 
 	Reference (const IDL::String& primary_iid, unsigned flags) :
-		CORBA::Core::ProxyManager (primary_iid),
+		ProxyManager (primary_iid, false),
 		ref_cnt_ (1),
 		flags_ (flags)
 	{}
 
 	Reference (const ProxyManager& proxy, unsigned flags) :
-		CORBA::Core::ProxyManager (proxy),
+		ProxyManager (proxy),
 		ref_cnt_ (1),
 		flags_ (flags)
 	{}

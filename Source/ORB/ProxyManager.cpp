@@ -130,7 +130,7 @@ void ProxyManager::check_type_code (TypeCode::_ptr_type tc)
 		throw OBJ_ADAPTER (); // TODO: Log
 }
 
-ProxyManager::ProxyManager (String_in primary_iid) :
+ProxyManager::ProxyManager (String_in primary_iid, bool servant_side) :
 	primary_interface_ (nullptr)
 {
 	if (!primary_iid.empty ()) {
@@ -170,12 +170,12 @@ ProxyManager::ProxyManager (String_in primary_iid) :
 			if (iid == proxy_primary_iid)
 				primary = ie;
 			else
-				create_proxy (*ie);
+				create_proxy (*ie, servant_side);
 		} while (interfaces_.end () != ++ie);
 
 		// Create primary proxy
 		assert (primary);
-		create_proxy (proxy_factory, metadata, *primary);
+		create_proxy (proxy_factory, metadata, *primary, servant_side);
 		primary->operations = metadata->operations;
 		primary_interface_ = primary;
 	}
@@ -229,7 +229,7 @@ ProxyManager::ProxyManager (const ProxyManager& src) :
 	operations_ (src.operations_)
 {
 	for (InterfaceEntry* ie = interfaces_.begin (); ie != interfaces_.end (); ++ie) {
-		create_proxy (*ie);
+		create_proxy (*ie, false);
 	}
 }
 
@@ -247,9 +247,10 @@ void ProxyManager::check_primary_interface (String_in primary_iid) const
 	}
 }
 
-void ProxyManager::create_proxy (ProxyFactory::_ptr_type pf, const InterfaceMetadata* metadata, InterfaceEntry& ie)
+void ProxyManager::create_proxy (ProxyFactory::_ptr_type pf, const InterfaceMetadata* metadata,
+	InterfaceEntry& ie, bool servant_side)
 {
-	if (metadata->flags & InterfaceMetadata::FLAG_NO_PROXY)
+	if (servant_side && metadata->flags & InterfaceMetadata::FLAG_NO_PROXY)
 		ie.proxy = &ie.implementation;
 	else {
 		Interface* deleter;
@@ -266,7 +267,7 @@ void ProxyManager::create_proxy (ProxyFactory::_ptr_type pf, const InterfaceMeta
 	}
 }
 
-void ProxyManager::create_proxy (InterfaceEntry& ie)
+void ProxyManager::create_proxy (InterfaceEntry& ie, bool servant_side)
 {
 	if (!ie.proxy) {
 		const InterfaceMetadata* metadata;
@@ -285,10 +286,10 @@ void ProxyManager::create_proxy (InterfaceEntry& ie)
 			InterfaceEntry* base_ie = const_cast <InterfaceEntry*> (find_interface (*base));
 			if (!base_ie)
 				throw OBJ_ADAPTER (); // Base is not listed in the primary interface base list. TODO: Log
-			create_proxy (*base_ie);
+			create_proxy (*base_ie, servant_side);
 		}
 		ie.operations = metadata->operations;
-		create_proxy (ie.proxy_factory, metadata, ie);
+		create_proxy (ie.proxy_factory, metadata, ie, servant_side);
 	}
 }
 

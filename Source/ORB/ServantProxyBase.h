@@ -75,7 +75,7 @@ public:
 protected:
 	template <class I>
 	ServantProxyBase (Internal::I_ptr <I> servant) :
-		ProxyManager (get_primary_interface_id (servant)),
+		ProxyManager (get_primary_interface_id (servant), true),
 		ref_cnt_ (0),
 		sync_context_ (&Nirvana::Core::SyncContext::current ())
 	{

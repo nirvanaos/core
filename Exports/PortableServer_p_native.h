@@ -434,24 +434,6 @@ void Proxy <PortableServer::ServantLocator>::__rq_postinvoke (
 	_servant->postinvoke (oid, adapter, operation, the_cookie, the_servant);
 }
 
-void Proxy <PortableServer::Current>::__rq_get_servant (
-	PortableServer::Current::_ptr_type _servant, IORequest::_ptr_type _call)
-{
-	_call->unmarshal_end ();
-	Object::_ref_type ret;
-	{
-		Environment _env;
-		Type <Object>::C_ret _ret (
-			(_servant->_epv ().epv.get_servant) (
-				static_cast <Bridge <PortableServer::Current>*> (&_servant),
-				&_env));
-		_env.check ();
-		ret = _ret;
-	}
-	// Marshal output
-	Type <Object>::marshal_out (ret, _call);
-}
-
 }
 }
 

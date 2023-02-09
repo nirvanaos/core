@@ -52,11 +52,11 @@ public:
 		return context ().reference;
 	}
 
-	static CORBA::Internal::Interface* _s_get_servant (CORBA::Internal::Bridge <PortableServer::Current>* _b, Interface* _env);
-
-	static CORBA::Object::_ref_type get_servant ()
+	static PortableServer::ServantBase::_ref_type get_servant ()
 	{
-		return context ().servant;
+		// Must be called from the servant synchronization context.
+		// Otherwise exception OBJ_ADAPTER will be thrown.
+		return CORBA::Core::object2servant (context ().servant);
 	}
 
 private:

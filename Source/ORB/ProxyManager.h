@@ -258,7 +258,7 @@ public:
 	}
 
 protected:
-	ProxyManager (Internal::String_in primary_iid);
+	ProxyManager (Internal::String_in primary_iid, bool servant_side);
 	ProxyManager (const ProxyManager& src);
 
 	virtual ~ProxyManager ();
@@ -346,8 +346,8 @@ private:
 	struct IEPred;
 	struct OEPred;
 
-	void create_proxy (InterfaceEntry& ie);
-	void create_proxy (Internal::ProxyFactory::_ptr_type pf, const Internal::InterfaceMetadata* metadata, InterfaceEntry& ie);
+	void create_proxy (InterfaceEntry& ie, bool servant_side);
+	void create_proxy (Internal::ProxyFactory::_ptr_type pf, const Internal::InterfaceMetadata* metadata, InterfaceEntry& ie, bool servant_side);
 
 	static void check_metadata (const Internal::InterfaceMetadata* metadata, Internal::String_in primary);
 	static void check_parameters (Internal::CountedArray <Internal::Parameter> parameters);
