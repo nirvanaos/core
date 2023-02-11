@@ -158,16 +158,25 @@ POA_Base::POA_Base (POA_Base* parent, const IDL::String* name,
 	parent_ (parent),
 	name_ (name),
 	request_cnt_ (0),
+	DGC_policy_ (DGC_DEFAULT),
 	destroyed_ (false),
 	signature_ (SIGNATURE)
 {
-	the_POAManager_->on_adapter_create (*this);
-
 #ifdef _DEBUG
 	for (size_t i = 1; i < FACTORY_COUNT; ++i) {
 		assert (factories_ [i - 1].policies < factories_ [i].policies);
 	}
 #endif
+
+	the_POAManager_->on_adapter_create (*this);
+	FT::HeartbeatEnabledPolicy::_ref_type hbe = FT::HeartbeatEnabledPolicy::_narrow (
+		domain_manager_->get_policy (FT::HEARTBEAT_ENABLED_POLICY));
+	if (hbe) {
+		if (hbe->heartbeat_enabled_policy_value ())
+			DGC_policy_ = DGC_ENABLED;
+		else
+			DGC_policy_ = DGC_DISABLED;
+	}
 }
 
 POA_Base::~POA_Base ()
@@ -179,7 +188,7 @@ void POA_Base::activate_object (CORBA::Core::ProxyObject& proxy, ObjectId& oid, 
 {
 	for (;;) {
 		oid = generate_object_id ();
-		ReferenceLocalRef ref = activate_object (ObjectKey (*this, oid), true, proxy, 0);
+		ReferenceLocalRef ref = activate_object (ObjectKey (*this, oid), true, proxy, flags);
 		if (ref)
 			return;
 	}
@@ -188,7 +197,7 @@ void POA_Base::activate_object (CORBA::Core::ProxyObject& proxy, ObjectId& oid, 
 ReferenceLocalRef POA_Base::activate_object (CORBA::Core::ProxyObject& proxy, unsigned flags)
 {
 	for (;;) {
-		ReferenceLocalRef ref = activate_object (ObjectKey (*this), true, proxy, 0);
+		ReferenceLocalRef ref = activate_object (ObjectKey (*this), true, proxy, flags);
 		if (ref)
 			return ref;
 	}

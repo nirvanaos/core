@@ -37,15 +37,5 @@ Policy::_ref_type DomainManager::get_policy (PolicyType policy_type) const NIRVA
 		return Policy::_nil ();
 }
 
-void DomainManager::add_policy (PolicyType policy_type, Policy::_ptr_type policy)
-{
-	policies_.emplace (policy_type, policy);
-}
-
-void DomainManager::add_policy (Policy::_ptr_type policy)
-{
-	policies_.emplace (policy->policy_type (), policy);
-}
-
 }
 }

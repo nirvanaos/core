@@ -43,15 +43,17 @@ public:
 	~POAManagerFactory ()
 	{}
 
-	PortableServer::POAManager::_ref_type create_POAManager (const IDL::String& id, CORBA::PolicyList& policies)
+	PortableServer::POAManager::_ref_type create_POAManager (const IDL::String& id, const CORBA::PolicyList& policies)
 	{
-		CORBA::servant_reference <POAManager> manager = create (id, policies);
+		if (!policies.empty ())
+			throw CORBA::PolicyError (CORBA::UNSUPPORTED_POLICY);
+		CORBA::servant_reference <POAManager> manager = create (id);
 		if (!manager)
 			throw ManagerAlreadyExists ();
 		return manager->_this ();
 	}
 
-	CORBA::servant_reference <POAManager> create (const IDL::String& id, CORBA::PolicyList& policies);
+	CORBA::servant_reference <POAManager> create (const IDL::String& id);
 
 	CORBA::servant_reference <POAManager> create_auto (const IDL::String& adapter_name)
 	{
@@ -59,8 +61,7 @@ public:
 		CORBA::servant_reference <POAManager> manager;
 		unsigned suffix = 0;
 		size_t len = name.size ();
-		CORBA::PolicyList empty;
-		while (!(manager = create (name, empty))) {
+		while (!(manager = create (name))) {
 			name.resize (len);
 			name += std::to_string (++suffix);
 		}
@@ -96,13 +97,12 @@ private:
 };
 
 inline
-POAManager::POAManager (POAManagerFactory& factory, const IDL::String& id, CORBA::PolicyList&& policies) :
+POAManager::POAManager (POAManagerFactory& factory, const IDL::String& id) :
 	IDL::String (id),
 	factory_ (&factory),
 	state_ (State::HOLDING),
 	request_cnt_ (0),
 	requests_completed_ (true),
-	policies_ (std::move (policies)),
 	signature_ (SIGNATURE)
 {}
 

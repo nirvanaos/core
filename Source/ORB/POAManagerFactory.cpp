@@ -29,10 +29,10 @@
 namespace PortableServer {
 namespace Core {
 
-CORBA::servant_reference <POAManager> POAManagerFactory::create (const IDL::String& id, CORBA::PolicyList& policies)
+CORBA::servant_reference <POAManager> POAManagerFactory::create (const IDL::String& id)
 {
 	Servant_var <POAManager> manager;
-	auto ins = managers_.emplace (std::ref (*this), std::ref (id), std::move (policies));
+	auto ins = managers_.emplace (std::ref (*this), std::ref (id));
 	if (ins.second)
 		manager = &const_cast <POAManager&> (*ins.first);
 	return manager;

@@ -213,10 +213,6 @@ POA::_ref_type POA_Base::create_POA (const IDL::String& adapter_name,
 		if (!manager)
 			manager = root_->manager_factory ().create_auto (adapter_name);
 
-		for (const auto& policy : manager->policies ()) {
-			domain_manager->add_policy (policy->policy_type (), policy);
-		}
-
 		POA_Ref ref;
 		const POA_FactoryEntry* pf = std::lower_bound (factories_, factories_ + FACTORY_COUNT, pols);
 		if (pf != factories_ + FACTORY_COUNT && !(pols < *pf))

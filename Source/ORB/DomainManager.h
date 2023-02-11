@@ -53,8 +53,11 @@ public:
 	}
 
 	Policy::_ref_type get_policy (PolicyType policy_type) const NIRVANA_NOEXCEPT;
-	void add_policy (PolicyType policy_type, Policy::_ptr_type policy);
-	void add_policy (Policy::_ptr_type policy);
+	
+	bool add_policy (PolicyType policy_type, Policy::_ptr_type policy)
+	{
+		return policies_.emplace (policy->policy_type (), policy).second;
+	}
 
 private:
 	typedef Nirvana::Core::MapUnorderedUnstable <PolicyType, Policy::_ref_type,

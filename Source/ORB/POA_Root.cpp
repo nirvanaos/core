@@ -39,8 +39,7 @@ namespace Core {
 Object::_ref_type create_RootPOA ()
 {
 	auto manager_factory = CORBA::make_reference <POAManagerFactory> ();
-	CORBA::PolicyList empty;
-	auto manager = manager_factory->create ("RootPOAManager", empty);
+	auto manager = manager_factory->create ("RootPOAManager");
 	manager->activate ();
 	return CORBA::make_reference <POA_Root> (std::move (manager), std::move (manager_factory))->_this ();
 }

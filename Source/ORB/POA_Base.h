@@ -74,10 +74,12 @@ struct POA_Policies
 
 	void set_values (const CORBA::PolicyList& policies, CORBA::Core::DomainManager& domain_manager)
 	{
+		unsigned mask = 0;
 		*this = default_;
 		for (auto it = policies.begin (); it != policies.end (); ++it) {
 			CORBA::Policy::_ptr_type policy = *it;
 			CORBA::PolicyType type = policy->policy_type ();
+			if (LIFESPAN_POLICY_ID <= type && type <= REQUEST_PROCESSING_POLICY_ID)
 			switch (type) {
 				case THREAD_POLICY_ID:
 					if (ThreadPolicyValue::ORB_CTRL_MODEL != ThreadPolicy::_narrow (policy)->value ())
@@ -102,7 +104,8 @@ struct POA_Policies
 					request_processing = RequestProcessingPolicy::_narrow (policy)->value ();
 					break;
 				default:
-					domain_manager.add_policy (type, policy);
+					if (!domain_manager.add_policy (type, policy))
+						throw POA::InvalidPolicy (CORBA::UShort (it - policies.begin ()));
 			}
 		}
 	}
@@ -475,6 +478,18 @@ protected:
 		return CORBA::Core::Services::bind (CORBA::Core::Services::RootPOA);
 	}
 
+	enum DGC_Policy
+	{
+		DGC_DEFAULT,
+		DGC_ENABLED,
+		DGC_DISABLED
+	};
+
+	DGC_Policy DGC_policy () const NIRVANA_NOEXCEPT
+	{
+		return DGC_policy_;
+	}
+
 private:
 	void on_request_finish () NIRVANA_NOEXCEPT;
 	
@@ -494,6 +509,7 @@ private:
 	Children children_;
 	AdapterActivator::_ref_type the_activator_;
 	unsigned int request_cnt_;
+	DGC_Policy DGC_policy_;
 	bool destroyed_;
 	Nirvana::Core::Event destroy_completed_;
 

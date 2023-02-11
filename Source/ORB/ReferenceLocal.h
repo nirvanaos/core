@@ -50,8 +50,8 @@ class ReferenceLocal :
 public:
 	enum
 	{
-		LOCAL_WEAK            = 0x4000, // Implicitly activated
-		LOCAL_AUTO_DEACTIVATE = 0x2000  // Activated by ServantActivator
+		LOCAL_WEAK            = 0x4000, // Implicitly activated object
+		LOCAL_AUTO_DEACTIVATE = 0x2000  // Reference activated with DGC
 	};
 
 	ReferenceLocal (const PortableServer::Core::ObjectKey& key, const IDL::String& primary_iid,
