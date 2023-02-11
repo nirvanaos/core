@@ -29,7 +29,7 @@
 #pragma once
 
 #include "Domain.h"
-#include "IIOP.h"
+#include <CORBA/IIOP.h>
 
 namespace CORBA {
 namespace Core {

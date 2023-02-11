@@ -41,16 +41,19 @@ class POA_Impl :
 {
 public:
 	POA_Impl (POA_Base * parent, const IDL::String * name,
-		servant_reference <POAManager> && manager) :
-		POA_Base (parent, name, std::move (manager))
+		servant_reference <POAManager>&& manager,
+		servant_reference <CORBA::Core::DomainManager>&& domain_manager) :
+		POA_Base (parent, name, std::move (manager), std::move (domain_manager))
 	{}
 };
 
 template <class ... Bases>
 POA_Ref POA_create (POA_Base* parent, const IDL::String* name,
-	servant_reference <POAManager>&& manager, const CORBA::PolicyList&)
+	servant_reference <POAManager>&& manager,
+	servant_reference <CORBA::Core::DomainManager>&& domain_manager)
 {
-	return make_reference <POA_Impl <Bases...> > (parent, name, std::move (manager));
+	return make_reference <POA_Impl <Bases...> > (parent, name, std::move (manager),
+		std::move (domain_manager));
 }
 
 #define POLICY(ls, idu, ida, ia, sr, rp) { LifespanPolicyValue::ls, IdUniquenessPolicyValue::idu,\

@@ -24,57 +24,45 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_CORE_SYSDOMAIN_H_
-#define NIRVANA_CORE_SYSDOMAIN_H_
+#ifndef NIRVANA_ORB_CORE_DOMAINMANAGER_H_
+#define NIRVANA_ORB_CORE_DOMAINMANAGER_H_
 #pragma once
 
 #include <CORBA/Server.h>
+#include <CORBA/DomainManager_s.h>
 #include <CORBA/NoDefaultPOA.h>
-#include "Nirvana/CoreDomains_s.h"
-#include "ORB/Services.h"
+#include "../MapUnorderedUnstable.h"
+#include "../UserAllocator.h"
 
-namespace Nirvana {
+namespace CORBA {
 namespace Core {
 
-/// System domain.
-class SysDomain :
-	public CORBA::servant_traits <Nirvana::Core::SysDomainCore>::Servant <SysDomain>,
+class DomainManager :
+	public servant_traits <CORBA::DomainManager>::Servant <DomainManager>,
 	public PortableServer::NoDefaultPOA
 {
 public:
-	// Disable implicit activation
 	using PortableServer::NoDefaultPOA::__default_POA;
 
-	~SysDomain ()
-	{}
-
-	static Version version ()
+	Policy::_ref_type get_domain_policy (PolicyType policy_type)
 	{
-		return { 0, 0, 0, 0 };
+		Policy::_ref_type ret = get_policy (policy_type);
+		if (!ret)
+			throw INV_POLICY (MAKE_OMG_MINOR (2));
+		return ret;
 	}
 
-	static ProtDomain::_ref_type create_prot_domain (uint16_t platform)
-	{
-		throw_NO_IMPLEMENT ();
-	}
+	Policy::_ref_type get_policy (PolicyType policy_type) const NIRVANA_NOEXCEPT;
+	void add_policy (PolicyType policy_type, Policy::_ptr_type policy);
+	void add_policy (Policy::_ptr_type policy);
 
-	static ProtDomain::_ref_type create_prot_domain_as_user (uint16_t platform, const IDL::String& user, const IDL::String& password)
-	{
-		throw_NO_IMPLEMENT ();
-	}
+private:
+	typedef Nirvana::Core::MapUnorderedUnstable <PolicyType, Policy::_ref_type,
+		std::hash <PolicyType>, std::equal_to <PolicyType>,
+		Nirvana::Core::UserAllocator <std::pair <PolicyType, Policy::_ref_type> > >
+		Policies;
 
-	void get_bind_info (const IDL::String& obj_name, unsigned platform, BindInfo& bind_info)
-	{
-		if (obj_name == "Nirvana/g_dec_calc")
-			bind_info.module_name ("DecCalc.olf");
-		else
-			bind_info.module_name ("TestModule.olf");
-	}
-
-	CORBA::Object::_ref_type get_service (const IDL::String& id)
-	{
-		return CORBA::Core::Services::bind (id);
-	}
+	Policies policies_;
 };
 
 }

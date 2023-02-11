@@ -29,8 +29,8 @@
 #pragma once
 
 #include <CORBA/CORBA.h>
+#include <CORBA/GIOP.h>
 #include "../CoreInterface.h"
-#include "GIOP.h"
 
 namespace CORBA {
 namespace Core {

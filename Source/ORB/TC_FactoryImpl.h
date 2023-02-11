@@ -29,7 +29,7 @@
 #pragma once
 
 #include <CORBA/Server.h>
-#include "TC_Factory_s.h"
+#include <CORBA/TC_Factory_s.h>
 #include <ORB/TC_Fixed.h>
 #include <ORB/TC_Interface.h>
 #include <ORB/TC_Struct.h>

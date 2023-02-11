@@ -25,8 +25,9 @@
 */
 #include "PolicyFactory.h"
 #include "PortableServer_policies.h"
-#include "BiDirPolicy_s.h"
 #include <boost/preprocessor/repetition/repeat.hpp>
+#include <CORBA/FT_s.h>
+#include <CORBA/BiDirPolicy_s.h>
 
 #define CREATOR(z, n, d) PolicyImpl <n + 1>::create_policy,
 
@@ -34,6 +35,8 @@ namespace CORBA {
 namespace Core {
 
 DEFINE_POLICY (BiDirPolicy::BIDIRECTIONAL_POLICY_TYPE, BiDirPolicy::BidirectionalPolicy, BiDirPolicy::BidirectionalPolicyValue, value);
+DEFINE_POLICY (FT::HEARTBEAT_POLICY, FT::HeartbeatPolicy, FT::HeartbeatPolicyValue, heartbeat_policy_value);
+DEFINE_POLICY (FT::HEARTBEAT_ENABLED_POLICY, FT::HeartbeatEnabledPolicy, bool, heartbeat_enabled_policy_value);
 
 const PolicyFactory::Creator PolicyFactory::creators_ [MAX_KNOWN_POLICY_ID] = {
 	BOOST_PP_REPEAT (MAX_KNOWN_POLICY_ID, CREATOR, 0)

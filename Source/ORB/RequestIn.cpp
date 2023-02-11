@@ -25,7 +25,7 @@
 */
 #include "RequestIn.h"
 #include "IncomingRequests.h"
-#include "IIOP.h"
+#include <CORBA/IIOP.h>
 #include "ProxyObject.h"
 
 using namespace Nirvana;

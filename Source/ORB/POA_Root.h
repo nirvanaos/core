@@ -32,6 +32,7 @@
 #include "POAManagerFactory.h"
 #include "../MapUnorderedStable.h"
 #include <CORBA/Servant_var.h>
+#include <Nirvana/CoreDomains.h>
 #include <random>
 
 namespace IOP {
@@ -50,7 +51,7 @@ class POA_Root :
 public:
 	POA_Root (CORBA::servant_reference <POAManager>&& manager,
 		CORBA::servant_reference <POAManagerFactory>&& manager_factory) :
-		POA_Base (nullptr, nullptr, std::move (manager)),
+		POA_Base (nullptr, nullptr, std::move (manager), CORBA::make_reference <CORBA::Core::DomainManager> ()),
 		manager_factory_ (std::move (manager_factory)),
 		random_gen_ (RandomGen::result_type (Nirvana::Core::Chrono::UTC ().time () / TimeBase::SECOND))
 	{
@@ -90,6 +91,25 @@ public:
 		SYNC_END ();
 	}
 
+	static void get_DGC_objects (const Nirvana::Core::ObjectKeys& keys, CORBA::Object::_ref_type* refs)
+	{
+		CORBA::Object::_ref_type* pref = refs;
+		for (const auto& iop_key : keys) {
+			ObjectKey key;
+			key.unmarshal (iop_key);
+			CORBA::Object::_ref_type root = get_root (); // Hold root POA reference
+			CORBA::Core::ReferenceLocalRef ref;
+			SYNC_BEGIN (CORBA::Core::local2proxy (root)->sync_context (), nullptr)
+				ref = root_->find_reference (key);
+			SYNC_END ();
+			if (ref && (ref->flags () & CORBA::Core::Reference::GARBAGE_COLLECTION))
+				*pref = CORBA::Object::_ref_type (ref->get_proxy ());
+			else
+				*pref = CORBA::Object::_nil ();
+			++pref;
+		}
+	}
+
 	POAManagerFactory& manager_factory () NIRVANA_NOEXCEPT
 	{
 		return *manager_factory_;
@@ -121,9 +141,9 @@ public:
 		References;
 
 	CORBA::Core::ReferenceLocalRef emplace_reference (ObjectKey&& key, bool unique, const IDL::String& primary_iid,
-		unsigned flags);
+		unsigned flags, CORBA::Core::DomainManager* domain_manager);
 	CORBA::Core::ReferenceLocalRef emplace_reference (ObjectKey&& key, bool unique, PortableServer::Core::ServantBase& servant,
-		unsigned flags);
+		unsigned flags, CORBA::Core::DomainManager* domain_manager);
 
 	void remove_reference (const ObjectKey& key) NIRVANA_NOEXCEPT
 	{
@@ -178,8 +198,9 @@ inline
 POA::_ref_type POA_Base::create_POA (const IDL::String& adapter_name,
 	PortableServer::POAManager::_ptr_type a_POAManager, const CORBA::PolicyList& policies)
 {
+	CORBA::servant_reference <CORBA::Core::DomainManager> domain_manager = CORBA::make_reference <CORBA::Core::DomainManager> ();
 	POA_Policies pols;
-	pols.set_values (policies);
+	pols.set_values (policies, *domain_manager);
 
 	auto ins = children_.emplace (adapter_name, POA_Ref ());
 	if (!ins.second)
@@ -192,10 +213,14 @@ POA::_ref_type POA_Base::create_POA (const IDL::String& adapter_name,
 		if (!manager)
 			manager = root_->manager_factory ().create_auto (adapter_name);
 
+		for (const auto& policy : manager->policies ()) {
+			domain_manager->add_policy (policy->policy_type (), policy);
+		}
+
 		POA_Ref ref;
 		const POA_FactoryEntry* pf = std::lower_bound (factories_, factories_ + FACTORY_COUNT, pols);
 		if (pf != factories_ + FACTORY_COUNT && !(pols < *pf))
-			ref = (pf->factory) (this, &ins.first->first, std::move (manager), policies);
+			ref = (pf->factory) (this, &ins.first->first, std::move (manager), std::move (domain_manager));
 		
 		if (!ref)
 			throw InvalidPolicy (); // Do not return the index, it's too complex to calculate it.

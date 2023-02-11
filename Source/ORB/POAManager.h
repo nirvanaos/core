@@ -42,12 +42,17 @@ class POAManager :
 {
 public:
 	inline
-	POAManager (POAManagerFactory& factory, const IDL::String& id, const CORBA::PolicyList& policies);
+	POAManager (POAManagerFactory& factory, const IDL::String& id, CORBA::PolicyList&& policies);
 
 	~POAManager ()
 	{}
 
 	inline void _delete_object () NIRVANA_NOEXCEPT;
+
+	const CORBA::PolicyList policies () const NIRVANA_NOEXCEPT
+	{
+		return policies_;
+	}
 
 	void activate ()
 	{
@@ -244,6 +249,7 @@ private:
 	State state_;
 	unsigned int request_cnt_;
 	Nirvana::Core::Event requests_completed_;
+	CORBA::PolicyList policies_;
 	static const int32_t SIGNATURE = 'POAM';
 	const int32_t signature_;
 };

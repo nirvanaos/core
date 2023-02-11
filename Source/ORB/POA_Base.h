@@ -36,6 +36,7 @@
 #include "RequestInPOA.h"
 #include "Services.h"
 #include "ReferenceLocal.h"
+#include "DomainManager.h"
 #include "../TLS.h"
 #include "../Event.h"
 
@@ -59,7 +60,8 @@ typedef Nirvana::Core::Ref <CORBA::Core::RequestInPOA> RequestRef;
 typedef CORBA::servant_reference <POA_Base> POA_Ref;
 
 typedef POA_Ref (*POA_Factory) (POA_Base* parent, const IDL::String* name,
-	CORBA::servant_reference <POAManager>&& manager, const CORBA::PolicyList& policies);
+	CORBA::servant_reference <POAManager>&& manager,
+	CORBA::servant_reference <CORBA::Core::DomainManager>&& domain_manager);
 
 struct POA_Policies
 {
@@ -70,7 +72,7 @@ struct POA_Policies
 	ServantRetentionPolicyValue servant_retention;
 	RequestProcessingPolicyValue request_processing;
 
-	void set_values (const CORBA::PolicyList& policies)
+	void set_values (const CORBA::PolicyList& policies, CORBA::Core::DomainManager& domain_manager)
 	{
 		*this = default_;
 		for (auto it = policies.begin (); it != policies.end (); ++it) {
@@ -99,6 +101,8 @@ struct POA_Policies
 				case REQUEST_PROCESSING_POLICY_ID:
 					request_processing = RequestProcessingPolicy::_narrow (policy)->value ();
 					break;
+				default:
+					domain_manager.add_policy (type, policy);
 			}
 		}
 	}
@@ -348,7 +352,7 @@ public:
 	virtual CORBA::Core::ReferenceLocalRef create_reference (ObjectKey&& key,
 		const CORBA::RepositoryId& intf);
 
-	static CORBA::Core::ReferenceLocalRef create_reference (ObjectKey&& key,
+	CORBA::Core::ReferenceLocalRef create_reference (ObjectKey&& key,
 		const CORBA::RepositoryId& intf, unsigned flags);
 
 	// Identity mapping operations:
@@ -449,7 +453,8 @@ protected:
 	}
 
 	POA_Base (POA_Base* parent, const IDL::String* name,
-		CORBA::servant_reference <POAManager>&& manager);
+		CORBA::servant_reference <POAManager>&& manager,
+		CORBA::servant_reference <CORBA::Core::DomainManager>&& domain_manager);
 
 	virtual bool implicit_activation () const NIRVANA_NOEXCEPT;
 
@@ -476,6 +481,7 @@ private:
 protected:
 	static POA_Root* root_;
 	CORBA::servant_reference <POAManager> the_POAManager_;
+	CORBA::servant_reference <CORBA::Core::DomainManager> domain_manager_;
 
 private:
 	// Children map.

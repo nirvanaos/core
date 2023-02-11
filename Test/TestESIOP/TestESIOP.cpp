@@ -39,8 +39,7 @@ TEST_F (TestESIOP, SysDomain)
 	SysDomain::_ref_type sd = SysDomain::_narrow (CORBA::g_ORB->resolve_initial_references ("SysDomain"));
 	ASSERT_TRUE (sd);
 	for (int i = 0; i < 100; ++i) {
-		BindInfo bi;
-		sd->get_bind_info ("Nirvana/g_dec_calc", PLATFORM, bi);
+		sd->version ();
 	}
 }
 

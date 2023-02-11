@@ -32,6 +32,7 @@
 namespace CORBA {
 namespace Internal {
 
+inline
 PortableServer::ServantBase::_ref_type Proxy <PortableServer::POA>::get_servant () const
 {
 	IORequest::_ref_type _call = _target ()->create_request (_make_op_idx (__OPIDX_get_servant), 3);
@@ -61,6 +62,7 @@ void Proxy <PortableServer::POA>::__rq_get_servant (
 	Type <Object>::marshal_out (ret, _call);
 }
 
+inline
 void Proxy <PortableServer::POA>::set_servant (PortableServer::Servant p_servant) const
 {
 	IORequest::_ref_type _call = _target ()->create_request (_make_op_idx (__OPIDX_set_servant), 3);
@@ -86,6 +88,7 @@ void Proxy <PortableServer::POA>::__rq_set_servant (
 	}
 }
 
+inline
 PortableServer::ObjectId Proxy <PortableServer::POA>::activate_object (PortableServer::Servant p_servant) const
 {
 	Object::_ptr_type proxy = Core::servant2object (p_servant);
@@ -120,6 +123,7 @@ void Proxy <PortableServer::POA>::__rq_activate_object (
 	Type <PortableServer::ObjectId>::marshal_out (ret, _call);
 }
 
+inline
 void Proxy <PortableServer::POA>::activate_object_with_id (const PortableServer::ObjectId& oid, PortableServer::Servant p_servant) const
 {
 	Object::_ptr_type proxy = Core::servant2object (p_servant);
@@ -149,6 +153,7 @@ void Proxy <PortableServer::POA>::__rq_activate_object_with_id (
 	}
 }
 
+inline
 PortableServer::ObjectId Proxy <PortableServer::POA>::servant_to_id (PortableServer::Servant p_servant) const
 {
 	Object::_ptr_type proxy = Core::servant2object (p_servant);
@@ -183,6 +188,7 @@ void Proxy <PortableServer::POA>::__rq_servant_to_id (
 	Type <PortableServer::ObjectId>::marshal_out (ret, _call);
 }
 
+inline
 Object::_ref_type Proxy <PortableServer::POA>::servant_to_reference (PortableServer::Servant p_servant) const
 {
 	Object::_ptr_type proxy = Core::servant2object (p_servant);
@@ -217,6 +223,7 @@ void Proxy <PortableServer::POA>::__rq_servant_to_reference (
 	Type <Object>::marshal_out (ret, _call);
 }
 
+inline
 PortableServer::ServantBase::_ref_type Proxy <PortableServer::POA>::reference_to_servant (Object::_ptr_type reference) const
 {
 	IORequest::_ref_type _call = _target ()->create_request (_make_op_idx (__OPIDX_reference_to_servant), 3);
@@ -250,6 +257,7 @@ void Proxy <PortableServer::POA>::__rq_reference_to_servant (
 	Type <Object>::marshal_out (ret, _call);
 }
 
+inline
 PortableServer::ServantBase::_ref_type Proxy <PortableServer::POA>::id_to_servant (const PortableServer::ObjectId& oid) const
 {
 	IORequest::_ref_type _call = _target ()->create_request (_make_op_idx (__OPIDX_id_to_servant), 3);
@@ -283,6 +291,7 @@ void Proxy <PortableServer::POA>::__rq_id_to_servant (
 	Type <Object>::marshal_out (ret, _call);
 }
 
+inline
 PortableServer::ServantBase::_ref_type Proxy <PortableServer::ServantActivator>::incarnate (
 	const PortableServer::ObjectId& oid, PortableServer::POA::_ptr_type adapter) const
 {
@@ -315,6 +324,7 @@ void Proxy <PortableServer::ServantActivator>::__rq_incarnate (
 	Type <Object>::marshal_out (obj, _call);
 }
 
+inline
 void Proxy <PortableServer::ServantActivator>::etherealize (
 	const PortableServer::ObjectId& oid, PortableServer::POA::_ptr_type adapter,
 	PortableServer::Servant serv, Boolean cleanup_in_progress,
@@ -353,6 +363,7 @@ void Proxy <PortableServer::ServantActivator>::__rq_etherealize (
 	_servant->etherealize (oid, adapter, serv, cleanup_in_progress, remaining_activations);
 }
 
+inline
 PortableServer::ServantBase::_ref_type Proxy <PortableServer::ServantLocator>::preinvoke (
 	const PortableServer::ObjectId& oid, PortableServer::POA::_ptr_type adapter,
 	const Identifier& operation, PortableServer::ServantLocator::Cookie& the_cookie) const
@@ -396,6 +407,7 @@ void Proxy <PortableServer::ServantLocator>::__rq_preinvoke (
 	Type <Object>::marshal_out (obj, _call);
 }
 
+inline
 void Proxy <PortableServer::ServantLocator>::postinvoke (
 	const PortableServer::ObjectId& oid, PortableServer::POA::_ptr_type adapter, const Identifier& operation,
 	PortableServer::ServantLocator::Cookie the_cookie, PortableServer::Servant the_servant) const

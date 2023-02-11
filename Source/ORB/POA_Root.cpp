@@ -39,7 +39,8 @@ namespace Core {
 Object::_ref_type create_RootPOA ()
 {
 	auto manager_factory = CORBA::make_reference <POAManagerFactory> ();
-	auto manager = manager_factory->create ("RootPOAManager", CORBA::PolicyList ());
+	CORBA::PolicyList empty;
+	auto manager = manager_factory->create ("RootPOAManager", empty);
 	manager->activate ();
 	return CORBA::make_reference <POA_Root> (std::move (manager), std::move (manager_factory))->_this ();
 }
@@ -51,12 +52,12 @@ void POA_Root::check_object_id (const ObjectId& oid)
 }
 
 ReferenceLocalRef POA_Root::emplace_reference (ObjectKey&& key, bool unique, const IDL::String& primary_iid,
-	unsigned flags)
+	unsigned flags, CORBA::Core::DomainManager* domain_manager)
 {
 	auto ins = references_.emplace (std::move (key), Reference::DEADLINE_MAX);
 	References::reference entry = *ins.first;
 	if (ins.second) {
-		RefPtr p (new ReferenceLocal (entry.first, primary_iid, flags));
+		RefPtr p (new ReferenceLocal (entry.first, primary_iid, flags, domain_manager));
 		Servant_var <ReferenceLocal> ret (p.get ());
 		entry.second.finish_construction (std::move (p));
 		return ret;
@@ -70,12 +71,12 @@ ReferenceLocalRef POA_Root::emplace_reference (ObjectKey&& key, bool unique, con
 }
 
 ReferenceLocalRef POA_Root::emplace_reference (ObjectKey&& key, bool unique, ServantBase& servant,
-	unsigned flags)
+	unsigned flags, CORBA::Core::DomainManager* domain_manager)
 {
 	auto ins = references_.emplace (std::move (key), Reference::DEADLINE_MAX);
 	References::reference entry = *ins.first;
 	if (ins.second) {
-		RefPtr p (new ReferenceLocal (entry.first, servant, flags));
+		RefPtr p (new ReferenceLocal (entry.first, servant, flags, domain_manager));
 		Servant_var <ReferenceLocal> ret (p.get ());
 		entry.second.finish_construction (std::move (p));
 		return ret;

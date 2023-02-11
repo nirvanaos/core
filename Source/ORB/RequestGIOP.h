@@ -34,7 +34,7 @@
 #include <CORBA/IORequest_s.h>
 #include "RqHelper.h"
 #include "../LifeCyclePseudo.h"
-#include "IIOP.h"
+#include <CORBA/IIOP.h>
 #include "CodeSetConverter.h"
 #include "POA_Root.h"
 #include "LocalAddress.h"

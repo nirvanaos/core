@@ -29,6 +29,7 @@
 #pragma once
 
 #include <CORBA/Server.h>
+#include <CORBA/NoDefaultPOA.h>
 #include <CORBA/Policy_s.h>
 #include "../Synchronized.h"
 
@@ -45,10 +46,15 @@ public:
 };
 
 template <class PolicyItf, PolicyType id, typename ValueType>
-class PolicyImplBase : public servant_traits <PolicyItf>::template Servant <PolicyImpl <id> >
+class PolicyImplBase :
+	public servant_traits <PolicyItf>::template Servant <PolicyImpl <id> >,
+	public PortableServer::NoDefaultPOA
 {
 public:
-	static PolicyType _s_get_policy_type (Internal::Bridge <Policy>*, Internal::Interface*)
+	// Disable implicit activation
+	using PortableServer::NoDefaultPOA::__default_POA;
+
+	static PolicyType _s_get_policy_type (Internal::Bridge <CORBA::Policy>*, Internal::Interface*)
 	{
 		return id;
 	}

@@ -23,19 +23,28 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "POA_Root.h"
-#include <CORBA/Servant_var.h>
+#include "DomainManager.h"
 
-namespace PortableServer {
+namespace CORBA {
 namespace Core {
 
-CORBA::servant_reference <POAManager> POAManagerFactory::create (const IDL::String& id, CORBA::PolicyList& policies)
+Policy::_ref_type DomainManager::get_policy (PolicyType policy_type) const NIRVANA_NOEXCEPT
 {
-	Servant_var <POAManager> manager;
-	auto ins = managers_.emplace (std::ref (*this), std::ref (id), std::move (policies));
-	if (ins.second)
-		manager = &const_cast <POAManager&> (*ins.first);
-	return manager;
+	auto f = policies_.find (policy_type);
+	if (f != policies_.end ())
+		return f->second;
+	else
+		return Policy::_nil ();
+}
+
+void DomainManager::add_policy (PolicyType policy_type, Policy::_ptr_type policy)
+{
+	policies_.emplace (policy_type, policy);
+}
+
+void DomainManager::add_policy (Policy::_ptr_type policy)
+{
+	policies_.emplace (policy->policy_type (), policy);
 }
 
 }

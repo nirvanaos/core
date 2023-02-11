@@ -1,3 +1,4 @@
+/// \file
 /*
 * Nirvana Core.
 *
@@ -23,20 +24,37 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "POA_Root.h"
-#include <CORBA/Servant_var.h>
+#ifndef NIRVANA_CORE_COREDOMAINS_H_
+#define NIRVANA_CORE_COREDOMAINS_H_
 
-namespace PortableServer {
-namespace Core {
+#include <Nirvana/Domains.idl>
+#include <CORBA/IOP.idl>
 
-CORBA::servant_reference <POAManager> POAManagerFactory::create (const IDL::String& id, CORBA::PolicyList& policies)
+module Nirvana {
+module Core {
+
+typedef sequence <IOP::ObjectKey> ObjectKeys;
+
+interface ProtDomaiCore : ProtDomain
 {
-	Servant_var <POAManager> manager;
-	auto ins = managers_.emplace (std::ref (*this), std::ref (id), std::move (policies));
-	if (ins.second)
-		manager = &const_cast <POAManager&> (*ins.first);
-	return manager;
-}
+	oneway void ping (in ObjectKeys add, in ObjectKeys del);
+	void request (in CORBA::OctetSeq data_in, out CORBA::OctetSeq data_out);
+	oneway void request_oneway (in CORBA::OctetSeq data);
+};
 
-}
-}
+union BindInfo switch (boolean)
+{
+	case TRUE: string module_name;
+	case FALSE: Object obj;
+};
+
+interface SysDomainCore : SysDomain
+{
+	void get_bind_info (in string obj_name, in unsigned short platform, out BindInfo bind_info);
+	Object get_service (in string id);
+};
+
+};
+};
+
+#endif

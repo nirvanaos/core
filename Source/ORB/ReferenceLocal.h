@@ -50,14 +50,14 @@ class ReferenceLocal :
 public:
 	enum
 	{
-		LOCAL_WEAK            = 0x4000,
-		LOCAL_AUTO_DEACTIVATE = 0x2000
+		LOCAL_WEAK            = 0x4000, // Implicitly activated
+		LOCAL_AUTO_DEACTIVATE = 0x2000  // Activated by ServantActivator
 	};
 
 	ReferenceLocal (const PortableServer::Core::ObjectKey& key, const IDL::String& primary_iid,
-		unsigned flags);
+		unsigned flags, DomainManager* domain_manager);
 	ReferenceLocal (const PortableServer::Core::ObjectKey& key,
-		PortableServer::Core::ServantBase& servant, unsigned flags);
+		PortableServer::Core::ServantBase& servant, unsigned flags, DomainManager* domain_manager);
 
 	~ReferenceLocal ();
 

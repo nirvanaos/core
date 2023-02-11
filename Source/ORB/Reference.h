@@ -31,6 +31,7 @@
 #include "ProxyManager.h"
 #include "RefCntProxy.h"
 #include "GarbageCollector.h"
+#include "DomainManager.h"
 
 namespace CORBA {
 namespace Core {
@@ -88,6 +89,7 @@ public:
 protected:
 	RefCntProxy ref_cnt_;
 	unsigned flags_;
+	servant_reference <Core::DomainManager> domain_manager_;
 };
 
 }

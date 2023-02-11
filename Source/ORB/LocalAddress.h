@@ -30,7 +30,7 @@
 
 #include "../SharedAllocator.h"
 #include "../StaticallyAllocated.h"
-#include "IIOP.h"
+#include <CORBA/IIOP.h>
 
 namespace CORBA {
 namespace Core {

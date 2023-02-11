@@ -151,8 +151,10 @@ Interface* POA_Base::_s_id_to_servant (Bridge <POA>* _b,
 }
 
 POA_Base::POA_Base (POA_Base* parent, const IDL::String* name,
-	CORBA::servant_reference <POAManager>&& manager) :
+	servant_reference <Core::POAManager>&& manager,
+	servant_reference <CORBA::Core::DomainManager>&& domain_manager) :
 	the_POAManager_ (std::move (manager)),
+	domain_manager_ (std::move (domain_manager)),
 	parent_ (parent),
 	name_ (name),
 	request_cnt_ (0),
@@ -232,7 +234,8 @@ Object::_ref_type POA_Base::create_reference (const RepositoryId& intf)
 ReferenceLocalRef POA_Base::create_reference (const RepositoryId& intf, unsigned flags)
 {
 	for (;;) {
-		ReferenceLocalRef ref = root_->emplace_reference (ObjectKey (*this), true, std::ref (intf), flags);
+		ReferenceLocalRef ref = root_->emplace_reference (ObjectKey (*this), true, std::ref (intf),
+			flags, domain_manager_);
 		if (ref)
 			return ref;
 		assert (false); // Unique ID collision.
@@ -248,7 +251,7 @@ ReferenceLocalRef POA_Base::create_reference (ObjectKey&& key,
 ReferenceLocalRef POA_Base::create_reference (ObjectKey&& key, const RepositoryId& intf,
 	unsigned flags)
 {
-	return root_->emplace_reference (std::move (key), false, std::ref (intf), flags);
+	return root_->emplace_reference (std::move (key), false, std::ref (intf), flags, domain_manager_);
 }
 
 ObjectId POA_Base::servant_to_id (ProxyObject& proxy)

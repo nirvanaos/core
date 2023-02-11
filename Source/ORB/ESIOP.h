@@ -37,6 +37,15 @@
 /// in one system domain.
 namespace ESIOP {
 
+inline bool is_system_domain () NIRVANA_NOEXCEPT
+{
+#ifdef NIRVANA_SINGLE_DOMAIN
+	return true;
+#else
+	return sys_domain_id () == current_domain_id ();
+#endif
+}
+
 /// Message type
 enum MessageType
 {

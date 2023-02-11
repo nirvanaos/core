@@ -30,6 +30,13 @@ using namespace Nirvana::Core;
 namespace CORBA {
 namespace Core {
 
+Domain::Domain () :
+	last_ping_time_ (0)
+{}
+
+Domain::~Domain ()
+{}
+
 void Domain::_add_ref () NIRVANA_NOEXCEPT
 {
 	ref_cnt_.increment ();

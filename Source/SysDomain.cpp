@@ -40,7 +40,7 @@ namespace Core {
 
 Object::_ref_type create_SysDomain ()
 {
-	if (ESIOP::sys_domain_id () == ESIOP::current_domain_id ()) {
+	if (ESIOP::is_system_domain ()) {
 		POA::_ref_type adapter = POA::_narrow (Services::bind (Services::RootPOA));
 		servant_reference <SysDomain> obj = make_reference <SysDomain> ();
 		adapter->activate_object_with_id (ObjectId (), obj);

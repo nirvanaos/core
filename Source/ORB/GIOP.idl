@@ -1,8 +1,6 @@
 // File: GIOP.idl
 // From CORBA 3.0: Chapter 15, General Inter-ORB Protocol
 
-// To compiler this for 
-
 #ifndef _GIOP_IDL_
 #define _GIOP_IDL_
 
@@ -17,7 +15,6 @@ typeprefix GIOP "omg.org";
 #ifndef MAX_GIOP_MINOR_VERSION
 #define MAX_GIOP_MINOR_VERSION 4
 #endif
-
 
 struct Version {
   octet major;

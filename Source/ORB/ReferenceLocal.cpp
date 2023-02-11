@@ -28,7 +28,7 @@
 #include "POA_Root.h"
 #include "LocalAddress.h"
 #include "StreamOutEncap.h"
-#include "IIOP.h"
+#include <CORBA/IIOP.h>
 #include "ESIOP.h"
 #include <CORBA/Servant_var.h>
 
@@ -41,20 +41,24 @@ using namespace Internal;
 namespace Core {
 
 ReferenceLocal::ReferenceLocal (const PortableServer::Core::ObjectKey& key,
-	const IDL::String& primary_iid, unsigned flags) :
+	const IDL::String& primary_iid, unsigned flags, DomainManager* domain_manager) :
 	Reference (primary_iid, flags | LOCAL),
 	object_key_ (key),
 	root_ (PortableServer::Core::POA_Base::root ()),
 	servant_ (nullptr)
-{}
+{
+	domain_manager_ = domain_manager;
+}
 
 ReferenceLocal::ReferenceLocal (const PortableServer::Core::ObjectKey& key,
-	PortableServer::Core::ServantBase& servant, unsigned flags) :
+	PortableServer::Core::ServantBase& servant, unsigned flags, DomainManager* domain_manager) :
 	Reference (servant.proxy (), flags | LOCAL),
 	object_key_ (key),
 	root_ (PortableServer::Core::POA_Base::root ()),
 	servant_ (nullptr)
-{}
+{
+	domain_manager_ = domain_manager;
+}
 
 ReferenceLocal::~ReferenceLocal ()
 {}

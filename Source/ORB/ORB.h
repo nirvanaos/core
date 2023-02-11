@@ -31,7 +31,7 @@
 #include <CORBA/Server.h>
 #include <CORBA/ORB_s.h>
 #include "../Binder.h"
-#include "TC_Factory.h"
+#include <CORBA/TC_Factory.h>
 #include "Services.h"
 #include "PolicyFactory.h"
 
