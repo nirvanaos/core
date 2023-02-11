@@ -47,7 +47,7 @@ Object::_ref_type create_SysDomain ()
 		return obj->_this ();
 	} else {
 		ReferenceRemote ref (CORBA::OctetSeq (), Binder::get_domain (ESIOP::sys_domain_id ()), IOP::ObjectKey (8, 0),
-			CORBA::Internal::RepIdOf <Nirvana::SysDomain>::id, ESIOP::ORB_TYPE, IOP::TaggedComponentSeq ());
+			CORBA::Internal::RepIdOf <Nirvana::Core::SysDomainCore>::id, ESIOP::ORB_TYPE, IOP::TaggedComponentSeq ());
 		IORequest::_ref_type rq = ref.create_request (ref.find_operation ("get_service"), 3);
 		Type <IDL::String>::marshal_in (CORBA::Internal::StringView <char> ("SysDomain"), rq);
 		rq->invoke ();
