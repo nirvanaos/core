@@ -71,6 +71,11 @@ public:
 
 	static void receive_reply (unsigned GIOP_minor, Nirvana::Core::Ref <StreamIn>&& stream);
 
+	static void receive_reply_immediate (uint32_t request_id, Nirvana::Core::Ref <StreamIn>&& stream)
+	{
+		receive_reply_internal (1, request_id, 0, IOP::ServiceContextList (), std::move (stream));
+	}
+
 	static void set_system_exception (uint32_t request_id, const Char* rep_id,
 		uint32_t minor, CompletionStatus completed) NIRVANA_NOEXCEPT;
 
@@ -136,6 +141,8 @@ private:
 	}
 
 	Nirvana::Core::Ref <RequestOut> remove_request_internal (uint32_t request_id) NIRVANA_NOEXCEPT;
+	static void receive_reply_internal (unsigned GIOP_minor, uint32_t request_id, uint32_t status,
+		const IOP::ServiceContextList& context1, Nirvana::Core::Ref <StreamIn>&& stream);
 
 	RequestMap map_;
 	std::atomic <IdGenType> last_id_;

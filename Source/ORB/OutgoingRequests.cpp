@@ -120,7 +120,12 @@ void OutgoingRequests::receive_reply (unsigned GIOP_minor, Ref <StreamIn>&& stre
 		stream->read_tagged (context1);
 	request_id = stream->read32 ();
 	status = stream->read32 ();
+	receive_reply_internal (GIOP_minor, request_id, status, context1, std::move (stream));
+}
 
+void OutgoingRequests::receive_reply_internal (unsigned GIOP_minor, uint32_t request_id,
+	uint32_t status, const IOP::ServiceContextList& context1, Ref <StreamIn>&& stream)
+{
 	Ref <RequestOut> rq = remove_request (request_id);
 	if (rq) {
 		ExecDomain& ed = ExecDomain::current ();

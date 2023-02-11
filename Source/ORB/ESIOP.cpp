@@ -218,7 +218,7 @@ private:
 
 class StreamInImmediate :
 	public StreamInEncap,
-	public UserObject
+	public SharedObject
 {
 protected:
 	StreamInImmediate (unsigned size_and_flag, const uint8_t* data) :
@@ -236,7 +236,7 @@ private:
 void ReceiveReplyImmediate::run ()
 {
 	try {
-		OutgoingRequests::receive_reply (1, Ref <StreamIn>::create <ImplDynamic <StreamInImmediate> >
+		OutgoingRequests::receive_reply_immediate (request_id_, Ref <StreamIn>::create <ImplDynamic <StreamInImmediate> >
 			(size_and_flag_, data_));
 	} catch (const SystemException& ex) {
 		OutgoingRequests::set_system_exception (request_id_, ex._rep_id (), ex.minor (), ex.completed ());
