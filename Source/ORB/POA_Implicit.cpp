@@ -32,6 +32,11 @@ using namespace Nirvana::Core;
 namespace PortableServer {
 namespace Core {
 
+POA_Base::ImplicitActivation POA_Implicit::implicit_activation () const NIRVANA_NOEXCEPT
+{
+	return (POA_Base::DGC_policy () == DGC_DISABLED) ? IMPLICIT_ACTIVATION : IMPLICIT_ACTIVATION_WITH_DGC;
+}
+
 ObjectId POA_Implicit::servant_to_id_default (ProxyObject& proxy, bool not_found)
 {
 	assert (not_found);

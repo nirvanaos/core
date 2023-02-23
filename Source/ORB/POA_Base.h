@@ -76,10 +76,16 @@ struct POA_Policies
 	{
 		unsigned mask = 0;
 		*this = default_;
+		int DGC_policy_idx = -1;
 		for (auto it = policies.begin (); it != policies.end (); ++it) {
 			CORBA::Policy::_ptr_type policy = *it;
 			CORBA::PolicyType type = policy->policy_type ();
-			if (LIFESPAN_POLICY_ID <= type && type <= REQUEST_PROCESSING_POLICY_ID)
+			if (LIFESPAN_POLICY_ID <= type && type <= REQUEST_PROCESSING_POLICY_ID) {
+				unsigned bit = 1 << (type - LIFESPAN_POLICY_ID);
+				if (mask & bit)
+					throw POA::InvalidPolicy (CORBA::UShort (it - policies.begin ()));
+				mask |= bit;
+			}
 			switch (type) {
 				case THREAD_POLICY_ID:
 					if (ThreadPolicyValue::ORB_CTRL_MODEL != ThreadPolicy::_narrow (policy)->value ())
@@ -104,10 +110,16 @@ struct POA_Policies
 					request_processing = RequestProcessingPolicy::_narrow (policy)->value ();
 					break;
 				default:
+					if (FT::HEARTBEAT_ENABLED_POLICY == type)
+						DGC_policy_idx = int (it - policies.begin ());
 					if (!domain_manager.add_policy (type, policy))
 						throw POA::InvalidPolicy (CORBA::UShort (it - policies.begin ()));
 			}
 		}
+		
+		// DGC requires RETAIN policy
+		if (DGC_policy_idx >= 0 && servant_retention != ServantRetentionPolicyValue::RETAIN)
+			throw POA::InvalidPolicy ((CORBA::UShort)DGC_policy_idx);
 	}
 
 	bool operator < (const POA_Policies& rhs) const NIRVANA_NOEXCEPT
@@ -399,14 +411,21 @@ public:
 	static PortableServer::POAManagerFactory::_ref_type the_POAManagerFactory () NIRVANA_NOEXCEPT;
 
 	// Internal
-	static bool implicit_activation (POA::_ptr_type poa) NIRVANA_NOEXCEPT
+	enum ImplicitActivation
+	{
+		NO_IMPLICIT_ACTIVATION,
+		IMPLICIT_ACTIVATION,
+		IMPLICIT_ACTIVATION_WITH_DGC
+	};
+
+	static ImplicitActivation implicit_activation (POA::_ptr_type poa) NIRVANA_NOEXCEPT
 	{
 		if (poa) {
 			const POA_Base* impl = get_implementation (CORBA::Core::local2proxy (poa));
 			if (impl)
 				return impl->implicit_activation ();
 		}
-		return false;
+		return NO_IMPLICIT_ACTIVATION;
 	}
 
 	inline void invoke (const RequestRef& request);
@@ -459,7 +478,7 @@ protected:
 		CORBA::servant_reference <POAManager>&& manager,
 		CORBA::servant_reference <CORBA::Core::DomainManager>&& domain_manager);
 
-	virtual bool implicit_activation () const NIRVANA_NOEXCEPT;
+	virtual ImplicitActivation implicit_activation () const NIRVANA_NOEXCEPT;
 
 	bool check_path (const AdapterPath& path, AdapterPath::const_iterator it) const
 		NIRVANA_NOEXCEPT;

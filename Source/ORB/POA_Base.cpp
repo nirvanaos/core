@@ -213,9 +213,9 @@ void POA_Base::activate_object (ReferenceLocal& ref, ProxyObject& proxy, unsigne
 	NIRVANA_UNREACHABLE_CODE ();
 }
 
-bool POA_Base::implicit_activation () const NIRVANA_NOEXCEPT
+POA_Base::ImplicitActivation POA_Base::implicit_activation () const NIRVANA_NOEXCEPT
 {
-	return false;
+	return NO_IMPLICIT_ACTIVATION;
 }
 
 void POA_Base::deactivate_object (const ObjectId& oid)
@@ -243,11 +243,16 @@ Object::_ref_type POA_Base::create_reference (const RepositoryId& intf)
 ReferenceLocalRef POA_Base::create_reference (const RepositoryId& intf, unsigned flags)
 {
 	for (;;) {
+		// The ObjectKey constructor calls generate_object_id to generate a new unique id.
+		// If SYSTEM_ID policy is not present, the WrongPolicy exception will be thrown.
 		ReferenceLocalRef ref = root_->emplace_reference (ObjectKey (*this), true, std::ref (intf),
 			flags, domain_manager_);
 		if (ref)
 			return ref;
-		assert (false); // Unique ID collision.
+		// Unique ID collision.
+		// Hardly ever it can cause, but we support it just for case.
+		assert (false);
+		// Jus go to generate a new id.
 	}
 }
 
