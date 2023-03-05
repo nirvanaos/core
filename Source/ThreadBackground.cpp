@@ -24,6 +24,7 @@
 *  popov.nirvana@gmail.com
 */
 #include "ThreadBackground.h"
+#include "Scheduler.h"
 
 namespace Nirvana {
 namespace Core {
@@ -31,13 +32,22 @@ namespace Core {
 void ThreadBackground::start ()
 {
 	_add_ref ();
+	Scheduler::activity_begin ();
 	try {
 		Base::start ();
 	} catch (...) {
 		_remove_ref ();
+		Scheduler::activity_end ();
 		throw;
 	}
 }
+
+void ThreadBackground::on_thread_proc_end () NIRVANA_NOEXCEPT
+{
+	_remove_ref ();
+	Scheduler::activity_end ();
+}
+
 
 }
 }

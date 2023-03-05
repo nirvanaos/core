@@ -146,7 +146,13 @@ private:
 	void start ()
 	{
 		CORBA::Internal::I_var <Legacy::Process> proxy (_this ());
-		Nirvana::Core::Port::ThreadBackground::start ();
+		Nirvana::Core::Scheduler::activity_begin ();
+		try {
+			Nirvana::Core::Port::ThreadBackground::start ();
+		} catch (...) {
+			Nirvana::Core::Scheduler::activity_end ();
+			throw;
+		}
 		proxy._retn (); // Keep proxy reference on successfull start
 	}
 
@@ -154,6 +160,7 @@ private:
 	{
 		// Release proxy reference on the main thread finish
 		CORBA::Internal::interface_release (&Legacy::Process::_ptr_type (_this ()));
+		Nirvana::Core::Scheduler::activity_end ();
 	}
 
 private:

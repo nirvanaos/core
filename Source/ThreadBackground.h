@@ -29,7 +29,6 @@
 #pragma once
 
 #include "SharedObject.h"
-#include "Scheduler.h"
 #include <Port/ThreadBackground.h>
 
 namespace Nirvana {
@@ -64,22 +63,15 @@ public:
 
 protected:
 	ThreadBackground ()
-	{
-		Scheduler::activity_begin ();
-	}
+	{}
 
 	~ThreadBackground ()
-	{
-		Scheduler::activity_end ();
-	}
+	{}
 
 	void start ();
 
 	// Called from port.
-	virtual void on_thread_proc_end () NIRVANA_NOEXCEPT
-	{
-		_remove_ref ();
-	}
+	virtual void on_thread_proc_end () NIRVANA_NOEXCEPT;
 
 private:
 	// Called from port.
