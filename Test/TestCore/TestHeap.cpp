@@ -211,7 +211,7 @@ public:
 		allocated_.reserve (1024);
 	}
 
-	void run (Core::Heap& memory, int iterations);
+	void run (Core::Heap& memory, int iterations, int top_iteration);
 
 	const std::vector <Block>& allocated () const
 	{
@@ -228,7 +228,7 @@ private:
 std::atomic <size_t> RandomAllocator::next_tag_ (1);
 std::atomic <size_t> RandomAllocator::total_allocated_ (0);
 
-void RandomAllocator::run (Core::Heap& memory, int iterations)
+void RandomAllocator::run (Core::Heap& memory, int iterations, int top_iteration)
 {
 	static const size_t MAX_MEMORY = 0x20000000;	// 512M
 	static const size_t MAX_BLOCK = 0x1000000;	// 16M
@@ -254,8 +254,7 @@ void RandomAllocator::run (Core::Heap& memory, int iterations)
 		if (op != OP_RELEASE) {
 			try {
 				switch (op) {
-					case OP_ALLOCATE:
-					{
+					case OP_ALLOCATE: {
 						size_t size = std::uniform_int_distribution <size_t> (1, MAX_BLOCK / sizeof (size_t))(rndgen_) * sizeof (size_t);
 						size_t cb = size;
 						size_t* block = (size_t*)memory.allocate (nullptr, cb, Memory::ZERO_INIT);
@@ -264,25 +263,26 @@ void RandomAllocator::run (Core::Heap& memory, int iterations)
 						size_t tag = next_tag_++;
 						std::fill_n (block, size / sizeof (size_t), tag);
 						allocated_.push_back ({ tag, block, block + size / sizeof (size_t), Block::READ_WRITE });
-					}
-					break;
+					} break;
 
 					case OP_COPY_RO:
-					case OP_COPY_RW:
-					{
+					case OP_COPY_RW: {
 						size_t idx = std::uniform_int_distribution <size_t> (0, allocated_.size () - 1)(rndgen_);
 						Block& src = allocated_ [idx];
-						size_t size = (src.end - src.begin) * sizeof (size_t);
-						bool read_only = OP_COPY_RO == op;
-						size_t cb = size;
-						size_t* block = (size_t*)memory.copy (nullptr, src.begin, cb, read_only ? Memory::READ_ONLY : 0);
-						total_allocated_ += size;
-						allocated_.push_back ({ src.tag, block, block + size / sizeof (size_t), read_only ? Block::READ_ONLY : Block::READ_WRITE });
-					}
-					break;
+						if (Block::RESERVED != src.state) {
+							size_t size = (src.end - src.begin) * sizeof (size_t);
+							bool read_only = OP_COPY_RO == op;
+							size_t cb = size;
+							EXPECT_TRUE (check_readable (src.begin, src.end, src.tag));
+							size_t* block = (size_t*)memory.copy (nullptr, src.begin, cb, read_only ? Memory::READ_ONLY : 0);
+							EXPECT_TRUE (check_readable (src.begin, src.end, src.tag));
+							EXPECT_TRUE (check_readable (block, block + size / sizeof (size_t), src.tag));
+							total_allocated_ += size;
+							allocated_.push_back ({ src.tag, block, block + size / sizeof (size_t), read_only ? Block::READ_ONLY : Block::READ_WRITE });
+						}
+					} break;
 
-					case OP_CHANGE_OR_CHECK:
-					{
+					case OP_CHANGE_OR_CHECK: {
 						size_t idx = std::uniform_int_distribution <size_t> (0, allocated_.size () - 1)(rndgen_);
 						Block& block = allocated_ [idx];
 						if (Block::RESERVED != block.state) {
@@ -293,8 +293,7 @@ void RandomAllocator::run (Core::Heap& memory, int iterations)
 								block.tag = tag;
 							}
 						}
-					}
-					break;
+					} break;
 				}
 			} catch (const CORBA::NO_MEMORY&) {
 				op = OP_RELEASE;
@@ -307,8 +306,10 @@ void RandomAllocator::run (Core::Heap& memory, int iterations)
 			Block& block = allocated_ [idx];
 			if (Block::RESERVED != block.state)
 				EXPECT_TRUE (check_readable (block.begin, block.end, block.tag));
-			memory.release (block.begin, (block.end - block.begin) * sizeof (size_t));
-			total_allocated_ -= (block.end - block.begin) * sizeof (size_t);
+			size_t size = (block.end - block.begin) * sizeof (size_t);
+
+			memory.release (block.begin, size);
+			total_allocated_ -= size;
 			allocated_.erase (allocated_.begin () + idx);
 		}
 	}
@@ -360,23 +361,21 @@ void AllocatedBlocks::check (Core::Heap& memory)
 TEST_F (TestHeap, Random)
 {
 	RandomAllocator ra (std::mt19937::default_seed);
-	static const int ITERATIONS
-#ifdef _DEBUG
-		= 10;
-#else
-		= 50;
-#endif
+	static const int ITERATIONS = 50;
 	static const int ALLOC_ITERATIONS = 1000;
 	for (int i = 0; i < ITERATIONS; ++i) {
-		ASSERT_NO_FATAL_FAILURE (ra.run (heap_, ALLOC_ITERATIONS));
+		ASSERT_NO_FATAL_FAILURE (ra.run (heap_, ALLOC_ITERATIONS, i));
 
 		AllocatedBlocks checker;
 		ASSERT_NO_FATAL_FAILURE (checker.add (ra.allocated ()));
 		ASSERT_NO_FATAL_FAILURE (checker.check (heap_));
 	}
 
-	for (auto p = ra.allocated ().cbegin (); p != ra.allocated ().cend (); ++p)
+	for (auto p = ra.allocated ().cbegin (); p != ra.allocated ().cend (); ++p) {
+		if (Block::RESERVED != p->state)
+			EXPECT_TRUE (check_readable (p->begin, p->end, p->tag));
 		heap_.release (p->begin, (p->end - p->begin) * sizeof (size_t));
+	}
 }
 
 class ThreadAllocator :
@@ -388,9 +387,9 @@ public:
 		RandomAllocator (seed)
 	{}
 
-	void run (Core::Heap& memory, int iterations)
+	void run (Core::Heap& memory, int iterations, int top_iteration)
 	{
-		std::thread t (&RandomAllocator::run, this, std::ref (memory), iterations);
+		std::thread t (&RandomAllocator::run, this, std::ref (memory), iterations, top_iteration);
 		swap (t);
 	}
 };
@@ -398,12 +397,7 @@ public:
 TEST_F (TestHeap, MultiThread)
 {
 	const unsigned int thread_cnt = std::thread::hardware_concurrency ();
-	static const int ITERATIONS
-#ifdef _DEBUG
-		= 5;
-#else
-		= 25;
-#endif
+	static const int ITERATIONS = 50;
 	static const int THREAD_ITERATIONS = 1000;
 	std::vector <ThreadAllocator> threads;
 	threads.reserve (thread_cnt);
@@ -412,7 +406,7 @@ TEST_F (TestHeap, MultiThread)
 
 	for (int i = 0; i < ITERATIONS; ++i) {
 		for (auto p = threads.begin (); p != threads.end (); ++p)
-			p->run (heap_, THREAD_ITERATIONS);
+			p->run (heap_, THREAD_ITERATIONS, i);
 
 		for (auto p = threads.begin (); p != threads.end (); ++p)
 			p->join ();
