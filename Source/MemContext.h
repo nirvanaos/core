@@ -34,7 +34,6 @@ namespace Nirvana {
 namespace Core {
 
 class MemContextObject;
-class TLS;
 
 /// Memory context.
 /// Contains heap and some other stuff.
@@ -81,9 +80,6 @@ public:
 	/// 
 	/// \param obj Object.
 	virtual void on_object_destruct (MemContextObject& obj) NIRVANA_NOEXCEPT = 0;
-
-	/// \return Reference to TLS.
-	virtual TLS& get_TLS () NIRVANA_NOEXCEPT = 0;
 
 protected:
 	MemContext ();

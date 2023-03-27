@@ -58,18 +58,11 @@ public:
 		return static_cast <ThreadBase&> (base);
 	}
 
-	Nirvana::Core::TLS& get_TLS () NIRVANA_NOEXCEPT
-	{
-		return TLS_;
-	}
-
 	virtual Process& process () NIRVANA_NOEXCEPT = 0;
 
 protected:
 	ThreadBase () = default;
 
-private:
-	Nirvana::Core::TLS TLS_;
 };
 
 }

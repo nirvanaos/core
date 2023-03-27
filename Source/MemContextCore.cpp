@@ -53,10 +53,5 @@ void MemContextCore::on_object_construct (MemContextObject& obj) NIRVANA_NOEXCEP
 void MemContextCore::on_object_destruct (MemContextObject& obj) NIRVANA_NOEXCEPT
 {}
 
-TLS& MemContextCore::get_TLS () NIRVANA_NOEXCEPT
-{
-	return TLS_;
-}
-
 }
 }

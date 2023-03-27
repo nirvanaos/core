@@ -29,12 +29,9 @@
 #pragma once
 
 #include "BitmapOps.h"
-#include "MemContext.h"
+#include "SharedAllocator.h"
 
 namespace Nirvana {
-
-typedef void (*Deleter) (void*);
-
 namespace Core {
 
 /// Thread-local storage.
@@ -44,10 +41,7 @@ class TLS
 	static const unsigned BW_BITS = sizeof (BitmapWord) * 8;
 public:
 	/// \returns Current TLS.
-	static TLS& current ()
-	{
-		return MemContext::current ().get_TLS ();
-	}
+	static TLS& current () NIRVANA_NOEXCEPT;
 
 	/// Reserved TLS indexes.
 	enum
@@ -68,7 +62,7 @@ public:
 	static unsigned allocate ();
 	static void release (unsigned idx);
 
-	void set (unsigned idx, void* p, Deleter deleter = nullptr);
+	void set (unsigned idx, void* p);
 	void* get (unsigned idx) NIRVANA_NOEXCEPT;
 
 	static void initialize () NIRVANA_NOEXCEPT
@@ -80,64 +74,7 @@ public:
 	void clear () NIRVANA_NOEXCEPT;
 
 private:
-	class Entry
-	{
-	public:
-		Entry () :
-			ptr_ (nullptr),
-			deleter_ (nullptr)
-		{}
-
-		Entry (void* ptr, Deleter deleter) NIRVANA_NOEXCEPT :
-			ptr_ (ptr),
-			deleter_ (deleter)
-		{}
-
-		Entry (Entry&& src) NIRVANA_NOEXCEPT :
-			ptr_ (src.ptr_),
-			deleter_ (src.deleter_)
-		{
-			src.deleter_ = nullptr;
-		}
-
-		Entry& operator = (Entry&& src) NIRVANA_NOEXCEPT
-		{
-			destruct ();
-			ptr_ = src.ptr_;
-			deleter_ = src.deleter_;
-			src.deleter_ = nullptr;
-			return *this;
-		}
-
-		~Entry ()
-		{
-			destruct ();
-		}
-
-		void* ptr () const
-		{
-			return ptr_;
-		}
-
-		void reset () NIRVANA_NOEXCEPT
-		{
-			ptr_ = nullptr;
-			deleter_ = nullptr;
-		}
-
-	private:
-		void destruct () NIRVANA_NOEXCEPT;
-
-	private:
-		void* ptr_;
-		Deleter deleter_;
-	};
-
-	// Do not use UserAllocator here to avoid problems in Debug configuration.
-	// std::vector allocates proxy on construct. It happens on the MemContextCore construct.
-	// But constructing memory context is not current yet.
-	// We use our vector implementation without proxies.
-	typedef std::vector <Entry> Entries;
+	typedef std::vector <void*, SharedAllocator <void*> > Entries;
 	Entries entries_;
 
 	static const size_t BITMAP_SIZE = (USER_TLS_INDEXES + BW_BITS - 1) / BW_BITS;

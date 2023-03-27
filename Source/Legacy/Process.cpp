@@ -64,7 +64,6 @@ void Process::run ()
 
 void Process::finish () NIRVANA_NOEXCEPT
 {
-	get_TLS ().clear ();
 	object_list_.clear ();
 	runtime_support_.clear ();
 	{
@@ -133,11 +132,6 @@ void Process::on_object_destruct (MemContextObject& obj) NIRVANA_NOEXCEPT
 	SYNC_BEGIN (*sync_domain_, nullptr);
 	obj.remove ();
 	SYNC_END ();
-}
-
-TLS& Process::get_TLS () NIRVANA_NOEXCEPT
-{
-	return ThreadBase::current ().get_TLS ();
 }
 
 Process& Process::process () NIRVANA_NOEXCEPT

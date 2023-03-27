@@ -210,6 +210,7 @@ void ExecDomain::cleanup () NIRVANA_NOEXCEPT
 	}
 
 	runtime_global_.cleanup ();
+	tls_.clear ();
 
 	deadline_policy_async_._default ();
 	deadline_policy_oneway_._d (System::DeadlinePolicyType::DEADLINE_INFINITE);

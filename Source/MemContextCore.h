@@ -54,10 +54,6 @@ protected:
 	virtual void runtime_proxy_remove (const void* obj) NIRVANA_NOEXCEPT override;
 	virtual void on_object_construct (MemContextObject& obj) NIRVANA_NOEXCEPT override;
 	virtual void on_object_destruct (MemContextObject& obj) NIRVANA_NOEXCEPT override;
-	virtual TLS& get_TLS () NIRVANA_NOEXCEPT override;
-
-private:
-	TLS TLS_;
 };
 
 }

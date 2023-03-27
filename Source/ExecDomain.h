@@ -37,6 +37,7 @@
 #include "ThreadBackground.h"
 #include "CoreObject.h"
 #include "unrecoverable_error.h"
+#include "TLS.h"
 #include <limits>
 #include <utility>
 
@@ -381,6 +382,11 @@ public:
 		restricted_mode_ = rm;
 	}
 
+	TLS& tls () NIRVANA_NOEXCEPT
+	{
+		return tls_;
+	}
+
 	void get_context (const char* const* ids, size_t id_cnt, std::vector <std::string>& context)
 	{
 		// TODO: Implement
@@ -551,6 +557,7 @@ private:
 
 	System::DeadlinePolicy deadline_policy_async_;
 	System::DeadlinePolicy deadline_policy_oneway_;
+	TLS tls_;
 
 	typename std::aligned_storage <MAX_RUNNABLE_SIZE>::type runnable_space_;
 
@@ -562,6 +569,12 @@ inline
 MemContext& MemContext::current ()
 {
 	return ExecDomain::current ().mem_context ();
+}
+
+inline
+TLS& TLS::current () NIRVANA_NOEXCEPT
+{
+	return ExecDomain::current ().tls ();
 }
 
 }

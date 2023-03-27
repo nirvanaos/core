@@ -31,17 +31,6 @@ namespace Core {
 TLS::BitmapWord TLS::bitmap_ [BITMAP_SIZE];
 uint16_t TLS::free_count_;
 
-void TLS::Entry::destruct () NIRVANA_NOEXCEPT
-{
-	if (deleter_ && ptr_) {
-		try {
-			(*deleter_) (ptr_);
-		} catch (...) {
-			// TODO: Log
-		}
-	}
-}
-
 TLS::TLS ()
 {}
 
@@ -81,18 +70,16 @@ void TLS::release (unsigned idx)
 		throw_BAD_PARAM ();
 }
 
-void TLS::set (unsigned idx, void* p, Deleter deleter)
+void TLS::set (unsigned idx, void* p)
 {
 	if (idx >= CORE_TLS_COUNT + USER_TLS_INDEXES_END)
 		throw_BAD_PARAM ();
-	if (!p)
-		deleter = nullptr;
 	if (entries_.size () <= idx) {
 		if (!p)
 			return;
 		entries_.resize (idx + 1);
 	}
-	entries_ [idx] = Entry (p, deleter);
+	entries_ [idx] = p;
 }
 
 void* TLS::get (unsigned idx) NIRVANA_NOEXCEPT
@@ -100,7 +87,7 @@ void* TLS::get (unsigned idx) NIRVANA_NOEXCEPT
 	if (entries_.size () <= idx)
 		return nullptr;
 	else
-		return entries_ [idx].ptr ();
+		return entries_ [idx];
 }
 
 }

@@ -138,7 +138,6 @@ private:
 		NIRVANA_NOEXCEPT override;
 	virtual void on_object_destruct (Nirvana::Core::MemContextObject& obj)
 		NIRVANA_NOEXCEPT override;
-	virtual Nirvana::Core::TLS& get_TLS () NIRVANA_NOEXCEPT override;
 
 	// ThreadBase::
 	virtual Process& process () NIRVANA_NOEXCEPT override;

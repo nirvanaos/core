@@ -237,16 +237,16 @@ public:
 		TLS::release (idx);
 	}
 
-	static void TLS_set (uint16_t idx, void* ptr, Deleter del)
+	static void TLS_set (uint16_t idx, void* ptr)
 	{
 		if (idx < TLS::CORE_TLS_COUNT)
 			throw_BAD_PARAM ();
-		MemContext::current ().get_TLS ().set (idx, ptr, del);
+		TLS::current ().set (idx, ptr);
 	}
 
 	static void* TLS_get (uint16_t idx)
 	{
-		return MemContext::current ().get_TLS ().get (idx);
+		return TLS::current ().get (idx);
 	}
 
 };
