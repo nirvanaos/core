@@ -541,14 +541,12 @@ ptrdiff_t HeapDirectory <DIRECTORY_SIZE, HEAP_LEVELS, IMPL>::allocate (size_t si
 	size_t block_offset = block_number * allocated_size;
 	size_t allocated_end = block_offset + allocated_size;
 	assert (allocated_end <= Traits::UNIT_COUNT);
-
-	// Ensure that memory is committed and writeable.
-	commit (block_offset, allocated_end, heap_info);
+	size_t release_begin = block_offset + size;
 
 	// Te block of size = allocated_size (power of 2) is allocated.
 	// We need the block of size = size. Release the remaining part.
 	try {
-		release (block_offset + size, allocated_end);
+		release (release_begin, allocated_end);
 	} catch (...) {
 		// On exception we release size bytes, not allocated_size bytes!
 		// If the memory was partially released and there was a failure
@@ -556,9 +554,12 @@ ptrdiff_t HeapDirectory <DIRECTORY_SIZE, HEAP_LEVELS, IMPL>::allocate (size_t si
 		// It is also the start of the succesfully released part. The free block bits in this part are set as the
 		// companions of the releasing block bits.
 		// As the result, the source state of the bitmap will be restored.
-		release (block_offset, block_offset + size, heap_info);
+		release (block_offset, release_begin);
 		throw;
 	}
+
+	// Ensure that memory is committed and writeable.
+	commit (block_offset, release_begin, heap_info);
 
 	return block_offset;
 }
@@ -622,20 +623,20 @@ bool HeapDirectory <DIRECTORY_SIZE, HEAP_LEVELS, IMPL>::allocate (size_t begin, 
 	assert (allocated_begin <= begin && end <= allocated_end);
 	assert (allocated_end <= Traits::UNIT_COUNT);
 
-	// Ensure that memory is committed and writeable.
-	commit (allocated_begin, allocated_end, heap_info);
-
 	try {
 		// Release extra space at begin and end
 		// Memory is released from the inside-out so that in case of failure
 		// (it is impossible to fix the bitmap) and subsequent release of the internal part,
 		// the original state has been restored.
-		release (allocated_begin, begin, 0, true);
+		release (allocated_begin, begin, nullptr, true);
 		release (end, allocated_end, 0, false);
 	} catch (...) {
-		release (begin, end, heap_info);
+		release (begin, end, nullptr);
 		throw;
 	}
+
+	// Ensure that memory is committed and writeable.
+	commit (begin, end, heap_info);
 
 	return true;
 }

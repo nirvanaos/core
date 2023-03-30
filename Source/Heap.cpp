@@ -364,8 +364,12 @@ void* Heap::allocate (Directory& part, size_t& size, unsigned flags, size_t allo
 {
 	size_t units = (size + allocation_unit - 1) / allocation_unit;
 	uint8_t* heap = (uint8_t*)(&part + 1);
-	HeapInfo hi = {heap, allocation_unit, Port::Memory::OPTIMAL_COMMIT_UNIT};
-	ptrdiff_t unit = part.allocate (units, flags & Memory::RESERVED ? nullptr : &hi);
+	ptrdiff_t unit;
+	if (Directory::IMPLEMENTATION != HeapDirectoryImpl::PLAIN_MEMORY && !(flags & Memory::RESERVED)) {
+		HeapInfo hi = { heap, allocation_unit, Port::Memory::OPTIMAL_COMMIT_UNIT };
+		unit = part.allocate (units, &hi);
+	} else
+		unit = part.allocate (units, nullptr);
 	if (unit >= 0) {
 		assert (unit < Directory::UNIT_COUNT);
 		void* p = heap + unit * allocation_unit;
@@ -390,8 +394,13 @@ void* Heap::allocate (Directory& part, void* p, size_t& size, unsigned flags) co
 	else
 		end = begin + (size + allocation_unit_ - 1) / allocation_unit_;
 
-	HeapInfo hi = {heap, allocation_unit_, Port::Memory::OPTIMAL_COMMIT_UNIT};
-	if (part.allocate (begin, end, flags & Memory::RESERVED ? nullptr : &hi)) {
+	bool success;
+	if (Directory::IMPLEMENTATION != HeapDirectoryImpl::PLAIN_MEMORY && !(flags & Memory::RESERVED)) {
+		HeapInfo hi = { heap, allocation_unit_, Port::Memory::OPTIMAL_COMMIT_UNIT };
+		success = part.allocate (begin, end, &hi);
+	} else
+		success = part.allocate (begin, end, nullptr);
+	if (success) {
 		uint8_t* pbegin = heap + begin * allocation_unit_;
 		p = pbegin;
 
