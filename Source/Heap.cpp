@@ -258,8 +258,11 @@ void Heap::release (Directory& part, void* p, size_t size) const
 	size_t end = (offset + size + allocation_unit_ - 1) / allocation_unit_;
 	if (!part.check_allocated (begin, end))
 		THROW (FREE_MEM);
-	HeapInfo hi = { heap, allocation_unit_, Port::Memory::OPTIMAL_COMMIT_UNIT };
-	part.release (begin, end, &hi);
+	if (Directory::IMPLEMENTATION != HeapDirectoryImpl::PLAIN_MEMORY) {
+		HeapInfo hi = { heap, allocation_unit_, Port::Memory::OPTIMAL_COMMIT_UNIT };
+		part.release (begin, end, &hi);
+	} else
+		part.release (begin, end, nullptr);
 }
 
 Heap::Directory* Heap::get_partition (const void* p) NIRVANA_NOEXCEPT

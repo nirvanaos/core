@@ -419,14 +419,11 @@ private:
 		return free_block_count_ [idx];
 	}
 
-	static BitmapWord companion_mask (BitmapWord mask) noexcept
-	{
-		constexpr BitmapWord ODD = sizeof (BitmapWord) > 4 ? 0x5555555555555555 : sizeof (BitmapWord) > 2 ? 0x55555555 : 0x5555;
-		return mask | ((mask >> 1) & ODD) | ((mask << 1) & ~ODD);
-	}
-
-	//! Commit heap block. Does nothing if heap_info == NULL.
+	// Commit heap block. Does nothing if heap_info == NULL.
 	void commit (size_t begin, size_t end, const HeapInfo* heap_info);
+
+	// Decommit heap block. Does nothing if heap_info == NULL.
+	void decommit (size_t begin, const HeapInfo* heap_info);
 
 private:
 	// Free block count index.
@@ -641,7 +638,7 @@ bool HeapDirectory <DIRECTORY_SIZE, HEAP_LEVELS, IMPL>::allocate (size_t begin, 
 	return true;
 }
 
-template <size_t DIRECTORY_SIZE, unsigned HEAP_LEVELS, HeapDirectoryImpl IMPL> inline
+template <size_t DIRECTORY_SIZE, unsigned HEAP_LEVELS, HeapDirectoryImpl IMPL>
 void HeapDirectory <DIRECTORY_SIZE, HEAP_LEVELS, IMPL>::commit (size_t begin, size_t end, const HeapInfo* heap_info)
 {
 	if (IMPL != HeapDirectoryImpl::PLAIN_MEMORY && heap_info) {
@@ -658,6 +655,13 @@ void HeapDirectory <DIRECTORY_SIZE, HEAP_LEVELS, IMPL>::commit (size_t begin, si
 }
 
 template <size_t DIRECTORY_SIZE, unsigned HEAP_LEVELS, HeapDirectoryImpl IMPL>
+void HeapDirectory <DIRECTORY_SIZE, HEAP_LEVELS, IMPL>::decommit (size_t begin, const HeapInfo* heap_info)
+{
+	if (IMPL != HeapDirectoryImpl::PLAIN_MEMORY && heap_info)
+		Port::Memory::decommit ((uint8_t*)(heap_info->heap) + begin * heap_info->commit_size, heap_info->commit_size);
+}
+
+template <size_t DIRECTORY_SIZE, unsigned HEAP_LEVELS, HeapDirectoryImpl IMPL>
 void HeapDirectory <DIRECTORY_SIZE, HEAP_LEVELS, IMPL>::release (size_t begin, size_t end, const HeapInfo* heap_info, bool rtl)
 {
 	assert (begin <= end);
@@ -668,6 +672,7 @@ void HeapDirectory <DIRECTORY_SIZE, HEAP_LEVELS, IMPL>::release (size_t begin, s
 	if (IMPL != HeapDirectoryImpl::PLAIN_MEMORY && heap_info) {
 		assert (heap_info->heap && heap_info->unit_size && heap_info->commit_size);
 		decommit_level = Traits::HEAP_LEVELS - 1 - ilog2_floor (heap_info->commit_size / heap_info->unit_size);
+		assert (heap_info->unit_size << (Traits::HEAP_LEVELS - 1 - decommit_level) == heap_info->commit_size);
 	}
 
 	// The released area must be split into blocks of size 2^n, the offset of which is multiples of their size.
@@ -701,10 +706,13 @@ void HeapDirectory <DIRECTORY_SIZE, HEAP_LEVELS, IMPL>::release (size_t begin, s
 		while (level > 0) {
 
 			// Decommit freed memory.
-			if (IMPL != HeapDirectoryImpl::PLAIN_MEMORY && heap_info && level == decommit_level)
-				Port::Memory::decommit ((uint8_t*)(heap_info->heap) + bl_number * heap_info->commit_size, heap_info->commit_size);
+			if (level == decommit_level)
+				decommit (bl_number, heap_info);
 
-			if (Ops::bit_set_check_companion (bitmap_ptr, mask, companion_mask (mask))) {
+			static const BitmapWord ODD = (BitmapWord)0x5555555555555555;
+			BitmapWord companion_mask = ((mask >> 1) & ODD) | ((mask << 1) & ~ODD);
+
+			if (Ops::bit_set_check_companion (bitmap_ptr, mask, companion_mask)) {
 				// There is free companion - merge it with the released block
 				// Go level up
 				Ops::decrement (free_blocks_cnt);
@@ -724,22 +732,27 @@ void HeapDirectory <DIRECTORY_SIZE, HEAP_LEVELS, IMPL>::release (size_t begin, s
 		Ops::release (free_blocks_cnt);
 
 		if (level == 0) {
-			if (IMPL != HeapDirectoryImpl::PLAIN_MEMORY && decommit_level <= 0) {
+			if (IMPL != HeapDirectoryImpl::PLAIN_MEMORY && heap_info && decommit_level <= 0) {
 				if (decommit_level == 0) {
-					if (heap_info)
-						Port::Memory::decommit ((uint8_t*)(heap_info->heap) + bl_number * heap_info->commit_size, heap_info->commit_size);
+					decommit (bl_number, heap_info);
 					if (!Ops::bit_set (bitmap_ptr, mask))
 						throw_FREE_MEM ();
 				} else {
-					unsigned block_size = (unsigned)1 << (unsigned)(-decommit_level);
-					BitmapWord companion_mask = (~((~(BitmapWord)0) << block_size)) << round_down ((unsigned)(bl_number % (sizeof (BitmapWord) * 8)), block_size);
-					if (Ops::bit_set_check_companion (bitmap_ptr, mask, companion_mask)) {
-						if (heap_info)
-							try {
-								Port::Memory::decommit ((uint8_t*)(heap_info->heap) + (bl_number >> (unsigned)(-decommit_level)) * heap_info->commit_size, heap_info->commit_size);
-							} catch (...) {
-							}
-						if (!Ops::bit_set (bitmap_ptr, companion_mask))
+					// We try to decommit a number of top-level blocks as a whole.
+
+					// The count of the top-level blocks to decommit.
+					unsigned block_count = (unsigned)1 << (unsigned)(-decommit_level);
+					assert (block_count <= sizeof (BitmapWord) * 8); // Inside one bitmap word
+					// The companion mask corresponding the blocks to decommit.
+					BitmapWord companions = (~((~(BitmapWord)0) << block_count)) << round_down ((unsigned)(bl_number % (sizeof (BitmapWord) * 8)), block_count);
+					if (Ops::bit_set_check_companion (bitmap_ptr, mask, companions & ~mask)) {
+						// We have allocated block_count top-level blocks.
+
+						// First we decommit them
+						decommit (bl_number / block_count, heap_info);
+
+						// And we release them
+						if (!Ops::bit_set (bitmap_ptr, companions))
 							throw_FREE_MEM ();
 					}
 				}
