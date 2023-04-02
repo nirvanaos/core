@@ -45,21 +45,12 @@ struct BitmapOps
 	/// \param pcnt The free blocks counter pointer.
 	/// 
 	/// \returns `true` if the counter was decremented.
-	static bool acquire (volatile uint16_t* pcnt)
-	{
-		assert (std::atomic_is_lock_free ((volatile std::atomic <uint16_t>*)pcnt));
-		uint16_t cnt = std::atomic_load ((volatile std::atomic <uint16_t>*)pcnt);
-		while ((unsigned)(cnt - 1) < (unsigned)0x7FFF) {	// 0 < cnt && cnt <= 0x8000
-			if (std::atomic_compare_exchange_strong ((volatile std::atomic <uint16_t>*)pcnt, &cnt, cnt - 1))
-				return true;
-		}
-		return false;
-	}
+	static bool acquire (volatile uint16_t* pcnt) NIRVANA_NOEXCEPT;
 
 	/// Atomic decrement unconditional.
 	/// 
 	/// \param pcnt The free blocks counter pointer.
-	static void decrement (volatile uint16_t* pcnt)
+	static void decrement (volatile uint16_t* pcnt) NIRVANA_NOEXCEPT
 	{
 		std::atomic_fetch_sub ((volatile std::atomic <uint16_t>*)pcnt, 1);
 	}
@@ -67,7 +58,7 @@ struct BitmapOps
 	/// Atomic increment free blocks counter.
 	/// 
 	/// \param pcnt The free blocks counter pointer.
-	static void release (volatile uint16_t* pcnt)
+	static void release (volatile uint16_t* pcnt) NIRVANA_NOEXCEPT
 	{
 		assert ((int16_t)*pcnt <= 0x7FFF);
 		std::atomic_fetch_add ((volatile std::atomic <uint16_t>*)pcnt, 1);
@@ -78,17 +69,7 @@ struct BitmapOps
 	/// \param pbits The bitmap word pointer.
 	/// 
 	/// \returns Zero based bit number. -1 if all bits are zero.
-	static int clear_rightmost_one (volatile BitmapWord* pbits)
-	{
-		assert (std::atomic_is_lock_free ((volatile std::atomic <BitmapWord>*)pbits));
-		BitmapWord bits = std::atomic_load ((volatile std::atomic <BitmapWord>*)pbits);
-		while (bits) {
-			BitmapWord rbits = bits;
-			if (std::atomic_compare_exchange_strong ((volatile std::atomic <BitmapWord>*)pbits, &bits, rbits & (rbits - 1)))
-				return ntz (rbits);
-		}
-		return -1;
-	}
+	static int clear_rightmost_one (volatile BitmapWord* pbits) NIRVANA_NOEXCEPT;
 
 	/// Clear bitmap bit if it is not zero.
 	/// 
@@ -97,16 +78,7 @@ struct BitmapOps
 	/// 
 	/// \returns `true` if the bit was zero and has been set. Otherwise `false`.
 	/// 
-	static bool bit_clear (volatile BitmapWord* pbits, BitmapWord mask)
-	{
-		BitmapWord bits = std::atomic_load ((volatile std::atomic <BitmapWord>*)pbits);
-		while (bits & mask) {
-			BitmapWord rbits = bits & ~mask;
-			if (std::atomic_compare_exchange_strong ((volatile std::atomic <BitmapWord>*)pbits, &bits, rbits))
-				return true;
-		}
-		return false;
-	}
+	static bool bit_clear (volatile BitmapWord* pbits, BitmapWord mask) NIRVANA_NOEXCEPT;
 
 	/// Set the bitmap bits.
 	///
@@ -114,7 +86,7 @@ struct BitmapOps
 	/// \param mask The mask with bits to set.
 	/// 
 	/// \returns `true` if all mask bits were zero before.
-	static bool bit_set (volatile BitmapWord* pbits, BitmapWord mask)
+	static bool bit_set (volatile BitmapWord* pbits, BitmapWord mask) NIRVANA_NOEXCEPT
 	{
 		assert (!(*pbits & mask));
 		BitmapWord old = std::atomic_fetch_or ((volatile std::atomic <BitmapWord>*)pbits, mask);
@@ -131,20 +103,8 @@ struct BitmapOps
 	/// Otherwise set mask bits and return `false`.
 	/// 
 	/// \throws CORBA::FREE_MEM if some of mask bits is already set.
-	static bool bit_set_check_companion (volatile BitmapWord* pbits, BitmapWord mask, BitmapWord companion_mask)
-	{
-		assert (!(companion_mask & mask));
-		BitmapWord bits = std::atomic_load ((volatile std::atomic <BitmapWord>*)pbits);
-		for (;;) {
-			if (bits & mask)
-				throw_FREE_MEM ();
-			if ((bits & companion_mask) == companion_mask) {
-				if (std::atomic_compare_exchange_strong ((volatile std::atomic <BitmapWord>*)pbits, &bits, bits & ~companion_mask))
-					return true;
-			} else if (std::atomic_compare_exchange_strong ((volatile std::atomic <BitmapWord>*)pbits, &bits, bits | mask))
-				return false;
-		}
-	}
+	static bool bit_set_check_companion (volatile BitmapWord* pbits, BitmapWord mask,
+		BitmapWord companion_mask) NIRVANA_NOEXCEPT;
 };
 
 }
