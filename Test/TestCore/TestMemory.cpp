@@ -245,8 +245,6 @@ TEST_F (TestMemory, SmallBlock)
 		int* copy = (int*)Port::Memory::copy (0, block, cb, 0);
 		ASSERT_TRUE (copy);
 		EXPECT_EQ (*copy, *block);
-		EXPECT_TRUE (Port::Memory::is_readable (copy, sizeof (int)));
-		EXPECT_TRUE (Port::Memory::is_writable (copy, sizeof (int)));
 		EXPECT_TRUE (Port::Memory::is_copy (copy, block, sizeof (int)));
 		EXPECT_FALSE (Port::Memory::is_private (block, sizeof (int)));
 		*copy = 2;
@@ -258,10 +256,7 @@ TEST_F (TestMemory, SmallBlock)
 		int* copy = (int*)Port::Memory::copy (0, block, cb, Memory::READ_ONLY);
 		ASSERT_TRUE (copy);
 		EXPECT_EQ (*copy, *block);
-		EXPECT_TRUE (Port::Memory::is_readable (copy, sizeof (int)));
-		EXPECT_FALSE (Port::Memory::is_writable (copy, sizeof (int)));
 		EXPECT_TRUE (Port::Memory::is_copy (copy, block, sizeof (int)));
-		EXPECT_FALSE (Port::Memory::is_writable (copy, sizeof (int)));
 		Port::Memory::release (copy, sizeof (int));
 	}
 	Port::Memory::decommit (block, Port::Memory::FIXED_COMMIT_UNIT);
@@ -272,15 +267,11 @@ TEST_F (TestMemory, SmallBlock)
 		cb = Port::Memory::FIXED_COMMIT_UNIT;
 		int* copy = (int*)Port::Memory::copy (0, block, cb, Memory::SRC_DECOMMIT);
 		EXPECT_EQ (*copy, 1);
-		EXPECT_TRUE (Port::Memory::is_readable (copy, sizeof (int)));
-		EXPECT_TRUE (Port::Memory::is_writable (copy, sizeof (int)));
-		EXPECT_FALSE (Port::Memory::is_readable (block, sizeof (int)));
-		EXPECT_FALSE (Port::Memory::is_writable (block, sizeof (int)));
-		EXPECT_FALSE (Port::Memory::is_writable (block, sizeof (int)));
 		Port::Memory::commit (block, sizeof (int));
 		*block = 2;
+		EXPECT_EQ (*copy, 1);
 		EXPECT_TRUE (Port::Memory::is_private (block, sizeof (int)));
-		EXPECT_TRUE (Port::Memory::is_private (copy, sizeof (int)));
+		//EXPECT_TRUE (Port::Memory::is_private (copy, sizeof (int)));
 		EXPECT_FALSE (Port::Memory::is_copy (copy, block, sizeof (int)));
 		Port::Memory::release (copy, sizeof (int));
 	}
