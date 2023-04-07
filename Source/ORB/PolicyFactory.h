@@ -29,6 +29,10 @@
 #pragma once
 
 #include <CORBA/CORBA.h>
+#include <CORBA/Messaging.h>
+#include "StreamIn.h"
+#include "StreamOut.h"
+#include "PolicyMap.h"
 
 /// COMPRESSION_MIN_RATIO_POLICY_ID = 67.
 /// See ZIOP::CompressionMinRatioPolicy.
@@ -40,17 +44,42 @@ namespace Core {
 class PolicyFactory
 {
 public:
-	static Policy::_ref_type create_policy (PolicyType type, const Any& val)
+	struct Functions
 	{
-		if (type == 0 || type > MAX_KNOWN_POLICY_ID)
+		Policy::_ref_type (*create) (const Any&);
+		Policy::_ref_type (*read) (StreamIn&);
+		void (*write) (Policy::_ptr_type, StreamOut&);
+	};
+
+	static Policy::_ref_type create (PolicyType type, const Any& val)
+	{
+		const Functions* f = functions (type);
+		if (!f)
 			throw PolicyError (BAD_POLICY);
-		return (creators_ [type - 1]) (val);
+		return (f->create) (val);
 	}
 
-private:
-	typedef Policy::_ref_type (*Creator) (const Any&);
+	static void read (const Messaging::PolicyValueSeq& in, PolicyMap& policies);
+	static void write (const PolicyMap& policies, Messaging::PolicyValueSeq& out);
 
-	static const Creator creators_ [MAX_KNOWN_POLICY_ID];
+private:
+	static const Functions* functions (PolicyType type) NIRVANA_NOEXCEPT
+	{
+		if (type == 0 || type > MAX_KNOWN_POLICY_ID)
+			return nullptr;
+		return functions_ [type - 1];
+	}
+
+	static const Functions* const functions_ [MAX_KNOWN_POLICY_ID];
+};
+
+class PolicyUnsupported
+{
+public:
+	static PolicyFactory::Functions functions_;
+
+private:
+	static Policy::_ref_type create (const Any&);
 };
 
 }

@@ -31,8 +31,7 @@
 #include <CORBA/Server.h>
 #include <CORBA/DomainManager_s.h>
 #include <CORBA/NoDefaultPOA.h>
-#include "../MapUnorderedUnstable.h"
-#include "../UserAllocator.h"
+#include "PolicyMap.h"
 
 namespace CORBA {
 namespace Core {
@@ -43,6 +42,12 @@ class DomainManager :
 {
 public:
 	using PortableServer::NoDefaultPOA::__default_POA;
+
+	DomainManager (PolicyMap&& policies) :
+		policies_ (std::move (policies))
+	{}
+
+	DomainManager (DomainManager&&) = default;
 
 	Policy::_ref_type get_domain_policy (PolicyType policy_type)
 	{
@@ -60,12 +65,7 @@ public:
 	}
 
 private:
-	typedef Nirvana::Core::MapUnorderedUnstable <PolicyType, Policy::_ref_type,
-		std::hash <PolicyType>, std::equal_to <PolicyType>,
-		Nirvana::Core::UserAllocator <std::pair <PolicyType, Policy::_ref_type> > >
-		Policies;
-
-	Policies policies_;
+	PolicyMap policies_;
 };
 
 }

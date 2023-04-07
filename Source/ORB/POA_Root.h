@@ -51,7 +51,7 @@ class POA_Root :
 public:
 	POA_Root (CORBA::servant_reference <POAManager>&& manager,
 		CORBA::servant_reference <POAManagerFactory>&& manager_factory) :
-		POA_Base (nullptr, nullptr, std::move (manager), CORBA::make_reference <CORBA::Core::DomainManager> ()),
+		POA_Base (nullptr, nullptr, std::move (manager), CORBA::servant_reference <CORBA::Core::DomainManager> ()),
 		manager_factory_ (std::move (manager_factory)),
 		random_gen_ (RandomGen::result_type (Nirvana::Core::Chrono::UTC ().time () / TimeBase::SECOND))
 	{
@@ -198,9 +198,14 @@ inline
 POA::_ref_type POA_Base::create_POA (const IDL::String& adapter_name,
 	PortableServer::POAManager::_ptr_type a_POAManager, const CORBA::PolicyList& policies)
 {
-	CORBA::servant_reference <CORBA::Core::DomainManager> domain_manager = CORBA::make_reference <CORBA::Core::DomainManager> ();
+	CORBA::servant_reference <CORBA::Core::DomainManager> domain_manager;
 	POA_Policies pols;
-	pols.set_values (policies, *domain_manager);
+	{
+		CORBA::Core::PolicyMap object_policies;
+		pols.set_values (policies, object_policies);
+		if (!object_policies.empty ())
+			domain_manager = CORBA::make_reference <CORBA::Core::DomainManager> (std::move (object_policies));
+	}
 
 	auto ins = children_.emplace (adapter_name, POA_Ref ());
 	if (!ins.second)

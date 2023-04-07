@@ -169,13 +169,15 @@ POA_Base::POA_Base (POA_Base* parent, const IDL::String* name,
 #endif
 
 	the_POAManager_->on_adapter_create (*this);
-	FT::HeartbeatEnabledPolicy::_ref_type hbe = FT::HeartbeatEnabledPolicy::_narrow (
-		domain_manager_->get_policy (FT::HEARTBEAT_ENABLED_POLICY));
-	if (hbe) {
-		if (hbe->heartbeat_enabled_policy_value ())
-			DGC_policy_ = DGC_ENABLED;
-		else
-			DGC_policy_ = DGC_DISABLED;
+	if (domain_manager_) {
+		FT::HeartbeatEnabledPolicy::_ref_type hbe = FT::HeartbeatEnabledPolicy::_narrow (
+			domain_manager_->get_policy (FT::HEARTBEAT_ENABLED_POLICY));
+		if (hbe) {
+			if (hbe->heartbeat_enabled_policy_value ())
+				DGC_policy_ = DGC_ENABLED;
+			else
+				DGC_policy_ = DGC_DISABLED;
+		}
 	}
 }
 

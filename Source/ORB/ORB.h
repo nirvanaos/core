@@ -40,8 +40,7 @@ namespace Core {
 
 /// Implementation of the CORBA::ORB interface.
 class ORB :
-	public CORBA::servant_traits <CORBA::ORB>::ServantStatic <ORB>,
-	public PolicyFactory
+	public CORBA::servant_traits <CORBA::ORB>::ServantStatic <ORB>
 {
 public:
 	static Internal::Type <ORBid>::ABI_ret _s_id (Internal::Bridge <CORBA::ORB>*, Internal::Interface*)
@@ -247,6 +246,11 @@ public:
 
 	void destroy ()
 	{}
+
+	static Policy::_ref_type create_policy (PolicyType type, const Any& val)
+	{
+		return PolicyFactory::create (type, val);
+	}
 
 	// Value factory operations
 

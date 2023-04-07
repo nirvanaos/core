@@ -36,7 +36,7 @@
 #include "RequestInPOA.h"
 #include "Services.h"
 #include "ReferenceLocal.h"
-#include "DomainManager.h"
+#include "PolicyMap.h"
 #include "../TLS.h"
 #include "../Event.h"
 
@@ -72,7 +72,7 @@ struct POA_Policies
 	ServantRetentionPolicyValue servant_retention;
 	RequestProcessingPolicyValue request_processing;
 
-	void set_values (const CORBA::PolicyList& policies, CORBA::Core::DomainManager& domain_manager)
+	void set_values (const CORBA::PolicyList& policies, CORBA::Core::PolicyMap& object_policies)
 	{
 		unsigned mask = 0;
 		*this = default_;
@@ -112,7 +112,7 @@ struct POA_Policies
 				default:
 					if (FT::HEARTBEAT_ENABLED_POLICY == type)
 						DGC_policy_idx = int (it - policies.begin ());
-					if (!domain_manager.add_policy (type, policy))
+					if (!object_policies.emplace (type, policy).second)
 						throw POA::InvalidPolicy (CORBA::UShort (it - policies.begin ()));
 			}
 		}
