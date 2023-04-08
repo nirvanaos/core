@@ -184,12 +184,18 @@ void ReferenceLocal::marshal (StreamOut& out) const
 	uint32_t ORB_type = ESIOP::ORB_TYPE;
 	ESIOP::ProtDomainId domain_id = ESIOP::current_domain_id ();
 
-	IOP::TaggedComponentSeq components;
+	size_t component_cnt =
 #ifndef NIRVANA_SINGLE_DOMAIN
-	components.reserve (3);
+		3;
 #else
-	components.reserve (2);
+		2;
 #endif
+
+	if (domain_manager_)
+		++component_cnt;
+
+	IOP::TaggedComponentSeq components;
+	components.reserve (component_cnt);
 
 	{
 		ImplStatic <StreamOutEncap> encap;
@@ -209,6 +215,9 @@ void ReferenceLocal::marshal (StreamOut& out) const
 		encap.write_c (1, 1, &flags);
 		components.emplace_back (ESIOP::TAG_FLAGS, std::move (encap.data ()));
 	}
+
+	if (domain_manager_)
+		components.emplace_back (IOP::TAG_POLICIES, PolicyFactory::write (domain_manager_->policies ()));
 
 	encap.write_tagged (components);
 

@@ -54,28 +54,37 @@ const PolicyFactory::Functions* const PolicyFactory::functions_ [MAX_KNOWN_POLIC
 	BOOST_PP_REPEAT (MAX_KNOWN_POLICY_ID, POLICY_FUNCTIONS, 0)
 };
 
-void PolicyFactory::read (const Messaging::PolicyValueSeq& in, PolicyMap& policies)
+void PolicyFactory::read (const OctetSeq& in, PolicyMap& policies)
 {
 	SYNC_BEGIN (g_core_free_sync_context, &ExecDomain::current ().mem_context ())
-		for (const Messaging::PolicyValue& val : in) {
-			const Functions* f = functions (val.ptype ());
-			if (f && f->read) {
-				ImplStatic <StreamInEncap> stm (std::ref (val.pvalue ()));
-				policies.emplace (val.ptype (), (f->read) (stm));
-			}
+	ImplStatic <StreamInEncap> stm (in);
+	OctetSeq val;
+	for (uint32_t cnt = stm.read32 (); cnt; --cnt) {
+		PolicyType type = stm.read32 ();
+		const Functions* f = functions (type);
+		if (f && f->read) {
+			stm.read_seq (val);
+			ImplStatic <StreamInEncap> s (val);
+			policies.emplace (type, (f->read) (s));
 		}
+	}
 	SYNC_END ()
 }
 
-void PolicyFactory::write (const PolicyMap& policies, Messaging::PolicyValueSeq& out)
+OctetSeq PolicyFactory::write (const PolicyMap& policies)
 {
+	ImplStatic <StreamOutEncap> out;
+	out.write32 ((uint32_t)policies.size ());
+	ImplStatic <StreamOutEncap> sval;
 	for (const auto& policy : policies) {
 		const Functions* f = functions (policy.first);
 		assert (f && f->write);
-		ImplStatic <StreamOutEncap> stm;
-		(f->write) (policy.second, stm);
-		out.emplace_back (policy.first, std::move (stm.data ()));
+		out.write32 (policy.first);
+		(f->write) (policy.second, sval);
+		out.write_seq (sval.data ());
+		sval.rewind (0);
 	}
+	return std::move (out.data ());
 }
 
 }

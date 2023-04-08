@@ -24,6 +24,7 @@
 *  popov.nirvana@gmail.com
 */
 #include "../Binder.h"
+#include "PolicyFactory.h"
 
 using namespace Nirvana::Core;
 
@@ -62,6 +63,13 @@ ReferenceRemote::ReferenceRemote (const OctetSeq& addr, servant_reference <Domai
 				throw INV_OBJREF ();
 			flags_ = flags;
 		}
+	}
+	auto it = find (components, IOP::TAG_POLICIES);
+	if (it != components.end ()) {
+		PolicyMap policies;
+		PolicyFactory::read (it->component_data (), policies);
+		if (!policies.empty ())
+			domain_manager_ = make_reference <Core::DomainManager> (std::move (policies));
 	}
 }
 

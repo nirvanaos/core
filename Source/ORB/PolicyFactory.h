@@ -29,7 +29,6 @@
 #pragma once
 
 #include <CORBA/CORBA.h>
-#include <CORBA/Messaging.h>
 #include "StreamIn.h"
 #include "StreamOut.h"
 #include "PolicyMap.h"
@@ -59,8 +58,8 @@ public:
 		return (f->create) (val);
 	}
 
-	static void read (const Messaging::PolicyValueSeq& in, PolicyMap& policies);
-	static void write (const PolicyMap& policies, Messaging::PolicyValueSeq& out);
+	static void read (const OctetSeq& in, PolicyMap& policies);
+	static OctetSeq write (const PolicyMap& policies);
 
 private:
 	static const Functions* functions (PolicyType type) NIRVANA_NOEXCEPT

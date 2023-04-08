@@ -49,6 +49,11 @@ public:
 
 	DomainManager (DomainManager&&) = default;
 
+	const PolicyMap& policies () const NIRVANA_NOEXCEPT
+	{
+		return policies_;
+	}
+
 	Policy::_ref_type get_domain_policy (PolicyType policy_type)
 	{
 		Policy::_ref_type ret = get_policy (policy_type);
