@@ -86,6 +86,9 @@ public:
 		return flags_;
 	}
 
+	virtual Policy::_ref_type _get_policy (PolicyType policy_type) override;
+	virtual DomainManagersList _get_domain_managers () override;
+
 protected:
 	RefCntProxy ref_cnt_;
 	unsigned flags_;

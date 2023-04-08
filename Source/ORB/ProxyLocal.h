@@ -61,6 +61,8 @@ protected:
 private:
 	virtual Boolean non_existent () override;
 	virtual ReferenceRef get_reference () override;
+	virtual Policy::_ref_type _get_policy (PolicyType policy_type) override;
+	virtual DomainManagersList _get_domain_managers () override;
 };
 
 /// Get proxy for local object.

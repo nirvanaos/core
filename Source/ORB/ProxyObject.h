@@ -108,6 +108,9 @@ protected:
 
 	ReferenceLocalRef get_reference_local () const NIRVANA_NOEXCEPT;
 
+	virtual Policy::_ref_type _get_policy (PolicyType policy_type) override;
+	virtual DomainManagersList _get_domain_managers () override;
+
 protected:
 	PortableServer::Core::ServantBase& core_servant_;
 

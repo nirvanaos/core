@@ -162,24 +162,17 @@ public:
 		throw NO_IMPLEMENT ();
 	}
 
-	Policy::_ref_type _get_policy (PolicyType policy_type)
-	{
-		throw NO_IMPLEMENT ();
-	}
-
-	DomainManagersList _get_domain_managers ()
-	{
-		throw NO_IMPLEMENT ();
-	}
+	virtual Policy::_ref_type _get_policy (PolicyType policy_type) = 0;
+	virtual DomainManagersList _get_domain_managers () = 0;
 
 	Object::_ref_type _set_policy_overrides (const PolicyList& policies, SetOverrideType set_or_add)
 	{
 		throw NO_IMPLEMENT ();
 	}
 
-	Policy::_ref_type _get_client_policy (PolicyType type)
+	Policy::_ref_type _get_client_policy (PolicyType policy_type)
 	{
-		throw NO_IMPLEMENT ();
+		return _get_policy (policy_type);
 	}
 
 	PolicyList _get_policy_overrides (const PolicyTypeSeq& types)

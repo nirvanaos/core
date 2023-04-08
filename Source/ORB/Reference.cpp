@@ -38,5 +38,23 @@ ReferenceRef Reference::get_reference ()
 	return this;
 }
 
+Policy::_ref_type Reference::_get_policy (PolicyType policy_type)
+{
+	if (domain_manager_)
+		return domain_manager_->get_policy (policy_type);
+	else
+		return Policy::_nil ();
+}
+
+DomainManagersList Reference::_get_domain_managers ()
+{
+	// TODO: At least one domain manager must be returned in the
+	// list since by default each object is associated with at least one domain manager at creation.
+	DomainManagersList ret;
+	if (domain_manager_)
+		ret.push_back (domain_manager_->_this ());
+	return ret;
+}
+
 }
 }

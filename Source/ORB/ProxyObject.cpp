@@ -78,5 +78,15 @@ ReferenceRef ProxyObject::get_reference ()
 	return ref;
 }
 
+Policy::_ref_type ProxyObject::_get_policy (PolicyType policy_type)
+{
+	return get_reference ()->_get_policy (policy_type);
+}
+
+DomainManagersList ProxyObject::_get_domain_managers ()
+{
+	return get_reference ()->_get_domain_managers ();
+}
+
 }
 }
