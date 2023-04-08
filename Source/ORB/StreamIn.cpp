@@ -25,6 +25,7 @@
 */
 #include "StreamIn.h"
 #include <algorithm>
+#include "../MemContext.h"
 
 using namespace Nirvana;
 
@@ -59,8 +60,16 @@ bool StreamIn::read_seq (size_t align, size_t element_size, size_t& element_coun
 
 	if ((element_count = count)) {
 		size_t size = element_size * element_count;
-		data = read (align, size);
-		allocated_size = size;
+		if (allocated_size >= size)
+			read (align, size, data);
+		else {
+			if (allocated_size) {
+				Nirvana::Core::MemContext::current ().heap ().release (data, allocated_size);
+				allocated_size = 0;
+			}
+			data = read (align, size);
+			allocated_size = size;
+		}
 	} else {
 		data = nullptr;
 		allocated_size = 0;
