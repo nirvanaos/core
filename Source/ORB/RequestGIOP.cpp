@@ -110,6 +110,7 @@ bool RequestGIOP::unmarshal_seq (size_t align, size_t element_size, size_t& elem
 	size_t& allocated_size)
 {
 	check_align (align);
+	allocated_size = 0;
 	return stream_in_->read_seq (align, element_size, element_count, data, allocated_size);
 }
 

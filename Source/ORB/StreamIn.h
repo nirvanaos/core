@@ -143,9 +143,9 @@ public:
 	/// \param align Data alignment
 	/// \param element_size Element size.
 	/// \param [out] element_count Count of elements.
-	/// \param [out] data Pointer to the allocated memory block with common-data-representation (CDR).
-	///                   The caller becomes an owner of this memory block.
-	/// \param [out] allocated_size Size of the allocated memory block.
+	/// \param [in, out] data Pointer to the allocated memory block with common-data-representation (CDR).
+	///                  The caller becomes an owner of this memory block.
+	/// \param [in, out] allocated_size Size of the allocated memory block.
 	///              
 	/// \returns `true` if the byte order must be swapped after unmarshaling.
 	bool read_seq (size_t align, size_t element_size, size_t& element_count, void*& data,
