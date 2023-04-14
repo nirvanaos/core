@@ -56,23 +56,23 @@ size_t StreamIn::read_size ()
 bool StreamIn::read_seq (size_t align, size_t element_size, size_t& element_count, void*& data,
 	size_t& allocated_size)
 {
+	element_count = 0;
 	size_t count = read_size ();
 
-	if ((element_count = count)) {
-		size_t size = element_size * element_count;
+	if (count) {
+		size_t size = element_size * count;
 		if (allocated_size >= size)
 			read (align, size, data);
 		else {
+			void* new_data = read (align, size);
 			if (allocated_size) {
 				Nirvana::Core::MemContext::current ().heap ().release (data, allocated_size);
 				allocated_size = 0;
 			}
-			data = read (align, size);
+			data = new_data;
 			allocated_size = size;
 		}
-	} else {
-		data = nullptr;
-		allocated_size = 0;
+		element_count = count;
 	}
 	return other_endian ();
 }

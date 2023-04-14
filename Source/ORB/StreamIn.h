@@ -31,6 +31,7 @@
 #include <CORBA/CORBA.h>
 #include <CORBA/GIOP.h>
 #include "../CoreInterface.h"
+#include "../MemContext.h"
 
 namespace CORBA {
 namespace Core {
@@ -127,12 +128,12 @@ public:
 	/// Read string.
 	/// 
 	/// \tparam C The character type.
-	/// \param [out] s The string.
+	/// \param  s The string.
 	template <typename C, class A>
 	void read_string (std::basic_string <C, std::char_traits <C>, A>& s);
 
 	template <typename C>
-	void read_string (std::basic_string <C, std::char_traits <C>, std::allocator <C> >& s);
+	void read_string (Internal::StringT <C>& s);
 
 	/// Read size of sequence or string.
 	/// \returns The size.
@@ -143,9 +144,9 @@ public:
 	/// \param align Data alignment
 	/// \param element_size Element size.
 	/// \param [out] element_count Count of elements.
-	/// \param [in, out] data Pointer to the allocated memory block with common-data-representation (CDR).
-	///                  The caller becomes an owner of this memory block.
-	/// \param [in, out] allocated_size Size of the allocated memory block.
+	/// \param data Pointer to the allocated memory block with common-data-representation (CDR).
+	///             The caller is owner of this memory block.
+	/// \param allocated_size Size of the allocated memory block.
 	///              
 	/// \returns `true` if the byte order must be swapped after unmarshaling.
 	bool read_seq (size_t align, size_t element_size, size_t& element_count, void*& data,
@@ -211,39 +212,44 @@ void StreamIn::read_string (std::basic_string <C, std::char_traits <C>, A>& s)
 }
 
 template <typename C>
-void StreamIn::read_string (std::basic_string <C, std::char_traits <C>, std::allocator <C> >& s)
+void StreamIn::read_string (Internal::StringT <C>& s)
 {
 	typedef typename Internal::Type <Internal::StringT <C> >::ABI ABI;
 
 	size_t size = read_size ();
 	if (!size)
 		throw MARSHAL (); // String length includes the terminating zero.
+	size_t data_size = size * sizeof (C);
 	--size;
 
-	Internal::StringT <C> tmp;
-	ABI& abi = (ABI&)tmp;
-	C* p;
+	ABI& abi = (ABI&)s;
 	if (size <= ABI::SMALL_CAPACITY) {
-		if (size) {
+		if (abi.is_large ()) {
+			read (alignof (C), data_size, abi.large_pointer ());
+			abi.large_size (size);
+		} else {
+			read (alignof (C), data_size, abi.small_pointer ());
 			abi.small_size (size);
-			p = abi.small_pointer ();
-			read (alignof (C), (size + 1) * sizeof (C), p);
-		} else
-			read (alignof (C), sizeof (C), nullptr); // Read terminating zero
+		}
 	} else {
-		size_t allocated_size = size + 1;
-		void* data = read (alignof (C), allocated_size);
-		abi.large_size (size);
-		abi.large_pointer (p = (C*)data);
-		abi.allocated (allocated_size);
+		size_t allocated = abi.allocated ();
+		if (allocated >= data_size) {
+			read (alignof (C), data_size, abi.large_pointer ());
+			abi.large_size (size);
+		} else {
+			void* data = read (alignof (C), data_size);
+			if (allocated)
+				Nirvana::Core::MemContext::current ().heap ().release (abi.large_pointer (), allocated);
+			abi.large_size (size);
+			abi.large_pointer ((C*)data);
+			abi.allocated (data_size);
+		}
 	}
 
 	if (sizeof (C) > 1 && other_endian ())
-		for (C& c : tmp) {
+		for (C& c : s) {
 			Internal::Type <C>::byteswap (c);
 		}
-
-	s = std::move (tmp);
 }
 
 template <typename T>

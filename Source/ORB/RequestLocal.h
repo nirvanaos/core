@@ -121,22 +121,28 @@ public:
 	/// \param align Data alignment
 	/// \param element_size Element size.
 	/// \param [out] element_count Count of elements.
-	/// \param [out] data Pointer to the allocated memory block with common-data-representation (CDR).
+	/// \param [in, out] data Pointer to the allocated memory block with common-data-representation (CDR).
 	///                   The caller becomes an owner of this memory block.
-	/// \param [out] allocated_size Size of the allocated memory block.
+	/// \param [in, out] allocated_size Size of the allocated memory block.
 	///              
 	/// \returns `true` if the byte order must be swapped after unmarshaling.
 	bool unmarshal_seq (size_t align, size_t element_size, size_t& element_count, void*& data,
 		size_t& allocated_size)
 	{
 		check_align (align);
-		read (alignof (size_t), sizeof (size_t), &element_count);
-		if (element_count)
-			unmarshal_segment (data, allocated_size);
-		else {
-			data = nullptr;
-			allocated_size = 0;
+		size_t count;
+		read (alignof (size_t), sizeof (size_t), &count);
+		if (count) {
+			void* p;
+			size_t size;
+			unmarshal_segment (p, size);
+			size_t allocated = allocated_size;
+			if (allocated)
+				Nirvana::Core::MemContext::current ().heap ().release (data, allocated);
+			allocated_size = size;
+			data = p;
 		}
+		element_count = count;
 		return false;
 	}
 
@@ -261,10 +267,8 @@ public:
 	void unmarshal_char_seq (IDL::Sequence <C>& s)
 	{
 		typedef typename Internal::Type <IDL::Sequence <C> >::ABI ABI;
-		IDL::Sequence <C> tmp;
-		ABI& abi = (ABI&)tmp;
+		ABI& abi = (ABI&)s;
 		unmarshal_seq (alignof (C), sizeof (C), abi.size, (void*&)abi.ptr, abi.allocated);
-		s = std::move (tmp);
 	}
 
 	void marshal_wchar (size_t count, const WChar* data)
