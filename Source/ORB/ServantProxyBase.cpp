@@ -94,7 +94,9 @@ void ServantProxyBase::_add_ref ()
 
 void ServantProxyBase::_remove_ref () NIRVANA_NOEXCEPT
 {
-	remove_ref_proxy ();
+	RefCntProxy::IntegralType cnt = ref_cnt_.decrement_seq ();
+	if (0 == cnt)
+		run_garbage_collector ();
 }
 
 inline
@@ -115,9 +117,10 @@ void ServantProxyBase::run_garbage_collector () const NIRVANA_NOEXCEPT
 			return;
 		} catch (...) {
 			// Async call failed, maybe resources are exausted.
-			// Fallback to collect garbage in the current ED.
+			// Fallback to collect garbage synchronous.
 		}
-	} else if (&sync_context () != &SyncContext::current ()) {
+	}
+	if (&sync_context () != &SyncContext::current ()) {
 		try {
 			SYNC_BEGIN (sync_context (), nullptr)
 				collect_garbage (servant_);
@@ -136,15 +139,6 @@ void ServantProxyBase::collect_garbage (Internal::Interface::_ptr_type servant) 
 	Module* mod = SyncContext::current ().module ();
 	if (mod)
 		mod->_remove_ref ();
-}
-
-RefCntProxy::IntegralType ServantProxyBase::remove_ref_proxy () NIRVANA_NOEXCEPT
-{
-	RefCntProxy::IntegralType cnt = ref_cnt_.decrement_seq ();
-	if (0 == cnt)
-		run_garbage_collector ();
-
-	return cnt;
 }
 
 MemContext* ServantProxyBase::memory () const NIRVANA_NOEXCEPT

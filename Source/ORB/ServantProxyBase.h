@@ -101,8 +101,6 @@ protected:
 
 	virtual void add_ref_1 ();
 
-	RefCntProxy::IntegralType remove_ref_proxy () NIRVANA_NOEXCEPT;
-
 	inline void run_garbage_collector () const NIRVANA_NOEXCEPT;
 
 	static void collect_garbage (Internal::Interface::_ptr_type servant) NIRVANA_NOEXCEPT;
