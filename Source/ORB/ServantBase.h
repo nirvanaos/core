@@ -29,7 +29,7 @@
 #pragma once
 
 #include "CoreServant.h"
-#include "ProxyObject.h"
+#include "ServantProxyObject.h"
 #include "Services.h"
 
 namespace PortableServer {

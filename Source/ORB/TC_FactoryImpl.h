@@ -46,7 +46,7 @@
 #include <ORB/TC_Recursive.h>
 #include "IndirectMapUnmarshal.h"
 #include "Services.h"
-#include "ProxyLocal.h"
+#include "ServantProxyLocal.h"
 #include "../Synchronized.h"
 
 namespace CORBA {

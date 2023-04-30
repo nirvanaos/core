@@ -24,8 +24,8 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_ORB_CORE_PROXYLOCAL_H_
-#define NIRVANA_ORB_CORE_PROXYLOCAL_H_
+#ifndef NIRVANA_ORB_CORE_SERVANTPROXYLOCAL_H_
+#define NIRVANA_ORB_CORE_SERVANTPROXYLOCAL_H_
 #pragma once
 
 #include "ServantProxyBase.h"

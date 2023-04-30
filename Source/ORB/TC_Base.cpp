@@ -25,7 +25,7 @@
 */
 #include "TC_Base.h"
 #include "Services.h"
-#include "ProxyLocal.h"
+#include "ServantProxyLocal.h"
 
 using Nirvana::Core::SyncContext;
 

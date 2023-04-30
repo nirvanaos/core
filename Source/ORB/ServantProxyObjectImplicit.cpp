@@ -23,7 +23,7 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "ProxyObjectImplicit.h"
+#include "ServantProxyObjectImplicit.h"
 #include "POA_Root.h"
 
 using namespace Nirvana::Core;

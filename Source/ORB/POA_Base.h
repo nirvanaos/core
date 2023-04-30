@@ -29,8 +29,8 @@
 #pragma once
 
 #include <CORBA/Server.h>
-#include "ProxyObject.h"
-#include "ProxyLocal.h"
+#include "ServantProxyObject.h"
+#include "ServantProxyLocal.h"
 #include "MapUnorderedStable.h"
 #include "PortableServer_policies.h"
 #include "RequestInPOA.h"

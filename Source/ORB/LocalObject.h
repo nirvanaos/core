@@ -29,7 +29,7 @@
 #pragma once
 
 #include "CoreServant.h"
-#include "ProxyLocal.h"
+#include "ServantProxyLocal.h"
 
 namespace CORBA {
 namespace Core {

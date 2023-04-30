@@ -24,11 +24,11 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_ORB_CORE_PROXYOBJECTIMPLICIT_H_
-#define NIRVANA_ORB_CORE_PROXYOBJECTIMPLICIT_H_
+#ifndef NIRVANA_ORB_CORE_SERVANTPROXYOBJECTIMPLICIT_H_
+#define NIRVANA_ORB_CORE_SERVANTPROXYOBJECTIMPLICIT_H_
 #pragma once
 
-#include "ProxyObject.h"
+#include "ServantProxyObject.h"
 
 namespace CORBA {
 namespace Core {

@@ -27,7 +27,7 @@
 #ifndef NIRVANA_ORB_CORE_PORTABLESERVER_P_NATIVE_H_
 #define NIRVANA_ORB_CORE_PORTABLESERVER_P_NATIVE_H_
 
-#include <ORB/ProxyObject.h>
+#include <ORB/ServantProxyObject.h>
 
 namespace CORBA {
 namespace Internal {

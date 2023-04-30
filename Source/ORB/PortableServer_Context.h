@@ -29,7 +29,7 @@
 #pragma once
 
 #include <CORBA/Server.h>
-#include "ProxyObject.h"
+#include "ServantProxyObject.h"
 
 namespace PortableServer {
 namespace Core {

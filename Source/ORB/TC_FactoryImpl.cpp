@@ -24,7 +24,6 @@
 *  popov.nirvana@gmail.com
 */
 #include "TC_FactoryImpl.h"
-#include "ProxyLocal.h"
 #include "../ExecDomain.h"
 #include "StreamInEncap.h"
 

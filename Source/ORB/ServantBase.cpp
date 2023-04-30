@@ -24,7 +24,7 @@
 *  popov.nirvana@gmail.com
 */
 #include "ServantBase.h"
-#include "ProxyObjectImplicit.h"
+#include "ServantProxyObjectImplicit.h"
 #include "POA_Root.h"
 #include <CORBA/Proxy/TypeCodeNative.h>
 
