@@ -34,15 +34,15 @@ namespace CORBA {
 namespace Core {
 
 /// \brief Server-side Object proxy with implicit activation.
-class NIRVANA_NOVTABLE ProxyObjectImplicit : public ProxyObject
+class NIRVANA_NOVTABLE ServantProxyObjectImplicit : public ServantProxyObject
 {
-	typedef ProxyObject Base;
+	typedef ServantProxyObject Base;
 
 protected:
-	ProxyObjectImplicit (PortableServer::Core::ServantBase& core_servant,
+	ServantProxyObjectImplicit (PortableServer::Core::ServantBase& core_servant,
 		PortableServer::Servant user_servant, PortableServer::POA::_ptr_type adapter);
 
-	~ProxyObjectImplicit ();
+	~ServantProxyObjectImplicit ();
 
 private:
 	virtual void add_ref_1 () override;

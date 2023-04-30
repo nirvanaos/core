@@ -46,17 +46,17 @@ public:
 
 protected:
 	virtual CORBA::Core::ReferenceLocalRef activate_object (ObjectKey&& key, bool unique,
-		CORBA::Core::ProxyObject& proxy, unsigned flags) override;
+		CORBA::Core::ServantProxyObject& proxy, unsigned flags) override;
 
-	virtual void activate_object (CORBA::Core::ReferenceLocal& ref, CORBA::Core::ProxyObject& proxy,
+	virtual void activate_object (CORBA::Core::ReferenceLocal& ref, CORBA::Core::ServantProxyObject& proxy,
 		unsigned flags) override;
 
 	virtual void serve (const RequestRef& request, CORBA::Core::ReferenceLocal& reference) override;
 	virtual void destroy_internal (bool etherealize_objects) NIRVANA_NOEXCEPT override;
 	virtual void etherealize_objects () NIRVANA_NOEXCEPT override;
 	virtual void implicit_deactivate (CORBA::Core::ReferenceLocal& ref,
-		CORBA::Core::ProxyObject& proxy) NIRVANA_NOEXCEPT override;
-	virtual CORBA::servant_reference <CORBA::Core::ProxyObject> deactivate_object (
+		CORBA::Core::ServantProxyObject& proxy) NIRVANA_NOEXCEPT override;
+	virtual CORBA::servant_reference <CORBA::Core::ServantProxyObject> deactivate_object (
 		CORBA::Core::ReferenceLocal& ref) override;
 
 private:

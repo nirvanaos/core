@@ -43,7 +43,7 @@ class MemContext;
 namespace CORBA {
 namespace Core {
 
-class ProxyObject;
+class ServantProxyObject;
 
 /// \brief Request for the POA processing.
 class NIRVANA_NOVTABLE RequestInPOA
@@ -59,7 +59,7 @@ public:
 	/// Serve the request.
 	/// 
 	/// \param proxy The servant proxy.
-	virtual void serve_request (ProxyObject& proxy, Internal::IOReference::OperationIndex op_idx,
+	virtual void serve_request (ServantProxyObject& proxy, Internal::IOReference::OperationIndex op_idx,
 		Nirvana::Core::MemContext* memory) = 0;
 
 	/// Return exception to caller.

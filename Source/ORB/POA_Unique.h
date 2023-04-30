@@ -40,24 +40,24 @@ class NIRVANA_NOVTABLE POA_Unique :
 	typedef POA_Retain Base;
 
 public:
-	virtual ObjectId servant_to_id (CORBA::Core::ProxyObject& proxy) override;
-	virtual CORBA::Object::_ref_type servant_to_reference (CORBA::Core::ProxyObject& proxy) override;
+	virtual ObjectId servant_to_id (CORBA::Core::ServantProxyObject& proxy) override;
+	virtual CORBA::Object::_ref_type servant_to_reference (CORBA::Core::ServantProxyObject& proxy) override;
 
 protected:
-	virtual void activate_object (CORBA::Core::ReferenceLocal& ref, CORBA::Core::ProxyObject& proxy,
+	virtual void activate_object (CORBA::Core::ReferenceLocal& ref, CORBA::Core::ServantProxyObject& proxy,
 		unsigned flags) override;
 
 	virtual void destroy_internal (bool etherealize_objects) NIRVANA_NOEXCEPT override;
 	virtual void etherealize_objects () NIRVANA_NOEXCEPT override;
 	virtual void implicit_deactivate (CORBA::Core::ReferenceLocal& ref,
-		CORBA::Core::ProxyObject& proxy) NIRVANA_NOEXCEPT override;
-	virtual CORBA::servant_reference <CORBA::Core::ProxyObject> deactivate_object (
+		CORBA::Core::ServantProxyObject& proxy) NIRVANA_NOEXCEPT override;
+	virtual CORBA::servant_reference <CORBA::Core::ServantProxyObject> deactivate_object (
 		CORBA::Core::ReferenceLocal& ref) override;
 
-	typedef const CORBA::Core::ProxyObject* ServantPtr;
+	typedef const CORBA::Core::ServantProxyObject* ServantPtr;
 	typedef CORBA::Core::ReferenceLocal* ReferencePtr;
 
-	ReferencePtr find_servant (const CORBA::Core::ProxyObject& proxy) NIRVANA_NOEXCEPT;
+	ReferencePtr find_servant (const CORBA::Core::ServantProxyObject& proxy) NIRVANA_NOEXCEPT;
 
 	using ServantMap = Nirvana::Core::MapUnorderedUnstable <ServantPtr, ReferencePtr, std::hash <ServantPtr>,
 		std::equal_to <ServantPtr>, Nirvana::Core::UserAllocator <std::pair <ServantPtr, ReferencePtr> > >;

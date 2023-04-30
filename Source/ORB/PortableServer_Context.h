@@ -41,7 +41,7 @@ struct Context
 	CORBA::Object::_ptr_type reference;
 	CORBA::Object::_ptr_type servant;
 
-	Context (POA::_ref_type&& poa, const ObjectId& oid, CORBA::Object::_ptr_type ref, CORBA::Core::ProxyObject& proxy) :
+	Context (POA::_ref_type&& poa, const ObjectId& oid, CORBA::Object::_ptr_type ref, CORBA::Core::ServantProxyObject& proxy) :
 		adapter (std::move (poa)),
 		object_id (oid),
 		reference (ref),

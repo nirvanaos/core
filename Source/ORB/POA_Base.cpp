@@ -186,7 +186,7 @@ POA_Base::~POA_Base ()
 	the_POAManager_->on_adapter_destroy (*this);
 }
 
-void POA_Base::activate_object (CORBA::Core::ProxyObject& proxy, ObjectId& oid, unsigned flags)
+void POA_Base::activate_object (CORBA::Core::ServantProxyObject& proxy, ObjectId& oid, unsigned flags)
 {
 	for (;;) {
 		oid = generate_object_id ();
@@ -196,7 +196,7 @@ void POA_Base::activate_object (CORBA::Core::ProxyObject& proxy, ObjectId& oid, 
 	}
 }
 
-ReferenceLocalRef POA_Base::activate_object (CORBA::Core::ProxyObject& proxy, unsigned flags)
+ReferenceLocalRef POA_Base::activate_object (CORBA::Core::ServantProxyObject& proxy, unsigned flags)
 {
 	for (;;) {
 		ReferenceLocalRef ref = activate_object (ObjectKey (*this), true, proxy, flags);
@@ -205,12 +205,12 @@ ReferenceLocalRef POA_Base::activate_object (CORBA::Core::ProxyObject& proxy, un
 	}
 }
 
-ReferenceLocalRef POA_Base::activate_object (ObjectKey&&, bool unique, ProxyObject&, unsigned flags)
+ReferenceLocalRef POA_Base::activate_object (ObjectKey&&, bool unique, ServantProxyObject&, unsigned flags)
 {
 	throw WrongPolicy ();
 }
 
-void POA_Base::activate_object (ReferenceLocal& ref, ProxyObject& proxy, unsigned flags)
+void POA_Base::activate_object (ReferenceLocal& ref, ServantProxyObject& proxy, unsigned flags)
 {
 	NIRVANA_UNREACHABLE_CODE ();
 }
@@ -225,14 +225,14 @@ void POA_Base::deactivate_object (const ObjectId& oid)
 	throw WrongPolicy ();
 }
 
-servant_reference <CORBA::Core::ProxyObject> POA_Base::deactivate_object (ReferenceLocal& ref)
+servant_reference <CORBA::Core::ServantProxyObject> POA_Base::deactivate_object (ReferenceLocal& ref)
 {
 	NIRVANA_UNREACHABLE_CODE ();
 	return nullptr;
 }
 
 void POA_Base::implicit_deactivate (CORBA::Core::ReferenceLocal& ref,
-	CORBA::Core::ProxyObject& proxy) NIRVANA_NOEXCEPT
+	CORBA::Core::ServantProxyObject& proxy) NIRVANA_NOEXCEPT
 {
 	NIRVANA_UNREACHABLE_CODE ();
 }
@@ -270,12 +270,12 @@ ReferenceLocalRef POA_Base::create_reference (ObjectKey&& key, const RepositoryI
 	return root_->emplace_reference (std::move (key), false, std::ref (intf), flags, domain_manager_);
 }
 
-ObjectId POA_Base::servant_to_id (ProxyObject& proxy)
+ObjectId POA_Base::servant_to_id (ServantProxyObject& proxy)
 {
 	return servant_to_id_default (proxy, false);
 }
 
-ObjectId POA_Base::servant_to_id_default (ProxyObject& proxy, bool not_found)
+ObjectId POA_Base::servant_to_id_default (ServantProxyObject& proxy, bool not_found)
 {
 	if (not_found)
 		throw ServantNotActive ();
@@ -283,12 +283,12 @@ ObjectId POA_Base::servant_to_id_default (ProxyObject& proxy, bool not_found)
 		throw WrongPolicy ();
 }
 
-Object::_ref_type POA_Base::servant_to_reference (ProxyObject& proxy)
+Object::_ref_type POA_Base::servant_to_reference (ServantProxyObject& proxy)
 {
 	return servant_to_reference_default (proxy, false);
 }
 
-Object::_ref_type POA_Base::servant_to_reference_default (ProxyObject& proxy, bool not_found)
+Object::_ref_type POA_Base::servant_to_reference_default (ServantProxyObject& proxy, bool not_found)
 {
 	if (not_found) {
 		const Context* ctx = (const Context*)Nirvana::Core::TLS::current ().get (
@@ -347,7 +347,7 @@ Object::_ref_type POA_Base::id_to_reference (const ObjectId& oid)
 	throw WrongPolicy ();
 }
 
-POA_Base* POA_Base::get_implementation (const CORBA::Core::ProxyLocal* proxy)
+POA_Base* POA_Base::get_implementation (const CORBA::Core::ServantProxyLocal* proxy)
 {
 	if (proxy) {
 		POA_Base* impl = static_cast <POA_Base*> (
@@ -451,7 +451,7 @@ void POA_Base::serve_default (const RequestRef& request, ReferenceLocal& referen
 	throw OBJECT_NOT_EXIST (MAKE_OMG_MINOR (2));
 }
 
-void POA_Base::serve (const RequestRef& request, ReferenceLocal& reference, ProxyObject& proxy)
+void POA_Base::serve (const RequestRef& request, ReferenceLocal& reference, ServantProxyObject& proxy)
 {
 	IOReference::OperationIndex op = proxy.find_operation (request->operation ());
 	TLS& tls = TLS::current ();

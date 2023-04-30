@@ -37,9 +37,9 @@ namespace Core {
 
 /// \brief Core implementation of ServantBase default operations.
 class NIRVANA_NOVTABLE ServantBase :
-	public CORBA::Core::CoreServant <ServantBase, CORBA::Core::ProxyObject>
+	public CORBA::Core::CoreServant <ServantBase, CORBA::Core::ServantProxyObject>
 {
-	typedef CORBA::Core::CoreServant <ServantBase, CORBA::Core::ProxyObject> Base;
+	typedef CORBA::Core::CoreServant <ServantBase, CORBA::Core::ServantProxyObject> Base;
 
 public:
 	static ServantBase* create (Servant user_servant);
@@ -73,7 +73,7 @@ public:
 	}
 
 protected:
-	ServantBase (CORBA::Core::ProxyObject& proxy) :
+	ServantBase (CORBA::Core::ServantProxyObject& proxy) :
 		Base (proxy)
 	{}
 };

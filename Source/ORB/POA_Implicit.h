@@ -41,8 +41,8 @@ class NIRVANA_NOVTABLE POA_Implicit :
 public:
 	virtual ImplicitActivation implicit_activation () const NIRVANA_NOEXCEPT override;
 
-	virtual ObjectId servant_to_id_default (CORBA::Core::ProxyObject& proxy, bool not_found) override;
-	virtual CORBA::Object::_ref_type servant_to_reference_default (CORBA::Core::ProxyObject& proxy, bool not_found) override;
+	virtual ObjectId servant_to_id_default (CORBA::Core::ServantProxyObject& proxy, bool not_found) override;
+	virtual CORBA::Object::_ref_type servant_to_reference_default (CORBA::Core::ServantProxyObject& proxy, bool not_found) override;
 };
 
 class NIRVANA_NOVTABLE POA_ImplicitUnique :

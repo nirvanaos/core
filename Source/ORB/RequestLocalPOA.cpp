@@ -71,7 +71,7 @@ void RequestLocalPOA::set_exception (Any& e)
 	RequestLocalBase::set_exception (e);
 }
 
-void RequestLocalPOA::serve_request (ProxyObject& proxy, Internal::IOReference::OperationIndex op,
+void RequestLocalPOA::serve_request (ServantProxyObject& proxy, Internal::IOReference::OperationIndex op,
 	MemContext* memory)
 {
 	SyncContext& sc = proxy.get_sync_context (op);
@@ -100,7 +100,7 @@ void RequestLocalAsyncPOA::invoke ()
 		ExecDomain::current ().get_request_deadline (!response_flags ()));
 }
 
-void RequestLocalAsyncPOA::serve_request (ProxyObject& proxy, Internal::IOReference::OperationIndex op,
+void RequestLocalAsyncPOA::serve_request (ServantProxyObject& proxy, Internal::IOReference::OperationIndex op,
 	Nirvana::Core::MemContext* memory)
 {
 	if (RequestLocalAsyncPOA::is_cancelled ())

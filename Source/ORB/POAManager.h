@@ -144,7 +144,7 @@ public:
 		return *this;
 	}
 
-	static POAManager* get_implementation (const CORBA::Core::ProxyLocal* proxy)
+	static POAManager* get_implementation (const CORBA::Core::ServantProxyLocal* proxy)
 	{
 		if (proxy) {
 			POAManager* impl = static_cast <POAManager*> (

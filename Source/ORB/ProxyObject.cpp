@@ -44,7 +44,7 @@ Object::_ptr_type servant2object (PortableServer::Servant servant) NIRVANA_NOEXC
 PortableServer::ServantBase::_ref_type object2servant (Object::_ptr_type obj)
 {
 	if (obj) {
-		const CORBA::Core::ProxyObject* proxy = object2proxy (obj);
+		const CORBA::Core::ServantProxyObject* proxy = object2proxy (obj);
 
 		if (&proxy->sync_context () != &Nirvana::Core::SyncContext::current ())
 			throw CORBA::OBJ_ADAPTER ();
@@ -53,24 +53,24 @@ PortableServer::ServantBase::_ref_type object2servant (Object::_ptr_type obj)
 	return nullptr;
 }
 
-ProxyObject::ProxyObject (PortableServer::Core::ServantBase& core_servant, PortableServer::Servant user_servant) :
+ServantProxyObject::ServantProxyObject (PortableServer::Core::ServantBase& core_servant, PortableServer::Servant user_servant) :
 	ServantProxyBase (user_servant),
 	core_servant_ (core_servant)
 {}
 
-Boolean ProxyObject::non_existent ()
+Boolean ServantProxyObject::non_existent ()
 {
 	return servant ()->_non_existent ();
 }
 
-ReferenceLocalRef ProxyObject::get_reference_local () const NIRVANA_NOEXCEPT
+ReferenceLocalRef ServantProxyObject::get_reference_local () const NIRVANA_NOEXCEPT
 {
 	ReferenceLocalRef ref (reference_.lock ());
 	reference_.unlock ();
 	return ref;
 }
 
-ReferenceRef ProxyObject::get_reference ()
+ReferenceRef ServantProxyObject::get_reference ()
 {
 	ReferenceRef ref (get_reference_local ());
 	if (!ref) // Attempt to pass an unactivated (unregistered) value as an object reference.
@@ -78,12 +78,12 @@ ReferenceRef ProxyObject::get_reference ()
 	return ref;
 }
 
-Policy::_ref_type ProxyObject::_get_policy (PolicyType policy_type)
+Policy::_ref_type ServantProxyObject::_get_policy (PolicyType policy_type)
 {
 	return get_reference ()->_get_policy (policy_type);
 }
 
-DomainManagersList ProxyObject::_get_domain_managers ()
+DomainManagersList ServantProxyObject::_get_domain_managers ()
 {
 	return get_reference ()->_get_domain_managers ();
 }

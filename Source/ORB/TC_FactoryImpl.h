@@ -339,7 +339,7 @@ public:
 	static TypeCode::_ref_type unmarshal_type_code (ULong kind, StreamIn& stream)
 	{
 		Object::_ref_type factory = Services::bind (Services::TC_Factory);
-		const ProxyLocal* proxy = local2proxy (factory);
+		const ServantProxyLocal* proxy = local2proxy (factory);
 		TC_FactoryImpl* impl = static_cast <TC_FactoryImpl*> (
 			static_cast <Bridge <CORBA::LocalObject>*> (&proxy->servant ()));
 		SYNC_BEGIN (proxy->sync_context (), nullptr);

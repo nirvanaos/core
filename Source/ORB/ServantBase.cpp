@@ -40,23 +40,23 @@ typedef TypeCodeNative <PortableServer::ServantBase> TC_Servant;
 
 class ServantBaseImplicit :
 	public ServantBase,
-	public CORBA::Core::ProxyObjectImplicit
+	public CORBA::Core::ServantProxyObjectImplicit
 {
 public:
 	ServantBaseImplicit (Servant user_servant, POA::_ptr_type adapter) :
-		ServantBase (static_cast <CORBA::Core::ProxyObject&> (*this)),
-		CORBA::Core::ProxyObjectImplicit (*this, user_servant, adapter)
+		ServantBase (static_cast <CORBA::Core::ServantProxyObject&> (*this)),
+		CORBA::Core::ServantProxyObjectImplicit (*this, user_servant, adapter)
 	{}
 };
 
 class ServantBaseExplicit :
 	public ServantBase,
-	public CORBA::Core::ProxyObject
+	public CORBA::Core::ServantProxyObject
 {
 public:
 	ServantBaseExplicit (Servant user_servant) :
-		ServantBase (static_cast <CORBA::Core::ProxyObject&> (*this)),
-		CORBA::Core::ProxyObject (*this, user_servant)
+		ServantBase (static_cast <CORBA::Core::ServantProxyObject&> (*this)),
+		CORBA::Core::ServantProxyObject (*this, user_servant)
 	{}
 };
 

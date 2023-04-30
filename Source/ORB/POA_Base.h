@@ -211,7 +211,7 @@ public:
 
 	virtual void destroy_internal (bool etherealize_objects) NIRVANA_NOEXCEPT;
 	virtual void etherealize_objects () NIRVANA_NOEXCEPT {}
-	virtual void etherialize (const ObjectId& oid, CORBA::Core::ProxyObject& proxy,
+	virtual void etherialize (const ObjectId& oid, CORBA::Core::ServantProxyObject& proxy,
 		bool cleanup_in_progress) NIRVANA_NOEXCEPT {};
 
 	// Factories for Policy objects
@@ -317,7 +317,7 @@ public:
 	// Object activation and deactivation
 	ObjectId activate_object (CORBA::Object::_ptr_type p_servant)
 	{
-		CORBA::Core::ProxyObject* proxy = CORBA::Core::object2proxy (p_servant);
+		CORBA::Core::ServantProxyObject* proxy = CORBA::Core::object2proxy (p_servant);
 		if (!proxy)
 			throw CORBA::BAD_PARAM ();
 		ObjectId oid;
@@ -325,13 +325,13 @@ public:
 		return oid;
 	}
 
-	void activate_object (CORBA::Core::ProxyObject& proxy, ObjectId& oid, unsigned flags = 0);
-	CORBA::Core::ReferenceLocalRef activate_object (CORBA::Core::ProxyObject& proxy,
+	void activate_object (CORBA::Core::ServantProxyObject& proxy, ObjectId& oid, unsigned flags = 0);
+	CORBA::Core::ReferenceLocalRef activate_object (CORBA::Core::ServantProxyObject& proxy,
 		unsigned flags = 0);
 
 	void activate_object_with_id (const ObjectId& oid, CORBA::Object::_ptr_type p_servant)
 	{
-		CORBA::Core::ProxyObject* proxy = CORBA::Core::object2proxy (p_servant);
+		CORBA::Core::ServantProxyObject* proxy = CORBA::Core::object2proxy (p_servant);
 		if (!proxy)
 			throw CORBA::BAD_PARAM ();
 		check_object_id (oid);
@@ -339,18 +339,18 @@ public:
 	}
 
 	virtual CORBA::Core::ReferenceLocalRef activate_object (ObjectKey&& key, bool unique,
-		CORBA::Core::ProxyObject& proxy, unsigned flags);
+		CORBA::Core::ServantProxyObject& proxy, unsigned flags);
 
-	virtual void activate_object (CORBA::Core::ReferenceLocal& ref, CORBA::Core::ProxyObject& proxy,
+	virtual void activate_object (CORBA::Core::ReferenceLocal& ref, CORBA::Core::ServantProxyObject& proxy,
 		unsigned flags);
 
 	virtual void deactivate_object (const ObjectId& oid);
-	virtual CORBA::servant_reference <CORBA::Core::ProxyObject> deactivate_object (
+	virtual CORBA::servant_reference <CORBA::Core::ServantProxyObject> deactivate_object (
 		CORBA::Core::ReferenceLocal& ref);
 
-	inline static void implicit_activate (POA::_ptr_type adapter, CORBA::Core::ProxyObject& proxy);
+	inline static void implicit_activate (POA::_ptr_type adapter, CORBA::Core::ServantProxyObject& proxy);
 	virtual void implicit_deactivate (CORBA::Core::ReferenceLocal& ref,
-		CORBA::Core::ProxyObject& proxy) NIRVANA_NOEXCEPT;
+		CORBA::Core::ServantProxyObject& proxy) NIRVANA_NOEXCEPT;
 
 	// Reference creation operations
 	virtual CORBA::Object::_ref_type create_reference (const CORBA::RepositoryId& intf);
@@ -373,25 +373,25 @@ public:
 	// Identity mapping operations:
 	ObjectId servant_to_id (CORBA::Object::_ptr_type p_servant)
 	{
-		CORBA::Core::ProxyObject* proxy = CORBA::Core::object2proxy (p_servant);
+		CORBA::Core::ServantProxyObject* proxy = CORBA::Core::object2proxy (p_servant);
 		if (!proxy)
 			throw CORBA::BAD_PARAM ();
 		return servant_to_id (*proxy);
 	}
 
-	virtual ObjectId servant_to_id (CORBA::Core::ProxyObject& proxy);
-	virtual ObjectId servant_to_id_default (CORBA::Core::ProxyObject& proxy, bool not_found);
+	virtual ObjectId servant_to_id (CORBA::Core::ServantProxyObject& proxy);
+	virtual ObjectId servant_to_id_default (CORBA::Core::ServantProxyObject& proxy, bool not_found);
 
 	CORBA::Object::_ref_type servant_to_reference (CORBA::Object::_ptr_type p_servant)
 	{
-		CORBA::Core::ProxyObject* proxy = CORBA::Core::object2proxy (p_servant);
+		CORBA::Core::ServantProxyObject* proxy = CORBA::Core::object2proxy (p_servant);
 		if (!proxy)
 			throw CORBA::BAD_PARAM ();
 		return servant_to_reference (*proxy);
 	}
 
-	virtual CORBA::Object::_ref_type servant_to_reference (CORBA::Core::ProxyObject& proxy);
-	virtual CORBA::Object::_ref_type servant_to_reference_default (CORBA::Core::ProxyObject& proxy, bool not_found);
+	virtual CORBA::Object::_ref_type servant_to_reference (CORBA::Core::ServantProxyObject& proxy);
+	virtual CORBA::Object::_ref_type servant_to_reference_default (CORBA::Core::ServantProxyObject& proxy, bool not_found);
 
 	virtual CORBA::Object::_ref_type reference_to_servant (CORBA::Object::_ptr_type reference);
 	virtual CORBA::Object::_ref_type reference_to_servant_default (bool not_active);
@@ -431,7 +431,7 @@ public:
 	inline void invoke (const RequestRef& request);
 	void serve (const RequestRef& request);
 
-	static POA_Base* get_implementation (const CORBA::Core::ProxyLocal* proxy);
+	static POA_Base* get_implementation (const CORBA::Core::ServantProxyLocal* proxy);
 
 	// Entry point vector overrides
 	static CORBA::Internal::Interface* _s_get_servant (CORBA::Internal::Bridge <POA>* _b, Interface* _env);
@@ -490,7 +490,7 @@ protected:
 
 	virtual void serve (const RequestRef& request, CORBA::Core::ReferenceLocal& reference);
 	virtual void serve_default (const RequestRef& request, CORBA::Core::ReferenceLocal& reference);
-	void serve (const RequestRef& request, CORBA::Core::ReferenceLocal& reference, CORBA::Core::ProxyObject& proxy);
+	void serve (const RequestRef& request, CORBA::Core::ReferenceLocal& reference, CORBA::Core::ServantProxyObject& proxy);
 
 	static CORBA::Object::_ref_type get_root ()
 	{

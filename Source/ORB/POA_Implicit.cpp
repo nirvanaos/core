@@ -37,7 +37,7 @@ POA_Base::ImplicitActivation POA_Implicit::implicit_activation () const NIRVANA_
 	return (POA_Base::DGC_policy () == DGC_DISABLED) ? IMPLICIT_ACTIVATION : IMPLICIT_ACTIVATION_WITH_DGC;
 }
 
-ObjectId POA_Implicit::servant_to_id_default (ProxyObject& proxy, bool not_found)
+ObjectId POA_Implicit::servant_to_id_default (ServantProxyObject& proxy, bool not_found)
 {
 	assert (not_found);
 	ObjectId oid;
@@ -45,7 +45,7 @@ ObjectId POA_Implicit::servant_to_id_default (ProxyObject& proxy, bool not_found
 	return oid;
 }
 
-Object::_ref_type POA_Implicit::servant_to_reference_default (ProxyObject& proxy, bool not_found)
+Object::_ref_type POA_Implicit::servant_to_reference_default (ServantProxyObject& proxy, bool not_found)
 {
 	return activate_object (proxy)->get_proxy ();
 }

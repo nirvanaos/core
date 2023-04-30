@@ -32,7 +32,7 @@ using namespace CORBA::Core;
 namespace PortableServer {
 namespace Core {
 
-POA_Unique::ReferencePtr POA_Unique::find_servant (const ProxyObject& proxy) NIRVANA_NOEXCEPT
+POA_Unique::ReferencePtr POA_Unique::find_servant (const ServantProxyObject& proxy) NIRVANA_NOEXCEPT
 {
 	auto it = servant_map_.find (&proxy);
 	if (it != servant_map_.end ())
@@ -41,7 +41,7 @@ POA_Unique::ReferencePtr POA_Unique::find_servant (const ProxyObject& proxy) NIR
 		return nullptr;
 }
 
-void POA_Unique::activate_object (ReferenceLocal& ref, ProxyObject& proxy, unsigned flags)
+void POA_Unique::activate_object (ReferenceLocal& ref, ServantProxyObject& proxy, unsigned flags)
 {
 	auto ins = servant_map_.emplace (&proxy, &ref);
 	if (!ins.second)
@@ -54,20 +54,20 @@ void POA_Unique::activate_object (ReferenceLocal& ref, ProxyObject& proxy, unsig
 	}
 }
 
-servant_reference <ProxyObject> POA_Unique::deactivate_object (ReferenceLocal& ref)
+servant_reference <ServantProxyObject> POA_Unique::deactivate_object (ReferenceLocal& ref)
 {
-	servant_reference <ProxyObject> p (Base::deactivate_object (ref));
+	servant_reference <ServantProxyObject> p (Base::deactivate_object (ref));
 	servant_map_.erase (p);
 	return p;
 }
 
-void POA_Unique::implicit_deactivate (ReferenceLocal& ref, ProxyObject& proxy) NIRVANA_NOEXCEPT
+void POA_Unique::implicit_deactivate (ReferenceLocal& ref, ServantProxyObject& proxy) NIRVANA_NOEXCEPT
 {
 	servant_map_.erase (&proxy);
 	Base::implicit_deactivate (ref, proxy);
 }
 
-ObjectId POA_Unique::servant_to_id (ProxyObject& proxy)
+ObjectId POA_Unique::servant_to_id (ServantProxyObject& proxy)
 {
 	ReferencePtr ref = find_servant (proxy);
 	if (ref)
@@ -75,7 +75,7 @@ ObjectId POA_Unique::servant_to_id (ProxyObject& proxy)
 	return servant_to_id_default (proxy, true);
 }
 
-Object::_ref_type POA_Unique::servant_to_reference (CORBA::Core::ProxyObject& proxy)
+Object::_ref_type POA_Unique::servant_to_reference (CORBA::Core::ServantProxyObject& proxy)
 {
 	ReferencePtr ref = find_servant (proxy);
 	if (ref)

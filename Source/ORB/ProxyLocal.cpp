@@ -33,22 +33,22 @@ using namespace Internal;
 
 namespace Core {
 
-Boolean ProxyLocal::non_existent ()
+Boolean ServantProxyLocal::non_existent ()
 {
 	return servant ()->_non_existent ();
 }
 
-ReferenceRef ProxyLocal::get_reference ()
+ReferenceRef ServantProxyLocal::get_reference ()
 {
 	throw MARSHAL (MAKE_OMG_MINOR (4)); // Attempt to marshal Local object.
 }
 
-Policy::_ref_type ProxyLocal::_get_policy (PolicyType policy_type)
+Policy::_ref_type ServantProxyLocal::_get_policy (PolicyType policy_type)
 {
 	throw NO_IMPLEMENT (MAKE_OMG_MINOR (8));
 }
 
-DomainManagersList ProxyLocal::_get_domain_managers ()
+DomainManagersList ServantProxyLocal::_get_domain_managers ()
 {
 	throw NO_IMPLEMENT (MAKE_OMG_MINOR (8));
 }

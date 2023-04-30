@@ -36,9 +36,9 @@ namespace Core {
 
 /// \brief Core implementation of LocalObject default operations.
 class LocalObject :
-	public CoreServant <LocalObject, ProxyLocal>
+	public CoreServant <LocalObject, ServantProxyLocal>
 {
-	typedef CoreServant <LocalObject, ProxyLocal> Base;
+	typedef CoreServant <LocalObject, ServantProxyLocal> Base;
 public:
 	static LocalObject* create (CORBA::LocalObject::_ptr_type user_servant);
 
@@ -55,7 +55,7 @@ public:
 	}
 
 protected:
-	LocalObject (ProxyLocal& proxy) :
+	LocalObject (ServantProxyLocal& proxy) :
 		Base (proxy)
 	{}
 };

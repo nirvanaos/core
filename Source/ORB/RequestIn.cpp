@@ -187,7 +187,7 @@ bool RequestIn::marshal_op ()
 	return (response_flags_ & RESPONSE_DATA) != 0;
 }
 
-void RequestIn::serve_request (ProxyObject& proxy, IOReference::OperationIndex op, MemContext* memory)
+void RequestIn::serve_request (ServantProxyObject& proxy, IOReference::OperationIndex op, MemContext* memory)
 {
 	if (is_cancelled ())
 		return;

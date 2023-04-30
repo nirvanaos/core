@@ -48,7 +48,7 @@ class ReferenceLocal;
 typedef servant_reference <ReferenceLocal> ReferenceLocalRef;
 
 /// \brief Server-side Object proxy.
-class NIRVANA_NOVTABLE ProxyObject :
+class NIRVANA_NOVTABLE ServantProxyObject :
 	public ServantProxyBase
 {
 	typedef ServantProxyBase Base;
@@ -95,10 +95,10 @@ public:
 	}
 
 protected:
-	ProxyObject (PortableServer::Core::ServantBase& core_servant,
+	ServantProxyObject (PortableServer::Core::ServantBase& core_servant,
 		PortableServer::Servant user_servant);
 
-	~ProxyObject ()
+	~ServantProxyObject ()
 	{
 		assert (references_.empty ());
 	}
@@ -128,9 +128,9 @@ protected:
 CORBA::Object::_ptr_type servant2object (PortableServer::Servant servant) NIRVANA_NOEXCEPT;
 
 inline
-CORBA::Core::ProxyObject* object2proxy (CORBA::Object::_ptr_type obj) NIRVANA_NOEXCEPT
+CORBA::Core::ServantProxyObject* object2proxy (CORBA::Object::_ptr_type obj) NIRVANA_NOEXCEPT
 {
-	return static_cast <ProxyObject*> (ProxyManager::cast (obj));
+	return static_cast <ServantProxyObject*> (ProxyManager::cast (obj));
 }
 
 PortableServer::ServantBase::_ref_type object2servant (CORBA::Object::_ptr_type obj);

@@ -119,7 +119,7 @@ ReferenceLocalRef POA_Activator::create_reference (ObjectKey&& key,
 		ReferenceLocal::LOCAL_AUTO_DEACTIVATE | Reference::GARBAGE_COLLECTION);
 }
 
-void POA_Activator::etherialize (const ObjectId& oid, ProxyObject& proxy,
+void POA_Activator::etherialize (const ObjectId& oid, ServantProxyObject& proxy,
 	bool cleanup_in_progress) NIRVANA_NOEXCEPT
 {
 	if (activator_)

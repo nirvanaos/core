@@ -54,7 +54,7 @@ protected:
 
 	virtual void set_exception (Any& e) override;
 	virtual void invoke () override;
-	virtual void serve_request (ProxyObject& proxy, Internal::IOReference::OperationIndex op,
+	virtual void serve_request (ServantProxyObject& proxy, Internal::IOReference::OperationIndex op,
 		Nirvana::Core::MemContext* memory) override;
 
 	virtual bool is_cancelled () const NIRVANA_NOEXCEPT override;
@@ -74,7 +74,7 @@ protected:
 	{}
 
 	virtual void invoke () override;
-	virtual void serve_request (ProxyObject& proxy, Internal::IOReference::OperationIndex op,
+	virtual void serve_request (ServantProxyObject& proxy, Internal::IOReference::OperationIndex op,
 		Nirvana::Core::MemContext* memory) override;
 	virtual void cancel () NIRVANA_NOEXCEPT override;
 

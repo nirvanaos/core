@@ -49,7 +49,7 @@ protected:
 	virtual void serve_default (const RequestRef& request, CORBA::Core::ReferenceLocal& reference)
 		override;
 
-	virtual void etherialize (const ObjectId& oid, CORBA::Core::ProxyObject& proxy,
+	virtual void etherialize (const ObjectId& oid, CORBA::Core::ServantProxyObject& proxy,
 		bool cleanup_in_progress) NIRVANA_NOEXCEPT override;
 
 private:

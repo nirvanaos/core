@@ -182,9 +182,9 @@ PortableServer::POAManagerFactory::_ref_type POA_Base::the_POAManagerFactory () 
 }
 
 inline
-void POA_Base::implicit_activate (POA::_ptr_type adapter, CORBA::Core::ProxyObject& proxy)
+void POA_Base::implicit_activate (POA::_ptr_type adapter, CORBA::Core::ServantProxyObject& proxy)
 {
-	const CORBA::Core::ProxyLocal* adapter_proxy = CORBA::Core::local2proxy (adapter);
+	const CORBA::Core::ServantProxyLocal* adapter_proxy = CORBA::Core::local2proxy (adapter);
 	POA_Base* adapter_impl = get_implementation (adapter_proxy);
 	if (!adapter_impl)
 		throw CORBA::OBJ_ADAPTER ();

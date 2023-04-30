@@ -34,7 +34,7 @@ namespace CORBA {
 namespace Core {
 
 /// LocalObject operations servant-side proxy
-class NIRVANA_NOVTABLE ProxyLocal :
+class NIRVANA_NOVTABLE ServantProxyLocal :
 	public ServantProxyBase
 {
 	typedef ServantProxyBase Base;
@@ -54,7 +54,7 @@ public:
 	}
 
 protected:
-	ProxyLocal (LocalObject::_ptr_type servant) :
+	ServantProxyLocal (LocalObject::_ptr_type servant) :
 		ServantProxyBase (servant)
 	{}
 
@@ -70,9 +70,9 @@ private:
 /// \param obj Local object pointer.
 ///   Ensure that it is really local object.
 /// \returns Proxy pointer.
-inline const ProxyLocal* local2proxy (Object::_ptr_type obj) NIRVANA_NOEXCEPT
+inline const ServantProxyLocal* local2proxy (Object::_ptr_type obj) NIRVANA_NOEXCEPT
 {
-	return static_cast <const ProxyLocal*> (static_cast <Internal::Bridge <Object>*> (&obj));
+	return static_cast <const ServantProxyLocal*> (static_cast <Internal::Bridge <Object>*> (&obj));
 }
 
 }

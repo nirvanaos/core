@@ -31,14 +31,14 @@ using namespace Nirvana::Core;
 namespace CORBA {
 namespace Core {
 
-ProxyObjectImplicit::ProxyObjectImplicit (PortableServer::Core::ServantBase& core_servant,
+ServantProxyObjectImplicit::ServantProxyObjectImplicit (PortableServer::Core::ServantBase& core_servant,
 	PortableServer::Servant user_servant, PortableServer::POA::_ptr_type adapter) :
 	Base (core_servant, user_servant),
 	implicit_adapter_ (adapter),
 	adapter_context_ (&local2proxy (adapter)->sync_context ())
 {}
 
-ProxyObjectImplicit::~ProxyObjectImplicit ()
+ServantProxyObjectImplicit::~ServantProxyObjectImplicit ()
 {
 	PortableServer::Core::ServantBase& servant = core_servant ();
 
@@ -67,7 +67,7 @@ ProxyObjectImplicit::~ProxyObjectImplicit ()
 // Called in the servant synchronization context.
 // Note that sync context may be out of synchronization domain
 // for the stateless objects.
-void ProxyObjectImplicit::add_ref_1 ()
+void ServantProxyObjectImplicit::add_ref_1 ()
 {
 	Base::add_ref_1 ();
 	if (implicit_adapter_) {

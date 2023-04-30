@@ -115,7 +115,7 @@ void ReferenceLocal::activate (PortableServer::Core::ServantBase& servant, unsig
 	if (static_cast <PortableServer::Core::ServantBase*> (servant_.load ()))
 		throw PortableServer::POA::ObjectAlreadyActive ();
 
-	ProxyObject& proxy = servant.proxy ();
+	ServantProxyObject& proxy = servant.proxy ();
 	check_primary_interface (proxy.primary_interface_id ());
 	proxy.activate (*this);
 	proxy._add_ref ();
@@ -123,14 +123,14 @@ void ReferenceLocal::activate (PortableServer::Core::ServantBase& servant, unsig
 	flags_ = flags | LOCAL;
 }
 
-servant_reference <ProxyObject> ReferenceLocal::deactivate () NIRVANA_NOEXCEPT
+servant_reference <ServantProxyObject> ReferenceLocal::deactivate () NIRVANA_NOEXCEPT
 {
 	// Caller must hold reference.
 	assert (_refcount_value ());
 
 	PortableServer::Core::ServantBase* servant = servant_.exchange (nullptr);
 	// ProxyObject is always add-refed there so we use Servant_var.
-	PortableServer::Servant_var <ProxyObject> p;
+	PortableServer::Servant_var <ServantProxyObject> p;
 	if (servant)
 		p = &servant->proxy (); // Servant_var do not call _add_ref
 
@@ -158,9 +158,9 @@ void ReferenceLocal::on_destruct_implicit (PortableServer::Core::ServantBase& se
 	}
 }
 
-Nirvana::Core::Ref <ProxyObject> ReferenceLocal::get_servant () const NIRVANA_NOEXCEPT
+Nirvana::Core::Ref <ServantProxyObject> ReferenceLocal::get_servant () const NIRVANA_NOEXCEPT
 {
-	Nirvana::Core::Ref <ProxyObject> ret;
+	Nirvana::Core::Ref <ServantProxyObject> ret;
 	PortableServer::Core::ServantBase* servant = servant_.lock ();
 	if (servant)
 		ret = &servant->proxy ();
@@ -232,7 +232,7 @@ IORequest::_ref_type ReferenceLocal::create_request (OperationIndex op, unsigned
 	if (is_object_op (op))
 		return ProxyManager::create_request (op, flags);
 
-	Ref <ProxyObject> servant = get_servant ();
+	Ref <ServantProxyObject> servant = get_servant ();
 	if (servant)
 		return servant->create_request (op, flags);
 

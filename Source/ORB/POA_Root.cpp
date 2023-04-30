@@ -159,7 +159,7 @@ void POA_Root::invoke_async (RequestRef request, DeadlineTime deadline)
 	if (Scheduler::state () != Scheduler::RUNNING)
 		throw CORBA::OBJ_ADAPTER (MAKE_OMG_MINOR (1));
 
-	const ProxyLocal* proxy = CORBA::Core::local2proxy (get_root ());
+	const ServantProxyLocal* proxy = CORBA::Core::local2proxy (get_root ());
 	POA_Base* adapter = get_implementation (proxy);
 	assert (adapter);
 
