@@ -142,7 +142,7 @@ public:
 
 	CORBA::Core::ReferenceLocalRef emplace_reference (ObjectKey&& key, bool unique, const IDL::String& primary_iid,
 		unsigned flags, CORBA::Core::DomainManager* domain_manager);
-	CORBA::Core::ReferenceLocalRef emplace_reference (ObjectKey&& key, bool unique, PortableServer::Core::ServantBase& servant,
+	CORBA::Core::ReferenceLocalRef emplace_reference (ObjectKey&& key, bool unique, CORBA::Core::ServantProxyObject& proxy,
 		unsigned flags, CORBA::Core::DomainManager* domain_manager);
 
 	void remove_reference (const ObjectKey& key) NIRVANA_NOEXCEPT

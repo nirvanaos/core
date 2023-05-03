@@ -55,9 +55,8 @@ PortableServer::ServantBase::_ref_type object2servant (Object::_ptr_type obj)
 	return nullptr;
 }
 
-ServantProxyObject::ServantProxyObject (PortableServer::Core::ServantBase& core_servant, PortableServer::Servant user_servant) :
+ServantProxyObject::ServantProxyObject (PortableServer::Servant user_servant) :
 	ServantProxyBase (user_servant),
-	core_servant_ (core_servant),
 	adapter_context_ (&local2proxy (POA_Root::get_root ())->sync_context ())
 {}
 
@@ -71,7 +70,7 @@ ServantProxyObject::~ServantProxyObject ()
 				// We don't need exception handling here because on_destruct_implicit is noexcept.
 				// So we don't use SYNC_BEGIN/SYNC_END and just create the sync frame.
 				Nirvana::Core::Synchronized _sync_frame (*adapter_context_, nullptr);
-				ref->on_destruct_implicit (core_servant ());
+				ref->on_destruct_implicit (*this);
 			}
 		} else {
 			// If the set is not empty, it contains all the references include stored in reference_.
@@ -79,7 +78,7 @@ ServantProxyObject::~ServantProxyObject ()
 			// So we don't use SYNC_BEGIN/SYNC_END and just create the sync frame.
 			Nirvana::Core::Synchronized _sync_frame (*adapter_context_, nullptr);
 			for (void* p : references_) {
-				reinterpret_cast <ReferenceLocal*> (p)->on_destruct_implicit (core_servant ());
+				reinterpret_cast <ReferenceLocal*> (p)->on_destruct_implicit (*this);
 			}
 		}
 	} catch (...) {

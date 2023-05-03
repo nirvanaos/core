@@ -69,13 +69,13 @@ ReferenceLocalRef POA_Root::emplace_reference (ObjectKey&& key, bool unique, con
 	}
 }
 
-ReferenceLocalRef POA_Root::emplace_reference (ObjectKey&& key, bool unique, ServantBase& servant,
+ReferenceLocalRef POA_Root::emplace_reference (ObjectKey&& key, bool unique, ServantProxyObject& proxy,
 	unsigned flags, CORBA::Core::DomainManager* domain_manager)
 {
 	auto ins = references_.emplace (std::move (key), Reference::DEADLINE_MAX);
 	References::reference entry = *ins.first;
 	if (ins.second) {
-		RefPtr p (new ReferenceLocal (entry.first, servant, flags, domain_manager));
+		RefPtr p (new ReferenceLocal (entry.first, proxy, flags, domain_manager));
 		Servant_var <ReferenceLocal> ret (p.get ());
 		entry.second.finish_construction (std::move (p));
 		return ret;
@@ -83,7 +83,7 @@ ReferenceLocalRef POA_Root::emplace_reference (ObjectKey&& key, bool unique, Ser
 		return nullptr;
 	else {
 		const RefPtr& p = entry.second.get ();
-		p->check_primary_interface (servant.proxy ().primary_interface_id ());
+		p->check_primary_interface (proxy.primary_interface_id ());
 		return p.get ();
 	}
 }

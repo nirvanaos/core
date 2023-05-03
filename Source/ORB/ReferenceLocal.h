@@ -57,7 +57,7 @@ public:
 	ReferenceLocal (const PortableServer::Core::ObjectKey& key, const IDL::String& primary_iid,
 		unsigned flags, DomainManager* domain_manager);
 	ReferenceLocal (const PortableServer::Core::ObjectKey& key,
-		PortableServer::Core::ServantBase& servant, unsigned flags, DomainManager* domain_manager);
+		ServantProxyObject& proxy, unsigned flags, DomainManager* domain_manager);
 
 	~ReferenceLocal ();
 
@@ -66,10 +66,10 @@ public:
 		return object_key_;
 	}
 
-	void activate (PortableServer::Core::ServantBase& servant, unsigned flags);
+	void activate (ServantProxyObject& proxy, unsigned flags);
 	servant_reference <ServantProxyObject> deactivate () NIRVANA_NOEXCEPT;
 
-	void on_destruct_implicit (PortableServer::Core::ServantBase& servant) NIRVANA_NOEXCEPT;
+	void on_destruct_implicit (ServantProxyObject& proxy) NIRVANA_NOEXCEPT;
 
 	virtual void _add_ref () override;
 	virtual void _remove_ref () NIRVANA_NOEXCEPT override;
@@ -85,8 +85,8 @@ private:
 	servant_reference <PortableServer::Core::POA_Root> root_;
 
 	static const size_t SERVANT_ALIGN = Nirvana::Core::core_object_align (
-		sizeof (PortableServer::Core::ServantBase) + sizeof (ServantProxyObject));
-	typedef Nirvana::Core::LockablePtrT <PortableServer::Core::ServantBase, 0, SERVANT_ALIGN> ServantPtr;
+		sizeof (PortableServer::Core::ServantBaseImpl));
+	typedef Nirvana::Core::LockablePtrT <ServantProxyObject, 0, SERVANT_ALIGN> ServantPtr;
 
 	mutable ServantPtr servant_;
 };

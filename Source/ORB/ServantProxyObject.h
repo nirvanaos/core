@@ -33,14 +33,6 @@
 #include "../PointerSet.h"
 #include "Reference.h"
 
-namespace PortableServer {
-namespace Core {
-
-class ServantBase;
-
-}
-}
-
 namespace CORBA {
 namespace Core {
 
@@ -92,15 +84,8 @@ public:
 		return static_cast <PortableServer::ServantBase*> (&Base::servant ());
 	}
 
-	PortableServer::Core::ServantBase& core_servant () const NIRVANA_NOEXCEPT
-	{
-		return core_servant_;
-	}
-
 protected:
-	ServantProxyObject (PortableServer::Core::ServantBase& core_servant,
-		PortableServer::Servant user_servant);
-
+	ServantProxyObject (PortableServer::Servant user_servant);
 	~ServantProxyObject ();
 
 	virtual Boolean non_existent () override;
@@ -112,7 +97,6 @@ protected:
 	virtual DomainManagersList _get_domain_managers () override;
 
 protected:
-	PortableServer::Core::ServantBase& core_servant_;
 	Nirvana::Core::Ref <Nirvana::Core::SyncContext> adapter_context_;
 
 	static const size_t REF_ALIGN = Nirvana::Core::core_object_align (sizeof (Reference));

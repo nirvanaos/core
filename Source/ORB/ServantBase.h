@@ -78,6 +78,17 @@ protected:
 	{}
 };
 
+class ServantBaseImpl :
+	public CORBA::Core::ServantProxyObject,
+	public ServantBase
+{
+public:
+	ServantBaseImpl (Servant user_servant) :
+		CORBA::Core::ServantProxyObject (user_servant),
+		ServantBase (static_cast <CORBA::Core::ServantProxyObject&> (*this))
+	{}
+};
+
 }
 }
 

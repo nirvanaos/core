@@ -51,8 +51,8 @@ ReferenceLocal::ReferenceLocal (const PortableServer::Core::ObjectKey& key,
 }
 
 ReferenceLocal::ReferenceLocal (const PortableServer::Core::ObjectKey& key,
-	PortableServer::Core::ServantBase& servant, unsigned flags, DomainManager* domain_manager) :
-	Reference (servant.proxy (), flags | LOCAL),
+	ServantProxyObject& proxy, unsigned flags, DomainManager* domain_manager) :
+	Reference (proxy, flags | LOCAL),
 	object_key_ (key),
 	root_ (PortableServer::Core::POA_Base::root ()),
 	servant_ (nullptr)
@@ -67,9 +67,9 @@ void ReferenceLocal::_add_ref ()
 {
 	if (flags_ & LOCAL_WEAK) {
 		if (1 == ref_cnt_.increment_seq ()) {
-			PortableServer::Core::ServantBase* servant = servant_.lock ();
+			ServantProxyObject* servant = servant_.lock ();
 			if (servant)
-				servant->proxy ()._add_ref ();
+				servant->_add_ref ();
 			servant_.unlock ();
 		}
 	} else
@@ -79,9 +79,9 @@ void ReferenceLocal::_add_ref ()
 void ReferenceLocal::_remove_ref () NIRVANA_NOEXCEPT
 {
 	if (0 == ref_cnt_.decrement_seq ()) {
-		PortableServer::Core::ServantBase* servant = servant_.load ();
+		ServantProxyObject* servant = servant_.load ();
 		if ((flags_ & LOCAL_WEAK) && servant) {
-			servant->proxy ()._remove_ref ();
+			servant->_remove_ref ();
 			servant = servant_.load ();
 		}
 
@@ -107,19 +107,18 @@ void ReferenceLocal::_remove_ref () NIRVANA_NOEXCEPT
 	}
 }
 
-void ReferenceLocal::activate (PortableServer::Core::ServantBase& servant, unsigned flags)
+void ReferenceLocal::activate (ServantProxyObject& proxy, unsigned flags)
 {
 	// Caller must hold reference.
 	assert (_refcount_value ());
 
-	if (static_cast <PortableServer::Core::ServantBase*> (servant_.load ()))
+	if (static_cast <ServantProxyObject*> (servant_.load ()))
 		throw PortableServer::POA::ObjectAlreadyActive ();
 
-	ServantProxyObject& proxy = servant.proxy ();
 	check_primary_interface (proxy.primary_interface_id ());
 	proxy.activate (*this);
 	proxy._add_ref ();
-	servant_ = &servant;
+	servant_ = &proxy;
 	flags_ = flags | LOCAL;
 }
 
@@ -128,29 +127,26 @@ servant_reference <ServantProxyObject> ReferenceLocal::deactivate () NIRVANA_NOE
 	// Caller must hold reference.
 	assert (_refcount_value ());
 
-	PortableServer::Core::ServantBase* servant = servant_.exchange (nullptr);
-	// ProxyObject is always add-refed there so we use Servant_var.
-	PortableServer::Servant_var <ServantProxyObject> p;
-	if (servant)
-		p = &servant->proxy (); // Servant_var do not call _add_ref
+	// ServantProxyObject is always add-refed there so we use Servant_var.
+	PortableServer::Servant_var <ServantProxyObject> proxy (servant_.exchange (nullptr));
 
 	if (flags_ & LOCAL_WEAK)
 		flags_ &= ~(GARBAGE_COLLECTION | LOCAL_WEAK);
 
-	if (p)
-		p->deactivate (*this);
-	return p;
+	if (proxy)
+		proxy->deactivate (*this);
+	return proxy;
 }
 
-void ReferenceLocal::on_destruct_implicit (PortableServer::Core::ServantBase& servant) NIRVANA_NOEXCEPT
+void ReferenceLocal::on_destruct_implicit (ServantProxyObject& proxy) NIRVANA_NOEXCEPT
 {
-	ServantPtr::Ptr ptr (&servant);
+	ServantPtr::Ptr ptr (&proxy);
 	if (servant_.cas (ptr, nullptr)) {
 		flags_ &= LOCAL;
 
 		PortableServer::Core::POA_Ref adapter = PortableServer::Core::POA_Root::find_child (object_key_.adapter_path (), false);
 		if (adapter)
-			adapter->implicit_deactivate (*this, servant.proxy ());
+			adapter->implicit_deactivate (*this, proxy);
 
 		// Toggle reference counter to invoke GC
 		_add_ref ();
@@ -160,10 +156,7 @@ void ReferenceLocal::on_destruct_implicit (PortableServer::Core::ServantBase& se
 
 Nirvana::Core::Ref <ServantProxyObject> ReferenceLocal::get_servant () const NIRVANA_NOEXCEPT
 {
-	Nirvana::Core::Ref <ServantProxyObject> ret;
-	PortableServer::Core::ServantBase* servant = servant_.lock ();
-	if (servant)
-		ret = &servant->proxy ();
+	Nirvana::Core::Ref <ServantProxyObject> ret (servant_.lock ());
 	servant_.unlock ();
 	return ret;
 }
