@@ -56,6 +56,9 @@ class NIRVANA_NOVTABLE ServantProxyObject :
 public:
 	typedef PortableServer::ServantBase ServantInterface;
 
+	virtual void _add_ref () override;
+	virtual void _remove_ref () NIRVANA_NOEXCEPT override;
+
 	///@{
 	/// Called from the POA synchronization domain.
 	/// So calls to activate (), deactivate () and is_active () are always serialized.
@@ -98,10 +101,7 @@ protected:
 	ServantProxyObject (PortableServer::Core::ServantBase& core_servant,
 		PortableServer::Servant user_servant);
 
-	~ServantProxyObject ()
-	{
-		assert (references_.empty ());
-	}
+	~ServantProxyObject ();
 
 	virtual Boolean non_existent () override;
 	virtual ReferenceRef get_reference () override;
@@ -113,6 +113,7 @@ protected:
 
 protected:
 	PortableServer::Core::ServantBase& core_servant_;
+	Nirvana::Core::Ref <Nirvana::Core::SyncContext> adapter_context_;
 
 	static const size_t REF_ALIGN = Nirvana::Core::core_object_align (sizeof (Reference));
 	typedef Nirvana::Core::LockablePtrT <ReferenceLocal, 0, REF_ALIGN> RefPtr;

@@ -36,7 +36,7 @@ namespace PortableServer {
 namespace Core {
 
 /// \brief Core implementation of ServantBase default operations.
-class NIRVANA_NOVTABLE ServantBase :
+class ServantBase :
 	public CORBA::Core::CoreServant <ServantBase, CORBA::Core::ServantProxyObject>
 {
 	typedef CORBA::Core::CoreServant <ServantBase, CORBA::Core::ServantProxyObject> Base;

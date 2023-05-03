@@ -39,6 +39,7 @@ class LocalObject :
 	public CoreServant <LocalObject, ServantProxyLocal>
 {
 	typedef CoreServant <LocalObject, ServantProxyLocal> Base;
+
 public:
 	static LocalObject* create (CORBA::LocalObject::_ptr_type user_servant);
 

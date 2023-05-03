@@ -467,6 +467,11 @@ public:
 		return root_;
 	}
 
+	static CORBA::Object::_ref_type get_root ()
+	{
+		return CORBA::Core::Services::bind (CORBA::Core::Services::RootPOA);
+	}
+
 protected:
 	POA_Base () :
 		signature_ (0)
@@ -491,11 +496,6 @@ protected:
 	virtual void serve (const RequestRef& request, CORBA::Core::ReferenceLocal& reference);
 	virtual void serve_default (const RequestRef& request, CORBA::Core::ReferenceLocal& reference);
 	void serve (const RequestRef& request, CORBA::Core::ReferenceLocal& reference, CORBA::Core::ServantProxyObject& proxy);
-
-	static CORBA::Object::_ref_type get_root ()
-	{
-		return CORBA::Core::Services::bind (CORBA::Core::Services::RootPOA);
-	}
 
 	enum DGC_Policy
 	{

@@ -25,8 +25,10 @@
 */
 #include "ServantBase.h"
 #include "ReferenceLocal.h"
+#include "POA_Root.h"
 
 using namespace Nirvana::Core;
+using namespace PortableServer::Core;
 
 namespace CORBA {
 namespace Core {
@@ -55,8 +57,55 @@ PortableServer::ServantBase::_ref_type object2servant (Object::_ptr_type obj)
 
 ServantProxyObject::ServantProxyObject (PortableServer::Core::ServantBase& core_servant, PortableServer::Servant user_servant) :
 	ServantProxyBase (user_servant),
-	core_servant_ (core_servant)
+	core_servant_ (core_servant),
+	adapter_context_ (&local2proxy (POA_Root::get_root ())->sync_context ())
 {}
+
+ServantProxyObject::~ServantProxyObject ()
+{
+	try {
+		if (references_.empty ()) {
+			// If the set is empty, object can have one reference stored in reference_.
+			ReferenceLocal* ref = reference_.load ();
+			if (ref) {
+				// We don't need exception handling here because on_destruct_implicit is noexcept.
+				// So we don't use SYNC_BEGIN/SYNC_END and just create the sync frame.
+				Nirvana::Core::Synchronized _sync_frame (*adapter_context_, nullptr);
+				ref->on_destruct_implicit (core_servant ());
+			}
+		} else {
+			// If the set is not empty, it contains all the references include stored in reference_.
+			// We don't need exception handling here because on_destruct_implicit is noexcept.
+			// So we don't use SYNC_BEGIN/SYNC_END and just create the sync frame.
+			Nirvana::Core::Synchronized _sync_frame (*adapter_context_, nullptr);
+			for (void* p : references_) {
+				reinterpret_cast <ReferenceLocal*> (p)->on_destruct_implicit (core_servant ());
+			}
+		}
+	} catch (...) {
+		assert (false);
+	}
+}
+
+void ServantProxyObject::_add_ref ()
+{
+	RefCntProxy::IntegralType cnt = ref_cnt_.increment_seq ();
+	if (1 == cnt) {
+		add_ref_servant ();
+		if (!get_reference_local ()) {
+			PortableServer::POA::_ref_type adapter = servant ()->_default_POA ();
+			if (adapter && POA_Base::implicit_activation (adapter) != POA_Base::NO_IMPLICIT_ACTIVATION)
+				POA_Base::implicit_activate (adapter, *this);
+		}
+	}
+}
+
+void ServantProxyObject::_remove_ref () NIRVANA_NOEXCEPT
+{
+	RefCntProxy::IntegralType cnt = ref_cnt_.decrement_seq ();
+	if (0 == cnt)
+		run_garbage_collector ();
+}
 
 Boolean ServantProxyObject::non_existent ()
 {

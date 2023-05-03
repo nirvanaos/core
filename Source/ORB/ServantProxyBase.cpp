@@ -60,46 +60,37 @@ ServantProxyBase::~ServantProxyBase ()
 	assert (&Nirvana::Core::SyncContext::current () == &sync_context ());
 }
 
-void ServantProxyBase::add_ref_1 ()
+void ServantProxyBase::add_ref_servant () const
 {
-	interface_duplicate (&servant_);
-}
-
-void ServantProxyBase::_add_ref ()
-{
-	RefCntProxy::IntegralType cnt = ref_cnt_.increment_seq ();
-	if (1 == cnt) {
-		// Lock module to prevent the binary unloading while there are references
-		// to a servant proxy.
-		Module* mod = sync_context_->module ();
-		if (mod)
-			mod->_add_ref ();
-
-		// Call add_ref_1 () in the servant sync context.
-		try {
-			if (&SyncContext::current () != sync_context_) {
-				SYNC_BEGIN (*sync_context_, nullptr);
-				add_ref_1 ();
-				SYNC_END ();
-			} else
-				add_ref_1 ();
-		} catch (...) {
-			if (mod)
-				mod->_remove_ref ();
-			ref_cnt_.decrement ();
-			throw;
+	// Called in the servant synchronization context on getting the first reference to proxy.
+	// Lock module to prevent unloading the binary while there are references
+	// to a servant proxy.
+	Module* mod = sync_context_->module ();
+	if (mod)
+		mod->_add_ref ();
+	try {
+		if (&SyncContext::current () == sync_context_)
+			interface_duplicate (&servant_);
+		else {
+			SYNC_BEGIN (*sync_context_, nullptr)
+				interface_duplicate (&servant_);
+			SYNC_END ()
 		}
+	} catch (...) {
+		if (mod)
+			mod->_remove_ref ();
 	}
 }
 
-void ServantProxyBase::_remove_ref () NIRVANA_NOEXCEPT
+void ServantProxyBase::collect_garbage (Internal::Interface::_ptr_type servant) NIRVANA_NOEXCEPT
 {
-	RefCntProxy::IntegralType cnt = ref_cnt_.decrement_seq ();
-	if (0 == cnt)
-		run_garbage_collector ();
+	// Called in the servant synchronization context on releasing the last reference to proxy.
+	interface_release (&servant);
+	Module* mod = SyncContext::current ().module ();
+	if (mod)
+		mod->_remove_ref ();
 }
 
-inline
 void ServantProxyBase::run_garbage_collector () const NIRVANA_NOEXCEPT
 {
 	using namespace Nirvana::Core;
@@ -131,14 +122,6 @@ void ServantProxyBase::run_garbage_collector () const NIRVANA_NOEXCEPT
 			}
 	} else
 		collect_garbage (servant_);
-}
-
-void ServantProxyBase::collect_garbage (Internal::Interface::_ptr_type servant) NIRVANA_NOEXCEPT
-{
-	interface_release (&servant);
-	Module* mod = SyncContext::current ().module ();
-	if (mod)
-		mod->_remove_ref ();
 }
 
 MemContext* ServantProxyBase::memory () const NIRVANA_NOEXCEPT

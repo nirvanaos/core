@@ -64,9 +64,6 @@ public:
 
 	Nirvana::Core::MemContext* memory () const NIRVANA_NOEXCEPT;
 
-	virtual void _add_ref () override;
-	virtual void _remove_ref () NIRVANA_NOEXCEPT override;
-
 	RefCntProxy::IntegralType _refcount_value () const NIRVANA_NOEXCEPT
 	{
 		return ref_cnt_.load ();
@@ -99,9 +96,9 @@ protected:
 		return servant_;
 	}
 
-	virtual void add_ref_1 ();
+	void run_garbage_collector () const NIRVANA_NOEXCEPT;
 
-	inline void run_garbage_collector () const NIRVANA_NOEXCEPT;
+	void add_ref_servant () const;
 
 	static void collect_garbage (Internal::Interface::_ptr_type servant) NIRVANA_NOEXCEPT;
 
@@ -115,9 +112,9 @@ private:
 		return primary->_epv ().interface_id;
 	}
 
-private:
-	Internal::Interface::_ptr_type servant_;
+protected:
 	RefCntProxy ref_cnt_;
+	Internal::Interface::_ptr_type servant_;
 	Nirvana::Core::Ref <Nirvana::Core::SyncContext> sync_context_;
 };
 

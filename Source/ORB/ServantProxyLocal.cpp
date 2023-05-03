@@ -33,6 +33,20 @@ using namespace Internal;
 
 namespace Core {
 
+void ServantProxyLocal::_add_ref ()
+{
+	RefCntProxy::IntegralType cnt = ref_cnt_.increment_seq ();
+	if (1 == cnt)
+		add_ref_servant ();
+}
+
+void ServantProxyLocal::_remove_ref () NIRVANA_NOEXCEPT
+{
+	RefCntProxy::IntegralType cnt = ref_cnt_.decrement_seq ();
+	if (0 == cnt)
+		run_garbage_collector ();
+}
+
 Boolean ServantProxyLocal::non_existent ()
 {
 	return servant ()->_non_existent ();
