@@ -107,7 +107,7 @@ void ReferenceLocal::_remove_ref () NIRVANA_NOEXCEPT
 	}
 }
 
-void ReferenceLocal::activate (ServantProxyObject& proxy, unsigned flags)
+void ReferenceLocal::activate (ServantProxyObject& proxy)
 {
 	// Caller must hold reference.
 	assert (_refcount_value ());
@@ -119,7 +119,6 @@ void ReferenceLocal::activate (ServantProxyObject& proxy, unsigned flags)
 	proxy.activate (*this);
 	proxy._add_ref ();
 	servant_ = &proxy;
-	flags_ = flags | LOCAL;
 }
 
 servant_reference <ServantProxyObject> ReferenceLocal::deactivate () NIRVANA_NOEXCEPT
@@ -130,9 +129,6 @@ servant_reference <ServantProxyObject> ReferenceLocal::deactivate () NIRVANA_NOE
 	// ServantProxyObject is always add-refed there so we use Servant_var.
 	PortableServer::Servant_var <ServantProxyObject> proxy (servant_.exchange (nullptr));
 
-	if (flags_ & LOCAL_WEAK)
-		flags_ &= ~(GARBAGE_COLLECTION | LOCAL_WEAK);
-
 	if (proxy)
 		proxy->deactivate (*this);
 	return proxy;
@@ -142,7 +138,6 @@ void ReferenceLocal::on_destruct_implicit (ServantProxyObject& proxy) NIRVANA_NO
 {
 	ServantPtr::Ptr ptr (&proxy);
 	if (servant_.cas (ptr, nullptr)) {
-		flags_ &= LOCAL;
 
 		PortableServer::Core::POA_Ref adapter = PortableServer::Core::POA_Root::find_child (object_key_.adapter_path (), false);
 		if (adapter)

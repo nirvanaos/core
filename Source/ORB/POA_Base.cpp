@@ -210,7 +210,7 @@ ReferenceLocalRef POA_Base::activate_object (ObjectKey&&, bool unique, ServantPr
 	throw WrongPolicy ();
 }
 
-void POA_Base::activate_object (ReferenceLocal& ref, ServantProxyObject& proxy, unsigned flags)
+void POA_Base::activate_object (ReferenceLocal& ref, ServantProxyObject& proxy)
 {
 	NIRVANA_UNREACHABLE_CODE ();
 }

@@ -44,8 +44,8 @@ public:
 	virtual CORBA::Object::_ref_type servant_to_reference (CORBA::Core::ServantProxyObject& proxy) override;
 
 protected:
-	virtual void activate_object (CORBA::Core::ReferenceLocal& ref, CORBA::Core::ServantProxyObject& proxy,
-		unsigned flags) override;
+	virtual void activate_object (CORBA::Core::ReferenceLocal& ref,
+		CORBA::Core::ServantProxyObject& proxy) override;
 
 	virtual void destroy_internal (bool etherealize_objects) NIRVANA_NOEXCEPT override;
 	virtual void etherealize_objects () NIRVANA_NOEXCEPT override;

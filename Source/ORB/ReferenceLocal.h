@@ -66,7 +66,7 @@ public:
 		return object_key_;
 	}
 
-	void activate (ServantProxyObject& proxy, unsigned flags);
+	void activate (ServantProxyObject& proxy);
 	servant_reference <ServantProxyObject> deactivate () NIRVANA_NOEXCEPT;
 
 	void on_destruct_implicit (ServantProxyObject& proxy) NIRVANA_NOEXCEPT;

@@ -91,7 +91,7 @@ public:
 
 protected:
 	RefCntProxy ref_cnt_;
-	unsigned flags_;
+	const unsigned flags_;
 	servant_reference <Core::DomainManager> domain_manager_;
 };
 

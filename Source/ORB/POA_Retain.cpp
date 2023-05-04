@@ -39,13 +39,13 @@ ReferenceLocalRef POA_Retain::activate_object (ObjectKey&& key, bool unique, Ser
 	ReferenceLocalRef ref = root_->emplace_reference (std::move (key), unique,
 		std::ref (proxy), flags, domain_manager_);
 	if (ref)
-		activate_object (*ref, proxy, flags);
+		activate_object (*ref, proxy);
 	return ref;
 }
 
-void POA_Retain::activate_object (ReferenceLocal& ref, ServantProxyObject& proxy, unsigned flags)
+void POA_Retain::activate_object (ReferenceLocal& ref, ServantProxyObject& proxy)
 {
-	ref.activate (proxy, flags);
+	ref.activate (proxy);
 	references_.insert (&ref);
 }
 

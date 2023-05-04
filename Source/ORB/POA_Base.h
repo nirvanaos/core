@@ -341,8 +341,7 @@ public:
 	virtual CORBA::Core::ReferenceLocalRef activate_object (ObjectKey&& key, bool unique,
 		CORBA::Core::ServantProxyObject& proxy, unsigned flags);
 
-	virtual void activate_object (CORBA::Core::ReferenceLocal& ref, CORBA::Core::ServantProxyObject& proxy,
-		unsigned flags);
+	virtual void activate_object (CORBA::Core::ReferenceLocal& ref, CORBA::Core::ServantProxyObject& proxy);
 
 	virtual void deactivate_object (const ObjectId& oid);
 	virtual CORBA::servant_reference <CORBA::Core::ServantProxyObject> deactivate_object (

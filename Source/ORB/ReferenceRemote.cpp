@@ -48,22 +48,11 @@ IOP::TaggedComponentSeq::const_iterator find (
 ReferenceRemote::ReferenceRemote (const OctetSeq& addr, servant_reference <Domain>&& domain,
 	const IOP::ObjectKey& object_key, const IDL::String& primary_iid,
 	ULong ORB_type, const IOP::TaggedComponentSeq& components) :
-	Reference (primary_iid, 0),
+	Reference (primary_iid, get_flags (ORB_type, components)),
 	address_ (addr),
 	domain_ (std::move (domain)),
 	object_key_ (object_key)
 {
-	if (ESIOP::ORB_TYPE == ORB_type) {
-		auto it = find (components, ESIOP::TAG_FLAGS);
-		if (it != components.end ()) {
-			Octet flags;
-			Nirvana::Core::ImplStatic <StreamInEncap> stm (std::ref (it->component_data ()));
-			stm.read (1, 1, &flags);
-			if (stm.end ())
-				throw INV_OBJREF ();
-			flags_ = flags;
-		}
-	}
 	auto it = find (components, IOP::TAG_POLICIES);
 	if (it != components.end ()) {
 		PolicyMap policies;

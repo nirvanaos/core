@@ -30,6 +30,8 @@
 
 #include "Reference.h"
 #include <CORBA/IOP.h>
+#include "ESIOP.h"
+#include "StreamInEncap.h"
 
 namespace CORBA {
 namespace Core {
@@ -83,6 +85,23 @@ public:
 protected:
 	virtual void _add_ref () NIRVANA_NOEXCEPT override;
 	virtual void _remove_ref () NIRVANA_NOEXCEPT override;
+
+private:
+	static unsigned get_flags (ULong ORB_type, const IOP::TaggedComponentSeq& components)
+	{
+		if (ESIOP::ORB_TYPE == ORB_type) {
+			auto it = find (components, ESIOP::TAG_FLAGS);
+			if (it != components.end ()) {
+				Octet flags;
+				Nirvana::Core::ImplStatic <StreamInEncap> stm (std::ref (it->component_data ()));
+				stm.read (1, 1, &flags);
+				if (stm.end ())
+					throw INV_OBJREF ();
+				return flags & GARBAGE_COLLECTION;
+			}
+		}
+		return 0;
+	}
 
 private:
 	const OctetSeq& address_;

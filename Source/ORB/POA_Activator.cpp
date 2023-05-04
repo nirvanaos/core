@@ -79,8 +79,7 @@ void POA_Activator::serve_default (const RequestRef& request, ReferenceLocal& re
 				throw OBJECT_NOT_EXIST (MAKE_OMG_MINOR (2));
 
 			try {
-				activate_object (reference, *object2proxy (servant), 
-					ReferenceLocal::LOCAL_AUTO_DEACTIVATE | Reference::GARBAGE_COLLECTION);
+				activate_object (reference, *object2proxy (servant));
 			} catch (const ServantAlreadyActive&) {
 				etherialize (oid, servant, false, false);
 				throw OBJ_ADAPTER ();
