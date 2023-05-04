@@ -319,6 +319,11 @@ public:
 		return (T*)Base::operator void* ();
 	}
 
+	operator bool () const NIRVANA_NOEXCEPT
+	{
+		return Base::operator void* ();
+	}
+
 	T* operator -> () const NIRVANA_NOEXCEPT
 	{
 		return operator T* ();

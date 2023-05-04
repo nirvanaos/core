@@ -267,7 +267,7 @@ ReferenceLocalRef POA_Base::create_reference (ObjectKey&& key,
 ReferenceLocalRef POA_Base::create_reference (ObjectKey&& key, const RepositoryId& intf,
 	unsigned flags)
 {
-	return root_->emplace_reference (std::move (key), false, std::ref (intf), flags, domain_manager_);
+	return root_->emplace_reference (std::move (key), false, intf, flags, domain_manager_);
 }
 
 ObjectId POA_Base::servant_to_id (ServantProxyObject& proxy)

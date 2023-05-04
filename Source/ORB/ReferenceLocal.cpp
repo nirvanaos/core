@@ -65,11 +65,11 @@ ReferenceLocal::~ReferenceLocal ()
 
 void ReferenceLocal::_add_ref ()
 {
-	if (flags_ & LOCAL_WEAK) {
+	if (flags_ & GARBAGE_COLLECTION) {
 		if (1 == ref_cnt_.increment_seq ()) {
-			ServantProxyObject* servant = servant_.lock ();
-			if (servant)
-				servant->_add_ref ();
+			ServantProxyObject* proxy = servant_.lock ();
+			if (proxy)
+				proxy->weak_lock ();
 			servant_.unlock ();
 		}
 	} else
@@ -79,30 +79,21 @@ void ReferenceLocal::_add_ref ()
 void ReferenceLocal::_remove_ref () NIRVANA_NOEXCEPT
 {
 	if (0 == ref_cnt_.decrement_seq ()) {
-		ServantProxyObject* servant = servant_.load ();
-		if ((flags_ & LOCAL_WEAK) && servant) {
-			servant->_remove_ref ();
-			servant = servant_.load ();
-		}
-
-		if (!servant || (flags_ & LOCAL_AUTO_DEACTIVATE)) {
+		if (flags_ & GARBAGE_COLLECTION) {
+			ServantProxyObject* proxy = servant_.lock ();
+			if (proxy)
+				proxy->weak_unlock ();
+			servant_.unlock ();
+		} else if (!servant_.load ()) {
 			// Need GC
 			SyncContext& adapter_context = local2proxy (Services::bind (Services::RootPOA))->sync_context ();
 			if (&SyncContext::current () == &adapter_context) {
 				// Do GC
-				if (!servant)
-					root_->remove_reference (object_key_);
-				else if (flags_ & LOCAL_AUTO_DEACTIVATE) {
-					PortableServer::Core::POA_Ref adapter = PortableServer::Core::POA_Root::find_child (object_key_.adapter_path (), false);
-					if (adapter)
-						adapter->deactivate_object (*this);
-					else {
-						ReferenceLocalRef ref (this);
-						deactivate ();
-					}
-				}
-			} else // Schedule GC
+				root_->remove_reference (object_key_);
+			} else {
+				// Schedule GC
 				GarbageCollector::schedule (*this, adapter_context);
+			}
 		}
 	}
 }
@@ -151,9 +142,12 @@ void ReferenceLocal::on_destruct_implicit (ServantProxyObject& proxy) NIRVANA_NO
 
 Nirvana::Core::Ref <ServantProxyObject> ReferenceLocal::get_servant () const NIRVANA_NOEXCEPT
 {
-	Nirvana::Core::Ref <ServantProxyObject> ret (servant_.lock ());
-	servant_.unlock ();
-	return ret;
+	// This method is always called from the POA sync context, so we need not lock the pointer.
+	ServantProxyObject* proxy (servant_.load ());
+	if (flags_ & GARBAGE_COLLECTION)
+		return proxy->weak_get_ref ();
+	else
+		return proxy;
 }
 
 void ReferenceLocal::marshal (StreamOut& out) const

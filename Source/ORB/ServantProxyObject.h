@@ -84,6 +84,21 @@ public:
 		return static_cast <PortableServer::ServantBase*> (&Base::servant ());
 	}
 
+	void weak_lock ()
+	{
+		_add_ref ();
+	}
+
+	void weak_unlock ()
+	{
+		_remove_ref ();
+	}
+
+	Nirvana::Core::Ref <ServantProxyObject> weak_get_ref ()
+	{
+		return this;
+	}
+
 protected:
 	ServantProxyObject (PortableServer::Servant user_servant);
 	~ServantProxyObject ();

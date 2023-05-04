@@ -114,8 +114,7 @@ void POA_Activator::set_servant_manager (ServantManager::_ptr_type imgr)
 ReferenceLocalRef POA_Activator::create_reference (ObjectKey&& key,
 	const RepositoryId& intf)
 {
-	return POA_Base::create_reference (std::move (key), intf,
-		ReferenceLocal::LOCAL_AUTO_DEACTIVATE | Reference::GARBAGE_COLLECTION);
+	return POA_Base::create_reference (std::move (key), intf, Reference::GARBAGE_COLLECTION);
 }
 
 void POA_Activator::etherialize (const ObjectId& oid, ServantProxyObject& proxy,
