@@ -129,7 +129,7 @@ void POA_Retain::etherealize_objects () NIRVANA_NOEXCEPT
 	References tmp (std::move (references_));
 	for (void* p : tmp) {
 		ReferenceLocalRef ref (reinterpret_cast <ReferenceLocal*> (p));
-		servant_reference <ServantProxyObject> servant = ref->deactivate ();
+		servant_reference <ServantProxyObject> servant (ref->deactivate ());
 		if (servant)
 			etherialize (ref->object_key ().object_id (), *servant, true);
 	}

@@ -70,7 +70,7 @@ ServantProxyObject::~ServantProxyObject ()
 				// We don't need exception handling here because on_destruct_implicit is noexcept.
 				// So we don't use SYNC_BEGIN/SYNC_END and just create the sync frame.
 				Nirvana::Core::Synchronized _sync_frame (*adapter_context_, nullptr);
-				ref->on_destruct_implicit (*this);
+				ref->on_servant_destruct (*this);
 			}
 		} else {
 			// If the set is not empty, it contains all the references include stored in reference_.
@@ -78,7 +78,7 @@ ServantProxyObject::~ServantProxyObject ()
 			// So we don't use SYNC_BEGIN/SYNC_END and just create the sync frame.
 			Nirvana::Core::Synchronized _sync_frame (*adapter_context_, nullptr);
 			for (void* p : references_) {
-				reinterpret_cast <ReferenceLocal*> (p)->on_destruct_implicit (*this);
+				reinterpret_cast <ReferenceLocal*> (p)->on_servant_destruct (*this);
 			}
 		}
 	} catch (...) {

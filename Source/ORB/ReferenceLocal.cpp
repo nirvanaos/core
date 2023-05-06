@@ -33,6 +33,7 @@
 #include <CORBA/Servant_var.h>
 
 using namespace Nirvana::Core;
+using namespace PortableServer::Core;
 
 namespace CORBA {
 
@@ -44,6 +45,7 @@ ReferenceLocal::ReferenceLocal (const PortableServer::Core::ObjectKey& key,
 	const IDL::String& primary_iid, unsigned flags, DomainManager* domain_manager) :
 	Reference (primary_iid, flags | LOCAL),
 	object_key_ (key),
+	adapter_context_ (&local2proxy (POA_Root::get_root ())->sync_context ()),
 	root_ (PortableServer::Core::POA_Base::root ()),
 	servant_ (nullptr)
 {
@@ -54,6 +56,7 @@ ReferenceLocal::ReferenceLocal (const PortableServer::Core::ObjectKey& key,
 	ServantProxyObject& proxy, unsigned flags, DomainManager* domain_manager) :
 	Reference (proxy, flags | LOCAL),
 	object_key_ (key),
+	adapter_context_ (&local2proxy (POA_Root::get_root ())->sync_context ()),
 	root_ (PortableServer::Core::POA_Base::root ()),
 	servant_ (nullptr)
 {
@@ -69,7 +72,7 @@ void ReferenceLocal::_add_ref ()
 		if (1 == ref_cnt_.increment_seq ()) {
 			ServantProxyObject* proxy = servant_.lock ();
 			if (proxy)
-				proxy->weak_lock ();
+				proxy->_add_ref ();
 			servant_.unlock ();
 		}
 	} else
@@ -82,28 +85,31 @@ void ReferenceLocal::_remove_ref () NIRVANA_NOEXCEPT
 		if (flags_ & GARBAGE_COLLECTION) {
 			ServantProxyObject* proxy = servant_.lock ();
 			if (proxy)
-				proxy->weak_unlock ();
+				proxy->_remove_ref ();
 			servant_.unlock ();
-		} else if (!servant_.load ()) {
-			// Need GC
-			SyncContext& adapter_context = local2proxy (Services::bind (Services::RootPOA))->sync_context ();
-			if (&SyncContext::current () == &adapter_context) {
-				// Do GC
-				root_->remove_reference (object_key_);
-			} else {
-				// Schedule GC
-				GarbageCollector::schedule (*this, adapter_context);
-			}
+			if (proxy)
+				return;
+		} else if (servant_.load ())
+			return;
+
+		// Need GC
+		if (&SyncContext::current () == adapter_context_) {
+			// Do GC
+			root_->remove_reference (object_key_);
+		} else {
+			// Schedule GC
+			GarbageCollector::schedule (*this, *adapter_context_);
 		}
 	}
 }
 
 void ReferenceLocal::activate (ServantProxyObject& proxy)
 {
-	// Caller must hold reference.
+	// Caller must hold both references.
 	assert (_refcount_value ());
+	assert (proxy._refcount_value ());
 
-	if (static_cast <ServantProxyObject*> (servant_.load ()))
+	if (servant_.load ())
 		throw PortableServer::POA::ObjectAlreadyActive ();
 
 	check_primary_interface (proxy.primary_interface_id ());
@@ -125,7 +131,7 @@ servant_reference <ServantProxyObject> ReferenceLocal::deactivate () NIRVANA_NOE
 	return proxy;
 }
 
-void ReferenceLocal::on_destruct_implicit (ServantProxyObject& proxy) NIRVANA_NOEXCEPT
+void ReferenceLocal::on_servant_destruct (ServantProxyObject& proxy) NIRVANA_NOEXCEPT
 {
 	ServantPtr::Ptr ptr (&proxy);
 	if (servant_.cas (ptr, nullptr)) {
@@ -140,14 +146,12 @@ void ReferenceLocal::on_destruct_implicit (ServantProxyObject& proxy) NIRVANA_NO
 	}
 }
 
-Nirvana::Core::Ref <ServantProxyObject> ReferenceLocal::get_servant () const NIRVANA_NOEXCEPT
+Ref <ServantProxyObject> ReferenceLocal::get_servant () const NIRVANA_NOEXCEPT
 {
 	// This method is always called from the POA sync context, so we need not lock the pointer.
-	ServantProxyObject* proxy (servant_.load ());
-	if (flags_ & GARBAGE_COLLECTION)
-		return proxy->weak_get_ref ();
-	else
-		return proxy;
+	Ref <ServantProxyObject> ret (servant_.lock ());
+	servant_.unlock ();
+	return ret;
 }
 
 void ReferenceLocal::marshal (StreamOut& out) const

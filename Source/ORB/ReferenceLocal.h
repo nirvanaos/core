@@ -63,7 +63,7 @@ public:
 	void activate (ServantProxyObject& proxy);
 	servant_reference <ServantProxyObject> deactivate () NIRVANA_NOEXCEPT;
 
-	void on_destruct_implicit (ServantProxyObject& proxy) NIRVANA_NOEXCEPT;
+	void on_servant_destruct (ServantProxyObject& proxy) NIRVANA_NOEXCEPT;
 
 	virtual void _add_ref () override;
 	virtual void _remove_ref () NIRVANA_NOEXCEPT override;
@@ -75,6 +75,8 @@ public:
 
 private:
 	const PortableServer::Core::ObjectKey& object_key_;
+
+	Nirvana::Core::Ref <Nirvana::Core::SyncContext> adapter_context_;
 
 	servant_reference <PortableServer::Core::POA_Root> root_;
 
