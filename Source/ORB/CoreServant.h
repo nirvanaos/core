@@ -30,7 +30,6 @@
 
 #include <CORBA/Server.h>
 #include "ServantProxyBase.h"
-#include "LifeCycleNoCopy.h"
 
 namespace CORBA {
 namespace Core {
@@ -41,12 +40,26 @@ namespace Core {
 /// \tparam Proxy Proxy type.
 template <class S, class Proxy>
 class NIRVANA_NOVTABLE CoreServant :
-	public LifeCycleNoCopy <S>,
 	public Internal::ServantTraits <S>,
 	public Internal::ValueImplBase <S, typename Proxy::ServantInterface>
 {
 public:
 	typedef typename Proxy::ServantInterface PrimaryInterface;
+
+	// Reference duplication is not allowed
+	template <class I>
+	static Internal::Interface* __duplicate (Internal::Interface* itf, Internal::Interface* env)
+	{
+		Internal::set_NO_IMPLEMENT (env);
+		return nullptr;
+	}
+
+	// On release reference we delete the proxy
+	template <class I>
+	static void __release (Internal::Interface* itf)
+	{
+		S::_implementation (static_cast <Internal::Bridge <I>*> (itf)).proxy ().delete_proxy ();
+	}
 
 	Internal::I_ptr <PrimaryInterface> _get_ptr () NIRVANA_NOEXCEPT
 	{
@@ -58,6 +71,8 @@ public:
 	{
 		return proxy_;
 	}
+
+	// Implementation of the servant object life cycle
 
 	static void __delete_object (Internal::Bridge <PrimaryInterface>* obj, Internal::Interface* env)
 	{
@@ -94,9 +109,6 @@ public:
 protected:
 	CoreServant (Proxy& proxy) :
 		proxy_ (proxy)
-	{}
-
-	virtual ~CoreServant ()
 	{}
 
 private:

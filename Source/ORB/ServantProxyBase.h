@@ -69,6 +69,11 @@ public:
 		return ref_cnt_.load ();
 	}
 
+	void delete_proxy ()
+	{
+		delete this;
+	}
+
 protected:
 	template <class I>
 	ServantProxyBase (Internal::I_ptr <I> servant) :
@@ -89,7 +94,7 @@ protected:
 		}
 	}
 
-	~ServantProxyBase ();
+	virtual ~ServantProxyBase ();
 
 	Internal::Interface::_ptr_type servant () const NIRVANA_NOEXCEPT
 	{
