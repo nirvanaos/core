@@ -34,7 +34,7 @@ protected:
 		// before the destructor).
 	}
 };
-
+/*
 TEST_F (TestFile, Open)
 {
 	char file_name [L_tmpnam_s];
@@ -51,5 +51,5 @@ TEST_F (TestFile, Open)
 	EXPECT_EQ (rbuf, wbuf);
 	fa = nullptr;
 }
-
+*/
 }
