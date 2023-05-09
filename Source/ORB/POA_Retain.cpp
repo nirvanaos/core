@@ -85,7 +85,7 @@ Object::_ref_type POA_Retain::reference_to_servant (Object::_ptr_type reference)
 	const ReferenceLocal& loc = static_cast <const ReferenceLocal&> (*ref);
 	if (!check_path (loc.object_key ().adapter_path ()))
 		throw WrongAdapter ();
-	Ref <ServantProxyObject> servant = loc.get_servant ();
+	Ref <ServantProxyObject> servant = loc.get_active_servant ();
 	if (servant)
 		return servant->get_proxy ();
 
@@ -96,7 +96,7 @@ Object::_ref_type POA_Retain::id_to_servant (const ObjectId& oid)
 {
 	ReferenceLocalRef ref = root_->find_reference (ObjectKey (*this, oid));
 	if (ref) {
-		Ref <ServantProxyObject> servant = ref->get_servant ();
+		Ref <ServantProxyObject> servant = ref->get_active_servant ();
 		if (servant)
 			return servant->get_proxy ();
 	}
@@ -106,7 +106,7 @@ Object::_ref_type POA_Retain::id_to_servant (const ObjectId& oid)
 Object::_ref_type POA_Retain::id_to_reference (const ObjectId& oid)
 {
 	ReferenceLocalRef ref = root_->find_reference (ObjectKey (*this, oid));
-	if (ref && ref->get_servant ())
+	if (ref && ref->get_active_servant ())
 		return ref->get_proxy ();
 	throw ObjectNotActive ();
 }
@@ -137,7 +137,7 @@ void POA_Retain::etherealize_objects () NIRVANA_NOEXCEPT
 
 void POA_Retain::serve (const RequestRef& request, ReferenceLocal& reference)
 {
-	Ref <ServantProxyObject> servant = reference.get_servant ();
+	Ref <ServantProxyObject> servant = reference.get_active_servant ();
 	if (servant)
 		POA_Base::serve (request, reference, *servant);
 	else

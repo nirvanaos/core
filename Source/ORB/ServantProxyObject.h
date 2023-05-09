@@ -49,7 +49,6 @@ public:
 	typedef PortableServer::ServantBase ServantInterface;
 
 	virtual void _add_ref () override;
-	virtual void _remove_ref () NIRVANA_NOEXCEPT override;
 
 	///@{
 	/// Called from the POA synchronization domain.

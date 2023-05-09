@@ -40,13 +40,6 @@ void ServantProxyLocal::_add_ref ()
 		add_ref_servant ();
 }
 
-void ServantProxyLocal::_remove_ref () NIRVANA_NOEXCEPT
-{
-	RefCntProxy::IntegralType cnt = ref_cnt_.decrement_seq ();
-	if (0 == cnt)
-		run_garbage_collector ();
-}
-
 Boolean ServantProxyLocal::non_existent ()
 {
 	return servant ()->_non_existent ();

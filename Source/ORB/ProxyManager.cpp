@@ -361,10 +361,10 @@ void ProxyManager::invoke (OperationIndex op, IORequest::_ptr_type rq) NIRVANA_N
 				op_metadata = object_ops_ + op_idx;
 			} else {
 				--itf_idx;
-				const InterfaceEntry& ie = interfaces () [itf_idx];
+				const InterfaceEntry& ie = interfaces_ [itf_idx];
 				implementation = &ie.implementation;
 				if (!implementation)
-					throw NO_IMPLEMENT ();
+					throw OBJECT_NOT_EXIST (MAKE_OMG_MINOR (2));
 				assert (op_idx < ie.operations.size);
 				op_metadata = ie.operations.p + op_idx;
 			}

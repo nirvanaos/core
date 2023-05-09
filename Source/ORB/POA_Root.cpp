@@ -159,11 +159,12 @@ void POA_Root::invoke_async (RequestRef request, DeadlineTime deadline)
 	if (Scheduler::state () != Scheduler::RUNNING)
 		throw CORBA::OBJ_ADAPTER (MAKE_OMG_MINOR (1));
 
-	const ServantProxyLocal* proxy = CORBA::Core::local2proxy (get_root ());
-	POA_Base* adapter = get_implementation (proxy);
+	const ServantProxyLocal* adapter_proxy = CORBA::Core::local2proxy (get_root ());
+	POA_Base* adapter = get_implementation (adapter_proxy);
 	assert (adapter);
 
-	ExecDomain::async_call <InvokeAsync> (deadline, proxy->sync_context (), request->memory (),
+	Ref <MemContext> memory = request->memory ();
+	ExecDomain::async_call <InvokeAsync> (deadline, adapter_proxy->sync_context (), std::move (memory),
 		adapter, std::move (request));
 }
 

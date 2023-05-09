@@ -40,6 +40,7 @@
 #include <CORBA/AbstractBase_s.h>
 #include <CORBA/Object_s.h>
 #include <CORBA/Proxy/IOReference_s.h>
+#include "offset_ptr.h"
 
 namespace CORBA {
 namespace Core {
@@ -254,7 +255,7 @@ protected:
 	ProxyManager (Internal::String_in primary_iid, bool servant_side);
 	ProxyManager (const ProxyManager& src);
 
-	virtual ~ProxyManager ();
+	~ProxyManager ();
 
 	Internal::IOReference::_ptr_type ior () NIRVANA_NOEXCEPT
 	{
@@ -288,14 +289,34 @@ protected:
 				deleter->delete_object ();
 		}
 	};
-
+/*
 	Nirvana::Core::Array <InterfaceEntry, Nirvana::Core::SharedAllocator>& interfaces ()
 		NIRVANA_NOEXCEPT
 	{
 		return interfaces_;
 	}
-
+*/
 	const InterfaceEntry* find_interface (Internal::String_in iid) const NIRVANA_NOEXCEPT;
+
+	template <class I>
+	void set_servant (Internal::I_ptr <I> servant, size_t offset)
+	{
+		// Fill implementation pointers
+		for (InterfaceEntry* ie = interfaces_.begin (); ie != interfaces_.end (); ++ie) {
+			assert (!ie->implementation);
+			Internal::Interface::_ptr_type impl = servant->_query_interface (ie->iid);
+			if (!impl)
+				throw OBJ_ADAPTER (); // Implementation not found. TODO: Log
+			ie->implementation = offset_ptr (impl, offset);
+		}
+	}
+
+	void reset_servant () NIRVANA_NOEXCEPT
+	{
+		for (InterfaceEntry* ie = interfaces_.begin (); ie != interfaces_.end (); ++ie) {
+			ie->implementation = nullptr;
+		}
+	}
 
 private:
 	struct OperationEntry

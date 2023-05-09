@@ -54,7 +54,6 @@ public:
 	}
 
 	virtual void _add_ref () override;
-	virtual void _remove_ref () NIRVANA_NOEXCEPT override;
 
 protected:
 	ServantProxyLocal (LocalObject::_ptr_type servant) :

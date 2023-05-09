@@ -33,13 +33,12 @@
 #include "../Chrono.h"
 #include "ProxyManager.h"
 #include "RefCntProxy.h"
-#include "offset_ptr.h"
 
 namespace CORBA {
 namespace Core {
 
 /// \brief Base for server-side proxies.
-class ServantProxyBase :
+class NIRVANA_NOVTABLE ServantProxyBase :
 	public ProxyManager
 {
 	class GC;
@@ -69,10 +68,10 @@ public:
 		return ref_cnt_.load ();
 	}
 
-	void delete_proxy ()
-	{
-		delete this;
-	}
+	virtual void _remove_ref () NIRVANA_NOEXCEPT override;
+
+	void delete_proxy () NIRVANA_NOEXCEPT;
+	void reset_servant () NIRVANA_NOEXCEPT;
 
 protected:
 	template <class I>
@@ -83,15 +82,7 @@ protected:
 	{
 		size_t offset = offset_ptr ();
 		servant_ = offset_ptr (static_cast <Internal::Interface::_ptr_type> (servant), offset);
-		// Fill implementation pointers
-		for (InterfaceEntry* ie = interfaces ().begin (); ie != interfaces ().end (); ++ie) {
-			if (!ie->implementation) {
-				Internal::Interface::_ptr_type impl = servant->_query_interface (ie->iid);
-				if (!impl)
-					throw OBJ_ADAPTER (); // Implementation not found. TODO: Log
-				ie->implementation = offset_ptr (impl, offset);
-			}
-		}
+		set_servant (servant, offset);
 	}
 
 	virtual ~ServantProxyBase ();

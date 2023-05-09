@@ -60,25 +60,52 @@ ServantProxyBase::~ServantProxyBase ()
 	assert (&Nirvana::Core::SyncContext::current () == &sync_context ());
 }
 
+void ServantProxyBase::_remove_ref () NIRVANA_NOEXCEPT
+{
+	RefCntProxy::IntegralType cnt = ref_cnt_.decrement_seq ();
+	if (0 == cnt) {
+		if (servant_)
+			run_garbage_collector ();
+		else
+			delete this;
+	}
+}
+
+void ServantProxyBase::delete_proxy () NIRVANA_NOEXCEPT
+{
+	// Called in the servant sync context
+	assert (&Nirvana::Core::SyncContext::current () == sync_context_);
+	if (!ref_cnt_.load ())
+		delete this;
+	else {
+		assert (false);
+		reset_servant ();
+	}
+}
+
+void ServantProxyBase::reset_servant () NIRVANA_NOEXCEPT
+{
+	servant_ = nullptr;
+	ProxyManager::reset_servant ();
+}
+
 void ServantProxyBase::add_ref_servant () const
 {
 	// Called in the servant synchronization context on getting the first reference to proxy.
-	// Lock module to prevent unloading the binary while there are references
-	// to a servant proxy.
-	Module* mod = sync_context_->module ();
-	if (mod)
-		mod->_add_ref ();
-	try {
-		if (&SyncContext::current () == sync_context_)
+	if (&SyncContext::current () == sync_context_)
+		interface_duplicate (&servant_);
+	else {
+		SYNC_BEGIN (*sync_context_, nullptr)
 			interface_duplicate (&servant_);
-		else {
-			SYNC_BEGIN (*sync_context_, nullptr)
-				interface_duplicate (&servant_);
-			SYNC_END ()
-		}
-	} catch (...) {
+		SYNC_END ()
+	}
+
+	if (servant_) {
+		// Lock module to prevent unloading the binary while there are references
+		// to a servant proxy.
+		Module* mod = sync_context_->module ();
 		if (mod)
-			mod->_remove_ref ();
+			mod->_add_ref ();
 	}
 }
 

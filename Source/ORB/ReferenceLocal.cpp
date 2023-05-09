@@ -83,12 +83,12 @@ void ReferenceLocal::_remove_ref () NIRVANA_NOEXCEPT
 {
 	if (0 == ref_cnt_.decrement_seq ()) {
 		if (flags_ & GARBAGE_COLLECTION) {
-			ServantProxyObject* proxy = servant_.lock ();
-			if (proxy)
+			ServantProxyObject* proxy = servant_.load ();
+			if (proxy) {
 				proxy->_remove_ref ();
-			servant_.unlock ();
-			if (proxy)
-				return;
+				if (servant_.load ())
+					return;
+			}
 		} else if (servant_.load ())
 			return;
 
@@ -131,27 +131,26 @@ servant_reference <ServantProxyObject> ReferenceLocal::deactivate () NIRVANA_NOE
 	return proxy;
 }
 
-void ReferenceLocal::on_servant_destruct (ServantProxyObject& proxy) NIRVANA_NOEXCEPT
+void ReferenceLocal::on_servant_destruct () NIRVANA_NOEXCEPT
 {
-	ServantPtr::Ptr ptr (&proxy);
-	if (servant_.cas (ptr, nullptr)) {
+	// Called on the active weak reference servant destruction.
+	assert (&SyncContext::current () == adapter_context_);
+	ServantProxyObject* proxy = servant_.exchange (nullptr);
+	assert (proxy);
+	PortableServer::Core::POA_Ref adapter = PortableServer::Core::POA_Root::find_child (object_key_.adapter_path (), false);
+	if (adapter)
+		adapter->implicit_deactivate (*this, *proxy);
 
-		PortableServer::Core::POA_Ref adapter = PortableServer::Core::POA_Root::find_child (object_key_.adapter_path (), false);
-		if (adapter)
-			adapter->implicit_deactivate (*this, proxy);
-
-		// Toggle reference counter to invoke GC
-		_add_ref ();
-		_remove_ref ();
-	}
+	// Toggle reference counter to invoke GC
+	_add_ref ();
+	_remove_ref ();
 }
 
-Ref <ServantProxyObject> ReferenceLocal::get_servant () const NIRVANA_NOEXCEPT
+Ref <ServantProxyObject> ReferenceLocal::get_active_servant () const NIRVANA_NOEXCEPT
 {
 	// This method is always called from the POA sync context, so we need not lock the pointer.
-	Ref <ServantProxyObject> ret (servant_.lock ());
-	servant_.unlock ();
-	return ret;
+	assert (&SyncContext::current () == adapter_context_);
+	return Ref <ServantProxyObject> (servant_.load ());
 }
 
 void ReferenceLocal::marshal (StreamOut& out) const
@@ -218,12 +217,16 @@ IORequest::_ref_type ReferenceLocal::create_request (OperationIndex op, unsigned
 	if (is_object_op (op))
 		return ProxyManager::create_request (op, flags);
 
-	Ref <ServantProxyObject> servant = get_servant ();
-	if (servant)
-		return servant->create_request (op, flags);
+	// If servant is active, create direct request for performance.
+	// We can't use get_active_servant here because the arbitrary sync context.
+	// So we lock the proxy pointer here.
+	Ref <ServantProxyObject> proxy (servant_.lock ());
+	servant_.unlock ();
+	if (proxy)
+		return proxy->create_request (op, flags);
 
+	// Create POA request.
 	check_create_request (op, flags);
-
 	unsigned response_flags = flags & 3;
 	if (flags & REQUEST_ASYNC)
 		return make_pseudo <RequestLocalImpl <RequestLocalAsyncPOA> > (std::ref (*this), op,

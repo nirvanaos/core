@@ -63,12 +63,12 @@ public:
 	void activate (ServantProxyObject& proxy);
 	servant_reference <ServantProxyObject> deactivate () NIRVANA_NOEXCEPT;
 
-	void on_servant_destruct (ServantProxyObject& proxy) NIRVANA_NOEXCEPT;
+	void on_servant_destruct () NIRVANA_NOEXCEPT;
 
 	virtual void _add_ref () override;
 	virtual void _remove_ref () NIRVANA_NOEXCEPT override;
 
-	Nirvana::Core::Ref <ServantProxyObject> get_servant () const NIRVANA_NOEXCEPT;
+	Nirvana::Core::Ref <ServantProxyObject> get_active_servant () const NIRVANA_NOEXCEPT;
 
 	virtual void marshal (StreamOut& out) const override;
 	virtual Internal::IORequest::_ref_type create_request (OperationIndex op, unsigned flags) override;

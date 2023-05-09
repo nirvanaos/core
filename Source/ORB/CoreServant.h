@@ -88,7 +88,9 @@ public:
 	{
 		if (0 == ref_cnt_.decrement_seq ()) {
 			try {
-				proxy_.servant ()->_delete_object ();
+				auto s = proxy_.servant ();
+				proxy_.reset_servant ();
+				s->_delete_object ();
 			} catch (...) {
 				assert (false); // TODO: Swallow exception or log
 			}
