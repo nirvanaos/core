@@ -322,9 +322,12 @@ const ModuleStartup* Binder::module_bind (::Nirvana::Module::_ptr_type mod, cons
 					Memory::READ_ONLY | Memory::EXACTLY));
 		}
 	} catch (...) {
-		SYNC_BEGIN (mod_context->sync_context, nullptr);
-		module_unbind (mod, { metadata.address, metadata.size });
-		SYNC_END ();
+		if (mod_context) {
+			SYNC_BEGIN (mod_context->sync_context, nullptr);
+			module_unbind (mod, { metadata.address, metadata.size });
+			SYNC_END ();
+		} else
+			module_unbind (mod, { metadata.address, metadata.size });
 		tls.set (TLS::CORE_TLS_BINDER, prev_context);
 		throw;
 	}

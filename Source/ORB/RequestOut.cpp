@@ -317,6 +317,7 @@ void RequestOut::set_system_exception (const Char* rep_id, uint32_t minor, Compl
 		SystemException::_Data data { minor, completed };
 		sout.write_c (alignof (SystemException::_Data), sizeof (SystemException::_Data), &data);
 		stream_in_ = Ref <StreamIn>::create <ImplDynamic <StreamInEncapData> > (std::move (sout.data ()));
+		finalize ();
 	} catch (...) {}
 }
 
