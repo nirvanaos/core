@@ -142,7 +142,7 @@ public:
 	void complex_ping (RequestIn& rq)
 	{
 		assert (rq.key ().family == DomainAddress::Family::ESIOP); // TODO
-		auto d = domains_local_.find (rq.key ().address.esiop);
+		auto d = get_domain_sync (rq.key ().address.esiop);
 		if (d)
 			d->complex_ping (rq._get_ptr ());
 	}

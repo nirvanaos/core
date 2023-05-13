@@ -99,17 +99,17 @@ void IncomingRequests::receive (Ref <RequestIn> rq, uint64_t timestamp)
 		rq->success ();
 		return;
 	}
-/*
+
 	if (rq->object_key ().adapter_path ().empty () && rq->object_key ().object_id ().empty ()) {
 		// DGC ping
 		if (static_cast <const std::string&> (op) == "ping") {
 			Nirvana::Core::Binder::complex_ping (*rq);
 			rq->success ();
 			return;
-		} else
+		} else if (!ESIOP::is_system_domain ())
 			throw BAD_OPERATION (MAKE_OMG_MINOR (2));
 	}
-*/
+
 	// Invoke
 	PortableServer::Core::POA_Root::invoke (Ref <RequestInPOA> (std::move (rq)), true);
 }
