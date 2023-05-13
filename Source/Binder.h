@@ -187,6 +187,20 @@ public:
 		return initialized_;
 	}
 
+	static void heartbeat (const CORBA::Core::DomainAddress& domain)
+	{
+		SYNC_BEGIN (sync_domain (), nullptr)
+			return singleton_->remote_references_.heartbeat (domain);
+		SYNC_END ();
+	}
+
+	static void complex_ping (CORBA::Core::RequestIn& rq)
+	{
+		SYNC_BEGIN (sync_domain (), nullptr)
+			return singleton_->remote_references_.complex_ping (rq);
+		SYNC_END ();
+	}
+
 private:
 	typedef CORBA::Internal::RepId RepId;
 	typedef CORBA::Internal::RepId::Version Version;
@@ -370,33 +384,6 @@ private:
 };
 
 }
-}
-
-namespace ESIOP {
-
-template <template <class> class Al>
-inline CORBA::servant_reference <DomainLocal> DomainsLocalWaitable <Al>::get (ProtDomainId domain_id)
-{
-	auto ins = map_.emplace (domain_id, DEADLINE_MAX);
-	if (ins.second) {
-		typename Map::reference entry = *ins.first;
-		try {
-			Ptr p;
-			SYNC_BEGIN (Nirvana::Core::g_core_free_sync_context, &Nirvana::Core::Binder::memory ().heap ());
-			p.reset (new DomainLocal (domain_id));
-			SYNC_END ();
-			PortableServer::Servant_var <DomainLocal> ret (p.get ());
-			entry.second.finish_construction (std::move (p));
-			return ret;
-		} catch (...) {
-			entry.second.on_exception ();
-			map_.erase (domain_id);
-			throw;
-		}
-	} else
-		return ins.first->second.get ().get ();
-}
-
 }
 
 #endif

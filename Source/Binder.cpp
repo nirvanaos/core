@@ -416,7 +416,7 @@ Ref <Module> Binder::load (std::string& module_name, bool singleton)
 
 		entry.second.finish_construction (mod);
 		if (module_map_.size () == 1)
-			housekeeping_timer_.set (0, MODULE_UNLOAD_TIMEOUT, MODULE_UNLOAD_TIMEOUT);
+			housekeeping_timer_.set_relative (MODULE_UNLOAD_TIMEOUT, MODULE_UNLOAD_TIMEOUT);
 
 	} else {
 		mod = entry.second.get ();

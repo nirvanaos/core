@@ -33,11 +33,8 @@
 module Nirvana {
 module Core {
 
-typedef sequence <IOP::ObjectKey> ObjectKeys;
-
 interface ProtDomaiCore : ProtDomain
 {
-	oneway void ping (in ObjectKeys add, in ObjectKeys del);
 	void request (in CORBA::OctetSeq data_in, out CORBA::OctetSeq data_out);
 	oneway void request_oneway (in CORBA::OctetSeq data);
 };

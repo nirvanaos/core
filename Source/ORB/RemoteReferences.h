@@ -32,8 +32,7 @@
 #include "DomainsLocal.h"
 #include "DomainRemote.h"
 #include "HashOctetSeq.h"
-#include "StreamOutEncap.h"
-#include "StreamInEncap.h"
+#include "RequestIn.h"
 #include <CORBA/IOP.h>
 #include <CORBA/I_var.h>
 
@@ -130,6 +129,22 @@ public:
 			return PortableServer::Servant_var <Domain> (p);
 		else
 			return p;
+	}
+
+	void heartbeat (const DomainAddress& da)
+	{
+		assert (da.family == DomainAddress::Family::ESIOP); // TODO
+		auto d = domains_local_.find (da.address.esiop);
+		if (d)
+			d->request_in ();
+	}
+
+	void complex_ping (RequestIn& rq)
+	{
+		assert (rq.key ().family == DomainAddress::Family::ESIOP); // TODO
+		auto d = domains_local_.find (rq.key ().address.esiop);
+		if (d)
+			d->complex_ping (rq._get_ptr ());
 	}
 
 private:

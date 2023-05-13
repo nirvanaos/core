@@ -60,10 +60,15 @@ ReferenceRemote::ReferenceRemote (const OctetSeq& addr, servant_reference <Domai
 		if (!policies.empty ())
 			domain_manager_ = make_reference <Core::DomainManager> (std::move (policies));
 	}
+	if ((flags () & GARBAGE_COLLECTION) && domain_->DGC_supported ())
+		domain_->on_DGC_reference_unmarshal (object_key_);
 }
 
 ReferenceRemote::~ReferenceRemote ()
-{}
+{
+	if ((flags () & GARBAGE_COLLECTION) && domain_->DGC_supported ())
+		domain_->on_DGC_reference_delete (object_key_);
+}
 
 void ReferenceRemote::_add_ref () NIRVANA_NOEXCEPT
 {

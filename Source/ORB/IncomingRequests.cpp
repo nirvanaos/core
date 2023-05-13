@@ -26,6 +26,7 @@
 #include "IncomingRequests.h"
 #include "Chrono.h"
 #include "POA_Root.h"
+#include "../Binder.h"
 #include <algorithm>
 
 using namespace Nirvana;
@@ -86,9 +87,30 @@ void IncomingRequests::receive (Ref <RequestIn> rq, uint64_t timestamp)
 	}
 
 	ed.deadline (deadline);
-
 	// Execution domain will be rescheduled with new deadline
-	// on entering to the POA synchronization domain.
+	// on entering to the POA or Binder synchronization domain.
+
+	// Process special operations
+	auto op = rq->operation ();
+
+	if (static_cast <const std::string&> (op) == "FT_HB") {
+		// Fault Tolerant CORBA heartbeat/
+		Nirvana::Core::Binder::heartbeat (rq->key ());
+		rq->success ();
+		return;
+	}
+/*
+	if (rq->object_key ().adapter_path ().empty () && rq->object_key ().object_id ().empty ()) {
+		// DGC ping
+		if (static_cast <const std::string&> (op) == "ping") {
+			Nirvana::Core::Binder::complex_ping (*rq);
+			rq->success ();
+			return;
+		} else
+			throw BAD_OPERATION (MAKE_OMG_MINOR (2));
+	}
+*/
+	// Invoke
 	PortableServer::Core::POA_Root::invoke (Ref <RequestInPOA> (std::move (rq)), true);
 }
 

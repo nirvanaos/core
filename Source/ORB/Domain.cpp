@@ -24,6 +24,7 @@
 *  popov.nirvana@gmail.com
 */
 #include "../Binder.h"
+#include "POA_Root.h"
 
 using namespace Nirvana::Core;
 
@@ -31,7 +32,7 @@ namespace CORBA {
 namespace Core {
 
 Domain::Domain () :
-	last_ping_time_ (0)
+	latest_request_in_time_ (0)
 {}
 
 Domain::~Domain ()
@@ -50,6 +51,16 @@ void Domain::_remove_ref () NIRVANA_NOEXCEPT
 			destroy ();
 		else
 			GarbageCollector::schedule (*this, sc);
+	}
+}
+
+void Domain::add_owned_objects (const IDL::Sequence <IOP::ObjectKey>& keys, Object::_ref_type* objs)
+{
+	PortableServer::Core::POA_Root::get_DGC_objects (keys, objs);
+	for (const IOP::ObjectKey& obj_key : keys) {
+		if (*objs)
+			owned_objects_.emplace (obj_key, std::move (*objs));
+		++objs;
 	}
 }
 

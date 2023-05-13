@@ -30,18 +30,20 @@
 
 #include <CORBA/CORBA.h>
 #include <Nirvana/CoreDomains.h>
+#include <Nirvana/SimpleList.h>
 #include "../AtomicCounter.h"
 #include "../MapUnorderedUnstable.h"
 #include "../UserAllocator.h"
 #include "../Chrono.h"
+#include "../Timer.h"
 #include "HashOctetSeq.h"
 #include "GarbageCollector.h"
-#include "POA_Root.h"
 #include <array>
 
 namespace CORBA {
 namespace Core {
 
+/// Other domain
 class NIRVANA_NOVTABLE Domain : public SyncGC
 {
 	template <class D> friend class CORBA::servant_reference;
@@ -50,46 +52,51 @@ public:
 	virtual Internal::IORequest::_ref_type create_request (const IOP::ObjectKey& object_key,
 		const Internal::Operation& metadata, unsigned flags) = 0;
 
-	const TimeBase::TimeT& last_ping_time () const NIRVANA_NOEXCEPT
+	bool DGC_supported () const NIRVANA_NOEXCEPT
 	{
-		return last_ping_time_;
+		return true; // TODO
 	}
 
-	void simple_ping () NIRVANA_NOEXCEPT
+	const TimeBase::TimeT& latest_request_in_time () const NIRVANA_NOEXCEPT
 	{
-		last_ping_time_ = Nirvana::Core::Chrono::steady_clock ();
+		return latest_request_in_time_;
 	}
 
-	void complex_ping (const Nirvana::Core::ObjectKeys& add, const Nirvana::Core::ObjectKeys& del)
+	void request_in () NIRVANA_NOEXCEPT
 	{
-		last_ping_time_ = Nirvana::Core::Chrono::steady_clock ();
-		static const size_t STATIC_ADD_CNT = 4;
-		if (add.size () <= STATIC_ADD_CNT) {
-			std::array <Object::_ref_type, STATIC_ADD_CNT> refs;
-			PortableServer::Core::POA_Root::get_DGC_objects (add, refs.data ());
-			Object::_ref_type* objs = refs.data ();
-			for (const IOP::ObjectKey& obj_key : add) {
-				if (*objs)
-					owned_objects_.emplace (obj_key, std::move (*objs));
-				++objs;
-			}
-		} else {
-			std::vector <Object::_ref_type> refs;
-			Object::_ref_type* objs = refs.data ();
-			for (const IOP::ObjectKey& obj_key : add) {
-				owned_objects_.emplace (obj_key, std::move (*objs));
-				++objs;
-			}
-		}
+		latest_request_in_time_ = Nirvana::Core::Chrono::steady_clock ();
+	}
 
-		for (const IOP::ObjectKey& obj_key : del) {
-			owned_objects_.erase (obj_key);
-		}
+	void complex_ping (Internal::IORequest::_ptr_type rq)
+	{
+		IDL::Sequence <IOP::ObjectKey> add, del;
+		Internal::Type <IDL::Sequence <IOP::ObjectKey> >::unmarshal (rq, add);
+		Internal::Type <IDL::Sequence <IOP::ObjectKey> >::unmarshal (rq, del);
+		complex_ping (add, del);
 	}
 
 	void release_owned_objects () NIRVANA_NOEXCEPT
 	{
 		owned_objects_.clear ();
+	}
+
+	void on_DGC_reference_unmarshal (const IOP::ObjectKey& object_key)
+	{
+		auto ins = remote_objects_.emplace (object_key);
+		RemoteRefKey& key = const_cast <RemoteRefKey&> (*ins.first);
+		if (ins.second)
+			remote_objects_add_.push_back (key);
+		else if (1 == key.add_ref ())
+			key.remove (); // From remote_objects_del_ list
+	}
+
+	void on_DGC_reference_delete (const IOP::ObjectKey& object_key) NIRVANA_NOEXCEPT
+	{
+		auto f = remote_objects_.find (object_key);
+		assert (f != remote_objects_.end ());
+		RemoteRefKey& key = const_cast <RemoteRefKey&> (*f);
+		if (0 == key.remove_ref ())
+			remote_objects_del_.push_back (key);
 	}
 
 protected:
@@ -99,6 +106,25 @@ protected:
 	virtual void _add_ref () NIRVANA_NOEXCEPT override;
 	virtual void _remove_ref () NIRVANA_NOEXCEPT override;
 	virtual void destroy () NIRVANA_NOEXCEPT = 0;
+
+	void complex_ping (const IDL::Sequence <IOP::ObjectKey>& add, const IDL::Sequence <IOP::ObjectKey>& del)
+	{
+		latest_request_in_time_ = Nirvana::Core::Chrono::steady_clock ();
+		static const size_t STATIC_ADD_CNT = 4;
+		if (add.size () <= STATIC_ADD_CNT) {
+			std::array <Object::_ref_type, STATIC_ADD_CNT> refs;
+			add_owned_objects (add, refs.data ());
+		} else {
+			std::vector <Object::_ref_type> refs (add.size ());
+			add_owned_objects (add, refs.data ());
+		}
+
+		for (const IOP::ObjectKey& obj_key : del) {
+			owned_objects_.erase (obj_key);
+		}
+	}
+
+	void add_owned_objects (const IDL::Sequence <IOP::ObjectKey>& keys, Object::_ref_type* objs);
 
 private:
 	class RefCnt : public Nirvana::Core::AtomicCounter <false>
@@ -114,14 +140,56 @@ private:
 
 	RefCnt ref_cnt_;
 
-	// DGC-enabled objects owned by this domain
+	// DGC-enabled local objects owned by this domain
 	typedef Nirvana::Core::MapUnorderedUnstable <IOP::ObjectKey, Object::_ref_type,
 		std::hash <IOP::ObjectKey>, std::equal_to <IOP::ObjectKey>, 
 		Nirvana::Core::UserAllocator <std::pair <IOP::ObjectKey, Object::_ref_type> > >
 		OwnedObjects;
 
 	OwnedObjects owned_objects_;
-	TimeBase::TimeT last_ping_time_;
+
+	// DGC-enabled remote reference owned by the current domain
+	class RemoteRefKey :
+		public IOP::ObjectKey,
+		public Nirvana::SimpleList <RemoteRefKey>::Element
+	{
+	public:
+		RemoteRefKey (const IOP::ObjectKey& object_key) :
+			IOP::ObjectKey (object_key),
+			ref_cnt_ (1)
+		{}
+
+		unsigned add_ref () NIRVANA_NOEXCEPT
+		{
+			return ++ref_cnt_;
+		}
+
+		unsigned remove_ref () NIRVANA_NOEXCEPT
+		{
+			assert (ref_cnt_);
+			return --ref_cnt_;
+		}
+
+	private:
+		unsigned ref_cnt_;
+	};
+
+	typedef Nirvana::Core::SetUnorderedUnstable <RemoteRefKey,
+		std::hash <IOP::ObjectKey>, std::equal_to <IOP::ObjectKey>,
+		Nirvana::Core::UserAllocator <RemoteRefKey> >
+		RemoteObjects;
+
+	RemoteObjects remote_objects_;
+	Nirvana::SimpleList <RemoteRefKey> remote_objects_add_;
+	Nirvana::SimpleList <RemoteRefKey> remote_objects_del_;
+
+	class Timer : public Nirvana::Core::Timer
+	{
+	private:
+		virtual void signal () noexcept override;
+	};
+
+	TimeBase::TimeT latest_request_in_time_;
 };
 
 }

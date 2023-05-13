@@ -43,6 +43,15 @@ class DomainsLocalWaitable
 public:
 	CORBA::servant_reference <DomainLocal> get (ProtDomainId domain_id);
 
+	CORBA::servant_reference <DomainLocal> find (ProtDomainId domain_id)
+	{
+		auto it = map_.find (domain_id);
+		if (it != map_.end ())
+			return it->second.get ().get ();
+		else
+			return nullptr;
+	}
+
 	void erase (ProtDomainId domain_id)
 	{
 		map_.erase (domain_id);
@@ -61,6 +70,29 @@ private:
 };
 
 template <template <class> class Al>
+inline CORBA::servant_reference <DomainLocal> DomainsLocalWaitable <Al>::get (ProtDomainId domain_id)
+{
+	auto ins = map_.emplace (domain_id, DEADLINE_MAX);
+	if (ins.second) {
+		typename Map::reference entry = *ins.first;
+		try {
+			Ptr p;
+			SYNC_BEGIN (Nirvana::Core::g_core_free_sync_context, &Nirvana::Core::MemContext::current ());
+			p.reset (new DomainLocal (domain_id));
+			SYNC_END ();
+			PortableServer::Servant_var <DomainLocal> ret (p.get ());
+			entry.second.finish_construction (std::move (p));
+			return ret;
+		} catch (...) {
+			entry.second.on_exception ();
+			map_.erase (domain_id);
+			throw;
+		}
+	} else
+		return ins.first->second.get ().get ();
+}
+
+template <template <class> class Al>
 class DomainsLocalSimple
 {
 public:
@@ -74,6 +106,14 @@ public:
 	void erase (ProtDomainId domain_id) NIRVANA_NOEXCEPT
 	{
 		map_.erase (domain_id);
+	}
+
+	CORBA::servant_reference <DomainLocal> find (ProtDomainId domain_id) NIRVANA_NOEXCEPT
+	{
+		auto it = map_.find (domain_id);
+		if (it != map_.end ())
+			return &it->second;
+		return nullptr;
 	}
 
 private:

@@ -37,27 +37,48 @@ class Timer :
 	private Port::Timer
 {
 public:
-	static const unsigned TIMER_ABSOLUTE = 0x01;
-
-	void set (unsigned flags, TimeBase::TimeT due_time, TimeBase::TimeT period)
+	/// \brief Sets the timer object, replacing the previous timer, if any.
+	/// 
+	/// \param due_time UTC time to signal.
+	/// \param period The timer period, in milliseconds. If this parameter is zero, the timer is signaled once. If this parameter is greater than zero, the timer is periodic. A periodic timer automatically reactivates each time the period elapses, until the timer is canceled.
+	void set_absolute (TimeBase::TimeT due_time, TimeBase::TimeT period)
 	{
-		Port::Timer::set (flags, due_time, period);
+		Port::Timer::set (TIMER_ABSOLUTE, due_time, period);
 	}
 
+	/// \brief Sets the timer object, replacing the previous timer, if any.
+	/// 
+	/// \param initial Initial expiration interval.
+	/// \param period The timer period, in milliseconds. If this parameter is zero, the timer is signaled once. If this parameter is greater than zero, the timer is periodic. A periodic timer automatically reactivates each time the period elapses, until the timer is canceled.
+	void set_relative (TimeBase::TimeT initial, TimeBase::TimeT period)
+	{
+		Port::Timer::set (0, initial, period);
+	}
+
+	/// Disarm the timer.
 	void cancel () NIRVANA_NOEXCEPT
 	{
 		Port::Timer::cancel ();
 	}
 
+	/// Initialize timers.
+	///
+	/// Called on system startup.
 	static void initialize ()
 	{
 		Port::Timer::initialize ();
 	}
 
+	/// Terminate all timers.
+	///
+	/// Called on system shutdown.
 	static void terminate () NIRVANA_NOEXCEPT
 	{
 		Port::Timer::terminate ();
 	}
+
+protected:
+	virtual void signal () noexcept = 0;
 };
 
 }

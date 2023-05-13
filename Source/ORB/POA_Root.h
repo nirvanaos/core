@@ -91,7 +91,7 @@ public:
 		SYNC_END ();
 	}
 
-	static void get_DGC_objects (const Nirvana::Core::ObjectKeys& keys, CORBA::Object::_ref_type* refs)
+	static void get_DGC_objects (const IDL::Sequence <IOP::ObjectKey>& keys, CORBA::Object::_ref_type* refs)
 	{
 		CORBA::Object::_ref_type* pref = refs;
 		for (const auto& iop_key : keys) {

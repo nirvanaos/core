@@ -57,31 +57,25 @@ struct ProxyManager::OEPred
 {
 	bool operator () (const OperationEntry& lhs, const OperationEntry& rhs) const NIRVANA_NOEXCEPT
 	{
-		return compare (lhs.name, lhs.name_len, rhs.name, rhs.name_len);
+		return less (lhs.name, lhs.name_len, rhs.name, rhs.name_len);
 	}
 
 	bool operator () (String_in lhs, const OperationEntry& rhs) const NIRVANA_NOEXCEPT
 	{
-		return compare (lhs.data (), lhs.size (), rhs.name, rhs.name_len);
+		return less (lhs.data (), lhs.size (), rhs.name, rhs.name_len);
 	}
 
 	bool operator () (const OperationEntry& lhs, String_in rhs) const NIRVANA_NOEXCEPT
 	{
-		return compare (lhs.name, lhs.name_len, rhs.data (), rhs.size ());
+		return less (lhs.name, lhs.name_len, rhs.data (), rhs.size ());
 	}
 
-	// Operation names in CORBA are case-insensitive
-	static bool less_no_case (Char c1, Char c2)
-	{
-		return tolower (c1) < tolower (c2);
-	}
-
-	static bool compare (const Char* lhs, size_t lhs_len, const Char* rhs, size_t rhs_len);
+	static bool less (const Char* lhs, size_t lhs_len, const Char* rhs, size_t rhs_len);
 };
 
-bool ProxyManager::OEPred::compare (const Char* lhs, size_t lhs_len, const Char* rhs, size_t rhs_len)
+bool ProxyManager::OEPred::less (const Char* lhs, size_t lhs_len, const Char* rhs, size_t rhs_len)
 {
-	return std::lexicographical_compare (lhs, lhs + lhs_len, rhs, rhs + rhs_len, less_no_case);
+	return std::lexicographical_compare (lhs, lhs + lhs_len, rhs, rhs + rhs_len);
 }
 
 void ProxyManager::check_metadata (const InterfaceMetadata* metadata, String_in primary)

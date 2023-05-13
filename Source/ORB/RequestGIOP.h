@@ -38,7 +38,6 @@
 #include "CodeSetConverter.h"
 #include "POA_Root.h"
 #include "LocalAddress.h"
-#include "RemoteReferences.h"
 #include "IndirectMapUnmarshal.h"
 
 namespace CORBA {
