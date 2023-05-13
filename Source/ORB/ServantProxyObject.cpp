@@ -119,6 +119,14 @@ ReferenceRef ServantProxyObject::get_reference ()
 	return ref;
 }
 
+void ServantProxyObject::marshal (StreamOut& out) const
+{
+	ReferenceLocalRef ref = get_reference_local ();
+	if (!ref) // Attempt to pass an unactivated (unregistered) value as an object reference.
+		throw OBJECT_NOT_EXIST (MAKE_OMG_MINOR (1));
+	ref->marshal (out);
+}
+
 Policy::_ref_type ServantProxyObject::_get_policy (PolicyType policy_type)
 {
 	return get_reference ()->_get_policy (policy_type);

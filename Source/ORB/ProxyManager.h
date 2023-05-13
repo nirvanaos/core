@@ -47,6 +47,7 @@ namespace Core {
 
 class Reference;
 typedef servant_reference <Reference> ReferenceRef;
+class StreamOut;
 
 /// \brief Base for all proxies.
 class NIRVANA_NOVTABLE ProxyManager :
@@ -235,6 +236,7 @@ public:
 	void check_create_request (OperationIndex op, unsigned flags) const;
 
 	virtual ReferenceRef get_reference () = 0;
+	virtual void marshal (StreamOut& out) const = 0;
 
 	Internal::StringView <Char> primary_interface_id () const NIRVANA_NOEXCEPT
 	{

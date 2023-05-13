@@ -69,11 +69,6 @@ public:
 		flags_ (flags)
 	{}
 
-	/// Marshal reference to stream.
-	/// 
-	/// \param out Stream.
-	virtual void marshal (StreamOut& out) const = 0;
-
 	virtual ReferenceRef get_reference () override;
 
 	RefCntProxy::IntegralType _refcount_value () const NIRVANA_NOEXCEPT

@@ -89,6 +89,7 @@ protected:
 
 	virtual Boolean non_existent () override;
 	virtual ReferenceRef get_reference () override;
+	virtual void marshal (StreamOut& out) const override;
 
 	ReferenceLocalRef get_reference_local () const NIRVANA_NOEXCEPT;
 

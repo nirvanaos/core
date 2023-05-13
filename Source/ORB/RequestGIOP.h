@@ -234,7 +234,7 @@ public:
 	void marshal_interface (Internal::Interface::_ptr_type itf)
 	{
 		if (marshal_chunk ())
-			ProxyManager::cast (interface2object (itf))->get_reference ()->marshal (*stream_out_);
+			ProxyManager::cast (interface2object (itf))->marshal (*stream_out_);
 	}
 
 	/// Unmarshal interface.
