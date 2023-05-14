@@ -89,7 +89,6 @@ protected:
 
 	virtual Boolean non_existent () override;
 	virtual ReferenceRef get_reference () override;
-	virtual void marshal (StreamOut& out) const override;
 
 	ReferenceLocalRef get_reference_local () const NIRVANA_NOEXCEPT;
 
@@ -99,7 +98,7 @@ protected:
 protected:
 	Nirvana::Core::Ref <Nirvana::Core::SyncContext> adapter_context_;
 
-	static const size_t REF_ALIGN = Nirvana::Core::core_object_align (sizeof (Reference));
+	static const size_t REF_ALIGN = Nirvana::Core::core_object_align (sizeof (Reference) + 4 * sizeof (void*));
 	typedef Nirvana::Core::LockablePtrT <ReferenceLocal, 0, REF_ALIGN> RefPtr;
 
 	mutable RefPtr reference_;

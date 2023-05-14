@@ -38,13 +38,14 @@ using namespace Internal;
 
 namespace Core {
 
-RequestGIOP::RequestGIOP (unsigned GIOP_minor, bool client_side, unsigned response_flags) :
+RequestGIOP::RequestGIOP (unsigned GIOP_minor, unsigned response_flags, Domain* servant_domain) :
 	GIOP_minor_ (GIOP_minor),
 	response_flags_ (response_flags),
+	target_domain_ (servant_domain),
 	mem_context_ (&MemContext::current ()),
 	chunk_level_ (0),
 	code_set_conv_ (CodeSetConverter::get_default ()),
-	code_set_conv_w_ (CodeSetConverterW::get_default (GIOP_minor, client_side))
+	code_set_conv_w_ (CodeSetConverterW::get_default (GIOP_minor, servant_domain != nullptr))
 {}
 
 RequestGIOP::~RequestGIOP ()

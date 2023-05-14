@@ -70,6 +70,7 @@ public:
 	{}
 
 	virtual ReferenceRef get_reference () override;
+	virtual void marshal (StreamOut& out) const = 0;
 
 	RefCntProxy::IntegralType _refcount_value () const NIRVANA_NOEXCEPT
 	{
@@ -89,6 +90,9 @@ protected:
 	const unsigned flags_;
 	servant_reference <Core::DomainManager> domain_manager_;
 };
+
+typedef Nirvana::Core::SetUnorderedUnstable <ReferenceRef, std::hash <void*>, std::equal_to <void*>,
+	Nirvana::Core::UserAllocator <void*> > ReferenceSet;
 
 }
 }

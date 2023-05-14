@@ -23,6 +23,7 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
+#include "Domain.h"
 #include "../Binder.h"
 #include "POA_Root.h"
 
@@ -31,8 +32,13 @@ using namespace Nirvana::Core;
 namespace CORBA {
 namespace Core {
 
-Domain::Domain () :
-	latest_request_in_time_ (0)
+Domain::Domain (unsigned flags, TimeBase::TimeT request_latency, TimeBase::TimeT heartbeat_interval,
+	TimeBase::TimeT heartbeat_timeout) :
+	flags_ (flags),
+	last_ping_in_time_ (Nirvana::Core::Chrono::steady_clock ()),
+	request_latency_ (request_latency),
+	heartbeat_interval_ (heartbeat_interval),
+	heartbeat_timeout_ (heartbeat_timeout)
 {}
 
 Domain::~Domain ()

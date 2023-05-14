@@ -29,7 +29,7 @@
 #pragma once
 
 #include "StreamOut.h"
-#include "../Binder.h"
+#include "DomainLocal.h"
 #include "../UserAllocator.h"
 #include "../UserObject.h"
 #include <vector>
@@ -64,15 +64,12 @@ public:
 	}
 
 protected:
-	StreamOutSM (DomainLocal& target) :
+	StreamOutSM (DomainLocal& target, bool client) :
 		other_domain_ (&target)
 	{
-		initialize ();
+		if (client)
+			initialize ();
 	}
-
-	StreamOutSM (ProtDomainId client_id) :
-		other_domain_ (Nirvana::Core::Binder::get_domain (client_id))
-	{} // initialize () can be called later
 
 	void initialize ();
 

@@ -41,6 +41,8 @@ class DomainRemote :
 {
 public:
 	DomainRemote (const IIOP::ListenPoint& lp) :
+		Domain (0,
+			1 * TimeBase::SECOND, 1 * TimeBase::MINUTE, 2 * TimeBase::MINUTE),
 		IIOP::ListenPoint (lp)
 	{}
 

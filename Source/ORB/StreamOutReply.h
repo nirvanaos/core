@@ -40,8 +40,8 @@ public:
 	// Size of GIOP MessageHeader + size of GIOP ReplyHeader with empty service_context.
 	static const size_t REPLY_HEADERS_SIZE = 24;
 
-	StreamOutReply (ProtDomainId client_id) :
-		StreamOutSM (client_id),
+	StreamOutReply (DomainLocal& domain) :
+		StreamOutSM (domain, false),
 		small_ptr_ (small_buffer_)
 	{}
 

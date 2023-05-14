@@ -44,7 +44,7 @@ class NIRVANA_NOVTABLE RequestOut : public RequestGIOP
 	static const unsigned FLAG_PREUNMARSHAL = 8;
 
 public:
-	RequestOut (unsigned GIOP_minor, unsigned response_flags, const Internal::Operation& metadata);
+	RequestOut (unsigned GIOP_minor, unsigned response_flags, Domain& target_domain, const Internal::Operation& metadata);
 
 	~RequestOut ();
 

@@ -37,8 +37,8 @@ using namespace Internal;
 namespace Core {
 
 RequestOut::RequestOut (unsigned GIOP_minor, unsigned response_flags,
-	const Internal::Operation& metadata) :
-	RequestGIOP (GIOP_minor, true, response_flags),
+	Domain& servant_domain, const Internal::Operation& metadata) :
+	RequestGIOP (GIOP_minor, response_flags, &servant_domain),
 	metadata_ (&metadata),
 	id_ (0),
 	status_ (Status::IN_PROGRESS)

@@ -40,6 +40,8 @@ class DomainLocal :
 {
 public:
 	DomainLocal (ESIOP::ProtDomainId id) :
+		CORBA::Core::Domain (GARBAGE_COLLECTION | HEARTBEAT_IN | HEARTBEAT_OUT,
+			10 * TimeBase::MILLISECOND, 30 * TimeBase::SECOND, 1 * TimeBase::MINUTE),
 		OtherDomain (id),
 		id_ (id)
 	{}

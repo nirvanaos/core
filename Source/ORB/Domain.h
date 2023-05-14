@@ -29,7 +29,8 @@
 #pragma once
 
 #include <CORBA/CORBA.h>
-#include <Nirvana/CoreDomains.h>
+#include <CORBA/IOP.h>
+#include <CORBA/Proxy/InterfaceMetadata.h>
 #include <Nirvana/SimpleList.h>
 #include "../AtomicCounter.h"
 #include "../MapUnorderedUnstable.h"
@@ -52,23 +53,35 @@ public:
 	virtual Internal::IORequest::_ref_type create_request (const IOP::ObjectKey& object_key,
 		const Internal::Operation& metadata, unsigned flags) = 0;
 
-	bool DGC_supported () const NIRVANA_NOEXCEPT
+	/// Domain supports distributed garbage collection
+	///
+	/// If this flag is set, flags HEARTBEAT_IN and HEARTBEAT_OUT are set also
+	static const unsigned GARBAGE_COLLECTION = 0x0001;
+
+	/// Domain requires FT heartbeat ping
+	static const unsigned HEARTBEAT_IN = 0x0002;
+
+	/// Domain sends FT heartbeat ping
+	static const unsigned HEARTBEAT_OUT = 0x0002;
+
+	unsigned flags () const NIRVANA_NOEXCEPT
 	{
-		return true; // TODO
+		return flags_;
 	}
 
 	const TimeBase::TimeT& latest_request_in_time () const NIRVANA_NOEXCEPT
 	{
-		return latest_request_in_time_;
+		return last_ping_in_time_;
 	}
 
-	void request_in () NIRVANA_NOEXCEPT
+	void simple_ping () NIRVANA_NOEXCEPT
 	{
-		latest_request_in_time_ = Nirvana::Core::Chrono::steady_clock ();
+		last_ping_in_time_ = Nirvana::Core::Chrono::steady_clock ();
 	}
 
 	void complex_ping (Internal::IORequest::_ptr_type rq)
 	{
+		last_ping_in_time_ = Nirvana::Core::Chrono::steady_clock ();
 		IDL::Sequence <IOP::ObjectKey> add, del;
 		Internal::Type <IDL::Sequence <IOP::ObjectKey> >::unmarshal (rq, add);
 		Internal::Type <IDL::Sequence <IOP::ObjectKey> >::unmarshal (rq, del);
@@ -100,16 +113,18 @@ public:
 	}
 
 protected:
-	Domain ();
+	Domain (unsigned flags, TimeBase::TimeT request_latency, TimeBase::TimeT heartbeat_interval,
+		TimeBase::TimeT heartbeat_timeout);
+
 	~Domain ();
 
 	virtual void _add_ref () NIRVANA_NOEXCEPT override;
 	virtual void _remove_ref () NIRVANA_NOEXCEPT override;
 	virtual void destroy () NIRVANA_NOEXCEPT = 0;
 
+private:
 	void complex_ping (const IDL::Sequence <IOP::ObjectKey>& add, const IDL::Sequence <IOP::ObjectKey>& del)
 	{
-		latest_request_in_time_ = Nirvana::Core::Chrono::steady_clock ();
 		static const size_t STATIC_ADD_CNT = 4;
 		if (add.size () <= STATIC_ADD_CNT) {
 			std::array <Object::_ref_type, STATIC_ADD_CNT> refs;
@@ -139,6 +154,8 @@ private:
 	};
 
 	RefCnt ref_cnt_;
+
+	unsigned flags_;
 
 	// DGC-enabled local objects owned by this domain
 	typedef Nirvana::Core::MapUnorderedUnstable <IOP::ObjectKey, Object::_ref_type,
@@ -174,11 +191,13 @@ private:
 		unsigned ref_cnt_;
 	};
 
+	// DGC-enabled references to the domain objects owned by the current domain
 	typedef Nirvana::Core::SetUnorderedUnstable <RemoteRefKey,
 		std::hash <IOP::ObjectKey>, std::equal_to <IOP::ObjectKey>,
 		Nirvana::Core::UserAllocator <RemoteRefKey> >
 		RemoteObjects;
 
+	// DGC-enabled references to the domain objects owned by the current domain
 	RemoteObjects remote_objects_;
 	Nirvana::SimpleList <RemoteRefKey> remote_objects_add_;
 	Nirvana::SimpleList <RemoteRefKey> remote_objects_del_;
@@ -189,7 +208,10 @@ private:
 		virtual void signal () noexcept override;
 	};
 
-	TimeBase::TimeT latest_request_in_time_;
+	TimeBase::TimeT last_ping_in_time_;
+	TimeBase::TimeT request_latency_;
+	TimeBase::TimeT heartbeat_interval_;
+	TimeBase::TimeT heartbeat_timeout_;
 };
 
 }

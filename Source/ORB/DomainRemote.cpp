@@ -23,6 +23,7 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
+#include "DomainRemote.h"
 #include "../Binder.h"
 
 namespace CORBA {

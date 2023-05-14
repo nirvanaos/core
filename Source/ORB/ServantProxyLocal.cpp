@@ -50,11 +50,6 @@ ReferenceRef ServantProxyLocal::get_reference ()
 	throw MARSHAL (MAKE_OMG_MINOR (4)); // Attempt to marshal Local object.
 }
 
-void ServantProxyLocal::marshal (StreamOut& out) const
-{
-	throw MARSHAL (MAKE_OMG_MINOR (4)); // Attempt to marshal Local object.
-}
-
 Policy::_ref_type ServantProxyLocal::_get_policy (PolicyType policy_type)
 {
 	throw NO_IMPLEMENT (MAKE_OMG_MINOR (8));

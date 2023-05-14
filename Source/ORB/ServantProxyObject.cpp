@@ -58,7 +58,9 @@ PortableServer::ServantBase::_ref_type object2servant (Object::_ptr_type obj)
 ServantProxyObject::ServantProxyObject (PortableServer::Servant user_servant) :
 	ServantProxyBase (user_servant),
 	adapter_context_ (&local2proxy (POA_Root::get_root ())->sync_context ())
-{}
+{
+	static_assert (core_object_align (sizeof (ReferenceLocal)) == REF_ALIGN, "sizeof (ReferenceLocal)");
+}
 
 ServantProxyObject::~ServantProxyObject ()
 {
@@ -117,14 +119,6 @@ ReferenceRef ServantProxyObject::get_reference ()
 	if (!ref) // Attempt to pass an unactivated (unregistered) value as an object reference.
 		throw OBJECT_NOT_EXIST (MAKE_OMG_MINOR (1));
 	return ref;
-}
-
-void ServantProxyObject::marshal (StreamOut& out) const
-{
-	ReferenceLocalRef ref = get_reference_local ();
-	if (!ref) // Attempt to pass an unactivated (unregistered) value as an object reference.
-		throw OBJECT_NOT_EXIST (MAKE_OMG_MINOR (1));
-	ref->marshal (out);
 }
 
 Policy::_ref_type ServantProxyObject::_get_policy (PolicyType policy_type)

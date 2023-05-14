@@ -47,10 +47,9 @@ public:
 	RequestOut (DomainLocal& domain, const IOP::ObjectKey& object_key,
 		const CORBA::Internal::Operation& metadata, unsigned response_flags,
 		IOP::ServiceContextList context) :
-		Base ((response_flags & 3) == 1 ? 2 : 1, response_flags, metadata),
-		domain_ (&domain)
+		Base ((response_flags & 3) == 1 ? 2 : 1, response_flags, domain, metadata)
 	{
-		stream_out_ = Ref <StreamOut>::create <ImplDynamic <StreamOutSM> > (std::ref (domain));
+		stream_out_ = Ref <StreamOut>::create <ImplDynamic <StreamOutSM> > (std::ref (domain), true);
 		if (response_flags & 3)
 			id_ = OutgoingRequests::new_request (*this, OutgoingRequests::IdPolicy::ANY);
 		IDL::String operation = metadata.name;
@@ -65,12 +64,14 @@ public:
 		write_header (object_key, operation, context);
 	}
 
+	DomainLocal* target_domain () const NIRVANA_NOEXCEPT
+	{
+		return static_cast <DomainLocal*> (Base::target_domain ());
+	}
+
 protected:
 	virtual void invoke () override;
 	virtual void cancel () override;
-
-private:
-	CORBA::servant_reference <DomainLocal> domain_;
 };
 
 }

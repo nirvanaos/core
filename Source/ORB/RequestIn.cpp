@@ -38,7 +38,7 @@ using namespace Internal;
 namespace Core {
 
 RequestIn::RequestIn (const DomainAddress& client, unsigned GIOP_minor) :
-	RequestGIOP (GIOP_minor, false, 0),
+	RequestGIOP (GIOP_minor, 0, nullptr),
 	key_ (client),
 	map_iterator_ (nullptr),
 	sync_domain_ (nullptr),

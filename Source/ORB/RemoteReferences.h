@@ -131,12 +131,12 @@ public:
 			return p;
 	}
 
-	void heartbeat (const DomainAddress& da)
+	void heartbeat (const DomainAddress& da) NIRVANA_NOEXCEPT
 	{
 		assert (da.family == DomainAddress::Family::ESIOP); // TODO
 		auto d = domains_local_.find (da.address.esiop);
 		if (d)
-			d->request_in ();
+			d->simple_ping ();
 	}
 
 	void complex_ping (RequestIn& rq)

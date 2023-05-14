@@ -39,6 +39,7 @@
 #include "POA_Root.h"
 #include "LocalAddress.h"
 #include "IndirectMapUnmarshal.h"
+#include "Domain.h"
 
 namespace CORBA {
 namespace Core {
@@ -233,8 +234,10 @@ public:
 	/// \param itf The interface derived from Object.
 	void marshal_interface (Internal::Interface::_ptr_type itf)
 	{
-		if (marshal_chunk ())
-			ProxyManager::cast (interface2object (itf))->marshal (*stream_out_);
+		if (marshal_chunk ()) {
+			ReferenceRef ref = ProxyManager::cast (interface2object (itf))->get_reference ();
+			ref->marshal (*stream_out_);
+		}
 	}
 
 	/// Unmarshal interface.
@@ -410,8 +413,19 @@ public:
 
 	///@}
 
+	Domain* target_domain () const NIRVANA_NOEXCEPT
+	{
+		return target_domain_;
+	}
+
 protected:
-	RequestGIOP (unsigned GIOP_minor, bool client_side, unsigned response_flags);
+	/// Constructor
+	/// 
+	/// \param GIOP_minor GIOP minor version number.
+	/// \param response_flags Response flags
+	/// \param servant_domain Target domain pointer for outgoing request,
+	///        `nullptr` for incoming request.
+	RequestGIOP (unsigned GIOP_minor, unsigned response_flags, Domain* servant_domain);
 
 	virtual bool marshal_op () = 0;
 
@@ -428,6 +442,7 @@ private:
 protected:
 	unsigned GIOP_minor_;
 	unsigned response_flags_;
+	servant_reference <Domain> target_domain_;
 	Nirvana::Core::Ref <StreamIn> stream_in_;
 	Nirvana::Core::Ref <StreamOut> stream_out_;
 	Nirvana::Core::Ref <Nirvana::Core::MemContext> mem_context_;
