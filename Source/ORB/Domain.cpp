@@ -66,7 +66,7 @@ void Domain::add_owned_objects (const IDL::Sequence <IOP::ObjectKey>& keys, Refe
 	for (ReferenceLocalRef* end = objs + keys.size (); objs != end; ++objs) {
 		if (*objs) {
 			const IOP::ObjectKey& key = (*objs)->object_key ();
-			owned_objects_.emplace (key, std::move (*objs));
+			local_objects_.emplace (key, std::move (*objs));
 		}
 	}
 }
@@ -74,15 +74,14 @@ void Domain::add_owned_objects (const IDL::Sequence <IOP::ObjectKey>& keys, Refe
 void Domain::post_DGC_ref_send (TimeBase::TimeT send_time, ReferenceSet& references)
 {
 	assert (flags () & GARBAGE_COLLECTION);
+	TimeBase::TimeT release_time = send_time + request_latency ();
 	for (auto& ref : references) {
+		assert (ref->flags () & Reference::GARBAGE_COLLECTION);
 		if (ref->flags () & Reference::LOCAL)
-			owned_objects_.emplace (static_cast <const ReferenceLocal&> (*ref).object_key (), std::move (ref));
+			local_objects_.emplace (static_cast <const ReferenceLocal&> (*ref).object_key (), std::move (ref));
 		else {
-			Domain& ref_domain = static_cast <const ReferenceRemote&> (*ref).domain ();
-			TimeBase::TimeT latency = request_latency ();
-			if (&ref_domain != this)
-				latency += ref_domain.request_latency ();
-			static_cast <ReferenceRemote&> (*ref).set_earliest_release_time (send_time + latency);
+			const ReferenceRemote& rr = static_cast <const ReferenceRemote&> (*ref);
+			rr.domain ().set_earliest_release_time (rr.object_key (), release_time);
 		}
 	}
 }

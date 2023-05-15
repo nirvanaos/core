@@ -93,7 +93,7 @@ public:
 
 	void release_owned_objects () NIRVANA_NOEXCEPT
 	{
-		owned_objects_.clear ();
+		local_objects_.clear ();
 	}
 
 	void on_DGC_reference_unmarshal (const IOP::ObjectKey& object_key)
@@ -116,6 +116,13 @@ public:
 	}
 
 	virtual void post_DGC_ref_send (TimeBase::TimeT send_time, ReferenceSet& references);
+
+	void set_earliest_release_time (const IOP::ObjectKey& object_key, const TimeBase::TimeT& time)
+	{
+		auto it = remote_objects_.find (object_key);
+		assert (it != remote_objects_.end ());
+		const_cast <RemoteRefKey&> (*it).set_earliest_release_time (time);
+	}
 
 protected:
 	Domain (unsigned flags, TimeBase::TimeT request_latency, TimeBase::TimeT heartbeat_interval,
@@ -140,7 +147,7 @@ private:
 		}
 
 		for (const IOP::ObjectKey& obj_key : del) {
-			owned_objects_.erase (obj_key);
+			local_objects_.erase (obj_key);
 		}
 	}
 
@@ -166,9 +173,9 @@ private:
 	typedef Nirvana::Core::MapUnorderedUnstable <IOP::ObjectKey, ReferenceLocalRef,
 		std::hash <IOP::ObjectKey>, std::equal_to <IOP::ObjectKey>, 
 		Nirvana::Core::UserAllocator <std::pair <IOP::ObjectKey, Object::_ref_type> > >
-		OwnedObjects;
+		LocalObjects;
 
-	OwnedObjects owned_objects_;
+	LocalObjects local_objects_;
 
 	// DGC-enabled remote reference owned by the current domain
 	class RemoteRefKey :
@@ -178,7 +185,8 @@ private:
 	public:
 		RemoteRefKey (const IOP::ObjectKey& object_key) :
 			IOP::ObjectKey (object_key),
-			ref_cnt_ (1)
+			ref_cnt_ (1),
+			earliest_release_time_ (0)
 		{}
 
 		unsigned add_ref () NIRVANA_NOEXCEPT
@@ -192,8 +200,15 @@ private:
 			return --ref_cnt_;
 		}
 
+		void set_earliest_release_time (const TimeBase::TimeT& t) NIRVANA_NOEXCEPT
+		{
+			if (earliest_release_time_ < t)
+				earliest_release_time_ = t;
+		}
+
 	private:
 		unsigned ref_cnt_;
+		TimeBase::TimeT earliest_release_time_;
 	};
 
 	// DGC-enabled references to the domain objects owned by the current domain
