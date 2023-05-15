@@ -41,10 +41,11 @@ using namespace Internal;
 
 namespace Core {
 
-ReferenceLocal::ReferenceLocal (const PortableServer::Core::ObjectKey& key,
+ReferenceLocal::ReferenceLocal (const IOP::ObjectKey& object_key, PortableServer::Core::ObjectKey&& core_key,
 	const IDL::String& primary_iid, unsigned flags, DomainManager* domain_manager) :
 	Reference (primary_iid, flags | LOCAL),
-	object_key_ (key),
+	core_key_ (std::move (core_key)),
+	object_key_ (object_key),
 	adapter_context_ (&local2proxy (POA_Root::get_root ())->sync_context ()),
 	root_ (PortableServer::Core::POA_Base::root ()),
 	servant_ (nullptr)
@@ -52,10 +53,11 @@ ReferenceLocal::ReferenceLocal (const PortableServer::Core::ObjectKey& key,
 	domain_manager_ = domain_manager;
 }
 
-ReferenceLocal::ReferenceLocal (const PortableServer::Core::ObjectKey& key,
+ReferenceLocal::ReferenceLocal (const IOP::ObjectKey& object_key, PortableServer::Core::ObjectKey&& core_key,
 	ServantProxyObject& proxy, unsigned flags, DomainManager* domain_manager) :
 	Reference (proxy, flags | LOCAL),
-	object_key_ (key),
+	core_key_ (std::move (core_key)),
+	object_key_ (object_key),
 	adapter_context_ (&local2proxy (POA_Root::get_root ())->sync_context ()),
 	root_ (PortableServer::Core::POA_Base::root ()),
 	servant_ (nullptr)
@@ -137,7 +139,7 @@ void ReferenceLocal::on_servant_destruct () NIRVANA_NOEXCEPT
 	assert (&SyncContext::current () == adapter_context_);
 	ServantProxyObject* proxy = servant_.exchange (nullptr);
 	assert (proxy);
-	PortableServer::Core::POA_Ref adapter = PortableServer::Core::POA_Root::find_child (object_key_.adapter_path (), false);
+	PortableServer::Core::POA_Ref adapter = PortableServer::Core::POA_Root::find_child (core_key_.adapter_path (), false);
 	if (adapter)
 		adapter->implicit_deactivate (*this, *proxy);
 
@@ -164,7 +166,7 @@ void ReferenceLocal::marshal (StreamOut& out) const
 	encap.write_string_c (LocalAddress::singleton ().host ());
 	UShort port = LocalAddress::singleton ().port ();
 	encap.write_c (alignof (UShort), sizeof (UShort), &port);
-	object_key_.marshal (encap);
+	encap.write_seq (object_key_);
 
 	uint32_t ORB_type = ESIOP::ORB_TYPE;
 	ESIOP::ProtDomainId domain_id = ESIOP::current_domain_id ();

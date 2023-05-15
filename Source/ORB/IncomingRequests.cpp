@@ -94,19 +94,20 @@ void IncomingRequests::receive (Ref <RequestIn> rq, uint64_t timestamp)
 	auto op = rq->operation ();
 
 	if (static_cast <const std::string&> (op) == "FT_HB") {
-		// Fault Tolerant CORBA heartbeat/
+		// Fault Tolerant CORBA heartbeat.
+		// Object key is ignored. void FT_HB() may be called against any object.
 		Nirvana::Core::Binder::heartbeat (rq->key ());
 		rq->success ();
 		return;
 	}
 
-	if (rq->object_key ().adapter_path ().empty () && rq->object_key ().object_id ().empty ()) {
+	if (rq->object_key ().empty ()) {
 		// DGC ping
 		if (static_cast <const std::string&> (op) == "ping") {
 			Nirvana::Core::Binder::complex_ping (*rq);
 			rq->success ();
 			return;
-		} else if (!ESIOP::is_system_domain ())
+		} else
 			throw BAD_OPERATION (MAKE_OMG_MINOR (2));
 	}
 

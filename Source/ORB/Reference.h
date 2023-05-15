@@ -36,6 +36,32 @@
 namespace CORBA {
 namespace Core {
 
+struct ComponentPred
+{
+	bool operator () (const IOP::TaggedComponent& l, const IOP::TaggedComponent& r) const
+	{
+		return l.tag () < r.tag ();
+	}
+
+	bool operator () (const IOP::ComponentId l, const IOP::TaggedComponent& r) const
+	{
+		return l < r.tag ();
+	}
+
+	bool operator () (const IOP::TaggedComponent& l, const IOP::ComponentId& r) const
+	{
+		return l.tag () < r;
+	}
+};
+
+inline void sort (IOP::TaggedComponentSeq& components) NIRVANA_NOEXCEPT
+{
+	std::sort (components.begin (), components.end (), ComponentPred ());
+}
+
+IOP::TaggedComponentSeq::const_iterator find (const IOP::TaggedComponentSeq& components,
+	IOP::ComponentId id) NIRVANA_NOEXCEPT;
+
 class StreamOut;
 
 class NIRVANA_NOVTABLE Reference :
@@ -70,17 +96,17 @@ public:
 		flags_ (flags)
 	{}
 
+	unsigned flags () const NIRVANA_NOEXCEPT
+	{
+		return flags_;
+	}
+
 	virtual ReferenceRef get_reference () override;
 	virtual void marshal (StreamOut& out) const = 0;
 
 	RefCntProxy::IntegralType _refcount_value () const NIRVANA_NOEXCEPT
 	{
 		return ref_cnt_.load ();
-	}
-
-	unsigned flags () const NIRVANA_NOEXCEPT
-	{
-		return flags_;
 	}
 
 	virtual Policy::_ref_type _get_policy (PolicyType policy_type) override;

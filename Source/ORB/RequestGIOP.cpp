@@ -219,7 +219,7 @@ Interface::_ref_type RequestGIOP::unmarshal_interface (const IDL::String& interf
 			} else
 				domain_id = ESIOP::sys_domain_id ();
 			if (ESIOP::current_domain_id () == domain_id)
-				obj = PortableServer::Core::POA_Root::unmarshal (primary_iid, object_key); // Local reference
+				obj = PortableServer::Core::POA_Root::unmarshal (primary_iid, std::move (object_key)); // Local reference
 			else
 				obj = Binder::unmarshal_remote_reference (domain_id, primary_iid, addr,
 					std::move (object_key), ORB_type, components);

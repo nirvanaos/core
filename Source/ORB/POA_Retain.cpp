@@ -63,7 +63,7 @@ servant_reference <CORBA::Core::ServantProxyObject> POA_Retain::deactivate_objec
 	if (!ret)
 		throw ObjectNotActive ();
 	references_.erase (&ref);
-	etherialize (ref.object_key ().object_id (), *ret, false);
+	etherialize (ref.core_key ().object_id (), *ret, false);
 	return ret;
 }
 
@@ -83,7 +83,7 @@ Object::_ref_type POA_Retain::reference_to_servant (Object::_ptr_type reference)
 	if (!(ref->flags () & Reference::LOCAL))
 		throw WrongAdapter ();
 	const ReferenceLocal& loc = static_cast <const ReferenceLocal&> (*ref);
-	if (!check_path (loc.object_key ().adapter_path ()))
+	if (!check_path (loc.core_key ().adapter_path ()))
 		throw WrongAdapter ();
 	Ref <ServantProxyObject> servant = loc.get_active_servant ();
 	if (servant)
@@ -131,7 +131,7 @@ void POA_Retain::etherealize_objects () NIRVANA_NOEXCEPT
 		ReferenceLocalRef ref (reinterpret_cast <ReferenceLocal*> (p));
 		servant_reference <ServantProxyObject> servant (ref->deactivate ());
 		if (servant)
-			etherialize (ref->object_key ().object_id (), *servant, true);
+			etherialize (ref->core_key ().object_id (), *servant, true);
 	}
 }
 

@@ -56,7 +56,7 @@ MemContext* RequestLocalPOA::memory () const NIRVANA_NOEXCEPT
 	return caller_memory_;
 }
 
-const PortableServer::Core::ObjectKey& RequestLocalPOA::object_key () const NIRVANA_NOEXCEPT
+const IOP::ObjectKey& RequestLocalPOA::object_key () const NIRVANA_NOEXCEPT
 {
 	return reference_->object_key ();
 }

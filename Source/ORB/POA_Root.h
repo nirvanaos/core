@@ -31,6 +31,7 @@
 #include "POA_Implicit.h"
 #include "POAManagerFactory.h"
 #include "../MapUnorderedStable.h"
+#include "HashOctetSeq.h"
 #include <CORBA/Servant_var.h>
 #include <Nirvana/CoreDomains.h>
 #include <random>
@@ -76,35 +77,33 @@ public:
 
 	static POA_Ref find_child (const AdapterPath& path, bool activate_it);
 
-	static CORBA::Object::_ref_type unmarshal (const IDL::String& iid, const IOP::ObjectKey& iop_key)
+	static CORBA::Object::_ref_type unmarshal (const IDL::String& iid, IOP::ObjectKey&& iop_key)
 	{
-		ObjectKey key;
-		key.unmarshal (iop_key);
 		CORBA::Object::_ref_type root = get_root (); // Hold root POA reference
+
 		SYNC_BEGIN (CORBA::Core::local2proxy (root)->sync_context (), nullptr)
-		CORBA::Core::ReferenceLocalRef ref = root_->find_reference (key);
+		CORBA::Core::ReferenceLocalRef ref = root_->find_reference (iop_key);
 		if (ref)
 			ref->check_primary_interface (iid);
-		else
-			ref = find_child (key.adapter_path (), true)->create_reference (std::move (key), iid);
+		else {
+			ObjectKey core_key (iop_key);
+			ref = find_child (core_key.adapter_path (), true)->create_reference (std::move (core_key), iid);
+		}
 		return CORBA::Object::_ref_type (ref->get_proxy ());
 		SYNC_END ();
 	}
 
 	static void get_DGC_objects (const IDL::Sequence <IOP::ObjectKey>& keys, CORBA::Core::ReferenceLocalRef* refs)
 	{
+		CORBA::Object::_ref_type root = get_root (); // Hold root POA reference
+		SYNC_BEGIN (CORBA::Core::local2proxy (root)->sync_context (), nullptr)
 		for (const auto& iop_key : keys) {
-			ObjectKey key;
-			key.unmarshal (iop_key);
-			CORBA::Object::_ref_type root = get_root (); // Hold root POA reference
-			CORBA::Core::ReferenceLocalRef ref;
-			SYNC_BEGIN (CORBA::Core::local2proxy (root)->sync_context (), nullptr)
-				ref = root_->find_reference (key);
-			SYNC_END ();
+			CORBA::Core::ReferenceLocalRef ref = root_->find_reference (iop_key);
 			if (ref && (ref->flags () & CORBA::Core::Reference::GARBAGE_COLLECTION))
 				*refs = std::move (ref);
 			++refs;
 		}
+		SYNC_END ();
 	}
 
 	POAManagerFactory& manager_factory () NIRVANA_NOEXCEPT
@@ -133,16 +132,18 @@ public:
 
 	typedef std::unique_ptr <CORBA::Core::ReferenceLocal> RefPtr;
 	typedef Nirvana::Core::WaitableRef <RefPtr> RefVal;
-	typedef Nirvana::Core::MapUnorderedStable <ObjectKey, RefVal, std::hash <ObjectKey>,
-		std::equal_to <ObjectKey>, Nirvana::Core::UserAllocator <std::pair <ObjectKey, CORBA::Core::ReferenceLocal> > >
-		References;
+	typedef Nirvana::Core::MapUnorderedStable <IOP::ObjectKey, RefVal, std::hash <IOP::ObjectKey>,
+		std::equal_to <IOP::ObjectKey>, Nirvana::Core::UserAllocator <std::pair <IOP::ObjectKey,
+		CORBA::Core::ReferenceLocal> > > References;
 
-	CORBA::Core::ReferenceLocalRef emplace_reference (ObjectKey&& key, bool unique, const IDL::String& primary_iid,
-		unsigned flags, CORBA::Core::DomainManager* domain_manager);
-	CORBA::Core::ReferenceLocalRef emplace_reference (ObjectKey&& key, bool unique, CORBA::Core::ServantProxyObject& proxy,
-		unsigned flags, CORBA::Core::DomainManager* domain_manager);
+	CORBA::Core::ReferenceLocalRef emplace_reference (ObjectKey&& core_key,
+		bool unique, const IDL::String& primary_iid, unsigned flags,
+		CORBA::Core::DomainManager* domain_manager);
+	CORBA::Core::ReferenceLocalRef emplace_reference (ObjectKey&& core_key,
+		bool unique, CORBA::Core::ServantProxyObject& proxy, unsigned flags,
+		CORBA::Core::DomainManager* domain_manager);
 
-	void remove_reference (const ObjectKey& key) NIRVANA_NOEXCEPT
+	void remove_reference (const IOP::ObjectKey& key) NIRVANA_NOEXCEPT
 	{
 		references_.erase (key);
 	}

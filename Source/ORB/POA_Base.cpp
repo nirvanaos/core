@@ -324,9 +324,9 @@ ObjectId POA_Base::reference_to_id (Object::_ptr_type reference)
 	if (!(ref->flags () & Reference::LOCAL))
 		throw WrongAdapter ();
 	const ReferenceLocal& loc = static_cast <const ReferenceLocal&> (*ref);
-	if (!check_path (loc.object_key ().adapter_path ()))
+	if (!check_path (loc.core_key ().adapter_path ()))
 		throw WrongAdapter ();
-	return loc.object_key ().object_id ();
+	return loc.core_key ().object_id ();
 }
 
 Object::_ref_type POA_Base::id_to_servant (const ObjectId& oid)
@@ -456,7 +456,7 @@ void POA_Base::serve (const RequestRef& request, ReferenceLocal& reference, Serv
 	IOReference::OperationIndex op = proxy.find_operation (request->operation ());
 	TLS& tls = TLS::current ();
 	Context* ctx_prev = (Context*)tls.get (TLS::CORE_TLS_PORTABLE_SERVER);
-	Context ctx (_this (), request->object_key ().object_id (), reference.get_proxy (), proxy);
+	Context ctx (_this (), reference.core_key ().object_id (), reference.get_proxy (), proxy);
 	tls.set (TLS::CORE_TLS_PORTABLE_SERVER, &ctx);
 	++request_cnt_;
 	try {

@@ -63,10 +63,11 @@ void Domain::_remove_ref () NIRVANA_NOEXCEPT
 void Domain::add_owned_objects (const IDL::Sequence <IOP::ObjectKey>& keys, ReferenceLocalRef* objs)
 {
 	PortableServer::Core::POA_Root::get_DGC_objects (keys, objs);
-	for (const IOP::ObjectKey& obj_key : keys) {
-		if (*objs)
-			owned_objects_.emplace (obj_key, std::move (*objs));
-		++objs;
+	for (ReferenceLocalRef* end = objs + keys.size (); objs != end; ++objs) {
+		if (*objs) {
+			const IOP::ObjectKey& key = (*objs)->object_key ();
+			owned_objects_.emplace (key, std::move (*objs));
+		}
 	}
 }
 
@@ -74,11 +75,9 @@ void Domain::post_DGC_ref_send (TimeBase::TimeT send_time, ReferenceSet& referen
 {
 	assert (flags () & GARBAGE_COLLECTION);
 	for (auto& ref : references) {
-		if (ref->flags () & Reference::LOCAL) {
-			ImplStatic <StreamOutEncap> stm;
-			static_cast <const ReferenceLocal&> (*ref).object_key ().marshal (stm);
-			owned_objects_.emplace (std::move (stm.data ()), std::move (ref));
-		} else {
+		if (ref->flags () & Reference::LOCAL)
+			owned_objects_.emplace (static_cast <const ReferenceLocal&> (*ref).object_key (), std::move (ref));
+		else {
 			Domain& ref_domain = static_cast <const ReferenceRemote&> (*ref).domain ();
 			TimeBase::TimeT latency = request_latency ();
 			if (&ref_domain != this)

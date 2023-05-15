@@ -48,16 +48,21 @@ class ReferenceLocal :
 	public Reference
 {
 public:
-	ReferenceLocal (const PortableServer::Core::ObjectKey& key, const IDL::String& primary_iid,
-		unsigned flags, DomainManager* domain_manager);
-	ReferenceLocal (const PortableServer::Core::ObjectKey& key,
+	ReferenceLocal (const IOP::ObjectKey& object_key, PortableServer::Core::ObjectKey&& core_key,
+		const IDL::String& primary_iid, unsigned flags, DomainManager* domain_manager);
+	ReferenceLocal (const IOP::ObjectKey& object_key, PortableServer::Core::ObjectKey&& core_key,
 		ServantProxyObject& proxy, unsigned flags, DomainManager* domain_manager);
 
 	~ReferenceLocal ();
 
-	const PortableServer::Core::ObjectKey& object_key () const NIRVANA_NOEXCEPT
+	const IOP::ObjectKey& object_key () const NIRVANA_NOEXCEPT
 	{
 		return object_key_;
+	}
+
+	const PortableServer::Core::ObjectKey& core_key () const NIRVANA_NOEXCEPT
+	{
+		return core_key_;
 	}
 
 	void activate (ServantProxyObject& proxy);
@@ -74,7 +79,8 @@ public:
 	virtual Internal::IORequest::_ref_type create_request (OperationIndex op, unsigned flags) override;
 
 private:
-	const PortableServer::Core::ObjectKey& object_key_;
+	const PortableServer::Core::ObjectKey core_key_;
+	const IOP::ObjectKey& object_key_;
 
 	Nirvana::Core::Ref <Nirvana::Core::SyncContext> adapter_context_;
 

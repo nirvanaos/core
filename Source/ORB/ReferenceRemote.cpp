@@ -23,6 +23,7 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
+#include "ReferenceRemote.h"
 #include "../Binder.h"
 #include "PolicyFactory.h"
 
@@ -33,17 +34,6 @@ namespace CORBA {
 using namespace Internal;
 
 namespace Core {
-
-IOP::TaggedComponentSeq::const_iterator find (
-	const IOP::TaggedComponentSeq& components, IOP::ComponentId id) NIRVANA_NOEXCEPT
-{
-	IOP::TaggedComponentSeq::const_iterator it = std::lower_bound (components.begin (), components.end (),
-		id, ComponentPred ());
-	if (it != components.end () && it->tag () == id)
-		return it;
-	else
-		return components.end ();
-}
 
 ReferenceRemote::ReferenceRemote (const OctetSeq& addr, servant_reference <Domain>&& domain,
 	const IOP::ObjectKey& object_key, const IDL::String& primary_iid,

@@ -56,7 +56,7 @@ void RequestIn::initialize (Ref <StreamIn>&& in)
 			Hdr hdr;
 			Type <Hdr>::unmarshal (_get_ptr (), hdr);
 			key_.request_id = hdr.request_id ();
-			object_key_.unmarshal (hdr.object_key ());
+			object_key_ = std::move (hdr.object_key ());
 			operation_ = std::move (hdr.operation ());
 			service_context_ = std::move (hdr.service_context ());
 			response_flags_ = hdr.response_expected () ? (RESPONSE_EXPECTED | RESPONSE_DATA) : 0;
@@ -67,7 +67,7 @@ void RequestIn::initialize (Ref <StreamIn>&& in)
 			Hdr hdr;
 			Type <Hdr>::unmarshal (_get_ptr (), hdr);
 			key_.request_id = hdr.request_id ();
-			object_key_.unmarshal (hdr.object_key ());
+			object_key_ = std::move (hdr.object_key ());
 			operation_ = std::move (hdr.operation ());
 			service_context_ = std::move (hdr.service_context ());
 			response_flags_ = hdr.response_expected () ? (RESPONSE_EXPECTED | RESPONSE_DATA) : 0;
@@ -86,7 +86,7 @@ void RequestIn::initialize (Ref <StreamIn>&& in)
 
 			switch (hdr.target ()._d ()) {
 				case GIOP::KeyAddr:
-					object_key_.unmarshal (hdr.target ().object_key ());
+					object_key_ = std::move (hdr.target ().object_key ());
 					break;
 
 				case GIOP::ProfileAddr:
@@ -113,13 +113,19 @@ void RequestIn::initialize (Ref <StreamIn>&& in)
 void RequestIn::get_object_key (const IOP::TaggedProfile& profile)
 {
 	if (IOP::TAG_INTERNET_IOP == profile.tag ()) {
-		ImplStatic <StreamInEncap> s (ref (profile.profile_data ()));
+		ImplStatic <StreamInEncap> stm (ref (profile.profile_data ()));
 
-		s.read (alignof (IIOP::Version), sizeof (IIOP::Version), nullptr);
-		size_t host_len = s.read_size ();
-		s.read (1, host_len + 1, nullptr);
-		s.read (2, 2, nullptr);
-		object_key_.unmarshal (s);
+		// Skip IIOP version
+		stm.read (alignof (IIOP::Version), sizeof (IIOP::Version), nullptr);
+
+		// Skip host name
+		size_t host_len = stm.read_size ();
+		stm.read (1, host_len + 1, nullptr);
+
+		// Skip port number
+		stm.read (2, 2, nullptr);
+
+		stm.read_seq (object_key_);
 	}
 	throw OBJECT_NOT_EXIST ();
 }
@@ -140,16 +146,6 @@ void RequestIn::_remove_ref () NIRVANA_NOEXCEPT
 MemContext* RequestIn::memory () const NIRVANA_NOEXCEPT
 {
 	return &RequestGIOP::memory ();
-}
-
-const PortableServer::Core::ObjectKey& RequestIn::object_key () const NIRVANA_NOEXCEPT
-{
-	return object_key_;
-}
-
-Internal::StringView <Char> RequestIn::operation () const NIRVANA_NOEXCEPT
-{
-	return operation_;
 }
 
 void RequestIn::switch_to_reply (GIOP::ReplyStatusType status)

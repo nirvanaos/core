@@ -36,7 +36,6 @@
 #include "../MapUnorderedUnstable.h"
 #include "../UserAllocator.h"
 #include "../Chrono.h"
-#include "../Timer.h"
 #include "HashOctetSeq.h"
 #include "ReferenceLocal.h"
 #include <array>
@@ -207,12 +206,6 @@ private:
 	RemoteObjects remote_objects_;
 	Nirvana::SimpleList <RemoteRefKey> remote_objects_add_;
 	Nirvana::SimpleList <RemoteRefKey> remote_objects_del_;
-
-	class Timer : public Nirvana::Core::Timer
-	{
-	private:
-		virtual void signal () noexcept override;
-	};
 
 	TimeBase::TimeT last_ping_in_time_;
 	TimeBase::TimeT request_latency_;

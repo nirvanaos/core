@@ -93,8 +93,15 @@ public:
 		return service_context_;
 	}
 
-	virtual const PortableServer::Core::ObjectKey& object_key () const NIRVANA_NOEXCEPT override;
-	virtual Internal::StringView <Char> operation () const NIRVANA_NOEXCEPT override;
+	virtual const IOP::ObjectKey& object_key () const NIRVANA_NOEXCEPT override
+	{
+		return object_key_;
+	}
+
+	virtual Internal::StringView <Char> operation () const NIRVANA_NOEXCEPT override
+	{
+		return operation_;
+	}
 
 	/// Cancel the request.
 	/// Called from the IncomingRequests class.
@@ -153,7 +160,7 @@ protected:
 	IOP::ServiceContextList service_context_;
 
 private:
-	PortableServer::Core::ObjectKey object_key_;
+	IOP::ObjectKey object_key_;
 	IDL::String operation_;
 	void* map_iterator_;
 

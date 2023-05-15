@@ -46,6 +46,14 @@ ObjectKey::ObjectKey (const POA_Base& adapter, const ObjectId& oid) :
 	adapter.get_path (adapter_path_);
 }
 
+ObjectKey::ObjectKey (const IOP::ObjectKey& object_key)
+{
+	ImplStatic <StreamInEncap> stm (std::ref (object_key), true);
+	unmarshal (stm);
+	if (stm.end () != 0)
+		throw CORBA::MARSHAL (StreamIn::MARSHAL_MINOR_MORE);
+}
+
 void ObjectKey::unmarshal (StreamIn& in)
 {
 	size_t size = in.read_size ();
@@ -54,31 +62,6 @@ void ObjectKey::unmarshal (StreamIn& in)
 		in.read_string (name);
 	}
 	in.read_seq (object_id_);
-}
-
-void ObjectKey::unmarshal (const IOP::ObjectKey& object_key)
-{
-	ImplStatic <StreamInEncap> stm (std::ref (object_key), true);
-	unmarshal (stm);
-	if (stm.end () != 0)
-		throw CORBA::MARSHAL (StreamIn::MARSHAL_MINOR_MORE);
-}
-
-size_t ObjectKey::hash () const NIRVANA_NOEXCEPT
-{
-	size_t size = adapter_path_.size ();
-	size_t h = Nirvana::Hash::hash_bytes (&size, sizeof (size));
-	for (const auto& s : adapter_path_) {
-		size = s.size ();
-		h = Nirvana::Hash::append_bytes (Nirvana::Hash::append_bytes (h, &size, sizeof (size)), s.data (), size);
-	}
-	size = object_id_.size ();
-	return Nirvana::Hash::append_bytes (Nirvana::Hash::append_bytes (h, &size, sizeof (size)), object_id_.data (), size);
-}
-
-bool ObjectKey::operator == (const ObjectKey& other) const NIRVANA_NOEXCEPT
-{
-	return adapter_path_ == other.adapter_path_ && object_id_ == other.object_id_;
 }
 
 }

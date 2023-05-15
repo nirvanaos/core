@@ -42,7 +42,7 @@ class NIRVANA_NOVTABLE RequestLocalPOA :
 	public RequestInPOA
 {
 public:
-	virtual const PortableServer::Core::ObjectKey& object_key () const NIRVANA_NOEXCEPT override;
+	virtual const IOP::ObjectKey& object_key () const NIRVANA_NOEXCEPT override;
 	virtual Internal::StringView <Char> operation () const NIRVANA_NOEXCEPT override;
 
 protected:

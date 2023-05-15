@@ -61,7 +61,7 @@ void POA_Activator::serve_default (const RequestRef& request, ReferenceLocal& re
 	if (!activator_)
 		throw OBJECT_NOT_EXIST (MAKE_OMG_MINOR (2));
 	
-	const ObjectId& oid = request->object_key ().object_id ();
+	const ObjectId& oid = reference.core_key ().object_id ();
 	auto ins = activation_map_.emplace (oid, ACTIVATION_TIMEOUT);
 	ActivationMap::reference entry = *ins.first;
 	Object::_ref_type servant;

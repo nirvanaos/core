@@ -83,7 +83,7 @@ void POA_Locator::serve_default (const RequestRef& request, ReferenceLocal& refe
 	if (!locator_)
 		throw OBJECT_NOT_EXIST (MAKE_OMG_MINOR (2));
 
-	const ObjectId& oid = request->object_key ().object_id ();
+	const ObjectId& oid = reference.core_key ().object_id ();
 	CORBA::Internal::StringView <Char> op = request->operation ();
 	void* cookie;
 	Object::_ref_type servant;

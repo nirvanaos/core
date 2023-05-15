@@ -32,6 +32,7 @@
 #include "../TaggedPtr.h"
 #include "../PointerSet.h"
 #include "Reference.h"
+#include "ObjectKey.h"
 
 namespace CORBA {
 namespace Core {
@@ -98,7 +99,8 @@ protected:
 protected:
 	Nirvana::Core::Ref <Nirvana::Core::SyncContext> adapter_context_;
 
-	static const size_t REF_ALIGN = Nirvana::Core::core_object_align (sizeof (Reference) + 4 * sizeof (void*));
+	static const size_t REF_ALIGN = Nirvana::Core::core_object_align (sizeof (Reference)
+		+ sizeof (PortableServer::Core::ObjectKey) + 4 * sizeof (void*));
 	typedef Nirvana::Core::LockablePtrT <ReferenceLocal, 0, REF_ALIGN> RefPtr;
 
 	mutable RefPtr reference_;

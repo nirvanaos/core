@@ -56,6 +56,7 @@ public:
 
 	ObjectKey (POA_Base& adapter);
 	ObjectKey (const POA_Base& adapter, const ObjectId& oid);
+	ObjectKey (const IOP::ObjectKey& object_key);
 
 	const AdapterPath& adapter_path () const NIRVANA_NOEXCEPT
 	{
@@ -82,29 +83,24 @@ public:
 		object_id_ = std::move (oid);
 	}
 
-	void marshal (CORBA::Core::StreamOut& out) const
-	{
-		if (!adapter_path_.empty ()) {
-			Nirvana::Core::ImplStatic <CORBA::Core::StreamOutEncap> encap (true);
-			encap.write_size (adapter_path_.size ());
-			for (const auto& name : adapter_path_) {
-				encap.write_string_c (name);
-			}
-			encap.write_seq (object_id_);
-			out.write_seq (encap.data ());
-		} else {
-			out.write_size (object_id_.size () + 8);
-			out.write_size (0);
-			out.write_seq (object_id_);
-		}
-	}
-
-	void unmarshal (const IOP::ObjectKey& object_key);
 	void unmarshal (CORBA::Core::StreamIn& in);
 
-	size_t hash () const NIRVANA_NOEXCEPT;
+	operator IOP::ObjectKey () const
+	{
+		Nirvana::Core::ImplStatic <CORBA::Core::StreamOutEncap> encap (true);
+		marshal (encap);
+		return std::move (encap.data ());
+	}
 
-	bool operator == (const ObjectKey& other) const NIRVANA_NOEXCEPT;
+private:
+	void marshal (CORBA::Core::StreamOut& out) const
+	{
+		out.write_size (adapter_path_.size ());
+		for (const auto& name : adapter_path_) {
+			out.write_string_c (name);
+		}
+		out.write_seq (object_id_);
+	}
 
 private:
 	AdapterPath adapter_path_;
@@ -112,19 +108,6 @@ private:
 };
 
 }
-}
-
-namespace std {
-
-template <>
-struct hash <PortableServer::Core::ObjectKey>
-{
-	size_t operator () (const PortableServer::Core::ObjectKey& key) const
-	{
-		return key.hash ();
-	}
-};
-
 }
 
 #endif

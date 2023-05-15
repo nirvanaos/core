@@ -33,6 +33,17 @@ using namespace CORBA::Core;
 namespace CORBA {
 namespace Core {
 
+IOP::TaggedComponentSeq::const_iterator find (
+	const IOP::TaggedComponentSeq& components, IOP::ComponentId id) NIRVANA_NOEXCEPT
+{
+	IOP::TaggedComponentSeq::const_iterator it = std::lower_bound (components.begin (), components.end (),
+		id, ComponentPred ());
+	if (it != components.end () && it->tag () == id)
+		return it;
+	else
+		return components.end ();
+}
+
 ReferenceRef Reference::get_reference ()
 {
 	return this;

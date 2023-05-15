@@ -29,7 +29,7 @@
 #pragma once
 
 #include "../CoreInterface.h"
-#include "ObjectKey.h"
+#include <CORBA/IOP.h>
 #include <CORBA/Proxy/IOReference.h>
 
 namespace Nirvana {
@@ -51,7 +51,7 @@ class NIRVANA_NOVTABLE RequestInPOA
 	DECLARE_CORE_INTERFACE
 public:
 	/// \returns Target object key.
-	virtual const PortableServer::Core::ObjectKey& object_key () const NIRVANA_NOEXCEPT = 0;
+	virtual const IOP::ObjectKey& object_key () const NIRVANA_NOEXCEPT = 0;
 
 	/// \returns Operation name.
 	virtual Internal::StringView <Char> operation () const NIRVANA_NOEXCEPT = 0;
