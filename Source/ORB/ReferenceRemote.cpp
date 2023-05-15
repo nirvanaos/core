@@ -51,7 +51,8 @@ ReferenceRemote::ReferenceRemote (const OctetSeq& addr, servant_reference <Domai
 	Reference (primary_iid, get_flags (ORB_type, components)),
 	address_ (addr),
 	domain_ (std::move (domain)),
-	object_key_ (object_key)
+	object_key_ (object_key),
+	earliest_release_time_ (0)
 {
 	auto it = find (components, IOP::TAG_POLICIES);
 	if (it != components.end ()) {

@@ -234,10 +234,8 @@ public:
 	/// \param itf The interface derived from Object.
 	void marshal_interface (Internal::Interface::_ptr_type itf)
 	{
-		if (marshal_chunk ()) {
-			ReferenceRef ref = ProxyManager::cast (interface2object (itf))->get_reference ();
-			ref->marshal (*stream_out_);
-		}
+		if (marshal_chunk ())
+			marshal_object (interface2object (itf));
 	}
 
 	/// Unmarshal interface.
@@ -250,6 +248,7 @@ public:
 private:
 	typedef Nirvana::Core::MapUnorderedUnstable <void*, size_t> IndirectMapMarshal;
 	static void marshal_type_code (StreamOut& stream, TypeCode::_ptr_type tc, IndirectMapMarshal& map, size_t parent_offset);
+	void marshal_object (Object::_ptr_type obj);
 
 public:
 	/// Marshal TypeCode.
@@ -303,7 +302,7 @@ public:
 			if (obj) {
 				Boolean is_object = true;
 				stream_out_->write_c (1, 1, &is_object);
-				ProxyManager::cast (obj)->get_reference ()->marshal (*stream_out_);
+				marshal_object (obj);
 			} else {
 				ValueBase::_ref_type value = base->_to_value ();
 				if (!value)
@@ -434,6 +433,8 @@ protected:
 	/// In the ESIOP we do not use the message size to allow > 4GB data transferring.
 	void set_out_size ();
 
+	void post_send () NIRVANA_NOEXCEPT;
+
 private:
 	void marshal_rep_id (IDL::String&& id);
 	const IDL::String& unmarshal_rep_id ();
@@ -457,6 +458,7 @@ private:
 	IndirectMapUnmarshal value_map_unmarshal_;
 	IndirectRepIdMarshal rep_id_map_marshal_;
 	IndirectRepIdUnmarshal rep_id_map_unmarshal_;
+	ReferenceSet marshaled_DGC_references_;
 };
 
 }

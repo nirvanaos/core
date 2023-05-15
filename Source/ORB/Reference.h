@@ -51,6 +51,7 @@ public:
 	/// The reference creation can cause binding and loading modules.
 	static const TimeBase::TimeT DEADLINE_MAX = 10 * TimeBase::MILLISECOND;
 
+	/// Reference flag bits
 	enum
 	{
 		GARBAGE_COLLECTION = 0x0001, //< The reference is involved in DGC

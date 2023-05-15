@@ -82,6 +82,27 @@ public:
 		return object_name_.c_str ();
 	}
 
+	Domain& domain () const NIRVANA_NOEXCEPT
+	{
+		return *domain_;
+	}
+
+	const IOP::ObjectKey& object_key () const NIRVANA_NOEXCEPT
+	{
+		return object_key_;
+	}
+
+	const TimeBase::TimeT& earliest_release_time () const NIRVANA_NOEXCEPT
+	{
+		return earliest_release_time_;
+	}
+
+	void set_earliest_release_time (const TimeBase::TimeT& t) NIRVANA_NOEXCEPT
+	{
+		if (earliest_release_time_ < t)
+			earliest_release_time_ = t;
+	}
+
 protected:
 	virtual void _add_ref () NIRVANA_NOEXCEPT override;
 	virtual void _remove_ref () NIRVANA_NOEXCEPT override;
@@ -108,6 +129,7 @@ private:
 	servant_reference <Domain> domain_;
 	const IOP::ObjectKey object_key_;
 	IDL::String object_name_;
+	TimeBase::TimeT earliest_release_time_;
 };
 
 }

@@ -91,9 +91,8 @@ public:
 		SYNC_END ();
 	}
 
-	static void get_DGC_objects (const IDL::Sequence <IOP::ObjectKey>& keys, CORBA::Object::_ref_type* refs)
+	static void get_DGC_objects (const IDL::Sequence <IOP::ObjectKey>& keys, CORBA::Core::ReferenceLocalRef* refs)
 	{
-		CORBA::Object::_ref_type* pref = refs;
 		for (const auto& iop_key : keys) {
 			ObjectKey key;
 			key.unmarshal (iop_key);
@@ -103,10 +102,8 @@ public:
 				ref = root_->find_reference (key);
 			SYNC_END ();
 			if (ref && (ref->flags () & CORBA::Core::Reference::GARBAGE_COLLECTION))
-				*pref = CORBA::Object::_ref_type (ref->get_proxy ());
-			else
-				*pref = CORBA::Object::_nil ();
-			++pref;
+				*refs = std::move (ref);
+			++refs;
 		}
 	}
 

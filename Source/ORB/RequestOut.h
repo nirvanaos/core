@@ -96,6 +96,7 @@ protected:
 
 	void post_invoke () NIRVANA_NOEXCEPT
 	{
+		post_send ();
 		if (!(response_flags_ & Internal::IOReference::REQUEST_ASYNC)) {
 			assert (response_flags_ & 3);
 			event_.wait ();

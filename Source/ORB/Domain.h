@@ -38,7 +38,7 @@
 #include "../Chrono.h"
 #include "../Timer.h"
 #include "HashOctetSeq.h"
-#include "GarbageCollector.h"
+#include "ReferenceLocal.h"
 #include <array>
 
 namespace CORBA {
@@ -53,25 +53,29 @@ public:
 	virtual Internal::IORequest::_ref_type create_request (const IOP::ObjectKey& object_key,
 		const Internal::Operation& metadata, unsigned flags) = 0;
 
-	/// Domain supports distributed garbage collection
-	///
-	/// If this flag is set, flags HEARTBEAT_IN and HEARTBEAT_OUT are set also
-	static const unsigned GARBAGE_COLLECTION = 0x0001;
+	/// Domain flag bits
+	enum
+	{
+		/// Domain supports distributed garbage collection
+		///
+		/// If this flag is set, flags HEARTBEAT_IN and HEARTBEAT_OUT are set also
+		GARBAGE_COLLECTION = 0x0001,
 
-	/// Domain requires FT heartbeat ping
-	static const unsigned HEARTBEAT_IN = 0x0002;
+		/// Domain requires FT heartbeat ping
+		HEARTBEAT_IN = 0x0002,
 
-	/// Domain sends FT heartbeat ping
-	static const unsigned HEARTBEAT_OUT = 0x0002;
+		/// Domain sends FT heartbeat ping
+		HEARTBEAT_OUT = 0x0002
+	};
 
 	unsigned flags () const NIRVANA_NOEXCEPT
 	{
 		return flags_;
 	}
 
-	const TimeBase::TimeT& latest_request_in_time () const NIRVANA_NOEXCEPT
+	const TimeBase::TimeT& request_latency () const NIRVANA_NOEXCEPT
 	{
-		return last_ping_in_time_;
+		return request_latency_;
 	}
 
 	void simple_ping () NIRVANA_NOEXCEPT
@@ -112,6 +116,8 @@ public:
 			remote_objects_del_.push_back (key);
 	}
 
+	virtual void post_DGC_ref_send (TimeBase::TimeT send_time, ReferenceSet& references);
+
 protected:
 	Domain (unsigned flags, TimeBase::TimeT request_latency, TimeBase::TimeT heartbeat_interval,
 		TimeBase::TimeT heartbeat_timeout);
@@ -127,10 +133,10 @@ private:
 	{
 		static const size_t STATIC_ADD_CNT = 4;
 		if (add.size () <= STATIC_ADD_CNT) {
-			std::array <Object::_ref_type, STATIC_ADD_CNT> refs;
+			std::array <ReferenceLocalRef, STATIC_ADD_CNT> refs;
 			add_owned_objects (add, refs.data ());
 		} else {
-			std::vector <Object::_ref_type> refs (add.size ());
+			std::vector <ReferenceLocalRef> refs (add.size ());
 			add_owned_objects (add, refs.data ());
 		}
 
@@ -139,7 +145,7 @@ private:
 		}
 	}
 
-	void add_owned_objects (const IDL::Sequence <IOP::ObjectKey>& keys, Object::_ref_type* objs);
+	void add_owned_objects (const IDL::Sequence <IOP::ObjectKey>& keys, ReferenceLocalRef* objs);
 
 private:
 	class RefCnt : public Nirvana::Core::AtomicCounter <false>
@@ -158,7 +164,7 @@ private:
 	unsigned flags_;
 
 	// DGC-enabled local objects owned by this domain
-	typedef Nirvana::Core::MapUnorderedUnstable <IOP::ObjectKey, Object::_ref_type,
+	typedef Nirvana::Core::MapUnorderedUnstable <IOP::ObjectKey, ReferenceLocalRef,
 		std::hash <IOP::ObjectKey>, std::equal_to <IOP::ObjectKey>, 
 		Nirvana::Core::UserAllocator <std::pair <IOP::ObjectKey, Object::_ref_type> > >
 		OwnedObjects;

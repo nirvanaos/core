@@ -53,7 +53,14 @@ public:
 		const Internal::Operation& metadata, unsigned flags) override;
 
 protected:
+	virtual void post_DGC_ref_send (TimeBase::TimeT send_time, ReferenceSet& references) override;
 	virtual void destroy () NIRVANA_NOEXCEPT override;
+
+private:
+	// DGC references owned by this domain.
+	// Used only in the connection-oriented GC.
+	// Not used if the domain is DGC-enabled.
+	ReferenceSet owned_references_;
 };
 
 }

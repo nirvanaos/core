@@ -43,5 +43,16 @@ IORequest::_ref_type DomainRemote::create_request (const IOP::ObjectKey& object_
 	throw NO_IMPLEMENT ();
 }
 
+void DomainRemote::post_DGC_ref_send (TimeBase::TimeT send_time, ReferenceSet& references)
+{
+	if (flags () & GARBAGE_COLLECTION)
+		Domain::post_DGC_ref_send (send_time, references);
+	else {
+		for (auto& ref : references) {
+			owned_references_.emplace (std::move (ref));
+		}
+	}
+}
+
 }
 }

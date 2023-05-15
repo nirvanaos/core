@@ -92,6 +92,7 @@ bool RequestGIOP::marshal_chunk ()
 {
 	if (!marshal_op ())
 		return false;
+	assert (target_domain_);
 	if (chunk_level_) {
 		if (stream_out_->chunk_size () >= CHUNK_SIZE_LIMIT)
 			stream_out_->chunk_end ();
@@ -112,6 +113,14 @@ bool RequestGIOP::unmarshal_seq (size_t align, size_t element_size, size_t& elem
 {
 	check_align (align);
 	return stream_in_->read_seq (align, element_size, element_count, data, allocated_size);
+}
+
+void RequestGIOP::marshal_object (Object::_ptr_type obj)
+{
+	ReferenceRef ref = ProxyManager::cast (obj)->get_reference ();
+	ref->marshal (*stream_out_);
+	if (ref->flags () & Reference::GARBAGE_COLLECTION)
+		marshaled_DGC_references_.emplace (std::move (ref));
 }
 
 Interface::_ref_type RequestGIOP::unmarshal_interface (const IDL::String& interface_id)
@@ -642,6 +651,15 @@ Interface::_ref_type RequestGIOP::unmarshal_abstract (const IDL::String& interfa
 		return RequestGIOP::unmarshal_interface (interface_id);
 	else
 		return RequestGIOP::unmarshal_value (interface_id);
+}
+
+void RequestGIOP::post_send () NIRVANA_NOEXCEPT
+{
+	if (!marshaled_DGC_references_.empty ()) {
+		assert (target_domain_);
+		Binder::post_DGC_ref_send (*target_domain_, Chrono::steady_clock (), marshaled_DGC_references_);
+		marshaled_DGC_references_.clear ();
+	}
 }
 
 }
