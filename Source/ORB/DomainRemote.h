@@ -52,8 +52,12 @@ public:
 	virtual Internal::IORequest::_ref_type create_request (const IOP::ObjectKey& object_key,
 		const Internal::Operation& metadata, unsigned flags) override;
 
+	// Add DGC references owned by this domain.
+	// Used only in the connection-oriented GC.
+	// Not used if the domain is DGC-enabled.
+	void add_DGC_objects (ReferenceSet& references) NIRVANA_NOEXCEPT;
+
 protected:
-	virtual void post_DGC_ref_send (TimeBase::TimeT send_time, ReferenceSet& references) override;
 	virtual void destroy () NIRVANA_NOEXCEPT override;
 
 private:

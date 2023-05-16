@@ -657,8 +657,10 @@ void RequestGIOP::post_send () NIRVANA_NOEXCEPT
 {
 	if (!marshaled_DGC_references_.empty ()) {
 		assert (target_domain_);
-		Binder::post_DGC_ref_send (*target_domain_, Chrono::steady_clock (), marshaled_DGC_references_);
-		marshaled_DGC_references_.clear ();
+		if (!(target_domain_->flags () & Domain::GARBAGE_COLLECTION)) {
+			static_cast <DomainRemote&> (*target_domain_).add_DGC_objects (marshaled_DGC_references_);
+		}
+		// TODO: for DGC-enabled target domain we need to delay request release
 	}
 }
 

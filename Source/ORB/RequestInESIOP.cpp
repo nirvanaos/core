@@ -61,7 +61,6 @@ void RequestIn::set_exception (Any& e)
 				assert (stream_out ());
 				Base::set_exception (e);
 				static_cast <StreamOutReply&> (*stream_out ()).send (request_id ());
-				post_send ();
 			}
 		}
 	} catch (...) {
@@ -78,8 +77,8 @@ void RequestIn::success ()
 
 	Base::success ();
 	static_cast <StreamOutReply&> (*stream_out ()).send (request_id ());
-	post_send ();
 	stream_out_ = nullptr;
+	post_send ();
 }
 
 }

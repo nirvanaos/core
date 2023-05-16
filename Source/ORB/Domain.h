@@ -115,15 +115,6 @@ public:
 			remote_objects_del_.push_back (key);
 	}
 
-	virtual void post_DGC_ref_send (TimeBase::TimeT send_time, ReferenceSet& references);
-
-	void set_earliest_release_time (const IOP::ObjectKey& object_key, const TimeBase::TimeT& time)
-	{
-		auto it = remote_objects_.find (object_key);
-		assert (it != remote_objects_.end ());
-		const_cast <RemoteRefKey&> (*it).set_earliest_release_time (time);
-	}
-
 protected:
 	Domain (unsigned flags, TimeBase::TimeT request_latency, TimeBase::TimeT heartbeat_interval,
 		TimeBase::TimeT heartbeat_timeout);
@@ -185,8 +176,7 @@ private:
 	public:
 		RemoteRefKey (const IOP::ObjectKey& object_key) :
 			IOP::ObjectKey (object_key),
-			ref_cnt_ (1),
-			earliest_release_time_ (0)
+			ref_cnt_ (1)
 		{}
 
 		unsigned add_ref () NIRVANA_NOEXCEPT
@@ -200,15 +190,8 @@ private:
 			return --ref_cnt_;
 		}
 
-		void set_earliest_release_time (const TimeBase::TimeT& t) NIRVANA_NOEXCEPT
-		{
-			if (earliest_release_time_ < t)
-				earliest_release_time_ = t;
-		}
-
 	private:
 		unsigned ref_cnt_;
-		TimeBase::TimeT earliest_release_time_;
 	};
 
 	// DGC-enabled references to the domain objects owned by the current domain

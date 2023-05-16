@@ -78,6 +78,8 @@ public:
 	}
 
 protected:
+	/// Signal timer.
+	/// Called from the kernel thread.
 	virtual void signal () noexcept = 0;
 };
 

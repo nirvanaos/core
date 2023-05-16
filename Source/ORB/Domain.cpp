@@ -71,20 +71,5 @@ void Domain::add_owned_objects (const IDL::Sequence <IOP::ObjectKey>& keys, Refe
 	}
 }
 
-void Domain::post_DGC_ref_send (TimeBase::TimeT send_time, ReferenceSet& references)
-{
-	assert (flags () & GARBAGE_COLLECTION);
-	TimeBase::TimeT release_time = send_time + request_latency ();
-	for (auto& ref : references) {
-		assert (ref->flags () & Reference::GARBAGE_COLLECTION);
-		if (ref->flags () & Reference::LOCAL)
-			local_objects_.emplace (static_cast <const ReferenceLocal&> (*ref).object_key (), std::move (ref));
-		else {
-			const ReferenceRemote& rr = static_cast <const ReferenceRemote&> (*ref);
-			rr.domain ().set_earliest_release_time (rr.object_key (), release_time);
-		}
-	}
-}
-
 }
 }

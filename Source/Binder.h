@@ -201,17 +201,6 @@ public:
 		SYNC_END ();
 	}
 
-	static void post_DGC_ref_send (CORBA::Core::Domain& target_domain, TimeBase::TimeT send_time,
-		CORBA::Core::ReferenceSet& references) NIRVANA_NOEXCEPT
-	{
-		Synchronized _sync_frame (sync_domain (), nullptr);
-		try {
-			target_domain.post_DGC_ref_send (send_time, references);
-		} catch (...) {
-			// TODO: Log
-		}
-	}
-
 private:
 	typedef CORBA::Internal::RepId RepId;
 	typedef CORBA::Internal::RepId::Version Version;

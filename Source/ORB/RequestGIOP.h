@@ -447,6 +447,7 @@ protected:
 	Nirvana::Core::Ref <StreamIn> stream_in_;
 	Nirvana::Core::Ref <StreamOut> stream_out_;
 	Nirvana::Core::Ref <Nirvana::Core::MemContext> mem_context_;
+	ReferenceSet marshaled_DGC_references_;
 
 private:
 	Nirvana::Core::RefCounter ref_cnt_;
@@ -458,7 +459,6 @@ private:
 	IndirectMapUnmarshal value_map_unmarshal_;
 	IndirectRepIdMarshal rep_id_map_marshal_;
 	IndirectRepIdUnmarshal rep_id_map_unmarshal_;
-	ReferenceSet marshaled_DGC_references_;
 };
 
 }

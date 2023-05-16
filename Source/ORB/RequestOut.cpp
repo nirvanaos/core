@@ -25,6 +25,7 @@
 */
 #include "RequestOut.h"
 #include "OutgoingRequests.h"
+#include "DomainRemote.h"
 #include "../MemContextCore.h"
 
 using namespace Nirvana;
@@ -140,7 +141,8 @@ void RequestOut::set_reply (unsigned status, IOP::ServiceContextList&& context,
 				IORequest::_ptr_type rq = pre->_get_ptr ();
 				std::vector <Octet> buf;
 				buf.resize (3 * sizeof (void*));
-				for (const Parameter* param = metadata_->output.p, *end = param + metadata_->output.size; param != end; ++param) {
+				for (const Parameter* param = metadata_->output.p, *end = param + metadata_->output.size;
+					param != end; ++param) {
 					preunmarshal ((param->type) (), buf, rq);
 				}
 				if (metadata_->return_type)
@@ -149,6 +151,12 @@ void RequestOut::set_reply (unsigned status, IOP::ServiceContextList&& context,
 				pre->invoke (); // Rewind to begin
 				preunmarshaled_ = std::move (pre);
 			}
+
+			// If target domain does not support DGC, we make passed DGC references as owned to it.
+			if (!(target_domain_->flags () & Domain::GARBAGE_COLLECTION)
+				&& !marshaled_DGC_references_.empty ())
+				static_cast <DomainRemote&> (*target_domain_).add_DGC_objects (marshaled_DGC_references_);
+
 			finalize ();
 			break;
 
@@ -163,7 +171,7 @@ void RequestOut::set_reply (unsigned status, IOP::ServiceContextList&& context,
 	}
 }
 
-void RequestOut::preunmarshal (TypeCode::_ptr_type tc, std::vector <Octet> buf, Internal::IORequest::_ptr_type out)
+void RequestOut::preunmarshal (TypeCode::_ptr_type tc, std::vector <Octet> buf, IORequest::_ptr_type out)
 {
 	size_t cb = tc->n_size ();
 	if (buf.size () < cb)
