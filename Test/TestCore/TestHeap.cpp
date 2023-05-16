@@ -1,5 +1,6 @@
 #include "../Source/SharedAllocator.h"
 #include "../Source/MemContextUser.h"
+#include "../Source/HeapAllocator.h"
 #include <gtest/gtest.h>
 #include <random>
 #include <thread>

@@ -34,78 +34,12 @@
 #include "CoreInterface.h"
 #include "StaticallyAllocated.h"
 
-namespace Nirvana {
-namespace Core {
-
 #define DEFINE_ALLOCATOR(Name) template <class U> operator const Name <U>& () const \
 NIRVANA_NOEXCEPT { return *reinterpret_cast <const Name <U>*> (this); }\
 template <class U> struct rebind { typedef Name <U> other; }
 
-template <class T>
-class CoreAllocator :
-	public std::allocator <T>
-{
-public:
-	DEFINE_ALLOCATOR (CoreAllocator);
-
-	static void deallocate (T* p, size_t cnt);
-	static T* allocate (size_t cnt);
-};
-
-class Heap;
-
-template <class T>
-class HeapAllocator :
-	public std::allocator <T>
-{
-public:
-	DEFINE_ALLOCATOR (HeapAllocator);
-
-	HeapAllocator (Heap& heap) NIRVANA_NOEXCEPT :
-		heap_ (&heap)
-	{}
-
-	HeapAllocator (const HeapAllocator& src) :
-		heap_ (src.heap_)
-	{}
-
-	template <class U>
-	HeapAllocator (const HeapAllocator <U>& src) :
-		heap_ (src.heap_)
-	{}
-
-	HeapAllocator& operator = (const HeapAllocator& src)
-	{
-		heap_ = src.heap_;
-		return *this;
-	}
-
-	template <class U>
-	HeapAllocator& operator = (const HeapAllocator <U>& src)
-	{
-		heap_ = src.heap_;
-		return *this;
-	}
-
-	void deallocate (T* p, size_t cnt) const;
-	T* allocate (size_t cnt) const;
-
-private:
-	template <class U> friend class HeapAllocator;
-	Heap* heap_;
-};
-
-template <class T, class U>
-bool operator == (const HeapAllocator <T>& l, const HeapAllocator <U>& r)
-{
-	return l.heap_ == r.heap_;
-}
-
-template <class T, class U>
-bool operator != (const HeapAllocator <T>& l, const HeapAllocator <U>& r)
-{
-	return l.heap_ != r.heap_;
-}
+namespace Nirvana {
+namespace Core {
 
 class HeapCore;
 class HeapUser;
@@ -368,51 +302,7 @@ protected:
 	void add_large_block (void* p, size_t size);
 
 	/// \summary Atomically erase large block information from the block list.
-	class LBErase
-	{
-	public:
-		/// \param block_list The block list.
-		/// \param first_node First large block node found in the block list.
-		/// \param p Begin of the released memory.
-		/// \param size Size of the released memory.
-		LBErase (Heap& heap, BlockList::NodeVal* first_node);
-		~LBErase ();
-
-		void prepare (void* p, size_t size);
-		void commit () NIRVANA_NOEXCEPT;
-		void rollback () NIRVANA_NOEXCEPT;
-
-	private:
-		void rollback_helper () NIRVANA_NOEXCEPT;
-
-		struct LBNode
-		{
-			BlockList::NodeVal* node;
-			size_t size;
-
-			bool collapse () NIRVANA_NOEXCEPT
-			{
-				return node->value ().collapse_large_block (size);
-			}
-
-			void restore () NIRVANA_NOEXCEPT
-			{
-				node->value ().restore_large_block (size);
-			}
-
-			void restore (size_t new_size) NIRVANA_NOEXCEPT
-			{
-				node->value ().restore_large_block (new_size);
-			}
-		};
-
-		Heap& heap_;
-		LBNode first_block_, last_block_;
-		typedef std::vector <LBNode, HeapAllocator <LBNode> > MiddleBlocks;
-		MiddleBlocks middle_blocks_;
-		BlockList::NodeVal* new_node_;
-		size_t shrink_size_;
-	};
+	class LBErase;
 
 protected:
 	size_t allocation_unit_;
@@ -434,32 +324,6 @@ public:
 private:
 	virtual MemoryBlock* add_new_partition (MemoryBlock*& tail);
 };
-
-template <class T> inline
-void CoreAllocator <T>::deallocate (T* p, size_t cnt)
-{
-	Heap::core_heap ().release (p, cnt * sizeof (T));
-}
-
-template <class T> inline
-T* CoreAllocator <T>::allocate (size_t cnt)
-{
-	size_t cb = cnt * sizeof (T);
-	return (T*)Heap::core_heap ().allocate (nullptr, cb, 0);
-}
-
-template <class T> inline
-void HeapAllocator <T>::deallocate (T* p, size_t cnt) const
-{
-	heap_->release (p, cnt * sizeof (T));
-}
-
-template <class T> inline
-T* HeapAllocator <T>::allocate (size_t cnt) const
-{
-	size_t cb = cnt * sizeof (T);
-	return (T*)heap_->allocate (nullptr, cb, 0);
-}
 
 }
 }

@@ -23,7 +23,9 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
+#include "Heap.h"
 #include "HeapUser.h"
+#include "HeapAllocator.h"
 #include <atomic>
 #include <iostream>
 
@@ -35,6 +37,53 @@ namespace Core {
 
 StaticallyAllocated <ImplStatic <HeapCore> > Heap::core_heap_;
 StaticallyAllocated <ImplStatic <HeapUser> > Heap::shared_heap_;
+
+class Heap::LBErase
+{
+public:
+	/// \param block_list The block list.
+	/// \param first_node First large block node found in the block list.
+	/// \param p Begin of the released memory.
+	/// \param size Size of the released memory.
+	LBErase (Heap& heap, BlockList::NodeVal* first_node);
+	~LBErase ();
+
+	void prepare (void* p, size_t size);
+	void commit () NIRVANA_NOEXCEPT;
+	void rollback () NIRVANA_NOEXCEPT;
+
+private:
+	void rollback_helper () NIRVANA_NOEXCEPT;
+
+	struct LBNode
+	{
+		BlockList::NodeVal* node;
+		size_t size;
+
+		bool collapse () NIRVANA_NOEXCEPT
+		{
+			return node->value ().collapse_large_block (size);
+		}
+
+		void restore () NIRVANA_NOEXCEPT
+		{
+			node->value ().restore_large_block (size);
+		}
+
+		void restore (size_t new_size) NIRVANA_NOEXCEPT
+		{
+			node->value ().restore_large_block (new_size);
+		}
+	};
+
+	Heap& heap_;
+	LBNode first_block_, last_block_;
+	typedef std::vector <LBNode, HeapAllocator <LBNode> > MiddleBlocks;
+	MiddleBlocks middle_blocks_;
+	BlockList::NodeVal* new_node_;
+	size_t shrink_size_;
+};
+
 
 inline
 bool Heap::MemoryBlock::collapse_large_block (size_t size) NIRVANA_NOEXCEPT
