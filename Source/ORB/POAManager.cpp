@@ -39,7 +39,7 @@ void POAManager::ServeRequest::run ()
 		// Check that adapter is not destroyed.
 		if (adapter_->is_destroyed ())
 			throw POA::AdapterNonExistent ();
-		adapter_->serve (request_);
+		adapter_->serve_request (request_);
 	} catch (Exception& e) {
 		request_->set_exception (std::move (e));
 	}

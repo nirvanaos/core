@@ -183,15 +183,18 @@ bool RequestIn::marshal_op ()
 	return (response_flags_ & RESPONSE_DATA) != 0;
 }
 
-void RequestIn::serve_request (ServantProxyObject& proxy, IOReference::OperationIndex op, MemContext* memory)
+void RequestIn::serve (ServantProxyObject& proxy, IOReference::OperationIndex op)
 {
 	if (is_cancelled ())
 		return;
 
 	SyncContext* sync_context = &proxy.get_sync_context (op);
 	SyncDomain* sync_domain = sync_context->sync_domain ();
+	MemContext* mem;
 	if (sync_domain)
-		memory = &sync_domain->mem_context ();
+		mem = &sync_domain->mem_context ();
+	else
+		mem = memory ();
 
 	const Operation& op_md = proxy.operation_metadata (op);
 	if (sync_domain && (op_md.flags & Operation::FLAG_IN_CPLX)) {
@@ -205,7 +208,7 @@ void RequestIn::serve_request (ServantProxyObject& proxy, IOReference::Operation
 	has_context_ = op_md.context.size != 0;
 
 	// We don't need to handle exceptions here, because invoke () does not throw exceptions.
-	Nirvana::Core::Synchronized _sync_frame (*sync_context, memory);
+	Nirvana::Core::Synchronized _sync_frame (*sync_context, mem);
 	if (!is_cancelled ())
 		proxy.invoke (op, _get_ptr ());
 }

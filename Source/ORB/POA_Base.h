@@ -428,7 +428,7 @@ public:
 	}
 
 	inline void invoke (const RequestRef& request);
-	void serve (const RequestRef& request);
+	void serve_request (const RequestRef& request);
 
 	static POA_Base* get_implementation (const CORBA::Core::ServantProxyLocal* proxy);
 
@@ -492,9 +492,9 @@ protected:
 		return check_path (path, path.end ());
 	}
 
-	virtual void serve (const RequestRef& request, CORBA::Core::ReferenceLocal& reference);
+	virtual void serve_request (const RequestRef& request, CORBA::Core::ReferenceLocal& reference);
 	virtual void serve_default (const RequestRef& request, CORBA::Core::ReferenceLocal& reference);
-	void serve (const RequestRef& request, CORBA::Core::ReferenceLocal& reference, CORBA::Core::ServantProxyObject& proxy);
+	void serve_request (const RequestRef& request, CORBA::Core::ReferenceLocal& reference, CORBA::Core::ServantProxyObject& proxy);
 
 	enum DGC_Policy
 	{

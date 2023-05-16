@@ -79,7 +79,7 @@ void RequestGIOP::unmarshal_end ()
 {
 	if (stream_in_) {
 		top_level_tc_unmarshal_.clear ();
-		value_map_marshal_.clear ();
+		value_map_unmarshal_.clear ();
 		rep_id_map_unmarshal_.clear ();
 		size_t more_data = stream_in_->end ();
 		stream_in_ = nullptr;
@@ -653,7 +653,7 @@ Interface::_ref_type RequestGIOP::unmarshal_abstract (const IDL::String& interfa
 		return RequestGIOP::unmarshal_value (interface_id);
 }
 
-void RequestGIOP::post_send () NIRVANA_NOEXCEPT
+void RequestGIOP::post_send_DGC_refs () NIRVANA_NOEXCEPT
 {
 	if (!marshaled_DGC_references_.empty ()) {
 		assert (target_domain_);

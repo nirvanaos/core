@@ -59,8 +59,7 @@ public:
 	/// Serve the request.
 	/// 
 	/// \param proxy The servant proxy.
-	virtual void serve_request (ServantProxyObject& proxy, Internal::IOReference::OperationIndex op_idx,
-		Nirvana::Core::MemContext* memory) = 0;
+	virtual void serve (ServantProxyObject& proxy, Internal::IOReference::OperationIndex op_idx) = 0;
 
 	/// Return exception to caller.
 	/// Operation has move semantics so \p e may be cleared.

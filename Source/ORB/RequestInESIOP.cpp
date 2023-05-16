@@ -78,7 +78,7 @@ void RequestIn::success ()
 	Base::success ();
 	static_cast <StreamOutReply&> (*stream_out ()).send (request_id ());
 	stream_out_ = nullptr;
-	post_send ();
+	post_send_DGC_refs ();
 }
 
 }

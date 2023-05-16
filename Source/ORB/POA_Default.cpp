@@ -65,7 +65,7 @@ void POA_Default::serve_default (const RequestRef& request, CORBA::Core::Referen
 		throw OBJ_ADAPTER (MAKE_OMG_MINOR (3));
 
 	servant_reference <ServantProxyObject> hold (object2proxy (servant_));
-	serve (request, reference, *hold);
+	serve_request (request, reference, *hold);
 }
 
 }

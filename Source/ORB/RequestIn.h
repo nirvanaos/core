@@ -152,8 +152,7 @@ private:
 	virtual bool marshal_op () override;
 
 	void switch_to_reply (GIOP::ReplyStatusType status = GIOP::ReplyStatusType::NO_EXCEPTION);
-	virtual void serve_request (ServantProxyObject& proxy, Internal::IOReference::OperationIndex op,
-		Nirvana::Core::MemContext* memory) override;
+	virtual void serve (ServantProxyObject& proxy, Internal::IOReference::OperationIndex op) override;
 
 protected:
 	RequestKey key_;

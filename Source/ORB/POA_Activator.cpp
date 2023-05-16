@@ -94,7 +94,7 @@ void POA_Activator::serve_default (const RequestRef& request, ReferenceLocal& re
 	} else
 		servant = entry.second.get ();
 
-	serve (request, reference, *object2proxy (servant));
+	serve_request (request, reference, *object2proxy (servant));
 }
 
 ServantManager::_ref_type POA_Activator::get_servant_manager ()

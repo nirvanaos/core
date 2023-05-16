@@ -51,7 +51,7 @@ protected:
 	virtual void activate_object (CORBA::Core::ReferenceLocal& ref,
 		CORBA::Core::ServantProxyObject& proxy) override;
 
-	virtual void serve (const RequestRef& request, CORBA::Core::ReferenceLocal& reference) override;
+	virtual void serve_request (const RequestRef& request, CORBA::Core::ReferenceLocal& reference) override;
 	virtual void destroy_internal (bool etherealize_objects) NIRVANA_NOEXCEPT override;
 	virtual void etherealize_objects () NIRVANA_NOEXCEPT override;
 	virtual void implicit_deactivate (CORBA::Core::ReferenceLocal& ref,

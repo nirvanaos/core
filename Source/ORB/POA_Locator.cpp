@@ -99,7 +99,7 @@ void POA_Locator::serve_default (const RequestRef& request, ReferenceLocal& refe
 		if (!servant) // User code returned nil servant
 			throw OBJECT_NOT_EXIST (MAKE_OMG_MINOR (2));
 
-		serve (request, reference, *object2proxy (servant));
+		serve_request (request, reference, *object2proxy (servant));
 	} catch (...) {
 		postinvoke (oid, op, cookie, servant);
 		throw;

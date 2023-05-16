@@ -97,7 +97,7 @@ protected:
 	void post_invoke () NIRVANA_NOEXCEPT
 	{
 		if (!(response_flags_ & RESPONSE_EXPECTED))
-			post_send ();
+			post_send_DGC_refs ();
 		else if (!(response_flags_ & Internal::IOReference::REQUEST_ASYNC))
 			event_.wait ();
 	}

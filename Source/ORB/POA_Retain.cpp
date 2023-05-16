@@ -135,11 +135,11 @@ void POA_Retain::etherealize_objects () NIRVANA_NOEXCEPT
 	}
 }
 
-void POA_Retain::serve (const RequestRef& request, ReferenceLocal& reference)
+void POA_Retain::serve_request (const RequestRef& request, ReferenceLocal& reference)
 {
 	Ref <ServantProxyObject> servant = reference.get_active_servant ();
 	if (servant)
-		POA_Base::serve (request, reference, *servant);
+		POA_Base::serve_request (request, reference, *servant);
 	else
 		serve_default (request, reference);
 }

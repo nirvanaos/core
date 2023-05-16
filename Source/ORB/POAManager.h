@@ -165,7 +165,7 @@ public:
 				break;
 			case State::ACTIVE:
 				on_request_start ();
-				adapter.serve (request);
+				adapter.serve_request (request);
 				break;
 			case State::DISCARDING:
 				throw CORBA::TRANSIENT (MAKE_OMG_MINOR (1));

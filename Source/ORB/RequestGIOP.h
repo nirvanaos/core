@@ -433,7 +433,7 @@ protected:
 	/// In the ESIOP we do not use the message size to allow > 4GB data transferring.
 	void set_out_size ();
 
-	void post_send () NIRVANA_NOEXCEPT;
+	void post_send_DGC_refs () NIRVANA_NOEXCEPT;
 
 private:
 	void marshal_rep_id (IDL::String&& id);

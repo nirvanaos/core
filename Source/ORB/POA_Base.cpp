@@ -433,15 +433,15 @@ ObjectId POA_Base::generate_object_id ()
 void POA_Base::check_object_id (const ObjectId& oid)
 {}
 
-void POA_Base::serve (const RequestRef& request)
+void POA_Base::serve_request (const RequestRef& request)
 {
 	ReferenceLocalRef ref = root_->find_reference (request->object_key ());
 	if (!ref)
 		ref = create_reference (ObjectKey (request->object_key ()), IDL::String ());
-	serve (request, *ref);
+	serve_request (request, *ref);
 }
 
-void POA_Base::serve (const RequestRef& request, ReferenceLocal& reference)
+void POA_Base::serve_request (const RequestRef& request, ReferenceLocal& reference)
 {
 	serve_default (request, reference);
 }
@@ -451,7 +451,7 @@ void POA_Base::serve_default (const RequestRef& request, ReferenceLocal& referen
 	throw OBJECT_NOT_EXIST (MAKE_OMG_MINOR (2));
 }
 
-void POA_Base::serve (const RequestRef& request, ReferenceLocal& reference, ServantProxyObject& proxy)
+void POA_Base::serve_request (const RequestRef& request, ReferenceLocal& reference, ServantProxyObject& proxy)
 {
 	IOReference::OperationIndex op = proxy.find_operation (request->operation ());
 	TLS& tls = TLS::current ();
@@ -460,7 +460,7 @@ void POA_Base::serve (const RequestRef& request, ReferenceLocal& reference, Serv
 	tls.set (TLS::CORE_TLS_PORTABLE_SERVER, &ctx);
 	++request_cnt_;
 	try {
-		request->serve_request (proxy, op, request->memory ());
+		request->serve (proxy, op);
 	} catch (...) {
 		on_request_finish ();
 		tls.set (TLS::CORE_TLS_PORTABLE_SERVER, ctx_prev);
