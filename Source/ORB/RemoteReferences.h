@@ -65,8 +65,7 @@ class RemoteReferences
 	typedef Nirvana::Core::WaitableRef <RefPtr> RefVal;
 	typedef OctetSeq RefKey;
 	typedef Nirvana::Core::MapUnorderedStable <RefKey, RefVal, std::hash <RefKey>,
-		std::equal_to <RefKey>, Al <std::pair <RefKey, RefVal> > >
-		References;
+		std::equal_to <RefKey>, Al> References;
 
 public:
 	RemoteReferences ()
@@ -156,8 +155,7 @@ private:
 #endif
 
 	typedef Nirvana::Core::SetUnorderedStable <DomainRemote, std::hash <IIOP::ListenPoint>,
-		std::equal_to <IIOP::ListenPoint>, Al <DomainRemote> >
-		DomainsRemote;
+		std::equal_to <IIOP::ListenPoint>, Al> DomainsRemote;
 
 	DomainsRemote domains_remote_;
 

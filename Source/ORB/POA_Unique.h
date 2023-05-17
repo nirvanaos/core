@@ -60,7 +60,7 @@ protected:
 	ReferencePtr find_servant (const CORBA::Core::ServantProxyObject& proxy) NIRVANA_NOEXCEPT;
 
 	using ServantMap = Nirvana::Core::MapUnorderedUnstable <ServantPtr, ReferencePtr, std::hash <ServantPtr>,
-		std::equal_to <ServantPtr>, Nirvana::Core::UserAllocator <std::pair <ServantPtr, ReferencePtr> > >;
+		std::equal_to <ServantPtr>, Nirvana::Core::UserAllocator>;
 
 	ServantMap servant_map_;
 };

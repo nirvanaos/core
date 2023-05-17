@@ -133,8 +133,7 @@ public:
 	typedef std::unique_ptr <CORBA::Core::ReferenceLocal> RefPtr;
 	typedef Nirvana::Core::WaitableRef <RefPtr> RefVal;
 	typedef Nirvana::Core::MapUnorderedStable <IOP::ObjectKey, RefVal, std::hash <IOP::ObjectKey>,
-		std::equal_to <IOP::ObjectKey>, Nirvana::Core::UserAllocator <std::pair <IOP::ObjectKey,
-		CORBA::Core::ReferenceLocal> > > References;
+		std::equal_to <IOP::ObjectKey>, Nirvana::Core::UserAllocator> References;
 
 	CORBA::Core::ReferenceLocalRef emplace_reference (ObjectKey&& core_key,
 		bool unique, const IDL::String& primary_iid, unsigned flags,

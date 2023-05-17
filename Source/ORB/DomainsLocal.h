@@ -63,8 +63,7 @@ private:
 	typedef Nirvana::Core::WaitableRef <Ptr> Val;
 
 	typedef Nirvana::Core::MapUnorderedStable <Key, Val, std::hash <Key>,
-		std::equal_to <Key>, Al <std::pair <Key, Val> > >
-		Map;
+		std::equal_to <Key>, Al> Map;
 
 	Map map_;
 };
@@ -121,8 +120,7 @@ private:
 	typedef DomainLocal Val;
 
 	typedef Nirvana::Core::MapUnorderedStable <Key, Val, std::hash <Key>,
-		std::equal_to <Key>, Al <std::pair <Key, Val> > >
-		Map;
+		std::equal_to <Key>, Al> Map;
 
 	Map map_;
 };

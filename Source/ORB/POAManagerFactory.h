@@ -91,7 +91,7 @@ private:
 	friend class POAManager;
 
 	typedef Nirvana::Core::SetUnorderedStable <POAManager, std::hash <IDL::String>, std::equal_to <IDL::String>,
-		Nirvana::Core::UserAllocator <POAManager> > ManagerMap;
+		Nirvana::Core::UserAllocator> ManagerMap;
 
 	ManagerMap managers_;
 };

@@ -41,11 +41,17 @@ namespace Core {
 RequestGIOP::RequestGIOP (unsigned GIOP_minor, unsigned response_flags, Domain* servant_domain) :
 	GIOP_minor_ (GIOP_minor),
 	response_flags_ (response_flags),
+	chunk_level_ (0),
 	target_domain_ (servant_domain),
 	mem_context_ (&MemContext::current ()),
-	chunk_level_ (0),
 	code_set_conv_ (CodeSetConverter::get_default ()),
-	code_set_conv_w_ (CodeSetConverterW::get_default (GIOP_minor, servant_domain != nullptr))
+	code_set_conv_w_ (CodeSetConverterW::get_default (GIOP_minor, servant_domain != nullptr)),
+	top_level_tc_unmarshal_ (mem_context_->heap ()),
+	value_map_marshal_ (mem_context_->heap ()),
+	value_map_unmarshal_ (mem_context_->heap ()),
+	rep_id_map_marshal_ (mem_context_->heap ()),
+	rep_id_map_unmarshal_ (mem_context_->heap ()),
+	marshaled_DGC_references_ (mem_context_->heap ())
 {}
 
 RequestGIOP::~RequestGIOP ()

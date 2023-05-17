@@ -294,7 +294,7 @@ private:
 
 	// We use fast binary tree without the iterator stability.
 	typedef MapOrderedUnstable <ObjectKey, InterfacePtr, std::less <ObjectKey>,
-		Allocator <std::pair <ObjectKey, InterfacePtr> > > ObjectMapBase;
+		Allocator> ObjectMapBase;
 
 	// Name->interface map.
 	class ObjectMap : public ObjectMapBase
@@ -313,8 +313,7 @@ private:
 	typedef WaitableRef <Module*> ModulePtr;
 	typedef MapUnorderedStable
 		<std::string, ModulePtr, std::hash <std::string>,
-		std::equal_to <std::string>, Allocator <std::pair <std::string, ModulePtr> >
-	> ModuleMap;
+		std::equal_to <std::string>, Allocator> ModuleMap;
 
 	/// Module binding context
 	struct ModuleContext

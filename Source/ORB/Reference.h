@@ -118,8 +118,9 @@ protected:
 	servant_reference <Core::DomainManager> domain_manager_;
 };
 
-typedef Nirvana::Core::SetUnorderedUnstable <ReferenceRef, std::hash <void*>, std::equal_to <void*>,
-	Nirvana::Core::UserAllocator <void*> > ReferenceSet;
+template <template <class> class Allocator>
+using ReferenceSet = Nirvana::Core::SetUnorderedUnstable <ReferenceRef, std::hash <void*>,
+	std::equal_to <void*>, Allocator>;
 
 }
 }

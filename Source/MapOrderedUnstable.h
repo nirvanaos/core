@@ -40,8 +40,8 @@ namespace Core {
 
 /// Fast ordered map without the pointer stability.
 template <class Key, class T, class Compare = std::less <Key>,
-	class Allocator = std::allocator <std::pair <const Key, T> > >
-using MapOrderedUnstable = phmap::btree_map <Key, T, Compare, Allocator>;
+	template <class> class Allocator = std::allocator>
+	using MapOrderedUnstable = phmap::btree_map <Key, T, Compare, Allocator <std::pair <const Key, T> > >;
 
 }
 }

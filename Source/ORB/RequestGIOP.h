@@ -246,7 +246,8 @@ public:
 	virtual Internal::Interface::_ref_type unmarshal_interface (const IDL::String& interface_id);
 
 private:
-	typedef Nirvana::Core::MapUnorderedUnstable <void*, size_t> IndirectMapMarshal;
+	typedef Nirvana::Core::MapUnorderedUnstable <void*, size_t, std::hash <void*>, std::equal_to <void*>,
+		Nirvana::Core::HeapAllocator> IndirectMapMarshal;
 	static void marshal_type_code (StreamOut& stream, TypeCode::_ptr_type tc, IndirectMapMarshal& map, size_t parent_offset);
 	void marshal_object (Object::_ptr_type obj);
 
@@ -268,8 +269,10 @@ public:
 	/// \returns TypeCode.
 	virtual TypeCode::_ref_type unmarshal_type_code ();
 
-	typedef Nirvana::Core::MapUnorderedUnstable <RepositoryId, size_t> IndirectRepIdMarshal;
-	typedef Nirvana::Core::MapUnorderedUnstable <size_t, RepositoryId> IndirectRepIdUnmarshal;
+	typedef Nirvana::Core::MapUnorderedUnstable <RepositoryId, size_t, std::hash <RepositoryId>,
+		std::equal_to <RepositoryId>, Nirvana::Core::HeapAllocator> IndirectRepIdMarshal;
+	typedef Nirvana::Core::MapUnorderedUnstable <size_t, RepositoryId, std::hash <size_t>,
+		std::equal_to <size_t>, Nirvana::Core::HeapAllocator> IndirectRepIdUnmarshal;
 
 	/// Marshal value type.
 	/// 
@@ -454,7 +457,7 @@ protected:
 	IndirectMapUnmarshal value_map_unmarshal_;
 	IndirectRepIdMarshal rep_id_map_marshal_;
 	IndirectRepIdUnmarshal rep_id_map_unmarshal_;
-	ReferenceSet marshaled_DGC_references_;
+	ReferenceSet <Nirvana::Core::HeapAllocator> marshaled_DGC_references_;
 };
 
 }

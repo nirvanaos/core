@@ -37,8 +37,7 @@ namespace Core {
 
 typedef Nirvana::Core::MapUnorderedUnstable <PolicyType, Policy::_ref_type,
 	std::hash <PolicyType>, std::equal_to <PolicyType>,
-	Nirvana::Core::UserAllocator <std::pair <PolicyType, Policy::_ref_type> > >
-	PolicyMap;
+	Nirvana::Core::UserAllocator> PolicyMap;
 
 }
 }

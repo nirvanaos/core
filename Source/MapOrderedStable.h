@@ -35,10 +35,10 @@
 namespace Nirvana {
 namespace Core {
 
-// Ordered map with pointer stability. Currently use STL map.
+/// Ordered map with pointer stability. Currently use STL map.
 template <class Key, class T, class Compare = std::less <Key>,
-	class Allocator = std::allocator <std::pair <const Key, T> > >
-using MapOrderedStable = std::map <Key, T, Compare, Allocator>;
+	template <class> class Allocator = std::allocator>
+	using MapOrderedStable = std::map <Key, T, Compare, Allocator <std::pair <const Key, T> > >;
 
 }
 }

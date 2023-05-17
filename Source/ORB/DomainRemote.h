@@ -30,6 +30,7 @@
 
 #include "Domain.h"
 #include <CORBA/IIOP.h>
+#include "../HeapAllocator.h"
 
 namespace CORBA {
 namespace Core {
@@ -41,9 +42,9 @@ class DomainRemote :
 {
 public:
 	DomainRemote (const IIOP::ListenPoint& lp) :
+		IIOP::ListenPoint (lp),
 		Domain (0,
-			1 * TimeBase::SECOND, 1 * TimeBase::MINUTE, 2 * TimeBase::MINUTE),
-		IIOP::ListenPoint (lp)
+			1 * TimeBase::SECOND, 1 * TimeBase::MINUTE, 2 * TimeBase::MINUTE)
 	{}
 
 	~DomainRemote ()
@@ -55,7 +56,7 @@ public:
 	// Add DGC references owned by this domain.
 	// Used only in the connection-oriented GC.
 	// Not used if the domain is DGC-enabled.
-	void add_DGC_objects (ReferenceSet& references) NIRVANA_NOEXCEPT;
+	void add_DGC_objects (ReferenceSet <Nirvana::Core::HeapAllocator>& references) NIRVANA_NOEXCEPT;
 
 protected:
 	virtual void destroy () NIRVANA_NOEXCEPT override;
@@ -64,7 +65,7 @@ private:
 	// DGC references owned by this domain.
 	// Used only in the connection-oriented GC.
 	// Not used if the domain is DGC-enabled.
-	ReferenceSet owned_references_;
+	ReferenceSet <Nirvana::Core::UserAllocator> owned_references_;
 };
 
 }

@@ -66,7 +66,7 @@ private:
 	typedef Nirvana::Core::WaitableRef <CORBA::Object::_ref_type> ActivationRef;
 
 	typedef Nirvana::Core::MapUnorderedStable <ActivationKey, ActivationRef, std::hash <ObjectId>, std::equal_to <ObjectId>,
-		Nirvana::Core::UserAllocator <std::pair <ActivationKey, ActivationRef> > > ActivationMap;
+		Nirvana::Core::UserAllocator> ActivationMap;
 
 	ActivationMap activation_map_;
 };

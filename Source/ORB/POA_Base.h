@@ -520,7 +520,7 @@ private:
 	// Children map.
 	typedef Nirvana::Core::MapUnorderedStable <IDL::String, POA_Ref,
 		std::hash <IDL::String>, std::equal_to <IDL::String>,
-		Nirvana::Core::UserAllocator <std::pair <IDL::String, POA_Ref> > > Children;
+		Nirvana::Core::UserAllocator> Children;
 
 	POA_Base* parent_;
 	const IDL::String* name_;

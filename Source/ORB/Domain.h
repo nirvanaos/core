@@ -163,8 +163,7 @@ private:
 	// DGC-enabled local objects owned by this domain
 	typedef Nirvana::Core::MapUnorderedUnstable <IOP::ObjectKey, ReferenceLocalRef,
 		std::hash <IOP::ObjectKey>, std::equal_to <IOP::ObjectKey>, 
-		Nirvana::Core::UserAllocator <std::pair <IOP::ObjectKey, Object::_ref_type> > >
-		LocalObjects;
+		Nirvana::Core::UserAllocator> LocalObjects;
 
 	LocalObjects local_objects_;
 
@@ -197,8 +196,7 @@ private:
 	// DGC-enabled references to the domain objects owned by the current domain
 	typedef Nirvana::Core::SetUnorderedUnstable <RemoteRefKey,
 		std::hash <IOP::ObjectKey>, std::equal_to <IOP::ObjectKey>,
-		Nirvana::Core::UserAllocator <RemoteRefKey> >
-		RemoteObjects;
+		Nirvana::Core::UserAllocator> RemoteObjects;
 
 	// DGC-enabled references to the domain objects owned by the current domain
 	RemoteObjects remote_objects_;

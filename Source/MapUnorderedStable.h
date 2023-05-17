@@ -42,13 +42,14 @@ namespace Core {
 
 /// Unordered map with pointer stability.
 template <class Key, class T, class Hash = std::hash <Key>, class KeyEqual = std::equal_to <Key>,
-	class Allocator = std::allocator <std::pair <const Key, T> > >
-using MapUnorderedStable = phmap::node_hash_map <Key, T, Hash, KeyEqual, Allocator>;
+	template <class> class Allocator = std::allocator>
+	using MapUnorderedStable = phmap::node_hash_map <Key, T, Hash, KeyEqual,
+	Allocator <std::pair <const Key, T> > >;
 
 /// Unordered set with pointer stability.
 template <class Key, class Hash = std::hash <Key>, class KeyEqual = std::equal_to <Key>,
-	class Allocator = std::allocator <Key> >
-using SetUnorderedStable = phmap::node_hash_set <Key, Hash, KeyEqual, Allocator>;
+	template <class> class Allocator = std::allocator>
+	using SetUnorderedStable = phmap::node_hash_set <Key, Hash, KeyEqual, Allocator <Key> >;
 
 }
 }

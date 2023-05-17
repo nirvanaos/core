@@ -150,7 +150,7 @@ private:
 
 	// We can not use `phmap::btree_map` here because we need the iterator stability.
 	typedef MapOrderedStable <BlockIdx, CacheEntry, std::less <BlockIdx>,
-		UserAllocator <std::pair <const BlockIdx, CacheEntry> > > Cache;
+		UserAllocator> Cache;
 
 	struct CacheRange
 	{

@@ -33,6 +33,7 @@
 namespace Nirvana {
 namespace Core {
 
+/// Allocates memory from the specific heap.
 template <class T>
 class HeapAllocator :
 	public std::allocator <T>
@@ -40,8 +41,13 @@ class HeapAllocator :
 public:
 	DEFINE_ALLOCATOR (HeapAllocator);
 
+	// Some containers require default constructor for allocator.
+	HeapAllocator () NIRVANA_NOEXCEPT
+	{
+	}
+
 	HeapAllocator (Heap& heap) NIRVANA_NOEXCEPT :
-	heap_ (&heap)
+		heap_ (&heap)
 	{
 	}
 

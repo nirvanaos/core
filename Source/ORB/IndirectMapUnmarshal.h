@@ -30,13 +30,15 @@
 
 #include <CORBA/CORBA.h>
 #include "../MapUnorderedUnstable.h"
+#include "../HeapAllocator.h"
 
 namespace CORBA {
 namespace Core {
 
 static const ULong INDIRECTION_TAG = 0xFFFFFFFF;
 
-typedef Nirvana::Core::MapUnorderedUnstable <size_t, Internal::Interface*> IndirectMapUnmarshal;
+typedef Nirvana::Core::MapUnorderedUnstable <size_t, Internal::Interface*, std::hash <size_t>,
+	std::equal_to <size_t>, Nirvana::Core::HeapAllocator> IndirectMapUnmarshal;
 
 }
 }

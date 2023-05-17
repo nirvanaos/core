@@ -380,7 +380,7 @@ private:
 private:
 	Nirvana::Core::MapUnorderedUnstable <void*, TC_ComplexBase*,
 		std::hash <void*>, std::equal_to <void*>,
-		Nirvana::Core::UserAllocator <std::pair <void*, TC_ComplexBase*> > > complex_objects_;
+		Nirvana::Core::UserAllocator> complex_objects_;
 
 	static std::atomic_flag GC_scheduled_;
 };

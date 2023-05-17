@@ -35,7 +35,7 @@ namespace Nirvana {
 namespace Core {
 
 typedef SetUnorderedUnstable <void*, std::hash <void*>,
-	std::equal_to <void*>, UserAllocator <void*> > PointerSet;
+	std::equal_to <void*>, UserAllocator> PointerSet;
 
 }
 }
