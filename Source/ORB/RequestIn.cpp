@@ -27,6 +27,7 @@
 #include "IncomingRequests.h"
 #include <CORBA/IIOP.h>
 #include "ServantProxyObject.h"
+#include "DomainRemote.h"
 
 using namespace Nirvana;
 using namespace Nirvana::Core;
@@ -308,6 +309,17 @@ bool RequestIn::completed () const NIRVANA_NOEXCEPT
 bool RequestIn::wait (uint64_t)
 {
 	throw BAD_OPERATION ();
+}
+
+void RequestIn::post_send_success () NIRVANA_NOEXCEPT
+{
+	if (!marshaled_DGC_references_.empty ()) {
+		assert (target_domain_);
+		if (!(target_domain_->flags () & Domain::GARBAGE_COLLECTION)) {
+			static_cast <DomainRemote&> (*target_domain_).add_DGC_objects (marshaled_DGC_references_);
+		}
+		// TODO: for DGC-enabled target domain we need to delay request release
+	}
 }
 
 }

@@ -53,6 +53,14 @@ public:
 		return id_;
 	}
 
+	void set_request_id (uint32_t id)
+	{
+		size_t offset = request_id_offset_;
+		Octet* hdr = (Octet*)stream_out_->header (offset + 4);
+		*(uint32_t*)(hdr + offset) = id;
+		id_ = id;
+	}
+
 	const Nirvana::DeadlineTime deadline() const NIRVANA_NOEXCEPT
 	{
 		return deadline_;
@@ -96,9 +104,7 @@ protected:
 
 	void post_invoke () NIRVANA_NOEXCEPT
 	{
-		if (!(response_flags_ & RESPONSE_EXPECTED))
-			post_send_DGC_refs ();
-		else if (!(response_flags_ & Internal::IOReference::REQUEST_ASYNC))
+		if (!(response_flags_ & Internal::IOReference::REQUEST_ASYNC))
 			event_.wait ();
 	}
 
@@ -110,10 +116,11 @@ private:
 
 	void preunmarshal(TypeCode::_ptr_type tc, std::vector <Octet> buf, Internal::IORequest::_ptr_type out);
 
+	static size_t marshaled_bytes (const IOP::ServiceContextList& context) NIRVANA_NOEXCEPT;
+
 protected:
 	Nirvana::DeadlineTime deadline_;
 	const Internal::Operation* metadata_;
-
 	uint32_t id_;
 
 	enum class Status
@@ -128,6 +135,8 @@ protected:
 		NEEDS_ADDRESSING_MODE
 	}
 	status_;
+
+	size_t request_id_offset_;
 
 	Nirvana::Core::Event event_;
 	Nirvana::Core::Ref <RequestLocalBase> preunmarshaled_;

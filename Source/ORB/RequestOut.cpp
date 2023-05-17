@@ -42,7 +42,8 @@ RequestOut::RequestOut (unsigned GIOP_minor, unsigned response_flags,
 	RequestGIOP (GIOP_minor, response_flags, &servant_domain),
 	metadata_ (&metadata),
 	id_ (0),
-	status_ (Status::IN_PROGRESS)
+	status_ (Status::IN_PROGRESS),
+	request_id_offset_ (0)
 {
 #if (NIRVANA_DEBUG_ITERATORS != 0)
 	SyncContext& sc = SyncContext::current ();
@@ -75,9 +76,10 @@ void RequestOut::write_header (const IOP::ObjectKey& object_key, IDL::String& op
 	switch (GIOP_minor_) {
 		case 0: {
 			GIOP::RequestHeader_1_0 hdr;
+			request_id_offset_ = sizeof (GIOP::RequestHeader_1_0) + marshaled_bytes (context);
 			hdr.service_context ().swap (context);
 			hdr.request_id (id_);
-			hdr.response_expected (response_flags_ != 0);
+			hdr.response_expected (response_flags_ & RESPONSE_EXPECTED);
 			hdr.object_key (object_key);
 			hdr.operation ().swap (operation);
 			Type <GIOP::RequestHeader_1_0>::marshal_in (hdr, _get_ptr ());
@@ -87,9 +89,10 @@ void RequestOut::write_header (const IOP::ObjectKey& object_key, IDL::String& op
 
 		case 1: {
 			GIOP::RequestHeader_1_1 hdr;
+			request_id_offset_ = sizeof (GIOP::RequestHeader_1_1) + marshaled_bytes (context);
 			hdr.service_context ().swap (context);
 			hdr.request_id (id_);
-			hdr.response_expected (response_flags_ != 0);
+			hdr.response_expected (response_flags_ & RESPONSE_EXPECTED);
 			hdr.object_key (object_key);
 			hdr.operation ().swap (operation);
 			Type <GIOP::RequestHeader_1_1>::marshal_in (hdr, _get_ptr ());
@@ -99,8 +102,9 @@ void RequestOut::write_header (const IOP::ObjectKey& object_key, IDL::String& op
 
 		default: {
 			GIOP::RequestHeader_1_2 hdr;
+			request_id_offset_ = sizeof (GIOP::RequestHeader_1_2);
 			hdr.request_id (id_);
-			hdr.response_flags ((Octet)response_flags_);
+			hdr.response_flags ((Octet)(response_flags_ & (RESPONSE_EXPECTED | RESPONSE_DATA)));
 			hdr.target ().object_key (object_key);
 			hdr.operation ().swap (operation);
 			hdr.service_context ().swap (context);
@@ -118,14 +122,26 @@ void RequestOut::write_header (const IOP::ObjectKey& object_key, IDL::String& op
 	}
 }
 
+size_t marshaled_bytes (const IOP::ServiceContextList& context) NIRVANA_NOEXCEPT
+{
+	size_t cb = 4;
+	for (const IOP::ServiceContext& ctx : context) {
+		cb += 8 + ctx.context_data ().size ();
+	}
+	return cb;
+}
+
 void RequestOut::set_reply (unsigned status, IOP::ServiceContextList&& context,
 	Ref <StreamIn>&& stream)
 {
-	assert (response_flags_ & 3); // No oneway
 	switch (status_ = (Status)status) {
 		case Status::NO_EXCEPTION:
-			if (!(response_flags_ & 2)) {
-				assert (false); // No data was expected, but received. Ignore it.
+			// If target domain does not support DGC, we make passed DGC references as owned to it.
+			if (!marshaled_DGC_references_.empty () && !(target_domain_->flags () & Domain::GARBAGE_COLLECTION))
+				static_cast <DomainRemote&> (*target_domain_).add_DGC_objects (marshaled_DGC_references_);
+
+			if (!(response_flags_ & RESPONSE_DATA)) {
+				// Data is not expected
 				finalize ();
 				break;
 			}
@@ -152,17 +168,13 @@ void RequestOut::set_reply (unsigned status, IOP::ServiceContextList&& context,
 				preunmarshaled_ = std::move (pre);
 			}
 
-			// If target domain does not support DGC, we make passed DGC references as owned to it.
-			if (!(target_domain_->flags () & Domain::GARBAGE_COLLECTION)
-				&& !marshaled_DGC_references_.empty ())
-				static_cast <DomainRemote&> (*target_domain_).add_DGC_objects (marshaled_DGC_references_);
-
 			finalize ();
 			break;
 
 		case Status::USER_EXCEPTION:
 		case Status::SYSTEM_EXCEPTION:
-			stream_in_ = std::move (stream);
+			if (response_flags_ & RESPONSE_EXPECTED)
+				stream_in_ = std::move (stream);
 			finalize ();
 			break;
 
@@ -304,6 +316,14 @@ void RequestOut::pre_invoke ()
 	if (!stream_out_)
 		throw BAD_INV_ORDER ();
 	Base::invoke ();
+	if (!(response_flags_ & RESPONSE_EXPECTED) && !marshaled_DGC_references_.empty ()) {
+		// For oneway request with DGC references we have to wait response before the references releasing.
+		// Offset of the response_flags is immediately after the request_id
+		size_t offset = request_id_offset_ + 4;
+		Octet* hdr = (Octet*)stream_out_->header (offset + 1);
+		assert (0 == hdr [offset]);
+		hdr [offset] = 1;
+	}
 	if (metadata_->context.size != 0) {
 		IDL::Sequence <IDL::String> context;
 		ExecDomain::current ().get_context (metadata_->context.p, metadata_->context.size, context);
@@ -336,7 +356,7 @@ void RequestOut::success ()
 
 bool RequestOut::cancel_internal ()
 {
-	if (!(response_flags_ & 3))
+	if (!(response_flags_ & RESPONSE_EXPECTED))
 		throw BAD_INV_ORDER ();
 
 	if (CORBA::Core::OutgoingRequests::remove_request (id_)) {

@@ -63,10 +63,10 @@ void RequestGIOP::_remove_ref () NIRVANA_NOEXCEPT
 
 void RequestGIOP::set_out_size ()
 {
-	size_t size = stream_out_->size () - sizeof (GIOP::MessageHeader_1_3);
+	size_t size = stream_out_->size () - sizeof (GIOP::MessageHeader_1_0);
 	if (sizeof (size_t) > sizeof (uint32_t) && size > std::numeric_limits <uint32_t>::max ())
 		throw IMP_LIMIT ();
-	((GIOP::MessageHeader_1_3*)stream_out_->header (sizeof (GIOP::MessageHeader_1_3)))->message_size ((uint32_t)size);
+	((GIOP::MessageHeader_1_0*)stream_out_->header (sizeof (GIOP::MessageHeader_1_0)))->message_size ((uint32_t)size);
 }
 
 void RequestGIOP::invoke ()
@@ -651,17 +651,6 @@ Interface::_ref_type RequestGIOP::unmarshal_abstract (const IDL::String& interfa
 		return RequestGIOP::unmarshal_interface (interface_id);
 	else
 		return RequestGIOP::unmarshal_value (interface_id);
-}
-
-void RequestGIOP::post_send_DGC_refs () NIRVANA_NOEXCEPT
-{
-	if (!marshaled_DGC_references_.empty ()) {
-		assert (target_domain_);
-		if (!(target_domain_->flags () & Domain::GARBAGE_COLLECTION)) {
-			static_cast <DomainRemote&> (*target_domain_).add_DGC_objects (marshaled_DGC_references_);
-		}
-		// TODO: for DGC-enabled target domain we need to delay request release
-	}
 }
 
 }

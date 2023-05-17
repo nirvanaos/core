@@ -433,8 +433,6 @@ protected:
 	/// In the ESIOP we do not use the message size to allow > 4GB data transferring.
 	void set_out_size ();
 
-	void post_send_DGC_refs () NIRVANA_NOEXCEPT;
-
 private:
 	void marshal_rep_id (IDL::String&& id);
 	const IDL::String& unmarshal_rep_id ();
@@ -443,15 +441,12 @@ private:
 protected:
 	unsigned GIOP_minor_;
 	unsigned response_flags_;
+	Nirvana::Core::RefCounter ref_cnt_;
+	Long chunk_level_;
 	servant_reference <Domain> target_domain_;
 	Nirvana::Core::Ref <StreamIn> stream_in_;
 	Nirvana::Core::Ref <StreamOut> stream_out_;
 	Nirvana::Core::Ref <Nirvana::Core::MemContext> mem_context_;
-	ReferenceSet marshaled_DGC_references_;
-
-private:
-	Nirvana::Core::RefCounter ref_cnt_;
-	Long chunk_level_;
 	Nirvana::Core::Ref <CodeSetConverter> code_set_conv_;
 	Nirvana::Core::Ref <CodeSetConverterW> code_set_conv_w_;
 	IndirectMapUnmarshal top_level_tc_unmarshal_;
@@ -459,6 +454,7 @@ private:
 	IndirectMapUnmarshal value_map_unmarshal_;
 	IndirectRepIdMarshal rep_id_map_marshal_;
 	IndirectRepIdUnmarshal rep_id_map_unmarshal_;
+	ReferenceSet marshaled_DGC_references_;
 };
 
 }

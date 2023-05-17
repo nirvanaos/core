@@ -135,9 +135,10 @@ protected:
 	/// Output stream factory.
 	/// Must be overridden in a derived class.
 	/// 
-	/// \param [out] GIOP_minor GIOP version minor number.
 	/// \returns The output stream reference.
 	virtual Nirvana::Core::Ref <StreamOut> create_output () = 0;
+
+	void post_send_success () NIRVANA_NOEXCEPT;
 
 private:
 	void get_object_key (const IOP::TaggedProfile& profile);
