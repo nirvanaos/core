@@ -315,11 +315,53 @@ void RequestIn::post_send_success () NIRVANA_NOEXCEPT
 {
 	if (!marshaled_DGC_references_.empty ()) {
 		assert (target_domain_);
-		if (!(target_domain_->flags () & Domain::GARBAGE_COLLECTION)) {
+		if (!(target_domain_->flags () & Domain::GARBAGE_COLLECTION))
 			static_cast <DomainRemote&> (*target_domain_).add_DGC_objects (marshaled_DGC_references_);
+		else {
+			// For DGC-enabled target domain we need to delay request release
+			try {
+				delayed_release_timer_.construct (std::ref (*this));
+			} catch (...) {
+				return;
+			}
+			_add_ref ();
+			try {
+				delayed_release_timer_->set_relative (target_domain_->request_latency (), 0);
+			} catch (...) {
+				delayed_release_timer_.destruct ();
+				_remove_ref ();
+				return;
+			}
 		}
-		// TODO: for DGC-enabled target domain we need to delay request release
 	}
+}
+
+inline void RequestIn::delayed_release () NIRVANA_NOEXCEPT
+{
+	delayed_release_timer_.destruct ();
+	_remove_ref ();
+}
+
+void RequestIn::DelayedReleaseTimer::signal () noexcept
+{
+	try {
+		DeadlineTime deadline =
+			PROXY_GC_DEADLINE == INFINITE_DEADLINE ?
+			INFINITE_DEADLINE : Chrono::make_deadline (PROXY_GC_DEADLINE);
+		ExecDomain::async_call <DelayedRelease> (deadline, g_core_free_sync_context, nullptr, std::ref (request_));
+	} catch (...) {
+		assert (false);
+		try {
+			set_relative (TimeBase::SECOND * 1, 0);
+		} catch (...) {
+			assert (false);
+		}
+	}
+}
+
+void RequestIn::DelayedRelease::run ()
+{
+	request_.delayed_release ();
 }
 
 }

@@ -32,6 +32,7 @@
 #include "RequestGIOP.h"
 #include "RequestInPOA.h"
 #include "../ExecDomain.h"
+#include "../Timer.h"
 
 namespace CORBA {
 namespace Core {
@@ -155,11 +156,43 @@ private:
 	void switch_to_reply (GIOP::ReplyStatusType status = GIOP::ReplyStatusType::NO_EXCEPTION);
 	virtual void serve (ServantProxyObject& proxy, Internal::IOReference::OperationIndex op) override;
 
+	void delayed_release () NIRVANA_NOEXCEPT;
+
 protected:
 	RequestKey key_;
 	IOP::ServiceContextList service_context_;
 
 private:
+	class DelayedRelease : public Nirvana::Core::Runnable
+	{
+	public:
+		DelayedRelease (RequestIn& request) :
+			request_ (request)
+		{
+		}
+
+	private:
+		virtual void run () override;
+
+	private:
+		RequestIn& request_;
+	};
+
+	class DelayedReleaseTimer : public Nirvana::Core::Timer
+	{
+	public:
+		DelayedReleaseTimer (RequestIn& request) :
+			request_ (request)
+		{
+		}
+
+	private:
+		virtual void signal () noexcept override;
+
+	private:
+		RequestIn& request_;
+	};
+
 	IOP::ObjectKey object_key_;
 	IDL::String operation_;
 	void* map_iterator_;
@@ -169,6 +202,7 @@ private:
 
 	size_t reply_status_offset_;
 	size_t reply_header_end_;
+	Nirvana::Core::StaticallyAllocated <DelayedReleaseTimer> delayed_release_timer_;
 	std::atomic <bool> cancelled_;
 	bool has_context_;
 };
