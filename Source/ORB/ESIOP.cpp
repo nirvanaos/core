@@ -287,11 +287,9 @@ void dispatch_message (MessageHeader& message)
 				{
 					ImplStatic <StreamInSM> tmp ((void*)msg.GIOP_message);
 				}
-				if (msg.request_id) { // Responce expected
-					// Highly likely we are out of resources here, so we shouldn't use the asyncronous call.
-					ReplySystemException reply (msg.request_id, ex);
-					send_error_message (msg.client_domain, &reply, sizeof (reply));
-				}
+				// Highly likely we are out of resources here, so we shouldn't use the asyncronous call.
+				ReplySystemException reply (msg.request_id, ex);
+				send_error_message (msg.client_domain, &reply, sizeof (reply));
 			}
 		} break;
 

@@ -50,8 +50,7 @@ public:
 		Base ((response_flags & 3) == 1 ? 2 : 1, response_flags, domain, metadata)
 	{
 		stream_out_ = Ref <StreamOut>::create <ImplDynamic <StreamOutSM> > (std::ref (domain), true);
-		if (response_flags & 3)
-			id_ = OutgoingRequests::new_request (*this, OutgoingRequests::IdPolicy::ANY);
+		id_ = get_new_id (IdPolicy::ANY);
 		IDL::String operation = metadata.name;
 		DeadlineTime dl = deadline ();
 		if (INFINITE_DEADLINE != dl) {

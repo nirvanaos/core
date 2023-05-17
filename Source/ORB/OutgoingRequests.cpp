@@ -32,71 +32,49 @@ using namespace Nirvana::Core;
 namespace CORBA {
 namespace Core {
 
-StaticallyAllocated <OutgoingRequests> OutgoingRequests::singleton_;
+StaticallyAllocated <OutgoingRequests::RequestMap> OutgoingRequests::map_;
 
-OutgoingRequests::RequestId OutgoingRequests::get_new_id (IdPolicy id_policy) NIRVANA_NOEXCEPT
+void OutgoingRequests::new_request (RequestOut& rq, RequestOut::IdPolicy id_policy)
 {
-	IdGenType id;
-	do {
-		switch (id_policy) {
-			case IdPolicy::ANY:
-				id = last_id_.fetch_add (1, std::memory_order_release) + 1;
-				break;
-
-			case IdPolicy::EVEN: {
-				IdGenType last = last_id_.load (std::memory_order_acquire);
-				IdGenType id;
-				do {
-					id = last + 2 - (last & 1);
-				} while (!last_id_.compare_exchange_weak (last, id));
-			} break;
-
-			case IdPolicy::ODD: {
-				IdGenType last = last_id_.load (std::memory_order_acquire);
-				IdGenType id;
-				do {
-					id = last + 1 + (last & 1);
-				} while (!last_id_.compare_exchange_weak (last, id));
-			} break;
-		}
-	} while (0 == id);
-	return (RequestId)id;
-}
-
-inline
-uint32_t OutgoingRequests::new_request_internal (RequestOut& rq, IdPolicy id_policy)
-{
-	RequestId id;
+	RequestId id = rq.id ();
 	for (;;) {
-		id = get_new_id (id_policy);
-		auto ins = map_.insert (id, std::ref (rq));
-		map_.release_node (ins.first);
+		auto ins = map_->insert (id, std::ref (rq));
+		map_->release_node (ins.first);
 		if (ins.second)
 			break;
+		id = RequestOut::get_new_id (id_policy);
 	}
-	return id;
+	if (rq.id () != id)
+		rq.id (id);
 }
 
-uint32_t OutgoingRequests::new_request (RequestOut& rq, IdPolicy id_policy)
+void OutgoingRequests::new_request_oneway (RequestOut& rq, RequestOut::IdPolicy id_policy)
 {
-	return singleton_->new_request_internal (rq, id_policy);
+	RequestId id = rq.id ();
+	for (;;) {
+		auto ins = map_->insert (id);
+		if (ins.second) {
+			// Ensure that id is unique but remove it from the map.
+			map_->remove (ins.first);
+			map_->release_node (ins.first);
+			break;
+		} else
+			map_->release_node (ins.first);
+		id = RequestOut::get_new_id (id_policy);
+	}
+	if (rq.id () != id)
+		rq.id (id);
 }
 
-inline
-Ref <RequestOut> OutgoingRequests::remove_request_internal (uint32_t request_id) NIRVANA_NOEXCEPT
+Ref <RequestOut> OutgoingRequests::remove_request (RequestOut::RequestId request_id) NIRVANA_NOEXCEPT
 {
-	RequestMap::NodeVal* p = map_.find_and_delete (request_id);
+	RequestMap::NodeVal* p = map_->find_and_delete (request_id);
 	Ref <RequestOut> ret;
 	if (p) {
 		ret = std::move (p->value ().request);
-		map_.release_node (p);
+		map_->release_node (p);
 	}
 	return ret;
-}
-
-Ref <RequestOut> OutgoingRequests::remove_request (uint32_t request_id) NIRVANA_NOEXCEPT
-{
-	return singleton_->remove_request_internal (request_id);
 }
 
 void OutgoingRequests::set_system_exception (uint32_t request_id, const Char* rep_id,
@@ -120,10 +98,10 @@ void OutgoingRequests::receive_reply (unsigned GIOP_minor, Ref <StreamIn>&& stre
 		stream->read_tagged (context1);
 	request_id = stream->read32 ();
 	status = stream->read32 ();
-	receive_reply_internal (GIOP_minor, request_id, status, context1, std::move (stream));
+	receive_reply_internal (GIOP_minor, (RequestId)request_id, status, context1, std::move (stream));
 }
 
-void OutgoingRequests::receive_reply_internal (unsigned GIOP_minor, uint32_t request_id,
+void OutgoingRequests::receive_reply_internal (unsigned GIOP_minor, RequestId request_id,
 	uint32_t status, const IOP::ServiceContextList& context1, Ref <StreamIn>&& stream)
 {
 	Ref <RequestOut> rq = remove_request (request_id);

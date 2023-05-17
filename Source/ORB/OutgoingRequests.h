@@ -44,59 +44,32 @@ public:
 	/// Called on system startup
 	static void initialize ()
 	{
-		singleton_.construct ();
+		map_.construct ();
 	}
 
 	/// Called on system shutdown
 	static void terminate ()
 	{
-		singleton_.destruct ();
+		map_.destruct ();
 	}
 
-	enum class IdPolicy
-	{
-		ANY,
-		EVEN,
-		ODD
-	};
-
-	static uint32_t new_request (RequestOut& rq, IdPolicy id_policy);
-
-	static uint32_t new_request_oneway (IdPolicy id_policy)
-	{
-		return singleton_->new_request_oneway_internal (id_policy);
-	}
-
-	static Nirvana::Core::Ref <RequestOut> remove_request (uint32_t request_id) NIRVANA_NOEXCEPT;
-
+	static void new_request (RequestOut& rq, RequestOut::IdPolicy id_policy);
+	static void new_request_oneway (RequestOut& rq, RequestOut::IdPolicy id_policy);
+	static Nirvana::Core::Ref <RequestOut> remove_request (RequestOut::RequestId request_id) NIRVANA_NOEXCEPT;
 	static void receive_reply (unsigned GIOP_minor, Nirvana::Core::Ref <StreamIn>&& stream);
-
 	static void receive_reply_immediate (uint32_t request_id, Nirvana::Core::Ref <StreamIn>&& stream)
 	{
-		receive_reply_internal (1, request_id, 0, IOP::ServiceContextList (), std::move (stream));
+		receive_reply_internal (1, (RequestId)request_id, 0, IOP::ServiceContextList (), std::move (stream));
 	}
 
 	static void set_system_exception (uint32_t request_id, const Char* rep_id,
 		uint32_t minor, CompletionStatus completed) NIRVANA_NOEXCEPT;
 
 private:
-	// Request id generator.
-#if ATOMIC_LONG_LOCK_FREE
-	typedef long IdGenType;
-#elif ATOMIC_INT_LOCK_FREE
-	typedef int IdGenType;
-#elif ATOMIC_LLONG_LOCK_FREE
-	typedef long long IdGenType;
-#elif ATOMIC_SHORT_LOCK_FREE
-	typedef short IdGenType;
-#else
-#error Platform does not meet the minimal atomic requirements.
-#endif
+	typedef RequestOut::RequestId RequestId;
 
-	// IdGen may have different sizes. We need 32-bit max, if possible.
-	typedef std::conditional_t <(sizeof (IdGenType) <= 4), IdGenType, uint32_t> RequestId;
-
-	RequestId get_new_id (IdPolicy id_policy) NIRVANA_NOEXCEPT;
+	static void receive_reply_internal (unsigned GIOP_minor, RequestId request_id,
+		uint32_t status, const IOP::ServiceContextList& context1, Nirvana::Core::Ref <StreamIn>&& stream);
 
 	struct RequestVal
 	{
@@ -121,33 +94,7 @@ private:
 	// The request map
 	typedef Nirvana::Core::SkipList <RequestVal, SKIP_LIST_LEVELS> RequestMap;
 
-	uint32_t new_request_internal (RequestOut& rq, IdPolicy id_policy);
-
-	uint32_t new_request_oneway_internal (IdPolicy id_policy)
-	{
-		RequestId id;
-		for (;;) {
-			id = get_new_id (id_policy);
-			auto ins = map_.insert (id);
-			if (ins.second) {
-				// Ensure that id is unique but remove it from the map.
-				map_.remove (ins.first);
-				map_.release_node (ins.first);
-				break;
-			} else
-				map_.release_node (ins.first);
-		}
-		return id;
-	}
-
-	Nirvana::Core::Ref <RequestOut> remove_request_internal (uint32_t request_id) NIRVANA_NOEXCEPT;
-	static void receive_reply_internal (unsigned GIOP_minor, uint32_t request_id, uint32_t status,
-		const IOP::ServiceContextList& context1, Nirvana::Core::Ref <StreamIn>&& stream);
-
-	RequestMap map_;
-	std::atomic <IdGenType> last_id_;
-
-	static Nirvana::Core::StaticallyAllocated <OutgoingRequests> singleton_;
+	static Nirvana::Core::StaticallyAllocated <RequestMap> map_;
 };
 
 }

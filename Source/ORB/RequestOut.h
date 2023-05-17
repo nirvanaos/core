@@ -44,22 +44,41 @@ class NIRVANA_NOVTABLE RequestOut : public RequestGIOP
 	static const unsigned FLAG_PREUNMARSHAL = 8;
 
 public:
+	// Request id generator.
+#if ATOMIC_LONG_LOCK_FREE
+	typedef long IdGenType;
+#elif ATOMIC_INT_LOCK_FREE
+	typedef int IdGenType;
+#elif ATOMIC_LLONG_LOCK_FREE
+	typedef long long IdGenType;
+#elif ATOMIC_SHORT_LOCK_FREE
+	typedef short IdGenType;
+#else
+#error Platform does not meet the minimal atomic requirements.
+#endif
+
+	// IdGen may have different sizes. We need 32-bit max, if possible.
+	typedef std::conditional_t <(sizeof (IdGenType) <= 4), IdGenType, uint32_t> RequestId;
+
+	enum class IdPolicy
+	{
+		ANY,
+		EVEN,
+		ODD
+	};
+
+	static RequestId get_new_id (IdPolicy id_policy) NIRVANA_NOEXCEPT;
+
 	RequestOut (unsigned GIOP_minor, unsigned response_flags, Domain& target_domain, const Internal::Operation& metadata);
 
 	~RequestOut ();
 
-	uint32_t id () const NIRVANA_NOEXCEPT
+	RequestId id () const NIRVANA_NOEXCEPT
 	{
 		return id_;
 	}
 
-	void set_request_id (uint32_t id)
-	{
-		size_t offset = request_id_offset_;
-		Octet* hdr = (Octet*)stream_out_->header (offset + 4);
-		*(uint32_t*)(hdr + offset) = id;
-		id_ = id;
-	}
+	void id (RequestId id);
 
 	const Nirvana::DeadlineTime deadline() const NIRVANA_NOEXCEPT
 	{
@@ -100,7 +119,7 @@ protected:
 
 	bool cancel_internal ();
 
-	void pre_invoke ();
+	void pre_invoke (IdPolicy id_policy);
 
 	void post_invoke () NIRVANA_NOEXCEPT
 	{
@@ -116,12 +135,10 @@ private:
 
 	void preunmarshal(TypeCode::_ptr_type tc, std::vector <Octet> buf, Internal::IORequest::_ptr_type out);
 
-	static size_t marshaled_bytes (const IOP::ServiceContextList& context) NIRVANA_NOEXCEPT;
-
 protected:
 	Nirvana::DeadlineTime deadline_;
 	const Internal::Operation* metadata_;
-	uint32_t id_;
+	RequestId id_;
 
 	enum class Status
 	{
@@ -140,6 +157,8 @@ protected:
 
 	Nirvana::Core::Event event_;
 	Nirvana::Core::Ref <RequestLocalBase> preunmarshaled_;
+
+	static std::atomic <IdGenType> last_id_;
 };
 
 }

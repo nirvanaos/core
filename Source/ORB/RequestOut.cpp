@@ -37,6 +37,35 @@ using namespace Internal;
 
 namespace Core {
 
+std::atomic <RequestOut::IdGenType> RequestOut::last_id_;
+
+RequestOut::RequestId RequestOut::get_new_id (IdPolicy id_policy) NIRVANA_NOEXCEPT
+{
+	IdGenType id;
+	switch (id_policy) {
+	case IdPolicy::ANY:
+		id = last_id_.fetch_add (1, std::memory_order_release) + 1;
+		break;
+
+	case IdPolicy::EVEN: {
+		IdGenType last = last_id_.load (std::memory_order_acquire);
+		IdGenType id;
+		do {
+			id = last + 2 - (last & 1);
+		} while (!last_id_.compare_exchange_weak (last, id));
+	} break;
+
+	case IdPolicy::ODD: {
+		IdGenType last = last_id_.load (std::memory_order_acquire);
+		IdGenType id;
+		do {
+			id = last + 1 + (last & 1);
+		} while (!last_id_.compare_exchange_weak (last, id));
+	} break;
+	}
+	return (RequestId)id;
+}
+
 RequestOut::RequestOut (unsigned GIOP_minor, unsigned response_flags,
 	Domain& servant_domain, const Internal::Operation& metadata) :
 	RequestGIOP (GIOP_minor, response_flags, &servant_domain),
@@ -73,62 +102,53 @@ void RequestOut::write_header (const IOP::ObjectKey& object_key, IDL::String& op
 {
 	stream_out_->write_message_header (GIOP_minor_, GIOP::MsgType::Request);
 
-	switch (GIOP_minor_) {
-		case 0: {
-			GIOP::RequestHeader_1_0 hdr;
-			request_id_offset_ = sizeof (GIOP::RequestHeader_1_0) + marshaled_bytes (context);
-			hdr.service_context ().swap (context);
-			hdr.request_id (id_);
-			hdr.response_expected (response_flags_ & RESPONSE_EXPECTED);
-			hdr.object_key (object_key);
-			hdr.operation ().swap (operation);
-			Type <GIOP::RequestHeader_1_0>::marshal_in (hdr, _get_ptr ());
-			hdr.service_context ().swap (context);
-			hdr.operation ().swap (operation);
-		} break;
+	if (GIOP_minor_ <= 1) {
+		GIOP::RequestHeader_1_1 hdr;
 
-		case 1: {
-			GIOP::RequestHeader_1_1 hdr;
-			request_id_offset_ = sizeof (GIOP::RequestHeader_1_1) + marshaled_bytes (context);
-			hdr.service_context ().swap (context);
-			hdr.request_id (id_);
-			hdr.response_expected (response_flags_ & RESPONSE_EXPECTED);
-			hdr.object_key (object_key);
-			hdr.operation ().swap (operation);
-			Type <GIOP::RequestHeader_1_1>::marshal_in (hdr, _get_ptr ());
-			hdr.service_context ().swap (context);
-			hdr.operation ().swap (operation);
-		} break;
+		// Calculate request id offset
+		size_t off = sizeof (GIOP::RequestHeader_1_1) + 4;
+		for (const IOP::ServiceContext& ctx : context) {
+			off += 8 + ctx.context_data ().size ();
+		}
+		request_id_offset_ = off;
 
-		default: {
-			GIOP::RequestHeader_1_2 hdr;
-			request_id_offset_ = sizeof (GIOP::RequestHeader_1_2);
-			hdr.request_id (id_);
-			hdr.response_flags ((Octet)(response_flags_ & (RESPONSE_EXPECTED | RESPONSE_DATA)));
-			hdr.target ().object_key (object_key);
-			hdr.operation ().swap (operation);
-			hdr.service_context ().swap (context);
-			Type <GIOP::RequestHeader_1_2>::marshal_in (hdr, _get_ptr ());
-			hdr.service_context ().swap (context);
-			hdr.operation ().swap (operation);
+		hdr.service_context ().swap (context);
+		hdr.request_id (id_);
+		hdr.response_expected (response_flags_ & RESPONSE_EXPECTED);
+		hdr.object_key (object_key);
+		hdr.operation ().swap (operation);
+		Type <GIOP::RequestHeader_1_1>::marshal_in (hdr, _get_ptr ());
+		hdr.service_context ().swap (context);
+		hdr.operation ().swap (operation);
+	} else {
+		GIOP::RequestHeader_1_2 hdr;
+		request_id_offset_ = sizeof (GIOP::RequestHeader_1_2);
+		hdr.request_id (id_);
+		hdr.response_flags ((Octet)(response_flags_ & (RESPONSE_EXPECTED | RESPONSE_DATA)));
+		hdr.target ().object_key (object_key);
+		hdr.operation ().swap (operation);
+		hdr.service_context ().swap (context);
+		Type <GIOP::RequestHeader_1_2>::marshal_in (hdr, _get_ptr ());
+		hdr.service_context ().swap (context);
+		hdr.operation ().swap (operation);
 
-			// In GIOP version 1.2 and 1.3, the Request Body is always aligned on an 8-octet boundary.
-			size_t unaligned = stream_out_->size () % 8;
-			if (unaligned) {
-				Octet zero [8] = { 0 };
-				stream_out_->write_c (1, 8 - unaligned, zero);
-			}
+		// In GIOP version 1.2 and 1.3, the Request Body is always aligned on an 8-octet boundary.
+		size_t unaligned = stream_out_->size () % 8;
+		if (unaligned) {
+			Octet zero [8] = { 0 };
+			stream_out_->write_c (1, 8 - unaligned, zero);
 		}
 	}
 }
 
-size_t marshaled_bytes (const IOP::ServiceContextList& context) NIRVANA_NOEXCEPT
+void RequestOut::id (RequestId id)
 {
-	size_t cb = 4;
-	for (const IOP::ServiceContext& ctx : context) {
-		cb += 8 + ctx.context_data ().size ();
+	if (request_id_offset_) {
+		size_t offset = request_id_offset_;
+		Octet* hdr = (Octet*)stream_out_->header (offset + 4);
+		*(uint32_t*)(hdr + offset) = id;
 	}
-	return cb;
+	id_ = id;
 }
 
 void RequestOut::set_reply (unsigned status, IOP::ServiceContextList&& context,
@@ -311,24 +331,30 @@ bool RequestOut::marshal_op ()
 	return true;
 }
 
-void RequestOut::pre_invoke ()
+void RequestOut::pre_invoke (IdPolicy id_policy)
 {
 	if (!stream_out_)
 		throw BAD_INV_ORDER ();
 	Base::invoke ();
-	if (!(response_flags_ & RESPONSE_EXPECTED) && !marshaled_DGC_references_.empty ()) {
+	bool response = (response_flags_ & RESPONSE_EXPECTED) != 0;
+	if (!response && !marshaled_DGC_references_.empty ()) {
 		// For oneway request with DGC references we have to wait response before the references releasing.
 		// Offset of the response_flags is immediately after the request_id
 		size_t offset = request_id_offset_ + 4;
 		Octet* hdr = (Octet*)stream_out_->header (offset + 1);
 		assert (0 == hdr [offset]);
 		hdr [offset] = 1;
+		response = true;
 	}
 	if (metadata_->context.size != 0) {
 		IDL::Sequence <IDL::String> context;
 		ExecDomain::current ().get_context (metadata_->context.p, metadata_->context.size, context);
 		Type <IDL::Sequence <IDL::String> >::marshal_out (context, _get_ptr ());
 	}
+	if (response)
+		OutgoingRequests::new_request (*this, id_policy);
+	else
+		OutgoingRequests::new_request_oneway (*this, id_policy);
 }
 
 void RequestOut::set_exception (Any& e)

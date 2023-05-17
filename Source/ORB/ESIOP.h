@@ -98,8 +98,6 @@ struct Request : MessageHeader
 	ProtDomainId client_domain;
 
 	/// The request id.
-	/// If response is not expected, request_id = 0.
-	/// The real request id is never be 0.
 	uint32_t request_id;
 
 	Request (ProtDomainId client, StreamOutSM& stream, uint32_t rq_id);
