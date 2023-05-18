@@ -38,7 +38,7 @@ void DomainRemote::destroy () NIRVANA_NOEXCEPT
 }
 
 IORequest::_ref_type DomainRemote::create_request (const IOP::ObjectKey& object_key,
-	const Operation& metadata, unsigned flags)
+	const Operation& metadata, unsigned response_flags)
 {
 	throw NO_IMPLEMENT ();
 }

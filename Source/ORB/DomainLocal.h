@@ -50,7 +50,7 @@ public:
 	{}
 
 	virtual CORBA::Internal::IORequest::_ref_type create_request (const IOP::ObjectKey& object_key,
-		const CORBA::Internal::Operation& metadata, unsigned flags) override;
+		const CORBA::Internal::Operation& metadata, unsigned response_flags) override;
 
 protected:
 	virtual void destroy () NIRVANA_NOEXCEPT override;

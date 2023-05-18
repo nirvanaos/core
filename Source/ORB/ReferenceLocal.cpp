@@ -173,9 +173,9 @@ void ReferenceLocal::marshal (StreamOut& out) const
 
 	size_t component_cnt =
 #ifndef NIRVANA_SINGLE_DOMAIN
-		3;
+		4;
 #else
-		2;
+		3;
 #endif
 
 	if (domain_manager_)
@@ -184,10 +184,16 @@ void ReferenceLocal::marshal (StreamOut& out) const
 	IOP::TaggedComponentSeq components;
 	components.reserve (component_cnt);
 
-	{
+	{ // IOP::TAG_ORB_TYPE
 		ImplStatic <StreamOutEncap> encap;
 		encap.write_c (4, 4, &ORB_type);
 		components.emplace_back (IOP::TAG_ORB_TYPE, std::move (encap.data ()));
+	}
+	{ // IOP::TAG_FT_HEARTBEAT_ENABLED
+		ImplStatic <StreamOutEncap> encap;
+		uint8_t enabled = 1;
+		encap.write_c (1, 1, &enabled);
+		components.emplace_back (IOP::TAG_FT_HEARTBEAT_ENABLED, std::move (encap.data ()));
 	}
 #ifndef NIRVANA_SINGLE_DOMAIN
 	{

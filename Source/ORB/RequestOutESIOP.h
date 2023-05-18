@@ -51,7 +51,6 @@ public:
 	{
 		stream_out_ = Ref <StreamOut>::create <ImplDynamic <StreamOutSM> > (std::ref (domain), true);
 		id_ = get_new_id (IdPolicy::ANY);
-		IDL::String operation = metadata.name;
 		DeadlineTime dl = deadline ();
 		if (INFINITE_DEADLINE != dl) {
 			ImplStatic <StreamOutEncap> dl;
@@ -60,7 +59,7 @@ public:
 			context.back ().context_id (CONTEXT_ID_DEADLINE);
 			context.back ().context_data (std::move (dl.data ()));
 		}
-		write_header (object_key, operation, context);
+		write_header (object_key, context);
 	}
 
 	DomainLocal* target_domain () const NIRVANA_NOEXCEPT

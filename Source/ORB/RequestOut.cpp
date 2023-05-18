@@ -96,7 +96,7 @@ RequestOut::RequestOut (unsigned GIOP_minor, unsigned response_flags,
 RequestOut::~RequestOut ()
 {}
 
-void RequestOut::write_header (const IOP::ObjectKey& object_key, IDL::String& operation, IOP::ServiceContextList& context)
+void RequestOut::write_header (const IOP::ObjectKey& object_key, IOP::ServiceContextList& context)
 {
 	stream_out_->write_message_header (GIOP_minor_, GIOP::MsgType::Request);
 
@@ -114,21 +114,19 @@ void RequestOut::write_header (const IOP::ObjectKey& object_key, IDL::String& op
 		hdr.request_id (id_);
 		hdr.response_expected (response_flags_ & RESPONSE_EXPECTED);
 		hdr.object_key (object_key);
-		hdr.operation ().swap (operation);
+		hdr.operation (metadata_->name);
 		Type <GIOP::RequestHeader_1_1>::marshal_in (hdr, _get_ptr ());
 		hdr.service_context ().swap (context);
-		hdr.operation ().swap (operation);
 	} else {
 		GIOP::RequestHeader_1_2 hdr;
 		request_id_offset_ = sizeof (GIOP::RequestHeader_1_2);
 		hdr.request_id (id_);
 		hdr.response_flags ((Octet)(response_flags_ & (RESPONSE_EXPECTED | RESPONSE_DATA)));
 		hdr.target ().object_key (object_key);
-		hdr.operation ().swap (operation);
+		hdr.operation (metadata_->name);
 		hdr.service_context ().swap (context);
 		Type <GIOP::RequestHeader_1_2>::marshal_in (hdr, _get_ptr ());
 		hdr.service_context ().swap (context);
-		hdr.operation ().swap (operation);
 
 		// In GIOP version 1.2 and 1.3, the Request Body is always aligned on an 8-octet boundary.
 		size_t unaligned = stream_out_->size () % 8;

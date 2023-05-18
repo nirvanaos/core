@@ -55,9 +55,7 @@ public:
 private:
 	OctetSeq buffer_;
 	size_t chunk_begin_;
-#ifdef _DEBUG
 	bool endian_;
-#endif
 };
 
 }

@@ -70,7 +70,6 @@ public:
 	static RequestId get_new_id (IdPolicy id_policy) NIRVANA_NOEXCEPT;
 
 	RequestOut (unsigned GIOP_minor, unsigned response_flags, Domain& target_domain, const Internal::Operation& metadata);
-
 	~RequestOut ();
 
 	RequestId id () const NIRVANA_NOEXCEPT
@@ -92,7 +91,7 @@ public:
 		NIRVANA_NOEXCEPT;
 
 protected:
-	void write_header (const IOP::ObjectKey& object_key, IDL::String& operation, IOP::ServiceContextList& context);
+	void write_header (const IOP::ObjectKey& object_key, IOP::ServiceContextList& context);
 
 	virtual bool unmarshal (size_t align, size_t size, void* data) override;
 	virtual bool unmarshal_seq(size_t align, size_t element_size, size_t& element_count, void*& data,

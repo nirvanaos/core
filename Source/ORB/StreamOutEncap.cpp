@@ -31,17 +31,12 @@ namespace CORBA {
 namespace Core {
 
 StreamOutEncap::StreamOutEncap (bool no_endian) :
-	chunk_begin_ (0)
-#ifdef _DEBUG
-	, endian_ (false)
-#endif
+	chunk_begin_ (0),
+	endian_ (!no_endian)
 {
 	if (!no_endian) {
 		buffer_.resize (1);
 		buffer_.front () = endian::native == endian::little ? 1 : 0;
-#ifdef _DEBUG
-		endian_ = true;
-#endif
 	}
 }
 
@@ -65,7 +60,7 @@ void* StreamOutEncap::header (size_t hdr_size)
 
 void StreamOutEncap::rewind (size_t hdr_size)
 {
-	buffer_.resize (hdr_size);
+	buffer_.resize (hdr_size + endian_);
 	chunk_begin_ = 0;
 }
 

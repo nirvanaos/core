@@ -50,7 +50,7 @@ class NIRVANA_NOVTABLE Domain : public SyncGC
 
 public:
 	virtual Internal::IORequest::_ref_type create_request (const IOP::ObjectKey& object_key,
-		const Internal::Operation& metadata, unsigned flags) = 0;
+		const Internal::Operation& metadata, unsigned response_flags) = 0;
 
 	/// Domain flag bits
 	enum
@@ -118,7 +118,6 @@ public:
 protected:
 	Domain (unsigned flags, TimeBase::TimeT request_latency, TimeBase::TimeT heartbeat_interval,
 		TimeBase::TimeT heartbeat_timeout);
-
 	~Domain ();
 
 	virtual void _add_ref () NIRVANA_NOEXCEPT override;
@@ -207,6 +206,9 @@ private:
 	TimeBase::TimeT request_latency_;
 	TimeBase::TimeT heartbeat_interval_;
 	TimeBase::TimeT heartbeat_timeout_;
+
+	static const Internal::Operation op_FT_HB;
+	static const Internal::Operation op_ping;
 };
 
 }

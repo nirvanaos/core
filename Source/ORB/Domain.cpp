@@ -32,6 +32,9 @@ using namespace Nirvana::Core;
 namespace CORBA {
 namespace Core {
 
+const Internal::Operation Domain::op_FT_HB = {"FT_HB"};
+const Internal::Operation Domain::op_ping = {"ping"};
+
 Domain::Domain (unsigned flags, TimeBase::TimeT request_latency, TimeBase::TimeT heartbeat_interval,
 	TimeBase::TimeT heartbeat_timeout) :
 	flags_ (flags),
