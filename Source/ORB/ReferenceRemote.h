@@ -28,15 +28,13 @@
 #define NIRVANA_ORB_CORE_REFERENCEREMOTE_H_
 #pragma once
 
-#include "Reference.h"
+#include "Domain.h"
 #include <CORBA/IOP.h>
 #include "ESIOP.h"
 #include "StreamInEncap.h"
 
 namespace CORBA {
 namespace Core {
-
-class Domain;
 
 /// Base for remote references.
 class ReferenceRemote :
@@ -66,7 +64,11 @@ public:
 		return object_key_;
 	}
 
-protected:
+	bool unconfirmed () const NIRVANA_NOEXCEPT
+	{
+		return DGC_key_ && DGC_key_->state () != Domain::RemoteRefKey::STATE_CONFIRMED;
+	}
+
 	virtual void _add_ref () NIRVANA_NOEXCEPT override;
 	virtual void _remove_ref () NIRVANA_NOEXCEPT override;
 
@@ -92,7 +94,10 @@ private:
 	servant_reference <Domain> domain_;
 	const IOP::ObjectKey object_key_;
 	IDL::String object_name_;
+	Domain::RemoteRefKey* DGC_key_;
 };
+
+typedef servant_reference <ReferenceRemote> ReferenceRemoteRef;
 
 }
 }

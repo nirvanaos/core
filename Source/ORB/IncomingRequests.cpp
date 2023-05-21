@@ -104,8 +104,8 @@ void IncomingRequests::receive (Ref <RequestIn> rq, uint64_t timestamp)
 	if (rq->object_key ().empty ()) {
 		// DGC ping
 		if (static_cast <const std::string&> (op) == "ping") {
-			rq->success ();
 			Nirvana::Core::Binder::complex_ping (*rq);
+			rq->success ();
 			return;
 		} else
 			throw BAD_OPERATION (MAKE_OMG_MINOR (2));

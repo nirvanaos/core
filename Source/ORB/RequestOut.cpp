@@ -27,6 +27,7 @@
 #include "OutgoingRequests.h"
 #include "DomainRemote.h"
 #include "../MemContextCore.h"
+#include "../TimerEvent.h"
 
 using namespace Nirvana;
 using namespace Nirvana::Core;
@@ -429,7 +430,24 @@ bool RequestOut::completed () const NIRVANA_NOEXCEPT
 
 bool RequestOut::wait (uint64_t timeout)
 {
-	throw NO_IMPLEMENT ();
+	if (!timeout)
+		return completed ();
+	else if (std::numeric_limits <uint64_t>::max () == timeout) {
+		do {
+			event_.wait ();
+		} while (!completed ());
+		return true;
+	} else {
+		TimerEvent timer (event_);
+		timer.set_relative (timeout, 0);
+		for (;;) {
+			event_.wait ();
+			if (completed ())
+				return true;
+			if (timer.signalled ())
+				return false;
+		}
+	}
 }
 
 }

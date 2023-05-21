@@ -27,6 +27,7 @@
 #include "StreamOutEncap.h"
 #include "TC_FactoryImpl.h"
 #include "../Binder.h"
+#include "unmarshal_object.h"
 #include <list>
 
 using namespace Nirvana;
@@ -51,7 +52,8 @@ RequestGIOP::RequestGIOP (unsigned GIOP_minor, unsigned response_flags, Domain* 
 	value_map_unmarshal_ (mem_context_->heap ()),
 	rep_id_map_marshal_ (mem_context_->heap ()),
 	rep_id_map_unmarshal_ (mem_context_->heap ()),
-	marshaled_DGC_references_ (mem_context_->heap ())
+	marshaled_DGC_references_ (mem_context_->heap ()),
+	references_to_confirm_ (mem_context_->heap ())
 {}
 
 RequestGIOP::~RequestGIOP ()
@@ -91,6 +93,8 @@ void RequestGIOP::unmarshal_end ()
 		stream_in_ = nullptr;
 		if (more_data > 7) // 8-byte alignment is ignored
 			throw MARSHAL (StreamIn::MARSHAL_MINOR_MORE);
+		if (!references_to_confirm_.empty ())
+			Binder::confirm_DGC_references (references_to_confirm_.size (), references_to_confirm_.data ());
 	}
 }
 
@@ -131,113 +135,21 @@ void RequestGIOP::marshal_object (Object::_ptr_type obj)
 
 Interface::_ref_type RequestGIOP::unmarshal_interface (const IDL::String& interface_id)
 {
-	Object::_ref_type obj;
-	{
-		IDL::String primary_iid;
-		stream_in_->read_string (primary_iid);
-		if (primary_iid.empty ())
-			return nullptr; // nil reference
-
-		IIOP::ListenPoint listen_point;
-		IOP::ObjectKey object_key;
-		bool object_key_found = false;
-		IOP::TaggedComponentSeq components;
-		IOP::TaggedProfileSeq addr;
-		stream_in_->read_tagged (addr);
-		for (const IOP::TaggedProfile& profile : addr) {
-			switch (profile.tag ()) {
-				case IOP::TAG_INTERNET_IOP: {
-					Nirvana::Core::ImplStatic <StreamInEncap> stm (std::ref (profile.profile_data ()));
-					IIOP::Version ver;
-					stm.read (alignof (IIOP::Version), sizeof (IIOP::Version), &ver);
-					if (ver.major () != 1)
-						throw NO_IMPLEMENT (MAKE_OMG_MINOR (3));
-					stm.read_string (listen_point.host ());
-					CORBA::UShort port;
-					stm.read (alignof (CORBA::UShort), sizeof (CORBA::UShort), &port);
-					if (stm.other_endian ())
-						Nirvana::byteswap (port);
-					listen_point.port (port);
-					stm.read_seq (object_key);
-					object_key_found = true;
-					if (ver.minor () >= 1) {
-						if (components.empty ())
-							stm.read_tagged (components);
-						else {
-							IOP::TaggedComponentSeq comp;
-							stm.read_tagged (comp);
-							components.insert (components.end (), comp.begin (), comp.end ());
-						}
-					}
-					if (stm.end ())
-						throw INV_OBJREF ();
-				} break;
-
-				case IOP::TAG_MULTIPLE_COMPONENTS: {
-					Nirvana::Core::ImplStatic <StreamInEncap> stm (std::ref (profile.profile_data ()));
-					if (components.empty ())
-						stm.read_tagged (components);
-					else {
-						IOP::TaggedComponentSeq comp;
-						stm.read_tagged (comp);
-						components.insert (components.end (), comp.begin (), comp.end ());
-					}
-					if (stm.end ())
-						throw INV_OBJREF ();
-				} break;
-			}
-		}
-
-		if (!object_key_found)
-			throw IMP_LIMIT (MAKE_OMG_MINOR (1)); // Unable to use any profile in IOR.
-
-		sort (components);
-		ULong ORB_type = 0;
-		auto it = find (components, IOP::TAG_ORB_TYPE);
-		if (it != components.end ()) {
-			Nirvana::Core::ImplStatic <StreamInEncap> stm (std::ref (it->component_data ()));
-			ORB_type = stm.read32 ();
-			if (stm.other_endian ())
-				Internal::byteswap (ORB_type);
-			if (stm.end ())
+	ReferenceRemoteRef unconfirmed_remote_ref;
+	Object::_ref_type obj = unmarshal_object (*stream_in_, unconfirmed_remote_ref);
+	Interface::_ref_type ret;
+	if (obj) {
+		if (RepId::compatible (RepIdOf <Object>::id, interface_id))
+			ret = std::move (obj);
+		else {
+			ret = obj->_query_interface (interface_id);
+			if (!ret)
 				throw INV_OBJREF ();
 		}
-
-		size_t host_len = listen_point.host ().size ();
-		const Char* host = listen_point.host ().data ();
-		if (ORB_type == ESIOP::ORB_TYPE
-			&& (0 == host_len ||
-				(LocalAddress::singleton ().host ().size () == host_len
-					&& std::equal (host, host + host_len, LocalAddress::singleton ().host ().data ())))) {
-			// Local Nirvana system
-#ifdef NIRVANA_SINGLE_DOMAIN
-			obj = PortableServer::Core::POA_Root::unmarshal (primary_iid, object_key); // Local reference
-#else
-			ESIOP::ProtDomainId domain_id;
-			it = find (components, ESIOP::TAG_DOMAIN_ADDRESS);
-			if (it != components.end ()) {
-				Nirvana::Core::ImplStatic <StreamInEncap> stm (std::ref (it->component_data ()));
-				stm.read (alignof (ESIOP::ProtDomainId), sizeof (ESIOP::ProtDomainId), &domain_id);
-				if (stm.other_endian ())
-					Internal::byteswap (domain_id);
-				if (stm.end ())
-					throw INV_OBJREF ();
-			} else
-				domain_id = ESIOP::sys_domain_id ();
-			if (ESIOP::current_domain_id () == domain_id)
-				obj = PortableServer::Core::POA_Root::unmarshal (primary_iid, std::move (object_key)); // Local reference
-			else
-				obj = Binder::unmarshal_remote_reference (domain_id, primary_iid, addr,
-					std::move (object_key), ORB_type, components);
-#endif
-		} else
-			obj = Binder::unmarshal_remote_reference (std::move (listen_point), primary_iid, addr,
-				std::move (object_key), ORB_type, components);
+		if (unconfirmed_remote_ref)
+			references_to_confirm_.push_back (unconfirmed_remote_ref);
 	}
-	if (RepId::compatible (RepIdOf <Object>::id, interface_id))
-		return obj;
-	else
-		return obj->_query_interface (interface_id);
+	return ret;
 }
 
 void RequestGIOP::marshal_type_code (StreamOut& stream, TypeCode::_ptr_type tc, IndirectMapMarshal& map, size_t parent_offset)

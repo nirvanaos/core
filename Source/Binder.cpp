@@ -35,6 +35,10 @@
 #include "Legacy/Executable.h"
 #include "Nirvana/Domains.h"
 
+using namespace CORBA;
+using namespace CORBA::Internal;
+using namespace CORBA::Core;
+
 namespace Nirvana {
 
 namespace Legacy {
@@ -43,10 +47,6 @@ extern const ImportInterfaceT <Factory> g_factory;
 }
 
 namespace Core {
-
-using namespace CORBA;
-using namespace CORBA::Internal;
-using namespace CORBA::Core;
 
 StaticallyAllocated <ImplStatic <HeapUser> > Binder::heap_;
 StaticallyAllocated <ImplStatic <SyncDomainCore> > Binder::sync_domain_;
@@ -571,6 +571,30 @@ void Binder::housekeeping ()
 	}
 	if (module_map_.empty ())
 		housekeeping_timer_.cancel ();
+}
+
+void Binder::confirm_DGC_references (size_t cnt, ReferenceRemoteRef* refs)
+{
+	if (cnt) {
+		ReferenceRemoteRef* end = refs + cnt;
+		std::sort (refs, end,
+			[](const ReferenceRemoteRef& l, const ReferenceRemoteRef& r)
+			{ return &l->domain () < &r->domain (); });
+		
+		SYNC_BEGIN (sync_domain (), nullptr)
+			do {
+				Domain* domain = &(*refs)->domain ();
+				ReferenceRemoteRef* domain_end;
+				for (domain_end = refs + 1; domain_end != end; ++domain_end) {
+					if (&(*domain_end)->domain () != domain) {
+						break;
+					}
+				}
+				domain->confirm_DGC_references (refs, domain_end);
+				refs = domain_end;
+			} while (refs != end);
+		SYNC_END ()
+	}
 }
 
 }

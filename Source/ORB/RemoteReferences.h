@@ -73,7 +73,7 @@ public:
 
 	template <class DomainKey>
 	Object::_ref_type unmarshal (DomainKey domain, const IDL::String& iid, const IOP::TaggedProfileSeq& addr,
-		const IOP::ObjectKey& object_key, ULong ORB_type, const IOP::TaggedComponentSeq& components)
+		const IOP::ObjectKey& object_key, ULong ORB_type, const IOP::TaggedComponentSeq& components, ReferenceRemoteRef& unconfirmed)
 	{
 		Nirvana::Core::ImplStatic <StreamOutEncap> stm (true);
 		stm.write_tagged (addr);
@@ -83,6 +83,8 @@ public:
 			try {
 				RefPtr p (new ReferenceRemote (ins.first->first, get_domain_sync (domain),
 					std::move (object_key), iid, ORB_type, components));
+				if (p->unconfirmed ())
+					unconfirmed = p.get ();
 				Internal::I_var <Object> ret (p->get_proxy ()); // Use I_var to avoid reference counter increment
 				entry.second.finish_construction (std::move (p));
 				return ret;

@@ -33,13 +33,13 @@
 #include "StreamOutEncap.h"
 #include <CORBA/IORequest_s.h>
 #include "RqHelper.h"
-#include "../LifeCyclePseudo.h"
+//#include "../LifeCyclePseudo.h"
 #include <CORBA/IIOP.h>
 #include "CodeSetConverter.h"
 #include "POA_Root.h"
 #include "LocalAddress.h"
 #include "IndirectMapUnmarshal.h"
-#include "Domain.h"
+#include "ReferenceRemote.h"
 
 namespace CORBA {
 namespace Core {
@@ -458,6 +458,7 @@ protected:
 	IndirectRepIdMarshal rep_id_map_marshal_;
 	IndirectRepIdUnmarshal rep_id_map_unmarshal_;
 	ReferenceSet <Nirvana::Core::HeapAllocator> marshaled_DGC_references_;
+	std::vector <ReferenceRemoteRef, Nirvana::Core::HeapAllocator <ReferenceRemoteRef> > references_to_confirm_;
 };
 
 }

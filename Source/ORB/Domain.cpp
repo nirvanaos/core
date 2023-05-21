@@ -32,8 +32,8 @@ using namespace Nirvana::Core;
 namespace CORBA {
 namespace Core {
 
-const Internal::Operation Domain::op_FT_HB = {"FT_HB"};
-const Internal::Operation Domain::op_ping = {"ping"};
+const Internal::Operation Domain::op_heartbeat = {"FT_HB"};
+const Internal::Operation Domain::op_complex_ping = {"ping"};
 
 Domain::Domain (unsigned flags, TimeBase::TimeT request_latency, TimeBase::TimeT heartbeat_interval,
 	TimeBase::TimeT heartbeat_timeout) :
@@ -72,6 +72,25 @@ void Domain::add_owned_objects (const IDL::Sequence <IOP::ObjectKey>& keys, Refe
 			local_objects_.emplace (key, std::move (*objs));
 		}
 	}
+}
+
+void Domain::marshal_ref_list (Nirvana::SimpleList <RemoteRefKey>& list, Internal::IORequest::_ptr_type rq)
+{
+	uint32_t cnt = 0;
+	for (auto it = list.begin (); it != list.end (); ++it) {
+		++cnt;
+	}
+
+	Internal::Type <uint32_t>::marshal_in (cnt, rq);
+	while (!list.empty ()) {
+		Internal::Type <IOP::ObjectKey>::marshal_in (list.front (), rq);
+		list.front ().remove ();
+	}
+}
+
+void Domain::confirm_DGC_references (const ReferenceRemoteRef* begin, const ReferenceRemoteRef* end)
+{
+	throw NO_IMPLEMENT (); // TODO: Implement
 }
 
 }

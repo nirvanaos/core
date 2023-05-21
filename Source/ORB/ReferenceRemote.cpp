@@ -41,7 +41,8 @@ ReferenceRemote::ReferenceRemote (const OctetSeq& addr, servant_reference <Domai
 	Reference (primary_iid, get_flags (ORB_type, components)),
 	address_ (addr),
 	domain_ (std::move (domain)),
-	object_key_ (object_key)
+	object_key_ (object_key),
+	DGC_key_ (nullptr)
 {
 	auto it = find (components, IOP::TAG_POLICIES);
 	if (it != components.end ()) {
@@ -51,13 +52,13 @@ ReferenceRemote::ReferenceRemote (const OctetSeq& addr, servant_reference <Domai
 			domain_manager_ = make_reference <Core::DomainManager> (std::move (policies));
 	}
 	if ((flags () & GARBAGE_COLLECTION) && (domain_->flags () & Domain::GARBAGE_COLLECTION))
-		domain_->on_DGC_reference_unmarshal (object_key_);
+		DGC_key_ = &domain_->on_DGC_reference_unmarshal (object_key_);
 }
 
 ReferenceRemote::~ReferenceRemote ()
 {
-	if ((flags () & GARBAGE_COLLECTION) && (domain_->flags () & Domain::GARBAGE_COLLECTION))
-		domain_->on_DGC_reference_delete (object_key_);
+	if (DGC_key_)
+		domain_->on_DGC_reference_delete (*DGC_key_);
 }
 
 void ReferenceRemote::_add_ref () NIRVANA_NOEXCEPT

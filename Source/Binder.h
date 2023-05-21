@@ -131,13 +131,17 @@ public:
 	/// \param components Tagged components.
 	/// \returns CORBA::Object reference.
 	template <class DomainKey>
-	static CORBA::Object::_ref_type unmarshal_remote_reference (DomainKey domain, const IDL::String& iid,
-		const IOP::TaggedProfileSeq& addr, const IOP::ObjectKey& object_key, uint32_t ORB_type,
-		const IOP::TaggedComponentSeq& components) {
+	static CORBA::Object::_ref_type unmarshal_remote_reference (DomainKey domain,
+		const IDL::String& iid, const IOP::TaggedProfileSeq& addr, const IOP::ObjectKey& object_key,
+		uint32_t ORB_type, const IOP::TaggedComponentSeq& components, CORBA::Core::ReferenceRemoteRef& unconfirmed)
+	{
 		SYNC_BEGIN (sync_domain (), nullptr)
-			return singleton_->remote_references_.unmarshal (domain, iid, addr, object_key, ORB_type, components);
-		SYNC_END ();
+			return singleton_->remote_references_.unmarshal (domain, iid, addr, object_key, ORB_type,
+				components, unconfirmed);
+		SYNC_END ()
 	}
+
+	static void confirm_DGC_references (size_t cnt, CORBA::Core::ReferenceRemoteRef* refs);
 
 	/// Get CORBA::Core::Domain reference.
 	/// 
