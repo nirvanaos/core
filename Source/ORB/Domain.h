@@ -215,7 +215,10 @@ public:
 
 	DGC_RefKey& on_DGC_reference_unmarshal (const IOP::ObjectKey& object_key)
 	{
+		bool first = remote_objects_.empty ();
 		auto ins = remote_objects_.emplace (object_key);
+		if (first)
+			_add_ref ();
 		DGC_RefKey& key = const_cast <DGC_RefKey&> (*ins.first);
 		if (!ins.second)
 			key.reference_add ();
@@ -229,7 +232,7 @@ public:
 				remote_objects_del_.push_back (key);
 				schedule_del ();
 			} else
-				remote_objects_.erase (key);
+				erase_remote_key (key);
 		}
 	}
 
@@ -257,7 +260,8 @@ private:
 		}
 
 		for (const IOP::ObjectKey& obj_key : del) {
-			local_objects_.erase (obj_key);
+			if (local_objects_.erase (obj_key) && local_objects_.empty ())
+				_remove_ref ();
 		}
 	}
 
@@ -274,6 +278,7 @@ private:
 	void schedule_del () noexcept;
 	void send_del ();
 	void append_del (DGC_Request& rq);
+	void erase_remote_key (DGC_RefKey& key) noexcept;
 
 private:
 	class GC : public Nirvana::Core::Runnable

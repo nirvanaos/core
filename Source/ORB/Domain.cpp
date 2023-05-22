@@ -72,8 +72,17 @@ void Domain::add_owned_objects (const IDL::Sequence <IOP::ObjectKey>& keys, Refe
 	PortableServer::Core::POA_Root::get_DGC_objects (keys, objs);
 	for (ReferenceLocalRef* end = objs + keys.size (); objs != end; ++objs) {
 		const IOP::ObjectKey& key = (*objs)->object_key ();
+		bool first = local_objects_.empty ();
 		local_objects_.emplace (key, std::move (*objs));
+		if (first)
+			_add_ref ();
 	}
+}
+
+void Domain::erase_remote_key (DGC_RefKey& key) noexcept
+{
+	if (remote_objects_.erase (key) && remote_objects_.empty ())
+		_remove_ref ();
 }
 
 void Domain::confirm_DGC_references (const ReferenceRemoteRef* begin, const ReferenceRemoteRef* end)
@@ -211,7 +220,7 @@ void Domain::DGC_Request::complete ()
 		for (auto it = keys_.begin () + add_cnt_; it != keys_.end (); ++it) {
 			DGC_RefKey* key = *it;
 			if (!key->reference_cnt ())
-				domain_.remote_objects_.erase (*key);
+				domain_.erase_remote_key (*key);
 		}
 		keys_.clear ();
 		add_cnt_ = 0;
