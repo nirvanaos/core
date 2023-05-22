@@ -68,13 +68,12 @@ void Domain::_remove_ref () NIRVANA_NOEXCEPT
 	}
 }
 
-void Domain::add_owned_objects (const IDL::Sequence <IOP::ObjectKey>& keys, ReferenceLocalRef* objs)
+void Domain::add_owned_objects (IDL::Sequence <IOP::ObjectKey>& keys, ReferenceLocalRef* objs)
 {
 	PortableServer::Core::POA_Root::get_DGC_objects (keys, objs);
-	for (ReferenceLocalRef* end = objs + keys.size (); objs != end; ++objs) {
-		const IOP::ObjectKey& key = (*objs)->object_key ();
+	for (auto it = keys.begin (); it != keys.end (); ++it, ++objs) {
 		bool first = local_objects_.empty ();
-		local_objects_.emplace (key, std::move (*objs));
+		local_objects_.emplace (std::move (*it), std::move (*objs));
 		if (first)
 			_add_ref ();
 	}

@@ -248,7 +248,7 @@ protected:
 	virtual void destroy () NIRVANA_NOEXCEPT = 0;
 
 private:
-	void complex_ping (const IDL::Sequence <IOP::ObjectKey>& add, const IDL::Sequence <IOP::ObjectKey>& del)
+	void complex_ping (IDL::Sequence <IOP::ObjectKey>& add, const IDL::Sequence <IOP::ObjectKey>& del)
 	{
 		static const size_t STATIC_ADD_CNT = 4;
 		if (add.size () <= STATIC_ADD_CNT) {
@@ -265,7 +265,7 @@ private:
 		}
 	}
 
-	void add_owned_objects (const IDL::Sequence <IOP::ObjectKey>& keys, ReferenceLocalRef* objs);
+	void add_owned_objects (IDL::Sequence <IOP::ObjectKey>& keys, ReferenceLocalRef* objs);
 
 	void send_heartbeat ()
 	{
