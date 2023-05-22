@@ -96,40 +96,6 @@ private:
 	RefCounter ref_cnt_;
 };
 
-/// Dynamic implementation of a core object for usage in synchronized scenarios.
-/// \tparam T object class.
-template <class T>
-class ImplDynamicSync final :
-	public T
-{
-protected:
-	template <class> friend class Ref;
-
-	template <class ... Args>
-	ImplDynamicSync (Args ... args) :
-		T (std::forward <Args> (args)...),
-		ref_cnt_ (1)
-	{}
-
-	~ImplDynamicSync ()
-	{}
-
-	void _add_ref () NIRVANA_NOEXCEPT
-	{
-		++ref_cnt_;
-	}
-
-	void _remove_ref () NIRVANA_NOEXCEPT
-	{
-		assert (ref_cnt_);
-		if (!--ref_cnt_)
-			delete this;
-	}
-
-private:
-	unsigned ref_cnt_;
-};
-
 /// Static or stack implementation of a core object.
 /// \tparam T object class.
 template <class T>

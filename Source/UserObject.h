@@ -56,6 +56,36 @@ public:
 	{}
 };
 
+/// \brief Object allocated from the user heap with synchronous reference counter.
+/// 
+/// \tparam T Class derived from this class.
+template <class T>
+class UserObjectSyncRefCnt : private UserObject
+{
+protected:
+	template <class> friend class Ref;
+
+	UserObjectSyncRefCnt () :
+		ref_cnt_ (1)
+	{
+	}
+
+	void _add_ref () NIRVANA_NOEXCEPT
+	{
+		++ref_cnt_;
+	}
+
+	void _remove_ref () NIRVANA_NOEXCEPT
+	{
+		assert (ref_cnt_);
+		if (!--ref_cnt_)
+			delete static_cast <T*> (this);
+	}
+
+private:
+	unsigned ref_cnt_;
+};
+
 }
 }
 

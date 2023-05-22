@@ -40,17 +40,17 @@ class ExecDomain;
 
 /// Synchronous wait list.
 /// May be used only in synchronization domain.
-class WaitListImpl :
-	public UserObject
+class WaitList :
+	public UserObjectSyncRefCnt <WaitList>
 {
 public:
 	/// Constructor.
 	/// 
 	/// \param deadline Maximal deadline of the object creation.
 	/// \throw BAD_OPERATION if called out of synchronization domain.
-	WaitListImpl (TimeBase::TimeT deadline);
+	WaitList (TimeBase::TimeT deadline);
 
-	~WaitListImpl ()
+	~WaitList ()
 	{
 		assert (!wait_list_);
 		assert (!worker_);
@@ -72,8 +72,6 @@ private:
 	ExecDomain* wait_list_;
 	std::exception_ptr exception_;
 };
-
-typedef ImplDynamicSync <WaitListImpl> WaitList;
 
 }
 }

@@ -96,86 +96,141 @@ public:
 		complex_ping (add, del);
 	}
 
-	void release_owned_objects () NIRVANA_NOEXCEPT
-	{
-		local_objects_.clear ();
-	}
+	class DGC_RefKey;
 
-	// DGC-enabled remote reference owned by the current domain
-	class RemoteRefKey :
-		public IOP::ObjectKey,
-		public Nirvana::SimpleList <RemoteRefKey>::Element
+private:
+	// DGC request
+	class DGC_Request : public Nirvana::Core::UserObjectSyncRefCnt <DGC_Request>
 	{
 	public:
-		enum State
-		{
-			STATE_NEW, // Reference just unmarshalled.
-			STATE_ADDITION, // Add request in progress. The request_ field contains reference to the request.
-			STATE_CONFIRMED, // The add request completed successfully.
-			STATE_DELETION // Delete request in progress. The request_ field contains reference to the request.
-		};
+		DGC_Request (Domain& domain);
 
-		RemoteRefKey (const IOP::ObjectKey& object_key) :
+		void add (DGC_RefKey& key)
+		{
+			keys_.push_back (&key);
+			++add_cnt_;
+		}
+
+		void del (DGC_RefKey& key)
+		{
+			keys_.push_back (&key);
+		}
+
+		void invoke ();
+
+		void complete ();
+
+	private:
+		Domain& domain_;
+		Internal::IORequest::_ref_type request_;
+		std::vector <DGC_RefKey*, Nirvana::Core::UserAllocator <DGC_RefKey*> > keys_;
+		size_t add_cnt_;
+
+		static const Internal::Operation operation_;
+	};
+
+	typedef Nirvana::Core::Ref <DGC_Request> DGC_RequestRef;
+
+public:
+	// DGC-enabled remote reference owned by the current domain
+	class DGC_RefKey :
+		public IOP::ObjectKey,
+		public Nirvana::SimpleList <DGC_RefKey>::Element
+	{
+	public:
+		DGC_RefKey (const IOP::ObjectKey& object_key) :
 			IOP::ObjectKey (object_key),
-			ref_cnt_ (1),
-			state_ (STATE_NEW)
+			reference_cnt_ (1),
+			added_ (false)
 		{
 		}
 
 		// Add remote reference with this key
-		void reference_add () NIRVANA_NOEXCEPT
+		void reference_add () noexcept
 		{
-			if (1 == ++ref_cnt_ && STATE_DELETION == state_) {
-				Internal::IORequest::_ref_type rq = std::move (request_);
-				rq->wait (std::numeric_limits <uint64_t>::max ());
-				state_ = STATE_NEW;
-			}
+			++reference_cnt_;
 		}
 
 		// Remove remote reference with this key
-		// Returns true if reference must be deleted
-		bool reference_remove () NIRVANA_NOEXCEPT
+		unsigned reference_remove () noexcept
 		{
-			if (!--ref_cnt_) {
-				assert (STATE_DELETION != state_);
-				if (STATE_ADDITION == state_) {
-					Internal::IORequest::_ref_type rq = std::move (request_);
-					rq->wait (std::numeric_limits <uint64_t>::max ());
-					Any ex;
-					if (rq->get_exception (ex))
-						state_ = STATE_NEW;
-					else
-						state_ = STATE_CONFIRMED;
-				}
-				return STATE_CONFIRMED == state_;
-			} else
-				return false;
+			return --reference_cnt_;
 		}
 
-		State state () const NIRVANA_NOEXCEPT
+		unsigned reference_cnt () const noexcept
 		{
-			return state_;
+			return reference_cnt_;
+		}
+
+		bool unconfirmed () const noexcept
+		{
+			return !added_ || request_;
+		}
+
+		bool added () const noexcept
+		{
+			return added_;
+		}
+
+		void complete_deletion ()
+		{
+			if (request_ && added_)
+				request_->complete ();
+		}
+
+		void complete_addition ()
+		{
+			if (request_ && !added_)
+				request_->complete ();
+		}
+
+		void request_completed () noexcept
+		{
+			assert (request_);
+			request_ = nullptr;
+			added_ = !added_;
+		}
+
+		void request_failed () noexcept
+		{
+			assert (request_);
+			request_ = nullptr;
+		}
+
+		DGC_Request* request () const noexcept
+		{
+			return request_;
+		}
+
+		void request (DGC_Request& rq) noexcept
+		{
+			request_ = &rq;
 		}
 
 	private:
-		unsigned ref_cnt_;
-		State state_;
-		Internal::IORequest::_ref_type request_;
+		unsigned reference_cnt_;
+		bool added_;
+		DGC_RequestRef request_;
 	};
 
-	RemoteRefKey& on_DGC_reference_unmarshal (const IOP::ObjectKey& object_key)
+	DGC_RefKey& on_DGC_reference_unmarshal (const IOP::ObjectKey& object_key)
 	{
 		auto ins = remote_objects_.emplace (object_key);
-		RemoteRefKey& key = const_cast <RemoteRefKey&> (*ins.first);
+		DGC_RefKey& key = const_cast <DGC_RefKey&> (*ins.first);
 		if (!ins.second)
 			key.reference_add ();
 		return key;
 	}
 
-	void on_DGC_reference_delete (RemoteRefKey& key) NIRVANA_NOEXCEPT
+	void on_DGC_reference_delete (DGC_RefKey& key) noexcept
 	{
-		if (key.reference_remove ())
-			remote_objects_del_.push_back (key);
+		if (0 == key.reference_remove ()) {
+			if (key.added () || key.request ()) {
+				remote_objects_del_.push_back (key);
+				schedule_del ();
+			} else
+				remote_objects_.erase (key);
+		}
 	}
 
 	void confirm_DGC_references (const ReferenceRemoteRef* begin, const ReferenceRemoteRef* end);
@@ -208,32 +263,34 @@ private:
 
 	void add_owned_objects (const IDL::Sequence <IOP::ObjectKey>& keys, ReferenceLocalRef* objs);
 
-	void send_reference_changes () NIRVANA_NOEXCEPT
-	{
-		if (remote_objects_del_.empty ())
-			return;
-		try {
-			Internal::IORequest::_ref_type rq = create_request (IOP::ObjectKey (), op_complex_ping,
-				Internal::IOReference::REQUEST_ASYNC);
-			marshal_ref_list (remote_objects_del_, rq);
-			rq->invoke ();
-		} catch (...) {
-			// TODO: Log
-		}
-		last_ping_out_time_ = Nirvana::Core::Chrono::steady_clock ();
-	}
-
 	void send_heartbeat ()
 	{
-		Internal::IORequest::_ref_type rq = create_request (IOP::ObjectKey (), op_heartbeat,
+		Internal::IORequest::_ref_type rq = create_request (IOP::ObjectKey (), op_heartbeat_,
 			Internal::IOReference::REQUEST_ASYNC);
 		rq->invoke ();
 		last_ping_out_time_ = Nirvana::Core::Chrono::steady_clock ();
 	}
 
-	static void marshal_ref_list (Nirvana::SimpleList <RemoteRefKey>& list, Internal::IORequest::_ptr_type rq);
+	void schedule_del () noexcept;
+	void send_del ();
+	void append_del (DGC_Request& rq);
 
 private:
+	class GC : public Nirvana::Core::Runnable
+	{
+	public:
+		GC (Domain& domain) :
+			domain_ (&domain)
+		{
+		}
+
+	private:
+		virtual void run () override;
+
+	private:
+		servant_reference <Domain> domain_;
+	};
+
 	class RefCnt : public Nirvana::Core::AtomicCounter <false>
 	{
 	public:
@@ -257,13 +314,13 @@ private:
 	LocalObjects local_objects_;
 
 	// DGC-enabled references to the domain objects owned by the current domain
-	typedef Nirvana::Core::SetUnorderedStable <RemoteRefKey,
+	typedef Nirvana::Core::SetUnorderedStable <DGC_RefKey,
 		std::hash <IOP::ObjectKey>, std::equal_to <IOP::ObjectKey>,
 		Nirvana::Core::UserAllocator> RemoteObjects;
 
 	// DGC-enabled references to the domain objects owned by the current domain
 	RemoteObjects remote_objects_;
-	Nirvana::SimpleList <RemoteRefKey> remote_objects_del_;
+	Nirvana::SimpleList <DGC_RefKey> remote_objects_del_;
 
 	TimeBase::TimeT last_ping_in_time_;
 	TimeBase::TimeT last_ping_out_time_;
@@ -271,8 +328,9 @@ private:
 	TimeBase::TimeT heartbeat_interval_;
 	TimeBase::TimeT heartbeat_timeout_;
 
-	static const Internal::Operation op_heartbeat;
-	static const Internal::Operation op_complex_ping;
+	bool DGC_scheduled_;
+
+	static const Internal::Operation op_heartbeat_;
 };
 
 }

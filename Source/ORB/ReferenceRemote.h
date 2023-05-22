@@ -66,7 +66,12 @@ public:
 
 	bool unconfirmed () const NIRVANA_NOEXCEPT
 	{
-		return DGC_key_ && DGC_key_->state () != Domain::RemoteRefKey::STATE_CONFIRMED;
+		return DGC_key_ && DGC_key_->unconfirmed ();
+	}
+
+	Domain::DGC_RefKey* DGC_key () const NIRVANA_NOEXCEPT
+	{
+		return DGC_key_;
 	}
 
 	virtual void _add_ref () NIRVANA_NOEXCEPT override;
@@ -94,7 +99,7 @@ private:
 	servant_reference <Domain> domain_;
 	const IOP::ObjectKey object_key_;
 	IDL::String object_name_;
-	Domain::RemoteRefKey* DGC_key_;
+	Domain::DGC_RefKey* DGC_key_;
 };
 
 typedef servant_reference <ReferenceRemote> ReferenceRemoteRef;

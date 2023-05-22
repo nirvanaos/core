@@ -99,8 +99,13 @@ public:
 		SYNC_BEGIN (CORBA::Core::local2proxy (root)->sync_context (), nullptr)
 		for (const auto& iop_key : keys) {
 			CORBA::Core::ReferenceLocalRef ref = root_->find_reference (iop_key);
-			if (ref && (ref->flags () & CORBA::Core::Reference::GARBAGE_COLLECTION))
-				*refs = std::move (ref);
+			if (ref)
+				if (ref->flags () & CORBA::Core::Reference::GARBAGE_COLLECTION)
+					*refs = std::move (ref);
+				else
+					throw CORBA::INV_OBJREF ();
+			else
+				throw CORBA::OBJECT_NOT_EXIST ();
 			++refs;
 		}
 		SYNC_END ();
