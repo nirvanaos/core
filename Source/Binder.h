@@ -141,8 +141,6 @@ public:
 		SYNC_END ()
 	}
 
-	static void confirm_DGC_references (size_t cnt, CORBA::Core::ReferenceRemoteRef* refs);
-
 	/// Get CORBA::Core::Domain reference.
 	/// 
 	/// \param domain Domain id.

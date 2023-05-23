@@ -118,8 +118,7 @@ private:
 
 		void invoke ();
 
-		void complete ();
-		void complete_noexcept () noexcept;
+		void complete (bool no_throw = false);
 
 	private:
 		Domain& domain_;
@@ -176,13 +175,13 @@ public:
 		void complete_deletion () noexcept
 		{
 			if (request_ && added_)
-				request_->complete_noexcept ();
+				request_->complete (true);
 		}
 
 		void complete_addition () noexcept
 		{
 			if (request_ && !added_)
-				request_->complete_noexcept ();
+				request_->complete (true);
 		}
 
 		void request_completed () noexcept
@@ -196,6 +195,8 @@ public:
 		{
 			assert (request_);
 			request_ = nullptr;
+			if (!added_)
+				exception_ = std::current_exception ();
 		}
 
 		DGC_Request* request () const noexcept
@@ -205,13 +206,21 @@ public:
 
 		void request (DGC_Request& rq) noexcept
 		{
+			exception_ = nullptr;
 			request_ = &rq;
+		}
+
+		void check ()
+		{
+			if (exception_)
+				std::rethrow_exception (exception_);
 		}
 
 	private:
 		unsigned reference_cnt_;
 		bool added_;
 		DGC_RequestRef request_;
+		std::exception_ptr exception_;
 	};
 
 	DGC_RefKey& on_DGC_reference_unmarshal (const IOP::ObjectKey& object_key)
@@ -237,8 +246,7 @@ public:
 		}
 	}
 
-	void confirm_DGC_ref_start (const ReferenceRemoteRef* begin, const ReferenceRemoteRef* end);
-	void confirm_DGC_ref_finish (const ReferenceRemoteRef* begin, const ReferenceRemoteRef* end);
+	static void confirm_DGC_references (size_t cnt, CORBA::Core::ReferenceRemoteRef* refs);
 
 protected:
 	Domain (unsigned flags, TimeBase::TimeT request_latency, TimeBase::TimeT heartbeat_interval,
@@ -250,6 +258,9 @@ protected:
 	virtual void destroy () NIRVANA_NOEXCEPT = 0;
 
 private:
+	void confirm_DGC_ref_start (const ReferenceRemoteRef* begin, const ReferenceRemoteRef* end);
+	void confirm_DGC_ref_finish (const ReferenceRemoteRef* begin, const ReferenceRemoteRef* end, bool no_throw = false);
+
 	void complex_ping (IDL::Sequence <IOP::ObjectKey>& add, const IDL::Sequence <IOP::ObjectKey>& del)
 	{
 		static const size_t STATIC_ADD_CNT = 4;

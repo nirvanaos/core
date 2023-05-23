@@ -108,14 +108,17 @@ void Domain::confirm_DGC_ref_start (const ReferenceRemoteRef* begin, const Refer
 		rq->invoke ();
 }
 
-void Domain::confirm_DGC_ref_finish (const ReferenceRemoteRef* begin, const ReferenceRemoteRef* end)
+void Domain::confirm_DGC_ref_finish (const ReferenceRemoteRef* begin, const ReferenceRemoteRef* end, bool no_throw)
 {
 	// Complete all requests
 	for (const ReferenceRemoteRef* ref = begin; ref != end; ++ref) {
 		DGC_RefKey* key = (*ref)->DGC_key ();
 		assert (key);
 		if (key->request ())
-			key->request ()->complete ();
+			key->request ()->complete (no_throw);
+		else if (!no_throw)
+			key->check ();
+		assert (no_throw || key->added ());
 	}
 }
 
@@ -200,7 +203,7 @@ void Domain::DGC_Request::invoke ()
 	}
 }
 
-void Domain::DGC_Request::complete ()
+void Domain::DGC_Request::complete (bool no_throw)
 {
 	DGC_RequestRef hold (this);
 	request_->wait (std::numeric_limits <uint64_t>::max ());
@@ -208,6 +211,7 @@ void Domain::DGC_Request::complete ()
 		try {
 			Internal::ProxyRoot::check_request (request_);
 		} catch (...) {
+			std::exception_ptr ex = std::current_exception ();
 			for (DGC_RefKey* key : keys_) {
 				assert (key->request () == this);
 				key->request_failed ();
@@ -215,7 +219,8 @@ void Domain::DGC_Request::complete ()
 			for (auto it = keys_.begin () + add_cnt_; it != keys_.end (); ++it) {
 				domain_.remote_objects_del_.push_back (**it);
 			}
-			throw;
+			if (!no_throw)
+				throw;
 		}
 		for (DGC_RefKey* key : keys_) {
 			assert (key->request () == this);
@@ -231,12 +236,34 @@ void Domain::DGC_Request::complete ()
 	}
 }
 
-void Domain::DGC_Request::complete_noexcept () noexcept
+void Domain::confirm_DGC_references (size_t cnt, ReferenceRemoteRef* refs)
 {
-	try {
-		complete ();
-	} catch (...) {
-		// TODO: Log
+	if (cnt) {
+		ReferenceRemoteRef* end = refs + cnt;
+		std::sort (refs, end,
+			[](const ReferenceRemoteRef& l, const ReferenceRemoteRef& r)
+			{ return &l->domain () < &r->domain (); });
+
+		// TODO: The dangling requests can appear in case of exception below.
+		// So we need some kind of cleanup here.
+		SYNC_BEGIN (Binder::sync_domain (), nullptr)
+			for (int pass = 0; pass < 2; ++pass) {
+				do {
+					Domain* domain = &(*refs)->domain ();
+					ReferenceRemoteRef* domain_end;
+					for (domain_end = refs + 1; domain_end != end; ++domain_end) {
+						if (&(*domain_end)->domain () != domain) {
+							break;
+						}
+					}
+					if (0 == pass)
+						domain->confirm_DGC_ref_start (refs, domain_end);
+					else
+						domain->confirm_DGC_ref_finish (refs, domain_end);
+					refs = domain_end;
+				} while (refs != end);
+			}
+		SYNC_END ()
 	}
 }
 

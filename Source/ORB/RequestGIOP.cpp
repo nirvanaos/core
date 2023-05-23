@@ -95,7 +95,7 @@ void RequestGIOP::unmarshal_end ()
 		if (more_data > 7) // 8-byte alignment is ignored
 			throw MARSHAL (StreamIn::MARSHAL_MINOR_MORE);
 		if (!references_to_confirm_.empty ())
-			Binder::confirm_DGC_references (references_to_confirm_.size (), references_to_confirm_.data ());
+			Domain::confirm_DGC_references (references_to_confirm_.size (), references_to_confirm_.data ());
 	}
 }
 
