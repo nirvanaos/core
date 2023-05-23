@@ -258,8 +258,13 @@ protected:
 	virtual void destroy () NIRVANA_NOEXCEPT = 0;
 
 private:
-	void confirm_DGC_ref_start (const ReferenceRemoteRef* begin, const ReferenceRemoteRef* end);
-	void confirm_DGC_ref_finish (const ReferenceRemoteRef* begin, const ReferenceRemoteRef* end, bool no_throw = false);
+	typedef void (Domain::* DGC_Function) (const ReferenceRemoteRef*, const ReferenceRemoteRef*, bool);
+	static void call_DGC_function (DGC_Function func, const ReferenceRemoteRef* begin,
+		const ReferenceRemoteRef* end, bool no_throw);
+	void confirm_DGC_ref_start (const ReferenceRemoteRef* begin,
+		const ReferenceRemoteRef* end, bool dummy);
+	void confirm_DGC_ref_finish (const ReferenceRemoteRef* begin,
+		const ReferenceRemoteRef* end, bool no_throw);
 
 	void complex_ping (IDL::Sequence <IOP::ObjectKey>& add, const IDL::Sequence <IOP::ObjectKey>& del)
 	{
