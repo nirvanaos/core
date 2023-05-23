@@ -157,7 +157,7 @@ public:
 		references_.erase (it);
 	}
 
-	CORBA::Core::ReferenceLocalRef find_reference (const ObjectKey& key) NIRVANA_NOEXCEPT;
+	CORBA::Core::ReferenceLocalRef find_reference (const IOP::ObjectKey& key) NIRVANA_NOEXCEPT;
 
 	static void shutdown ()
 	{

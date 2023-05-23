@@ -49,9 +49,9 @@ void POA_Retain::activate_object (ReferenceLocal& ref, ServantProxyObject& proxy
 	references_.insert (&ref);
 }
 
-void POA_Retain::deactivate_object (const ObjectId& oid)
+void POA_Retain::deactivate_object (ObjectId& oid)
 {
-	ReferenceLocalRef ref = root_->find_reference (ObjectKey (*this, oid));
+	ReferenceLocalRef ref = root_->find_reference (IOP::ObjectKey (ObjectKey (*this, std::move (oid))));
 	if (!ref)
 		throw ObjectNotActive ();
 	deactivate_object (*ref);
@@ -92,9 +92,9 @@ Object::_ref_type POA_Retain::reference_to_servant (Object::_ptr_type reference)
 	return reference_to_servant_default (true);
 }
 
-Object::_ref_type POA_Retain::id_to_servant (const ObjectId& oid)
+Object::_ref_type POA_Retain::id_to_servant (ObjectId& oid)
 {
-	ReferenceLocalRef ref = root_->find_reference (ObjectKey (*this, oid));
+	ReferenceLocalRef ref = root_->find_reference (IOP::ObjectKey (ObjectKey (*this, std::move (oid))));
 	if (ref) {
 		Ref <ServantProxyObject> servant = ref->get_active_servant ();
 		if (servant)
@@ -103,9 +103,9 @@ Object::_ref_type POA_Retain::id_to_servant (const ObjectId& oid)
 	return id_to_servant_default (true);
 }
 
-Object::_ref_type POA_Retain::id_to_reference (const ObjectId& oid)
+Object::_ref_type POA_Retain::id_to_reference (ObjectId& oid)
 {
-	ReferenceLocalRef ref = root_->find_reference (ObjectKey (*this, oid));
+	ReferenceLocalRef ref = root_->find_reference (IOP::ObjectKey (ObjectKey (*this, std::move (oid))));
 	if (ref && ref->get_active_servant ())
 		return ref->get_proxy ();
 	throw ObjectNotActive ();

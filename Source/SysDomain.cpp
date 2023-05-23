@@ -43,10 +43,10 @@ Object::_ref_type create_SysDomain ()
 	if (ESIOP::is_system_domain ()) {
 		POA::_ref_type adapter = POA::_narrow (Services::bind (Services::RootPOA));
 		servant_reference <SysDomain> obj = make_reference <SysDomain> ();
-		adapter->activate_object_with_id (ObjectId (), obj);
+		adapter->activate_object_with_id (ObjectId (1, 0), obj);
 		return obj->_this ();
 	} else {
-		ReferenceRemote ref (CORBA::OctetSeq (), Binder::get_domain (ESIOP::sys_domain_id ()), IOP::ObjectKey (8, 0),
+		ReferenceRemote ref (CORBA::OctetSeq (), Binder::get_domain (ESIOP::sys_domain_id ()), IOP::ObjectKey (1, 0),
 			CORBA::Internal::RepIdOf <Nirvana::Core::SysDomainCore>::id, ESIOP::ORB_TYPE, IOP::TaggedComponentSeq ());
 		IORequest::_ref_type rq = ref.create_request (ref.find_operation ("get_service"), 3);
 		Type <IDL::String>::marshal_in (CORBA::Internal::StringView <char> ("SysDomain"), rq);

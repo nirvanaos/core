@@ -38,11 +38,11 @@ namespace Core {
 class NIRVANA_NOVTABLE POA_Retain : public virtual POA_Base
 {
 public:
-	virtual void deactivate_object (const ObjectId& oid) override;
+	virtual void deactivate_object (ObjectId& oid) override;
 
 	virtual CORBA::Object::_ref_type reference_to_servant (CORBA::Object::_ptr_type reference) override;
-	virtual CORBA::Object::_ref_type id_to_servant (const ObjectId& oid) override;
-	virtual CORBA::Object::_ref_type id_to_reference (const ObjectId& oid) override;
+	virtual CORBA::Object::_ref_type id_to_servant (ObjectId& oid) override;
+	virtual CORBA::Object::_ref_type id_to_reference (ObjectId& oid) override;
 
 protected:
 	virtual CORBA::Core::ReferenceLocalRef activate_object (ObjectKey&& key, bool unique,

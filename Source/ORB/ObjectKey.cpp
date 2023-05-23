@@ -40,28 +40,42 @@ ObjectKey::ObjectKey (POA_Base& adapter) :
 	adapter.get_path (adapter_path_);
 }
 
-ObjectKey::ObjectKey (const POA_Base& adapter, const ObjectId& oid) :
-	object_id_ (oid)
+ObjectKey::ObjectKey (const POA_Base& adapter, ObjectId&& oid) :
+	object_id_ (std::move (oid))
 {
 	adapter.get_path (adapter_path_);
 }
 
 ObjectKey::ObjectKey (const IOP::ObjectKey& object_key)
 {
-	ImplStatic <StreamInEncap> stm (std::ref (object_key), true);
-	unmarshal (stm);
-	if (stm.end () != 0)
-		throw CORBA::MARSHAL (StreamIn::MARSHAL_MINOR_MORE);
+	if (object_key.size () < 8)
+		object_id_ = object_key;
+	else {
+		ImplStatic <StreamInEncap> stm (std::ref (object_key), true);
+		size_t size = stm.read_size ();
+		adapter_path_.resize (size);
+		for (auto& name : adapter_path_) {
+			stm.read_string (name);
+		}
+		stm.read_seq (object_id_);
+		if (stm.end () != 0)
+			throw CORBA::INV_OBJREF ();
+	}
 }
 
-void ObjectKey::unmarshal (StreamIn& in)
+ObjectKey::operator IOP::ObjectKey () const
 {
-	size_t size = in.read_size ();
-	adapter_path_.resize (size);
-	for (auto& name : adapter_path_) {
-		in.read_string (name);
+	if (adapter_path_.empty () && object_id_.size () < 4)
+		return object_id_;
+	else {
+		Nirvana::Core::ImplStatic <CORBA::Core::StreamOutEncap> stm (true);
+		stm.write_size (adapter_path_.size ());
+		for (const auto& name : adapter_path_) {
+			stm.write_string_c (name);
+		}
+		stm.write_seq (object_id_);
+		return std::move (stm.data ());
 	}
-	in.read_seq (object_id_);
 }
 
 }

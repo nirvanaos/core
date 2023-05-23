@@ -46,7 +46,7 @@ Object::_ref_type create_RootPOA ()
 
 void POA_Root::check_object_id (const ObjectId& oid)
 {
-	if (!oid.empty ()) // Empty ObjectId mean the SysDomain object.
+	if (oid.size () != 1) // System object ids have one octet size
 		POA_ImplicitUnique::check_object_id (oid);
 }
 
@@ -90,7 +90,7 @@ ReferenceLocalRef POA_Root::emplace_reference (ObjectKey&& core_key,
 	}
 }
 
-ReferenceLocalRef POA_Root::find_reference (const ObjectKey& key) NIRVANA_NOEXCEPT
+ReferenceLocalRef POA_Root::find_reference (const IOP::ObjectKey& key) NIRVANA_NOEXCEPT
 {
 	References::iterator it = references_.find (key);
 	ReferenceLocalRef ref;

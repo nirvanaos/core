@@ -190,7 +190,7 @@ void POA_Base::activate_object (CORBA::Core::ServantProxyObject& proxy, ObjectId
 {
 	for (;;) {
 		oid = generate_object_id ();
-		ReferenceLocalRef ref = activate_object (ObjectKey (*this, oid), true, proxy, flags);
+		ReferenceLocalRef ref = activate_object (ObjectKey (*this, std::move (oid)), true, proxy, flags);
 		if (ref)
 			return;
 	}
@@ -220,7 +220,7 @@ POA_Base::ImplicitActivation POA_Base::implicit_activation () const NIRVANA_NOEX
 	return NO_IMPLICIT_ACTIVATION;
 }
 
-void POA_Base::deactivate_object (const ObjectId& oid)
+void POA_Base::deactivate_object (ObjectId& oid)
 {
 	throw WrongPolicy ();
 }
@@ -329,7 +329,7 @@ ObjectId POA_Base::reference_to_id (Object::_ptr_type reference)
 	return loc.core_key ().object_id ();
 }
 
-Object::_ref_type POA_Base::id_to_servant (const ObjectId& oid)
+Object::_ref_type POA_Base::id_to_servant (ObjectId& oid)
 {
 	return id_to_servant_default (false);
 }
@@ -342,7 +342,7 @@ Object::_ref_type POA_Base::id_to_servant_default (bool not_active)
 		throw WrongPolicy ();
 }
 
-Object::_ref_type POA_Base::id_to_reference (const ObjectId& oid)
+Object::_ref_type POA_Base::id_to_reference (ObjectId& oid)
 {
 	throw WrongPolicy ();
 }

@@ -329,13 +329,13 @@ public:
 	CORBA::Core::ReferenceLocalRef activate_object (CORBA::Core::ServantProxyObject& proxy,
 		unsigned flags = 0);
 
-	void activate_object_with_id (const ObjectId& oid, CORBA::Object::_ptr_type p_servant)
+	void activate_object_with_id (ObjectId& oid, CORBA::Object::_ptr_type p_servant)
 	{
 		CORBA::Core::ServantProxyObject* proxy = CORBA::Core::object2proxy (p_servant);
 		if (!proxy)
 			throw CORBA::BAD_PARAM ();
 		check_object_id (oid);
-		activate_object (ObjectKey (*this, oid), false, *proxy, 0);
+		activate_object (ObjectKey (*this, std::move (oid)), false, *proxy, 0);
 	}
 
 	virtual CORBA::Core::ReferenceLocalRef activate_object (ObjectKey&& key, bool unique,
@@ -343,7 +343,7 @@ public:
 
 	virtual void activate_object (CORBA::Core::ReferenceLocal& ref, CORBA::Core::ServantProxyObject& proxy);
 
-	virtual void deactivate_object (const ObjectId& oid);
+	virtual void deactivate_object (ObjectId& oid);
 	virtual CORBA::servant_reference <CORBA::Core::ServantProxyObject> deactivate_object (
 		CORBA::Core::ReferenceLocal& ref);
 
@@ -357,10 +357,10 @@ public:
 	CORBA::Core::ReferenceLocalRef create_reference (const CORBA::RepositoryId& intf,
 		unsigned flags);
 
-	CORBA::Object::_ref_type create_reference_with_id (const ObjectId& oid,
+	CORBA::Object::_ref_type create_reference_with_id (ObjectId& oid,
 		const CORBA::RepositoryId& intf)
 	{
-		return CORBA::Object::_ref_type (create_reference (ObjectKey (*this, oid), intf)->get_proxy ());
+		return CORBA::Object::_ref_type (create_reference (ObjectKey (*this, std::move (oid)), intf)->get_proxy ());
 	}
 
 	virtual CORBA::Core::ReferenceLocalRef create_reference (ObjectKey&& key,
@@ -397,10 +397,10 @@ public:
 
 	ObjectId reference_to_id (CORBA::Object::_ptr_type reference);
 
-	virtual CORBA::Object::_ref_type id_to_servant (const ObjectId& oid);
+	virtual CORBA::Object::_ref_type id_to_servant (ObjectId& oid);
 	virtual CORBA::Object::_ref_type id_to_servant_default (bool not_active);
 
-	virtual CORBA::Object::_ref_type id_to_reference (const ObjectId& oid);
+	virtual CORBA::Object::_ref_type id_to_reference (ObjectId& oid);
 
 	// Additional attributes
 

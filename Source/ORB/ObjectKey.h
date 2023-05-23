@@ -55,15 +55,12 @@ public:
 	{}
 
 	ObjectKey (POA_Base& adapter);
-	ObjectKey (const POA_Base& adapter, const ObjectId& oid);
-	ObjectKey (const IOP::ObjectKey& object_key);
+	ObjectKey (const POA_Base& adapter, ObjectId&& oid);
+	explicit ObjectKey (const IOP::ObjectKey& object_key);
+
+	explicit operator IOP::ObjectKey () const;
 
 	const AdapterPath& adapter_path () const NIRVANA_NOEXCEPT
-	{
-		return adapter_path_;
-	}
-
-	AdapterPath& adapter_path () NIRVANA_NOEXCEPT
 	{
 		return adapter_path_;
 	}
@@ -71,35 +68,6 @@ public:
 	const ObjectId& object_id () const NIRVANA_NOEXCEPT
 	{
 		return object_id_;
-	}
-
-	void object_id (const ObjectId& oid)
-	{
-		object_id_ = oid;
-	}
-
-	void object_id (ObjectId&& oid) NIRVANA_NOEXCEPT
-	{
-		object_id_ = std::move (oid);
-	}
-
-	void unmarshal (CORBA::Core::StreamIn& in);
-
-	operator IOP::ObjectKey () const
-	{
-		Nirvana::Core::ImplStatic <CORBA::Core::StreamOutEncap> encap (true);
-		marshal (encap);
-		return std::move (encap.data ());
-	}
-
-private:
-	void marshal (CORBA::Core::StreamOut& out) const
-	{
-		out.write_size (adapter_path_.size ());
-		for (const auto& name : adapter_path_) {
-			out.write_string_c (name);
-		}
-		out.write_seq (object_id_);
 	}
 
 private:
