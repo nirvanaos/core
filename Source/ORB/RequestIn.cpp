@@ -28,6 +28,7 @@
 #include <CORBA/IIOP.h>
 #include "ServantProxyObject.h"
 #include "DomainRemote.h"
+#include "tagged_seq.h"
 
 using namespace Nirvana;
 using namespace Nirvana::Core;
@@ -43,6 +44,8 @@ RequestIn::RequestIn (const DomainAddress& client, unsigned GIOP_minor) :
 	key_ (client),
 	map_iterator_ (nullptr),
 	sync_domain_ (nullptr),
+	reply_status_offset_ (0),
+	reply_header_end_ (0),
 	cancelled_ (false),
 	has_context_ (false)
 {}
@@ -109,6 +112,7 @@ void RequestIn::initialize (Ref <StreamIn>&& in)
 				stream_in_->read(1, 8 - unaligned, nullptr);
 		}
 	}
+	sort (service_context_);
 }
 
 void RequestIn::get_object_key (const IOP::TaggedProfile& profile)
@@ -251,6 +255,7 @@ void RequestIn::set_exception (Any& e)
 	if (!stream_out_)
 		switch_to_reply (status);
 	else {
+		assert (reply_header_end_);
 		stream_out_->rewind (reply_header_end_);
 		*(GIOP::ReplyStatusType*)((Octet*)stream_out_->header (reply_header_end_) + reply_status_offset_) = status;
 	}

@@ -36,32 +36,6 @@
 namespace CORBA {
 namespace Core {
 
-struct ComponentPred
-{
-	bool operator () (const IOP::TaggedComponent& l, const IOP::TaggedComponent& r) const
-	{
-		return l.tag () < r.tag ();
-	}
-
-	bool operator () (const IOP::ComponentId l, const IOP::TaggedComponent& r) const
-	{
-		return l < r.tag ();
-	}
-
-	bool operator () (const IOP::TaggedComponent& l, const IOP::ComponentId& r) const
-	{
-		return l.tag () < r;
-	}
-};
-
-inline void sort (IOP::TaggedComponentSeq& components) NIRVANA_NOEXCEPT
-{
-	std::sort (components.begin (), components.end (), ComponentPred ());
-}
-
-IOP::TaggedComponentSeq::const_iterator find (const IOP::TaggedComponentSeq& components,
-	IOP::ComponentId id) NIRVANA_NOEXCEPT;
-
 class StreamOut;
 
 class NIRVANA_NOVTABLE Reference :

@@ -1,3 +1,4 @@
+/// \file Tagged sequense sort/search.
 /*
 * Nirvana Core.
 *
@@ -23,38 +24,35 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "Reference.h"
+#ifndef NIRVANA_ORB_CORE_TAGGED_SEQ_H_
+#define NIRVANA_ORB_CORE_TAGGED_SEQ_H_
+#pragma once
 
-using namespace Nirvana::Core;
-using namespace CORBA;
-using namespace CORBA::Internal;
-using namespace CORBA::Core;
+#include <CORBA/CORBA.h>
+#include <CORBA/IOP.h>
 
 namespace CORBA {
 namespace Core {
 
-ReferenceRef Reference::get_reference ()
+void sort (IOP::TaggedComponentSeq& seq) NIRVANA_NOEXCEPT;
+
+const IOP::TaggedComponent* binary_search (const IOP::TaggedComponentSeq& seq,
+	IOP::ComponentId id) NIRVANA_NOEXCEPT;
+
+inline
+void sort (IOP::ServiceContextList& seq) NIRVANA_NOEXCEPT
 {
-	return this;
+	sort (reinterpret_cast <IOP::TaggedComponentSeq&> (seq));
 }
 
-Policy::_ref_type Reference::_get_policy (PolicyType policy_type)
+inline
+const IOP::ServiceContext* binary_search (const IOP::ServiceContextList& seq,
+	IOP::ServiceId id) NIRVANA_NOEXCEPT
 {
-	if (domain_manager_)
-		return domain_manager_->get_policy (policy_type);
-	else
-		return Policy::_nil ();
-}
-
-DomainManagersList Reference::_get_domain_managers ()
-{
-	// TODO: At least one domain manager must be returned in the
-	// list since by default each object is associated with at least one domain manager at creation.
-	DomainManagersList ret;
-	if (domain_manager_)
-		ret.push_back (domain_manager_->_this ());
-	return ret;
+	return reinterpret_cast <const IOP::ServiceContext*> (binary_search (reinterpret_cast <const IOP::TaggedComponentSeq&> (seq), id));
 }
 
 }
 }
+
+#endif

@@ -96,9 +96,9 @@ Object::_ref_type unmarshal_object (StreamIn& stream, ReferenceRemoteRef& unconf
 
 		sort (components);
 		ULong ORB_type = 0;
-		auto it = find (components, IOP::TAG_ORB_TYPE);
-		if (it != components.end ()) {
-			Nirvana::Core::ImplStatic <StreamInEncap> stm (std::ref (it->component_data ()));
+		auto p = binary_search (components, IOP::TAG_ORB_TYPE);
+		if (p) {
+			Nirvana::Core::ImplStatic <StreamInEncap> stm (std::ref (p->component_data ()));
 			ORB_type = stm.read32 ();
 			if (stm.other_endian ())
 				Internal::byteswap (ORB_type);
@@ -117,9 +117,9 @@ Object::_ref_type unmarshal_object (StreamIn& stream, ReferenceRemoteRef& unconf
 			obj = PortableServer::Core::POA_Root::unmarshal (primary_iid, object_key); // Local reference
 #else
 			ESIOP::ProtDomainId domain_id;
-			it = find (components, ESIOP::TAG_DOMAIN_ADDRESS);
-			if (it != components.end ()) {
-				Nirvana::Core::ImplStatic <StreamInEncap> stm (std::ref (it->component_data ()));
+			auto pc = binary_search (components, ESIOP::TAG_DOMAIN_ADDRESS);
+			if (pc) {
+				Nirvana::Core::ImplStatic <StreamInEncap> stm (std::ref (pc->component_data ()));
 				stm.read (alignof (ESIOP::ProtDomainId), sizeof (ESIOP::ProtDomainId), &domain_id);
 				if (stm.other_endian ())
 					Internal::byteswap (domain_id);

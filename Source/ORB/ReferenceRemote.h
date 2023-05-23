@@ -32,6 +32,7 @@
 #include <CORBA/IOP.h>
 #include "ESIOP.h"
 #include "StreamInEncap.h"
+#include "tagged_seq.h"
 
 namespace CORBA {
 namespace Core {
@@ -81,10 +82,10 @@ private:
 	static unsigned get_flags (ULong ORB_type, const IOP::TaggedComponentSeq& components)
 	{
 		if (ESIOP::ORB_TYPE == ORB_type) {
-			auto it = find (components, ESIOP::TAG_FLAGS);
-			if (it != components.end ()) {
+			auto p = binary_search (components, ESIOP::TAG_FLAGS);
+			if (p) {
 				Octet flags;
-				Nirvana::Core::ImplStatic <StreamInEncap> stm (std::ref (it->component_data ()));
+				Nirvana::Core::ImplStatic <StreamInEncap> stm (std::ref (p->component_data ()));
 				stm.read (1, 1, &flags);
 				if (stm.end ())
 					throw INV_OBJREF ();

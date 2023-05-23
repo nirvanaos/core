@@ -581,18 +581,25 @@ void Binder::confirm_DGC_references (size_t cnt, ReferenceRemoteRef* refs)
 			[](const ReferenceRemoteRef& l, const ReferenceRemoteRef& r)
 			{ return &l->domain () < &r->domain (); });
 		
+		// TODO: The dangling requests can appear in case of exception below.
+		// So we need some kind of cleanup here.
 		SYNC_BEGIN (sync_domain (), nullptr)
-			do {
-				Domain* domain = &(*refs)->domain ();
-				ReferenceRemoteRef* domain_end;
-				for (domain_end = refs + 1; domain_end != end; ++domain_end) {
-					if (&(*domain_end)->domain () != domain) {
-						break;
+			for (int pass = 0; pass < 2; ++pass) {
+				do {
+					Domain* domain = &(*refs)->domain ();
+					ReferenceRemoteRef* domain_end;
+					for (domain_end = refs + 1; domain_end != end; ++domain_end) {
+						if (&(*domain_end)->domain () != domain) {
+							break;
+						}
 					}
-				}
-				domain->confirm_DGC_references (refs, domain_end);
-				refs = domain_end;
-			} while (refs != end);
+					if (0 == pass)
+						domain->confirm_DGC_ref_start (refs, domain_end);
+					else
+						domain->confirm_DGC_ref_finish (refs, domain_end);
+					refs = domain_end;
+				} while (refs != end);
+			}
 		SYNC_END ()
 	}
 }

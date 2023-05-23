@@ -64,17 +64,18 @@ void IncomingRequests::receive (Ref <RequestIn> rq, uint64_t timestamp)
 	const IOP::ServiceContextList& sc = rq->service_context ();
 
 	DeadlineTime deadline = INFINITE_DEADLINE;
-	for (const auto& context : sc) {
-		if (ESIOP::CONTEXT_ID_DEADLINE == context.context_id ()) {
-			ImplStatic <StreamInEncap> encap (std::ref (context.context_data ()));
-			encap.read (alignof (DeadlineTime), sizeof (DeadlineTime), &deadline);
-			if (encap.end ())
-				throw BAD_PARAM ();
-			if (encap.other_endian ())
-				Internal::byteswap (deadline);
-			break;
-		} else if (IOP::RTCorbaPriority == context.context_id ()) {
-			ImplStatic <StreamInEncap> encap (std::ref (context.context_data ()));
+	auto pc = binary_search (sc, ESIOP::CONTEXT_ID_DEADLINE);
+	if (pc) {
+		ImplStatic <StreamInEncap> encap (std::ref (pc->context_data ()));
+		encap.read (alignof (DeadlineTime), sizeof (DeadlineTime), &deadline);
+		if (encap.end ())
+			throw BAD_PARAM ();
+		if (encap.other_endian ())
+			Internal::byteswap (deadline);
+	} else {
+		pc = binary_search (sc, ESIOP::CONTEXT_ID_DEADLINE);
+		if (pc) {
+			ImplStatic <StreamInEncap> encap (std::ref (pc->context_data ()));
 			int16_t priority;
 			encap.read (alignof (int16_t), sizeof (int16_t), &priority);
 			if (encap.end ())
@@ -82,7 +83,6 @@ void IncomingRequests::receive (Ref <RequestIn> rq, uint64_t timestamp)
 			if (encap.other_endian ())
 				Internal::byteswap (priority);
 			deadline = Chrono::deadline_from_priority (priority);
-			break;
 		}
 	}
 

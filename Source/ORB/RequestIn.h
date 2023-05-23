@@ -88,7 +88,7 @@ public:
 		return key_.request_id;
 	}
 
-	/// \returns Service context.
+	/// \returns Service context sorted in the ascending order.
 	const IOP::ServiceContextList& service_context () const NIRVANA_NOEXCEPT
 	{
 		return service_context_;

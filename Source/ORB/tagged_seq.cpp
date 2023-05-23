@@ -23,38 +23,46 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "Reference.h"
-
-using namespace Nirvana::Core;
-using namespace CORBA;
-using namespace CORBA::Internal;
-using namespace CORBA::Core;
+#include "tagged_seq.h"
+#include <algorithm>
 
 namespace CORBA {
 namespace Core {
 
-ReferenceRef Reference::get_reference ()
+struct ComponentPred
 {
-	return this;
+	bool operator () (const IOP::TaggedComponent& l, const IOP::TaggedComponent& r) const
+	{
+		return l.tag () < r.tag ();
+	}
+
+	bool operator () (const IOP::ComponentId l, const IOP::TaggedComponent& r) const
+	{
+		return l < r.tag ();
+	}
+
+	bool operator () (const IOP::TaggedComponent& l, const IOP::ComponentId& r) const
+	{
+		return l.tag () < r;
+	}
+};
+
+void sort (IOP::TaggedComponentSeq& seq) NIRVANA_NOEXCEPT
+{
+	std::sort (seq.begin (), seq.end (), ComponentPred ());
 }
 
-Policy::_ref_type Reference::_get_policy (PolicyType policy_type)
+const IOP::TaggedComponent* binary_search (
+	const IOP::TaggedComponentSeq& seq, IOP::ComponentId id) NIRVANA_NOEXCEPT
 {
-	if (domain_manager_)
-		return domain_manager_->get_policy (policy_type);
+	IOP::TaggedComponentSeq::const_iterator it = std::lower_bound (seq.begin (), seq.end (),
+		id, ComponentPred ());
+	if (it != seq.end () && it->tag () == id)
+		return &*it;
 	else
-		return Policy::_nil ();
-}
-
-DomainManagersList Reference::_get_domain_managers ()
-{
-	// TODO: At least one domain manager must be returned in the
-	// list since by default each object is associated with at least one domain manager at creation.
-	DomainManagersList ret;
-	if (domain_manager_)
-		ret.push_back (domain_manager_->_this ());
-	return ret;
+		return nullptr;
 }
 
 }
 }
+

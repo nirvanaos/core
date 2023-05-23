@@ -85,7 +85,7 @@ void Domain::erase_remote_key (DGC_RefKey& key) noexcept
 		_remove_ref ();
 }
 
-void Domain::confirm_DGC_references (const ReferenceRemoteRef* begin, const ReferenceRemoteRef* end)
+void Domain::confirm_DGC_ref_start (const ReferenceRemoteRef* begin, const ReferenceRemoteRef* end)
 {
 	DGC_RequestRef rq;
 	for (const ReferenceRemoteRef* ref = begin; ref != end; ++ref) {
@@ -98,7 +98,7 @@ void Domain::confirm_DGC_references (const ReferenceRemoteRef* begin, const Refe
 			rq->add (*key);
 		}
 	}
-	
+
 	// If new request was created and we have keys to delete, add them to request.
 	if (rq)
 		append_del (*rq);
@@ -106,7 +106,10 @@ void Domain::confirm_DGC_references (const ReferenceRemoteRef* begin, const Refe
 	// Invoke new request, if any
 	if (rq)
 		rq->invoke ();
+}
 
+void Domain::confirm_DGC_ref_finish (const ReferenceRemoteRef* begin, const ReferenceRemoteRef* end)
+{
 	// Complete all requests
 	for (const ReferenceRemoteRef* ref = begin; ref != end; ++ref) {
 		DGC_RefKey* key = (*ref)->DGC_key ();
@@ -121,7 +124,8 @@ void Domain::append_del (DGC_Request& rq)
 	while (!remote_objects_del_.empty ()) {
 		DGC_RefKey& key = remote_objects_del_.front ();
 		key.complete_addition ();
-		rq.del (key);
+		if (key.added ())
+			rq.del (key);
 		key.remove ();
 	}
 }
@@ -224,6 +228,15 @@ void Domain::DGC_Request::complete ()
 		}
 		keys_.clear ();
 		add_cnt_ = 0;
+	}
+}
+
+void Domain::DGC_Request::complete_noexcept () noexcept
+{
+	try {
+		complete ();
+	} catch (...) {
+		// TODO: Log
 	}
 }
 

@@ -44,10 +44,10 @@ ReferenceRemote::ReferenceRemote (const OctetSeq& addr, servant_reference <Domai
 	object_key_ (object_key),
 	DGC_key_ (nullptr)
 {
-	auto it = find (components, IOP::TAG_POLICIES);
-	if (it != components.end ()) {
+	auto p = binary_search (components, IOP::TAG_POLICIES);
+	if (p) {
 		PolicyMap policies;
-		PolicyFactory::read (it->component_data (), policies);
+		PolicyFactory::read (p->component_data (), policies);
 		if (!policies.empty ())
 			domain_manager_ = make_reference <Core::DomainManager> (std::move (policies));
 	}

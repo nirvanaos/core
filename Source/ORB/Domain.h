@@ -119,6 +119,7 @@ private:
 		void invoke ();
 
 		void complete ();
+		void complete_noexcept () noexcept;
 
 	private:
 		Domain& domain_;
@@ -172,16 +173,16 @@ public:
 			return added_;
 		}
 
-		void complete_deletion ()
+		void complete_deletion () noexcept
 		{
 			if (request_ && added_)
-				request_->complete ();
+				request_->complete_noexcept ();
 		}
 
-		void complete_addition ()
+		void complete_addition () noexcept
 		{
 			if (request_ && !added_)
-				request_->complete ();
+				request_->complete_noexcept ();
 		}
 
 		void request_completed () noexcept
@@ -236,7 +237,8 @@ public:
 		}
 	}
 
-	void confirm_DGC_references (const ReferenceRemoteRef* begin, const ReferenceRemoteRef* end);
+	void confirm_DGC_ref_start (const ReferenceRemoteRef* begin, const ReferenceRemoteRef* end);
+	void confirm_DGC_ref_finish (const ReferenceRemoteRef* begin, const ReferenceRemoteRef* end);
 
 protected:
 	Domain (unsigned flags, TimeBase::TimeT request_latency, TimeBase::TimeT heartbeat_interval,
