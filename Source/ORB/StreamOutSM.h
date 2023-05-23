@@ -29,7 +29,7 @@
 #pragma once
 
 #include "StreamOut.h"
-#include "DomainLocal.h"
+#include "DomainProt.h"
 #include "../UserAllocator.h"
 #include "../UserObject.h"
 #include <vector>
@@ -64,7 +64,7 @@ public:
 	}
 
 protected:
-	StreamOutSM (DomainLocal& target, bool client) :
+	StreamOutSM (DomainProt& target, bool client) :
 		other_domain_ (&target)
 	{
 		if (client)
@@ -117,7 +117,7 @@ private:
 	size_t stream_hdr_size () const NIRVANA_NOEXCEPT;
 
 private:
-	CORBA::servant_reference <DomainLocal> other_domain_;
+	CORBA::servant_reference <DomainProt> other_domain_;
 	PlatformSizes sizes_;
 	SharedMemPtr stream_hdr_;
 	std::vector <Block, Nirvana::Core::UserAllocator <Block> > blocks_;

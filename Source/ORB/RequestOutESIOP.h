@@ -44,7 +44,7 @@ class RequestOut : public CORBA::Core::RequestOut
 	typedef CORBA::Core::RequestOut Base;
 
 public:
-	RequestOut (DomainLocal& domain, const IOP::ObjectKey& object_key,
+	RequestOut (DomainProt& domain, const IOP::ObjectKey& object_key,
 		const CORBA::Internal::Operation& metadata, unsigned response_flags,
 		IOP::ServiceContextList context) :
 		Base ((response_flags & 3) == 1 ? 2 : 1, response_flags, domain, metadata)
@@ -62,9 +62,9 @@ public:
 		write_header (object_key, context);
 	}
 
-	DomainLocal* target_domain () const NIRVANA_NOEXCEPT
+	DomainProt* target_domain () const NIRVANA_NOEXCEPT
 	{
-		return static_cast <DomainLocal*> (Base::target_domain ());
+		return static_cast <DomainProt*> (Base::target_domain ());
 	}
 
 protected:

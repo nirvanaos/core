@@ -24,11 +24,11 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_ORB_CORE_DOMAINSLOCAL_H_
-#define NIRVANA_ORB_CORE_DOMAINSLOCAL_H_
+#ifndef NIRVANA_ORB_CORE_PROTDOMAINS_H_
+#define NIRVANA_ORB_CORE_PROTDOMAINS_H_
 #pragma once
 
-#include "DomainLocal.h"
+#include "DomainProt.h"
 #include "../MapUnorderedStable.h"
 #include "../WaitableRef.h"
 #include <CORBA/Servant_var.h>
@@ -36,14 +36,14 @@
 namespace ESIOP {
 
 template <template <class> class Al>
-class DomainsLocalWaitable
+class ProtDomainsWaitable
 {
 	static const TimeBase::TimeT DEADLINE_MAX = 10 * TimeBase::MILLISECOND;
 
 public:
-	CORBA::servant_reference <DomainLocal> get (ProtDomainId domain_id);
+	CORBA::servant_reference <DomainProt> get (ProtDomainId domain_id);
 
-	CORBA::servant_reference <DomainLocal> find (ProtDomainId domain_id)
+	CORBA::servant_reference <DomainProt> find (ProtDomainId domain_id)
 	{
 		auto it = map_.find (domain_id);
 		if (it != map_.end ())
@@ -59,7 +59,7 @@ public:
 
 private:
 	typedef ProtDomainId Key;
-	typedef std::unique_ptr <DomainLocal> Ptr;
+	typedef std::unique_ptr <DomainProt> Ptr;
 	typedef Nirvana::Core::WaitableRef <Ptr> Val;
 
 	typedef Nirvana::Core::MapUnorderedStable <Key, Val, std::hash <Key>,
@@ -69,7 +69,7 @@ private:
 };
 
 template <template <class> class Al>
-inline CORBA::servant_reference <DomainLocal> DomainsLocalWaitable <Al>::get (ProtDomainId domain_id)
+inline CORBA::servant_reference <DomainProt> ProtDomainsWaitable <Al>::get (ProtDomainId domain_id)
 {
 	auto ins = map_.emplace (domain_id, DEADLINE_MAX);
 	if (ins.second) {
@@ -77,9 +77,9 @@ inline CORBA::servant_reference <DomainLocal> DomainsLocalWaitable <Al>::get (Pr
 		try {
 			Ptr p;
 			SYNC_BEGIN (Nirvana::Core::g_core_free_sync_context, &Nirvana::Core::MemContext::current ());
-			p.reset (new DomainLocal (domain_id));
+			p.reset (new DomainProt (domain_id));
 			SYNC_END ();
-			PortableServer::Servant_var <DomainLocal> ret (p.get ());
+			PortableServer::Servant_var <DomainProt> ret (p.get ());
 			entry.second.finish_construction (std::move (p));
 			return ret;
 		} catch (...) {
@@ -92,12 +92,12 @@ inline CORBA::servant_reference <DomainLocal> DomainsLocalWaitable <Al>::get (Pr
 }
 
 template <template <class> class Al>
-class DomainsLocalSimple
+class ProtDomainsSimple
 {
 public:
-	CORBA::servant_reference <DomainLocal> get (ProtDomainId domain_id)
+	CORBA::servant_reference <DomainProt> get (ProtDomainId domain_id)
 	{
-		return PortableServer::Servant_var <DomainLocal> (&map_.emplace (
+		return PortableServer::Servant_var <DomainProt> (&map_.emplace (
 			std::piecewise_construct, std::forward_as_tuple (domain_id),
 			std::forward_as_tuple (domain_id)).first->second);
 	}
@@ -107,7 +107,7 @@ public:
 		map_.erase (domain_id);
 	}
 
-	CORBA::servant_reference <DomainLocal> find (ProtDomainId domain_id) NIRVANA_NOEXCEPT
+	CORBA::servant_reference <DomainProt> find (ProtDomainId domain_id) NIRVANA_NOEXCEPT
 	{
 		auto it = map_.find (domain_id);
 		if (it != map_.end ())
@@ -117,7 +117,7 @@ public:
 
 private:
 	typedef ProtDomainId Key;
-	typedef DomainLocal Val;
+	typedef DomainProt Val;
 
 	typedef Nirvana::Core::MapUnorderedStable <Key, Val, std::hash <Key>,
 		std::equal_to <Key>, Al> Map;
@@ -126,7 +126,7 @@ private:
 };
 
 template <template <class> class Al>
-using DomainsLocal = std::conditional_t < OtherDomain::slow_creation, DomainsLocalWaitable <Al>, DomainsLocalSimple <Al> > ;
+using ProtDomains = std::conditional_t < OtherDomain::slow_creation, ProtDomainsWaitable <Al>, ProtDomainsSimple <Al> > ;
 
 }
 

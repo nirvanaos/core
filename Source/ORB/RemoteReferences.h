@@ -29,7 +29,7 @@
 #pragma once
 
 #include "ReferenceRemote.h"
-#include "DomainsLocal.h"
+#include "ProtDomains.h"
 #include "DomainRemote.h"
 #include "HashOctetSeq.h"
 #include "RequestIn.h"
@@ -102,12 +102,12 @@ public:
 
 	void erase_domain (ESIOP::ProtDomainId id) NIRVANA_NOEXCEPT
 	{
-		domains_local_.erase (id);
+		prot_domains_.erase (id);
 	}
 
 	void erase_domain (const DomainRemote& domain) NIRVANA_NOEXCEPT
 	{
-		domains_remote_.erase (domain);
+		remote_domains_.erase (domain);
 	}
 
 	void erase (const RefKey& ref) NIRVANA_NOEXCEPT
@@ -116,15 +116,15 @@ public:
 	}
 
 #ifndef SINGLE_DOMAIN
-	servant_reference <ESIOP::DomainLocal> get_domain_sync (ESIOP::ProtDomainId id)
+	servant_reference <ESIOP::DomainProt> get_domain_sync (ESIOP::ProtDomainId id)
 	{
-		return domains_local_.get (id);
+		return prot_domains_.get (id);
 	}
 #endif
 
 	servant_reference <Domain> get_domain_sync (const IIOP::ListenPoint& lp)
 	{
-		auto ins = domains_remote_.emplace (std::ref (lp));
+		auto ins = remote_domains_.emplace (std::ref (lp));
 		DomainRemote* p = &const_cast <DomainRemote&> (*ins.first);
 		if (ins.second)
 			return PortableServer::Servant_var <Domain> (p);
@@ -135,7 +135,7 @@ public:
 	void heartbeat (const DomainAddress& da) NIRVANA_NOEXCEPT
 	{
 		assert (da.family == DomainAddress::Family::ESIOP); // TODO
-		auto d = domains_local_.find (da.address.esiop);
+		auto d = prot_domains_.find (da.address.esiop);
 		if (d)
 			d->simple_ping ();
 	}
@@ -153,13 +153,13 @@ private:
 
 private:
 #ifndef SINGLE_DOMAIN
-	ESIOP::DomainsLocal <Al> domains_local_;
+	ESIOP::ProtDomains <Al> prot_domains_;
 #endif
 
 	typedef Nirvana::Core::SetUnorderedStable <DomainRemote, std::hash <IIOP::ListenPoint>,
-		std::equal_to <IIOP::ListenPoint>, Al> DomainsRemote;
+		std::equal_to <IIOP::ListenPoint>, Al> RemoteDomains;
 
-	DomainsRemote domains_remote_;
+	RemoteDomains remote_domains_;
 
 	References references_;
 };

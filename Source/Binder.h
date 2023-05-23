@@ -146,8 +146,8 @@ public:
 	/// Get CORBA::Core::Domain reference.
 	/// 
 	/// \param domain Domain id.
-	/// \returns Reference to ESIOP::DomainLocal.
-	static CORBA::servant_reference <ESIOP::DomainLocal> get_domain (ESIOP::ProtDomainId domain)
+	/// \returns Reference to ESIOP::DomainProt.
+	static CORBA::servant_reference <ESIOP::DomainProt> get_domain (ESIOP::ProtDomainId domain)
 	{
 		SYNC_BEGIN (sync_domain (), nullptr)
 			return singleton_->remote_references_.get_domain_sync (domain);

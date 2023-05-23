@@ -1,4 +1,3 @@
-/// \file
 /*
 * Nirvana Core.
 *
@@ -24,41 +23,26 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_ORB_CORE_DOMAINLOCAL_H_
-#define NIRVANA_ORB_CORE_DOMAINLOCAL_H_
-#pragma once
+#include "DomainProt.h"
+#include "../Binder.h"
+#include "RequestOutESIOP.h"
 
-#include "Domain.h"
-#include <Port/OtherDomain.h>
+using namespace Nirvana;
+using namespace Nirvana::Core;
+using namespace CORBA;
 
 namespace ESIOP {
 
-/// Other protection domain on the same system.
-class DomainLocal :
-	public CORBA::Core::Domain,
-	public OtherDomain
+void DomainProt::destroy () NIRVANA_NOEXCEPT
 {
-public:
-	DomainLocal (ESIOP::ProtDomainId id) :
-		CORBA::Core::Domain (GARBAGE_COLLECTION | HEARTBEAT_IN | HEARTBEAT_OUT,
-			10 * TimeBase::MILLISECOND, 30 * TimeBase::SECOND, 1 * TimeBase::MINUTE),
-		OtherDomain (id),
-		id_ (id)
-	{}
-	
-	~DomainLocal ()
-	{}
-
-	virtual CORBA::Internal::IORequest::_ref_type create_request (const IOP::ObjectKey& object_key,
-		const CORBA::Internal::Operation& metadata, unsigned response_flags) override;
-
-protected:
-	virtual void destroy () NIRVANA_NOEXCEPT override;
-
-private:
-	ProtDomainId id_;
-};
-
+	Binder::singleton ().erase_domain (id_);
 }
 
-#endif
+CORBA::Internal::IORequest::_ref_type DomainProt::create_request (const IOP::ObjectKey& object_key,
+	const Internal::Operation& metadata, unsigned response_flags)
+{
+	return make_pseudo <RequestOut> (std::ref (*this), std::ref (object_key), std::ref (metadata),
+		response_flags, IOP::ServiceContextList ());
+}
+
+}
