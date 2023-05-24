@@ -123,15 +123,15 @@ public:
 	/// Unmarshal remote reference.
 	/// 
 	/// \tparam DomainKey Domain key type: ESIOP::ProtDomainId or const IIOP::ListenPoint&.
-	/// \param domain Domain key value.
+	/// \param domain Object endpoint.
 	/// \param iid Primary interface id.
 	/// \param addr IOR address.
 	/// \param object_key Domain-relative object key.
 	/// \param ORB_type The ORB type.
 	/// \param components Tagged components.
 	/// \returns CORBA::Object reference.
-	template <class DomainKey>
-	static CORBA::Object::_ref_type unmarshal_remote_reference (DomainKey domain,
+	template <class EndPoint>
+	static CORBA::Object::_ref_type unmarshal_remote_reference (const EndPoint& domain,
 		const IDL::String& iid, const IOP::TaggedProfileSeq& addr, const IOP::ObjectKey& object_key,
 		uint32_t ORB_type, const IOP::TaggedComponentSeq& components, CORBA::Core::ReferenceRemoteRef& unconfirmed)
 	{
@@ -143,12 +143,12 @@ public:
 
 	/// Get CORBA::Core::Domain reference.
 	/// 
-	/// \param domain Domain id.
-	/// \returns Reference to ESIOP::DomainProt.
-	static CORBA::servant_reference <ESIOP::DomainProt> get_domain (ESIOP::ProtDomainId domain)
+	/// \param domain Domain address.
+	/// \returns Reference to CORBA::Core::Domain
+	static CORBA::servant_reference <CORBA::Core::Domain> get_domain (const CORBA::Core::DomainAddress& domain)
 	{
 		SYNC_BEGIN (sync_domain (), nullptr)
-			return singleton_->remote_references_.get_domain_sync (domain);
+			return singleton_->remote_references_.get_domain (domain);
 		SYNC_END ();
 	}
 
@@ -167,14 +167,31 @@ public:
 		return sync_domain_->mem_context ();
 	}
 
-	void erase_domain (ESIOP::ProtDomainId id) NIRVANA_NOEXCEPT
+	template <class T>
+	class OwnAllocator : public std::allocator <T>
 	{
-		remote_references_.erase_domain (id);
-	}
+	public:
+		DEFINE_ALLOCATOR (OwnAllocator);
 
-	void erase_domain (const CORBA::Core::DomainRemote& domain) NIRVANA_NOEXCEPT
+		static void deallocate (T* p, size_t cnt)
+		{
+			heap_->release (p, cnt * sizeof (T));
+		}
+
+		static T* allocate (size_t cnt)
+		{
+			size_t cb = cnt * sizeof (T);
+			return (T*)heap_->allocate (nullptr, cb, 0);
+		}
+	};
+
+	template <class T>
+	using Allocator = std::conditional_t <USE_SHARED_MEMORY,
+		SharedAllocator <T>, OwnAllocator <T> >;
+
+	CORBA::Core::RemoteReferences <Allocator>& remote_references () NIRVANA_NOEXCEPT
 	{
-		remote_references_.erase_domain (domain);
+		return remote_references_;
 	}
 
 	void erase_reference (const CORBA::OctetSeq& ref, const char* object_name) NIRVANA_NOEXCEPT
@@ -192,14 +209,16 @@ public:
 	static void heartbeat (const CORBA::Core::DomainAddress& domain)
 	{
 		SYNC_BEGIN (sync_domain (), nullptr)
-			return singleton_->remote_references_.heartbeat (domain);
+			CORBA::servant_reference <CORBA::Core::Domain> p = singleton_->remote_references_.find_domain (domain);
+			if (p)
+				p->simple_ping ();
 		SYNC_END ();
 	}
 
 	static void complex_ping (CORBA::Core::RequestIn& rq)
 	{
 		SYNC_BEGIN (sync_domain (), nullptr)
-			return singleton_->remote_references_.complex_ping (rq);
+			singleton_->remote_references_.get_domain (rq.key ())->complex_ping (rq._get_ptr ());
 		SYNC_END ();
 	}
 
@@ -271,28 +290,6 @@ private:
 		size_t length_;
 		Version version_;
 	};
-
-	template <class T>
-	class OwnAllocator : public std::allocator <T>
-	{
-	public:
-		DEFINE_ALLOCATOR (OwnAllocator);
-
-		static void deallocate (T* p, size_t cnt)
-		{
-			heap_->release (p, cnt * sizeof (T));
-		}
-
-		static T* allocate (size_t cnt)
-		{
-			size_t cb = cnt * sizeof (T);
-			return (T*)heap_->allocate (nullptr, cb, 0);
-		}
-	};
-
-	template <class T>
-	using Allocator = std::conditional_t <USE_SHARED_MEMORY,
-		SharedAllocator <T>, OwnAllocator <T> >;
 
 	// We use fast binary tree without the iterator stability.
 	typedef MapOrderedUnstable <ObjectKey, InterfacePtr, std::less <ObjectKey>,

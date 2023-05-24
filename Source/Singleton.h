@@ -28,7 +28,6 @@
 #pragma once
 
 #include "Module.h"
-#include "Binder.h"
 
 namespace Nirvana {
 namespace Core {

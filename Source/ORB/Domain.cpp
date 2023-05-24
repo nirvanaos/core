@@ -24,7 +24,7 @@
 *  popov.nirvana@gmail.com
 */
 #include "Domain.h"
-#include "../Binder.h"
+#include "../Binder.inl"
 #include "POA_Root.h"
 #include <CORBA/Proxy/ProxyBase.h>
 

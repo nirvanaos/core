@@ -24,15 +24,47 @@
 *  popov.nirvana@gmail.com
 */
 #include "RemoteReferences.h"
-#include <Nirvana/Hash.h>
+#include "ReferenceRemote.h"
+#include "../Binder.h"
+#include "DomainProt.h"
+#include "DomainRemote.h"
 
-namespace std {
+using namespace Nirvana::Core;
 
-size_t hash <IIOP::ListenPoint>::operator () (const IIOP::ListenPoint& lp) const NIRVANA_NOEXCEPT
+namespace CORBA {
+namespace Core {
+
+std::pair <RemoteReferences <Binder::Allocator>::References::iterator, bool>
+RemoteReferences <Binder::Allocator>::emplace_reference (OctetSeq&& addr)
 {
-	size_t h = Nirvana::Hash::hash_bytes (lp.host ().data (), lp.host ().size ());
-	CORBA::UShort port = lp.port ();
-	return Nirvana::Hash::append_bytes (h, &port, sizeof (port));
+	return references_.emplace (std::move (addr), Reference::DEADLINE_MAX);
 }
 
+RemoteReferences <Binder::Allocator>::RefPtr RemoteReferences <Binder::Allocator>::make_reference (
+	const OctetSeq& addr, servant_reference <Domain>&& domain, const IOP::ObjectKey& object_key,
+	const IDL::String& primary_iid, ULong ORB_type, const IOP::TaggedComponentSeq& components)
+{
+	return RefPtr (new ReferenceRemote (addr, std::move (domain), object_key, primary_iid, ORB_type, components));
+}
+
+template <>
+servant_reference <Domain> RemoteReferences <Binder::Allocator>::get_domain (const DomainAddress& domain)
+{
+	if (domain.family == DomainAddress::Family::ESIOP)
+		return prot_domains_.get (domain.address.esiop);
+	else
+		throw NO_IMPLEMENT (); // TODO: Implement
+}
+
+template <>
+servant_reference <Domain> RemoteReferences <Binder::Allocator>::find_domain (
+	const DomainAddress& domain) const
+{
+	if (domain.family == DomainAddress::Family::ESIOP)
+		return prot_domains_.find (domain.address.esiop);
+	else
+		throw NO_IMPLEMENT (); // TODO: Implement
+}
+
+}
 }

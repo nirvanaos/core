@@ -24,7 +24,7 @@
 *  popov.nirvana@gmail.com
 */
 #include "unmarshal_object.h"
-#include "../Binder.h"
+#include "../Binder.inl"
 
 using namespace Nirvana;
 using namespace Nirvana::Core;
@@ -128,14 +128,14 @@ Object::_ref_type unmarshal_object (StreamIn& stream, ReferenceRemoteRef& unconf
 			} else
 				domain_id = ESIOP::sys_domain_id ();
 			if (ESIOP::current_domain_id () == domain_id)
-				obj = PortableServer::Core::POA_Root::unmarshal (primary_iid, std::move (object_key)); // Local reference
+				obj = PortableServer::Core::POA_Root::unmarshal (primary_iid, object_key); // Local reference
 			else
 				obj = Binder::unmarshal_remote_reference (domain_id, primary_iid, addr,
-					std::move (object_key), ORB_type, components, unconfirmed_remote_ref);
+					object_key, ORB_type, components, unconfirmed_remote_ref);
 #endif
 		} else
-			obj = Binder::unmarshal_remote_reference (std::move (listen_point), primary_iid, addr,
-				std::move (object_key), ORB_type, components, unconfirmed_remote_ref);
+			obj = Binder::unmarshal_remote_reference (listen_point, primary_iid, addr,
+				object_key, ORB_type, components, unconfirmed_remote_ref);
 	}
 	return obj;
 }

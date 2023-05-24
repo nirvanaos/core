@@ -141,7 +141,7 @@ public:
 	/// Get object pointer.
 	/// 
 	/// \returns Pointer.
-	const PtrType& get ()
+	const PtrType& get () const
 	{
 		wait_construction ();
 		return reinterpret_cast <const PtrType&> (pointer_);

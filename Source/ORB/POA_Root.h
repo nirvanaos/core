@@ -77,16 +77,16 @@ public:
 
 	static POA_Ref find_child (const AdapterPath& path, bool activate_it);
 
-	static CORBA::Object::_ref_type unmarshal (const IDL::String& iid, IOP::ObjectKey&& iop_key)
+	static CORBA::Object::_ref_type unmarshal (const IDL::String& iid, const IOP::ObjectKey& object_key)
 	{
 		CORBA::Object::_ref_type root = get_root (); // Hold root POA reference
 
 		SYNC_BEGIN (CORBA::Core::local2proxy (root)->sync_context (), nullptr)
-		CORBA::Core::ReferenceLocalRef ref = root_->find_reference (iop_key);
+		CORBA::Core::ReferenceLocalRef ref = root_->find_reference (object_key);
 		if (ref)
 			ref->check_primary_interface (iid);
 		else {
-			ObjectKey core_key (iop_key);
+			ObjectKey core_key (object_key);
 			ref = find_child (core_key.adapter_path (), true)->create_reference (std::move (core_key), iid);
 		}
 		return CORBA::Object::_ref_type (ref->get_proxy ());

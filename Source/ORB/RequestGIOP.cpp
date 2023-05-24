@@ -26,7 +26,7 @@
 #include "RequestGIOP.h"
 #include "StreamOutEncap.h"
 #include "TC_FactoryImpl.h"
-#include "../Binder.h"
+#include "../Binder.inl"
 #include "unmarshal_object.h"
 #include <list>
 

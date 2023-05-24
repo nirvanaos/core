@@ -23,37 +23,30 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
+#include "RemoteDomains.h"
+#include <Nirvana/Hash.h>
 #include "DomainRemote.h"
 #include "../Binder.inl"
 
+namespace std {
+
+size_t hash <IIOP::ListenPoint>::operator () (const IIOP::ListenPoint& lp) const NIRVANA_NOEXCEPT
+{
+	size_t h = Nirvana::Hash::hash_bytes (lp.host ().data (), lp.host ().size ());
+	CORBA::UShort port = lp.port ();
+	return Nirvana::Hash::append_bytes (h, &port, sizeof (port));
+}
+
+}
+
+using namespace Nirvana::Core;
+
 namespace CORBA {
-
-using namespace Internal;
-
 namespace Core {
 
-void DomainRemote::destroy () NIRVANA_NOEXCEPT
+servant_reference <DomainRemote> RemoteDomains <Binder::Allocator>::make_domain (const IIOP::ListenPoint& lp)
 {
-	Nirvana::Core::Binder::singleton ().remote_references ().remote_domains ().erase (listen_point_);
-}
-
-IORequest::_ref_type DomainRemote::create_request (const IOP::ObjectKey& object_key,
-	const Operation& metadata, unsigned response_flags)
-{
-	throw NO_IMPLEMENT ();
-}
-
-void DomainRemote::add_DGC_objects (ReferenceSet <Nirvana::Core::HeapAllocator>& references) NIRVANA_NOEXCEPT
-{
-	assert (!(flags () & GARBAGE_COLLECTION));
-	Nirvana::Core::Synchronized _sync_frame (Nirvana::Core::Binder::sync_domain (), nullptr);
-	try {
-		for (auto& ref : references) {
-			owned_references_.emplace (std::move (ref));
-		}
-	} catch (...) {
-		// TODO: Log
-	}
+	return make_reference <DomainRemote> (std::ref (lp));
 }
 
 }

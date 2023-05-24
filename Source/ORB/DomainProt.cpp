@@ -24,7 +24,7 @@
 *  popov.nirvana@gmail.com
 */
 #include "DomainProt.h"
-#include "../Binder.h"
+#include "../Binder.inl"
 #include "RequestOutESIOP.h"
 
 using namespace Nirvana;
@@ -35,7 +35,7 @@ namespace ESIOP {
 
 void DomainProt::destroy () NIRVANA_NOEXCEPT
 {
-	Binder::singleton ().erase_domain (id_);
+	Binder::singleton ().remote_references ().prot_domains ().erase (id_);
 }
 
 CORBA::Internal::IORequest::_ref_type DomainProt::create_request (const IOP::ObjectKey& object_key,

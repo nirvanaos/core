@@ -24,7 +24,7 @@
 *  popov.nirvana@gmail.com
 */
 #include "Module.h"
-#include "Binder.h"
+#include "Binder.inl"
 #include "ExecDomain.h"
 
 namespace Nirvana {

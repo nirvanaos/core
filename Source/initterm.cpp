@@ -24,7 +24,7 @@
 *  popov.nirvana@gmail.com
 */
 #include "initterm.h"
-#include "Binder.h"
+#include "Binder.inl"
 #include "Scheduler.h"
 #include "ExecDomain.h"
 #include "Timer.h"

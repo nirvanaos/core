@@ -25,7 +25,7 @@
 */
 #include "RequestInESIOP.h"
 #include "StreamOutReply.h"
-#include "../Binder.h"
+#include "../Binder.inl"
 
 using namespace Nirvana::Core;
 using namespace CORBA;
@@ -35,8 +35,9 @@ namespace ESIOP {
 
 Ref <StreamOut> RequestIn::create_output ()
 {
-	auto domain = Binder::get_domain (key ().address.esiop);
-	Ref <StreamOut> ret = Ref <StreamOut>::create <ImplDynamic <StreamOutReply> > (std::ref (*domain));
+	auto domain = Binder::get_domain (key ());
+	Ref <StreamOut> ret = Ref <StreamOut>::create <ImplDynamic <StreamOutReply> > (
+		std::ref (static_cast <DomainProt&> (*domain)));
 	target_domain_ = std::move (domain);
 	return ret;
 }

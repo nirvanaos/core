@@ -28,35 +28,16 @@
 #define NIRVANA_ORB_CORE_REMOTEREFERENCES_H_
 #pragma once
 
-#include "ReferenceRemote.h"
 #include "ProtDomains.h"
-#include "DomainRemote.h"
+#include "RemoteDomains.h"
 #include "HashOctetSeq.h"
 #include "RequestIn.h"
-#include <CORBA/IOP.h>
 #include <CORBA/I_var.h>
-
-namespace std {
-
-template <>
-struct hash <IIOP::ListenPoint>
-{
-	size_t operator () (const IIOP::ListenPoint& lp) const NIRVANA_NOEXCEPT;
-};
-
-template <>
-struct equal_to <IIOP::ListenPoint>
-{
-	bool operator () (const IIOP::ListenPoint& l, const IIOP::ListenPoint& r) const NIRVANA_NOEXCEPT
-	{
-		return l.port () == r.port () && l.host () == r.host ();
-	}
-};
-
-}
 
 namespace CORBA {
 namespace Core {
+
+class DomainRemote;
 
 template <template <class> class Al>
 class RemoteReferences
@@ -71,9 +52,10 @@ public:
 	RemoteReferences ()
 	{}
 
-	template <class DomainKey>
-	Object::_ref_type unmarshal (DomainKey domain, const IDL::String& iid, const IOP::TaggedProfileSeq& addr,
-		const IOP::ObjectKey& object_key, ULong ORB_type, const IOP::TaggedComponentSeq& components, ReferenceRemoteRef& unconfirmed)
+	template <class EndPoint>
+	Object::_ref_type unmarshal (const EndPoint& domain, const IDL::String& iid,
+		const IOP::TaggedProfileSeq& addr, const IOP::ObjectKey& object_key, ULong ORB_type,
+		const IOP::TaggedComponentSeq& components, ReferenceRemoteRef& unconfirmed)
 	{
 		Nirvana::Core::ImplStatic <StreamOutEncap> stm (true);
 		stm.write_tagged (addr);
@@ -81,8 +63,8 @@ public:
 		typename References::reference entry = *ins.first;
 		if (ins.second) {
 			try {
-				RefPtr p (new ReferenceRemote (ins.first->first, get_domain_sync (domain),
-					std::move (object_key), iid, ORB_type, components));
+				RefPtr p (make_reference (ins.first->first, get_domain (domain),
+					object_key, iid, ORB_type, components));
 				if (p->unconfirmed ())
 					unconfirmed = p.get ();
 				Internal::I_var <Object> ret (p->get_proxy ()); // Use I_var to avoid reference counter increment
@@ -100,14 +82,14 @@ public:
 		}
 	}
 
-	void erase_domain (ESIOP::ProtDomainId id) NIRVANA_NOEXCEPT
+	ESIOP::ProtDomains <Al>& prot_domains () NIRVANA_NOEXCEPT
 	{
-		prot_domains_.erase (id);
+		return prot_domains_;
 	}
 
-	void erase_domain (const DomainRemote& domain) NIRVANA_NOEXCEPT
+	RemoteDomains <Al>& remote_domains () NIRVANA_NOEXCEPT
 	{
-		remote_domains_.erase (domain);
+		return remote_domains_;
 	}
 
 	void erase (const RefKey& ref) NIRVANA_NOEXCEPT
@@ -115,61 +97,28 @@ public:
 		references_.erase (ref);
 	}
 
-#ifndef SINGLE_DOMAIN
-	servant_reference <ESIOP::DomainProt> get_domain_sync (ESIOP::ProtDomainId id)
-	{
-		return prot_domains_.get (id);
-	}
-#endif
+	servant_reference <Domain> get_domain (const DomainAddress& domain);
+	servant_reference <Domain> find_domain (const DomainAddress& domain) const;
 
-	servant_reference <Domain> get_domain_sync (const IIOP::ListenPoint& lp)
+	servant_reference <DomainRemote> get_domain (const IIOP::ListenPoint& lp)
 	{
-		auto ins = remote_domains_.emplace (std::ref (lp));
-		DomainRemote* p = &const_cast <DomainRemote&> (*ins.first);
-		if (ins.second)
-			return PortableServer::Servant_var <Domain> (p);
-		else
-			return p;
-	}
-
-	void heartbeat (const DomainAddress& da) NIRVANA_NOEXCEPT
-	{
-		assert (da.family == DomainAddress::Family::ESIOP); // TODO
-		auto d = prot_domains_.find (da.address.esiop);
-		if (d)
-			d->simple_ping ();
-	}
-
-	void complex_ping (RequestIn& rq)
-	{
-		assert (rq.key ().family == DomainAddress::Family::ESIOP); // TODO
-		auto d = get_domain_sync (rq.key ().address.esiop);
-		if (d)
-			d->complex_ping (rq._get_ptr ());
+		return remote_domains_.get (lp);
 	}
 
 private:
 	std::pair <typename References::iterator, bool> emplace_reference (OctetSeq&& addr);
+	static RefPtr make_reference (const OctetSeq& addr, servant_reference <Domain>&& domain, const IOP::ObjectKey& object_key,
+		const IDL::String& primary_iid, ULong ORB_type, const IOP::TaggedComponentSeq& components);
 
 private:
 #ifndef SINGLE_DOMAIN
 	ESIOP::ProtDomains <Al> prot_domains_;
 #endif
 
-	typedef Nirvana::Core::SetUnorderedStable <DomainRemote, std::hash <IIOP::ListenPoint>,
-		std::equal_to <IIOP::ListenPoint>, Al> RemoteDomains;
-
-	RemoteDomains remote_domains_;
+	RemoteDomains <Al> remote_domains_;
 
 	References references_;
 };
-
-template <template <class> class Al>
-std::pair <typename RemoteReferences <Al>::References::iterator, bool>
-RemoteReferences <Al>::emplace_reference (OctetSeq&& addr)
-{
-	return references_.emplace (std::move (addr), Reference::DEADLINE_MAX);
-}
 
 }
 }

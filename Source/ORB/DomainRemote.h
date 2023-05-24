@@ -30,21 +30,24 @@
 
 #include "Domain.h"
 #include <CORBA/IIOP.h>
-#include "../HeapAllocator.h"
+
+namespace Nirvana {
+namespace Core {
+template <class> class HeapAllocator;
+}
+}
 
 namespace CORBA {
 namespace Core {
 
 /// Other protection domain on the same system.
 class DomainRemote :
-	public IIOP::ListenPoint,
 	public Domain
 {
 public:
-	DomainRemote (const IIOP::ListenPoint& lp) :
-		IIOP::ListenPoint (lp),
-		Domain (0,
-			1 * TimeBase::SECOND, 1 * TimeBase::MINUTE, 2 * TimeBase::MINUTE)
+	DomainRemote (const IIOP::ListenPoint& listen_point) :
+		Domain (0, 1 * TimeBase::SECOND, 1 * TimeBase::MINUTE, 2 * TimeBase::MINUTE),
+		listen_point_ (listen_point)
 	{}
 
 	~DomainRemote ()
@@ -62,6 +65,8 @@ protected:
 	virtual void destroy () NIRVANA_NOEXCEPT override;
 
 private:
+	const IIOP::ListenPoint& listen_point_;
+
 	// DGC references owned by this domain.
 	// Used only in the connection-oriented GC.
 	// Not used if the domain is DGC-enabled.

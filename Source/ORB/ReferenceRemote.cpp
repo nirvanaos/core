@@ -24,7 +24,7 @@
 *  popov.nirvana@gmail.com
 */
 #include "ReferenceRemote.h"
-#include "../Binder.h"
+#include "../Binder.inl"
 #include "PolicyFactory.h"
 
 using namespace Nirvana::Core;

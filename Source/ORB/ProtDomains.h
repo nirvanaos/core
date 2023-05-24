@@ -28,12 +28,14 @@
 #define NIRVANA_ORB_CORE_PROTDOMAINS_H_
 #pragma once
 
-#include "DomainProt.h"
+#include <Port/OtherDomain.h>
 #include "../MapUnorderedStable.h"
 #include "../WaitableRef.h"
 #include <CORBA/Servant_var.h>
 
 namespace ESIOP {
+
+class DomainProt;
 
 template <template <class> class Al>
 class ProtDomainsWaitable
@@ -43,7 +45,7 @@ class ProtDomainsWaitable
 public:
 	CORBA::servant_reference <DomainProt> get (ProtDomainId domain_id);
 
-	CORBA::servant_reference <DomainProt> find (ProtDomainId domain_id)
+	CORBA::servant_reference <DomainProt> find (ProtDomainId domain_id) const
 	{
 		auto it = map_.find (domain_id);
 		if (it != map_.end ())
@@ -52,7 +54,7 @@ public:
 			return nullptr;
 	}
 
-	void erase (ProtDomainId domain_id)
+	void erase (ProtDomainId domain_id) noexcept
 	{
 		map_.erase (domain_id);
 	}
@@ -67,29 +69,6 @@ private:
 
 	Map map_;
 };
-
-template <template <class> class Al>
-inline CORBA::servant_reference <DomainProt> ProtDomainsWaitable <Al>::get (ProtDomainId domain_id)
-{
-	auto ins = map_.emplace (domain_id, DEADLINE_MAX);
-	if (ins.second) {
-		typename Map::reference entry = *ins.first;
-		try {
-			Ptr p;
-			SYNC_BEGIN (Nirvana::Core::g_core_free_sync_context, &Nirvana::Core::MemContext::current ());
-			p.reset (new DomainProt (domain_id));
-			SYNC_END ();
-			PortableServer::Servant_var <DomainProt> ret (p.get ());
-			entry.second.finish_construction (std::move (p));
-			return ret;
-		} catch (...) {
-			entry.second.on_exception ();
-			map_.erase (domain_id);
-			throw;
-		}
-	} else
-		return ins.first->second.get ().get ();
-}
 
 template <template <class> class Al>
 class ProtDomainsSimple
@@ -107,7 +86,7 @@ public:
 		map_.erase (domain_id);
 	}
 
-	CORBA::servant_reference <DomainProt> find (ProtDomainId domain_id) NIRVANA_NOEXCEPT
+	CORBA::servant_reference <DomainProt> find (ProtDomainId domain_id) const NIRVANA_NOEXCEPT
 	{
 		auto it = map_.find (domain_id);
 		if (it != map_.end ())

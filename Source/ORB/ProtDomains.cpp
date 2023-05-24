@@ -23,38 +23,35 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
+#include "ProtDomains.h"
+#include "DomainProt.h"
 #include "DomainRemote.h"
-#include "../Binder.inl"
+#include "../Binder.h"
 
-namespace CORBA {
+using namespace Nirvana::Core;
 
-using namespace Internal;
+namespace ESIOP {
 
-namespace Core {
-
-void DomainRemote::destroy () NIRVANA_NOEXCEPT
+CORBA::servant_reference <DomainProt> ProtDomainsWaitable <Binder::Allocator>::get (ProtDomainId domain_id)
 {
-	Nirvana::Core::Binder::singleton ().remote_references ().remote_domains ().erase (listen_point_);
-}
-
-IORequest::_ref_type DomainRemote::create_request (const IOP::ObjectKey& object_key,
-	const Operation& metadata, unsigned response_flags)
-{
-	throw NO_IMPLEMENT ();
-}
-
-void DomainRemote::add_DGC_objects (ReferenceSet <Nirvana::Core::HeapAllocator>& references) NIRVANA_NOEXCEPT
-{
-	assert (!(flags () & GARBAGE_COLLECTION));
-	Nirvana::Core::Synchronized _sync_frame (Nirvana::Core::Binder::sync_domain (), nullptr);
-	try {
-		for (auto& ref : references) {
-			owned_references_.emplace (std::move (ref));
+	auto ins = map_.emplace (domain_id, DEADLINE_MAX);
+	if (ins.second) {
+		typename Map::reference entry = *ins.first;
+		try {
+			Ptr p;
+			SYNC_BEGIN (g_core_free_sync_context, &MemContext::current ());
+			p.reset (new DomainProt (domain_id));
+			SYNC_END ();
+			PortableServer::Servant_var <DomainProt> ret (p.get ());
+			entry.second.finish_construction (std::move (p));
+			return ret;
+		} catch (...) {
+			entry.second.on_exception ();
+			map_.erase (domain_id);
+			throw;
 		}
-	} catch (...) {
-		// TODO: Log
-	}
+	} else
+		return ins.first->second.get ().get ();
 }
 
-}
 }

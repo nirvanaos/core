@@ -30,6 +30,8 @@
 #include <Nirvana/OLF_Iterator.h>
 #include "ORB/ServantBase.h"
 #include "ORB/LocalObject.h"
+#include "ORB/DomainProt.h"
+#include "ORB/DomainRemote.h"
 #include "ClassLibrary.h"
 #include "Singleton.h"
 #include "Legacy/Executable.h"

@@ -29,8 +29,6 @@
 #pragma once
 
 #include "Module.h"
-#include "Binder.h"
-#include "ExecDomain.h"
 
 namespace Nirvana {
 namespace Core {

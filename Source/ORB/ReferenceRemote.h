@@ -42,8 +42,9 @@ class ReferenceRemote :
 	public Reference
 {
 public:
-	ReferenceRemote (const OctetSeq& addr, servant_reference <Domain>&& domain, const IOP::ObjectKey& object_key,
-		const IDL::String& primary_iid, ULong ORB_type, const IOP::TaggedComponentSeq& components);
+	ReferenceRemote (const OctetSeq& addr, servant_reference <Domain>&& domain,
+		const IOP::ObjectKey& object_key, const IDL::String& primary_iid, ULong ORB_type,
+		const IOP::TaggedComponentSeq& components);
 	~ReferenceRemote ();
 
 	virtual void marshal (StreamOut& out) const override;
