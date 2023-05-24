@@ -26,7 +26,7 @@
 #include "IncomingRequests.h"
 #include "Chrono.h"
 #include "POA_Root.h"
-#include "../Binder.inl"
+#include "../Binder.h"
 #include <algorithm>
 
 using namespace Nirvana;

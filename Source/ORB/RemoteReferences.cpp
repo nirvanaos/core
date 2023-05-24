@@ -34,34 +34,23 @@ using namespace Nirvana::Core;
 namespace CORBA {
 namespace Core {
 
-std::pair <RemoteReferences <Binder::Allocator>::References::iterator, bool>
-RemoteReferences <Binder::Allocator>::emplace_reference (OctetSeq&& addr)
+std::pair <RemoteReferences::References::iterator, bool>
+RemoteReferences::emplace_reference (const OctetSeq& addr)
 {
-	return references_.emplace (std::move (addr), Reference::DEADLINE_MAX);
+	return references_.emplace (addr, Reference::DEADLINE_MAX);
 }
 
-RemoteReferences <Binder::Allocator>::RefPtr RemoteReferences <Binder::Allocator>::make_reference (
+RemoteReferences::RefPtr RemoteReferences::make_reference (
 	const OctetSeq& addr, servant_reference <Domain>&& domain, const IOP::ObjectKey& object_key,
 	const IDL::String& primary_iid, ULong ORB_type, const IOP::TaggedComponentSeq& components)
 {
 	return RefPtr (new ReferenceRemote (addr, std::move (domain), object_key, primary_iid, ORB_type, components));
 }
 
-template <>
-servant_reference <Domain> RemoteReferences <Binder::Allocator>::get_domain (const DomainAddress& domain)
+servant_reference <Domain> RemoteReferences::get_domain (const DomainAddress& domain)
 {
 	if (domain.family == DomainAddress::Family::ESIOP)
 		return prot_domains_.get (domain.address.esiop);
-	else
-		throw NO_IMPLEMENT (); // TODO: Implement
-}
-
-template <>
-servant_reference <Domain> RemoteReferences <Binder::Allocator>::find_domain (
-	const DomainAddress& domain) const
-{
-	if (domain.family == DomainAddress::Family::ESIOP)
-		return prot_domains_.find (domain.address.esiop);
 	else
 		throw NO_IMPLEMENT (); // TODO: Implement
 }

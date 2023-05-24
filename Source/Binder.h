@@ -32,7 +32,7 @@
 #include "Section.h"
 #include "Synchronized.h"
 #include "Module.h"
-#include "StaticallyAllocated.h"
+#include "BinderMemory.h"
 #include <CORBA/RepId.h>
 #include <Nirvana/Legacy/Main.h>
 #include <Nirvana/ModuleInit.h>
@@ -63,13 +63,11 @@ class Binder
 	/// it will be temporary adjusted. TODO: config.h
 	static const TimeBase::TimeT MODULE_LOADING_DEADLINE_MAX = 1 * TimeBase::SECOND;
 
-	// The Binder is high-loaded system service and should have own heap.
-	// Use shared only on systems with low resources.
-	static const bool USE_SHARED_MEMORY = (sizeof (void*) <= 2);
-
 public:
 	typedef CORBA::Internal::Interface::_ref_type InterfaceRef;
 	typedef CORBA::Object::_ref_type ObjectRef;
+	template <class T>
+	using Allocator = BinderMemory::Allocator <T>;
 
 	Binder ()
 	{}
@@ -145,7 +143,7 @@ public:
 	/// 
 	/// \param domain Domain address.
 	/// \returns Reference to CORBA::Core::Domain
-	static CORBA::servant_reference <CORBA::Core::Domain> get_domain (const CORBA::Core::DomainAddress& domain)
+	static CORBA::servant_reference <ESIOP::DomainProt> get_domain (ESIOP::ProtDomainId domain)
 	{
 		SYNC_BEGIN (sync_domain (), nullptr)
 			return singleton_->remote_references_.get_domain (domain);
@@ -167,29 +165,7 @@ public:
 		return sync_domain_->mem_context ();
 	}
 
-	template <class T>
-	class OwnAllocator : public std::allocator <T>
-	{
-	public:
-		DEFINE_ALLOCATOR (OwnAllocator);
-
-		static void deallocate (T* p, size_t cnt)
-		{
-			heap_->release (p, cnt * sizeof (T));
-		}
-
-		static T* allocate (size_t cnt)
-		{
-			size_t cb = cnt * sizeof (T);
-			return (T*)heap_->allocate (nullptr, cb, 0);
-		}
-	};
-
-	template <class T>
-	using Allocator = std::conditional_t <USE_SHARED_MEMORY,
-		SharedAllocator <T>, OwnAllocator <T> >;
-
-	CORBA::Core::RemoteReferences <Allocator>& remote_references () NIRVANA_NOEXCEPT
+	CORBA::Core::RemoteReferences& remote_references () NIRVANA_NOEXCEPT
 	{
 		return remote_references_;
 	}
@@ -209,16 +185,14 @@ public:
 	static void heartbeat (const CORBA::Core::DomainAddress& domain)
 	{
 		SYNC_BEGIN (sync_domain (), nullptr)
-			CORBA::servant_reference <CORBA::Core::Domain> p = singleton_->remote_references_.find_domain (domain);
-			if (p)
-				p->simple_ping ();
+			singleton_->remote_references_.heartbeat (domain);
 		SYNC_END ();
 	}
 
 	static void complex_ping (CORBA::Core::RequestIn& rq)
 	{
 		SYNC_BEGIN (sync_domain (), nullptr)
-			singleton_->remote_references_.get_domain (rq.key ())->complex_ping (rq._get_ptr ());
+			singleton_->remote_references_.complex_ping (rq);
 		SYNC_END ();
 	}
 
@@ -370,11 +344,10 @@ private:
 	};
 
 private:
-	static StaticallyAllocated <ImplStatic <HeapUser> > heap_;
 	static StaticallyAllocated <ImplStatic <SyncDomainCore> > sync_domain_;
 	ObjectMap object_map_;
 	ModuleMap module_map_;
-	CORBA::Core::RemoteReferences <Allocator> remote_references_;
+	CORBA::Core::RemoteReferences remote_references_;
 	ImplStatic <HousekeepingTimer> housekeeping_timer_;
 
 	static StaticallyAllocated <Binder> singleton_;

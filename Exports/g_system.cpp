@@ -26,7 +26,7 @@
 #include <CORBA/Server.h>
 #include <signal.h>
 #include <Nirvana/System_s.h>
-#include <Binder.inl>
+#include <Binder.h>
 #include <Chrono.h>
 #include <ExecDomain.h>
 #include <HeapDynamic.h>

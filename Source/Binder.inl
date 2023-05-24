@@ -31,8 +31,6 @@
 #include "ClassLibrary.h"
 #include "Singleton.h"
 #include "Legacy/Executable.h"
-#include "ORB/DomainProt.h"
-#include "ORB/DomainRemote.h"
 
 namespace Nirvana {
 namespace Core {

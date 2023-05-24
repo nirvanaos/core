@@ -28,6 +28,7 @@
 #define NIRVANA_ORB_CORE_REMOTEDOMAINS_H_
 #pragma once
 
+#include "DomainRemote.h"
 #include "../MapUnorderedStable.h"
 #include <CORBA/IIOP.h>
 
@@ -53,17 +54,14 @@ struct equal_to <IIOP::ListenPoint>
 namespace CORBA {
 namespace Core {
 
-class DomainRemote;
-
-template <template <class> class Al>
 class RemoteDomains
 {
 public:
-	servant_reference <DomainRemote> get (const IIOP::ListenPoint& lp)
+	servant_reference <Domain> get (const IIOP::ListenPoint& lp)
 	{
 		auto ins = listen_points_.emplace (std::ref (lp), nullptr);
 		if (ins.second)
-			ins.first->second = make_domain (lp);
+			ins.first->second = make_reference <DomainRemote> (std::ref (lp));
 		return ins.first->second;
 	}
 
@@ -73,10 +71,8 @@ public:
 	}
 
 private:
-	static servant_reference <DomainRemote> make_domain (const IIOP::ListenPoint& lp);
-
 	typedef Nirvana::Core::MapUnorderedStable <IIOP::ListenPoint, servant_reference <DomainRemote>, std::hash <IIOP::ListenPoint>,
-		std::equal_to <IIOP::ListenPoint>, Al> ListenPoints;
+		std::equal_to <IIOP::ListenPoint>, Nirvana::Core::BinderMemory::Allocator> ListenPoints;
 
 	ListenPoints listen_points_;
 };

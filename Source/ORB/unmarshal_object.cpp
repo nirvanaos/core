@@ -24,7 +24,7 @@
 *  popov.nirvana@gmail.com
 */
 #include "unmarshal_object.h"
-#include "../Binder.inl"
+#include "../Binder.h"
 
 using namespace Nirvana;
 using namespace Nirvana::Core;

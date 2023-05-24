@@ -30,6 +30,7 @@
 
 #include "ProtDomains.h"
 #include "RemoteDomains.h"
+#include "ReferenceRemote.h"
 #include "HashOctetSeq.h"
 #include "RequestIn.h"
 #include <CORBA/I_var.h>
@@ -37,16 +38,13 @@
 namespace CORBA {
 namespace Core {
 
-class DomainRemote;
-
-template <template <class> class Al>
 class RemoteReferences
 {
 	typedef std::unique_ptr <ReferenceRemote> RefPtr;
 	typedef Nirvana::Core::WaitableRef <RefPtr> RefVal;
 	typedef OctetSeq RefKey;
 	typedef Nirvana::Core::MapUnorderedStable <RefKey, RefVal, std::hash <RefKey>,
-		std::equal_to <RefKey>, Al> References;
+		std::equal_to <RefKey>, Nirvana::Core::BinderMemory::Allocator> References;
 
 public:
 	RemoteReferences ()
@@ -59,7 +57,7 @@ public:
 	{
 		Nirvana::Core::ImplStatic <StreamOutEncap> stm (true);
 		stm.write_tagged (addr);
-		auto ins = emplace_reference (std::move (stm.data ()));
+		auto ins = emplace_reference (stm.data ());
 		typename References::reference entry = *ins.first;
 		if (ins.second) {
 			try {
@@ -82,12 +80,12 @@ public:
 		}
 	}
 
-	ESIOP::ProtDomains <Al>& prot_domains () NIRVANA_NOEXCEPT
+	ESIOP::ProtDomains& prot_domains () NIRVANA_NOEXCEPT
 	{
 		return prot_domains_;
 	}
 
-	RemoteDomains <Al>& remote_domains () NIRVANA_NOEXCEPT
+	RemoteDomains& remote_domains () NIRVANA_NOEXCEPT
 	{
 		return remote_domains_;
 	}
@@ -98,24 +96,49 @@ public:
 	}
 
 	servant_reference <Domain> get_domain (const DomainAddress& domain);
-	servant_reference <Domain> find_domain (const DomainAddress& domain) const;
+
+	servant_reference <ESIOP::DomainProt> get_domain (ESIOP::ProtDomainId domain)
+	{
+		return prot_domains_.get (domain);
+	}
 
 	servant_reference <DomainRemote> get_domain (const IIOP::ListenPoint& lp)
 	{
 		return remote_domains_.get (lp);
 	}
 
+	void heartbeat (const DomainAddress& domain)
+	{
+		auto p = find_domain (domain);
+		if (p)
+			p->simple_ping ();
+	}
+
+	void complex_ping (RequestIn& rq)
+	{
+		get_domain (rq.key ())->complex_ping (rq._get_ptr ());
+	}
+
 private:
-	std::pair <typename References::iterator, bool> emplace_reference (OctetSeq&& addr);
-	static RefPtr make_reference (const OctetSeq& addr, servant_reference <Domain>&& domain, const IOP::ObjectKey& object_key,
+	std::pair <typename References::iterator, bool> emplace_reference (const OctetSeq& addr);
+	static std::unique_ptr <ReferenceRemote> make_reference (const OctetSeq& addr,
+		servant_reference <Domain>&& domain, const IOP::ObjectKey& object_key,
 		const IDL::String& primary_iid, ULong ORB_type, const IOP::TaggedComponentSeq& components);
+
+	servant_reference <Domain> find_domain (const DomainAddress& domain) const noexcept
+	{
+		if (domain.family == DomainAddress::Family::ESIOP)
+			return prot_domains_.find (domain.address.esiop);
+		else
+			return nullptr; // TODO: Implement
+	}
 
 private:
 #ifndef SINGLE_DOMAIN
-	ESIOP::ProtDomains <Al> prot_domains_;
+	ESIOP::ProtDomains prot_domains_;
 #endif
 
-	RemoteDomains <Al> remote_domains_;
+	RemoteDomains remote_domains_;
 
 	References references_;
 };

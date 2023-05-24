@@ -24,25 +24,20 @@
 *  popov.nirvana@gmail.com
 */
 #include "ProtDomains.h"
-#include "DomainProt.h"
-#include "DomainRemote.h"
-#include "../Binder.h"
-
-using namespace Nirvana::Core;
 
 namespace ESIOP {
 
-CORBA::servant_reference <DomainProt> ProtDomainsWaitable <Binder::Allocator>::get (ProtDomainId domain_id)
+CORBA::servant_reference <DomainProt> ProtDomainsWaitable::get (ProtDomainId domain_id)
 {
 	auto ins = map_.emplace (domain_id, DEADLINE_MAX);
 	if (ins.second) {
 		typename Map::reference entry = *ins.first;
 		try {
 			Ptr p;
-			SYNC_BEGIN (g_core_free_sync_context, &MemContext::current ());
+			SYNC_BEGIN (Nirvana::Core::g_core_free_sync_context, &Nirvana::Core::MemContext::current ());
 			p.reset (new DomainProt (domain_id));
 			SYNC_END ();
-			PortableServer::Servant_var <DomainProt> ret (p.get ());
+			PortableServer::Servant_var <CORBA::Core::Domain> ret (p.get ());
 			entry.second.finish_construction (std::move (p));
 			return ret;
 		} catch (...) {
@@ -52,6 +47,13 @@ CORBA::servant_reference <DomainProt> ProtDomainsWaitable <Binder::Allocator>::g
 		}
 	} else
 		return ins.first->second.get ().get ();
+}
+
+CORBA::servant_reference <DomainProt> ProtDomainsSimple::get (ProtDomainId domain_id)
+{
+	return PortableServer::Servant_var <CORBA::Core::Domain> (&map_.emplace (
+		std::piecewise_construct, std::forward_as_tuple (domain_id),
+		std::forward_as_tuple (domain_id)).first->second);
 }
 
 }

@@ -24,7 +24,7 @@
 *  popov.nirvana@gmail.com
 */
 #include "DomainProt.h"
-#include "../Binder.inl"
+#include "../Binder.h"
 #include "RequestOutESIOP.h"
 
 using namespace Nirvana;

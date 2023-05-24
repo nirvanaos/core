@@ -24,7 +24,7 @@
 *  popov.nirvana@gmail.com
 */
 #include "DomainRemote.h"
-#include "../Binder.inl"
+#include "../Binder.h"
 
 namespace CORBA {
 

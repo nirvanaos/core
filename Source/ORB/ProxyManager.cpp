@@ -24,7 +24,7 @@
 *  popov.nirvana@gmail.com
 */
 #include "ProxyManager.h"
-#include "../Binder.inl"
+#include "../Binder.h"
 #include "RequestLocal.h"
 #include <algorithm>
 

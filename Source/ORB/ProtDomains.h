@@ -28,16 +28,13 @@
 #define NIRVANA_ORB_CORE_PROTDOMAINS_H_
 #pragma once
 
-#include <Port/OtherDomain.h>
+#include "DomainProt.h"
 #include "../MapUnorderedStable.h"
 #include "../WaitableRef.h"
 #include <CORBA/Servant_var.h>
 
 namespace ESIOP {
 
-class DomainProt;
-
-template <template <class> class Al>
 class ProtDomainsWaitable
 {
 	static const TimeBase::TimeT DEADLINE_MAX = 10 * TimeBase::MILLISECOND;
@@ -45,7 +42,7 @@ class ProtDomainsWaitable
 public:
 	CORBA::servant_reference <DomainProt> get (ProtDomainId domain_id);
 
-	CORBA::servant_reference <DomainProt> find (ProtDomainId domain_id) const
+	CORBA::servant_reference <CORBA::Core::Domain> find (ProtDomainId domain_id) const noexcept
 	{
 		auto it = map_.find (domain_id);
 		if (it != map_.end ())
@@ -65,47 +62,39 @@ private:
 	typedef Nirvana::Core::WaitableRef <Ptr> Val;
 
 	typedef Nirvana::Core::MapUnorderedStable <Key, Val, std::hash <Key>,
-		std::equal_to <Key>, Al> Map;
+		std::equal_to <Key>, Nirvana::Core::BinderMemory::Allocator> Map;
 
 	Map map_;
 };
 
-template <template <class> class Al>
 class ProtDomainsSimple
 {
 public:
-	CORBA::servant_reference <DomainProt> get (ProtDomainId domain_id)
-	{
-		return PortableServer::Servant_var <DomainProt> (&map_.emplace (
-			std::piecewise_construct, std::forward_as_tuple (domain_id),
-			std::forward_as_tuple (domain_id)).first->second);
-	}
+	CORBA::servant_reference <DomainProt> get (ProtDomainId domain_id);
 
 	void erase (ProtDomainId domain_id) NIRVANA_NOEXCEPT
 	{
 		map_.erase (domain_id);
 	}
 
-	CORBA::servant_reference <DomainProt> find (ProtDomainId domain_id) const NIRVANA_NOEXCEPT
+	CORBA::servant_reference <CORBA::Core::Domain> find (ProtDomainId domain_id) const NIRVANA_NOEXCEPT
 	{
 		auto it = map_.find (domain_id);
 		if (it != map_.end ())
-			return &it->second;
+			return &const_cast <DomainProt&> (it->second);
 		return nullptr;
 	}
 
 private:
 	typedef ProtDomainId Key;
-	typedef DomainProt Val;
 
-	typedef Nirvana::Core::MapUnorderedStable <Key, Val, std::hash <Key>,
-		std::equal_to <Key>, Al> Map;
+	typedef Nirvana::Core::MapUnorderedStable <Key, DomainProt, std::hash <Key>,
+		std::equal_to <Key>, Nirvana::Core::BinderMemory::Allocator> Map;
 
 	Map map_;
 };
 
-template <template <class> class Al>
-using ProtDomains = std::conditional_t < OtherDomain::slow_creation, ProtDomainsWaitable <Al>, ProtDomainsSimple <Al> > ;
+using ProtDomains = std::conditional_t < OtherDomain::slow_creation, ProtDomainsWaitable, ProtDomainsSimple> ;
 
 }
 

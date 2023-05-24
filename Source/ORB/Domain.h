@@ -35,7 +35,7 @@
 #include "../AtomicCounter.h"
 #include "../MapUnorderedUnstable.h"
 #include "../MapUnorderedStable.h"
-#include "../UserAllocator.h"
+#include "../BinderMemory.h"
 #include "../Chrono.h"
 #include "HashOctetSeq.h"
 #include "ReferenceLocal.h"
@@ -123,7 +123,7 @@ private:
 	private:
 		Domain& domain_;
 		Internal::IORequest::_ref_type request_;
-		std::vector <DGC_RefKey*, Nirvana::Core::UserAllocator <DGC_RefKey*> > keys_;
+		std::vector <DGC_RefKey*, Nirvana::Core::BinderMemory::Allocator <DGC_RefKey*> > keys_;
 		size_t add_cnt_;
 
 		static const Internal::Operation operation_;
@@ -332,14 +332,14 @@ private:
 	// DGC-enabled local objects owned by this domain
 	typedef Nirvana::Core::MapUnorderedUnstable <IOP::ObjectKey, ReferenceLocalRef,
 		std::hash <IOP::ObjectKey>, std::equal_to <IOP::ObjectKey>, 
-		Nirvana::Core::UserAllocator> LocalObjects;
+		Nirvana::Core::BinderMemory::Allocator> LocalObjects;
 
 	LocalObjects local_objects_;
 
 	// DGC-enabled references to the domain objects owned by the current domain
 	typedef Nirvana::Core::SetUnorderedStable <DGC_RefKey,
 		std::hash <IOP::ObjectKey>, std::equal_to <IOP::ObjectKey>,
-		Nirvana::Core::UserAllocator> RemoteObjects;
+		Nirvana::Core::BinderMemory::Allocator> RemoteObjects;
 
 	// DGC-enabled references to the domain objects owned by the current domain
 	RemoteObjects remote_objects_;

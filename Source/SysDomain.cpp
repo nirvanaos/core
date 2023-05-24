@@ -28,7 +28,7 @@
 #include <CORBA/IOP.h>
 #include <CORBA/Proxy/ProxyBase.h>
 #include "ORB/ESIOP.h"
-#include "Binder.inl"
+#include "Binder.h"
 
 using namespace CORBA;
 using namespace CORBA::Core;

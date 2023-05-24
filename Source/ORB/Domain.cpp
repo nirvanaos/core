@@ -24,7 +24,7 @@
 *  popov.nirvana@gmail.com
 */
 #include "Domain.h"
-#include "../Binder.inl"
+#include "../Binder.h"
 #include "POA_Root.h"
 #include <CORBA/Proxy/ProxyBase.h>
 
@@ -96,10 +96,10 @@ void Domain::confirm_DGC_references (size_t cnt, ReferenceRemoteRef* refs)
 
 		SYNC_BEGIN (Binder::sync_domain (), nullptr)
 			try {
-				call_DGC_function (&confirm_DGC_ref_start, refs, end, false);
-				call_DGC_function (&confirm_DGC_ref_finish, refs, end, false);
+				call_DGC_function (&Domain::confirm_DGC_ref_start, refs, end, false);
+				call_DGC_function (&Domain::confirm_DGC_ref_finish, refs, end, false);
 			} catch (...) {
-				call_DGC_function (&confirm_DGC_ref_finish, refs, end, true);
+				call_DGC_function (&Domain::confirm_DGC_ref_finish, refs, end, true);
 				throw;
 			}
 		SYNC_END ()

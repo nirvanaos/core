@@ -70,7 +70,7 @@ private:
 	// DGC references owned by this domain.
 	// Used only in the connection-oriented GC.
 	// Not used if the domain is DGC-enabled.
-	ReferenceSet <Nirvana::Core::UserAllocator> owned_references_;
+	ReferenceSet <Nirvana::Core::BinderMemory::Allocator> owned_references_;
 };
 
 }

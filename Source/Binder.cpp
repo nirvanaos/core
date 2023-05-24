@@ -30,8 +30,6 @@
 #include <Nirvana/OLF_Iterator.h>
 #include "ORB/ServantBase.h"
 #include "ORB/LocalObject.h"
-#include "ORB/DomainProt.h"
-#include "ORB/DomainRemote.h"
 #include "ClassLibrary.h"
 #include "Singleton.h"
 #include "Legacy/Executable.h"
@@ -50,7 +48,6 @@ extern const ImportInterfaceT <Factory> g_factory;
 
 namespace Core {
 
-StaticallyAllocated <ImplStatic <HeapUser> > Binder::heap_;
 StaticallyAllocated <ImplStatic <SyncDomainCore> > Binder::sync_domain_;
 StaticallyAllocated <Binder> Binder::singleton_;
 bool Binder::initialized_ = false;
@@ -90,12 +87,8 @@ Binder::InterfacePtr Binder::ObjectMap::find (const ObjectKey& key) const
 
 void Binder::initialize ()
 {
-	if (USE_SHARED_MEMORY)
-		sync_domain_.construct (std::ref (Heap::shared_heap ()));
-	else {
-		heap_.construct ();
-		sync_domain_.construct (std::ref (static_cast <Heap&> (heap_)));
-	}
+	BinderMemory::initialize ();
+	sync_domain_.construct (std::ref (BinderMemory::heap ()));
 	singleton_.construct ();
 	Section metadata;
 	if (!Port::SystemInfo::get_OLF_section (metadata))
@@ -169,8 +162,7 @@ void Binder::terminate ()
 
 	SYNC_END ();
 
-	if (!USE_SHARED_MEMORY)
-		heap_.destruct ();
+	BinderMemory::terminate ();
 }
 
 NIRVANA_NORETURN void Binder::invalid_metadata ()
