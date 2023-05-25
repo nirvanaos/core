@@ -134,12 +134,8 @@ private:
 	}
 
 private:
-#ifndef SINGLE_DOMAIN
 	ESIOP::ProtDomains prot_domains_;
-#endif
-
 	RemoteDomains remote_domains_;
-
 	References references_;
 };
 

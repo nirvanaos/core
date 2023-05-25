@@ -32,6 +32,7 @@
 #include <CORBA/NoDefaultPOA.h>
 #include "Nirvana/CoreDomains_s.h"
 #include "ORB/Services.h"
+#include <Port/SystemInfo.h>
 
 namespace Nirvana {
 namespace Core {
@@ -51,6 +52,11 @@ public:
 	static Version version ()
 	{
 		return { 0, 0, 0, 0 };
+	}
+
+	static Platforms supported_platforms ()
+	{
+		return Platforms (std::begin (Port::SystemInfo::supported_platforms_), std::end (Port::SystemInfo::supported_platforms_));
 	}
 
 	static ProtDomain::_ref_type create_prot_domain (uint16_t platform)

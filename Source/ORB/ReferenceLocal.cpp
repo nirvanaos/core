@@ -171,12 +171,7 @@ void ReferenceLocal::marshal (StreamOut& out) const
 	uint32_t ORB_type = ESIOP::ORB_TYPE;
 	ESIOP::ProtDomainId domain_id = ESIOP::current_domain_id ();
 
-	size_t component_cnt =
-#ifndef NIRVANA_SINGLE_DOMAIN
-		4;
-#else
-		3;
-#endif
+	size_t component_cnt = Nirvana::Core::SINGLE_DOMAIN ? 3 : 4;
 
 	if (domain_manager_)
 		++component_cnt;
@@ -195,13 +190,13 @@ void ReferenceLocal::marshal (StreamOut& out) const
 		encap.write_c (1, 1, &enabled);
 		components.emplace_back (IOP::TAG_FT_HEARTBEAT_ENABLED, std::move (encap.data ()));
 	}
-#ifndef NIRVANA_SINGLE_DOMAIN
-	{
+	
+	if (!Nirvana::Core::SINGLE_DOMAIN) {
 		ImplStatic <StreamOutEncap> encap;
 		encap.write_c (alignof (ESIOP::ProtDomainId), sizeof (ESIOP::ProtDomainId), &domain_id);
 		components.emplace_back (ESIOP::TAG_DOMAIN_ADDRESS, std::move (encap.data ()));
 	}
-#endif
+
 	{
 		ImplStatic <StreamOutEncap> encap;
 		Octet flags = (Octet)flags_;

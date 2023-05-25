@@ -113,26 +113,26 @@ Object::_ref_type unmarshal_object (StreamIn& stream, ReferenceRemoteRef& unconf
 				(LocalAddress::singleton ().host ().size () == host_len
 					&& std::equal (host, host + host_len, LocalAddress::singleton ().host ().data ())))) {
 			// Local Nirvana system
-#ifdef NIRVANA_SINGLE_DOMAIN
-			obj = PortableServer::Core::POA_Root::unmarshal (primary_iid, object_key); // Local reference
-#else
-			ESIOP::ProtDomainId domain_id;
-			auto pc = binary_search (components, ESIOP::TAG_DOMAIN_ADDRESS);
-			if (pc) {
-				Nirvana::Core::ImplStatic <StreamInEncap> stm (std::ref (pc->component_data ()));
-				stm.read (alignof (ESIOP::ProtDomainId), sizeof (ESIOP::ProtDomainId), &domain_id);
-				if (stm.other_endian ())
-					Internal::byteswap (domain_id);
-				if (stm.end ())
-					throw INV_OBJREF ();
-			} else
-				domain_id = ESIOP::sys_domain_id ();
-			if (ESIOP::current_domain_id () == domain_id)
+			if (Nirvana::Core::SINGLE_DOMAIN)
 				obj = PortableServer::Core::POA_Root::unmarshal (primary_iid, object_key); // Local reference
-			else
-				obj = Binder::unmarshal_remote_reference (domain_id, primary_iid, addr,
-					object_key, ORB_type, components, unconfirmed_remote_ref);
-#endif
+			else {
+				ESIOP::ProtDomainId domain_id;
+				auto pc = binary_search (components, ESIOP::TAG_DOMAIN_ADDRESS);
+				if (pc) {
+					Nirvana::Core::ImplStatic <StreamInEncap> stm (std::ref (pc->component_data ()));
+					stm.read (alignof (ESIOP::ProtDomainId), sizeof (ESIOP::ProtDomainId), &domain_id);
+					if (stm.other_endian ())
+						Internal::byteswap (domain_id);
+					if (stm.end ())
+						throw INV_OBJREF ();
+				} else
+					domain_id = ESIOP::sys_domain_id ();
+				if (ESIOP::current_domain_id () == domain_id)
+					obj = PortableServer::Core::POA_Root::unmarshal (primary_iid, object_key); // Local reference
+				else
+					obj = Binder::unmarshal_remote_reference (domain_id, primary_iid, addr,
+						object_key, ORB_type, components, unconfirmed_remote_ref);
+			}
 		} else
 			obj = Binder::unmarshal_remote_reference (listen_point, primary_iid, addr,
 				object_key, ORB_type, components, unconfirmed_remote_ref);

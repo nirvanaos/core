@@ -42,7 +42,7 @@ class ProtDomainsWaitable
 public:
 	CORBA::servant_reference <DomainProt> get (ProtDomainId domain_id);
 
-	CORBA::servant_reference <CORBA::Core::Domain> find (ProtDomainId domain_id) const noexcept
+	CORBA::servant_reference <DomainProt> find (ProtDomainId domain_id) const noexcept
 	{
 		auto it = map_.find (domain_id);
 		if (it != map_.end ())
@@ -77,7 +77,7 @@ public:
 		map_.erase (domain_id);
 	}
 
-	CORBA::servant_reference <CORBA::Core::Domain> find (ProtDomainId domain_id) const NIRVANA_NOEXCEPT
+	CORBA::servant_reference <DomainProt> find (ProtDomainId domain_id) const NIRVANA_NOEXCEPT
 	{
 		auto it = map_.find (domain_id);
 		if (it != map_.end ())
@@ -94,7 +94,29 @@ private:
 	Map map_;
 };
 
-using ProtDomains = std::conditional_t < OtherDomain::slow_creation, ProtDomainsWaitable, ProtDomainsSimple> ;
+class ProtDomainsDummy
+{
+public:
+	CORBA::servant_reference <DomainProt> get (ProtDomainId domain_id)
+	{
+		NIRVANA_UNREACHABLE_CODE ();
+		return nullptr;
+	}
+
+	void erase (ProtDomainId domain_id) NIRVANA_NOEXCEPT
+	{
+		NIRVANA_UNREACHABLE_CODE ();
+	}
+
+	CORBA::servant_reference <DomainProt> find (ProtDomainId domain_id) const NIRVANA_NOEXCEPT
+	{
+		NIRVANA_UNREACHABLE_CODE ();
+		return nullptr;
+	}
+};
+
+using ProtDomains = std::conditional_t <Nirvana::Core::SINGLE_DOMAIN, ProtDomainsDummy,
+std::conditional_t <OtherDomain::slow_creation, ProtDomainsWaitable, ProtDomainsSimple> >;
 
 }
 

@@ -31,6 +31,7 @@
 
 #include <CORBA/CORBA.h>
 #include <Port/ESIOP.h>
+#include <Port/config.h>
 
 /// Environment-specific inter-ORB protocol.
 /// Implements communication between protection domains
@@ -39,11 +40,12 @@ namespace ESIOP {
 
 inline bool is_system_domain () NIRVANA_NOEXCEPT
 {
-#ifdef NIRVANA_SINGLE_DOMAIN
-	return true;
-#else
-	return sys_domain_id () == current_domain_id ();
-#endif
+	if (Nirvana::Core::SINGLE_DOMAIN)
+		return true;
+	else if (Nirvana::Core::BUILD_NO_SYS_DOMAIN)
+		return false;
+	else
+		return sys_domain_id () == current_domain_id ();
 }
 
 /// Message type
