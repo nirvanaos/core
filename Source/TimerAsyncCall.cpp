@@ -32,7 +32,7 @@ namespace Core {
 TimerAsyncCall::TimerAsyncCall (SyncContext& sync_context, const DeadlineTime& deadline) :
 	sync_context_ (&sync_context),
 	deadline_ (deadline),
-	enqueued_ {ATOMIC_FLAG_INIT},
+	enqueued_ ATOMIC_FLAG_INIT,
 	overrun_ (0)
 {}
 
