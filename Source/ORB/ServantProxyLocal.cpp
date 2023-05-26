@@ -45,7 +45,7 @@ Boolean ServantProxyLocal::non_existent ()
 	return servant ()->_non_existent ();
 }
 
-ReferenceRef ServantProxyLocal::get_reference ()
+ReferenceRef ServantProxyLocal::marshal (StreamOut& out)
 {
 	throw MARSHAL (MAKE_OMG_MINOR (4)); // Attempt to marshal Local object.
 }

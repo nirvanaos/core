@@ -75,7 +75,8 @@ public:
 
 	Nirvana::Core::Ref <ServantProxyObject> get_active_servant () const NIRVANA_NOEXCEPT;
 
-	virtual void marshal (StreamOut& out) const override;
+	virtual ReferenceRef marshal (StreamOut& out) override;
+	virtual ReferenceLocalRef get_local_reference (const PortableServer::Core::POA_Base&) override;
 	virtual Internal::IORequest::_ref_type create_request (OperationIndex op, unsigned flags) override;
 
 private:

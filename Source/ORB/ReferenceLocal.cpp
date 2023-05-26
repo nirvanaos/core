@@ -155,7 +155,7 @@ Ref <ServantProxyObject> ReferenceLocal::get_active_servant () const NIRVANA_NOE
 	return Ref <ServantProxyObject> (servant_.load ());
 }
 
-void ReferenceLocal::marshal (StreamOut& out) const
+ReferenceRef ReferenceLocal::marshal (StreamOut& out)
 {
 	out.write_string_c (primary_interface_id ());
 	ImplStatic <StreamOutEncap> encap;
@@ -213,6 +213,18 @@ void ReferenceLocal::marshal (StreamOut& out) const
 		IOP::TaggedProfile (IOP::TAG_INTERNET_IOP, std::move (encap.data ()))
 	};
 	out.write_tagged (addr);
+
+	return this;
+}
+
+ReferenceLocalRef ReferenceLocal::get_local_reference (const PortableServer::Core::POA_Base& adapter)
+{
+	// Called from the POA sync context
+	assert (&SyncContext::current () == adapter_context_);
+	if (adapter.check_path (core_key_.adapter_path ()))
+		return this;
+	else
+		return nullptr;
 }
 
 IORequest::_ref_type ReferenceLocal::create_request (OperationIndex op, unsigned flags)

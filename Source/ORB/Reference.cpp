@@ -33,11 +33,6 @@ using namespace CORBA::Core;
 namespace CORBA {
 namespace Core {
 
-ReferenceRef Reference::get_reference ()
-{
-	return this;
-}
-
 Policy::_ref_type Reference::_get_policy (PolicyType policy_type)
 {
 	if (domain_manager_)

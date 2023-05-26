@@ -318,15 +318,10 @@ ObjectId POA_Base::reference_to_id (Object::_ptr_type reference)
 	if (!reference)
 		throw BAD_PARAM ();
 
-	ReferenceRef ref = ProxyManager::cast (reference)->get_reference ();
+	ReferenceLocalRef ref = ProxyManager::cast (reference)->get_local_reference (*this);
 	if (!ref)
 		throw WrongAdapter ();
-	if (!(ref->flags () & Reference::LOCAL))
-		throw WrongAdapter ();
-	const ReferenceLocal& loc = static_cast <const ReferenceLocal&> (*ref);
-	if (!check_path (loc.core_key ().adapter_path ()))
-		throw WrongAdapter ();
-	return loc.core_key ().object_id ();
+	return ref->core_key ().object_id ();
 }
 
 Object::_ref_type POA_Base::id_to_servant (ObjectId& oid)

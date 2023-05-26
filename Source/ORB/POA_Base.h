@@ -471,6 +471,11 @@ public:
 		return CORBA::Core::Services::bind (CORBA::Core::Services::RootPOA);
 	}
 
+	bool check_path (const AdapterPath& path) const NIRVANA_NOEXCEPT
+	{
+		return check_path (path, path.end ());
+	}
+
 protected:
 	POA_Base () :
 		signature_ (0)
@@ -486,11 +491,6 @@ protected:
 
 	bool check_path (const AdapterPath& path, AdapterPath::const_iterator it) const
 		NIRVANA_NOEXCEPT;
-
-	bool check_path (const AdapterPath& path) const NIRVANA_NOEXCEPT
-	{
-		return check_path (path, path.end ());
-	}
 
 	virtual void serve_request (const RequestRef& request, CORBA::Core::ReferenceLocal& reference);
 	virtual void serve_default (const RequestRef& request, CORBA::Core::ReferenceLocal& reference);

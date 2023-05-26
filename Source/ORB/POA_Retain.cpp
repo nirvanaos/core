@@ -77,15 +77,10 @@ Object::_ref_type POA_Retain::reference_to_servant (Object::_ptr_type reference)
 	if (!reference)
 		throw BAD_PARAM ();
 
-	ReferenceRef ref = ProxyManager::cast (reference)->get_reference ();
+	ReferenceLocalRef ref = ProxyManager::cast (reference)->get_local_reference (*this);
 	if (!ref)
 		throw WrongAdapter ();
-	if (!(ref->flags () & Reference::LOCAL))
-		throw WrongAdapter ();
-	const ReferenceLocal& loc = static_cast <const ReferenceLocal&> (*ref);
-	if (!check_path (loc.core_key ().adapter_path ()))
-		throw WrongAdapter ();
-	Ref <ServantProxyObject> servant = loc.get_active_servant ();
+	Ref <ServantProxyObject> servant = ref->get_active_servant ();
 	if (servant)
 		return servant->get_proxy ();
 

@@ -47,7 +47,7 @@ public:
 		const IOP::TaggedComponentSeq& components);
 	~ReferenceRemote ();
 
-	virtual void marshal (StreamOut& out) const override;
+	virtual ReferenceRef marshal (StreamOut& out) override;
 	virtual Internal::IORequest::_ref_type create_request (OperationIndex op, unsigned flags) override;
 
 	const Char* set_object_name (const Char* name)

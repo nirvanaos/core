@@ -30,7 +30,8 @@
 
 #include "ServantProxyBase.h"
 #include "../TaggedPtr.h"
-#include "../PointerSet.h"
+#include "../MapUnorderedUnstable.h"
+#include "../HeapAllocator.h"
 #include "Reference.h"
 #include "ObjectKey.h"
 
@@ -68,7 +69,7 @@ public:
 	void deactivate (ReferenceLocal& reference) NIRVANA_NOEXCEPT
 	{
 		references_.erase (&reference);
-		ReferenceLocal* p = references_.empty () ? nullptr : reinterpret_cast <ReferenceLocal*> (*references_.begin ());
+		ReferenceLocal* p = references_.empty () ? nullptr : *references_.begin ();
 		reference_.cas (&reference, p);
 	}
 
@@ -89,9 +90,10 @@ protected:
 	~ServantProxyObject ();
 
 	virtual Boolean non_existent () override;
-	virtual ReferenceRef get_reference () override;
+	virtual ReferenceLocalRef get_local_reference (const PortableServer::Core::POA_Base&) override;
+	virtual ReferenceRef marshal (StreamOut& out) override;
 
-	ReferenceLocalRef get_reference_local () const NIRVANA_NOEXCEPT;
+	ReferenceLocalRef get_local_reference () const NIRVANA_NOEXCEPT;
 
 	virtual Policy::_ref_type _get_policy (PolicyType policy_type) override;
 	virtual DomainManagersList _get_domain_managers () override;
@@ -108,7 +110,10 @@ protected:
 	// The set of references.
 	// If the set is empty, object can have one reference stored in reference_.
 	// If the set is not empty, it contains all the references include stored in reference_.
-	Nirvana::Core::PointerSet references_;
+	// This set is always changed in the POA sync context, so we use the POA sync domain heap.
+	typedef Nirvana::Core::SetUnorderedUnstable <ReferenceLocal*, std::hash <void*>,
+		std::equal_to <void*>, Nirvana::Core::HeapAllocator> References;
+	References references_;
 };
 
 CORBA::Object::_ptr_type servant2object (PortableServer::Servant servant) NIRVANA_NOEXCEPT;

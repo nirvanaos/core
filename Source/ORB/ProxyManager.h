@@ -42,11 +42,21 @@
 #include <CORBA/Proxy/IOReference_s.h>
 #include "offset_ptr.h"
 
+namespace PortableServer {
+namespace Core {
+class POA_Base;
+}
+}
+
 namespace CORBA {
 namespace Core {
 
 class Reference;
 typedef servant_reference <Reference> ReferenceRef;
+class ReferenceLocal;
+typedef servant_reference <ReferenceLocal> ReferenceLocalRef;
+
+class StreamOut;
 
 /// \brief Base for all proxies.
 class NIRVANA_NOVTABLE ProxyManager :
@@ -234,7 +244,10 @@ public:
 
 	void check_create_request (OperationIndex op, unsigned flags) const;
 
-	virtual ReferenceRef get_reference () = 0;
+	// Called from the POA sync context
+	virtual ReferenceLocalRef get_local_reference (const PortableServer::Core::POA_Base&);
+
+	virtual ReferenceRef marshal (StreamOut& out) = 0;
 
 	Internal::StringView <Char> primary_interface_id () const NIRVANA_NOEXCEPT
 	{

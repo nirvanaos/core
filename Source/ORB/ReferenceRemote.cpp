@@ -77,10 +77,11 @@ void ReferenceRemote::_remove_ref () NIRVANA_NOEXCEPT
 	}
 }
 
-void ReferenceRemote::marshal (StreamOut& out) const
+ReferenceRef ReferenceRemote::marshal (StreamOut& out)
 {
 	out.write_string_c (primary_interface_id ());
 	out.write_c (4, address_.size (), address_.data ());
+	return this;
 }
 
 IORequest::_ref_type ReferenceRemote::create_request (OperationIndex op, unsigned flags)

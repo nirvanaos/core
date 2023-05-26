@@ -57,7 +57,8 @@ PortableServer::ServantBase::_ref_type object2servant (Object::_ptr_type obj)
 
 ServantProxyObject::ServantProxyObject (PortableServer::Servant user_servant) :
 	ServantProxyBase (user_servant),
-	adapter_context_ (&local2proxy (POA_Root::get_root ())->sync_context ())
+	adapter_context_ (&local2proxy (POA_Root::get_root ())->sync_context ()),
+	references_ (adapter_context_->sync_domain ()->mem_context ().heap ())
 {
 	static_assert (core_object_align (sizeof (ReferenceLocal)) == REF_ALIGN, "sizeof (ReferenceLocal)");
 }
@@ -79,9 +80,12 @@ ServantProxyObject::~ServantProxyObject ()
 			// We don't need exception handling here because on_destruct_implicit is noexcept.
 			// So we don't use SYNC_BEGIN/SYNC_END and just create the sync frame.
 			Nirvana::Core::Synchronized _sync_frame (*adapter_context_, nullptr);
-			for (void* p : references_) {
-				reinterpret_cast <ReferenceLocal*> (p)->on_servant_destruct ();
+			for (ReferenceLocal* p : references_) {
+				p->on_servant_destruct ();
 			}
+
+			// Clear map here, while we are in the POA sync context
+			references_.clear ();
 		}
 	} catch (...) {
 		assert (false);
@@ -106,29 +110,52 @@ Boolean ServantProxyObject::non_existent ()
 	return servant ()->_non_existent ();
 }
 
-ReferenceLocalRef ServantProxyObject::get_reference_local () const NIRVANA_NOEXCEPT
+ReferenceLocalRef ServantProxyObject::get_local_reference () const NIRVANA_NOEXCEPT
 {
 	ReferenceLocalRef ref (reference_.lock ());
 	reference_.unlock ();
 	return ref;
 }
 
-ReferenceRef ServantProxyObject::get_reference ()
+ReferenceLocalRef ServantProxyObject::get_local_reference (const PortableServer::Core::POA_Base& adapter)
 {
-	ReferenceRef ref (get_reference_local ());
+	// Called from the POA sync context
+	assert (&SyncContext::current () == adapter_context_);
+	if (references_.empty ()) {
+		ReferenceLocalRef ref (reference_.load ());
+		if (ref && adapter.check_path (ref->core_key ().adapter_path ()))
+			return ref;
+	} else {
+		for (auto p : references_) {
+			if (adapter.check_path (p->core_key ().adapter_path ()))
+				return p;
+		}
+	}
+	return nullptr;
+}
+
+ReferenceRef ServantProxyObject::marshal (StreamOut& out)
+{
+	ReferenceRef ref (get_local_reference ());
 	if (!ref) // Attempt to pass an unactivated (unregistered) value as an object reference.
 		throw OBJECT_NOT_EXIST (MAKE_OMG_MINOR (1));
-	return ref;
+	return ref->marshal (out);
 }
 
 Policy::_ref_type ServantProxyObject::_get_policy (PolicyType policy_type)
 {
-	return get_reference ()->_get_policy (policy_type);
+	ReferenceRef ref (get_local_reference ());
+	if (ref)
+		return ref->_get_policy (policy_type);
+	return Policy::_nil ();
 }
 
 DomainManagersList ServantProxyObject::_get_domain_managers ()
 {
-	return get_reference ()->_get_domain_managers ();
+	ReferenceRef ref (get_local_reference ());
+	if (ref)
+		return ref->_get_domain_managers ();
+	return DomainManagersList ();
 }
 
 }

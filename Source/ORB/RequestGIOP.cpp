@@ -128,9 +128,8 @@ bool RequestGIOP::unmarshal_seq (size_t align, size_t element_size, size_t& elem
 
 void RequestGIOP::marshal_object (Object::_ptr_type obj)
 {
-	ReferenceRef ref = ProxyManager::cast (obj)->get_reference ();
-	ref->marshal (*stream_out_);
-	if (ref->flags () & Reference::GARBAGE_COLLECTION)
+	ReferenceRef ref = ProxyManager::cast (obj)->marshal (*stream_out_);
+	if (ref && (ref->flags () & Reference::GARBAGE_COLLECTION))
 		marshaled_DGC_references_.emplace (std::move (ref));
 }
 

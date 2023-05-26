@@ -448,6 +448,11 @@ bool ProxyManager::call_request_proc (RqProcInternal proc, ProxyManager* servant
 	return true;
 }
 
+ReferenceLocalRef ProxyManager::get_local_reference (const PortableServer::Core::POA_Base&)
+{
+	return nullptr;
+}
+
 const Parameter ProxyManager::is_a_param_ = { "logical_type_id", Type <String>::type_code };
 
 const Operation ProxyManager::object_ops_ [(size_t)ObjectOp::OBJECT_OP_CNT] = {

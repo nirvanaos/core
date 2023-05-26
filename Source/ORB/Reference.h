@@ -75,9 +75,6 @@ public:
 		return flags_;
 	}
 
-	virtual ReferenceRef get_reference () override;
-	virtual void marshal (StreamOut& out) const = 0;
-
 	RefCntProxy::IntegralType _refcount_value () const NIRVANA_NOEXCEPT
 	{
 		return ref_cnt_.load ();
