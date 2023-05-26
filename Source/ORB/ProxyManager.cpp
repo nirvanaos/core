@@ -341,7 +341,7 @@ void ProxyManager::check_create_request (OperationIndex op, unsigned flags) cons
 		throw BAD_PARAM ();
 }
 
-void ProxyManager::invoke (OperationIndex op, IORequest::_ptr_type rq) NIRVANA_NOEXCEPT
+void ProxyManager::invoke (OperationIndex op, IORequest::_ptr_type rq) const NIRVANA_NOEXCEPT
 {
 	try {
 		try {

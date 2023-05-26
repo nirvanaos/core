@@ -155,9 +155,10 @@ Ref <ServantProxyObject> ReferenceLocal::get_active_servant () const NIRVANA_NOE
 	return Ref <ServantProxyObject> (servant_.load ());
 }
 
-ReferenceRef ReferenceLocal::marshal (StreamOut& out)
+void ReferenceLocal::marshal (const ProxyManager& proxy, const Octet* obj_key, size_t obj_key_size,
+	unsigned flags, Core::DomainManager* domain_manager, StreamOut& out)
 {
-	out.write_string_c (primary_interface_id ());
+	out.write_string_c (proxy.primary_interface_id ());
 	ImplStatic <StreamOutEncap> encap;
 	{
 		IIOP::Version ver (1, 1);
@@ -166,14 +167,16 @@ ReferenceRef ReferenceLocal::marshal (StreamOut& out)
 	encap.write_string_c (LocalAddress::singleton ().host ());
 	UShort port = LocalAddress::singleton ().port ();
 	encap.write_c (alignof (UShort), sizeof (UShort), &port);
-	encap.write_seq (object_key_);
+	
+	size_t zero = 0;
+	encap.write_seq (1, 1, obj_key_size, const_cast <Octet*> (obj_key), zero);
 
 	uint32_t ORB_type = ESIOP::ORB_TYPE;
 	ESIOP::ProtDomainId domain_id = ESIOP::current_domain_id ();
 
 	size_t component_cnt = Nirvana::Core::SINGLE_DOMAIN ? 3 : 4;
 
-	if (domain_manager_)
+	if (domain_manager)
 		++component_cnt;
 
 	IOP::TaggedComponentSeq components;
@@ -199,13 +202,13 @@ ReferenceRef ReferenceLocal::marshal (StreamOut& out)
 
 	{
 		ImplStatic <StreamOutEncap> encap;
-		Octet flags = (Octet)flags_;
-		encap.write_c (1, 1, &flags);
+		Octet fl = (Octet)flags;
+		encap.write_c (1, 1, &fl);
 		components.emplace_back (ESIOP::TAG_FLAGS, std::move (encap.data ()));
 	}
 
-	if (domain_manager_)
-		components.emplace_back (IOP::TAG_POLICIES, PolicyFactory::write (domain_manager_->policies ()));
+	if (domain_manager)
+		components.emplace_back (IOP::TAG_POLICIES, PolicyFactory::write (domain_manager->policies ()));
 
 	encap.write_tagged (components);
 
@@ -213,7 +216,11 @@ ReferenceRef ReferenceLocal::marshal (StreamOut& out)
 		IOP::TaggedProfile (IOP::TAG_INTERNET_IOP, std::move (encap.data ()))
 	};
 	out.write_tagged (addr);
+}
 
+ReferenceRef ReferenceLocal::marshal (StreamOut& out)
+{
+	marshal (*this, object_key_.data (), object_key_.size (), flags (), domain_manager_, out);
 	return this;
 }
 

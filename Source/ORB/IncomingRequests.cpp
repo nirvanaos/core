@@ -86,10 +86,6 @@ void IncomingRequests::receive (Ref <RequestIn> rq, uint64_t timestamp)
 		}
 	}
 
-	ed.deadline (deadline);
-	// Execution domain will be rescheduled with new deadline
-	// on entering to the POA or Binder synchronization domain.
-
 	// Process special operations
 	auto op = rq->operation ();
 
@@ -109,6 +105,22 @@ void IncomingRequests::receive (Ref <RequestIn> rq, uint64_t timestamp)
 			return;
 		} else
 			throw BAD_OPERATION (MAKE_OMG_MINOR (2));
+	}
+
+	ed.deadline (deadline);
+	// Execution domain will be rescheduled with new deadline
+	// on entering to the POA or Binder synchronization domain.
+
+	if (rq->object_key ().size () == 1) {
+		// System objects
+		if (rq->object_key ().front () == 0) {
+			// SysDomain
+			if (ESIOP::is_system_domain ()) {
+				rq->serve (*local2proxy (Services::bind (Services::SysDomain)));
+				return;
+			}
+		}
+		throw OBJECT_NOT_EXIST (MAKE_OMG_MINOR (2));
 	}
 
 	// Invoke

@@ -104,6 +104,8 @@ public:
 		return operation_;
 	}
 
+	virtual void serve (const ServantProxyBase& proxy) override;
+
 	/// Cancel the request.
 	/// Called from the IncomingRequests class.
 	/// Request is already removed from map on this call.
@@ -154,7 +156,6 @@ private:
 	virtual bool marshal_op () override;
 
 	void switch_to_reply (GIOP::ReplyStatusType status = GIOP::ReplyStatusType::NO_EXCEPTION);
-	virtual void serve (ServantProxyObject& proxy, Internal::IOReference::OperationIndex op) override;
 
 	void delayed_release () NIRVANA_NOEXCEPT;
 

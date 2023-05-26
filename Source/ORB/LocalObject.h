@@ -66,11 +66,14 @@ class LocalObjectImpl :
 	public LocalObject
 {
 public:
-	LocalObjectImpl (CORBA::LocalObject::_ptr_type user_servant) :
-		ServantProxyLocal (user_servant),
-		LocalObject (static_cast <ServantProxyLocal&> (*this))
-	{}
+	LocalObjectImpl (CORBA::LocalObject::_ptr_type user_servant);
 };
+
+inline
+LocalObject* LocalObject::create (CORBA::LocalObject::_ptr_type user_servant)
+{
+	return new LocalObjectImpl (user_servant);
+}
 
 }
 }

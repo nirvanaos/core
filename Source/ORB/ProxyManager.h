@@ -223,9 +223,9 @@ public:
 
 	OperationIndex find_operation (Internal::String_in name) const;
 
-	void invoke (OperationIndex op, Internal::IORequest::_ptr_type rq) NIRVANA_NOEXCEPT;
+	void invoke (OperationIndex op, Internal::IORequest::_ptr_type rq) const NIRVANA_NOEXCEPT;
 
-	const Internal::Operation& operation_metadata (OperationIndex op) NIRVANA_NOEXCEPT
+	const Internal::Operation& operation_metadata (OperationIndex op) const NIRVANA_NOEXCEPT
 	{
 		assert (op.interface_idx () <= interfaces_.size ());
 		if (op.interface_idx () == 0) {

@@ -1,3 +1,4 @@
+/// \file
 /*
 * Nirvana Core.
 *
@@ -23,16 +24,39 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
+#ifndef NIRVANA_ORB_CORE_SYSOBJECT_H_
+#define NIRVANA_ORB_CORE_SYSOBJECT_H_
+#pragma once
+
 #include "LocalObject.h"
 
 namespace CORBA {
 namespace Core {
 
-LocalObjectImpl::LocalObjectImpl (CORBA::LocalObject::_ptr_type user_servant) :
-	ServantProxyLocal (user_servant),
-	LocalObject (static_cast <ServantProxyLocal&> (*this))
+/// \brief Proxy for system objects
+class SysObject : public LocalObjectImpl
 {
-}
+public:
+	SysObject (CORBA::LocalObject::_ptr_type servant, Octet id);
+
+	virtual ReferenceRef marshal (StreamOut& out) override;
+
+private:
+	Octet id_;
+};
+
+class SysObjectLink : public Internal::LocalObjectLink
+{
+protected:
+	SysObjectLink (const Internal::Bridge <CORBA::LocalObject>::EPV& epv) :
+		Internal::LocalObjectLink (epv)
+	{
+	}
+
+	void _construct (Octet id);
+};
 
 }
 }
+
+#endif

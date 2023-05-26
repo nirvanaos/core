@@ -65,8 +65,6 @@ public:
 		root_ = nullptr;
 	}
 
-	virtual void check_object_id (const ObjectId& oid) override;
-
 	virtual IDL::String the_name () const override
 	{
 		return "RootPOA";

@@ -188,10 +188,12 @@ bool RequestIn::marshal_op ()
 	return (response_flags_ & RESPONSE_DATA) != 0;
 }
 
-void RequestIn::serve (ServantProxyObject& proxy, IOReference::OperationIndex op)
+void RequestIn::serve (const ServantProxyBase& proxy)
 {
 	if (is_cancelled ())
 		return;
+
+	IOReference::OperationIndex op = proxy.find_operation (operation ());
 
 	SyncContext* sync_context = &proxy.get_sync_context (op);
 	SyncDomain* sync_domain = sync_context->sync_domain ();

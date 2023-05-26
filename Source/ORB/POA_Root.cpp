@@ -44,12 +44,6 @@ Object::_ref_type create_RootPOA ()
 	return CORBA::make_reference <POA_Root> (std::move (manager), std::move (manager_factory))->_this ();
 }
 
-void POA_Root::check_object_id (const ObjectId& oid)
-{
-	if (oid.size () != 1) // System object ids have one octet size
-		POA_ImplicitUnique::check_object_id (oid);
-}
-
 ReferenceLocalRef POA_Root::emplace_reference (ObjectKey&& core_key,
 	bool unique, const IDL::String& primary_iid, unsigned flags,
 	CORBA::Core::DomainManager* domain_manager)

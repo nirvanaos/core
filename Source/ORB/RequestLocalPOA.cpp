@@ -40,10 +40,9 @@ RequestLocalPOA::RequestLocalPOA (ReferenceLocal& reference, IOReference::Operat
 	unsigned response_flags) :
 	RequestLocalBase (nullptr, response_flags),
 	reference_ (&reference),
-	operation_ (reference.operation_metadata (op).name)
+	op_idx_ (op)
 {
 	callee_memory_ = caller_memory_;
-	operation_ = reference.operation_metadata (op).name;
 }
 
 void RequestLocalPOA::_add_ref () NIRVANA_NOEXCEPT
@@ -63,7 +62,7 @@ const IOP::ObjectKey& RequestLocalPOA::object_key () const NIRVANA_NOEXCEPT
 
 CORBA::Internal::StringView <Char> RequestLocalPOA::operation () const NIRVANA_NOEXCEPT
 {
-	return CORBA::Internal::StringView <Char> (operation_);
+	return reference_->operation_metadata (op_idx ()).name;
 }
 
 void RequestLocalPOA::set_exception (Any& e)
@@ -71,14 +70,14 @@ void RequestLocalPOA::set_exception (Any& e)
 	RequestLocalBase::set_exception (e);
 }
 
-void RequestLocalPOA::serve (ServantProxyObject& proxy, Internal::IOReference::OperationIndex op)
+void RequestLocalPOA::serve (const ServantProxyBase& proxy)
 {
-	SyncContext& sc = proxy.get_sync_context (op);
+	SyncContext& sc = proxy.get_sync_context (op_idx ());
 	MemContext* mc = nullptr;
 	if (!sc.sync_domain ())
 		mc = memory ();
 	SYNC_BEGIN (sc, mc);
-	proxy.invoke (op, _get_ptr ());
+	proxy.invoke (op_idx (), _get_ptr ());
 	SYNC_END ();
 }
 
@@ -100,11 +99,11 @@ void RequestLocalAsyncPOA::invoke ()
 		ExecDomain::current ().get_request_deadline (!response_flags ()));
 }
 
-void RequestLocalAsyncPOA::serve (ServantProxyObject& proxy, Internal::IOReference::OperationIndex op)
+void RequestLocalAsyncPOA::serve (const ServantProxyBase& proxy)
 {
 	if (RequestLocalAsyncPOA::is_cancelled ())
 		return;
-	RequestLocalPOA::serve (proxy, op);
+	RequestLocalPOA::serve (proxy);
 }
 
 void RequestLocalAsyncPOA::cancel () NIRVANA_NOEXCEPT

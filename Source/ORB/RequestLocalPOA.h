@@ -54,13 +54,18 @@ protected:
 
 	virtual void set_exception (Any& e) override;
 	virtual void invoke () override;
-	virtual void serve (ServantProxyObject& proxy, Internal::IOReference::OperationIndex op) override;
+	virtual void serve (const ServantProxyBase& proxy) override;
 
 	virtual bool is_cancelled () const NIRVANA_NOEXCEPT override;
 
+	Internal::IOReference::OperationIndex op_idx () const NIRVANA_NOEXCEPT
+	{
+		return op_idx_;
+	}
+
 private:
 	ReferenceLocalRef reference_;
-	const Char* operation_;
+	Internal::IOReference::OperationIndex op_idx_;
 };
 
 class NIRVANA_NOVTABLE RequestLocalAsyncPOA :
@@ -73,7 +78,7 @@ protected:
 	{}
 
 	virtual void invoke () override;
-	virtual void serve (ServantProxyObject& proxy, Internal::IOReference::OperationIndex op) override;
+	virtual void serve (const ServantProxyBase& proxy) override;
 	virtual void cancel () NIRVANA_NOEXCEPT override;
 
 };

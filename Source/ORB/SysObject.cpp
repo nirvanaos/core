@@ -23,15 +23,30 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "LocalObject.h"
+#include "SysObject.h"
+#include "ReferenceLocal.h"
+#include <CORBA/I_var.h>
 
 namespace CORBA {
 namespace Core {
 
-LocalObjectImpl::LocalObjectImpl (CORBA::LocalObject::_ptr_type user_servant) :
-	ServantProxyLocal (user_servant),
-	LocalObject (static_cast <ServantProxyLocal&> (*this))
+inline
+SysObject::SysObject (CORBA::LocalObject::_ptr_type servant, Octet id) :
+	LocalObjectImpl (servant),
+	id_ (id)
 {
+}
+
+ReferenceRef SysObject::marshal (StreamOut& out)
+{
+	ReferenceLocal::marshal (*this, &id_, 1, 0, nullptr, out);
+	return nullptr;
+}
+
+void SysObjectLink::_construct (Octet id)
+{
+	core_object_ = Internal::I_var <CORBA::LocalObject> (new SysObject (
+		&static_cast <CORBA::LocalObject&> (static_cast <Internal::Bridge <CORBA::LocalObject>&> (*this)), id));
 }
 
 }

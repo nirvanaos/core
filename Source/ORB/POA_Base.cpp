@@ -448,14 +448,13 @@ void POA_Base::serve_default (const RequestRef& request, ReferenceLocal& referen
 
 void POA_Base::serve_request (const RequestRef& request, ReferenceLocal& reference, ServantProxyObject& proxy)
 {
-	IOReference::OperationIndex op = proxy.find_operation (request->operation ());
 	TLS& tls = TLS::current ();
 	Context* ctx_prev = (Context*)tls.get (TLS::CORE_TLS_PORTABLE_SERVER);
 	Context ctx (_this (), reference.core_key ().object_id (), reference.get_proxy (), proxy);
 	tls.set (TLS::CORE_TLS_PORTABLE_SERVER, &ctx);
 	++request_cnt_;
 	try {
-		request->serve (proxy, op);
+		request->serve (proxy);
 	} catch (...) {
 		on_request_finish ();
 		tls.set (TLS::CORE_TLS_PORTABLE_SERVER, ctx_prev);

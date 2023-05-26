@@ -29,9 +29,9 @@
 #pragma once
 
 #include <CORBA/Server.h>
-#include <CORBA/NoDefaultPOA.h>
-#include "Nirvana/CoreDomains_s.h"
+#include "ORB/SysServant.h"
 #include "ORB/Services.h"
+#include "Nirvana/CoreDomains_s.h"
 #include <Port/SystemInfo.h>
 
 namespace Nirvana {
@@ -39,13 +39,9 @@ namespace Core {
 
 /// System domain.
 class SysDomain :
-	public CORBA::servant_traits <Nirvana::Core::SysDomainCore>::Servant <SysDomain>,
-	public PortableServer::NoDefaultPOA
+	public CORBA::Core::SysServantImpl <SysDomain, 0, SysDomainCore, Nirvana::SysDomain>
 {
 public:
-	// Disable implicit activation
-	using PortableServer::NoDefaultPOA::__default_POA;
-
 	~SysDomain ()
 	{}
 
