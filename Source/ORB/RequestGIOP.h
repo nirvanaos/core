@@ -196,7 +196,8 @@ public:
 
 	void marshal_wchar (size_t count, const WChar* data)
 	{
-		code_set_conv_w_->marshal_char (count, data, *stream_out_);
+		if (marshal_chunk ())
+			code_set_conv_w_->marshal_char (count, data, *stream_out_);
 	}
 
 	virtual void unmarshal_wchar (size_t count, WChar* data)
@@ -206,7 +207,8 @@ public:
 
 	void marshal_wstring (IDL::WString& s, bool move)
 	{
-		code_set_conv_w_->marshal_string (s, move, *stream_out_);
+		if (marshal_chunk ())
+			code_set_conv_w_->marshal_string (s, move, *stream_out_);
 	}
 
 	virtual void unmarshal_wstring (IDL::WString& s)
@@ -216,7 +218,8 @@ public:
 
 	void marshal_wchar_seq (WCharSeq& s, bool move)
 	{
-		code_set_conv_w_->marshal_char_seq (s, move, *stream_out_);
+		if (marshal_chunk ())
+			code_set_conv_w_->marshal_char_seq (s, move, *stream_out_);
 	}
 
 	virtual void unmarshal_wchar_seq (WCharSeq& s)
