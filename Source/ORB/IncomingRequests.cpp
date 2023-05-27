@@ -113,12 +113,17 @@ void IncomingRequests::receive (Ref <RequestIn> rq, uint64_t timestamp)
 
 	if (rq->object_key ().size () == 1) {
 		// System objects
-		if (rq->object_key ().front () == 0) {
-			// SysDomain
+		switch (rq->object_key ().front ()) {
+		case 0: // SysDomain
 			if (ESIOP::is_system_domain ()) {
 				rq->serve (*local2proxy (Services::bind (Services::SysDomain)));
 				return;
 			}
+			break;
+
+		case 1: // ProtDomain
+			rq->serve (*local2proxy (Services::bind (Services::ProtDomain)));
+			return;
 		}
 		throw OBJECT_NOT_EXIST (MAKE_OMG_MINOR (2));
 	}

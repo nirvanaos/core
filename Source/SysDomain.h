@@ -31,13 +31,13 @@
 #include <CORBA/Server.h>
 #include "ORB/SysServant.h"
 #include "ORB/Services.h"
-#include "Nirvana/CoreDomains_s.h"
+#include <Nirvana/CoreDomains_s.h>
 #include <Port/SystemInfo.h>
 
 namespace Nirvana {
 namespace Core {
 
-/// System domain.
+/// System domain
 class SysDomain :
 	public CORBA::Core::SysServantImpl <SysDomain, 0, SysDomainCore, Nirvana::SysDomain>
 {
@@ -52,7 +52,14 @@ public:
 
 	static Platforms supported_platforms ()
 	{
-		return Platforms (std::begin (Port::SystemInfo::supported_platforms_), std::end (Port::SystemInfo::supported_platforms_));
+		return Platforms (std::begin (Port::SystemInfo::supported_platforms_),
+			std::end (Port::SystemInfo::supported_platforms_));
+	}
+
+	static Nirvana::ProtDomain::_ref_type prot_domain ()
+	{
+		return Nirvana::ProtDomain::_narrow (
+			CORBA::Core::Services::bind (CORBA::Core::Services::ProtDomain));
 	}
 
 	static ProtDomain::_ref_type create_prot_domain (uint16_t platform)
@@ -60,7 +67,8 @@ public:
 		throw_NO_IMPLEMENT ();
 	}
 
-	static ProtDomain::_ref_type create_prot_domain_as_user (uint16_t platform, const IDL::String& user, const IDL::String& password)
+	static ProtDomain::_ref_type create_prot_domain_as_user (uint16_t platform,
+		const IDL::String& user, const IDL::String& password)
 	{
 		throw_NO_IMPLEMENT ();
 	}

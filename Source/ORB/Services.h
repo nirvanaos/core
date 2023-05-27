@@ -41,6 +41,7 @@ public:
 	enum Service
 	{
 		POACurrent,
+		ProtDomain,
 		RootPOA,
 		SysDomain,
 		TC_Factory,

@@ -29,18 +29,34 @@
 #pragma once
 
 #include "SysObject.h"
+#include <CORBA/I_var.h>
 
 namespace CORBA {
 namespace Core {
+
+class SysObjectLink : public Internal::LocalObjectLink
+{
+protected:
+	SysObjectLink (const Internal::Bridge <CORBA::LocalObject>::EPV& epv) :
+		Internal::LocalObjectLink (epv)
+	{
+	}
+
+	void _construct (Octet id)
+	{
+		core_object_ = Internal::I_var <CORBA::LocalObject> (SysObject::create (
+			&static_cast <CORBA::LocalObject&> (static_cast <Internal::Bridge <CORBA::LocalObject>&> (*this)), id));
+	}
+};
 
 //! \brief Implementation of system object
 //! \tparam S Servant class implementing operations.
 template <class S>
 class SysServant :
-	public SysObjectLink,
 	public Internal::Skeleton <S, CORBA::LocalObject>,
 	public Internal::LifeCycleRefCnt <S>,
-	public Internal::ServantTraits <S>
+	public Internal::ServantTraits <S>,
+	public SysObjectLink
 {
 public:
 	void _delete_object () NIRVANA_NOEXCEPT

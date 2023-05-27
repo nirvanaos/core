@@ -31,6 +31,7 @@ namespace Nirvana {
 namespace Core {
 
 extern CORBA::Object::_ref_type create_SysDomain ();
+extern CORBA::Object::_ref_type create_ProtDomain ();
 
 }
 }
@@ -88,6 +89,7 @@ Object::_ref_type Services::bind_internal (Service sidx)
 
 const Services::Factory Services::factories_ [SERVICE_COUNT] = {
 	{ "POACurrent", create_POACurrent, 1 * TimeBase::MILLISECOND },
+	{ "ProtDomain", create_ProtDomain, 1 * TimeBase::MILLISECOND },
 	{ "RootPOA", PortableServer::Core::create_RootPOA, 1 * TimeBase::MILLISECOND },
 	{ "SysDomain", create_SysDomain, 10 * TimeBase::MILLISECOND }, // May cause inter-domain call
 	{ "TC_Factory", create_TC_Factory, 1 * TimeBase::MILLISECOND }

@@ -33,7 +33,7 @@
 module Nirvana {
 module Core {
 
-interface ProtDomaiCore : ProtDomain
+interface ProtDomainCore : ProtDomain
 {
 	void request (in CORBA::OctetSeq data_in, out CORBA::OctetSeq data_out);
 	oneway void request_oneway (in CORBA::OctetSeq data);

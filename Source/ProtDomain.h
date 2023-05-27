@@ -28,46 +28,46 @@
 #define NIRVANA_CORE_PROTDOMAIN_H_
 #pragma once
 
-#include "SharedObject.h"
+#include "ORB/SysServantStatic.h"
+#include <Nirvana/CoreDomains_s.h>
 #include <Port/ProtDomain.h>
+#include "Binder.h"
+#include "ORB/Services.h"
 
 namespace Nirvana {
 namespace Core {
 
 /// Protection domain.
 class ProtDomain :
-	public SharedObject,
+	public CORBA::Core::SysServantStaticImpl <ProtDomain, 1, ProtDomainCore, Nirvana::ProtDomain>,
 	private Port::ProtDomain
 {
 public:
-	Port::ProtDomain& port ()
+	static IDL::String user ()
 	{
-		return *this;
+		return IDL::String ();
 	}
 
-	static void initialize ()
+	static CORBA::Object::_ref_type bind (const IDL::String& name)
 	{
-		singleton_ = new ProtDomain;
+		return Binder::bind (name);
 	}
 
-	static void terminate ()
+	static Nirvana::SysDomain::_ref_type sys_domain ()
 	{
-		delete singleton_;
-		singleton_ = nullptr;
+		return Nirvana::SysDomain::_narrow (
+			CORBA::Core::Services::bind (CORBA::Core::Services::SysDomain));
 	}
 
-	static ProtDomain& singleton ()
+	static void request (const CORBA::OctetSeq& data_in, CORBA::OctetSeq& data_out)
 	{
-		assert (singleton_);
-		return *singleton_;
+		throw_NO_IMPLEMENT ();
 	}
 
-private:
-	ProtDomain ()
-	{}
-
-private:
-	static ProtDomain* singleton_;
+	static void request_oneway (const CORBA::OctetSeq& data)
+	{
+		throw_NO_IMPLEMENT ();
+	}
 };
 
 }

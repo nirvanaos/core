@@ -34,6 +34,7 @@
 #include "ORB/LocalAddress.h"
 #include "ORB/POA_Root.h"
 #include <Port/PostOffice.h>
+#include "ProtDomain.h"
 
 namespace Nirvana {
 namespace Core {
@@ -58,6 +59,9 @@ void initialize ()
 
 	Binder::initialize ();
 
+	ProtDomain::initialize ();
+	CORBA::Core::Services::bind (CORBA::Core::Services::ProtDomain);
+
 	// Start receiving messages from other domains
 	Port::PostOffice::initialize (CORBA::Core::LocalAddress::singleton ().host (), CORBA::Core::LocalAddress::singleton ().port ());
 }
@@ -79,6 +83,7 @@ void shutdown ()
 
 void terminate ()
 {
+	ProtDomain::terminate ();
 	Binder::terminate ();
 	CORBA::Core::terminate ();
 }

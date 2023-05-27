@@ -25,7 +25,6 @@
 */
 #include "SysObject.h"
 #include "ReferenceLocal.h"
-#include <CORBA/I_var.h>
 
 namespace CORBA {
 namespace Core {
@@ -37,16 +36,15 @@ SysObject::SysObject (CORBA::LocalObject::_ptr_type servant, Octet id) :
 {
 }
 
+SysObject* SysObject::create (CORBA::LocalObject::_ptr_type servant, Octet id)
+{
+	return new SysObject (servant, id);
+}
+
 ReferenceRef SysObject::marshal (StreamOut& out)
 {
 	ReferenceLocal::marshal (*this, &id_, 1, 0, nullptr, out);
 	return nullptr;
-}
-
-void SysObjectLink::_construct (Octet id)
-{
-	core_object_ = Internal::I_var <CORBA::LocalObject> (new SysObject (
-		&static_cast <CORBA::LocalObject&> (static_cast <Internal::Bridge <CORBA::LocalObject>&> (*this)), id));
 }
 
 }

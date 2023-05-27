@@ -37,23 +37,16 @@ namespace Core {
 class SysObject : public LocalObjectImpl
 {
 public:
+	static SysObject* create (CORBA::LocalObject::_ptr_type servant, Octet id);
+
+protected:
 	SysObject (CORBA::LocalObject::_ptr_type servant, Octet id);
 
+private:
 	virtual ReferenceRef marshal (StreamOut& out) override;
 
 private:
 	Octet id_;
-};
-
-class SysObjectLink : public Internal::LocalObjectLink
-{
-protected:
-	SysObjectLink (const Internal::Bridge <CORBA::LocalObject>::EPV& epv) :
-		Internal::LocalObjectLink (epv)
-	{
-	}
-
-	void _construct (Octet id);
 };
 
 }

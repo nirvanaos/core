@@ -25,10 +25,16 @@
 */
 #include "ProtDomain.h"
 
+using namespace CORBA;
+using namespace CORBA::Core;
+
 namespace Nirvana {
 namespace Core {
 
-ProtDomain* ProtDomain::singleton_ = nullptr;
+Object::_ref_type create_ProtDomain ()
+{
+	return ProtDomain::_this ();
+}
 
 }
 }
