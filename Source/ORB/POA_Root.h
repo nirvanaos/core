@@ -198,7 +198,7 @@ POA::_ref_type POA_Base::create_POA (const IDL::String& adapter_name,
 	PortableServer::POAManager::_ptr_type a_POAManager, const CORBA::PolicyList& policies)
 {
 	CORBA::servant_reference <CORBA::Core::DomainManager> domain_manager;
-	POA_Policies pols;
+	POA_Policies pols = POA_Policies::default_;
 	{
 		CORBA::Core::PolicyMap object_policies;
 		pols.set_values (policies, object_policies);
