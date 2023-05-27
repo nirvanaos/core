@@ -207,7 +207,13 @@ void RequestOut::preunmarshal (TypeCode::_ptr_type tc, std::vector <Octet>& buf,
 		buf.resize (cb);
 	tc->n_construct (buf.data ());
 	tc->n_unmarshal (_get_ptr (), 1, buf.data ());
-	tc->n_marshal_out (buf.data (), 1, out);
+	try {
+		tc->n_marshal_out (buf.data (), 1, out);
+	} catch (...) {
+		tc->n_destruct (buf.data ());
+		throw;
+	}
+	tc->n_destruct (buf.data ());
 }
 
 bool RequestOut::unmarshal (size_t align, size_t size, void* data)
