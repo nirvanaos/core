@@ -182,17 +182,20 @@ public:
 		return initialized_;
 	}
 
-	static void heartbeat (const CORBA::Core::DomainAddress& domain)
+	static void heartbeat (const CORBA::Core::DomainAddress& domain) NIRVANA_NOEXCEPT
 	{
-		SYNC_BEGIN (sync_domain (), nullptr)
+		try {
+			Nirvana::Core::Synchronized _sync_frame (sync_domain (), nullptr);
 			singleton_->remote_references_.heartbeat (domain);
-		SYNC_END ();
+			_sync_frame.return_to_caller_context ();
+		} catch (...) {}
 	}
 
 	static void complex_ping (CORBA::Core::RequestIn& rq)
 	{
 		SYNC_BEGIN (sync_domain (), nullptr)
 			singleton_->remote_references_.complex_ping (rq);
+		_sync_frame.return_to_caller_context ();
 		SYNC_END ();
 	}
 

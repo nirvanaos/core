@@ -107,7 +107,7 @@ public:
 		return remote_domains_.get (lp);
 	}
 
-	void heartbeat (const DomainAddress& domain)
+	void heartbeat (const DomainAddress& domain) NIRVANA_NOEXCEPT
 	{
 		auto p = find_domain (domain);
 		if (p)

@@ -85,7 +85,6 @@ void Domain::erase_remote_key (DGC_RefKey& key) noexcept
 		_remove_ref ();
 }
 
-
 void Domain::confirm_DGC_references (size_t cnt, ReferenceRemoteRef* refs)
 {
 	if (cnt) {

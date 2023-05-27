@@ -40,7 +40,7 @@ Nirvana::Core::StaticallyAllocated <IncomingRequests::RequestMap> IncomingReques
 void IncomingRequests::receive (Ref <RequestIn> rq, uint64_t timestamp)
 {
 	ExecDomain& ed = ExecDomain::current ();
-	if (rq->response_flags ()) {
+	if (rq->response_flags () & RequestIn::RESPONSE_EXPECTED) {
 		auto ins = map_->insert (std::ref (rq->key ()), std::ref (*rq), timestamp);
 		bool cancelled = false;
 		if (!ins.second) {
@@ -101,7 +101,6 @@ void IncomingRequests::receive (Ref <RequestIn> rq, uint64_t timestamp)
 		// DGC ping
 		if (static_cast <const std::string&> (op) == "ping") {
 			Nirvana::Core::Binder::complex_ping (*rq);
-			rq->success ();
 			return;
 		} else
 			throw BAD_OPERATION (MAKE_OMG_MINOR (2));

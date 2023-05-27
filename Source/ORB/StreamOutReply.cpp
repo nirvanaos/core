@@ -96,6 +96,7 @@ void StreamOutReply::send (uint32_t request_id) NIRVANA_NOEXCEPT
 			else {
 				// Send reply with immediate data
 				const uint8_t* p = small_buffer_ + REPLY_HEADERS_SIZE;
+				assert (small_ptr_ >= p);
 				size_t size = small_ptr_ - p;
 				ReplyImmediate reply (request_id, p, size);
 				other_domain ().send_message (&reply, sizeof (reply));

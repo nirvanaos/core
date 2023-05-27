@@ -132,7 +132,7 @@ private:
 		event_.signal ();
 	}
 
-	void preunmarshal(TypeCode::_ptr_type tc, std::vector <Octet> buf, Internal::IORequest::_ptr_type out);
+	void preunmarshal (TypeCode::_ptr_type tc, std::vector <Octet>& buf, Internal::IORequest::_ptr_type out);
 
 protected:
 	Nirvana::DeadlineTime deadline_;

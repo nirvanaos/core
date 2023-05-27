@@ -94,6 +94,7 @@ public:
 		Internal::Type <IDL::Sequence <IOP::ObjectKey> >::unmarshal (rq, del);
 		rq->unmarshal_end ();
 		complex_ping (add, del);
+		rq->success ();
 	}
 
 	class DGC_RefKey;

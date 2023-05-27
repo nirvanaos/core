@@ -200,7 +200,7 @@ void RequestOut::set_reply (unsigned status, IOP::ServiceContextList&& context,
 	}
 }
 
-void RequestOut::preunmarshal (TypeCode::_ptr_type tc, std::vector <Octet> buf, IORequest::_ptr_type out)
+void RequestOut::preunmarshal (TypeCode::_ptr_type tc, std::vector <Octet>& buf, IORequest::_ptr_type out)
 {
 	size_t cb = tc->n_size ();
 	if (buf.size () < cb)
