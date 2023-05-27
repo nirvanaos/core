@@ -40,7 +40,8 @@ Object::_ptr_type RqHelper::interface2object (Interface::_ptr_type itf)
 		obj = (Object*)&itf;
 	else {
 		Internal::Environment env;
-		Interface* p = ((const EPV_Header&)itf->_epv ()).base.to_base (&itf, &Type <IDL::String>::C_in (RepIdOf <ValueBase>::id), &env);
+		Interface* p = ((const EPV_Header&)itf->_epv ()).base.to_base (&itf, 
+			&Type <IDL::String>::C_in (RepIdOf <Object>::id), &env);
 		env.check ();
 		obj = Object::_check (p);
 	}
