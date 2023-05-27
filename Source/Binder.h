@@ -199,6 +199,14 @@ public:
 		SYNC_END ();
 	}
 
+	static void clear_remote_references () NIRVANA_NOEXCEPT
+	{
+		try {
+			Nirvana::Core::Synchronized _sync_frame (sync_domain (), nullptr);
+			singleton_->remote_references_.shutdown ();
+		} catch (...) {}
+	}
+
 private:
 	typedef CORBA::Internal::RepId RepId;
 	typedef CORBA::Internal::RepId::Version Version;

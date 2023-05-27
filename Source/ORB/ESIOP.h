@@ -58,6 +58,7 @@ enum MessageType
 	CANCEL_REQUEST, ///< GIOP CancelRequest
 	LOCATE_REPLY, ///< GIOP LocateReply - currently unused
 	SHUTDOWN, ///< Shutdown domain
+	CLOSE_CONNECTION, ///< Close connection
 
 	/// Number of the ESIOP messages.
 	/// Host system may add own message types.
@@ -204,6 +205,28 @@ struct CancelRequest : MessageHeader
 			Nirvana::byteswap (msg.client_domain);
 			Nirvana::byteswap (msg.request_id);
 		}
+		return msg;
+	}
+};
+
+/// Close connection
+struct CloseConnection : MessageHeader
+{
+	/// Sender protection domain id.
+	ProtDomainId sender_domain;
+
+	CloseConnection (ProtDomainId sender) NIRVANA_NOEXCEPT :
+	MessageHeader (CLOSE_CONNECTION),
+		sender_domain (sender)
+	{
+	}
+
+	static CloseConnection& receive (MessageHeader& hdr) NIRVANA_NOEXCEPT
+	{
+		assert (hdr.message_type == MessageType::CLOSE_CONNECTION);
+		CloseConnection& msg = static_cast <CloseConnection&> (hdr);
+		if (hdr.other_endian ())
+			Nirvana::byteswap (msg.sender_domain);
 		return msg;
 	}
 };

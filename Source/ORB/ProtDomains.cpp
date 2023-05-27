@@ -25,9 +25,11 @@
 */
 #include "ProtDomains.h"
 
+using namespace CORBA;
+
 namespace ESIOP {
 
-CORBA::servant_reference <DomainProt> ProtDomainsWaitable::get (ProtDomainId domain_id)
+servant_reference <DomainProt> ProtDomainsWaitable::get (ProtDomainId domain_id)
 {
 	auto ins = map_.emplace (domain_id, DEADLINE_MAX);
 	if (ins.second) {
@@ -49,11 +51,27 @@ CORBA::servant_reference <DomainProt> ProtDomainsWaitable::get (ProtDomainId dom
 		return ins.first->second.get ().get ();
 }
 
-CORBA::servant_reference <DomainProt> ProtDomainsSimple::get (ProtDomainId domain_id)
+servant_reference <DomainProt> ProtDomainsWaitable::find (ProtDomainId domain_id) const noexcept
+{
+	auto it = map_.find (domain_id);
+	if (it != map_.end () && it->second.is_constructed ())
+		return it->second.get ().get ();
+	return nullptr;
+}
+
+servant_reference <DomainProt> ProtDomainsSimple::get (ProtDomainId domain_id)
 {
 	return PortableServer::Servant_var <CORBA::Core::Domain> (&map_.emplace (
 		std::piecewise_construct, std::forward_as_tuple (domain_id),
 		std::forward_as_tuple (domain_id)).first->second);
+}
+
+servant_reference <DomainProt> ProtDomainsSimple::find (ProtDomainId domain_id) const NIRVANA_NOEXCEPT
+{
+	auto it = map_.find (domain_id);
+	if (it != map_.end ())
+		return &const_cast <DomainProt&> (it->second);
+	return nullptr;
 }
 
 }

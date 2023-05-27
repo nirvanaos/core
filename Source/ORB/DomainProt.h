@@ -46,11 +46,19 @@ public:
 		id_ (id)
 	{}
 	
-	~DomainProt ()
-	{}
+	~DomainProt ();
 
 	virtual CORBA::Internal::IORequest::_ref_type create_request (const IOP::ObjectKey& object_key,
 		const CORBA::Internal::Operation& metadata, unsigned response_flags) override;
+
+	void shutdown () NIRVANA_NOEXCEPT
+	{
+		make_zombie ();
+		CloseConnection msg (current_domain_id ());
+		try {
+			send_message (&msg, sizeof (msg));
+		} catch (...) {}
+	}
 
 protected:
 	virtual void destroy () NIRVANA_NOEXCEPT override;

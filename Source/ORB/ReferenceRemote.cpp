@@ -52,7 +52,7 @@ ReferenceRemote::ReferenceRemote (const OctetSeq& addr, servant_reference <Domai
 			domain_manager_ = make_reference <Core::DomainManager> (std::move (policies));
 	}
 	if ((flags () & GARBAGE_COLLECTION) && (domain_->flags () & Domain::GARBAGE_COLLECTION))
-		DGC_key_ = &domain_->on_DGC_reference_unmarshal (object_key_);
+		DGC_key_ = domain_->on_DGC_reference_unmarshal (object_key_);
 }
 
 ReferenceRemote::~ReferenceRemote ()

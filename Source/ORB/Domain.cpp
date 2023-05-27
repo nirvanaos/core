@@ -46,7 +46,8 @@ Domain::Domain (unsigned flags, TimeBase::TimeT request_latency, TimeBase::TimeT
 	request_latency_ (request_latency),
 	heartbeat_interval_ (heartbeat_interval),
 	heartbeat_timeout_ (heartbeat_timeout),
-	DGC_scheduled_ (false)
+	DGC_scheduled_ (false),
+	zombie_ (false)
 {}
 
 Domain::~Domain ()
@@ -116,7 +117,8 @@ void Domain::call_DGC_function (DGC_Function func, const ReferenceRemoteRef* beg
 				break;
 			}
 		}
-		(domain->*func) (begin, domain_end, no_throw);
+		if (!domain->zombie_)
+			(domain->*func) (begin, domain_end, no_throw);
 		begin = domain_end;
 	} while (begin != end);
 }
@@ -128,6 +130,8 @@ void Domain::confirm_DGC_ref_start (const ReferenceRemoteRef* begin,
 	for (const ReferenceRemoteRef* ref = begin; ref != end; ++ref) {
 		DGC_RefKey* key = (*ref)->DGC_key ();
 		assert (key);
+		assert (key->reference_cnt ());
+		// The key can't be deleted in complete_deletion() because key.reference_cnt () is not zero.
 		key->complete_deletion ();
 		if (!key->request ()) {
 			if (!rq)
@@ -173,7 +177,7 @@ void Domain::append_del (DGC_Request& rq)
 
 void Domain::schedule_del () noexcept
 {
-	if (!DGC_scheduled_) {
+	if (!DGC_scheduled_ && !zombie_ && (Scheduler::state () == Scheduler::RUNNING)) {
 		DGC_scheduled_ = true;
 		DeadlineTime deadline =
 			PROXY_GC_DEADLINE == INFINITE_DEADLINE ?
@@ -187,7 +191,7 @@ void Domain::schedule_del () noexcept
 	}
 }
 
-inline void Domain::send_del ()
+void Domain::send_del () NIRVANA_NOEXCEPT
 {
 	if (!remote_objects_del_.empty ()) {
 		try {
@@ -272,6 +276,13 @@ void Domain::DGC_Request::complete (bool no_throw)
 		keys_.clear ();
 		add_cnt_ = 0;
 	}
+}
+
+void Domain::make_zombie () NIRVANA_NOEXCEPT
+{
+	zombie_ = true;
+	remote_objects_.clear ();
+	local_objects_.clear ();
 }
 
 }

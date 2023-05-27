@@ -61,6 +61,11 @@ public:
 	// Not used if the domain is DGC-enabled.
 	void add_DGC_objects (ReferenceSet <Nirvana::Core::HeapAllocator>& references) NIRVANA_NOEXCEPT;
 
+	void shutdown () NIRVANA_NOEXCEPT
+	{
+		// TODO: Implement
+	}
+
 protected:
 	virtual void destroy () NIRVANA_NOEXCEPT override;
 

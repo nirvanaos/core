@@ -147,7 +147,17 @@ public:
 		return reinterpret_cast <const PtrType&> (pointer_);
 	}
 
+	/// Check for the object constructed
+	/// 
+	/// \returns `true` if the object construction is complete.
+	bool is_constructed () const NIRVANA_NOEXCEPT
+	{
+		return !is_wait_list (pointer_);
+	}
+
 	/// Get object pointer if object is already constructed.
+	/// 
+	/// Do not use for std::unique_ptr pointer type
 	/// 
 	/// \returns Pointer or `nullptr`.
 	PtrType get_if_constructed () const NIRVANA_NOEXCEPT

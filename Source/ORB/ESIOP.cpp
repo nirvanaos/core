@@ -30,6 +30,7 @@
 #include "IncomingRequests.h"
 #include "../Runnable.h"
 #include "../Chrono.h"
+#include "../Binder.h"
 
 using namespace CORBA;
 using namespace CORBA::Core;
@@ -272,6 +273,29 @@ void ReceiveSystemException::run ()
 		SystemException::_get_exception_entry (code_)->rep_id, minor_, completed_);
 }
 
+/// Receive close connection Runnable
+class ReceiveCloseConnection :
+	public Runnable
+{
+public:
+	ReceiveCloseConnection (const CloseConnection& msg)
+		NIRVANA_NOEXCEPT :
+		domain_id_ (msg.sender_domain)
+	{
+	}
+
+private:
+	virtual void run () override;
+
+private:
+	ESIOP::ProtDomainId domain_id_;
+};
+
+void ReceiveCloseConnection::run ()
+{
+	Nirvana::Core::Binder::singleton ().remote_references ().close_connection (domain_id_);
+}
+
 void dispatch_message (MessageHeader& message)
 {
 	switch (message.message_type) {
@@ -347,6 +371,16 @@ void dispatch_message (MessageHeader& message)
 		case MessageType::SHUTDOWN:
 			Scheduler::shutdown ();
 			break;
+
+		case MessageType::CLOSE_CONNECTION: {
+			const auto& msg = CloseConnection::receive (message);
+			try {
+				ExecDomain::async_call <ReceiveCloseConnection> (
+					Chrono::make_deadline (CLOSE_CONNECTION_DEADLINE), Nirvana::Core::Binder::sync_domain (),
+					nullptr, std::ref (msg));
+			} catch (...) {
+			}
+		} break;
 	}
 }
 

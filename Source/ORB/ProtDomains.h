@@ -41,19 +41,19 @@ class ProtDomainsWaitable
 
 public:
 	CORBA::servant_reference <DomainProt> get (ProtDomainId domain_id);
+	CORBA::servant_reference <DomainProt> find (ProtDomainId domain_id) const NIRVANA_NOEXCEPT;
 
-	CORBA::servant_reference <DomainProt> find (ProtDomainId domain_id) const noexcept
-	{
-		auto it = map_.find (domain_id);
-		if (it != map_.end ())
-			return it->second.get ().get ();
-		else
-			return nullptr;
-	}
-
-	void erase (ProtDomainId domain_id) noexcept
+	void erase (ProtDomainId domain_id) NIRVANA_NOEXCEPT
 	{
 		map_.erase (domain_id);
+	}
+
+	void shutdown () NIRVANA_NOEXCEPT
+	{
+		for (auto it = map_.begin (); it != map_.end (); ++it) {
+			if (it->second.is_constructed ())
+				it->second.get ()->shutdown ();
+		}
 	}
 
 private:
@@ -71,18 +71,18 @@ class ProtDomainsSimple
 {
 public:
 	CORBA::servant_reference <DomainProt> get (ProtDomainId domain_id);
+	CORBA::servant_reference <DomainProt> find (ProtDomainId domain_id) const NIRVANA_NOEXCEPT;
 
 	void erase (ProtDomainId domain_id) NIRVANA_NOEXCEPT
 	{
 		map_.erase (domain_id);
 	}
 
-	CORBA::servant_reference <DomainProt> find (ProtDomainId domain_id) const NIRVANA_NOEXCEPT
+	void shutdown () NIRVANA_NOEXCEPT
 	{
-		auto it = map_.find (domain_id);
-		if (it != map_.end ())
-			return &const_cast <DomainProt&> (it->second);
-		return nullptr;
+		for (auto it = map_.begin (); it != map_.end (); ++it) {
+			it->second.shutdown ();
+		}
 	}
 
 private:

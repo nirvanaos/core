@@ -70,6 +70,11 @@ public:
 		listen_points_.erase (lp);
 	}
 
+	void shutdown () NIRVANA_NOEXCEPT
+	{
+		// TODO: Implement
+	}
+
 private:
 	typedef Nirvana::Core::MapUnorderedStable <IIOP::ListenPoint, servant_reference <DomainRemote>, std::hash <IIOP::ListenPoint>,
 		std::equal_to <IIOP::ListenPoint>, Nirvana::Core::BinderMemory::Allocator> ListenPoints;

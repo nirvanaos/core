@@ -38,9 +38,15 @@ void DomainProt::destroy () NIRVANA_NOEXCEPT
 	Binder::singleton ().remote_references ().prot_domains ().erase (id_);
 }
 
+DomainProt::~DomainProt ()
+{
+}
+
 CORBA::Internal::IORequest::_ref_type DomainProt::create_request (const IOP::ObjectKey& object_key,
 	const Internal::Operation& metadata, unsigned response_flags)
 {
+	if (zombie ())
+		throw COMM_FAILURE ();
 	return make_pseudo <RequestOut> (std::ref (*this), std::ref (object_key), std::ref (metadata),
 		response_flags, IOP::ServiceContextList ());
 }

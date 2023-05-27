@@ -119,6 +119,21 @@ public:
 		get_domain (rq.key ())->complex_ping (rq._get_ptr ());
 	}
 
+	void close_connection (ESIOP::ProtDomainId domain_id)
+	{
+		servant_reference <ESIOP::DomainProt> domain = prot_domains_.find (domain_id);
+		if (domain)
+			domain->make_zombie ();
+	}
+
+	void shutdown () NIRVANA_NOEXCEPT // Called on terminate()
+	{
+		assert (references_.empty ());
+		references_.clear ();
+		prot_domains_.shutdown ();
+		remote_domains_.shutdown ();
+	}
+
 private:
 	std::pair <typename References::iterator, bool> emplace_reference (const OctetSeq& addr);
 	static std::unique_ptr <ReferenceRemote> make_reference (const OctetSeq& addr,

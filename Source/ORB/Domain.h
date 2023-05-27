@@ -224,8 +224,10 @@ public:
 		std::exception_ptr exception_;
 	};
 
-	DGC_RefKey& on_DGC_reference_unmarshal (const IOP::ObjectKey& object_key)
+	DGC_RefKey* on_DGC_reference_unmarshal (const IOP::ObjectKey& object_key)
 	{
+		if (zombie_)
+			return nullptr;
 		bool first = remote_objects_.empty ();
 		auto ins = remote_objects_.emplace (object_key);
 		if (first)
@@ -233,11 +235,14 @@ public:
 		DGC_RefKey& key = const_cast <DGC_RefKey&> (*ins.first);
 		if (!ins.second)
 			key.reference_add ();
-		return key;
+		return &key;
 	}
 
 	void on_DGC_reference_delete (DGC_RefKey& key) noexcept
 	{
+		if (zombie_)
+			return;
+
 		if (0 == key.reference_remove ()) {
 			if (key.added () || key.request ()) {
 				remote_objects_del_.push_back (key);
@@ -248,6 +253,13 @@ public:
 	}
 
 	static void confirm_DGC_references (size_t cnt, CORBA::Core::ReferenceRemoteRef* refs);
+
+	void make_zombie () NIRVANA_NOEXCEPT;
+
+	bool zombie () const NIRVANA_NOEXCEPT
+	{
+		return zombie_;
+	}
 
 protected:
 	Domain (unsigned flags, TimeBase::TimeT request_latency, TimeBase::TimeT heartbeat_interval,
@@ -295,7 +307,7 @@ private:
 	}
 
 	void schedule_del () noexcept;
-	void send_del ();
+	void send_del () NIRVANA_NOEXCEPT;
 	void append_del (DGC_Request& rq);
 	void erase_remote_key (DGC_RefKey& key) noexcept;
 
@@ -353,6 +365,7 @@ private:
 	TimeBase::TimeT heartbeat_timeout_;
 
 	bool DGC_scheduled_;
+	bool zombie_;
 
 	static const Internal::Operation op_heartbeat_;
 };
