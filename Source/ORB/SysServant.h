@@ -95,9 +95,9 @@ class SysServantImpl :
 public:
 	typedef Primary PrimaryInterface;
 
-	Internal::Interface* _query_interface (const IDL::String& id)
+	Internal::Interface* _query_interface (const IDL::String& iid)
 	{
-		return Internal::FindInterface <Primary, Bases...>::find (static_cast <S&> (*this), id);
+		return Internal::FindInterface <Primary, Bases...>::find (static_cast <S&> (*this), iid);
 	}
 
 	Internal::I_ref <Primary> _this () const

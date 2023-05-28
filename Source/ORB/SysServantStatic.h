@@ -57,7 +57,6 @@ public:
 	{
 		SysObject* sys_obj = SysObject::create (
 			&static_cast <CORBA::LocalObject&> (*Internal::InterfaceStaticBase <S, CORBA::LocalObject>::_bridge ()), id);
-		Object::_ptr_type obj = sys_obj->proxy ().get_proxy ();
 		core_object_ = static_cast <CORBA::LocalObject*> (&CORBA::LocalObject::_ptr_type (sys_obj));
 	}
 
@@ -94,14 +93,14 @@ class SysServantStaticImpl :
 public:
 	typedef Primary PrimaryInterface;
 
-	Internal::Interface* _query_interface (const IDL::String& id)
+	Internal::Interface* _query_interface (const IDL::String& iid)
 	{
-		return Internal::FindInterface <Primary, Bases...>::find (*(S*)0, id);
+		return Internal::FindInterface <Primary, Bases...>::find (*(S*)0, iid);
 	}
 
 	static Internal::I_ref <Primary> _this ()
 	{
-		return SysServantStatic <S>::_get_proxy ().downcast <Primary> ();
+		return SysServantStatic <S>::_get_proxy ().template downcast <Primary> ();
 	}
 
 	static void initialize ()
