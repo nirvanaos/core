@@ -5,9 +5,13 @@ using namespace Nirvana;
 
 // Test for the Nirvana::System interface
 
-extern void writemem (void* p);
-
 namespace TestSystem {
+
+typedef void (*AccessViolator) (void* p);
+
+AccessViolator access_violator;
+
+extern void set_access_violator (AccessViolator& p);
 
 class TestSystem :
 	public ::testing::Test
@@ -35,6 +39,8 @@ protected:
 		// Code here will be called immediately after each test (right
 		// before the destructor).
 	}
+
+	static void writemem (void* p);
 };
 
 TEST_F (TestSystem, HeapFactory)
@@ -71,7 +77,8 @@ TEST_F (TestSystem, AccessViolation)
 	int minor = 0;
 	try {
 		writemem (p);
-	} catch (const CORBA::ACCESS_VIOLATION& ex) {
+	} catch (const CORBA::SystemException& ex) {
+		EXPECT_TRUE (CORBA::ACCESS_VIOLATION::_downcast (&ex)) << ex.what ();
 		OK = true;
 		minor = ex.minor ();
 	}
@@ -84,7 +91,8 @@ TEST_F (TestSystem, AccessViolation)
 	OK = false;
 	try {
 		writemem (p1);
-	} catch (const CORBA::ACCESS_VIOLATION& ex) {
+	} catch (const CORBA::SystemException& ex) {
+		EXPECT_TRUE (CORBA::ACCESS_VIOLATION::_downcast (&ex)) << ex.what ();;
 		OK = true;
 		minor = ex.minor ();
 	}
@@ -92,6 +100,14 @@ TEST_F (TestSystem, AccessViolation)
 	heap->release (p1, cb);
 	EXPECT_TRUE (OK);
 	EXPECT_EQ (SEGV_ACCERR, minor);
+}
+
+#pragma optimize("", off)
+void TestSystem::writemem (void* p)
+{
+	if (!p)
+		throw CORBA::BAD_PARAM ();
+	*(int*)p = 1;
 }
 
 TEST_F (TestSystem, Yield)
