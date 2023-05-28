@@ -59,7 +59,6 @@ void RequestIn::set_exception (Any& e)
 					send_error_message (key ().address.esiop, &reply, sizeof (reply));
 				}
 			} else {
-				assert (stream_out ());
 				Base::set_exception (e);
 				static_cast <StreamOutReply&> (*stream_out ()).send (request_id ());
 			}

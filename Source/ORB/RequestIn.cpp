@@ -257,7 +257,7 @@ void RequestIn::success ()
 
 void RequestIn::set_exception (Any& e)
 {
-	TypeCode::_ptr_type type = e.type();
+	TypeCode::_ptr_type type = e.type ();
 	if (type->kind () != TCKind::tk_except)
 		throw BAD_PARAM (MAKE_OMG_MINOR (21));
 
@@ -274,12 +274,14 @@ void RequestIn::set_exception (Any& e)
 		*(GIOP::ReplyStatusType*)((Octet*)stream_out_->header (reply_header_end_) + reply_status_offset_) = status;
 	}
 	unsigned rf = response_flags_;
-	if (rf)
+	if (rf & RESPONSE_EXPECTED) {
 		response_flags_ |= RESPONSE_DATA; // To marshal exception data.
-	try {
-		type->n_marshal_out (e.data (), 1, _get_ptr());
-	} catch (...) {}
-	response_flags_ = rf;
+		try {
+			stream_out_->write_string_c (type->id ());
+			type->n_marshal_out (e.data (), 1, _get_ptr ());
+		} catch (...) {}
+		response_flags_ = rf;
+	}
 }
 
 bool RequestIn::finalize () NIRVANA_NOEXCEPT
