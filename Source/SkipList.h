@@ -38,7 +38,6 @@
 #include "TaggedPtr.h"
 #include "BackOff.h"
 #include "RandomGen.h"
-#include "StaticallyAllocated.h"
 #include <algorithm>
 #include <utility>
 

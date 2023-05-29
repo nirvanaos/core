@@ -201,7 +201,8 @@ private:
 
 	size_t reply_status_offset_;
 	size_t reply_header_end_;
-	Nirvana::Core::StaticallyAllocated <DelayedReleaseTimer> delayed_release_timer_;
+	// We should not use StaticallyAllocated here because the constructed_ value will be undefined.
+	std::aligned_storage <sizeof (DelayedReleaseTimer), alignof (DelayedReleaseTimer)>::type delayed_release_timer_;
 	std::atomic <bool> cancelled_;
 	bool has_context_;
 };

@@ -48,7 +48,8 @@ RequestIn::RequestIn (const DomainAddress& client, unsigned GIOP_minor) :
 	reply_header_end_ (0),
 	cancelled_ (false),
 	has_context_ (false)
-{}
+{
+}
 
 void RequestIn::initialize (Ref <StreamIn>&& in)
 {
@@ -331,15 +332,15 @@ void RequestIn::post_send_success () NIRVANA_NOEXCEPT
 		else {
 			// For DGC-enabled target domain we need to delay request release
 			try {
-				delayed_release_timer_.construct (std::ref (*this));
+				new (&delayed_release_timer_) DelayedReleaseTimer (std::ref (*this));
 			} catch (...) {
 				return;
 			}
 			_add_ref ();
 			try {
-				delayed_release_timer_->set_relative (target_domain_->request_latency (), 0);
+				((DelayedReleaseTimer*)&delayed_release_timer_)->set_relative (target_domain_->request_latency (), 0);
 			} catch (...) {
-				delayed_release_timer_.destruct ();
+				((DelayedReleaseTimer*)&delayed_release_timer_)->DelayedReleaseTimer::~DelayedReleaseTimer ();
 				_remove_ref ();
 				return;
 			}
@@ -349,7 +350,7 @@ void RequestIn::post_send_success () NIRVANA_NOEXCEPT
 
 inline void RequestIn::delayed_release () NIRVANA_NOEXCEPT
 {
-	delayed_release_timer_.destruct ();
+	((DelayedReleaseTimer*)&delayed_release_timer_)->DelayedReleaseTimer::~DelayedReleaseTimer ();
 	_remove_ref ();
 }
 
