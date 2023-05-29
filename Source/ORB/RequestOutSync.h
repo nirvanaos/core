@@ -24,36 +24,39 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_CORE_HEAPDYNAMIC_H_
-#define NIRVANA_CORE_HEAPDYNAMIC_H_
+#ifndef NIRVANA_ORB_CORE_REQUESTOUTSYNC_H_
+#define NIRVANA_ORB_CORE_REQUESTOUTSYNC_H_
 #pragma once
 
-#include "HeapUser.h"
-#include <CORBA/Server.h>
-#include <Nirvana/Memory_s.h>
-#include "MemContextObject.h"
+#include "../Event.h"
 
-namespace Nirvana {
+namespace CORBA {
 namespace Core {
 
-class HeapDynamic :
-	public HeapUser,
-	public CORBA::servant_traits <Nirvana::Memory>::Servant <HeapDynamic>,
-	public CORBA::Internal::LifeCycleRefCnt <HeapDynamic>,
-	public MemContextObject
+template <class Base>
+class RequestOutSync : public Base
 {
 public:
-	using MemContextObject::operator new;
-	using MemContextObject::operator delete;
+	template <class ... Args>
+	RequestOutSync (Args ... args) :
+		Base (std::forward <Args> (args)...)
+	{ }
 
-	static Nirvana::Memory::_ref_type create (uint16_t allocation_unit)
+	virtual void invoke () override
 	{
-		return CORBA::make_pseudo <ImplDynamic <HeapDynamic> > (allocation_unit);
+		Base::invoke ();
+		event_.wait ();
 	}
 
-	HeapDynamic (uint16_t allocation_unit) :
-		HeapUser (allocation_unit)
-	{}
+protected:
+	virtual void finalize () NIRVANA_NOEXCEPT override
+	{
+		Base::finalize ();
+		event_.signal ();
+	}
+
+private:
+	Nirvana::Core::Event event_;
 };
 
 }

@@ -39,7 +39,6 @@ void RequestOut::invoke ()
 	// Now it is responsibility of the target domain to release it.
 	stm.detach ();
 	stream_out_ = nullptr;
-	post_invoke ();
 }
 
 void RequestOut::cancel ()

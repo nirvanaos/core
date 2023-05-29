@@ -27,7 +27,6 @@
 #include "OutgoingRequests.h"
 #include "DomainRemote.h"
 #include "../MemContextCore.h"
-#include "../TimerEvent.h"
 
 using namespace Nirvana;
 using namespace Nirvana::Core;
@@ -88,10 +87,10 @@ RequestOut::RequestOut (unsigned GIOP_minor, unsigned response_flags,
 		response_flags_ |= FLAG_PREUNMARSHAL;
 
 	ExecDomain& ed = ExecDomain::current ();
-	if ((response_flags & (1 | IOReference::REQUEST_ASYNC)) == 1)
+	if (response_flags & RESPONSE_EXPECTED)
 		deadline_ = ed.deadline ();
 	else
-		deadline_ = ed.get_request_deadline (!(response_flags & 1));
+		deadline_ = ed.get_request_deadline (true);
 }
 
 RequestOut::~RequestOut ()
@@ -427,33 +426,6 @@ bool RequestOut::get_exception (Any& e)
 		}
 	}
 	return false;
-}
-
-bool RequestOut::completed () const NIRVANA_NOEXCEPT
-{
-	return status_ >= Status::NO_EXCEPTION;
-}
-
-bool RequestOut::wait (uint64_t timeout)
-{
-	if (!timeout)
-		return completed ();
-	else if (std::numeric_limits <uint64_t>::max () == timeout) {
-		do {
-			event_.wait ();
-		} while (!completed ());
-		return true;
-	} else {
-		TimerEvent timer (event_);
-		timer.set_relative (timeout, 0);
-		for (;;) {
-			event_.wait ();
-			if (completed ())
-				return true;
-			if (timer.signalled ())
-				return false;
-		}
-	}
 }
 
 }

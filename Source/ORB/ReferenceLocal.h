@@ -81,7 +81,8 @@ public:
 private:
 	virtual ReferenceRef marshal (StreamOut& out) override;
 	virtual ReferenceLocalRef get_local_reference (const PortableServer::Core::POA_Base&) override;
-	virtual Internal::IORequest::_ref_type create_request (OperationIndex op, unsigned flags) override;
+	virtual Internal::IORequest::_ref_type create_request (OperationIndex op, unsigned flags,
+		Internal::RequestCallback::_ptr_type callback) override;
 
 private:
 	const PortableServer::Core::ObjectKey core_key_;

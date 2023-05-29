@@ -92,16 +92,16 @@ bool RequestLocalPOA::is_cancelled () const NIRVANA_NOEXCEPT
 	return RequestLocalBase::is_cancelled ();
 }
 
-void RequestLocalAsyncPOA::invoke ()
+void RequestLocalOnewayPOA::invoke ()
 {
 	RequestLocalBase::invoke (); // rewind etc.
 	PortableServer::Core::POA_Root::invoke_async (Ref <RequestInPOA> (this),
 		ExecDomain::current ().get_request_deadline (!response_flags ()));
 }
 
-void RequestLocalAsyncPOA::serve (const ServantProxyBase& proxy)
+void RequestLocalOnewayPOA::serve (const ServantProxyBase& proxy)
 {
-	if (RequestLocalAsyncPOA::is_cancelled ())
+	if (RequestLocalOnewayPOA::is_cancelled ())
 		return;
 	RequestLocalPOA::serve (proxy);
 }
@@ -110,6 +110,12 @@ void RequestLocalAsyncPOA::cancel () NIRVANA_NOEXCEPT
 {
 	if (set_cancelled ())
 		response_flags_ = 0; // Prevent marshaling
+}
+
+void RequestLocalAsyncPOA::finalize () NIRVANA_NOEXCEPT
+{
+	Base::finalize ();
+	RqHelper::call_completed (callback_, _get_ptr ());
 }
 
 }

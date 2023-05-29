@@ -49,7 +49,22 @@ inline
 const IOP::ServiceContext* binary_search (const IOP::ServiceContextList& seq,
 	IOP::ServiceId id) NIRVANA_NOEXCEPT
 {
-	return reinterpret_cast <const IOP::ServiceContext*> (binary_search (reinterpret_cast <const IOP::TaggedComponentSeq&> (seq), id));
+	return reinterpret_cast <const IOP::ServiceContext*> (
+		binary_search (reinterpret_cast <const IOP::TaggedComponentSeq&> (seq), id));
+}
+
+inline
+void sort (IOP::TaggedProfileSeq& seq) NIRVANA_NOEXCEPT
+{
+	sort (reinterpret_cast <IOP::TaggedComponentSeq&> (seq));
+}
+
+inline
+const IOP::TaggedProfile* binary_search (const IOP::TaggedProfileSeq& seq,
+	IOP::ProfileId id) NIRVANA_NOEXCEPT
+{
+	return reinterpret_cast <const IOP::TaggedProfile*> (
+		binary_search (reinterpret_cast <const IOP::TaggedComponentSeq&> (seq), id));
 }
 
 }

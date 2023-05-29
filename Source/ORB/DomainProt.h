@@ -49,7 +49,7 @@ public:
 	~DomainProt ();
 
 	virtual CORBA::Internal::IORequest::_ref_type create_request (const IOP::ObjectKey& object_key,
-		const CORBA::Internal::Operation& metadata, unsigned response_flags) override;
+		const CORBA::Internal::Operation& metadata, unsigned response_flags, CORBA::Internal::RequestCallback::_ptr_type callback) override;
 
 	void shutdown () NIRVANA_NOEXCEPT
 	{

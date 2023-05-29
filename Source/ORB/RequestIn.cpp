@@ -322,16 +322,6 @@ bool RequestIn::get_exception (Any& e)
 	return false;
 }
 
-bool RequestIn::completed () const NIRVANA_NOEXCEPT
-{
-	return false;
-}
-
-bool RequestIn::wait (uint64_t)
-{
-	throw BAD_OPERATION ();
-}
-
 void RequestIn::post_send_success () NIRVANA_NOEXCEPT
 {
 	if (!marshaled_DGC_references_.empty ()) {

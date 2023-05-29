@@ -41,10 +41,7 @@ public:
 	/// Constructor.
 	/// 
 	/// \param signalled Initial state. Default is not signalled.
-	Event (bool signalled = false) NIRVANA_NOEXCEPT :
-		wait_op_ (std::ref (*this)),
-		signalled_ (signalled)
-	{}
+	Event (bool signalled = false) NIRVANA_NOEXCEPT;
 
 	~Event ()
 	{

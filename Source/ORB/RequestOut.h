@@ -69,9 +69,6 @@ public:
 
 	static RequestId get_new_id (IdPolicy id_policy) NIRVANA_NOEXCEPT;
 
-	RequestOut (unsigned GIOP_minor, unsigned response_flags, Domain& target_domain, const Internal::Operation& metadata);
-	~RequestOut ();
-
 	RequestId id () const NIRVANA_NOEXCEPT
 	{
 		return id_;
@@ -91,6 +88,9 @@ public:
 		NIRVANA_NOEXCEPT;
 
 protected:
+	RequestOut (unsigned GIOP_minor, unsigned response_flags, Domain& target_domain, const Internal::Operation& metadata);
+	~RequestOut ();
+
 	void write_header (const IOP::ObjectKey& object_key, IOP::ServiceContextList& context);
 
 	virtual bool unmarshal (size_t align, size_t size, void* data) override;
@@ -113,25 +113,15 @@ protected:
 	virtual void success () override;
 	virtual void set_exception (Any& e) override;
 	virtual bool get_exception (Any& e) override;
-	virtual bool completed () const NIRVANA_NOEXCEPT override;
-	virtual bool wait (uint64_t timeout) override;
 
 	bool cancel_internal ();
 
 	void pre_invoke (IdPolicy id_policy);
 
-	void post_invoke () NIRVANA_NOEXCEPT
-	{
-		if (!(response_flags_ & Internal::IOReference::REQUEST_ASYNC))
-			event_.wait ();
-	}
+	virtual void finalize () NIRVANA_NOEXCEPT
+	{}
 
 private:
-	void finalize () NIRVANA_NOEXCEPT
-	{
-		event_.signal ();
-	}
-
 	void preunmarshal (TypeCode::_ptr_type tc, std::vector <Octet>& buf, Internal::IORequest::_ptr_type out);
 
 protected:
@@ -154,7 +144,6 @@ protected:
 
 	size_t request_id_offset_;
 
-	Nirvana::Core::Event event_;
 	Nirvana::Core::Ref <RequestLocalBase> preunmarshaled_;
 
 	static std::atomic <IdGenType> last_id_;

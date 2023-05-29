@@ -101,5 +101,19 @@ Any RqHelper::exception2any (Exception&& e)
 	return a;
 }
 
+void RqHelper::call_completed (RequestCallback::_ref_type& callback, IORequest::_ptr_type rq)
+NIRVANA_NOEXCEPT
+{
+	RequestCallback::_ref_type cb = std::move (callback);
+	assert (cb);
+	if (!cb)
+		return;
+	try {
+		cb->completed (rq);
+	} catch (...) {
+		// TODO: Log
+	}
+}
+
 }
 }

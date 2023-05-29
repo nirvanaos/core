@@ -135,7 +135,7 @@ void Domain::confirm_DGC_ref_start (const ReferenceRemoteRef* begin,
 		key->complete_deletion ();
 		if (!key->request ()) {
 			if (!rq)
-				rq = DGC_RequestRef::create <DGC_Request> (std::ref (*this));
+				rq = DGC_Request::create (*this);
 			rq->add (*key);
 		}
 	}
@@ -195,7 +195,7 @@ void Domain::send_del () NIRVANA_NOEXCEPT
 {
 	if (!remote_objects_del_.empty ()) {
 		try {
-			DGC_RequestRef rq = DGC_RequestRef::create <DGC_Request> (std::ref (*this));
+			DGC_RequestRef rq = DGC_Request::create (*this);
 			append_del (*rq);
 			rq->invoke ();
 			rq->complete ();
@@ -203,6 +203,13 @@ void Domain::send_del () NIRVANA_NOEXCEPT
 			// TODO: Log
 		}
 	}
+}
+
+void Domain::make_zombie () NIRVANA_NOEXCEPT
+{
+	zombie_ = true;
+	remote_objects_.clear ();
+	local_objects_.clear ();
 }
 
 void Domain::GC::run ()
@@ -213,28 +220,34 @@ void Domain::GC::run ()
 
 Domain::DGC_Request::DGC_Request (Domain& domain) :
 	domain_ (domain),
-	request_ (domain.create_request (IOP::ObjectKey (), operation_,
-		IORequest::RESPONSE_EXPECTED | IOReference::REQUEST_ASYNC)),
 	add_cnt_ (0)
 {
 }
 
+Domain::DGC_RequestRef Domain::DGC_Request::create (Domain& domain)
+{
+	return DGC_RequestRef::create <ImplDynamic <DGC_Request> > (std::ref (domain));
+}
+
 void Domain::DGC_Request::invoke ()
 {
-	request_->marshal_seq_begin (add_cnt_);
+	IORequest::_ref_type request = domain_.create_request (IOP::ObjectKey (), operation_,
+		IORequest::RESPONSE_EXPECTED, _get_ptr ());
+	request->marshal_seq_begin (add_cnt_);
 	auto it = keys_.begin ();
 	auto add_end = it + add_cnt_;
 	try {
 		for (; it != add_end; ++it) {
-			Internal::Type <IOP::ObjectKey>::marshal_in (**it, request_);
+			Internal::Type <IOP::ObjectKey>::marshal_in (**it, request);
 			(*it)->request (static_cast <DGC_Request&> (*this));
 		}
-		request_->marshal_seq_begin (keys_.size () - add_cnt_);
+		request->marshal_seq_begin (keys_.size () - add_cnt_);
 		for (; it != keys_.end (); ++it) {
-			Internal::Type <IOP::ObjectKey>::marshal_in (**it, request_);
+			Internal::Type <IOP::ObjectKey>::marshal_in (**it, request);
 			(*it)->request (static_cast <DGC_Request&> (*this));
 		}
-		request_->invoke ();
+		request->invoke ();
+		request_ = std::move (request);
 	} catch (...) {
 		while (it != keys_.begin ()) {
 			(*--it)->request_failed ();
@@ -248,7 +261,7 @@ void Domain::DGC_Request::invoke ()
 void Domain::DGC_Request::complete (bool no_throw)
 {
 	DGC_RequestRef hold (this);
-	request_->wait (std::numeric_limits <uint64_t>::max ());
+	RequestEvent::wait ();
 	if (!keys_.empty ()) { // Not yet completed
 		try {
 			Internal::ProxyRoot::check_request (request_);
@@ -276,13 +289,6 @@ void Domain::DGC_Request::complete (bool no_throw)
 		keys_.clear ();
 		add_cnt_ = 0;
 	}
-}
-
-void Domain::make_zombie () NIRVANA_NOEXCEPT
-{
-	zombie_ = true;
-	remote_objects_.clear ();
-	local_objects_.clear ();
 }
 
 }

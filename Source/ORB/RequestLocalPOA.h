@@ -68,19 +68,39 @@ private:
 	Internal::IOReference::OperationIndex op_idx_;
 };
 
-class NIRVANA_NOVTABLE RequestLocalAsyncPOA :
+class NIRVANA_NOVTABLE RequestLocalOnewayPOA :
 	public RequestLocalPOA
 {
 protected:
-	RequestLocalAsyncPOA (ReferenceLocal& reference, Internal::IOReference::OperationIndex op,
+	RequestLocalOnewayPOA (ReferenceLocal& reference, Internal::IOReference::OperationIndex op,
 		unsigned response_flags) :
 		RequestLocalPOA (reference, op, response_flags)
 	{}
 
 	virtual void invoke () override;
 	virtual void serve (const ServantProxyBase& proxy) override;
-	virtual void cancel () NIRVANA_NOEXCEPT override;
 
+};
+
+class NIRVANA_NOVTABLE RequestLocalAsyncPOA :
+	public RequestLocalOnewayPOA
+{
+	typedef RequestLocalOnewayPOA Base;
+
+protected:
+	RequestLocalAsyncPOA (Internal::RequestCallback::_ptr_type callback,
+		ReferenceLocal& reference, Internal::IOReference::OperationIndex op,
+		unsigned response_flags) :
+		Base (reference, op, response_flags),
+		callback_ (callback)
+	{
+	}
+
+	virtual void cancel () NIRVANA_NOEXCEPT override;
+	virtual void finalize () NIRVANA_NOEXCEPT override;
+
+private:
+	Internal::RequestCallback::_ref_type callback_;
 };
 
 }

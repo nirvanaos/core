@@ -26,6 +26,8 @@
 #include "DomainProt.h"
 #include "../Binder.h"
 #include "RequestOutESIOP.h"
+#include "RequestOutSync.h"
+#include "RequestOutAsync.h"
 
 using namespace Nirvana;
 using namespace Nirvana::Core;
@@ -43,12 +45,23 @@ DomainProt::~DomainProt ()
 }
 
 CORBA::Internal::IORequest::_ref_type DomainProt::create_request (const IOP::ObjectKey& object_key,
-	const Internal::Operation& metadata, unsigned response_flags)
+	const Internal::Operation& metadata, unsigned response_flags, Internal::RequestCallback::_ptr_type callback)
 {
 	if (zombie ())
 		throw COMM_FAILURE ();
-	return make_pseudo <RequestOut> (std::ref (*this), std::ref (object_key), std::ref (metadata),
-		response_flags, IOP::ServiceContextList ());
+
+	IOP::ServiceContextList sc;
+	if (callback) {
+		assert (response_flags & Internal::IORequest::RESPONSE_EXPECTED); // Checked in ReferenceRemote
+		return make_pseudo <RequestOutAsync <RequestOut> > (callback, std::ref (*this), std::ref (object_key), std::ref (metadata),
+			response_flags, std::ref (sc));
+	} else if (response_flags & Internal::IORequest::RESPONSE_EXPECTED) {
+		return make_pseudo <RequestOutSync <RequestOut> > (std::ref (*this), std::ref (object_key), std::ref (metadata),
+			response_flags, std::ref (sc));
+	} else {
+		return make_pseudo <RequestOut> (std::ref (*this), std::ref (object_key), std::ref (metadata),
+			response_flags, std::ref (sc));
+	}
 }
 
 }

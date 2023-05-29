@@ -39,6 +39,7 @@
 #include "../Chrono.h"
 #include "HashOctetSeq.h"
 #include "ReferenceLocal.h"
+#include "RequestEvent.h"
 #include <array>
 
 namespace CORBA {
@@ -54,7 +55,7 @@ class NIRVANA_NOVTABLE Domain : public SyncGC
 
 public:
 	virtual Internal::IORequest::_ref_type create_request (const IOP::ObjectKey& object_key,
-		const Internal::Operation& metadata, unsigned response_flags) = 0;
+		const Internal::Operation& metadata, unsigned response_flags, Internal::RequestCallback::_ptr_type callback) = 0;
 
 	/// Domain flag bits
 	enum
@@ -101,10 +102,13 @@ public:
 
 private:
 	// DGC request
-	class DGC_Request : public Nirvana::Core::UserObjectSyncRefCnt <DGC_Request>
+	class DGC_Request;
+	typedef Nirvana::Core::Ref <DGC_Request> DGC_RequestRef;
+
+	class DGC_Request : public RequestEvent
 	{
 	public:
-		DGC_Request (Domain& domain);
+		static DGC_RequestRef create (Domain& domain);
 
 		void add (DGC_RefKey& key)
 		{
@@ -121,6 +125,9 @@ private:
 
 		void complete (bool no_throw = false);
 
+	protected:
+		DGC_Request (Domain& domain);
+
 	private:
 		Domain& domain_;
 		Internal::IORequest::_ref_type request_;
@@ -130,7 +137,6 @@ private:
 		static const Internal::Operation operation_;
 	};
 
-	typedef Nirvana::Core::Ref <DGC_Request> DGC_RequestRef;
 
 public:
 	// DGC-enabled remote reference owned by the current domain
@@ -301,7 +307,7 @@ private:
 	void send_heartbeat ()
 	{
 		Internal::IORequest::_ref_type rq = create_request (IOP::ObjectKey (), op_heartbeat_,
-			Internal::IOReference::REQUEST_ASYNC);
+			0, nullptr);
 		rq->invoke ();
 		last_ping_out_time_ = Nirvana::Core::Chrono::steady_clock ();
 	}

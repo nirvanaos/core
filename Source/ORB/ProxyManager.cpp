@@ -305,11 +305,11 @@ IOReference::OperationIndex ProxyManager::find_operation (String_in name) const
 	throw BAD_OPERATION (MAKE_OMG_MINOR (2));
 }
 
-IORequest::_ref_type ProxyManager::create_request (OperationIndex op, unsigned flags)
+IORequest::_ref_type ProxyManager::create_request (OperationIndex op, unsigned flags,
+	Internal::RequestCallback::_ptr_type callback)
 {
 	assert (is_object_op (op));
-	unsigned response_flags = flags & 3;
-	if (response_flags == 2)
+	if (flags == 2 || flags > 3)
 		throw INV_FLAG ();
 
 	// Do not create new memory context for the trivial object operations.
@@ -317,17 +317,23 @@ IORequest::_ref_type ProxyManager::create_request (OperationIndex op, unsigned f
 	MemContext* memory = (op.operation_idx () == (UShort)ObjectOp::GET_INTERFACE)
 		? nullptr : &MemContext::current ();
 
-	if (flags & IOReference::REQUEST_ASYNC)
-		return make_pseudo <RequestLocalImpl <RequestLocalAsync> > (std::ref (*this), op,
-			memory, response_flags);
-	else
+	if (callback) {
+		if (!(flags & IORequest::RESPONSE_EXPECTED))
+			throw BAD_PARAM ();
+		return make_pseudo <RequestLocalImpl <RequestLocalAsync> > (callback, std::ref (*this), op,
+			memory, flags);
+	} else if (flags & IORequest::RESPONSE_EXPECTED) {
 		return make_pseudo <RequestLocalImpl <RequestLocal> > (std::ref (*this), op,
-			memory, response_flags);
+			memory, flags);
+	} else {
+		return make_pseudo <RequestLocalImpl <RequestLocalOneway> > (std::ref (*this), op,
+			memory, flags);
+	}
 }
 
 void ProxyManager::check_create_request (OperationIndex op, unsigned flags) const
 {
-	if ((flags & 3) == 2)
+	if (flags == 2 || flags > 3)
 		throw INV_FLAG ();
 	size_t itf = op.interface_idx ();
 	size_t op_cnt;

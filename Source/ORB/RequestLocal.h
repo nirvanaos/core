@@ -45,7 +45,7 @@ class NIRVANA_NOVTABLE RequestLocalBase :
 	public servant_traits <Internal::IORequest>::Servant <RequestLocalBase>,
 	public Internal::LifeCycleRefCnt <RequestLocalBase>,
 	public Nirvana::Core::UserObject,
-	private RqHelper
+	protected RqHelper
 {
 	/// A MARSHAL exception with minor code 9 indicates that fewer bytes were present in a message
 	/// than indicated by	the count. This condition can arise if the sender sends a message
@@ -418,6 +418,7 @@ public:
 			} catch (...) {}
 			rewind ();
 		}
+		finalize ();
 	}
 
 	/// Marks request as successful.
@@ -425,6 +426,7 @@ public:
 	{
 		rewind ();
 		state_ = State::SUCCESS;
+		finalize ();
 	}
 
 	///@}
@@ -452,25 +454,6 @@ public:
 	///@}
 
 	///@{
-	/// Asynchronous caller operations.
-
-	/// Non-blocking check for the request completion.
-	/// 
-	/// \returns `true` if request is completed.
-	bool completed () const NIRVANA_NOEXCEPT
-	{
-		return State::EXCEPTION == state_ || State::SUCCESS == state_;
-	}
-
-	/// Blocking check for the request completion.
-	/// 
-	/// \param timeout The wait timeout.
-	/// 
-	/// \returns `true` if request is completed.
-	bool wait (uint64_t timeout)
-	{
-		Nirvana::throw_BAD_OPERATION ();
-	}
 
 	/// Cancel the request.
 	virtual void cancel ()
@@ -548,6 +531,9 @@ protected:
 		return response_flags () && !cancelled_.exchange (true, std::memory_order_release);
 	}
 
+	virtual void finalize () NIRVANA_NOEXCEPT
+	{}
+
 private:
 	struct BlockHdr
 	{
@@ -591,8 +577,7 @@ private:
 	Segment* segments_;
 };
 
-class NIRVANA_NOVTABLE RequestLocal :
-	public RequestLocalBase
+class NIRVANA_NOVTABLE RequestLocal : public RequestLocalBase
 {
 protected:
 	RequestLocal (ProxyManager& proxy, Internal::IOReference::OperationIndex op_idx,
@@ -616,33 +601,23 @@ private:
 	Internal::IOReference::OperationIndex op_idx_;
 };
 
-class NIRVANA_NOVTABLE RequestLocalAsync :
-	public RequestLocal
+class NIRVANA_NOVTABLE RequestLocalOneway : public RequestLocal
 {
-	template <class> friend class Nirvana::Core::Ref;
-	template <class> friend class CORBA::servant_reference;
-
 	typedef RequestLocal Base;
+
 protected:
-	RequestLocalAsync (ProxyManager& proxy, Internal::IOReference::OperationIndex op_idx,
+	RequestLocalOneway (ProxyManager& proxy, Internal::IOReference::OperationIndex op_idx,
 		Nirvana::Core::MemContext* callee_memory, unsigned response_flags) NIRVANA_NOEXCEPT :
-		RequestLocal (proxy, op_idx, callee_memory, response_flags)
+		Base (proxy, op_idx, callee_memory, response_flags)
 	{}
 
-	// Override Runnable::_add_ref ()
-	void _add_ref () NIRVANA_NOEXCEPT
-	{
-		RequestLocal::_add_ref ();
-	}
-
 	virtual void invoke ();
-	virtual void cancel () NIRVANA_NOEXCEPT;
 
 private:
 	class Runnable : public Nirvana::Core::Runnable
 	{
 	public:
-		Runnable (RequestLocalAsync& rq) :
+		Runnable (RequestLocalOneway& rq) :
 			request_ (&rq)
 		{}
 
@@ -650,7 +625,7 @@ private:
 		virtual void run ();
 
 	private:
-		servant_reference <RequestLocalAsync> request_;
+		servant_reference <RequestLocalOneway> request_;
 	};
 
 	void run ()
@@ -659,6 +634,26 @@ private:
 		Base::invoke_sync ();
 	}
 
+};
+
+class NIRVANA_NOVTABLE RequestLocalAsync : public RequestLocalOneway
+{
+	typedef RequestLocalOneway Base;
+
+protected:
+	RequestLocalAsync (Internal::RequestCallback::_ptr_type callback,
+		ProxyManager & proxy, Internal::IOReference::OperationIndex op_idx,
+		Nirvana::Core::MemContext* callee_memory, unsigned response_flags) NIRVANA_NOEXCEPT :
+		Base (proxy, op_idx, callee_memory, response_flags),
+		callback_ (callback)
+	{
+	}
+
+	virtual void cancel () NIRVANA_NOEXCEPT override;
+	virtual void finalize () NIRVANA_NOEXCEPT override;
+
+private:
+	Internal::RequestCallback::_ref_type callback_;
 };
 
 template <class Base>

@@ -54,7 +54,7 @@ public:
 	{}
 
 	virtual Internal::IORequest::_ref_type create_request (const IOP::ObjectKey& object_key,
-		const Internal::Operation& metadata, unsigned flags) override;
+		const Internal::Operation& metadata, unsigned flags, Internal::RequestCallback::_ptr_type callback) override;
 
 	// Add DGC references owned by this domain.
 	// Used only in the connection-oriented GC.

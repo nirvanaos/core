@@ -84,14 +84,18 @@ ReferenceRef ReferenceRemote::marshal (StreamOut& out)
 	return this;
 }
 
-IORequest::_ref_type ReferenceRemote::create_request (OperationIndex op, unsigned flags)
+IORequest::_ref_type ReferenceRemote::create_request (OperationIndex op, unsigned flags,
+	RequestCallback::_ptr_type callback)
 {
 	if (is_object_op (op))
-		return ProxyManager::create_request (op, flags);
+		return ProxyManager::create_request (op, flags, callback);
 
 	check_create_request (op, flags);
 
-	return domain_->create_request (object_key_, operation_metadata (op), flags);
+	if (callback && !(flags & Internal::IORequest::RESPONSE_EXPECTED))
+		throw BAD_PARAM ();
+
+	return domain_->create_request (object_key_, operation_metadata (op), flags, callback);
 }
 
 }

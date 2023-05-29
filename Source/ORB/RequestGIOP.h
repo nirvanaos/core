@@ -374,18 +374,6 @@ public:
 	///@{
 	/// Asynchronous caller operations.
 
-	/// Non-blocking check for the request completion.
-	/// 
-	/// \returns `true` if request is completed.
-	virtual bool completed () const NIRVANA_NOEXCEPT = 0;
-
-	/// Blocking check for the request completion.
-	/// 
-	/// \param timeout The wait timeout.
-	/// 
-	/// \returns `true` if request is completed.
-	virtual bool wait (uint64_t timeout) = 0;
-
 	/// Cancel the request.
 	virtual void cancel () = 0;
 

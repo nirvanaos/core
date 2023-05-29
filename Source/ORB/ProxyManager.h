@@ -91,7 +91,8 @@ public:
 		return static_cast <Internal::Bridge <AbstractBase>*> (this);
 	}
 
-	virtual Internal::IORequest::_ref_type create_request (OperationIndex op, unsigned flags);
+	virtual Internal::IORequest::_ref_type create_request (OperationIndex op, unsigned flags,
+		Internal::RequestCallback::_ptr_type callback);
 
 	// Get Object proxy
 	Object::_ptr_type get_proxy () NIRVANA_NOEXCEPT
@@ -140,7 +141,7 @@ public:
 
 	Boolean _non_existent ()
 	{
-		Internal::IORequest::_ref_type rq = ior ()->create_request (_make_op_idx ((UShort)ObjectOp::NON_EXISTENT), 3);
+		Internal::IORequest::_ref_type rq = ior ()->create_request (_make_op_idx ((UShort)ObjectOp::NON_EXISTENT), 3, nullptr);
 		rq->invoke ();
 		Boolean _ret;
 		Internal::Type <Boolean>::unmarshal (rq, _ret);

@@ -24,36 +24,38 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_CORE_HEAPDYNAMIC_H_
-#define NIRVANA_CORE_HEAPDYNAMIC_H_
+#ifndef NIRVANA_ORB_CORE_REQUESTOUTASYNC_H_
+#define NIRVANA_ORB_CORE_REQUESTOUTASYNC_H_
 #pragma once
 
-#include "HeapUser.h"
 #include <CORBA/Server.h>
-#include <Nirvana/Memory_s.h>
-#include "MemContextObject.h"
+#include <CORBA/Proxy/IOReference.h>
+#include "../ExecDomain.h"
 
-namespace Nirvana {
+namespace CORBA {
 namespace Core {
 
-class HeapDynamic :
-	public HeapUser,
-	public CORBA::servant_traits <Nirvana::Memory>::Servant <HeapDynamic>,
-	public CORBA::Internal::LifeCycleRefCnt <HeapDynamic>,
-	public MemContextObject
+template <class Base>
+class RequestOutAsync : public Base
 {
 public:
-	using MemContextObject::operator new;
-	using MemContextObject::operator delete;
-
-	static Nirvana::Memory::_ref_type create (uint16_t allocation_unit)
+	template <class ... Args>
+	RequestOutAsync (Internal::RequestCallback::_ptr_type callback, Args ... args) :
+		Base (std::forward <Args> (args)...),
+		callback_ (callback)
 	{
-		return CORBA::make_pseudo <ImplDynamic <HeapDynamic> > (allocation_unit);
+		Base::deadline_ = ExecDomain::current ().get_request_deadline (false);
 	}
 
-	HeapDynamic (uint16_t allocation_unit) :
-		HeapUser (allocation_unit)
-	{}
+private:
+	virtual void finalize () NIRVANA_NOEXCEPT override
+	{
+		Base::finalize ();
+		RqHelper::call_completed (callback_, Base::_get_ptr ());
+	}
+
+private:
+	Internal::RequestCallback::_ref_type callback_;
 };
 
 }

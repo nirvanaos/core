@@ -24,36 +24,33 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_CORE_HEAPDYNAMIC_H_
-#define NIRVANA_CORE_HEAPDYNAMIC_H_
+#ifndef NIRVANA_ORB_CORE_REQUESTEVENT_H_
+#define NIRVANA_ORB_CORE_REQUESTEVENT_H_
 #pragma once
 
-#include "HeapUser.h"
 #include <CORBA/Server.h>
-#include <Nirvana/Memory_s.h>
-#include "MemContextObject.h"
+#include <CORBA/Proxy/IOReference_s.h>
+#include "../Event.h"
 
-namespace Nirvana {
+namespace CORBA {
 namespace Core {
 
-class HeapDynamic :
-	public HeapUser,
-	public CORBA::servant_traits <Nirvana::Memory>::Servant <HeapDynamic>,
-	public CORBA::Internal::LifeCycleRefCnt <HeapDynamic>,
-	public MemContextObject
+class NIRVANA_NOVTABLE RequestEvent :
+	public Nirvana::Core::Event,
+	public CORBA::servant_traits <Internal::RequestCallback>::Servant <RequestEvent>,
+	public CORBA::Internal::LifeCycleRefCnt <RequestEvent>
 {
-public:
-	using MemContextObject::operator new;
-	using MemContextObject::operator delete;
+	DECLARE_CORE_INTERFACE
 
-	static Nirvana::Memory::_ref_type create (uint16_t allocation_unit)
+public:
+	void completed (Internal::IORequest::_ptr_type request) NIRVANA_NOEXCEPT
 	{
-		return CORBA::make_pseudo <ImplDynamic <HeapDynamic> > (allocation_unit);
+		signal ();
 	}
 
-	HeapDynamic (uint16_t allocation_unit) :
-		HeapUser (allocation_unit)
-	{}
+protected:
+	RequestEvent ();
+	~RequestEvent ();
 };
 
 }

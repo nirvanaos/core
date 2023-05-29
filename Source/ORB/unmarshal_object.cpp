@@ -42,41 +42,27 @@ Object::_ref_type unmarshal_object (StreamIn& stream, ReferenceRemoteRef& unconf
 	Object::_ref_type obj;
 	IIOP::ListenPoint listen_point;
 	IOP::ObjectKey object_key;
-	bool object_key_found = false;
 	IOP::TaggedComponentSeq components;
 	IOP::TaggedProfileSeq addr;
 	stream.read_tagged (addr);
-	for (const IOP::TaggedProfile& profile : addr) {
-		switch (profile.tag ()) {
-		case IOP::TAG_INTERNET_IOP: {
-			Nirvana::Core::ImplStatic <StreamInEncap> stm (std::ref (profile.profile_data ()));
-			IIOP::Version ver;
-			stm.read (alignof (IIOP::Version), sizeof (IIOP::Version), &ver);
-			if (ver.major () != 1)
-				throw NO_IMPLEMENT (MAKE_OMG_MINOR (3));
-			stm.read_string (listen_point.host ());
-			CORBA::UShort port;
-			stm.read (alignof (CORBA::UShort), sizeof (CORBA::UShort), &port);
-			if (stm.other_endian ())
-				Nirvana::byteswap (port);
-			listen_point.port (port);
-			stm.read_seq (object_key);
-			object_key_found = true;
-			if (ver.minor () >= 1) {
-				if (components.empty ())
-					stm.read_tagged (components);
-				else {
-					IOP::TaggedComponentSeq comp;
-					stm.read_tagged (comp);
-					components.insert (components.end (), comp.begin (), comp.end ());
-				}
-			}
-			if (stm.end ())
-				throw INV_OBJREF ();
-		} break;
-
-		case IOP::TAG_MULTIPLE_COMPONENTS: {
-			Nirvana::Core::ImplStatic <StreamInEncap> stm (std::ref (profile.profile_data ()));
+	sort (addr);
+	const IOP::TaggedProfile* profile = binary_search (addr, IOP::TAG_INTERNET_IOP);
+	if (!profile)
+		throw IMP_LIMIT (MAKE_OMG_MINOR (1)); // Unable to use any profile in IOR.
+	else {
+		Nirvana::Core::ImplStatic <StreamInEncap> stm (std::ref (profile->profile_data ()));
+		IIOP::Version ver;
+		stm.read (alignof (IIOP::Version), sizeof (IIOP::Version), &ver);
+		if (ver.major () != 1)
+			throw NO_IMPLEMENT (MAKE_OMG_MINOR (3));
+		stm.read_string (listen_point.host ());
+		CORBA::UShort port;
+		stm.read (alignof (CORBA::UShort), sizeof (CORBA::UShort), &port);
+		if (stm.other_endian ())
+			Nirvana::byteswap (port);
+		listen_point.port (port);
+		stm.read_seq (object_key);
+		if (ver.minor () >= 1) {
 			if (components.empty ())
 				stm.read_tagged (components);
 			else {
@@ -84,20 +70,30 @@ Object::_ref_type unmarshal_object (StreamIn& stream, ReferenceRemoteRef& unconf
 				stm.read_tagged (comp);
 				components.insert (components.end (), comp.begin (), comp.end ());
 			}
-			if (stm.end ())
-				throw INV_OBJREF ();
-		} break;
 		}
+		if (stm.end ())
+			throw INV_OBJREF ();
 	}
 
-	if (!object_key_found)
-		throw IMP_LIMIT (MAKE_OMG_MINOR (1)); // Unable to use any profile in IOR.
+	profile = binary_search (addr, IOP::TAG_MULTIPLE_COMPONENTS);
+	if (profile) {
+		Nirvana::Core::ImplStatic <StreamInEncap> stm (std::ref (profile->profile_data ()));
+		if (components.empty ())
+			stm.read_tagged (components);
+		else {
+			IOP::TaggedComponentSeq comp;
+			stm.read_tagged (comp);
+			components.insert (components.end (), comp.begin (), comp.end ());
+		}
+		if (stm.end ())
+			throw INV_OBJREF ();
+	}
 
 	sort (components);
 	ULong ORB_type = 0;
-	auto p = binary_search (components, IOP::TAG_ORB_TYPE);
-	if (p) {
-		Nirvana::Core::ImplStatic <StreamInEncap> stm (std::ref (p->component_data ()));
+	auto component = binary_search (components, IOP::TAG_ORB_TYPE);
+	if (component) {
+		Nirvana::Core::ImplStatic <StreamInEncap> stm (std::ref (component->component_data ()));
 		ORB_type = stm.read32 ();
 		if (stm.other_endian ())
 			Internal::byteswap (ORB_type);
@@ -116,9 +112,9 @@ Object::_ref_type unmarshal_object (StreamIn& stream, ReferenceRemoteRef& unconf
 			obj = PortableServer::Core::POA_Root::unmarshal (primary_iid, object_key); // Local reference
 		else {
 			ESIOP::ProtDomainId domain_id;
-			auto pc = binary_search (components, ESIOP::TAG_DOMAIN_ADDRESS);
-			if (pc) {
-				Nirvana::Core::ImplStatic <StreamInEncap> stm (std::ref (pc->component_data ()));
+			component = binary_search (components, ESIOP::TAG_DOMAIN_ADDRESS);
+			if (component) {
+				Nirvana::Core::ImplStatic <StreamInEncap> stm (std::ref (component->component_data ()));
 				stm.read (alignof (ESIOP::ProtDomainId), sizeof (ESIOP::ProtDomainId), &domain_id);
 				if (stm.other_endian ())
 					Internal::byteswap (domain_id);

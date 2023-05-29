@@ -160,21 +160,28 @@ MemContext* ServantProxyBase::memory () const NIRVANA_NOEXCEPT
 	return mc;
 }
 
-IORequest::_ref_type ServantProxyBase::create_request (OperationIndex op, unsigned flags)
+IORequest::_ref_type ServantProxyBase::create_request (OperationIndex op, unsigned flags,
+	RequestCallback::_ptr_type callback)
 {
 	if (is_object_op (op))
-		return ProxyManager::create_request (op, flags);
+		return ProxyManager::create_request (op, flags, callback);
 
 	check_create_request (op, flags);
 
-	unsigned response_flags = flags & 3;
 	MemContext* mem = memory ();
-	if (flags & REQUEST_ASYNC)
-		return make_pseudo <RequestLocalImpl <RequestLocalAsync> > (std::ref (*this), op,
-			mem, response_flags);
-	else
+
+	if (callback) {
+		if (!(flags & IORequest::RESPONSE_EXPECTED))
+			throw BAD_PARAM ();
+		return make_pseudo <RequestLocalImpl <RequestLocalAsync> > (callback, std::ref (*this), op,
+			mem, flags);
+	} else if (flags & IORequest::RESPONSE_EXPECTED) {
 		return make_pseudo <RequestLocalImpl <RequestLocal> > (std::ref (*this), op,
-			mem, response_flags);
+			mem, flags);
+	} else {
+		return make_pseudo <RequestLocalImpl <RequestLocalOneway> > (std::ref (*this), op,
+			mem, flags);
+	}
 }
 
 }

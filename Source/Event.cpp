@@ -3,6 +3,12 @@
 namespace Nirvana {
 namespace Core {
 
+Event::Event (bool signalled) NIRVANA_NOEXCEPT :
+	wait_op_ (std::ref (*this)),
+	signalled_ (signalled)
+{
+}
+
 void Event::wait () {
 	if (!signalled_) {
 		ExecDomain::current ().suspend_prepare ();

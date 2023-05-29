@@ -208,10 +208,11 @@ public:
 	void suspend_prepared () NIRVANA_NOEXCEPT;
 
 	/// Resume suspended domain
-	void resume ()
+	void resume () NIRVANA_NOEXCEPT
 	{
 		assert (ExecContext::current_ptr () != this);
 		assert (sync_context_);
+		// schedule with ret = true doed not throw exceptions
 		schedule (*sync_context_, true);
 	}
 

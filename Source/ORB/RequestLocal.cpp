@@ -406,14 +406,14 @@ void RequestLocal::invoke_sync () NIRVANA_NOEXCEPT
 	proxy ()->invoke (op_idx (), _get_ptr ());
 }
 
-void RequestLocalAsync::invoke ()
+void RequestLocalOneway::invoke ()
 {
 	RequestLocalBase::invoke (); // rewind
 	ExecDomain::async_call <Runnable> (ExecDomain::current ().get_request_deadline (!response_flags ()),
 		proxy ()->get_sync_context (op_idx ()), memory (), std::ref (*this));
 }
 
-void RequestLocalAsync::Runnable::run ()
+void RequestLocalOneway::Runnable::run ()
 {
 	request_->run ();
 }
@@ -422,6 +422,12 @@ void RequestLocalAsync::cancel () NIRVANA_NOEXCEPT
 {
 	if (set_cancelled ())
 		response_flags_ = 0; // Prevent marshaling
+}
+
+void RequestLocalAsync::finalize () NIRVANA_NOEXCEPT
+{
+	Base::finalize ();
+	RqHelper::call_completed (callback_, _get_ptr ());
 }
 
 }

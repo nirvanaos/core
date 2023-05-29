@@ -48,7 +48,8 @@ public:
 	~ReferenceRemote ();
 
 	virtual ReferenceRef marshal (StreamOut& out) override;
-	virtual Internal::IORequest::_ref_type create_request (OperationIndex op, unsigned flags) override;
+	virtual Internal::IORequest::_ref_type create_request (OperationIndex op, unsigned flags,
+		Internal::RequestCallback::_ptr_type callback) override;
 
 	const Char* set_object_name (const Char* name)
 	{
