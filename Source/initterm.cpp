@@ -74,9 +74,6 @@ void shutdown ()
 	// Block incoming requests and complete currently executed ones.
 	PortableServer::Core::POA_Root::shutdown ();
 
-	// Stop receiving messages. But we can still send messages.
-	Port::PostOffice::terminate ();
-
 	// Terminate services to release all proxies
 	CORBA::Core::Services::terminate ();
 
@@ -86,6 +83,9 @@ void shutdown ()
 
 void terminate ()
 {
+	// Stop receiving messages. But we can still send messages.
+	Port::PostOffice::terminate ();
+
 	ProtDomain::terminate ();
 	Binder::terminate ();
 	CORBA::Core::terminate ();

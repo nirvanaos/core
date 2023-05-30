@@ -30,7 +30,7 @@
 #include "Chrono.h"
 
 // Output debug messages on shutdown.
-//#define DEBUG_SHUTDOWN
+#define DEBUG_SHUTDOWN
 
 // If we use INFINITE_DEADLINE, the new background thread will be created for shutdown.
 //#define SHUTDOWN_DEADLINE Chrono::make_deadline (1 * TimeBase::MINUTE)

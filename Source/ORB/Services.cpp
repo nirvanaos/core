@@ -25,6 +25,7 @@
 */
 
 #include "Services.h"
+#include "Scheduler.h"
 #include "PortableServer_Current.h"
 
 namespace Nirvana {
@@ -65,6 +66,10 @@ Object::_ref_type Services::bind_internal (Service sidx)
 	ServiceRef& ref = services_ [sidx];
 	Object::_ref_type ret = ref.get_if_constructed ();
 	if (!ret) {
+		if (Scheduler::state () != Scheduler::RUNNING)
+			throw INITIALIZE ();
+
+		// Create service
 		const Factory& f = factories_ [sidx];
 		SYNC_BEGIN (sync_domain_, nullptr);
 		if (ref.initialize (f.creation_deadline)) {
