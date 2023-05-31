@@ -293,7 +293,9 @@ void ExecDomain::schedule_call_no_push_mem (SyncContext& target)
 	// If old context is a synchronization domain, we
 	// allocate queue node to perform return without a risk
 	// of memory allocation failure.
-	SyncDomain* old_sd = old_context.sync_domain ();
+	// We must hold old SyncDomain reference here to avoid release sync domain in
+	// neutral context when exec_domain () is nullptr.
+	Ref <SyncDomain> old_sd = old_context.sync_domain ();
 	if (old_sd) {
 		ret_qnode_push (*old_sd);
 		old_sd->leave ();
@@ -303,10 +305,6 @@ void ExecDomain::schedule_call_no_push_mem (SyncContext& target)
 	if (target.sync_domain () ||
 		!(deadline () == INFINITE_DEADLINE && &Thread::current () == background_worker_)) {
 		// Need to schedule
-
-		// We must hold old SyncDomain reference here to avoid release sync domain in
-		// neutral context when exec_domain () is nullptr.
-		Ref <SyncDomain> hold (old_sd);
 
 		// Call schedule() in the neutral context
 		schedule_.sync_context_ = &target;
