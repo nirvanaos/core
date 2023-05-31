@@ -211,6 +211,7 @@ void* StreamInSM::read (size_t align, size_t& size)
 	if (segment) {
 		inc_position (size);
 		// Adopt segment
+		MemContext::current ().heap ().add_large_block (segment->pointer, segment->size);
 		size = round_up (segment->size, Port::Memory::ALLOCATION_UNIT);
 		ret = segment->pointer;
 	} else {

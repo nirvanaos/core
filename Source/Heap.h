@@ -110,6 +110,14 @@ public:
 	/// \returns Pointer of the memory block in this heap.
 	void* move_from (Heap& other, void* p, size_t& size);
 
+	/// Add large block
+	///
+	/// \param p Memory block in \p other.
+	/// \param size Memory block size.
+	/// 
+	/// On exception, memory block will be released, then exception rethrown.
+	void add_large_block (void* p, size_t size);
+
 	/// Returns core heap.
 	static Heap& core_heap () NIRVANA_NOEXCEPT;
 
@@ -298,8 +306,6 @@ protected:
 	void release (Directory& part, void* p, size_t size) const;
 
 	virtual MemoryBlock* add_new_partition (MemoryBlock*& tail);
-
-	void add_large_block (void* p, size_t size);
 
 	/// \summary Atomically erase large block information from the block list.
 	class LBErase;

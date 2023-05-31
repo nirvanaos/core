@@ -107,7 +107,7 @@ void StreamOutSM::write (size_t align, size_t size, void* data, size_t& allocate
 		}
 
 		// Store segment to stream
-		size_t offset = (uint8_t*)block.ptr - p;
+		size_t offset = p - (uint8_t*)block.ptr;
 		other_domain_->store_pointer (segments_tail_, block.other_ptr + offset);
 		segments_tail_ = p;
 		if (commit_unit_) {
