@@ -96,7 +96,7 @@ void StreamOutSM::write (size_t align, size_t size, void* data, size_t& allocate
 				MemContext::current ().heap ().release ((uint8_t*)data + adopted_size, cb_release);
 		}
 
-		// Reserve space for StreeamInSM::Segment
+		// Reserve space for StreamInSM::Segment
 		ptrdiff_t cb_segment = 2 * sizes_.sizeof_pointer + sizes_.sizeof_size;
 		uint8_t* p = round_up (cur_ptr_, sizes_.sizeof_pointer);
 		if (cb_segment > block_end - p) {
