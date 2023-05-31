@@ -87,13 +87,11 @@ void StreamOutSM::write (size_t align, size_t size, void* data, size_t& allocate
 		other_allocated_.emplace_back ();
 		OtherAllocated& oa = other_allocated_.back ();
 		size_t adopted_size = size;
-		oa.ptr = other_domain_->copy (0, data, adopted_size, allocated_size != 0);
+		oa.ptr = other_domain_->copy (0, data, adopted_size, (allocated_size != 0) ? Nirvana::Memory::SRC_DECOMMIT : 0);
 		oa.size = adopted_size;
 		if (allocated_size) {
-			size_t cb_release = allocated_size - adopted_size;
+			MemContext::current ().heap ().release ((uint8_t*)data, allocated_size);
 			allocated_size = 0;
-			if (cb_release)
-				MemContext::current ().heap ().release ((uint8_t*)data + adopted_size, cb_release);
 		}
 
 		// Reserve space for StreamInSM::Segment
@@ -195,7 +193,7 @@ void StreamOutSM::purge ()
 			if (ptr) { // Is not purged
 				const void* end = (uint8_t*)ptr + it->size;
 				if (!(ptr < segments_tail_ && segments_tail_ < end) && !(ptr < chunk_ && chunk_ < end)) {
-					other_domain_->copy (it->other_ptr, it->ptr, it->size, true);
+					other_domain_->copy (it->other_ptr, it->ptr, it->size, Nirvana::Memory::SRC_RELEASE);
 					it->ptr = nullptr;
 				}
 			}
@@ -290,7 +288,7 @@ void StreamOutSM::store_stream (SharedMemPtr& where)
 	// Purge all blocks
 	for (auto it = blocks_.begin (); it != blocks_.end (); ++it) {
 		if (it->ptr) {
-			other_domain_->copy (it->other_ptr, it->ptr, it->size, true);
+			other_domain_->copy (it->other_ptr, it->ptr, it->size, Nirvana::Memory::SRC_RELEASE);
 			it->ptr = nullptr;
 		}
 	}
