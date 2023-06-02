@@ -167,7 +167,7 @@ void Binder::terminate ()
 
 NIRVANA_NORETURN void Binder::invalid_metadata ()
 {
-	throw std::runtime_error ("Invalid file format");
+	throw RuntimeError (ENOEXEC);
 }
 
 const ModuleStartup* Binder::module_bind (::Nirvana::Module::_ptr_type mod, const Section& metadata, ModuleContext* mod_context)
@@ -376,7 +376,7 @@ Ref <Module> Binder::load (std::string& module_name, bool singleton)
 			else
 				mod = new ClassLibrary (entry.first);
 			SYNC_END ();
-			
+
 			assert (mod->_refcount_value () == 0);
 			ModuleContext context{ mod->sync_context () };
 			const ModuleStartup* startup = module_bind (mod->_get_ptr (), mod->metadata (), &context);
@@ -494,7 +494,12 @@ Binder::InterfaceRef Binder::find (const ObjectKey& name)
 			BindInfo bind_info;
 			sys_domain->get_bind_info (name.name (), PLATFORM, bind_info);
 			if (bind_info._d ()) {
-				Ref <Module> mod = load (bind_info.module_name (), false);
+				try {
+					Ref <Module> mod = load (bind_info.module_name (), false);
+				} catch (const RuntimeError&) {
+					// TODO: Log
+					throw_OBJECT_NOT_EXIST ();
+				}
 				itf = object_map_.find (name);
 				if (!itf)
 					throw_OBJECT_NOT_EXIST ();
@@ -504,11 +509,7 @@ Binder::InterfaceRef Binder::find (const ObjectKey& name)
 					CORBA::Core::ProxyManager::cast (obj));
 				if (!ref)
 					throw_OBJECT_NOT_EXIST ();
-				try {
-					object_map_.insert (ref->set_object_name (name.name ()), &obj);
-				} catch (...) {
-					assert (false);
-				}
+				object_map_.insert (ref->set_object_name (name.name ()), &obj);
 				return std::move (bind_info.obj ());
 			}
 		}
