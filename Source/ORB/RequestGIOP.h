@@ -306,19 +306,21 @@ public:
 			AbstractBase::_ptr_type base = abstract_interface2base (itf);
 			Object::_ref_type obj = base->_to_object ();
 			if (obj) {
-				Boolean is_object = true;
+				Octet is_object = 1;
 				stream_out_->write_c (1, 1, &is_object);
 				marshal_object (obj);
 			} else {
 				ValueBase::_ref_type value = base->_to_value ();
 				if (!value)
 					Nirvana::throw_MARSHAL ();
-				Boolean is_object = false;
+				Octet is_object = 0;
 				stream_out_->write_c (1, 1, &is_object);
 				marshal_value (value, itf, output);
 			}
 		} else {
-			Boolean is_object = false;
+			// If there is no indication whether a nil abstract interface represents a
+			// nil object reference or a null valuetype, it shall be encoded as a null valuetype.
+			Octet is_object = 0;
 			stream_out_->write_c (1, 1, &is_object);
 			stream_out_->write32 (0);
 		}

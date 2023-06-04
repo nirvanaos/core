@@ -81,7 +81,7 @@ private:
 	const Segment* get_segment (size_t align, size_t size);
 	inline void physical_read (size_t& align, size_t& size, void* buf);
 	inline static void release_block (BlockHdr* block);
-	void inc_position (size_t cb);
+	void inc_position (size_t align, size_t cb);
 
 private:
 	BlockHdr* cur_block_;

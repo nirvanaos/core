@@ -209,8 +209,8 @@ void RequestGIOP::marshal_type_code (StreamOut& stream, TypeCode::_ptr_type tc, 
 		} return;
 	}
 
+	size_t pos = round_up (stream.size (), (size_t)4) + parent_offset;
 	{
-		size_t pos = stream.size () + parent_offset - 4;
 		auto ins = map.emplace (&tc, pos);
 		if (!ins.second) {
 			stream.write32 (INDIRECTION_TAG);
@@ -220,7 +220,7 @@ void RequestGIOP::marshal_type_code (StreamOut& stream, TypeCode::_ptr_type tc, 
 		}
 	}
 
-	size_t next_pos = parent_offset + stream.size () + 4;
+	pos += 8; // parent_offset for the next level calls
 	switch ((TCKind)kind) {
 		case TCKind::tk_objref:
 		case TCKind::tk_native:
@@ -240,7 +240,7 @@ void RequestGIOP::marshal_type_code (StreamOut& stream, TypeCode::_ptr_type tc, 
 			for (ULong i = 0; i < cnt; ++i) {
 				IDL::String name = tc->member_name (i);
 				encap.write_string (name, true);
-				marshal_type_code (encap, tc->member_type (i), map, next_pos);
+				marshal_type_code (encap, tc->member_type (i), map, pos);
 			}
 			stream.write_seq (encap.data (), true);
 		} break;
@@ -249,7 +249,7 @@ void RequestGIOP::marshal_type_code (StreamOut& stream, TypeCode::_ptr_type tc, 
 			ImplStatic <StreamOutEncap> encap;
 			encap.write_id_name (tc);
 			TypeCode::_ref_type discriminator_type = tc->discriminator_type ();
-			marshal_type_code (encap, discriminator_type, map, next_pos);
+			marshal_type_code (encap, discriminator_type, map, pos);
 			size_t discriminator_size = discriminator_type->n_size ();
 			Long default_index = tc->default_index ();
 			encap.write_c (alignof (long), sizeof (long), &default_index);
@@ -269,7 +269,7 @@ void RequestGIOP::marshal_type_code (StreamOut& stream, TypeCode::_ptr_type tc, 
 				}
 				IDL::String name = tc->member_name (i);
 				encap.write_string (name, true);
-				marshal_type_code (encap, tc->member_type (i), map, next_pos);
+				marshal_type_code (encap, tc->member_type (i), map, pos);
 			}
 			stream.write_seq (encap.data (), true);
 		} break;
@@ -289,7 +289,7 @@ void RequestGIOP::marshal_type_code (StreamOut& stream, TypeCode::_ptr_type tc, 
 		case TCKind::tk_sequence:
 		case TCKind::tk_array: {
 			ImplStatic <StreamOutEncap> encap;
-			marshal_type_code (encap, tc->content_type (), map, next_pos);
+			marshal_type_code (encap, tc->content_type (), map, pos);
 			encap.write32 (tc->length ());
 			stream.write_seq (encap.data (), true);
 		} break;
@@ -297,7 +297,7 @@ void RequestGIOP::marshal_type_code (StreamOut& stream, TypeCode::_ptr_type tc, 
 		case TCKind::tk_alias: {
 			ImplStatic <StreamOutEncap> encap;
 			encap.write_id_name (tc);
-			marshal_type_code (encap, tc->content_type (), map, next_pos);
+			marshal_type_code (encap, tc->content_type (), map, pos);
 			stream.write_seq (encap.data (), true);
 		} break;
 
@@ -306,13 +306,13 @@ void RequestGIOP::marshal_type_code (StreamOut& stream, TypeCode::_ptr_type tc, 
 			encap.write_id_name (tc);
 			ValueModifier mod = tc->type_modifier ();
 			encap.write_c (alignof (ValueModifier), sizeof (ValueModifier), &mod);
-			marshal_type_code (encap, tc->concrete_base_type (), map, next_pos);
+			marshal_type_code (encap, tc->concrete_base_type (), map, pos);
 			ULong cnt = tc->member_count ();
 			encap.write32 (cnt);
 			for (ULong i = 0; i < cnt; ++i) {
 				IDL::String name = tc->member_name (i);
 				encap.write_string (name, true);
-				marshal_type_code (encap, tc->member_type (i), map, next_pos);
+				marshal_type_code (encap, tc->member_type (i), map, pos);
 				Visibility vis = tc->member_visibility (i);
 				encap.write_c (alignof (Visibility), sizeof (Visibility), &vis);
 			}
@@ -322,7 +322,7 @@ void RequestGIOP::marshal_type_code (StreamOut& stream, TypeCode::_ptr_type tc, 
 		case TCKind::tk_value_box: {
 			ImplStatic <StreamOutEncap> encap;
 			encap.write_id_name (tc);
-			marshal_type_code (encap, tc->content_type (), map, next_pos);
+			marshal_type_code (encap, tc->content_type (), map, pos);
 			stream.write_seq (encap.data (), true);
 		} break;
 
@@ -333,7 +333,7 @@ void RequestGIOP::marshal_type_code (StreamOut& stream, TypeCode::_ptr_type tc, 
 
 TypeCode::_ref_type RequestGIOP::unmarshal_type_code ()
 {
-	size_t start_pos = stream_in_->position ();
+	size_t start_pos = round_up (stream_in_->position (), (size_t)4);
 	ULong kind = stream_in_->read32 ();
 	if (INDIRECTION_TAG == kind) {
 		Long off = stream_in_->read32 ();
@@ -367,7 +367,7 @@ void RequestGIOP::marshal_value (Interface::_ptr_type val, bool output)
 
 void RequestGIOP::marshal_value (ValueBase::_ptr_type base, Interface::_ptr_type val, bool output)
 {
-	size_t pos = stream_out_->size ();
+	size_t pos = round_up (stream_out_->size (), (size_t)4);
 	auto ins = value_map_marshal_.emplace (&base, pos);
 	if (!ins.second) {
 		stream_out_->write32 (INDIRECTION_TAG);
@@ -442,7 +442,7 @@ Interface::_ref_type RequestGIOP::unmarshal_value (const IDL::String& interface_
 			throw MARSHAL (); // Unexpected
 		stream_in_->chunk_mode (false);
 	}
-	size_t start_pos = stream_in_->position ();
+	size_t start_pos = round_up (stream_in_->position (), (size_t)4);
 	Long value_tag = stream_in_->read32 ();
 	if (0 == value_tag)
 		return nullptr;
@@ -563,7 +563,7 @@ const IDL::String& RequestGIOP::unmarshal_rep_id ()
 
 Interface::_ref_type RequestGIOP::unmarshal_abstract (const IDL::String& interface_id)
 {
-	Boolean is_object = false;
+	Octet is_object;
 	stream_in_->read (1, 1, &is_object);
 	if (is_object)
 		return RequestGIOP::unmarshal_interface (interface_id);

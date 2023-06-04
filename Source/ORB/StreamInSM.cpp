@@ -121,9 +121,9 @@ const StreamInSM::Segment* StreamInSM::get_segment (size_t align, size_t size)
 	return nullptr;
 }
 
-void StreamInSM::inc_position (size_t cb)
+void StreamInSM::inc_position (size_t align, size_t cb)
 {
-	position_ += cb;
+	position_ = round_up (position_, align) + cb;
 	if (chunk_mode_ && position_ > chunk_end_)
 		throw_MARSHAL ();
 }
@@ -163,7 +163,7 @@ void StreamInSM::physical_read (size_t& align, size_t& size, void* buf)
 			dst = real_copy (src, end, dst);
 		cur_ptr_ = end;
 		size -= cb;
-		inc_position (cb);
+		inc_position (align, cb);
 		// Adjust alignment if the remaining size less than it
 		if (align > size)
 			align = size;
@@ -181,15 +181,15 @@ void StreamInSM::read (size_t align, size_t size, void* buf)
 	do {
 		if (segment) {
 			size_t cb = segment->size;
-			if (cb > size) // We can not stop reading in the middle of the segment.
-				throw_MARSHAL (); // Data structure is not valid.
+			if (cb > size)
+				cb = size;
 			if (dst) {
 				Port::Memory::copy (dst, segment->pointer, cb, Memory::SRC_DECOMMIT);
 				dst += cb;
 			}
 			Port::Memory::release (segment->pointer, segment->size);
 			size -= cb;
-			inc_position (cb);
+			inc_position (align, cb);
 		} else {
 			physical_read (align, size, buf);
 			if (size) {
@@ -209,7 +209,7 @@ void* StreamInSM::read (size_t align, size_t& size)
 	void* ret = nullptr;
 	const Segment* segment = get_segment (align, size);
 	if (segment) {
-		inc_position (size);
+		inc_position (align, size);
 		// Adopt segment
 		MemContext::current ().heap ().add_large_block (segment->pointer, segment->size);
 		size = round_up (segment->size, Port::Memory::ALLOCATION_UNIT);
