@@ -376,6 +376,8 @@ void RequestGIOP::marshal_value (ValueBase::_ptr_type base, Interface::_ptr_type
 		return;
 	}
 	Interface::_ptr_type primary = base->_query_valuetype (nullptr);
+	if (!primary)
+		throw UNKNOWN ();
 	Long tag = 0x7FFFFF00;
 	if (&primary != &val) {
 		// Parameter type corresponds to the primary type - we need to provide type information.
