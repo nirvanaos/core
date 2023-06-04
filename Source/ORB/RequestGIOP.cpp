@@ -395,7 +395,7 @@ void RequestGIOP::marshal_value (ValueBase::_ptr_type base, Interface::_ptr_type
 			stream_out_->write32 (tag);
 			stream_out_->write_size (list.size ());
 			for (IDL::String& id : list) {
-				marshal_rep_id (std::move (id));
+				marshal_val_rep_id (std::move (id));
 			}
 		} else {
 			// Single ID
@@ -405,7 +405,7 @@ void RequestGIOP::marshal_value (ValueBase::_ptr_type base, Interface::_ptr_type
 				tag |= 8;
 			}
 			stream_out_->write32 (tag);
-			marshal_rep_id (primary->_epv ().interface_id);
+			marshal_val_rep_id (primary->_epv ().interface_id);
 		}
 	} else {
 		if (chunk_level_) {
@@ -422,7 +422,7 @@ void RequestGIOP::marshal_value (ValueBase::_ptr_type base, Interface::_ptr_type
 	}
 }
 
-void RequestGIOP::marshal_rep_id (IDL::String&& id)
+void RequestGIOP::marshal_val_rep_id (IDL::String&& id)
 {
 	size_t pos = stream_out_->size ();
 	auto ins = rep_id_map_marshal_.emplace (std::move (id), pos);
@@ -473,20 +473,19 @@ Interface::_ref_type RequestGIOP::unmarshal_value (const IDL::String& interface_
 	}
 
 	// Read type information
-	std::vector <IDL::String> type_info;
+	std::vector <const IDL::String*> type_info;
 	switch (value_tag & 0x00000006) {
 		case 0: // No type information
-			type_info.emplace_back (interface_id);
+			type_info.emplace_back (&interface_id);
 			break;
 		case 2: // Single repository id
-			type_info.emplace_back ();
-			stream_in_->read_string (type_info.front ());
+			type_info.push_back (&unmarshal_val_rep_id ());
 			break;
 		case 6: { // Sequence of the repository IDs
 			ULong count = stream_in_->read32 ();
-			type_info.resize (count);
-			for (IDL::String& s : type_info) {
-				stream_in_->read_string (s);
+			type_info.reserve (count);
+			while (count--) {
+				type_info.push_back (&unmarshal_val_rep_id ());
 			}
 		} break;
 
@@ -496,9 +495,9 @@ Interface::_ref_type RequestGIOP::unmarshal_value (const IDL::String& interface_
 
 	ValueFactoryBase::_ref_type factory;
 	bool truncate = false;
-	for (const IDL::String& id : type_info) {
+	for (const IDL::String* id : type_info) {
 		try {
-			factory = Binder::bind_interface <ValueFactoryBase> (id);
+			factory = Binder::bind_interface <ValueFactoryBase> (*id);
 		} catch (...) {
 			truncate = true;
 		}
@@ -540,7 +539,7 @@ Interface::_ref_type RequestGIOP::unmarshal_value (const IDL::String& interface_
 	return ret;
 }
 
-const IDL::String& RequestGIOP::unmarshal_rep_id ()
+const IDL::String& RequestGIOP::unmarshal_val_rep_id ()
 {
 	size_t pos = stream_in_->position ();
 	ULong size = stream_in_->read32 ();

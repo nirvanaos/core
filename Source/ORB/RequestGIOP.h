@@ -430,8 +430,8 @@ protected:
 	void set_out_size ();
 
 private:
-	void marshal_rep_id (IDL::String&& id);
-	const IDL::String& unmarshal_rep_id ();
+	void marshal_val_rep_id (IDL::String&& id);
+	const IDL::String& unmarshal_val_rep_id ();
 	bool marshal_chunk ();
 
 protected:
