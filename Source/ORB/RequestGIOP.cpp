@@ -208,10 +208,9 @@ void RequestGIOP::marshal_type_code (StreamOut& stream, TypeCode::_ptr_type tc, 
 		case TCKind::tk_objref:
 		case TCKind::tk_native:
 		case TCKind::tk_abstract_interface:
-		case TCKind::tk_local_interface: {
+		case TCKind::tk_local_interface:
 			encap.write_id_name (tc);
-			stream.write_seq (encap.data (), true);
-		} break;
+			break;
 
 		case TCKind::tk_struct:
 		case TCKind::tk_except: {
@@ -223,7 +222,6 @@ void RequestGIOP::marshal_type_code (StreamOut& stream, TypeCode::_ptr_type tc, 
 				encap.write_string (name, true);
 				marshal_type_code (encap, tc->member_type (i), map, pos);
 			}
-			stream.write_seq (encap.data (), true);
 		} break;
 
 		case TCKind::tk_union: {
@@ -251,7 +249,6 @@ void RequestGIOP::marshal_type_code (StreamOut& stream, TypeCode::_ptr_type tc, 
 				encap.write_string (name, true);
 				marshal_type_code (encap, tc->member_type (i), map, pos);
 			}
-			stream.write_seq (encap.data (), true);
 		} break;
 
 		case TCKind::tk_enum: {
@@ -262,21 +259,18 @@ void RequestGIOP::marshal_type_code (StreamOut& stream, TypeCode::_ptr_type tc, 
 				IDL::String name = tc->member_name (i);
 				encap.write_string (name, true);
 			}
-			stream.write_seq (encap.data (), true);
 		} break;
 
 		case TCKind::tk_sequence:
-		case TCKind::tk_array: {
+		case TCKind::tk_array:
 			marshal_type_code (encap, tc->content_type (), map, pos);
 			encap.write32 (tc->length ());
-			stream.write_seq (encap.data (), true);
-		} break;
+			break;
 
-		case TCKind::tk_alias: {
+		case TCKind::tk_alias:
 			encap.write_id_name (tc);
 			marshal_type_code (encap, tc->content_type (), map, pos);
-			stream.write_seq (encap.data (), true);
-		} break;
+			break;
 
 		case TCKind::tk_value: {
 			encap.write_id_name (tc);
@@ -292,18 +286,17 @@ void RequestGIOP::marshal_type_code (StreamOut& stream, TypeCode::_ptr_type tc, 
 				Visibility vis = tc->member_visibility (i);
 				encap.write_c (alignof (Visibility), sizeof (Visibility), &vis);
 			}
-			stream.write_seq (encap.data (), true);
 		} break;
 
-		case TCKind::tk_value_box: {
+		case TCKind::tk_value_box:
 			encap.write_id_name (tc);
 			marshal_type_code (encap, tc->content_type (), map, pos);
-			stream.write_seq (encap.data (), true);
-		} break;
+			break;
 
 		default:
 			throw BAD_TYPECODE ();
 	}
+	stream.write_seq (encap.data (), true);
 }
 
 TypeCode::_ref_type RequestGIOP::unmarshal_type_code ()
