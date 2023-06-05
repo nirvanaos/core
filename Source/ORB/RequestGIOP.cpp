@@ -166,26 +166,7 @@ void RequestGIOP::marshal_type_code (StreamOut& stream, TypeCode::_ptr_type tc, 
 		throw BAD_TYPECODE (MAKE_OMG_MINOR (1)); // Attempt to marshal incomplete TypeCode.
 	}
 
-	static const TCKind simple_types [] = {
-		TCKind::tk_short,
-		TCKind::tk_long,
-		TCKind::tk_ushort,
-		TCKind::tk_ulong,
-		TCKind::tk_float,
-		TCKind::tk_double,
-		TCKind::tk_boolean,
-		TCKind::tk_char,
-		TCKind::tk_octet,
-		TCKind::tk_any,
-		TCKind::tk_TypeCode,
-		TCKind::tk_longlong,
-		TCKind::tk_ulonglong,
-		TCKind::tk_longdouble,
-		TCKind::tk_wchar
-	};
-
-	const TCKind* f = std::lower_bound (simple_types, std::end (simple_types), (TCKind)kind);
-	if (f != std::end (simple_types) && *f == (TCKind)kind) {
+	if (TC_FactoryImpl::is_simple_type ((TCKind)kind)) {
 		stream.write32 (kind);
 		return;
 	}
@@ -220,20 +201,20 @@ void RequestGIOP::marshal_type_code (StreamOut& stream, TypeCode::_ptr_type tc, 
 		}
 	}
 
+	stream.write32 (kind);
+	ImplStatic <StreamOutEncap> encap;
 	pos += 8; // parent_offset for the next level calls
 	switch ((TCKind)kind) {
 		case TCKind::tk_objref:
 		case TCKind::tk_native:
 		case TCKind::tk_abstract_interface:
 		case TCKind::tk_local_interface: {
-			ImplStatic <StreamOutEncap> encap;
 			encap.write_id_name (tc);
 			stream.write_seq (encap.data (), true);
 		} break;
 
 		case TCKind::tk_struct:
 		case TCKind::tk_except: {
-			ImplStatic <StreamOutEncap> encap;
 			encap.write_id_name (tc);
 			ULong cnt = tc->member_count ();
 			encap.write32 (cnt);
@@ -246,7 +227,6 @@ void RequestGIOP::marshal_type_code (StreamOut& stream, TypeCode::_ptr_type tc, 
 		} break;
 
 		case TCKind::tk_union: {
-			ImplStatic <StreamOutEncap> encap;
 			encap.write_id_name (tc);
 			TypeCode::_ref_type discriminator_type = tc->discriminator_type ();
 			marshal_type_code (encap, discriminator_type, map, pos);
@@ -275,7 +255,6 @@ void RequestGIOP::marshal_type_code (StreamOut& stream, TypeCode::_ptr_type tc, 
 		} break;
 
 		case TCKind::tk_enum: {
-			ImplStatic <StreamOutEncap> encap;
 			encap.write_id_name (tc);
 			ULong cnt = tc->member_count ();
 			encap.write32 (cnt);
@@ -288,21 +267,18 @@ void RequestGIOP::marshal_type_code (StreamOut& stream, TypeCode::_ptr_type tc, 
 
 		case TCKind::tk_sequence:
 		case TCKind::tk_array: {
-			ImplStatic <StreamOutEncap> encap;
 			marshal_type_code (encap, tc->content_type (), map, pos);
 			encap.write32 (tc->length ());
 			stream.write_seq (encap.data (), true);
 		} break;
 
 		case TCKind::tk_alias: {
-			ImplStatic <StreamOutEncap> encap;
 			encap.write_id_name (tc);
 			marshal_type_code (encap, tc->content_type (), map, pos);
 			stream.write_seq (encap.data (), true);
 		} break;
 
 		case TCKind::tk_value: {
-			ImplStatic <StreamOutEncap> encap;
 			encap.write_id_name (tc);
 			ValueModifier mod = tc->type_modifier ();
 			encap.write_c (alignof (ValueModifier), sizeof (ValueModifier), &mod);
@@ -320,7 +296,6 @@ void RequestGIOP::marshal_type_code (StreamOut& stream, TypeCode::_ptr_type tc, 
 		} break;
 
 		case TCKind::tk_value_box: {
-			ImplStatic <StreamOutEncap> encap;
 			encap.write_id_name (tc);
 			marshal_type_code (encap, tc->content_type (), map, pos);
 			stream.write_seq (encap.data (), true);
@@ -344,9 +319,14 @@ TypeCode::_ref_type RequestGIOP::unmarshal_type_code ()
 			throw BAD_TYPECODE ();
 		return TypeCode::_ptr_type (static_cast <TypeCode*> (it->second));
 	}
-	TypeCode::_ref_type tc = TC_FactoryImpl::unmarshal_type_code (kind, *stream_in_);
-	top_level_tc_unmarshal_.emplace (start_pos, &TypeCode::_ptr_type (tc));
-	return tc;
+
+	TypeCode::_ref_type ret;
+	if (!TC_FactoryImpl::get_simple_tc ((TCKind)kind, ret)) {
+		ret = TC_FactoryImpl::unmarshal_type_code ((TCKind)kind, *stream_in_,
+			top_level_tc_unmarshal_.get_allocator ().heap ());
+		top_level_tc_unmarshal_.emplace (start_pos, &TypeCode::_ptr_type (ret));
+	}
+	return ret;
 }
 
 void RequestGIOP::marshal_value (Interface::_ptr_type val, bool output)

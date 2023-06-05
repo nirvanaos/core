@@ -263,7 +263,7 @@ public:
 		if (!marshal_chunk ())
 			return;
 
-		IndirectMapMarshal map;
+		IndirectMapMarshal map (value_map_marshal_.get_allocator ());
 		marshal_type_code (*stream_out_, tc, map, 0);
 	}
 

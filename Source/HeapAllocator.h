@@ -86,6 +86,12 @@ public:
 		return (T*)heap_->allocate (nullptr, cb, 0);
 	}
 
+	Heap& heap () const NIRVANA_NOEXCEPT
+	{
+		assert (heap_);
+		return *heap_;
+	}
+
 private:
 	template <class U> friend class HeapAllocator;
 	Ref <Heap> heap_;

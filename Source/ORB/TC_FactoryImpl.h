@@ -336,16 +336,35 @@ public:
 
 	static void schedule_GC () NIRVANA_NOEXCEPT;
 
-	static TypeCode::_ref_type unmarshal_type_code (ULong kind, StreamIn& stream)
+	static TypeCode::_ref_type unmarshal_type_code (TCKind kind, StreamIn& stream, Nirvana::Core::Heap& heap)
 	{
 		Object::_ref_type factory = Services::bind (Services::TC_Factory);
 		const ServantProxyLocal* proxy = local2proxy (factory);
 		TC_FactoryImpl* impl = static_cast <TC_FactoryImpl*> (
 			static_cast <Bridge <CORBA::LocalObject>*> (&proxy->servant ()));
 		SYNC_BEGIN (proxy->sync_context (), nullptr);
-		IndirectMapUnmarshal indirect_map;
+		IndirectMapUnmarshal indirect_map (heap);
 		return impl->unmarshal_type_code (kind, stream, indirect_map, 0);
 		SYNC_END ();
+	}
+
+	static bool is_simple_type (TCKind kind) NIRVANA_NOEXCEPT
+	{
+		return (kind == TCKind::tk_null) || find_simple_type (kind);
+	}
+
+	static bool get_simple_tc (TCKind kind, TypeCode::_ref_type& tc) NIRVANA_NOEXCEPT
+	{
+		tc = nullptr;
+		if (kind == TCKind::tk_null)
+			return true;
+
+		const SimpleType* st = find_simple_type (kind);
+		if (st) {
+			tc = TypeCode::_ptr_type (st->imp);
+			return true;
+		} else
+			return false;
 	}
 
 private:
@@ -375,14 +394,43 @@ private:
 	TC_ComplexBase* complex_base (TypeCode::_ptr_type p) const NIRVANA_NOEXCEPT;
 
 	TypeCode::_ref_type unmarshal_type_code (StreamIn& stream, IndirectMapUnmarshal& indirect_map, size_t parent_offset);
-	TypeCode::_ref_type unmarshal_type_code (ULong kind, StreamIn& stream, IndirectMapUnmarshal& indirect_map, size_t parent_offset);
+	TypeCode::_ref_type unmarshal_type_code (TCKind kind, StreamIn& stream, IndirectMapUnmarshal& indirect_map, size_t parent_offset);
+	TypeCode::_ref_type unmarshal_type_code_cplx (TCKind kind, StreamIn& stream, size_t start_pos, IndirectMapUnmarshal& indirect_map, size_t parent_offset);
 
 private:
+	struct SimpleType
+	{
+		TCKind kind;
+		const Nirvana::ImportInterfaceT <TypeCode>& imp;
+	};
+
+	struct SimpleTypePred
+	{
+		bool operator () (const SimpleType& l, const SimpleType& r) const NIRVANA_NOEXCEPT
+		{
+			return l.kind < r.kind;
+		}
+
+		bool operator () (TCKind l, const SimpleType& r) const NIRVANA_NOEXCEPT
+		{
+			return l < r.kind;
+		}
+
+		bool operator () (const SimpleType& l, TCKind r) const NIRVANA_NOEXCEPT
+		{
+			return l.kind < r;
+		}
+	};
+
+	static const SimpleType* find_simple_type (TCKind kind) NIRVANA_NOEXCEPT;
+
 	Nirvana::Core::MapUnorderedUnstable <void*, TC_ComplexBase*,
 		std::hash <void*>, std::equal_to <void*>,
 		Nirvana::Core::UserAllocator> complex_objects_;
 
 	static std::atomic_flag GC_scheduled_;
+
+	static const SimpleType simple_types_ [];
 };
 
 }
