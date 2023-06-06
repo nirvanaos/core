@@ -167,8 +167,7 @@ private:
 	public:
 		DelayedRelease (RequestIn& request) :
 			request_ (request)
-		{
-		}
+		{}
 
 	private:
 		virtual void run () override;
@@ -182,8 +181,7 @@ private:
 	public:
 		DelayedReleaseTimer (RequestIn& request) :
 			request_ (request)
-		{
-		}
+		{}
 
 	private:
 		virtual void signal () noexcept override;
