@@ -49,7 +49,7 @@ class ReferenceRemote;
 typedef servant_reference <ReferenceRemote> ReferenceRemoteRef;
 
 /// Other domain
-class NIRVANA_NOVTABLE Domain : public SyncGC
+class NIRVANA_NOVTABLE Domain
 {
 	template <class D> friend class CORBA::servant_reference;
 
@@ -98,6 +98,12 @@ public:
 		rq->success ();
 	}
 
+	bool is_garbage (const TimeBase::TimeT& cur_time) NIRVANA_NOEXCEPT
+	{
+		// TODO: Check for connection is alive and make zomby if not.
+		return ref_cnt_.load () == 0;
+	}
+
 	class DGC_RefKey;
 
 private:
@@ -136,7 +142,6 @@ private:
 
 		static const Internal::Operation operation_;
 	};
-
 
 public:
 	// DGC-enabled remote reference owned by the current domain
@@ -267,14 +272,20 @@ public:
 		return zombie_;
 	}
 
+	void _add_ref () NIRVANA_NOEXCEPT
+	{
+		ref_cnt_.increment ();
+	}
+
+	void _remove_ref () NIRVANA_NOEXCEPT
+	{
+		ref_cnt_.decrement ();
+	}
+
 protected:
 	Domain (unsigned flags, TimeBase::TimeT request_latency, TimeBase::TimeT heartbeat_interval,
 		TimeBase::TimeT heartbeat_timeout);
 	~Domain ();
-
-	virtual void _add_ref () NIRVANA_NOEXCEPT override;
-	virtual void _remove_ref () NIRVANA_NOEXCEPT override;
-	virtual void destroy () NIRVANA_NOEXCEPT = 0;
 
 private:
 	typedef void (Domain::* DGC_Function) (const ReferenceRemoteRef*, const ReferenceRemoteRef*, bool);

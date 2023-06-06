@@ -32,9 +32,12 @@ using namespace Internal;
 
 namespace Core {
 
-void DomainRemote::destroy () NIRVANA_NOEXCEPT
+DomainRemote::~DomainRemote ()
 {
-	Nirvana::Core::Binder::singleton ().remote_references ().remote_domains ().erase (listen_point_);
+	RemoteDomains& domains = Nirvana::Core::Binder::singleton ().remote_references ().remote_domains ();
+	
+	for (const IIOP::ListenPoint* lp : listen_points_)
+		domains.erase (*lp);
 }
 
 IORequest::_ref_type DomainRemote::create_request (const IOP::ObjectKey& object_key,

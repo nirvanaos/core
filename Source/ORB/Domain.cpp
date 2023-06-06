@@ -53,22 +53,6 @@ Domain::Domain (unsigned flags, TimeBase::TimeT request_latency, TimeBase::TimeT
 Domain::~Domain ()
 {}
 
-void Domain::_add_ref () NIRVANA_NOEXCEPT
-{
-	ref_cnt_.increment ();
-}
-
-void Domain::_remove_ref () NIRVANA_NOEXCEPT
-{
-	if (!ref_cnt_.decrement_seq ()) {
-		SyncContext& sc = Binder::singleton ().sync_domain ();
-		if (&SyncContext::current () == &sc)
-			destroy ();
-		else
-			GarbageCollector::schedule (*this, sc);
-	}
-}
-
 void Domain::add_owned_objects (IDL::Sequence <IOP::ObjectKey>& keys, ReferenceLocalRef* objs)
 {
 	PortableServer::Core::POA_Root::get_DGC_objects (keys, objs);

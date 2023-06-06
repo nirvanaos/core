@@ -41,7 +41,9 @@ void TimerAsyncCall::signal () NIRVANA_NOEXCEPT
 	if (!enqueued_.test_and_set ()) {
 		try {
 			ExecDomain::async_call <Runnable> (deadline_, *sync_context_, nullptr, std::ref (*this));
-		} catch (...) {}
+		} catch (...) {
+			++overrun_;
+		}
 	} else
 		++overrun_;
 }

@@ -35,11 +35,6 @@ using namespace CORBA;
 
 namespace ESIOP {
 
-void DomainProt::destroy () NIRVANA_NOEXCEPT
-{
-	Binder::singleton ().remote_references ().prot_domains ().erase (id_);
-}
-
 DomainProt::~DomainProt ()
 {
 }

@@ -39,9 +39,13 @@ class DomainProt :
 	public OtherDomain
 {
 public:
+	static const TimeBase::TimeT REQUEST_LATENCY = 10 * TimeBase::MILLISECOND;
+	static const TimeBase::TimeT HEARTBEAT_INTERVAL = 30 * TimeBase::SECOND;
+	static const TimeBase::TimeT HEARTBEAT_TIMEOUT = 2 * HEARTBEAT_INTERVAL;
+
 	DomainProt (ESIOP::ProtDomainId id) :
 		CORBA::Core::Domain (GARBAGE_COLLECTION | HEARTBEAT_IN | HEARTBEAT_OUT,
-			10 * TimeBase::MILLISECOND, 30 * TimeBase::SECOND, 1 * TimeBase::MINUTE),
+			REQUEST_LATENCY, HEARTBEAT_INTERVAL, HEARTBEAT_TIMEOUT),
 		OtherDomain (id),
 		id_ (id)
 	{}
@@ -59,9 +63,6 @@ public:
 			send_message (&msg, sizeof (msg));
 		} catch (...) {}
 	}
-
-protected:
-	virtual void destroy () NIRVANA_NOEXCEPT override;
 
 private:
 	ProtDomainId id_;

@@ -48,6 +48,17 @@ public:
 		map_.erase (domain_id);
 	}
 
+	bool housekeeping (const TimeBase::TimeT& cur_time) NIRVANA_NOEXCEPT
+	{
+		for (auto it = map_.begin (); it != map_.end ();) {
+			if (it->second.is_constructed () && it->second.get ()->is_garbage (cur_time))
+				it = map_.erase (it);
+			else
+				++it;
+		}
+		return !map_.empty ();
+	}
+
 	void shutdown () NIRVANA_NOEXCEPT
 	{
 		for (auto it = map_.begin (); it != map_.end (); ++it) {
@@ -76,6 +87,17 @@ public:
 	void erase (ProtDomainId domain_id) NIRVANA_NOEXCEPT
 	{
 		map_.erase (domain_id);
+	}
+
+	bool housekeeping (const TimeBase::TimeT& cur_time) NIRVANA_NOEXCEPT
+	{
+		for (auto it = map_.begin (); it != map_.end ();) {
+			if (it->second.is_garbage (cur_time))
+				it = map_.erase (it);
+			else
+				++it;
+		}
+		return !map_.empty ();
 	}
 
 	void shutdown () NIRVANA_NOEXCEPT
@@ -113,6 +135,14 @@ public:
 		NIRVANA_UNREACHABLE_CODE ();
 		return nullptr;
 	}
+
+	bool housekeeping (const TimeBase::TimeT& cur_time) NIRVANA_NOEXCEPT
+	{
+		return false;
+	}
+
+	void shutdown () NIRVANA_NOEXCEPT
+	{}
 };
 
 using ProtDomains = std::conditional_t <Nirvana::Core::SINGLE_DOMAIN, ProtDomainsDummy,

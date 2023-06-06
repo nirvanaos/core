@@ -31,6 +31,7 @@
 #include "DomainRemote.h"
 #include "../MapUnorderedStable.h"
 #include <CORBA/IIOP.h>
+#include <list>
 
 namespace std {
 
@@ -57,26 +58,37 @@ namespace Core {
 class RemoteDomains
 {
 public:
-	servant_reference <Domain> get (const IIOP::ListenPoint& lp)
-	{
-		auto ins = listen_points_.emplace (std::ref (lp), nullptr);
-		if (ins.second)
-			ins.first->second = make_reference <DomainRemote> (std::ref (lp));
-		return ins.first->second;
-	}
+	servant_reference <DomainRemote> get (const IIOP::ListenPoint& lp);
 
 	void erase (const IIOP::ListenPoint& lp) noexcept
 	{
 		listen_points_.erase (lp);
 	}
 
+	bool housekeeping (const TimeBase::TimeT& cur_time) NIRVANA_NOEXCEPT
+	{
+		for (auto it = domains_.begin (); it != domains_.end (); ++it) {
+			if (it->is_garbage (cur_time))
+				it = domains_.erase (it);
+			else
+				++it;
+		}
+		return !domains_.empty ();
+	}
+
 	void shutdown () NIRVANA_NOEXCEPT
 	{
-		// TODO: Implement
+		for (auto it = domains_.begin (); it != domains_.end (); ++it) {
+			it->shutdown ();
+		}
 	}
 
 private:
-	typedef Nirvana::Core::MapUnorderedStable <IIOP::ListenPoint, servant_reference <DomainRemote>, std::hash <IIOP::ListenPoint>,
+	typedef std::list <DomainRemote, Nirvana::Core::BinderMemory::Allocator <DomainRemote> > Domains;
+
+	Domains domains_;
+
+	typedef Nirvana::Core::MapUnorderedStable <IIOP::ListenPoint, DomainRemote*, std::hash <IIOP::ListenPoint>,
 		std::equal_to <IIOP::ListenPoint>, Nirvana::Core::BinderMemory::Allocator> ListenPoints;
 
 	ListenPoints listen_points_;

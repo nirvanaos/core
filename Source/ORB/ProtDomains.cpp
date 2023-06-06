@@ -24,8 +24,10 @@
 *  popov.nirvana@gmail.com
 */
 #include "ProtDomains.h"
+#include "../Binder.h"
 
 using namespace CORBA;
+using namespace Nirvana::Core;
 
 namespace ESIOP {
 
@@ -39,6 +41,9 @@ servant_reference <DomainProt> ProtDomainsWaitable::get (ProtDomainId domain_id)
 			SYNC_BEGIN (Nirvana::Core::g_core_free_sync_context, &Nirvana::Core::MemContext::current ());
 			p.reset (new DomainProt (domain_id));
 			SYNC_END ();
+
+			Binder::singleton ().start_domains_housekeeping ();
+
 			PortableServer::Servant_var <CORBA::Core::Domain> ret (p.get ());
 			entry.second.finish_construction (std::move (p));
 			return ret;
@@ -61,9 +66,17 @@ servant_reference <DomainProt> ProtDomainsWaitable::find (ProtDomainId domain_id
 
 servant_reference <DomainProt> ProtDomainsSimple::get (ProtDomainId domain_id)
 {
-	return PortableServer::Servant_var <CORBA::Core::Domain> (&map_.emplace (
-		std::piecewise_construct, std::forward_as_tuple (domain_id),
-		std::forward_as_tuple (domain_id)).first->second);
+	auto ins = map_.emplace (std::piecewise_construct, std::forward_as_tuple (domain_id),
+		std::forward_as_tuple (domain_id));
+	if (ins.second) {
+		try {
+			Binder::singleton ().start_domains_housekeeping ();
+		} catch (...) {
+			map_.erase (ins.first);
+			throw;
+		}
+	}
+	return PortableServer::Servant_var <CORBA::Core::Domain> (&ins.first->second);
 }
 
 servant_reference <DomainProt> ProtDomainsSimple::find (ProtDomainId domain_id) const NIRVANA_NOEXCEPT

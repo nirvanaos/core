@@ -37,22 +37,22 @@ class Timer :
 	private Port::Timer
 {
 public:
-	/// \brief Sets the timer object, replacing the previous timer, if any.
-	/// 
-	/// \param due_time UTC time to signal.
-	/// \param period The timer period, in milliseconds. If this parameter is zero, the timer is signaled once. If this parameter is greater than zero, the timer is periodic. A periodic timer automatically reactivates each time the period elapses, until the timer is canceled.
-	void set_absolute (TimeBase::TimeT due_time, TimeBase::TimeT period)
-	{
-		Port::Timer::set (TIMER_ABSOLUTE, due_time, period);
-	}
+	/// \brief Interpret initial expiration time as absolute UTC.
+	static const unsigned TIMER_ABSOLUTE = Port::Timer::TIMER_ABSOLUTE;
 
 	/// \brief Sets the timer object, replacing the previous timer, if any.
 	/// 
-	/// \param initial Initial expiration interval.
-	/// \param period The timer period, in milliseconds. If this parameter is zero, the timer is signaled once. If this parameter is greater than zero, the timer is periodic. A periodic timer automatically reactivates each time the period elapses, until the timer is canceled.
-	void set_relative (TimeBase::TimeT initial, TimeBase::TimeT period)
+	/// \param initial Initial expiration.
+	///   If TIMER_ABSOLUTE flag is specified, initial is interpreted as absolute UTC value.
+	/// 
+	/// \param period The timer period.
+	///   If this parameter is zero, the timer is signaled once.
+	///   If this parameter is greater than zero, the timer is periodic.
+	///   A periodic timer automatically reactivates each time the period elapses,
+	///   until the timer is canceled.
+	void set (unsigned flags, TimeBase::TimeT initial, TimeBase::TimeT period)
 	{
-		Port::Timer::set (0, initial, period);
+		Port::Timer::set (flags, initial, period);
 	}
 
 	/// Disarm the timer.

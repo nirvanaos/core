@@ -29,7 +29,6 @@
 #pragma once
 
 #include "Timer.h"
-#include "SharedObject.h"
 #include "SyncContext.h"
 #include "Runnable.h"
 #include "Chrono.h"
@@ -38,7 +37,6 @@ namespace Nirvana {
 namespace Core {
 
 class TimerAsyncCall : 
-	public SharedObject,
 	public Timer
 {
 	DECLARE_CORE_INTERFACE

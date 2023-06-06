@@ -34,6 +34,7 @@
 #include "HashOctetSeq.h"
 #include "RequestIn.h"
 #include <CORBA/I_var.h>
+#include "../Chrono.h"
 
 namespace CORBA {
 namespace Core {
@@ -124,6 +125,14 @@ public:
 		servant_reference <ESIOP::DomainProt> domain = prot_domains_.find (domain_id);
 		if (domain)
 			domain->make_zombie ();
+	}
+
+	bool housekeeping () NIRVANA_NOEXCEPT
+	{
+		Nirvana::SteadyTime t = Nirvana::Core::Chrono::steady_clock ();
+		bool p = prot_domains_.housekeeping (t);
+		bool r = remote_domains_.housekeeping (t);
+		return p || r;
 	}
 
 	void shutdown () NIRVANA_NOEXCEPT // Called on terminate()

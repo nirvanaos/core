@@ -45,13 +45,16 @@ class DomainRemote :
 	public Domain
 {
 public:
-	DomainRemote (const IIOP::ListenPoint& listen_point) :
-		Domain (0, 1 * TimeBase::SECOND, 1 * TimeBase::MINUTE, 2 * TimeBase::MINUTE),
-		listen_point_ (listen_point)
+	DomainRemote () :
+		Domain (0, 1 * TimeBase::SECOND, 1 * TimeBase::MINUTE, 2 * TimeBase::MINUTE)
 	{}
 
-	~DomainRemote ()
-	{}
+	~DomainRemote ();
+
+	void add_listen_point (const IIOP::ListenPoint& lp)
+	{
+		listen_points_.insert (&lp);
+	}
 
 	virtual Internal::IORequest::_ref_type create_request (const IOP::ObjectKey& object_key,
 		const Internal::Operation& metadata, unsigned flags, Internal::RequestCallback::_ptr_type callback) override;
@@ -66,11 +69,10 @@ public:
 		// TODO: Implement
 	}
 
-protected:
-	virtual void destroy () NIRVANA_NOEXCEPT override;
-
 private:
-	const IIOP::ListenPoint& listen_point_;
+	typedef Nirvana::Core::SetUnorderedUnstable <const IIOP::ListenPoint*, std::hash <const void*>,
+		std::equal_to <const void*>, Nirvana::Core::BinderMemory::Allocator> ListenPoints;
+	ListenPoints listen_points_;
 
 	// DGC references owned by this domain.
 	// Used only in the connection-oriented GC.

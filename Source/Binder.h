@@ -69,7 +69,8 @@ public:
 	template <class T>
 	using Allocator = BinderMemory::Allocator <T>;
 
-	Binder ()
+	Binder () :
+		housekeeping_domains_on_ (false)
 	{}
 
 	~Binder ()
@@ -207,6 +208,17 @@ public:
 		} catch (...) {}
 	}
 
+	void start_domains_housekeeping ()
+	{
+		// Called from sync context
+		assert (&SyncContext::current () == &sync_domain ());
+		if (!housekeeping_domains_on_) {
+			const TimeBase::TimeT interval = ESIOP::DomainProt::HEARTBEAT_TIMEOUT;
+			housekeeping_timer_domains_.set (0, interval, interval);
+			housekeeping_domains_on_ = true;
+		}
+	}
+
 private:
 	typedef CORBA::Internal::RepId RepId;
 	typedef CORBA::Internal::RepId::Version Version;
@@ -334,33 +346,43 @@ private:
 	Ref <Module> load (std::string& module_name, bool singleton);
 	void unload (Module* pmod);
 
-	void housekeeping ();
-
+	void housekeeping_modules ();
 	void delete_module (Module* mod);
+	void unload_modules ();
 
-	inline void unload_modules ();
-
-	class HousekeepingTimer : public TimerAsyncCall
+	class HousekeepingTimerModules : public TimerAsyncCall
 	{
 	protected:
-		HousekeepingTimer () :
+		HousekeepingTimerModules () :
 			TimerAsyncCall (sync_domain (), INFINITE_DEADLINE)
 		{}
 
 	private:
-		virtual void run (const TimeBase::TimeT& signal_time)
-		{
-			singleton ().housekeeping ();
-		}
+		virtual void run (const TimeBase::TimeT& signal_time);
+	};
+
+	void housekeeping_domains () NIRVANA_NOEXCEPT;
+
+	class HousekeepingTimerDomains : public TimerAsyncCall
+	{
+	protected:
+		HousekeepingTimerDomains () :
+			TimerAsyncCall (sync_domain (), INFINITE_DEADLINE)
+		{}
+
+	private:
+		virtual void run (const TimeBase::TimeT& signal_time);
 	};
 
 private:
-	static StaticallyAllocated <ImplStatic <SyncDomainCore> > sync_domain_;
 	ObjectMap object_map_;
 	ModuleMap module_map_;
 	CORBA::Core::RemoteReferences remote_references_;
-	ImplStatic <HousekeepingTimer> housekeeping_timer_;
+	ImplStatic <HousekeepingTimerModules> housekeeping_timer_modules_;
+	ImplStatic <HousekeepingTimerDomains> housekeeping_timer_domains_;
+	bool housekeeping_domains_on_;
 
+	static StaticallyAllocated <ImplStatic <SyncDomainCore> > sync_domain_;
 	static StaticallyAllocated <Binder> singleton_;
 	static bool initialized_;
 };

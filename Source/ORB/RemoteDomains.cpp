@@ -25,6 +25,7 @@
 */
 #include "RemoteDomains.h"
 #include <Nirvana/Hash.h>
+#include "../Binder.h"
 
 namespace std {
 
@@ -35,4 +36,30 @@ size_t hash <IIOP::ListenPoint>::operator () (const IIOP::ListenPoint& lp) const
 	return Nirvana::Hash::append_bytes (h, &port, sizeof (port));
 }
 
+}
+
+namespace CORBA {
+namespace Core {
+
+servant_reference <DomainRemote> RemoteDomains::get (const IIOP::ListenPoint& lp)
+{
+	auto ins = listen_points_.emplace (std::ref (lp), nullptr);
+	if (ins.second) {
+		try {
+			if (domains_.empty ())
+				Nirvana::Core::Binder::singleton ().start_domains_housekeeping ();
+			domains_.emplace_back ();
+			DomainRemote& domain = domains_.back ();
+			domain.add_listen_point (ins.first->first);
+			ins.first->second = &domain;
+		} catch (...) {
+			domains_.pop_back ();
+			listen_points_.erase (ins.first);
+			throw;
+		}
+	}
+	return ins.first->second;
+}
+
+}
 }

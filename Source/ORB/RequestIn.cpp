@@ -338,7 +338,7 @@ void RequestIn::post_send_success () NIRVANA_NOEXCEPT
 			}
 			_add_ref ();
 			try {
-				((DelayedReleaseTimer*)&delayed_release_timer_)->set_relative (target_domain_->request_latency (), 0);
+				((DelayedReleaseTimer*)&delayed_release_timer_)->set (0, target_domain_->request_latency (), 0);
 			} catch (...) {
 				((DelayedReleaseTimer*)&delayed_release_timer_)->DelayedReleaseTimer::~DelayedReleaseTimer ();
 				_remove_ref ();
@@ -364,7 +364,8 @@ void RequestIn::DelayedReleaseTimer::signal () noexcept
 	} catch (...) {
 		assert (false);
 		try {
-			set_relative (TimeBase::SECOND * 1, 0);
+			// Retry 5 seconds later
+			set (0, TimeBase::SECOND * 5, 0);
 		} catch (...) {
 			assert (false);
 		}

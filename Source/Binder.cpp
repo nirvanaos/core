@@ -105,7 +105,7 @@ void Binder::initialize ()
 inline
 void Binder::unload_modules ()
 {
-	housekeeping_timer_.cancel ();
+	housekeeping_timer_modules_.cancel ();
 
 	bool unloaded;
 	do {
@@ -413,7 +413,7 @@ Ref <Module> Binder::load (std::string& module_name, bool singleton)
 
 		entry.second.finish_construction (mod);
 		if (module_map_.size () == 1)
-			housekeeping_timer_.set_relative (MODULE_UNLOAD_TIMEOUT, MODULE_UNLOAD_TIMEOUT);
+			housekeeping_timer_modules_.set (0, MODULE_UNLOAD_TIMEOUT, MODULE_UNLOAD_TIMEOUT);
 
 	} else {
 		mod = entry.second.get ();
@@ -543,7 +543,8 @@ Object::_ref_type Binder::bind_sync (const ObjectKey& name)
 		throw_INV_OBJREF ();
 }
 
-void Binder::housekeeping ()
+inline
+void Binder::housekeeping_modules ()
 {
 	for (;;) {
 		bool found = false;
@@ -565,7 +566,26 @@ void Binder::housekeeping ()
 			break;
 	}
 	if (module_map_.empty ())
-		housekeeping_timer_.cancel ();
+		housekeeping_timer_modules_.cancel ();
+}
+
+void Binder::HousekeepingTimerModules::run (const TimeBase::TimeT& signal_time)
+{
+	singleton ().housekeeping_modules ();
+}
+
+inline
+void Binder::housekeeping_domains () NIRVANA_NOEXCEPT
+{
+	if (!remote_references_.housekeeping ()) {
+		housekeeping_timer_domains_.cancel ();
+		housekeeping_domains_on_ = false;
+	}
+}
+
+void Binder::HousekeepingTimerDomains::run (const TimeBase::TimeT& signal_time)
+{
+	singleton ().housekeeping_domains ();
 }
 
 }
