@@ -249,6 +249,7 @@ void ExecDomain::create_background_worker ()
 
 void ExecDomain::schedule (SyncContext& target, bool ret)
 {
+	// Called in neutral execution context
 	assert (ExecContext::current_ptr () != this);
 
 	Ref <SyncContext> old_context = std::move (sync_context_);
@@ -288,14 +289,10 @@ void ExecDomain::schedule (SyncContext& target, bool ret)
 
 void ExecDomain::schedule_call_no_push_mem (SyncContext& target)
 {
-	SyncContext& old_context = sync_context ();
-
 	// If old context is a synchronization domain, we
 	// allocate queue node to perform return without a risk
 	// of memory allocation failure.
-	// We must hold old SyncDomain reference here to avoid release sync domain in
-	// neutral context when exec_domain () is nullptr.
-	Ref <SyncDomain> old_sd = old_context.sync_domain ();
+	SyncDomain* old_sd = sync_context ().sync_domain ();
 	if (old_sd) {
 		ret_qnode_push (*old_sd);
 		old_sd->leave ();
@@ -305,6 +302,10 @@ void ExecDomain::schedule_call_no_push_mem (SyncContext& target)
 	if (target.sync_domain () ||
 		!(deadline () == INFINITE_DEADLINE && &Thread::current () == background_worker_)) {
 		// Need to schedule
+
+		// We must hold old SyncContext reference here to avoid deletion of SyncContext object in
+		// neutral exec context when ExecDomain::current() is not available.
+		Ref <SyncContext> old_context = &sync_context ();
 
 		// Call schedule() in the neutral context
 		schedule_.sync_context_ = &target;
@@ -316,7 +317,7 @@ void ExecDomain::schedule_call_no_push_mem (SyncContext& target)
 			schedule_.exception_ = nullptr;
 			// We leaved old sync domain so we must enter into prev synchronization domain back
 			// before throwing the exception.
-			schedule_return (old_context, true);
+			schedule_return (*old_context, true);
 			std::rethrow_exception (exc);
 		}
 
@@ -338,9 +339,9 @@ void ExecDomain::schedule_return (SyncContext& target, bool no_reschedule) NIRVA
 	if (target.sync_domain ()
 		|| !(deadline () == INFINITE_DEADLINE && &Thread::current () == background_worker_)) {
 
-		// We must hold old SyncDomain reference here to avoid release sync domain in
-		// neutral context when exec_domain () is nullptr.
-		Ref <SyncDomain> hold (old_sd);
+		// We must hold old SyncContext reference here to avoid deletion of SyncContext object in
+		// neutral exec context when ExecDomain::current() is not available.
+		Ref <SyncContext> old_context = &sync_context ();
 
 		schedule_.sync_context_ = &target;
 		schedule_.ret_ = true;
