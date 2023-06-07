@@ -203,9 +203,9 @@ public:
 		end_ = tmp;
 	}
 
-	Al <T>& get_allocator () NIRVANA_NOEXCEPT
+	const Al <T>& get_allocator () const NIRVANA_NOEXCEPT
 	{
-		return static_cast <Al <T>&> (*this);
+		return static_cast <const Al <T>&> (*this);
 	}
 
 private:

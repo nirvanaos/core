@@ -46,8 +46,7 @@ public:
 	DomainProt (ESIOP::ProtDomainId id) :
 		CORBA::Core::Domain (GARBAGE_COLLECTION | HEARTBEAT_IN | HEARTBEAT_OUT,
 			REQUEST_LATENCY, HEARTBEAT_INTERVAL, HEARTBEAT_TIMEOUT),
-		OtherDomain (id),
-		id_ (id)
+		OtherDomain (id)
 	{}
 	
 	~DomainProt ();
@@ -64,8 +63,6 @@ public:
 		} catch (...) {}
 	}
 
-private:
-	ProtDomainId id_;
 };
 
 }

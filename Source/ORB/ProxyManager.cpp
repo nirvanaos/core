@@ -136,7 +136,7 @@ void ProxyManager::check_type_code (TypeCode::_ptr_type tc)
 ProxyManager::ProxyManager (String_in primary_iid, bool servant_side) :
 	primary_interface_ (nullptr),
 	interfaces_ (get_heap ()),
-	operations_ (interfaces_.get_allocator ())
+	operations_ (interfaces_.get_allocator ().heap ())
 {
 	if (!primary_iid.empty ()) {
 		ProxyFactory::_ref_type proxy_factory = Nirvana::Core::Binder::bind_interface <ProxyFactory> (primary_iid);
@@ -231,7 +231,7 @@ ProxyManager::ProxyManager (String_in primary_iid, bool servant_side) :
 ProxyManager::ProxyManager (const ProxyManager& src) :
 	primary_interface_ (src.primary_interface_),
 	interfaces_ (src.interfaces_, get_heap ()),
-	operations_ (src.operations_, interfaces_.get_allocator ())
+	operations_ (src.operations_, interfaces_.get_allocator ().heap ())
 {
 	for (InterfaceEntry* ie = interfaces_.begin (); ie != interfaces_.end (); ++ie) {
 		create_proxy (*ie, false);

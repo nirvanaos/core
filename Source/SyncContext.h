@@ -46,7 +46,7 @@ class Module;
 ///   - Synchronization domain
 ///   - Free synchronization context for core stateless objects
 ///   - Free synchronization context for class library
-///   - Legacy thread
+///   - Legacy::Executable
 class NIRVANA_NOVTABLE SyncContext
 {
 DECLARE_CORE_INTERFACE
@@ -62,7 +62,7 @@ public:
 	/// May be used for proxy optimization.
 	/// When we marshal `in` parameters from free context we haven't to copy data
 	/// because all data are in stack or the execution domain heap and can not be changed
-	/// by other threads during the synchronouse call.
+	/// by other threads during the synchronous call.
 	bool is_free_sync_context () const NIRVANA_NOEXCEPT
 	{
 		return const_cast <SyncContext&> (*this).stateless_memory () != nullptr;
@@ -103,7 +103,7 @@ public:
 	virtual void raise_exception (CORBA::SystemException::Code code, unsigned minor);
 };
 
-extern StaticallyAllocated <ImplStatic <SyncContextCore>> g_core_free_sync_context;
+extern StaticallyAllocated <ImplStatic <SyncContextCore> > g_core_free_sync_context;
 
 }
 }
