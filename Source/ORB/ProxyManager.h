@@ -74,6 +74,27 @@ protected:
 	friend class Internal::LifeCycleRefCnt <ProxyManager>;
 
 public:
+	// get_heap () returns SyncDomain heap for SyncDomain
+	// and shared heap for free sync context.
+
+	void* operator new (size_t cb)
+	{
+		return get_heap ().allocate (nullptr, cb, 0);
+	}
+
+	void operator delete (void* p, size_t cb)
+	{
+		get_heap ().release (p, cb);
+	}
+
+	void* operator new (size_t cb, void* place)
+	{
+		return place;
+	}
+
+	void operator delete (void*, void*)
+	{}
+
 	// IOReference operations
 
 	Internal::Bridge <Object>* get_object (Internal::String_in iid)
@@ -263,24 +284,6 @@ public:
 	{
 		return static_cast <ProxyManager*> (static_cast <Internal::Bridge <Object>*> (&obj));
 	}
-
-	void* operator new (size_t cb)
-	{
-		return get_heap ().allocate (nullptr, cb, 0);
-	}
-
-	void operator delete (void* p, size_t cb)
-	{
-		get_heap ().release (p, cb);
-	}
-
-	void* operator new (size_t cb, void* place)
-	{
-		return place;
-	}
-
-	void operator delete (void*, void*)
-	{}
 
 protected:
 	ProxyManager (Internal::String_in primary_iid, bool servant_side);

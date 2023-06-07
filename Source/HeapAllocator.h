@@ -53,9 +53,8 @@ public:
 		heap_ (src.heap_)
 	{}
 
-	HeapAllocator (HeapAllocator&& src) :
-		heap_ (std::move (src.heap_))
-	{}
+	// We mustn't use move constructor, otherwise move MSVC std containers
+	// will cause crash.
 
 	template <class U>
 	HeapAllocator (const HeapAllocator <U>& src) :
