@@ -31,8 +31,7 @@
 #include "CORBA/CORBA.h"
 #include "../Synchronized.h"
 #include "../Array.h"
-#include "../SharedObject.h"
-#include "../SharedAllocator.h"
+#include "../HeapAllocator.h"
 #include <CORBA/Proxy/InterfaceMetadata.h>
 #include <CORBA/Proxy/ProxyFactory.h>
 #include <CORBA/Proxy/IOReference.h>
@@ -265,6 +264,24 @@ public:
 		return static_cast <ProxyManager*> (static_cast <Internal::Bridge <Object>*> (&obj));
 	}
 
+	void* operator new (size_t cb)
+	{
+		return get_heap ().allocate (nullptr, cb, 0);
+	}
+
+	void operator delete (void* p, size_t cb)
+	{
+		get_heap ().release (p, cb);
+	}
+
+	void* operator new (size_t cb, void* place)
+	{
+		return place;
+	}
+
+	void operator delete (void*, void*)
+	{}
+
 protected:
 	ProxyManager (Internal::String_in primary_iid, bool servant_side);
 	ProxyManager (const ProxyManager& src);
@@ -303,13 +320,7 @@ protected:
 				deleter->delete_object ();
 		}
 	};
-/*
-	Nirvana::Core::Array <InterfaceEntry, Nirvana::Core::SharedAllocator>& interfaces ()
-		NIRVANA_NOEXCEPT
-	{
-		return interfaces_;
-	}
-*/
+
 	const InterfaceEntry* find_interface (Internal::String_in iid) const NIRVANA_NOEXCEPT;
 
 	template <class I>
@@ -394,6 +405,8 @@ private:
 		return true;
 	}
 
+	static Nirvana::Core::Heap& get_heap () NIRVANA_NOEXCEPT;
+
 private:
 	// Input parameter metadata for Object::_is_a () operation.
 	static const Internal::Parameter is_a_param_;
@@ -421,8 +434,8 @@ private:
 
 	const InterfaceEntry* primary_interface_;
 
-	Nirvana::Core::Array <InterfaceEntry, Nirvana::Core::SharedAllocator> interfaces_;
-	Nirvana::Core::Array <OperationEntry, Nirvana::Core::SharedAllocator> operations_;
+	Nirvana::Core::Array <InterfaceEntry, Nirvana::Core::HeapAllocator> interfaces_;
+	Nirvana::Core::Array <OperationEntry, Nirvana::Core::HeapAllocator> operations_;
 };
 
 }

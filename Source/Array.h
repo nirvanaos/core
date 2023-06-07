@@ -33,26 +33,43 @@ namespace Core {
 
 /// \brief Fixed size array.
 template <class T, template <class> class Al>
-class Array
+class Array : private Al <T>
 {
 public:
-	Array () NIRVANA_NOEXCEPT :
+	Array (const Al <T>& al = Al <T> ()) NIRVANA_NOEXCEPT :
+		Al <T> (al),
 		begin_ (nullptr),
 		end_ (nullptr)
 	{}
 
-	Array (Array&& src) NIRVANA_NOEXCEPT :
-		begin_ (src.begin_),
-		end_ (src.end_)
-	{
-		src.begin_ = src.end_ = nullptr;
-	}
+	Array (Al <T>&& al) NIRVANA_NOEXCEPT :
+		Al <T> (std::move (al)),
+		begin_ (nullptr),
+		end_ (nullptr)
+	{}
 
-	Array (const Array& src) :
+	Array (const Array& src, const Al <T>& al = Al <T> ()) :
+		Al <T> (al),
 		begin_ (nullptr),
 		end_ (nullptr)
 	{
 		copy (src);
+	}
+
+	Array (const Array& src, Al <T>&& al) :
+		Al <T> (std::move (al)),
+		begin_ (nullptr),
+		end_ (nullptr)
+	{
+		copy (src);
+	}
+
+	Array (Array&& src) NIRVANA_NOEXCEPT :
+		Al <T> (src), // don't move
+		begin_ (src.begin_),
+		end_ (src.end_)
+	{
+		src.begin_ = src.end_ = nullptr;
 	}
 
 	void copy (const Array& src)
@@ -79,6 +96,7 @@ public:
 
 	Array& operator = (Array&& src)
 	{
+		Al <T>::operator = (src); // don't move
 		assert (!begin_);
 		begin_ = src.begin_;
 		end_ = src.end_;
@@ -92,8 +110,14 @@ public:
 	{
 		assert (!begin_ && !end_);
 		if (size) {
-			begin_ = Al <T>::allocate (size, nullptr, Memory::ZERO_INIT);
+			begin_ = Al <T>::allocate (size);
 			end_ = begin_ + size;
+			if (0 == sizeof (T) % sizeof (size_t))
+				zero ((size_t*)begin_, (size_t*)end_);
+			else if (0 == sizeof (T) % sizeof (int))
+				zero ((int*)begin_, (int*)end_);
+			else
+				zero ((uint8_t*)begin_, (uint8_t*)end_);
 		}
 	}
 
@@ -177,6 +201,11 @@ public:
 		tmp = rhs.end_;
 		rhs.end_ = end_;
 		end_ = tmp;
+	}
+
+	Al <T>& get_allocator () NIRVANA_NOEXCEPT
+	{
+		return static_cast <Al <T>&> (*this);
 	}
 
 private:

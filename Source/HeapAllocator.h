@@ -43,24 +43,24 @@ public:
 
 	// Some containers require default constructor for allocator.
 	HeapAllocator () NIRVANA_NOEXCEPT
-	{
-	}
+	{}
 
 	HeapAllocator (Heap& heap) NIRVANA_NOEXCEPT :
 		heap_ (&heap)
-	{
-	}
+	{}
 
 	HeapAllocator (const HeapAllocator& src) :
 		heap_ (src.heap_)
-	{
-	}
+	{}
+
+	HeapAllocator (HeapAllocator&& src) :
+		heap_ (std::move (src.heap_))
+	{}
 
 	template <class U>
 	HeapAllocator (const HeapAllocator <U>& src) :
 		heap_ (src.heap_)
-	{
-	}
+	{}
 
 	HeapAllocator& operator = (const HeapAllocator& src)
 	{

@@ -37,6 +37,7 @@
 #include "../MapUnorderedStable.h"
 #include "../BinderMemory.h"
 #include "../Chrono.h"
+#include "../BinderObject.h"
 #include "HashOctetSeq.h"
 #include "ReferenceLocal.h"
 #include "RequestEvent.h"
@@ -49,7 +50,7 @@ class ReferenceRemote;
 typedef servant_reference <ReferenceRemote> ReferenceRemoteRef;
 
 /// Other domain
-class NIRVANA_NOVTABLE Domain
+class NIRVANA_NOVTABLE Domain : public Nirvana::Core::BinderObject
 {
 	template <class D> friend class CORBA::servant_reference;
 

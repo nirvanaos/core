@@ -94,8 +94,10 @@ void RequestGIOP::unmarshal_end ()
 		stream_in_ = nullptr;
 		if (more_data > 7) // 8-byte alignment is ignored
 			throw MARSHAL (StreamIn::MARSHAL_MINOR_MORE);
-		if (!references_to_confirm_.empty ())
+		if (!references_to_confirm_.empty ()) {
 			Domain::confirm_DGC_references (references_to_confirm_.size (), references_to_confirm_.data ());
+			references_to_confirm_.clear ();
+		}
 	}
 }
 
@@ -147,7 +149,7 @@ Interface::_ref_type RequestGIOP::unmarshal_interface (const IDL::String& interf
 				throw INV_OBJREF ();
 		}
 		if (unconfirmed_remote_ref)
-			references_to_confirm_.push_back (unconfirmed_remote_ref);
+			references_to_confirm_.push_back (std::move (unconfirmed_remote_ref));
 	}
 	return ret;
 }

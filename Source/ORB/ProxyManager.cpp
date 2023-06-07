@@ -78,6 +78,15 @@ bool ProxyManager::OEPred::less (const Char* lhs, size_t lhs_len, const Char* rh
 	return std::lexicographical_compare (lhs, lhs + lhs_len, rhs, rhs + rhs_len);
 }
 
+Nirvana::Core::Heap& ProxyManager::get_heap () NIRVANA_NOEXCEPT
+{
+	SyncDomain* sd = SyncContext::current ().sync_domain ();
+	if (sd)
+		return sd->mem_context ().heap ();
+	else
+		return Heap::shared_heap ();
+}
+
 void ProxyManager::check_metadata (const InterfaceMetadata* metadata, String_in primary)
 {
 	if (!metadata)
@@ -125,7 +134,9 @@ void ProxyManager::check_type_code (TypeCode::_ptr_type tc)
 }
 
 ProxyManager::ProxyManager (String_in primary_iid, bool servant_side) :
-	primary_interface_ (nullptr)
+	primary_interface_ (nullptr),
+	interfaces_ (get_heap ()),
+	operations_ (interfaces_.get_allocator ())
 {
 	if (!primary_iid.empty ()) {
 		ProxyFactory::_ref_type proxy_factory = Nirvana::Core::Binder::bind_interface <ProxyFactory> (primary_iid);
@@ -219,8 +230,8 @@ ProxyManager::ProxyManager (String_in primary_iid, bool servant_side) :
 
 ProxyManager::ProxyManager (const ProxyManager& src) :
 	primary_interface_ (src.primary_interface_),
-	interfaces_ (src.interfaces_),
-	operations_ (src.operations_)
+	interfaces_ (src.interfaces_, get_heap ()),
+	operations_ (src.operations_, interfaces_.get_allocator ())
 {
 	for (InterfaceEntry* ie = interfaces_.begin (); ie != interfaces_.end (); ++ie) {
 		create_proxy (*ie, false);

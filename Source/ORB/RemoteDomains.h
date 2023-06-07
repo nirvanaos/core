@@ -86,12 +86,11 @@ public:
 private:
 	typedef std::list <DomainRemote, Nirvana::Core::BinderMemory::Allocator <DomainRemote> > Domains;
 
-	Domains domains_;
-
 	typedef Nirvana::Core::MapUnorderedStable <IIOP::ListenPoint, DomainRemote*, std::hash <IIOP::ListenPoint>,
 		std::equal_to <IIOP::ListenPoint>, Nirvana::Core::BinderMemory::Allocator> ListenPoints;
 
 	ListenPoints listen_points_;
+	Domains domains_;
 };
 
 }

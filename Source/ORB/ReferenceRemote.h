@@ -39,9 +39,13 @@ namespace Core {
 
 /// Base for remote references.
 class ReferenceRemote :
-	public Reference
+	public Reference,
+	public Nirvana::Core::BinderObject
 {
 public:
+	using Nirvana::Core::BinderObject::operator new;
+	using Nirvana::Core::BinderObject::operator delete;
+
 	ReferenceRemote (const OctetSeq& addr, servant_reference <Domain>&& domain,
 		const IOP::ObjectKey& object_key, const IDL::String& primary_iid, ULong ORB_type,
 		const IOP::TaggedComponentSeq& components);
