@@ -59,10 +59,6 @@ public:
 	virtual SyncDomain* sync_domain () NIRVANA_NOEXCEPT;
 
 	/// \returns `true` if this context is free sync context.
-	/// May be used for proxy optimization.
-	/// When we marshal `in` parameters from free context we haven't to copy data
-	/// because all data are in stack or the execution domain heap and can not be changed
-	/// by other threads during the synchronous call.
 	bool is_free_sync_context () const NIRVANA_NOEXCEPT
 	{
 		return const_cast <SyncContext&> (*this).stateless_memory () != nullptr;

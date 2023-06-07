@@ -37,6 +37,7 @@
 namespace CORBA {
 namespace Core {
 
+/// Implementation of CORBA::Internal::ObjectFactory.
 class ObjectFactory :
 	public servant_traits <Internal::ObjectFactory>::ServantStatic <ObjectFactory>
 {
@@ -61,19 +62,23 @@ public:
 		}
 	}
 
-	static bool stateless_available ()
+	static PortableServer::ServantBase::_ref_type create_servant (PortableServer::Servant servant)
 	{
-		return Nirvana::Core::SyncContext::current ().stateless_memory () != nullptr;
+		Frame frame;
+		return Internal::I_var <PortableServer::ServantBase> (PortableServer::Core::ServantBase::create (servant));
+	}
+
+	static CORBA::LocalObject::_ref_type create_local_object (CORBA::LocalObject::_ptr_type servant)
+	{
+		Frame frame;
+		return Internal::I_var <CORBA::LocalObject> (CORBA::Core::LocalObject::create (servant));
 	}
 
 	void stateless_begin (StatelessCreationFrame& scf)
 	{
 		if (!(scf.tmp () && scf.size ()))
 			throw BAD_PARAM ();
-		Nirvana::Core::Heap* stateless_memory = Nirvana::Core::SyncContext::current ().stateless_memory ();
-		if (!stateless_memory)
-			throw BAD_OPERATION ();
-		void* p = stateless_memory->allocate (0, scf.size (), Nirvana::Memory::READ_ONLY | Nirvana::Memory::RESERVED);
+		void* p = stateless_memory ().allocate (0, scf.size (), Nirvana::Memory::READ_ONLY | Nirvana::Memory::RESERVED);
 		scf.offset ((uint8_t*)p - (uint8_t*)scf.tmp ());
 		Nirvana::Core::TLS& tls = Nirvana::Core::TLS::current ();
 		scf.next (tls.get (Nirvana::Core::TLS::CORE_TLS_OBJECT_FACTORY));
@@ -88,27 +93,24 @@ public:
 			throw BAD_INV_ORDER ();
 		tls.set (Nirvana::Core::TLS::CORE_TLS_OBJECT_FACTORY, scf->next ());
 		void* p = (Octet*)scf->tmp () + scf->offset ();
-		Nirvana::Core::Heap* stateless_memory = Nirvana::Core::SyncContext::current ().stateless_memory ();
-		assert (stateless_memory);
+		Nirvana::Core::Heap& sm = stateless_memory ();
 		if (success) {
-			stateless_memory->copy (p, const_cast <void*> (scf->tmp ()), scf->size (), Nirvana::Memory::READ_ONLY);
+			sm.copy (p, const_cast <void*> (scf->tmp ()), scf->size (), Nirvana::Memory::READ_ONLY);
 			return p;
 		} else {
-			stateless_memory->release (p, scf->size ());
+			sm.release (p, scf->size ());
 			return nullptr;
 		}
 	}
 
-	static PortableServer::ServantBase::_ref_type create_servant (PortableServer::Servant servant)
+	static const void* stateless_copy (const void* src, size_t size)
 	{
-		Frame frame;
-		return Internal::I_var <PortableServer::ServantBase> (PortableServer::Core::ServantBase::create (servant));
+		return stateless_memory ().copy (nullptr, const_cast <void*> (src), size, Nirvana::Memory::READ_ONLY);
 	}
 
-	static CORBA::LocalObject::_ref_type create_local_object (CORBA::LocalObject::_ptr_type servant)
+	static bool is_free_sync_context ()
 	{
-		Frame frame;
-		return Internal::I_var <CORBA::LocalObject> (CORBA::Core::LocalObject::create (servant));
+		return Nirvana::Core::SyncContext::current ().is_free_sync_context ();
 	}
 
 private:
@@ -122,6 +124,7 @@ private:
 		bool pop_;
 	};
 
+	static Nirvana::Core::Heap& stateless_memory ();
 };
 
 }

@@ -26,46 +26,11 @@
 #include <ORB/ObjectFactory.h>
 #include <Nirvana/OLF.h>
 
-using namespace ::Nirvana;
-using namespace ::Nirvana::Core;
-
 namespace CORBA {
-namespace Core {
-
-ObjectFactory::Frame::Frame () :
-	StatelessCreationFrame (nullptr, 0, 0, nullptr),
-	pop_ (false)
-{
-	ExecDomain* ed = ::Nirvana::Core::Thread::current ().exec_domain ();
-	if (!ed)
-		throw_BAD_INV_ORDER ();
-
-	if (ExecDomain::RestrictedMode::MODULE_TERMINATE == ed->restricted_mode ())
-		throw_NO_PERMISSION ();
-	
-	TLS& tls = TLS::current ();
-	StatelessCreationFrame* scf = (StatelessCreationFrame*)tls.get (TLS::CORE_TLS_OBJECT_FACTORY);
-
-	if (ed->sync_context ().sync_domain ()) {
-		next (tls.get (TLS::CORE_TLS_OBJECT_FACTORY));
-		tls.set (TLS::CORE_TLS_OBJECT_FACTORY, static_cast <StatelessCreationFrame*> (this));
-		pop_ = true;
-	} else if (!scf || !scf->size ())
-		throw_BAD_INV_ORDER ();
-}
-
-ObjectFactory::Frame::~Frame ()
-{
-	if (pop_)
-		TLS::current ().set (TLS::CORE_TLS_OBJECT_FACTORY, next ());
-}
-
-}
-
 namespace Internal {
 
-extern const ::Nirvana::ImportInterfaceT <ObjectFactory> g_object_factory = {
-	::Nirvana::OLF_IMPORT_INTERFACE, "CORBA/Internal/g_object_factory",
+extern const Nirvana::ImportInterfaceT <ObjectFactory> g_object_factory = {
+	Nirvana::OLF_IMPORT_INTERFACE, "CORBA/Internal/g_object_factory",
 	RepIdOf <ObjectFactory>::id, NIRVANA_STATIC_BRIDGE (ObjectFactory,
 	Core::ObjectFactory)
 };
