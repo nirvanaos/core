@@ -76,7 +76,7 @@ public:
 	Nirvana::Core::Ref <ServantProxyObject> get_active_servant () const NIRVANA_NOEXCEPT;
 
 	static void marshal (const ProxyManager& proxy, const Octet* obj_key, size_t obj_key_size,
-		unsigned flags, const PolicyMap* policies, StreamOut& out);
+		const PolicyMap* policies, StreamOut& out);
 
 	virtual DomainManagersList _get_domain_managers () override;
 

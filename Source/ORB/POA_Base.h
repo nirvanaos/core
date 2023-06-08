@@ -76,7 +76,6 @@ struct POA_Policies
 	{
 		unsigned mask = 0;
 		*this = default_;
-		int DGC_policy_idx = -1;
 		for (auto it = policies.begin (); it != policies.end (); ++it) {
 			CORBA::Policy::_ptr_type policy = *it;
 			CORBA::PolicyType type = policy->policy_type ();
@@ -110,16 +109,10 @@ struct POA_Policies
 					request_processing = RequestProcessingPolicy::_narrow (policy)->value ();
 					break;
 				default:
-					if (FT::HEARTBEAT_ENABLED_POLICY == type)
-						DGC_policy_idx = int (it - policies.begin ());
 					if (!object_policies.insert (policy))
 						throw POA::InvalidPolicy (CORBA::UShort (it - policies.begin ()));
 			}
 		}
-		
-		// DGC requires RETAIN policy
-		if (DGC_policy_idx >= 0 && servant_retention != ServantRetentionPolicyValue::RETAIN)
-			throw POA::InvalidPolicy ((CORBA::UShort)DGC_policy_idx);
 	}
 
 	bool operator < (const POA_Policies& rhs) const NIRVANA_NOEXCEPT
@@ -231,7 +224,7 @@ public:
 		return CORBA::Core::PolicyImpl <ID_UNIQUENESS_POLICY_ID>::create (value);
 	}
 
-	static IdAssignmentPolicy::_ref_type  create_id_assignment_policy (IdAssignmentPolicyValue value)
+	static IdAssignmentPolicy::_ref_type create_id_assignment_policy (IdAssignmentPolicyValue value)
 	{
 		return CORBA::Core::PolicyImpl <ID_ASSIGNMENT_POLICY_ID>::create (value);
 	}
@@ -472,6 +465,25 @@ public:
 		return check_path (path, path.end ());
 	}
 
+	unsigned get_flags (unsigned flags) const NIRVANA_NOEXCEPT
+	{
+		switch (DGC_policy_) {
+		case DGC_ENABLED:
+			flags |= CORBA::Core::Reference::GARBAGE_COLLECTION;
+			break;
+
+		case DGC_DISABLED:
+			flags &= ~CORBA::Core::Reference::GARBAGE_COLLECTION;
+			break;
+		}
+		return flags;
+	}
+
+	virtual CORBA::Core::PolicyMapShared* get_policies (unsigned flags) const NIRVANA_NOEXCEPT
+	{
+		return object_policies_;
+	}
+
 protected:
 	POA_Base () :
 		signature_ (0)
@@ -503,8 +515,6 @@ protected:
 	{
 		return DGC_policy_;
 	}
-
-	CORBA::servant_reference <CORBA::Core::PolicyMapShared> get_DGC_policies () const;
 
 private:
 	void on_request_finish () NIRVANA_NOEXCEPT;

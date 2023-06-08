@@ -37,7 +37,7 @@ ReferenceLocalRef POA_Retain::activate_object (ObjectKey&& key, bool unique, Ser
 	unsigned flags)
 {
 	ReferenceLocalRef ref = root_->emplace_reference (std::move (key), unique,
-		std::ref (proxy), flags, object_policies_);
+		std::ref (proxy), get_flags (flags), get_policies (flags));
 	if (ref)
 		activate_object (*ref, proxy);
 	return ref;

@@ -84,7 +84,7 @@ public:
 
 protected:
 	RefCntProxy ref_cnt_;
-	const unsigned flags_;
+	unsigned flags_;
 	servant_reference <PolicyMapShared> policies_;
 };
 

@@ -188,24 +188,6 @@ POA_Base::~POA_Base ()
 	the_POAManager_->on_adapter_destroy (*this);
 }
 
-servant_reference <PolicyMapShared> POA_Base::get_DGC_policies () const
-{
-	servant_reference <PolicyMapShared> pols;
-	if (DGC_DEFAULT == DGC_policy_) {
-		if (object_policies_) {
-			pols = make_reference <PolicyMapShared> (std::ref (*object_policies_));
-			pols->insert <FT::HEARTBEAT_ENABLED_POLICY> (true);
-		} else if (root_)
-			pols = root_->default_DGC_policies ();
-		else {
-			pols = CORBA::make_reference <CORBA::Core::PolicyMapShared> ();
-			pols->insert <FT::HEARTBEAT_ENABLED_POLICY> (true);
-		}
-	} else
-		pols = object_policies_;
-	return pols;
-}
-
 void POA_Base::activate_object (CORBA::Core::ServantProxyObject& proxy, ObjectId& oid, unsigned flags)
 {
 	for (;;) {
@@ -268,7 +250,7 @@ ReferenceLocalRef POA_Base::create_reference (const RepositoryId& intf, unsigned
 		// The ObjectKey constructor calls generate_object_id to generate a new unique id.
 		// If SYSTEM_ID policy is not present, the WrongPolicy exception will be thrown.
 		ReferenceLocalRef ref = root_->emplace_reference (ObjectKey (*this), true, std::ref (intf),
-			flags, object_policies_);
+			get_flags (flags), get_policies (flags));
 		if (ref)
 			return ref;
 		// Unique ID collision.
@@ -287,7 +269,8 @@ ReferenceLocalRef POA_Base::create_reference (ObjectKey&& key,
 ReferenceLocalRef POA_Base::create_reference (ObjectKey&& key, const RepositoryId& intf,
 	unsigned flags)
 {
-	return root_->emplace_reference (std::move (key), false, intf, flags, object_policies_);
+	return root_->emplace_reference (std::move (key), false, intf, get_flags (flags),
+		get_policies (flags));
 }
 
 ObjectId POA_Base::servant_to_id (ServantProxyObject& proxy)

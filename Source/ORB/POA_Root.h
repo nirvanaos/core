@@ -165,7 +165,7 @@ public:
 
 	CORBA::Core::PolicyMapShared* default_DGC_policies () const NIRVANA_NOEXCEPT
 	{
-		return implicit_policies_;
+		return DGC_policies_;
 	}
 
 private:

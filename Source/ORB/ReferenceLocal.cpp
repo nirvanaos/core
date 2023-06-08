@@ -155,7 +155,7 @@ Ref <ServantProxyObject> ReferenceLocal::get_active_servant () const NIRVANA_NOE
 }
 
 void ReferenceLocal::marshal (const ProxyManager& proxy, const Octet* obj_key, size_t obj_key_size,
-	unsigned flags, const PolicyMap* policies, StreamOut& out)
+	const PolicyMap* policies, StreamOut& out)
 {
 	out.write_string_c (proxy.primary_interface_id ());
 	ImplStatic <StreamOutEncap> encap;
@@ -173,7 +173,7 @@ void ReferenceLocal::marshal (const ProxyManager& proxy, const Octet* obj_key, s
 	uint32_t ORB_type = ESIOP::ORB_TYPE;
 	ESIOP::ProtDomainId domain_id = ESIOP::current_domain_id ();
 
-	size_t component_cnt = Nirvana::Core::SINGLE_DOMAIN ? 3 : 4;
+	size_t component_cnt = Nirvana::Core::SINGLE_DOMAIN ? 2 : 3;
 
 	if (policies) {
 		if (!policies->empty ())
@@ -190,6 +190,7 @@ void ReferenceLocal::marshal (const ProxyManager& proxy, const Octet* obj_key, s
 		encap.write_c (4, 4, &ORB_type);
 		components.emplace_back (IOP::TAG_ORB_TYPE, std::move (encap.data ()));
 	}
+
 	{ // IOP::TAG_FT_HEARTBEAT_ENABLED
 		ImplStatic <StreamOutEncap> encap;
 		uint8_t enabled = 1;
@@ -201,13 +202,6 @@ void ReferenceLocal::marshal (const ProxyManager& proxy, const Octet* obj_key, s
 		ImplStatic <StreamOutEncap> encap;
 		encap.write_c (alignof (ESIOP::ProtDomainId), sizeof (ESIOP::ProtDomainId), &domain_id);
 		components.emplace_back (ESIOP::TAG_DOMAIN_ADDRESS, std::move (encap.data ()));
-	}
-
-	{
-		ImplStatic <StreamOutEncap> encap;
-		Octet fl = (Octet)flags;
-		encap.write_c (1, 1, &fl);
-		components.emplace_back (ESIOP::TAG_FLAGS, std::move (encap.data ()));
 	}
 
 	if (policies) {
@@ -227,7 +221,7 @@ void ReferenceLocal::marshal (const ProxyManager& proxy, const Octet* obj_key, s
 
 ReferenceRef ReferenceLocal::marshal (StreamOut& out)
 {
-	marshal (*this, object_key_.data (), object_key_.size (), flags (), policies_, out);
+	marshal (*this, object_key_.data (), object_key_.size (), policies_, out);
 	return this;
 }
 

@@ -38,7 +38,7 @@ namespace Core {
 ReferenceRemote::ReferenceRemote (const OctetSeq& addr, servant_reference <Domain>&& domain,
 	const IOP::ObjectKey& object_key, const IDL::String& primary_iid,
 	ULong ORB_type, const IOP::TaggedComponentSeq& components) :
-	Reference (primary_iid, get_flags (ORB_type, components)),
+	Reference (primary_iid, 0),
 	address_ (addr),
 	domain_ (std::move (domain)),
 	object_key_ (object_key),
@@ -47,8 +47,12 @@ ReferenceRemote::ReferenceRemote (const OctetSeq& addr, servant_reference <Domai
 	auto p = binary_search (components, IOP::TAG_POLICIES);
 	if (p)
 		policies_ = make_reference <PolicyMapShared> (std::ref (p->component_data ()));
-	if ((flags () & GARBAGE_COLLECTION) && (domain_->flags () & Domain::GARBAGE_COLLECTION))
-		DGC_key_ = domain_->on_DGC_reference_unmarshal (object_key_);
+	bool gc = false;
+	if (policies_ && policies_->get_value <FT::HEARTBEAT_ENABLED_POLICY> (gc) && gc) {
+		flags_ |= GARBAGE_COLLECTION;
+		if (domain_->flags () & Domain::GARBAGE_COLLECTION)
+			DGC_key_ = domain_->on_DGC_reference_unmarshal (object_key_);
+	}
 }
 
 ReferenceRemote::~ReferenceRemote ()

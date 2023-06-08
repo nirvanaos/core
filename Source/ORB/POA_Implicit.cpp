@@ -32,10 +32,6 @@ using namespace Nirvana::Core;
 namespace PortableServer {
 namespace Core {
 
-POA_Implicit::POA_Implicit () :
-	implicit_policies_ (POA_Base::get_DGC_policies ())
-{}
-
 bool POA_Implicit::implicit_activation () const NIRVANA_NOEXCEPT
 {
 	return true;

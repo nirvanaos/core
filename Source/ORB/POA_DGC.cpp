@@ -1,4 +1,3 @@
-/// \file
 /*
 * Nirvana Core.
 *
@@ -24,37 +23,39 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_ORB_CORE_POA_IMPLICIT_H_
-#define NIRVANA_ORB_CORE_POA_IMPLICIT_H_
-#pragma once
+#include "POA_Root.h"
 
-#include "POA_Unique.h"
-#include "POA_System.h"
-#include "POA_DGC.h"
+using namespace CORBA;
+using namespace CORBA::Core;
 
 namespace PortableServer {
 namespace Core {
 
-// POA with IMPLICIT_ACTIVATION
-class NIRVANA_NOVTABLE POA_Implicit :
-	public virtual POA_Base,
-	public virtual POA_DGC
+POA_DGC::POA_DGC ()
 {
-public:
-	virtual bool implicit_activation () const NIRVANA_NOEXCEPT override;
+	servant_reference <PolicyMapShared> pols;
+	if (DGC_DEFAULT == DGC_policy ()) {
+		if (object_policies_) {
+			pols = make_reference <PolicyMapShared> (std::ref (*object_policies_));
+			pols->insert <FT::HEARTBEAT_ENABLED_POLICY> (true);
+		} else if (root_)
+			pols = root_->default_DGC_policies ();
+		else {
+			pols = CORBA::make_reference <CORBA::Core::PolicyMapShared> ();
+			pols->insert <FT::HEARTBEAT_ENABLED_POLICY> (true);
+		}
+	} else
+		pols = object_policies_;
+	DGC_policies_ = std::move (pols);
+}
 
-	virtual ObjectId servant_to_id_default (CORBA::Core::ServantProxyObject& proxy, bool not_found) override;
-	virtual CORBA::Object::_ref_type servant_to_reference_default (CORBA::Core::ServantProxyObject& proxy, bool not_found) override;
-
-};
-
-class NIRVANA_NOVTABLE POA_ImplicitUnique :
-	public POA_Implicit,
-	public POA_Unique,
-	public POA_System
-{};
+PolicyMapShared* POA_DGC::get_policies (unsigned flags) const NIRVANA_NOEXCEPT
+{
+	if (flags & CORBA::Core::Reference::GARBAGE_COLLECTION)
+		return DGC_policies_;
+	else
+		return object_policies_;
+}
 
 }
 }
-
-#endif

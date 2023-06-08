@@ -24,35 +24,25 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_ORB_CORE_POA_IMPLICIT_H_
-#define NIRVANA_ORB_CORE_POA_IMPLICIT_H_
+#ifndef NIRVANA_ORB_CORE_POA_DGC_H_
+#define NIRVANA_ORB_CORE_POA_DGC_H_
 #pragma once
 
-#include "POA_Unique.h"
-#include "POA_System.h"
-#include "POA_DGC.h"
+#include "POA_Base.h"
 
 namespace PortableServer {
 namespace Core {
 
-// POA with IMPLICIT_ACTIVATION
-class NIRVANA_NOVTABLE POA_Implicit :
-	public virtual POA_Base,
-	public virtual POA_DGC
+class NIRVANA_NOVTABLE POA_DGC : public virtual POA_Base
 {
-public:
-	virtual bool implicit_activation () const NIRVANA_NOEXCEPT override;
+protected:
+	POA_DGC ();
 
-	virtual ObjectId servant_to_id_default (CORBA::Core::ServantProxyObject& proxy, bool not_found) override;
-	virtual CORBA::Object::_ref_type servant_to_reference_default (CORBA::Core::ServantProxyObject& proxy, bool not_found) override;
+	virtual CORBA::Core::PolicyMapShared* get_policies (unsigned flags) const NIRVANA_NOEXCEPT override;
 
+protected:
+	CORBA::servant_reference <CORBA::Core::PolicyMapShared> DGC_policies_;
 };
-
-class NIRVANA_NOVTABLE POA_ImplicitUnique :
-	public POA_Implicit,
-	public POA_Unique,
-	public POA_System
-{};
 
 }
 }

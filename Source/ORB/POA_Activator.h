@@ -29,13 +29,16 @@
 #pragma once
 
 #include "POA_Base.h"
+#include "POA_DGC.h"
 #include "HashOctetSeq.h"
 
 namespace PortableServer {
 namespace Core {
 
 // RETAIN and USE_SERVANT_MANAGER
-class POA_Activator : public virtual POA_Base
+class POA_Activator :
+	public virtual POA_Base,
+	public virtual POA_DGC
 {
 	static const TimeBase::TimeT ACTIVATION_TIMEOUT = 100 * TimeBase::MILLISECOND;
 public:
@@ -43,10 +46,6 @@ public:
 	virtual void set_servant_manager (ServantManager::_ptr_type imgr) override;
 
 protected:
-	POA_Activator () :
-		DGC_policies_ (get_DGC_policies ())
-	{}
-
 	virtual CORBA::Core::ReferenceLocalRef create_reference (ObjectKey&& key,
 		const CORBA::RepositoryId& intf) override;
 
@@ -73,8 +72,6 @@ private:
 		Nirvana::Core::UserAllocator> ActivationMap;
 
 	ActivationMap activation_map_;
-
-	CORBA::servant_reference <CORBA::Core::PolicyMapShared> DGC_policies_;
 };
 
 }

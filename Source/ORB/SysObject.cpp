@@ -43,7 +43,7 @@ SysObject* SysObject::create (CORBA::LocalObject::_ptr_type servant, Octet id)
 
 ReferenceRef SysObject::marshal (StreamOut& out)
 {
-	ReferenceLocal::marshal (*this, &id_, 1, 0, nullptr, out);
+	ReferenceLocal::marshal (*this, &id_, 1, nullptr, out);
 	return nullptr;
 }
 
