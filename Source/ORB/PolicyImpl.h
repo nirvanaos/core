@@ -32,7 +32,6 @@
 #include <CORBA/NoDefaultPOA.h>
 #include <CORBA/Policy_s.h>
 #include "PolicyFactory.h"
-#include "../Synchronized.h"
 
 namespace CORBA {
 namespace Core {
@@ -64,16 +63,6 @@ public:
 
 	static typename PolicyItf::_ref_type create (const ValueType& val);
 
-public:
-	static PolicyFactory::Functions functions_;
-
-protected:
-	static void write_val (const ValueType& val, StreamOut& s)
-	{
-		s.write_c (alignof (ValueType), sizeof (ValueType), &val);
-	}
-
-private:
 	static Policy::_ref_type create_policy (const Any& a)
 	{
 		ValueType val;
@@ -84,28 +73,37 @@ private:
 
 	static Policy::_ref_type read (StreamIn& s)
 	{
-		ValueType val;
-		s.read (alignof (ValueType), sizeof (ValueType), &val);
-		if (s.other_endian ())
-			Internal::Type <ValueType>::byteswap (val);
-		return create_sync (val);
+		return create (read_val (s));
 	}
 
-	static typename PolicyItf::_ref_type create_sync (const ValueType& val);
+public:
+	static PolicyFactory::Functions functions_;
+
+protected:
+	static void write_val (const ValueType& val, StreamOut& s)
+	{
+		s.write_c (alignof (ValueType), sizeof (ValueType), &val);
+	}
+
+	static ValueType read_val (StreamIn& s);
+
 };
 
 template <class PolicyItf, PolicyType id, typename ValueType>
-typename PolicyItf::_ref_type PolicyImplBase <PolicyItf, id, ValueType>::create_sync (const ValueType& val)
+typename PolicyItf::_ref_type PolicyImplBase <PolicyItf, id, ValueType>::create (const ValueType& val)
 {
 	return make_stateless <PolicyImpl <id> > (std::ref (val))->_this ();
 }
 
 template <class PolicyItf, PolicyType id, typename ValueType>
-typename PolicyItf::_ref_type PolicyImplBase <PolicyItf, id, ValueType>::create (const ValueType& val)
+ValueType PolicyImplBase <PolicyItf, id, ValueType>::read_val (StreamIn& s)
 {
-	SYNC_BEGIN (Nirvana::Core::g_core_free_sync_context, nullptr)
-		return create_sync (val);
-	SYNC_END ()
+	// Assume all policy data is CDR
+	ValueType val;
+	s.read (alignof (ValueType), sizeof (ValueType), &val);
+	if (s.other_endian ())
+		Internal::Type <ValueType>::byteswap (val);
+	return val;
 }
 
 template <class PolicyItf, PolicyType id, typename ValueType>
@@ -119,6 +117,7 @@ class PolicyImpl <id> : public PolicyImplBase <Itf, id, ValType> {\
 public: typedef ValType ValueType;\
 	PolicyImpl (const ValType& v) : value_ (v) {}\
 	ValType att_name () const NIRVANA_NOEXCEPT { return value_; }\
+	static ValueType read_value (CORBA::Core::StreamIn& s) { return read_val (s); }\
 	static void write (Policy::_ptr_type policy, StreamOut& s) { write_val (Itf::_narrow (policy)->att_name (), s); }\
 private: ValType value_; }
 

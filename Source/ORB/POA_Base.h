@@ -29,10 +29,10 @@
 #pragma once
 
 #include <CORBA/Server.h>
+#include "policies.h"
 #include "ServantProxyObject.h"
 #include "ServantProxyLocal.h"
 #include "MapUnorderedStable.h"
-#include "PortableServer_policies.h"
 #include "RequestInPOA.h"
 #include "Services.h"
 #include "ReferenceLocal.h"
@@ -61,7 +61,7 @@ typedef CORBA::servant_reference <POA_Base> POA_Ref;
 
 typedef POA_Ref (*POA_Factory) (POA_Base* parent, const IDL::String* name,
 	CORBA::servant_reference <POAManager>&& manager,
-	CORBA::servant_reference <CORBA::Core::DomainManager>&& domain_manager);
+	CORBA::servant_reference <CORBA::Core::PolicyMapShared>&& policy_map);
 
 struct POA_Policies
 {
@@ -112,7 +112,7 @@ struct POA_Policies
 				default:
 					if (FT::HEARTBEAT_ENABLED_POLICY == type)
 						DGC_policy_idx = int (it - policies.begin ());
-					if (!object_policies.emplace (type, policy).second)
+					if (!object_policies.insert (policy))
 						throw POA::InvalidPolicy (CORBA::UShort (it - policies.begin ()));
 			}
 		}
@@ -433,26 +433,30 @@ public:
 	static POA_Base* get_implementation (const CORBA::Core::ServantProxyLocal* proxy);
 
 	// Entry point vector overrides
-	static CORBA::Internal::Interface* _s_get_servant (CORBA::Internal::Bridge <POA>* _b, Interface* _env);
-	static void _s_set_servant (CORBA::Internal::Bridge <POA>* _b, Interface* p_servant, Interface* _env);
-	static CORBA::Internal::Type <ObjectId>::ABI_ret _s_activate_object (
-		CORBA::Internal::Bridge <POA>* _b, Interface* p_servant,
-		Interface* env);
-	static void _s_activate_object_with_id (
-		CORBA::Internal::Bridge <POA>* _b, CORBA::Internal::Type <ObjectId>::ABI_in oid, Interface* p_servant,
-		Interface* env);
-	static CORBA::Internal::Type <ObjectId>::ABI_ret _s_servant_to_id (
-		CORBA::Internal::Bridge <POA>* _b, Interface* p_servant,
-		Interface* env);
-	static Interface* _s_servant_to_reference (
-		CORBA::Internal::Bridge <POA>* _b, Interface* servant,
-		Interface* env);
-	static Interface* _s_reference_to_servant (
-		CORBA::Internal::Bridge <POA>* _b, Interface* reference,
-		Interface* env);
-	static Interface* _s_id_to_servant (
-		CORBA::Internal::Bridge <POA>* _b, CORBA::Internal::Type <ObjectId>::ABI_in oid,
-		Interface* env);
+	static CORBA::Internal::Interface* _s_get_servant (CORBA::Internal::Bridge <POA>* _b,
+		CORBA::Internal::Interface* _env);
+
+	static void _s_set_servant (CORBA::Internal::Bridge <POA>* _b,
+		CORBA::Internal::Interface* p_servant, CORBA::Internal::Interface* _env);
+
+	static CORBA::Internal::Type <ObjectId>::ABI_ret _s_activate_object (CORBA::Internal::Bridge <POA>* _b,
+		CORBA::Internal::Interface* p_servant, CORBA::Internal::Interface* env);
+
+	static void _s_activate_object_with_id (CORBA::Internal::Bridge <POA>* _b,
+		CORBA::Internal::Type <ObjectId>::ABI_in oid, CORBA::Internal::Interface* p_servant,
+		CORBA::Internal::Interface* env);
+
+	static CORBA::Internal::Type <ObjectId>::ABI_ret _s_servant_to_id (CORBA::Internal::Bridge <POA>* _b,
+		CORBA::Internal::Interface* p_servant, CORBA::Internal::Interface* env);
+
+	static CORBA::Internal::Interface* _s_servant_to_reference (	CORBA::Internal::Bridge <POA>* _b,
+		CORBA::Internal::Interface* servant, CORBA::Internal::Interface* env);
+
+	static CORBA::Internal::Interface* _s_reference_to_servant (CORBA::Internal::Bridge <POA>* _b,
+		CORBA::Internal::Interface* reference, CORBA::Internal::Interface* env);
+
+	static CORBA::Internal::Interface* _s_id_to_servant (CORBA::Internal::Bridge <POA>* _b,
+		CORBA::Internal::Type <ObjectId>::ABI_in oid, CORBA::Internal::Interface* env);
 
 	virtual ~POA_Base ();
 
@@ -485,7 +489,7 @@ protected:
 
 	POA_Base (POA_Base* parent, const IDL::String* name,
 		CORBA::servant_reference <POAManager>&& manager,
-		CORBA::servant_reference <CORBA::Core::DomainManager>&& domain_manager);
+		CORBA::servant_reference <CORBA::Core::PolicyMapShared>&& policy_map);
 
 	virtual ImplicitActivation implicit_activation () const NIRVANA_NOEXCEPT;
 
@@ -514,7 +518,7 @@ private:
 protected:
 	static POA_Root* root_;
 	CORBA::servant_reference <POAManager> the_POAManager_;
-	CORBA::servant_reference <CORBA::Core::DomainManager> domain_manager_;
+	CORBA::servant_reference <CORBA::Core::PolicyMapShared> object_policies_;
 
 private:
 	// Children map.

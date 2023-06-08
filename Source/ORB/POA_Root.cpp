@@ -46,12 +46,12 @@ Object::_ref_type create_RootPOA ()
 
 ReferenceLocalRef POA_Root::emplace_reference (ObjectKey&& core_key,
 	bool unique, const IDL::String& primary_iid, unsigned flags,
-	CORBA::Core::DomainManager* domain_manager)
+	CORBA::Core::PolicyMapShared* policies)
 {
 	auto ins = references_.emplace (IOP::ObjectKey (core_key), Reference::DEADLINE_MAX);
 	References::reference entry = *ins.first;
 	if (ins.second) {
-		RefPtr p (new ReferenceLocal (entry.first, std::move (core_key), primary_iid, flags, domain_manager));
+		RefPtr p (new ReferenceLocal (entry.first, std::move (core_key), primary_iid, flags, policies));
 		Servant_var <ReferenceLocal> ret (p.get ());
 		entry.second.finish_construction (std::move (p));
 		return ret;
@@ -66,12 +66,12 @@ ReferenceLocalRef POA_Root::emplace_reference (ObjectKey&& core_key,
 
 ReferenceLocalRef POA_Root::emplace_reference (ObjectKey&& core_key,
 	bool unique, ServantProxyObject& proxy, unsigned flags,
-	CORBA::Core::DomainManager* domain_manager)
+	CORBA::Core::PolicyMapShared* policies)
 {
 	auto ins = references_.emplace (IOP::ObjectKey (core_key), Reference::DEADLINE_MAX);
 	References::reference entry = *ins.first;
 	if (ins.second) {
-		RefPtr p (new ReferenceLocal (entry.first, std::move (core_key), proxy, flags, domain_manager));
+		RefPtr p (new ReferenceLocal (entry.first, std::move (core_key), proxy, flags, policies));
 		Servant_var <ReferenceLocal> ret (p.get ());
 		entry.second.finish_construction (std::move (p));
 		return ret;

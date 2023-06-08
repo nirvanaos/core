@@ -31,7 +31,6 @@
 #include <CORBA/CORBA.h>
 #include "StreamIn.h"
 #include "StreamOut.h"
-#include "PolicyMap.h"
 
 /// COMPRESSION_MIN_RATIO_POLICY_ID = 67.
 /// See ZIOP::CompressionMinRatioPolicy.
@@ -58,8 +57,9 @@ public:
 		return (f->create) (val);
 	}
 
-	static void read (const OctetSeq& in, PolicyMap& policies);
-	static OctetSeq write (const PolicyMap& policies);
+	static Policy::_ref_type create (PolicyType type, const OctetSeq& data);
+
+	static void write (Policy::_ptr_type, StreamOut& out);
 
 private:
 	static const Functions* functions (PolicyType type) NIRVANA_NOEXCEPT

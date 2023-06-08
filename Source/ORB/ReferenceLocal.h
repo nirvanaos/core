@@ -49,9 +49,9 @@ class ReferenceLocal :
 {
 public:
 	ReferenceLocal (const IOP::ObjectKey& object_key, PortableServer::Core::ObjectKey&& core_key,
-		const IDL::String& primary_iid, unsigned flags, DomainManager* domain_manager);
+		const IDL::String& primary_iid, unsigned flags, PolicyMapShared* policies);
 	ReferenceLocal (const IOP::ObjectKey& object_key, PortableServer::Core::ObjectKey&& core_key,
-		ServantProxyObject& proxy, unsigned flags, DomainManager* domain_manager);
+		ServantProxyObject& proxy, unsigned flags, PolicyMapShared* policies);
 
 	~ReferenceLocal ();
 
@@ -76,7 +76,9 @@ public:
 	Nirvana::Core::Ref <ServantProxyObject> get_active_servant () const NIRVANA_NOEXCEPT;
 
 	static void marshal (const ProxyManager& proxy, const Octet* obj_key, size_t obj_key_size,
-		unsigned flags, Core::DomainManager* domain_manager, StreamOut& out);
+		unsigned flags, const PolicyMap* policies, StreamOut& out);
+
+	virtual DomainManagersList _get_domain_managers () override;
 
 private:
 	virtual ReferenceRef marshal (StreamOut& out) override;

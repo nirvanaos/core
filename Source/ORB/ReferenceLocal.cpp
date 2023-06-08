@@ -42,7 +42,7 @@ using namespace Internal;
 namespace Core {
 
 ReferenceLocal::ReferenceLocal (const IOP::ObjectKey& object_key, PortableServer::Core::ObjectKey&& core_key,
-	const IDL::String& primary_iid, unsigned flags, DomainManager* domain_manager) :
+	const IDL::String& primary_iid, unsigned flags, PolicyMapShared* policies) :
 	Reference (primary_iid, flags | LOCAL),
 	core_key_ (std::move (core_key)),
 	object_key_ (object_key),
@@ -50,11 +50,11 @@ ReferenceLocal::ReferenceLocal (const IOP::ObjectKey& object_key, PortableServer
 	root_ (PortableServer::Core::POA_Base::root ()),
 	servant_ (nullptr)
 {
-	domain_manager_ = domain_manager;
+	policies_ = policies;
 }
 
 ReferenceLocal::ReferenceLocal (const IOP::ObjectKey& object_key, PortableServer::Core::ObjectKey&& core_key,
-	ServantProxyObject& proxy, unsigned flags, DomainManager* domain_manager) :
+	ServantProxyObject& proxy, unsigned flags, PolicyMapShared* policies) :
 	Reference (proxy, flags | LOCAL),
 	core_key_ (std::move (core_key)),
 	object_key_ (object_key),
@@ -62,7 +62,7 @@ ReferenceLocal::ReferenceLocal (const IOP::ObjectKey& object_key, PortableServer
 	root_ (PortableServer::Core::POA_Base::root ()),
 	servant_ (nullptr)
 {
-	domain_manager_ = domain_manager;
+	policies_ = policies;
 }
 
 ReferenceLocal::~ReferenceLocal ()
@@ -156,7 +156,7 @@ Ref <ServantProxyObject> ReferenceLocal::get_active_servant () const NIRVANA_NOE
 }
 
 void ReferenceLocal::marshal (const ProxyManager& proxy, const Octet* obj_key, size_t obj_key_size,
-	unsigned flags, Core::DomainManager* domain_manager, StreamOut& out)
+	unsigned flags, const PolicyMap* policies, StreamOut& out)
 {
 	out.write_string_c (proxy.primary_interface_id ());
 	ImplStatic <StreamOutEncap> encap;
@@ -176,8 +176,12 @@ void ReferenceLocal::marshal (const ProxyManager& proxy, const Octet* obj_key, s
 
 	size_t component_cnt = Nirvana::Core::SINGLE_DOMAIN ? 3 : 4;
 
-	if (domain_manager)
-		++component_cnt;
+	if (policies) {
+		if (!policies->empty ())
+			++component_cnt;
+		else
+			policies = nullptr;
+	}
 
 	IOP::TaggedComponentSeq components;
 	components.reserve (component_cnt);
@@ -207,8 +211,12 @@ void ReferenceLocal::marshal (const ProxyManager& proxy, const Octet* obj_key, s
 		components.emplace_back (ESIOP::TAG_FLAGS, std::move (encap.data ()));
 	}
 
-	if (domain_manager)
-		components.emplace_back (IOP::TAG_POLICIES, PolicyFactory::write (domain_manager->policies ()));
+	if (policies) {
+		ImplStatic <StreamOutEncap> encap;
+		encap.write_size (policies->size ());
+		policies->write (encap);
+		components.emplace_back (IOP::TAG_POLICIES, std::move (encap.data ()));
+	}
 
 	encap.write_tagged (components);
 
@@ -220,7 +228,7 @@ void ReferenceLocal::marshal (const ProxyManager& proxy, const Octet* obj_key, s
 
 ReferenceRef ReferenceLocal::marshal (StreamOut& out)
 {
-	marshal (*this, object_key_.data (), object_key_.size (), flags (), domain_manager_, out);
+	marshal (*this, object_key_.data (), object_key_.size (), flags (), policies_, out);
 	return this;
 }
 
@@ -259,6 +267,11 @@ IORequest::_ref_type ReferenceLocal::create_request (OperationIndex op, unsigned
 	} else {
 		return make_pseudo <RequestLocalImpl <RequestLocalOnewayPOA> > (std::ref (*this), op, flags);
 	}
+}
+
+DomainManagersList ReferenceLocal::_get_domain_managers ()
+{
+	throw NO_IMPLEMENT ();
 }
 
 }

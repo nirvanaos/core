@@ -31,13 +31,53 @@
 #include <CORBA/CORBA.h>
 #include "../MapUnorderedUnstable.h"
 #include "../UserAllocator.h"
+#include "../UserObject.h"
+#include "../CoreInterface.h"
+#include "StreamInEncap.h"
 
 namespace CORBA {
 namespace Core {
 
-typedef Nirvana::Core::MapUnorderedUnstable <PolicyType, Policy::_ref_type,
+class StreamOut;
+
+template <PolicyType type> class PolicyImpl;
+
+class PolicyMap : public Nirvana::Core::MapUnorderedUnstable <PolicyType, OctetSeq,
 	std::hash <PolicyType>, std::equal_to <PolicyType>,
-	Nirvana::Core::UserAllocator> PolicyMap;
+	Nirvana::Core::UserAllocator>,
+	public Nirvana::Core::UserObject
+{
+public:
+	PolicyMap ();
+	PolicyMap (const OctetSeq& src);
+
+	// Does not write the policy size, only policies will be written
+	void write (StreamOut& stm) const;
+
+	bool insert (Policy::_ptr_type pol);
+
+	Policy::_ref_type get_policy (PolicyType type) const;
+
+	template <PolicyType type, typename ValueType>
+	bool get_value (ValueType& val) const;
+
+private:
+	const OctetSeq* get_data (PolicyType type) const;
+};
+
+template <PolicyType type, typename ValueType>
+bool PolicyMap::get_value (ValueType& val) const
+{
+	const OctetSeq* p = get_data (type);
+	if (p) {
+		Nirvana::Core::ImplStatic <StreamInEncap> stm (std::ref (*p));
+		val = PolicyImpl <type>::read_value (stm);
+		return true;
+	}
+	return false;
+}
+
+typedef Nirvana::Core::ImplDynamicSync <PolicyMap> PolicyMapShared;
 
 }
 }

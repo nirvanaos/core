@@ -31,7 +31,7 @@
 #include "ProxyManager.h"
 #include "RefCntProxy.h"
 #include "GarbageCollector.h"
-#include "DomainManager.h"
+#include "PolicyMap.h"
 
 namespace CORBA {
 namespace Core {
@@ -81,12 +81,11 @@ public:
 	}
 
 	virtual Policy::_ref_type _get_policy (PolicyType policy_type) override;
-	virtual DomainManagersList _get_domain_managers () override;
 
 protected:
 	RefCntProxy ref_cnt_;
 	const unsigned flags_;
-	servant_reference <Core::DomainManager> domain_manager_;
+	servant_reference <PolicyMapShared> policies_;
 };
 
 template <template <class> class Allocator>

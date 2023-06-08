@@ -152,10 +152,7 @@ Policy::_ref_type ServantProxyObject::_get_policy (PolicyType policy_type)
 
 DomainManagersList ServantProxyObject::_get_domain_managers ()
 {
-	ReferenceRef ref (get_local_reference ());
-	if (ref)
-		return ref->_get_domain_managers ();
-	return DomainManagersList ();
+	throw NO_IMPLEMENT ();
 }
 
 }

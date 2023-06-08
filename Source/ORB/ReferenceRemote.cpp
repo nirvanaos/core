@@ -45,12 +45,8 @@ ReferenceRemote::ReferenceRemote (const OctetSeq& addr, servant_reference <Domai
 	DGC_key_ (nullptr)
 {
 	auto p = binary_search (components, IOP::TAG_POLICIES);
-	if (p) {
-		PolicyMap policies;
-		PolicyFactory::read (p->component_data (), policies);
-		if (!policies.empty ())
-			domain_manager_ = make_reference <Core::DomainManager> (std::move (policies));
-	}
+	if (p)
+		policies_ = make_reference <PolicyMapShared> (std::ref (p->component_data ()));
 	if ((flags () & GARBAGE_COLLECTION) && (domain_->flags () & Domain::GARBAGE_COLLECTION))
 		DGC_key_ = domain_->on_DGC_reference_unmarshal (object_key_);
 }
@@ -96,6 +92,11 @@ IORequest::_ref_type ReferenceRemote::create_request (OperationIndex op, unsigne
 		throw BAD_PARAM ();
 
 	return domain_->create_request (object_key_, operation_metadata (op), flags, callback);
+}
+
+DomainManagersList ReferenceRemote::_get_domain_managers ()
+{
+	throw NO_IMPLEMENT ();
 }
 
 }

@@ -24,10 +24,8 @@
 *  popov.nirvana@gmail.com
 */
 #include "PolicyFactory.h"
-#include "PortableServer_policies.h"
+#include "policies.h"
 #include <boost/preprocessor/repetition/repeat.hpp>
-#include <CORBA/FT_s.h>
-#include <CORBA/BiDirPolicy_s.h>
 #include "StreamInEncap.h"
 #include "StreamOutEncap.h"
 #include "../ExecDomain.h"
@@ -46,45 +44,27 @@ Policy::_ref_type PolicyUnsupported::create (const Any&)
 
 PolicyFactory::Functions PolicyUnsupported::functions_ = { create, nullptr, nullptr };
 
-DEFINE_POLICY (BiDirPolicy::BIDIRECTIONAL_POLICY_TYPE, BiDirPolicy::BidirectionalPolicy, BiDirPolicy::BidirectionalPolicyValue, value);
-DEFINE_POLICY (FT::HEARTBEAT_POLICY, FT::HeartbeatPolicy, FT::HeartbeatPolicyValue, heartbeat_policy_value);
-DEFINE_POLICY (FT::HEARTBEAT_ENABLED_POLICY, FT::HeartbeatEnabledPolicy, bool, heartbeat_enabled_policy_value);
-
 const PolicyFactory::Functions* const PolicyFactory::functions_ [MAX_KNOWN_POLICY_ID] = {
 	BOOST_PP_REPEAT (MAX_KNOWN_POLICY_ID, POLICY_FUNCTIONS, 0)
 };
 
-void PolicyFactory::read (const OctetSeq& in, PolicyMap& policies)
+void PolicyFactory::write (Policy::_ptr_type pol, StreamOut& out)
 {
-	SYNC_BEGIN (g_core_free_sync_context, &ExecDomain::current ().mem_context ())
-	ImplStatic <StreamInEncap> stm (in);
-	OctetSeq val;
-	for (uint32_t cnt = stm.read32 (); cnt; --cnt) {
-		PolicyType type = stm.read32 ();
-		const Functions* f = functions (type);
-		if (f && f->read) {
-			stm.read_seq (val);
-			ImplStatic <StreamInEncap> s (val);
-			policies.emplace (type, (f->read) (s));
-		}
-	}
-	SYNC_END ()
+	const Functions* f = functions (pol->policy_type ());
+	if (f && f->write)
+		(f->write) (pol, out);
+	else
+		throw PolicyError (BAD_POLICY);
 }
 
-OctetSeq PolicyFactory::write (const PolicyMap& policies)
+Policy::_ref_type PolicyFactory::create (PolicyType type, const OctetSeq& data)
 {
-	ImplStatic <StreamOutEncap> out;
-	out.write32 ((uint32_t)policies.size ());
-	ImplStatic <StreamOutEncap> sval;
-	for (const auto& policy : policies) {
-		const Functions* f = functions (policy.first);
-		assert (f && f->write);
-		out.write32 (policy.first);
-		(f->write) (policy.second, sval);
-		out.write_seq (sval.data ());
-		sval.rewind (0);
-	}
-	return std::move (out.data ());
+	const Functions* f = functions (type);
+	if (f && f->read) {
+		ImplStatic <StreamInEncap> stm (std::ref (data));
+		return (f->read) (stm);
+	} else
+		throw PolicyError (BAD_POLICY);
 }
 
 }

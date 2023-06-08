@@ -25,6 +25,7 @@
 */
 #include "POA_Root.h"
 #include "PortableServer_Context.h"
+#include "policies.h"
 #include <CORBA/Servant_var.h>
 
 using namespace CORBA;
@@ -152,9 +153,9 @@ Interface* POA_Base::_s_id_to_servant (Bridge <POA>* _b,
 
 POA_Base::POA_Base (POA_Base* parent, const IDL::String* name,
 	servant_reference <Core::POAManager>&& manager,
-	servant_reference <CORBA::Core::DomainManager>&& domain_manager) :
+	servant_reference <CORBA::Core::PolicyMapShared>&& policy_map) :
 	the_POAManager_ (std::move (manager)),
-	domain_manager_ (std::move (domain_manager)),
+	object_policies_ (std::move (policy_map)),
 	parent_ (parent),
 	name_ (name),
 	request_cnt_ (0),
@@ -169,11 +170,10 @@ POA_Base::POA_Base (POA_Base* parent, const IDL::String* name,
 #endif
 
 	the_POAManager_->on_adapter_create (*this);
-	if (domain_manager_) {
-		FT::HeartbeatEnabledPolicy::_ref_type hbe = FT::HeartbeatEnabledPolicy::_narrow (
-			domain_manager_->get_policy (FT::HEARTBEAT_ENABLED_POLICY));
-		if (hbe) {
-			if (hbe->heartbeat_enabled_policy_value ())
+	if (object_policies_) {
+		bool hbe;
+		if (object_policies_->get_value <FT::HEARTBEAT_ENABLED_POLICY> (hbe)) {
+			if (hbe)
 				DGC_policy_ = DGC_ENABLED;
 			else
 				DGC_policy_ = DGC_DISABLED;
@@ -248,7 +248,7 @@ ReferenceLocalRef POA_Base::create_reference (const RepositoryId& intf, unsigned
 		// The ObjectKey constructor calls generate_object_id to generate a new unique id.
 		// If SYSTEM_ID policy is not present, the WrongPolicy exception will be thrown.
 		ReferenceLocalRef ref = root_->emplace_reference (ObjectKey (*this), true, std::ref (intf),
-			flags, domain_manager_);
+			flags, object_policies_);
 		if (ref)
 			return ref;
 		// Unique ID collision.
@@ -267,7 +267,7 @@ ReferenceLocalRef POA_Base::create_reference (ObjectKey&& key,
 ReferenceLocalRef POA_Base::create_reference (ObjectKey&& key, const RepositoryId& intf,
 	unsigned flags)
 {
-	return root_->emplace_reference (std::move (key), false, intf, flags, domain_manager_);
+	return root_->emplace_reference (std::move (key), false, intf, flags, object_policies_);
 }
 
 ObjectId POA_Base::servant_to_id (ServantProxyObject& proxy)

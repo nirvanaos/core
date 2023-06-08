@@ -52,7 +52,7 @@ class POA_Root :
 public:
 	POA_Root (CORBA::servant_reference <POAManager>&& manager,
 		CORBA::servant_reference <POAManagerFactory>&& manager_factory) :
-		POA_Base (nullptr, nullptr, std::move (manager), CORBA::servant_reference <CORBA::Core::DomainManager> ()),
+		POA_Base (nullptr, nullptr, std::move (manager), CORBA::servant_reference <CORBA::Core::PolicyMapShared> ()),
 		manager_factory_ (std::move (manager_factory)),
 		random_gen_ (RandomGen::result_type (Nirvana::Core::Chrono::UTC ().time () / TimeBase::SECOND))
 	{
@@ -140,10 +140,10 @@ public:
 
 	CORBA::Core::ReferenceLocalRef emplace_reference (ObjectKey&& core_key,
 		bool unique, const IDL::String& primary_iid, unsigned flags,
-		CORBA::Core::DomainManager* domain_manager);
+		CORBA::Core::PolicyMapShared* policies);
 	CORBA::Core::ReferenceLocalRef emplace_reference (ObjectKey&& core_key,
 		bool unique, CORBA::Core::ServantProxyObject& proxy, unsigned flags,
-		CORBA::Core::DomainManager* domain_manager);
+		CORBA::Core::PolicyMapShared* policies);
 
 	void remove_reference (const IOP::ObjectKey& key) NIRVANA_NOEXCEPT
 	{
@@ -197,14 +197,9 @@ inline
 POA::_ref_type POA_Base::create_POA (const IDL::String& adapter_name,
 	PortableServer::POAManager::_ptr_type a_POAManager, const CORBA::PolicyList& policies)
 {
-	CORBA::servant_reference <CORBA::Core::DomainManager> domain_manager;
 	POA_Policies pols = POA_Policies::default_;
-	{
-		CORBA::Core::PolicyMap object_policies;
-		pols.set_values (policies, object_policies);
-		if (!object_policies.empty ())
-			domain_manager = CORBA::make_reference <CORBA::Core::DomainManager> (std::move (object_policies));
-	}
+	CORBA::servant_reference <CORBA::Core::PolicyMapShared> object_policies;
+	pols.set_values (policies, *object_policies);
 
 	auto ins = children_.emplace (adapter_name, POA_Ref ());
 	if (!ins.second)
@@ -220,7 +215,7 @@ POA::_ref_type POA_Base::create_POA (const IDL::String& adapter_name,
 		POA_Ref ref;
 		const POA_FactoryEntry* pf = std::lower_bound (factories_, factories_ + FACTORY_COUNT, pols);
 		if (pf != factories_ + FACTORY_COUNT && !(pols < *pf))
-			ref = (pf->factory) (this, &ins.first->first, std::move (manager), std::move (domain_manager));
+			ref = (pf->factory) (this, &ins.first->first, std::move (manager), std::move (object_policies));
 		
 		if (!ref)
 			throw InvalidPolicy (); // Do not return the index, it's too complex to calculate it.
