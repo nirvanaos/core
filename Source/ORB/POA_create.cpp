@@ -36,8 +36,8 @@ namespace Core {
 
 template <class ... Bases>
 class POA_Impl :
-	public Bases...,
-	public virtual POA_Base
+	public virtual POA_Base,
+	public Bases...
 {
 public:
 	POA_Impl (POA_Base * parent, const IDL::String * name,
