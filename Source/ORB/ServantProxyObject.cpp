@@ -99,7 +99,7 @@ void ServantProxyObject::_add_ref ()
 		add_ref_servant ();
 		if (!reference_.load ()) {
 			PortableServer::POA::_ref_type adapter = servant ()->_default_POA ();
-			if (adapter && POA_Base::implicit_activation (adapter) != POA_Base::NO_IMPLICIT_ACTIVATION)
+			if (adapter && POA_Base::implicit_activation (adapter))
 				POA_Base::implicit_activate (adapter, *this);
 		}
 	}

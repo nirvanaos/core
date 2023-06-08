@@ -24,7 +24,6 @@
 *  popov.nirvana@gmail.com
 */
 #include "PolicyMap.h"
-#include "StreamOutEncap.h"
 #include "PolicyFactory.h"
 
 using namespace Nirvana::Core;

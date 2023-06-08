@@ -153,9 +153,9 @@ Interface* POA_Base::_s_id_to_servant (Bridge <POA>* _b,
 
 POA_Base::POA_Base (POA_Base* parent, const IDL::String* name,
 	servant_reference <Core::POAManager>&& manager,
-	servant_reference <CORBA::Core::PolicyMapShared>&& policy_map) :
+	servant_reference <CORBA::Core::PolicyMapShared>&& object_policies) :
 	the_POAManager_ (std::move (manager)),
-	object_policies_ (std::move (policy_map)),
+	object_policies_ (std::move (object_policies)),
 	parent_ (parent),
 	name_ (name),
 	request_cnt_ (0),
@@ -175,8 +175,10 @@ POA_Base::POA_Base (POA_Base* parent, const IDL::String* name,
 		if (object_policies_->get_value <FT::HEARTBEAT_ENABLED_POLICY> (hbe)) {
 			if (hbe)
 				DGC_policy_ = DGC_ENABLED;
-			else
+			else {
 				DGC_policy_ = DGC_DISABLED;
+				object_policies_->erase (FT::HEARTBEAT_ENABLED_POLICY);
+			}
 		}
 	}
 }
@@ -184,6 +186,24 @@ POA_Base::POA_Base (POA_Base* parent, const IDL::String* name,
 POA_Base::~POA_Base ()
 {
 	the_POAManager_->on_adapter_destroy (*this);
+}
+
+servant_reference <PolicyMapShared> POA_Base::get_DGC_policies () const
+{
+	servant_reference <PolicyMapShared> pols;
+	if (DGC_DEFAULT == DGC_policy_) {
+		if (object_policies_) {
+			pols = make_reference <PolicyMapShared> (std::ref (*object_policies_));
+			pols->insert <FT::HEARTBEAT_ENABLED_POLICY> (true);
+		} else if (root_)
+			pols = root_->default_DGC_policies ();
+		else {
+			pols = CORBA::make_reference <CORBA::Core::PolicyMapShared> ();
+			pols->insert <FT::HEARTBEAT_ENABLED_POLICY> (true);
+		}
+	} else
+		pols = object_policies_;
+	return pols;
 }
 
 void POA_Base::activate_object (CORBA::Core::ServantProxyObject& proxy, ObjectId& oid, unsigned flags)
@@ -215,9 +235,9 @@ void POA_Base::activate_object (ReferenceLocal& ref, ServantProxyObject& proxy)
 	NIRVANA_UNREACHABLE_CODE ();
 }
 
-POA_Base::ImplicitActivation POA_Base::implicit_activation () const NIRVANA_NOEXCEPT
+bool POA_Base::implicit_activation () const NIRVANA_NOEXCEPT
 {
-	return NO_IMPLICIT_ACTIVATION;
+	return false;
 }
 
 void POA_Base::deactivate_object (ObjectId& oid)

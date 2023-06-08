@@ -44,8 +44,8 @@ namespace PortableServer {
 namespace Core {
 
 class POA_Root :
-	public POA_ImplicitUnique,
-	public virtual POA_Base
+	public virtual POA_Base,
+	public POA_ImplicitUnique
 {
 	typedef std::conditional_t <(sizeof (size_t) > 4), std::mt19937_64, std::mt19937> RandomGen;
 
@@ -161,6 +161,11 @@ public:
 	{
 		if (root_) // POA was used in some way
 			root_->_this ()->destroy (true, true);
+	}
+
+	CORBA::Core::PolicyMapShared* default_DGC_policies () const NIRVANA_NOEXCEPT
+	{
+		return implicit_policies_;
 	}
 
 private:

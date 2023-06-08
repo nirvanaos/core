@@ -43,6 +43,10 @@ public:
 	virtual void set_servant_manager (ServantManager::_ptr_type imgr) override;
 
 protected:
+	POA_Activator () :
+		DGC_policies_ (get_DGC_policies ())
+	{}
+
 	virtual CORBA::Core::ReferenceLocalRef create_reference (ObjectKey&& key,
 		const CORBA::RepositoryId& intf) override;
 
@@ -69,6 +73,8 @@ private:
 		Nirvana::Core::UserAllocator> ActivationMap;
 
 	ActivationMap activation_map_;
+
+	CORBA::servant_reference <CORBA::Core::PolicyMapShared> DGC_policies_;
 };
 
 }

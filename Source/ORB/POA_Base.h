@@ -409,22 +409,14 @@ public:
 	inline
 	static PortableServer::POAManagerFactory::_ref_type the_POAManagerFactory () NIRVANA_NOEXCEPT;
 
-	// Internal
-	enum ImplicitActivation
-	{
-		NO_IMPLICIT_ACTIVATION,
-		IMPLICIT_ACTIVATION,
-		IMPLICIT_ACTIVATION_WITH_DGC
-	};
-
-	static ImplicitActivation implicit_activation (POA::_ptr_type poa) NIRVANA_NOEXCEPT
+	static bool implicit_activation (POA::_ptr_type poa) NIRVANA_NOEXCEPT
 	{
 		if (poa) {
 			const POA_Base* impl = get_implementation (CORBA::Core::local2proxy (poa));
 			if (impl)
 				return impl->implicit_activation ();
 		}
-		return NO_IMPLICIT_ACTIVATION;
+		return false;
 	}
 
 	inline void invoke (const RequestRef& request);
@@ -489,9 +481,9 @@ protected:
 
 	POA_Base (POA_Base* parent, const IDL::String* name,
 		CORBA::servant_reference <POAManager>&& manager,
-		CORBA::servant_reference <CORBA::Core::PolicyMapShared>&& policy_map);
+		CORBA::servant_reference <CORBA::Core::PolicyMapShared>&& object_policies);
 
-	virtual ImplicitActivation implicit_activation () const NIRVANA_NOEXCEPT;
+	virtual bool implicit_activation () const NIRVANA_NOEXCEPT;
 
 	bool check_path (const AdapterPath& path, AdapterPath::const_iterator it) const
 		NIRVANA_NOEXCEPT;
@@ -511,6 +503,8 @@ protected:
 	{
 		return DGC_policy_;
 	}
+
+	CORBA::servant_reference <CORBA::Core::PolicyMapShared> get_DGC_policies () const;
 
 private:
 	void on_request_finish () NIRVANA_NOEXCEPT;

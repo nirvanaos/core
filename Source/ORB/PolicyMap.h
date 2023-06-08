@@ -34,6 +34,7 @@
 #include "../UserObject.h"
 #include "../CoreInterface.h"
 #include "StreamInEncap.h"
+#include "StreamOutEncap.h"
 
 namespace CORBA {
 namespace Core {
@@ -42,13 +43,16 @@ class StreamOut;
 
 template <PolicyType type> class PolicyImpl;
 
-class PolicyMap : public Nirvana::Core::MapUnorderedUnstable <PolicyType, OctetSeq,
+typedef Nirvana::Core::MapUnorderedUnstable <PolicyType, OctetSeq,
 	std::hash <PolicyType>, std::equal_to <PolicyType>,
-	Nirvana::Core::UserAllocator>,
+	Nirvana::Core::UserAllocator> PolicyMapCont;
+
+class PolicyMap : public PolicyMapCont,
 	public Nirvana::Core::UserObject
 {
 public:
 	PolicyMap ();
+	PolicyMap (const PolicyMap& src) = default;
 	PolicyMap (const OctetSeq& src);
 
 	// Does not write the policy size, only policies will be written
@@ -56,17 +60,33 @@ public:
 
 	bool insert (Policy::_ptr_type pol);
 
+	template <PolicyType type>
+	bool insert (const typename PolicyImpl <type>::ValueType& val);
+
 	Policy::_ref_type get_policy (PolicyType type) const;
 
-	template <PolicyType type, typename ValueType>
-	bool get_value (ValueType& val) const;
+	template <PolicyType type>
+	bool get_value (typename PolicyImpl <type>::ValueType& val) const;
+
+	bool erase (PolicyType type) NIRVANA_NOEXCEPT
+	{
+		return PolicyMapCont::erase (type);
+	}
 
 private:
 	const OctetSeq* get_data (PolicyType type) const;
 };
 
-template <PolicyType type, typename ValueType>
-bool PolicyMap::get_value (ValueType& val) const
+template <PolicyType type>
+bool PolicyMap::insert (const typename PolicyImpl <type>::ValueType& val)
+{
+	Nirvana::Core::ImplStatic <StreamOutEncap> stm;
+	PolicyImpl <type>::write_value (val, stm);
+	return emplace (type, std::move (stm.data ())).second;
+}
+
+template <PolicyType type>
+bool PolicyMap::get_value (typename PolicyImpl <type>::ValueType& val) const
 {
 	const OctetSeq* p = get_data (type);
 	if (p) {

@@ -80,14 +80,12 @@ public:
 
 	static void read_value (StreamIn& s, ValueType& val);
 
-public:
-	static PolicyFactory::Functions functions_;
-
-protected:
-	static void write_val (const ValueType& val, StreamOut& s)
+	static void write_value (const ValueType& val, StreamOut& s)
 	{
 		s.write_c (alignof (ValueType), sizeof (ValueType), &val);
 	}
+
+	static PolicyFactory::Functions functions_;
 
 };
 
@@ -117,7 +115,7 @@ class PolicyImpl <id> : public PolicyImplBase <Itf, id, ValType> {\
 public: typedef ValType ValueType;\
 	PolicyImpl (const ValType& v) : value_ (v) {}\
 	ValType att_name () const NIRVANA_NOEXCEPT { return value_; }\
-	static void write (Policy::_ptr_type policy, StreamOut& s) { write_val (Itf::_narrow (policy)->att_name (), s); }\
+	static void write (Policy::_ptr_type policy, StreamOut& s) { write_value (Itf::_narrow (policy)->att_name (), s); }\
 private: ValType value_; }
 
 #endif
