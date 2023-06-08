@@ -42,7 +42,7 @@ PolicyMap::PolicyMap (const OctetSeq& src)
 		PolicyType type = stm.read32 ();
 		OctetSeq data;
 		stm.read_seq (data);
-		auto ins = emplace (type, std::move (data));
+		emplace (type, std::move (data));
 	}
 }
 

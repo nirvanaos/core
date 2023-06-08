@@ -73,8 +73,12 @@ public:
 
 	static Policy::_ref_type read (StreamIn& s)
 	{
-		return create (read_val (s));
+		ValueType val;
+		read_value (s, val);
+		return create (val);
 	}
+
+	static void read_value (StreamIn& s, ValueType& val);
 
 public:
 	static PolicyFactory::Functions functions_;
@@ -85,8 +89,6 @@ protected:
 		s.write_c (alignof (ValueType), sizeof (ValueType), &val);
 	}
 
-	static ValueType read_val (StreamIn& s);
-
 };
 
 template <class PolicyItf, PolicyType id, typename ValueType>
@@ -96,14 +98,12 @@ typename PolicyItf::_ref_type PolicyImplBase <PolicyItf, id, ValueType>::create 
 }
 
 template <class PolicyItf, PolicyType id, typename ValueType>
-ValueType PolicyImplBase <PolicyItf, id, ValueType>::read_val (StreamIn& s)
+void PolicyImplBase <PolicyItf, id, ValueType>::read_value (StreamIn& s, ValueType& val)
 {
 	// Assume all policy data is CDR
-	ValueType val;
 	s.read (alignof (ValueType), sizeof (ValueType), &val);
 	if (s.other_endian ())
 		Internal::Type <ValueType>::byteswap (val);
-	return val;
 }
 
 template <class PolicyItf, PolicyType id, typename ValueType>
@@ -117,7 +117,6 @@ class PolicyImpl <id> : public PolicyImplBase <Itf, id, ValType> {\
 public: typedef ValType ValueType;\
 	PolicyImpl (const ValType& v) : value_ (v) {}\
 	ValType att_name () const NIRVANA_NOEXCEPT { return value_; }\
-	static ValueType read_value (CORBA::Core::StreamIn& s) { return read_val (s); }\
 	static void write (Policy::_ptr_type policy, StreamOut& s) { write_val (Itf::_narrow (policy)->att_name (), s); }\
 private: ValType value_; }
 

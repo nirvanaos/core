@@ -71,7 +71,7 @@ bool PolicyMap::get_value (ValueType& val) const
 	const OctetSeq* p = get_data (type);
 	if (p) {
 		Nirvana::Core::ImplStatic <StreamInEncap> stm (std::ref (*p));
-		val = PolicyImpl <type>::read_value (stm);
+		PolicyImpl <type>::read_value (stm, val);
 		return true;
 	}
 	return false;
