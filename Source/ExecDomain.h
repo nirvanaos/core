@@ -212,8 +212,9 @@ public:
 	{
 		assert (ExecContext::current_ptr () != this);
 		assert (sync_context_);
-		// schedule with ret = true doed not throw exceptions
-		schedule (*sync_context_, true);
+		// schedule with ret = true does not throw exceptions
+		Ref <SyncContext> tmp (sync_context_);
+		schedule (tmp, true);
 	}
 
 	/// Reschedule
@@ -469,9 +470,10 @@ private:
 	/// Schedules this ED to execute.
 	/// Must be called from another execution context.
 	///
-	/// \param sync_domain Synchronization domain. May be `nullptr`.
+	/// \param [in,out] sync_context Synchronization context.
+	///   On return contains old context.
 	/// \param ret `true` if scheduled return from call.
-	void schedule (SyncContext& sync_context, bool ret = false);
+	void schedule (Ref <SyncContext>& sync_context, bool ret = false);
 
 	/// Executor::execute ()
 	/// Called from worker thread.
@@ -519,7 +521,7 @@ private:
 	class Schedule : public Runnable
 	{
 	public:
-		SyncContext* sync_context_;
+		Ref <SyncContext> sync_context_;
 		std::exception_ptr exception_;
 		bool ret_;
 

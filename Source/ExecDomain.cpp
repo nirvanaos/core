@@ -142,7 +142,8 @@ void ExecDomain::spawn (SyncContext& sync_context)
 	assert (runnable_);
 	_add_ref ();
 	try {
-		schedule (sync_context);
+		Ref <SyncContext> tmp (&sync_context);
+		schedule (tmp);
 	} catch (...) {
 		_remove_ref ();
 		throw;
@@ -247,13 +248,12 @@ void ExecDomain::create_background_worker ()
 		background_worker_ = ThreadBackground::spawn ();
 }
 
-void ExecDomain::schedule (SyncContext& target, bool ret)
+void ExecDomain::schedule (Ref <SyncContext>& target, bool ret)
 {
 	// Called in neutral execution context
 	assert (ExecContext::current_ptr () != this);
 
-	Ref <SyncContext> old_context = std::move (sync_context_);
-	SyncDomain* sync_domain = target.sync_domain ();
+	SyncDomain* sync_domain = target->sync_domain ();
 	bool background = false;
 	if (!sync_domain) {
 		if (INFINITE_DEADLINE == deadline ()) {
@@ -267,7 +267,7 @@ void ExecDomain::schedule (SyncContext& target, bool ret)
 		}
 	}
 
-	sync_context_ = &target;
+	sync_context_.swap (target);
 	try {
 		if (sync_domain) {
 			if (ret)
@@ -282,7 +282,7 @@ void ExecDomain::schedule (SyncContext& target, bool ret)
 				Scheduler::schedule (deadline (), *this);
 		}
 	} catch (...) {
-		sync_context_ = std::move (old_context);
+		sync_context_.swap (target);
 		throw;
 	}
 }
@@ -303,21 +303,18 @@ void ExecDomain::schedule_call_no_push_mem (SyncContext& target)
 		!(deadline () == INFINITE_DEADLINE && &Thread::current () == background_worker_)) {
 		// Need to schedule
 
-		// We must hold old SyncContext reference here to avoid deletion of SyncContext object in
-		// neutral exec context when ExecDomain::current() is not available.
-		Ref <SyncContext> old_context = &sync_context ();
-
 		// Call schedule() in the neutral context
 		schedule_.sync_context_ = &target;
 		schedule_.ret_ = false;
 		ExecContext::run_in_neutral_context (schedule_);
+		schedule_.sync_context_ = nullptr;
 		// Handle possible schedule() exceptions
 		if (schedule_.exception_) {
 			std::exception_ptr exc = schedule_.exception_;
 			schedule_.exception_ = nullptr;
 			// We leaved old sync domain so we must enter into prev synchronization domain back
 			// before throwing the exception.
-			schedule_return (*old_context, true);
+			schedule_return (sync_context (), true);
 			std::rethrow_exception (exc);
 		}
 
@@ -339,13 +336,10 @@ void ExecDomain::schedule_return (SyncContext& target, bool no_reschedule) NIRVA
 	if (target.sync_domain ()
 		|| !(deadline () == INFINITE_DEADLINE && &Thread::current () == background_worker_)) {
 
-		// We must hold old SyncContext reference here to avoid deletion of SyncContext object in
-		// neutral exec context when ExecDomain::current() is not available.
-		Ref <SyncContext> old_context = &sync_context ();
-
 		schedule_.sync_context_ = &target;
 		schedule_.ret_ = true;
 		ExecContext::run_in_neutral_context (schedule_);
+		schedule_.sync_context_ = nullptr;
 		// schedule() can not throw exception in the return mode.
 	} else
 		sync_context (target);
@@ -373,7 +367,7 @@ void ExecDomain::Schedule::run ()
 	assert (ed);
 	try {
 		th.yield ();
-		ed->schedule (*sync_context_, ret_);
+		ed->schedule (sync_context_, ret_);
 	} catch (...) {
 		th.exec_domain (*ed);
 		exception_ = std::current_exception ();
