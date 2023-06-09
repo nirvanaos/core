@@ -45,13 +45,14 @@ ReferenceRemote::ReferenceRemote (const OctetSeq& addr, servant_reference <Domai
 	DGC_key_ (nullptr)
 {
 	auto p = binary_search (components, IOP::TAG_POLICIES);
-	if (p)
+	if (p) {
 		policies_ = make_reference <PolicyMapShared> (std::ref (p->component_data ()));
-	bool gc = false;
-	if (policies_ && policies_->get_value <FT::HEARTBEAT_ENABLED_POLICY> (gc) && gc) {
-		flags_ |= GARBAGE_COLLECTION;
-		if (domain_->flags () & Domain::GARBAGE_COLLECTION)
-			DGC_key_ = domain_->on_DGC_reference_unmarshal (object_key_);
+		bool gc = false;
+		if (policies_->get_value <FT::HEARTBEAT_ENABLED_POLICY> (gc) && gc) {
+			flags_ |= GARBAGE_COLLECTION;
+			if (domain_->flags () & Domain::GARBAGE_COLLECTION)
+				DGC_key_ = domain_->on_DGC_reference_unmarshal (object_key_);
+		}
 	}
 }
 
