@@ -25,7 +25,6 @@
 */
 #include "ReferenceRemote.h"
 #include "../Binder.h"
-#include "PolicyFactory.h"
 
 using namespace Nirvana::Core;
 
@@ -46,7 +45,7 @@ ReferenceRemote::ReferenceRemote (const OctetSeq& addr, servant_reference <Domai
 {
 	auto p = binary_search (components, IOP::TAG_POLICIES);
 	if (p) {
-		policies_ = make_reference <PolicyMapShared> (std::ref (p->component_data ()));
+		policies_ = Binder::singleton ().remote_references ().unmarshal_policies (p->component_data ());
 		bool gc = false;
 		if (policies_->get_value <FT::HEARTBEAT_ENABLED_POLICY> (gc) && gc) {
 			flags_ |= GARBAGE_COLLECTION;

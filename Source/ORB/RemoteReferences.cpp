@@ -24,10 +24,7 @@
 *  popov.nirvana@gmail.com
 */
 #include "RemoteReferences.h"
-#include "ReferenceRemote.h"
 #include "../Binder.h"
-#include "DomainProt.h"
-#include "DomainRemote.h"
 
 using namespace Nirvana::Core;
 
@@ -53,6 +50,11 @@ servant_reference <Domain> RemoteReferences::get_domain (const DomainAddress& do
 		return prot_domains_.get (domain.address.esiop);
 	else
 		throw NO_IMPLEMENT (); // TODO: Implement
+}
+
+RemoteReferences::Policies::~Policies ()
+{
+	Binder::singleton ().remote_references ().policies_.erase (key_);
 }
 
 }

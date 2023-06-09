@@ -99,7 +99,7 @@ private:
 /// Dynamic implementation of a core object for usage in synchronized scenarios.
 /// \tparam T object class.
 template <class T>
-class ImplDynamicSync final :
+class ImplDynamicSync :
 	public T
 {
 protected:
@@ -115,7 +115,7 @@ protected:
 		ref_cnt_ (1)
 	{}
 
-	~ImplDynamicSync ()
+	virtual ~ImplDynamicSync ()
 	{}
 
 	void _add_ref () NIRVANA_NOEXCEPT

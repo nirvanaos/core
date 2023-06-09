@@ -33,6 +33,7 @@
 #include "ReferenceRemote.h"
 #include "HashOctetSeq.h"
 #include "RequestIn.h"
+#include "PolicyMap.h"
 #include <CORBA/I_var.h>
 #include "../Chrono.h"
 
@@ -108,6 +109,18 @@ public:
 		return remote_domains_.get (lp);
 	}
 
+	servant_reference <PolicyMapShared> unmarshal_policies (const OctetSeq& policies)
+	{
+		servant_reference <PolicyMapShared> ref;
+		auto ins = policies_.emplace (policies, nullptr);
+		if (ins.second) {
+			ref = CORBA::make_reference <Policies> (std::ref (ins.first->first));
+			ins.first->second = ref;
+		} else
+			ref = ins.first->second;
+		return ref;
+	}
+
 	void heartbeat (const DomainAddress& domain) NIRVANA_NOEXCEPT
 	{
 		auto p = find_domain (domain);
@@ -161,6 +174,34 @@ private:
 	ESIOP::ProtDomains prot_domains_;
 	RemoteDomains remote_domains_;
 	References references_;
+
+	/// Many remote references may have the same policy set.
+	/// To conserve memory, we store policies in dictionary.
+	
+	class Policies :
+		public PolicyMapShared,
+		public Nirvana::Core::BinderObject
+	{
+	public:
+		using Nirvana::Core::BinderObject::operator new;
+		using Nirvana::Core::BinderObject::operator delete;
+
+		Policies (const OctetSeq& policies) :
+			PolicyMapShared (std::ref (policies)),
+			key_ (policies)
+		{}
+
+		virtual ~Policies () override;
+
+	private:
+		const OctetSeq& key_;
+	};
+	
+	typedef Nirvana::Core::MapUnorderedStable <OctetSeq, PolicyMapShared*,
+		std::hash <OctetSeq>, std::equal_to <OctetSeq>,
+		Nirvana::Core::BinderMemory::Allocator> PoliciesDictionary;
+
+	PoliciesDictionary policies_;
 };
 
 }
