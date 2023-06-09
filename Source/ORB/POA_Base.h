@@ -76,6 +76,7 @@ struct POA_Policies
 	{
 		unsigned mask = 0;
 		*this = default_;
+		int DGC_policy_idx = -1;
 		for (auto it = policies.begin (); it != policies.end (); ++it) {
 			CORBA::Policy::_ptr_type policy = *it;
 			CORBA::PolicyType type = policy->policy_type ();
@@ -109,10 +110,15 @@ struct POA_Policies
 					request_processing = RequestProcessingPolicy::_narrow (policy)->value ();
 					break;
 				default:
+					if (FT::HEARTBEAT_ENABLED_POLICY == type)
+						DGC_policy_idx = int (it - policies.begin ());
 					if (!object_policies.insert (policy))
 						throw POA::InvalidPolicy (CORBA::UShort (it - policies.begin ()));
 			}
 		}
+		// DGC requires RETAIN policy
+		if (DGC_policy_idx >= 0 && servant_retention != ServantRetentionPolicyValue::RETAIN)
+			throw POA::InvalidPolicy ((CORBA::UShort)DGC_policy_idx);
 	}
 
 	bool operator < (const POA_Policies& rhs) const NIRVANA_NOEXCEPT

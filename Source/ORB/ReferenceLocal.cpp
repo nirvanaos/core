@@ -88,18 +88,18 @@ void ReferenceLocal::_remove_ref () NIRVANA_NOEXCEPT
 			ServantProxyObject* proxy = servant_.load ();
 			if (proxy) {
 				proxy->_remove_ref ();
-				if (servant_.load ()) // Servant is still active
-					return;
+				return;
 			}
+		} else if (servant_.load ()) // Servant is still active
+			return;
 
-			// Need GC
-			if (&SyncContext::current () == adapter_context_) {
-				// Do GC
-				root_->remove_reference (object_key_);
-			} else {
-				// Schedule GC
-				GarbageCollector::schedule (*this, *adapter_context_);
-			}
+		// Need GC
+		if (&SyncContext::current () == adapter_context_) {
+			// Do GC
+			root_->remove_reference (object_key_);
+		} else {
+			// Schedule GC
+			GarbageCollector::schedule (*this, *adapter_context_);
 		}
 	}
 }
