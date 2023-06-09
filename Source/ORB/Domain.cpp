@@ -259,7 +259,6 @@ void Domain::DGC_Request::complete (bool no_throw)
 		try {
 			Internal::ProxyRoot::check_request (request_);
 		} catch (...) {
-			std::exception_ptr ex = std::current_exception ();
 			for (DGC_RefKey* key : keys_) {
 				assert (key->request () == this);
 				key->request_failed ();

@@ -87,6 +87,12 @@ public:
 	void set_system_exception (const Char* rep_id, uint32_t minor, CompletionStatus completed)
 		NIRVANA_NOEXCEPT;
 
+	void on_reply_exception () NIRVANA_NOEXCEPT
+	{
+		reply_exception_ = std::current_exception ();
+		finalize ();
+	}
+
 protected:
 	RequestOut (unsigned GIOP_minor, unsigned response_flags, Domain& target_domain, const Internal::Operation& metadata);
 	~RequestOut ();
@@ -145,6 +151,8 @@ protected:
 	size_t request_id_offset_;
 
 	Nirvana::Core::Ref <RequestLocalBase> preunmarshaled_;
+
+	std::exception_ptr reply_exception_;
 
 	static std::atomic <IdGenType> last_id_;
 };

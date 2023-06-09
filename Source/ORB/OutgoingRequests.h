@@ -69,7 +69,8 @@ private:
 	typedef RequestOut::RequestId RequestId;
 
 	static void receive_reply_internal (unsigned GIOP_minor, RequestId request_id,
-		uint32_t status, const IOP::ServiceContextList& context1, Nirvana::Core::Ref <StreamIn>&& stream);
+		uint32_t status, const IOP::ServiceContextList& context1,
+		Nirvana::Core::Ref <StreamIn>&& stream) NIRVANA_NOEXCEPT;
 
 	struct RequestVal
 	{

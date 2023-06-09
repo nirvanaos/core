@@ -396,6 +396,9 @@ bool RequestOut::cancel_internal ()
 
 bool RequestOut::get_exception (Any& e)
 {
+	if (reply_exception_)
+		std::rethrow_exception (reply_exception_);
+
 	switch (status_) {
 		case Status::SYSTEM_EXCEPTION:
 		case Status::USER_EXCEPTION: {

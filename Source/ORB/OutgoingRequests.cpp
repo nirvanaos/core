@@ -103,6 +103,7 @@ void OutgoingRequests::receive_reply (unsigned GIOP_minor, Ref <StreamIn>&& stre
 
 void OutgoingRequests::receive_reply_internal (unsigned GIOP_minor, RequestId request_id,
 	uint32_t status, const IOP::ServiceContextList& context1, Ref <StreamIn>&& stream)
+	NIRVANA_NOEXCEPT
 {
 	Ref <RequestOut> rq = remove_request (request_id);
 	if (rq) {
@@ -117,8 +118,7 @@ void OutgoingRequests::receive_reply_internal (unsigned GIOP_minor, RequestId re
 				context = context1;
 			rq->set_reply (status, std::move (context), std::move (stream));
 		} catch (...) {
-			ed.mem_context_swap (mc);
-			throw;
+			rq->on_reply_exception ();
 		}
 		ed.mem_context_swap (mc);
 	}
