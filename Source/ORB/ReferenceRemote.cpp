@@ -25,6 +25,7 @@
 */
 #include "ReferenceRemote.h"
 #include "../Binder.h"
+#include "FT_policies.h"
 
 using namespace Nirvana::Core;
 

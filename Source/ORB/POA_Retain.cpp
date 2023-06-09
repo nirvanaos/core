@@ -25,6 +25,7 @@
 */
 #include "POA_Root.h"
 #include <CORBA/Servant_var.h>
+#include "FT_policies.h"
 
 using namespace CORBA;
 using namespace CORBA::Core;

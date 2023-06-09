@@ -32,10 +32,10 @@ using namespace Nirvana::Core;
 namespace CORBA {
 namespace Core {
 
-StreamInEncap::StreamInEncap (const OctetSeq& data, bool skip_endian) :
-	cur_ptr_ (data.data ()),
-	begin_ (data.data ()),
-	end_ (data.data () + data.size ())
+StreamInEncap::StreamInEncap (const Octet* begin, const Octet* end, bool skip_endian) :
+	cur_ptr_ (begin),
+	begin_ (begin),
+	end_ (end)
 {
 	if (!skip_endian) {
 		if (begin_ >= end_)

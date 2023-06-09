@@ -40,11 +40,6 @@ public:
 	// Size of GIOP MessageHeader + size of GIOP ReplyHeader with empty service_context.
 	static const size_t REPLY_HEADERS_SIZE = 24;
 
-	StreamOutReply (DomainProt& domain) :
-		StreamOutSM (domain, false),
-		small_ptr_ (small_buffer_)
-	{}
-
 	void system_exception (uint32_t request_id, const CORBA::SystemException& ex) NIRVANA_NOEXCEPT
 	{
 		try {
@@ -61,6 +56,12 @@ public:
 	virtual size_t size () const override;
 	virtual void* header (size_t hdr_size) override;
 	virtual void rewind (size_t hdr_size) override;
+
+protected:
+	StreamOutReply (DomainProt& domain) :
+		StreamOutSM (domain, false),
+		small_ptr_ (small_buffer_)
+	{}
 
 private:
 	void switch_to_base ();

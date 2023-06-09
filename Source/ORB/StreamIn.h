@@ -196,6 +196,9 @@ protected:
 		chunk_mode_ (false)
 	{}
 
+	StreamIn (const StreamIn&) = default;
+	StreamIn (StreamIn&&) = default;
+
 protected:
 	bool other_endian_;
 	bool chunk_mode_;

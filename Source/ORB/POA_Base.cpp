@@ -25,7 +25,7 @@
 */
 #include "POA_Root.h"
 #include "PortableServer_Context.h"
-#include "policies.h"
+#include "PortableServer_policies.h"
 #include <CORBA/Servant_var.h>
 
 using namespace CORBA;

@@ -24,7 +24,10 @@
 *  popov.nirvana@gmail.com
 */
 #include "PolicyFactory.h"
-#include "policies.h"
+#include "PortableServer_policies.h"
+#include "BiDirPolicy_policies.h"
+#include "Messaging_policies.h"
+#include "FT_policies.h"
 #include <boost/preprocessor/repetition/repeat.hpp>
 #include "StreamInEncap.h"
 #include "StreamOutEncap.h"

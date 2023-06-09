@@ -45,13 +45,13 @@ class RequestOut : public CORBA::Core::RequestOut
 
 public:
 	RequestOut (DomainProt& domain, const IOP::ObjectKey& object_key,
-		const CORBA::Internal::Operation& metadata, unsigned response_flags,
-		IOP::ServiceContextList context) :
+		const CORBA::Internal::Operation& metadata, unsigned response_flags) :
 		Base ((response_flags & 3) == 1 ? 2 : 1, response_flags, domain, metadata)
 	{
 		stream_out_ = Ref <StreamOut>::create <ImplDynamic <StreamOutSM> > (std::ref (domain), true);
 		id_ = get_new_id (IdPolicy::ANY);
 		DeadlineTime dl = deadline ();
+		IOP::ServiceContextList context;
 		if (INFINITE_DEADLINE != dl) {
 			ImplStatic <StreamOutEncap> dl;
 			dl.write_c (alignof (DeadlineTime), sizeof (DeadlineTime), &dl);

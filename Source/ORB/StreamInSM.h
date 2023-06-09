@@ -56,6 +56,9 @@ protected:
 		chunk_end_ (0)
 	{}
 
+	StreamInSM (const StreamInSM&) = delete;
+	StreamInSM (StreamInSM&&) = delete;
+
 	~StreamInSM ();
 
 private:

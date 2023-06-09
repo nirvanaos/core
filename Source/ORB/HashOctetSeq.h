@@ -34,10 +34,10 @@
 
 namespace std {
 
-template <>
-struct hash <CORBA::OctetSeq>
+template <class Al>
+struct hash <std::vector <uint8_t, Al> >
 {
-	size_t operator () (const CORBA::OctetSeq& seq) const NIRVANA_NOEXCEPT
+	size_t operator () (const std::vector <uint8_t, Al>& seq) const NIRVANA_NOEXCEPT
 	{
 		return Nirvana::Hash::hash_bytes (seq.data (), seq.size ());
 	}

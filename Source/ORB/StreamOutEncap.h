@@ -37,8 +37,6 @@ namespace Core {
 class NIRVANA_NOVTABLE StreamOutEncap : public StreamOut
 {
 public:
-	StreamOutEncap (bool no_endian = false);
-
 	virtual void write (size_t align, size_t size, void* data, size_t& allocated_size) override;
 	virtual size_t size () const override;
 	virtual void* header (size_t hdr_size) override;
@@ -51,6 +49,11 @@ public:
 	{
 		return buffer_;
 	}
+
+protected:
+	StreamOutEncap (bool no_endian = false);
+	StreamOutEncap (const StreamOutEncap&) = delete;
+	StreamOutEncap (StreamOutEncap&&) = delete;
 
 private:
 	OctetSeq buffer_;

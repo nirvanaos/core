@@ -223,7 +223,7 @@ class StreamInImmediate :
 {
 protected:
 	StreamInImmediate (unsigned size_and_flag, const uint8_t* data) :
-		StreamInEncap (data_, data_ + (size_and_flag & 0x7F))
+		StreamInEncap (data_, data_ + (size_and_flag & 0x7F), true)
 	{
 		std::copy ((const uint8_t*)data, (const uint8_t*)data + ReplyImmediate::MAX_DATA_SIZE, data_);
 		if (PLATFORMS_ENDIAN_DIFFERENT)

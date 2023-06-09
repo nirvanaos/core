@@ -1,3 +1,4 @@
+/// \file
 /*
 * Nirvana Core.
 *
@@ -23,40 +24,21 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "POA_Root.h"
-#include "FT_policies.h"
+#ifndef NIRVANA_ORB_CORE_FT_POLICIES_H_
+#define NIRVANA_ORB_CORE_FT_POLICIES_H_
+#pragma once
 
-using namespace CORBA;
-using namespace CORBA::Core;
+#include "PolicyImpl.h"
+#include <CORBA/PortableServer_s.h>
+#include <CORBA/FT_s.h>
 
-namespace PortableServer {
+namespace CORBA {
 namespace Core {
 
-POA_DGC::POA_DGC ()
-{
-	servant_reference <PolicyMapShared> pols;
-	if (DGC_DEFAULT == DGC_policy ()) {
-		if (object_policies_) {
-			pols = make_reference <PolicyMapShared> (std::ref (*object_policies_));
-			pols->insert <FT::HEARTBEAT_ENABLED_POLICY> (true);
-		} else if (root_)
-			pols = root_->default_DGC_policies ();
-		else {
-			pols = CORBA::make_reference <CORBA::Core::PolicyMapShared> ();
-			pols->insert <FT::HEARTBEAT_ENABLED_POLICY> (true);
-		}
-	} else
-		pols = object_policies_;
-	DGC_policies_ = std::move (pols);
-}
-
-PolicyMapShared* POA_DGC::get_policies (unsigned flags) const NIRVANA_NOEXCEPT
-{
-	if (flags & CORBA::Core::Reference::GARBAGE_COLLECTION)
-		return DGC_policies_;
-	else
-		return Base::get_policies (flags);
-}
+DEFINE_POLICY (FT::HEARTBEAT_POLICY, FT::HeartbeatPolicy, FT::HeartbeatPolicyValue, heartbeat_policy_value);
+DEFINE_POLICY (FT::HEARTBEAT_ENABLED_POLICY, FT::HeartbeatEnabledPolicy, bool, heartbeat_enabled_policy_value);
 
 }
 }
+
+#endif

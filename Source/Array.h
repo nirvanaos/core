@@ -28,6 +28,10 @@
 #define NIRVANA_CORE_ARRAY_H_
 #pragma once
 
+#include <Nirvana/Nirvana.h>
+#include <Nirvana/Hash.h>
+#include <functional>
+
 namespace Nirvana {
 namespace Core {
 
@@ -208,12 +212,31 @@ public:
 		return static_cast <const Al <T>&> (*this);
 	}
 
+	bool operator == (const Array& rhs) const NIRVANA_NOEXCEPT
+	{
+		return size () == rhs.size () && std::equal (begin_, end_, rhs.begin_);
+	}
+
 private:
 	T* begin_;
 	T* end_;
 };
 
 }
+}
+
+namespace std {
+
+/// Byte array hash
+template <template <class> class Al>
+struct hash <Nirvana::Core::Array <uint8_t, Al> >
+{
+	size_t operator () (const Nirvana::Core::Array <uint8_t, Al>& ar) const NIRVANA_NOEXCEPT
+	{
+		return Nirvana::Hash::hash_bytes (ar.begin (), ar.size ());
+	}
+};
+
 }
 
 #endif

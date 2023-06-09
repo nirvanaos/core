@@ -33,7 +33,6 @@
 #include "StreamOutEncap.h"
 #include <CORBA/IORequest_s.h>
 #include "RqHelper.h"
-//#include "../LifeCyclePseudo.h"
 #include <CORBA/IIOP.h>
 #include "CodeSetConverter.h"
 #include "POA_Root.h"
@@ -421,6 +420,9 @@ protected:
 	/// \param servant_domain Target domain pointer for outgoing request,
 	///        `nullptr` for incoming request.
 	RequestGIOP (unsigned GIOP_minor, unsigned response_flags, Domain* servant_domain);
+
+	RequestGIOP (const RequestGIOP&) = delete;
+	RequestGIOP (RequestGIOP&&) = delete;
 
 	virtual bool marshal_op () = 0;
 

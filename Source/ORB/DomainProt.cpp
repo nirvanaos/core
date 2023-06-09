@@ -45,17 +45,16 @@ CORBA::Internal::IORequest::_ref_type DomainProt::create_request (const IOP::Obj
 	if (zombie ())
 		throw COMM_FAILURE ();
 
-	IOP::ServiceContextList sc;
 	if (callback) {
 		assert (response_flags & Internal::IORequest::RESPONSE_EXPECTED); // Checked in ReferenceRemote
-		return make_pseudo <RequestOutAsync <RequestOut> > (callback, std::ref (*this), std::ref (object_key), std::ref (metadata),
-			response_flags, std::ref (sc));
+		return make_pseudo <RequestOutAsync <RequestOut> > (callback, std::ref (*this), std::ref (object_key),
+			std::ref (metadata), response_flags);
 	} else if (response_flags & Internal::IORequest::RESPONSE_EXPECTED) {
-		return make_pseudo <RequestOutSync <RequestOut> > (std::ref (*this), std::ref (object_key), std::ref (metadata),
-			response_flags, std::ref (sc));
+		return make_pseudo <RequestOutSync <RequestOut> > (std::ref (*this), std::ref (object_key),
+			std::ref (metadata), response_flags);
 	} else {
 		return make_pseudo <RequestOut> (std::ref (*this), std::ref (object_key), std::ref (metadata),
-			response_flags, std::ref (sc));
+			response_flags);
 	}
 }
 

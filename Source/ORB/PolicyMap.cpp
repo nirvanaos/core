@@ -41,13 +41,13 @@ PolicyMap::PolicyMap (const OctetSeq& src)
 		PolicyType type = stm.read32 ();
 		OctetSeq data;
 		stm.read_seq (data);
-		emplace (type, std::move (data));
+		map_.emplace (type, std::move (data));
 	}
 }
 
 void PolicyMap::write (StreamOut& stm) const
 {
-	for (const_iterator it = begin (); it != end (); ++it) {
+	for (Map::const_iterator it = map_.begin (); it != map_.end (); ++it) {
 		stm.write32 (it->first);
 		stm.write_seq (it->second);
 	}
@@ -57,13 +57,13 @@ bool PolicyMap::insert (Policy::_ptr_type pol)
 {
 	ImplStatic <StreamOutEncap> stm;
 	PolicyFactory::write (pol, stm);
-	return emplace (pol->policy_type (), std::move (stm.data ())).second;
+	return map_.emplace (pol->policy_type (), std::move (stm.data ())).second;
 }
 
-const OctetSeq* PolicyMap::get_data (PolicyType type) const
+const OctetSeq* PolicyMap::get_data (PolicyType type) const NIRVANA_NOEXCEPT
 {
-	auto f = find (type);
-	if (f != end ())
+	auto f = map_.find (type);
+	if (f != map_.end ())
 		return &f->second;
 	else
 		return nullptr;

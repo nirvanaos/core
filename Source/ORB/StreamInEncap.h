@@ -45,12 +45,13 @@ public:
 	virtual size_t position () const override;
 
 protected:
-	StreamInEncap (const OctetSeq& data, bool skip_endian = false);
+	StreamInEncap (const StreamInEncap&) = default;
+	StreamInEncap (StreamInEncap&&) = default;
 
-	StreamInEncap (const Octet* begin, const Octet* end) NIRVANA_NOEXCEPT :
-		cur_ptr_ (begin),
-		begin_ (begin),
-		end_ (end)
+	StreamInEncap (const Octet* begin, const Octet* end, bool skip_endian);
+
+	explicit StreamInEncap (const OctetSeq& seq, bool skip_endian = false) :
+		StreamInEncap (seq.data (), seq.data () + seq.size (), skip_endian)
 	{}
 
 private:
