@@ -44,14 +44,32 @@ public:
 	virtual CORBA::Object::_ref_type id_to_servant (ObjectId& oid) override;
 	virtual CORBA::Object::_ref_type id_to_reference (ObjectId& oid) override;
 
+	enum DGC_Policy
+	{
+		DGC_DEFAULT,
+		DGC_ENABLED,
+		DGC_DISABLED
+	};
+
+	DGC_Policy DGC_policy () const NIRVANA_NOEXCEPT
+	{
+		return DGC_policy_;
+	}
+
+	virtual unsigned get_flags (unsigned flags) const NIRVANA_NOEXCEPT override;
+
 protected:
+	POA_Retain ();
+
 	virtual CORBA::Core::ReferenceLocalRef activate_object (ObjectKey&& key, bool unique,
 		CORBA::Core::ServantProxyObject& proxy, unsigned flags) override;
 
 	virtual void activate_object (CORBA::Core::ReferenceLocal& ref,
 		CORBA::Core::ServantProxyObject& proxy) override;
 
-	virtual void serve_request (const RequestRef& request, CORBA::Core::ReferenceLocal& reference) override;
+	virtual void serve_request (const RequestRef& request, CORBA::Core::ReferenceLocal& reference)
+		override;
+
 	virtual void destroy_internal (bool etherealize_objects) NIRVANA_NOEXCEPT override;
 	virtual void etherealize_objects () NIRVANA_NOEXCEPT override;
 	virtual void implicit_deactivate (CORBA::Core::ReferenceLocal& ref,
@@ -63,6 +81,8 @@ private:
 	// This map contains active references and references with GC
 	typedef Nirvana::Core::PointerSet References;
 	References references_;
+
+	DGC_Policy DGC_policy_;
 };
 
 }

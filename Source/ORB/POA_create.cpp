@@ -110,7 +110,7 @@ const POA_FactoryEntry POA_Base::factories_ [] = {
 	},
 	{ // 0 1 0 1 0 2
 		POLICY (TRANSIENT, MULTIPLE_ID, USER_ID, NO_IMPLICIT_ACTIVATION, RETAIN, USE_SERVANT_MANAGER),
-		POA_create <POA_Transient, POA_Retain, POA_Activator>
+		POA_create <POA_Transient, POA_Activator>
 	},
 	{ // 0 1 0 1 1 1
 		POLICY (TRANSIENT, MULTIPLE_ID, USER_ID, NO_IMPLICIT_ACTIVATION, NON_RETAIN, USE_DEFAULT_SERVANT),
@@ -122,15 +122,15 @@ const POA_FactoryEntry POA_Base::factories_ [] = {
 	},
 	{ // 0 1 1 0 0 0
 		POLICY (TRANSIENT, MULTIPLE_ID, SYSTEM_ID, IMPLICIT_ACTIVATION, RETAIN, USE_ACTIVE_OBJECT_MAP_ONLY),
-		POA_create <POA_System, POA_Retain, POA_Implicit>
+		POA_create <POA_System, POA_Implicit>
 	},
 	{ // 0 1 1 0 0 1
 		POLICY (TRANSIENT, MULTIPLE_ID, SYSTEM_ID, IMPLICIT_ACTIVATION, RETAIN, USE_DEFAULT_SERVANT),
-		POA_create <POA_System, POA_Retain, POA_Implicit, POA_Default>
+		POA_create <POA_System, POA_Implicit, POA_Default>
 	},
 	{ // 0 1 1 0 0 2
 		POLICY (TRANSIENT, MULTIPLE_ID, SYSTEM_ID, IMPLICIT_ACTIVATION, RETAIN, USE_SERVANT_MANAGER),
-		POA_create <POA_System, POA_Retain, POA_Activator, POA_Implicit>
+		POA_create <POA_System, POA_Activator, POA_Implicit>
 	},
 	{ // 0 1 1 1 0 0
 		POLICY (TRANSIENT, MULTIPLE_ID, SYSTEM_ID, NO_IMPLICIT_ACTIVATION, RETAIN, USE_ACTIVE_OBJECT_MAP_ONLY),
@@ -142,7 +142,7 @@ const POA_FactoryEntry POA_Base::factories_ [] = {
 	},
 	{ // 0 1 1 1 0 2
 		POLICY (TRANSIENT, MULTIPLE_ID, SYSTEM_ID, NO_IMPLICIT_ACTIVATION, RETAIN, USE_SERVANT_MANAGER),
-		POA_create <POA_System, POA_Retain, POA_Activator>
+		POA_create <POA_System, POA_Activator>
 	},
 	{ // 1 0 0 1 0 0
 		POLICY (PERSISTENT, UNIQUE_ID, USER_ID, NO_IMPLICIT_ACTIVATION, RETAIN, USE_ACTIVE_OBJECT_MAP_ONLY),
@@ -190,7 +190,7 @@ const POA_FactoryEntry POA_Base::factories_ [] = {
 	},
 	{ // 1 1 0 1 0 2
 		POLICY (PERSISTENT, MULTIPLE_ID, USER_ID, NO_IMPLICIT_ACTIVATION, RETAIN, USE_SERVANT_MANAGER),
-		POA_create <POA_Persistent, POA_Retain, POA_Activator>
+		POA_create <POA_Persistent, POA_Activator>
 	},
 	{ // 1 1 0 1 1 1
 		POLICY (PERSISTENT, MULTIPLE_ID, USER_ID, NO_IMPLICIT_ACTIVATION, NON_RETAIN, USE_DEFAULT_SERVANT),
@@ -210,7 +210,7 @@ const POA_FactoryEntry POA_Base::factories_ [] = {
 	},
 	{ // 1 1 1 1 0 2
 		POLICY (PERSISTENT, MULTIPLE_ID, SYSTEM_ID, NO_IMPLICIT_ACTIVATION, RETAIN, USE_SERVANT_MANAGER),
-		POA_create <POA_SystemPersistent, POA_Retain, POA_Activator>
+		POA_create <POA_SystemPersistent, POA_Activator>
 	},
 	{ // 1 1 1 1 1 1
 		POLICY (PERSISTENT, MULTIPLE_ID, SYSTEM_ID, NO_IMPLICIT_ACTIVATION, NON_RETAIN, USE_DEFAULT_SERVANT),

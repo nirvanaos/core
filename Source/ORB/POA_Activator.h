@@ -28,7 +28,7 @@
 #define NIRVANA_ORB_CORE_POA_ACTIVATOR_H_
 #pragma once
 
-#include "POA_Base.h"
+#include "POA_Retain.h"
 #include "POA_DGC.h"
 #include "HashOctetSeq.h"
 
@@ -37,7 +37,7 @@ namespace Core {
 
 // RETAIN and USE_SERVANT_MANAGER
 class POA_Activator :
-	public virtual POA_Base,
+	public virtual POA_Retain,
 	public virtual POA_DGC
 {
 	static const TimeBase::TimeT ACTIVATION_TIMEOUT = 100 * TimeBase::MILLISECOND;

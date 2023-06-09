@@ -33,8 +33,24 @@ using namespace Nirvana::Core;
 namespace PortableServer {
 namespace Core {
 
-ReferenceLocalRef POA_Retain::activate_object (ObjectKey&& key, bool unique, ServantProxyObject& proxy,
-	unsigned flags)
+POA_Retain::POA_Retain () :
+	DGC_policy_ (DGC_DEFAULT)
+{
+	if (object_policies_) {
+		bool hbe;
+		if (object_policies_->get_value <FT::HEARTBEAT_ENABLED_POLICY> (hbe)) {
+			if (hbe)
+				DGC_policy_ = DGC_ENABLED;
+			else {
+				DGC_policy_ = DGC_DISABLED;
+				object_policies_->erase (FT::HEARTBEAT_ENABLED_POLICY);
+			}
+		}
+	}
+}
+
+ReferenceLocalRef POA_Retain::activate_object (ObjectKey&& key, bool unique,
+	ServantProxyObject& proxy, unsigned flags)
 {
 	ReferenceLocalRef ref = root_->emplace_reference (std::move (key), unique,
 		std::ref (proxy), get_flags (flags), get_policies (flags));
@@ -65,6 +81,20 @@ servant_reference <CORBA::Core::ServantProxyObject> POA_Retain::deactivate_objec
 	references_.erase (&ref);
 	etherialize (ref.core_key ().object_id (), *ret, false);
 	return ret;
+}
+
+unsigned POA_Retain::get_flags (unsigned flags) const NIRVANA_NOEXCEPT
+{
+	switch (DGC_policy_) {
+	case DGC_ENABLED:
+		flags |= CORBA::Core::Reference::GARBAGE_COLLECTION;
+		break;
+
+	case DGC_DISABLED:
+		flags &= ~CORBA::Core::Reference::GARBAGE_COLLECTION;
+		break;
+	}
+	return flags;
 }
 
 void POA_Retain::implicit_deactivate (ReferenceLocal& ref, ServantProxyObject& proxy) NIRVANA_NOEXCEPT

@@ -28,13 +28,15 @@
 #define NIRVANA_ORB_CORE_POA_DGC_H_
 #pragma once
 
-#include "POA_Base.h"
+#include "POA_Retain.h"
 
 namespace PortableServer {
 namespace Core {
 
-class NIRVANA_NOVTABLE POA_DGC : public virtual POA_Base
+class NIRVANA_NOVTABLE POA_DGC : public virtual POA_Retain
 {
+	typedef POA_Retain Base;
+
 protected:
 	POA_DGC ();
 

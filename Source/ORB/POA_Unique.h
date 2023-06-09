@@ -35,7 +35,7 @@ namespace Core {
 
 // UNIQUE_ID, RETAIN
 class NIRVANA_NOVTABLE POA_Unique :
-	public POA_Retain
+	public virtual POA_Retain
 {
 	typedef POA_Retain Base;
 

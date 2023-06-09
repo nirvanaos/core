@@ -159,7 +159,6 @@ POA_Base::POA_Base (POA_Base* parent, const IDL::String* name,
 	parent_ (parent),
 	name_ (name),
 	request_cnt_ (0),
-	DGC_policy_ (DGC_DEFAULT),
 	destroyed_ (false),
 	signature_ (SIGNATURE)
 {
@@ -170,17 +169,6 @@ POA_Base::POA_Base (POA_Base* parent, const IDL::String* name,
 #endif
 
 	the_POAManager_->on_adapter_create (*this);
-	if (object_policies_) {
-		bool hbe;
-		if (object_policies_->get_value <FT::HEARTBEAT_ENABLED_POLICY> (hbe)) {
-			if (hbe)
-				DGC_policy_ = DGC_ENABLED;
-			else {
-				DGC_policy_ = DGC_DISABLED;
-				object_policies_->erase (FT::HEARTBEAT_ENABLED_POLICY);
-			}
-		}
-	}
 }
 
 POA_Base::~POA_Base ()

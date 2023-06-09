@@ -54,7 +54,7 @@ PolicyMapShared* POA_DGC::get_policies (unsigned flags) const NIRVANA_NOEXCEPT
 	if (flags & CORBA::Core::Reference::GARBAGE_COLLECTION)
 		return DGC_policies_;
 	else
-		return object_policies_;
+		return Base::get_policies (flags);
 }
 
 }

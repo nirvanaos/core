@@ -471,23 +471,14 @@ public:
 		return check_path (path, path.end ());
 	}
 
-	unsigned get_flags (unsigned flags) const NIRVANA_NOEXCEPT
-	{
-		switch (DGC_policy_) {
-		case DGC_ENABLED:
-			flags |= CORBA::Core::Reference::GARBAGE_COLLECTION;
-			break;
-
-		case DGC_DISABLED:
-			flags &= ~CORBA::Core::Reference::GARBAGE_COLLECTION;
-			break;
-		}
-		return flags;
-	}
-
 	virtual CORBA::Core::PolicyMapShared* get_policies (unsigned flags) const NIRVANA_NOEXCEPT
 	{
 		return object_policies_;
+	}
+
+	virtual unsigned get_flags (unsigned flags) const NIRVANA_NOEXCEPT
+	{
+		return flags;
 	}
 
 protected:
@@ -510,18 +501,6 @@ protected:
 	virtual void serve_default (const RequestRef& request, CORBA::Core::ReferenceLocal& reference);
 	void serve_request (const RequestRef& request, CORBA::Core::ReferenceLocal& reference, CORBA::Core::ServantProxyObject& proxy);
 
-	enum DGC_Policy
-	{
-		DGC_DEFAULT,
-		DGC_ENABLED,
-		DGC_DISABLED
-	};
-
-	DGC_Policy DGC_policy () const NIRVANA_NOEXCEPT
-	{
-		return DGC_policy_;
-	}
-
 private:
 	void on_request_finish () NIRVANA_NOEXCEPT;
 	
@@ -541,7 +520,6 @@ private:
 	Children children_;
 	AdapterActivator::_ref_type the_activator_;
 	unsigned int request_cnt_;
-	DGC_Policy DGC_policy_;
 	bool destroyed_;
 	Nirvana::Core::Event destroy_completed_;
 

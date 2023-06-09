@@ -41,13 +41,13 @@ ObjectId POA_Implicit::servant_to_id_default (ServantProxyObject& proxy, bool no
 {
 	assert (not_found);
 	ObjectId oid;
-	activate_object (proxy, oid);
+	POA_Base::activate_object (proxy, oid);
 	return oid;
 }
 
 Object::_ref_type POA_Implicit::servant_to_reference_default (ServantProxyObject& proxy, bool not_found)
 {
-	return activate_object (proxy)->get_proxy ();
+	return POA_Base::activate_object (proxy)->get_proxy ();
 }
 
 }

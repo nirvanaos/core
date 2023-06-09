@@ -37,7 +37,7 @@ namespace Core {
 
 // POA with IMPLICIT_ACTIVATION
 class NIRVANA_NOVTABLE POA_Implicit :
-	public virtual POA_Base,
+	public virtual POA_Retain,
 	public virtual POA_DGC
 {
 public:
