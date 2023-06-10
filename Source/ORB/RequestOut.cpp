@@ -70,7 +70,8 @@ RequestOut::RequestOut (unsigned GIOP_minor, unsigned response_flags,
 	metadata_ (&metadata),
 	id_ (0),
 	status_ (Status::IN_PROGRESS),
-	request_id_offset_ (0)
+	request_id_offset_ (0),
+	system_exception_code_ (SystemException::EC_NO_EXCEPTION)
 {
 #if (NIRVANA_DEBUG_ITERATORS != 0)
 	SyncContext& sc = SyncContext::current ();
@@ -364,17 +365,14 @@ void RequestOut::set_exception (Any& e)
 	throw BAD_INV_ORDER ();
 }
 
-void RequestOut::set_system_exception (const Char* rep_id, uint32_t minor, CompletionStatus completed) NIRVANA_NOEXCEPT
+void RequestOut::set_system_exception (SystemException::Code code, uint32_t minor, CompletionStatus completed) NIRVANA_NOEXCEPT
 {
 	status_ = Status::SYSTEM_EXCEPTION;
-	try {
-		ImplStatic <StreamOutEncap> sout (true);
-		sout.write_string_c (rep_id);
-		SystemException::_Data data { minor, completed };
-		sout.write_c (alignof (SystemException::_Data), sizeof (SystemException::_Data), &data);
-		stream_in_ = Ref <StreamIn>::create <ImplDynamic <StreamInEncapData> > (std::move (sout.data ()));
-		finalize ();
-	} catch (...) {}
+	system_exception_code_ = code;
+	system_exception_data_.minor = minor;
+	system_exception_data_.completed = completed;
+
+	finalize ();
 }
 
 void RequestOut::success ()
@@ -396,8 +394,9 @@ bool RequestOut::cancel_internal ()
 
 bool RequestOut::get_exception (Any& e)
 {
-	if (reply_exception_)
-		std::rethrow_exception (reply_exception_);
+	if (SystemException::EC_NO_EXCEPTION != system_exception_code_)
+		SystemException::_raise_by_code (system_exception_code_, system_exception_data_.minor,
+			system_exception_data_.completed);
 
 	switch (status_) {
 		case Status::SYSTEM_EXCEPTION:

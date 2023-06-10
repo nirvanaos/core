@@ -84,14 +84,8 @@ public:
 	virtual void set_reply (unsigned status, IOP::ServiceContextList&& context,
 		Nirvana::Core::Ref <StreamIn>&& stream);
 
-	void set_system_exception (const Char* rep_id, uint32_t minor, CompletionStatus completed)
+	void set_system_exception (SystemException::Code code, uint32_t minor, CompletionStatus completed)
 		NIRVANA_NOEXCEPT;
-
-	void on_reply_exception () NIRVANA_NOEXCEPT
-	{
-		reply_exception_ = std::current_exception ();
-		finalize ();
-	}
 
 protected:
 	RequestOut (unsigned GIOP_minor, unsigned response_flags, Domain& target_domain, const Internal::Operation& metadata);
@@ -152,7 +146,8 @@ protected:
 
 	Nirvana::Core::Ref <RequestLocalBase> preunmarshaled_;
 
-	std::exception_ptr reply_exception_;
+	SystemException::Code system_exception_code_;
+	SystemException::_Data system_exception_data_;
 
 	static std::atomic <IdGenType> last_id_;
 };

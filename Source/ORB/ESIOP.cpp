@@ -191,7 +191,7 @@ void ReceiveReply::run ()
 		unsigned minor = msg_hdr.GIOP_version ().minor ();
 		OutgoingRequests::receive_reply (minor, std::move (in));
 	} catch (const SystemException& ex) {
-		OutgoingRequests::set_system_exception (request_id_, ex._rep_id (), ex.minor (), ex.completed ());
+		OutgoingRequests::set_system_exception (request_id_, ex);
 	}
 }
 
@@ -236,12 +236,8 @@ private:
 
 void ReceiveReplyImmediate::run ()
 {
-	try {
-		OutgoingRequests::receive_reply_immediate (request_id_, Ref <StreamIn>::create <ImplDynamic <StreamInImmediate> >
-			(size_and_flag_, data_));
-	} catch (const SystemException& ex) {
-		OutgoingRequests::set_system_exception (request_id_, ex._rep_id (), ex.minor (), ex.completed ());
-	}
+	OutgoingRequests::receive_reply_immediate (request_id_, Ref <StreamIn>::create <ImplDynamic <StreamInImmediate> >
+		(size_and_flag_, data_));
 }
 
 /// Receive system exception Runnable
@@ -269,8 +265,7 @@ private:
 
 void ReceiveSystemException::run ()
 {
-	OutgoingRequests::set_system_exception (request_id_,
-		SystemException::_get_exception_entry (code_)->rep_id, minor_, completed_);
+	OutgoingRequests::set_system_exception (request_id_, code_, minor_, completed_);
 }
 
 /// Receive close connection Runnable
@@ -329,8 +324,7 @@ void dispatch_message (MessageHeader& message)
 				{
 					ImplStatic <StreamInSM> tmp ((void*)msg.GIOP_message);
 				}
-				OutgoingRequests::set_system_exception (msg.request_id, ex._rep_id (),
-					ex.minor (), ex.completed ());
+				OutgoingRequests::set_system_exception (msg.request_id, ex);
 			}
 		} break;
 
@@ -341,7 +335,7 @@ void dispatch_message (MessageHeader& message)
 					Chrono::make_deadline (INITIAL_REQUEST_DEADLINE_LOCAL), g_core_free_sync_context, nullptr,
 					std::ref (msg));
 			} catch (const SystemException& ex) {
-				OutgoingRequests::set_system_exception (msg.request_id, ex._rep_id (), ex.minor (), ex.completed ());
+				OutgoingRequests::set_system_exception (msg.request_id, ex);
 			}
 		} break;
 
@@ -352,8 +346,7 @@ void dispatch_message (MessageHeader& message)
 					Chrono::make_deadline (INITIAL_REQUEST_DEADLINE_LOCAL), g_core_free_sync_context, nullptr,
 					std::ref (msg));
 			} catch (...) {
-				OutgoingRequests::set_system_exception (msg.request_id,
-					SystemException::_get_exception_entry (msg.code)->rep_id, msg.minor,
+				OutgoingRequests::set_system_exception (msg.request_id, msg.code, msg.minor,
 					(CompletionStatus)msg.completed);
 			}
 		} break;

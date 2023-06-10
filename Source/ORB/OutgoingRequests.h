@@ -57,20 +57,36 @@ public:
 	static void new_request_oneway (RequestOut& rq, RequestOut::IdPolicy id_policy);
 	static Nirvana::Core::Ref <RequestOut> remove_request (RequestOut::RequestId request_id) NIRVANA_NOEXCEPT;
 	static void receive_reply (unsigned GIOP_minor, Nirvana::Core::Ref <StreamIn>&& stream);
-	static void receive_reply_immediate (uint32_t request_id, Nirvana::Core::Ref <StreamIn>&& stream)
+
+	static void receive_reply_immediate (uint32_t request_id, Nirvana::Core::Ref <StreamIn>&& stream) NIRVANA_NOEXCEPT
 	{
-		receive_reply_internal (1, (RequestId)request_id, 0, IOP::ServiceContextList (), std::move (stream));
+		Nirvana::Core::Ref <RequestOut> rq = remove_request (request_id);
+		if (rq) {
+			try {
+				receive_reply_internal (*rq, 1, (RequestId)request_id, 0, IOP::ServiceContextList (), std::move (stream));
+			} catch (const SystemException& ex) {
+				on_reply_exception (*rq, ex, GIOP::ReplyStatusType::NO_EXCEPTION);
+			}
+		}
 	}
 
-	static void set_system_exception (uint32_t request_id, const Char* rep_id,
+	static void set_system_exception (uint32_t request_id, const SystemException& ex) NIRVANA_NOEXCEPT
+	{
+		set_system_exception (request_id, ex.__code (), ex.minor (), ex.completed ());
+	}
+
+	static void set_system_exception (uint32_t request_id, SystemException::Code code,
 		uint32_t minor, CompletionStatus completed) NIRVANA_NOEXCEPT;
 
 private:
 	typedef RequestOut::RequestId RequestId;
 
-	static void receive_reply_internal (unsigned GIOP_minor, RequestId request_id,
+	static void receive_reply_internal (RequestOut& rq, unsigned GIOP_minor, RequestId request_id,
 		uint32_t status, const IOP::ServiceContextList& context1,
-		Nirvana::Core::Ref <StreamIn>&& stream) NIRVANA_NOEXCEPT;
+		Nirvana::Core::Ref <StreamIn>&& stream);
+
+	static void on_reply_exception (RequestOut& rq, const SystemException& ex,
+		GIOP::ReplyStatusType status) NIRVANA_NOEXCEPT;
 
 	struct RequestVal
 	{
