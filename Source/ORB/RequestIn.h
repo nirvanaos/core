@@ -49,7 +49,7 @@ struct RequestKey : DomainAddress
 		DomainAddress (addr)
 	{}
 
-	bool operator < (const RequestKey& rhs) const NIRVANA_NOEXCEPT
+	bool operator < (const RequestKey& rhs) const noexcept
 	{
 		if (request_id < rhs.request_id)
 			return true;
@@ -70,36 +70,36 @@ class NIRVANA_NOVTABLE RequestIn :
 protected:
 	template <class T>
 	friend class Nirvana::Core::Ref;
-	virtual void _add_ref () NIRVANA_NOEXCEPT override;
-	virtual void _remove_ref () NIRVANA_NOEXCEPT override;
-	virtual Nirvana::Core::MemContext* memory () const NIRVANA_NOEXCEPT override;
+	virtual void _add_ref () noexcept override;
+	virtual void _remove_ref () noexcept override;
+	virtual Nirvana::Core::MemContext* memory () const noexcept override;
 
 public:
 	void initialize (Nirvana::Core::Ref <StreamIn>&& in);
 
-	const RequestKey& key () const NIRVANA_NOEXCEPT
+	const RequestKey& key () const noexcept
 	{
 		return key_;
 	}
 
 	/// \returns The request id.
-	uint32_t request_id () const NIRVANA_NOEXCEPT
+	uint32_t request_id () const noexcept
 	{
 		return key_.request_id;
 	}
 
 	/// \returns Service context sorted in the ascending order.
-	const IOP::ServiceContextList& service_context () const NIRVANA_NOEXCEPT
+	const IOP::ServiceContextList& service_context () const noexcept
 	{
 		return service_context_;
 	}
 
-	virtual const IOP::ObjectKey& object_key () const NIRVANA_NOEXCEPT override
+	virtual const IOP::ObjectKey& object_key () const noexcept override
 	{
 		return object_key_;
 	}
 
-	virtual Internal::StringView <Char> operation () const NIRVANA_NOEXCEPT override
+	virtual Internal::StringView <Char> operation () const noexcept override
 	{
 		return operation_;
 	}
@@ -109,8 +109,8 @@ public:
 	/// Cancel the request.
 	/// Called from the IncomingRequests class.
 	/// Request is already removed from map on this call.
-	virtual void cancel () NIRVANA_NOEXCEPT override;
-	virtual bool is_cancelled () const NIRVANA_NOEXCEPT override;
+	virtual void cancel () noexcept override;
+	virtual bool is_cancelled () const noexcept override;
 
 	/// Return exception to caller.
 	/// Operation has move semantics so \p e may be cleared.
@@ -121,7 +121,7 @@ public:
 	/// Must be overridden in the derived class to send reply.
 	virtual void success () override = 0;
 
-	void inserted_to_map (void* iter) NIRVANA_NOEXCEPT
+	void inserted_to_map (void* iter) noexcept
 	{
 		map_iterator_ = iter;
 	}
@@ -129,7 +129,7 @@ public:
 	/// Finalizes the request.
 	/// 
 	/// \returns `true` if the reply must be sent.
-	bool finalize () NIRVANA_NOEXCEPT;
+	bool finalize () noexcept;
 
 protected:
 	RequestIn (const DomainAddress& client, unsigned GIOP_minor);
@@ -141,7 +141,7 @@ protected:
 	/// \returns The output stream reference.
 	virtual Nirvana::Core::Ref <StreamOut> create_output () = 0;
 
-	void post_send_success () NIRVANA_NOEXCEPT;
+	void post_send_success () noexcept;
 
 private:
 	void get_object_key (const IOP::TaggedProfile& profile);
@@ -155,7 +155,7 @@ private:
 
 	void switch_to_reply (GIOP::ReplyStatusType status = GIOP::ReplyStatusType::NO_EXCEPTION);
 
-	void delayed_release () NIRVANA_NOEXCEPT;
+	void delayed_release () noexcept;
 
 protected:
 	RequestKey key_;

@@ -43,7 +43,7 @@ class SchedulerImpl
 {
 	typedef SkipListWithPool <PriorityQueue <ExecutorRef, SYS_DOMAIN_PRIORITY_QUEUE_LEVELS> > Queue;
 public:
-	SchedulerImpl () NIRVANA_NOEXCEPT :
+	SchedulerImpl () noexcept :
 		free_cores_ (Port::SystemInfo::hardware_concurrency ()),
 		queue_ (Port::SystemInfo::hardware_concurrency ())
 	{}
@@ -53,18 +53,18 @@ public:
 		queue_.create_item ();
 	}
 
-	void delete_item () NIRVANA_NOEXCEPT
+	void delete_item () noexcept
 	{
 		queue_.delete_item ();
 	}
 
-	void schedule (const DeadlineTime& deadline, const ExecutorRef& executor) NIRVANA_NOEXCEPT
+	void schedule (const DeadlineTime& deadline, const ExecutorRef& executor) noexcept
 	{
 		verify (queue_.insert (deadline, executor));
 		execute_next ();
 	}
 
-	bool reschedule (const DeadlineTime& deadline, const ExecutorRef& executor, const DeadlineTime& deadline_prev) NIRVANA_NOEXCEPT
+	bool reschedule (const DeadlineTime& deadline, const ExecutorRef& executor, const DeadlineTime& deadline_prev) noexcept
 	{
 		if (queue_.reorder (deadline, executor, deadline_prev)) {
 			execute_next ();
@@ -73,7 +73,7 @@ public:
 		return false;
 	}
 
-	void core_free () NIRVANA_NOEXCEPT
+	void core_free () noexcept
 	{
 		if (execute ())
 			return;
@@ -83,8 +83,8 @@ public:
 	}
 
 private:
-	bool execute () NIRVANA_NOEXCEPT;
-	void execute_next () NIRVANA_NOEXCEPT;
+	bool execute () noexcept;
+	void execute_next () noexcept;
 
 protected:
 	std::atomic <unsigned> free_cores_;
@@ -94,7 +94,7 @@ private:
 };
 
 template <class T, class ExecutorRef>
-bool SchedulerImpl <T, ExecutorRef>::execute () NIRVANA_NOEXCEPT
+bool SchedulerImpl <T, ExecutorRef>::execute () noexcept
 {
 	// Get first item
 	ExecutorRef val;
@@ -106,7 +106,7 @@ bool SchedulerImpl <T, ExecutorRef>::execute () NIRVANA_NOEXCEPT
 }
 
 template <class T, class ExecutorRef>
-void SchedulerImpl <T, ExecutorRef>::execute_next () NIRVANA_NOEXCEPT
+void SchedulerImpl <T, ExecutorRef>::execute_next () noexcept
 {
 	do {
 		// Acquire processor core

@@ -50,7 +50,7 @@ POA_DGC::POA_DGC ()
 	DGC_policies_ = std::move (pols);
 }
 
-PolicyMapShared* POA_DGC::get_policies (unsigned flags) const NIRVANA_NOEXCEPT
+PolicyMapShared* POA_DGC::get_policies (unsigned flags) const noexcept
 {
 	if (flags & CORBA::Core::Reference::GARBAGE_COLLECTION)
 		return DGC_policies_;

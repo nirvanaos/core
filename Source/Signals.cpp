@@ -45,7 +45,7 @@ const Signals::SigToExc Signals::sig2exc_ [] = {
 	{ SIGSEGV, CORBA::SystemException::EC_ACCESS_VIOLATION }
 };
 
-int Signals::signal_index (int signal) NIRVANA_NOEXCEPT
+int Signals::signal_index (int signal) noexcept
 {
 	const int* p = std::lower_bound (supported_signals_, std::end (supported_signals_), signal);
 	if (p != std::end (supported_signals_) && *p == signal)
@@ -53,7 +53,7 @@ int Signals::signal_index (int signal) NIRVANA_NOEXCEPT
 	return -1;
 }
 
-CORBA::Exception::Code Signals::signal2ex (int signal) NIRVANA_NOEXCEPT
+CORBA::Exception::Code Signals::signal2ex (int signal) noexcept
 {
 	for (const SigToExc* p = sig2exc_; p != std::end (sig2exc_); ++p) {
 		if (p->signal == signal) {

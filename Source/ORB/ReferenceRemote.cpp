@@ -62,12 +62,12 @@ ReferenceRemote::~ReferenceRemote ()
 		domain_->on_DGC_reference_delete (*DGC_key_);
 }
 
-void ReferenceRemote::_add_ref () NIRVANA_NOEXCEPT
+void ReferenceRemote::_add_ref () noexcept
 {
 	ref_cnt_.increment ();
 }
 
-void ReferenceRemote::_remove_ref () NIRVANA_NOEXCEPT
+void ReferenceRemote::_remove_ref () noexcept
 {
 	if (!ref_cnt_.decrement_seq ()) {
 		SyncContext& sc = Binder::singleton ().sync_domain ();

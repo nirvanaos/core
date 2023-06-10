@@ -67,16 +67,16 @@ public:
 		ODD
 	};
 
-	static RequestId get_new_id (IdPolicy id_policy) NIRVANA_NOEXCEPT;
+	static RequestId get_new_id (IdPolicy id_policy) noexcept;
 
-	RequestId id () const NIRVANA_NOEXCEPT
+	RequestId id () const noexcept
 	{
 		return id_;
 	}
 
 	void id (RequestId id);
 
-	const Nirvana::DeadlineTime deadline() const NIRVANA_NOEXCEPT
+	const Nirvana::DeadlineTime deadline() const noexcept
 	{
 		return deadline_;
 	}
@@ -85,7 +85,7 @@ public:
 		Nirvana::Core::Ref <StreamIn>&& stream);
 
 	void set_system_exception (SystemException::Code code, uint32_t minor, CompletionStatus completed)
-		NIRVANA_NOEXCEPT;
+		noexcept;
 
 protected:
 	RequestOut (unsigned GIOP_minor, unsigned response_flags, Domain& target_domain, const Internal::Operation& metadata);
@@ -118,7 +118,7 @@ protected:
 
 	void pre_invoke (IdPolicy id_policy);
 
-	virtual void finalize () NIRVANA_NOEXCEPT
+	virtual void finalize () noexcept
 	{}
 
 private:

@@ -48,7 +48,7 @@ public:
 	}
 
 private:
-	virtual void finalize () NIRVANA_NOEXCEPT override
+	virtual void finalize () noexcept override
 	{
 		Base::finalize ();
 		RqHelper::call_completed (callback_, Base::_get_ptr ());

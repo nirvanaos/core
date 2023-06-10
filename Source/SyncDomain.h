@@ -67,12 +67,12 @@ public:
 	class QueueNode : private SkipListBase::Node
 	{
 	public:
-		QueueNode* next () const NIRVANA_NOEXCEPT
+		QueueNode* next () const noexcept
 		{
 			return next_;
 		}
 
-		void release () NIRVANA_NOEXCEPT
+		void release () noexcept
 		{
 			domain_->release_queue_node (this);
 		}
@@ -98,7 +98,7 @@ public:
 		}
 	}
 
-	void release_queue_node (QueueNode* node) NIRVANA_NOEXCEPT;
+	void release_queue_node (QueueNode* node) noexcept;
 
 	void schedule (QueueNode* node, const DeadlineTime& deadline, Executor& executor)
 	{
@@ -111,10 +111,10 @@ public:
 
 	virtual void execute () override;
 
-	virtual SyncDomain* sync_domain () NIRVANA_NOEXCEPT override;
+	virtual SyncDomain* sync_domain () noexcept override;
 
 	/// \returns Domain memory context.
-	MemContext& mem_context () NIRVANA_NOEXCEPT
+	MemContext& mem_context () noexcept
 	{
 		assert (mem_context_);
 		return *mem_context_;
@@ -123,17 +123,17 @@ public:
 	/// If we currently run out of SD, create new SD and enter into it.
 	static SyncDomain& enter ();
 
-	void leave () NIRVANA_NOEXCEPT;
+	void leave () noexcept;
 
 protected:
-	SyncDomain (Ref <MemContext>&& mem_context) NIRVANA_NOEXCEPT;
+	SyncDomain (Ref <MemContext>&& mem_context) noexcept;
 	~SyncDomain ();
 
 private:
-	void schedule () NIRVANA_NOEXCEPT;
+	void schedule () noexcept;
 
 	void activity_begin ();
-	void activity_end () NIRVANA_NOEXCEPT;
+	void activity_end () noexcept;
 
 private:
 	Queue queue_;
@@ -163,7 +163,7 @@ protected:
 	/// 
 	/// param parent Parent free sync context.
 	/// param memory Memory context.
-	SyncDomainImpl (SyncContext& parent, MemContext& mem_context) NIRVANA_NOEXCEPT :
+	SyncDomainImpl (SyncContext& parent, MemContext& mem_context) noexcept :
 		SyncDomain (Ref <MemContext> (&mem_context)),
 		parent_ (&parent)
 	{
@@ -174,7 +174,7 @@ protected:
 	{}
 
 	// SyncContext::
-	virtual Module* module () NIRVANA_NOEXCEPT;
+	virtual Module* module () noexcept;
 	virtual void raise_exception (CORBA::SystemException::Code code, unsigned minor);
 
 private:
@@ -192,7 +192,7 @@ protected:
 	SyncDomainCore (Heap& heap);
 
 	// SyncContext::
-	virtual Module* module () NIRVANA_NOEXCEPT;
+	virtual Module* module () noexcept;
 	virtual void raise_exception (CORBA::SystemException::Code code, unsigned minor);
 };
 

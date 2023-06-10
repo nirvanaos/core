@@ -45,22 +45,22 @@ RequestLocalPOA::RequestLocalPOA (ReferenceLocal& reference, IOReference::Operat
 	callee_memory_ = caller_memory_;
 }
 
-void RequestLocalPOA::_add_ref () NIRVANA_NOEXCEPT
+void RequestLocalPOA::_add_ref () noexcept
 {
 	RequestLocalBase::_add_ref ();
 }
 
-MemContext* RequestLocalPOA::memory () const NIRVANA_NOEXCEPT
+MemContext* RequestLocalPOA::memory () const noexcept
 {
 	return caller_memory_;
 }
 
-const IOP::ObjectKey& RequestLocalPOA::object_key () const NIRVANA_NOEXCEPT
+const IOP::ObjectKey& RequestLocalPOA::object_key () const noexcept
 {
 	return reference_->object_key ();
 }
 
-CORBA::Internal::StringView <Char> RequestLocalPOA::operation () const NIRVANA_NOEXCEPT
+CORBA::Internal::StringView <Char> RequestLocalPOA::operation () const noexcept
 {
 	return reference_->operation_metadata (op_idx ()).name;
 }
@@ -87,7 +87,7 @@ void RequestLocalPOA::invoke ()
 	PortableServer::Core::POA_Root::invoke (Ref <RequestInPOA> (this), false);
 }
 
-bool RequestLocalPOA::is_cancelled () const NIRVANA_NOEXCEPT
+bool RequestLocalPOA::is_cancelled () const noexcept
 {
 	return RequestLocalBase::is_cancelled ();
 }
@@ -106,13 +106,13 @@ void RequestLocalOnewayPOA::serve (const ServantProxyBase& proxy)
 	RequestLocalPOA::serve (proxy);
 }
 
-void RequestLocalAsyncPOA::cancel () NIRVANA_NOEXCEPT
+void RequestLocalAsyncPOA::cancel () noexcept
 {
 	if (set_cancelled ())
 		response_flags_ = 0; // Prevent marshaling
 }
 
-void RequestLocalAsyncPOA::finalize () NIRVANA_NOEXCEPT
+void RequestLocalAsyncPOA::finalize () noexcept
 {
 	Base::finalize ();
 	RqHelper::call_completed (callback_, _get_ptr ());

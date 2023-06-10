@@ -28,7 +28,7 @@
 namespace CORBA {
 namespace Core {
 
-TC_IdName::TC_IdName (TCKind kind, IDL::String&& id, IDL::String&& name) NIRVANA_NOEXCEPT :
+TC_IdName::TC_IdName (TCKind kind, IDL::String&& id, IDL::String&& name) noexcept :
 	TC_Base (kind),
 	id_ (std::move (id)),
 	name_ (std::move (name))

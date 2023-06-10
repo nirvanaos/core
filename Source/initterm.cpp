@@ -39,7 +39,7 @@
 namespace Nirvana {
 namespace Core {
 
-bool initialize0 () NIRVANA_NOEXCEPT
+bool initialize0 () noexcept
 {
 	if (!Heap::initialize ())
 		return false;
@@ -91,7 +91,7 @@ void terminate ()
 	CORBA::Core::terminate ();
 }
 
-void terminate0 () NIRVANA_NOEXCEPT
+void terminate0 () noexcept
 {
 	Scheduler::terminate ();
 	ExecDomain::terminate ();

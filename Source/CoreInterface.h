@@ -44,8 +44,8 @@ template <class> friend class CORBA::servant_reference;\
 template <class> friend class CORBA::Internal::LifeCycleRefCnt;\
 _Pragma ("GCC diagnostic push")\
 _Pragma ("GCC diagnostic ignored \"-Winconsistent-missing-override\"")\
-virtual void _add_ref () NIRVANA_NOEXCEPT = 0;\
-virtual void _remove_ref () NIRVANA_NOEXCEPT = 0;\
+virtual void _add_ref () noexcept = 0;\
+virtual void _remove_ref () noexcept = 0;\
 _Pragma ("GCC diagnostic pop")
 
 #else
@@ -54,8 +54,8 @@ _Pragma ("GCC diagnostic pop")
 template <class> friend class Nirvana::Core::Ref;\
 template <class> friend class CORBA::servant_reference;\
 template <class> friend class CORBA::Internal::LifeCycleRefCnt;\
-virtual void _add_ref () NIRVANA_NOEXCEPT = 0;\
-virtual void _remove_ref () NIRVANA_NOEXCEPT = 0;
+virtual void _add_ref () noexcept = 0;\
+virtual void _remove_ref () noexcept = 0;
 
 #endif
 
@@ -81,12 +81,12 @@ protected:
 	~ImplDynamic ()
 	{}
 
-	void _add_ref () NIRVANA_NOEXCEPT
+	void _add_ref () noexcept
 	{
 		ref_cnt_.increment ();
 	}
 
-	void _remove_ref () NIRVANA_NOEXCEPT
+	void _remove_ref () noexcept
 	{
 		if (!ref_cnt_.decrement ())
 			delete this;
@@ -118,12 +118,12 @@ protected:
 	virtual ~ImplDynamicSync ()
 	{}
 
-	void _add_ref () NIRVANA_NOEXCEPT
+	void _add_ref () noexcept
 	{
 		++ref_cnt_;
 	}
 
-	void _remove_ref () NIRVANA_NOEXCEPT
+	void _remove_ref () noexcept
 	{
 		assert (ref_cnt_);
 		if (!--ref_cnt_)
@@ -147,10 +147,10 @@ public:
 	{}
 
 private:
-	void _add_ref () NIRVANA_NOEXCEPT
+	void _add_ref () noexcept
 	{}
 
-	void _remove_ref () NIRVANA_NOEXCEPT
+	void _remove_ref () noexcept
 	{}
 };
 
@@ -171,13 +171,13 @@ protected:
 	~ImplNoAddRef ()
 	{}
 
-	void _add_ref () NIRVANA_NOEXCEPT
+	void _add_ref () noexcept
 	{
 		assert (false);
 		throw_INTERNAL ();
 	}
 
-	void _remove_ref () NIRVANA_NOEXCEPT
+	void _remove_ref () noexcept
 	{
 		this->~ImplNoAddRef <T> ();
 	}
@@ -193,39 +193,39 @@ class Ref
 	template <class> friend class Ref;
 	template <class, unsigned> friend class LockableRef;
 public:
-	Ref () NIRVANA_NOEXCEPT :
+	Ref () noexcept :
 		p_ (nullptr)
 	{}
 
-	Ref (nullptr_t) NIRVANA_NOEXCEPT :
+	Ref (nullptr_t) noexcept :
 		p_ (nullptr)
 	{}
 
 	/// Increments reference counter unlike I_var.
-	Ref (T* p) NIRVANA_NOEXCEPT :
+	Ref (T* p) noexcept :
 		p_ (p)
 	{
 		if (p_)
 			p_->_add_ref ();
 	}
 
-	Ref (const Ref& src) NIRVANA_NOEXCEPT :
+	Ref (const Ref& src) noexcept :
 		Ref (src.p_)
 	{}
 
-	Ref (Ref&& src) NIRVANA_NOEXCEPT :
+	Ref (Ref&& src) noexcept :
 		p_ (src.p_)
 	{
 		src.p_ = nullptr;
 	}
 
 	template <class T1>
-	Ref (const Ref <T1>& src) NIRVANA_NOEXCEPT :
+	Ref (const Ref <T1>& src) noexcept :
 		Ref (static_cast <T*> (src.p_))
 	{}
 
 	template <class T1>
-	Ref (Ref <T1>&& src) NIRVANA_NOEXCEPT :
+	Ref (Ref <T1>&& src) noexcept :
 		p_ (static_cast <T*> (src.p_))
 	{
 		src.p_ = nullptr;
@@ -241,14 +241,14 @@ public:
 		return v;
 	}
 
-	~Ref () NIRVANA_NOEXCEPT
+	~Ref () noexcept
 	{
 		if (p_)
 			p_->_remove_ref ();
 	}
 
 	/// Increments reference counter unlike I_var.
-	Ref& operator = (T* p) NIRVANA_NOEXCEPT
+	Ref& operator = (T* p) noexcept
 	{
 		if (p_ != p) {
 			reset (p);
@@ -258,12 +258,12 @@ public:
 		return *this;
 	}
 
-	Ref& operator = (const Ref& src) NIRVANA_NOEXCEPT
+	Ref& operator = (const Ref& src) noexcept
 	{
 		return operator = (src.p_);
 	}
 
-	Ref& operator = (Ref&& src) NIRVANA_NOEXCEPT
+	Ref& operator = (Ref&& src) noexcept
 	{
 		if (this != &src) {
 			reset (src.p_);
@@ -273,42 +273,42 @@ public:
 	}
 
 	template <class T1>
-	Ref& operator = (const Ref <T1>& src) NIRVANA_NOEXCEPT
+	Ref& operator = (const Ref <T1>& src) noexcept
 	{
 		return operator = (static_cast <T*> (src.p_));
 	}
 
 	template <class T1>
-	Ref& operator = (Ref <T1>&& src) NIRVANA_NOEXCEPT
+	Ref& operator = (Ref <T1>&& src) noexcept
 	{
 		reset (src.p_);
 		src.p_ = nullptr;
 		return *this;
 	}
 
-	Ref& operator = (nullptr_t) NIRVANA_NOEXCEPT
+	Ref& operator = (nullptr_t) noexcept
 	{
 		reset ();
 		return *this;
 	}
 
-	T* operator -> () const NIRVANA_NOEXCEPT
+	T* operator -> () const noexcept
 	{
 		return p_;
 	}
 
-	operator T* () const NIRVANA_NOEXCEPT
+	operator T* () const noexcept
 	{
 		return p_;
 	}
 
-	T& operator * () const NIRVANA_NOEXCEPT
+	T& operator * () const noexcept
 	{
 		assert (p_);
 		return *p_;
 	}
 
-	void reset () NIRVANA_NOEXCEPT
+	void reset () noexcept
 	{
 		if (p_) {
 			T* tmp = p_;
@@ -317,7 +317,7 @@ public:
 		}
 	}
 
-	void swap (Ref& other) NIRVANA_NOEXCEPT
+	void swap (Ref& other) noexcept
 	{
 		T* tmp = p_;
 		p_ = other.p_;
@@ -325,7 +325,7 @@ public:
 	}
 
 private:
-	void reset (T* p) NIRVANA_NOEXCEPT
+	void reset (T* p) noexcept
 	{
 		if (p != p_) {
 			T* tmp = p_;

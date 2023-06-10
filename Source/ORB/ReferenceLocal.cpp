@@ -81,7 +81,7 @@ void ReferenceLocal::_add_ref ()
 		ref_cnt_.increment ();
 }
 
-void ReferenceLocal::_remove_ref () NIRVANA_NOEXCEPT
+void ReferenceLocal::_remove_ref () noexcept
 {
 	if (0 == ref_cnt_.decrement_seq ()) {
 		if (flags_ & GARBAGE_COLLECTION) {
@@ -119,7 +119,7 @@ void ReferenceLocal::activate (ServantProxyObject& proxy)
 	servant_ = &proxy;
 }
 
-servant_reference <ServantProxyObject> ReferenceLocal::deactivate () NIRVANA_NOEXCEPT
+servant_reference <ServantProxyObject> ReferenceLocal::deactivate () noexcept
 {
 	// Caller must hold reference.
 	assert (_refcount_value ());
@@ -132,7 +132,7 @@ servant_reference <ServantProxyObject> ReferenceLocal::deactivate () NIRVANA_NOE
 	return proxy;
 }
 
-void ReferenceLocal::on_servant_destruct () NIRVANA_NOEXCEPT
+void ReferenceLocal::on_servant_destruct () noexcept
 {
 	// Called on the active weak reference servant destruction.
 	assert (&SyncContext::current () == adapter_context_);
@@ -147,7 +147,7 @@ void ReferenceLocal::on_servant_destruct () NIRVANA_NOEXCEPT
 	_remove_ref ();
 }
 
-Ref <ServantProxyObject> ReferenceLocal::get_active_servant () const NIRVANA_NOEXCEPT
+Ref <ServantProxyObject> ReferenceLocal::get_active_servant () const noexcept
 {
 	// This method is always called from the POA sync context, so we need not lock the pointer.
 	assert (&SyncContext::current () == adapter_context_);

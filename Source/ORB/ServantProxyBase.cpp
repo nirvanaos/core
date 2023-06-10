@@ -60,7 +60,7 @@ ServantProxyBase::~ServantProxyBase ()
 	assert (&Nirvana::Core::SyncContext::current () == &sync_context ());
 }
 
-void ServantProxyBase::_remove_ref () NIRVANA_NOEXCEPT
+void ServantProxyBase::_remove_ref () noexcept
 {
 	RefCntProxy::IntegralType cnt = ref_cnt_.decrement_seq ();
 	if (0 == cnt) {
@@ -71,7 +71,7 @@ void ServantProxyBase::_remove_ref () NIRVANA_NOEXCEPT
 	}
 }
 
-void ServantProxyBase::delete_proxy () NIRVANA_NOEXCEPT
+void ServantProxyBase::delete_proxy () noexcept
 {
 	// Called in the servant sync context
 	assert (&Nirvana::Core::SyncContext::current () == sync_context_);
@@ -83,7 +83,7 @@ void ServantProxyBase::delete_proxy () NIRVANA_NOEXCEPT
 	}
 }
 
-void ServantProxyBase::reset_servant () NIRVANA_NOEXCEPT
+void ServantProxyBase::reset_servant () noexcept
 {
 	servant_ = nullptr;
 	ProxyManager::reset_servant ();
@@ -109,7 +109,7 @@ void ServantProxyBase::add_ref_servant () const
 	}
 }
 
-void ServantProxyBase::collect_garbage (Internal::Interface::_ptr_type servant) NIRVANA_NOEXCEPT
+void ServantProxyBase::collect_garbage (Internal::Interface::_ptr_type servant) noexcept
 {
 	// Called in the servant synchronization context on releasing the last reference to proxy.
 	interface_release (&servant);
@@ -118,7 +118,7 @@ void ServantProxyBase::collect_garbage (Internal::Interface::_ptr_type servant) 
 		mod->_remove_ref ();
 }
 
-void ServantProxyBase::run_garbage_collector () const NIRVANA_NOEXCEPT
+void ServantProxyBase::run_garbage_collector () const noexcept
 {
 	using namespace Nirvana::Core;
 
@@ -151,7 +151,7 @@ void ServantProxyBase::run_garbage_collector () const NIRVANA_NOEXCEPT
 		collect_garbage (servant_);
 }
 
-MemContext* ServantProxyBase::memory () const NIRVANA_NOEXCEPT
+MemContext* ServantProxyBase::memory () const noexcept
 {
 	MemContext* mc = nullptr;
 	SyncDomain* sd = sync_context_->sync_domain ();

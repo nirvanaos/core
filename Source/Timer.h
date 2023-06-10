@@ -56,7 +56,7 @@ public:
 	}
 
 	/// Disarm the timer.
-	void cancel () NIRVANA_NOEXCEPT
+	void cancel () noexcept
 	{
 		Port::Timer::cancel ();
 	}
@@ -72,7 +72,7 @@ public:
 	/// Terminate all timers.
 	///
 	/// Called on system shutdown.
-	static void terminate () NIRVANA_NOEXCEPT
+	static void terminate () noexcept
 	{
 		Port::Timer::terminate ();
 	}

@@ -57,7 +57,7 @@ void TC_Struct::byteswap (void* p, size_t count) const
 	}
 }
 
-bool TC_Struct::mark () NIRVANA_NOEXCEPT
+bool TC_Struct::mark () noexcept
 {
 	if (!TC_ComplexBase::mark ())
 		return false;
@@ -67,7 +67,7 @@ bool TC_Struct::mark () NIRVANA_NOEXCEPT
 	return true;
 }
 
-bool TC_Struct::set_recursive (const IDL::String& id, const TC_Ref& ref) NIRVANA_NOEXCEPT
+bool TC_Struct::set_recursive (const IDL::String& id, const TC_Ref& ref) noexcept
 {
 	for (auto& m : members_) {
 		m.type.replace_recursive_placeholder (id, ref);

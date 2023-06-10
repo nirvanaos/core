@@ -73,17 +73,17 @@ public:
 		HEARTBEAT_OUT = 0x0002
 	};
 
-	unsigned flags () const NIRVANA_NOEXCEPT
+	unsigned flags () const noexcept
 	{
 		return flags_;
 	}
 
-	const TimeBase::TimeT& request_latency () const NIRVANA_NOEXCEPT
+	const TimeBase::TimeT& request_latency () const noexcept
 	{
 		return request_latency_;
 	}
 
-	void simple_ping () NIRVANA_NOEXCEPT
+	void simple_ping () noexcept
 	{
 		last_ping_in_time_ = Nirvana::Core::Chrono::steady_clock ();
 	}
@@ -99,7 +99,7 @@ public:
 		rq->success ();
 	}
 
-	bool is_garbage (const TimeBase::TimeT& cur_time) NIRVANA_NOEXCEPT
+	bool is_garbage (const TimeBase::TimeT& cur_time) noexcept
 	{
 		// TODO: Check for connection is alive and make zomby if not.
 		return ref_cnt_.load () == 0;
@@ -270,19 +270,19 @@ public:
 
 	static void confirm_DGC_references (size_t cnt, CORBA::Core::ReferenceRemoteRef* refs);
 
-	void make_zombie () NIRVANA_NOEXCEPT;
+	void make_zombie () noexcept;
 
-	bool zombie () const NIRVANA_NOEXCEPT
+	bool zombie () const noexcept
 	{
 		return zombie_;
 	}
 
-	void _add_ref () NIRVANA_NOEXCEPT
+	void _add_ref () noexcept
 	{
 		ref_cnt_.increment ();
 	}
 
-	void _remove_ref () NIRVANA_NOEXCEPT
+	void _remove_ref () noexcept
 	{
 		ref_cnt_.decrement ();
 	}
@@ -329,7 +329,7 @@ private:
 	}
 
 	void schedule_del () noexcept;
-	void send_del () NIRVANA_NOEXCEPT;
+	void send_del () noexcept;
 	void append_del (DGC_Request& rq);
 	void erase_remote_key (DGC_RefKey& key) noexcept;
 

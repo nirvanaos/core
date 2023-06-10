@@ -38,7 +38,7 @@ class RefCntProxy : public Nirvana::Core::AtomicCounter <true>
 	typedef Nirvana::Core::AtomicCounter <true> Base;
 
 public:
-	RefCntProxy (IntegralType init) NIRVANA_NOEXCEPT :
+	RefCntProxy (IntegralType init) noexcept :
 		Base (init)
 	{}
 

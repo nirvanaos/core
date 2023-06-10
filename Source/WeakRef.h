@@ -52,12 +52,12 @@ private:
 		T (std::forward <Args> (args)...)
 	{}
 
-	void _add_ref () NIRVANA_NOEXCEPT
+	void _add_ref () noexcept
 	{
 		control_block_.ref_cnt.increment ();
 	}
 
-	void _remove_ref () NIRVANA_NOEXCEPT
+	void _remove_ref () noexcept
 	{
 		if (!control_block_.ref_cnt.decrement ()) {
 			if (0 == control_block_.ref_cnt_weak.load ())
@@ -73,12 +73,12 @@ private:
 
 	friend class WeakRef <T>;
 
-	void _add_ref_weak () NIRVANA_NOEXCEPT
+	void _add_ref_weak () noexcept
 	{
 		control_block_.ref_cnt_weak.increment ();
 	}
 
-	void _remove_ref_weak () NIRVANA_NOEXCEPT
+	void _remove_ref_weak () noexcept
 	{
 		if (!control_block_.ref_cnt_weak.decrement_seq ()) {
 			if (0 == control_block_.ref_cnt.load ())
@@ -86,7 +86,7 @@ private:
 		}
 	}
 
-	Ref <ImplShared <T> > _get_ref () NIRVANA_NOEXCEPT
+	Ref <ImplShared <T> > _get_ref () noexcept
 	{
 		Ref <ImplShared <T> > ret;
 		if (0 != control_block_.ref_cnt.load ())
@@ -138,7 +138,7 @@ template <class T>
 class WeakRef
 {
 public:
-	WeakRef () NIRVANA_NOEXCEPT :
+	WeakRef () noexcept :
 		control_block_ (nullptr)
 	{}
 
@@ -155,20 +155,20 @@ public:
 			p->_add_ref_weak ();
 	}
 
-	WeakRef (const WeakRef& src) NIRVANA_NOEXCEPT :
+	WeakRef (const WeakRef& src) noexcept :
 		control_block_ (src.control_block_)
 	{
 		if (control_block_)
 			control_block_->_add_ref_weak ();
 	}
 
-	WeakRef (WeakRef&& src) NIRVANA_NOEXCEPT :
+	WeakRef (WeakRef&& src) noexcept :
 		control_block_ (src.control_block_)
 	{
 		src.control_block_ = nullptr;
 	}
 
-	WeakRef& operator = (const WeakRef& src) NIRVANA_NOEXCEPT
+	WeakRef& operator = (const WeakRef& src) noexcept
 	{
 		if (control_block_ != src.control_block_) {
 			if (control_block_)
@@ -179,7 +179,7 @@ public:
 		return *this;
 	}
 
-	WeakRef& operator = (WeakRef&& src) NIRVANA_NOEXCEPT
+	WeakRef& operator = (WeakRef&& src) noexcept
 	{
 		if (control_block_)
 			control_block_->_remove_ref_weak ();
@@ -189,7 +189,7 @@ public:
 	}
 
 	/// Get strong reference to object.
-	SharedRef <T> lock () const NIRVANA_NOEXCEPT
+	SharedRef <T> lock () const noexcept
 	{
 		if (control_block_)
 			return control_block_->_get_ref ();
@@ -198,7 +198,7 @@ public:
 	}
 
 	/// Releases the reference to the managed object. After the call `*this` manages no object.
-	void reset () NIRVANA_NOEXCEPT
+	void reset () noexcept
 	{
 		if (control_block_) {
 			control_block_->_remove_ref_weak ();
@@ -206,12 +206,12 @@ public:
 		}
 	}
 
-	bool operator ! () const NIRVANA_NOEXCEPT
+	bool operator ! () const noexcept
 	{
 		return !control_block_;
 	}
 
-	operator bool () const NIRVANA_NOEXCEPT
+	operator bool () const noexcept
 	{
 		return control_block_ != nullptr;
 	}

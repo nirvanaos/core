@@ -28,7 +28,7 @@
 namespace CORBA {
 namespace Core {
 
-bool TC_ValueBox::mark () NIRVANA_NOEXCEPT
+bool TC_ValueBox::mark () noexcept
 {
 	if (!TC_ValueBase::mark ())
 		return false;
@@ -36,7 +36,7 @@ bool TC_ValueBox::mark () NIRVANA_NOEXCEPT
 	return true;
 }
 
-bool TC_ValueBox::set_recursive (const IDL::String& id, const TC_Ref& ref) NIRVANA_NOEXCEPT
+bool TC_ValueBox::set_recursive (const IDL::String& id, const TC_Ref& ref) noexcept
 {
 	content_type_.replace_recursive_placeholder (id, ref);
 	return false;

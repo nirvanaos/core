@@ -47,7 +47,7 @@ struct IP
 		host (h)
 	{}
 
-	bool operator < (const IP& rhs) const NIRVANA_NOEXCEPT
+	bool operator < (const IP& rhs) const noexcept
 	{
 		if (host < rhs.host)
 			return true;
@@ -92,7 +92,7 @@ struct DomainAddress
 		address (client)
 	{}
 
-	bool operator < (const DomainAddress& rhs) const NIRVANA_NOEXCEPT
+	bool operator < (const DomainAddress& rhs) const noexcept
 	{
 		if (family < rhs.family)
 			return true;

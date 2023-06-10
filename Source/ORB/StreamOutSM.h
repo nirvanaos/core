@@ -52,13 +52,13 @@ public:
 
 	void store_stream (SharedMemPtr& where);
 
-	void detach () NIRVANA_NOEXCEPT
+	void detach () noexcept
 	{
 		blocks_.clear ();
 		other_allocated_.clear ();
 	}
 
-	OtherDomain& other_domain () const NIRVANA_NOEXCEPT
+	OtherDomain& other_domain () const noexcept
 	{
 		return *other_domain_;
 	}
@@ -78,7 +78,7 @@ protected:
 		clear ();
 	}
 
-	void clear (size_t leave_header = 0) NIRVANA_NOEXCEPT;
+	void clear (size_t leave_header = 0) noexcept;
 
 private:
 	struct Block
@@ -114,7 +114,7 @@ private:
 
 	void purge ();
 
-	size_t stream_hdr_size () const NIRVANA_NOEXCEPT;
+	size_t stream_hdr_size () const noexcept;
 
 private:
 	CORBA::servant_reference <DomainProt> other_domain_;

@@ -38,17 +38,17 @@ class PortableExecutable : public COFF
 public:
 	PortableExecutable (const void* base_address);
 
-	const void* base_address () const NIRVANA_NOEXCEPT
+	const void* base_address () const noexcept
 	{
 		return base_address_;
 	}
 
-	const void* section_address (const COFF::Section& s) const NIRVANA_NOEXCEPT
+	const void* section_address (const COFF::Section& s) const noexcept
 	{
 		return (const uint8_t*)base_address_ + s.VirtualAddress;
 	}
 
-	bool find_OLF_section (Core::Section& section) const NIRVANA_NOEXCEPT;
+	bool find_OLF_section (Core::Section& section) const noexcept;
 
 private:
 	static const void* get_COFF (const void* base_address);

@@ -132,7 +132,7 @@ private:
 		// Dirty base blocks
 		uint8_t dirty_begin, dirty_end;
 
-		CacheEntry (void* buf) NIRVANA_NOEXCEPT :
+		CacheEntry (void* buf) noexcept :
 			last_write_time (0),
 			last_read_time (0),
 			buffer (buf),
@@ -142,7 +142,7 @@ private:
 			dirty_end (0)
 		{}
 
-		bool dirty () const NIRVANA_NOEXCEPT
+		bool dirty () const noexcept
 		{
 			return dirty_begin | dirty_end;
 		}
@@ -187,13 +187,13 @@ private:
 		Cache::iterator first_block_;
 	};
 
-	void issue_request (Request& request) NIRVANA_NOEXCEPT
+	void issue_request (Request& request) noexcept
 	{
 		request.prepare_to_issue ();
 		Base::issue_request (request);
 	}
 
-	void complete_request (Ref <Request> request) NIRVANA_NOEXCEPT;
+	void complete_request (Ref <Request> request) noexcept;
 	void complete_request (Cache::reference entry, int op = 0);
 
 	Cache::iterator release_cache (Cache::iterator it, SteadyTime time);
@@ -203,15 +203,15 @@ private:
 	CacheRange request_read (BlockIdx begin, BlockIdx end);
 
 	void set_dirty (Cache::reference entry, const SteadyTime& time,
-		size_t offset, size_t size) NIRVANA_NOEXCEPT
+		size_t offset, size_t size) noexcept
 	{
 		entry.second.last_write_time = time;
 		set_dirty (entry, offset, size);
 	}
 
-	void set_dirty (Cache::reference entry, size_t offset, size_t size) NIRVANA_NOEXCEPT;
+	void set_dirty (Cache::reference entry, size_t offset, size_t size) noexcept;
 
-	void clear_dirty (Cache::reference entry) NIRVANA_NOEXCEPT {
+	void clear_dirty (Cache::reference entry) noexcept {
 		if (entry.second.dirty ()) {
 			assert (dirty_blocks_);
 			entry.second.dirty_begin = entry.second.dirty_end = 0;
@@ -221,18 +221,18 @@ private:
 
 	void write_dirty_blocks (SteadyTime timeout);
 
-	static void lock (Cache::reference entry) NIRVANA_NOEXCEPT {
+	static void lock (Cache::reference entry) noexcept {
 		++(entry.second.lock_cnt);
 	}
 
-	static void unlock (Cache::reference entry) NIRVANA_NOEXCEPT {
+	static void unlock (Cache::reference entry) noexcept {
 		assert (entry.second.lock_cnt);
 		--(entry.second.lock_cnt);
 	}
 
 	void set_size (Pos new_size);
 
-	void complete_size_request () NIRVANA_NOEXCEPT;
+	void complete_size_request () noexcept;
 
 private:
 	Pos file_size_;

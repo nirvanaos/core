@@ -54,7 +54,7 @@ public:
 	bool cleanup ();
 
 	/* Unused. Kept just for case.
-	HeapUser& operator = (HeapUser&& other) NIRVANA_NOEXCEPT
+	HeapUser& operator = (HeapUser&& other) noexcept
 	{
 		cleanup ();
 		allocation_unit_ = other.allocation_unit_;
@@ -66,7 +66,7 @@ public:
 	*/
 };
 
-inline bool Heap::initialize () NIRVANA_NOEXCEPT
+inline bool Heap::initialize () noexcept
 {
 	if (!Port::Memory::initialize ())
 		return false;
@@ -76,7 +76,7 @@ inline bool Heap::initialize () NIRVANA_NOEXCEPT
 	return true;
 }
 
-inline void Heap::terminate () NIRVANA_NOEXCEPT
+inline void Heap::terminate () noexcept
 {
 	if (sizeof (void*) > 2)
 		shared_heap_.destruct ();
@@ -84,12 +84,12 @@ inline void Heap::terminate () NIRVANA_NOEXCEPT
 	Port::Memory::terminate ();
 }
 
-inline Heap& Heap::core_heap () NIRVANA_NOEXCEPT
+inline Heap& Heap::core_heap () noexcept
 {
 	return core_heap_;
 }
 
-inline Heap& Heap::shared_heap () NIRVANA_NOEXCEPT
+inline Heap& Heap::shared_heap () noexcept
 {
 	if (sizeof (void*) > 2)
 		return shared_heap_;

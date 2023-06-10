@@ -60,12 +60,12 @@ public:
 
 	explicit operator IOP::ObjectKey () const;
 
-	const AdapterPath& adapter_path () const NIRVANA_NOEXCEPT
+	const AdapterPath& adapter_path () const noexcept
 	{
 		return adapter_path_;
 	}
 
-	const ObjectId& object_id () const NIRVANA_NOEXCEPT
+	const ObjectId& object_id () const noexcept
 	{
 		return object_id_;
 	}

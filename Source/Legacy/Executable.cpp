@@ -42,7 +42,7 @@ Executable::~Executable ()
 		Nirvana::Core::Binder::unbind (*this);
 }
 
-void Executable::unbind () NIRVANA_NOEXCEPT
+void Executable::unbind () noexcept
 {
 	if (bound_) {
 		bound_ = false;
@@ -50,7 +50,7 @@ void Executable::unbind () NIRVANA_NOEXCEPT
 	}
 }
 
-Nirvana::Core::Module* Executable::module () NIRVANA_NOEXCEPT
+Nirvana::Core::Module* Executable::module () noexcept
 {
 	return nullptr;
 }

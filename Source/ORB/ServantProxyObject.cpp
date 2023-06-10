@@ -33,7 +33,7 @@ using namespace PortableServer::Core;
 namespace CORBA {
 namespace Core {
 
-Object::_ptr_type servant2object (PortableServer::Servant servant) NIRVANA_NOEXCEPT
+Object::_ptr_type servant2object (PortableServer::Servant servant) noexcept
 {
 	if (servant) {
 		PortableServer::Servant ps = servant->_core_servant ();
@@ -110,7 +110,7 @@ Boolean ServantProxyObject::non_existent ()
 	return servant ()->_non_existent ();
 }
 
-ReferenceLocalRef ServantProxyObject::get_local_reference () const NIRVANA_NOEXCEPT
+ReferenceLocalRef ServantProxyObject::get_local_reference () const noexcept
 {
 	ReferenceLocalRef ref (reference_.lock ());
 	reference_.unlock ();

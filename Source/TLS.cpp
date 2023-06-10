@@ -37,7 +37,7 @@ TLS::TLS ()
 TLS::~TLS ()
 {}
 
-void TLS::clear () NIRVANA_NOEXCEPT
+void TLS::clear () noexcept
 {
 	Entries tmp (std::move (entries_));
 }
@@ -82,7 +82,7 @@ void TLS::set (unsigned idx, void* p)
 	entries_ [idx] = p;
 }
 
-void* TLS::get (unsigned idx) NIRVANA_NOEXCEPT
+void* TLS::get (unsigned idx) noexcept
 {
 	if (entries_.size () <= idx)
 		return nullptr;

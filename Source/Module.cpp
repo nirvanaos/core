@@ -38,7 +38,7 @@ Module::Module (const StringView& name, bool singleton) :
 	entry_point_ (nullptr)
 {}
 
-void Module::_remove_ref () NIRVANA_NOEXCEPT
+void Module::_remove_ref () noexcept
 {
 	if (ref_cnt_.decrement_seq () == initial_ref_cnt_) {
 		if (ref_cnt_.increment_seq () == initial_ref_cnt_ + 1) {
@@ -57,7 +57,7 @@ void Module::initialize (ModuleInit::_ptr_type entry_point, AtomicCounter <false
 	}
 }
 
-void Module::terminate () NIRVANA_NOEXCEPT
+void Module::terminate () noexcept
 {
 	if (entry_point_) {
 		ExecDomain& ed = ExecDomain::current ();

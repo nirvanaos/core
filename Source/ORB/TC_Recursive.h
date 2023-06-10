@@ -47,7 +47,7 @@ public:
 		ref_cnt_ (1)
 	{}
 
-	virtual bool set_recursive (const IDL::String& id, const TC_Ref& ref) NIRVANA_NOEXCEPT override
+	virtual bool set_recursive (const IDL::String& id, const TC_Ref& ref) noexcept override
 	{
 		if (id_ == id) {
 			content_ = ref;
@@ -56,12 +56,12 @@ public:
 		return false;
 	}
 
-	virtual bool has_extern_ref () const NIRVANA_NOEXCEPT override
+	virtual bool has_extern_ref () const noexcept override
 	{
 		return ref_cnt_.load () != 0;
 	}
 
-	virtual bool mark () NIRVANA_NOEXCEPT override
+	virtual bool mark () noexcept override
 	{
 		if (!TC_ComplexBase::mark ())
 			return false;
@@ -219,12 +219,12 @@ public:
 		content ()->n_byteswap (p, count);
 	}
 
-	void _add_ref () NIRVANA_NOEXCEPT
+	void _add_ref () noexcept
 	{
 		ref_cnt_.increment ();
 	}
 
-	void _remove_ref () NIRVANA_NOEXCEPT
+	void _remove_ref () noexcept
 	{
 		ref_cnt_.decrement ();
 	}

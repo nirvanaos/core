@@ -40,27 +40,27 @@ public:
 	typedef llvm::COFF::header Header;
 	typedef llvm::COFF::PE32Header PE32Header;
 
-	COFF (const void* addr) NIRVANA_NOEXCEPT :
+	COFF (const void* addr) noexcept :
 		hdr_ ((const Header*)addr)
 	{}
 
-	const Header* header () const NIRVANA_NOEXCEPT
+	const Header* header () const noexcept
 	{
 		return hdr_;
 	}
 
-	const PE32Header* pe32_header () const NIRVANA_NOEXCEPT;
+	const PE32Header* pe32_header () const noexcept;
 
-	const Section* find_section (const char* name) const NIRVANA_NOEXCEPT;
+	const Section* find_section (const char* name) const noexcept;
 
-	const Section* sections () const NIRVANA_NOEXCEPT;
+	const Section* sections () const noexcept;
 
-	uint32_t section_count () const NIRVANA_NOEXCEPT
+	uint32_t section_count () const noexcept
 	{
 		return hdr_->NumberOfSections;
 	}
 
-	static bool is_section (const Section& s, const char* name) NIRVANA_NOEXCEPT;
+	static bool is_section (const Section& s, const char* name) noexcept;
 
 private:
 	const Header* hdr_;

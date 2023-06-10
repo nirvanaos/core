@@ -47,13 +47,13 @@ struct ComponentPred
 	}
 };
 
-void sort (IOP::TaggedComponentSeq& seq) NIRVANA_NOEXCEPT
+void sort (IOP::TaggedComponentSeq& seq) noexcept
 {
 	std::sort (seq.begin (), seq.end (), ComponentPred ());
 }
 
 const IOP::TaggedComponent* binary_search (
-	const IOP::TaggedComponentSeq& seq, IOP::ComponentId id) NIRVANA_NOEXCEPT
+	const IOP::TaggedComponentSeq& seq, IOP::ComponentId id) noexcept
 {
 	IOP::TaggedComponentSeq::const_iterator it = std::lower_bound (seq.begin (), seq.end (),
 		id, ComponentPred ());

@@ -46,7 +46,7 @@ public:
 
 	// ServantBase default implementation
 
-	Servant _core_servant () NIRVANA_NOEXCEPT
+	Servant _core_servant () noexcept
 	{
 		return &static_cast <PortableServer::ServantBase&> (
 			static_cast <CORBA::Internal::Bridge <PortableServer::ServantBase>&> (*this));

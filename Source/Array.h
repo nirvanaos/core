@@ -40,13 +40,13 @@ template <class T, template <class> class Al>
 class Array : private Al <T>
 {
 public:
-	Array (const Al <T>& al = Al <T> ()) NIRVANA_NOEXCEPT :
+	Array (const Al <T>& al = Al <T> ()) noexcept :
 		Al <T> (al),
 		begin_ (nullptr),
 		end_ (nullptr)
 	{}
 
-	Array (Al <T>&& al) NIRVANA_NOEXCEPT :
+	Array (Al <T>&& al) noexcept :
 		Al <T> (std::move (al)),
 		begin_ (nullptr),
 		end_ (nullptr)
@@ -68,7 +68,7 @@ public:
 		copy (src);
 	}
 
-	Array (Array&& src) NIRVANA_NOEXCEPT :
+	Array (Array&& src) noexcept :
 		Al <T> (src), // don't move
 		begin_ (src.begin_),
 		end_ (src.end_)
@@ -197,7 +197,7 @@ public:
 		return begin_ [i];
 	}
 
-	void swap (Array& rhs) NIRVANA_NOEXCEPT
+	void swap (Array& rhs) noexcept
 	{
 		T* tmp = rhs.begin_;
 		rhs.begin_ = begin_;
@@ -207,12 +207,12 @@ public:
 		end_ = tmp;
 	}
 
-	const Al <T>& get_allocator () const NIRVANA_NOEXCEPT
+	const Al <T>& get_allocator () const noexcept
 	{
 		return static_cast <const Al <T>&> (*this);
 	}
 
-	bool operator == (const Array& rhs) const NIRVANA_NOEXCEPT
+	bool operator == (const Array& rhs) const noexcept
 	{
 		return size () == rhs.size () && std::equal (begin_, end_, rhs.begin_);
 	}
@@ -231,7 +231,7 @@ namespace std {
 template <template <class> class Al>
 struct hash <Nirvana::Core::Array <uint8_t, Al> >
 {
-	size_t operator () (const Nirvana::Core::Array <uint8_t, Al>& ar) const NIRVANA_NOEXCEPT
+	size_t operator () (const Nirvana::Core::Array <uint8_t, Al>& ar) const noexcept
 	{
 		return Nirvana::Hash::hash_bytes (ar.begin (), ar.size ());
 	}

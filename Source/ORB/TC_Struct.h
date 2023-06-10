@@ -85,7 +85,7 @@ public:
 		return ORB::tc_equivalent (Impl::_get_ptr (), other);
 	}
 
-	ULong member_count () const NIRVANA_NOEXCEPT
+	ULong member_count () const noexcept
 	{
 		return (ULong)members_.size ();
 	}
@@ -109,17 +109,17 @@ public:
 		return ORB::get_compact_typecode (_get_ptr ());
 	}
 
-	size_t n_size () const NIRVANA_NOEXCEPT
+	size_t n_size () const noexcept
 	{
 		return size_;
 	}
 
-	size_t n_align () const NIRVANA_NOEXCEPT
+	size_t n_align () const noexcept
 	{
 		return align_;
 	}
 
-	bool n_is_CDR () const NIRVANA_NOEXCEPT
+	bool n_is_CDR () const noexcept
 	{
 		return is_CDR_;
 	}
@@ -216,8 +216,8 @@ public:
 	}
 
 protected:
-	virtual bool mark () NIRVANA_NOEXCEPT override;
-	virtual bool set_recursive (const IDL::String& id, const TC_Ref& ref) NIRVANA_NOEXCEPT override;
+	virtual bool mark () noexcept override;
+	virtual bool set_recursive (const IDL::String& id, const TC_Ref& ref) noexcept override;
 
 private:
 	void byteswap (void* p, size_t count) const;

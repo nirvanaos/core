@@ -29,7 +29,7 @@
 
 namespace std {
 
-size_t hash <IIOP::ListenPoint>::operator () (const IIOP::ListenPoint& lp) const NIRVANA_NOEXCEPT
+size_t hash <IIOP::ListenPoint>::operator () (const IIOP::ListenPoint& lp) const noexcept
 {
 	size_t h = Nirvana::Hash::hash_bytes (lp.host ().data (), lp.host ().size ());
 	CORBA::UShort port = lp.port ();

@@ -39,31 +39,31 @@ class Chrono : private Port::Chrono
 {
 public:
 	/// Current system time.
-	static TimeBase::UtcT system_clock () NIRVANA_NOEXCEPT
+	static TimeBase::UtcT system_clock () noexcept
 	{
 		return Port::Chrono::system_clock ();
 	}
 
 	/// Current UTC time.
-	static TimeBase::UtcT UTC () NIRVANA_NOEXCEPT
+	static TimeBase::UtcT UTC () noexcept
 	{
 		return Port::Chrono::UTC ();
 	}
 
 	/// Duration since system startup in 100 ns intervals.
-	static SteadyTime steady_clock () NIRVANA_NOEXCEPT
+	static SteadyTime steady_clock () noexcept
 	{
 		return Port::Chrono::steady_clock ();
 	}
 
 	/// Duration since system startup as DeadlineTime.
-	static DeadlineTime deadline_clock () NIRVANA_NOEXCEPT
+	static DeadlineTime deadline_clock () noexcept
 	{
 		return Port::Chrono::deadline_clock ();
 	}
 
 	/// Deadline clock frequency, Hz.
-	static const DeadlineTime& deadline_clock_frequency () NIRVANA_NOEXCEPT
+	static const DeadlineTime& deadline_clock_frequency () noexcept
 	{
 		return Port::Chrono::deadline_clock_frequency ();
 	}
@@ -72,7 +72,7 @@ public:
 	/// 
 	/// \param utc UTC time.
 	/// \returns Local deadline time.
-	static DeadlineTime deadline_from_UTC (const TimeBase::UtcT& utc) NIRVANA_NOEXCEPT
+	static DeadlineTime deadline_from_UTC (const TimeBase::UtcT& utc) noexcept
 	{
 		return Port::Chrono::deadline_from_UTC (utc);
 	}
@@ -81,7 +81,7 @@ public:
 	/// 
 	/// \param deadline Local deadline time.
 	/// \returns UTC time.
-	static TimeBase::UtcT deadline_to_UTC (DeadlineTime deadline) NIRVANA_NOEXCEPT
+	static TimeBase::UtcT deadline_to_UTC (DeadlineTime deadline) noexcept
 	{
 		return Port::Chrono::deadline_to_UTC (deadline);
 	}
@@ -93,7 +93,7 @@ public:
 	///
 	/// \param timeout A timeout from the current time.
 	/// \return Deadline time as local deadline clock value.
-	static DeadlineTime make_deadline (TimeBase::TimeT timeout) NIRVANA_NOEXCEPT
+	static DeadlineTime make_deadline (TimeBase::TimeT timeout) noexcept
 	{
 		return Port::Chrono::make_deadline (timeout);
 	}
@@ -102,7 +102,7 @@ public:
 	/// 
 	/// \param priority See IOP::RTCorbaPriority service context.
 	/// \return Deadline time as local deadline clock value.
-	static DeadlineTime deadline_from_priority (int16_t priority) NIRVANA_NOEXCEPT
+	static DeadlineTime deadline_from_priority (int16_t priority) noexcept
 	{
 		assert (priority >= 0);
 		return deadline_clock () + deadline_clock_frequency () * ((int32_t)std::numeric_limits <int16_t>::max () - (int32_t)priority + 1) / TimeBase::MILLISECOND;
@@ -112,7 +112,7 @@ public:
 	/// 
 	/// \param deadline The request deadline.
 	/// \return CORBA RT priority. See IOP::RTCorbaPriority service context.
-	static int16_t deadline_to_priority (DeadlineTime deadline) NIRVANA_NOEXCEPT
+	static int16_t deadline_to_priority (DeadlineTime deadline) noexcept
 	{
 		int64_t rem = deadline - deadline_clock ();
 		if (rem < 0)

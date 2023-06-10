@@ -29,7 +29,7 @@
 namespace Nirvana {
 namespace Core {
 
-void Runnable::on_crash (const siginfo& signal) NIRVANA_NOEXCEPT
+void Runnable::on_crash (const siginfo& signal) noexcept
 {
 	unrecoverable_error (signal.si_signo);
 }

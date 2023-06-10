@@ -45,7 +45,7 @@ public:
 	virtual bool chunk_end () override;
 	virtual Long chunk_size () const override;
 
-	OctetSeq& data () NIRVANA_NOEXCEPT
+	OctetSeq& data () noexcept
 	{
 		return buffer_;
 	}

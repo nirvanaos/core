@@ -38,7 +38,7 @@
 /// in one system domain.
 namespace ESIOP {
 
-inline bool is_system_domain () NIRVANA_NOEXCEPT
+inline bool is_system_domain () noexcept
 {
 	if (Nirvana::Core::SINGLE_DOMAIN)
 		return true;
@@ -73,13 +73,13 @@ struct MessageHeader
 
 	static const uint8_t FLAG_LITTLE_ENDIAN = 0x80;
 
-	MessageHeader (uint8_t type, uint8_t flags = 0) NIRVANA_NOEXCEPT :
+	MessageHeader (uint8_t type, uint8_t flags = 0) noexcept :
 		message_type (type),
 		flags ((PLATFORMS_ENDIAN_DIFFERENT && Nirvana::endian::native == Nirvana::endian::little ?
 			FLAG_LITTLE_ENDIAN : 0) | flags)
 	{}
 
-	bool other_endian () const NIRVANA_NOEXCEPT
+	bool other_endian () const noexcept
 	{
 		if (PLATFORMS_ENDIAN_DIFFERENT)
 			return (flags & FLAG_LITTLE_ENDIAN) ? Nirvana::endian::native != Nirvana::endian::little
@@ -105,7 +105,7 @@ struct Request : MessageHeader
 
 	Request (ProtDomainId client, StreamOutSM& stream, uint32_t rq_id);
 
-	static Request& receive (MessageHeader& hdr) NIRVANA_NOEXCEPT
+	static Request& receive (MessageHeader& hdr) noexcept
 	{
 		assert (hdr.message_type == MessageType::REQUEST);
 		Request& msg = static_cast <Request&> (hdr);
@@ -128,7 +128,7 @@ struct Reply : MessageHeader
 
 	Reply (StreamOutSM& stream, uint32_t rq_id);
 
-	static Reply& receive (MessageHeader& hdr) NIRVANA_NOEXCEPT
+	static Reply& receive (MessageHeader& hdr) noexcept
 	{
 		assert (hdr.message_type == MessageType::REPLY);
 		Reply& msg = static_cast <Reply&> (hdr);
@@ -153,7 +153,7 @@ struct ReplySystemException : MessageHeader
 	/// The request id
 	uint32_t request_id;
 
-	ReplySystemException (uint32_t rq_id, const CORBA::SystemException& ex) NIRVANA_NOEXCEPT :
+	ReplySystemException (uint32_t rq_id, const CORBA::SystemException& ex) noexcept :
 		MessageHeader (REPLY_SYSTEM_EXCEPTION),
 		completed ((uint8_t)ex.completed ()),
 		code ((int16_t)ex.__code ()),
@@ -161,7 +161,7 @@ struct ReplySystemException : MessageHeader
 		request_id (rq_id)
 	{}
 
-	ReplySystemException (uint32_t rq_id, CORBA::SystemException::Code code) NIRVANA_NOEXCEPT :
+	ReplySystemException (uint32_t rq_id, CORBA::SystemException::Code code) noexcept :
 		MessageHeader (REPLY_SYSTEM_EXCEPTION),
 		completed ((uint8_t)CORBA::CompletionStatus::COMPLETED_MAYBE),
 		code ((int16_t)code),
@@ -169,7 +169,7 @@ struct ReplySystemException : MessageHeader
 		request_id (rq_id)
 	{}
 
-	static ReplySystemException& receive (MessageHeader& hdr) NIRVANA_NOEXCEPT
+	static ReplySystemException& receive (MessageHeader& hdr) noexcept
 	{
 		assert (hdr.message_type == MessageType::REPLY_SYSTEM_EXCEPTION);
 		ReplySystemException& msg = static_cast <ReplySystemException&> (hdr);
@@ -191,13 +191,13 @@ struct CancelRequest : MessageHeader
 	/// The request id
 	uint32_t request_id;
 
-	CancelRequest (ProtDomainId sender, uint32_t rq_id) NIRVANA_NOEXCEPT :
+	CancelRequest (ProtDomainId sender, uint32_t rq_id) noexcept :
 		MessageHeader (CANCEL_REQUEST),
 		client_domain (sender),
 		request_id (rq_id)
 	{}
 
-	static CancelRequest& receive (MessageHeader& hdr) NIRVANA_NOEXCEPT
+	static CancelRequest& receive (MessageHeader& hdr) noexcept
 	{
 		assert (hdr.message_type == MessageType::CANCEL_REQUEST);
 		CancelRequest& msg = static_cast <CancelRequest&> (hdr);
@@ -215,13 +215,13 @@ struct CloseConnection : MessageHeader
 	/// Sender protection domain id.
 	ProtDomainId sender_domain;
 
-	CloseConnection (ProtDomainId sender) NIRVANA_NOEXCEPT :
+	CloseConnection (ProtDomainId sender) noexcept :
 	MessageHeader (CLOSE_CONNECTION),
 		sender_domain (sender)
 	{
 	}
 
-	static CloseConnection& receive (MessageHeader& hdr) NIRVANA_NOEXCEPT
+	static CloseConnection& receive (MessageHeader& hdr) noexcept
 	{
 		assert (hdr.message_type == MessageType::CLOSE_CONNECTION);
 		CloseConnection& msg = static_cast <CloseConnection&> (hdr);
@@ -250,7 +250,7 @@ struct ReplyImmediate : MessageHeader
 	uint8_t data [MAX_DATA_SIZE];
 	uint32_t request_id;
 
-	ReplyImmediate (uint32_t rq_id, const void* p, size_t size) NIRVANA_NOEXCEPT :
+	ReplyImmediate (uint32_t rq_id, const void* p, size_t size) noexcept :
 		MessageHeader (REPLY_IMMEDIATE, (uint8_t)size),
 		request_id (rq_id)
 	{
@@ -258,7 +258,7 @@ struct ReplyImmediate : MessageHeader
 		std::copy ((const uint8_t*)p, (const uint8_t*)p + size, data);
 	}
 
-	static ReplyImmediate& receive (MessageHeader& hdr) NIRVANA_NOEXCEPT
+	static ReplyImmediate& receive (MessageHeader& hdr) noexcept
 	{
 		assert (hdr.message_type == MessageType::REPLY_IMMEDIATE);
 		ReplyImmediate& msg = static_cast <ReplyImmediate&> (hdr);
@@ -273,11 +273,11 @@ static_assert (sizeof (MessageBuffer) == sizeof (ReplyImmediate), "sizeof (Messa
 
 struct Shutdown : MessageHeader
 {
-	Shutdown () NIRVANA_NOEXCEPT :
+	Shutdown () noexcept :
 	MessageHeader (SHUTDOWN)
 	{}
 
-	static Shutdown& receive (MessageHeader& hdr) NIRVANA_NOEXCEPT
+	static Shutdown& receive (MessageHeader& hdr) noexcept
 	{
 		assert (hdr.message_type == MessageType::SHUTDOWN);
 		Shutdown& msg = static_cast <Shutdown&> (hdr);

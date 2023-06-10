@@ -40,7 +40,7 @@ class Binary :
 	public Port::Module
 {
 public:
-	const void* base_address () const NIRVANA_NOEXCEPT
+	const void* base_address () const noexcept
 	{
 		return Port::Module::address ();
 	}

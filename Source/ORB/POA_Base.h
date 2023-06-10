@@ -121,7 +121,7 @@ struct POA_Policies
 			throw POA::InvalidPolicy ((CORBA::UShort)DGC_policy_idx);
 	}
 
-	bool operator < (const POA_Policies& rhs) const NIRVANA_NOEXCEPT
+	bool operator < (const POA_Policies& rhs) const noexcept
 	{
 		typedef CORBA::Internal::ABI_enum Int;
 		return std::lexicographical_compare (
@@ -139,13 +139,13 @@ struct POA_FactoryEntry
 };
 
 inline
-bool operator < (const POA_FactoryEntry& l, const POA_Policies& r) NIRVANA_NOEXCEPT
+bool operator < (const POA_FactoryEntry& l, const POA_Policies& r) noexcept
 {
 	return l.policies < r;
 }
 
 inline
-bool operator < (const POA_Policies& l, const POA_FactoryEntry& r) NIRVANA_NOEXCEPT
+bool operator < (const POA_Policies& l, const POA_FactoryEntry& r) noexcept
 {
 	return l < r.policies;
 }
@@ -196,22 +196,22 @@ public:
 			destroy_completed_.wait ();
 	}
 
-	void destroy (bool etherealize_objects) NIRVANA_NOEXCEPT
+	void destroy (bool etherealize_objects) noexcept
 	{
 		destroy_internal (etherealize_objects);
 		if (!request_cnt_)
 			destroy_completed_.signal ();
 	}
 
-	bool is_destroyed () const NIRVANA_NOEXCEPT
+	bool is_destroyed () const noexcept
 	{
 		return destroyed_;
 	}
 
-	virtual void destroy_internal (bool etherealize_objects) NIRVANA_NOEXCEPT;
-	virtual void etherealize_objects () NIRVANA_NOEXCEPT {}
+	virtual void destroy_internal (bool etherealize_objects) noexcept;
+	virtual void etherealize_objects () noexcept {}
 	virtual void etherialize (const ObjectId& oid, CORBA::Core::ServantProxyObject& proxy,
-		bool cleanup_in_progress) NIRVANA_NOEXCEPT {};
+		bool cleanup_in_progress) noexcept {};
 
 	// Factories for Policy objects
 
@@ -259,7 +259,7 @@ public:
 		return name;
 	}
 
-	POA::_ref_type the_parent () const NIRVANA_NOEXCEPT
+	POA::_ref_type the_parent () const noexcept
 	{
 		if (parent_)
 			return parent_->_this ();
@@ -348,7 +348,7 @@ public:
 
 	inline static void implicit_activate (POA::_ptr_type adapter, CORBA::Core::ServantProxyObject& proxy);
 	virtual void implicit_deactivate (CORBA::Core::ReferenceLocal& ref,
-		CORBA::Core::ServantProxyObject& proxy) NIRVANA_NOEXCEPT;
+		CORBA::Core::ServantProxyObject& proxy) noexcept;
 
 	// Reference creation operations
 	virtual CORBA::Object::_ref_type create_reference (const CORBA::RepositoryId& intf);
@@ -406,9 +406,9 @@ public:
 	virtual CORBA::OctetSeq id () const = 0;
 
 	inline
-	static PortableServer::POAManagerFactory::_ref_type the_POAManagerFactory () NIRVANA_NOEXCEPT;
+	static PortableServer::POAManagerFactory::_ref_type the_POAManagerFactory () noexcept;
 
-	static bool implicit_activation (POA::_ptr_type poa) NIRVANA_NOEXCEPT
+	static bool implicit_activation (POA::_ptr_type poa) noexcept
 	{
 		if (poa) {
 			const POA_Base* impl = get_implementation (CORBA::Core::local2proxy (poa));
@@ -455,7 +455,7 @@ public:
 	virtual void check_object_id (const ObjectId& oid);
 	void get_path (AdapterPath& path, size_t size = 0) const;
 
-	static POA_Root* root () NIRVANA_NOEXCEPT
+	static POA_Root* root () noexcept
 	{
 		assert (root_);
 		return root_;
@@ -466,17 +466,17 @@ public:
 		return CORBA::Core::Services::bind (CORBA::Core::Services::RootPOA);
 	}
 
-	bool check_path (const AdapterPath& path) const NIRVANA_NOEXCEPT
+	bool check_path (const AdapterPath& path) const noexcept
 	{
 		return check_path (path, path.end ());
 	}
 
-	virtual CORBA::Core::PolicyMapShared* get_policies (unsigned flags) const NIRVANA_NOEXCEPT
+	virtual CORBA::Core::PolicyMapShared* get_policies (unsigned flags) const noexcept
 	{
 		return object_policies_;
 	}
 
-	virtual unsigned get_flags (unsigned flags) const NIRVANA_NOEXCEPT
+	virtual unsigned get_flags (unsigned flags) const noexcept
 	{
 		return flags;
 	}
@@ -492,17 +492,17 @@ protected:
 		CORBA::servant_reference <POAManager>&& manager,
 		CORBA::servant_reference <CORBA::Core::PolicyMapShared>&& object_policies);
 
-	virtual bool implicit_activation () const NIRVANA_NOEXCEPT;
+	virtual bool implicit_activation () const noexcept;
 
 	bool check_path (const AdapterPath& path, AdapterPath::const_iterator it) const
-		NIRVANA_NOEXCEPT;
+		noexcept;
 
 	virtual void serve_request (const RequestRef& request, CORBA::Core::ReferenceLocal& reference);
 	virtual void serve_default (const RequestRef& request, CORBA::Core::ReferenceLocal& reference);
 	void serve_request (const RequestRef& request, CORBA::Core::ReferenceLocal& reference, CORBA::Core::ServantProxyObject& proxy);
 
 private:
-	void on_request_finish () NIRVANA_NOEXCEPT;
+	void on_request_finish () noexcept;
 	
 protected:
 	static POA_Root* root_;

@@ -53,7 +53,7 @@ public:
 	}
 
 	/// Destruct object in static memory.
-	void destruct () NIRVANA_NOEXCEPT
+	void destruct () noexcept
 	{
 		assert (constructed_);
 		((T&)storage_).T::~T ();
@@ -62,19 +62,19 @@ public:
 #endif
 	}
 
-	operator T& () NIRVANA_NOEXCEPT
+	operator T& () noexcept
 	{
 		assert (constructed_);
 		return (T&)storage_;
 	}
 
-	T* operator -> () NIRVANA_NOEXCEPT
+	T* operator -> () noexcept
 	{
 		assert (constructed_);
 		return (T*)&storage_;
 	}
 
-	T* operator & () NIRVANA_NOEXCEPT
+	T* operator & () noexcept
 	{
 		assert (constructed_);
 		return (T*)&storage_;

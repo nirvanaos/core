@@ -49,7 +49,7 @@ public:
 	}
 
 protected:
-	virtual void finalize () NIRVANA_NOEXCEPT override
+	virtual void finalize () noexcept override
 	{
 		Base::finalize ();
 		event_.signal ();

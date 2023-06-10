@@ -58,7 +58,7 @@ public:
 	using Base::_s_type_modifier;
 	using Base::_s_concrete_base_type;
 
-	TypeCode::_ref_type get_compact_typecode () NIRVANA_NOEXCEPT
+	TypeCode::_ref_type get_compact_typecode () noexcept
 	{
 		// By default just return this type code.
 		return Servant::_get_ptr ();

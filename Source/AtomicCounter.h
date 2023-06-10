@@ -65,7 +65,7 @@ public:
 	/// Constructor.
 	/// 
 	/// \param init The initial value.
-	AtomicCounter (IntegralType init) NIRVANA_NOEXCEPT :
+	AtomicCounter (IntegralType init) noexcept :
 		cnt_ (init)
 	{
 		assert (cnt_.is_lock_free ());
@@ -78,7 +78,7 @@ public:
 	/// Returned value may be used only for estimation purposes or debugging, such as _refcount_value ().
 	/// 
 	/// \returns Integral value.
-	operator IntegralType () const NIRVANA_NOEXCEPT
+	operator IntegralType () const noexcept
 	{
 		return cnt_.load (std::memory_order_relaxed);
 	}
@@ -88,13 +88,13 @@ public:
 	/// Operation is performed in acquire order.
 	/// 
 	/// \returns Integral value.
-	IntegralType load () const NIRVANA_NOEXCEPT
+	IntegralType load () const noexcept
 	{
 		return cnt_.load (std::memory_order_acquire);
 	}
 
 	/// Relaxed increment.
-	void increment () NIRVANA_NOEXCEPT
+	void increment () noexcept
 	{
 		cnt_.fetch_add (1, std::memory_order_relaxed);
 	}
@@ -103,13 +103,13 @@ public:
 	/// Guarantees the counter consistency.
 	/// 
 	/// \returns The incremented value.
-	IntegralType increment_seq () NIRVANA_NOEXCEPT
+	IntegralType increment_seq () noexcept
 	{
 		return cnt_.fetch_add (1, std::memory_order_release) + 1;
 	}
 
 	/// Relaxed decrement.
-	void decrement () NIRVANA_NOEXCEPT
+	void decrement () noexcept
 	{
 		assert (SIGNED || cnt_ > 0);
 		cnt_.fetch_sub (1, std::memory_order_relaxed);
@@ -119,7 +119,7 @@ public:
 	/// Guarantees the counter consistency.
 	/// 
 	/// \returns The decremented value.
-	IntegralType decrement_seq () NIRVANA_NOEXCEPT
+	IntegralType decrement_seq () noexcept
 	{
 		assert (SIGNED || cnt_ > 0);
 		return cnt_.fetch_sub (1, std::memory_order_release) - 1;
@@ -144,26 +144,26 @@ public:
 	using Base::IntegralType;
 
 	/// Initialized with 1.
-	RefCounter () NIRVANA_NOEXCEPT :
+	RefCounter () noexcept :
 		Base (1)
 	{}
 
 	/// Initialized with 1 on copy construction.
-	RefCounter (const RefCounter&) NIRVANA_NOEXCEPT :
+	RefCounter (const RefCounter&) noexcept :
 		Base (1)
 	{}
 
-	RefCounter (RefCounter&&) NIRVANA_NOEXCEPT :
+	RefCounter (RefCounter&&) noexcept :
 		Base (1)
 	{}
 
 	/// Not changed on copy operation.
-	RefCounter& operator = (const RefCounter&) NIRVANA_NOEXCEPT
+	RefCounter& operator = (const RefCounter&) noexcept
 	{
 		return *this;
 	}
 
-	RefCounter& operator = (RefCounter&&) NIRVANA_NOEXCEPT
+	RefCounter& operator = (RefCounter&&) noexcept
 	{
 		return *this;
 	}
@@ -179,7 +179,7 @@ public:
 
 	/// \invariant cnt_ > 0.
 	///   If we have no references we can't add a new one.
-	void increment () NIRVANA_NOEXCEPT
+	void increment () noexcept
 	{
 		assert (*this > 0);
 		Base::increment ();
@@ -189,7 +189,7 @@ public:
 	/// Guarantees the memory consistency if returned 0.
 	/// 
 	/// \returns The decremented value.
-	IntegralType decrement () NIRVANA_NOEXCEPT
+	IntegralType decrement () noexcept
 	{
 		IntegralType ret = decrement_seq ();
 		if (0 == ret)

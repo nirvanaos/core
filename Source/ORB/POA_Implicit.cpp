@@ -32,7 +32,7 @@ using namespace Nirvana::Core;
 namespace PortableServer {
 namespace Core {
 
-bool POA_Implicit::implicit_activation () const NIRVANA_NOEXCEPT
+bool POA_Implicit::implicit_activation () const noexcept
 {
 	return true;
 }

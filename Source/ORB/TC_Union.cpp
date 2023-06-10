@@ -57,7 +57,7 @@ void TC_Union::set_members (Members&& members)
 	align_ = align;
 }
 
-bool TC_Union::mark () NIRVANA_NOEXCEPT
+bool TC_Union::mark () noexcept
 {
 	if (!TC_ComplexBase::mark ())
 		return false;
@@ -67,7 +67,7 @@ bool TC_Union::mark () NIRVANA_NOEXCEPT
 	return true;
 }
 
-bool TC_Union::set_recursive (const IDL::String& id, const TC_Ref& ref) NIRVANA_NOEXCEPT
+bool TC_Union::set_recursive (const IDL::String& id, const TC_Ref& ref) noexcept
 {
 	for (auto& m : members_) {
 		m.type.replace_recursive_placeholder (id, ref);

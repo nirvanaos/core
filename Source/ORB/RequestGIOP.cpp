@@ -59,7 +59,7 @@ RequestGIOP::RequestGIOP (unsigned GIOP_minor, unsigned response_flags, Domain* 
 RequestGIOP::~RequestGIOP ()
 {}
 
-void RequestGIOP::_remove_ref () NIRVANA_NOEXCEPT
+void RequestGIOP::_remove_ref () noexcept
 {
 	if (!ref_cnt_.decrement ()) {
 		ExecDomain& ed = ExecDomain::current ();

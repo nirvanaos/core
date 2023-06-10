@@ -39,17 +39,17 @@ RuntimeProxy::_ref_type MemContextUser::runtime_proxy_get (const void* obj)
 	return runtime_support_.runtime_proxy_get (obj);
 }
 
-void MemContextUser::runtime_proxy_remove (const void* obj) NIRVANA_NOEXCEPT
+void MemContextUser::runtime_proxy_remove (const void* obj) noexcept
 {
 	runtime_support_.runtime_proxy_remove (obj);
 }
 
-void MemContextUser::on_object_construct (MemContextObject& obj) NIRVANA_NOEXCEPT
+void MemContextUser::on_object_construct (MemContextObject& obj) noexcept
 {
 	object_list_.push_back (obj);
 }
 
-void MemContextUser::on_object_destruct (MemContextObject& obj) NIRVANA_NOEXCEPT
+void MemContextUser::on_object_destruct (MemContextObject& obj) noexcept
 {
 	// The object itself will remove from list. Nothing to do.
 }

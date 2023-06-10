@@ -47,7 +47,7 @@ public:
 	~POAManager ()
 	{}
 
-	inline void _delete_object () NIRVANA_NOEXCEPT;
+	inline void _delete_object () noexcept;
 
 	void activate ()
 	{
@@ -134,12 +134,12 @@ public:
 			requests_completed_.wait ();
 	}
 
-	State get_state () const NIRVANA_NOEXCEPT
+	State get_state () const noexcept
 	{
 		return state_;
 	}
 
-	const IDL::String& get_id () const NIRVANA_NOEXCEPT
+	const IDL::String& get_id () const noexcept
 	{
 		return *this;
 	}
@@ -180,21 +180,21 @@ public:
 		associated_adapters_.push_back (&adapter);
 	}
 
-	void on_adapter_destroy (POA_Base& adapter) NIRVANA_NOEXCEPT
+	void on_adapter_destroy (POA_Base& adapter) noexcept
 	{
 		// POA are created and destroyed rarely so we use simple linear search.
 		associated_adapters_.erase (
 			std::find (associated_adapters_.begin (), associated_adapters_.end (), &adapter));
 	}
 
-	void on_request_finish () NIRVANA_NOEXCEPT
+	void on_request_finish () noexcept
 	{
 		if (0 == --request_cnt_)
 			requests_completed_.signal ();
 	}
 
 private:
-	void on_request_start () NIRVANA_NOEXCEPT
+	void on_request_start () noexcept
 	{
 		if (1 == ++request_cnt_)
 			requests_completed_.reset ();
@@ -215,7 +215,7 @@ private:
 			request (r)
 		{}
 
-		bool operator < (const QElem& rhs) const NIRVANA_NOEXCEPT
+		bool operator < (const QElem& rhs) const noexcept
 		{
 			return deadline < rhs.deadline;
 		}
@@ -231,7 +231,7 @@ private:
 
 	private:
 		virtual void run () override;
-		virtual void on_crash (const siginfo& signal) NIRVANA_NOEXCEPT override;
+		virtual void on_crash (const siginfo& signal) noexcept override;
 
 	private:
 		CORBA::servant_reference <POA_Base> adapter_;

@@ -47,7 +47,7 @@ public:
 		Internal::RequestCallback::_ptr_type callback) override;
 
 	/// Returns synchronization context for the target object.
-	Nirvana::Core::SyncContext& sync_context () const NIRVANA_NOEXCEPT
+	Nirvana::Core::SyncContext& sync_context () const noexcept
 	{
 		return *sync_context_;
 	}
@@ -55,24 +55,24 @@ public:
 	/// Returns synchronization context for the specific operation.
 	/// For some Object operations may return free context.
 	virtual Nirvana::Core::SyncContext& get_sync_context (Internal::IOReference::OperationIndex op)
-		const NIRVANA_NOEXCEPT override
+		const noexcept override
 	{
 		if (ProxyManager::is_object_op (op))
 			return ProxyManager::get_sync_context (op);
 		return *sync_context_;
 	}
 
-	Nirvana::Core::MemContext* memory () const NIRVANA_NOEXCEPT;
+	Nirvana::Core::MemContext* memory () const noexcept;
 
-	RefCntProxy::IntegralType _refcount_value () const NIRVANA_NOEXCEPT
+	RefCntProxy::IntegralType _refcount_value () const noexcept
 	{
 		return ref_cnt_.load ();
 	}
 
-	virtual void _remove_ref () NIRVANA_NOEXCEPT override;
+	virtual void _remove_ref () noexcept override;
 
-	void delete_proxy () NIRVANA_NOEXCEPT;
-	void reset_servant () NIRVANA_NOEXCEPT;
+	void delete_proxy () noexcept;
+	void reset_servant () noexcept;
 
 protected:
 	template <class I>
@@ -88,16 +88,16 @@ protected:
 
 	virtual ~ServantProxyBase ();
 
-	Internal::Interface::_ptr_type servant () const NIRVANA_NOEXCEPT
+	Internal::Interface::_ptr_type servant () const noexcept
 	{
 		return servant_;
 	}
 
-	void run_garbage_collector () const NIRVANA_NOEXCEPT;
+	void run_garbage_collector () const noexcept;
 
 	void add_ref_servant () const;
 
-	static void collect_garbage (Internal::Interface::_ptr_type servant) NIRVANA_NOEXCEPT;
+	static void collect_garbage (Internal::Interface::_ptr_type servant) noexcept;
 
 private:
 	template <class I>

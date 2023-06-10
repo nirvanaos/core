@@ -37,7 +37,7 @@ using namespace Internal;
 namespace Core {
 
 RequestLocalBase::RequestLocalBase (MemContext* callee_memory, unsigned response_flags)
-NIRVANA_NOEXCEPT :
+noexcept :
 	caller_memory_ (&MemContext::current ()),
 	callee_memory_ (callee_memory),
 	state_ (State::CALLER),
@@ -82,7 +82,7 @@ MemContext& RequestLocalBase::source_memory ()
 	}
 }
 
-bool RequestLocalBase::marshal_op () NIRVANA_NOEXCEPT
+bool RequestLocalBase::marshal_op () noexcept
 {
 	if (State::CALL == state_) {
 		// Leave sync domain, if any.
@@ -96,7 +96,7 @@ bool RequestLocalBase::marshal_op () NIRVANA_NOEXCEPT
 		|| (state_ == State::EXCEPTION && response_flags_);
 }
 
-void RequestLocalBase::rewind () NIRVANA_NOEXCEPT
+void RequestLocalBase::rewind () noexcept
 {
 	invert_list ((Element*&)interfaces_);
 	invert_list ((Element*&)segments_);
@@ -116,7 +116,7 @@ void RequestLocalBase::invert_list (Element*& head)
 	head = tail;
 }
 
-void RequestLocalBase::cleanup () NIRVANA_NOEXCEPT
+void RequestLocalBase::cleanup () noexcept
 {
 	{
 		const ItfRecord* p = interfaces_;
@@ -385,7 +385,7 @@ void RequestLocalBase::invoke ()
 }
 
 RequestLocal::RequestLocal (ProxyManager& proxy, Internal::IOReference::OperationIndex op_idx,
-	Nirvana::Core::MemContext* callee_memory, unsigned response_flags) NIRVANA_NOEXCEPT :
+	Nirvana::Core::MemContext* callee_memory, unsigned response_flags) noexcept :
 	RequestLocalBase (callee_memory, response_flags),
 	proxy_ (&proxy),
 	op_idx_ (op_idx)
@@ -400,7 +400,7 @@ void RequestLocal::invoke ()
 	invoke_sync ();
 }
 
-void RequestLocal::invoke_sync () NIRVANA_NOEXCEPT
+void RequestLocal::invoke_sync () noexcept
 {
 	assert (State::CALL == state ()); // RequestLocalBase::invoke () must be called
 	proxy ()->invoke (op_idx (), _get_ptr ());
@@ -418,13 +418,13 @@ void RequestLocalOneway::Runnable::run ()
 	request_->run ();
 }
 
-void RequestLocalAsync::cancel () NIRVANA_NOEXCEPT
+void RequestLocalAsync::cancel () noexcept
 {
 	if (set_cancelled ())
 		response_flags_ = 0; // Prevent marshaling
 }
 
-void RequestLocalAsync::finalize () NIRVANA_NOEXCEPT
+void RequestLocalAsync::finalize () noexcept
 {
 	Base::finalize ();
 	RqHelper::call_completed (callback_, _get_ptr ());

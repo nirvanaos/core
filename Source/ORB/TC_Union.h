@@ -88,17 +88,17 @@ public:
 		return ORB::tc_equivalent (Impl::_get_ptr (), other);
 	}
 
-	TypeCode::_ref_type discriminator_type () const NIRVANA_NOEXCEPT
+	TypeCode::_ref_type discriminator_type () const noexcept
 	{
 		return discriminator_type_;
 	}
 
-	Long default_index () const NIRVANA_NOEXCEPT
+	Long default_index () const noexcept
 	{
 		return default_index_;
 	}
 
-	ULong member_count () const NIRVANA_NOEXCEPT
+	ULong member_count () const noexcept
 	{
 		return (ULong)members_.size ();
 	}
@@ -129,17 +129,17 @@ public:
 		return ORB::get_compact_typecode (_get_ptr ());
 	}
 
-	size_t n_size () const NIRVANA_NOEXCEPT
+	size_t n_size () const noexcept
 	{
 		return size_;
 	}
 
-	size_t n_align () const NIRVANA_NOEXCEPT
+	size_t n_align () const noexcept
 	{
 		return align_;
 	}
 
-	bool n_is_CDR () const NIRVANA_NOEXCEPT
+	bool n_is_CDR () const noexcept
 	{
 		return false;
 	}
@@ -220,8 +220,8 @@ public:
 	using TC_Base::_s_n_byteswap;
 
 protected:
-	virtual bool mark () NIRVANA_NOEXCEPT override;
-	virtual bool set_recursive (const IDL::String& id, const TC_Ref& ref) NIRVANA_NOEXCEPT override;
+	virtual bool mark () noexcept override;
+	virtual bool set_recursive (const IDL::String& id, const TC_Ref& ref) noexcept override;
 
 private:
 	int find_index (const void* p) const

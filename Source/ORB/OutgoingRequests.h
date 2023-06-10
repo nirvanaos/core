@@ -55,10 +55,10 @@ public:
 
 	static void new_request (RequestOut& rq, RequestOut::IdPolicy id_policy);
 	static void new_request_oneway (RequestOut& rq, RequestOut::IdPolicy id_policy);
-	static Nirvana::Core::Ref <RequestOut> remove_request (RequestOut::RequestId request_id) NIRVANA_NOEXCEPT;
+	static Nirvana::Core::Ref <RequestOut> remove_request (RequestOut::RequestId request_id) noexcept;
 	static void receive_reply (unsigned GIOP_minor, Nirvana::Core::Ref <StreamIn>&& stream);
 
-	static void receive_reply_immediate (uint32_t request_id, Nirvana::Core::Ref <StreamIn>&& stream) NIRVANA_NOEXCEPT
+	static void receive_reply_immediate (uint32_t request_id, Nirvana::Core::Ref <StreamIn>&& stream) noexcept
 	{
 		Nirvana::Core::Ref <RequestOut> rq = remove_request (request_id);
 		if (rq) {
@@ -70,13 +70,13 @@ public:
 		}
 	}
 
-	static void set_system_exception (uint32_t request_id, const SystemException& ex) NIRVANA_NOEXCEPT
+	static void set_system_exception (uint32_t request_id, const SystemException& ex) noexcept
 	{
 		set_system_exception (request_id, ex.__code (), ex.minor (), ex.completed ());
 	}
 
 	static void set_system_exception (uint32_t request_id, SystemException::Code code,
-		uint32_t minor, CompletionStatus completed) NIRVANA_NOEXCEPT;
+		uint32_t minor, CompletionStatus completed) noexcept;
 
 private:
 	typedef RequestOut::RequestId RequestId;
@@ -86,20 +86,20 @@ private:
 		Nirvana::Core::Ref <StreamIn>&& stream);
 
 	static void on_reply_exception (RequestOut& rq, const SystemException& ex,
-		GIOP::ReplyStatusType status) NIRVANA_NOEXCEPT;
+		GIOP::ReplyStatusType status) noexcept;
 
 	struct RequestVal
 	{
-		RequestVal (RequestId id, RequestOut& rq) NIRVANA_NOEXCEPT :
+		RequestVal (RequestId id, RequestOut& rq) noexcept :
 			request_id (id),
 			request (&rq)
 		{}
 
-		RequestVal (RequestId id) NIRVANA_NOEXCEPT :
+		RequestVal (RequestId id) noexcept :
 			request_id (id)
 		{}
 
-		bool operator < (const RequestVal& rhs) const NIRVANA_NOEXCEPT
+		bool operator < (const RequestVal& rhs) const noexcept
 		{
 			return request_id < rhs.request_id;
 		}

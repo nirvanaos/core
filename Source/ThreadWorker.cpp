@@ -32,7 +32,7 @@ namespace Nirvana {
 namespace Core {
 
 /// This static method is called by the scheduler.
-void ThreadWorker::execute (Executor& executor) NIRVANA_NOEXCEPT
+void ThreadWorker::execute (Executor& executor) noexcept
 {
 	// Always called in the neutral context.
 	assert (&ExecContext::current () == &Core::Thread::current ().neutral_context ());

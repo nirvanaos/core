@@ -52,7 +52,7 @@ Legacy::Main::_ptr_type Binder::bind (Legacy::Core::Executable& mod)
 }
 
 inline
-void Binder::unbind (Legacy::Core::Executable& mod) NIRVANA_NOEXCEPT
+void Binder::unbind (Legacy::Core::Executable& mod) noexcept
 {
 	release_imports (mod._get_ptr (), mod.metadata ());
 }

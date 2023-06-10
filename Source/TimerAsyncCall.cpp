@@ -36,7 +36,7 @@ TimerAsyncCall::TimerAsyncCall (SyncContext& sync_context, const DeadlineTime& d
 	overrun_ (0)
 {}
 
-void TimerAsyncCall::signal () NIRVANA_NOEXCEPT
+void TimerAsyncCall::signal () noexcept
 {
 	if (!enqueued_.test_and_set ()) {
 		try {

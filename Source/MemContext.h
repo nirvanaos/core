@@ -54,7 +54,7 @@ public:
 	static bool is_current (MemContext* context);
 
 	/// \returns Heap.
-	Heap& heap () NIRVANA_NOEXCEPT
+	Heap& heap () noexcept
 	{
 		return *heap_;
 	}
@@ -69,33 +69,33 @@ public:
 	/// Remove runtime proxy for object \p obj.
 	/// 
 	/// \param obj Pointer used as a key.
-	virtual void runtime_proxy_remove (const void* obj) NIRVANA_NOEXCEPT = 0;
+	virtual void runtime_proxy_remove (const void* obj) noexcept = 0;
 
 	/// Add object to list.
 	/// 
 	/// \param obj New object.
-	virtual void on_object_construct (MemContextObject& obj) NIRVANA_NOEXCEPT = 0;
+	virtual void on_object_construct (MemContextObject& obj) noexcept = 0;
 
 	/// Remove object from list.
 	/// 
 	/// \param obj Object.
-	virtual void on_object_destruct (MemContextObject& obj) NIRVANA_NOEXCEPT = 0;
+	virtual void on_object_destruct (MemContextObject& obj) noexcept = 0;
 
 protected:
 	MemContext ();
 
-	MemContext (Heap& heap) NIRVANA_NOEXCEPT :
+	MemContext (Heap& heap) noexcept :
 		heap_ (&heap)
 	{}
 
 	virtual ~MemContext ();
 
-	void _add_ref () NIRVANA_NOEXCEPT
+	void _add_ref () noexcept
 	{
 		ref_cnt_.increment ();
 	}
 
-	void _remove_ref () NIRVANA_NOEXCEPT;
+	void _remove_ref () noexcept;
 
 protected:
 	Ref <Heap> heap_;

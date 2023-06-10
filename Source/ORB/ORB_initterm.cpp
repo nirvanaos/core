@@ -43,7 +43,7 @@ void initialize ()
 	Services::initialize ();
 }
 
-void terminate () NIRVANA_NOEXCEPT
+void terminate () noexcept
 {
 	IncomingRequests::terminate ();
 	OutgoingRequests::terminate ();

@@ -49,28 +49,28 @@ public:
 	~LBErase ();
 
 	void prepare (void* p, size_t size);
-	void commit () NIRVANA_NOEXCEPT;
-	void rollback () NIRVANA_NOEXCEPT;
+	void commit () noexcept;
+	void rollback () noexcept;
 
 private:
-	void rollback_helper () NIRVANA_NOEXCEPT;
+	void rollback_helper () noexcept;
 
 	struct LBNode
 	{
 		BlockList::NodeVal* node;
 		size_t size;
 
-		bool collapse () NIRVANA_NOEXCEPT
+		bool collapse () noexcept
 		{
 			return node->value ().collapse_large_block (size);
 		}
 
-		void restore () NIRVANA_NOEXCEPT
+		void restore () noexcept
 		{
 			node->value ().restore_large_block (size);
 		}
 
-		void restore (size_t new_size) NIRVANA_NOEXCEPT
+		void restore (size_t new_size) noexcept
 		{
 			node->value ().restore_large_block (new_size);
 		}
@@ -86,7 +86,7 @@ private:
 
 
 inline
-bool Heap::MemoryBlock::collapse_large_block (size_t size) NIRVANA_NOEXCEPT
+bool Heap::MemoryBlock::collapse_large_block (size_t size) noexcept
 {
 	assert (is_large_block ());
 	size |= 1;
@@ -94,7 +94,7 @@ bool Heap::MemoryBlock::collapse_large_block (size_t size) NIRVANA_NOEXCEPT
 }
 
 inline
-void Heap::MemoryBlock::restore_large_block (size_t size) NIRVANA_NOEXCEPT
+void Heap::MemoryBlock::restore_large_block (size_t size) noexcept
 {
 	assert (large_block_size_ == 1);
 	large_block_size_ = size | 1;
@@ -178,7 +178,7 @@ void Heap::LBErase::prepare (void* p, size_t size)
 	}
 }
 
-void Heap::LBErase::commit () NIRVANA_NOEXCEPT
+void Heap::LBErase::commit () noexcept
 {
 	if (shrink_size_)
 		first_block_.restore (shrink_size_);
@@ -198,7 +198,7 @@ void Heap::LBErase::commit () NIRVANA_NOEXCEPT
 		heap_.block_list_.remove (first_block_.node);
 }
 
-void Heap::LBErase::rollback () NIRVANA_NOEXCEPT
+void Heap::LBErase::rollback () noexcept
 {
 	rollback_helper ();
 	first_block_.restore ();
@@ -206,14 +206,14 @@ void Heap::LBErase::rollback () NIRVANA_NOEXCEPT
 		last_block_.restore ();
 }
 
-void Heap::LBErase::rollback_helper () NIRVANA_NOEXCEPT
+void Heap::LBErase::rollback_helper () noexcept
 {
 	for (MiddleBlocks::iterator it = middle_blocks_.begin (); it != middle_blocks_.end (); ++it) {
 		it->restore ();
 	}
 }
 
-Heap::Heap (size_t allocation_unit) NIRVANA_NOEXCEPT :
+Heap::Heap (size_t allocation_unit) noexcept :
 	allocation_unit_ (allocation_unit),
 	part_list_ (nullptr)
 {
@@ -314,7 +314,7 @@ void Heap::release (Directory& part, void* p, size_t size) const
 		part.release (begin, end, nullptr);
 }
 
-Heap::Directory* Heap::get_partition (const void* p) NIRVANA_NOEXCEPT
+Heap::Directory* Heap::get_partition (const void* p) noexcept
 {
 	assert (p);
 	Directory* part = nullptr;
@@ -412,7 +412,7 @@ void Heap::add_large_block (void* p, size_t size)
 	}
 }
 
-void* Heap::allocate (Directory& part, size_t& size, unsigned flags, size_t allocation_unit) NIRVANA_NOEXCEPT
+void* Heap::allocate (Directory& part, size_t& size, unsigned flags, size_t allocation_unit) noexcept
 {
 	size_t units = (size + allocation_unit - 1) / allocation_unit;
 	uint8_t* heap = (uint8_t*)(&part + 1);
@@ -433,7 +433,7 @@ void* Heap::allocate (Directory& part, size_t& size, unsigned flags, size_t allo
 	return nullptr;
 }
 
-void* Heap::allocate (Directory& part, void* p, size_t& size, unsigned flags) const NIRVANA_NOEXCEPT
+void* Heap::allocate (Directory& part, void* p, size_t& size, unsigned flags) const noexcept
 {
 	assert (size);
 	uint8_t* heap = (uint8_t*)(&part + 1);

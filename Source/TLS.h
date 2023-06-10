@@ -41,7 +41,7 @@ class TLS
 	static const unsigned BW_BITS = sizeof (BitmapWord) * 8;
 public:
 	/// \returns Current TLS.
-	static TLS& current () NIRVANA_NOEXCEPT;
+	static TLS& current () noexcept;
 
 	/// Reserved TLS indexes.
 	enum
@@ -63,15 +63,15 @@ public:
 	static void release (unsigned idx);
 
 	void set (unsigned idx, void* p);
-	void* get (unsigned idx) NIRVANA_NOEXCEPT;
+	void* get (unsigned idx) noexcept;
 
-	static void initialize () NIRVANA_NOEXCEPT
+	static void initialize () noexcept
 	{
 		free_count_ = USER_TLS_INDEXES_END;
 		std::fill_n (bitmap_, BITMAP_SIZE, ~0);
 	}
 
-	void clear () NIRVANA_NOEXCEPT;
+	void clear () noexcept;
 
 private:
 	typedef std::vector <void*, SharedAllocator <void*> > Entries;

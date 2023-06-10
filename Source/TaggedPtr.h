@@ -60,16 +60,16 @@ public:
 	typedef AtomicPtr <TAG_BITS, ALIGN> Atomic;
 	typedef LockablePtr <TAG_BITS, ALIGN> Lockable;
 
-	TaggedPtr () NIRVANA_NOEXCEPT
+	TaggedPtr () noexcept
 	{}
 
-	TaggedPtr (void* p) NIRVANA_NOEXCEPT
+	TaggedPtr (void* p) noexcept
 	{
 		assert (!((uintptr_t)p & ALIGN_MASK));
 		ptr_ = (uintptr_t)p;
 	}
 
-	TaggedPtr (void* p, uintptr_t tag_bits) NIRVANA_NOEXCEPT
+	TaggedPtr (void* p, uintptr_t tag_bits) noexcept
 	{
 		assert (!((uintptr_t)p & ALIGN_MASK));
 		assert (!(tag_bits & ~TAG_MASK));
@@ -77,50 +77,50 @@ public:
 	}
 
 	template <unsigned A>
-	TaggedPtr (const TaggedPtr <TAG_BITS, A>& src) NIRVANA_NOEXCEPT :
+	TaggedPtr (const TaggedPtr <TAG_BITS, A>& src) noexcept :
 		ptr_ (src.ptr_)
 	{
 		static_assert (A > ALIGN_MASK, "Alignment decreasing.");
 	}
 
 	template <unsigned A>
-	TaggedPtr <TAG_BITS, ALIGN>& operator = (const TaggedPtr <TAG_BITS, A>& src) NIRVANA_NOEXCEPT
+	TaggedPtr <TAG_BITS, ALIGN>& operator = (const TaggedPtr <TAG_BITS, A>& src) noexcept
 	{
 		static_assert (A > ALIGN_MASK, "Alignment decreasing.");
 		ptr_ = src.ptr_;
 		return *this;
 	}
 
-	void* operator = (void* p) NIRVANA_NOEXCEPT
+	void* operator = (void* p) noexcept
 	{
 		assert (!((uintptr_t)p & ALIGN_MASK));
 		ptr_ = (uintptr_t)p;
 		return p;
 	}
 
-	operator void* () const NIRVANA_NOEXCEPT
+	operator void* () const noexcept
 	{
 		return (void*)(ptr_ & ~TAG_MASK);
 	}
 
-	unsigned tag_bits () const NIRVANA_NOEXCEPT
+	unsigned tag_bits () const noexcept
 	{
 		return (unsigned)ptr_ & TAG_MASK;
 	}
 
-	TaggedPtr <TAG_BITS, ALIGN> untagged () const NIRVANA_NOEXCEPT
+	TaggedPtr <TAG_BITS, ALIGN> untagged () const noexcept
 	{
 		return TaggedPtr <TAG_BITS, ALIGN> (ptr_ & ~TAG_MASK);
 	}
 
 	template <unsigned A>
-	bool operator == (const TaggedPtr <TAG_BITS, A>& rhs) const NIRVANA_NOEXCEPT
+	bool operator == (const TaggedPtr <TAG_BITS, A>& rhs) const noexcept
 	{
 		return ptr_ == rhs.ptr_;
 	}
 
 private:
-	explicit TaggedPtr (uintptr_t val) NIRVANA_NOEXCEPT :
+	explicit TaggedPtr (uintptr_t val) noexcept :
 		ptr_ (val)
 	{}
 
@@ -139,39 +139,39 @@ class AtomicPtr
 public:
 	typedef TaggedPtr <TAG_BITS, ALIGN> Ptr;
 
-	AtomicPtr () NIRVANA_NOEXCEPT
+	AtomicPtr () noexcept
 	{
 		assert (ptr_.is_lock_free ());
 	}
 
-	AtomicPtr (Ptr src) NIRVANA_NOEXCEPT :
+	AtomicPtr (Ptr src) noexcept :
 		ptr_ (src.ptr_)
 	{
 		assert (ptr_.is_lock_free ());
 	}
 
-	Ptr load () const NIRVANA_NOEXCEPT
+	Ptr load () const noexcept
 	{
 		return Ptr (ptr_.load (std::memory_order_acquire));
 	}
 
-	Ptr operator = (Ptr src) NIRVANA_NOEXCEPT
+	Ptr operator = (Ptr src) noexcept
 	{
 		ptr_.store (src.ptr_, std::memory_order_release);
 		return src;
 	}
 
-	bool cas (Ptr from, const Ptr& to) NIRVANA_NOEXCEPT
+	bool cas (Ptr from, const Ptr& to) noexcept
 	{
 		return compare_exchange (from, to);
 	}
 
-	bool compare_exchange (Ptr& cur, const Ptr& to) NIRVANA_NOEXCEPT
+	bool compare_exchange (Ptr& cur, const Ptr& to) noexcept
 	{
 		return ptr_.compare_exchange_weak (cur.ptr_, to.ptr_);
 	}
 
-	Ptr exchange (const Ptr& to) NIRVANA_NOEXCEPT
+	Ptr exchange (const Ptr& to) noexcept
 	{
 		return Ptr (ptr_.exchange (to.ptr_));
 	}
@@ -186,12 +186,12 @@ class LockablePtr
 public:
 	typedef TaggedPtr <TAG_BITS, ALIGN> Ptr;
 
-	LockablePtr () NIRVANA_NOEXCEPT
+	LockablePtr () noexcept
 	{
 		assert (ptr_.is_lock_free ());
 	}
 
-	LockablePtr (Ptr src) NIRVANA_NOEXCEPT :
+	LockablePtr (Ptr src) noexcept :
 		ptr_ (src.ptr_)
 	{
 		assert (ptr_.is_lock_free ());
@@ -199,14 +199,14 @@ public:
 
 	LockablePtr (const LockablePtr&) = delete;
 
-	Ptr load () const NIRVANA_NOEXCEPT
+	Ptr load () const noexcept
 	{
 		return Ptr (ptr_.load (std::memory_order_acquire) & ~SPIN_MASK);
 	}
 
 	LockablePtr& operator = (const LockablePtr&) = delete;
 
-	Ptr operator = (Ptr src) NIRVANA_NOEXCEPT
+	Ptr operator = (Ptr src) noexcept
 	{
 		assert ((src.ptr_ & SPIN_MASK) == 0);
 		uintptr_t p = ptr_.load (std::memory_order_acquire) & ~SPIN_MASK;
@@ -216,21 +216,21 @@ public:
 		return src;
 	}
 
-	bool cas (Ptr from, const Ptr& to) NIRVANA_NOEXCEPT
+	bool cas (Ptr from, const Ptr& to) noexcept
 	{
 		return compare_exchange (from, to);
 	}
 
-	bool compare_exchange (Ptr& cur, const Ptr& to) NIRVANA_NOEXCEPT;
+	bool compare_exchange (Ptr& cur, const Ptr& to) noexcept;
 
-	Ptr lock () NIRVANA_NOEXCEPT;
+	Ptr lock () noexcept;
 
-	void unlock () NIRVANA_NOEXCEPT
+	void unlock () noexcept
 	{
 		ptr_.fetch_sub (Ptr::TAG_MASK + 1, std::memory_order_release);
 	}
 
-	Ptr exchange (const Ptr& to) NIRVANA_NOEXCEPT
+	Ptr exchange (const Ptr& to) noexcept
 	{
 		Ptr cur = load ();
 		
@@ -248,7 +248,7 @@ private:
 };
 
 template <unsigned TAG_BITS, unsigned ALIGN>
-bool LockablePtr <TAG_BITS, ALIGN>::compare_exchange (Ptr& cur, const Ptr& to) NIRVANA_NOEXCEPT
+bool LockablePtr <TAG_BITS, ALIGN>::compare_exchange (Ptr& cur, const Ptr& to) noexcept
 {
 	uintptr_t tcur = cur.ptr_;
 	assert ((tcur & SPIN_MASK) == 0);
@@ -263,7 +263,7 @@ bool LockablePtr <TAG_BITS, ALIGN>::compare_exchange (Ptr& cur, const Ptr& to) N
 }
 
 template <unsigned TAG_BITS, unsigned ALIGN>
-typename LockablePtr <TAG_BITS, ALIGN>::Ptr LockablePtr <TAG_BITS, ALIGN>::lock () NIRVANA_NOEXCEPT
+typename LockablePtr <TAG_BITS, ALIGN>::Ptr LockablePtr <TAG_BITS, ALIGN>::lock () noexcept
 {
 	for (BackOff bo; true; bo ()) {
 		uintptr_t cur = ptr_.load ();
@@ -285,51 +285,51 @@ public:
 	typedef AtomicPtrT <T, TAG_BITS, ALIGN> Atomic;
 	typedef LockablePtrT <T, TAG_BITS, ALIGN> Lockable;
 
-	TaggedPtrT () NIRVANA_NOEXCEPT
+	TaggedPtrT () noexcept
 	{}
 
-	TaggedPtrT (T* p) NIRVANA_NOEXCEPT :
+	TaggedPtrT (T* p) noexcept :
 		Base (p)
 	{}
 
-	TaggedPtrT (T* p, unsigned tag_bits) NIRVANA_NOEXCEPT :
+	TaggedPtrT (T* p, unsigned tag_bits) noexcept :
 		Base (p, tag_bits)
 	{}
 
 	template <unsigned A>
-	TaggedPtrT (const TaggedPtrT <T, TAG_BITS, A>& src) NIRVANA_NOEXCEPT :
+	TaggedPtrT (const TaggedPtrT <T, TAG_BITS, A>& src) noexcept :
 		Base (src)
 	{}
 
-	T* operator = (T* p) NIRVANA_NOEXCEPT
+	T* operator = (T* p) noexcept
 	{
 		return (T*)Base::operator = (p);
 	}
 
 	template <unsigned A>
 	TaggedPtrT <T, TAG_BITS, ALIGN>& operator = (const TaggedPtrT <T, TAG_BITS, A>& src)
-		NIRVANA_NOEXCEPT
+		noexcept
 	{
 		Base::operator = (src);
 		return *this;
 	}
 
-	operator T* () const NIRVANA_NOEXCEPT
+	operator T* () const noexcept
 	{
 		return (T*)Base::operator void* ();
 	}
 
-	operator bool () const NIRVANA_NOEXCEPT
+	operator bool () const noexcept
 	{
 		return Base::operator void* ();
 	}
 
-	T* operator -> () const NIRVANA_NOEXCEPT
+	T* operator -> () const noexcept
 	{
 		return operator T* ();
 	}
 
-	TaggedPtrT <T, TAG_BITS, ALIGN> untagged () const NIRVANA_NOEXCEPT
+	TaggedPtrT <T, TAG_BITS, ALIGN> untagged () const noexcept
 	{
 		return TaggedPtrT <T, TAG_BITS, ALIGN> (Base::untagged ());
 	}
@@ -350,29 +350,29 @@ class AtomicPtrT : public AtomicPtr <TAG_BITS, ALIGN>
 public:
 	typedef TaggedPtrT <T, TAG_BITS, ALIGN> Ptr;
 
-	AtomicPtrT () NIRVANA_NOEXCEPT
+	AtomicPtrT () noexcept
 	{}
 
-	AtomicPtrT (Ptr src) NIRVANA_NOEXCEPT :
+	AtomicPtrT (Ptr src) noexcept :
 		Base (src)
 	{}
 
-	Ptr load () const NIRVANA_NOEXCEPT
+	Ptr load () const noexcept
 	{
 		return Ptr (Base::load ());
 	}
 
-	Ptr operator = (Ptr src) NIRVANA_NOEXCEPT
+	Ptr operator = (Ptr src) noexcept
 	{
 		return Ptr (Base::operator = (src));
 	}
 
-	bool cas (const Ptr& from, const Ptr& to) NIRVANA_NOEXCEPT
+	bool cas (const Ptr& from, const Ptr& to) noexcept
 	{
 		return Base::cas (from, to);
 	}
 
-	bool compare_exchange (Ptr& cur, const Ptr& to) NIRVANA_NOEXCEPT
+	bool compare_exchange (Ptr& cur, const Ptr& to) noexcept
 	{
 		return Base::compare_exchange (cur, to);
 	}
@@ -385,39 +385,39 @@ class LockablePtrT : public LockablePtr <TAG_BITS, ALIGN>
 public:
 	typedef TaggedPtrT <T, TAG_BITS, ALIGN> Ptr;
 
-	LockablePtrT () NIRVANA_NOEXCEPT
+	LockablePtrT () noexcept
 	{}
 
-	LockablePtrT (Ptr src) NIRVANA_NOEXCEPT :
+	LockablePtrT (Ptr src) noexcept :
 		Base (src)
 	{}
 
-	Ptr load () const NIRVANA_NOEXCEPT
+	Ptr load () const noexcept
 	{
 		return Ptr (Base::load ());
 	}
 
-	Ptr operator = (Ptr src) NIRVANA_NOEXCEPT
+	Ptr operator = (Ptr src) noexcept
 	{
 		return Ptr (Base::operator = (src));
 	}
 
-	bool cas (const Ptr& from, const Ptr& to) NIRVANA_NOEXCEPT
+	bool cas (const Ptr& from, const Ptr& to) noexcept
 	{
 		return Base::cas (from, to);
 	}
 
-	bool compare_exchange (Ptr& cur, const Ptr& to) NIRVANA_NOEXCEPT
+	bool compare_exchange (Ptr& cur, const Ptr& to) noexcept
 	{
 		return Base::compare_exchange (cur, to);
 	}
 
-	Ptr exchange (const Ptr& to) NIRVANA_NOEXCEPT
+	Ptr exchange (const Ptr& to) noexcept
 	{
 		return Ptr (Base::exchange (to));
 	}
 
-	Ptr lock () NIRVANA_NOEXCEPT
+	Ptr lock () noexcept
 	{
 		return Ptr (Base::lock ());
 	}

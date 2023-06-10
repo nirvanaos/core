@@ -84,7 +84,7 @@ servant_reference <CORBA::Core::ServantProxyObject> POA_Retain::deactivate_objec
 	return ret;
 }
 
-unsigned POA_Retain::get_flags (unsigned flags) const NIRVANA_NOEXCEPT
+unsigned POA_Retain::get_flags (unsigned flags) const noexcept
 {
 	switch (DGC_policy_) {
 	case DGC_ENABLED:
@@ -98,7 +98,7 @@ unsigned POA_Retain::get_flags (unsigned flags) const NIRVANA_NOEXCEPT
 	return flags;
 }
 
-void POA_Retain::implicit_deactivate (ReferenceLocal& ref, ServantProxyObject& proxy) NIRVANA_NOEXCEPT
+void POA_Retain::implicit_deactivate (ReferenceLocal& ref, ServantProxyObject& proxy) noexcept
 {
 	references_.erase (&ref);
 }
@@ -137,7 +137,7 @@ Object::_ref_type POA_Retain::id_to_reference (ObjectId& oid)
 	throw ObjectNotActive ();
 }
 
-void POA_Retain::destroy_internal (bool etherealize_objects) NIRVANA_NOEXCEPT
+void POA_Retain::destroy_internal (bool etherealize_objects) noexcept
 {
 	POA_Base::destroy_internal (etherealize_objects);
 	if (etherealize_objects)
@@ -150,7 +150,7 @@ void POA_Retain::destroy_internal (bool etherealize_objects) NIRVANA_NOEXCEPT
 	}
 }
 
-void POA_Retain::etherealize_objects () NIRVANA_NOEXCEPT
+void POA_Retain::etherealize_objects () noexcept
 {
 	References tmp (std::move (references_));
 	for (void* p : tmp) {

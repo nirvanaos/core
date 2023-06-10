@@ -58,7 +58,7 @@ private:
 	typedef std::pair <const Octet*, const Octet*> Range;
 
 	void prepare (size_t align, size_t size, Range& range) const;
-	void read (const Range& range, void* buf) NIRVANA_NOEXCEPT;
+	void read (const Range& range, void* buf) noexcept;
 
 private:
 	const Octet* cur_ptr_;
@@ -72,7 +72,7 @@ class NIRVANA_NOVTABLE StreamInEncapData :
 	public Nirvana::Core::UserObject
 {
 protected:
-	StreamInEncapData (OctetSeq&& data) NIRVANA_NOEXCEPT :
+	StreamInEncapData (OctetSeq&& data) noexcept :
 		StreamInEncap (data, true),
 		data_ (std::move (data))
 	{}

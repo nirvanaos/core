@@ -61,12 +61,12 @@ public:
 	/// \param [out] s The string.
 	virtual void unmarshal_string (StreamIn& in, IDL::String& s);
 
-	static Nirvana::Core::Ref <CodeSetConverter> get_default () NIRVANA_NOEXCEPT
+	static Nirvana::Core::Ref <CodeSetConverter> get_default () noexcept
 	{
 		return &default_;
 	}
 
-	inline static void initialize () NIRVANA_NOEXCEPT;
+	inline static void initialize () noexcept;
 
 	static Nirvana::Core::StaticallyAllocated <Nirvana::Core::ImplStatic <CodeSetConverter> > default_;
 };
@@ -138,7 +138,7 @@ class NIRVANA_NOVTABLE CodeSetConverterW_1_1 :
 	public CodeSetConverterW
 {
 public:
-	static Nirvana::Core::Ref <CodeSetConverterW> get_default () NIRVANA_NOEXCEPT
+	static Nirvana::Core::Ref <CodeSetConverterW> get_default () noexcept
 	{
 		return &default_;
 	}
@@ -162,7 +162,7 @@ class NIRVANA_NOVTABLE CodeSetConverterW_1_2 :
 	public CodeSetConverterW
 {
 public:
-	static Nirvana::Core::Ref <CodeSetConverterW> get_default () NIRVANA_NOEXCEPT
+	static Nirvana::Core::Ref <CodeSetConverterW> get_default () noexcept
 	{
 		return &default_;
 	}
@@ -215,7 +215,7 @@ protected:
 };
 
 inline
-void CodeSetConverter::initialize () NIRVANA_NOEXCEPT
+void CodeSetConverter::initialize () noexcept
 {
 	CodeSetConverter::default_.construct ();
 	CodeSetConverterW_1_1::default_.construct ();

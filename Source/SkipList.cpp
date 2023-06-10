@@ -35,7 +35,7 @@ namespace Core {
 #define CHECK_VALID_LEVEL(lev, nod)
 #endif
 
-bool SkipListBase::Node::operator < (const Node&) const NIRVANA_NOEXCEPT
+bool SkipListBase::Node::operator < (const Node&) const noexcept
 {
 	// Must be overridden.
 	// Base method must never be called.
@@ -43,7 +43,7 @@ bool SkipListBase::Node::operator < (const Node&) const NIRVANA_NOEXCEPT
 	return false;
 }
 
-bool SkipListBase::less (const Node& n1, const Node& n2) const NIRVANA_NOEXCEPT
+bool SkipListBase::less (const Node& n1, const Node& n2) const noexcept
 {
 	if (&n1 == &n2)
 		return false;
@@ -57,7 +57,7 @@ bool SkipListBase::less (const Node& n1, const Node& n2) const NIRVANA_NOEXCEPT
 	return n1 < n2; // Call virtual comparator
 }
 
-SkipListBase::SkipListBase (unsigned node_size, unsigned max_level, void* head_tail) NIRVANA_NOEXCEPT :
+SkipListBase::SkipListBase (unsigned node_size, unsigned max_level, void* head_tail) noexcept :
 #ifdef _DEBUG
 	node_cnt_ (0),
 #endif
@@ -89,13 +89,13 @@ void SkipListBase::deallocate_node (Node* node)
 }
 
 inline
-void SkipListBase::delete_node (Node* node) NIRVANA_NOEXCEPT
+void SkipListBase::delete_node (Node* node) noexcept
 {
 	node->~Node ();
 	deallocate_node (node);
 }
 
-void SkipListBase::release_node (Node* node) NIRVANA_NOEXCEPT
+void SkipListBase::release_node (Node* node) noexcept
 {
 	assert (node);
 	if (!node->ref_cnt.decrement ()) {
@@ -112,7 +112,7 @@ void SkipListBase::release_node (Node* node) NIRVANA_NOEXCEPT
 	}
 }
 
-SkipListBase::Node* SkipListBase::insert (Node* const new_node, Node** saved_nodes) NIRVANA_NOEXCEPT
+SkipListBase::Node* SkipListBase::insert (Node* const new_node, Node** saved_nodes) noexcept
 {
 	// In case we insert back the removed node.
 	// We mustn't insert the removed node back because it may be still referenced by other nodes.
@@ -201,7 +201,7 @@ SkipListBase::Node* SkipListBase::insert (Node* const new_node, Node** saved_nod
 	return new_node;
 }
 
-SkipListBase::Node* SkipListBase::read_node (Link::Lockable& node) NIRVANA_NOEXCEPT
+SkipListBase::Node* SkipListBase::read_node (Link::Lockable& node) noexcept
 {
 	Node* p = nullptr;
 	Link link = node.lock ();
@@ -213,7 +213,7 @@ SkipListBase::Node* SkipListBase::read_node (Link::Lockable& node) NIRVANA_NOEXC
 	return p;
 }
 
-SkipListBase::Node* SkipListBase::read_next (Node*& node1, int level) NIRVANA_NOEXCEPT
+SkipListBase::Node* SkipListBase::read_next (Node*& node1, int level) noexcept
 {
 	if (node1->deleted)
 		node1 = help_delete (node1, level);
@@ -227,7 +227,7 @@ SkipListBase::Node* SkipListBase::read_next (Node*& node1, int level) NIRVANA_NO
 	return node2;
 }
 
-SkipListBase::Node* SkipListBase::scan_key (Node*& node1, int level, const Node* keynode) NIRVANA_NOEXCEPT
+SkipListBase::Node* SkipListBase::scan_key (Node*& node1, int level, const Node* keynode) noexcept
 {
 	assert (keynode);
 	Node* node2 = read_next (node1, level);
@@ -239,7 +239,7 @@ SkipListBase::Node* SkipListBase::scan_key (Node*& node1, int level, const Node*
 	return node2;
 }
 
-SkipListBase::Node* SkipListBase::get_min_node () NIRVANA_NOEXCEPT
+SkipListBase::Node* SkipListBase::get_min_node () noexcept
 {
 	Node* prev = copy_node (head ());
 	// Search the first node (node1) in the list that does not have
@@ -251,7 +251,7 @@ SkipListBase::Node* SkipListBase::get_min_node () NIRVANA_NOEXCEPT
 	return node;
 }
 
-SkipListBase::Node* SkipListBase::delete_min () NIRVANA_NOEXCEPT
+SkipListBase::Node* SkipListBase::delete_min () noexcept
 {
 	// Start from the head node.
 	Node* prev = copy_node (head ());
@@ -294,7 +294,7 @@ SkipListBase::Node* SkipListBase::delete_min () NIRVANA_NOEXCEPT
 	return node1;	// Reference counter have to be released by caller.
 }
 
-void SkipListBase::final_delete (Node* node) NIRVANA_NOEXCEPT
+void SkipListBase::final_delete (Node* node) noexcept
 {
 	// Mark the deletion bits of the next pointers of the node, starting with the lowest
 	// level and going upwards.
@@ -324,7 +324,7 @@ void SkipListBase::final_delete (Node* node) NIRVANA_NOEXCEPT
 
 /// Tries to fulfill the deletion on the current level and returns a reference to
 /// the previous node when the deletion is completed.
-SkipListBase::Node* SkipListBase::help_delete (Node* node, int level) NIRVANA_NOEXCEPT
+SkipListBase::Node* SkipListBase::help_delete (Node* node, int level) noexcept
 {
 	assert (node != head ());
 	assert (node != tail ());
@@ -361,7 +361,7 @@ SkipListBase::Node* SkipListBase::help_delete (Node* node, int level) NIRVANA_NO
 }
 
 /// Removes the given node from the linked list structure at the given level.
-void SkipListBase::remove_node (Node* node, Node*& prev, int level) NIRVANA_NOEXCEPT
+void SkipListBase::remove_node (Node* node, Node*& prev, int level) noexcept
 {
 	assert (node);
 	assert (node != head ());
@@ -403,7 +403,7 @@ void SkipListBase::remove_node (Node* node, Node*& prev, int level) NIRVANA_NOEX
 	}
 }
 
-SkipListBase::Node* SkipListBase::lower_bound (const Node* keynode) NIRVANA_NOEXCEPT
+SkipListBase::Node* SkipListBase::lower_bound (const Node* keynode) noexcept
 {
 	assert (keynode);
 	assert (keynode != head ());
@@ -426,7 +426,7 @@ SkipListBase::Node* SkipListBase::lower_bound (const Node* keynode) NIRVANA_NOEX
 	return node2;
 }
 
-SkipListBase::Node* SkipListBase::upper_bound (const Node* keynode) NIRVANA_NOEXCEPT
+SkipListBase::Node* SkipListBase::upper_bound (const Node* keynode) noexcept
 {
 	Node* node2 = lower_bound (keynode);
 	if (node2) {
@@ -444,7 +444,7 @@ SkipListBase::Node* SkipListBase::upper_bound (const Node* keynode) NIRVANA_NOEX
 	return node2;
 }
 
-SkipListBase::Node* SkipListBase::find (const Node* keynode) NIRVANA_NOEXCEPT
+SkipListBase::Node* SkipListBase::find (const Node* keynode) noexcept
 {
 	Node* node2 = lower_bound (keynode);
 	if (node2) {
@@ -456,7 +456,7 @@ SkipListBase::Node* SkipListBase::find (const Node* keynode) NIRVANA_NOEXCEPT
 	return node2;
 }
 
-SkipListBase::Node* SkipListBase::find_and_delete (const Node* keynode) NIRVANA_NOEXCEPT
+SkipListBase::Node* SkipListBase::find_and_delete (const Node* keynode) noexcept
 {
 	assert (keynode);
 	assert (keynode != head ());
@@ -488,7 +488,7 @@ SkipListBase::Node* SkipListBase::find_and_delete (const Node* keynode) NIRVANA_
 	}
 }
 
-bool SkipListBase::empty () NIRVANA_NOEXCEPT
+bool SkipListBase::empty () noexcept
 {
 	Node* prev = copy_node (head ());
 	Node* node = read_next (prev, 0);

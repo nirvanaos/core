@@ -52,19 +52,19 @@ public:
 		global_.construct ();
 	}
 
-	static void terminate () NIRVANA_NOEXCEPT
+	static void terminate () noexcept
 	{
 		//global_.destruct ();
 	}
 
-	static State state () NIRVANA_NOEXCEPT
+	static State state () noexcept
 	{
 		return global_->state;
 	}
 
 	/// Start new activity.
 	/// Called on creation of the execution domain.
-	static void activity_begin () NIRVANA_NOEXCEPT
+	static void activity_begin () noexcept
 	{
 		assert (global_->state < State::SHUTDOWN_FINISH);
 		global_->activity_cnt.increment ();
@@ -72,7 +72,7 @@ public:
 
 	/// End activity.
 	/// Called on completion of the execution domain.
-	static void activity_end () NIRVANA_NOEXCEPT;
+	static void activity_end () noexcept;
 
 	/// Initiates shutdown.
 	/// Shutdown will be completed when activity count became zero.
@@ -86,7 +86,7 @@ public:
 	}
 
 	/// Release active item space.
-	static void delete_item () NIRVANA_NOEXCEPT
+	static void delete_item () noexcept
 	{
 		Port::Scheduler::delete_item ();
 	}
@@ -95,7 +95,7 @@ public:
 	/// 
 	/// \param deadline Deadline.
 	/// \param executor Executor.
-	static void schedule (const DeadlineTime& deadline, Executor& executor) NIRVANA_NOEXCEPT
+	static void schedule (const DeadlineTime& deadline, Executor& executor) noexcept
 	{
 		Port::Scheduler::schedule (deadline, executor);
 	}
@@ -106,7 +106,7 @@ public:
 	/// \param executor Executor.
 	/// \param old Old deadline.
 	/// \returns `true` if the executor was found and rescheduled. `false` if executor with old deadline was not found.
-	static bool reschedule (const DeadlineTime& deadline, Executor& executor, const DeadlineTime& old) NIRVANA_NOEXCEPT
+	static bool reschedule (const DeadlineTime& deadline, Executor& executor, const DeadlineTime& old) noexcept
 	{
 		return Port::Scheduler::reschedule (deadline, executor, old);
 	}

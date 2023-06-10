@@ -51,7 +51,7 @@ private:
 
 	void postinvoke (CORBA::Internal::Type <ObjectId>::C_in oid,
 		CORBA::Internal::String_in operation, void* the_cookie,
-		CORBA::Object::_ptr_type the_servant) NIRVANA_NOEXCEPT;
+		CORBA::Object::_ptr_type the_servant) noexcept;
 
 private:
 	ServantLocator::_ref_type locator_;

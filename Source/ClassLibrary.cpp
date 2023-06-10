@@ -52,7 +52,7 @@ void ClassLibrary::initialize (ModuleInit::_ptr_type entry_point, AtomicCounter 
 	ed.restricted_mode (rm);
 }
 
-void ClassLibrary::terminate () NIRVANA_NOEXCEPT
+void ClassLibrary::terminate () noexcept
 {
 	assert (MemContext::is_current (this));
 	if (Port::Memory::FLAGS & Memory::ACCESS_CHECK) {
@@ -72,12 +72,12 @@ void ClassLibrary::terminate () NIRVANA_NOEXCEPT
 	Module::terminate ();
 }
 
-Heap* ClassLibrary::stateless_memory () NIRVANA_NOEXCEPT
+Heap* ClassLibrary::stateless_memory () noexcept
 {
 	return &heap ();
 }
 
-Module* ClassLibrary::module () NIRVANA_NOEXCEPT
+Module* ClassLibrary::module () noexcept
 {
 	return this;
 }

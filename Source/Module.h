@@ -55,19 +55,19 @@ public:
 	/// \returns Synchronization context.
 	///   If module is ClassLibrary, returned context is free context.
 	///   If module is Singleton, returned context is the singleton synchronization domain.
-	virtual SyncContext& sync_context () NIRVANA_NOEXCEPT = 0;
+	virtual SyncContext& sync_context () noexcept = 0;
 
 	/// Called on the module static object _add_ref().
-	void _add_ref () NIRVANA_NOEXCEPT
+	void _add_ref () noexcept
 	{
 		ref_cnt_.increment ();
 	}
 
 	/// Called on the module static object _remove_ref().
-	void _remove_ref () NIRVANA_NOEXCEPT;
+	void _remove_ref () noexcept;
 
 	/// \returns Current reference count.
-	AtomicCounter <false>::IntegralType _refcount_value () const NIRVANA_NOEXCEPT
+	AtomicCounter <false>::IntegralType _refcount_value () const noexcept
 	{
 		return ref_cnt_;
 	}
@@ -92,7 +92,7 @@ public:
 	}
 
 	virtual void initialize (ModuleInit::_ptr_type entry_point, AtomicCounter <false>::IntegralType initial_ref_cnt);
-	virtual void terminate () NIRVANA_NOEXCEPT;
+	virtual void terminate () noexcept;
 
 	void raise_exception (CORBA::SystemException::Code code, unsigned minor);
 

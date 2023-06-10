@@ -78,7 +78,7 @@ public:
 		return ret;
 	}
 
-	PortableServer::POAManager::_ref_type find (const IDL::String& id) const NIRVANA_NOEXCEPT
+	PortableServer::POAManager::_ref_type find (const IDL::String& id) const noexcept
 	{
 		PortableServer::POAManager::_ref_type ret;
 		auto f = managers_.find (static_cast <const POAManager&> (id));
@@ -107,7 +107,7 @@ POAManager::POAManager (POAManagerFactory& factory, const IDL::String& id) :
 {}
 
 inline
-void POAManager::_delete_object () NIRVANA_NOEXCEPT
+void POAManager::_delete_object () noexcept
 {
 	CORBA::servant_reference <POAManagerFactory> tmp (std::move (factory_));
 	tmp->managers_.erase (*this);

@@ -54,13 +54,13 @@ public:
 
 	struct RequestVal : RequestKey
 	{
-		RequestVal (const RequestKey& key, RequestIn& rq, uint64_t time) NIRVANA_NOEXCEPT :
+		RequestVal (const RequestKey& key, RequestIn& rq, uint64_t time) noexcept :
 			RequestKey (key),
 			timestamp (time),
 			request (&rq)
 		{}
 
-		RequestVal (const RequestKey& key, uint64_t time) NIRVANA_NOEXCEPT :
+		RequestVal (const RequestKey& key, uint64_t time) noexcept :
 			RequestKey (key),
 			timestamp (time),
 			request (nullptr)
@@ -81,13 +81,13 @@ public:
 	/// Cancel incoming request.
 	/// 
 	/// \param key The request key.
-	static void cancel (const RequestKey& key, uint64_t timestamp) NIRVANA_NOEXCEPT;
+	static void cancel (const RequestKey& key, uint64_t timestamp) noexcept;
 
 	/// Remove request from map.
 	/// 
 	/// \param iter The map iterator.
 	/// \returns `true` if response must be sent.
-	static bool finalize (void* iter) NIRVANA_NOEXCEPT
+	static bool finalize (void* iter) noexcept
 	{
 		RequestMap::NodeVal* node = (RequestMap::NodeVal*)iter;
 		bool ret = map_->remove (node);
@@ -95,7 +95,7 @@ public:
 		return ret;
 	}
 
-	static void release_iterator (void* iter) NIRVANA_NOEXCEPT
+	static void release_iterator (void* iter) noexcept
 	{
 		map_->release_node ((RequestMap::NodeVal*)iter);
 	}

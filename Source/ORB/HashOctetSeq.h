@@ -37,7 +37,7 @@ namespace std {
 template <class Al>
 struct hash <std::vector <uint8_t, Al> >
 {
-	size_t operator () (const std::vector <uint8_t, Al>& seq) const NIRVANA_NOEXCEPT
+	size_t operator () (const std::vector <uint8_t, Al>& seq) const noexcept
 	{
 		return Nirvana::Hash::hash_bytes (seq.data (), seq.size ());
 	}

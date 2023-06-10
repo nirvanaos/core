@@ -47,17 +47,17 @@ protected:
 	virtual void activate_object (CORBA::Core::ReferenceLocal& ref,
 		CORBA::Core::ServantProxyObject& proxy) override;
 
-	virtual void destroy_internal (bool etherealize_objects) NIRVANA_NOEXCEPT override;
-	virtual void etherealize_objects () NIRVANA_NOEXCEPT override;
+	virtual void destroy_internal (bool etherealize_objects) noexcept override;
+	virtual void etherealize_objects () noexcept override;
 	virtual void implicit_deactivate (CORBA::Core::ReferenceLocal& ref,
-		CORBA::Core::ServantProxyObject& proxy) NIRVANA_NOEXCEPT override;
+		CORBA::Core::ServantProxyObject& proxy) noexcept override;
 	virtual CORBA::servant_reference <CORBA::Core::ServantProxyObject> deactivate_object (
 		CORBA::Core::ReferenceLocal& ref) override;
 
 	typedef const CORBA::Core::ServantProxyObject* ServantPtr;
 	typedef CORBA::Core::ReferenceLocal* ReferencePtr;
 
-	ReferencePtr find_servant (const CORBA::Core::ServantProxyObject& proxy) NIRVANA_NOEXCEPT;
+	ReferencePtr find_servant (const CORBA::Core::ServantProxyObject& proxy) noexcept;
 
 	using ServantMap = Nirvana::Core::MapUnorderedUnstable <ServantPtr, ReferencePtr, std::hash <ServantPtr>,
 		std::equal_to <ServantPtr>, Nirvana::Core::UserAllocator>;

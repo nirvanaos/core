@@ -86,13 +86,13 @@ void Startup::run ()
 	}
 }
 
-void Startup::on_exception () NIRVANA_NOEXCEPT
+void Startup::on_exception () noexcept
 {
 	exception_ = std::current_exception ();
 	Scheduler::shutdown ();
 }
 
-void Startup::on_crash (const siginfo& signal) NIRVANA_NOEXCEPT
+void Startup::on_crash (const siginfo& signal) noexcept
 {
 	if (signal.si_excode == CORBA::Exception::EC_NO_EXCEPTION)
 		exception_code_ = CORBA::SystemException::EC_UNKNOWN;

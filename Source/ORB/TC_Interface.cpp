@@ -28,7 +28,7 @@
 namespace CORBA {
 namespace Core {
 
-TC_Interface::TC_Interface (TCKind kind, IDL::String&& id, IDL::String&& name) NIRVANA_NOEXCEPT :
+TC_Interface::TC_Interface (TCKind kind, IDL::String&& id, IDL::String&& name) noexcept :
 Impl (kind, std::move (id), std::move (name))
 {}
 

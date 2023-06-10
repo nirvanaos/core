@@ -39,15 +39,15 @@ class WaitableRefBase
 	WaitableRefBase& operator = (const WaitableRefBase&) = delete;
 public:
 	/// Called by creator execution domain on exception in object creation.
-	void on_exception () NIRVANA_NOEXCEPT;
+	void on_exception () noexcept;
 
 	/// \returns `true` if object creation is not completed.
-	bool is_wait_list () const NIRVANA_NOEXCEPT
+	bool is_wait_list () const noexcept
 	{
 		return is_wait_list (pointer_);
 	}
 
-	bool initialized () const NIRVANA_NOEXCEPT
+	bool initialized () const noexcept
 	{
 		return pointer_ != 0;
 	}
@@ -55,7 +55,7 @@ public:
 	bool initialize (TimeBase::TimeT deadline);
 
 protected:
-	WaitableRefBase () NIRVANA_NOEXCEPT :
+	WaitableRefBase () noexcept :
 		pointer_ (0)
 	{}
 
@@ -70,25 +70,25 @@ protected:
 		reset ();
 	}
 
-	WaitableRefBase (WaitableRefBase&& src) NIRVANA_NOEXCEPT :
+	WaitableRefBase (WaitableRefBase&& src) noexcept :
 		pointer_ (src.pointer_)
 	{
 		src.pointer_ = 0;
 	}
 
-	void finish_construction (uintptr_t p) NIRVANA_NOEXCEPT;
+	void finish_construction (uintptr_t p) noexcept;
 	void wait_construction () const;
 
-	void reset () NIRVANA_NOEXCEPT;
+	void reset () noexcept;
 
-	static bool is_wait_list (uintptr_t pointer) NIRVANA_NOEXCEPT
+	static bool is_wait_list (uintptr_t pointer) noexcept
 	{
 		return pointer & 1;
 	}
 
 private:
-	inline WaitList* wait_list () const NIRVANA_NOEXCEPT;
-	void detach (Ref <WaitList>& ref) NIRVANA_NOEXCEPT;
+	inline WaitList* wait_list () const noexcept;
+	void detach (Ref <WaitList>& ref) noexcept;
 
 protected:
 	uintptr_t pointer_;
@@ -131,7 +131,7 @@ public:
 	/// Called by creator execution domain on finish the object creation.
 	/// 
 	/// \param p Pointer to the created object.
-	void finish_construction (PtrType p) NIRVANA_NOEXCEPT
+	void finish_construction (PtrType p) noexcept
 	{
 		uintptr_t up = 0;
 		reinterpret_cast <PtrType&> (up) = std::move (p);
@@ -150,7 +150,7 @@ public:
 	/// Check for the object constructed
 	/// 
 	/// \returns `true` if the object construction is complete.
-	bool is_constructed () const NIRVANA_NOEXCEPT
+	bool is_constructed () const noexcept
 	{
 		return !is_wait_list (pointer_);
 	}
@@ -160,7 +160,7 @@ public:
 	/// Do not use for std::unique_ptr pointer type
 	/// 
 	/// \returns Pointer or `nullptr`.
-	PtrType get_if_constructed () const NIRVANA_NOEXCEPT
+	PtrType get_if_constructed () const noexcept
 	{
 		uintptr_t p = pointer_;
 		if (is_wait_list (p))
@@ -169,7 +169,7 @@ public:
 			return reinterpret_cast <const PtrType&> (p);
 	}
 
-	void reset () NIRVANA_NOEXCEPT
+	void reset () noexcept
 	{
 		if (this->is_wait_list ())
 			WaitableRefBase::reset ();
@@ -183,7 +183,7 @@ public:
 	}
 
 private:
-	PtrType& ref () NIRVANA_NOEXCEPT
+	PtrType& ref () noexcept
 	{
 		assert (!this->is_wait_list ());
 		return reinterpret_cast <PtrType&> (this->pointer_);

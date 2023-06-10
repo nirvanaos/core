@@ -45,7 +45,7 @@ class ReceiveRequest :
 	public Runnable
 {
 public:
-	ReceiveRequest (const Request& msg) NIRVANA_NOEXCEPT :
+	ReceiveRequest (const Request& msg) noexcept :
 		data_ ((void*)msg.GIOP_message),
 		timestamp_ (Nirvana::Core::Chrono::deadline_clock ()),
 		client_id_ (msg.client_domain),
@@ -54,7 +54,7 @@ public:
 
 private:
 	virtual void run () override;
-	virtual void on_crash (const siginfo& signal) NIRVANA_NOEXCEPT override;
+	virtual void on_crash (const siginfo& signal) noexcept override;
 
 private:
 	void* data_;
@@ -104,7 +104,7 @@ void ReceiveRequest::run ()
 	}
 }
 
-void ReceiveRequest::on_crash (const siginfo& signal) NIRVANA_NOEXCEPT
+void ReceiveRequest::on_crash (const siginfo& signal) noexcept
 {
 	if (request_id_) {
 		// Responce expected
@@ -123,7 +123,7 @@ class ReceiveCancel :
 	public Runnable
 {
 public:
-	ReceiveCancel (const CancelRequest& msg) NIRVANA_NOEXCEPT :
+	ReceiveCancel (const CancelRequest& msg) noexcept :
 		timestamp_ (Nirvana::Core::Chrono::deadline_clock ()),
 		client_id_ (msg.client_domain),
 		request_id_ (msg.request_id)
@@ -148,7 +148,7 @@ class ReceiveReply :
 	public Runnable
 {
 public:
-	ReceiveReply (const Reply& msg) NIRVANA_NOEXCEPT :
+	ReceiveReply (const Reply& msg) noexcept :
 		data_ ((void*)msg.GIOP_message),
 		request_id_ (msg.request_id)
 	{}
@@ -201,7 +201,7 @@ class ReceiveReplyImmediate :
 {
 public:
 	ReceiveReplyImmediate (const ReplyImmediate& msg)
-		NIRVANA_NOEXCEPT :
+		noexcept :
 		request_id_ (msg.request_id),
 		size_and_flag_ (msg.flags)
 	{
@@ -246,7 +246,7 @@ class ReceiveSystemException :
 {
 public:
 	ReceiveSystemException (const ReplySystemException& msg)
-		NIRVANA_NOEXCEPT :
+		noexcept :
 		completed_ ((CompletionStatus)msg.completed),
 		code_ (msg.code),
 		minor_ (msg.minor),
@@ -274,7 +274,7 @@ class ReceiveCloseConnection :
 {
 public:
 	ReceiveCloseConnection (const CloseConnection& msg)
-		NIRVANA_NOEXCEPT :
+		noexcept :
 		domain_id_ (msg.sender_domain)
 	{
 	}

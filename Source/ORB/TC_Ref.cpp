@@ -28,7 +28,7 @@
 namespace CORBA {
 namespace Core {
 
-TC_Ref::TC_Ref (TypeCode::_ptr_type p, TC_ComplexBase* complex) NIRVANA_NOEXCEPT :
+TC_Ref::TC_Ref (TypeCode::_ptr_type p, TC_ComplexBase* complex) noexcept :
 	TypeCode::_ptr_type (p),
 	complex_ (complex)
 {
@@ -36,14 +36,14 @@ TC_Ref::TC_Ref (TypeCode::_ptr_type p, TC_ComplexBase* complex) NIRVANA_NOEXCEPT
 		Internal::interface_duplicate (p_);
 }
 
-TC_Ref::TC_Ref (TypeCode::_ptr_type p) NIRVANA_NOEXCEPT :
+TC_Ref::TC_Ref (TypeCode::_ptr_type p) noexcept :
 	TypeCode::_ptr_type (p),
 	complex_ (nullptr)
 {
 	Internal::interface_duplicate (p_);
 }
 
-TC_Ref::TC_Ref (const TC_Ref& src) NIRVANA_NOEXCEPT :
+TC_Ref::TC_Ref (const TC_Ref& src) noexcept :
 	TypeCode::_ptr_type (src),
 	complex_ (src.complex_)
 {
@@ -51,7 +51,7 @@ TC_Ref::TC_Ref (const TC_Ref& src) NIRVANA_NOEXCEPT :
 		Internal::interface_duplicate (p_);
 }
 
-TC_Ref& TC_Ref::operator = (const TC_Ref& src) NIRVANA_NOEXCEPT
+TC_Ref& TC_Ref::operator = (const TC_Ref& src) noexcept
 {
 	if (!complex_)
 		Internal::interface_release (p_);
@@ -62,7 +62,7 @@ TC_Ref& TC_Ref::operator = (const TC_Ref& src) NIRVANA_NOEXCEPT
 	return *this;
 }
 
-TC_Ref& TC_Ref::operator = (TC_Ref&& src) NIRVANA_NOEXCEPT
+TC_Ref& TC_Ref::operator = (TC_Ref&& src) noexcept
 {
 	if (!complex_)
 		Internal::interface_release (p_);
@@ -73,7 +73,7 @@ TC_Ref& TC_Ref::operator = (TC_Ref&& src) NIRVANA_NOEXCEPT
 	return *this;
 }
 
-TC_Ref& TC_Ref::operator = (TypeCode::_ptr_type p) NIRVANA_NOEXCEPT
+TC_Ref& TC_Ref::operator = (TypeCode::_ptr_type p) noexcept
 {
 	TypeCode::_ptr_type::operator = (p);
 	Internal::interface_duplicate (&p);
@@ -81,7 +81,7 @@ TC_Ref& TC_Ref::operator = (TypeCode::_ptr_type p) NIRVANA_NOEXCEPT
 	return *this;
 }
 
-TC_Ref& TC_Ref::operator = (TypeCode::_ref_type&& src) NIRVANA_NOEXCEPT
+TC_Ref& TC_Ref::operator = (TypeCode::_ref_type&& src) noexcept
 {
 	if (!complex_)
 		Internal::interface_release (p_);

@@ -35,7 +35,7 @@ RuntimeSupport::RuntimeSupport ()
 RuntimeSupport::~RuntimeSupport ()
 {}
 
-void RuntimeSupport::clear () NIRVANA_NOEXCEPT
+void RuntimeSupport::clear () noexcept
 {
 	ProxyMap tmp = std::move (proxy_map_);
 }
@@ -54,7 +54,7 @@ RuntimeProxy::_ref_type RuntimeSupport::runtime_proxy_get (const void* obj)
 	return ins.first->second->_get_ptr ();
 }
 
-void RuntimeSupport::runtime_proxy_remove (const void* obj) NIRVANA_NOEXCEPT
+void RuntimeSupport::runtime_proxy_remove (const void* obj) noexcept
 {
 	auto f = proxy_map_.find (obj);
 	if (f != proxy_map_.end ()) {

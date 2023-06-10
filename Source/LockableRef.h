@@ -44,7 +44,7 @@ class LockableRef
 	LockableRef& operator = (LockableRef&&) = delete;
 
 public:
-	LockableRef () NIRVANA_NOEXCEPT :
+	LockableRef () noexcept :
 		p_ (nullptr)
 	{}
 
@@ -54,26 +54,26 @@ public:
 		ref.p_ = p_.load ();
 	}
 
-	LockableRef& operator = (Ref <T> src) NIRVANA_NOEXCEPT
+	LockableRef& operator = (Ref <T> src) noexcept
 	{
 		swap (src);
 		return *this;
 	}
 
-	Ref <T> get () const NIRVANA_NOEXCEPT
+	Ref <T> get () const noexcept
 	{
 		Ref <T> ref (p_.lock ());
 		p_.unlock ();
 		return ref;
 	}
 
-	void reset () NIRVANA_NOEXCEPT
+	void reset () noexcept
 	{
 		Ref <T> tmp;
 		swap (tmp);
 	}
 
-	void swap (Ref <T>& ref) NIRVANA_NOEXCEPT
+	void swap (Ref <T>& ref) noexcept
 	{
 		typename LockablePtrT <T, 0, ALIGN>::Ptr from;
 		typename LockablePtrT <T, 0, ALIGN>::Ptr to (ref);

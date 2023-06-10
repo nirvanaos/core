@@ -34,7 +34,7 @@ namespace Nirvana {
 namespace Core {
 
 inline
-void ThreadBackground::execute () NIRVANA_NOEXCEPT
+void ThreadBackground::execute () noexcept
 {
 	ExecDomain* ed = exec_domain ();
 	if (ed) {

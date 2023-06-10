@@ -59,7 +59,7 @@ void Binder::ObjectMap::insert (const char* name, InterfacePtr itf)
 		throw_INV_OBJREF ();	// Duplicated name
 }
 
-void Binder::ObjectMap::erase (const char* name) NIRVANA_NOEXCEPT
+void Binder::ObjectMap::erase (const char* name) noexcept
 {
 	verify (ObjectMapBase::erase (name));
 }
@@ -331,7 +331,7 @@ const ModuleStartup* Binder::module_bind (::Nirvana::Module::_ptr_type mod, cons
 	return module_startup;
 }
 
-void Binder::module_unbind (Nirvana::Module::_ptr_type mod, const Section& metadata) NIRVANA_NOEXCEPT
+void Binder::module_unbind (Nirvana::Module::_ptr_type mod, const Section& metadata) noexcept
 {
 	// Pass 1: Release all imported interfaces.
 	release_imports (mod, metadata);
@@ -434,7 +434,7 @@ void Binder::unload (Module* mod)
 }
 
 inline
-void Binder::remove_exports (const Section& metadata) NIRVANA_NOEXCEPT
+void Binder::remove_exports (const Section& metadata) noexcept
 {
 	// Pass 1: Remove all exports from the map.
 	// This pass will not cause inter-domain calls.
@@ -575,7 +575,7 @@ void Binder::HousekeepingTimerModules::run (const TimeBase::TimeT& signal_time)
 }
 
 inline
-void Binder::housekeeping_domains () NIRVANA_NOEXCEPT
+void Binder::housekeeping_domains () noexcept
 {
 	if (!remote_references_.housekeeping ()) {
 		housekeeping_timer_domains_.cancel ();

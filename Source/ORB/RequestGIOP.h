@@ -53,12 +53,12 @@ class NIRVANA_NOVTABLE RequestGIOP :
 	static const size_t CHUNK_SIZE_LIMIT = 0x10000;
 
 protected:
-	void _add_ref () NIRVANA_NOEXCEPT
+	void _add_ref () noexcept
 	{
 		ref_cnt_.increment ();
 	}
 
-	void _remove_ref () NIRVANA_NOEXCEPT;
+	void _remove_ref () noexcept;
 
 	friend class Internal::LifeCycleRefCnt <RequestGIOP>;
 
@@ -71,7 +71,7 @@ protected:
 public:
 	/// When request object is created, it saves the current memory context reference.
 	///
-	Nirvana::Core::MemContext& memory () const NIRVANA_NOEXCEPT
+	Nirvana::Core::MemContext& memory () const noexcept
 	{
 		return *mem_context_;
 	}
@@ -335,7 +335,7 @@ public:
 	///@}
 
 	/// \returns Response flags.
-	unsigned response_flags () const NIRVANA_NOEXCEPT
+	unsigned response_flags () const noexcept
 	{
 		return response_flags_;
 	}
@@ -395,19 +395,19 @@ public:
 		return stream_out_;
 	}
 
-	void code_set_converter (Nirvana::Core::Ref <CodeSetConverter>&& csc) NIRVANA_NOEXCEPT
+	void code_set_converter (Nirvana::Core::Ref <CodeSetConverter>&& csc) noexcept
 	{
 		code_set_conv_ = std::move (csc);
 	}
 
-	void code_set_converter (Nirvana::Core::Ref <CodeSetConverterW>&& csc) NIRVANA_NOEXCEPT
+	void code_set_converter (Nirvana::Core::Ref <CodeSetConverterW>&& csc) noexcept
 	{
 		code_set_conv_w_ = std::move (csc);
 	}
 
 	///@}
 
-	Domain* target_domain () const NIRVANA_NOEXCEPT
+	Domain* target_domain () const noexcept
 	{
 		return target_domain_;
 	}

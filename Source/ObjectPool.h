@@ -78,7 +78,7 @@ public:
 	/// If pool size reached the limit, object will be deleted.
 	/// 
 	/// \param obj Object to release.
-	void release (T& obj) NIRVANA_NOEXCEPT
+	void release (T& obj) noexcept
 	{
 		if (max_size_ < ++size_) {
 			--size_;

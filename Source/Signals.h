@@ -39,14 +39,14 @@ class Signals
 public:
 	static const size_t SUPPORTED_COUNT = 6;
 
-	static int signal_index (int signal) NIRVANA_NOEXCEPT;
+	static int signal_index (int signal) noexcept;
 
-	static bool is_supported (int signal) NIRVANA_NOEXCEPT
+	static bool is_supported (int signal) noexcept
 	{
 		return signal_index (signal) >= 0;
 	}
 
-	static CORBA::Exception::Code signal2ex (int signal) NIRVANA_NOEXCEPT;
+	static CORBA::Exception::Code signal2ex (int signal) noexcept;
 
 private:
 	static const int supported_signals_ [SUPPORTED_COUNT];

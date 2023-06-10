@@ -50,7 +50,7 @@ public:
 
 	/// Returns current execution domain.
 	/// This method is quicker than ExecDomain::current ();
-	ExecDomain& exec_domain () NIRVANA_NOEXCEPT
+	ExecDomain& exec_domain () noexcept
 	{
 		return exec_domain_;
 	}

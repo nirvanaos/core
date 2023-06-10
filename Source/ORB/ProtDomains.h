@@ -41,14 +41,14 @@ class ProtDomainsWaitable
 
 public:
 	CORBA::servant_reference <DomainProt> get (ProtDomainId domain_id);
-	CORBA::servant_reference <DomainProt> find (ProtDomainId domain_id) const NIRVANA_NOEXCEPT;
+	CORBA::servant_reference <DomainProt> find (ProtDomainId domain_id) const noexcept;
 
-	void erase (ProtDomainId domain_id) NIRVANA_NOEXCEPT
+	void erase (ProtDomainId domain_id) noexcept
 	{
 		map_.erase (domain_id);
 	}
 
-	bool housekeeping (const TimeBase::TimeT& cur_time) NIRVANA_NOEXCEPT
+	bool housekeeping (const TimeBase::TimeT& cur_time) noexcept
 	{
 		for (auto it = map_.begin (); it != map_.end ();) {
 			if (it->second.is_constructed () && it->second.get ()->is_garbage (cur_time))
@@ -59,7 +59,7 @@ public:
 		return !map_.empty ();
 	}
 
-	void shutdown () NIRVANA_NOEXCEPT
+	void shutdown () noexcept
 	{
 		for (auto it = map_.begin (); it != map_.end (); ++it) {
 			if (it->second.is_constructed ())
@@ -82,14 +82,14 @@ class ProtDomainsSimple
 {
 public:
 	CORBA::servant_reference <DomainProt> get (ProtDomainId domain_id);
-	CORBA::servant_reference <DomainProt> find (ProtDomainId domain_id) const NIRVANA_NOEXCEPT;
+	CORBA::servant_reference <DomainProt> find (ProtDomainId domain_id) const noexcept;
 
-	void erase (ProtDomainId domain_id) NIRVANA_NOEXCEPT
+	void erase (ProtDomainId domain_id) noexcept
 	{
 		map_.erase (domain_id);
 	}
 
-	bool housekeeping (const TimeBase::TimeT& cur_time) NIRVANA_NOEXCEPT
+	bool housekeeping (const TimeBase::TimeT& cur_time) noexcept
 	{
 		for (auto it = map_.begin (); it != map_.end ();) {
 			if (it->second.is_garbage (cur_time))
@@ -100,7 +100,7 @@ public:
 		return !map_.empty ();
 	}
 
-	void shutdown () NIRVANA_NOEXCEPT
+	void shutdown () noexcept
 	{
 		for (auto it = map_.begin (); it != map_.end (); ++it) {
 			it->second.shutdown ();
@@ -125,23 +125,23 @@ public:
 		return nullptr;
 	}
 
-	void erase (ProtDomainId domain_id) NIRVANA_NOEXCEPT
+	void erase (ProtDomainId domain_id) noexcept
 	{
 		NIRVANA_UNREACHABLE_CODE ();
 	}
 
-	CORBA::servant_reference <DomainProt> find (ProtDomainId domain_id) const NIRVANA_NOEXCEPT
+	CORBA::servant_reference <DomainProt> find (ProtDomainId domain_id) const noexcept
 	{
 		NIRVANA_UNREACHABLE_CODE ();
 		return nullptr;
 	}
 
-	bool housekeeping (const TimeBase::TimeT& cur_time) NIRVANA_NOEXCEPT
+	bool housekeeping (const TimeBase::TimeT& cur_time) noexcept
 	{
 		return false;
 	}
 
-	void shutdown () NIRVANA_NOEXCEPT
+	void shutdown () noexcept
 	{}
 };
 

@@ -52,13 +52,13 @@ public:
 	using Nirvana::Core::UserObject::operator delete;
 
 	/// When we run in the legacy subsystem, every thread is a ThreadLegacy instance.
-	static ThreadBase& current () NIRVANA_NOEXCEPT
+	static ThreadBase& current () noexcept
 	{
 		Nirvana::Core::Thread& base = Base::current ();
 		return static_cast <ThreadBase&> (base);
 	}
 
-	virtual Process& process () NIRVANA_NOEXCEPT = 0;
+	virtual Process& process () noexcept = 0;
 
 protected:
 	ThreadBase () = default;

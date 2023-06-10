@@ -52,10 +52,10 @@ public:
 		return (int)entry_point_->main (argc, argv, envp);
 	}
 
-	virtual Nirvana::Core::Module* module () NIRVANA_NOEXCEPT;
+	virtual Nirvana::Core::Module* module () noexcept;
 	virtual void raise_exception (CORBA::SystemException::Code code, unsigned minor);
 
-	void unbind () NIRVANA_NOEXCEPT;
+	void unbind () noexcept;
 
 private:
 	Main::_ptr_type entry_point_;

@@ -28,7 +28,7 @@
 namespace CORBA {
 namespace Core {
 
-TC_Enum::TC_Enum (IDL::String&& id, IDL::String&& name, Members&& members) NIRVANA_NOEXCEPT :
+TC_Enum::TC_Enum (IDL::String&& id, IDL::String&& name, Members&& members) noexcept :
 	Impl (TCKind::tk_enum, std::move (id), std::move (name)),
 	members_ (std::move (members))
 {}

@@ -66,21 +66,21 @@ public:
 		}
 	}
 
-	void deactivate (ReferenceLocal& reference) NIRVANA_NOEXCEPT
+	void deactivate (ReferenceLocal& reference) noexcept
 	{
 		references_.erase (&reference);
 		ReferenceLocal* p = references_.empty () ? nullptr : *references_.begin ();
 		reference_.cas (&reference, p);
 	}
 
-	bool is_active () const NIRVANA_NOEXCEPT
+	bool is_active () const noexcept
 	{
 		return static_cast <ReferenceLocal*> (reference_.load ()) != nullptr;
 	}
 	///@}
 
 	/// Returns user ServantBase implementation
-	PortableServer::Servant servant () const NIRVANA_NOEXCEPT
+	PortableServer::Servant servant () const noexcept
 	{
 		return static_cast <PortableServer::ServantBase*> (&Base::servant ());
 	}
@@ -93,7 +93,7 @@ protected:
 	virtual ReferenceLocalRef get_local_reference (const PortableServer::Core::POA_Base&) override;
 	virtual ReferenceRef marshal (StreamOut& out) override;
 
-	ReferenceLocalRef get_local_reference () const NIRVANA_NOEXCEPT;
+	ReferenceLocalRef get_local_reference () const noexcept;
 
 	virtual Policy::_ref_type _get_policy (PolicyType policy_type) override;
 	virtual DomainManagersList _get_domain_managers () override;
@@ -116,10 +116,10 @@ protected:
 	References references_;
 };
 
-CORBA::Object::_ptr_type servant2object (PortableServer::Servant servant) NIRVANA_NOEXCEPT;
+CORBA::Object::_ptr_type servant2object (PortableServer::Servant servant) noexcept;
 
 inline
-CORBA::Core::ServantProxyObject* object2proxy (CORBA::Object::_ptr_type obj) NIRVANA_NOEXCEPT
+CORBA::Core::ServantProxyObject* object2proxy (CORBA::Object::_ptr_type obj) noexcept
 {
 	return static_cast <ServantProxyObject*> (ProxyManager::cast (obj));
 }

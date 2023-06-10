@@ -51,10 +51,10 @@ class NIRVANA_NOVTABLE RequestInPOA
 	DECLARE_CORE_INTERFACE
 public:
 	/// \returns Target object key.
-	virtual const IOP::ObjectKey& object_key () const NIRVANA_NOEXCEPT = 0;
+	virtual const IOP::ObjectKey& object_key () const noexcept = 0;
 
 	/// \returns Operation name.
-	virtual Internal::StringView <Char> operation () const NIRVANA_NOEXCEPT = 0;
+	virtual Internal::StringView <Char> operation () const noexcept = 0;
 
 	/// Serve the request.
 	/// 
@@ -65,12 +65,12 @@ public:
 	/// Operation has move semantics so \p e may be cleared.
 	virtual void set_exception (Any& e) = 0;
 
-	void set_exception (Exception&& e) NIRVANA_NOEXCEPT;
-	void set_unknown_exception () NIRVANA_NOEXCEPT;
+	void set_exception (Exception&& e) noexcept;
+	void set_unknown_exception () noexcept;
 
-	virtual bool is_cancelled () const NIRVANA_NOEXCEPT = 0;
+	virtual bool is_cancelled () const noexcept = 0;
 
-	virtual Nirvana::Core::MemContext* memory () const NIRVANA_NOEXCEPT = 0;
+	virtual Nirvana::Core::MemContext* memory () const noexcept = 0;
 
 protected:
 	RequestInPOA ();

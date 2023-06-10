@@ -56,7 +56,7 @@ public:
 		Base::resume ();
 	}
 
-	void finish () NIRVANA_NOEXCEPT
+	void finish () noexcept
 	{
 		Base::finish ();
 	}
@@ -71,11 +71,11 @@ protected:
 	void start ();
 
 	// Called from port.
-	virtual void on_thread_proc_end () NIRVANA_NOEXCEPT;
+	virtual void on_thread_proc_end () noexcept;
 
 private:
 	// Called from port.
-	inline void execute () NIRVANA_NOEXCEPT;
+	inline void execute () noexcept;
 
 };
 

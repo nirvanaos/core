@@ -39,7 +39,7 @@ class TC_Ref;
 class TC_ComplexBase
 {
 public:
-	virtual bool mark () NIRVANA_NOEXCEPT
+	virtual bool mark () noexcept
 	{
 		if (!marked_) {
 			marked_ = true;
@@ -48,7 +48,7 @@ public:
 			return false;
 	}
 
-	bool sweep () NIRVANA_NOEXCEPT
+	bool sweep () noexcept
 	{
 		if (marked_) {
 			marked_ = false;
@@ -59,14 +59,14 @@ public:
 		}
 	}
 
-	virtual bool has_extern_ref () const NIRVANA_NOEXCEPT = 0;
+	virtual bool has_extern_ref () const noexcept = 0;
 
-	virtual bool set_recursive (const IDL::String& id, const TC_Ref& ref) NIRVANA_NOEXCEPT
+	virtual bool set_recursive (const IDL::String& id, const TC_Ref& ref) noexcept
 	{
 		return false;
 	}
 
-	bool is_recursive () const NIRVANA_NOEXCEPT
+	bool is_recursive () const noexcept
 	{
 		return recursive_;
 	}
@@ -80,7 +80,7 @@ protected:
 	virtual ~TC_ComplexBase ()
 	{}
 
-	void collect_garbage () NIRVANA_NOEXCEPT;
+	void collect_garbage () noexcept;
 
 private:
 	bool marked_;
@@ -98,12 +98,12 @@ protected:
 		Base (std::forward <Args> (args)...)
 	{}
 
-	virtual void collect_garbage () NIRVANA_NOEXCEPT override
+	virtual void collect_garbage () noexcept override
 	{
 		TC_ComplexBase::collect_garbage ();
 	}
 
-	virtual bool has_extern_ref () const NIRVANA_NOEXCEPT override
+	virtual bool has_extern_ref () const noexcept override
 	{
 		return Base::ref_cnt_.load () != 0;
 	}
@@ -117,9 +117,9 @@ public:
 		complex_ (nullptr)
 	{}
 
-	TC_Ref (const TC_Ref& src) NIRVANA_NOEXCEPT;
+	TC_Ref (const TC_Ref& src) noexcept;
 
-	TC_Ref (TC_Ref&& src) NIRVANA_NOEXCEPT :
+	TC_Ref (TC_Ref&& src) noexcept :
 		TypeCode::_ptr_type (src),
 		complex_ (src.complex_)
 	{
@@ -127,10 +127,10 @@ public:
 		src.complex_ = nullptr;
 	}
 
-	TC_Ref (TypeCode::_ptr_type p, TC_ComplexBase* complex) NIRVANA_NOEXCEPT;
-	TC_Ref (TypeCode::_ptr_type p) NIRVANA_NOEXCEPT;
+	TC_Ref (TypeCode::_ptr_type p, TC_ComplexBase* complex) noexcept;
+	TC_Ref (TypeCode::_ptr_type p) noexcept;
 
-	TC_Ref (TypeCode::_ref_type&& src) NIRVANA_NOEXCEPT :
+	TC_Ref (TypeCode::_ref_type&& src) noexcept :
 		complex_ (nullptr)
 	{
 		reinterpret_cast <TypeCode::_ref_type&> (*this) = std::move (src);
@@ -142,18 +142,18 @@ public:
 			Internal::interface_release (p_);
 	}
 
-	TC_Ref& operator = (const TC_Ref& src) NIRVANA_NOEXCEPT;
-	TC_Ref& operator = (TC_Ref&& src) NIRVANA_NOEXCEPT;
-	TC_Ref& operator = (TypeCode::_ptr_type p) NIRVANA_NOEXCEPT;
-	TC_Ref& operator = (TypeCode::_ref_type&& src) NIRVANA_NOEXCEPT;
+	TC_Ref& operator = (const TC_Ref& src) noexcept;
+	TC_Ref& operator = (TC_Ref&& src) noexcept;
+	TC_Ref& operator = (TypeCode::_ptr_type p) noexcept;
+	TC_Ref& operator = (TypeCode::_ref_type&& src) noexcept;
 
-	void mark () NIRVANA_NOEXCEPT
+	void mark () noexcept
 	{
 		if (complex_)
 			complex_->mark ();
 	}
 
-	bool replace_recursive_placeholder (const IDL::String& id, const TC_Ref& ref) NIRVANA_NOEXCEPT
+	bool replace_recursive_placeholder (const IDL::String& id, const TC_Ref& ref) noexcept
 	{
 		if (complex_ && complex_->set_recursive (id, ref)) {
 			*this = ref;
@@ -162,7 +162,7 @@ public:
 		return false;
 	}
 
-	bool is_recursive () const NIRVANA_NOEXCEPT
+	bool is_recursive () const noexcept
 	{
 		return complex_ && complex_->is_recursive ();
 	}

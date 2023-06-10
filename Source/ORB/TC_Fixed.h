@@ -39,7 +39,7 @@ class TC_Fixed :
 {
 	typedef TC_Impl <TC_Fixed, TC_Base> Impl;
 public:
-	TC_Fixed (UShort digits, Short scale) NIRVANA_NOEXCEPT :
+	TC_Fixed (UShort digits, Short scale) noexcept :
 		Impl (TCKind::tk_fixed),
 		digits_ (digits),
 		scale_ (scale)
@@ -60,17 +60,17 @@ public:
 	using Servant::_s_fixed_digits;
 	using Servant::_s_fixed_scale;
 
-	UShort fixed_digits () const NIRVANA_NOEXCEPT
+	UShort fixed_digits () const noexcept
 	{
 		return digits_;
 	}
 
-	Short fixed_scale () const NIRVANA_NOEXCEPT
+	Short fixed_scale () const noexcept
 	{
 		return scale_;
 	}
 
-	size_t n_size () const NIRVANA_NOEXCEPT
+	size_t n_size () const noexcept
 	{
 		return size ();
 	}
@@ -124,7 +124,7 @@ public:
 	using TC_Base::_s_n_byteswap;
 
 private:
-	size_t size () const NIRVANA_NOEXCEPT
+	size_t size () const noexcept
 	{
 		return (digits_ + 2) / 2;
 	}

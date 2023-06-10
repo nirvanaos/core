@@ -62,7 +62,7 @@ void Process::run ()
 	finish ();
 }
 
-void Process::finish () NIRVANA_NOEXCEPT
+void Process::finish () noexcept
 {
 	object_list_.clear ();
 	runtime_support_.clear ();
@@ -84,7 +84,7 @@ void Process::finish () NIRVANA_NOEXCEPT
 	}
 }
 
-void Process::on_crash (const siginfo& signal) NIRVANA_NOEXCEPT
+void Process::on_crash (const siginfo& signal) noexcept
 {
 	if (SIGABRT == signal.si_signo)
 		ret_ = 3;
@@ -105,7 +105,7 @@ RuntimeProxy::_ref_type Process::runtime_proxy_get (const void* obj)
 	return ret;
 }
 
-void Process::runtime_proxy_remove (const void* obj) NIRVANA_NOEXCEPT
+void Process::runtime_proxy_remove (const void* obj) noexcept
 {
 	// Debug iterators
 #ifdef NIRVANA_DEBUG_ITERATORS
@@ -120,21 +120,21 @@ void Process::runtime_proxy_remove (const void* obj) NIRVANA_NOEXCEPT
 	}
 }
 
-void Process::on_object_construct (MemContextObject& obj) NIRVANA_NOEXCEPT
+void Process::on_object_construct (MemContextObject& obj) noexcept
 {
 	SYNC_BEGIN (*sync_domain_, nullptr);
 	object_list_.push_back (obj);
 	SYNC_END ();
 }
 
-void Process::on_object_destruct (MemContextObject& obj) NIRVANA_NOEXCEPT
+void Process::on_object_destruct (MemContextObject& obj) noexcept
 {
 	SYNC_BEGIN (*sync_domain_, nullptr);
 	obj.remove ();
 	SYNC_END ();
 }
 
-Process& Process::process () NIRVANA_NOEXCEPT
+Process& Process::process () noexcept
 {
 	return *this;
 }

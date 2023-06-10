@@ -54,7 +54,7 @@ const TC_FactoryImpl::SimpleType TC_FactoryImpl::simple_types_ [] = {
 	{ TCKind::tk_wchar, _tc_wchar }
 };
 
-const TC_FactoryImpl::SimpleType* TC_FactoryImpl::find_simple_type (TCKind kind) NIRVANA_NOEXCEPT
+const TC_FactoryImpl::SimpleType* TC_FactoryImpl::find_simple_type (TCKind kind) noexcept
 {
 	const SimpleType* f = std::lower_bound (simple_types_, std::end (simple_types_), kind, SimpleTypePred ());
 	if (f != std::end (simple_types_) && f->kind == kind)
@@ -68,7 +68,7 @@ Object::_ref_type create_TC_Factory ()
 	return make_reference <TC_FactoryImpl> ()->_this ();
 }
 
-inline void TC_FactoryImpl::schedule_GC () NIRVANA_NOEXCEPT
+inline void TC_FactoryImpl::schedule_GC () noexcept
 {
 	if (!GC_scheduled_.test_and_set ()) {
 		ExecDomain& ed = ExecDomain::current ();
@@ -87,7 +87,7 @@ inline void TC_FactoryImpl::schedule_GC () NIRVANA_NOEXCEPT
 	}
 }
 
-void TC_ComplexBase::collect_garbage () NIRVANA_NOEXCEPT
+void TC_ComplexBase::collect_garbage () noexcept
 {
 	TC_FactoryImpl::schedule_GC ();
 }
@@ -187,7 +187,7 @@ TypeCode::_ref_type TC_FactoryImpl::create_interface_tc (TCKind kind, const Repo
 	return make_pseudo <TC_Interface> (kind, id, name);
 }
 
-TC_ComplexBase* TC_FactoryImpl::complex_base (TypeCode::_ptr_type p) const NIRVANA_NOEXCEPT
+TC_ComplexBase* TC_FactoryImpl::complex_base (TypeCode::_ptr_type p) const noexcept
 {
 	if (!p)
 		return nullptr;

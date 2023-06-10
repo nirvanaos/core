@@ -39,7 +39,7 @@ namespace Core {
 
 std::atomic <RequestOut::IdGenType> RequestOut::last_id_;
 
-RequestOut::RequestId RequestOut::get_new_id (IdPolicy id_policy) NIRVANA_NOEXCEPT
+RequestOut::RequestId RequestOut::get_new_id (IdPolicy id_policy) noexcept
 {
 	IdGenType id;
 	switch (id_policy) {
@@ -365,7 +365,7 @@ void RequestOut::set_exception (Any& e)
 	throw BAD_INV_ORDER ();
 }
 
-void RequestOut::set_system_exception (SystemException::Code code, uint32_t minor, CompletionStatus completed) NIRVANA_NOEXCEPT
+void RequestOut::set_system_exception (SystemException::Code code, uint32_t minor, CompletionStatus completed) noexcept
 {
 	status_ = Status::SYSTEM_EXCEPTION;
 	system_exception_code_ = code;

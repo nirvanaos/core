@@ -46,7 +46,7 @@ MemContext::MemContext () :
 MemContext::~MemContext ()
 {}
 
-void MemContext::_remove_ref () NIRVANA_NOEXCEPT
+void MemContext::_remove_ref () noexcept
 {
 	if (!ref_cnt_.decrement ()) {
 		ExecDomain& ed = ExecDomain::current ();

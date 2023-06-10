@@ -117,7 +117,7 @@ public:
 	/// 
 	/// \param mod The Nirvana::Module interface.
 	/// \param metadata Module metadata.
-	inline static void unbind (Legacy::Core::Executable& mod) NIRVANA_NOEXCEPT;
+	inline static void unbind (Legacy::Core::Executable& mod) noexcept;
 
 	/// Unmarshal remote reference.
 	/// 
@@ -151,39 +151,39 @@ public:
 		SYNC_END ();
 	}
 
-	static Binder& singleton () NIRVANA_NOEXCEPT
+	static Binder& singleton () noexcept
 	{
 		return singleton_;
 	}
 
-	static SyncDomain& sync_domain () NIRVANA_NOEXCEPT
+	static SyncDomain& sync_domain () noexcept
 	{
 		return sync_domain_;
 	}
 
-	static MemContext& memory () NIRVANA_NOEXCEPT
+	static MemContext& memory () noexcept
 	{
 		return sync_domain_->mem_context ();
 	}
 
-	CORBA::Core::RemoteReferences& remote_references () NIRVANA_NOEXCEPT
+	CORBA::Core::RemoteReferences& remote_references () noexcept
 	{
 		return remote_references_;
 	}
 
-	void erase_reference (const CORBA::OctetSeq& ref, const char* object_name) NIRVANA_NOEXCEPT
+	void erase_reference (const CORBA::OctetSeq& ref, const char* object_name) noexcept
 	{
 		if (object_name)
 			object_map_.erase (object_name);
 		remote_references_.erase (ref);
 	}
 
-	static bool initialized () NIRVANA_NOEXCEPT
+	static bool initialized () noexcept
 	{
 		return initialized_;
 	}
 
-	static void heartbeat (const CORBA::Core::DomainAddress& domain) NIRVANA_NOEXCEPT
+	static void heartbeat (const CORBA::Core::DomainAddress& domain) noexcept
 	{
 		try {
 			Nirvana::Core::Synchronized _sync_frame (sync_domain (), nullptr);
@@ -200,7 +200,7 @@ public:
 		SYNC_END ();
 	}
 
-	static void clear_remote_references () NIRVANA_NOEXCEPT
+	static void clear_remote_references () noexcept
 	{
 		try {
 			Nirvana::Core::Synchronized _sync_frame (sync_domain (), nullptr);
@@ -229,7 +229,7 @@ private:
 	class ObjectKey
 	{
 	public:
-		ObjectKey (const char* id, size_t length) NIRVANA_NOEXCEPT :
+		ObjectKey (const char* id, size_t length) noexcept :
 			name_ (id)
 		{
 			const char* sver = RepId::version (id, id + length);
@@ -238,20 +238,20 @@ private:
 		}
 
 		template <size_t cc>
-		ObjectKey (char const (&ar) [cc]) NIRVANA_NOEXCEPT :
+		ObjectKey (char const (&ar) [cc]) noexcept :
 			ObjectKey (ar, cc - 1)
 		{}
 
-		ObjectKey (const char* id) NIRVANA_NOEXCEPT :
+		ObjectKey (const char* id) noexcept :
 			ObjectKey (id, strlen (id))
 		{}
 
 		template <class A>
-		ObjectKey (const std::basic_string <char, std::char_traits <char>, A>& id) NIRVANA_NOEXCEPT :
+		ObjectKey (const std::basic_string <char, std::char_traits <char>, A>& id) noexcept :
 			ObjectKey (id.c_str (), id.length ())
 		{}
 
-		bool operator < (const ObjectKey& rhs) const NIRVANA_NOEXCEPT
+		bool operator < (const ObjectKey& rhs) const noexcept
 		{
 			if (length_ < rhs.length_)
 				return true;
@@ -267,17 +267,17 @@ private:
 			return version_ < rhs.version_;
 		}
 
-		bool operator == (const ObjectKey& rhs) const NIRVANA_NOEXCEPT
+		bool operator == (const ObjectKey& rhs) const noexcept
 		{
 			return length_ == rhs.length_ && std::equal (name_, name_ + length_, rhs.name_);
 		}
 
-		bool compatible (const ObjectKey& rhs) const NIRVANA_NOEXCEPT
+		bool compatible (const ObjectKey& rhs) const noexcept
 		{
 			return operator == (rhs) && version_.compatible (rhs.version_);
 		}
 
-		const char* name () const NIRVANA_NOEXCEPT
+		const char* name () const noexcept
 		{
 			return name_;
 		}
@@ -297,7 +297,7 @@ private:
 	{
 	public:
 		void insert (const char* name, InterfacePtr itf);
-		void erase (const char* name) NIRVANA_NOEXCEPT;
+		void erase (const char* name) noexcept;
 		void merge (const ObjectMap& src);
 		InterfacePtr find (const ObjectKey& key) const;
 	};
@@ -332,8 +332,8 @@ private:
 	/// 
 	/// \returns Pointer to the ModuleStartup metadata structure, if found. Otherwise `nullptr`.
 	const ModuleStartup* module_bind (Nirvana::Module::_ptr_type mod, const Section& metadata, ModuleContext* mod_context);
-	static void module_unbind (Nirvana::Module::_ptr_type mod, const Section& metadata) NIRVANA_NOEXCEPT;
-	inline void remove_exports (const Section& metadata) NIRVANA_NOEXCEPT;
+	static void module_unbind (Nirvana::Module::_ptr_type mod, const Section& metadata) noexcept;
+	inline void remove_exports (const Section& metadata) noexcept;
 	static void release_imports (Nirvana::Module::_ptr_type mod, const Section& metadata);
 
 	InterfaceRef bind_interface_sync (const ObjectKey& name, CORBA::Internal::String_in iid);
@@ -361,7 +361,7 @@ private:
 		virtual void run (const TimeBase::TimeT& signal_time);
 	};
 
-	void housekeeping_domains () NIRVANA_NOEXCEPT;
+	void housekeeping_domains () noexcept;
 
 	class HousekeepingTimerDomains : public TimerAsyncCall
 	{

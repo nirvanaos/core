@@ -32,7 +32,7 @@ namespace Core {
 MemContextCore::MemContextCore ()
 {}
 
-MemContextCore::MemContextCore (Heap& heap) NIRVANA_NOEXCEPT :
+MemContextCore::MemContextCore (Heap& heap) noexcept :
 	MemContext (heap)
 {}
 
@@ -44,13 +44,13 @@ RuntimeProxy::_ref_type MemContextCore::runtime_proxy_get (const void* obj)
 	return RuntimeProxy::_nil ();
 }
 
-void MemContextCore::runtime_proxy_remove (const void* obj) NIRVANA_NOEXCEPT
+void MemContextCore::runtime_proxy_remove (const void* obj) noexcept
 {}
 
-void MemContextCore::on_object_construct (MemContextObject& obj) NIRVANA_NOEXCEPT
+void MemContextCore::on_object_construct (MemContextObject& obj) noexcept
 {}
 
-void MemContextCore::on_object_destruct (MemContextObject& obj) NIRVANA_NOEXCEPT
+void MemContextCore::on_object_destruct (MemContextObject& obj) noexcept
 {}
 
 }

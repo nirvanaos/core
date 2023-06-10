@@ -48,7 +48,7 @@ public:
 	virtual CORBA::Long skip_chunks () override;
 
 protected:
-	StreamInSM (void* mem) NIRVANA_NOEXCEPT :
+	StreamInSM (void* mem) noexcept :
 		cur_block_ ((StreamHdr*)mem),
 		cur_ptr_ ((const uint8_t*)((StreamHdr*)mem + 1)),
 		segments_ (((StreamHdr*)mem)->segments),

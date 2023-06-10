@@ -36,7 +36,7 @@ namespace Core {
 void initialize ();
 
 /// Terminate CORBA core on shutdown.
-void terminate () NIRVANA_NOEXCEPT;
+void terminate () noexcept;
 
 }
 }

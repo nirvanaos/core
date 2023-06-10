@@ -43,30 +43,30 @@ class RandomGen
 public:
 	typedef unsigned result_type;
 
-	RandomGen () NIRVANA_NOEXCEPT : // Use `this` as seed value
+	RandomGen () noexcept : // Use `this` as seed value
 		state_ ((result_type)reinterpret_cast <uintptr_t> (this))
 	{}
 
-	RandomGen (result_type seed) NIRVANA_NOEXCEPT :
+	RandomGen (result_type seed) noexcept :
 		state_ (seed)
 	{}
 
-	static result_type min () NIRVANA_NOEXCEPT
+	static result_type min () noexcept
 	{
 		return 0;
 	}
 
-	static result_type max () NIRVANA_NOEXCEPT
+	static result_type max () noexcept
 	{
 		return std::numeric_limits <result_type>::max ();
 	}
 
-	result_type operator () () NIRVANA_NOEXCEPT;
+	result_type operator () () noexcept;
 
 protected:
-	static uint16_t xorshift (uint16_t x) NIRVANA_NOEXCEPT;
-	static uint32_t xorshift (uint32_t x) NIRVANA_NOEXCEPT;
-	static uint64_t xorshift (uint64_t x) NIRVANA_NOEXCEPT;
+	static uint16_t xorshift (uint16_t x) noexcept;
+	static uint32_t xorshift (uint32_t x) noexcept;
+	static uint64_t xorshift (uint64_t x) noexcept;
 
 protected:
 	result_type state_;
@@ -77,7 +77,7 @@ class RandomGenAtomic :
 	public RandomGen
 {
 public:
-	result_type operator () () NIRVANA_NOEXCEPT;
+	result_type operator () () noexcept;
 };
 
 }

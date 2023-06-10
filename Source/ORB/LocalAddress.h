@@ -47,12 +47,12 @@ public:
 		port_ (lp.port ())
 	{}
 
-	const Nirvana::Core::SharedString& host () const NIRVANA_NOEXCEPT
+	const Nirvana::Core::SharedString& host () const noexcept
 	{
 		return host_;
 	}
 
-	UShort port () const NIRVANA_NOEXCEPT
+	UShort port () const noexcept
 	{
 		return port_;
 	}
@@ -64,28 +64,28 @@ public:
 		return *this;
 	}
 
-	bool operator == (const IIOP::ListenPoint& lp) const NIRVANA_NOEXCEPT
+	bool operator == (const IIOP::ListenPoint& lp) const noexcept
 	{
 		return port_ == lp.port () &&
 			host_.compare (0, host_.npos, lp.host ().data (), lp.host ().size ()) == 0;
 	}
 
-	static LocalAddress& singleton () NIRVANA_NOEXCEPT
+	static LocalAddress& singleton () noexcept
 	{
 		return singleton_;
 	}
 
-	static void initialize () NIRVANA_NOEXCEPT
+	static void initialize () noexcept
 	{
 		singleton_.construct ();
 	}
 
-	static void initialize (const IIOP::ListenPoint& lp) NIRVANA_NOEXCEPT
+	static void initialize (const IIOP::ListenPoint& lp) noexcept
 	{
 		singleton_.construct (std::ref (lp));
 	}
 
-	static void terminate () NIRVANA_NOEXCEPT
+	static void terminate () noexcept
 	{
 		singleton_.destruct ();
 	}

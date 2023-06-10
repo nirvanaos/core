@@ -107,14 +107,14 @@ public:
 	/// Set stream endian.
 	/// 
 	/// \param little `true` for little endian, `false` for big endian.
-	void little_endian (bool little) NIRVANA_NOEXCEPT
+	void little_endian (bool little) noexcept
 	{
 		Nirvana::endian stream_endian = little ? Nirvana::endian::little : Nirvana::endian::big;
 		other_endian_ = Nirvana::endian::native != stream_endian;
 	}
 
 	/// \returns `true` if the stream endian is differ from the native platform endian.
-	bool other_endian () const NIRVANA_NOEXCEPT
+	bool other_endian () const noexcept
 	{
 		return other_endian_;
 	}
@@ -180,12 +180,12 @@ public:
 		return val;
 	}
 
-	void chunk_mode (bool on) NIRVANA_NOEXCEPT
+	void chunk_mode (bool on) noexcept
 	{
 		chunk_mode_ = on;
 	}
 
-	bool chunk_mode () const NIRVANA_NOEXCEPT
+	bool chunk_mode () const noexcept
 	{
 		return chunk_mode_;
 	}

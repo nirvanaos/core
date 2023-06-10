@@ -55,30 +55,30 @@ public:
 	};
 
 	/// \returns I/O operation code.
-	Operation operation () const NIRVANA_NOEXCEPT
+	Operation operation () const noexcept
 	{
 		return operation_;
 	}
 
-	void prepare_to_issue () NIRVANA_NOEXCEPT
+	void prepare_to_issue () noexcept
 	{
 		_add_ref ();
 	}
 
-	void signal (const IO_Result& result) NIRVANA_NOEXCEPT
+	void signal (const IO_Result& result) noexcept
 	{
 		result_ = result;
 		Event::signal ();
 		_remove_ref ();
 	}
 
-	const IO_Result& result () const NIRVANA_NOEXCEPT
+	const IO_Result& result () const noexcept
 	{
 		return result_;
 	}
 
 protected:
-	IO_Request (Operation operation) NIRVANA_NOEXCEPT :
+	IO_Request (Operation operation) noexcept :
 		operation_ (operation)
 	{}
 

@@ -118,7 +118,7 @@ ReferenceLocalRef POA_Activator::create_reference (ObjectKey&& key,
 }
 
 void POA_Activator::etherialize (const ObjectId& oid, ServantProxyObject& proxy,
-	bool cleanup_in_progress) NIRVANA_NOEXCEPT
+	bool cleanup_in_progress) noexcept
 {
 	if (activator_)
 		etherialize (oid, proxy.get_proxy (), cleanup_in_progress, proxy.is_active ());

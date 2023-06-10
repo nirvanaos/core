@@ -35,13 +35,13 @@ namespace Core {
 class ExecDomain::WithPool
 {
 public:
-	static void initialize () NIRVANA_NOEXCEPT
+	static void initialize () noexcept
 	{
 		// Set initial pool size with processor count.
 		pool_.construct (Port::SystemInfo::hardware_concurrency ());
 	}
 
-	static void terminate () NIRVANA_NOEXCEPT
+	static void terminate () noexcept
 	{
 		pool_.destruct ();
 	}
@@ -65,10 +65,10 @@ StaticallyAllocated <ObjectPool <ExecDomain>> ExecDomain::WithPool::pool_;
 class ExecDomain::NoPool
 {
 public:
-	static void initialize () NIRVANA_NOEXCEPT
+	static void initialize () noexcept
 	{}
 
-	static void terminate () NIRVANA_NOEXCEPT
+	static void terminate () noexcept
 	{}
 
 	static Ref <ExecDomain> create ()
@@ -85,7 +85,7 @@ public:
 StaticallyAllocated <ExecDomain::Deleter> ExecDomain::deleter_;
 StaticallyAllocated <ExecDomain::Reschedule> ExecDomain::reschedule_;
 
-void ExecDomain::initialize () NIRVANA_NOEXCEPT
+void ExecDomain::initialize () noexcept
 {
 	Creator::initialize ();
 
@@ -93,7 +93,7 @@ void ExecDomain::initialize () NIRVANA_NOEXCEPT
 	reschedule_.construct ();
 }
 
-void ExecDomain::terminate () NIRVANA_NOEXCEPT
+void ExecDomain::terminate () noexcept
 {
 	Creator::terminate ();
 }
@@ -173,7 +173,7 @@ void ExecDomain::execute ()
 	ExecContext::switch_to ();
 }
 
-void ExecDomain::cleanup () NIRVANA_NOEXCEPT
+void ExecDomain::cleanup () noexcept
 {
 	assert (this == &current ());
 	assert (!runnable_);
@@ -219,7 +219,7 @@ void ExecDomain::cleanup () NIRVANA_NOEXCEPT
 	ExecContext::run_in_neutral_context (deleter_);
 }
 
-void ExecDomain::final_release () NIRVANA_NOEXCEPT
+void ExecDomain::final_release () noexcept
 {
 	Creator::release (*this);
 	Scheduler::activity_end ();
@@ -322,7 +322,7 @@ void ExecDomain::schedule_call_no_push_mem (SyncContext& target)
 		sync_context (target);
 }
 
-void ExecDomain::schedule_return (SyncContext& target, bool no_reschedule) NIRVANA_NOEXCEPT
+void ExecDomain::schedule_return (SyncContext& target, bool no_reschedule) noexcept
 {
 	mem_context_pop ();
 
@@ -345,7 +345,7 @@ void ExecDomain::schedule_return (SyncContext& target, bool no_reschedule) NIRVA
 		sync_context (target);
 }
 
-DeadlineTime ExecDomain::get_request_deadline (bool oneway) const NIRVANA_NOEXCEPT
+DeadlineTime ExecDomain::get_request_deadline (bool oneway) const noexcept
 {
 	const System::DeadlinePolicy& dp = oneway ? deadline_policy_oneway_ : deadline_policy_async_;
 	DeadlineTime dl = INFINITE_DEADLINE;
@@ -387,7 +387,7 @@ void ExecDomain::suspend_prepare (SyncContext* resume_context)
 		sync_context_ = resume_context;
 }
 
-void ExecDomain::suspend_prepared () NIRVANA_NOEXCEPT
+void ExecDomain::suspend_prepared () noexcept
 {
 	assert (Thread::current ().exec_domain () == this);
 	ExecContext& neutral_context = Thread::current ().neutral_context ();

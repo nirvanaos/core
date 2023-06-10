@@ -65,13 +65,13 @@ public:
 
 	typedef Nirvana::Core::Array <Member, Nirvana::Core::UserAllocator> Members;
 
-	TC_Value (IDL::String&& id, IDL::String&& name, ValueModifier modifier) NIRVANA_NOEXCEPT :
+	TC_Value (IDL::String&& id, IDL::String&& name, ValueModifier modifier) noexcept :
 		Impl (TCKind::tk_value, std::move (id), std::move (name)),
 		modifier_ (modifier)
 	{}
 
 	TC_Value (IDL::String&& id, IDL::String&& name, ValueModifier modifier, TC_Ref&& concrete_base,
-		Members&& members) NIRVANA_NOEXCEPT :
+		Members&& members) noexcept :
 		Impl (TCKind::tk_value, std::move (id), std::move (name)),
 		modifier_ (modifier),
 		concrete_base_ (std::move (concrete_base)),
@@ -83,7 +83,7 @@ public:
 		}
 	}
 
-	void set_members (TC_Ref&& concrete_base, Members&& members) NIRVANA_NOEXCEPT
+	void set_members (TC_Ref&& concrete_base, Members&& members) noexcept
 	{
 		concrete_base_ = std::move (concrete_base);
 		members_ = std::move (members);
@@ -99,17 +99,17 @@ public:
 		return ORB::tc_equivalent (Impl::_get_ptr (), other);
 	}
 
-	ValueModifier type_modifier () const NIRVANA_NOEXCEPT
+	ValueModifier type_modifier () const noexcept
 	{
 		return modifier_;
 	}
 
-	TypeCode::_ref_type concrete_base_type () const NIRVANA_NOEXCEPT
+	TypeCode::_ref_type concrete_base_type () const noexcept
 	{
 		return concrete_base_;
 	}
 
-	ULong member_count () const NIRVANA_NOEXCEPT
+	ULong member_count () const noexcept
 	{
 		return (ULong)members_.size ();
 	}
@@ -141,8 +141,8 @@ public:
 	}
 
 protected:
-	virtual bool mark () NIRVANA_NOEXCEPT override;
-	virtual bool set_recursive (const IDL::String& id, const TC_Ref& ref) NIRVANA_NOEXCEPT override;
+	virtual bool mark () noexcept override;
+	virtual bool set_recursive (const IDL::String& id, const TC_Ref& ref) noexcept override;
 
 private:
 	ValueModifier modifier_;

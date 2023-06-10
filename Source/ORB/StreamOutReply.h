@@ -40,7 +40,7 @@ public:
 	// Size of GIOP MessageHeader + size of GIOP ReplyHeader with empty service_context.
 	static const size_t REPLY_HEADERS_SIZE = 24;
 
-	void system_exception (uint32_t request_id, const CORBA::SystemException& ex) NIRVANA_NOEXCEPT
+	void system_exception (uint32_t request_id, const CORBA::SystemException& ex) noexcept
 	{
 		try {
 			StreamOutSM::clear ();
@@ -50,7 +50,7 @@ public:
 		}
 	}
 
-	void send (uint32_t request_id) NIRVANA_NOEXCEPT;
+	void send (uint32_t request_id) noexcept;
 
 	virtual void write (size_t align, size_t size, void* data, size_t& allocated_size) override;
 	virtual size_t size () const override;

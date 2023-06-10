@@ -49,16 +49,16 @@ public:
 	using Servant::_s_name;
 	using Servant::_s_content_type;
 
-	TC_ValueBox (IDL::String&& id, IDL::String&& name) NIRVANA_NOEXCEPT :
+	TC_ValueBox (IDL::String&& id, IDL::String&& name) noexcept :
 		Impl (TCKind::tk_value_box, std::move (id), std::move (name))
 	{}
 
-	TC_ValueBox (IDL::String&& id, IDL::String&& name, TC_Ref&& content_type) NIRVANA_NOEXCEPT :
+	TC_ValueBox (IDL::String&& id, IDL::String&& name, TC_Ref&& content_type) noexcept :
 		Impl (TCKind::tk_value_box, std::move (id), std::move (name)),
 		content_type_ (std::move (content_type))
 	{}
 
-	void set_content_type (TC_Ref&& content_type) NIRVANA_NOEXCEPT
+	void set_content_type (TC_Ref&& content_type) noexcept
 	{
 		content_type_ = std::move (content_type);
 	}
@@ -73,7 +73,7 @@ public:
 		return TypeCodeBase::equivalent (TCKind::tk_value_box, id_, content_type_, other);
 	}
 
-	TypeCode::_ref_type content_type () const NIRVANA_NOEXCEPT
+	TypeCode::_ref_type content_type () const noexcept
 	{
 		return content_type_;
 	}
@@ -87,8 +87,8 @@ public:
 	}
 
 protected:
-	virtual bool mark () NIRVANA_NOEXCEPT override;
-	virtual bool set_recursive (const IDL::String& id, const TC_Ref& ref) NIRVANA_NOEXCEPT override;
+	virtual bool mark () noexcept override;
+	virtual bool set_recursive (const IDL::String& id, const TC_Ref& ref) noexcept override;
 
 private:
 	TC_Ref content_type_;

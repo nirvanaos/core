@@ -49,7 +49,7 @@ PortableExecutable::PortableExecutable (const void* base_address) :
 	base_address_ (base_address)
 {}
 
-bool PortableExecutable::find_OLF_section (Core::Section& section) const NIRVANA_NOEXCEPT
+bool PortableExecutable::find_OLF_section (Core::Section& section) const noexcept
 {
 	const COFF::Section* ps = COFF::find_section (OLF_BIND);
 	if (ps) {

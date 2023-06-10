@@ -107,7 +107,7 @@ void IncomingRequests::receive (Ref <RequestIn> rq, uint64_t timestamp)
 	PortableServer::Core::POA_Root::invoke (Ref <RequestInPOA> (std::move (rq)), true);
 }
 
-void IncomingRequests::cancel (const RequestKey& key, uint64_t timestamp) NIRVANA_NOEXCEPT
+void IncomingRequests::cancel (const RequestKey& key, uint64_t timestamp) noexcept
 {
 	auto ins = map_->insert (key, timestamp);
 	if (!ins.second) {

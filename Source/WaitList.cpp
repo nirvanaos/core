@@ -57,7 +57,7 @@ void WaitList::wait ()
 		std::rethrow_exception (exception_);
 }
 
-void WaitList::on_exception () NIRVANA_NOEXCEPT
+void WaitList::on_exception () noexcept
 {
 	assert (!finished ());
 	assert (!exception_);
@@ -65,7 +65,7 @@ void WaitList::on_exception () NIRVANA_NOEXCEPT
 	finish ();
 }
 
-void WaitList::finish () NIRVANA_NOEXCEPT
+void WaitList::finish () noexcept
 {
 	assert (!finished ());
 	assert (&ExecDomain::current () == worker_);

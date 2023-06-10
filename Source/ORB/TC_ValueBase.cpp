@@ -28,7 +28,7 @@
 namespace CORBA {
 namespace Core {
 
-TC_ValueBase::TC_ValueBase (TCKind kind, IDL::String&& id, IDL::String&& name) NIRVANA_NOEXCEPT :
+TC_ValueBase::TC_ValueBase (TCKind kind, IDL::String&& id, IDL::String&& name) noexcept :
 	TC_Complex <TC_RefBase> (kind, std::move (id), std::move (name))
 {}
 

@@ -35,18 +35,18 @@ namespace Core {
 void TC_Base::_s_n_byteswap (Internal::Bridge <TypeCode>*, void*, size_t, Internal::Interface*)
 {}
 
-void TC_Base::_add_ref () NIRVANA_NOEXCEPT
+void TC_Base::_add_ref () noexcept
 {
 	ref_cnt_.increment ();
 }
 
-void TC_Base::_remove_ref () NIRVANA_NOEXCEPT
+void TC_Base::_remove_ref () noexcept
 {
 	if (0 == ref_cnt_.decrement ())
 		collect_garbage ();
 }
 
-void TC_Base::collect_garbage () NIRVANA_NOEXCEPT
+void TC_Base::collect_garbage () noexcept
 {
 	try {
 		SyncContext& sc = local2proxy (Services::bind (Services::TC_Factory))->sync_context ();

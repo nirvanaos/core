@@ -3,7 +3,7 @@
 namespace Nirvana {
 namespace Core {
 
-Event::Event (bool signalled) NIRVANA_NOEXCEPT :
+Event::Event (bool signalled) noexcept :
 	wait_op_ (std::ref (*this)),
 	signalled_ (signalled)
 {
@@ -28,7 +28,7 @@ void Event::WaitOp::run ()
 	}
 }
 
-void Event::signal () NIRVANA_NOEXCEPT
+void Event::signal () noexcept
 {
 	// TODO: Can cause priority inversion.
 	// We should sort released ED by deadline.

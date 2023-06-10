@@ -62,7 +62,7 @@ public:
 		clear ();
 	}
 
-	void clear () NIRVANA_NOEXCEPT;
+	void clear () noexcept;
 };
 
 }

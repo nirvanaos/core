@@ -47,12 +47,12 @@ public:
 		return TypeCodeBase::equivalent (kind_, bound_, content_type_, other);
 	}
 
-	ULong length () const NIRVANA_NOEXCEPT
+	ULong length () const noexcept
 	{
 		return bound_;
 	}
 
-	TypeCode::_ref_type content_type () const NIRVANA_NOEXCEPT
+	TypeCode::_ref_type content_type () const noexcept
 	{
 		return content_type_;
 	}
@@ -72,8 +72,8 @@ protected:
 		initialize ();
 	}
 
-	virtual bool mark () NIRVANA_NOEXCEPT override;
-	virtual bool set_recursive (const IDL::String& id, const TC_Ref& ref) NIRVANA_NOEXCEPT override;
+	virtual bool mark () noexcept override;
+	virtual bool set_recursive (const IDL::String& id, const TC_Ref& ref) noexcept override;
 
 private:
 	static TCKind get_array_kind (TypeCode::_ptr_type tc);

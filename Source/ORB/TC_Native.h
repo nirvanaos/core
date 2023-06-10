@@ -56,7 +56,7 @@ public:
 	using Ops::_s_n_unmarshal;
 	using Ops::_s_n_byteswap;
 
-	TC_Native (IDL::String&& id, IDL::String&& name) NIRVANA_NOEXCEPT :
+	TC_Native (IDL::String&& id, IDL::String&& name) noexcept :
 		Impl (TCKind::tk_native, std::move (id), std::move (name))
 	{}
 

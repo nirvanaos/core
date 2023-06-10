@@ -41,7 +41,7 @@ public:
 	/// Constructor.
 	/// 
 	/// \param signalled Initial state. Default is not signalled.
-	Event (bool signalled = false) NIRVANA_NOEXCEPT;
+	Event (bool signalled = false) noexcept;
 
 	~Event ()
 	{
@@ -53,16 +53,16 @@ public:
 
 	/// Tests event state without wait.
 	/// \returns 'true' if object is already in the signalled state.
-	bool signalled () const NIRVANA_NOEXCEPT
+	bool signalled () const noexcept
 	{
 		return signalled_;
 	}
 
 	/// Sets object into the signalled state.
-	void signal () NIRVANA_NOEXCEPT;
+	void signal () noexcept;
 
 	/// Reset object into the non-signalled state.
-	void reset () NIRVANA_NOEXCEPT
+	void reset () noexcept
 	{
 		signalled_ = false;
 	}

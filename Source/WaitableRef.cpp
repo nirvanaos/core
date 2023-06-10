@@ -31,13 +31,13 @@ namespace Nirvana {
 namespace Core {
 
 inline
-WaitList* WaitableRefBase::wait_list () const NIRVANA_NOEXCEPT
+WaitList* WaitableRefBase::wait_list () const noexcept
 {
 	assert (is_wait_list ());
 	return reinterpret_cast <WaitList*> (pointer_ & ~1);
 }
 
-void WaitableRefBase::detach (Ref <WaitList>& ref) NIRVANA_NOEXCEPT
+void WaitableRefBase::detach (Ref <WaitList>& ref) noexcept
 {
 	assert (is_wait_list ());
 	uintptr_t up = pointer_ & ~1;
@@ -57,7 +57,7 @@ bool WaitableRefBase::initialize (TimeBase::TimeT deadline)
 	return false;
 }
 
-void WaitableRefBase::reset () NIRVANA_NOEXCEPT
+void WaitableRefBase::reset () noexcept
 {
 	if (is_wait_list ()) {
 		Ref <WaitList> wait_list;
@@ -65,13 +65,13 @@ void WaitableRefBase::reset () NIRVANA_NOEXCEPT
 	}
 }
 
-void WaitableRefBase::on_exception () NIRVANA_NOEXCEPT
+void WaitableRefBase::on_exception () noexcept
 {
 	assert (is_wait_list ());
 	wait_list ()->on_exception ();
 }
 
-void WaitableRefBase::finish_construction (uintptr_t p) NIRVANA_NOEXCEPT
+void WaitableRefBase::finish_construction (uintptr_t p) noexcept
 {
 	assert (!(p & 1));
 	Ref <WaitList> wait_list;

@@ -42,13 +42,13 @@ class NIRVANA_NOVTABLE ServantProxyLocal :
 public:
 	typedef CORBA::LocalObject ServantInterface;
 
-	Bridge <Object>* _get_object (Internal::Type <IDL::String>::ABI_in iid, Interface* env) NIRVANA_NOEXCEPT
+	Bridge <Object>* _get_object (Internal::Type <IDL::String>::ABI_in iid, Interface* env) noexcept
 	{
 		return static_cast <Bridge <Object>*> (Base::_s_get_object (this, iid, env));
 	}
 
 	/// \returns User LocalObject implementation
-	LocalObject::_ptr_type servant () const NIRVANA_NOEXCEPT
+	LocalObject::_ptr_type servant () const noexcept
 	{
 		return static_cast <CORBA::LocalObject*> (&Base::servant ());
 	}
@@ -72,7 +72,7 @@ private:
 /// \param obj Local object pointer.
 ///   Ensure that it is really local object.
 /// \returns Proxy pointer.
-inline const ServantProxyLocal* local2proxy (Object::_ptr_type obj) NIRVANA_NOEXCEPT
+inline const ServantProxyLocal* local2proxy (Object::_ptr_type obj) noexcept
 {
 	return static_cast <const ServantProxyLocal*> (static_cast <Internal::Bridge <Object>*> (&obj));
 }

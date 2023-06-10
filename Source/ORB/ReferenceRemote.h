@@ -62,28 +62,28 @@ public:
 		return object_name_.c_str ();
 	}
 
-	Domain& domain () const NIRVANA_NOEXCEPT
+	Domain& domain () const noexcept
 	{
 		return *domain_;
 	}
 
-	const IOP::ObjectKey& object_key () const NIRVANA_NOEXCEPT
+	const IOP::ObjectKey& object_key () const noexcept
 	{
 		return object_key_;
 	}
 
-	bool unconfirmed () const NIRVANA_NOEXCEPT
+	bool unconfirmed () const noexcept
 	{
 		return DGC_key_ && DGC_key_->unconfirmed ();
 	}
 
-	Domain::DGC_RefKey* DGC_key () const NIRVANA_NOEXCEPT
+	Domain::DGC_RefKey* DGC_key () const noexcept
 	{
 		return DGC_key_;
 	}
 
-	virtual void _add_ref () NIRVANA_NOEXCEPT override;
-	virtual void _remove_ref () NIRVANA_NOEXCEPT override;
+	virtual void _add_ref () noexcept override;
+	virtual void _remove_ref () noexcept override;
 
 private:
 	const OctetSeq& address_;

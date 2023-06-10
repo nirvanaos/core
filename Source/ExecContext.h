@@ -43,13 +43,13 @@ class ExecContext :
 	friend class Port::ExecContext;
 public:
 	// Implementation - specific methods must be called explicitly.
-	Port::ExecContext& port () NIRVANA_NOEXCEPT
+	Port::ExecContext& port () noexcept
 	{
 		return *this;
 	}
 
 	/// \returns Current execution context.
-	static ExecContext& current () NIRVANA_NOEXCEPT
+	static ExecContext& current () noexcept
 	{
 		ExecContext* p = current_ptr ();
 		assert (p);
@@ -58,7 +58,7 @@ public:
 
 	/// \returns Current execution context pointer.
 	///          Returns `nullptr` for special non-worker threads.
-	static ExecContext* current_ptr () NIRVANA_NOEXCEPT
+	static ExecContext* current_ptr () noexcept
 	{
 		return Port::Thread::context ();
 	}
@@ -70,7 +70,7 @@ public:
 	{}
 
 	/// Switch to this context.
-	void switch_to () NIRVANA_NOEXCEPT
+	void switch_to () noexcept
 	{
 		assert (&current () != this);
 		Port::ExecContext::switch_to ();
@@ -82,16 +82,16 @@ public:
 		Port::ExecContext::raise (signal);
 	}
 
-	Runnable* runnable () const NIRVANA_NOEXCEPT
+	Runnable* runnable () const noexcept
 	{
 		return runnable_;
 	}
 
 	// Execute Runnable in the neutral context
-	static void run_in_neutral_context (Runnable& runnable) NIRVANA_NOEXCEPT;
+	static void run_in_neutral_context (Runnable& runnable) noexcept;
 
 	// Call from worker
-	static void neutral_context_loop (Thread& worker) NIRVANA_NOEXCEPT;
+	static void neutral_context_loop (Thread& worker) noexcept;
 
 protected:
 	void run ()

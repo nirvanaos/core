@@ -42,7 +42,7 @@ class TimerAsyncCall :
 	DECLARE_CORE_INTERFACE
 
 public:
-	int overrun () const NIRVANA_NOEXCEPT
+	int overrun () const noexcept
 	{
 		return overrun_;
 	}
@@ -53,9 +53,9 @@ protected:
 	virtual void run (const TimeBase::TimeT& signal_time) = 0;
 
 private:
-	virtual void signal () NIRVANA_NOEXCEPT override;
+	virtual void signal () noexcept override;
 
-	void run_complete () NIRVANA_NOEXCEPT
+	void run_complete () noexcept
 	{
 		enqueued_.clear ();
 	}

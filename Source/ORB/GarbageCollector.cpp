@@ -35,7 +35,7 @@ namespace CORBA {
 namespace Core {
 
 void GarbageCollector::schedule (SyncGC& garbage, Nirvana::Core::SyncContext& sync_context)
-NIRVANA_NOEXCEPT
+noexcept
 {
 	assert (sync_context.sync_domain ());
 	try {

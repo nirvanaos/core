@@ -32,27 +32,27 @@ namespace Core {
 
 StaticallyAllocated <ImplStatic <SyncContextCore> > g_core_free_sync_context;
 
-SyncContext& SyncContext::current () NIRVANA_NOEXCEPT
+SyncContext& SyncContext::current () noexcept
 {
 	return ExecDomain::current ().sync_context ();
 }
 
-SyncDomain* SyncContext::sync_domain () NIRVANA_NOEXCEPT
+SyncDomain* SyncContext::sync_domain () noexcept
 {
 	return nullptr;
 }
 
-Heap* SyncContext::stateless_memory () NIRVANA_NOEXCEPT
+Heap* SyncContext::stateless_memory () noexcept
 {
 	return nullptr;
 }
 
-Heap* SyncContextCore::stateless_memory () NIRVANA_NOEXCEPT
+Heap* SyncContextCore::stateless_memory () noexcept
 {
 	return &Heap::shared_heap ();
 }
 
-Module* SyncContextCore::module () NIRVANA_NOEXCEPT
+Module* SyncContextCore::module () noexcept
 {
 	return nullptr;
 }

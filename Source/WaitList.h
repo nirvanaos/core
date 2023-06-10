@@ -57,11 +57,11 @@ public:
 	}
 
 	void wait ();
-	void on_exception () NIRVANA_NOEXCEPT;
-	void finish () NIRVANA_NOEXCEPT;
+	void on_exception () noexcept;
+	void finish () noexcept;
 
 private:
-	bool finished () const NIRVANA_NOEXCEPT
+	bool finished () const noexcept
 	{
 		return !worker_;
 	}

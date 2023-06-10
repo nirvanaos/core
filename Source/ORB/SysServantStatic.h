@@ -43,7 +43,7 @@ class SysServantStatic :
 	public Internal::LocalObjectStaticDummy
 {
 public:
-	static Internal::Bridge <Object>* _get_object (Internal::Type <IDL::String>::ABI_in iid, Internal::Interface* env) NIRVANA_NOEXCEPT
+	static Internal::Bridge <Object>* _get_object (Internal::Type <IDL::String>::ABI_in iid, Internal::Interface* env) noexcept
 	{
 		return Internal::get_object_from_core (core_object (), iid, env);
 	}
@@ -60,7 +60,7 @@ public:
 		core_object_ = static_cast <CORBA::LocalObject*> (&CORBA::LocalObject::_ptr_type (sys_obj));
 	}
 
-	static void terminate () NIRVANA_NOEXCEPT
+	static void terminate () noexcept
 	{
 		Internal::interface_release (core_object_);
 	}
@@ -72,7 +72,7 @@ protected:
 	}
 
 private:
-	static CORBA::LocalObject::_ptr_type core_object () NIRVANA_NOEXCEPT
+	static CORBA::LocalObject::_ptr_type core_object () noexcept
 	{
 		return core_object_;
 	}

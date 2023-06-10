@@ -29,14 +29,14 @@
 namespace Nirvana {
 namespace Core {
 
-void ExecContext::run_in_neutral_context (Runnable& runnable) NIRVANA_NOEXCEPT
+void ExecContext::run_in_neutral_context (Runnable& runnable) noexcept
 {
 	ExecContext& neutral_context = Thread::current ().neutral_context ();
 	neutral_context.runnable_ = &runnable;
 	neutral_context.switch_to ();
 }
 
-void ExecContext::neutral_context_loop (Thread& worker) NIRVANA_NOEXCEPT
+void ExecContext::neutral_context_loop (Thread& worker) noexcept
 {
 	assert (&current () == &worker.neutral_context ());
 	for (;;) {

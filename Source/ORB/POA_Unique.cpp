@@ -32,7 +32,7 @@ using namespace CORBA::Core;
 namespace PortableServer {
 namespace Core {
 
-POA_Unique::ReferencePtr POA_Unique::find_servant (const ServantProxyObject& proxy) NIRVANA_NOEXCEPT
+POA_Unique::ReferencePtr POA_Unique::find_servant (const ServantProxyObject& proxy) noexcept
 {
 	auto it = servant_map_.find (&proxy);
 	if (it != servant_map_.end ())
@@ -61,7 +61,7 @@ servant_reference <ServantProxyObject> POA_Unique::deactivate_object (ReferenceL
 	return p;
 }
 
-void POA_Unique::implicit_deactivate (ReferenceLocal& ref, ServantProxyObject& proxy) NIRVANA_NOEXCEPT
+void POA_Unique::implicit_deactivate (ReferenceLocal& ref, ServantProxyObject& proxy) noexcept
 {
 	servant_map_.erase (&proxy);
 	Base::implicit_deactivate (ref, proxy);
@@ -83,13 +83,13 @@ Object::_ref_type POA_Unique::servant_to_reference (CORBA::Core::ServantProxyObj
 	return servant_to_reference_default (proxy, true);
 }
 
-void POA_Unique::destroy_internal (bool etherealize_objects) NIRVANA_NOEXCEPT
+void POA_Unique::destroy_internal (bool etherealize_objects) noexcept
 {
 	Base::destroy_internal (etherealize_objects);
 	servant_map_.clear ();
 }
 
-void POA_Unique::etherealize_objects () NIRVANA_NOEXCEPT
+void POA_Unique::etherealize_objects () noexcept
 {
 	Base::etherealize_objects ();
 	servant_map_.clear ();

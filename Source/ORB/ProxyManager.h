@@ -68,7 +68,7 @@ class NIRVANA_NOVTABLE ProxyManager :
 {
 protected:
 	virtual void _add_ref () = 0;
-	virtual void _remove_ref () NIRVANA_NOEXCEPT = 0;
+	virtual void _remove_ref () noexcept = 0;
 	template <class> friend class Nirvana::Core::Ref;
 	template <class> friend class CORBA::servant_reference;
 	friend class Internal::LifeCycleRefCnt <ProxyManager>;
@@ -104,7 +104,7 @@ public:
 		return static_cast <Internal::Bridge <Object>*> (this);
 	}
 
-	Internal::Bridge <AbstractBase>* get_abstract_base (Internal::String_in iid) NIRVANA_NOEXCEPT
+	Internal::Bridge <AbstractBase>* get_abstract_base (Internal::String_in iid) noexcept
 	{
 		if (Internal::RepId::check (Internal::RepIdOf <AbstractBase>::id, iid) != Internal::RepId::COMPATIBLE)
 			Nirvana::throw_INV_OBJREF ();
@@ -115,7 +115,7 @@ public:
 		Internal::RequestCallback::_ptr_type callback);
 
 	// Get Object proxy
-	Object::_ptr_type get_proxy () NIRVANA_NOEXCEPT
+	Object::_ptr_type get_proxy () noexcept
 	{
 		return &static_cast <Object&> (static_cast <Internal::Bridge <Object>&> (*this));
 	}
@@ -136,7 +136,7 @@ public:
 
 	/// Returns synchronization context for the specific operation.
 	virtual Nirvana::Core::SyncContext& get_sync_context (OperationIndex op)
-		const NIRVANA_NOEXCEPT
+		const noexcept
 	{
 		assert (op.interface_idx () == 0 && op.operation_idx () != (UShort)ObjectOp::NON_EXISTENT);
 		return Nirvana::Core::g_core_free_sync_context;
@@ -230,12 +230,12 @@ public:
 
 	// Abstract base implementation
 
-	Object::_ref_type _to_object () NIRVANA_NOEXCEPT
+	Object::_ref_type _to_object () noexcept
 	{
 		return get_proxy ();
 	}
 
-	ValueBase::_ref_type _to_value () NIRVANA_NOEXCEPT
+	ValueBase::_ref_type _to_value () noexcept
 	{
 		return nullptr;
 	}
@@ -244,9 +244,9 @@ public:
 
 	OperationIndex find_operation (Internal::String_in name) const;
 
-	void invoke (OperationIndex op, Internal::IORequest::_ptr_type rq) const NIRVANA_NOEXCEPT;
+	void invoke (OperationIndex op, Internal::IORequest::_ptr_type rq) const noexcept;
 
-	const Internal::Operation& operation_metadata (OperationIndex op) const NIRVANA_NOEXCEPT
+	const Internal::Operation& operation_metadata (OperationIndex op) const noexcept
 	{
 		assert (op.interface_idx () <= interfaces_.size ());
 		if (op.interface_idx () == 0) {
@@ -258,7 +258,7 @@ public:
 		}
 	}
 
-	static bool is_object_op (OperationIndex op) NIRVANA_NOEXCEPT
+	static bool is_object_op (OperationIndex op) noexcept
 	{
 		return op.interface_idx () == 0 && op.operation_idx () != (UShort)ObjectOp::NON_EXISTENT;
 	}
@@ -270,7 +270,7 @@ public:
 
 	virtual ReferenceRef marshal (StreamOut& out) = 0;
 
-	Internal::StringView <Char> primary_interface_id () const NIRVANA_NOEXCEPT
+	Internal::StringView <Char> primary_interface_id () const noexcept
 	{
 		if (primary_interface_)
 			return Internal::StringView <Char> (primary_interface_->iid, primary_interface_->iid_len);
@@ -280,7 +280,7 @@ public:
 
 	void check_primary_interface (Internal::String_in primary_iid) const;
 
-	static ProxyManager* cast (Object::_ptr_type obj) NIRVANA_NOEXCEPT
+	static ProxyManager* cast (Object::_ptr_type obj) noexcept
 	{
 		return static_cast <ProxyManager*> (static_cast <Internal::Bridge <Object>*> (&obj));
 	}
@@ -291,7 +291,7 @@ protected:
 
 	~ProxyManager ();
 
-	Internal::IOReference::_ptr_type ior () NIRVANA_NOEXCEPT
+	Internal::IOReference::_ptr_type ior () noexcept
 	{
 		return &static_cast <Internal::IOReference&> (static_cast <Internal::Bridge <Internal::IOReference>&> (*this));
 	}
@@ -324,7 +324,7 @@ protected:
 		}
 	};
 
-	const InterfaceEntry* find_interface (Internal::String_in iid) const NIRVANA_NOEXCEPT;
+	const InterfaceEntry* find_interface (Internal::String_in iid) const noexcept;
 
 	template <class I>
 	void set_servant (Internal::I_ptr <I> servant, size_t offset)
@@ -339,7 +339,7 @@ protected:
 		}
 	}
 
-	void reset_servant () NIRVANA_NOEXCEPT
+	void reset_servant () noexcept
 	{
 		for (InterfaceEntry* ie = interfaces_.begin (); ie != interfaces_.end (); ++ie) {
 			ie->implementation = nullptr;
@@ -408,7 +408,7 @@ private:
 		return true;
 	}
 
-	static Nirvana::Core::Heap& get_heap () NIRVANA_NOEXCEPT;
+	static Nirvana::Core::Heap& get_heap () noexcept;
 
 private:
 	// Input parameter metadata for Object::_is_a () operation.

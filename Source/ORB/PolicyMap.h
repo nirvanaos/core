@@ -62,23 +62,23 @@ public:
 	template <PolicyType type>
 	bool get_value (typename PolicyImpl <type>::ValueType& val) const;
 
-	bool erase (PolicyType type) NIRVANA_NOEXCEPT
+	bool erase (PolicyType type) noexcept
 	{
 		return map_.erase (type);
 	}
 
-	bool empty () const NIRVANA_NOEXCEPT
+	bool empty () const noexcept
 	{
 		return map_.empty ();
 	}
 
-	size_t size () const NIRVANA_NOEXCEPT
+	size_t size () const noexcept
 	{
 		return map_.size ();
 	}
 
 private:
-	const OctetSeq* get_data (PolicyType type) const NIRVANA_NOEXCEPT;
+	const OctetSeq* get_data (PolicyType type) const noexcept;
 
 private:
 	typedef Nirvana::Core::MapUnorderedUnstable <PolicyType, OctetSeq,

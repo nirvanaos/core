@@ -44,12 +44,12 @@ public:
 		SyncDomain (Ref <MemContext> (this))
 	{}
 
-	void _add_ref () NIRVANA_NOEXCEPT
+	void _add_ref () noexcept
 	{
 		Module::_add_ref ();
 	}
 
-	void _remove_ref () NIRVANA_NOEXCEPT
+	void _remove_ref () noexcept
 	{
 		Module::_remove_ref ();
 	}
@@ -59,14 +59,14 @@ public:
 
 	// Module::
 
-	virtual SyncContext& sync_context () NIRVANA_NOEXCEPT
+	virtual SyncContext& sync_context () noexcept
 	{
 		return *this;
 	}
 
 	// SyncContext::
 
-	virtual Module* module () NIRVANA_NOEXCEPT;
+	virtual Module* module () noexcept;
 	virtual void raise_exception (CORBA::SystemException::Code code, unsigned minor);
 
 };

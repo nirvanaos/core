@@ -42,23 +42,23 @@ class NIRVANA_NOVTABLE RequestLocalPOA :
 	public RequestInPOA
 {
 public:
-	virtual const IOP::ObjectKey& object_key () const NIRVANA_NOEXCEPT override;
-	virtual Internal::StringView <Char> operation () const NIRVANA_NOEXCEPT override;
+	virtual const IOP::ObjectKey& object_key () const noexcept override;
+	virtual Internal::StringView <Char> operation () const noexcept override;
 
 protected:
 	RequestLocalPOA (ReferenceLocal& reference, Internal::IOReference::OperationIndex op,
 		unsigned response_flags);
 
-	virtual void _add_ref () NIRVANA_NOEXCEPT override;
-	virtual Nirvana::Core::MemContext* memory () const NIRVANA_NOEXCEPT override;
+	virtual void _add_ref () noexcept override;
+	virtual Nirvana::Core::MemContext* memory () const noexcept override;
 
 	virtual void set_exception (Any& e) override;
 	virtual void invoke () override;
 	virtual void serve (const ServantProxyBase& proxy) override;
 
-	virtual bool is_cancelled () const NIRVANA_NOEXCEPT override;
+	virtual bool is_cancelled () const noexcept override;
 
-	Internal::IOReference::OperationIndex op_idx () const NIRVANA_NOEXCEPT
+	Internal::IOReference::OperationIndex op_idx () const noexcept
 	{
 		return op_idx_;
 	}
@@ -96,8 +96,8 @@ protected:
 	{
 	}
 
-	virtual void cancel () NIRVANA_NOEXCEPT override;
-	virtual void finalize () NIRVANA_NOEXCEPT override;
+	virtual void cancel () noexcept override;
+	virtual void finalize () noexcept override;
 
 private:
 	Internal::RequestCallback::_ref_type callback_;

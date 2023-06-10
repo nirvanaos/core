@@ -29,7 +29,7 @@
 namespace Nirvana {
 namespace Core {
 
-SyncDomain::SyncDomain (Ref <MemContext>&& mem_context) NIRVANA_NOEXCEPT :
+SyncDomain::SyncDomain (Ref <MemContext>&& mem_context) noexcept :
 	mem_context_ (std::move (mem_context)),
 	scheduling_ ATOMIC_FLAG_INIT,
 	need_schedule_ (false),
@@ -53,7 +53,7 @@ SyncDomain::~SyncDomain ()
 		Scheduler::delete_item ();
 }
 
-void SyncDomain::schedule () NIRVANA_NOEXCEPT
+void SyncDomain::schedule () noexcept
 {
 	need_schedule_ = true;
 	// Only one thread perform scheduling at a time.
@@ -94,13 +94,13 @@ void SyncDomain::activity_begin ()
 		Scheduler::create_item ();
 }
 
-void SyncDomain::activity_end () NIRVANA_NOEXCEPT
+void SyncDomain::activity_end () noexcept
 {
 	if (0 == activity_cnt_.decrement_seq ())
 		Scheduler::delete_item ();
 }
 
-void SyncDomain::leave () NIRVANA_NOEXCEPT
+void SyncDomain::leave () noexcept
 {
 	assert (State::RUNNING == state_);
 	// activity_begin() was called in schedule (const DeadlineTime& deadline, Executor& executor);
@@ -129,7 +129,7 @@ SyncDomain& SyncDomain::enter ()
 	return *psd;
 }
 
-void SyncDomain::release_queue_node (QueueNode* node) NIRVANA_NOEXCEPT
+void SyncDomain::release_queue_node (QueueNode* node) noexcept
 {
 	assert (node);
 	assert (node->domain_ == this);
@@ -137,12 +137,12 @@ void SyncDomain::release_queue_node (QueueNode* node) NIRVANA_NOEXCEPT
 	activity_end ();
 }
 
-SyncDomain* SyncDomain::sync_domain () NIRVANA_NOEXCEPT
+SyncDomain* SyncDomain::sync_domain () noexcept
 {
 	return this;
 }
 
-Module* SyncDomainImpl::module () NIRVANA_NOEXCEPT
+Module* SyncDomainImpl::module () noexcept
 {
 	return parent_->module ();
 }
@@ -156,7 +156,7 @@ SyncDomainCore::SyncDomainCore (Heap& heap) :
 	SyncDomain (Ref <MemContext>::create <MemContextCore> (std::ref (heap)))
 {}
 
-Module* SyncDomainCore::module () NIRVANA_NOEXCEPT
+Module* SyncDomainCore::module () noexcept
 {
 	return nullptr;
 }

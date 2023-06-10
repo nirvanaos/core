@@ -36,7 +36,7 @@ namespace Core {
 /// Called by kernel.
 /// Initializes Heap and other static stuff.
 /// Must not use exceptions.
-bool initialize0 () NIRVANA_NOEXCEPT;
+bool initialize0 () noexcept;
 
 /// Called by Startup class from free sync domain after kernel initialization.
 void initialize ();
@@ -48,7 +48,7 @@ void shutdown ();
 void terminate ();
 
 /// Called by kernel on the final termination.
-void terminate0 () NIRVANA_NOEXCEPT;
+void terminate0 () noexcept;
 
 }
 }

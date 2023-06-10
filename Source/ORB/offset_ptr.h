@@ -36,7 +36,7 @@ namespace CORBA {
 namespace Core {
 
 inline
-size_t offset_ptr () NIRVANA_NOEXCEPT
+size_t offset_ptr () noexcept
 {
 	Internal::ObjectFactory::StatelessCreationFrame* scf =
 		(Internal::ObjectFactory::StatelessCreationFrame*)Nirvana::Core::TLS::current ()
@@ -47,13 +47,13 @@ size_t offset_ptr () NIRVANA_NOEXCEPT
 }
 
 template <class I> inline
-Internal::I_ptr <I> offset_ptr (Internal::I_ptr <I> p, size_t cb) NIRVANA_NOEXCEPT
+Internal::I_ptr <I> offset_ptr (Internal::I_ptr <I> p, size_t cb) noexcept
 {
 	return reinterpret_cast <I*> ((Octet*)&p + cb);
 }
 
 template <class I> inline
-Internal::I_ptr <I> offset_ptr (Internal::I_ptr <I> p) NIRVANA_NOEXCEPT
+Internal::I_ptr <I> offset_ptr (Internal::I_ptr <I> p) noexcept
 {
 	return offset_ptr (p, offset_ptr ());
 }

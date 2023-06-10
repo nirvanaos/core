@@ -43,10 +43,10 @@ public:
 	static ValueBase::_ptr_type value_type2base (Internal::Interface::_ptr_type val);
 	static AbstractBase::_ptr_type abstract_interface2base (Internal::Interface::_ptr_type itf);
 	static void check_align (size_t align);
-	static Any signal2exception (const siginfo& signal) NIRVANA_NOEXCEPT;
+	static Any signal2exception (const siginfo& signal) noexcept;
 	static Any exception2any (Exception&& e);
 	static void call_completed (Internal::RequestCallback::_ref_type& callback,
-		Internal::IORequest::_ptr_type rq) NIRVANA_NOEXCEPT;
+		Internal::IORequest::_ptr_type rq) noexcept;
 
 private:
 	struct EPV_Header

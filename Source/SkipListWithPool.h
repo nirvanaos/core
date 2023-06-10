@@ -66,7 +66,7 @@ public:
 		}
 	}
 
-	void delete_item () NIRVANA_NOEXCEPT
+	void delete_item () noexcept
 	{
 		if (!pop_node ())
 			purge_count_.increment ();
@@ -78,7 +78,7 @@ private:
 		stack_.push (*real_allocate_node ());
 	}
 
-	bool pop_node () NIRVANA_NOEXCEPT
+	bool pop_node () noexcept
 	{
 		Stackable* se = stack_.pop ();
 		if (se) {
@@ -111,7 +111,7 @@ private:
 		return node;
 	}
 
-	virtual void deallocate_node (SkipListBase::Node* node) NIRVANA_NOEXCEPT
+	virtual void deallocate_node (SkipListBase::Node* node) noexcept
 	{
 		if (purge_count_.decrement_seq () >= 0)
 			SkipListBase::deallocate_node (node);

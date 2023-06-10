@@ -62,7 +62,7 @@ public:
 	static void write (Policy::_ptr_type, StreamOut& out);
 
 private:
-	static const Functions* functions (PolicyType type) NIRVANA_NOEXCEPT
+	static const Functions* functions (PolicyType type) noexcept
 	{
 		if (type == 0 || type > MAX_KNOWN_POLICY_ID)
 			return nullptr;

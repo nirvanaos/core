@@ -55,17 +55,17 @@ struct ProxyManager::IEPred
 
 struct ProxyManager::OEPred
 {
-	bool operator () (const OperationEntry& lhs, const OperationEntry& rhs) const NIRVANA_NOEXCEPT
+	bool operator () (const OperationEntry& lhs, const OperationEntry& rhs) const noexcept
 	{
 		return less (lhs.name, lhs.name_len, rhs.name, rhs.name_len);
 	}
 
-	bool operator () (String_in lhs, const OperationEntry& rhs) const NIRVANA_NOEXCEPT
+	bool operator () (String_in lhs, const OperationEntry& rhs) const noexcept
 	{
 		return less (lhs.data (), lhs.size (), rhs.name, rhs.name_len);
 	}
 
-	bool operator () (const OperationEntry& lhs, String_in rhs) const NIRVANA_NOEXCEPT
+	bool operator () (const OperationEntry& lhs, String_in rhs) const noexcept
 	{
 		return less (lhs.name, lhs.name_len, rhs.data (), rhs.size ());
 	}
@@ -78,7 +78,7 @@ bool ProxyManager::OEPred::less (const Char* lhs, size_t lhs_len, const Char* rh
 	return std::lexicographical_compare (lhs, lhs + lhs_len, rhs, rhs + rhs_len);
 }
 
-Nirvana::Core::Heap& ProxyManager::get_heap () NIRVANA_NOEXCEPT
+Nirvana::Core::Heap& ProxyManager::get_heap () noexcept
 {
 	SyncDomain* sd = SyncContext::current ().sync_domain ();
 	if (sd)
@@ -299,7 +299,7 @@ void ProxyManager::create_proxy (InterfaceEntry& ie, bool servant_side)
 }
 
 const ProxyManager::InterfaceEntry* ProxyManager::find_interface (String_in iid) const
-	NIRVANA_NOEXCEPT
+	noexcept
 {
 	const String& siid = static_cast <const String&> (iid);
 	const InterfaceEntry* pf = std::lower_bound (interfaces_.begin (), interfaces_.end (), siid, IEPred ());
@@ -358,7 +358,7 @@ void ProxyManager::check_create_request (OperationIndex op, unsigned flags) cons
 		throw BAD_PARAM ();
 }
 
-void ProxyManager::invoke (OperationIndex op, IORequest::_ptr_type rq) const NIRVANA_NOEXCEPT
+void ProxyManager::invoke (OperationIndex op, IORequest::_ptr_type rq) const noexcept
 {
 	try {
 		try {

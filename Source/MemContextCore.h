@@ -44,16 +44,16 @@ class MemContextCore :
 
 protected:
 	MemContextCore ();
-	MemContextCore (Heap& heap) NIRVANA_NOEXCEPT;
+	MemContextCore (Heap& heap) noexcept;
 
 	~MemContextCore ();
 
 	// MemContext methods
 
 	virtual RuntimeProxy::_ref_type runtime_proxy_get (const void* obj) override;
-	virtual void runtime_proxy_remove (const void* obj) NIRVANA_NOEXCEPT override;
-	virtual void on_object_construct (MemContextObject& obj) NIRVANA_NOEXCEPT override;
-	virtual void on_object_destruct (MemContextObject& obj) NIRVANA_NOEXCEPT override;
+	virtual void runtime_proxy_remove (const void* obj) noexcept override;
+	virtual void on_object_construct (MemContextObject& obj) noexcept override;
+	virtual void on_object_destruct (MemContextObject& obj) noexcept override;
 };
 
 }

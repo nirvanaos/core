@@ -47,7 +47,7 @@ class PreallocatedStack
 	PreallocatedStack& operator = (const PreallocatedStack&) = delete;
 public:
 	/// Default constructor.
-	PreallocatedStack () NIRVANA_NOEXCEPT :
+	PreallocatedStack () noexcept :
 		last_block_ (nullptr),
 		top_ ((El*)&preallocated_)
 	{}
@@ -55,7 +55,7 @@ public:
 	/// Constructor.
 	///
 	/// \param first First element to push.
-	PreallocatedStack (const El& first) NIRVANA_NOEXCEPT :
+	PreallocatedStack (const El& first) noexcept :
 		last_block_ (nullptr),
 		top_ (((El*)&preallocated_) + 1)
 	{
@@ -66,7 +66,7 @@ public:
 	/// 
 	/// \param args Arguments to construct first element.
 	template <class ... Args>
-	PreallocatedStack (Args ... args) NIRVANA_NOEXCEPT :
+	PreallocatedStack (Args ... args) noexcept :
 		last_block_ (nullptr),
 		top_ (((El*)&preallocated_) + 1)
 	{
@@ -78,24 +78,24 @@ public:
 		clear ();
 	}
 
-	void clear () NIRVANA_NOEXCEPT
+	void clear () noexcept
 	{
 		while (!empty ())
 			pop ();
 	}
 
-	bool empty () const NIRVANA_NOEXCEPT
+	bool empty () const noexcept
 	{
 		return top_ == (El*)&preallocated_;
 	}
 
-	El& top () NIRVANA_NOEXCEPT
+	El& top () noexcept
 	{
 		assert (!empty ());
 		return *(top_ - 1);
 	}
 
-	const El& top () const NIRVANA_NOEXCEPT
+	const El& top () const noexcept
 	{
 		return const_cast <PreallocatedStack&> (*this).top ();
 	}
@@ -131,7 +131,7 @@ public:
 		++top_;
 	}
 
-	void pop () NIRVANA_NOEXCEPT
+	void pop () noexcept
 	{
 		assert (!empty ());
 		(--top_)->~El ();
@@ -153,7 +153,7 @@ private:
 	void allocate ();
 
 	// Release space at the top of the stack
-	void release () NIRVANA_NOEXCEPT;
+	void release () noexcept;
 
 private:
 	typename std::aligned_storage <sizeof (El)* PREALLOCATE, alignof (El)>::type preallocated_;
@@ -176,7 +176,7 @@ void PreallocatedStack <El, PREALLOCATE, MIN_BLOCK>::allocate ()
 }
 
 template <class El, size_t PREALLOCATE, size_t MIN_BLOCK>
-void PreallocatedStack <El, PREALLOCATE, MIN_BLOCK>::release () NIRVANA_NOEXCEPT
+void PreallocatedStack <El, PREALLOCATE, MIN_BLOCK>::release () noexcept
 {
 	if (top_ == ((El*)&(last_block_->storage))) {
 		Block* block = last_block_;

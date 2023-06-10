@@ -45,12 +45,12 @@ struct BitmapOps
 	/// \param pcnt The free blocks counter pointer.
 	/// 
 	/// \returns `true` if the counter was decremented.
-	static bool acquire (volatile uint16_t* pcnt) NIRVANA_NOEXCEPT;
+	static bool acquire (volatile uint16_t* pcnt) noexcept;
 
 	/// Atomic decrement unconditional.
 	/// 
 	/// \param pcnt The free blocks counter pointer.
-	static void decrement (volatile uint16_t* pcnt) NIRVANA_NOEXCEPT
+	static void decrement (volatile uint16_t* pcnt) noexcept
 	{
 		std::atomic_fetch_sub ((volatile std::atomic <uint16_t>*)pcnt, 1);
 	}
@@ -58,7 +58,7 @@ struct BitmapOps
 	/// Atomic increment free blocks counter.
 	/// 
 	/// \param pcnt The free blocks counter pointer.
-	static void release (volatile uint16_t* pcnt) NIRVANA_NOEXCEPT
+	static void release (volatile uint16_t* pcnt) noexcept
 	{
 		assert ((int16_t)*pcnt <= 0x7FFF);
 		std::atomic_fetch_add ((volatile std::atomic <uint16_t>*)pcnt, 1);
@@ -69,7 +69,7 @@ struct BitmapOps
 	/// \param pbits The bitmap word pointer.
 	/// 
 	/// \returns Zero based bit number. -1 if all bits are zero.
-	static int clear_rightmost_one (volatile BitmapWord* pbits) NIRVANA_NOEXCEPT;
+	static int clear_rightmost_one (volatile BitmapWord* pbits) noexcept;
 
 	/// Clear bitmap bit if it is not zero.
 	/// 
@@ -78,7 +78,7 @@ struct BitmapOps
 	/// 
 	/// \returns `true` if the bit was zero and has been set. Otherwise `false`.
 	/// 
-	static bool bit_clear (volatile BitmapWord* pbits, BitmapWord mask) NIRVANA_NOEXCEPT;
+	static bool bit_clear (volatile BitmapWord* pbits, BitmapWord mask) noexcept;
 
 	/// Set the bitmap bits.
 	///
@@ -86,7 +86,7 @@ struct BitmapOps
 	/// \param mask The mask with bits to set.
 	/// 
 	/// \returns `true` if all mask bits were zero before.
-	static bool bit_set (volatile BitmapWord* pbits, BitmapWord mask) NIRVANA_NOEXCEPT
+	static bool bit_set (volatile BitmapWord* pbits, BitmapWord mask) noexcept
 	{
 		assert (!(*pbits & mask));
 		BitmapWord old = std::atomic_fetch_or ((volatile std::atomic <BitmapWord>*)pbits, mask);
@@ -104,7 +104,7 @@ struct BitmapOps
 	/// 
 	/// \throws CORBA::FREE_MEM if some of mask bits is already set.
 	static bool bit_set_check_companion (volatile BitmapWord* pbits, BitmapWord mask,
-		BitmapWord companion_mask) NIRVANA_NOEXCEPT;
+		BitmapWord companion_mask) noexcept;
 };
 
 }

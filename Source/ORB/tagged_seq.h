@@ -34,34 +34,34 @@
 namespace CORBA {
 namespace Core {
 
-void sort (IOP::TaggedComponentSeq& seq) NIRVANA_NOEXCEPT;
+void sort (IOP::TaggedComponentSeq& seq) noexcept;
 
 const IOP::TaggedComponent* binary_search (const IOP::TaggedComponentSeq& seq,
-	IOP::ComponentId id) NIRVANA_NOEXCEPT;
+	IOP::ComponentId id) noexcept;
 
 inline
-void sort (IOP::ServiceContextList& seq) NIRVANA_NOEXCEPT
+void sort (IOP::ServiceContextList& seq) noexcept
 {
 	sort (reinterpret_cast <IOP::TaggedComponentSeq&> (seq));
 }
 
 inline
 const IOP::ServiceContext* binary_search (const IOP::ServiceContextList& seq,
-	IOP::ServiceId id) NIRVANA_NOEXCEPT
+	IOP::ServiceId id) noexcept
 {
 	return reinterpret_cast <const IOP::ServiceContext*> (
 		binary_search (reinterpret_cast <const IOP::TaggedComponentSeq&> (seq), id));
 }
 
 inline
-void sort (IOP::TaggedProfileSeq& seq) NIRVANA_NOEXCEPT
+void sort (IOP::TaggedProfileSeq& seq) noexcept
 {
 	sort (reinterpret_cast <IOP::TaggedComponentSeq&> (seq));
 }
 
 inline
 const IOP::TaggedProfile* binary_search (const IOP::TaggedProfileSeq& seq,
-	IOP::ProfileId id) NIRVANA_NOEXCEPT
+	IOP::ProfileId id) noexcept
 {
 	return reinterpret_cast <const IOP::TaggedProfile*> (
 		binary_search (reinterpret_cast <const IOP::TaggedComponentSeq&> (seq), id));

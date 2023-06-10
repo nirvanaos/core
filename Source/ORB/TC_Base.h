@@ -40,10 +40,10 @@ class TC_Base :
 	public SyncGC
 {
 public:
-	virtual void _add_ref () NIRVANA_NOEXCEPT override;
-	virtual void _remove_ref () NIRVANA_NOEXCEPT override;
+	virtual void _add_ref () noexcept override;
+	virtual void _remove_ref () noexcept override;
 
-	TCKind kind () const NIRVANA_NOEXCEPT
+	TCKind kind () const noexcept
 	{
 		return kind_;
 	}
@@ -51,7 +51,7 @@ public:
 	static void _s_n_byteswap (Internal::Bridge <TypeCode>*, void*, size_t, Internal::Interface*);
 
 protected:
-	TC_Base (TCKind kind) NIRVANA_NOEXCEPT :
+	TC_Base (TCKind kind) noexcept :
 		ref_cnt_ (1),
 		kind_ (kind)
 	{}
@@ -59,7 +59,7 @@ protected:
 	virtual ~TC_Base ()
 	{}
 
-	virtual void collect_garbage () NIRVANA_NOEXCEPT;
+	virtual void collect_garbage () noexcept;
 
 protected:
 	RefCntProxy ref_cnt_;

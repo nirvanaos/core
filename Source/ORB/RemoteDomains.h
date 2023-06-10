@@ -38,13 +38,13 @@ namespace std {
 template <>
 struct hash <IIOP::ListenPoint>
 {
-	size_t operator () (const IIOP::ListenPoint& lp) const NIRVANA_NOEXCEPT;
+	size_t operator () (const IIOP::ListenPoint& lp) const noexcept;
 };
 
 template <>
 struct equal_to <IIOP::ListenPoint>
 {
-	bool operator () (const IIOP::ListenPoint& l, const IIOP::ListenPoint& r) const NIRVANA_NOEXCEPT
+	bool operator () (const IIOP::ListenPoint& l, const IIOP::ListenPoint& r) const noexcept
 	{
 		return l.port () == r.port () && l.host () == r.host ();
 	}
@@ -65,7 +65,7 @@ public:
 		listen_points_.erase (lp);
 	}
 
-	bool housekeeping (const TimeBase::TimeT& cur_time) NIRVANA_NOEXCEPT
+	bool housekeeping (const TimeBase::TimeT& cur_time) noexcept
 	{
 		for (auto it = domains_.begin (); it != domains_.end (); ++it) {
 			if (it->is_garbage (cur_time))
@@ -76,7 +76,7 @@ public:
 		return !domains_.empty ();
 	}
 
-	void shutdown () NIRVANA_NOEXCEPT
+	void shutdown () noexcept
 	{
 		for (auto it = domains_.begin (); it != domains_.end (); ++it) {
 			it->shutdown ();

@@ -28,7 +28,7 @@
 namespace Nirvana {
 namespace Core {
 
-bool BitmapOps::acquire (volatile uint16_t* pcnt) NIRVANA_NOEXCEPT
+bool BitmapOps::acquire (volatile uint16_t* pcnt) noexcept
 {
 	assert (std::atomic_is_lock_free ((volatile std::atomic <uint16_t>*)pcnt));
 	uint16_t cnt = std::atomic_load ((volatile std::atomic <uint16_t>*)pcnt);
@@ -39,7 +39,7 @@ bool BitmapOps::acquire (volatile uint16_t* pcnt) NIRVANA_NOEXCEPT
 	return false;
 }
 
-int BitmapOps::clear_rightmost_one (volatile BitmapWord* pbits) NIRVANA_NOEXCEPT
+int BitmapOps::clear_rightmost_one (volatile BitmapWord* pbits) noexcept
 {
 	assert (std::atomic_is_lock_free ((volatile std::atomic <BitmapWord>*)pbits));
 	BitmapWord bits = std::atomic_load ((volatile std::atomic <BitmapWord>*)pbits);
@@ -51,7 +51,7 @@ int BitmapOps::clear_rightmost_one (volatile BitmapWord* pbits) NIRVANA_NOEXCEPT
 	return -1;
 }
 
-bool BitmapOps::bit_clear (volatile BitmapWord* pbits, BitmapWord mask) NIRVANA_NOEXCEPT
+bool BitmapOps::bit_clear (volatile BitmapWord* pbits, BitmapWord mask) noexcept
 {
 	BitmapWord bits = std::atomic_load ((volatile std::atomic <BitmapWord>*)pbits);
 	while (bits & mask) {
@@ -63,7 +63,7 @@ bool BitmapOps::bit_clear (volatile BitmapWord* pbits, BitmapWord mask) NIRVANA_
 }
 
 bool BitmapOps::bit_set_check_companion (volatile BitmapWord* pbits, BitmapWord mask,
-	BitmapWord companion_mask) NIRVANA_NOEXCEPT
+	BitmapWord companion_mask) noexcept
 {
 	assert (!(companion_mask & mask));
 	BitmapWord bits = std::atomic_load ((volatile std::atomic <BitmapWord>*)pbits);

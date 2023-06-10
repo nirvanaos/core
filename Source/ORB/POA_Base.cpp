@@ -205,7 +205,7 @@ void POA_Base::activate_object (ReferenceLocal& ref, ServantProxyObject& proxy)
 	NIRVANA_UNREACHABLE_CODE ();
 }
 
-bool POA_Base::implicit_activation () const NIRVANA_NOEXCEPT
+bool POA_Base::implicit_activation () const noexcept
 {
 	return false;
 }
@@ -222,7 +222,7 @@ servant_reference <CORBA::Core::ServantProxyObject> POA_Base::deactivate_object 
 }
 
 void POA_Base::implicit_deactivate (CORBA::Core::ReferenceLocal& ref,
-	CORBA::Core::ServantProxyObject& proxy) NIRVANA_NOEXCEPT
+	CORBA::Core::ServantProxyObject& proxy) noexcept
 {
 	NIRVANA_UNREACHABLE_CODE ();
 }
@@ -358,7 +358,7 @@ void POA_Base::get_path (AdapterPath& path, size_t size) const
 }
 
 bool POA_Base::check_path (const AdapterPath& path, AdapterPath::const_iterator it)
-	const NIRVANA_NOEXCEPT
+	const noexcept
 {
 	if (parent_) {
 		assert (name_);
@@ -400,7 +400,7 @@ POA_Ref POA_Base::find_child (const IDL::String& adapter_name, bool activate_it)
 		return nullptr;
 }
 
-void POA_Base::destroy_internal (bool etherealize_objects) NIRVANA_NOEXCEPT
+void POA_Base::destroy_internal (bool etherealize_objects) noexcept
 {
 	destroyed_ = true;
 	name_ = nullptr;
@@ -455,7 +455,7 @@ void POA_Base::serve_request (const RequestRef& request, ReferenceLocal& referen
 	tls.set (TLS::CORE_TLS_PORTABLE_SERVER, ctx_prev);
 }
 
-void POA_Base::on_request_finish () NIRVANA_NOEXCEPT
+void POA_Base::on_request_finish () noexcept
 {
 	if (!--request_cnt_ && destroyed_)
 		destroy_completed_.signal ();

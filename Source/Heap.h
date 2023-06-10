@@ -35,7 +35,7 @@
 #include "StaticallyAllocated.h"
 
 #define DEFINE_ALLOCATOR(Name) template <class U> operator const Name <U>& () const \
-NIRVANA_NOEXCEPT { return *reinterpret_cast <const Name <U>*> (this); }\
+noexcept { return *reinterpret_cast <const Name <U>*> (this); }\
 template <class U> struct rebind { typedef Name <U> other; }
 
 namespace Nirvana {
@@ -119,19 +119,19 @@ public:
 	void add_large_block (void* p, size_t size);
 
 	/// Returns core heap.
-	static Heap& core_heap () NIRVANA_NOEXCEPT;
+	static Heap& core_heap () noexcept;
 
 	/// Returns shared heap.
-	static Heap& shared_heap () NIRVANA_NOEXCEPT;
+	static Heap& shared_heap () noexcept;
 
 	/// Global class initialization.
-	static bool initialize () NIRVANA_NOEXCEPT;
+	static bool initialize () noexcept;
 	
 	/// Global class temination.
-	static void terminate () NIRVANA_NOEXCEPT;
+	static void terminate () noexcept;
 
 protected:
-	Heap (size_t allocation_unit = HEAP_UNIT_DEFAULT) NIRVANA_NOEXCEPT;
+	Heap (size_t allocation_unit = HEAP_UNIT_DEFAULT) noexcept;
 
 	typedef HeapDirectory <HEAP_DIRECTORY_SIZE, HEAP_DIRECTORY_LEVELS,
 		(Port::Memory::FLAGS & Memory::SPACE_RESERVATION) ?
@@ -141,15 +141,15 @@ protected:
 	class MemoryBlock
 	{
 	public:
-		MemoryBlock () NIRVANA_NOEXCEPT
+		MemoryBlock () noexcept
 		{}
 
-		MemoryBlock (const void* p) NIRVANA_NOEXCEPT :
+		MemoryBlock (const void* p) noexcept :
 			begin_ ((uint8_t*)p),
 			next_partition_ (nullptr)
 		{}
 
-		MemoryBlock (void* p, size_t size) NIRVANA_NOEXCEPT :
+		MemoryBlock (void* p, size_t size) noexcept :
 			begin_ ((uint8_t*)p),
 			large_block_size_ (size | 1)
 		{
@@ -157,35 +157,35 @@ protected:
 			assert (!(size & 1));
 		}
 
-		MemoryBlock (Directory* part) NIRVANA_NOEXCEPT :
+		MemoryBlock (Directory* part) noexcept :
 			begin_ ((uint8_t*)(part + 1)),
 			next_partition_ (nullptr)
 		{}
 
-		uint8_t* begin () const NIRVANA_NOEXCEPT
+		uint8_t* begin () const noexcept
 		{
 			return begin_;
 		}
 
 		// Use lowest bit as large block tag.
-		size_t is_large_block () const NIRVANA_NOEXCEPT
+		size_t is_large_block () const noexcept
 		{
 			return large_block_size_ & 1;
 		}
 
-		size_t large_block_size () const NIRVANA_NOEXCEPT
+		size_t large_block_size () const noexcept
 		{
 			assert (is_large_block ());
 			return large_block_size_ & ~1;
 		}
 
-		Directory& directory () const NIRVANA_NOEXCEPT
+		Directory& directory () const noexcept
 		{
 			assert (!is_large_block ());
 			return *(Directory*)(begin_ - sizeof (Directory));
 		}
 
-		MemoryBlock*& next_partition () NIRVANA_NOEXCEPT
+		MemoryBlock*& next_partition () noexcept
 		{
 			assert (!is_large_block ());
 			return next_partition_;
@@ -193,7 +193,7 @@ protected:
 
 		// Blocks are sorted in descending order.
 		// So we can use lower_bound to search block begin.
-		bool operator < (const MemoryBlock& rhs) const NIRVANA_NOEXCEPT
+		bool operator < (const MemoryBlock& rhs) const noexcept
 		{
 			if (begin_ > rhs.begin_)
 				return true;
@@ -208,9 +208,9 @@ protected:
 				return false;
 		}
 
-		bool collapse_large_block (size_t size) NIRVANA_NOEXCEPT;
+		bool collapse_large_block (size_t size) noexcept;
 
-		void restore_large_block (size_t size) NIRVANA_NOEXCEPT;
+		void restore_large_block (size_t size) noexcept;
 
 	private:
 		// Pointer to the memory block.
@@ -250,7 +250,7 @@ protected:
 			return ins.first;
 		}
 
-		NodeVal* insert (Directory* part, size_t allocation_unit) NIRVANA_NOEXCEPT
+		NodeVal* insert (Directory* part, size_t allocation_unit) noexcept
 		{
 			unsigned level = Base::random_level ();
 			size_t cb = Base::node_size (level);
@@ -262,12 +262,12 @@ protected:
 			return ins.first;
 		}
 
-		const NodeVal* head () const NIRVANA_NOEXCEPT
+		const NodeVal* head () const noexcept
 		{
 			return static_cast <NodeVal*> (Base::head ());
 		}
 
-		const NodeVal* tail () const NIRVANA_NOEXCEPT
+		const NodeVal* tail () const noexcept
 		{
 			return static_cast <NodeVal*> (Base::tail ());
 		}
@@ -290,16 +290,16 @@ protected:
 		Port::Memory::release (dir, sizeof (Directory) + partition_size (allocation_unit_));
 	}
 
-	Directory* get_partition (const void* p) NIRVANA_NOEXCEPT;
+	Directory* get_partition (const void* p) noexcept;
 
-	static void* allocate (Directory& part, size_t& size, unsigned flags, size_t allocation_unit) NIRVANA_NOEXCEPT;
+	static void* allocate (Directory& part, size_t& size, unsigned flags, size_t allocation_unit) noexcept;
 
-	void* allocate (Directory& part, size_t& size, unsigned flags) const NIRVANA_NOEXCEPT
+	void* allocate (Directory& part, size_t& size, unsigned flags) const noexcept
 	{
 		return allocate (part, size, flags, allocation_unit_);
 	}
 
-	void* allocate (Directory& part, void* p, size_t& size, unsigned flags) const NIRVANA_NOEXCEPT;
+	void* allocate (Directory& part, void* p, size_t& size, unsigned flags) const noexcept;
 
 	void* allocate (size_t& size, unsigned flags);
 

@@ -62,7 +62,7 @@ public:
 		write_header (object_key, context);
 	}
 
-	DomainProt* target_domain () const NIRVANA_NOEXCEPT
+	DomainProt* target_domain () const noexcept
 	{
 		return static_cast <DomainProt*> (Base::target_domain ());
 	}

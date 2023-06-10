@@ -50,7 +50,7 @@ public:
 
 	typedef Nirvana::Core::Array <IDL::String, Nirvana::Core::UserAllocator> Members;
 
-	TC_Enum (IDL::String&& id, IDL::String&& name, Members&& members) NIRVANA_NOEXCEPT;
+	TC_Enum (IDL::String&& id, IDL::String&& name, Members&& members) noexcept;
 
 	Boolean equal (TypeCode::_ptr_type other) const
 	{
@@ -73,7 +73,7 @@ public:
 			(ULong)members_.size (), TypeCodeBase::dereference_alias (other)) != TypeCodeBase::EqResult::NO;
 	}
 
-	ULong member_count () const NIRVANA_NOEXCEPT
+	ULong member_count () const noexcept
 	{
 		return (ULong)members_.size ();
 	}
@@ -104,17 +104,17 @@ public:
 			return ORB::create_enum_tc (id_, IDL::String (), EnumMemberSeq (members_.size ()));
 	}
 
-	size_t n_size () const NIRVANA_NOEXCEPT
+	size_t n_size () const noexcept
 	{
 		return sizeof (Internal::ABI_enum);
 	}
 
-	size_t n_align () const NIRVANA_NOEXCEPT
+	size_t n_align () const noexcept
 	{
 		return alignof (Internal::ABI_enum);
 	}
 
-	bool n_is_CDR () const NIRVANA_NOEXCEPT
+	bool n_is_CDR () const noexcept
 	{
 		return true;
 	}

@@ -51,19 +51,19 @@ class RuntimeSupport
 		public UserObject
 	{
 	public:
-		RuntimeProxyImpl (const void* obj) NIRVANA_NOEXCEPT :
+		RuntimeProxyImpl (const void* obj) noexcept :
 			object_ (obj)
 		{}
 
 		~RuntimeProxyImpl ()
 		{}
 
-		const void* object () const NIRVANA_NOEXCEPT
+		const void* object () const noexcept
 		{
 			return object_;
 		}
 
-		void remove () NIRVANA_NOEXCEPT
+		void remove () noexcept
 		{
 			assert (object_);
 			object_ = nullptr;
@@ -78,9 +78,9 @@ class RuntimeSupport
 
 public:
 	RuntimeProxy::_ref_type runtime_proxy_get (const void* obj);
-	void runtime_proxy_remove (const void* obj) NIRVANA_NOEXCEPT;
+	void runtime_proxy_remove (const void* obj) noexcept;
 
-	void clear () NIRVANA_NOEXCEPT;
+	void clear () noexcept;
 
 	RuntimeSupport ();
 	~RuntimeSupport ();
@@ -97,10 +97,10 @@ public:
 		return RuntimeProxy::_nil ();
 	}
 
-	void runtime_proxy_remove (const void* obj) NIRVANA_NOEXCEPT
+	void runtime_proxy_remove (const void* obj) noexcept
 	{}
 
-	void clear () NIRVANA_NOEXCEPT
+	void clear () noexcept
 	{}
 };
 

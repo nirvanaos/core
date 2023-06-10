@@ -62,9 +62,9 @@ public:
 	// Add DGC references owned by this domain.
 	// Used only in the connection-oriented GC.
 	// Not used if the domain is DGC-enabled.
-	void add_DGC_objects (ReferenceSet <Nirvana::Core::HeapAllocator>& references) NIRVANA_NOEXCEPT;
+	void add_DGC_objects (ReferenceSet <Nirvana::Core::HeapAllocator>& references) noexcept;
 
-	void shutdown () NIRVANA_NOEXCEPT
+	void shutdown () noexcept
 	{
 		// TODO: Implement
 	}

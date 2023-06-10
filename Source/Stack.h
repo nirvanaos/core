@@ -52,14 +52,14 @@ class Stack
 	typedef LockablePtrT <T, 0, ALIGN> LockablePtr;
 	typedef typename LockablePtr::Ptr Ptr;
 public:
-	Stack () NIRVANA_NOEXCEPT :
+	Stack () noexcept :
 		head_ (nullptr)
 	{}
 
 	/// Push object to the stack.
 	/// 
 	/// \param elem Object.
-	void push (T& elem) NIRVANA_NOEXCEPT
+	void push (T& elem) noexcept
 	{
 		StackElem* node = &static_cast <StackElem&> (elem);
 		// Initialize ref_cnt with 1.
@@ -78,7 +78,7 @@ public:
 	/// Pop object from the stack.
 	/// 
 	/// \returns The object pointer or `nullptr` if the stack is empty.
-	T* pop () NIRVANA_NOEXCEPT
+	T* pop () noexcept
 	{
 		for (StackElem* node = nullptr;;) {
 			// Get head and increment counter on it

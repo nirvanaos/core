@@ -84,7 +84,7 @@ ReferenceLocalRef POA_Root::emplace_reference (ObjectKey&& core_key,
 	}
 }
 
-ReferenceLocalRef POA_Root::find_reference (const IOP::ObjectKey& key) NIRVANA_NOEXCEPT
+ReferenceLocalRef POA_Root::find_reference (const IOP::ObjectKey& key) noexcept
 {
 	References::iterator it = references_.find (key);
 	ReferenceLocalRef ref;
@@ -104,7 +104,7 @@ POA_Ref POA_Root::find_child (const AdapterPath& path, bool activate_it)
 	return adapter;
 }
 
-void POA_Root::invoke (RequestRef request, bool async) NIRVANA_NOEXCEPT
+void POA_Root::invoke (RequestRef request, bool async) noexcept
 {
 	try {
 		if (Scheduler::state () != Scheduler::RUNNING)
@@ -143,7 +143,7 @@ public:
 
 private:
 	virtual void run ();
-	virtual void on_crash (const siginfo& signal) NIRVANA_NOEXCEPT;
+	virtual void on_crash (const siginfo& signal) noexcept;
 
 private:
 	POA_Ref root_;
@@ -175,7 +175,7 @@ void POA_Root::InvokeAsync::run ()
 	}
 }
 
-void POA_Root::InvokeAsync::on_crash (const siginfo& signal) NIRVANA_NOEXCEPT
+void POA_Root::InvokeAsync::on_crash (const siginfo& signal) noexcept
 {
 	Any a = RqHelper::signal2exception (signal);
 	request_->set_exception (a);

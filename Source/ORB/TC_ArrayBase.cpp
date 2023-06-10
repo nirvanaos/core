@@ -68,7 +68,7 @@ TCKind TC_ArrayBase::get_array_kind (TypeCode::_ptr_type tc)
 		return kind;
 }
 
-bool TC_ArrayBase::mark () NIRVANA_NOEXCEPT
+bool TC_ArrayBase::mark () noexcept
 {
 	if (!TC_ComplexBase::mark ())
 		return false;
@@ -76,7 +76,7 @@ bool TC_ArrayBase::mark () NIRVANA_NOEXCEPT
 	return true;
 }
 
-bool TC_ArrayBase::set_recursive (const IDL::String& id, const TC_Ref& ref) NIRVANA_NOEXCEPT
+bool TC_ArrayBase::set_recursive (const IDL::String& id, const TC_Ref& ref) noexcept
 {
 	if (content_type_.replace_recursive_placeholder (id, ref))
 		initialize ();

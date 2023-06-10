@@ -61,7 +61,7 @@ FileAccessDirect::CacheRange FileAccessDirect::request_read (BlockIdx begin_bloc
 	return blocks;
 }
 
-void FileAccessDirect::set_dirty (Cache::reference entry, size_t offset, size_t size) NIRVANA_NOEXCEPT
+void FileAccessDirect::set_dirty (Cache::reference entry, size_t offset, size_t size) noexcept
 {
 	assert (size > 0 && size <= block_size_);
 	if (!entry.second.dirty ())
@@ -117,7 +117,7 @@ void FileAccessDirect::write_dirty_blocks (SteadyTime timeout)
 	}
 }
 
-void FileAccessDirect::complete_request (Ref <Request> request) NIRVANA_NOEXCEPT
+void FileAccessDirect::complete_request (Ref <Request> request) noexcept
 {
 	request->wait ();
 	if (request->first_block_ != cache_.end ()) {
@@ -151,7 +151,7 @@ void FileAccessDirect::complete_request (Cache::reference entry, int op)
 		throw RuntimeError (entry.second.error);
 }
 
-void FileAccessDirect::complete_size_request () NIRVANA_NOEXCEPT
+void FileAccessDirect::complete_size_request () noexcept
 {
 	size_request_->wait ();
 	if (size_request_) {

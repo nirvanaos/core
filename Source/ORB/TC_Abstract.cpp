@@ -28,7 +28,7 @@
 namespace CORBA {
 namespace Core {
 
-TC_Abstract::TC_Abstract (IDL::String&& id, IDL::String&& name) NIRVANA_NOEXCEPT :
+TC_Abstract::TC_Abstract (IDL::String&& id, IDL::String&& name) noexcept :
 	Impl (TCKind::tk_abstract_interface, std::move (id), std::move (name))
 {}
 

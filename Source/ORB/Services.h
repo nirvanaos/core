@@ -83,18 +83,18 @@ public:
 	~Services ()
 	{}
 
-	static void initialize () NIRVANA_NOEXCEPT
+	static void initialize () noexcept
 	{
 		singleton_.construct ();
 	}
 
-	static void terminate () NIRVANA_NOEXCEPT
+	static void terminate () noexcept
 	{
 		singleton_.destruct ();
 	}
 
 private:
-	static Service find_service (const Char* id) NIRVANA_NOEXCEPT
+	static Service find_service (const Char* id) noexcept
 	{
 		const Factory* f = std::lower_bound (factories_, std::end (factories_), id, Less ());
 		if (f < std::end (factories_) && strcmp (id, f->id))
@@ -105,7 +105,7 @@ private:
 	Object::_ref_type bind_internal (Service sidx);
 
 private:
-	static Nirvana::Core::Heap* new_service_memory () NIRVANA_NOEXCEPT
+	static Nirvana::Core::Heap* new_service_memory () noexcept
 	{
 		return sizeof (void*) > 4 ?
 			nullptr // Create new memory context
@@ -126,12 +126,12 @@ private:
 
 	struct Less
 	{
-		bool operator () (const Factory& l, const Char* r) const NIRVANA_NOEXCEPT
+		bool operator () (const Factory& l, const Char* r) const noexcept
 		{
 			return strcmp (l.id, r) < 0;
 		}
 
-		bool operator () (const Char* l, const Factory& r) const NIRVANA_NOEXCEPT
+		bool operator () (const Char* l, const Factory& r) const noexcept
 		{
 			return strcmp (l, r.id) < 0;
 		}

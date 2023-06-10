@@ -33,7 +33,7 @@ namespace Nirvana {
 namespace Core {
 
 inline
-uint16_t RandomGen::xorshift (uint16_t x) NIRVANA_NOEXCEPT
+uint16_t RandomGen::xorshift (uint16_t x) noexcept
 {
 	x ^= x << 7;
 	x ^= x >> 9;
@@ -42,7 +42,7 @@ uint16_t RandomGen::xorshift (uint16_t x) NIRVANA_NOEXCEPT
 }
 
 inline
-uint32_t RandomGen::xorshift (uint32_t x) NIRVANA_NOEXCEPT
+uint32_t RandomGen::xorshift (uint32_t x) noexcept
 {
 	x ^= x << 13;
 	x ^= x >> 17;
@@ -51,7 +51,7 @@ uint32_t RandomGen::xorshift (uint32_t x) NIRVANA_NOEXCEPT
 }
 
 inline
-uint64_t RandomGen::xorshift (uint64_t x) NIRVANA_NOEXCEPT
+uint64_t RandomGen::xorshift (uint64_t x) noexcept
 {
 	x ^= x << 13;
 	x ^= x >> 7;
@@ -59,12 +59,12 @@ uint64_t RandomGen::xorshift (uint64_t x) NIRVANA_NOEXCEPT
 	return x;
 }
 
-RandomGen::result_type RandomGen::operator () () NIRVANA_NOEXCEPT
+RandomGen::result_type RandomGen::operator () () noexcept
 {
 	return state_ = xorshift (state_);
 }
 
-RandomGen::result_type RandomGenAtomic::operator () () NIRVANA_NOEXCEPT
+RandomGen::result_type RandomGenAtomic::operator () () noexcept
 {
 	volatile std::atomic <RandomGen::result_type>* ps = (volatile std::atomic<RandomGen::result_type>*) & state_;
 	assert (std::atomic_is_lock_free (ps));

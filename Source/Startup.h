@@ -54,11 +54,11 @@ public:
 	void launch (DeadlineTime deadline);
 
 	virtual void run ();
-	virtual void on_crash (const siginfo& signal) NIRVANA_NOEXCEPT;
+	virtual void on_crash (const siginfo& signal) noexcept;
 
 	void check () const;
 
-	int ret () const NIRVANA_NOEXCEPT
+	int ret () const noexcept
 	{
 		return ret_;
 	}
@@ -69,7 +69,7 @@ protected:
 	~Startup ()
 	{}
 
-	void on_exception () NIRVANA_NOEXCEPT;
+	void on_exception () noexcept;
 
 protected:
 	int argc_;

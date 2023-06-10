@@ -44,7 +44,7 @@ class NIRVANA_NOVTABLE Reference :
 {
 	template <class> friend class CORBA::servant_reference;
 	virtual void _add_ref () override = 0;
-	virtual void _remove_ref () NIRVANA_NOEXCEPT override = 0;
+	virtual void _remove_ref () noexcept override = 0;
 
 public:
 	/// Reference creation deadline.
@@ -70,12 +70,12 @@ public:
 		flags_ (flags)
 	{}
 
-	unsigned flags () const NIRVANA_NOEXCEPT
+	unsigned flags () const noexcept
 	{
 		return flags_;
 	}
 
-	RefCntProxy::IntegralType _refcount_value () const NIRVANA_NOEXCEPT
+	RefCntProxy::IntegralType _refcount_value () const noexcept
 	{
 		return ref_cnt_.load ();
 	}

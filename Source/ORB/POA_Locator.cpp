@@ -65,7 +65,7 @@ Object::_ref_type POA_Locator::preinvoke (Type <ObjectId>::C_in oid, String_in o
 }
 
 void POA_Locator::postinvoke (Type <ObjectId>::C_in oid, String_in operation,
-	void* the_cookie, Object::_ptr_type the_servant) NIRVANA_NOEXCEPT
+	void* the_cookie, Object::_ptr_type the_servant) noexcept
 {
 	Bridge <ServantLocator>* bridge = static_cast <Bridge <ServantLocator>*>
 		(&ServantLocator::_ptr_type (locator_));

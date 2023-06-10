@@ -45,12 +45,12 @@ public:
 
 	// LocalObject default implementation
 
-	static Boolean _non_existent () NIRVANA_NOEXCEPT
+	static Boolean _non_existent () noexcept
 	{
 		return false;
 	}
 
-	Bridge <Object>* _get_object (Internal::Type <IDL::String>::ABI_in iid, Interface* env) NIRVANA_NOEXCEPT
+	Bridge <Object>* _get_object (Internal::Type <IDL::String>::ABI_in iid, Interface* env) noexcept
 	{
 		return proxy ()._get_object (iid, env);
 	}

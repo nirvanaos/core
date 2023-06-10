@@ -55,7 +55,7 @@ void StreamInEncap::prepare (size_t align, size_t size, Range& range) const
 	range.second = end;
 }
 
-void StreamInEncap::read (const Range& range, void* buf) NIRVANA_NOEXCEPT
+void StreamInEncap::read (const Range& range, void* buf) noexcept
 {
 	real_copy (range.first, range.second, (Octet*)buf);
 	cur_ptr_ = range.second;

@@ -82,17 +82,17 @@ public:
 		}
 	}
 
-	ESIOP::ProtDomains& prot_domains () NIRVANA_NOEXCEPT
+	ESIOP::ProtDomains& prot_domains () noexcept
 	{
 		return prot_domains_;
 	}
 
-	RemoteDomains& remote_domains () NIRVANA_NOEXCEPT
+	RemoteDomains& remote_domains () noexcept
 	{
 		return remote_domains_;
 	}
 
-	void erase (const RefKey& ref) NIRVANA_NOEXCEPT
+	void erase (const RefKey& ref) noexcept
 	{
 		references_.erase (ref);
 	}
@@ -121,7 +121,7 @@ public:
 		return ref;
 	}
 
-	void heartbeat (const DomainAddress& domain) NIRVANA_NOEXCEPT
+	void heartbeat (const DomainAddress& domain) noexcept
 	{
 		auto p = find_domain (domain);
 		if (p)
@@ -140,7 +140,7 @@ public:
 			domain->make_zombie ();
 	}
 
-	bool housekeeping () NIRVANA_NOEXCEPT
+	bool housekeeping () noexcept
 	{
 		Nirvana::SteadyTime t = Nirvana::Core::Chrono::steady_clock ();
 		bool p = prot_domains_.housekeeping (t);
@@ -148,7 +148,7 @@ public:
 		return p || r;
 	}
 
-	void shutdown () NIRVANA_NOEXCEPT // Called on terminate()
+	void shutdown () noexcept // Called on terminate()
 	{
 		assert (references_.empty ());
 		references_.clear ();

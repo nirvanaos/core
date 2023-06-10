@@ -61,13 +61,13 @@ public:
 		S::_implementation (static_cast <Internal::Bridge <I>*> (itf)).proxy ().delete_proxy ();
 	}
 
-	Internal::I_ptr <PrimaryInterface> _get_ptr () NIRVANA_NOEXCEPT
+	Internal::I_ptr <PrimaryInterface> _get_ptr () noexcept
 	{
 		return Internal::I_ptr <PrimaryInterface> (&static_cast <PrimaryInterface&> (
 			static_cast <Internal::Bridge <PrimaryInterface>&> (*this)));
 	}
 
-	Proxy& proxy () NIRVANA_NOEXCEPT
+	Proxy& proxy () noexcept
 	{
 		return proxy_;
 	}
@@ -79,12 +79,12 @@ public:
 		assert (false);
 	}
 
-	void _add_ref () NIRVANA_NOEXCEPT
+	void _add_ref () noexcept
 	{
 		ref_cnt_.increment ();
 	}
 
-	void _remove_ref () NIRVANA_NOEXCEPT
+	void _remove_ref () noexcept
 	{
 		if (0 == ref_cnt_.decrement_seq ()) {
 			try {
@@ -97,7 +97,7 @@ public:
 		}
 	}
 
-	ULong _refcount_value () const NIRVANA_NOEXCEPT
+	ULong _refcount_value () const noexcept
 	{
 		Nirvana::Core::RefCounter::IntegralType ucnt = ref_cnt_;
 		return ucnt > std::numeric_limits <ULong>::max () ? std::numeric_limits <ULong>::max () : (ULong)ucnt;

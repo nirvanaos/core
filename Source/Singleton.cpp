@@ -28,7 +28,7 @@
 namespace Nirvana {
 namespace Core {
 
-Module* Singleton::module () NIRVANA_NOEXCEPT
+Module* Singleton::module () noexcept
 {
 	return this;
 }

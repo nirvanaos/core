@@ -50,7 +50,7 @@ class SkipListBase
 public:
 	typedef uint_fast8_t Level;
 
-	bool empty () NIRVANA_NOEXCEPT;
+	bool empty () noexcept;
 
 	struct Node;
 
@@ -64,14 +64,14 @@ private:
 		Level volatile valid_level;
 		std::atomic <bool> deleted;
 
-		NodeBase (unsigned l) NIRVANA_NOEXCEPT :
+		NodeBase (unsigned l) noexcept :
 		prev (nullptr),
 		level ((Level)l),
 		valid_level ((Level)1),
 		deleted (false)
 		{}
 
-		virtual ~NodeBase () NIRVANA_NOEXCEPT
+		virtual ~NodeBase () noexcept
 		{}
 	};
 
@@ -84,22 +84,22 @@ public:
 	struct NIRVANA_NOVTABLE Node : NodeBase
 	{
 		/// Virtual operator < must be overridden.
-		virtual bool operator < (const Node&) const NIRVANA_NOEXCEPT;
+		virtual bool operator < (const Node&) const noexcept;
 
 		Link::Lockable next [1];	// Variable length array.
 
-		Node (unsigned level) NIRVANA_NOEXCEPT :
+		Node (unsigned level) noexcept :
 		NodeBase (level)
 		{
 			std::fill_n ((uintptr_t*)next, level, 0);
 		}
 
-		static constexpr size_t size (size_t node_size, unsigned level) NIRVANA_NOEXCEPT
+		static constexpr size_t size (size_t node_size, unsigned level) noexcept
 		{
 			return node_size + (level - 1) * sizeof (next [0]);
 		}
 
-		void* value () NIRVANA_NOEXCEPT
+		void* value () noexcept
 		{
 			return next + level;
 		}
@@ -110,59 +110,59 @@ public:
 
 protected:
 
-	SkipListBase (unsigned node_size, unsigned max_level, void* head_tail) NIRVANA_NOEXCEPT;
+	SkipListBase (unsigned node_size, unsigned max_level, void* head_tail) noexcept;
 
 	/// Gets node with minimal key.
 	/// \returns `Node*` if list not empty or `nullptr` otherwise.
 	///          Returned Node* must be released by release_node().
-	Node* get_min_node () NIRVANA_NOEXCEPT;
+	Node* get_min_node () noexcept;
 
 	/// Deletes node with minimal key.
 	/// \returns `Node*` if list not empty or `nullptr` otherwise.
 	///          Returned Node* must be released by release_node().
-	Node* delete_min () NIRVANA_NOEXCEPT;
+	Node* delete_min () noexcept;
 
 	// Node comparator.
-	bool less (const Node& n1, const Node& n2) const NIRVANA_NOEXCEPT;
+	bool less (const Node& n1, const Node& n2) const noexcept;
 
-	Node* head () const NIRVANA_NOEXCEPT
+	Node* head () const noexcept
 	{
 		return head_;
 	}
 
-	Node* tail () const NIRVANA_NOEXCEPT
+	Node* tail () const noexcept
 	{
 		return tail_;
 	}
 
-	unsigned max_level () const NIRVANA_NOEXCEPT
+	unsigned max_level () const noexcept
 	{
 		return head_->level;
 	}
 
-	unsigned random_level () NIRVANA_NOEXCEPT
+	unsigned random_level () noexcept
 	{
 		// Geometric distribution
 		return 1 + nlz (rndgen_ ());
 	}
 
-	size_t node_size (unsigned level) const NIRVANA_NOEXCEPT
+	size_t node_size (unsigned level) const noexcept
 	{
 		return Node::size (node_size_, level);
 	}
 
-	Node* insert (Node* new_node, Node** saved_nodes) NIRVANA_NOEXCEPT;
+	Node* insert (Node* new_node, Node** saved_nodes) noexcept;
 
-	void release_node (Node* node) NIRVANA_NOEXCEPT;
+	void release_node (Node* node) noexcept;
 
-	Node* find (const Node* keynode) NIRVANA_NOEXCEPT;
-	Node* lower_bound (const Node* keynode) NIRVANA_NOEXCEPT;
-	Node* upper_bound (const Node* keynode) NIRVANA_NOEXCEPT;
+	Node* find (const Node* keynode) noexcept;
+	Node* lower_bound (const Node* keynode) noexcept;
+	Node* upper_bound (const Node* keynode) noexcept;
 
-	Node* find_and_delete (const Node* keynode) NIRVANA_NOEXCEPT;
+	Node* find_and_delete (const Node* keynode) noexcept;
 
 	/// Erase by key.
-	bool erase (const Node* keynode) NIRVANA_NOEXCEPT
+	bool erase (const Node* keynode) noexcept
 	{
 		Node* node = find_and_delete (keynode);
 		if (node)
@@ -173,7 +173,7 @@ protected:
 	/// Directly removes node from list.
 	/// `remove (find (keynode));` works slower then `erase (keynode);`.
 	/// But it does not use the comparison and exactly removes the specified node.
-	bool remove (Node* node) NIRVANA_NOEXCEPT
+	bool remove (Node* node) noexcept
 	{
 		if (!node->deleted.exchange (true)) {
 			final_delete (node);
@@ -185,7 +185,7 @@ protected:
 	/// Only `Node::level` member is valid on return.
 	Node* allocate_node (unsigned level);
 
-	SkipListBase& operator = (SkipListBase&& other) NIRVANA_NOEXCEPT
+	SkipListBase& operator = (SkipListBase&& other) noexcept
 	{
 		assert (node_size_ == other.node_size_);
 		rndgen_ = other.rndgen_;
@@ -193,24 +193,24 @@ protected:
 	}
 
 private:
-	static Node* read_node (Link::Lockable& node) NIRVANA_NOEXCEPT;
+	static Node* read_node (Link::Lockable& node) noexcept;
 
-	static Node* copy_node (Node* node) NIRVANA_NOEXCEPT
+	static Node* copy_node (Node* node) noexcept
 	{
 		assert (node);
 		node->ref_cnt.increment ();
 		return node;
 	}
 
-	Node* read_next (Node*& node1, int level) NIRVANA_NOEXCEPT;
+	Node* read_next (Node*& node1, int level) noexcept;
 
-	Node* scan_key (Node*& node1, int level, const Node* keynode) NIRVANA_NOEXCEPT;
+	Node* scan_key (Node*& node1, int level, const Node* keynode) noexcept;
 
-	Node* help_delete (Node*, int level) NIRVANA_NOEXCEPT;
+	Node* help_delete (Node*, int level) noexcept;
 
-	void remove_node (Node* node, Node*& prev, int level) NIRVANA_NOEXCEPT;
-	void final_delete (Node* node) NIRVANA_NOEXCEPT;
-	inline void delete_node (Node* node) NIRVANA_NOEXCEPT;
+	void remove_node (Node* node, Node*& prev, int level) noexcept;
+	void final_delete (Node* node) noexcept;
+	inline void delete_node (Node* node) noexcept;
 
 protected:
 #ifdef _DEBUG
@@ -240,22 +240,22 @@ public:
 	}
 
 protected:
-	SkipListL (unsigned node_size) NIRVANA_NOEXCEPT :
+	SkipListL (unsigned node_size) noexcept :
 		Base (node_size, MAX_LEVEL, &head_tail_)
 	{}
 
-	Node* insert (Node* new_node) NIRVANA_NOEXCEPT
+	Node* insert (Node* new_node) noexcept
 	{
 		Node* save_nodes [MAX_LEVEL];
 		return Base::insert (new_node, save_nodes);
 	}
 
-	unsigned random_level () NIRVANA_NOEXCEPT
+	unsigned random_level () noexcept
 	{
 		return MAX_LEVEL > 1 ? std::min (Base::random_level (), MAX_LEVEL) : 1;
 	}
 
-	SkipListL& operator = (SkipListL&& other) NIRVANA_NOEXCEPT
+	SkipListL& operator = (SkipListL&& other) noexcept
 	{
 		Base::operator = (std::move (other));
 
@@ -305,35 +305,35 @@ public:
 		// Reserve space for creation of auto variables with level = 1.
 		uint8_t val_space [sizeof (Val)];
 
-		Value& value () NIRVANA_NOEXCEPT
+		Value& value () noexcept
 		{
 			return *(Value*)Base::Node::value ();
 		}
 
-		const Value& value () const NIRVANA_NOEXCEPT
+		const Value& value () const noexcept
 		{
 			return const_cast <NodeVal*> (this)->value ();
 		}
 
-		virtual bool operator < (const typename Base::Node& rhs) const NIRVANA_NOEXCEPT
+		virtual bool operator < (const typename Base::Node& rhs) const noexcept
 		{
 			return value () < static_cast <const NodeVal&> (rhs).value ();
 		}
 
 		template <class ... Args>
-		NodeVal (int level, Args ... args) NIRVANA_NOEXCEPT :
+		NodeVal (int level, Args ... args) noexcept :
 		Base::Node (level)
 		{
 			new (&value ()) Value (std::forward <Args> (args)...);
 		}
 
-		~NodeVal () NIRVANA_NOEXCEPT
+		~NodeVal () noexcept
 		{
 			value ().~Val ();
 		}
 	};
 
-	SkipList () NIRVANA_NOEXCEPT :
+	SkipList () noexcept :
 		Base (sizeof (NodeVal))
 	{}
 
@@ -348,7 +348,7 @@ public:
 		return insert (create_node (std::forward <Args> (args)...));
 	}
 
-	std::pair <NodeVal*, bool> insert (NodeVal* new_node) NIRVANA_NOEXCEPT
+	std::pair <NodeVal*, bool> insert (NodeVal* new_node) noexcept
 	{
 		NodeVal* p = static_cast <NodeVal*> (Base::insert (new_node));
 		return std::pair <NodeVal*, bool> (p, p == new_node);
@@ -365,7 +365,7 @@ public:
 	/// Gets minimal value.
 	/// \param [out] val Node value.
 	/// \returns `true` if node found, `false` if queue is empty.
-	bool get_min_value (Val& val) NIRVANA_NOEXCEPT
+	bool get_min_value (Val& val) noexcept
 	{
 		NodeVal* node = get_min_node ();
 		if (node) {
@@ -379,7 +379,7 @@ public:
 	/// Deletes node with minimal value.
 	/// \param [out] val Node value.
 	/// \returns `true` if node deleted, `false` if queue is empty.
-	bool delete_min (Val& val) NIRVANA_NOEXCEPT
+	bool delete_min (Val& val) noexcept
 	{
 		NodeVal* node = delete_min ();
 		if (node) {
@@ -393,7 +393,7 @@ public:
 	/// Deletes node with specified value.
 	/// \param val Node value to delete.
 	/// \returns `true` if node deleted, `false` if value not found.
-	bool erase (const Val& val) NIRVANA_NOEXCEPT
+	bool erase (const Val& val) noexcept
 	{
 		NodeVal keynode (1, val);
 		return Base::erase (&keynode);
@@ -406,7 +406,7 @@ public:
 		return Base::erase (&keynode);
 	}
 
-	bool erase (const NodeVal* keynode) NIRVANA_NOEXCEPT
+	bool erase (const NodeVal* keynode) noexcept
 	{
 		return Base::erase (keynode);
 	}
@@ -414,7 +414,7 @@ public:
 	/// Gets node with minimal value.
 	/// \returns Minimal node pointer or `nullptr` if list is empty.
 	///          Returned pointer must be released by `release_node`.
-	NodeVal* get_min_node () NIRVANA_NOEXCEPT
+	NodeVal* get_min_node () noexcept
 	{
 		return static_cast <NodeVal*> (Base::get_min_node ());
 	}
@@ -422,13 +422,13 @@ public:
 	/// Deletes node with minimal value.
 	/// \returns Removed node pointer or `nullptr` if list is empty.
 	///          Returned pointer must be released by `release_node`.
-	NodeVal* delete_min () NIRVANA_NOEXCEPT
+	NodeVal* delete_min () noexcept
 	{
 		return static_cast <NodeVal*> (Base::delete_min ());
 	}
 
 	/// Releases the node pointer.
-	void release_node (NodeVal* node) NIRVANA_NOEXCEPT
+	void release_node (NodeVal* node) noexcept
 	{
 		Base::release_node (node);
 	}
@@ -436,7 +436,7 @@ public:
 	/// Finds node by value.
 	/// \returns The Node pointer or `nullptr` if value not found.
 	///          Returned pointer must be released by `release_node`.
-	NodeVal* find (const NodeVal* keynode) NIRVANA_NOEXCEPT
+	NodeVal* find (const NodeVal* keynode) noexcept
 	{
 		return static_cast <NodeVal*> (Base::find (keynode));
 	}
@@ -444,18 +444,18 @@ public:
 	/// Finds node by value.
 	/// \returns The Node pointer or `nullptr` if value not found.
 	///          Returned pointer must be released by `release_node`.
-	NodeVal* find (const Val& val) NIRVANA_NOEXCEPT
+	NodeVal* find (const Val& val) noexcept
 	{
 		NodeVal keynode (1, val);
 		return find (&keynode);
 	}
 
-	NodeVal* find_and_delete (const NodeVal* keynode) NIRVANA_NOEXCEPT
+	NodeVal* find_and_delete (const NodeVal* keynode) noexcept
 	{
 		return static_cast <NodeVal*> (Base::find_and_delete (keynode));
 	}
 
-	NodeVal* find_and_delete (const Val& val) NIRVANA_NOEXCEPT
+	NodeVal* find_and_delete (const Val& val) noexcept
 	{
 		NodeVal keynode (1, val);
 		return find_and_delete (&keynode);
@@ -464,7 +464,7 @@ public:
 	/// Finds first node equal or greater than value.
 	/// \returns Node pointer or `nullptr` if node not found.
 	///          Returned pointer must be released by `release_node`.
-	NodeVal* lower_bound (const Val& val) NIRVANA_NOEXCEPT
+	NodeVal* lower_bound (const Val& val) noexcept
 	{
 		NodeVal keynode (1, val);
 		return static_cast <NodeVal*> (Base::lower_bound (&keynode));
@@ -473,7 +473,7 @@ public:
 	/// Finds first node greater than value.
 	/// \returns Node pointer or `nullptr` if node not found.
 	///          Returned pointer must be released by `release_node`.
-	NodeVal* upper_bound (const Val& val) NIRVANA_NOEXCEPT
+	NodeVal* upper_bound (const Val& val) noexcept
 	{
 		NodeVal keynode (1, val);
 		return static_cast <NodeVal*> (Base::upper_bound (&keynode));
@@ -482,12 +482,12 @@ public:
 	/// Removes node from list.
 	/// `remove (find (key));` works slower then `erase (key);`.
 	/// But it does not use the comparison and exactly removes the specified node.
-	bool remove (NodeVal* node) NIRVANA_NOEXCEPT
+	bool remove (NodeVal* node) noexcept
 	{
 		return Base::remove (node);
 	}
 
-	SkipList& operator = (SkipList&& other) NIRVANA_NOEXCEPT
+	SkipList& operator = (SkipList&& other) noexcept
 	{
 		Base::operator = (std::move (other));
 		return *this;

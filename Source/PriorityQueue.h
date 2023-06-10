@@ -78,7 +78,7 @@ public:
 #endif
 	}
 
-	bool get_min_deadline (DeadlineTime& dt) NIRVANA_NOEXCEPT
+	bool get_min_deadline (DeadlineTime& dt) noexcept
 	{
 		NodeVal* node = Base::get_min_node ();
 		if (node) {
@@ -97,7 +97,7 @@ public:
 		return ins.second;
 	}
 
-	bool insert (NodeVal* new_node) NIRVANA_NOEXCEPT
+	bool insert (NodeVal* new_node) noexcept
 	{
 		std::pair <NodeVal*, bool> ins = Base::insert (new_node);
 		Base::release_node (ins.first);
@@ -120,7 +120,7 @@ public:
 
 	/// Deletes node with minimal deadline.
 	/// \return The deleted Node pointer if node deleted or `nullptr` if the queue is empty.
-	NodeVal* delete_min () NIRVANA_NOEXCEPT
+	NodeVal* delete_min () noexcept
 	{
 		return Base::delete_min ();
 	}
@@ -128,7 +128,7 @@ public:
 	/// Deletes node with minimal deadline.
 	/// \param [out] val Value.
 	/// \return `true` if node deleted, `false` if queue is empty.
-	bool delete_min (Val& val) NIRVANA_NOEXCEPT
+	bool delete_min (Val& val) noexcept
 	{
 		NodeVal* node = delete_min ();
 		if (node) {
@@ -143,7 +143,7 @@ public:
 	/// \param [out] val Value.
 	/// \param [out] deadline Deadline.
 	/// \return `true` if node deleted, `false` if queue is empty.
-	bool delete_min (Val& val, DeadlineTime& deadline) NIRVANA_NOEXCEPT
+	bool delete_min (Val& val, DeadlineTime& deadline) noexcept
 	{
 		NodeVal* node = delete_min ();
 		if (node) {

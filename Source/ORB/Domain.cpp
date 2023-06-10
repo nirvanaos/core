@@ -175,7 +175,7 @@ void Domain::schedule_del () noexcept
 	}
 }
 
-void Domain::send_del () NIRVANA_NOEXCEPT
+void Domain::send_del () noexcept
 {
 	if (!remote_objects_del_.empty ()) {
 		try {
@@ -189,7 +189,7 @@ void Domain::send_del () NIRVANA_NOEXCEPT
 	}
 }
 
-void Domain::make_zombie () NIRVANA_NOEXCEPT
+void Domain::make_zombie () noexcept
 {
 	zombie_ = true;
 	remote_objects_.clear ();

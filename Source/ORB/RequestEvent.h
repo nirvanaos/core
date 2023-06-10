@@ -43,7 +43,7 @@ class NIRVANA_NOVTABLE RequestEvent :
 	DECLARE_CORE_INTERFACE
 
 public:
-	void completed (Internal::IORequest::_ptr_type request) NIRVANA_NOEXCEPT
+	void completed (Internal::IORequest::_ptr_type request) noexcept
 	{
 		signal ();
 	}

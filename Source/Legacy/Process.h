@@ -83,7 +83,7 @@ public:
 		return ret_;
 	}
 
-	void wait () NIRVANA_NOEXCEPT
+	void wait () noexcept
 	{
 		completed_.wait ();
 	}
@@ -111,17 +111,17 @@ public:
 	~Process ()
 	{}
 
-	Nirvana::Core::SyncContext& sync_context () NIRVANA_NOEXCEPT
+	Nirvana::Core::SyncContext& sync_context () noexcept
 	{
 		return executable_;
 	}
 
-	void _add_ref () NIRVANA_NOEXCEPT override
+	void _add_ref () noexcept override
 	{
 		Nirvana::Core::LifeCyclePseudo <Process>::_add_ref ();
 	}
 
-	void _remove_ref () NIRVANA_NOEXCEPT override
+	void _remove_ref () noexcept override
 	{
 		Nirvana::Core::LifeCyclePseudo <Process>::_remove_ref ();
 	}
@@ -129,18 +129,18 @@ public:
 private:
 	// Core::Runnable::
 	virtual void run () override;
-	virtual void on_crash (const siginfo& signal) NIRVANA_NOEXCEPT override;
+	virtual void on_crash (const siginfo& signal) noexcept override;
 
 	// Core::MemContext::
 	virtual RuntimeProxy::_ref_type runtime_proxy_get (const void* obj) override;
-	virtual void runtime_proxy_remove (const void* obj) NIRVANA_NOEXCEPT override;
+	virtual void runtime_proxy_remove (const void* obj) noexcept override;
 	virtual void on_object_construct (Nirvana::Core::MemContextObject& obj)
-		NIRVANA_NOEXCEPT override;
+		noexcept override;
 	virtual void on_object_destruct (Nirvana::Core::MemContextObject& obj)
-		NIRVANA_NOEXCEPT override;
+		noexcept override;
 
 	// ThreadBase::
-	virtual Process& process () NIRVANA_NOEXCEPT override;
+	virtual Process& process () noexcept override;
 
 	void start ()
 	{
@@ -155,7 +155,7 @@ private:
 		proxy._retn (); // Keep proxy reference on successfull start
 	}
 
-	virtual void on_thread_proc_end () NIRVANA_NOEXCEPT override
+	virtual void on_thread_proc_end () noexcept override
 	{
 		// Release proxy reference on the main thread finish
 		CORBA::Internal::interface_release (&Legacy::Process::_ptr_type (_this ()));
@@ -166,7 +166,7 @@ private:
 	typedef std::vector <std::string> Strings;
 	typedef std::vector <char*, Nirvana::Core::UserAllocator <char*> > Pointers;
 	static void copy_strings (Strings& src, Pointers& dst);
-	void finish () NIRVANA_NOEXCEPT;
+	void finish () noexcept;
 
 private:
 	enum

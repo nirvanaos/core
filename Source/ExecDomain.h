@@ -65,7 +65,7 @@ public:
 	static const size_t MAX_RUNNABLE_SIZE = 2 * sizeof (void*) + 20;
 
 	/// \returns Current execution domain.
-	static ExecDomain& current () NIRVANA_NOEXCEPT
+	static ExecDomain& current () noexcept
 	{
 		ExecDomain* ed = Thread::current ().exec_domain ();
 		assert (ed);
@@ -127,37 +127,37 @@ public:
 	/// \param process The Process object.
 	static void start_legacy_process (Legacy::Core::Process& process);
 
-	const DeadlineTime& deadline () const NIRVANA_NOEXCEPT
+	const DeadlineTime& deadline () const noexcept
 	{
 		return deadline_;
 	}
 
-	void deadline (const DeadlineTime& dt) NIRVANA_NOEXCEPT
+	void deadline (const DeadlineTime& dt) noexcept
 	{
 		deadline_ = dt;
 	}
 
-	const System::DeadlinePolicy& deadline_policy_async () const NIRVANA_NOEXCEPT
+	const System::DeadlinePolicy& deadline_policy_async () const noexcept
 	{
 		return deadline_policy_async_;
 	}
 
-	void deadline_policy_async (const System::DeadlinePolicy& dp) NIRVANA_NOEXCEPT
+	void deadline_policy_async (const System::DeadlinePolicy& dp) noexcept
 	{
 		deadline_policy_async_ = dp;
 	}
 
-	const System::DeadlinePolicy& deadline_policy_oneway () const NIRVANA_NOEXCEPT
+	const System::DeadlinePolicy& deadline_policy_oneway () const noexcept
 	{
 		return deadline_policy_oneway_;
 	}
 
-	void deadline_policy_oneway (const System::DeadlinePolicy& dp) NIRVANA_NOEXCEPT
+	void deadline_policy_oneway (const System::DeadlinePolicy& dp) noexcept
 	{
 		deadline_policy_oneway_ = dp;
 	}
 
-	DeadlineTime get_request_deadline (bool oneway) const NIRVANA_NOEXCEPT;
+	DeadlineTime get_request_deadline (bool oneway) const noexcept;
 
 	/// Schedule a call to a synchronization context.
 	/// Made inline because it is called only once in Synchronized constructor.
@@ -193,7 +193,7 @@ public:
 	/// \param target The target sync context.
 	/// \param no_reschedule (optional) Do not re-schedule if the target context is the same
 	///        as current.
-	void schedule_return (SyncContext& target, bool no_reschedule = false) NIRVANA_NOEXCEPT;
+	void schedule_return (SyncContext& target, bool no_reschedule = false) noexcept;
 
 	/// Suspend execution
 	/// 
@@ -205,10 +205,10 @@ public:
 	}
 
 	void suspend_prepare (SyncContext* resume_context = nullptr);
-	void suspend_prepared () NIRVANA_NOEXCEPT;
+	void suspend_prepared () noexcept;
 
 	/// Resume suspended domain
-	void resume () NIRVANA_NOEXCEPT
+	void resume () noexcept
 	{
 		assert (ExecContext::current_ptr () != this);
 		assert (sync_context_);
@@ -238,7 +238,7 @@ public:
 
 	/// Called from the Port implementation in case of the unrecoverable error.
 	/// \param signal The signal information.
-	void on_crash (const siginfo& signal) NIRVANA_NOEXCEPT
+	void on_crash (const siginfo& signal) noexcept
 	{
 		// Leave sync domain if one.
 		SyncDomain* sd = sync_context_->sync_domain ();
@@ -276,19 +276,19 @@ public:
 		return false;
 	}
 
-	SyncContext& sync_context () const NIRVANA_NOEXCEPT
+	SyncContext& sync_context () const noexcept
 	{
 		assert (sync_context_);
 		return *sync_context_;
 	}
 
-	void sync_context (SyncContext& sync_context) NIRVANA_NOEXCEPT
+	void sync_context (SyncContext& sync_context) noexcept
 	{
 		sync_context_ = &sync_context;
 	}
 
 	/// Leave the current sync domain, if any.
-	void leave_sync_domain () NIRVANA_NOEXCEPT
+	void leave_sync_domain () noexcept
 	{
 		SyncDomain* sd = sync_context ().sync_domain ();
 		if (sd) {
@@ -307,7 +307,7 @@ public:
 	/// \brief Returns current memory context pointer.
 	///
 	/// \returns Current memory context pointer which can be `nullptr`.
-	MemContext* mem_context_ptr () const NIRVANA_NOEXCEPT
+	MemContext* mem_context_ptr () const noexcept
 	{
 		return mem_context_;
 	}
@@ -315,7 +315,7 @@ public:
 	/// \brief Swap current memory context.
 	/// 
 	/// \param other Other memory context
-	void mem_context_swap (Ref <MemContext>& other) NIRVANA_NOEXCEPT
+	void mem_context_swap (Ref <MemContext>& other) noexcept
 	{
 		mem_context_ = other;
 		mem_context_stack_.top ().swap (other);
@@ -327,14 +327,14 @@ public:
 	/// Use carefully. When memory context is temporary replaced, no context switch is allowed.
 	/// 
 	/// \param tmp Memory context for temporary replace.
-	void mem_context_replace (MemContext& tmp) NIRVANA_NOEXCEPT
+	void mem_context_replace (MemContext& tmp) noexcept
 	{
 		mem_context_ = &tmp;
 	}
 
 	/// \brief Restore the current memory context.
 	/// 
-	void mem_context_restore () NIRVANA_NOEXCEPT
+	void mem_context_restore () noexcept
 	{
 		if (mem_context_stack_.empty ())
 			mem_context_ = nullptr;
@@ -354,7 +354,7 @@ public:
 	}
 
 	/// Pop memory context stack.
-	void mem_context_pop () NIRVANA_NOEXCEPT
+	void mem_context_pop () noexcept
 	{
 		mem_context_stack_.pop ();
 #ifdef _DEBUG
@@ -374,17 +374,17 @@ public:
 		SUPPRESS_ASYNC_GC
 	};
 
-	RestrictedMode restricted_mode () const NIRVANA_NOEXCEPT
+	RestrictedMode restricted_mode () const noexcept
 	{
 		return restricted_mode_;
 	}
 
-	void restricted_mode (RestrictedMode rm) NIRVANA_NOEXCEPT
+	void restricted_mode (RestrictedMode rm) noexcept
 	{
 		restricted_mode_ = rm;
 	}
 
-	TLS& tls () NIRVANA_NOEXCEPT
+	TLS& tls () noexcept
 	{
 		return tls_;
 	}
@@ -410,10 +410,10 @@ public:
 	}
 
 	/// Called on core startup.
-	static void initialize () NIRVANA_NOEXCEPT;
+	static void initialize () noexcept;
 	
 	/// Called on core shutdown.
-	static void terminate () NIRVANA_NOEXCEPT;
+	static void terminate () noexcept;
 
 private:
 	ExecDomain () :
@@ -443,27 +443,27 @@ private:
 		return create (deadline, get_mem_context (target, heap));
 	}
 
-	~ExecDomain () NIRVANA_NOEXCEPT
+	~ExecDomain () noexcept
 	{}
 
-	void final_release () NIRVANA_NOEXCEPT;
+	void final_release () noexcept;
 
 	friend class Ref <ExecDomain>;
 	template <class> friend class CORBA::servant_reference;
 	friend class ObjectPool <ExecDomain>;
 	
-	void _add_ref () NIRVANA_NOEXCEPT
+	void _add_ref () noexcept
 	{
 		ref_cnt_.increment ();
 	}
 
-	void _remove_ref () NIRVANA_NOEXCEPT
+	void _remove_ref () noexcept
 	{
 		if (0 == ref_cnt_.decrement_seq ())
 			final_release ();
 	}
 
-	void cleanup () NIRVANA_NOEXCEPT;
+	void cleanup () noexcept;
 
 	void spawn (SyncContext& sync_context);
 
@@ -484,7 +484,7 @@ private:
 		ret_qnodes_ = sd.create_queue_node (ret_qnodes_);
 	}
 
-	SyncDomain::QueueNode* ret_qnode_pop () NIRVANA_NOEXCEPT
+	SyncDomain::QueueNode* ret_qnode_pop () noexcept
 	{
 		assert (ret_qnodes_);
 		SyncDomain::QueueNode* ret = ret_qnodes_;
@@ -492,7 +492,7 @@ private:
 		return ret;
 	}
 
-	void ret_qnodes_clear () NIRVANA_NOEXCEPT
+	void ret_qnodes_clear () noexcept
 	{
 		while (ret_qnodes_) {
 			SyncDomain::QueueNode* qn = ret_qnodes_;
@@ -501,7 +501,7 @@ private:
 		}
 	}
 
-	inline void unwind_mem_context () NIRVANA_NOEXCEPT
+	inline void unwind_mem_context () noexcept
 	{
 		// Clear memory context stack
 		Ref <MemContext> tmp;
@@ -579,7 +579,7 @@ MemContext& MemContext::current ()
 }
 
 inline
-TLS& TLS::current () NIRVANA_NOEXCEPT
+TLS& TLS::current () noexcept
 {
 	return ExecDomain::current ().tls ();
 }

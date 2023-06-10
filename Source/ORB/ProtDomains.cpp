@@ -79,7 +79,7 @@ servant_reference <DomainProt> ProtDomainsSimple::get (ProtDomainId domain_id)
 	return PortableServer::Servant_var <CORBA::Core::Domain> (&ins.first->second);
 }
 
-servant_reference <DomainProt> ProtDomainsSimple::find (ProtDomainId domain_id) const NIRVANA_NOEXCEPT
+servant_reference <DomainProt> ProtDomainsSimple::find (ProtDomainId domain_id) const noexcept
 {
 	auto it = map_.find (domain_id);
 	if (it != map_.end ())

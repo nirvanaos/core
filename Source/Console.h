@@ -40,13 +40,13 @@ public:
 	Console ()
 	{}
 
-	const Console& operator << (const char* text) const NIRVANA_NOEXCEPT
+	const Console& operator << (const char* text) const noexcept
 	{
 		write (text, strlen (text));
 		return *this;
 	}
 
-	const Console& operator << (char c) const NIRVANA_NOEXCEPT
+	const Console& operator << (char c) const noexcept
 	{
 		write (&c, 1);
 		return *this;

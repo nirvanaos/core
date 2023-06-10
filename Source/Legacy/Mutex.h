@@ -108,12 +108,12 @@ public:
 		return false;
 	}
 
-	void _add_ref () NIRVANA_NOEXCEPT
+	void _add_ref () noexcept
 	{
 		Nirvana::Core::LifeCyclePseudo <Mutex>::_add_ref ();
 	}
 
-	void _remove_ref () NIRVANA_NOEXCEPT
+	void _remove_ref () noexcept
 	{
 		Nirvana::Core::LifeCyclePseudo <Mutex>::_remove_ref ();
 	}

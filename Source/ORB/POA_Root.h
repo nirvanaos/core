@@ -70,7 +70,7 @@ public:
 		return "RootPOA";
 	}
 
-	static void invoke (RequestRef request, bool async) NIRVANA_NOEXCEPT;
+	static void invoke (RequestRef request, bool async) noexcept;
 	static void invoke_async (RequestRef request, Nirvana::DeadlineTime deadline);
 
 	static POA_Ref find_child (const AdapterPath& path, bool activate_it);
@@ -109,7 +109,7 @@ public:
 		SYNC_END ();
 	}
 
-	POAManagerFactory& manager_factory () NIRVANA_NOEXCEPT
+	POAManagerFactory& manager_factory () noexcept
 	{
 		return *manager_factory_;
 	}
@@ -145,17 +145,17 @@ public:
 		bool unique, CORBA::Core::ServantProxyObject& proxy, unsigned flags,
 		CORBA::Core::PolicyMapShared* policies);
 
-	void remove_reference (const IOP::ObjectKey& key) NIRVANA_NOEXCEPT
+	void remove_reference (const IOP::ObjectKey& key) noexcept
 	{
 		references_.erase (key);
 	}
 
-	void remove_reference (References::iterator it) NIRVANA_NOEXCEPT
+	void remove_reference (References::iterator it) noexcept
 	{
 		references_.erase (it);
 	}
 
-	CORBA::Core::ReferenceLocalRef find_reference (const IOP::ObjectKey& key) NIRVANA_NOEXCEPT;
+	CORBA::Core::ReferenceLocalRef find_reference (const IOP::ObjectKey& key) noexcept;
 
 	static void shutdown ()
 	{
@@ -163,7 +163,7 @@ public:
 			root_->_this ()->destroy (true, true);
 	}
 
-	CORBA::Core::PolicyMapShared* default_DGC_policies () const NIRVANA_NOEXCEPT
+	CORBA::Core::PolicyMapShared* default_DGC_policies () const noexcept
 	{
 		return DGC_policies_;
 	}
@@ -181,7 +181,7 @@ private:
 };
 
 inline
-PortableServer::POAManagerFactory::_ref_type POA_Base::the_POAManagerFactory () NIRVANA_NOEXCEPT
+PortableServer::POAManagerFactory::_ref_type POA_Base::the_POAManagerFactory () noexcept
 {
 	return root_->manager_factory ()._this ();
 }

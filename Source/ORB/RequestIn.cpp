@@ -139,17 +139,17 @@ void RequestIn::get_object_key (const IOP::TaggedProfile& profile)
 RequestIn::~RequestIn ()
 {}
 
-void RequestIn::_add_ref () NIRVANA_NOEXCEPT
+void RequestIn::_add_ref () noexcept
 {
 	RequestGIOP::_add_ref ();
 }
 
-void RequestIn::_remove_ref () NIRVANA_NOEXCEPT
+void RequestIn::_remove_ref () noexcept
 {
 	RequestGIOP::_remove_ref ();
 }
 
-MemContext* RequestIn::memory () const NIRVANA_NOEXCEPT
+MemContext* RequestIn::memory () const noexcept
 {
 	return &RequestGIOP::memory ();
 }
@@ -285,7 +285,7 @@ void RequestIn::set_exception (Any& e)
 	}
 }
 
-bool RequestIn::finalize () NIRVANA_NOEXCEPT
+bool RequestIn::finalize () noexcept
 {
 	if (map_iterator_) {
 		bool ret = IncomingRequests::finalize (map_iterator_);
@@ -296,7 +296,7 @@ bool RequestIn::finalize () NIRVANA_NOEXCEPT
 	return false;
 }
 
-void RequestIn::cancel () NIRVANA_NOEXCEPT
+void RequestIn::cancel () noexcept
 {
 	// Oneway requests (response_flags_ == 0) are not cancellable.
 	if (response_flags_ && !cancelled_.exchange (true, std::memory_order_release)) {
@@ -308,7 +308,7 @@ void RequestIn::cancel () NIRVANA_NOEXCEPT
 	}
 }
 
-bool RequestIn::is_cancelled () const NIRVANA_NOEXCEPT
+bool RequestIn::is_cancelled () const noexcept
 {
 	return cancelled_.load (std::memory_order_acquire);
 }
@@ -323,7 +323,7 @@ bool RequestIn::get_exception (Any& e)
 	return false;
 }
 
-void RequestIn::post_send_success () NIRVANA_NOEXCEPT
+void RequestIn::post_send_success () noexcept
 {
 	if (!marshaled_DGC_references_.empty ()) {
 		assert (target_domain_);
@@ -348,7 +348,7 @@ void RequestIn::post_send_success () NIRVANA_NOEXCEPT
 	}
 }
 
-inline void RequestIn::delayed_release () NIRVANA_NOEXCEPT
+inline void RequestIn::delayed_release () noexcept
 {
 	((DelayedReleaseTimer*)&delayed_release_timer_)->DelayedReleaseTimer::~DelayedReleaseTimer ();
 	_remove_ref ();

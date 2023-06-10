@@ -45,7 +45,7 @@ void POAManager::ServeRequest::run ()
 	}
 }
 
-void POAManager::ServeRequest::on_crash (const siginfo& signal) NIRVANA_NOEXCEPT
+void POAManager::ServeRequest::on_crash (const siginfo& signal) noexcept
 {
 	Any ex = CORBA::Core::RqHelper::signal2exception (signal);
 	try {

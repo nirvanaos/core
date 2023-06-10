@@ -47,13 +47,13 @@ public:
 		return equal (dereference_alias (other));
 	}
 
-	ULong length () const NIRVANA_NOEXCEPT
+	ULong length () const noexcept
 	{
 		return bound_;
 	}
 
 protected:
-	TC_StringBase (TCKind kind, ULong bound) NIRVANA_NOEXCEPT :
+	TC_StringBase (TCKind kind, ULong bound) noexcept :
 		TC_Base (kind),
 		bound_ (bound)
 	{}
@@ -77,16 +77,16 @@ public:
 	using Ops::_s_n_is_CDR;
 	using TC_Base::_s_n_byteswap;
 
-	TC_StringT (ULong bound) NIRVANA_NOEXCEPT;
+	TC_StringT (ULong bound) noexcept;
 };
 
 template <> inline
-TC_StringT <Char>::TC_StringT (ULong bound) NIRVANA_NOEXCEPT :
+TC_StringT <Char>::TC_StringT (ULong bound) noexcept :
 	Impl (TCKind::tk_string, bound)
 {}
 
 template <> inline
-	TC_StringT <WChar>::TC_StringT (ULong bound) NIRVANA_NOEXCEPT :
+	TC_StringT <WChar>::TC_StringT (ULong bound) noexcept :
 	Impl (TCKind::tk_wstring, bound)
 {}
 

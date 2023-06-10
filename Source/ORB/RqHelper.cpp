@@ -79,7 +79,7 @@ void RqHelper::check_align (size_t align)
 		throw BAD_PARAM ();
 }
 
-Any RqHelper::signal2exception (const siginfo& signal) NIRVANA_NOEXCEPT
+Any RqHelper::signal2exception (const siginfo& signal) noexcept
 {
 	Exception::Code ec ;
 	if (signal.si_excode != Exception::EC_NO_EXCEPTION)
@@ -102,7 +102,7 @@ Any RqHelper::exception2any (Exception&& e)
 }
 
 void RqHelper::call_completed (RequestCallback::_ref_type& callback, IORequest::_ptr_type rq)
-NIRVANA_NOEXCEPT
+noexcept
 {
 	RequestCallback::_ref_type cb = std::move (callback);
 	assert (cb);

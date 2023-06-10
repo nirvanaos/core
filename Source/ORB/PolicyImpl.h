@@ -114,7 +114,7 @@ PolicyFactory::Functions PolicyImplBase <PolicyItf, id, ValueType>::functions_ =
 class PolicyImpl <id> : public PolicyImplBase <Itf, id, ValType> {\
 public: typedef ValType ValueType;\
 	PolicyImpl (const ValType& v) : value_ (v) {}\
-	ValType att_name () const NIRVANA_NOEXCEPT { return value_; }\
+	ValType att_name () const noexcept { return value_; }\
 	static void write (Policy::_ptr_type policy, StreamOut& s) { write_value (Itf::_narrow (policy)->att_name (), s); }\
 private: ValType value_; }
 

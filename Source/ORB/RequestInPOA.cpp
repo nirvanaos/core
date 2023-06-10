@@ -43,7 +43,7 @@ RequestInPOA::~RequestInPOA ()
 	Nirvana::Core::Scheduler::activity_end ();
 }
 
-void RequestInPOA::set_exception (Exception&& e) NIRVANA_NOEXCEPT
+void RequestInPOA::set_exception (Exception&& e) noexcept
 {
 	try {
 		Any a = RqHelper::exception2any (std::move (e));
@@ -53,7 +53,7 @@ void RequestInPOA::set_exception (Exception&& e) NIRVANA_NOEXCEPT
 	}
 }
 
-void RequestInPOA::set_unknown_exception () NIRVANA_NOEXCEPT
+void RequestInPOA::set_unknown_exception () noexcept
 {
 	try {
 		set_exception (UNKNOWN ());

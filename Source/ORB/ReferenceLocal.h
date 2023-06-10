@@ -55,25 +55,25 @@ public:
 
 	~ReferenceLocal ();
 
-	const IOP::ObjectKey& object_key () const NIRVANA_NOEXCEPT
+	const IOP::ObjectKey& object_key () const noexcept
 	{
 		return object_key_;
 	}
 
-	const PortableServer::Core::ObjectKey& core_key () const NIRVANA_NOEXCEPT
+	const PortableServer::Core::ObjectKey& core_key () const noexcept
 	{
 		return core_key_;
 	}
 
 	void activate (ServantProxyObject& proxy);
-	servant_reference <ServantProxyObject> deactivate () NIRVANA_NOEXCEPT;
+	servant_reference <ServantProxyObject> deactivate () noexcept;
 
-	void on_servant_destruct () NIRVANA_NOEXCEPT;
+	void on_servant_destruct () noexcept;
 
 	virtual void _add_ref () override;
-	virtual void _remove_ref () NIRVANA_NOEXCEPT override;
+	virtual void _remove_ref () noexcept override;
 
-	Nirvana::Core::Ref <ServantProxyObject> get_active_servant () const NIRVANA_NOEXCEPT;
+	Nirvana::Core::Ref <ServantProxyObject> get_active_servant () const noexcept;
 
 	static void marshal (const ProxyManager& proxy, const Octet* obj_key, size_t obj_key_size,
 		const PolicyMap* policies, StreamOut& out);

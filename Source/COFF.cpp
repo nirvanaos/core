@@ -28,7 +28,7 @@
 namespace Nirvana {
 namespace Core {
 
-const COFF::PE32Header* COFF::pe32_header () const NIRVANA_NOEXCEPT
+const COFF::PE32Header* COFF::pe32_header () const noexcept
 {
 	const Header* hdr = header ();
 	if (hdr->SizeOfOptionalHeader >= sizeof (PE32Header)) {
@@ -39,12 +39,12 @@ const COFF::PE32Header* COFF::pe32_header () const NIRVANA_NOEXCEPT
 	return nullptr;
 }
 
-const COFF::Section* COFF::sections () const NIRVANA_NOEXCEPT
+const COFF::Section* COFF::sections () const noexcept
 {
 	return (const Section*)((const uint8_t*)(hdr_ + 1) + hdr_->SizeOfOptionalHeader);
 }
 
-bool COFF::is_section (const Section& s, const char* name) NIRVANA_NOEXCEPT
+bool COFF::is_section (const Section& s, const char* name) noexcept
 {
 	const char* sn = s.Name;
 	char c;
@@ -60,7 +60,7 @@ bool COFF::is_section (const Section& s, const char* name) NIRVANA_NOEXCEPT
 		return true;
 }
 
-const COFF::Section* COFF::find_section (const char* name) const NIRVANA_NOEXCEPT
+const COFF::Section* COFF::find_section (const char* name) const noexcept
 {
 	for (const Section* s = sections (), *end = s + section_count (); s != end; ++s) {
 		if (is_section (*s, name))

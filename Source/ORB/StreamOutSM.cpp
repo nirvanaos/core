@@ -42,7 +42,7 @@ void StreamOutSM::initialize ()
 	cur_ptr_ = (uint8_t*)other_domain_->store_pointer (segments_tail_, 0); // segments
 }
 
-void StreamOutSM::clear (size_t leave_header) NIRVANA_NOEXCEPT
+void StreamOutSM::clear (size_t leave_header) noexcept
 {
 	try {
 		while (!other_allocated_.empty ()) {
@@ -208,7 +208,7 @@ size_t StreamOutSM::size () const
 	return size_;
 }
 
-size_t StreamOutSM::stream_hdr_size () const NIRVANA_NOEXCEPT
+size_t StreamOutSM::stream_hdr_size () const noexcept
 {
 	return round_up (
 		sizes_.sizeof_pointer // BlockHdr* next;

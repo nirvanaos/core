@@ -29,7 +29,7 @@
 namespace Nirvana {
 namespace Core {
 
-void MemContextObjectList::clear () NIRVANA_NOEXCEPT
+void MemContextObjectList::clear () noexcept
 {
 	while (!empty ()) {
 		MemContextObject& obj = front ();

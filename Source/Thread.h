@@ -43,13 +43,13 @@ class NIRVANA_NOVTABLE Thread :
 	friend class Port::Thread;
 public:
 	// Implementation - specific methods can be called explicitly.
-	Port::Thread& port () NIRVANA_NOEXCEPT
+	Port::Thread& port () noexcept
 	{
 		return *this;
 	}
 
 	/// Returns current thread.
-	static Thread& current () NIRVANA_NOEXCEPT
+	static Thread& current () noexcept
 	{
 		Thread* p = Port::Thread::current ();
 		assert (p);
@@ -58,30 +58,30 @@ public:
 
 	/// Returns current thread.
 	/// May return nullptr.
-	static Thread* current_ptr () NIRVANA_NOEXCEPT
+	static Thread* current_ptr () noexcept
 	{
 		return Port::Thread::current ();
 	}
 
-	ExecDomain* exec_domain () const NIRVANA_NOEXCEPT
+	ExecDomain* exec_domain () const noexcept
 	{
 		return exec_domain_;
 	}
 
-	void exec_domain (ExecDomain& exec_domain) NIRVANA_NOEXCEPT
+	void exec_domain (ExecDomain& exec_domain) noexcept
 	{
 		assert (!exec_domain_);
 		exec_domain_ = &exec_domain;
 	}
 
 	/// Returns special "neutral" execution context with own stack and CPU state.
-	ExecContext& neutral_context () NIRVANA_NOEXCEPT
+	ExecContext& neutral_context () noexcept
 	{
 		return neutral_context_;
 	}
 
 	/// Release worker thread.
-	void yield () NIRVANA_NOEXCEPT
+	void yield () noexcept
 	{
 		assert (this == &current ());
 		assert (exec_domain_);

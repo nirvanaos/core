@@ -42,10 +42,10 @@ public:
 	DEFINE_ALLOCATOR (HeapAllocator);
 
 	// Some containers require default constructor for allocator.
-	HeapAllocator () NIRVANA_NOEXCEPT
+	HeapAllocator () noexcept
 	{}
 
-	HeapAllocator (Heap& heap) NIRVANA_NOEXCEPT :
+	HeapAllocator (Heap& heap) noexcept :
 		heap_ (&heap)
 	{}
 
@@ -85,7 +85,7 @@ public:
 		return (T*)heap_->allocate (nullptr, cb, 0);
 	}
 
-	Heap& heap () const NIRVANA_NOEXCEPT
+	Heap& heap () const noexcept
 	{
 		assert (heap_);
 		return *heap_;

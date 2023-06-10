@@ -42,7 +42,7 @@ void ThreadBackground::start ()
 	}
 }
 
-void ThreadBackground::on_thread_proc_end () NIRVANA_NOEXCEPT
+void ThreadBackground::on_thread_proc_end () noexcept
 {
 	_remove_ref ();
 	Scheduler::activity_end ();

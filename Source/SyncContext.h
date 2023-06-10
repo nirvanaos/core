@@ -52,27 +52,27 @@ class NIRVANA_NOVTABLE SyncContext
 DECLARE_CORE_INTERFACE
 public:
 	/// \returns Current synchronization context.
-	static SyncContext& current () NIRVANA_NOEXCEPT;
+	static SyncContext& current () noexcept;
 
 	/// \returns SyncDomain associated with this context.
 	/// Returns `nullptr` if there is not synchronization domain.
-	virtual SyncDomain* sync_domain () NIRVANA_NOEXCEPT;
+	virtual SyncDomain* sync_domain () noexcept;
 
 	/// \returns `true` if this context is free sync context.
-	bool is_free_sync_context () const NIRVANA_NOEXCEPT
+	bool is_free_sync_context () const noexcept
 	{
 		return const_cast <SyncContext&> (*this).stateless_memory () != nullptr;
 	}
 
 	/// \returns Free sync context returns pointer to the stateless objects heap.
 	///          Other sync contexts return `nullptr`.
-	virtual Heap* stateless_memory () NIRVANA_NOEXCEPT;
+	virtual Heap* stateless_memory () noexcept;
 
 	/// Returns the Module object associated with this context.
 	/// 
 	/// \returns Pointer to the Module object.
 	///          Core and legacy executable contexts return `nullptr`.
-	virtual Module* module () NIRVANA_NOEXCEPT = 0;
+	virtual Module* module () noexcept = 0;
 
 	/// Raise system exception in the binary object (Module or Executable).
 	/// 
@@ -86,7 +86,7 @@ class NIRVANA_NOVTABLE SyncContextFree :
 	public SyncContext
 {
 public:
-	virtual Heap* stateless_memory () NIRVANA_NOEXCEPT = 0;
+	virtual Heap* stateless_memory () noexcept = 0;
 };
 
 /// Core free sync context.
@@ -94,8 +94,8 @@ class SyncContextCore :
 	public SyncContextFree
 {
 public:
-	virtual Heap* stateless_memory () NIRVANA_NOEXCEPT;
-	virtual Module* module () NIRVANA_NOEXCEPT;
+	virtual Heap* stateless_memory () noexcept;
+	virtual Module* module () noexcept;
 	virtual void raise_exception (CORBA::SystemException::Code code, unsigned minor);
 };
 

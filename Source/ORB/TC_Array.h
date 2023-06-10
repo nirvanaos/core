@@ -63,17 +63,17 @@ public:
 			return ORB::create_array_tc (bound_, compact_content);
 	}
 
-	size_t n_size () const NIRVANA_NOEXCEPT
+	size_t n_size () const noexcept
 	{
 		return bound_ * element_size_;
 	}
 
-	size_t n_align () const NIRVANA_NOEXCEPT
+	size_t n_align () const noexcept
 	{
 		return element_align_;
 	}
 
-	Boolean n_is_CDR () const NIRVANA_NOEXCEPT
+	Boolean n_is_CDR () const noexcept
 	{
 		return KIND_CDR == content_kind_;
 	}

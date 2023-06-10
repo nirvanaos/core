@@ -40,7 +40,7 @@ class NIRVANA_NOVTABLE POA_DGC : public virtual POA_Retain
 protected:
 	POA_DGC ();
 
-	virtual CORBA::Core::PolicyMapShared* get_policies (unsigned flags) const NIRVANA_NOEXCEPT override;
+	virtual CORBA::Core::PolicyMapShared* get_policies (unsigned flags) const noexcept override;
 
 protected:
 	CORBA::servant_reference <CORBA::Core::PolicyMapShared> DGC_policies_;

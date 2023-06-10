@@ -79,7 +79,7 @@ void StreamOutReply::rewind (size_t hdr_size)
 		StreamOutSM::rewind (hdr_size);
 }
 
-void StreamOutReply::send (uint32_t request_id) NIRVANA_NOEXCEPT
+void StreamOutReply::send (uint32_t request_id) noexcept
 {
 	try {
 		if (small_ptr_) {

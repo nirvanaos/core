@@ -53,7 +53,7 @@ protected:
 		override;
 
 	virtual void etherialize (const ObjectId& oid, CORBA::Core::ServantProxyObject& proxy,
-		bool cleanup_in_progress) NIRVANA_NOEXCEPT override;
+		bool cleanup_in_progress) noexcept override;
 
 private:
 	CORBA::Object::_ref_type incarnate (CORBA::Internal::Type <ObjectId>::C_in oid);

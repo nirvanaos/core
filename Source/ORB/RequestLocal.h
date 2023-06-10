@@ -57,14 +57,14 @@ public:
 	static const size_t BLOCK_SIZE = (32 * sizeof (size_t)
 		+ alignof (max_align_t) - 1) / alignof (max_align_t) * alignof (max_align_t);
 
-	void _add_ref () NIRVANA_NOEXCEPT
+	void _add_ref () noexcept
 	{
 		ref_cnt_.increment ();
 	}
 
-	virtual void _remove_ref () NIRVANA_NOEXCEPT = 0;
+	virtual void _remove_ref () noexcept = 0;
 
-	Nirvana::Core::MemContext* memory () const NIRVANA_NOEXCEPT
+	Nirvana::Core::MemContext* memory () const noexcept
 	{
 		return callee_memory_;
 	}
@@ -398,7 +398,7 @@ public:
 	/// End of input data marshaling.
 	/// 
 	/// Marshaling resources may be released.
-	void unmarshal_end () NIRVANA_NOEXCEPT
+	void unmarshal_end () noexcept
 	{
 		clear ();
 		state_ = State::CALLEE;
@@ -442,7 +442,7 @@ public:
 	/// \param [out] e If request completed with exception, receives the exception.
 	///                Otherwise unchanged.
 	/// \returns `true` if e contains an exception.
-	bool get_exception (Any& e) NIRVANA_NOEXCEPT
+	bool get_exception (Any& e) noexcept
 	{
 		if (State::EXCEPTION == state_) {
 			Internal::Type <Any>::unmarshal (_get_ptr (), e);
@@ -463,7 +463,7 @@ public:
 
 	///@}
 
-	unsigned response_flags () const NIRVANA_NOEXCEPT
+	unsigned response_flags () const noexcept
 	{
 		return response_flags_;
 	}
@@ -481,12 +481,12 @@ protected:
 	};
 
 	RequestLocalBase (Nirvana::Core::MemContext* callee_memory, unsigned response_flags)
-		NIRVANA_NOEXCEPT;
+		noexcept;
 
 	Nirvana::Core::MemContext& target_memory ();
 	Nirvana::Core::MemContext& source_memory ();
 
-	const Octet* cur_block_end () const NIRVANA_NOEXCEPT
+	const Octet* cur_block_end () const noexcept
 	{
 		if (!cur_block_)
 			return (const Octet*)this + BLOCK_SIZE;
@@ -494,44 +494,44 @@ protected:
 			return (const Octet*)cur_block_ + cur_block_->size;
 	}
 
-	bool marshal_op () NIRVANA_NOEXCEPT;
+	bool marshal_op () noexcept;
 	void write (size_t align, size_t size, const void* data);
 	void read (size_t align, size_t size, void* data);
 	void marshal_segment (size_t align, size_t element_size,
 		size_t element_count, void* data, size_t& allocated_size);
 	void unmarshal_segment (void*& data, size_t& allocated_size);
 
-	void rewind () NIRVANA_NOEXCEPT;
+	void rewind () noexcept;
 
-	virtual void reset () NIRVANA_NOEXCEPT
+	virtual void reset () noexcept
 	{
 		cur_block_ = nullptr;
 	}
 
-	void clear () NIRVANA_NOEXCEPT
+	void clear () noexcept
 	{
 		cleanup ();
 		reset ();
 	}
 
-	void cleanup () NIRVANA_NOEXCEPT;
+	void cleanup () noexcept;
 
-	State state () const NIRVANA_NOEXCEPT
+	State state () const noexcept
 	{
 		return state_;
 	}
 
-	bool is_cancelled () const NIRVANA_NOEXCEPT
+	bool is_cancelled () const noexcept
 	{
 		return cancelled_.load (std::memory_order_acquire);
 	}
 
-	bool set_cancelled () NIRVANA_NOEXCEPT
+	bool set_cancelled () noexcept
 	{
 		return response_flags () && !cancelled_.exchange (true, std::memory_order_release);
 	}
 
-	virtual void finalize () NIRVANA_NOEXCEPT
+	virtual void finalize () noexcept
 	{}
 
 private:
@@ -581,20 +581,20 @@ class NIRVANA_NOVTABLE RequestLocal : public RequestLocalBase
 {
 protected:
 	RequestLocal (ProxyManager& proxy, Internal::IOReference::OperationIndex op_idx,
-		Nirvana::Core::MemContext* callee_memory, unsigned response_flags) NIRVANA_NOEXCEPT;
+		Nirvana::Core::MemContext* callee_memory, unsigned response_flags) noexcept;
 
-	ProxyManager* proxy () const NIRVANA_NOEXCEPT
+	ProxyManager* proxy () const noexcept
 	{
 		return proxy_;
 	}
 
-	Internal::IOReference::OperationIndex op_idx () const NIRVANA_NOEXCEPT
+	Internal::IOReference::OperationIndex op_idx () const noexcept
 	{
 		return op_idx_;
 	}
 
 	virtual void invoke () override;
-	void invoke_sync () NIRVANA_NOEXCEPT;
+	void invoke_sync () noexcept;
 
 private:
 	servant_reference <ProxyManager> proxy_;
@@ -607,7 +607,7 @@ class NIRVANA_NOVTABLE RequestLocalOneway : public RequestLocal
 
 protected:
 	RequestLocalOneway (ProxyManager& proxy, Internal::IOReference::OperationIndex op_idx,
-		Nirvana::Core::MemContext* callee_memory, unsigned response_flags) NIRVANA_NOEXCEPT :
+		Nirvana::Core::MemContext* callee_memory, unsigned response_flags) noexcept :
 		Base (proxy, op_idx, callee_memory, response_flags)
 	{}
 
@@ -643,14 +643,14 @@ class NIRVANA_NOVTABLE RequestLocalAsync : public RequestLocalOneway
 protected:
 	RequestLocalAsync (Internal::RequestCallback::_ptr_type callback,
 		ProxyManager & proxy, Internal::IOReference::OperationIndex op_idx,
-		Nirvana::Core::MemContext* callee_memory, unsigned response_flags) NIRVANA_NOEXCEPT :
+		Nirvana::Core::MemContext* callee_memory, unsigned response_flags) noexcept :
 		Base (proxy, op_idx, callee_memory, response_flags),
 		callback_ (callback)
 	{
 	}
 
-	virtual void cancel () NIRVANA_NOEXCEPT override;
-	virtual void finalize () NIRVANA_NOEXCEPT override;
+	virtual void cancel () noexcept override;
+	virtual void finalize () noexcept override;
 
 private:
 	Internal::RequestCallback::_ref_type callback_;
@@ -662,19 +662,19 @@ class RequestLocalImpl :
 {
 public:
 	template <class ... Args>
-	RequestLocalImpl (Args ... args) NIRVANA_NOEXCEPT :
+	RequestLocalImpl (Args ... args) noexcept :
 		Base (std::forward <Args> (args)...)
 	{
 		Base::cur_ptr_ = block_;
 	}
 
-	virtual void reset () NIRVANA_NOEXCEPT
+	virtual void reset () noexcept
 	{
 		Base::reset ();
 		Base::cur_ptr_ = block_;
 	}
 
-	virtual void _remove_ref () NIRVANA_NOEXCEPT
+	virtual void _remove_ref () noexcept
 	{
 		if (0 == Base::ref_cnt_.decrement ()) {
 			servant_reference <Nirvana::Core::MemContext> mc =

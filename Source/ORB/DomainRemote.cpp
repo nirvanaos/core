@@ -46,7 +46,7 @@ IORequest::_ref_type DomainRemote::create_request (const IOP::ObjectKey& object_
 	throw NO_IMPLEMENT ();
 }
 
-void DomainRemote::add_DGC_objects (ReferenceSet <Nirvana::Core::HeapAllocator>& references) NIRVANA_NOEXCEPT
+void DomainRemote::add_DGC_objects (ReferenceSet <Nirvana::Core::HeapAllocator>& references) noexcept
 {
 	assert (!(flags () & GARBAGE_COLLECTION));
 	Nirvana::Core::Synchronized _sync_frame (Nirvana::Core::Binder::sync_domain (), nullptr);

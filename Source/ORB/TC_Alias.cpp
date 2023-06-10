@@ -28,7 +28,7 @@
 namespace CORBA {
 namespace Core {
 
-bool TC_Alias::mark () NIRVANA_NOEXCEPT
+bool TC_Alias::mark () noexcept
 {
 	if (!TC_ComplexBase::mark ())
 		return false;
@@ -36,7 +36,7 @@ bool TC_Alias::mark () NIRVANA_NOEXCEPT
 	return true;
 }
 
-bool TC_Alias::set_recursive (const IDL::String& id, const TC_Ref& ref) NIRVANA_NOEXCEPT
+bool TC_Alias::set_recursive (const IDL::String& id, const TC_Ref& ref) noexcept
 {
 	content_type_.replace_recursive_placeholder (id, ref);
 	return false;

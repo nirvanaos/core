@@ -44,14 +44,14 @@ class NIRVANA_NOVTABLE SyncGC
 {
 	template <class> friend class CORBA::servant_reference;
 	virtual void _add_ref () = 0;
-	virtual void _remove_ref () NIRVANA_NOEXCEPT = 0;
+	virtual void _remove_ref () noexcept = 0;
 };
 
 class GarbageCollector :
 	public Nirvana::Core::Runnable
 {
 public:
-	static void schedule (SyncGC& garbage, Nirvana::Core::SyncContext& sync_context) NIRVANA_NOEXCEPT;
+	static void schedule (SyncGC& garbage, Nirvana::Core::SyncContext& sync_context) noexcept;
 
 	GarbageCollector (SyncGC& garbage) :
 		ref_ (&garbage)

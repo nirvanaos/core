@@ -51,12 +51,12 @@ public:
 		DGC_DISABLED
 	};
 
-	DGC_Policy DGC_policy () const NIRVANA_NOEXCEPT
+	DGC_Policy DGC_policy () const noexcept
 	{
 		return DGC_policy_;
 	}
 
-	virtual unsigned get_flags (unsigned flags) const NIRVANA_NOEXCEPT override;
+	virtual unsigned get_flags (unsigned flags) const noexcept override;
 
 protected:
 	POA_Retain ();
@@ -70,10 +70,10 @@ protected:
 	virtual void serve_request (const RequestRef& request, CORBA::Core::ReferenceLocal& reference)
 		override;
 
-	virtual void destroy_internal (bool etherealize_objects) NIRVANA_NOEXCEPT override;
-	virtual void etherealize_objects () NIRVANA_NOEXCEPT override;
+	virtual void destroy_internal (bool etherealize_objects) noexcept override;
+	virtual void etherealize_objects () noexcept override;
 	virtual void implicit_deactivate (CORBA::Core::ReferenceLocal& ref,
-		CORBA::Core::ServantProxyObject& proxy) NIRVANA_NOEXCEPT override;
+		CORBA::Core::ServantProxyObject& proxy) noexcept override;
 	virtual CORBA::servant_reference <CORBA::Core::ServantProxyObject> deactivate_object (
 		CORBA::Core::ReferenceLocal& ref) override;
 

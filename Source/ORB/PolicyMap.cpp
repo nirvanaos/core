@@ -60,7 +60,7 @@ bool PolicyMap::insert (Policy::_ptr_type pol)
 	return map_.emplace (pol->policy_type (), std::move (stm.data ())).second;
 }
 
-const OctetSeq* PolicyMap::get_data (PolicyType type) const NIRVANA_NOEXCEPT
+const OctetSeq* PolicyMap::get_data (PolicyType type) const noexcept
 {
 	auto f = map_.find (type);
 	if (f != map_.end ())

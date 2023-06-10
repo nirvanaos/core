@@ -57,7 +57,7 @@ public:
 	}
 
 protected:
-	TC_ValueBase (TCKind kind, IDL::String&& id, IDL::String&& name) NIRVANA_NOEXCEPT;
+	TC_ValueBase (TCKind kind, IDL::String&& id, IDL::String&& name) noexcept;
 
 private:
 	static void marshal (const void* src, size_t count, Internal::IORequest_ptr rq, bool out);

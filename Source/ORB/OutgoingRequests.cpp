@@ -66,7 +66,7 @@ void OutgoingRequests::new_request_oneway (RequestOut& rq, RequestOut::IdPolicy 
 		rq.id (id);
 }
 
-Ref <RequestOut> OutgoingRequests::remove_request (RequestOut::RequestId request_id) NIRVANA_NOEXCEPT
+Ref <RequestOut> OutgoingRequests::remove_request (RequestOut::RequestId request_id) noexcept
 {
 	RequestMap::NodeVal* p = map_->find_and_delete (request_id);
 	Ref <RequestOut> ret;
@@ -78,7 +78,7 @@ Ref <RequestOut> OutgoingRequests::remove_request (RequestOut::RequestId request
 }
 
 void OutgoingRequests::set_system_exception (uint32_t request_id, SystemException::Code code,
-	uint32_t minor, CompletionStatus completed) NIRVANA_NOEXCEPT
+	uint32_t minor, CompletionStatus completed) noexcept
 {
 	Ref <RequestOut> rq = remove_request (request_id);
 	if (rq)
@@ -86,7 +86,7 @@ void OutgoingRequests::set_system_exception (uint32_t request_id, SystemExceptio
 }
 
 void OutgoingRequests::on_reply_exception (RequestOut& rq, const SystemException& ex,
-	GIOP::ReplyStatusType status) NIRVANA_NOEXCEPT
+	GIOP::ReplyStatusType status) noexcept
 {
 	CompletionStatus completed = ex.completed ();
 	if (GIOP::ReplyStatusType::NO_EXCEPTION == status)

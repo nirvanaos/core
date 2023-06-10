@@ -87,7 +87,7 @@ void Scheduler::shutdown ()
 	}
 }
 
-void Scheduler::activity_end () NIRVANA_NOEXCEPT
+void Scheduler::activity_end () noexcept
 {
 	if (!global_->activity_cnt.decrement_seq ()) {
 		switch (global_->state) {

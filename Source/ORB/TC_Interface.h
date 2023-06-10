@@ -48,7 +48,7 @@ public:
 	using Servant::_s_id;
 	using Servant::_s_name;
 
-	TC_Interface (TCKind kind, IDL::String&& id, IDL::String&& name) NIRVANA_NOEXCEPT;
+	TC_Interface (TCKind kind, IDL::String&& id, IDL::String&& name) noexcept;
 
 	TypeCode::_ref_type get_compact_typecode ()
 	{

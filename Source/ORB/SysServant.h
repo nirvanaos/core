@@ -59,13 +59,13 @@ class SysServant :
 	public SysObjectLink
 {
 public:
-	void _delete_object () NIRVANA_NOEXCEPT
+	void _delete_object () noexcept
 	{
 		delete& static_cast <S&> (*this);
 	}
 
 	static Bridge <AbstractBase>* _get_abstract_base (Internal::Type <IDL::String>::ABI_in iid,
-		Internal::Interface* env) NIRVANA_NOEXCEPT
+		Internal::Interface* env) noexcept
 	{
 		assert (false);
 		return nullptr;
@@ -78,7 +78,7 @@ protected:
 
 	SysServant (const SysServant&) = delete;
 
-	SysServant& operator = (const SysServant&) NIRVANA_NOEXCEPT
+	SysServant& operator = (const SysServant&) noexcept
 	{
 		return *this; // Do nothing
 	}
