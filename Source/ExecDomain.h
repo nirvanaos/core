@@ -521,8 +521,12 @@ private:
 	class Schedule : public Runnable
 	{
 	public:
+		Schedule () :
+			exception_ (CORBA::SystemException::EC_NO_EXCEPTION)
+		{}
+
 		Ref <SyncContext> sync_context_;
-		std::exception_ptr exception_;
+		CORBA::SystemException::Code exception_;
 		bool ret_;
 
 	private:

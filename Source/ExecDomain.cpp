@@ -309,13 +309,13 @@ void ExecDomain::schedule_call_no_push_mem (SyncContext& target)
 		ExecContext::run_in_neutral_context (schedule_);
 		schedule_.sync_context_ = nullptr;
 		// Handle possible schedule() exceptions
-		if (schedule_.exception_) {
-			std::exception_ptr exc = schedule_.exception_;
-			schedule_.exception_ = nullptr;
+		if (CORBA::SystemException::EC_NO_EXCEPTION != schedule_.exception_) {
+			CORBA::SystemException::Code exc = schedule_.exception_;
+			schedule_.exception_ = CORBA::SystemException::EC_NO_EXCEPTION;
 			// We leaved old sync domain so we must enter into prev synchronization domain back
 			// before throwing the exception.
 			schedule_return (sync_context (), true);
-			std::rethrow_exception (exc);
+			CORBA::SystemException::_raise_by_code (exc);
 		}
 
 	} else
@@ -368,9 +368,9 @@ void ExecDomain::Schedule::run ()
 	try {
 		th.yield ();
 		ed->schedule (sync_context_, ret_);
-	} catch (...) {
+	} catch (const CORBA::SystemException& ex) {
 		th.exec_domain (*ed);
-		exception_ = std::current_exception ();
+		exception_ = ex.__code ();
 	}
 }
 

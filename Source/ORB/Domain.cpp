@@ -241,9 +241,9 @@ void Domain::DGC_Request::invoke ()
 		}
 		request->invoke ();
 		request_ = std::move (request);
-	} catch (...) {
+	} catch (const SystemException& ex) {
 		while (it != keys_.begin ()) {
-			(*--it)->request_failed ();
+			(*--it)->request_failed (ex);
 			if (it >= add_end)
 				domain_.remote_objects_del_.push_back (**it);
 		}
@@ -258,10 +258,10 @@ void Domain::DGC_Request::complete (bool no_throw)
 	if (!keys_.empty ()) { // Not yet completed
 		try {
 			Internal::ProxyRoot::check_request (request_);
-		} catch (...) {
+		} catch (const SystemException& ex) {
 			for (DGC_RefKey* key : keys_) {
 				assert (key->request () == this);
-				key->request_failed ();
+				key->request_failed (ex);
 			}
 			for (auto it = keys_.begin () + add_cnt_; it != keys_.end (); ++it) {
 				domain_.remote_objects_del_.push_back (**it);

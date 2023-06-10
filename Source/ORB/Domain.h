@@ -154,9 +154,9 @@ public:
 		DGC_RefKey (const IOP::ObjectKey& object_key) :
 			IOP::ObjectKey (object_key),
 			reference_cnt_ (1),
-			added_ (false)
-		{
-		}
+			added_ (false),
+			exception_code_ (SystemException::EC_NO_EXCEPTION)
+		{}
 
 		// Add remote reference with this key
 		void reference_add () noexcept
@@ -204,12 +204,14 @@ public:
 			added_ = !added_;
 		}
 
-		void request_failed () noexcept
+		void request_failed (const SystemException& ex) noexcept
 		{
 			assert (request_);
 			request_ = nullptr;
-			if (!added_)
-				exception_ = std::current_exception ();
+			if (!added_) {
+				exception_code_ = ex.__code ();
+				exception_data_ = ex._data ();
+			}
 		}
 
 		DGC_Request* request () const noexcept
@@ -219,21 +221,23 @@ public:
 
 		void request (DGC_Request& rq) noexcept
 		{
-			exception_ = nullptr;
+			exception_code_ = SystemException::EC_NO_EXCEPTION;
 			request_ = &rq;
 		}
 
 		void check ()
 		{
-			if (exception_)
-				std::rethrow_exception (exception_);
+			if (SystemException::EC_NO_EXCEPTION != exception_code_)
+				SystemException::_raise_by_code (exception_code_, exception_data_.minor,
+					exception_data_.completed);
 		}
 
 	private:
 		unsigned reference_cnt_;
 		bool added_;
 		DGC_RequestRef request_;
-		std::exception_ptr exception_;
+		SystemException::Code exception_code_;
+		SystemException::_Data exception_data_;
 	};
 
 	DGC_RefKey* on_DGC_reference_unmarshal (const IOP::ObjectKey& object_key)
