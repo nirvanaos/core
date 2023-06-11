@@ -99,7 +99,45 @@ private:
 /// Dynamic implementation of a core object for usage in synchronized scenarios.
 /// \tparam T object class.
 template <class T>
-class ImplDynamicSync :
+class ImplDynamicSyncVirt :
+	public T
+{
+protected:
+	template <class> friend class Ref;
+	template <class> friend class CORBA::servant_reference;
+
+	template <class S, class ... Args> friend
+		CORBA::servant_reference <S> CORBA::make_reference (Args ... args);
+
+	template <class ... Args>
+	ImplDynamicSyncVirt (Args ... args) :
+		T (std::forward <Args> (args)...),
+		ref_cnt_ (1)
+	{}
+
+	virtual ~ImplDynamicSyncVirt ()
+	{}
+
+	void _add_ref () noexcept
+	{
+		++ref_cnt_;
+	}
+
+	void _remove_ref () noexcept
+	{
+		assert (ref_cnt_);
+		if (!--ref_cnt_)
+			delete this;
+	}
+
+private:
+	unsigned ref_cnt_;
+};
+
+/// Dynamic implementation of a core object for usage in synchronized scenarios.
+/// \tparam T object class.
+template <class T>
+class ImplDynamicSync final :
 	public T
 {
 protected:
@@ -113,9 +151,6 @@ protected:
 	ImplDynamicSync (Args ... args) :
 		T (std::forward <Args> (args)...),
 		ref_cnt_ (1)
-	{}
-
-	virtual ~ImplDynamicSync ()
 	{}
 
 	void _add_ref () noexcept

@@ -108,7 +108,7 @@ bool PolicyMap::get_value (typename PolicyImpl <type>::ValueType& val) const
 	return false;
 }
 
-typedef Nirvana::Core::ImplDynamicSync <PolicyMap> PolicyMapShared;
+typedef Nirvana::Core::ImplDynamicSyncVirt <PolicyMap> PolicyMapShared;
 
 }
 }

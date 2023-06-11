@@ -41,7 +41,13 @@ class RequestIn : public CORBA::Core::RequestIn
 public:
 	RequestIn (ProtDomainId client_id, unsigned GIOP_minor) :
 		Base (client_id, GIOP_minor)
-	{}
+	{
+		if (!Nirvana::Core::SINGLE_DOMAIN && object_key_.size () > 1) {
+			if (get_prot_domain_id (object_key_) != current_domain_id ())
+				throw CORBA::OBJECT_NOT_EXIST (MAKE_OMG_MINOR (2));
+			erase_prot_domain_id (object_key_);
+		}
+	}
 
 protected:
 	virtual Nirvana::Core::Ref <CORBA::Core::StreamOut> create_output () override;

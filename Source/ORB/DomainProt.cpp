@@ -32,24 +32,24 @@
 using namespace Nirvana;
 using namespace Nirvana::Core;
 using namespace CORBA;
+using namespace CORBA::Internal;
 
 namespace ESIOP {
 
 DomainProt::~DomainProt ()
-{
-}
+{}
 
-CORBA::Internal::IORequest::_ref_type DomainProt::create_request (const IOP::ObjectKey& object_key,
-	const Internal::Operation& metadata, unsigned response_flags, Internal::RequestCallback::_ptr_type callback)
+IORequest::_ref_type DomainProt::create_request (const IOP::ObjectKey& object_key,
+	const Operation& metadata, unsigned response_flags, RequestCallback::_ptr_type callback)
 {
 	if (zombie ())
 		throw COMM_FAILURE ();
 
 	if (callback) {
-		assert (response_flags & Internal::IORequest::RESPONSE_EXPECTED); // Checked in ReferenceRemote
+		assert (response_flags & IORequest::RESPONSE_EXPECTED); // Checked in ReferenceRemote
 		return make_pseudo <RequestOutAsync <RequestOut> > (callback, std::ref (*this), std::ref (object_key),
 			std::ref (metadata), response_flags);
-	} else if (response_flags & Internal::IORequest::RESPONSE_EXPECTED) {
+	} else if (response_flags & IORequest::RESPONSE_EXPECTED) {
 		return make_pseudo <RequestOutSync <RequestOut> > (std::ref (*this), std::ref (object_key),
 			std::ref (metadata), response_flags);
 	} else {

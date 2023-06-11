@@ -31,26 +31,28 @@
 #include <CORBA/Server.h>
 #include <CORBA/Proxy/IOReference_s.h>
 #include "../Event.h"
+#include "../LifeCyclePseudo.h"
 
 namespace CORBA {
 namespace Core {
 
-class NIRVANA_NOVTABLE RequestEvent :
-	public Nirvana::Core::Event,
+class RequestEvent :
 	public CORBA::servant_traits <Internal::RequestCallback>::Servant <RequestEvent>,
-	public CORBA::Internal::LifeCycleRefCnt <RequestEvent>
+	public Nirvana::Core::LifeCyclePseudo <RequestEvent>
 {
-	DECLARE_CORE_INTERFACE
-
 public:
-	void completed (Internal::IORequest::_ptr_type request) noexcept
+	void wait ()
 	{
-		signal ();
+		event_.wait ();
 	}
 
-protected:
-	RequestEvent ();
-	~RequestEvent ();
+	void completed (Internal::IORequest::_ptr_type request) noexcept
+	{
+		event_.signal ();
+	}
+
+private:
+	Nirvana::Core::Event event_;
 };
 
 }

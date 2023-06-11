@@ -25,6 +25,7 @@
 */
 #include "unmarshal_object.h"
 #include "../Binder.h"
+#include "../ProtDomain.h"
 
 using namespace Nirvana;
 using namespace Nirvana::Core;
@@ -108,29 +109,46 @@ Object::_ref_type unmarshal_object (StreamIn& stream, ReferenceRemoteRef& unconf
 			(LocalAddress::singleton ().host ().size () == host_len
 				&& std::equal (host, host + host_len, LocalAddress::singleton ().host ().data ())))) {
 		// Local Nirvana system
-		if (Nirvana::Core::SINGLE_DOMAIN)
-			obj = PortableServer::Core::POA_Root::unmarshal (primary_iid, object_key); // Local reference
-		else {
+
+		// Check for SysDomain
+		if (ESIOP::is_system_domain () && object_key.size () == 1 && object_key.front () == 0) {
+			obj = Services::bind (Services::SysDomain);
+		} else if (!Nirvana::Core::SINGLE_DOMAIN) {
+			// Multiple domain system
 			ESIOP::ProtDomainId domain_id;
-			component = binary_search (components, ESIOP::TAG_DOMAIN_ADDRESS);
-			if (component) {
-				Nirvana::Core::ImplStatic <StreamInEncap> stm (std::ref (component->component_data ()));
-				stm.read (alignof (ESIOP::ProtDomainId), sizeof (ESIOP::ProtDomainId), &domain_id);
-				if (stm.other_endian ())
-					Internal::byteswap (domain_id);
-				if (stm.end ())
-					throw INV_OBJREF ();
-			} else
+			if (object_key.size () == 1 && object_key.front () == 0)
 				domain_id = ESIOP::sys_domain_id ();
-			if (ESIOP::current_domain_id () == domain_id)
-				obj = PortableServer::Core::POA_Root::unmarshal (primary_iid, object_key); // Local reference
 			else
+				domain_id = ESIOP::get_prot_domain_id (object_key);
+			if (ESIOP::current_domain_id () == domain_id) {
+				// Object belongs current domain
+				ESIOP::erase_prot_domain_id (object_key);
+				if (object_key.size () == 1) {
+					if (object_key.front () == 1)
+						obj = Nirvana::Core::ProtDomain::_this ();
+					else
+						throw OBJECT_NOT_EXIST (MAKE_OMG_MINOR (2));
+				} else
+					obj = PortableServer::Core::POA_Root::unmarshal (primary_iid, object_key); // Local reference
+			} else {
 				obj = Binder::unmarshal_remote_reference (domain_id, primary_iid, addr,
 					object_key, ORB_type, components, unconfirmed_remote_ref);
+			}
+		} else {
+			// Single domain system
+			if (object_key.size () == 1) {
+				if (object_key.front () == 1)
+					obj = Nirvana::Core::ProtDomain::_this ();
+				else
+					throw INV_OBJREF ();
+			} else {
+				obj = PortableServer::Core::POA_Root::unmarshal (primary_iid, object_key); // Local reference
+			}
 		}
-	} else
+	} else {
 		obj = Binder::unmarshal_remote_reference (listen_point, primary_iid, addr,
 			object_key, ORB_type, components, unconfirmed_remote_ref);
+	}
 
 	return obj;
 }

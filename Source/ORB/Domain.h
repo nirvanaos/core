@@ -56,7 +56,8 @@ class NIRVANA_NOVTABLE Domain : public Nirvana::Core::BinderObject
 
 public:
 	virtual Internal::IORequest::_ref_type create_request (const IOP::ObjectKey& object_key,
-		const Internal::Operation& metadata, unsigned response_flags, Internal::RequestCallback::_ptr_type callback) = 0;
+		const Internal::Operation& metadata, unsigned response_flags,
+		Internal::RequestCallback::_ptr_type callback) = 0;
 
 	/// Domain flag bits
 	enum
@@ -110,9 +111,10 @@ public:
 private:
 	// DGC request
 	class DGC_Request;
-	typedef Nirvana::Core::Ref <DGC_Request> DGC_RequestRef;
+	typedef Nirvana::Core::ImplDynamicSync <DGC_Request> DGC_RequestImpl;
+	typedef Nirvana::Core::Ref <DGC_RequestImpl> DGC_RequestRef;
 
-	class DGC_Request : public RequestEvent
+	class DGC_Request
 	{
 	public:
 		static DGC_RequestRef create (Domain& domain);
@@ -138,6 +140,7 @@ private:
 	private:
 		Domain& domain_;
 		Internal::IORequest::_ref_type request_;
+		servant_reference <RequestEvent> event_;
 		std::vector <DGC_RefKey*, Nirvana::Core::BinderMemory::Allocator <DGC_RefKey*> > keys_;
 		size_t add_cnt_;
 
@@ -222,7 +225,7 @@ public:
 		void request (DGC_Request& rq) noexcept
 		{
 			exception_code_ = SystemException::EC_NO_EXCEPTION;
-			request_ = &rq;
+			request_ = &static_cast <DGC_RequestImpl&> (rq);
 		}
 
 		void check ()
@@ -301,8 +304,12 @@ private:
 	void confirm_DGC_ref_finish (const ReferenceRemoteRef* begin,
 		const ReferenceRemoteRef* end, bool no_throw);
 
-	void complex_ping (IDL::Sequence <IOP::ObjectKey>& add, const IDL::Sequence <IOP::ObjectKey>& del)
+	void complex_ping (IDL::Sequence <IOP::ObjectKey>& add, IDL::Sequence <IOP::ObjectKey>& del)
 	{
+		if (!Nirvana::Core::SINGLE_DOMAIN) {
+			erase_domain_id (add);
+			erase_domain_id (del);
+		}
 		static const size_t STATIC_ADD_CNT = 4;
 		if (add.size () <= STATIC_ADD_CNT) {
 			std::array <ReferenceLocalRef, STATIC_ADD_CNT> refs;
@@ -332,6 +339,7 @@ private:
 	void send_del () noexcept;
 	void append_del (DGC_Request& rq);
 	void erase_remote_key (DGC_RefKey& key) noexcept;
+	static void erase_domain_id (IDL::Sequence <IOP::ObjectKey>& keys);
 
 private:
 	class GC : public Nirvana::Core::Runnable

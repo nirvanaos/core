@@ -32,6 +32,7 @@
 #include <CORBA/CORBA.h>
 #include <Port/ESIOP.h>
 #include <Port/config.h>
+#include "StreamOut.h"
 
 /// Environment-specific inter-ORB protocol.
 /// Implements communication between protection domains
@@ -315,15 +316,40 @@ const uint32_t VSCID = 0xFFFFFF;
 
 /// Local deadline.
 /// context_data contains the local DeadlineTime, 8 bytes.
-/// Used only for calls inside the local system domain.
+/// Used only for calls inside the local system domain, so we don't have to register it with OMG.
 const uint32_t CONTEXT_ID_DEADLINE = (VSCID << 8) | 0;
 
 ///@}
 
-/// Nirvana ESIOP component tag. TODO: Obtain from OMG.
-/// profile_data contains the local protection domain ID.
-/// If this profile is not present, the local system domain is assumed.
-const uint32_t TAG_DOMAIN_ADDRESS = 0xFFFFFFFF;
+ProtDomainId get_prot_domain_id (const IOP::ObjectKey& object_key);
+
+inline
+void erase_prot_domain_id (IOP::ObjectKey& object_key)
+{
+	if (!Nirvana::Core::SINGLE_DOMAIN) {
+		assert (get_prot_domain_id (object_key) == current_domain_id ());
+		object_key.erase (object_key.begin (), object_key.begin () + sizeof (ProtDomainId));
+	}
+}
+
+inline
+void marshal_local_object_key (const CORBA::Octet* obj_key, size_t obj_key_size,
+	CORBA::Core::StreamOut& stream)
+{
+	if (obj_key_size == 1 && 0 == *obj_key) {
+		// SysDomain
+		stream.write_size (1);
+		stream.write_c (1, 1, obj_key);
+	} else {
+		ProtDomainId id = current_domain_id ();
+		// If platform endians are different, always use big endian format.
+		if (PLATFORMS_ENDIAN_DIFFERENT && Nirvana::endian::native == Nirvana::endian::little)
+			Nirvana::byteswap (id);
+		stream.write_size (sizeof (ProtDomainId) + obj_key_size);
+		stream.write_c (alignof (ProtDomainId), sizeof (ProtDomainId), &id);
+		stream.write_c (1, obj_key_size, obj_key);
+	}
+}
 
 }
 

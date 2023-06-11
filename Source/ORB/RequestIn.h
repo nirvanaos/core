@@ -159,6 +159,7 @@ private:
 
 protected:
 	RequestKey key_;
+	IOP::ObjectKey object_key_;
 	IOP::ServiceContextList service_context_;
 
 private:
@@ -190,7 +191,6 @@ private:
 		RequestIn& request_;
 	};
 
-	IOP::ObjectKey object_key_;
 	IDL::String operation_;
 	void* map_iterator_;
 

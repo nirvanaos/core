@@ -377,4 +377,17 @@ void dispatch_message (MessageHeader& message)
 	}
 }
 
+ProtDomainId get_prot_domain_id (const IOP::ObjectKey& object_key)
+{
+	assert (!Nirvana::Core::SINGLE_DOMAIN);
+	if (object_key.size () <= sizeof (ProtDomainId))
+		throw CORBA::OBJECT_NOT_EXIST (MAKE_OMG_MINOR (2));
+	ProtDomainId id = *(const ProtDomainId*)object_key.data ();
+
+	// If platform endians are different, always use big endian format.
+	if (PLATFORMS_ENDIAN_DIFFERENT && endian::native == endian::little)
+		Nirvana::byteswap (id);
+	return id;
+}
+
 }

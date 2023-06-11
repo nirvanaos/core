@@ -167,13 +167,12 @@ void ReferenceLocal::marshal (const ProxyManager& proxy, const Octet* obj_key, s
 	UShort port = LocalAddress::singleton ().port ();
 	encap.write_c (alignof (UShort), sizeof (UShort), &port);
 	
-	size_t zero = 0;
-	encap.write_seq (1, 1, obj_key_size, const_cast <Octet*> (obj_key), zero);
+	ESIOP::marshal_local_object_key (obj_key, obj_key_size, encap);
 
 	uint32_t ORB_type = ESIOP::ORB_TYPE;
 	ESIOP::ProtDomainId domain_id = ESIOP::current_domain_id ();
 
-	size_t component_cnt = Nirvana::Core::SINGLE_DOMAIN ? 2 : 3;
+	size_t component_cnt = 2;
 
 	if (policies) {
 		if (!policies->empty ())
@@ -198,12 +197,6 @@ void ReferenceLocal::marshal (const ProxyManager& proxy, const Octet* obj_key, s
 		components.emplace_back (IOP::TAG_FT_HEARTBEAT_ENABLED, std::move (encap.data ()));
 	}
 	
-	if (!Nirvana::Core::SINGLE_DOMAIN) {
-		ImplStatic <StreamOutEncap> encap;
-		encap.write_c (alignof (ESIOP::ProtDomainId), sizeof (ESIOP::ProtDomainId), &domain_id);
-		components.emplace_back (ESIOP::TAG_DOMAIN_ADDRESS, std::move (encap.data ()));
-	}
-
 	if (policies) {
 		ImplStatic <StreamOutEncap> encap;
 		encap.write_size (policies->size ());

@@ -35,9 +35,11 @@
 namespace CORBA {
 namespace Core {
 
-template <class Base>
-class RequestOutAsync : public Base
+template <class Rq>
+class RequestOutAsync : public Rq
 {
+	typedef Rq Base;
+
 public:
 	template <class ... Args>
 	RequestOutAsync (Internal::RequestCallback::_ptr_type callback, Args ... args) :

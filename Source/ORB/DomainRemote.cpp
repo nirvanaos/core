@@ -26,6 +26,9 @@
 #include "DomainRemote.h"
 #include "../Binder.h"
 
+using namespace Nirvana;
+using namespace Nirvana::Core;
+
 namespace CORBA {
 
 using namespace Internal;

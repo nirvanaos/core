@@ -40,7 +40,6 @@ Nirvana::Core::StaticallyAllocated <IncomingRequests::RequestMap> IncomingReques
 
 void IncomingRequests::receive (Ref <RequestIn> rq, uint64_t timestamp)
 {
-	ExecDomain& ed = ExecDomain::current ();
 	if (rq->response_flags () & RequestIn::RESPONSE_EXPECTED) {
 		auto ins = map_->insert (std::ref (rq->key ()), std::ref (*rq), timestamp);
 		bool cancelled = false;
@@ -64,7 +63,7 @@ void IncomingRequests::receive (Ref <RequestIn> rq, uint64_t timestamp)
 	// Now we must obtain the deadline value from the service context.
 	// Execution domain will be rescheduled with new deadline
 	// on entering to the POA or Binder synchronization domain.
-	ed.deadline (request_deadline (*rq));
+	ExecDomain::current ().deadline (request_deadline (*rq));
 
 	// Process special operations
 	auto op = rq->operation ();

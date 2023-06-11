@@ -205,12 +205,11 @@ void Domain::GC::run ()
 Domain::DGC_Request::DGC_Request (Domain& domain) :
 	domain_ (domain),
 	add_cnt_ (0)
-{
-}
+{}
 
 Domain::DGC_RequestRef Domain::DGC_Request::create (Domain& domain)
 {
-	return DGC_RequestRef::create <ImplDynamic <DGC_Request> > (std::ref (domain));
+	return DGC_RequestRef::create <DGC_RequestImpl> (std::ref (domain));
 }
 
 void Domain::DGC_Request::invoke ()
@@ -221,26 +220,26 @@ void Domain::DGC_Request::invoke ()
 	dl.timeout (domain_.request_latency ());
 	ed.deadline_policy_async (dl);
 
-	IORequest::_ref_type request = domain_.create_request (IOP::ObjectKey (), operation_,
-		IORequest::RESPONSE_EXPECTED, _get_ptr ());
+	event_ = make_reference <RequestEvent> ();
+	request_ = domain_.create_request (IOP::ObjectKey (), operation_,
+		IORequest::RESPONSE_EXPECTED, event_->_get_ptr ());
 
 	ed.deadline_policy_async (old);
 
-	request->marshal_seq_begin (add_cnt_);
+	request_->marshal_seq_begin (add_cnt_);
 	auto it = keys_.begin ();
 	auto add_end = it + add_cnt_;
 	try {
 		for (; it != add_end; ++it) {
-			Internal::Type <IOP::ObjectKey>::marshal_in (**it, request);
+			Internal::Type <IOP::ObjectKey>::marshal_in (**it, request_);
 			(*it)->request (static_cast <DGC_Request&> (*this));
 		}
-		request->marshal_seq_begin (keys_.size () - add_cnt_);
+		request_->marshal_seq_begin (keys_.size () - add_cnt_);
 		for (; it != keys_.end (); ++it) {
-			Internal::Type <IOP::ObjectKey>::marshal_in (**it, request);
+			Internal::Type <IOP::ObjectKey>::marshal_in (**it, request_);
 			(*it)->request (static_cast <DGC_Request&> (*this));
 		}
-		request->invoke ();
-		request_ = std::move (request);
+		request_->invoke ();
 	} catch (const SystemException& ex) {
 		while (it != keys_.begin ()) {
 			(*--it)->request_failed (ex);
@@ -253,11 +252,14 @@ void Domain::DGC_Request::invoke ()
 
 void Domain::DGC_Request::complete (bool no_throw)
 {
-	DGC_RequestRef hold (this);
-	RequestEvent::wait ();
+	DGC_RequestRef hold (&static_cast <DGC_RequestImpl&> (*this));
 	if (!keys_.empty ()) { // Not yet completed
+		assert (request_);
+		event_->wait ();
+		event_ = nullptr;
+		IORequest::_ref_type rq = std::move (request_);
 		try {
-			Internal::ProxyRoot::check_request (request_);
+			ProxyRoot::check_request (rq);
 		} catch (const SystemException& ex) {
 			for (DGC_RefKey* key : keys_) {
 				assert (key->request () == this);
@@ -280,6 +282,15 @@ void Domain::DGC_Request::complete (bool no_throw)
 		}
 		keys_.clear ();
 		add_cnt_ = 0;
+	}
+}
+
+void Domain::erase_domain_id (IDL::Sequence <IOP::ObjectKey>& keys)
+{
+	for (auto it = keys.begin (); it != keys.end (); ++it) {
+		if (ESIOP::get_prot_domain_id (*it) != ESIOP::current_domain_id ())
+			throw CORBA::OBJECT_NOT_EXIST (MAKE_OMG_MINOR (2));
+		ESIOP::erase_prot_domain_id (*it);
 	}
 }
 

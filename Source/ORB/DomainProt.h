@@ -31,6 +31,12 @@
 #include "Domain.h"
 #include <Port/OtherDomain.h>
 
+namespace Nirvana {
+namespace Core {
+class Event;
+}
+}
+
 namespace ESIOP {
 
 /// Other protection domain on the same system.

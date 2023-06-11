@@ -33,9 +33,30 @@
 namespace CORBA {
 namespace Core {
 
-template <class Base>
-class RequestOutSync : public Base
+template <class Rq>
+class RequestOutInternal :
+	public Rq,
+	public Nirvana::Core::Event
 {
+public:
+	template <class ... Args>
+	RequestOutInternal (Args ... args) :
+		Rq (std::forward <Args> (args)...)
+	{}
+
+protected:
+	virtual void finalize () noexcept override
+	{
+		Rq::finalize ();
+		Nirvana::Core::Event::signal ();
+	}
+};
+
+template <class Rq>
+class RequestOutSync : public RequestOutInternal <Rq>
+{
+	typedef RequestOutInternal <Rq> Base;
+
 public:
 	template <class ... Args>
 	RequestOutSync (Args ... args) :
@@ -45,18 +66,9 @@ public:
 	virtual void invoke () override
 	{
 		Base::invoke ();
-		event_.wait ();
+		Base::wait ();
 	}
 
-protected:
-	virtual void finalize () noexcept override
-	{
-		Base::finalize ();
-		event_.signal ();
-	}
-
-private:
-	Nirvana::Core::Event event_;
 };
 
 }
