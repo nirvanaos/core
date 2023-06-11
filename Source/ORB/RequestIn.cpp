@@ -29,6 +29,7 @@
 #include "ServantProxyObject.h"
 #include "DomainRemote.h"
 #include "tagged_seq.h"
+#include "Messaging_policies.h"
 
 using namespace Nirvana;
 using namespace Nirvana::Core;
@@ -48,72 +49,118 @@ RequestIn::RequestIn (const DomainAddress& client, unsigned GIOP_minor) :
 	reply_header_end_ (0),
 	cancelled_ (false),
 	has_context_ (false)
-{
-}
+{}
 
 void RequestIn::final_construct (Ref <StreamIn>&& in)
 {
 	stream_in_ = std::move (in);
 
 	switch (GIOP_minor_) {
-		case 0: {
-			typedef GIOP::RequestHeader_1_0 Hdr;
-			Hdr hdr;
-			Type <Hdr>::unmarshal (_get_ptr (), hdr);
-			key_.request_id = hdr.request_id ();
-			object_key_ = std::move (hdr.object_key ());
-			operation_ = std::move (hdr.operation ());
-			service_context_ = std::move (hdr.service_context ());
-			response_flags_ = hdr.response_expected () ? (RESPONSE_EXPECTED | RESPONSE_DATA) : 0;
+	case 0: {
+		typedef GIOP::RequestHeader_1_0 Hdr;
+		Hdr hdr;
+		Type <Hdr>::unmarshal (_get_ptr (), hdr);
+		key_.request_id = hdr.request_id ();
+		object_key_ = std::move (hdr.object_key ());
+		operation_ = std::move (hdr.operation ());
+		service_context_ = std::move (hdr.service_context ());
+		response_flags_ = hdr.response_expected () ? (RESPONSE_EXPECTED | RESPONSE_DATA) : 0;
+	} break;
+
+	case 1: {
+		typedef GIOP::RequestHeader_1_1 Hdr;
+		Hdr hdr;
+		Type <Hdr>::unmarshal (_get_ptr (), hdr);
+		key_.request_id = hdr.request_id ();
+		object_key_ = std::move (hdr.object_key ());
+		operation_ = std::move (hdr.operation ());
+		service_context_ = std::move (hdr.service_context ());
+		response_flags_ = hdr.response_expected () ? (RESPONSE_EXPECTED | RESPONSE_DATA) : 0;
+	} break;
+
+	default: {
+		typedef GIOP::RequestHeader_1_2 Hdr;
+		Hdr hdr;
+		Type <Hdr>::unmarshal (_get_ptr (), hdr);
+		key_.request_id = hdr.request_id ();
+		operation_ = std::move (hdr.operation ());
+		service_context_ = std::move (hdr.service_context ());
+		response_flags_ = hdr.response_flags ();
+		if ((response_flags_ & (RESPONSE_EXPECTED | RESPONSE_DATA)) == RESPONSE_DATA)
+			throw INV_FLAG ();
+
+		switch (hdr.target ()._d ()) {
+		case GIOP::KeyAddr:
+			object_key_ = std::move (hdr.target ().object_key ());
+			break;
+
+		case GIOP::ProfileAddr:
+			get_object_key (hdr.target ().profile ());
+			break;
+
+		case GIOP::ReferenceAddr: {
+			const GIOP::IORAddressingInfo& ior = hdr.target ().ior ();
+			const IOP::TaggedProfileSeq& profiles = ior.ior ().profiles ();
+			if (profiles.size () <= ior.selected_profile_index ())
+				throw OBJECT_NOT_EXIST ();
+			get_object_key (profiles [ior.selected_profile_index ()]);
 		} break;
+		}
 
-		case 1: {
-			typedef GIOP::RequestHeader_1_1 Hdr;
-			Hdr hdr;
-			Type <Hdr>::unmarshal (_get_ptr (), hdr);
-			key_.request_id = hdr.request_id ();
-			object_key_ = std::move (hdr.object_key ());
-			operation_ = std::move (hdr.operation ());
-			service_context_ = std::move (hdr.service_context ());
-			response_flags_ = hdr.response_expected () ? (RESPONSE_EXPECTED | RESPONSE_DATA) : 0;
-		} break;
+		// In GIOP version 1.2 and 1.3, the Request Body is always aligned on an 8-octet boundary.
+		size_t unaligned = stream_in_->position () % 8;
+		if (unaligned)
+			stream_in_->read (1, 8 - unaligned, nullptr);
+	}
+	}
 
-		default: {
-			typedef GIOP::RequestHeader_1_2 Hdr;
-			Hdr hdr;
-			Type <Hdr>::unmarshal (_get_ptr (), hdr);
-			key_.request_id = hdr.request_id ();
-			operation_ = std::move (hdr.operation ());
-			service_context_ = std::move (hdr.service_context ());
-			response_flags_ = hdr.response_flags ();
-			if ((response_flags_ & (RESPONSE_EXPECTED | RESPONSE_DATA)) == RESPONSE_DATA)
-				throw INV_FLAG ();
+	sort (service_context_);
 
-			switch (hdr.target ()._d ()) {
-				case GIOP::KeyAddr:
-					object_key_ = std::move (hdr.target ().object_key ());
-					break;
+	// Obtain invocation policies
+	auto context = binary_search (service_context_, IOP::INVOCATION_POLICIES);
+	if (context) {
+		invocation_policies_.insert (context->context_data ());
+		
+		// Erase from context to conserve memory
+		service_context_.erase (service_context_.begin () + (context - service_context_.data ()));
+	}
 
-				case GIOP::ProfileAddr:
-					get_object_key (hdr.target ().profile ());
-					break;
-
-				case GIOP::ReferenceAddr: {
-					const GIOP::IORAddressingInfo& ior = hdr.target ().ior ();
-					const IOP::TaggedProfileSeq& profiles = ior.ior ().profiles ();
-					if (profiles.size () <= ior.selected_profile_index ())
-						throw OBJECT_NOT_EXIST ();
-					get_object_key (profiles [ior.selected_profile_index ()]);
-				} break;
+	// Obtain the request deadline
+	if (key_.family == DomainAddress::Family::ESIOP) {
+		auto context = binary_search (service_context_, ESIOP::CONTEXT_ID_DEADLINE);
+		if (context) {
+			ImplStatic <StreamInEncap> encap (std::ref (context->context_data ()));
+			DeadlineTime dl;
+			encap.read (alignof (DeadlineTime), sizeof (DeadlineTime), &dl);
+			if (encap.end ())
+				throw BAD_PARAM ();
+			if (encap.other_endian ())
+				Internal::byteswap (dl);
+			deadline_ = dl;
+		}
+	} else {
+		TimeBase::UtcT end_time;
+		if (invocation_policies_.get_value <Messaging::REQUEST_END_TIME_POLICY_TYPE> (end_time))
+			deadline_ = Chrono::deadline_from_UTC (end_time);
+		else {
+			Messaging::PriorityRange priority_range;
+			if (invocation_policies_.get_value <Messaging::REQUEST_PRIORITY_POLICY_TYPE> (priority_range))
+				deadline_ = Chrono::deadline_from_priority ((priority_range.min () + priority_range.max ()) / 2);
+			else {
+				context = binary_search (service_context_, IOP::RTCorbaPriority);
+				if (context) {
+					ImplStatic <StreamInEncap> encap (std::ref (context->context_data ()));
+					int16_t priority;
+					encap.read (alignof (int16_t), sizeof (int16_t), &priority);
+					if (encap.end ())
+						throw BAD_PARAM ();
+					if (encap.other_endian ())
+						Internal::byteswap (priority);
+					deadline_ = Chrono::deadline_from_priority (priority);
+				}
 			}
-
-			// In GIOP version 1.2 and 1.3, the Request Body is always aligned on an 8-octet boundary.
-			size_t unaligned = stream_in_->position() % 8;
-			if (unaligned)
-				stream_in_->read(1, 8 - unaligned, nullptr);
 		}
 	}
-	sort (service_context_);
 }
 
 void RequestIn::get_object_key (const IOP::TaggedProfile& profile)

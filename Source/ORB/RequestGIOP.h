@@ -69,6 +69,12 @@ protected:
 	friend class Nirvana::Core::Ref;
 
 public:
+	/// \returns The request deadline.
+	const Nirvana::DeadlineTime deadline () const noexcept
+	{
+		return deadline_;
+	}
+
 	/// When request object is created, it saves the current memory context reference.
 	///
 	Nirvana::Core::MemContext& memory () const noexcept
@@ -439,6 +445,7 @@ private:
 protected:
 	unsigned GIOP_minor_;
 	unsigned response_flags_;
+	Nirvana::DeadlineTime deadline_;
 	Nirvana::Core::RefCounter ref_cnt_;
 	Long chunk_level_;
 	servant_reference <Domain> target_domain_;

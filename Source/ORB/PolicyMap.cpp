@@ -34,9 +34,9 @@ namespace Core {
 PolicyMap::PolicyMap ()
 {}
 
-PolicyMap::PolicyMap (const OctetSeq& src)
+void PolicyMap::insert (const OctetSeq& encap)
 {
-	ImplStatic <StreamInEncap> stm (std::ref (src));
+	ImplStatic <StreamInEncap> stm (std::ref (encap));
 	for (size_t cnt = stm.read32 (); cnt; --cnt) {
 		PolicyType type = stm.read32 ();
 		OctetSeq data;

@@ -76,11 +76,6 @@ public:
 
 	void id (RequestId id);
 
-	const Nirvana::DeadlineTime deadline() const noexcept
-	{
-		return deadline_;
-	}
-
 	virtual void set_reply (unsigned status, IOP::ServiceContextList&& context,
 		Nirvana::Core::Ref <StreamIn>&& stream);
 
@@ -125,7 +120,6 @@ private:
 	void preunmarshal (TypeCode::_ptr_type tc, std::vector <Octet>& buf, Internal::IORequest::_ptr_type out);
 
 protected:
-	Nirvana::DeadlineTime deadline_;
 	const Internal::Operation* metadata_;
 	RequestId id_;
 

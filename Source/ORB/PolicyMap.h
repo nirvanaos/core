@@ -47,12 +47,18 @@ public:
 	PolicyMap ();
 	PolicyMap (const PolicyMap& src) = default;
 	PolicyMap (PolicyMap&& src) = default;
-	PolicyMap (const OctetSeq& src);
+
+	PolicyMap (const OctetSeq& encap)
+	{
+		insert (encap);
+	}
 
 	// Does not write the policy size, only policies will be written
 	void write (StreamOut& stm) const;
 
 	bool insert (Policy::_ptr_type pol);
+
+	void insert (const OctetSeq& encap);
 
 	template <PolicyType type>
 	bool insert (const typename PolicyImpl <type>::ValueType& val);

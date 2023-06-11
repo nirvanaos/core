@@ -42,6 +42,7 @@ namespace Core {
 RequestGIOP::RequestGIOP (unsigned GIOP_minor, unsigned response_flags, Domain* servant_domain) :
 	GIOP_minor_ (GIOP_minor),
 	response_flags_ (response_flags),
+	deadline_ (INFINITE_DEADLINE),
 	chunk_level_ (0),
 	target_domain_ (servant_domain),
 	mem_context_ (&MemContext::current ()),

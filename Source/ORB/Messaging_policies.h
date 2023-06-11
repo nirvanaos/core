@@ -29,7 +29,6 @@
 #pragma once
 
 #include "PolicyImpl.h"
-#include <CORBA/PortableServer_s.h>
 #include <CORBA/Messaging_s.h>
 
 #define DEFINE_MESSAGING_POLICY(id, Itf, Val, name) DEFINE_POLICY(Messaging::id, Messaging::Itf, Val, name)

@@ -31,6 +31,7 @@
 #include "DomainAddress.h"
 #include "RequestGIOP.h"
 #include "RequestInPOA.h"
+#include "PolicyMap.h"
 #include "../ExecDomain.h"
 #include "../Timer.h"
 
@@ -90,6 +91,12 @@ public:
 	const IOP::ServiceContextList& service_context () const noexcept
 	{
 		return service_context_;
+	}
+
+	/// \returns Invocation policies.
+	const PolicyMap& invocation_policies () const noexcept
+	{
+		return invocation_policies_;
 	}
 
 	virtual const IOP::ObjectKey& object_key () const noexcept override
@@ -161,6 +168,7 @@ protected:
 	RequestKey key_;
 	IOP::ObjectKey object_key_;
 	IOP::ServiceContextList service_context_;
+	PolicyMap invocation_policies_;
 
 private:
 	class DelayedRelease : public Nirvana::Core::Runnable

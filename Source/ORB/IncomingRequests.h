@@ -101,9 +101,6 @@ public:
 	}
 
 private:
-	static Nirvana::DeadlineTime request_deadline (const RequestIn& rq);
-
-private:
 	static Nirvana::Core::StaticallyAllocated <RequestMap> map_;
 };
 

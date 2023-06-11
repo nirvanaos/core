@@ -63,7 +63,7 @@ void IncomingRequests::receive (Ref <RequestIn> rq, uint64_t timestamp)
 	// Now we must obtain the deadline value from the service context.
 	// Execution domain will be rescheduled with new deadline
 	// on entering to the POA or Binder synchronization domain.
-	ExecDomain::current ().deadline (request_deadline (*rq));
+	ExecDomain::current ().deadline (rq->deadline ());
 
 	// Process special operations
 	auto op = rq->operation ();
@@ -118,52 +118,6 @@ void IncomingRequests::cancel (const RequestKey& key, uint64_t timestamp) noexce
 			ins.first->value ().timestamp = timestamp;
 	}
 	map_->release_node (ins.first);
-}
-
-inline
-DeadlineTime IncomingRequests::request_deadline (const RequestIn& rq)
-{
-	// Define the request deadline from the call context.
-	DeadlineTime deadline = INFINITE_DEADLINE;
-	const IOP::ServiceContextList& sc = rq.service_context ();
-	if (rq.key ().family == DomainAddress::Family::ESIOP) {
-		auto context = binary_search (sc, ESIOP::CONTEXT_ID_DEADLINE);
-		if (context) {
-			ImplStatic <StreamInEncap> encap (std::ref (context->context_data ()));
-			encap.read (alignof (DeadlineTime), sizeof (DeadlineTime), &deadline);
-			if (encap.end ())
-				throw BAD_PARAM ();
-			if (encap.other_endian ())
-				Internal::byteswap (deadline);
-		}
-	} else {
-		auto context = binary_search (sc, IOP::INVOCATION_POLICIES);
-		if (context) {
-			PolicyMap policies (context->context_data ());
-			{
-				TimeBase::UtcT end_time;
-				if (policies.get_value <Messaging::REQUEST_END_TIME_POLICY_TYPE> (end_time))
-					return Chrono::deadline_from_UTC (end_time);
-			}
-			{
-				Messaging::PriorityRange priority_range;
-				if (policies.get_value <Messaging::REQUEST_PRIORITY_POLICY_TYPE> (priority_range))
-					return Chrono::deadline_from_priority (priority_range.min ());
-			}
-		}
-		context = binary_search (sc, IOP::RTCorbaPriority);
-		if (context) {
-			ImplStatic <StreamInEncap> encap (std::ref (context->context_data ()));
-			int16_t priority;
-			encap.read (alignof (int16_t), sizeof (int16_t), &priority);
-			if (encap.end ())
-				throw BAD_PARAM ();
-			if (encap.other_endian ())
-				Internal::byteswap (priority);
-			deadline = Chrono::deadline_from_priority (priority);
-		}
-	}
-	return deadline;
 }
 
 }
