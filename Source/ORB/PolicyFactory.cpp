@@ -28,6 +28,7 @@
 #include "BiDirPolicy_policies.h"
 #include "Messaging_policies.h"
 #include "FT_policies.h"
+#include "Nirvana_policies.h"
 #include <boost/preprocessor/repetition/repeat.hpp>
 #include "StreamInEncap.h"
 #include "StreamOutEncap.h"
@@ -47,9 +48,21 @@ Policy::_ref_type PolicyUnsupported::create (const Any&)
 
 PolicyFactory::Functions PolicyUnsupported::functions_ = { create, nullptr, nullptr };
 
-const PolicyFactory::Functions* const PolicyFactory::functions_ [MAX_KNOWN_POLICY_ID] = {
-	BOOST_PP_REPEAT (MAX_KNOWN_POLICY_ID, POLICY_FUNCTIONS, 0)
+const PolicyFactory::Functions* const PolicyFactory::ORB_policies_ [MAX_ORB_POLICY_ID] = {
+	BOOST_PP_REPEAT (MAX_ORB_POLICY_ID, POLICY_FUNCTIONS, 0)
 };
+
+const PolicyFactory::Functions* PolicyFactory::functions (PolicyType type) noexcept
+{
+	if (0 == (type & 0xFFFFF000)) {
+		if (type == 0 || type > MAX_ORB_POLICY_ID)
+			return nullptr;
+		return ORB_policies_ [type - 1];
+	} else if (type == Nirvana::DGC_POLICY_TYPE)
+		return &PolicyImpl <Nirvana::DGC_POLICY_TYPE>::functions_;
+	else
+		return nullptr;
+}
 
 void PolicyFactory::write (Policy::_ptr_type pol, StreamOut& out)
 {

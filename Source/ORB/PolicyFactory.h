@@ -34,7 +34,7 @@
 
 /// COMPRESSION_MIN_RATIO_POLICY_ID = 67.
 /// See ZIOP::CompressionMinRatioPolicy.
-#define MAX_KNOWN_POLICY_ID 67
+#define MAX_ORB_POLICY_ID 67
 
 namespace CORBA {
 namespace Core {
@@ -62,14 +62,9 @@ public:
 	static void write (Policy::_ptr_type, StreamOut& out);
 
 private:
-	static const Functions* functions (PolicyType type) noexcept
-	{
-		if (type == 0 || type > MAX_KNOWN_POLICY_ID)
-			return nullptr;
-		return functions_ [type - 1];
-	}
+	static const Functions* functions (PolicyType type) noexcept;
 
-	static const Functions* const functions_ [MAX_KNOWN_POLICY_ID];
+	static const Functions* const ORB_policies_ [MAX_ORB_POLICY_ID];
 };
 
 class PolicyUnsupported

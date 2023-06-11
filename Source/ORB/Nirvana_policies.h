@@ -24,18 +24,17 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_ORB_CORE_FT_POLICIES_H_
-#define NIRVANA_ORB_CORE_FT_POLICIES_H_
+#ifndef NIRVANA_ORB_CORE_NIRVANA_POLICIES_H_
+#define NIRVANA_ORB_CORE_NIRVANA_POLICIES_H_
 #pragma once
 
 #include "PolicyImpl.h"
-#include <CORBA/FT_s.h>
+#include <CORBA/NirvanaDGC_s.h>
 
 namespace CORBA {
 namespace Core {
 
-DEFINE_POLICY (FT::HEARTBEAT_POLICY, FT::HeartbeatPolicy, FT::HeartbeatPolicyValue, heartbeat_policy_value);
-DEFINE_POLICY (FT::HEARTBEAT_ENABLED_POLICY, FT::HeartbeatEnabledPolicy, bool, heartbeat_enabled_policy_value);
+DEFINE_POLICY (Nirvana::DGC_POLICY_TYPE, Nirvana::DGC_Policy, bool, enabled);
 
 }
 }

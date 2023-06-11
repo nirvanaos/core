@@ -25,7 +25,7 @@
 */
 #include "POA_Root.h"
 #include <CORBA/Servant_var.h>
-#include "FT_policies.h"
+#include "Nirvana_policies.h"
 
 using namespace CORBA;
 using namespace CORBA::Core;
@@ -38,13 +38,13 @@ POA_Retain::POA_Retain () :
 	DGC_policy_ (DGC_DEFAULT)
 {
 	if (object_policies_) {
-		bool hbe;
-		if (object_policies_->get_value <FT::HEARTBEAT_ENABLED_POLICY> (hbe)) {
-			if (hbe)
+		bool gc;
+		if (object_policies_->get_value <Nirvana::DGC_POLICY_TYPE> (gc)) {
+			if (gc)
 				DGC_policy_ = DGC_ENABLED;
 			else {
 				DGC_policy_ = DGC_DISABLED;
-				object_policies_->erase (FT::HEARTBEAT_ENABLED_POLICY);
+				object_policies_->erase (Nirvana::DGC_POLICY_TYPE);
 			}
 		}
 	}

@@ -24,7 +24,7 @@
 *  popov.nirvana@gmail.com
 */
 #include "POA_Root.h"
-#include "FT_policies.h"
+#include "Nirvana_policies.h"
 
 using namespace CORBA;
 using namespace CORBA::Core;
@@ -38,12 +38,12 @@ POA_DGC::POA_DGC ()
 	if (DGC_DEFAULT == DGC_policy ()) {
 		if (object_policies_) {
 			pols = make_reference <PolicyMapShared> (std::ref (*object_policies_));
-			pols->insert <FT::HEARTBEAT_ENABLED_POLICY> (true);
+			pols->insert <Nirvana::DGC_POLICY_TYPE> (true);
 		} else if (root_)
 			pols = root_->default_DGC_policies ();
 		else {
 			pols = CORBA::make_reference <CORBA::Core::PolicyMapShared> ();
-			pols->insert <FT::HEARTBEAT_ENABLED_POLICY> (true);
+			pols->insert <Nirvana::DGC_POLICY_TYPE> (true);
 		}
 	} else
 		pols = object_policies_;
