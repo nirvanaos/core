@@ -170,7 +170,6 @@ void ReferenceLocal::marshal (const ProxyManager& proxy, const Octet* obj_key, s
 	ESIOP::marshal_local_object_key (obj_key, obj_key_size, encap);
 
 	uint32_t ORB_type = ESIOP::ORB_TYPE;
-	ESIOP::ProtDomainId domain_id = ESIOP::current_domain_id ();
 
 	size_t component_cnt = 2;
 
