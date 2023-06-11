@@ -51,7 +51,7 @@ RequestIn::RequestIn (const DomainAddress& client, unsigned GIOP_minor) :
 {
 }
 
-void RequestIn::initialize (Ref <StreamIn>&& in)
+void RequestIn::final_construct (Ref <StreamIn>&& in)
 {
 	stream_in_ = std::move (in);
 

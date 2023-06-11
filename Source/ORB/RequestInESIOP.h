@@ -39,9 +39,11 @@ class RequestIn : public CORBA::Core::RequestIn
 	typedef CORBA::Core::RequestIn Base;
 
 public:
-	RequestIn (ProtDomainId client_id, unsigned GIOP_minor) :
+	RequestIn (ProtDomainId client_id, unsigned GIOP_minor, Nirvana::Core::Ref <CORBA::Core::StreamIn>&& in) :
 		Base (client_id, GIOP_minor)
 	{
+		final_construct (std::move (in));
+
 		if (!Nirvana::Core::SINGLE_DOMAIN && object_key_.size () > 1) {
 			if (get_prot_domain_id (object_key_) != current_domain_id ())
 				throw CORBA::OBJECT_NOT_EXIST (MAKE_OMG_MINOR (2));

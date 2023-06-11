@@ -92,8 +92,7 @@ void ReceiveRequest::run ()
 		// Create and receive the request
 		unsigned minor = msg_hdr.GIOP_version ().minor ();
 		Ref <CORBA::Core::RequestIn> rq = Ref <CORBA::Core::RequestIn>::create <RequestIn> (
-			client_id_, minor);
-		rq->initialize (std::move (in));
+			client_id_, minor, std::move (in));
 		IncomingRequests::receive (std::move (rq), timestamp_);
 	} catch (const SystemException& ex) {
 		if (request_id_) {
