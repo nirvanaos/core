@@ -372,8 +372,8 @@ void RequestGIOP::marshal_value (ValueBase::_ptr_type base, Interface::_ptr_type
 			}
 			stream_out_->write32 (tag);
 			stream_out_->write_size (list.size ());
-			for (IDL::String& id : list) {
-				marshal_val_rep_id (std::move (id));
+			for (const IDL::String& id : list) {
+				marshal_val_rep_id (id);
 			}
 		} else {
 			// Single ID
@@ -400,10 +400,11 @@ void RequestGIOP::marshal_value (ValueBase::_ptr_type base, Interface::_ptr_type
 	}
 }
 
-void RequestGIOP::marshal_val_rep_id (IDL::String&& id)
+void RequestGIOP::marshal_val_rep_id (Internal::String_in id)
 {
 	size_t pos = stream_out_->size ();
-	auto ins = rep_id_map_marshal_.emplace (std::move (id), pos);
+	auto ins = rep_id_map_marshal_.emplace (RepositoryId (id.data (), id.size (),
+		rep_id_map_marshal_.get_allocator ()), pos);
 	if (!ins.second) {
 		stream_out_->write32 (INDIRECTION_TAG);
 		Long off = (Long)(ins.first->second - (pos + 4));
@@ -451,10 +452,9 @@ Interface::_ref_type RequestGIOP::unmarshal_value (const IDL::String& interface_
 	}
 
 	// Read type information
-	std::vector <const IDL::String*> type_info;
+	std::vector <const RepositoryId*> type_info;
 	switch (value_tag & 0x00000006) {
 		case 0: // No type information
-			type_info.emplace_back (&interface_id);
 			break;
 		case 2: // Single repository id
 			type_info.push_back (&unmarshal_val_rep_id ());
@@ -473,16 +473,24 @@ Interface::_ref_type RequestGIOP::unmarshal_value (const IDL::String& interface_
 
 	ValueFactoryBase::_ref_type factory;
 	bool truncate = false;
-	for (const IDL::String* id : type_info) {
+	if (type_info.empty ()) {
 		try {
-			factory = Binder::bind_interface <ValueFactoryBase> (*id);
+			factory = Binder::bind_interface <ValueFactoryBase> (interface_id);
 		} catch (...) {
-			truncate = true;
+			throw MARSHAL (MAKE_OMG_MINOR (1)); // Unable to locate value factory.
 		}
+	} else {
+		for (const RepositoryId* id : type_info) {
+			try {
+				factory = Binder::bind_interface <ValueFactoryBase> (*id);
+				break;
+			} catch (...) {
+				truncate = true;
+			}
+		}
+		if (!factory)
+			throw MARSHAL (MAKE_OMG_MINOR (1)); // Unable to locate value factory.
 	}
-
-	if (!factory)
-		throw MARSHAL (MAKE_OMG_MINOR (1)); // Unable to locate value factory.
 
 	ValueBase::_ref_type base (factory->create_for_unmarshal ());
 	Interface::_ref_type ret (base->_query_valuetype (interface_id));
@@ -517,7 +525,7 @@ Interface::_ref_type RequestGIOP::unmarshal_value (const IDL::String& interface_
 	return ret;
 }
 
-const IDL::String& RequestGIOP::unmarshal_val_rep_id ()
+const RequestGIOP::RepositoryId& RequestGIOP::unmarshal_val_rep_id ()
 {
 	size_t pos = stream_in_->position ();
 	ULong size = stream_in_->read32 ();
@@ -529,7 +537,7 @@ const IDL::String& RequestGIOP::unmarshal_val_rep_id ()
 			throw MARSHAL ();
 		return it->second;
 	}
-	IDL::String id;
+	RepositoryId id (rep_id_map_unmarshal_.get_allocator ());
 	id.resize (size - 1);
 	Char* buf = &*id.begin ();
 	stream_in_->read (1, size, buf);

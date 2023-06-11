@@ -277,6 +277,8 @@ public:
 	/// \returns TypeCode.
 	virtual TypeCode::_ref_type unmarshal_type_code ();
 
+	typedef std::basic_string <char, std::char_traits <char>, Nirvana::Core::HeapAllocator <char> >
+		RepositoryId;
 	typedef Nirvana::Core::MapUnorderedUnstable <RepositoryId, size_t, std::hash <RepositoryId>,
 		std::equal_to <RepositoryId>, Nirvana::Core::HeapAllocator> IndirectRepIdMarshal;
 	typedef Nirvana::Core::MapUnorderedUnstable <size_t, RepositoryId, std::hash <size_t>,
@@ -438,8 +440,8 @@ protected:
 	void set_out_size ();
 
 private:
-	void marshal_val_rep_id (IDL::String&& id);
-	const IDL::String& unmarshal_val_rep_id ();
+	void marshal_val_rep_id (Internal::String_in id);
+	const RepositoryId& unmarshal_val_rep_id ();
 	bool marshal_chunk ();
 
 protected:
