@@ -45,6 +45,14 @@ extern CORBA::Object::_ref_type create_RootPOA ();
 }
 }
 
+namespace CosNaming {
+namespace Core {
+
+extern CORBA::Object::_ref_type create_NameService ();
+
+}
+}
+
 using namespace Nirvana::Core;
 using namespace Nirvana;
 
@@ -93,6 +101,7 @@ Object::_ref_type Services::bind_internal (Service sidx)
 // Initial services. Must be lexicographically ordered.
 
 const Services::Factory Services::factories_ [SERVICE_COUNT] = {
+	{ "NameService", CosNaming::Core::create_NameService, 1 * TimeBase::MILLISECOND },
 	{ "POACurrent", create_POACurrent, 1 * TimeBase::MILLISECOND },
 	{ "ProtDomain", create_ProtDomain, 1 * TimeBase::MILLISECOND },
 	{ "RootPOA", PortableServer::Core::create_RootPOA, 1 * TimeBase::MILLISECOND },

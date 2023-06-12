@@ -40,6 +40,7 @@ class Services
 public:
 	enum Service
 	{
+		NameService,
 		POACurrent,
 		ProtDomain,
 		RootPOA,
