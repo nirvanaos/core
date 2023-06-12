@@ -74,13 +74,15 @@ public:
 	virtual void _remove_ref () noexcept override;
 
 	Nirvana::Core::Ref <ServantProxyObject> get_active_servant () const noexcept;
+	Nirvana::Core::Ref <ServantProxyObject> get_active_servant_with_lock () const noexcept;
 
 	static void marshal (const ProxyManager& proxy, const Octet* obj_key, size_t obj_key_size,
 		const PolicyMap* policies, StreamOut& out);
 
 	virtual DomainManagersList _get_domain_managers () override;
 
-private:
+	virtual Boolean _is_equivalent (Object::_ptr_type other_object) const noexcept override;
+
 	virtual ReferenceRef marshal (StreamOut& out) override;
 	virtual ReferenceLocalRef get_local_reference (const PortableServer::Core::POA_Base&) override;
 	virtual Internal::IORequest::_ref_type create_request (OperationIndex op, unsigned flags,

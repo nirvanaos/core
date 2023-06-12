@@ -154,6 +154,13 @@ Ref <ServantProxyObject> ReferenceLocal::get_active_servant () const noexcept
 	return Ref <ServantProxyObject> (servant_.load ());
 }
 
+Nirvana::Core::Ref <ServantProxyObject> ReferenceLocal::get_active_servant_with_lock () const noexcept
+{
+	Ref <ServantProxyObject> proxy (servant_.lock ());
+	servant_.unlock ();
+	return proxy;
+}
+
 void ReferenceLocal::marshal (const ProxyManager& proxy, const Octet* obj_key, size_t obj_key_size,
 	const PolicyMap* policies, StreamOut& out)
 {
@@ -235,8 +242,7 @@ IORequest::_ref_type ReferenceLocal::create_request (OperationIndex op, unsigned
 	// If servant is active, create direct request for performance.
 	// We can't use get_active_servant here because the arbitrary sync context.
 	// So we lock the proxy pointer here.
-	Ref <ServantProxyObject> proxy (servant_.lock ());
-	servant_.unlock ();
+	Ref <ServantProxyObject> proxy = get_active_servant_with_lock ();
 	if (proxy)
 		return proxy->create_request (op, flags, callback);
 
@@ -257,6 +263,19 @@ IORequest::_ref_type ReferenceLocal::create_request (OperationIndex op, unsigned
 DomainManagersList ReferenceLocal::_get_domain_managers ()
 {
 	throw NO_IMPLEMENT ();
+}
+
+Boolean ReferenceLocal::_is_equivalent (Object::_ptr_type other_object) const noexcept
+{
+	if (ProxyManager::_is_equivalent (other_object))
+		return true;
+
+	Nirvana::Core::Ref <ServantProxyObject> servant = get_active_servant_with_lock ();
+
+	if (servant)
+		return servant->_is_equivalent (other_object);
+	else
+		return false;
 }
 
 }

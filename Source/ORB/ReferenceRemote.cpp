@@ -104,5 +104,22 @@ DomainManagersList ReferenceRemote::_get_domain_managers ()
 	throw NO_IMPLEMENT ();
 }
 
+Boolean ReferenceRemote::_is_equivalent (Object::_ptr_type other_object) const noexcept
+{
+	if (!other_object)
+		return false;
+
+	if (ProxyManager::_is_equivalent (other_object))
+		return true;
+
+	Reference* ref = ProxyManager::cast (other_object)->to_reference ();
+
+	if (!ref || (ref->flags () & LOCAL))
+		return false;
+
+	const ReferenceRemote& other = static_cast <ReferenceRemote&> (*ref);
+	return domain_ == other.domain_ && object_key_ == other.object_key_;
+}
+
 }
 }

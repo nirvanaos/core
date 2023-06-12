@@ -71,6 +71,8 @@ class NIRVANA_NOVTABLE RequestIn :
 protected:
 	template <class T>
 	friend class Nirvana::Core::Ref;
+
+	// RequestInPOA
 	virtual void _add_ref () noexcept override;
 	virtual void _remove_ref () noexcept override;
 	virtual Nirvana::Core::MemContext* memory () const noexcept override;

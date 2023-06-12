@@ -110,6 +110,21 @@ Boolean ServantProxyObject::non_existent ()
 	return servant ()->_non_existent ();
 }
 
+Boolean ServantProxyObject::_is_equivalent (Object::_ptr_type other_object) const noexcept
+{
+	if (!other_object)
+		return false;
+
+	if (Base::_is_equivalent (other_object))
+		return true;
+
+	Reference* ref = ProxyManager::cast (other_object)->to_reference ();
+	if (!ref || !(ref->flags () & Reference::LOCAL))
+		return false;
+
+	return static_cast <ReferenceLocal&> (*ref).get_active_servant_with_lock () == this;
+}
+
 ReferenceLocalRef ServantProxyObject::get_local_reference () const noexcept
 {
 	ReferenceLocalRef ref (reference_.lock ());

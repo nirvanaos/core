@@ -82,6 +82,8 @@ public:
 		return DGC_key_;
 	}
 
+	virtual Boolean _is_equivalent (Object::_ptr_type other_object) const noexcept override;
+
 	virtual void _add_ref () noexcept override;
 	virtual void _remove_ref () noexcept override;
 

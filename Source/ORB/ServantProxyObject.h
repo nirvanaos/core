@@ -85,18 +85,20 @@ public:
 		return static_cast <PortableServer::ServantBase*> (&Base::servant ());
 	}
 
-protected:
-	ServantProxyObject (PortableServer::Servant user_servant);
-	~ServantProxyObject ();
+	virtual Boolean _is_equivalent (Object::_ptr_type other_object) const noexcept override;
 
 	virtual Boolean non_existent () override;
 	virtual ReferenceLocalRef get_local_reference (const PortableServer::Core::POA_Base&) override;
 	virtual ReferenceRef marshal (StreamOut& out) override;
 
-	ReferenceLocalRef get_local_reference () const noexcept;
-
 	virtual Policy::_ref_type _get_policy (PolicyType policy_type) override;
 	virtual DomainManagersList _get_domain_managers () override;
+
+protected:
+	ServantProxyObject (PortableServer::Servant user_servant);
+	~ServantProxyObject ();
+
+	ReferenceLocalRef get_local_reference () const noexcept;
 
 protected:
 	Nirvana::Core::Ref <Nirvana::Core::SyncContext> adapter_context_;

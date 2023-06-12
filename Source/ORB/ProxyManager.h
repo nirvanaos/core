@@ -169,9 +169,14 @@ public:
 		return _ret;
 	}
 
-	Boolean _is_equivalent (Object::_ptr_type other_object) const
+	virtual Boolean _is_equivalent (Object::_ptr_type other_object) const noexcept
 	{
 		return &static_cast <const Internal::Bridge <Object>&> (*this) == &other_object;
+	}
+
+	virtual Reference* to_reference () noexcept
+	{
+		return nullptr;
 	}
 
 	ULong _hash (ULong maximum) const

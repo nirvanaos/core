@@ -429,7 +429,7 @@ void ProxyManager::rq_is_a (ProxyManager* servant, IORequest::_ptr_type _rq)
 
 Boolean ProxyManager::non_existent ()
 {
-	assert (false); // Must not be called in this class.
+	NIRVANA_UNREACHABLE_CODE (); // Must not be called in this class.
 	return false;
 }
 

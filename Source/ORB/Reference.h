@@ -70,6 +70,11 @@ public:
 		flags_ (flags)
 	{}
 
+	virtual Reference* to_reference () noexcept
+	{
+		return this;
+	}
+
 	unsigned flags () const noexcept
 	{
 		return flags_;

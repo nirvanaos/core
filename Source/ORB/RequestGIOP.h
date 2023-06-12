@@ -69,6 +69,12 @@ protected:
 	friend class Nirvana::Core::Ref;
 
 public:
+	/// \returns Response flags.
+	unsigned response_flags () const noexcept
+	{
+		return response_flags_;
+	}
+
 	/// \returns The request deadline.
 	const Nirvana::DeadlineTime deadline () const noexcept
 	{
@@ -253,13 +259,6 @@ public:
 	/// \returns Interface.
 	virtual Internal::Interface::_ref_type unmarshal_interface (const IDL::String& interface_id);
 
-private:
-	typedef Nirvana::Core::MapUnorderedUnstable <void*, size_t, std::hash <void*>, std::equal_to <void*>,
-		Nirvana::Core::HeapAllocator> IndirectMapMarshal;
-	static void marshal_type_code (StreamOut& stream, TypeCode::_ptr_type tc, IndirectMapMarshal& map, size_t parent_offset);
-	void marshal_object (Object::_ptr_type obj);
-
-public:
 	/// Marshal TypeCode.
 	/// 
 	/// \param tc TypeCode.
@@ -276,13 +275,6 @@ public:
 	/// 
 	/// \returns TypeCode.
 	virtual TypeCode::_ref_type unmarshal_type_code ();
-
-	typedef std::basic_string <char, std::char_traits <char>, Nirvana::Core::HeapAllocator <char> >
-		RepositoryId;
-	typedef Nirvana::Core::MapUnorderedUnstable <RepositoryId, size_t, std::hash <RepositoryId>,
-		std::equal_to <RepositoryId>, Nirvana::Core::HeapAllocator> IndirectRepIdMarshal;
-	typedef Nirvana::Core::MapUnorderedUnstable <size_t, RepositoryId, std::hash <size_t>,
-		std::equal_to <size_t>, Nirvana::Core::HeapAllocator> IndirectRepIdUnmarshal;
 
 	/// Marshal value type.
 	/// 
@@ -341,12 +333,6 @@ public:
 	virtual Internal::Interface::_ref_type unmarshal_abstract (const IDL::String& interface_id);
 
 	///@}
-
-	/// \returns Response flags.
-	unsigned response_flags () const noexcept
-	{
-		return response_flags_;
-	}
 
 	///@{
 	/// Callee operations.
@@ -440,6 +426,9 @@ protected:
 	void set_out_size ();
 
 private:
+	typedef std::basic_string <char, std::char_traits <char>, Nirvana::Core::HeapAllocator <char> >
+		RepositoryId;
+
 	void marshal_val_rep_id (Internal::String_in id);
 	const RepositoryId& unmarshal_val_rep_id ();
 	bool marshal_chunk ();
@@ -456,12 +445,24 @@ protected:
 	Nirvana::Core::Ref <Nirvana::Core::MemContext> mem_context_;
 	Nirvana::Core::Ref <CodeSetConverter> code_set_conv_;
 	Nirvana::Core::Ref <CodeSetConverterW> code_set_conv_w_;
+	ReferenceSet <Nirvana::Core::HeapAllocator> marshaled_DGC_references_;
+
+private:
+	typedef Nirvana::Core::MapUnorderedUnstable <RepositoryId, size_t, std::hash <RepositoryId>,
+		std::equal_to <RepositoryId>, Nirvana::Core::HeapAllocator> IndirectRepIdMarshal;
+	typedef Nirvana::Core::MapUnorderedUnstable <size_t, RepositoryId, std::hash <size_t>,
+		std::equal_to <size_t>, Nirvana::Core::HeapAllocator> IndirectRepIdUnmarshal;
+
+	typedef Nirvana::Core::MapUnorderedUnstable <void*, size_t, std::hash <void*>, std::equal_to <void*>,
+		Nirvana::Core::HeapAllocator> IndirectMapMarshal;
+	static void marshal_type_code (StreamOut& stream, TypeCode::_ptr_type tc, IndirectMapMarshal& map, size_t parent_offset);
+	void marshal_object (Object::_ptr_type obj);
+
 	IndirectMapUnmarshal top_level_tc_unmarshal_;
 	IndirectMapMarshal value_map_marshal_;
 	IndirectMapUnmarshal value_map_unmarshal_;
 	IndirectRepIdMarshal rep_id_map_marshal_;
 	IndirectRepIdUnmarshal rep_id_map_unmarshal_;
-	ReferenceSet <Nirvana::Core::HeapAllocator> marshaled_DGC_references_;
 	std::vector <ReferenceRemoteRef, Nirvana::Core::HeapAllocator <ReferenceRemoteRef> > references_to_confirm_;
 };
 

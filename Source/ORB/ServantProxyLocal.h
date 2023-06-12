@@ -53,6 +53,11 @@ public:
 		return static_cast <CORBA::LocalObject*> (&Base::servant ());
 	}
 
+	virtual Boolean non_existent () override;
+	virtual ReferenceRef marshal (StreamOut& out) override;
+	virtual Policy::_ref_type _get_policy (PolicyType policy_type) override;
+	virtual DomainManagersList _get_domain_managers () override;
+
 	virtual void _add_ref () override;
 
 protected:
@@ -60,11 +65,6 @@ protected:
 		ServantProxyBase (servant)
 	{}
 
-private:
-	virtual Boolean non_existent () override;
-	virtual ReferenceRef marshal (StreamOut& out) override;
-	virtual Policy::_ref_type _get_policy (PolicyType policy_type) override;
-	virtual DomainManagersList _get_domain_managers () override;
 };
 
 /// Get proxy for local object.
