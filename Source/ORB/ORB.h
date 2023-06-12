@@ -34,6 +34,7 @@
 #include <CORBA/TC_Factory.h>
 #include "Services.h"
 #include "PolicyFactory.h"
+#include "unmarshal_object.h"
 
 namespace CORBA {
 namespace Core {
@@ -50,12 +51,39 @@ public:
 
 	static IDL::String object_to_string (Object::_ptr_type obj)
 	{
-		throw NO_IMPLEMENT ();
+		Nirvana::Core::ImplStatic <StreamOutEncap> stm;
+		ProxyManager::cast (obj)->marshal (stm);
+		IDL::String str;
+		str.reserve (4 + stm.data ().size () * 2);
+		str += "ior:";
+		for (unsigned oct : stm.data ()) {
+			str += to_hex (oct >> 4);
+			str += to_hex (oct & 0xf);
+		}
+		return str;
 	}
 
+public:
 	static Object::_ref_type string_to_object (const IDL::String& str)
 	{
-		throw NO_IMPLEMENT ();
+		size_t schema_len = str.find (':');
+		if (schema_len == IDL::String::npos)
+			throw BAD_PARAM (MAKE_OMG_MINOR (7));
+		const Char* schema_end = str.data () + schema_len;
+		if (schema_eq ("ior", str.data (), schema_end)) {
+			size_t digits = str.size () - schema_len - 1;
+			if (digits % 2)
+				throw BAD_PARAM (MAKE_OMG_MINOR (9));
+			OctetSeq octets;
+			octets.reserve (digits / 2);
+			for (const Char* pd = str.data () + schema_len + 1, *end = pd + digits; pd != end; pd += 2) {
+				octets.push_back (from_hex (pd [0]) << 4 | from_hex (pd [1]));
+			}
+			ReferenceRemoteRef unconfirmed_ref;
+			Nirvana::Core::ImplStatic <StreamInEncap> stm (std::ref (octets));
+			return unmarshal_object (stm, unconfirmed_ref);
+		}
+		throw BAD_PARAM (MAKE_OMG_MINOR (7));
 	}
 
 	void create_list (Long count, NVList::_ref_type& new_list)
@@ -291,6 +319,7 @@ public:
 	static bool tc_equivalent (TypeCode::_ptr_type left, TypeCode::_ptr_type right, const TC_Pair* parent = nullptr);
 
 private:
+
 	static TC_Factory::_ptr_type tc_factory ()
 	{
 		return TC_Factory::_narrow (Services::bind (Services::TC_Factory));
@@ -298,7 +327,14 @@ private:
 
 	static ULongLong get_union_label (TypeCode::_ptr_type tc, ULong i);
 
-	static TypeCode::_ref_type dereference_alias (TypeCode::_ptr_type tc);
+	static Char to_hex (unsigned d) noexcept
+	{
+		return d < 10 ? '0' + d : 'a' + d - 10;
+	}
+
+	static unsigned from_hex (int x);
+	static bool schema_eq (const Char* schema, const Char* begin, const Char* end) noexcept;
+
 };
 
 

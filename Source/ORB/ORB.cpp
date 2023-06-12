@@ -332,5 +332,31 @@ ULongLong ORB::get_union_label (TypeCode::_ptr_type tc, ULong i)
 	return u;
 }
 
+unsigned ORB::from_hex (int x)
+{
+	if ('0' <= x && x <= '9')
+		return x - '0';
+	else if ('a' <= x && x <= 'f')
+		return x - 'a' + 10;
+	else if ('A' <= x && x <= 'F')
+		return x - 'A' + 10;
+	else
+		throw BAD_PARAM (MAKE_OMG_MINOR (9));
+}
+
+bool ORB::schema_eq (const Char* schema, const Char* begin, const Char* end) noexcept
+{
+	do {
+		Char c = *begin;
+		if ('A' <= c && c <= 'Z')
+			c -= 'A' + 'a';
+		if (*schema != c)
+			return false;
+		++schema;
+		++begin;
+	} while (*schema && begin != end);
+	return !*schema && begin == end;
+}
+
 }
 }
