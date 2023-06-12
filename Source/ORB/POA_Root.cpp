@@ -45,7 +45,7 @@ Object::_ref_type create_RootPOA ()
 }
 
 ReferenceLocalRef POA_Root::emplace_reference (ObjectKey&& core_key,
-	bool unique, const IDL::String& primary_iid, unsigned flags,
+	bool unique, CORBA::Internal::String_in primary_iid, unsigned flags,
 	CORBA::Core::PolicyMapShared* policies)
 {
 	auto ins = references_.emplace (IOP::ObjectKey (core_key), Reference::DEADLINE_MAX);

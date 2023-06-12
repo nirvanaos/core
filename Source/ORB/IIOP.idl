@@ -37,7 +37,7 @@ struct ListenPoint {
     string              host;
     unsigned short      port;
 };
-typedef sequence<ListenPoint> ListenPointList;
+typedef sequence <ListenPoint> ListenPointList;
 struct BiDirIIOPServiceContext {// BI_DIR_IIOP Service Context
     ListenPointList listen_points;
 };

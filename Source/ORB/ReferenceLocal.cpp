@@ -42,7 +42,7 @@ using namespace Internal;
 namespace Core {
 
 ReferenceLocal::ReferenceLocal (const IOP::ObjectKey& object_key, PortableServer::Core::ObjectKey&& core_key,
-	const IDL::String& primary_iid, unsigned flags, PolicyMapShared* policies) :
+	Internal::String_in primary_iid, unsigned flags, PolicyMapShared* policies) :
 	Reference (primary_iid, flags | LOCAL),
 	core_key_ (std::move (core_key)),
 	object_key_ (object_key),

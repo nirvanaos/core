@@ -110,7 +110,7 @@ public:
 
 	CORBA::Object::_ref_type resolve_str (const StringName& sn)
 	{
-		throw CORBA::NO_IMPLEMENT ();
+		return resolve (to_name (sn));
 	}
 
 };

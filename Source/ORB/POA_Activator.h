@@ -47,7 +47,7 @@ public:
 
 protected:
 	virtual CORBA::Core::ReferenceLocalRef create_reference (ObjectKey&& key,
-		const CORBA::RepositoryId& intf) override;
+		CORBA::Internal::String_in iid) override;
 
 	virtual void serve_default (const RequestRef& request, CORBA::Core::ReferenceLocal& reference)
 		override;

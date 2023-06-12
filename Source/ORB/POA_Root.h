@@ -75,7 +75,7 @@ public:
 
 	static POA_Ref find_child (const AdapterPath& path, bool activate_it);
 
-	static CORBA::Object::_ref_type unmarshal (const IDL::String& iid, const IOP::ObjectKey& object_key)
+	static CORBA::Object::_ref_type unmarshal (CORBA::Internal::String_in iid, const IOP::ObjectKey& object_key)
 	{
 		CORBA::Object::_ref_type root = get_root (); // Hold root POA reference
 
@@ -139,7 +139,7 @@ public:
 		std::equal_to <IOP::ObjectKey>, Nirvana::Core::UserAllocator> References;
 
 	CORBA::Core::ReferenceLocalRef emplace_reference (ObjectKey&& core_key,
-		bool unique, const IDL::String& primary_iid, unsigned flags,
+		bool unique, CORBA::Internal::String_in primary_iid, unsigned flags,
 		CORBA::Core::PolicyMapShared* policies);
 	CORBA::Core::ReferenceLocalRef emplace_reference (ObjectKey&& core_key,
 		bool unique, CORBA::Core::ServantProxyObject& proxy, unsigned flags,

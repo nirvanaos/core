@@ -36,7 +36,7 @@ using namespace Internal;
 namespace Core {
 
 ReferenceRemote::ReferenceRemote (const OctetSeq& addr, servant_reference <Domain>&& domain,
-	const IOP::ObjectKey& object_key, const IDL::String& primary_iid,
+	const IOP::ObjectKey& object_key, Internal::String_in primary_iid,
 	ULong ORB_type, const IOP::TaggedComponentSeq& components) :
 	Reference (primary_iid, 0),
 	address_ (addr),

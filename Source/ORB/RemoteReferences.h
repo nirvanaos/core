@@ -53,7 +53,7 @@ public:
 	{}
 
 	template <class EndPoint>
-	Object::_ref_type unmarshal (const EndPoint& domain, const IDL::String& iid,
+	Object::_ref_type unmarshal (const EndPoint& domain, Internal::String_in iid,
 		const IOP::TaggedProfileSeq& addr, const IOP::ObjectKey& object_key, ULong ORB_type,
 		const IOP::TaggedComponentSeq& components, ReferenceRemoteRef& unconfirmed)
 	{
@@ -160,7 +160,7 @@ private:
 	std::pair <typename References::iterator, bool> emplace_reference (const OctetSeq& addr);
 	static std::unique_ptr <ReferenceRemote> make_reference (const OctetSeq& addr,
 		servant_reference <Domain>&& domain, const IOP::ObjectKey& object_key,
-		const IDL::String& primary_iid, ULong ORB_type, const IOP::TaggedComponentSeq& components);
+		Internal::String_in primary_iid, ULong ORB_type, const IOP::TaggedComponentSeq& components);
 
 	servant_reference <Domain> find_domain (const DomainAddress& domain) const noexcept
 	{

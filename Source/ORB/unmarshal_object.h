@@ -35,6 +35,8 @@ namespace CORBA {
 namespace Core {
 
 Object::_ref_type unmarshal_object (StreamIn& stream, ReferenceRemoteRef& unconfirmed_remote_ref);
+Object::_ref_type unmarshal_object (Internal::String_in primary_iid, StreamIn& stream,
+	ReferenceRemoteRef& unconfirmed_remote_ref);
 
 }
 }

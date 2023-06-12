@@ -39,7 +39,7 @@ RemoteReferences::emplace_reference (const OctetSeq& addr)
 
 RemoteReferences::RefPtr RemoteReferences::make_reference (
 	const OctetSeq& addr, servant_reference <Domain>&& domain, const IOP::ObjectKey& object_key,
-	const IDL::String& primary_iid, ULong ORB_type, const IOP::TaggedComponentSeq& components)
+	Internal::String_in primary_iid, ULong ORB_type, const IOP::TaggedComponentSeq& components)
 {
 	return RefPtr (new ReferenceRemote (addr, std::move (domain), object_key, primary_iid, ORB_type, components));
 }

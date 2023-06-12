@@ -227,17 +227,17 @@ void POA_Base::implicit_deactivate (CORBA::Core::ReferenceLocal& ref,
 	NIRVANA_UNREACHABLE_CODE ();
 }
 
-Object::_ref_type POA_Base::create_reference (const RepositoryId& intf)
+Object::_ref_type POA_Base::create_reference (CORBA::Internal::String_in iid)
 {
-	return create_reference (intf, 0)->get_proxy ();
+	return create_reference (iid, 0)->get_proxy ();
 }
 
-ReferenceLocalRef POA_Base::create_reference (const RepositoryId& intf, unsigned flags)
+ReferenceLocalRef POA_Base::create_reference (CORBA::Internal::String_in iid, unsigned flags)
 {
 	for (;;) {
 		// The ObjectKey constructor calls generate_object_id to generate a new unique id.
 		// If SYSTEM_ID policy is not present, the WrongPolicy exception will be thrown.
-		ReferenceLocalRef ref = root_->emplace_reference (ObjectKey (*this), true, std::ref (intf),
+		ReferenceLocalRef ref = root_->emplace_reference (ObjectKey (*this), true, iid,
 			get_flags (flags), get_policies (flags));
 		if (ref)
 			return ref;
@@ -248,16 +248,15 @@ ReferenceLocalRef POA_Base::create_reference (const RepositoryId& intf, unsigned
 	}
 }
 
-ReferenceLocalRef POA_Base::create_reference (ObjectKey&& key,
-	const CORBA::RepositoryId& intf)
+ReferenceLocalRef POA_Base::create_reference (ObjectKey&& key, CORBA::Internal::String_in iid)
 {
-	return create_reference (std::move (key), intf, 0);
+	return create_reference (std::move (key), iid, 0);
 }
 
-ReferenceLocalRef POA_Base::create_reference (ObjectKey&& key, const RepositoryId& intf,
+ReferenceLocalRef POA_Base::create_reference (ObjectKey&& key, CORBA::Internal::String_in iid,
 	unsigned flags)
 {
-	return root_->emplace_reference (std::move (key), false, intf, get_flags (flags),
+	return root_->emplace_reference (std::move (key), false, iid, get_flags (flags),
 		get_policies (flags));
 }
 

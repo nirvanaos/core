@@ -49,7 +49,7 @@ class ReferenceLocal :
 {
 public:
 	ReferenceLocal (const IOP::ObjectKey& object_key, PortableServer::Core::ObjectKey&& core_key,
-		const IDL::String& primary_iid, unsigned flags, PolicyMapShared* policies);
+		Internal::String_in primary_iid, unsigned flags, PolicyMapShared* policies);
 	ReferenceLocal (const IOP::ObjectKey& object_key, PortableServer::Core::ObjectKey&& core_key,
 		ServantProxyObject& proxy, unsigned flags, PolicyMapShared* policies);
 

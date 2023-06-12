@@ -111,10 +111,9 @@ void POA_Activator::set_servant_manager (ServantManager::_ptr_type imgr)
 		throw OBJ_ADAPTER (MAKE_OMG_MINOR (4));
 }
 
-ReferenceLocalRef POA_Activator::create_reference (ObjectKey&& key,
-	const RepositoryId& intf)
+ReferenceLocalRef POA_Activator::create_reference (ObjectKey&& key, CORBA::Internal::String_in iid)
 {
-	return POA_Base::create_reference (std::move (key), intf, Reference::GARBAGE_COLLECTION);
+	return POA_Base::create_reference (std::move (key), iid, Reference::GARBAGE_COLLECTION);
 }
 
 void POA_Activator::etherialize (const ObjectId& oid, ServantProxyObject& proxy,

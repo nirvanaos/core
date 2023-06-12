@@ -58,7 +58,7 @@ public:
 		LOCAL              = 0x8000  //< Is ReferenceLocal
 	};
 
-	Reference (const IDL::String& primary_iid, unsigned flags) :
+	Reference (Internal::String_in primary_iid, unsigned flags) :
 		ProxyManager (primary_iid, false),
 		ref_cnt_ (1),
 		flags_ (flags)

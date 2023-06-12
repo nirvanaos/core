@@ -39,7 +39,11 @@ Object::_ref_type unmarshal_object (StreamIn& stream, ReferenceRemoteRef& unconf
 	stream.read_string (primary_iid);
 	if (primary_iid.empty ())
 		return nullptr; // nil reference
+	return unmarshal_object (primary_iid, stream, unconfirmed_remote_ref);
+}
 
+Object::_ref_type unmarshal_object (Internal::String_in primary_iid, StreamIn & stream, ReferenceRemoteRef & unconfirmed_remote_ref)
+{
 	Object::_ref_type obj;
 	IIOP::ListenPoint listen_point;
 	IOP::ObjectKey object_key;

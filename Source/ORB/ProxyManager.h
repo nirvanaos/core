@@ -161,7 +161,7 @@ public:
 
 	Boolean _non_existent ()
 	{
-		Internal::IORequest::_ref_type rq = ior ()->create_request (_make_op_idx ((UShort)ObjectOp::NON_EXISTENT), 3, nullptr);
+		Internal::IORequest::_ref_type rq = create_request (_make_op_idx ((UShort)ObjectOp::NON_EXISTENT), 3, nullptr);
 		rq->invoke ();
 		Boolean _ret;
 		Internal::Type <Boolean>::unmarshal (rq, _ret);
@@ -222,10 +222,19 @@ public:
 		throw NO_IMPLEMENT ();
 	}
 
-	IDL::String _repository_id () const
+	IDL::String _repository_id ()
 	{
-		//Nirvana::Core::ExecDomain::yield ();
-		return repository_id ();
+		if (primary_interface_)
+			return repository_id ();
+		else {
+			Internal::IORequest::_ref_type rq = create_request (
+				_make_op_idx ((UShort)ObjectOp::REPOSITORY_ID), 3, nullptr);
+			rq->invoke ();
+			IDL::String _ret;
+			Internal::Type <IDL::String>::unmarshal (rq, _ret);
+			rq->unmarshal_end ();
+			return _ret;
+		}
 	}
 	
 	Object::_ref_type _get_component ()
@@ -375,7 +384,7 @@ private:
 
 	IDL::String repository_id () const
 	{
-		return IDL::String (primary_interface_->iid, primary_interface_->iid_len);
+		return primary_interface_id ();
 	}
 
 	static void rq_repository_id (ProxyManager* servant, CORBA::Internal::IORequest::_ptr_type _rq);

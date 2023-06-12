@@ -351,22 +351,22 @@ public:
 		CORBA::Core::ServantProxyObject& proxy) noexcept;
 
 	// Reference creation operations
-	virtual CORBA::Object::_ref_type create_reference (const CORBA::RepositoryId& intf);
+	virtual CORBA::Object::_ref_type create_reference (CORBA::Internal::String_in iid);
 	
-	CORBA::Core::ReferenceLocalRef create_reference (const CORBA::RepositoryId& intf,
+	CORBA::Core::ReferenceLocalRef create_reference (CORBA::Internal::String_in iid,
 		unsigned flags);
 
-	CORBA::Object::_ref_type create_reference_with_id (ObjectId& oid,
-		const CORBA::RepositoryId& intf)
+	CORBA::Object::_ref_type create_reference_with_id (ObjectId& oid, CORBA::Internal::String_in iid)
 	{
-		return CORBA::Object::_ref_type (create_reference (ObjectKey (*this, std::move (oid)), intf)->get_proxy ());
+		return CORBA::Object::_ref_type (
+			create_reference (ObjectKey (*this, std::move (oid)), iid)->get_proxy ());
 	}
 
 	virtual CORBA::Core::ReferenceLocalRef create_reference (ObjectKey&& key,
-		const CORBA::RepositoryId& intf);
+		CORBA::Internal::String_in iid);
 
 	CORBA::Core::ReferenceLocalRef create_reference (ObjectKey&& key,
-		const CORBA::RepositoryId& intf, unsigned flags);
+		CORBA::Internal::String_in intf, unsigned flags);
 
 	// Identity mapping operations:
 	ObjectId servant_to_id (CORBA::Object::_ptr_type p_servant)

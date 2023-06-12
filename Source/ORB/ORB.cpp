@@ -358,5 +358,22 @@ bool ORB::schema_eq (const Char* schema, const Char* begin, const Char* end) noe
 	return !*schema && begin == end;
 }
 
+OctetSeq ORB::unescape_object_key (const Char* begin, const Char* end)
+{
+	OctetSeq key;
+	key.reserve (end - begin);
+	while (begin != end) {
+		if ('%' == *begin) {
+			++begin;
+			if (end - begin < 2)
+				throw BAD_PARAM (MAKE_OMG_MINOR (9));
+			key.push_back ((from_hex (begin [0]) << 4) | from_hex (begin [1]));
+			begin += 2;
+		} else
+			key.push_back (*(begin++));
+	}
+	return key;
+}
+
 }
 }
