@@ -50,6 +50,11 @@ const Octet SysObjectKey <Nirvana::Core::ProtDomain>::key [] = { 1 };
 
 bool is_sys_domain_object (const Octet* key, size_t key_len) noexcept;
 
+inline bool is_sys_domain_object (const IOP::ObjectKey& object_key) noexcept
+{
+	return is_sys_domain_object (object_key.data (), object_key.size ());
+}
+
 }
 }
 

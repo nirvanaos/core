@@ -46,7 +46,7 @@ template <class Servant> struct SysObjectKey
 			&& std::equal (key, std::end (key), obj_key);
 	}
 
-	static bool equal (const OctetSeq& object_key) noexcept
+	static bool equal (const IOP::ObjectKey& object_key) noexcept
 	{
 		return equal (object_key.data (), object_key.size ());
 	}

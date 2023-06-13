@@ -65,6 +65,8 @@ public:
 			try {
 				RefPtr p (make_reference (ins.first->first, get_domain (domain),
 					object_key, iid, ORB_type, components));
+				if (iid.empty ())
+					p->request_repository_id ();
 				if (p->unconfirmed ())
 					unconfirmed = p.get ();
 				Internal::I_var <Object> ret (p->get_proxy ()); // Use I_var to avoid reference counter increment
@@ -169,8 +171,6 @@ private:
 		else
 			return nullptr; // TODO: Implement
 	}
-
-	static void request_repository_id (ReferenceRemote& ref);
 
 private:
 	ESIOP::ProtDomains prot_domains_;

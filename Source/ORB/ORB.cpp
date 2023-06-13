@@ -375,5 +375,138 @@ OctetSeq ORB::unescape_object_key (const Char* begin, const Char* end)
 	return key;
 }
 
+Object::_ref_type ORB::string_to_object (const IDL::String& str, Internal::String_in iid)
+{
+	const Char* str_begin = str.data ();
+	const Char* str_end = str_begin + str.size ();
+	const Char* schema_end = std::find (str_begin, str_end, ':');
+	if (*schema_end != ':')
+		throw BAD_PARAM (MAKE_OMG_MINOR (7));
+
+	Object::_ref_type obj;
+	if (schema_eq ("ior", str_begin, schema_end)) {
+
+		size_t digits = str_end - schema_end - 1;
+		if (digits % 2)
+			throw BAD_PARAM (MAKE_OMG_MINOR (9));
+		OctetSeq octets;
+		octets.reserve (digits / 2);
+		for (const Char* pd = schema_end + 1; pd != str_end; pd += 2) {
+			octets.push_back ((from_hex (pd [0]) << 4) | from_hex (pd [1]));
+		}
+		ReferenceRemoteRef unconfirmed_ref;
+		Nirvana::Core::ImplStatic <StreamInEncap> stm (std::ref (octets));
+		obj = unmarshal_object (stm, unconfirmed_ref);
+
+	} else if (schema_eq ("corbaloc", str_begin, schema_end)) {
+
+		const Char* addr_begin = schema_end + 1;
+		const Char* addr_end = std::find (addr_begin, str_end, '/');
+		if (*addr_end != '/')
+			throw BAD_PARAM (MAKE_OMG_MINOR (9));
+
+		while (addr_begin < addr_end) {
+			const Char* prot_end = std::find (addr_begin, addr_end, ',');
+			if (addr_begin == prot_end)
+				throw BAD_PARAM (MAKE_OMG_MINOR (8)); // Empty protocol
+			const Char* schema_end = std::find (addr_begin, prot_end, ':');
+			if (*schema_end != ':')
+				throw BAD_PARAM (MAKE_OMG_MINOR (8));
+			if (schema_end == addr_begin || schema_eq ("iiop", addr_begin, schema_end)) {
+				// iiop protocol
+
+				Nirvana::Core::ImplStatic <StreamOutEncap> octets (true);
+				{
+					const Char* ver_begin = schema_end + 1;
+					const Char* ver_end = std::find (ver_begin, prot_end, '@');
+					const Char* host_begin;
+
+					IIOP::Version ver (1, 0);
+					if (ver_end == prot_end)
+						host_begin = ver_begin;
+					else {
+						size_t len;
+						unsigned major = std::stoi (std::string (ver_begin, ver_end), &len);
+						ver_begin += len;
+						if (*ver_begin != '.')
+							throw BAD_PARAM (MAKE_OMG_MINOR (9));
+						++ver_begin;
+						unsigned minor = std::stoi (std::string (ver_begin, ver_end), &len);
+						if (ver_begin + len < ver_end)
+							throw BAD_PARAM (MAKE_OMG_MINOR (9));
+						if (major != 1 || minor > 255)
+							throw BAD_PARAM (MAKE_OMG_MINOR (9));
+						host_begin = ver_end + 1;
+					}
+					const Char* host_end = std::find (host_begin, prot_end, ':');
+
+					UShort port = IIOP_DEFAULT_PORT;
+					if (host_end != prot_end) {
+						const Char* port_begin = host_end;
+						size_t len;
+						unsigned u = std::stoi (std::string (port_begin, prot_end), &len);
+						if (port_begin + len != prot_end || u > std::numeric_limits <UShort>::max ())
+							throw BAD_PARAM (MAKE_OMG_MINOR (9));
+						port = (UShort)u;
+					}
+
+					Nirvana::Core::ImplStatic <StreamOutEncap> encap;
+					encap.write_c (alignof (IIOP::Version), sizeof (IIOP::Version), &ver);
+					size_t host_len = host_end - host_begin;
+					if (host_len) {
+						encap.write_size (host_len);
+						encap.write_c (1, host_len, host_begin);
+					} else {
+						encap.write_string_c (LocalAddress::singleton ().host ());
+					}
+					encap.write_c (alignof (UShort), sizeof (UShort), &port);
+
+					OctetSeq object_key;
+					if (addr_end < str_end)
+						object_key = unescape_object_key (addr_end + 1, str_end);
+
+					encap.write_seq (object_key);
+
+					if (ver.minor () > 0)
+						encap.write_size (0); // empty IOP::TaggedComponentSeq
+
+					IOP::TaggedProfileSeq addr {
+						IOP::TaggedProfile (IOP::TAG_INTERNET_IOP, std::move (encap.data ()))
+					};
+
+					octets.write_tagged (addr);
+				}
+
+				ReferenceRemoteRef unconfirmed_ref;
+				Nirvana::Core::ImplStatic <StreamInEncap> stm (std::ref (octets.data ()), true);
+				obj = unmarshal_object (iid, stm, unconfirmed_ref);
+
+			} else if (schema_eq ("rir", addr_begin, schema_end)) {
+				// The rir protocol cannot be used with any other protocol in a URL.
+				if (*prot_end == ',')
+					throw BAD_PARAM (MAKE_OMG_MINOR (8));
+
+				if (addr_end < str_end) {
+					const Char* key_begin = addr_end + 1;
+					obj = resolve_initial_references (Internal::StringView <Char> (key_begin, str_end - key_begin));
+				} else
+					obj = resolve_initial_references ("NameService");
+			}
+			if (obj)
+				break;
+			addr_begin = prot_end + 1;
+		}
+		if (!obj)
+			throw BAD_PARAM (MAKE_OMG_MINOR (8));
+
+	} else if (schema_eq ("corbaname", str_begin, schema_end)) {
+		// TODO: Support
+		throw BAD_PARAM (MAKE_OMG_MINOR (7));
+	} else
+		throw BAD_PARAM (MAKE_OMG_MINOR (7));
+
+	return obj;
+}
+
 }
 }

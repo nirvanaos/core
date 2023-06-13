@@ -46,8 +46,9 @@ public:
 	{
 		final_construct (std::move (in));
 
-		if (!object_key_.empty () && !(is_system_domain ()
-			&& CORBA::Core::is_sys_domain_object (object_key_.data (), object_key_.size ()))) {
+		if (!Nirvana::Core::SINGLE_DOMAIN && !object_key_.empty ()
+			&& !(is_system_domain () && CORBA::Core::is_sys_domain_object (object_key_))) {
+
 			if (get_prot_domain_id (object_key_) != current_domain_id ())
 				throw CORBA::OBJECT_NOT_EXIST (MAKE_OMG_MINOR (2));
 			erase_prot_domain_id (object_key_);

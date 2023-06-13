@@ -89,6 +89,8 @@ public:
 
 	virtual IDL::String _repository_id () override;
 
+	void request_repository_id ();
+
 protected:
 	bool is_object_op (OperationIndex op) const noexcept
 	{
