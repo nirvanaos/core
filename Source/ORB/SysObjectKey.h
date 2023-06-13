@@ -30,6 +30,7 @@
 
 #include <CORBA/CORBA.h>
 #include <algorithm>
+#include <iterator>
 
 namespace CORBA {
 namespace Core {
@@ -42,6 +43,11 @@ template <class Servant> struct SysObjectKey
 	{
 		return object_key.size () == std::size (key)
 			&& std::equal (key, std::end (key), object_key.data ());
+	}
+
+	static IOP::ObjectKey object_key ()
+	{
+		return IOP::ObjectKey (std::begin (key), std::end (key));
 	}
 };
 

@@ -115,7 +115,7 @@ Object::_ref_type unmarshal_object (Internal::String_in primary_iid, StreamIn & 
 		// Local Nirvana system
 
 		// Check for SysDomain
-		if (ESIOP::is_system_domain () && object_key.size () == 1 && object_key.front () == 0) {
+		if (ESIOP::is_system_domain () && SysObjectKey <Nirvana::Core::SysDomain>::equal (object_key)) {
 			obj = Services::bind (Services::SysDomain);
 		} else if (!Nirvana::Core::SINGLE_DOMAIN) {
 			// Multiple domain system
@@ -127,12 +127,9 @@ Object::_ref_type unmarshal_object (Internal::String_in primary_iid, StreamIn & 
 			if (ESIOP::current_domain_id () == domain_id) {
 				// Object belongs current domain
 				ESIOP::erase_prot_domain_id (object_key);
-				if (object_key.size () == 1) {
-					if (object_key.front () == 1)
-						obj = Nirvana::Core::ProtDomain::_this ();
-					else
-						throw OBJECT_NOT_EXIST (MAKE_OMG_MINOR (2));
-				} else
+				if (SysObjectKey <Nirvana::Core::ProtDomain>::equal (object_key))
+					obj = Nirvana::Core::ProtDomain::_this ();
+				else
 					obj = PortableServer::Core::POA_Root::unmarshal (primary_iid, object_key); // Local reference
 			} else {
 				obj = Binder::unmarshal_remote_reference (domain_id, primary_iid, addr,
@@ -140,14 +137,10 @@ Object::_ref_type unmarshal_object (Internal::String_in primary_iid, StreamIn & 
 			}
 		} else {
 			// Single domain system
-			if (object_key.size () == 1) {
-				if (object_key.front () == 1)
-					obj = Nirvana::Core::ProtDomain::_this ();
-				else
-					throw INV_OBJREF ();
-			} else {
+			if (SysObjectKey <Nirvana::Core::ProtDomain>::equal (object_key))
+				obj = Nirvana::Core::ProtDomain::_this ();
+			else
 				obj = PortableServer::Core::POA_Root::unmarshal (primary_iid, object_key); // Local reference
-			}
 		}
 	} else {
 		obj = Binder::unmarshal_remote_reference (listen_point, primary_iid, addr,

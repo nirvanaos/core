@@ -24,32 +24,31 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_CORE_COREDOMAINS_H_
-#define NIRVANA_CORE_COREDOMAINS_H_
+#ifndef NIRVANA_ORB_CORE_SYSTEM_SERVICES_H_
+#define NIRVANA_ORB_CORE_SYSTEM_SERVICES_H_
+#pragma once
 
-#include <Nirvana/Domains.idl>
-#include <CORBA/IOP.idl>
+#include "SysObjectKey.h"
 
-module Nirvana {
+namespace Nirvana {
+namespace Core {
 
-interface ProtDomainCore : ProtDomain
-{
-	void request (in CORBA::OctetSeq data_in, out CORBA::OctetSeq data_out);
-	oneway void request_oneway (in CORBA::OctetSeq data);
-};
+class SysDomain;
+class ProtDomain;
 
-union BindInfo switch (boolean)
-{
-	case TRUE: string module_name;
-	case FALSE: Object obj;
-};
+}
+}
 
-interface SysDomainCore : SysDomain
-{
-	void get_bind_info (in string obj_name, in unsigned short platform, out BindInfo bind_info);
-	Object get_service (in string id);
-};
+namespace CORBA {
+namespace Core {
 
-};
+template <>
+const Octet SysObjectKey <Nirvana::Core::SysDomain>::key [] = { 0 };
+
+template <>
+const Octet SysObjectKey <Nirvana::Core::ProtDomain>::key [] = { 1 };
+
+}
+}
 
 #endif

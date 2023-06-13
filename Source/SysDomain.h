@@ -31,6 +31,7 @@
 #include <CORBA/Server.h>
 #include "ORB/SysServant.h"
 #include "ORB/Services.h"
+#include "ORB/system_services.h"
 #include <Nirvana/CoreDomains_s.h>
 #include <Port/SystemInfo.h>
 
@@ -62,12 +63,12 @@ public:
 			CORBA::Core::Services::bind (CORBA::Core::Services::ProtDomain));
 	}
 
-	static ProtDomain::_ref_type create_prot_domain (uint16_t platform)
+	static Nirvana::ProtDomain::_ref_type create_prot_domain (uint16_t platform)
 	{
 		throw_NO_IMPLEMENT ();
 	}
 
-	static ProtDomain::_ref_type create_prot_domain_as_user (uint16_t platform,
+	static Nirvana::ProtDomain::_ref_type create_prot_domain_as_user (uint16_t platform,
 		const IDL::String& user, const IDL::String& password)
 	{
 		throw_NO_IMPLEMENT ();
@@ -86,15 +87,6 @@ public:
 		return CORBA::Core::Services::bind (id);
 	}
 };
-
-}
-}
-
-namespace CORBA {
-namespace Core {
-
-template <>
-const Octet SysObjectKey <Nirvana::Core::SysDomain>::key [] = { 0 };
 
 }
 }

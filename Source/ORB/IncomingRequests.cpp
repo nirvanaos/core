@@ -27,8 +27,7 @@
 #include "Chrono.h"
 #include "POA_Root.h"
 #include "../Binder.h"
-#include <algorithm>
-#include "Messaging_policies.h"
+#include "system_services.h"
 
 using namespace Nirvana;
 using namespace Nirvana::Core;
@@ -85,21 +84,15 @@ void IncomingRequests::receive (Ref <RequestIn> rq, uint64_t timestamp)
 			throw BAD_OPERATION (MAKE_OMG_MINOR (2));
 	}
 
-	if (rq->object_key ().size () == 1) {
-		// System objects
-		switch (rq->object_key ().front ()) {
-		case 0: // SysDomain
-			if (ESIOP::is_system_domain ()) {
-				rq->serve (*local2proxy (Services::bind (Services::SysDomain)));
-				return;
-			}
-			break;
-
-		case 1: // ProtDomain
-			rq->serve (*local2proxy (Services::bind (Services::ProtDomain)));
+	if (ESIOP::is_system_domain ()) {
+		if (SysObjectKey <Nirvana::Core::SysDomain>::equal (rq->object_key ())) {
+			rq->serve (*local2proxy (Services::bind (Services::SysDomain)));
 			return;
 		}
-		throw OBJECT_NOT_EXIST (MAKE_OMG_MINOR (2));
+	}
+	if (SysObjectKey <Nirvana::Core::ProtDomain>::equal (rq->object_key ())) {
+		rq->serve (*local2proxy (Services::bind (Services::ProtDomain)));
+		return;
 	}
 
 	// Invoke

@@ -33,6 +33,7 @@
 #include <Port/ProtDomain.h>
 #include "Binder.h"
 #include "ORB/Services.h"
+#include "ORB/system_services.h"
 
 namespace Nirvana {
 namespace Core {
@@ -69,15 +70,6 @@ public:
 		throw_NO_IMPLEMENT ();
 	}
 };
-
-}
-}
-
-namespace CORBA {
-namespace Core {
-
-template <>
-const Octet SysObjectKey <Nirvana::Core::ProtDomain>::key [] = { 1 };
 
 }
 }

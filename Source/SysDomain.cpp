@@ -29,6 +29,7 @@
 #include <CORBA/Proxy/ProxyBase.h>
 #include "ORB/ESIOP.h"
 #include "Binder.h"
+#include "ORB/system_services.h"
 
 using namespace CORBA;
 using namespace CORBA::Core;
@@ -44,8 +45,9 @@ Object::_ref_type create_SysDomain ()
 		servant_reference <SysDomain> obj = make_reference <SysDomain> ();
 		return obj->_this ();
 	} else {
-		ReferenceRemote ref (CORBA::OctetSeq (), Binder::get_domain (ESIOP::sys_domain_id ()), IOP::ObjectKey (1, 0),
-			CORBA::Internal::RepIdOf <Nirvana::Core::SysDomainCore>::id, ESIOP::ORB_TYPE, IOP::TaggedComponentSeq ());
+		ReferenceRemote ref (CORBA::OctetSeq (), Binder::get_domain (ESIOP::sys_domain_id ()),
+			SysObjectKey <Core::SysDomain>::object_key (),
+			CORBA::Internal::RepIdOf <Nirvana::SysDomainCore>::id, ESIOP::ORB_TYPE, IOP::TaggedComponentSeq ());
 		IORequest::_ref_type rq = ref.create_request (ref.find_operation ("get_service"), 3, nullptr);
 		Type <IDL::String>::marshal_in (CORBA::Internal::StringView <char> ("SysDomain"), rq);
 		rq->invoke ();
