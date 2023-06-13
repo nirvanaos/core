@@ -29,6 +29,7 @@
 #pragma once
 
 #include "SysObject.h"
+#include "SysObjectKey.h"
 
 namespace CORBA {
 namespace Core {
@@ -43,7 +44,8 @@ class SysServantStatic :
 	public Internal::LocalObjectStaticDummy
 {
 public:
-	static Internal::Bridge <Object>* _get_object (Internal::Type <IDL::String>::ABI_in iid, Internal::Interface* env) noexcept
+	static Internal::Bridge <Object>* _get_object (Internal::Type <IDL::String>::ABI_in iid,
+		Internal::Interface* env) noexcept
 	{
 		return Internal::get_object_from_core (core_object (), iid, env);
 	}
@@ -53,10 +55,10 @@ public:
 	using LocalObjectStaticDummy::__refcount_value;
 	using LocalObjectStaticDummy::__delete_object;
 
-	static void initialize (Octet id)
+	static void initialize (const Octet* id, size_t id_len)
 	{
-		SysObject* sys_obj = SysObject::create (
-			&static_cast <CORBA::LocalObject&> (*Internal::InterfaceStaticBase <S, CORBA::LocalObject>::_bridge ()), id);
+		SysObject* sys_obj = SysObject::create (&static_cast <CORBA::LocalObject&> (
+			*Internal::InterfaceStaticBase <S, CORBA::LocalObject>::_bridge ()), id, id_len);
 		core_object_ = static_cast <CORBA::LocalObject*> (&CORBA::LocalObject::_ptr_type (sys_obj));
 	}
 
@@ -84,7 +86,7 @@ public:
 
 template <class S> CORBA::LocalObject* SysServantStatic <S>::core_object_;
 
-template <class S, Octet id, class Primary, class ... Bases>
+template <class S, class Primary, class ... Bases>
 class SysServantStaticImpl :
 	public Internal::InterfaceStatic <S, Primary>,
 	public Internal::InterfaceStatic <S, Bases>...,
@@ -105,7 +107,7 @@ public:
 
 	static void initialize ()
 	{
-		SysServantStatic <S>::initialize (id);
+		SysServantStatic <S>::initialize (SysObjectKey <S>::key, std::size (SysObjectKey <S>::key));
 	}
 };
 

@@ -39,7 +39,7 @@ namespace Core {
 
 /// System domain
 class SysDomain :
-	public CORBA::Core::SysServantImpl <SysDomain, 0, SysDomainCore, Nirvana::SysDomain>
+	public CORBA::Core::SysServantImpl <SysDomain, SysDomainCore, Nirvana::SysDomain>
 {
 public:
 	~SysDomain ()
@@ -86,6 +86,15 @@ public:
 		return CORBA::Core::Services::bind (id);
 	}
 };
+
+}
+}
+
+namespace CORBA {
+namespace Core {
+
+template <>
+const Octet SysObjectKey <Nirvana::Core::SysDomain>::key [] = { 0 };
 
 }
 }

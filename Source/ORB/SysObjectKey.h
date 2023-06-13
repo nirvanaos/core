@@ -24,33 +24,27 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_ORB_CORE_SYSOBJECT_H_
-#define NIRVANA_ORB_CORE_SYSOBJECT_H_
+#ifndef NIRVANA_ORB_CORE_SYSOBJECTKEY_H_
+#define NIRVANA_ORB_CORE_SYSOBJECTKEY_H_
 #pragma once
 
-#include "LocalObject.h"
+#include <CORBA/CORBA.h>
+#include <algorithm>
 
 namespace CORBA {
 namespace Core {
 
-/// \brief Proxy for system objects
-class SysObject : public LocalObjectImpl
+template <class Servant> struct SysObjectKey
 {
-public:
-	static SysObject* create (CORBA::LocalObject::_ptr_type servant, const Octet* id, size_t id_len);
+	static const Octet key [];
 
-protected:
-	SysObject (CORBA::LocalObject::_ptr_type servant, const Octet* id, size_t id_len);
-
-private:
-	virtual ReferenceRef marshal (StreamOut& out) override;
-
-private:
-	const Octet* id_;
-	size_t id_len_;
+	static bool equal (const OctetSeq& object_key) noexcept
+	{
+		return object_key.size () == std::size (key)
+			&& std::equal (key, std::end (key), object_key.data ());
+	}
 };
 
 }
 }
-
 #endif

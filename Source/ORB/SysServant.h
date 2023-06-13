@@ -29,6 +29,7 @@
 #pragma once
 
 #include "SysObject.h"
+#include "SysObjectKey.h"
 #include <CORBA/I_var.h>
 
 namespace CORBA {
@@ -42,10 +43,10 @@ protected:
 	{
 	}
 
-	void _construct (Octet id)
+	void _construct (const Octet* id, size_t id_len)
 	{
 		core_object_ = Internal::I_var <CORBA::LocalObject> (SysObject::create (
-			&static_cast <CORBA::LocalObject&> (static_cast <Internal::Bridge <CORBA::LocalObject>&> (*this)), id));
+			&static_cast <CORBA::LocalObject&> (static_cast <Internal::Bridge <CORBA::LocalObject>&> (*this)), id, id_len));
 	}
 };
 
@@ -85,7 +86,7 @@ protected:
 
 };
 
-template <class S, Octet id, class Primary, class ... Bases>
+template <class S, class Primary, class ... Bases>
 class SysServantImpl :
 	public Internal::InterfaceImpl <S, Primary>,
 	public Internal::InterfaceImpl <S, Bases>...,
@@ -108,7 +109,7 @@ public:
 protected:
 	SysServantImpl ()
 	{
-		SysObjectLink::_construct (id);
+		SysObjectLink::_construct (SysObjectKey <S>::key, std::size (SysObjectKey <S>::key));
 	}
 };
 

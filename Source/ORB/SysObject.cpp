@@ -30,20 +30,20 @@ namespace CORBA {
 namespace Core {
 
 inline
-SysObject::SysObject (CORBA::LocalObject::_ptr_type servant, Octet id) :
+SysObject::SysObject (CORBA::LocalObject::_ptr_type servant, const Octet* id, size_t id_len) :
 	LocalObjectImpl (servant),
-	id_ (id)
-{
-}
+	id_ (id),
+	id_len_ (id_len)
+{}
 
-SysObject* SysObject::create (CORBA::LocalObject::_ptr_type servant, Octet id)
+SysObject* SysObject::create (CORBA::LocalObject::_ptr_type servant, const Octet* id, size_t id_len)
 {
-	return new SysObject (servant, id);
+	return new SysObject (servant, id, id_len);
 }
 
 ReferenceRef SysObject::marshal (StreamOut& out)
 {
-	ReferenceLocal::marshal (*this, &id_, 1, nullptr, out);
+	ReferenceLocal::marshal (*this, id_, id_len_, nullptr, out);
 	return nullptr;
 }
 

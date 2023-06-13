@@ -39,7 +39,7 @@ namespace Core {
 
 /// Protection domain.
 class ProtDomain :
-	public CORBA::Core::SysServantStaticImpl <ProtDomain, 1, ProtDomainCore, Nirvana::ProtDomain>,
+	public CORBA::Core::SysServantStaticImpl <ProtDomain, ProtDomainCore, Nirvana::ProtDomain>,
 	private Port::ProtDomain
 {
 public:
@@ -69,6 +69,15 @@ public:
 		throw_NO_IMPLEMENT ();
 	}
 };
+
+}
+}
+
+namespace CORBA {
+namespace Core {
+
+template <>
+const Octet SysObjectKey <Nirvana::Core::ProtDomain>::key [] = { 1 };
 
 }
 }
