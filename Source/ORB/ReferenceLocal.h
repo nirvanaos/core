@@ -89,6 +89,9 @@ public:
 		Internal::RequestCallback::_ptr_type callback) override;
 
 private:
+	static void marshal_object_key (const Octet* obj_key, size_t obj_key_size, StreamOut& stream);
+
+private:
 	const PortableServer::Core::ObjectKey core_key_;
 	const IOP::ObjectKey& object_key_;
 

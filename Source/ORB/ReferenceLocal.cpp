@@ -31,6 +31,7 @@
 #include <CORBA/IIOP.h>
 #include "ESIOP.h"
 #include <CORBA/Servant_var.h>
+#include "system_services.h"
 
 using namespace Nirvana::Core;
 using namespace PortableServer::Core;
@@ -161,6 +162,28 @@ Nirvana::Core::Ref <ServantProxyObject> ReferenceLocal::get_active_servant_with_
 	return proxy;
 }
 
+inline
+void ReferenceLocal::marshal_object_key (const CORBA::Octet* obj_key, size_t obj_key_size,
+	CORBA::Core::StreamOut& stream)
+{
+	if (Nirvana::Core::SINGLE_DOMAIN)
+		stream.write_c (1, obj_key_size, obj_key);
+	else if (ESIOP::is_system_domain () && is_sys_domain_object (obj_key, obj_key_size)) {
+		// Do not prefix system domain objects 
+		stream.write_size (1);
+		stream.write_c (1, 1, obj_key);
+	} else {
+		// Prefix object key with domain id
+		ESIOP::ProtDomainId id = ESIOP::current_domain_id ();
+		// If platform endians are different, always use big endian format.
+		if (ESIOP::PLATFORMS_ENDIAN_DIFFERENT && Nirvana::endian::native == Nirvana::endian::little)
+			Nirvana::byteswap (id);
+		stream.write_size (sizeof (ESIOP::ProtDomainId) + obj_key_size);
+		stream.write_c (alignof (ESIOP::ProtDomainId), sizeof (ESIOP::ProtDomainId), &id);
+		stream.write_c (1, obj_key_size, obj_key);
+	}
+}
+
 void ReferenceLocal::marshal (const ProxyManager& proxy, const Octet* obj_key, size_t obj_key_size,
 	const PolicyMap* policies, StreamOut& out)
 {
@@ -174,7 +197,7 @@ void ReferenceLocal::marshal (const ProxyManager& proxy, const Octet* obj_key, s
 	UShort port = LocalAddress::singleton ().port ();
 	encap.write_c (alignof (UShort), sizeof (UShort), &port);
 	
-	ESIOP::marshal_local_object_key (obj_key, obj_key_size, encap);
+	marshal_object_key (obj_key, obj_key_size, encap);
 
 	uint32_t ORB_type = ESIOP::ORB_TYPE;
 

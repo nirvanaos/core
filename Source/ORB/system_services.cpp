@@ -1,4 +1,3 @@
-/// \file
 /*
 * Nirvana Core.
 *
@@ -24,38 +23,17 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_ORB_CORE_SYSOBJECTKEY_H_
-#define NIRVANA_ORB_CORE_SYSOBJECTKEY_H_
-#pragma once
-
-#include <CORBA/CORBA.h>
-#include <algorithm>
-#include <iterator>
+#include "system_services.h"
+#include "ESIOP.h"
 
 namespace CORBA {
 namespace Core {
 
-template <class Servant> struct SysObjectKey
+bool is_sys_domain_object (const Octet* key, size_t key_len) noexcept
 {
-	static const Octet key [];
-
-	static bool equal (const Octet* obj_key, size_t len) noexcept
-	{
-		return len == std::size (key)
-			&& std::equal (key, std::end (key), obj_key);
-	}
-
-	static bool equal (const OctetSeq& object_key) noexcept
-	{
-		return equal (object_key.data (), object_key.size ());
-	}
-
-	static IOP::ObjectKey object_key ()
-	{
-		return IOP::ObjectKey (std::begin (key), std::end (key));
-	}
-};
+	assert (ESIOP::is_system_domain ());
+	return SysObjectKey <Nirvana::Core::SysDomain>::equal (key, key_len);
+}
 
 }
 }
-#endif

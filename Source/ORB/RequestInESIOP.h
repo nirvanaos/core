@@ -30,6 +30,7 @@
 
 #include "RequestIn.h"
 #include "ESIOP.h"
+#include "system_services.h"
 
 namespace ESIOP {
 
@@ -39,12 +40,14 @@ class RequestIn : public CORBA::Core::RequestIn
 	typedef CORBA::Core::RequestIn Base;
 
 public:
-	RequestIn (ProtDomainId client_id, unsigned GIOP_minor, Nirvana::Core::Ref <CORBA::Core::StreamIn>&& in) :
+	RequestIn (ProtDomainId client_id, unsigned GIOP_minor,
+		Nirvana::Core::Ref <CORBA::Core::StreamIn>&& in) :
 		Base (client_id, GIOP_minor)
 	{
 		final_construct (std::move (in));
 
-		if (!Nirvana::Core::SINGLE_DOMAIN && object_key_.size () > 1) {
+		if (!(is_system_domain ()
+			&& CORBA::Core::is_sys_domain_object (object_key_.data (), object_key_.size ()))) {
 			if (get_prot_domain_id (object_key_) != current_domain_id ())
 				throw CORBA::OBJECT_NOT_EXIST (MAKE_OMG_MINOR (2));
 			erase_prot_domain_id (object_key_);

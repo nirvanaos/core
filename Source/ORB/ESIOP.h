@@ -332,25 +332,6 @@ void erase_prot_domain_id (IOP::ObjectKey& object_key)
 	}
 }
 
-inline
-void marshal_local_object_key (const CORBA::Octet* obj_key, size_t obj_key_size,
-	CORBA::Core::StreamOut& stream)
-{
-	if (obj_key_size == 1 && 0 == *obj_key) {
-		// SysDomain
-		stream.write_size (1);
-		stream.write_c (1, 1, obj_key);
-	} else {
-		ProtDomainId id = current_domain_id ();
-		// If platform endians are different, always use big endian format.
-		if (PLATFORMS_ENDIAN_DIFFERENT && Nirvana::endian::native == Nirvana::endian::little)
-			Nirvana::byteswap (id);
-		stream.write_size (sizeof (ProtDomainId) + obj_key_size);
-		stream.write_c (alignof (ProtDomainId), sizeof (ProtDomainId), &id);
-		stream.write_c (1, obj_key_size, obj_key);
-	}
-}
-
 }
 
 #endif

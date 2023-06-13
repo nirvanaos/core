@@ -48,6 +48,8 @@ const Octet SysObjectKey <Nirvana::Core::SysDomain>::key [] = { 0 };
 template <>
 const Octet SysObjectKey <Nirvana::Core::ProtDomain>::key [] = { 1 };
 
+bool is_sys_domain_object (const Octet* key, size_t key_len) noexcept;
+
 }
 }
 
