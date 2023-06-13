@@ -39,8 +39,7 @@ namespace Nirvana {
 namespace Core {
 
 /// System domain
-class SysDomain :
-	public CORBA::Core::SysServantImpl <SysDomain, SysDomainCore, Nirvana::SysDomain>
+class SysDomain : public CORBA::Core::SysServantImpl <SysDomain, SysDomainCore, Nirvana::SysDomain>
 {
 public:
 	~SysDomain ()
@@ -55,6 +54,11 @@ public:
 	{
 		return Platforms (std::begin (Port::SystemInfo::supported_platforms_),
 			std::end (Port::SystemInfo::supported_platforms_));
+	}
+
+	Nirvana::SysDomain::_ref_type connect (const IDL::String& user, const IDL::String& password)
+	{
+		return _this ();
 	}
 
 	static Nirvana::ProtDomain::_ref_type prot_domain ()

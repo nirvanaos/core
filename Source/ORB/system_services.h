@@ -39,6 +39,14 @@ class ProtDomain;
 }
 }
 
+namespace CosNaming {
+namespace Core {
+
+class NameService;
+
+}
+}
+
 namespace CORBA {
 namespace Core {
 
@@ -47,6 +55,10 @@ const Octet SysObjectKey <Nirvana::Core::SysDomain>::key [] = { 0 };
 
 template <>
 const Octet SysObjectKey <Nirvana::Core::ProtDomain>::key [] = { 1 };
+
+template <>
+const Octet SysObjectKey <CosNaming::Core::NameService>::key [] =
+{ 'N', 'a', 'm', 'e', 'S', 'e', 'r', 'v', 'i', 'c', 'e'};
 
 bool is_sys_domain_object (const Octet* key, size_t key_len) noexcept;
 

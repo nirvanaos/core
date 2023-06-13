@@ -31,6 +31,7 @@
 #include "SysObject.h"
 #include "SysObjectKey.h"
 #include <CORBA/I_var.h>
+#include <iterator>
 
 namespace CORBA {
 namespace Core {
@@ -40,8 +41,7 @@ class SysObjectLink : public Internal::LocalObjectLink
 protected:
 	SysObjectLink (const Internal::Bridge <CORBA::LocalObject>::EPV& epv) :
 		Internal::LocalObjectLink (epv)
-	{
-	}
+	{}
 
 	void _construct (const Octet* id, size_t id_len)
 	{

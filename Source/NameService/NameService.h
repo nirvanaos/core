@@ -30,13 +30,15 @@
 
 #include <CORBA/Server.h>
 #include <CORBA/CosNaming_s.h>
+#include "ORB/SysServant.h"
+#include "ORB/system_services.h"
 
 namespace CosNaming {
 namespace Core {
 
 /// Naming Service root
 class NameService :
-	public CORBA::servant_traits <NamingContextExt>::Servant <NameService>
+	public CORBA::Core::SysServantImpl <NameService, NamingContextExt, NamingContext>
 {
 public:
 	// NamingContext

@@ -29,7 +29,7 @@
 #include <CORBA/Proxy/ProxyBase.h>
 #include "ORB/ESIOP.h"
 #include "Binder.h"
-#include "ORB/system_services.h"
+#include "ORB/ORB.h"
 
 using namespace CORBA;
 using namespace CORBA::Core;
@@ -41,22 +41,11 @@ namespace Core {
 
 Object::_ref_type create_SysDomain ()
 {
-	if (ESIOP::is_system_domain ()) {
-		servant_reference <SysDomain> obj = make_reference <SysDomain> ();
-		return obj->_this ();
-	} else {
-		ReferenceRemote ref (CORBA::OctetSeq (), Binder::get_domain (ESIOP::sys_domain_id ()),
-			SysObjectKey <Core::SysDomain>::object_key (),
-			CORBA::Internal::RepIdOf <Nirvana::SysDomainCore>::id, ESIOP::ORB_TYPE, IOP::TaggedComponentSeq ());
-		IORequest::_ref_type rq = ref.create_request (ref.find_operation ("get_service"), 3, nullptr);
-		Type <IDL::String>::marshal_in (CORBA::Internal::StringView <char> ("SysDomain"), rq);
-		rq->invoke ();
-		ProxyRoot::check_request (rq);
-		Object::_ref_type obj;
-		Type <Object>::unmarshal (rq, obj);
-		rq->unmarshal_end ();
-		return obj;
-	}
+	if (ESIOP::is_system_domain ())
+		return make_reference <SysDomain> ()->_this ();
+	else
+		return CORBA::Core::ORB::string_to_object (
+			"corbaloc::1.1@/%00", CORBA::Internal::RepIdOf <Nirvana::SysDomainCore>::id);
 }
 
 }

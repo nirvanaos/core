@@ -32,7 +32,10 @@ namespace Core {
 bool is_sys_domain_object (const Octet* key, size_t key_len) noexcept
 {
 	assert (ESIOP::is_system_domain ());
-	return SysObjectKey <Nirvana::Core::SysDomain>::equal (key, key_len);
+	return
+		SysObjectKey <Nirvana::Core::SysDomain>::equal (key, key_len)
+	||
+		SysObjectKey <CosNaming::Core::NameService>::equal (key, key_len);
 }
 
 }

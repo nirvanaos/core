@@ -88,6 +88,9 @@ void IncomingRequests::receive (Ref <RequestIn> rq, uint64_t timestamp)
 		if (SysObjectKey <Nirvana::Core::SysDomain>::equal (rq->object_key ())) {
 			rq->serve (*local2proxy (Services::bind (Services::SysDomain)));
 			return;
+		} else if (SysObjectKey <CosNaming::Core::NameService>::equal (rq->object_key ())) {
+			rq->serve (*local2proxy (Services::bind (Services::NameService)));
+			return;
 		}
 	}
 	if (SysObjectKey <Nirvana::Core::ProtDomain>::equal (rq->object_key ())) {

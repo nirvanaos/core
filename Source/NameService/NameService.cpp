@@ -24,13 +24,19 @@
 *  popov.nirvana@gmail.com
 */
 #include "NameService.h"
+#include "../ORB/ESIOP.h"
+#include "../ORB/ORB.h"
 
 namespace CosNaming {
 namespace Core {
 
 CORBA::Object::_ref_type create_NameService ()
 {
-	return CORBA::make_reference <NameService> ()->_this ();
+	if (ESIOP::is_system_domain ())
+		return CORBA::make_reference <NameService> ()->_this ();
+	else
+		return CORBA::Core::ORB::string_to_object (
+			"corbaloc::1.1@/NameService", CORBA::Internal::RepIdOf <CosNaming::NamingContextExt>::id);
 }
 
 }

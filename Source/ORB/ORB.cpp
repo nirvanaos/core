@@ -437,6 +437,7 @@ Object::_ref_type ORB::string_to_object (const IDL::String& str, Internal::Strin
 						if (major != 1 || minor > 255)
 							throw BAD_PARAM (MAKE_OMG_MINOR (9));
 						host_begin = ver_end + 1;
+						ver.minor ((Octet)minor);
 					}
 					const Char* host_end = std::find (host_begin, prot_end, ':');
 
@@ -467,8 +468,16 @@ Object::_ref_type ORB::string_to_object (const IDL::String& str, Internal::Strin
 
 					encap.write_seq (object_key);
 
-					if (ver.minor () > 0)
-						encap.write_size (0); // empty IOP::TaggedComponentSeq
+					if (ver.minor () > 0) {
+						IOP::TaggedComponentSeq components;
+						if (!iid.empty ()) {
+							Nirvana::Core::ImplStatic <StreamOutEncap> encap;
+							uint32_t ORB_type = ESIOP::ORB_TYPE;
+							encap.write_c (4, 4, &ORB_type);
+							components.emplace_back (IOP::TAG_ORB_TYPE, std::move (encap.data ()));
+						}
+						encap.write_tagged (components); // empty IOP::TaggedComponentSeq
+					}
 
 					IOP::TaggedProfileSeq addr {
 						IOP::TaggedProfile (IOP::TAG_INTERNET_IOP, std::move (encap.data ()))
