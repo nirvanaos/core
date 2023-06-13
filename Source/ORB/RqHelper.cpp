@@ -34,13 +34,14 @@ namespace Core {
 
 Object::_ptr_type RqHelper::interface2object (Interface::_ptr_type itf)
 {
+	assert (itf);
 	Object::_ptr_type obj;
 	const CORBA::Internal::StringView <Char> interface_id = itf->_epv ().interface_id;
 	if (RepId::compatible (interface_id, RepIdOf <Object>::id))
 		obj = (Object*)&itf;
 	else {
 		Internal::Environment env;
-		Interface* p = ((const EPV_Header&)itf->_epv ()).base.to_base (&itf, 
+		Interface* p = ((const EPV_Header&)itf->_epv ()).base.to_base (&itf,
 			&Type <IDL::String>::C_in (RepIdOf <Object>::id), &env);
 		env.check ();
 		obj = Object::_check (p);
@@ -50,6 +51,7 @@ Object::_ptr_type RqHelper::interface2object (Interface::_ptr_type itf)
 
 ValueBase::_ptr_type RqHelper::value_type2base (Interface::_ptr_type val)
 {
+	assert (val);
 	ValueBase::_ptr_type base;
 	const CORBA::Internal::StringView <Char> interface_id = val->_epv ().interface_id;
 	if (RepId::compatible (interface_id, RepIdOf <ValueBase>::id))
@@ -65,6 +67,7 @@ ValueBase::_ptr_type RqHelper::value_type2base (Interface::_ptr_type val)
 
 AbstractBase::_ptr_type RqHelper::abstract_interface2base (Interface::_ptr_type itf)
 {
+	assert (itf);
 	AbstractBase::_ptr_type base;
 	Internal::Environment env;
 	Interface* p = ((const EPV_Header&)itf->_epv ()).base.to_base (&itf, &Type <IDL::String>::C_in (RepIdOf <AbstractBase>::id), &env);

@@ -248,8 +248,12 @@ public:
 	/// \param itf The interface derived from Object.
 	void marshal_interface (Internal::Interface::_ptr_type itf)
 	{
-		if (marshal_chunk ())
-			marshal_object (interface2object (itf));
+		if (marshal_chunk ()) {
+			if (itf)
+				marshal_object (interface2object (itf));
+			else
+				stream_out_->write_string_c (nullptr); // Empty interface id
+		}
 	}
 
 	/// Unmarshal interface.
