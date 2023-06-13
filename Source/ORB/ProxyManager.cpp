@@ -78,7 +78,7 @@ bool ProxyManager::OEPred::less (const Char* lhs, size_t lhs_len, const Char* rh
 	return std::lexicographical_compare (lhs, lhs + lhs_len, rhs, rhs + rhs_len);
 }
 
-Nirvana::Core::Heap& ProxyManager::get_heap () noexcept
+Heap& ProxyManager::get_heap () noexcept
 {
 	SyncDomain* sd = SyncContext::current ().sync_domain ();
 	if (sd)

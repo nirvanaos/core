@@ -34,7 +34,6 @@
 #include "../HeapAllocator.h"
 #include <CORBA/Proxy/InterfaceMetadata.h>
 #include <CORBA/Proxy/ProxyFactory.h>
-#include <CORBA/Proxy/IOReference.h>
 #include <CORBA/DynamicServant.h>
 #include <CORBA/AbstractBase_s.h>
 #include <CORBA/Object_s.h>
@@ -222,19 +221,14 @@ public:
 		throw NO_IMPLEMENT ();
 	}
 
-	IDL::String _repository_id ()
+	bool has_primary_interface () const noexcept
 	{
-		if (primary_interface_)
-			return repository_id ();
-		else {
-			Internal::IORequest::_ref_type rq = create_request (
-				_make_op_idx ((UShort)ObjectOp::REPOSITORY_ID), 3, nullptr);
-			rq->invoke ();
-			IDL::String _ret;
-			Internal::Type <IDL::String>::unmarshal (rq, _ret);
-			rq->unmarshal_end ();
-			return _ret;
-		}
+		return primary_interface_;
+	}
+
+	virtual IDL::String _repository_id ()
+	{
+		return repository_id ();
 	}
 	
 	Object::_ref_type _get_component ()
@@ -305,6 +299,8 @@ protected:
 
 	~ProxyManager ();
 
+	void set_primary_interface (Internal::String_in primary_iid);
+
 	Internal::IOReference::_ptr_type ior () noexcept
 	{
 		return &static_cast <Internal::IOReference&> (static_cast <Internal::Bridge <Internal::IOReference>&> (*this));
@@ -360,6 +356,25 @@ protected:
 		}
 	}
 
+	// The implicit object reference operations _non_existent, _is_a, _repository_id and _get_interface
+	// may be invoked using DII. No other implicit object reference operations may be invoked via DII.
+	// Only _non_existent operation can cause the call to servant.
+	// Object operation indexes.
+	enum class ObjectOp : UShort
+	{
+		GET_INTERFACE,
+		IS_A,
+		NON_EXISTENT,
+		REPOSITORY_ID,
+
+		OBJECT_OP_CNT
+	};
+
+	OperationIndex _make_op_idx (UShort op_idx) const
+	{
+		return OperationIndex (0, op_idx);
+	}
+
 private:
 	struct OperationEntry
 	{
@@ -367,11 +382,6 @@ private:
 		size_t name_len;
 		OperationIndex idx;
 	};
-
-	OperationIndex _make_op_idx (UShort op_idx) const
-	{
-		return OperationIndex (0, op_idx);
-	}
 
 	static InterfaceDef::_ref_type get_interface ();
 	static void rq_get_interface (ProxyManager* servant, CORBA::Internal::IORequest::_ptr_type _rq);
@@ -427,20 +437,6 @@ private:
 private:
 	// Input parameter metadata for Object::_is_a () operation.
 	static const Internal::Parameter is_a_param_;
-
-	// The implicit object reference operations _non_existent, _is_a, _repository_id and _get_interface
-	// may be invoked using DII. No other implicit object reference operations may be invoked via DII.
-	// Only _non_existent operation can cause the call to servant.
-	// Object operation indexes.
-	enum class ObjectOp : UShort
-	{
-		GET_INTERFACE,
-		IS_A,
-		NON_EXISTENT,
-		REPOSITORY_ID,
-
-		OBJECT_OP_CNT
-	};
 
 	// This array contains metadata of the operations:
 	// - _get_interface

@@ -170,6 +170,8 @@ private:
 			return nullptr; // TODO: Implement
 	}
 
+	static void request_repository_id (ReferenceRemote& ref);
+
 private:
 	ESIOP::ProtDomains prot_domains_;
 	RemoteDomains remote_domains_;

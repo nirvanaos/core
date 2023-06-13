@@ -52,6 +52,11 @@ servant_reference <Domain> RemoteReferences::get_domain (const DomainAddress& do
 		throw NO_IMPLEMENT (); // TODO: Implement
 }
 
+void RemoteReferences::request_repository_id (ReferenceRemote& ref)
+{
+	IDL::String id = ref._repository_id ();
+}
+
 RemoteReferences::Policies::~Policies ()
 {
 	Binder::singleton ().remote_references ().policies_.erase (key_);

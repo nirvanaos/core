@@ -87,6 +87,17 @@ public:
 
 	virtual Policy::_ref_type _get_policy (PolicyType policy_type) override;
 
+	virtual IDL::String _repository_id () override;
+
+protected:
+	bool is_object_op (OperationIndex op) const noexcept
+	{
+		if (ProxyManager::is_object_op (op))
+			return op.operation_idx () != (UShort)ObjectOp::REPOSITORY_ID || has_primary_interface ();
+		else
+			return false;
+	}
+
 protected:
 	RefCntProxy ref_cnt_;
 	unsigned flags_;

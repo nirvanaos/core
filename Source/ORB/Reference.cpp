@@ -33,6 +33,21 @@ using namespace CORBA::Core;
 namespace CORBA {
 namespace Core {
 
+IDL::String Reference::_repository_id ()
+{
+	if (has_primary_interface ())
+		return ProxyManager::_repository_id ();
+	else {
+		IORequest::_ref_type rq = create_request (_make_op_idx ((UShort)ObjectOp::REPOSITORY_ID), 3,
+			nullptr);
+		rq->invoke ();
+		IDL::String _ret;
+		Internal::Type <IDL::String>::unmarshal (rq, _ret);
+		rq->unmarshal_end ();
+		return _ret;
+	}
+}
+
 Policy::_ref_type Reference::_get_policy (PolicyType policy_type)
 {
 	Policy::_ref_type policy;

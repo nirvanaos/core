@@ -29,6 +29,7 @@
 #pragma once
 
 #include <CORBA/CORBA.h>
+#include <CORBA/IOP.h>
 #include <algorithm>
 #include <iterator>
 
