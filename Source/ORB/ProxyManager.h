@@ -123,7 +123,7 @@ public:
 	Internal::Interface* _query_interface (const IDL::String& type_id) const
 	{
 		if (type_id.empty ())
-			return primary_interface_->proxy;
+			return metadata_.primary_interface->proxy;
 		else {
 			const InterfaceEntry* ie = find_interface (type_id);
 			if (ie)
@@ -223,7 +223,7 @@ public:
 
 	bool has_primary_interface () const noexcept
 	{
-		return primary_interface_;
+		return metadata_.primary_interface;
 	}
 
 	virtual IDL::String _repository_id ()
@@ -256,12 +256,12 @@ public:
 
 	const Internal::Operation& operation_metadata (OperationIndex op) const noexcept
 	{
-		assert (op.interface_idx () <= interfaces_.size ());
+		assert (op.interface_idx () <= metadata_.interfaces.size ());
 		if (op.interface_idx () == 0) {
 			assert (op.operation_idx () < countof (object_ops_));
 			return object_ops_ [op.operation_idx ()];
 		} else {
-			const InterfaceEntry& itf = interfaces_ [op.interface_idx () - 1];
+			const InterfaceEntry& itf = metadata_.interfaces [op.interface_idx () - 1];
 			return itf.operations.p [op.operation_idx ()];
 		}
 	}
@@ -280,8 +280,8 @@ public:
 
 	Internal::StringView <Char> primary_interface_id () const noexcept
 	{
-		if (primary_interface_)
-			return Internal::StringView <Char> (primary_interface_->iid, primary_interface_->iid_len);
+		if (metadata_.primary_interface)
+			return Internal::StringView <Char> (metadata_.primary_interface->iid, metadata_.primary_interface->iid_len);
 		else
 			return Internal::StringView <Char> (Internal::RepIdOf <Object>::id);
 	}
@@ -299,11 +299,18 @@ protected:
 
 	~ProxyManager ();
 
-	void set_primary_interface (Internal::String_in primary_iid);
-
-	Internal::IOReference::_ptr_type ior () noexcept
+	void set_primary_interface (Internal::String_in primary_iid)
 	{
-		return &static_cast <Internal::IOReference&> (static_cast <Internal::Bridge <Internal::IOReference>&> (*this));
+		assert (!metadata_.primary_interface);
+		Metadata md (metadata_.heap ());
+		build_metadata (md, primary_iid, false);
+		metadata_ = std::move (md);
+	}
+
+	Internal::IOReference::_ptr_type ior () const noexcept
+	{
+		return &static_cast <Internal::IOReference&> (static_cast <Internal::Bridge <Internal::IOReference>&> (
+			const_cast <ProxyManager&> (*this)));
 	}
 
 	struct InterfaceEntry
@@ -340,7 +347,7 @@ protected:
 	void set_servant (Internal::I_ptr <I> servant, size_t offset)
 	{
 		// Fill implementation pointers
-		for (InterfaceEntry* ie = interfaces_.begin (); ie != interfaces_.end (); ++ie) {
+		for (InterfaceEntry* ie = metadata_.interfaces.begin (); ie != metadata_.interfaces.end (); ++ie) {
 			assert (!ie->implementation);
 			Internal::Interface::_ptr_type impl = servant->_query_interface (ie->iid);
 			if (!impl)
@@ -351,7 +358,7 @@ protected:
 
 	void reset_servant () noexcept
 	{
-		for (InterfaceEntry* ie = interfaces_.begin (); ie != interfaces_.end (); ++ie) {
+		for (InterfaceEntry* ie = metadata_.interfaces.begin (); ie != metadata_.interfaces.end (); ++ie) {
 			ie->implementation = nullptr;
 		}
 	}
@@ -412,8 +419,9 @@ private:
 	struct IEPred;
 	struct OEPred;
 
-	void create_proxy (InterfaceEntry& ie, bool servant_side);
-	void create_proxy (Internal::ProxyFactory::_ptr_type pf, const Internal::InterfaceMetadata* metadata, InterfaceEntry& ie, bool servant_side);
+	void create_proxy (InterfaceEntry& ie, bool servant_side) const;
+	void create_proxy (Internal::ProxyFactory::_ptr_type pf,
+		const Internal::InterfaceMetadata* metadata, InterfaceEntry& ie, bool servant_side) const;
 
 	static void check_metadata (const Internal::InterfaceMetadata* metadata, Internal::String_in primary);
 	static void check_parameters (Internal::CountedArray <Internal::Parameter> parameters);
@@ -434,6 +442,36 @@ private:
 
 	static Nirvana::Core::Heap& get_heap () noexcept;
 
+	template <class El>
+	using Array = Nirvana::Core::Array <El, Nirvana::Core::HeapAllocator>;
+
+	struct Metadata {
+		Metadata (Nirvana::Core::Heap& heap) :
+			interfaces (heap),
+			operations (heap),
+			primary_interface (nullptr)
+		{}
+
+		Metadata (const Metadata& src, Nirvana::Core::Heap& heap) :
+			interfaces (src.interfaces, heap),
+			operations (src.operations, heap),
+			primary_interface (src.primary_interface)
+		{}
+
+		Metadata& operator = (Metadata&& src) = default;
+
+		Nirvana::Core::Heap& heap () const
+		{
+			return interfaces.get_allocator ().heap ();
+		}
+
+		Array <InterfaceEntry> interfaces;
+		Array <OperationEntry> operations;
+		const InterfaceEntry* primary_interface;
+	};
+
+	void build_metadata (Metadata& metadata, Internal::String_in primary_iid, bool servant_side) const;
+
 private:
 	// Input parameter metadata for Object::_is_a () operation.
 	static const Internal::Parameter is_a_param_;
@@ -445,10 +483,7 @@ private:
 	// - _repository_id
 	static const Internal::Operation object_ops_ [(size_t)ObjectOp::OBJECT_OP_CNT];
 
-	const InterfaceEntry* primary_interface_;
-
-	Nirvana::Core::Array <InterfaceEntry, Nirvana::Core::HeapAllocator> interfaces_;
-	Nirvana::Core::Array <OperationEntry, Nirvana::Core::HeapAllocator> operations_;
+	Metadata metadata_;
 };
 
 }
