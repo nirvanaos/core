@@ -29,6 +29,7 @@
 #pragma once
 
 #include "SysObjectKey.h"
+#include "Services.h"
 
 namespace Nirvana {
 namespace Core {
@@ -60,11 +61,11 @@ template <>
 const Octet SysObjectKey <CosNaming::Core::NameService>::key [] =
 { 'N', 'a', 'm', 'e', 'S', 'e', 'r', 'v', 'i', 'c', 'e'};
 
-bool is_sys_domain_object (const Octet* key, size_t key_len) noexcept;
+Services::Service system_service (const Octet* key, size_t key_len) noexcept;
 
-inline bool is_sys_domain_object (const IOP::ObjectKey& object_key) noexcept
+inline Services::Service system_service (const IOP::ObjectKey& object_key) noexcept
 {
-	return is_sys_domain_object (object_key.data (), object_key.size ());
+	return system_service (object_key.data (), object_key.size ());
 }
 
 }

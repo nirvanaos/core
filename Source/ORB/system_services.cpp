@@ -29,13 +29,15 @@
 namespace CORBA {
 namespace Core {
 
-bool is_sys_domain_object (const Octet* key, size_t key_len) noexcept
+Services::Service system_service (const Octet* key, size_t key_len) noexcept
 {
 	assert (ESIOP::is_system_domain ());
-	return
-		SysObjectKey <Nirvana::Core::SysDomain>::equal (key, key_len)
-	||
-		SysObjectKey <CosNaming::Core::NameService>::equal (key, key_len);
+	if (SysObjectKey <Nirvana::Core::SysDomain>::equal (key, key_len))
+		return Services::SysDomain;
+	else if (SysObjectKey <CosNaming::Core::NameService>::equal (key, key_len))
+		return Services::NameService;
+	else
+		return Services::SERVICE_COUNT;
 }
 
 }

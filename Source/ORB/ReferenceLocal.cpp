@@ -168,7 +168,8 @@ void ReferenceLocal::marshal_object_key (const CORBA::Octet* obj_key, size_t obj
 {
 	if (Nirvana::Core::SINGLE_DOMAIN)
 		stream.write_c (1, obj_key_size, obj_key);
-	else if (ESIOP::is_system_domain () && is_sys_domain_object (obj_key, obj_key_size)) {
+	else if (ESIOP::is_system_domain ()
+		&& system_service (obj_key, obj_key_size) < Services::SERVICE_COUNT) {
 		// Do not prefix system domain objects 
 		stream.write_size (1);
 		stream.write_c (1, 1, obj_key);

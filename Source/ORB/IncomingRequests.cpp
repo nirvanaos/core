@@ -85,11 +85,9 @@ void IncomingRequests::receive (Ref <RequestIn> rq, uint64_t timestamp)
 	}
 
 	if (ESIOP::is_system_domain ()) {
-		if (SysObjectKey <Nirvana::Core::SysDomain>::equal (rq->object_key ())) {
-			rq->serve (*local2proxy (Services::bind (Services::SysDomain)));
-			return;
-		} else if (SysObjectKey <CosNaming::Core::NameService>::equal (rq->object_key ())) {
-			rq->serve (*local2proxy (Services::bind (Services::NameService)));
+		Services::Service ss = system_service (rq->object_key ());
+		if (ss < Services::SERVICE_COUNT) {
+			rq->serve (*local2proxy (Services::bind (ss)));
 			return;
 		}
 	}

@@ -116,10 +116,9 @@ Object::_ref_type unmarshal_object (Internal::String_in primary_iid, StreamIn & 
 
 		// Check for SysDomain
 		if (ESIOP::is_system_domain ()) {
-			if (SysObjectKey <Nirvana::Core::SysDomain>::equal (object_key))
-				obj = Services::bind (Services::SysDomain);
-			else if (SysObjectKey <CosNaming::Core::NameService>::equal (object_key))
-				obj = Services::bind (Services::NameService);
+			Services::Service ss = system_service (object_key);
+			if (ss < Services::SERVICE_COUNT)
+				obj = Services::bind (ss);
 		}
 		if (!obj) {
 			if (!Nirvana::Core::SINGLE_DOMAIN) {

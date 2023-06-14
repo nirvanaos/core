@@ -47,7 +47,8 @@ public:
 		final_construct (std::move (in));
 
 		if (!Nirvana::Core::SINGLE_DOMAIN && !object_key_.empty ()
-			&& !(is_system_domain () && CORBA::Core::is_sys_domain_object (object_key_))) {
+			&& !(is_system_domain ()
+				&& CORBA::Core::system_service (object_key_) < CORBA::Core::Services::SERVICE_COUNT)) {
 
 			if (get_prot_domain_id (object_key_) != current_domain_id ())
 				throw CORBA::OBJECT_NOT_EXIST (MAKE_OMG_MINOR (2));
