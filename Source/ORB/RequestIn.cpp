@@ -110,7 +110,7 @@ void RequestIn::final_construct (Ref <StreamIn>&& in)
 		// In GIOP version 1.2 and 1.3, the Request Body is always aligned on an 8-octet boundary.
 		size_t unaligned = stream_in_->position () % 8;
 		if (unaligned)
-			stream_in_->read (1, 8 - unaligned, nullptr);
+			stream_in_->read (1, 1, 1, 8 - unaligned, nullptr);
 	}
 	}
 
@@ -131,7 +131,7 @@ void RequestIn::final_construct (Ref <StreamIn>&& in)
 		if (context) {
 			ImplStatic <StreamInEncap> encap (std::ref (context->context_data ()));
 			DeadlineTime dl;
-			encap.read (alignof (DeadlineTime), sizeof (DeadlineTime), &dl);
+			encap.read_one (dl);
 			if (encap.end ())
 				throw BAD_PARAM ();
 			if (encap.other_endian ())
@@ -151,7 +151,7 @@ void RequestIn::final_construct (Ref <StreamIn>&& in)
 				if (context) {
 					ImplStatic <StreamInEncap> encap (std::ref (context->context_data ()));
 					int16_t priority;
-					encap.read (alignof (int16_t), sizeof (int16_t), &priority);
+					encap.read_one (priority);
 					if (encap.end ())
 						throw BAD_PARAM ();
 					if (encap.other_endian ())
@@ -169,14 +169,15 @@ void RequestIn::get_object_key (const IOP::TaggedProfile& profile)
 		ImplStatic <StreamInEncap> stm (ref (profile.profile_data ()));
 
 		// Skip IIOP version
-		stm.read (alignof (IIOP::Version), sizeof (IIOP::Version), nullptr);
+		stm.read (Internal::Type <IIOP::Version>::CDR_align, sizeof (IIOP::Version),
+			Internal::Type <IIOP::Version>::CDR_size, 1, nullptr);
 
 		// Skip host name
 		size_t host_len = stm.read_size ();
-		stm.read (1, host_len + 1, nullptr);
+		stm.read (1, 1, 1, host_len + 1, nullptr);
 
 		// Skip port number
-		stm.read (2, 2, nullptr);
+		stm.read (2, 2, 2, 1, nullptr);
 
 		stm.read_seq (object_key_);
 	}

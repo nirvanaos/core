@@ -70,7 +70,7 @@ public:
 		flags_ (flags)
 	{}
 
-	virtual Reference* to_reference () noexcept
+	virtual Reference* to_reference () noexcept override
 	{
 		return this;
 	}

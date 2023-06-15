@@ -109,9 +109,14 @@ public:
 		return ORB::get_compact_typecode (_get_ptr ());
 	}
 
-	size_t n_size () const noexcept
+	size_t n_aligned_size () const noexcept
 	{
-		return size_;
+		return aligned_size_;
+	}
+
+	size_t n_CDR_size () const noexcept
+	{
+		return CDR_size_;
 	}
 
 	size_t n_align () const noexcept
@@ -145,7 +150,7 @@ public:
 		Internal::check_pointer (dst);
 		Internal::check_pointer (src);
 		if (is_CDR_)
-			std::copy ((const Octet*)src, (const Octet*)src + size_, (Octet*)dst);
+			Nirvana::real_move ((const Octet*)src, (const Octet*)src + aligned_size_, (Octet*)dst);
 		else
 			for (const auto& m : members_) {
 				m.type->n_copy ((Octet*)dst + m.offset, (const Octet*)src + m.offset);
@@ -157,7 +162,7 @@ public:
 		Internal::check_pointer (dst);
 		Internal::check_pointer (src);
 		if (is_CDR_)
-			std::copy ((const Octet*)src, (const Octet*)src + size_, (Octet*)dst);
+			Nirvana::real_move ((const Octet*)src, (const Octet*)src + aligned_size_, (Octet*)dst);
 		else
 			for (const auto& m : members_) {
 				m.type->n_move ((Octet*)dst + m.offset, (Octet*)src + m.offset);
@@ -167,10 +172,11 @@ public:
 	void n_marshal_in (const void* src, size_t count, Internal::IORequest_ptr rq) const
 	{
 		Internal::check_pointer (src);
-		if (is_CDR_)
-			rq->marshal (align_, size_ * count, src);
+		// TODO: Optimize
+		if (is_CDR_ && aligned_size_ == CDR_size_)
+			rq->marshal (align_, CDR_size_ * count, src);
 		else
-			for (const Octet* osrc = (const Octet*)src; count; osrc += size_, --count) {
+			for (const Octet* osrc = (const Octet*)src; count; osrc += aligned_size_, --count) {
 				for (const auto& m : members_) {
 					m.type->n_marshal_in (osrc + m.offset, 1, rq);
 				}
@@ -180,10 +186,11 @@ public:
 	void n_marshal_out (void* src, size_t count, Internal::IORequest_ptr rq) const
 	{
 		Internal::check_pointer (src);
-		if (is_CDR_)
-			rq->marshal (align_, size_ * count, src);
+		// TODO: Optimize
+		if (is_CDR_ && aligned_size_ == CDR_size_)
+			rq->marshal (align_, CDR_size_ * count, src);
 		else
-			for (Octet* osrc = (Octet*)src; count; osrc += size_, --count) {
+			for (Octet* osrc = (Octet*)src; count; osrc += aligned_size_, --count) {
 				for (const auto& m : members_) {
 					m.type->n_marshal_out (osrc + m.offset, 1, rq);
 				}
@@ -193,11 +200,12 @@ public:
 	void n_unmarshal (Internal::IORequest_ptr rq, size_t count, void* dst) const
 	{
 		Internal::check_pointer (dst);
-		if (is_CDR_) {
-			if (rq->unmarshal (align_, size_ * count, dst))
+		// TODO: Optimize
+		if (is_CDR_ && aligned_size_ == CDR_size_) {
+			if (rq->unmarshal (align_, CDR_size_ * count, dst))
 				byteswap (dst, count);
 		} else {
-			for (Octet* odst = (Octet*)dst; count; odst += size_, --count) {
+			for (Octet* odst = (Octet*)dst; count; odst += aligned_size_, --count) {
 				for (const auto& m : members_) {
 					m.type->n_unmarshal (rq, 1, odst + m.offset);
 				}
@@ -225,7 +233,8 @@ private:
 private:
 	Members members_;
 	size_t align_;
-	size_t size_;
+	size_t aligned_size_;
+	size_t CDR_size_;
 	bool is_CDR_;
 };
 

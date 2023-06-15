@@ -98,7 +98,7 @@ public:
 		}
 	}
 
-	Array& operator = (Array&& src)
+	Array& operator = (Array&& src) noexcept
 	{
 		Al <T>::operator = (src); // don't move
 		assert (!begin_);
@@ -150,48 +150,60 @@ public:
 		}
 	}
 
-	size_t size () const
+	size_t size () const noexcept
 	{
 		return end_ - begin_;
 	}
 
-	const T* begin () const
+	const T* begin () const noexcept
 	{
 		return begin_;
 	}
 
-	T* begin ()
+	T* begin () noexcept
 	{
 		return begin_;
 	}
 
-	const T* end () const
+	const T* end () const noexcept
 	{
 		return end_;
 	}
 
-	T* end ()
+	T* end () noexcept
 	{
 		return end_;
 	}
 
-	const T* cbegin () const
+	const T* cbegin () const noexcept
 	{
 		return begin ();
 	}
 
-	const T* cend () const
+	const T* cend () const noexcept
 	{
 		return end ();
 	}
 
-	const T& operator [] (size_t i) const
+	const T& front () const noexcept
+	{
+		assert (size ());
+		return *begin_;
+	}
+
+	const T& back () const noexcept
+	{
+		assert (size ());
+		return *(end_ - 1);
+	}
+
+	const T& operator [] (size_t i) const noexcept
 	{
 		assert (i < (size_t)(end_ - begin_));
 		return begin_ [i];
 	}
 
-	T& operator [] (size_t i)
+	T& operator [] (size_t i) noexcept
 	{
 		assert (i < (size_t)(end_ - begin_));
 		return begin_ [i];

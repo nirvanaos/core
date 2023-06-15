@@ -99,12 +99,12 @@ void CodeSetConverterW_1_1::unmarshal_string (StreamIn& in, IDL::WString& s)
 
 void CodeSetConverterW_1_1::marshal_char (size_t count, const WChar* data, StreamOut& out)
 {
-	out.write_c (alignof (WChar), count * sizeof (WChar), data);
+	out.write_c (2, count * 2, data);
 }
 
 void CodeSetConverterW_1_1::unmarshal_char (StreamIn& in, size_t count, WChar* data)
 {
-	in.read (alignof (WChar), count * sizeof (WChar), data);
+	in.read (2, sizeof (WChar), 2, count, data);
 	if (in.other_endian ()) {
 		for (WChar* p = data, *end = data + count; p != end; ++p)
 			byteswap (*p);

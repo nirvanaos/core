@@ -171,8 +171,10 @@ void StreamInSM::physical_read (size_t& align, size_t& size, void* buf)
 	} while (size);
 }
 
-void StreamInSM::read (size_t align, size_t size, void* buf)
+void StreamInSM::read (size_t align, size_t element_size, size_t CDR_element_size,
+	size_t element_count, void* buf)
 {
+	size_t size = element_size * element_count;
 	if (!size)
 		return;
 
@@ -201,8 +203,10 @@ void StreamInSM::read (size_t align, size_t size, void* buf)
 	} while (size);
 }
 
-void* StreamInSM::read (size_t align, size_t& size)
+void* StreamInSM::read (size_t align, size_t element_size, size_t CDR_element_size,
+	size_t element_count, size_t& size)
 {
+	size = element_size * element_count;
 	if (!size)
 		return nullptr;
 
@@ -216,10 +220,9 @@ void* StreamInSM::read (size_t align, size_t& size)
 		ret = segment->pointer;
 	} else {
 		// Allocate buffer and read
-		size_t cb_read = size;
 		ret = MemContext::current ().heap ().allocate (nullptr, size, 0);
 		try {
-			read (align, cb_read, ret);
+			read (align, element_size, CDR_element_size, element_count, ret);
 		} catch (...) {
 			MemContext::current ().heap ().release (ret, size);
 			throw;
@@ -266,7 +269,8 @@ CORBA::Long StreamInSM::skip_chunks ()
 {
 	assert (chunk_mode_);
 	while (chunk_end_ > position_) {
-		read (1, chunk_end_ - position_, nullptr);
+		size_t cb = chunk_end_ - position_;
+		read (1, cb, cb, 1, nullptr);
 		chunk_mode_ = false;
 		CORBA::Long l = read32 ();
 		chunk_mode_ = true;

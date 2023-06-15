@@ -63,17 +63,24 @@ public:
 	/// Read data into user-allocated buffer.
 	/// 
 	/// \param align Data alignment
-	/// \param size  Data size.
-	/// \param data  Pointer to the data buffer.
+	/// \param element_size Element size.
+	/// \param CDR_element_size CDR element size.
+	/// \param element_count Count of elements.
+	/// \param buf  Pointer to the data buffer.
 	///              If parameter `nullptr`, the stream must skip \p size bytes.
-	virtual void read (size_t align, size_t size, void* data) = 0;
+	virtual void read (size_t align, size_t element_size, size_t CDR_element_size,
+		size_t element_count, void* buf) = 0;
 
 	/// Allocate buffer and read.
 	/// 
 	/// \param align Data alignment
-	/// \param [in,out] size Data size on input. Allocated size on return.
+	/// \param element_size Element size.
+	/// \param CDR_element_size CDR element size.
+	/// \param element_count Count of elements.
+	/// \param [out] size Allocated size on return.
 	/// \returns Allocated data buffer.
-	virtual void* read (size_t align, size_t& size) = 0;
+	virtual void* read (size_t align, size_t element_size, size_t CDR_element_size,
+		size_t element_count, size_t& size) = 0;
 
 	/// Set the remaining data size.
 	/// 
@@ -143,14 +150,15 @@ public:
 	/// 
 	/// \param align Data alignment
 	/// \param element_size Element size.
+	/// \param CDR_element_size CDR element size.
 	/// \param [out] element_count Count of elements.
-	/// \param data Pointer to the allocated memory block with common-data-representation (CDR).
+	/// \param [in,out] data Pointer to the allocated memory block with common-data-representation (CDR).
 	///             The caller is owner of this memory block.
-	/// \param allocated_size Size of the allocated memory block.
+	/// \param [in,out] allocated_size Size of the allocated memory block.
 	///              
 	/// \returns `true` if the byte order must be swapped after unmarshaling.
-	bool read_seq (size_t align, size_t element_size, size_t& element_count, void*& data,
-		size_t& allocated_size);
+	bool read_seq (size_t align, size_t element_size, size_t CDR_element_size,
+		size_t& element_count, void*& data, size_t& allocated_size);
 
 	/// Read CDR sequence.
 	/// 
@@ -174,10 +182,16 @@ public:
 	ULong read32 ()
 	{
 		ULong val;
-		read (alignof (ULong), sizeof (ULong), &val);
+		read_one (val);
 		if (other_endian ())
 			Nirvana::byteswap (val);
 		return val;
+	}
+
+	template <class T>
+	void read_one (T& v)
+	{
+		read (Internal::Type <T>::CDR_align, sizeof (T), Internal::Type <T>::CDR_size, 1, &v);
 	}
 
 	void chunk_mode (bool on) noexcept
@@ -211,7 +225,9 @@ void StreamIn::read_string (std::basic_string <C, std::char_traits <C>, A>& s)
 	if (!size)
 		throw MARSHAL (); // String length includes the terminating zero.
 	s.resize (size - 1);
-	read (alignof (C), (size) * sizeof (C), &*s.begin ());
+	read (alignof (C), sizeof (C), sizeof (C), size, &*s.begin ());
+	if (s.data () [size - 1]) // Not zero-terminated
+		throw MARSHAL ();
 }
 
 template <typename C>
@@ -222,32 +238,34 @@ void StreamIn::read_string (Internal::StringT <C>& s)
 	size_t size = read_size ();
 	if (!size)
 		throw MARSHAL (); // String length includes the terminating zero.
-	size_t data_size = size * sizeof (C);
-	--size;
 
 	ABI& abi = (ABI&)s;
-	if (size <= ABI::SMALL_CAPACITY) {
+	if (size <= ABI::SMALL_CAPACITY + 1) {
 		if (abi.is_large ()) {
-			read (alignof (C), data_size, abi.large_pointer ());
-			abi.large_size (size);
+			read (alignof (C), sizeof (C), sizeof (C), size, abi.large_pointer ());
+			abi.large_size (size - 1);
 		} else {
-			read (alignof (C), data_size, abi.small_pointer ());
-			abi.small_size (size);
+			read (alignof (C), sizeof (C), sizeof (C), size, abi.small_pointer ());
+			abi.small_size (size - 1);
 		}
 	} else {
 		size_t allocated = abi.allocated ();
-		if (allocated >= data_size) {
-			read (alignof (C), data_size, abi.large_pointer ());
-			abi.large_size (size);
+		if (allocated >= size * sizeof (C)) {
+			read (alignof (C), sizeof (C), sizeof (C), size, abi.large_pointer ());
+			abi.large_size (size - 1);
 		} else {
-			void* data = read (alignof (C), data_size);
+			size_t allocated_size;
+			void* data = read (alignof (C), sizeof (C), sizeof (C), size, allocated_size);
 			if (allocated)
 				Nirvana::Core::MemContext::current ().heap ().release (abi.large_pointer (), allocated);
-			abi.large_size (size);
+			abi.large_size (size - 1);
 			abi.large_pointer ((C*)data);
-			abi.allocated (data_size);
+			abi.allocated (allocated_size);
 		}
 	}
+
+	if (abi._ptr () [size - 1]) // Not zero-terminated
+		throw MARSHAL ();
 
 	if (sizeof (C) > 1 && other_endian ())
 		for (C& c : s) {
@@ -261,7 +279,8 @@ void StreamIn::read_seq (IDL::Sequence <T>& s)
 	typedef typename Internal::Type <IDL::Sequence <T> >::ABI ABI;
 	IDL::Sequence <T> tmp;
 	ABI& abi = (ABI&)tmp;
-	read_seq (alignof (T), sizeof (T), abi.size, (void*&)abi.ptr, abi.allocated);
+	read_seq (Internal::Type <T>::CDR_align, sizeof (T), Internal::Type <T>::CDR_size,
+		abi.size, (void*&)abi.ptr, abi.allocated);
 	
 	if (sizeof (typename Internal::Type <T>::ABI) > 1 && other_endian ())
 		for (T* p = tmp.data (), *e = p + tmp.size (); p != e; ++p) {

@@ -43,11 +43,14 @@ public:
 	/// Marshal data.
 	/// 
 	/// \param align Data alignment
-	/// \param size Data size.
+	/// \param element_size Element size.
+	/// \param CDR_element_size CDR element size.
+	/// \param element_count Count of elements.
 	/// \param data Data pointer.
 	/// \param allocated_size If this parameter is not zero, the stream may adopt the memory block.
 	///   When stream adopts the memory block, it sets \p allocated_size to 0.
-	virtual void write (size_t align, size_t size, void* data, size_t& allocated_size) = 0;
+	virtual void write (size_t align, size_t element_size, size_t CDR_element_size,
+		size_t element_count, void* data, size_t& allocated_size) = 0;
 
 	/// \returns The data size include any alignment gaps.
 	virtual size_t size () const = 0;
@@ -87,7 +90,13 @@ public:
 	void write_c (size_t align, size_t size, const void* data)
 	{
 		size_t zero = 0;
-		write (align, size, const_cast <void*> (data), zero);
+		write (align, size, size, 1, const_cast <void*> (data), zero);
+	}
+
+	template <class T>
+	void write_one (const T& v)
+	{
+		write_c (Internal::Type <T>::CDR_align, Internal::Type <T>::CDR_size, &v);
 	}
 
 	/// Write GIOP message header.
@@ -116,13 +125,14 @@ public:
 
 	/// Write CDR sequence.
 	/// 
-	/// \param align Data alignment
+	/// \param align Data alignment.
 	/// \param element_size Element size.
+	/// \param CDR_element_size CDR element size.
 	/// \param element_count Count of elements.
 	/// \param data Pointer to the data with common-data-representation (CDR).
 	/// \param allocated_size If this parameter is not zero, the request may adopt the memory block.
 	///   If stream adopts the memory block, it sets \p allocated_size to 0.
-	void write_seq (size_t align, size_t element_size, size_t element_count, void* data,
+	void write_seq (size_t align, size_t element_size, size_t CDR_element_size, size_t element_count, void* data,
 		size_t& allocated_size);
 
 	/// Write CDR sequence.
@@ -181,7 +191,7 @@ void StreamOut::write_string (Internal::StringT <C>& s, bool move)
 	if (move && size <= ABI::SMALL_CAPACITY)
 		move = false;
 	size_t allocated = move ? abi.allocated () : 0;
-	write (alignof (C), (size + 1) * sizeof (C), ptr, allocated);
+	write (alignof (C), sizeof (C), sizeof (C), size + 1, ptr, allocated);
 	if (move && !allocated)
 		abi.reset ();
 }
@@ -192,12 +202,14 @@ void StreamOut::write_seq (IDL::Sequence <T>& s, bool move)
 	typedef typename Internal::Type <IDL::Sequence <T> >::ABI ABI;
 	ABI& abi = (ABI&)s;
 	if (move) {
-		write_seq (alignof (T), sizeof (T), abi.size, abi.ptr, abi.allocated);
+		write_seq (Internal::Type <T>::CDR_align, sizeof (T), Internal::Type <T>::CDR_size,
+			abi.size, abi.ptr, abi.allocated);
 		if (!abi.allocated)
 			abi.reset ();
 	} else {
 		size_t zero = 0;
-		write_seq (alignof (T), sizeof (T), abi.size, abi.ptr, zero);
+		write_seq (Internal::Type <T>::CDR_align, sizeof (T), Internal::Type <T>::CDR_size,
+			abi.size, abi.ptr, zero);
 	}
 }
 

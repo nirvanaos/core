@@ -31,26 +31,35 @@ namespace Core {
 void TC_Struct::set_members (Members&& members)
 {
 	members_ = std::move (members);
-	size_t off = 0, align = 1;
+	size_t off = 0;
 	bool cdr = true;
-	for (auto& m : members_) {
-		size_t a = m.type->n_align ();
-		if (align < a)
-			align = a;
-		off = Nirvana::round_up (off, a);
-		m.offset = off;
-		off += m.type->n_size ();
-		if (cdr && !m.type->n_is_CDR ())
-			cdr = false;
+	align_ = 1;
+	CDR_size_ = 0;
+	size_t mem_align = 1;
+	auto it = members_.begin ();
+	if (it != members_.end ()) {
+		align_ = mem_align = it->type->n_align ();
+		for (;;) {
+			it->offset = off;
+			off += it->type->n_aligned_size ();
+			if (cdr && !it->type->n_is_CDR ())
+				cdr = false;
+			if (members_.end () == ++it)
+				break;
+			size_t a = it->type->n_align ();
+			if (mem_align < a)
+				mem_align = a;
+			off = Nirvana::round_up (off, a);
+		}
+		CDR_size_ = members_.back ().offset + members_.back ().type->n_CDR_size ();
 	}
-	size_ = Nirvana::round_up (off, align);
-	align_ = align;
+	aligned_size_ = Nirvana::round_up (off, mem_align);
 	is_CDR_ = cdr;
 }
 
 void TC_Struct::byteswap (void* p, size_t count) const
 {
-	for (Octet* pv = (Octet*)p; count; pv += size_, --count) {
+	for (Octet* pv = (Octet*)p; count; pv += aligned_size_, --count) {
 		for (const auto& m : members_) {
 			m.type->n_byteswap (pv + m.offset, 1);
 		}

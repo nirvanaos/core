@@ -53,11 +53,11 @@ public:
 		DeadlineTime dl = deadline ();
 		IOP::ServiceContextList context;
 		if (INFINITE_DEADLINE != dl) {
-			ImplStatic <StreamOutEncap> dl;
-			dl.write_c (alignof (DeadlineTime), sizeof (DeadlineTime), &dl);
+			ImplStatic <StreamOutEncap> encap;
+			encap.write_one (dl);
 			context.emplace_back ();
 			context.back ().context_id (CONTEXT_ID_DEADLINE);
-			context.back ().context_data (std::move (dl.data ()));
+			context.back ().context_data (std::move (encap.data ()));
 		}
 		write_header (object_key, context);
 	}

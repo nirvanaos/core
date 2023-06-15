@@ -61,7 +61,12 @@ public:
 			return ORB::create_sequence_tc (bound_, compact_content);
 	}
 
-	static size_t _s_n_size (Internal::Bridge <TypeCode>*, Internal::Interface*)
+	static size_t _s_n_aligned_size (Internal::Bridge <TypeCode>*, Internal::Interface*)
+	{
+		return sizeof (ABI);
+	}
+
+	static size_t _s_n_CDR_size (Internal::Bridge <TypeCode>*, Internal::Interface*)
 	{
 		return sizeof (ABI);
 	}
@@ -93,7 +98,7 @@ public:
 				Octet* p = (Octet*)abi.ptr;
 				do {
 					content_type_->n_destruct (p);
-					p += element_size_;
+					p += element_aligned_size_;
 				} while (--size);
 			}
 		}
@@ -115,7 +120,7 @@ public:
 		size_t count = abi_src.size;
 		if (count) {
 			Internal::check_pointer (abi_src.ptr);
-			size_t size = count * element_size_;
+			size_t size = count * element_aligned_size_;
 			if (abi_src.allocated < size)
 				throw BAD_PARAM ();
 
@@ -131,13 +136,13 @@ public:
 				try {
 					do {
 						content_type_->n_copy (pdst, psrc);
-						pdst += element_size_;
-						psrc += element_size_;
+						pdst += element_aligned_size_;
+						psrc += element_aligned_size_;
 					} while (psrc != src_end);
 				} catch (...) {
 					while (pdst > ptr) {
 						content_type_->n_destruct (pdst);
-						pdst -= element_size_;
+						pdst -= element_aligned_size_;
 					}
 					Nirvana::g_memory->release (ptr, size);
 					throw;
@@ -188,7 +193,9 @@ public:
 
 			case KIND_CDR:
 				for (; pdst != end; ++pdst) {
-					if (rq->unmarshal_seq (element_align_, element_size_, pdst->size, pdst->ptr, pdst->allocated))
+					if (rq->unmarshal_seq (element_align_, element_aligned_size_, element_CDR_size_,
+						pdst->size, pdst->ptr, pdst->allocated)
+						)
 						content_type_->n_byteswap (pdst->ptr, pdst->size);
 				}
 				break;
@@ -199,7 +206,7 @@ public:
 					pdst->reset ();
 					size_t size = rq->unmarshal_seq_begin ();
 					if (size) {
-						size_t cb = size * element_size_;
+						size_t cb = size * element_aligned_size_;
 						void* p = Nirvana::g_memory->allocate (nullptr, cb, 0);
 						try {
 							content_type_->n_unmarshal (rq, size, p);

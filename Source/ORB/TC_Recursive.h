@@ -164,9 +164,14 @@ public:
 		return content ()->concrete_base_type ();
 	}
 
-	size_t n_size () const
+	size_t n_aligned_size () const
 	{
-		return content ()->n_size ();
+		return content ()->n_aligned_size ();
+	}
+
+	size_t n_CDR_size () const
+	{
+		return content ()->n_CDR_size ();
 	}
 
 	size_t n_align () const

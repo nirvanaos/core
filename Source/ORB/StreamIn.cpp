@@ -34,7 +34,7 @@ namespace Core {
 
 void StreamIn::read_message_header (GIOP::MessageHeader_1_3& msg_hdr)
 {
-	read (1, sizeof (msg_hdr), &msg_hdr);
+	read_one (msg_hdr);
 	if (!std::equal (msg_hdr.magic ().begin (), msg_hdr.magic ().end (), "GIOP"))
 		throw MARSHAL ();
 	little_endian (msg_hdr.flags () & 1);
@@ -45,7 +45,7 @@ void StreamIn::read_message_header (GIOP::MessageHeader_1_3& msg_hdr)
 size_t StreamIn::read_size ()
 {
 	uint32_t count;
-	read (alignof (uint32_t), sizeof (count), &count);
+	read_one (count);
 	if (other_endian ())
 		byteswap (count);
 	if (sizeof (size_t) < sizeof (uint32_t) && count > std::numeric_limits <size_t>::max ())
@@ -53,8 +53,8 @@ size_t StreamIn::read_size ()
 	return (size_t)count;
 }
 
-bool StreamIn::read_seq (size_t align, size_t element_size, size_t& element_count, void*& data,
-	size_t& allocated_size)
+bool StreamIn::read_seq (size_t align, size_t element_size, size_t CDR_element_size,
+	size_t& element_count, void*& data, size_t& allocated_size)
 {
 	element_count = 0;
 	size_t count = read_size ();
@@ -62,9 +62,10 @@ bool StreamIn::read_seq (size_t align, size_t element_size, size_t& element_coun
 	if (count) {
 		size_t size = element_size * count;
 		if (allocated_size >= size)
-			read (align, size, data);
+			read (align, element_size, CDR_element_size, count, data);
 		else {
-			void* new_data = read (align, size);
+			size = 0;
+			void* new_data = read (align, element_size, CDR_element_size, count, size);
 			if (allocated_size) {
 				Nirvana::Core::MemContext::current ().heap ().release (data, allocated_size);
 				allocated_size = 0;
@@ -82,7 +83,7 @@ void StreamIn::read_tagged (IOP::TaggedProfileSeq& seq)
 	size_t cnt = read_size ();
 	seq.resize (cnt);
 	for (IOP::TaggedProfile& profile : seq) {
-		read (alignof (uint32_t), sizeof (uint32_t), &profile.tag ());
+		read_one (profile.tag ());
 		read_seq (profile.profile_data ());
 	}
 }

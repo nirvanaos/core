@@ -82,7 +82,7 @@ public:
 
 	static void write_value (const ValueType& val, StreamOut& s)
 	{
-		s.write_c (alignof (ValueType), sizeof (ValueType), &val);
+		s.write_one (val);
 	}
 
 	static PolicyFactory::Functions functions_;
@@ -99,13 +99,17 @@ template <class PolicyItf, PolicyType id, typename ValueType>
 void PolicyImplBase <PolicyItf, id, ValueType>::read_value (StreamIn& s, ValueType& val)
 {
 	// Assume all policy data is CDR
-	s.read (alignof (ValueType), sizeof (ValueType), &val);
+	s.read_one (val);
 	if (s.other_endian ())
 		Internal::Type <ValueType>::byteswap (val);
 }
 
 template <class PolicyItf, PolicyType id, typename ValueType>
-PolicyFactory::Functions PolicyImplBase <PolicyItf, id, ValueType>::functions_ = { create_policy, read, PolicyImpl <id>::write };
+PolicyFactory::Functions PolicyImplBase <PolicyItf, id, ValueType>::functions_ = {
+	create_policy,
+	read,
+	PolicyImpl <id>::write
+};
 
 }
 }

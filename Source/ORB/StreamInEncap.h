@@ -38,8 +38,10 @@ namespace Core {
 class NIRVANA_NOVTABLE StreamInEncap : public StreamIn
 {
 public:
-	virtual void read (size_t align, size_t size, void* buf) override;
-	virtual void* read (size_t align, size_t& size) override;
+	virtual void read (size_t align, size_t element_size, size_t CDR_element_size,
+		size_t element_count, void* buf) override;
+	virtual void* read (size_t align, size_t element_size, size_t CDR_element_size,
+		size_t element_count, size_t& size) override;
 	virtual void set_size (size_t size) override;
 	virtual size_t end () override;
 	virtual size_t position () const override;
@@ -58,7 +60,8 @@ private:
 	typedef std::pair <const Octet*, const Octet*> Range;
 
 	void prepare (size_t align, size_t size, Range& range) const;
-	void read (const Range& range, void* buf) noexcept;
+	void read (const Range& range, size_t element_size, size_t CDR_element_size,
+		size_t element_count, void* buf) noexcept;
 
 private:
 	const Octet* cur_ptr_;

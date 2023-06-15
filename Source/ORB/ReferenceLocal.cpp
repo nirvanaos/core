@@ -180,7 +180,7 @@ void ReferenceLocal::marshal_object_key (const CORBA::Octet* obj_key, size_t obj
 		if (ESIOP::PLATFORMS_ENDIAN_DIFFERENT && Nirvana::endian::native == Nirvana::endian::little)
 			Nirvana::byteswap (id);
 		stream.write_size (sizeof (ESIOP::ProtDomainId) + obj_key_size);
-		stream.write_c (alignof (ESIOP::ProtDomainId), sizeof (ESIOP::ProtDomainId), &id);
+		stream.write_one (id);
 		stream.write_c (1, obj_key_size, obj_key);
 	}
 }
@@ -192,11 +192,11 @@ void ReferenceLocal::marshal (const ProxyManager& proxy, const Octet* obj_key, s
 	ImplStatic <StreamOutEncap> encap;
 	{
 		IIOP::Version ver (1, 1);
-		encap.write_c (alignof (IIOP::Version), sizeof (IIOP::Version), &ver);
+		encap.write_one (ver);
 	}
 	encap.write_string_c (LocalAddress::singleton ().host ());
 	UShort port = LocalAddress::singleton ().port ();
-	encap.write_c (alignof (UShort), sizeof (UShort), &port);
+	encap.write_one (port);
 	
 	marshal_object_key (obj_key, obj_key_size, encap);
 

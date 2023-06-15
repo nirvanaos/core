@@ -43,7 +43,8 @@ class TC_Value :
 	typedef TC_Impl <TC_Value, TC_ValueBase> Impl;
 
 public:
-	using TC_RefBase::_s_n_size;
+	using TC_RefBase::_s_n_aligned_size;
+	using TC_RefBase::_s_n_CDR_size;
 	using TC_RefBase::_s_n_align;
 	using TC_RefBase::_s_n_is_CDR;
 	using TC_RefBase::_s_n_byteswap;

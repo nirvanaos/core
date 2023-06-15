@@ -242,9 +242,9 @@ TypeCode::_ref_type TC_FactoryImpl::unmarshal_type_code (TCKind kind, StreamIn& 
 
 	case TCKind::tk_fixed: {
 		UShort digits;
-		stream.read (alignof (UShort), sizeof (UShort), &digits);
+		stream.read_one (digits);
 		Short scale;
-		stream.read (alignof (Short), sizeof (Short), &scale);
+		stream.read_one (scale);
 		if (stream.other_endian ()) {
 			byteswap (digits);
 			byteswap (scale);
@@ -345,7 +345,7 @@ TypeCode::_ref_type TC_FactoryImpl::unmarshal_type_code_cplx (TCKind kind, Strea
 			encap_pos);
 		if (!discriminator_type)
 			throw BAD_TYPECODE (MAKE_OMG_MINOR (2));
-		size_t discriminator_size = discriminator_type->n_size ();
+		size_t discriminator_size = discriminator_type->n_CDR_size ();
 		Long default_index = stm.read32 ();
 		ULong cnt = stm.read32 ();
 		if (!cnt)
@@ -360,8 +360,8 @@ TypeCode::_ref_type TC_FactoryImpl::unmarshal_type_code_cplx (TCKind kind, Strea
 			members.construct (cnt);
 			TC_Union::Member* pm = members.begin ();
 			for (ULong i = 0; i < cnt; ++pm, ++i) {
-				ULongLong buf;
-				stm.read (discriminator_size, discriminator_size, &buf);
+				ULongLong buf = 0;
+				stm.read (discriminator_size, discriminator_size, discriminator_size, 1, &buf);
 				if (stm.other_endian ())
 					discriminator_type->n_byteswap (&buf, 1);
 				// The discriminant value used in the actual typecode parameter associated with the default
@@ -475,7 +475,7 @@ TypeCode::_ref_type TC_FactoryImpl::unmarshal_type_code_cplx (TCKind kind, Strea
 		stm.read_string (id);
 		stm.read_string (name);
 		ValueModifier modifier;
-		stm.read (alignof (ValueModifier), sizeof (ValueModifier), &modifier);
+		stm.read_one (modifier);
 		if (stm.other_endian ())
 			byteswap (modifier);
 
@@ -497,7 +497,7 @@ TypeCode::_ref_type TC_FactoryImpl::unmarshal_type_code_cplx (TCKind kind, Strea
 						throw BAD_TYPECODE (MAKE_OMG_MINOR (2));
 					pm->type = TC_Ref (mt, complex_base (mt));
 					Short visibility;
-					stm.read (alignof (Short), sizeof (Short), &visibility);
+					stm.read_one (visibility);
 					if (stm.other_endian ())
 						byteswap (visibility);
 					pm->visibility = visibility;

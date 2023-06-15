@@ -205,9 +205,9 @@ protected:
 	static uint32_t read (StreamIn& in)
 	{
 		Octet ocnt;
-		in.read (1, 1, &ocnt);
+		in.read (1, sizeof (Octet), 1, 1, &ocnt);
 		uint32_t u;
-		in.read (1, ocnt, &u);
+		in.read (1, ocnt, ocnt, 1, &u);
 		if (Nirvana::endian::native != Nirvana::endian::little)
 			Internal::Type <uint32_t>::byteswap (u);
 		return u;

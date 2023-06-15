@@ -48,12 +48,12 @@ RequestGIOP::RequestGIOP (unsigned GIOP_minor, unsigned response_flags, Domain* 
 	mem_context_ (&MemContext::current ()),
 	code_set_conv_ (CodeSetConverter::get_default ()),
 	code_set_conv_w_ (CodeSetConverterW::get_default (GIOP_minor, servant_domain != nullptr)),
+	marshaled_DGC_references_ (mem_context_->heap ()),
 	top_level_tc_unmarshal_ (mem_context_->heap ()),
 	value_map_marshal_ (mem_context_->heap ()),
 	value_map_unmarshal_ (mem_context_->heap ()),
 	rep_id_map_marshal_ (mem_context_->heap ()),
 	rep_id_map_unmarshal_ (mem_context_->heap ()),
-	marshaled_DGC_references_ (mem_context_->heap ()),
 	references_to_confirm_ (mem_context_->heap ())
 {}
 
@@ -118,15 +118,16 @@ bool RequestGIOP::marshal_chunk ()
 bool RequestGIOP::unmarshal (size_t align, size_t size, void* data)
 {
 	check_align (align);
-	stream_in_->read (align, size, data);
+	stream_in_->read (align, size, size, 1, data);
 	return stream_in_->other_endian ();
 }
 
-bool RequestGIOP::unmarshal_seq (size_t align, size_t element_size, size_t& element_count, void*& data,
-	size_t& allocated_size)
+bool RequestGIOP::unmarshal_seq (size_t align, size_t element_size, size_t CDR_element_size,
+	size_t& element_count, void*& data, size_t& allocated_size)
 {
 	check_align (align);
-	return stream_in_->read_seq (align, element_size, element_count, data, allocated_size);
+	return stream_in_->read_seq (align, element_size, CDR_element_size,
+		element_count, data, allocated_size);
 }
 
 void RequestGIOP::marshal_object (Object::_ptr_type obj)
@@ -232,9 +233,9 @@ void RequestGIOP::marshal_type_code (StreamOut& stream, TypeCode::_ptr_type tc, 
 			encap.write_id_name (tc);
 			TypeCode::_ref_type discriminator_type = tc->discriminator_type ();
 			marshal_type_code (encap, discriminator_type, map, pos);
-			size_t discriminator_size = discriminator_type->n_size ();
+			size_t discriminator_size = discriminator_type->n_CDR_size ();
 			Long default_index = tc->default_index ();
-			encap.write_c (alignof (long), sizeof (long), &default_index);
+			encap.write32 (default_index);
 			ULong cnt = tc->member_count ();
 			encap.write32 (cnt);
 			for (ULong i = 0; i < cnt; ++i) {
@@ -279,7 +280,7 @@ void RequestGIOP::marshal_type_code (StreamOut& stream, TypeCode::_ptr_type tc, 
 		case TCKind::tk_value: {
 			encap.write_id_name (tc);
 			ValueModifier mod = tc->type_modifier ();
-			encap.write_c (alignof (ValueModifier), sizeof (ValueModifier), &mod);
+			encap.write_one (mod);
 			marshal_type_code (encap, tc->concrete_base_type (), map, pos);
 			ULong cnt = tc->member_count ();
 			encap.write32 (cnt);
@@ -288,7 +289,7 @@ void RequestGIOP::marshal_type_code (StreamOut& stream, TypeCode::_ptr_type tc, 
 				encap.write_string (name, true);
 				marshal_type_code (encap, tc->member_type (i), map, pos);
 				Visibility vis = tc->member_visibility (i);
-				encap.write_c (alignof (Visibility), sizeof (Visibility), &vis);
+				encap.write_one (vis);
 			}
 		} break;
 
@@ -447,9 +448,9 @@ Interface::_ref_type RequestGIOP::unmarshal_value (const IDL::String& interface_
 	if (value_tag & 1) {
 		ULong string_len = stream_in_->read32 ();
 		if (INDIRECTION_TAG == string_len)
-			stream_in_->read (alignof (Long), sizeof (Long), nullptr); // Skip offset
+			stream_in_->read (4, sizeof (ULong), 4, 1, nullptr); // Skip offset
 		else
-			stream_in_->read (alignof (Char), string_len, nullptr); // Skip string
+			stream_in_->read (1, sizeof (Char), 1, string_len, nullptr); // Skip string
 	}
 
 	// Read type information
@@ -541,7 +542,7 @@ const RequestGIOP::RepositoryId& RequestGIOP::unmarshal_val_rep_id ()
 	RepositoryId id (rep_id_map_unmarshal_.get_allocator ());
 	id.resize (size - 1);
 	Char* buf = &*id.begin ();
-	stream_in_->read (1, size, buf);
+	stream_in_->read (1, 1, 1, size, buf);
 	if (buf [size - 1]) // Not zero-terminated
 		throw MARSHAL ();
 	return rep_id_map_unmarshal_.emplace (pos, std::move (id)).first->second;
@@ -550,7 +551,7 @@ const RequestGIOP::RepositoryId& RequestGIOP::unmarshal_val_rep_id ()
 Interface::_ref_type RequestGIOP::unmarshal_abstract (const IDL::String& interface_id)
 {
 	Octet is_object;
-	stream_in_->read (1, 1, &is_object);
+	stream_in_->read_one (is_object);
 	if (is_object)
 		return RequestGIOP::unmarshal_interface (interface_id);
 	else

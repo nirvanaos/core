@@ -64,10 +64,13 @@ void StreamOutSM::clear (size_t leave_header) noexcept
 	}
 }
 
-void StreamOutSM::write (size_t align, size_t size, void* data, size_t& allocated_size)
+void StreamOutSM::write (size_t align, size_t element_size, size_t CDR_element_size,
+	size_t element_count, void* data, size_t& allocated_size)
 {
+	size_t size = element_size * element_count;
 	if (!size)
 		return;
+
 	if (!data)
 		throw_BAD_PARAM ();
 

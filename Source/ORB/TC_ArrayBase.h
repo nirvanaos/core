@@ -81,7 +81,8 @@ private:
 
 protected:
 	TC_Ref content_type_;
-	size_t element_size_;
+	size_t element_CDR_size_;
+	size_t element_aligned_size_;
 	size_t element_align_;
 
 	enum

@@ -57,12 +57,12 @@ Object::_ref_type unmarshal_object (Internal::String_in primary_iid, StreamIn & 
 	else {
 		Nirvana::Core::ImplStatic <StreamInEncap> stm (std::ref (profile->profile_data ()));
 		IIOP::Version ver;
-		stm.read (alignof (IIOP::Version), sizeof (IIOP::Version), &ver);
+		stm.read_one (ver);
 		if (ver.major () != 1)
 			throw NO_IMPLEMENT (MAKE_OMG_MINOR (3));
 		stm.read_string (listen_point.host ());
 		CORBA::UShort port;
-		stm.read (alignof (CORBA::UShort), sizeof (CORBA::UShort), &port);
+		stm.read_one (port);
 		if (stm.other_endian ())
 			Nirvana::byteswap (port);
 		listen_point.port (port);

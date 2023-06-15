@@ -29,17 +29,26 @@ using namespace Nirvana;
 
 namespace ESIOP {
 
-void StreamOutReply::write (size_t align, size_t size, void* data, size_t& allocated_size)
+void StreamOutReply::write (size_t align, size_t element_size, size_t CDR_element_size,
+	size_t element_count, void* data, size_t& allocated_size)
 {
 	if (small_ptr_) {
+		size_t size = element_size * element_count;
+		if (!size)
+			return;
+
+		if (!data)
+			throw_BAD_PARAM ();
+
 		uint8_t* p = round_up (small_ptr_, align);
 		if (allocated_size || p > std::end (small_buffer_) || (size_t)(std::end (small_buffer_) - p) < size) {
 			switch_to_base ();
-			StreamOutSM::write (align, size, data, allocated_size);
-		} else
+		} else {
 			small_ptr_ = real_copy ((const uint8_t*)data, (const uint8_t*)data + size, p);
-	} else
-		StreamOutSM::write (align, size, data, allocated_size);
+			return;
+		}
+	}
+	StreamOutSM::write (align, element_size, CDR_element_size, element_count, data, allocated_size);
 }
 
 void StreamOutReply::switch_to_base ()
@@ -49,7 +58,7 @@ void StreamOutReply::switch_to_base ()
 	small_ptr_ = nullptr;
 	if (cb > 0) {
 		size_t zero = 0;
-		StreamOutSM::write (1, cb, small_buffer_, zero);
+		StreamOutSM::write (1, cb, cb, 1, small_buffer_, zero);
 	}
 }
 

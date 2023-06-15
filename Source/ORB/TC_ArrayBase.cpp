@@ -40,7 +40,8 @@ void TC_ArrayBase::initialize ()
 	if (content_type_.is_recursive ())
 		return;
 
-	element_size_ = content_type_->n_size ();
+	element_aligned_size_ = content_type_->n_aligned_size ();
+	element_CDR_size_ = content_type_->n_CDR_size ();
 	element_align_ = content_type_->n_align ();
 	TCKind element_kind = TCKind::tk_array == kind_
 		? get_array_kind (content_type_) : content_type_->kind ();

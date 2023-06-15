@@ -43,7 +43,8 @@ public:
 	using Servant::_s_id;
 	using Servant::_s_name;
 	using Servant::_s_content_type;
-	using Servant::_s_n_size;
+	using Servant::_s_n_CDR_size;
+	using Servant::_s_n_aligned_size;
 	using Servant::_s_n_byteswap;
 
 	TC_Alias (IDL::String&& id, IDL::String&& name) noexcept :
@@ -75,9 +76,14 @@ public:
 		return content_type_;
 	}
 
-	size_t n_size () const
+	size_t n_aligned_size () const
 	{
-		return content_type_->n_size ();
+		return content_type_->n_aligned_size ();
+	}
+
+	size_t n_CDR_size () const
+	{
+		return content_type_->n_CDR_size ();
 	}
 
 	size_t n_align () const

@@ -89,8 +89,8 @@ protected:
 	void write_header (const IOP::ObjectKey& object_key, IOP::ServiceContextList& context);
 
 	virtual bool unmarshal (size_t align, size_t size, void* data) override;
-	virtual bool unmarshal_seq(size_t align, size_t element_size, size_t& element_count, void*& data,
-		size_t& allocated_size) override;
+	virtual bool unmarshal_seq (size_t align, size_t element_size, size_t CDR_element_size,
+		size_t& element_count, void*& data, size_t& allocated_size) override;
 	virtual size_t unmarshal_seq_begin() override;
 	virtual void unmarshal_char (size_t count, Char* data) override;
 	virtual void unmarshal_string (IDL::String& s) override;

@@ -48,12 +48,12 @@ void StreamOut::write_size (size_t size)
 	write_c (alignof (uint32_t), sizeof (count), &count);
 }
 
-void StreamOut::write_seq (size_t align, size_t element_size, size_t element_count, void* data,
-	size_t& allocated_size)
+void StreamOut::write_seq (size_t align, size_t element_size, size_t CDR_element_size,
+	size_t element_count, void* data, size_t& allocated_size)
 {
 	write_size (element_count);
 	if (element_count)
-		write (align, element_size * element_count, data, allocated_size);
+		write (align, element_size, CDR_element_size, element_count, data, allocated_size);
 }
 
 void StreamOut::write_tagged (const IOP::TaggedProfileSeq& seq)

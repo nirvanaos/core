@@ -104,7 +104,12 @@ public:
 			return ORB::create_enum_tc (id_, IDL::String (), EnumMemberSeq (members_.size ()));
 	}
 
-	size_t n_size () const noexcept
+	size_t n_aligned_size () const noexcept
+	{
+		return sizeof (Internal::ABI_enum);
+	}
+
+	size_t n_CDR_size () const noexcept
 	{
 		return sizeof (Internal::ABI_enum);
 	}

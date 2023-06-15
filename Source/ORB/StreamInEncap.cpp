@@ -55,34 +55,49 @@ void StreamInEncap::prepare (size_t align, size_t size, Range& range) const
 	range.second = end;
 }
 
-void StreamInEncap::read (const Range& range, void* buf) noexcept
+void StreamInEncap::read (const Range& range, size_t element_size, size_t CDR_element_size,
+	size_t element_count, void* buf) noexcept
 {
-	real_copy (range.first, range.second, (Octet*)buf);
+	if (element_count == 1 || element_size == CDR_element_size)
+		real_copy (range.first, range.second, (Octet*)buf);
+	else {
+		const Octet* src = range.first;
+		Octet* dst = (Octet*)buf;
+		while (element_count--) {
+			real_copy (src, src + CDR_element_size, dst);
+			dst += element_size;
+			src += CDR_element_size;
+		}
+	}
 	cur_ptr_ = range.second;
 }
 
-void StreamInEncap::read (size_t align, size_t size, void* buf)
+void StreamInEncap::read (size_t align, size_t element_size, size_t CDR_element_size,
+	size_t element_count, void* buf)
 {
+	size_t size = CDR_element_size * element_count;
 	if (!size)
 		return;
 
 	Range range;
 	prepare (align, size, range);
 	if (buf)
-		read (range, buf);
+		read (range, element_size, CDR_element_size, element_count, buf);
 	else
 		cur_ptr_ = range.second;
 }
 
-void* StreamInEncap::read (size_t align, size_t& size)
+void* StreamInEncap::read (size_t align, size_t element_size, size_t CDR_element_size,
+	size_t element_count, size_t& size)
 {
+	size = element_size * element_count;
 	if (!size)
 		return nullptr;
 
 	Range range;
-	prepare (align, size, range);
+	prepare (align, CDR_element_size * element_count, range);
 	void* p = MemContext::current ().heap ().allocate (nullptr, size, 0);
-	read (range, p);
+	read (range, element_size, CDR_element_size, element_count, p);
 	return p;
 }
 

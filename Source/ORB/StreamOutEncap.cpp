@@ -40,12 +40,30 @@ StreamOutEncap::StreamOutEncap (bool no_endian) :
 	}
 }
 
-void StreamOutEncap::write (size_t align, size_t size, void* data, size_t& allocated_size)
+void StreamOutEncap::write (size_t align, size_t element_size, size_t CDR_element_size,
+	size_t element_count, void* data, size_t& allocated_size)
 {
+	if (!element_count)
+		return;
+
+	if (!data)
+		throw_BAD_PARAM ();
+
 	size_t begin = round_up (buffer_.size (), align);
+	size_t size = CDR_element_size * element_count;
 	size_t end = begin + size;
 	buffer_.resize (end);
-	real_copy ((const Octet*)data, (const Octet*)data + size, buffer_.data () + begin);
+	assert (CDR_element_size <= element_size);
+	const Octet* src = (const Octet*)data;
+	Octet* dst = buffer_.data () + begin;
+	if (CDR_element_size == element_size || element_count == 1)
+		real_copy (src, src + size, dst);
+	else {
+		while (element_count--) {
+			dst = real_copy (src, src + CDR_element_size, dst);
+			src += element_size;
+		}
+	}
 }
 
 size_t StreamOutEncap::size () const

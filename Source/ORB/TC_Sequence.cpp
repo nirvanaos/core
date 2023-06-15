@@ -46,7 +46,8 @@ void TC_Sequence::marshal (const void* src, size_t count, Internal::IORequest_pt
 		case KIND_CDR:
 			for (; psrc != end; ++psrc) {
 				size_t zero = 0;
-				rq->marshal_seq (element_align_, element_size_, psrc->size, psrc->ptr, out ? psrc->allocated : zero);
+				rq->marshal_seq (element_align_, element_aligned_size_, element_CDR_size_,
+					psrc->size, psrc->ptr, out ? psrc->allocated : zero);
 			}
 			break;
 		default:

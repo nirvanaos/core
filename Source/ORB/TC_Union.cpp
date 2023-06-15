@@ -33,7 +33,7 @@ TC_Union::TC_Union (IDL::String&& id, IDL::String&& name, TypeCode::_ref_type&& 
 	discriminator_type_ (std::move (discriminator_type)),
 	default_index_ (default_index)
 {
-	discriminator_size_ = discriminator_type_->n_size ();
+	discriminator_size_ = discriminator_type_->n_CDR_size ();
 }
 
 void TC_Union::set_members (Members&& members)
@@ -49,11 +49,11 @@ void TC_Union::set_members (Members&& members)
 			align = a;
 		size_t off = Nirvana::round_up (discriminator_size_, a);
 		m.offset = off;
-		off += m.type->n_size ();
+		off += m.type->n_aligned_size ();
 		if (size < off)
 			size = off;
 	}
-	size_ = size;
+	aligned_size_ = size;
 	align_ = align;
 }
 

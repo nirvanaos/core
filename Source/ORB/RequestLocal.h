@@ -99,16 +99,27 @@ public:
 
 	/// Marshal CDR sequence.
 	/// 
-	/// \param align Data alignment
-	/// \param element_size Element size.
+	/// \param align CDR data alignment.
+	///   For the constructed types is an alignment of the first primitive type.
+	/// 
+	/// \param element_size Element size in memory.
+	/// 
+	/// \param CDR_element_size CDR element size.
+	///   CDR_element_size <= element_size.
+	/// 
 	/// \param element_count Count of elements.
+	/// 
 	/// \param data Pointer to the data with common-data-representation (CDR).
+	/// 
 	/// \param allocated_size If this parameter is not zero, the request may adopt the memory block.
-	///   If request adopts the memory block, it sets \p allocated_size to 0.
-	void marshal_seq (size_t align, size_t element_size, size_t element_count, void* data,
+	///   When request adopts the memory block, it sets \p allocated_size to 0.
+	/// 
+	void marshal_seq (size_t align, size_t element_size, size_t CDR_element_size, size_t element_count, void* data,
 		size_t& allocated_size)
 	{
 		check_align (align);
+		if (CDR_element_size > element_size)
+			throw BAD_PARAM ();
 		if (marshal_op ()) {
 			write (alignof (size_t), sizeof (size_t), &element_count);
 			if (element_count)
@@ -118,18 +129,28 @@ public:
 
 	/// Unmarshal CDR sequence.
 	/// 
-	/// \param align Data alignment
-	/// \param element_size Element size.
+	/// \param align Data alignment.
+	/// 
+	/// \param element_size Element size in memory.
+	/// 
+	/// \param CDR_element_size Last element size.
+	///   Last element may be shorter due to the data alignment.
+	/// 
 	/// \param [out] element_count Count of elements.
-	/// \param [in, out] data Pointer to the allocated memory block with common-data-representation (CDR).
-	///                   The caller becomes an owner of this memory block.
-	/// \param [in, out] allocated_size Size of the allocated memory block.
+	/// 
+	/// \param [inout] data Pointer to the allocated memory block with common-data-representation (CDR).
+	///   The caller becomes an owner of this memory block.
+	/// 
+	/// \param [inout] allocated_size Size of the allocated memory block.
 	///              
 	/// \returns `true` if the byte order must be swapped after unmarshaling.
-	bool unmarshal_seq (size_t align, size_t element_size, size_t& element_count, void*& data,
+	/// 
+	bool unmarshal_seq (size_t align, size_t element_size, size_t CDR_element_size, size_t& element_count, void*& data,
 		size_t& allocated_size)
 	{
 		check_align (align);
+		if (CDR_element_size > element_size)
+			throw BAD_PARAM ();
 		size_t count;
 		read (alignof (size_t), sizeof (size_t), &count);
 		if (count) {
@@ -254,12 +275,12 @@ public:
 		typedef typename Internal::Type <IDL::Sequence <C> >::ABI ABI;
 		ABI& abi = (ABI&)s;
 		if (move) {
-			marshal_seq (alignof (C), sizeof (C), abi.size, abi.ptr, abi.allocated);
+			marshal_seq (alignof (C), sizeof (C), sizeof (C), abi.size, abi.ptr, abi.allocated);
 			if (!abi.allocated)
 				abi.reset ();
 		} else {
 			size_t zero = 0;
-			marshal_seq (alignof (C), sizeof (C), abi.size, abi.ptr, zero);
+			marshal_seq (alignof (C), sizeof (C), sizeof (C), abi.size, abi.ptr, zero);
 		}
 	}
 
@@ -268,7 +289,7 @@ public:
 	{
 		typedef typename Internal::Type <IDL::Sequence <C> >::ABI ABI;
 		ABI& abi = (ABI&)s;
-		unmarshal_seq (alignof (C), sizeof (C), abi.size, (void*&)abi.ptr, abi.allocated);
+		unmarshal_seq (alignof (C), sizeof (C), sizeof (C), abi.size, (void*&)abi.ptr, abi.allocated);
 	}
 
 	void marshal_wchar (size_t count, const WChar* data)

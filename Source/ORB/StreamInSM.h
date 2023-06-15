@@ -39,8 +39,10 @@ class NIRVANA_NOVTABLE StreamInSM :
 	public Nirvana::Core::SharedObject
 {
 public:
-	virtual void read (size_t align, size_t size, void* buf) override;
-	virtual void* read (size_t align, size_t& size) override;
+	virtual void read (size_t align, size_t element_size, size_t CDR_element_size,
+		size_t element_count, void* buf) override;
+	virtual void* read (size_t align, size_t element_size, size_t CDR_element_size,
+		size_t element_count, size_t& size) override;
 	virtual void set_size (size_t size) override;
 	virtual size_t end () override;
 	virtual size_t position () const override;

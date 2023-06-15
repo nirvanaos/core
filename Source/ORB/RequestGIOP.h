@@ -111,36 +111,53 @@ public:
 	/// \returns `true` if the byte order must be swapped after unmarshaling.
 	virtual bool unmarshal (size_t align, size_t size, void* data);
 
-	/// Marshal CDR sequence.
+	/// Marshal CDR sequence or array.
 	/// 
-	/// \param align Data alignment
-	/// \param element_size Element size.
+	/// \param align CDR data alignment.
+	///   For the constructed types is an alignment of the first primitive type.
+	/// 
+	/// \param element_size Element size in memory.
+	/// 
+	/// \param CDR_element_size CDR element size.
+	///   CDR_element_size <= element_size.
+	/// 
 	/// \param element_count Count of elements.
+	/// 
 	/// \param data Pointer to the data with common-data-representation (CDR).
+	/// 
 	/// \param allocated_size If this parameter is not zero, the request may adopt the memory block.
-	///   If request adopts the memory block, it sets \p allocated_size to 0.
-	void marshal_seq (size_t align, size_t element_size, size_t element_count, void* data,
+	///   When request adopts the memory block, it sets \p allocated_size to 0.
+	/// 
+	void marshal_seq (size_t align, size_t element_size, size_t CDR_element_size, size_t element_count, void* data,
 		size_t& allocated_size)
 	{
 		check_align (align);
 		if (!marshal_chunk ())
 			return;
 
-		stream_out_->write_seq (align, element_size, element_count, data, allocated_size);
+		stream_out_->write_seq (align, element_size, CDR_element_size, element_count, data, allocated_size);
 	}
 
 	/// Unmarshal CDR sequence.
 	/// 
-	/// \param align Data alignment
-	/// \param element_size Element size.
+	/// \param align Data alignment.
+	/// 
+	/// \param element_size Element size in memory.
+	/// 
+	/// \param CDR_element_size CDR element size.
+	///   CDR_element_size <= element_size.
+	/// 
 	/// \param [out] element_count Count of elements.
-	/// \param [out] data Pointer to the allocated memory block with common-data-representation (CDR).
-	///                   The caller becomes an owner of this memory block.
-	/// \param [out] allocated_size Size of the allocated memory block.
+	/// 
+	/// \param [inout] data Pointer to the allocated memory block with common-data-representation (CDR).
+	///   The caller becomes an owner of this memory block.
+	/// 
+	/// \param [inout] allocated_size Size of the allocated memory block.
 	///              
 	/// \returns `true` if the byte order must be swapped after unmarshaling.
-	virtual bool unmarshal_seq (size_t align, size_t element_size, size_t& element_count, void*& data,
-		size_t& allocated_size);
+	/// 
+	virtual bool unmarshal_seq (size_t align, size_t element_size, size_t CDR_element_size,
+		size_t& element_count, void*& data, size_t& allocated_size);
 
 	///@}
 
@@ -174,12 +191,12 @@ public:
 	void marshal_char (size_t count, const Char* data)
 	{
 		if (marshal_chunk ())
-			stream_out_->write_c (alignof (Char), count * sizeof (Char), data);
+			stream_out_->write_c (1, count, data);
 	}
 
 	virtual void unmarshal_char (size_t count, Char* data)
 	{
-		stream_in_->read (alignof (Char), count * sizeof (Char), data);
+		stream_in_->read (1, sizeof (Char), 1, count, data);
 	}
 
 	void marshal_string (IDL::String& s, bool move)

@@ -52,7 +52,8 @@ public:
 
 	void send (uint32_t request_id) noexcept;
 
-	virtual void write (size_t align, size_t size, void* data, size_t& allocated_size) override;
+	virtual void write (size_t align, size_t element_size, size_t CDR_element_size,
+		size_t element_count, void* data, size_t& allocated_size) override;
 	virtual size_t size () const override;
 	virtual void* header (size_t hdr_size) override;
 	virtual void rewind (size_t hdr_size) override;

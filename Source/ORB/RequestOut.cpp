@@ -202,7 +202,7 @@ void RequestOut::set_reply (unsigned status, IOP::ServiceContextList&& context,
 
 void RequestOut::preunmarshal (TypeCode::_ptr_type tc, std::vector <Octet>& buf, IORequest::_ptr_type out)
 {
-	size_t cb = tc->n_size ();
+	size_t cb = tc->n_aligned_size ();
 	if (buf.size () < cb)
 		buf.resize (cb);
 	tc->n_construct (buf.data ());
@@ -224,13 +224,13 @@ bool RequestOut::unmarshal (size_t align, size_t size, void* data)
 		return RequestGIOP::unmarshal (align, size, data);
 }
 
-bool RequestOut::unmarshal_seq (size_t align, size_t element_size, size_t& element_count, void*& data,
-	size_t& allocated_size)
+bool RequestOut::unmarshal_seq (size_t align, size_t element_size, size_t CDR_element_size,
+	size_t& element_count, void*& data, size_t& allocated_size)
 {
 	if (preunmarshaled_)
-		return preunmarshaled_->unmarshal_seq (align, element_size, element_count, data, allocated_size);
+		return preunmarshaled_->unmarshal_seq (align, element_size, CDR_element_size, element_count, data, allocated_size);
 	else
-		return RequestGIOP::unmarshal_seq (align, element_size, element_count, data, allocated_size);
+		return RequestGIOP::unmarshal_seq (align, element_size, CDR_element_size, element_count, data, allocated_size);
 }
 
 size_t RequestOut::unmarshal_seq_begin ()

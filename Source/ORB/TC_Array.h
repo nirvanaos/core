@@ -42,7 +42,8 @@ class TC_Array : public TC_Impl <TC_Array, TC_ArrayBase>
 public:
 	using Servant::_s_length;
 	using Servant::_s_content_type;
-	using Servant::_s_n_size;
+	using Servant::_s_n_CDR_size;
+	using Servant::_s_n_aligned_size;
 	using Servant::_s_n_align;
 	using Servant::_s_n_byteswap;
 
@@ -63,9 +64,14 @@ public:
 			return ORB::create_array_tc (bound_, compact_content);
 	}
 
-	size_t n_size () const noexcept
+	size_t n_aligned_size () const noexcept
 	{
-		return bound_ * element_size_;
+		return bound_ * element_aligned_size_;
+	}
+
+	size_t n_CDR_size () const noexcept
+	{
+		return bound_ * element_CDR_size_;
 	}
 
 	size_t n_align () const noexcept
@@ -84,7 +90,7 @@ public:
 		size_t count = bound_;
 		do {
 			content_type_->n_construct (pv);
-			pv += element_size_;
+			pv += element_aligned_size_;
 		} while (--count);
 	}
 
@@ -94,7 +100,7 @@ public:
 		size_t count = bound_;
 		do {
 			content_type_->n_destruct (pv);
-			pv += element_size_;
+			pv += element_aligned_size_;
 		} while (--count);
 	}
 
@@ -105,8 +111,8 @@ public:
 		size_t count = bound_;
 		do {
 			content_type_->n_copy (pd, ps);
-			ps += element_size_;
-			pd += element_size_;
+			ps += element_aligned_size_;
+			pd += element_aligned_size_;
 		} while (--count);
 	}
 
@@ -117,8 +123,8 @@ public:
 		size_t count = bound_;
 		do {
 			content_type_->n_move (pd, ps);
-			ps += element_size_;
-			pd += element_size_;
+			ps += element_aligned_size_;
+			pd += element_aligned_size_;
 		} while (--count);
 	}
 
@@ -134,19 +140,24 @@ public:
 
 	void n_unmarshal (Internal::IORequest_ptr rq, size_t count, void* dst) const
 	{
+		if (!count)
+			return;
+
 		Internal::check_pointer (dst);
 		switch (content_kind_) {
 			case KIND_CHAR:
-				rq->unmarshal_char (count * element_size_, (Char*)dst);
+				rq->unmarshal_char (count, (Char*)dst);
 				break;
 
 			case KIND_WCHAR:
-				rq->unmarshal_wchar (count * element_size_ / sizeof (WChar), (WChar*)dst);
+				rq->unmarshal_wchar (count, (WChar*)dst);
 				break;
 
 			case KIND_CDR:
-				rq->unmarshal (element_align_, element_size_ * count, dst);
-				break;
+				if (1 == count || element_aligned_size_ == element_CDR_size_) {
+					rq->unmarshal (element_align_, element_CDR_size_ * count, dst);
+					break;
+				}
 
 			default:
 				content_type_->n_unmarshal (rq, count, dst);

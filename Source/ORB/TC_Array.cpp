@@ -30,17 +30,22 @@ namespace Core {
 
 void TC_Array::marshal (const void* src, size_t count, Internal::IORequest_ptr rq, bool out) const
 {
+	if (!count)
+		return;
+
 	Internal::check_pointer (src);
 	switch (content_kind_) {
 		case KIND_CHAR:
-			rq->marshal_char (count * element_size_, (const Char*)src);
+			rq->marshal_char (count * element_CDR_size_, (const Char*)src);
 			break;
 		case KIND_WCHAR:
-			rq->marshal_wchar (count * element_size_ / sizeof (WChar), (const WChar*)src);
+			rq->marshal_wchar (count * element_CDR_size_ / sizeof (WChar), (const WChar*)src);
 			break;
 		case KIND_CDR:
-			rq->marshal (element_align_, element_size_ * count, src);
-			break;
+			if (1 == count || element_CDR_size_ == element_aligned_size_) {
+				rq->marshal (element_align_, element_CDR_size_ * count, src);
+				break;
+			}
 		default:
 			if (out)
 				content_type_->n_marshal_out (const_cast <void*> (src), count, rq);

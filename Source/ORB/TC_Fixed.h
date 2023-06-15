@@ -70,7 +70,12 @@ public:
 		return scale_;
 	}
 
-	size_t n_size () const noexcept
+	size_t n_aligned_size () const noexcept
+	{
+		return size ();
+	}
+
+	size_t n_CDR_size () const noexcept
 	{
 		return size ();
 	}

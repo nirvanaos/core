@@ -452,7 +452,7 @@ Object::_ref_type ORB::string_to_object (const IDL::String& str, Internal::Strin
 					}
 
 					Nirvana::Core::ImplStatic <StreamOutEncap> encap;
-					encap.write_c (alignof (IIOP::Version), sizeof (IIOP::Version), &ver);
+					encap.write_one (ver);
 					size_t host_len = host_end - host_begin;
 					if (host_len) {
 						encap.write_size (host_len);
@@ -460,7 +460,7 @@ Object::_ref_type ORB::string_to_object (const IDL::String& str, Internal::Strin
 					} else {
 						encap.write_string_c (LocalAddress::singleton ().host ());
 					}
-					encap.write_c (alignof (UShort), sizeof (UShort), &port);
+					encap.write_c (2, 2, &port);
 
 					OctetSeq object_key;
 					if (addr_end < str_end)

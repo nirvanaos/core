@@ -41,7 +41,8 @@ public:
 		TC_IdName (kind, std::move (id), std::move (name))
 	{}
 
-	static size_t _s_n_size (Internal::Bridge <TypeCode>*, Internal::Interface*);
+	static size_t _s_n_aligned_size (Internal::Bridge <TypeCode>*, Internal::Interface*);
+	static size_t _s_n_CDR_size (Internal::Bridge <TypeCode>*, Internal::Interface*);
 	static size_t _s_n_align (Internal::Bridge <TypeCode>*, Internal::Interface*);
 	static Octet _s_n_is_CDR (Internal::Bridge <TypeCode>*, Internal::Interface*);
 

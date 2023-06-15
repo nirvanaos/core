@@ -41,7 +41,8 @@ class TC_Interface :
 	typedef TC_Impl <TC_Interface, TC_RefBase> Impl;
 
 public:
-	using TC_RefBase::_s_n_size;
+	using TC_RefBase::_s_n_CDR_size;
+	using TC_RefBase::_s_n_aligned_size;
 	using TC_RefBase::_s_n_align;
 	using TC_RefBase::_s_n_is_CDR;
 	using TC_RefBase::_s_n_byteswap;

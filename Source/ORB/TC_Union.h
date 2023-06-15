@@ -129,9 +129,14 @@ public:
 		return ORB::get_compact_typecode (_get_ptr ());
 	}
 
-	size_t n_size () const noexcept
+	size_t n_aligned_size () const noexcept
 	{
-		return size_;
+		return aligned_size_;
+	}
+
+	size_t n_CDR_size () const noexcept
+	{
+		return 0;
 	}
 
 	size_t n_align () const noexcept
@@ -239,7 +244,7 @@ private:
 	const TypeCode::_ref_type discriminator_type_;
 	Members members_;
 	size_t align_;
-	size_t size_;
+	size_t aligned_size_;
 	size_t discriminator_size_;
 	const Long default_index_;
 };
