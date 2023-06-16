@@ -28,8 +28,7 @@
 #define NIRVANA_NAMESERVICE_NAMESERVICE_H_
 #pragma once
 
-#include <CORBA/Server.h>
-#include <CORBA/CosNaming_s.h>
+#include "NamingContextBase.h"
 #include "ORB/SysServant.h"
 #include "ORB/system_services.h"
 
@@ -37,60 +36,56 @@ namespace CosNaming {
 namespace Core {
 
 /// Naming Service root
-class NameService :
-	public CORBA::Core::SysServantImpl <NameService, NamingContextExt, NamingContext>
+class NameService : 
+	public CORBA::Core::SysServantImpl <NameService, NamingContextExt, NamingContext>,
+	public NamingContextBase
 {
 public:
 	// NamingContext
 
 	void bind (Name& n, CORBA::Object::_ptr_type obj)
 	{
-		throw CORBA::NO_IMPLEMENT ();
+		NamingContextBase::bind (n, obj);
 	}
 
 	void rebind (Name& n, CORBA::Object::_ptr_type obj)
 	{
-		throw CORBA::NO_IMPLEMENT ();
+		NamingContextBase::rebind (n, obj);
 	}
 
 	void bind_context (Name& n, NamingContext::_ptr_type nc)
 	{
-		throw CORBA::NO_IMPLEMENT ();
+		NamingContextBase::bind_context (n, nc);
 	}
 
 	void rebind_context (Name& n, NamingContext::_ptr_type nc)
 	{
-		throw CORBA::NO_IMPLEMENT ();
+		NamingContextBase::rebind_context (n, nc);
 	}
 
-	CORBA::Object::_ref_type resolve (const Name& n)
+	CORBA::Object::_ref_type resolve (Name& n)
 	{
-		throw CORBA::NO_IMPLEMENT ();
+		return NamingContextBase::resolve (n);
 	}
 
-	void unbind (const Name& n)
+	void unbind (Name& n)
 	{
-		throw CORBA::NO_IMPLEMENT ();
-	}
-
-	NamingContext::_ref_type new_context ()
-	{
-		throw CORBA::NO_IMPLEMENT ();
+		NamingContextBase::unbind (n);
 	}
 
 	NamingContext::_ref_type bind_new_context (Name& n)
 	{
-		throw CORBA::NO_IMPLEMENT ();
+		return NamingContextBase::bind_new_context (n);
 	}
 
-	void destroy ()
+	static void destroy ()
 	{
-		throw CORBA::NO_IMPLEMENT ();
+		throw NotEmpty ();
 	}
 
 	void list (uint32_t how_many, BindingList& bl, BindingIterator::_ref_type& bi)
 	{
-		throw CORBA::NO_IMPLEMENT ();
+		NamingContextBase::list (how_many, bl, bi);
 	}
 
 	// NamingContextEx
@@ -112,7 +107,8 @@ public:
 
 	CORBA::Object::_ref_type resolve_str (const StringName& sn)
 	{
-		return resolve (to_name (sn));
+		Name name = to_name (sn);
+		return resolve (name);
 	}
 
 };
