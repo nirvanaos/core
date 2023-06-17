@@ -34,6 +34,13 @@
 #include "IteratorStack.h"
 
 namespace Nirvana {
+
+namespace Core {
+
+class FileAccessDirect;
+
+}
+
 namespace FS {
 namespace Core {
 
@@ -106,8 +113,14 @@ public:
 	static void set_error_number (int err);
 
 	static CORBA::Object::_ref_type get_reference (const PortableServer::ObjectId& id);
-	static Dir::_ref_type get_dir (const PortableServer::ObjectId& id);
-	static File::_ref_type get_file (const PortableServer::ObjectId& id);
+	static FS::Dir::_ref_type get_dir (const PortableServer::ObjectId& id);
+	static FS::File::_ref_type get_file (const PortableServer::ObjectId& id);
+
+	static CORBA::servant_reference <Nirvana::Core::FileAccessDirect> create_file_access (
+		const PortableServer::ObjectId& id, unsigned short flags);
+
+	static Nirvana::FileAccessDirect::_ref_type create_file (const PortableServer::ObjectId& id,
+		unsigned short flags);
 
 private:
 	static CORBA::Object::_ref_type get_reference (const PortableServer::ObjectId& id, CORBA::Internal::String_in iid);

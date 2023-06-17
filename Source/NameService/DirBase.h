@@ -33,6 +33,7 @@
 #include <Nirvana/FS_s.h>
 #include "FileSystem.h"
 #include "NamingContextRoot.h"
+#include <FileAccessDirect.h>
 
 namespace Nirvana {
 namespace FS {
@@ -43,6 +44,11 @@ class DirBase : public CORBA::servant_traits <Nirvana::FS::Dir>::Servant <DirBas
 	public CosNaming::Core::NamingContextRoot
 {
 public:
+	static PortableServer::POA::_ref_type _default_POA ()
+	{
+		return FileSystem::adapter ();
+	}
+
 	static FileType type () noexcept
 	{
 		return FileType::directory;
@@ -91,6 +97,12 @@ public:
 
 	virtual PortableServer::ObjectId create_dir (CosNaming::Name& n) = 0;
 
+	Nirvana::FileAccessDirect::_ref_type create (CosNaming::Name& n, unsigned short flags)
+	{
+		return FileSystem::create_file (get_new_file_id (n), flags);
+	}
+
+	virtual PortableServer::ObjectId get_new_file_id (CosNaming::Name& n) = 0;
 };
 
 }

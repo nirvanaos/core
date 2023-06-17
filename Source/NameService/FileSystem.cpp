@@ -26,6 +26,8 @@
 #include "FileSystem.h"
 #include "../ORB/SysAdapterActivator.h"
 #include "FileActivator.h"
+#include "File.h"
+#include "../FileAccessDirect.h"
 
 using namespace CORBA;
 using namespace PortableServer;
@@ -65,16 +67,16 @@ Object::_ref_type FileSystem::get_reference (const ObjectId& id, Internal::Strin
 	return adapter ()->create_reference_with_id (id, iid);
 }
 
-Dir::_ref_type FileSystem::get_dir (const ObjectId& id)
+FS::Dir::_ref_type FileSystem::get_dir (const ObjectId& id)
 {
-	Dir::_ref_type dir = Dir::_narrow (get_reference (id, Internal::RepIdOf <Dir>::id));
+	Dir::_ref_type dir = Dir::_narrow (get_reference (id, Internal::RepIdOf <FS::Dir>::id));
 	assert (dir);
 	return dir;
 }
 
-File::_ref_type FileSystem::get_file (const ObjectId& id)
+FS::File::_ref_type FileSystem::get_file (const ObjectId& id)
 {
-	File::_ref_type file = File::_narrow (get_reference (id, Internal::RepIdOf <File>::id));
+	FS::File::_ref_type file = FS::File::_narrow (get_reference (id, Internal::RepIdOf <FS::File>::id));
 	assert (file);
 	return file;
 }
@@ -82,12 +84,26 @@ File::_ref_type FileSystem::get_file (const ObjectId& id)
 Object::_ref_type FileSystem::get_reference (const ObjectId& id)
 {
 	return get_reference (id, get_binding_type (id) == BindingType::nobject ?
-		Internal::RepIdOf <File>::id : Internal::RepIdOf <Dir>::id);
+		Internal::RepIdOf <FS::File>::id : Internal::RepIdOf <FS::Dir>::id);
 }
 
 void FileSystem::set_error_number (int err)
 {
 	ExecDomain::current ().runtime_global_.error_number = err;
+}
+
+Nirvana::FileAccessDirect::_ref_type FileSystem::create_file (const PortableServer::ObjectId& id,
+	unsigned short flags)
+{
+	auto access = create_file_access (id, flags);
+	auto file = CORBA::make_reference <File> (std::ref (id), std::ref (*access));
+	adapter ()->activate_object_with_id (id, file);
+	return access->_this ();
+}
+
+servant_reference <Nirvana::Core::FileAccessDirect> FileSystem::create_file_access (const ObjectId& id, unsigned short flags)
+{
+	return make_reference <Nirvana::Core::FileAccessDirect> (std::ref (id), flags);
 }
 
 }

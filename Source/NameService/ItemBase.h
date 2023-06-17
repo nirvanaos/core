@@ -44,6 +44,7 @@ public:
   }
 
   virtual uint16_t permissions () = 0;
+  virtual void permissions (uint16_t) = 0;
 };
 
 }

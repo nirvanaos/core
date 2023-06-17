@@ -52,8 +52,8 @@ public:
 	static const SteadyTime DEFAULT_WRITE_TIMEOUT = 500 * TimeBase::MILLISECOND;
 	static const SteadyTime DEFAULT_DISCARD_TIMEOUT = 500 * TimeBase::MILLISECOND;
 
-	FileAccessDirect (const std::string& path, int flags) :
-		Base (path, flags, file_size_, base_block_size_),
+	FileAccessDirect (const IDL::Sequence <uint8_t>& id, int flags) :
+		Base (id, flags, file_size_, base_block_size_),
 		block_size_ (std::max (base_block_size_, (Size)Port::Memory::SHARING_ASSOCIATIVITY)),
 		dirty_blocks_ (0),
 		write_timeout_ (DEFAULT_WRITE_TIMEOUT),
@@ -72,7 +72,6 @@ public:
 			Port::Memory::release (it->second.buffer, block_size_);
 		}
 	}
-
 
 	inline
 	void flush ();
