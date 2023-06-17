@@ -1,4 +1,3 @@
-/// \file
 /*
 * Nirvana Core.
 *
@@ -24,30 +23,43 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_FS_CORE_ITEMBASE_H_
-#define NIRVANA_FS_CORE_ITEMBASE_H_
-#pragma once
+#include "DirBase.h"
 
-#include <CORBA/CORBA.h>
-#include <Nirvana/FS.h>
+using namespace CosNaming;
+using namespace CORBA;
 
 namespace Nirvana {
 namespace FS {
 namespace Core {
 
-class ItemBase
+void DirBase::bind (Name& n, Object::_ptr_type obj, bool rebind)
 {
-public:
-  virtual void get_file_times (FileTimes& times)
-  {
-    zero (times);
-  }
+	FileSystem::set_error_number (0);
+	if (File::_narrow (obj)) {
+		try {
+			bind_file (n, FileSystem::adapter ()->reference_to_id (obj), rebind);
+			return;
+		} catch (const RuntimeError& err) {
+			FileSystem::set_error_number (err.error_number ());
+		} catch (...) {}
+	}
+	throw CannotProceed (_this (), std::move (n));
+}
 
-  virtual uint16_t permissions () = 0;
-};
+void DirBase::bind_context (Name& n, NamingContext::_ptr_type nc, bool rebind)
+{
+	FileSystem::set_error_number (0);
+	if (Dir::_narrow (nc)) {
+		try {
+			bind_dir (n, FileSystem::adapter ()->reference_to_id (nc), rebind);
+			return;
+		} catch (const RuntimeError& err) {
+			FileSystem::set_error_number (err.error_number ());
+		} catch (...) {}
+	}
+	throw CannotProceed (_this (), std::move (n));
+}
 
 }
 }
 }
-
-#endif

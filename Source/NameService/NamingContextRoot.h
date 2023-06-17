@@ -24,29 +24,35 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_FS_CORE_ITEMBASE_H_
-#define NIRVANA_FS_CORE_ITEMBASE_H_
+#ifndef NIRVANA_NAMESERVICE_NAMINGCONTEXTROOT_H_
+#define NIRVANA_NAMESERVICE_NAMINGCONTEXTROOT_H_
 #pragma once
 
 #include <CORBA/CORBA.h>
-#include <Nirvana/FS.h>
+#include <CORBA/CosNaming.h>
+#include <memory>
 
-namespace Nirvana {
-namespace FS {
+namespace CosNaming {
 namespace Core {
 
-class ItemBase
+class Iterator;
+
+/// \brief Root of the NamingContext class hierarchy
+class NIRVANA_NOVTABLE NamingContextRoot
 {
 public:
-  virtual void get_file_times (FileTimes& times)
-  {
-    zero (times);
-  }
+	void list (uint32_t how_many, BindingList& bl, CosNaming::BindingIterator::_ref_type& bi) const;
+	virtual std::unique_ptr <Iterator> make_iterator () const = 0;
 
-  virtual uint16_t permissions () = 0;
+	static Istring to_string (const NameComponent& nc);
+	static NameComponent to_component (Istring&& s);
+	static void check_name (const Name& n);
+
+private:
+	static Istring escape (Istring s);
+	static Istring unescape (Istring s);
 };
 
-}
 }
 }
 

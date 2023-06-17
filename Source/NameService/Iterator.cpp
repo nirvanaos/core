@@ -24,6 +24,7 @@
 *  popov.nirvana@gmail.com
 */
 #include "Iterator.h"
+#include "NamingContextRoot.h"
 #include <CORBA/Server.h>
 #include <CORBA/CosNaming_s.h>
 #include "../Synchronized.h"
@@ -34,24 +35,11 @@ using namespace Nirvana::Core;
 namespace CosNaming {
 namespace Core {
 
-NameComponent Iterator::to_component (const Istring& s)
-{
-	NameComponent nc;
-	size_t dot = s.rfind ('.');
-	if (dot == Istring::npos)
-		nc.id (s);
-	else {
-		nc.id (s.substr (0, dot));
-		nc.kind (s.substr (dot + 1));
-	}
-	return nc;
-}
-
 bool Iterator::next_one (CosNaming::Binding& b)
 {
 	Binding vb;
 	if (next_one (vb)) {
-		b.binding_name ().push_back (to_component (vb.name));
+		b.binding_name ().push_back (NamingContextRoot::to_component (std::move (vb.name)));
 		b.binding_type (vb.type);
 		return true;
 	}

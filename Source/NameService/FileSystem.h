@@ -40,15 +40,9 @@ namespace Core {
 class FileSystem : private Port::FileSystem
 {
 public:
-	FileSystem ()
-	{
-		Roots roots = Port::FileSystem::get_roots ();
-		for (auto& r : roots) {
-			roots_.emplace (std::move (r.dir), r.factory);
-		}
-	}
+	FileSystem ();
 
-	bool find (const IDL::String& name) const
+	bool find (const IDL::String& name) const noexcept
 	{
 		return roots_.find (name) != roots_.end ();
 	}
@@ -103,11 +97,20 @@ public:
 		}
 	}
 
+	static PortableServer::POA::_ref_type adapter () noexcept
+	{
+		assert ((PortableServer::POA::_ref_type)adapter_);
+		return adapter_;
+	}
+
+	static void set_error_number (int err);
+
+	static CORBA::Object::_ref_type get_reference (const PortableServer::ObjectId& id);
+	static Dir::_ref_type get_dir (const PortableServer::ObjectId& id);
+	static File::_ref_type get_file (const PortableServer::ObjectId& id);
+
 private:
-	CORBA::Object::_ref_type get_reference (const PortableServer::ObjectId& id, CORBA::Internal::String_in iid);
-	Dir::_ref_type get_dir (const PortableServer::ObjectId& id);
-	File::_ref_type get_file (const PortableServer::ObjectId& id);
-	PortableServer::POA::_ref_type get_adapter ();
+	static CORBA::Object::_ref_type get_reference (const PortableServer::ObjectId& id, CORBA::Internal::String_in iid);
 
 private:
 	struct Root {
@@ -123,7 +126,7 @@ private:
 
 	RootMap roots_;
 
-	PortableServer::POA::_ref_type adapter_;
+	static Nirvana::Core::StaticallyAllocated <PortableServer::POA::_ref_type> adapter_;
 };
 
 }

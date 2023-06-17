@@ -31,7 +31,6 @@
 #include <CORBA/Server.h>
 #include <CORBA/PortableServer_s.h>
 #include "Services.h"
-#include "../NameService/FileActivator.h"
 
 namespace PortableServer {
 namespace Core {
@@ -51,12 +50,8 @@ public:
 	static bool unknown_adapter (POA::_ptr_type parent, const IDL::String& name)
 	{
 		if (name == filesystem_adapter_name_) {
-			CORBA::PolicyList policies;
-			policies.push_back (parent->create_lifespan_policy (LifespanPolicyValue::PERSISTENT));
-			policies.push_back (parent->create_id_assignment_policy (IdAssignmentPolicyValue::USER_ID));
-			policies.push_back (parent->create_request_processing_policy (RequestProcessingPolicyValue::USE_SERVANT_MANAGER));
-			POA::_ref_type adapter = parent->create_POA (name, parent->the_POAManager (), policies);
-			adapter->set_servant_manager (CORBA::make_stateless <Nirvana::FS::Core::FileActivator> ()->_this ());
+			// Bind NameService for creation of the file system adapter.
+			CORBA::Core::Services::bind (CORBA::Core::Services::NameService);
 			return true;
 		}
 		return false;

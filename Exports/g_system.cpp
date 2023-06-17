@@ -134,7 +134,7 @@ public:
 
 	static int* error_number ()
 	{
-		return &Thread::current ().exec_domain ()->runtime_global_.error_number;
+		return &ExecDomain::current ().runtime_global_.error_number;
 	}
 
 	static Nirvana::Memory::_ref_type create_heap (uint16_t granularity)

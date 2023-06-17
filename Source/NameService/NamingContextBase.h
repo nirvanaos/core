@@ -28,16 +28,12 @@
 #define NIRVANA_NAMESERVICE_NAMINGCONTEXTBASE_H_
 #pragma once
 
-#include <CORBA/CORBA.h>
-#include <CORBA/CosNaming.h>
-#include <memory>
+#include "NamingContextRoot.h"
 
 namespace CosNaming {
 namespace Core {
 
-class Iterator;
-
-class NIRVANA_NOVTABLE NamingContextBase
+class NIRVANA_NOVTABLE NamingContextBase : public NamingContextRoot
 {
 public:
 	void bind (Name& n, CORBA::Object::_ptr_type obj);
@@ -60,12 +56,6 @@ public:
 
 	NamingContext::_ref_type bind_new_context (Name& n);
 	virtual NamingContext::_ref_type bind_new_context1 (Istring&& name, Name& n) = 0;
-
-	void list (uint32_t how_many, BindingList& bl, CosNaming::BindingIterator::_ref_type& bi) const;
-	virtual std::unique_ptr <Iterator> make_iterator () const = 0;
-
-	static Istring to_string (const NameComponent& nc);
-	static void check_name (const Name& n);
 
 protected:
 	virtual NamingContext::_ref_type create_context1 (Istring&& name, Name& n, bool& created) = 0;

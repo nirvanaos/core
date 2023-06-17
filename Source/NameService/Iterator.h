@@ -41,8 +41,6 @@ class NIRVANA_NOVTABLE Iterator :
 	public Nirvana::Core::UserObject
 {
 public:
-	static NameComponent to_component (const Istring& s);
-
 	virtual bool end () const noexcept = 0;
 	bool next_one (CosNaming::Binding& b);
 	bool next_n (uint32_t how_many, CosNaming::BindingList& bl);

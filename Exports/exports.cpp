@@ -57,6 +57,3 @@ EXPORT_TC (ValueBase)
 SYSTEM_EXCEPTIONS(EXPORT_TC)
 
 NIRVANA_LINK_SYMBOL (_exp_Nirvana_Pointer)
-
-// TODO: Temporary solution, remove
-NIRVANA_LINK_SYMBOL (exp_Nirvana_file_factory)

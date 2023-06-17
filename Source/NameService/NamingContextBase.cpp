@@ -24,26 +24,11 @@
 *  popov.nirvana@gmail.com
 */
 #include "NamingContextBase.h"
-#include "Iterator.h"
 
 using namespace CORBA;
 
 namespace CosNaming {
 namespace Core {
-
-Istring NamingContextBase::to_string (const NameComponent& nc)
-{
-	Istring name = nc.id ();
-	name += '.';
-	name += nc.kind ();
-	return name;
-}
-
-void NamingContextBase::check_name (const Name& n)
-{
-	if (n.empty ())
-		throw NamingContext::InvalidName ();
-}
 
 void NamingContextBase::bind (Name& n, Object::_ptr_type obj)
 {
@@ -199,15 +184,6 @@ void NamingContextBase::unbind (Name& n)
 		unbind1 (to_string (n.front ()), n);
 	else
 		resolve_context (n)->unbind (n);
-}
-
-void NamingContextBase::list (uint32_t how_many, BindingList& bl,
-	CosNaming::BindingIterator::_ref_type& bi) const
-{
-	auto vi = make_iterator ();
-	vi->next_n (how_many, bl);
-	if (!vi->end ())
-		bi = Iterator::create_iterator (std::move (vi));
 }
 
 }
