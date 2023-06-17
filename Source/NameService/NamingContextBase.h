@@ -1,6 +1,6 @@
 /// \file
 /*
-* Nirvana IDL support library.
+* Nirvana Core.
 *
 * This is a part of the Nirvana project.
 *
@@ -32,29 +32,60 @@
 #include <CORBA/CosNaming_s.h>
 #include "../MapUnorderedUnstable.h"
 #include "../UserAllocator.h"
+#include "StackIterator.h"
+#include <memory>
 
 namespace CosNaming {
 namespace Core {
+
+class VirtualIterator;
 
 class NamingContextBase
 {
 public:
 	void bind (Name& n, CORBA::Object::_ptr_type obj);
+	virtual void bind1 (Istring&& name, CORBA::Object::_ptr_type obj, Name& n);
+
 	void rebind (Name& n, CORBA::Object::_ptr_type obj);
+	virtual void rebind1 (Istring&& name, CORBA::Object::_ptr_type obj, Name& n);
+
 	void bind_context (Name& n, NamingContext::_ptr_type nc);
+	virtual void bind_context1 (Istring&& name, NamingContext::_ptr_type nc, Name& n);
+
 	void rebind_context (Name& n, NamingContext::_ptr_type nc);
-	CORBA::Object::_ref_type resolve (Name& n) const;
+	virtual void rebind_context1 (Istring&& name, NamingContext::_ptr_type nc, Name& n);
+
+	CORBA::Object::_ref_type resolve (Name& n);
+	virtual CORBA::Object::_ref_type resolve1 (const Istring& name, BindingType& type, Name& n);
+
 	void unbind (Name& n);
 	NamingContext::_ref_type new_context ();
 	NamingContext::_ref_type bind_new_context (Name& n);
-	void destroy ();
-	void list (uint32_t how_many, BindingList& bl, BindingIterator::_ref_type& bi);
+
+	void destroy ()
+	{
+		if (!bindings_.empty ())
+			throw NamingContext::NotEmpty ();
+	}
+
+	void list (uint32_t how_many, BindingList& bl, CosNaming::BindingIterator::_ref_type & bi) const;
+
+	virtual std::unique_ptr <StackIterator> make_iterator () const
+	{
+		std::unique_ptr <StackIterator> iter (std::make_unique <StackIterator> ());
+		iter->reserve (bindings_.size ());
+		get_bindings (*iter);
+		return iter;
+	}
 
 	static Istring to_string (const NameComponent& nc);
-	static NameComponent to_component (const Istring& s);
+	static void check_name (const Name& n);
+
+protected:
+	void get_bindings (StackIterator& iter) const;
 
 private:
-	NamingContext::_ref_type resolve_context (Name& n) const;
+	NamingContext::_ref_type resolve_context (Name& n);
 	NamingContext::_ref_type create_context (Name& n, Istring& created);
 
 protected:

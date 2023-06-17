@@ -23,22 +23,12 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "NameService.h"
-#include "../ORB/ESIOP.h"
-#include "../ORB/ORB.h"
+#include "SysAdapterActivator.h"
 
-namespace CosNaming {
+namespace PortableServer {
 namespace Core {
 
-CORBA::Object::_ref_type create_NameService ()
-{
-	if (ESIOP::is_system_domain ())
-		return CORBA::make_reference <NameService> ()->_this ();
-	else
-		return CORBA::Core::ORB::string_to_object (
-			"corbaloc::1.1@/NameService", CORBA::Internal::RepIdOf <CosNaming::NamingContextExt>::id);
-}
+const char SysAdapterActivator::filesystem_adapter_name_ [] = "_fs";
 
 }
 }
-

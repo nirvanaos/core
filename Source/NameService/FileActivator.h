@@ -1,3 +1,4 @@
+/// \file
 /*
 * Nirvana Core.
 *
@@ -23,22 +24,37 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "NameService.h"
-#include "../ORB/ESIOP.h"
-#include "../ORB/ORB.h"
+#ifndef NIRVANA_NAMESERVICE_FILEACTIVATOR_H_
+#define NIRVANA_NAMESERVICE_FILEACTIVATOR_H_
+#pragma once
 
-namespace CosNaming {
+#include <CORBA/Server.h>
+#include <CORBA/PortableServer_s.h>
+#include "FileSystem.h"
+
+namespace Nirvana {
+namespace FS {
 namespace Core {
 
-CORBA::Object::_ref_type create_NameService ()
+class FileActivator :
+	public CORBA::servant_traits <PortableServer::ServantActivator>::Servant <FileActivator>
 {
-	if (ESIOP::is_system_domain ())
-		return CORBA::make_reference <NameService> ()->_this ();
-	else
-		return CORBA::Core::ORB::string_to_object (
-			"corbaloc::1.1@/NameService", CORBA::Internal::RepIdOf <CosNaming::NamingContextExt>::id);
-}
+public:
+	PortableServer::ServantBase::_ref_type incarnate (const PortableServer::ObjectId& id,
+		PortableServer::POA::_ref_type adapter)
+	{
+		return FileSystem::incarnate (id);
+	}
+
+	void etherealize (const PortableServer::ObjectId& id, PortableServer::POA::_ptr_type adapter,
+		PortableServer::ServantBase::_ptr_type servant, bool cleanup_in_progress, bool remaining_activations)
+	{
+		FileSystem::etherealize (id, servant);
+	}
+};
 
 }
 }
+}
 
+#endif

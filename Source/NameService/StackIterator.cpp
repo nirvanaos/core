@@ -23,22 +23,31 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "NameService.h"
-#include "../ORB/ESIOP.h"
-#include "../ORB/ORB.h"
+#include "StackIterator.h"
 
 namespace CosNaming {
 namespace Core {
 
-CORBA::Object::_ref_type create_NameService ()
+bool StackIterator::next_one (Binding& b)
 {
-	if (ESIOP::is_system_domain ())
-		return CORBA::make_reference <NameService> ()->_this ();
-	else
-		return CORBA::Core::ORB::string_to_object (
-			"corbaloc::1.1@/NameService", CORBA::Internal::RepIdOf <CosNaming::NamingContextExt>::id);
+	if (!stack_.empty ()) {
+		b = std::move (stack_.back ());
+		stack_.pop_back ();
+		return true;
+	}
+	return false;
 }
+
+void StackIterator::push (const Istring& name, BindingType type)
+{
+	stack_.emplace_back (name, type);
+}
+
+void StackIterator::push (Istring&& name, BindingType type)
+{
+	stack_.emplace_back (std::move (name), type);
+}
+
 
 }
 }
-

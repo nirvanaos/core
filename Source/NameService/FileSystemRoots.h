@@ -1,3 +1,4 @@
+/// \file
 /*
 * Nirvana Core.
 *
@@ -23,22 +24,27 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "NameService.h"
-#include "../ORB/ESIOP.h"
-#include "../ORB/ORB.h"
+#ifndef NIRVANA_CORE_PORT_FILESYSTEMROOTS_H_
+#define NIRVANA_CORE_PORT_FILESYSTEMROOTS_H_
+#pragma once
 
-namespace CosNaming {
+#include <CORBA/Server.h>
+
+namespace Nirvana {
+namespace FS {
 namespace Core {
 
-CORBA::Object::_ref_type create_NameService ()
-{
-	if (ESIOP::is_system_domain ())
-		return CORBA::make_reference <NameService> ()->_this ();
-	else
-		return CORBA::Core::ORB::string_to_object (
-			"corbaloc::1.1@/NameService", CORBA::Internal::RepIdOf <CosNaming::NamingContextExt>::id);
-}
+typedef PortableServer::ObjectId (*GetRootId) (const IDL::String& root, bool& may_cache);
+
+struct Root {
+	std::string dir;
+	GetRootId factory;
+};
+
+typedef std::vector <Root> Roots;
 
 }
 }
+}
 
+#endif

@@ -42,6 +42,9 @@ namespace Core {
 class SysDomain : public CORBA::Core::SysServantImpl <SysDomain, SysDomainCore, Nirvana::SysDomain>
 {
 public:
+	SysDomain ()
+	{}
+
 	~SysDomain ()
 	{}
 

@@ -23,20 +23,44 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "NameService.h"
-#include "../ORB/ESIOP.h"
-#include "../ORB/ORB.h"
+#include "VirtualIterator.h"
 
 namespace CosNaming {
 namespace Core {
 
-CORBA::Object::_ref_type create_NameService ()
+NameComponent VirtualIterator::to_component (const Istring& s)
 {
-	if (ESIOP::is_system_domain ())
-		return CORBA::make_reference <NameService> ()->_this ();
-	else
-		return CORBA::Core::ORB::string_to_object (
-			"corbaloc::1.1@/NameService", CORBA::Internal::RepIdOf <CosNaming::NamingContextExt>::id);
+	NameComponent nc;
+	size_t dot = s.rfind ('.');
+	if (dot == Istring::npos)
+		nc.id (s);
+	else {
+		nc.id (s.substr (0, dot));
+		nc.kind (s.substr (dot + 1));
+	}
+	return nc;
+}
+
+bool VirtualIterator::next_one (CosNaming::Binding& b)
+{
+	Binding vb;
+	if (next_one (vb)) {
+		b.binding_name ().push_back (to_component (vb.name));
+		b.binding_type (vb.type);
+		return true;
+	}
+	return false;
+}
+
+bool VirtualIterator::next_n (uint32_t how_many, CosNaming::BindingList& bl)
+{
+	CosNaming::Binding b;
+	bool ret = false;
+	while (next_one (b)) {
+		bl.push_back (std::move (b));
+		ret = true;
+	}
+	return ret;
 }
 
 }

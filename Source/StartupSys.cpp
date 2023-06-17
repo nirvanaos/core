@@ -26,6 +26,7 @@
 #include "StartupSys.h"
 #include "initterm.h"
 #include "ORB/Services.h"
+#include "ORB/SysAdapterActivator.h"
 
 namespace Nirvana {
 namespace Core {
@@ -35,6 +36,7 @@ void StartupSys::run ()
 	try {
 		initialize ();
 		CORBA::Core::Services::bind (CORBA::Core::Services::SysDomain);
+		PortableServer::Core::SysAdapterActivator::initialize ();
 		Startup::run ();
 	} catch (...) {
 		on_exception ();

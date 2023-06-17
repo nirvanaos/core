@@ -1,6 +1,6 @@
 /// \file
 /*
-* Nirvana IDL support library.
+* Nirvana Core.
 *
 * This is a part of the Nirvana project.
 *
@@ -31,6 +31,7 @@
 #include "NamingContextBase.h"
 #include "ORB/SysServant.h"
 #include "ORB/system_services.h"
+#include "FileSystem.h"
 
 namespace CosNaming {
 namespace Core {
@@ -43,29 +44,46 @@ class NameService :
 public:
 	// NamingContext
 
-	void bind (Name& n, CORBA::Object::_ptr_type obj)
+	virtual void bind1 (Istring&& name, CORBA::Object::_ptr_type obj, Name& n) override
 	{
-		NamingContextBase::bind (n, obj);
+		if (file_system_.find (name))
+			throw NamingContext::AlreadyBound ();
+
+		NamingContextBase::bind1 (std::move (name), obj, n);
 	}
 
-	void rebind (Name& n, CORBA::Object::_ptr_type obj)
+	virtual void rebind1 (Istring&& name, CORBA::Object::_ptr_type obj, Name& n) override
 	{
-		NamingContextBase::rebind (n, obj);
+		if (file_system_.find (name))
+			throw NamingContext::NotFound (NamingContext::NotFoundReason::not_object, std::move (n));
+
+		return NamingContextBase::rebind1 (std::move (name), obj, n);
 	}
 
-	void bind_context (Name& n, NamingContext::_ptr_type nc)
+	virtual void bind_context1 (Istring&& name, NamingContext::_ptr_type nc, Name& n) override
 	{
-		NamingContextBase::bind_context (n, nc);
+		if (file_system_.find (name))
+			throw NamingContext::AlreadyBound ();
+
+		NamingContextBase::bind_context1 (std::move (name), nc, n);
 	}
 
-	void rebind_context (Name& n, NamingContext::_ptr_type nc)
+	virtual void rebind_context1 (Istring&& name, NamingContext::_ptr_type nc, Name& n) override
 	{
-		NamingContextBase::rebind_context (n, nc);
+		if (file_system_.find (name))
+			throw NamingContext::CannotProceed (_this (), std::move (n));
+
+		NamingContextBase::rebind_context1 (std::move (name), nc, n);
 	}
 
-	CORBA::Object::_ref_type resolve (Name& n)
+	virtual CORBA::Object::_ref_type resolve1 (const Istring& name, BindingType& type, Name& n) override
 	{
-		return NamingContextBase::resolve (n);
+		CORBA::Object::_ref_type obj = file_system_.resolve (name);
+		if (obj)
+			type = BindingType::ncontext;
+		else
+			obj = NamingContextBase::resolve1 (name, type, n);
+		return obj;
 	}
 
 	void unbind (Name& n)
@@ -83,9 +101,13 @@ public:
 		throw NotEmpty ();
 	}
 
-	void list (uint32_t how_many, BindingList& bl, BindingIterator::_ref_type& bi)
+	virtual std::unique_ptr <StackIterator> make_iterator () const
 	{
-		NamingContextBase::list (how_many, bl, bi);
+		std::unique_ptr <StackIterator> iter (std::make_unique <StackIterator> ());
+		iter->reserve (bindings_.size () + file_system_.root_cnt ());
+		get_bindings (*iter);
+		file_system_.get_roots (*iter);
+		return iter;
 	}
 
 	// NamingContextEx
@@ -111,6 +133,8 @@ public:
 		return resolve (name);
 	}
 
+private:
+	Nirvana::FS::Core::FileSystem file_system_;
 };
 
 }

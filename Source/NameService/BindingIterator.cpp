@@ -23,22 +23,21 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "NameService.h"
-#include "../ORB/ESIOP.h"
-#include "../ORB/ORB.h"
+#include "BindingIterator.h"
+#include "../Synchronized.h"
+#include "../MemContext.h"
+
+using namespace Nirvana::Core;
 
 namespace CosNaming {
 namespace Core {
 
-CORBA::Object::_ref_type create_NameService ()
+CosNaming::BindingIterator::_ref_type BindingIterator::create (std::unique_ptr <VirtualIterator>&& vi)
 {
-	if (ESIOP::is_system_domain ())
-		return CORBA::make_reference <NameService> ()->_this ();
-	else
-		return CORBA::Core::ORB::string_to_object (
-			"corbaloc::1.1@/NameService", CORBA::Internal::RepIdOf <CosNaming::NamingContextExt>::id);
+	SYNC_BEGIN (g_core_free_sync_context, &MemContext::current ())
+		return CORBA::make_reference <BindingIterator> (std::move (vi))->_this ();
+	SYNC_END ()
 }
 
 }
 }
-

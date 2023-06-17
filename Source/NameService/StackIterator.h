@@ -1,3 +1,4 @@
+/// \file
 /*
 * Nirvana Core.
 *
@@ -23,22 +24,39 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "NameService.h"
-#include "../ORB/ESIOP.h"
-#include "../ORB/ORB.h"
+#ifndef NIRVANA_NAMESERVICE_STACKITERATOR_H_
+#define NIRVANA_NAMESERVICE_STACKITERATOR_H_
+#pragma once
+
+#include "VirtualIterator.h"
 
 namespace CosNaming {
 namespace Core {
 
-CORBA::Object::_ref_type create_NameService ()
+class StackIterator : public VirtualIterator
 {
-	if (ESIOP::is_system_domain ())
-		return CORBA::make_reference <NameService> ()->_this ();
-	else
-		return CORBA::Core::ORB::string_to_object (
-			"corbaloc::1.1@/NameService", CORBA::Internal::RepIdOf <CosNaming::NamingContextExt>::id);
-}
+public:
+	void reserve (size_t size)
+	{
+		stack_.reserve (size);
+	}
+
+	virtual bool end () const noexcept override
+	{
+		return stack_.empty ();
+	}
+
+	void push (const Istring& name, BindingType type);
+	void push (Istring&& name, BindingType type);
+
+protected:
+	virtual bool next_one (Binding& b) override;
+
+private:
+	std::vector <Binding> stack_;
+};
 
 }
 }
 
+#endif

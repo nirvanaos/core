@@ -23,22 +23,34 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "NameService.h"
-#include "../ORB/ESIOP.h"
-#include "../ORB/ORB.h"
+#include "FileSystem.h"
+#include "../ORB/SysAdapterActivator.h"
 
-namespace CosNaming {
+using namespace CORBA;
+using namespace PortableServer;
+using CORBA::Core::Services;
+using PortableServer::Core::SysAdapterActivator;
+
+namespace Nirvana {
+namespace FS {
 namespace Core {
 
-CORBA::Object::_ref_type create_NameService ()
+POA::_ref_type FileSystem::get_adapter ()
 {
-	if (ESIOP::is_system_domain ())
-		return CORBA::make_reference <NameService> ()->_this ();
-	else
-		return CORBA::Core::ORB::string_to_object (
-			"corbaloc::1.1@/NameService", CORBA::Internal::RepIdOf <CosNaming::NamingContextExt>::id);
+	if (!adapter_) {
+		adapter_ = POA::_narrow (Services::bind (Services::RootPOA))->find_POA (
+			SysAdapterActivator::filesystem_adapter_name_, true);
+	}
+	return adapter_;
+}
+
+Object::_ref_type FileSystem::get_reference (const ObjectId& id)
+{
+	return get_adapter ()->create_reference_with_id (id,
+		get_binding_type (id) == CosNaming::BindingType::nobject ?
+		Internal::RepIdOf <File>::id : Internal::RepIdOf <Dir>::id);
 }
 
 }
 }
-
+}

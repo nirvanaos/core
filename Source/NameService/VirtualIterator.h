@@ -1,3 +1,4 @@
+/// \file
 /*
 * Nirvana Core.
 *
@@ -23,22 +24,49 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "NameService.h"
-#include "../ORB/ESIOP.h"
-#include "../ORB/ORB.h"
+#ifndef NIRVANA_NAMESERVICE_VIRTUALITERATOR_H_
+#define NIRVANA_NAMESERVICE_VIRTUALITERATOR_H_
+#pragma once
+
+#include <CORBA/Server.h>
+#include <CORBA/CosNaming.h>
+#include "../UserObject.h"
 
 namespace CosNaming {
 namespace Core {
 
-CORBA::Object::_ref_type create_NameService ()
+class NIRVANA_NOVTABLE VirtualIterator :
+	public Nirvana::Core::UserObject
 {
-	if (ESIOP::is_system_domain ())
-		return CORBA::make_reference <NameService> ()->_this ();
-	else
-		return CORBA::Core::ORB::string_to_object (
-			"corbaloc::1.1@/NameService", CORBA::Internal::RepIdOf <CosNaming::NamingContextExt>::id);
-}
+public:
+	static NameComponent to_component (const Istring& s);
+
+	virtual bool end () const noexcept = 0;
+	bool next_one (CosNaming::Binding& b);
+	bool next_n (uint32_t how_many, CosNaming::BindingList& bl);
+
+protected:
+	struct Binding
+	{
+		Istring name;
+		BindingType type;
+
+		Binding ()
+		{}
+
+		Binding (const Istring& n, BindingType t) :
+			name (n), type (t)
+		{}
+
+		Binding (Istring&& n, BindingType t) :
+			name (std::move (n)), type (t)
+		{}
+	};
+
+	virtual bool next_one (Binding& b) = 0;
+};
 
 }
 }
 
+#endif

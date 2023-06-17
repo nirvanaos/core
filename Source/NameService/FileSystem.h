@@ -1,6 +1,6 @@
 /// \file
 /*
-* Nirvana IDL support library.
+* Nirvana Core.
 *
 * This is a part of the Nirvana project.
 *
@@ -29,68 +29,102 @@
 #pragma once
 
 #include <CORBA/Server.h>
-#include <CORBA/CosNaming_s.h>
+#include <Port/FileSystem.h>
+#include "../MapUnorderedUnstable.h"
+#include "StackIterator.h"
 
-namespace CosNaming {
+namespace Nirvana {
+namespace FS {
 namespace Core {
 
-/// File system root
-class FileSystem :
-	public CORBA::servant_traits <NamingContext>::Servant <FileSystem>
+class FileSystem : private Port::FileSystem
 {
 public:
-	void bind (Name& n, CORBA::Object::_ptr_type obj)
+	FileSystem ()
 	{
-		throw CORBA::NO_IMPLEMENT ();
+		Roots roots = Port::FileSystem::get_roots ();
+		for (auto& r : roots) {
+			roots_.emplace (std::move (r.dir), r.factory);
+		}
 	}
 
-	void rebind (Name& n, CORBA::Object::_ptr_type obj)
+	bool find (const IDL::String& name) const
 	{
-		throw CORBA::NO_IMPLEMENT ();
+		return roots_.find (name) != roots_.end ();
 	}
 
-	void bind_context (Name& n, NamingContext::_ptr_type nc)
+	static PortableServer::ObjectId get_unique_id (const CosNaming::Name& name)
 	{
-		throw CORBA::NO_IMPLEMENT ();
+		return Port::FileSystem::get_unique_id (name);
 	}
 
-	void rebind_context (Name& n, NamingContext::_ptr_type nc)
+	static CosNaming::BindingType get_binding_type (const PortableServer::ObjectId& id)
 	{
-		throw CORBA::NO_IMPLEMENT ();
+		return Port::FileSystem::get_binding_type (id);
 	}
 
-	CORBA::Object::_ref_type resolve (const Name& n)
+	static PortableServer::ServantBase::_ref_type incarnate (const PortableServer::ObjectId& id)
 	{
-		throw CORBA::NO_IMPLEMENT ();
+		return Port::FileSystem::incarnate (id);
 	}
 
-	void unbind (const Name& n)
+	static void etherealize (const PortableServer::ObjectId& id,
+		PortableServer::ServantBase::_ptr_type servant)
 	{
-		throw CORBA::NO_IMPLEMENT ();
+		Port::FileSystem::etherealize (id, servant);
 	}
 
-	NamingContext::_ref_type new_context ()
+	CORBA::Object::_ref_type resolve (const IDL::String& name)
 	{
-		throw CORBA::NO_IMPLEMENT ();
+		CORBA::Object::_ref_type obj;
+		auto it = roots_.find (name);
+		if (it != roots_.end ()) {
+			if (it->second.cached)
+				obj = it->second.cached;
+			else {
+				bool cache;
+				obj = get_reference ((it->second.factory) (name, cache));
+				if (cache)
+					it->second.cached = obj;
+			}
+		}
+		return obj;
 	}
 
-	NamingContext::_ref_type bind_new_context (Name& n)
+	size_t root_cnt () const noexcept
 	{
-		throw CORBA::NO_IMPLEMENT ();
+		return roots_.size ();
 	}
 
-	void destroy ()
+	void get_roots (CosNaming::Core::StackIterator& iter) const
 	{
-		throw CORBA::NO_IMPLEMENT ();
+		for (const auto& r : roots_) {
+			iter.push (r.first, CosNaming::BindingType::ncontext);
+		}
 	}
 
-	void list (uint32_t how_many, BindingList& bl, BindingIterator::_ref_type& bi)
-	{
-		throw CORBA::NO_IMPLEMENT ();
-	}
+private:
+	CORBA::Object::_ref_type get_reference (const PortableServer::ObjectId& id);
+	PortableServer::POA::_ref_type get_adapter ();
 
+private:
+	struct Root {
+		GetRootId factory;
+		CORBA::Object::_ref_type cached;
+
+		Root (GetRootId f) :
+			factory (f)
+		{}
+	};
+
+	typedef Nirvana::Core::MapUnorderedUnstable <std::string, Root> RootMap;
+
+	RootMap roots_;
+
+	PortableServer::POA::_ref_type adapter_;
 };
 
+}
 }
 }
 
