@@ -28,43 +28,28 @@
 #define NIRVANA_NAMESERVICE_NAMINGCONTEXTIMPL_H_
 #pragma once
 
-#include <CORBA/CORBA.h>
-#include <CORBA/CosNaming.h>
+#include "NamingContextBase.h"
 #include "../MapUnorderedUnstable.h"
 #include "../UserAllocator.h"
-#include <memory>
 
 namespace CosNaming {
 namespace Core {
 
-class Iterator;
 class IteratorStack;
 
-class NamingContextImpl
+class NIRVANA_NOVTABLE NamingContextImpl : public NamingContextBase
 {
 public:
-	void bind (Name& n, CORBA::Object::_ptr_type obj);
-	virtual void bind1 (Istring&& name, CORBA::Object::_ptr_type obj, Name& n);
-
-	void rebind (Name& n, CORBA::Object::_ptr_type obj);
-	virtual void rebind1 (Istring&& name, CORBA::Object::_ptr_type obj, Name& n);
-
-	void bind_context (Name& n, NamingContext::_ptr_type nc);
-	virtual void bind_context1 (Istring&& name, NamingContext::_ptr_type nc, Name& n);
-
-	void rebind_context (Name& n, NamingContext::_ptr_type nc);
-	virtual void rebind_context1 (Istring&& name, NamingContext::_ptr_type nc, Name& n);
-
-	CORBA::Object::_ref_type resolve (Name& n);
-	virtual CORBA::Object::_ref_type resolve1 (const Istring& name, BindingType& type, Name& n);
-
-	void unbind (Name& n);
-	virtual void unbind1 (const Istring& name, Name& n);
+	virtual void bind1 (Istring&& name, CORBA::Object::_ptr_type obj, Name& n) override;
+	virtual void rebind1 (Istring&& name, CORBA::Object::_ptr_type obj, Name& n) override;
+	virtual void bind_context1 (Istring&& name, NamingContext::_ptr_type nc, Name& n) override;
+	virtual void rebind_context1 (Istring&& name, NamingContext::_ptr_type nc, Name& n) override;
+	virtual CORBA::Object::_ref_type resolve1 (const Istring& name, BindingType& type, Name& n) override;
+	virtual void unbind1 (const Istring& name, Name& n) override;
 
 	NamingContext::_ref_type new_context ();
 
-	NamingContext::_ref_type bind_new_context (Name& n);
-	virtual NamingContext::_ref_type bind_new_context1 (Istring&& name, Name& n);
+	virtual NamingContext::_ref_type bind_new_context1 (Istring&& name, Name& n) override;
 
 	void destroy ()
 	{
@@ -72,22 +57,14 @@ public:
 			throw NamingContext::NotEmpty ();
 	}
 
-	void list (uint32_t how_many, BindingList& bl, CosNaming::BindingIterator::_ref_type & bi) const;
 	virtual std::unique_ptr <Iterator> make_iterator () const;
-
-	static Istring to_string (const NameComponent& nc);
-	static void check_name (const Name& n);
 
 protected:
 	NamingContextImpl ();
 	~NamingContextImpl ();
 
 	void get_bindings (IteratorStack& iter) const;
-	virtual NamingContext::_ref_type create_context1 (const Istring& name, Name& n, bool& created);
-
-private:
-	NamingContext::_ref_type resolve_context (Name& n);
-	NamingContext::_ref_type create_context (Name& n, Istring& created_name);
+	virtual NamingContext::_ref_type create_context1 (Istring&& name, Name& n, bool& created) override;
 
 protected:
 	struct MapVal
@@ -100,7 +77,8 @@ protected:
 			binding_type (type)
 		{}
 
-		MapVal ()
+		MapVal () :
+			binding_type (BindingType::nobject)
 		{}
 	};
 

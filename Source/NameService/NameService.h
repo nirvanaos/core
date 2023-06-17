@@ -51,7 +51,7 @@ public:
 	virtual void bind_context1 (Istring&& name, NamingContext::_ptr_type nc, Name& n) override;
 	virtual void rebind_context1 (Istring&& name, NamingContext::_ptr_type nc, Name& n) override;
 	virtual CORBA::Object::_ref_type resolve1 (const Istring& name, BindingType& type, Name& n) override;
-	virtual NamingContext::_ref_type create_context1 (const Istring& name, Name& n, bool& created) override;
+	virtual NamingContext::_ref_type create_context1 (Istring&& name, Name& n, bool& created) override;
 	virtual NamingContext::_ref_type bind_new_context1 (Istring&& name, Name& n) override;
 	virtual std::unique_ptr <Iterator> make_iterator () const override;
 

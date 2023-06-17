@@ -83,13 +83,13 @@ Object::_ref_type NameService::resolve1 (const Istring& name, BindingType& type,
 	return obj;
 }
 
-NamingContext::_ref_type NameService::create_context1 (const Istring& name, Name& n, bool& created)
+NamingContext::_ref_type NameService::create_context1 (Istring&& name, Name& n, bool& created)
 {
 	NamingContext::_ref_type nc = file_system_.resolve_root (name);
 	if (nc)
 		created = false;
 	else
-		nc = Base::create_context1 (name, n, created);
+		nc = Base::create_context1 (std::move (name), n, created);
 	return nc;
 }
 
