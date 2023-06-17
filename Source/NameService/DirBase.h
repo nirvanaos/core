@@ -81,6 +81,7 @@ public:
 		CORBA::Internal::Interface* _env)
 	{
 		CORBA::Internal::set_BAD_OPERATION (_env);
+		return nullptr;
 	}
 
 	CosNaming::NamingContext::_ref_type bind_new_context (CosNaming::Name& n)

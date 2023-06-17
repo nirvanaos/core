@@ -57,7 +57,7 @@ public:
 			throw NamingContext::NotEmpty ();
 	}
 
-	virtual std::unique_ptr <Iterator> make_iterator () const;
+	virtual std::unique_ptr <Iterator> make_iterator () const override;
 
 protected:
 	NamingContextImpl ();
