@@ -24,6 +24,8 @@
 *  popov.nirvana@gmail.com
 */
 #include "NamingContextImpl.h"
+#include <CORBA/Server.h>
+#include <CORBA/CosNaming_s.h>
 #include "IteratorStack.h"
 
 using namespace CORBA;
@@ -162,20 +164,30 @@ void NamingContextImpl::rebind_context1 (Istring&& name, NamingContext::_ptr_typ
 	}
 }
 
-NamingContext::_ref_type NamingContextImpl::create_context (Name& n, Istring& created)
+NamingContext::_ref_type NamingContextImpl::create_context (Name& n, Istring& created_name)
 {
-	auto ins = bindings_.emplace (to_string (n.front ()), MapVal (Object::_nil (), BindingType::ncontext));
-	if (ins.second) {
+	Istring name = to_string (n.front ());
+	bool created;
+	NamingContext::_ref_type nc = create_context1 (name, n, created);
+	if (created)
+		created_name = std::move (name);
+	n.erase (n.begin ());
+	return nc;
+}
+
+NamingContext::_ref_type NamingContextImpl::create_context1 (const Istring& name, Name& n, bool& created)
+{
+	auto ins = bindings_.emplace (name, MapVal (Object::_nil (), BindingType::ncontext));
+	if ((created = ins.second)) {
 		try {
 			ins.first->second.object = new_context ();
-			created = to_string (n.front ());
 		} catch (...) {
 			bindings_.erase (ins.first);
 			throw;
 		}
 	} else if (ins.first->second.binding_type != BindingType::ncontext)
-		throw NamingContext::NotFound (NamingContext::NotFoundReason::not_context, n);
-	n.erase (n.begin ());
+		throw NamingContext::NotFound (NamingContext::NotFoundReason::not_context, std::move (n));
+
 	return NamingContext::_narrow (ins.first->second.object);
 }
 
@@ -205,7 +217,7 @@ NamingContext::_ref_type NamingContextImpl::resolve_context (Name& n)
 		child = NamingContext::_narrow (obj);
 		if (!child) {
 			cn.erase (cn.begin (), cn.begin () + (cn.size () - 1));
-			throw NamingContext::NotFound (NamingContext::NotFoundReason::not_context, cn);
+			throw NamingContext::NotFound (NamingContext::NotFoundReason::not_context, std::move (cn));
 		}
 		return child;
 	} else
@@ -239,16 +251,20 @@ Object::_ref_type NamingContextImpl::resolve1 (const Istring& name, BindingType&
 
 void NamingContextImpl::unbind (Name& n)
 {
-	if (n.empty ())
-		throw NamingContext::InvalidName ();
+	check_name (n);
 
-	if (n.size () == 1) {
-		auto it = bindings_.find (to_string (n.front ()));
-		if (it == bindings_.end ())
-			throw NamingContext::NotFound (NamingContext::NotFoundReason::missing_node, n);
-		bindings_.erase (it);
-	} else
+	if (n.size () == 1)
+		unbind1 (to_string (n.front ()), n);
+	else
 		resolve_context (n)->unbind (n);
+}
+
+void NamingContextImpl::unbind1 (const Istring& name, Name& n)
+{
+	auto it = bindings_.find (name);
+	if (it == bindings_.end ())
+		throw NamingContext::NotFound (NamingContext::NotFoundReason::missing_node, std::move (n));
+	bindings_.erase (it);
 }
 
 NamingContext::_ref_type NamingContextImpl::new_context ()
@@ -258,22 +274,11 @@ NamingContext::_ref_type NamingContextImpl::new_context ()
 
 NamingContext::_ref_type NamingContextImpl::bind_new_context (Name& n)
 {
-	if (n.empty ())
-		throw NamingContext::InvalidName ();
+	check_name (n);
 
-	if (n.size () == 1) {
-		auto ins = bindings_.emplace (to_string (n.front ()), MapVal (Object::_nil (), BindingType::ncontext));
-		if (ins.second) {
-			try {
-				ins.first->second.object = new_context ();
-			} catch (...) {
-				bindings_.erase (ins.first);
-				throw;
-			}
-			return NamingContext::_narrow (ins.first->second.object);
-		} else
-			throw NamingContext::AlreadyBound ();
-	} else {
+	if (n.size () == 1)
+		return bind_new_context1 (to_string (n.front ()), n);
+	else {
 		Istring created;
 		try {
 			return create_context (n, created)->bind_new_context (n);
@@ -283,6 +288,21 @@ NamingContext::_ref_type NamingContextImpl::bind_new_context (Name& n)
 			throw;
 		}
 	}
+}
+
+NamingContext::_ref_type NamingContextImpl::bind_new_context1 (Istring&& name, Name& n)
+{
+	auto ins = bindings_.emplace (std::move (name), MapVal (Object::_nil (), BindingType::ncontext));
+	if (ins.second) {
+		try {
+			ins.first->second.object = new_context ();
+		} catch (...) {
+			bindings_.erase (ins.first);
+			throw;
+		}
+		return NamingContext::_narrow (ins.first->second.object);
+	} else
+		throw NamingContext::AlreadyBound ();
 }
 
 void NamingContextImpl::list (uint32_t how_many, BindingList& bl,

@@ -44,11 +44,23 @@ POA::_ref_type FileSystem::get_adapter ()
 	return adapter_;
 }
 
-Object::_ref_type FileSystem::get_reference (const ObjectId& id)
+Object::_ref_type FileSystem::get_reference (const ObjectId& id, Internal::String_in iid)
 {
-	return get_adapter ()->create_reference_with_id (id,
-		get_binding_type (id) == CosNaming::BindingType::nobject ?
-		Internal::RepIdOf <File>::id : Internal::RepIdOf <Dir>::id);
+	return get_adapter ()->create_reference_with_id (id, iid);
+}
+
+Dir::_ref_type FileSystem::get_dir (const ObjectId& id)
+{
+	Dir::_ref_type dir = Dir::_narrow (get_reference (id, Internal::RepIdOf <Dir>::id));
+	assert (dir);
+	return dir;
+}
+
+File::_ref_type FileSystem::get_file (const ObjectId& id)
+{
+	File::_ref_type file = File::_narrow (get_reference (id, Internal::RepIdOf <File>::id));
+	assert (file);
+	return file;
 }
 
 }

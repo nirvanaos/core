@@ -28,8 +28,8 @@
 #define NIRVANA_NAMESERVICE_NAMINGCONTEXTIMPL_H_
 #pragma once
 
-#include <CORBA/Server.h>
-#include <CORBA/CosNaming_s.h>
+#include <CORBA/CORBA.h>
+#include <CORBA/CosNaming.h>
 #include "../MapUnorderedUnstable.h"
 #include "../UserAllocator.h"
 #include <memory>
@@ -59,8 +59,12 @@ public:
 	virtual CORBA::Object::_ref_type resolve1 (const Istring& name, BindingType& type, Name& n);
 
 	void unbind (Name& n);
+	virtual void unbind1 (const Istring& name, Name& n);
+
 	NamingContext::_ref_type new_context ();
+
 	NamingContext::_ref_type bind_new_context (Name& n);
+	virtual NamingContext::_ref_type bind_new_context1 (Istring&& name, Name& n);
 
 	void destroy ()
 	{
@@ -79,10 +83,11 @@ protected:
 	~NamingContextImpl ();
 
 	void get_bindings (IteratorStack& iter) const;
+	virtual NamingContext::_ref_type create_context1 (const Istring& name, Name& n, bool& created);
 
 private:
 	NamingContext::_ref_type resolve_context (Name& n);
-	NamingContext::_ref_type create_context (Name& n, Istring& created);
+	NamingContext::_ref_type create_context (Name& n, Istring& created_name);
 
 protected:
 	struct MapVal

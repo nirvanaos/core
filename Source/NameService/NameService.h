@@ -46,70 +46,18 @@ class NameService :
 public:
 	// NamingContext
 
-	virtual void bind1 (Istring&& name, CORBA::Object::_ptr_type obj, Name& n) override
-	{
-		if (file_system_.find (name))
-			throw NamingContext::AlreadyBound ();
-
-		Base::bind1 (std::move (name), obj, n);
-	}
-
-	virtual void rebind1 (Istring&& name, CORBA::Object::_ptr_type obj, Name& n) override
-	{
-		if (file_system_.find (name))
-			throw NamingContext::NotFound (NamingContext::NotFoundReason::not_object, std::move (n));
-
-		return Base::rebind1 (std::move (name), obj, n);
-	}
-
-	virtual void bind_context1 (Istring&& name, NamingContext::_ptr_type nc, Name& n) override
-	{
-		if (file_system_.find (name))
-			throw NamingContext::AlreadyBound ();
-
-		Base::bind_context1 (std::move (name), nc, n);
-	}
-
-	virtual void rebind_context1 (Istring&& name, NamingContext::_ptr_type nc, Name& n) override
-	{
-		if (file_system_.find (name))
-			throw NamingContext::CannotProceed (_this (), std::move (n));
-
-		Base::rebind_context1 (std::move (name), nc, n);
-	}
-
-	virtual CORBA::Object::_ref_type resolve1 (const Istring& name, BindingType& type, Name& n) override
-	{
-		CORBA::Object::_ref_type obj = file_system_.resolve (name);
-		if (obj)
-			type = BindingType::ncontext;
-		else
-			obj = Base::resolve1 (name, type, n);
-		return obj;
-	}
-
-	void unbind (Name& n)
-	{
-		Base::unbind (n);
-	}
-
-	NamingContext::_ref_type bind_new_context (Name& n)
-	{
-		return Base::bind_new_context (n);
-	}
+	virtual void bind1 (Istring&& name, CORBA::Object::_ptr_type obj, Name& n) override;
+	virtual void rebind1 (Istring&& name, CORBA::Object::_ptr_type obj, Name& n) override;
+	virtual void bind_context1 (Istring&& name, NamingContext::_ptr_type nc, Name& n) override;
+	virtual void rebind_context1 (Istring&& name, NamingContext::_ptr_type nc, Name& n) override;
+	virtual CORBA::Object::_ref_type resolve1 (const Istring& name, BindingType& type, Name& n) override;
+	virtual NamingContext::_ref_type create_context1 (const Istring& name, Name& n, bool& created) override;
+	virtual NamingContext::_ref_type bind_new_context1 (Istring&& name, Name& n) override;
+	virtual std::unique_ptr <Iterator> make_iterator () const override;
 
 	static void destroy ()
 	{
 		throw NotEmpty ();
-	}
-
-	virtual std::unique_ptr <Iterator> make_iterator () const
-	{
-		auto iter (std::make_unique <IteratorStack> ());
-		iter->reserve (bindings_.size () + file_system_.root_cnt ());
-		get_bindings (*iter);
-		file_system_.get_roots (*iter);
-		return iter;
 	}
 
 	// NamingContextEx

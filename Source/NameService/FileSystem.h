@@ -74,21 +74,21 @@ public:
 		Port::FileSystem::etherealize (id, servant);
 	}
 
-	CORBA::Object::_ref_type resolve (const IDL::String& name)
+	Dir::_ref_type resolve_root (const IDL::String& name)
 	{
-		CORBA::Object::_ref_type obj;
+		Dir::_ref_type dir;
 		auto it = roots_.find (name);
 		if (it != roots_.end ()) {
 			if (it->second.cached)
-				obj = it->second.cached;
+				dir = it->second.cached;
 			else {
 				bool cache;
-				obj = get_reference ((it->second.factory) (name, cache));
+				dir = get_dir ((it->second.factory) (name, cache));
 				if (cache)
-					it->second.cached = obj;
+					it->second.cached = dir;
 			}
 		}
-		return obj;
+		return dir;
 	}
 
 	size_t root_cnt () const noexcept
@@ -104,13 +104,15 @@ public:
 	}
 
 private:
-	CORBA::Object::_ref_type get_reference (const PortableServer::ObjectId& id);
+	CORBA::Object::_ref_type get_reference (const PortableServer::ObjectId& id, CORBA::Internal::String_in iid);
+	Dir::_ref_type get_dir (const PortableServer::ObjectId& id);
+	File::_ref_type get_file (const PortableServer::ObjectId& id);
 	PortableServer::POA::_ref_type get_adapter ();
 
 private:
 	struct Root {
 		GetRootId factory;
-		CORBA::Object::_ref_type cached;
+		Dir::_ref_type cached;
 
 		Root (GetRootId f) :
 			factory (f)
