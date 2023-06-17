@@ -24,8 +24,8 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_NAMESERVICE_FILESYSTEM_H_
-#define NIRVANA_NAMESERVICE_FILESYSTEM_H_
+#ifndef NIRVANA_FS_CORE_FILESYSTEM_H_
+#define NIRVANA_FS_CORE_FILESYSTEM_H_
 #pragma once
 
 #include <CORBA/Server.h>

@@ -24,8 +24,8 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_CORE_PORT_FILESYSTEMROOTS_H_
-#define NIRVANA_CORE_PORT_FILESYSTEMROOTS_H_
+#ifndef NIRVANA_FS_CORE_ROOTS_H_
+#define NIRVANA_FS_CORE_ROOTS_H_
 #pragma once
 
 #include <CORBA/Server.h>

@@ -28,7 +28,7 @@
 #define NIRVANA_NAMESERVICE_NAMESERVICE_H_
 #pragma once
 
-#include "NamingContextBase.h"
+#include "NamingContextImpl.h"
 #include "ORB/SysServant.h"
 #include "ORB/system_services.h"
 #include "FileSystem.h"
@@ -39,8 +39,10 @@ namespace Core {
 /// Naming Service root
 class NameService : 
 	public CORBA::Core::SysServantImpl <NameService, NamingContextExt, NamingContext>,
-	public NamingContextBase
+	public NamingContextImpl
 {
+	typedef NamingContextImpl Base;
+
 public:
 	// NamingContext
 
@@ -49,7 +51,7 @@ public:
 		if (file_system_.find (name))
 			throw NamingContext::AlreadyBound ();
 
-		NamingContextBase::bind1 (std::move (name), obj, n);
+		Base::bind1 (std::move (name), obj, n);
 	}
 
 	virtual void rebind1 (Istring&& name, CORBA::Object::_ptr_type obj, Name& n) override
@@ -57,7 +59,7 @@ public:
 		if (file_system_.find (name))
 			throw NamingContext::NotFound (NamingContext::NotFoundReason::not_object, std::move (n));
 
-		return NamingContextBase::rebind1 (std::move (name), obj, n);
+		return Base::rebind1 (std::move (name), obj, n);
 	}
 
 	virtual void bind_context1 (Istring&& name, NamingContext::_ptr_type nc, Name& n) override
@@ -65,7 +67,7 @@ public:
 		if (file_system_.find (name))
 			throw NamingContext::AlreadyBound ();
 
-		NamingContextBase::bind_context1 (std::move (name), nc, n);
+		Base::bind_context1 (std::move (name), nc, n);
 	}
 
 	virtual void rebind_context1 (Istring&& name, NamingContext::_ptr_type nc, Name& n) override
@@ -73,7 +75,7 @@ public:
 		if (file_system_.find (name))
 			throw NamingContext::CannotProceed (_this (), std::move (n));
 
-		NamingContextBase::rebind_context1 (std::move (name), nc, n);
+		Base::rebind_context1 (std::move (name), nc, n);
 	}
 
 	virtual CORBA::Object::_ref_type resolve1 (const Istring& name, BindingType& type, Name& n) override
@@ -82,18 +84,18 @@ public:
 		if (obj)
 			type = BindingType::ncontext;
 		else
-			obj = NamingContextBase::resolve1 (name, type, n);
+			obj = Base::resolve1 (name, type, n);
 		return obj;
 	}
 
 	void unbind (Name& n)
 	{
-		NamingContextBase::unbind (n);
+		Base::unbind (n);
 	}
 
 	NamingContext::_ref_type bind_new_context (Name& n)
 	{
-		return NamingContextBase::bind_new_context (n);
+		return Base::bind_new_context (n);
 	}
 
 	static void destroy ()

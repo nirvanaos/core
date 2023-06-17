@@ -24,33 +24,26 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_FS_CORE_FILEACTIVATOR_H_
-#define NIRVANA_FS_CORE_FILEACTIVATOR_H_
+#ifndef NIRVANA_FS_CORE_ITEMBASE_H_
+#define NIRVANA_FS_CORE_ITEMBASE_H_
 #pragma once
 
 #include <CORBA/Server.h>
-#include <CORBA/PortableServer_s.h>
-#include "FileSystem.h"
+#include <Nirvana/FS_s.h>
 
 namespace Nirvana {
 namespace FS {
 namespace Core {
 
-class FileActivator :
-	public CORBA::servant_traits <PortableServer::ServantActivator>::Servant <FileActivator>
+class ItemBase
 {
 public:
-	PortableServer::ServantBase::_ref_type incarnate (const PortableServer::ObjectId& id,
-		PortableServer::POA::_ref_type adapter)
-	{
-		return FileSystem::incarnate (id);
-	}
+  virtual void get_file_times (FileTimes& times)
+  {
+    zero (times);
+  }
 
-	void etherealize (const PortableServer::ObjectId& id, PortableServer::POA::_ptr_type adapter,
-		PortableServer::ServantBase::_ptr_type servant, bool cleanup_in_progress, bool remaining_activations)
-	{
-		FileSystem::etherealize (id, servant);
-	}
+  virtual uint16_t permissions () = 0;
 };
 
 }

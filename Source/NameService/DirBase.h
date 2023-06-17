@@ -24,33 +24,27 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_FS_CORE_FILEACTIVATOR_H_
-#define NIRVANA_FS_CORE_FILEACTIVATOR_H_
+#ifndef NIRVANA_FS_CORE_DIRBASE_H_
+#define NIRVANA_FS_CORE_DIRBASE_H_
 #pragma once
 
-#include <CORBA/Server.h>
-#include <CORBA/PortableServer_s.h>
-#include "FileSystem.h"
+#include "ItemBase.h"
 
 namespace Nirvana {
 namespace FS {
 namespace Core {
 
-class FileActivator :
-	public CORBA::servant_traits <PortableServer::ServantActivator>::Servant <FileActivator>
+class DirBase : public CORBA::servant_traits <Nirvana::FS::Dir>::Servant <DirBase>
 {
 public:
-	PortableServer::ServantBase::_ref_type incarnate (const PortableServer::ObjectId& id,
-		PortableServer::POA::_ref_type adapter)
+	static FileType type () noexcept
 	{
-		return FileSystem::incarnate (id);
+		return FileType::directory;
 	}
 
-	void etherealize (const PortableServer::ObjectId& id, PortableServer::POA::_ptr_type adapter,
-		PortableServer::ServantBase::_ptr_type servant, bool cleanup_in_progress, bool remaining_activations)
-	{
-		FileSystem::etherealize (id, servant);
-	}
+	virtual void bind (CosNaming::Name& n, CORBA::Object::_ptr_type obj) = 0;
+	virtual void rebind (CosNaming::Name& n, CORBA::Object::_ptr_type obj) = 0;
+	virtual void bind_context (CosNaming::Name& n, CosNaming::NamingContext::_ptr_type nc) = 0;
 };
 
 }

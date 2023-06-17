@@ -23,7 +23,7 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "NamingContextBase.h"
+#include "NamingContextImpl.h"
 #include "BindingIterator.h"
 
 using namespace CORBA;
@@ -34,17 +34,17 @@ namespace Core {
 /// Default implementation of the NamingContex interface.
 class NamingContextDefault :
 	public servant_traits <NamingContext>::Servant <NamingContextDefault>,
-	public NamingContextBase
+	public NamingContextImpl
 {
 public:
 	void destroy ()
 	{
-		NamingContextBase::destroy ();
+		NamingContextImpl::destroy ();
 		_default_POA ()->deactivate_object (_default_POA ()->servant_to_id (this));
 	}
 };
 
-Istring NamingContextBase::to_string (const NameComponent& nc)
+Istring NamingContextImpl::to_string (const NameComponent& nc)
 {
 	Istring name = nc.id ();
 	name += '.';
@@ -52,13 +52,13 @@ Istring NamingContextBase::to_string (const NameComponent& nc)
 	return name;
 }
 
-void NamingContextBase::check_name (const Name& n)
+void NamingContextImpl::check_name (const Name& n)
 {
 	if (n.empty ())
 		throw NamingContext::InvalidName ();
 }
 
-void NamingContextBase::bind (Name& n, Object::_ptr_type obj)
+void NamingContextImpl::bind (Name& n, Object::_ptr_type obj)
 {
 	check_name (n);
 
@@ -68,14 +68,14 @@ void NamingContextBase::bind (Name& n, Object::_ptr_type obj)
 		resolve_context (n)->bind (n, obj);
 }
 
-void NamingContextBase::bind1 (Istring&& name, Object::_ptr_type obj, Name& n)
+void NamingContextImpl::bind1 (Istring&& name, Object::_ptr_type obj, Name& n)
 {
 	auto ins = bindings_.emplace (std::move (name), MapVal (obj, BindingType::nobject));
 	if (!ins.second)
 		throw NamingContext::AlreadyBound ();
 }
 
-void NamingContextBase::rebind (Name& n, Object::_ptr_type obj)
+void NamingContextImpl::rebind (Name& n, Object::_ptr_type obj)
 {
 	check_name (n);
 
@@ -85,7 +85,7 @@ void NamingContextBase::rebind (Name& n, Object::_ptr_type obj)
 		resolve_context (n)->rebind (n, obj);
 }
 
-void NamingContextBase::rebind1 (Istring&& name, CORBA::Object::_ptr_type obj, Name& n)
+void NamingContextImpl::rebind1 (Istring&& name, CORBA::Object::_ptr_type obj, Name& n)
 {
 	auto ins = bindings_.emplace (std::move (name), MapVal (obj, BindingType::nobject));
 	if (!ins.second) {
@@ -96,7 +96,7 @@ void NamingContextBase::rebind1 (Istring&& name, CORBA::Object::_ptr_type obj, N
 	}
 }
 
-void NamingContextBase::bind_context (Name& n, NamingContext::_ptr_type nc)
+void NamingContextImpl::bind_context (Name& n, NamingContext::_ptr_type nc)
 {
 	check_name (n);
 
@@ -117,14 +117,14 @@ void NamingContextBase::bind_context (Name& n, NamingContext::_ptr_type nc)
 	}
 }
 
-void NamingContextBase::bind_context1 (Istring&& name, NamingContext::_ptr_type nc, Name& n)
+void NamingContextImpl::bind_context1 (Istring&& name, NamingContext::_ptr_type nc, Name& n)
 {
 	auto ins = bindings_.emplace (std::move (name), MapVal (nc, BindingType::ncontext));
 	if (!ins.second)
 		throw NamingContext::AlreadyBound ();
 }
 
-void NamingContextBase::rebind_context (Name& n, NamingContext::_ptr_type nc)
+void NamingContextImpl::rebind_context (Name& n, NamingContext::_ptr_type nc)
 {
 	check_name (n);
 
@@ -145,7 +145,7 @@ void NamingContextBase::rebind_context (Name& n, NamingContext::_ptr_type nc)
 	}
 }
 
-void NamingContextBase::rebind_context1 (Istring&& name, NamingContext::_ptr_type nc, Name& n)
+void NamingContextImpl::rebind_context1 (Istring&& name, NamingContext::_ptr_type nc, Name& n)
 {
 	auto ins = bindings_.emplace (std::move (name), MapVal (nc, BindingType::ncontext));
 	if (!ins.second) {
@@ -156,7 +156,7 @@ void NamingContextBase::rebind_context1 (Istring&& name, NamingContext::_ptr_typ
 	}
 }
 
-NamingContext::_ref_type NamingContextBase::create_context (Name& n, Istring& created)
+NamingContext::_ref_type NamingContextImpl::create_context (Name& n, Istring& created)
 {
 	auto ins = bindings_.emplace (to_string (n.front ()), MapVal (Object::_nil (), BindingType::ncontext));
 	if (ins.second) {
@@ -173,7 +173,7 @@ NamingContext::_ref_type NamingContextBase::create_context (Name& n, Istring& cr
 	return NamingContext::_narrow (ins.first->second.object);
 }
 
-NamingContext::_ref_type NamingContextBase::resolve_context (Name& n)
+NamingContext::_ref_type NamingContextImpl::resolve_context (Name& n)
 {
 	BindingType type;
 	Object::_ref_type obj = resolve1 (to_string (n.front ()), type, n);
@@ -206,7 +206,7 @@ NamingContext::_ref_type NamingContextBase::resolve_context (Name& n)
 		return NamingContext::_narrow (obj);
 }
 
-Object::_ref_type NamingContextBase::resolve (Name& n)
+Object::_ref_type NamingContextImpl::resolve (Name& n)
 {
 	check_name (n);
 
@@ -222,7 +222,7 @@ Object::_ref_type NamingContextBase::resolve (Name& n)
 	}
 }
 
-Object::_ref_type NamingContextBase::resolve1 (const Istring& name, BindingType& type, Name& n)
+Object::_ref_type NamingContextImpl::resolve1 (const Istring& name, BindingType& type, Name& n)
 {
 	auto it = bindings_.find (name);
 	if (it == bindings_.end ())
@@ -231,7 +231,7 @@ Object::_ref_type NamingContextBase::resolve1 (const Istring& name, BindingType&
 	return it->second.object;
 }
 
-void NamingContextBase::unbind (Name& n)
+void NamingContextImpl::unbind (Name& n)
 {
 	if (n.empty ())
 		throw NamingContext::InvalidName ();
@@ -245,12 +245,12 @@ void NamingContextBase::unbind (Name& n)
 		resolve_context (n)->unbind (n);
 }
 
-NamingContext::_ref_type NamingContextBase::new_context ()
+NamingContext::_ref_type NamingContextImpl::new_context ()
 {
 	return CORBA::make_reference <NamingContextDefault> ()->_this ();
 }
 
-NamingContext::_ref_type NamingContextBase::bind_new_context (Name& n)
+NamingContext::_ref_type NamingContextImpl::bind_new_context (Name& n)
 {
 	if (n.empty ())
 		throw NamingContext::InvalidName ();
@@ -279,7 +279,7 @@ NamingContext::_ref_type NamingContextBase::bind_new_context (Name& n)
 	}
 }
 
-void NamingContextBase::list (uint32_t how_many, BindingList& bl,
+void NamingContextImpl::list (uint32_t how_many, BindingList& bl,
 	CosNaming::BindingIterator::_ref_type& bi) const
 {
 	auto vi = make_iterator ();
@@ -288,7 +288,7 @@ void NamingContextBase::list (uint32_t how_many, BindingList& bl,
 		bi = BindingIterator::create (std::move (vi));
 }
 
-void NamingContextBase::get_bindings (StackIterator& iter) const
+void NamingContextImpl::get_bindings (StackIterator& iter) const
 {
 	for (const auto& b : bindings_) {
 		iter.push (b.first, b.second.binding_type);

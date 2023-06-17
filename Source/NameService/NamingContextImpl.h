@@ -24,8 +24,8 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_NAMESERVICE_NAMINGCONTEXTBASE_H_
-#define NIRVANA_NAMESERVICE_NAMINGCONTEXTBASE_H_
+#ifndef NIRVANA_NAMESERVICE_NAMINGCONTEXTIMPL_H_
+#define NIRVANA_NAMESERVICE_NAMINGCONTEXTIMPL_H_
 #pragma once
 
 #include <CORBA/Server.h>
@@ -40,7 +40,7 @@ namespace Core {
 
 class VirtualIterator;
 
-class NamingContextBase
+class NamingContextImpl
 {
 public:
 	void bind (Name& n, CORBA::Object::_ptr_type obj);
