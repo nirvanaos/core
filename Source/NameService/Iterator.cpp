@@ -1,4 +1,3 @@
-/// \file
 /*
 * Nirvana Core.
 *
@@ -24,22 +23,57 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_NAMESERVICE_BINDINGITERATOR_H_
-#define NIRVANA_NAMESERVICE_BINDINGITERATOR_H_
-#pragma once
-
-#include "VirtualIterator.h"
+#include "Iterator.h"
+#include <CORBA/Server.h>
 #include <CORBA/CosNaming_s.h>
-#include <memory>
+#include "../Synchronized.h"
+#include "../MemContext.h"
+
+using namespace Nirvana::Core;
 
 namespace CosNaming {
 namespace Core {
+
+NameComponent Iterator::to_component (const Istring& s)
+{
+	NameComponent nc;
+	size_t dot = s.rfind ('.');
+	if (dot == Istring::npos)
+		nc.id (s);
+	else {
+		nc.id (s.substr (0, dot));
+		nc.kind (s.substr (dot + 1));
+	}
+	return nc;
+}
+
+bool Iterator::next_one (CosNaming::Binding& b)
+{
+	Binding vb;
+	if (next_one (vb)) {
+		b.binding_name ().push_back (to_component (vb.name));
+		b.binding_type (vb.type);
+		return true;
+	}
+	return false;
+}
+
+bool Iterator::next_n (uint32_t how_many, CosNaming::BindingList& bl)
+{
+	CosNaming::Binding b;
+	bool ret = false;
+	while (next_one (b)) {
+		bl.push_back (std::move (b));
+		ret = true;
+	}
+	return ret;
+}
 
 class BindingIterator :
 	public CORBA::servant_traits <CosNaming::BindingIterator>::Servant <BindingIterator>
 {
 public:
-	static CosNaming::BindingIterator::_ref_type create (std::unique_ptr <VirtualIterator>&& vi);
+	static CosNaming::BindingIterator::_ref_type create (std::unique_ptr <Iterator>&& vi);
 
 	bool next_one (Binding& b)
 	{
@@ -72,15 +106,21 @@ private:
 	template <class T, class ... Args>
 	friend CORBA::servant_reference <T> CORBA::make_reference (Args ... args);
 
-	BindingIterator (std::unique_ptr <VirtualIterator>&& vi) :
+	BindingIterator (std::unique_ptr <Iterator>&& vi) :
 		vi_ (std::move (vi))
 	{}
 
 private:
-	std::unique_ptr <VirtualIterator> vi_;
+	std::unique_ptr <Iterator> vi_;
 };
 
+CosNaming::BindingIterator::_ref_type Iterator::create_iterator (std::unique_ptr <Iterator>&& vi)
+{
+	SYNC_BEGIN (g_core_free_sync_context, &MemContext::current ())
+		return CORBA::make_reference <BindingIterator> (std::move (vi))->_this ();
+	SYNC_END ()
+}
+
 }
 }
 
-#endif

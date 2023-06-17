@@ -23,46 +23,31 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "VirtualIterator.h"
+#include "IteratorStack.h"
 
 namespace CosNaming {
 namespace Core {
 
-NameComponent VirtualIterator::to_component (const Istring& s)
+bool IteratorStack::next_one (Binding& b)
 {
-	NameComponent nc;
-	size_t dot = s.rfind ('.');
-	if (dot == Istring::npos)
-		nc.id (s);
-	else {
-		nc.id (s.substr (0, dot));
-		nc.kind (s.substr (dot + 1));
-	}
-	return nc;
-}
-
-bool VirtualIterator::next_one (CosNaming::Binding& b)
-{
-	Binding vb;
-	if (next_one (vb)) {
-		b.binding_name ().push_back (to_component (vb.name));
-		b.binding_type (vb.type);
+	if (!stack_.empty ()) {
+		b = std::move (stack_.back ());
+		stack_.pop_back ();
 		return true;
 	}
 	return false;
 }
 
-bool VirtualIterator::next_n (uint32_t how_many, CosNaming::BindingList& bl)
+void IteratorStack::push (const Istring& name, BindingType type)
 {
-	CosNaming::Binding b;
-	bool ret = false;
-	while (next_one (b)) {
-		bl.push_back (std::move (b));
-		ret = true;
-	}
-	return ret;
+	stack_.emplace_back (name, type);
 }
+
+void IteratorStack::push (Istring&& name, BindingType type)
+{
+	stack_.emplace_back (std::move (name), type);
+}
+
 
 }
 }
-

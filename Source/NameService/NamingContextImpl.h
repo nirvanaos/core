@@ -32,13 +32,13 @@
 #include <CORBA/CosNaming_s.h>
 #include "../MapUnorderedUnstable.h"
 #include "../UserAllocator.h"
-#include "StackIterator.h"
 #include <memory>
 
 namespace CosNaming {
 namespace Core {
 
-class VirtualIterator;
+class Iterator;
+class IteratorStack;
 
 class NamingContextImpl
 {
@@ -69,20 +69,16 @@ public:
 	}
 
 	void list (uint32_t how_many, BindingList& bl, CosNaming::BindingIterator::_ref_type & bi) const;
-
-	virtual std::unique_ptr <StackIterator> make_iterator () const
-	{
-		std::unique_ptr <StackIterator> iter (std::make_unique <StackIterator> ());
-		iter->reserve (bindings_.size ());
-		get_bindings (*iter);
-		return iter;
-	}
+	virtual std::unique_ptr <Iterator> make_iterator () const;
 
 	static Istring to_string (const NameComponent& nc);
 	static void check_name (const Name& n);
 
 protected:
-	void get_bindings (StackIterator& iter) const;
+	NamingContextImpl ();
+	~NamingContextImpl ();
+
+	void get_bindings (IteratorStack& iter) const;
 
 private:
 	NamingContext::_ref_type resolve_context (Name& n);

@@ -24,7 +24,7 @@
 *  popov.nirvana@gmail.com
 */
 #include "NamingContextImpl.h"
-#include "BindingIterator.h"
+#include "IteratorStack.h"
 
 using namespace CORBA;
 
@@ -57,6 +57,12 @@ void NamingContextImpl::check_name (const Name& n)
 	if (n.empty ())
 		throw NamingContext::InvalidName ();
 }
+
+NamingContextImpl::NamingContextImpl ()
+{}
+
+NamingContextImpl::~NamingContextImpl ()
+{}
 
 void NamingContextImpl::bind (Name& n, Object::_ptr_type obj)
 {
@@ -285,10 +291,18 @@ void NamingContextImpl::list (uint32_t how_many, BindingList& bl,
 	auto vi = make_iterator ();
 	vi->next_n (how_many, bl);
 	if (!vi->end ())
-		bi = BindingIterator::create (std::move (vi));
+		bi = Iterator::create_iterator (std::move (vi));
 }
 
-void NamingContextImpl::get_bindings (StackIterator& iter) const
+std::unique_ptr <Iterator> NamingContextImpl::make_iterator () const
+{
+	std::unique_ptr <IteratorStack> iter (std::make_unique <IteratorStack> ());
+	iter->reserve (bindings_.size ());
+	get_bindings (*iter);
+	return iter;
+}
+
+void NamingContextImpl::get_bindings (IteratorStack& iter) const
 {
 	for (const auto& b : bindings_) {
 		iter.push (b.first, b.second.binding_type);

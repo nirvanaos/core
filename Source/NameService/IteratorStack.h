@@ -1,3 +1,4 @@
+/// \file
 /*
 * Nirvana Core.
 *
@@ -23,31 +24,39 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "StackIterator.h"
+#ifndef NIRVANA_NAMESERVICE_ITERATORSTACK_H_
+#define NIRVANA_NAMESERVICE_ITERATORSTACK_H_
+#pragma once
+
+#include "Iterator.h"
 
 namespace CosNaming {
 namespace Core {
 
-bool StackIterator::next_one (Binding& b)
+class IteratorStack : public Iterator
 {
-	if (!stack_.empty ()) {
-		b = std::move (stack_.back ());
-		stack_.pop_back ();
-		return true;
+public:
+	void reserve (size_t size)
+	{
+		stack_.reserve (size);
 	}
-	return false;
+
+	virtual bool end () const noexcept override
+	{
+		return stack_.empty ();
+	}
+
+	void push (const Istring& name, BindingType type);
+	void push (Istring&& name, BindingType type);
+
+protected:
+	virtual bool next_one (Binding& b) override;
+
+private:
+	std::vector <Binding> stack_;
+};
+
+}
 }
 
-void StackIterator::push (const Istring& name, BindingType type)
-{
-	stack_.emplace_back (name, type);
-}
-
-void StackIterator::push (Istring&& name, BindingType type)
-{
-	stack_.emplace_back (std::move (name), type);
-}
-
-
-}
-}
+#endif

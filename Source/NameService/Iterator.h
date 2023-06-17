@@ -24,18 +24,20 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_NAMESERVICE_VIRTUALITERATOR_H_
-#define NIRVANA_NAMESERVICE_VIRTUALITERATOR_H_
+#ifndef NIRVANA_NAMESERVICE_ITERATOR_H_
+#define NIRVANA_NAMESERVICE_ITERATOR_H_
 #pragma once
 
-#include <CORBA/Server.h>
+#include <CORBA/CORBA.h>
 #include <CORBA/CosNaming.h>
 #include "../UserObject.h"
+#include <memory>
 
 namespace CosNaming {
 namespace Core {
 
-class NIRVANA_NOVTABLE VirtualIterator :
+/// \brief Pure virtual base for iterators
+class NIRVANA_NOVTABLE Iterator :
 	public Nirvana::Core::UserObject
 {
 public:
@@ -44,6 +46,8 @@ public:
 	virtual bool end () const noexcept = 0;
 	bool next_one (CosNaming::Binding& b);
 	bool next_n (uint32_t how_many, CosNaming::BindingList& bl);
+
+	static CosNaming::BindingIterator::_ref_type create_iterator (std::unique_ptr <Iterator>&& vi);
 
 protected:
 	struct Binding

@@ -103,9 +103,9 @@ public:
 		throw NotEmpty ();
 	}
 
-	virtual std::unique_ptr <StackIterator> make_iterator () const
+	virtual std::unique_ptr <Iterator> make_iterator () const
 	{
-		std::unique_ptr <StackIterator> iter (std::make_unique <StackIterator> ());
+		auto iter (std::make_unique <IteratorStack> ());
 		iter->reserve (bindings_.size () + file_system_.root_cnt ());
 		get_bindings (*iter);
 		file_system_.get_roots (*iter);

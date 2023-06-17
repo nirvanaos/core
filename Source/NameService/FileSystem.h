@@ -31,7 +31,7 @@
 #include <CORBA/Server.h>
 #include <Port/FileSystem.h>
 #include "../MapUnorderedUnstable.h"
-#include "StackIterator.h"
+#include "IteratorStack.h"
 
 namespace Nirvana {
 namespace FS {
@@ -96,7 +96,7 @@ public:
 		return roots_.size ();
 	}
 
-	void get_roots (CosNaming::Core::StackIterator& iter) const
+	void get_roots (CosNaming::Core::IteratorStack& iter) const
 	{
 		for (const auto& r : roots_) {
 			iter.push (r.first, CosNaming::BindingType::ncontext);
