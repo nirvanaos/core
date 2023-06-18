@@ -88,7 +88,7 @@ public:
 			return Base::size ();
 	}
 
-	CORBA::Object::_ref_type open (unsigned flags)
+	Nirvana::FileAccess::_ref_type open (unsigned flags)
 	{
 		if (!access_)
 			access_ = CORBA::make_reference <Nirvana::Core::FileAccessDirect> (std::ref (port ()), flags);
