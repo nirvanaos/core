@@ -64,6 +64,11 @@ NameComponent NamingContextRoot::to_component (Istring s)
 	}
 
 	if (id_size > 0) {
+
+		// A trailing '.' character is not permitted by the specification.
+		if (id_size == s_size - 1)
+			throw NamingContext::InvalidName ();
+
 		Istring id;
 		if (id_size < s_size)
 			id = s.substr (0, id_size);

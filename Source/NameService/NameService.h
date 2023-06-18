@@ -64,14 +64,32 @@ public:
 
 	// NamingContextEx
 
-	static StringName to_string (const Name& n)
+	static StringName to_string (Name& n)
 	{
-		throw CORBA::NO_IMPLEMENT ();
+		check_name (n);
+		Name::iterator it = n.begin ();
+		StringName sn = Base::to_string (std::move (*(it++)));
+		while (it != n.end ()) {
+			sn += '/';
+			sn += Base::to_string (std::move (*(it++)));
+		}
+		return sn;
 	}
 
 	static Name to_name (const StringName& sn)
 	{
-		throw CORBA::NO_IMPLEMENT ();
+		Name n;
+		size_t begin = 0;
+		for (size_t end = 0; (end = sn.find ('/', end)) != StringName::npos;) {
+			if (sn [end + 1] == '/') { // Escaped
+				end += 2;
+				continue;
+			}
+			n.push_back (to_component (sn.substr (begin, end - begin)));
+			begin = ++end;
+		}
+		n.push_back (to_component (sn.substr (begin)));
+		return n;
 	}
 
 	static URLString to_url (const Address& addr, const StringName& sn)
