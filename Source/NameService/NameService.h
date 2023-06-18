@@ -29,6 +29,8 @@
 #pragma once
 
 #include "NamingContextImpl.h"
+#include <CORBA/Server.h>
+#include <CORBA/CosNaming_s.h>
 #include "ORB/SysServant.h"
 #include "ORB/system_services.h"
 #include "FileSystem.h"
@@ -84,7 +86,7 @@ public:
 	}
 
 private:
-	Nirvana::FS::Core::FileSystem file_system_;
+	Nirvana::Core::FileSystem file_system_;
 };
 
 }

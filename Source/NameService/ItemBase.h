@@ -29,10 +29,9 @@
 #pragma once
 
 #include <CORBA/CORBA.h>
-#include <Nirvana/FS.h>
+#include <Nirvana/File.h>
 
 namespace Nirvana {
-namespace FS {
 namespace Core {
 
 class ItemBase
@@ -47,7 +46,6 @@ public:
   virtual void permissions (uint16_t) = 0;
 };
 
-}
 }
 }
 

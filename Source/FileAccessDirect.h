@@ -39,6 +39,8 @@
 namespace Nirvana {
 namespace Core {
 
+class File;
+
 class FileAccessDirect final :
 	public CORBA::servant_traits <Nirvana::FileAccessDirect>::Servant <FileAccessDirect>,
 	private Port::FileAccessDirect
@@ -52,8 +54,8 @@ public:
 	static const SteadyTime DEFAULT_WRITE_TIMEOUT = 500 * TimeBase::MILLISECOND;
 	static const SteadyTime DEFAULT_DISCARD_TIMEOUT = 500 * TimeBase::MILLISECOND;
 
-	FileAccessDirect (const IDL::Sequence <uint8_t>& id, int flags) :
-		Base (id, flags, file_size_, base_block_size_),
+	FileAccessDirect (Port::File& file, int flags) :
+		Base (file, flags, file_size_, base_block_size_),
 		block_size_ (std::max (base_block_size_, (Size)Port::Memory::SHARING_ASSOCIATIVITY)),
 		dirty_blocks_ (0),
 		write_timeout_ (DEFAULT_WRITE_TIMEOUT),

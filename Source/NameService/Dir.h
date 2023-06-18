@@ -24,34 +24,60 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_FS_CORE_DIRBASE_H_
-#define NIRVANA_FS_CORE_DIRBASE_H_
+#ifndef NIRVANA_CORE_DIR_H_
+#define NIRVANA_CORE_DIR_H_
 #pragma once
 
-#include "ItemBase.h"
-#include <CORBA/Server.h>
-#include <Nirvana/FS_s.h>
-#include "FileSystem.h"
+#include <Port/Dir.h>
+#include <Nirvana/File_s.h>
 #include "NamingContextRoot.h"
-#include <FileAccessDirect.h>
+#include "FileSystem.h"
 
 namespace Nirvana {
-namespace FS {
 namespace Core {
 
-class DirBase : public CORBA::servant_traits <Nirvana::FS::Dir>::Servant <DirBase>,
-	public ItemBase,
-	public CosNaming::Core::NamingContextRoot
+class Dir :
+	public CORBA::servant_traits <Nirvana::Dir>::Servant <Dir>,
+	protected Port::Dir
 {
+	typedef Port::Dir Base;
+
 public:
 	static PortableServer::POA::_ref_type _default_POA ()
 	{
 		return FileSystem::adapter ();
 	}
 
+	void destroy ()
+	{
+		_default_POA ()->deactivate_object (
+			_default_POA ()->reference_to_id (_this ()));
+	}
+
+	Dir (const DirItemId& id) :
+		Base (id)
+	{
+		assert (Base::type () == FileType::directory);
+	}
+
 	static FileType type () noexcept
 	{
 		return FileType::directory;
+	}
+
+	uint16_t permissions () const
+	{
+		return Base::permissions ();
+	}
+
+	void permissions (uint16_t perms)
+	{
+		Base::permissions (perms);
+	}
+
+	void get_file_times (FileTimes& times) const
+	{
+		return Base::get_file_times (times);
 	}
 
 	void bind (CosNaming::Name& n, CORBA::Object::_ptr_type obj, bool rebind = false);
@@ -61,9 +87,6 @@ public:
 		bind (n, obj, true);
 	}
 
-	virtual void bind_file (CosNaming::Name& n, const PortableServer::ObjectId& file,
-		bool rebind) = 0;
-
 	void bind_context (CosNaming::Name& n, CosNaming::NamingContext::_ptr_type nc, bool rebind = false);
 
 	void rebind_context (CosNaming::Name& n, CosNaming::NamingContext::_ptr_type nc)
@@ -71,17 +94,16 @@ public:
 		bind_context (n, nc, true);
 	}
 
-	virtual void bind_dir (CosNaming::Name& n, const PortableServer::ObjectId& dir,
-		bool rebind) = 0;
-
 	CORBA::Object::_ref_type resolve (CosNaming::Name& n)
 	{
 		return FileSystem::get_reference (resolve_path (n));
 	}
 
-	virtual PortableServer::ObjectId resolve_path (CosNaming::Name& n) = 0;
-
-	virtual void unbind (CosNaming::Name& n) = 0;
+	void unbind (CosNaming::Name& n)
+	{
+		check_name (n);
+		Base::unbind (n);
+	}
 
 	static CORBA::Internal::Interface* _s_new_context (CORBA::Internal::Bridge <CosNaming::NamingContext>*,
 		CORBA::Internal::Interface* _env)
@@ -95,17 +117,14 @@ public:
 		return FileSystem::get_dir (create_dir (n));
 	}
 
-	virtual PortableServer::ObjectId create_dir (CosNaming::Name& n) = 0;
-
-	Nirvana::FileAccessDirect::_ref_type create (CosNaming::Name& n, unsigned short flags)
+	Nirvana::FileAccess::_ref_type open (CosNaming::Name& n, unsigned short flags)
 	{
-		return FileSystem::create_file (get_new_file_id (n), flags);
+		return FileSystem::open (get_new_file_id (n), flags);
 	}
 
-	virtual PortableServer::ObjectId get_new_file_id (CosNaming::Name& n) = 0;
+	using NamingContextRoot::list;
 };
 
-}
 }
 }
 

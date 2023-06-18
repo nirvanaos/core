@@ -24,17 +24,18 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_FS_CORE_ROOTS_H_
-#define NIRVANA_FS_CORE_ROOTS_H_
+#ifndef NIRVANA_CORE_ROOTS_H_
+#define NIRVANA_CORE_ROOTS_H_
 #pragma once
 
 #include <CORBA/Server.h>
 
 namespace Nirvana {
-namespace FS {
 namespace Core {
 
-typedef PortableServer::ObjectId (*GetRootId) (const IDL::String& root, bool& may_cache);
+typedef PortableServer::ObjectId DirItemId;
+
+typedef DirItemId (*GetRootId) (const IDL::String& root, bool& may_cache);
 
 struct Root {
 	std::string dir;
@@ -43,7 +44,6 @@ struct Root {
 
 typedef std::vector <Root> Roots;
 
-}
 }
 }
 

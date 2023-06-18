@@ -45,7 +45,8 @@ public:
 	virtual std::unique_ptr <Iterator> make_iterator () const = 0;
 
 	static Istring to_string (const NameComponent& nc);
-	static NameComponent to_component (Istring&& s);
+	static Istring to_string (NameComponent&& nc);
+	static NameComponent to_component (Istring s);
 	static void check_name (const Name& n);
 
 private:

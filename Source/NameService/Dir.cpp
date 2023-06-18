@@ -23,19 +23,18 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "DirBase.h"
+#include "Dir.h"
 
 using namespace CosNaming;
 using namespace CORBA;
 
 namespace Nirvana {
-namespace FS {
 namespace Core {
 
-void DirBase::bind (Name& n, Object::_ptr_type obj, bool rebind)
+void Dir::bind (Name& n, Object::_ptr_type obj, bool rebind)
 {
 	FileSystem::set_error_number (0);
-	if (File::_narrow (obj)) {
+	if (Nirvana::File::_narrow (obj)) {
 		try {
 			bind_file (n, FileSystem::adapter ()->reference_to_id (obj), rebind);
 			return;
@@ -46,10 +45,10 @@ void DirBase::bind (Name& n, Object::_ptr_type obj, bool rebind)
 	throw CannotProceed (_this (), std::move (n));
 }
 
-void DirBase::bind_context (Name& n, NamingContext::_ptr_type nc, bool rebind)
+void Dir::bind_context (Name& n, NamingContext::_ptr_type nc, bool rebind)
 {
 	FileSystem::set_error_number (0);
-	if (Dir::_narrow (nc)) {
+	if (Nirvana::Dir::_narrow (nc)) {
 		try {
 			bind_dir (n, FileSystem::adapter ()->reference_to_id (nc), rebind);
 			return;
@@ -60,6 +59,5 @@ void DirBase::bind_context (Name& n, NamingContext::_ptr_type nc, bool rebind)
 	throw CannotProceed (_this (), std::move (n));
 }
 
-}
 }
 }

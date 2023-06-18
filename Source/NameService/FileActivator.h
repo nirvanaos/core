@@ -24,8 +24,8 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_FS_CORE_FILEACTIVATOR_H_
-#define NIRVANA_FS_CORE_FILEACTIVATOR_H_
+#ifndef NIRVANA_CORE_FILEACTIVATOR_H_
+#define NIRVANA_CORE_FILEACTIVATOR_H_
 #pragma once
 
 #include <CORBA/Server.h>
@@ -33,7 +33,6 @@
 #include "FileSystem.h"
 
 namespace Nirvana {
-namespace FS {
 namespace Core {
 
 class FileActivator :
@@ -53,7 +52,6 @@ public:
 	}
 };
 
-}
 }
 }
 

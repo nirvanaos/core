@@ -37,7 +37,15 @@ Istring NamingContextRoot::to_string (const NameComponent& nc)
 	return name;
 }
 
-NameComponent NamingContextRoot::to_component (Istring&& s)
+Istring NamingContextRoot::to_string (NameComponent&& nc)
+{
+	Istring name = escape (std::move (nc.id ()));
+	name += '.';
+	name += escape (std::move (nc.kind ()));
+	return name;
+}
+
+NameComponent NamingContextRoot::to_component (Istring s)
 {
 	NameComponent nc;
 	size_t s_size = s.size ();

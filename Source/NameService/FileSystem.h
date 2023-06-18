@@ -28,49 +28,35 @@
 #define NIRVANA_FS_CORE_FILESYSTEM_H_
 #pragma once
 
-#include <CORBA/Server.h>
 #include <Port/FileSystem.h>
 #include "../MapUnorderedUnstable.h"
 #include "IteratorStack.h"
 
 namespace Nirvana {
-
-namespace Core {
-
-class FileAccessDirect;
-
-}
-
-namespace FS {
 namespace Core {
 
 class FileSystem : private Port::FileSystem
 {
 public:
 	FileSystem ();
+	~FileSystem ();
 
 	bool find (const IDL::String& name) const noexcept
 	{
 		return roots_.find (name) != roots_.end ();
 	}
 
-	static PortableServer::ObjectId get_unique_id (const CosNaming::Name& name)
+	static Nirvana::DirItem::FileType get_item_type (const DirItemId& id)
 	{
-		return Port::FileSystem::get_unique_id (name);
+		return Port::FileSystem::get_item_type (id);
 	}
 
-	static CosNaming::BindingType get_binding_type (const PortableServer::ObjectId& id)
-	{
-		return Port::FileSystem::get_binding_type (id);
-	}
-
-	static PortableServer::ServantBase::_ref_type incarnate (const PortableServer::ObjectId& id)
+	static PortableServer::ServantBase::_ref_type incarnate (const DirItemId& id)
 	{
 		return Port::FileSystem::incarnate (id);
 	}
 
-	static void etherealize (const PortableServer::ObjectId& id,
-		PortableServer::ServantBase::_ptr_type servant)
+	static void etherealize (const DirItemId& id, PortableServer::ServantBase::_ptr_type servant)
 	{
 		Port::FileSystem::etherealize (id, servant);
 	}
@@ -112,18 +98,17 @@ public:
 
 	static void set_error_number (int err);
 
-	static CORBA::Object::_ref_type get_reference (const PortableServer::ObjectId& id);
-	static FS::Dir::_ref_type get_dir (const PortableServer::ObjectId& id);
-	static FS::File::_ref_type get_file (const PortableServer::ObjectId& id);
+	static CORBA::Object::_ref_type get_reference (const DirItemId& id);
+	static Nirvana::Dir::_ref_type get_dir (const DirItemId& id);
+	static Nirvana::File::_ref_type get_file (const DirItemId& id);
 
-	static CORBA::servant_reference <Nirvana::Core::FileAccessDirect> create_file_access (
-		const PortableServer::ObjectId& id, unsigned short flags);
-
-	static Nirvana::FileAccessDirect::_ref_type create_file (const PortableServer::ObjectId& id,
-		unsigned short flags);
+	static Nirvana::FileAccess::_ref_type open (const DirItemId& id, unsigned short flags)
+	{
+		return get_file (id)->open (flags);
+	}
 
 private:
-	static CORBA::Object::_ref_type get_reference (const PortableServer::ObjectId& id, CORBA::Internal::String_in iid);
+	static CORBA::Object::_ref_type get_reference (const DirItemId& id, CORBA::Internal::String_in iid);
 
 private:
 	struct Root {
@@ -142,7 +127,6 @@ private:
 	static Nirvana::Core::StaticallyAllocated <PortableServer::POA::_ref_type> adapter_;
 };
 
-}
 }
 }
 

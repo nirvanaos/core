@@ -26,8 +26,6 @@
 #include "FileSystem.h"
 #include "../ORB/SysAdapterActivator.h"
 #include "FileActivator.h"
-#include "File.h"
-#include "../FileAccessDirect.h"
 
 using namespace CORBA;
 using namespace PortableServer;
@@ -36,10 +34,6 @@ using PortableServer::Core::SysAdapterActivator;
 using namespace CosNaming;
 
 namespace Nirvana {
-
-using namespace Core;
-
-namespace FS {
 namespace Core {
 
 StaticallyAllocated <POA::_ref_type> FileSystem::adapter_;
@@ -60,31 +54,40 @@ FileSystem::FileSystem ()
 	POA::_ref_type adapter = parent->create_POA (SysAdapterActivator::filesystem_adapter_name_,
 		parent->the_POAManager (), policies);
 	adapter->set_servant_manager (make_stateless <FileActivator> ()->_this ());
+
+	adapter_.construct (std::move (adapter));
 }
 
-Object::_ref_type FileSystem::get_reference (const ObjectId& id, Internal::String_in iid)
+FileSystem::~FileSystem ()
+{
+	adapter_.destruct ();
+}
+
+Object::_ref_type FileSystem::get_reference (const DirItemId& id, Internal::String_in iid)
 {
 	return adapter ()->create_reference_with_id (id, iid);
 }
 
-FS::Dir::_ref_type FileSystem::get_dir (const ObjectId& id)
+Nirvana::Dir::_ref_type FileSystem::get_dir (const DirItemId& id)
 {
-	Dir::_ref_type dir = Dir::_narrow (get_reference (id, Internal::RepIdOf <FS::Dir>::id));
+	assert (get_item_type (id) == Nirvana::DirItem::FileType::directory);
+	Nirvana::Dir::_ref_type dir = Nirvana::Dir::_narrow (get_reference (id, Internal::RepIdOf <Nirvana::Dir>::id));
 	assert (dir);
 	return dir;
 }
 
-FS::File::_ref_type FileSystem::get_file (const ObjectId& id)
+Nirvana::File::_ref_type FileSystem::get_file (const DirItemId& id)
 {
-	FS::File::_ref_type file = FS::File::_narrow (get_reference (id, Internal::RepIdOf <FS::File>::id));
+	assert (get_item_type (id) != Nirvana::DirItem::FileType::directory);
+	Nirvana::File::_ref_type file = Nirvana::File::_narrow (get_reference (id, Internal::RepIdOf <Nirvana::File>::id));
 	assert (file);
 	return file;
 }
 
-Object::_ref_type FileSystem::get_reference (const ObjectId& id)
+Object::_ref_type FileSystem::get_reference (const DirItemId& id)
 {
-	return get_reference (id, get_binding_type (id) == BindingType::nobject ?
-		Internal::RepIdOf <FS::File>::id : Internal::RepIdOf <FS::Dir>::id);
+	return get_reference (id, get_item_type (id) == Nirvana::DirItem::FileType::directory ?
+		Internal::RepIdOf <Nirvana::Dir>::id : Internal::RepIdOf <Nirvana::File>::id);
 }
 
 void FileSystem::set_error_number (int err)
@@ -92,20 +95,5 @@ void FileSystem::set_error_number (int err)
 	ExecDomain::current ().runtime_global_.error_number = err;
 }
 
-Nirvana::FileAccessDirect::_ref_type FileSystem::create_file (const PortableServer::ObjectId& id,
-	unsigned short flags)
-{
-	auto access = create_file_access (id, flags);
-	auto file = CORBA::make_reference <File> (std::ref (id), std::ref (*access));
-	adapter ()->activate_object_with_id (id, file);
-	return access->_this ();
-}
-
-servant_reference <Nirvana::Core::FileAccessDirect> FileSystem::create_file_access (const ObjectId& id, unsigned short flags)
-{
-	return make_reference <Nirvana::Core::FileAccessDirect> (std::ref (id), flags);
-}
-
-}
 }
 }

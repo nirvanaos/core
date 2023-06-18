@@ -24,51 +24,60 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_FS_CORE_FILE_H_
-#define NIRVANA_FS_CORE_FILE_H_
+#ifndef NIRVANA_CORE_FILE_H_
+#define NIRVANA_CORE_FILE_H_
 #pragma once
 
-#include <CORBA/Server.h>
-#include <Nirvana/FS_s.h>
 #include <Port/File.h>
+#include <Nirvana/File_s.h>
 #include "../FileAccessDirect.h"
 #include "FileSystem.h"
 
 namespace Nirvana {
-namespace FS {
 namespace Core {
 
-class File : public CORBA::servant_traits <Nirvana::FS::File>::Servant <File>,
-	private Port::File
+class File :
+	public CORBA::servant_traits <Nirvana::File>::Servant <File>,
+	protected Port::File
 {
+	typedef Port::File Base;
+
 public:
-	File (const PortableServer::ObjectId& id) :
-		Port::File (id)
-	{}
-
-	File (const PortableServer::ObjectId& id, Nirvana::Core::FileAccessDirect& access) :
-		Port::File (id),
-		access_ (&access)
-	{}
-
-	static FileType type () noexcept
+	// Implementation - specific methods can be called explicitly.
+	Base& port () noexcept
 	{
-		return FileType::regular;
+		return *this;
+	}
+
+	static PortableServer::POA::_ref_type _default_POA ()
+	{
+		return FileSystem::adapter ();
+	}
+
+	File (const DirItemId& id) :
+		Base (id)
+	{
+		assert (Base::type () != FileType::directory);
+	}
+
+	FileType type () const noexcept
+	{
+		return Base::type ();
 	}
 
 	uint16_t permissions () const
 	{
-		return Port::File::permissions ();
+		return Base::permissions ();
 	}
 
 	void permissions (uint16_t perms)
 	{
-		Port::File::permissions (perms);
+		Base::permissions (perms);
 	}
 
 	void get_file_times (FileTimes& times) const
 	{
-		return Port::File::get_file_times (times);
+		return Base::get_file_times (times);
 	}
 
 	uint64_t size () const
@@ -76,13 +85,13 @@ public:
 		if (access_)
 			return access_->size ();
 		else
-			return Port::File::size ();
+			return Base::size ();
 	}
 
 	CORBA::Object::_ref_type open (unsigned flags)
 	{
 		if (!access_)
-			access_ = FileSystem::create_file_access (Port::File::id (), flags);
+			access_ = CORBA::make_reference <Nirvana::Core::FileAccessDirect> (std::ref (port ()), flags);
 		return access_->_this ();
 	}
 
@@ -92,5 +101,5 @@ private:
 
 }
 }
-}
+
 #endif
