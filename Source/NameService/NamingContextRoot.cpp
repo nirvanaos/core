@@ -32,8 +32,10 @@ namespace Core {
 Istring NamingContextRoot::to_string (const NameComponent& nc)
 {
 	Istring name = escape (nc.id ());
-	name += '.';
-	name += escape (nc.kind ());
+	if (!nc.kind ().empty ()) {
+		name += '.';
+		name += escape (nc.kind ());
+	}
 	return name;
 }
 
