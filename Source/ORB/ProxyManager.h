@@ -123,11 +123,11 @@ public:
 	Internal::Interface* _query_interface (const IDL::String& type_id) const
 	{
 		if (type_id.empty ())
-			return metadata_.primary_interface->proxy;
+			return &metadata_.primary_interface->proxy;
 		else {
 			const InterfaceEntry* ie = find_interface (type_id);
 			if (ie)
-				return ie->proxy;
+				return &ie->proxy;
 			else
 				return nullptr;
 		}
@@ -320,7 +320,7 @@ protected:
 		Internal::Interface::_ptr_type implementation;
 		Internal::CountedArray <Internal::Operation> operations;
 		Internal::ProxyFactory::_ref_type proxy_factory;
-		Internal::Interface* proxy;
+		Internal::Interface::_ptr_type proxy;
 		Internal::DynamicServant::_ptr_type deleter;
 
 		InterfaceEntry (const InterfaceEntry& src) :
@@ -353,6 +353,8 @@ protected:
 			if (!impl)
 				throw OBJ_ADAPTER (); // Implementation not found. TODO: Log
 			ie->implementation = offset_ptr (impl, offset);
+			if (!ie->proxy)
+				ie->proxy = ie->implementation;
 		}
 	}
 
@@ -423,7 +425,8 @@ private:
 	void create_proxy (Internal::ProxyFactory::_ptr_type pf,
 		const Internal::InterfaceMetadata* metadata, InterfaceEntry& ie, bool servant_side) const;
 
-	static void check_metadata (const Internal::InterfaceMetadata* metadata, Internal::String_in primary);
+	static void check_metadata (const Internal::InterfaceMetadata* metadata,
+		Internal::String_in primary, bool servant_side);
 	static void check_parameters (Internal::CountedArray <Internal::Parameter> parameters);
 	static void check_type_code (TypeCode::_ptr_type tc);
 	

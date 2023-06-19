@@ -87,7 +87,7 @@ Heap& ProxyManager::get_heap () noexcept
 		return Heap::shared_heap ();
 }
 
-void ProxyManager::check_metadata (const InterfaceMetadata* metadata, String_in primary)
+void ProxyManager::check_metadata (const InterfaceMetadata* metadata, String_in primary, bool servant_side)
 {
 	if (!metadata)
 		throw OBJ_ADAPTER (); // TODO: Log
@@ -109,7 +109,7 @@ void ProxyManager::check_metadata (const InterfaceMetadata* metadata, String_in 
 
 	// Check operations
 	for (const Operation* op = metadata->operations.p, *end = op + metadata->operations.size; op != end; ++op) {
-		if (!op->name || !op->invoke)
+		if (!op->name || (!(servant_side && metadata->flags & InterfaceMetadata::FLAG_NO_PROXY) && !op->invoke))
 			throw OBJ_ADAPTER (); // TODO: Log
 		check_parameters (op->input);
 		check_parameters (op->output);
@@ -145,7 +145,7 @@ void ProxyManager::build_metadata (Metadata& md, String_in primary_iid, bool ser
 		ProxyFactory::_ref_type proxy_factory = Nirvana::Core::Binder::bind_interface <ProxyFactory> (primary_iid);
 
 		const InterfaceMetadata* metadata = proxy_factory->metadata ();
-		check_metadata (metadata, primary_iid);
+		check_metadata (metadata, primary_iid, servant_side);
 
 		// Proxy interface version can be different
 		const Char* proxy_primary_iid = metadata->interfaces.p [0];
@@ -256,9 +256,7 @@ void ProxyManager::check_primary_interface (String_in primary_iid) const
 void ProxyManager::create_proxy (ProxyFactory::_ptr_type pf, const InterfaceMetadata* metadata,
 	InterfaceEntry& ie, bool servant_side) const
 {
-	if (servant_side && metadata->flags & InterfaceMetadata::FLAG_NO_PROXY)
-		ie.proxy = &ie.implementation;
-	else {
+	if (!(servant_side && metadata->flags & InterfaceMetadata::FLAG_NO_PROXY)) {
 		Interface* deleter;
 		Interface* proxy = pf->create_proxy (ior (), (UShort)(&ie - metadata_.interfaces.begin () + 1), deleter);
 		if (!proxy || !deleter)
@@ -281,7 +279,7 @@ void ProxyManager::create_proxy (InterfaceEntry& ie, bool servant_side) const
 			CORBA::Internal::StringView <Char> iid (ie.iid);
 			ie.proxy_factory = Nirvana::Core::Binder::bind_interface <ProxyFactory> (iid);
 			metadata = ie.proxy_factory->metadata ();
-			check_metadata (metadata, iid);
+			check_metadata (metadata, iid, servant_side);
 		} else
 			metadata = ie.proxy_factory->metadata ();
 		const Char* const* base = metadata->interfaces.p;
