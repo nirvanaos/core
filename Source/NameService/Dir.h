@@ -48,11 +48,10 @@ public:
 		return FileSystem::adapter ();
 	}
 
-	void destroy ()
-	{
-		_default_POA ()->deactivate_object (
-			_default_POA ()->reference_to_id (_this ()));
-	}
+	// NamingContext::destroy () does nothing
+	static void _s_destroy (CORBA::Internal::Bridge <CosNaming::NamingContext>*,
+		CORBA::Internal::Interface* _env)
+	{}
 
 	Dir (const DirItemId& id) :
 		Base (id)
