@@ -56,7 +56,8 @@ protected:
 		Istring name;
 		BindingType type;
 
-		Binding ()
+		Binding () :
+			type (BindingType::nobject)
 		{}
 
 		Binding (const Istring& n, BindingType t) :

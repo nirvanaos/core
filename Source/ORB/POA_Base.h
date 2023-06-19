@@ -72,8 +72,9 @@ struct POA_Policies
 	ServantRetentionPolicyValue servant_retention;
 	RequestProcessingPolicyValue request_processing;
 
-	void set_values (const CORBA::PolicyList& policies, CORBA::Core::PolicyMap& object_policies)
+	CORBA::servant_reference <CORBA::Core::PolicyMapShared> set_values (const CORBA::PolicyList& policies)
 	{
+		CORBA::servant_reference <CORBA::Core::PolicyMapShared> object_policies;
 		unsigned mask = 0;
 		*this = default_;
 		int DGC_policy_idx = -1;
@@ -112,13 +113,17 @@ struct POA_Policies
 				default:
 					if (FT::HEARTBEAT_ENABLED_POLICY == type)
 						DGC_policy_idx = int (it - policies.begin ());
-					if (!object_policies.insert (policy))
+					if (!object_policies)
+						object_policies = CORBA::make_reference <CORBA::Core::PolicyMapShared> ();
+					if (!object_policies->insert (policy))
 						throw POA::InvalidPolicy (CORBA::UShort (it - policies.begin ()));
 			}
 		}
 		// DGC requires RETAIN policy
 		if (DGC_policy_idx >= 0 && servant_retention != ServantRetentionPolicyValue::RETAIN)
 			throw POA::InvalidPolicy ((CORBA::UShort)DGC_policy_idx);
+
+		return object_policies;
 	}
 
 	bool operator < (const POA_Policies& rhs) const noexcept
