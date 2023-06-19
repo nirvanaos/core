@@ -292,6 +292,12 @@ void Proxy <PortableServer::POA>::__rq_id_to_servant (
 }
 
 inline
+PortableServer::ServantBase::_ref_type Proxy <PortableServer::Current>::get_servant () const
+{
+	return Core::object2servant(Core::servant2object (servant ()->get_servant ()));
+}
+
+inline
 PortableServer::ServantBase::_ref_type Proxy <PortableServer::ServantActivator>::incarnate (
 	const PortableServer::ObjectId& oid, PortableServer::POA::_ptr_type adapter) const
 {
