@@ -31,7 +31,7 @@ using namespace Nirvana::Core;
 namespace CORBA {
 namespace Core {
 
-ObjectFactory::Frame::Frame () :
+ObjectFactory::Frame::Frame (const Internal::Interface* servant) :
 	StatelessCreationFrame (nullptr, 0, 0, nullptr),
 	pop_ (false)
 {
@@ -42,15 +42,16 @@ ObjectFactory::Frame::Frame () :
 	if (ExecDomain::RestrictedMode::MODULE_TERMINATE == ed->restricted_mode ())
 		throw_NO_PERMISSION ();
 
-	TLS& tls = TLS::current ();
+	TLS& tls = ed->tls ();
 	StatelessCreationFrame* scf = (StatelessCreationFrame*)tls.get (TLS::CORE_TLS_OBJECT_FACTORY);
-
-	if (ed->sync_context ().sync_domain ()) {
+	// Check for the stateless creation.
+	// If scf established and servant pointer is inside the object, then it is stateless object creation.
+	if (!scf || servant < scf->tmp () || ((const Octet*)scf->tmp () + scf->size ()) <= (const Octet*)servant) {
+		// It is not a stateless object, we must establish a new frame.
 		next (tls.get (TLS::CORE_TLS_OBJECT_FACTORY));
 		tls.set (TLS::CORE_TLS_OBJECT_FACTORY, static_cast <StatelessCreationFrame*> (this));
 		pop_ = true;
-	} else if (!scf || !scf->size ())
-		throw_BAD_INV_ORDER ();
+	}
 }
 
 ObjectFactory::Frame::~Frame ()

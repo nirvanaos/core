@@ -64,13 +64,13 @@ public:
 
 	static PortableServer::ServantBase::_ref_type create_servant (PortableServer::Servant servant)
 	{
-		Frame frame;
+		Frame frame (&servant);
 		return Internal::I_var <PortableServer::ServantBase> (PortableServer::Core::ServantBase::create (servant));
 	}
 
 	static CORBA::LocalObject::_ref_type create_local_object (CORBA::LocalObject::_ptr_type servant)
 	{
-		Frame frame;
+		Frame frame (&servant);
 		return Internal::I_var <CORBA::LocalObject> (CORBA::Core::LocalObject::create (servant));
 	}
 
@@ -117,7 +117,7 @@ private:
 	class Frame : public StatelessCreationFrame
 	{
 	public:
-		Frame ();
+		Frame (const Internal::Interface* servant);
 		~Frame ();
 
 	private:
