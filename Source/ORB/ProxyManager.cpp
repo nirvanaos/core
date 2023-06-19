@@ -109,7 +109,7 @@ void ProxyManager::check_metadata (const InterfaceMetadata* metadata, String_in 
 
 	// Check operations
 	for (const Operation* op = metadata->operations.p, *end = op + metadata->operations.size; op != end; ++op) {
-		if (!op->name || (!(servant_side && metadata->flags & InterfaceMetadata::FLAG_NO_PROXY) && !op->invoke))
+		if (!op->name || (!(servant_side && metadata->flags & InterfaceMetadata::FLAG_LOCAL_STATELESS) && !op->invoke))
 			throw OBJ_ADAPTER (); // TODO: Log
 		check_parameters (op->input);
 		check_parameters (op->output);
@@ -183,7 +183,7 @@ void ProxyManager::build_metadata (Metadata& md, String_in primary_iid, bool ser
 
 		// Create primary proxy
 		assert (primary);
-		create_proxy (proxy_factory, metadata, *primary, servant_side);
+		create_proxy (proxy_factory, metadata, *primary);
 		primary->operations = metadata->operations;
 		md.primary_interface = primary;
 	}
@@ -254,20 +254,19 @@ void ProxyManager::check_primary_interface (String_in primary_iid) const
 }
 
 void ProxyManager::create_proxy (ProxyFactory::_ptr_type pf, const InterfaceMetadata* metadata,
-	InterfaceEntry& ie, bool servant_side) const
+	InterfaceEntry& ie) const
 {
-	if (!(servant_side && metadata->flags & InterfaceMetadata::FLAG_NO_PROXY)) {
-		Interface* deleter;
-		Interface* proxy = pf->create_proxy (ior (), (UShort)(&ie - metadata_.interfaces.begin () + 1), deleter);
-		if (!proxy || !deleter)
-			throw MARSHAL ();
-		ie.deleter = DynamicServant::_check (deleter);
-		try {
-			ie.proxy = Interface::_check (proxy, ie.iid);
-		} catch (...) {
-			ie.deleter->delete_object ();
-			throw;
-		}
+	Interface* deleter;
+	Interface* proxy = pf->create_proxy (ior (), (UShort)(&ie - metadata_.interfaces.begin () + 1),
+		ie.implementation, deleter);
+	if (!proxy || !deleter)
+		throw MARSHAL ();
+	ie.deleter = DynamicServant::_check (deleter);
+	try {
+		ie.proxy = Interface::_check (proxy, ie.iid);
+	} catch (...) {
+		ie.deleter->delete_object ();
+		throw;
 	}
 }
 
@@ -293,7 +292,7 @@ void ProxyManager::create_proxy (InterfaceEntry& ie, bool servant_side) const
 			create_proxy (*base_ie, servant_side);
 		}
 		ie.operations = metadata->operations;
-		create_proxy (ie.proxy_factory, metadata, ie, servant_side);
+		create_proxy (ie.proxy_factory, metadata, ie);
 	}
 }
 
@@ -372,7 +371,7 @@ void ProxyManager::invoke (OperationIndex op, IORequest::_ptr_type rq) const noe
 			} else {
 				--itf_idx;
 				const InterfaceEntry& ie = metadata_.interfaces [itf_idx];
-				implementation = &ie.implementation;
+				implementation = ie.implementation;
 				if (!implementation)
 					throw OBJECT_NOT_EXIST (MAKE_OMG_MINOR (2));
 				assert (op_idx < ie.operations.size);

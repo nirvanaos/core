@@ -317,7 +317,7 @@ protected:
 	{
 		const Char* iid;
 		size_t iid_len;
-		Internal::Interface::_ptr_type implementation;
+		Internal::Interface* implementation;
 		Internal::CountedArray <Internal::Operation> operations;
 		Internal::ProxyFactory::_ref_type proxy_factory;
 		Internal::Interface::_ptr_type proxy;
@@ -352,9 +352,7 @@ protected:
 			Internal::Interface::_ptr_type impl = servant->_query_interface (ie->iid);
 			if (!impl)
 				throw OBJ_ADAPTER (); // Implementation not found. TODO: Log
-			ie->implementation = offset_ptr (impl, offset);
-			if (!ie->proxy)
-				ie->proxy = ie->implementation;
+			ie->implementation = &offset_ptr (impl, offset);
 		}
 	}
 
@@ -423,7 +421,7 @@ private:
 
 	void create_proxy (InterfaceEntry& ie, bool servant_side) const;
 	void create_proxy (Internal::ProxyFactory::_ptr_type pf,
-		const Internal::InterfaceMetadata* metadata, InterfaceEntry& ie, bool servant_side) const;
+		const Internal::InterfaceMetadata* metadata, InterfaceEntry& ie) const;
 
 	static void check_metadata (const Internal::InterfaceMetadata* metadata,
 		Internal::String_in primary, bool servant_side);

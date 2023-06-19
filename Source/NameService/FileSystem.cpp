@@ -40,9 +40,11 @@ StaticallyAllocated <POA::_ref_type> FileSystem::adapter_;
 
 FileSystem::FileSystem ()
 {
-	Roots roots = Port::FileSystem::get_roots ();
-	for (auto& r : roots) {
-		roots_.emplace (std::move (r.dir), r.factory);
+	{ // Build root map
+		Roots roots = Port::FileSystem::get_roots ();
+		for (auto& r : roots) {
+			roots_.emplace (std::move (r.dir), r.factory);
+		}
 	}
 
 	// Create file system POA
