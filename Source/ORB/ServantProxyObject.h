@@ -85,7 +85,7 @@ public:
 		return static_cast <PortableServer::ServantBase*> (&Base::servant ());
 	}
 
-	virtual PortableServer::ServantBase::_ref_type _get_servant () const
+	virtual PortableServer::ServantBase::_ref_type _get_servant () const override
 	{
 		if (&sync_context () != &Nirvana::Core::SyncContext::current ())
 			throw OBJ_ADAPTER ();
