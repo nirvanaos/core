@@ -46,7 +46,7 @@ public:
 	}
 
 	void etherealize (const PortableServer::ObjectId& id, PortableServer::POA::_ptr_type adapter,
-		PortableServer::ServantBase::_ptr_type servant, bool cleanup_in_progress, bool remaining_activations)
+		CORBA::Object::_ptr_type servant, bool cleanup_in_progress, bool remaining_activations)
 	{
 		FileSystem::etherealize (id, servant);
 	}

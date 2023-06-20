@@ -56,7 +56,7 @@ public:
 		return Port::FileSystem::incarnate (id);
 	}
 
-	static void etherealize (const DirItemId& id, PortableServer::ServantBase::_ptr_type servant)
+	static void etherealize (const DirItemId& id, CORBA::Object::_ptr_type servant)
 	{
 		Port::FileSystem::etherealize (id, servant);
 	}
