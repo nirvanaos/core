@@ -117,12 +117,14 @@ NamingContextImpl::~NamingContextImpl ()
 void NamingContextImpl::shutdown () noexcept
 {
 	Bindings bindings (std::move (bindings_));
-	for (const auto& b : bindings) {
-		if (b.second.binding_type == BindingType::ncontext) {
-			NamingContextImpl* impl = cast (b.second.object);
+	while (!bindings.empty ()) {
+		auto b = bindings.begin ();
+		if (b->second.binding_type == BindingType::ncontext) {
+			NamingContextImpl* impl = cast (b->second.object);
 			if (impl)
 				impl->shutdown ();
 		}
+		bindings.erase (b);
 	}
 }
 
