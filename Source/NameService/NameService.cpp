@@ -26,6 +26,7 @@
 #include "NameService.h"
 #include "../ORB/ESIOP.h"
 #include "../ORB/ORB.h"
+#include "../ORB/ServantProxyObject.h"
 
 using namespace CORBA;
 
@@ -108,6 +109,13 @@ std::unique_ptr <Iterator> NameService::make_iterator () const
 	get_bindings (*iter);
 	file_system_.get_roots (*iter);
 	return iter;
+}
+
+void NameService::terminate (Object::_ptr_type root) noexcept
+{
+	NameService* impl = static_cast <NameService*> (get_implementation (root));
+	assert (impl);
+	impl->shutdown ();
 }
 
 }

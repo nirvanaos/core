@@ -48,6 +48,19 @@ protected:
 		core_object_ = Internal::I_var <CORBA::LocalObject> (SysObject::create (
 			&static_cast <CORBA::LocalObject&> (static_cast <Internal::Bridge <CORBA::LocalObject>&> (*this)), id, id_len));
 	}
+
+	static const ServantProxyLocal* get_proxy (Object::_ptr_type obj) noexcept
+	{
+		return local2proxy (obj);
+	}
+
+	static Internal::Bridge <CORBA::LocalObject>* get_implementation (Object::_ptr_type obj) noexcept
+	{
+		const ServantProxyLocal* proxy = get_proxy (obj);
+		if (proxy)
+			return static_cast <Internal::Bridge <CORBA::LocalObject>*> (&proxy->servant ());
+		return nullptr;
+	}
 };
 
 //! \brief Implementation of system object

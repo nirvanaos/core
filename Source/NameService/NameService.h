@@ -103,6 +103,28 @@ public:
 		return resolve (name);
 	}
 
+	// Details
+
+	virtual NamingContext::_ptr_type this_context () override
+	{
+		return _this ();
+	}
+
+	static void terminate (CORBA::Object::_ptr_type root) noexcept;
+
+	virtual void add_link (const NamingContextImpl& parent) override
+	{}
+
+	virtual bool remove_link (const NamingContextImpl& parent) override
+	{
+		return true;
+	}
+	
+	virtual bool is_cyclic (ContextSet& parents) const override
+	{
+		return false;
+	}
+
 private:
 	Nirvana::Core::FileSystem file_system_;
 };

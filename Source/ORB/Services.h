@@ -81,8 +81,7 @@ public:
 		sync_domain_ (std::ref (Nirvana::Core::Heap::shared_heap ()))
 	{}
 
-	~Services ()
-	{}
+	~Services ();
 
 	static void initialize () noexcept
 	{

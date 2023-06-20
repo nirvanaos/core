@@ -79,7 +79,7 @@ protected:
 
 private:
 	// This map contains active references and references with GC
-	typedef Nirvana::Core::PointerSet References;
+	typedef Nirvana::Core::PointerSet <CORBA::Core::ReferenceLocal> References;
 	References references_;
 
 	DGC_Policy DGC_policy_;

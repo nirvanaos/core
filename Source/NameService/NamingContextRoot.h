@@ -49,9 +49,17 @@ public:
 	static NameComponent to_component (Istring s);
 	static void check_name (const Name& n);
 
+protected:
+	NamingContextRoot (uint32_t signature = 0) :
+		signature_ (signature)
+	{}
+
 private:
 	static Istring escape (Istring s);
 	static Istring unescape (Istring s);
+
+protected:
+	const uint32_t signature_;
 };
 
 }

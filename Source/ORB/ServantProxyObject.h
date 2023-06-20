@@ -126,7 +126,20 @@ CORBA::Core::ServantProxyObject* object2proxy (CORBA::Object::_ptr_type obj) noe
 	return static_cast <ServantProxyObject*> (ProxyManager::cast (obj));
 }
 
-PortableServer::ServantBase::_ref_type object2servant (CORBA::Object::_ptr_type obj);
+/// \brief Obtain servant from object proxy.
+/// 
+/// Must be called from the servant synchronization context, otherwise exception will thrown.
+/// 
+/// \param obj Object proxy.
+/// \returns PortableServer::Servant
+/// \throws OBJ_ADAPTER
+PortableServer::Servant object2servant (Object::_ptr_type obj);
+
+inline
+Internal::Bridge <PortableServer::ServantBase>* object2servant_base (Object::_ptr_type obj)
+{
+	return static_cast <Internal::Bridge <PortableServer::ServantBase>*> (&object2servant (obj));
+}
 
 }
 }

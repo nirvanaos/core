@@ -31,6 +31,7 @@
 #include "NamingContextBase.h"
 #include "../MapUnorderedUnstable.h"
 #include "../UserAllocator.h"
+#include "../PointerSet.h"
 
 namespace CosNaming {
 namespace Core {
@@ -46,6 +47,7 @@ public:
 	virtual void rebind_context1 (Istring&& name, NamingContext::_ptr_type nc, Name& n) override;
 	virtual CORBA::Object::_ref_type resolve1 (const Istring& name, BindingType& type, Name& n) override;
 	virtual void unbind1 (const Istring& name, Name& n) override;
+	virtual NamingContext::_ptr_type this_context () = 0;
 
 	NamingContext::_ref_type new_context ();
 
@@ -59,14 +61,27 @@ public:
 
 	virtual std::unique_ptr <Iterator> make_iterator () const override;
 
+	static NamingContextImpl* cast (CORBA::Object::_ptr_type obj) noexcept;
+
+	virtual void add_link (const NamingContextImpl& parent) = 0;
+	virtual bool remove_link (const NamingContextImpl& parent) = 0;
+
+	typedef Nirvana::Core::PointerSet <const NamingContextImpl> ContextSet;
+
+	virtual bool is_cyclic (ContextSet& parents) const = 0;
+
+	void shutdown () noexcept;
+
 protected:
+	static const uint32_t SIGNATURE = 'NAME';
+
 	NamingContextImpl ();
 	~NamingContextImpl ();
 
 	void get_bindings (IteratorStack& iter) const;
 	virtual NamingContext::_ref_type create_context1 (Istring&& name, Name& n, bool& created) override;
 
-protected:
+private:
 	struct MapVal
 	{
 		CORBA::Object::_ref_type object;
@@ -85,6 +100,11 @@ protected:
 	using Bindings = Nirvana::Core::MapUnorderedUnstable <Istring, MapVal,
 		std::hash <Istring>, std::equal_to <Istring>, Nirvana::Core::UserAllocator>;
 
+	void link (CORBA::Object::_ptr_type context) const;
+	void link (Bindings::iterator it);
+	void unlink (CORBA::Object::_ptr_type context, const Name& n);
+
+protected:
 	Bindings bindings_;
 };
 

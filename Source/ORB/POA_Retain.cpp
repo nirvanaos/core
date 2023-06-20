@@ -144,8 +144,8 @@ void POA_Retain::destroy_internal (bool etherealize_objects) noexcept
 		POA_Retain::etherealize_objects ();
 	else {
 		References tmp (std::move (references_));
-		for (void* p : tmp) {
-			ReferenceLocalRef (reinterpret_cast <ReferenceLocal*> (p))->deactivate ();
+		for (auto p : tmp) {
+			ReferenceLocalRef (p)->deactivate ();
 		}
 	}
 }
@@ -153,8 +153,8 @@ void POA_Retain::destroy_internal (bool etherealize_objects) noexcept
 void POA_Retain::etherealize_objects () noexcept
 {
 	References tmp (std::move (references_));
-	for (void* p : tmp) {
-		ReferenceLocalRef ref (reinterpret_cast <ReferenceLocal*> (p));
+	for (auto p : tmp) {
+		ReferenceLocalRef ref (p);
 		servant_reference <ServantProxyObject> servant (ref->deactivate ());
 		if (servant)
 			etherialize (ref->core_key ().object_id (), *servant, true);

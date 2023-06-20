@@ -58,6 +58,10 @@ public:
 	virtual NamingContext::_ref_type bind_new_context1 (Istring&& name, Name& n) = 0;
 
 protected:
+	NamingContextBase (uint32_t signature) :
+		NamingContextRoot (signature)
+	{}
+
 	virtual NamingContext::_ref_type create_context1 (Istring&& name, Name& n, bool& created) = 0;
 
 private:

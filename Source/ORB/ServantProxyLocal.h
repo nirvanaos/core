@@ -74,7 +74,7 @@ protected:
 /// \returns Proxy pointer.
 inline const ServantProxyLocal* local2proxy (Object::_ptr_type obj) noexcept
 {
-	return static_cast <const ServantProxyLocal*> (static_cast <Internal::Bridge <Object>*> (&obj));
+	return static_cast <const ServantProxyLocal*> (ProxyManager::cast (obj));
 }
 
 }

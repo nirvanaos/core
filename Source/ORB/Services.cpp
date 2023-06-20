@@ -27,6 +27,7 @@
 #include "Services.h"
 #include "Scheduler.h"
 #include "PortableServer_Current.h"
+#include "NameService/NameService.h"
 
 namespace Nirvana {
 namespace Core {
@@ -65,6 +66,13 @@ namespace Core {
 extern Object::_ref_type create_TC_Factory ();
 
 Nirvana::Core::StaticallyAllocated <Services> Services::singleton_;
+
+Services::~Services ()
+{
+	Object::_ref_type name_service = services_ [NameService].get_if_constructed ();
+	if (name_service)
+		CosNaming::Core::NameService::terminate (name_service);
+}
 
 Object::_ref_type Services::bind_internal (Service sidx)
 {
