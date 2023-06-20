@@ -74,7 +74,10 @@ void RequestLocalPOA::serve (const ServantProxyBase& proxy)
 {
 	SyncContext& sc = proxy.get_sync_context (op_idx ());
 	MemContext* mc = nullptr;
-	if (!sc.sync_domain ())
+	SyncDomain* sd = sc.sync_domain ();
+	if (sd)
+		mc = &sd->mem_context ();
+	else
 		mc = memory ();
 	SYNC_BEGIN (sc, mc);
 	proxy.invoke (op_idx (), _get_ptr ());

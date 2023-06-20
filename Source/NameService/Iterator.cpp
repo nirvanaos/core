@@ -48,8 +48,8 @@ bool Iterator::next_one (CosNaming::Binding& b)
 
 bool Iterator::next_n (uint32_t how_many, CosNaming::BindingList& bl)
 {
-	CosNaming::Binding b;
 	bool ret = false;
+	CosNaming::Binding b;
 	while (next_one (b)) {
 		bl.push_back (std::move (b));
 		ret = true;
