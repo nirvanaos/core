@@ -87,6 +87,7 @@ public:
 	void _remove_ref () noexcept
 	{
 		if (0 == ref_cnt_.decrement_seq ()) {
+			assert (!proxy_._refcount_value ());
 			try {
 				auto s = proxy_.servant ();
 				proxy_.reset_servant ();

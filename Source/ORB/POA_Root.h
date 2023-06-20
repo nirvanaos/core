@@ -202,14 +202,14 @@ inline
 POA::_ref_type POA_Base::create_POA (const IDL::String& adapter_name,
 	PortableServer::POAManager::_ptr_type a_POAManager, const CORBA::PolicyList& policies)
 {
-	POA_Policies pols = POA_Policies::default_;
-	CORBA::servant_reference <CORBA::Core::PolicyMapShared> object_policies = pols.set_values (policies);
-
 	auto ins = children_.emplace (adapter_name, POA_Ref ());
 	if (!ins.second)
 		throw AdapterAlreadyExists ();
 
 	try {
+
+		POA_Policies pols = POA_Policies::default_;
+		CORBA::servant_reference <CORBA::Core::PolicyMapShared> object_policies = pols.set_values (policies);
 
 		CORBA::servant_reference <POAManager> manager = POAManager::get_implementation (
 			CORBA::Core::local2proxy (a_POAManager));

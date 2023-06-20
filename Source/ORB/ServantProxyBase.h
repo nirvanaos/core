@@ -64,10 +64,12 @@ public:
 
 	Nirvana::Core::MemContext* memory () const noexcept;
 
+#ifdef _DEBUG
 	RefCntProxy::IntegralType _refcount_value () const noexcept
 	{
 		return ref_cnt_.load ();
 	}
+#endif
 
 	virtual void _remove_ref () noexcept override;
 
