@@ -155,11 +155,21 @@ Ref <ServantProxyObject> ReferenceLocal::get_active_servant () const noexcept
 	return Ref <ServantProxyObject> (servant_.load ());
 }
 
-Nirvana::Core::Ref <ServantProxyObject> ReferenceLocal::get_active_servant_with_lock () const noexcept
+Ref <ServantProxyObject> ReferenceLocal::get_active_servant_with_lock () const noexcept
 {
 	Ref <ServantProxyObject> proxy (servant_.lock ());
 	servant_.unlock ();
 	return proxy;
+}
+
+PortableServer::ServantBase::_ref_type ReferenceLocal::_get_servant () const
+{
+	Ref <ServantProxyObject> proxy = get_active_servant_with_lock ();
+	if (!proxy) {
+		// Attempt to pass an unactivated (unregistered) value as an object reference.
+		throw OBJECT_NOT_EXIST (MAKE_OMG_MINOR (1));
+	}
+	return proxy->_get_servant ();
 }
 
 inline

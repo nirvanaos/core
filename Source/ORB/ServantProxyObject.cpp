@@ -152,8 +152,10 @@ ReferenceLocalRef ServantProxyObject::get_local_reference (const PortableServer:
 ReferenceRef ServantProxyObject::marshal (StreamOut& out)
 {
 	ReferenceRef ref (get_local_reference ());
-	if (!ref) // Attempt to pass an unactivated (unregistered) value as an object reference.
+	if (!ref) {
+		// Attempt to pass an unactivated (unregistered) value as an object reference.
 		throw OBJECT_NOT_EXIST (MAKE_OMG_MINOR (1));
+	}
 	return ref->marshal (out);
 }
 

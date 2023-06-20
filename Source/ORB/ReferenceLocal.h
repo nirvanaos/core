@@ -75,6 +75,7 @@ public:
 
 	Nirvana::Core::Ref <ServantProxyObject> get_active_servant () const noexcept;
 	Nirvana::Core::Ref <ServantProxyObject> get_active_servant_with_lock () const noexcept;
+	PortableServer::ServantBase::_ref_type _get_servant () const override;
 
 	static void marshal (const ProxyManager& proxy, const Octet* obj_key, size_t obj_key_size,
 		const PolicyMap* policies, StreamOut& out);

@@ -85,6 +85,13 @@ public:
 		return static_cast <PortableServer::ServantBase*> (&Base::servant ());
 	}
 
+	virtual PortableServer::ServantBase::_ref_type _get_servant () const
+	{
+		if (&sync_context () != &Nirvana::Core::SyncContext::current ())
+			throw OBJ_ADAPTER ();
+		return servant ();
+	}
+
 	virtual Boolean _is_equivalent (Object::_ptr_type other_object) const noexcept override;
 
 	virtual Boolean non_existent () override;

@@ -119,6 +119,11 @@ public:
 		return &static_cast <Object&> (static_cast <Internal::Bridge <Object>&> (*this));
 	}
 
+	virtual PortableServer::ServantBase::_ref_type _get_servant () const
+	{
+		throw NO_IMPLEMENT ();
+	}
+
 	// Query interface
 	Internal::Interface* _query_interface (const IDL::String& type_id) const
 	{
