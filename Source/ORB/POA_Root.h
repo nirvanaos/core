@@ -85,7 +85,10 @@ public:
 			ref->check_primary_interface (iid);
 		else {
 			ObjectKey core_key (object_key);
-			ref = find_child (core_key.adapter_path (), true)->create_reference (std::move (core_key), iid);
+			POA_Ref adapter = find_child (core_key.adapter_path (), true);
+			if (!adapter)
+				throw CORBA::OBJECT_NOT_EXIST (MAKE_OMG_MINOR (2));
+			ref = adapter->create_reference (std::move (core_key), iid);
 		}
 		return CORBA::Object::_ref_type (ref->get_proxy ());
 		SYNC_END ();
@@ -221,7 +224,7 @@ POA::_ref_type POA_Base::create_POA (const IDL::String& adapter_name,
 #endif
 
 	auto ins = children_.emplace (adapter_name, POA_Ref ());
-	if (!ins.second)
+	if (!ins.second && ins.first->second.is_constructed ())
 		throw AdapterAlreadyExists ();
 
 	try {
@@ -256,7 +259,7 @@ POA::_ref_type POA_Base::create_POA (const IDL::String& adapter_name,
 		throw;
 	}
 
-	return ins.first->second->_this ();
+	return ins.first->second.get ()->_this ();
 }
 
 }

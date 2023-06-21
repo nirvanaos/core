@@ -369,26 +369,35 @@ bool POA_Base::check_path (const AdapterPath& path, AdapterPath::const_iterator 
 
 POA_Ref POA_Base::find_child (const IDL::String& adapter_name, bool activate_it)
 {
-	auto it = children_.find (adapter_name);
-	if (it == children_.end ()) {
-		if (activate_it && the_activator_) {
-			if (is_destroyed ())
-				throw TRANSIENT (MAKE_OMG_MINOR (4));
-
-			bool created = false;
+	Children::iterator it;
+	if (!activate_it || !the_activator_)
+		it = children_.find (adapter_name);
+	else {
+		auto ins = children_.emplace (adapter_name, ADAPTER_ACTIVATION_DEADLINE);
+		if (ins.second) {
+			Children::reference entry (*ins.first);
 			try {
-				created = the_activator_->unknown_adapter (_this (), adapter_name);
-			} catch (const SystemException&) {
-				throw OBJ_ADAPTER (MAKE_OMG_MINOR (1));
+				bool created = false;
+				try {
+					created = the_activator_->unknown_adapter (_this (), adapter_name);
+				} catch (const AdapterAlreadyExists&) {
+					// Possible raise where the first wins, ignore it.
+				}
+
+				if (created)
+					it = children_.find (adapter_name);
+			} catch (...) {
+				entry.second.on_exception ();
+				children_.erase (entry.first);
+				throw;
 			}
-			if (created)
-				it = children_.find (static_cast <const IDL::String&> (adapter_name));
-			else
-				throw OBJECT_NOT_EXIST (MAKE_OMG_MINOR (2));
-		}
+			if (it == children_.end ())
+				children_.erase (entry.first);
+		} else
+			it = ins.first;
 	}
 	if (it != children_.end ())
-		return it->second;
+		return it->second.get ();
 	else
 		return nullptr;
 }
@@ -399,7 +408,7 @@ void POA_Base::destroy_internal (bool etherealize_objects) noexcept
 	name_ = nullptr;
 	Children tmp (std::move (children_));
 	while (!tmp.empty ()) {
-		tmp.begin ()->second->destroy (etherealize_objects);
+		tmp.begin ()->second.get ()->destroy (etherealize_objects);
 		tmp.erase (tmp.begin ());
 	}
 }

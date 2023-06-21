@@ -161,6 +161,8 @@ bool operator < (const POA_Policies& l, const POA_FactoryEntry& r) noexcept
 class NIRVANA_NOVTABLE POA_Base :
 	public CORBA::servant_traits <POA>::Servant <POA_Base>
 {
+	static const TimeBase::TimeT ADAPTER_ACTIVATION_DEADLINE = 1 * TimeBase::MILLISECOND;
+
 public:
 	// POA creation and destruction
 
@@ -274,7 +276,7 @@ public:
 		POAList list;
 		list.reserve (children_.size ());
 		for (auto it = children_.begin (); it != children_.end (); ++it) {
-			list.push_back (it->second->_this ());
+			list.push_back (it->second.get_if_constructed ()->_this ());
 		}
 		return list;
 	}
@@ -518,7 +520,7 @@ protected:
 
 private:
 	// Children map.
-	typedef Nirvana::Core::MapUnorderedStable <IDL::String, POA_Ref,
+	typedef Nirvana::Core::MapUnorderedStable <IDL::String, Nirvana::Core::WaitableRef <POA_Ref>,
 		std::hash <IDL::String>, std::equal_to <IDL::String>,
 		Nirvana::Core::UserAllocator> Children;
 

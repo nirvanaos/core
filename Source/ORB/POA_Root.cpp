@@ -101,6 +101,9 @@ POA_Ref POA_Root::find_child (const AdapterPath& path, bool activate_it)
 {
 	POA_Ref adapter = &root ();
 	for (const auto& name : path) {
+		if (adapter->is_destroyed ())
+			throw TRANSIENT (MAKE_OMG_MINOR (4));
+
 		adapter = adapter->find_child (name, activate_it);
 		if (!adapter)
 			break;
@@ -133,7 +136,16 @@ void POA_Root::invoke (RequestRef request, bool async) noexcept
 
 void POA_Root::invoke_sync (const RequestRef& request)
 {
-	find_child (ObjectKey (request->object_key ()).adapter_path (), true)->invoke (request);
+	POA_Ref adapter;
+	try {
+		adapter = find_child (ObjectKey (request->object_key ()).adapter_path (), true);
+	} catch (...) {
+		throw OBJ_ADAPTER (MAKE_OMG_MINOR (1));
+	}
+	if (!adapter)
+		throw OBJECT_NOT_EXIST (MAKE_OMG_MINOR (2));
+
+	adapter->invoke (request);
 }
 
 class POA_Root::InvokeAsync :

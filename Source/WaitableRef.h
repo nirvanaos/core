@@ -110,7 +110,7 @@ class WaitableRef :
 {
 	static_assert (sizeof (PtrType) == sizeof (uintptr_t), "Invalid pointer type");
 public:
-	WaitableRef ()
+	WaitableRef () noexcept
 	{}
 
 	/// Construct waitable reference, 
@@ -125,7 +125,7 @@ public:
 		WaitableRefBase (deadline)
 	{}
 
-	/// Construct waitable reference without a wait list.
+	/// Construct immediate ready reference without a wait list.
 	/// 
 	/// \param p Pointer to the created object.
 	/// 
@@ -133,11 +133,11 @@ public:
 		WaitableRefBase (make_ptr (p))
 	{}
 
-	/// Construct waitable reference without a wait list.
+	/// Construct immediate ready reference without a wait list.
 	/// 
 	/// \param p Pointer to the created object.
 	/// 
-	WaitableRef (PtrType&& p) :
+	WaitableRef (PtrType&& p) noexcept :
 		WaitableRefBase (make_ptr (std::move (p)))
 	{}
 
@@ -153,7 +153,7 @@ public:
 	/// Called by creator execution domain on finish the object creation.
 	/// 
 	/// \param p Pointer to the created object.
-	void finish_construction (const PtrType& p) noexcept
+	void finish_construction (const PtrType& p)
 	{
 		WaitableRefBase::finish_construction (make_ptr (p));
 	}
@@ -164,6 +164,26 @@ public:
 	void finish_construction (PtrType&& p) noexcept
 	{
 		WaitableRefBase::finish_construction (make_ptr (std::move (p)));
+	}
+
+	WaitableRef& operator = (const PtrType& p) noexcept
+	{
+		if (is_wait_list ())
+			finish_construction (p);
+		else
+			this->ref () = p;
+
+		return *this;
+	}
+
+	WaitableRef& operator = (PtrType&& p) noexcept
+	{
+		if (is_wait_list ())
+			finish_construction (std::move (p));
+		else
+			this->ref () = std::move (p);
+
+		return *this;
 	}
 
 	/// Get object pointer.
@@ -211,7 +231,7 @@ public:
 	}
 
 private:
-	static void* make_ptr (const PtrType& p) noexcept
+	static void* make_ptr (const PtrType& p)
 	{
 		void* up = 0;
 		new (&up) PtrType (p);
