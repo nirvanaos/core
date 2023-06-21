@@ -48,7 +48,6 @@ ReferenceLocal::ReferenceLocal (const IOP::ObjectKey& object_key, PortableServer
 	core_key_ (std::move (core_key)),
 	object_key_ (object_key),
 	adapter_context_ (&local2proxy (POA_Root::get_root ())->sync_context ()),
-	root_ (PortableServer::Core::POA_Base::root ()),
 	servant_ (nullptr)
 {
 	policies_ = policies;
@@ -60,7 +59,6 @@ ReferenceLocal::ReferenceLocal (const IOP::ObjectKey& object_key, PortableServer
 	core_key_ (std::move (core_key)),
 	object_key_ (object_key),
 	adapter_context_ (&local2proxy (POA_Root::get_root ())->sync_context ()),
-	root_ (PortableServer::Core::POA_Base::root ()),
 	servant_ (nullptr)
 {
 	policies_ = policies;
@@ -97,7 +95,7 @@ void ReferenceLocal::_remove_ref () noexcept
 		// Need GC
 		if (&SyncContext::current () == adapter_context_) {
 			// Do GC
-			root_->remove_reference (object_key_);
+			POA_Base::root ()->remove_reference (object_key_);
 		} else {
 			// Schedule GC
 			GarbageCollector::schedule (*this, *adapter_context_);

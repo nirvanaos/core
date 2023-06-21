@@ -62,6 +62,7 @@ public:
 	~POA_Root ()
 	{
 		assert (is_destroyed ());
+		references_.clear ();
 		root_ = nullptr;
 	}
 
@@ -202,29 +203,42 @@ inline
 POA::_ref_type POA_Base::create_POA (const IDL::String& adapter_name,
 	PortableServer::POAManager::_ptr_type a_POAManager, const CORBA::PolicyList& policies)
 {
+#ifdef _DEBUG
+	for (size_t i = 1; i < FACTORY_COUNT; ++i) {
+		assert (factories_ [i - 1].policies < factories_ [i].policies);
+	}
+#endif
+
 	auto ins = children_.emplace (adapter_name, POA_Ref ());
 	if (!ins.second)
 		throw AdapterAlreadyExists ();
 
 	try {
 
+		CORBA::Core::PolicyMapRef object_policies;
 		POA_Policies pols = POA_Policies::default_;
-		CORBA::servant_reference <CORBA::Core::PolicyMapShared> object_policies = pols.set_values (policies);
+		pols.set_values (policies, object_policies);
 
 		CORBA::servant_reference <POAManager> manager = POAManager::get_implementation (
 			CORBA::Core::local2proxy (a_POAManager));
+
 		if (!manager)
 			manager = root_->manager_factory ().create_auto (adapter_name);
+		else if (manager->policies ()) {
+			if (!object_policies)
+				object_policies = manager->policies ();
+			else
+				object_policies->merge (*manager->policies ());
+		}
 
 		POA_Ref ref;
 		const POA_FactoryEntry* pf = std::lower_bound (factories_, factories_ + FACTORY_COUNT, pols);
 		if (pf != factories_ + FACTORY_COUNT && !(pols < *pf))
 			ref = (pf->factory) (this, &ins.first->first, std::move (manager), std::move (object_policies));
-		
-		if (!ref)
-			throw InvalidPolicy (); // Do not return the index, it's too complex to calculate it.
 		else
-			ins.first->second = std::move (ref);
+			throw InvalidPolicy (); // Do not return the index, it's too complex to calculate it.
+
+		ins.first->second = std::move (ref);
 
 	} catch (...) {
 		children_.erase (ins.first);

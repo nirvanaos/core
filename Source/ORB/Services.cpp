@@ -71,7 +71,7 @@ Services::~Services ()
 {
 	Object::_ref_type name_service = services_ [NameService].get_if_constructed ();
 	if (name_service)
-		CosNaming::Core::NameService::terminate (name_service);
+		CosNaming::Core::NameService::shutdown (name_service);
 }
 
 Object::_ref_type Services::bind_internal (Service sidx)

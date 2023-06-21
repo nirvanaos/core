@@ -47,13 +47,13 @@ public:
 	{
 		if (!policies.empty ())
 			throw CORBA::PolicyError (CORBA::UNSUPPORTED_POLICY);
-		CORBA::servant_reference <POAManager> manager = create (id);
+		CORBA::servant_reference <POAManager> manager = create (id, policies);
 		if (!manager)
 			throw ManagerAlreadyExists ();
 		return manager->_this ();
 	}
 
-	CORBA::servant_reference <POAManager> create (const IDL::String& id);
+	CORBA::servant_reference <POAManager> create (const IDL::String& id, const CORBA::PolicyList& policies = CORBA::PolicyList ());
 
 	CORBA::servant_reference <POAManager> create_auto (const IDL::String& adapter_name)
 	{
@@ -97,14 +97,21 @@ private:
 };
 
 inline
-POAManager::POAManager (POAManagerFactory& factory, const IDL::String& id) :
+POAManager::POAManager (POAManagerFactory& factory, const IDL::String& id, const CORBA::PolicyList& policies) :
 	IDL::String (id),
 	factory_ (&factory),
 	state_ (State::HOLDING),
 	request_cnt_ (0),
 	requests_completed_ (true),
 	signature_ (SIGNATURE)
-{}
+{
+	if (!policies.empty ()) {
+		policies_ = CORBA::make_reference <CORBA::Core::PolicyMapShared> ();
+		for (const auto& p : policies) {
+			policies_->insert (p);
+		}
+	}
+}
 
 inline
 void POAManager::_delete_object () noexcept

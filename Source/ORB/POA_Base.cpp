@@ -26,7 +26,6 @@
 #include "POA_Root.h"
 #include "PortableServer_Context.h"
 #include "PortableServer_policies.h"
-#include <CORBA/Servant_var.h>
 
 using namespace CORBA;
 using namespace CORBA::Internal;
@@ -153,7 +152,7 @@ Interface* POA_Base::_s_id_to_servant (Bridge <POA>* _b,
 
 POA_Base::POA_Base (POA_Base* parent, const IDL::String* name,
 	servant_reference <Core::POAManager>&& manager,
-	servant_reference <CORBA::Core::PolicyMapShared>&& object_policies) :
+	PolicyMapRef&& object_policies) :
 	the_POAManager_ (std::move (manager)),
 	object_policies_ (std::move (object_policies)),
 	parent_ (parent),
@@ -162,12 +161,6 @@ POA_Base::POA_Base (POA_Base* parent, const IDL::String* name,
 	destroyed_ (false),
 	signature_ (SIGNATURE)
 {
-#ifdef _DEBUG
-	for (size_t i = 1; i < FACTORY_COUNT; ++i) {
-		assert (factories_ [i - 1].policies < factories_ [i].policies);
-	}
-#endif
-
 	the_POAManager_->on_adapter_create (*this);
 }
 
@@ -394,7 +387,7 @@ POA_Ref POA_Base::find_child (const IDL::String& adapter_name, bool activate_it)
 		}
 	}
 	if (it != children_.end ())
-		return Servant_var <POA_Base> (&*it->second);
+		return it->second;
 	else
 		return nullptr;
 }

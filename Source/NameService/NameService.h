@@ -110,7 +110,18 @@ public:
 		return _this ();
 	}
 
-	static void terminate (CORBA::Object::_ptr_type root) noexcept;
+	static void shutdown (CORBA::Object::_ptr_type root) noexcept
+	{
+		NameService* impl = static_cast <NameService*> (get_implementation (root));
+		assert (impl);
+		impl->shutdown ();
+	}
+
+	void shutdown () noexcept
+	{
+		NamingContextImpl::shutdown ();
+		file_system_.shutdown ();
+	}
 
 	virtual void add_link (const NamingContextImpl& parent) override
 	{}

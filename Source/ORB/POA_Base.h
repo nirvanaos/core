@@ -72,9 +72,8 @@ struct POA_Policies
 	ServantRetentionPolicyValue servant_retention;
 	RequestProcessingPolicyValue request_processing;
 
-	CORBA::servant_reference <CORBA::Core::PolicyMapShared> set_values (const CORBA::PolicyList& policies)
+	void set_values (const CORBA::PolicyList& policies, CORBA::Core::PolicyMapRef& object_policies)
 	{
-		CORBA::servant_reference <CORBA::Core::PolicyMapShared> object_policies;
 		unsigned mask = 0;
 		*this = default_;
 		int DGC_policy_idx = -1;
@@ -122,8 +121,6 @@ struct POA_Policies
 		// DGC requires RETAIN policy
 		if (DGC_policy_idx >= 0 && servant_retention != ServantRetentionPolicyValue::RETAIN)
 			throw POA::InvalidPolicy ((CORBA::UShort)DGC_policy_idx);
-
-		return object_policies;
 	}
 
 	bool operator < (const POA_Policies& rhs) const noexcept
@@ -495,7 +492,7 @@ protected:
 
 	POA_Base (POA_Base* parent, const IDL::String* name,
 		CORBA::servant_reference <POAManager>&& manager,
-		CORBA::servant_reference <CORBA::Core::PolicyMapShared>&& object_policies);
+		CORBA::Core::PolicyMapRef&& object_policies);
 
 	virtual bool implicit_activation () const noexcept;
 
@@ -512,7 +509,7 @@ private:
 protected:
 	static POA_Root* root_;
 	CORBA::servant_reference <POAManager> the_POAManager_;
-	CORBA::servant_reference <CORBA::Core::PolicyMapShared> object_policies_;
+	CORBA::Core::PolicyMapRef object_policies_;
 
 private:
 	// Children map.

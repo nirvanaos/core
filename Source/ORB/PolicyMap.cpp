@@ -37,7 +37,9 @@ PolicyMap::PolicyMap ()
 void PolicyMap::insert (const OctetSeq& encap)
 {
 	ImplStatic <StreamInEncap> stm (std::ref (encap));
-	for (size_t cnt = stm.read32 (); cnt; --cnt) {
+	size_t cnt = stm.read32 ();
+	map_.reserve (cnt);
+	for (; cnt; --cnt) {
 		PolicyType type = stm.read32 ();
 		OctetSeq data;
 		stm.read_seq (data);
@@ -76,6 +78,14 @@ Policy::_ref_type PolicyMap::get_policy (PolicyType type) const
 	if (p)
 		policy = PolicyFactory::create (type, *p);
 	return policy;
+}
+
+void PolicyMap::merge (const PolicyMap& src)
+{
+	map_.reserve (map_.size () + src.map_.size ());
+	for (const auto& p : src.map_) {
+		map_.emplace (p.first, p.second);
+	}
 }
 
 }

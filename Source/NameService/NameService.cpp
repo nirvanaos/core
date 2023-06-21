@@ -111,13 +111,6 @@ std::unique_ptr <Iterator> NameService::make_iterator () const
 	return iter;
 }
 
-void NameService::terminate (Object::_ptr_type root) noexcept
-{
-	NameService* impl = static_cast <NameService*> (get_implementation (root));
-	assert (impl);
-	impl->shutdown ();
-}
-
 }
 }
 

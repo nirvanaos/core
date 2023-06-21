@@ -60,7 +60,7 @@ ServantProxyObject::ServantProxyObject (PortableServer::Servant user_servant) :
 	adapter_context_ (&local2proxy (POA_Root::get_root ())->sync_context ()),
 	references_ (adapter_context_->sync_domain ()->mem_context ().heap ())
 {
-	static_assert (core_object_align (sizeof (ReferenceLocal)) == REF_ALIGN, "sizeof (ReferenceLocal)");
+	static_assert (sizeof (ReferenceLocal) == REF_SIZE, "sizeof (ReferenceLocal)");
 }
 
 ServantProxyObject::~ServantProxyObject ()

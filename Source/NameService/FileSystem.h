@@ -41,6 +41,13 @@ public:
 	FileSystem ();
 	~FileSystem ();
 
+	void shutdown () noexcept
+	{
+		try {
+			adapter ()->destroy (true, true);
+		} catch (...) {}
+	}
+
 	bool find (const IDL::String& name) const noexcept
 	{
 		return roots_.find (name) != roots_.end ();

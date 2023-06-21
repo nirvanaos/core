@@ -98,8 +98,6 @@ private:
 
 	Nirvana::Core::Ref <Nirvana::Core::SyncContext> adapter_context_;
 
-	servant_reference <PortableServer::Core::POA_Root> root_;
-
 	static const size_t SERVANT_ALIGN = Nirvana::Core::core_object_align (
 		sizeof (PortableServer::Core::ServantBaseImpl));
 	typedef Nirvana::Core::LockablePtrT <ServantProxyObject, 0, SERVANT_ALIGN> ServantPtr;

@@ -53,6 +53,7 @@ FileSystem::FileSystem ()
 	policies.push_back (parent->create_lifespan_policy (LifespanPolicyValue::PERSISTENT));
 	policies.push_back (parent->create_id_assignment_policy (IdAssignmentPolicyValue::USER_ID));
 	policies.push_back (parent->create_request_processing_policy (RequestProcessingPolicyValue::USE_SERVANT_MANAGER));
+	policies.push_back (parent->create_id_uniqueness_policy (IdUniquenessPolicyValue::MULTIPLE_ID));
 	POA::_ref_type adapter = parent->create_POA (SysAdapterActivator::filesystem_adapter_name_,
 		parent->the_POAManager (), policies);
 	adapter->set_servant_manager (make_stateless <FileActivator> ()->_this ());

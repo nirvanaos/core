@@ -42,10 +42,15 @@ class POAManager :
 {
 public:
 	inline
-	POAManager (POAManagerFactory& factory, const IDL::String& id);
+	POAManager (POAManagerFactory& factory, const IDL::String& id, const CORBA::PolicyList& policies);
 
 	~POAManager ()
 	{}
+
+	CORBA::Core::PolicyMapShared* policies () const noexcept
+	{
+		return policies_;
+	}
 
 	inline void _delete_object () noexcept;
 
@@ -239,6 +244,7 @@ private:
 	};
 
 	CORBA::servant_reference <POAManagerFactory> factory_;
+	CORBA::servant_reference <CORBA::Core::PolicyMapShared> policies_;
 	std::vector <POA_Base*, Nirvana::Core::UserAllocator <POA_Base*> > associated_adapters_;
 	std::priority_queue <QElem, std::vector <QElem, Nirvana::Core::UserAllocator <QElem> > > queue_;
 	State state_;

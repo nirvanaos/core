@@ -83,6 +83,8 @@ public:
 		return map_.size ();
 	}
 
+	void merge (const PolicyMap& src);
+
 private:
 	const OctetSeq* get_data (PolicyType type) const noexcept;
 
@@ -115,6 +117,8 @@ bool PolicyMap::get_value (typename PolicyImpl <type>::ValueType& val) const
 }
 
 typedef Nirvana::Core::ImplDynamicSyncVirt <PolicyMap> PolicyMapShared;
+
+typedef servant_reference <PolicyMapShared> PolicyMapRef;
 
 }
 }
