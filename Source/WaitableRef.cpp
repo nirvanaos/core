@@ -71,12 +71,12 @@ void WaitableRefBase::on_exception () noexcept
 	wait_list ()->on_exception ();
 }
 
-void WaitableRefBase::finish_construction (uintptr_t p) noexcept
+void WaitableRefBase::finish_construction (void* p) noexcept
 {
-	assert (!(p & 1));
+	assert (!((uintptr_t)p & 1));
 	Ref <WaitList> wait_list;
 	detach (wait_list);
-	pointer_ = p;
+	pointer_ = (uintptr_t)p;
 	wait_list->finish ();
 }
 

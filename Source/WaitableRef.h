@@ -65,28 +65,34 @@ protected:
 		initialize (deadline);
 	}
 	
-	~WaitableRefBase ()
-	{
-		reset ();
-	}
-
 	WaitableRefBase (WaitableRefBase&& src) noexcept :
 		pointer_ (src.pointer_)
 	{
 		src.pointer_ = 0;
 	}
 
-	void finish_construction (uintptr_t p) noexcept;
+	WaitableRefBase (void* p) noexcept :
+		pointer_ ((uintptr_t)p)
+	{
+		assert (!is_wait_list ());
+	}
+
+	~WaitableRefBase ()
+	{
+		reset ();
+	}
+
+	void finish_construction (void* p) noexcept;
 	void wait_construction () const;
 
 	void reset () noexcept;
 
+private:
 	static bool is_wait_list (uintptr_t pointer) noexcept
 	{
 		return pointer & 1;
 	}
 
-private:
 	inline WaitList* wait_list () const noexcept;
 	void detach (Ref <WaitList>& ref) noexcept;
 
@@ -119,6 +125,22 @@ public:
 		WaitableRefBase (deadline)
 	{}
 
+	/// Construct waitable reference without a wait list.
+	/// 
+	/// \param p Pointer to the created object.
+	/// 
+	WaitableRef (const PtrType& p) :
+		WaitableRefBase (make_ptr (p))
+	{}
+
+	/// Construct waitable reference without a wait list.
+	/// 
+	/// \param p Pointer to the created object.
+	/// 
+	WaitableRef (PtrType&& p) :
+		WaitableRefBase (make_ptr (std::move (p)))
+	{}
+
 	WaitableRef (WaitableRef&&) = default;
 
 	/// Destructor calls ~PtrType if object construction was completed.
@@ -131,11 +153,17 @@ public:
 	/// Called by creator execution domain on finish the object creation.
 	/// 
 	/// \param p Pointer to the created object.
-	void finish_construction (PtrType p) noexcept
+	void finish_construction (const PtrType& p) noexcept
 	{
-		uintptr_t up = 0;
-		reinterpret_cast <PtrType&> (up) = std::move (p);
-		WaitableRefBase::finish_construction (up);
+		WaitableRefBase::finish_construction (make_ptr (p));
+	}
+
+	/// Called by creator execution domain on finish the object creation.
+	/// 
+	/// \param p Pointer to the created object.
+	void finish_construction (PtrType&& p) noexcept
+	{
+		WaitableRefBase::finish_construction (make_ptr (std::move (p)));
 	}
 
 	/// Get object pointer.
@@ -152,7 +180,7 @@ public:
 	/// \returns `true` if the object construction is complete.
 	bool is_constructed () const noexcept
 	{
-		return !is_wait_list (pointer_);
+		return !is_wait_list ();
 	}
 
 	/// Get object pointer if object is already constructed.
@@ -163,7 +191,7 @@ public:
 	PtrType get_if_constructed () const noexcept
 	{
 		uintptr_t p = pointer_;
-		if (is_wait_list (p))
+		if (is_wait_list ())
 			return nullptr;
 		else
 			return reinterpret_cast <const PtrType&> (p);
@@ -183,6 +211,20 @@ public:
 	}
 
 private:
+	static void* make_ptr (const PtrType& p) noexcept
+	{
+		void* up = 0;
+		new (&up) PtrType (p);
+		return up;
+	}
+
+	static void* make_ptr (PtrType&& p) noexcept
+	{
+		void* up = 0;
+		new (&up) PtrType (std::move (p));
+		return up;
+	}
+
 	PtrType& ref () noexcept
 	{
 		assert (!this->is_wait_list ());
