@@ -47,7 +47,7 @@ void POA_System::check_object_id (const ObjectId& oid)
 
 ObjectId POA_SystemPersistent::generate_object_id ()
 {
-	return root_->generate_persistent_id ();
+	return root ().generate_persistent_id ();
 }
 
 void POA_SystemPersistent::check_object_id (const ObjectId& oid)

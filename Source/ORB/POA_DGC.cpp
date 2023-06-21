@@ -40,7 +40,7 @@ POA_DGC::POA_DGC ()
 			pols = make_reference <PolicyMapShared> (std::ref (*object_policies_));
 			pols->insert <Nirvana::DGC_POLICY_TYPE> (true);
 		} else if (root_)
-			pols = root_->default_DGC_policies ();
+			pols = root ().default_DGC_policies ();
 		else {
 			pols = CORBA::make_reference <CORBA::Core::PolicyMapShared> ();
 			pols->insert <Nirvana::DGC_POLICY_TYPE> (true);

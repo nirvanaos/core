@@ -62,7 +62,6 @@ public:
 	~POA_Root ()
 	{
 		assert (is_destroyed ());
-		references_.clear ();
 		root_ = nullptr;
 	}
 
@@ -78,10 +77,10 @@ public:
 
 	static CORBA::Object::_ref_type unmarshal (CORBA::Internal::String_in iid, const IOP::ObjectKey& object_key)
 	{
-		CORBA::Object::_ref_type root = get_root (); // Hold root POA reference
+		CORBA::Object::_ref_type proxy = get_root (); // Hold root POA proxy reference
 
-		SYNC_BEGIN (CORBA::Core::local2proxy (root)->sync_context (), nullptr)
-		CORBA::Core::ReferenceLocalRef ref = root_->find_reference (object_key);
+		SYNC_BEGIN (CORBA::Core::local2proxy (proxy)->sync_context (), nullptr)
+		CORBA::Core::ReferenceLocalRef ref = root ().find_reference (object_key);
 		if (ref)
 			ref->check_primary_interface (iid);
 		else {
@@ -94,10 +93,10 @@ public:
 
 	static void get_DGC_objects (const IDL::Sequence <IOP::ObjectKey>& keys, CORBA::Core::ReferenceLocalRef* refs)
 	{
-		CORBA::Object::_ref_type root = get_root (); // Hold root POA reference
-		SYNC_BEGIN (CORBA::Core::local2proxy (root)->sync_context (), nullptr)
+		CORBA::Object::_ref_type proxy = get_root (); // Hold root POA proxy reference
+		SYNC_BEGIN (CORBA::Core::local2proxy (proxy)->sync_context (), nullptr)
 		for (const auto& iop_key : keys) {
-			CORBA::Core::ReferenceLocalRef ref = root_->find_reference (iop_key);
+			CORBA::Core::ReferenceLocalRef ref = root ().find_reference (iop_key);
 			if (ref)
 				if (ref->flags () & CORBA::Core::Reference::GARBAGE_COLLECTION)
 					*refs = std::move (ref);
@@ -158,16 +157,28 @@ public:
 
 	CORBA::Core::ReferenceLocalRef find_reference (const IOP::ObjectKey& key) noexcept;
 
-	static void shutdown ()
-	{
-		if (root_) // POA was used in some way
-			root_->_this ()->destroy (true, true);
-	}
-
 	CORBA::Core::PolicyMapShared* default_DGC_policies () const noexcept
 	{
 		return DGC_policies_;
 	}
+
+	static void initialize ()
+	{
+		root_object_.construct ();
+	}
+
+	static void shutdown ()
+	{
+		if (root_) // POA was used in some way
+			root_->_this ()->destroy (true, true); // Block incoming requests and complete currently executed ones.
+	}
+
+	static void terminate () noexcept
+	{
+		root_object_.destruct ();
+	}
+
+	static CORBA::Object::_ref_type create ();
 
 private:
 	class InvokeAsync;
@@ -184,7 +195,7 @@ private:
 inline
 PortableServer::POAManagerFactory::_ref_type POA_Base::the_POAManagerFactory () noexcept
 {
-	return root_->manager_factory ()._this ();
+	return root ().manager_factory ()._this ();
 }
 
 inline
@@ -223,7 +234,7 @@ POA::_ref_type POA_Base::create_POA (const IDL::String& adapter_name,
 			CORBA::Core::local2proxy (a_POAManager));
 
 		if (!manager)
-			manager = root_->manager_factory ().create_auto (adapter_name);
+			manager = root ().manager_factory ().create_auto (adapter_name);
 		else if (manager->policies ()) {
 			if (!object_policies)
 				object_policies = manager->policies ();

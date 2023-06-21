@@ -26,6 +26,7 @@
 
 #include "Services.h"
 #include "Scheduler.h"
+#include "POA_Root.h"
 #include "PortableServer_Current.h"
 #include "NameService/NameService.h"
 
@@ -34,14 +35,6 @@ namespace Core {
 
 extern CORBA::Object::_ref_type create_SysDomain ();
 extern CORBA::Object::_ref_type create_ProtDomain ();
-
-}
-}
-
-namespace PortableServer {
-namespace Core {
-
-extern CORBA::Object::_ref_type create_RootPOA ();
 
 }
 }
@@ -112,7 +105,7 @@ const Services::Factory Services::factories_ [SERVICE_COUNT] = {
 	{ "NameService", CosNaming::Core::create_NameService, 1 * TimeBase::MILLISECOND },
 	{ "POACurrent", create_POACurrent, 1 * TimeBase::MILLISECOND },
 	{ "ProtDomain", create_ProtDomain, 1 * TimeBase::MILLISECOND },
-	{ "RootPOA", PortableServer::Core::create_RootPOA, 1 * TimeBase::MILLISECOND },
+	{ "RootPOA", PortableServer::Core::POA_Root::create, 1 * TimeBase::MILLISECOND },
 	{ "SysDomain", create_SysDomain, 10 * TimeBase::MILLISECOND }, // May cause inter-domain call
 	{ "TC_Factory", create_TC_Factory, 1 * TimeBase::MILLISECOND }
 };

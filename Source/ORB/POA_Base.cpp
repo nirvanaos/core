@@ -35,7 +35,8 @@ using namespace Nirvana::Core;
 namespace PortableServer {
 namespace Core {
 
-POA_Root* POA_Base::root_ = nullptr;
+POA_Root* POA_Base::root_;
+StaticallyAllocated <Object::_ref_type> POA_Base::root_object_;
 
 Interface* POA_Base::_s_get_servant (Bridge <POA>* _b, Interface* _env)
 {
@@ -230,7 +231,7 @@ ReferenceLocalRef POA_Base::create_reference (CORBA::Internal::String_in iid, un
 	for (;;) {
 		// The ObjectKey constructor calls generate_object_id to generate a new unique id.
 		// If SYSTEM_ID policy is not present, the WrongPolicy exception will be thrown.
-		ReferenceLocalRef ref = root_->emplace_reference (ObjectKey (*this), true, iid,
+		ReferenceLocalRef ref = root ().emplace_reference (ObjectKey (*this), true, iid,
 			get_flags (flags), get_policies (flags));
 		if (ref)
 			return ref;
@@ -249,7 +250,7 @@ ReferenceLocalRef POA_Base::create_reference (ObjectKey&& key, CORBA::Internal::
 ReferenceLocalRef POA_Base::create_reference (ObjectKey&& key, CORBA::Internal::String_in iid,
 	unsigned flags)
 {
-	return root_->emplace_reference (std::move (key), false, iid, get_flags (flags),
+	return root ().emplace_reference (std::move (key), false, iid, get_flags (flags),
 		get_policies (flags));
 }
 
@@ -413,7 +414,7 @@ void POA_Base::check_object_id (const ObjectId& oid)
 
 void POA_Base::serve_request (const RequestRef& request)
 {
-	ReferenceLocalRef ref = root_->find_reference (request->object_key ());
+	ReferenceLocalRef ref = root ().find_reference (request->object_key ());
 	if (!ref)
 		ref = create_reference (ObjectKey (request->object_key ()), IDL::String ());
 	serve_request (request, *ref);

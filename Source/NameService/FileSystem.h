@@ -45,6 +45,7 @@ public:
 	{
 		try {
 			adapter ()->destroy (true, true);
+			adapter () = nullptr;
 		} catch (...) {}
 	}
 
@@ -97,9 +98,9 @@ public:
 		}
 	}
 
-	static PortableServer::POA::_ref_type adapter () noexcept
+	static PortableServer::POA::_ref_type& adapter () noexcept
 	{
-		assert ((PortableServer::POA::_ref_type)adapter_);
+		assert ((PortableServer::POA::_ref_type&)adapter_);
 		return adapter_;
 	}
 

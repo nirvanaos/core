@@ -36,12 +36,16 @@ using namespace CORBA::Core;
 namespace PortableServer {
 namespace Core {
 
-Object::_ref_type create_RootPOA ()
+Object::_ref_type POA_Root::create ()
 {
 	auto manager_factory = CORBA::make_reference <POAManagerFactory> ();
 	auto manager = manager_factory->create ("RootPOAManager");
 	manager->activate ();
-	return CORBA::make_reference <POA_Root> (std::move (manager), std::move (manager_factory))->_this ();
+
+	Object::_ref_type obj = CORBA::make_reference <POA_Root> (std::move (manager),
+		std::move (manager_factory))->_this ();
+	root_object_ = obj;
+	return obj;
 }
 
 ReferenceLocalRef POA_Root::emplace_reference (ObjectKey&& core_key,
@@ -95,7 +99,7 @@ ReferenceLocalRef POA_Root::find_reference (const IOP::ObjectKey& key) noexcept
 
 POA_Ref POA_Root::find_child (const AdapterPath& path, bool activate_it)
 {
-	POA_Ref adapter = root_;
+	POA_Ref adapter = &root ();
 	for (const auto& name : path) {
 		adapter = adapter->find_child (name, activate_it);
 		if (!adapter)

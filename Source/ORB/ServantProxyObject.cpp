@@ -57,7 +57,7 @@ PortableServer::Servant object2servant (Object::_ptr_type obj)
 
 ServantProxyObject::ServantProxyObject (PortableServer::Servant user_servant) :
 	ServantProxyBase (user_servant),
-	adapter_context_ (&local2proxy (POA_Root::get_root ())->sync_context ()),
+	adapter_context_ (&local2proxy (Services::bind (Services::RootPOA))->sync_context ()),
 	references_ (adapter_context_->sync_domain ()->mem_context ().heap ())
 {
 	static_assert (sizeof (ReferenceLocal) == REF_SIZE, "sizeof (ReferenceLocal)");

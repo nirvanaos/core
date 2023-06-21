@@ -457,21 +457,35 @@ public:
 	virtual void check_object_id (const ObjectId& oid);
 	void get_path (AdapterPath& path, size_t size = 0) const;
 
-	static POA_Root* root () noexcept
-	{
-		assert (root_);
-		return root_;
-	}
-
-	static CORBA::Object::_ref_type get_root ()
-	{
-		return CORBA::Core::Services::bind (CORBA::Core::Services::RootPOA);
-	}
-
 	bool check_path (const AdapterPath& path) const noexcept
 	{
 		return check_path (path, path.end ());
 	}
+
+protected:
+	friend class CORBA::Core::ReferenceLocal;
+
+	static POA_Root& root () noexcept
+	{
+		assert (root_);
+		return *root_;
+	}
+
+	static CORBA::Object::_ref_type get_root ()
+	{
+		assert ((CORBA::Object::_ref_type&)root_object_);
+		return root_object_;
+	}
+
+	POA_Base () :
+		signature_ (0)
+	{
+		NIRVANA_UNREACHABLE_CODE ();
+	}
+
+	POA_Base (POA_Base* parent, const IDL::String* name,
+		CORBA::servant_reference <POAManager>&& manager,
+		CORBA::Core::PolicyMapRef&& object_policies);
 
 	virtual CORBA::Core::PolicyMapShared* get_policies (unsigned flags) const noexcept
 	{
@@ -482,17 +496,6 @@ public:
 	{
 		return flags;
 	}
-
-protected:
-	POA_Base () :
-		signature_ (0)
-	{
-		NIRVANA_UNREACHABLE_CODE ();
-	}
-
-	POA_Base (POA_Base* parent, const IDL::String* name,
-		CORBA::servant_reference <POAManager>&& manager,
-		CORBA::Core::PolicyMapRef&& object_policies);
 
 	virtual bool implicit_activation () const noexcept;
 
@@ -507,7 +510,9 @@ private:
 	void on_request_finish () noexcept;
 	
 protected:
+	static Nirvana::Core::StaticallyAllocated <CORBA::Object::_ref_type> root_object_;
 	static POA_Root* root_;
+
 	CORBA::servant_reference <POAManager> the_POAManager_;
 	CORBA::Core::PolicyMapRef object_policies_;
 

@@ -56,10 +56,12 @@ void initialize ()
 
 	// CORBA::Core::Services must be initialized before Binder
 	CORBA::Core::initialize ();
+	PortableServer::Core::POA_Root::initialize ();
 
 	Binder::initialize ();
 
 	ProtDomain::initialize ();
+	// Bind ProtDomain service to hold proxy
 	CORBA::Core::Services::bind (CORBA::Core::Services::ProtDomain);
 
 	// Start receiving messages from other domains
@@ -83,9 +85,9 @@ void shutdown ()
 
 void terminate ()
 {
-	// Stop receiving messages. But we can still send messages.
-	Port::PostOffice::terminate ();
+	Port::PostOffice::terminate (); // Stop receiving messages. But we can still send messages.
 
+	PortableServer::Core::POA_Root::terminate ();
 	ProtDomain::terminate ();
 	Binder::terminate ();
 	CORBA::Core::terminate ();
