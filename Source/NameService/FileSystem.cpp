@@ -24,47 +24,17 @@
 *  popov.nirvana@gmail.com
 */
 #include "FileSystem.h"
-#include "../ORB/SysAdapterActivator.h"
-#include "FileActivator.h"
 
 using namespace CORBA;
 using namespace PortableServer;
 using CORBA::Core::Services;
-using PortableServer::Core::SysAdapterActivator;
 using namespace CosNaming;
 
 namespace Nirvana {
 namespace Core {
 
+const char FileSystem::adapter_name_ [] = "_fs";
 StaticallyAllocated <POA::_ref_type> FileSystem::adapter_;
-
-FileSystem::FileSystem ()
-{
-	{ // Build root map
-		Roots roots = Port::FileSystem::get_roots ();
-		for (auto& r : roots) {
-			roots_.emplace (std::move (r.dir), r.factory);
-		}
-	}
-
-	// Create file system POA
-	POA::_ref_type parent = POA::_narrow (Services::bind (Services::RootPOA));
-	PolicyList policies;
-	policies.push_back (parent->create_lifespan_policy (LifespanPolicyValue::PERSISTENT));
-	policies.push_back (parent->create_id_assignment_policy (IdAssignmentPolicyValue::USER_ID));
-	policies.push_back (parent->create_request_processing_policy (RequestProcessingPolicyValue::USE_SERVANT_MANAGER));
-	policies.push_back (parent->create_id_uniqueness_policy (IdUniquenessPolicyValue::MULTIPLE_ID));
-	POA::_ref_type adapter = parent->create_POA (SysAdapterActivator::filesystem_adapter_name_,
-		parent->the_POAManager (), policies);
-	adapter->set_servant_manager (make_stateless <FileActivator> ()->_this ());
-
-	adapter_.construct (std::move (adapter));
-}
-
-FileSystem::~FileSystem ()
-{
-	adapter_.destruct ();
-}
 
 Object::_ref_type FileSystem::get_reference (const DirItemId& id, Internal::String_in iid)
 {

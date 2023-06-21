@@ -120,7 +120,6 @@ public:
 	void shutdown () noexcept
 	{
 		NamingContextImpl::shutdown ();
-		file_system_.shutdown ();
 	}
 
 	virtual void add_link (const NamingContextImpl& parent) override

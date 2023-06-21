@@ -32,24 +32,53 @@
 #include <CORBA/PortableServer_s.h>
 #include "FileSystem.h"
 
-namespace Nirvana {
+namespace PortableServer {
 namespace Core {
 
 class FileActivator :
-	public CORBA::servant_traits <PortableServer::ServantActivator>::Servant <FileActivator>
+	public CORBA::servant_traits <ServantActivator>::Servant <FileActivator>
 {
 public:
-	PortableServer::ServantBase::_ref_type incarnate (const PortableServer::ObjectId& id,
-		PortableServer::POA::_ref_type adapter)
+	static void initialize () noexcept
 	{
-		return FileSystem::incarnate (id);
+		Nirvana::Core::FileSystem::adapter_.construct ();
 	}
 
-	void etherealize (const PortableServer::ObjectId& id, PortableServer::POA::_ptr_type adapter,
+	static void terminate () noexcept
+	{
+		POA::_ref_type adapter = std::move (Nirvana::Core::FileSystem::adapter ());
+		if (adapter) {
+			try {
+				adapter->destroy (true, true);
+			} catch (...) {}
+		}
+	}
+
+	PortableServer::ServantBase::_ref_type incarnate (const ObjectId& id, POA::_ptr_type adapter)
+	{
+		return Nirvana::Core::FileSystem::incarnate (id);
+	}
+
+	void etherealize (const ObjectId& id, POA::_ptr_type adapter,
 		CORBA::Object::_ptr_type servant, bool cleanup_in_progress, bool remaining_activations)
 	{
-		FileSystem::etherealize (id, servant);
+		Nirvana::Core::FileSystem::etherealize (id, servant);
 	}
+
+	static void create (POA::_ptr_type parent, const IDL::String& name)
+	{
+		// Create file system POA
+		CORBA::PolicyList policies;
+		policies.push_back (parent->create_lifespan_policy (LifespanPolicyValue::PERSISTENT));
+		policies.push_back (parent->create_id_assignment_policy (IdAssignmentPolicyValue::USER_ID));
+		policies.push_back (parent->create_request_processing_policy (RequestProcessingPolicyValue::USE_SERVANT_MANAGER));
+		policies.push_back (parent->create_id_uniqueness_policy (IdUniquenessPolicyValue::MULTIPLE_ID));
+		POA::_ref_type adapter = parent->create_POA (name, parent->the_POAManager (), policies);
+		adapter->set_servant_manager (CORBA::make_stateless <FileActivator> ()->_this ());
+
+		Nirvana::Core::FileSystem::adapter_ = std::move (adapter);
+	}
+
 };
 
 }

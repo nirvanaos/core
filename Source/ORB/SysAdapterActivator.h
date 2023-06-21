@@ -31,6 +31,7 @@
 #include <CORBA/Server.h>
 #include <CORBA/PortableServer_s.h>
 #include "Services.h"
+#include "NameService/FileActivator.h"
 
 namespace PortableServer {
 namespace Core {
@@ -41,17 +42,22 @@ class SysAdapterActivator :
 public:
 	static void initialize ()
 	{
+		FileActivator::initialize ();
 		POA::_ref_type root = POA::_narrow (CORBA::Core::Services::bind (CORBA::Core::Services::RootPOA));
 		root->the_activator (CORBA::make_stateless <SysAdapterActivator> ()->_this ());
+	}
+
+	static void terminate ()
+	{
+		FileActivator::terminate ();
 	}
 
 	static const char filesystem_adapter_name_ [];
 
 	static bool unknown_adapter (POA::_ptr_type parent, const IDL::String& name)
 	{
-		if (name == filesystem_adapter_name_) {
-			// Bind NameService for creation of the file system adapter.
-			CORBA::Core::Services::bind (CORBA::Core::Services::NameService);
+		if (name == Nirvana::Core::FileSystem::adapter_name_) {
+			FileActivator::create (parent, name);
 			return true;
 		}
 		return false;

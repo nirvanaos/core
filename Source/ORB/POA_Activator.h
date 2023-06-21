@@ -41,6 +41,7 @@ class POA_Activator :
 	public virtual POA_DGC
 {
 	static const TimeBase::TimeT ACTIVATION_TIMEOUT = 100 * TimeBase::MILLISECOND;
+
 public:
 	virtual ServantManager::_ref_type get_servant_manager () override;
 	virtual void set_servant_manager (ServantManager::_ptr_type imgr) override;

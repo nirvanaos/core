@@ -33,6 +33,7 @@
 #include "ORB/Services.h"
 #include "ORB/LocalAddress.h"
 #include "ORB/POA_Root.h"
+#include "ORB/SysAdapterActivator.h"
 #include <Port/PostOffice.h>
 #include "ProtDomain.h"
 
@@ -64,6 +65,8 @@ void initialize ()
 	// Bind ProtDomain service to hold proxy
 	CORBA::Core::Services::bind (CORBA::Core::Services::ProtDomain);
 
+	PortableServer::Core::SysAdapterActivator::initialize ();
+
 	// Start receiving messages from other domains
 	Port::PostOffice::initialize (CORBA::Core::LocalAddress::singleton ().host (), CORBA::Core::LocalAddress::singleton ().port ());
 }
@@ -86,6 +89,8 @@ void shutdown ()
 void terminate ()
 {
 	Port::PostOffice::terminate (); // Stop receiving messages. But we can still send messages.
+
+	PortableServer::Core::SysAdapterActivator::terminate ();
 
 	PortableServer::Core::POA_Root::terminate ();
 	ProtDomain::terminate ();

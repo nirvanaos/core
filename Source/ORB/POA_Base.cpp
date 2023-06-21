@@ -373,7 +373,7 @@ POA_Ref POA_Base::find_child (const IDL::String& adapter_name, bool activate_it)
 	if (!activate_it || !the_activator_)
 		it = children_.find (adapter_name);
 	else {
-		auto ins = children_.emplace (adapter_name, ADAPTER_ACTIVATION_DEADLINE);
+		auto ins = children_.emplace (adapter_name, ADAPTER_ACTIVATION_TIMEOUT);
 		if (ins.second) {
 			Children::reference entry (*ins.first);
 			try {

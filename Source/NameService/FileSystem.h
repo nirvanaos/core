@@ -30,7 +30,14 @@
 
 #include <Port/FileSystem.h>
 #include "../MapUnorderedUnstable.h"
+#include "../ORB/Services.h"
 #include "IteratorStack.h"
+
+namespace PortableServer {
+namespace Core {
+class FileActivator;
+}
+}
 
 namespace Nirvana {
 namespace Core {
@@ -38,16 +45,27 @@ namespace Core {
 class FileSystem : private Port::FileSystem
 {
 public:
-	FileSystem ();
-	~FileSystem ();
+	static const char adapter_name_ [];
 
-	void shutdown () noexcept
+	FileSystem ()
 	{
-		try {
-			adapter ()->destroy (true, true);
-			adapter () = nullptr;
-		} catch (...) {}
+		{ // Create adapter
+			PortableServer::POA::_ref_type parent = PortableServer::POA::_narrow (
+				CORBA::Core::Services::bind (CORBA::Core::Services::RootPOA));
+			parent->find_POA (adapter_name_, true);
+			assert (adapter ());
+		}
+
+		{ // Build root map
+			Roots roots = Port::FileSystem::get_roots ();
+			for (auto& r : roots) {
+				roots_.emplace (std::move (r.dir), r.factory);
+			}
+		}
 	}
+
+	~FileSystem ()
+	{}
 
 	bool find (const IDL::String& name) const noexcept
 	{
@@ -132,6 +150,7 @@ private:
 
 	RootMap roots_;
 
+	friend class PortableServer::Core::FileActivator;
 	static Nirvana::Core::StaticallyAllocated <PortableServer::POA::_ref_type> adapter_;
 };
 

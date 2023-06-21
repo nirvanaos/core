@@ -161,7 +161,7 @@ bool operator < (const POA_Policies& l, const POA_FactoryEntry& r) noexcept
 class NIRVANA_NOVTABLE POA_Base :
 	public CORBA::servant_traits <POA>::Servant <POA_Base>
 {
-	static const TimeBase::TimeT ADAPTER_ACTIVATION_DEADLINE = 1 * TimeBase::MILLISECOND;
+	static const TimeBase::TimeT ADAPTER_ACTIVATION_TIMEOUT = 1 * TimeBase::MILLISECOND;
 
 public:
 	// POA creation and destruction
