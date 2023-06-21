@@ -62,10 +62,12 @@ void POA_Activator::serve_default (const RequestRef& request, ReferenceLocal& re
 		throw OBJECT_NOT_EXIST (MAKE_OMG_MINOR (2));
 	
 	const ObjectId& oid = reference.core_key ().object_id ();
-	auto ins = activation_map_.emplace (oid, ACTIVATION_TIMEOUT);
+
+	auto ins = activation_map_.emplace (&reference, ACTIVATION_TIMEOUT);
 	ActivationMap::reference entry = *ins.first;
 	Object::_ref_type servant;
 	if (ins.second) {
+		auto wait_list = entry.second.wait_list ();
 		try {
 			try {
 				servant = incarnate (oid);
@@ -84,10 +86,10 @@ void POA_Activator::serve_default (const RequestRef& request, ReferenceLocal& re
 				etherialize (oid, servant, false, false);
 				throw OBJ_ADAPTER ();
 			}
-			entry.second.finish_construction (servant);
+			wait_list->finish_construction (servant);
 			activation_map_.erase (entry.first);
 		} catch (...) {
-			entry.second.on_exception ();
+			wait_list->on_exception ();
 			activation_map_.erase (entry.first);
 			throw;
 		}

@@ -33,82 +33,18 @@
 namespace Nirvana {
 namespace Core {
 
-class WaitableRefBase
-{
-	WaitableRefBase (const WaitableRefBase&) = delete;
-	WaitableRefBase& operator = (const WaitableRefBase&) = delete;
-public:
-	/// Called by creator execution domain on exception in object creation.
-	void on_exception () noexcept;
-
-	/// \returns `true` if object creation is not completed.
-	bool is_wait_list () const noexcept
-	{
-		return is_wait_list (pointer_);
-	}
-
-	bool initialized () const noexcept
-	{
-		return pointer_ != 0;
-	}
-
-	bool initialize (TimeBase::TimeT deadline);
-
-protected:
-	WaitableRefBase () noexcept :
-		pointer_ (0)
-	{}
-
-	WaitableRefBase (TimeBase::TimeT deadline) :
-		pointer_ (0)
-	{
-		initialize (deadline);
-	}
-	
-	WaitableRefBase (WaitableRefBase&& src) noexcept :
-		pointer_ (src.pointer_)
-	{
-		src.pointer_ = 0;
-	}
-
-	WaitableRefBase (void* p) noexcept :
-		pointer_ ((uintptr_t)p)
-	{
-		assert (!is_wait_list ());
-	}
-
-	~WaitableRefBase ()
-	{
-		reset ();
-	}
-
-	void finish_construction (void* p) noexcept;
-	void wait_construction () const;
-
-	void reset () noexcept;
-
-private:
-	static bool is_wait_list (uintptr_t pointer) noexcept
-	{
-		return pointer & 1;
-	}
-
-	inline WaitList* wait_list () const noexcept;
-	void detach (Ref <WaitList>& ref) noexcept;
-
-protected:
-	uintptr_t pointer_;
-};
-
 /// Waitable reference.
 /// 
 /// \tparam PtrType  Object pointer type.
 ///                  This may be plain pointer ot smart pointer.
+///                  But it can't be a moveable pointer like unique_ptr.
 template <typename PtrType>
-class WaitableRef :
-	public WaitableRefBase
+class WaitableRef : public WaitableRefBase
 {
 	static_assert (sizeof (PtrType) == sizeof (uintptr_t), "Invalid pointer type");
+
+	typedef Ref <WaitList <PtrType> > WaitListRef;
+
 public:
 	WaitableRef () noexcept
 	{}
@@ -130,7 +66,7 @@ public:
 	/// \param p Pointer to the created object.
 	/// 
 	WaitableRef (const PtrType& p) :
-		WaitableRefBase (make_ptr (p))
+		WaitableRefBase (WaitList <PtrType>::make_ptr (p))
 	{}
 
 	/// Construct immediate ready reference without a wait list.
@@ -138,7 +74,7 @@ public:
 	/// \param p Pointer to the created object.
 	/// 
 	WaitableRef (PtrType&& p) noexcept :
-		WaitableRefBase (make_ptr (std::move (p)))
+		WaitableRefBase (WaitList <PtrType>::make_ptr (std::move (p)))
 	{}
 
 	WaitableRef (WaitableRef&&) = default;
@@ -146,32 +82,15 @@ public:
 	/// Destructor calls ~PtrType if object construction was completed.
 	~WaitableRef ()
 	{
-		if (!this->is_wait_list ())
-			this->ref ().~PtrType ();
-	}
-
-	/// Called by creator execution domain on finish the object creation.
-	/// 
-	/// \param p Pointer to the created object.
-	void finish_construction (const PtrType& p)
-	{
-		WaitableRefBase::finish_construction (make_ptr (p));
-	}
-
-	/// Called by creator execution domain on finish the object creation.
-	/// 
-	/// \param p Pointer to the created object.
-	void finish_construction (PtrType&& p) noexcept
-	{
-		WaitableRefBase::finish_construction (make_ptr (std::move (p)));
+		reset ();
 	}
 
 	WaitableRef& operator = (const PtrType& p) noexcept
 	{
 		if (is_wait_list ())
-			finish_construction (p);
+			wait_list_ptr ()->finish_construction (p);
 		else
-			this->ref () = p;
+			WaitList <PtrType>::ref (pointer_) = p;
 
 		return *this;
 	}
@@ -179,9 +98,9 @@ public:
 	WaitableRef& operator = (PtrType&& p) noexcept
 	{
 		if (is_wait_list ())
-			finish_construction (std::move (p));
+			wait_list_ptr ()->finish_construction (std::move (p));
 		else
-			this->ref () = std::move (p);
+			WaitList <PtrType>::ref (pointer_) = std::move (p);
 
 		return *this;
 	}
@@ -189,23 +108,17 @@ public:
 	/// Get object pointer.
 	/// 
 	/// \returns Pointer.
-	const PtrType& get () const
+	PtrType get () const
 	{
-		wait_construction ();
-		return reinterpret_cast <const PtrType&> (pointer_);
+		if (is_wait_list ())
+			return wait_list ()->wait ();
+		else
+			return WaitList <PtrType>::ref (pointer_);
 	}
 
-	/// Check for the object constructed
+	/// \brief Get object pointer if object is already constructed.
 	/// 
-	/// \returns `true` if the object construction is complete.
-	bool is_constructed () const noexcept
-	{
-		return !is_wait_list ();
-	}
-
-	/// Get object pointer if object is already constructed.
-	/// 
-	/// Do not use for std::unique_ptr pointer type
+	/// Non-blocking call.
 	/// 
 	/// \returns Pointer or `nullptr`.
 	PtrType get_if_constructed () const noexcept
@@ -230,26 +143,22 @@ public:
 		}
 	}
 
+	WaitListRef wait_list () const noexcept
+	{
+		return wait_list_ptr ();
+	}
+
+	bool is_constructed () const noexcept
+	{
+		return !is_wait_list ();
+	}
+
 private:
-	static void* make_ptr (const PtrType& p)
+	WaitList <PtrType>* wait_list_ptr () const noexcept
 	{
-		void* up = 0;
-		new (&up) PtrType (p);
-		return up;
+		return static_cast <WaitList <PtrType>*> (WaitableRefBase::wait_list ());
 	}
 
-	static void* make_ptr (PtrType&& p) noexcept
-	{
-		void* up = 0;
-		new (&up) PtrType (std::move (p));
-		return up;
-	}
-
-	PtrType& ref () noexcept
-	{
-		assert (!this->is_wait_list ());
-		return reinterpret_cast <PtrType&> (this->pointer_);
-	}
 };
 
 }

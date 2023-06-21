@@ -41,7 +41,7 @@ namespace Core {
 
 template <PolicyType type> class PolicyImpl;
 
-class PolicyMap : public Nirvana::Core::UserObject
+class PolicyMap
 {
 public:
 	PolicyMap ();
@@ -116,7 +116,22 @@ bool PolicyMap::get_value (typename PolicyImpl <type>::ValueType& val) const
 	return false;
 }
 
-typedef Nirvana::Core::ImplDynamicSyncVirt <PolicyMap> PolicyMapShared;
+class PolicyMapUser :
+	public PolicyMap,
+	public Nirvana::Core::UserObject
+{
+protected:
+	virtual ~PolicyMapUser ()
+	{}
+
+	template <class ... Args>
+	PolicyMapUser (Args ... args) :
+		PolicyMap (std::forward <Args> (args)...)
+	{}
+
+};
+
+typedef Nirvana::Core::ImplDynamicSync <PolicyMapUser> PolicyMapShared;
 
 typedef servant_reference <PolicyMapShared> PolicyMapRef;
 

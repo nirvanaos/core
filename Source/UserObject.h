@@ -67,8 +67,7 @@ protected:
 
 	UserObjectSyncRefCnt () :
 		ref_cnt_ (1)
-	{
-	}
+	{}
 
 	void _add_ref () noexcept
 	{

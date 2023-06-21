@@ -78,7 +78,7 @@ protected:
 		CORBA::Core::ReferenceLocal& ref) override;
 
 private:
-	// This map contains active references and references with GC
+	// Set of the active references
 	typedef Nirvana::Core::PointerSet <CORBA::Core::ReferenceLocal> References;
 	References references_;
 

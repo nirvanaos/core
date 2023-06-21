@@ -42,7 +42,7 @@ namespace Core {
 
 class RemoteReferences
 {
-	typedef std::unique_ptr <ReferenceRemote> RefPtr;
+	typedef ReferenceRemote* RefPtr;
 	typedef Nirvana::Core::WaitableRef <RefPtr> RefVal;
 	typedef OctetSeq RefKey;
 	typedef Nirvana::Core::MapUnorderedStable <RefKey, RefVal, std::hash <RefKey>,
@@ -52,6 +52,13 @@ public:
 	RemoteReferences ()
 	{}
 
+	~RemoteReferences ()
+	{
+		for (auto& r : references_) {
+			delete r.second.get_if_constructed ();
+		}
+	}
+
 	template <class EndPoint>
 	Object::_ref_type unmarshal (const EndPoint& domain, Internal::String_in iid,
 		const IOP::TaggedProfileSeq& addr, const IOP::ObjectKey& object_key, ULong ORB_type,
@@ -60,25 +67,25 @@ public:
 		Nirvana::Core::ImplStatic <StreamOutEncap> stm (true);
 		stm.write_tagged (addr);
 		auto ins = emplace_reference (stm.data ());
-		typename References::reference entry = *ins.first;
 		if (ins.second) {
+			auto wait_list = ins.first->second.wait_list ();
 			try {
 				RefPtr p (make_reference (ins.first->first, get_domain (domain),
 					object_key, iid, ORB_type, components));
 				if (iid.empty ())
 					p->request_repository_id ();
 				if (p->unconfirmed ())
-					unconfirmed = p.get ();
+					unconfirmed = p;
 				Internal::I_var <Object> ret (p->get_proxy ()); // Use I_var to avoid reference counter increment
-				entry.second.finish_construction (std::move (p));
+				wait_list->finish_construction (p);
 				return ret;
 			} catch (...) {
-				entry.second.on_exception ();
+				wait_list->on_exception ();
 				references_.erase (ins.first->first);
 				throw;
 			}
 		} else {
-			const RefPtr& p = entry.second.get ();
+			auto p = ins.first->second.get ();
 			p->check_primary_interface (iid);
 			return p->get_proxy ();
 		}
@@ -96,7 +103,10 @@ public:
 
 	void erase (const RefKey& ref) noexcept
 	{
-		references_.erase (ref);
+		References::iterator it = references_.find (ref);
+		assert (it != references_.end ());
+		delete it->second.get_if_constructed ();
+		references_.erase (it);
 	}
 
 	servant_reference <Domain> get_domain (const DomainAddress& domain);
@@ -160,7 +170,7 @@ public:
 
 private:
 	std::pair <typename References::iterator, bool> emplace_reference (const OctetSeq& addr);
-	static std::unique_ptr <ReferenceRemote> make_reference (const OctetSeq& addr,
+	static ReferenceRemote* make_reference (const OctetSeq& addr,
 		servant_reference <Domain>&& domain, const IOP::ObjectKey& object_key,
 		Internal::String_in primary_iid, ULong ORB_type, const IOP::TaggedComponentSeq& components);
 

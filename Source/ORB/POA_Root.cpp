@@ -55,16 +55,24 @@ ReferenceLocalRef POA_Root::emplace_reference (ObjectKey&& core_key,
 	auto ins = references_.emplace (IOP::ObjectKey (core_key), Reference::DEADLINE_MAX);
 	References::reference entry = *ins.first;
 	if (ins.second) {
-		RefPtr p (new ReferenceLocal (entry.first, std::move (core_key), primary_iid, flags, policies));
-		Servant_var <ReferenceLocal> ret (p.get ());
-		entry.second.finish_construction (std::move (p));
+		auto wait_list = entry.second.wait_list ();
+		RefPtr p;
+		try {
+			p = new ReferenceLocal (entry.first, std::move (core_key), primary_iid, flags, policies);
+		} catch (...) {
+			wait_list->on_exception ();
+			references_.erase (entry.first);
+			throw;
+		}
+		Servant_var <ReferenceLocal> ret (p); // Adopt ownership
+		wait_list->finish_construction (p);
 		return ret;
 	} else if (unique)
 		return nullptr;
 	else {
-		const RefPtr& p = entry.second.get ();
+		RefPtr p = entry.second.get ();
 		p->check_primary_interface (primary_iid);
-		return p.get ();
+		return p;
 	}
 }
 
@@ -75,16 +83,24 @@ ReferenceLocalRef POA_Root::emplace_reference (ObjectKey&& core_key,
 	auto ins = references_.emplace (IOP::ObjectKey (core_key), Reference::DEADLINE_MAX);
 	References::reference entry = *ins.first;
 	if (ins.second) {
-		RefPtr p (new ReferenceLocal (entry.first, std::move (core_key), proxy, flags, policies));
-		Servant_var <ReferenceLocal> ret (p.get ());
-		entry.second.finish_construction (std::move (p));
+		auto wait_list = entry.second.wait_list ();
+		RefPtr p;
+		try {
+			p = new ReferenceLocal (entry.first, std::move (core_key), proxy, flags, policies);
+		} catch (...) {
+			wait_list->on_exception ();
+			references_.erase (entry.first);
+			throw;
+		}
+		Servant_var <ReferenceLocal> ret (p); // Adopt ownership
+		wait_list->finish_construction (p);
 		return ret;
 	} else if (unique)
 		return nullptr;
 	else {
-		const RefPtr& p = entry.second.get ();
+		RefPtr p = entry.second.get ();
 		p->check_primary_interface (proxy.primary_interface_id ());
-		return p.get ();
+		return p;
 	}
 }
 
@@ -93,7 +109,7 @@ ReferenceLocalRef POA_Root::find_reference (const IOP::ObjectKey& key) noexcept
 	References::iterator it = references_.find (key);
 	ReferenceLocalRef ref;
 	if (it != references_.end ())
-		ref = it->second.get ().get ();
+		ref = it->second.get ();
 	return ref;
 }
 

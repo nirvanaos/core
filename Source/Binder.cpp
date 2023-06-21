@@ -369,6 +369,7 @@ Ref <Module> Binder::load (std::string& module_name, bool singleton)
 	auto ins = module_map_.emplace (std::move (module_name), MODULE_LOADING_DEADLINE_MAX);
 	ModuleMap::reference entry = *ins.first;
 	if (ins.second) {
+		auto wait_list = entry.second.wait_list ();
 		try {
 			SYNC_BEGIN (g_core_free_sync_context, &memory ());
 			if (singleton)
@@ -405,13 +406,13 @@ Ref <Module> Binder::load (std::string& module_name, bool singleton)
 				throw;
 			}
 		} catch (...) {
-			entry.second.on_exception ();
+			wait_list->on_exception ();
 			delete_module (mod);
 			module_map_.erase (entry.first);
 			throw;
 		}
 
-		entry.second.finish_construction (mod);
+		wait_list->finish_construction (mod);
 		if (module_map_.size () == 1)
 			housekeeping_timer_modules_.set (0, MODULE_UNLOAD_TIMEOUT, MODULE_UNLOAD_TIMEOUT);
 

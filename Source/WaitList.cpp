@@ -23,15 +23,17 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "WaitList.h"
+#include "WaitableRef.h"
 
 namespace Nirvana {
 namespace Core {
 
-WaitList::WaitList (TimeBase::TimeT deadline) :
+WaitListBase::WaitListBase (TimeBase::TimeT deadline, WaitableRefBase* ref) :
 	worker_ (&ExecDomain::current ()),
-	worker_deadline_ (worker_->deadline ()),
-	wait_list_ (nullptr)
+	result_ (0),
+	ref_ (ref),
+	wait_list_ (nullptr),
+	worker_deadline_ (worker_->deadline ())
 {
 	if (!SyncContext::current ().sync_domain ())
 		throw_BAD_OPERATION ();
@@ -40,14 +42,14 @@ WaitList::WaitList (TimeBase::TimeT deadline) :
 		worker_->deadline (max_dt);
 }
 
-void WaitList::wait ()
+uintptr_t& WaitListBase::wait ()
 {
 	if (!finished ()) {
 		ExecDomain& ed = ExecDomain::current ();
 		if (&ed == worker_)
 			throw_BAD_INV_ORDER ();
 		// Hold reference to this object
-		Ref <WaitList> hold (this);
+		Ref <WaitListBase> hold (this);
 		ed.suspend ();
 		static_cast <StackElem&> (ed).next = wait_list_;
 		wait_list_ = &ed;
@@ -55,22 +57,25 @@ void WaitList::wait ()
 	assert (finished ());
 	if (exception_)
 		std::rethrow_exception (exception_);
+	return result_;
 }
 
-void WaitList::on_exception () noexcept
+void WaitListBase::on_exception () noexcept
 {
 	assert (!finished ());
 	assert (!exception_);
 	exception_ = std::current_exception ();
-	finish ();
+	finish (nullptr);
 }
 
-void WaitList::finish () noexcept
+void WaitListBase::finish (void* result) noexcept
 {
 	assert (!finished ());
 	assert (&ExecDomain::current () == worker_);
 	worker_->deadline (worker_deadline_);
 	worker_ = nullptr;
+	result_ = (uintptr_t)result;
+
 	while (ExecDomain* ed = wait_list_) {
 		wait_list_ = reinterpret_cast <ExecDomain*> (static_cast <StackElem&> (*ed).next);
 		ed->resume ();

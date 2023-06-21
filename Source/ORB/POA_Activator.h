@@ -66,11 +66,12 @@ private:
 private:
 	ServantActivator::_ref_type activator_;
 
-	typedef std::reference_wrapper <const ObjectId> ActivationKey;
+	typedef const CORBA::Core::ReferenceLocal* ActivationKey;
 	typedef Nirvana::Core::WaitableRef <CORBA::Object::_ref_type> ActivationRef;
 
-	typedef Nirvana::Core::MapUnorderedStable <ActivationKey, ActivationRef, std::hash <ObjectId>, std::equal_to <ObjectId>,
-		Nirvana::Core::UserAllocator> ActivationMap;
+	typedef Nirvana::Core::MapUnorderedStable <ActivationKey, ActivationRef,
+		std::hash <ActivationKey>, std::equal_to <ActivationKey>, Nirvana::Core::UserAllocator>
+		ActivationMap;
 
 	ActivationMap activation_map_;
 };

@@ -40,20 +40,35 @@ class ProtDomainsWaitable
 	static const TimeBase::TimeT DEADLINE_MAX = 10 * TimeBase::MILLISECOND;
 
 public:
+	ProtDomainsWaitable ()
+	{}
+
+	~ProtDomainsWaitable ()
+	{
+		for (const auto& el : map_) {
+			delete el.second.get_if_constructed ();
+		}
+	}
+
 	CORBA::servant_reference <DomainProt> get (ProtDomainId domain_id);
 	CORBA::servant_reference <DomainProt> find (ProtDomainId domain_id) const noexcept;
 
 	void erase (ProtDomainId domain_id) noexcept
 	{
-		map_.erase (domain_id);
+		Map::iterator it = map_.find (domain_id);
+		assert (it != map_.end ());
+		delete it->second.get_if_constructed ();
+		map_.erase (it);
 	}
 
 	bool housekeeping (const TimeBase::TimeT& cur_time) noexcept
 	{
 		for (auto it = map_.begin (); it != map_.end ();) {
-			if (it->second.is_constructed () && it->second.get ()->is_garbage (cur_time))
+			DomainProt* d = it->second.get_if_constructed ();
+			if (d && d->is_garbage (cur_time)) {
+				delete d;
 				it = map_.erase (it);
-			else
+			} else
 				++it;
 		}
 		return !map_.empty ();
@@ -62,15 +77,15 @@ public:
 	void shutdown () noexcept
 	{
 		for (auto it = map_.begin (); it != map_.end (); ++it) {
-			if (it->second.is_constructed ())
-				it->second.get ()->shutdown ();
+			DomainProt* d = it->second.get_if_constructed ();
+			if (d)
+				d->shutdown ();
 		}
 	}
 
 private:
 	typedef ProtDomainId Key;
-	typedef std::unique_ptr <DomainProt> Ptr;
-	typedef Nirvana::Core::WaitableRef <Ptr> Val;
+	typedef Nirvana::Core::WaitableRef <DomainProt*> Val;
 
 	typedef Nirvana::Core::MapUnorderedStable <Key, Val, std::hash <Key>,
 		std::equal_to <Key>, Nirvana::Core::BinderMemory::Allocator> Map;

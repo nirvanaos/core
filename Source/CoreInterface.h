@@ -64,8 +64,7 @@ template <class T> class Ref;
 /// Dynamic implementation of a core object.
 /// \tparam T object class.
 template <class T>
-class ImplDynamic final :
-	public T
+class ImplDynamic final : public T
 {
 protected:
 	template <class> friend class Ref;
@@ -99,46 +98,7 @@ private:
 /// Dynamic implementation of a core object for usage in synchronized scenarios.
 /// \tparam T object class.
 template <class T>
-class ImplDynamicSyncVirt :
-	public T
-{
-protected:
-	template <class> friend class Ref;
-	template <class> friend class CORBA::servant_reference;
-
-	template <class S, class ... Args> friend
-		CORBA::servant_reference <S> CORBA::make_reference (Args ... args);
-
-	template <class ... Args>
-	ImplDynamicSyncVirt (Args ... args) :
-		T (std::forward <Args> (args)...),
-		ref_cnt_ (1)
-	{}
-
-	virtual ~ImplDynamicSyncVirt ()
-	{}
-
-	void _add_ref () noexcept
-	{
-		++ref_cnt_;
-	}
-
-	void _remove_ref () noexcept
-	{
-		assert (ref_cnt_);
-		if (!--ref_cnt_)
-			delete this;
-	}
-
-private:
-	unsigned ref_cnt_;
-};
-
-/// Dynamic implementation of a core object for usage in synchronized scenarios.
-/// \tparam T object class.
-template <class T>
-class ImplDynamicSync final :
-	public T
+class ImplDynamicSync : public T
 {
 protected:
 	template <class> friend class Ref;
@@ -172,8 +132,7 @@ private:
 /// Static or stack implementation of a core object.
 /// \tparam T object class.
 template <class T>
-class ImplStatic :
-	public T
+class ImplStatic : public T
 {
 public:
 	template <class ... Args>
@@ -192,8 +151,7 @@ private:
 /// Special implementation of a core object.
 /// \tparam T object class.
 template <class T>
-class ImplNoAddRef final :
-	public T
+class ImplNoAddRef final : public T
 {
 protected:
 	template <class> friend class Ref;

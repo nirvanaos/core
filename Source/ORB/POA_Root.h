@@ -62,6 +62,9 @@ public:
 	~POA_Root ()
 	{
 		assert (is_destroyed ());
+		for (const auto& r : references_) {
+			delete r.second.get_if_constructed ();
+		}
 		root_ = nullptr;
 	}
 
@@ -136,7 +139,7 @@ public:
 			throw CORBA::BAD_PARAM (MAKE_OMG_MINOR (14));
 	}
 
-	typedef std::unique_ptr <CORBA::Core::ReferenceLocal> RefPtr;
+	typedef CORBA::Core::ReferenceLocal* RefPtr;
 	typedef Nirvana::Core::WaitableRef <RefPtr> RefVal;
 	typedef Nirvana::Core::MapUnorderedStable <IOP::ObjectKey, RefVal, std::hash <IOP::ObjectKey>,
 		std::equal_to <IOP::ObjectKey>, Nirvana::Core::UserAllocator> References;
@@ -150,11 +153,13 @@ public:
 
 	void remove_reference (const IOP::ObjectKey& key) noexcept
 	{
-		references_.erase (key);
+		remove_reference (references_.find (key));
 	}
 
 	void remove_reference (References::iterator it) noexcept
 	{
+		assert (it != references_.end ());
+		delete it->second.get_if_constructed ();
 		references_.erase (it);
 	}
 

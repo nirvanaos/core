@@ -36,31 +36,32 @@ servant_reference <DomainProt> ProtDomainsWaitable::get (ProtDomainId domain_id)
 	auto ins = map_.emplace (domain_id, DEADLINE_MAX);
 	if (ins.second) {
 		typename Map::reference entry = *ins.first;
+		auto wait_list = entry.second.wait_list ();
 		try {
-			Ptr p;
+			DomainProt* p;
 			SYNC_BEGIN (Nirvana::Core::g_core_free_sync_context, &Nirvana::Core::MemContext::current ());
-			p.reset (new DomainProt (domain_id));
+			p = new DomainProt (domain_id);
 			SYNC_END ();
 
 			Binder::singleton ().start_domains_housekeeping ();
 
-			PortableServer::Servant_var <CORBA::Core::Domain> ret (p.get ());
-			entry.second.finish_construction (std::move (p));
+			PortableServer::Servant_var <CORBA::Core::Domain> ret (p); // Adopt ownership
+			wait_list->finish_construction (p);
 			return ret;
 		} catch (...) {
-			entry.second.on_exception ();
+			wait_list->on_exception ();
 			map_.erase (domain_id);
 			throw;
 		}
 	} else
-		return ins.first->second.get ().get ();
+		return ins.first->second.get ();
 }
 
 servant_reference <DomainProt> ProtDomainsWaitable::find (ProtDomainId domain_id) const noexcept
 {
 	auto it = map_.find (domain_id);
 	if (it != map_.end () && it->second.is_constructed ())
-		return it->second.get ().get ();
+		return it->second.get ();
 	return nullptr;
 }
 

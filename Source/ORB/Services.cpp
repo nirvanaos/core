@@ -82,13 +82,14 @@ Object::_ref_type Services::bind_internal (Service sidx)
 		const Factory& f = factories_ [sidx];
 		SYNC_BEGIN (sync_domain_, nullptr);
 		if (ref.initialize (f.creation_deadline)) {
+			auto wait_list = ref.wait_list ();
 			try {
 				SYNC_BEGIN (Nirvana::Core::g_core_free_sync_context, new_service_memory ());
 				ret = (f.factory) ();
 				SYNC_END ();
-				ref.finish_construction (ret);
+				wait_list->finish_construction (ret);
 			} catch (...) {
-				ref.on_exception ();
+				wait_list->on_exception ();
 				ref.reset ();
 				throw;
 			}

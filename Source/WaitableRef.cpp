@@ -30,26 +30,18 @@
 namespace Nirvana {
 namespace Core {
 
-inline
-WaitList* WaitableRefBase::wait_list () const noexcept
-{
-	assert (is_wait_list ());
-	return reinterpret_cast <WaitList*> (pointer_ & ~1);
-}
-
-void WaitableRefBase::detach (Ref <WaitList>& ref) noexcept
+WaitListBase* WaitableRefBase::detach_list () noexcept
 {
 	assert (is_wait_list ());
 	uintptr_t up = pointer_ & ~1;
 	pointer_ = 0;
-	ref = std::move (reinterpret_cast <Ref <WaitList>&> (up));
-	assert (up == 0);
+	return reinterpret_cast <WaitListBase*> (up);
 }
 
 bool WaitableRefBase::initialize (TimeBase::TimeT deadline)
 {
-	if (pointer_ == 0) {
-		::new (&pointer_) Ref <WaitList> (Ref <WaitList>::create <WaitList> (deadline));
+	if (!pointer_) {
+		::new (&pointer_) Ref <WaitListBase> (Ref <WaitListBase>::create <WaitListBase> (deadline, this));
 		assert (!(pointer_ & 1));
 		pointer_ |= 1;
 		return true;
@@ -59,31 +51,26 @@ bool WaitableRefBase::initialize (TimeBase::TimeT deadline)
 
 void WaitableRefBase::reset () noexcept
 {
-	if (is_wait_list ()) {
-		Ref <WaitList> wait_list;
-		detach (wait_list);
-	}
-}
-
-void WaitableRefBase::on_exception () noexcept
-{
 	assert (is_wait_list ());
-	wait_list ()->on_exception ();
+	WaitListBase* wait_list = detach_list ();
+	wait_list->on_reset_ref ();
+	wait_list->_remove_ref ();
 }
 
-void WaitableRefBase::finish_construction (void* p) noexcept
+WaitListBase* WaitableRefBase::finish_construction (void* p) noexcept
 {
 	assert (!((uintptr_t)p & 1));
-	Ref <WaitList> wait_list;
-	detach (wait_list);
+	WaitListBase* wait_list = detach_list ();
 	pointer_ = (uintptr_t)p;
-	wait_list->finish ();
+	return wait_list;
 }
 
-void WaitableRefBase::wait_construction () const
+const uintptr_t& WaitableRefBase::wait_construction () const
 {
 	if (is_wait_list ())
-		wait_list ()->wait ();
+		return wait_list ()->wait ();
+	else
+		return pointer_;
 }
 
 }

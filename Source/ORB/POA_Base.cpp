@@ -376,6 +376,7 @@ POA_Ref POA_Base::find_child (const IDL::String& adapter_name, bool activate_it)
 		auto ins = children_.emplace (adapter_name, ADAPTER_ACTIVATION_TIMEOUT);
 		if (ins.second) {
 			Children::reference entry (*ins.first);
+			auto wait_list = entry.second.wait_list ();
 			try {
 				bool created = false;
 				try {
@@ -387,7 +388,7 @@ POA_Ref POA_Base::find_child (const IDL::String& adapter_name, bool activate_it)
 				if (created)
 					it = children_.find (adapter_name);
 			} catch (...) {
-				entry.second.on_exception ();
+				wait_list->on_exception ();
 				children_.erase (entry.first);
 				throw;
 			}
