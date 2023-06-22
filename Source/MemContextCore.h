@@ -40,7 +40,7 @@ class MemContextCore :
 	public MemContext,
 	public SharedObject
 {
-	friend class Nirvana::Core::Ref <MemContext>;
+	friend class CORBA::servant_reference <MemContext>;
 
 protected:
 	MemContextCore ();

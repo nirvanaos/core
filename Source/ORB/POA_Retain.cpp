@@ -111,7 +111,7 @@ Object::_ref_type POA_Retain::reference_to_servant (Object::_ptr_type reference)
 	ReferenceLocalRef ref = ProxyManager::cast (reference)->get_local_reference (*this);
 	if (!ref)
 		throw WrongAdapter ();
-	Ref <ServantProxyObject> servant = ref->get_active_servant ();
+	servant_reference <ServantProxyObject> servant = ref->get_active_servant ();
 	if (servant)
 		return servant->get_proxy ();
 
@@ -122,7 +122,7 @@ Object::_ref_type POA_Retain::id_to_servant (ObjectId& oid)
 {
 	ReferenceLocalRef ref = root ().find_reference (IOP::ObjectKey (ObjectKey (*this, std::move (oid))));
 	if (ref) {
-		Ref <ServantProxyObject> servant = ref->get_active_servant ();
+		servant_reference <ServantProxyObject> servant = ref->get_active_servant ();
 		if (servant)
 			return servant->get_proxy ();
 	}
@@ -163,7 +163,7 @@ void POA_Retain::etherealize_objects () noexcept
 
 void POA_Retain::serve_request (const RequestRef& request, ReferenceLocal& reference)
 {
-	Ref <ServantProxyObject> servant = reference.get_active_servant ();
+	servant_reference <ServantProxyObject> servant = reference.get_active_servant ();
 	if (servant)
 		POA_Base::serve_request (request, reference, *servant);
 	else

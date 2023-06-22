@@ -66,10 +66,10 @@ void OutgoingRequests::new_request_oneway (RequestOut& rq, RequestOut::IdPolicy 
 		rq.id (id);
 }
 
-Ref <RequestOut> OutgoingRequests::remove_request (RequestOut::RequestId request_id) noexcept
+servant_reference <RequestOut> OutgoingRequests::remove_request (RequestOut::RequestId request_id) noexcept
 {
 	RequestMap::NodeVal* p = map_->find_and_delete (request_id);
-	Ref <RequestOut> ret;
+	servant_reference <RequestOut> ret;
 	if (p) {
 		ret = std::move (p->value ().request);
 		map_->release_node (p);
@@ -80,7 +80,7 @@ Ref <RequestOut> OutgoingRequests::remove_request (RequestOut::RequestId request
 void OutgoingRequests::set_system_exception (uint32_t request_id, SystemException::Code code,
 	uint32_t minor, CompletionStatus completed) noexcept
 {
-	Ref <RequestOut> rq = remove_request (request_id);
+	servant_reference <RequestOut> rq = remove_request (request_id);
 	if (rq)
 		rq->set_system_exception (code, minor, completed);
 }
@@ -94,13 +94,13 @@ void OutgoingRequests::on_reply_exception (RequestOut& rq, const SystemException
 	rq.set_system_exception (ex.__code (), ex.minor (), completed);
 }
 
-void OutgoingRequests::receive_reply (unsigned GIOP_minor, Ref <StreamIn>&& stream)
+void OutgoingRequests::receive_reply (unsigned GIOP_minor, servant_reference <StreamIn>&& stream)
 {
 	IOP::ServiceContextList context1;
 	if (GIOP_minor <= 1)
 		stream->read_tagged (context1);
 	uint32_t request_id = stream->read32 ();
-	Ref <RequestOut> rq = remove_request (request_id);
+	servant_reference <RequestOut> rq = remove_request (request_id);
 	if (rq) {
 		uint32_t status = (uint32_t)(-1);
 		try {
@@ -113,10 +113,10 @@ void OutgoingRequests::receive_reply (unsigned GIOP_minor, Ref <StreamIn>&& stre
 }
 
 void OutgoingRequests::receive_reply_internal (RequestOut& rq, unsigned GIOP_minor, RequestId request_id,
-	uint32_t status, const IOP::ServiceContextList& context1, Ref <StreamIn>&& stream)
+	uint32_t status, const IOP::ServiceContextList& context1, servant_reference <StreamIn>&& stream)
 {
 	ExecDomain& ed = ExecDomain::current ();
-	Ref <MemContext> mc = &rq.memory ();
+	servant_reference <MemContext> mc = &rq.memory ();
 	ed.mem_context_swap (mc);
 	try {
 		IOP::ServiceContextList context;

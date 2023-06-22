@@ -33,10 +33,10 @@ using namespace CORBA::Core;
 
 namespace ESIOP {
 
-Ref <StreamOut> RequestIn::create_output ()
+servant_reference <StreamOut> RequestIn::create_output ()
 {
 	auto domain = Binder::get_domain (key ().address.esiop);
-	Ref <StreamOut> ret = Ref <StreamOut>::create <ImplDynamic <StreamOutReply> > (
+	servant_reference <StreamOut> ret = servant_reference <StreamOut>::create <ImplDynamic <StreamOutReply> > (
 		std::ref (*domain));
 	target_domain_ = std::move (domain);
 	return ret;

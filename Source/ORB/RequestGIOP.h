@@ -62,11 +62,7 @@ protected:
 
 	friend class Internal::LifeCycleRefCnt <RequestGIOP>;
 
-	template <class T>
-	friend class CORBA::servant_reference;
-
-	template <class T>
-	friend class Nirvana::Core::Ref;
+	template <class T> friend class CORBA::servant_reference;
 
 public:
 	/// \returns Response flags.
@@ -410,12 +406,12 @@ public:
 		return stream_out_;
 	}
 
-	void code_set_converter (Nirvana::Core::Ref <CodeSetConverter>&& csc) noexcept
+	void code_set_converter (servant_reference <CodeSetConverter>&& csc) noexcept
 	{
 		code_set_conv_ = std::move (csc);
 	}
 
-	void code_set_converter (Nirvana::Core::Ref <CodeSetConverterW>&& csc) noexcept
+	void code_set_converter (servant_reference <CodeSetConverterW>&& csc) noexcept
 	{
 		code_set_conv_w_ = std::move (csc);
 	}
@@ -461,11 +457,11 @@ protected:
 	Nirvana::Core::RefCounter ref_cnt_;
 	Long chunk_level_;
 	servant_reference <Domain> target_domain_;
-	Nirvana::Core::Ref <StreamIn> stream_in_;
-	Nirvana::Core::Ref <StreamOut> stream_out_;
-	Nirvana::Core::Ref <Nirvana::Core::MemContext> mem_context_;
-	Nirvana::Core::Ref <CodeSetConverter> code_set_conv_;
-	Nirvana::Core::Ref <CodeSetConverterW> code_set_conv_w_;
+	servant_reference <StreamIn> stream_in_;
+	servant_reference <StreamOut> stream_out_;
+	servant_reference <Nirvana::Core::MemContext> mem_context_;
+	servant_reference <CodeSetConverter> code_set_conv_;
+	servant_reference <CodeSetConverterW> code_set_conv_w_;
 	ReferenceSet <Nirvana::Core::HeapAllocator> marshaled_DGC_references_;
 
 private:

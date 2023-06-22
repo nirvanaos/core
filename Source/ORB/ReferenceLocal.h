@@ -73,8 +73,8 @@ public:
 	virtual void _add_ref () override;
 	virtual void _remove_ref () noexcept override;
 
-	Nirvana::Core::Ref <ServantProxyObject> get_active_servant () const noexcept;
-	Nirvana::Core::Ref <ServantProxyObject> get_active_servant_with_lock () const noexcept;
+	servant_reference <ServantProxyObject> get_active_servant () const noexcept;
+	servant_reference <ServantProxyObject> get_active_servant_with_lock () const noexcept;
 	PortableServer::ServantBase::_ref_type _get_servant () const override;
 
 	static void marshal (const ProxyManager& proxy, const Octet* obj_key, size_t obj_key_size,
@@ -96,7 +96,7 @@ private:
 	const PortableServer::Core::ObjectKey core_key_;
 	const IOP::ObjectKey& object_key_;
 
-	Nirvana::Core::Ref <Nirvana::Core::SyncContext> adapter_context_;
+	servant_reference <Nirvana::Core::SyncContext> adapter_context_;
 
 	static const size_t SERVANT_ALIGN = Nirvana::Core::core_object_align (
 		sizeof (PortableServer::Core::ServantBaseImpl));

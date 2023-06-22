@@ -146,23 +146,23 @@ void ReferenceLocal::on_servant_destruct () noexcept
 	_remove_ref ();
 }
 
-Ref <ServantProxyObject> ReferenceLocal::get_active_servant () const noexcept
+servant_reference <ServantProxyObject> ReferenceLocal::get_active_servant () const noexcept
 {
 	// This method is always called from the POA sync context, so we need not lock the pointer.
 	assert (&SyncContext::current () == adapter_context_);
-	return Ref <ServantProxyObject> (servant_.load ());
+	return servant_reference <ServantProxyObject> (servant_.load ());
 }
 
-Ref <ServantProxyObject> ReferenceLocal::get_active_servant_with_lock () const noexcept
+servant_reference <ServantProxyObject> ReferenceLocal::get_active_servant_with_lock () const noexcept
 {
-	Ref <ServantProxyObject> proxy (servant_.lock ());
+	servant_reference <ServantProxyObject> proxy (servant_.lock ());
 	servant_.unlock ();
 	return proxy;
 }
 
 PortableServer::ServantBase::_ref_type ReferenceLocal::_get_servant () const
 {
-	Ref <ServantProxyObject> proxy = get_active_servant_with_lock ();
+	servant_reference <ServantProxyObject> proxy = get_active_servant_with_lock ();
 	if (!proxy) {
 		// Attempt to pass an unactivated (unregistered) value as an object reference.
 		throw OBJECT_NOT_EXIST (MAKE_OMG_MINOR (1));
@@ -274,7 +274,7 @@ IORequest::_ref_type ReferenceLocal::create_request (OperationIndex op, unsigned
 	// If servant is active, create direct request for performance.
 	// We can't use get_active_servant here because the arbitrary sync context.
 	// So we lock the proxy pointer here.
-	Ref <ServantProxyObject> proxy = get_active_servant_with_lock ();
+	servant_reference <ServantProxyObject> proxy = get_active_servant_with_lock ();
 	if (proxy)
 		return proxy->create_request (op, flags, callback);
 
@@ -302,7 +302,7 @@ Boolean ReferenceLocal::_is_equivalent (Object::_ptr_type other_object) const no
 	if (ProxyManager::_is_equivalent (other_object))
 		return true;
 
-	Nirvana::Core::Ref <ServantProxyObject> servant = get_active_servant_with_lock ();
+	servant_reference <ServantProxyObject> servant = get_active_servant_with_lock ();
 
 	if (servant)
 		return servant->_is_equivalent (other_object);

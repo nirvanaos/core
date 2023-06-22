@@ -44,7 +44,6 @@ class MemContextObject;
 /// MemContext can not be static.
 class NIRVANA_NOVTABLE MemContext
 {
-	friend class Nirvana::Core::Ref <MemContext>;
 	friend class CORBA::servant_reference <MemContext>;
 
 public:

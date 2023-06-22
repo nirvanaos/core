@@ -448,8 +448,7 @@ private:
 
 	void final_release () noexcept;
 
-	friend class Ref <ExecDomain>;
-	template <class> friend class CORBA::servant_reference;
+	friend class CORBA::servant_reference <ExecDomain>;
 	friend class ObjectPool <ExecDomain>;
 	
 	void _add_ref () noexcept

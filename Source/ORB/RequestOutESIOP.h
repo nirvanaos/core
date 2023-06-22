@@ -48,7 +48,7 @@ public:
 		const CORBA::Internal::Operation& metadata, unsigned response_flags) :
 		Base ((response_flags & 3) == 1 ? 2 : 1, response_flags, domain, metadata)
 	{
-		stream_out_ = Ref <StreamOut>::create <ImplDynamic <StreamOutSM> > (std::ref (domain), true);
+		stream_out_ = servant_reference <StreamOut>::create <ImplDynamic <StreamOutSM> > (std::ref (domain), true);
 		id_ = get_new_id (IdPolicy::ANY);
 		DeadlineTime dl = deadline ();
 		IOP::ServiceContextList context;

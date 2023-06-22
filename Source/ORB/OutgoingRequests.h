@@ -55,12 +55,12 @@ public:
 
 	static void new_request (RequestOut& rq, RequestOut::IdPolicy id_policy);
 	static void new_request_oneway (RequestOut& rq, RequestOut::IdPolicy id_policy);
-	static Nirvana::Core::Ref <RequestOut> remove_request (RequestOut::RequestId request_id) noexcept;
-	static void receive_reply (unsigned GIOP_minor, Nirvana::Core::Ref <StreamIn>&& stream);
+	static servant_reference <RequestOut> remove_request (RequestOut::RequestId request_id) noexcept;
+	static void receive_reply (unsigned GIOP_minor, servant_reference <StreamIn>&& stream);
 
-	static void receive_reply_immediate (uint32_t request_id, Nirvana::Core::Ref <StreamIn>&& stream) noexcept
+	static void receive_reply_immediate (uint32_t request_id, servant_reference <StreamIn>&& stream) noexcept
 	{
-		Nirvana::Core::Ref <RequestOut> rq = remove_request (request_id);
+		servant_reference <RequestOut> rq = remove_request (request_id);
 		if (rq) {
 			try {
 				receive_reply_internal (*rq, 1, (RequestId)request_id, 0, IOP::ServiceContextList (), std::move (stream));
@@ -83,7 +83,7 @@ private:
 
 	static void receive_reply_internal (RequestOut& rq, unsigned GIOP_minor, RequestId request_id,
 		uint32_t status, const IOP::ServiceContextList& context1,
-		Nirvana::Core::Ref <StreamIn>&& stream);
+		servant_reference <StreamIn>&& stream);
 
 	static void on_reply_exception (RequestOut& rq, const SystemException& ex,
 		GIOP::ReplyStatusType status) noexcept;
@@ -105,7 +105,7 @@ private:
 		}
 
 		RequestId request_id;
-		Nirvana::Core::Ref <RequestOut> request;
+		servant_reference <RequestOut> request;
 	};
 
 	// The request map

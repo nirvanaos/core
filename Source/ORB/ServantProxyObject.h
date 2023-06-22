@@ -108,7 +108,7 @@ protected:
 	ReferenceLocalRef get_local_reference () const noexcept;
 
 protected:
-	Nirvana::Core::Ref <Nirvana::Core::SyncContext> adapter_context_;
+	servant_reference <Nirvana::Core::SyncContext> adapter_context_;
 
 	static const size_t REF_SIZE = sizeof (Reference)
 		+ sizeof (PortableServer::Core::ObjectKey) + 3 * sizeof (void*);

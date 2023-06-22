@@ -87,7 +87,7 @@ void RequestLocalPOA::serve (const ServantProxyBase& proxy)
 void RequestLocalPOA::invoke ()
 {
 	RequestLocalBase::invoke (); // rewind etc.
-	PortableServer::Core::POA_Root::invoke (Ref <RequestInPOA> (this), false);
+	PortableServer::Core::POA_Root::invoke (servant_reference <RequestInPOA> (this), false);
 }
 
 bool RequestLocalPOA::is_cancelled () const noexcept
@@ -98,7 +98,7 @@ bool RequestLocalPOA::is_cancelled () const noexcept
 void RequestLocalOnewayPOA::invoke ()
 {
 	RequestLocalBase::invoke (); // rewind etc.
-	PortableServer::Core::POA_Root::invoke_async (Ref <RequestInPOA> (this),
+	PortableServer::Core::POA_Root::invoke_async (servant_reference <RequestInPOA> (this),
 		ExecDomain::current ().get_request_deadline (!response_flags ()));
 }
 

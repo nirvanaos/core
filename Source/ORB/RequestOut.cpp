@@ -79,7 +79,7 @@ RequestOut::RequestOut (unsigned GIOP_minor, unsigned response_flags,
 		// Legacy process has memory context with interlocked access to runtime support.
 		// To avoid context switches in iterator debugging during the unmarshaling
 		// we have to create a new memory context with the same heap.
-		mem_context_ = Nirvana::Core::Ref <MemContext>::create <Nirvana::Core::MemContextCore>
+		mem_context_ = servant_reference <MemContext>::create <Nirvana::Core::MemContextCore>
 			(std::ref (mem_context_->heap ()));
 	}
 #endif
@@ -149,7 +149,7 @@ void RequestOut::id (RequestId id)
 }
 
 void RequestOut::set_reply (unsigned status, IOP::ServiceContextList&& context,
-	Ref <StreamIn>&& stream)
+	servant_reference <StreamIn>&& stream)
 {
 	switch (status_ = (Status)status) {
 		case Status::NO_EXCEPTION:
@@ -169,7 +169,7 @@ void RequestOut::set_reply (unsigned status, IOP::ServiceContextList&& context,
 				ed.deadline (deadline_);
 				// Memory context must be set by caller.
 				assert (ed.mem_context_ptr () == &memory ());
-				Ref <RequestLocalBase> pre = Ref <RequestLocalBase>::
+				servant_reference <RequestLocalBase> pre = servant_reference <RequestLocalBase>::
 					create <RequestLocalImpl <RequestLocalBase> > (&memory (), 3);
 				IORequest::_ptr_type rq = pre->_get_ptr ();
 				std::vector <Octet> buf;

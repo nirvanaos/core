@@ -37,7 +37,7 @@ namespace Core {
 
 Nirvana::Core::StaticallyAllocated <IncomingRequests::RequestMap> IncomingRequests::map_;
 
-void IncomingRequests::receive (Ref <RequestIn> rq, uint64_t timestamp)
+void IncomingRequests::receive (servant_reference <RequestIn> rq, uint64_t timestamp)
 {
 	if (rq->response_flags () & RequestIn::RESPONSE_EXPECTED) {
 		auto ins = map_->insert (std::ref (rq->key ()), std::ref (*rq), timestamp);
@@ -97,14 +97,14 @@ void IncomingRequests::receive (Ref <RequestIn> rq, uint64_t timestamp)
 	}
 
 	// Invoke
-	PortableServer::Core::POA_Root::invoke (Ref <RequestInPOA> (std::move (rq)), true);
+	PortableServer::Core::POA_Root::invoke (servant_reference <RequestInPOA> (std::move (rq)), true);
 }
 
 void IncomingRequests::cancel (const RequestKey& key, uint64_t timestamp) noexcept
 {
 	auto ins = map_->insert (key, timestamp);
 	if (!ins.second) {
-		Nirvana::Core::Ref <RequestIn> request = std::move (ins.first->value ().request);
+		servant_reference <RequestIn> request = std::move (ins.first->value ().request);
 		if (request) {
 			map_->remove (ins.first);
 			request->cancel ();

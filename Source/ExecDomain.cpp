@@ -183,7 +183,7 @@ void ExecDomain::cleanup () noexcept
 		if (sd)
 			sd->leave ();
 	}
-	sync_context_.reset ();
+	sync_context_ = nullptr;
 
 	ret_qnodes_clear ();
 	
@@ -207,7 +207,7 @@ void ExecDomain::cleanup () noexcept
 	
 	if (background_worker_) {
 		background_worker_->finish ();
-		background_worker_.reset ();
+		background_worker_ = nullptr;
 	}
 
 	runtime_global_.cleanup ();

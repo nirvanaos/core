@@ -67,9 +67,9 @@ void ReceiveRequest::run ()
 {
 	try {
 		// Create input stream
-		Ref <StreamIn> in;
+		servant_reference <StreamIn> in;
 		try {
-			in = Ref <StreamIn>::create <ImplDynamic <StreamInSM> > (data_);
+			in = servant_reference <StreamIn>::create <ImplDynamic <StreamInSM> > (data_);
 		} catch (...) {
 			// Not enough memory?
 			// Create and destruct object in stack to release stream memory.
@@ -91,7 +91,7 @@ void ReceiveRequest::run ()
 
 		// Create and receive the request
 		unsigned minor = msg_hdr.GIOP_version ().minor ();
-		Ref <CORBA::Core::RequestIn> rq = Ref <CORBA::Core::RequestIn>::create <RequestIn> (
+		servant_reference <CORBA::Core::RequestIn> rq = servant_reference <CORBA::Core::RequestIn>::create <RequestIn> (
 			client_id_, minor, std::move (in));
 		IncomingRequests::receive (std::move (rq), timestamp_);
 	} catch (const SystemException& ex) {
@@ -164,9 +164,9 @@ void ReceiveReply::run ()
 {
 	try {
 		// Create input stream
-		Ref <StreamIn> in;
+		servant_reference <StreamIn> in;
 		try {
-			in = Ref <StreamIn>::create <ImplDynamic <StreamInSM> > (data_);
+			in = servant_reference <StreamIn>::create <ImplDynamic <StreamInSM> > (data_);
 		} catch (...) {
 			// Not enough memory?
 			// Create and destruct object in stack to release stream memory.
@@ -235,7 +235,7 @@ private:
 
 void ReceiveReplyImmediate::run ()
 {
-	OutgoingRequests::receive_reply_immediate (request_id_, Ref <StreamIn>::create <ImplDynamic <StreamInImmediate> >
+	OutgoingRequests::receive_reply_immediate (request_id_, servant_reference <StreamIn>::create <ImplDynamic <StreamInImmediate> >
 		(size_and_flag_, data_));
 }
 

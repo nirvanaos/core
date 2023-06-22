@@ -55,7 +55,7 @@ class POAManager;
 class POA_Root;
 class POA_Base;
 
-typedef Nirvana::Core::Ref <CORBA::Core::RequestInPOA> RequestRef;
+typedef CORBA::servant_reference <CORBA::Core::RequestInPOA> RequestRef;
 
 typedef CORBA::servant_reference <POA_Base> POA_Ref;
 

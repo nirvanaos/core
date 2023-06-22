@@ -112,7 +112,7 @@ private:
 	// DGC request
 	class DGC_Request;
 	typedef Nirvana::Core::ImplDynamicSync <DGC_Request> DGC_RequestImpl;
-	typedef Nirvana::Core::Ref <DGC_RequestImpl> DGC_RequestRef;
+	typedef servant_reference <DGC_RequestImpl> DGC_RequestRef;
 
 	class DGC_Request
 	{

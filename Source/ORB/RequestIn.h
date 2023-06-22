@@ -69,8 +69,7 @@ class NIRVANA_NOVTABLE RequestIn :
 	public RequestInPOA
 {
 protected:
-	template <class T>
-	friend class Nirvana::Core::Ref;
+	template <class T> friend class CORBA::servant_reference;
 
 	// RequestInPOA
 	virtual void _add_ref () noexcept override;
@@ -142,13 +141,13 @@ protected:
 	RequestIn (const DomainAddress& client, unsigned GIOP_minor);
 	~RequestIn ();
 
-	void final_construct (Nirvana::Core::Ref <StreamIn>&& in);
+	void final_construct (servant_reference <StreamIn>&& in);
 
 	/// Output stream factory.
 	/// Must be overridden in a derived class.
 	/// 
 	/// \returns The output stream reference.
-	virtual Nirvana::Core::Ref <StreamOut> create_output () = 0;
+	virtual servant_reference <StreamOut> create_output () = 0;
 
 	void post_send_success () noexcept;
 

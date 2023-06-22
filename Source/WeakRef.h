@@ -45,7 +45,7 @@ class ImplShared final :
 	public SharedObject
 {
 private:
-	template <class> friend class Ref;
+	template <class> friend class CORBA::servant_reference;
 
 	template <class ... Args>
 	ImplShared (Args ... args) :
@@ -168,6 +168,12 @@ public:
 		src.control_block_ = nullptr;
 	}
 
+	WeakRef& operator = (nullptr_t) noexcept
+	{
+		reset ();
+		return *this;
+	}
+
 	WeakRef& operator = (const WeakRef& src) noexcept
 	{
 		if (control_block_ != src.control_block_) {
@@ -197,15 +203,6 @@ public:
 			return nullptr;
 	}
 
-	/// Releases the reference to the managed object. After the call `*this` manages no object.
-	void reset () noexcept
-	{
-		if (control_block_) {
-			control_block_->_remove_ref_weak ();
-			control_block_ = nullptr;
-		}
-	}
-
 	bool operator ! () const noexcept
 	{
 		return !control_block_;
@@ -214,6 +211,16 @@ public:
 	operator bool () const noexcept
 	{
 		return control_block_ != nullptr;
+	}
+
+private:
+	// Releases the reference to the managed object. After the call `*this` manages no object.
+	void reset () noexcept
+	{
+		if (control_block_) {
+			control_block_->_remove_ref_weak ();
+			control_block_ = nullptr;
+		}
 	}
 
 private:

@@ -41,7 +41,7 @@ class RequestIn : public CORBA::Core::RequestIn
 
 public:
 	RequestIn (ProtDomainId client_id, unsigned GIOP_minor,
-		Nirvana::Core::Ref <CORBA::Core::StreamIn>&& in) :
+		CORBA::servant_reference <CORBA::Core::StreamIn>&& in) :
 		Base (client_id, GIOP_minor)
 	{
 		final_construct (std::move (in));
@@ -57,7 +57,7 @@ public:
 	}
 
 protected:
-	virtual Nirvana::Core::Ref <CORBA::Core::StreamOut> create_output () override;
+	virtual CORBA::servant_reference <CORBA::Core::StreamOut> create_output () override;
 	virtual void set_exception (CORBA::Any& e) override;
 	virtual void success () override;
 };

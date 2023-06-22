@@ -40,7 +40,7 @@ class MemContextUser : public MemContextCore
 {
 	typedef MemContextCore Base;
 
-	friend class Nirvana::Core::Ref <MemContext>;
+	friend class CORBA::servant_reference <MemContext>;
 
 public:
 	/// Create MemContextUser object.

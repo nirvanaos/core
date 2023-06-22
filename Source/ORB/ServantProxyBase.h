@@ -114,7 +114,7 @@ private:
 protected:
 	RefCntProxy ref_cnt_;
 	Internal::Interface::_ptr_type servant_;
-	Nirvana::Core::Ref <Nirvana::Core::SyncContext> sync_context_;
+	servant_reference <Nirvana::Core::SyncContext> sync_context_;
 };
 
 }

@@ -77,7 +77,7 @@ public:
 	void id (RequestId id);
 
 	virtual void set_reply (unsigned status, IOP::ServiceContextList&& context,
-		Nirvana::Core::Ref <StreamIn>&& stream);
+		servant_reference <StreamIn>&& stream);
 
 	void set_system_exception (SystemException::Code code, uint32_t minor, CompletionStatus completed)
 		noexcept;
@@ -138,7 +138,7 @@ protected:
 
 	size_t request_id_offset_;
 
-	Nirvana::Core::Ref <RequestLocalBase> preunmarshaled_;
+	servant_reference <RequestLocalBase> preunmarshaled_;
 
 	SystemException::Code system_exception_code_;
 	SystemException::_Data system_exception_data_;

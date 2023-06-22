@@ -87,12 +87,12 @@ TYPED_TEST (TestWeakRef, ReleaseStrong)
 		SharedRef <TypeParam> s = weak.lock ();
 		EXPECT_TRUE (s);
 	}
-	strong.reset ();
+	strong = nullptr;
 	{
 		SharedRef <TypeParam> s = weak.lock ();
 		EXPECT_FALSE (s);
 	}
-	weak.reset ();
+	weak = nullptr;
 }
 
 TYPED_TEST (TestWeakRef, ReleaseWeak)
@@ -102,9 +102,9 @@ TYPED_TEST (TestWeakRef, ReleaseWeak)
 	EXPECT_TRUE (weak);
 	SharedRef <TypeParam> s = weak.lock ();
 	EXPECT_TRUE (s);
-	strong.reset ();
-	weak.reset ();
-	s.reset ();
+	strong = nullptr;
+	weak = nullptr;
+	s = nullptr;
 }
 
 }

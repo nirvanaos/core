@@ -61,7 +61,7 @@ public:
 	/// \param [out] s The string.
 	virtual void unmarshal_string (StreamIn& in, IDL::String& s);
 
-	static Nirvana::Core::Ref <CodeSetConverter> get_default () noexcept
+	static servant_reference <CodeSetConverter> get_default () noexcept
 	{
 		return &default_;
 	}
@@ -101,7 +101,7 @@ public:
 	virtual void marshal_char_seq (IDL::Sequence <WChar>& s, bool move, StreamOut& out) = 0;
 	virtual void unmarshal_char_seq (StreamIn& in, IDL::Sequence <WChar>& s) = 0;
 
-	static Nirvana::Core::Ref <CodeSetConverterW> get_default (unsigned GIOP_minor, bool client_side);
+	static servant_reference <CodeSetConverterW> get_default (unsigned GIOP_minor, bool client_side);
 };
 
 /// Default wide code set converter for GIOP 1.0.
@@ -109,7 +109,7 @@ class NIRVANA_NOVTABLE CodeSetConverterW_1_0 :
 	public CodeSetConverterW
 {
 public:
-	static Nirvana::Core::Ref <CodeSetConverterW> get_default (bool client_side);
+	static servant_reference <CodeSetConverterW> get_default (bool client_side);
 
 protected:
 	// If a client orb erroneously sends wchar or wstring data in a GIOP 1.0 message, the server shall
@@ -138,7 +138,7 @@ class NIRVANA_NOVTABLE CodeSetConverterW_1_1 :
 	public CodeSetConverterW
 {
 public:
-	static Nirvana::Core::Ref <CodeSetConverterW> get_default () noexcept
+	static servant_reference <CodeSetConverterW> get_default () noexcept
 	{
 		return &default_;
 	}
@@ -162,7 +162,7 @@ class NIRVANA_NOVTABLE CodeSetConverterW_1_2 :
 	public CodeSetConverterW
 {
 public:
-	static Nirvana::Core::Ref <CodeSetConverterW> get_default () noexcept
+	static servant_reference <CodeSetConverterW> get_default () noexcept
 	{
 		return &default_;
 	}

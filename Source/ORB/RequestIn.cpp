@@ -51,7 +51,7 @@ RequestIn::RequestIn (const DomainAddress& client, unsigned GIOP_minor) :
 	has_context_ (false)
 {}
 
-void RequestIn::final_construct (Ref <StreamIn>&& in)
+void RequestIn::final_construct (servant_reference <StreamIn>&& in)
 {
 	stream_in_ = std::move (in);
 

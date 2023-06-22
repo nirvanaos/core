@@ -34,12 +34,13 @@
 namespace Nirvana {
 namespace Core {
 
-template <class> class Ref;
+/// Core smart pointer.
+/// \tparam T object or core interface class.
+template <class T> using Ref = CORBA::servant_reference <T>;
 
 #if defined (__GNUG__) || defined (__clang__)
 
 #define DECLARE_CORE_INTERFACE protected:\
-template <class> friend class Nirvana::Core::Ref;\
 template <class> friend class CORBA::servant_reference;\
 template <class> friend class CORBA::Internal::LifeCycleRefCnt;\
 _Pragma ("GCC diagnostic push")\
@@ -51,7 +52,6 @@ _Pragma ("GCC diagnostic pop")
 #else
 
 #define DECLARE_CORE_INTERFACE protected:\
-template <class> friend class Nirvana::Core::Ref;\
 template <class> friend class CORBA::servant_reference;\
 template <class> friend class CORBA::Internal::LifeCycleRefCnt;\
 virtual void _add_ref () noexcept = 0;\
@@ -59,15 +59,13 @@ virtual void _remove_ref () noexcept = 0;
 
 #endif
 
-template <class T> class Ref;
-
 /// Dynamic implementation of a core object.
 /// \tparam T object class.
 template <class T>
 class ImplDynamic final : public T
 {
 protected:
-	template <class> friend class Ref;
+	template <class> friend class CORBA::servant_reference;
 
 	template <class S, class ... Args> friend
 	CORBA::Internal::I_ref <typename S::PrimaryInterface> CORBA::make_pseudo (Args ... args);
@@ -101,7 +99,6 @@ template <class T>
 class ImplDynamicSync : public T
 {
 protected:
-	template <class> friend class Ref;
 	template <class> friend class CORBA::servant_reference;
 
 	template <class S, class ... Args> friend
@@ -154,7 +151,7 @@ template <class T>
 class ImplNoAddRef final : public T
 {
 protected:
-	template <class> friend class Ref;
+	template <class> friend class CORBA::servant_reference;
 
 	template <class ... Args>
 	ImplNoAddRef (Args ... args) :
@@ -174,181 +171,6 @@ protected:
 	{
 		this->~ImplNoAddRef <T> ();
 	}
-};
-
-/// Core smart pointer.
-/// \tparam T object or core interface class.
-template <class T>
-class Ref
-{
-	template <class> friend class Ref;
-
-public:
-	Ref () noexcept :
-		p_ (nullptr)
-	{}
-
-	Ref (nullptr_t) noexcept :
-		p_ (nullptr)
-	{}
-
-	/// Increments reference counter unlike I_var.
-	Ref (T* p) noexcept :
-		p_ (p)
-	{
-		if (p_)
-			p_->_add_ref ();
-	}
-
-	Ref (const Ref& src) noexcept :
-		Ref (src.p_)
-	{}
-
-	Ref (Ref&& src) noexcept :
-		p_ (src.p_)
-	{
-		src.p_ = nullptr;
-	}
-
-	template <class T1>
-	Ref (const Ref <T1>& src) noexcept :
-		Ref (src.p_)
-	{}
-
-	template <class T1>
-	Ref (Ref <T1>&& src) noexcept :
-		p_ (src.p_)
-	{
-		src.p_ = nullptr;
-	}
-
-	/// Creates an object.
-	/// \tparam Impl Object implementation class.
-	template <class Impl, class ... Args>
-	static Ref create (Args ... args)
-	{
-		Ref v;
-		v.p_ = new Impl (std::forward <Args> (args)...);
-		return v;
-	}
-
-	~Ref () noexcept
-	{
-		if (p_)
-			p_->_remove_ref ();
-	}
-
-	/// Increments reference counter unlike I_var.
-	Ref& operator = (T* p) noexcept
-	{
-		if (p_ != p) {
-			reset (p);
-			if (p)
-				p->_add_ref ();
-		}
-		return *this;
-	}
-
-	template <class T1>
-	static Ref cast (T1* p) noexcept
-	{
-		return Ref (static_cast <T*> (p));
-	}
-
-	template <class T1>
-	static Ref cast (const Ref <T1>& src) noexcept
-	{
-		return Ref (static_cast <T*> (src.p_));
-	}
-
-	template <class T1>
-	static Ref cast (Ref <T1>&& src) noexcept
-	{
-		Ref v;
-		v.p_ = static_cast <T*> (src.p_);
-		src.p_ = nullptr;
-		return v;
-	}
-
-	Ref& operator = (const Ref& src) noexcept
-	{
-		return operator = (src.p_);
-	}
-
-	Ref& operator = (Ref&& src) noexcept
-	{
-		if (this != &src) {
-			reset (src.p_);
-			src.p_ = nullptr;
-		}
-		return *this;
-	}
-
-	template <class T1>
-	Ref& operator = (const Ref <T1>& src) noexcept
-	{
-		return operator = (src.p_);
-	}
-
-	template <class T1>
-	Ref& operator = (Ref <T1>&& src) noexcept
-	{
-		reset (src.p_);
-		src.p_ = nullptr;
-		return *this;
-	}
-
-	Ref& operator = (nullptr_t) noexcept
-	{
-		reset ();
-		return *this;
-	}
-
-	T* operator -> () const noexcept
-	{
-		return p_;
-	}
-
-	operator T* () const noexcept
-	{
-		return p_;
-	}
-
-	T& operator * () const noexcept
-	{
-		assert (p_);
-		return *p_;
-	}
-
-	void reset () noexcept
-	{
-		if (p_) {
-			T* tmp = p_;
-			p_ = nullptr;
-			tmp->_remove_ref ();
-		}
-	}
-
-	void swap (Ref& other) noexcept
-	{
-		T* tmp = p_;
-		p_ = other.p_;
-		other.p_ = tmp;
-	}
-
-private:
-	void reset (T* p) noexcept
-	{
-		if (p != p_) {
-			T* tmp = p_;
-			p_ = p;
-			if (tmp)
-				tmp->_remove_ref ();
-		}
-	}
-
-private:
-	T* p_;
 };
 
 }

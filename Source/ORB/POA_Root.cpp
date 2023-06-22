@@ -185,7 +185,7 @@ void POA_Root::invoke_async (RequestRef request, DeadlineTime deadline)
 	POA_Base* adapter = get_implementation (adapter_proxy);
 	assert (adapter);
 
-	Ref <MemContext> memory = request->memory ();
+	servant_reference <MemContext> memory = request->memory ();
 	ExecDomain::async_call <InvokeAsync> (deadline, adapter_proxy->sync_context (), std::move (memory),
 		adapter, std::move (request));
 }

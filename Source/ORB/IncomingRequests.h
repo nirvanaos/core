@@ -67,7 +67,7 @@ public:
 		{}
 
 		uint64_t timestamp;
-		Nirvana::Core::Ref <RequestIn> request;
+		servant_reference <RequestIn> request;
 	};
 
 	// The request map
@@ -76,7 +76,7 @@ public:
 	/// Recieve incoming request.
 	/// 
 	/// \param rq The input request.
-	static void receive (Nirvana::Core::Ref <RequestIn> rq, uint64_t timestamp);
+	static void receive (servant_reference <RequestIn> rq, uint64_t timestamp);
 
 	/// Cancel incoming request.
 	/// 
