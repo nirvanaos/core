@@ -65,7 +65,8 @@ void initialize ()
 	// Bind ProtDomain service to hold proxy
 	CORBA::Core::Services::bind (CORBA::Core::Services::ProtDomain);
 
-	PortableServer::Core::SysAdapterActivator::initialize ();
+	if (ESIOP::is_system_domain ())
+		PortableServer::Core::SysAdapterActivator::initialize ();
 
 	// Start receiving messages from other domains
 	Port::PostOffice::initialize (CORBA::Core::LocalAddress::singleton ().host (), CORBA::Core::LocalAddress::singleton ().port ());
@@ -90,7 +91,8 @@ void terminate ()
 {
 	Port::PostOffice::terminate (); // Stop receiving messages. But we can still send messages.
 
-	PortableServer::Core::SysAdapterActivator::terminate ();
+	if (ESIOP::is_system_domain ())
+		PortableServer::Core::SysAdapterActivator::terminate ();
 
 	PortableServer::Core::POA_Root::terminate ();
 	ProtDomain::terminate ();
