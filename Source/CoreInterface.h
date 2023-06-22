@@ -176,15 +176,13 @@ protected:
 	}
 };
 
-template <class T, unsigned ALIGN> class LockableRef;
-
 /// Core smart pointer.
 /// \tparam T object or core interface class.
 template <class T>
 class Ref
 {
 	template <class> friend class Ref;
-	template <class, unsigned> friend class LockableRef;
+
 public:
 	Ref () noexcept :
 		p_ (nullptr)

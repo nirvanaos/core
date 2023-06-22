@@ -118,7 +118,7 @@ protected:
 
 // Synchronous wait list.
 // May be used only in synchronization domain.
-class WaitListBase
+class WaitListBase : public UserObject
 {
 public:
 	~WaitListBase ()
