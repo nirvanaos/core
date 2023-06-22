@@ -65,7 +65,7 @@ public:
 		return str;
 	}
 
-	static Object::_ref_type string_to_object (const IDL::String& str, Internal::String_in iid = nullptr);
+	static Object::_ref_type string_to_object (Internal::String_in str, Internal::String_in iid = nullptr);
 
 	void create_list (Long count, NVList::_ref_type& new_list)
 	{

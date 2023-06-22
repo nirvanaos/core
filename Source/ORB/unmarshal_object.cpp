@@ -114,17 +114,16 @@ Object::_ref_type unmarshal_object (Internal::String_in primary_iid, StreamIn & 
 				&& std::equal (host, host + host_len, LocalAddress::singleton ().host ().data ())))) {
 		// Local Nirvana system
 
+		// Check for system service id
+		Services::Service ss = system_service (object_key);
 		// Check for SysDomain
-		if (ESIOP::is_system_domain ()) {
-			Services::Service ss = system_service (object_key);
-			if (ss < Services::SERVICE_COUNT)
-				obj = Services::bind (ss);
-		}
-		if (!obj) {
+		if (ss < Services::SERVICE_COUNT && ESIOP::is_system_domain ())
+			obj = Services::bind (ss);
+		else {
 			if (!Nirvana::Core::SINGLE_DOMAIN) {
 				// Multiple domain system
 				ESIOP::ProtDomainId domain_id;
-				if (object_key.size () == 1 && object_key.front () == 0)
+				if (ss < Services::SERVICE_COUNT) // All system services are implemented at system domain
 					domain_id = ESIOP::sys_domain_id ();
 				else
 					domain_id = ESIOP::get_prot_domain_id (object_key);

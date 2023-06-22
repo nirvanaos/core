@@ -375,7 +375,7 @@ OctetSeq ORB::unescape_object_key (const Char* begin, const Char* end)
 	return key;
 }
 
-Object::_ref_type ORB::string_to_object (const IDL::String& str, Internal::String_in iid)
+Object::_ref_type ORB::string_to_object (Internal::String_in str, Internal::String_in iid)
 {
 	const Char* str_begin = str.data ();
 	const Char* str_end = str_begin + str.size ();

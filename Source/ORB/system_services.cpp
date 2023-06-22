@@ -31,7 +31,6 @@ namespace Core {
 
 Services::Service system_service (const Octet* key, size_t key_len) noexcept
 {
-	assert (ESIOP::is_system_domain ());
 	if (SysObjectKey <Nirvana::Core::SysDomain>::equal (key, key_len))
 		return Services::SysDomain;
 	else if (SysObjectKey <CosNaming::Core::NameService>::equal (key, key_len))
