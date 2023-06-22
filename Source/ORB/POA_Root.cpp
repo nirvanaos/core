@@ -26,7 +26,6 @@
 
 #include "POA_Root.h"
 #include "RqHelper.h"
-#include <CORBA/Servant_var.h>
 
 using namespace Nirvana;
 using namespace Nirvana::Core;
@@ -48,60 +47,55 @@ Object::_ref_type POA_Root::create ()
 	return obj;
 }
 
-ReferenceLocalRef POA_Root::emplace_reference (ObjectKey&& core_key,
-	bool unique, CORBA::Internal::String_in primary_iid, unsigned flags,
-	CORBA::Core::PolicyMapShared* policies)
+std::pair <POA_Root::References::iterator, bool> POA_Root::emplace_reference (const ObjectKey& core_key)
 {
-	auto ins = references_.emplace (IOP::ObjectKey (core_key), Reference::DEADLINE_MAX);
+	return references_.emplace (IOP::ObjectKey (core_key), CORBA::Core::Reference::DEADLINE_MAX);
+}
+
+template <typename Param>
+CORBA::Core::ReferenceLocalRef POA_Root::get_or_create (std::pair <References::iterator, bool>& ins,
+	ObjectKey&& core_key, bool unique, Param param, unsigned flags, CORBA::Core::PolicyMapShared* policies)
+{
 	References::reference entry = *ins.first;
 	if (ins.second) {
 		auto wait_list = entry.second.wait_list ();
 		RefPtr p;
 		try {
-			p = new ReferenceLocal (entry.first, std::move (core_key), primary_iid, flags, policies);
+			p = new CORBA::Core::ReferenceLocal (entry.first, std::move (core_key), param, flags, policies);
 		} catch (...) {
 			wait_list->on_exception ();
 			references_.erase (entry.first);
 			throw;
 		}
-		Servant_var <ReferenceLocal> ret (p); // Adopt ownership
+		PortableServer::Servant_var <CORBA::Core::ReferenceLocal> ret (p); // Adopt ownership
 		wait_list->finish_construction (p);
 		return ret;
 	} else if (unique)
 		return nullptr;
-	else {
-		RefPtr p = entry.second.get ();
+	else
+		return entry.second.get ();
+}
+
+ReferenceLocalRef POA_Root::emplace_reference (ObjectKey&& core_key,
+	bool unique, CORBA::Internal::String_in primary_iid, unsigned flags,
+	CORBA::Core::PolicyMapShared* policies)
+{
+	auto ins = emplace_reference (core_key);
+	ReferenceLocalRef p = get_or_create (ins, std::move (core_key), unique, std::ref (primary_iid), flags, policies);
+	if (p)
 		p->check_primary_interface (primary_iid);
-		return p;
-	}
+	return p;
 }
 
 ReferenceLocalRef POA_Root::emplace_reference (ObjectKey&& core_key,
 	bool unique, ServantProxyObject& proxy, unsigned flags,
 	CORBA::Core::PolicyMapShared* policies)
 {
-	auto ins = references_.emplace (IOP::ObjectKey (core_key), Reference::DEADLINE_MAX);
-	References::reference entry = *ins.first;
-	if (ins.second) {
-		auto wait_list = entry.second.wait_list ();
-		RefPtr p;
-		try {
-			p = new ReferenceLocal (entry.first, std::move (core_key), proxy, flags, policies);
-		} catch (...) {
-			wait_list->on_exception ();
-			references_.erase (entry.first);
-			throw;
-		}
-		Servant_var <ReferenceLocal> ret (p); // Adopt ownership
-		wait_list->finish_construction (p);
-		return ret;
-	} else if (unique)
-		return nullptr;
-	else {
-		RefPtr p = entry.second.get ();
+	auto ins = emplace_reference (core_key);
+	ReferenceLocalRef p = get_or_create (ins, std::move (core_key), unique, std::ref (proxy), flags, policies);
+	if (p)
 		p->check_primary_interface (proxy.primary_interface_id ());
-		return p;
-	}
+	return p;
 }
 
 ReferenceLocalRef POA_Root::find_reference (const IOP::ObjectKey& key) noexcept

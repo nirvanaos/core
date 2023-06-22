@@ -144,9 +144,16 @@ public:
 	typedef Nirvana::Core::MapUnorderedStable <IOP::ObjectKey, RefVal, std::hash <IOP::ObjectKey>,
 		std::equal_to <IOP::ObjectKey>, Nirvana::Core::UserAllocator> References;
 
+	std::pair <References::iterator, bool> emplace_reference (const ObjectKey& core_key);
+
+	template <typename Param>
+	CORBA::Core::ReferenceLocalRef get_or_create (std::pair <References::iterator, bool>& ins,
+		ObjectKey&& core_key, bool unique, Param param, unsigned flags, CORBA::Core::PolicyMapShared* policies);
+
 	CORBA::Core::ReferenceLocalRef emplace_reference (ObjectKey&& core_key,
 		bool unique, CORBA::Internal::String_in primary_iid, unsigned flags,
 		CORBA::Core::PolicyMapShared* policies);
+
 	CORBA::Core::ReferenceLocalRef emplace_reference (ObjectKey&& core_key,
 		bool unique, CORBA::Core::ServantProxyObject& proxy, unsigned flags,
 		CORBA::Core::PolicyMapShared* policies);
