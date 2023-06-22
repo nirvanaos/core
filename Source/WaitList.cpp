@@ -24,6 +24,8 @@
 *  popov.nirvana@gmail.com
 */
 #include "WaitableRef.h"
+#include "ExecDomain.h"
+#include "Chrono.h"
 
 namespace Nirvana {
 namespace Core {
@@ -49,7 +51,7 @@ uintptr_t& WaitListBase::wait ()
 		if (&ed == worker_)
 			throw_BAD_INV_ORDER ();
 		// Hold reference to this object
-		Ref <WaitListBase> hold (this);
+		WaitListRef <WaitListBase> hold (static_cast <WaitListImpl <WaitListBase>*> (this));
 		ed.suspend ();
 		static_cast <StackElem&> (ed).next = wait_list_;
 		wait_list_ = &ed;

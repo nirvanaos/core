@@ -214,12 +214,12 @@ public:
 
 	template <class T1>
 	Ref (const Ref <T1>& src) noexcept :
-		Ref (static_cast <T*> (src.p_))
+		Ref (src.p_)
 	{}
 
 	template <class T1>
 	Ref (Ref <T1>&& src) noexcept :
-		p_ (static_cast <T*> (src.p_))
+		p_ (src.p_)
 	{
 		src.p_ = nullptr;
 	}
@@ -251,6 +251,27 @@ public:
 		return *this;
 	}
 
+	template <class T1>
+	static Ref cast (T1* p) noexcept
+	{
+		return Ref (static_cast <T*> (p));
+	}
+
+	template <class T1>
+	static Ref cast (const Ref <T1>& src) noexcept
+	{
+		return Ref (static_cast <T*> (src.p_));
+	}
+
+	template <class T1>
+	static Ref cast (Ref <T1>&& src) noexcept
+	{
+		Ref v;
+		v.p_ = static_cast <T*> (src.p_);
+		src.p_ = nullptr;
+		return v;
+	}
+
 	Ref& operator = (const Ref& src) noexcept
 	{
 		return operator = (src.p_);
@@ -268,7 +289,7 @@ public:
 	template <class T1>
 	Ref& operator = (const Ref <T1>& src) noexcept
 	{
-		return operator = (static_cast <T*> (src.p_));
+		return operator = (src.p_);
 	}
 
 	template <class T1>

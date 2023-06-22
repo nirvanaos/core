@@ -28,24 +28,31 @@
 #define NIRVANA_CORE_WAITLIST_H_
 #pragma once
 
-#include "ExecDomain.h"
-#include "Chrono.h"
 #include "UserObject.h"
+#include "CoreInterface.h"
 #include <exception>
 
 namespace Nirvana {
 namespace Core {
 
 class ExecDomain;
-class WaitableRefBase;
-template <typename> class WaitableRef;
 
 class WaitListBase;
+template <typename> class WaitableRef;
+template <typename> class WaitList;
+
+template <class Base> 
+using WaitListImpl = ImplDynamicSync <Base>;
+
+template <class List>
+using WaitListRef = Ref <WaitListImpl <List> >;
 
 class WaitableRefBase
 {
 	WaitableRefBase (const WaitableRefBase&) = delete;
 	WaitableRefBase& operator = (const WaitableRefBase&) = delete;
+
+	template <typename> friend class WaitList;
 public:
 	/// \returns `true` if object creation is not completed.
 	bool is_wait_list () const noexcept
@@ -59,8 +66,6 @@ public:
 	{
 		return pointer_ != 0;
 	}
-
-	NIRVANA_NODISCARD WaitListBase* finish_construction (void* p) noexcept;
 
 protected:
 	WaitableRefBase () noexcept :
@@ -89,13 +94,14 @@ protected:
 	{}
 
 	const uintptr_t& wait_construction () const;
+	WaitListRef <WaitListBase> finish_construction (void* p) noexcept;
 
 	void reset () noexcept;
 
-	WaitListBase* wait_list () const noexcept
+	WaitListRef <WaitListBase> wait_list () const noexcept
 	{
 		assert (is_wait_list ());
-		return reinterpret_cast <WaitListBase*> (pointer_ & ~1);
+		return reinterpret_cast <WaitListImpl <WaitListBase>*> (pointer_ & ~1);
 	}
 
 private:
@@ -104,7 +110,7 @@ private:
 		return pointer & 1;
 	}
 
-	NIRVANA_NODISCARD WaitListBase* detach_list () noexcept;
+	WaitListRef <WaitListBase> detach_list () noexcept;
 
 protected:
 	uintptr_t pointer_;
@@ -112,11 +118,8 @@ protected:
 
 // Synchronous wait list.
 // May be used only in synchronization domain.
-class WaitListBase :
-	public UserObjectSyncRefCnt <WaitListBase>
+class WaitListBase
 {
-	template <class> friend class Ref;
-
 public:
 	~WaitListBase ()
 	{
@@ -168,7 +171,7 @@ public:
 	~WaitList ()
 	{
 		if (result_) {
-			ref (result_).~PtrType ();
+			make_ref (result_).~PtrType ();
 #ifdef _DEBUG
 			result_ = 0; // For assert() in WaitListBase destructor
 #endif
@@ -177,7 +180,7 @@ public:
 
 	PtrType wait ()
 	{
-		return ref (WaitListBase::wait ());
+		return make_ref (WaitListBase::wait ());
 	}
 
 	/// Called by creator execution domain on finish the object creation.
@@ -219,12 +222,12 @@ private:
 		return up;
 	}
 
-	static PtrType& ref (uintptr_t& p) noexcept
+	static PtrType& make_ref (uintptr_t& p) noexcept
 	{
 		return reinterpret_cast <PtrType&> (p);
 	}
 
-	static const PtrType& ref (const uintptr_t& p) noexcept
+	static const PtrType& make_ref (const uintptr_t& p) noexcept
 	{
 		return reinterpret_cast <const PtrType&> (p);
 	}
@@ -232,7 +235,7 @@ private:
 	void finish_construction_ref (const PtrType& p) noexcept
 	{
 		if (ref_)
-			static_cast <WaitList*> (ref_->finish_construction (make_ptr (p)))->_remove_ref ();
+			WaitListRef <WaitList>::cast (static_cast <WaitListBase*> (ref_->finish_construction (make_ptr (p))));
 	}
 
 };

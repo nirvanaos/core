@@ -30,6 +30,7 @@
 
 #include <CORBA/CORBA.h>
 #include "../WaitableRef.h"
+#include "../SyncDomain.h"
 #include <algorithm>
 
 namespace CORBA {

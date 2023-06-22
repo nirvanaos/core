@@ -45,7 +45,7 @@ servant_reference <DomainProt> ProtDomainsWaitable::get (ProtDomainId domain_id)
 
 			Binder::singleton ().start_domains_housekeeping ();
 
-			PortableServer::Servant_var <CORBA::Core::Domain> ret (p); // Adopt ownership
+			PortableServer::Servant_var <DomainProt> ret (p); // Adopt ownership
 			wait_list->finish_construction (p);
 			return ret;
 		} catch (...) {
@@ -76,8 +76,9 @@ servant_reference <DomainProt> ProtDomainsSimple::get (ProtDomainId domain_id)
 			map_.erase (ins.first);
 			throw;
 		}
-	}
-	return PortableServer::Servant_var <CORBA::Core::Domain> (&ins.first->second);
+		return PortableServer::Servant_var <DomainProt> (&ins.first->second); // Do not increment ref counter
+	} else
+		return &ins.first->second; // Increment ref counter
 }
 
 servant_reference <DomainProt> ProtDomainsSimple::find (ProtDomainId domain_id) const noexcept

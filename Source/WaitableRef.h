@@ -43,7 +43,7 @@ class WaitableRef : public WaitableRefBase
 {
 	static_assert (sizeof (PtrType) == sizeof (uintptr_t), "Invalid pointer type");
 
-	typedef Ref <WaitList <PtrType> > WaitListRef;
+	friend class WaitList <PtrType>;
 
 public:
 	WaitableRef () noexcept
@@ -88,9 +88,9 @@ public:
 	WaitableRef& operator = (const PtrType& p) noexcept
 	{
 		if (is_wait_list ())
-			wait_list_ptr ()->finish_construction (p);
+			wait_list ()->finish_construction (p);
 		else
-			WaitList <PtrType>::ref (pointer_) = p;
+			WaitList <PtrType>::make_ref (pointer_) = p;
 
 		return *this;
 	}
@@ -98,9 +98,9 @@ public:
 	WaitableRef& operator = (PtrType&& p) noexcept
 	{
 		if (is_wait_list ())
-			wait_list_ptr ()->finish_construction (std::move (p));
+			wait_list ()->finish_construction (std::move (p));
 		else
-			WaitList <PtrType>::ref (pointer_) = std::move (p);
+			WaitList <PtrType>::make_ref (pointer_) = std::move (p);
 
 		return *this;
 	}
@@ -113,7 +113,7 @@ public:
 		if (is_wait_list ())
 			return wait_list ()->wait ();
 		else
-			return WaitList <PtrType>::ref (pointer_);
+			return WaitList <PtrType>::make_ref (pointer_);
 	}
 
 	/// \brief Get object pointer if object is already constructed.
@@ -123,11 +123,10 @@ public:
 	/// \returns Pointer or `nullptr`.
 	PtrType get_if_constructed () const noexcept
 	{
-		uintptr_t p = pointer_;
 		if (is_wait_list ())
 			return nullptr;
 		else
-			return reinterpret_cast <const PtrType&> (p);
+			return WaitList <PtrType>::make_ref (pointer_);
 	}
 
 	void reset () noexcept
@@ -143,20 +142,14 @@ public:
 		}
 	}
 
-	WaitListRef wait_list () const noexcept
+	WaitListRef <WaitList <PtrType> > wait_list () const noexcept
 	{
-		return wait_list_ptr ();
+		return WaitListRef <WaitList <PtrType> >::cast (static_cast <WaitListBase*> (WaitableRefBase::wait_list ()));
 	}
 
 	bool is_constructed () const noexcept
 	{
 		return !is_wait_list ();
-	}
-
-private:
-	WaitList <PtrType>* wait_list_ptr () const noexcept
-	{
-		return static_cast <WaitList <PtrType>*> (WaitableRefBase::wait_list ());
 	}
 
 };
