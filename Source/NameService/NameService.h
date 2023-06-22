@@ -110,9 +110,12 @@ public:
 
 	static void shutdown (CORBA::Object::_ptr_type root) noexcept
 	{
+		const CORBA::Core::ServantProxyLocal* proxy = get_proxy (root);
+		SYNC_BEGIN (proxy->sync_context (), nullptr);
 		NameService* impl = static_cast <NameService*> (get_implementation (root));
 		assert (impl);
 		impl->shutdown ();
+		SYNC_END ();
 	}
 
 	void shutdown () noexcept

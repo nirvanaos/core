@@ -78,6 +78,7 @@ void NameService::rebind_context1 (Istring&& name, NamingContext::_ptr_type nc, 
 Object::_ref_type NameService::resolve1 (const Istring& name, BindingType& type, Name& n)
 {
 	if (name == file_system_root) {
+		type = BindingType::ncontext;
 		auto ins = bindings_.emplace (name, MapVal ());
 		if (ins.second) {
 			try {
