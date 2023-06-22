@@ -24,6 +24,7 @@
 *  popov.nirvana@gmail.com
 */
 #include "FileSystem.h"
+#include "IteratorStack.h"
 
 using namespace CORBA;
 using namespace PortableServer;
@@ -66,6 +67,60 @@ Object::_ref_type FileSystem::get_reference (const DirItemId& id)
 void FileSystem::set_error_number (int err)
 {
 	ExecDomain::current ().runtime_global_.error_number = err;
+}
+
+Object::_ref_type FileSystem::resolve1 (const Istring& name, BindingType& type, Name& n)
+{
+	Nirvana::Dir::_ref_type dir = resolve_root (name);
+	if (dir)
+		return dir;
+	else
+		throw NotFound (NotFoundReason::missing_node, std::move (n));
+}
+
+void FileSystem::bind1 (Istring&& name, Object::_ptr_type obj, Name& n)
+{
+	throw CannotProceed (_this (), std::move (n));
+}
+
+void FileSystem::rebind1 (Istring&& name, Object::_ptr_type obj, Name& n)
+{
+	throw CannotProceed (_this (), std::move (n));
+}
+
+void FileSystem::bind_context1 (Istring&& name, NamingContext::_ptr_type nc, Name& n)
+{
+	throw CannotProceed (_this (), std::move (n));
+}
+
+void FileSystem::rebind_context1 (Istring&& name, NamingContext::_ptr_type nc, Name& n)
+{
+	throw CannotProceed (_this (), std::move (n));
+}
+
+void FileSystem::unbind1 (const Istring& name, Name& n)
+{
+	throw CannotProceed (_this (), std::move (n));
+}
+
+NamingContext::_ref_type FileSystem::create_context1 (Istring&& name, Name& n, bool& created)
+{
+	throw CannotProceed (_this (), std::move (n));
+}
+
+NamingContext::_ref_type FileSystem::bind_new_context1 (Istring&& name, Name& n)
+{
+	throw CannotProceed (_this (), std::move (n));
+}
+
+std::unique_ptr <CosNaming::Core::Iterator> FileSystem::make_iterator () const
+{
+	std::unique_ptr <CosNaming::Core::IteratorStack> it (std::make_unique <CosNaming::Core::IteratorStack> ());
+	it->reserve (roots_.size ());
+	for (const auto& root : roots_) {
+		it->push (root.first, BindingType::ncontext);
+	}
+	return it;
 }
 
 }

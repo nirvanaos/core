@@ -47,11 +47,11 @@ public:
 	virtual void rebind_context1 (Istring&& name, NamingContext::_ptr_type nc, Name& n) override;
 	virtual CORBA::Object::_ref_type resolve1 (const Istring& name, BindingType& type, Name& n) override;
 	virtual void unbind1 (const Istring& name, Name& n) override;
+	virtual NamingContext::_ref_type bind_new_context1 (Istring&& name, Name& n) override;
+
 	virtual NamingContext::_ptr_type this_context () = 0;
 
 	NamingContext::_ref_type new_context ();
-
-	virtual NamingContext::_ref_type bind_new_context1 (Istring&& name, Name& n) override;
 
 	void destroy ()
 	{
@@ -81,7 +81,7 @@ protected:
 	void get_bindings (IteratorStack& iter) const;
 	virtual NamingContext::_ref_type create_context1 (Istring&& name, Name& n, bool& created) override;
 
-private:
+protected:
 	struct MapVal
 	{
 		CORBA::Object::_ref_type object;
@@ -100,6 +100,7 @@ private:
 	using Bindings = Nirvana::Core::MapUnorderedUnstable <Istring, MapVal,
 		std::hash <Istring>, std::equal_to <Istring>, Nirvana::Core::UserAllocator>;
 
+protected:
 	void link (CORBA::Object::_ptr_type context) const;
 	void link (Bindings::iterator it);
 	void unlink (CORBA::Object::_ptr_type context, const Name& n);

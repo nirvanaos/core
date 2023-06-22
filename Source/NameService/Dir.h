@@ -76,7 +76,7 @@ public:
 
 	void get_file_times (FileTimes& times) const
 	{
-		return Base::get_file_times (times);
+		Base::get_file_times (times);
 	}
 
 	void bind (CosNaming::Name& n, CORBA::Object::_ptr_type obj, bool rebind = false);
@@ -118,6 +118,7 @@ public:
 
 	Nirvana::FileAccess::_ref_type open (CosNaming::Name& n, unsigned short flags)
 	{
+		check_name (n);
 		return FileSystem::open (get_new_file_id (n), flags);
 	}
 

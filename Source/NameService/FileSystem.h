@@ -31,7 +31,8 @@
 #include <Port/FileSystem.h>
 #include "../MapUnorderedUnstable.h"
 #include "../ORB/Services.h"
-#include "IteratorStack.h"
+#include "NamingContextBase.h"
+#include <Nirvana/File_s.h>
 
 namespace PortableServer {
 namespace Core {
@@ -42,7 +43,10 @@ class FileActivator;
 namespace Nirvana {
 namespace Core {
 
-class FileSystem : private Port::FileSystem
+class FileSystem : 
+	public CORBA::servant_traits <Nirvana::Dir>::Servant <FileSystem>,
+	public CosNaming::Core::NamingContextBase,
+	private Port::FileSystem
 {
 public:
 	static const char adapter_name_ [];
@@ -87,9 +91,9 @@ public:
 		Port::FileSystem::etherealize (id, servant);
 	}
 
-	Dir::_ref_type resolve_root (const IDL::String& name)
+	Nirvana::Dir::_ref_type resolve_root (const IDL::String& name)
 	{
-		Dir::_ref_type dir;
+		Nirvana::Dir::_ref_type dir;
 		auto it = roots_.find (name);
 		if (it != roots_.end ()) {
 			if (it->second.cached)
@@ -102,18 +106,6 @@ public:
 			}
 		}
 		return dir;
-	}
-
-	size_t root_cnt () const noexcept
-	{
-		return roots_.size ();
-	}
-
-	void get_roots (CosNaming::Core::IteratorStack& iter) const
-	{
-		for (const auto& r : roots_) {
-			iter.push (r.first, CosNaming::BindingType::ncontext);
-		}
 	}
 
 	static PortableServer::POA::_ref_type& adapter () noexcept
@@ -132,6 +124,62 @@ public:
 	{
 		return get_file (id)->open (flags);
 	}
+
+	Nirvana::FileAccess::_ref_type open (CosNaming::Name& n, unsigned short flags)
+	{
+		check_name (n);
+		Nirvana::Dir::_ref_type dir = resolve_root (to_string (n.front ()));
+		if (dir) {
+			n.erase (n.begin ());
+			return dir->open (n, flags);
+		} else
+			throw RuntimeError (ENOENT);
+	}
+
+	void destroy ()
+	{
+		throw NotEmpty ();
+	}
+
+	// DirItem
+
+	static FileType type () noexcept
+	{
+		return FileType::directory;
+	}
+
+	uint16_t permissions () const
+	{
+		return 0; // TODO: Implement
+	}
+
+	void permissions (uint16_t perms)
+	{
+		throw CORBA::NO_IMPLEMENT (); // TODO: Implement
+	}
+
+	void get_file_times (FileTimes& times) const
+	{
+		zero (times);
+	}
+
+	// NamingContextBase
+	virtual void bind1 (CosNaming::Istring&& name, CORBA::Object::_ptr_type obj, CosNaming::Name& n) override;
+	virtual void rebind1 (CosNaming::Istring&& name, CORBA::Object::_ptr_type obj, CosNaming::Name& n) override;
+	virtual void bind_context1 (CosNaming::Istring&& name, CosNaming::NamingContext::_ptr_type nc, CosNaming::Name& n) override;
+	virtual void rebind_context1 (CosNaming::Istring&& name, CosNaming::NamingContext::_ptr_type nc, CosNaming::Name& n) override;
+	virtual CORBA::Object::_ref_type resolve1 (const CosNaming::Istring& name, CosNaming::BindingType& type, CosNaming::Name& n) override;
+	virtual void unbind1 (const CosNaming::Istring& name, CosNaming::Name& n) override;
+	virtual CosNaming::NamingContext::_ref_type create_context1 (CosNaming::Istring&& name, CosNaming::Name& n, bool& created) override;
+	virtual CosNaming::NamingContext::_ref_type bind_new_context1 (CosNaming::Istring&& name, CosNaming::Name& n) override;
+
+	CosNaming::NamingContext::_ref_type new_context ()
+	{
+		throw CORBA::NO_IMPLEMENT ();
+	}
+
+	// NamingContextRoot
+	virtual std::unique_ptr <CosNaming::Core::Iterator> make_iterator () const override;
 
 private:
 	static CORBA::Object::_ref_type get_reference (const DirItemId& id, CORBA::Internal::String_in iid);

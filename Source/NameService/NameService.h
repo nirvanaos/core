@@ -33,7 +33,6 @@
 #include <CORBA/CosNaming_s.h>
 #include "ORB/SysServant.h"
 #include "ORB/system_services.h"
-#include "FileSystem.h"
 
 namespace CosNaming {
 namespace Core {
@@ -55,7 +54,6 @@ public:
 	virtual CORBA::Object::_ref_type resolve1 (const Istring& name, BindingType& type, Name& n) override;
 	virtual NamingContext::_ref_type create_context1 (Istring&& name, Name& n, bool& created) override;
 	virtual NamingContext::_ref_type bind_new_context1 (Istring&& name, Name& n) override;
-	virtual std::unique_ptr <Iterator> make_iterator () const override;
 
 	static void destroy ()
 	{
@@ -81,8 +79,8 @@ public:
 		Name n;
 		size_t begin = 0;
 		for (size_t end = 0; (end = sn.find ('/', end)) != StringName::npos;) {
-			if (sn [end + 1] == '/') { // Escaped
-				end += 2;
+			if (end > 0 && sn [end - 1] == '\\') { // Escaped
+				++end;
 				continue;
 			}
 			n.push_back (to_component (sn.substr (begin, end - begin)));
@@ -136,7 +134,7 @@ public:
 	}
 
 private:
-	Nirvana::Core::FileSystem file_system_;
+	void check_no_fs (const Istring& name);
 };
 
 }

@@ -41,7 +41,7 @@ protected:
 
 TEST_F (TestFile, var)
 {
-	Object::_ref_type obj = naming_service_->resolve_str ("var");
+	Object::_ref_type obj = naming_service_->resolve_str ("\\//var");
 	ASSERT_TRUE (obj);
 	Dir::_ref_type dir = Dir::_narrow (obj);
 	ASSERT_TRUE (dir);
