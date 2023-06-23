@@ -475,8 +475,7 @@ protected:
 
 	static CORBA::Object::_ref_type get_root ()
 	{
-		assert ((CORBA::Object::_ref_type&)root_object_);
-		return root_object_;
+		return CORBA::Core::Services::bind (CORBA::Core::Services::RootPOA);
 	}
 
 	POA_Base () :
@@ -512,7 +511,6 @@ private:
 	void on_request_finish () noexcept;
 	
 protected:
-	static Nirvana::Core::StaticallyAllocated <CORBA::Object::_ref_type> root_object_;
 	static POA_Root* root_;
 
 	CORBA::servant_reference <POAManager> the_POAManager_;

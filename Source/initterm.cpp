@@ -32,7 +32,6 @@
 #include "ORB/ORB_initterm.h"
 #include "ORB/Services.h"
 #include "ORB/LocalAddress.h"
-#include "ORB/POA_Root.h"
 #include "ORB/SysAdapterActivator.h"
 #include <Port/PostOffice.h>
 #include "ProtDomain.h"
@@ -57,7 +56,6 @@ void initialize ()
 
 	// CORBA::Core::Services must be initialized before Binder
 	CORBA::Core::initialize ();
-	PortableServer::Core::POA_Root::initialize ();
 
 	Binder::initialize ();
 
@@ -78,9 +76,7 @@ void shutdown ()
 	Timer::terminate ();
 
 	// Block incoming requests and complete currently executed ones.
-	PortableServer::Core::POA_Root::shutdown ();
-
-	// Terminate services to release all proxies
+	// Release all service proxies.
 	CORBA::Core::Services::terminate ();
 
 	// Clear remote references, if any
@@ -94,7 +90,6 @@ void terminate ()
 	if (ESIOP::is_system_domain ())
 		PortableServer::Core::SysAdapterActivator::terminate ();
 
-	PortableServer::Core::POA_Root::terminate ();
 	ProtDomain::terminate ();
 	Binder::terminate ();
 	CORBA::Core::terminate ();

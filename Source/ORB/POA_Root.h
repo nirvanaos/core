@@ -62,9 +62,7 @@ public:
 	~POA_Root ()
 	{
 		assert (is_destroyed ());
-		for (const auto& r : references_) {
-			delete r.second.get_if_constructed ();
-		}
+		assert (references_.empty ());
 		root_ = nullptr;
 	}
 
@@ -160,14 +158,12 @@ public:
 
 	void remove_reference (const IOP::ObjectKey& key) noexcept
 	{
-		remove_reference (references_.find (key));
-	}
-
-	void remove_reference (References::iterator it) noexcept
-	{
+		auto it = references_.find (key);
 		assert (it != references_.end ());
 		delete it->second.get_if_constructed ();
 		references_.erase (it);
+		if (references_.empty ())
+			_remove_ref ();
 	}
 
 	CORBA::Core::ReferenceLocalRef find_reference (const IOP::ObjectKey& key) noexcept;
@@ -177,20 +173,9 @@ public:
 		return DGC_policies_;
 	}
 
-	static void initialize ()
+	static void shutdown (CORBA::Object::_ptr_type root)
 	{
-		root_object_.construct ();
-	}
-
-	static void shutdown ()
-	{
-		if (root_) // POA was used in some way
-			root_->_this ()->destroy (true, true); // Block incoming requests and complete currently executed ones.
-	}
-
-	static void terminate () noexcept
-	{
-		root_object_.destruct ();
+		POA::_narrow (root)->destroy (true, true); // Block incoming requests and complete currently executed ones.
 	}
 
 	static CORBA::Object::_ref_type create ();

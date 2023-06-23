@@ -108,7 +108,7 @@ public:
 		return _this ();
 	}
 
-	static void shutdown (CORBA::Object::_ptr_type root) noexcept
+	static void shutdown (CORBA::Object::_ptr_type root)
 	{
 		const CORBA::Core::ServantProxyLocal* proxy = get_proxy (root);
 		SYNC_BEGIN (proxy->sync_context (), nullptr);

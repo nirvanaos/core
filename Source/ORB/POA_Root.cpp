@@ -41,10 +41,8 @@ Object::_ref_type POA_Root::create ()
 	auto manager = manager_factory->create ("RootPOAManager");
 	manager->activate ();
 
-	Object::_ref_type obj = CORBA::make_reference <POA_Root> (std::move (manager),
+	return CORBA::make_reference <POA_Root> (std::move (manager),
 		std::move (manager_factory))->_this ();
-	root_object_ = obj;
-	return obj;
 }
 
 std::pair <POA_Root::References::iterator, bool> POA_Root::emplace_reference (const ObjectKey& core_key)
@@ -67,6 +65,8 @@ CORBA::Core::ReferenceLocalRef POA_Root::get_or_create (std::pair <References::i
 			references_.erase (entry.first);
 			throw;
 		}
+		if (references_.size () == 1)
+			_add_ref ();
 		PortableServer::Servant_var <CORBA::Core::ReferenceLocal> ret (p); // Adopt ownership
 		wait_list->finish_construction (p);
 		return ret;

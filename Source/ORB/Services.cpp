@@ -68,6 +68,10 @@ Services::~Services ()
 		if (name_service)
 			CosNaming::Core::NameService::shutdown (name_service);
 	}
+
+	Object::_ref_type POA_root = services_ [RootPOA].get_if_constructed ();
+	if (POA_root) // Block incoming requests and complete currently executed ones.
+		PortableServer::Core::POA_Root::shutdown (POA_root);
 }
 
 Object::_ref_type Services::bind_internal (Service sidx)

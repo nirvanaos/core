@@ -37,7 +37,6 @@ namespace PortableServer {
 namespace Core {
 
 POA_Root* POA_Base::root_;
-StaticallyAllocated <Object::_ref_type> POA_Base::root_object_;
 
 Interface* POA_Base::_s_get_servant (Bridge <POA>* _b, Interface* _env)
 {
