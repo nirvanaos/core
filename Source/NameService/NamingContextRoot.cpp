@@ -31,86 +31,58 @@ namespace Core {
 
 Istring NamingContextRoot::to_string (const NameComponent& nc)
 {
-	Istring name = escape (nc.id ());
+	size_t size = nc.id ().size ();
+	if (!nc.kind ().empty ())
+		size += nc.kind ().size () + 1;
+	Istring name;
+	name.reserve (size);
+	name = nc.id ();
 	if (!nc.kind ().empty ()) {
 		name += '.';
-		name += escape (nc.kind ());
+		name += nc.kind ();
 	}
 	return name;
 }
 
 Istring NamingContextRoot::to_string (NameComponent&& nc)
 {
-	Istring name = escape (std::move (nc.id ()));
-	name += '.';
-	name += escape (std::move (nc.kind ()));
+	Istring name (std::move (nc.id ()));
+	if (!nc.kind ().empty ()) {
+		name.reserve (name.size () + nc.kind ().size () + 1);
+		name += '.';
+		name += nc.kind ();
+	}
 	return name;
 }
 
 NameComponent NamingContextRoot::to_component (Istring s)
 {
-	NameComponent nc;
-	size_t s_size = s.size ();
-	size_t id_size = s_size;
-	for (;;) {
-		size_t dot = s.rfind ('.', id_size);
-		if (Istring::npos == dot) {
-			id_size = s.size ();
-			break;
-		} else if (dot > 0 && s [dot - 1] == '\\') // escaped
-			id_size = dot - 1;
-		else {
-			id_size = dot;
-			break;
-		}
-	}
+	const size_t s_size = s.size ();
+	size_t id_size = s.rfind ('.');
+	if (Istring::npos == id_size)
+		id_size = s.size ();
 
+	NameComponent nc;
 	if (id_size > 0) {
 
 		// A trailing '.' character is not permitted by the specification.
 		if (id_size == s_size - 1)
 			throw NamingContext::InvalidName ();
 
-		Istring id;
 		if (id_size < s_size)
-			id = s.substr (0, id_size);
+			nc.id (s.substr (0, id_size));
 		else
-			id = std::move (s);
-		nc.id (unescape (std::move (id)));
+			nc.id (std::move (s));
 	}
 	if (id_size < s_size) {
-		Istring kind;
 		if (id_size > 0)
-			kind = s.substr (id_size + 1);
+			nc.kind (s.substr (id_size + 1));
 		else {
 			s.erase (1, 1);
-			kind = std::move (s);
+			nc.kind (std::move (s));
 		}
-		nc.kind (unescape (std::move (kind)));
 	}
 	return nc;
-}
-
-Istring NamingContextRoot::escape (Istring s)
-{
-	for (size_t pos = 0; pos < s.size ();) {
-		size_t esc = s.find_first_of ("/.\\", 0);
-		if (esc != Istring::npos) {
-			s.insert (esc, 1, '\\');
-			pos = esc + 2;
-		} else
-			break;
-	}
-	return s;
-}
-
-Istring NamingContextRoot::unescape (Istring s)
-{
-	for (size_t pos = 0; (pos = s.find ('\\', pos)) != Istring::npos;) {
-		s.erase (pos, 1);
-		++pos;
-	}
-	return s;
 }
 
 void NamingContextRoot::check_name (const Name& n)

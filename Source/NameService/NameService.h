@@ -66,10 +66,10 @@ public:
 	{
 		check_name (n);
 		Name::iterator it = n.begin ();
-		StringName sn = Base::to_string (std::move (*(it++)));
+		StringName sn = to_escaped (std::move (*(it++)));
 		while (it != n.end ()) {
 			sn += '/';
-			sn += Base::to_string (std::move (*(it++)));
+			sn += to_escaped (std::move (*(it++)));
 		}
 		return sn;
 	}
@@ -79,14 +79,15 @@ public:
 		Name n;
 		size_t begin = 0;
 		for (size_t end = 0; (end = sn.find ('/', end)) != StringName::npos;) {
-			if (end > 0 && sn [end - 1] == '\\') { // Escaped
+			if (end > 0 && sn [end - 1] == '\\') { // Escaped, find next
 				++end;
 				continue;
 			}
-			n.push_back (to_component (sn.substr (begin, end - begin)));
+
+			n.push_back (escaped_to_component (sn.substr (begin, end - begin)));
 			begin = ++end;
 		}
-		n.push_back (to_component (sn.substr (begin)));
+		n.push_back (escaped_to_component (sn.substr (begin)));
 		return n;
 	}
 
@@ -137,6 +138,11 @@ public:
 	}
 
 private:
+	static NameComponent escaped_to_component (StringName s);
+	static StringName to_escaped (NameComponent&& nc);
+	static StringName escape (Istring s);
+	static Istring unescape (StringName s);
+
 	void check_no_fs (const Istring& name);
 };
 

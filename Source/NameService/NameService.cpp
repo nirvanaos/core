@@ -34,7 +34,7 @@ using namespace CORBA;
 namespace CosNaming {
 namespace Core {
 
-const char file_system_root [] = "\\/";
+const char file_system_root [] = "/";
 
 Object::_ref_type create_NameService ()
 {
@@ -106,6 +106,75 @@ NamingContext::_ref_type NameService::bind_new_context1 (Istring&& name, Name& n
 	return Base::bind_new_context1 (std::move (name), n);
 }
 
-}
+NameService::StringName NameService::escape (Istring s)
+{
+	for (size_t pos = 0; pos < s.size ();) {
+		size_t esc = s.find_first_of ("/.\\", 0);
+		if (esc != Istring::npos) {
+			s.insert (esc, 1, '\\');
+			pos = esc + 2;
+		} else
+			break;
+	}
+	return s;
 }
 
+Istring NameService::unescape (StringName s)
+{
+	for (size_t pos = 0; (pos = s.find ('\\', pos)) != Istring::npos;) {
+		s.erase (pos, 1);
+		++pos;
+	}
+	return s;
+}
+
+NameComponent NameService::escaped_to_component (StringName s)
+{
+	const size_t s_size = s.size ();
+	size_t id_size = StringName::npos;
+	for (;;) {
+		id_size = s.rfind ('.', id_size);
+		if (id_size != StringName::npos) {
+			id_size = s_size;
+			break;
+		} else if (id_size == 0 || s [id_size - 1] != '\\')
+			break;
+		else
+			id_size -= 2;
+	}
+
+	NameComponent nc;
+	if (id_size > 0) {
+
+		// A trailing '.' character is not permitted by the specification.
+		if (id_size == s_size - 1)
+			throw NamingContext::InvalidName ();
+
+		if (id_size < s_size)
+			nc.id (unescape (s.substr (0, id_size)));
+		else
+			nc.id (unescape (std::move (s)));
+	}
+	if (id_size < s_size) {
+		if (id_size > 0)
+			nc.kind (unescape (s.substr (id_size + 1)));
+		else {
+			s.erase (1, 1);
+			nc.kind (unescape (std::move (s)));
+		}
+	}
+	return nc;
+}
+
+NameService::StringName NameService::to_escaped (NameComponent&& nc)
+{
+	StringName name = escape (std::move (nc.id ()));
+	if (!nc.kind ().empty ()) {
+		name += '.';
+		name += escape (std::move (nc.kind ()));
+	}
+	return name;
+}
+
+}
+}

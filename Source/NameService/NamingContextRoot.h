@@ -54,10 +54,6 @@ protected:
 		signature_ (signature)
 	{}
 
-private:
-	static Istring escape (Istring s);
-	static Istring unescape (Istring s);
-
 protected:
 	const uint32_t signature_;
 };
