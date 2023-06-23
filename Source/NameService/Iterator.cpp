@@ -50,7 +50,7 @@ bool Iterator::next_n (uint32_t how_many, CosNaming::BindingList& bl)
 {
 	bool ret = false;
 	CosNaming::Binding b;
-	while (next_one (b)) {
+	while (how_many-- && next_one (b)) {
 		bl.push_back (std::move (b));
 		ret = true;
 	}

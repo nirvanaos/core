@@ -39,7 +39,7 @@ protected:
 	NamingContextExt::_ref_type naming_service_;
 };
 
-TEST_F (TestFile, var)
+TEST_F (TestFile, Var)
 {
 	Object::_ref_type obj = naming_service_->resolve_str ("\\//var");
 	ASSERT_TRUE (obj);
@@ -65,7 +65,27 @@ TEST_F (TestFile, var)
 	EXPECT_TRUE (tmp);
 }
 
-TEST_F (TestFile, tmp)
+TEST_F (TestFile, TmpIterator)
+{
+	Object::_ref_type obj = naming_service_->resolve_str ("\\//var/tmp");
+	ASSERT_TRUE (obj);
+	Dir::_ref_type dir = Dir::_narrow (obj);
+	ASSERT_TRUE (dir);
+	BindingIterator::_ref_type it;
+	BindingList bindings;
+	dir->list (0, bindings, it);
+	if (it) {
+		while (it->next_n (10, bindings)) {
+			for (const auto& b : bindings) {
+				ASSERT_FALSE (b.binding_name ().empty ());
+				const NameComponent& nc = b.binding_name ().front ();
+				EXPECT_FALSE (nc.id ().empty () && nc.kind ().empty ());
+			}
+		}
+	}
+}
+
+TEST_F (TestFile, TmpList)
 {
 	Object::_ref_type obj = naming_service_->resolve_str ("\\//var/tmp");
 	ASSERT_TRUE (obj);
@@ -74,6 +94,11 @@ TEST_F (TestFile, tmp)
 	BindingIterator::_ref_type it;
 	BindingList bindings;
 	dir->list (std::numeric_limits <uint32_t>::max (), bindings, it);
+	for (const auto& b : bindings) {
+		ASSERT_FALSE (b.binding_name ().empty ());
+		const NameComponent& nc = b.binding_name ().front ();
+		EXPECT_FALSE (nc.id ().empty () && nc.kind ().empty ());
+	}
 	EXPECT_FALSE (it);
 }
 
