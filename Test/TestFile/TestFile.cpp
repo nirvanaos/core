@@ -65,6 +65,18 @@ TEST_F (TestFile, var)
 	EXPECT_TRUE (tmp);
 }
 
+TEST_F (TestFile, tmp)
+{
+	Object::_ref_type obj = naming_service_->resolve_str ("\\//var/tmp");
+	ASSERT_TRUE (obj);
+	Dir::_ref_type dir = Dir::_narrow (obj);
+	ASSERT_TRUE (dir);
+	BindingIterator::_ref_type it;
+	BindingList bindings;
+	dir->list (std::numeric_limits <uint32_t>::max (), bindings, it);
+	EXPECT_FALSE (it);
+}
+
 /*
 TEST_F (TestFile, Open)
 {
