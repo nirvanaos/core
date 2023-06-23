@@ -36,12 +36,8 @@
 namespace Nirvana {
 namespace Core {
 
-class Dir :
-	public CORBA::servant_traits <Nirvana::Dir>::Servant <Dir>,
-	protected Port::Dir
+class DirBase
 {
-	typedef Port::Dir Base;
-
 public:
 	static PortableServer::POA::_ref_type _default_POA ()
 	{
@@ -53,11 +49,38 @@ public:
 		CORBA::Internal::Interface* _env)
 	{}
 
-	Dir (const DirItemId& id) :
-		Base (id)
+	static CORBA::Internal::Interface* _s_new_context (CORBA::Internal::Bridge <CosNaming::NamingContext>*,
+		CORBA::Internal::Interface* _env)
 	{
-		assert (Base::type () == FileType::directory);
+		CORBA::Internal::set_BAD_OPERATION (_env);
+		return nullptr;
 	}
+
+};
+
+template <class Impl>
+class DirImpl :
+	public CORBA::servant_traits <Nirvana::Dir>::Servant <Impl>,
+	public DirBase
+{
+public:
+	using DirBase::_default_POA;
+	using DirBase::_s_destroy;
+	using DirBase::_s_new_context;
+};
+
+class Dir : public DirImpl <Dir>,
+	protected Port::Dir
+{
+	typedef Port::Dir Base;
+
+public:
+	Dir (const DirItemId& id) :
+		Base (std::ref (id))
+	{}
+
+	Dir ()
+	{}
 
 	static FileType type () noexcept
 	{
@@ -95,20 +118,14 @@ public:
 
 	CORBA::Object::_ref_type resolve (CosNaming::Name& n)
 	{
+		check_name (n);
 		return FileSystem::get_reference (resolve_path (n));
 	}
 
 	void unbind (CosNaming::Name& n)
 	{
 		check_name (n);
-		Base::unbind (n);
-	}
-
-	static CORBA::Internal::Interface* _s_new_context (CORBA::Internal::Bridge <CosNaming::NamingContext>*,
-		CORBA::Internal::Interface* _env)
-	{
-		CORBA::Internal::set_BAD_OPERATION (_env);
-		return nullptr;
+		Base::unlink (n);
 	}
 
 	CosNaming::NamingContext::_ref_type bind_new_context (CosNaming::Name& n)

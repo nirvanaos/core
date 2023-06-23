@@ -72,9 +72,10 @@ void FileSystem::set_error_number (int err)
 Object::_ref_type FileSystem::resolve1 (const Istring& name, BindingType& type, Name& n)
 {
 	Nirvana::Dir::_ref_type dir = resolve_root (name);
-	if (dir)
+	if (dir) {
+		type = BindingType::ncontext;
 		return dir;
-	else
+	} else
 		throw NotFound (NotFoundReason::missing_node, std::move (n));
 }
 
