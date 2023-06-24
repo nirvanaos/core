@@ -78,7 +78,7 @@ NameComponent NamingContextRoot::to_component (Istring s)
 		if (id_size > 0)
 			nc.kind (s.substr (id_size + 1));
 		else {
-			s.erase (1, 1);
+			s.erase (0, 1);
 			nc.kind (std::move (s));
 		}
 	}
