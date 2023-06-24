@@ -41,8 +41,6 @@ namespace Core {
 
 bool initialize0 () noexcept
 {
-	if (!Heap::initialize ())
-		return false;
 	TLS::initialize ();
 	g_core_free_sync_context.construct ();
 	ExecDomain::initialize ();
@@ -101,7 +99,6 @@ void terminate0 () noexcept
 	ExecDomain::terminate ();
 #ifdef _DEBUG
 	g_core_free_sync_context.destruct ();
-	Heap::terminate ();
 #endif
 }
 
