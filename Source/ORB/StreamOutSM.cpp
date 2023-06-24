@@ -135,14 +135,17 @@ void StreamOutSM::write (size_t align, size_t element_size, size_t CDR_element_s
 				block_end = (uint8_t*)block.ptr + block.size;
 				dst = cur_ptr_;
 				cb = block_end - dst;
-			}
-			if ((size_t)cb > size)
-				cb = size;
-			const uint8_t* end = src + cb;
-			if (commit_unit_) {
-				if (((uintptr_t)dst + cb) / commit_unit_ != (uintptr_t)dst / commit_unit_)
+				if ((size_t)cb > size)
+					cb = size;
+			} else if (Port::Memory::FLAGS & Nirvana::Memory::SPACE_RESERVATION) {
+				assert (commit_unit_);
+				if ((size_t)cb > size)
+					cb = size;
+				if (((uintptr_t)dst + cb) / commit_unit_ != (uintptr_t)(cur_ptr_ - 1) / commit_unit_)
 					Port::Memory::commit (dst, cb);
 			}
+
+			const uint8_t* end = src + cb;
 			cur_ptr_ = real_copy (src, end, dst);
 			src = end;
 			size -= cb;
@@ -169,7 +172,7 @@ void StreamOutSM::allocate_block (size_t align, size_t size)
 			commit_unit_ = Port::Memory::FIXED_COMMIT_UNIT;
 		else
 			commit_unit_ = (size_t)Port::Memory::query (block.ptr, Nirvana::Memory::QueryParam::COMMIT_UNIT);
-		Port::Memory::commit (block.ptr, commit_unit_);
+		Port::Memory::commit (block.ptr, size);
 	} else
 		block.ptr = Port::Memory::allocate (nullptr, cb, 0);
 	block.size = cb;
