@@ -94,12 +94,35 @@ TEST_F (TestFile, TmpList)
 	BindingIterator::_ref_type it;
 	BindingList bindings;
 	dir->list (std::numeric_limits <uint32_t>::max (), bindings, it);
+	EXPECT_FALSE (it);
 	for (const auto& b : bindings) {
 		ASSERT_FALSE (b.binding_name ().empty ());
 		const NameComponent& nc = b.binding_name ().front ();
 		EXPECT_FALSE (nc.id ().empty () && nc.kind ().empty ());
 	}
+}
+
+TEST_F (TestFile, Mnt)
+{
+	Object::_ref_type obj = naming_service_->resolve_str ("\\//mnt");
+	ASSERT_TRUE (obj);
+	Dir::_ref_type mnt = Dir::_narrow (obj);
+	ASSERT_TRUE (mnt);
+	BindingIterator::_ref_type it;
+	BindingList drives;
+	mnt->list (std::numeric_limits <uint32_t>::max (), drives, it);
 	EXPECT_FALSE (it);
+	for (const auto& b : drives) {
+		ASSERT_FALSE (b.binding_name ().empty ());
+		EXPECT_EQ (b.binding_type (), BindingType::ncontext);
+		const NameComponent& nc = b.binding_name ().front ();
+		EXPECT_FALSE (nc.id ().empty () && nc.kind ().empty ());
+		Dir::_ref_type drive = Dir::_narrow (mnt->resolve (b.binding_name ()));
+		ASSERT_TRUE (drive);
+
+		BindingList dir;
+		drive->list (10, dir, it);
+	}
 }
 
 /*
