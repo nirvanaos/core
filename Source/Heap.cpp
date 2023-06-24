@@ -268,11 +268,11 @@ void* Heap::move_from (Heap& other, void* p, size_t& size)
 		THROW (BAD_PARAM);
 	const MemoryBlock& block = node->value ();
 	if (!block.is_large_block ()) {
+		other.block_list_.release_node (node);
 		// Copy
 		void* pc = copy (nullptr, p, size, 0);
 		// Release from other heap partition
 		uint8_t* part_end = block.begin () + other.partition_size ();
-		other.block_list_.release_node (node);
 		if ((uint8_t*)p + size <= part_end)
 			other.release (block.directory (), p, size);
 		else {
@@ -655,7 +655,6 @@ void* Heap::copy (void* dst, void* src, size_t& size, unsigned flags)
 
 	uint8_t* alloc_begin = nullptr;
 	uint8_t* alloc_end = nullptr;
-	bool dst_own = true;
 	if (!dst) {
 		if (flags & Memory::SIMPLE_COPY)
 			throw_INV_FLAG ();
@@ -687,17 +686,18 @@ void* Heap::copy (void* dst, void* src, size_t& size, unsigned flags)
 			alloc_begin = (uint8_t*)dst;
 			alloc_end = alloc_begin + size;
 		}
-	} else {
-		dst_own = check_owner (dst, size);
-		if (!dst_own && (flags & Memory::READ_ONLY))
+	} else if (flags & Memory::READ_ONLY) {
+		if (!check_owner (dst, size))
 			throw_BAD_PARAM ();
+	} else if ((uintptr_t)dst % Port::Memory::SHARING_ASSOCIATIVITY
+		!= (uintptr_t)src % Port::Memory::SHARING_ASSOCIATIVITY) {
+
+		real_move ((uint8_t*)src, (uint8_t*)src + cb_copy, (uint8_t*)dst);
+		return dst;
 	}
 
 	try {
-		if (dst_own)
-			dst = Port::Memory::copy (dst, src, cb_copy, flags & ~Memory::DST_ALLOCATE);
-		else
-			real_copy ((uint8_t*)src, (uint8_t*)src + cb_copy, (uint8_t*)dst);
+		dst = Port::Memory::copy (dst, src, cb_copy, flags & ~Memory::DST_ALLOCATE);
 	} catch (...) {
 		Port::Memory::release (alloc_begin, alloc_end - alloc_begin);
 		throw;
@@ -711,7 +711,9 @@ uintptr_t Heap::query (const void* p, Memory::QueryParam param)
 	if (Memory::QueryParam::ALLOCATION_UNIT == param) {
 		if (!p || get_partition (p))
 			return allocation_unit_;
-	} else if (p && (param == Memory::QueryParam::ALLOCATION_SPACE_BEGIN || param == Memory::QueryParam::ALLOCATION_SPACE_END)) {
+	} else if (p && (param == Memory::QueryParam::ALLOCATION_SPACE_BEGIN
+		|| param == Memory::QueryParam::ALLOCATION_SPACE_END)) {
+
 		const Directory* part = get_partition (p);
 		if (part) {
 			if (param == Memory::QueryParam::ALLOCATION_SPACE_BEGIN)
