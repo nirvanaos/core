@@ -46,7 +46,7 @@ public:
 
 	static void terminate () noexcept
 	{
-		POA::_ref_type adapter = std::move (Nirvana::Core::FileSystem::adapter ());
+		POA::_ref_type adapter = std::move (Nirvana::Core::FileSystem::adapter_);
 		if (adapter) {
 			try {
 				adapter->destroy (true, true);
