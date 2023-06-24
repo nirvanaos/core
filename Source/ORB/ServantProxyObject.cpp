@@ -65,30 +65,31 @@ ServantProxyObject::ServantProxyObject (PortableServer::Servant user_servant) :
 
 ServantProxyObject::~ServantProxyObject ()
 {
-	try {
-		if (references_.empty ()) {
-			// If the set is empty, object can have one reference stored in reference_.
-			ReferenceLocal* ref = reference_.load ();
-			if (ref) {
-				// We don't need exception handling here because on_destruct_implicit is noexcept.
-				// So we don't use SYNC_BEGIN/SYNC_END and just create the sync frame.
-				Nirvana::Core::Synchronized _sync_frame (*adapter_context_, nullptr);
-				ref->on_servant_destruct ();
-			}
-		} else {
-			// If the set is not empty, it contains all the references include stored in reference_.
-			// We don't need exception handling here because on_destruct_implicit is noexcept.
+	if (reference_.load ()) { // Object has at least one active reference
+		try {
+
+			// Enter to the POA context
+			// We don't need exception handling here because on_servant_destruct is noexcept.
 			// So we don't use SYNC_BEGIN/SYNC_END and just create the sync frame.
 			Nirvana::Core::Synchronized _sync_frame (*adapter_context_, nullptr);
-			for (ReferenceLocal* p : references_) {
-				p->on_servant_destruct ();
-			}
 
-			// Clear map here, while we are in the POA sync context
-			references_.clear ();
+			if (references_.empty ()) {
+				// If the set is empty, object can have one reference stored in reference_.
+				ReferenceLocal* ref = reference_.load ();
+				if (ref)
+					ref->on_servant_destruct ();
+			} else {
+				// If the set is not empty, it contains all the references include stored in reference_.
+				for (ReferenceLocal* p : references_) {
+					p->on_servant_destruct ();
+				}
+
+				// Clear map here, while we are in the POA sync context
+				references_.clear ();
+			}
+		} catch (...) {
+			assert (false);
 		}
-	} catch (...) {
-		assert (false);
 	}
 }
 
