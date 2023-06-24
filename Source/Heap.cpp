@@ -686,21 +686,28 @@ void* Heap::copy (void* dst, void* src, size_t& size, unsigned flags)
 			alloc_begin = (uint8_t*)dst;
 			alloc_end = alloc_begin + size;
 		}
-	} else if (flags & Memory::READ_ONLY) {
-		if (!check_owner (dst, size))
+	} else if (flags != Memory::SIMPLE_COPY && !check_owner (dst, size)) {
+		if (flags & Memory::READ_ONLY)
 			throw_BAD_PARAM ();
-	} else if ((uintptr_t)dst % Port::Memory::SHARING_ASSOCIATIVITY
-		!= (uintptr_t)src % Port::Memory::SHARING_ASSOCIATIVITY) {
-
-		real_move ((uint8_t*)src, (uint8_t*)src + cb_copy, (uint8_t*)dst);
-		return dst;
+		else
+			flags = Memory::SIMPLE_COPY;
 	}
 
-	try {
-		dst = Port::Memory::copy (dst, src, cb_copy, flags & ~Memory::DST_ALLOCATE);
-	} catch (...) {
-		Port::Memory::release (alloc_begin, alloc_end - alloc_begin);
-		throw;
+	if (flags == Memory::SIMPLE_COPY
+		&& (uintptr_t)dst % Port::Memory::SHARING_ASSOCIATIVITY
+		!= (uintptr_t)src % Port::Memory::SHARING_ASSOCIATIVITY
+		) {
+		
+		real_move ((uint8_t*)src, (uint8_t*)src + cb_copy, (uint8_t*)dst);
+
+	} else {
+
+		try {
+			dst = Port::Memory::copy (dst, src, cb_copy, flags & ~Memory::DST_ALLOCATE);
+		} catch (...) {
+			Port::Memory::release (alloc_begin, alloc_end - alloc_begin);
+			throw;
+		}
 	}
 
 	return dst;
