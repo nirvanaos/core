@@ -62,11 +62,13 @@ public:
 
 	void shutdown () noexcept
 	{
-		make_zombie ();
-		CloseConnection msg (current_domain_id ());
-		try {
-			send_message (&msg, sizeof (msg));
-		} catch (...) {}
+		if (!zombie ()) {
+			make_zombie ();
+			CloseConnection msg (current_domain_id ());
+			try {
+				send_message (&msg, sizeof (msg));
+			} catch (...) {}
+		}
 	}
 
 };
