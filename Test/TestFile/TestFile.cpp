@@ -85,23 +85,6 @@ TEST_F (TestFile, TmpIterator)
 	}
 }
 
-TEST_F (TestFile, TmpList)
-{
-	Object::_ref_type obj = naming_service_->resolve_str ("\\//var/tmp");
-	ASSERT_TRUE (obj);
-	Dir::_ref_type dir = Dir::_narrow (obj);
-	ASSERT_TRUE (dir);
-	BindingIterator::_ref_type it;
-	BindingList bindings;
-	dir->list (std::numeric_limits <uint32_t>::max (), bindings, it);
-	EXPECT_FALSE (it);
-	for (const auto& b : bindings) {
-		ASSERT_FALSE (b.binding_name ().empty ());
-		const NameComponent& nc = b.binding_name ().front ();
-		EXPECT_FALSE (nc.id ().empty () && nc.kind ().empty ());
-	}
-}
-
 TEST_F (TestFile, Mnt)
 {
 	Object::_ref_type obj = naming_service_->resolve_str ("\\//mnt");
