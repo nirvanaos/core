@@ -118,20 +118,28 @@ public:
 
 	static CORBA::Object::_ref_type get_reference (const DirItemId& id);
 	static Nirvana::Dir::_ref_type get_dir (const DirItemId& id);
-	static Nirvana::File::_ref_type get_file (const DirItemId& id);
 
-	static Nirvana::FileAccess::_ref_type open (const DirItemId& id, unsigned short flags)
+	static Nirvana::File::_ref_type get_file (const DirItemId& id)
+	{
+		assert (get_item_type (id) != Nirvana::DirItem::FileType::directory);
+		Nirvana::File::_ref_type file = Nirvana::File::_narrow (get_reference (id,
+			CORBA::Internal::RepIdOf <Nirvana::File>::id));
+		assert (file);
+		return file;
+	}
+
+	static Access::_ref_type open (const DirItemId& id, unsigned short flags)
 	{
 		return get_file (id)->open (flags);
 	}
 
-	Nirvana::FileAccess::_ref_type open (CosNaming::Name& n, unsigned short flags)
+	Access::_ref_type open (CosNaming::Name& n, unsigned flags)
 	{
 		check_name (n);
 		Nirvana::Dir::_ref_type dir = resolve_root (to_string (n.front ()));
 		if (dir) {
 			n.erase (n.begin ());
-			return dir->open (n, flags);
+			return dir->open (n, (uint16_t)flags);
 		} else
 			throw RuntimeError (ENOENT);
 	}
@@ -180,6 +188,9 @@ public:
 
 	// NamingContextRoot
 	virtual std::unique_ptr <CosNaming::Core::Iterator> make_iterator () const override;
+
+	// Get naming service name from file system path
+	static CosNaming::Name get_name_from_path (const IDL::String& path);
 
 private:
 	static CORBA::Object::_ref_type get_reference (const DirItemId& id, CORBA::Internal::String_in iid);

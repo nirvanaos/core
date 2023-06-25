@@ -29,20 +29,15 @@
 #pragma once
 
 #include <Nirvana/Nirvana.h>
-#include <CORBA/Server.h>
 #include <Port/FileAccess.h>
 #include "UserAllocator.h"
 #include "Chrono.h"
 #include "MapOrderedStable.h"
-#include <Nirvana/File_s.h>
 
 namespace Nirvana {
 namespace Core {
 
-class File;
-
-class FileAccessDirect final :
-	public CORBA::servant_traits <Nirvana::FileAccessDirect>::Servant <FileAccessDirect>,
+class FileAccessDirect :
 	private Port::FileAccessDirect
 {
 	typedef Port::FileAccessDirect Base;
@@ -75,8 +70,7 @@ public:
 		}
 	}
 
-	inline
-	void flush ();
+	inline void flush ();
 
 	uint64_t size () const
 	{
@@ -247,6 +241,7 @@ private:
 	const SteadyTime discard_timeout_;
 };
 
+inline
 void FileAccessDirect::read (uint64_t pos, uint32_t size, std::vector <uint8_t>& data)
 {
 	if (pos > file_size_)
@@ -309,6 +304,7 @@ void FileAccessDirect::read (uint64_t pos, uint32_t size, std::vector <uint8_t>&
 	write_dirty_blocks (write_timeout_);
 }
 
+inline
 void FileAccessDirect::write (uint64_t pos, const std::vector <uint8_t>& data)
 {
 	if (pos == std::numeric_limits <uint64_t>::max ())

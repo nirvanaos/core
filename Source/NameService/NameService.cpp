@@ -176,5 +176,22 @@ NameService::StringName NameService::to_escaped (NameComponent&& nc)
 	return name;
 }
 
+Name NameService::to_name (const StringName& sn)
+{
+	Name n;
+	size_t begin = 0;
+	for (size_t end = 0; (end = sn.find ('/', end)) != StringName::npos;) {
+		if (end > 0 && sn [end - 1] == '\\') { // Escaped, find next
+			++end;
+			continue;
+		}
+
+		n.push_back (escaped_to_component (sn.substr (begin, end - begin)));
+		begin = ++end;
+	}
+	n.push_back (escaped_to_component (sn.substr (begin)));
+	return n;
+}
+
 }
 }

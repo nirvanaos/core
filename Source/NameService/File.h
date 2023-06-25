@@ -30,7 +30,7 @@
 
 #include <Port/File.h>
 #include <Nirvana/File_s.h>
-#include "../FileAccessDirect.h"
+#include "../FileAccessDirectProxy.h"
 #include "FileSystem.h"
 
 namespace Nirvana {
@@ -88,16 +88,54 @@ public:
 			return Base::size ();
 	}
 
-	Nirvana::FileAccess::_ref_type open (unsigned flags)
+	Access::_ref_type open (unsigned flags)
 	{
-		if (!access_)
-			access_ = CORBA::make_reference <Nirvana::Core::FileAccessDirect> (std::ref (port ()), flags);
-		return access_->_this ();
+		bool first = !access_;
+		if (first)
+			access_ = std::make_unique <Nirvana::Core::FileAccessDirect> (std::ref (port ()), flags);
+
+		try {
+			return CORBA::make_reference <FileAccessDirectProxy> (std::ref (*this), flags)->_this ();
+		} catch (...) {
+			if (first)
+				access_ = nullptr;
+			throw;
+		}
+	}
+
+	void on_close_proxy () noexcept
+	{
+		if (proxies_.empty ())
+			access_ = nullptr;
 	}
 
 private:
-	CORBA::servant_reference <Nirvana::Core::FileAccessDirect> access_;
+	friend class FileAccessDirectProxy;
+
+	std::unique_ptr <Nirvana::Core::FileAccessDirect> access_;
+	SimpleList <FileAccessDirectProxy> proxies_;
 };
+
+inline
+FileAccessDirectProxy::FileAccessDirectProxy (File& file, unsigned flags) :
+	driver_ (*file.access_),
+	file_ (file)
+{
+	file_.proxies_.push_back (*this);
+}
+
+inline Nirvana::File::_ref_type FileAccessDirectProxy::file () const
+{
+	return file_._this ();
+}
+
+void FileAccessDirectProxy::close ()
+{
+	File& file (file_);
+	delete this;
+	file.on_close_proxy ();
+}
+
 
 }
 }

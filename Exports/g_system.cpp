@@ -35,6 +35,7 @@
 #include <Signals.h>
 #include <Nirvana/Formatter.h>
 #include <unrecoverable_error.h>
+#include <NameService/FileSystem.h>
 
 namespace Nirvana {
 namespace Core {
@@ -249,6 +250,25 @@ public:
 		return TLS::current ().get (idx);
 	}
 
+	static Access::_ref_type open_file (const IDL::String& path, unsigned flags)
+	{
+		CosNaming::NamingContext::_ref_type ns = CosNaming::NamingContext::_narrow (
+			CORBA::Core::Services::bind (CORBA::Core::Services::NameService));
+		if (!ns)
+			throw_UNKNOWN ();
+		CosNaming::Name n = FileSystem::get_name_from_path (path);
+		if (n.front ().id () == "/" && n.front ().kind ().empty ()) {
+			// Root path
+			CosNaming::Name root_name;
+			root_name.push_back (std::move (n.front ()));
+			n.erase (n.begin ());
+			Dir::_ref_type root = Dir::_narrow (ns->resolve (root_name));
+			if (!root)
+				throw_UNKNOWN ();
+			return root->open (n, flags);
+		} else
+			throw RuntimeError (ENOENT); // TODO: Use current directory
+	}
 };
 
 }

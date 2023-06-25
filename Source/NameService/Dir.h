@@ -133,7 +133,7 @@ public:
 		return FileSystem::get_dir (create_dir (n));
 	}
 
-	Nirvana::FileAccess::_ref_type open (CosNaming::Name& n, unsigned short flags)
+	Access::_ref_type open (CosNaming::Name& n, unsigned short flags)
 	{
 		check_name (n);
 		return FileSystem::open (get_new_file_id (n), flags);

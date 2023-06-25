@@ -25,6 +25,7 @@
 */
 #include "FileSystem.h"
 #include "IteratorStack.h"
+#include "NameService.h"
 
 using namespace CORBA;
 using namespace PortableServer;
@@ -48,14 +49,6 @@ Nirvana::Dir::_ref_type FileSystem::get_dir (const DirItemId& id)
 	Nirvana::Dir::_ref_type dir = Nirvana::Dir::_narrow (get_reference (id, Internal::RepIdOf <Nirvana::Dir>::id));
 	assert (dir);
 	return dir;
-}
-
-Nirvana::File::_ref_type FileSystem::get_file (const DirItemId& id)
-{
-	assert (get_item_type (id) != Nirvana::DirItem::FileType::directory);
-	Nirvana::File::_ref_type file = Nirvana::File::_narrow (get_reference (id, Internal::RepIdOf <Nirvana::File>::id));
-	assert (file);
-	return file;
 }
 
 Object::_ref_type FileSystem::get_reference (const DirItemId& id)
@@ -122,6 +115,20 @@ std::unique_ptr <CosNaming::Core::Iterator> FileSystem::make_iterator () const
 		it->push (root.first, BindingType::ncontext);
 	}
 	return it;
+}
+
+Name FileSystem::get_name_from_path (const IDL::String& path)
+{
+	if (path.empty ())
+		throw NamingContext::InvalidName ();
+	if ('/' == path.front ()) {
+		Name n = CosNaming::Core::NameService::to_name (path);
+		assert (n.front ().id ().empty ());
+		assert (n.front ().kind ().empty ());
+		n.front ().id ("/");
+		return n;
+	} else
+		return Port::FileSystem::get_name_from_path (path);
 }
 
 }
