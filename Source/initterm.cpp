@@ -39,13 +39,12 @@
 namespace Nirvana {
 namespace Core {
 
-bool initialize0 () noexcept
+void initialize0 () noexcept
 {
 	TLS::initialize ();
 	g_core_free_sync_context.construct ();
 	ExecDomain::initialize ();
 	Scheduler::initialize ();
-	return true;
 }
 
 void initialize ()
