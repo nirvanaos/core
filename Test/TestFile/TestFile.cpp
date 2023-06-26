@@ -1,5 +1,5 @@
 #include <Nirvana/Nirvana.h>
-#include <Nirvana/fnctl.h>
+#include <fnctl.h>
 #include <gtest/gtest.h>
 
 using namespace Nirvana;
@@ -108,13 +108,15 @@ TEST_F (TestFile, Mnt)
 	}
 }
 
-/*
 TEST_F (TestFile, Open)
 {
 	char file_name [L_tmpnam_s];
 	ASSERT_FALSE (tmpnam_s (file_name));
-	FileAccessDirect::_ref_type fa = Static <file_factory>::ptr ()->open (file_name, O_CREAT | O_TRUNC);
 
+	AccessDirect::_ref_type fa = AccessDirect::_narrow (
+		g_system->open_file (file_name, O_CREAT | O_TRUNC | O_RDWR)->_to_object ());
+
+	ASSERT_TRUE (fa);
 	EXPECT_EQ (fa->size (), 0);
 	std::vector <uint8_t> wbuf;
 	wbuf.resize (1, 1);
@@ -125,5 +127,5 @@ TEST_F (TestFile, Open)
 	EXPECT_EQ (rbuf, wbuf);
 	fa = nullptr;
 }
-*/
+
 }

@@ -39,10 +39,12 @@ class File;
 
 class FileAccessDirectProxy :
 	public CORBA::servant_traits <AccessDirect>::Servant <FileAccessDirectProxy>,
+	public FileAccessBase,
 	public SimpleList <FileAccessDirectProxy>::Element
 {
 public:
-	FileAccessDirectProxy (File& file, unsigned flags);
+	FileAccessDirectProxy (File& file, unsigned access_mask);
+	~FileAccessDirectProxy ();
 
 	Nirvana::File::_ref_type file () const;
 
@@ -55,27 +57,41 @@ public:
 
 	void size (uint64_t new_size) const
 	{
-		driver_.size (new_size);
+		if (access_mask () & AccessMask::WRITE)
+			driver_.size (new_size);
+		else
+			throw RuntimeError (EACCES);
 	}
 
 	void read (uint64_t pos, uint32_t size, std::vector <uint8_t>& data) const
 	{
-		driver_.read (pos, size, data);
+		if (access_mask () & AccessMask::READ)
+			driver_.read (pos, size, data);
+		else
+			throw RuntimeError (EACCES);
 	}
 
-	void write (uint64_t pos, const std::vector <uint8_t>& data) const
+	void write (uint64_t pos, const std::vector <uint8_t>& data)
 	{
-		driver_.write (pos, data);
+		if (access_mask () & AccessMask::WRITE) {
+			dirty_ = true;
+			driver_.write (pos, data);
+		} else
+			throw RuntimeError (EACCES);
 	}
 
-	void flush () const
+	void flush ()
 	{
-		driver_.flush ();
+		if (dirty_) {
+			dirty_ = false;
+			driver_.flush ();
+		}
 	}
 
 private:
 	FileAccessDirect& driver_;
-	File& file_;
+	Ref <File> file_;
+	bool dirty_ = false;
 };
 
 }

@@ -61,14 +61,7 @@ public:
 	}
 
 	/// Destructor. Without the flush() call all dirty entries will be lost!
-	~FileAccessDirect ()
-	{
-		for (Cache::iterator it = cache_.begin (); it != cache_.end (); ++it) {
-			if (it->second.request)
-				complete_request (it->second.request);
-			Port::Memory::release (it->second.buffer, block_size_);
-		}
-	}
+	~FileAccessDirect ();
 
 	inline void flush ();
 
@@ -112,6 +105,11 @@ public:
 
 	inline
 	void write (uint64_t pos, const std::vector <uint8_t>& data);
+
+	unsigned access_mask () const noexcept
+	{
+		return Base::access_mask ();
+	}
 
 private:
 	class Request;

@@ -29,6 +29,7 @@
 #pragma once
 
 #include <stdint.h>
+#include <fnctl.h>
 
 namespace Nirvana {
 namespace Core {
@@ -40,19 +41,44 @@ public:
 
 	enum AccessMask
 	{
-		ALLOW_READ  = 0x01,
-		ALLOW_WRITE = 0x02,
-		DENY_READ = ALLOW_READ << MASK_SHIFT,
-		DENY_WRITE = ALLOW_WRITE << MASK_SHIFT
+		READ  = 0x01,
+		WRITE = 0x02,
+		DENY_READ = READ << MASK_SHIFT,
+		DENY_WRITE = WRITE << MASK_SHIFT
 	};
 
-	uint_fast16_t mask () const noexcept
+	unsigned access_mask () const noexcept
 	{
-		return mask_;
+		return access_mask_;
+	}
+
+	static unsigned get_access_mask (unsigned flags) noexcept
+	{
+		if (flags & O_RDWR)
+			return AccessMask::READ | AccessMask::WRITE;
+		else if (flags & O_WRONLY)
+			return AccessMask::WRITE;
+		else
+			return AccessMask::READ;
+	}
+
+	static unsigned get_deny_mask (unsigned flags) noexcept
+	{
+		unsigned mask = 0;
+		if (flags & FILE_SHARE_DENY_READ)
+			mask |= AccessMask::READ;
+		if (flags & FILE_SHARE_DENY_WRITE)
+			mask |= AccessMask::WRITE;
+		return mask;
 	}
 
 protected:
-	uint_fast16_t mask_;
+	FileAccessBase (unsigned access_mask = 0) :
+		access_mask_ (access_mask)
+	{}
+
+protected:
+	unsigned access_mask_;
 };
 
 }

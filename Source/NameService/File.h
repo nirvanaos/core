@@ -89,14 +89,25 @@ public:
 
 	Access::_ref_type open (unsigned flags)
 	{
-		bool first = !access_;
-		if (first)
+		if (!access_)
 			access_ = std::make_unique <Nirvana::Core::FileAccessDirect> (std::ref (port ()), flags);
 
+		unsigned access_mask = FileAccessBase::get_access_mask (flags);
+		if ((access_mask & access_->access_mask ()) != access_mask)
+			throw RuntimeError (EACCES); // File is unaccessible for this mode
+
+		unsigned deny_mask = FileAccessBase::get_deny_mask (flags);
+		unsigned mask = deny_mask | (access_mask << FileAccessBase::MASK_SHIFT);
+		for (auto it = proxies_.cbegin (); it != proxies_.cend (); ++it) {
+			if (it->access_mask () & mask)
+				throw RuntimeError (EACCES);
+		}
+
 		try {
-			return CORBA::make_reference <FileAccessDirectProxy> (std::ref (*this), flags)->_this ();
+			return CORBA::make_reference <FileAccessDirectProxy> (std::ref (*this), 
+				access_mask | (deny_mask << FileAccessBase::MASK_SHIFT))->_this ();
 		} catch (...) {
-			if (first)
+			if (proxies_.empty ())
 				access_ = nullptr;
 			throw;
 		}
@@ -116,25 +127,32 @@ private:
 };
 
 inline
-FileAccessDirectProxy::FileAccessDirectProxy (File& file, unsigned flags) :
+FileAccessDirectProxy::FileAccessDirectProxy (File& file, unsigned access_mask) :
+	FileAccessBase (access_mask),
 	driver_ (*file.access_),
-	file_ (file)
+	file_ (&file)
 {
-	file_.proxies_.push_back (*this);
+	file_->proxies_.push_back (*this);
 }
 
 inline Nirvana::File::_ref_type FileAccessDirectProxy::file () const
 {
-	return file_._this ();
+	return file_->_this ();
 }
 
 void FileAccessDirectProxy::close ()
 {
-	File& file (file_);
-	delete this;
-	file.on_close_proxy ();
+	if (access_mask () & AccessMask::WRITE)
+		flush ();
+	remove ();
+	file_->on_close_proxy ();
 }
 
+FileAccessDirectProxy::~FileAccessDirectProxy ()
+{
+	remove ();
+	file_->on_close_proxy ();
+}
 
 }
 }

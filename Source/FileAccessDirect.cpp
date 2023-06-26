@@ -4,6 +4,15 @@
 namespace Nirvana {
 namespace Core {
 
+FileAccessDirect::~FileAccessDirect ()
+{
+	for (Cache::iterator it = cache_.begin (); it != cache_.end (); ++it) {
+		if (it->second.request)
+			complete_request (it->second.request);
+		Port::Memory::release (it->second.buffer, block_size_);
+	}
+}
+
 FileAccessDirect::CacheRange FileAccessDirect::request_read (BlockIdx begin_block, BlockIdx end_block)
 {
 	CacheRange blocks (cache_);
