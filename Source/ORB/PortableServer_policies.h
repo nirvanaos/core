@@ -29,8 +29,8 @@
 #pragma once
 
 #include "PolicyImpl.h"
-#include <CORBA/PortableServer_s.h>
-#include <CORBA/Messaging_s.h>
+#include "../CORBA/PortableServer_s.h"
+#include "../CORBA/Messaging_s.h"
 
 #define DEFINE_PORTABLE_SERVER_POLICY(id, Itf) DEFINE_POLICY(PortableServer::id, PortableServer::Itf, PortableServer::Itf##Value, value)
 

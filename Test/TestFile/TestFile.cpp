@@ -126,6 +126,8 @@ TEST_F (TestFile, Open)
 	fa->read (0, 1, rbuf);
 	EXPECT_EQ (rbuf, wbuf);
 	fa = nullptr;
+
+	g_system->remove (file_name);
 }
 
 }
