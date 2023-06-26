@@ -54,18 +54,17 @@ public:
 		return FileSystem::adapter ();
 	}
 
-	File (const DirItemId& id) :
-		Base (id)
-	{
-		assert (Base::type () != FileType::directory);
-	}
+	template <class ... Args>
+	File (Args ... args) :
+		Base (std::forward <Args> (args)...)
+	{}
 
-	FileType type () const noexcept
+	FileType type ()
 	{
 		return Base::type ();
 	}
 
-	uint16_t permissions () const
+	uint16_t permissions ()
 	{
 		return Base::permissions ();
 	}
@@ -75,12 +74,12 @@ public:
 		Base::permissions (perms);
 	}
 
-	void get_file_times (FileTimes& times) const
+	void get_file_times (FileTimes& times)
 	{
 		return Base::get_file_times (times);
 	}
 
-	uint64_t size () const
+	uint64_t size ()
 	{
 		if (access_)
 			return access_->size ();

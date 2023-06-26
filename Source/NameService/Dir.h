@@ -75,11 +75,9 @@ class Dir : public DirImpl <Dir>,
 	typedef Port::Dir Base;
 
 public:
-	Dir (const DirItemId& id) :
-		Base (std::ref (id))
-	{}
-
-	Dir ()
+	template <class ... Args>
+	Dir (Args ... args) :
+		Base (std::forward <Args> (args)...)
 	{}
 
 	static FileType type () noexcept
