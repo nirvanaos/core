@@ -108,7 +108,7 @@ private:
 private:
 	static Nirvana::Core::Heap* new_service_memory () noexcept
 	{
-		return sizeof (void*) > 4 ?
+		return sizeof (void*) >= 4 ?
 			nullptr // Create new memory context
 			:
 			&Nirvana::Core::Heap::shared_heap ();
