@@ -32,6 +32,7 @@
 #include <Nirvana/File_s.h>
 #include "../FileAccessDirectProxy.h"
 #include "FileSystem.h"
+#include "../deactivate_servant.h"
 
 namespace Nirvana {
 namespace Core {
@@ -135,19 +136,27 @@ FileAccessDirectProxy::FileAccessDirectProxy (File& file, unsigned access_mask) 
 	file_->proxies_.push_back (*this);
 }
 
-inline Nirvana::File::_ref_type FileAccessDirectProxy::file () const
+inline
+Nirvana::File::_ref_type FileAccessDirectProxy::file () const
 {
 	return file_->_this ();
 }
 
+inline
 void FileAccessDirectProxy::close ()
 {
+	if (!file_)
+		throw CORBA::OBJECT_NOT_EXIST ();
+
 	if (access_mask () & AccessMask::WRITE)
 		flush ();
 	remove ();
 	file_->on_close_proxy ();
+	file_ = nullptr;
+	deactivate_servant (this);
 }
 
+inline
 FileAccessDirectProxy::~FileAccessDirectProxy ()
 {
 	remove ();

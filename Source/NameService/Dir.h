@@ -122,8 +122,15 @@ public:
 
 	void unbind (CosNaming::Name& n)
 	{
+		FileSystem::set_error_number (0);
 		check_name (n);
-		Base::unlink (n);
+		try {
+			Base::unlink (n);
+			return;
+		} catch (const RuntimeError& err) {
+			FileSystem::set_error_number (err.error_number ());
+		}
+		throw CannotProceed (_this (), std::move (n));
 	}
 
 	CosNaming::NamingContext::_ref_type bind_new_context (CosNaming::Name& n)

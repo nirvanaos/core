@@ -125,7 +125,7 @@ TEST_F (TestFile, Open)
 	std::vector <uint8_t> rbuf;
 	fa->read (0, 1, rbuf);
 	EXPECT_EQ (rbuf, wbuf);
-	fa = nullptr;
+	fa->close ();
 
 	g_system->remove (file_name);
 }

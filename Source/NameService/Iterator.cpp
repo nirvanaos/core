@@ -29,6 +29,7 @@
 #include <CORBA/CosNaming_s.h>
 #include "../Synchronized.h"
 #include "../MemContext.h"
+#include "../deactivate_servant.h"
 
 using namespace Nirvana::Core;
 
@@ -63,31 +64,37 @@ class BindingIterator :
 public:
 	static CosNaming::BindingIterator::_ref_type create (std::unique_ptr <Iterator>&& vi);
 
+	bool _non_existent () const noexcept
+	{
+		return !vi_;
+	}
+
 	bool next_one (Binding& b)
 	{
-		if (vi_)
-			return vi_->next_one (b);
-		else
-			return false;
+		if (!vi_)
+			throw CORBA::OBJECT_NOT_EXIST ();
+
+		return vi_->next_one (b);
 	}
 
 	bool next_n (uint32_t how_many, BindingList& bl)
 	{
+		if (!vi_)
+			throw CORBA::OBJECT_NOT_EXIST ();
+
 		if (!how_many)
 			throw CORBA::BAD_PARAM ();
 
-		if (vi_)
-			return vi_->next_n (how_many, bl);
-		else
-			return false;
+		return vi_->next_n (how_many, bl);
 	}
 
 	void destroy ()
 	{
-		if (vi_) {
-			vi_.reset ();
-			_default_POA ()->deactivate_object (_default_POA ()->servant_to_id (this));
-		}
+		if (!vi_)
+			throw CORBA::OBJECT_NOT_EXIST ();
+
+		vi_ = nullptr;
+		deactivate_servant (this);
 	}
 
 private:

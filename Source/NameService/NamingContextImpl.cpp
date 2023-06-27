@@ -28,6 +28,7 @@
 #include <CORBA/CosNaming_s.h>
 #include "IteratorStack.h"
 #include "../ORB/ServantProxyObject.h"
+#include "../deactivate_servant.h"
 
 using namespace CORBA;
 
@@ -40,10 +41,15 @@ class NamingContextDefault :
 	public NamingContextImpl
 {
 public:
+	bool _non_existent () const
+	{
+		return destroyed ();
+	}
+
 	void destroy ()
 	{
 		NamingContextImpl::destroy ();
-		_default_POA ()->deactivate_object (_default_POA ()->servant_to_id (this));
+		Nirvana::Core::deactivate_servant (this);
 	}
 
 	virtual NamingContext::_ptr_type this_context () override
@@ -101,7 +107,7 @@ NamingContextImpl* NamingContextImpl::cast (Object::_ptr_type obj) noexcept
 	NamingContextImpl* impl = static_cast <NamingContextImpl*> (
 		static_cast <NamingContextDefault*> (CORBA::Core::object2servant_base (obj)));
 
-	if (impl && impl->signature_ == SIGNATURE)
+	if (impl && impl->signature () == SIGNATURE)
 		return impl;
 	else
 		return nullptr;

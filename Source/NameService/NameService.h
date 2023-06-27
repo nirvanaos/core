@@ -62,7 +62,7 @@ public:
 
 	// NamingContextEx
 
-	static StringName to_string (Name& n)
+	StringName to_string (Name& n) const
 	{
 		check_name (n);
 		Name::iterator it = n.begin ();

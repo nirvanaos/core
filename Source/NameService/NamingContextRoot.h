@@ -47,15 +47,29 @@ public:
 	static Istring to_string (const NameComponent& nc);
 	static Istring to_string (NameComponent&& nc);
 	static NameComponent to_component (Istring s);
-	static void check_name (const Name& n);
+	void check_name (const Name& n) const;
 
 protected:
 	NamingContextRoot (uint32_t signature = 0) :
-		signature_ (signature)
+		signature_ (signature),
+		destroyed_ (false)
 	{}
 
-protected:
+	uint32_t signature () const noexcept
+	{
+		return signature_;
+	}
+
+	void destroy ();
+
+	bool destroyed () const noexcept
+	{
+		return destroyed_;
+	}
+
+private:
 	const uint32_t signature_;
+	bool destroyed_;
 };
 
 }

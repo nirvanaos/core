@@ -85,15 +85,29 @@ NameComponent NamingContextRoot::to_component (Istring s)
 	return nc;
 }
 
-void NamingContextRoot::check_name (const Name& n)
+void NamingContextRoot::check_name (const Name& n) const
 {
+	if (destroyed ())
+		throw CORBA::OBJECT_NOT_EXIST ();
+
 	if (n.empty ())
 		throw NamingContext::InvalidName ();
+}
+
+void NamingContextRoot::destroy ()
+{
+	if (destroyed ())
+		throw CORBA::OBJECT_NOT_EXIST ();
+
+	destroyed_ = true;
 }
 
 void NamingContextRoot::list (uint32_t how_many, BindingList& bl, 
 	CosNaming::BindingIterator::_ref_type& bi) const
 {
+	if (destroyed_)
+		throw CORBA::OBJECT_NOT_EXIST ();
+
 	auto vi = make_iterator ();
 	vi->next_n (how_many, bl);
 	if (!vi->end ())

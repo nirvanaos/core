@@ -57,6 +57,7 @@ public:
 	{
 		if (!bindings_.empty ())
 			throw NamingContext::NotEmpty ();
+		NamingContextBase::destroy ();
 	}
 
 	virtual std::unique_ptr <Iterator> make_iterator () const override;

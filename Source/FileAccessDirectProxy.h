@@ -46,17 +46,28 @@ public:
 	FileAccessDirectProxy (File& file, unsigned access_mask);
 	~FileAccessDirectProxy ();
 
+	bool _non_existent () const noexcept
+	{
+		return !file_;
+	}
+
 	Nirvana::File::_ref_type file () const;
 
 	void close ();
 
 	uint64_t size () const
 	{
+		if (!file_)
+			throw CORBA::OBJECT_NOT_EXIST ();
+
 		return driver_.size ();
 	}
 
 	void size (uint64_t new_size) const
 	{
+		if (!file_)
+			throw CORBA::OBJECT_NOT_EXIST ();
+
 		if (access_mask () & AccessMask::WRITE)
 			driver_.size (new_size);
 		else
@@ -65,6 +76,9 @@ public:
 
 	void read (uint64_t pos, uint32_t size, std::vector <uint8_t>& data) const
 	{
+		if (!file_)
+			throw CORBA::OBJECT_NOT_EXIST ();
+
 		if (access_mask () & AccessMask::READ)
 			driver_.read (pos, size, data);
 		else
@@ -73,6 +87,9 @@ public:
 
 	void write (uint64_t pos, const std::vector <uint8_t>& data)
 	{
+		if (!file_)
+			throw CORBA::OBJECT_NOT_EXIST ();
+
 		if (access_mask () & AccessMask::WRITE) {
 			dirty_ = true;
 			driver_.write (pos, data);
@@ -82,6 +99,9 @@ public:
 
 	void flush ()
 	{
+		if (!file_)
+			throw CORBA::OBJECT_NOT_EXIST ();
+
 		if (dirty_) {
 			dirty_ = false;
 			driver_.flush ();

@@ -36,12 +36,14 @@ void Dir::bind (Name& n, Object::_ptr_type obj, bool rebind)
 	FileSystem::set_error_number (0);
 	if (Nirvana::File::_narrow (obj)) {
 		try {
+			check_name (n);
 			bind_file (n, FileSystem::adapter ()->reference_to_id (obj), rebind);
 			return;
 		} catch (const RuntimeError& err) {
 			FileSystem::set_error_number (err.error_number ());
-		} catch (...) {}
-	}
+		}
+	} else
+		throw BAD_PARAM ();
 	throw CannotProceed (_this (), std::move (n));
 }
 
@@ -50,12 +52,14 @@ void Dir::bind_context (Name& n, NamingContext::_ptr_type nc, bool rebind)
 	FileSystem::set_error_number (0);
 	if (Nirvana::Dir::_narrow (nc)) {
 		try {
+			check_name (n);
 			bind_dir (n, FileSystem::adapter ()->reference_to_id (nc), rebind);
 			return;
 		} catch (const RuntimeError& err) {
 			FileSystem::set_error_number (err.error_number ());
-		} catch (...) {}
-	}
+		}
+	} else
+		throw BAD_PARAM ();
 	throw CannotProceed (_this (), std::move (n));
 }
 
