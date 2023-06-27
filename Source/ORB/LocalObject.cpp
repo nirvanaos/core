@@ -31,8 +31,7 @@ namespace Core {
 LocalObjectImpl::LocalObjectImpl (CORBA::LocalObject::_ptr_type user_servant) :
 	ServantProxyLocal (user_servant),
 	LocalObject (static_cast <ServantProxyLocal&> (*this))
-{
-}
+{}
 
 }
 }

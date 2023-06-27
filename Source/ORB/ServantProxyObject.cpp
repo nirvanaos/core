@@ -23,7 +23,7 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "ServantBase.h"
+#include "ServantProxyObject.h"
 #include "ReferenceLocal.h"
 #include "POA_Root.h"
 
@@ -55,46 +55,10 @@ PortableServer::Servant object2servant (Object::_ptr_type obj)
 	return nullptr;
 }
 
-ServantProxyObject::ServantProxyObject (PortableServer::Servant user_servant) :
-	ServantProxyBase (user_servant),
-	adapter_context_ (&local2proxy (Services::bind (Services::RootPOA))->sync_context ()),
-	references_ (adapter_context_->sync_domain ()->mem_context ().heap ())
-{
-	static_assert (sizeof (ReferenceLocal) == REF_SIZE, "sizeof (ReferenceLocal)");
-}
-
-ServantProxyObject::~ServantProxyObject ()
-{
-	if (reference_.load ()) { // Object has at least one active reference
-		try {
-
-			// Enter to the POA context
-			// We don't need exception handling here because on_servant_destruct is noexcept.
-			// So we don't use SYNC_BEGIN/SYNC_END and just create the sync frame.
-			Nirvana::Core::Synchronized _sync_frame (*adapter_context_, nullptr);
-
-			if (references_.empty ()) {
-				// If the set is empty, object can have one reference stored in reference_.
-				ReferenceLocal* ref = reference_.load ();
-				if (ref)
-					ref->on_servant_destruct ();
-			} else {
-				// If the set is not empty, it contains all the references include stored in reference_.
-				for (ReferenceLocal* p : references_) {
-					p->on_servant_destruct ();
-				}
-
-				// Clear map here, while we are in the POA sync context
-				references_.clear ();
-			}
-		} catch (...) {
-			assert (false);
-		}
-	}
-}
-
 void ServantProxyObject::_add_ref ()
 {
+	static_assert (sizeof (ReferenceLocal) == REF_SIZE, "sizeof (ReferenceLocal)");
+
 	RefCntProxy::IntegralType cnt = ref_cnt_.increment_seq ();
 	if (1 == cnt && servant_) {
 		add_ref_servant ();
@@ -103,6 +67,57 @@ void ServantProxyObject::_add_ref ()
 			if (adapter && POA_Base::implicit_activation (adapter))
 				POA_Base::implicit_activate (adapter, *this);
 		}
+	}
+}
+
+void ServantProxyObject::delete_servant (bool from_destructor)
+{
+	// Called in the servant synchronization context.
+	assert (&Nirvana::Core::SyncContext::current () == sync_context_);
+	assert (from_destructor || servant ());
+	if (!servant ()) {
+		assert (from_destructor);
+		return;
+	}
+
+	if (ref_cnt_.load ())
+		return;
+
+	if (reference_.load ()) { // Object has at least one active reference
+		// Enter the POA context.
+		// We don't need exception handling here because on_servant_destruct is noexcept.
+		// So we don't use SYNC_BEGIN/SYNC_END and just create the sync frame.
+		Nirvana::Core::Synchronized _sync_frame (*adapter_context_, nullptr);
+
+		// Proxy reference can be added during the entering to new context
+		if (ref_cnt_.load ())
+			return;
+
+		// Now we are going to delete servant.
+		// Clear all weak references to it.
+
+		if (references_.empty ()) {
+			// If the set is empty, object can have one reference stored in reference_.
+			ReferenceLocal* ref = reference_.load ();
+			if (ref)
+				ref->on_servant_destruct ();
+		} else {
+			// If the set is not empty, it contains all the references include stored in reference_.
+			for (ReferenceLocal* p : references_) {
+				p->on_servant_destruct ();
+			}
+
+			// Clear map here, while we are in the POA sync context
+			references_.clear ();
+		}
+	}
+
+	PortableServer::ServantBase::_ptr_type srv = servant ();
+	assert (from_destructor || srv);
+	if (srv) {
+		reset_servant ();
+		if (!from_destructor)
+			srv->_delete_object (); // Call servant destructor
 	}
 }
 

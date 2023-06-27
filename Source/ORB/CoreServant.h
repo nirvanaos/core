@@ -54,11 +54,20 @@ public:
 		return nullptr;
 	}
 
-	// On release reference we delete the proxy
+	// Called from the servant destructor for dynamic objects.
+	// Or by the Binder for static objects.
+	// On release reference we delete the proxy.
 	template <class I>
 	static void __release (Internal::Interface* itf)
 	{
-		S::_implementation (static_cast <Internal::Bridge <I>*> (itf)).proxy ().delete_proxy ();
+		S& srv = S::_implementation (static_cast <Internal::Bridge <I>*> (itf));
+
+		// For the dynamic objects servant is already deleted.
+		// Call delete_servant for static objects here.
+		srv.delete_servant (true);
+
+		// Delete proxy object
+		srv.proxy ().delete_proxy ();
 	}
 
 	Internal::I_ptr <PrimaryInterface> _get_ptr () noexcept
@@ -86,16 +95,8 @@ public:
 
 	void _remove_ref () noexcept
 	{
-		if (0 == ref_cnt_.decrement_seq ()) {
-			assert (!proxy_._refcount_value ());
-			try {
-				auto s = proxy_.servant ();
-				proxy_.reset_servant ();
-				s->_delete_object ();
-			} catch (...) {
-				assert (false); // TODO: Swallow exception or log
-			}
-		}
+		if (0 == ref_cnt_.decrement ())
+			delete_servant (false);
 	}
 
 	ULong _refcount_value () const noexcept
@@ -111,13 +112,31 @@ public:
 
 protected:
 	CoreServant (Proxy& proxy) :
+		ref_cnt_ (1),
 		proxy_ (proxy)
 	{}
 
 private:
-	Nirvana::Core::RefCounter ref_cnt_;
+	void delete_servant (bool static_object) const noexcept;
+
+private:
+	RefCntProxy ref_cnt_;
 	Proxy& proxy_;
 };
+
+template <class S, class Proxy>
+void CoreServant <S, Proxy>::delete_servant (bool from_destructor) const noexcept
+{
+	assert (&Nirvana::Core::SyncContext::current () == &proxy_.sync_context ());
+	if (proxy_.servant ()) {
+		try {
+			// If del_proxy = true, we must not call _delete_object() on servant to avo
+			proxy_.delete_servant (from_destructor);
+		} catch (...) {
+			assert (false); // TODO: Swallow exception or log
+		}
+	}
+}
 
 }
 }

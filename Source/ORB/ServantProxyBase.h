@@ -73,7 +73,15 @@ public:
 
 	virtual void _remove_ref () noexcept override;
 
-	void delete_proxy () noexcept;
+	void delete_proxy () noexcept
+	{
+		// If ref_cnt_ is not zero here, the servant implementation has a bug
+		// with _add_ref()/_remove_ref() calls.
+		assert (!ref_cnt_.load ());
+		if (!ref_cnt_.load ())
+			delete this;
+	}
+
 	void reset_servant () noexcept;
 
 protected:

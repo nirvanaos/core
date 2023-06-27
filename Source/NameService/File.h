@@ -159,8 +159,10 @@ void FileAccessDirectProxy::close ()
 inline
 FileAccessDirectProxy::~FileAccessDirectProxy ()
 {
-	remove ();
-	file_->on_close_proxy ();
+	if (file_) {
+		remove ();
+		file_->on_close_proxy ();
+	}
 }
 
 }

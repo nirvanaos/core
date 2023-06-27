@@ -60,6 +60,22 @@ public:
 
 	virtual void _add_ref () override;
 
+	void delete_servant (bool from_destructor)
+	{
+		// Called in the servant synchronization context.
+		assert (&Nirvana::Core::SyncContext::current () == sync_context_);
+		assert (!ref_cnt_.load ());
+		LocalObject::_ptr_type srv = servant ();
+		assert (from_destructor || srv);
+		if (!srv) {
+			assert (from_destructor);
+			return;
+		}
+		reset_servant ();
+		if (!from_destructor)
+			srv->_delete_object (); // Call servant destructor
+	}
+
 protected:
 	ServantProxyLocal (LocalObject::_ptr_type servant) :
 		ServantProxyBase (servant)

@@ -46,7 +46,6 @@ namespace Core {
 /// Legacy process.
 class Process :
 	public CORBA::servant_traits <Nirvana::Legacy::Process>::Servant <Process>,
-	public Nirvana::Core::LifeCyclePseudo <Process>,
 	public Nirvana::Core::MemContext,
 	public ThreadBase
 {
@@ -118,12 +117,12 @@ public:
 
 	void _add_ref () noexcept override
 	{
-		Nirvana::Core::LifeCyclePseudo <Process>::_add_ref ();
+		Servant::_add_ref ();
 	}
 
 	void _remove_ref () noexcept override
 	{
-		Nirvana::Core::LifeCyclePseudo <Process>::_remove_ref ();
+		Servant::_remove_ref ();
 	}
 
 private:

@@ -28,12 +28,13 @@
 #define NIRVANA_ORB_CORE_SERVANTPROXYOBJECT_H_
 #pragma once
 
-#include "ServantProxyBase.h"
+#include "ServantProxyLocal.h"
 #include "../TaggedPtr.h"
 #include "../MapUnorderedUnstable.h"
 #include "../HeapAllocator.h"
 #include "Reference.h"
 #include "ObjectKey.h"
+#include "Services.h"
 
 namespace CORBA {
 namespace Core {
@@ -101,9 +102,14 @@ public:
 	virtual Policy::_ref_type _get_policy (PolicyType policy_type) override;
 	virtual DomainManagersList _get_domain_managers () override;
 
+	void delete_servant (bool from_destructor);
+
 protected:
-	ServantProxyObject (PortableServer::Servant user_servant);
-	~ServantProxyObject ();
+	ServantProxyObject (PortableServer::Servant user_servant) :
+		ServantProxyBase (user_servant),
+		adapter_context_ (&local2proxy (Services::bind (Services::RootPOA))->sync_context ()),
+		references_ (adapter_context_->sync_domain ()->mem_context ().heap ())
+	{}
 
 	ReferenceLocalRef get_local_reference () const noexcept;
 

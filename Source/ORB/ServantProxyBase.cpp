@@ -58,6 +58,7 @@ void ServantProxyBase::GC::run ()
 ServantProxyBase::~ServantProxyBase ()
 {
 	assert (&Nirvana::Core::SyncContext::current () == &sync_context ());
+	assert (!servant_);
 }
 
 void ServantProxyBase::_remove_ref () noexcept
@@ -66,20 +67,16 @@ void ServantProxyBase::_remove_ref () noexcept
 	if (0 == cnt) {
 		if (servant_)
 			run_garbage_collector ();
-		else
-			delete this;
-	}
-}
+		else {
+			// This is not a normal situation.
+			// Usually it means that the servant implementation has a bug with _add_ref()/_remove_ref() calls.
+			assert (false);
 
-void ServantProxyBase::delete_proxy () noexcept
-{
-	// Called in the servant sync context
-	assert (&Nirvana::Core::SyncContext::current () == sync_context_);
-	if (!ref_cnt_.load ())
-		delete this;
-	else {
-		assert (false);
-		reset_servant ();
+			// To use correct heap we must enter the sync context.
+			Nirvana::Core::Synchronized _sync_frame (*sync_context_, nullptr);
+
+			delete this;
+		}
 	}
 }
 

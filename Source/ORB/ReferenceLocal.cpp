@@ -47,7 +47,7 @@ ReferenceLocal::ReferenceLocal (const IOP::ObjectKey& object_key, PortableServer
 	Reference (primary_iid, flags | LOCAL),
 	core_key_ (std::move (core_key)),
 	object_key_ (object_key),
-	adapter_context_ (&local2proxy (POA_Root::get_root ())->sync_context ()),
+	adapter_context_ (&local2proxy (POA_Base::get_root ())->sync_context ()),
 	servant_ (nullptr)
 {
 	policies_ = policies;
@@ -58,7 +58,7 @@ ReferenceLocal::ReferenceLocal (const IOP::ObjectKey& object_key, PortableServer
 	Reference (proxy, flags | LOCAL),
 	core_key_ (std::move (core_key)),
 	object_key_ (object_key),
-	adapter_context_ (&local2proxy (POA_Root::get_root ())->sync_context ()),
+	adapter_context_ (&local2proxy (POA_Base::get_root ())->sync_context ()),
 	servant_ (nullptr)
 {
 	policies_ = policies;
