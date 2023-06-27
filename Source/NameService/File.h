@@ -60,7 +60,12 @@ public:
 		Base (std::forward <Args> (args)...)
 	{}
 
-	FileType type ()
+	bool _non_existent ()
+	{
+		return type () == Nirvana::DirItem::FileType::not_found;
+	}
+
+	Nirvana::DirItem::FileType type () noexcept
 	{
 		return Base::type ();
 	}

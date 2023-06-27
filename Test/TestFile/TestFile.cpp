@@ -108,13 +108,15 @@ TEST_F (TestFile, Mnt)
 	}
 }
 
-TEST_F (TestFile, Open)
+TEST_F (TestFile, Direct)
 {
 	char file_name [L_tmpnam_s];
 	ASSERT_FALSE (tmpnam_s (file_name));
 
+	uint16_t flags = O_DIRECT | FILE_SHARE_DENY_WRITE;
+
 	AccessDirect::_ref_type fa = AccessDirect::_narrow (
-		g_system->open_file (file_name, O_CREAT | O_TRUNC | O_RDWR)->_to_object ());
+		g_system->open_file (file_name, O_CREAT | O_TRUNC | O_RDWR | flags)->_to_object ());
 
 	ASSERT_TRUE (fa);
 	EXPECT_EQ (fa->size (), 0);
@@ -125,7 +127,18 @@ TEST_F (TestFile, Open)
 	std::vector <uint8_t> rbuf;
 	fa->read (0, 1, rbuf);
 	EXPECT_EQ (rbuf, wbuf);
+
+	File::_ref_type file = fa->file ();
 	fa->close ();
+	fa = nullptr;
+
+	ASSERT_TRUE (file);
+	fa = AccessDirect::_narrow (file->open (flags)->_to_object ());
+	ASSERT_TRUE (fa);
+	fa->read (0, 1, rbuf);
+	EXPECT_EQ (rbuf, wbuf);
+	fa->close ();
+	fa = nullptr;
 
 	g_system->remove (file_name);
 }

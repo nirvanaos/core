@@ -80,9 +80,14 @@ public:
 		Base (std::forward <Args> (args)...)
 	{}
 
-	static FileType type () noexcept
+	bool _non_existent ()
 	{
-		return FileType::directory;
+		return type () == Nirvana::DirItem::FileType::not_found;
+	}
+
+	FileType type () noexcept
+	{
+		return Base::type ();
 	}
 
 	uint16_t permissions () const
