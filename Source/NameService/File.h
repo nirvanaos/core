@@ -31,6 +31,7 @@
 #include <Port/File.h>
 #include <Nirvana/File_s.h>
 #include "../FileAccessDirectProxy.h"
+#include "../FileAccessBuf.h"
 #include "FileSystem.h"
 #include "../deactivate_servant.h"
 
@@ -95,8 +96,17 @@ public:
 
 	Access::_ref_type open (unsigned flags)
 	{
+		if (
+			((flags & O_DIRECT) && (flags & O_TEXT))
+			||
+			(((flags & O_TRUNC) || (flags & O_APPEND)) && (flags & O_ACCMODE) == O_RDONLY)
+			)
+			throw CORBA::INV_FLAG ();
+
 		if (!access_)
 			access_ = std::make_unique <Nirvana::Core::FileAccessDirect> (std::ref (port ()), flags);
+		else if ((flags & (O_EXCL | O_CREAT | O_TRUNC)) == (O_EXCL | O_CREAT))
+			throw RuntimeError (EEXIST);
 
 		unsigned access_mask = FileAccessBase::get_access_mask (flags);
 		if ((access_mask & access_->access_mask ()) != access_mask)
@@ -110,8 +120,19 @@ public:
 		}
 
 		try {
-			return CORBA::make_reference <FileAccessDirectProxy> (std::ref (*this), 
+			AccessDirect::_ref_type access = CORBA::make_reference <FileAccessDirectProxy> (std::ref (*this), 
 				access_mask | (deny_mask << FileAccessBase::MASK_SHIFT))->_this ();
+			if (flags & O_DIRECT)
+				return access;
+
+			Bytes data;
+			uint32_t block_size = access_->block_size ();
+			if (!(flags & (O_APPEND | O_TRUNC)) && access_->size ())
+				access_->read (0, block_size, data);
+			FilePos pos = (flags & O_APPEND) ? access_->size () : 0;
+
+			return CORBA::make_reference <FileAccessBuf> (std::move (data), access, pos, block_size, flags);
+
 		} catch (...) {
 			if (proxies_.empty ())
 				access_ = nullptr;

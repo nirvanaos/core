@@ -104,7 +104,11 @@ TEST_F (TestFile, Mnt)
 		ASSERT_TRUE (drive);
 
 		BindingList dir;
-		drive->list (10, dir, it);
+		try {
+			drive->list (10, dir, it);
+		} catch (const CORBA::SystemException& ex) {
+			EXPECT_TRUE (CORBA::NO_PERMISSION::_downcast (&ex));
+		}
 	}
 }
 

@@ -55,7 +55,7 @@ public:
 
 	void close ();
 
-	uint64_t size () const
+	FileSize size () const
 	{
 		if (!file_)
 			throw CORBA::OBJECT_NOT_EXIST ();
@@ -63,7 +63,7 @@ public:
 		return driver_.size ();
 	}
 
-	void size (uint64_t new_size) const
+	void size (FileSize new_size) const
 	{
 		if (!file_)
 			throw CORBA::OBJECT_NOT_EXIST ();
@@ -74,7 +74,7 @@ public:
 			throw RuntimeError (EACCES);
 	}
 
-	void read (uint64_t pos, uint32_t size, std::vector <uint8_t>& data) const
+	void read (FilePos pos, uint32_t size, std::vector <uint8_t>& data) const
 	{
 		if (!file_)
 			throw CORBA::OBJECT_NOT_EXIST ();
@@ -85,7 +85,7 @@ public:
 			throw RuntimeError (EACCES);
 	}
 
-	void write (uint64_t pos, const std::vector <uint8_t>& data)
+	void write (FilePos pos, const std::vector <uint8_t>& data)
 	{
 		if (!file_)
 			throw CORBA::OBJECT_NOT_EXIST ();
@@ -106,6 +106,11 @@ public:
 			dirty_ = false;
 			driver_.flush ();
 		}
+	}
+
+	bool lock (FilePos start, FileSize size, short op)
+	{
+		throw CORBA::NO_IMPLEMENT ();
 	}
 
 private:

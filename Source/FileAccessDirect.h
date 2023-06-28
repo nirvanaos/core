@@ -65,7 +65,12 @@ public:
 
 	inline void flush ();
 
-	uint64_t size () const
+	uint32_t block_size () const noexcept
+	{
+		return (uint32_t)block_size_;
+	}
+
+	uint64_t size () const noexcept
 	{
 		return file_size_;
 	}
