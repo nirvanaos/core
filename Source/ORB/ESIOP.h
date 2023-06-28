@@ -245,7 +245,7 @@ union MessageBuffer
 /// allocation of the shared memory.
 struct ReplyImmediate : MessageHeader
 {
-	static const size_t MAX_DATA_SIZE = sizeof (MessageBuffer) - sizeof (MessageHeader) - 1 - sizeof (uint32_t);
+	static const size_t MAX_DATA_SIZE = sizeof (MessageBuffer) - sizeof (MessageHeader) - sizeof (uint32_t);
 	static_assert (MAX_DATA_SIZE <= 127, "MAX_DATA_SIZE <= 127");
 
 	uint8_t data [MAX_DATA_SIZE];
@@ -256,7 +256,7 @@ struct ReplyImmediate : MessageHeader
 		request_id (rq_id)
 	{
 		assert (size <= MAX_DATA_SIZE);
-		std::copy ((const uint8_t*)p, (const uint8_t*)p + size, data);
+		Nirvana::real_copy ((const uint8_t*)p, (const uint8_t*)p + size, data);
 	}
 
 	static ReplyImmediate& receive (MessageHeader& hdr) noexcept

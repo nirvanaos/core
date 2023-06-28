@@ -204,7 +204,25 @@ public:
 		request_id_ (msg.request_id),
 		size_and_flag_ (msg.flags)
 	{
-		std::copy (msg.data, msg.data + ReplyImmediate::MAX_DATA_SIZE, data_);
+		real_copy (msg.data, msg.data + size (), data_);
+	}
+
+	size_t size () const noexcept
+	{
+		if (PLATFORMS_ENDIAN_DIFFERENT)
+			return size_and_flag_ & ~MessageHeader::FLAG_LITTLE_ENDIAN;
+		else
+			return size_and_flag_;
+	}
+
+	unsigned little_endian () const noexcept
+	{
+		return size_and_flag_ & MessageHeader::FLAG_LITTLE_ENDIAN;
+	}
+
+	const uint8_t* data () const noexcept
+	{
+		return data_;
 	}
 
 private:
@@ -212,8 +230,8 @@ private:
 
 private:
 	uint32_t request_id_;
-	uint8_t size_and_flag_;
-	uint8_t data_ [ReplyImmediate::MAX_DATA_SIZE];
+	uint8_t alignas (8) data_ [ReplyImmediate::MAX_DATA_SIZE];
+	uint16_t size_and_flag_;
 };
 
 class StreamInImmediate :
@@ -221,22 +239,22 @@ class StreamInImmediate :
 	public SharedObject
 {
 protected:
-	StreamInImmediate (unsigned size_and_flag, const uint8_t* data) :
-		StreamInEncap (data_, data_ + (size_and_flag & 0x7F), true)
+	StreamInImmediate (ReceiveReplyImmediate& runnable) :
+		StreamInEncap (data_, data_ + runnable.size (), true)
 	{
-		std::copy ((const uint8_t*)data, (const uint8_t*)data + ReplyImmediate::MAX_DATA_SIZE, data_);
+		real_copy (runnable.data (), runnable.data () + runnable.size (), data_);
 		if (PLATFORMS_ENDIAN_DIFFERENT)
-			little_endian (size_and_flag & MessageHeader::FLAG_LITTLE_ENDIAN);
+			little_endian (runnable.little_endian ());
 	}
 
 private:
-	uint8_t data_ [ReplyImmediate::MAX_DATA_SIZE];
+	uint8_t alignas (8) data_ [ReplyImmediate::MAX_DATA_SIZE];
 };
 
 void ReceiveReplyImmediate::run ()
 {
-	OutgoingRequests::receive_reply_immediate (request_id_, servant_reference <StreamIn>::create <ImplDynamic <StreamInImmediate> >
-		(size_and_flag_, data_));
+	OutgoingRequests::receive_reply_immediate (request_id_,
+		servant_reference <StreamIn>::create <ImplDynamic <StreamInImmediate> > (std::ref (*this)));
 }
 
 /// Receive system exception Runnable

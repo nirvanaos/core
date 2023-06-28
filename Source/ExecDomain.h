@@ -62,7 +62,7 @@ class ExecDomain final :
 	public StackElem
 {
 public:
-	static const size_t MAX_RUNNABLE_SIZE = 2 * sizeof (void*) + 20;
+	static const size_t MAX_RUNNABLE_SIZE = 2 * sizeof (void*) + 24;
 
 	/// \returns Current execution domain.
 	static ExecDomain& current () noexcept

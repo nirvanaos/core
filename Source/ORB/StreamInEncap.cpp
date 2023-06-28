@@ -37,6 +37,7 @@ StreamInEncap::StreamInEncap (const Octet* begin, const Octet* end, bool skip_en
 	begin_ (begin),
 	end_ (end)
 {
+	assert ((uintptr_t)begin % 8 == 0);
 	if (!skip_endian) {
 		if (begin_ >= end_)
 			throw MARSHAL (MARSHAL_MINOR_FEWER);
