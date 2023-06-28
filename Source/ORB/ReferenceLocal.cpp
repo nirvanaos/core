@@ -137,10 +137,11 @@ void ReferenceLocal::on_servant_destruct () noexcept
 	assert (&SyncContext::current () == adapter_context_);
 	ServantProxyObject* proxy = servant_.exchange (nullptr);
 	assert (proxy);
-	PortableServer::Core::POA_Ref adapter = PortableServer::Core::POA_Root::find_child (core_key_.adapter_path (), false);
-	if (adapter)
-		adapter->implicit_deactivate (*this, *proxy);
-
+	if (!POA_Base::root ().is_destroyed ()) {
+		POA_Ref adapter = POA_Root::find_child (core_key_.adapter_path (), false);
+		if (adapter)
+			adapter->implicit_deactivate (*this, *proxy);
+	}
 	// Toggle reference counter to invoke GC
 	_add_ref ();
 	_remove_ref ();
