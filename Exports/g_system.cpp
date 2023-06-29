@@ -282,10 +282,18 @@ public:
 			CosNaming::Name root_name;
 			root_name.push_back (std::move (n.front ()));
 			n.erase (n.begin ());
-			CosNaming::NamingContext::_ref_type root = CosNaming::NamingContext::_narrow (ns->resolve (root_name));
+			Dir::_ref_type root = Dir::_narrow (ns->resolve (root_name));
 			if (!root)
 				throw_UNKNOWN ();
-			root->unbind (n);
+			try {
+				root->unbind (n);
+			} catch (const CosNaming::NamingContext::CannotProceed&) {
+				int err = *error_number ();
+				if (err)
+					throw RuntimeError (err);
+				else
+					throw;
+			}
 		} else
 			throw RuntimeError (ENOENT); // TODO: Use current directory
 	}
