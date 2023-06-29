@@ -628,12 +628,9 @@ void* Heap::copy (void* dst, void* src, size_t& size, unsigned flags)
 				}
 
 				try {
-					if (dst_own)
-						dst = Port::Memory::copy (dst, src, cb_copy, (flags & ~Memory::SRC_RELEASE) | Memory::SRC_DECOMMIT);
-					else
-						real_copy ((uint8_t*)src, (uint8_t*)src + cb_copy, (uint8_t*)dst);
+					dst = Port::Memory::copy (dst, src, cb_copy, (flags & ~Memory::SRC_RELEASE) | Memory::SRC_DECOMMIT);
 				} catch (...) {
-					Port::Memory::release (alloc_begin, alloc_end - alloc_begin);
+					release (alloc_begin, alloc_end - alloc_begin);
 					throw;
 				}
 
@@ -693,15 +690,15 @@ void* Heap::copy (void* dst, void* src, size_t& size, unsigned flags)
 			flags = Memory::SIMPLE_COPY;
 	}
 
-	if (flags == Memory::SIMPLE_COPY
-		&& (uintptr_t)dst % Port::Memory::SHARING_ASSOCIATIVITY
+	if (flags == Memory::SIMPLE_COPY && (
+		!Port::Memory::SHARING_UNIT || cb_copy < Port::Memory::SHARING_UNIT
+		||
+		(uintptr_t)dst % Port::Memory::SHARING_ASSOCIATIVITY
 		!= (uintptr_t)src % Port::Memory::SHARING_ASSOCIATIVITY
-		) {
-		
-		real_move ((uint8_t*)src, (uint8_t*)src + cb_copy, (uint8_t*)dst);
-
-	} else {
-
+		)
+	)
+		real_move (src, (const void*)((uint8_t*)src + cb_copy), dst);
+	else {
 		try {
 			dst = Port::Memory::copy (dst, src, cb_copy, flags & ~Memory::DST_ALLOCATE);
 		} catch (...) {
