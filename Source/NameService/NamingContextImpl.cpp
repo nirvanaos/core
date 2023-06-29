@@ -134,16 +134,17 @@ void NamingContextImpl::shutdown () noexcept
 	}
 }
 
-void NamingContextImpl::bind1 (Istring&& name, Object::_ptr_type obj, Name& n)
+void NamingContextImpl::bind1 (Name& n, Object::_ptr_type obj)
 {
-	auto ins = bindings_.emplace (std::move (name), MapVal (obj, BindingType::nobject));
+	assert (n.size () == 1);
+	auto ins = bindings_.emplace (to_string (n.front ()), MapVal (obj, BindingType::nobject));
 	if (!ins.second)
 		throw NamingContext::AlreadyBound ();
 }
 
-void NamingContextImpl::rebind1 (Istring&& name, CORBA::Object::_ptr_type obj, Name& n)
+void NamingContextImpl::rebind1 (Name& n, CORBA::Object::_ptr_type obj)
 {
-	auto ins = bindings_.emplace (std::move (name), MapVal (obj, BindingType::nobject));
+	auto ins = bindings_.emplace (to_string (n.front ()), MapVal (obj, BindingType::nobject));
 	if (!ins.second) {
 		if (ins.first->second.binding_type != BindingType::nobject)
 			throw NamingContext::NotFound (NamingContext::NotFoundReason::not_object, std::move (n));
@@ -152,17 +153,17 @@ void NamingContextImpl::rebind1 (Istring&& name, CORBA::Object::_ptr_type obj, N
 	}
 }
 
-void NamingContextImpl::bind_context1 (Istring&& name, NamingContext::_ptr_type nc, Name& n)
+void NamingContextImpl::bind_context1 (Name& n, NamingContext::_ptr_type nc)
 {
-	auto ins = bindings_.emplace (std::move (name), MapVal (nc, BindingType::ncontext));
+	auto ins = bindings_.emplace (to_string (n.front ()), MapVal (nc, BindingType::ncontext));
 	if (!ins.second)
 		throw NamingContext::AlreadyBound ();
 	link (ins.first);
 }
 
-void NamingContextImpl::rebind_context1 (Istring&& name, NamingContext::_ptr_type nc, Name& n)
+void NamingContextImpl::rebind_context1 (Name& n, NamingContext::_ptr_type nc)
 {
-	auto ins = bindings_.emplace (std::move (name), MapVal (nc, BindingType::ncontext));
+	auto ins = bindings_.emplace (to_string (n.front ()), MapVal (nc, BindingType::ncontext));
 	if (!ins.second) {
 		if (ins.first->second.binding_type != BindingType::ncontext)
 			throw NamingContext::NotFound (NamingContext::NotFoundReason::not_context, std::move (n));
@@ -205,34 +206,17 @@ void NamingContextImpl::unlink (Object::_ptr_type context, const Name& n)
 		throw NamingContext::CannotProceed (this_context (), n);
 }
 
-NamingContext::_ref_type NamingContextImpl::create_context1 (Istring&& name, Name& n, bool& created)
+Object::_ref_type NamingContextImpl::resolve1 (Name& n)
 {
-	auto ins = bindings_.emplace (std::move (name), MapVal (Object::_nil (), BindingType::ncontext));
-	if ((created = ins.second)) {
-		try {
-			link (ins.first->second.object = new_context ());
-		} catch (...) {
-			bindings_.erase (ins.first);
-			throw;
-		}
-	} else if (ins.first->second.binding_type != BindingType::ncontext)
-		throw NamingContext::NotFound (NamingContext::NotFoundReason::not_context, std::move (n));
-
-	return NamingContext::_narrow (ins.first->second.object);
-}
-
-Object::_ref_type NamingContextImpl::resolve1 (const Istring& name, BindingType& type, Name& n)
-{
-	auto it = bindings_.find (name);
+	auto it = bindings_.find (to_string (n.front ()));
 	if (it == bindings_.end ())
 		throw NamingContext::NotFound (NamingContext::NotFoundReason::missing_node, std::move (n));
-	type = it->second.binding_type;
 	return it->second.object;
 }
 
-void NamingContextImpl::unbind1 (const Istring& name, Name& n)
+void NamingContextImpl::unbind1 (Name& n)
 {
-	auto it = bindings_.find (name);
+	auto it = bindings_.find (to_string (n.front ()));
 	if (it == bindings_.end ())
 		throw NamingContext::NotFound (NamingContext::NotFoundReason::missing_node, std::move (n));
 	if (BindingType::ncontext == it->second.binding_type)
@@ -245,11 +229,17 @@ NamingContext::_ref_type NamingContextImpl::new_context ()
 	return CORBA::make_reference <NamingContextDefault> ()->_this ();
 }
 
-NamingContext::_ref_type NamingContextImpl::bind_new_context1 (Istring&& name, Name& n)
+NamingContext::_ref_type NamingContextImpl::bind_new_context1 (Name& n)
 {
-	auto ins = bindings_.emplace (std::move (name), MapVal (Object::_nil (), BindingType::ncontext));
+	auto ins = bindings_.emplace (to_string (n.front ()), MapVal (Object::_nil (), BindingType::ncontext));
 	if (ins.second) {
-		link (ins.first);
+		try {
+			ins.first->second.object = new_context ();
+			link (ins.first);
+		} catch (...) {
+			bindings_.erase (ins.first);
+			throw;
+		}
 		return NamingContext::_narrow (ins.first->second.object);
 	} else
 		throw NamingContext::AlreadyBound ();

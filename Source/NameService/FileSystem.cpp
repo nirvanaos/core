@@ -62,47 +62,57 @@ void FileSystem::set_error_number (int err)
 	ExecDomain::current ().runtime_global_.error_number = err;
 }
 
-Object::_ref_type FileSystem::resolve1 (const Istring& name, BindingType& type, Name& n)
+Object::_ref_type FileSystem::resolve1 (Name& n)
 {
-	Nirvana::Dir::_ref_type dir = resolve_root (name);
-	if (dir) {
-		type = BindingType::ncontext;
-		return dir;
-	} else
+	Nirvana::Dir::_ref_type dir = resolve_root (n);
+	if (!dir)
 		throw NotFound (NotFoundReason::missing_node, std::move (n));
+	return dir;
 }
 
-void FileSystem::bind1 (Istring&& name, Object::_ptr_type obj, Name& n)
+Nirvana::Dir::_ref_type FileSystem::resolve_root (const Name& n)
+{
+	Nirvana::Dir::_ref_type dir;
+	auto it = roots_.find (to_string (n.front ()));
+	if (it != roots_.end ()) {
+		if (it->second.cached)
+			dir = it->second.cached;
+		else {
+			bool cache;
+			dir = get_dir ((it->second.factory) (it->first, cache));
+			if (cache)
+				it->second.cached = dir;
+		}
+	}
+	return dir;
+}
+
+void FileSystem::bind1 (Name& n, Object::_ptr_type obj)
 {
 	throw CannotProceed (_this (), std::move (n));
 }
 
-void FileSystem::rebind1 (Istring&& name, Object::_ptr_type obj, Name& n)
+void FileSystem::rebind1 (Name& n, Object::_ptr_type obj)
 {
 	throw CannotProceed (_this (), std::move (n));
 }
 
-void FileSystem::bind_context1 (Istring&& name, NamingContext::_ptr_type nc, Name& n)
+void FileSystem::bind_context1 (Name& n, NamingContext::_ptr_type nc)
 {
 	throw CannotProceed (_this (), std::move (n));
 }
 
-void FileSystem::rebind_context1 (Istring&& name, NamingContext::_ptr_type nc, Name& n)
+void FileSystem::rebind_context1 (Name& n, NamingContext::_ptr_type nc)
 {
 	throw CannotProceed (_this (), std::move (n));
 }
 
-void FileSystem::unbind1 (const Istring& name, Name& n)
+void FileSystem::unbind1 (Name& n)
 {
 	throw CannotProceed (_this (), std::move (n));
 }
 
-NamingContext::_ref_type FileSystem::create_context1 (Istring&& name, Name& n, bool& created)
-{
-	throw CannotProceed (_this (), std::move (n));
-}
-
-NamingContext::_ref_type FileSystem::bind_new_context1 (Istring&& name, Name& n)
+NamingContext::_ref_type FileSystem::bind_new_context1 (Name& n)
 {
 	throw CannotProceed (_this (), std::move (n));
 }

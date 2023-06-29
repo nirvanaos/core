@@ -37,37 +37,33 @@ class NIRVANA_NOVTABLE NamingContextBase : public NamingContextRoot
 {
 public:
 	void bind (Name& n, CORBA::Object::_ptr_type obj);
-	virtual void bind1 (Istring&& name, CORBA::Object::_ptr_type obj, Name& n) = 0;
+	virtual void bind1 (Name& n, CORBA::Object::_ptr_type obj) = 0;
 
 	void rebind (Name& n, CORBA::Object::_ptr_type obj);
-	virtual void rebind1 (Istring&& name, CORBA::Object::_ptr_type obj, Name& n) = 0;
+	virtual void rebind1 (Name& n, CORBA::Object::_ptr_type obj) = 0;
 
 	void bind_context (Name& n, NamingContext::_ptr_type nc);
-	virtual void bind_context1 (Istring&& name, NamingContext::_ptr_type nc, Name& n) = 0;
+	virtual void bind_context1 (Name& n, NamingContext::_ptr_type nc) = 0;
 
 	void rebind_context (Name& n, NamingContext::_ptr_type nc);
-	virtual void rebind_context1 (Istring&& name, NamingContext::_ptr_type nc, Name& n) = 0;
+	virtual void rebind_context1 (Name& n, NamingContext::_ptr_type nc) = 0;
 
 	CORBA::Object::_ref_type resolve (Name& n);
-	virtual CORBA::Object::_ref_type resolve1 (const Istring& name, BindingType& type, Name& n) = 0;
+	virtual CORBA::Object::_ref_type resolve1 (Name& n) = 0;
 
 	void unbind (Name& n);
-	virtual void unbind1 (const Istring& name, Name& n) = 0;
+	virtual void unbind1 (Name& n) = 0;
 
 	NamingContext::_ref_type bind_new_context (Name& n);
-	virtual NamingContext::_ref_type bind_new_context1 (Istring&& name, Name& n) = 0;
+	virtual NamingContext::_ref_type bind_new_context1 (Name& n) = 0;
 
 protected:
 	NamingContextBase (uint32_t signature = 0) :
 		NamingContextRoot (signature)
 	{}
 
-	virtual NamingContext::_ref_type create_context1 (Istring&& name, Name& n, bool& created) = 0;
-
 private:
-	NamingContext::_ref_type resolve_context (Name& n);
-	NamingContext::_ref_type create_context (Name& n, Name& created_name);
-	void unbind_created (Name& created) noexcept;
+	NamingContext::_ref_type resolve_child (Name& n);
 };
 
 }

@@ -34,8 +34,6 @@ using namespace CORBA;
 namespace CosNaming {
 namespace Core {
 
-const char file_system_root [] = "/";
-
 Object::_ref_type create_NameService ()
 {
 	if (ESIOP::is_system_domain ())
@@ -45,41 +43,46 @@ Object::_ref_type create_NameService ()
 			"corbaloc::1.1@/NameService", CORBA::Internal::RepIdOf <CosNaming::NamingContextExt>::id);
 }
 
-inline void NameService::check_no_fs (const Istring& name)
+bool NameService::is_file_system (const NameComponent& nc)
 {
-	if (name == file_system_root)
+	return nc.id () == "/" && nc.kind ().empty ();
+}
+
+inline void NameService::check_no_fs (const Name& n)
+{
+	if (is_file_system (n.front ()))
 		throw NamingContext::AlreadyBound ();
 }
 
-void NameService::bind1 (Istring&& name, Object::_ptr_type obj, Name& n)
+void NameService::bind1 (Name& n, Object::_ptr_type obj)
 {
-	check_no_fs (name);
-	Base::bind1 (std::move (name), obj, n);
+	check_no_fs (n);
+	Base::bind1 (n, obj);
 }
 
-void NameService::rebind1 (Istring&& name, Object::_ptr_type obj, Name& n)
+void NameService::rebind1 (Name& n, Object::_ptr_type obj)
 {
-	check_no_fs (name);
-	return Base::rebind1 (std::move (name), obj, n);
+	check_no_fs (n);
+	return Base::rebind1 (n, obj);
 }
 
-void NameService::bind_context1 (Istring&& name, NamingContext::_ptr_type nc, Name& n)
+void NameService::bind_context1 (Name& n, NamingContext::_ptr_type nc)
 {
-	check_no_fs (name);
-	Base::bind_context1 (std::move (name), nc, n);
+	check_no_fs (n);
+	Base::bind_context1 (n, nc);
 }
 
-void NameService::rebind_context1 (Istring&& name, NamingContext::_ptr_type nc, Name& n)
+void NameService::rebind_context1 (Name& n, NamingContext::_ptr_type nc)
 {
-	check_no_fs (name);
-	Base::rebind_context1 (std::move (name), nc, n);
+	check_no_fs (n);
+	Base::rebind_context1 (n, nc);
 }
 
-Object::_ref_type NameService::resolve1 (const Istring& name, BindingType& type, Name& n)
+Object::_ref_type NameService::resolve1 (Name& n)
 {
-	if (name == file_system_root) {
-		type = BindingType::ncontext;
-		auto ins = bindings_.emplace (name, MapVal ());
+	assert (!n.empty ());
+	if (is_file_system (n.front ())) {
+		auto ins = bindings_.emplace (Base::to_string (n.front ()), MapVal ());
 		if (ins.second) {
 			try {
 				ins.first->second.binding_type = BindingType::ncontext;
@@ -91,89 +94,13 @@ Object::_ref_type NameService::resolve1 (const Istring& name, BindingType& type,
 		}
 		return ins.first->second.object;
 	} else
-		return Base::resolve1 (name, type, n);
+		return Base::resolve1 (n);
 }
 
-NamingContext::_ref_type NameService::create_context1 (Istring&& name, Name& n, bool& created)
+NamingContext::_ref_type NameService::bind_new_context1 (Name& n)
 {
-	check_no_fs (name);
-	return Base::create_context1 (std::move (name), n, created);
-}
-
-NamingContext::_ref_type NameService::bind_new_context1 (Istring&& name, Name& n)
-{
-	check_no_fs (name);
-	return Base::bind_new_context1 (std::move (name), n);
-}
-
-NameService::StringName NameService::escape (Istring s)
-{
-	for (size_t pos = 0; pos < s.size ();) {
-		size_t esc = s.find_first_of ("/.\\", 0);
-		if (esc != Istring::npos) {
-			s.insert (esc, 1, '\\');
-			pos = esc + 2;
-		} else
-			break;
-	}
-	return s;
-}
-
-Istring NameService::unescape (StringName s)
-{
-	for (size_t pos = 0; (pos = s.find ('\\', pos)) != Istring::npos;) {
-		s.erase (pos, 1);
-		++pos;
-	}
-	return s;
-}
-
-NameComponent NameService::escaped_to_component (StringName s)
-{
-	const size_t s_size = s.size ();
-	size_t id_size = StringName::npos;
-	for (;;) {
-		id_size = s.rfind ('.', id_size);
-		if (id_size != StringName::npos) {
-			id_size = s_size;
-			break;
-		} else if (id_size == 0 || s [id_size - 1] != '\\')
-			break;
-		else
-			id_size -= 2;
-	}
-
-	NameComponent nc;
-	if (id_size > 0) {
-
-		// A trailing '.' character is not permitted by the specification.
-		if (id_size == s_size - 1)
-			throw NamingContext::InvalidName ();
-
-		if (id_size < s_size)
-			nc.id (unescape (s.substr (0, id_size)));
-		else
-			nc.id (unescape (std::move (s)));
-	}
-	if (id_size < s_size) {
-		if (id_size > 0)
-			nc.kind (unescape (s.substr (id_size + 1)));
-		else {
-			s.erase (0, 1);
-			nc.kind (unescape (std::move (s)));
-		}
-	}
-	return nc;
-}
-
-NameService::StringName NameService::to_escaped (NameComponent&& nc)
-{
-	StringName name = escape (std::move (nc.id ()));
-	if (!nc.kind ().empty ()) {
-		name += '.';
-		name += escape (std::move (nc.kind ()));
-	}
-	return name;
+	check_no_fs (n);
+	return Base::bind_new_context1 (n);
 }
 
 Name NameService::to_name (const StringName& sn)
@@ -181,15 +108,15 @@ Name NameService::to_name (const StringName& sn)
 	Name n;
 	size_t begin = 0;
 	for (size_t end = 0; (end = sn.find ('/', end)) != StringName::npos;) {
-		if (end > 0 && sn [end - 1] == '\\') { // Escaped, find next
+		if (end > 0 && sn [end - 1] == '\\') { // Escaped, search next
 			++end;
 			continue;
 		}
 
-		n.push_back (escaped_to_component (sn.substr (begin, end - begin)));
+		n.push_back (to_component (sn.substr (begin, end - begin)));
 		begin = ++end;
 	}
-	n.push_back (escaped_to_component (sn.substr (begin)));
+	n.push_back (to_component (sn.substr (begin)));
 	return n;
 }
 

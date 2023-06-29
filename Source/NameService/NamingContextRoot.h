@@ -44,10 +44,14 @@ public:
 	void list (uint32_t how_many, BindingList& bl, CosNaming::BindingIterator::_ref_type& bi) const;
 	virtual std::unique_ptr <Iterator> make_iterator () const = 0;
 
+	void check_name (const Name& n) const;
 	static Istring to_string (const NameComponent& nc);
 	static Istring to_string (NameComponent&& nc);
 	static NameComponent to_component (Istring s);
-	void check_name (const Name& n) const;
+	static NameComponent escaped_to_component (Istring s);
+	static Istring to_escaped (NameComponent&& nc);
+	static Istring escape (Istring s);
+	static Istring unescape (Istring s);
 
 protected:
 	NamingContextRoot (uint32_t signature = 0) :

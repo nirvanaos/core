@@ -91,22 +91,7 @@ public:
 		Port::FileSystem::etherealize (id, servant);
 	}
 
-	Nirvana::Dir::_ref_type resolve_root (const IDL::String& name)
-	{
-		Nirvana::Dir::_ref_type dir;
-		auto it = roots_.find (name);
-		if (it != roots_.end ()) {
-			if (it->second.cached)
-				dir = it->second.cached;
-			else {
-				bool cache;
-				dir = get_dir ((it->second.factory) (name, cache));
-				if (cache)
-					it->second.cached = dir;
-			}
-		}
-		return dir;
-	}
+	Nirvana::Dir::_ref_type resolve_root (const CosNaming::Name& n);
 
 	static PortableServer::POA::_ref_type& adapter () noexcept
 	{
@@ -136,7 +121,7 @@ public:
 	Access::_ref_type open (CosNaming::Name& n, unsigned flags)
 	{
 		check_name (n);
-		Nirvana::Dir::_ref_type dir = resolve_root (to_string (n.front ()));
+		Nirvana::Dir::_ref_type dir (resolve_root (n));
 		if (dir) {
 			n.erase (n.begin ());
 			return dir->open (n, (uint16_t)flags);
@@ -172,14 +157,13 @@ public:
 	}
 
 	// NamingContextBase
-	virtual void bind1 (CosNaming::Istring&& name, CORBA::Object::_ptr_type obj, CosNaming::Name& n) override;
-	virtual void rebind1 (CosNaming::Istring&& name, CORBA::Object::_ptr_type obj, CosNaming::Name& n) override;
-	virtual void bind_context1 (CosNaming::Istring&& name, CosNaming::NamingContext::_ptr_type nc, CosNaming::Name& n) override;
-	virtual void rebind_context1 (CosNaming::Istring&& name, CosNaming::NamingContext::_ptr_type nc, CosNaming::Name& n) override;
-	virtual CORBA::Object::_ref_type resolve1 (const CosNaming::Istring& name, CosNaming::BindingType& type, CosNaming::Name& n) override;
-	virtual void unbind1 (const CosNaming::Istring& name, CosNaming::Name& n) override;
-	virtual CosNaming::NamingContext::_ref_type create_context1 (CosNaming::Istring&& name, CosNaming::Name& n, bool& created) override;
-	virtual CosNaming::NamingContext::_ref_type bind_new_context1 (CosNaming::Istring&& name, CosNaming::Name& n) override;
+	virtual void bind1 (CosNaming::Name& n, CORBA::Object::_ptr_type obj) override;
+	virtual void rebind1 (CosNaming::Name& n, CORBA::Object::_ptr_type obj) override;
+	virtual void bind_context1 (CosNaming::Name& n, CosNaming::NamingContext::_ptr_type nc) override;
+	virtual void rebind_context1 (CosNaming::Name& n, CosNaming::NamingContext::_ptr_type nc) override;
+	virtual CORBA::Object::_ref_type resolve1 (CosNaming::Name& n) override;
+	virtual void unbind1 (CosNaming::Name& n) override;
+	virtual CosNaming::NamingContext::_ref_type bind_new_context1 (CosNaming::Name& n) override;
 
 	CosNaming::NamingContext::_ref_type new_context ()
 	{

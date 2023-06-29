@@ -35,9 +35,9 @@ void NamingContextBase::bind (Name& n, Object::_ptr_type obj)
 	check_name (n);
 
 	if (n.size () == 1)
-		bind1 (to_string (n.front ()), obj, n);
+		bind1 (n, obj);
 	else
-		resolve_context (n)->bind (n, obj);
+		resolve_child (n)->bind (n, obj);
 }
 
 void NamingContextBase::rebind (Name& n, Object::_ptr_type obj)
@@ -45,9 +45,9 @@ void NamingContextBase::rebind (Name& n, Object::_ptr_type obj)
 	check_name (n);
 
 	if (n.size () == 1)
-		rebind1 (to_string (n.front ()), obj, n);
+		rebind1 (n, obj);
 	else
-		resolve_context (n)->rebind (n, obj);
+		resolve_child (n)->rebind (n, obj);
 }
 
 void NamingContextBase::bind_context (Name& n, NamingContext::_ptr_type nc)
@@ -58,16 +58,9 @@ void NamingContextBase::bind_context (Name& n, NamingContext::_ptr_type nc)
 		throw BAD_PARAM ();
 
 	if (n.size () == 1)
-		bind_context1 (to_string (n.front ()), nc, n);
-	else {
-		Name created;
-		try {
-			create_context (n, created)->bind_context (n, nc);
-		} catch (...) {
-			unbind_created (created);
-			throw;
-		}
-	}
+		bind_context1 (n, nc);
+	else
+		resolve_child (n)->bind_context (n, nc);
 }
 
 void NamingContextBase::rebind_context (Name& n, NamingContext::_ptr_type nc)
@@ -78,16 +71,9 @@ void NamingContextBase::rebind_context (Name& n, NamingContext::_ptr_type nc)
 		throw BAD_PARAM ();
 
 	if (n.size () == 1)
-		rebind_context1 (to_string (n.front ()), nc, n);
-	else {
-		Name created;
-		try {
-			create_context (n, created)->rebind_context (n, nc);
-		} catch (...) {
-			unbind_created (created);
-			throw;
-		}
-	}
+		rebind_context1 (n, nc);
+	else
+		resolve_child (n)->rebind_context (n, nc);
 }
 
 NamingContext::_ref_type NamingContextBase::bind_new_context (Name& n)
@@ -95,85 +81,19 @@ NamingContext::_ref_type NamingContextBase::bind_new_context (Name& n)
 	check_name (n);
 
 	if (n.size () == 1)
-		return bind_new_context1 (to_string (n.front ()), n);
-	else {
-		Name created;
-		try {
-			return create_context (n, created)->bind_new_context (n);
-		} catch (...) {
-			unbind_created (created);
-			throw;
-		}
-	}
-}
-
-NamingContext::_ref_type NamingContextBase::create_context (Name& n, Name& created_name)
-{
-	created_name.clear ();
-	bool created;
-	NamingContext::_ref_type nc = create_context1 (to_string (n.front ()), n, created);
-	if (created)
-		created_name.push_back (std::move (n.front ()));
-	n.erase (n.begin ());
-	return nc;
-}
-
-void NamingContextBase::unbind_created (Name& created) noexcept
-{
-	if (!created.empty ()) {
-		try {
-			unbind (created);
-		} catch (...) {}
-	}
-}
-
-NamingContext::_ref_type NamingContextBase::resolve_context (Name& n)
-{
-	BindingType type;
-	Object::_ref_type obj = resolve1 (to_string (n.front ()), type, n);
-	if (type != BindingType::ncontext)
-		throw NamingContext::NotFound (NamingContext::NotFoundReason::not_context, n);
-
-	n.erase (n.begin ());
-	if (n.size () > 1) {
-		Name cn;
-		size_t cn_size = n.size () - 1;
-		cn.reserve (cn_size);
-		Name::iterator cn_end = n.begin () + cn_size;
-		Name::iterator ni = n.begin ();
-		do {
-			cn.push_back (std::move (*(ni++)));
-		} while (cn_end != ni);
-		n.erase (n.begin (), cn_end);
-		NamingContext::_ref_type child = NamingContext::_narrow (obj);
-		assert (child);
-		obj = child->resolve (cn);
-		if (!obj)
-			throw NamingContext::CannotProceed (child, cn);
-		child = NamingContext::_narrow (obj);
-		if (!child) {
-			cn.erase (cn.begin (), cn.begin () + (cn.size () - 1));
-			throw NamingContext::NotFound (NamingContext::NotFoundReason::not_context, std::move (cn));
-		}
-		return child;
-	} else
-		return NamingContext::_narrow (obj);
+		return bind_new_context1 (n);
+	else
+		return resolve_child (n)->bind_new_context (n);
 }
 
 Object::_ref_type NamingContextBase::resolve (Name& n)
 {
 	check_name (n);
 
-	BindingType type;
-	Object::_ref_type obj = resolve1 (to_string (n.front ()), type, n);
 	if (n.size () == 1)
-		return obj;
-	else if (type != BindingType::ncontext)
-		throw NamingContext::NotFound (NamingContext::NotFoundReason::not_context, std::move (n));
-	else {
-		n.erase (n.begin ());
-		return NamingContext::_narrow (obj)->resolve (n);
-	}
+		return resolve1 (n);
+	else
+		return resolve_child (n)->resolve (n);
 }
 
 void NamingContextBase::unbind (Name& n)
@@ -181,9 +101,19 @@ void NamingContextBase::unbind (Name& n)
 	check_name (n);
 
 	if (n.size () == 1)
-		unbind1 (to_string (n.front ()), n);
+		unbind1 (n);
 	else
-		resolve_context (n)->unbind (n);
+		resolve_child (n)->unbind (n);
+}
+
+NamingContext::_ref_type NamingContextBase::resolve_child (Name& n)
+{
+	Object::_ref_type obj = resolve1 (n);
+	NamingContext::_ref_type nc = NamingContext::_narrow (obj);
+	if (!nc)
+		throw NamingContext::NotFound (NamingContext::NotFoundReason::not_context, n);
+	n.erase (n.begin ());
+	return nc;
 }
 
 }

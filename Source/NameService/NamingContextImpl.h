@@ -41,13 +41,13 @@ class IteratorStack;
 class NIRVANA_NOVTABLE NamingContextImpl : public NamingContextBase
 {
 public:
-	virtual void bind1 (Istring&& name, CORBA::Object::_ptr_type obj, Name& n) override;
-	virtual void rebind1 (Istring&& name, CORBA::Object::_ptr_type obj, Name& n) override;
-	virtual void bind_context1 (Istring&& name, NamingContext::_ptr_type nc, Name& n) override;
-	virtual void rebind_context1 (Istring&& name, NamingContext::_ptr_type nc, Name& n) override;
-	virtual CORBA::Object::_ref_type resolve1 (const Istring& name, BindingType& type, Name& n) override;
-	virtual void unbind1 (const Istring& name, Name& n) override;
-	virtual NamingContext::_ref_type bind_new_context1 (Istring&& name, Name& n) override;
+	virtual void bind1 (Name& n, CORBA::Object::_ptr_type obj) override;
+	virtual void rebind1 (Name& n, CORBA::Object::_ptr_type obj) override;
+	virtual void bind_context1 (Name& n, NamingContext::_ptr_type nc) override;
+	virtual void rebind_context1 (Name& n, NamingContext::_ptr_type nc) override;
+	virtual CORBA::Object::_ref_type resolve1 (Name& n) override;
+	virtual void unbind1 (Name& n) override;
+	virtual NamingContext::_ref_type bind_new_context1 (Name& n) override;
 
 	virtual NamingContext::_ptr_type this_context () = 0;
 
@@ -80,7 +80,6 @@ protected:
 	~NamingContextImpl ();
 
 	void get_bindings (IteratorStack& iter) const;
-	virtual NamingContext::_ref_type create_context1 (Istring&& name, Name& n, bool& created) override;
 
 protected:
 	struct MapVal

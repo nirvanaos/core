@@ -47,13 +47,12 @@ class NameService :
 public:
 	// NamingContext
 
-	virtual void bind1 (Istring&& name, CORBA::Object::_ptr_type obj, Name& n) override;
-	virtual void rebind1 (Istring&& name, CORBA::Object::_ptr_type obj, Name& n) override;
-	virtual void bind_context1 (Istring&& name, NamingContext::_ptr_type nc, Name& n) override;
-	virtual void rebind_context1 (Istring&& name, NamingContext::_ptr_type nc, Name& n) override;
-	virtual CORBA::Object::_ref_type resolve1 (const Istring& name, BindingType& type, Name& n) override;
-	virtual NamingContext::_ref_type create_context1 (Istring&& name, Name& n, bool& created) override;
-	virtual NamingContext::_ref_type bind_new_context1 (Istring&& name, Name& n) override;
+	virtual void bind1 (Name& n, CORBA::Object::_ptr_type obj) override;
+	virtual void rebind1 (Name& n, CORBA::Object::_ptr_type obj) override;
+	virtual void bind_context1 (Name& n, NamingContext::_ptr_type nc) override;
+	virtual void rebind_context1 (Name& n, NamingContext::_ptr_type nc) override;
+	virtual CORBA::Object::_ref_type resolve1 (Name& n) override;
+	virtual NamingContext::_ref_type bind_new_context1 (Name& n) override;
 
 	static void destroy ()
 	{
@@ -66,10 +65,10 @@ public:
 	{
 		check_name (n);
 		Name::iterator it = n.begin ();
-		StringName sn = to_escaped (std::move (*(it++)));
+		StringName sn = Base::to_string (std::move (*(it++)));
 		while (it != n.end ()) {
 			sn += '/';
-			sn += to_escaped (std::move (*(it++)));
+			sn += Base::to_string (std::move (*(it++)));
 		}
 		return sn;
 	}
@@ -123,12 +122,8 @@ public:
 	}
 
 private:
-	static NameComponent escaped_to_component (StringName s);
-	static StringName to_escaped (NameComponent&& nc);
-	static StringName escape (Istring s);
-	static Istring unescape (StringName s);
-
-	void check_no_fs (const Istring& name);
+	static bool is_file_system (const NameComponent& nc);
+	static void check_no_fs (const Name& n);
 };
 
 }
