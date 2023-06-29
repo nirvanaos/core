@@ -47,7 +47,7 @@ Object::_ref_type POA_Root::create ()
 
 std::pair <POA_Root::References::iterator, bool> POA_Root::emplace_reference (const ObjectKey& core_key)
 {
-	return references_.emplace (IOP::ObjectKey (core_key), CORBA::Core::Reference::DEADLINE_MAX);
+	return local_references_.emplace (IOP::ObjectKey (core_key), CORBA::Core::Reference::DEADLINE_MAX);
 }
 
 template <typename Param>
@@ -62,12 +62,12 @@ CORBA::Core::ReferenceLocalRef POA_Root::get_or_create (std::pair <References::i
 			p = new CORBA::Core::ReferenceLocal (entry.first, std::move (core_key), param, flags, policies);
 		} catch (...) {
 			wait_list->on_exception ();
-			references_.erase (entry.first);
+			local_references_.erase (entry.first);
 			throw;
 		}
-		if (references_.size () == 1)
+		if (local_references_.size () == 1)
 			_add_ref ();
-		PortableServer::Servant_var <CORBA::Core::ReferenceLocal> ret (p); // Adopt ownership
+		PortableServer::Servant_var <CORBA::Core::ReferenceLocal> ret (p); // Adopt reference count ownership
 		wait_list->finish_construction (p);
 		return ret;
 	} else if (unique)
@@ -100,9 +100,9 @@ ReferenceLocalRef POA_Root::emplace_reference (ObjectKey&& core_key,
 
 ReferenceLocalRef POA_Root::find_reference (const IOP::ObjectKey& key) noexcept
 {
-	References::iterator it = references_.find (key);
+	References::iterator it = local_references_.find (key);
 	ReferenceLocalRef ref;
-	if (it != references_.end ())
+	if (it != local_references_.end ())
 		ref = it->second.get ();
 	return ref;
 }

@@ -62,7 +62,7 @@ public:
 	~POA_Root ()
 	{
 		assert (is_destroyed ());
-		assert (references_.empty ());
+		assert (local_references_.empty ());
 		root_ = nullptr;
 	}
 
@@ -158,11 +158,11 @@ public:
 
 	void remove_reference (const IOP::ObjectKey& key) noexcept
 	{
-		auto it = references_.find (key);
-		assert (it != references_.end ());
+		auto it = local_references_.find (key);
+		assert (it != local_references_.end ());
 		delete it->second.get_if_constructed ();
-		references_.erase (it);
-		if (references_.empty ())
+		local_references_.erase (it);
+		if (local_references_.empty ())
 			_remove_ref ();
 	}
 
@@ -186,7 +186,7 @@ private:
 	static void invoke_sync (const RequestRef& request);
 
 private:
-	References references_;
+	References local_references_; // All local references
 	CORBA::servant_reference <POAManagerFactory> manager_factory_;
 	RandomGen random_gen_;
 	std::uniform_int_distribution <RandomGen::result_type> dist_;
