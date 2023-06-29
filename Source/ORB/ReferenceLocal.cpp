@@ -47,7 +47,7 @@ ReferenceLocal::ReferenceLocal (const IOP::ObjectKey& object_key, PortableServer
 	Reference (primary_iid, flags | LOCAL),
 	core_key_ (std::move (core_key)),
 	object_key_ (object_key),
-	adapter_context_ (&local2proxy (POA_Base::get_root ())->sync_context ()),
+	adapter_context_ (local2proxy (POA_Base::get_root ())->sync_context ()),
 	servant_ (nullptr)
 {
 	policies_ = policies;
@@ -58,7 +58,7 @@ ReferenceLocal::ReferenceLocal (const IOP::ObjectKey& object_key, PortableServer
 	Reference (proxy, flags | LOCAL),
 	core_key_ (std::move (core_key)),
 	object_key_ (object_key),
-	adapter_context_ (&local2proxy (POA_Base::get_root ())->sync_context ()),
+	adapter_context_ (local2proxy (POA_Base::get_root ())->sync_context ()),
 	servant_ (nullptr)
 {
 	policies_ = policies;
@@ -93,12 +93,12 @@ void ReferenceLocal::_remove_ref () noexcept
 			return;
 
 		// Need GC
-		if (&SyncContext::current () == adapter_context_) {
+		if (&SyncContext::current () == &adapter_context_) {
 			// Do GC
 			POA_Base::root ().remove_reference (object_key_);
 		} else {
 			// Schedule GC
-			GarbageCollector::schedule (*this, *adapter_context_);
+			GarbageCollector::schedule (*this, adapter_context_);
 		}
 	}
 }
@@ -134,7 +134,7 @@ servant_reference <ServantProxyObject> ReferenceLocal::deactivate () noexcept
 void ReferenceLocal::on_servant_destruct () noexcept
 {
 	// Called on the active weak reference servant destruction.
-	assert (&SyncContext::current () == adapter_context_);
+	assert (&SyncContext::current () == &adapter_context_);
 	ServantProxyObject* proxy = servant_.exchange (nullptr);
 	assert (proxy);
 	if (!POA_Base::root ().is_destroyed ()) {
@@ -150,7 +150,7 @@ void ReferenceLocal::on_servant_destruct () noexcept
 servant_reference <ServantProxyObject> ReferenceLocal::get_active_servant () const noexcept
 {
 	// This method is always called from the POA sync context, so we need not lock the pointer.
-	assert (&SyncContext::current () == adapter_context_);
+	assert (&SyncContext::current () == &adapter_context_);
 	return servant_reference <ServantProxyObject> (servant_.load ());
 }
 
@@ -260,7 +260,7 @@ ReferenceRef ReferenceLocal::marshal (StreamOut& out)
 ReferenceLocalRef ReferenceLocal::get_local_reference (const PortableServer::Core::POA_Base& adapter)
 {
 	// Called from the POA sync context
-	assert (&SyncContext::current () == adapter_context_);
+	assert (&SyncContext::current () == &adapter_context_);
 	if (adapter.check_path (core_key_.adapter_path ()))
 		return this;
 	else

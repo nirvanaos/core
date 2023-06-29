@@ -96,7 +96,10 @@ private:
 	const PortableServer::Core::ObjectKey core_key_;
 	const IOP::ObjectKey& object_key_;
 
-	servant_reference <Nirvana::Core::SyncContext> adapter_context_;
+	// While the ReferenceLocal exists, the root POA exist also, see POA_Root::get_or_create.
+	// While the root POA exists, the proxy exists and SyncContext exists also.
+	// Therefore, we don't need to hold reference to SyncContext here.
+	Nirvana::Core::SyncContext& adapter_context_;
 
 	static const size_t SERVANT_ALIGN = Nirvana::Core::core_object_align (
 		sizeof (PortableServer::Core::ServantBaseImpl));
