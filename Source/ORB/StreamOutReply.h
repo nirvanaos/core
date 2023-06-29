@@ -69,7 +69,7 @@ private:
 
 private:
 	uint8_t* small_ptr_;
-	uint8_t alignas (8) small_buffer_ [REPLY_HEADERS_SIZE + ReplyImmediate::MAX_DATA_SIZE];
+	alignas (8) uint8_t small_buffer_ [REPLY_HEADERS_SIZE + ReplyImmediate::MAX_DATA_SIZE];
 };
 
 }

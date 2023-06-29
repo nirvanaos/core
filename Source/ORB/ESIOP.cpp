@@ -230,7 +230,7 @@ private:
 
 private:
 	uint32_t request_id_;
-	uint8_t alignas (8) data_ [ReplyImmediate::MAX_DATA_SIZE];
+	alignas (8) uint8_t data_ [ReplyImmediate::MAX_DATA_SIZE];
 	uint16_t size_and_flag_;
 };
 
@@ -248,7 +248,7 @@ protected:
 	}
 
 private:
-	uint8_t alignas (8) data_ [ReplyImmediate::MAX_DATA_SIZE];
+	alignas (8) uint8_t data_ [ReplyImmediate::MAX_DATA_SIZE];
 };
 
 void ReceiveReplyImmediate::run ()
