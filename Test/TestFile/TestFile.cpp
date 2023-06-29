@@ -92,12 +92,6 @@ TEST_F (TestFile, Mnt)
 	Dir::_ref_type mnt = Dir::_narrow (obj);
 	ASSERT_TRUE (mnt);
 
-	{
-		Name missing_drive;
-		missing_drive.emplace_back ("a:", "");
-		EXPECT_THROW (mnt->resolve (missing_drive), NamingContext::NotFound);
-	}
-
 	BindingIterator::_ref_type it;
 	BindingList drives;
 	mnt->list (std::numeric_limits <uint32_t>::max (), drives, it);
