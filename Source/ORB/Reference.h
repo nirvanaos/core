@@ -58,18 +58,6 @@ public:
 		LOCAL              = 0x8000  //< Is ReferenceLocal
 	};
 
-	Reference (Internal::String_in primary_iid, unsigned flags) :
-		ProxyManager (primary_iid, false),
-		ref_cnt_ (1),
-		flags_ (flags)
-	{}
-
-	Reference (const ProxyManager& proxy, unsigned flags) :
-		ProxyManager (proxy),
-		ref_cnt_ (1),
-		flags_ (flags)
-	{}
-
 	virtual Reference* to_reference () noexcept override
 	{
 		return this;
@@ -92,6 +80,23 @@ public:
 	void request_repository_id ();
 
 protected:
+	Reference (Internal::String_in primary_iid, unsigned flags) :
+		ProxyManager (primary_iid, false),
+		ref_cnt_ (1),
+		flags_ (flags)
+	{}
+
+	Reference (const ProxyManager& proxy, unsigned flags) :
+		ProxyManager (proxy),
+		ref_cnt_ (1),
+		flags_ (flags)
+	{}
+
+	~Reference ()
+	{
+		assert (0 == ref_cnt_);
+	}
+
 	bool is_object_op (OperationIndex op) const noexcept
 	{
 		if (ProxyManager::is_object_op (op))

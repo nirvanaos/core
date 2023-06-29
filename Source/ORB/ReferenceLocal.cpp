@@ -65,7 +65,9 @@ ReferenceLocal::ReferenceLocal (const IOP::ObjectKey& object_key, PortableServer
 }
 
 ReferenceLocal::~ReferenceLocal ()
-{}
+{
+	assert (&SyncContext::current () == &adapter_context_);
+}
 
 void ReferenceLocal::_add_ref ()
 {

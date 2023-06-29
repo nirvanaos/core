@@ -59,6 +59,7 @@ ServantProxyBase::~ServantProxyBase ()
 {
 	assert (&Nirvana::Core::SyncContext::current () == &sync_context ());
 	assert (!servant_);
+	assert (0 == ref_cnt_);
 }
 
 void ServantProxyBase::_remove_ref ()
