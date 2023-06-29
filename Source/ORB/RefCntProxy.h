@@ -46,6 +46,9 @@ public:
 	RefCntProxy& operator = (const RefCntProxy&) = delete;
 
 	IntegralType decrement ();
+
+private:
+	IntegralType decrement_seq () noexcept; // Prohibited, use decrement() instead
 };
 
 }

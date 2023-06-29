@@ -61,9 +61,9 @@ ServantProxyBase::~ServantProxyBase ()
 	assert (!servant_);
 }
 
-void ServantProxyBase::_remove_ref () noexcept
+void ServantProxyBase::_remove_ref ()
 {
-	RefCntProxy::IntegralType cnt = ref_cnt_.decrement_seq ();
+	RefCntProxy::IntegralType cnt = ref_cnt_.decrement ();
 	if (0 == cnt) {
 		if (servant_)
 			run_garbage_collector ();

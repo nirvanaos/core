@@ -71,7 +71,7 @@ public:
 	}
 #endif
 
-	virtual void _remove_ref () noexcept override;
+	virtual void _remove_ref () override;
 
 	void delete_proxy () noexcept
 	{

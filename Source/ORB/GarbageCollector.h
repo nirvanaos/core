@@ -44,7 +44,7 @@ class NIRVANA_NOVTABLE SyncGC
 {
 	template <class> friend class CORBA::servant_reference;
 	virtual void _add_ref () = 0;
-	virtual void _remove_ref () noexcept = 0;
+	virtual void _remove_ref () = 0;
 };
 
 class GarbageCollector :
@@ -58,10 +58,7 @@ public:
 	{}
 
 private:
-	virtual void run () override
-	{
-		ref_ = nullptr;
-	}
+	virtual void run () override;
 
 private:
 	servant_reference <SyncGC> ref_;

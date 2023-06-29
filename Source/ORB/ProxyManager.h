@@ -67,7 +67,7 @@ class NIRVANA_NOVTABLE ProxyManager :
 {
 protected:
 	virtual void _add_ref () = 0;
-	virtual void _remove_ref () noexcept = 0;
+	virtual void _remove_ref () = 0;
 	template <class> friend class CORBA::servant_reference;
 	friend class Internal::LifeCycleRefCnt <ProxyManager>;
 

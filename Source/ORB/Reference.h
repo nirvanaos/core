@@ -44,7 +44,7 @@ class NIRVANA_NOVTABLE Reference :
 {
 	template <class> friend class CORBA::servant_reference;
 	virtual void _add_ref () override = 0;
-	virtual void _remove_ref () noexcept override = 0;
+	virtual void _remove_ref () override = 0;
 
 public:
 	/// Reference creation deadline.

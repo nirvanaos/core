@@ -67,9 +67,9 @@ void ReferenceRemote::_add_ref () noexcept
 	ref_cnt_.increment ();
 }
 
-void ReferenceRemote::_remove_ref () noexcept
+void ReferenceRemote::_remove_ref ()
 {
-	if (!ref_cnt_.decrement_seq ()) {
+	if (!ref_cnt_.decrement ()) {
 		SyncContext& sc = Binder::singleton ().sync_domain ();
 		if (&SyncContext::current () == &sc)
 			Binder::singleton ().erase_reference (address_, object_name_.empty () ? nullptr : object_name_.c_str ());

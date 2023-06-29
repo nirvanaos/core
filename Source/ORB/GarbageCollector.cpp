@@ -57,5 +57,14 @@ noexcept
 	}
 }
 
+void GarbageCollector::run ()
+{
+	try {
+		ref_ = nullptr;
+	} catch (...) {
+		assert (false);
+	}
+}
+
 }
 }

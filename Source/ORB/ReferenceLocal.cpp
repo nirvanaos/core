@@ -80,9 +80,9 @@ void ReferenceLocal::_add_ref ()
 		ref_cnt_.increment ();
 }
 
-void ReferenceLocal::_remove_ref () noexcept
+void ReferenceLocal::_remove_ref ()
 {
-	if (0 == ref_cnt_.decrement_seq ()) {
+	if (0 == ref_cnt_.decrement ()) {
 		if (flags_ & GARBAGE_COLLECTION) {
 			ServantProxyObject* proxy = servant_.load ();
 			if (proxy) {
