@@ -111,6 +111,11 @@ public:
 		throw CORBA::NO_IMPLEMENT ();
 	}
 
+	AccessDirect::_ref_type direct () const noexcept
+	{
+		return access ();
+	}
+
 private:
 	size_t dirty_begin_, dirty_end_;
 };
