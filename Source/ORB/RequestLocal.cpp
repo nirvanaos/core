@@ -26,6 +26,7 @@
 #include "RequestLocal.h"
 #include "../Chrono.h"
 #include "../MemContextUser.h"
+#include "../virtual_copy.h"
 
 using namespace Nirvana;
 using namespace Nirvana::Core;
@@ -162,9 +163,9 @@ void RequestLocalBase::write (size_t align, size_t size, const void* data)
 	if (cb >= (ptrdiff_t)align) {
 		if ((size_t)cb > size)
 			cb = size;
-		const Octet* end = src + cb;
-		dst = real_copy (src, end, dst);
-		src = end;
+		virtual_copy (src, cb, dst);
+		dst += cb;
+		src += cb;
 		size -= cb;
 		// Adjust alignment if the remaining size less than it
 		if (align > size)
@@ -172,7 +173,9 @@ void RequestLocalBase::write (size_t align, size_t size, const void* data)
 	}
 	if (size) {
 		allocate_block (align, size);
-		dst = real_copy (src, src + size, cur_ptr_);
+		dst = sizeof (BlockHdr) >= 8 ? cur_ptr_ : round_up (cur_ptr_, align);
+		virtual_copy (src, size, dst);
+		dst += size;
 	}
 	cur_ptr_ = dst;
 }
@@ -206,9 +209,9 @@ void RequestLocalBase::read (size_t align, size_t size, void* data)
 		if (cb >= (ptrdiff_t)align) {
 			if ((size_t)cb > size)
 				cb = size;
-			const Octet* end = src + cb;
-			dst = real_copy (src, end, dst);
-			src = end;
+			virtual_copy (src, cb, dst);
+			dst += cb;
+			src += cb;
 			size -= cb;
 			if (!size)
 				break;

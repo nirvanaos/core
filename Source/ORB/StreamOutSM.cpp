@@ -133,7 +133,7 @@ void StreamOutSM::write (size_t align, size_t element_size, size_t CDR_element_s
 				allocate_block (align, size);
 				block = cur_block ();
 				block_end = (uint8_t*)block.ptr + block.size;
-				dst = cur_ptr_;
+				dst = round_up (cur_ptr_, align);
 				cb = block_end - dst;
 				if ((size_t)cb > size)
 					cb = size;
@@ -145,9 +145,9 @@ void StreamOutSM::write (size_t align, size_t element_size, size_t CDR_element_s
 					Port::Memory::commit (dst, cb);
 			}
 
-			const uint8_t* end = src + cb;
-			cur_ptr_ = real_copy (src, end, dst);
-			src = end;
+			real_copy (src, src + cb, dst);
+			cur_ptr_ = dst + cb;
+			src += cb;
 			size -= cb;
 			// Adjust alignment if the remaining size less than it
 			if (align > size)

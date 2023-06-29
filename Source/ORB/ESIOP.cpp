@@ -229,9 +229,14 @@ private:
 	virtual void run () override;
 
 private:
+#if UINTPTR_MAX <= UINT16_MAX
+	uint16_t size_and_flag_;
+#endif
 	uint32_t request_id_;
 	alignas (8) uint8_t data_ [ReplyImmediate::MAX_DATA_SIZE];
+#if UINTPTR_MAX > UINT16_MAX
 	uint16_t size_and_flag_;
+#endif
 };
 
 class StreamInImmediate :

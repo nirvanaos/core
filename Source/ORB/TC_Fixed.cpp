@@ -38,7 +38,7 @@ void TC_Fixed::n_copy (void* dst, const void* src) const
 	check_pointer (dst);
 	check_pointer (src);
 	BCD_check ((const Octet*)src, cb);
-	Nirvana::real_copy ((const Octet*)src, (const Octet*)src + cb, (Octet*)dst);
+	Nirvana::Core::virtual_copy (src, cb, dst);
 }
 
 void TC_Fixed::n_marshal_in (const void* src, size_t count, IORequest_ptr rq) const

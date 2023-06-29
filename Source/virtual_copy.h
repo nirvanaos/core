@@ -31,7 +31,7 @@
 namespace Nirvana {
 namespace Core {
 
-void virtual_copy (const void* src, const void* end, void* dst);
+void virtual_copy (const void* src, size_t size, void* dst);
 
 }
 }

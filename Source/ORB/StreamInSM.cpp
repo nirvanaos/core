@@ -26,6 +26,7 @@
 #include "StreamInSM.h"
 #include <Nirvana/bitutils.h>
 #include "../ExecDomain.h"
+#include "../virtual_copy.h"
 #include <limits>
 
 using namespace Nirvana;
@@ -158,10 +159,11 @@ void StreamInSM::physical_read (size_t& align, size_t& size, void* buf)
 
 		if ((size_t)cb > size)
 			cb = size;
-		const uint8_t* end = src + cb;
-		if (dst)
-			dst = real_copy (src, end, dst);
-		cur_ptr_ = end;
+		if (dst) {
+			virtual_copy (src, cb, dst);
+			dst += cb;
+		}
+		cur_ptr_ = src + cb;
 		size -= cb;
 		inc_position (align, cb);
 		// Adjust alignment if the remaining size less than it

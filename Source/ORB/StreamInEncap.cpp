@@ -61,7 +61,7 @@ void StreamInEncap::read (const Range& range, size_t element_size, size_t CDR_el
 	size_t element_count, void* buf) noexcept
 {
 	if (element_count == 1 || element_size == CDR_element_size)
-		virtual_copy (range.first, range.second, (Octet*)buf);
+		virtual_copy (range.first, range.second - range.first, buf);
 	else {
 		const Octet* src = range.first;
 		Octet* dst = (Octet*)buf;

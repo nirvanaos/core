@@ -24,8 +24,10 @@
 *  popov.nirvana@gmail.com
 */
 #include "StreamOutEncap.h"
+#include "../virtual_copy.h"
 
 using namespace Nirvana;
+using namespace Nirvana::Core;
 
 namespace CORBA {
 namespace Core {
@@ -57,7 +59,7 @@ void StreamOutEncap::write (size_t align, size_t element_size, size_t CDR_elemen
 	const Octet* src = (const Octet*)data;
 	Octet* dst = buffer_.data () + begin;
 	if (CDR_element_size == element_size || element_count == 1)
-		real_copy (src, src + size, dst);
+		virtual_copy (src, size, dst);
 	else {
 		while (element_count--) {
 			dst = real_copy (src, src + CDR_element_size, dst);

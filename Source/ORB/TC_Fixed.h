@@ -30,6 +30,7 @@
 
 #include "TC_Base.h"
 #include "TC_Impl.h"
+#include "../virtual_copy.h"
 
 namespace CORBA {
 namespace Core {
@@ -123,7 +124,7 @@ public:
 		for (const Octet* p = (const Octet*)data, *end = p + total; p != end; p += cb) {
 			Internal::BCD_check (p, cb);
 		}
-		Nirvana::real_copy ((const Octet*)data, (const Octet*)data + total, (Octet*)dst);
+		Nirvana::Core::virtual_copy (data, total, dst);
 	}
 
 	using TC_Base::_s_n_byteswap;
