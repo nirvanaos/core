@@ -97,13 +97,18 @@ TEST_F (TestFile, Mnt)
 	mnt->list (std::numeric_limits <uint32_t>::max (), drives, it);
 	EXPECT_FALSE (it);
 	for (const auto& b : drives) {
-		ASSERT_FALSE (b.binding_name ().empty ());
+		ASSERT_EQ (b.binding_name ().size (), 1);
 		EXPECT_EQ (b.binding_type (), BindingType::ncontext);
 		const NameComponent& nc = b.binding_name ().front ();
-		EXPECT_FALSE (nc.id ().empty () && nc.kind ().empty ());
-		Dir::_ref_type drive = Dir::_narrow (mnt->resolve (b.binding_name ()));
-		ASSERT_TRUE (drive);
-
+		EXPECT_FALSE (nc.id ().empty ());
+		EXPECT_TRUE (nc.kind ().empty ());
+		Dir::_ref_type drive;
+		try {
+			drive = Dir::_narrow (mnt->resolve (b.binding_name ()));
+			ASSERT_TRUE (drive);
+		} catch (const CORBA::SystemException& ex) {
+			EXPECT_TRUE (CORBA::NO_PERMISSION::_downcast (&ex));
+		}
 		BindingList dir;
 		try {
 			drive->list (10, dir, it);
