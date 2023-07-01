@@ -44,7 +44,16 @@ class NameService :
 {
 	typedef NamingContextImpl Base;
 
+	static const TimeBase::TimeT FS_CREATION_DEADLINE = 1 * TimeBase::MILLISECOND;
+
 public:
+	NameService () :
+		file_system_ (nullptr)
+	{}
+
+	~NameService ()
+	{}
+
 	// NamingContext
 
 	virtual void bind1 (Name& n, CORBA::Object::_ptr_type obj) override;
@@ -103,6 +112,7 @@ public:
 		SYNC_END ();
 	}
 
+protected:
 	void shutdown () noexcept
 	{
 		NamingContextImpl::shutdown ();
@@ -121,9 +131,16 @@ public:
 		return false;
 	}
 
+	virtual void get_bindings (IteratorStack& iter) const override;
+
 private:
 	static bool is_file_system (const NameComponent& nc);
+	
+	static const char file_system_name_ [];
+
 	static void check_no_fs (const Name& n);
+
+	Nirvana::Core::WaitableRef <CORBA::Object::_ref_type> file_system_;
 };
 
 }

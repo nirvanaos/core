@@ -29,6 +29,7 @@
 #pragma once
 
 #include "NamingContextRoot.h"
+#include "IteratorStack.h"
 
 namespace CosNaming {
 namespace Core {
@@ -61,6 +62,9 @@ protected:
 	NamingContextBase (uint32_t signature = 0) :
 		NamingContextRoot (signature)
 	{}
+
+	virtual std::unique_ptr <Iterator> make_iterator () const override;
+	virtual void get_bindings (IteratorStack& iter) const = 0;
 
 private:
 	NamingContext::_ref_type resolve_child (Name& n);

@@ -30,9 +30,11 @@
 
 #include <Port/FileSystem.h>
 #include "../MapUnorderedUnstable.h"
+#include "../Synchronized.h"
 #include "../ORB/Services.h"
 #include "NamingContextBase.h"
 #include <Nirvana/File_s.h>
+#include <CORBA/NoDefaultPOA.h>
 
 namespace PortableServer {
 namespace Core {
@@ -45,11 +47,24 @@ namespace Core {
 
 class FileSystem : 
 	public CORBA::servant_traits <Nirvana::Dir>::Servant <FileSystem>,
+	public PortableServer::NoDefaultPOA,
 	public CosNaming::Core::NamingContextBase,
 	private Port::FileSystem
 {
 public:
+	using PortableServer::NoDefaultPOA::__default_POA;
+
 	static const char adapter_name_ [];
+
+	static PrimaryInterface::_ref_type create ()
+	{
+		SYNC_BEGIN (g_core_free_sync_context, &MemContext::current ())
+			CORBA::servant_reference <FileSystem> fs = CORBA::make_reference <FileSystem> ();
+			PortableServer::POA::_narrow (CORBA::Core::Services::bind (CORBA::Core::Services::RootPOA))
+				->activate_object (fs);
+			return fs->_this ();
+		SYNC_END ()
+	}
 
 	FileSystem ()
 	{
@@ -164,14 +179,12 @@ public:
 	virtual CORBA::Object::_ref_type resolve1 (CosNaming::Name& n) override;
 	virtual void unbind1 (CosNaming::Name& n) override;
 	virtual CosNaming::NamingContext::_ref_type bind_new_context1 (CosNaming::Name& n) override;
+	virtual void get_bindings (CosNaming::Core::IteratorStack& iter) const override;
 
 	CosNaming::NamingContext::_ref_type new_context ()
 	{
 		throw CORBA::NO_IMPLEMENT ();
 	}
-
-	// NamingContextRoot
-	virtual std::unique_ptr <CosNaming::Core::Iterator> make_iterator () const override;
 
 	// Get naming service name from file system path
 	static CosNaming::Name get_name_from_path (const IDL::String& path);

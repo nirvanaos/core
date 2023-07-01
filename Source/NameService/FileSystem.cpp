@@ -117,14 +117,12 @@ NamingContext::_ref_type FileSystem::bind_new_context1 (Name& n)
 	throw CannotProceed (_this (), std::move (n));
 }
 
-std::unique_ptr <CosNaming::Core::Iterator> FileSystem::make_iterator () const
+void FileSystem::get_bindings (CosNaming::Core::IteratorStack& iter) const
 {
-	std::unique_ptr <CosNaming::Core::IteratorStack> it (std::make_unique <CosNaming::Core::IteratorStack> ());
-	it->reserve (roots_.size ());
+	iter.reserve (roots_.size ());
 	for (const auto& root : roots_) {
-		it->push (root.first, BindingType::ncontext);
+		iter.push (root.first, BindingType::ncontext);
 	}
-	return it;
 }
 
 Name FileSystem::get_name_from_path (const IDL::String& path)

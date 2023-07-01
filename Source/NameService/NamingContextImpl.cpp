@@ -26,7 +26,6 @@
 #include "NamingContextImpl.h"
 #include <CORBA/Server.h>
 #include <CORBA/CosNaming_s.h>
-#include "IteratorStack.h"
 #include "../ORB/ServantProxyObject.h"
 #include "../deactivate_servant.h"
 
@@ -45,6 +44,8 @@ public:
 	{
 		return destroyed ();
 	}
+	
+	static servant_reference <NamingContextDefault> create ();
 
 	void destroy ()
 	{
@@ -64,6 +65,11 @@ public:
 private:
 	ContextSet links_;
 };
+
+servant_reference <NamingContextDefault> NamingContextDefault::create ()
+{
+	return make_reference <NamingContextDefault> ();
+}
 
 void NamingContextDefault::add_link (const NamingContextImpl& parent)
 {
@@ -104,6 +110,12 @@ bool NamingContextDefault::is_cyclic (ContextSet& parents) const
 
 NamingContextImpl* NamingContextImpl::cast (Object::_ptr_type obj) noexcept
 {
+	if (!obj)
+		return nullptr;
+
+	if (&CORBA::Core::object2proxy (obj)->sync_context () != &Nirvana::Core::SyncContext::current ())
+		return nullptr;
+
 	NamingContextImpl* impl = static_cast <NamingContextImpl*> (
 		static_cast <NamingContextDefault*> (CORBA::Core::object2servant_base (obj)));
 
@@ -134,17 +146,28 @@ void NamingContextImpl::shutdown () noexcept
 	}
 }
 
+std::pair <NamingContextImpl::Bindings::iterator, bool> NamingContextImpl::emplace (const Name& n,
+	Object::_ptr_type obj, BindingType type)
+{
+	assert (!n.empty ());
+	return bindings_.emplace (std::piecewise_construct,
+		std::forward_as_tuple (to_string (n.front ())),
+		std::forward_as_tuple (obj, BindingType::nobject));
+}
+
 void NamingContextImpl::bind1 (Name& n, Object::_ptr_type obj)
 {
 	assert (n.size () == 1);
-	auto ins = bindings_.emplace (to_string (n.front ()), MapVal (obj, BindingType::nobject));
+	auto ins = emplace (n, obj, BindingType::nobject);
+
 	if (!ins.second)
 		throw NamingContext::AlreadyBound ();
 }
 
 void NamingContextImpl::rebind1 (Name& n, CORBA::Object::_ptr_type obj)
 {
-	auto ins = bindings_.emplace (to_string (n.front ()), MapVal (obj, BindingType::nobject));
+	auto ins = emplace (n, obj, BindingType::nobject);
+
 	if (!ins.second) {
 		if (ins.first->second.binding_type != BindingType::nobject)
 			throw NamingContext::NotFound (NamingContext::NotFoundReason::not_object, std::move (n));
@@ -155,54 +178,65 @@ void NamingContextImpl::rebind1 (Name& n, CORBA::Object::_ptr_type obj)
 
 void NamingContextImpl::bind_context1 (Name& n, NamingContext::_ptr_type nc)
 {
-	auto ins = bindings_.emplace (to_string (n.front ()), MapVal (nc, BindingType::ncontext));
+	assert (nc);
+	auto ins = emplace (n, nc, BindingType::ncontext);
+
 	if (!ins.second)
 		throw NamingContext::AlreadyBound ();
-	link (ins.first);
+	try {
+		link (nc);
+	} catch (...) {
+		bindings_.erase (ins.first);
+		throw;
+	}
 }
 
 void NamingContextImpl::rebind_context1 (Name& n, NamingContext::_ptr_type nc)
 {
-	auto ins = bindings_.emplace (to_string (n.front ()), MapVal (nc, BindingType::ncontext));
+	assert (nc);
+	auto ins = emplace (n, nc, BindingType::ncontext);
+
 	if (!ins.second) {
 		if (ins.first->second.binding_type != BindingType::ncontext)
 			throw NamingContext::NotFound (NamingContext::NotFoundReason::not_context, std::move (n));
 		else {
+			NamingContextImpl* impl_new = cast (nc);
+			if (impl_new)
+				impl_new->add_link (*this);
 			Object::_ref_type old (std::move (ins.first->second.object));
-			link (ins.first->second.object = nc);
-			try {
-				unlink (old, n);
-			} catch (...) {
-				unlink (ins.first->second.object, n);
-				ins.first->second.object = std::move (old);
-				throw;
+			ins.first->second.object = nc;
+			NamingContextImpl* impl_old = cast (old);
+			if (impl_old) {
+				try {
+					unlink (*impl_old, n);
+				} catch (...) {
+					if (impl_new)
+						unlink (*impl_new, n);
+					ins.first->second.object = std::move (old);
+					throw;
+				}
 			}
 		}
 	}
 }
 
-void NamingContextImpl::link (Bindings::iterator it)
-{
-	assert (BindingType::ncontext == it->second.binding_type);
-	try {
-		link (it->second.object);
-	} catch (...) {
-		bindings_.erase (it);
-		throw;
-	}
-}
-
-void NamingContextImpl::link (Object::_ptr_type context) const
+void NamingContextImpl::link (NamingContext::_ptr_type context) const
 {
 	NamingContextImpl* impl = cast (context);
 	if (impl)
-		impl->add_link (*this);
+		link (*impl);
 }
 
 void NamingContextImpl::unlink (Object::_ptr_type context, const Name& n)
 {
 	NamingContextImpl* impl = cast (context);
-	if (impl && !impl->remove_link (*this))
+	if (impl)
+		unlink (*impl, n);
+}
+
+void NamingContextImpl::unlink (NamingContextImpl& context, const Name& n)
+{
+	if (!context.remove_link (*this))
 		throw NamingContext::CannotProceed (this_context (), n);
 }
 
@@ -226,35 +260,29 @@ void NamingContextImpl::unbind1 (Name& n)
 
 NamingContext::_ref_type NamingContextImpl::new_context ()
 {
-	return CORBA::make_reference <NamingContextDefault> ()->_this ();
+	return NamingContextDefault::create ()->_this ();
 }
 
 NamingContext::_ref_type NamingContextImpl::bind_new_context1 (Name& n)
 {
-	auto ins = bindings_.emplace (to_string (n.front ()), MapVal (Object::_nil (), BindingType::ncontext));
+	servant_reference <NamingContextDefault> servant = NamingContextDefault::create ();
+	NamingContext::_ref_type nc = servant->_this ();
+	auto ins = emplace (n, nc, BindingType::ncontext);
 	if (ins.second) {
 		try {
-			ins.first->second.object = new_context ();
-			link (ins.first);
+			link (*servant);
 		} catch (...) {
 			bindings_.erase (ins.first);
 			throw;
 		}
-		return NamingContext::_narrow (ins.first->second.object);
+		return nc;
 	} else
 		throw NamingContext::AlreadyBound ();
 }
 
-std::unique_ptr <Iterator> NamingContextImpl::make_iterator () const
-{
-	std::unique_ptr <IteratorStack> iter (std::make_unique <IteratorStack> ());
-	iter->reserve (bindings_.size ());
-	get_bindings (*iter);
-	return iter;
-}
-
 void NamingContextImpl::get_bindings (IteratorStack& iter) const
 {
+	iter.reserve (bindings_.size ());
 	for (const auto& b : bindings_) {
 		iter.push (b.first, b.second.binding_type);
 	}

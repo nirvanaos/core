@@ -116,5 +116,12 @@ NamingContext::_ref_type NamingContextBase::resolve_child (Name& n)
 	return nc;
 }
 
+std::unique_ptr <Iterator> NamingContextBase::make_iterator () const
+{
+	std::unique_ptr <IteratorStack> iter (std::make_unique <IteratorStack> ());
+	get_bindings (*iter);
+	return iter;
+}
+
 }
 }

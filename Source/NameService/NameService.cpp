@@ -43,6 +43,8 @@ Object::_ref_type create_NameService ()
 			"corbaloc::1.1@/NameService", CORBA::Internal::RepIdOf <CosNaming::NamingContextExt>::id);
 }
 
+const char NameService::file_system_name_ [] = "\\/";
+
 bool NameService::is_file_system (const NameComponent& nc)
 {
 	return nc.id () == "/" && nc.kind ().empty ();
@@ -81,26 +83,39 @@ void NameService::rebind_context1 (Name& n, NamingContext::_ptr_type nc)
 Object::_ref_type NameService::resolve1 (Name& n)
 {
 	assert (!n.empty ());
+	Object::_ref_type ret;
+
 	if (is_file_system (n.front ())) {
-		auto ins = bindings_.emplace (Base::to_string (n.front ()), MapVal ());
-		if (ins.second) {
+		ret = file_system_.get_if_constructed ();
+		if (!ret) {
+			file_system_.initialize (FS_CREATION_DEADLINE);
+			auto wait_list = file_system_.wait_list ();
 			try {
-				ins.first->second.binding_type = BindingType::ncontext;
-				ins.first->second.object = make_reference <Nirvana::Core::FileSystem> ()->_this ();
+				ret = Nirvana::Core::FileSystem::create ();
 			} catch (...) {
-				bindings_.erase (ins.first);
+				wait_list->on_exception ();
 				throw;
 			}
-		}
-		return ins.first->second.object;
+			wait_list->finish_construction (ret);
+		} else
+			ret = file_system_.get ();
 	} else
-		return Base::resolve1 (n);
+		ret = Base::resolve1 (n);
+
+	return ret;
 }
 
 NamingContext::_ref_type NameService::bind_new_context1 (Name& n)
 {
 	check_no_fs (n);
 	return Base::bind_new_context1 (n);
+}
+
+void NameService::get_bindings (IteratorStack& iter) const
+{
+	iter.reserve (bindings_.size ());
+	iter.push (file_system_name_, BindingType::ncontext);
+	Base::get_bindings (iter);
 }
 
 Name NameService::to_name (const StringName& sn)

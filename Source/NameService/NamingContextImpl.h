@@ -60,16 +60,15 @@ public:
 		NamingContextBase::destroy ();
 	}
 
-	virtual std::unique_ptr <Iterator> make_iterator () const override;
+	typedef Nirvana::Core::PointerSet <const NamingContextImpl> ContextSet;
 
+	virtual bool is_cyclic (ContextSet& parents) const = 0;
+
+protected:
 	static NamingContextImpl* cast (CORBA::Object::_ptr_type obj) noexcept;
 
 	virtual void add_link (const NamingContextImpl& parent) = 0;
 	virtual bool remove_link (const NamingContextImpl& parent) = 0;
-
-	typedef Nirvana::Core::PointerSet <const NamingContextImpl> ContextSet;
-
-	virtual bool is_cyclic (ContextSet& parents) const = 0;
 
 	void shutdown () noexcept;
 
@@ -79,9 +78,18 @@ protected:
 	NamingContextImpl ();
 	~NamingContextImpl ();
 
-	void get_bindings (IteratorStack& iter) const;
+	virtual void get_bindings (IteratorStack& iter) const override;
 
-protected:
+	void link (NamingContext::_ptr_type context) const;
+
+	void link (NamingContextImpl& context) const
+	{
+		context.add_link (*this);
+	}
+
+	void unlink (CORBA::Object::_ptr_type context, const Name& n);
+	void unlink (NamingContextImpl& context, const Name& n);
+
 	struct MapVal
 	{
 		CORBA::Object::_ref_type object;
@@ -91,19 +99,12 @@ protected:
 			object (obj),
 			binding_type (type)
 		{}
-
-		MapVal () :
-			binding_type (BindingType::nobject)
-		{}
 	};
 
 	using Bindings = Nirvana::Core::MapUnorderedUnstable <Istring, MapVal,
 		std::hash <Istring>, std::equal_to <Istring>, Nirvana::Core::UserAllocator>;
 
-protected:
-	void link (CORBA::Object::_ptr_type context) const;
-	void link (Bindings::iterator it);
-	void unlink (CORBA::Object::_ptr_type context, const Name& n);
+	std::pair <Bindings::iterator, bool> emplace (const Name& n, CORBA::Object::_ptr_type obj, BindingType type);
 
 protected:
 	Bindings bindings_;
