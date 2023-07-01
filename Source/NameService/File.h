@@ -127,9 +127,9 @@ public:
 
 			Bytes data;
 			uint32_t block_size = access_->block_size ();
-			if (!(flags & (O_APPEND | O_TRUNC)) && access_->size ())
+			if (!(flags & (O_APPEND | O_TRUNC | O_ATE)) && (flags & O_ACCMODE) != O_WRONLY && access_->size ())
 				access_->read (0, block_size, data);
-			FilePos pos = (flags & O_APPEND) ? access_->size () : 0;
+			FileSize pos = (flags & (O_APPEND | O_ATE)) ? access_->size () : 0;
 
 			return CORBA::make_reference <FileAccessBuf> (std::move (data), access, pos, block_size, flags);
 

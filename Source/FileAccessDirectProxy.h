@@ -74,7 +74,7 @@ public:
 			throw RuntimeError (EACCES);
 	}
 
-	void read (FilePos pos, uint32_t size, std::vector <uint8_t>& data) const
+	void read (FileSize pos, uint32_t size, std::vector <uint8_t>& data) const
 	{
 		if (!file_)
 			throw CORBA::OBJECT_NOT_EXIST ();
@@ -85,7 +85,7 @@ public:
 			throw RuntimeError (EACCES);
 	}
 
-	void write (FilePos pos, const std::vector <uint8_t>& data)
+	void write (FileSize pos, const std::vector <uint8_t>& data)
 	{
 		if (!file_)
 			throw CORBA::OBJECT_NOT_EXIST ();
@@ -108,7 +108,7 @@ public:
 		}
 	}
 
-	bool lock (FilePos start, FileSize size, short op)
+	bool lock (FileSize start, FileSize size, short op)
 	{
 		throw CORBA::NO_IMPLEMENT ();
 	}

@@ -107,13 +107,15 @@ TEST_F (TestFile, Mnt)
 			drive = Dir::_narrow (mnt->resolve (b.binding_name ()));
 			ASSERT_TRUE (drive);
 		} catch (const CORBA::SystemException& ex) {
-			EXPECT_TRUE (CORBA::NO_PERMISSION::_downcast (&ex)) << ex._name ();
+			int err = *(int*)g_system->error_number ();
+			EXPECT_TRUE (CORBA::NO_PERMISSION::_downcast (&ex)) << ' ' << ex._name () << ' ' << err;
 		}
 		BindingList dir;
 		try {
 			drive->list (10, dir, it);
 		} catch (const CORBA::SystemException& ex) {
-			EXPECT_TRUE (CORBA::NO_PERMISSION::_downcast (&ex)) << ex._name ();
+			int err = *(int*)g_system->error_number ();
+			EXPECT_TRUE (CORBA::NO_PERMISSION::_downcast (&ex)) << ' ' << ex._name () << ' ' << err;
 		}
 	}
 }
@@ -123,7 +125,7 @@ TEST_F (TestFile, Direct)
 	char file_name [L_tmpnam_s];
 	ASSERT_FALSE (tmpnam_s (file_name));
 
-	uint16_t flags = O_DIRECT | FILE_SHARE_DENY_WRITE;
+	uint_fast16_t flags = O_DIRECT | FILE_SHARE_DENY_WRITE;
 
 	AccessDirect::_ref_type fa = AccessDirect::_narrow (
 		g_system->open_file (file_name, O_CREAT | O_TRUNC | O_RDWR | flags)->_to_object ());
@@ -147,6 +149,41 @@ TEST_F (TestFile, Direct)
 	ASSERT_TRUE (fa);
 	fa->read (0, 1, rbuf);
 	EXPECT_EQ (rbuf, wbuf);
+	fa->close ();
+	fa = nullptr;
+
+	g_system->remove (file_name);
+}
+
+TEST_F (TestFile, Buf)
+{
+	char file_name [L_tmpnam_s];
+	ASSERT_FALSE (tmpnam_s (file_name));
+
+	uint_fast16_t flags = FILE_SHARE_DENY_WRITE;
+
+	AccessBuf::_ref_type fa = AccessBuf::_downcast (
+		g_system->open_file (file_name, O_CREAT | O_TRUNC | O_RDWR | flags)->_to_value ());
+
+	ASSERT_TRUE (fa);
+	EXPECT_EQ (fa->size (), 0);
+	uint8_t wbuf [16];
+	wbuf [0] = 1;
+	fa->write (wbuf, 1);
+	fa->seek (SeekMethod::SM_BEG, 0);
+	uint8_t rbuf [16];
+	EXPECT_EQ (fa->read (rbuf, 1), 1);
+	EXPECT_EQ (rbuf[0], wbuf[0]);
+
+	File::_ref_type file = fa->file ();
+	fa->close ();
+	fa = nullptr;
+
+	ASSERT_TRUE (file);
+	fa = AccessBuf::_downcast (file->open (flags)->_to_value ());
+	ASSERT_TRUE (fa);
+	EXPECT_EQ (fa->read (rbuf, 1), 1);
+	EXPECT_EQ (rbuf [0], wbuf [0]);
 	fa->close ();
 	fa = nullptr;
 
