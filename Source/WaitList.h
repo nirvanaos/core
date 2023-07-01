@@ -51,6 +51,7 @@ class WaitableRefBase
 {
 	WaitableRefBase (const WaitableRefBase&) = delete;
 	WaitableRefBase& operator = (const WaitableRefBase&) = delete;
+	WaitableRefBase (WaitableRefBase&&) = delete;
 
 	template <typename> friend class WaitList;
 public:
@@ -71,12 +72,6 @@ protected:
 	WaitableRefBase () noexcept :
 		pointer_ (0)
 	{}
-
-	WaitableRefBase (WaitableRefBase&& src) noexcept :
-		pointer_ (src.pointer_)
-	{
-		src.pointer_ = 0;
-	}
 
 	WaitableRefBase (void* p) noexcept :
 		pointer_ ((uintptr_t)p)
