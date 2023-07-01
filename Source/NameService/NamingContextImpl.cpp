@@ -152,7 +152,7 @@ std::pair <NamingContextImpl::Bindings::iterator, bool> NamingContextImpl::empla
 	assert (!n.empty ());
 	return bindings_.emplace (std::piecewise_construct,
 		std::forward_as_tuple (to_string (n.front ())),
-		std::forward_as_tuple (obj, BindingType::nobject));
+		std::forward_as_tuple (obj, type));
 }
 
 void NamingContextImpl::bind1 (Name& n, Object::_ptr_type obj)
