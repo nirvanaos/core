@@ -126,11 +126,6 @@ public:
 		return file;
 	}
 
-	static Access::_ref_type open (const DirItemId& id, uint_fast16_t flags, uint_fast16_t mode)
-	{
-		return get_file (id)->open (flags);
-	}
-
 	Access::_ref_type open (CosNaming::Name& n, uint_fast16_t flags, uint_fast16_t mode)
 	{
 		check_name (n);

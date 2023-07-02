@@ -139,7 +139,7 @@ public:
 	Access::_ref_type open (CosNaming::Name& n, uint_fast16_t flags, uint_fast16_t mode)
 	{
 		check_name (n);
-		return FileSystem::open (get_new_file_id (n), flags, mode);
+		return FileSystem::get_file (get_new_file_id (n))->open (flags, mode);
 	}
 
 	Access::_ref_type mkstemps (IDL::String& name, size_t suffix_len)

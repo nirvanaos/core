@@ -94,7 +94,7 @@ public:
 			return Base::size ();
 	}
 
-	Access::_ref_type open (unsigned flags)
+	Access::_ref_type open (uint_fast16_t flags, uint_fast16_t mode)
 	{
 		if (
 			((flags & O_DIRECT) && (flags & O_TEXT))
@@ -104,7 +104,7 @@ public:
 			throw CORBA::INV_FLAG ();
 
 		if (!access_)
-			access_ = std::make_unique <Nirvana::Core::FileAccessDirect> (std::ref (port ()), flags);
+			access_ = std::make_unique <Nirvana::Core::FileAccessDirect> (std::ref (port ()), flags, mode);
 		else if ((flags & (O_EXCL | O_CREAT | O_TRUNC)) == (O_EXCL | O_CREAT))
 			throw RuntimeError (EEXIST);
 
