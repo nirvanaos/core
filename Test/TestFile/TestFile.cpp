@@ -107,15 +107,13 @@ TEST_F (TestFile, Mnt)
 			drive = Dir::_narrow (mnt->resolve (b.binding_name ()));
 			ASSERT_TRUE (drive);
 		} catch (const CORBA::SystemException& ex) {
-			int err = *(int*)g_system->error_number ();
-			EXPECT_TRUE (CORBA::NO_PERMISSION::_downcast (&ex)) << ' ' << ex._name () << ' ' << err;
+			EXPECT_TRUE (CORBA::NO_PERMISSION::_downcast (&ex)) << ' ' << ex._name () << " Error: " << get_minor_errno (ex.minor ());
 		}
 		BindingList dir;
 		try {
 			drive->list (10, dir, it);
 		} catch (const CORBA::SystemException& ex) {
-			int err = *(int*)g_system->error_number ();
-			EXPECT_TRUE (CORBA::NO_PERMISSION::_downcast (&ex)) << ' ' << ex._name () << ' ' << err;
+			EXPECT_TRUE (CORBA::NO_PERMISSION::_downcast (&ex)) << ' ' << ex._name () << " Error: " << get_minor_errno (ex.minor ());
 		}
 	}
 }

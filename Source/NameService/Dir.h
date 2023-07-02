@@ -122,25 +122,13 @@ public:
 	CORBA::Object::_ref_type resolve (CosNaming::Name& n)
 	{
 		check_name (n);
-		try {
-			return FileSystem::get_reference (resolve_path (n));
-		} catch (const RuntimeError& err) {
-			FileSystem::set_error_number (err.error_number ());
-		}
-		throw CannotProceed (_this (), std::move (n));
+		return FileSystem::get_reference (resolve_path (n));
 	}
 
 	void unbind (CosNaming::Name& n)
 	{
-		FileSystem::set_error_number (0);
 		check_name (n);
-		try {
-			Base::unlink (n);
-			return;
-		} catch (const RuntimeError& err) {
-			FileSystem::set_error_number (err.error_number ());
-		}
-		throw CannotProceed (_this (), std::move (n));
+		Base::unlink (n);
 	}
 
 	CosNaming::NamingContext::_ref_type bind_new_context (CosNaming::Name& n)

@@ -57,11 +57,6 @@ Object::_ref_type FileSystem::get_reference (const DirItemId& id)
 		Internal::RepIdOf <Nirvana::Dir>::id : Internal::RepIdOf <Nirvana::File>::id);
 }
 
-void FileSystem::set_error_number (int err)
-{
-	ExecDomain::current ().runtime_global_.error_number = err;
-}
-
 Object::_ref_type FileSystem::resolve1 (Name& n)
 {
 	Nirvana::Dir::_ref_type dir = resolve_root (n);

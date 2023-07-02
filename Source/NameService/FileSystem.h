@@ -114,8 +114,6 @@ public:
 		return adapter_;
 	}
 
-	static void set_error_number (int err);
-
 	static CORBA::Object::_ref_type get_reference (const DirItemId& id);
 	static Nirvana::Dir::_ref_type get_dir (const DirItemId& id);
 

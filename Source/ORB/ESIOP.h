@@ -310,7 +310,7 @@ struct PlatformSizes
 const uint32_t ORB_TYPE = 0xFFFFFFFF;
 
 /// Vendor service context ID. TODO: Obtain from OMG.
-const uint32_t VSCID = 0xFFFFFF;
+const uint32_t VSCID = Nirvana::VMCID;
 
 ///@{ Service context IDs
 
