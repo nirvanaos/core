@@ -177,13 +177,11 @@ inline
 void ReferenceLocal::marshal_object_key (const CORBA::Octet* obj_key, size_t obj_key_size,
 	CORBA::Core::StreamOut& stream)
 {
-	if (Nirvana::Core::SINGLE_DOMAIN)
-		stream.write_c (1, obj_key_size, obj_key);
-	else if (ESIOP::is_system_domain ()
-		&& system_service (obj_key, obj_key_size) < Services::SERVICE_COUNT) {
-		// Do not prefix system domain objects 
-		stream.write_size (1);
-		stream.write_c (1, 1, obj_key);
+	if (Nirvana::Core::SINGLE_DOMAIN
+		|| (ESIOP::is_system_domain () && system_service (obj_key, obj_key_size) < Services::SERVICE_COUNT)
+		) {
+		// Do not prefix system domain objects
+		stream.write_size (obj_key_size);
 	} else {
 		// Prefix object key with domain id
 		ESIOP::ProtDomainId id = ESIOP::current_domain_id ();
@@ -192,8 +190,8 @@ void ReferenceLocal::marshal_object_key (const CORBA::Octet* obj_key, size_t obj
 			Nirvana::byteswap (id);
 		stream.write_size (sizeof (ESIOP::ProtDomainId) + obj_key_size);
 		stream.write_one (id);
-		stream.write_c (1, obj_key_size, obj_key);
 	}
+	stream.write_c (1, obj_key_size, obj_key);
 }
 
 void ReferenceLocal::marshal (const ProxyManager& proxy, const Octet* obj_key, size_t obj_key_size,

@@ -268,8 +268,8 @@ void StreamIn::read_string (Internal::StringT <C>& s)
 		throw MARSHAL ();
 
 	if (sizeof (C) > 1 && other_endian ())
-		for (C& c : s) {
-			Internal::Type <C>::byteswap (c);
+		for (C* p = s.data (), *e = p + s.size (); p != e; ++p) {
+			Internal::Type <C>::byteswap (*p);
 		}
 }
 
@@ -277,17 +277,14 @@ template <typename T>
 void StreamIn::read_seq (IDL::Sequence <T>& s)
 {
 	typedef typename Internal::Type <IDL::Sequence <T> >::ABI ABI;
-	IDL::Sequence <T> tmp;
-	ABI& abi = (ABI&)tmp;
-	read_seq (Internal::Type <T>::CDR_align, sizeof (T), Internal::Type <T>::CDR_size,
+	ABI& abi = (ABI&)s;
+	bool other_endian = read_seq (Internal::Type <T>::CDR_align, sizeof (T), Internal::Type <T>::CDR_size,
 		abi.size, (void*&)abi.ptr, abi.allocated);
 	
-	if (sizeof (typename Internal::Type <T>::ABI) > 1 && other_endian ())
-		for (T* p = tmp.data (), *e = p + tmp.size (); p != e; ++p) {
+	if (sizeof (typename Internal::Type <T>::ABI) > 1 && other_endian)
+		for (T* p = s.data (), *e = p + s.size (); p != e; ++p) {
 			Internal::Type <T>::byteswap (*p);
 		}
-
-	s = std::move (tmp);
 }
 
 }
