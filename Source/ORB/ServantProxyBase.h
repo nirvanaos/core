@@ -84,6 +84,11 @@ public:
 
 	void reset_servant () noexcept;
 
+	Internal::Interface::_ptr_type servant () const noexcept
+	{
+		return servant_;
+	}
+
 protected:
 	template <class I>
 	ServantProxyBase (Internal::I_ptr <I> servant) :
@@ -97,11 +102,6 @@ protected:
 	}
 
 	virtual ~ServantProxyBase ();
-
-	Internal::Interface::_ptr_type servant () const noexcept
-	{
-		return servant_;
-	}
 
 	void run_garbage_collector () const noexcept;
 
@@ -124,6 +124,12 @@ protected:
 	Internal::Interface::_ptr_type servant_;
 	servant_reference <Nirvana::Core::SyncContext> sync_context_;
 };
+
+inline
+const CORBA::Core::ServantProxyBase* object2proxy_base (CORBA::Object::_ptr_type obj) noexcept
+{
+	return static_cast <const ServantProxyBase*> (ProxyManager::cast (obj));
+}
 
 }
 }

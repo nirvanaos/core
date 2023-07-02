@@ -45,9 +45,14 @@ Object::_ptr_type servant2object (PortableServer::Servant servant) noexcept
 
 PortableServer::Servant object2servant (Object::_ptr_type obj)
 {
-	if (obj) {
-		const CORBA::Core::ServantProxyObject* proxy = object2proxy (obj);
+	if (obj)
+		return proxy2servant (object2proxy (obj));
+	return nullptr;
+}
 
+PortableServer::Servant proxy2servant (ServantProxyObject* proxy)
+{
+	if (proxy) {
 		if (&proxy->sync_context () != &Nirvana::Core::SyncContext::current ())
 			throw OBJ_ADAPTER ();
 		return proxy->servant ();

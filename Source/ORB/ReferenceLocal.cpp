@@ -302,6 +302,9 @@ DomainManagersList ReferenceLocal::_get_domain_managers ()
 
 Boolean ReferenceLocal::_is_equivalent (Object::_ptr_type other_object) const noexcept
 {
+	if (!other_object)
+		return false;
+
 	if (ProxyManager::_is_equivalent (other_object))
 		return true;
 

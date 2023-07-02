@@ -81,9 +81,16 @@ public:
 	///@}
 
 	/// Returns user ServantBase implementation
-	PortableServer::Servant servant () const noexcept
+	PortableServer::Servant servant () const
+#ifndef _DEBUG
+		noexcept
+#endif
 	{
+#ifdef _DEBUG
+		return PortableServer::ServantBase::_check (&Base::servant ());
+#else
 		return static_cast <PortableServer::ServantBase*> (&Base::servant ());
+#endif
 	}
 
 	virtual PortableServer::ServantBase::_ref_type _get_servant () const override
@@ -134,10 +141,15 @@ protected:
 
 CORBA::Object::_ptr_type servant2object (PortableServer::Servant servant) noexcept;
 
-inline
-CORBA::Core::ServantProxyObject* object2proxy (CORBA::Object::_ptr_type obj) noexcept
+/// Get proxy for object.
+/// 
+/// \param obj Object pointer.
+///   Ensure that it is really object, not a reference or local object.
+/// \returns Proxy pointer.
+inline CORBA::Core::ServantProxyObject* object2proxy (CORBA::Object::_ptr_type obj) noexcept
 {
-	return static_cast <ServantProxyObject*> (ProxyManager::cast (obj));
+	return const_cast <ServantProxyObject*> (
+		static_cast <const ServantProxyObject*> (object2proxy_base (obj)));
 }
 
 /// \brief Obtain servant from object proxy.
@@ -149,10 +161,12 @@ CORBA::Core::ServantProxyObject* object2proxy (CORBA::Object::_ptr_type obj) noe
 /// \throws OBJ_ADAPTER
 PortableServer::Servant object2servant (Object::_ptr_type obj);
 
+PortableServer::Servant proxy2servant (ServantProxyObject* proxy);
+
 inline
-Internal::Bridge <PortableServer::ServantBase>* object2servant_base (Object::_ptr_type obj)
+Internal::Bridge <PortableServer::ServantBase>* proxy2servant_base (ServantProxyObject* proxy)
 {
-	return static_cast <Internal::Bridge <PortableServer::ServantBase>*> (&object2servant (obj));
+	return static_cast <Internal::Bridge <PortableServer::ServantBase>*> (&proxy2servant (proxy));
 }
 
 }

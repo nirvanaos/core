@@ -48,9 +48,16 @@ public:
 	}
 
 	/// \returns User LocalObject implementation
-	LocalObject::_ptr_type servant () const noexcept
+	LocalObject::_ptr_type servant () const
+#ifndef _DEBUG
+		noexcept
+#endif
 	{
+#ifdef _DEBUG
+		return CORBA::LocalObject::_check (&Base::servant ());
+#else
 		return static_cast <CORBA::LocalObject*> (&Base::servant ());
+#endif
 	}
 
 	virtual Boolean non_existent () override;
@@ -86,11 +93,11 @@ protected:
 /// Get proxy for local object.
 /// 
 /// \param obj Local object pointer.
-///   Ensure that it is really local object.
+///   Ensure that it is really local object, not a reference or non-local object.
 /// \returns Proxy pointer.
 inline const ServantProxyLocal* local2proxy (Object::_ptr_type obj) noexcept
 {
-	return static_cast <const ServantProxyLocal*> (ProxyManager::cast (obj));
+	return static_cast <const ServantProxyLocal*> (object2proxy_base (obj));
 }
 
 }

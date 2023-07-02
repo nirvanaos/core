@@ -167,7 +167,12 @@ public:
 	void schedule_call (SyncContext& target, Heap* heap)
 	{
 		mem_context_push (get_mem_context (target, heap));
-		schedule_call_no_push_mem (target);
+		try {
+			schedule_call_no_push_mem (target);
+		} catch (...) {
+			mem_context_pop ();
+			throw;
+		}
 	}
 
 	/// Schedule a call to a synchronization context.
@@ -184,7 +189,12 @@ public:
 		}
 #endif
 		mem_context_push (std::move (mem_context));
-		schedule_call_no_push_mem (target);
+		try {
+			schedule_call_no_push_mem (target);
+		} catch (...) {
+			mem_context_pop ();
+			throw;
+		}
 	}
 
 	void schedule_call_no_push_mem (SyncContext& target);

@@ -24,9 +24,10 @@
 *  popov.nirvana@gmail.com
 */
 #include "NamingContextImpl.h"
+#include "NameService.h"
 #include <CORBA/Server.h>
 #include <CORBA/CosNaming_s.h>
-#include "../ORB/ServantProxyObject.h"
+#include "../ORB/ReferenceLocal.h"
 #include "../deactivate_servant.h"
 
 using namespace CORBA;
@@ -110,14 +111,48 @@ bool NamingContextDefault::is_cyclic (ContextSet& parents) const
 
 NamingContextImpl* NamingContextImpl::cast (Object::_ptr_type obj) noexcept
 {
+	using namespace CORBA::Core;
+
 	if (!obj)
 		return nullptr;
 
-	if (&CORBA::Core::object2proxy (obj)->sync_context () != &Nirvana::Core::SyncContext::current ())
-		return nullptr;
+	NamingContextImpl* impl = nullptr;
 
-	NamingContextImpl* impl = static_cast <NamingContextImpl*> (
-		static_cast <NamingContextDefault*> (CORBA::Core::object2servant_base (obj)));
+
+	Reference* ref = ProxyManager::cast (obj)->to_reference ();
+	if (ref) {
+		// Reference
+		if (!(ref->flags () & Reference::LOCAL))
+			return nullptr; // Remote reference
+
+		servant_reference <ServantProxyObject> proxy;
+		proxy = static_cast <ReferenceLocal*> (ref)->get_active_servant_with_lock ();
+		if (!proxy)
+			return nullptr; // Inactive reference
+
+		if (&proxy->sync_context () != &Nirvana::Core::SyncContext::current ())
+			return nullptr; // Other sync context
+
+		impl = static_cast <NamingContextDefault*> (proxy2servant_base (proxy));
+	} else {
+		// Servant proxy
+		const ServantProxyBase* proxy = object2proxy_base (obj);
+		if (&proxy->sync_context () != &Nirvana::Core::SyncContext::current ())
+			return nullptr; // Other sync context
+
+		CORBA::Internal::Interface::_ptr_type servant = proxy->servant ();
+		if (CORBA::Internal::RepId::compatible (servant->_epv ().interface_id,
+			CORBA::Internal::RepIdOf <PortableServer::ServantBase>::id)
+			) {
+			impl = static_cast <NamingContextDefault*> (
+				static_cast <CORBA::Internal::Bridge <PortableServer::ServantBase>*> (&servant));
+		} else {
+			assert (CORBA::Internal::RepId::compatible (servant->_epv ().interface_id,
+				CORBA::Internal::RepIdOf <CORBA::LocalObject>::id));
+			impl = static_cast <NameService*> (
+				static_cast <CORBA::Internal::Bridge <CORBA::LocalObject>*> (&servant));
+		}
+	}
 
 	if (impl && impl->signature () == SIGNATURE)
 		return impl;

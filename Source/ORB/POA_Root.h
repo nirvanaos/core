@@ -81,6 +81,7 @@ public:
 		CORBA::Object::_ref_type proxy = get_root (); // Hold root POA proxy reference
 
 		SYNC_BEGIN (CORBA::Core::local2proxy (proxy)->sync_context (), nullptr)
+
 		CORBA::Core::ReferenceLocalRef ref = root ().find_reference (object_key);
 		if (ref)
 			ref->check_primary_interface (iid);
@@ -91,7 +92,9 @@ public:
 				throw CORBA::OBJECT_NOT_EXIST (MAKE_OMG_MINOR (2));
 			ref = adapter->create_reference (std::move (core_key), iid);
 		}
+
 		return CORBA::Object::_ref_type (ref->get_proxy ());
+
 		SYNC_END ();
 	}
 
