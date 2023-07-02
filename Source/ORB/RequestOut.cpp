@@ -73,8 +73,8 @@ RequestOut::RequestOut (unsigned GIOP_minor, unsigned response_flags,
 	request_id_offset_ (0),
 	system_exception_code_ (SystemException::EC_NO_EXCEPTION)
 {
-#if (NIRVANA_DEBUG_ITERATORS != 0)
 	SyncContext& sc = SyncContext::current ();
+#if (NIRVANA_DEBUG_ITERATORS != 0)
 	if (!sc.sync_domain () && !sc.is_free_sync_context ()) {
 		// Legacy process has memory context with interlocked access to runtime support.
 		// To avoid context switches in iterator debugging during the unmarshaling
@@ -84,7 +84,7 @@ RequestOut::RequestOut (unsigned GIOP_minor, unsigned response_flags,
 	}
 #endif
 
-	if (metadata.flags & Operation::FLAG_OUT_CPLX)
+	if ((metadata.flags & Operation::FLAG_OUT_CPLX) && !sc.is_free_sync_context ())
 		response_flags_ |= FLAG_PREUNMARSHAL;
 
 	ExecDomain& ed = ExecDomain::current ();
