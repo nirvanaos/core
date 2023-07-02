@@ -78,27 +78,36 @@ public:
 		check (p);
 		check_read ();
 
-		size_t readed = 0;
-		while (cb) {
-			size_t buf_off = position () % block_size ();
-			if (buf_off < buffer ().size ()) {
-				size_t chunk_size = buffer ().size () - buf_off;
-				if (chunk_size > cb)
-					chunk_size = cb;
-				virtual_copy (buffer ().data () + buf_off, chunk_size, p);
-				cb -= chunk_size;
-				readed += chunk_size;
-				p = (uint8_t*)p + chunk_size;
-				position () += chunk_size;
+		if (!cb)
+			return 0;
+
+		uint8_t* dst = (uint8_t*)p;
+		uint8_t* end = dst + cb;
+
+		// Read from current buffer
+		dst = read_from_buffer (dst, end);
+
+		if (dst < end) {
+			// Read next blocks
+			if (sizeof (size_t) > sizeof (uint32_t)) {
+				while (dst < end) {
+					size_t chunk = end - dst;
+					if (chunk > std::numeric_limits <uint32_t>::max ())
+						chunk = round_down (std::numeric_limits <uint32_t>::max (), block_size ());
+					read_next_buffer ((uint32_t)chunk);
+					dst = read_from_buffer (dst, end);
+				}
+			} else {
+				read_next_buffer ((uint32_t)(end - dst));
+				dst = read_from_buffer (dst, end);
 			}
-			if (cb) {
-				flush ();
-				read_next_buffer ();
-				if (buffer ().empty ())
-					break;
+			// Release excessive memory
+			if (buffer ().size () > block_size ()) {
+				size_t release_size = round_down (buffer ().size () - 1, (size_t)block_size ());
+				buffer ().erase (buffer ().begin (), buffer ().begin () + release_size);
 			}
 		}
-		return readed;
+		return dst - (uint8_t*)p;
 	}
 
 	void write (const void* p, size_t cb)
@@ -127,7 +136,7 @@ public:
 			if (cb) {
 				assert (cb < block_size ());
 				if ((flags () & O_ACCMODE) != O_WRONLY)
-					read_next_buffer ();
+					read_next_buffer (block_size ());
 				buffer ().reserve (block_size ());
 			}
 			buf_off = 0;
@@ -240,7 +249,8 @@ protected:
 	void check (const void* p) const;
 	void check_read () const;
 	void check_write () const;
-	void read_next_buffer ();
+	void read_next_buffer (uint32_t cb);
+	uint8_t* read_from_buffer (uint8_t* dst, uint8_t* end);
 
 private:
 	size_t dirty_begin_, dirty_end_;

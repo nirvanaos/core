@@ -53,14 +53,30 @@ void FileAccessBuf::check_write () const
 		throw RuntimeError (EINVAL);
 }
 
-void FileAccessBuf::read_next_buffer ()
+void FileAccessBuf::read_next_buffer (uint32_t cb)
 {
+	assert (cb);
 	flush ();
 	FileSize next = round_down (position (), (FileSize)block_size ()) + buffer ().size ();
 	Bytes new_buf;
-	access ()->read (next, block_size (), new_buf);
+	access ()->read (next, round_up (cb, block_size ()), new_buf);
 	buffer ().swap (new_buf);
 	position (next);
+}
+
+uint8_t* FileAccessBuf::read_from_buffer (uint8_t* dst, uint8_t* end)
+{
+	size_t buf_off = position () % block_size ();
+	if (buf_off < buffer ().size ()) {
+		size_t chunk_size = buffer ().size () - buf_off;
+		size_t cb = end - dst;
+		if (chunk_size > cb)
+			chunk_size = cb;
+		virtual_copy (buffer ().data () + buf_off, chunk_size, dst);
+		dst += chunk_size;
+		position () += chunk_size;
+	}
+	return dst;
 }
 
 void FileAccessBuf::set_position (FileSize pos)
