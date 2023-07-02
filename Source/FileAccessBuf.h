@@ -54,7 +54,13 @@ public:
 	{}
 
 	~FileAccessBuf ()
-	{}
+	{
+		if (dirty ()) {
+			try {
+				flush (); //  Last chance
+			} catch (...) {}
+		}
+	}
 
 	Nirvana::File::_ref_type file () const
 	{
@@ -78,35 +84,37 @@ public:
 		check (p);
 		check_read ();
 
-		if (!cb)
-			return 0;
-
 		uint8_t* dst = (uint8_t*)p;
 		uint8_t* end = dst + cb;
 
-		// Read from current buffer
-		dst = read_from_buffer (dst, end);
-
 		if (dst < end) {
-			// Read next blocks
-			if (sizeof (size_t) > sizeof (uint32_t)) {
-				while (dst < end) {
-					size_t chunk = end - dst;
-					if (chunk > std::numeric_limits <uint32_t>::max ())
-						chunk = round_down (std::numeric_limits <uint32_t>::max (), block_size ());
-					read_next_buffer ((uint32_t)chunk);
+			// Read from current buffer
+			dst = read_from_buffer (dst, end);
+
+			if (dst < end) {
+				// Read next blocks
+				if (sizeof (size_t) > sizeof (uint32_t)) {
+					while (dst < end) {
+						size_t chunk = end - dst;
+						if (chunk > std::numeric_limits <uint32_t>::max ())
+							chunk = round_down (std::numeric_limits <uint32_t>::max (), block_size ());
+						read_next_buffer ((uint32_t)chunk);
+						dst = read_from_buffer (dst, end);
+					}
+				} else {
+					read_next_buffer ((uint32_t)(end - dst));
 					dst = read_from_buffer (dst, end);
 				}
-			} else {
-				read_next_buffer ((uint32_t)(end - dst));
-				dst = read_from_buffer (dst, end);
-			}
-			// Release excessive memory
-			if (buffer ().size () > block_size ()) {
-				size_t release_size = round_down (buffer ().size () - 1, (size_t)block_size ());
-				buffer ().erase (buffer ().begin (), buffer ().begin () + release_size);
 			}
 		}
+
+		// Release excessive memory
+		// Resulting buffer size will be <= block_size
+		if (buffer ().size () > block_size ()) {
+			size_t release_size = round_down (buffer ().size () - 1, (size_t)block_size ());
+			buffer ().erase (buffer ().begin (), buffer ().begin () + release_size);
+		}
+
 		return dst - (uint8_t*)p;
 	}
 
@@ -115,11 +123,21 @@ public:
 		check (p);
 		check_write ();
 
+		if (!cb)
+			return;
+
+		const uint8_t* src = (const uint8_t*)p;
+		const uint8_t* end = src + cb;
+
 		size_t buf_off = position () % block_size ();
+		if (buf_off < buffer ().size ()) {
+
+		}
+
 		if (buf_off >= buffer ().size ()) {
 			flush ();
 			if (cb >= block_size ()) {
-				FileSize next = position () - buf_off + buffer ().size ();
+				FileSize next = position () + buffer ().size () - buf_off;
 				assert (next % block_size () == 0);
 				size_t tail = cb % block_size ();
 				if (!tail) {
@@ -127,7 +145,7 @@ public:
 					buffer ().shrink_to_fit ();
 				}
 				size_t full_blocks = cb - tail;
-				Bytes tmp ((const uint8_t*)p, (const uint8_t*)p + full_blocks);
+				Bytes tmp (src, src + full_blocks);
 				access ()->write (next, tmp);
 				position (next + full_blocks);
 				cb -= full_blocks;
@@ -168,14 +186,29 @@ public:
 		}
 	}
 
-	const void* get_buffer_read (size_t cb)
+	void* get_buffer_write (size_t cb)
 	{
-		check_read ();
+		check_write ();
+		if (!cb)
+			return nullptr;
+
+		size_t buf_off = position () % block_size ();
+		size_t buf_end = buf_off + cb;
+		if (buf_off < buffer ().size ()) {
+			if (buf_end > buffer ().size ())
+				buffer ().reserve (buf_end);
+			return buffer ().data () + buf_off;
+		} else {
+			flush ();
+			FileSize read_pos = buffer_position ();
+		}
+
 		throw CORBA::NO_IMPLEMENT ();
 	}
 
-	void* get_buffer_write (size_t cb)
+	const void* get_buffer_read (size_t cb)
 	{
+		check_read ();
 		throw CORBA::NO_IMPLEMENT ();
 	}
 
@@ -251,6 +284,11 @@ protected:
 	void check_write () const;
 	void read_next_buffer (uint32_t cb);
 	uint8_t* read_from_buffer (uint8_t* dst, uint8_t* end);
+
+	bool dirty () const noexcept
+	{
+		return dirty_begin_ < dirty_end_;
+	}
 
 private:
 	size_t dirty_begin_, dirty_end_;

@@ -144,16 +144,25 @@ TEST_F (TestFile, Direct)
 	fa = nullptr;
 
 	ASSERT_TRUE (file);
-	fa = AccessDirect::_narrow (file->open (flags)->_to_object ());
+	fa = AccessDirect::_narrow (file->open (flags, 0)->_to_object ());
 	ASSERT_TRUE (fa);
 	fa->read (0, 1, rbuf);
 	EXPECT_EQ (rbuf, wbuf);
 	fa->close ();
 	fa = nullptr;
 
+	flags &= ~O_DIRECT;
+	AccessBuf::_ref_type fb = AccessBuf::_downcast (file->open (flags, 0)->_to_value ());
+	ASSERT_TRUE (fb);
+	rbuf.resize (1);
+	EXPECT_EQ (fb->read (rbuf.data (), 1), 1);
+	EXPECT_EQ (rbuf, wbuf);
+	fb->close ();
+	fb = nullptr;
+
 	g_system->remove (file_name);
 }
-
+/*
 TEST_F (TestFile, Buf)
 {
 	char file_name [L_tmpnam_s];
@@ -179,7 +188,7 @@ TEST_F (TestFile, Buf)
 	fa = nullptr;
 
 	ASSERT_TRUE (file);
-	fa = AccessBuf::_downcast (file->open (flags)->_to_value ());
+	fa = AccessBuf::_downcast (file->open (flags, 0)->_to_value ());
 	ASSERT_TRUE (fa);
 	EXPECT_EQ (fa->read (rbuf, 1), 1);
 	EXPECT_EQ (rbuf [0], wbuf [0]);
@@ -188,5 +197,5 @@ TEST_F (TestFile, Buf)
 
 	g_system->remove (file_name);
 }
-
+*/
 }

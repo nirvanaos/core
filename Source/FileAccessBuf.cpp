@@ -24,6 +24,7 @@
 *  popov.nirvana@gmail.com
 */
 #include "FileAccessBuf.h"
+#include "MemContext.h"
 
 namespace Nirvana {
 namespace Core {
@@ -57,7 +58,7 @@ void FileAccessBuf::read_next_buffer (uint32_t cb)
 {
 	assert (cb);
 	flush ();
-	FileSize next = round_down (position (), (FileSize)block_size ()) + buffer ().size ();
+	FileSize next = buffer_position () + buffer ().size ();
 	Bytes new_buf;
 	access ()->read (next, round_up (cb, block_size ()), new_buf);
 	buffer ().swap (new_buf);
@@ -66,22 +67,38 @@ void FileAccessBuf::read_next_buffer (uint32_t cb)
 
 uint8_t* FileAccessBuf::read_from_buffer (uint8_t* dst, uint8_t* end)
 {
-	size_t buf_off = position () % block_size ();
-	if (buf_off < buffer ().size ()) {
-		size_t chunk_size = buffer ().size () - buf_off;
+	assert (dst < end);
+	size_t start_off = position () % block_size ();
+	if (start_off < buffer ().size ()) {
+		size_t buf_off = start_off;
+		size_t release_end = round_down (buffer ().size (), (size_t)block_size ());
+		if (buf_off < release_end) {
+			// This part of buffer will be dropped, we can move memory
+			size_t move_size = release_end - buf_off;
+			size_t cb = end - dst;
+			if (move_size > cb)
+				move_size = cb;
+			MemContext::current ().heap ().copy (dst, buffer ().data () + buf_off, move_size, Memory::SRC_DECOMMIT);
+			dst += move_size;
+			buf_off += move_size;
+		}
 		size_t cb = end - dst;
-		if (chunk_size > cb)
-			chunk_size = cb;
-		virtual_copy (buffer ().data () + buf_off, chunk_size, dst);
-		dst += chunk_size;
-		position () += chunk_size;
+		if (cb) {
+			size_t copy_size = buffer ().size () - buf_off;
+			if (copy_size > cb)
+				copy_size = cb;
+			virtual_copy (buffer ().data () + buf_off, copy_size, dst);
+			dst += copy_size;
+			buf_off += copy_size;
+		}
+		position () += buf_off - start_off;
 	}
 	return dst;
 }
 
 void FileAccessBuf::set_position (FileSize pos)
 {
-	FileSize buf_begin = round_down (position (), (FileSize)block_size ());
+	FileSize buf_begin = buffer_position ();
 	FileSize buf_end = buf_begin + buffer ().size ();
 	if (pos < buf_begin || pos >= buf_end) {
 		flush ();
@@ -96,7 +113,7 @@ void FileAccessBuf::set_position (FileSize pos)
 void FileAccessBuf::flush ()
 {
 	check ();
-	if (dirty_begin_ < dirty_end_) {
+	if (dirty ()) {
 		if (dirty_begin_ == 0 && dirty_end_ == buffer ().size ())
 			access ()->write (buffer_position (), buffer ());
 		else {
