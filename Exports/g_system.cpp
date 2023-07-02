@@ -250,7 +250,7 @@ public:
 		return TLS::current ().get (idx);
 	}
 
-	static Access::_ref_type open_file (const IDL::String& path, unsigned flags)
+	static Access::_ref_type open_file (const IDL::String& path, uint_fast16_t flags, uint_fast16_t mode)
 	{
 		CosNaming::NamingContext::_ref_type ns = CosNaming::NamingContext::_narrow (
 			CORBA::Core::Services::bind (CORBA::Core::Services::NameService));
@@ -265,7 +265,7 @@ public:
 			Dir::_ref_type root = Dir::_narrow (ns->resolve (root_name));
 			if (!root)
 				throw_UNKNOWN ();
-			return root->open (n, flags);
+			return root->open (n, flags, mode);
 		} else
 			throw RuntimeError (ENOENT); // TODO: Use current directory
 	}

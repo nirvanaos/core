@@ -136,10 +136,15 @@ public:
 		return FileSystem::get_dir (create_dir (n));
 	}
 
-	Access::_ref_type open (CosNaming::Name& n, unsigned short flags)
+	Access::_ref_type open (CosNaming::Name& n, uint_fast16_t flags, uint_fast16_t mode)
 	{
 		check_name (n);
-		return FileSystem::open (get_new_file_id (n), flags);
+		return FileSystem::open (get_new_file_id (n), flags, mode);
+	}
+
+	Access::_ref_type mkstemps (IDL::String& name, size_t suffix_len)
+	{
+		throw CORBA::NO_IMPLEMENT ();
 	}
 
 	using NamingContextRoot::list;

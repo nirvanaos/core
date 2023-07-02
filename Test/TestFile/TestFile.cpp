@@ -1,6 +1,7 @@
 #include <Nirvana/Nirvana.h>
 #include <fnctl.h>
 #include <gtest/gtest.h>
+#include <sys/stat.h>
 
 using namespace Nirvana;
 using namespace CORBA;
@@ -126,7 +127,7 @@ TEST_F (TestFile, Direct)
 	uint_fast16_t flags = O_DIRECT | FILE_SHARE_DENY_WRITE;
 
 	AccessDirect::_ref_type fa = AccessDirect::_narrow (
-		g_system->open_file (file_name, O_CREAT | O_TRUNC | O_RDWR | flags)->_to_object ());
+		g_system->open_file (file_name, O_CREAT | O_TRUNC | O_RDWR | flags, 0600)->_to_object ());
 
 	ASSERT_TRUE (fa);
 	EXPECT_EQ (fa->size (), 0);
@@ -161,7 +162,7 @@ TEST_F (TestFile, Buf)
 	uint_fast16_t flags = FILE_SHARE_DENY_WRITE;
 
 	AccessBuf::_ref_type fa = AccessBuf::_downcast (
-		g_system->open_file (file_name, O_CREAT | O_TRUNC | O_RDWR | flags)->_to_value ());
+		g_system->open_file (file_name, O_CREAT | O_TRUNC | O_RDWR | flags, 0600)->_to_value ());
 
 	ASSERT_TRUE (fa);
 	EXPECT_EQ (fa->size (), 0);

@@ -126,20 +126,25 @@ public:
 		return file;
 	}
 
-	static Access::_ref_type open (const DirItemId& id, unsigned short flags)
+	static Access::_ref_type open (const DirItemId& id, uint_fast16_t flags, uint_fast16_t mode)
 	{
 		return get_file (id)->open (flags);
 	}
 
-	Access::_ref_type open (CosNaming::Name& n, unsigned flags)
+	Access::_ref_type open (CosNaming::Name& n, uint_fast16_t flags, uint_fast16_t mode)
 	{
 		check_name (n);
 		Nirvana::Dir::_ref_type dir (resolve_root (n));
 		if (dir) {
 			n.erase (n.begin ());
-			return dir->open (n, (uint16_t)flags);
+			return dir->open (n, flags, mode);
 		} else
 			throw RuntimeError (ENOENT);
+	}
+
+	Access::_ref_type mkstemps (IDL::String& name, size_t suffix_len)
+	{
+		throw CORBA::NO_IMPLEMENT ();
 	}
 
 	void destroy ()
