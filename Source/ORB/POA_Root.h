@@ -168,7 +168,7 @@ public:
 
 	static void shutdown (CORBA::Object::_ptr_type root)
 	{
-		POA::_narrow (root)->destroy (true, true); // Block incoming requests and complete currently executed ones.
+		POA::_narrow (root)->destroy (false, true); // Block incoming requests and complete currently executed ones.
 	}
 
 	static CORBA::Object::_ref_type create ();

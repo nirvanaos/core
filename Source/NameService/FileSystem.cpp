@@ -46,7 +46,7 @@ Object::_ref_type FileSystem::get_reference (const DirItemId& id, Internal::Stri
 
 Nirvana::Dir::_ref_type FileSystem::get_dir (const DirItemId& id)
 {
-	assert (get_item_type (id) == Nirvana::DirItem::FileType::directory);
+	assert (get_item_type (id) == Nirvana::FileType::directory);
 	Nirvana::Dir::_ref_type dir = Nirvana::Dir::_narrow (get_reference (id, Internal::RepIdOf <Nirvana::Dir>::id));
 	assert (dir);
 	return dir;
@@ -54,7 +54,7 @@ Nirvana::Dir::_ref_type FileSystem::get_dir (const DirItemId& id)
 
 Object::_ref_type FileSystem::get_reference (const DirItemId& id)
 {
-	return get_reference (id, get_item_type (id) == Nirvana::DirItem::FileType::directory ?
+	return get_reference (id, get_item_type (id) == Nirvana::FileType::directory ?
 		Internal::RepIdOf <Nirvana::Dir>::id : Internal::RepIdOf <Nirvana::File>::id);
 }
 
@@ -141,9 +141,10 @@ Dir::_ref_type FileSystem::get_name_from_path (const IDL::String& path, CosNamin
 		return get_root ();
 	} else {
 		n = Port::FileSystem::get_name_from_path (path);
-		if (is_absolute (n))
+		if (is_absolute (n)) {
+			n.erase (n.begin ());
 			return get_root ();
-		else if (dir)
+		} else if (dir)
 			return dir;
 		else if (SyncContext::current ().is_legacy_mode ())
 			return Legacy::Core::Process::get_current_dir ();

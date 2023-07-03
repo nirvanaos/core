@@ -256,11 +256,19 @@ public:
 		return dir->open (n, flags, mode);
 	}
 
-	static void remove (const IDL::String& path)
+	static int_fast16_t remove (const IDL::String& path)
 	{
-		CosNaming::Name n;
-		Dir::_ref_type dir = FileSystem::get_name_from_path (path, n);
-		dir->unbind (n);
+		try {
+			CosNaming::Name n;
+			Dir::_ref_type dir = FileSystem::get_name_from_path (path, n);
+			dir->unbind (n);
+		} catch (const CORBA::SystemException& ex) {
+			int err = get_minor_errno (ex.minor ());
+			if (err)
+				return err;
+			throw;
+		}
+		return 0;
 	}
 };
 

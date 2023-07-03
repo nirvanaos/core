@@ -148,7 +148,7 @@ private:
 		sync_domain_ (&Nirvana::Core::SyncDomain::current ())
 	{
 		Dir::_ref_type dir = Dir::_narrow (Nirvana::Core::FileSystem::resolve_absolute_path (current_dir_name_));
-		if (!dir || dir->type () != Dir::FileType::directory)
+		if (!dir || dir->type () != FileType::directory)
 			throw RuntimeError (ENOTDIR);
 		current_dir_ = std::move (dir);
 	}

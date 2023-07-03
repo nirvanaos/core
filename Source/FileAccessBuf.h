@@ -74,8 +74,7 @@ public:
 		flush ();
 		buffer ().clear ();
 		buffer ().shrink_to_fit ();
-		// Do not close acces, other copies may be active.
-		// access ()->close ();
+		access ()->close ();
 		access () = nullptr;
 	}
 

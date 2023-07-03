@@ -82,7 +82,7 @@ public:
 
 	bool _non_existent ()
 	{
-		return type () == Nirvana::DirItem::FileType::not_found;
+		return type () == Nirvana::FileType::not_found;
 	}
 
 	FileType type () noexcept
@@ -90,19 +90,9 @@ public:
 		return Base::type ();
 	}
 
-	uint16_t permissions () const
+	void stat (FileStat& st) const
 	{
-		return Base::permissions ();
-	}
-
-	void permissions (uint16_t perms)
-	{
-		Base::permissions (perms);
-	}
-
-	void get_file_times (FileTimes& times) const
-	{
-		Base::get_file_times (times);
+		Base::stat (st);
 	}
 
 	void bind (CosNaming::Name& n, CORBA::Object::_ptr_type obj, bool rebind = false);
@@ -136,6 +126,8 @@ public:
 		return FileSystem::get_dir (create_dir (n));
 	}
 
+	using NamingContextRoot::list;
+
 	Access::_ref_type open (CosNaming::Name& n, uint_fast16_t flags, uint_fast16_t mode)
 	{
 		check_name (n);
@@ -147,7 +139,11 @@ public:
 		throw CORBA::NO_IMPLEMENT ();
 	}
 
-	using NamingContextRoot::list;
+	DirIterator::_ref_type opendir (const IDL::String& regexp, uint_fast16_t flags)
+	{
+		throw CORBA::NO_IMPLEMENT ();
+	}
+
 };
 
 }
