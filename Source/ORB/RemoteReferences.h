@@ -103,10 +103,7 @@ public:
 
 	void erase (const RefKey& ref) noexcept
 	{
-		References::iterator it = references_.find (ref);
-		assert (it != references_.end ());
-		delete it->second.get_if_constructed ();
-		references_.erase (it);
+		references_.erase (ref);
 	}
 
 	servant_reference <Domain> get_domain (const DomainAddress& domain);
@@ -162,8 +159,6 @@ public:
 
 	void shutdown () noexcept // Called on terminate()
 	{
-		assert (references_.empty ());
-		references_.clear ();
 		prot_domains_.shutdown ();
 		remote_domains_.shutdown ();
 	}

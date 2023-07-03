@@ -59,12 +59,7 @@ public:
 		root_ = this;
 	}
 
-	~POA_Root ()
-	{
-		assert (is_destroyed ());
-		assert (local_references_.empty ());
-		root_ = nullptr;
-	}
+	~POA_Root ();
 
 	virtual IDL::String the_name () const override
 	{
@@ -161,12 +156,7 @@ public:
 
 	void remove_reference (const IOP::ObjectKey& key) noexcept
 	{
-		auto it = local_references_.find (key);
-		assert (it != local_references_.end ());
-		delete it->second.get_if_constructed ();
-		local_references_.erase (it);
-		if (local_references_.empty ())
-			_remove_ref ();
+		local_references_.erase (key);
 	}
 
 	CORBA::Core::ReferenceLocalRef find_reference (const IOP::ObjectKey& key) noexcept;

@@ -464,18 +464,21 @@ public:
 		return check_path (path, path.end ());
 	}
 
-protected:
-	friend class CORBA::Core::ReferenceLocal;
-
-	static POA_Root& root () noexcept
+	static POA_Root* root_ptr () noexcept
 	{
-		assert (root_);
-		return *root_;
+		return root_;
 	}
 
 	static CORBA::Object::_ref_type get_root ()
 	{
 		return CORBA::Core::Services::bind (CORBA::Core::Services::RootPOA);
+	}
+
+protected:
+	static POA_Root& root () noexcept
+	{
+		assert (root_);
+		return *root_;
 	}
 
 	POA_Base () :

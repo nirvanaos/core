@@ -45,6 +45,12 @@ Object::_ref_type POA_Root::create ()
 		std::move (manager_factory))->_this ();
 }
 
+POA_Root::~POA_Root ()
+{
+	assert (is_destroyed ());
+	root_ = nullptr;
+}
+
 std::pair <POA_Root::References::iterator, bool> POA_Root::emplace_reference (const ObjectKey& core_key)
 {
 	return local_references_.emplace (IOP::ObjectKey (core_key), CORBA::Core::Reference::DEADLINE_MAX);
@@ -65,8 +71,6 @@ CORBA::Core::ReferenceLocalRef POA_Root::get_or_create (std::pair <References::i
 			local_references_.erase (entry.first);
 			throw;
 		}
-		if (local_references_.size () == 1)
-			_add_ref ();
 		PortableServer::Servant_var <CORBA::Core::ReferenceLocal> ret (p); // Adopt reference count ownership
 		wait_list->finish_construction (p);
 		return ret;
