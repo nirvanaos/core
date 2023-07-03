@@ -28,10 +28,79 @@
 #include <iostream>
 
 using namespace Nirvana::Core;
+using namespace CORBA;
 
 namespace Nirvana {
 namespace Legacy {
 namespace Core {
+
+Process* Process::current_ptr () noexcept
+{
+	ThreadBase* thr = ThreadBase::current_ptr ();
+	if (thr)
+		return &thr->process ();
+	else
+		return nullptr;
+}
+
+IDL::String Process::get_current_dir_name ()
+{
+	Process* process = current_ptr ();
+	if (process) {
+		SYNC_BEGIN (*process->sync_domain_, nullptr)
+			return process->current_dir_name_;
+		SYNC_END ()
+	} else
+		throw CORBA::NO_IMPLEMENT ();
+}
+
+Dir::_ref_type Process::get_current_dir ()
+{
+	Process* process = current_ptr ();
+	if (process) {
+		SYNC_BEGIN (*process->sync_domain_, nullptr)
+			return process->current_dir_;
+		SYNC_END ()
+	} else
+		throw CORBA::NO_IMPLEMENT ();
+}
+
+inline void Process::chdir_sync (IDL::String&& path)
+{
+	Dir::_ref_type dir = Dir::_narrow (FileSystem::resolve_path (path, current_dir_));
+	if (!dir || dir->type () != Dir::FileType::directory)
+		throw RuntimeError (ENOTDIR);
+	if (FileSystem::is_absolute (path))
+		current_dir_name_ = std::move (path);
+	else {
+		current_dir_name_.reserve (current_dir_name_.size () + path.size () + 1);
+		current_dir_name_ += '/';
+		current_dir_name_ += path;
+	}
+}
+
+void Process::chdir (const IDL::String& path)
+{
+	Process* process = current_ptr ();
+	if (process) {
+		ExecDomain& ed = ExecDomain::current ();
+		ed.mem_context_push (&process->sync_domain_->sync_domain ()->mem_context ());
+		try {
+			IDL::String tmp (path);
+			SYNC_BEGIN (*process->sync_domain_, nullptr);
+			process->chdir_sync (std::move (tmp));
+			SYNC_END ();
+		} catch (...) {
+			ed.mem_context_pop ();
+			throw;
+		}
+		ed.mem_context_pop ();
+	} else
+		throw CORBA::NO_IMPLEMENT ();
+}
+
+Process::~Process ()
+{}
 
 void Process::copy_strings (Strings& src, Pointers& dst)
 {

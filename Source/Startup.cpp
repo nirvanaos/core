@@ -82,7 +82,7 @@ void Startup::run ()
 		CORBA::servant_reference <ShutdownCallback> cb =
 			CORBA::make_stateless <ShutdownCallback> (std::ref (ret_));
 
-		Static <Launcher>::ptr ()->spawn (argv [0], argv, envp, cb->_this ());
+		Static <Launcher>::ptr ()->spawn (argv [0], argv, envp, "/sbin", cb->_this ());
 	}
 }
 

@@ -75,7 +75,7 @@ RequestOut::RequestOut (unsigned GIOP_minor, unsigned response_flags,
 {
 	SyncContext& sc = SyncContext::current ();
 #if (NIRVANA_DEBUG_ITERATORS != 0)
-	if (!sc.sync_domain () && !sc.is_free_sync_context ()) {
+	if (sc.is_legacy_mode ()) {
 		// Legacy process has memory context with interlocked access to runtime support.
 		// To avoid context switches in iterator debugging during the unmarshaling
 		// we have to create a new memory context with the same heap.

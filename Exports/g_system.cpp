@@ -183,8 +183,7 @@ public:
 
 	static bool is_legacy_mode ()
 	{
-		SyncContext& sc = SyncContext::current ();
-		return !sc.sync_domain () && !sc.is_free_sync_context ();
+		return SyncContext::current ().is_legacy_mode ();
 	}
 
 	static void debug_event (DebugEvent evt, const IDL::String& msg)
@@ -252,50 +251,16 @@ public:
 
 	static Access::_ref_type open_file (const IDL::String& path, uint_fast16_t flags, uint_fast16_t mode)
 	{
-		CosNaming::NamingContext::_ref_type ns = CosNaming::NamingContext::_narrow (
-			CORBA::Core::Services::bind (CORBA::Core::Services::NameService));
-		if (!ns)
-			throw_UNKNOWN ();
-		CosNaming::Name n = FileSystem::get_name_from_path (path);
-		if (n.front ().id () == "/" && n.front ().kind ().empty ()) {
-			// Root path
-			CosNaming::Name root_name;
-			root_name.push_back (std::move (n.front ()));
-			n.erase (n.begin ());
-			Dir::_ref_type root = Dir::_narrow (ns->resolve (root_name));
-			if (!root)
-				throw_UNKNOWN ();
-			return root->open (n, flags, mode);
-		} else
-			throw RuntimeError (ENOENT); // TODO: Use current directory
+		CosNaming::Name n;
+		Dir::_ref_type dir = FileSystem::get_name_from_path (path, n);
+		return dir->open (n, flags, mode);
 	}
 
 	static void remove (const IDL::String& path)
 	{
-		CosNaming::NamingContext::_ref_type ns = CosNaming::NamingContext::_narrow (
-			CORBA::Core::Services::bind (CORBA::Core::Services::NameService));
-		if (!ns)
-			throw_UNKNOWN ();
-		CosNaming::Name n = FileSystem::get_name_from_path (path);
-		if (n.front ().id () == "/" && n.front ().kind ().empty ()) {
-			// Root path
-			CosNaming::Name root_name;
-			root_name.push_back (std::move (n.front ()));
-			n.erase (n.begin ());
-			Dir::_ref_type root = Dir::_narrow (ns->resolve (root_name));
-			if (!root)
-				throw_UNKNOWN ();
-			try {
-				root->unbind (n);
-			} catch (const CosNaming::NamingContext::CannotProceed&) {
-				int err = *error_number ();
-				if (err)
-					throw RuntimeError (err);
-				else
-					throw;
-			}
-		} else
-			throw RuntimeError (ENOENT); // TODO: Use current directory
+		CosNaming::Name n;
+		Dir::_ref_type dir = FileSystem::get_name_from_path (path, n);
+		dir->unbind (n);
 	}
 };
 

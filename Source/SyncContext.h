@@ -31,6 +31,7 @@
 #include "CoreInterface.h"
 #include "Thread.h"
 #include "StaticallyAllocated.h"
+#include <Port/config.h>
 
 namespace Nirvana {
 namespace Core {
@@ -79,6 +80,16 @@ public:
 	/// \code  System exception code.
 	/// \minor System exception minor code.
 	virtual void raise_exception (CORBA::SystemException::Code code, unsigned minor) = 0;
+
+	/// \returns `true` if current execution context is legacy.
+#if DISABLE_LEGACY_SUPPORT ()
+	static bool is_legacy_mode () noexcept
+	{
+		return false;
+	}
+#else
+	bool is_legacy_mode () const noexcept;
+#endif
 };
 
 /// Free (not synchronized) sync context.

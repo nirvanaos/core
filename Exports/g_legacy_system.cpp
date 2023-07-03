@@ -25,14 +25,15 @@
 */
 #include <CORBA/Server.h>
 #include <Nirvana/Legacy/Legacy_s.h>
+#include <Legacy/Process.h>
 #include <Legacy/Mutex.h>
 
 namespace Nirvana {
 namespace Legacy {
 namespace Core {
 
-class Factory :
-	public CORBA::servant_traits <Legacy::Factory>::ServantStatic <Factory>
+class System :
+	public CORBA::servant_traits <Legacy::System>::ServantStatic <System>
 {
 public:
 	static Legacy::Thread::_ref_type create_thread (Runnable::_ptr_type)
@@ -44,17 +45,35 @@ public:
 	{
 		return Mutex::create (ThreadBase::current ().process ());
 	}
+
+	static void chdir (const IDL::String& path)
+	{
+		Process::chdir (path);
+	}
+
+	static IDL::String get_current_dir_name ()
+	{
+		return Process::get_current_dir_name ();
+	}
+
+	static Dir::_ref_type get_current_dir ()
+	{
+		return Process::get_current_dir ();
+	}
+
 };
 
 }
 
 NIRVANA_SELECTANY extern
-const ImportInterfaceT <Factory> g_factory = { OLF_IMPORT_INTERFACE,
-"Nirvana/Legacy/g_factory", CORBA::Internal::RepIdOf <Factory>::id,
-NIRVANA_STATIC_BRIDGE (Factory, Core::Factory) };
+const ImportInterfaceT <System> g_system = { OLF_IMPORT_INTERFACE,
+	"Nirvana/Legacy/g_system", CORBA::Internal::RepIdOf <System>::id,
+	NIRVANA_STATIC_BRIDGE (System, Core::System) };
 
 }
 }
 
-NIRVANA_EXPORT (_exp_Nirvana_Legacy_g_factory, "Nirvana/Legacy/g_factory",
-	Nirvana::Legacy::Factory, Nirvana::Legacy::Core::Factory)
+#if !DISABLE_LEGACY_SUPPORT ()
+NIRVANA_EXPORT (_exp_Nirvana_Legacy_g_system, "Nirvana/Legacy/g_system",
+	Nirvana::Legacy::System, Nirvana::Legacy::Core::System)
+#endif

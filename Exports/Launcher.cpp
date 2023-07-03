@@ -35,15 +35,17 @@ class Launcher :
 	public CORBA::servant_traits <ProcessFactory>::ServantStatic <Launcher>
 {
 public:
-	static Legacy::Process::_ref_type spawn (const std::string& file,
-		StringSeq& argv, StringSeq& envp,
+	static Legacy::Process::_ref_type spawn (const IDL::String& file,
+		StringSeq& argv, StringSeq& envp, IDL::String& work_dir,
 		ProcessCallback::_ref_type callback)
 	{
-		return Core::Process::spawn (file, argv, envp, callback);
+		return Core::Process::spawn (file, argv, envp, work_dir, callback);
 	}
 };
 
 }
 }
 
+#if !DISABLE_LEGACY_SUPPORT ()
 NIRVANA_STATIC_EXP (Nirvana, Legacy, Launcher)
+#endif

@@ -51,11 +51,22 @@ public:
 	using Nirvana::Core::UserObject::operator new;
 	using Nirvana::Core::UserObject::operator delete;
 
+	/// \returns Current thread if execution is in legacy mode.
+	///          Otherwise returns `nullptr`.
+	static ThreadBase* current_ptr () noexcept
+	{
+		if (Nirvana::Core::SyncContext::current ().is_legacy_mode ())
+			return static_cast <ThreadBase*> (&Base::current ());
+		else
+			return nullptr;
+	}
+
 	/// When we run in the legacy subsystem, every thread is a ThreadLegacy instance.
 	static ThreadBase& current () noexcept
 	{
-		Nirvana::Core::Thread& base = Base::current ();
-		return static_cast <ThreadBase&> (base);
+		ThreadBase* p = current_ptr ();
+		assert (p);
+		return *p;
 	}
 
 	virtual Process& process () noexcept = 0;

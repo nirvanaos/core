@@ -29,6 +29,7 @@
 #pragma once
 
 #include <CORBA/Server.h>
+#include <CORBA/CosNaming.h>
 #include <CORBA/I_var.h>
 #include <Nirvana/Legacy/Legacy_Process_s.h>
 #include "../Event.h"
@@ -36,8 +37,10 @@
 #include "../RuntimeSupport.h"
 #include "../MemContextObject.h"
 #include "../Console.h"
+#include "../NameService/FileSystem.h"
 #include "Executable.h"
 #include "ThreadBase.h"
+#include "../ORB/Services.h"
 
 namespace Nirvana {
 namespace Legacy {
@@ -52,20 +55,29 @@ class Process :
 	typedef CORBA::servant_traits <Nirvana::Legacy::Process>::Servant <Process> Servant;
 
 public:
+	// Override ThreadBase
 	using Servant::operator new;
 	using Servant::operator delete;
 
-	static Legacy::Process::_ref_type spawn (const std::string& file,
-		std::vector <std::string>& argv, std::vector <std::string>& envp,
-		ProcessCallback::_ptr_type callback)
+	void _add_ref () noexcept override
 	{
-		CORBA::servant_reference <Process> servant = CORBA::make_reference <Process> (
-				std::ref (file), std::ref (argv), std::ref (envp), callback);
-		servant->start ();
+		Servant::_add_ref ();
+	}
 
-		Legacy::Process::_ref_type ret = servant->_this ();
-		Nirvana::Core::ExecDomain::start_legacy_process (*servant);
-		return ret;
+	void _remove_ref () noexcept override
+	{
+		Servant::_remove_ref ();
+	}
+
+	/// \returns Current process if execution is in legacy mode.
+	///          Otherwise returns `nullptr`.
+	static Process* current_ptr () noexcept;
+
+	static Process& current () noexcept
+	{
+		Process* p = current_ptr ();
+		assert (p);
+		return *p;
 	}
 
 	// Legacy::Process::
@@ -92,9 +104,37 @@ public:
 		throw_NO_IMPLEMENT ();
 	}
 
+	Nirvana::Core::SyncContext& sync_context () noexcept
+	{
+		return executable_;
+	}
+
+	static IDL::String get_current_dir_name ();
+	static Dir::_ref_type get_current_dir ();
+	static void chdir (const IDL::String& path);
+
+	~Process ();
+
+	static Legacy::Process::_ref_type spawn (const IDL::String& file,
+		IDL::Sequence <IDL::String>& argv, IDL::Sequence <IDL::String>& envp, IDL::String& work_dir,
+		ProcessCallback::_ptr_type callback)
+	{
+		CORBA::servant_reference <Process> servant = CORBA::make_reference <Process> (
+			std::ref (file), std::ref (argv), std::ref (envp), std::ref (work_dir), callback);
+		servant->start ();
+
+		Legacy::Process::_ref_type ret = servant->_this ();
+		Nirvana::Core::ExecDomain::start_legacy_process (*servant);
+		return ret;
+	}
+
+private:
+	template <class S, class ... Args> friend
+		CORBA::servant_reference <S> CORBA::make_reference (Args ...);
+
 	// Constructor. Do not call directly.
-	Process (const std::string& file,
-		std::vector <std::string>& argv, std::vector <std::string>& envp,
+	Process (const IDL::String& file,
+		IDL::Sequence <IDL::String>& argv, IDL::Sequence <IDL::String>& envp, IDL::String& work_dir,
 		ProcessCallback::_ptr_type callback) :
 		// Inherit the parent heap
 		MemContext (Nirvana::Core::ExecDomain::current ().mem_context ().heap ()),
@@ -103,26 +143,14 @@ public:
 		executable_ (std::ref (file)),
 		argv_ (std::move (argv)),
 		envp_ (std::move (envp)),
+		current_dir_name_ (std::move (work_dir)),
 		callback_ (callback),
 		sync_domain_ (&Nirvana::Core::SyncDomain::current ())
-	{}
-
-	~Process ()
-	{}
-
-	Nirvana::Core::SyncContext& sync_context () noexcept
 	{
-		return executable_;
-	}
-
-	void _add_ref () noexcept override
-	{
-		Servant::_add_ref ();
-	}
-
-	void _remove_ref () noexcept override
-	{
-		Servant::_remove_ref ();
+		Dir::_ref_type dir = Dir::_narrow (Nirvana::Core::FileSystem::resolve_absolute_path (current_dir_name_));
+		if (!dir || dir->type () != Dir::FileType::directory)
+			throw RuntimeError (ENOTDIR);
+		current_dir_ = std::move (dir);
 	}
 
 private:
@@ -161,6 +189,8 @@ private:
 		Nirvana::Core::Scheduler::activity_end ();
 	}
 
+	void chdir_sync (IDL::String&& path);
+
 private:
 	typedef std::vector <std::string> Strings;
 	typedef std::vector <char*, Nirvana::Core::UserAllocator <char*> > Pointers;
@@ -181,6 +211,8 @@ private:
 	Nirvana::Core::MemContextObjectList object_list_;
 	Nirvana::Core::Console console_;
 	Strings argv_, envp_;
+	IDL::String current_dir_name_;
+	Dir::_ref_type current_dir_;
 	ProcessCallback::_ref_type callback_;
 	Nirvana::Core::Ref <Nirvana::Core::SyncContext> sync_domain_;
 	Nirvana::Core::Event completed_;

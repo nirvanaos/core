@@ -29,7 +29,7 @@ protected:
 	{
 		// Code here will be called immediately after the constructor (right
 		// before each test).
-		ASSERT_TRUE (g_system->is_legacy_mode ());
+		ASSERT_TRUE (Nirvana::g_system->is_legacy_mode ());
 	}
 
 	virtual void TearDown ()
@@ -41,11 +41,16 @@ protected:
 
 TEST_F (TestLegacy, Mutex)
 {
-	Mutex::_ref_type mtx = g_factory->create_mutex ();
+	Mutex::_ref_type mtx = Legacy::g_system->create_mutex ();
 	ASSERT_TRUE (mtx);
 	mtx->lock ();
 	EXPECT_NO_THROW (mtx->unlock ());
 	EXPECT_THROW (mtx->unlock (), BAD_INV_ORDER);
+}
+
+TEST_F (TestLegacy, CurDir)
+{
+	IDL::String cur_dir = Legacy::g_system->get_current_dir_name ();
 }
 
 }
