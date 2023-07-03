@@ -167,7 +167,6 @@ void FileAccessDirectProxy::close ()
 	if (access_mask () & AccessMask::WRITE)
 		flush ();
 	remove ();
-	close ();
 	file_->on_close_proxy ();
 	file_ = nullptr;
 	deactivate_servant (this);

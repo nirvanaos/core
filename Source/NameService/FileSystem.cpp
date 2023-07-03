@@ -141,9 +141,10 @@ Dir::_ref_type FileSystem::get_name_from_path (const IDL::String& path, CosNamin
 		return get_root ();
 	} else {
 		n = Port::FileSystem::get_name_from_path (path);
-		if (is_absolute (n))
+		if (is_absolute (n)) {
+			n.erase (n.begin ());
 			return get_root ();
-		else if (dir)
+		} else if (dir)
 			return dir;
 		else if (SyncContext::current ().is_legacy_mode ())
 			return Legacy::Core::Process::get_current_dir ();

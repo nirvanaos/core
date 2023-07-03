@@ -163,7 +163,7 @@ TEST_F (TestFile, Direct)
 	EXPECT_EQ (rbuf, wbuf);
 	fb->close ();
 	fb = nullptr;
-	g_system->remove (file_name);
+	EXPECT_EQ (g_system->remove (file_name), 0);
 }
 /*
 TEST_F (TestFile, Buf)

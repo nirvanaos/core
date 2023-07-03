@@ -144,7 +144,7 @@ public:
 		throw CORBA::NO_IMPLEMENT ();
 	}
 
-	DirIterator::_ref_type opendir (uint_fast16_t flags)
+	DirIterator::_ref_type opendir (const IDL::String& regexp, uint_fast16_t flags)
 	{
 		throw CORBA::NO_IMPLEMENT ();
 	}
