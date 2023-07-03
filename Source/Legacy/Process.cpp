@@ -68,7 +68,7 @@ Dir::_ref_type Process::get_current_dir ()
 inline void Process::chdir_sync (IDL::String&& path)
 {
 	Dir::_ref_type dir = Dir::_narrow (FileSystem::resolve_path (path, current_dir_));
-	if (!dir || dir->type () != Dir::FileType::directory)
+	if (!dir || dir->type () != FileType::directory)
 		throw RuntimeError (ENOTDIR);
 	if (FileSystem::is_absolute (path))
 		current_dir_name_ = std::move (path);

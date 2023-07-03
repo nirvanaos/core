@@ -46,7 +46,7 @@ Object::_ref_type FileSystem::get_reference (const DirItemId& id, Internal::Stri
 
 Nirvana::Dir::_ref_type FileSystem::get_dir (const DirItemId& id)
 {
-	assert (get_item_type (id) == Nirvana::DirItem::FileType::directory);
+	assert (get_item_type (id) == Nirvana::FileType::directory);
 	Nirvana::Dir::_ref_type dir = Nirvana::Dir::_narrow (get_reference (id, Internal::RepIdOf <Nirvana::Dir>::id));
 	assert (dir);
 	return dir;
@@ -54,7 +54,7 @@ Nirvana::Dir::_ref_type FileSystem::get_dir (const DirItemId& id)
 
 Object::_ref_type FileSystem::get_reference (const DirItemId& id)
 {
-	return get_reference (id, get_item_type (id) == Nirvana::DirItem::FileType::directory ?
+	return get_reference (id, get_item_type (id) == Nirvana::FileType::directory ?
 		Internal::RepIdOf <Nirvana::Dir>::id : Internal::RepIdOf <Nirvana::File>::id);
 }
 

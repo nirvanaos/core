@@ -63,27 +63,17 @@ public:
 
 	bool _non_existent ()
 	{
-		return type () == Nirvana::DirItem::FileType::not_found;
+		return type () == Nirvana::FileType::not_found;
 	}
 
-	Nirvana::DirItem::FileType type () noexcept
+	Nirvana::FileType type () noexcept
 	{
 		return Base::type ();
 	}
 
-	uint16_t permissions ()
+	void stat (FileStat& st)
 	{
-		return Base::permissions ();
-	}
-
-	void permissions (uint16_t perms)
-	{
-		Base::permissions (perms);
-	}
-
-	void get_file_times (FileTimes& times)
-	{
-		return Base::get_file_times (times);
+		return Base::stat (st);
 	}
 
 	uint64_t size ()
@@ -177,6 +167,7 @@ void FileAccessDirectProxy::close ()
 	if (access_mask () & AccessMask::WRITE)
 		flush ();
 	remove ();
+	close ();
 	file_->on_close_proxy ();
 	file_ = nullptr;
 	deactivate_servant (this);

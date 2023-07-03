@@ -161,11 +161,8 @@ TEST_F (TestFile, Direct)
 	rbuf.resize (1);
 	EXPECT_EQ (fb->read (rbuf.data (), 1), 1);
 	EXPECT_EQ (rbuf, wbuf);
-	fa = fb->direct ();
 	fb->close ();
 	fb = nullptr;
-	fa->close ();
-	fa = nullptr;
 	g_system->remove (file_name);
 }
 /*

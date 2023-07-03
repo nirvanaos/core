@@ -91,7 +91,7 @@ public:
 		return roots_.find (name) != roots_.end ();
 	}
 
-	static Nirvana::DirItem::FileType get_item_type (const DirItemId& id)
+	static Nirvana::FileType get_item_type (const DirItemId& id)
 	{
 		return Port::FileSystem::get_item_type (id);
 	}
@@ -121,7 +121,7 @@ public:
 
 	static Nirvana::File::_ref_type get_file (const DirItemId& id)
 	{
-		assert (get_item_type (id) != Nirvana::DirItem::FileType::directory);
+		assert (get_item_type (id) != Nirvana::FileType::directory);
 		Nirvana::File::_ref_type file = Nirvana::File::_narrow (get_reference (id,
 			CORBA::Internal::RepIdOf <Nirvana::File>::id));
 		assert (file);
@@ -144,6 +144,11 @@ public:
 		throw CORBA::NO_IMPLEMENT ();
 	}
 
+	DirIterator::_ref_type opendir (uint_fast16_t flags)
+	{
+		throw CORBA::NO_IMPLEMENT ();
+	}
+
 	void destroy ()
 	{
 		throw NotEmpty ();
@@ -156,20 +161,8 @@ public:
 		return FileType::directory;
 	}
 
-	uint16_t permissions () const
-	{
-		return 0; // TODO: Implement
-	}
-
-	void permissions (uint16_t perms)
-	{
-		throw CORBA::NO_IMPLEMENT (); // TODO: Implement
-	}
-
-	void get_file_times (FileTimes& times) const
-	{
-		zero (times);
-	}
+	void stat (FileStat& st) const
+	{}
 
 	// NamingContextBase
 	virtual void bind1 (CosNaming::Name& n, CORBA::Object::_ptr_type obj) override;
