@@ -141,7 +141,7 @@ public:
 
 	Access::_ref_type mkstemps (IDL::String& name, size_t suffix_len)
 	{
-		throw CORBA::NO_IMPLEMENT ();
+		throw RuntimeError (ENOSYS);
 	}
 
 	DirIterator::_ref_type opendir (const IDL::String& regexp, uint_fast16_t flags)
@@ -163,6 +163,11 @@ public:
 
 	void stat (FileStat& st) const
 	{}
+
+	void remove ()
+	{
+		throw RuntimeError (ENOSYS);
+	}
 
 	// NamingContextBase
 	virtual void bind1 (CosNaming::Name& n, CORBA::Object::_ptr_type obj) override;

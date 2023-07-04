@@ -32,6 +32,7 @@
 #include <Nirvana/File_s.h>
 #include "NamingContextRoot.h"
 #include "FileSystem.h"
+#include "../deactivate_servant.h"
 
 namespace Nirvana {
 namespace Core {
@@ -142,6 +143,12 @@ public:
 	DirIterator::_ref_type opendir (const IDL::String& regexp, uint_fast16_t flags)
 	{
 		throw CORBA::NO_IMPLEMENT ();
+	}
+
+	void remove ()
+	{
+		Base::remove ();
+		deactivate_servant (this);
 	}
 
 };

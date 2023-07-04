@@ -63,10 +63,10 @@ public:
 
 	bool _non_existent ()
 	{
-		return type () == Nirvana::FileType::not_found;
+		return type () == FileType::not_found;
 	}
 
-	Nirvana::FileType type () noexcept
+	FileType type () noexcept
 	{
 		return Base::type ();
 	}
@@ -134,6 +134,14 @@ public:
 	{
 		if (proxies_.empty ())
 			access_ = nullptr;
+	}
+
+	void remove ()
+	{
+		if (access_)
+			throw RuntimeError (EACCES);
+		Base::remove ();
+		deactivate_servant (this);
 	}
 
 private:
