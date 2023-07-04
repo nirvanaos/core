@@ -55,7 +55,7 @@ Istring NamingContextRoot::to_string (NameComponent&& nc)
 	return name;
 }
 
-NameComponent NamingContextRoot::to_component (Istring s)
+NameComponent NamingContextRoot::to_component (Istring& s, bool may_move)
 {
 	const size_t s_size = s.size ();
 	const char* s_p = s.data ();
@@ -83,14 +83,14 @@ NameComponent NamingContextRoot::to_component (Istring s)
 		if (id_size < s_size)
 			nc.id (unescape (s.substr (0, id_size)));
 		else
-			nc.id (unescape (std::move (s)));
+			nc.id (unescape (may_move ? std::move (s) : s));
 	}
 	if (id_size < s_size) {
 		if (id_size > 0)
 			nc.kind (unescape (s.substr (id_size + 1)));
 		else {
 			s.erase (0, 1);
-			nc.kind (unescape (std::move (s)));
+			nc.kind (unescape (may_move ? std::move (s) : s));
 		}
 	}
 	return nc;
