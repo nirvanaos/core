@@ -139,7 +139,7 @@ public:
 			throw RuntimeError (ENOENT);
 	}
 
-	Access::_ref_type mkstemps (IDL::String& name, size_t suffix_len)
+	Access::_ref_type mkostemps (IDL::String&, uint_fast16_t, uint_fast16_t)
 	{
 		throw RuntimeError (ENOSYS);
 	}
