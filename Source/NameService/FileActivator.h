@@ -46,12 +46,7 @@ public:
 
 	static void terminate () noexcept
 	{
-		POA::_ref_type adapter = std::move (Nirvana::Core::FileSystem::adapter_);
-		if (adapter) {
-			try {
-				adapter->destroy (true, true);
-			} catch (...) {}
-		}
+		Nirvana::Core::FileSystem::adapter_ = POA::_nil ();
 	}
 
 	PortableServer::ServantBase::_ref_type incarnate (const ObjectId& id, POA::_ptr_type adapter)

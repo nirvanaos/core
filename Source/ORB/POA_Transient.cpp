@@ -34,6 +34,8 @@ unsigned POA_Transient::next_id_;
 
 OctetSeq POA_Transient::id () const
 {
+	check_exist ();
+
 	return OctetSeq ((const Octet*)&id_, (const Octet*)&id_ + sizeof (id_));
 }
 

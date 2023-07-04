@@ -54,9 +54,10 @@ void POA_Unique::activate_object (ReferenceLocal& ref, ServantProxyObject& proxy
 	}
 }
 
-servant_reference <ServantProxyObject> POA_Unique::deactivate_object (ReferenceLocal& ref)
+servant_reference <ServantProxyObject> POA_Unique::deactivate_reference (ReferenceLocal& ref,
+	bool etherealize, bool cleanup_in_progress)
 {
-	servant_reference <ServantProxyObject> p (Base::deactivate_object (ref));
+	servant_reference <ServantProxyObject> p (Base::deactivate_reference (ref, etherealize, cleanup_in_progress));
 	servant_map_.erase (p);
 	return p;
 }
@@ -81,18 +82,6 @@ Object::_ref_type POA_Unique::servant_to_reference (CORBA::Core::ServantProxyObj
 	if (ref)
 		return ref->get_proxy ();
 	return servant_to_reference_default (proxy, true);
-}
-
-void POA_Unique::destroy_internal (bool etherealize_objects) noexcept
-{
-	Base::destroy_internal (etherealize_objects);
-	servant_map_.clear ();
-}
-
-void POA_Unique::etherealize_objects () noexcept
-{
-	Base::etherealize_objects ();
-	servant_map_.clear ();
 }
 
 }

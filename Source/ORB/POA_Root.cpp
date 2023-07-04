@@ -115,7 +115,7 @@ POA_Ref POA_Root::find_child (const AdapterPath& path, bool activate_it)
 {
 	POA_Ref adapter = &root ();
 	for (const auto& name : path) {
-		if (adapter->is_destroyed ())
+		if (activate_it && adapter->is_destroyed ())
 			throw TRANSIENT (MAKE_OMG_MINOR (4));
 
 		adapter = adapter->find_child (name, activate_it);

@@ -70,17 +70,21 @@ protected:
 	virtual void serve_request (const RequestRef& request, CORBA::Core::ReferenceLocal& reference)
 		override;
 
-	virtual void destroy_internal (bool etherealize_objects) noexcept override;
-	virtual void etherealize_objects () noexcept override;
+	virtual void deactivate_objects (bool etherealize) noexcept override;
+
+	virtual void etherialize (const ObjectId& oid, CORBA::Core::ServantProxyObject& proxy,
+		bool cleanup_in_progress) noexcept
+	{};
+
 	virtual void implicit_deactivate (CORBA::Core::ReferenceLocal& ref,
 		CORBA::Core::ServantProxyObject& proxy) noexcept override;
-	virtual CORBA::servant_reference <CORBA::Core::ServantProxyObject> deactivate_object (
-		CORBA::Core::ReferenceLocal& ref) override;
+	virtual CORBA::servant_reference <CORBA::Core::ServantProxyObject> deactivate_reference (
+		CORBA::Core::ReferenceLocal& ref, bool etherealize, bool cleanup_in_progress) override;
 
 private:
 	// Set of the active references
 	typedef Nirvana::Core::PointerSet <CORBA::Core::ReferenceLocal> References;
-	References references_;
+	References active_references_;
 
 	DGC_Policy DGC_policy_;
 };

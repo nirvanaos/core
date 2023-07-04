@@ -61,7 +61,7 @@ private:
 
 	void etherialize (CORBA::Internal::Type <ObjectId>::C_in oid, CORBA::Object::_ptr_type serv,
 		bool cleanup_in_progress,
-		bool remaining_activations);
+		bool remaining_activations) noexcept;
 
 private:
 	ServantActivator::_ref_type activator_;

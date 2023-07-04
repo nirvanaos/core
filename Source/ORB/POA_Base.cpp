@@ -161,6 +161,7 @@ POA_Base::POA_Base (POA_Base* parent, const IDL::String* name,
 	name_ (name),
 	request_cnt_ (0),
 	destroyed_ (false),
+	destroy_called_ (false),
 	signature_ (SIGNATURE)
 {
 	the_POAManager_->on_adapter_create (*this);
@@ -169,6 +170,12 @@ POA_Base::POA_Base (POA_Base* parent, const IDL::String* name,
 POA_Base::~POA_Base ()
 {
 	the_POAManager_->on_adapter_destroy (*this);
+}
+
+void POA_Base::check_exist () const
+{
+	if (destroyed_)
+		throw OBJECT_NOT_EXIST (MAKE_OMG_MINOR (4));
 }
 
 void POA_Base::activate_object (CORBA::Core::ServantProxyObject& proxy, ObjectId& oid, unsigned flags)
@@ -210,7 +217,8 @@ void POA_Base::deactivate_object (ObjectId& oid)
 	throw WrongPolicy ();
 }
 
-servant_reference <CORBA::Core::ServantProxyObject> POA_Base::deactivate_object (ReferenceLocal& ref)
+servant_reference <CORBA::Core::ServantProxyObject> POA_Base::deactivate_reference (
+	ReferenceLocal& ref, bool etherealize, bool cleanup_in_progress)
 {
 	NIRVANA_UNREACHABLE_CODE ();
 	return nullptr;
@@ -224,6 +232,8 @@ void POA_Base::implicit_deactivate (CORBA::Core::ReferenceLocal& ref,
 
 Object::_ref_type POA_Base::create_reference (CORBA::Internal::String_in iid)
 {
+	check_exist ();
+
 	return create_reference (iid, 0)->get_proxy ();
 }
 
@@ -287,6 +297,8 @@ Object::_ref_type POA_Base::servant_to_reference_default (ServantProxyObject& pr
 
 Object::_ref_type POA_Base::reference_to_servant (Object::_ptr_type reference)
 {
+	check_exist ();
+
 	return reference_to_servant_default (false);
 }
 
@@ -311,6 +323,8 @@ ObjectId POA_Base::reference_to_id (Object::_ptr_type reference)
 
 Object::_ref_type POA_Base::id_to_servant (ObjectId& oid)
 {
+	check_exist ();
+
 	return id_to_servant_default (false);
 }
 
@@ -402,17 +416,6 @@ POA_Ref POA_Base::find_child (const IDL::String& adapter_name, bool activate_it)
 		return it->second.get ();
 	else
 		return nullptr;
-}
-
-void POA_Base::destroy_internal (bool etherealize_objects) noexcept
-{
-	destroyed_ = true;
-	name_ = nullptr;
-	Children tmp (std::move (children_));
-	while (!tmp.empty ()) {
-		tmp.begin ()->second.get ()->destroy (etherealize_objects);
-		tmp.erase (tmp.begin ());
-	}
 }
 
 ObjectId POA_Base::generate_object_id ()

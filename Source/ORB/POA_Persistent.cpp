@@ -32,6 +32,8 @@ namespace Core {
 
 CORBA::OctetSeq POA_Persistent::id () const
 {
+	check_exist ();
+
 	AdapterPath path;
 	get_path (path);
 	Nirvana::Core::ImplStatic <CORBA::Core::StreamOutEncap> stm (true);

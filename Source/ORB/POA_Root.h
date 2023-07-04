@@ -83,7 +83,7 @@ public:
 		else {
 			ObjectKey core_key (object_key);
 			POA_Ref adapter = find_child (core_key.adapter_path (), true);
-			if (!adapter)
+			if (!adapter || adapter->is_destroyed ())
 				throw CORBA::OBJECT_NOT_EXIST (MAKE_OMG_MINOR (2));
 			ref = adapter->create_reference (std::move (core_key), iid);
 		}
@@ -168,7 +168,7 @@ public:
 
 	static void shutdown (CORBA::Object::_ptr_type root)
 	{
-		POA::_narrow (root)->destroy (false, true); // Block incoming requests and complete currently executed ones.
+		POA::_narrow (root)->destroy (true, true); // Block incoming requests and complete currently executed ones.
 	}
 
 	static CORBA::Object::_ref_type create ();
@@ -207,6 +207,8 @@ inline
 POA::_ref_type POA_Base::create_POA (const IDL::String& adapter_name,
 	PortableServer::POAManager::_ptr_type a_POAManager, const CORBA::PolicyList& policies)
 {
+	check_exist ();
+
 #ifdef _DEBUG
 	for (size_t i = 1; i < FACTORY_COUNT; ++i) {
 		assert (factories_ [i - 1].policies < factories_ [i].policies);

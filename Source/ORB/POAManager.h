@@ -131,7 +131,7 @@ public:
 			discard_queued_requests ();
 			if (etherealize_objects)
 				for (auto p : associated_adapters_) {
-					p->etherealize_objects ();
+					p->deactivate_objects (true);
 				}
 		}
 
@@ -257,6 +257,8 @@ private:
 inline
 PortableServer::POAManager::_ref_type POA_Base::the_POAManager () const
 {
+	check_exist ();
+
 	return the_POAManager_->_this ();
 }
 

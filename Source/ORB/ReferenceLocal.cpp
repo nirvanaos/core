@@ -108,6 +108,23 @@ void ReferenceLocal::_remove_ref ()
 	}
 }
 
+void ReferenceLocal::on_servant_destruct () noexcept
+{
+	// Called on the active weak reference servant destruction.
+	assert (&SyncContext::current () == adapter_context_);
+	assert (0 == ref_cnt_);
+	ServantProxyObject* proxy = servant_.exchange (nullptr);
+	assert (proxy);
+	POA_Root* root = POA_Base::root_ptr ();
+	if (root) {
+		root->remove_reference (object_key_);
+		POA_Ref adapter = POA_Root::find_child (core_key_.adapter_path (), false);
+		if (adapter)
+			adapter->implicit_deactivate (*this, *proxy);
+	}
+	delete this;
+}
+
 void ReferenceLocal::activate (ServantProxyObject& proxy)
 {
 	// Caller must hold both references.
@@ -134,23 +151,6 @@ servant_reference <ServantProxyObject> ReferenceLocal::deactivate () noexcept
 	if (proxy)
 		proxy->deactivate (*this);
 	return proxy;
-}
-
-void ReferenceLocal::on_servant_destruct () noexcept
-{
-	// Called on the active weak reference servant destruction.
-	assert (&SyncContext::current () == adapter_context_);
-	ServantProxyObject* proxy = servant_.exchange (nullptr);
-	assert (proxy);
-	POA_Root* root = POA_Base::root_ptr ();
-	if (root && root->is_destroyed ()) {
-		POA_Ref adapter = POA_Root::find_child (core_key_.adapter_path (), false);
-		if (adapter)
-			adapter->implicit_deactivate (*this, *proxy);
-	}
-	// Toggle reference counter to invoke GC
-	_add_ref ();
-	_remove_ref ();
 }
 
 servant_reference <ServantProxyObject> ReferenceLocal::get_active_servant () const noexcept

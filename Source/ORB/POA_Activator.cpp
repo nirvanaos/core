@@ -47,7 +47,7 @@ Object::_ref_type POA_Activator::incarnate (Type <ObjectId>::C_in oid)
 
 void POA_Activator::etherialize (Type <ObjectId>::C_in oid, Object::_ptr_type serv,
 	bool cleanup_in_progress,
-	bool remaining_activations)
+	bool remaining_activations) noexcept
 {
 	Bridge <ServantActivator>* bridge = static_cast <Bridge <ServantActivator>*>
 		(&ServantActivator::_ptr_type (activator_));
@@ -83,7 +83,7 @@ void POA_Activator::serve_default (const RequestRef& request, ReferenceLocal& re
 			try {
 				activate_object (reference, *object2proxy (servant));
 			} catch (const ServantAlreadyActive&) {
-				etherialize (oid, servant, false, false);
+				etherialize (oid, servant, false, true);
 				throw OBJ_ADAPTER ();
 			}
 			wait_list->finish_construction (servant);
@@ -101,11 +101,15 @@ void POA_Activator::serve_default (const RequestRef& request, ReferenceLocal& re
 
 ServantManager::_ref_type POA_Activator::get_servant_manager ()
 {
+	check_exist ();
+
 	return activator_;
 }
 
 void POA_Activator::set_servant_manager (ServantManager::_ptr_type imgr)
 {
+	check_exist ();
+
 	if (activator_)
 		throw BAD_INV_ORDER (MAKE_OMG_MINOR (6));
 	activator_ = ServantActivator::_narrow (imgr);
@@ -115,6 +119,8 @@ void POA_Activator::set_servant_manager (ServantManager::_ptr_type imgr)
 
 ReferenceLocalRef POA_Activator::create_reference (ObjectKey&& key, CORBA::Internal::String_in iid)
 {
+	check_exist ();
+
 	return POA_Base::create_reference (std::move (key), iid, Reference::GARBAGE_COLLECTION);
 }
 

@@ -63,24 +63,28 @@ ReferenceLocalRef POA_Retain::activate_object (ObjectKey&& key, bool unique,
 void POA_Retain::activate_object (ReferenceLocal& ref, ServantProxyObject& proxy)
 {
 	ref.activate (proxy);
-	references_.insert (&ref);
+	active_references_.insert (&ref);
 }
 
 void POA_Retain::deactivate_object (ObjectId& oid)
 {
+	check_exist ();
+
 	ReferenceLocalRef ref = root ().find_reference (IOP::ObjectKey (ObjectKey (*this, std::move (oid))));
 	if (!ref)
 		throw ObjectNotActive ();
-	deactivate_object (*ref);
+	deactivate_reference (*ref, true, false);
 }
 
-servant_reference <CORBA::Core::ServantProxyObject> POA_Retain::deactivate_object (ReferenceLocal& ref)
+servant_reference <CORBA::Core::ServantProxyObject> POA_Retain::deactivate_reference (
+	ReferenceLocal& ref, bool etherealize, bool cleanup_in_progress)
 {
 	servant_reference <ServantProxyObject> ret = ref.deactivate ();
 	if (!ret)
 		throw ObjectNotActive ();
-	references_.erase (&ref);
-	etherialize (ref.core_key ().object_id (), *ret, false);
+	active_references_.erase (&ref);
+	if (etherealize)
+		etherialize (ref.core_key ().object_id (), *ret, cleanup_in_progress);
 	return ret;
 }
 
@@ -100,11 +104,13 @@ unsigned POA_Retain::get_flags (unsigned flags) const noexcept
 
 void POA_Retain::implicit_deactivate (ReferenceLocal& ref, ServantProxyObject& proxy) noexcept
 {
-	references_.erase (&ref);
+	active_references_.erase (&ref);
 }
 
 Object::_ref_type POA_Retain::reference_to_servant (Object::_ptr_type reference)
 {
+	check_exist ();
+
 	if (!reference)
 		throw BAD_PARAM ();
 
@@ -120,6 +126,8 @@ Object::_ref_type POA_Retain::reference_to_servant (Object::_ptr_type reference)
 
 Object::_ref_type POA_Retain::id_to_servant (ObjectId& oid)
 {
+	check_exist ();
+
 	ReferenceLocalRef ref = root ().find_reference (IOP::ObjectKey (ObjectKey (*this, std::move (oid))));
 	if (ref) {
 		servant_reference <ServantProxyObject> servant = ref->get_active_servant ();
@@ -131,33 +139,20 @@ Object::_ref_type POA_Retain::id_to_servant (ObjectId& oid)
 
 Object::_ref_type POA_Retain::id_to_reference (ObjectId& oid)
 {
+	check_exist ();
+
 	ReferenceLocalRef ref = root ().find_reference (IOP::ObjectKey (ObjectKey (*this, std::move (oid))));
 	if (ref && ref->get_active_servant ())
 		return ref->get_proxy ();
 	throw ObjectNotActive ();
 }
 
-void POA_Retain::destroy_internal (bool etherealize_objects) noexcept
+void POA_Retain::deactivate_objects (bool etherealize) noexcept
 {
-	POA_Base::destroy_internal (etherealize_objects);
-	if (etherealize_objects)
-		POA_Retain::etherealize_objects ();
-	else {
-		References tmp (std::move (references_));
-		for (auto p : tmp) {
-			ReferenceLocalRef (p)->deactivate ();
-		}
-	}
-}
-
-void POA_Retain::etherealize_objects () noexcept
-{
-	References tmp (std::move (references_));
-	for (auto p : tmp) {
-		ReferenceLocalRef ref (p);
-		servant_reference <ServantProxyObject> servant (ref->deactivate ());
-		if (servant)
-			etherialize (ref->core_key ().object_id (), *servant, true);
+	POA_Base::deactivate_objects (etherealize);
+	while (!active_references_.empty ()) {
+		ReferenceLocalRef ref (*active_references_.begin ());
+		deactivate_reference (*ref, etherealize, etherealize);
 	}
 }
 

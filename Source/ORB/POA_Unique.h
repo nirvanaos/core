@@ -47,12 +47,10 @@ protected:
 	virtual void activate_object (CORBA::Core::ReferenceLocal& ref,
 		CORBA::Core::ServantProxyObject& proxy) override;
 
-	virtual void destroy_internal (bool etherealize_objects) noexcept override;
-	virtual void etherealize_objects () noexcept override;
 	virtual void implicit_deactivate (CORBA::Core::ReferenceLocal& ref,
 		CORBA::Core::ServantProxyObject& proxy) noexcept override;
-	virtual CORBA::servant_reference <CORBA::Core::ServantProxyObject> deactivate_object (
-		CORBA::Core::ReferenceLocal& ref) override;
+	virtual CORBA::servant_reference <CORBA::Core::ServantProxyObject> deactivate_reference (
+		CORBA::Core::ReferenceLocal& ref, bool etherealize, bool cleanup_in_progress) override;
 
 	typedef const CORBA::Core::ServantProxyObject* ServantPtr;
 	typedef CORBA::Core::ReferenceLocal* ReferencePtr;

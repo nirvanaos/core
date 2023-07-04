@@ -171,6 +171,8 @@ public:
 
 	POA::_ref_type find_POA (const IDL::String& adapter_name, bool activate_it)
 	{
+		check_exist ();
+
 		POA_Ref p = find_child (adapter_name, activate_it);
 		if (p)
 			return p->_this ();
@@ -178,44 +180,54 @@ public:
 			throw AdapterNonExistent ();
 	}
 
-	POA_Ref find_child (const IDL::String& adapter_name, bool activate_it);
-
-	static void check_wait_completion ();
-
 	void destroy (bool etherealize_objects, bool wait_for_completion)
 	{
+		check_exist ();
+
 		if (wait_for_completion)
 			check_wait_completion ();
 
-		if (!destroyed_) {
+		if (!destroy_called_) {
+			destroy_called_ = true;
+
+			// Destroy children first
+			while (!children_.empty ()) {
+				POA_Ref child = children_.begin ()->second.get_if_constructed ();
+				if (child)
+					child->_this ()->destroy (etherealize_objects, wait_for_completion);
+			}
+
+			// Now destroy this adapter
 			if (parent_) {
 				parent_->children_.erase (*name_);
 				parent_ = nullptr;
 			}
+			destroyed_ = true;
+			name_ = nullptr;
 
-			destroy (etherealize_objects);
+			deactivate_objects (etherealize_objects);
+
+			if (!request_cnt_)
+				destroy_completed_.signal ();
 		}
 
 		if (wait_for_completion)
 			destroy_completed_.wait ();
 	}
 
-	void destroy (bool etherealize_objects) noexcept
-	{
-		destroy_internal (etherealize_objects);
-		if (!request_cnt_)
-			destroy_completed_.signal ();
-	}
+	POA_Ref find_child (const IDL::String& adapter_name, bool activate_it);
+
+	static void check_wait_completion ();
 
 	bool is_destroyed () const noexcept
 	{
 		return destroyed_;
 	}
 
-	virtual void destroy_internal (bool etherealize_objects) noexcept;
-	virtual void etherealize_objects () noexcept {}
-	virtual void etherialize (const ObjectId& oid, CORBA::Core::ServantProxyObject& proxy,
-		bool cleanup_in_progress) noexcept {};
+	void check_exist () const;
+
+	virtual void deactivate_objects (bool etherealize) noexcept
+	{}
 
 	// Factories for Policy objects
 
@@ -257,6 +269,8 @@ public:
 	// POA attributes
 	virtual IDL::String the_name () const
 	{
+		check_exist ();
+
 		IDL::String name;
 		if (name_)
 			name = *name_;
@@ -265,6 +279,8 @@ public:
 
 	POA::_ref_type the_parent () const noexcept
 	{
+		check_exist ();
+
 		if (parent_)
 			return parent_->_this ();
 		else
@@ -273,6 +289,8 @@ public:
 	
 	POAList the_children () const
 	{
+		check_exist ();
+
 		POAList list;
 		list.reserve (children_.size ());
 		for (auto it = children_.begin (); it != children_.end (); ++it) {
@@ -285,11 +303,15 @@ public:
 
 	AdapterActivator::_ref_type the_activator () const
 	{
+		check_exist ();
+
 		return the_activator_;
 	}
 
 	void the_activator (AdapterActivator::_ptr_type a)
 	{
+		check_exist ();
+
 		the_activator_ = a;
 	}
 
@@ -320,6 +342,8 @@ public:
 	// Object activation and deactivation
 	ObjectId activate_object (CORBA::Object::_ptr_type p_servant)
 	{
+		check_exist ();
+
 		CORBA::Core::ServantProxyObject* proxy = CORBA::Core::object2proxy (p_servant);
 		if (!proxy)
 			throw CORBA::BAD_PARAM ();
@@ -334,6 +358,8 @@ public:
 
 	void activate_object_with_id (ObjectId& oid, CORBA::Object::_ptr_type p_servant)
 	{
+		check_exist ();
+
 		CORBA::Core::ServantProxyObject* proxy = CORBA::Core::object2proxy (p_servant);
 		if (!proxy)
 			throw CORBA::BAD_PARAM ();
@@ -347,8 +373,8 @@ public:
 	virtual void activate_object (CORBA::Core::ReferenceLocal& ref, CORBA::Core::ServantProxyObject& proxy);
 
 	virtual void deactivate_object (ObjectId& oid);
-	virtual CORBA::servant_reference <CORBA::Core::ServantProxyObject> deactivate_object (
-		CORBA::Core::ReferenceLocal& ref);
+	virtual CORBA::servant_reference <CORBA::Core::ServantProxyObject> deactivate_reference (
+		CORBA::Core::ReferenceLocal& ref, bool etherealize, bool cleanup_in_progress);
 
 	inline static void implicit_activate (POA::_ptr_type adapter, CORBA::Core::ServantProxyObject& proxy);
 	virtual void implicit_deactivate (CORBA::Core::ReferenceLocal& ref,
@@ -362,6 +388,8 @@ public:
 
 	CORBA::Object::_ref_type create_reference_with_id (ObjectId& oid, CORBA::Internal::String_in iid)
 	{
+		check_exist ();
+
 		return CORBA::Object::_ref_type (
 			create_reference (ObjectKey (*this, std::move (oid)), iid)->get_proxy ());
 	}
@@ -375,6 +403,8 @@ public:
 	// Identity mapping operations:
 	ObjectId servant_to_id (CORBA::Object::_ptr_type p_servant)
 	{
+		check_exist ();
+
 		CORBA::Core::ServantProxyObject* proxy = CORBA::Core::object2proxy (p_servant);
 		if (!proxy)
 			throw CORBA::BAD_PARAM ();
@@ -386,6 +416,8 @@ public:
 
 	CORBA::Object::_ref_type servant_to_reference (CORBA::Object::_ptr_type p_servant)
 	{
+		check_exist ();
+
 		CORBA::Core::ServantProxyObject* proxy = CORBA::Core::object2proxy (p_servant);
 		if (!proxy)
 			throw CORBA::BAD_PARAM ();
@@ -531,6 +563,7 @@ private:
 	AdapterActivator::_ref_type the_activator_;
 	unsigned int request_cnt_;
 	bool destroyed_;
+	bool destroy_called_;
 	Nirvana::Core::Event destroy_completed_;
 
 	static const int32_t SIGNATURE = 'POA_';

@@ -35,11 +35,15 @@ namespace Core {
 
 ServantManager::_ref_type POA_Locator::get_servant_manager ()
 {
+	check_exist ();
+
 	return locator_;
 }
 
 void POA_Locator::set_servant_manager (ServantManager::_ptr_type imgr)
 {
+	check_exist ();
+
 	if (locator_)
 		throw BAD_INV_ORDER (MAKE_OMG_MINOR (6));
 	locator_ = ServantLocator::_narrow (imgr);
