@@ -52,10 +52,22 @@ Nirvana::Dir::_ref_type FileSystem::get_dir (const DirItemId& id)
 	return dir;
 }
 
-Object::_ref_type FileSystem::get_reference (const DirItemId& id)
+Nirvana::File::_ref_type FileSystem::get_file (const DirItemId& id)
 {
-	return get_reference (id, get_item_type (id) == Nirvana::FileType::directory ?
-		Internal::RepIdOf <Nirvana::Dir>::id : Internal::RepIdOf <Nirvana::File>::id);
+	assert (get_item_type (id) != Nirvana::FileType::directory);
+	Nirvana::File::_ref_type file = Nirvana::File::_narrow (get_reference (id,
+		CORBA::Internal::RepIdOf <Nirvana::File>::id));
+	assert (file);
+	return file;
+}
+
+Nirvana::DirItem::_ref_type FileSystem::get_reference (const DirItemId& id)
+{
+	Nirvana::DirItem::_ref_type item = Nirvana::DirItem::_narrow (get_reference (id,
+		get_item_type (id) == Nirvana::FileType::directory ?
+		Internal::RepIdOf <Nirvana::Dir>::id : Internal::RepIdOf <Nirvana::File>::id));
+	assert (item);
+	return item;
 }
 
 Object::_ref_type FileSystem::resolve1 (Name& n)
@@ -69,15 +81,18 @@ Object::_ref_type FileSystem::resolve1 (Name& n)
 Nirvana::Dir::_ref_type FileSystem::resolve_root (const Name& n)
 {
 	Nirvana::Dir::_ref_type dir;
-	auto it = roots_.find (to_string (n.front ()));
-	if (it != roots_.end ()) {
-		if (it->second.cached)
-			dir = it->second.cached;
-		else {
-			bool cache;
-			dir = get_dir ((it->second.factory) (it->first, cache));
-			if (cache)
-				it->second.cached = dir;
+	assert (!n.empty ());
+	if (n.front ().kind ().empty ()) {
+		auto it = roots_.find (n.front ().id ());
+		if (it != roots_.end ()) {
+			if (it->second.cached)
+				dir = it->second.cached;
+			else {
+				bool cache;
+				dir = get_dir ((it->second.factory) (it->first, cache));
+				if (cache)
+					it->second.cached = dir;
+			}
 		}
 	}
 	return dir;

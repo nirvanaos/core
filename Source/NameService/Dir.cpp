@@ -35,7 +35,7 @@ void Dir::bind (Name& n, Object::_ptr_type obj, bool rebind)
 {
 	check_name (n);
 	if (Nirvana::File::_narrow (obj))
-		bind_file (n, FileSystem::adapter ()->reference_to_id (obj), rebind);
+		Base::bind_file (n, FileSystem::adapter ()->reference_to_id (obj), rebind);
 	else if (Nirvana::Dir::_narrow (obj))
 		bind_dir (n, FileSystem::adapter ()->reference_to_id (obj), rebind);
 	else
@@ -46,7 +46,7 @@ void Dir::bind_context (Name& n, NamingContext::_ptr_type nc, bool rebind)
 {
 	check_name (n);
 	if (Nirvana::Dir::_narrow (nc))
-		bind_dir (n, FileSystem::adapter ()->reference_to_id (nc), rebind);
+		Base::bind_dir (n, FileSystem::adapter ()->reference_to_id (nc), rebind);
 	else
 		throw BAD_PARAM (make_minor_errno (ENOTDIR));
 }

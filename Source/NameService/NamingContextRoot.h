@@ -46,8 +46,8 @@ public:
 
 	void check_name (const Name& n) const;
 	
-	static Istring to_string (const NameComponent& nc);
-	static Istring to_string (NameComponent&& nc);
+	static void append_string (Istring& s, const NameComponent& nc);
+	static void append_string (Istring& s, NameComponent&& nc);
 
 	static NameComponent to_component (const Istring& s)
 	{
@@ -59,7 +59,8 @@ public:
 		return to_component (s, true);
 	}
 
-	static Istring escape (Istring s);
+	static void append_escaped (Istring& dst, const Istring& src);
+	static void append_escaped (Istring& dst, Istring&& src);
 	static Istring unescape (Istring s);
 
 protected:

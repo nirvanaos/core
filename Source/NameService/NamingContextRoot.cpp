@@ -29,30 +29,25 @@
 namespace CosNaming {
 namespace Core {
 
-Istring NamingContextRoot::to_string (const NameComponent& nc)
+void NamingContextRoot::append_string (Istring& s, const NameComponent& nc)
 {
 	size_t size = nc.id ().size ();
 	if (!nc.kind ().empty ())
 		size += nc.kind ().size () + 1;
-	Istring name;
-	name.reserve (size);
-	name = escape (nc.id ());
+	s.reserve (s.size () + size);
+	append_escaped (s, nc.id ());
 	if (!nc.kind ().empty ()) {
-		name += '.';
-		name += escape (nc.kind ());
+		s += '.';
+		append_escaped (s, nc.kind ());
 	}
-	return name;
 }
 
-Istring NamingContextRoot::to_string (NameComponent&& nc)
+void NamingContextRoot::append_string (Istring& s, NameComponent&& nc)
 {
-	Istring name (escape (std::move (nc.id ())));
-	if (!nc.kind ().empty ()) {
-		name.reserve (name.size () + nc.kind ().size () + 1);
-		name += '.';
-		name += escape (std::move (nc.kind ()));
-	}
-	return name;
+	if (nc.kind ().empty ())
+		append_escaped (s, std::move (nc.id ()));
+	else
+		append_string (s, const_cast <const NameComponent&> (nc));
 }
 
 NameComponent NamingContextRoot::to_component (Istring& s, bool may_move)
@@ -105,17 +100,27 @@ void NamingContextRoot::check_name (const Name& n) const
 		throw NamingContext::InvalidName ();
 }
 
-Istring NamingContextRoot::escape (Istring s)
+void NamingContextRoot::append_escaped (Istring& dst, const Istring& src)
 {
-	for (size_t pos = 0; pos < s.size ();) {
-		size_t esc = s.find_first_of ("/.\\", 0);
+	for (size_t pos = 0; pos < src.size ();) {
+		size_t esc = src.find_first_of ("/.\\", pos);
 		if (esc != Istring::npos) {
-			s.insert (esc, 1, '\\');
-			pos = esc + 2;
-		} else
+			dst.append (src, pos, esc - pos);
+			dst.insert (esc, 1, '\\');
+			pos = esc + 1;
+		} else {
+			dst.append (src, pos, Istring::npos);
 			break;
+		}
 	}
-	return s;
+}
+
+void NamingContextRoot::append_escaped (Istring& dst, Istring&& src)
+{
+	if (dst.empty () && src.find_first_of ("/.\\") == Istring::npos)
+		dst = std::move (src);
+	else
+		append_escaped (dst, const_cast <const Istring&> (src));
 }
 
 Istring NamingContextRoot::unescape (Istring s)

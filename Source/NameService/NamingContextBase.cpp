@@ -111,7 +111,7 @@ NamingContext::_ref_type NamingContextBase::resolve_child (Name& n)
 	Object::_ref_type obj = resolve1 (n);
 	NamingContext::_ref_type nc = NamingContext::_narrow (obj);
 	if (!nc)
-		throw NamingContext::NotFound (NamingContext::NotFoundReason::not_context, n);
+		throw NamingContext::NotFound (NamingContext::NotFoundReason::not_context, std::move (n));
 	n.erase (n.begin ());
 	return nc;
 }

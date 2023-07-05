@@ -116,17 +116,9 @@ public:
 		return adapter_;
 	}
 
-	static CORBA::Object::_ref_type get_reference (const DirItemId& id);
+	static Nirvana::DirItem::_ref_type get_reference (const DirItemId& id);
 	static Nirvana::Dir::_ref_type get_dir (const DirItemId& id);
-
-	static Nirvana::File::_ref_type get_file (const DirItemId& id)
-	{
-		assert (get_item_type (id) != Nirvana::FileType::directory);
-		Nirvana::File::_ref_type file = Nirvana::File::_narrow (get_reference (id,
-			CORBA::Internal::RepIdOf <Nirvana::File>::id));
-		assert (file);
-		return file;
-	}
+	static Nirvana::File::_ref_type get_file (const DirItemId& id);
 
 	Access::_ref_type open (CosNaming::Name& n, uint_fast16_t flags, uint_fast16_t mode)
 	{

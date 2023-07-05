@@ -72,6 +72,13 @@ protected:
 
 	void shutdown () noexcept;
 
+	static Istring to_string (const NameComponent& nc)
+	{
+		Istring name;
+		append_string (name, nc);
+		return name;
+	}
+
 protected:
 	static const uint32_t SIGNATURE = 'NAME';
 

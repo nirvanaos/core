@@ -42,14 +42,19 @@ protected:
 
 TEST_F (TestFile, Var)
 {
+	// Obtain "var" directory object
 	Object::_ref_type obj = naming_service_->resolve_str ("\\//var");
 	ASSERT_TRUE (obj);
 	Dir::_ref_type dir = Dir::_narrow (obj);
 	ASSERT_TRUE (dir);
+
+	// Obtain all subdirectories
 	BindingIterator::_ref_type it;
 	BindingList bindings;
 	dir->list (10, bindings, it);
 	EXPECT_FALSE (it);
+
+	// "var" must contain "log" and "tmp"
 	bool log = false, tmp = false;
 	for (const auto& b : bindings) {
 		ASSERT_FALSE (b.binding_name ().empty ());
@@ -68,17 +73,20 @@ TEST_F (TestFile, Var)
 
 TEST_F (TestFile, TmpIterator)
 {
+	// Obtain temporary directory object
 	Object::_ref_type obj = naming_service_->resolve_str ("\\//var/tmp");
 	ASSERT_TRUE (obj);
 	Dir::_ref_type dir = Dir::_narrow (obj);
 	ASSERT_TRUE (dir);
+
+	// Iterate
 	BindingIterator::_ref_type it;
 	BindingList bindings;
 	dir->list (0, bindings, it);
 	if (it) {
 		while (it->next_n (10, bindings)) {
 			for (const auto& b : bindings) {
-				ASSERT_FALSE (b.binding_name ().empty ());
+				ASSERT_EQ (b.binding_name ().size (), 1);
 				const NameComponent& nc = b.binding_name ().front ();
 				EXPECT_FALSE (nc.id ().empty () && nc.kind ().empty ());
 			}
@@ -88,6 +96,7 @@ TEST_F (TestFile, TmpIterator)
 
 TEST_F (TestFile, Mnt)
 {
+	// Iterate all drives in "mnt"
 	Object::_ref_type obj = naming_service_->resolve_str ("\\//mnt");
 	ASSERT_TRUE (obj);
 	Dir::_ref_type mnt = Dir::_narrow (obj);
@@ -125,45 +134,71 @@ TEST_F (TestFile, Mnt)
 
 TEST_F (TestFile, Direct)
 {
-	char file_name [L_tmpnam_s];
-	ASSERT_FALSE (tmpnam_s (file_name));
+	// Obtain temporary directory object
+	Object::_ref_type obj = naming_service_->resolve_str ("\\//var/tmp");
+	ASSERT_TRUE (obj);
+	Dir::_ref_type tmp_dir = Dir::_narrow (obj);
+	ASSERT_TRUE (tmp_dir);
 
-	uint_fast16_t flags = O_DIRECT | FILE_SHARE_DENY_WRITE;
-
+	// Create temporary file
+	const char PATTERN [] = "XXXXXX.tmp";
+	std::string file_name = PATTERN;
 	AccessDirect::_ref_type fa = AccessDirect::_narrow (
-		g_system->open_file (file_name, O_CREAT | O_TRUNC | O_RDWR | flags, 0600)->_to_object ());
-
+		tmp_dir->mkostemps (file_name, 4, O_DIRECT)->_to_object ());
 	ASSERT_TRUE (fa);
+	EXPECT_NE (file_name, PATTERN);
+
 	EXPECT_EQ (fa->size (), 0);
+
+	// Write
 	std::vector <uint8_t> wbuf;
 	wbuf.resize (1, 1);
 	fa->write (0, wbuf);
+
+	EXPECT_EQ (fa->size (), 1);
+
+	// Flush buffer
 	fa->flush ();
+
+	// Read
 	std::vector <uint8_t> rbuf;
 	fa->read (0, 1, rbuf);
 	EXPECT_EQ (rbuf, wbuf);
 
+	// Obtain file object
 	File::_ref_type file = fa->file ();
+
+	// Close file access
 	fa->close ();
 	fa = nullptr;
 
+	// Open file for reading
 	ASSERT_TRUE (file);
-	fa = AccessDirect::_narrow (file->open (flags, 0)->_to_object ());
+	fa = AccessDirect::_narrow (file->open (O_RDONLY | O_DIRECT, 0)->_to_object ());
 	ASSERT_TRUE (fa);
 	fa->read (0, 1, rbuf);
 	EXPECT_EQ (rbuf, wbuf);
+
+	// Close
 	fa->close ();
 	fa = nullptr;
 
-	flags &= ~O_DIRECT;
-	AccessBuf::_ref_type fb = AccessBuf::_downcast (file->open (flags, 0)->_to_value ());
+	// Open buffered access
+	AccessBuf::_ref_type fb = AccessBuf::_downcast (file->open (O_RDONLY, 0)->_to_value ());
 	ASSERT_TRUE (fb);
+
+	// Read from buffer
 	rbuf.resize (1);
 	EXPECT_EQ (fb->read (rbuf.data (), 1), 1);
 	EXPECT_EQ (rbuf, wbuf);
+
+	// Close
 	fb->close ();
 	fb = nullptr;
-	EXPECT_EQ (g_system->remove (file_name), 0);
+
+	// Remove file
+	file->remove ();
+	EXPECT_TRUE (file->_non_existent ());
 }
 /*
 TEST_F (TestFile, Buf)

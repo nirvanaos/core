@@ -73,12 +73,23 @@ public:
 	StringName to_string (Name& n) const
 	{
 		check_name (n);
-		Name::iterator it = n.begin ();
-		StringName sn = Base::to_string (std::move (*(it++)));
-		while (it != n.end ()) {
-			sn += '/';
-			sn += Base::to_string (std::move (*(it++)));
-		}
+		StringName sn;
+		if (n.size () > 1) {
+			size_t size = n.size () - 1;
+			for (const NameComponent& nc : n) {
+				size += nc.id ().size ();
+				if (!nc.kind ().empty ())
+					size += nc.kind ().size () + 1;
+			}
+			sn.reserve (size);
+			Name::iterator it = n.begin ();
+			append_string (sn, *it++);
+			while (it != n.end ()) {
+				sn += '/';
+				append_string (sn, *it++);
+			}
+		} else
+			append_string (sn, std::move (n.front ()));
 		return sn;
 	}
 
