@@ -132,7 +132,7 @@ void FileSystem::get_bindings (CosNaming::Core::IteratorStack& iter) const
 {
 	iter.reserve (roots_.size ());
 	for (const auto& root : roots_) {
-		iter.push (root.first, BindingType::ncontext);
+		iter.push (NameComponent (root.first, Istring ()), BindingType::ncontext);
 	}
 }
 

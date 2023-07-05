@@ -38,12 +38,7 @@ bool IteratorStack::next_one (Binding& b)
 	return false;
 }
 
-void IteratorStack::push (const Istring& name, BindingType type)
-{
-	stack_.emplace_back (name, type);
-}
-
-void IteratorStack::push (Istring&& name, BindingType type)
+void IteratorStack::push (NameComponent&& name, BindingType type)
 {
 	stack_.emplace_back (std::move (name), type);
 }

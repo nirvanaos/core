@@ -36,11 +36,16 @@ using namespace Nirvana::Core;
 namespace CosNaming {
 namespace Core {
 
+Iterator::Binding::Binding (NameComponent&& nc, BindingType t) noexcept :
+	name (std::move (nc)),
+	type (t)
+{}
+
 bool Iterator::next_one (CosNaming::Binding& b)
 {
 	Binding vb;
 	if (next_one (vb)) {
-		b.binding_name ().push_back (NamingContextRoot::to_component (std::move (vb.name)));
+		b.binding_name ().push_back (std::move (vb.name));
 		b.binding_type (vb.type);
 		return true;
 	}

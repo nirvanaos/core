@@ -43,8 +43,6 @@ Object::_ref_type create_NameService ()
 			"corbaloc::1.1@/NameService", CORBA::Internal::RepIdOf <CosNaming::NamingContextExt>::id);
 }
 
-const char NameService::file_system_name_ [] = "\\/";
-
 bool NameService::is_file_system (const NameComponent& nc)
 {
 	return nc.id () == "/" && nc.kind ().empty ();
@@ -114,7 +112,7 @@ NamingContext::_ref_type NameService::bind_new_context1 (Name& n)
 void NameService::get_bindings (IteratorStack& iter) const
 {
 	iter.reserve (bindings_.size ());
-	iter.push (file_system_name_, BindingType::ncontext);
+	iter.push (NameComponent ("/", Istring ()), BindingType::ncontext);
 	Base::get_bindings (iter);
 }
 

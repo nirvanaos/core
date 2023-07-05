@@ -319,7 +319,7 @@ void NamingContextImpl::get_bindings (IteratorStack& iter) const
 {
 	iter.reserve (bindings_.size ());
 	for (const auto& b : bindings_) {
-		iter.push (b.first, b.second.binding_type);
+		iter.push (to_component (b.first), b.second.binding_type);
 	}
 }
 

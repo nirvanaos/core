@@ -53,20 +53,14 @@ public:
 protected:
 	struct Binding
 	{
-		Istring name;
+		NameComponent name;
 		BindingType type;
 
-		Binding () :
+		Binding () noexcept :
 			type (BindingType::nobject)
 		{}
 
-		Binding (const Istring& n, BindingType t) :
-			name (n), type (t)
-		{}
-
-		Binding (Istring&& n, BindingType t) :
-			name (std::move (n)), type (t)
-		{}
+		Binding (NameComponent&& nc, BindingType t) noexcept;
 	};
 
 	virtual bool next_one (Binding& b) = 0;

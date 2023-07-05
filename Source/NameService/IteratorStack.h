@@ -33,7 +33,7 @@
 namespace CosNaming {
 namespace Core {
 
-class IteratorStack : public Iterator
+class IteratorStack : virtual public Iterator
 {
 public:
 	void reserve (size_t size)
@@ -46,8 +46,7 @@ public:
 		return stack_.empty ();
 	}
 
-	void push (const Istring& name, BindingType type);
-	void push (Istring&& name, BindingType type);
+	void push (NameComponent&& name, BindingType type);
 
 protected:
 	virtual bool next_one (Binding& b) override;
