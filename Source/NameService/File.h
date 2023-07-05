@@ -141,7 +141,7 @@ public:
 		if (access_)
 			throw RuntimeError (EACCES);
 		Base::remove ();
-		deactivate_servant (this);
+		_default_POA ()->deactivate_object (id ());
 	}
 
 private:

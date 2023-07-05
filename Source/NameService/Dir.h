@@ -32,7 +32,6 @@
 #include <Nirvana/File_s.h>
 #include "NamingContextRoot.h"
 #include "FileSystem.h"
-#include "../deactivate_servant.h"
 #include "../Chrono.h"
 #include <fnctl.h>
 
@@ -134,18 +133,25 @@ public:
 	Access::_ref_type open (CosNaming::Name& n, uint_fast16_t flags, uint_fast16_t mode)
 	{
 		check_name (n);
-		if (flags & O_CREAT) {
+		for (;;) {
+			if (flags & O_CREAT) {
+				try {
+					return FileSystem::get_file (get_new_file_id (n))->open (flags & O_EXCL, mode);
+				} catch (const RuntimeError& err) {
+					if ((flags & O_EXCL) || err.error_number () != EEXIST)
+						throw;
+				}
+			}
+			DirItemId id = Base::resolve_path (n);
+			if (FileSystem::get_item_type (id) == FileType::directory)
+				throw RuntimeError (EISDIR);
 			try {
-				return FileSystem::get_file (get_new_file_id (n))->open (flags & O_EXCL, mode);
+				return FileSystem::get_file (id)->open (flags, mode);
 			} catch (const RuntimeError& err) {
-				if ((flags & O_EXCL) || err.error_number () != EEXIST)
+				if (!(flags & O_CREAT) || err.error_number () != ENOENT)
 					throw;
 			}
 		}
-		DirItemId id = Base::resolve_path (n);
-		if (FileSystem::get_item_type (id) == FileType::directory)
-			throw RuntimeError (EISDIR);
-		return FileSystem::get_file (id)->open (flags, mode);
 	}
 
 	Access::_ref_type mkostemps (IDL::String& name, uint_fast16_t suffix_len, uint_fast16_t flags)
@@ -205,7 +211,7 @@ public:
 	void remove ()
 	{
 		Base::remove ();
-		deactivate_servant (this);
+		_default_POA ()->deactivate_object (id ());
 	}
 
 };
