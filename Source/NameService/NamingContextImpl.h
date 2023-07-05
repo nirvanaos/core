@@ -53,13 +53,6 @@ public:
 
 	NamingContext::_ref_type new_context ();
 
-	void destroy ()
-	{
-		if (!bindings_.empty ())
-			throw NamingContext::NotEmpty ();
-		NamingContextBase::destroy ();
-	}
-
 	typedef Nirvana::Core::PointerSet <const NamingContextImpl> ContextSet;
 
 	virtual bool is_cyclic (ContextSet& parents) const = 0;

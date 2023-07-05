@@ -106,7 +106,7 @@ public:
 		Port::FileSystem::etherealize (id, servant);
 	}
 
-	static Dir::_ref_type get_root ();
+	static Nirvana::Dir::_ref_type get_root ();
 
 	Nirvana::Dir::_ref_type resolve_root (const CosNaming::Name& n);
 
@@ -136,7 +136,8 @@ public:
 		throw RuntimeError (ENOSYS);
 	}
 
-	DirIterator::_ref_type opendir (const IDL::String& regexp, uint_fast16_t flags)
+	static void opendir (const IDL::String& regexp, uint_fast16_t flags,
+		uint32_t how_many, DirEntryList& l, DirIterator::_ref_type& di)
 	{
 		throw CORBA::NO_IMPLEMENT ();
 	}
@@ -177,12 +178,12 @@ public:
 	}
 
 	// Get naming service name from file system path
-	static Dir::_ref_type get_name_from_path (const IDL::String& path, CosNaming::Name& n, Dir::_ptr_type dir = nullptr);
+	static Nirvana::Dir::_ref_type get_name_from_path (const IDL::String& path, CosNaming::Name& n, Nirvana::Dir::_ptr_type dir = nullptr);
 
 	static bool is_absolute (const CosNaming::Name& n) noexcept;
 	static bool is_absolute (const IDL::String& path) noexcept;
 
-	static CORBA::Object::_ref_type resolve_path (const IDL::String& path, Dir::_ptr_type dir = nullptr);
+	static CORBA::Object::_ref_type resolve_path (const IDL::String& path, Nirvana::Dir::_ptr_type dir = nullptr);
 	static CORBA::Object::_ref_type resolve_absolute_path (const IDL::String& path);
 
 private:
@@ -191,7 +192,7 @@ private:
 private:
 	struct Root {
 		GetRootId factory;
-		Dir::_ref_type cached;
+		Nirvana::Dir::_ref_type cached;
 
 		Root (GetRootId f) :
 			factory (f)

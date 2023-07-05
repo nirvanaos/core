@@ -30,6 +30,18 @@ using namespace CORBA;
 namespace CosNaming {
 namespace Core {
 
+void NamingContextBase::check_exist () const
+{
+	if (destroyed ())
+		throw CORBA::OBJECT_NOT_EXIST ();
+}
+
+void NamingContextBase::check_name (const Name& n) const
+{
+	check_exist ();
+	NamingContextRoot::check_name (n);
+}
+
 void NamingContextBase::bind (Name& n, Object::_ptr_type obj)
 {
 	check_name (n);

@@ -1,3 +1,4 @@
+/// \file
 /*
 * Nirvana Core.
 *
@@ -23,39 +24,53 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "Dir.h"
+#ifndef NIRVANA_NAMESERVICE_DIRITER_H_
+#define NIRVANA_NAMESERVICE_DIRITER_H_
+#pragma once
 
-using namespace CosNaming;
-using namespace CORBA;
+#include <Nirvana/Nirvana.h>
+#include "../CoreInterface.h"
+#include <regex>
+
+namespace CosNaming {
+namespace Core {
+
+class Iterator;
+
+}
+}
 
 namespace Nirvana {
 namespace Core {
 
-void Dir::check_name (const CosNaming::Name& n) const
+class Dir;
+
+class DirIter
 {
-	check_exist ();
-	Base::check_name (n);
+public:
+	DirIter (Dir& dir, const std::string& regexp, unsigned flags);
+
+	static Nirvana::DirIterator::_ref_type create_iterator (std::unique_ptr <DirIter>&& vi);
+
+	bool next_one (DirEntry& de);
+	bool next_n (uint32_t how_many, DirEntryList& l);
+
+	bool end () const noexcept
+	{
+		return !iterator_;
+	}
+
+private:
+	static std::regex::flag_type get_regex_flags (unsigned flags);
+
+	Ref <Dir> dir_;
+	std::unique_ptr <CosNaming::Core::Iterator> iterator_;
+	std::regex regex_;
+	unsigned flags_;
+	static const unsigned USE_REGEX = 0x8000;
+};
+
+}
 }
 
-void Dir::bind (Name& n, Object::_ptr_type obj, bool rebind)
-{
-	check_name (n);
-	if (Nirvana::File::_narrow (obj))
-		Base::bind_file (n, FileSystem::adapter ()->reference_to_id (obj), rebind);
-	else if (Nirvana::Dir::_narrow (obj))
-		bind_dir (n, FileSystem::adapter ()->reference_to_id (obj), rebind);
-	else
-		throw BAD_PARAM (make_minor_errno (ENOENT));
-}
-
-void Dir::bind_context (Name& n, NamingContext::_ptr_type nc, bool rebind)
-{
-	check_name (n);
-	if (Nirvana::Dir::_narrow (nc))
-		Base::bind_dir (n, FileSystem::adapter ()->reference_to_id (nc), rebind);
-	else
-		throw BAD_PARAM (make_minor_errno (ENOTDIR));
-}
-
-}
-}
+#endif

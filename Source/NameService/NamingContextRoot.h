@@ -65,8 +65,7 @@ public:
 
 protected:
 	NamingContextRoot (uint32_t signature = 0) :
-		signature_ (signature),
-		destroyed_ (false)
+		signature_ (signature)
 	{}
 
 	uint32_t signature () const noexcept
@@ -74,19 +73,11 @@ protected:
 		return signature_;
 	}
 
-	void destroy ();
-
-	bool destroyed () const noexcept
-	{
-		return destroyed_;
-	}
-
 private:
 	static NameComponent to_component (Istring& s, bool may_move);
 
 private:
 	const uint32_t signature_;
-	bool destroyed_;
 };
 
 }

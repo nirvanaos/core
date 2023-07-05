@@ -58,9 +58,30 @@ public:
 	NamingContext::_ref_type bind_new_context (Name& n);
 	virtual NamingContext::_ref_type bind_new_context1 (Name& n) = 0;
 
+	void list (uint32_t how_many, BindingList& bl, CosNaming::BindingIterator::_ref_type& bi) const
+	{
+		check_exist ();
+		NamingContextRoot::list (how_many, bl, bi);
+	}
+
+	void destroy ()
+	{
+		check_exist ();
+		destroyed_ = true;
+	}
+
+	bool destroyed () const noexcept
+	{
+		return destroyed_;
+	}
+
+	void check_exist () const;
+	void check_name (const Name& n) const;
+
 protected:
 	NamingContextBase (uint32_t signature = 0) :
-		NamingContextRoot (signature)
+		NamingContextRoot (signature),
+		destroyed_ (false)
 	{}
 
 	virtual std::unique_ptr <Iterator> make_iterator () const override;
@@ -68,6 +89,9 @@ protected:
 
 private:
 	NamingContext::_ref_type resolve_child (Name& n);
+
+private:
+	bool destroyed_;
 };
 
 }

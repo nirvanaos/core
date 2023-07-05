@@ -56,15 +56,12 @@ public:
 		return FileSystem::adapter ();
 	}
 
+	using Base::_non_existent;
+
 	template <class ... Args>
 	File (Args ... args) :
 		Base (std::forward <Args> (args)...)
 	{}
-
-	bool _non_existent ()
-	{
-		return type () == FileType::not_found;
-	}
 
 	FileType type () noexcept
 	{
@@ -78,6 +75,8 @@ public:
 
 	uint64_t size ()
 	{
+		check_exist ();
+
 		if (access_)
 			return access_->size ();
 		else
@@ -86,6 +85,8 @@ public:
 
 	Access::_ref_type open (uint_fast16_t flags, uint_fast16_t mode)
 	{
+		check_exist ();
+
 		if (
 			((flags & O_DIRECT) && (flags & O_TEXT))
 			||

@@ -50,8 +50,13 @@ public:
 
 	void destroy ()
 	{
-		NamingContextImpl::destroy ();
-		Nirvana::Core::deactivate_servant (this);
+		if (!bindings_.empty ())
+			throw NotEmpty ();
+
+		if (links_.empty ()) {
+			NamingContextImpl::destroy ();
+			Nirvana::Core::deactivate_servant (this);
+		}
 	}
 
 	virtual NamingContext::_ptr_type this_context () override
@@ -117,7 +122,6 @@ NamingContextImpl* NamingContextImpl::cast (Object::_ptr_type obj) noexcept
 		return nullptr;
 
 	NamingContextImpl* impl = nullptr;
-
 
 	Reference* ref = ProxyManager::cast (obj)->to_reference ();
 	if (ref) {
@@ -201,6 +205,7 @@ void NamingContextImpl::bind1 (Name& n, Object::_ptr_type obj)
 
 void NamingContextImpl::rebind1 (Name& n, CORBA::Object::_ptr_type obj)
 {
+	assert (n.size () == 1);
 	auto ins = emplace (n, obj, BindingType::nobject);
 
 	if (!ins.second) {
@@ -213,6 +218,7 @@ void NamingContextImpl::rebind1 (Name& n, CORBA::Object::_ptr_type obj)
 
 void NamingContextImpl::bind_context1 (Name& n, NamingContext::_ptr_type nc)
 {
+	assert (n.size () == 1);
 	assert (nc);
 	auto ins = emplace (n, nc, BindingType::ncontext);
 
@@ -228,6 +234,7 @@ void NamingContextImpl::bind_context1 (Name& n, NamingContext::_ptr_type nc)
 
 void NamingContextImpl::rebind_context1 (Name& n, NamingContext::_ptr_type nc)
 {
+	assert (n.size () == 1);
 	assert (nc);
 	auto ins = emplace (n, nc, BindingType::ncontext);
 
@@ -277,6 +284,7 @@ void NamingContextImpl::unlink (NamingContextImpl& context, const Name& n)
 
 Object::_ref_type NamingContextImpl::resolve1 (Name& n)
 {
+	assert (!n.empty ());
 	auto it = bindings_.find (to_string (n.front ()));
 	if (it == bindings_.end ())
 		throw NamingContext::NotFound (NamingContext::NotFoundReason::missing_node, std::move (n));
@@ -285,6 +293,7 @@ Object::_ref_type NamingContextImpl::resolve1 (Name& n)
 
 void NamingContextImpl::unbind1 (Name& n)
 {
+	assert (!n.empty ());
 	auto it = bindings_.find (to_string (n.front ()));
 	if (it == bindings_.end ())
 		throw NamingContext::NotFound (NamingContext::NotFoundReason::missing_node, std::move (n));
@@ -300,6 +309,7 @@ NamingContext::_ref_type NamingContextImpl::new_context ()
 
 NamingContext::_ref_type NamingContextImpl::bind_new_context1 (Name& n)
 {
+	assert (n.size () == 1);
 	servant_reference <NamingContextDefault> servant = NamingContextDefault::create ();
 	NamingContext::_ref_type nc = servant->_this ();
 	auto ins = emplace (n, nc, BindingType::ncontext);

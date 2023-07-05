@@ -34,6 +34,7 @@
 #include "FileSystem.h"
 #include "../Chrono.h"
 #include <fnctl.h>
+#include "DirIter.h"
 
 namespace Nirvana {
 namespace Core {
@@ -82,18 +83,16 @@ public:
 		Base (std::forward <Args> (args)...)
 	{}
 
-	bool _non_existent ()
-	{
-		return type () == Nirvana::FileType::not_found;
-	}
+	using Base::_non_existent;
 
 	FileType type () noexcept
 	{
 		return Base::type ();
 	}
 
-	void stat (FileStat& st) const
+	void stat (FileStat& st)
 	{
+		check_exist ();
 		Base::stat (st);
 	}
 
@@ -111,7 +110,8 @@ public:
 		bind_context (n, nc, true);
 	}
 
-	Nirvana::DirItem::_ref_type resolve (CosNaming::Name& n)
+	// This method must be const to avoid race condition in iterator.
+	Nirvana::DirItem::_ref_type resolve (CosNaming::Name& n) const
 	{
 		check_name (n);
 		return FileSystem::get_reference (Base::resolve_path (n));
@@ -125,6 +125,7 @@ public:
 
 	CosNaming::NamingContext::_ref_type bind_new_context (CosNaming::Name& n)
 	{
+		check_name (n);
 		return FileSystem::get_dir (Base::create_dir (n));
 	}
 
@@ -156,6 +157,8 @@ public:
 
 	Access::_ref_type mkostemps (IDL::String& name, uint_fast16_t suffix_len, uint_fast16_t flags)
 	{
+		check_exist ();
+
 		// Check name pattern
 		size_t name_size = name.size ();
 		if (name_size < 6 + suffix_len)
@@ -203,18 +206,54 @@ public:
 		}
 	}
 
-	DirIterator::_ref_type opendir (const IDL::String& regexp, uint_fast16_t flags)
+	std::unique_ptr <CosNaming::Core::Iterator> make_iterator () const
 	{
-		throw CORBA::NO_IMPLEMENT ();
+		check_exist ();
+		return Base::make_iterator ();
 	}
+
+	void opendir (const IDL::String& regexp, uint_fast16_t flags,
+		uint32_t how_many, DirEntryList& l, DirIterator::_ref_type& di);
 
 	void remove ()
 	{
+		check_exist ();
 		Base::remove ();
 		_default_POA ()->deactivate_object (id ());
 	}
 
+private:
+	void check_name (const CosNaming::Name& n) const;
+
 };
+
+inline
+DirIter::DirIter (Dir& dir, const std::string& regexp, unsigned flags) :
+	dir_ (&dir),
+	iterator_ (dir.make_iterator ()),
+	flags_ (flags & ~USE_REGEX)
+{
+	if (!regexp.empty () && regexp != "*" && regexp != "*.*") {
+		try {
+			regex_ = std::regex (regexp, get_regex_flags (flags));
+		} catch (const std::regex_error&) {
+			throw CORBA::BAD_PARAM ();
+		}
+		flags_ |= USE_REGEX;
+	}
+}
+
+inline
+void Dir::opendir (const IDL::String& regexp, uint_fast16_t flags,
+	uint32_t how_many, DirEntryList& l, DirIterator::_ref_type& di)
+{
+	check_exist ();
+	std::unique_ptr <DirIter> iter (std::make_unique <DirIter> (std::ref (*this), std::ref (regexp), flags));
+	iter->next_n (how_many, l);
+	if (!iter->end ())
+		di = DirIter::create_iterator (std::move (iter));
+
+}
 
 }
 }
