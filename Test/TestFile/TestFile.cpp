@@ -249,7 +249,7 @@ TEST_F (TestFile, Directory)
 
 	// Create and close temporary file
 	std::string tmp_file = "XXXXXX.tmp";
-	tmp_dir->mkostemps (tmp_file, 4, 0);
+	tmp_dir->mkostemps (tmp_file, 4, 0)->close ();
 
 	// Try to remove directory that is not empty
 	bool thrown = false;
@@ -265,10 +265,17 @@ TEST_F (TestFile, Directory)
 	// Delete file
 	Name tmp_file_name;
 	g_system->get_name_from_path (tmp_file, tmp_file_name, tmp_dir);
-	tmp_dir->unbind (tmp_file_name);
+
+	try {
+		tmp_dir->unbind (tmp_file_name);
+	} catch (const SystemException& ex) {
+		ADD_FAILURE () << ex._name () << ' ' << get_minor_errno (ex.minor ());
+	}
+
+	tmp_dir = nullptr;
 
 	// Remove empty directory
-	root->unbind (tmp_dir_name);
+	EXPECT_NO_THROW (root->unbind (tmp_dir_name));
 }
 
 /*
