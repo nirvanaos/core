@@ -70,6 +70,8 @@ public:
 
 	void stat (FileStat& st)
 	{
+		check_exist ();
+
 		return Base::stat (st);
 	}
 

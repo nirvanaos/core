@@ -1,4 +1,6 @@
 #include <Nirvana/Nirvana.h>
+#include <Nirvana/System.h>
+#include <signal.h>
 #include <gtest/gtest.h>
 
 using namespace Nirvana;

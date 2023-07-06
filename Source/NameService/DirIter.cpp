@@ -61,7 +61,7 @@ bool DirIter::next_one (DirEntry& de)
 
 		try {
 			DirItem::_ref_type item = dir_->resolve (b.binding_name ());
-			item->stat (de.stat ());
+			item->stat (de.st ());
 		} catch (const CORBA::NO_PERMISSION ()) {
 			if (flags_ & Nirvana::DirIterator::SKIP_PERMISSION_DENIED)
 				continue;

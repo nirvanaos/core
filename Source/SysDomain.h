@@ -55,8 +55,8 @@ public:
 
 	static Platforms supported_platforms ()
 	{
-		return Platforms (std::begin (Port::SystemInfo::supported_platforms_),
-			std::end (Port::SystemInfo::supported_platforms_));
+		return Platforms (Port::SystemInfo::supported_platforms (),
+			Port::SystemInfo::supported_platforms () + Port::SystemInfo::SUPPORTED_PLATFORM_CNT);
 	}
 
 	Nirvana::SysDomain::_ref_type connect (const IDL::String& user, const IDL::String& password)

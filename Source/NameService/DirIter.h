@@ -29,6 +29,7 @@
 #pragma once
 
 #include <Nirvana/Nirvana.h>
+#include <Nirvana/File.h>
 #include "../CoreInterface.h"
 #include <memory>
 

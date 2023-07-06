@@ -1,4 +1,5 @@
 #include <Nirvana/Nirvana.h>
+#include <Nirvana/System.h>
 #include <Nirvana/Legacy/Legacy.h>
 #include <gtest/gtest.h>
 

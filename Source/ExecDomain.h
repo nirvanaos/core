@@ -40,6 +40,7 @@
 #include "TLS.h"
 #include <limits>
 #include <utility>
+#include <signal.h>
 
 struct siginfo;
 

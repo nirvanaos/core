@@ -1,5 +1,6 @@
-
 #include <Nirvana/Nirvana.h>
+#include <Nirvana/Fixed.h>
+#include <signal.h>
 #include <gtest/gtest.h>
 #include <sstream>
 

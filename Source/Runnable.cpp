@@ -25,6 +25,7 @@
 */
 #include "Runnable.h"
 #include "unrecoverable_error.h"
+#include <signal.h>
 
 namespace Nirvana {
 namespace Core {
