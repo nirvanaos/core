@@ -1,4 +1,5 @@
 #include <Nirvana/Nirvana.h>
+#include <Nirvana/DirectoryIterator.h>
 #include <fnctl.h>
 #include <gtest/gtest.h>
 #include <sys/stat.h>
@@ -200,6 +201,21 @@ TEST_F (TestFile, Direct)
 	file->remove ();
 	EXPECT_TRUE (file->_non_existent ());
 }
+
+TEST_F (TestFile, DirectoryIterator)
+{
+	// Obtain temporary directory object
+	Object::_ref_type obj = naming_service_->resolve_str ("\\//home");
+	ASSERT_TRUE (obj);
+	Dir::_ref_type dir = Dir::_narrow (obj);
+	ASSERT_TRUE (dir);
+
+	DirectoryIterator iter (dir);
+	while (const DirEntry* p = iter.readdir ()) {
+		EXPECT_FALSE (p->name ().empty ());
+	}
+}
+
 /*
 TEST_F (TestFile, Buf)
 {
