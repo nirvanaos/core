@@ -1,5 +1,6 @@
 #include <Nirvana/Nirvana.h>
 #include <Nirvana/DirectoryIterator.h>
+#include <Nirvana/System.h>
 #include <fnctl.h>
 #include <gtest/gtest.h>
 #include <sys/stat.h>
@@ -204,7 +205,7 @@ TEST_F (TestFile, Direct)
 
 TEST_F (TestFile, DirectoryIterator)
 {
-	// Obtain temporary directory object
+	// Obtain directory object
 	Object::_ref_type obj = naming_service_->resolve_str ("\\//home");
 	ASSERT_TRUE (obj);
 	Dir::_ref_type dir = Dir::_narrow (obj);
@@ -214,6 +215,59 @@ TEST_F (TestFile, DirectoryIterator)
 	while (const DirEntry* p = iter.readdir ()) {
 		EXPECT_FALSE (p->name ().empty ());
 	}
+}
+
+void clear_directory (Dir::_ptr_type dir)
+{
+	ASSERT_TRUE (dir);
+	DirectoryIterator iter (dir);
+	while (const DirEntry* p = iter.readdir ()) {
+		Name name;
+		g_system->get_name_from_path (p->name (), name, dir);
+		if (FileType::directory == (FileType)p->st ().type ())
+			clear_directory (Dir::_narrow (dir->resolve (name)));
+		dir->unbind (name);
+	}
+}
+
+TEST_F (TestFile, Directory)
+{
+	// Make temporary directory
+	Name tmp_dir_name;
+	Dir::_ref_type root = g_system->get_name_from_path ("/tmp/test", tmp_dir_name, nullptr);
+	ASSERT_TRUE (root);
+	Dir::_ref_type tmp_dir;
+	try {
+		tmp_dir = Dir::_narrow (root->bind_new_context (tmp_dir_name));
+	} catch (const NamingContext::AlreadyBound&) {
+	}
+	if (!tmp_dir) {
+		tmp_dir = Dir::_narrow (root->resolve (tmp_dir_name));
+		ASSERT_TRUE (tmp_dir);
+		clear_directory (tmp_dir);
+	}
+
+	// Create and close temporary file
+	std::string tmp_file = "XXXXXX.tmp";
+	tmp_dir->mkostemps (tmp_file, 4, 0);
+
+	// Try to remove directory that is not empty
+	bool thrown = false;
+	try {
+		root->unbind (tmp_dir_name);
+	} catch (const SystemException& ex) {
+		EXPECT_EQ (get_minor_errno (ex.minor ()), ENOTEMPTY);
+		thrown = true;
+	}
+	EXPECT_TRUE (thrown);
+
+	// Delete file
+	Name tmp_file_name;
+	g_system->get_name_from_path (tmp_file, tmp_file_name, tmp_dir);
+	tmp_dir->unbind (tmp_file_name);
+
+	// Remove empty directory
+	root->unbind (tmp_dir_name);
 }
 
 /*

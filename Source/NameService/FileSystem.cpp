@@ -152,7 +152,7 @@ Dir::_ref_type FileSystem::get_name_from_path (const IDL::String& path, CosNamin
 		n = CosNaming::Core::NameService::to_name (path);
 		assert (n.front ().id ().empty ());
 		assert (n.front ().kind ().empty ());
-		n.front ().id ("/");
+		n.erase (n.begin ());
 		return get_root ();
 	} else {
 		n = Port::FileSystem::get_name_from_path (path);
