@@ -249,27 +249,12 @@ public:
 		return TLS::current ().get (idx);
 	}
 
-	static Access::_ref_type open_file (const IDL::String& path, uint_fast16_t flags, uint_fast16_t mode)
+	static Dir::_ref_type get_name_from_path (const IDL::String& path, CosNaming::Name& n,
+		Dir::_ptr_type dir)
 	{
-		CosNaming::Name n;
-		Dir::_ref_type dir = FileSystem::get_name_from_path (path, n);
-		return dir->open (n, flags, mode);
+		return FileSystem::get_name_from_path (path, n, dir);
 	}
 
-	static int_fast16_t remove (const IDL::String& path)
-	{
-		try {
-			CosNaming::Name n;
-			Dir::_ref_type dir = FileSystem::get_name_from_path (path, n);
-			dir->unbind (n);
-		} catch (const CORBA::SystemException& ex) {
-			int err = get_minor_errno (ex.minor ());
-			if (err)
-				return err;
-			throw;
-		}
-		return 0;
-	}
 };
 
 }
