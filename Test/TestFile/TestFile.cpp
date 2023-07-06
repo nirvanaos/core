@@ -256,6 +256,7 @@ TEST_F (TestFile, Directory)
 	try {
 		root->unbind (tmp_dir_name);
 	} catch (const SystemException& ex) {
+		EXPECT_TRUE (INTERNAL::_downcast (&ex));
 		EXPECT_EQ (get_minor_errno (ex.minor ()), ENOTEMPTY);
 		thrown = true;
 	}
