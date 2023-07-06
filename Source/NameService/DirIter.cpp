@@ -32,31 +32,6 @@ using namespace CosNaming;
 namespace Nirvana {
 namespace Core {
 
-std::regex::flag_type DirIter::get_regex_flags (unsigned flags)
-{
-	struct FlagMap {
-		unsigned flag;
-		std::regex::flag_type regex_flag;
-	};
-
-	static const FlagMap flag_map [] = {
-		{ Nirvana::DirIterator::REGEX_ICASE, std::regex_constants::icase },
-		{ Nirvana::DirIterator::REGEX_BASIC, std::regex_constants::basic },
-		{ Nirvana::DirIterator::REGEX_EXTENDED, std::regex_constants::extended },
-		{ Nirvana::DirIterator::REGEX_AWK, std::regex_constants::awk },
-		{ Nirvana::DirIterator::REGEX_GREP, std::regex_constants::grep },
-		{ Nirvana::DirIterator::REGEX_EGREP, std::regex_constants::egrep }
-	};
-
-	std::regex::flag_type regex_flags = std::regex_constants::nosubs | std::regex_constants::optimize;
-	for (const FlagMap* p = flag_map; p != std::end (flag_map); ++p) {
-		if (p->flag & flags)
-			regex_flags |= p->regex_flag;
-	}
-
-	return regex_flags;
-}
-
 bool DirIter::next_one (DirEntry& de)
 {
 	if (end ())
@@ -75,8 +50,14 @@ bool DirIter::next_one (DirEntry& de)
 			de.name () += nc.kind ();
 		}
 
-		if ((flags_ & USE_REGEX) && !std::regex_match (de.name (), regex_))
-			continue;
+/*
+		if (flags_ & USE_REGEX) {
+			std::basic_string <char32_t> wname;
+			utf8_to_wide (de.name (), wname);
+			if (!std::regex_match (wname, regex_))
+				continue;
+		}
+*/
 
 		try {
 			DirItem::_ref_type item = dir_->resolve (b.binding_name ());

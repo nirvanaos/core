@@ -30,7 +30,7 @@
 
 #include <Nirvana/Nirvana.h>
 #include "../CoreInterface.h"
-#include <regex>
+#include <memory>
 
 namespace CosNaming {
 namespace Core {
@@ -61,12 +61,10 @@ public:
 	}
 
 private:
-	static std::regex::flag_type get_regex_flags (unsigned flags);
-
 	Ref <Dir> dir_;
 	std::unique_ptr <CosNaming::Core::Iterator> iterator_;
-	std::regex regex_;
 	unsigned flags_;
+
 	static const unsigned USE_REGEX = 0x8000;
 };
 

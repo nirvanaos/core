@@ -212,7 +212,7 @@ public:
 		return Base::make_iterator ();
 	}
 
-	void opendir (const IDL::String& regexp, uint_fast16_t flags,
+	void opendir (const IDL::String& regexp, unsigned flags,
 		uint32_t how_many, DirEntryList& l, DirIterator::_ref_type& di);
 
 	void remove ()
@@ -234,17 +234,13 @@ DirIter::DirIter (Dir& dir, const std::string& regexp, unsigned flags) :
 	flags_ (flags & ~USE_REGEX)
 {
 	if (!regexp.empty () && regexp != "*" && regexp != "*.*") {
-		try {
-			regex_ = std::regex (regexp, get_regex_flags (flags));
-		} catch (const std::regex_error&) {
-			throw CORBA::BAD_PARAM ();
-		}
 		flags_ |= USE_REGEX;
+		throw CORBA::NO_IMPLEMENT (); // TODO: Implement.
 	}
 }
 
 inline
-void Dir::opendir (const IDL::String& regexp, uint_fast16_t flags,
+void Dir::opendir (const IDL::String& regexp, unsigned flags,
 	uint32_t how_many, DirEntryList& l, DirIterator::_ref_type& di)
 {
 	check_exist ();
@@ -252,7 +248,6 @@ void Dir::opendir (const IDL::String& regexp, uint_fast16_t flags,
 	iter->next_n (how_many, l);
 	if (!iter->end ())
 		di = DirIter::create_iterator (std::move (iter));
-
 }
 
 }

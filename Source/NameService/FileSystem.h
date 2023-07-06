@@ -136,7 +136,7 @@ public:
 		throw RuntimeError (ENOSYS);
 	}
 
-	static void opendir (const IDL::String& regexp, uint_fast16_t flags,
+	static void opendir (const IDL::String& regexp, unsigned flags,
 		uint32_t how_many, DirEntryList& l, DirIterator::_ref_type& di)
 	{
 		throw CORBA::NO_IMPLEMENT ();
