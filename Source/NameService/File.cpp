@@ -34,5 +34,11 @@ void File::check_exist ()
 		throw CORBA::OBJECT_NOT_EXIST (make_minor_errno (ENOENT));
 }
 
+void File::etherealize ()
+{
+	Base::etherealize ();
+	_default_POA ()->deactivate_object (id ());
+}
+
 }
 }

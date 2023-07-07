@@ -83,6 +83,15 @@ public:
 		}
 	}
 
+	void remove ()
+	{
+		check_exist ();
+		if (access_)
+			throw RuntimeError (EACCES);
+		Base::remove ();
+		etherealize ();
+	}
+
 	uint64_t size ()
 	{
 		check_exist ();
@@ -160,17 +169,9 @@ public:
 			access_ = nullptr;
 	}
 
-	void remove ()
-	{
-		check_exist ();
-		if (access_)
-			throw RuntimeError (EACCES);
-		Base::remove ();
-		etherealize ();
-	}
-
 private:
 	void check_exist ();
+	void etherealize ();
 
 private:
 	friend class FileAccessDirectProxy;

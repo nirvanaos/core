@@ -86,5 +86,11 @@ void Dir::bind_context (Name& n, NamingContext::_ptr_type nc, bool rebind)
 		throw BAD_PARAM (make_minor_errno (ENOTDIR));
 }
 
+void Dir::etherealize ()
+{
+	Base::etherealize ();
+	_default_POA ()->deactivate_object (id ());
+}
+
 }
 }

@@ -95,7 +95,20 @@ public:
 	void stat (FileStat& st)
 	{
 		check_exist ();
-		Base::stat (st);
+
+		try {
+			return Base::stat (st);
+		} catch (const CORBA::OBJECT_NOT_EXIST&) {
+			etherealize ();
+			throw;
+		}
+	}
+
+	void remove ()
+	{
+		check_exist ();
+		Base::remove ();
+		etherealize ();
 	}
 
 	void bind (CosNaming::Name& n, CORBA::Object::_ptr_type obj, bool rebind = false);
@@ -242,18 +255,12 @@ public:
 	void opendir (const IDL::String& regexp, unsigned flags,
 		uint32_t how_many, DirEntryList& l, DirIterator::_ref_type& di);
 
-	void remove ()
-	{
-		check_exist ();
-		Base::remove ();
-		etherealize ();
-	}
-
 private:
 	void check_name (const CosNaming::Name& n);
 	void check_exist ();
 	void bind_file (CosNaming::Name& n, CORBA::Object::_ptr_type obj, bool rebind);
 	void bind_dir (CosNaming::Name& n, CORBA::Object::_ptr_type obj, bool rebind);
+	void etherealize ();
 };
 
 inline
