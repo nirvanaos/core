@@ -84,7 +84,15 @@ public:
 
 	bool _non_existent () noexcept
 	{
-		return Base::type () == FileType::not_found;
+		if (Base::type () == FileType::not_found)
+			return true;
+
+		if (Base::_non_existent ()) {
+			etherealize ();
+			return true;
+		}
+
+		return false;
 	}
 
 	FileType type () noexcept

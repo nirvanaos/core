@@ -272,10 +272,10 @@ TEST_F (TestFile, Directory)
 		ADD_FAILURE () << ex._name () << ' ' << get_minor_errno (ex.minor ());
 	}
 
-	tmp_dir = nullptr;
-
 	// Remove empty directory
 	EXPECT_NO_THROW (root->unbind (tmp_dir_name));
+
+	EXPECT_TRUE (tmp_dir->_non_existent ());
 }
 
 /*
