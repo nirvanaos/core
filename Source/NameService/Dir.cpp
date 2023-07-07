@@ -33,7 +33,7 @@ namespace Core {
 
 void Dir::check_exist ()
 {
-	if (_non_existent ())
+	if (Base::type () == FileType::not_found)
 		throw OBJECT_NOT_EXIST (make_minor_errno (ENOTDIR));
 }
 

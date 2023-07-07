@@ -30,7 +30,7 @@ namespace Core {
 
 void File::check_exist ()
 {
-	if (_non_existent ())
+	if (Base::type () == FileType::not_found)
 		throw CORBA::OBJECT_NOT_EXIST (make_minor_errno (ENOENT));
 }
 
