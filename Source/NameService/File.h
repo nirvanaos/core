@@ -56,7 +56,10 @@ public:
 		return FileSystem::adapter ();
 	}
 
-	using Base::_non_existent;
+	bool _non_existent () noexcept
+	{
+		return Base::type () == FileType::not_found;
+	}
 
 	template <class ... Args>
 	File (Args ... args) :
@@ -72,7 +75,12 @@ public:
 	{
 		check_exist ();
 
-		return Base::stat (st);
+		try {
+			return Base::stat (st);
+		} catch (const CORBA::OBJECT_NOT_EXIST&) {
+			etherealize ();
+			throw;
+		}
 	}
 
 	uint64_t size ()
@@ -81,13 +89,21 @@ public:
 
 		if (access_)
 			return access_->size ();
-		else
-			return Base::size ();
+		else {
+			try {
+				return Base::size ();
+			} catch (const CORBA::OBJECT_NOT_EXIST&) {
+				etherealize ();
+				throw;
+			}
+		}
 	}
 
 	Access::_ref_type open (uint_fast16_t flags, uint_fast16_t mode)
 	{
-		check_exist ();
+		bool create = (flags & (O_EXCL | O_CREAT | O_TRUNC)) == (O_EXCL | O_CREAT);
+		if (!create)
+			check_exist ();
 
 		if (
 			((flags & O_DIRECT) && (flags & O_TEXT))
@@ -96,9 +112,14 @@ public:
 			)
 			throw CORBA::INV_FLAG ();
 
-		if (!access_)
-			access_ = std::make_unique <Nirvana::Core::FileAccessDirect> (std::ref (port ()), flags, mode);
-		else if ((flags & (O_EXCL | O_CREAT | O_TRUNC)) == (O_EXCL | O_CREAT))
+		if (!access_) {
+			try {
+				access_ = std::make_unique <Nirvana::Core::FileAccessDirect> (std::ref (port ()), flags, mode);
+			} catch (const CORBA::OBJECT_NOT_EXIST&) {
+				etherealize ();
+				throw;
+			}
+		} else if (create)
 			throw RuntimeError (EEXIST);
 
 		unsigned access_mask = FileAccessBase::get_access_mask (flags);
@@ -141,11 +162,15 @@ public:
 
 	void remove ()
 	{
+		check_exist ();
 		if (access_)
 			throw RuntimeError (EACCES);
 		Base::remove ();
-		_default_POA ()->deactivate_object (id ());
+		etherealize ();
 	}
+
+private:
+	void check_exist ();
 
 private:
 	friend class FileAccessDirectProxy;

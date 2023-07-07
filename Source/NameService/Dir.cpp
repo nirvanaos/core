@@ -31,19 +31,48 @@ using namespace CORBA;
 namespace Nirvana {
 namespace Core {
 
-void Dir::check_name (const CosNaming::Name& n) const
+void Dir::check_exist ()
+{
+	if (_non_existent ())
+		throw OBJECT_NOT_EXIST (make_minor_errno (ENOTDIR));
+}
+
+void Dir::check_name (const CosNaming::Name& n)
 {
 	check_exist ();
 	Base::check_name (n);
+}
+
+inline
+void Dir::bind_file (Name& n, Object::_ptr_type obj, bool rebind)
+{
+	DirItemId id = FileSystem::adapter ()->reference_to_id (obj);
+	try {
+		Base::bind_file (n, id, rebind);
+	} catch (const OBJECT_NOT_EXIST&) {
+		etherealize ();
+		throw;
+	}
+}
+
+void Dir::bind_dir (Name& n, Object::_ptr_type obj, bool rebind)
+{
+	DirItemId id = FileSystem::adapter ()->reference_to_id (obj);
+	try {
+		Base::bind_dir (n, id, rebind);
+	} catch (const OBJECT_NOT_EXIST&) {
+		etherealize ();
+		throw;
+	}
 }
 
 void Dir::bind (Name& n, Object::_ptr_type obj, bool rebind)
 {
 	check_name (n);
 	if (Nirvana::File::_narrow (obj))
-		Base::bind_file (n, FileSystem::adapter ()->reference_to_id (obj), rebind);
+		bind_file (n, obj, rebind);
 	else if (Nirvana::Dir::_narrow (obj))
-		bind_dir (n, FileSystem::adapter ()->reference_to_id (obj), rebind);
+		bind_dir (n, obj, rebind);
 	else
 		throw BAD_PARAM (make_minor_errno (ENOENT));
 }
@@ -52,7 +81,7 @@ void Dir::bind_context (Name& n, NamingContext::_ptr_type nc, bool rebind)
 {
 	check_name (n);
 	if (Nirvana::Dir::_narrow (nc))
-		Base::bind_dir (n, FileSystem::adapter ()->reference_to_id (nc), rebind);
+		bind_dir (n, nc, rebind);
 	else
 		throw BAD_PARAM (make_minor_errno (ENOTDIR));
 }

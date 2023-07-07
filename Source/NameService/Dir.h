@@ -82,7 +82,10 @@ public:
 		Base (std::forward <Args> (args)...)
 	{}
 
-	using Base::_non_existent;
+	bool _non_existent () noexcept
+	{
+		return Base::type () == FileType::not_found;
+	}
 
 	FileType type () noexcept
 	{
@@ -109,10 +112,20 @@ public:
 		bind_context (n, nc, true);
 	}
 
-	// This method must be const to avoid race condition in iterator.
-	Nirvana::DirItem::_ref_type resolve (CosNaming::Name& n) const
+	Nirvana::DirItem::_ref_type resolve (CosNaming::Name& n)
 	{
 		check_name (n);
+		try {
+			return resolve_const (n);
+		} catch (const CORBA::OBJECT_NOT_EXIST&) {
+			Base::etherealize ();
+			throw;
+		}
+	}
+
+	// This method must be really const to avoid race condition in iterator.
+	Nirvana::DirItem::_ref_type resolve_const (CosNaming::Name& n) const
+	{
 		return FileSystem::get_reference (Base::resolve_path (n));
 	}
 
@@ -125,10 +138,26 @@ public:
 	CosNaming::NamingContext::_ref_type bind_new_context (CosNaming::Name& n)
 	{
 		check_name (n);
-		return FileSystem::get_dir (Base::create_dir (n));
+		try {
+			return FileSystem::get_dir (Base::create_dir (n));
+		} catch (const CORBA::OBJECT_NOT_EXIST&) {
+			etherealize ();
+			throw;
+		}
 	}
 
-	using NamingContextRoot::list;
+	void list (uint32_t how_many, CosNaming::BindingList& bl, CosNaming::BindingIterator::_ref_type& bi)
+	{
+		check_exist ();
+		try {
+			Base::list (how_many, bl, bi);
+		} catch (const CORBA::OBJECT_NOT_EXIST&) {
+			etherealize ();
+			throw;
+		}
+	}
+
+	using Base::make_iterator;
 
 	Access::_ref_type open (CosNaming::Name& n, uint_fast16_t flags, uint_fast16_t mode)
 	{
@@ -142,11 +171,13 @@ public:
 						throw;
 				}
 			}
-			DirItemId id = Base::resolve_path (n);
-			if (FileSystem::get_item_type (id) == FileType::directory)
+
+			Nirvana::File::_ref_type file = Nirvana::File::_narrow (resolve (n));
+			if (!file)
 				throw RuntimeError (EISDIR);
+
 			try {
-				return FileSystem::get_file (id)->open (flags, mode);
+				return file->open (flags, mode);
 			} catch (const RuntimeError& err) {
 				if (!(flags & O_CREAT) || err.error_number () != ENOENT)
 					throw;
@@ -197,18 +228,15 @@ public:
 			} catch (const RuntimeError& ex) {
 				if (ex.error_number () != EEXIST || MAX_CNT == ++try_cnt)
 					throw;
+			} catch (const CORBA::OBJECT_NOT_EXIST&) {
+				etherealize ();
+				throw;
 			}
 			if (acc) {
 				real_copy (p_start, p_end, name_p + pattern_start);
 				return acc;
 			}
 		}
-	}
-
-	std::unique_ptr <CosNaming::Core::Iterator> make_iterator () const
-	{
-		check_exist ();
-		return Base::make_iterator ();
 	}
 
 	void opendir (const IDL::String& regexp, unsigned flags,
@@ -218,12 +246,14 @@ public:
 	{
 		check_exist ();
 		Base::remove ();
-		_default_POA ()->deactivate_object (id ());
+		etherealize ();
 	}
 
 private:
-	void check_name (const CosNaming::Name& n) const;
-
+	void check_name (const CosNaming::Name& n);
+	void check_exist ();
+	void bind_file (CosNaming::Name& n, CORBA::Object::_ptr_type obj, bool rebind);
+	void bind_dir (CosNaming::Name& n, CORBA::Object::_ptr_type obj, bool rebind);
 };
 
 inline
@@ -243,7 +273,13 @@ void Dir::opendir (const IDL::String& regexp, unsigned flags,
 	uint32_t how_many, DirEntryList& l, DirIterator::_ref_type& di)
 {
 	check_exist ();
-	std::unique_ptr <DirIter> iter (std::make_unique <DirIter> (std::ref (*this), std::ref (regexp), flags));
+	std::unique_ptr <DirIter> iter;
+	try {
+		iter = std::make_unique <DirIter> (std::ref (*this), std::ref (regexp), flags);
+	} catch (const CORBA::OBJECT_NOT_EXIST&) {
+		etherealize ();
+		throw;
+	}
 	iter->next_n (how_many, l);
 	if (!iter->end ())
 		di = DirIter::create_iterator (std::move (iter));
