@@ -39,7 +39,7 @@ servant_reference <DomainProt> ProtDomainsWaitable::get (ProtDomainId domain_id)
 		auto wait_list = entry.second.wait_list ();
 		try {
 			DomainProt* p;
-			SYNC_BEGIN (Nirvana::Core::g_core_free_sync_context, &Nirvana::Core::MemContext::current ());
+			SYNC_BEGIN (Nirvana::Core::g_core_free_sync_context, &Nirvana::Core::MemContext::current ().heap ());
 			p = new DomainProt (domain_id);
 			SYNC_END ();
 
