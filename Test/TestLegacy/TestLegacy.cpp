@@ -49,9 +49,4 @@ TEST_F (TestLegacy, Mutex)
 	EXPECT_THROW (mtx->unlock (), BAD_INV_ORDER);
 }
 
-TEST_F (TestLegacy, CurDir)
-{
-	IDL::String cur_dir = Legacy::g_system->get_current_dir_name ();
-}
-
 }

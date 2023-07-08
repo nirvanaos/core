@@ -1,5 +1,6 @@
 #include <Nirvana/Nirvana.h>
 #include <Nirvana/System.h>
+#include <Nirvana/File.h>
 #include <signal.h>
 #include <gtest/gtest.h>
 
@@ -20,12 +21,10 @@ class TestSystem :
 {
 protected:
 	TestSystem ()
-	{
-	}
+	{}
 
 	virtual ~TestSystem ()
-	{
-	}
+	{}
 
 	// If the constructor and destructor are not enough for setting up
 	// and cleaning up each test, you can define the following methods:
@@ -115,6 +114,25 @@ void TestSystem::writemem (void* p)
 TEST_F (TestSystem, Yield)
 {
 	EXPECT_FALSE (g_system->yield ());
+}
+
+TEST_F (TestSystem, CurDir)
+{
+	CosNaming::Name cur_dir = g_system->get_current_dir_name ();
+	EXPECT_FALSE (cur_dir.empty ());
+	CosNaming::NamingContext::_ref_type ns = CosNaming::NamingContext::_narrow (
+		CORBA::g_ORB->resolve_initial_references ("NameService"));
+	ASSERT_TRUE (ns);
+	Dir::_ref_type dir = Dir::_narrow (ns->resolve (cur_dir));
+	ASSERT_TRUE (dir);
+	CosNaming::Name subdir;
+	subdir.emplace_back ("test", "tmp");
+	try {
+		dir->bind_new_context (subdir);
+	} catch (const CosNaming::NamingContext::AlreadyBound&) {}
+	g_system->chdir ("test.tmp");
+	g_system->chdir ("..");
+	dir->unbind (subdir);
 }
 
 }

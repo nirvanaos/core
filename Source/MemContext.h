@@ -81,6 +81,9 @@ public:
 	/// \param obj Object.
 	virtual void on_object_destruct (MemContextObject& obj) noexcept = 0;
 
+	virtual CosNaming::Name get_current_dir_name () const = 0;
+	virtual void chdir (const IDL::String& path) = 0;
+
 protected:
 	MemContext ();
 

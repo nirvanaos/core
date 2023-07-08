@@ -46,21 +46,6 @@ public:
 		return Mutex::create (ThreadBase::current ().process ());
 	}
 
-	static void chdir (const IDL::String& path)
-	{
-		Process::chdir (path);
-	}
-
-	static IDL::String get_current_dir_name ()
-	{
-		return Process::get_current_dir_name ();
-	}
-
-	static Dir::_ref_type get_current_dir ()
-	{
-		return Process::get_current_dir ();
-	}
-
 };
 
 }

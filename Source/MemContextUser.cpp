@@ -24,11 +24,17 @@
 *  popov.nirvana@gmail.com
 */
 #include "MemContextUser.h"
+#include "NameService/FileSystem.h"
+#include "ORB/Services.h"
 
 namespace Nirvana {
 namespace Core {
 
 MemContextUser::MemContextUser ()
+{}
+
+MemContextUser::MemContextUser (Heap& heap) noexcept :
+	MemContextCore (heap)
 {}
 
 MemContextUser::~MemContextUser ()
@@ -52,6 +58,50 @@ void MemContextUser::on_object_construct (MemContextObject& obj) noexcept
 void MemContextUser::on_object_destruct (MemContextObject& obj) noexcept
 {
 	// The object itself will remove from list. Nothing to do.
+}
+
+CosNaming::Name MemContextUser::get_current_dir_name () const
+{
+	if (!current_dir_.empty ())
+		return current_dir_;
+	else {
+		// Default is "/home"
+		CosNaming::Name home (2);
+		home.back ().id ("home");
+		return home;
+	}
+}
+
+void MemContextUser::chdir (const IDL::String& path)
+{
+	if (path.empty ()) {
+		current_dir_.clear ();
+		return;
+	}
+
+	IDL::String translated;
+	const IDL::String* ppath;
+	if (Port::FileSystem::translate_path (path, translated))
+		ppath = &translated;
+	else
+		ppath = &path;
+
+	CosNaming::Name new_dir;
+	if (!FileSystem::is_absolute (*ppath))
+		new_dir = MemContextUser::get_current_dir_name ();
+	FileSystem::get_name_from_path (new_dir, *ppath);
+
+	// Check that new directory exists
+	Dir::_ref_type dir = Dir::_narrow (
+		CosNaming::NamingContext::_narrow (CORBA::Core::Services::bind (CORBA::Core::Services::NameService)
+		)->resolve (new_dir));
+	if (!dir)
+		throw RuntimeError (ENOTDIR);
+
+	if (dir->_non_existent ())
+		throw RuntimeError (ENOENT);
+
+	current_dir_ = std::move (new_dir);
 }
 
 }

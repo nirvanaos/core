@@ -54,6 +54,8 @@ protected:
 	virtual void runtime_proxy_remove (const void* obj) noexcept override;
 	virtual void on_object_construct (MemContextObject& obj) noexcept override;
 	virtual void on_object_destruct (MemContextObject& obj) noexcept override;
+	virtual CosNaming::Name get_current_dir_name () const override;
+	virtual void chdir (const IDL::String& path) override;
 };
 
 }

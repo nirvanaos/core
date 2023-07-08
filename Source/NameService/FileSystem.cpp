@@ -136,35 +136,52 @@ void FileSystem::get_bindings (CosNaming::Core::IteratorStack& iter) const
 	}
 }
 
-Dir::_ref_type FileSystem::get_root ()
-{
-	Name n;
-	n.emplace_back ();
-	n.back ().id ().assign (1, '/');
-	return Dir::_narrow (NamingContextExt::_narrow (Services::bind (Services::NameService))->resolve (n));
-}
-
-Dir::_ref_type FileSystem::get_name_from_path (const IDL::String& path, CosNaming::Name& n, Dir::_ptr_type dir)
+void FileSystem::get_name_from_standard_path (CosNaming::Name& name, const IDL::String& path)
 {
 	if (path.empty ())
-		throw NamingContext::InvalidName ();
-	if (is_absolute (path)) {
-		n = CosNaming::Core::NameService::to_name (path);
-		assert (n.front ().id ().empty ());
-		assert (n.front ().kind ().empty ());
-		n.erase (n.begin ());
-		return get_root ();
-	} else {
-		n = Port::FileSystem::get_name_from_path (path);
-		if (is_absolute (n)) {
-			n.erase (n.begin ());
-			return get_root ();
-		} else if (dir)
-			return dir;
-		else if (SyncContext::current ().is_legacy_mode ())
-			return Legacy::Core::Process::get_current_dir ();
-		else
-			throw BAD_PARAM (); // Path must be absolute
+		return;
+
+	typedef IDL::String::const_iterator It;
+	typedef IDL::String::const_reverse_iterator Rit;
+
+	It name_begin = path.begin ();
+	It end = path.end ();
+	if ('/' == *name_begin) {
+		name.clear ();
+		name.emplace_back ();
+		++name_begin;
+	}
+
+	while (name_begin != end) {
+		auto slash = std::find (name_begin, end, '/');
+		if (slash == name_begin) {
+			// Skip multiple slashes
+			++name_begin;
+		} else {
+			if (slash - name_begin > 1 || '.' != *name_begin) {
+				if (slash - name_begin == 2 && '.' == *name_begin && '.' == *(name_begin + 1)) {
+					// Up one level
+					if (name.size () <= 1)
+						throw InvalidName ();
+					name.pop_back ();
+				} else {
+					name.emplace_back ();
+					NameComponent& nc = name.back ();
+					Rit rbegin (name_begin);
+					Rit rdot = std::find (Rit (slash), rbegin, '.');
+					if (rdot != rbegin) {
+						It dot (rdot.base () - 1);
+						nc.id ().assign (name_begin, dot);
+						nc.kind ().assign (dot + 1, slash);
+					} else
+						nc.id ().assign (name_begin, slash);
+				}
+			}
+			if (slash != end)
+				name_begin = slash + 1;
+			else
+				break;
+		}
 	}
 }
 
@@ -174,35 +191,12 @@ bool FileSystem::is_absolute (const Name& n) noexcept
 		return false;
 
 	const NameComponent& nc = n.front ();
-	return nc.id ().size () == 1 && nc.id ().front () == '/' && nc.kind ().empty ();
+	return nc.id ().empty () && nc.kind ().empty ();
 }
 
 bool FileSystem::is_absolute (const IDL::String& path) noexcept
 {
 	return !path.empty () && path.front () == '/';
-}
-
-Object::_ref_type FileSystem::resolve_path (const IDL::String& path, Dir::_ptr_type dir)
-{
-	if (is_absolute (path))
-		return resolve_absolute_path (path);
-	else {
-		Name n;
-		Dir::_ref_type dir = get_name_from_path (path, n, dir);
-		return dir->resolve (n);
-	}
-}
-
-Object::_ref_type FileSystem::resolve_absolute_path (const IDL::String& path)
-{
-	if (!is_absolute (path))
-		throw BAD_PARAM ();
-
-	IDL::String tmp;
-	tmp.reserve (path.size () + 2);
-	tmp = "\\/";
-	tmp += path;
-	return NamingContextExt::_narrow (Services::bind (Services::NameService))->resolve_str (tmp);
 }
 
 }

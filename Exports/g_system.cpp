@@ -249,12 +249,20 @@ public:
 		return TLS::current ().get (idx);
 	}
 
-	static Dir::_ref_type get_name_from_path (const IDL::String& path, CosNaming::Name& n,
-		Dir::_ptr_type dir)
+	static void get_name_from_path (CosNaming::Name& name, const IDL::String& path)
 	{
-		return FileSystem::get_name_from_path (path, n, dir);
+		FileSystem::get_name_from_path (name, path);
 	}
 
+	static CosNaming::Name get_current_dir_name ()
+	{
+		return MemContext::current ().get_current_dir_name ();
+	}
+
+	static void chdir (const IDL::String& path)
+	{
+		MemContext::current ().chdir (path);
+	}
 };
 
 }

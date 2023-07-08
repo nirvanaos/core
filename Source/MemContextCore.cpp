@@ -53,5 +53,17 @@ void MemContextCore::on_object_construct (MemContextObject& obj) noexcept
 void MemContextCore::on_object_destruct (MemContextObject& obj) noexcept
 {}
 
+CosNaming::Name MemContextCore::get_current_dir_name () const
+{
+	assert (false);
+	throw CORBA::NO_IMPLEMENT ();
+}
+
+void MemContextCore::chdir (const IDL::String& path)
+{
+	assert (false);
+	throw CORBA::NO_IMPLEMENT ();
+}
+
 }
 }

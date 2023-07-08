@@ -45,7 +45,7 @@ protected:
 TEST_F (TestFile, Var)
 {
 	// Obtain "var" directory object
-	Object::_ref_type obj = naming_service_->resolve_str ("\\//var");
+	Object::_ref_type obj = naming_service_->resolve_str ("/var");
 	ASSERT_TRUE (obj);
 	Dir::_ref_type dir = Dir::_narrow (obj);
 	ASSERT_TRUE (dir);
@@ -76,7 +76,7 @@ TEST_F (TestFile, Var)
 TEST_F (TestFile, TmpIterator)
 {
 	// Obtain temporary directory object
-	Object::_ref_type obj = naming_service_->resolve_str ("\\//var/tmp");
+	Object::_ref_type obj = naming_service_->resolve_str ("/var/tmp");
 	ASSERT_TRUE (obj);
 	Dir::_ref_type dir = Dir::_narrow (obj);
 	ASSERT_TRUE (dir);
@@ -99,7 +99,7 @@ TEST_F (TestFile, TmpIterator)
 TEST_F (TestFile, Mnt)
 {
 	// Iterate all drives in "mnt"
-	Object::_ref_type obj = naming_service_->resolve_str ("\\//mnt");
+	Object::_ref_type obj = naming_service_->resolve_str ("/mnt");
 	ASSERT_TRUE (obj);
 	Dir::_ref_type mnt = Dir::_narrow (obj);
 	ASSERT_TRUE (mnt);
@@ -137,7 +137,7 @@ TEST_F (TestFile, Mnt)
 TEST_F (TestFile, Direct)
 {
 	// Obtain temporary directory object
-	Object::_ref_type obj = naming_service_->resolve_str ("\\//var/tmp");
+	Object::_ref_type obj = naming_service_->resolve_str ("/var/tmp");
 	ASSERT_TRUE (obj);
 	Dir::_ref_type tmp_dir = Dir::_narrow (obj);
 	ASSERT_TRUE (tmp_dir);
@@ -206,7 +206,7 @@ TEST_F (TestFile, Direct)
 TEST_F (TestFile, DirectoryIterator)
 {
 	// Obtain directory object
-	Object::_ref_type obj = naming_service_->resolve_str ("\\//home");
+	Object::_ref_type obj = naming_service_->resolve_str ("/home");
 	ASSERT_TRUE (obj);
 	Dir::_ref_type dir = Dir::_narrow (obj);
 	ASSERT_TRUE (dir);
@@ -233,15 +233,14 @@ TEST_F (TestFile, Directory)
 {
 	// Make temporary directory
 	Name tmp_dir_name;
-	Dir::_ref_type root = g_system->get_name_from_path ("/tmp/test", tmp_dir_name, nullptr);
-	ASSERT_TRUE (root);
+	g_system->get_name_from_path (tmp_dir_name, "/tmp/test");
 	Dir::_ref_type tmp_dir;
 	try {
-		tmp_dir = Dir::_narrow (root->bind_new_context (tmp_dir_name));
+		tmp_dir = Dir::_narrow (naming_service_->bind_new_context (tmp_dir_name));
 	} catch (const NamingContext::AlreadyBound&) {
 	}
 	if (!tmp_dir) {
-		tmp_dir = Dir::_narrow (root->resolve (tmp_dir_name));
+		tmp_dir = Dir::_narrow (naming_service_->resolve (tmp_dir_name));
 		ASSERT_TRUE (tmp_dir);
 		clear_directory (tmp_dir);
 	}
@@ -253,7 +252,7 @@ TEST_F (TestFile, Directory)
 	// Try to remove directory that is not empty
 	bool thrown = false;
 	try {
-		root->unbind (tmp_dir_name);
+		naming_service_->unbind (tmp_dir_name);
 	} catch (const SystemException& ex) {
 		EXPECT_TRUE (INTERNAL::_downcast (&ex));
 		EXPECT_EQ (get_minor_errno (ex.minor ()), ENOTEMPTY);
@@ -263,7 +262,7 @@ TEST_F (TestFile, Directory)
 
 	// Delete file
 	Name tmp_file_name;
-	g_system->get_name_from_path (tmp_file, tmp_file_name, tmp_dir);
+	g_system->get_name_from_path (tmp_file_name, tmp_file);
 
 	try {
 		tmp_dir->unbind (tmp_file_name);
@@ -272,7 +271,7 @@ TEST_F (TestFile, Directory)
 	}
 
 	// Remove empty directory
-	EXPECT_NO_THROW (root->unbind (tmp_dir_name));
+	EXPECT_NO_THROW (naming_service_->unbind (tmp_dir_name));
 
 	EXPECT_TRUE (tmp_dir->_non_existent ());
 }

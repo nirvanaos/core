@@ -53,19 +53,29 @@ public:
 
 protected:
 	MemContextUser ();
+	MemContextUser (Heap& heap) noexcept;
 	~MemContextUser ();
 
-private:
+	void clear () noexcept
+	{
+		current_dir_.clear ();
+		object_list_.clear ();
+		runtime_support_.clear ();
+	}
+
 	// MemContext methods
 
 	virtual RuntimeProxy::_ref_type runtime_proxy_get (const void* obj) override;
 	virtual void runtime_proxy_remove (const void* obj) noexcept override;
 	virtual void on_object_construct (MemContextObject& obj) noexcept override;
 	virtual void on_object_destruct (MemContextObject& obj) noexcept override;
+	virtual CosNaming::Name get_current_dir_name () const override;
+	virtual void chdir (const IDL::String& path) override;
 
-protected:
+private:
 	RuntimeSupportImpl runtime_support_;
 	MemContextObjectList object_list_;
+	CosNaming::Name current_dir_;
 };
 
 }

@@ -45,7 +45,7 @@ Object::_ref_type create_NameService ()
 
 bool NameService::is_file_system (const NameComponent& nc)
 {
-	return nc.id () == "/" && nc.kind ().empty ();
+	return nc.id ().empty () && nc.kind ().empty ();
 }
 
 inline void NameService::check_no_fs (const Name& n)
@@ -112,7 +112,7 @@ NamingContext::_ref_type NameService::bind_new_context1 (Name& n)
 void NameService::get_bindings (IteratorStack& iter) const
 {
 	iter.reserve (bindings_.size ());
-	iter.push (NameComponent ("/", Istring ()), BindingType::ncontext);
+	iter.push (NameComponent (), BindingType::ncontext);
 	Base::get_bindings (iter);
 }
 

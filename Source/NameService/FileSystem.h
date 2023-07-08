@@ -86,15 +86,14 @@ public:
 	~FileSystem ()
 	{}
 
-	bool find (const IDL::String& name) const noexcept
-	{
-		return roots_.find (name) != roots_.end ();
-	}
-
 	static Nirvana::FileType get_item_type (const DirItemId& id)
 	{
 		return Port::FileSystem::get_item_type (id);
 	}
+
+	static Nirvana::DirItem::_ref_type get_reference (const DirItemId& id);
+	static Nirvana::Dir::_ref_type get_dir (const DirItemId& id);
+	static Nirvana::File::_ref_type get_file (const DirItemId& id);
 
 	static PortableServer::ServantBase::_ref_type incarnate (const DirItemId& id)
 	{
@@ -106,19 +105,26 @@ public:
 		Port::FileSystem::etherealize (id, servant);
 	}
 
-	static Nirvana::Dir::_ref_type get_root ();
-
-	Nirvana::Dir::_ref_type resolve_root (const CosNaming::Name& n);
-
 	static PortableServer::POA::_ref_type& adapter () noexcept
 	{
 		assert ((PortableServer::POA::_ref_type&)adapter_);
 		return adapter_;
 	}
 
-	static Nirvana::DirItem::_ref_type get_reference (const DirItemId& id);
-	static Nirvana::Dir::_ref_type get_dir (const DirItemId& id);
-	static Nirvana::File::_ref_type get_file (const DirItemId& id);
+	// Get CosNaming::Name from file system path.
+	static void get_name_from_path (CosNaming::Name& name, const IDL::String& path)
+	{
+		IDL::String translated;
+		if (Port::FileSystem::translate_path (path, translated))
+			get_name_from_standard_path (name, translated);
+		else
+			get_name_from_standard_path (name, path);
+	}
+
+	static void get_name_from_standard_path (CosNaming::Name& name, const IDL::String& path);
+
+	static bool is_absolute (const CosNaming::Name& n) noexcept;
+	static bool is_absolute (const IDL::String& path) noexcept;
 
 	Access::_ref_type open (CosNaming::Name& n, uint_fast16_t flags, uint_fast16_t mode)
 	{
@@ -177,16 +183,8 @@ public:
 		throw CORBA::NO_IMPLEMENT ();
 	}
 
-	// Get naming service name from file system path
-	static Nirvana::Dir::_ref_type get_name_from_path (const IDL::String& path, CosNaming::Name& n, Nirvana::Dir::_ptr_type dir = nullptr);
-
-	static bool is_absolute (const CosNaming::Name& n) noexcept;
-	static bool is_absolute (const IDL::String& path) noexcept;
-
-	static CORBA::Object::_ref_type resolve_path (const IDL::String& path, Nirvana::Dir::_ptr_type dir = nullptr);
-	static CORBA::Object::_ref_type resolve_absolute_path (const IDL::String& path);
-
 private:
+	Nirvana::Dir::_ref_type resolve_root (const CosNaming::Name& n);
 	static CORBA::Object::_ref_type get_reference (const DirItemId& id, CORBA::Internal::String_in iid);
 
 private:
