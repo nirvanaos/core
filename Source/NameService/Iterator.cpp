@@ -54,6 +54,11 @@ bool Iterator::next_one (CosNaming::Binding& b)
 
 bool Iterator::next_n (uint32_t how_many, CosNaming::BindingList& bl)
 {
+	if (end ())
+		return false;
+
+	bl.reserve (std::min (how_many, 1024u));
+
 	bool ret = false;
 	CosNaming::Binding b;
 	while (how_many-- && next_one (b)) {
@@ -116,7 +121,7 @@ private:
 
 CosNaming::BindingIterator::_ref_type Iterator::create_iterator (std::unique_ptr <Iterator>&& vi)
 {
-	SYNC_BEGIN (g_core_free_sync_context, &MemContext::current ())
+	SYNC_BEGIN (g_core_free_sync_context, &MemContext::current ().heap ())
 		return CORBA::make_reference <BindingIterator> (std::move (vi))->_this ();
 	SYNC_END ()
 }

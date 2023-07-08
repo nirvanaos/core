@@ -213,7 +213,7 @@ TEST_F (TestFile, DirectoryIterator)
 
 	DirectoryIterator iter (dir);
 	while (const DirEntry* p = iter.readdir ()) {
-		EXPECT_FALSE (p->name ().empty ());
+		EXPECT_FALSE (p->name ().id ().empty () && p->name ().kind ().empty ());
 	}
 }
 
@@ -222,8 +222,7 @@ void clear_directory (Dir::_ptr_type dir)
 	ASSERT_TRUE (dir);
 	DirectoryIterator iter (dir);
 	while (const DirEntry* p = iter.readdir ()) {
-		Name name;
-		g_system->get_name_from_path (p->name (), name, dir);
+		Name name (1, p->name ());
 		if (FileType::directory == (FileType)p->st ().type ())
 			clear_directory (Dir::_narrow (dir->resolve (name)));
 		dir->unbind (name);

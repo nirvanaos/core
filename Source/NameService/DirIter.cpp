@@ -37,31 +37,31 @@ bool DirIter::next_one (DirEntry& de)
 	if (end ())
 		return false;
 
-	Binding b;
+	CosNaming::Core::Iterator::Binding b;
 	while (iterator_->next_one (b)) {
-		const NameComponent& nc = b.binding_name ().front ();
-		size_t cc = nc.id ().size ();
-		if (!nc.kind ().empty ())
-			cc += nc.kind ().size () + 1;
-		de.name ().reserve (cc);
-		de.name (nc.id ());
-		if (!nc.kind ().empty ()) {
-			de.name () += '.';
-			de.name () += nc.kind ();
-		}
-
 /*
 		if (flags_ & USE_REGEX) {
-			std::basic_string <char32_t> wname;
-			utf8_to_wide (de.name (), wname);
-			if (!std::regex_match (wname, regex_))
+		size_t cc = b.name.id ().size ();
+		if (!b.name.kind ().empty ())
+			cc += b.name.kind ().size () + 1;
+		std::string name;
+		name.reserve (cc);
+		name = b.name.id ();
+		if (!b.name.kind ().empty ()) {
+			name += '.';
+			name += b.name.kind ();
+		}
+			if (!std::regex_match (name, regex_))
 				continue;
 		}
 */
 
+		Name n (1, b.name);
+
 		try {
-			DirItem::_ref_type item = dir_->resolve_const (b.binding_name ());
+			DirItem::_ref_type item = dir_->resolve_const (n);
 			item->stat (de.st ());
+			de.name (std::move (b.name));
 		} catch (const CORBA::NO_PERMISSION ()) {
 			if (flags_ & Nirvana::DirIterator::SKIP_PERMISSION_DENIED)
 				continue;
@@ -80,6 +80,8 @@ bool DirIter::next_n (uint32_t how_many, DirEntryList& l)
 {
 	if (end ())
 		return false;
+
+	l.reserve (std::min (how_many, 1024u));
 
 	bool ret = false;
 	DirEntry entry;
@@ -143,7 +145,7 @@ private:
 
 Nirvana::DirIterator::_ref_type DirIter::create_iterator (std::unique_ptr <DirIter>&& vi)
 {
-	SYNC_BEGIN (g_core_free_sync_context, &MemContext::current ())
+	SYNC_BEGIN (g_core_free_sync_context, &MemContext::current ().heap ())
 		return CORBA::make_reference <DirIterator> (std::move (vi))->_this ();
 	SYNC_END ()
 }

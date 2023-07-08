@@ -58,7 +58,7 @@ public:
 
 	static PrimaryInterface::_ref_type create ()
 	{
-		SYNC_BEGIN (g_core_free_sync_context, &MemContext::current ())
+		SYNC_BEGIN (g_core_free_sync_context, &MemContext::current ().heap ())
 			CORBA::servant_reference <FileSystem> fs = CORBA::make_reference <FileSystem> ();
 			PortableServer::POA::_narrow (CORBA::Core::Services::bind (CORBA::Core::Services::RootPOA))
 				->activate_object (fs);

@@ -50,7 +50,6 @@ public:
 
 	static CosNaming::BindingIterator::_ref_type create_iterator (std::unique_ptr <Iterator>&& vi);
 
-protected:
 	struct Binding
 	{
 		NameComponent name;
