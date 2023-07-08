@@ -561,8 +561,8 @@ private:
 	const IDL::String* name_;
 	Children children_;
 	AdapterActivator::_ref_type the_activator_;
-	unsigned int request_cnt_;
-	bool destroyed_;
+	volatile int request_cnt_;
+	volatile bool destroyed_;
 	bool destroy_called_;
 	Nirvana::Core::Event destroy_completed_;
 
