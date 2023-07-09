@@ -46,7 +46,7 @@ public:
 
 	static void terminate () noexcept
 	{
-		Nirvana::Core::FileSystem::adapter_ = POA::_nil ();
+		Nirvana::Core::FileSystem::adapter_ = nullptr;
 	}
 
 	PortableServer::ServantBase::_ref_type incarnate (const ObjectId& id, POA::_ptr_type adapter)

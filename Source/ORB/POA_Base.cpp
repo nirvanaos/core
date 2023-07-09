@@ -159,18 +159,20 @@ POA_Base::POA_Base (POA_Base* parent, const IDL::String* name,
 	object_policies_ (std::move (object_policies)),
 	parent_ (parent),
 	name_ (name),
+	dbg_name_ (name ? *name : "RootPOA"),
 	request_cnt_ (0),
 	destroyed_ (false),
 	destroy_called_ (false),
 	signature_ (SIGNATURE)
 {
 	the_POAManager_->on_adapter_create (*this);
+	_NTRACE ("POA_Base (%s)", dbg_name_.c_str ());
 }
 
 POA_Base::~POA_Base ()
 {
 	the_POAManager_->on_adapter_destroy (*this);
-	_NTRACE ("~POA_Base ()");
+	_NTRACE ("~POA_Base (%s)", dbg_name_.c_str ());
 }
 
 void POA_Base::check_exist () const

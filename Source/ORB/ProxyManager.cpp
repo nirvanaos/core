@@ -447,7 +447,7 @@ void ProxyManager::rq_repository_id (ProxyManager* servant, CORBA::Internal::IOR
 
 bool ProxyManager::call_request_proc (RqProcInternal proc, ProxyManager* servant, Interface* call)
 {
-	IORequest::_ptr_type rq = IORequest::_nil ();
+	IORequest::_ptr_type rq = nullptr;
 	try {
 		rq = IORequest::_check (call);
 		proc (servant, rq);
