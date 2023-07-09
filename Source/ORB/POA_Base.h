@@ -184,7 +184,10 @@ public:
 	{
 		check_exist ();
 
-		_NTRACE ("POA::destroy started %s", (name_ ? name_->c_str () : "RootPOA"));
+#ifdef _DEBUG
+		IDL::String dbg_name = name_ ? *name_ : "RootPOA";
+		_NTRACE ("POA::destroy started %s", dbg_name.c_str ());
+#endif
 
 		if (wait_for_completion)
 			check_wait_completion ();
@@ -216,7 +219,7 @@ public:
 		if (wait_for_completion)
 			destroy_completed_.wait ();
 
-		_NTRACE ("POA::destroy completed %s", (name_ ? name_->c_str () : "RootPOA"));
+		_NTRACE ("POA::destroy completed %s", dbg_name.c_str ());
 	}
 
 	POA_Ref find_child (const IDL::String& adapter_name, bool activate_it);
