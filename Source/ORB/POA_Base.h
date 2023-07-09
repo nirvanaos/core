@@ -184,6 +184,8 @@ public:
 	{
 		check_exist ();
 
+		_NTRACE ("POA::destroy started %s", (name_ ? name_->c_str () : "RootPOA"));
+
 		if (wait_for_completion)
 			check_wait_completion ();
 
@@ -200,10 +202,10 @@ public:
 			// Now destroy this adapter
 			if (parent_) {
 				parent_->children_.erase (*name_);
+				name_ = nullptr;
 				parent_ = nullptr;
 			}
 			destroyed_ = true;
-			name_ = nullptr;
 
 			deactivate_objects (etherealize_objects);
 
@@ -213,6 +215,8 @@ public:
 
 		if (wait_for_completion)
 			destroy_completed_.wait ();
+
+		_NTRACE ("POA::destroy completed %s", (name_ ? name_->c_str () : "RootPOA"));
 	}
 
 	POA_Ref find_child (const IDL::String& adapter_name, bool activate_it);

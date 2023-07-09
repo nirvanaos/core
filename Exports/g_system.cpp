@@ -186,40 +186,33 @@ public:
 		return SyncContext::current ().is_legacy_mode ();
 	}
 
-	static void debug_event (DebugEvent evt, const IDL::String& msg)
-	{
-		static const char* const ev_prefix [3] = {
-			"INFO: ",
-			"WARNING: ",
-			"ERROR: "
-		};
-		// Use shared string to avoid possible problems with the memory context.
-		SharedString s = ev_prefix [(unsigned)evt];
-		s.append (msg.c_str (), msg.size ());
-		s += '\n';
-		Port::Debugger::output_debug_string (s.c_str ());
-		if (DebugEvent::DEBUG_ERROR == evt) {
-			if (!Port::Debugger::debug_break ())
-				raise (SIGABRT);
-		}
-	}
-
-	static void assertion_failed (const IDL::String& expr, const IDL::String& file_name, int32_t line_number)
+	static void debug_event (DebugEvent evt, const IDL::String& msg, const IDL::String& file_name, int32_t line_number)
 	{
 		// Use shared string to avoid possible problems with the memory context.
 		SharedString s;
+
 		if (!file_name.empty ()) {
 			s.assign (file_name.c_str (), file_name.size ());
 			s += '(';
 			append_format (s, "%i", line_number);
 			s += "): ";
 		}
-		s += "Assertion failed: ";
-		s.append (expr.c_str (), expr.size ());
+
+		static const char* const ev_prefix [(size_t)DebugEvent::DEBUG_ERROR + 1] = {
+			"INFO: ",
+			"WARNING: ",
+			"Assertion failed: ",
+			"ERROR: "
+		};
+
+		s += ev_prefix [(unsigned)evt];
+		s += msg;
 		s += '\n';
 		Port::Debugger::output_debug_string (s.c_str ());
-		if (!Port::Debugger::debug_break ())
-			raise (SIGABRT);
+		if (evt >= DebugEvent::DEBUG_WARNING) {
+			if (!Port::Debugger::debug_break () && evt >= DebugEvent::DEBUG_ASSERT)
+				raise (SIGABRT);
+		}
 	}
 
 	static bool yield ()

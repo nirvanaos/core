@@ -45,7 +45,9 @@ public:
 	POAManager (POAManagerFactory& factory, const IDL::String& id, const CORBA::PolicyList& policies);
 
 	~POAManager ()
-	{}
+	{
+		_NTRACE ("~POAManager ()");
+	}
 
 	CORBA::Core::PolicyMapShared* policies () const noexcept
 	{

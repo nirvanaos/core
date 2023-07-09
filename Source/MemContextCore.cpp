@@ -55,14 +55,13 @@ void MemContextCore::on_object_destruct (MemContextObject& obj) noexcept
 
 CosNaming::Name MemContextCore::get_current_dir_name () const
 {
-	assert (false);
-	throw CORBA::NO_IMPLEMENT ();
+	NIRVANA_UNREACHABLE_CODE ();
+	return CosNaming::Name ();
 }
 
 void MemContextCore::chdir (const IDL::String& path)
 {
-	assert (false);
-	throw CORBA::NO_IMPLEMENT ();
+	NIRVANA_UNREACHABLE_CODE ();
 }
 
 }

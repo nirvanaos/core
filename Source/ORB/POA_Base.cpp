@@ -170,6 +170,7 @@ POA_Base::POA_Base (POA_Base* parent, const IDL::String* name,
 POA_Base::~POA_Base ()
 {
 	the_POAManager_->on_adapter_destroy (*this);
+	_NTRACE ("~POA_Base ()");
 }
 
 void POA_Base::check_exist () const
