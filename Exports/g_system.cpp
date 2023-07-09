@@ -208,7 +208,7 @@ public:
 		s += ev_prefix [(unsigned)evt];
 		s += msg;
 		s += '\n';
-		Port::Debugger::output_debug_string (s.c_str ());
+		Port::Debugger::output_debug_string (evt, s.c_str ());
 		if (evt >= DebugEvent::DEBUG_WARNING) {
 			if (!Port::Debugger::debug_break () && evt >= DebugEvent::DEBUG_ASSERT)
 				raise (SIGABRT);
