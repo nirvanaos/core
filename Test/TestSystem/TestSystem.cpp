@@ -1,3 +1,28 @@
+/*
+* Nirvana test suite.
+*
+* This is a part of the Nirvana project.
+*
+* Author: Igor Popov
+*
+* Copyright (c) 2021 Igor Popov.
+*
+* This program is free software; you can redistribute it and/or modify
+* it under the terms of the GNU Lesser General Public License as published by
+* the Free Software Foundation; either version 3 of the License, or
+* (at your option) any later version.
+*
+* This program is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+* GNU General Public License for more details.
+*
+* You should have received a copy of the GNU Lesser General Public
+* License along with this library.  If not, see <http://www.gnu.org/licenses/>.
+*
+* Send comments and/or bug reports to:
+*  popov.nirvana@gmail.com
+*/
 #include <Nirvana/Nirvana.h>
 #include <Nirvana/System.h>
 #include <Nirvana/File.h>
@@ -6,16 +31,9 @@
 
 using namespace Nirvana;
 
-// Test for the Nirvana::System interface
-
 namespace TestSystem {
 
-typedef void (*AccessViolator) (void* p);
-
-AccessViolator access_violator;
-
-extern void set_access_violator (AccessViolator& p);
-
+// Test for the Nirvana system functionality.
 class TestSystem :
 	public ::testing::Test
 {
@@ -118,20 +136,34 @@ TEST_F (TestSystem, Yield)
 
 TEST_F (TestSystem, CurDir)
 {
+	// Get current working directory name
 	CosNaming::Name cur_dir = g_system->get_current_dir_name ();
 	EXPECT_FALSE (cur_dir.empty ());
+
+	// Get reference to NameService
 	CosNaming::NamingContext::_ref_type ns = CosNaming::NamingContext::_narrow (
 		CORBA::g_ORB->resolve_initial_references ("NameService"));
 	ASSERT_TRUE (ns);
+
+	// Obtain reference to current directory object
 	Dir::_ref_type dir = Dir::_narrow (ns->resolve (cur_dir));
 	ASSERT_TRUE (dir);
+
+	// Make subdirectory
 	CosNaming::Name subdir;
 	subdir.emplace_back ("test", "tmp");
 	try {
 		dir->bind_new_context (subdir);
-	} catch (const CosNaming::NamingContext::AlreadyBound&) {}
+	} catch (const CosNaming::NamingContext::AlreadyBound&)
+	{} // Ignore if exists
+
+	// Change current to subdirectory
 	g_system->chdir ("test.tmp");
+
+	// Change current back
 	g_system->chdir ("..");
+
+	// Remove subdirectory
 	dir->unbind (subdir);
 }
 
