@@ -159,7 +159,9 @@ POA_Base::POA_Base (POA_Base* parent, const IDL::String* name,
 	object_policies_ (std::move (object_policies)),
 	parent_ (parent),
 	name_ (name),
+#ifdef _DEBUG
 	dbg_name_ (name ? *name : "RootPOA"),
+#endif
 	request_cnt_ (0),
 	destroyed_ (false),
 	destroy_called_ (false),
