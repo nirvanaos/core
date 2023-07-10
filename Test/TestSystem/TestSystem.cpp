@@ -26,6 +26,7 @@
 #include <Nirvana/Nirvana.h>
 #include <Nirvana/System.h>
 #include <Nirvana/File.h>
+#include <Nirvana/filesystem.h>
 #include <signal.h>
 #include <gtest/gtest.h>
 
@@ -138,7 +139,7 @@ TEST_F (TestSystem, CurDir)
 {
 	// Get current working directory name
 	CosNaming::Name cur_dir = g_system->get_current_dir_name ();
-	EXPECT_FALSE (cur_dir.empty ());
+	EXPECT_TRUE (is_absolute (cur_dir));
 
 	// Get reference to NameService
 	CosNaming::NamingContext::_ref_type ns = CosNaming::NamingContext::_narrow (
@@ -160,8 +161,14 @@ TEST_F (TestSystem, CurDir)
 	// Change current to subdirectory
 	g_system->chdir ("test.tmp");
 
+	CosNaming::Name cur_dir1 = g_system->get_current_dir_name ();
+	EXPECT_EQ (cur_dir1.size (), cur_dir.size () + 1);
+
 	// Change current back
 	g_system->chdir ("..");
+
+	cur_dir1 = g_system->get_current_dir_name ();
+	EXPECT_EQ (cur_dir1, cur_dir);
 
 	// Remove subdirectory
 	dir->unbind (subdir);
