@@ -37,12 +37,13 @@ void POAManager::ServeRequest::run ()
 {
 	try {
 		// Check that adapter is not destroyed.
-		if (adapter_->is_destroyed ())
-			throw POA::AdapterNonExistent ();
+		if (adapter_->destroy_called ())
+			throw OBJ_ADAPTER (MAKE_OMG_MINOR (1));
 		adapter_->serve_request (request_);
 	} catch (Exception& e) {
 		request_->set_exception (std::move (e));
 	}
+	adapter_->on_request_finish ();
 }
 
 void POAManager::ServeRequest::on_crash (const siginfo& signal) noexcept

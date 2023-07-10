@@ -455,23 +455,26 @@ void POA_Base::serve_request (const RequestRef& request, ReferenceLocal& referen
 	Context* ctx_prev = (Context*)tls.get (TLS::CORE_TLS_PORTABLE_SERVER);
 	Context ctx (_this (), reference.core_key ().object_id (), reference.get_proxy (), proxy);
 	tls.set (TLS::CORE_TLS_PORTABLE_SERVER, &ctx);
-	++request_cnt_;
 	try {
 		request->serve (proxy);
 	} catch (...) {
-		on_request_finish ();
 		tls.set (TLS::CORE_TLS_PORTABLE_SERVER, ctx_prev);
 		throw;
 	}
-	on_request_finish ();
 	tls.set (TLS::CORE_TLS_PORTABLE_SERVER, ctx_prev);
+}
+
+void POA_Base::on_request_start () noexcept
+{
+	++request_cnt_;
+	the_POAManager_->on_request_start ();
 }
 
 void POA_Base::on_request_finish () noexcept
 {
+	the_POAManager_->on_request_finish ();
 	if (!--request_cnt_ && destroyed_)
 		destroy_completed_.signal ();
-	the_POAManager_->on_request_finish ();
 }
 
 void POA_Base::check_wait_completion ()

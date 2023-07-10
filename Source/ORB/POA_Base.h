@@ -230,6 +230,11 @@ public:
 
 	void check_exist () const;
 
+	bool destroy_called () const noexcept
+	{
+		return destroy_called_;
+	}
+
 	virtual void deactivate_objects (bool etherealize) noexcept
 	{}
 
@@ -461,6 +466,9 @@ public:
 	inline void invoke (const RequestRef& request);
 	void serve_request (const RequestRef& request);
 
+	void on_request_start () noexcept;
+	void on_request_finish () noexcept;
+
 	static POA_Base* get_implementation (const CORBA::Core::ServantProxyLocal* proxy);
 
 	// Entry point vector overrides
@@ -546,9 +554,6 @@ protected:
 	virtual void serve_default (const RequestRef& request, CORBA::Core::ReferenceLocal& reference);
 	void serve_request (const RequestRef& request, CORBA::Core::ReferenceLocal& reference, CORBA::Core::ServantProxyObject& proxy);
 
-private:
-	void on_request_finish () noexcept;
-	
 protected:
 	static POA_Root* root_;
 

@@ -65,16 +65,20 @@ public:
 					Nirvana::Core::SyncContext& sc = CORBA::Core::local2proxy (_this ())->sync_context ();
 					do {
 						const QElem& top = queue_.top ();
-						if (!top.request->is_cancelled ()) {
-							if (top.adapter->is_destroyed ())
-								top.request->set_exception (POA::AdapterNonExistent ());
-							on_request_start ();
-							try {
-								Nirvana::Core::ExecDomain::async_call <ServeRequest> (
-									top.deadline, sc, top.request->memory (), std::ref (top));
-							} catch (CORBA::Exception& e) {
-								top.request->set_exception (std::move (e));
-								on_request_finish ();
+						auto& request = *top.request;
+						if (!request.is_cancelled ()) {
+							POA_Base& adapter = *top.adapter;
+							if (adapter.destroy_called ())
+								request.set_exception (CORBA::OBJ_ADAPTER (MAKE_OMG_MINOR (1)));
+							else {
+								adapter.on_request_start ();
+								try {
+									Nirvana::Core::ExecDomain::async_call <ServeRequest> (
+										top.deadline, sc, top.request->memory (), std::ref (top));
+								} catch (CORBA::Exception& e) {
+									top.request->set_exception (std::move (e));
+									adapter.on_request_finish ();
+								}
 							}
 						}
 						queue_.pop ();
@@ -84,6 +88,9 @@ public:
 
 			case State::DISCARDING:
 				state_ = State::ACTIVE;
+#ifdef NIRVANA_C17
+				[[fallthrough]];
+#endif
 			case State::ACTIVE:
 				break;
 
@@ -171,8 +178,9 @@ public:
 				queue_.emplace (adapter, request);
 				break;
 			case State::ACTIVE:
-				on_request_start ();
+				adapter.on_request_start ();
 				adapter.serve_request (request);
+				adapter.on_request_finish ();
 				break;
 			case State::DISCARDING:
 				throw CORBA::TRANSIENT (MAKE_OMG_MINOR (1));
@@ -194,6 +202,12 @@ public:
 			std::find (associated_adapters_.begin (), associated_adapters_.end (), &adapter));
 	}
 
+	void on_request_start () noexcept
+	{
+		if (1 == ++request_cnt_)
+			requests_completed_.reset ();
+	}
+
 	void on_request_finish () noexcept
 	{
 		if (0 == --request_cnt_)
@@ -201,12 +215,6 @@ public:
 	}
 
 private:
-	void on_request_start () noexcept
-	{
-		if (1 == ++request_cnt_)
-			requests_completed_.reset ();
-	}
-
 	void discard_queued_requests ();
 
 private:
@@ -267,6 +275,8 @@ PortableServer::POAManager::_ref_type POA_Base::the_POAManager () const
 inline
 void POA_Base::invoke (const RequestRef& request)
 {
+	if (destroy_called_)
+		throw CORBA::OBJ_ADAPTER (MAKE_OMG_MINOR (1));
 	the_POAManager_->invoke (*this, request);
 }
 
