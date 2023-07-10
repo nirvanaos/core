@@ -256,6 +256,17 @@ public:
 	{
 		MemContext::current ().chdir (path);
 	}
+
+	static short fd_open (const IDL::String& path, uint_fast16_t flags, uint_fast16_t mode)
+	{
+		throw_NO_IMPLEMENT ();
+	}
+
+	static void fd_close (int idx)
+	{
+		throw_NO_IMPLEMENT ();
+	}
+
 };
 
 }
