@@ -31,6 +31,7 @@
 #include "../ThreadBackground.h"
 #include <Nirvana/SimpleList.h>
 #include "../TLS.h"
+#include <memory>
 
 namespace Nirvana {
 namespace Legacy {
@@ -71,9 +72,16 @@ public:
 
 	virtual Process& process () noexcept = 0;
 
+	Nirvana::Core::TLS& thread_local_storage ()
+	{
+		return tls_.instance ();
+	}
+
 protected:
 	ThreadBase () = default;
 
+private:
+	Nirvana::Core::TLS::Holder tls_;
 };
 
 }

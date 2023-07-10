@@ -24,33 +24,25 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_CORE_MEMCONTEXTEX_H_
-#define NIRVANA_CORE_MEMCONTEXTEX_H_
+#ifndef NIRVANA_CORE_MEMCONTEXTUSER_H_
+#define NIRVANA_CORE_MEMCONTEXTUSER_H_
 #pragma once
 
 #include "MemContext.h"
 #include "RuntimeSupport.h"
 #include "MemContextObject.h"
+#include <Nirvana/System.h>
 
 namespace Nirvana {
 namespace Core {
 
 class MemContextObject;
+class TLS;
 
 /// \brief Memory context full implementation.
-class MemContextUser : public MemContext
+class NIRVANA_NOVTABLE MemContextUser : public MemContext
 {
-	friend class CORBA::servant_reference <MemContext>;
-
 public:
-	/// Create MemContextUser object.
-	/// 
-	/// \returns MemContext reference.
-	static Ref <MemContext> create ()
-	{
-		return Ref <MemContext>::create <MemContextUser> ();
-	}
-
 	/// Search map for runtime proxy for object \p obj.
 	/// If proxy exists, returns it. Otherwise creates a new one.
 	/// 
@@ -75,6 +67,8 @@ public:
 
 	virtual CosNaming::Name get_current_dir_name () const;
 	virtual void chdir (const IDL::String& path);
+
+	virtual TLS& thread_local_storage () = 0;
 
 protected:
 	MemContextUser ();

@@ -27,7 +27,7 @@
 #include "Legacy/Process.h"
 #include "Chrono.h"
 #include "MemContextCore.h"
-#include "MemContextUser.h"
+#include "MemContextImpl.h"
 #include <Port/SystemInfo.h>
 
 namespace Nirvana {
@@ -212,10 +212,11 @@ void ExecDomain::cleanup () noexcept
 	}
 
 	runtime_global_.cleanup ();
-	tls_.clear ();
 
-	deadline_policy_async_._default ();
-	deadline_policy_oneway_._d (System::DeadlinePolicyType::DEADLINE_INFINITE);
+	std::fill_n (tls_, CoreTLS::CORE_TLS_COUNT, nullptr);
+
+	deadline_policy_async_ = 0;
+	deadline_policy_oneway_ = INFINITE_DEADLINE;
 
 	ExecContext::run_in_neutral_context (deleter_);
 }
@@ -238,7 +239,7 @@ MemContext& ExecDomain::mem_context ()
 {
 	if (!mem_context_) {
 		mem_context_ =
-			mem_context_stack_.top () = MemContextUser::create ();
+			mem_context_stack_.top () = MemContextImpl::create ();
 	}
 	return *mem_context_;
 }
@@ -348,16 +349,14 @@ void ExecDomain::schedule_return (SyncContext& target, bool no_reschedule) noexc
 
 DeadlineTime ExecDomain::get_request_deadline (bool oneway) const noexcept
 {
-	const System::DeadlinePolicy& dp = oneway ? deadline_policy_oneway_ : deadline_policy_async_;
+	const DeadlineTime dp = oneway ? deadline_policy_oneway_ : deadline_policy_async_;
 	DeadlineTime dl = INFINITE_DEADLINE;
-	switch (dp._d ()) {
-		case System::DeadlinePolicyType::DEADLINE_INHERIT:
-			dl = deadline ();
-			break;
-		case System::DeadlinePolicyType::DEADLINE_TIMEOUT:
-			dl = Chrono::make_deadline (dp.timeout ());
-			break;
-	}
+	if (dp == 0)
+		dl = deadline ();
+	else if (INFINITE_DEADLINE == dp)
+		dl = INFINITE_DEADLINE;
+	else
+		dl = Chrono::make_deadline (dp);
 	return dl;
 }
 

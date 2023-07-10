@@ -29,9 +29,13 @@
 #pragma once
 
 #include "BitmapOps.h"
-#include "SharedAllocator.h"
+#include "UserAllocator.h"
+#include <memory>
 
 namespace Nirvana {
+
+typedef void (*Deleter) (void*);
+
 namespace Core {
 
 /// Thread-local storage.
@@ -39,42 +43,120 @@ class TLS
 {
 	typedef BitmapOps::BitmapWord BitmapWord;
 	static const unsigned BW_BITS = sizeof (BitmapWord) * 8;
-public:
-	/// \returns Current TLS.
-	static TLS& current () noexcept;
-
-	/// Reserved TLS indexes.
-	enum
-	{
-		CORE_TLS_BINDER, ///< Binder context.
-		CORE_TLS_OBJECT_FACTORY, ///< ObjectFactory stateless creation frame.
-		CORE_TLS_PORTABLE_SERVER, ///< PortableServer::Current context.
-
-		CORE_TLS_COUNT
-	};
 
 	/// Limit of the user TLS indexes.
-	static const unsigned USER_TLS_INDEXES = 64;
+	static const unsigned USER_TLS_INDEXES = 128;
 
-	TLS ();
-	~TLS ();
-
-	static unsigned allocate ();
-	static void release (unsigned idx);
-
-	void set (unsigned idx, void* p);
-	void* get (unsigned idx) noexcept;
-
+public:
+	/// Called on system startup.
 	static void initialize () noexcept
 	{
 		free_count_ = USER_TLS_INDEXES_END;
 		std::fill_n (bitmap_, BITMAP_SIZE, ~0);
 	}
 
-	void clear () noexcept;
+	/// Get current TLS object.
+	/// 
+	/// \returns Current TLS reference.
+	/// \throws CORBA::NO_IMPLEMENT if current memory context is not user memory context.
+	static TLS& current ();
+
+	/// Allocate TLS index.
+	///
+	/// \returns New TLS index.
+	/// \throws CORBA::IMP_LIMIT if the limit of the user TLS indexes is reached.
+	static unsigned allocate ();
+
+	/// Release TLS index.
+	///
+	/// \param idx TLS index.
+	/// \throws CORBA::BAD_PARAM if \p is not allocated.
+	static void release (unsigned idx);
+
+	/// Set TLS value.
+	/// 
+	/// \param idx TLS index.
+	/// \param p Value.
+	/// \param deleter Optional deleter function.
+	/// \throws CORBA::BAD_PARAM if \p idx is wrong.
+	void set (unsigned idx, void* p, Deleter deleter);
+
+	/// Get TLS value.
+	/// 
+	/// \param idx TLS index.
+	/// \returns TLS value.
+	void* get (unsigned idx) const noexcept;
+
+	class Holder
+	{
+	public:
+		TLS& instance ();
+
+	private:
+		std::unique_ptr <TLS> p_;
+	};
+
+	~TLS ();
 
 private:
-	typedef std::vector <void*, SharedAllocator <void*> > Entries;
+	friend class Holder;
+
+	TLS ();
+
+	class Entry
+	{
+	public:
+		Entry () :
+			ptr_ (nullptr),
+			deleter_ (nullptr)
+		{}
+
+		Entry (void* ptr, Deleter deleter) noexcept :
+			ptr_ (ptr),
+			deleter_ (deleter)
+		{}
+
+		Entry (Entry&& src) noexcept :
+			ptr_ (src.ptr_),
+			deleter_ (src.deleter_)
+		{
+			src.deleter_ = nullptr;
+		}
+
+		Entry& operator = (Entry&& src) noexcept
+		{
+			destruct ();
+			ptr_ = src.ptr_;
+			deleter_ = src.deleter_;
+			src.deleter_ = nullptr;
+			return *this;
+		}
+
+		~Entry ()
+		{
+			destruct ();
+		}
+
+		void* ptr () const
+		{
+			return ptr_;
+		}
+
+		void reset () noexcept
+		{
+			ptr_ = nullptr;
+			deleter_ = nullptr;
+		}
+
+	private:
+		void destruct () noexcept;
+
+	private:
+		void* ptr_;
+		Deleter deleter_;
+	};
+
+	typedef std::vector <Entry, UserAllocator <Entry> > Entries;
 	Entries entries_;
 
 	static const size_t BITMAP_SIZE = (USER_TLS_INDEXES + BW_BITS - 1) / BW_BITS;

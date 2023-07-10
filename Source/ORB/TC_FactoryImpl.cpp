@@ -76,9 +76,9 @@ inline void TC_FactoryImpl::schedule_GC () noexcept
 		try {
 			System::DeadlinePolicy dp;
 			if (PROXY_GC_DEADLINE == INFINITE_DEADLINE)
-				dp._d (System::DeadlinePolicyType::DEADLINE_INFINITE);
+				dp = System::DEADLINE_POLICY_INFINITE;
 			else
-				dp.timeout (PROXY_GC_DEADLINE);
+				dp = PROXY_GC_DEADLINE;
 			ed.deadline_policy_oneway (dp);
 			TC_Factory::_narrow (Services::bind (Services::TC_Factory))->collect_garbage ();
 		} catch (...) {

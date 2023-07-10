@@ -62,7 +62,8 @@ public:
 private:
 	static const Context& context ()
 	{
-		const Context* ctx = (const Context*)Nirvana::Core::TLS::current ().get (Nirvana::Core::TLS::CORE_TLS_PORTABLE_SERVER);
+		const Context* ctx = (const Context*)Nirvana::Core::ExecDomain::current ().TLS_get (
+			Nirvana::Core::CoreTLS::CORE_TLS_PORTABLE_SERVER);
 		if (!ctx)
 			throw NoContext ();
 		return *ctx;

@@ -172,9 +172,9 @@ NIRVANA_NORETURN void Binder::invalid_metadata ()
 
 const ModuleStartup* Binder::module_bind (::Nirvana::Module::_ptr_type mod, const Section& metadata, ModuleContext* mod_context)
 {
-	TLS& tls = TLS::current ();
-	void* prev_context = tls.get (TLS::CORE_TLS_BINDER);
-	tls.set (TLS::CORE_TLS_BINDER, mod_context);
+	ExecDomain& ed = ExecDomain::current ();
+	void* prev_context = ed.TLS_get (CoreTLS::CORE_TLS_BINDER);
+	ed.TLS_set (CoreTLS::CORE_TLS_BINDER, mod_context);
 
 	enum MetadataFlags
 	{
@@ -322,11 +322,11 @@ const ModuleStartup* Binder::module_bind (::Nirvana::Module::_ptr_type mod, cons
 			SYNC_END ();
 		} else
 			module_unbind (mod, { metadata.address, metadata.size });
-		tls.set (TLS::CORE_TLS_BINDER, prev_context);
+		ed.TLS_set (CoreTLS::CORE_TLS_BINDER, prev_context);
 		throw;
 	}
 
-	tls.set (TLS::CORE_TLS_BINDER, prev_context);
+	ed.TLS_set (CoreTLS::CORE_TLS_BINDER, prev_context);
 
 	return module_startup;
 }
@@ -482,7 +482,7 @@ Binder::InterfaceRef Binder::find (const ObjectKey& name)
 	const ExecDomain& exec_domain = ExecDomain::current ();
 	if (ExecDomain::RestrictedMode::MODULE_TERMINATE == exec_domain.restricted_mode ())
 		throw_NO_PERMISSION ();
-	ModuleContext* context = reinterpret_cast <ModuleContext*> (TLS::current ().get (TLS::CORE_TLS_BINDER));
+	ModuleContext* context = reinterpret_cast <ModuleContext*> (exec_domain.TLS_get (CoreTLS::CORE_TLS_BINDER));
 	InterfaceRef itf;
 	if (context)
 		itf = context->exports.find (name);

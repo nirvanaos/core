@@ -122,6 +122,17 @@ public:
 		return ret;
 	}
 
+	// Core::MemContextUser::
+	virtual RuntimeProxy::_ref_type runtime_proxy_get (const void* obj) override;
+	virtual void runtime_proxy_remove (const void* obj) noexcept override;
+	virtual void on_object_construct (Nirvana::Core::MemContextObject& obj)
+		noexcept override;
+	virtual void on_object_destruct (Nirvana::Core::MemContextObject& obj)
+		noexcept override;
+	virtual CosNaming::Name get_current_dir_name () const override;
+	virtual void chdir (const IDL::String& path) override;
+	virtual Nirvana::Core::TLS& thread_local_storage () override;
+
 private:
 	template <class S, class ... Args> friend
 		CORBA::servant_reference <S> CORBA::make_reference (Args ...);
@@ -148,16 +159,6 @@ private:
 	// Core::Runnable::
 	virtual void run () override;
 	virtual void on_crash (const siginfo& signal) noexcept override;
-
-	// Core::MemContext::
-	virtual RuntimeProxy::_ref_type runtime_proxy_get (const void* obj) override;
-	virtual void runtime_proxy_remove (const void* obj) noexcept override;
-	virtual void on_object_construct (Nirvana::Core::MemContextObject& obj)
-		noexcept override;
-	virtual void on_object_destruct (Nirvana::Core::MemContextObject& obj)
-		noexcept override;
-	virtual CosNaming::Name get_current_dir_name () const override;
-	virtual void chdir (const IDL::String& path) override;
 
 	// ThreadBase::
 	virtual Process& process () noexcept override;

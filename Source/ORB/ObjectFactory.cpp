@@ -42,14 +42,13 @@ ObjectFactory::Frame::Frame (const Internal::Interface* servant) :
 	if (ExecDomain::RestrictedMode::MODULE_TERMINATE == ed->restricted_mode ())
 		throw_NO_PERMISSION ();
 
-	TLS& tls = ed->tls ();
-	StatelessCreationFrame* scf = (StatelessCreationFrame*)tls.get (TLS::CORE_TLS_OBJECT_FACTORY);
+	StatelessCreationFrame* scf = (StatelessCreationFrame*)ed->TLS_get (CoreTLS::CORE_TLS_OBJECT_FACTORY);
 	// Check for the stateless creation.
 	// If scf established and servant pointer is inside the object, then it is stateless object creation.
 	if (!scf || servant < scf->tmp () || ((const Octet*)scf->tmp () + scf->size ()) <= (const Octet*)servant) {
 		// It is not a stateless object, we must establish a new frame.
-		next (tls.get (TLS::CORE_TLS_OBJECT_FACTORY));
-		tls.set (TLS::CORE_TLS_OBJECT_FACTORY, static_cast <StatelessCreationFrame*> (this));
+		next (ed->TLS_get (CoreTLS::CORE_TLS_OBJECT_FACTORY));
+		ed->TLS_set (CoreTLS::CORE_TLS_OBJECT_FACTORY, static_cast <StatelessCreationFrame*> (this));
 		pop_ = true;
 	}
 }
@@ -57,7 +56,7 @@ ObjectFactory::Frame::Frame (const Internal::Interface* servant) :
 ObjectFactory::Frame::~Frame ()
 {
 	if (pop_)
-		TLS::current ().set (TLS::CORE_TLS_OBJECT_FACTORY, next ());
+		ExecDomain::current ().TLS_set (CoreTLS::CORE_TLS_OBJECT_FACTORY, next ());
 }
 
 Heap& ObjectFactory::stateless_memory ()

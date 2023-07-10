@@ -1,4 +1,3 @@
-/// \file
 /*
 * Nirvana Core.
 *
@@ -24,41 +23,16 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_ORB_CORE_OFFSET_PTR_H_
-#define NIRVANA_ORB_CORE_OFFSET_PTR_H_
-#pragma once
+#include "MemContextImpl.h"
+#include "TLS.h"
 
-#include <CORBA/CORBA.h>
-#include "../TLS.h"
-#include <CORBA/ObjectFactory.h>
-
-namespace CORBA {
+namespace Nirvana {
 namespace Core {
 
-inline
-size_t offset_ptr () noexcept
+TLS& MemContextImpl::thread_local_storage ()
 {
-	Internal::ObjectFactory::StatelessCreationFrame* scf =
-		(Internal::ObjectFactory::StatelessCreationFrame*)Nirvana::Core::ExecDomain::current ()
-		.TLS_get (Nirvana::Core::CoreTLS::CORE_TLS_OBJECT_FACTORY);
-	if (scf)
-		return scf->offset ();
-	return 0;
-}
-
-template <class I> inline
-Internal::I_ptr <I> offset_ptr (Internal::I_ptr <I> p, size_t cb) noexcept
-{
-	return reinterpret_cast <I*> ((Octet*)&p + cb);
-}
-
-template <class I> inline
-Internal::I_ptr <I> offset_ptr (Internal::I_ptr <I> p) noexcept
-{
-	return offset_ptr (p, offset_ptr ());
+	return tls_.instance ();
 }
 
 }
 }
-
-#endif

@@ -31,7 +31,7 @@
 #include "Binary.h"
 #include <Nirvana/ModuleInit.h>
 #include "AtomicCounter.h"
-#include "MemContextUser.h"
+#include "MemContextImpl.h"
 #include "Chrono.h"
 
 namespace Nirvana {
@@ -43,7 +43,7 @@ class SyncContext;
 class NIRVANA_NOVTABLE Module :
 	public UserObject,
 	public Binary,
-	public MemContextUser,
+	public MemContextImpl,
 	public CORBA::servant_traits <Nirvana::Module>::Servant <Module>,
 	public CORBA::Internal::LifeCycleRefCnt <Module>
 {

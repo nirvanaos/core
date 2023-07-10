@@ -24,39 +24,38 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_ORB_CORE_OFFSET_PTR_H_
-#define NIRVANA_ORB_CORE_OFFSET_PTR_H_
+#ifndef NIRVANA_CORE_MEMCONTEXTIMPL_H_
+#define NIRVANA_CORE_MEMCONTEXTIMPL_H_
 #pragma once
 
-#include <CORBA/CORBA.h>
-#include "../TLS.h"
-#include <CORBA/ObjectFactory.h>
+#include "MemContextUser.h"
+#include "TLS.h"
 
-namespace CORBA {
+namespace Nirvana {
 namespace Core {
 
-inline
-size_t offset_ptr () noexcept
+class MemContextImpl : public MemContextUser
 {
-	Internal::ObjectFactory::StatelessCreationFrame* scf =
-		(Internal::ObjectFactory::StatelessCreationFrame*)Nirvana::Core::ExecDomain::current ()
-		.TLS_get (Nirvana::Core::CoreTLS::CORE_TLS_OBJECT_FACTORY);
-	if (scf)
-		return scf->offset ();
-	return 0;
-}
+	friend class CORBA::servant_reference <MemContext>;
 
-template <class I> inline
-Internal::I_ptr <I> offset_ptr (Internal::I_ptr <I> p, size_t cb) noexcept
-{
-	return reinterpret_cast <I*> ((Octet*)&p + cb);
-}
+public:
+	/// Create MemContextImpl object.
+	/// 
+	/// \returns MemContext reference.
+	static Ref <MemContext> create ()
+	{
+		return Ref <MemContext>::create <MemContextImpl> ();
+	}
 
-template <class I> inline
-Internal::I_ptr <I> offset_ptr (Internal::I_ptr <I> p) noexcept
-{
-	return offset_ptr (p, offset_ptr ());
-}
+	virtual TLS& thread_local_storage () override;
+
+protected:
+	MemContextImpl ()
+	{}
+
+private:
+	TLS::Holder tls_;
+};
 
 }
 }

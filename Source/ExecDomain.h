@@ -37,7 +37,6 @@
 #include "ThreadBackground.h"
 #include "CoreObject.h"
 #include "unrecoverable_error.h"
-#include "TLS.h"
 #include <limits>
 #include <utility>
 #include <signal.h>
@@ -54,6 +53,16 @@ class ThreadBase;
 }
 
 namespace Core {
+
+/// Core TLS indexes.
+enum CoreTLS
+{
+	CORE_TLS_BINDER, ///< Binder context.
+	CORE_TLS_OBJECT_FACTORY, ///< ObjectFactory stateless creation frame.
+	CORE_TLS_PORTABLE_SERVER, ///< PortableServer::Current context.
+
+	CORE_TLS_COUNT
+};
 
 /// Execution domain (coroutine, fiber).
 class ExecDomain final :
@@ -138,22 +147,22 @@ public:
 		deadline_ = dt;
 	}
 
-	const System::DeadlinePolicy& deadline_policy_async () const noexcept
+	const DeadlineTime& deadline_policy_async () const noexcept
 	{
 		return deadline_policy_async_;
 	}
 
-	void deadline_policy_async (const System::DeadlinePolicy& dp) noexcept
+	void deadline_policy_async (const DeadlineTime& dp) noexcept
 	{
 		deadline_policy_async_ = dp;
 	}
 
-	const System::DeadlinePolicy& deadline_policy_oneway () const noexcept
+	const DeadlineTime& deadline_policy_oneway () const noexcept
 	{
 		return deadline_policy_oneway_;
 	}
 
-	void deadline_policy_oneway (const System::DeadlinePolicy& dp) noexcept
+	void deadline_policy_oneway (const DeadlineTime& dp) noexcept
 	{
 		deadline_policy_oneway_ = dp;
 	}
@@ -395,9 +404,16 @@ public:
 		restricted_mode_ = rm;
 	}
 
-	TLS& tls () noexcept
+	void TLS_set (CoreTLS idx, void* p) noexcept
 	{
-		return tls_;
+		assert (idx < CoreTLS::CORE_TLS_COUNT);
+		tls_ [idx] = p;
+	}
+
+	void* TLS_get (CoreTLS idx) const noexcept
+	{
+		assert (idx < CoreTLS::CORE_TLS_COUNT);
+		return tls_ [idx];
 	}
 
 	void get_context (const char* const* ids, size_t id_cnt, std::vector <std::string>& context)
@@ -436,10 +452,10 @@ private:
 		ret_qnodes_ (nullptr),
 		mem_context_ (nullptr),
 		scheduler_item_created_ (false),
-		restricted_mode_ (RestrictedMode::NO_RESTRICTIONS)
-	{
-		deadline_policy_oneway_._d (System::DeadlinePolicyType::DEADLINE_INFINITE);
-	}
+		restricted_mode_ (RestrictedMode::NO_RESTRICTIONS),
+		deadline_policy_async_ (0),
+		deadline_policy_oneway_ (INFINITE_DEADLINE)
+	{}
 
 	class WithPool;
 	class NoPool;
@@ -572,9 +588,10 @@ private:
 	Ref <ThreadBackground> background_worker_;
 	RestrictedMode restricted_mode_;
 
-	System::DeadlinePolicy deadline_policy_async_;
-	System::DeadlinePolicy deadline_policy_oneway_;
-	TLS tls_;
+	DeadlineTime deadline_policy_async_;
+	DeadlineTime deadline_policy_oneway_;
+
+	void* tls_ [CORE_TLS_COUNT];
 
 	typename std::aligned_storage <MAX_RUNNABLE_SIZE>::type runnable_space_;
 
@@ -586,12 +603,6 @@ inline
 MemContext& MemContext::current ()
 {
 	return ExecDomain::current ().mem_context ();
-}
-
-inline
-TLS& TLS::current () noexcept
-{
-	return ExecDomain::current ().tls ();
 }
 
 }

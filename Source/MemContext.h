@@ -29,7 +29,6 @@
 #pragma once
 
 #include "HeapUser.h"
-#include <Nirvana/System.h>
 
 namespace Nirvana {
 namespace Core {

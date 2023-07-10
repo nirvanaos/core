@@ -80,18 +80,18 @@ public:
 			throw BAD_PARAM ();
 		void* p = stateless_memory ().allocate (0, scf.size (), Nirvana::Memory::READ_ONLY | Nirvana::Memory::RESERVED);
 		scf.offset ((uint8_t*)p - (uint8_t*)scf.tmp ());
-		Nirvana::Core::TLS& tls = Nirvana::Core::TLS::current ();
-		scf.next (tls.get (Nirvana::Core::TLS::CORE_TLS_OBJECT_FACTORY));
-		tls.set (Nirvana::Core::TLS::CORE_TLS_OBJECT_FACTORY, &scf);
+		Nirvana::Core::ExecDomain& ed = Nirvana::Core::ExecDomain::current ();
+		scf.next (ed.TLS_get (Nirvana::Core::CoreTLS::CORE_TLS_OBJECT_FACTORY));
+		ed.TLS_set (Nirvana::Core::CoreTLS::CORE_TLS_OBJECT_FACTORY, &scf);
 	}
 
 	void* stateless_end (bool success)
 	{
-		Nirvana::Core::TLS& tls = Nirvana::Core::TLS::current ();
-		StatelessCreationFrame* scf = (StatelessCreationFrame*)tls.get (Nirvana::Core::TLS::CORE_TLS_OBJECT_FACTORY);
+		Nirvana::Core::ExecDomain& ed = Nirvana::Core::ExecDomain::current ();
+		StatelessCreationFrame* scf = (StatelessCreationFrame*)ed.TLS_get (Nirvana::Core::CoreTLS::CORE_TLS_OBJECT_FACTORY);
 		if (!scf)
 			throw BAD_INV_ORDER ();
-		tls.set (Nirvana::Core::TLS::CORE_TLS_OBJECT_FACTORY, scf->next ());
+		ed.TLS_set (Nirvana::Core::CoreTLS::CORE_TLS_OBJECT_FACTORY, scf->next ());
 		void* p = (Octet*)scf->tmp () + scf->offset ();
 		Nirvana::Core::Heap& sm = stateless_memory ();
 		if (success) {

@@ -18,13 +18,10 @@ class TestHeap :
 {
 protected:
 	TestHeap ()
-	{
-		TLS::initialize ();
-	}
+	{}
 
 	virtual ~TestHeap ()
-	{
-	}
+	{}
 
 	// If the constructor and destructor are not enough for setting up
 	// and cleaning up each test, you can define the following methods:

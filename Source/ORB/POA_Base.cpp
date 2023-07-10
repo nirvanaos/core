@@ -291,8 +291,8 @@ Object::_ref_type POA_Base::servant_to_reference (ServantProxyObject& proxy)
 Object::_ref_type POA_Base::servant_to_reference_default (ServantProxyObject& proxy, bool not_found)
 {
 	if (not_found) {
-		const Context* ctx = (const Context*)Nirvana::Core::TLS::current ().get (
-			Nirvana::Core::TLS::CORE_TLS_PORTABLE_SERVER);
+		const Context* ctx = (const Context*)Nirvana::Core::ExecDomain::current ().TLS_get (
+			CoreTLS::CORE_TLS_PORTABLE_SERVER);
 		if (ctx && (&ctx->servant == &proxy.get_proxy ()))
 			return ctx->servant;
 		throw ServantNotActive ();
@@ -451,17 +451,17 @@ void POA_Base::serve_default (const RequestRef& request, ReferenceLocal& referen
 
 void POA_Base::serve_request (const RequestRef& request, ReferenceLocal& reference, ServantProxyObject& proxy)
 {
-	TLS& tls = TLS::current ();
-	Context* ctx_prev = (Context*)tls.get (TLS::CORE_TLS_PORTABLE_SERVER);
+	ExecDomain& ed = ExecDomain::current ();
+	Context* ctx_prev = (Context*)ed.TLS_get (CoreTLS::CORE_TLS_PORTABLE_SERVER);
 	Context ctx (_this (), reference.core_key ().object_id (), reference.get_proxy (), proxy);
-	tls.set (TLS::CORE_TLS_PORTABLE_SERVER, &ctx);
+	ed.TLS_set (CoreTLS::CORE_TLS_PORTABLE_SERVER, &ctx);
 	try {
 		request->serve (proxy);
 	} catch (...) {
-		tls.set (TLS::CORE_TLS_PORTABLE_SERVER, ctx_prev);
+		ed.TLS_set (CoreTLS::CORE_TLS_PORTABLE_SERVER, ctx_prev);
 		throw;
 	}
-	tls.set (TLS::CORE_TLS_PORTABLE_SERVER, ctx_prev);
+	ed.TLS_set (CoreTLS::CORE_TLS_PORTABLE_SERVER, ctx_prev);
 }
 
 void POA_Base::on_request_start () noexcept
@@ -482,7 +482,7 @@ void POA_Base::check_wait_completion ()
 	// If wait_for_completion is TRUE and the current thread is in an invocation context dispatched
 	// from some POA belonging to the same ORB as this POA, the BAD_INV_ORDER system exception with
 	// standard minor code 3 is raised and POA destruction does not occur.
-	if (Nirvana::Core::TLS::current ().get (Nirvana::Core::TLS::CORE_TLS_PORTABLE_SERVER))
+	if (ExecDomain::current ().TLS_get (CoreTLS::CORE_TLS_PORTABLE_SERVER))
 		throw CORBA::BAD_INV_ORDER (MAKE_OMG_MINOR (3));
 }
 

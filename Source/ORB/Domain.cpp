@@ -216,9 +216,7 @@ void Domain::DGC_Request::invoke ()
 {
 	ExecDomain& ed = ExecDomain::current ();
 	System::DeadlinePolicy old = ed.deadline_policy_async ();
-	System::DeadlinePolicy dl;
-	dl.timeout (domain_.request_latency ());
-	ed.deadline_policy_async (dl);
+	ed.deadline_policy_async (domain_.request_latency ());
 
 	event_ = make_reference <RequestEvent> ();
 	request_ = domain_.create_request (IOP::ObjectKey (), operation_,

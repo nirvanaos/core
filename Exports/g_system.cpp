@@ -235,11 +235,9 @@ public:
 		TLS::release (idx);
 	}
 
-	static void TLS_set (uint16_t idx, void* ptr)
+	static void TLS_set (uint16_t idx, void* ptr, Deleter deleter)
 	{
-		if (idx < TLS::CORE_TLS_COUNT)
-			throw_BAD_PARAM ();
-		TLS::current ().set (idx, ptr);
+		TLS::current ().set (idx, ptr, deleter);
 	}
 
 	static void* TLS_get (uint16_t idx)
