@@ -214,15 +214,15 @@ Domain::DGC_RequestRef Domain::DGC_Request::create (Domain& domain)
 
 void Domain::DGC_Request::invoke ()
 {
-	ExecDomain& ed = ExecDomain::current ();
-	System::DeadlinePolicy old = ed.deadline_policy_async ();
-	ed.deadline_policy_async (domain_.request_latency ());
+	MemContext& mc = MemContext::current ();
+	System::DeadlinePolicy old = mc.deadline_policy_async ();
+	mc.deadline_policy_async (domain_.request_latency ());
 
 	event_ = make_reference <RequestEvent> ();
 	request_ = domain_.create_request (IOP::ObjectKey (), operation_,
 		IORequest::RESPONSE_EXPECTED, event_->_get_ptr ());
 
-	ed.deadline_policy_async (old);
+	mc.deadline_policy_async (old);
 
 	request_->marshal_seq_begin (add_cnt_);
 	auto it = keys_.begin ();

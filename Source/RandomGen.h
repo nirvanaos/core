@@ -61,6 +61,11 @@ public:
 		return std::numeric_limits <result_type>::max ();
 	}
 
+	void state (result_type seed) noexcept
+	{
+		state_ = seed;
+	}
+
 	result_type operator () () noexcept;
 
 protected:

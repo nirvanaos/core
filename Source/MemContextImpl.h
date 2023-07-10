@@ -29,7 +29,7 @@
 #pragma once
 
 #include "MemContextUser.h"
-#include "TLS.h"
+#include "RuntimeGlobal.h"
 
 namespace Nirvana {
 namespace Core {
@@ -47,14 +47,14 @@ public:
 		return Ref <MemContext>::create <MemContextImpl> ();
 	}
 
-	virtual TLS& thread_local_storage () override;
+	virtual RuntimeGlobal& runtime_global () noexcept override;
 
 protected:
 	MemContextImpl ()
 	{}
 
 private:
-	TLS::Holder tls_;
+	RuntimeGlobal runtime_global_;
 };
 
 }

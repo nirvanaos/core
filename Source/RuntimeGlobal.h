@@ -28,26 +28,54 @@
 #define NIRVANA_CORE_RUNTIMEGLOBAL_H_
 #pragma once
 
+#include "RandomGen.h"
+#include "TLS.h"
+
 namespace Nirvana {
 namespace Core {
 
-/// Run-time library global state
-struct RuntimeGlobal
+/// POSIX run-time library global state
+class RuntimeGlobal
 {
-	uint32_t rand_state;
-	int error_number;
+public:
+	static RuntimeGlobal& current ();
 
-	RuntimeGlobal ()
+	RuntimeGlobal () noexcept :
+		random_ (1),
+		error_number_ (0)
+	{}
+
+	int rand () noexcept
 	{
-		cleanup ();
+		return random_.operator () () & RAND_MAX;
 	}
 
-	void cleanup ()
+	void srand (unsigned seed) noexcept
 	{
-		error_number = 0;
-		rand_state = 1;
+		random_.state (seed);
 	}
+
+	int* error_number () noexcept
+	{
+		return &error_number_;
+	}
+
+	TLS& thread_local_storage ()
+	{
+		return tls_.instance ();
+	}
+
+private:
+	TLS::Holder tls_;
+	RandomGen random_;
+	int error_number_;
 };
+
+inline
+TLS& TLS::current ()
+{
+	return RuntimeGlobal::current ().thread_local_storage ();
+}
 
 }
 }

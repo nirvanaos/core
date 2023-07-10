@@ -120,27 +120,27 @@ public:
 
 	static const DeadlinePolicy& deadline_policy_async ()
 	{
-		return ExecDomain::current ().deadline_policy_async ();
+		return MemContext::current ().deadline_policy_async ();
 	}
 
 	static void deadline_policy_async (const DeadlinePolicy& dp)
 	{
-		ExecDomain::current ().deadline_policy_async (dp);
+		MemContext::current ().deadline_policy_async (dp);
 	}
 
 	static const DeadlinePolicy& deadline_policy_oneway ()
 	{
-		return ExecDomain::current ().deadline_policy_oneway ();
+		return MemContext::current ().deadline_policy_oneway ();
 	}
 
 	static void deadline_policy_oneway (const DeadlinePolicy& dp)
 	{
-		ExecDomain::current ().deadline_policy_oneway (dp);
+		MemContext::current ().deadline_policy_oneway (dp);
 	}
 
 	static int* error_number ()
 	{
-		return &ExecDomain::current ().runtime_global_.error_number;
+		return RuntimeGlobal::current ().error_number ();
 	}
 
 	static Nirvana::Memory::_ref_type create_heap (uint16_t granularity)
@@ -169,16 +169,14 @@ public:
 		throw_NO_IMPLEMENT ();
 	}
 
-	static void srand (uint32_t seed)
+	static void srand (unsigned seed)
 	{
-		Thread::current ().exec_domain ()->runtime_global_.rand_state = seed;
+		RuntimeGlobal::current ().srand (seed);
 	}
 
-	static short rand () // RAND_MAX assumed to be 32767
+	static int rand ()
 	{
-		uint32_t& next = Thread::current ().exec_domain ()->runtime_global_.rand_state;
-		next = next * 1103515245 + 12345;
-		return (unsigned int)(next >> 16) % 32768;
+		return RuntimeGlobal::current ().rand ();
 	}
 
 	static size_t _s_get_hardware_concurrency (CORBA::Internal::Bridge <Nirvana::System>* _b, CORBA::Internal::Interface* _env)

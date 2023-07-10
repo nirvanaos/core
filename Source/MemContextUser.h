@@ -37,7 +37,7 @@ namespace Nirvana {
 namespace Core {
 
 class MemContextObject;
-class TLS;
+class RuntimeGlobal;
 
 /// \brief Memory context full implementation.
 class NIRVANA_NOVTABLE MemContextUser : public MemContext
@@ -68,7 +68,8 @@ public:
 	virtual CosNaming::Name get_current_dir_name () const;
 	virtual void chdir (const IDL::String& path);
 
-	virtual TLS& thread_local_storage () = 0;
+	/// POSIX run-time library global state
+	virtual RuntimeGlobal& runtime_global () noexcept = 0;
 
 protected:
 	MemContextUser ();

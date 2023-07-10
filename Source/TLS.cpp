@@ -32,15 +32,6 @@ namespace Core {
 TLS::BitmapWord TLS::bitmap_ [BITMAP_SIZE];
 uint16_t TLS::free_count_;
 
-TLS& TLS::current ()
-{
-	MemContextUser* mc = MemContext::current ().user_context ();
-	if (mc)
-		return mc->thread_local_storage ();
-	else
-		throw CORBA::NO_IMPLEMENT ();
-}
-
 unsigned TLS::allocate ()
 {
 	if (BitmapOps::acquire (&free_count_)) {

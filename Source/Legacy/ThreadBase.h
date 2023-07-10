@@ -29,8 +29,8 @@
 #pragma once
 
 #include "../ThreadBackground.h"
+#include "../RuntimeGlobal.h"
 #include <Nirvana/SimpleList.h>
-#include "../TLS.h"
 #include <memory>
 
 namespace Nirvana {
@@ -72,16 +72,17 @@ public:
 
 	virtual Process& process () noexcept = 0;
 
-	Nirvana::Core::TLS& thread_local_storage ()
+	Nirvana::Core::RuntimeGlobal& runtime_global () noexcept
 	{
-		return tls_.instance ();
+		return runtime_global_;
 	}
 
 protected:
 	ThreadBase () = default;
 
 private:
-	Nirvana::Core::TLS::Holder tls_;
+	Nirvana::Core::RuntimeGlobal runtime_global_;
+
 };
 
 }

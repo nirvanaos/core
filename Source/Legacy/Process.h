@@ -131,7 +131,7 @@ public:
 		noexcept override;
 	virtual CosNaming::Name get_current_dir_name () const override;
 	virtual void chdir (const IDL::String& path) override;
-	virtual Nirvana::Core::TLS& thread_local_storage () override;
+	virtual Nirvana::Core::RuntimeGlobal& runtime_global () noexcept override;
 
 private:
 	template <class S, class ... Args> friend

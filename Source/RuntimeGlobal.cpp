@@ -23,15 +23,19 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "MemContextImpl.h"
-#include "TLS.h"
+#include "RuntimeGlobal.h"
+#include "MemContextUser.h"
 
 namespace Nirvana {
 namespace Core {
 
-RuntimeGlobal& MemContextImpl::runtime_global () noexcept
+RuntimeGlobal& RuntimeGlobal::current ()
 {
-	return runtime_global_;
+	MemContextUser* mc = MemContext::current ().user_context ();
+	if (mc)
+		return mc->runtime_global ();
+	else
+		throw CORBA::NO_IMPLEMENT ();
 }
 
 }

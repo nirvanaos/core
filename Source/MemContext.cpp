@@ -40,8 +40,17 @@ bool MemContext::is_current (const MemContext* context) noexcept
 }
 
 MemContext::MemContext (bool user) :
+	deadline_policy_async_ (0),
+	deadline_policy_oneway_ (INFINITE_DEADLINE),
 	heap_ (sizeof (void*) > 2 ? Ref <Heap>::create <ImplDynamic <HeapUser> > () :
 		Ref <Heap> (&Heap::shared_heap ())),
+	user_ (user)
+{}
+
+MemContext::MemContext (Heap& heap, bool user) noexcept :
+	deadline_policy_async_ (0),
+	deadline_policy_oneway_ (INFINITE_DEADLINE),
+	heap_ (&heap),
 	user_ (user)
 {}
 

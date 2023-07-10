@@ -71,19 +71,19 @@ Object::_ref_type create_TC_Factory ()
 inline void TC_FactoryImpl::schedule_GC () noexcept
 {
 	if (!GC_scheduled_.test_and_set ()) {
-		ExecDomain& ed = ExecDomain::current ();
-		auto saved = ed.deadline_policy_oneway ();
+		MemContext& mc = MemContext::current ();
+		auto saved = mc.deadline_policy_oneway ();
 		try {
 			System::DeadlinePolicy dp;
 			if (PROXY_GC_DEADLINE == INFINITE_DEADLINE)
 				dp = System::DEADLINE_POLICY_INFINITE;
 			else
 				dp = PROXY_GC_DEADLINE;
-			ed.deadline_policy_oneway (dp);
+			mc.deadline_policy_oneway (dp);
 			TC_Factory::_narrow (Services::bind (Services::TC_Factory))->collect_garbage ();
 		} catch (...) {
 		}
-		ed.deadline_policy_oneway (saved);
+		mc.deadline_policy_oneway (saved);
 	}
 }
 

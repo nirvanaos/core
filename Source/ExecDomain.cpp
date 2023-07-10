@@ -211,12 +211,7 @@ void ExecDomain::cleanup () noexcept
 		background_worker_ = nullptr;
 	}
 
-	runtime_global_.cleanup ();
-
 	std::fill_n (tls_, CoreTLS::CORE_TLS_COUNT, nullptr);
-
-	deadline_policy_async_ = 0;
-	deadline_policy_oneway_ = INFINITE_DEADLINE;
 
 	ExecContext::run_in_neutral_context (deleter_);
 }
@@ -349,7 +344,10 @@ void ExecDomain::schedule_return (SyncContext& target, bool no_reschedule) noexc
 
 DeadlineTime ExecDomain::get_request_deadline (bool oneway) const noexcept
 {
-	const DeadlineTime dp = oneway ? deadline_policy_oneway_ : deadline_policy_async_;
+	const DeadlineTime dp = oneway ?
+		(mem_context_ptr () ? mem_context_ptr ()->deadline_policy_oneway () : INFINITE_DEADLINE)
+		:
+		(mem_context_ptr () ? mem_context_ptr ()->deadline_policy_async () : 0);
 	DeadlineTime dl = INFINITE_DEADLINE;
 	if (dp == 0)
 		dl = deadline ();

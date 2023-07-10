@@ -31,7 +31,6 @@
 #include "SyncDomain.h"
 #include "Scheduler.h"
 #include "Stack.h"
-#include "RuntimeGlobal.h"
 #include "PreallocatedStack.h"
 #include "ObjectPool.h"
 #include "ThreadBackground.h"
@@ -145,26 +144,6 @@ public:
 	void deadline (const DeadlineTime& dt) noexcept
 	{
 		deadline_ = dt;
-	}
-
-	const DeadlineTime& deadline_policy_async () const noexcept
-	{
-		return deadline_policy_async_;
-	}
-
-	void deadline_policy_async (const DeadlineTime& dp) noexcept
-	{
-		deadline_policy_async_ = dp;
-	}
-
-	const DeadlineTime& deadline_policy_oneway () const noexcept
-	{
-		return deadline_policy_oneway_;
-	}
-
-	void deadline_policy_oneway (const DeadlineTime& dp) noexcept
-	{
-		deadline_policy_oneway_ = dp;
 	}
 
 	DeadlineTime get_request_deadline (bool oneway) const noexcept;
@@ -426,9 +405,6 @@ public:
 		// TODO: Implement
 	}
 
-	/// Run-time global state
-	RuntimeGlobal runtime_global_;
-
 	/// Abort execution with SIGTERM signal.
 	void abort ()
 	{
@@ -452,9 +428,7 @@ private:
 		ret_qnodes_ (nullptr),
 		mem_context_ (nullptr),
 		scheduler_item_created_ (false),
-		restricted_mode_ (RestrictedMode::NO_RESTRICTIONS),
-		deadline_policy_async_ (0),
-		deadline_policy_oneway_ (INFINITE_DEADLINE)
+		restricted_mode_ (RestrictedMode::NO_RESTRICTIONS)
 	{}
 
 	class WithPool;
@@ -587,9 +561,6 @@ private:
 	Schedule schedule_;
 	Ref <ThreadBackground> background_worker_;
 	RestrictedMode restricted_mode_;
-
-	DeadlineTime deadline_policy_async_;
-	DeadlineTime deadline_policy_oneway_;
 
 	void* tls_ [CORE_TLS_COUNT];
 

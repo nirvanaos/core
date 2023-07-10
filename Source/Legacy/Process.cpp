@@ -177,9 +177,9 @@ void Process::chdir (const IDL::String& path)
 	SYNC_END ();
 }
 
-TLS& Process::thread_local_storage ()
+RuntimeGlobal& Process::runtime_global () noexcept
 {
-	return ThreadBase::current ().thread_local_storage ();
+	return ThreadBase::current ().runtime_global ();
 }
 
 }

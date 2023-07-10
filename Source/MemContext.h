@@ -68,13 +68,29 @@ public:
 	///          For the core memory context, returns `false.
 	MemContextUser* user_context () noexcept;
 
+	const DeadlineTime& deadline_policy_async () const noexcept
+	{
+		return deadline_policy_async_;
+	}
+
+	void deadline_policy_async (const DeadlineTime& dp) noexcept
+	{
+		deadline_policy_async_ = dp;
+	}
+
+	const DeadlineTime& deadline_policy_oneway () const noexcept
+	{
+		return deadline_policy_oneway_;
+	}
+
+	void deadline_policy_oneway (const DeadlineTime& dp) noexcept
+	{
+		deadline_policy_oneway_ = dp;
+	}
+
 protected:
 	MemContext (bool user);
-
-	MemContext (Heap& heap, bool user) noexcept :
-		heap_ (&heap),
-		user_ (user)
-	{}
+	MemContext (Heap& heap, bool user) noexcept;
 
 	virtual ~MemContext ();
 
@@ -85,10 +101,10 @@ protected:
 
 	void _remove_ref () noexcept;
 
-protected:
-	Ref <Heap> heap_;
-
 private:
+	DeadlineTime deadline_policy_async_;
+	DeadlineTime deadline_policy_oneway_;
+	Ref <Heap> heap_;
 	RefCounter ref_cnt_;
 	const bool user_;
 };
