@@ -24,10 +24,26 @@
 *  popov.nirvana@gmail.com
 */
 #include "MemContextObject.h"
-#include "MemContext.h"
+#include "MemContextUser.h"
 
 namespace Nirvana {
 namespace Core {
+
+MemContextObject::MemContextObject ()
+{
+	MemContextUser* mc = MemContext::current ().user_context ();
+	assert (mc);
+	mc->on_object_construct (*this);
+}
+
+MemContextObject::~MemContextObject ()
+{
+	if (listed ()) {
+		MemContextUser* mc = MemContext::current ().user_context ();
+		assert (mc);
+		mc->on_object_destruct (*this);
+	}
+}
 
 void MemContextObjectList::clear () noexcept
 {

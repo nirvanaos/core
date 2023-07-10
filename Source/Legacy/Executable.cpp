@@ -32,6 +32,7 @@ namespace Core {
 
 Executable::Executable (const std::string& file) :
 	Nirvana::Core::Binary (file),
+	Nirvana::Core::SyncContext (false),
 	entry_point_ (Nirvana::Core::Binder::bind (*this)),
 	bound_ (true)
 {}

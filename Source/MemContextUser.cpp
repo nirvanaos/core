@@ -30,11 +30,12 @@
 namespace Nirvana {
 namespace Core {
 
-MemContextUser::MemContextUser ()
+MemContextUser::MemContextUser () :
+	MemContext (true)
 {}
 
 MemContextUser::MemContextUser (Heap& heap) noexcept :
-	MemContextCore (heap)
+	MemContext (heap, true)
 {}
 
 MemContextUser::~MemContextUser ()

@@ -30,6 +30,7 @@ namespace Nirvana {
 namespace Core {
 
 SyncDomain::SyncDomain (Ref <MemContext>&& mem_context) noexcept :
+	SyncContext (true),
 	mem_context_ (std::move (mem_context)),
 	scheduling_ ATOMIC_FLAG_INIT,
 	need_schedule_ (false),
@@ -135,11 +136,6 @@ void SyncDomain::release_queue_node (QueueNode* node) noexcept
 	assert (node->domain_ == this);
 	queue_.deallocate_node (node);
 	activity_end ();
-}
-
-SyncDomain* SyncDomain::sync_domain () noexcept
-{
-	return this;
 }
 
 Module* SyncDomainImpl::module () noexcept

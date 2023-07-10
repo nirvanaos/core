@@ -46,16 +46,21 @@ class System :
 public:
 	static RuntimeProxy::_ref_type runtime_proxy_get (const void* obj)
 	{
-		if (!RUNTIME_SUPPORT_DISABLE)
-			return MemContext::current ().runtime_proxy_get (obj);
-		else
-			return nullptr;
+		if (!RUNTIME_SUPPORT_DISABLE) {
+			MemContextUser* mc = MemContext::current ().user_context ();
+			if (mc)
+				return mc->runtime_proxy_get (obj);
+		}
+		return nullptr;
 	}
 
 	static void runtime_proxy_remove (const void* obj)
 	{
-		if (!RUNTIME_SUPPORT_DISABLE)
-			MemContext::current ().runtime_proxy_remove (obj);
+		if (!RUNTIME_SUPPORT_DISABLE) {
+			MemContextUser* mc = MemContext::current ().user_context ();
+			if (mc)
+				mc->runtime_proxy_remove (obj);
+		}
 	}
 
 	static CORBA::Object::_ref_type bind (const IDL::String& name)
@@ -249,12 +254,20 @@ public:
 
 	static CosNaming::Name get_current_dir_name ()
 	{
-		return MemContext::current ().get_current_dir_name ();
+		MemContextUser* mc = MemContext::current ().user_context ();
+		if (mc)
+			return mc->get_current_dir_name ();
+		else
+			throw CORBA::NO_IMPLEMENT ();
 	}
 
 	static void chdir (const IDL::String& path)
 	{
-		MemContext::current ().chdir (path);
+		MemContextUser* mc = MemContext::current ().user_context ();
+		if (mc)
+			mc->chdir (path);
+		else
+			throw CORBA::NO_IMPLEMENT ();
 	}
 
 	static short fd_open (const IDL::String& path, uint_fast16_t flags, uint_fast16_t mode)

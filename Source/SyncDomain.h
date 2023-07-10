@@ -111,8 +111,6 @@ public:
 
 	virtual void execute () override;
 
-	virtual SyncDomain* sync_domain () noexcept override;
-
 	/// \returns Domain memory context.
 	MemContext& mem_context () noexcept
 	{
@@ -154,6 +152,14 @@ private:
 
 	AtomicCounter <false> activity_cnt_;
 };
+
+inline SyncDomain* SyncContext::sync_domain () noexcept
+{
+	if (sync_domain_)
+		return static_cast <SyncDomain*> (this);
+	else
+		return nullptr;
+}
 
 /// User sync domain implementation.
 class SyncDomainImpl : public SyncDomain

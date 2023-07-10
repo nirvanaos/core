@@ -26,6 +26,7 @@
 #include "ExecDomain.h"
 #include "Legacy/Process.h"
 #include "Chrono.h"
+#include "MemContextCore.h"
 #include "MemContextUser.h"
 #include <Port/SystemInfo.h>
 

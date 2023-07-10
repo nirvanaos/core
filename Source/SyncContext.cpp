@@ -37,11 +37,6 @@ SyncContext& SyncContext::current () noexcept
 	return ExecDomain::current ().sync_context ();
 }
 
-SyncDomain* SyncContext::sync_domain () noexcept
-{
-	return nullptr;
-}
-
 Heap* SyncContext::stateless_memory () noexcept
 {
 	return nullptr;

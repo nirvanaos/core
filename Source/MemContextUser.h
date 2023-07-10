@@ -28,18 +28,18 @@
 #define NIRVANA_CORE_MEMCONTEXTEX_H_
 #pragma once
 
-#include "MemContextCore.h"
+#include "MemContext.h"
 #include "RuntimeSupport.h"
 #include "MemContextObject.h"
 
 namespace Nirvana {
 namespace Core {
 
-/// \brief Memory context full implementation.
-class MemContextUser : public MemContextCore
-{
-	typedef MemContextCore Base;
+class MemContextObject;
 
+/// \brief Memory context full implementation.
+class MemContextUser : public MemContext
+{
 	friend class CORBA::servant_reference <MemContext>;
 
 public:
@@ -50,6 +50,31 @@ public:
 	{
 		return Ref <MemContext>::create <MemContextUser> ();
 	}
+
+	/// Search map for runtime proxy for object \p obj.
+	/// If proxy exists, returns it. Otherwise creates a new one.
+	/// 
+	/// \param obj Pointer used as a key.
+	/// \returns RuntimeProxy for obj.
+	virtual RuntimeProxy::_ref_type runtime_proxy_get (const void* obj);
+
+	/// Remove runtime proxy for object \p obj.
+	/// 
+	/// \param obj Pointer used as a key.
+	virtual void runtime_proxy_remove (const void* obj) noexcept;
+
+	/// Add object to list.
+	/// 
+	/// \param obj New object.
+	virtual void on_object_construct (MemContextObject& obj) noexcept;
+
+	/// Remove object from list.
+	/// 
+	/// \param obj Object.
+	virtual void on_object_destruct (MemContextObject& obj) noexcept;
+
+	virtual CosNaming::Name get_current_dir_name () const;
+	virtual void chdir (const IDL::String& path);
 
 protected:
 	MemContextUser ();
@@ -63,20 +88,19 @@ protected:
 		runtime_support_.clear ();
 	}
 
-	// MemContext methods
-
-	virtual RuntimeProxy::_ref_type runtime_proxy_get (const void* obj) override;
-	virtual void runtime_proxy_remove (const void* obj) noexcept override;
-	virtual void on_object_construct (MemContextObject& obj) noexcept override;
-	virtual void on_object_destruct (MemContextObject& obj) noexcept override;
-	virtual CosNaming::Name get_current_dir_name () const override;
-	virtual void chdir (const IDL::String& path) override;
-
 private:
 	RuntimeSupportImpl runtime_support_;
 	MemContextObjectList object_list_;
 	CosNaming::Name current_dir_;
 };
+
+inline MemContextUser* MemContext::user_context () noexcept
+{
+	if (user_)
+		return static_cast <MemContextUser*> (this);
+	else
+		return nullptr;
+}
 
 }
 }

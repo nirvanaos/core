@@ -29,7 +29,6 @@
 #pragma once
 
 #include "UserObject.h"
-#include "MemContext.h"
 #include <Nirvana/SimpleList.h>
 
 namespace Nirvana {
@@ -41,17 +40,10 @@ class NIRVANA_NOVTABLE MemContextObject :
 	public SimpleList <MemContextObject>::Element
 {
 public:
-	virtual ~MemContextObject ()
-	{
-		if (listed ())
-			MemContext::current ().on_object_destruct (*this);
-	}
+	virtual ~MemContextObject ();
 
 protected:
-	MemContextObject ()
-	{
-		MemContext::current ().on_object_construct (*this);
-	}
+	MemContextObject ();
 };
 
 class MemContextObjectList : public SimpleList <MemContextObject>

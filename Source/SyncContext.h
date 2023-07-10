@@ -57,7 +57,7 @@ public:
 
 	/// \returns SyncDomain associated with this context.
 	/// Returns `nullptr` if there is not synchronization domain.
-	virtual SyncDomain* sync_domain () noexcept;
+	SyncDomain* sync_domain () noexcept;
 
 	/// \returns `true` if this context is free sync context.
 	bool is_free_sync_context () const noexcept
@@ -90,6 +90,14 @@ public:
 #else
 	bool is_legacy_mode () const noexcept;
 #endif
+
+protected:
+	SyncContext (bool sync_domain) :
+		sync_domain_ (sync_domain)
+	{}
+
+private:
+	const bool sync_domain_;
 };
 
 /// Free (not synchronized) sync context.
@@ -98,6 +106,11 @@ class NIRVANA_NOVTABLE SyncContextFree :
 {
 public:
 	virtual Heap* stateless_memory () noexcept = 0;
+
+protected:
+	SyncContextFree () :
+		SyncContext (false)
+	{}
 };
 
 /// Core free sync context.

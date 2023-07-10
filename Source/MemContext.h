@@ -34,7 +34,7 @@
 namespace Nirvana {
 namespace Core {
 
-class MemContextObject;
+class MemContextUser;
 
 /// Memory context.
 /// Contains heap and some other stuff.
@@ -49,9 +49,15 @@ class NIRVANA_NOVTABLE MemContext
 
 public:
 	/// \returns Current memory context.
+	///          If there is no current memory context, a new user memory context will be created.
+	/// \throws CORBA::NO_MEMORY.
 	static MemContext& current ();
 
-	static bool is_current (MemContext* context);
+	/// Check if specific memory context is current.
+	/// 
+	/// \param context A memory context pointer.
+	/// \returns `true` if \p context is current memory context.
+	static bool is_current (const MemContext* context) noexcept;
 
 	/// \returns Heap.
 	Heap& heap () noexcept
@@ -59,36 +65,16 @@ public:
 		return *heap_;
 	}
 
-	/// Search map for runtime proxy for object \p obj.
-	/// If proxy exists, returns it. Otherwise creates a new one.
-	/// 
-	/// \param obj Pointer used as a key.
-	/// \returns RuntimeProxy for obj.
-	virtual RuntimeProxy::_ref_type runtime_proxy_get (const void* obj) = 0;
-
-	/// Remove runtime proxy for object \p obj.
-	/// 
-	/// \param obj Pointer used as a key.
-	virtual void runtime_proxy_remove (const void* obj) noexcept = 0;
-
-	/// Add object to list.
-	/// 
-	/// \param obj New object.
-	virtual void on_object_construct (MemContextObject& obj) noexcept = 0;
-
-	/// Remove object from list.
-	/// 
-	/// \param obj Object.
-	virtual void on_object_destruct (MemContextObject& obj) noexcept = 0;
-
-	virtual CosNaming::Name get_current_dir_name () const = 0;
-	virtual void chdir (const IDL::String& path) = 0;
+	/// \returns If this is an user memory context, returns MemContextUser pointer.
+	///          For the core memory context, returns `false.
+	MemContextUser* user_context () noexcept;
 
 protected:
-	MemContext ();
+	MemContext (bool user);
 
-	MemContext (Heap& heap) noexcept :
-		heap_ (&heap)
+	MemContext (Heap& heap, bool user) noexcept :
+		heap_ (&heap),
+		user_ (user)
 	{}
 
 	virtual ~MemContext ();
@@ -105,6 +91,7 @@ protected:
 
 private:
 	RefCounter ref_cnt_;
+	const bool user_;
 };
 
 }

@@ -28,7 +28,7 @@
 namespace Nirvana {
 namespace Core {
 
-bool MemContext::is_current (MemContext* context)
+bool MemContext::is_current (const MemContext* context) noexcept
 {
 	Thread* th = Thread::current_ptr ();
 	if (th) {
@@ -39,8 +39,10 @@ bool MemContext::is_current (MemContext* context)
 	return !context;
 }
 
-MemContext::MemContext () :
-	heap_ (sizeof (void*) > 2 ? Ref <Heap>::create <ImplDynamic <HeapUser> > () : Ref <Heap> (&Heap::shared_heap ()))
+MemContext::MemContext (bool user) :
+	heap_ (sizeof (void*) > 2 ? Ref <Heap>::create <ImplDynamic <HeapUser> > () :
+		Ref <Heap> (&Heap::shared_heap ())),
+	user_ (user)
 {}
 
 MemContext::~MemContext ()

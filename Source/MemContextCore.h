@@ -29,7 +29,6 @@
 #pragma once
 
 #include "MemContext.h"
-#include "TLS.h"
 #include "SharedObject.h"
 
 namespace Nirvana {
@@ -43,19 +42,16 @@ class MemContextCore :
 	friend class CORBA::servant_reference <MemContext>;
 
 protected:
-	MemContextCore ();
-	MemContextCore (Heap& heap) noexcept;
+	MemContextCore () :
+		MemContext (false)
+	{}
 
-	~MemContextCore ();
+	MemContextCore (Heap& heap) noexcept :
+		MemContext (heap, false)
+	{}
 
-	// MemContext methods
-
-	virtual RuntimeProxy::_ref_type runtime_proxy_get (const void* obj) override;
-	virtual void runtime_proxy_remove (const void* obj) noexcept override;
-	virtual void on_object_construct (MemContextObject& obj) noexcept override;
-	virtual void on_object_destruct (MemContextObject& obj) noexcept override;
-	virtual CosNaming::Name get_current_dir_name () const override;
-	virtual void chdir (const IDL::String& path) override;
+	~MemContextCore ()
+	{}
 };
 
 }
