@@ -24,6 +24,7 @@
 *  popov.nirvana@gmail.com
 */
 #include "TLS.h"
+#include "RuntimeGlobal.h"
 #include "MemContextUser.h"
 
 namespace Nirvana {
@@ -73,18 +74,11 @@ void TLS::Entry::destruct () noexcept
 inline TLS::TLS ()
 {}
 
-inline TLS::~TLS ()
+TLS::~TLS ()
 {}
 
-void TLS::set (unsigned idx, void* p, Deleter deleter)
+inline void TLS::set_value (unsigned idx, void* p, Deleter deleter)
 {
-	if (idx >= USER_TLS_INDEXES_END)
-		throw_BAD_PARAM ();
-	size_t i = idx / BW_BITS;
-	BitmapWord mask = (BitmapWord)1 << (idx % BW_BITS);
-	if (!(bitmap_ [i] & mask))
-		throw_BAD_PARAM ();
-
 	if (!p)
 		deleter = nullptr;
 	if (entries_.size () <= idx) {
@@ -95,7 +89,7 @@ void TLS::set (unsigned idx, void* p, Deleter deleter)
 	entries_ [idx] = Entry (p, deleter);
 }
 
-void* TLS::get (unsigned idx) const noexcept
+inline void* TLS::get_value (unsigned idx) const noexcept
 {
 	// Do not check that index is really allocated, just return nullptr.
 	// It is for performance.
@@ -105,11 +99,40 @@ void* TLS::get (unsigned idx) const noexcept
 		return entries_ [idx].ptr ();
 }
 
-TLS& TLS::Holder::instance ()
+void TLS::Holder::set (unsigned idx, void* p, Deleter deleter)
 {
+	if (idx >= USER_TLS_INDEXES_END)
+		throw_BAD_PARAM ();
+	size_t i = idx / BW_BITS;
+	BitmapWord mask = (BitmapWord)1 << (idx % BW_BITS);
+	if (!(bitmap_ [i] & mask))
+		throw_BAD_PARAM ();
+
 	if (!p_)
 		p_.reset (new TLS);
-	return *p_;
+	p_->set_value (idx, p, deleter);
+}
+
+void* TLS::Holder::get (unsigned idx) const noexcept
+{
+	if (p_)
+		return p_->get_value (idx);
+	else
+		return nullptr;
+}
+
+void TLS::set (unsigned idx, void* p, Deleter deleter)
+{
+	MemContextUser::current ().runtime_global ().TLS_set (idx, p, deleter);
+}
+
+void* TLS::get (unsigned idx) noexcept
+{
+	MemContextUser* mc = MemContext::current ().user_context ();
+	if (mc)
+		return mc->runtime_global ().TLS_get (idx);
+	else
+		return nullptr;
 }
 
 }

@@ -30,6 +30,14 @@
 namespace Nirvana {
 namespace Core {
 
+MemContextUser& MemContextUser::current ()
+{
+	MemContextUser* p = MemContext::current ().user_context ();
+	if (!p)
+		throw CORBA::NO_IMPLEMENT ();
+	return *p;
+}
+
 MemContextUser::MemContextUser () :
 	MemContext (true)
 {}

@@ -55,12 +55,6 @@ public:
 		std::fill_n (bitmap_, BITMAP_SIZE, ~0);
 	}
 
-	/// Get current TLS object.
-	/// 
-	/// \returns Current TLS reference.
-	/// \throws CORBA::NO_IMPLEMENT if current memory context is not user memory context.
-	static TLS& current ();
-
 	/// Allocate TLS index.
 	///
 	/// \returns New TLS index.
@@ -79,18 +73,20 @@ public:
 	/// \param p Value.
 	/// \param deleter Optional deleter function.
 	/// \throws CORBA::BAD_PARAM if \p idx is wrong.
-	void set (unsigned idx, void* p, Deleter deleter);
+	/// \throws CORBA::NO_IMPLEMENT if the current memory context is not user memory context.
+	static void set (unsigned idx, void* p, Deleter deleter);
 
 	/// Get TLS value.
 	/// 
 	/// \param idx TLS index.
 	/// \returns TLS value.
-	void* get (unsigned idx) const noexcept;
+	static void* get (unsigned idx) noexcept;
 
 	class Holder
 	{
 	public:
-		TLS& instance ();
+		void set (unsigned idx, void* p, Deleter deleter);
+		void* get (unsigned idx) const noexcept;
 
 	private:
 		std::unique_ptr <TLS> p_;
@@ -102,6 +98,9 @@ private:
 	friend class Holder;
 
 	TLS ();
+
+	void set_value (unsigned idx, void* p, Deleter deleter);
+	void* get_value (unsigned idx) const noexcept;
 
 	class Entry
 	{

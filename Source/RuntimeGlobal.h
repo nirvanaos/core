@@ -60,9 +60,14 @@ public:
 		return &error_number_;
 	}
 
-	TLS& thread_local_storage ()
+	void TLS_set (unsigned idx, void* p, Deleter deleter)
 	{
-		return tls_.instance ();
+		tls_.set (idx, p, deleter);
+	}
+
+	void* TLS_get (unsigned idx) const noexcept
+	{
+		return tls_.get (idx);
 	}
 
 private:
@@ -70,12 +75,6 @@ private:
 	RandomGen random_;
 	int error_number_;
 };
-
-inline
-TLS& TLS::current ()
-{
-	return RuntimeGlobal::current ().thread_local_storage ();
-}
 
 }
 }

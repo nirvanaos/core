@@ -235,12 +235,12 @@ public:
 
 	static void TLS_set (uint16_t idx, void* ptr, Deleter deleter)
 	{
-		TLS::current ().set (idx, ptr, deleter);
+		TLS::set (idx, ptr, deleter);
 	}
 
 	static void* TLS_get (uint16_t idx)
 	{
-		return TLS::current ().get (idx);
+		return TLS::get (idx);
 	}
 
 	static void get_name_from_path (CosNaming::Name& name, const IDL::String& path)
@@ -250,20 +250,12 @@ public:
 
 	static CosNaming::Name get_current_dir_name ()
 	{
-		MemContextUser* mc = MemContext::current ().user_context ();
-		if (mc)
-			return mc->get_current_dir_name ();
-		else
-			throw CORBA::NO_IMPLEMENT ();
+		return MemContextUser::current ().get_current_dir_name ();
 	}
 
 	static void chdir (const IDL::String& path)
 	{
-		MemContextUser* mc = MemContext::current ().user_context ();
-		if (mc)
-			mc->chdir (path);
-		else
-			throw CORBA::NO_IMPLEMENT ();
+		MemContextUser::current ().chdir (path);
 	}
 
 	static short fd_open (const IDL::String& path, uint_fast16_t flags, uint_fast16_t mode)

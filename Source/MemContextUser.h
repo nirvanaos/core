@@ -43,6 +43,10 @@ class RuntimeGlobal;
 class NIRVANA_NOVTABLE MemContextUser : public MemContext
 {
 public:
+	/// \returns Current user memory context.
+	/// \throws CORBA::NO_IMPL If current context is not an user context.
+	static MemContextUser& current ();
+
 	/// Search map for runtime proxy for object \p obj.
 	/// If proxy exists, returns it. Otherwise creates a new one.
 	/// 
