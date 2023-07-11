@@ -31,7 +31,6 @@
 #include "MemContext.h"
 #include "RuntimeSupport.h"
 #include "MemContextObject.h"
-#include <Nirvana/System.h>
 
 namespace Nirvana {
 namespace Core {
@@ -52,12 +51,12 @@ public:
 	/// 
 	/// \param obj Pointer used as a key.
 	/// \returns RuntimeProxy for obj.
-	virtual RuntimeProxy::_ref_type runtime_proxy_get (const void* obj);
+	virtual RuntimeProxy::_ref_type runtime_proxy_get (const void* obj) override;
 
 	/// Remove runtime proxy for object \p obj.
 	/// 
 	/// \param obj Pointer used as a key.
-	virtual void runtime_proxy_remove (const void* obj) noexcept;
+	virtual void runtime_proxy_remove (const void* obj) noexcept override;
 
 	/// Add object to list.
 	/// 

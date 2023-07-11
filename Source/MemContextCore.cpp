@@ -1,4 +1,3 @@
-/// \file
 /*
 * Nirvana Core.
 *
@@ -24,40 +23,18 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_CORE_MEMCONTEXTCORE_H_
-#define NIRVANA_CORE_MEMCONTEXTCORE_H_
-#pragma once
-
-#include "MemContext.h"
-#include "SharedObject.h"
+#include "MemContextCore.h"
 
 namespace Nirvana {
 namespace Core {
 
-/// \brief Memory context core implementation.
-class MemContextCore :
-	public MemContext,
-	public SharedObject
+RuntimeProxy::_ref_type MemContextCore::runtime_proxy_get (const void* obj)
 {
-	friend class CORBA::servant_reference <MemContext>;
+	return nullptr;
+}
 
-protected:
-	MemContextCore () :
-		MemContext (false)
-	{}
-
-	MemContextCore (Heap& heap) noexcept :
-		MemContext (heap, false)
-	{}
-
-	~MemContextCore ()
-	{}
-
-	virtual RuntimeProxy::_ref_type runtime_proxy_get (const void* obj) override;
-	virtual void runtime_proxy_remove (const void* obj) noexcept override;
-};
+void MemContextCore::runtime_proxy_remove (const void* obj) noexcept
+{}
 
 }
 }
-
-#endif

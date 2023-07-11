@@ -28,7 +28,6 @@
 #include <Nirvana/System.h>
 #include <fnctl.h>
 #include <gtest/gtest.h>
-#include <sys/stat.h>
 
 using namespace Nirvana;
 using namespace CORBA;
