@@ -279,7 +279,7 @@ TEST_F (TestFile, Directory)
 	try {
 		naming_service_->unbind (tmp_dir_name);
 	} catch (const SystemException& ex) {
-		EXPECT_TRUE (INTERNAL::_downcast (&ex));
+		EXPECT_TRUE (INTERNAL::_downcast (&ex)) << ex._name ();
 		EXPECT_EQ (get_minor_errno (ex.minor ()), ENOTEMPTY);
 		thrown = true;
 	}
