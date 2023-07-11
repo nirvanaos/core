@@ -463,7 +463,7 @@ public:
 	/// \param [out] e If request completed with exception, receives the exception.
 	///                Otherwise unchanged.
 	/// \returns `true` if e contains an exception.
-	bool get_exception (Any& e) noexcept
+	bool get_exception (Any& e)
 	{
 		if (State::EXCEPTION == state_) {
 			Internal::Type <Any>::unmarshal (_get_ptr (), e);

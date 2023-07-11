@@ -394,40 +394,59 @@ bool RequestOut::cancel_internal ()
 
 bool RequestOut::get_exception (Any& e)
 {
-	if (SystemException::EC_NO_EXCEPTION != system_exception_code_)
-		SystemException::_raise_by_code (system_exception_code_, system_exception_data_.minor,
-			system_exception_data_.completed);
-
+	uint32_t unknown_minor = 0;
 	switch (status_) {
-		case Status::SYSTEM_EXCEPTION:
-		case Status::USER_EXCEPTION: {
+	case Status::NO_EXCEPTION:
+		return false;
+
+	case Status::SYSTEM_EXCEPTION: {
+		const ExceptionEntry* ee = nullptr;
+		if (SystemException::EC_NO_EXCEPTION != system_exception_code_)
+			ee = SystemException::_get_exception_entry (system_exception_code_);
+		else {
 			IDL::String id;
 			stream_in_->read_string (id);
-			TypeCode::_ptr_type tc;
-			if (Status::SYSTEM_EXCEPTION == status_) {
-				const ExceptionEntry* ee = SystemException::_get_exception_entry (id);
-				if (ee) {
-					std::aligned_storage <sizeof (SystemException), alignof (SystemException)>::type se;
-					(ee->construct) (&se);
-					tc = reinterpret_cast <SystemException&> (se).__type_code ();
-				}
-			} else {
-				for (auto p = metadata_->user_exceptions.p, end = p + metadata_->user_exceptions.size; p != end; ++p) {
-					TypeCode::_ptr_type tcp = **p;
-					if (RepId::compatible (tcp->id (), id)) {
-						tc = tcp;
-						break;
-					}
-				}
+			stream_in_->read (4, 8, 8, 1, &system_exception_data_);
+			ee = SystemException::_get_exception_entry (id);
+			if (!ee) {
+				ee = SystemException::_get_exception_entry (SystemException::EC_UNKNOWN);
+				system_exception_data_.minor = MAKE_OMG_MINOR (1);
 			}
-			if (tc)
-				Type <Any>::unmarshal (tc, _get_ptr (), e);
-			else
-				e <<= UNKNOWN (Status::SYSTEM_EXCEPTION == status_ ? MAKE_OMG_MINOR (1) : MAKE_OMG_MINOR (2));
-			return true;
 		}
+		std::aligned_storage <sizeof (SystemException), alignof (SystemException)>::type buf;
+		(ee->construct) (&buf);
+		SystemException& se = reinterpret_cast <SystemException&> (buf);
+		se.minor (system_exception_data_.minor);
+		se.completed (system_exception_data_.completed);
+		e <<= se;
 	}
-	return false;
+	return true;
+
+	case Status::USER_EXCEPTION: {
+		IDL::String id;
+		stream_in_->read_string (id);
+		TypeCode::_ptr_type tc;
+		for (auto p = metadata_->user_exceptions.p, end = p + metadata_->user_exceptions.size; p != end; ++p) {
+			TypeCode::_ptr_type tcp = **p;
+			if (RepId::compatible (tcp->id (), id)) {
+				tc = tcp;
+				break;
+			}
+		}
+		if (tc) {
+			Type <Any>::unmarshal (tc, _get_ptr (), e);
+			return true;
+		} else
+			unknown_minor = MAKE_OMG_MINOR (2);
+	} break;
+
+	default:
+		assert (false);
+		// If status_ is other than NO_EXCEPTION, SYSTEM_EXCEPTION or USER_EXCEPTION
+		// we return UNKNOWN with minor = 0
+	}
+	e <<= UNKNOWN (unknown_minor);
+	return true;
 }
 
 }
