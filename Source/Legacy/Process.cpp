@@ -111,6 +111,11 @@ void Process::on_crash (const siginfo& signal) noexcept
 	finish ();
 }
 
+RuntimeGlobal& Process::runtime_global () noexcept
+{
+	return ThreadBase::current ().runtime_global ();
+}
+
 RuntimeProxy::_ref_type Process::runtime_proxy_get (const void* obj)
 {
 	assert (&MemContext::current () == this);
@@ -177,9 +182,39 @@ void Process::chdir (const IDL::String& path)
 	SYNC_END ();
 }
 
-RuntimeGlobal& Process::runtime_global () noexcept
+unsigned Process::fd_open (const IDL::String& path, uint_fast16_t flags, mode_t mode)
 {
-	return ThreadBase::current ().runtime_global ();
+	SYNC_BEGIN (*sync_domain_, nullptr);
+	return MemContextUser::fd_open (path, flags, mode);
+	SYNC_END ();
+}
+
+void Process::fd_close (unsigned fd)
+{
+	SYNC_BEGIN (*sync_domain_, nullptr);
+	MemContextUser::fd_close (fd);
+	SYNC_END ();
+}
+
+size_t Process::fd_read (unsigned fd, void* p, size_t size)
+{
+	SYNC_BEGIN (*sync_domain_, nullptr);
+	return MemContextUser::fd_read (fd, p, size);
+	SYNC_END ();
+}
+
+void Process::fd_write (unsigned fd, const void* p, size_t size)
+{
+	SYNC_BEGIN (*sync_domain_, nullptr);
+	MemContextUser::fd_write (fd, p, size);
+	SYNC_END ();
+}
+
+uint64_t Process::fd_seek (unsigned fd, const int64_t& off, unsigned method)
+{
+	SYNC_BEGIN (*sync_domain_, nullptr);
+	return MemContextUser::fd_seek (fd, off, method);
+	SYNC_END ();
 }
 
 }

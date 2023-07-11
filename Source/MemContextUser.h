@@ -29,8 +29,9 @@
 #pragma once
 
 #include "MemContext.h"
-#include "RuntimeSupport.h"
 #include "MemContextObject.h"
+#include "RuntimeSupport.h"
+#include <memory>
 
 namespace Nirvana {
 namespace Core {
@@ -45,6 +46,9 @@ public:
 	/// \returns Current user memory context.
 	/// \throws CORBA::NO_IMPL If current context is not an user context.
 	static MemContextUser& current ();
+
+	/// POSIX run-time library global state
+	virtual RuntimeGlobal& runtime_global () noexcept = 0;
 
 	/// Search map for runtime proxy for object \p obj.
 	/// If proxy exists, returns it. Otherwise creates a new one.
@@ -71,8 +75,11 @@ public:
 	virtual CosNaming::Name get_current_dir_name () const;
 	virtual void chdir (const IDL::String& path);
 
-	/// POSIX run-time library global state
-	virtual RuntimeGlobal& runtime_global () noexcept = 0;
+	virtual unsigned fd_open (const IDL::String& path, uint_fast16_t flags, mode_t mode);
+	virtual void fd_close (unsigned fd);
+	virtual size_t fd_read (unsigned fd, void* p, size_t size);
+	virtual void fd_write (unsigned fd, const void* p, size_t size);
+	virtual uint64_t fd_seek (unsigned fd, const int64_t& off, unsigned method);
 
 protected:
 	MemContextUser ();
@@ -81,15 +88,87 @@ protected:
 
 	void clear () noexcept
 	{
-		current_dir_.clear ();
 		object_list_.clear ();
-		runtime_support_.clear ();
+		data_.reset ();
 	}
 
 private:
-	RuntimeSupportImpl runtime_support_;
+	class FileDescriptor : public UserObject
+	{
+	public:
+		virtual ~FileDescriptor ()
+		{}
+
+		virtual void close () const = 0;
+		virtual size_t read (void* p, size_t size) const = 0;
+		virtual void write (const void* p, size_t size) const = 0;
+		virtual uint64_t seek (unsigned method, const int64_t& off) const = 0;
+	};
+
+	typedef ImplDynamicSync <FileDescriptor> FileDescriptorBase;
+	typedef Ref <FileDescriptorBase> FileDescriptorRef;
+
+	class FileDescriptorBuf;
+	class FileDescriptorChar;
+
+	// In the most cases we don't need the Data.
+	// It needed only when we use one of:
+	// * Runtime proxies for iterator debugging.
+	// * POSIX API.
+	// So we create Data on demand.
+	class Data
+	{
+	public:
+		static Data* create ();
+
+		~Data ();
+
+		RuntimeProxy::_ref_type runtime_proxy_get (const void* obj)
+		{
+			return runtime_support_.runtime_proxy_get (obj);
+		}
+
+		void runtime_proxy_remove (const void* obj) noexcept
+		{
+			runtime_support_.runtime_proxy_remove (obj);
+		}
+
+		const CosNaming::Name& current_dir () const
+		{
+			return current_dir_;
+		}
+
+		void chdir (const IDL::String& path);
+
+		static CosNaming::Name default_dir ();
+
+		unsigned fd_open (const IDL::String& path, uint_fast16_t flags, mode_t mode);
+		void fd_close (unsigned fd);
+		size_t fd_read (unsigned fd, void* p, size_t size) const;
+		void fd_write (unsigned fd, const void* p, size_t size) const;
+		uint64_t fd_seek (unsigned fd, const int64_t& off, unsigned method) const;
+
+	private:
+		Data ()
+		{}
+
+		CosNaming::Name get_name_from_path (const IDL::String& path) const;
+		static CosNaming::NamingContext::_ref_type name_service ();
+		const FileDescriptor& get_fd (unsigned fd) const;
+
+		typedef std::vector <FileDescriptorRef, UserAllocator <FileDescriptorRef> > FileDescriptors;
+
+		RuntimeSupportImpl runtime_support_;
+		CosNaming::Name current_dir_;
+		FileDescriptors file_descriptors_;
+	};
+
+	Data& data ();
+
+private:
 	MemContextObjectList object_list_;
-	CosNaming::Name current_dir_;
+
+	std::unique_ptr <Data> data_;
 };
 
 inline MemContextUser* MemContext::user_context () noexcept

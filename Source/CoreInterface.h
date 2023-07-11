@@ -98,6 +98,12 @@ private:
 template <class T>
 class ImplDynamicSync : public T
 {
+public:
+	unsigned _refcount_value () const noexcept
+	{
+		return ref_cnt_;
+	}
+
 protected:
 	template <class> friend class CORBA::servant_reference;
 

@@ -253,14 +253,29 @@ public:
 		MemContextUser::current ().chdir (path);
 	}
 
-	static short fd_open (const IDL::String& path, uint_fast16_t flags, uint_fast16_t mode)
+	static unsigned fd_open (const IDL::String& path, uint_fast16_t flags, uint_fast16_t mode)
 	{
-		throw_NO_IMPLEMENT ();
+		return MemContextUser::current ().fd_open (path, flags, mode);
 	}
 
-	static void fd_close (int idx)
+	static void fd_close (unsigned fd)
 	{
-		throw_NO_IMPLEMENT ();
+		MemContextUser::current ().fd_close (fd);
+	}
+
+	static size_t fd_read (unsigned fd, void* p, size_t size)
+	{
+		return MemContextUser::current ().fd_read (fd, p, size);
+	}
+
+	static void fd_write (unsigned fd, const void* p, size_t size)
+	{
+		MemContextUser::current ().fd_write (fd, p, size);
+	}
+
+	static FileSize fd_seek (unsigned fd, const FileOff& offset, uint_fast16_t whence)
+	{
+		return MemContextUser::current ().fd_seek (fd, offset, whence);
 	}
 
 };
