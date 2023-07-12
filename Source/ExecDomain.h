@@ -429,7 +429,9 @@ private:
 		mem_context_ (nullptr),
 		scheduler_item_created_ (false),
 		restricted_mode_ (RestrictedMode::NO_RESTRICTIONS)
-	{}
+	{
+		std::fill_n (tls_, CoreTLS::CORE_TLS_COUNT, nullptr);
+	}
 
 	class WithPool;
 	class NoPool;
