@@ -76,10 +76,10 @@ public:
 	virtual void chdir (const IDL::String& path);
 
 	virtual unsigned fd_open (const IDL::String& path, uint_fast16_t flags, mode_t mode);
-	virtual void fd_close (unsigned fd);
-	virtual size_t fd_read (unsigned fd, void* p, size_t size);
-	virtual void fd_write (unsigned fd, const void* p, size_t size);
-	virtual uint64_t fd_seek (unsigned fd, const int64_t& off, unsigned method);
+	virtual void fd_close (unsigned ifd);
+	virtual size_t fd_read (unsigned ifd, void* p, size_t size);
+	virtual void fd_write (unsigned ifd, const void* p, size_t size);
+	virtual uint64_t fd_seek (unsigned ifd, const int64_t& off, unsigned method);
 
 protected:
 	MemContextUser ();
@@ -93,20 +93,40 @@ protected:
 	}
 
 private:
-	class FileDescriptor : public UserObject
+	class NIRVANA_NOVTABLE FileDescriptor
 	{
 	public:
-		virtual ~FileDescriptor ()
+		FileDescriptor ()
 		{}
 
-		virtual void close () const = 0;
-		virtual size_t read (void* p, size_t size) const = 0;
-		virtual void write (const void* p, size_t size) const = 0;
-		virtual uint64_t seek (unsigned method, const int64_t& off) const = 0;
-	};
+		FileDescriptor (FileDescriptor&& src) noexcept = default;
 
-	typedef ImplDynamicSync <FileDescriptor> FileDescriptorBase;
-	typedef Ref <FileDescriptorBase> FileDescriptorRef;
+		FileDescriptor& operator = (FileDescriptor&& src) noexcept = default;
+
+		bool empty () const noexcept
+		{
+			return !access_;
+		}
+
+		void clear () noexcept
+		{
+			access_ = nullptr;
+			new (this) FileDescriptor ();
+		}
+
+		virtual void close () const;
+		virtual size_t read (void* p, size_t size) const;
+		virtual void write (const void* p, size_t size) const;
+		virtual uint64_t seek (unsigned method, const int64_t& off) const;
+
+	protected:
+		FileDescriptor (CORBA::Internal::Interface::_ref_type&& access) :
+			access_ (std::move (access))
+		{}
+
+	protected:
+		CORBA::Internal::Interface::_ref_type access_;
+	};
 
 	class FileDescriptorBuf;
 	class FileDescriptorChar;
@@ -144,9 +164,9 @@ private:
 
 		unsigned fd_open (const IDL::String& path, uint_fast16_t flags, mode_t mode);
 		void fd_close (unsigned fd);
-		size_t fd_read (unsigned fd, void* p, size_t size) const;
-		void fd_write (unsigned fd, const void* p, size_t size) const;
-		uint64_t fd_seek (unsigned fd, const int64_t& off, unsigned method) const;
+		size_t fd_read (unsigned fd, void* p, size_t size);
+		void fd_write (unsigned fd, const void* p, size_t size);
+		uint64_t fd_seek (unsigned fd, const int64_t& off, unsigned method);
 
 	private:
 		Data ()
@@ -154,9 +174,10 @@ private:
 
 		CosNaming::Name get_name_from_path (const IDL::String& path) const;
 		static CosNaming::NamingContext::_ref_type name_service ();
-		const FileDescriptor& get_fd (unsigned fd) const;
+		FileDescriptor& get_fd (unsigned fd);
+		static void make_fd (FileDescriptor& fd, CORBA::AbstractBase::_ptr_type access);
 
-		typedef std::vector <FileDescriptorRef, UserAllocator <FileDescriptorRef> > FileDescriptors;
+		typedef std::vector <FileDescriptor, UserAllocator <FileDescriptor> > FileDescriptors;
 
 		RuntimeSupportImpl runtime_support_;
 		CosNaming::Name current_dir_;

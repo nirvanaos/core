@@ -277,6 +277,8 @@ public:
 
 	void flags (uint_fast16_t f)
 	{
+		if (f & O_DIRECT)
+			throw CORBA::INV_FLAG (make_minor_errno (EINVAL));
 		check ();
 		access ()->flags (f);
 		Base::flags (f);
