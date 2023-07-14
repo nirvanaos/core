@@ -42,8 +42,9 @@ class FileAccessBuf : public CORBA::servant_traits <AccessBuf>::Servant <FileAcc
 	typedef CORBA::servant_traits <AccessBuf>::Servant <FileAccessBuf> Base;
 
 public:
-	FileAccessBuf (Bytes&& data, AccessDirect::_ref_type&& access, FileSize pos, uint32_t block_size, unsigned flags) :
-		Base (std::move (data), std::move (access), pos, block_size, flags),
+	FileAccessBuf (Bytes&& data, AccessDirect::_ref_type&& access, FileSize pos, uint32_t block_size,
+		uint_fast16_t flags, std::array <char, 2> eol) :
+		Base (std::move (data), std::move (access), pos, block_size, flags, eol),
 		dirty_begin_ (std::numeric_limits <size_t>::max ()),
 		dirty_end_ (0)
 	{}
@@ -267,6 +268,26 @@ public:
 	AccessDirect::_ref_type direct () const noexcept
 	{
 		return access ();
+	}
+
+	uint_fast16_t flags () const noexcept
+	{
+		return Base::flags ();
+	}
+
+	void flags (uint_fast16_t f)
+	{
+		check ();
+		access ()->flags (f);
+		Base::flags (f);
+	}
+
+	Access::_ref_type dup ()
+	{
+		check ();
+		AccessDirect::_ref_type acc = AccessDirect::_narrow (access ()->dup ()->_to_object ());
+		return CORBA::make_reference <FileAccessBuf> (Bytes (buffer ()), std::move (acc), pos (),
+			block_size (), flags (), eol ());
 	}
 
 protected:

@@ -30,7 +30,7 @@
 
 #include "FileAccessDirect.h"
 #include <Nirvana/File_s.h>
-#include <Nirvana/SimpleList.h>
+#include <fnctl.h>
 
 namespace Nirvana {
 namespace Core {
@@ -38,12 +38,10 @@ namespace Core {
 class File;
 
 class FileAccessDirectProxy :
-	public CORBA::servant_traits <AccessDirect>::Servant <FileAccessDirectProxy>,
-	public FileAccessBase,
-	public SimpleList <FileAccessDirectProxy>::Element
+	public CORBA::servant_traits <AccessDirect>::Servant <FileAccessDirectProxy>
 {
 public:
-	FileAccessDirectProxy (File& file, unsigned access_mask);
+	FileAccessDirectProxy (File& file, uint_fast16_t flags);
 	~FileAccessDirectProxy ();
 
 	bool _non_existent () const noexcept
@@ -57,29 +55,26 @@ public:
 
 	FileSize size () const
 	{
-		if (!file_)
-			throw CORBA::OBJECT_NOT_EXIST ();
+		check_exist ();
 
 		return driver_.size ();
 	}
 
 	void size (FileSize new_size) const
 	{
-		if (!file_)
-			throw CORBA::OBJECT_NOT_EXIST ();
+		check_exist ();
 
-		if (access_mask () & AccessMask::WRITE)
+		if (flags_ & O_ACCMODE)
 			driver_.size (new_size);
 		else
 			throw RuntimeError (EACCES);
 	}
 
-	void read (FileSize pos, uint32_t size, std::vector <uint8_t>& data) const
+	void read (const FileSize& pos, uint32_t size, std::vector <uint8_t>& data) const
 	{
-		if (!file_)
-			throw CORBA::OBJECT_NOT_EXIST ();
+		check_exist ();
 
-		if (access_mask () & AccessMask::READ)
+		if (!(flags_ & O_WRONLY))
 			driver_.read (pos, size, data);
 		else
 			throw RuntimeError (EACCES);
@@ -87,10 +82,11 @@ public:
 
 	void write (FileSize pos, const std::vector <uint8_t>& data)
 	{
-		if (!file_)
-			throw CORBA::OBJECT_NOT_EXIST ();
+		check_exist ();
 
-		if (access_mask () & AccessMask::WRITE) {
+		if (flags_ & O_ACCMODE) {
+			if (flags_ & O_APPEND)
+				pos = std::numeric_limits <FileSize>::max ();
 			dirty_ = true;
 			driver_.write (pos, data);
 		} else
@@ -99,8 +95,7 @@ public:
 
 	void flush ()
 	{
-		if (!file_)
-			throw CORBA::OBJECT_NOT_EXIST ();
+		check_exist ();
 
 		if (dirty_) {
 			dirty_ = false;
@@ -113,10 +108,28 @@ public:
 		throw CORBA::NO_IMPLEMENT ();
 	}
 
+	uint_fast16_t flags () const noexcept
+	{
+		return flags_;
+	}
+
+	void flags (uint_fast16_t f);
+
+	Access::_ref_type dup ()
+	{
+		check_exist ();
+
+		return CORBA::make_reference <FileAccessDirectProxy> (std::ref (*file_), flags_)->_this ();
+	}
+
+private:
+	void check_exist () const;
+
 private:
 	FileAccessDirect& driver_;
 	Ref <File> file_;
-	bool dirty_ = false;
+	uint_fast16_t flags_;
+	bool dirty_;
 };
 
 }

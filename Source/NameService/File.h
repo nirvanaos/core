@@ -71,7 +71,8 @@ public:
 
 	template <class ... Args>
 	File (Args ... args) :
-		Base (std::forward <Args> (args)...)
+		Base (std::forward <Args> (args)...),
+		proxy_cnt_ (0)
 	{}
 
 	FileType type () noexcept
@@ -127,7 +128,7 @@ public:
 			||
 			(((flags & O_TRUNC) || (flags & O_APPEND)) && (flags & O_ACCMODE) == O_RDONLY)
 			)
-			throw CORBA::INV_FLAG ();
+			throw CORBA::INV_FLAG (make_minor_errno (EINVAL));
 
 		if (!access_) {
 			try {
@@ -139,43 +140,32 @@ public:
 		} else if (create)
 			throw RuntimeError (EEXIST);
 
-		unsigned access_mask = FileAccessBase::get_access_mask (flags);
-		if ((access_mask & access_->access_mask ()) != access_mask)
-			throw RuntimeError (EACCES); // File is unaccessible for this mode
+		check_flags (flags);
 
-		unsigned deny_mask = FileAccessBase::get_deny_mask (flags);
-		unsigned mask = deny_mask | (access_mask << FileAccessBase::MASK_SHIFT);
-		for (auto it = proxies_.cbegin (); it != proxies_.cend (); ++it) {
-			if (it->access_mask () & mask)
-				throw RuntimeError (EACCES);
-		}
+		AccessDirect::_ref_type access = CORBA::make_reference <FileAccessDirectProxy> (
+			std::ref (*this), flags)->_this ();
+		++proxy_cnt_;
 
-		try {
-			AccessDirect::_ref_type access = CORBA::make_reference <FileAccessDirectProxy> (std::ref (*this), 
-				access_mask | (deny_mask << FileAccessBase::MASK_SHIFT))->_this ();
-			if (flags & O_DIRECT)
-				return access;
+		if (flags & O_DIRECT)
+			return access;
 
-			Bytes data;
-			uint32_t block_size = access_->block_size ();
-			if (!(flags & (O_APPEND | O_TRUNC | O_ATE)) && (flags & O_ACCMODE) != O_WRONLY && access_->size ())
-				access_->read (0, block_size, data);
-			FileSize pos = (flags & (O_APPEND | O_ATE)) ? access_->size () : 0;
+		Bytes data;
+		uint32_t block_size = access_->block_size ();
+		if (!(flags & (O_APPEND | O_TRUNC | O_ATE)) && (flags & O_ACCMODE) != O_WRONLY && access_->size ())
+			access_->read (0, block_size, data);
+		FileSize pos = (flags & (O_APPEND | O_ATE)) ? access_->size () : 0;
 
-			return CORBA::make_reference <FileAccessBuf> (std::move (data), access, pos, block_size, flags);
-
-		} catch (...) {
-			if (proxies_.empty ())
-				access_ = nullptr;
-			throw;
-		}
+		return CORBA::make_reference <FileAccessBuf> (std::move (data), access, pos, block_size, flags,
+			Port::FileSystem::eol ());
 	}
 
-	void on_close_proxy () noexcept
+	void on_delete_proxy () noexcept
 	{
-		if (proxies_.empty ())
+		if (!--proxy_cnt_)
 			access_ = nullptr;
 	}
+
+	void check_flags (unsigned flags) const;
 
 private:
 	void check_exist ();
@@ -185,17 +175,16 @@ private:
 	friend class FileAccessDirectProxy;
 
 	std::unique_ptr <Nirvana::Core::FileAccessDirect> access_;
-	SimpleList <FileAccessDirectProxy> proxies_;
+	unsigned proxy_cnt_;
 };
 
 inline
-FileAccessDirectProxy::FileAccessDirectProxy (File& file, unsigned access_mask) :
-	FileAccessBase (access_mask),
+FileAccessDirectProxy::FileAccessDirectProxy (File& file, uint_fast16_t flags) :
 	driver_ (*file.access_),
-	file_ (&file)
-{
-	file_->proxies_.push_back (*this);
-}
+	file_ (&file),
+	flags_ (flags),
+	dirty_ (false)
+{}
 
 inline
 Nirvana::File::_ref_type FileAccessDirectProxy::file () const
@@ -204,15 +193,22 @@ Nirvana::File::_ref_type FileAccessDirectProxy::file () const
 }
 
 inline
+void FileAccessDirectProxy::flags (uint_fast16_t f)
+{
+	check_exist ();
+
+	file_->check_flags (f);
+	flags_ = f;
+}
+
+inline
 void FileAccessDirectProxy::close ()
 {
-	if (!file_)
-		throw CORBA::OBJECT_NOT_EXIST ();
+	check_exist ();
 
-	if (access_mask () & AccessMask::WRITE)
+	if (flags_ & O_ACCMODE)
 		flush ();
-	remove ();
-	file_->on_close_proxy ();
+	file_->on_delete_proxy ();
 	file_ = nullptr;
 	deactivate_servant (this);
 }
@@ -220,10 +216,8 @@ void FileAccessDirectProxy::close ()
 inline
 FileAccessDirectProxy::~FileAccessDirectProxy ()
 {
-	if (file_) {
-		remove ();
-		file_->on_close_proxy ();
-	}
+	if (file_)
+		file_->on_delete_proxy ();
 }
 
 }

@@ -111,9 +111,9 @@ public:
 	inline
 	void write (uint64_t pos, const std::vector <uint8_t>& data);
 
-	unsigned access_mask () const noexcept
+	unsigned flags () const noexcept
 	{
-		return Base::access_mask ();
+		return Base::flags ();
 	}
 
 private:
