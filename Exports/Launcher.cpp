@@ -36,10 +36,10 @@ class Launcher :
 {
 public:
 	static Legacy::Process::_ref_type spawn (const IDL::String& file,
-		StringSeq& argv, StringSeq& envp, IDL::String& work_dir,
+		StringSeq& argv, StringSeq& envp, IDL::String& work_dir, InheritedFiles& inherit,
 		ProcessCallback::_ref_type callback)
 	{
-		return Core::Process::spawn (file, argv, envp, work_dir, callback);
+		return Core::Process::spawn (file, argv, envp, work_dir, inherit, callback);
 	}
 };
 

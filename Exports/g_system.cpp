@@ -253,9 +253,9 @@ public:
 		MemContextUser::current ().chdir (path);
 	}
 
-	static unsigned fd_open (const IDL::String& path, uint_fast16_t flags, uint_fast16_t mode)
+	static uint16_t fd_open (const IDL::String& path, uint_fast16_t flags, uint_fast16_t mode)
 	{
-		return MemContextUser::current ().fd_open (path, flags, mode);
+		return (uint16_t)MemContextUser::current ().fd_open (path, flags, mode);
 	}
 
 	static void fd_close (unsigned fd)

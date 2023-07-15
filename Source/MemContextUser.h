@@ -34,6 +34,12 @@
 #include <memory>
 
 namespace Nirvana {
+
+class InheritedFile;
+typedef IDL::Sequence <InheritedFile> InheritedFiles;
+class AccessBuf;
+class AccessChar;
+
 namespace Core {
 
 class MemContextObject;
@@ -83,7 +89,7 @@ public:
 
 protected:
 	MemContextUser ();
-	MemContextUser (Heap& heap) noexcept;
+	MemContextUser (Heap& heap, const InheritedFiles& inh);
 	~MemContextUser ();
 
 	void clear () noexcept
@@ -93,43 +99,45 @@ protected:
 	}
 
 private:
-	class NIRVANA_NOVTABLE FileDescriptor
+	class FileDescriptor
 	{
 	public:
-		FileDescriptor ()
+		FileDescriptor () :
+			access_type_ (AccessType::EMPTY)
 		{}
 
-		FileDescriptor (FileDescriptor&& src) noexcept = default;
+		FileDescriptor (CORBA::AbstractBase::_ptr_type access);
 
+		FileDescriptor (FileDescriptor&& src) noexcept = default;
 		FileDescriptor& operator = (FileDescriptor&& src) noexcept = default;
 
 		bool empty () const noexcept
 		{
-			return !access_;
+			return access_type_ == AccessType::EMPTY;
 		}
 
-		void clear () noexcept
+		void close ();
+		size_t read (void* p, size_t size) const;
+		void write (const void* p, size_t size) const;
+		uint64_t seek (unsigned method, const int64_t& off) const;
+
+	private:
+		enum class AccessType
 		{
-			access_ = nullptr;
-			new (this) FileDescriptor ();
+			EMPTY,
+			ACCESS_BUF,
+			ACCESS_CHAR
+		};
+
+		template <class Acc>
+		Acc* access () const noexcept
+		{
+			return static_cast <Acc*> (&CORBA::Internal::Interface::_ptr_type (access_));
 		}
 
-		virtual void close () const;
-		virtual size_t read (void* p, size_t size) const;
-		virtual void write (const void* p, size_t size) const;
-		virtual uint64_t seek (unsigned method, const int64_t& off) const;
-
-	protected:
-		FileDescriptor (CORBA::Internal::Interface::_ref_type&& access) :
-			access_ (std::move (access))
-		{}
-
-	protected:
 		CORBA::Internal::Interface::_ref_type access_;
+		AccessType access_type_;
 	};
-
-	class FileDescriptorBuf;
-	class FileDescriptorChar;
 
 	// In the most cases we don't need the Data.
 	// It needed only when we use one of:
@@ -167,6 +175,8 @@ private:
 		size_t fd_read (unsigned fd, void* p, size_t size);
 		void fd_write (unsigned fd, const void* p, size_t size);
 		uint64_t fd_seek (unsigned fd, const int64_t& off, unsigned method);
+		
+		Data (const InheritedFiles& inh);
 
 	private:
 		Data ()
@@ -175,12 +185,20 @@ private:
 		CosNaming::Name get_name_from_path (const IDL::String& path) const;
 		static CosNaming::NamingContext::_ref_type name_service ();
 		FileDescriptor& get_fd (unsigned fd);
-		static void make_fd (FileDescriptor& fd, CORBA::AbstractBase::_ptr_type access);
-
-		typedef std::vector <FileDescriptor, UserAllocator <FileDescriptor> > FileDescriptors;
 
 		RuntimeSupportImpl runtime_support_;
 		CosNaming::Name current_dir_;
+
+		enum StandardFileDescriptor
+		{
+			STD_IN,
+			STD_OUT,
+			STD_ERR,
+			STD_CNT
+		};
+
+		FileDescriptor std_file_descriptors_ [StandardFileDescriptor::STD_CNT];
+		typedef std::vector <FileDescriptor, UserAllocator <FileDescriptor> > FileDescriptors;
 		FileDescriptors file_descriptors_;
 	};
 

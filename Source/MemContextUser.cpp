@@ -26,6 +26,7 @@
 #include "MemContextUser.h"
 #include "NameService/FileSystem.h"
 #include "ORB/Services.h"
+#include <Nirvana/Legacy/Legacy_Process.h>
 #include <fnctl.h>
 #include "virtual_copy.h"
 
@@ -35,43 +36,99 @@ using CORBA::Core::Services;
 namespace Nirvana {
 namespace Core {
 
-class MemContextUser::FileDescriptorBuf : public FileDescriptor
+MemContextUser::FileDescriptor::FileDescriptor (CORBA::AbstractBase::_ptr_type access)
 {
-public:
-	FileDescriptorBuf (AccessBuf::_ptr_type access) :
-		FileDescriptor (access)
-	{}
-
-	virtual void close () const override;
-	virtual size_t read (void* p, size_t size) const override;
-	virtual void write (const void* p, size_t size) const override;
-	virtual uint64_t seek (unsigned method, const int64_t& off) const override;
-
-private:
-	AccessBuf::_ptr_type access () const noexcept
-	{
-		return static_cast <AccessBuf*> (&CORBA::Internal::Interface::_ptr_type (access_));
+	CORBA::ValueBase::_ref_type vb = access->_to_value ();
+	if (vb) {
+		AccessBuf::_ptr_type ab = AccessBuf::_downcast (vb);
+		if (ab) {
+			access_ = ab;
+			access_type_ = AccessType::ACCESS_BUF;
+		} else
+			throw RuntimeError (EIO);
+	} else {
+		AccessChar::_ref_type ac = AccessChar::_narrow (access->_to_object ());
+		if (ac) {
+			access_ = std::move (ac);
+			access_type_ = AccessType::ACCESS_CHAR;
+		} else
+			throw RuntimeError (EIO);
 	}
-};
+}
 
-class MemContextUser::FileDescriptorChar : public FileDescriptor
+inline
+void MemContextUser::FileDescriptor::close ()
 {
-public:
-	FileDescriptorChar (AccessChar::_ref_type&& access) :
-		FileDescriptor (std::move (access))
-	{}
-
-	virtual void close () const override;
-	virtual size_t read (void* p, size_t size) const override;
-	virtual void write (const void* p, size_t size) const override;
-	virtual uint64_t seek (unsigned method, const int64_t& off) const override;
-
-private:
-	AccessChar::_ptr_type access () const noexcept
-	{
-		return static_cast <AccessChar*> (&CORBA::Internal::Interface::_ptr_type (access_));
+	switch (access_type_) {
+	case AccessType::ACCESS_BUF:
+		access <AccessBuf> ()->close ();
+		break;
+	case AccessType::ACCESS_CHAR:
+		access <AccessChar> ()->close ();
+		break;
+	default:
+		throw RuntimeError (EBADF);
 	}
-};
+	access_ = nullptr;
+	access_type_ = AccessType::EMPTY;
+}
+
+inline
+size_t MemContextUser::FileDescriptor::read (void* p, size_t size) const
+{
+	switch (access_type_) {
+	case AccessType::ACCESS_BUF:
+		return access <AccessBuf> ()->read (p, size);
+		break;
+
+	case AccessType::ACCESS_CHAR: {
+		if (sizeof (size_t) > 4 && size > std::numeric_limits <uint32_t>::max ())
+			throw CORBA::IMP_LIMIT (make_minor_errno (ENXIO));
+		IDL::String buf;
+		access <AccessChar> ()->read ((uint32_t)size, buf);
+		size_t readed = buf.size ();
+		if (readed > size)
+			throw RuntimeError (EIO);
+		Port::Memory::copy (p, const_cast <char*> (buf.data ()), readed, Memory::SRC_DECOMMIT);
+		return readed;
+	} break;
+
+	default:
+		throw RuntimeError (EBADF);
+	}
+}
+
+inline
+void MemContextUser::FileDescriptor::write (const void* p, size_t size) const
+{
+	switch (access_type_) {
+	case AccessType::ACCESS_BUF:
+		access <AccessBuf> ()->write (p, size);
+		break;
+
+	case AccessType::ACCESS_CHAR:
+		access <AccessChar> ()->write (CORBA::Internal::StringView <char> ((const char*)p, size));
+		break;
+
+	default:
+		throw RuntimeError (EBADF);
+	}
+}
+
+inline
+uint64_t MemContextUser::FileDescriptor::seek (unsigned method, const int64_t& off) const
+{
+	switch (access_type_) {
+	case AccessType::ACCESS_BUF:
+		return access <AccessBuf> ()->seek ((SeekMethod)method, off);
+		
+	case AccessType::ACCESS_CHAR:
+		throw RuntimeError (ESPIPE);
+
+	default:
+		throw RuntimeError (EBADF);
+	}
+}
 
 MemContextUser::Data* MemContextUser::Data::create ()
 {
@@ -80,6 +137,24 @@ MemContextUser::Data* MemContextUser::Data::create ()
 
 MemContextUser::Data::~Data ()
 {}
+
+inline
+MemContextUser::Data::Data (const InheritedFiles& inh)
+{
+	size_t max = 0;
+	for (const auto& f : inh) {
+		if (max < f.ifd ())
+			max = f.ifd ();
+	}
+	if (max >= StandardFileDescriptor::STD_CNT)
+		file_descriptors_.resize (max + 1 - StandardFileDescriptor::STD_CNT);
+	for (const auto& f : inh) {
+		FileDescriptor& fd = get_fd (f.ifd ());
+		assert (fd.empty ());
+		if (fd.empty ())
+			fd = FileDescriptor (f.access ());
+	}
+}
 
 Name MemContextUser::Data::default_dir ()
 {
@@ -147,33 +222,15 @@ unsigned MemContextUser::Data::fd_open (const IDL::String& path, uint_fast16_t f
 				break;
 		}
 		size_t i = it - file_descriptors_.begin ();
-		if (i > std::numeric_limits <unsigned>::max ())
+		if (i > (unsigned)std::numeric_limits <uint16_t>::max () - (unsigned)STD_CNT)
 			throw CORBA::IMP_LIMIT (make_minor_errno (EMFILE));
 		if (it == file_descriptors_.end ())
 			file_descriptors_.emplace_back ();
-		ifd = (unsigned)i;
-		make_fd (file_descriptors_ [i], access);
+		ifd = (unsigned)(i + STD_CNT);
+		file_descriptors_ [i] = FileDescriptor (access);
 	}
 
 	return ifd;
-}
-
-void MemContextUser::Data::make_fd (FileDescriptor& fd, CORBA::AbstractBase::_ptr_type access)
-{
-	CORBA::ValueBase::_ref_type vb = access->_to_value ();
-	if (vb) {
-		AccessBuf::_ptr_type ab = AccessBuf::_downcast (vb);
-		if (ab)
-			new (&fd) FileDescriptorBuf (ab);
-		else
-			throw RuntimeError (EIO);
-	} else {
-		AccessChar::_ref_type ac = AccessChar::_narrow (access->_to_object ());
-		if (ac)
-			new (&fd) FileDescriptorChar (std::move (ac));
-		else
-			throw RuntimeError (EIO);
-	}
 }
 
 inline
@@ -181,7 +238,6 @@ void MemContextUser::Data::fd_close (unsigned ifd)
 {
 	FileDescriptor& fd = get_fd (ifd);
 	fd.close ();
-	fd.clear ();
 	while (!file_descriptors_.empty () && file_descriptors_.back ().empty ()) {
 		file_descriptors_.pop_back ();
 	}
@@ -189,6 +245,9 @@ void MemContextUser::Data::fd_close (unsigned ifd)
 
 MemContextUser::FileDescriptor& MemContextUser::Data::get_fd (unsigned ifd)
 {
+	if (ifd < StandardFileDescriptor::STD_CNT)
+		return std_file_descriptors_ [ifd];
+	ifd -= StandardFileDescriptor::STD_CNT;
 	if (ifd >= file_descriptors_.size ())
 		throw RuntimeError (EBADF);
 	return file_descriptors_ [ifd];
@@ -224,9 +283,12 @@ MemContextUser::MemContextUser () :
 	MemContext (true)
 {}
 
-MemContextUser::MemContextUser (Heap& heap) noexcept :
+MemContextUser::MemContextUser (Heap& heap, const InheritedFiles& inh) :
 	MemContext (heap, true)
-{}
+{
+	if (!inh.empty ())
+		data_.reset (new Data (inh));
+}
 
 MemContextUser::~MemContextUser ()
 {}
@@ -300,76 +362,6 @@ void MemContextUser::fd_write (unsigned fd, const void* p, size_t size)
 uint64_t MemContextUser::fd_seek (unsigned fd, const int64_t& off, unsigned method)
 {
 	return data ().fd_seek (fd, off, method);
-}
-
-void MemContextUser::FileDescriptor::close () const
-{
-	throw RuntimeError (EBADF);
-}
-
-size_t MemContextUser::FileDescriptor::read (void* p, size_t size) const
-{
-	throw RuntimeError (EBADF);
-}
-
-void MemContextUser::FileDescriptor::write (const void* p, size_t size) const
-{
-	throw RuntimeError (EBADF);
-}
-
-uint64_t MemContextUser::FileDescriptor::seek (unsigned method, const int64_t& off) const
-{
-	throw RuntimeError (EBADF);
-}
-
-void MemContextUser::FileDescriptorBuf::close () const
-{
-	access ()->close ();
-	FileDescriptor::close ();
-}
-
-size_t MemContextUser::FileDescriptorBuf::read (void* p, size_t size) const
-{
-	return access ()->read (p, size);
-}
-
-void MemContextUser::FileDescriptorBuf::write (const void* p, size_t size) const
-{
-	access ()->write (p, size);
-}
-
-uint64_t MemContextUser::FileDescriptorBuf::seek (unsigned method, const int64_t& off) const
-{
-	return access ()->seek ((SeekMethod)method, off);
-}
-
-void MemContextUser::FileDescriptorChar::close () const
-{
-	access ()->close ();
-	FileDescriptor::close ();
-}
-
-size_t MemContextUser::FileDescriptorChar::read (void* p, size_t size) const
-{
-	if (sizeof (size_t) > 4 && size > std::numeric_limits <uint32_t>::max ())
-		throw RuntimeError (ENXIO);
-	IDL::String buf;
-	access ()->read ((uint32_t)size, buf);
-	size_t readed = buf.size ();
-	if (readed > size)
-		throw RuntimeError (EIO);
-	Port::Memory::copy (p, const_cast <char*> (buf.data ()), readed, Memory::SRC_DECOMMIT);
-	return readed;
-}
-
-void MemContextUser::FileDescriptorChar::write (const void* p, size_t size) const
-{
-	access ()->write (CORBA::Internal::StringView <char> ((const char*)p, size));
-}
-
-uint64_t MemContextUser::FileDescriptorChar::seek (unsigned method, const int64_t& off) const
-{
-	throw RuntimeError (ESPIPE);
 }
 
 }
