@@ -29,7 +29,7 @@
 #pragma once
 
 #include <Nirvana/Nirvana.h>
-#include <Port/FileAccess.h>
+#include <Port/FileAccessDirect.h>
 #include "UserAllocator.h"
 #include "Chrono.h"
 #include "MapOrderedStable.h"
