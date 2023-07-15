@@ -134,12 +134,12 @@ public:
 			n.erase (n.begin ());
 			return dir->open (n, flags, mode);
 		} else
-			throw RuntimeError (ENOENT);
+			throw_OBJECT_NOT_EXIST (make_minor_errno (ENOENT));
 	}
 
 	Access::_ref_type mkostemps (IDL::String&, uint_fast16_t, uint_fast16_t)
 	{
-		throw RuntimeError (ENOSYS);
+		throw_NO_IMPLEMENT (make_minor_errno (ENOSYS));
 	}
 
 	static void opendir (const IDL::String& regexp, unsigned flags,
@@ -165,7 +165,7 @@ public:
 
 	void remove ()
 	{
-		throw RuntimeError (ENOSYS);
+		throw_BAD_OPERATION (make_minor_errno (ENOSYS));
 	}
 
 	// NamingContextBase
@@ -178,9 +178,9 @@ public:
 	virtual CosNaming::NamingContext::_ref_type bind_new_context1 (CosNaming::Name& n) override;
 	virtual void get_bindings (CosNaming::Core::IteratorStack& iter) const override;
 
-	CosNaming::NamingContext::_ref_type new_context ()
+	static CosNaming::NamingContext::_ref_type new_context ()
 	{
-		throw CORBA::NO_IMPLEMENT ();
+		throw_NO_IMPLEMENT ();
 	}
 
 private:

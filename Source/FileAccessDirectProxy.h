@@ -67,7 +67,7 @@ public:
 		if (flags_ & O_ACCMODE)
 			driver_.size (new_size);
 		else
-			throw RuntimeError (EACCES);
+			throw_NO_PERMISSION (make_minor_errno (EACCES));
 	}
 
 	void read (const FileSize& pos, uint32_t size, std::vector <uint8_t>& data) const
@@ -77,7 +77,7 @@ public:
 		if (!(flags_ & O_WRONLY))
 			driver_.read (pos, size, data);
 		else
-			throw RuntimeError (EACCES);
+			throw_NO_PERMISSION (make_minor_errno (EACCES));
 	}
 
 	void write (FileSize pos, const std::vector <uint8_t>& data)
@@ -90,7 +90,7 @@ public:
 			dirty_ = true;
 			driver_.write (pos, data);
 		} else
-			throw RuntimeError (EACCES);
+			throw_NO_PERMISSION (make_minor_errno (EACCES));
 	}
 
 	void flush ()

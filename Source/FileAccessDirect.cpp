@@ -182,7 +182,7 @@ void FileAccessDirect::complete_request (Cache::reference entry, int op)
 		unlock (entry);
 	}
 	if (entry.second.error)
-		throw RuntimeError (entry.second.error);
+		throw_INTERNAL (make_minor_errno (entry.second.error));
 }
 
 void FileAccessDirect::complete_size_request () noexcept
@@ -244,7 +244,7 @@ void FileAccessDirect::set_size (Pos new_size)
 	complete_size_request ();
 	int err = request->result ().error;
 	if (err)
-		throw RuntimeError (err);
+		throw_INTERNAL (make_minor_errno (err));
 }
 
 }

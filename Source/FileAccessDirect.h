@@ -57,7 +57,7 @@ public:
 		discard_timeout_ (DEFAULT_DISCARD_TIMEOUT)
 	{
 		if (block_size_ / base_block_size_ > 128)
-			throw RuntimeError (ENOTSUP);
+			throw_INTERNAL (make_minor_errno (ENOTSUP));
 	}
 
 	/// Destructor. Without the flush() call all dirty entries will be lost!
@@ -248,7 +248,7 @@ inline
 void FileAccessDirect::read (uint64_t pos, uint32_t size, std::vector <uint8_t>& data)
 {
 	if (pos > file_size_)
-		throw RuntimeError (ESPIPE);
+		throw_INTERNAL (make_minor_errno (ESPIPE));
 	Pos end = (Pos)pos + size;
 	if (end > file_size_) {
 		end = file_size_;
@@ -494,7 +494,7 @@ void FileAccessDirect::flush ()
 	// Check for write failures
 	for (Cache::iterator it = cache_.begin (); it != cache_.end (); ++it) {
 		if (it->second.dirty () && it->second.error)
-			throw RuntimeError (it->second.error);
+			throw_INTERNAL (make_minor_errno (it->second.error));
 	}
 }
 

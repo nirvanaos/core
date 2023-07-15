@@ -187,20 +187,20 @@ public:
 			if (flags & O_CREAT) {
 				try {
 					return FileSystem::get_file (get_new_file_id (n))->open (flags & O_EXCL, mode);
-				} catch (const RuntimeError& err) {
-					if ((flags & O_EXCL) || err.error_number () != EEXIST)
+				} catch (const CORBA::SystemException& err) {
+					if ((flags & O_EXCL) || get_minor_errno (err.minor ()) != EEXIST)
 						throw;
 				}
 			}
 
 			Nirvana::File::_ref_type file = Nirvana::File::_narrow (resolve (n));
 			if (!file)
-				throw RuntimeError (EISDIR);
+				throw_BAD_OPERATION (make_minor_errno (EISDIR));
 
 			try {
 				return file->open (flags, mode);
-			} catch (const RuntimeError& err) {
-				if (!(flags & O_CREAT) || err.error_number () != ENOENT)
+			} catch (const CORBA::SystemException& err) {
+				if (!(flags & O_CREAT) || get_minor_errno (err.minor ()) != ENOENT)
 					throw;
 			}
 		}
@@ -213,13 +213,13 @@ public:
 		// Check name pattern
 		size_t name_size = name.size ();
 		if (name_size < 6 + suffix_len)
-			throw RuntimeError (EINVAL);
+			throw_BAD_PARAM (make_minor_errno (EINVAL));
 		size_t pattern_end = name_size - suffix_len;
 		size_t pattern_start = pattern_end - 6;
 		char* name_p = name.data ();
 		for (auto p = name_p + pattern_start, end = name_p + pattern_end; p != end; ++p) {
 			if ('X' != *p)
-				throw RuntimeError (EINVAL);
+				throw_BAD_PARAM (make_minor_errno (EINVAL));
 		}
 
 		const int MAX_CNT = 10;
@@ -246,12 +246,12 @@ public:
 			try {
 				acc = FileSystem::get_file (get_new_file_id (n))->open (O_EXCL | O_CREAT | O_RDWR
 					| (flags & (O_DIRECT | O_APPEND | FILE_SHARE_DENY_WRITE | FILE_SHARE_DENY_READ)), 0600);
-			} catch (const RuntimeError& ex) {
-				if (ex.error_number () != EEXIST || MAX_CNT == ++try_cnt)
-					throw;
 			} catch (const CORBA::OBJECT_NOT_EXIST&) {
 				etherealize ();
 				throw;
+			} catch (const CORBA::SystemException& ex) {
+				if (get_minor_errno (ex.minor ()) != EEXIST || MAX_CNT == ++try_cnt)
+					throw;
 			}
 			if (acc) {
 				real_copy (p_start, p_end, name_p + pattern_start);
@@ -279,7 +279,7 @@ DirIter::DirIter (Dir& dir, const std::string& regexp, unsigned flags) :
 {
 	if (!regexp.empty () && regexp != "*" && regexp != "*.*") {
 		flags_ |= USE_REGEX;
-		throw CORBA::NO_IMPLEMENT (); // TODO: Implement.
+		throw_NO_IMPLEMENT (make_minor_errno (ENOSYS)); // TODO: Implement.
 	}
 }
 

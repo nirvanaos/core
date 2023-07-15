@@ -44,7 +44,7 @@ void File::check_flags (unsigned flags) const
 {
 	unsigned acc_mode = access_->flags () & O_ACCMODE;
 	if ((acc_mode == O_WRONLY || acc_mode == O_RDONLY) && acc_mode != (flags & O_ACCMODE))
-		throw RuntimeError (EACCES); // File is unaccessible for this mode
+		throw_NO_PERMISSION (make_minor_errno (EACCES)); // File is unaccessible for this mode
 }
 
 }

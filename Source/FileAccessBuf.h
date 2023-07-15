@@ -203,13 +203,13 @@ public:
 			FileSize read_pos = buffer_position ();
 		}
 
-		throw CORBA::NO_IMPLEMENT ();
+		throw_NO_IMPLEMENT (make_minor_errno (ENOSYS));
 	}
 
 	const void* get_buffer_read (size_t cb)
 	{
 		check_read ();
-		throw CORBA::NO_IMPLEMENT ();
+		throw_NO_IMPLEMENT (make_minor_errno (ENOSYS));
 	}
 
 	void release_buffer (size_t cb)
@@ -243,14 +243,14 @@ public:
 		case SeekMethod::SM_CUR:
 			if (off < 0) {
 				if (pos + off < 0)
-					throw RuntimeError (EOVERFLOW);
+					throw_BAD_PARAM (make_minor_errno (EOVERFLOW));
 			}
 			pos += off;
 			break;
 
 		default:
 			if (off < 0)
-				throw RuntimeError (EOVERFLOW);
+				throw_BAD_PARAM (make_minor_errno (EOVERFLOW));
 			pos = off;
 		}
 
@@ -262,7 +262,7 @@ public:
 
 	bool lock (FileLock& fl, short op)
 	{
-		throw CORBA::NO_IMPLEMENT ();
+		throw_NO_IMPLEMENT (make_minor_errno (ENOSYS));
 	}
 
 	AccessDirect::_ref_type direct () const noexcept
@@ -278,7 +278,7 @@ public:
 	void flags (uint_fast16_t f)
 	{
 		if (f & O_DIRECT)
-			throw CORBA::INV_FLAG (make_minor_errno (EINVAL));
+			throw_INV_FLAG (make_minor_errno (EINVAL));
 		check ();
 		access ()->flags (f);
 		Base::flags (f);

@@ -95,8 +95,6 @@ public:
 	void remove ()
 	{
 		check_exist ();
-		if (access_)
-			throw RuntimeError (EACCES);
 		Base::remove ();
 		etherealize ();
 	}
@@ -128,7 +126,7 @@ public:
 			||
 			(((flags & O_TRUNC) || (flags & O_APPEND)) && (flags & O_ACCMODE) == O_RDONLY)
 			)
-			throw CORBA::INV_FLAG (make_minor_errno (EINVAL));
+			throw_INV_FLAG (make_minor_errno (EINVAL));
 
 		if (!access_) {
 			try {
@@ -138,7 +136,7 @@ public:
 				throw;
 			}
 		} else if (create)
-			throw RuntimeError (EEXIST);
+			throw_BAD_PARAM (make_minor_errno (EEXIST));
 
 		check_flags (flags);
 

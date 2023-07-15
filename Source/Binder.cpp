@@ -167,7 +167,7 @@ void Binder::terminate ()
 
 NIRVANA_NORETURN void Binder::invalid_metadata ()
 {
-	throw RuntimeError (ENOEXEC);
+	throw_INTERNAL (make_minor_errno (ENOEXEC));
 }
 
 const ModuleStartup* Binder::module_bind (::Nirvana::Module::_ptr_type mod, const Section& metadata, ModuleContext* mod_context)
@@ -497,7 +497,7 @@ Binder::InterfaceRef Binder::find (const ObjectKey& name)
 			if (bind_info._d ()) {
 				try {
 					Ref <Module> mod = load (bind_info.module_name (), false);
-				} catch (const RuntimeError&) {
+				} catch (const SystemException&) {
 					// TODO: Log
 					throw_OBJECT_NOT_EXIST ();
 				}

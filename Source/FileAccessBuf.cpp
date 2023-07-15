@@ -32,26 +32,26 @@ namespace Core {
 void FileAccessBuf::check () const
 {
 	if (!access ())
-		throw RuntimeError (EBADF);
+		throw_BAD_PARAM (make_minor_errno (EBADF));
 }
 
 void FileAccessBuf::check (const void* p) const
 {
 	check ();
 	if (!p)
-		throw CORBA::BAD_PARAM ();
+		throw_BAD_PARAM (make_minor_errno (EFAULT));
 }
 
 void FileAccessBuf::check_read () const
 {
 	if ((flags () & O_ACCMODE) == O_WRONLY)
-		throw RuntimeError (EINVAL);
+		throw_NO_PERMISSION (make_minor_errno (EINVAL));
 }
 
 void FileAccessBuf::check_write () const
 {
 	if ((flags () & O_ACCMODE) == O_RDONLY)
-		throw RuntimeError (EINVAL);
+		throw_NO_PERMISSION (make_minor_errno (EINVAL));
 }
 
 void FileAccessBuf::read_next_buffer (uint32_t cb)

@@ -45,14 +45,14 @@ MemContextUser::FileDescriptor::FileDescriptor (CORBA::AbstractBase::_ptr_type a
 			access_ = ab;
 			access_type_ = AccessType::ACCESS_BUF;
 		} else
-			throw RuntimeError (EIO);
+			throw_UNKNOWN (make_minor_errno (EIO));
 	} else {
 		AccessChar::_ref_type ac = AccessChar::_narrow (access->_to_object ());
 		if (ac) {
 			access_ = std::move (ac);
 			access_type_ = AccessType::ACCESS_CHAR;
 		} else
-			throw RuntimeError (EIO);
+			throw_UNKNOWN (make_minor_errno (EIO));
 	}
 }
 
@@ -67,7 +67,7 @@ void MemContextUser::FileDescriptor::close ()
 		access <AccessChar> ()->close ();
 		break;
 	default:
-		throw RuntimeError (EBADF);
+		throw_BAD_PARAM (make_minor_errno (EBADF));
 	}
 	access_ = nullptr;
 	access_type_ = AccessType::EMPTY;
@@ -83,18 +83,18 @@ size_t MemContextUser::FileDescriptor::read (void* p, size_t size) const
 
 	case AccessType::ACCESS_CHAR: {
 		if (sizeof (size_t) > 4 && size > std::numeric_limits <uint32_t>::max ())
-			throw CORBA::IMP_LIMIT (make_minor_errno (ENXIO));
+			throw_IMP_LIMIT (make_minor_errno (ENXIO));
 		IDL::String buf;
 		access <AccessChar> ()->read ((uint32_t)size, buf);
 		size_t readed = buf.size ();
 		if (readed > size)
-			throw RuntimeError (EIO);
+			throw_UNKNOWN (make_minor_errno (EIO));
 		Port::Memory::copy (p, const_cast <char*> (buf.data ()), readed, Memory::SRC_DECOMMIT);
 		return readed;
 	} break;
 
 	default:
-		throw RuntimeError (EBADF);
+		throw_BAD_PARAM (make_minor_errno (EBADF));
 	}
 }
 
@@ -111,7 +111,7 @@ void MemContextUser::FileDescriptor::write (const void* p, size_t size) const
 		break;
 
 	default:
-		throw RuntimeError (EBADF);
+		throw_BAD_PARAM (make_minor_errno (EBADF));
 	}
 }
 
@@ -123,10 +123,10 @@ uint64_t MemContextUser::FileDescriptor::seek (unsigned method, const int64_t& o
 		return access <AccessBuf> ()->seek ((SeekMethod)method, off);
 		
 	case AccessType::ACCESS_CHAR:
-		throw RuntimeError (ESPIPE);
+		throw_BAD_OPERATION (make_minor_errno (ESPIPE));
 
 	default:
-		throw RuntimeError (EBADF);
+		throw_BAD_PARAM (make_minor_errno (EBADF));
 	}
 }
 
@@ -196,10 +196,10 @@ inline void MemContextUser::Data::chdir (const IDL::String& path)
 	// Check that new directory exists
 	Dir::_ref_type dir = Dir::_narrow (name_service ()->resolve (new_dir));
 	if (!dir)
-		throw RuntimeError (ENOTDIR);
+		throw_INTERNAL (make_minor_errno (ENOTDIR));
 
 	if (dir->_non_existent ())
-		throw RuntimeError (ENOENT);
+		throw_OBJECT_NOT_EXIST (make_minor_errno (ENOENT));
 
 	current_dir_ = std::move (new_dir);
 }
@@ -223,7 +223,7 @@ unsigned MemContextUser::Data::fd_open (const IDL::String& path, uint_fast16_t f
 		}
 		size_t i = it - file_descriptors_.begin ();
 		if (i > (unsigned)std::numeric_limits <uint16_t>::max () - (unsigned)STD_CNT)
-			throw CORBA::IMP_LIMIT (make_minor_errno (EMFILE));
+			throw_IMP_LIMIT (make_minor_errno (EMFILE));
 		if (it == file_descriptors_.end ())
 			file_descriptors_.emplace_back ();
 		ifd = (unsigned)(i + STD_CNT);
@@ -249,7 +249,7 @@ MemContextUser::FileDescriptor& MemContextUser::Data::get_fd (unsigned ifd)
 		return std_file_descriptors_ [ifd];
 	ifd -= StandardFileDescriptor::STD_CNT;
 	if (ifd >= file_descriptors_.size ())
-		throw RuntimeError (EBADF);
+		throw_BAD_PARAM (make_minor_errno (EBADF));
 	return file_descriptors_ [ifd];
 }
 
@@ -275,7 +275,7 @@ MemContextUser& MemContextUser::current ()
 {
 	MemContextUser* p = MemContext::current ().user_context ();
 	if (!p)
-		throw CORBA::NO_IMPLEMENT ();
+		throw_BAD_OPERATION (); // Unavailable for core contexts
 	return *p;
 }
 
@@ -345,7 +345,7 @@ unsigned MemContextUser::fd_open (const IDL::String& path, uint_fast16_t flags, 
 void MemContextUser::fd_close (unsigned fd)
 {
 	if (!data_)
-		throw RuntimeError (EBADF);
+		throw_BAD_PARAM (make_minor_errno (EBADF));
 	data_->fd_close (fd);
 }
 
