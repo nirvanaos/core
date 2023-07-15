@@ -90,6 +90,9 @@ public:
 			etherealize ();
 			throw;
 		}
+
+		if (access_)
+			st.size (access_->size ());
 	}
 
 	void remove ()

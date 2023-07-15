@@ -222,7 +222,7 @@ unsigned MemContextUser::Data::fd_open (const IDL::String& path, uint_fast16_t f
 				break;
 		}
 		size_t i = it - file_descriptors_.begin ();
-		if (i > (unsigned)std::numeric_limits <uint16_t>::max () - (unsigned)STD_CNT)
+		if (i > (unsigned)std::numeric_limits <int16_t>::max () - (unsigned)STD_CNT)
 			throw_IMP_LIMIT (make_minor_errno (EMFILE));
 		if (it == file_descriptors_.end ())
 			file_descriptors_.emplace_back ();
