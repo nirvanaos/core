@@ -245,7 +245,7 @@ public:
 			}
 			try {
 				acc = FileSystem::get_file (get_new_file_id (n))->open (O_EXCL | O_CREAT | O_RDWR
-					| (flags & (O_DIRECT | O_APPEND | FILE_SHARE_DENY_WRITE | FILE_SHARE_DENY_READ)), 0600);
+					| (flags & (O_DIRECT | O_APPEND)), 0600);
 			} catch (const CORBA::OBJECT_NOT_EXIST&) {
 				etherealize ();
 				throw;

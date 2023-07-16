@@ -103,9 +103,15 @@ public:
 		}
 	}
 
-	bool lock (FileSize start, FileSize size, short op)
+	bool lock (const FileLock& rem, const FileLock& add)
 	{
-		throw CORBA::NO_IMPLEMENT ();
+		// TODO: Implement
+		return true;
+	}
+
+	void get_lock (FileLock& fl) const
+	{
+		throw_NO_IMPLEMENT ();
 	}
 
 	uint_fast16_t flags () const noexcept

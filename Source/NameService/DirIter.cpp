@@ -63,7 +63,7 @@ bool DirIter::next_one (DirEntry& de)
 			item->stat (de.st ());
 			de.name (std::move (b.name));
 		} catch (const CORBA::NO_PERMISSION ()) {
-			if (flags_ & Nirvana::DirIterator::SKIP_PERMISSION_DENIED)
+			if (flags_ & Nirvana::Dir::SKIP_PERMISSION_DENIED)
 				continue;
 			throw;
 		}

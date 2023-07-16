@@ -260,7 +260,7 @@ public:
 
 	void flush ();
 
-	bool lock (FileLock& fl, short op)
+	bool lock (FLock& fl, short op)
 	{
 		throw_NO_IMPLEMENT (make_minor_errno (ENOSYS));
 	}
