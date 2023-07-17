@@ -348,11 +348,14 @@ void RequestGIOP::marshal_value (ValueBase::_ptr_type base, Interface::_ptr_type
 	size_t pos = round_up (stream_out_->size (), (size_t)4);
 	auto ins = value_map_marshal_.emplace (&base, pos);
 	if (!ins.second) {
+		// This value was already marshalled, write indirection tag.
 		stream_out_->write32 (INDIRECTION_TAG);
 		Long off = Long (ins.first->second - (pos + 4));
 		stream_out_->write32 (off);
 		return;
 	}
+
+	// Write type information
 	Interface::_ptr_type primary = base->_query_valuetype (nullptr);
 	if (!primary)
 		throw UNKNOWN ();
@@ -394,7 +397,14 @@ void RequestGIOP::marshal_value (ValueBase::_ptr_type base, Interface::_ptr_type
 		}
 		stream_out_->write32 (tag);
 	}
-	base->_marshal (_get_ptr ());
+
+	// Marshal value data
+	if (output)
+		base->_marshal_out (_get_ptr ());
+	else
+		base->_marshal_in (_get_ptr ());
+
+	// Close chunk
 	if (chunk_level_) {
 		stream_out_->chunk_end ();
 		stream_out_->write32 (chunk_level_);
