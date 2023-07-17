@@ -152,8 +152,14 @@ public:
 
 		Bytes data;
 		uint32_t block_size = access_->block_size ();
-		if (!(flags & (O_APPEND | O_TRUNC | O_ATE)) && (flags & O_ACCMODE) != O_WRONLY && access_->size ())
-			access_->read (0, block_size, data);
+		if (!(flags & (O_APPEND | O_TRUNC | O_ATE)) && (flags & O_ACCMODE) != O_WRONLY && access_->size ()) {
+			uint32_t prefetch_size = 2 * block_size;
+			FileSize file_size = access_->size ();
+			if ((FileSize)prefetch_size > file_size)
+				prefetch_size = (uint32_t)file_size;
+			if (prefetch_size && access->lock (FileLock (), FileLock (0, prefetch_size, LockType::LOCK_READ)))
+				access_->read (0, prefetch_size, data);
+		}
 		FileSize pos = (flags & (O_APPEND | O_ATE)) ? access_->size () : 0;
 
 		return CORBA::make_reference <FileAccessBuf> (std::move (data), access, pos, block_size, flags,
