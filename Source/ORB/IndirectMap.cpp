@@ -1,4 +1,3 @@
-/// \file
 /*
 * Nirvana Core.
 *
@@ -24,23 +23,21 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_ORB_CORE_INDIRECTMAPUNMARSHAL_H_
-#define NIRVANA_ORB_CORE_INDIRECTMAPUNMARSHAL_H_
-#pragma once
+#include "IndirectMap.h"
+#include "../MemContext.h"
 
-#include <CORBA/CORBA.h>
-#include "../MapUnorderedUnstable.h"
-#include "../HeapAllocator.h"
+using namespace Nirvana::Core;
 
 namespace CORBA {
 namespace Core {
 
-static const ULong INDIRECTION_TAG = 0xFFFFFFFF;
+IndirectMapMarshal::IndirectMapMarshal () :
+	Base (MemContext::current ().heap ())
+{}
 
-typedef Nirvana::Core::MapUnorderedUnstable <size_t, Internal::Interface*, std::hash <size_t>,
-	std::equal_to <size_t>, Nirvana::Core::HeapAllocator> IndirectMapUnmarshal;
+IndirectMapUnmarshal::IndirectMapUnmarshal () :
+	Base (MemContext::current ().heap ())
+{}
 
 }
 }
-
-#endif

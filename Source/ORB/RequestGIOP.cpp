@@ -49,11 +49,6 @@ RequestGIOP::RequestGIOP (unsigned GIOP_minor, unsigned response_flags, Domain* 
 	code_set_conv_ (CodeSetConverter::get_default ()),
 	code_set_conv_w_ (CodeSetConverterW::get_default (GIOP_minor, servant_domain != nullptr)),
 	marshaled_DGC_references_ (mem_context_->heap ()),
-	top_level_tc_unmarshal_ (mem_context_->heap ()),
-	value_map_marshal_ (mem_context_->heap ()),
-	value_map_unmarshal_ (mem_context_->heap ()),
-	rep_id_map_marshal_ (mem_context_->heap ()),
-	rep_id_map_unmarshal_ (mem_context_->heap ()),
 	references_to_confirm_ (mem_context_->heap ())
 {}
 
@@ -81,16 +76,16 @@ void RequestGIOP::set_out_size ()
 
 void RequestGIOP::invoke ()
 {
-	value_map_marshal_.clear ();
-	rep_id_map_marshal_.clear ();
+	value_map_.clear ();
+	rep_id_map_.clear ();
 }
 
 void RequestGIOP::unmarshal_end ()
 {
 	if (stream_in_) {
 		top_level_tc_unmarshal_.clear ();
-		value_map_unmarshal_.clear ();
-		rep_id_map_unmarshal_.clear ();
+		value_map_.clear ();
+		rep_id_map_.clear ();
 		size_t more_data = stream_in_->end ();
 		stream_in_ = nullptr;
 		if (more_data > 7) // 8-byte alignment is ignored
@@ -346,7 +341,7 @@ void RequestGIOP::marshal_value (Interface::_ptr_type val, bool output)
 void RequestGIOP::marshal_value (ValueBase::_ptr_type base, Interface::_ptr_type val, bool output)
 {
 	size_t pos = round_up (stream_out_->size (), (size_t)4);
-	auto ins = value_map_marshal_.emplace (&base, pos);
+	auto ins = value_map_.marshal_map ().emplace (&base, pos);
 	if (!ins.second) {
 		// This value was already marshalled, write indirection tag.
 		stream_out_->write32 (INDIRECTION_TAG);
@@ -415,8 +410,9 @@ void RequestGIOP::marshal_value (ValueBase::_ptr_type base, Interface::_ptr_type
 void RequestGIOP::marshal_val_rep_id (Internal::String_in id)
 {
 	size_t pos = stream_out_->size ();
-	auto ins = rep_id_map_marshal_.emplace (RepositoryId (id.data (), id.size (),
-		rep_id_map_marshal_.get_allocator ()), pos);
+	IndirectRepIdMarshal& marshal_map = rep_id_map_.marshal_map ();
+	auto ins = marshal_map.emplace (RepositoryId (id.data (), id.size (),
+		marshal_map.get_allocator ()), pos);
 	if (!ins.second) {
 		stream_out_->write32 (INDIRECTION_TAG);
 		Long off = (Long)(ins.first->second - (pos + 4));
@@ -438,12 +434,13 @@ Interface::_ref_type RequestGIOP::unmarshal_value (const IDL::String& interface_
 	if (0 == value_tag)
 		return nullptr;
 
+	IndirectMapUnmarshal& unmarshal_map = value_map_.unmarshal_map ();
 	if (INDIRECTION_TAG == value_tag) {
 		Long off = stream_in_->read32 ();
 		if (off >= -4)
 			throw MARSHAL ();
-		auto it = value_map_unmarshal_.find (start_pos + 4 + off);
-		if (it == value_map_unmarshal_.end ())
+		auto it = unmarshal_map.find (start_pos + 4 + off);
+		if (it == unmarshal_map.end ())
 			throw MARSHAL ();
 		Interface::_ptr_type itf = static_cast <ValueBase*> (it->second)->_query_valuetype (interface_id);
 		if (!itf)
@@ -509,7 +506,7 @@ Interface::_ref_type RequestGIOP::unmarshal_value (const IDL::String& interface_
 	if (!ret)
 		throw MARSHAL (); // Unexpected
 
-	value_map_unmarshal_.emplace (start_pos, &ValueBase::_ptr_type (base));
+	unmarshal_map.emplace (start_pos, &ValueBase::_ptr_type (base));
 
 	if (value_tag & 0x00000008) {
 		stream_in_->chunk_mode (true);
@@ -541,21 +538,22 @@ const RequestGIOP::RepositoryId& RequestGIOP::unmarshal_val_rep_id ()
 {
 	size_t pos = stream_in_->position ();
 	ULong size = stream_in_->read32 ();
+	IndirectRepIdUnmarshal& unmarshal_map = rep_id_map_.unmarshal_map ();
 	if (INDIRECTION_TAG == size) {
 		Long off = stream_in_->read32 ();
 		pos += off + 4;
-		auto it = rep_id_map_unmarshal_.find (pos);
-		if (it == rep_id_map_unmarshal_.end ())
+		auto it = unmarshal_map.find (pos);
+		if (it == unmarshal_map.end ())
 			throw MARSHAL ();
 		return it->second;
 	}
-	RepositoryId id (rep_id_map_unmarshal_.get_allocator ());
+	RepositoryId id (unmarshal_map.get_allocator ());
 	id.resize (size - 1);
 	Char* buf = &*id.begin ();
 	stream_in_->read (1, 1, 1, size, buf);
 	if (buf [size - 1]) // Not zero-terminated
 		throw MARSHAL ();
-	return rep_id_map_unmarshal_.emplace (pos, std::move (id)).first->second;
+	return unmarshal_map.emplace (pos, std::move (id)).first->second;
 }
 
 Interface::_ref_type RequestGIOP::unmarshal_abstract (const IDL::String& interface_id)

@@ -37,7 +37,7 @@
 #include "CodeSetConverter.h"
 #include "POA_Root.h"
 #include "LocalAddress.h"
-#include "IndirectMapUnmarshal.h"
+#include "IndirectMap.h"
 #include "ReferenceRemote.h"
 
 namespace CORBA {
@@ -284,7 +284,7 @@ public:
 		if (!marshal_chunk ())
 			return;
 
-		IndirectMapMarshal map (value_map_marshal_.get_allocator ());
+		IndirectMapMarshal map;
 		marshal_type_code (*stream_out_, tc, map, 0);
 	}
 
@@ -470,16 +470,14 @@ private:
 	typedef Nirvana::Core::MapUnorderedUnstable <size_t, RepositoryId, std::hash <size_t>,
 		std::equal_to <size_t>, Nirvana::Core::HeapAllocator> IndirectRepIdUnmarshal;
 
-	typedef Nirvana::Core::MapUnorderedUnstable <void*, size_t, std::hash <void*>, std::equal_to <void*>,
-		Nirvana::Core::HeapAllocator> IndirectMapMarshal;
+	typedef IndirectMap <IndirectRepIdMarshal, IndirectRepIdUnmarshal> IndirectMapRepId;
+
 	static void marshal_type_code (StreamOut& stream, TypeCode::_ptr_type tc, IndirectMapMarshal& map, size_t parent_offset);
 	void marshal_object (Object::_ptr_type obj);
 
 	IndirectMapUnmarshal top_level_tc_unmarshal_;
-	IndirectMapMarshal value_map_marshal_;
-	IndirectMapUnmarshal value_map_unmarshal_;
-	IndirectRepIdMarshal rep_id_map_marshal_;
-	IndirectRepIdUnmarshal rep_id_map_unmarshal_;
+	IndirectMapItf value_map_;
+	IndirectMapRepId rep_id_map_;
 	std::vector <ReferenceRemoteRef, Nirvana::Core::HeapAllocator <ReferenceRemoteRef> > references_to_confirm_;
 };
 

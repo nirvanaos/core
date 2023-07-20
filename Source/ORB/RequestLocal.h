@@ -364,10 +364,10 @@ public:
 		if (!val || (output && caller_memory_ == callee_memory_))
 			marshal_interface (val);
 		else
-			marshal_value_copy (value_type2base (val), val->_epv ().interface_id);
+			marshal_value_copy (value_type2base (val), val->_epv ().interface_id, output);
 	}
 
-	void marshal_value_copy (ValueBase::_ptr_type base, const IDL::String& interface_id);
+	void marshal_value_copy (ValueBase::_ptr_type base, const IDL::String& interface_id, bool output);
 
 	/// Unmarshal value type.
 	/// 
@@ -396,7 +396,7 @@ public:
 				ValueBase::_ref_type value = base->_to_value ();
 				if (!value)
 					Nirvana::throw_MARSHAL ();
-				marshal_value_copy (value, itf->_epv ().interface_id);
+				marshal_value_copy (value, itf->_epv ().interface_id, output);
 			}
 		}
 	}

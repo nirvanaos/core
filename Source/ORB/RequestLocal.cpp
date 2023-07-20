@@ -364,21 +364,16 @@ Interface::_ref_type RequestLocalBase::unmarshal_interface (const IDL::String& i
 	return std::move ((Interface::_ref_type&)(itf_rec->ptr));
 }
 
-void RequestLocalBase::marshal_value_copy (ValueBase::_ptr_type base, const IDL::String& interface_id)
+void RequestLocalBase::marshal_value_copy (ValueBase::_ptr_type base, const IDL::String& interface_id, bool output)
 {
-	ExecDomain& ed = ExecDomain::current ();
-	ed.mem_context_replace (target_memory ());
-	try {
-		ValueBase::_ref_type copy = base->_copy_value ();
-		Interface::_ptr_type itf = copy->_query_valuetype (interface_id);
-		if (!itf)
-			throw MARSHAL (); // Unexpected
-		marshal_interface (itf);
-	} catch (...) {
-		ed.mem_context_restore ();
-		throw;
-	}
-	ed.mem_context_restore ();
+	ValueFactoryBase::_ref_type vf = base->_factory ();
+	if (!vf)
+		throw MARSHAL (MAKE_OMG_MINOR (1));
+	marshal_interface (ValueFactoryBase::_ptr_type (vf));
+	if (output)
+		base->_marshal_out (_get_ptr ());
+	else
+		base->_marshal_in (_get_ptr ());
 }
 
 void RequestLocalBase::invoke ()

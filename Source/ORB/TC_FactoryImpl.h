@@ -44,7 +44,7 @@
 #include <ORB/TC_Abstract.h>
 #include <ORB/TC_Native.h>
 #include <ORB/TC_Recursive.h>
-#include "IndirectMapUnmarshal.h"
+#include "IndirectMap.h"
 #include "Services.h"
 #include "ServantProxyLocal.h"
 #include "../Synchronized.h"
@@ -343,7 +343,7 @@ public:
 		TC_FactoryImpl* impl = static_cast <TC_FactoryImpl*> (
 			static_cast <Bridge <CORBA::LocalObject>*> (&proxy->servant ()));
 		SYNC_BEGIN (proxy->sync_context (), nullptr);
-		IndirectMapUnmarshal indirect_map (heap);
+		IndirectMapUnmarshal indirect_map;
 		return impl->unmarshal_type_code (kind, stream, indirect_map, 0);
 		SYNC_END ();
 	}
