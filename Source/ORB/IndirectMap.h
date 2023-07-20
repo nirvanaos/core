@@ -37,12 +37,12 @@ namespace Core {
 
 static const ULong INDIRECTION_TAG = 0xFFFFFFFF;
 
-typedef Nirvana::Core::MapUnorderedUnstable <void*, size_t, std::hash <void*>,
+typedef Nirvana::Core::MapUnorderedUnstable <void*, uintptr_t, std::hash <void*>,
 	std::equal_to <void*>, Nirvana::Core::HeapAllocator>
 	IndirectMapMarshalCont;
 
-typedef Nirvana::Core::MapUnorderedUnstable <size_t, Internal::Interface*, std::hash <size_t>,
-	std::equal_to <size_t>, Nirvana::Core::HeapAllocator>
+typedef Nirvana::Core::MapUnorderedUnstable <uintptr_t, Internal::Interface*, std::hash <uintptr_t>,
+	std::equal_to <uintptr_t>, Nirvana::Core::HeapAllocator>
 	IndirectMapUnmarshalCont;
 
 class IndirectMapMarshal : public IndirectMapMarshalCont

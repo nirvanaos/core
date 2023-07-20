@@ -322,24 +322,11 @@ TypeCode::_ref_type RequestGIOP::unmarshal_type_code ()
 	return ret;
 }
 
-void RequestGIOP::marshal_value (Interface::_ptr_type val, bool output)
-{
-	if (!marshal_op ())
-		return;
-
-	if (chunk_level_)
-		stream_out_->chunk_end ();
-
-	if (!val) {
-		stream_out_->write32 (0);
-		return;
-	}
-
-	marshal_value (value_type2base (val), val, output);
-}
-
 void RequestGIOP::marshal_value (ValueBase::_ptr_type base, Interface::_ptr_type val, bool output)
 {
+	if (!base->_factory ())
+		throw MARSHAL (MAKE_OMG_MINOR (1)); // Try to marshal abstract value
+
 	size_t pos = round_up (stream_out_->size (), (size_t)4);
 	auto ins = value_map_.marshal_map ().emplace (&base, pos);
 	if (!ins.second) {

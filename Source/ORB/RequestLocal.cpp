@@ -316,23 +316,29 @@ void RequestLocalBase::unmarshal_segment (void*& data, size_t& allocated_size)
 void RequestLocalBase::marshal_interface (Interface::_ptr_type itf)
 {
 	if (marshal_op ()) {
-		if (itf) {
-			const Octet* block_end = cur_block_end ();
-			Octet* dst = round_up (cur_ptr_, alignof (Interface*));
-			ptrdiff_t tail = block_end - dst;
-			if (sizeof (Interface*) <= tail && tail < sizeof (ItfRecord)) {
-				// Mark interface non-null
-				*(Interface**)dst = &itf;
-			}
-			ItfRecord* itf_rec = (ItfRecord*)get_element_buffer (sizeof (ItfRecord));
-			itf_rec->ptr = interface_duplicate (&itf);
-			itf_rec->next = interfaces_;
-			interfaces_ = itf_rec;
-		} else {
+		if (itf)
+			marshal_interface_internal (itf);
+		else {
 			Interface* nil = nullptr;
 			write (alignof (Interface*), sizeof (Interface*), &nil);
 		}
 	}
+}
+
+void RequestLocalBase::marshal_interface_internal (Interface::_ptr_type itf)
+{
+	assert (itf);
+	const Octet* block_end = cur_block_end ();
+	Octet* dst = round_up (cur_ptr_, alignof (Interface*));
+	ptrdiff_t tail = block_end - dst;
+	if (sizeof (Interface*) <= tail && tail < sizeof (ItfRecord)) {
+		// Mark interface non-null
+		*(Interface**)dst = &itf;
+	}
+	ItfRecord* itf_rec = (ItfRecord*)get_element_buffer (sizeof (ItfRecord));
+	itf_rec->ptr = interface_duplicate (&itf);
+	itf_rec->next = interfaces_;
+	interfaces_ = itf_rec;
 }
 
 Interface::_ref_type RequestLocalBase::unmarshal_interface (const IDL::String& interface_id)
@@ -364,16 +370,63 @@ Interface::_ref_type RequestLocalBase::unmarshal_interface (const IDL::String& i
 	return std::move ((Interface::_ref_type&)(itf_rec->ptr));
 }
 
-void RequestLocalBase::marshal_value_copy (ValueBase::_ptr_type base, const IDL::String& interface_id, bool output)
+void RequestLocalBase::marshal_value (ValueBase::_ptr_type base, const IDL::String& interface_id, bool output)
 {
-	ValueFactoryBase::_ref_type vf = base->_factory ();
-	if (!vf)
-		throw MARSHAL (MAKE_OMG_MINOR (1));
-	marshal_interface (ValueFactoryBase::_ptr_type (vf));
-	if (output)
-		base->_marshal_out (_get_ptr ());
-	else
-		base->_marshal_in (_get_ptr ());
+	assert (base);
+	ValueFactoryBase::_ref_type factory = base->_factory ();
+	if (!factory)
+		throw MARSHAL (MAKE_OMG_MINOR (1)); // Try to marshal abstract value
+
+	auto ins = value_map_.marshal_map ().emplace (&base, (uintptr_t)cur_ptr_ + 1);
+	if (!ins.second) {
+		// This value was already marshalled, write indirection tag.
+		write8 (3);
+		write (alignof (uintptr_t), sizeof (uintptr_t), &ins.first->second);
+	} else {
+		write8 (2);
+		marshal_interface_internal (ValueFactoryBase::_ptr_type (factory));
+		if (output)
+			base->_marshal_out (_get_ptr ());
+		else
+			base->_marshal_in (_get_ptr ());
+	}
+}
+
+Interface::_ref_type RequestLocalBase::unmarshal_value (const IDL::String& interface_id)
+{
+	Internal::Interface::_ref_type ret;
+	uint8_t tag = read8 ();
+	switch (tag) {
+	case 1:
+		ret = unmarshal_interface (interface_id);
+		break;
+
+	case 2: {
+		uintptr_t pos = (uintptr_t)cur_ptr_;
+		ValueFactoryBase::_ref_type factory = unmarshal_interface (Internal::RepIdOf <ValueFactoryBase>::id).template downcast <ValueFactoryBase> ();
+		if (!factory)
+			throw MARSHAL (); // Unexpected
+		ValueBase::_ref_type base (factory->create_for_unmarshal ());
+		base->_unmarshal (_get_ptr ());
+		value_map_.unmarshal_map ().emplace (pos, &ValueBase::_ptr_type (base));
+		ret = base->_query_valuetype (interface_id);
+	} break;
+
+	case 3: {
+		uintptr_t p;
+		read (alignof (uintptr_t), sizeof (uintptr_t), &p);
+		const auto& unmarshal_map = value_map_.unmarshal_map ();
+		auto it = unmarshal_map.find (p);
+		if (it == unmarshal_map.end ())
+			throw MARSHAL ();
+		ret = static_cast <ValueBase*> (it->second)->_query_valuetype (interface_id);
+	}
+	}
+
+	if (tag && !ret)
+		throw MARSHAL (); // Unexpected
+
+	return ret;
 }
 
 void RequestLocalBase::invoke ()

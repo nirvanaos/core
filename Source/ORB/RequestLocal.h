@@ -35,6 +35,7 @@
 #include <CORBA/Server.h>
 #include <CORBA/IORequest_s.h>
 #include "RqHelper.h"
+#include "IndirectMap.h"
 
 namespace CORBA {
 namespace Core {
@@ -361,23 +362,23 @@ public:
 	/// \param output Output parameter marshaling. Haven't to perform deep copy.
 	void marshal_value (Internal::Interface::_ptr_type val, bool output)
 	{
-		if (!val || (output && caller_memory_ == callee_memory_))
-			marshal_interface (val);
-		else
-			marshal_value_copy (value_type2base (val), val->_epv ().interface_id, output);
+		if (marshal_op ()) {
+			if (!val)
+				write8 (0);
+			else if (output && caller_memory_ == callee_memory_) {
+				write8 (1);
+				marshal_interface_internal (val);
+			} else
+				marshal_value (value_type2base (val), val->_epv ().interface_id, output);
+		}
 	}
-
-	void marshal_value_copy (ValueBase::_ptr_type base, const IDL::String& interface_id, bool output);
 
 	/// Unmarshal value type.
 	/// 
 	/// \param rep_id The value type repository id.
 	/// 
 	/// \returns Value type interface.
-	Internal::Interface::_ref_type unmarshal_value (const IDL::String& interface_id)
-	{
-		return unmarshal_interface (interface_id);
-	}
+	Internal::Interface::_ref_type unmarshal_value (const IDL::String& interface_id);
 
 	/// Marshal abstract interface.
 	/// 
@@ -385,18 +386,27 @@ public:
 	/// \param output Output parameter marshaling. Haven't to perform deep copy.
 	void marshal_abstract (Internal::Interface::_ptr_type itf, bool output)
 	{
-		if (!itf || (output && caller_memory_ == callee_memory_))
-			marshal_interface (itf);
-		else {
-			// Downcast to AbstractBase
-			AbstractBase::_ptr_type base = abstract_interface2base (itf);
-			if (base->_to_object ())
-				marshal_interface (itf);
-			else {
-				ValueBase::_ref_type value = base->_to_value ();
-				if (!value)
-					Nirvana::throw_MARSHAL ();
-				marshal_value_copy (value, itf->_epv ().interface_id, output);
+		if (marshal_op ()) {
+			if (!itf) {
+				write8 (0);
+				write8 (0);
+			} else {
+				// Downcast to AbstractBase
+				AbstractBase::_ptr_type base = abstract_interface2base (itf);
+				if (base->_to_object ()) {
+					write8 (1);
+					marshal_interface_internal (itf);
+				} else {
+					ValueBase::_ref_type value = base->_to_value ();
+					if (!value)
+						Nirvana::throw_MARSHAL (); // Unexpected
+					write8 (0);
+					if (output && caller_memory_ == callee_memory_) {
+						write8 (1);
+						marshal_interface_internal (itf);
+					} else
+						marshal_value (value, itf->_epv ().interface_id, output);
+				}
 			}
 		}
 	}
@@ -408,7 +418,11 @@ public:
 	/// \returns Interface.
 	Internal::Interface::_ref_type unmarshal_abstract (const IDL::String& interface_id)
 	{
-		return unmarshal_interface (interface_id);
+		uint8_t tag = read8 ();
+		if (tag)
+			return unmarshal_interface (interface_id);
+		else
+			return unmarshal_value (interface_id);
 	}
 
 	///@}
@@ -517,7 +531,36 @@ protected:
 
 	bool marshal_op () noexcept;
 	void write (size_t align, size_t size, const void* data);
+	
+	void write32 (uint32_t val)
+	{
+		write (4, 4, &val);
+	}
+
+	void write8 (uint8_t val)
+	{
+		write (1, 1, &val);
+	}
+
 	void read (size_t align, size_t size, void* data);
+
+	uint32_t read32 ()
+	{
+		uint32_t val;
+		read (4, 4, &val);
+		return val;
+	}
+
+	uint8_t read8 ()
+	{
+		uint8_t val;
+		read (1, 1, &val);
+		return val;
+	}
+
+	void marshal_interface_internal (Internal::Interface::_ptr_type itf);
+	void marshal_value (ValueBase::_ptr_type base, const IDL::String& interface_id, bool output);
+
 	void marshal_segment (size_t align, size_t element_size,
 		size_t element_count, void* data, size_t& allocated_size);
 	void unmarshal_segment (void*& data, size_t& allocated_size);
@@ -527,6 +570,7 @@ protected:
 	virtual void reset () noexcept
 	{
 		cur_block_ = nullptr;
+		value_map_.clear ();
 	}
 
 	void clear () noexcept
@@ -596,6 +640,7 @@ private:
 	BlockHdr* cur_block_;
 	ItfRecord* interfaces_;
 	Segment* segments_;
+	IndirectMapItf value_map_;
 };
 
 class NIRVANA_NOVTABLE RequestLocal : public RequestLocalBase
@@ -689,13 +734,13 @@ public:
 		Base::cur_ptr_ = block_;
 	}
 
-	virtual void reset () noexcept
+	virtual void reset () noexcept override
 	{
 		Base::reset ();
 		Base::cur_ptr_ = block_;
 	}
 
-	virtual void _remove_ref () noexcept
+	virtual void _remove_ref () noexcept override
 	{
 		if (0 == Base::ref_cnt_.decrement ()) {
 			servant_reference <Nirvana::Core::MemContext> mc =
