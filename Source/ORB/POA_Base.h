@@ -29,6 +29,7 @@
 #pragma once
 
 #include <CORBA/Server.h>
+#include <CORBA/NirvanaDGC.h>
 #include "PortableServer_policies.h"
 #include "ServantProxyObject.h"
 #include "ServantProxyLocal.h"
@@ -110,7 +111,7 @@ struct POA_Policies
 					request_processing = RequestProcessingPolicy::_narrow (policy)->value ();
 					break;
 				default:
-					if (FT::HEARTBEAT_ENABLED_POLICY == type)
+					if (Nirvana::DGC_POLICY_TYPE == type)
 						DGC_policy_idx = int (it - policies.begin ());
 					if (!object_policies)
 						object_policies = CORBA::make_reference <CORBA::Core::PolicyMapShared> ();

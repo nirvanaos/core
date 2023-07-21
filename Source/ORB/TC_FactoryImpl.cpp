@@ -208,10 +208,10 @@ TypeCode::_ref_type TC_FactoryImpl::unmarshal_type_code (StreamIn& stream, Indir
 		Long off = stream.read32 ();
 		if (off >= -4)
 			throw MARSHAL ();
-		IndirectMapUnmarshal::iterator it = indirect_map.find (pos + off);
-		if (it == indirect_map.end ())
+		Interface* itf = indirect_map.find (pos + off);
+		if (!itf)
 			throw BAD_TYPECODE ();
-		return TypeCode::_ptr_type (static_cast <TypeCode*> (it->second));
+		return TypeCode::_ptr_type (static_cast <TypeCode*> (itf));
 	} else if (!get_simple_tc ((TCKind)kind, ret))
 		ret = unmarshal_type_code ((TCKind)kind, stream, indirect_map, parent_offset);
 

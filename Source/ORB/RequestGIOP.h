@@ -37,7 +37,7 @@
 #include "CodeSetConverter.h"
 #include "POA_Root.h"
 #include "LocalAddress.h"
-#include "IndirectMapUnmarshal.h"
+#include "IndirectMap.h"
 #include "ReferenceRemote.h"
 
 namespace CORBA {
@@ -284,7 +284,7 @@ public:
 		if (!marshal_chunk ())
 			return;
 
-		IndirectMapMarshal map (value_map_marshal_.get_allocator ());
+		IndirectMapMarshal map;
 		marshal_type_code (*stream_out_, tc, map, 0);
 	}
 
@@ -297,9 +297,21 @@ public:
 	/// 
 	/// \param val  ValueBase.
 	/// \param output Output parameter marshaling. Haven't to perform deep copy.
-	void marshal_value (Internal::Interface::_ptr_type val, bool output);
+	void marshal_value (Internal::Interface::_ptr_type val, bool output)
+	{
+		if (!marshal_op ())
+			return;
 
-	void marshal_value (ValueBase::_ptr_type base, Interface::_ptr_type val, bool output);
+		if (chunk_level_)
+			stream_out_->chunk_end ();
+
+		if (!val) {
+			stream_out_->write32 (0);
+			return;
+		}
+
+		marshal_value (value_type2base (val), val, output);
+	}
 
 	/// Unmarshal value type.
 	/// 
@@ -446,9 +458,34 @@ private:
 	typedef std::basic_string <char, std::char_traits <char>, Nirvana::Core::HeapAllocator <char> >
 		RepositoryId;
 
+	typedef Nirvana::Core::MapUnorderedUnstable <RepositoryId, size_t, std::hash <RepositoryId>,
+		std::equal_to <RepositoryId>, Nirvana::Core::HeapAllocator> IndirectRepIdMarshalCont;
+
+	typedef Nirvana::Core::MapUnorderedUnstable <size_t, RepositoryId, std::hash <size_t>,
+		std::equal_to <size_t>, Nirvana::Core::HeapAllocator> IndirectRepIdUnmarshalCont;
+
+	class IndirectRepIdMarshal : public IndirectRepIdMarshalCont
+	{
+	public:
+		IndirectRepIdMarshal () :
+			IndirectRepIdMarshalCont (Nirvana::Core::MemContext::current ().heap ())
+		{}
+	};
+
+	class IndirectRepIdUnmarshal : public IndirectRepIdUnmarshalCont
+	{
+	public:
+		IndirectRepIdUnmarshal () :
+			IndirectRepIdUnmarshalCont (Nirvana::Core::MemContext::current ().heap ())
+		{}
+	};
+
+	typedef IndirectMap <IndirectRepIdMarshal, IndirectRepIdUnmarshal> IndirectMapRepId;
+
 	void marshal_val_rep_id (Internal::String_in id);
 	const RepositoryId& unmarshal_val_rep_id ();
 	bool marshal_chunk ();
+	void marshal_value (ValueBase::_ptr_type base, Interface::_ptr_type val, bool output);
 
 protected:
 	unsigned GIOP_minor_;
@@ -465,21 +502,13 @@ protected:
 	ReferenceSet <Nirvana::Core::HeapAllocator> marshaled_DGC_references_;
 
 private:
-	typedef Nirvana::Core::MapUnorderedUnstable <RepositoryId, size_t, std::hash <RepositoryId>,
-		std::equal_to <RepositoryId>, Nirvana::Core::HeapAllocator> IndirectRepIdMarshal;
-	typedef Nirvana::Core::MapUnorderedUnstable <size_t, RepositoryId, std::hash <size_t>,
-		std::equal_to <size_t>, Nirvana::Core::HeapAllocator> IndirectRepIdUnmarshal;
 
-	typedef Nirvana::Core::MapUnorderedUnstable <void*, size_t, std::hash <void*>, std::equal_to <void*>,
-		Nirvana::Core::HeapAllocator> IndirectMapMarshal;
 	static void marshal_type_code (StreamOut& stream, TypeCode::_ptr_type tc, IndirectMapMarshal& map, size_t parent_offset);
 	void marshal_object (Object::_ptr_type obj);
 
 	IndirectMapUnmarshal top_level_tc_unmarshal_;
-	IndirectMapMarshal value_map_marshal_;
-	IndirectMapUnmarshal value_map_unmarshal_;
-	IndirectRepIdMarshal rep_id_map_marshal_;
-	IndirectRepIdUnmarshal rep_id_map_unmarshal_;
+	IndirectMapItf value_map_;
+	IndirectMapRepId rep_id_map_;
 	std::vector <ReferenceRemoteRef, Nirvana::Core::HeapAllocator <ReferenceRemoteRef> > references_to_confirm_;
 };
 
