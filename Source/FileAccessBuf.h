@@ -37,6 +37,7 @@
 namespace Nirvana {
 namespace Core {
 
+/// Implementation of FileAccessBuf value type.
 class FileAccessBuf : public CORBA::servant_traits <AccessBuf>::Servant <FileAccessBuf>
 {
 	typedef CORBA::servant_traits <AccessBuf>::Servant <FileAccessBuf> Base;
@@ -54,6 +55,12 @@ public:
 		dirty_end_ (0)
 	{}
 
+	/// When the buffer is not empty, we assume that the value owns the file read lock on this buffer.
+	/// When object is copied, the buffer is not. The copy is not own any lock initially.
+	FileAccessBuf (const FileAccessBuf& src) :
+		Base (Bytes (), access (), position (), block_size (), flags (), eol ())
+	{}
+
 	~FileAccessBuf ()
 	{
 		if (dirty ()) {
@@ -61,6 +68,13 @@ public:
 				flush (); //  Last chance
 			} catch (...) {}
 		}
+	}
+
+	void _marshal_in (CORBA::Internal::IORequest::_ptr_type rq) const
+	{
+		// _marshal_in does not marshal the current buffer
+		FileAccessBuf tmp (*this);
+		static_cast <const Base&> (tmp)._marshal_in (rq);
 	}
 
 	Nirvana::File::_ref_type file () const
@@ -79,138 +93,10 @@ public:
 		access () = nullptr;
 	}
 
-	size_t read (void* p, size_t cb)
-	{
-		check (p);
-		check_read ();
-
-		uint8_t* dst = (uint8_t*)p;
-		uint8_t* end = dst + cb;
-
-		if (dst < end) {
-			// Read from current buffer
-			dst = read_from_buffer (dst, end);
-
-			if (dst < end) {
-				// Read next blocks
-				if (sizeof (size_t) > sizeof (uint32_t)) {
-					while (dst < end) {
-						size_t chunk = end - dst;
-						if (chunk > std::numeric_limits <uint32_t>::max ())
-							chunk = round_down (std::numeric_limits <uint32_t>::max (), block_size ());
-						read_next_buffer ((uint32_t)chunk);
-						dst = read_from_buffer (dst, end);
-					}
-				} else {
-					read_next_buffer ((uint32_t)(end - dst));
-					dst = read_from_buffer (dst, end);
-				}
-			}
-		}
-
-		// Release excessive memory
-		// Resulting buffer size will be <= block_size
-		if (buffer ().size () > block_size ()) {
-			size_t release_size = round_down (buffer ().size () - 1, (size_t)block_size ());
-			buffer ().erase (buffer ().begin (), buffer ().begin () + release_size);
-		}
-
-		return dst - (uint8_t*)p;
-	}
-
-	void write (const void* p, size_t cb)
-	{
-		check (p);
-		check_write ();
-
-		if (!cb)
-			return;
-
-		const uint8_t* src = (const uint8_t*)p;
-		const uint8_t* end = src + cb;
-
-		size_t buf_off = position () % block_size ();
-		if (buf_off < buffer ().size ()) {
-
-		}
-
-		if (buf_off >= buffer ().size ()) {
-			flush ();
-			if (cb >= block_size ()) {
-				FileSize next = position () + buffer ().size () - buf_off;
-				assert (next % block_size () == 0);
-				size_t tail = cb % block_size ();
-				if (!tail) {
-					buffer ().clear ();
-					buffer ().shrink_to_fit ();
-				}
-				size_t full_blocks = cb - tail;
-				Bytes tmp (src, src + full_blocks);
-				access ()->write (next, tmp);
-				position (next + full_blocks);
-				cb -= full_blocks;
-				p = (const uint8_t*)p + full_blocks;
-			}
-			if (cb) {
-				assert (cb < block_size ());
-				if ((flags () & O_ACCMODE) != O_WRONLY)
-					read_next_buffer (block_size ());
-				buffer ().reserve (block_size ());
-			}
-			buf_off = 0;
-		}
-		if (cb) {
-			// Write tail to buffer
-			assert (cb < block_size ());
-			assert (buf_off < buffer ().capacity ());
-			size_t chunk_end = buf_off + cb;
-			if (buffer ().size () > buf_off) {
-				size_t copy_size = buffer ().size () - buf_off;
-				if (copy_size > cb) {
-					copy_size = cb;
-					virtual_copy (p, copy_size, buffer ().data () + buf_off);
-					p = (const uint8_t*)p + copy_size;
-				} else
-					buffer ().resize (buf_off);
-			}
-			if (chunk_end > buffer ().size ()) {
-				size_t append_size = chunk_end - buffer ().size ();
-				buffer ().insert (buffer ().end (), (const uint8_t*)p, (const uint8_t*)p + append_size);
-				// Not need: p = (const uint8_t*)p + append_size;
-			}
-			if (dirty_end_ < chunk_end)
-				dirty_end_ = chunk_end;
-			if (dirty_begin_ > buf_off)
-				dirty_begin_ = buf_off;
-			position () += cb;
-		}
-	}
-
-	void* get_buffer_write (size_t cb)
-	{
-		check_write ();
-		if (!cb)
-			return nullptr;
-
-		size_t buf_off = position () % block_size ();
-		size_t buf_end = buf_off + cb;
-		if (buf_off < buffer ().size ()) {
-			if (buf_end > buffer ().size ())
-				buffer ().reserve (buf_end);
-			return buffer ().data () + buf_off;
-		} else {
-			flush ();
-			FileSize read_pos = buffer_position ();
-		}
-
-		throw_NO_IMPLEMENT (make_minor_errno (ENOSYS));
-	}
-
-	const void* get_buffer_read (size_t cb)
-	{
-		check_read ();
-		throw_NO_IMPLEMENT (make_minor_errno (ENOSYS));
-	}
+	size_t read (void* p, size_t cb);
+	void write (const void* p, size_t cb);
+	const void* get_buffer_read (size_t cb);
+	void* get_buffer_write (size_t cb);
 
 	void release_buffer (size_t cb)
 	{
@@ -284,11 +170,14 @@ public:
 		Base::flags (f);
 	}
 
-	Access::_ref_type dup ()
+	Access::_ref_type dup () const
 	{
 		check ();
 		AccessDirect::_ref_type acc = AccessDirect::_narrow (access ()->dup ()->_to_object ());
-		return CORBA::make_reference <FileAccessBuf> (Bytes (buffer ()), std::move (acc), pos (),
+		Bytes buf (buffer ());
+		if (!buf.empty ())
+			acc->lock (FileLock (), FileLock (buffer_position (), buffer ().size (), LockType::LOCK_READ));
+		return CORBA::make_reference <FileAccessBuf> (std::move (buf), std::move (acc), pos (),
 			block_size (), flags (), eol ());
 	}
 
@@ -315,6 +204,139 @@ protected:
 private:
 	size_t dirty_begin_, dirty_end_;
 };
+
+inline size_t FileAccessBuf::read (void* p, size_t cb)
+{
+	check (p);
+	check_read ();
+
+	uint8_t* dst = (uint8_t*)p;
+	uint8_t* end = dst + cb;
+
+	if (dst < end) {
+		// Read from current buffer
+		dst = read_from_buffer (dst, end);
+
+		if (dst < end) {
+			// Read next blocks
+			if (sizeof (size_t) > sizeof (uint32_t)) {
+				while (dst < end) {
+					size_t chunk = end - dst;
+					if (chunk > std::numeric_limits <uint32_t>::max ())
+						chunk = round_down (std::numeric_limits <uint32_t>::max (), block_size ());
+					read_next_buffer ((uint32_t)chunk);
+					dst = read_from_buffer (dst, end);
+				}
+			} else {
+				read_next_buffer ((uint32_t)(end - dst));
+				dst = read_from_buffer (dst, end);
+			}
+		}
+	}
+
+	// Release excessive memory
+	// Resulting buffer size will be <= block_size
+	if (buffer ().size () > block_size ()) {
+		size_t release_size = round_down (buffer ().size () - 1, (size_t)block_size ());
+		buffer ().erase (buffer ().begin (), buffer ().begin () + release_size);
+	}
+
+	return dst - (uint8_t*)p;
+}
+
+inline void FileAccessBuf::write (const void* p, size_t cb)
+{
+	check (p);
+	check_write ();
+
+	if (!cb)
+		return;
+
+	const uint8_t* src = (const uint8_t*)p;
+	const uint8_t* end = src + cb;
+
+	size_t buf_off = position () % block_size ();
+	if (buf_off < buffer ().size ()) {
+
+	}
+
+	if (buf_off >= buffer ().size ()) {
+		flush ();
+		if (cb >= block_size ()) {
+			FileSize next = position () + buffer ().size () - buf_off;
+			assert (next % block_size () == 0);
+			size_t tail = cb % block_size ();
+			if (!tail) {
+				buffer ().clear ();
+				buffer ().shrink_to_fit ();
+			}
+			size_t full_blocks = cb - tail;
+			Bytes tmp (src, src + full_blocks);
+			access ()->write (next, tmp);
+			position (next + full_blocks);
+			cb -= full_blocks;
+			p = (const uint8_t*)p + full_blocks;
+		}
+		if (cb) {
+			assert (cb < block_size ());
+			if ((flags () & O_ACCMODE) != O_WRONLY)
+				read_next_buffer (block_size ());
+			buffer ().reserve (block_size ());
+		}
+		buf_off = 0;
+	}
+	if (cb) {
+		// Write tail to buffer
+		assert (cb < block_size ());
+		assert (buf_off < buffer ().capacity ());
+		size_t chunk_end = buf_off + cb;
+		if (buffer ().size () > buf_off) {
+			size_t copy_size = buffer ().size () - buf_off;
+			if (copy_size > cb) {
+				copy_size = cb;
+				virtual_copy (p, copy_size, buffer ().data () + buf_off);
+				p = (const uint8_t*)p + copy_size;
+			} else
+				buffer ().resize (buf_off);
+		}
+		if (chunk_end > buffer ().size ()) {
+			size_t append_size = chunk_end - buffer ().size ();
+			buffer ().insert (buffer ().end (), (const uint8_t*)p, (const uint8_t*)p + append_size);
+			// Not need: p = (const uint8_t*)p + append_size;
+		}
+		if (dirty_end_ < chunk_end)
+			dirty_end_ = chunk_end;
+		if (dirty_begin_ > buf_off)
+			dirty_begin_ = buf_off;
+		position () += cb;
+	}
+}
+
+inline void* FileAccessBuf::get_buffer_write (size_t cb)
+{
+	check_write ();
+	if (!cb)
+		return nullptr;
+
+	size_t buf_off = position () % block_size ();
+	size_t buf_end = buf_off + cb;
+	if (buf_off < buffer ().size ()) {
+		if (buf_end > buffer ().size ())
+			buffer ().reserve (buf_end);
+		return buffer ().data () + buf_off;
+	} else {
+		flush ();
+		FileSize read_pos = buffer_position ();
+	}
+
+	throw_NO_IMPLEMENT (make_minor_errno (ENOSYS));
+}
+
+inline const void* FileAccessBuf::get_buffer_read (size_t cb)
+{
+	check_read ();
+	throw_NO_IMPLEMENT (make_minor_errno (ENOSYS));
+}
 
 }
 }
