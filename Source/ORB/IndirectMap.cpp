@@ -35,9 +35,18 @@ IndirectMapMarshal::IndirectMapMarshal () :
 	Base (MemContext::current ().heap ())
 {}
 
-IndirectMapUnmarshal::IndirectMapUnmarshal () :
-	Base (MemContext::current ().heap ())
-{}
+std::pair <IndirectMapMarshal::iterator, bool> IndirectMapMarshal::emplace (uintptr_t key, uintptr_t val)
+{
+	return Base::emplace (key, val);
+}
+
+Internal::Interface* IndirectMapMarshal::find (uintptr_t pos) const noexcept
+{
+	auto it = Base::find (pos);
+	if (it == end ())
+		return nullptr;
+	return (Internal::Interface*)it->second;
+}
 
 }
 }

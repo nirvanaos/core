@@ -307,10 +307,10 @@ TypeCode::_ref_type RequestGIOP::unmarshal_type_code ()
 		Long off = stream_in_->read32 ();
 		if (off >= -4)
 			throw MARSHAL ();
-		IndirectMapUnmarshal::iterator it = top_level_tc_unmarshal_.find (start_pos + 4 + off);
-		if (it == top_level_tc_unmarshal_.end ())
+		Interface* itf = top_level_tc_unmarshal_.find (start_pos + 4 + off);
+		if (!itf)
 			throw BAD_TYPECODE ();
-		return TypeCode::_ptr_type (static_cast <TypeCode*> (it->second));
+		return TypeCode::_ptr_type (static_cast <TypeCode*> (itf));
 	}
 
 	TypeCode::_ref_type ret;
@@ -426,10 +426,10 @@ Interface::_ref_type RequestGIOP::unmarshal_value (const IDL::String& interface_
 		Long off = stream_in_->read32 ();
 		if (off >= -4)
 			throw MARSHAL ();
-		auto it = unmarshal_map.find (start_pos + 4 + off);
-		if (it == unmarshal_map.end ())
+		Interface* vb = unmarshal_map.find (start_pos + 4 + off);
+		if (!vb)
 			throw MARSHAL ();
-		Interface::_ptr_type itf = static_cast <ValueBase*> (it->second)->_query_valuetype (interface_id);
+		Interface::_ptr_type itf = static_cast <ValueBase*> (vb)->_query_valuetype (interface_id);
 		if (!itf)
 			throw MARSHAL (); // Unexpected
 		return itf;

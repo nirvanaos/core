@@ -37,29 +37,49 @@ namespace Core {
 
 static const ULong INDIRECTION_TAG = 0xFFFFFFFF;
 
-typedef Nirvana::Core::MapUnorderedUnstable <void*, uintptr_t, std::hash <void*>,
-	std::equal_to <void*>, Nirvana::Core::HeapAllocator>
-	IndirectMapMarshalCont;
-
-typedef Nirvana::Core::MapUnorderedUnstable <uintptr_t, Internal::Interface*, std::hash <uintptr_t>,
+typedef Nirvana::Core::MapUnorderedUnstable <uintptr_t, uintptr_t, std::hash <uintptr_t>,
 	std::equal_to <uintptr_t>, Nirvana::Core::HeapAllocator>
-	IndirectMapUnmarshalCont;
+	IndirectMapCont;
 
-class IndirectMapMarshal : public IndirectMapMarshalCont
+class IndirectMapMarshal : public IndirectMapCont
 {
-	typedef IndirectMapMarshalCont Base;
+	typedef IndirectMapCont Base;
 
 public:
 	IndirectMapMarshal ();
+
+	auto emplace (Internal::Interface::_ptr_type itf, size_t pos)
+	{
+		return emplace ((uintptr_t)&itf, (uintptr_t)pos);
+	}
+
+	auto emplace (Internal::Interface::_ptr_type itf, const Octet* pos)
+	{
+		return emplace ((uintptr_t)&itf, (uintptr_t)pos);
+	}
+
+	auto emplace (size_t pos, Internal::Interface::_ptr_type itf)
+	{
+		return emplace ((uintptr_t)pos, (uintptr_t)&itf);
+	}
+
+	auto emplace (const Octet* pos, Internal::Interface::_ptr_type itf)
+	{
+		return emplace ((uintptr_t)pos, (uintptr_t)&itf);
+	}
+
+	Internal::Interface* find (uintptr_t pos) const noexcept;
+
+	Internal::Interface* find (const Octet* pos) const noexcept
+	{
+		return find ((uintptr_t)pos);
+	}
+
+private:
+	std::pair <iterator, bool> emplace (uintptr_t key, uintptr_t val);
 };
 
-class IndirectMapUnmarshal : public IndirectMapUnmarshalCont
-{
-	typedef IndirectMapUnmarshalCont Base;
-
-public:
-	IndirectMapUnmarshal ();
-};
+typedef IndirectMapMarshal IndirectMapUnmarshal;
 
 template <class MarshalMap, class UnmarshalMap>
 class IndirectMap

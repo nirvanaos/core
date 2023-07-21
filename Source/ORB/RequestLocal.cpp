@@ -416,11 +416,12 @@ Interface::_ref_type RequestLocalBase::unmarshal_value (const IDL::String& inter
 		uintptr_t p;
 		read (alignof (uintptr_t), sizeof (uintptr_t), &p);
 		const auto& unmarshal_map = value_map_.unmarshal_map ();
-		auto it = unmarshal_map.find (p);
-		if (it == unmarshal_map.end ())
+		Interface* vb = unmarshal_map.find (p);
+		if (!vb)
 			throw MARSHAL ();
-		ret = static_cast <ValueBase*> (it->second)->_query_valuetype (interface_id);
-	}
+		ret = static_cast <ValueBase*> (vb)->_query_valuetype (interface_id);
+	} break;
+
 	}
 
 	if (tag && !ret)
