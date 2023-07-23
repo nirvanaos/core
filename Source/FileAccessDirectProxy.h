@@ -70,7 +70,7 @@ public:
 			throw_NO_PERMISSION (make_minor_errno (EACCES));
 	}
 
-	void read (const FileSize& pos, uint32_t size, std::vector <uint8_t>& data) const
+	void read (const FileLock& rel, const FileSize& pos, uint32_t size, bool lock, std::vector <uint8_t>& data) const
 	{
 		check_exist ();
 
@@ -120,13 +120,6 @@ public:
 	}
 
 	void flags (uint_fast16_t f);
-
-	Access::_ref_type dup ()
-	{
-		check_exist ();
-
-		return CORBA::make_reference <FileAccessDirectProxy> (std::ref (*file_), flags_)->_this ();
-	}
 
 private:
 	void check_exist () const;

@@ -368,7 +368,34 @@ void MemContextUser::FileDescriptorChar::write (const void* p, size_t size) cons
 
 uint64_t MemContextUser::FileDescriptorBuf::seek (unsigned method, const int64_t& off) const
 {
-	return access_->seek ((SeekMethod)method, off);
+	FileSize pos;
+	switch (method) {
+	case SEEK_SET:
+		pos = 0;
+		break;
+
+	case SEEK_CUR:
+		pos = access_->position ();
+		break;
+
+	case SEEK_END:
+		pos = access_->size ();
+		break;
+
+	default:
+		throw_BAD_PARAM (make_minor_errno (EINVAL));
+	}
+
+	if (off < 0) {
+		if (pos < (FileSize)(-off))
+			throw_BAD_PARAM (make_minor_errno (EOVERFLOW));
+	} else {
+		if (std::numeric_limits <FileSize>::max () - pos < (FileSize)off)
+			throw_BAD_PARAM (make_minor_errno (EOVERFLOW));
+	}
+
+	access_->position (pos += off);
+	return pos;
 }
 
 uint64_t MemContextUser::FileDescriptorChar::seek (unsigned method, const int64_t& off) const

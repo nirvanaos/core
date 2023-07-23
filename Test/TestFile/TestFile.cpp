@@ -189,7 +189,7 @@ TEST_F (TestFile, Direct)
 
 	// Read
 	std::vector <uint8_t> rbuf;
-	fa->read (0, 1, rbuf);
+	fa->read (FileLock (), 0, 1, false, rbuf);
 	EXPECT_EQ (rbuf, wbuf);
 
 	// Obtain file object
@@ -203,7 +203,7 @@ TEST_F (TestFile, Direct)
 	ASSERT_TRUE (file);
 	fa = AccessDirect::_narrow (file->open (O_RDONLY | O_DIRECT, 0)->_to_object ());
 	ASSERT_TRUE (fa);
-	fa->read (0, 1, rbuf);
+	fa->read (FileLock (), 0, 1, false, rbuf);
 	EXPECT_EQ (rbuf, wbuf);
 
 	// Close
