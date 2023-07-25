@@ -70,6 +70,12 @@ protected:
 		return dirty_begin_ < dirty_end_;
 	}
 
+	void reset_dirty () noexcept
+	{
+		dirty_begin_ = std::numeric_limits <size_t>::max ();
+		dirty_end_ = 0;
+	}
+
 protected:
 	size_t dirty_begin_, dirty_end_;
 	Event event_;
@@ -105,6 +111,10 @@ public:
 
 	void _marshal_in (CORBA::Internal::IORequest::_ptr_type rq) const
 	{
+		// We can't marshal exclusive locked access object
+		if (flags () & O_EXLOCK)
+			throw_MARSHAL ();
+
 		// _marshal_in() does not marshal the current buffer
 		FileAccessBuf tmp (*this);
 		static_cast <const Servant&> (tmp)._marshal_in (rq);
@@ -119,13 +129,16 @@ public:
 	void close ()
 	{
 		check ();
-		flush ();
+		flush_internal ();
 		size_t buf_size = buffer ().size ();
 		buffer ().clear ();
 		buffer ().shrink_to_fit ();
 		AccessDirect::_ref_type acc = std::move (access ());
-		if (lock_on_demand () && buf_size)
-			acc->lock (FileLock (buf_pos (), buf_size, LockType::LOCK_READ), FileLock ());
+		if (buf_size) {
+			LockType lock_type = lock_on_demand ();
+			if (LockType::LOCK_NONE != lock_type)
+				acc->lock (FileLock (buf_pos (), buf_size, lock_type), FileLock ());
+		}
 	}
 
 	size_t read (void* p, size_t cb);
@@ -136,6 +149,8 @@ public:
 		check_read ();
 		if (flags () & O_TEXT)
 			throw_NO_IMPLEMENT (make_minor_errno (ENOSYS));
+		if (!cb)
+			return nullptr;
 		return get_buffer_read_internal (cb);
 	}
 
@@ -165,7 +180,11 @@ public:
 		Servant::position (pos);
 	}
 
-	void flush ();
+	void flush ()
+	{
+		check ();
+		flush_internal ();
+	}
 
 	AccessDirect::_ref_type direct () const noexcept
 	{
@@ -193,12 +212,17 @@ private:
 	void check_read () const;
 	void check_write () const;
 
-	bool lock_on_demand () const noexcept
+	LockType lock_on_demand () const noexcept
 	{
-		return !(flags () & (O_SHLOCK | O_EXLOCK));
+		return dirty () ?
+			((flags () & O_EXLOCK) ? LockType::LOCK_NONE : LockType::LOCK_WRITE)
+			:
+			((flags () & (O_SHLOCK | O_EXLOCK)) ? LockType::LOCK_NONE : LockType::LOCK_READ);
 	}
 
-	const void* get_buffer_read_internal (size_t& cb);
+	void* get_buffer_read_internal (size_t& cb);
+	void* get_buffer_write_internal (size_t cb);
+	void flush_internal ();
 };
 
 inline size_t FileAccessBuf::read (void* p, size_t cb)

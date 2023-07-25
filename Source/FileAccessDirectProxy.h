@@ -70,7 +70,7 @@ public:
 			throw_NO_PERMISSION (make_minor_errno (EACCES));
 	}
 
-	void read (const FileLock& rel, const FileSize& pos, uint32_t size, bool lock, std::vector <uint8_t>& data) const
+	void read (const FileLock& rel, const FileSize& pos, uint32_t size, bool lock, Bytes& data) const
 	{
 		check_exist ();
 
@@ -80,7 +80,7 @@ public:
 			throw_NO_PERMISSION (make_minor_errno (EACCES));
 	}
 
-	void write (FileSize pos, const std::vector <uint8_t>& data)
+	void write (FileSize pos, const Bytes& data, const FileLock& rel, bool sync)
 	{
 		check_exist ();
 

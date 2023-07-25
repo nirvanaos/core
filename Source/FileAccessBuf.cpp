@@ -74,10 +74,9 @@ void FileAccessBuf::check_write () const
 		throw_NO_PERMISSION (make_minor_errno (EINVAL));
 }
 
-const void* FileAccessBuf::get_buffer_read_internal (size_t& cb)
+void* FileAccessBuf::get_buffer_read_internal (size_t& cb)
 {
-	if (!cb)
-		return nullptr;
+	assert (cb);
 
 	if (sizeof (size_t) > sizeof (uint32_t) && cb > std::numeric_limits <uint32_t>::max ())
 		throw_IMP_LIMIT (make_minor_errno (ENOBUFS));
@@ -85,11 +84,13 @@ const void* FileAccessBuf::get_buffer_read_internal (size_t& cb)
 	FileSize read_end = position () + cb;
 	FileSize buffer_end = buf_pos () + buffer ().size ();
 	if (position () < buf_pos () || buffer_end < read_end) {
+		// The read range does not fit in the current buffer
 		// We need to read some data
 		
 		LockEvent lock_event (*this);
 		check ();
 
+		// New buffer position
 		FileSize new_buf_pos = round_down (position (), (FileSize)block_size ());
 		FileSize new_buf_end = round_up (position () + cb, (FileSize)block_size ());
 		if (new_buf_end - new_buf_pos < block_size () * 2) {
@@ -99,21 +100,22 @@ const void* FileAccessBuf::get_buffer_read_internal (size_t& cb)
 				new_buf_end += block_size ();
 		}
 
-		bool lock = lock_on_demand ();
+		LockType lock_type = lock_on_demand ();
 		if (new_buf_pos >= buffer_end || new_buf_end <= buf_pos ()) {
 			// Drop old buffer completely
+			flush_internal ();
 			FileLock release;
-			if (lock && !buffer ().empty ()) {
+			if (LockType::LOCK_NONE != lock_type && !buffer ().empty ()) {
 				release.start (buf_pos ());
 				release.len (buffer ().size ());
-				release.type (LockType::LOCK_READ);
+				release.type (lock_type);
 			}
 			uint32_t cb_read = (uint32_t)(new_buf_end - new_buf_pos);
 			if (buffer ().empty ())
-				access ()->read (release, new_buf_pos, cb_read, lock, buffer ());
+				access ()->read (release, new_buf_pos, cb_read, lock_type, buffer ());
 			else {
 				Bytes new_buf;
-				access ()->read (release, new_buf_pos, cb_read, lock, new_buf);
+				access ()->read (release, new_buf_pos, cb_read, lock_type, new_buf);
 				buffer ().swap (new_buf);
 			}
 		} else {
@@ -124,18 +126,33 @@ const void* FileAccessBuf::get_buffer_read_internal (size_t& cb)
 				size_t drop_tail = 0;
 				if (buffer_end > new_buf_end) {
 					drop_tail = (size_t)(buffer_end - new_buf_end);
-					if (lock) {
+					if (LockType::LOCK_NONE != lock_type) {
 						release.start (new_buf_end);
 						release.len (drop_tail);
-						release.type (LockType::LOCK_READ);
+						release.type (lock_type);
+					}
+					if (dirty ()) {
+						size_t new_buf_size = buffer ().size () - drop_tail;
+						if (dirty_end_ > new_buf_size) {
+							// We need to save dropped part of the buffer
+							size_t save_begin = std::max (new_buf_size, dirty_begin_);
+							Bytes tmp (buffer ().begin () + save_begin, buffer ().begin () + dirty_end_);
+							access ()->write (buf_pos () + save_begin, tmp, release, flags () & O_SYNC);
+							release.type (LockType::LOCK_NONE);
+						}
 					}
 				}
 				Bytes new_buf;
-				access ()->read (release, new_buf_pos, (uint32_t)(buf_pos () - new_buf_pos), lock, new_buf);
+				uint32_t cb_before = (uint32_t)(buf_pos () - new_buf_pos);
+				access ()->read (release, new_buf_pos, cb_before, lock_type, new_buf);
 				if (drop_tail)
 					buffer ().resize (buffer ().size () - drop_tail);
 				new_buf.insert (new_buf.end (), buffer ().data (), buffer ().data () + buffer ().size ());
 				buffer ().swap (new_buf);
+				if (dirty_begin_ < dirty_end_) {
+					dirty_begin_ += cb_before;
+					dirty_end_ += cb_before;
+				}
 				buf_pos (new_buf_pos);
 			}
 			if (buffer_end < new_buf_end) {
@@ -164,18 +181,96 @@ const void* FileAccessBuf::get_buffer_read_internal (size_t& cb)
 	return buffer ().data () + off;
 }
 
-void FileAccessBuf::flush ()
+void* FileAccessBuf::get_buffer_write_internal (size_t cb)
+{
+	if ((flags () & O_ACCMODE) == O_WRONLY) {
+		FileSize write_end = position () + cb;
+		FileSize buffer_end = buf_pos () + buffer ().size ();
+		if (position () < buf_pos () || buffer_end < write_end) {
+			// The write range does not fit in the current buffer
+
+			// New buffer position
+			FileSize new_buf_pos = round_down (position (), (FileSize)block_size ());
+			FileSize new_buf_end = round_up (position () + cb, (FileSize)block_size ());
+			if (new_buf_end - new_buf_pos < block_size () * 2) {
+				if (!buffer ().empty () && buf_pos () < new_buf_pos && buffer_end >= new_buf_pos)
+					new_buf_pos -= block_size ();
+				else
+					new_buf_end += block_size ();
+			}
+
+			bool lock = !(flags () & O_EXLOCK);
+			if (new_buf_pos >= buffer_end || new_buf_end <= buf_pos ()) {
+				// Drop old buffer completely
+				FileLock release;
+				if (lock && !buffer ().empty ()) {
+					release.start (buf_pos ());
+					release.len (buffer ().size ());
+					release.type (LockType::LOCK_READ);
+				}
+				uint32_t cb_read = (uint32_t)(new_buf_end - new_buf_pos);
+				if (buffer ().empty ())
+					access ()->read (release, new_buf_pos, cb_read, lock, buffer ());
+				else {
+					Bytes new_buf;
+					access ()->read (release, new_buf_pos, cb_read, lock, new_buf);
+					buffer ().swap (new_buf);
+				}
+			} else {
+				// Extend buffer
+				if (new_buf_pos < buf_pos ()) {
+					// Extend before
+					FileLock release;
+					size_t drop_tail = 0;
+					if (buffer_end > new_buf_end) {
+						drop_tail = (size_t)(buffer_end - new_buf_end);
+						if (lock) {
+							release.start (new_buf_end);
+							release.len (drop_tail);
+							release.type (LockType::LOCK_READ);
+						}
+					}
+					Bytes new_buf;
+					access ()->read (release, new_buf_pos, (uint32_t)(buf_pos () - new_buf_pos), lock, new_buf);
+					if (drop_tail)
+						buffer ().resize (buffer ().size () - drop_tail);
+					new_buf.insert (new_buf.end (), buffer ().data (), buffer ().data () + buffer ().size ());
+					buffer ().swap (new_buf);
+					buf_pos (new_buf_pos);
+				}
+				if (buffer_end < new_buf_end) {
+					// Extend after
+					FileLock release;
+					size_t drop_front = 0;
+					if (buf_pos () < new_buf_pos) {
+						drop_front = new_buf_pos - buf_pos ();
+						if (lock) {
+							release.start (buf_pos ());
+							release.len (new_buf_pos - buf_pos ());
+							release.type (LockType::LOCK_READ);
+						}
+					}
+					Bytes new_buf;
+					access ()->read (release, buffer_end, (uint32_t)(new_buf_end - buffer_end), lock, new_buf);
+					buffer ().insert (buffer ().end (), new_buf.data (), new_buf.data () + new_buf.size ());
+				}
+			}
+		}
+	}
+}
+
+void FileAccessBuf::flush_internal ()
 {
 	check ();
 	if (dirty ()) {
+		FileLock fl;
 		if (dirty_begin_ == 0 && dirty_end_ == buffer ().size ())
-			access ()->write (buf_pos (), buffer ());
+			access ()->write (buf_pos (), buffer (), fl, flags () & O_SYNC);
 		else {
 			Bytes tmp (buffer ().begin () + dirty_begin_, buffer ().begin () + dirty_end_);
-			access ()->write (buf_pos () + dirty_begin_, tmp);
+			access ()->write (buf_pos () + dirty_begin_, tmp, fl, flags () & O_SYNC);
 		}
-		dirty_begin_ = std::numeric_limits <size_t>::max ();
-		dirty_end_ = 0;
+		reset_dirty ();
 	}
 }
 
