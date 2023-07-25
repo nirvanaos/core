@@ -359,17 +359,26 @@ public:
 	/// Marshal value type.
 	/// 
 	/// \param val  ValueBase.
-	/// \param output Output parameter marshaling. Haven't to perform deep copy.
-	void marshal_value (Internal::Interface::_ptr_type val, bool output)
+	void marshal_value (Internal::Interface::_ptr_type val)
 	{
 		if (marshal_op ()) {
 			if (!val)
 				write8 (0);
-			else if (output && caller_memory_ == callee_memory_) {
-				write8 (1);
+			else
+				marshal_value (value_type2base (val), val->_epv ().interface_id);
+		}
+	}
+
+	// For preunmarshal
+	void marshal_value_pre (Internal::Interface::_ptr_type val)
+	{
+		if (marshal_op ()) {
+			if (!val)
+				write8 (0);
+			else {
+				write8 (3);
 				marshal_interface_internal (val);
-			} else
-				marshal_value (value_type2base (val), val->_epv ().interface_id, output);
+			}
 		}
 	}
 
@@ -383,8 +392,7 @@ public:
 	/// Marshal abstract interface.
 	/// 
 	/// \param itf The interface derived from AbstractBase.
-	/// \param output Output parameter marshaling. Haven't to perform deep copy.
-	void marshal_abstract (Internal::Interface::_ptr_type itf, bool output)
+	void marshal_abstract (Internal::Interface::_ptr_type itf)
 	{
 		if (marshal_op ()) {
 			if (!itf) {
@@ -401,11 +409,28 @@ public:
 					if (!value)
 						Nirvana::throw_MARSHAL (); // Unexpected
 					write8 (0);
-					if (output && caller_memory_ == callee_memory_) {
-						write8 (1);
-						marshal_interface_internal (itf);
-					} else
-						marshal_value (value, itf->_epv ().interface_id, output);
+					marshal_value (value, itf->_epv ().interface_id);
+				}
+			}
+		}
+	}
+
+	void marshal_abstract_pre (Internal::Interface::_ptr_type itf)
+	{
+		if (marshal_op ()) {
+			if (!itf) {
+				write8 (0);
+				write8 (0);
+			} else {
+				// Downcast to AbstractBase
+				AbstractBase::_ptr_type base = abstract_interface2base (itf);
+				if (base->_to_object ()) {
+					write8 (1);
+					marshal_interface_internal (itf);
+				} else {
+					write8 (0);
+					write8 (3);
+					marshal_interface_internal (itf);
 				}
 			}
 		}
@@ -559,7 +584,7 @@ protected:
 	}
 
 	void marshal_interface_internal (Internal::Interface::_ptr_type itf);
-	void marshal_value (ValueBase::_ptr_type base, const IDL::String& interface_id, bool output);
+	void marshal_value (ValueBase::_ptr_type base, const IDL::String& interface_id);
 
 	void marshal_segment (size_t align, size_t element_size,
 		size_t element_count, void* data, size_t& allocated_size);

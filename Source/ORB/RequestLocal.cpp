@@ -370,7 +370,7 @@ Interface::_ref_type RequestLocalBase::unmarshal_interface (const IDL::String& i
 	return std::move ((Interface::_ref_type&)(itf_rec->ptr));
 }
 
-void RequestLocalBase::marshal_value (ValueBase::_ptr_type base, const IDL::String& interface_id, bool output)
+void RequestLocalBase::marshal_value (ValueBase::_ptr_type base, const IDL::String& interface_id)
 {
 	assert (base);
 	ValueFactoryBase::_ref_type factory = base->_factory ();
@@ -380,15 +380,12 @@ void RequestLocalBase::marshal_value (ValueBase::_ptr_type base, const IDL::Stri
 	auto ins = value_map_.marshal_map ().emplace (&base, (uintptr_t)cur_ptr_ + 1);
 	if (!ins.second) {
 		// This value was already marshalled, write indirection tag.
-		write8 (3);
+		write8 (2);
 		write (alignof (uintptr_t), sizeof (uintptr_t), &ins.first->second);
 	} else {
-		write8 (2);
+		write8 (1);
 		marshal_interface_internal (ValueFactoryBase::_ptr_type (factory));
-		if (output)
-			base->_marshal_out (_get_ptr ());
-		else
-			base->_marshal_in (_get_ptr ());
+		base->_marshal (_get_ptr ());
 	}
 }
 
@@ -397,11 +394,10 @@ Interface::_ref_type RequestLocalBase::unmarshal_value (const IDL::String& inter
 	Internal::Interface::_ref_type ret;
 	uint8_t tag = read8 ();
 	switch (tag) {
-	case 1:
-		ret = unmarshal_interface (interface_id);
+	case 0:
 		break;
 
-	case 2: {
+	case 1: {
 		uintptr_t pos = (uintptr_t)cur_ptr_;
 		ValueFactoryBase::_ref_type factory = unmarshal_interface (Internal::RepIdOf <ValueFactoryBase>::id).template downcast <ValueFactoryBase> ();
 		if (!factory)
@@ -412,7 +408,7 @@ Interface::_ref_type RequestLocalBase::unmarshal_value (const IDL::String& inter
 		ret = base->_query_valuetype (interface_id);
 	} break;
 
-	case 3: {
+	case 2: {
 		uintptr_t p;
 		read (alignof (uintptr_t), sizeof (uintptr_t), &p);
 		const auto& unmarshal_map = value_map_.unmarshal_map ();
@@ -422,6 +418,12 @@ Interface::_ref_type RequestLocalBase::unmarshal_value (const IDL::String& inter
 		ret = static_cast <ValueBase*> (vb)->_query_valuetype (interface_id);
 	} break;
 
+	case 3:
+		ret = unmarshal_interface (interface_id);
+		break;
+
+	default:
+		throw MARSHAL (); // Unexpected
 	}
 
 	if (tag && !ret)

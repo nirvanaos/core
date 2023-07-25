@@ -296,8 +296,7 @@ public:
 	/// Marshal value type.
 	/// 
 	/// \param val  ValueBase.
-	/// \param output Output parameter marshaling. Haven't to perform deep copy.
-	void marshal_value (Internal::Interface::_ptr_type val, bool output)
+	void marshal_value (Internal::Interface::_ptr_type val)
 	{
 		if (!marshal_op ())
 			return;
@@ -310,7 +309,7 @@ public:
 			return;
 		}
 
-		marshal_value (value_type2base (val), val, output);
+		marshal_value (value_type2base (val), val);
 	}
 
 	/// Unmarshal value type.
@@ -323,8 +322,7 @@ public:
 	/// Marshal abstract interface.
 	/// 
 	/// \param itf The interface derived from AbstractBase.
-	/// \param output Output parameter marshaling. Haven't to perform deep copy.
-	void marshal_abstract (Internal::Interface::_ptr_type itf, bool output)
+	void marshal_abstract (Internal::Interface::_ptr_type itf)
 	{
 		if (!marshal_chunk ())
 			return;
@@ -343,7 +341,7 @@ public:
 					Nirvana::throw_MARSHAL ();
 				Octet is_object = 0;
 				stream_out_->write_c (1, 1, &is_object);
-				marshal_value (value, itf, output);
+				marshal_value (value, itf);
 			}
 		} else {
 			// If there is no indication whether a nil abstract interface represents a
@@ -485,7 +483,7 @@ private:
 	void marshal_val_rep_id (Internal::String_in id);
 	const RepositoryId& unmarshal_val_rep_id ();
 	bool marshal_chunk ();
-	void marshal_value (ValueBase::_ptr_type base, Interface::_ptr_type val, bool output);
+	void marshal_value (ValueBase::_ptr_type base, Interface::_ptr_type val);
 
 protected:
 	unsigned GIOP_minor_;

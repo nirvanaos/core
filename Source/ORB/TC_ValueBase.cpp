@@ -32,12 +32,12 @@ TC_ValueBase::TC_ValueBase (TCKind kind, IDL::String&& id, IDL::String&& name) n
 	TC_Complex <TC_RefBase> (kind, std::move (id), std::move (name))
 {}
 
-void TC_ValueBase::marshal (const void* src, size_t count, Internal::IORequest_ptr rq, bool out)
+void TC_ValueBase::n_marshal_in (const void* src, size_t count, Internal::IORequest_ptr rq)
 {
 	Internal::check_pointer (src);
 	for (Internal::Interface* const* p = reinterpret_cast <Internal::Interface* const*> (src);
 		count; ++p, --count) {
-		rq->marshal_value (*p, out);
+		rq->marshal_value (*p);
 	}
 }
 

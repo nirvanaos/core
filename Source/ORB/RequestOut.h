@@ -117,7 +117,7 @@ protected:
 	{}
 
 private:
-	void preunmarshal (TypeCode::_ptr_type tc, std::vector <Octet>& buf, Internal::IORequest::_ptr_type out);
+	void preunmarshal (TypeCode::_ptr_type tc, std::vector <Octet>& buf, RequestLocalBase& out);
 
 protected:
 	const Internal::Operation* metadata_;
