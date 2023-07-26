@@ -169,8 +169,8 @@ void RequestOut::set_reply (unsigned status, IOP::ServiceContextList&& context,
 				ed.deadline (deadline_);
 				// Memory context must be set by caller.
 				assert (ed.mem_context_ptr () == &memory ());
-				servant_reference <RequestLocalBase> pre = servant_reference <RequestLocalBase>::
-					create <RequestLocalImpl <RequestLocalBase> > (&memory (), 3);
+				servant_reference <RequestLocalRoot> pre = servant_reference <RequestLocalRoot>::
+					create <RequestLocalImpl <RequestLocalRoot> > (&memory (), 3);
 				IORequest::_ptr_type rq = pre->_get_ptr ();
 				std::vector <Octet> buf;
 				buf.resize (3 * sizeof (void*));

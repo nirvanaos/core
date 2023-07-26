@@ -51,14 +51,11 @@ public:
 
 	TC_Abstract (IDL::String&& id, IDL::String&& name) noexcept;
 
-	static void n_marshal_in (const void* src, size_t count, Internal::IORequest_ptr rq)
-	{
-		marshal (src, count, rq, false);
-	}
+	static void n_marshal_in (const void* src, size_t count, Internal::IORequest_ptr rq);
 
 	static void n_marshal_out (void* src, size_t count, Internal::IORequest_ptr rq)
 	{
-		marshal (src, count, rq, true);
+		n_marshal_in (src, count, rq);
 	}
 
 	void n_unmarshal (Internal::IORequest_ptr rq, size_t count, void* dst) const
@@ -77,9 +74,6 @@ public:
 		else
 			return ORB::create_abstract_interface_tc (id_, IDL::String ());
 	}
-
-private:
-	static void marshal (const void* src, size_t count, Internal::IORequest_ptr rq, bool out);
 };
 
 }

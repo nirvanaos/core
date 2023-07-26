@@ -28,7 +28,7 @@
 #define NIRVANA_ORB_CORE_REQUESTLOCALPOA_H_
 #pragma once
 
-#include "RequestLocal.h"
+#include "RequestLocalBase.h"
 #include "RequestInPOA.h"
 
 namespace CORBA {

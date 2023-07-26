@@ -32,12 +32,12 @@ TC_Abstract::TC_Abstract (IDL::String&& id, IDL::String&& name) noexcept :
 	Impl (TCKind::tk_abstract_interface, std::move (id), std::move (name))
 {}
 
-void TC_Abstract::marshal (const void* src, size_t count, Internal::IORequest_ptr rq, bool out)
+void TC_Abstract::n_marshal_in (const void* src, size_t count, Internal::IORequest_ptr rq)
 {
 	Internal::check_pointer (src);
 	for (Internal::Interface* const* p = reinterpret_cast <Internal::Interface* const*> (src);
 		count; ++p, --count) {
-		rq->marshal_abstract (*p, out);
+		rq->marshal_abstract (*p);
 	}
 }
 

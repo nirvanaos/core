@@ -37,14 +37,11 @@ namespace Core {
 class TC_ValueBase : public TC_Complex <TC_RefBase>
 {
 public:
-	static void n_marshal_in (const void* src, size_t count, Internal::IORequest_ptr rq)
-	{
-		marshal (src, count, rq, false);
-	}
+	static void n_marshal_in (const void* src, size_t count, Internal::IORequest_ptr rq);
 
 	static void n_marshal_out (void* src, size_t count, Internal::IORequest_ptr rq)
 	{
-		marshal (src, count, rq, true);
+		n_marshal_in (src, count, rq);
 	}
 
 	void n_unmarshal (Internal::IORequest_ptr rq, size_t count, void* dst) const
@@ -59,8 +56,6 @@ public:
 protected:
 	TC_ValueBase (TCKind kind, IDL::String&& id, IDL::String&& name) noexcept;
 
-private:
-	static void marshal (const void* src, size_t count, Internal::IORequest_ptr rq, bool out);
 };
 
 }

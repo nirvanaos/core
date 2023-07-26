@@ -322,7 +322,7 @@ TypeCode::_ref_type RequestGIOP::unmarshal_type_code ()
 	return ret;
 }
 
-void RequestGIOP::marshal_value (ValueBase::_ptr_type base, Interface::_ptr_type val, bool output)
+void RequestGIOP::marshal_value (ValueBase::_ptr_type base, Interface::_ptr_type val)
 {
 	if (!base->_factory ())
 		throw MARSHAL (MAKE_OMG_MINOR (1)); // Try to marshal abstract value
@@ -381,10 +381,7 @@ void RequestGIOP::marshal_value (ValueBase::_ptr_type base, Interface::_ptr_type
 	}
 
 	// Marshal value data
-	if (output)
-		base->_marshal_out (_get_ptr ());
-	else
-		base->_marshal_in (_get_ptr ());
+	base->_marshal (_get_ptr ());
 
 	// Close chunk
 	if (chunk_level_) {
