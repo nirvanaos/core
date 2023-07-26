@@ -241,7 +241,7 @@ void* FileAccessBuf::get_buffer_write_internal (size_t cb)
 
 	if ((flags () & O_ACCMODE) != O_WRONLY) {
 		size_t cbr = cb;
-		get_buffer_read_internal (cb, LockType::LOCK_WRITE);
+		get_buffer_read_internal (cbr, LockType::LOCK_WRITE);
 	}
 
 	FileSize write_end = position () + cb;
@@ -306,9 +306,7 @@ void* FileAccessBuf::get_buffer_write_internal (size_t cb)
 			if (buffer_end < new_buf_pos.end) {
 				// Extend after
 				FileLock release;
-				size_t drop_front = 0;
 				if (buf_pos_ < new_buf_pos.begin) {
-					drop_front = new_buf_pos.begin - buf_pos_;
 					release.start (buf_pos_);
 					release.len (new_buf_pos.begin - buf_pos_);
 					release.type (LockType::LOCK_WRITE);
