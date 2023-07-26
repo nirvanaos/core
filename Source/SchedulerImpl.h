@@ -44,8 +44,9 @@ class SchedulerImpl
 	typedef SkipListWithPool <PriorityQueue <ExecutorRef, SYS_DOMAIN_PRIORITY_QUEUE_LEVELS> > Queue;
 public:
 	SchedulerImpl () noexcept :
+		queue_ (Port::SystemInfo::hardware_concurrency ()),
 		free_cores_ (Port::SystemInfo::hardware_concurrency ()),
-		queue_ (Port::SystemInfo::hardware_concurrency ())
+		queue_items_ (0)
 	{}
 
 	void create_item ()
@@ -60,6 +61,7 @@ public:
 
 	void schedule (const DeadlineTime& deadline, const ExecutorRef& executor) noexcept
 	{
+		queue_items_.increment ();
 		verify (queue_.insert (deadline, executor));
 		execute_next ();
 	}
@@ -77,8 +79,8 @@ public:
 	{
 		if (execute ())
 			return;
-		free_cores_.fetch_add (1, std::memory_order_relaxed);
-		if (!queue_.empty ())
+		free_cores_.increment ();
+		if (queue_items_.load ())
 			execute_next ();
 	}
 
@@ -86,11 +88,10 @@ private:
 	bool execute () noexcept;
 	void execute_next () noexcept;
 
-protected:
-	std::atomic <unsigned> free_cores_;
-
 private:
 	Queue queue_;
+	AtomicCounter <true> free_cores_;
+	AtomicCounter <false> queue_items_;
 };
 
 template <class T, class ExecutorRef>
@@ -99,6 +100,7 @@ bool SchedulerImpl <T, ExecutorRef>::execute () noexcept
 	// Get first item
 	ExecutorRef val;
 	if (queue_.delete_min (val)) {
+		queue_items_.decrement ();
 		static_cast <T*> (this)->execute (val);
 		return true;
 	}
@@ -110,23 +112,22 @@ void SchedulerImpl <T, ExecutorRef>::execute_next () noexcept
 {
 	do {
 		// Acquire processor core
-		unsigned free_cores = free_cores_.load (std::memory_order_acquire);
-		for (;;) {
-			if (!free_cores)
+		while (free_cores_.decrement_seq () < 0) {
+			if (free_cores_.increment_seq () <= 0)
 				return; // All cores are busy
-			if (free_cores_.compare_exchange_weak (free_cores, free_cores - 1))
-				break; // We successfully acquired the processor core
 		}
+		// We successfully acquired the processor core
 
+		// Get item from queue
 		if (execute ())
 			break;
 
-		// Release processor core
-		free_cores_.fetch_add (1, std::memory_order_relaxed);
+		// Queue is empty, release processor core
+		free_cores_.increment ();
 
 		// Other thread may add item to the queue but fail to acquire the core,
 		// because this thread was holded it. So we must retry if the queue is not empty.
-	} while (!queue_.empty ());
+	} while (queue_items_.load ());
 }
 
 }
