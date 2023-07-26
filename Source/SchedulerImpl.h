@@ -61,8 +61,8 @@ public:
 
 	void schedule (const DeadlineTime& deadline, const ExecutorRef& executor) noexcept
 	{
-		queue_items_.increment ();
 		verify (queue_.insert (deadline, executor));
+		queue_items_.increment ();
 		execute_next ();
 	}
 
@@ -80,7 +80,7 @@ public:
 		if (execute ())
 			return;
 		free_cores_.increment ();
-		if (queue_items_.load ())
+		if (queue_items_.load () > 0)
 			execute_next ();
 	}
 
@@ -91,7 +91,7 @@ private:
 private:
 	Queue queue_;
 	AtomicCounter <true> free_cores_;
-	AtomicCounter <false> queue_items_;
+	AtomicCounter <true> queue_items_;
 };
 
 template <class T, class ExecutorRef>
@@ -127,7 +127,7 @@ void SchedulerImpl <T, ExecutorRef>::execute_next () noexcept
 
 		// Other thread may add item to the queue but fail to acquire the core,
 		// because this thread was holded it. So we must retry if the queue is not empty.
-	} while (queue_items_.load ());
+	} while (queue_items_.load () > 0);
 }
 
 }
