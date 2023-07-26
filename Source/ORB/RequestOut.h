@@ -29,7 +29,7 @@
 #pragma once
 
 #include "RequestGIOP.h"
-#include "RequestLocal.h"
+#include "RequestLocalRoot.h"
 #include "../ExecDomain.h"
 #include "../UserObject.h"
 #include "../Event.h"
@@ -117,7 +117,7 @@ protected:
 	{}
 
 private:
-	void preunmarshal (TypeCode::_ptr_type tc, std::vector <Octet>& buf, RequestLocalBase& out);
+	void preunmarshal (TypeCode::_ptr_type tc, std::vector <Octet>& buf, Internal::IORequest::_ptr_type out);
 
 protected:
 	const Internal::Operation* metadata_;
@@ -138,7 +138,7 @@ protected:
 
 	size_t request_id_offset_;
 
-	servant_reference <RequestLocalBase> preunmarshaled_;
+	servant_reference <RequestLocalRoot> preunmarshaled_;
 
 	SystemException::Code system_exception_code_;
 	SystemException::_Data system_exception_data_;

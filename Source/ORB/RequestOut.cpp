@@ -169,16 +169,17 @@ void RequestOut::set_reply (unsigned status, IOP::ServiceContextList&& context,
 				ed.deadline (deadline_);
 				// Memory context must be set by caller.
 				assert (ed.mem_context_ptr () == &memory ());
-				servant_reference <RequestLocalBase> pre = servant_reference <RequestLocalBase>::
-					create <RequestLocalImpl <RequestLocalBase> > (&memory (), 3);
+				servant_reference <RequestLocalRoot> pre = servant_reference <RequestLocalRoot>::
+					create <RequestLocalImpl <RequestLocalRoot> > (&memory (), 3);
+				IORequest::_ptr_type rq = pre->_get_ptr ();
 				std::vector <Octet> buf;
 				buf.resize (3 * sizeof (void*));
 				for (const Parameter* param = metadata_->output.p, *end = param + metadata_->output.size;
 					param != end; ++param) {
-					preunmarshal ((param->type) (), buf, *pre);
+					preunmarshal ((param->type) (), buf, rq);
 				}
 				if (metadata_->return_type)
-					preunmarshal ((metadata_->return_type) (), buf, *pre);
+					preunmarshal ((metadata_->return_type) (), buf, rq);
 				Base::unmarshal_end ();
 				pre->invoke (); // Rewind to begin
 				preunmarshaled_ = std::move (pre);
@@ -199,7 +200,7 @@ void RequestOut::set_reply (unsigned status, IOP::ServiceContextList&& context,
 	}
 }
 
-void RequestOut::preunmarshal (TypeCode::_ptr_type tc, std::vector <Octet>& buf, RequestLocalBase& out)
+void RequestOut::preunmarshal (TypeCode::_ptr_type tc, std::vector <Octet>& buf, IORequest::_ptr_type out)
 {
 	size_t cb = tc->n_aligned_size ();
 	if (buf.size () < cb)
@@ -207,19 +208,7 @@ void RequestOut::preunmarshal (TypeCode::_ptr_type tc, std::vector <Octet>& buf,
 	tc->n_construct (buf.data ());
 	tc->n_unmarshal (_get_ptr (), 1, buf.data ());
 	try {
-		switch (tc->kind ()) {
-		case TCKind::tk_value:
-		case TCKind::tk_value_box:
-			out.marshal_value_pre (*(Interface::_ref_type*)buf.data ());
-			break;
-
-		case TCKind::tk_abstract_interface:
-			out.marshal_abstract_pre (*(Interface::_ref_type*)buf.data ());
-			break;
-
-		default:
-			tc->n_marshal_out (buf.data (), 1, out._get_ptr ());
-		}
+		tc->n_marshal_out (buf.data (), 1, out);
 	} catch (...) {
 		tc->n_destruct (buf.data ());
 		throw;
