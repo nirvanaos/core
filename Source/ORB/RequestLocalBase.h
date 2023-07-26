@@ -49,7 +49,7 @@ protected:
 		RequestLocalRoot (callee_memory, response_flags)
 	{}
 
-	virtual void reset () noexcept
+	virtual void reset () noexcept override
 	{
 		Base::reset ();
 		value_map_.clear ();
