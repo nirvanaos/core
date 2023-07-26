@@ -51,6 +51,8 @@ protected:
 		FileAccessBufBase ()
 	{}
 
+	FileAccessBufBase& operator = (const FileAccessBufBase&) = delete;
+
 	class LockEvent
 	{
 	public:
@@ -77,8 +79,11 @@ protected:
 	}
 
 protected:
+	Bytes buffer_;
+	FileSize buf_pos_;
 	size_t dirty_begin_, dirty_end_;
 	Event event_;
+	LockType lock_mode_;
 };
 
 /// Implementation of FileAccessBuf value type.
@@ -90,11 +95,9 @@ class FileAccessBuf :
 
 public:
 	FileAccessBuf (const FileSize& position, AccessDirect::_ref_type&& access,
-		Bytes&& buffer, uint32_t block_size, uint_fast16_t flags, std::array <char, 2> eol) :
-		Servant (position, std::move (access), std::move (buffer), position, block_size, flags, eol)
+		uint32_t block_size, uint_fast16_t flags, std::array <char, 2> eol) :
+		Servant (position, std::move (access), block_size, flags, eol)
 	{}
-
-	FileAccessBuf (const FileAccessBuf& src);
 
 	// For unmarshal
 	FileAccessBuf ()
@@ -109,17 +112,6 @@ public:
 		}
 	}
 
-	void _marshal_in (CORBA::Internal::IORequest::_ptr_type rq) const
-	{
-		// We can't marshal exclusive locked access object
-		if (flags () & O_EXLOCK)
-			throw_MARSHAL ();
-
-		// _marshal_in() does not marshal the current buffer
-		FileAccessBuf tmp (*this);
-		static_cast <const Servant&> (tmp)._marshal_in (rq);
-	}
-
 	Nirvana::File::_ref_type file () const
 	{
 		check ();
@@ -129,16 +121,14 @@ public:
 	void close ()
 	{
 		check ();
-		flush_internal ();
-		size_t buf_size = buffer ().size ();
-		buffer ().clear ();
-		buffer ().shrink_to_fit ();
+		if (dirty ())
+			flush_internal ();
+		size_t buf_size = buffer_.size ();
+		buffer_.clear ();
+		buffer_.shrink_to_fit ();
 		AccessDirect::_ref_type acc = std::move (access ());
-		if (buf_size) {
-			LockType lock_type = lock_on_demand ();
-			if (LockType::LOCK_NONE != lock_type)
-				acc->lock (FileLock (buf_pos (), buf_size, lock_type), FileLock ());
-		}
+		if (buf_size)
+			acc->lock (FileLock (buf_pos_, buf_size, lock_mode_), FileLock ());
 	}
 
 	size_t read (void* p, size_t cb);
@@ -151,7 +141,7 @@ public:
 			throw_NO_IMPLEMENT (make_minor_errno (ENOSYS));
 		if (!cb)
 			return nullptr;
-		return get_buffer_read_internal (cb);
+		return get_buffer_read_internal (cb, LockType::LOCK_READ);
 	}
 
 	void* get_buffer_write (size_t cb);
@@ -160,6 +150,8 @@ public:
 	{
 		check ();
 		position (position () + cb);
+		if ((flags () & O_SYNC) && dirty ())
+			flush_internal ();
 	}
 
 	FileSize size () const noexcept
@@ -183,7 +175,8 @@ public:
 	void flush ()
 	{
 		check ();
-		flush_internal ();
+		if (dirty ())
+			flush_internal ();
 	}
 
 	AccessDirect::_ref_type direct () const noexcept
@@ -207,22 +200,22 @@ public:
 	}
 
 private:
+	struct BufPos
+	{
+		FileSize begin;
+		FileSize end;
+	};
+
 	void check () const;
 	void check (const void* p) const;
 	void check_read () const;
 	void check_write () const;
 
-	LockType lock_on_demand () const noexcept
-	{
-		return dirty () ?
-			((flags () & O_EXLOCK) ? LockType::LOCK_NONE : LockType::LOCK_WRITE)
-			:
-			((flags () & (O_SHLOCK | O_EXLOCK)) ? LockType::LOCK_NONE : LockType::LOCK_READ);
-	}
-
-	void* get_buffer_read_internal (size_t& cb);
+	const void* get_buffer_read_internal (size_t& cb, LockType new_lock_mode);
 	void* get_buffer_write_internal (size_t cb);
 	void flush_internal ();
+	void get_new_buf_pos (size_t cb, BufPos& new_buf_pos) const;
+	void flush_buf_shift (const BufPos& new_buf_pos);
 };
 
 inline size_t FileAccessBuf::read (void* p, size_t cb)
@@ -242,7 +235,7 @@ inline size_t FileAccessBuf::read (void* p, size_t cb)
 				position (position () - 1);
 			}
 			size_t cbr = cb * 2;
-			const char* src = (const char*)get_buffer_read_internal (cbr);
+			const char* src = (const char*)get_buffer_read_internal (cbr, LockType::LOCK_READ);
 			if (prefetch)
 				position (position () + 1);
 			if (cbr) {
@@ -278,8 +271,7 @@ inline size_t FileAccessBuf::read (void* p, size_t cb)
 			}
 			return dst - (char*)p;
 		} else {
-			const char* src = (const char*)get_buffer_read_internal (cb);
-			position (position () + cb);
+			const char* src = (const char*)get_buffer_read_internal (cb, LockType::LOCK_READ);
 			const char* end = src + cb;
 			while (src < end) {
 				const char* e = std::find (src, end, eol () [0]);
@@ -292,13 +284,14 @@ inline size_t FileAccessBuf::read (void* p, size_t cb)
 				} else
 					break;
 			}
+			position (position () + cb);
 			return cb;
 		}
 	} else {
-		const void* buf = get_buffer_read_internal (cb);
+		const void* buf = get_buffer_read_internal (cb, LockType::LOCK_READ);
 		if (cb) {
-			position (position () + cb);
 			virtual_copy (buf, cb, p);
+			position (position () + cb);
 		}
 		return cb;
 	}
@@ -312,27 +305,43 @@ inline void FileAccessBuf::write (const void* p, size_t cb)
 	if (!cb)
 		return;
 
-	throw_NO_IMPLEMENT (make_minor_errno (ENOSYS));
+	if ((flags () & O_TEXT) && eol () [0]) {
+
+		const char* src = (const char*)p;
+		const char* end = src + cb;
+		size_t cbr = eol () [1] ? cb * 2 : cb;
+		char* dst = (char*)get_buffer_write_internal (cbr);
+		do {
+			const char* e = std::find (src, end, '\n');
+			size_t cb = e - src;
+			virtual_copy (src, cb, dst);
+			dst += cb;
+			src += cb;
+			if (e != end) {
+				(*dst++) = eol () [0];
+				if (eol () [1])
+					(*dst++) = eol () [1];
+				++src;
+			}
+		} while (src != end);
+
+	} else {
+		void* buf = get_buffer_write_internal (cb);
+		virtual_copy (p, cb, buf);
+		position (position () + cb);
+	}
+	if (flags () & O_SYNC)
+		flush_internal ();
 }
 
 inline void* FileAccessBuf::get_buffer_write (size_t cb)
 {
 	check_write ();
+	if (flags () & O_TEXT)
+		throw_NO_IMPLEMENT (make_minor_errno (ENOSYS));
 	if (!cb)
 		return nullptr;
-
-	size_t buf_off = position () % block_size ();
-	size_t buf_end = buf_off + cb;
-	if (buf_off < buffer ().size ()) {
-		if (buf_end > buffer ().size ())
-			buffer ().reserve (buf_end);
-		return buffer ().data () + buf_off;
-	} else {
-		flush ();
-		FileSize read_pos = buf_pos ();
-	}
-
-	throw_NO_IMPLEMENT (make_minor_errno (ENOSYS));
+	return get_buffer_write_internal (cb);
 }
 
 }

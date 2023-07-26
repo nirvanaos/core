@@ -70,7 +70,7 @@ public:
 			throw_NO_PERMISSION (make_minor_errno (EACCES));
 	}
 
-	void read (const FileLock& rel, const FileSize& pos, uint32_t size, bool lock, Bytes& data) const
+	void read (const FileLock& rel, const FileSize& pos, uint32_t size, LockType lock, Bytes& data) const
 	{
 		check_exist ();
 

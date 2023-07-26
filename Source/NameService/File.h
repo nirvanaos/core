@@ -151,20 +151,8 @@ public:
 		if (flags & O_DIRECT)
 			return access;
 
-		Bytes data;
-		uint32_t block_size = access_->block_size ();
-		FileSize file_size = access_->size ();
-		if (!(flags & (O_APPEND | O_TRUNC | O_ATE)) && (flags & O_ACCMODE) != O_WRONLY && file_size) {
-			uint32_t prefetch_size = block_size * 2;
-			if ((FileSize)prefetch_size > file_size)
-				prefetch_size = (uint32_t)file_size;
-			if ((flags & (O_SHLOCK | O_EXLOCK))
-				|| access->lock (FileLock (), FileLock (0, prefetch_size, LockType::LOCK_READ)))
-				access_->read (0, prefetch_size, data);
-		}
-		FileSize pos = (flags & (O_APPEND | O_ATE)) ? access_->size () : 0;
-
-		return CORBA::make_reference <FileAccessBuf> (pos, std::move (access), std::move (data), block_size, flags,
+		FileSize pos = (flags & O_ATE) ? access_->size () : 0;
+		return CORBA::make_reference <FileAccessBuf> (pos, std::move (access), access_->block_size (), flags,
 			Port::FileSystem::eol ());
 	}
 
