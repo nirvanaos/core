@@ -102,10 +102,10 @@ const void* FileAccessBuf::get_buffer_read_internal (size_t& cb, LockType new_lo
 			}
 			uint32_t cb_read = (uint32_t)(new_buf_pos.end - new_buf_pos.begin);
 			if (buffer_.empty ())
-				access ()->read (release, new_buf_pos.begin, cb_read, new_lock_mode, buffer_);
+				access ()->read (release, new_buf_pos.begin, cb_read, new_lock_mode, flags () & O_NONBLOCK, buffer_);
 			else {
 				Bytes new_buf;
-				access ()->read (release, new_buf_pos.begin, cb_read, new_lock_mode, new_buf);
+				access ()->read (release, new_buf_pos.begin, cb_read, new_lock_mode, flags () & O_NONBLOCK, new_buf);
 				buffer_.swap (new_buf);
 			}
 
@@ -126,14 +126,12 @@ const void* FileAccessBuf::get_buffer_read_internal (size_t& cb, LockType new_lo
 					drop_head = (size_t)(new_buf_pos.begin - buf_pos_);
 				FileLock rel (buf_pos_, buffer_.size (), lock_mode_);
 				FileLock acq (buf_pos_ + drop_head, buffer_.size () - (drop_head + drop_tail), new_lock_mode);
-				if (access ()->lock (rel, acq)) {
-					buffer_.resize (buffer_.size () - drop_tail);
-					buffer_.erase (buffer_.begin (), buffer_.begin () + drop_head);
-					buf_pos_ += drop_head;
-					buffer_end = buf_pos_ + buffer_.size ();
-					lock_mode_ = new_lock_mode;
-				} else
-					throw_NO_PERMISSION (make_minor_errno (EAGAIN));
+				access ()->lock (rel, acq, flags () & O_NONBLOCK);
+				buffer_.resize (buffer_.size () - drop_tail);
+				buffer_.erase (buffer_.begin (), buffer_.begin () + drop_head);
+				buf_pos_ += drop_head;
+				buffer_end = buf_pos_ + buffer_.size ();
+				lock_mode_ = new_lock_mode;
 			}
 
 			if (new_buf_pos.begin < buf_pos_) {
@@ -148,12 +146,12 @@ const void* FileAccessBuf::get_buffer_read_internal (size_t& cb, LockType new_lo
 				}
 				Bytes new_buf;
 				uint32_t cb_before = (uint32_t)(buf_pos_ - new_buf_pos.begin);
-				access ()->read (release, new_buf_pos.begin, cb_before, lock_mode_, new_buf);
+				access ()->read (release, new_buf_pos.begin, cb_before, lock_mode_, flags () & O_NONBLOCK, new_buf);
 				buffer_.resize (buffer_.size () - drop_tail);
 				try {
 					new_buf.insert (new_buf.end (), buffer_.data (), buffer_.data () + buffer_.size ());
 				} catch (...) {
-					access ()->lock (FileLock (new_buf_pos.begin, cb_before, lock_mode_), FileLock ());
+					access ()->lock (FileLock (new_buf_pos.begin, cb_before, lock_mode_), FileLock (), true);
 					throw;
 				}
 				buffer_.swap (new_buf);
@@ -175,11 +173,11 @@ const void* FileAccessBuf::get_buffer_read_internal (size_t& cb, LockType new_lo
 				}
 				Bytes new_buf;
 				uint32_t cb_after = (uint32_t)(new_buf_pos.end - buffer_end);
-				access ()->read (release, buffer_end, cb_after, lock_mode_, new_buf);
+				access ()->read (release, buffer_end, cb_after, lock_mode_, flags () & O_NONBLOCK, new_buf);
 				try {
 					buffer_.insert (buffer_.end (), new_buf.data (), new_buf.data () + new_buf.size ());
 				} catch (...) {
-					access ()->lock (FileLock (buffer_end, cb_after, lock_mode_), FileLock ());
+					access ()->lock (FileLock (buffer_end, cb_after, lock_mode_), FileLock (), true);
 					throw;
 				}
 			}
@@ -269,8 +267,7 @@ void* FileAccessBuf::get_buffer_write_internal (size_t cb)
 			}
 			size_t new_size = (size_t)(new_buf_pos.end - new_buf_pos.begin);
 			Bytes new_buf (new_size);
-			if (!access ()->lock (release, FileLock (new_buf_pos.begin, new_size, LockType::LOCK_WRITE)))
-				throw_NO_PERMISSION (make_minor_errno (EAGAIN));
+			access ()->lock (release, FileLock (new_buf_pos.begin, new_size, LockType::LOCK_WRITE), flags () & O_NONBLOCK);
 
 			buffer_.swap (new_buf);
 			lock_mode_ = LockType::LOCK_WRITE;
@@ -296,9 +293,11 @@ void* FileAccessBuf::get_buffer_write_internal (size_t cb)
 				uint32_t cb_before = (uint32_t)(buf_pos_ - new_buf_pos.begin);
 				buffer_.resize (buffer_.size () - drop_tail);
 				buffer_.insert (buffer_.begin (), cb_before, 0);
-				if (!access ()->lock (release, FileLock (new_buf_pos.begin, cb_before, LockType::LOCK_WRITE))) {
+				try {
+					access ()->lock (release, FileLock (new_buf_pos.begin, cb_before, LockType::LOCK_WRITE), flags () & O_NONBLOCK);
+				} catch (...) {
 					buffer_.erase (buffer_.begin (), buffer_.begin () + cb_before);
-					throw_NO_PERMISSION (make_minor_errno (EAGAIN));
+					throw;
 				}
 				buf_pos_ = new_buf_pos.begin;
 			}
@@ -313,9 +312,11 @@ void* FileAccessBuf::get_buffer_write_internal (size_t cb)
 				}
 				uint32_t cb_after = (uint32_t)(new_buf_pos.end - buffer_end);
 				buffer_.insert (buffer_.end (), cb_after, 0);
-				if (!access ()->lock (release, FileLock (buffer_end, cb_after, LockType::LOCK_WRITE))) {
+				try {
+					access ()->lock (release, FileLock (buffer_end, cb_after, LockType::LOCK_WRITE), flags () & O_NONBLOCK);
+				} catch (...) {
 					buffer_.resize (buffer_.size () - cb_after);
-					throw_NO_PERMISSION (make_minor_errno (EAGAIN));
+					throw;
 				}
 			}
 		}
@@ -330,15 +331,18 @@ void* FileAccessBuf::get_buffer_write_internal (size_t cb)
 	return buffer_.data () + off;
 }
 
-void FileAccessBuf::flush_internal ()
+void FileAccessBuf::flush_internal (bool sync)
 {
 	assert (dirty ());
+	if (!sync)
+		sync = flags () & O_SYNC;
+
 	FileLock fl;
 	if (dirty_begin_ == 0 && dirty_end_ == buffer_.size ())
-		access ()->write (buf_pos_, buffer_, fl, flags () & O_SYNC);
+		access ()->write (buf_pos_, buffer_, fl, sync);
 	else {
 		Bytes tmp (buffer_.begin () + dirty_begin_, buffer_.begin () + dirty_end_);
-		access ()->write (buf_pos_ + dirty_begin_, tmp, fl, flags () & O_SYNC);
+		access ()->write (buf_pos_ + dirty_begin_, tmp, fl, sync);
 	}
 	reset_dirty ();
 }

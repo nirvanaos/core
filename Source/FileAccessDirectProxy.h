@@ -70,7 +70,7 @@ public:
 			throw_NO_PERMISSION (make_minor_errno (EACCES));
 	}
 
-	void read (const FileLock& rel, const FileSize& pos, uint32_t size, LockType lock, Bytes& data) const
+	void read (const FileLock& rel, const FileSize& pos, uint32_t size, LockType lock, bool nonblock, Bytes& data) const
 	{
 		check_exist ();
 
@@ -103,10 +103,9 @@ public:
 		}
 	}
 
-	bool lock (const FileLock& rem, const FileLock& add)
+	void lock (const FileLock& rem, const FileLock& add, bool nonblock)
 	{
 		// TODO: Implement
-		return true;
 	}
 
 	void get_lock (FileLock& fl) const

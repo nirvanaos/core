@@ -123,12 +123,14 @@ public:
 		check ();
 		if (dirty ())
 			flush_internal ();
+		if ((flags () & O_ACCMODE) && !(flags () & O_SYNC))
+			access ()->flush ();
 		size_t buf_size = buffer_.size ();
 		buffer_.clear ();
 		buffer_.shrink_to_fit ();
 		AccessDirect::_ref_type acc = std::move (access ());
 		if (buf_size)
-			acc->lock (FileLock (buf_pos_, buf_size, lock_mode_), FileLock ());
+			acc->lock (FileLock (buf_pos_, buf_size, lock_mode_), FileLock (), flags () & O_NONBLOCK);
 	}
 
 	size_t read (void* p, size_t cb);
@@ -176,7 +178,7 @@ public:
 	{
 		check ();
 		if (dirty ())
-			flush_internal ();
+			flush_internal (true);
 	}
 
 	AccessDirect::_ref_type direct () const noexcept
@@ -194,8 +196,15 @@ public:
 		check ();
 		if (f & O_DIRECT)
 			throw_INV_FLAG (make_minor_errno (EINVAL));
-		if ((flags () ^ f) & ~(O_APPEND | O_SYNC | O_TEXT))
+		if ((flags () ^ f) & ~(O_APPEND | O_SYNC | O_TEXT | O_NONBLOCK))
 			throw_INV_FLAG (make_minor_errno (EINVAL));
+
+		if (!(flags () & O_SYNC) && (f & O_SYNC) && (flags () & O_ACCMODE)) {
+			if (dirty ())
+				flush_internal ();
+			access ()->flush ();
+		}
+
 		Servant::flags (f);
 	}
 
@@ -213,7 +222,7 @@ private:
 
 	const void* get_buffer_read_internal (size_t& cb, LockType new_lock_mode);
 	void* get_buffer_write_internal (size_t cb);
-	void flush_internal ();
+	void flush_internal (bool sync = false);
 	void get_new_buf_pos (size_t cb, BufPos& new_buf_pos) const;
 	void flush_buf_shift (const BufPos& new_buf_pos);
 };
@@ -309,8 +318,15 @@ inline void FileAccessBuf::write (const void* p, size_t cb)
 
 		const char* src = (const char*)p;
 		const char* end = src + cb;
-		size_t cbr = eol () [1] ? cb * 2 : cb;
-		char* dst = (char*)get_buffer_write_internal (cbr);
+		size_t buf_size = eol () [1] ? cb * 2 : cb;
+		char* buf;
+		Bytes append;
+		if (flags () & O_TEXT) {
+			append.resize (buf_size);
+			buf = (char*)append.data ();
+		} else
+			buf = (char*)get_buffer_write_internal (buf_size);
+		char* dst = buf;
 		do {
 			const char* e = std::find (src, end, '\n');
 			size_t cb = e - src;
@@ -325,6 +341,20 @@ inline void FileAccessBuf::write (const void* p, size_t cb)
 			}
 		} while (src != end);
 
+		size_t cbw = dst - buf;
+		if (O_APPEND) {
+			append.resize (cbw);
+			access ()->write (std::numeric_limits <FileSize>::max (), append, FileLock (), flags () & O_SYNC);
+		} else
+			position (position () + cbw);
+
+	} else if (flags () & O_APPEND) {
+		if (sizeof (size_t) > sizeof (uint32_t) && cb > std::numeric_limits <uint32_t>::max ())
+			throw_IMP_LIMIT (make_minor_errno (ENOBUFS));
+
+		access ()->write (std::numeric_limits <FileSize>::max (), Bytes ((const uint8_t*)p, (const uint8_t*)p + cb), FileLock (),
+			flags () & O_SYNC);
+		return;
 	} else {
 		void* buf = get_buffer_write_internal (cb);
 		virtual_copy (p, cb, buf);
@@ -337,7 +367,7 @@ inline void FileAccessBuf::write (const void* p, size_t cb)
 inline void* FileAccessBuf::get_buffer_write (size_t cb)
 {
 	check_write ();
-	if (flags () & O_TEXT)
+	if (flags () & (O_TEXT | O_APPEND))
 		throw_NO_IMPLEMENT (make_minor_errno (ENOSYS));
 	if (!cb)
 		return nullptr;

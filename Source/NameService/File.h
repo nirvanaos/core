@@ -143,7 +143,7 @@ public:
 
 		check_flags (flags);
 
-		uint_fast16_t direct_flags = (flags & O_DIRECT) ? flags : (flags & ~(O_APPEND | O_TEXT | O_SYNC));
+		uint_fast16_t direct_flags = (flags & O_DIRECT) ? flags : (flags & ~(O_APPEND | O_TEXT | O_SYNC | O_NONBLOCK));
 		AccessDirect::_ref_type access = CORBA::make_reference <FileAccessDirectProxy> (
 			std::ref (*this), direct_flags)->_this ();
 		++proxy_cnt_;
