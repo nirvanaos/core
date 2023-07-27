@@ -48,17 +48,17 @@ RequestOut::RequestId RequestOut::get_new_id (IdPolicy id_policy) noexcept
 			break;
 
 		case IdPolicy::EVEN: {
-			IdGenType last = last_id_.load (std::memory_order_acquire);
+			IdGenType last = last_id_.load (std::memory_order_relaxed);
 			do {
 				id = last + 2 - (last & 1);
-			} while (!last_id_.compare_exchange_weak (last, id));
+			} while (!last_id_.compare_exchange_weak (last, id, std::memory_order_release, std::memory_order_relaxed));
 		} break;
 
 		case IdPolicy::ODD: {
-			IdGenType last = last_id_.load (std::memory_order_acquire);
+			IdGenType last = last_id_.load (std::memory_order_relaxed);
 			do {
 				id = last + 1 + (last & 1);
-			} while (!last_id_.compare_exchange_weak (last, id));
+			} while (!last_id_.compare_exchange_weak (last, id, std::memory_order_release, std::memory_order_relaxed));
 		} break;
 	}
 	return (RequestId)id;
