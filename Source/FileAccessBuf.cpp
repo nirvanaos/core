@@ -166,7 +166,7 @@ const void* FileAccessBuf::get_buffer_read_internal (size_t& cb, LockType new_lo
 				FileLock release;
 				size_t drop_front = 0;
 				if (buf_pos_ < new_buf_pos.begin) {
-					drop_front = new_buf_pos.begin - buf_pos_;
+					drop_front = (size_t)(new_buf_pos.begin - buf_pos_);
 					release.start (buf_pos_);
 					release.len (drop_front);
 					release.type (lock_mode_);
