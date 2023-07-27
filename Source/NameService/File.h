@@ -161,8 +161,8 @@ public:
 			ret = direct;
 		else {
 			FileSize pos = (flags & O_ATE) ? access_->size () : 0;
-			ret = CORBA::make_reference <FileAccessBuf> (pos, std::move (direct), access_->block_size (), flags,
-				Port::FileSystem::eol ());
+			ret = Access::_ptr_type (CORBA::make_reference <FileAccessBuf> (pos, std::move (direct), access_->block_size (), flags,
+				Port::FileSystem::eol ()));
 		}
 
 		return ret;
