@@ -341,7 +341,7 @@ void FileAccessBuf::flush_internal (bool sync)
 	if (dirty_begin_ == 0 && dirty_end_ == buffer_.size ())
 		access ()->write (buf_pos_, buffer_, fl, sync);
 	else {
-		Bytes tmp (buffer_.begin () + dirty_begin_, buffer_.begin () + dirty_end_);
+		Bytes tmp (buffer_.data () + dirty_begin_, buffer_.data () + dirty_end_);
 		access ()->write (buf_pos_ + dirty_begin_, tmp, fl, sync);
 	}
 	reset_dirty ();
