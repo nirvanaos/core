@@ -99,45 +99,23 @@ protected:
 	}
 
 private:
-	class FileDescriptor
+	class NIRVANA_NOVTABLE FileDescriptor : public UserObject
 	{
 	public:
-		FileDescriptor () :
-			access_type_ (AccessType::EMPTY)
+		virtual ~FileDescriptor ()
 		{}
 
-		FileDescriptor (CORBA::AbstractBase::_ptr_type access);
-
-		FileDescriptor (FileDescriptor&& src) noexcept = default;
-		FileDescriptor& operator = (FileDescriptor&& src) noexcept = default;
-
-		bool empty () const noexcept
-		{
-			return access_type_ == AccessType::EMPTY;
-		}
-
-		void close ();
-		size_t read (void* p, size_t size) const;
-		void write (const void* p, size_t size) const;
-		uint64_t seek (unsigned method, const int64_t& off) const;
-
-	private:
-		enum class AccessType
-		{
-			EMPTY,
-			ACCESS_BUF,
-			ACCESS_CHAR
-		};
-
-		template <class Acc>
-		Acc* access () const noexcept
-		{
-			return static_cast <Acc*> (&CORBA::Internal::Interface::_ptr_type (access_));
-		}
-
-		CORBA::Internal::Interface::_ref_type access_;
-		AccessType access_type_;
+		virtual void close () const = 0;
+		virtual size_t read (void* p, size_t size) const = 0;
+		virtual void write (const void* p, size_t size) const = 0;
+		virtual uint64_t seek (unsigned method, const int64_t& off) const = 0;
 	};
+
+	typedef ImplDynamicSync <FileDescriptor> FileDescriptorBase;
+	typedef Ref <FileDescriptorBase> FileDescriptorRef;
+
+	class FileDescriptorBuf;
+	class FileDescriptorChar;
 
 	// In the most cases we don't need the Data.
 	// It needed only when we use one of:
@@ -184,7 +162,9 @@ private:
 
 		CosNaming::Name get_name_from_path (const IDL::String& path) const;
 		static CosNaming::NamingContext::_ref_type name_service ();
-		FileDescriptor& get_fd (unsigned fd);
+		static FileDescriptorRef make_fd (CORBA::AbstractBase::_ptr_type access);
+		FileDescriptorRef& get_fd (unsigned fd);
+		FileDescriptorRef& get_open_fd (unsigned fd);
 
 		RuntimeSupportImpl runtime_support_;
 		CosNaming::Name current_dir_;
@@ -197,8 +177,8 @@ private:
 			STD_CNT
 		};
 
-		FileDescriptor std_file_descriptors_ [StandardFileDescriptor::STD_CNT];
-		typedef std::vector <FileDescriptor, UserAllocator <FileDescriptor> > FileDescriptors;
+		FileDescriptorRef std_file_descriptors_ [StandardFileDescriptor::STD_CNT];
+		typedef std::vector <FileDescriptorRef, UserAllocator <FileDescriptorRef> > FileDescriptors;
 		FileDescriptors file_descriptors_;
 	};
 

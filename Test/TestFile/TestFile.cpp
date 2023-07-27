@@ -180,7 +180,7 @@ TEST_F (TestFile, Direct)
 	// Write
 	std::vector <uint8_t> wbuf;
 	wbuf.resize (1, 1);
-	fa->write (0, wbuf);
+	fa->write (0, wbuf, FileLock (), false);
 
 	EXPECT_EQ (fa->size (), 1);
 
@@ -189,7 +189,7 @@ TEST_F (TestFile, Direct)
 
 	// Read
 	std::vector <uint8_t> rbuf;
-	fa->read (0, 1, rbuf);
+	fa->read (FileLock (), 0, 1, LockType::LOCK_NONE, true, rbuf);
 	EXPECT_EQ (rbuf, wbuf);
 
 	// Obtain file object
@@ -203,7 +203,7 @@ TEST_F (TestFile, Direct)
 	ASSERT_TRUE (file);
 	fa = AccessDirect::_narrow (file->open (O_RDONLY | O_DIRECT, 0)->_to_object ());
 	ASSERT_TRUE (fa);
-	fa->read (0, 1, rbuf);
+	fa->read (FileLock (), 0, 1, LockType::LOCK_NONE, true, rbuf);
 	EXPECT_EQ (rbuf, wbuf);
 
 	// Close
@@ -222,6 +222,52 @@ TEST_F (TestFile, Direct)
 	// Close
 	fb->close ();
 	fb = nullptr;
+
+	// Remove file
+	file->remove ();
+	EXPECT_TRUE (file->_non_existent ());
+}
+
+TEST_F (TestFile, Buf)
+{
+	// Obtain temporary directory object
+	Object::_ref_type obj = naming_service_->resolve_str ("/var/tmp");
+	ASSERT_TRUE (obj);
+	Dir::_ref_type tmp_dir = Dir::_narrow (obj);
+	ASSERT_TRUE (tmp_dir);
+
+	// Create temporary file
+	const char PATTERN [] = "XXXXXX.tmp";
+	std::string file_name = PATTERN;
+	AccessBuf::_ref_type fa = AccessBuf::_downcast (
+		tmp_dir->mkostemps (file_name, 4, 0)->_to_value ());
+	ASSERT_TRUE (fa);
+	EXPECT_NE (file_name, PATTERN);
+
+	EXPECT_EQ (fa->size (), 0);
+
+	uint8_t wbuf [16];
+	wbuf [0] = 1;
+	fa->write (wbuf, 1);
+	EXPECT_EQ (fa->position (), 1);
+	fa->position (0);
+	EXPECT_EQ (fa->position (), 0);
+	uint8_t rbuf [16];
+	EXPECT_EQ (fa->read (rbuf, 1), 1);
+	EXPECT_EQ (rbuf [0], wbuf [0]);
+
+	File::_ref_type file = fa->file ();
+	fa->close ();
+	fa = nullptr;
+
+	ASSERT_TRUE (file);
+	fa = AccessBuf::_downcast (file->open (O_RDONLY, 0)->_to_value ());
+	ASSERT_TRUE (fa);
+	EXPECT_EQ (fa->size (), 1);
+	EXPECT_EQ (fa->read (rbuf, 1), 1);
+	EXPECT_EQ (rbuf [0], wbuf [0]);
+	fa->close ();
+	fa = nullptr;
 
 	// Remove file
 	file->remove ();
@@ -301,40 +347,4 @@ TEST_F (TestFile, Directory)
 	EXPECT_TRUE (tmp_dir->_non_existent ());
 }
 
-/*
-TEST_F (TestFile, Buf)
-{
-	char file_name [L_tmpnam_s];
-	ASSERT_FALSE (tmpnam_s (file_name));
-
-	uint_fast16_t flags = FILE_SHARE_DENY_WRITE;
-
-	AccessBuf::_ref_type fa = AccessBuf::_downcast (
-		g_system->open_file (file_name, O_CREAT | O_TRUNC | O_RDWR | flags, 0600)->_to_value ());
-
-	ASSERT_TRUE (fa);
-	EXPECT_EQ (fa->size (), 0);
-	uint8_t wbuf [16];
-	wbuf [0] = 1;
-	fa->write (wbuf, 1);
-	fa->seek (SeekMethod::SM_BEG, 0);
-	uint8_t rbuf [16];
-	EXPECT_EQ (fa->read (rbuf, 1), 1);
-	EXPECT_EQ (rbuf[0], wbuf[0]);
-
-	File::_ref_type file = fa->file ();
-	fa->close ();
-	fa = nullptr;
-
-	ASSERT_TRUE (file);
-	fa = AccessBuf::_downcast (file->open (flags, 0)->_to_value ());
-	ASSERT_TRUE (fa);
-	EXPECT_EQ (fa->read (rbuf, 1), 1);
-	EXPECT_EQ (rbuf [0], wbuf [0]);
-	fa->close ();
-	fa = nullptr;
-
-	g_system->remove (file_name);
-}
-*/
 }

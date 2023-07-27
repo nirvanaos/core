@@ -143,21 +143,29 @@ public:
 
 		check_flags (flags);
 
-		AccessDirect::_ref_type access = CORBA::make_reference <FileAccessDirectProxy> (
-			std::ref (*this), flags)->_this ();
+		uint_fast16_t direct_flags = (flags & O_DIRECT) ? flags : (flags & ~(O_APPEND | O_TEXT | O_SYNC | O_NONBLOCK));
+
+		AccessDirect::_ref_type direct;
 		++proxy_cnt_;
+		try {
+			direct = CORBA::make_reference <FileAccessDirectProxy> ( std::ref (*this), direct_flags)->_this ();
+		} catch (...) {
+			if (!--proxy_cnt_)
+				access_ = nullptr;
+			throw;
+		}
+
+		Access::_ref_type ret;
 
 		if (flags & O_DIRECT)
-			return access;
+			ret = direct;
+		else {
+			FileSize pos = (flags & O_ATE) ? access_->size () : 0;
+			ret = Access::_ptr_type (CORBA::make_reference <FileAccessBuf> (pos, std::move (direct), access_->block_size (), flags,
+				Port::FileSystem::eol ()));
+		}
 
-		Bytes data;
-		uint32_t block_size = access_->block_size ();
-		if (!(flags & (O_APPEND | O_TRUNC | O_ATE)) && (flags & O_ACCMODE) != O_WRONLY && access_->size ())
-			access_->read (0, block_size, data);
-		FileSize pos = (flags & (O_APPEND | O_ATE)) ? access_->size () : 0;
-
-		return CORBA::make_reference <FileAccessBuf> (std::move (data), access, pos, block_size, flags,
-			Port::FileSystem::eol ());
+		return ret;
 	}
 
 	void on_delete_proxy () noexcept
@@ -185,7 +193,16 @@ FileAccessDirectProxy::FileAccessDirectProxy (File& file, uint_fast16_t flags) :
 	file_ (&file),
 	flags_ (flags),
 	dirty_ (false)
-{}
+{
+	assert (file.access_);
+}
+
+inline
+FileAccessDirectProxy::~FileAccessDirectProxy ()
+{
+	if (file_)
+		file_->on_delete_proxy ();
+}
 
 inline
 Nirvana::File::_ref_type FileAccessDirectProxy::file () const
@@ -212,13 +229,6 @@ void FileAccessDirectProxy::close ()
 	file_->on_delete_proxy ();
 	file_ = nullptr;
 	deactivate_servant (this);
-}
-
-inline
-FileAccessDirectProxy::~FileAccessDirectProxy ()
-{
-	if (file_)
-		file_->on_delete_proxy ();
 }
 
 }
