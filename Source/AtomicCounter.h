@@ -125,6 +125,20 @@ public:
 		return cnt_.fetch_sub (1, std::memory_order_release) - 1;
 	}
 
+	/// Decrement counter if it is not zero.
+	/// 
+	/// \returns `true` if counter was decremented.
+	bool decrement_if_not_zero () noexcept
+	{
+		IntegralType cur = cnt_.load (std::memory_order_relaxed);
+		for (;;) {
+			if (!cur)
+				return false;
+			if (cnt_.compare_exchange_weak (cur, cur - 1, std::memory_order_release, std::memory_order_relaxed))
+				return true;
+		}
+	}
+
 protected:
 	std::atomic <IntegralType> cnt_;
 };

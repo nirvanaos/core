@@ -61,8 +61,8 @@ public:
 
 	void schedule (const DeadlineTime& deadline, const ExecutorRef& executor) noexcept
 	{
-		verify (queue_.insert (deadline, executor));
 		queue_items_.increment ();
+		verify (queue_.insert (deadline, executor));
 		execute_next ();
 	}
 
@@ -90,8 +90,8 @@ private:
 
 private:
 	Queue queue_;
-	AtomicCounter <true> free_cores_;
-	AtomicCounter <true> queue_items_;
+	AtomicCounter <false> free_cores_;
+	AtomicCounter <false> queue_items_;
 };
 
 template <class T, class ExecutorRef>
@@ -112,10 +112,9 @@ void SchedulerImpl <T, ExecutorRef>::execute_next () noexcept
 {
 	do {
 		// Acquire processor core
-		while (free_cores_.decrement_seq () < 0) {
-			if (free_cores_.increment_seq () <= 0)
-				return; // All cores are busy
-		}
+		if (!free_cores_.decrement_if_not_zero ())
+			return; // All cores are busy
+
 		// We successfully acquired the processor core
 
 		// Get item from queue
