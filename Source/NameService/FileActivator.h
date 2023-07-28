@@ -69,7 +69,7 @@ public:
 		policies.push_back (parent->create_request_processing_policy (RequestProcessingPolicyValue::USE_SERVANT_MANAGER));
 		policies.push_back (parent->create_id_uniqueness_policy (IdUniquenessPolicyValue::MULTIPLE_ID));
 		POA::_ref_type adapter = parent->create_POA (name, parent->the_POAManager (), policies);
-		adapter->set_servant_manager (CORBA::make_stateless <FileActivator> ());
+		adapter->set_servant_manager (CORBA::make_stateless <FileActivator> ()->_this ());
 
 		Nirvana::Core::FileSystem::adapter_ = std::move (adapter);
 	}
