@@ -73,7 +73,7 @@ public:
 		POAManagerSeq ret;
 		ret.reserve (managers_.size ());
 		for (auto& entry : managers_) {
-			ret.push_back (entry._this ());
+			ret.push_back (const_cast <POAManager&> (entry)._this ());
 		}
 		return ret;
 	}
@@ -83,7 +83,7 @@ public:
 		PortableServer::POAManager::_ref_type ret;
 		auto f = managers_.find (static_cast <const POAManager&> (id));
 		if (f != managers_.end ())
-			ret = (*f)._this ();
+			ret = const_cast <POAManager&> (*f)._this ();
 		return ret;
 	}
 

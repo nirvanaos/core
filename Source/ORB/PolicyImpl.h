@@ -92,7 +92,7 @@ public:
 template <class PolicyItf, PolicyType id, typename ValueType>
 typename PolicyItf::_ref_type PolicyImplBase <PolicyItf, id, ValueType>::create (const ValueType& val)
 {
-	return make_stateless <PolicyImpl <id> > (std::ref (val))->_this ();
+	return make_stateless <PolicyImpl <id> > (std::ref (val));
 }
 
 template <class PolicyItf, PolicyType id, typename ValueType>

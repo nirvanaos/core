@@ -44,7 +44,7 @@ public:
 	{
 		FileActivator::initialize ();
 		POA::_ref_type root = POA::_narrow (CORBA::Core::Services::bind (CORBA::Core::Services::RootPOA));
-		root->the_activator (CORBA::make_stateless <SysAdapterActivator> ()->_this ());
+		root->the_activator (CORBA::make_stateless <SysAdapterActivator> ());
 	}
 
 	static void terminate ()

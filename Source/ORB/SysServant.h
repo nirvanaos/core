@@ -114,7 +114,7 @@ public:
 		return Internal::FindInterface <Primary, Bases...>::find (static_cast <S&> (*this), iid);
 	}
 
-	Internal::I_ref <Primary> _this () const
+	Internal::I_ref <Primary> _this ()
 	{
 		return SysObjectLink::_get_proxy ().template downcast <Primary> ();
 	}

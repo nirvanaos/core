@@ -79,10 +79,8 @@ void Startup::run ()
 			envp.emplace_back (*env);
 		}
 
-		CORBA::servant_reference <ShutdownCallback> cb =
-			CORBA::make_stateless <ShutdownCallback> (std::ref (ret_));
-
-		Static <Launcher>::ptr ()->spawn (argv [0], argv, envp, "/sbin", InheritedFiles (), cb->_this ());
+		ProcessCallback::_ref_type cb = CORBA::make_stateless <ShutdownCallback> (std::ref (ret_));
+		Static <Launcher>::ptr ()->spawn (argv [0], argv, envp, "/sbin", InheritedFiles (), cb);
 	}
 }
 
