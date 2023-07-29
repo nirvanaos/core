@@ -24,18 +24,18 @@
 *  popov.nirvana@gmail.com
 */
 #include "StartupProt.h"
-#include "initterm.h"
 
 namespace Nirvana {
 namespace Core {
 
 void StartupProt::run ()
 {
-	try {
-		initialize ();
-		Startup::run ();
-	} catch (...) {
-		on_exception ();
+	if (initialize ()) {
+		try {
+			Startup::run ();
+		} catch (...) {
+			on_exception ();
+		}
 	}
 }
 

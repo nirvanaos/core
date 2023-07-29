@@ -24,7 +24,6 @@
 *  popov.nirvana@gmail.com
 */
 #include "StartupSys.h"
-#include "initterm.h"
 #include "ORB/Services.h"
 
 namespace Nirvana {
@@ -32,12 +31,13 @@ namespace Core {
 
 void StartupSys::run ()
 {
-	try {
-		initialize ();
-		CORBA::Core::Services::bind (CORBA::Core::Services::SysDomain);
-		Startup::run ();
-	} catch (...) {
-		on_exception ();
+	if (initialize ()) {
+		try {
+			CORBA::Core::Services::bind (CORBA::Core::Services::SysDomain);
+			Startup::run ();
+		} catch (...) {
+			on_exception ();
+		}
 	}
 }
 

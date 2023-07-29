@@ -69,6 +69,7 @@ protected:
 	~Startup ()
 	{}
 
+	bool initialize () noexcept;
 	void on_exception () noexcept;
 
 protected:

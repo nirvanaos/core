@@ -26,6 +26,7 @@
 #include <CORBA/Server.h>
 #include "Startup.h"
 #include "ExecDomain.h"
+#include "initterm.h"
 #include <Nirvana/Launcher.h>
 #include <Nirvana/Legacy/Legacy_Process_s.h>
 
@@ -82,6 +83,18 @@ void Startup::run ()
 		ProcessCallback::_ref_type cb = CORBA::make_stateless <ShutdownCallback> (std::ref (ret_))->_this ();
 		Static <Launcher>::ptr ()->spawn (argv [0], argv, envp, "/sbin", InheritedFiles (), cb);
 	}
+}
+
+bool Startup::initialize () noexcept
+{
+	try {
+		Nirvana::Core::initialize ();
+	} catch (...) {
+		exception_ = std::current_exception ();
+		Port::Scheduler::shutdown ();
+		return false;
+	}
+	return true;
 }
 
 void Startup::on_exception () noexcept
