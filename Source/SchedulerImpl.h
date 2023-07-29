@@ -61,8 +61,8 @@ public:
 
 	void schedule (const DeadlineTime& deadline, const ExecutorRef& executor) noexcept
 	{
-		queue_items_.increment ();
 		verify (queue_.insert (deadline, executor));
+		queue_items_.increment ();
 		execute_next ();
 	}
 
@@ -91,7 +91,7 @@ private:
 private:
 	Queue queue_;
 	AtomicCounter <false> free_cores_;
-	AtomicCounter <false> queue_items_;
+	AtomicCounter <true> queue_items_;
 };
 
 template <class T, class ExecutorRef>
