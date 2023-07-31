@@ -82,6 +82,9 @@ void EventSync::signal_all ()
 	assert (!signal_cnt_);
 	signal_cnt_ = std::numeric_limits <size_t>::max ();
 
+	if (timer_)
+		timer_->cancel ();
+
 	while (!list_.empty ()) {
 		ListEntry& entry = list_.front ();
 		*entry.result_ptr = true;
@@ -104,6 +107,8 @@ void EventSync::signal_one ()
 		*entry.result_ptr = true;
 		ExecDomain* ed = entry.exec_domain;
 		list_.pop_front ();
+		if (list_.empty () && timer_)
+			timer_->cancel ();
 		ed->resume ();
 	} else
 		++signal_cnt_;
@@ -111,20 +116,29 @@ void EventSync::signal_one ()
 	SYNC_END ()
 }
 
+inline
 void EventSync::on_timer () noexcept
 {
 	TimeBase::TimeT cur_time = Chrono::steady_clock ();
+	TimeBase::TimeT next_timeout = std::numeric_limits <TimeBase::TimeT>::max ();
 	for (List::iterator it = list_.before_begin ();;) {
 		List::iterator next = it;
 		++next;
 		if (next == list_.end ())
 			break;
-		if (next->expire_time <= cur_time) {
+		TimeBase::TimeT expire_time = next->expire_time;
+		if (expire_time <= cur_time) {
 			next->exec_domain->resume ();
 			it = list_.erase_after (it);
-		} else
+		} else {
+			if (next_timeout > expire_time)
+				next_timeout = expire_time;
 			it = next;
+		}
 	}
+
+	if (next_timeout != std::numeric_limits <TimeBase::TimeT>::max ())
+		timer_->set (Timer::TIMER_ABSOLUTE, next_timeout, 0);
 }
 
 void EventSync::Timer::run (const TimeBase::TimeT& signal_time)

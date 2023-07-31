@@ -29,7 +29,7 @@
 #pragma once
 
 #include <CORBA/Server.h>
-#include <CORBA/Pollable_s.h>
+#include <CORBA/Messaging_s.h>
 #include <CORBA/Proxy/IOReference_s.h>
 #include "../EventSync.h"
 #include "../MapUnorderedUnstable.h"
@@ -40,21 +40,10 @@ namespace Core {
 class PollableSet;
 
 class Pollable :
-	public Internal::ValueImpl <Pollable, CORBA::ValueBase>,
-	public Internal::ValueTraits <Pollable>,
-	public Internal::ValueNonTruncatable,
-	public Internal::ValueBaseNoFactory,
-	public Internal::ValueImpl <Pollable, CORBA::Pollable>,
+	public servant_traits <CORBA::Pollable>::Servant <Pollable>,
 	public servant_traits <CORBA::Internal::RequestCallback>
 {
 public:
-	Interface* _query_valuetype (Internal::String_in id) noexcept
-	{
-		if (id.empty () || Internal::RepId::compatible (Internal::RepIdOf <CORBA::Pollable>::id, id))
-			return &static_cast <Bridge <CORBA::Pollable>&> (*this);
-		return nullptr;
-	}
-
 	static Pollable* cast (CORBA::Pollable::_ptr_type ptr) noexcept
 	{
 		return static_cast <Pollable*> (
@@ -63,13 +52,10 @@ public:
 
 	bool is_ready (ULong timeout)
 	{
-		return event_.wait (timeout * TimeBase::MILLISECOND);
+		return event_.wait (Nirvana::Core::EventSync::ms2time (timeout));
 	}
 
-	static CORBA::PollableSet::_ref_type create_pollable_set ()
-	{
-		return make_reference <PollableSet> ()->_this ();
-	}
+	static CORBA::PollableSet::_ref_type create_pollable_set ();
 
 	PollableSet* cur_set () const noexcept
 	{
@@ -82,12 +68,7 @@ public:
 		cur_set_ = ps;
 	}
 
-	void completed (Internal::IORequest::_ptr_type rq)
-	{
-		event_.signal_all ();
-		if (cur_set_)
-			cur_set_->pollable_ready ();
-	}
+	void completed (Internal::IORequest::_ptr_type rq);
 
 protected:
 	Pollable () :
@@ -101,9 +82,19 @@ private:
 
 class DIIPollable :
 	public Pollable,
-	public Internal::ValueImpl <DIIPollable, CORBA::DIIPollable>
+	public Internal::ValueTraits <DIIPollable>,
+	public Internal::ServantTraits <DIIPollable>,
+	public Internal::ValueImpl <DIIPollable, CORBA::DIIPollable>,
+	public CORBA::Internal::LifeCycleRefCnt <DIIPollable>
 {
 public:
+	using CORBA::Internal::ServantTraits <DIIPollable>::_wide_val;
+	using CORBA::Internal::ServantTraits <DIIPollable>::_implementation;
+	using CORBA::Internal::LifeCycleRefCnt <DIIPollable>::__duplicate;
+	using CORBA::Internal::LifeCycleRefCnt <DIIPollable>::__release;
+	using CORBA::Internal::LifeCycleRefCnt <DIIPollable>::_duplicate;
+	using CORBA::Internal::LifeCycleRefCnt <DIIPollable>::_release;
+
 	Interface* _query_valuetype (Internal::String_in id) noexcept
 	{
 		return Internal::FindInterface <CORBA::DIIPollable, CORBA::Pollable>::find (*this, id);
@@ -118,7 +109,7 @@ public:
 		return make_reference <DIIPollable> ();
 	}
 
-	void add_pollable (Pollable::_ptr_type potential)
+	void add_pollable (CORBA::Pollable::_ptr_type potential)
 	{
 		Pollable* p = Pollable::cast (potential);
 		if (!p)
@@ -131,7 +122,7 @@ public:
 
 	CORBA::Pollable::_ref_type get_ready_pollable (uint32_t timeout)
 	{
-		if (event_.wait (timeout)) {
+		if (event_.wait (Nirvana::Core::EventSync::ms2time (timeout))) {
 			for (Set::iterator it = set_.begin (); it != set_.end (); ++it) {
 				Pollable* p = *it;
 				if (p->is_ready (0)) {
@@ -144,13 +135,14 @@ public:
 		return nullptr;
 	}
 
-	void remove (Pollable::_ptr_type potential)
+	void remove (CORBA::Pollable::_ptr_type potential)
 	{
 		Pollable* p = Pollable::cast (potential);
 		if (!p || p->cur_set () != this)
 			throw UnknownPollable ();
 		if (p->is_ready (0))
 			event_.reset_one ();
+		p->cur_set (nullptr);
 		set_.erase (p);
 	}
 
@@ -170,6 +162,81 @@ private:
 
 	Set set_;
 	Nirvana::Core::EventSync event_;
+};
+
+inline
+CORBA::PollableSet::_ref_type Pollable::create_pollable_set ()
+{
+	return make_reference <PollableSet> ()->_this ();
+}
+
+inline
+void Pollable::completed (Internal::IORequest::_ptr_type rq)
+{
+	event_.signal_all ();
+	if (cur_set_)
+		cur_set_->pollable_ready ();
+}
+
+}
+}
+
+namespace Messaging {
+namespace Core {
+
+class Poller :
+	public CORBA::Core::Pollable,
+	public CORBA::Internal::ValueTraits <Poller>,
+	public CORBA::Internal::ServantTraits <Poller>,
+	public CORBA::Internal::ValueImpl <Poller, Messaging::Poller>,
+	public CORBA::Internal::LifeCycleRefCnt <Poller>
+{
+public:
+	using CORBA::Internal::ServantTraits <Poller>::_wide_val;
+	using CORBA::Internal::ServantTraits <Poller>::_implementation;
+	using CORBA::Internal::LifeCycleRefCnt <Poller>::__duplicate;
+	using CORBA::Internal::LifeCycleRefCnt <Poller>::__release;
+	using CORBA::Internal::LifeCycleRefCnt <Poller>::_duplicate;
+	using CORBA::Internal::LifeCycleRefCnt <Poller>::_release;
+
+	Interface* _query_valuetype (CORBA::Internal::String_in id) noexcept
+	{
+		return CORBA::Internal::FindInterface <Messaging::Poller, CORBA::Pollable>::find (*this, id);
+	}
+
+	CORBA::Object::_ref_type operation_target () const noexcept
+	{
+		return operation_target_;
+	}
+
+	IDL::String operation_name () const
+	{
+		return operation_name_;
+	}
+
+	ReplyHandler::_ref_type associated_handler () const noexcept
+	{
+		return associated_handler_;
+	}
+
+	void associated_handler (ReplyHandler::_ptr_type handler) noexcept
+	{
+		associated_handler_ = handler;
+	}
+
+	bool is_from_poller () const noexcept
+	{
+		return is_from_poller_;
+	}
+
+protected:
+	Poller (CORBA::Object::_ptr_type target, const char* operation_name);
+
+private:
+	CORBA::Object::_ref_type operation_target_;
+	const char* operation_name_;
+	ReplyHandler::_ref_type associated_handler_;
+	bool is_from_poller_;
 };
 
 }
