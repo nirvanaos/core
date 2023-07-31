@@ -25,6 +25,26 @@
 */
 #include "Pollable.h"
 
+using namespace Nirvana::Core;
+
+namespace CORBA {
+namespace Core {
+
+Pollable::Pollable () :
+	cur_set_ (nullptr),
+	ready_ (false)
+{
+	SyncDomain* cur_sd = SyncContext::current ().sync_domain ();
+	if (cur_sd)
+		sync_domain_ = cur_sd;
+	else
+		sync_domain_ = Ref <SyncDomain>::create <ImplDynamic <SyncDomainCore> > (
+			std::ref (MemContext::current ().heap ()));
+}
+
+}
+}
+
 namespace Messaging {
 namespace Core {
 

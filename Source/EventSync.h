@@ -45,16 +45,16 @@ public:
 
 	bool wait (TimeBase::TimeT timeout);
 
-	void signal_all ();
-	void signal_one ();
+	void signal_all () noexcept;
+	void signal_one () noexcept;
 
-	void reset_one ()
+	void reset_one () noexcept
 	{
 		assert (signal_cnt_ && std::numeric_limits <size_t>::max () != signal_cnt_);
 		--signal_cnt_;
 	}
 
-	void reset_all ()
+	void reset_all () noexcept
 	{
 		assert (list_.empty ());
 		signal_cnt_ = 0;
@@ -101,7 +101,7 @@ private:
 	{
 	protected:
 		Timer (EventSync& ev) :
-			TimerAsyncCall (*ev.sync_domain_, TIMER_DEADLINE),
+			TimerAsyncCall (SyncContext::current (), TIMER_DEADLINE),
 			event_ (ev)
 		{}
 
@@ -112,11 +112,10 @@ private:
 		EventSync& event_;
 	};
 
-	Ref <SyncDomain> sync_domain_;
 	List list_;
 	Ref <Timer> timer_;
-	size_t signal_cnt_;
 	TimeBase::TimeT next_timeout_;
+	size_t signal_cnt_;
 };
 
 }

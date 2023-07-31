@@ -24,27 +24,19 @@
 *  popov.nirvana@gmail.com
 */
 #include "EventSync.h"
-#include "Synchronized.h"
 #include "Chrono.h"
 
 namespace Nirvana {
 namespace Core {
 
 EventSync::EventSync () :
-	signal_cnt_ (0),
-	next_timeout_ (std::numeric_limits <TimeBase::TimeT>::max ())
-{
-	SyncDomain* cur_sd = SyncContext::current ().sync_domain ();
-	if (cur_sd)
-		sync_domain_ = cur_sd;
-	else
-		sync_domain_ = Ref <SyncDomain>::create <ImplDynamic <SyncDomainCore> > (
-			std::ref (MemContext::current ().heap ()));
-}
+	next_timeout_ (std::numeric_limits <TimeBase::TimeT>::max ()),
+	signal_cnt_ (0)
+{}
 
 bool EventSync::wait (TimeBase::TimeT timeout)
 {
-	SYNC_BEGIN (*sync_domain_, nullptr)
+	assert (SyncContext::current ().sync_domain ());
 
 	if (!timeout)
 		return acq_signal ();
@@ -71,13 +63,11 @@ bool EventSync::wait (TimeBase::TimeT timeout)
 	cur_ed.suspend ();
 
 	return result;
-
-	SYNC_END ()
 }
 
-void EventSync::signal_all ()
+void EventSync::signal_all () noexcept
 {
-	SYNC_BEGIN (*sync_domain_, nullptr)
+	assert (SyncContext::current ().sync_domain ());
 
 	assert (!signal_cnt_);
 	signal_cnt_ = std::numeric_limits <size_t>::max ();
@@ -92,13 +82,11 @@ void EventSync::signal_all ()
 		list_.pop_front ();
 		ed->resume ();
 	}
-
-	SYNC_END ()
 }
 
-void EventSync::signal_one ()
+void EventSync::signal_one () noexcept
 {
-	SYNC_BEGIN (*sync_domain_, nullptr)
+	assert (SyncContext::current ().sync_domain ());
 
 	assert (signal_cnt_ != std::numeric_limits <size_t>::max ());
 
@@ -112,13 +100,13 @@ void EventSync::signal_one ()
 		ed->resume ();
 	} else
 		++signal_cnt_;
-
-	SYNC_END ()
 }
 
 inline
 void EventSync::on_timer () noexcept
 {
+	assert (SyncContext::current ().sync_domain ());
+
 	TimeBase::TimeT cur_time = Chrono::steady_clock ();
 	TimeBase::TimeT next_timeout = std::numeric_limits <TimeBase::TimeT>::max ();
 	for (List::iterator it = list_.before_begin ();;) {

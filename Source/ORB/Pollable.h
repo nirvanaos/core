@@ -33,6 +33,8 @@
 #include <CORBA/Proxy/IOReference_s.h>
 #include "../EventSync.h"
 #include "../MapUnorderedUnstable.h"
+#include "../Synchronized.h"
+#include "ServantProxyLocal.h"
 
 namespace CORBA {
 namespace Core {
@@ -52,32 +54,36 @@ public:
 
 	bool is_ready (ULong timeout)
 	{
-		return event_.wait (Nirvana::Core::EventSync::ms2time (timeout));
+		if (!timeout)
+			return ready_;
+		else {
+			SYNC_BEGIN (*sync_domain_, nullptr)
+				return event_.wait (Nirvana::Core::EventSync::ms2time (timeout));
+			SYNC_END ()
+		}
 	}
 
-	static CORBA::PollableSet::_ref_type create_pollable_set ();
-
-	PollableSet* cur_set () const noexcept
-	{
-		return cur_set_;
-	}
+	CORBA::PollableSet::_ref_type create_pollable_set () const;
 
 	void cur_set (PollableSet* ps) noexcept
 	{
-		assert (!cur_set_);
+		SYNC_BEGIN (*sync_domain_, nullptr)
+		if (cur_set_ && ps)
+			throw BAD_PARAM (MAKE_OMG_MINOR (43));
 		cur_set_ = ps;
+		SYNC_END ()
 	}
 
 	void completed (Internal::IORequest::_ptr_type rq);
 
 protected:
-	Pollable () :
-		cur_set_ (nullptr)
-	{}
+	Pollable ();
 
 private:
+	servant_reference <Nirvana::Core::SyncDomain> sync_domain_;
 	Nirvana::Core::EventSync event_;
 	PollableSet* cur_set_;
+	bool ready_;
 };
 
 class DIIPollable :
@@ -111,13 +117,16 @@ public:
 
 	void add_pollable (CORBA::Pollable::_ptr_type potential)
 	{
-		Pollable* p = Pollable::cast (potential);
+		servant_reference <Pollable> p = Pollable::cast (potential);
 		if (!p)
 			throw BAD_PARAM ();
-		if (p->cur_set ())
-			throw BAD_PARAM (MAKE_OMG_MINOR (43));
-		set_.insert (p);
 		p->cur_set (this);
+		try {
+			set_.insert (p);
+		} catch (...) {
+			p->cur_set (nullptr);
+			throw;
+		}
 	}
 
 	CORBA::Pollable::_ref_type get_ready_pollable (uint32_t timeout)
@@ -125,7 +134,7 @@ public:
 		if (event_.wait (Nirvana::Core::EventSync::ms2time (timeout))) {
 			for (Set::iterator it = set_.begin (); it != set_.end (); ++it) {
 				Pollable* p = *it;
-				if (p->is_ready (0)) {
+				if (p->is_ready (0)) { // Does not cause context switch
 					CORBA::Pollable::_ref_type ret (p);
 					set_.erase (it);
 					return ret;
@@ -137,13 +146,12 @@ public:
 
 	void remove (CORBA::Pollable::_ptr_type potential)
 	{
-		Pollable* p = Pollable::cast (potential);
-		if (!p || p->cur_set () != this)
+		servant_reference <Pollable> p = Pollable::cast (potential);
+		if (!p || !set_.erase (p))
 			throw UnknownPollable ();
 		if (p->is_ready (0))
 			event_.reset_one ();
 		p->cur_set (nullptr);
-		set_.erase (p);
 	}
 
 	uint16_t number_left () const
@@ -153,7 +161,9 @@ public:
 
 	void pollable_ready ()
 	{
+		SYNC_BEGIN (local2proxy (_this ())->sync_context (), nullptr)
 		event_.signal_one ();
+		SYNC_END ()
 	}
 
 private:
@@ -165,17 +175,22 @@ private:
 };
 
 inline
-CORBA::PollableSet::_ref_type Pollable::create_pollable_set ()
+CORBA::PollableSet::_ref_type Pollable::create_pollable_set () const
 {
-	return make_reference <PollableSet> ()->_this ();
+	SYNC_BEGIN (*sync_domain_, nullptr)
+		return make_reference <PollableSet> ()->_this ();
+	SYNC_END ()
 }
 
 inline
 void Pollable::completed (Internal::IORequest::_ptr_type rq)
 {
+	SYNC_BEGIN (*sync_domain_, nullptr)
 	event_.signal_all ();
+	ready_ = true;
 	if (cur_set_)
 		cur_set_->pollable_ready ();
+	SYNC_END ()
 }
 
 }
