@@ -173,7 +173,7 @@ private:
 		CORBA::Internal::I_var <Legacy::Process> proxy (_this ());
 		Nirvana::Core::Scheduler::activity_begin ();
 		try {
-			Nirvana::Core::Port::ThreadBackground::start ();
+			ThreadBase::start ();
 		} catch (...) {
 			Nirvana::Core::Scheduler::activity_end ();
 			throw;
