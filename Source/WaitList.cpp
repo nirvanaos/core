@@ -52,9 +52,10 @@ uintptr_t& WaitListBase::wait ()
 			throw_BAD_INV_ORDER ();
 		// Hold reference to this object
 		WaitListRef <WaitListBase> hold (static_cast <WaitListImpl <WaitListBase>*> (this));
-		ed.suspend ();
+
 		static_cast <StackElem&> (ed).next = wait_list_;
 		wait_list_ = &ed;
+		ed.suspend ();
 	}
 	assert (finished ());
 	if (exception_)
