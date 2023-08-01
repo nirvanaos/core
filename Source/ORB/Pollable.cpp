@@ -42,6 +42,9 @@ Pollable::Pollable () :
 			std::ref (MemContext::current ().heap ()));
 }
 
+Pollable::~Pollable ()
+{}
+
 }
 }
 

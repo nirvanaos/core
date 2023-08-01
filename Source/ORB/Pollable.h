@@ -76,6 +76,8 @@ public:
 
 	void completed (Internal::IORequest::_ptr_type rq);
 
+	virtual ~Pollable ();
+
 protected:
 	Pollable ();
 
