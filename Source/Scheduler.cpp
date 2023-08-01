@@ -68,7 +68,7 @@ void Scheduler::do_shutdown ()
 #endif
 
 	// If no activity - toggle it.
-	if (!global_->activity_cnt) {
+	if (!global_->activity_cnt.load ()) {
 		global_->activity_cnt.increment ();
 		activity_end ();
 	}
