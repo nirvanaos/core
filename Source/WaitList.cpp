@@ -55,7 +55,12 @@ uintptr_t& WaitListBase::wait ()
 
 		static_cast <StackElem&> (ed).next = wait_list_;
 		wait_list_ = &ed;
-		ed.suspend ();
+		try {
+			ed.suspend ();
+		} catch (...) {
+			wait_list_ = reinterpret_cast <ExecDomain*> (static_cast <StackElem&> (ed).next);
+			throw;
+		}
 	}
 	assert (finished ());
 	if (exception_)
