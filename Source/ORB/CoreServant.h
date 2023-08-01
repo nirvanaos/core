@@ -30,6 +30,7 @@
 
 #include <CORBA/Server.h>
 #include "ServantProxyBase.h"
+#include "LifeCycleNoCopy.h"
 
 namespace CORBA {
 namespace Core {
@@ -41,7 +42,8 @@ namespace Core {
 template <class S, class Proxy>
 class NIRVANA_NOVTABLE CoreServant :
 	public Internal::ServantTraits <S>,
-	public Internal::ValueImplBase <S, typename Proxy::ServantInterface>
+	public Internal::ValueImplBase <S, typename Proxy::ServantInterface>,
+	public LifeCycleNoCopy <S>
 {
 public:
 	typedef typename Proxy::ServantInterface PrimaryInterface;

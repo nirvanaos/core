@@ -30,18 +30,19 @@
 
 #include <CORBA/Server.h>
 #include <CORBA/ORB_s.h>
-#include "../Binder.h"
 #include <CORBA/TC_Factory.h>
 #include "Services.h"
 #include "PolicyFactory.h"
+#include "LifeCycleNoCopy.h"
 #include "unmarshal_object.h"
+#include "RefCnt.h"
+#include "../Binder.h"
 
 namespace CORBA {
 namespace Core {
 
 /// Implementation of the CORBA::ORB interface.
-class ORB :
-	public CORBA::servant_traits <CORBA::ORB>::ServantStatic <ORB>
+class ORB : public servant_traits <CORBA::ORB>::ServantStatic <ORB>
 {
 public:
 	static const UShort IIOP_DEFAULT_PORT = 2809;
@@ -298,6 +299,11 @@ public:
 
 	static bool tc_equal (TypeCode::_ptr_type left, TypeCode::_ptr_type right, const TC_Pair* parent = nullptr);
 	static bool tc_equivalent (TypeCode::_ptr_type left, TypeCode::_ptr_type right, const TC_Pair* parent = nullptr);
+
+	static Internal::RefCnt::_ref_type create_ref_cnt (Internal::DynamicServant::_ptr_type deleter)
+	{
+		return make_pseudo <RefCnt> (deleter);
+	}
 
 private:
 
