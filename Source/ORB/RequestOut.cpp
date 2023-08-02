@@ -26,7 +26,6 @@
 #include "RequestOut.h"
 #include "OutgoingRequests.h"
 #include "DomainRemote.h"
-#include "../MemContextCore.h"
 
 using namespace Nirvana;
 using namespace Nirvana::Core;
@@ -74,16 +73,6 @@ RequestOut::RequestOut (unsigned GIOP_minor, unsigned response_flags,
 	system_exception_code_ (SystemException::EC_NO_EXCEPTION)
 {
 	SyncContext& sc = SyncContext::current ();
-#if (NIRVANA_DEBUG_ITERATORS != 0)
-	if (sc.is_legacy_mode ()) {
-		// Legacy process has memory context with interlocked access to runtime support.
-		// To avoid context switches in iterator debugging during the unmarshaling
-		// we have to create a new memory context with the same heap.
-		mem_context_ = servant_reference <MemContext>::create <Nirvana::Core::MemContextCore>
-			(std::ref (mem_context_->heap ()));
-	}
-#endif
-
 	if ((metadata.flags & Operation::FLAG_OUT_CPLX) && !sc.is_free_sync_context ())
 		response_flags_ |= FLAG_PREUNMARSHAL;
 

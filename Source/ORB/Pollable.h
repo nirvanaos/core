@@ -246,6 +246,16 @@ public:
 		return is_from_poller_;
 	}
 
+	void set_reply (CORBA::Internal::IORequest::_ptr_type reply) noexcept
+	{
+		request_ = reply;
+	}
+
+	CORBA::Internal::IORequest::_ref_type get_reply () noexcept
+	{
+		return std::move (request_);
+	}
+
 protected:
 	Poller (CORBA::Object::_ptr_type target, const char* operation_name);
 
@@ -253,6 +263,7 @@ private:
 	CORBA::Object::_ref_type operation_target_;
 	const char* operation_name_;
 	ReplyHandler::_ref_type associated_handler_;
+	CORBA::Internal::IORequest::_ref_type request_;
 	bool is_from_poller_;
 };
 
