@@ -29,7 +29,6 @@
 
 #include <CORBA/Server.h>
 #include <CORBA/RefCnt_s.h>
-#include "../MemContextObject.h"
 #include "../AtomicCounter.h"
 
 namespace CORBA {
@@ -37,8 +36,7 @@ namespace Core {
 
 class RefCnt :
 	public servant_traits <CORBA::Internal::RefCnt>::Servant <RefCnt>,
-	public LifeCycleNoCopy <RefCnt>,
-	public Nirvana::Core::MemContextObject
+	public LifeCycleNoCopy <RefCnt>
 {
 public:
 	void add_ref () noexcept
@@ -64,14 +62,19 @@ public:
 			throw BAD_PARAM ();
 	}
 
-	~RefCnt ()
-	{
-		// Delete leaked object on MemContextUser cleanup
-		delete_object ();
-	}
-
 private:
-	void delete_object () noexcept;
+	void delete_object () noexcept
+	{
+		if (deleter_) {
+			CORBA::Internal::DynamicServant::_ptr_type deleter = deleter_;
+			deleter_ = nullptr;
+			try {
+				deleter->delete_object ();
+			} catch (...) {
+				// TODO: Log
+			}
+		}
+	}
 
 private:
 	Nirvana::Core::RefCounter ref_cnt_;

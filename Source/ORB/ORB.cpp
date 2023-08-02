@@ -29,19 +29,6 @@
 namespace CORBA {
 namespace Core {
 
-void RefCnt::delete_object () noexcept
-{
-	if (deleter_) {
-		CORBA::Internal::DynamicServant::_ptr_type deleter = deleter_;
-		deleter_ = nullptr;
-		try {
-			deleter->delete_object ();
-		} catch (...) {
-			// TODO: Log
-		}
-	}
-}
-
 TypeCode::_ref_type ORB::get_compact_typecode (TypeCode::_ptr_type tc, const TC_Recurse* parent)
 {
 	TCKind kind = tc->kind ();
