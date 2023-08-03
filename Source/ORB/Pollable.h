@@ -42,8 +42,7 @@ namespace Core {
 class PollableSet;
 
 class Pollable :
-	public servant_traits <CORBA::Pollable>::Servant <Pollable>,
-	public servant_traits <CORBA::Internal::RequestCallback>
+	public servant_traits <CORBA::Pollable>::Servant <Pollable>
 {
 public:
 	static Pollable* cast (CORBA::Pollable::_ptr_type ptr) noexcept
