@@ -288,7 +288,7 @@ struct Shutdown : MessageHeader
 
 /// Message dispatch function.
 /// Called by the postman from portability layer.
-void dispatch_message (MessageHeader& message);
+void dispatch_message (MessageHeader& message) noexcept;
 
 /// Other domain platform properties.
 struct PlatformSizes

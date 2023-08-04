@@ -313,7 +313,7 @@ void ReceiveCloseConnection::run ()
 	Nirvana::Core::Binder::singleton ().remote_references ().close_connection (domain_id_);
 }
 
-void dispatch_message (MessageHeader& message)
+void dispatch_message (MessageHeader& message) noexcept
 {
 	switch (message.message_type) {
 		case MessageType::REQUEST: {
@@ -384,7 +384,10 @@ void dispatch_message (MessageHeader& message)
 		} break;
 
 		case MessageType::SHUTDOWN:
-			Scheduler::shutdown ();
+			try {
+				Scheduler::shutdown ();
+			} catch (...) {
+			}
 			break;
 
 		case MessageType::CLOSE_CONNECTION: {
