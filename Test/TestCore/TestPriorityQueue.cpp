@@ -16,8 +16,6 @@ using Nirvana::Core::RandomGen;
 
 namespace TestPriorityQueue {
 
-static const int MAX_QUEUE_SIZE = 10000;
-
 template <class PQ>
 class TestPriorityQueue :
 	public ::testing::Test
@@ -78,7 +76,7 @@ class QueueWithPool : public QueueWithPoolBase
 {
 public:
 	QueueWithPool () :
-		QueueWithPoolBase (MAX_QUEUE_SIZE)
+		QueueWithPoolBase (8)
 	{}
 };
 
@@ -167,6 +165,8 @@ class ThreadTest
 {
 	static const size_t NUM_PRIORITIES = 20;
 	static const int NUM_ITERATIONS = 10000;
+	static const int MAX_QUEUE_SIZE = 10000;
+
 public:
 	ThreadTest () :
 		queue_ (),

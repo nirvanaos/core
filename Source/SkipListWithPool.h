@@ -102,7 +102,7 @@ private:
 	{
 		Stackable* se = stack_.pop ();
 		if (!se) {
-			assert (false); // Hardly ever, but may be.
+			// Rarely, but may be.
 			se = real_allocate_node ();
 			// This increases the minimum pool size and helps to avoid this situation in the future.
 		}
