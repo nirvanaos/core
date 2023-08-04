@@ -49,6 +49,12 @@ public:
 		queue_items_ (0)
 	{}
 
+	~SchedulerImpl ()
+	{
+		assert (free_cores_ == Port::SystemInfo::hardware_concurrency ());
+		assert (queue_items_ == 0);
+	}
+
 	void create_item ()
 	{
 		queue_.create_item ();
