@@ -74,16 +74,38 @@ public:
 	/// \returns Local deadline time.
 	static DeadlineTime deadline_from_UTC (const TimeBase::UtcT& utc) noexcept
 	{
-		return Port::Chrono::deadline_from_UTC (utc);
+		TimeBase::UtcT cur = UTC ();
+		return deadline_clock () + time_to_deadline (utc.time () - cur.time () + inacc_max (utc, cur));
 	}
-	
+
 	/// Convert local deadline time to UTC time.
 	/// 
 	/// \param deadline Local deadline time.
 	/// \returns UTC time.
 	static TimeBase::UtcT deadline_to_UTC (DeadlineTime deadline) noexcept
 	{
-		return Port::Chrono::deadline_to_UTC (deadline);
+		TimeBase::UtcT utc = UTC ();
+		utc.time (utc.time () + deadline_to_time (deadline));
+		return utc;
+	}
+
+	/// Convert deadline time interval to 100ns interval.
+	/// 
+	/// \param deadline Deadline time interval.
+	/// \returns Time interval in 100ns units.
+	static int64_t deadline_to_time (int64_t deadline) noexcept
+	{
+		return rescale64 (deadline, 10000000,
+			deadline_clock_frequency () - 1, deadline_clock_frequency ());
+	}
+
+	/// Convert 100ns interval to deadline interval.
+	/// 
+	/// \param Time Time interval in 100ns units.
+	/// \returns Deadline time interval.
+	static int64_t time_to_deadline (int64_t time) noexcept
+	{
+		return rescale64 (time, deadline_clock_frequency (), 0, 10000000);
 	}
 
 	/// Make deadline.
@@ -121,6 +143,17 @@ public:
 		if (ms > std::numeric_limits <int16_t>::max ())
 			ms = std::numeric_limits <int16_t>::max ();
 		return std::numeric_limits <int16_t>::max () - (int16_t)ms;
+	}
+
+private:
+	static uint64_t inacc_max (const TimeBase::UtcT& t1, const TimeBase::UtcT& t2) noexcept
+	{
+		if (t1.inacchi () > t2.inacchi ())
+			return ((uint64_t)t1.inacchi () << 32) | t1.inacclo ();
+		else if (t1.inacchi () < t2.inacchi ())
+			return ((uint64_t)t2.inacchi () << 32) | t2.inacclo ();
+		else
+			return ((uint64_t)t1.inacchi () << 32) | std::max (t1.inacclo (), t2.inacclo ());
 	}
 };
 
