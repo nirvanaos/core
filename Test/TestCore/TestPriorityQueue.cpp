@@ -1,4 +1,5 @@
 #include "../Source/PriorityQueue.h"
+#include "../Source/SkipListWithPool.h"
 #include "../Source/MemContextCore.h"
 #include <gtest/gtest.h>
 #include <queue>
@@ -10,9 +11,12 @@
 
 using Nirvana::DeadlineTime;
 using Nirvana::Core::PriorityQueue;
+using Nirvana::Core::SkipListWithPool;
 using Nirvana::Core::RandomGen;
 
 namespace TestPriorityQueue {
+
+static const int MAX_QUEUE_SIZE = 10000;
 
 template <class PQ>
 class TestPriorityQueue :
@@ -68,14 +72,25 @@ struct StdNode : Value
 
 typedef std::priority_queue <StdNode> StdPriorityQueue;
 
+typedef SkipListWithPool <PriorityQueue <Value, 10> > QueueWithPoolBase;
+
+class QueueWithPool : public QueueWithPoolBase
+{
+public:
+	QueueWithPool () :
+		QueueWithPoolBase (MAX_QUEUE_SIZE)
+	{}
+};
+
 typedef ::testing::Types <
-	PriorityQueue <Value, 1>,
-	PriorityQueue <Value, 2>,
-	PriorityQueue <Value, 4>,
-	PriorityQueue <Value, 8>,
-	PriorityQueue <Value, 10>,
-	PriorityQueue <Value, 16>,
-	PriorityQueue <Value, 32>
+	PriorityQueue <Value, 1>,  // 0
+	PriorityQueue <Value, 2>,  // 1
+	PriorityQueue <Value, 4>,  // 2
+	PriorityQueue <Value, 8>,  // 3
+	PriorityQueue <Value, 10>, // 4
+	PriorityQueue <Value, 16>, // 5
+	PriorityQueue <Value, 32>, // 6
+	QueueWithPool              // 7
 > MaxLevel;
 
 TYPED_TEST_SUITE (TestPriorityQueue, MaxLevel);
@@ -152,7 +167,6 @@ class ThreadTest
 {
 	static const size_t NUM_PRIORITIES = 20;
 	static const int NUM_ITERATIONS = 10000;
-	static const int MAX_QUEUE_SIZE = 10000;
 public:
 	ThreadTest () :
 		queue_ (),
