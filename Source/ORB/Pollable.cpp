@@ -42,6 +42,12 @@ Pollable::Pollable () :
 			std::ref (MemContext::current ().heap ()));
 }
 
+Pollable::Pollable (const Pollable& src) :
+	sync_domain_ (src.sync_domain_),
+	cur_set_ (nullptr),
+	ready_ (false)
+{}
+
 Pollable::~Pollable ()
 {}
 
