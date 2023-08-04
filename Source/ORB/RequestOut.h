@@ -33,6 +33,7 @@
 #include "../ExecDomain.h"
 #include "../UserObject.h"
 #include "../Event.h"
+#include "../Timer.h"
 
 namespace CORBA {
 namespace Core {
@@ -42,6 +43,9 @@ class NIRVANA_NOVTABLE RequestOut : public RequestGIOP
 {
 	typedef RequestGIOP Base;
 	static const unsigned FLAG_PREUNMARSHAL = 8;
+
+	static const TimeBase::TimeT DEFAULT_TIMEOUT = 10 * TimeBase::MINUTE;
+	static const TimeBase::TimeT MIN_TIMEOUT = 1 * TimeBase::SECOND;
 
 public:
 	// Request id generator.
@@ -114,12 +118,14 @@ protected:
 	void pre_invoke (IdPolicy id_policy);
 
 	virtual void finalize () noexcept
-	{}
+	{
+		timer_.cancel ();
+	}
 
 private:
 	void preunmarshal (TypeCode::_ptr_type tc, std::vector <Octet>& buf, Internal::IORequest::_ptr_type out);
 
-protected:
+private:
 	const Internal::Operation* metadata_;
 	RequestId id_;
 
@@ -142,6 +148,24 @@ protected:
 
 	SystemException::Code system_exception_code_;
 	SystemException::_Data system_exception_data_;
+
+	class Timer : public Nirvana::Core::Timer
+	{
+	public:
+		void set (TimeBase::TimeT timeout, RequestId id)
+		{
+			id_ = id;
+			Nirvana::Core::Timer::set (0, timeout, 0);
+		}
+
+	protected:
+		virtual void signal () noexcept override;
+
+	private:
+		RequestId id_;
+	};
+
+	Timer timer_;
 
 	static std::atomic <IdGenType> last_id_;
 };

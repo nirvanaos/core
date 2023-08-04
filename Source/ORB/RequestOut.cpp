@@ -81,6 +81,9 @@ RequestOut::RequestOut (unsigned GIOP_minor, unsigned response_flags,
 		deadline_ = ed.deadline ();
 	else
 		deadline_ = ed.get_request_deadline (true);
+
+	if (INFINITE_DEADLINE == deadline_)
+		deadline_ = Chrono::make_deadline (DEFAULT_TIMEOUT);
 }
 
 RequestOut::~RequestOut ()
@@ -347,6 +350,9 @@ void RequestOut::pre_invoke (IdPolicy id_policy)
 		OutgoingRequests::new_request (*this, id_policy);
 	else
 		OutgoingRequests::new_request_oneway (*this, id_policy);
+
+	timer_.set (std::max (Chrono::deadline_to_time (
+		deadline_ - Chrono::deadline_clock ()), (int64_t)MIN_TIMEOUT), id ());
 }
 
 void RequestOut::set_exception (Any& e)
@@ -436,6 +442,11 @@ bool RequestOut::get_exception (Any& e)
 	}
 	e <<= UNKNOWN (unknown_minor);
 	return true;
+}
+
+void RequestOut::Timer::signal () noexcept
+{
+	OutgoingRequests::set_system_exception (id_, TIMEOUT (MAKE_OMG_MINOR (3)));
 }
 
 }
