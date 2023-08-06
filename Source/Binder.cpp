@@ -55,6 +55,7 @@ bool Binder::initialized_ = false;
 void Binder::ObjectMap::insert (const char* name, InterfacePtr itf)
 {
 	assert (itf);
+	assert (*name);
 	if (!ObjectMapBase::emplace (name, itf).second)
 		throw_INV_OBJREF ();	// Duplicated name
 }

@@ -29,7 +29,7 @@
 #pragma once
 
 #include <CORBA/Server.h>
-#include <CORBA/Messaging_s.h>
+#include <CORBA/Pollable_s.h>
 #include <CORBA/Proxy/IOReference_s.h>
 #include "../EventSync.h"
 #include "../MapUnorderedUnstable.h"
@@ -42,8 +42,11 @@ namespace Core {
 class PollableSet;
 
 class Pollable :
-	public servant_traits <CORBA::Pollable>::Servant <Pollable>
+	public Internal::Aggregated <Pollable, CORBA::Pollable>,
+	public servant_traits <Internal::RequestCallback>::Servant <Pollable>
 {
+	DECLARE_CORE_INTERFACE
+
 public:
 	static Pollable* cast (CORBA::Pollable::_ptr_type ptr) noexcept
 	{
@@ -90,18 +93,29 @@ private:
 
 class DIIPollable :
 	public Pollable,
-	public Internal::ValueTraits <DIIPollable>,
-	public Internal::ServantTraits <DIIPollable>,
+//	public Internal::ValueTraits <DIIPollable>,
+//	public Internal::ServantTraits <DIIPollable>,
 	public Internal::ValueImpl <DIIPollable, CORBA::DIIPollable>,
-	public CORBA::Internal::LifeCycleRefCnt <DIIPollable>
+//	public CORBA::Internal::LifeCycleRefCnt <DIIPollable>
+public Internal::RefCountBase <DIIPollable>
 {
 public:
-	using CORBA::Internal::ServantTraits <DIIPollable>::_wide_val;
-	using CORBA::Internal::ServantTraits <DIIPollable>::_implementation;
-	using CORBA::Internal::LifeCycleRefCnt <DIIPollable>::__duplicate;
-	using CORBA::Internal::LifeCycleRefCnt <DIIPollable>::__release;
-	using CORBA::Internal::LifeCycleRefCnt <DIIPollable>::_duplicate;
-	using CORBA::Internal::LifeCycleRefCnt <DIIPollable>::_release;
+	virtual void _add_ref () noexcept override
+	{
+		Internal::RefCountBase <DIIPollable>::_add_ref ();
+	}
+
+	virtual void _remove_ref () noexcept override
+	{
+		Internal::RefCountBase <DIIPollable>::_remove_ref ();
+	}
+
+	//	using CORBA::Internal::ServantTraits <DIIPollable>::_wide_val;
+//	using CORBA::Internal::ServantTraits <DIIPollable>::_implementation;
+//	using CORBA::Internal::LifeCycleRefCnt <DIIPollable>::__duplicate;
+//	using CORBA::Internal::LifeCycleRefCnt <DIIPollable>::__release;
+//	using CORBA::Internal::LifeCycleRefCnt <DIIPollable>::_duplicate;
+//	using CORBA::Internal::LifeCycleRefCnt <DIIPollable>::_release;
 
 	Interface* _query_valuetype (Internal::String_in id) noexcept
 	{
@@ -194,78 +208,6 @@ void Pollable::completed (Internal::IORequest::_ptr_type rq)
 		cur_set_->pollable_ready ();
 	SYNC_END ()
 }
-
-}
-}
-
-namespace Messaging {
-namespace Core {
-
-class Poller :
-	public CORBA::Core::Pollable,
-	public CORBA::Internal::ValueTraits <Poller>,
-	public CORBA::Internal::ServantTraits <Poller>,
-	public CORBA::Internal::ValueImpl <Poller, Messaging::Poller>,
-	public CORBA::Internal::LifeCycleRefCnt <Poller>
-{
-public:
-	using CORBA::Internal::ServantTraits <Poller>::_wide_val;
-	using CORBA::Internal::ServantTraits <Poller>::_implementation;
-	using CORBA::Internal::LifeCycleRefCnt <Poller>::__duplicate;
-	using CORBA::Internal::LifeCycleRefCnt <Poller>::__release;
-	using CORBA::Internal::LifeCycleRefCnt <Poller>::_duplicate;
-	using CORBA::Internal::LifeCycleRefCnt <Poller>::_release;
-
-	Interface* _query_valuetype (CORBA::Internal::String_in id) noexcept
-	{
-		return CORBA::Internal::FindInterface <Messaging::Poller, CORBA::Pollable>::find (*this, id);
-	}
-
-	CORBA::Object::_ref_type operation_target () const noexcept
-	{
-		return operation_target_;
-	}
-
-	IDL::String operation_name () const
-	{
-		return operation_name_;
-	}
-
-	ReplyHandler::_ref_type associated_handler () const noexcept
-	{
-		return associated_handler_;
-	}
-
-	void associated_handler (ReplyHandler::_ptr_type handler) noexcept
-	{
-		associated_handler_ = handler;
-	}
-
-	bool is_from_poller () const noexcept
-	{
-		return is_from_poller_;
-	}
-
-	void set_reply (CORBA::Internal::IORequest::_ptr_type reply) noexcept
-	{
-		request_ = reply;
-	}
-
-	CORBA::Internal::IORequest::_ref_type get_reply () noexcept
-	{
-		return std::move (request_);
-	}
-
-protected:
-	Poller (CORBA::Object::_ptr_type target, const char* operation_name);
-
-private:
-	CORBA::Object::_ref_type operation_target_;
-	const char* operation_name_;
-	ReplyHandler::_ref_type associated_handler_;
-	CORBA::Internal::IORequest::_ref_type request_;
-	bool is_from_poller_;
-};
 
 }
 }

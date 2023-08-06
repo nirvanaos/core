@@ -53,15 +53,3 @@ Pollable::~Pollable ()
 
 }
 }
-
-namespace Messaging {
-namespace Core {
-
-Poller::Poller (CORBA::Object::_ptr_type target, const char* operation_name) :
-	operation_target_ (target),
-	operation_name_ (operation_name),
-	is_from_poller_ (false)
-{}
-
-}
-}
