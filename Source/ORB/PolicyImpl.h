@@ -48,7 +48,7 @@ public:
 	// Disable implicit activation
 	using PortableServer::NoDefaultPOA::__default_POA;
 
-	static PolicyType _s_get_policy_type (Internal::Bridge <CORBA::Policy>*, Internal::Interface*)
+	static PolicyType _s__get_policy_type (Internal::Bridge <CORBA::Policy>*, Internal::Interface*)
 	{
 		return id;
 	}

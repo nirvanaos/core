@@ -88,7 +88,7 @@ public:
 		return Chrono::deadline_clock ();
 	}
 
-	static CORBA::Internal::Type <DeadlineTime>::ConstRef _s_get_deadline_clock_frequency (CORBA::Internal::Bridge <Nirvana::System>* _b, CORBA::Internal::Interface* _env)
+	static CORBA::Internal::Type <DeadlineTime>::ConstRef _s__get_deadline_clock_frequency (CORBA::Internal::Bridge <Nirvana::System>* _b, CORBA::Internal::Interface* _env)
 	{
 		return CORBA::Internal::Type <DeadlineTime>::ret (Chrono::deadline_clock_frequency ());
 	}
@@ -174,7 +174,7 @@ public:
 		return RuntimeGlobal::current ().rand ();
 	}
 
-	static size_t _s_get_hardware_concurrency (CORBA::Internal::Bridge <Nirvana::System>* _b, CORBA::Internal::Interface* _env)
+	static size_t _s__get_hardware_concurrency (CORBA::Internal::Bridge <Nirvana::System>* _b, CORBA::Internal::Interface* _env)
 	{
 		return Port::SystemInfo::hardware_concurrency ();
 	}
