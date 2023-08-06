@@ -26,6 +26,7 @@
 */
 
 #include <CORBA/InterfaceRepository.idl>
+#include <CORBA/TypeCode.idl>
 
 module CORBA {
 module Core {
