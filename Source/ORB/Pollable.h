@@ -42,11 +42,8 @@ namespace Core {
 class PollableSet;
 
 class Pollable :
-	public Internal::Aggregated <Pollable, CORBA::Pollable>,
-	public servant_traits <Internal::RequestCallback>::Servant <Pollable>
+	public servant_traits <CORBA::Pollable>::Servant <Pollable>
 {
-	DECLARE_CORE_INTERFACE
-
 public:
 	static Pollable* cast (CORBA::Pollable::_ptr_type ptr) noexcept
 	{
@@ -79,7 +76,7 @@ public:
 	void completed (Internal::IORequest::_ptr_type rq);
 
 	Pollable (const Pollable& src);
-	virtual ~Pollable ();
+	~Pollable ();
 
 protected:
 	Pollable ();
@@ -93,29 +90,17 @@ private:
 
 class DIIPollable :
 	public Pollable,
-//	public Internal::ValueTraits <DIIPollable>,
-//	public Internal::ServantTraits <DIIPollable>,
+	public Internal::ServantTraits <DIIPollable>,
 	public Internal::ValueImpl <DIIPollable, CORBA::DIIPollable>,
-//	public CORBA::Internal::LifeCycleRefCnt <DIIPollable>
-public Internal::RefCountBase <DIIPollable>
+	public CORBA::Internal::LifeCycleRefCnt <DIIPollable>
 {
 public:
-	virtual void _add_ref () noexcept override
-	{
-		Internal::RefCountBase <DIIPollable>::_add_ref ();
-	}
-
-	virtual void _remove_ref () noexcept override
-	{
-		Internal::RefCountBase <DIIPollable>::_remove_ref ();
-	}
-
-	//	using CORBA::Internal::ServantTraits <DIIPollable>::_wide_val;
-//	using CORBA::Internal::ServantTraits <DIIPollable>::_implementation;
-//	using CORBA::Internal::LifeCycleRefCnt <DIIPollable>::__duplicate;
-//	using CORBA::Internal::LifeCycleRefCnt <DIIPollable>::__release;
-//	using CORBA::Internal::LifeCycleRefCnt <DIIPollable>::_duplicate;
-//	using CORBA::Internal::LifeCycleRefCnt <DIIPollable>::_release;
+	using CORBA::Internal::ServantTraits <DIIPollable>::_wide_val;
+	using CORBA::Internal::ServantTraits <DIIPollable>::_implementation;
+	using CORBA::Internal::LifeCycleRefCnt <DIIPollable>::__duplicate;
+	using CORBA::Internal::LifeCycleRefCnt <DIIPollable>::__release;
+	using CORBA::Internal::LifeCycleRefCnt <DIIPollable>::_duplicate;
+	using CORBA::Internal::LifeCycleRefCnt <DIIPollable>::_release;
 
 	Interface* _query_valuetype (Internal::String_in id) noexcept
 	{

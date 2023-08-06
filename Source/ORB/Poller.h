@@ -36,7 +36,6 @@ namespace Core {
 
 class Poller :
 	public CORBA::Core::Pollable,
-	public CORBA::Internal::ValueTraits <Poller>,
 	public CORBA::Internal::ServantTraits <Poller>,
 	public CORBA::Internal::ValueImpl <Poller, Messaging::Poller>,
 	public CORBA::Internal::LifeCycleRefCnt <Poller>
