@@ -386,7 +386,7 @@ void RequestIn::post_send_success () noexcept
 			}
 			_add_ref ();
 			try {
-				((DelayedReleaseTimer*)&delayed_release_timer_)->set (0, target_domain_->request_latency (), 0);
+				((DelayedReleaseTimer*)&delayed_release_timer_)->set (0, target_domain_->request_latency () * 2, 0);
 			} catch (...) {
 				((DelayedReleaseTimer*)&delayed_release_timer_)->DelayedReleaseTimer::~DelayedReleaseTimer ();
 				_remove_ref ();
