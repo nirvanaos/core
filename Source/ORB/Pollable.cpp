@@ -24,6 +24,7 @@
 *  popov.nirvana@gmail.com
 */
 #include "Pollable.h"
+#include "ServantProxyLocal.h"
 
 using namespace Nirvana::Core;
 
@@ -50,6 +51,33 @@ Pollable::Pollable (const Pollable& src) :
 
 Pollable::~Pollable ()
 {}
+
+bool Pollable::is_ready (ULong timeout)
+{
+	if (!timeout)
+		return ready_;
+	else {
+		SYNC_BEGIN (*sync_domain_, nullptr)
+			return event_.wait (Nirvana::Core::EventSync::ms2time (timeout));
+		SYNC_END ()
+	}
+}
+
+void Pollable::on_complete (Internal::IORequest::_ptr_type reply)
+{
+	event_.signal_all ();
+	ready_ = true;
+	if (cur_set_)
+		cur_set_->pollable_ready ();
+}
+
+inline
+void PollableSet::pollable_ready ()
+{
+	SYNC_BEGIN (local2proxy (_this ())->sync_context (), nullptr)
+		event_.signal_one ();
+	SYNC_END ()
+}
 
 }
 }

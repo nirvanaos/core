@@ -29,46 +29,48 @@
 #pragma once
 
 #include "Pollable.h"
+#include "ProxyManager.h"
 #include <CORBA/Messaging_s.h>
 
-namespace Messaging {
+namespace CORBA {
 namespace Core {
 
+class ProxyManager;
+
 class Poller :
-	public CORBA::Core::Pollable,
-	public CORBA::Internal::ServantTraits <Poller>,
-	public CORBA::Internal::ValueImpl <Poller, Messaging::Poller>,
-	public CORBA::Internal::LifeCycleRefCnt <Poller>
+	public Pollable,
+	public Internal::ServantTraits <Poller>,
+	public Internal::ValueImpl <Poller, Messaging::Poller>,
+	public Internal::LifeCycleRefCnt <Poller>
 {
 public:
-	using CORBA::Internal::ServantTraits <Poller>::_wide_val;
-	using CORBA::Internal::ServantTraits <Poller>::_implementation;
-	using CORBA::Internal::LifeCycleRefCnt <Poller>::__duplicate;
-	using CORBA::Internal::LifeCycleRefCnt <Poller>::__release;
-	using CORBA::Internal::LifeCycleRefCnt <Poller>::_duplicate;
-	using CORBA::Internal::LifeCycleRefCnt <Poller>::_release;
+	using Internal::ServantTraits <Poller>::_wide_val;
+	using Internal::ServantTraits <Poller>::_implementation;
+	using Internal::LifeCycleRefCnt <Poller>::__duplicate;
+	using Internal::LifeCycleRefCnt <Poller>::__release;
+	using Internal::LifeCycleRefCnt <Poller>::_duplicate;
+	using Internal::LifeCycleRefCnt <Poller>::_release;
 
-	Interface* _query_valuetype (CORBA::Internal::String_in id) noexcept
-	{
-		return CORBA::Internal::FindInterface <Messaging::Poller, CORBA::Pollable>::find (*this, id);
-	}
+	Poller (ProxyManager& proxy, Internal::IOReference::OperationIndex op);
 
-	CORBA::Object::_ref_type operation_target () const noexcept
+	virtual Internal::Interface* _query_valuetype (CORBA::Internal::String_in id) noexcept override;
+
+	Object::_ref_type operation_target () const noexcept
 	{
-		return operation_target_;
+		return proxy_->get_proxy ();
 	}
 
 	IDL::String operation_name () const
 	{
-		return operation_name_;
+		return proxy_->operation_metadata (op_).name;
 	}
 
-	ReplyHandler::_ref_type associated_handler () const noexcept
+	Messaging::ReplyHandler::_ref_type associated_handler () const noexcept
 	{
 		return associated_handler_;
 	}
 
-	void associated_handler (ReplyHandler::_ptr_type handler) noexcept
+	void associated_handler (Messaging::ReplyHandler::_ptr_type handler) noexcept
 	{
 		associated_handler_ = handler;
 	}
@@ -78,30 +80,48 @@ public:
 		return is_from_poller_;
 	}
 
-	void set_reply (CORBA::Internal::IORequest::_ptr_type reply) noexcept
+	Internal::IORequest::_ref_type get_reply (uint32_t timeout, Internal::IOReference::OperationIndex op)
 	{
-		request_ = reply;
+		if (op.interface_idx () != op_.interface_idx () || op.operation_idx () != op_.operation_idx ()) {
+			is_from_poller_ = true;
+			throw WrongTransaction ();
+		}
+		if (!is_ready (timeout)) {
+			is_from_poller_ = true;
+			if (timeout)
+				throw TIMEOUT (MAKE_OMG_MINOR (1));
+			else
+				throw NO_RESPONSE (MAKE_OMG_MINOR (1));
+		}
+		SYNC_BEGIN (sync_domain (), nullptr)
+		if (!reply_) {
+			is_from_poller_ = true;
+			throw OBJECT_NOT_EXIST (MAKE_OMG_MINOR (5));
+		}
+		is_from_poller_ = false;
+		return std::move (reply_);
+		SYNC_END ()
 	}
-
-	CORBA::Internal::IORequest::_ref_type get_reply () noexcept
-	{
-		return std::move (request_);
-	}
-
-protected:
-	Poller (CORBA::Object::_ptr_type target, const char* operation_name) :
-		operation_target_ (target),
-		operation_name_ (operation_name),
-		is_from_poller_ (false)
-	{}
 
 private:
-	CORBA::Object::_ref_type operation_target_;
-	const char* operation_name_;
-	ReplyHandler::_ref_type associated_handler_;
-	CORBA::Internal::IORequest::_ref_type request_;
+	virtual void on_complete (Internal::IORequest::_ptr_type reply) override;
+
+private:
+	servant_reference <ProxyManager> proxy_;
+	Messaging::ReplyHandler::_ref_type associated_handler_;
+	Internal::IORequest::_ref_type reply_;
+	const Internal::IOReference::OperationIndex op_;
 	bool is_from_poller_;
 };
+
+inline
+Poller::Poller (ProxyManager& proxy, Internal::IOReference::OperationIndex op) :
+	proxy_ (&proxy),
+	op_ (op),
+	is_from_poller_ (false)
+{
+
+}
 
 }
 }

@@ -34,16 +34,17 @@
 #include "../EventSync.h"
 #include "../MapUnorderedUnstable.h"
 #include "../Synchronized.h"
-#include "ServantProxyLocal.h"
 
 namespace CORBA {
 namespace Core {
 
 class PollableSet;
 
-class Pollable :
+class NIRVANA_NOVTABLE Pollable :
 	public servant_traits <CORBA::Pollable>::Servant <Pollable>
 {
+	typedef servant_traits <CORBA::Pollable>::Servant <Pollable> Servant;
+
 public:
 	static Pollable* cast (CORBA::Pollable::_ptr_type ptr) noexcept
 	{
@@ -51,16 +52,13 @@ public:
 			static_cast <Internal::Bridge <CORBA::Pollable>*> (&ptr));
 	}
 
-	bool is_ready (ULong timeout)
+	virtual Internal::Interface* _query_valuetype (Internal::String_in id) noexcept
 	{
-		if (!timeout)
-			return ready_;
-		else {
-			SYNC_BEGIN (*sync_domain_, nullptr)
-				return event_.wait (Nirvana::Core::EventSync::ms2time (timeout));
-			SYNC_END ()
-		}
+		return Servant::_query_valuetype (id);
 	}
+
+	// Outline, called also in Poller
+	bool is_ready (ULong timeout);
 
 	CORBA::PollableSet::_ref_type create_pollable_set () const;
 
@@ -73,13 +71,25 @@ public:
 		SYNC_END ()
 	}
 
-	void completed (Internal::IORequest::_ptr_type rq);
+	void completed (Internal::IORequest::_ptr_type rq)
+	{
+		SYNC_BEGIN (*sync_domain_, nullptr)
+			on_complete (rq);
+		SYNC_END ()
+	}
 
 	Pollable (const Pollable& src);
 	~Pollable ();
 
 protected:
 	Pollable ();
+
+	virtual void on_complete (Internal::IORequest::_ptr_type reply);
+
+	Nirvana::Core::SyncDomain& sync_domain () noexcept
+	{
+		return *sync_domain_;
+	}
 
 private:
 	servant_reference <Nirvana::Core::SyncDomain> sync_domain_;
@@ -102,7 +112,7 @@ public:
 	using CORBA::Internal::LifeCycleRefCnt <DIIPollable>::_duplicate;
 	using CORBA::Internal::LifeCycleRefCnt <DIIPollable>::_release;
 
-	Interface* _query_valuetype (Internal::String_in id) noexcept
+	virtual Internal::Interface* _query_valuetype (Internal::String_in id) noexcept override
 	{
 		return Internal::FindInterface <CORBA::DIIPollable, CORBA::Pollable>::find (*this, id);
 	}
@@ -160,12 +170,7 @@ public:
 		return (uint16_t)std::max (set_.size (), (size_t)std::numeric_limits <uint16_t>::max ());
 	}
 
-	void pollable_ready ()
-	{
-		SYNC_BEGIN (local2proxy (_this ())->sync_context (), nullptr)
-		event_.signal_one ();
-		SYNC_END ()
-	}
+	void pollable_ready ();
 
 private:
 	typedef Nirvana::Core::SetUnorderedUnstable <servant_reference <Pollable>,
@@ -180,17 +185,6 @@ CORBA::PollableSet::_ref_type Pollable::create_pollable_set () const
 {
 	SYNC_BEGIN (*sync_domain_, nullptr)
 		return make_reference <PollableSet> ()->_this ();
-	SYNC_END ()
-}
-
-inline
-void Pollable::completed (Internal::IORequest::_ptr_type rq)
-{
-	SYNC_BEGIN (*sync_domain_, nullptr)
-	event_.signal_all ();
-	ready_ = true;
-	if (cur_set_)
-		cur_set_->pollable_ready ();
 	SYNC_END ()
 }
 

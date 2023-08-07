@@ -51,6 +51,7 @@ namespace Core {
 
 class Reference;
 typedef servant_reference <Reference> ReferenceRef;
+
 class ReferenceLocal;
 typedef servant_reference <ReferenceLocal> ReferenceLocalRef;
 
@@ -251,6 +252,9 @@ public:
 	{
 		return nullptr;
 	}
+
+	// Poller creation
+	Messaging::Poller::_ref_type create_poller (OperationIndex op);
 
 	// Misc
 
