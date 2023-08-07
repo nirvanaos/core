@@ -52,8 +52,9 @@ public:
 	using Internal::LifeCycleRefCnt <Poller>::_release;
 
 	Poller (ProxyManager& proxy, Internal::IOReference::OperationIndex op);
+	Poller (const Poller& src);
 
-	virtual Internal::Interface* _query_valuetype (CORBA::Internal::String_in id) noexcept override;
+	virtual Internal::Interface* _query_valuetype (const IDL::String& id) noexcept override;
 
 	Object::_ref_type operation_target () const noexcept
 	{
@@ -106,20 +107,35 @@ public:
 private:
 	virtual void on_complete (Internal::IORequest::_ptr_type reply) override;
 
-private:
-	struct ValueEntry
+	struct ValueEntry : public InterfaceId
 	{
-		const Char* iid;
-		size_t iid_len;
+		Internal::ProxyFactory::_ptr_type proxy_factory;
 		Internal::Interface::_ptr_type value;
 		Internal::DynamicServant::_ptr_type deleter;
+
+		ValueEntry (const ValueEntry& src) :
+			InterfaceId (src),
+			proxy_factory (src.proxy_factory),
+			value (nullptr),
+			deleter (nullptr)
+		{}
+
+		~ValueEntry ()
+		{
+			if (deleter)
+				deleter->delete_object ();
+		}
 	};
 
-	Nirvana::Core::Array <ValueEntry, Nirvana::Core::UserAllocator> values_;
+	ValueEntry* find_value (Internal::String_in iid);
+	void create_value (ValueEntry& ve);
 
+private:
 	servant_reference <ProxyManager> proxy_;
 	Messaging::ReplyHandler::_ref_type associated_handler_;
 	Internal::IORequest::_ref_type reply_;
+	Nirvana::Core::Array <ValueEntry, Nirvana::Core::UserAllocator> values_;
+	const ValueEntry* primary_;
 	const Internal::IOReference::OperationIndex op_;
 	bool is_from_poller_;
 };
@@ -127,10 +143,73 @@ private:
 inline
 Poller::Poller (ProxyManager& proxy, Internal::IOReference::OperationIndex op) :
 	proxy_ (&proxy),
+	primary_ (nullptr),
 	op_ (op),
 	is_from_poller_ (false)
 {
+	const ProxyManager::InterfaceEntry* primary_interface = proxy.primary_interface ();
+	assert (primary_interface && primary_interface->proxy_factory->metadata ()->poller_id);
+	if (!(primary_interface && primary_interface->proxy_factory->metadata ()->poller_id))
+		throw NO_IMPLEMENT ();
 
+	size_t val_cnt = 0;
+	for (auto pi = proxy.interfaces ().begin (), end = proxy.interfaces ().end (); pi != end; ++pi) {
+		if (pi->proxy_factory->metadata ()->poller_id)
+			++val_cnt;
+	}
+
+	assert (val_cnt);
+	val_cnt += 2;
+
+	values_.allocate (val_cnt);
+	auto pv = values_.begin ();
+	pv->iid = Internal::RepIdOf <CORBA::Pollable>::id;
+	pv->iid_len = std::size (Internal::RepIdOf <CORBA::Pollable>::id) - 1;
+	pv->value = CORBA::Pollable::_ptr_type (this);
+	++pv;
+	pv->iid = Internal::RepIdOf <Messaging::Poller>::id;
+	pv->iid_len = std::size (Internal::RepIdOf <Messaging::Poller>::id) - 1;
+	pv->value = Messaging::Poller::_ptr_type (this);
+	++pv;
+
+	for (auto pi = proxy.interfaces ().begin (), end = proxy.interfaces ().end (); pi != end; ++pi) {
+		const Char* id = pi->proxy_factory->metadata ()->poller_id;
+		if (id) {
+			pv->iid = id;
+			pv->iid_len = strlen (id);
+		}
+		if (primary_interface == pi)
+			primary_ = pv;
+		++pv;
+	}
+
+	std::sort (values_.begin (), values_.end ());
+
+	// Check that all interfaces are unique
+	if (!is_ascending (values_.begin (), values_.end (), std::less <InterfaceId> ()))
+		throw OBJ_ADAPTER (); // TODO: Log
+
+	// Create values
+	for (auto& ve : values_) {
+		create_value (ve);
+	}
+}
+
+inline
+Poller::Poller (const Poller& src) :
+	proxy_ (src.proxy_),
+	values_ (src.values_),
+	primary_ (values_.begin () + (src.primary_ - src.values_.begin ())),
+	op_ (src.op_),
+	is_from_poller_ (false)
+{
+	find_value (Internal::RepIdOf <CORBA::Pollable>::id)->value = CORBA::Pollable::_ptr_type (this);
+	find_value (Internal::RepIdOf <Messaging::Poller>::id)->value = Messaging::Poller::_ptr_type (this);
+
+	// Create values
+	for (auto& ve : values_) {
+		create_value (ve);
+	}
 }
 
 }

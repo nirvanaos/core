@@ -36,24 +36,6 @@ namespace CORBA {
 using namespace Internal;
 namespace Core {
 
-struct ProxyManager::IEPred
-{
-	bool operator () (const InterfaceEntry& lhs, const InterfaceEntry& rhs) const
-	{
-		return RepId::compare (lhs.iid, lhs.iid_len, rhs.iid, rhs.iid_len) < 0;
-	}
-
-	bool operator () (const String& lhs, const InterfaceEntry& rhs) const
-	{
-		return RepId::compare (rhs.iid, rhs.iid_len, lhs) > 0;
-	}
-
-	bool operator () (const InterfaceEntry& lhs, const String& rhs) const
-	{
-		return RepId::compare (lhs.iid, lhs.iid_len, rhs) < 0;
-	}
-};
-
 struct ProxyManager::OEPred
 {
 	bool operator () (const OperationEntry& lhs, const OperationEntry& rhs) const noexcept
@@ -155,10 +137,6 @@ void ProxyManager::build_metadata (Metadata& md, String_in primary_iid, bool ser
 		size_t itf_cnt = metadata->interfaces.size;
 		md.interfaces.allocate (itf_cnt);
 
-		AsyncFactories async_factories;
-		if (metadata->flags & InterfaceMetadata::FLAG_ASYNC)
-			async_factories.reserve (itf_cnt);
-
 		InterfaceEntry* ie = md.interfaces.begin ();
 		{
 			const Char* const* itf = metadata->interfaces.p;
@@ -170,10 +148,10 @@ void ProxyManager::build_metadata (Metadata& md, String_in primary_iid, bool ser
 			} while (md.interfaces.end () != ++ie);
 		}
 
-		std::sort (md.interfaces.begin (), md.interfaces.end (), IEPred ());
+		std::sort (md.interfaces.begin (), md.interfaces.end ());
 
 		// Check that all interfaces are unique
-		if (!is_unique (md.interfaces.begin (), md.interfaces.end (), IEPred ()))
+		if (!is_ascending (md.interfaces.begin (), md.interfaces.end (), std::less <InterfaceId> ()))
 			throw OBJ_ADAPTER (); // TODO: Log
 
 		// Create base proxies
@@ -184,7 +162,7 @@ void ProxyManager::build_metadata (Metadata& md, String_in primary_iid, bool ser
 			if (iid == proxy_primary_iid)
 				primary = ie;
 			else
-				create_proxy (*ie, servant_side, &async_factories);
+				create_proxy (*ie, servant_side);
 		} while (md.interfaces.end () != ++ie);
 
 		// Create primary proxy
@@ -192,12 +170,6 @@ void ProxyManager::build_metadata (Metadata& md, String_in primary_iid, bool ser
 		create_proxy (proxy_factory, metadata, *primary);
 		primary->operations = metadata->operations;
 		md.primary_interface = primary;
-
-		if (metadata->flags & InterfaceMetadata::FLAG_ASYNC) {
-			async_factories.push_back (proxy_factory);
-			md.async_factories.allocate (async_factories.size ());
-			std::copy (async_factories.begin (), async_factories.end (), md.async_factories.begin ());
-		}
 	}
 
 	// Total count of operations
@@ -239,7 +211,7 @@ void ProxyManager::build_metadata (Metadata& md, String_in primary_iid, bool ser
 
 	// Check name uniqueness
 
-	if (!is_unique (md.operations.begin (), md.operations.end (), OEPred ()))
+	if (!is_ascending (md.operations.begin (), md.operations.end (), OEPred ()))
 		throw OBJ_ADAPTER (); // TODO: Log
 }
 
@@ -247,7 +219,7 @@ ProxyManager::ProxyManager (const ProxyManager& src) :
 	metadata_ (src.metadata_, get_heap ())
 {
 	for (InterfaceEntry* ie = metadata_.interfaces.begin (); ie != metadata_.interfaces.end (); ++ie) {
-		create_proxy (*ie, false, nullptr);
+		create_proxy (*ie, false);
 	}
 }
 
@@ -268,7 +240,7 @@ void ProxyManager::check_primary_interface (String_in primary_iid) const
 void ProxyManager::create_proxy (ProxyFactory::_ptr_type pf, const InterfaceMetadata* metadata,
 	InterfaceEntry& ie) const
 {
-	Interface* deleter;
+	Interface* deleter = nullptr;
 	Interface* proxy = pf->create_proxy (ior (), (UShort)(&ie - metadata_.interfaces.begin () + 1),
 		ie.implementation, deleter);
 	if (!proxy || !deleter)
@@ -282,7 +254,7 @@ void ProxyManager::create_proxy (ProxyFactory::_ptr_type pf, const InterfaceMeta
 	}
 }
 
-void ProxyManager::create_proxy (InterfaceEntry& ie, bool servant_side, AsyncFactories* af) const
+void ProxyManager::create_proxy (InterfaceEntry& ie, bool servant_side) const
 {
 	if (!ie.proxy) {
 		const InterfaceMetadata* metadata;
@@ -301,21 +273,18 @@ void ProxyManager::create_proxy (InterfaceEntry& ie, bool servant_side, AsyncFac
 			InterfaceEntry* base_ie = const_cast <InterfaceEntry*> (find_interface (*base));
 			if (!base_ie)
 				throw OBJ_ADAPTER (); // Base is not listed in the primary interface base list. TODO: Log
-			create_proxy (*base_ie, servant_side, af);
+			create_proxy (*base_ie, servant_side);
 		}
 		ie.operations = metadata->operations;
 		create_proxy (ie.proxy_factory, metadata, ie);
-		if (af && metadata->flags & InterfaceMetadata::FLAG_ASYNC)
-			af->push_back (ie.proxy_factory);
 	}
 }
 
 const ProxyManager::InterfaceEntry* ProxyManager::find_interface (String_in iid) const
 	noexcept
 {
-	const String& siid = static_cast <const String&> (iid);
-	const InterfaceEntry* pf = std::lower_bound (metadata_.interfaces.begin (), metadata_.interfaces.end (), siid, IEPred ());
-	if (pf != metadata_.interfaces.end () && RepId::compatible (pf->iid, pf->iid_len, siid))
+	const InterfaceEntry* pf = std::lower_bound (metadata_.interfaces.begin (), metadata_.interfaces.end (), iid);
+	if (pf != metadata_.interfaces.end () && RepId::compatible (pf->iid, pf->iid_len, iid))
 		return pf;
 	return nullptr;
 }

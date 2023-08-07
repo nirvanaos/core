@@ -57,6 +57,43 @@ typedef servant_reference <ReferenceLocal> ReferenceLocalRef;
 
 class StreamOut;
 
+struct InterfaceId
+{
+	const Char* iid;
+	size_t iid_len;
+};
+
+inline
+bool operator < (const InterfaceId& lhs, const InterfaceId& rhs) noexcept
+{
+	return Internal::RepId::compare (lhs.iid, lhs.iid_len, rhs.iid, rhs.iid_len) < 0;
+}
+
+inline
+bool operator < (Internal::String_in lhs, const InterfaceId& rhs) noexcept
+{
+	return Internal::RepId::compare (rhs.iid, rhs.iid_len, lhs) > 0;
+}
+
+inline
+bool operator < (const InterfaceId& lhs, Internal::String_in rhs) noexcept
+{
+	return Internal::RepId::compare (lhs.iid, lhs.iid_len, rhs) < 0;
+}
+
+template <class It, class Pr>
+static bool is_ascending (It begin, It end, Pr pred)
+{
+	if (begin != end) {
+		It prev = begin;
+		for (It p = begin; ++p != end; prev = p) {
+			if (!pred (*prev, *p))
+				return false;
+		}
+	}
+	return true;
+}
+
 /// \brief Base for all proxies.
 class NIRVANA_NOVTABLE ProxyManager :
 	public Nirvana::Core::SharedObject,
@@ -301,6 +338,46 @@ public:
 		return static_cast <ProxyManager*> (static_cast <Internal::Bridge <Object>*> (&obj));
 	}
 
+	struct InterfaceEntry : InterfaceId
+	{
+		Internal::Interface* implementation;
+		Internal::CountedArray <Internal::Operation> operations;
+		Internal::ProxyFactory::_ref_type proxy_factory;
+		Internal::Interface::_ptr_type proxy;
+		Internal::DynamicServant::_ptr_type deleter;
+
+		InterfaceEntry (const InterfaceEntry& src) :
+			InterfaceId (src),
+			implementation (nullptr), // implementation is not copied
+			operations (src.operations),
+			proxy_factory (src.proxy_factory),
+			// proxy and deleter are not copied
+			proxy (nullptr),
+			deleter (nullptr)
+		{}
+
+		~InterfaceEntry ()
+		{
+			if (deleter)
+				deleter->delete_object ();
+		}
+	};
+
+	const InterfaceEntry* find_interface (Internal::String_in iid) const noexcept;
+
+	template <class El>
+	using Array = Nirvana::Core::Array <El, Nirvana::Core::HeapAllocator>;
+
+	const Array <InterfaceEntry>& interfaces ()
+	{
+		return metadata_.interfaces;
+	}
+
+	const InterfaceEntry* primary_interface () const noexcept
+	{
+		return metadata_.primary_interface;
+	}
+
 protected:
 	ProxyManager (Internal::String_in primary_iid, bool servant_side);
 	ProxyManager (const ProxyManager& src);
@@ -320,36 +397,6 @@ protected:
 		return &static_cast <Internal::IOReference&> (static_cast <Internal::Bridge <Internal::IOReference>&> (
 			const_cast <ProxyManager&> (*this)));
 	}
-
-	struct InterfaceEntry
-	{
-		const Char* iid;
-		size_t iid_len;
-		Internal::Interface* implementation;
-		Internal::CountedArray <Internal::Operation> operations;
-		Internal::ProxyFactory::_ref_type proxy_factory;
-		Internal::Interface::_ptr_type proxy;
-		Internal::DynamicServant::_ptr_type deleter;
-
-		InterfaceEntry (const InterfaceEntry& src) :
-			iid (src.iid),
-			iid_len (src.iid_len),
-			implementation (nullptr), // implementation is not copied
-			operations (src.operations),
-			proxy_factory (src.proxy_factory),
-			// proxy and deleter are not copied
-			proxy (nullptr),
-			deleter (nullptr)
-		{}
-
-		~InterfaceEntry ()
-		{
-			if (deleter)
-				deleter->delete_object ();
-		}
-	};
-
-	const InterfaceEntry* find_interface (Internal::String_in iid) const noexcept;
 
 	template <class I>
 	void set_servant (Internal::I_ptr <I> servant, size_t offset)
@@ -424,13 +471,9 @@ private:
 		return call_request_proc (proc, reinterpret_cast <ProxyManager*> ((void*)servant), call);
 	}
 
-	struct IEPred;
 	struct OEPred;
 
-	typedef std::vector <Internal::ProxyFactory::_ptr_type,
-		Nirvana::Core::UserAllocator <Internal::ProxyFactory::_ptr_type> > AsyncFactories;
-
-	void create_proxy (InterfaceEntry& ie, bool servant_side, AsyncFactories* af) const;
+	void create_proxy (InterfaceEntry& ie, bool servant_side) const;
 	void create_proxy (Internal::ProxyFactory::_ptr_type pf,
 		const Internal::InterfaceMetadata* metadata, InterfaceEntry& ie) const;
 
@@ -439,37 +482,19 @@ private:
 	static void check_parameters (Internal::CountedArray <Internal::Parameter> parameters);
 	static void check_type_code (TypeCode::_ptr_type tc);
 	
-	template <class It, class Pr>
-	static bool is_unique (It begin, It end, Pr pred)
-	{
-		if (begin != end) {
-			It prev = begin;
-			for (It p = begin; ++p != end; prev = p) {
-				if (!pred (*prev, *p))
-					return false;
-			}
-		}
-		return true;
-	}
-
 	static Nirvana::Core::Heap& get_heap () noexcept;
-
-	template <class El>
-	using Array = Nirvana::Core::Array <El, Nirvana::Core::HeapAllocator>;
 
 	struct Metadata {
 		Metadata (Nirvana::Core::Heap& heap) :
 			interfaces (heap),
 			operations (heap),
-			async_factories (heap),
 			primary_interface (nullptr)
 		{}
 
 		Metadata (const Metadata& src, Nirvana::Core::Heap& heap) :
 			interfaces (src.interfaces, heap),
 			operations (src.operations, heap),
-			async_factories (src.async_factories, heap),
-			primary_interface (src.primary_interface)
+			primary_interface (interfaces.begin () + (src.primary_interface - src.interfaces.begin ()))
 		{}
 
 		Metadata& operator = (Metadata&& src) = default;
@@ -481,7 +506,6 @@ private:
 
 		Array <InterfaceEntry> interfaces;
 		Array <OperationEntry> operations;
-		Array <Internal::ProxyFactory::_ptr_type> async_factories;
 		const InterfaceEntry* primary_interface;
 	};
 

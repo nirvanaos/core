@@ -52,7 +52,7 @@ public:
 			static_cast <Internal::Bridge <CORBA::Pollable>*> (&ptr));
 	}
 
-	virtual Internal::Interface* _query_valuetype (Internal::String_in id) noexcept
+	virtual Internal::Interface* _query_valuetype (const IDL::String& id) noexcept
 	{
 		return Servant::_query_valuetype (id);
 	}
@@ -112,7 +112,7 @@ public:
 	using CORBA::Internal::LifeCycleRefCnt <DIIPollable>::_duplicate;
 	using CORBA::Internal::LifeCycleRefCnt <DIIPollable>::_release;
 
-	virtual Internal::Interface* _query_valuetype (Internal::String_in id) noexcept override
+	virtual Internal::Interface* _query_valuetype (const IDL::String& id) noexcept override
 	{
 		return Internal::FindInterface <CORBA::DIIPollable, CORBA::Pollable>::find (*this, id);
 	}

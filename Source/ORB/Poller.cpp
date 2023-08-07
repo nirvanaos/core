@@ -26,14 +26,63 @@
 #include "Poller.h"
 
 namespace CORBA {
+using namespace Internal;
 namespace Core {
 
-Internal::Interface* Poller::_query_valuetype (Internal::String_in id) noexcept
+Internal::Interface* Poller::_query_valuetype (const IDL::String& id) noexcept
 {
-	return Internal::FindInterface <Messaging::Poller, CORBA::Pollable>::find (*this, id);
+	if (id.empty ())
+		return &primary_->value;
+	else {
+		const ValueEntry* pv = find_value (id);
+		if (pv)
+			return &pv->value;
+		else
+			return nullptr;
+	}
 }
 
-void Poller::on_complete (Internal::IORequest::_ptr_type reply)
+Poller::ValueEntry* Poller::find_value (String_in iid)
+{
+	ValueEntry* pv = std::lower_bound (values_.begin (), values_.end (), iid);
+	if (pv != values_.end () && RepId::compatible (pv->iid, pv->iid_len, iid))
+		return pv;
+	return nullptr;
+}
+
+void Poller::create_value (ValueEntry& ve)
+{
+	if (!ve.value) {
+		assert (ve.proxy_factory);
+		const InterfaceMetadata* metadata = ve.proxy_factory->metadata ();
+		const Char* const* base = metadata->interfaces.p;
+		const Char* const* base_end = base + metadata->interfaces.size;
+		++base;
+		for (; base != base_end; ++base) {
+			const ProxyManager::InterfaceEntry* base_ie = proxy_->find_interface (*base);
+			assert (base_ie);
+			const Char* base_poller_id = base_ie->proxy_factory->metadata ()->poller_id;
+			if (base_poller_id) {
+				ValueEntry* base_poller = find_value (base_poller_id);
+				assert (base_poller);
+				create_value (*base_poller);
+			}
+		}
+		Interface* deleter = nullptr;
+		Interface* val = ve.proxy_factory->create_poller (this, deleter);
+		if (!val || !deleter)
+			throw MARSHAL ();
+		ve.deleter = DynamicServant::_check (deleter);
+		try {
+			ve.value = Interface::_check (val, ve.iid);
+		} catch (...) {
+			ve.deleter->delete_object ();
+			throw;
+		}
+	}
+}
+
+void Poller::on_complete (IORequest::_ptr_type reply)
 {
 	reply_ = reply;
 	Pollable::on_complete (reply);
