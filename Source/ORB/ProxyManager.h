@@ -427,7 +427,10 @@ private:
 	struct IEPred;
 	struct OEPred;
 
-	void create_proxy (InterfaceEntry& ie, bool servant_side) const;
+	typedef std::vector <Internal::ProxyFactory::_ptr_type,
+		Nirvana::Core::UserAllocator <Internal::ProxyFactory::_ptr_type> > AsyncFactories;
+
+	void create_proxy (InterfaceEntry& ie, bool servant_side, AsyncFactories* af) const;
 	void create_proxy (Internal::ProxyFactory::_ptr_type pf,
 		const Internal::InterfaceMetadata* metadata, InterfaceEntry& ie) const;
 
@@ -458,12 +461,14 @@ private:
 		Metadata (Nirvana::Core::Heap& heap) :
 			interfaces (heap),
 			operations (heap),
+			async_factories (heap),
 			primary_interface (nullptr)
 		{}
 
 		Metadata (const Metadata& src, Nirvana::Core::Heap& heap) :
 			interfaces (src.interfaces, heap),
 			operations (src.operations, heap),
+			async_factories (src.async_factories, heap),
 			primary_interface (src.primary_interface)
 		{}
 
@@ -476,6 +481,7 @@ private:
 
 		Array <InterfaceEntry> interfaces;
 		Array <OperationEntry> operations;
+		Array <Internal::ProxyFactory::_ptr_type> async_factories;
 		const InterfaceEntry* primary_interface;
 	};
 

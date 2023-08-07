@@ -154,6 +154,11 @@ void ProxyManager::build_metadata (Metadata& md, String_in primary_iid, bool ser
 		// Fill interface table
 		size_t itf_cnt = metadata->interfaces.size;
 		md.interfaces.allocate (itf_cnt);
+
+		AsyncFactories async_factories;
+		if (metadata->flags & InterfaceMetadata::FLAG_ASYNC)
+			async_factories.reserve (itf_cnt);
+
 		InterfaceEntry* ie = md.interfaces.begin ();
 		{
 			const Char* const* itf = metadata->interfaces.p;
@@ -179,7 +184,7 @@ void ProxyManager::build_metadata (Metadata& md, String_in primary_iid, bool ser
 			if (iid == proxy_primary_iid)
 				primary = ie;
 			else
-				create_proxy (*ie, servant_side);
+				create_proxy (*ie, servant_side, &async_factories);
 		} while (md.interfaces.end () != ++ie);
 
 		// Create primary proxy
@@ -187,6 +192,12 @@ void ProxyManager::build_metadata (Metadata& md, String_in primary_iid, bool ser
 		create_proxy (proxy_factory, metadata, *primary);
 		primary->operations = metadata->operations;
 		md.primary_interface = primary;
+
+		if (metadata->flags & InterfaceMetadata::FLAG_ASYNC) {
+			async_factories.push_back (proxy_factory);
+			md.async_factories.allocate (async_factories.size ());
+			std::copy (async_factories.begin (), async_factories.end (), md.async_factories.begin ());
+		}
 	}
 
 	// Total count of operations
@@ -236,7 +247,7 @@ ProxyManager::ProxyManager (const ProxyManager& src) :
 	metadata_ (src.metadata_, get_heap ())
 {
 	for (InterfaceEntry* ie = metadata_.interfaces.begin (); ie != metadata_.interfaces.end (); ++ie) {
-		create_proxy (*ie, false);
+		create_proxy (*ie, false, nullptr);
 	}
 }
 
@@ -271,7 +282,7 @@ void ProxyManager::create_proxy (ProxyFactory::_ptr_type pf, const InterfaceMeta
 	}
 }
 
-void ProxyManager::create_proxy (InterfaceEntry& ie, bool servant_side) const
+void ProxyManager::create_proxy (InterfaceEntry& ie, bool servant_side, AsyncFactories* af) const
 {
 	if (!ie.proxy) {
 		const InterfaceMetadata* metadata;
@@ -290,10 +301,12 @@ void ProxyManager::create_proxy (InterfaceEntry& ie, bool servant_side) const
 			InterfaceEntry* base_ie = const_cast <InterfaceEntry*> (find_interface (*base));
 			if (!base_ie)
 				throw OBJ_ADAPTER (); // Base is not listed in the primary interface base list. TODO: Log
-			create_proxy (*base_ie, servant_side);
+			create_proxy (*base_ie, servant_side, af);
 		}
 		ie.operations = metadata->operations;
 		create_proxy (ie.proxy_factory, metadata, ie);
+		if (af && metadata->flags & InterfaceMetadata::FLAG_ASYNC)
+			af->push_back (ie.proxy_factory);
 	}
 }
 

@@ -107,6 +107,16 @@ private:
 	virtual void on_complete (Internal::IORequest::_ptr_type reply) override;
 
 private:
+	struct ValueEntry
+	{
+		const Char* iid;
+		size_t iid_len;
+		Internal::Interface::_ptr_type value;
+		Internal::DynamicServant::_ptr_type deleter;
+	};
+
+	Nirvana::Core::Array <ValueEntry, Nirvana::Core::UserAllocator> values_;
+
 	servant_reference <ProxyManager> proxy_;
 	Messaging::ReplyHandler::_ref_type associated_handler_;
 	Internal::IORequest::_ref_type reply_;
