@@ -109,13 +109,11 @@ private:
 
 	struct ValueEntry : public InterfaceId
 	{
-		Internal::ProxyFactory::_ptr_type proxy_factory;
 		Internal::Interface::_ptr_type value;
 		Internal::DynamicServant::_ptr_type deleter;
 
 		ValueEntry (const ValueEntry& src) :
 			InterfaceId (src),
-			proxy_factory (src.proxy_factory),
 			value (nullptr),
 			deleter (nullptr)
 		{}
@@ -128,7 +126,7 @@ private:
 	};
 
 	ValueEntry* find_value (Internal::String_in iid);
-	void create_value (ValueEntry& ve);
+	void create_value (ValueEntry& ve, const ProxyManager::InterfaceEntry& ie);
 
 private:
 	servant_reference <ProxyManager> proxy_;
@@ -172,6 +170,7 @@ Poller::Poller (ProxyManager& proxy, Internal::IOReference::OperationIndex op) :
 	pv->value = Messaging::Poller::_ptr_type (this);
 	++pv;
 
+	const Char* primary_id = nullptr;
 	for (auto pi = proxy.interfaces ().begin (), end = proxy.interfaces ().end (); pi != end; ++pi) {
 		const Char* id = pi->proxy_factory->metadata ()->poller_id;
 		if (id) {
@@ -179,7 +178,7 @@ Poller::Poller (ProxyManager& proxy, Internal::IOReference::OperationIndex op) :
 			pv->iid_len = strlen (id);
 		}
 		if (primary_interface == pi)
-			primary_ = pv;
+			primary_id = id;
 		++pv;
 	}
 
@@ -189,10 +188,10 @@ Poller::Poller (ProxyManager& proxy, Internal::IOReference::OperationIndex op) :
 	if (!is_ascending (values_.begin (), values_.end (), std::less <InterfaceId> ()))
 		throw OBJ_ADAPTER (); // TODO: Log
 
+	primary_ = find_value (primary_id);
+
 	// Create values
-	for (auto& ve : values_) {
-		create_value (ve);
-	}
+	create_value (const_cast <ValueEntry&> (*primary_), *primary_interface);
 }
 
 inline
@@ -207,9 +206,7 @@ Poller::Poller (const Poller& src) :
 	find_value (Internal::RepIdOf <Messaging::Poller>::id)->value = Messaging::Poller::_ptr_type (this);
 
 	// Create values
-	for (auto& ve : values_) {
-		create_value (ve);
-	}
+	create_value (const_cast <ValueEntry&> (*primary_), *proxy_->primary_interface ());
 }
 
 }

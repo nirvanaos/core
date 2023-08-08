@@ -50,11 +50,10 @@ Poller::ValueEntry* Poller::find_value (String_in iid)
 	return nullptr;
 }
 
-void Poller::create_value (ValueEntry& ve)
+void Poller::create_value (ValueEntry& ve, const ProxyManager::InterfaceEntry& ie)
 {
 	if (!ve.value) {
-		assert (ve.proxy_factory);
-		const InterfaceMetadata* metadata = ve.proxy_factory->metadata ();
+		const InterfaceMetadata* metadata = ie.proxy_factory->metadata ();
 		const Char* const* base = metadata->interfaces.p;
 		const Char* const* base_end = base + metadata->interfaces.size;
 		++base;
@@ -65,11 +64,12 @@ void Poller::create_value (ValueEntry& ve)
 			if (base_poller_id) {
 				ValueEntry* base_poller = find_value (base_poller_id);
 				assert (base_poller);
-				create_value (*base_poller);
+				create_value (*base_poller, *base_ie);
 			}
 		}
 		Interface* deleter = nullptr;
-		Interface* val = ve.proxy_factory->create_poller (this, deleter);
+		Interface* val = ie.proxy_factory->create_poller (this, 
+			(UShort)(&ie - proxy_->interfaces ().begin ()), deleter);
 		if (!val || !deleter)
 			throw MARSHAL ();
 		ve.deleter = DynamicServant::_check (deleter);
