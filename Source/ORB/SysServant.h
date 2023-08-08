@@ -70,14 +70,17 @@ class SysServant :
 	public Internal::Skeleton <S, CORBA::LocalObject>,
 	public Internal::LifeCycleRefCnt <S>,
 	public Internal::ServantTraits <S>,
-	public SysObjectLink
+	public SysObjectLink,
+	public Internal::ServantMemory
 {
-public:
+	friend class Internal::Skeleton <S, CORBA::LocalObject>;
+
 	void _delete_object () noexcept
 	{
 		delete& static_cast <S&> (*this);
 	}
 
+public:
 	static Bridge <AbstractBase>* _get_abstract_base (Internal::Type <IDL::String>::ABI_in iid,
 		Internal::Interface* env) noexcept
 	{
@@ -103,8 +106,7 @@ template <class S, class Primary, class ... Bases>
 class SysServantImpl :
 	public Internal::InterfaceImpl <S, Primary>,
 	public Internal::InterfaceImpl <S, Bases>...,
-	public SysServant <S>,
-	public Internal::ServantMemory
+	public SysServant <S>
 {
 public:
 	typedef Primary PrimaryInterface;
