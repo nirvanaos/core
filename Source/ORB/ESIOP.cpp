@@ -399,6 +399,9 @@ void dispatch_message (MessageHeader& message) noexcept
 			} catch (...) {
 			}
 		} break;
+
+		default:
+			assert (false);
 	}
 }
 
