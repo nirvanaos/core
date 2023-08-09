@@ -42,11 +42,6 @@ class NIRVANA_NOVTABLE ServantProxyLocal :
 public:
 	typedef CORBA::LocalObject ServantInterface;
 
-	Bridge <Object>* _get_object (Internal::Type <IDL::String>::ABI_in iid, Interface* env) noexcept
-	{
-		return static_cast <Bridge <Object>*> (Base::_s_get_object (this, iid, env));
-	}
-
 	/// \returns User LocalObject implementation
 	LocalObject::_ptr_type servant () const
 #ifndef _DEBUG

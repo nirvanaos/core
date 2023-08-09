@@ -241,7 +241,7 @@ void ProxyManager::create_proxy (ProxyFactory::_ptr_type pf, const InterfaceMeta
 	InterfaceEntry& ie) const
 {
 	Interface* deleter = nullptr;
-	Interface* proxy = pf->create_proxy (ior (), (UShort)(&ie - metadata_.interfaces.begin () + 1),
+	Interface* proxy = pf->create_proxy (get_proxy (), get_abstract_base (), ior (), (UShort)(&ie - metadata_.interfaces.begin () + 1),
 		ie.implementation, deleter);
 	if (!proxy || !deleter)
 		throw MARSHAL ();

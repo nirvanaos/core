@@ -133,27 +133,20 @@ public:
 
 	// IOReference operations
 
-	Internal::Bridge <Object>* get_object (Internal::String_in iid)
-	{
-		if (Internal::RepId::check (Internal::RepIdOf <Object>::id, iid) != Internal::RepId::COMPATIBLE)
-			Nirvana::throw_INV_OBJREF ();
-		return static_cast <Internal::Bridge <Object>*> (this);
-	}
-
-	Internal::Bridge <AbstractBase>* get_abstract_base (Internal::String_in iid) noexcept
-	{
-		if (Internal::RepId::check (Internal::RepIdOf <AbstractBase>::id, iid) != Internal::RepId::COMPATIBLE)
-			Nirvana::throw_INV_OBJREF ();
-		return static_cast <Internal::Bridge <AbstractBase>*> (this);
-	}
-
 	virtual Internal::IORequest::_ref_type create_request (OperationIndex op, unsigned flags,
 		Internal::RequestCallback::_ptr_type callback);
 
 	// Get Object proxy
-	Object::_ptr_type get_proxy () noexcept
+	Object::_ptr_type get_proxy () const noexcept
 	{
-		return &static_cast <Object&> (static_cast <Internal::Bridge <Object>&> (*this));
+		return &static_cast <Object&> (static_cast <Internal::Bridge <Object>&> (
+			const_cast <ProxyManager&> (*this)));
+	}
+
+	AbstractBase::_ptr_type get_abstract_base () const noexcept
+	{
+		return &static_cast <AbstractBase&> (static_cast <Internal::Bridge <AbstractBase>&> (
+			const_cast <ProxyManager&> (*this)));
 	}
 
 	virtual PortableServer::ServantBase::_ref_type _get_servant () const
