@@ -30,7 +30,7 @@ using namespace Nirvana::Core;
 namespace CORBA {
 namespace Core {
 
-RequestLocal::RequestLocal (ProxyManager& proxy, Internal::IOReference::OperationIndex op_idx,
+RequestLocal::RequestLocal (ProxyManager& proxy, Internal::OperationIndex op_idx,
 	Nirvana::Core::MemContext* callee_memory, unsigned response_flags) noexcept :
 	RequestLocalBase (callee_memory, response_flags),
 	proxy_ (&proxy),

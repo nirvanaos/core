@@ -36,7 +36,7 @@ using namespace Internal;
 
 namespace Core {
 
-RequestLocalPOA::RequestLocalPOA (ReferenceLocal& reference, IOReference::OperationIndex op,
+RequestLocalPOA::RequestLocalPOA (ReferenceLocal& reference, OperationIndex op,
 	unsigned response_flags) :
 	RequestLocalBase (nullptr, response_flags),
 	reference_ (&reference),

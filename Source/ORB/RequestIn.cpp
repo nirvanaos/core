@@ -254,7 +254,7 @@ void RequestIn::serve (const ServantProxyBase& proxy)
 	if (is_cancelled ())
 		return;
 
-	IOReference::OperationIndex op = proxy.find_operation (operation ());
+	Internal::OperationIndex op = proxy.find_operation (operation ());
 
 	SyncContext* sync_context = &proxy.get_sync_context (op);
 	SyncDomain* sync_domain = sync_context->sync_domain ();

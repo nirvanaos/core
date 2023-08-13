@@ -32,12 +32,13 @@
 #include "../Synchronized.h"
 #include "../Array.h"
 #include "../HeapAllocator.h"
-#include <CORBA/Proxy/InterfaceMetadata.h>
-#include <CORBA/Proxy/ProxyFactory.h>
 #include <CORBA/DynamicServant.h>
 #include <CORBA/AbstractBase_s.h>
 #include <CORBA/Object_s.h>
+#include <CORBA/Proxy/InterfaceMetadata.h>
+#include <CORBA/Proxy/ProxyFactory.h>
 #include <CORBA/Proxy/IOReference_s.h>
+#include <CORBA/Proxy/OperationIndex.h>
 #include "offset_ptr.h"
 
 namespace PortableServer {
@@ -133,7 +134,7 @@ public:
 
 	// IOReference operations
 
-	virtual Internal::IORequest::_ref_type create_request (OperationIndex op, unsigned flags,
+	virtual Internal::IORequest::_ref_type create_request (Internal::OperationIndex op, unsigned flags,
 		Internal::RequestCallback::_ptr_type callback);
 
 	// Get Object proxy
@@ -169,10 +170,10 @@ public:
 	}
 
 	/// Returns synchronization context for the specific operation.
-	virtual Nirvana::Core::SyncContext& get_sync_context (OperationIndex op)
+	virtual Nirvana::Core::SyncContext& get_sync_context (Internal::OperationIndex op)
 		const noexcept
 	{
-		assert (op.interface_idx () == 0 && op.operation_idx () != (UShort)ObjectOp::NON_EXISTENT);
+		assert (Internal::interface_idx (op) == 0 && Internal::operation_idx (op) != (UShort)ObjectOp::NON_EXISTENT);
 		return Nirvana::Core::g_core_free_sync_context;
 	}
 
@@ -227,7 +228,7 @@ public:
 	}
 
 	void _create_request (Context::_ptr_type ctx, const IDL::String& operation, NVList::_ptr_type arg_list,
-		NamedValue::_ptr_type result, const ExceptionList& exclist, const ContextList& ctxlist,
+		NamedValue::_ptr_type result, const IDL::Sequence <Internal::ExceptionEntry>& exclist, const ContextList& ctxlist,
 		Request::_ref_type& request, Flags req_flags)
 	{
 		throw NO_IMPLEMENT ();
@@ -284,32 +285,32 @@ public:
 	}
 
 	// Poller creation
-	Messaging::Poller::_ref_type create_poller (OperationIndex op);
+	Messaging::Poller::_ref_type create_poller (Internal::OperationIndex op);
 
 	// Misc
 
-	OperationIndex find_operation (Internal::String_in name) const;
+	Internal::OperationIndex find_operation (Internal::String_in name) const;
 
-	void invoke (OperationIndex op, Internal::IORequest::_ptr_type rq) const noexcept;
+	void invoke (Internal::OperationIndex op, Internal::IORequest::_ptr_type rq) const noexcept;
 
-	const Internal::Operation& operation_metadata (OperationIndex op) const noexcept
+	const Internal::Operation& operation_metadata (Internal::OperationIndex op) const noexcept
 	{
-		assert (op.interface_idx () <= metadata_.interfaces.size ());
-		if (op.interface_idx () == 0) {
-			assert (op.operation_idx () < countof (object_ops_));
-			return object_ops_ [op.operation_idx ()];
+		assert (Internal::interface_idx (op) <= metadata_.interfaces.size ());
+		if (Internal::interface_idx (op) == 0) {
+			assert (Internal::operation_idx (op) < countof (object_ops_));
+			return object_ops_ [Internal::operation_idx (op)];
 		} else {
-			const InterfaceEntry& itf = metadata_.interfaces [op.interface_idx () - 1];
-			return itf.operations.p [op.operation_idx ()];
+			const InterfaceEntry& itf = metadata_.interfaces [Internal::interface_idx (op) - 1];
+			return itf.operations.p [Internal::operation_idx (op)];
 		}
 	}
 
-	static bool is_object_op (OperationIndex op) noexcept
+	static bool is_object_op (Internal::OperationIndex op) noexcept
 	{
-		return op.interface_idx () == 0 && op.operation_idx () != (UShort)ObjectOp::NON_EXISTENT;
+		return Internal::interface_idx (op) == 0 && Internal::operation_idx (op) != (UShort)ObjectOp::NON_EXISTENT;
 	}
 
-	void check_create_request (OperationIndex op, unsigned flags) const;
+	void check_create_request (Internal::OperationIndex op, unsigned flags) const;
 
 	// Called from the POA sync context
 	virtual ReferenceLocalRef get_local_reference (const PortableServer::Core::POA_Base&);
@@ -425,9 +426,9 @@ protected:
 		OBJECT_OP_CNT
 	};
 
-	OperationIndex _make_op_idx (UShort op_idx) const
+	Internal::OperationIndex _make_op_idx (UShort op_idx) const
 	{
-		return OperationIndex (0, op_idx);
+		return Internal::make_op_idx (0, op_idx);
 	}
 
 private:
@@ -435,7 +436,7 @@ private:
 	{
 		const Char* name;
 		size_t name_len;
-		OperationIndex idx;
+		Internal::OperationIndex idx;
 	};
 
 	static InterfaceDef::_ref_type get_interface ();

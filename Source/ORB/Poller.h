@@ -51,7 +51,7 @@ public:
 	using Internal::LifeCycleRefCnt <Poller>::_duplicate;
 	using Internal::LifeCycleRefCnt <Poller>::_release;
 
-	Poller (ProxyManager& proxy, Internal::IOReference::OperationIndex op);
+	Poller (ProxyManager& proxy, Internal::OperationIndex op);
 	Poller (const Poller& src);
 
 	virtual Internal::Interface* _query_valuetype (const IDL::String& id) noexcept override;
@@ -81,9 +81,9 @@ public:
 		return is_from_poller_;
 	}
 
-	Internal::IORequest::_ref_type get_reply (uint32_t timeout, Internal::IOReference::OperationIndex op)
+	Internal::IORequest::_ref_type get_reply (uint32_t timeout, Internal::OperationIndex op)
 	{
-		if (op.interface_idx () != op_.interface_idx () || op.operation_idx () != op_.operation_idx ()) {
+		if (op != op_) {
 			is_from_poller_ = true;
 			throw WrongTransaction ();
 		}
@@ -134,12 +134,12 @@ private:
 	Internal::IORequest::_ref_type reply_;
 	Nirvana::Core::Array <ValueEntry, Nirvana::Core::UserAllocator> values_;
 	const ValueEntry* primary_;
-	const Internal::IOReference::OperationIndex op_;
+	const Internal::OperationIndex op_;
 	bool is_from_poller_;
 };
 
 inline
-Poller::Poller (ProxyManager& proxy, Internal::IOReference::OperationIndex op) :
+Poller::Poller (ProxyManager& proxy, Internal::OperationIndex op) :
 	proxy_ (&proxy),
 	primary_ (nullptr),
 	op_ (op),

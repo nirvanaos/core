@@ -46,7 +46,7 @@ public:
 	virtual Internal::StringView <Char> operation () const noexcept override;
 
 protected:
-	RequestLocalPOA (ReferenceLocal& reference, Internal::IOReference::OperationIndex op,
+	RequestLocalPOA (ReferenceLocal& reference, Internal::OperationIndex op,
 		unsigned response_flags);
 
 	virtual void _add_ref () noexcept override;
@@ -58,21 +58,21 @@ protected:
 
 	virtual bool is_cancelled () const noexcept override;
 
-	Internal::IOReference::OperationIndex op_idx () const noexcept
+	Internal::OperationIndex op_idx () const noexcept
 	{
 		return op_idx_;
 	}
 
 private:
 	ReferenceLocalRef reference_;
-	Internal::IOReference::OperationIndex op_idx_;
+	Internal::OperationIndex op_idx_;
 };
 
 class NIRVANA_NOVTABLE RequestLocalOnewayPOA :
 	public RequestLocalPOA
 {
 protected:
-	RequestLocalOnewayPOA (ReferenceLocal& reference, Internal::IOReference::OperationIndex op,
+	RequestLocalOnewayPOA (ReferenceLocal& reference, Internal::OperationIndex op,
 		unsigned response_flags) :
 		RequestLocalPOA (reference, op, response_flags)
 	{}
@@ -89,7 +89,7 @@ class NIRVANA_NOVTABLE RequestLocalAsyncPOA :
 
 protected:
 	RequestLocalAsyncPOA (Internal::RequestCallback::_ptr_type callback,
-		ReferenceLocal& reference, Internal::IOReference::OperationIndex op,
+		ReferenceLocal& reference, Internal::OperationIndex op,
 		unsigned response_flags) :
 		Base (reference, op, response_flags),
 		callback_ (callback)

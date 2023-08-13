@@ -183,26 +183,26 @@ void ProxyManager::build_metadata (Metadata& md, String_in primary_iid, bool ser
 	OperationEntry* op = md.operations.begin ();
 
 	// Object operations
-	OperationIndex idx (0, 0);
+	UShort itf_idx = 0;
+	OperationIndex idx = 0;
 	for (const Operation* p = object_ops_, *e = std::end (object_ops_); p != e; ++p) {
 		const Char* name = p->name;
 		op->name = name;
 		op->name_len = strlen (name);
 		op->idx = idx;
-		++idx.operation_idx ();
+		++idx;
 		++op;
 	}
 
 	// Interface operations
 	for (const InterfaceEntry* ie = md.interfaces.begin (); ie != md.interfaces.end (); ++ie) {
-		++idx.interface_idx ();
-		idx.operation_idx (0);
+		idx = make_op_idx (++itf_idx, 0);
 		for (const Operation* p = ie->operations.p, *end = p + ie->operations.size; p != end; ++p) {
 			const Char* name = p->name;
 			op->name = name;
 			op->name_len = strlen (name);
 			op->idx = idx;
-			++idx.operation_idx ();
+			++idx;
 			++op;
 		}
 	}
@@ -289,7 +289,7 @@ const ProxyManager::InterfaceEntry* ProxyManager::find_interface (String_in iid)
 	return nullptr;
 }
 
-IOReference::OperationIndex ProxyManager::find_operation (String_in name) const
+OperationIndex ProxyManager::find_operation (String_in name) const
 {
 	const OperationEntry* pf = std::lower_bound (metadata_.operations.begin (), metadata_.operations.end (), name, OEPred ());
 	if (pf != metadata_.operations.end () && !OEPred () (name, *pf))
@@ -306,7 +306,7 @@ IORequest::_ref_type ProxyManager::create_request (OperationIndex op, unsigned f
 
 	// Do not create new memory context for the trivial object operations.
 	// New memory context may be created only for _get_interface () because it can create a new object.
-	MemContext* memory = (op.operation_idx () == (UShort)ObjectOp::GET_INTERFACE)
+	MemContext* memory = (operation_idx (op) == (UShort)ObjectOp::GET_INTERFACE)
 		? nullptr : &MemContext::current ();
 
 	if (callback) {
@@ -327,7 +327,7 @@ void ProxyManager::check_create_request (OperationIndex op, unsigned flags) cons
 {
 	if (flags == 2 || flags > 3)
 		throw INV_FLAG ();
-	size_t itf = op.interface_idx ();
+	size_t itf = interface_idx (op);
 	size_t op_cnt;
 	if (0 == itf)
 		op_cnt = (size_t)ObjectOp::OBJECT_OP_CNT;
@@ -335,7 +335,7 @@ void ProxyManager::check_create_request (OperationIndex op, unsigned flags) cons
 		throw BAD_PARAM ();
 	else
 		op_cnt = metadata_.interfaces [itf - 1].operations.size;
-	if (op.operation_idx () >= op_cnt)
+	if (operation_idx (op) >= op_cnt)
 		throw BAD_PARAM ();
 }
 
@@ -343,8 +343,8 @@ void ProxyManager::invoke (OperationIndex op, IORequest::_ptr_type rq) const noe
 {
 	try {
 		try {
-			size_t itf_idx = op.interface_idx ();
-			size_t op_idx = op.operation_idx ();
+			size_t itf_idx = interface_idx (op);
+			size_t op_idx = operation_idx (op);
 			Interface* implementation;
 			const Operation* op_metadata;
 			if (0 == itf_idx) { // Object operation

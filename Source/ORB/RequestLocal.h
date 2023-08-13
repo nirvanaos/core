@@ -37,7 +37,7 @@ namespace Core {
 class NIRVANA_NOVTABLE RequestLocal : public RequestLocalBase
 {
 protected:
-	RequestLocal (ProxyManager& proxy, Internal::IOReference::OperationIndex op_idx,
+	RequestLocal (ProxyManager& proxy, Internal::OperationIndex op_idx,
 		Nirvana::Core::MemContext* callee_memory, unsigned response_flags) noexcept;
 
 	ProxyManager* proxy () const noexcept
@@ -45,7 +45,7 @@ protected:
 		return proxy_;
 	}
 
-	Internal::IOReference::OperationIndex op_idx () const noexcept
+	Internal::OperationIndex op_idx () const noexcept
 	{
 		return op_idx_;
 	}
@@ -55,7 +55,7 @@ protected:
 
 private:
 	servant_reference <ProxyManager> proxy_;
-	Internal::IOReference::OperationIndex op_idx_;
+	Internal::OperationIndex op_idx_;
 };
 
 class NIRVANA_NOVTABLE RequestLocalOneway : public RequestLocal
@@ -63,7 +63,7 @@ class NIRVANA_NOVTABLE RequestLocalOneway : public RequestLocal
 	typedef RequestLocal Base;
 
 protected:
-	RequestLocalOneway (ProxyManager& proxy, Internal::IOReference::OperationIndex op_idx,
+	RequestLocalOneway (ProxyManager& proxy, Internal::OperationIndex op_idx,
 		Nirvana::Core::MemContext* callee_memory, unsigned response_flags) noexcept :
 		Base (proxy, op_idx, callee_memory, response_flags)
 	{}
@@ -99,7 +99,7 @@ class NIRVANA_NOVTABLE RequestLocalAsync : public RequestLocalOneway
 
 protected:
 	RequestLocalAsync (Internal::RequestCallback::_ptr_type callback,
-		ProxyManager & proxy, Internal::IOReference::OperationIndex op_idx,
+		ProxyManager & proxy, Internal::OperationIndex op_idx,
 		Nirvana::Core::MemContext* callee_memory, unsigned response_flags) noexcept :
 		Base (proxy, op_idx, callee_memory, response_flags),
 		callback_ (callback)

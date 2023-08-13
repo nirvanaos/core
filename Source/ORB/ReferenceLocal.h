@@ -78,7 +78,7 @@ public:
 
 	virtual ReferenceRef marshal (StreamOut& out) override;
 	virtual ReferenceLocalRef get_local_reference (const PortableServer::Core::POA_Base&) override;
-	virtual Internal::IORequest::_ref_type create_request (OperationIndex op, unsigned flags,
+	virtual Internal::IORequest::_ref_type create_request (Internal::OperationIndex op, unsigned flags,
 		Internal::RequestCallback::_ptr_type callback) override;
 
 private:

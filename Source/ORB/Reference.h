@@ -97,10 +97,10 @@ protected:
 		assert (0 == ref_cnt_);
 	}
 
-	bool is_object_op (OperationIndex op) const noexcept
+	bool is_object_op (Internal::OperationIndex op) const noexcept
 	{
 		if (ProxyManager::is_object_op (op))
-			return op.operation_idx () != (UShort)ObjectOp::REPOSITORY_ID || has_primary_interface ();
+			return Internal::operation_idx (op) != (UShort)ObjectOp::REPOSITORY_ID || has_primary_interface ();
 		else
 			return false;
 	}
