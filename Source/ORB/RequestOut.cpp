@@ -402,6 +402,9 @@ bool RequestOut::get_exception (Any& e)
 			IDL::String id;
 			stream_in_->read_string (id);
 			stream_in_->read (4, 8, 8, 1, &system_exception_data_);
+			if (stream_in_->other_endian ())
+				Type <SystemException::_Data>::byteswap (system_exception_data_);
+			
 			ee = SystemException::_get_exception_entry (id);
 			if (!ee) {
 				ee = SystemException::_get_exception_entry (SystemException::EC_UNKNOWN);
