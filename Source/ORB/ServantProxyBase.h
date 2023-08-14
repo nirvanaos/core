@@ -107,7 +107,11 @@ protected:
 
 	void add_ref_servant () const;
 
-	static void collect_garbage (Internal::Interface::_ptr_type servant) noexcept;
+	static void collect_garbage (Internal::Interface::_ptr_type servant) noexcept
+	{
+		// Called in the servant synchronization context on releasing the last reference to proxy.
+		interface_release (&servant);
+	}
 
 private:
 	template <class I>

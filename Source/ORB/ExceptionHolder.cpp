@@ -26,6 +26,8 @@
 #include <CORBA/Server.h>
 #include "RequestEncap.h"
 #include "StreamInEncap.h"
+#include "../SyncContext.h"
+#include "../Module.h"
 
 using namespace Nirvana;
 using namespace Nirvana::Core;
@@ -44,6 +46,13 @@ public:
 
 	void set_user_exceptions (const Internal::ExceptionEntry* exc_list, size_t count)
 	{
+		if (exc_list)
+			module_ = Nirvana::Core::SyncContext::current ().module ();
+		else {
+			if (count)
+				throw BAD_PARAM ();
+			module_ = nullptr;
+		}
 		user_exceptions_ = exc_list;
 		user_exceptions_cnt_ = count;
 	}
@@ -79,6 +88,9 @@ private:
 private:
 	const Internal::ExceptionEntry* user_exceptions_;
 	size_t user_exceptions_cnt_;
+
+	// Hold module reference to ensure that user_exceptions_ in module constant memory are available.
+	servant_reference <Nirvana::Core::Module> module_;
 };
 
 }

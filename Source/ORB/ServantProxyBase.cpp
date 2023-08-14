@@ -25,7 +25,6 @@
 */
 #include "ServantProxyBase.h"
 #include "RequestLocal.h"
-#include "../Module.h"
 
 using namespace Nirvana::Core;
 
@@ -97,23 +96,6 @@ void ServantProxyBase::add_ref_servant () const
 			interface_duplicate (&servant_);
 		SYNC_END ()
 	}
-
-	if (servant_) {
-		// Lock module to prevent unloading the binary while there are references
-		// to a servant proxy.
-		Module* mod = sync_context_->module ();
-		if (mod)
-			mod->_add_ref ();
-	}
-}
-
-void ServantProxyBase::collect_garbage (Internal::Interface::_ptr_type servant) noexcept
-{
-	// Called in the servant synchronization context on releasing the last reference to proxy.
-	interface_release (&servant);
-	Module* mod = SyncContext::current ().module ();
-	if (mod)
-		mod->_remove_ref ();
 }
 
 void ServantProxyBase::run_garbage_collector () const noexcept
