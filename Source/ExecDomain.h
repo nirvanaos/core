@@ -40,8 +40,6 @@
 #include <utility>
 #include <signal.h>
 
-struct siginfo;
-
 namespace Nirvana {
 
 namespace Legacy {
