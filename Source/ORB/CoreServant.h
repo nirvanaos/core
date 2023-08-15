@@ -29,8 +29,8 @@
 #pragma once
 
 #include <CORBA/Server.h>
+#include <CORBA/LifeCycleNoCopy.h>
 #include "ServantProxyBase.h"
-#include "LifeCycleNoCopy.h"
 
 namespace CORBA {
 namespace Core {
@@ -43,18 +43,10 @@ template <class S, class Proxy>
 class NIRVANA_NOVTABLE CoreServant :
 	public Internal::ServantTraits <S>,
 	public Internal::ValueImplBase <S, typename Proxy::ServantInterface>,
-	public LifeCycleNoCopy <S>
+	public Internal::LifeCycleNoCopy <S>
 {
 public:
 	typedef typename Proxy::ServantInterface PrimaryInterface;
-
-	// Reference duplication is not allowed
-	template <class I>
-	static Internal::Interface* __duplicate (Internal::Interface* itf, Internal::Interface* env)
-	{
-		Internal::set_NO_IMPLEMENT (env);
-		return nullptr;
-	}
 
 	// Called from the servant destructor for dynamic objects.
 	// Or by the Binder for static objects.

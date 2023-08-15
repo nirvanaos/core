@@ -240,18 +240,13 @@ void ProxyManager::check_primary_interface (String_in primary_iid) const
 void ProxyManager::create_proxy (ProxyFactory::_ptr_type pf, const InterfaceMetadata* metadata,
 	InterfaceEntry& ie) const
 {
-	Interface* deleter = nullptr;
+	Interface::_ref_type holder;
 	Interface* proxy = pf->create_proxy (get_proxy (), get_abstract_base (), ior (), (UShort)(&ie - metadata_.interfaces.begin () + 1),
-		ie.implementation, deleter);
-	if (!proxy || !deleter)
+		ie.implementation, holder);
+	if (!proxy || !holder)
 		throw MARSHAL ();
-	ie.deleter = DynamicServant::_check (deleter);
-	try {
-		ie.proxy = Interface::_check (proxy, ie.iid);
-	} catch (...) {
-		ie.deleter->delete_object ();
-		throw;
-	}
+	ie.proxy = Interface::_check (proxy, ie.iid);
+	ie.holder = std::move (holder);
 }
 
 void ProxyManager::create_proxy (InterfaceEntry& ie, bool servant_side) const

@@ -110,19 +110,16 @@ private:
 	struct ValueEntry : public InterfaceId
 	{
 		Internal::Interface::_ptr_type value;
-		Internal::DynamicServant::_ptr_type deleter;
+		Internal::Interface::_ref_type holder;
 
 		ValueEntry (const ValueEntry& src) :
 			InterfaceId (src),
 			value (nullptr),
-			deleter (nullptr)
+			holder ()
 		{}
 
 		~ValueEntry ()
-		{
-			if (deleter)
-				deleter->delete_object ();
-		}
+		{}
 	};
 
 	ValueEntry* find_value (Internal::String_in iid);

@@ -28,6 +28,7 @@
 #pragma once
 
 #include <CORBA/Server.h>
+#include <CORBA/LifeCycleNoCopy.h>
 #include <CORBA/RefCnt_s.h>
 #include "../AtomicCounter.h"
 
@@ -36,7 +37,7 @@ namespace Core {
 
 class RefCnt :
 	public servant_traits <CORBA::Internal::RefCnt>::Servant <RefCnt>,
-	public LifeCycleNoCopy <RefCnt>
+	public Internal::LifeCycleNoCopy <RefCnt>
 {
 public:
 	void add_ref () noexcept

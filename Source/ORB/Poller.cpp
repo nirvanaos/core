@@ -67,18 +67,13 @@ void Poller::create_value (ValueEntry& ve, const ProxyManager::InterfaceEntry& i
 				create_value (*base_poller, *base_ie);
 			}
 		}
-		Interface* deleter = nullptr;
+		Interface::_ref_type holder;
 		Interface* val = ie.proxy_factory->create_poller (this, 
-			(UShort)(&ie - proxy_->interfaces ().begin ()), deleter);
-		if (!val || !deleter)
+			(UShort)(&ie - proxy_->interfaces ().begin ()), holder);
+		if (!val || !holder)
 			throw MARSHAL ();
-		ve.deleter = DynamicServant::_check (deleter);
-		try {
-			ve.value = Interface::_check (val, ve.iid);
-		} catch (...) {
-			ve.deleter->delete_object ();
-			throw;
-		}
+		ve.value = Interface::_check (val, ve.iid);
+		ve.holder = std::move (holder);
 	}
 }
 

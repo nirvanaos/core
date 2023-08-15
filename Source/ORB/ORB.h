@@ -33,7 +33,6 @@
 #include <CORBA/TC_Factory.h>
 #include "Services.h"
 #include "PolicyFactory.h"
-#include "LifeCycleNoCopy.h"
 #include "unmarshal_object.h"
 #include "RefCnt.h"
 #include "../Binder.h"

@@ -32,7 +32,6 @@
 #include "../Synchronized.h"
 #include "../Array.h"
 #include "../HeapAllocator.h"
-#include <CORBA/DynamicServant.h>
 #include <CORBA/AbstractBase_s.h>
 #include <CORBA/Object_s.h>
 #include <CORBA/Proxy/InterfaceMetadata.h>
@@ -338,23 +337,20 @@ public:
 		Internal::CountedArray <Internal::Operation> operations;
 		Internal::ProxyFactory::_ref_type proxy_factory;
 		Internal::Interface::_ptr_type proxy;
-		Internal::DynamicServant::_ptr_type deleter;
+		Internal::Interface::_ref_type holder;
 
 		InterfaceEntry (const InterfaceEntry& src) :
 			InterfaceId (src),
 			implementation (nullptr), // implementation is not copied
 			operations (src.operations),
 			proxy_factory (src.proxy_factory),
-			// proxy and deleter are not copied
+			// proxy and holder are not copied
 			proxy (nullptr),
-			deleter (nullptr)
+			holder ()
 		{}
 
 		~InterfaceEntry ()
-		{
-			if (deleter)
-				deleter->delete_object ();
-		}
+		{}
 	};
 
 	const InterfaceEntry* find_interface (Internal::String_in iid) const noexcept;
