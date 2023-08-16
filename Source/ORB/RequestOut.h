@@ -123,9 +123,6 @@ protected:
 	}
 
 private:
-	void preunmarshal (TypeCode::_ptr_type tc, std::vector <Octet>& buf, Internal::IORequest::_ptr_type out);
-
-private:
 	const Internal::Operation* metadata_;
 	RequestId id_;
 

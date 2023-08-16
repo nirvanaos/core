@@ -26,6 +26,7 @@
 #include "RequestOut.h"
 #include "OutgoingRequests.h"
 #include "DomainRemote.h"
+#include "remarshal_output.h"
 
 using namespace Nirvana;
 using namespace Nirvana::Core;
@@ -163,16 +164,7 @@ void RequestOut::set_reply (unsigned status, IOP::ServiceContextList&& context,
 				assert (ed.mem_context_ptr () == &memory ());
 				servant_reference <RequestLocalRoot> pre = servant_reference <RequestLocalRoot>::
 					create <RequestLocalImpl <RequestLocalRoot> > (&memory (), 3);
-				IORequest::_ptr_type rq = pre->_get_ptr ();
-				std::vector <Octet> buf;
-				buf.resize (3 * sizeof (void*));
-				if (metadata_->return_type)
-					preunmarshal ((metadata_->return_type) (), buf, rq);
-				for (const Parameter* param = metadata_->output.p, *end = param + metadata_->output.size;
-					param != end; ++param) {
-					preunmarshal ((param->type) (), buf, rq);
-				}
-				Base::unmarshal_end ();
+				remarshal_output (*metadata_, _get_ptr (), pre->_get_ptr ());
 				pre->invoke (); // Rewind to begin
 				preunmarshaled_ = std::move (pre);
 			}
@@ -190,22 +182,6 @@ void RequestOut::set_reply (unsigned status, IOP::ServiceContextList&& context,
 		default:
 			throw UNKNOWN (); // Unexpected reply
 	}
-}
-
-void RequestOut::preunmarshal (TypeCode::_ptr_type tc, std::vector <Octet>& buf, IORequest::_ptr_type out)
-{
-	size_t cb = tc->n_aligned_size ();
-	if (buf.size () < cb)
-		buf.resize (cb);
-	tc->n_construct (buf.data ());
-	tc->n_unmarshal (_get_ptr (), 1, buf.data ());
-	try {
-		tc->n_marshal_out (buf.data (), 1, out);
-	} catch (...) {
-		tc->n_destruct (buf.data ());
-		throw;
-	}
-	tc->n_destruct (buf.data ());
 }
 
 bool RequestOut::unmarshal (size_t align, size_t size, void* data)
