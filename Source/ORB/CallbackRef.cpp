@@ -1,4 +1,3 @@
-/// \file
 /*
 * Nirvana Core.
 *
@@ -24,43 +23,35 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_ORB_CORE_REQUESTOUTASYNC_H_
-#define NIRVANA_ORB_CORE_REQUESTOUTASYNC_H_
-#pragma once
-
-#include <CORBA/Server.h>
-#include <CORBA/Proxy/IOReference.h>
-#include "../ExecDomain.h"
+#include "CallbackRef.h"
+#include "Pollable.h"
 
 namespace CORBA {
+using namespace Internal;
 namespace Core {
 
-template <class Rq>
-class RequestOutAsync : public Rq
+CallbackRef::CallbackRef (ProxyManager& proxy, OperationIndex op, Interface::_ptr_type callback) :
+	handler_op_idx_ (0)
 {
-	typedef Rq Base;
-
-public:
-	template <class ... Args>
-	RequestOutAsync (RequestCallback::_ptr_type callback, Args ... args) :
-		Base (std::forward <Args> (args)...),
-		callback_ (callback)
-	{
-		Base::deadline_ = ExecDomain::current ().get_request_deadline (false);
+	assert (callback);
+	const CORBA::Internal::StringView <Char> iid (callback->_epv ().interface_id);
+	RepId::CheckResult ch = RepId::check (RepIdOf <CORBA::Pollable>::id, iid);
+	if (ch != RepId::CheckResult::OTHER_INTERFACE) {
+		if (ch != RepId::CheckResult::COMPATIBLE)
+			throw BAD_PARAM ();
+		callback_ = static_cast <Pollable&> (
+			static_cast <Bridge <CORBA::Pollable>&> (*&callback)).callback ();
+		return;
 	}
 
-private:
-	virtual void finalize () noexcept override
-	{
-		Base::finalize ();
-		RqHelper::call_completed (callback_, Base::_get_ptr ());
-	}
+	Messaging::ReplyHandler::_ptr_type handler = Messaging::ReplyHandler::_check (&callback);
+	handler_op_idx_ = proxy.find_handler_operation (op, handler);
+	callback_ = handler;
+}
 
-private:
-	RequestCallback::_ref_type callback_;
-};
+void CallbackRef::call (IORequest::_ptr_type rq, OperationIndex op)
+{
+}
 
 }
 }
-
-#endif

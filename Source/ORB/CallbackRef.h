@@ -24,40 +24,30 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_ORB_CORE_REQUESTOUTASYNC_H_
-#define NIRVANA_ORB_CORE_REQUESTOUTASYNC_H_
+#ifndef NIRVANA_ORB_CORE_CALLBACKREF_H_
+#define NIRVANA_ORB_CORE_CALLBACKREF_H_
 #pragma once
 
-#include <CORBA/Server.h>
-#include <CORBA/Proxy/IOReference.h>
-#include "../ExecDomain.h"
+#include "ProxyManager.h"
 
 namespace CORBA {
 namespace Core {
 
-template <class Rq>
-class RequestOutAsync : public Rq
+class CallbackRef
 {
-	typedef Rq Base;
-
 public:
-	template <class ... Args>
-	RequestOutAsync (RequestCallback::_ptr_type callback, Args ... args) :
-		Base (std::forward <Args> (args)...),
-		callback_ (callback)
+	CallbackRef (ProxyManager& proxy, Internal::OperationIndex op, Internal::Interface::_ptr_type callback);
+
+	bool is_handler () const noexcept
 	{
-		Base::deadline_ = ExecDomain::current ().get_request_deadline (false);
+		return handler_op_idx_ != 0;
 	}
 
-private:
-	virtual void finalize () noexcept override
-	{
-		Base::finalize ();
-		RqHelper::call_completed (callback_, Base::_get_ptr ());
-	}
+	void call (Internal::IORequest::_ptr_type rq, Internal::OperationIndex op);
 
 private:
-	RequestCallback::_ref_type callback_;
+	Internal::Interface::_ref_type callback_;
+	Internal::OperationIndex handler_op_idx_;
 };
 
 }

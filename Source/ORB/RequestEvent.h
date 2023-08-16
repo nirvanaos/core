@@ -29,7 +29,7 @@
 #pragma once
 
 #include <CORBA/Server.h>
-#include <CORBA/Proxy/IOReference_s.h>
+#include "../CORBA/RequestCallback_s.h"
 #include "../Event.h"
 #include "../LifeCyclePseudo.h"
 
@@ -37,7 +37,7 @@ namespace CORBA {
 namespace Core {
 
 class RequestEvent :
-	public CORBA::servant_traits <Internal::RequestCallback>::Servant <RequestEvent>,
+	public CORBA::servant_traits <RequestCallback>::Servant <RequestEvent>,
 	public Nirvana::Core::LifeCyclePseudo <RequestEvent>
 {
 public:

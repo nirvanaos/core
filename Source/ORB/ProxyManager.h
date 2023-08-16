@@ -38,6 +38,7 @@
 #include <CORBA/Proxy/ProxyFactory.h>
 #include <CORBA/Proxy/IOReference_s.h>
 #include <CORBA/Proxy/OperationIndex.h>
+#include "../CORBA/RequestCallback.h"
 #include "offset_ptr.h"
 
 namespace PortableServer {
@@ -133,8 +134,20 @@ public:
 
 	// IOReference operations
 
+	Internal::IORequest::_ref_type create_request (Internal::OperationIndex op, unsigned flags,
+		Internal::Interface::_ptr_type callback)
+	{
+		return create_request (op, flags, RequestCallback::_check (&callback));
+	}
+
+	Internal::IORequest::_ref_type create_request (Internal::OperationIndex op, unsigned flags,
+		nullptr_t)
+	{
+		return create_request (op, flags, RequestCallback::_nil ());
+	}
+
 	virtual Internal::IORequest::_ref_type create_request (Internal::OperationIndex op, unsigned flags,
-		Internal::RequestCallback::_ptr_type callback);
+		RequestCallback::_ptr_type callback);
 
 	// Get Object proxy
 	Object::_ptr_type get_proxy () const noexcept
@@ -292,17 +305,7 @@ public:
 
 	void invoke (Internal::OperationIndex op, Internal::IORequest::_ptr_type rq) const noexcept;
 
-	const Internal::Operation& operation_metadata (Internal::OperationIndex op) const noexcept
-	{
-		assert (Internal::interface_idx (op) <= metadata_.interfaces.size ());
-		if (Internal::interface_idx (op) == 0) {
-			assert (Internal::operation_idx (op) < countof (object_ops_));
-			return object_ops_ [Internal::operation_idx (op)];
-		} else {
-			const InterfaceEntry& itf = metadata_.interfaces [Internal::interface_idx (op) - 1];
-			return itf.operations.p [Internal::operation_idx (op)];
-		}
-	}
+	const Internal::Operation& operation_metadata (Internal::OperationIndex op) const noexcept;
 
 	static bool is_object_op (Internal::OperationIndex op) noexcept
 	{
@@ -334,23 +337,38 @@ public:
 	struct InterfaceEntry : InterfaceId
 	{
 		Internal::Interface* implementation;
-		Internal::CountedArray <Internal::Operation> operations;
 		Internal::ProxyFactory::_ref_type proxy_factory;
+		const Internal::InterfaceMetadata* interface_metadata;
 		Internal::Interface::_ptr_type proxy;
 		Internal::Interface::_ref_type holder;
 
 		InterfaceEntry (const InterfaceEntry& src) :
 			InterfaceId (src),
 			implementation (nullptr), // implementation is not copied
-			operations (src.operations),
 			proxy_factory (src.proxy_factory),
+			interface_metadata (src.interface_metadata),
 			// proxy and holder are not copied
 			proxy (nullptr),
 			holder ()
 		{}
 
+		InterfaceEntry (InterfaceEntry&& src) = default;
+
 		~InterfaceEntry ()
 		{}
+
+		InterfaceEntry& operator = (InterfaceEntry&& src) = default;
+
+		const Internal::InterfaceMetadata& metadata () const noexcept
+		{
+			assert (interface_metadata);
+			return *interface_metadata;
+		}
+
+		const Internal::CountedArray <Internal::Operation>& operations () const
+		{
+			return metadata ().operations;
+		}
 	};
 
 	const InterfaceEntry* find_interface (Internal::String_in iid) const noexcept;
@@ -367,6 +385,9 @@ public:
 	{
 		return metadata_.primary_interface;
 	}
+
+	Internal::OperationIndex find_handler_operation (Internal::OperationIndex op,
+		Messaging::ReplyHandler::_ptr_type handler) const;
 
 protected:
 	ProxyManager (Internal::String_in primary_iid, bool servant_side);
@@ -464,8 +485,7 @@ private:
 	struct OEPred;
 
 	void create_proxy (InterfaceEntry& ie, bool servant_side) const;
-	void create_proxy (Internal::ProxyFactory::_ptr_type pf,
-		const Internal::InterfaceMetadata* metadata, InterfaceEntry& ie) const;
+	void create_proxy (Internal::ProxyFactory::_ptr_type pf, InterfaceEntry& ie) const;
 
 	static void check_metadata (const Internal::InterfaceMetadata* metadata,
 		Internal::String_in primary, bool servant_side);

@@ -166,12 +166,12 @@ void RequestOut::set_reply (unsigned status, IOP::ServiceContextList&& context,
 				IORequest::_ptr_type rq = pre->_get_ptr ();
 				std::vector <Octet> buf;
 				buf.resize (3 * sizeof (void*));
+				if (metadata_->return_type)
+					preunmarshal ((metadata_->return_type) (), buf, rq);
 				for (const Parameter* param = metadata_->output.p, *end = param + metadata_->output.size;
 					param != end; ++param) {
 					preunmarshal ((param->type) (), buf, rq);
 				}
-				if (metadata_->return_type)
-					preunmarshal ((metadata_->return_type) (), buf, rq);
 				Base::unmarshal_end ();
 				pre->invoke (); // Rewind to begin
 				preunmarshaled_ = std::move (pre);

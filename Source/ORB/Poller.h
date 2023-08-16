@@ -73,6 +73,8 @@ public:
 
 	void associated_handler (Messaging::ReplyHandler::_ptr_type handler) noexcept
 	{
+		if (handler)
+			op_handler_ = proxy_->find_handler_operation (op_, handler);
 		associated_handler_ = handler;
 	}
 
@@ -132,6 +134,7 @@ private:
 	Nirvana::Core::Array <ValueEntry, Nirvana::Core::UserAllocator> values_;
 	const ValueEntry* primary_;
 	const Internal::OperationIndex op_;
+	Internal::OperationIndex op_handler_;
 	bool is_from_poller_;
 };
 
@@ -140,16 +143,17 @@ Poller::Poller (ProxyManager& proxy, Internal::OperationIndex op) :
 	proxy_ (&proxy),
 	primary_ (nullptr),
 	op_ (op),
+	op_handler_ (0),
 	is_from_poller_ (false)
 {
 	const ProxyManager::InterfaceEntry* primary_interface = proxy.primary_interface ();
-	assert (primary_interface && primary_interface->proxy_factory->metadata ()->poller_id);
-	if (!(primary_interface && primary_interface->proxy_factory->metadata ()->poller_id))
+	assert (primary_interface && primary_interface->metadata ().poller_id);
+	if (!(primary_interface && primary_interface->metadata ().poller_id))
 		throw NO_IMPLEMENT ();
 
 	size_t val_cnt = 0;
 	for (auto pi = proxy.interfaces ().begin (), end = proxy.interfaces ().end (); pi != end; ++pi) {
-		if (pi->proxy_factory->metadata ()->poller_id)
+		if (pi->metadata ().poller_id)
 			++val_cnt;
 	}
 
@@ -169,7 +173,7 @@ Poller::Poller (ProxyManager& proxy, Internal::OperationIndex op) :
 
 	const Char* primary_id = nullptr;
 	for (auto pi = proxy.interfaces ().begin (), end = proxy.interfaces ().end (); pi != end; ++pi) {
-		const Char* id = pi->proxy_factory->metadata ()->poller_id;
+		const Char* id = pi->metadata ().poller_id;
 		if (id) {
 			pv->iid = id;
 			pv->iid_len = strlen (id);
@@ -194,9 +198,11 @@ Poller::Poller (ProxyManager& proxy, Internal::OperationIndex op) :
 inline
 Poller::Poller (const Poller& src) :
 	proxy_ (src.proxy_),
+	associated_handler_ (src.associated_handler_),
 	values_ (src.values_),
 	primary_ (values_.begin () + (src.primary_ - src.values_.begin ())),
 	op_ (src.op_),
+	op_handler_ (src.op_handler_),
 	is_from_poller_ (false)
 {
 	find_value (Internal::RepIdOf <CORBA::Pollable>::id)->value = CORBA::Pollable::_ptr_type (this);

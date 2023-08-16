@@ -34,6 +34,7 @@
 #include "../EventSync.h"
 #include "../MapUnorderedUnstable.h"
 #include "../Synchronized.h"
+#include "../CORBA/RequestCallback_s.h"
 
 namespace CORBA {
 namespace Core {
@@ -41,7 +42,8 @@ namespace Core {
 class PollableSet;
 
 class NIRVANA_NOVTABLE Pollable :
-	public servant_traits <CORBA::Pollable>::Servant <Pollable>
+	public servant_traits <CORBA::Pollable>::Servant <Pollable>,
+	public Internal::ValueImplBase <Pollable, RequestCallback>
 {
 	typedef servant_traits <CORBA::Pollable>::Servant <Pollable> Servant;
 
@@ -69,6 +71,11 @@ public:
 			throw BAD_PARAM (MAKE_OMG_MINOR (43));
 		cur_set_ = ps;
 		SYNC_END ()
+	}
+
+	Internal::Interface::_ptr_type callback () noexcept
+	{
+		return RequestCallback::_ptr_type (this);
 	}
 
 	void completed (Internal::IORequest::_ptr_type rq)

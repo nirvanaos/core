@@ -36,6 +36,19 @@ namespace CORBA {
 using namespace Internal;
 namespace Core {
 
+const Parameter ProxyManager::is_a_param_ = { "logical_type_id", Type <String>::type_code };
+
+const Operation ProxyManager::object_ops_ [(size_t)ObjectOp::OBJECT_OP_CNT] = {
+	{ "_get_interface", {0, 0}, {0, 0}, {0, 0}, {0, 0}, Type <InterfaceDef>::type_code,
+		ObjProcWrapper <rq_get_interface>, Operation::FLAG_OUT_CPLX },
+	{ "_is_a", {&is_a_param_, 1}, {0, 0}, {0, 0}, {0, 0}, Type <Boolean>::type_code,
+		ObjProcWrapper <rq_is_a>, 0 },
+	{ "_non_existent", {0, 0}, {0, 0}, {0, 0}, {0, 0}, Type <Boolean>::type_code,
+		ObjProcWrapper <rq_non_existent>, 0 },
+	{ "_repository_id", {0, 0}, {0, 0}, {0, 0}, {0, 0}, Type <String>::type_code,
+		ObjProcWrapper <rq_repository_id>, 0 }
+};
+
 struct ProxyManager::OEPred
 {
 	bool operator () (const OperationEntry& lhs, const OperationEntry& rhs) const noexcept
@@ -70,7 +83,8 @@ Heap& ProxyManager::get_heap () noexcept
 		return Heap::shared_heap ();
 }
 
-void ProxyManager::check_metadata (const InterfaceMetadata* metadata, String_in primary, bool servant_side)
+void ProxyManager::check_metadata (const InterfaceMetadata* metadata, String_in primary,
+	bool servant_side)
 {
 	if (!metadata)
 		throw OBJ_ADAPTER (); // TODO: Log
@@ -167,15 +181,15 @@ void ProxyManager::build_metadata (Metadata& md, String_in primary_iid, bool ser
 
 		// Create primary proxy
 		assert (primary);
-		create_proxy (proxy_factory, metadata, *primary);
-		primary->operations = metadata->operations;
+		primary->interface_metadata = metadata;
+		create_proxy (proxy_factory, *primary);
 		md.primary_interface = primary;
 	}
 
 	// Total count of operations
 	size_t op_cnt = countof (object_ops_);
 	for (const InterfaceEntry* ie = md.interfaces.begin (); ie != md.interfaces.end (); ++ie) {
-		op_cnt += ie->operations.size;
+		op_cnt += ie->operations ().size;
 	}
 
 	// Fill operation table
@@ -197,7 +211,8 @@ void ProxyManager::build_metadata (Metadata& md, String_in primary_iid, bool ser
 	// Interface operations
 	for (const InterfaceEntry* ie = md.interfaces.begin (); ie != md.interfaces.end (); ++ie) {
 		idx = make_op_idx (++itf_idx, 0);
-		for (const Operation* p = ie->operations.p, *end = p + ie->operations.size; p != end; ++p) {
+		const auto& operations = ie->operations ();
+		for (const Operation* p = operations.p, *end = p + operations.size; p != end; ++p) {
 			const Char* name = p->name;
 			op->name = name;
 			op->name_len = strlen (name);
@@ -237,11 +252,11 @@ void ProxyManager::check_primary_interface (String_in primary_iid) const
 	}
 }
 
-void ProxyManager::create_proxy (ProxyFactory::_ptr_type pf, const InterfaceMetadata* metadata,
-	InterfaceEntry& ie) const
+void ProxyManager::create_proxy (ProxyFactory::_ptr_type pf, InterfaceEntry& ie) const
 {
 	Interface::_ref_type holder;
-	Interface* proxy = pf->create_proxy (get_proxy (), get_abstract_base (), ior (), (UShort)(&ie - metadata_.interfaces.begin () + 1),
+	Interface* proxy = pf->create_proxy (get_proxy (), get_abstract_base (), ior (),
+		(UShort)(&ie - metadata_.interfaces.begin () + 1),
 		ie.implementation, holder);
 	if (!proxy || !holder)
 		throw MARSHAL ();
@@ -258,8 +273,9 @@ void ProxyManager::create_proxy (InterfaceEntry& ie, bool servant_side) const
 			ie.proxy_factory = Nirvana::Core::Binder::bind_interface <ProxyFactory> (iid);
 			metadata = ie.proxy_factory->metadata ();
 			check_metadata (metadata, iid, servant_side);
+			ie.interface_metadata = metadata;
 		} else
-			metadata = ie.proxy_factory->metadata ();
+			metadata = &ie.metadata ();
 		const Char* const* base = metadata->interfaces.p;
 		const Char* const* base_end = base + metadata->interfaces.size;
 		ie.iid = *base; // Base proxy may have greater minor number.
@@ -269,16 +285,19 @@ void ProxyManager::create_proxy (InterfaceEntry& ie, bool servant_side) const
 			if (!base_ie)
 				throw OBJ_ADAPTER (); // Base is not listed in the primary interface base list. TODO: Log
 			create_proxy (*base_ie, servant_side);
+			// Proxy may be already created in nested call
+			if (ie.proxy)
+				return;
 		}
-		ie.operations = metadata->operations;
-		create_proxy (ie.proxy_factory, metadata, ie);
+		create_proxy (ie.proxy_factory, ie);
 	}
 }
 
 const ProxyManager::InterfaceEntry* ProxyManager::find_interface (String_in iid) const
 	noexcept
 {
-	const InterfaceEntry* pf = std::lower_bound (metadata_.interfaces.begin (), metadata_.interfaces.end (), iid);
+	const InterfaceEntry* pf = std::lower_bound (metadata_.interfaces.begin (),
+		metadata_.interfaces.end (), iid);
 	if (pf != metadata_.interfaces.end () && RepId::compatible (pf->iid, pf->iid_len, iid))
 		return pf;
 	return nullptr;
@@ -286,14 +305,15 @@ const ProxyManager::InterfaceEntry* ProxyManager::find_interface (String_in iid)
 
 OperationIndex ProxyManager::find_operation (String_in name) const
 {
-	const OperationEntry* pf = std::lower_bound (metadata_.operations.begin (), metadata_.operations.end (), name, OEPred ());
+	const OperationEntry* pf = std::lower_bound (metadata_.operations.begin (),
+		metadata_.operations.end (), name, OEPred ());
 	if (pf != metadata_.operations.end () && !OEPred () (name, *pf))
 		return pf->idx;
 	throw BAD_OPERATION (MAKE_OMG_MINOR (2));
 }
 
 IORequest::_ref_type ProxyManager::create_request (OperationIndex op, unsigned flags,
-	Internal::RequestCallback::_ptr_type callback)
+	RequestCallback::_ptr_type callback)
 {
 	assert (is_object_op (op));
 	if (flags == 2 || flags > 3)
@@ -329,7 +349,7 @@ void ProxyManager::check_create_request (OperationIndex op, unsigned flags) cons
 	else if (itf > metadata_.interfaces.size ())
 		throw BAD_PARAM ();
 	else
-		op_cnt = metadata_.interfaces [itf - 1].operations.size;
+		op_cnt = metadata_.interfaces [itf - 1].operations ().size;
 	if (operation_idx (op) >= op_cnt)
 		throw BAD_PARAM ();
 }
@@ -352,8 +372,8 @@ void ProxyManager::invoke (OperationIndex op, IORequest::_ptr_type rq) const noe
 				implementation = ie.implementation;
 				if (!implementation)
 					throw OBJECT_NOT_EXIST (MAKE_OMG_MINOR (2));
-				assert (op_idx < ie.operations.size);
-				op_metadata = ie.operations.p + op_idx;
+				assert (op_idx < ie.operations ().size);
+				op_metadata = ie.operations ().p + op_idx;
 			}
 
 			if (!(*(op_metadata->invoke)) (implementation, &rq))
@@ -451,14 +471,34 @@ Messaging::Poller::_ref_type ProxyManager::create_poller (OperationIndex op)
 	return make_reference <Poller> (std::ref (*this), op);
 }
 
-const Parameter ProxyManager::is_a_param_ = { "logical_type_id", Type <String>::type_code };
+const Operation& ProxyManager::operation_metadata (OperationIndex op) const noexcept
+{
+	size_t itf_idx = interface_idx (op);
+	assert (itf_idx <= metadata_.interfaces.size ());
+	if (itf_idx == 0) {
+		assert (operation_idx (op) < countof (object_ops_));
+		return object_ops_ [operation_idx (op)];
+	} else {
+		const InterfaceEntry& itf = metadata_.interfaces [itf_idx - 1];
+		return itf.operations ().p [operation_idx (op)];
+	}
+}
 
-const Operation ProxyManager::object_ops_ [(size_t)ObjectOp::OBJECT_OP_CNT] = {
-	{ "_get_interface", {0, 0}, {0, 0}, {0, 0}, {0, 0}, Type <InterfaceDef>::type_code, ObjProcWrapper <rq_get_interface>, Operation::FLAG_OUT_CPLX },
-	{ "_is_a", {&is_a_param_, 1}, {0, 0}, {0, 0}, {0, 0}, Type <Boolean>::type_code, ObjProcWrapper <rq_is_a>, 0 },
-	{ "_non_existent", {0, 0}, {0, 0}, {0, 0}, {0, 0}, Type <Boolean>::type_code, ObjProcWrapper <rq_non_existent>, 0 },
-	{ "_repository_id", {0, 0}, {0, 0}, {0, 0}, {0, 0}, Type <String>::type_code, ObjProcWrapper <rq_repository_id>, 0 }
-};
+OperationIndex ProxyManager::find_handler_operation (OperationIndex op,
+	Messaging::ReplyHandler::_ptr_type handler) const
+{
+	assert (handler);
+	size_t itf_idx = interface_idx (op);
+	assert (itf_idx && itf_idx <= metadata_.interfaces.size ());
+	const InterfaceEntry& itf = metadata_.interfaces [itf_idx - 1];
+	assert (itf.metadata ().handler_id);
+	ProxyManager* handler_proxy = cast (handler);
+	const InterfaceEntry* handler_itf = handler_proxy->find_interface (itf.metadata ().handler_id);
+	if (!handler_itf)
+		throw BAD_PARAM ();
+	return make_op_idx ((UShort)(handler_itf - handler_proxy->interfaces ().begin ()),
+		operation_idx (op) * 2);
+}
 
 }
 }

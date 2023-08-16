@@ -53,14 +53,14 @@ Poller::ValueEntry* Poller::find_value (String_in iid)
 void Poller::create_value (ValueEntry& ve, const ProxyManager::InterfaceEntry& ie)
 {
 	if (!ve.value) {
-		const InterfaceMetadata* metadata = ie.proxy_factory->metadata ();
-		const Char* const* base = metadata->interfaces.p;
-		const Char* const* base_end = base + metadata->interfaces.size;
+		const InterfaceMetadata& metadata = ie.metadata ();
+		const Char* const* base = metadata.interfaces.p;
+		const Char* const* base_end = base + metadata.interfaces.size;
 		++base;
 		for (; base != base_end; ++base) {
 			const ProxyManager::InterfaceEntry* base_ie = proxy_->find_interface (*base);
 			assert (base_ie);
-			const Char* base_poller_id = base_ie->proxy_factory->metadata ()->poller_id;
+			const Char* base_poller_id = base_ie->metadata ().poller_id;
 			if (base_poller_id) {
 				ValueEntry* base_poller = find_value (base_poller_id);
 				assert (base_poller);

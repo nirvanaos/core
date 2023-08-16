@@ -381,13 +381,13 @@ PortableServer::ServantBase::_ref_type Proxy <PortableServer::ServantLocator>::p
 	_call->invoke ();
 	check_request (_call);
 
-	_call->unmarshal (alignof (PortableServer::ServantLocator::Cookie),
-		sizeof (PortableServer::ServantLocator::Cookie), &the_cookie);
-
 	// Actually, the method returns Obect, not ServantBase, so it must be called via EPV,
 	// not via the client call.
 	PortableServer::ServantBase::_ref_type _ret;
 	Type <Object>::unmarshal (_call, reinterpret_cast <Object::_ref_type&> (_ret));
+	_call->unmarshal (alignof (PortableServer::ServantLocator::Cookie),
+		sizeof (PortableServer::ServantLocator::Cookie), &the_cookie);
+
 	_call->unmarshal_end ();
 	return _ret;
 }
@@ -406,11 +406,11 @@ void Proxy <PortableServer::ServantLocator>::__rq_preinvoke (
 
 	PortableServer::ServantBase::_ref_type _ret = _servant->preinvoke (oid, adapter, operation, the_cookie);
 
-	_call->marshal (alignof (PortableServer::ServantLocator::Cookie),
-		sizeof (PortableServer::ServantLocator::Cookie), &the_cookie);
-
 	Object::_ref_type obj = Core::servant2object (_ret);
 	Type <Object>::marshal_out (obj, _call);
+
+	_call->marshal (alignof (PortableServer::ServantLocator::Cookie),
+		sizeof (PortableServer::ServantLocator::Cookie), &the_cookie);
 }
 
 inline

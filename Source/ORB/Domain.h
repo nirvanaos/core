@@ -57,7 +57,7 @@ class NIRVANA_NOVTABLE Domain : public Nirvana::Core::BinderObject
 public:
 	virtual Internal::IORequest::_ref_type create_request (const IOP::ObjectKey& object_key,
 		const Internal::Operation& metadata, unsigned response_flags,
-		Internal::RequestCallback::_ptr_type callback) = 0;
+		RequestCallback::_ptr_type callback) = 0;
 
 	/// Domain flag bits
 	enum

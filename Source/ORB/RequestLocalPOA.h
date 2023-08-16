@@ -88,7 +88,7 @@ class NIRVANA_NOVTABLE RequestLocalAsyncPOA :
 	typedef RequestLocalOnewayPOA Base;
 
 protected:
-	RequestLocalAsyncPOA (Internal::RequestCallback::_ptr_type callback,
+	RequestLocalAsyncPOA (RequestCallback::_ptr_type callback,
 		ReferenceLocal& reference, Internal::OperationIndex op,
 		unsigned response_flags) :
 		Base (reference, op, response_flags),
@@ -100,7 +100,7 @@ protected:
 	virtual void finalize () noexcept override;
 
 private:
-	Internal::RequestCallback::_ref_type callback_;
+	RequestCallback::_ref_type callback_;
 };
 
 }

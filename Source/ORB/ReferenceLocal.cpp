@@ -271,7 +271,7 @@ ReferenceLocalRef ReferenceLocal::get_local_reference (const PortableServer::Cor
 		return nullptr;
 }
 
-IORequest::_ref_type ReferenceLocal::create_request (OperationIndex op, unsigned flags, Internal::RequestCallback::_ptr_type callback)
+IORequest::_ref_type ReferenceLocal::create_request (OperationIndex op, unsigned flags, RequestCallback::_ptr_type callback)
 {
 	if (is_object_op (op))
 		return ProxyManager::create_request (op, flags, callback);

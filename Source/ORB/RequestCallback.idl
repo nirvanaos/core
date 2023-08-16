@@ -1,6 +1,5 @@
-/// \file
 /*
-* Nirvana Core.
+* Nirvana IDL support library.
 *
 * This is a part of the Nirvana project.
 *
@@ -24,43 +23,27 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_ORB_CORE_REQUESTOUTASYNC_H_
-#define NIRVANA_ORB_CORE_REQUESTOUTASYNC_H_
-#pragma once
+#ifndef CORBA_REQUESTCALLBACK_IDL_
+#define CORBA_REQUESTCALLBACK_IDL_
 
-#include <CORBA/Server.h>
-#include <CORBA/Proxy/IOReference.h>
-#include "../ExecDomain.h"
+module CORBA {
 
-namespace CORBA {
-namespace Core {
+module Internal {
 
-template <class Rq>
-class RequestOutAsync : public Rq
-{
-	typedef Rq Base;
+pseudo interface IORequest;
 
-public:
-	template <class ... Args>
-	RequestOutAsync (RequestCallback::_ptr_type callback, Args ... args) :
-		Base (std::forward <Args> (args)...),
-		callback_ (callback)
-	{
-		Base::deadline_ = ExecDomain::current ().get_request_deadline (false);
-	}
-
-private:
-	virtual void finalize () noexcept override
-	{
-		Base::finalize ();
-		RqHelper::call_completed (callback_, Base::_get_ptr ());
-	}
-
-private:
-	RequestCallback::_ref_type callback_;
 };
 
-}
-}
+module Core {
+
+/// Request callback
+pseudo interface RequestCallback
+{
+	/// Called on request completion
+	void completed (in Internal::IORequest rq);
+};
+
+};
+};
 
 #endif

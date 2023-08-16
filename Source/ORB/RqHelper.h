@@ -29,7 +29,7 @@
 #pragma once
 
 #include <CORBA/CORBA.h>
-#include <CORBA/Proxy/IOReference.h>
+#include "../CORBA/RequestCallback.h"
 
 struct siginfo;
 
@@ -45,7 +45,7 @@ public:
 	static void check_align (size_t align);
 	static Any signal2exception (const siginfo& signal) noexcept;
 	static Any exception2any (Exception&& e);
-	static void call_completed (Internal::RequestCallback::_ref_type& callback,
+	static void call_completed (RequestCallback::_ref_type& callback,
 		Internal::IORequest::_ptr_type rq) noexcept;
 
 private:

@@ -98,7 +98,7 @@ class NIRVANA_NOVTABLE RequestLocalAsync : public RequestLocalOneway
 	typedef RequestLocalOneway Base;
 
 protected:
-	RequestLocalAsync (Internal::RequestCallback::_ptr_type callback,
+	RequestLocalAsync (RequestCallback::_ptr_type callback,
 		ProxyManager & proxy, Internal::OperationIndex op_idx,
 		Nirvana::Core::MemContext* callee_memory, unsigned response_flags) noexcept :
 		Base (proxy, op_idx, callee_memory, response_flags),
@@ -109,7 +109,7 @@ protected:
 	virtual void finalize () noexcept override;
 
 private:
-	Internal::RequestCallback::_ref_type callback_;
+	RequestCallback::_ref_type callback_;
 };
 
 }
