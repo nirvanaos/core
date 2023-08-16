@@ -36,15 +36,14 @@ namespace Core {
 class CallbackRef
 {
 public:
-	CallbackRef (ProxyManager& proxy, Internal::OperationIndex op, Internal::Interface::_ptr_type callback);
+	CallbackRef (Internal::Interface::_ptr_type callback, ProxyManager* proxy, Internal::OperationIndex op);
 
 	bool is_handler () const noexcept
 	{
 		return handler_op_idx_ != 0;
 	}
 
-	void call (const Internal::Operation& metadata, Internal::IORequest::_ptr_type rq,
-		Internal::OperationIndex handler_op);
+	void call (const Internal::Operation& metadata, Internal::IORequest::_ptr_type rq);
 
 private:
 	Internal::Interface::_ref_type callback_;

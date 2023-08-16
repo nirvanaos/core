@@ -87,7 +87,7 @@ ReferenceRef ReferenceRemote::marshal (StreamOut& out)
 }
 
 IORequest::_ref_type ReferenceRemote::create_request (OperationIndex op, unsigned flags,
-	RequestCallback::_ptr_type callback)
+	Internal::Interface::_ptr_type callback)
 {
 	if (is_object_op (op))
 		return ProxyManager::create_request (op, flags, callback);
@@ -97,7 +97,7 @@ IORequest::_ref_type ReferenceRemote::create_request (OperationIndex op, unsigne
 	if (callback && !(flags & Internal::IORequest::RESPONSE_EXPECTED))
 		throw BAD_PARAM ();
 
-	return domain_->create_request (object_key_, operation_metadata (op), flags, callback);
+	return domain_->create_request (flags, object_key_, operation_metadata (op), this, callback, op);
 }
 
 DomainManagersList ReferenceRemote::_get_domain_managers ()

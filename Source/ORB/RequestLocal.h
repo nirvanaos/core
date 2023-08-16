@@ -30,6 +30,7 @@
 
 #include "RequestLocalBase.h"
 #include "ProxyManager.h"
+#include "CallbackRef.h"
 
 namespace CORBA {
 namespace Core {
@@ -40,9 +41,9 @@ protected:
 	RequestLocal (ProxyManager& proxy, Internal::OperationIndex op_idx,
 		Nirvana::Core::MemContext* callee_memory, unsigned response_flags) noexcept;
 
-	ProxyManager* proxy () const noexcept
+	ProxyManager& proxy () const noexcept
 	{
-		return proxy_;
+		return *proxy_;
 	}
 
 	Internal::OperationIndex op_idx () const noexcept
@@ -87,7 +88,7 @@ private:
 
 	void run ()
 	{
-		assert (&Nirvana::Core::SyncContext::current () == &proxy ()->get_sync_context (op_idx ()));
+		assert (&Nirvana::Core::SyncContext::current () == &proxy ().get_sync_context (op_idx ()));
 		Base::invoke_sync ();
 	}
 
@@ -98,18 +99,18 @@ class NIRVANA_NOVTABLE RequestLocalAsync : public RequestLocalOneway
 	typedef RequestLocalOneway Base;
 
 protected:
-	RequestLocalAsync (RequestCallback::_ptr_type callback,
+	RequestLocalAsync (Interface::_ptr_type callback,
 		ProxyManager & proxy, Internal::OperationIndex op_idx,
 		Nirvana::Core::MemContext* callee_memory, unsigned response_flags) noexcept :
 		Base (proxy, op_idx, callee_memory, response_flags),
-		callback_ (callback)
+		callback_ (callback, &proxy, op_idx)
 	{}
 
 	virtual void cancel () noexcept override;
 	virtual void finalize () noexcept override;
 
 private:
-	RequestCallback::_ref_type callback_;
+	CallbackRef callback_;
 };
 
 }

@@ -33,7 +33,7 @@ void RequestOutESIOP::invoke ()
 	pre_invoke (IdPolicy::ANY);
 	StreamOutSM& stm = static_cast <StreamOutSM&> (*stream_out_);
 	ESIOP::Request msg (ESIOP::current_domain_id (), stm, id ());
-	target_domain ()->send_message (&msg, sizeof (msg));
+	domain ()->send_message (&msg, sizeof (msg));
 	// After successfull sending the message we detach the output data.
 	// Now it is responsibility of the target domain to release it.
 	stm.detach ();
@@ -44,7 +44,7 @@ void RequestOutESIOP::cancel ()
 {
 	if (cancel_internal ()) {
 		ESIOP::CancelRequest msg (ESIOP::current_domain_id (), id ());
-		target_domain ()->send_message (&msg, sizeof (msg));
+		domain ()->send_message (&msg, sizeof (msg));
 	}
 }
 

@@ -428,9 +428,9 @@ public:
 
 	///@}
 
-	Domain* target_domain () const noexcept
+	Domain* domain () const noexcept
 	{
-		return target_domain_;
+		return domain_;
 	}
 
 protected:
@@ -438,9 +438,8 @@ protected:
 	/// 
 	/// \param GIOP_minor GIOP minor version number.
 	/// \param response_flags Response flags
-	/// \param servant_domain Target domain pointer for outgoing request,
-	///        `nullptr` for incoming request.
-	RequestGIOP (unsigned GIOP_minor, unsigned response_flags, Domain* servant_domain);
+	/// \param domain Domain pointer for outgoing request, `nullptr` for incoming request.
+	RequestGIOP (unsigned GIOP_minor, unsigned response_flags, Domain* domain);
 
 	RequestGIOP (const RequestGIOP&) = delete;
 	RequestGIOP (RequestGIOP&&) = delete;
@@ -491,7 +490,7 @@ protected:
 	Nirvana::DeadlineTime deadline_;
 	Nirvana::Core::RefCounter ref_cnt_;
 	Long chunk_level_;
-	servant_reference <Domain> target_domain_;
+	servant_reference <Domain> domain_;
 	servant_reference <StreamIn> stream_in_;
 	servant_reference <StreamOut> stream_out_;
 	servant_reference <Nirvana::Core::MemContext> mem_context_;

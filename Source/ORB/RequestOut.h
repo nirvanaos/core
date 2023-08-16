@@ -87,7 +87,8 @@ public:
 		noexcept;
 
 protected:
-	RequestOut (unsigned GIOP_minor, unsigned response_flags, Domain& target_domain, const Internal::Operation& metadata);
+	RequestOut (unsigned response_flags, Domain& target_domain,
+		const Internal::Operation& metadata, ReferenceRemote* ref);
 	~RequestOut ();
 
 	void write_header (const IOP::ObjectKey& object_key, IOP::ServiceContextList& context);
@@ -122,8 +123,17 @@ protected:
 		timer_.cancel ();
 	}
 
+	const Internal::Operation& metadata () const noexcept
+	{
+		return metadata_;
+	}
+
 private:
-	const Internal::Operation* metadata_;
+	const Internal::Operation& metadata_;
+
+	// Hold reference alive while request exists
+	servant_reference <ReferenceRemote> ref_;
+	
 	RequestId id_;
 
 	enum class Status

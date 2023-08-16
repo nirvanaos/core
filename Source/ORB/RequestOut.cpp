@@ -64,14 +64,16 @@ RequestOut::RequestId RequestOut::get_new_id (IdPolicy id_policy) noexcept
 	return (RequestId)id;
 }
 
-RequestOut::RequestOut (unsigned GIOP_minor, unsigned response_flags,
-	Domain& servant_domain, const Internal::Operation& metadata) :
-	RequestGIOP (GIOP_minor, response_flags, &servant_domain),
-	metadata_ (&metadata),
+RequestOut::RequestOut (unsigned response_flags, Domain& target_domain,
+	const Internal::Operation& metadata, ReferenceRemote* ref) :
+	RequestGIOP (target_domain.GIOP_minor (), response_flags, &target_domain),
+	metadata_ (metadata),
+	ref_ (ref),
 	id_ (0),
 	status_ (Status::IN_PROGRESS),
 	request_id_offset_ (0),
-	system_exception_code_ (SystemException::EC_NO_EXCEPTION)
+	system_exception_code_ (SystemException::EC_NO_EXCEPTION),
+	system_exception_data_{ 0, COMPLETED_NO }
 {
 	SyncContext& sc = SyncContext::current ();
 	if ((metadata.flags & Operation::FLAG_OUT_CPLX) && !sc.is_free_sync_context ())
@@ -108,7 +110,7 @@ void RequestOut::write_header (const IOP::ObjectKey& object_key, IOP::ServiceCon
 		hdr.request_id (id_);
 		hdr.response_expected (response_flags_ & RESPONSE_EXPECTED);
 		hdr.object_key (object_key);
-		hdr.operation (metadata_->name);
+		hdr.operation (metadata_.name);
 		Type <GIOP::RequestHeader_1_1>::marshal_in (hdr, _get_ptr ());
 		hdr.service_context ().swap (context);
 	} else {
@@ -117,7 +119,7 @@ void RequestOut::write_header (const IOP::ObjectKey& object_key, IOP::ServiceCon
 		hdr.request_id (id_);
 		hdr.response_flags ((Octet)(response_flags_ & (RESPONSE_EXPECTED | RESPONSE_DATA)));
 		hdr.target ().object_key (object_key);
-		hdr.operation (metadata_->name);
+		hdr.operation (metadata_.name);
 		hdr.service_context ().swap (context);
 		Type <GIOP::RequestHeader_1_2>::marshal_in (hdr, _get_ptr ());
 		hdr.service_context ().swap (context);
@@ -147,8 +149,8 @@ void RequestOut::set_reply (unsigned status, IOP::ServiceContextList&& context,
 	switch (status_ = (Status)status) {
 		case Status::NO_EXCEPTION:
 			// If target domain does not support DGC, we make passed DGC references as owned to it.
-			if (!marshaled_DGC_references_.empty () && !(target_domain_->flags () & Domain::GARBAGE_COLLECTION))
-				static_cast <DomainRemote&> (*target_domain_).add_DGC_objects (marshaled_DGC_references_);
+			if (!marshaled_DGC_references_.empty () && !(domain ()->flags () & Domain::GARBAGE_COLLECTION))
+				static_cast <DomainRemote&> (*domain ()).add_DGC_objects (marshaled_DGC_references_);
 
 			if (!(response_flags_ & RESPONSE_DATA)) {
 				// Data is not expected
@@ -164,7 +166,7 @@ void RequestOut::set_reply (unsigned status, IOP::ServiceContextList&& context,
 				assert (ed.mem_context_ptr () == &memory ());
 				servant_reference <RequestLocalRoot> pre = servant_reference <RequestLocalRoot>::
 					create <RequestLocalImpl <RequestLocalRoot> > (&memory (), 3);
-				remarshal_output (*metadata_, _get_ptr (), pre->_get_ptr ());
+				remarshal_output (metadata_, _get_ptr (), pre->_get_ptr ());
 				pre->invoke (); // Rewind to begin
 				preunmarshaled_ = std::move (pre);
 			}
@@ -317,9 +319,9 @@ void RequestOut::pre_invoke (IdPolicy id_policy)
 		hdr [offset] = 1;
 		response = true;
 	}
-	if (metadata_->context.size != 0) {
+	if (metadata_.context.size != 0) {
 		IDL::Sequence <IDL::String> context;
-		ExecDomain::current ().get_context (metadata_->context.p, metadata_->context.size, context);
+		ExecDomain::current ().get_context (metadata_.context.p, metadata_.context.size, context);
 		Type <IDL::Sequence <IDL::String> >::marshal_out (context, _get_ptr ());
 	}
 	if (response)
@@ -400,7 +402,7 @@ bool RequestOut::get_exception (Any& e)
 		IDL::String id;
 		stream_in_->read_string (id);
 		TypeCode::_ptr_type tc;
-		for (auto p = metadata_->user_exceptions.p, end = p + metadata_->user_exceptions.size; p != end; ++p) {
+		for (auto p = metadata_.user_exceptions.p, end = p + metadata_.user_exceptions.size; p != end; ++p) {
 			TypeCode::_ptr_type tcp = **p;
 			if (RepId::compatible (tcp->id (), id)) {
 				tc = tcp;

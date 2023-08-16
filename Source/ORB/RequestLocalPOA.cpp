@@ -119,7 +119,7 @@ void RequestLocalAsyncPOA::cancel () noexcept
 void RequestLocalAsyncPOA::finalize () noexcept
 {
 	Base::finalize ();
-	RqHelper::call_completed (callback_, _get_ptr ());
+	callback_.call (reference ().operation_metadata (op_idx ()), _get_ptr ());
 }
 
 }

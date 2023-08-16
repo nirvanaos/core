@@ -38,16 +38,18 @@ class RequestOutInternal :
 	public Rq,
 	public Nirvana::Core::Event
 {
+	typedef Rq Base;
+
 public:
-	template <class ... Args>
-	RequestOutInternal (Args ... args) :
-		Rq (std::forward <Args> (args)...)
+	RequestOutInternal (unsigned response_flags, Domain& target_domain,
+		const IOP::ObjectKey& object_key, const Internal::Operation& metadata, ReferenceRemote* ref) :
+		Base (response_flags, target_domain, object_key, metadata, ref)
 	{}
 
 protected:
 	virtual void finalize () noexcept override
 	{
-		Rq::finalize ();
+		Base::finalize ();
 		Nirvana::Core::Event::signal ();
 	}
 };
@@ -58,10 +60,10 @@ class RequestOutSync : public RequestOutInternal <Rq>
 	typedef RequestOutInternal <Rq> Base;
 
 public:
-	template <class ... Args>
-	RequestOutSync (Args ... args) :
-		Base (std::forward <Args> (args)...)
-	{ }
+	RequestOutSync (unsigned response_flags, Domain& target_domain,
+		const IOP::ObjectKey& object_key, const Internal::Operation& metadata, ReferenceRemote* ref) :
+		Base (response_flags, target_domain, object_key, metadata, ref)
+	{}
 
 	virtual void invoke () override
 	{

@@ -45,8 +45,8 @@ class DomainRemote :
 	public Domain
 {
 public:
-	DomainRemote () :
-		Domain (0, 1 * TimeBase::SECOND, 1 * TimeBase::MINUTE, 2 * TimeBase::MINUTE)
+	DomainRemote (unsigned GIOP_minor) :
+		Domain (0, GIOP_minor, 1 * TimeBase::SECOND, 1 * TimeBase::MINUTE, 2 * TimeBase::MINUTE)
 	{}
 
 	~DomainRemote ();
@@ -56,8 +56,9 @@ public:
 		listen_points_.insert (&lp);
 	}
 
-	virtual Internal::IORequest::_ref_type create_request (const IOP::ObjectKey& object_key,
-		const Internal::Operation& metadata, unsigned flags, RequestCallback::_ptr_type callback) override;
+	virtual Internal::IORequest::_ref_type create_request (unsigned response_flags,
+		const IOP::ObjectKey& object_key, const Internal::Operation& metadata, ReferenceRemote* ref,
+		Internal::Interface::_ptr_type callback, Internal::OperationIndex op_idx) override;
 
 	// Add DGC references owned by this domain.
 	// Used only in the connection-oriented GC.

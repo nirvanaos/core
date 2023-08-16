@@ -374,9 +374,9 @@ bool RequestIn::get_exception (Any& e)
 void RequestIn::post_send_success () noexcept
 {
 	if (!marshaled_DGC_references_.empty ()) {
-		assert (target_domain_);
-		if (!(target_domain_->flags () & Domain::GARBAGE_COLLECTION))
-			static_cast <DomainRemote&> (*target_domain_).add_DGC_objects (marshaled_DGC_references_);
+		assert (domain_);
+		if (!(domain_->flags () & Domain::GARBAGE_COLLECTION))
+			static_cast <DomainRemote&> (*domain_).add_DGC_objects (marshaled_DGC_references_);
 		else {
 			// For DGC-enabled target domain we need to delay request release
 			try {
@@ -386,7 +386,7 @@ void RequestIn::post_send_success () noexcept
 			}
 			_add_ref ();
 			try {
-				((DelayedReleaseTimer*)&delayed_release_timer_)->set (0, target_domain_->request_latency () * 2, 0);
+				((DelayedReleaseTimer*)&delayed_release_timer_)->set (0, domain_->request_latency () * 2, 0);
 			} catch (...) {
 				((DelayedReleaseTimer*)&delayed_release_timer_)->DelayedReleaseTimer::~DelayedReleaseTimer ();
 				_remove_ref ();

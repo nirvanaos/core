@@ -24,6 +24,7 @@
 *  popov.nirvana@gmail.com
 */
 #include "remarshal_output.h"
+#include <Port/config.h>
 
 namespace CORBA {
 using namespace Internal;
@@ -34,8 +35,8 @@ static void remarshal_param (TypeCode::_ptr_type tc, std::vector <Octet>& buf,
 {
 	size_t cb = tc->n_aligned_size ();
 	if (buf.size () < cb) {
-		buf.clear (); // We need not keep data on resize
-		buf.resize (cb);
+		std::vector <Octet> new_buf (Nirvana::round_up (cb, Nirvana::Core::HEAP_UNIT_DEFAULT));
+		buf.swap (new_buf);
 	}
 	tc->n_construct (buf.data ());
 	tc->n_unmarshal (src, 1, buf.data ());
@@ -50,8 +51,7 @@ static void remarshal_param (TypeCode::_ptr_type tc, std::vector <Octet>& buf,
 
 void remarshal_output (const Operation& metadata, IORequest::_ptr_type src, IORequest::_ptr_type dst)
 {
-	std::vector <Octet> buf;
-	buf.reserve (3 * sizeof (void*));
+	std::vector <Octet> buf (Nirvana::Core::HEAP_UNIT_DEFAULT);
 	if (metadata.return_type)
 		remarshal_param ((metadata.return_type) (), buf, src, dst);
 	for (const Parameter* param = metadata.output.p, *end = param + metadata.output.size;

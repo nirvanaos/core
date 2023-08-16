@@ -39,15 +39,15 @@ using namespace Internal;
 
 namespace Core {
 
-RequestGIOP::RequestGIOP (unsigned GIOP_minor, unsigned response_flags, Domain* servant_domain) :
+RequestGIOP::RequestGIOP (unsigned GIOP_minor, unsigned response_flags, Domain* domain) :
 	GIOP_minor_ (GIOP_minor),
 	response_flags_ (response_flags),
 	deadline_ (INFINITE_DEADLINE),
 	chunk_level_ (0),
-	target_domain_ (servant_domain),
+	domain_ (domain),
 	mem_context_ (&MemContext::current ()),
 	code_set_conv_ (CodeSetConverter::get_default ()),
-	code_set_conv_w_ (CodeSetConverterW::get_default (GIOP_minor, servant_domain != nullptr)),
+	code_set_conv_w_ (CodeSetConverterW::get_default (GIOP_minor, domain != nullptr)),
 	marshaled_DGC_references_ (mem_context_->heap ()),
 	references_to_confirm_ (mem_context_->heap ())
 {}
@@ -101,7 +101,7 @@ bool RequestGIOP::marshal_chunk ()
 {
 	if (!marshal_op ())
 		return false;
-	assert (target_domain_);
+	assert (domain_);
 	if (chunk_level_) {
 		if (stream_out_->chunk_size () >= CHUNK_SIZE_LIMIT)
 			stream_out_->chunk_end ();

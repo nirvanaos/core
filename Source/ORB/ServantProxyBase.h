@@ -44,7 +44,7 @@ class NIRVANA_NOVTABLE ServantProxyBase :
 	class GC;
 public:
 	virtual Internal::IORequest::_ref_type create_request (Internal::OperationIndex op, unsigned flags,
-		RequestCallback::_ptr_type callback) override;
+		Internal::Interface::_ptr_type callback) override;
 
 	/// Returns synchronization context for the target object.
 	Nirvana::Core::SyncContext& sync_context () const noexcept

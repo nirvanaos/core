@@ -29,7 +29,6 @@
 #pragma once
 
 #include <CORBA/CORBA.h>
-#include "../CORBA/RequestCallback.h"
 
 struct siginfo;
 
@@ -45,8 +44,6 @@ public:
 	static void check_align (size_t align);
 	static Any signal2exception (const siginfo& signal) noexcept;
 	static Any exception2any (Exception&& e);
-	static void call_completed (RequestCallback::_ref_type& callback,
-		Internal::IORequest::_ptr_type rq) noexcept;
 
 private:
 	struct EPV_Header

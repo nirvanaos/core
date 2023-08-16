@@ -26,17 +26,27 @@
 #include "CallbackRef.h"
 #include "Pollable.h"
 #include "call_handler.h"
+#include "../CORBA/RequestCallback.h"
 
 namespace CORBA {
 using namespace Internal;
 namespace Core {
 
-CallbackRef::CallbackRef (ProxyManager& proxy, OperationIndex op, Interface::_ptr_type callback) :
+CallbackRef::CallbackRef (Internal::Interface::_ptr_type callback, ProxyManager* proxy, Internal::OperationIndex op) :
 	handler_op_idx_ (0)
 {
 	assert (callback);
 	const CORBA::Internal::StringView <Char> iid (callback->_epv ().interface_id);
-	RepId::CheckResult ch = RepId::check (RepIdOf <CORBA::Pollable>::id, iid);
+
+	RepId::CheckResult ch = RepId::check (RepIdOf <RequestCallback>::id, iid);
+	if (ch != RepId::CheckResult::OTHER_INTERFACE) {
+		if (ch != RepId::CheckResult::COMPATIBLE)
+			throw BAD_PARAM ();
+		callback_ = RequestCallback::_ptr_type (&static_cast <RequestCallback&> (*&callback));
+		return;
+	}
+
+	ch = RepId::check (RepIdOf <CORBA::Pollable>::id, iid);
 	if (ch != RepId::CheckResult::OTHER_INTERFACE) {
 		if (ch != RepId::CheckResult::COMPATIBLE)
 			throw BAD_PARAM ();
@@ -45,14 +55,17 @@ CallbackRef::CallbackRef (ProxyManager& proxy, OperationIndex op, Interface::_pt
 		return;
 	}
 
+	// Handler requires a proxy
+	if (!proxy)
+		throw BAD_PARAM ();
+
 	Messaging::ReplyHandler::_ptr_type handler = Messaging::ReplyHandler::_check (&callback);
 	Object::_ptr_type obj = handler;
-	handler_op_idx_ = proxy.find_handler_operation (op, obj);
+	handler_op_idx_ = proxy->find_handler_operation (op, obj);
 	callback_ = obj;
 }
 
-void CallbackRef::call (const Operation& metadata, IORequest::_ptr_type rq,
-	OperationIndex handler_op)
+void CallbackRef::call (const Operation& metadata, IORequest::_ptr_type rq)
 {
 	Interface::_ref_type cb = std::move (callback_);
 	assert (cb);

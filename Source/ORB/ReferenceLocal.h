@@ -79,7 +79,7 @@ public:
 	virtual ReferenceRef marshal (StreamOut& out) override;
 	virtual ReferenceLocalRef get_local_reference (const PortableServer::Core::POA_Base&) override;
 	virtual Internal::IORequest::_ref_type create_request (Internal::OperationIndex op, unsigned flags,
-		RequestCallback::_ptr_type callback) override;
+		Internal::Interface::_ptr_type callback) override;
 
 private:
 	static void marshal_object_key (const Octet* obj_key, size_t obj_key_size, StreamOut& stream);

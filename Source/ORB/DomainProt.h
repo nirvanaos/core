@@ -52,15 +52,16 @@ public:
 	static const TimeBase::TimeT HEARTBEAT_TIMEOUT = 2 * HEARTBEAT_INTERVAL;
 
 	DomainProt (ESIOP::ProtDomainId id) :
-		CORBA::Core::Domain (GARBAGE_COLLECTION | HEARTBEAT_IN | HEARTBEAT_OUT,
+		CORBA::Core::Domain (GARBAGE_COLLECTION | HEARTBEAT_IN | HEARTBEAT_OUT, 1,
 			REQUEST_LATENCY, HEARTBEAT_INTERVAL, HEARTBEAT_TIMEOUT),
 		ESIOP::OtherDomain (id)
 	{}
 
 	~DomainProt ();
 
-	virtual Internal::IORequest::_ref_type create_request (const IOP::ObjectKey& object_key,
-		const Internal::Operation& metadata, unsigned response_flags, RequestCallback::_ptr_type callback) override;
+	virtual Internal::IORequest::_ref_type create_request (unsigned response_flags, 
+		const IOP::ObjectKey& object_key, const Internal::Operation& metadata, ReferenceRemote* ref,
+		Internal::Interface::_ptr_type callback, Internal::OperationIndex op_idx) override;
 
 	void shutdown () noexcept
 	{

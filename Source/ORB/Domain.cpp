@@ -38,9 +38,10 @@ namespace Core {
 const Operation Domain::op_heartbeat_ = {"FT_HB"};
 const Operation Domain::DGC_Request::operation_ = {"ping"};
 
-Domain::Domain (unsigned flags, TimeBase::TimeT request_latency, TimeBase::TimeT heartbeat_interval,
+Domain::Domain (unsigned flags, unsigned GIOP_minor, TimeBase::TimeT request_latency, TimeBase::TimeT heartbeat_interval,
 	TimeBase::TimeT heartbeat_timeout) :
 	flags_ (flags),
+	GIOP_minor_ (GIOP_minor),
 	last_ping_in_time_ (Nirvana::Core::Chrono::steady_clock ()),
 	last_ping_out_time_ (Nirvana::Core::Chrono::steady_clock ()),
 	request_latency_ (request_latency),
@@ -219,8 +220,8 @@ void Domain::DGC_Request::invoke ()
 	mc.deadline_policy_async (domain_.request_latency ());
 
 	event_ = make_reference <RequestEvent> ();
-	request_ = domain_.create_request (IOP::ObjectKey (), operation_,
-		IORequest::RESPONSE_EXPECTED, event_->_get_ptr ());
+	request_ = domain_.create_request (IORequest::RESPONSE_EXPECTED, IOP::ObjectKey (), operation_,
+		nullptr, event_->_get_ptr (), 0);
 
 	mc.deadline_policy_async (old);
 

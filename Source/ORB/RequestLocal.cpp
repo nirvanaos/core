@@ -42,21 +42,21 @@ void RequestLocal::invoke ()
 	RequestLocalBase::invoke ();
 	// We don't need to handle exceptions here, because invoke_sync ()
 	// does not throw exceptions.
-	Nirvana::Core::Synchronized _sync_frame (proxy ()->get_sync_context (op_idx ()), memory ());
+	Nirvana::Core::Synchronized _sync_frame (proxy ().get_sync_context (op_idx ()), memory ());
 	invoke_sync ();
 }
 
 void RequestLocal::invoke_sync () noexcept
 {
 	assert (State::CALL == state ()); // RequestLocalBase::invoke () must be called
-	proxy ()->invoke (op_idx (), _get_ptr ());
+	proxy ().invoke (op_idx (), _get_ptr ());
 }
 
 void RequestLocalOneway::invoke ()
 {
 	RequestLocalBase::invoke (); // rewind
 	ExecDomain::async_call <Runnable> (ExecDomain::current ().get_request_deadline (!response_flags ()),
-		proxy ()->get_sync_context (op_idx ()), memory (), std::ref (*this));
+		proxy ().get_sync_context (op_idx ()), memory (), std::ref (*this));
 }
 
 void RequestLocalOneway::Runnable::run ()
@@ -73,7 +73,7 @@ void RequestLocalAsync::cancel () noexcept
 void RequestLocalAsync::finalize () noexcept
 {
 	Base::finalize ();
-	RqHelper::call_completed (callback_, _get_ptr ());
+	callback_.call (proxy ().operation_metadata (op_idx ()), _get_ptr ());
 }
 
 }

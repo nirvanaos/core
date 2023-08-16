@@ -55,9 +55,9 @@ class NIRVANA_NOVTABLE Domain : public Nirvana::Core::BinderObject
 	template <class D> friend class CORBA::servant_reference;
 
 public:
-	virtual Internal::IORequest::_ref_type create_request (const IOP::ObjectKey& object_key,
-		const Internal::Operation& metadata, unsigned response_flags,
-		RequestCallback::_ptr_type callback) = 0;
+	virtual Internal::IORequest::_ref_type create_request (unsigned response_flags,
+		const IOP::ObjectKey& object_key, const Internal::Operation& metadata, ReferenceRemote* ref,
+		Internal::Interface::_ptr_type callback, Internal::OperationIndex op_idx) = 0;
 
 	/// Domain flag bits
 	enum
@@ -77,6 +77,11 @@ public:
 	unsigned flags () const noexcept
 	{
 		return flags_;
+	}
+
+	unsigned GIOP_minor () const noexcept
+	{
+		return GIOP_minor_;
 	}
 
 	const TimeBase::TimeT& request_latency () const noexcept
@@ -291,7 +296,7 @@ public:
 	}
 
 protected:
-	Domain (unsigned flags, TimeBase::TimeT request_latency, TimeBase::TimeT heartbeat_interval,
+	Domain (unsigned flags, unsigned GIOP_minor, TimeBase::TimeT request_latency, TimeBase::TimeT heartbeat_interval,
 		TimeBase::TimeT heartbeat_timeout);
 	~Domain ();
 
@@ -329,8 +334,8 @@ private:
 
 	void send_heartbeat ()
 	{
-		Internal::IORequest::_ref_type rq = create_request (IOP::ObjectKey (), op_heartbeat_,
-			0, nullptr);
+		Internal::IORequest::_ref_type rq = create_request (0, IOP::ObjectKey (), op_heartbeat_,
+			nullptr, nullptr, 0);
 		rq->invoke ();
 		last_ping_out_time_ = Nirvana::Core::Chrono::steady_clock ();
 	}
@@ -347,8 +352,7 @@ private:
 	public:
 		GC (Domain& domain) :
 			domain_ (&domain)
-		{
-		}
+		{}
 
 	private:
 		virtual void run () override;
@@ -371,6 +375,7 @@ private:
 	RefCnt ref_cnt_;
 
 	unsigned flags_;
+	const unsigned GIOP_minor_;
 
 	// DGC-enabled local objects owned by this domain
 	typedef Nirvana::Core::MapUnorderedUnstable <IOP::ObjectKey, ReferenceLocalRef,

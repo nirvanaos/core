@@ -30,7 +30,6 @@
 
 #include "../CoreInterface.h"
 #include <CORBA/IOP.h>
-#include <CORBA/Proxy/IOReference.h>
 
 namespace Nirvana {
 namespace Core {

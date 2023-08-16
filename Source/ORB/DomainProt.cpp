@@ -40,22 +40,23 @@ namespace Core {
 DomainProt::~DomainProt ()
 {}
 
-IORequest::_ref_type DomainProt::create_request (const IOP::ObjectKey& object_key,
-	const Operation& metadata, unsigned response_flags, RequestCallback::_ptr_type callback)
+IORequest::_ref_type DomainProt::create_request (unsigned response_flags,
+	const IOP::ObjectKey& object_key, const Operation& metadata, ReferenceRemote* ref,
+	Internal::Interface::_ptr_type callback, Internal::OperationIndex op_idx)
 {
 	if (zombie ())
 		throw COMM_FAILURE ();
 
 	if (callback) {
 		assert (response_flags & IORequest::RESPONSE_EXPECTED); // Checked in ReferenceRemote
-		return make_pseudo <RequestOutAsync <RequestOutESIOP> > (callback, std::ref (*this), std::ref (object_key),
-			std::ref (metadata), response_flags);
+		return make_pseudo <RequestOutAsync <RequestOutESIOP> > (response_flags, std::ref (*this),
+			std::ref (object_key), std::ref (metadata), ref, callback, op_idx);
 	} else if (response_flags & IORequest::RESPONSE_EXPECTED) {
-		return make_pseudo <RequestOutSync <RequestOutESIOP> > (std::ref (*this), std::ref (object_key),
-			std::ref (metadata), response_flags);
+		return make_pseudo <RequestOutSync <RequestOutESIOP> > (response_flags, std::ref (*this),
+			std::ref (object_key), std::ref (metadata), ref);
 	} else {
-		return make_pseudo <RequestOutESIOP> (std::ref (*this), std::ref (object_key), std::ref (metadata),
-			response_flags);
+		return make_pseudo <RequestOutESIOP> (response_flags, std::ref (*this),
+			std::ref (object_key), std::ref (metadata), ref);
 	}
 }
 

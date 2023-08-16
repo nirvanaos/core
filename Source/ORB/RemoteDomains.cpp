@@ -48,7 +48,7 @@ servant_reference <DomainRemote> RemoteDomains::get (const IIOP::ListenPoint& lp
 		try {
 			if (domains_.empty ())
 				Nirvana::Core::Binder::singleton ().start_domains_housekeeping ();
-			domains_.emplace_back ();
+			domains_.emplace_back (1);
 			DomainRemote& domain = domains_.back ();
 			domain.add_listen_point (ins.first->first);
 			ins.first->second = &domain;

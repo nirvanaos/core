@@ -30,12 +30,11 @@
 
 #include "RequestLocalBase.h"
 #include "RequestInPOA.h"
+#include "ReferenceLocal.h"
+#include "CallbackRef.h"
 
 namespace CORBA {
 namespace Core {
-
-class ReferenceLocal;
-typedef servant_reference <ReferenceLocal> ReferenceLocalRef;
 
 class NIRVANA_NOVTABLE RequestLocalPOA :
 	public RequestLocalBase,
@@ -57,6 +56,11 @@ protected:
 	virtual void serve (const ServantProxyBase& proxy) override;
 
 	virtual bool is_cancelled () const noexcept override;
+
+	ReferenceLocal& reference () const noexcept
+	{
+		return *reference_;
+	}
 
 	Internal::OperationIndex op_idx () const noexcept
 	{
@@ -88,19 +92,18 @@ class NIRVANA_NOVTABLE RequestLocalAsyncPOA :
 	typedef RequestLocalOnewayPOA Base;
 
 protected:
-	RequestLocalAsyncPOA (RequestCallback::_ptr_type callback,
-		ReferenceLocal& reference, Internal::OperationIndex op,
+	RequestLocalAsyncPOA (Internal::Interface::_ptr_type callback,
+		ReferenceLocal& reference, Internal::OperationIndex op_idx,
 		unsigned response_flags) :
-		Base (reference, op, response_flags),
-		callback_ (callback)
-	{
-	}
+		Base (reference, op_idx, response_flags),
+		callback_ (callback, &reference, op_idx)
+	{}
 
 	virtual void cancel () noexcept override;
 	virtual void finalize () noexcept override;
 
 private:
-	RequestCallback::_ref_type callback_;
+	CallbackRef callback_;
 };
 
 }

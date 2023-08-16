@@ -141,7 +141,7 @@ MemContext* ServantProxyBase::memory () const noexcept
 }
 
 IORequest::_ref_type ServantProxyBase::create_request (OperationIndex op, unsigned flags,
-	RequestCallback::_ptr_type callback)
+	Interface::_ptr_type callback)
 {
 	if (is_object_op (op))
 		return ProxyManager::create_request (op, flags, callback);

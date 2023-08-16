@@ -43,8 +43,9 @@ DomainRemote::~DomainRemote ()
 		domains.erase (*lp);
 }
 
-IORequest::_ref_type DomainRemote::create_request (const IOP::ObjectKey& object_key,
-	const Operation& metadata, unsigned response_flags, RequestCallback::_ptr_type callback)
+IORequest::_ref_type DomainRemote::create_request (unsigned response_flags,
+	const IOP::ObjectKey& object_key, const Operation& metadata, ReferenceRemote* ref,
+	Interface::_ptr_type callback, OperationIndex op_idx)
 {
 	throw NO_IMPLEMENT ();
 }

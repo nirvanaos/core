@@ -37,7 +37,7 @@ servant_reference <StreamOut> RequestInESIOP::create_output ()
 	auto domain = Binder::get_domain (key ().address.esiop);
 	servant_reference <StreamOut> ret = servant_reference <StreamOut>::create <ImplDynamic <StreamOutSMReply> > (
 		std::ref (*domain));
-	target_domain_ = std::move (domain);
+	domain_ = std::move (domain);
 	return ret;
 }
 

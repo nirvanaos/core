@@ -40,12 +40,15 @@ class RequestOutESIOP : public RequestOut
 	typedef RequestOut Base;
 
 public:
-	RequestOutESIOP (DomainProt& domain, const IOP::ObjectKey& object_key,
-		const CORBA::Internal::Operation& metadata, unsigned response_flags) :
-		Base ((response_flags & 3) == 1 ? 2 : 1, response_flags, domain, metadata)
+	RequestOutESIOP (unsigned response_flags, Domain& target_domain,
+		const IOP::ObjectKey& object_key, const Internal::Operation& metadata, ReferenceRemote* ref) :
+		Base (response_flags, target_domain, metadata, ref)
 	{
+		if ((response_flags & 3) == 1)
+			GIOP_minor_ = 2;
+
 		stream_out_ = servant_reference <StreamOut>::create <Nirvana::Core::ImplDynamic <StreamOutSM> >
-			(std::ref (domain), true);
+			(std::ref (static_cast <DomainProt&> (target_domain)), true);
 		id (get_new_id (IdPolicy::ANY));
 		Nirvana::DeadlineTime dl = deadline ();
 		IOP::ServiceContextList context;
@@ -59,9 +62,9 @@ public:
 		write_header (object_key, context);
 	}
 
-	DomainProt* target_domain () const noexcept
+	DomainProt* domain () const noexcept
 	{
-		return static_cast <DomainProt*> (Base::target_domain ());
+		return static_cast <DomainProt*> (Base::domain ());
 	}
 
 protected:

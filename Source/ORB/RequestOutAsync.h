@@ -29,7 +29,7 @@
 #pragma once
 
 #include <CORBA/Server.h>
-#include <CORBA/Proxy/IOReference.h>
+#include "CallbackRef.h"
 #include "../ExecDomain.h"
 
 namespace CORBA {
@@ -41,10 +41,11 @@ class RequestOutAsync : public Rq
 	typedef Rq Base;
 
 public:
-	template <class ... Args>
-	RequestOutAsync (RequestCallback::_ptr_type callback, Args ... args) :
-		Base (std::forward <Args> (args)...),
-		callback_ (callback)
+	RequestOutAsync (unsigned response_flags, Domain& target_domain,
+		const IOP::ObjectKey& object_key, const Internal::Operation& metadata, ReferenceRemote* ref,
+		Internal::Interface::_ptr_type callback, Internal::OperationIndex op_idx) :
+		Base (response_flags, target_domain, object_key, metadata, ref),
+		callback_ (callback, ref, op_idx)
 	{
 		Base::deadline_ = Nirvana::Core::ExecDomain::current ().get_request_deadline (false);
 	}
@@ -53,11 +54,11 @@ private:
 	virtual void finalize () noexcept override
 	{
 		Base::finalize ();
-		RqHelper::call_completed (callback_, Base::_get_ptr ());
+		callback_.call (Base::metadata (), Base::_get_ptr ());
 	}
 
 private:
-	RequestCallback::_ref_type callback_;
+	CallbackRef callback_;
 };
 
 }
