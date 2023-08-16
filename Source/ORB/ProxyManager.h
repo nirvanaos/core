@@ -387,7 +387,7 @@ public:
 	}
 
 	Internal::OperationIndex find_handler_operation (Internal::OperationIndex op,
-		Messaging::ReplyHandler::_ptr_type handler) const;
+		Object::_ptr_type handler) const;
 
 protected:
 	ProxyManager (Internal::String_in primary_iid, bool servant_side);

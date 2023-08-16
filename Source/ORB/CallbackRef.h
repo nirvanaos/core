@@ -43,7 +43,8 @@ public:
 		return handler_op_idx_ != 0;
 	}
 
-	void call (Internal::IORequest::_ptr_type rq, Internal::OperationIndex op);
+	void call (const Internal::Operation& metadata, Internal::IORequest::_ptr_type rq,
+		Internal::OperationIndex handler_op);
 
 private:
 	Internal::Interface::_ref_type callback_;

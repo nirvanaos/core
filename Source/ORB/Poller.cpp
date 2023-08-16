@@ -24,6 +24,7 @@
 *  popov.nirvana@gmail.com
 */
 #include "Poller.h"
+#include "call_handler.h"
 
 namespace CORBA {
 using namespace Internal;
@@ -79,7 +80,11 @@ void Poller::create_value (ValueEntry& ve, const ProxyManager::InterfaceEntry& i
 
 void Poller::on_complete (IORequest::_ptr_type reply)
 {
-	reply_ = reply;
+	if (associated_handler_)
+		call_handler (proxy_->operation_metadata (op_), reply, associated_handler_, op_handler_);
+	else
+		reply_ = reply;
+
 	Pollable::on_complete (reply);
 }
 

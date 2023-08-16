@@ -23,6 +23,32 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
+#include "call_handler.h"
 #include "ExceptionHolder.h"
+#include "ProxyManager.h"
+#include "remarshal_output.h"
 
-NIRVANA_VALUETYPE_IMPL (Messaging::ExceptionHolder, CORBA::Core::ExceptionHolder)
+namespace CORBA {
+using namespace Internal;
+namespace Core {
+
+void call_handler (const Operation& metadata, IORequest::_ptr_type rq, Object::_ptr_type handler,
+	Internal::OperationIndex op_idx)
+{
+	ProxyManager* handler_proxy = ProxyManager::cast (handler);
+	assert (handler_proxy);
+	IORequest::_ref_type rq_handler;
+	Any exc;
+	if (rq->get_exception (exc)) {
+		Messaging::ExceptionHolder::_ref_type eh = make_reference <ExceptionHolder> (std::ref (exc));
+		rq_handler = handler_proxy->create_request (op_idx + 1, 0, nullptr);
+		rq_handler->marshal_value (Messaging::ExceptionHolder::_ptr_type (eh));
+	} else {
+		rq_handler = handler_proxy->create_request (op_idx, 0, nullptr);
+		remarshal_output (metadata, rq, rq_handler);
+	}
+	rq_handler->invoke ();
+}
+
+}
+}

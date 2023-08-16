@@ -25,6 +25,7 @@
 */
 #include "CallbackRef.h"
 #include "Pollable.h"
+#include "call_handler.h"
 
 namespace CORBA {
 using namespace Internal;
@@ -45,12 +46,23 @@ CallbackRef::CallbackRef (ProxyManager& proxy, OperationIndex op, Interface::_pt
 	}
 
 	Messaging::ReplyHandler::_ptr_type handler = Messaging::ReplyHandler::_check (&callback);
-	handler_op_idx_ = proxy.find_handler_operation (op, handler);
-	callback_ = handler;
+	Object::_ptr_type obj = handler;
+	handler_op_idx_ = proxy.find_handler_operation (op, obj);
+	callback_ = obj;
 }
 
-void CallbackRef::call (IORequest::_ptr_type rq, OperationIndex op)
+void CallbackRef::call (const Operation& metadata, IORequest::_ptr_type rq,
+	OperationIndex handler_op)
 {
+	Interface::_ref_type cb = std::move (callback_);
+	assert (cb);
+	if (!cb)
+		return;
+
+	if (is_handler ())
+		call_handler (metadata, rq, static_cast <Object*> (&Interface::_ptr_type (cb)), handler_op_idx_);
+	else
+		static_cast <RequestCallback*> (&Interface::_ptr_type (cb))->completed (rq);
 }
 
 }

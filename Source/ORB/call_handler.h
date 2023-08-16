@@ -1,3 +1,4 @@
+/// \file
 /*
 * Nirvana Core.
 *
@@ -23,6 +24,21 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "ExceptionHolder.h"
+#ifndef NIRVANA_ORB_CORE_CALL_HANDLER_H_
+#define NIRVANA_ORB_CORE_CALL_HANDLER_H_
+#pragma once
 
-NIRVANA_VALUETYPE_IMPL (Messaging::ExceptionHolder, CORBA::Core::ExceptionHolder)
+#include <CORBA/CORBA.h>
+#include <CORBA/Proxy/InterfaceMetadata.h>
+#include <CORBA/Proxy/OperationIndex.h>
+
+namespace CORBA {
+namespace Core {
+
+void call_handler (const Internal::Operation& metadata, Internal::IORequest::_ptr_type rq,
+	Object::_ptr_type handler, Internal::OperationIndex op_idx);
+
+}
+}
+
+#endif

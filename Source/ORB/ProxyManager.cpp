@@ -485,7 +485,7 @@ const Operation& ProxyManager::operation_metadata (OperationIndex op) const noex
 }
 
 OperationIndex ProxyManager::find_handler_operation (OperationIndex op,
-	Messaging::ReplyHandler::_ptr_type handler) const
+	Object::_ptr_type handler) const
 {
 	assert (handler);
 	size_t itf_idx = interface_idx (op);
