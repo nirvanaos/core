@@ -24,7 +24,7 @@
 *  popov.nirvana@gmail.com
 */
 #include "RequestInESIOP.h"
-#include "StreamOutReply.h"
+#include "StreamOutSMReply.h"
 #include "../Binder.h"
 
 using namespace Nirvana::Core;
