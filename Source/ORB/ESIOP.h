@@ -30,9 +30,15 @@
 #pragma once
 
 #include <CORBA/CORBA.h>
+#include <CORBA/IOP.h>
 #include <Port/ESIOP.h>
 #include <Port/config.h>
-#include "StreamOut.h"
+
+namespace CORBA {
+namespace Core {
+class StreamOutSM;
+}
+}
 
 /// Environment-specific inter-ORB protocol.
 /// Implements communication between protection domains
@@ -90,8 +96,6 @@ struct MessageHeader
 	}
 };
 
-class StreamOutSM;
-
 /// GIOP Request
 struct Request : MessageHeader
 {
@@ -104,7 +108,7 @@ struct Request : MessageHeader
 	/// The request id.
 	uint32_t request_id;
 
-	Request (ProtDomainId client, StreamOutSM& stream, uint32_t rq_id);
+	Request (ProtDomainId client, CORBA::Core::StreamOutSM& stream, uint32_t rq_id);
 
 	static Request& receive (MessageHeader& hdr) noexcept
 	{
@@ -127,7 +131,7 @@ struct Reply : MessageHeader
 	/// The request id.
 	uint32_t request_id;
 
-	Reply (StreamOutSM& stream, uint32_t rq_id);
+	Reply (CORBA::Core::StreamOutSM& stream, uint32_t rq_id);
 
 	static Reply& receive (MessageHeader& hdr) noexcept
 	{

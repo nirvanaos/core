@@ -26,12 +26,12 @@
 #include "ProtDomains.h"
 #include "../Binder.h"
 
-using namespace CORBA;
 using namespace Nirvana::Core;
 
-namespace ESIOP {
+namespace CORBA {
+namespace Core {
 
-servant_reference <DomainProt> ProtDomainsWaitable::get (ProtDomainId domain_id)
+servant_reference <DomainProt> ProtDomainsWaitable::get (ESIOP::ProtDomainId domain_id)
 {
 	auto ins = map_.emplace (domain_id, DEADLINE_MAX);
 	if (ins.second) {
@@ -57,7 +57,7 @@ servant_reference <DomainProt> ProtDomainsWaitable::get (ProtDomainId domain_id)
 		return ins.first->second.get ();
 }
 
-servant_reference <DomainProt> ProtDomainsWaitable::find (ProtDomainId domain_id) const noexcept
+servant_reference <DomainProt> ProtDomainsWaitable::find (ESIOP::ProtDomainId domain_id) const noexcept
 {
 	auto it = map_.find (domain_id);
 	if (it != map_.end () && it->second.is_constructed ())
@@ -65,7 +65,7 @@ servant_reference <DomainProt> ProtDomainsWaitable::find (ProtDomainId domain_id
 	return nullptr;
 }
 
-servant_reference <DomainProt> ProtDomainsSimple::get (ProtDomainId domain_id)
+servant_reference <DomainProt> ProtDomainsSimple::get (ESIOP::ProtDomainId domain_id)
 {
 	auto ins = map_.emplace (std::piecewise_construct, std::forward_as_tuple (domain_id),
 		std::forward_as_tuple (domain_id));
@@ -81,7 +81,7 @@ servant_reference <DomainProt> ProtDomainsSimple::get (ProtDomainId domain_id)
 		return &ins.first->second; // Increment ref counter
 }
 
-servant_reference <DomainProt> ProtDomainsSimple::find (ProtDomainId domain_id) const noexcept
+servant_reference <DomainProt> ProtDomainsSimple::find (ESIOP::ProtDomainId domain_id) const noexcept
 {
 	auto it = map_.find (domain_id);
 	if (it != map_.end ())
@@ -89,4 +89,5 @@ servant_reference <DomainProt> ProtDomainsSimple::find (ProtDomainId domain_id) 
 	return nullptr;
 }
 
+}
 }

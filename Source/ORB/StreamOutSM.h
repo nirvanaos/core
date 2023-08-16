@@ -35,10 +35,12 @@
 #include <vector>
 #include <memory>
 
-namespace ESIOP {
+namespace CORBA {
+namespace Core {
 
+/// \brief Shared memory output stream.
 class NIRVANA_NOVTABLE StreamOutSM :
-	public CORBA::Core::StreamOut,
+	public StreamOut,
 	public Nirvana::Core::UserObject
 {
 public:
@@ -49,9 +51,9 @@ public:
 	virtual void rewind (size_t hdr_size) override;
 	virtual void chunk_begin () override;
 	virtual bool chunk_end () override;
-	virtual CORBA::Long chunk_size () const override;
+	virtual Long chunk_size () const override;
 
-	void store_stream (SharedMemPtr& where);
+	void store_stream (ESIOP::SharedMemPtr& where);
 
 	void detach () noexcept
 	{
@@ -59,7 +61,7 @@ public:
 		other_allocated_.clear ();
 	}
 
-	OtherDomain& other_domain () const noexcept
+	ESIOP::OtherDomain& other_domain () const noexcept
 	{
 		return *other_domain_;
 	}
@@ -84,7 +86,7 @@ protected:
 private:
 	struct Block
 	{
-		SharedMemPtr other_ptr;
+		ESIOP::SharedMemPtr other_ptr;
 		void* ptr;
 		size_t size;
 
@@ -97,7 +99,7 @@ private:
 
 	struct OtherAllocated
 	{
-		SharedMemPtr ptr;
+		ESIOP::SharedMemPtr ptr;
 		size_t size;
 
 		OtherAllocated () :
@@ -118,9 +120,9 @@ private:
 	size_t stream_hdr_size () const noexcept;
 
 private:
-	CORBA::servant_reference <DomainProt> other_domain_;
-	PlatformSizes sizes_;
-	SharedMemPtr stream_hdr_;
+	servant_reference <DomainProt> other_domain_;
+	ESIOP::PlatformSizes sizes_;
+	ESIOP::SharedMemPtr stream_hdr_;
 	std::vector <Block, Nirvana::Core::UserAllocator <Block> > blocks_;
 	std::vector <OtherAllocated, Nirvana::Core::UserAllocator <OtherAllocated> > other_allocated_;
 	uint8_t* cur_ptr_;
@@ -131,8 +133,13 @@ private:
 	size_t commit_unit_;
 };
 
+}
+}
+
+namespace ESIOP {
+
 inline
-Request::Request (ProtDomainId client, StreamOutSM& stream, uint32_t rq_id) :
+Request::Request (ProtDomainId client, CORBA::Core::StreamOutSM& stream, uint32_t rq_id) :
 	MessageHeader (REQUEST),
 	client_domain (client),
 	request_id (rq_id)
@@ -141,7 +148,7 @@ Request::Request (ProtDomainId client, StreamOutSM& stream, uint32_t rq_id) :
 }
 
 inline
-Reply::Reply (StreamOutSM& stream, uint32_t rq_id) :
+Reply::Reply (CORBA::Core::StreamOutSM& stream, uint32_t rq_id) :
 	MessageHeader (REPLY),
 	request_id (rq_id)
 {

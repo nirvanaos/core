@@ -33,7 +33,8 @@
 #include "../WaitableRef.h"
 #include <CORBA/Servant_var.h>
 
-namespace ESIOP {
+namespace CORBA {
+namespace Core {
 
 class ProtDomainsWaitable
 {
@@ -50,10 +51,10 @@ public:
 		}
 	}
 
-	CORBA::servant_reference <DomainProt> get (ProtDomainId domain_id);
-	CORBA::servant_reference <DomainProt> find (ProtDomainId domain_id) const noexcept;
+	servant_reference <DomainProt> get (ESIOP::ProtDomainId domain_id);
+	servant_reference <DomainProt> find (ESIOP::ProtDomainId domain_id) const noexcept;
 
-	void erase (ProtDomainId domain_id) noexcept
+	void erase (ESIOP::ProtDomainId domain_id) noexcept
 	{
 		Map::iterator it = map_.find (domain_id);
 		assert (it != map_.end ());
@@ -84,7 +85,7 @@ public:
 	}
 
 private:
-	typedef ProtDomainId Key;
+	typedef ESIOP::ProtDomainId Key;
 	typedef Nirvana::Core::WaitableRef <DomainProt*> Val;
 
 	typedef Nirvana::Core::MapUnorderedStable <Key, Val, std::hash <Key>,
@@ -96,10 +97,10 @@ private:
 class ProtDomainsSimple
 {
 public:
-	CORBA::servant_reference <DomainProt> get (ProtDomainId domain_id);
-	CORBA::servant_reference <DomainProt> find (ProtDomainId domain_id) const noexcept;
+	CORBA::servant_reference <DomainProt> get (ESIOP::ProtDomainId domain_id);
+	CORBA::servant_reference <DomainProt> find (ESIOP::ProtDomainId domain_id) const noexcept;
 
-	void erase (ProtDomainId domain_id) noexcept
+	void erase (ESIOP::ProtDomainId domain_id) noexcept
 	{
 		map_.erase (domain_id);
 	}
@@ -123,7 +124,7 @@ public:
 	}
 
 private:
-	typedef ProtDomainId Key;
+	typedef ESIOP::ProtDomainId Key;
 
 	typedef Nirvana::Core::MapUnorderedStable <Key, DomainProt, std::hash <Key>,
 		std::equal_to <Key>, Nirvana::Core::BinderMemory::Allocator> Map;
@@ -134,18 +135,18 @@ private:
 class ProtDomainsDummy
 {
 public:
-	CORBA::servant_reference <DomainProt> get (ProtDomainId domain_id)
+	CORBA::servant_reference <DomainProt> get (int domain_id)
 	{
 		NIRVANA_UNREACHABLE_CODE ();
 		return nullptr;
 	}
 
-	void erase (ProtDomainId domain_id) noexcept
+	void erase (int domain_id) noexcept
 	{
 		NIRVANA_UNREACHABLE_CODE ();
 	}
 
-	CORBA::servant_reference <DomainProt> find (ProtDomainId domain_id) const noexcept
+	CORBA::servant_reference <DomainProt> find (int domain_id) const noexcept
 	{
 		NIRVANA_UNREACHABLE_CODE ();
 		return nullptr;
@@ -161,8 +162,9 @@ public:
 };
 
 using ProtDomains = std::conditional_t <Nirvana::Core::SINGLE_DOMAIN, ProtDomainsDummy,
-std::conditional_t <OtherDomain::slow_creation, ProtDomainsWaitable, ProtDomainsSimple> >;
+	std::conditional_t <ESIOP::OtherDomain::slow_creation, ProtDomainsWaitable, ProtDomainsSimple> >;
 
+}
 }
 
 #endif

@@ -27,9 +27,10 @@
 
 using namespace Nirvana;
 
-namespace ESIOP {
+namespace CORBA {
+namespace Core {
 
-void StreamOutReply::write (size_t align, size_t element_size, size_t CDR_element_size,
+void StreamOutSMReply::write (size_t align, size_t element_size, size_t CDR_element_size,
 	size_t element_count, void* data, size_t& allocated_size)
 {
 	if (small_ptr_) {
@@ -51,7 +52,7 @@ void StreamOutReply::write (size_t align, size_t element_size, size_t CDR_elemen
 	StreamOutSM::write (align, element_size, CDR_element_size, element_count, data, allocated_size);
 }
 
-void StreamOutReply::switch_to_base ()
+void StreamOutSMReply::switch_to_base ()
 {
 	StreamOutSM::initialize ();
 	ptrdiff_t cb = small_ptr_ - std::begin (small_buffer_);
@@ -62,7 +63,7 @@ void StreamOutReply::switch_to_base ()
 	}
 }
 
-size_t StreamOutReply::size () const
+size_t StreamOutSMReply::size () const
 {
 	if (small_ptr_)
 		return small_ptr_ - std::begin (small_buffer_);
@@ -70,7 +71,7 @@ size_t StreamOutReply::size () const
 		return StreamOutSM::size ();
 }
 
-void* StreamOutReply::header (size_t hdr_size)
+void* StreamOutSMReply::header (size_t hdr_size)
 {
 	if (small_ptr_) {
 		assert (hdr_size < sizeof (small_buffer_));
@@ -79,7 +80,7 @@ void* StreamOutReply::header (size_t hdr_size)
 		return StreamOutSM::header (hdr_size);
 }
 
-void StreamOutReply::rewind (size_t hdr_size)
+void StreamOutSMReply::rewind (size_t hdr_size)
 {
 	if (small_ptr_) {
 		assert (hdr_size < sizeof (small_buffer_));
@@ -88,7 +89,7 @@ void StreamOutReply::rewind (size_t hdr_size)
 		StreamOutSM::rewind (hdr_size);
 }
 
-void StreamOutReply::send (uint32_t request_id) noexcept
+void StreamOutSMReply::send (uint32_t request_id) noexcept
 {
 	try {
 		if (small_ptr_) {
@@ -107,13 +108,13 @@ void StreamOutReply::send (uint32_t request_id) noexcept
 				const uint8_t* p = small_buffer_ + REPLY_HEADERS_SIZE;
 				assert (small_ptr_ >= p);
 				size_t size = small_ptr_ - p;
-				ReplyImmediate reply (request_id, p, size);
+				ESIOP::ReplyImmediate reply (request_id, p, size);
 				other_domain ().send_message (&reply, sizeof (reply));
 				return;
 			}
 		}
 
-		Reply reply (*this, request_id);
+		ESIOP::Reply reply (*this, request_id);
 		other_domain ().send_message (&reply, sizeof (reply));
 		// After successfull sending the message we detach the output data.
 		// Now it is responsibility of the target domain to release it.
@@ -122,4 +123,5 @@ void StreamOutReply::send (uint32_t request_id) noexcept
 	}
 }
 
+}
 }

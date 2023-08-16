@@ -32,27 +32,28 @@
 #include "ESIOP.h"
 #include "system_services.h"
 
-namespace ESIOP {
+namespace CORBA {
+namespace Core {
 
 /// ESIOP incoming request.
-class RequestIn : public CORBA::Core::RequestIn
+class RequestInESIOP : public RequestIn
 {
-	typedef CORBA::Core::RequestIn Base;
+	typedef RequestIn Base;
 
 public:
-	RequestIn (ProtDomainId client_id, unsigned GIOP_minor,
+	RequestInESIOP (ESIOP::ProtDomainId client_id, unsigned GIOP_minor,
 		CORBA::servant_reference <CORBA::Core::StreamIn>&& in) :
 		Base (client_id, GIOP_minor)
 	{
 		final_construct (std::move (in));
 
 		if (!Nirvana::Core::SINGLE_DOMAIN && !object_key_.empty ()
-			&& !(is_system_domain ()
+			&& !(ESIOP::is_system_domain ()
 				&& CORBA::Core::system_service (object_key_) < CORBA::Core::Services::SERVICE_COUNT)) {
 
-			if (get_prot_domain_id (object_key_) != current_domain_id ())
+			if (ESIOP::get_prot_domain_id (object_key_) != ESIOP::current_domain_id ())
 				throw CORBA::OBJECT_NOT_EXIST (MAKE_OMG_MINOR (2));
-			erase_prot_domain_id (object_key_);
+			ESIOP::erase_prot_domain_id (object_key_);
 		}
 	}
 
@@ -62,6 +63,7 @@ protected:
 	virtual void success () override;
 };
 
+}
 }
 
 #endif

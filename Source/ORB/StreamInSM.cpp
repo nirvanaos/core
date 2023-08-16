@@ -32,7 +32,8 @@
 using namespace Nirvana;
 using namespace Nirvana::Core;
 
-namespace ESIOP {
+namespace CORBA {
+namespace Core {
 
 inline
 void StreamInSM::release_block (BlockHdr* block)
@@ -274,16 +275,17 @@ CORBA::Long StreamInSM::skip_chunks ()
 		size_t cb = chunk_end_ - position_;
 		read (1, cb, cb, 1, nullptr);
 		chunk_mode_ = false;
-		CORBA::Long l = read32 ();
+		Long l = read32 ();
 		chunk_mode_ = true;
 		if (l <= 0 || l >= 0x7FFFFF00)
 			return l;
 		chunk_end_ = position_ + l;
 	}
 	chunk_mode_ = false;
-	CORBA::Long l = read32 ();
+	Long l = read32 ();
 	chunk_mode_ = true;
 	return l;
 }
 
+}
 }

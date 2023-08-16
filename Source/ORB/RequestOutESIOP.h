@@ -32,31 +32,28 @@
 #include "StreamOutSM.h"
 #include "OutgoingRequests.h"
 
-using namespace CORBA;
-using namespace CORBA::Core;
-using namespace Nirvana;
-using namespace Nirvana::Core;
+namespace CORBA {
+namespace Core {
 
-namespace ESIOP {
-
-class RequestOut : public CORBA::Core::RequestOut
+class RequestOutESIOP : public RequestOut
 {
-	typedef CORBA::Core::RequestOut Base;
+	typedef RequestOut Base;
 
 public:
-	RequestOut (DomainProt& domain, const IOP::ObjectKey& object_key,
+	RequestOutESIOP (DomainProt& domain, const IOP::ObjectKey& object_key,
 		const CORBA::Internal::Operation& metadata, unsigned response_flags) :
 		Base ((response_flags & 3) == 1 ? 2 : 1, response_flags, domain, metadata)
 	{
-		stream_out_ = servant_reference <StreamOut>::create <ImplDynamic <StreamOutSM> > (std::ref (domain), true);
+		stream_out_ = servant_reference <StreamOut>::create <Nirvana::Core::ImplDynamic <StreamOutSM> >
+			(std::ref (domain), true);
 		id (get_new_id (IdPolicy::ANY));
-		DeadlineTime dl = deadline ();
+		Nirvana::DeadlineTime dl = deadline ();
 		IOP::ServiceContextList context;
-		if (INFINITE_DEADLINE != dl) {
-			ImplStatic <StreamOutEncap> encap;
+		if (Nirvana::INFINITE_DEADLINE != dl) {
+			Nirvana::Core::ImplStatic <StreamOutEncap> encap;
 			encap.write_one (dl);
 			context.emplace_back ();
-			context.back ().context_id (CONTEXT_ID_DEADLINE);
+			context.back ().context_id (ESIOP::CONTEXT_ID_DEADLINE);
 			context.back ().context_data (std::move (encap.data ()));
 		}
 		write_header (object_key, context);
@@ -72,6 +69,7 @@ protected:
 	virtual void cancel () override;
 };
 
+}
 }
 
 #endif

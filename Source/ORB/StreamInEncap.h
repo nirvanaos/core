@@ -34,7 +34,7 @@
 namespace CORBA {
 namespace Core {
 
-/// Input stream for data encapsulated as octet sequence.
+/// \brief Input stream for data encapsulated as octet sequence.
 class NIRVANA_NOVTABLE StreamInEncap : public StreamIn
 {
 public:

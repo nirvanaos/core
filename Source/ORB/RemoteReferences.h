@@ -91,7 +91,7 @@ public:
 		}
 	}
 
-	ESIOP::ProtDomains& prot_domains () noexcept
+	ProtDomains& prot_domains () noexcept
 	{
 		return prot_domains_;
 	}
@@ -108,7 +108,7 @@ public:
 
 	servant_reference <Domain> get_domain (const DomainAddress& domain);
 
-	servant_reference <ESIOP::DomainProt> get_domain (ESIOP::ProtDomainId domain)
+	servant_reference <DomainProt> get_domain (ESIOP::ProtDomainId domain)
 	{
 		return prot_domains_.get (domain);
 	}
@@ -144,7 +144,7 @@ public:
 
 	void close_connection (ESIOP::ProtDomainId domain_id)
 	{
-		servant_reference <ESIOP::DomainProt> domain = prot_domains_.find (domain_id);
+		servant_reference <DomainProt> domain = prot_domains_.find (domain_id);
 		if (domain)
 			domain->make_zombie ();
 	}
@@ -178,7 +178,7 @@ private:
 	}
 
 private:
-	ESIOP::ProtDomains prot_domains_;
+	ProtDomains prot_domains_;
 	RemoteDomains remote_domains_;
 	References references_;
 

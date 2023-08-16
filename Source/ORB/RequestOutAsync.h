@@ -46,7 +46,7 @@ public:
 		Base (std::forward <Args> (args)...),
 		callback_ (callback)
 	{
-		Base::deadline_ = ExecDomain::current ().get_request_deadline (false);
+		Base::deadline_ = Nirvana::Core::ExecDomain::current ().get_request_deadline (false);
 	}
 
 private:

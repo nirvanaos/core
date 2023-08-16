@@ -144,7 +144,7 @@ public:
 	/// 
 	/// \param domain Domain address.
 	/// \returns Reference to CORBA::Core::Domain
-	static CORBA::servant_reference <ESIOP::DomainProt> get_domain (ESIOP::ProtDomainId domain)
+	static Ref <CORBA::Core::DomainProt> get_domain (ESIOP::ProtDomainId domain)
 	{
 		SYNC_BEGIN (sync_domain (), nullptr)
 			return singleton_->remote_references_.get_domain (domain);
@@ -213,7 +213,7 @@ public:
 		// Called from sync context
 		assert (&SyncContext::current () == &sync_domain ());
 		if (!housekeeping_domains_on_) {
-			const TimeBase::TimeT interval = ESIOP::DomainProt::HEARTBEAT_TIMEOUT;
+			const TimeBase::TimeT interval = CORBA::Core::DomainProt::HEARTBEAT_TIMEOUT;
 			housekeeping_timer_domains_.set (0, interval, interval);
 			housekeeping_domains_on_ = true;
 		}

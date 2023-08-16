@@ -28,7 +28,8 @@
 using namespace Nirvana;
 using namespace Nirvana::Core;
 
-namespace ESIOP {
+namespace CORBA {
+namespace Core {
 
 void StreamOutSM::initialize ()
 {
@@ -124,7 +125,7 @@ void StreamOutSM::write (size_t align, size_t element_size, size_t CDR_element_s
 		purge ();
 	} else {
 		// Physical copy
-		
+
 		const uint8_t* src = (const uint8_t*)data;
 		do {
 			uint8_t* dst = round_up (cur_ptr_, align);
@@ -282,7 +283,7 @@ bool StreamOutSM::chunk_end ()
 		return false;
 }
 
-void StreamOutSM::store_stream (SharedMemPtr& where)
+void StreamOutSM::store_stream (ESIOP::SharedMemPtr& where)
 {
 	// Truncate size of the last block
 	Block& last_block = blocks_.back ();
@@ -301,4 +302,5 @@ void StreamOutSM::store_stream (SharedMemPtr& where)
 	other_domain_->store_pointer (&where, stream_hdr_);
 }
 
+}
 }

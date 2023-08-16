@@ -31,11 +31,12 @@
 #include "StreamIn.h"
 #include "../SharedObject.h"
 
-namespace ESIOP {
+namespace CORBA {
+namespace Core {
 
-/// Shared memory input stream
+/// \brief Shared memory input stream
 class NIRVANA_NOVTABLE StreamInSM :
-	public CORBA::Core::StreamIn,
+	public StreamIn,
 	public Nirvana::Core::SharedObject
 {
 public:
@@ -96,6 +97,7 @@ private:
 	size_t chunk_end_;
 };
 
+}
 }
 
 #endif

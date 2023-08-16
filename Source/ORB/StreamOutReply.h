@@ -32,9 +32,11 @@
 #include "ESIOP.h"
 #include "StreamOutSM.h"
 
-namespace ESIOP {
+namespace CORBA {
+namespace Core {
 
-class NIRVANA_NOVTABLE StreamOutReply : public StreamOutSM
+/// \brief Shared memory output stream for reply.
+class NIRVANA_NOVTABLE StreamOutSMReply : public StreamOutSM
 {
 public:
 	// Size of GIOP MessageHeader + size of GIOP ReplyHeader with empty service_context.
@@ -44,7 +46,7 @@ public:
 	{
 		try {
 			StreamOutSM::clear ();
-			ReplySystemException reply (request_id, ex);
+			ESIOP::ReplySystemException reply (request_id, ex);
 			other_domain ().send_message (&reply, sizeof (reply));
 		} catch (...) {
 		}
@@ -59,7 +61,7 @@ public:
 	virtual void rewind (size_t hdr_size) override;
 
 protected:
-	StreamOutReply (DomainProt& domain) :
+	StreamOutSMReply (DomainProt& domain) :
 		StreamOutSM (domain, false),
 		small_ptr_ (small_buffer_)
 	{}
@@ -69,9 +71,10 @@ private:
 
 private:
 	uint8_t* small_ptr_;
-	alignas (8) uint8_t small_buffer_ [REPLY_HEADERS_SIZE + ReplyImmediate::MAX_DATA_SIZE];
+	alignas (8) uint8_t small_buffer_ [REPLY_HEADERS_SIZE + ESIOP::ReplyImmediate::MAX_DATA_SIZE];
 };
 
+}
 }
 
 #endif

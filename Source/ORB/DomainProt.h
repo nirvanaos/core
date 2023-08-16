@@ -29,6 +29,7 @@
 #pragma once
 
 #include "Domain.h"
+#include "ESIOP.h"
 #include <Port/OtherDomain.h>
 
 namespace Nirvana {
@@ -37,12 +38,13 @@ class Event;
 }
 }
 
-namespace ESIOP {
+namespace CORBA {
+namespace Core {
 
 /// Other protection domain on the same system.
 class DomainProt :
-	public CORBA::Core::Domain,
-	public OtherDomain
+	public Domain,
+	public ESIOP::OtherDomain
 {
 public:
 	static const TimeBase::TimeT REQUEST_LATENCY = 10 * TimeBase::MILLISECOND;
@@ -52,19 +54,19 @@ public:
 	DomainProt (ESIOP::ProtDomainId id) :
 		CORBA::Core::Domain (GARBAGE_COLLECTION | HEARTBEAT_IN | HEARTBEAT_OUT,
 			REQUEST_LATENCY, HEARTBEAT_INTERVAL, HEARTBEAT_TIMEOUT),
-		OtherDomain (id)
+		ESIOP::OtherDomain (id)
 	{}
-	
+
 	~DomainProt ();
 
-	virtual CORBA::Internal::IORequest::_ref_type create_request (const IOP::ObjectKey& object_key,
-		const CORBA::Internal::Operation& metadata, unsigned response_flags, CORBA::Core::RequestCallback::_ptr_type callback) override;
+	virtual Internal::IORequest::_ref_type create_request (const IOP::ObjectKey& object_key,
+		const Internal::Operation& metadata, unsigned response_flags, RequestCallback::_ptr_type callback) override;
 
 	void shutdown () noexcept
 	{
 		if (!zombie ()) {
 			make_zombie ();
-			CloseConnection msg (current_domain_id ());
+			ESIOP::CloseConnection msg (ESIOP::current_domain_id ());
 			try {
 				send_message (&msg, sizeof (msg));
 			} catch (...) {}
@@ -73,6 +75,7 @@ public:
 
 };
 
+}
 }
 
 #endif

@@ -28,21 +28,20 @@
 #include "../Binder.h"
 
 using namespace Nirvana::Core;
-using namespace CORBA;
-using namespace CORBA::Core;
 
-namespace ESIOP {
+namespace CORBA {
+namespace Core {
 
-servant_reference <StreamOut> RequestIn::create_output ()
+servant_reference <StreamOut> RequestInESIOP::create_output ()
 {
 	auto domain = Binder::get_domain (key ().address.esiop);
-	servant_reference <StreamOut> ret = servant_reference <StreamOut>::create <ImplDynamic <StreamOutReply> > (
+	servant_reference <StreamOut> ret = servant_reference <StreamOut>::create <ImplDynamic <StreamOutSMReply> > (
 		std::ref (*domain));
 	target_domain_ = std::move (domain);
 	return ret;
 }
 
-void RequestIn::set_exception (Any& e)
+void RequestInESIOP::set_exception (Any& e)
 {
 	if (e.type ()->kind () != TCKind::tk_except)
 		throw BAD_PARAM (MAKE_OMG_MINOR (21));
@@ -53,14 +52,14 @@ void RequestIn::set_exception (Any& e)
 			SystemException& ex = (SystemException&)buf;
 			if (e >>= ex) {
 				if (stream_out ())
-					static_cast <StreamOutReply&> (*stream_out ()).system_exception (request_id (), ex);
+					static_cast <StreamOutSMReply&> (*stream_out ()).system_exception (request_id (), ex);
 				else {
-					ReplySystemException reply (request_id (), ex);
-					send_error_message (key ().address.esiop, &reply, sizeof (reply));
+					ESIOP::ReplySystemException reply (request_id (), ex);
+					ESIOP::send_error_message (key ().address.esiop, &reply, sizeof (reply));
 				}
 			} else {
 				Base::set_exception (e);
-				static_cast <StreamOutReply&> (*stream_out ()).send (request_id ());
+				static_cast <StreamOutSMReply&> (*stream_out ()).send (request_id ());
 			}
 		}
 	} catch (...) {
@@ -70,15 +69,16 @@ void RequestIn::set_exception (Any& e)
 	stream_out_ = nullptr;
 }
 
-void RequestIn::success ()
+void RequestInESIOP::success ()
 {
 	if (!finalize ())
 		return;
 
 	Base::success ();
-	static_cast <StreamOutReply&> (*stream_out ()).send (request_id ());
+	static_cast <StreamOutSMReply&> (*stream_out ()).send (request_id ());
 	stream_out_ = nullptr;
 	post_send_success ();
 }
 
+}
 }

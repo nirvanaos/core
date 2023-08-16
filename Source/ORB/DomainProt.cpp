@@ -34,7 +34,8 @@ using namespace Nirvana::Core;
 using namespace CORBA;
 using namespace CORBA::Internal;
 
-namespace ESIOP {
+namespace CORBA {
+namespace Core {
 
 DomainProt::~DomainProt ()
 {}
@@ -47,15 +48,16 @@ IORequest::_ref_type DomainProt::create_request (const IOP::ObjectKey& object_ke
 
 	if (callback) {
 		assert (response_flags & IORequest::RESPONSE_EXPECTED); // Checked in ReferenceRemote
-		return make_pseudo <RequestOutAsync <RequestOut> > (callback, std::ref (*this), std::ref (object_key),
+		return make_pseudo <RequestOutAsync <RequestOutESIOP> > (callback, std::ref (*this), std::ref (object_key),
 			std::ref (metadata), response_flags);
 	} else if (response_flags & IORequest::RESPONSE_EXPECTED) {
-		return make_pseudo <RequestOutSync <RequestOut> > (std::ref (*this), std::ref (object_key),
+		return make_pseudo <RequestOutSync <RequestOutESIOP> > (std::ref (*this), std::ref (object_key),
 			std::ref (metadata), response_flags);
 	} else {
-		return make_pseudo <RequestOut> (std::ref (*this), std::ref (object_key), std::ref (metadata),
+		return make_pseudo <RequestOutESIOP> (std::ref (*this), std::ref (object_key), std::ref (metadata),
 			response_flags);
 	}
 }
 
+}
 }

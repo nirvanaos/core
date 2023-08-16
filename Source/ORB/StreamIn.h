@@ -36,6 +36,7 @@
 namespace CORBA {
 namespace Core {
 
+/// \brief Request input stream.
 class NIRVANA_NOVTABLE StreamIn
 {
 	DECLARE_CORE_INTERFACE
