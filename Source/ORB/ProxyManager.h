@@ -296,7 +296,7 @@ public:
 	}
 
 	// Poller creation
-	Messaging::Poller::_ref_type create_poller (Internal::OperationIndex op);
+	CORBA::Pollable::_ref_type create_poller (Internal::OperationIndex op);
 
 	// Misc
 

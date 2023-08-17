@@ -465,7 +465,7 @@ ReferenceLocalRef ProxyManager::get_local_reference (const PortableServer::Core:
 	return nullptr;
 }
 
-Messaging::Poller::_ref_type ProxyManager::create_poller (OperationIndex op)
+CORBA::Pollable::_ref_type ProxyManager::create_poller (OperationIndex op)
 {
 	return make_reference <Poller> (std::ref (*this), op);
 }
