@@ -57,7 +57,7 @@ class NIRVANA_NOVTABLE Domain : public Nirvana::Core::BinderObject
 public:
 	virtual Internal::IORequest::_ref_type create_request (unsigned response_flags,
 		const IOP::ObjectKey& object_key, const Internal::Operation& metadata, ReferenceRemote* ref,
-		Internal::Interface::_ptr_type callback, Internal::OperationIndex op_idx) = 0;
+		CallbackRef&& callback) = 0;
 
 	/// Domain flag bits
 	enum
@@ -335,7 +335,7 @@ private:
 	void send_heartbeat ()
 	{
 		Internal::IORequest::_ref_type rq = create_request (0, IOP::ObjectKey (), op_heartbeat_,
-			nullptr, nullptr, 0);
+			nullptr, nullptr);
 		rq->invoke ();
 		last_ping_out_time_ = Nirvana::Core::Chrono::steady_clock ();
 	}

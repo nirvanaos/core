@@ -221,7 +221,7 @@ void Domain::DGC_Request::invoke ()
 
 	event_ = make_reference <RequestEvent> ();
 	request_ = domain_.create_request (IORequest::RESPONSE_EXPECTED, IOP::ObjectKey (), operation_,
-		nullptr, event_->_get_ptr (), 0);
+		nullptr, event_->_get_ptr ());
 
 	mc.deadline_policy_async (old);
 

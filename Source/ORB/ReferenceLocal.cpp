@@ -271,17 +271,18 @@ ReferenceLocalRef ReferenceLocal::get_local_reference (const PortableServer::Cor
 		return nullptr;
 }
 
-IORequest::_ref_type ReferenceLocal::create_request (OperationIndex op, unsigned flags, Internal::Interface::_ptr_type callback)
+IORequest::_ref_type ReferenceLocal::create_request (OperationIndex op, unsigned flags,
+	CallbackRef&& callback)
 {
 	if (is_object_op (op))
-		return ProxyManager::create_request (op, flags, callback);
+		return ProxyManager::create_request (op, flags, std::move (callback));
 
 	// If servant is active, create direct request for performance.
 	// We can't use get_active_servant here because the arbitrary sync context.
 	// So we lock the proxy pointer here.
 	servant_reference <ServantProxyObject> proxy = get_active_servant_with_lock ();
 	if (proxy)
-		return proxy->create_request (op, flags, callback);
+		return proxy->create_request (op, flags, std::move (callback));
 
 	// Create POA request.
 	check_create_request (op, flags);
@@ -289,7 +290,7 @@ IORequest::_ref_type ReferenceLocal::create_request (OperationIndex op, unsigned
 	if (callback) {
 		if (!(flags & Internal::IORequest::RESPONSE_EXPECTED))
 			throw BAD_PARAM ();
-		return make_pseudo <RequestLocalImpl <RequestLocalAsyncPOA> > (callback, std::ref (*this), op, flags);
+		return make_pseudo <RequestLocalImpl <RequestLocalAsyncPOA> > (std::ref (*this), op, flags, std::move (callback));
 	} else if (flags & Internal::IORequest::RESPONSE_EXPECTED) {
 		return make_pseudo <RequestLocalImpl <RequestLocalPOA> > (std::ref (*this), op, flags);
 	} else {

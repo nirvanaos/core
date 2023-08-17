@@ -128,6 +128,11 @@ protected:
 		return metadata_;
 	}
 
+	void clear_preunmarshal () noexcept
+	{
+		response_flags_ &= ~FLAG_PREUNMARSHAL;
+	}
+
 private:
 	const Internal::Operation& metadata_;
 

@@ -39,6 +39,7 @@
 #include <CORBA/Proxy/IOReference_s.h>
 #include <CORBA/Proxy/OperationIndex.h>
 #include "offset_ptr.h"
+#include "CallbackRef.h"
 
 namespace PortableServer {
 namespace Core {
@@ -132,8 +133,20 @@ public:
 	{}
 
 	// IOReference operations
+	Internal::IORequest::_ref_type create_request (Internal::OperationIndex op, unsigned flags,
+		Internal::Interface::_ptr_type callback)
+	{
+		return create_request (op, flags, CallbackRef (callback, *this, op));
+	}
+
+	Internal::IORequest::_ref_type create_request (Internal::OperationIndex op, unsigned flags,
+		nullptr_t)
+	{
+		return create_request (op, flags, CallbackRef ());
+	}
+
 	virtual Internal::IORequest::_ref_type create_request (Internal::OperationIndex op, unsigned flags,
-		Internal::Interface::_ptr_type callback);
+		CallbackRef&& callback);
 
 	// Get Object proxy
 	Object::_ptr_type get_proxy () const noexcept

@@ -36,7 +36,7 @@ namespace CORBA {
 namespace Core {
 
 void call_handler (const Internal::Operation& metadata, Internal::IORequest::_ptr_type rq,
-	Object::_ptr_type handler, Internal::OperationIndex op_idx);
+	Object::_ptr_type handler, Internal::OperationIndex op_idx) noexcept;
 
 }
 }

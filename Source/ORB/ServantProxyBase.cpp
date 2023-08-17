@@ -141,10 +141,10 @@ MemContext* ServantProxyBase::memory () const noexcept
 }
 
 IORequest::_ref_type ServantProxyBase::create_request (OperationIndex op, unsigned flags,
-	Interface::_ptr_type callback)
+	CallbackRef&& callback)
 {
 	if (is_object_op (op))
-		return ProxyManager::create_request (op, flags, callback);
+		return ProxyManager::create_request (op, flags, std::move (callback));
 
 	check_create_request (op, flags);
 
@@ -153,8 +153,8 @@ IORequest::_ref_type ServantProxyBase::create_request (OperationIndex op, unsign
 	if (callback) {
 		if (!(flags & IORequest::RESPONSE_EXPECTED))
 			throw BAD_PARAM ();
-		return make_pseudo <RequestLocalImpl <RequestLocalAsync> > (callback, std::ref (*this), op,
-			mem, flags);
+		return make_pseudo <RequestLocalImpl <RequestLocalAsync> > (std::ref (*this), op,
+			mem, flags, std::move (callback));
 	} else if (flags & IORequest::RESPONSE_EXPECTED) {
 		return make_pseudo <RequestLocalImpl <RequestLocal> > (std::ref (*this), op,
 			mem, flags);

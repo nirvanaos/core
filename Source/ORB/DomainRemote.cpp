@@ -45,7 +45,7 @@ DomainRemote::~DomainRemote ()
 
 IORequest::_ref_type DomainRemote::create_request (unsigned response_flags,
 	const IOP::ObjectKey& object_key, const Operation& metadata, ReferenceRemote* ref,
-	Interface::_ptr_type callback, OperationIndex op_idx)
+	CallbackRef&& callback)
 {
 	throw NO_IMPLEMENT ();
 }

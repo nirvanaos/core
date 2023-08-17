@@ -312,8 +312,7 @@ OperationIndex ProxyManager::find_operation (String_in name) const
 	throw BAD_OPERATION (MAKE_OMG_MINOR (2));
 }
 
-IORequest::_ref_type ProxyManager::create_request (OperationIndex op, unsigned flags,
-	Interface::_ptr_type callback)
+IORequest::_ref_type ProxyManager::create_request (OperationIndex op, unsigned flags,	CallbackRef&& callback)
 {
 	assert (is_object_op (op));
 	if (flags == 2 || flags > 3)
@@ -327,8 +326,8 @@ IORequest::_ref_type ProxyManager::create_request (OperationIndex op, unsigned f
 	if (callback) {
 		if (!(flags & IORequest::RESPONSE_EXPECTED))
 			throw BAD_PARAM ();
-		return make_pseudo <RequestLocalImpl <RequestLocalAsync> > (callback, std::ref (*this), op,
-			memory, flags);
+		return make_pseudo <RequestLocalImpl <RequestLocalAsync> > (std::ref (*this), op,
+			memory, flags, std::move (callback));
 	} else if (flags & IORequest::RESPONSE_EXPECTED) {
 		return make_pseudo <RequestLocalImpl <RequestLocal> > (std::ref (*this), op,
 			memory, flags);

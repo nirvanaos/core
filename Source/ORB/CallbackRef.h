@@ -28,15 +28,38 @@
 #define NIRVANA_ORB_CORE_CALLBACKREF_H_
 #pragma once
 
-#include "ProxyManager.h"
+#include <CORBA/CORBA.h>
+#include <CORBA/Proxy/OperationIndex.h>
+#include <CORBA/Proxy/InterfaceMetadata.h>
+#include "../CORBA/RequestCallback.h"
 
 namespace CORBA {
 namespace Core {
 
+class ProxyManager;
+
 class CallbackRef
 {
 public:
-	CallbackRef (Internal::Interface::_ptr_type callback, ProxyManager* proxy, Internal::OperationIndex op);
+	CallbackRef (Internal::Interface::_ptr_type callback, const ProxyManager& proxy, Internal::OperationIndex op);
+	
+	CallbackRef (RequestCallback::_ptr_type callback) noexcept :
+		callback_ (callback),
+		handler_op_idx_ (0)
+	{}
+
+	CallbackRef () :
+		handler_op_idx_ (0)
+	{}
+
+	CallbackRef (nullptr_t) :
+		handler_op_idx_ (0)
+	{}
+
+	operator bool () const noexcept
+	{
+		return callback_.operator bool ();
+	}
 
 	bool is_handler () const noexcept
 	{

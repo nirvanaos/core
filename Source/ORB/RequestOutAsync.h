@@ -43,11 +43,14 @@ class RequestOutAsync : public Rq
 public:
 	RequestOutAsync (unsigned response_flags, Domain& target_domain,
 		const IOP::ObjectKey& object_key, const Internal::Operation& metadata, ReferenceRemote* ref,
-		Internal::Interface::_ptr_type callback, Internal::OperationIndex op_idx) :
+		CallbackRef&& callback) :
 		Base (response_flags, target_domain, object_key, metadata, ref),
-		callback_ (callback, ref, op_idx)
+		callback_ (std::move (callback))
 	{
+		assert (callback_);
 		Base::deadline_ = Nirvana::Core::ExecDomain::current ().get_request_deadline (false);
+		if (callback_.is_handler ())
+			Base::clear_preunmarshal ();
 	}
 
 private:

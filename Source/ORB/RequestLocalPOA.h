@@ -92,12 +92,13 @@ class NIRVANA_NOVTABLE RequestLocalAsyncPOA :
 	typedef RequestLocalOnewayPOA Base;
 
 protected:
-	RequestLocalAsyncPOA (Internal::Interface::_ptr_type callback,
-		ReferenceLocal& reference, Internal::OperationIndex op_idx,
-		unsigned response_flags) :
+	RequestLocalAsyncPOA (ReferenceLocal& reference, Internal::OperationIndex op_idx,
+		unsigned response_flags, CallbackRef&& callback) :
 		Base (reference, op_idx, response_flags),
-		callback_ (callback, &reference, op_idx)
-	{}
+		callback_ (std::move (callback))
+	{
+		assert (callback_);
+	}
 
 	virtual void cancel () noexcept override;
 	virtual void finalize () noexcept override;

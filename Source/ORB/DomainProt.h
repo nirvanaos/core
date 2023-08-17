@@ -61,7 +61,7 @@ public:
 
 	virtual Internal::IORequest::_ref_type create_request (unsigned response_flags, 
 		const IOP::ObjectKey& object_key, const Internal::Operation& metadata, ReferenceRemote* ref,
-		Internal::Interface::_ptr_type callback, Internal::OperationIndex op_idx) override;
+		CallbackRef&& callback) override;
 
 	void shutdown () noexcept
 	{
