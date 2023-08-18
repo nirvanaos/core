@@ -34,7 +34,10 @@
 #include "../EventSync.h"
 #include "../MapUnorderedUnstable.h"
 #include "../Synchronized.h"
+#include "../UserObject.h"
 #include "../CORBA/RequestCallback_s.h"
+#include "GarbageCollector.h"
+#include "RefCntProxy.h"
 
 namespace CORBA {
 namespace Core {
@@ -42,12 +45,17 @@ namespace Core {
 class PollableSet;
 
 class NIRVANA_NOVTABLE Pollable :
-	public servant_traits <CORBA::Pollable>::Servant <Pollable>,
-	public Internal::ValueImplBase <Pollable, RequestCallback>
+	public Internal::Aggregated <Pollable, CORBA::Pollable>,
+	public Internal::ValueImplBase <Pollable, RequestCallback>,
+	public SyncGC,
+	public Nirvana::Core::UserObject
 {
-	typedef servant_traits <CORBA::Pollable>::Servant <Pollable> Servant;
+	typedef Internal::Aggregated <Pollable, CORBA::Pollable> Servant;
 
 public:
+	virtual void _add_ref () noexcept override;
+	virtual void _remove_ref () noexcept override;
+
 	static Pollable* cast (CORBA::Pollable::_ptr_type ptr) noexcept
 	{
 		return static_cast <Pollable*> (
@@ -86,7 +94,7 @@ public:
 	}
 
 	Pollable (const Pollable& src);
-	~Pollable ();
+	virtual ~Pollable ();
 
 protected:
 	Pollable ();
@@ -102,6 +110,7 @@ private:
 	servant_reference <Nirvana::Core::SyncDomain> sync_domain_;
 	Nirvana::Core::EventSync event_;
 	PollableSet* cur_set_;
+	RefCntProxy ref_cnt_;
 	bool ready_;
 };
 
@@ -109,7 +118,7 @@ class DIIPollable :
 	public Pollable,
 	public Internal::ServantTraits <DIIPollable>,
 	public Internal::ValueImpl <DIIPollable, CORBA::DIIPollable>,
-	public CORBA::Internal::LifeCycleRefCnt <DIIPollable>
+	public Internal::LifeCycleRefCnt <DIIPollable>
 {
 public:
 	using CORBA::Internal::ServantTraits <DIIPollable>::_wide_val;

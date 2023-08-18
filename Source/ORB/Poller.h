@@ -181,10 +181,10 @@ Poller::Poller (ProxyManager& proxy, Internal::OperationIndex op) :
 		if (id) {
 			pv->iid = id;
 			pv->iid_len = strlen (id);
+			if (primary_interface == pi)
+				primary_id = id;
+			++pv;
 		}
-		if (primary_interface == pi)
-			primary_id = id;
-		++pv;
 	}
 
 	std::sort (values_.begin (), values_.end ());

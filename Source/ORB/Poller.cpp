@@ -73,7 +73,7 @@ void Poller::create_value (ValueEntry& ve, const ProxyManager::InterfaceEntry& i
 		}
 		Interface::_ref_type holder;
 		Interface* val = ie.proxy_factory->create_poller (this, 
-			(UShort)(&ie - proxy_->interfaces ().begin ()), holder);
+			(UShort)(&ie - proxy_->interfaces ().begin ()) + 1, holder);
 		if (!val || !holder)
 			throw MARSHAL ();
 		ve.value = Interface::_check (val, ve.iid);

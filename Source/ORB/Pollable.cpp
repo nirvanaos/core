@@ -33,6 +33,7 @@ namespace Core {
 
 Pollable::Pollable () :
 	cur_set_ (nullptr),
+	ref_cnt_ (1),
 	ready_ (false)
 {
 	SyncDomain* cur_sd = SyncContext::current ().sync_domain ();
@@ -46,11 +47,30 @@ Pollable::Pollable () :
 Pollable::Pollable (const Pollable& src) :
 	sync_domain_ (src.sync_domain_),
 	cur_set_ (nullptr),
+	ref_cnt_ (1),
 	ready_ (false)
 {}
 
 Pollable::~Pollable ()
-{}
+{
+	assert (&SyncContext::current () == sync_domain_);
+}
+
+void Pollable::_add_ref () noexcept
+{
+	ref_cnt_.increment ();
+}
+
+void Pollable::_remove_ref () noexcept
+{
+	if (0 == ref_cnt_.decrement ()) {
+		SyncContext& sc = SyncContext::current ();
+		if (&sc == sync_domain_)
+			delete this;
+		else
+			GarbageCollector::schedule (*this, *sync_domain_);
+	}
+}
 
 bool Pollable::is_ready (ULong timeout)
 {
