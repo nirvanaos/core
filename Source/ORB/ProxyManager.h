@@ -484,7 +484,7 @@ private:
 	struct OEPred;
 
 	void create_proxy (InterfaceEntry& ie, bool servant_side) const;
-	void create_proxy (Internal::ProxyFactory::_ptr_type pf, InterfaceEntry& ie) const;
+	void create_proxy (InterfaceEntry& ie) const;
 
 	static void check_metadata (const Internal::InterfaceMetadata* metadata,
 		Internal::String_in primary, bool servant_side);

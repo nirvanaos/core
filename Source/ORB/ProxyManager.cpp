@@ -182,7 +182,8 @@ void ProxyManager::build_metadata (Metadata& md, String_in primary_iid, bool ser
 		// Create primary proxy
 		assert (primary);
 		primary->interface_metadata = metadata;
-		create_proxy (proxy_factory, *primary);
+		primary->proxy_factory = std::move (proxy_factory);
+		create_proxy (*primary);
 		md.primary_interface = primary;
 	}
 
@@ -252,10 +253,10 @@ void ProxyManager::check_primary_interface (String_in primary_iid) const
 	}
 }
 
-void ProxyManager::create_proxy (ProxyFactory::_ptr_type pf, InterfaceEntry& ie) const
+void ProxyManager::create_proxy (InterfaceEntry& ie) const
 {
 	Interface::_ref_type holder;
-	Interface* proxy = pf->create_proxy (get_proxy (), get_abstract_base (), ior (),
+	Interface* proxy = ie.proxy_factory->create_proxy (get_proxy (), get_abstract_base (), ior (),
 		(UShort)(&ie - metadata_.interfaces.begin () + 1),
 		ie.implementation, holder);
 	if (!proxy || !holder)
@@ -289,7 +290,7 @@ void ProxyManager::create_proxy (InterfaceEntry& ie, bool servant_side) const
 			if (ie.proxy)
 				return;
 		}
-		create_proxy (ie.proxy_factory, ie);
+		create_proxy (ie);
 	}
 }
 

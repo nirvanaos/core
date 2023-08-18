@@ -66,6 +66,9 @@ void Poller::create_value (ValueEntry& ve, const ProxyManager::InterfaceEntry& i
 				ValueEntry* base_poller = find_value (base_poller_id);
 				assert (base_poller);
 				create_value (*base_poller, *base_ie);
+				// May be created in the nested call
+				if (ve.value)
+					return;
 			}
 		}
 		Interface::_ref_type holder;

@@ -120,8 +120,12 @@ private:
 			holder ()
 		{}
 
+		ValueEntry (ValueEntry&& src) = default;
+
 		~ValueEntry ()
 		{}
+
+		ValueEntry& operator = (ValueEntry&& src) = default;
 	};
 
 	ValueEntry* find_value (Internal::String_in iid);
