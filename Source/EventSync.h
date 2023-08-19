@@ -36,6 +36,8 @@
 namespace Nirvana {
 namespace Core {
 
+class Synchronized;
+
 class EventSync
 {
 	static const TimeBase::TimeT TIMER_DEADLINE = 1 * TimeBase::MILLISECOND;
@@ -43,7 +45,7 @@ class EventSync
 public:
 	EventSync ();
 
-	bool wait (TimeBase::TimeT timeout);
+	bool wait (TimeBase::TimeT timeout, Synchronized* frame = nullptr);
 
 	void signal_all () noexcept;
 	void signal_one () noexcept;

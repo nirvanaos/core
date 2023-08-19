@@ -56,10 +56,10 @@ public:
 	}
 
 	/// Suspend execution.
-	/// On resume, return to call context.
+	/// On resume, return to the caller synchronization context.
 	void suspend_and_return ();
 
-	/// Return to caller synchronization context.
+	/// Return to the caller synchronization context.
 	/// Skip rescehdule if possible.
 	///  
 	void return_to_caller_context ();

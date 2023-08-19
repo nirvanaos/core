@@ -25,6 +25,7 @@
 */
 #include "EventSync.h"
 #include "Chrono.h"
+#include "Synchronized.h"
 
 namespace Nirvana {
 namespace Core {
@@ -34,7 +35,7 @@ EventSync::EventSync () :
 	signal_cnt_ (0)
 {}
 
-bool EventSync::wait (TimeBase::TimeT timeout)
+bool EventSync::wait (TimeBase::TimeT timeout, Synchronized* frame)
 {
 	assert (SyncContext::current ().sync_domain ());
 
@@ -63,7 +64,10 @@ bool EventSync::wait (TimeBase::TimeT timeout)
 	}
 
 	list_.push_front (entry);
-	cur_ed.suspend ();
+	if (frame)
+		frame->suspend_and_return ();
+	else
+		cur_ed.suspend ();
 
 	return result;
 }
