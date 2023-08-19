@@ -38,8 +38,11 @@ bool EventSync::wait (TimeBase::TimeT timeout)
 {
 	assert (SyncContext::current ().sync_domain ());
 
+	if (acq_signal ())
+		return true;
+		
 	if (!timeout)
-		return acq_signal ();
+		return false;
 
 	volatile bool result = false;
 
