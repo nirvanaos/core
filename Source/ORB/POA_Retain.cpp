@@ -27,6 +27,10 @@
 #include <CORBA/Servant_var.h>
 #include "Nirvana_policies.h"
 
+#ifdef _DEBUG
+#define DISABLE_DGC_BY_DEFAULT
+#endif
+
 using namespace CORBA;
 using namespace CORBA::Core;
 using namespace Nirvana::Core;
@@ -35,7 +39,11 @@ namespace PortableServer {
 namespace Core {
 
 POA_Retain::POA_Retain () :
+#ifdef DISABLE_DGC_BY_DEFAULT
+	DGC_policy_ (DGC_DISABLED)
+#else
 	DGC_policy_ (DGC_DEFAULT)
+#endif
 {
 	if (object_policies_) {
 		bool gc;
