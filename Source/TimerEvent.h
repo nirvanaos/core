@@ -34,26 +34,22 @@
 namespace Nirvana {
 namespace Core {
 
-class TimerEvent : public Timer
+class TimerEvent :
+	public Timer,
+	public Event
 {
 public:
-	TimerEvent (Event& event) :
-		event_ (event),
-		signalled_ (false)
-	{
-	}
+	TimerEvent ()
+	{}
 
-	bool signalled () const noexcept
+	void signal_event () noexcept
 	{
-		return signalled_;
+		Event::signal ();
 	}
 
 private:
 	virtual void signal () noexcept override;
 
-private:
-	Event& event_;
-	volatile bool signalled_;
 };
 
 }

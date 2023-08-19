@@ -27,8 +27,12 @@
 #include <Nirvana/Legacy/Legacy_s.h>
 #include <Legacy/Process.h>
 #include <Legacy/Mutex.h>
+#include "../TimerEvent.h"
 
 namespace Nirvana {
+
+using namespace Core;
+
 namespace Legacy {
 namespace Core {
 
@@ -46,6 +50,16 @@ public:
 		return Mutex::create (ThreadBase::current ().process ());
 	}
 
+	static void sleep (TimeBase::TimeT period100ns)
+	{
+		if (!period100ns)
+			ExecDomain::reschedule ();
+		else {
+			TimerEvent timer;
+			timer.set (0, period100ns, 0);
+			timer.wait ();
+		}
+	}
 };
 
 }

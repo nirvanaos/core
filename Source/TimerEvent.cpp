@@ -31,8 +31,8 @@ namespace Core {
 
 void TimerEvent::signal () noexcept
 {
-	signalled_ = true;
-	event_.signal ();
+	signal_event ();
 }
+
 }
 }
