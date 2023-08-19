@@ -35,6 +35,9 @@
 namespace CORBA {
 namespace Core {
 
+/// \brief Asynchronous outgoing request.
+/// 
+/// \typeparam Rq Base request class, derived from RequestOut.
 template <class Rq>
 class RequestOutAsync : public Rq
 {

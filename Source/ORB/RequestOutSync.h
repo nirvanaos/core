@@ -33,31 +33,13 @@
 namespace CORBA {
 namespace Core {
 
+/// \brief Synchronous outgoing request.
+/// 
+/// \typeparam Rq Base request class, derived from RequestOut.
 template <class Rq>
-class RequestOutInternal :
-	public Rq,
-	public Nirvana::Core::Event
+class RequestOutSync : public Rq
 {
 	typedef Rq Base;
-
-public:
-	RequestOutInternal (unsigned response_flags, Domain& target_domain,
-		const IOP::ObjectKey& object_key, const Internal::Operation& metadata, ReferenceRemote* ref) :
-		Base (response_flags, target_domain, object_key, metadata, ref)
-	{}
-
-protected:
-	virtual void finalize () noexcept override
-	{
-		Base::finalize ();
-		Nirvana::Core::Event::signal ();
-	}
-};
-
-template <class Rq>
-class RequestOutSync : public RequestOutInternal <Rq>
-{
-	typedef RequestOutInternal <Rq> Base;
 
 public:
 	RequestOutSync (unsigned response_flags, Domain& target_domain,
@@ -68,9 +50,18 @@ public:
 	virtual void invoke () override
 	{
 		Base::invoke ();
-		Base::wait ();
+		event_.wait ();
 	}
 
+protected:
+	virtual void finalize () noexcept override
+	{
+		Base::finalize ();
+		event_.signal ();
+	}
+
+private:
+	Nirvana::Core::Event event_;
 };
 
 }
