@@ -61,8 +61,8 @@ POA_Retain::POA_Retain () :
 ReferenceLocalRef POA_Retain::activate_object (ObjectKey&& key, bool unique,
 	ServantProxyObject& proxy, unsigned flags)
 {
-	ReferenceLocalRef ref = root ().emplace_reference (std::move (key), unique,
-		std::ref (proxy), get_flags (flags), get_policies (flags));
+	ReferenceLocalRef ref = root ().emplace_reference (std::move (key), unique, proxy,
+		get_flags (flags), get_policies (flags));
 	if (ref)
 		activate_object (*ref, proxy);
 	return ref;

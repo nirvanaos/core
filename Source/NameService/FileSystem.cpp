@@ -41,13 +41,16 @@ StaticallyAllocated <POA::_ref_type> FileSystem::adapter_;
 
 Object::_ref_type FileSystem::get_reference (const DirItemId& id, Internal::String_in iid)
 {
+	assert (!iid.empty ());
 	return adapter ()->create_reference_with_id (id, iid);
 }
 
 Nirvana::Dir::_ref_type FileSystem::get_dir (const DirItemId& id)
 {
 	assert (get_item_type (id) == Nirvana::FileType::directory);
-	Nirvana::Dir::_ref_type dir = Nirvana::Dir::_narrow (get_reference (id, Internal::RepIdOf <Nirvana::Dir>::id));
+	Object::_ref_type obj = get_reference (id, Internal::RepIdOf <Nirvana::Dir>::id);
+	assert (obj);
+	Nirvana::Dir::_ref_type dir = Nirvana::Dir::_narrow (obj);
 	assert (dir);
 	return dir;
 }
@@ -55,17 +58,19 @@ Nirvana::Dir::_ref_type FileSystem::get_dir (const DirItemId& id)
 Nirvana::File::_ref_type FileSystem::get_file (const DirItemId& id)
 {
 	assert (get_item_type (id) != Nirvana::FileType::directory);
-	Nirvana::File::_ref_type file = Nirvana::File::_narrow (get_reference (id,
-		CORBA::Internal::RepIdOf <Nirvana::File>::id));
+	Object::_ref_type obj = get_reference (id, CORBA::Internal::RepIdOf <Nirvana::File>::id);
+	assert (obj);
+	Nirvana::File::_ref_type file = Nirvana::File::_narrow (obj);
 	assert (file);
 	return file;
 }
 
 Nirvana::DirItem::_ref_type FileSystem::get_reference (const DirItemId& id)
 {
-	Nirvana::DirItem::_ref_type item = Nirvana::DirItem::_narrow (get_reference (id,
-		get_item_type (id) == Nirvana::FileType::directory ?
-		Internal::RepIdOf <Nirvana::Dir>::id : Internal::RepIdOf <Nirvana::File>::id));
+	Object::_ref_type obj = get_reference (id, get_item_type (id) == Nirvana::FileType::directory ?
+		Internal::RepIdOf <Nirvana::Dir>::id : Internal::RepIdOf <Nirvana::File>::id);
+	assert (obj);
+	Nirvana::DirItem::_ref_type item = Nirvana::DirItem::_narrow (obj);
 	assert (item);
 	return item;
 }

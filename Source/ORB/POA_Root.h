@@ -144,15 +144,14 @@ public:
 
 	template <typename Param>
 	CORBA::Core::ReferenceLocalRef get_or_create (std::pair <References::iterator, bool>& ins,
-		ObjectKey&& core_key, bool unique, Param param, unsigned flags, CORBA::Core::PolicyMapShared* policies);
-
-	CORBA::Core::ReferenceLocalRef emplace_reference (ObjectKey&& core_key,
-		bool unique, CORBA::Internal::String_in primary_iid, unsigned flags,
+		ObjectKey&& core_key, bool unique, Param& param, unsigned flags,
 		CORBA::Core::PolicyMapShared* policies);
 
-	CORBA::Core::ReferenceLocalRef emplace_reference (ObjectKey&& core_key,
-		bool unique, CORBA::Core::ServantProxyObject& proxy, unsigned flags,
-		CORBA::Core::PolicyMapShared* policies);
+	CORBA::Core::ReferenceLocalRef emplace_reference (ObjectKey&& core_key, bool unique,
+		CORBA::Internal::String_in primary_iid, unsigned flags, CORBA::Core::PolicyMapShared* policies);
+
+	CORBA::Core::ReferenceLocalRef emplace_reference (ObjectKey&& core_key, bool unique,
+		CORBA::Core::ServantProxyObject& proxy, unsigned flags, CORBA::Core::PolicyMapShared* policies);
 
 	void remove_reference (const IOP::ObjectKey& key) noexcept
 	{

@@ -247,7 +247,7 @@ ReferenceLocalRef POA_Base::create_reference (CORBA::Internal::String_in iid, un
 	for (;;) {
 		// The ObjectKey constructor calls generate_object_id to generate a new unique id.
 		// If SYSTEM_ID policy is not present, the WrongPolicy exception will be thrown.
-		ReferenceLocalRef ref = root ().emplace_reference (ObjectKey (*this), true, std::ref (iid),
+		ReferenceLocalRef ref = root ().emplace_reference (ObjectKey (*this), true, iid,
 			get_flags (flags), get_policies (flags));
 		if (ref)
 			return ref;

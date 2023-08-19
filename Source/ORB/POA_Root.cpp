@@ -58,7 +58,7 @@ std::pair <POA_Root::References::iterator, bool> POA_Root::emplace_reference (co
 
 template <typename Param>
 CORBA::Core::ReferenceLocalRef POA_Root::get_or_create (std::pair <References::iterator, bool>& ins,
-	ObjectKey&& core_key, bool unique, Param param, unsigned flags, CORBA::Core::PolicyMapShared* policies)
+	ObjectKey&& core_key, bool unique, Param& param, unsigned flags, CORBA::Core::PolicyMapShared* policies)
 {
 	References::reference entry = *ins.first;
 	if (ins.second) {
@@ -80,23 +80,22 @@ CORBA::Core::ReferenceLocalRef POA_Root::get_or_create (std::pair <References::i
 		return entry.second.get ();
 }
 
-ReferenceLocalRef POA_Root::emplace_reference (ObjectKey&& core_key,
-	bool unique, CORBA::Internal::String_in primary_iid, unsigned flags,
-	CORBA::Core::PolicyMapShared* policies)
+ReferenceLocalRef POA_Root::emplace_reference (ObjectKey&& core_key, bool unique,
+	CORBA::Internal::String_in primary_iid, unsigned flags, CORBA::Core::PolicyMapShared* policies)
 {
 	auto ins = emplace_reference (core_key);
-	ReferenceLocalRef p = get_or_create (ins, std::move (core_key), unique, std::ref (primary_iid), flags, policies);
+	ReferenceLocalRef p = get_or_create (ins, std::move (core_key), unique, primary_iid,
+		flags, policies);
 	if (p)
 		p->check_primary_interface (primary_iid);
 	return p;
 }
 
-ReferenceLocalRef POA_Root::emplace_reference (ObjectKey&& core_key,
-	bool unique, ServantProxyObject& proxy, unsigned flags,
-	CORBA::Core::PolicyMapShared* policies)
+ReferenceLocalRef POA_Root::emplace_reference (ObjectKey&& core_key, bool unique,
+	ServantProxyObject& proxy, unsigned flags, CORBA::Core::PolicyMapShared* policies)
 {
 	auto ins = emplace_reference (core_key);
-	ReferenceLocalRef p = get_or_create (ins, std::move (core_key), unique, std::ref (proxy), flags, policies);
+	ReferenceLocalRef p = get_or_create (ins, std::move (core_key), unique, proxy, flags, policies);
 	if (p)
 		p->check_primary_interface (proxy.primary_interface_id ());
 	return p;
