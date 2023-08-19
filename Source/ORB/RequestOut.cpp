@@ -27,6 +27,7 @@
 #include "OutgoingRequests.h"
 #include "DomainRemote.h"
 #include "remarshal_output.h"
+#include <Port/Debugger.h>
 
 using namespace Nirvana;
 using namespace Nirvana::Core;
@@ -324,13 +325,16 @@ void RequestOut::pre_invoke (IdPolicy id_policy)
 		ExecDomain::current ().get_context (metadata_.context.p, metadata_.context.size, context);
 		Type <IDL::Sequence <IDL::String> >::marshal_out (context, _get_ptr ());
 	}
-	if (response)
+	if (response) {
 		OutgoingRequests::new_request (*this, id_policy);
-	else
-		OutgoingRequests::new_request_oneway (*this, id_policy);
 
-	timer_.set (std::max (Chrono::deadline_to_time (
-		deadline_ - Chrono::deadline_clock ()), (int64_t)MIN_TIMEOUT), id ());
+#ifdef _DEBUG
+		if (!Nirvana::Core::Port::Debugger::is_debugger_present ())
+#endif
+		timer_.set (std::max (Chrono::deadline_to_time (
+			deadline_ - Chrono::deadline_clock ()), (int64_t)MIN_TIMEOUT), id ());
+	} else
+		OutgoingRequests::new_request_oneway (*this, id_policy);
 }
 
 void RequestOut::set_exception (Any& e)
