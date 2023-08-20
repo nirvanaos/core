@@ -151,7 +151,7 @@ void POA_Root::invoke_sync (const RequestRef& request)
 {
 	POA_Ref adapter;
 	try {
-		adapter = find_child (ObjectKey (request->object_key ()).adapter_path (), true);
+		adapter = find_child (ObjectKey::get_adapter_path (request->object_key ()), true);
 	} catch (...) {
 		throw OBJ_ADAPTER (MAKE_OMG_MINOR (1));
 	}

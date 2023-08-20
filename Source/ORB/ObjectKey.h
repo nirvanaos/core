@@ -55,6 +55,7 @@ public:
 	{}
 
 	ObjectKey (POA_Base& adapter);
+	ObjectKey (const POA_Base& adapter, const ObjectId& oid);
 	ObjectKey (const POA_Base& adapter, ObjectId&& oid);
 	explicit ObjectKey (const IOP::ObjectKey& object_key);
 
@@ -69,6 +70,9 @@ public:
 	{
 		return object_id_;
 	}
+
+	static ObjectId get_object_id (const IOP::ObjectKey& object_key);
+	static AdapterPath get_adapter_path (const IOP::ObjectKey& object_key);
 
 private:
 	AdapterPath adapter_path_;

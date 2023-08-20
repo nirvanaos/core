@@ -50,8 +50,7 @@ protected:
 	virtual CORBA::Core::ReferenceLocalRef create_reference (ObjectKey&& key,
 		CORBA::Internal::String_in iid) override;
 
-	virtual void serve_default (const RequestRef& request, CORBA::Core::ReferenceLocal& reference)
-		override;
+	virtual void serve_default (const RequestRef& request) override;
 
 	virtual void etherialize (const ObjectId& oid, CORBA::Core::ServantProxyObject& proxy,
 		bool cleanup_in_progress) noexcept override;
@@ -66,7 +65,7 @@ private:
 private:
 	ServantActivator::_ref_type activator_;
 
-	typedef const CORBA::Core::ReferenceLocal* ActivationKey;
+	typedef ObjectId ActivationKey;
 	typedef Nirvana::Core::WaitableRef <CORBA::Object::_ref_type> ActivationRef;
 
 	typedef Nirvana::Core::MapUnorderedStable <ActivationKey, ActivationRef,

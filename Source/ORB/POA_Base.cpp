@@ -433,27 +433,19 @@ void POA_Base::check_object_id (const ObjectId& oid)
 
 void POA_Base::serve_request (const RequestRef& request)
 {
-	ReferenceLocalRef ref = root ().find_reference (request->object_key ());
-	if (!ref)
-		ref = create_reference (ObjectKey (request->object_key ()), IDL::String ());
-	serve_request (request, *ref);
+	serve_default (request);
 }
 
-void POA_Base::serve_request (const RequestRef& request, ReferenceLocal& reference)
-{
-	serve_default (request, reference);
-}
-
-void POA_Base::serve_default (const RequestRef& request, ReferenceLocal& reference)
+void POA_Base::serve_default (const RequestRef& request)
 {
 	throw OBJECT_NOT_EXIST (MAKE_OMG_MINOR (2));
 }
 
-void POA_Base::serve_request (const RequestRef& request, ReferenceLocal& reference, ServantProxyObject& proxy)
+void POA_Base::serve_request (const RequestRef& request, const ObjectId& oid, ReferenceLocal* reference, ServantProxyObject& proxy)
 {
 	ExecDomain& ed = ExecDomain::current ();
 	Context* ctx_prev = (Context*)ed.TLS_get (CoreTLS::CORE_TLS_PORTABLE_SERVER);
-	Context ctx (_this (), reference.core_key ().object_id (), reference.get_proxy (), proxy);
+	Context ctx (_this (), oid, reference ? reference->get_proxy () : nullptr, proxy);
 	ed.TLS_set (CoreTLS::CORE_TLS_PORTABLE_SERVER, &ctx);
 	try {
 		request->serve (proxy);

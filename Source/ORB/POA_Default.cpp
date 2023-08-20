@@ -55,7 +55,7 @@ Object::_ref_type POA_Default::id_to_servant_default (bool)
 	return servant_;
 }
 
-void POA_Default::serve_default (const RequestRef& request, CORBA::Core::ReferenceLocal& reference)
+void POA_Default::serve_default (const RequestRef& request)
 {
 	// If the POA has the USE_DEFAULT_SERVANT policy, a default servant has been associated with the
 	// POA so the POA will invoke the appropriate method on that servant. If no servant has been
@@ -65,7 +65,9 @@ void POA_Default::serve_default (const RequestRef& request, CORBA::Core::Referen
 		throw OBJ_ADAPTER (MAKE_OMG_MINOR (3));
 
 	servant_reference <ServantProxyObject> hold (object2proxy (servant_));
-	serve_request (request, reference, *hold);
+	ObjectId oid = ObjectKey::get_object_id (request->object_key ());
+	ReferenceLocalRef reference = root ().find_reference (request->object_key ());
+	serve_request (request, oid, reference, *hold);
 }
 
 }

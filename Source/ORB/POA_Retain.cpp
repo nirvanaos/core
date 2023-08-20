@@ -164,13 +164,17 @@ void POA_Retain::deactivate_objects (bool etherealize) noexcept
 	}
 }
 
-void POA_Retain::serve_request (const RequestRef& request, ReferenceLocal& reference)
+void POA_Retain::serve_request (const RequestRef& request)
 {
-	servant_reference <ServantProxyObject> servant = reference.get_active_servant ();
-	if (servant)
-		POA_Base::serve_request (request, reference, *servant);
-	else
-		serve_default (request, reference);
+	ReferenceLocalRef ref = root ().find_reference (request->object_key ());
+	if (ref) {
+		servant_reference <ServantProxyObject> servant = ref->get_active_servant ();
+		if (servant) {
+			POA_Base::serve_request (request, ref->core_key ().object_id (), ref, *servant);
+			return;
+		}
+	}
+	serve_default (request);
 }
 
 }

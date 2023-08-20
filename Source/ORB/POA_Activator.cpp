@@ -56,16 +56,17 @@ void POA_Activator::etherialize (Type <ObjectId>::C_in oid, Object::_ptr_type se
 		nullptr); // Ignore exceptions
 }
 
-void POA_Activator::serve_default (const RequestRef& request, ReferenceLocal& reference)
+void POA_Activator::serve_default (const RequestRef& request)
 {
 	if (!activator_)
 		throw OBJECT_NOT_EXIST (MAKE_OMG_MINOR (2));
 	
-	const ObjectId& oid = reference.core_key ().object_id ();
-
-	auto ins = activation_map_.emplace (&reference, ACTIVATION_TIMEOUT);
-	ActivationMap::reference entry = *ins.first;
+	ObjectId oid = ObjectKey::get_object_id (request->object_key ());
 	Object::_ref_type servant;
+	ReferenceLocalRef ref;
+
+	auto ins = activation_map_.emplace (oid, ACTIVATION_TIMEOUT);
+	ActivationMap::reference entry = *ins.first;
 	if (ins.second) {
 		auto wait_list = entry.second.wait_list ();
 		try {
@@ -81,7 +82,8 @@ void POA_Activator::serve_default (const RequestRef& request, ReferenceLocal& re
 				throw OBJECT_NOT_EXIST (MAKE_OMG_MINOR (2));
 
 			try {
-				activate_object (reference, *object2proxy (servant));
+				ref = activate_object (ObjectKey (*this, oid), false, *object2proxy (servant),
+					Reference::GARBAGE_COLLECTION);
 			} catch (const ServantAlreadyActive&) {
 				etherialize (oid, servant, false, true);
 				throw OBJ_ADAPTER ();
@@ -93,10 +95,12 @@ void POA_Activator::serve_default (const RequestRef& request, ReferenceLocal& re
 			activation_map_.erase (entry.first);
 			throw;
 		}
-	} else
+	} else {
 		servant = entry.second.get ();
+		ref = root ().find_reference (request->object_key ());
+	}
 
-	POA_Base::serve_request (request, reference, *object2proxy (servant));
+	POA_Base::serve_request (request, oid, ref, *object2proxy (servant));
 }
 
 ServantManager::_ref_type POA_Activator::get_servant_manager ()
