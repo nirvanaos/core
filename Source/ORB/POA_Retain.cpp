@@ -28,7 +28,7 @@
 #include "Nirvana_policies.h"
 
 #ifdef _DEBUG
-#define DISABLE_DGC_BY_DEFAULT
+//#define DISABLE_DGC_BY_DEFAULT
 #endif
 
 using namespace CORBA;

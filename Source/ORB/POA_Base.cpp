@@ -157,6 +157,7 @@ POA_Base::POA_Base (POA_Base* parent, const IDL::String* name,
 	PolicyMapRef&& object_policies) :
 	the_POAManager_ (std::move (manager)),
 	object_policies_ (std::move (object_policies)),
+	base_flags_ (),
 	parent_ (parent),
 	name_ (name),
 #ifdef _DEBUG
@@ -167,6 +168,13 @@ POA_Base::POA_Base (POA_Base* parent, const IDL::String* name,
 	destroy_called_ (false),
 	signature_ (SIGNATURE)
 {
+	if (object_policies_) {
+		LifespanPolicyValue lifespan;
+		if (object_policies_->get_value <LIFESPAN_POLICY_ID> (lifespan)
+			&& LifespanPolicyValue::PERSISTENT == lifespan)
+			base_flags_ |= Reference::PERSISTENT;
+	}
+
 	the_POAManager_->on_adapter_create (*this);
 	_NTRACE ("POA_Base (%s)", dbg_name_.c_str ());
 }

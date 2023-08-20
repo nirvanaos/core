@@ -56,11 +56,14 @@ void DomainRemote::add_DGC_objects (ReferenceSet <Nirvana::Core::HeapAllocator>&
 	Nirvana::Core::Synchronized _sync_frame (Nirvana::Core::Binder::sync_domain (), nullptr);
 	try {
 		for (auto& ref : references) {
-			owned_references_.emplace (std::move (ref));
+			assert (ref->flags () & Reference::GARBAGE_COLLECTION);
+			if (!(ref->flags () & Reference::PERSISTENT))
+				owned_references_.emplace (std::move (const_cast <ReferenceRef&> (ref)));
 		}
 	} catch (...) {
 		// TODO: Log
 	}
+	references.clear ();
 }
 
 }

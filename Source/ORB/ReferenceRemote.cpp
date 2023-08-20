@@ -53,6 +53,10 @@ ReferenceRemote::ReferenceRemote (const OctetSeq& addr, servant_reference <Domai
 			if (domain_->flags () & Domain::GARBAGE_COLLECTION)
 				DGC_key_ = domain_->on_DGC_reference_unmarshal (object_key_);
 		}
+		PortableServer::LifespanPolicyValue lifespan;
+		if (policies_->get_value <PortableServer::LIFESPAN_POLICY_ID> (lifespan)
+			&& PortableServer::LifespanPolicyValue::PERSISTENT == lifespan)
+			flags_ |= PERSISTENT;
 	}
 }
 

@@ -95,6 +95,11 @@ struct POA_Policies
 					break;
 				case LIFESPAN_POLICY_ID:
 					lifespan = LifespanPolicy::_narrow (policy)->value ();
+					if (lifespan == LifespanPolicyValue::PERSISTENT) {
+						if (!object_policies)
+							object_policies = CORBA::make_reference <CORBA::Core::PolicyMapShared> ();
+						object_policies->insert (policy);
+					}
 					break;
 				case ID_UNIQUENESS_POLICY_ID:
 					id_uniqueness = IdUniquenessPolicy::_narrow (policy)->value ();
@@ -561,6 +566,7 @@ protected:
 
 	CORBA::servant_reference <POAManager> the_POAManager_;
 	CORBA::Core::PolicyMapRef object_policies_;
+	unsigned base_flags_;
 
 private:
 	// Children map.
