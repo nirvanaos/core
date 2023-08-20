@@ -82,13 +82,13 @@ void POA_Locator::postinvoke (Type <ObjectId>::C_in oid, String_in operation,
 		nullptr); // Ignore exception
 }
 
-void POA_Locator::serve_default (const RequestRef& request)
+void POA_Locator::serve_default (Request& request)
 {
 	if (!locator_)
 		throw OBJECT_NOT_EXIST (MAKE_OMG_MINOR (2));
 
-	const ObjectId oid = ObjectKey::get_object_id (request->object_key ());
-	CORBA::Internal::StringView <Char> op = request->operation ();
+	const ObjectId oid = ObjectKey::get_object_id (request.object_key ());
+	CORBA::Internal::StringView <Char> op = request.operation ();
 	void* cookie;
 	Object::_ref_type servant;
 	try {
@@ -103,7 +103,7 @@ void POA_Locator::serve_default (const RequestRef& request)
 		if (!servant) // User code returned nil servant
 			throw OBJECT_NOT_EXIST (MAKE_OMG_MINOR (2));
 
-		ReferenceLocalRef reference = root ().find_reference (request->object_key ());
+		ReferenceLocalRef reference = root ().find_reference (request.object_key ());
 		serve_request (request, oid, reference, *object2proxy (servant));
 	} catch (...) {
 		postinvoke (oid, op, cookie, servant);

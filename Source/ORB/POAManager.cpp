@@ -39,7 +39,7 @@ void POAManager::ServeRequest::run ()
 		// Check that adapter is not destroyed.
 		if (adapter_->destroy_called ())
 			throw OBJ_ADAPTER (MAKE_OMG_MINOR (1));
-		adapter_->serve_request (request_);
+		adapter_->serve_request (*request_);
 	} catch (Exception& e) {
 		request_->set_exception (std::move (e));
 	}

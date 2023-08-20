@@ -431,24 +431,24 @@ ObjectId POA_Base::generate_object_id ()
 void POA_Base::check_object_id (const ObjectId& oid)
 {}
 
-void POA_Base::serve_request (const RequestRef& request)
+void POA_Base::serve_request (Request& request)
 {
 	serve_default (request);
 }
 
-void POA_Base::serve_default (const RequestRef& request)
+void POA_Base::serve_default (Request& request)
 {
 	throw OBJECT_NOT_EXIST (MAKE_OMG_MINOR (2));
 }
 
-void POA_Base::serve_request (const RequestRef& request, const ObjectId& oid, ReferenceLocal* reference, ServantProxyObject& proxy)
+void POA_Base::serve_request (Request& request, const ObjectId& oid, ReferenceLocal* reference, ServantProxyObject& proxy)
 {
 	ExecDomain& ed = ExecDomain::current ();
 	Context* ctx_prev = (Context*)ed.TLS_get (CoreTLS::CORE_TLS_PORTABLE_SERVER);
 	Context ctx (_this (), oid, reference ? reference->get_proxy () : nullptr, proxy);
 	ed.TLS_set (CoreTLS::CORE_TLS_PORTABLE_SERVER, &ctx);
 	try {
-		request->serve (proxy);
+		request.serve (proxy);
 	} catch (...) {
 		ed.TLS_set (CoreTLS::CORE_TLS_PORTABLE_SERVER, ctx_prev);
 		throw;

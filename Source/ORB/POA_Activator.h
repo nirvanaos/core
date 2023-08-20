@@ -50,7 +50,7 @@ protected:
 	virtual CORBA::Core::ReferenceLocalRef create_reference (ObjectKey&& key,
 		CORBA::Internal::String_in iid) override;
 
-	virtual void serve_default (const RequestRef& request) override;
+	virtual void serve_default (Request& request) override;
 
 	virtual void etherialize (const ObjectId& oid, CORBA::Core::ServantProxyObject& proxy,
 		bool cleanup_in_progress) noexcept override;

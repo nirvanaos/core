@@ -56,12 +56,12 @@ void POA_Activator::etherialize (Type <ObjectId>::C_in oid, Object::_ptr_type se
 		nullptr); // Ignore exceptions
 }
 
-void POA_Activator::serve_default (const RequestRef& request)
+void POA_Activator::serve_default (Request& request)
 {
 	if (!activator_)
 		throw OBJECT_NOT_EXIST (MAKE_OMG_MINOR (2));
 	
-	ObjectId oid = ObjectKey::get_object_id (request->object_key ());
+	ObjectId oid = ObjectKey::get_object_id (request.object_key ());
 	Object::_ref_type servant;
 	ReferenceLocalRef ref;
 
@@ -97,7 +97,7 @@ void POA_Activator::serve_default (const RequestRef& request)
 		}
 	} else {
 		servant = entry.second.get ();
-		ref = root ().find_reference (request->object_key ());
+		ref = root ().find_reference (request.object_key ());
 	}
 
 	POA_Base::serve_request (request, oid, ref, *object2proxy (servant));

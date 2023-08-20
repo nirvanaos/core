@@ -175,7 +175,7 @@ public:
 private:
 	class InvokeAsync;
 
-	static void invoke_sync (const RequestRef& request);
+	static void invoke_sync (Request& request);
 
 private:
 	References local_references_; // All local references

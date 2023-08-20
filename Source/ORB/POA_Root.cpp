@@ -133,7 +133,7 @@ void POA_Root::invoke (RequestRef request, bool async) noexcept
 		Object::_ref_type root = get_root (); // Hold root POA reference
 		SYNC_BEGIN (local2proxy (root)->sync_context (), nullptr);
 
-		invoke_sync (request);
+		invoke_sync (*request);
 
 		if (async) // Do not reschedule exec domain, it will be released immediately.
 			_sync_frame.return_to_caller_context ();
@@ -147,11 +147,11 @@ void POA_Root::invoke (RequestRef request, bool async) noexcept
 	}
 }
 
-void POA_Root::invoke_sync (const RequestRef& request)
+void POA_Root::invoke_sync (Request& request)
 {
 	POA_Ref adapter;
 	try {
-		adapter = find_child (ObjectKey::get_adapter_path (request->object_key ()), true);
+		adapter = find_child (ObjectKey::get_adapter_path (request.object_key ()), true);
 	} catch (...) {
 		throw OBJ_ADAPTER (MAKE_OMG_MINOR (1));
 	}
@@ -196,7 +196,7 @@ void POA_Root::invoke_async (RequestRef request, DeadlineTime deadline)
 void POA_Root::InvokeAsync::run ()
 {
 	try {
-		invoke_sync (request_);
+		invoke_sync (*request_);
 	} catch (Exception& e) {
 		request_->set_exception (std::move (e));
 	} catch (...) {

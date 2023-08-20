@@ -171,7 +171,7 @@ public:
 		return nullptr;
 	}
 
-	void invoke (POA_Base& adapter, const RequestRef& request)
+	void invoke (POA_Base& adapter, Request& request)
 	{
 		switch (state_) {
 			case State::HOLDING:
@@ -224,10 +224,10 @@ private:
 		CORBA::servant_reference <POA_Base> adapter;
 		RequestRef request;
 
-		QElem (POA_Base& a, const RequestRef& r) :
+		QElem (POA_Base& a, Request& r) :
 			deadline (Nirvana::Core::ExecDomain::current ().deadline ()),
 			adapter (&a),
-			request (r)
+			request (&r)
 		{}
 
 		bool operator < (const QElem& rhs) const noexcept
@@ -273,7 +273,7 @@ PortableServer::POAManager::_ref_type POA_Base::the_POAManager () const
 }
 
 inline
-void POA_Base::invoke (const RequestRef& request)
+void POA_Base::invoke (Request& request)
 {
 	if (destroy_called_)
 		throw CORBA::OBJ_ADAPTER (MAKE_OMG_MINOR (1));
