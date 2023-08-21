@@ -53,7 +53,7 @@ public:
 
 	uint32_t refcount_value () const noexcept
 	{
-		return ref_cnt_;
+		return (uint32_t)ref_cnt_;
 	}
 
 	RefCnt (CORBA::Internal::DynamicServant::_ptr_type deleter) :

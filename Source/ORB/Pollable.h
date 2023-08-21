@@ -56,6 +56,11 @@ public:
 	virtual void _add_ref () noexcept override;
 	virtual void _remove_ref () noexcept override;
 
+	uint32_t _refcount_value () const noexcept
+	{
+		return (uint32_t)ref_cnt_;
+	}
+
 	static Pollable* cast (CORBA::Pollable::_ptr_type ptr) noexcept
 	{
 		return static_cast <Pollable*> (
