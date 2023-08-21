@@ -441,10 +441,21 @@ void POA_Base::check_object_id (const ObjectId& oid)
 
 void POA_Base::serve_request (Request& request)
 {
-	serve_default (request);
+	ReferenceLocalRef ref = root ().find_reference (request.object_key ());
+	if (ref)
+		serve_request (request, ref->core_key ().object_id (), ref);
+	else {
+		ObjectId oid = ObjectKey::get_object_id (request.object_key ());
+		serve_request (request, oid, nullptr);
+	}
 }
 
-void POA_Base::serve_default (Request& request)
+void POA_Base::serve_request (Request& request, const ObjectId& oid, ReferenceLocal* reference)
+{
+	serve_default (request, oid, reference);
+}
+
+void POA_Base::serve_default (Request& request, const ObjectId& oid, ReferenceLocal* reference)
 {
 	throw OBJECT_NOT_EXIST (MAKE_OMG_MINOR (2));
 }

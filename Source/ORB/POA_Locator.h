@@ -41,7 +41,8 @@ public:
 	virtual void set_servant_manager (ServantManager::_ptr_type imgr) override;
 
 protected:
-	virtual void serve_default (Request& request) override;
+	virtual void serve_default (Request& request, const ObjectId& oid,
+		CORBA::Core::ReferenceLocal* reference) override;
 
 private:
 	inline

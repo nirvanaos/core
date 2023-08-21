@@ -462,7 +462,7 @@ public:
 	}
 
 	inline void invoke (Request& request);
-	virtual void serve_request (Request& request);
+	void serve_request (Request& request);
 
 	void on_request_start () noexcept;
 	void on_request_finish () noexcept;
@@ -548,7 +548,9 @@ protected:
 	bool check_path (const AdapterPath& path, AdapterPath::const_iterator it) const
 		noexcept;
 
-	virtual void serve_default (Request& request);
+
+	virtual void serve_request (Request& request, const ObjectId& oid, CORBA::Core::ReferenceLocal* reference);
+	virtual void serve_default (Request& request, const ObjectId& oid, CORBA::Core::ReferenceLocal* reference);
 	void serve_request (Request& request, const ObjectId& oid,
 		CORBA::Core::ReferenceLocal* reference, CORBA::Core::ServantProxyObject& proxy);
 

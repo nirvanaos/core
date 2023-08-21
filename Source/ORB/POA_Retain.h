@@ -67,7 +67,8 @@ protected:
 	virtual void activate_object (CORBA::Core::ReferenceLocal& ref,
 		CORBA::Core::ServantProxyObject& proxy) override;
 
-	virtual void serve_request (Request& request) override;
+	virtual void serve_request (Request& request, const ObjectId& oid,
+		CORBA::Core::ReferenceLocal* reference) override;
 
 	virtual void deactivate_objects (bool etherealize) noexcept override;
 

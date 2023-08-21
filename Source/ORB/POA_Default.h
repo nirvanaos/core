@@ -43,7 +43,8 @@ public:
 protected:
 	virtual CORBA::Object::_ref_type reference_to_servant_default (bool not_active) override;
 	virtual CORBA::Object::_ref_type id_to_servant_default (bool not_active) override;
-	virtual void serve_default (Request& request) override;
+	virtual void serve_default (Request& request, const ObjectId& oid,
+		CORBA::Core::ReferenceLocal* reference) override;
 
 private:
 	CORBA::Object::_ref_type servant_;
