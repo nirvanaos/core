@@ -31,6 +31,8 @@
 module CORBA {
 module Core {
 
+typeprefix Core "";
+
 local interface TC_Factory
 {
   TypeCode create_struct_tc (

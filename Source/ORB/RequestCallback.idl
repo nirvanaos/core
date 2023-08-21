@@ -27,14 +27,17 @@
 #define CORBA_REQUESTCALLBACK_IDL_
 
 module CORBA {
-
 module Internal {
+
+typeprefix Internal "";
 
 pseudo interface IORequest;
 
 };
 
 module Core {
+
+typeprefix Core "";
 
 /// Request callback
 pseudo interface RequestCallback

@@ -453,7 +453,7 @@ void POA_Base::serve_request (Request& request, const ObjectId& oid, ReferenceLo
 {
 	ExecDomain& ed = ExecDomain::current ();
 	Context* ctx_prev = (Context*)ed.TLS_get (CoreTLS::CORE_TLS_PORTABLE_SERVER);
-	Context ctx (_this (), oid, reference ? reference->get_proxy () : nullptr, proxy);
+	Context ctx (_this (), oid, reference ? reference->get_proxy () : proxy.get_proxy (), proxy);
 	ed.TLS_set (CoreTLS::CORE_TLS_PORTABLE_SERVER, &ctx);
 	try {
 		request.serve (proxy);
@@ -484,6 +484,21 @@ void POA_Base::check_wait_completion ()
 	// standard minor code 3 is raised and POA destruction does not occur.
 	if (ExecDomain::current ().TLS_get (CoreTLS::CORE_TLS_PORTABLE_SERVER))
 		throw CORBA::BAD_INV_ORDER (MAKE_OMG_MINOR (3));
+}
+
+bool POA_Policies::operator < (const POA_Policies& rhs) const noexcept
+{
+	typedef ABI_enum Int;
+	return std::lexicographical_compare (
+		(const Int*)this, (const Int*)(this + 1),
+		(const Int*)&rhs, (const Int*)(&rhs + 1));
+}
+
+bool POA_Policies::add_object_policy (PolicyMapRef& object_policies, Policy::_ptr_type policy)
+{
+	if (!object_policies)
+		object_policies = make_reference <PolicyMapShared> ();
+	return object_policies->insert (policy);
 }
 
 }

@@ -95,11 +95,8 @@ struct POA_Policies
 					break;
 				case LIFESPAN_POLICY_ID:
 					lifespan = LifespanPolicy::_narrow (policy)->value ();
-					if (lifespan == LifespanPolicyValue::PERSISTENT) {
-						if (!object_policies)
-							object_policies = CORBA::make_reference <CORBA::Core::PolicyMapShared> ();
-						object_policies->insert (policy);
-					}
+					if (lifespan == LifespanPolicyValue::PERSISTENT)
+						add_object_policy (object_policies, policy);
 					break;
 				case ID_UNIQUENESS_POLICY_ID:
 					id_uniqueness = IdUniquenessPolicy::_narrow (policy)->value ();
@@ -119,9 +116,7 @@ struct POA_Policies
 				default:
 					if (Nirvana::DGC_POLICY_TYPE == type)
 						DGC_policy_idx = int (it - policies.begin ());
-					if (!object_policies)
-						object_policies = CORBA::make_reference <CORBA::Core::PolicyMapShared> ();
-					if (!object_policies->insert (policy))
+					if (!add_object_policy (object_policies, policy))
 						throw POA::InvalidPolicy (CORBA::UShort (it - policies.begin ()));
 			}
 		}
@@ -130,13 +125,9 @@ struct POA_Policies
 			throw POA::InvalidPolicy ((CORBA::UShort)DGC_policy_idx);
 	}
 
-	bool operator < (const POA_Policies& rhs) const noexcept
-	{
-		typedef CORBA::Internal::ABI_enum Int;
-		return std::lexicographical_compare (
-			(const Int*)this, (const Int*)(this + 1),
-			(const Int*)&rhs, (const Int*)(&rhs + 1));
-	}
+	bool operator < (const POA_Policies& rhs) const noexcept;
+	static bool add_object_policy (CORBA::Core::PolicyMapRef& object_policies,
+		CORBA::Policy::_ptr_type policy);
 
 	static const POA_Policies default_;
 };
