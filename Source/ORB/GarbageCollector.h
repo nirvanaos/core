@@ -43,8 +43,8 @@ namespace Core {
 class NIRVANA_NOVTABLE SyncGC
 {
 	template <class> friend class CORBA::servant_reference;
-	virtual void _add_ref () = 0;
-	virtual void _remove_ref () = 0;
+	virtual void _add_ref () noexcept = 0;
+	virtual void _remove_ref () noexcept = 0;
 };
 
 class GarbageCollector :

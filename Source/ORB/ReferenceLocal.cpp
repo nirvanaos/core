@@ -69,7 +69,7 @@ ReferenceLocal::~ReferenceLocal ()
 	assert (&SyncContext::current () == adapter_context_);
 }
 
-void ReferenceLocal::_add_ref ()
+void ReferenceLocal::_add_ref () noexcept
 {
 	if (flags_ & GARBAGE_COLLECTION) {
 		if (1 == ref_cnt_.increment_seq ()) {
@@ -82,7 +82,7 @@ void ReferenceLocal::_add_ref ()
 		ref_cnt_.increment ();
 }
 
-void ReferenceLocal::_remove_ref ()
+void ReferenceLocal::_remove_ref () noexcept
 {
 	if (0 == ref_cnt_.decrement ()) {
 		if (flags_ & GARBAGE_COLLECTION) {

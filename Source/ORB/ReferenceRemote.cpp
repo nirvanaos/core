@@ -71,7 +71,7 @@ void ReferenceRemote::_add_ref () noexcept
 	ref_cnt_.increment ();
 }
 
-void ReferenceRemote::_remove_ref ()
+void ReferenceRemote::_remove_ref () noexcept
 {
 	if (!ref_cnt_.decrement ()) {
 		SyncContext& sc = Binder::singleton ().sync_domain ();

@@ -62,8 +62,8 @@ public:
 
 	void on_servant_destruct () noexcept;
 
-	virtual void _add_ref () override;
-	virtual void _remove_ref () override;
+	virtual void _add_ref () noexcept override;
+	virtual void _remove_ref () noexcept override;
 
 	servant_reference <ServantProxyObject> get_active_servant () const noexcept;
 	servant_reference <ServantProxyObject> get_active_servant_with_lock () const noexcept;
