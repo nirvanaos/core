@@ -34,12 +34,15 @@ namespace Core {
 const void* PortableExecutable::get_COFF (const void* base_address)
 {
 	const llvm::COFF::DOSHeader* dos_header = (const llvm::COFF::DOSHeader*)base_address;
-	if (dos_header->Magic != 'ZM')
-		throw_INITIALIZE ();
+
+	static const char DOSMagic [] = { 'M', 'Z' };
+
+	if (dos_header->Magic != *(const uint16_t*)DOSMagic)
+		throw_BAD_PARAM (make_minor_errno (ENOEXEC));
 
 	const uint32_t* PE_magic = (const uint32_t*)((const uint8_t*)base_address + dos_header->AddressOfNewExeHeader);
 	if (*PE_magic != *(const uint32_t*)llvm::COFF::PEMagic)
-		throw_INITIALIZE ();
+		throw_BAD_PARAM (make_minor_errno (ENOEXEC));
 
 	return PE_magic + 1;
 }
