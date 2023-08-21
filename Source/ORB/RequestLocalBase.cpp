@@ -57,7 +57,7 @@ void RequestLocalBase::marshal_value_internal (ValueBase::_ptr_type base, ValueF
 	assert (base);
 	assert (factory);
 
-	auto ins = value_map_.marshal_map ().emplace (&base, (uintptr_t)cur_ptr_ + 1);
+	auto ins = value_map_.marshal_map ().emplace (&base, (uintptr_t)cur_ptr_);
 	if (!ins.second) {
 		// This value was already marshalled, write indirection tag.
 		write8 (2);
@@ -72,13 +72,13 @@ void RequestLocalBase::marshal_value_internal (ValueBase::_ptr_type base, ValueF
 Interface::_ref_type RequestLocalBase::unmarshal_value (const IDL::String& interface_id)
 {
 	Internal::Interface::_ref_type ret;
+	uintptr_t pos = (uintptr_t)cur_ptr_;
 	uint8_t tag = read8 ();
 	switch (tag) {
 	case 0:
 		break;
 
 	case 1: {
-		uintptr_t pos = (uintptr_t)cur_ptr_;
 		ValueFactoryBase::_ref_type factory = unmarshal_interface (Internal::RepIdOf <ValueFactoryBase>::id).template downcast <ValueFactoryBase> ();
 		if (!factory)
 			throw MARSHAL (); // Unexpected
