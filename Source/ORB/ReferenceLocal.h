@@ -85,6 +85,8 @@ private:
 	static void marshal_object_key (const Octet* obj_key, size_t obj_key_size, StreamOut& stream);
 
 private:
+	friend class PortableServer::Core::POA_Base;
+
 	const IOP::ObjectKey& object_key_;
 	servant_reference <PortableServer::Core::POA_Base> adapter_;
 

@@ -442,6 +442,13 @@ void POA_Base::check_object_id (const ObjectId& oid)
 void POA_Base::serve_request (Request& request)
 {
 	ReferenceLocalRef ref = root ().find_reference (request.object_key ());
+	
+	// Reference may be created by the destroyed adapter
+	if (ref && &ref->adapter () != this) {
+		assert (ref->adapter ().destroy_called ());
+		ref->adapter_ = this;
+	}
+
 	ObjectId oid = ObjectKey::get_object_id (request.object_key ());
 	serve_request (request, oid, ref);
 }
