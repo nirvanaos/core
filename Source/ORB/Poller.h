@@ -56,17 +56,17 @@ public:
 
 	virtual Internal::Interface* _query_valuetype (const IDL::String& id) noexcept override;
 
-	Object::_ref_type operation_target () const noexcept
+	Object::_ptr_type operation_target () const noexcept
 	{
 		return proxy_->get_proxy ();
 	}
 
-	IDL::String operation_name () const
+	const IDL::String& operation_name () const
 	{
-		return proxy_->operation_metadata (op_).name;
+		return operation_name_;
 	}
 
-	Messaging::ReplyHandler::_ref_type associated_handler () const noexcept
+	Messaging::ReplyHandler::_ptr_type associated_handler () const noexcept
 	{
 		return associated_handler_;
 	}
@@ -133,6 +133,7 @@ private:
 
 private:
 	servant_reference <ProxyManager> proxy_;
+	Internal::StringView <Char> operation_name_;
 	Messaging::ReplyHandler::_ref_type associated_handler_;
 	Internal::IORequest::_ref_type reply_;
 	Nirvana::Core::Array <ValueEntry, Nirvana::Core::UserAllocator> values_;
@@ -145,6 +146,7 @@ private:
 inline
 Poller::Poller (ProxyManager& proxy, Internal::OperationIndex op) :
 	proxy_ (&proxy),
+	operation_name_ (proxy.operation_metadata (op).name),
 	primary_ (nullptr),
 	op_ (op),
 	op_handler_ (0),
@@ -202,6 +204,7 @@ Poller::Poller (ProxyManager& proxy, Internal::OperationIndex op) :
 inline
 Poller::Poller (const Poller& src) :
 	proxy_ (src.proxy_),
+	operation_name_ (src.operation_name_),
 	associated_handler_ (src.associated_handler_),
 	values_ (src.values_),
 	primary_ (values_.begin () + (src.primary_ - src.values_.begin ())),
