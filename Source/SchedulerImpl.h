@@ -105,10 +105,10 @@ bool SchedulerImpl <T, ExecutorRef>::execute () noexcept
 {
 	// Get first item
 	ExecutorRef val;
-	if (queue_.delete_min (val)) {
+	while (queue_.delete_min (val)) {
 		queue_items_.decrement ();
-		static_cast <T*> (this)->execute (val);
-		return true;
+		if (static_cast <T*> (this)->execute (val))
+			return true;
 	}
 	return false;
 }
