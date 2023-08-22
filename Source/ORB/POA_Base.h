@@ -371,10 +371,10 @@ public:
 		if (!proxy)
 			throw CORBA::BAD_PARAM ();
 		check_object_id (oid);
-		activate_object (ObjectKey (*this, std::move (oid)), false, *proxy, 0);
+		activate_object (std::move (oid), false, *proxy, 0);
 	}
 
-	virtual CORBA::Core::ReferenceLocalRef activate_object (ObjectKey&& key, bool unique,
+	virtual CORBA::Core::ReferenceLocalRef activate_object (ObjectId&& oid, bool unique,
 		CORBA::Core::ServantProxyObject& proxy, unsigned flags);
 
 	virtual void activate_object (CORBA::Core::ReferenceLocal& ref, CORBA::Core::ServantProxyObject& proxy);
@@ -397,14 +397,13 @@ public:
 	{
 		check_exist ();
 
-		return CORBA::Object::_ref_type (
-			create_reference (ObjectKey (*this, std::move (oid)), iid)->get_proxy ());
+		return CORBA::Object::_ref_type (create_reference (std::move (oid), iid)->get_proxy ());
 	}
 
-	virtual CORBA::Core::ReferenceLocalRef create_reference (ObjectKey&& key,
+	virtual CORBA::Core::ReferenceLocalRef create_reference (ObjectId&& oid,
 		CORBA::Internal::String_in iid);
 
-	CORBA::Core::ReferenceLocalRef create_reference (ObjectKey&& key,
+	CORBA::Core::ReferenceLocalRef create_reference (ObjectId&& oid,
 		CORBA::Internal::String_in intf, unsigned flags);
 
 	// Identity mapping operations:

@@ -42,22 +42,22 @@ using namespace Internal;
 
 namespace Core {
 
-ReferenceLocal::ReferenceLocal (const IOP::ObjectKey& object_key, PortableServer::Core::ObjectKey&& core_key,
+ReferenceLocal::ReferenceLocal (const IOP::ObjectKey& object_key, POA_Base& adapter,
 	Internal::String_in primary_iid, unsigned flags, PolicyMapShared* policies) :
 	Reference (primary_iid, flags | LOCAL),
-	core_key_ (std::move (core_key)),
 	object_key_ (object_key),
+	adapter_ (&adapter),
 	adapter_context_ (&local2proxy (POA_Base::get_root ())->sync_context ()),
 	servant_ (nullptr)
 {
 	policies_ = policies;
 }
 
-ReferenceLocal::ReferenceLocal (const IOP::ObjectKey& object_key, PortableServer::Core::ObjectKey&& core_key,
+ReferenceLocal::ReferenceLocal (const IOP::ObjectKey& object_key, POA_Base& adapter,
 	ServantProxyObject& proxy, unsigned flags, PolicyMapShared* policies) :
 	Reference (proxy, flags | LOCAL),
-	core_key_ (std::move (core_key)),
 	object_key_ (object_key),
+	adapter_ (&adapter),
 	adapter_context_ (&local2proxy (POA_Base::get_root ())->sync_context ()),
 	servant_ (nullptr)
 {
@@ -118,9 +118,7 @@ void ReferenceLocal::on_servant_destruct () noexcept
 	POA_Root* root = POA_Base::root_ptr ();
 	if (root) {
 		root->remove_reference (object_key_);
-		POA_Ref adapter = POA_Root::find_child (core_key_.adapter_path (), false);
-		if (adapter)
-			adapter->implicit_deactivate (*this, *proxy);
+		adapter_->implicit_deactivate (*this, *proxy);
 	}
 	delete this;
 }
@@ -265,7 +263,7 @@ ReferenceLocalRef ReferenceLocal::get_local_reference (const PortableServer::Cor
 {
 	// Called from the POA sync context
 	assert (&SyncContext::current () == adapter_context_);
-	if (adapter.check_path (core_key_.adapter_path ()))
+	if (adapter_ == &adapter)
 		return this;
 	else
 		return nullptr;

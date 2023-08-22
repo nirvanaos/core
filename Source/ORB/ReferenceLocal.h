@@ -40,9 +40,9 @@ class ReferenceLocal :
 	public Reference
 {
 public:
-	ReferenceLocal (const IOP::ObjectKey& object_key, PortableServer::Core::ObjectKey&& core_key,
+	ReferenceLocal (const IOP::ObjectKey& object_key, PortableServer::Core::POA_Base& adapter,
 		Internal::String_in primary_iid, unsigned flags, PolicyMapShared* policies);
-	ReferenceLocal (const IOP::ObjectKey& object_key, PortableServer::Core::ObjectKey&& core_key,
+	ReferenceLocal (const IOP::ObjectKey& object_key, PortableServer::Core::POA_Base& adapter,
 		ServantProxyObject& proxy, unsigned flags, PolicyMapShared* policies);
 
 	~ReferenceLocal ();
@@ -52,9 +52,9 @@ public:
 		return object_key_;
 	}
 
-	const PortableServer::Core::ObjectKey& core_key () const noexcept
+	const PortableServer::Core::POA_Base& adapter () const noexcept
 	{
-		return core_key_;
+		return *adapter_;
 	}
 
 	void activate (ServantProxyObject& proxy);
@@ -85,8 +85,8 @@ private:
 	static void marshal_object_key (const Octet* obj_key, size_t obj_key_size, StreamOut& stream);
 
 private:
-	const PortableServer::Core::ObjectKey core_key_;
 	const IOP::ObjectKey& object_key_;
+	servant_reference <PortableServer::Core::POA_Base> adapter_;
 
 	servant_reference <Nirvana::Core::SyncContext> adapter_context_;
 

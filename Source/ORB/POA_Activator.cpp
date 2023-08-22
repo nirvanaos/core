@@ -84,7 +84,7 @@ void POA_Activator::serve_default (Request& request, const ObjectId& oid, Refere
 				if (ref)
 					ref->activate (*object2proxy (servant));
 				else
-					ref = activate_object (ObjectKey (*this, oid), false, *object2proxy (servant),
+					ref = activate_object (ObjectId (oid), false, *object2proxy (servant),
 						Reference::GARBAGE_COLLECTION);
 			} catch (const ServantAlreadyActive&) {
 				etherialize (oid, servant, false, true);
@@ -124,18 +124,24 @@ void POA_Activator::set_servant_manager (ServantManager::_ptr_type imgr)
 		throw OBJ_ADAPTER (MAKE_OMG_MINOR (4));
 }
 
-ReferenceLocalRef POA_Activator::create_reference (ObjectKey&& key, CORBA::Internal::String_in iid)
+ReferenceLocalRef POA_Activator::create_reference (ObjectId&& oid, CORBA::Internal::String_in iid)
 {
 	check_exist ();
 
-	return POA_Base::create_reference (std::move (key), iid, Reference::GARBAGE_COLLECTION);
+	return POA_Base::create_reference (std::move (oid), iid, Reference::GARBAGE_COLLECTION);
 }
 
-void POA_Activator::etherialize (const ObjectId& oid, ServantProxyObject& proxy,
+void POA_Activator::etherialize (const ReferenceLocal& ref, ServantProxyObject& proxy,
 	bool cleanup_in_progress) noexcept
 {
-	if (activator_)
-		etherialize (oid, proxy.get_proxy (), cleanup_in_progress, proxy.is_active ());
+	if (activator_) {
+		try {
+			etherialize (ObjectKey::get_object_id (ref.object_key ()), proxy.get_proxy (),
+				cleanup_in_progress, proxy.is_active ());
+		} catch (...) {
+			// TODO: Log
+		}
+	}
 }
 
 }

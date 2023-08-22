@@ -58,10 +58,10 @@ POA_Retain::POA_Retain () :
 	}
 }
 
-ReferenceLocalRef POA_Retain::activate_object (ObjectKey&& key, bool unique,
+ReferenceLocalRef POA_Retain::activate_object (ObjectId&& oid, bool unique,
 	ServantProxyObject& proxy, unsigned flags)
 {
-	ReferenceLocalRef ref = root ().emplace_reference (std::move (key), unique, proxy,
+	ReferenceLocalRef ref = root ().emplace_reference (*this, std::move (oid), unique, proxy,
 		get_flags (flags), get_policies (flags));
 	if (ref)
 		activate_object (*ref, proxy);
@@ -92,7 +92,7 @@ servant_reference <CORBA::Core::ServantProxyObject> POA_Retain::deactivate_refer
 		throw ObjectNotActive ();
 	active_references_.erase (&ref);
 	if (etherealize)
-		etherialize (ref.core_key ().object_id (), *ret, cleanup_in_progress);
+		etherialize (ref, *ret, cleanup_in_progress);
 	return ret;
 }
 

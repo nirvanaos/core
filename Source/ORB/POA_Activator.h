@@ -47,13 +47,13 @@ public:
 	virtual void set_servant_manager (ServantManager::_ptr_type imgr) override;
 
 protected:
-	virtual CORBA::Core::ReferenceLocalRef create_reference (ObjectKey&& key,
+	virtual CORBA::Core::ReferenceLocalRef create_reference (ObjectId&& oid,
 		CORBA::Internal::String_in iid) override;
 
 	virtual void serve_default (Request& request, const ObjectId& oid,
 		CORBA::Core::ReferenceLocal* reference) override;
 
-	virtual void etherialize (const ObjectId& oid, CORBA::Core::ServantProxyObject& proxy,
+	virtual void etherialize (const CORBA::Core::ReferenceLocal& ref, CORBA::Core::ServantProxyObject& proxy,
 		bool cleanup_in_progress) noexcept override;
 
 private:

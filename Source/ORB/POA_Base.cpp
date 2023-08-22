@@ -195,7 +195,7 @@ void POA_Base::activate_object (CORBA::Core::ServantProxyObject& proxy, ObjectId
 {
 	for (;;) {
 		oid = generate_object_id ();
-		ReferenceLocalRef ref = activate_object (ObjectKey (*this, std::move (oid)), true, proxy, flags);
+		ReferenceLocalRef ref = activate_object (std::move (oid), true, proxy, flags);
 		if (ref)
 			return;
 	}
@@ -204,13 +204,13 @@ void POA_Base::activate_object (CORBA::Core::ServantProxyObject& proxy, ObjectId
 ReferenceLocalRef POA_Base::activate_object (CORBA::Core::ServantProxyObject& proxy, unsigned flags)
 {
 	for (;;) {
-		ReferenceLocalRef ref = activate_object (ObjectKey (*this), true, proxy, flags);
+		ReferenceLocalRef ref = activate_object (generate_object_id (), true, proxy, flags);
 		if (ref)
 			return ref;
 	}
 }
 
-ReferenceLocalRef POA_Base::activate_object (ObjectKey&&, bool unique, ServantProxyObject&, unsigned flags)
+ReferenceLocalRef POA_Base::activate_object (ObjectId&&, bool unique, ServantProxyObject&, unsigned flags)
 {
 	throw WrongPolicy ();
 }
@@ -255,7 +255,7 @@ ReferenceLocalRef POA_Base::create_reference (CORBA::Internal::String_in iid, un
 	for (;;) {
 		// The ObjectKey constructor calls generate_object_id to generate a new unique id.
 		// If SYSTEM_ID policy is not present, the WrongPolicy exception will be thrown.
-		ReferenceLocalRef ref = root ().emplace_reference (ObjectKey (*this), true, iid,
+		ReferenceLocalRef ref = root ().emplace_reference (*this, generate_object_id (), true, iid,
 			get_flags (flags), get_policies (flags));
 		if (ref)
 			return ref;
@@ -266,15 +266,15 @@ ReferenceLocalRef POA_Base::create_reference (CORBA::Internal::String_in iid, un
 	}
 }
 
-ReferenceLocalRef POA_Base::create_reference (ObjectKey&& key, CORBA::Internal::String_in iid)
+ReferenceLocalRef POA_Base::create_reference (ObjectId&& oid, CORBA::Internal::String_in iid)
 {
-	return create_reference (std::move (key), iid, 0);
+	return create_reference (std::move (oid), iid, 0);
 }
 
-ReferenceLocalRef POA_Base::create_reference (ObjectKey&& key, CORBA::Internal::String_in iid,
+ReferenceLocalRef POA_Base::create_reference (ObjectId&& oid, CORBA::Internal::String_in iid,
 	unsigned flags)
 {
-	return root ().emplace_reference (std::move (key), false, std::ref (iid), get_flags (flags),
+	return root ().emplace_reference (*this, std::move (oid), false, std::ref (iid), get_flags (flags),
 		get_policies (flags));
 }
 
@@ -331,7 +331,7 @@ ObjectId POA_Base::reference_to_id (Object::_ptr_type reference)
 	ReferenceLocalRef ref = ProxyManager::cast (reference)->get_local_reference (*this);
 	if (!ref)
 		throw WrongAdapter ();
-	return ref->core_key ().object_id ();
+	return ObjectKey::get_object_id (ref->object_key ());
 }
 
 Object::_ref_type POA_Base::id_to_servant (ObjectId& oid)
@@ -442,12 +442,8 @@ void POA_Base::check_object_id (const ObjectId& oid)
 void POA_Base::serve_request (Request& request)
 {
 	ReferenceLocalRef ref = root ().find_reference (request.object_key ());
-	if (ref)
-		serve_request (request, ref->core_key ().object_id (), ref);
-	else {
-		ObjectId oid = ObjectKey::get_object_id (request.object_key ());
-		serve_request (request, oid, nullptr);
-	}
+	ObjectId oid = ObjectKey::get_object_id (request.object_key ());
+	serve_request (request, oid, ref);
 }
 
 void POA_Base::serve_request (Request& request, const ObjectId& oid, ReferenceLocal* reference)

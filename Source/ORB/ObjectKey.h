@@ -71,6 +71,11 @@ public:
 		return object_id_;
 	}
 
+	ObjectId& object_id () noexcept
+	{
+		return object_id_;
+	}
+
 	static ObjectId get_object_id (const IOP::ObjectKey& object_key);
 	static AdapterPath get_adapter_path (const IOP::ObjectKey& object_key);
 

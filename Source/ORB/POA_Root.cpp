@@ -51,21 +51,21 @@ POA_Root::~POA_Root ()
 	root_ = nullptr;
 }
 
-std::pair <POA_Root::References::iterator, bool> POA_Root::emplace_reference (const ObjectKey& core_key)
+std::pair <POA_Root::References::iterator, bool> POA_Root::emplace_reference (const POA_Base& adapter, ObjectId&& oid)
 {
-	return local_references_.emplace (IOP::ObjectKey (core_key), CORBA::Core::Reference::DEADLINE_MAX);
+	return local_references_.emplace (IOP::ObjectKey (ObjectKey (adapter, std::move (oid))), Reference::DEADLINE_MAX);
 }
 
 template <typename Param>
 CORBA::Core::ReferenceLocalRef POA_Root::get_or_create (std::pair <References::iterator, bool>& ins,
-	ObjectKey&& core_key, bool unique, Param& param, unsigned flags, CORBA::Core::PolicyMapShared* policies)
+	POA_Base& adapter, bool unique, Param& param, unsigned flags, CORBA::Core::PolicyMapShared* policies)
 {
 	References::reference entry = *ins.first;
 	if (ins.second) {
 		auto wait_list = entry.second.wait_list ();
 		RefPtr p;
 		try {
-			p = new CORBA::Core::ReferenceLocal (entry.first, std::move (core_key), param, flags, policies);
+			p = new CORBA::Core::ReferenceLocal (entry.first, adapter, param, flags, policies);
 		} catch (...) {
 			wait_list->on_exception ();
 			local_references_.erase (entry.first);
@@ -80,22 +80,21 @@ CORBA::Core::ReferenceLocalRef POA_Root::get_or_create (std::pair <References::i
 		return entry.second.get ();
 }
 
-ReferenceLocalRef POA_Root::emplace_reference (ObjectKey&& core_key, bool unique,
+ReferenceLocalRef POA_Root::emplace_reference (POA_Base& adapter, ObjectId&& oid, bool unique,
 	CORBA::Internal::String_in primary_iid, unsigned flags, CORBA::Core::PolicyMapShared* policies)
 {
-	auto ins = emplace_reference (core_key);
-	ReferenceLocalRef p = get_or_create (ins, std::move (core_key), unique, primary_iid,
-		flags, policies);
+	auto ins = emplace_reference (adapter, std::move (oid));
+	ReferenceLocalRef p = get_or_create (ins, adapter, unique, primary_iid, flags, policies);
 	if (p)
 		p->check_primary_interface (primary_iid);
 	return p;
 }
 
-ReferenceLocalRef POA_Root::emplace_reference (ObjectKey&& core_key, bool unique,
+ReferenceLocalRef POA_Root::emplace_reference (POA_Base& adapter, ObjectId&& oid, bool unique,
 	ServantProxyObject& proxy, unsigned flags, CORBA::Core::PolicyMapShared* policies)
 {
-	auto ins = emplace_reference (core_key);
-	ReferenceLocalRef p = get_or_create (ins, std::move (core_key), unique, proxy, flags, policies);
+	auto ins = emplace_reference (adapter, std::move (oid));
+	ReferenceLocalRef p = get_or_create (ins, adapter, unique, proxy, flags, policies);
 	if (p)
 		p->check_primary_interface (proxy.primary_interface_id ());
 	return p;

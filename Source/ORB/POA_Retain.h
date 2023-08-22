@@ -61,7 +61,7 @@ public:
 protected:
 	POA_Retain ();
 
-	virtual CORBA::Core::ReferenceLocalRef activate_object (ObjectKey&& key, bool unique,
+	virtual CORBA::Core::ReferenceLocalRef activate_object (ObjectId&& oid, bool unique,
 		CORBA::Core::ServantProxyObject& proxy, unsigned flags) override;
 
 	virtual void activate_object (CORBA::Core::ReferenceLocal& ref,
@@ -72,7 +72,7 @@ protected:
 
 	virtual void deactivate_objects (bool etherealize) noexcept override;
 
-	virtual void etherialize (const ObjectId& oid, CORBA::Core::ServantProxyObject& proxy,
+	virtual void etherialize (const CORBA::Core::ReferenceLocal& ref, CORBA::Core::ServantProxyObject& proxy,
 		bool cleanup_in_progress) noexcept
 	{};
 

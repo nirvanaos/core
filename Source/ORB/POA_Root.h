@@ -85,7 +85,7 @@ public:
 			POA_Ref adapter = find_child (core_key.adapter_path (), true);
 			if (!adapter || adapter->is_destroyed ())
 				throw CORBA::OBJECT_NOT_EXIST (MAKE_OMG_MINOR (2));
-			ref = adapter->create_reference (std::move (core_key), iid);
+			ref = adapter->create_reference (std::move (core_key.object_id ()), iid);
 		}
 
 		return CORBA::Object::_ref_type (ref->get_proxy ());
@@ -140,17 +140,17 @@ public:
 	typedef Nirvana::Core::MapUnorderedStable <IOP::ObjectKey, RefVal, std::hash <IOP::ObjectKey>,
 		std::equal_to <IOP::ObjectKey>, Nirvana::Core::UserAllocator> References;
 
-	std::pair <References::iterator, bool> emplace_reference (const ObjectKey& core_key);
+	std::pair <References::iterator, bool> emplace_reference (const POA_Base& adapter, ObjectId&& oid);
 
 	template <typename Param>
 	CORBA::Core::ReferenceLocalRef get_or_create (std::pair <References::iterator, bool>& ins,
-		ObjectKey&& core_key, bool unique, Param& param, unsigned flags,
+		POA_Base& adapter, bool unique, Param& param, unsigned flags,
 		CORBA::Core::PolicyMapShared* policies);
 
-	CORBA::Core::ReferenceLocalRef emplace_reference (ObjectKey&& core_key, bool unique,
+	CORBA::Core::ReferenceLocalRef emplace_reference (POA_Base& adapter, ObjectId&& oid, bool unique,
 		CORBA::Internal::String_in primary_iid, unsigned flags, CORBA::Core::PolicyMapShared* policies);
 
-	CORBA::Core::ReferenceLocalRef emplace_reference (ObjectKey&& core_key, bool unique,
+	CORBA::Core::ReferenceLocalRef emplace_reference (POA_Base& adapter, ObjectId&& oid, bool unique,
 		CORBA::Core::ServantProxyObject& proxy, unsigned flags, CORBA::Core::PolicyMapShared* policies);
 
 	void remove_reference (const IOP::ObjectKey& key) noexcept

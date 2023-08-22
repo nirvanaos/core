@@ -159,11 +159,11 @@ ReferenceLocalRef ServantProxyObject::get_local_reference (const PortableServer:
 	assert (&SyncContext::current () == adapter_context_);
 	if (references_.empty ()) {
 		ReferenceLocalRef ref (reference_.load ());
-		if (ref && adapter.check_path (ref->core_key ().adapter_path ()))
+		if (ref && &ref->adapter () == &adapter)
 			return ref;
 	} else {
 		for (auto p : references_) {
-			if (adapter.check_path (p->core_key ().adapter_path ()))
+			if (&p->adapter () == &adapter)
 				return p;
 		}
 	}
