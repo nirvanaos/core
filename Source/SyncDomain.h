@@ -51,19 +51,7 @@ private:
 	typedef PriorityQueue <Executor*, SYNC_DOMAIN_PRIORITY_QUEUE_LEVELS> Queue;
 
 public:
-	void schedule (const DeadlineTime& deadline, Executor& executor)
-	{
-		activity_begin ();
-		try {
-			verify (queue_.insert (deadline, &executor));
-		} catch (...) {
-			activity_end ();
-			throw;
-		}
-		schedule ();
-	}
-
-	/// Pre-allocated queue node
+	/// \brief Pre-allocated queue node
 	class QueueNode : private SkipListBase::Node
 	{
 	public:
@@ -84,6 +72,10 @@ public:
 		QueueNode* next_;
 	};
 
+	/// \brief Allocate QueueNode
+	/// 
+	/// \param next Next node in list.
+	/// \returns QueueNode pointer.
 	QueueNode* create_queue_node (QueueNode* next)
 	{
 		activity_begin ();
@@ -98,9 +90,35 @@ public:
 		}
 	}
 
+	/// \brief Release QueueNode
+	/// 
+	/// \param node The QueueNode pointer.
 	void release_queue_node (QueueNode* node) noexcept;
 
-	void schedule (QueueNode* node, const DeadlineTime& deadline, Executor& executor)
+	/// \brief Schedule executor.
+	/// May throw memory allocation exception.
+	/// 
+	/// \param deadline Deadline time.
+	/// \param executor An ExecContext reference.
+	void schedule (const DeadlineTime& deadline, Executor& executor)
+	{
+		activity_begin ();
+		try {
+			verify (queue_.insert (deadline, &executor));
+		} catch (...) {
+			activity_end ();
+			throw;
+		}
+		schedule ();
+	}
+
+	/// Schedule executor with preallocated node.
+	/// Does not throw exceptions.
+	/// 
+	/// \param node Preallocated node.
+	/// \param deadline Deadline time.
+	/// \param executor An ExecContext reference.
+	void schedule (QueueNode* node, const DeadlineTime& deadline, Executor& executor) noexcept
 	{
 		assert (node);
 		assert (node->domain_ == this);
@@ -109,7 +127,9 @@ public:
 		schedule ();
 	}
 
-	virtual void execute () override;
+	/// Executor::execute ()
+	/// Called from worker thread.
+	virtual void execute () noexcept override;
 
 	/// \returns Domain memory context.
 	MemContext& mem_context () noexcept

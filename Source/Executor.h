@@ -33,7 +33,7 @@ namespace Core {
 class NIRVANA_NOVTABLE Executor
 {
 public:
-	virtual void execute () = 0;
+	virtual void execute () noexcept = 0;
 };
 
 }

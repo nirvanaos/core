@@ -80,7 +80,7 @@ void SyncDomain::schedule () noexcept
 	}
 }
 
-void SyncDomain::execute ()
+void SyncDomain::execute () noexcept
 {
 	assert (State::SCHEDULED == state_);
 	state_ = State::RUNNING;

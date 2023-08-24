@@ -168,7 +168,7 @@ void ExecDomain::start_legacy_thread (Legacy::Core::Process& process, Legacy::Co
 	exec_domain->spawn (process.sync_context ());
 }
 
-void ExecDomain::execute ()
+void ExecDomain::execute () noexcept
 {
 	Thread::current ().exec_domain (*this);
 	ExecContext::switch_to ();

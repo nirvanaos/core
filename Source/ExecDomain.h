@@ -477,7 +477,7 @@ private:
 
 	/// Executor::execute ()
 	/// Called from worker thread.
-	virtual void execute () override;
+	virtual void execute () noexcept override;
 
 	void ret_qnode_push (SyncDomain& sd)
 	{
