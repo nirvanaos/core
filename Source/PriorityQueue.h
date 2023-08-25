@@ -39,8 +39,8 @@ struct PriorityQueueKeyVal
 {
 	DeadlineTime deadline;
 	Val val;
-	RefCounter ref_cnt;
 	SkipListBase::Node* first_node;
+	RefCounter ref_cnt;
 	std::atomic_flag dispatched;
 
 	PriorityQueueKeyVal (const DeadlineTime& dt, const Val& v, SkipListBase::Node* first = nullptr) :
@@ -140,21 +140,6 @@ public:
 	}
 
 	/// Deletes node with minimal deadline.
-	/// \return The deleted Node pointer if node deleted or `nullptr` if the queue is empty.
-	NodeVal* delete_min () noexcept
-	{
-		for (NodeVal* node = Base::delete_min (); node; ) {
-			SkipListBase::Node* first_node = node->value ().first_node;
-			NodeVal& first = first_node ? static_cast <NodeVal&> (*first_node) : *node;
-			bool dispatched = first.value ().dispatched.test_and_set ();
-			if (!dispatched)
-				return node;
-			Base::release_node (node);
-		}
-		return nullptr;
-	}
-
-	/// Deletes node with minimal deadline.
 	/// \param [out] val Value.
 	/// \return `true` if node deleted, `false` if queue is empty.
 	bool delete_min (Val& val) noexcept
@@ -184,6 +169,13 @@ public:
 		return false;
 	}
 
+	virtual void deallocate_node (SkipListBase::Node* node) noexcept override
+	{
+		if (pre_deallocate_node (node))
+			Base::deallocate_node (node);
+	}
+
+protected:
 	bool pre_deallocate_node (SkipListBase::Node* node) noexcept
 	{
 		typename Base::Value& val = static_cast <NodeVal&> (*node).value ();
@@ -194,10 +186,20 @@ public:
 		return !val.ref_cnt.decrement ();
 	}
 
-	virtual void deallocate_node (SkipListBase::Node* node) noexcept override
+private:
+	/// Deletes node with minimal deadline.
+	/// \return The deleted Node pointer if node deleted or `nullptr` if the queue is empty.
+	NodeVal* delete_min () noexcept
 	{
-		if (pre_deallocate_node (node))
-			Base::deallocate_node (node);
+		for (NodeVal* node = Base::delete_min (); node; ) {
+			SkipListBase::Node* first_node = node->value ().first_node;
+			NodeVal& first = first_node ? static_cast <NodeVal&> (*first_node) : *node;
+			bool dispatched = first.value ().dispatched.test_and_set ();
+			if (!dispatched)
+				return node;
+			Base::release_node (node);
+		}
+		return nullptr;
 	}
 };
 

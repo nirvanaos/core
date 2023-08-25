@@ -96,12 +96,13 @@ public:
 
 		static constexpr size_t size (size_t node_size, unsigned level) noexcept
 		{
-			return node_size + (level - 1) * sizeof (next [0]);
+			return round_up (sizeof (NodeBase) + level * sizeof (next [0]), alignof (max_align_t))
+				+ node_size - sizeof (NodeBase);
 		}
 
 		void* value () noexcept
 		{
-			return next + level;
+			return round_up ((uint8_t*)(next + level), alignof (max_align_t));
 		}
 	};
 
@@ -115,6 +116,11 @@ public:
 
 protected:
 	SkipListBase (unsigned node_size, unsigned max_level, void* head_tail) noexcept;
+
+	static bool pre_deallocate_node (SkipListBase::Node* node) noexcept
+	{
+		return true;
+	}
 
 	/// Gets node with minimal key.
 	/// \returns `Node*` if list not empty or `nullptr` otherwise.
@@ -284,7 +290,7 @@ protected:
 private:
 	// Memory space for head and tail nodes.
 	// Added extra space for tail node alignment.
-	struct HeadTailSpace
+	struct alignas (Node) HeadTailSpace
 	{
 		uint8_t space [Node::size (sizeof (Node), MAX_LEVEL) + Node::size (sizeof (Node), 1) + NODE_ALIGN - 1];
 	};
@@ -306,7 +312,7 @@ public:
 	struct NodeVal : Base::Node
 	{
 		// Reserve space for creation of auto variables with level = 1.
-		uint8_t val_space [sizeof (Val)];
+		typename std::aligned_storage <sizeof (Val)>::type val_space;
 
 		Value& value () noexcept
 		{
