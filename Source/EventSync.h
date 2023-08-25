@@ -38,12 +38,12 @@ namespace Core {
 
 class Synchronized;
 
-class EventSync
+class EventSyncTimeout
 {
 	static const TimeBase::TimeT TIMER_DEADLINE = 1 * TimeBase::MILLISECOND;
 
 public:
-	EventSync ();
+	EventSyncTimeout ();
 
 	bool wait (TimeBase::TimeT timeout, Synchronized* frame = nullptr);
 
@@ -102,7 +102,7 @@ private:
 	class Timer : public TimerAsyncCall
 	{
 	protected:
-		Timer (EventSync& ev) :
+		Timer (EventSyncTimeout& ev) :
 			TimerAsyncCall (SyncContext::current (), TIMER_DEADLINE),
 			event_ (ev)
 		{}
@@ -111,7 +111,7 @@ private:
 		virtual void run (const TimeBase::TimeT& signal_time) override;
 
 	private:
-		EventSync& event_;
+		EventSyncTimeout& event_;
 	};
 
 	List list_;

@@ -113,7 +113,7 @@ protected:
 
 private:
 	servant_reference <Nirvana::Core::SyncDomain> sync_domain_;
-	Nirvana::Core::EventSync event_;
+	Nirvana::Core::EventSyncTimeout event_;
 	PollableSet* cur_set_;
 	RefCntProxy ref_cnt_;
 	bool ready_;
@@ -163,7 +163,7 @@ public:
 
 	CORBA::Pollable::_ref_type get_ready_pollable (uint32_t timeout)
 	{
-		if (event_.wait (Nirvana::Core::EventSync::ms2time (timeout))) {
+		if (event_.wait (Nirvana::Core::EventSyncTimeout::ms2time (timeout))) {
 			for (Set::iterator it = set_.begin (); it != set_.end (); ++it) {
 				Pollable* p = *it;
 				if (p->is_ready (0)) { // Does not cause context switch
@@ -198,7 +198,7 @@ private:
 		std::hash <void*>, std::equal_to <void*>, Nirvana::Core::UserAllocator> Set;
 
 	Set set_;
-	Nirvana::Core::EventSync event_;
+	Nirvana::Core::EventSyncTimeout event_;
 };
 
 inline

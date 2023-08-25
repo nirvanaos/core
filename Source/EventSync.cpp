@@ -30,12 +30,12 @@
 namespace Nirvana {
 namespace Core {
 
-EventSync::EventSync () :
+EventSyncTimeout::EventSyncTimeout () :
 	next_timeout_ (std::numeric_limits <TimeBase::TimeT>::max ()),
 	signal_cnt_ (0)
 {}
 
-bool EventSync::wait (TimeBase::TimeT timeout, Synchronized* frame)
+bool EventSyncTimeout::wait (TimeBase::TimeT timeout, Synchronized* frame)
 {
 	assert (SyncContext::current ().sync_domain ());
 
@@ -72,7 +72,7 @@ bool EventSync::wait (TimeBase::TimeT timeout, Synchronized* frame)
 	return result;
 }
 
-void EventSync::signal_all () noexcept
+void EventSyncTimeout::signal_all () noexcept
 {
 	assert (SyncContext::current ().sync_domain ());
 
@@ -91,7 +91,7 @@ void EventSync::signal_all () noexcept
 	}
 }
 
-void EventSync::signal_one () noexcept
+void EventSyncTimeout::signal_one () noexcept
 {
 	assert (SyncContext::current ().sync_domain ());
 
@@ -110,7 +110,7 @@ void EventSync::signal_one () noexcept
 }
 
 inline
-void EventSync::on_timer () noexcept
+void EventSyncTimeout::on_timer () noexcept
 {
 	assert (SyncContext::current ().sync_domain ());
 
@@ -136,7 +136,7 @@ void EventSync::on_timer () noexcept
 		timer_->set (Timer::TIMER_ABSOLUTE, next_timeout, 0);
 }
 
-void EventSync::Timer::run (const TimeBase::TimeT& signal_time)
+void EventSyncTimeout::Timer::run (const TimeBase::TimeT& signal_time)
 {
 	event_.on_timer ();
 }
