@@ -39,15 +39,22 @@ struct PriorityQueueKeyVal
 {
 	DeadlineTime deadline;
 	Val val;
+	RefCounter ref_cnt;
+	SkipListBase::Node* first_node;
+	std::atomic_flag dispatched;
 
-	PriorityQueueKeyVal (DeadlineTime dt, const Val& v) :
+	PriorityQueueKeyVal (const DeadlineTime& dt, const Val& v, SkipListBase::Node* first = nullptr) :
 		deadline (dt),
-		val (v)
+		val (v),
+		first_node (first),
+		dispatched ATOMIC_FLAG_INIT
 	{}
 
-	PriorityQueueKeyVal (DeadlineTime dt, Val&& v) :
+	PriorityQueueKeyVal (const DeadlineTime& dt, Val&& v) :
 		deadline (dt),
-		val (std::move (v))
+		val (std::move (v)),
+		first_node (nullptr),
+		dispatched ATOMIC_FLAG_INIT
 	{}
 
 	bool operator < (const PriorityQueueKeyVal& rhs) const
@@ -59,6 +66,7 @@ struct PriorityQueueKeyVal
 		else
 			return val < rhs.val;
 	}
+
 };
 
 template <typename Val, unsigned MAX_LEVEL>
@@ -92,7 +100,7 @@ public:
 	/// Inserts a new node.
 	bool insert (const DeadlineTime& deadline, const Val& val)
 	{
-		std::pair <NodeVal*, bool> ins = Base::insert (deadline, std::ref (val));
+		std::pair <NodeVal*, bool> ins = Base::insert (std::ref (deadline), std::ref (val));
 		Base::release_node (ins.first);
 		return ins.second;
 	}
@@ -104,25 +112,46 @@ public:
 		return ins.second;
 	}
 
-	bool reorder (const DeadlineTime& deadline, const Val& val, const DeadlineTime& old)
+	bool reorder (const DeadlineTime& deadline, const Val& val, const DeadlineTime& old) noexcept
 	{
 		assert (deadline != old);
-		SkipListBase::Node* node = Base::allocate_node ();
-		if (Base::erase (old, val)) {
-			unsigned level = node->level;
-			verify (insert (new (node) NodeVal (level, deadline, val)));
-			return true;
-		} else {
-			Base::deallocate_node (node);
-			return false;
+		NodeVal* old_node = Base::find (std::ref (old), std::ref (val));
+		if (old_node) {
+			SkipListBase::Node* first_node = old_node->value ().first_node;
+			if (!first_node)
+				first_node = old_node;
+			static_cast <NodeVal&> (*first_node).value ().ref_cnt.increment ();
+			try {
+				std::pair <NodeVal*, bool> ins = Base::insert (std::ref (deadline), std::ref (val), first_node);
+				assert (ins.second);
+				// New inserted, try erase old
+				bool ret = Base::erase ((const NodeVal*)old_node);
+				if (!ret) // Old disappeared, try erase new
+					Base::erase ((const NodeVal*)ins.first);
+				Base::release_node (old_node);
+				Base::release_node (ins.first);
+				return ret;
+			} catch (...) {
+				deallocate_node (first_node); // first_node->value ().ref_cnt.decrement ();
+				Base::release_node (old_node);
+			}
 		}
+		return false;
 	}
 
 	/// Deletes node with minimal deadline.
 	/// \return The deleted Node pointer if node deleted or `nullptr` if the queue is empty.
 	NodeVal* delete_min () noexcept
 	{
-		return Base::delete_min ();
+		for (NodeVal* node = Base::delete_min (); node; ) {
+			SkipListBase::Node* first_node = node->value ().first_node;
+			NodeVal& first = first_node ? static_cast <NodeVal&> (*first_node) : *node;
+			bool dispatched = first.value ().dispatched.test_and_set ();
+			if (!dispatched)
+				return node;
+			Base::release_node (node);
+		}
+		return nullptr;
 	}
 
 	/// Deletes node with minimal deadline.
@@ -132,7 +161,7 @@ public:
 	{
 		NodeVal* node = delete_min ();
 		if (node) {
-			val = node->value ().val;
+			val = std::move (node->value ().val);
 			Base::release_node (node);
 			return true;
 		}
@@ -153,6 +182,22 @@ public:
 			return true;
 		}
 		return false;
+	}
+
+	bool pre_deallocate_node (SkipListBase::Node* node) noexcept
+	{
+		typename Base::Value& val = static_cast <NodeVal&> (*node).value ();
+		if (val.first_node) {
+			deallocate_node (val.first_node);
+			val.first_node = nullptr;
+		}
+		return !val.ref_cnt.decrement ();
+	}
+
+	virtual void deallocate_node (SkipListBase::Node* node) noexcept override
+	{
+		if (pre_deallocate_node (node))
+			Base::deallocate_node (node);
 	}
 };
 

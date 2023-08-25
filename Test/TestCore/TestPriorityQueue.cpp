@@ -263,4 +263,51 @@ TYPED_TEST (TestPriorityQueue, Erase)
 	}
 }
 
+TYPED_TEST (TestPriorityQueue, Reorder)
+{
+	TypeParam queue;
+	StdPriorityQueue queue_std;
+	RandomGen rndgen;
+	std::uniform_int_distribution <int> distr;
+
+	static const int MAX_COUNT = 1000;
+	for (int i = 0; i < MAX_COUNT; ++i) {
+		unsigned deadline = distr (rndgen);
+		StdNode node;
+		node.deadline = deadline;
+		node.idx = i;
+		ASSERT_TRUE (queue.insert (deadline, node));
+		EXPECT_FALSE (queue.empty ());
+		queue_std.push (node);
+	}
+
+	for (int j = 0; j < 2; ++j) {
+		StdPriorityQueue tmp;
+		tmp.swap (queue_std);
+		for (int i = 0; i < MAX_COUNT; ++i) {
+			unsigned deadline = distr (rndgen);
+			StdNode val = tmp.top ();
+			if (deadline != val.deadline) {
+				DeadlineTime old = val.deadline;
+				val.deadline = deadline;
+				ASSERT_TRUE (queue.reorder (deadline, val, old));
+			}
+			queue_std.push (val);
+			tmp.pop ();
+		}
+	}
+
+	for (int i = 0; i < MAX_COUNT; ++i) {
+		Value val;
+		DeadlineTime deadline;
+		ASSERT_TRUE (queue.delete_min (val, deadline));
+		ASSERT_EQ (val.deadline, deadline);
+		ASSERT_EQ (val.idx, queue_std.top ().idx);
+		ASSERT_EQ (val.deadline, queue_std.top ().deadline);
+		queue_std.pop ();
+	}
+
+	EXPECT_TRUE (queue.empty ());
+}
+
 }

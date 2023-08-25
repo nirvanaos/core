@@ -65,10 +65,10 @@ private:
 		std::atomic <bool> deleted;
 
 		NodeBase (unsigned l) noexcept :
-		prev (nullptr),
-		level ((Level)l),
-		valid_level ((Level)1),
-		deleted (false)
+			prev (nullptr),
+			level ((Level)l),
+			valid_level ((Level)1),
+			deleted (false)
 		{}
 
 		virtual ~NodeBase () noexcept
@@ -89,7 +89,7 @@ public:
 		Link::Lockable next [1];	// Variable length array.
 
 		Node (unsigned level) noexcept :
-		NodeBase (level)
+			NodeBase (level)
 		{
 			std::fill_n ((uintptr_t*)next, level, 0);
 		}
@@ -106,10 +106,14 @@ public:
 	};
 
 	/// Only `Node:level` member is used.
-	virtual void deallocate_node (Node* node);
+	virtual void deallocate_node (Node* node) noexcept;
+
+	/// Release node reference counter.
+	/// 
+	/// \param node The node pointer.
+	void release_node (Node* node) noexcept;
 
 protected:
-
 	SkipListBase (unsigned node_size, unsigned max_level, void* head_tail) noexcept;
 
 	/// Gets node with minimal key.
@@ -152,8 +156,6 @@ protected:
 	}
 
 	Node* insert (Node* new_node, Node** saved_nodes) noexcept;
-
-	void release_node (Node* node) noexcept;
 
 	Node* find (const Node* keynode) noexcept;
 	Node* lower_bound (const Node* keynode) noexcept;
@@ -284,7 +286,7 @@ private:
 	// Added extra space for tail node alignment.
 	struct HeadTailSpace
 	{
-		uint8_t space_ [Node::size (sizeof (Node), MAX_LEVEL) + Node::size (sizeof (Node), 1) + NODE_ALIGN - 1];
+		uint8_t space [Node::size (sizeof (Node), MAX_LEVEL) + Node::size (sizeof (Node), 1) + NODE_ALIGN - 1];
 	};
 	HeadTailSpace head_tail_;
 };
@@ -297,6 +299,7 @@ class SkipList :
 	public SkipListL <MAX_LEVEL>
 {
 	typedef SkipListL <MAX_LEVEL> Base;
+
 public:
 	typedef Val Value;
 
@@ -322,7 +325,7 @@ public:
 
 		template <class ... Args>
 		NodeVal (int level, Args ... args) noexcept :
-		Base::Node (level)
+			Base::Node (level)
 		{
 			new (&value ()) Value (std::forward <Args> (args)...);
 		}
@@ -370,7 +373,7 @@ public:
 		NodeVal* node = get_min_node ();
 		if (node) {
 			val = node->value ();
-			release_node (node);
+			Base::release_node (node);
 			return true;
 		}
 		return false;
@@ -384,7 +387,7 @@ public:
 		NodeVal* node = delete_min ();
 		if (node) {
 			val = std::move (node->value ());
-			release_node (node);
+			Base::release_node (node);
 			return true;
 		}
 		return false;
@@ -395,7 +398,7 @@ public:
 	/// \returns `true` if node deleted, `false` if value not found.
 	bool erase (const Val& val) noexcept
 	{
-		NodeVal keynode (1, val);
+		NodeVal keynode (1, std::ref (val));
 		return Base::erase (&keynode);
 	}
 
@@ -427,12 +430,6 @@ public:
 		return static_cast <NodeVal*> (Base::delete_min ());
 	}
 
-	/// Releases the node pointer.
-	void release_node (NodeVal* node) noexcept
-	{
-		Base::release_node (node);
-	}
-
 	/// Finds node by value.
 	/// \returns The Node pointer or `nullptr` if value not found.
 	///          Returned pointer must be released by `release_node`.
@@ -446,8 +443,15 @@ public:
 	///          Returned pointer must be released by `release_node`.
 	NodeVal* find (const Val& val) noexcept
 	{
-		NodeVal keynode (1, val);
-		return find (&keynode);
+		NodeVal keynode (1, std::ref (val));
+		return static_cast <NodeVal*> (find (&keynode));
+	}
+
+	template <class ... Args>
+	NodeVal* find (Args ... args)
+	{
+		NodeVal keynode (1, std::forward <Args> (args)...);
+		return static_cast <NodeVal*> (Base::find (&keynode));
 	}
 
 	NodeVal* find_and_delete (const NodeVal* keynode) noexcept
@@ -457,7 +461,7 @@ public:
 
 	NodeVal* find_and_delete (const Val& val) noexcept
 	{
-		NodeVal keynode (1, val);
+		NodeVal keynode (1, std::ref (val));
 		return find_and_delete (&keynode);
 	}
 
@@ -466,7 +470,7 @@ public:
 	///          Returned pointer must be released by `release_node`.
 	NodeVal* lower_bound (const Val& val) noexcept
 	{
-		NodeVal keynode (1, val);
+		NodeVal keynode (1, std::ref (val));
 		return static_cast <NodeVal*> (Base::lower_bound (&keynode));
 	}
 
@@ -475,7 +479,7 @@ public:
 	///          Returned pointer must be released by `release_node`.
 	NodeVal* upper_bound (const Val& val) noexcept
 	{
-		NodeVal keynode (1, val);
+		NodeVal keynode (1, std::ref (val));
 		return static_cast <NodeVal*> (Base::upper_bound (&keynode));
 	}
 

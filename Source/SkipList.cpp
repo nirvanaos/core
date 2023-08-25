@@ -39,7 +39,7 @@ bool SkipListBase::Node::operator < (const Node&) const noexcept
 {
 	// Must be overridden.
 	// Base method must never be called.
-	assert (false);
+	NIRVANA_UNREACHABLE_CODE ();
 	return false;
 }
 
@@ -80,7 +80,7 @@ SkipListBase::Node* SkipListBase::allocate_node (unsigned level)
 	return p;
 }
 
-void SkipListBase::deallocate_node (Node* node)
+void SkipListBase::deallocate_node (Node* node) noexcept
 {
 #ifdef _DEBUG
 	node_cnt_.decrement ();

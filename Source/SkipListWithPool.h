@@ -98,7 +98,7 @@ private:
 		return se;
 	}
 
-	virtual SkipListBase::Node* allocate_node ()
+	virtual SkipListBase::Node* allocate_node () override
 	{
 		Stackable* se = stack_.pop ();
 		if (!se) {
@@ -111,15 +111,17 @@ private:
 		return node;
 	}
 
-	virtual void deallocate_node (SkipListBase::Node* node) noexcept
+	virtual void deallocate_node (SkipListBase::Node* node) noexcept override
 	{
-		if (purge_count_.decrement_seq () >= 0)
-			SkipListBase::deallocate_node (node);
-		else {
-			purge_count_.increment ();
-			Stackable* se = (Stackable*)node;
-			se->level = node->level;
-			stack_.push (*se);
+		if (Base::pre_deallocate_node (node)) {
+			if (purge_count_.decrement_seq () >= 0)
+				SkipListBase::deallocate_node (node);
+			else {
+				purge_count_.increment ();
+				Stackable* se = (Stackable*)node;
+				se->level = node->level;
+				stack_.push (*se);
+			}
 		}
 	}
 
