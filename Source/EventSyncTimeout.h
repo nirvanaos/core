@@ -24,8 +24,8 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_CORE_EVENTSYNC_H_
-#define NIRVANA_CORE_EVENTSYNC_H_
+#ifndef NIRVANA_CORE_EVENTSYNCTIMEOUT_H_
+#define NIRVANA_CORE_EVENTSYNCTIMEOUT_H_
 #pragma once
 
 #include "ExecDomain.h"

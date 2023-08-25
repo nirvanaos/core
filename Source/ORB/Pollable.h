@@ -31,7 +31,7 @@
 #include <CORBA/Server.h>
 #include <CORBA/Pollable_s.h>
 #include <CORBA/Proxy/IOReference_s.h>
-#include "../EventSync.h"
+#include "../EventSyncTimeout.h"
 #include "../MapUnorderedUnstable.h"
 #include "../Synchronized.h"
 #include "../UserObject.h"
