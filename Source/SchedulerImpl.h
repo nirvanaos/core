@@ -27,7 +27,7 @@
 #define NIRVANA_CORE_SCHEDULERIMPL_H_
 #pragma once
 
-#include "PriorityQueue.h"
+#include "PriorityQueueReorder.h"
 #include "SkipListWithPool.h"
 #include <Port/SystemInfo.h>
 
@@ -41,7 +41,7 @@ namespace Core {
 template <class T, class ExecutorRef>
 class SchedulerImpl
 {
-	typedef SkipListWithPool <PriorityQueue <ExecutorRef, SYS_DOMAIN_PRIORITY_QUEUE_LEVELS> > Queue;
+	typedef SkipListWithPool <PriorityQueueReorder <ExecutorRef, SYS_DOMAIN_PRIORITY_QUEUE_LEVELS> > Queue;
 public:
 	SchedulerImpl () noexcept :
 		queue_ (Port::SystemInfo::hardware_concurrency ()),

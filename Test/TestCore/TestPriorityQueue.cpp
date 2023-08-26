@@ -1,4 +1,4 @@
-#include "../Source/PriorityQueue.h"
+#include "../Source/PriorityQueueReorder.h"
 #include "../Source/SkipListWithPool.h"
 #include "../Source/MemContextCore.h"
 #include <gtest/gtest.h>
@@ -10,7 +10,7 @@
 #include <atomic>
 
 using Nirvana::DeadlineTime;
-using Nirvana::Core::PriorityQueue;
+using Nirvana::Core::PriorityQueueReorder;
 using Nirvana::Core::SkipListWithPool;
 using Nirvana::Core::RandomGen;
 
@@ -70,7 +70,7 @@ struct StdNode : Value
 
 typedef std::priority_queue <StdNode> StdPriorityQueue;
 
-typedef SkipListWithPool <PriorityQueue <Value, 10> > QueueWithPoolBase;
+typedef SkipListWithPool <PriorityQueueReorder <Value, 10> > QueueWithPoolBase;
 
 class QueueWithPool : public QueueWithPoolBase
 {
@@ -81,13 +81,13 @@ public:
 };
 
 typedef ::testing::Types <
-	PriorityQueue <Value, 1>,  // 0
-	PriorityQueue <Value, 2>,  // 1
-	PriorityQueue <Value, 4>,  // 2
-	PriorityQueue <Value, 8>,  // 3
-	PriorityQueue <Value, 10>, // 4
-	PriorityQueue <Value, 16>, // 5
-	PriorityQueue <Value, 32>, // 6
+	PriorityQueueReorder <Value, 1>,  // 0
+	PriorityQueueReorder <Value, 2>,  // 1
+	PriorityQueueReorder <Value, 4>,  // 2
+	PriorityQueueReorder <Value, 8>,  // 3
+	PriorityQueueReorder <Value, 10>, // 4
+	PriorityQueueReorder <Value, 16>, // 5
+	PriorityQueueReorder <Value, 32>, // 6
 	QueueWithPool              // 7
 > MaxLevel;
 

@@ -25,8 +25,8 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_CORE_PRIORITYQUEUE_H_
-#define NIRVANA_CORE_PRIORITYQUEUE_H_
+#ifndef NIRVANA_CORE_PRIORITYQUEUEREORDER_H_
+#define NIRVANA_CORE_PRIORITYQUEUEREORDER_H_
 #pragma once
 
 #include "SkipList.h"
@@ -35,22 +35,29 @@ namespace Nirvana {
 namespace Core {
 
 template <class Val>
-struct PriorityQueueKeyVal
+struct PriorityQueueReorderKeyVal
 {
 	DeadlineTime deadline;
 	Val val;
+	SkipListBase::Node* first_node;
+	RefCounter ref_cnt;
+	std::atomic_flag dispatched;
 
-	PriorityQueueKeyVal (const DeadlineTime& dt, const Val& v) :
+	PriorityQueueReorderKeyVal (const DeadlineTime& dt, const Val& v, SkipListBase::Node* first = nullptr) :
 		deadline (dt),
-		val (v)
+		val (v),
+		first_node (first),
+		dispatched ATOMIC_FLAG_INIT
 	{}
 
-	PriorityQueueKeyVal (const DeadlineTime& dt, Val&& v) :
+		PriorityQueueReorderKeyVal (const DeadlineTime& dt, Val&& v) :
 		deadline (dt),
-		val (std::move (v))
+		val (std::move (v)),
+		first_node (nullptr),
+		dispatched ATOMIC_FLAG_INIT
 	{}
 
-	bool operator < (const PriorityQueueKeyVal& rhs) const
+	bool operator < (const PriorityQueueReorderKeyVal& rhs) const
 	{
 		if (deadline < rhs.deadline)
 			return true;
@@ -63,17 +70,17 @@ struct PriorityQueueKeyVal
 };
 
 template <typename Val, unsigned MAX_LEVEL>
-class PriorityQueue :
-	public SkipList <PriorityQueueKeyVal <Val>, MAX_LEVEL>
+class PriorityQueueReorder :
+	public SkipList <PriorityQueueReorderKeyVal <Val>, MAX_LEVEL>
 {
-	typedef SkipList <PriorityQueueKeyVal <Val>, MAX_LEVEL> Base;
-	typedef PriorityQueue <Val, MAX_LEVEL> Queue;
+	typedef SkipList <PriorityQueueReorderKeyVal <Val>, MAX_LEVEL> Base;
+	typedef PriorityQueueReorder <Val, MAX_LEVEL> Queue;
 
 public:
 	typedef typename Base::NodeVal NodeVal;
 	typedef typename Base::Value Value;
 
-	~PriorityQueue ()
+	~PriorityQueueReorder ()
 	{
 #ifdef _DEBUG
 		assert (!Base::node_cnt_);
@@ -107,6 +114,33 @@ public:
 		return ins.second;
 	}
 
+	bool reorder (const DeadlineTime& deadline, const Val& val, const DeadlineTime& old) noexcept
+	{
+		assert (deadline != old);
+		NodeVal* old_node = Base::find (std::ref (old), std::ref (val));
+		if (old_node) {
+			SkipListBase::Node* first_node = old_node->value ().first_node;
+			if (!first_node)
+				first_node = old_node;
+			static_cast <NodeVal&> (*first_node).value ().ref_cnt.increment ();
+			try {
+				std::pair <NodeVal*, bool> ins = Base::insert (std::ref (deadline), std::ref (val), first_node);
+				assert (ins.second);
+				// New inserted, try erase old
+				bool ret = Base::erase ((const NodeVal*)old_node);
+				if (!ret) // Old disappeared, try erase new
+					Base::erase ((const NodeVal*)ins.first);
+				Base::release_node (old_node);
+				Base::release_node (ins.first);
+				return ret;
+			} catch (...) {
+				deallocate_node (first_node); // first_node->value ().ref_cnt.decrement ();
+				Base::release_node (old_node);
+			}
+		}
+		return false;
+	}
+
 	/// Deletes node with minimal deadline.
 	/// \param [out] val Value.
 	/// \return `true` if node deleted, `false` if queue is empty.
@@ -137,12 +171,37 @@ public:
 		return false;
 	}
 
+	virtual void deallocate_node (SkipListBase::Node* node) noexcept override
+	{
+		if (pre_deallocate_node (node))
+			Base::deallocate_node (node);
+	}
+
+protected:
+	bool pre_deallocate_node (SkipListBase::Node* node) noexcept
+	{
+		typename Base::Value& val = static_cast <NodeVal&> (*node).value ();
+		if (val.first_node) {
+			deallocate_node (val.first_node);
+			val.first_node = nullptr;
+		}
+		return !val.ref_cnt.decrement ();
+	}
+
 private:
 	/// Deletes node with minimal deadline.
 	/// \return The deleted Node pointer if node deleted or `nullptr` if the queue is empty.
 	NodeVal* delete_min () noexcept
 	{
-		return Base::delete_min ();
+		for (NodeVal* node = Base::delete_min (); node; ) {
+			SkipListBase::Node* first_node = node->value ().first_node;
+			NodeVal& first = first_node ? static_cast <NodeVal&> (*first_node) : *node;
+			bool dispatched = first.value ().dispatched.test_and_set ();
+			if (!dispatched)
+				return node;
+			Base::release_node (node);
+		}
+		return nullptr;
 	}
 };
 
