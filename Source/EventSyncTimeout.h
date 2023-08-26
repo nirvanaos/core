@@ -28,7 +28,6 @@
 #define NIRVANA_CORE_EVENTSYNCTIMEOUT_H_
 #pragma once
 
-#include "ExecDomain.h"
 #include "UserAllocator.h"
 #include "TimerAsyncCall.h"
 #include <forward_list>
@@ -36,8 +35,10 @@
 namespace Nirvana {
 namespace Core {
 
+class ExecDomain;
 class Synchronized;
 
+/// \brief Implements wait list for synchronized operations with timeout feature.
 class EventSyncTimeout
 {
 	static const TimeBase::TimeT TIMER_DEADLINE = 1 * TimeBase::MILLISECOND;

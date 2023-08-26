@@ -34,11 +34,8 @@ WaitListBase::WaitListBase (TimeBase::TimeT deadline, WaitableRefBase* ref) :
 	worker_ (&ExecDomain::current ()),
 	result_ (0),
 	ref_ (ref),
-	wait_list_ (nullptr),
 	worker_deadline_ (worker_->deadline ())
 {
-	if (!SyncContext::current ().sync_domain ())
-		throw_BAD_OPERATION ();
 	DeadlineTime max_dt = Chrono::make_deadline (deadline);
 	if (worker_deadline_ > max_dt)
 		worker_->deadline (max_dt);
@@ -52,15 +49,7 @@ uintptr_t& WaitListBase::wait ()
 			throw_BAD_INV_ORDER ();
 		// Hold reference to this object
 		WaitListRef <WaitListBase> hold (static_cast <WaitListImpl <WaitListBase>*> (this));
-
-		static_cast <StackElem&> (ed).next = wait_list_;
-		wait_list_ = &ed;
-		try {
-			ed.suspend ();
-		} catch (...) {
-			wait_list_ = reinterpret_cast <ExecDomain*> (static_cast <StackElem&> (ed).next);
-			throw;
-		}
+		event_.wait ();
 	}
 	assert (finished ());
 	if (exception_)
@@ -83,11 +72,7 @@ void WaitListBase::finish (void* result) noexcept
 	worker_->deadline (worker_deadline_);
 	worker_ = nullptr;
 	result_ = (uintptr_t)result;
-
-	while (ExecDomain* ed = wait_list_) {
-		wait_list_ = reinterpret_cast <ExecDomain*> (static_cast <StackElem&> (*ed).next);
-		ed->resume ();
-	}
+	event_.signal ();
 }
 
 }

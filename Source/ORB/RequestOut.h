@@ -32,7 +32,6 @@
 #include "RequestLocalRoot.h"
 #include "../ExecDomain.h"
 #include "../UserObject.h"
-#include "../Event.h"
 #include "../Timer.h"
 
 namespace CORBA {

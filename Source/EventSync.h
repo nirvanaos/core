@@ -24,35 +24,36 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_CORE_EVENT_H_
-#define NIRVANA_CORE_EVENT_H_
+#ifndef NIRVANA_CORE_EVENTSYNC_H_
+#define NIRVANA_CORE_EVENTSYNC_H_
 #pragma once
 
-#include "ExecDomain.h"
+#include <assert.h>
 
 namespace Nirvana {
 namespace Core {
 
-/// \brief Implements wait list for asynchronous operations.
-class Event :
-	private Stack <ExecDomain>
+class ExecDomain;
+
+/// \brief Implements wait list for synchronized operations.
+class EventSync
 {
 public:
 	/// Constructor.
 	/// 
 	/// \param signalled Initial state. Default is not signalled.
-	Event (bool signalled = false) noexcept;
-
-	~Event ()
+	EventSync (bool signalled = false);
+	
+	~EventSync ()
 	{
-		assert (signalled_);
+		assert (!wait_list_);
 	}
 
 	/// Suspend current execution domain until the event will be signalled.
 	void wait ();
 
 	/// Tests event state without wait.
-	/// \returns 'true' if object is already in the signalled state.
+/// \returns 'true' if object is already in the signalled state.
 	bool signalled () const noexcept
 	{
 		return signalled_;
@@ -68,22 +69,8 @@ public:
 	}
 
 private:
-	class WaitOp : public Runnable
-	{
-	public:
-		WaitOp (Event& obj) :
-			obj_ (obj)
-		{}
-
-	private:
-		virtual void run ();
-
-	private:
-		Event& obj_;
-	};
-
-	ImplStatic <WaitOp> wait_op_;
-	volatile bool signalled_;
+	ExecDomain* wait_list_;
+	bool signalled_;
 };
 
 }

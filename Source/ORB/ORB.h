@@ -36,6 +36,7 @@
 #include "unmarshal_object.h"
 #include "RefCnt.h"
 #include "../Binder.h"
+#include "EventChannel.h"
 
 namespace CORBA {
 namespace Core {
@@ -302,6 +303,13 @@ public:
 	static Internal::RefCnt::_ref_type create_ref_cnt (Internal::DynamicServant::_ptr_type deleter)
 	{
 		return make_pseudo <RefCnt> (deleter);
+	}
+
+	static CosEventChannelAdmin::EventChannel::_ref_type create_event_channel ()
+	{
+		SYNC_BEGIN (Nirvana::Core::g_core_free_sync_context, nullptr)
+			return make_reference <EventChannel> ()->_this ();
+		SYNC_END ()
 	}
 
 private:

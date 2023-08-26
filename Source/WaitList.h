@@ -30,6 +30,7 @@
 
 #include "UserObject.h"
 #include "CoreInterface.h"
+#include "EventSync.h"
 #include <exception>
 
 namespace Nirvana {
@@ -118,7 +119,6 @@ class WaitListBase : public UserObject
 public:
 	~WaitListBase ()
 	{
-		assert (!wait_list_);
 		assert (!worker_);
 		assert (!result_);
 	}
@@ -152,7 +152,7 @@ protected:
 	ExecDomain* worker_;
 	uintptr_t result_;
 	WaitableRefBase* ref_;
-	ExecDomain* wait_list_;
+	EventSync event_;
 	DeadlineTime worker_deadline_;
 	std::exception_ptr exception_;
 };

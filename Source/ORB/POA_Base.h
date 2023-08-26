@@ -39,7 +39,7 @@
 #include "ReferenceLocal.h"
 #include "PolicyMap.h"
 #include "../TLS.h"
-#include "../Event.h"
+#include "../EventSync.h"
 
 namespace CORBA {
 namespace Core {
@@ -576,7 +576,7 @@ private:
 	volatile int request_cnt_;
 	volatile bool destroyed_;
 	bool destroy_called_;
-	Nirvana::Core::Event destroy_completed_;
+	Nirvana::Core::EventSync destroy_completed_;
 
 	static const int32_t SIGNATURE = 'POA_';
 	const int32_t signature_;

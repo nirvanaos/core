@@ -259,7 +259,7 @@ private:
 	std::priority_queue <QElem, std::vector <QElem, Nirvana::Core::UserAllocator <QElem> > > queue_;
 	State state_;
 	unsigned int request_cnt_;
-	Nirvana::Core::Event requests_completed_;
+	Nirvana::Core::EventSync requests_completed_;
 	static const int32_t SIGNATURE = 'POAM';
 	const int32_t signature_;
 };

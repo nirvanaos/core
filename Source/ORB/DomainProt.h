@@ -32,12 +32,6 @@
 #include "ESIOP.h"
 #include <Port/OtherDomain.h>
 
-namespace Nirvana {
-namespace Core {
-class Event;
-}
-}
-
 namespace CORBA {
 namespace Core {
 

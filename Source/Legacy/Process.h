@@ -32,7 +32,7 @@
 #include <CORBA/CosNaming.h>
 #include <CORBA/I_var.h>
 #include <Nirvana/Legacy/Legacy_Process_s.h>
-#include "../Event.h"
+#include "../EventSync.h"
 #include "../MemContextUser.h"
 #include "../Console.h"
 #include "../NameService/FileSystem.h"
@@ -210,7 +210,7 @@ private:
 	Dir::_ref_type current_dir_;
 	ProcessCallback::_ref_type callback_;
 	Nirvana::Core::Ref <Nirvana::Core::SyncContext> sync_domain_;
-	Nirvana::Core::Event completed_;
+	Nirvana::Core::EventSync completed_;
 };
 
 }
