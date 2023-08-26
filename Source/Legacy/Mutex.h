@@ -75,8 +75,13 @@ public:
 		} else if (owner_ == &thread)
 			throw_BAD_INV_ORDER ();
 		else {
-			_sync_frame.suspend_and_return (); // may throw
 			queue_.push_back (thread);
+			try {
+				_sync_frame.suspend_and_return (); // may throw
+			} catch (...) {
+				queue_.back ().remove ();
+				throw;
+			}
 		}
 		SYNC_END ();
 	}

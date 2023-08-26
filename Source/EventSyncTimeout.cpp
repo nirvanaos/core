@@ -64,10 +64,15 @@ bool EventSyncTimeout::wait (TimeBase::TimeT timeout, Synchronized* frame)
 	}
 
 	list_.push_front (entry);
-	if (frame)
-		frame->suspend_and_return ();
-	else
-		cur_ed.suspend ();
+	try {
+		if (frame)
+			frame->suspend_and_return ();
+		else
+			cur_ed.suspend ();
+	} catch (...) {
+		list_.pop_front ();
+		throw;
+	}
 
 	return result;
 }

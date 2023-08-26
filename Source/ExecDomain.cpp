@@ -385,15 +385,6 @@ void ExecDomain::suspend_prepare (SyncContext* resume_context)
 		sync_context_ = resume_context;
 }
 
-void ExecDomain::suspend_prepared () noexcept
-{
-	assert (Thread::current ().exec_domain () == this);
-	ExecContext& neutral_context = Thread::current ().neutral_context ();
-	Thread::current ().yield ();
-	if (&neutral_context != &ExecContext::current ())
-		neutral_context.switch_to ();
-}
-
 bool ExecDomain::reschedule ()
 {
 	Thread& thr = Thread::current ();
@@ -411,11 +402,37 @@ void ExecDomain::Reschedule::run ()
 	ExecDomain* ed = Thread::current ().exec_domain ();
 	assert (ed);
 	try {
-		ed->suspend (nullptr);
+		ed->suspend_prepare (nullptr);
+		ed->suspend_prepared ();
 	} catch (...) {
 		return;
 	}
 	ed->resume ();
+}
+
+void ExecDomain::suspend (SyncContext* resume_context)
+{
+	suspend_.resume_context_ = resume_context;
+	ExecContext::run_in_neutral_context (suspend_);
+	suspend_.resume_context_ = nullptr;
+	// Handle possible exceptions
+	if (CORBA::SystemException::EC_NO_EXCEPTION != suspend_.exception_) {
+		CORBA::SystemException::Code exc = suspend_.exception_;
+		suspend_.exception_ = CORBA::SystemException::EC_NO_EXCEPTION;
+		CORBA::SystemException::_raise_by_code (exc);
+	}
+}
+
+void ExecDomain::Suspend::run ()
+{
+	ExecDomain* ed = Thread::current ().exec_domain ();
+	assert (ed);
+	try {
+		ed->suspend_prepare (resume_context_);
+		ed->suspend_prepared ();
+	} catch (const CORBA::SystemException& ex) {
+		exception_ = ex.__code ();
+	}
 }
 
 }

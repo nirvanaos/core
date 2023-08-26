@@ -195,14 +195,16 @@ public:
 	/// Suspend execution
 	/// 
 	/// \param resume_context Context where to resume or nullptr for current context.
-	void suspend (SyncContext* resume_context = nullptr)
-	{
-		suspend_prepare (resume_context);
-		suspend_prepared ();
-	}
+	void suspend (SyncContext* resume_context = nullptr);
 
 	void suspend_prepare (SyncContext* resume_context = nullptr);
-	void suspend_prepared () noexcept;
+
+	void suspend_prepared () noexcept
+	{
+		assert (Thread::current ().exec_domain () == this);
+		assert (&ExecContext::current () == &Thread::current ().neutral_context ());
+		Thread::current ().yield ();
+	}
 
 	/// Resume suspended domain
 	void resume () noexcept
@@ -545,6 +547,20 @@ private:
 		virtual void run ();
 	};
 
+	class Suspend : public Runnable
+	{
+	public:
+		Suspend () :
+			exception_ (CORBA::SystemException::EC_NO_EXCEPTION)
+		{}
+
+		Ref <SyncContext> resume_context_;
+		CORBA::SystemException::Code exception_;
+
+	private:
+		virtual void run ();
+	};
+
 private:
 	AtomicCounter <false> ref_cnt_;
 	DeadlineTime deadline_;
@@ -559,6 +575,7 @@ private:
 
 	bool scheduler_item_created_;
 	Schedule schedule_;
+	Suspend suspend_;
 	Ref <ThreadBackground> background_worker_;
 	RestrictedMode restricted_mode_;
 
