@@ -496,7 +496,7 @@ OperationIndex ProxyManager::find_handler_operation (OperationIndex op,
 	const InterfaceEntry* handler_itf = handler_proxy->find_interface (itf.metadata ().handler_id);
 	if (!handler_itf)
 		throw BAD_PARAM ();
-	return make_op_idx ((UShort)(handler_itf - handler_proxy->interfaces ().begin ()),
+	return make_op_idx ((UShort)(handler_itf - handler_proxy->interfaces ().begin () + 1),
 		operation_idx (op) * 2);
 }
 

@@ -52,13 +52,13 @@ bool EventSyncTimeout::wait (TimeBase::TimeT timeout, Synchronized* frame)
 	ListEntry entry{ &cur_ed, std::numeric_limits <TimeBase::TimeT>::max (), &result };
 	if (timeout != std::numeric_limits <TimeBase::TimeT>::max ()) {
 		TimeBase::TimeT cur_time = Chrono::steady_clock ();
-		if (std::numeric_limits <TimeBase::TimeT>::max () - cur_time >= timeout)
+		if (std::numeric_limits <TimeBase::TimeT>::max () - cur_time <= timeout)
 			throw_BAD_PARAM ();
 		entry.expire_time = cur_time + timeout;
 		if (!timer_)
 			timer_ = Ref <Timer>::create <ImplDynamic <Timer> > (std::ref (*this));
 		if (next_timeout_ > entry.expire_time) {
-			timer_->set (Timer::TIMER_ABSOLUTE, entry.expire_time, 0);
+			timer_->set (0, timeout, 0);
 			next_timeout_ = entry.expire_time;
 		}
 	}
@@ -129,7 +129,7 @@ void EventSyncTimeout::on_timer () noexcept
 		TimeBase::TimeT expire_time = next->expire_time;
 		if (expire_time <= cur_time) {
 			next->exec_domain->resume ();
-			it = list_.erase_after (it);
+			list_.erase_after (it);
 		} else {
 			if (next_timeout > expire_time)
 				next_timeout = expire_time;
@@ -138,7 +138,7 @@ void EventSyncTimeout::on_timer () noexcept
 	}
 
 	if (next_timeout != std::numeric_limits <TimeBase::TimeT>::max ())
-		timer_->set (Timer::TIMER_ABSOLUTE, next_timeout, 0);
+		timer_->set (0, next_timeout - cur_time, 0);
 }
 
 void EventSyncTimeout::Timer::run (const TimeBase::TimeT& signal_time)

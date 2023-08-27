@@ -122,7 +122,7 @@ private:
 
 	void push (const Any& data)
 	{
-		if (pull_suppliers_.empty ()) {
+		if (!pull_suppliers_.empty ()) {
 			servant_reference <SharedAny> sany (make_reference <SharedAny> (std::ref (data)));
 			for (const auto p : pull_suppliers_) {
 				ProxyPullSupplier& sup = static_cast <ProxyPullSupplier&> (*p);
@@ -202,10 +202,10 @@ private:
 	class ChildrenT : public Children
 	{
 	public:
-		auto create (EventChannel& channel)
+		typename S::PrimaryInterface::_ref_type create (EventChannel& channel)
 		{
 			servant_reference <S> ref (make_reference <S> (std::ref (channel)));
-			insert (ref);
+			insert (&static_cast <ChildObject&> (*ref));
 			return ref->_this ();
 		}
 
@@ -293,6 +293,7 @@ private:
 			check_exist ().pull_suppliers_.on_connect ();
 			consumer_ = pull_consumer;
 			connected_ = true;
+			event_.reset ();
 		}
 
 		void disconnect_pull_supplier () noexcept;
@@ -420,9 +421,15 @@ private:
 				throw BAD_PARAM ();
 			if (supplier_)
 				throw CosEventChannelAdmin::AlreadyConnected ();
-			handler_ = make_reference <PullHandler> (std::ref (check_exist ()), pull_supplier);
-			supplier_ = pull_supplier;
 			check_exist ().pull_consumers_.on_connect ();
+			try {
+				handler_ = make_reference <PullHandler> (std::ref (check_exist ()), pull_supplier);
+				supplier_ = pull_supplier;
+			} catch (...) {
+				if (channel_)
+					channel_->pull_consumers_.on_disconnect ();
+				throw;
+			}
 		}
 
 		void disconnect_pull_consumer () noexcept;

@@ -50,7 +50,6 @@ void EventSync::wait ()
 			throw;
 		}
 	}
-	assert (signalled_);
 }
 
 void EventSync::signal () noexcept
