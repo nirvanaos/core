@@ -45,7 +45,7 @@ public:
 
 	~Event ()
 	{
-		assert (signalled_);
+		assert (!pop ());
 	}
 
 	/// Suspend current execution domain until the event will be signalled.
