@@ -197,7 +197,8 @@ private:
 		{}
 	};
 
-	typedef Nirvana::Core::MapUnorderedUnstable <std::string, Root> RootMap;
+	typedef Nirvana::Core::MapUnorderedUnstable <std::string, Root, std::hash <std::string>,
+		std::equal_to <std::string>, Nirvana::Core::UserAllocator> RootMap;
 
 	RootMap roots_;
 
