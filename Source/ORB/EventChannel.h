@@ -129,8 +129,12 @@ private:
 				if (sup.connected ())
 					sup.push (*sany);
 			}
-			event_.signal ();
-			event_.reset ();
+		}
+
+		for (const auto p : push_suppliers_) {
+			ProxyPushSupplier& sup = static_cast <ProxyPushSupplier&> (*p);
+			if (sup.connected ())
+				sup.push (data);
 		}
 	}
 
@@ -295,11 +299,13 @@ private:
 
 		Any pull ()
 		{
-			if (!connected_)
-				throw CosEventComm::Disconnected ();
-			if (queue_.empty ())
-				check_exist ().event_.wait ();
-			return pull_internal ();
+			for (;;) {
+				if (!connected_)
+					throw CosEventComm::Disconnected ();
+				if (!queue_.empty ())
+					return pull_internal ();
+				event_.wait ();
+			}
 		}
 
 		Any try_pull (bool& has_event)
@@ -316,7 +322,10 @@ private:
 
 		void push (SharedAny& data)
 		{
+			assert (connected_);
 			queue_.push (&data);
+			event_.signal ();
+			event_.reset ();
 		}
 
 		bool connected () const noexcept
@@ -341,7 +350,52 @@ private:
 	private:
 		CosEventComm::PullConsumer::_ref_type consumer_;
 		std::queue <servant_reference <SharedAny> > queue_;
+		Nirvana::Core::EventSync event_;
 		bool connected_;
+	};
+
+	class PullHandler :
+		public servant_traits <CosEventComm::AMI_PullSupplierHandler>::Servant <PullHandler>,
+		public ChildObject
+	{
+	public:
+		PullHandler (EventChannel& channel, CosEventComm::PullSupplier::_ptr_type pull_supplier) :
+			ChildObject (channel)
+		{
+			send ();
+		}
+
+		void pull (const Any& ami_return_val)
+		{
+			if (channel_) {
+				channel_->push (ami_return_val);
+				send ();
+			}
+		}
+
+		static void pull_excep (Messaging::ExceptionHolder::_ptr_type exh) noexcept
+		{}
+
+		static void try_pull (const Any& ami_return_val, bool has_event) noexcept
+		{}
+
+		static void try_pull_excep (Messaging::ExceptionHolder::_ptr_type exh) noexcept
+		{}
+
+		static void disconnect_pull_supplier () noexcept
+		{}
+
+		static void disconnect_pull_supplier_excep (Messaging::ExceptionHolder::_ptr_type exh) noexcept
+		{}
+
+	private:
+		void send ()
+		{
+			supplier_->sendc_pull (_this ());
+		}
+
+	private:
+		CosEventComm::PullSupplier::_ref_type supplier_;
 	};
 
 	class ProxyPullConsumer :
@@ -366,8 +420,9 @@ private:
 				throw BAD_PARAM ();
 			if (supplier_)
 				throw CosEventChannelAdmin::AlreadyConnected ();
-			check_exist ().pull_consumers_.on_connect ();
+			handler_ = make_reference <PullHandler> (std::ref (check_exist ()), pull_supplier);
 			supplier_ = pull_supplier;
+			check_exist ().pull_consumers_.on_connect ();
 		}
 
 		void disconnect_pull_consumer () noexcept;
@@ -385,6 +440,7 @@ private:
 
 	private:
 		CosEventComm::PullSupplier::_ref_type supplier_;
+		servant_reference <PullHandler> handler_;
 	};
 
 	class ProxyPushSupplier :
@@ -424,6 +480,14 @@ private:
 		{
 			disconnect_push_supplier ();
 			ChildObject::destroy ();
+		}
+
+		void push (const Any& data) noexcept
+		{
+			assert (connected ());
+			try {
+				consumer_->sendc_push (nullptr, data);
+			} catch (...) {}
 		}
 
 	private:
@@ -473,7 +537,6 @@ private:
 private:
 	servant_reference <ConsumerAdmin> consumer_admin_;
 	servant_reference <SupplierAdmin> supplier_admin_;
-	Nirvana::Core::EventSync event_;
 	ChildrenT <ProxyPushSupplier> push_suppliers_;
 	ChildrenT <ProxyPushConsumer> push_consumers_;
 	ChildrenT <ProxyPullSupplier> pull_suppliers_;

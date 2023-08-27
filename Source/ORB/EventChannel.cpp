@@ -53,6 +53,7 @@ void EventChannel::ProxyPullSupplier::disconnect_pull_supplier () noexcept
 				p->disconnect_pull_consumer ();
 			} catch (...) {}
 		}
+		event_.signal ();
 	}
 }
 
@@ -60,6 +61,8 @@ void EventChannel::ProxyPullConsumer::disconnect_pull_consumer () noexcept
 {
 	CosEventComm::PullSupplier::_ref_type p = std::move (supplier_);
 	if (p) {
+		handler_->destroy ();
+		handler_ = nullptr;
 		channel_->pull_consumers_.on_disconnect ();
 		try {
 			p->disconnect_pull_supplier ();
