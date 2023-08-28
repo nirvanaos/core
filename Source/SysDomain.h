@@ -32,11 +32,15 @@
 #include "ORB/SysServant.h"
 #include "ORB/Services.h"
 #include "ORB/system_services.h"
+#include "ORB/ESIOP.h"
 #include <Nirvana/CoreDomains_s.h>
 #include <Port/SystemInfo.h>
+#include "MapUnorderedUnstable.h"
 
 namespace Nirvana {
 namespace Core {
+
+typedef IDL::Sequence <CORBA::Octet> SecurityId;
 
 /// System domain
 class SysDomain : public CORBA::Core::SysServantImpl <SysDomain, SysDomainCore, Nirvana::SysDomain>
@@ -93,6 +97,77 @@ public:
 	{
 		return CORBA::Core::Services::bind (id);
 	}
+
+	/// Get context for asynchronous call from the kernel.
+	/// 
+	/// \param impl SysDomain servant reference.
+	/// \param sync_context SyncContext reference.
+	static void get_call_context (Ref <SysDomain>& impl, Ref <SyncContext>& sync_context);
+
+	/// Called from the kernel level
+	/// 
+	/// \param domain_id Protection domain id.
+	/// \param platform Platform id.
+	/// \param user User id.
+	void domain_created (ESIOP::ProtDomainId domain_id, uint_fast16_t platform, SecurityId&& user)
+	{
+		domains_.emplace (domain_id, platform, std::move (user));
+	}
+
+	/// Called from the kernel level
+	/// 
+	/// \param domain_id Protection domain id.
+	void domain_destroyed (ESIOP::ProtDomainId domain_id) noexcept
+	{
+		domains_.erase (domain_id);
+	}
+
+private:
+	struct DomainInfo
+	{
+		SecurityId user;
+		uint_fast16_t platform;
+
+		DomainInfo (SecurityId&& _user, uint_fast16_t _platform) :
+			user (std::move (_user)),
+			platform (_platform)
+		{}
+	};
+
+	typedef MapUnorderedUnstable <ESIOP::ProtDomainId, DomainInfo, std::hash <ESIOP::ProtDomainId>,
+		std::equal_to <ESIOP::ProtDomainId>, UserAllocator> DomainMap;
+
+	class DomainsImpl
+	{
+	public:
+		void emplace (ESIOP::ProtDomainId domain_id, uint_fast16_t platform, SecurityId&& user)
+		{
+			domains_.emplace (std::piecewise_construct, std::forward_as_tuple (domain_id),
+				std::forward_as_tuple (std::move (user), platform));
+		}
+
+		void erase (ESIOP::ProtDomainId domain_id) noexcept
+		{
+			domains_.erase (domain_id);
+		}
+
+	private:
+		DomainMap domains_;
+	};
+
+	class DomainsDummy
+	{
+	public:
+		void emplace (ESIOP::ProtDomainId domain_id, uint_fast16_t platform, SecurityId&& user)
+		{}
+
+		void erase (ESIOP::ProtDomainId domain_id)
+		{}
+	};
+
+	typedef std::conditional_t <SINGLE_DOMAIN, DomainsDummy, DomainsImpl> Domains;
+
+	Domains domains_;
 };
 
 }

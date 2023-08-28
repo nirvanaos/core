@@ -27,7 +27,6 @@
 #include "ORB/Services.h"
 #include <CORBA/IOP.h>
 #include <CORBA/Proxy/ProxyBase.h>
-#include "ORB/ESIOP.h"
 #include "Binder.h"
 #include "ORB/ORB.h"
 
@@ -46,6 +45,15 @@ Object::_ref_type create_SysDomain ()
 	else
 		return CORBA::Core::ORB::string_to_object (
 			"corbaloc::1.1@/%00", CORBA::Internal::RepIdOf <Nirvana::SysDomainCore>::id);
+}
+
+void SysDomain::get_call_context (Ref <SysDomain>& impl, Ref <SyncContext>& sync)
+{
+	assert (ESIOP::is_system_domain ());
+	Object::_ref_type obj = Services::bind (Services::SysDomain);
+	impl = static_cast <SysDomain*> (get_implementation (obj));
+	const ServantProxyLocal* proxy = get_proxy (obj);
+	sync = &proxy->sync_context ();
 }
 
 }

@@ -88,10 +88,11 @@ public:
 	/// \param args     Arguments for R constructor.
 	/// 
 	template <class R, class ... Args>
-	static void async_call (const DeadlineTime& deadline,
-		SyncContext& target, Heap* heap, Args ... args)
+	static void async_call (const DeadlineTime& deadline, SyncContext& target, Heap* heap,
+		Args ... args)
 	{
-		async_call <R, Args...> (deadline, target, get_mem_context (target, heap), std::forward <Args> (args)...);
+		async_call <R, Args...> (deadline, target, get_mem_context (target, heap),
+			std::forward <Args> (args)...);
 	}
 
 	/// \brief Asynchronous call.
@@ -103,8 +104,8 @@ public:
 	/// \param args        Arguments for R constructor.
 	/// 
 	template <class R, class ... Args>
-	static void async_call (const DeadlineTime& deadline,
-		SyncContext& target, Ref <MemContext>&& mem_context, Args ... args)
+	static void async_call (const DeadlineTime& deadline, SyncContext& target,
+		Ref <MemContext>&& mem_context, Args ... args)
 	{
 		static_assert (sizeof (R) <= MAX_RUNNABLE_SIZE, "Runnable too large");
 
