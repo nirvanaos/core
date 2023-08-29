@@ -47,7 +47,8 @@ namespace Core {
 class SysDomain : public CORBA::Core::SysServantImpl <SysDomain, SysDomainCore, Nirvana::SysDomain>
 {
 public:
-	SysDomain ()
+	SysDomain () :
+		shutdown_started_ (false)
 	{}
 
 	~SysDomain ()
@@ -99,13 +100,15 @@ public:
 		return CORBA::Core::Services::bind (id);
 	}
 
-	/// Get context for asynchronous call from the kernel.
+	void shutdown (unsigned flags);
+
+	/// Get context for asynchronous call from the port.
 	/// 
 	/// \param impl SysDomain servant reference.
 	/// \param sync_context SyncContext reference.
 	static void get_call_context (Ref <SysDomain>& impl, Ref <SyncContext>& sync_context);
 
-	/// Called from the kernel level
+	/// Called from the port level
 	/// 
 	/// \param domain_id Protection domain id.
 	/// \param platform Platform id.
@@ -113,14 +116,18 @@ public:
 	void domain_created (ESIOP::ProtDomainId domain_id, uint_fast16_t platform, SecurityId&& user)
 	{
 		domains_.emplace (domain_id, platform, std::move (user));
+		if (shutdown_started_)
+			ESIOP::send_shutdown (domain_id);
 	}
 
-	/// Called from the kernel level
+	/// Called from the port level
 	/// 
 	/// \param domain_id Protection domain id.
 	void domain_destroyed (ESIOP::ProtDomainId domain_id) noexcept
 	{
 		domains_.erase (domain_id);
+		if (shutdown_started_ && domains_.empty ())
+			Scheduler::shutdown ();
 	}
 
 private:
@@ -152,6 +159,18 @@ private:
 			domains_.erase (domain_id);
 		}
 
+		bool empty () const noexcept
+		{
+			return domains_.empty ();
+		}
+
+		void shutdown ()
+		{
+			for (const auto& d : domains_) {
+				ESIOP::send_shutdown (d.first);
+			}
+		}
+
 	private:
 		DomainMap domains_;
 	};
@@ -164,11 +183,20 @@ private:
 
 		void erase (ESIOP::ProtDomainId domain_id)
 		{}
+
+		static bool empty () noexcept
+		{
+			return true;
+		}
+
+		void shutdown ()
+		{}
 	};
 
 	typedef std::conditional_t <SINGLE_DOMAIN, DomainsDummy, DomainsImpl> Domains;
 
 	Domains domains_;
+	bool shutdown_started_;
 };
 
 }

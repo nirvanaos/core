@@ -250,6 +250,8 @@ struct Shutdown : MessageHeader
 	{
 		assert (hdr.message_type == MessageType::SHUTDOWN);
 		Shutdown& msg = static_cast <Shutdown&> (hdr);
+		if (hdr.other_endian ())
+			Nirvana::byteswap (msg.security_context);
 		return msg;
 	}
 };

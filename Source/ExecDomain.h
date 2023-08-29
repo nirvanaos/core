@@ -425,9 +425,13 @@ public:
 		return security_context_;
 	}
 
-	void security_context (Security::Context&& ctx) noexcept
+	static void set_security_context (Security::Context&& ctx)
 	{
-		security_context_ = std::move (ctx);
+		Thread& thr = Thread::current ();
+		ExecDomain* ed = thr.exec_domain ();
+		assert (ed);
+		ed->security_context_ = std::move (ctx);
+		thr.impersonate (ed->security_context_);
 	}
 
 private:

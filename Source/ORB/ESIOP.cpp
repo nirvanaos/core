@@ -31,6 +31,7 @@
 #include "../Runnable.h"
 #include "../Chrono.h"
 #include "../Binder.h"
+#include "../SysDomain.h"
 
 using namespace CORBA;
 using namespace CORBA::Core;
@@ -199,8 +200,7 @@ class ReceiveReplyImmediate :
 	public Runnable
 {
 public:
-	ReceiveReplyImmediate (const ReplyImmediate& msg)
-		noexcept :
+	ReceiveReplyImmediate (const ReplyImmediate& msg) noexcept :
 		request_id_ (msg.request_id),
 		size_and_flag_ (msg.flags)
 	{
@@ -267,8 +267,7 @@ class ReceiveSystemException :
 	public Runnable
 {
 public:
-	ReceiveSystemException (const ReplySystemException& msg)
-		noexcept :
+	ReceiveSystemException (const ReplySystemException& msg) noexcept :
 		completed_ ((CompletionStatus)msg.completed),
 		code_ (msg.code),
 		minor_ (msg.minor),
@@ -295,11 +294,9 @@ class ReceiveCloseConnection :
 	public Runnable
 {
 public:
-	ReceiveCloseConnection (const CloseConnection& msg)
-		noexcept :
+	ReceiveCloseConnection (const CloseConnection& msg) noexcept :
 		domain_id_ (msg.sender_domain)
-	{
-	}
+	{}
 
 private:
 	virtual void run () override;
@@ -311,6 +308,32 @@ private:
 void ReceiveCloseConnection::run ()
 {
 	Nirvana::Core::Binder::singleton ().remote_references ().close_connection (domain_id_);
+}
+
+/// Receive shutdown Runnable
+class ReceiveShutdownSys :
+	public Runnable
+{
+public:
+	ReceiveShutdownSys (const Shutdown& msg, Ref <Nirvana::Core::SysDomain>&& sd) noexcept :
+		sys_domain_ (std::move (sd)),
+		security_context_ (msg.security_context)
+	{}
+
+private:
+	virtual void run () override;
+
+private:
+	Ref <Nirvana::Core::SysDomain> sys_domain_;
+	Security::Context security_context_;
+};
+
+void ReceiveShutdownSys::run ()
+{
+	try {
+		ExecDomain::set_security_context (std::move (security_context_));
+		sys_domain_->shutdown (0);
+	} catch (...) {}
 }
 
 void dispatch_message (MessageHeader& message) noexcept
@@ -383,12 +406,24 @@ void dispatch_message (MessageHeader& message) noexcept
 			}
 		} break;
 
-		case MessageType::SHUTDOWN:
-			try {
+		case MessageType::SHUTDOWN: {
+			const auto& msg = Shutdown::receive (message);
+			if (!Security::is_valid_context (msg.security_context))
+				break;
+			if (is_system_domain ()) {
+				try {
+					Ref <Nirvana::Core::SysDomain> sd;
+					Ref <SyncContext> sc;
+					Nirvana::Core::SysDomain::get_call_context (sd, sc);
+					ExecDomain::async_call <ReceiveShutdownSys> (INFINITE_DEADLINE, *sc, nullptr,
+						std::ref (msg), std::move (sd));
+				} catch (...) {
+				}
+			} else {
+				Security::Context tmp (msg.security_context);
 				Scheduler::shutdown ();
-			} catch (...) {
 			}
-			break;
+		} break;
 
 		case MessageType::CLOSE_CONNECTION: {
 			const auto& msg = CloseConnection::receive (message);

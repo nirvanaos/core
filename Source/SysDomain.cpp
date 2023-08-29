@@ -56,6 +56,21 @@ void SysDomain::get_call_context (Ref <SysDomain>& impl, Ref <SyncContext>& sync
 	sync = &proxy->sync_context ();
 }
 
+void SysDomain::shutdown (unsigned flags)
+{
+	if (shutdown_started_)
+		return;
+	shutdown_started_ = true;
+	try {
+		if (domains_.empty ())
+			Scheduler::shutdown ();
+		else
+			domains_.shutdown ();
+	} catch (...) {
+		shutdown_started_ = false;
+	}
+}
+
 }
 }
 
