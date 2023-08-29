@@ -103,23 +103,28 @@ Ref <ExecDomain> ExecDomain::create (const DeadlineTime deadline, Ref <MemContex
 {
 	Ref <ExecDomain> ed = Creator::create ();
 	Scheduler::activity_begin ();
-	ed->deadline_ = deadline;
-	assert (ed->mem_context_stack_.empty ());
+	try {
+		ed->deadline_ = deadline;
+		assert (ed->mem_context_stack_.empty ());
 
-	MemContext* pmc = mem_context;
-	ed->mem_context_stack_.push (std::move (mem_context));
-	ed->mem_context_ = pmc;
+		MemContext* pmc = mem_context;
+		ed->mem_context_stack_.push (std::move (mem_context));
+		ed->mem_context_ = pmc;
 
-	Thread* th = Thread::current_ptr ();
-	if (th) {
-		ExecDomain* parent = th->exec_domain ();
-		if (parent)
-			ed->security_context_ = parent->security_context_;
-	}
+		Thread* th = Thread::current_ptr ();
+		if (th) {
+			ExecDomain* parent = th->exec_domain ();
+			if (parent)
+				ed->security_context_ = parent->security_context_;
+		}
 
 #ifdef _DEBUG
-	assert (!ed->dbg_context_stack_size_++);
+		assert (!ed->dbg_context_stack_size_++);
 #endif
+	} catch (...) {
+		ed->cleanup ();
+		throw;
+	}
 	return ed;
 }
 
@@ -186,10 +191,9 @@ void ExecDomain::execute () noexcept
 
 void ExecDomain::cleanup () noexcept
 {
-	assert (this == &current ());
 	assert (!runnable_);
 
-	{
+	if (sync_context_) {
 		SyncDomain* sd = sync_context_->sync_domain ();
 		if (sd)
 			sd->leave ();
