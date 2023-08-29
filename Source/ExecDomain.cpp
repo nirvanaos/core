@@ -179,7 +179,9 @@ void ExecDomain::start_legacy_thread (Legacy::Core::Process& process, Legacy::Co
 void ExecDomain::execute () noexcept
 {
 	Thread::current ().exec_domain (*this);
-	ExecContext::switch_to ();
+	if (!security_context_.empty ())
+		Thread::impersonate (security_context_);
+	switch_to ();
 }
 
 void ExecDomain::cleanup () noexcept

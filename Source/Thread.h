@@ -28,8 +28,9 @@
 #define NIRVANA_CORE_THREAD_H_
 #pragma once
 
-#include "ExecContext.h"
 #include <Port/Thread.h>
+#include "ExecContext.h"
+#include "Security.h"
 
 namespace Nirvana {
 namespace Core {
@@ -41,6 +42,7 @@ class NIRVANA_NOVTABLE Thread :
 	protected Port::Thread
 {
 	friend class Port::Thread;
+
 public:
 	// Implementation - specific methods can be called explicitly.
 	Port::Thread& port () noexcept
@@ -63,11 +65,13 @@ public:
 		return Port::Thread::current ();
 	}
 
+	/// Returns ExecDomain assigned to thread.
 	ExecDomain* exec_domain () const noexcept
 	{
 		return exec_domain_;
 	}
 
+	/// Assign ExecDomain to thread
 	void exec_domain (ExecDomain& exec_domain) noexcept
 	{
 		assert (!exec_domain_);
@@ -86,6 +90,11 @@ public:
 		assert (this == &current ());
 		assert (exec_domain_);
 		exec_domain_ = nullptr;
+	}
+
+	static void impersonate (const Security::Context& sec_context)
+	{
+		Port::Thread::impersonate (sec_context);
 	}
 
 protected:
