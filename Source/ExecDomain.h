@@ -36,6 +36,7 @@
 #include "ThreadBackground.h"
 #include "CoreObject.h"
 #include "unrecoverable_error.h"
+#include "Security.h"
 #include <limits>
 #include <utility>
 #include <signal.h>
@@ -419,6 +420,16 @@ public:
 	/// Called on core shutdown.
 	static void terminate () noexcept;
 
+	const Security::Context& security_context () const noexcept
+	{
+		return security_context_;
+	}
+
+	void security_context (Security::Context&& ctx) noexcept
+	{
+		security_context_ = std::move (ctx);
+	}
+
 private:
 	ExecDomain () :
 		ExecContext (false),
@@ -580,6 +591,8 @@ private:
 	Ref <ThreadBackground> background_worker_;
 	RestrictedMode restricted_mode_;
 
+	Security::Context security_context_;
+	
 	void* tls_ [CORE_TLS_COUNT];
 
 	typename std::aligned_storage <MAX_RUNNABLE_SIZE>::type runnable_space_;

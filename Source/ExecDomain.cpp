@@ -109,6 +109,14 @@ Ref <ExecDomain> ExecDomain::create (const DeadlineTime deadline, Ref <MemContex
 	MemContext* pmc = mem_context;
 	ed->mem_context_stack_.push (std::move (mem_context));
 	ed->mem_context_ = pmc;
+
+	Thread* th = Thread::current_ptr ();
+	if (th) {
+		ExecDomain* parent = th->exec_domain ();
+		if (parent)
+			ed->security_context_ = parent->security_context_;
+	}
+
 #ifdef _DEBUG
 	assert (!ed->dbg_context_stack_size_++);
 #endif
@@ -212,6 +220,8 @@ void ExecDomain::cleanup () noexcept
 	}
 
 	std::fill_n (tls_, CoreTLS::CORE_TLS_COUNT, nullptr);
+
+	security_context_.clear ();
 
 	ExecContext::run_in_neutral_context (deleter_);
 }

@@ -33,6 +33,7 @@
 #include <CORBA/IOP.h>
 #include <Port/ESIOP.h>
 #include <Port/config.h>
+#include "../Security.h"
 
 namespace CORBA {
 namespace Core {
@@ -221,7 +222,7 @@ struct CloseConnection : MessageHeader
 	ProtDomainId sender_domain;
 
 	CloseConnection (ProtDomainId sender) noexcept :
-	MessageHeader (CLOSE_CONNECTION),
+		MessageHeader (CLOSE_CONNECTION),
 		sender_domain (sender)
 	{
 	}
@@ -236,6 +237,23 @@ struct CloseConnection : MessageHeader
 	}
 };
 
+struct Shutdown : MessageHeader
+{
+	Nirvana::Core::Security::ContextABI security_context;
+
+	Shutdown (Nirvana::Core::Security::ContextABI sc) noexcept :
+		MessageHeader (SHUTDOWN),
+		security_context (sc)
+	{}
+
+	static Shutdown& receive (MessageHeader& hdr) noexcept
+	{
+		assert (hdr.message_type == MessageType::SHUTDOWN);
+		Shutdown& msg = static_cast <Shutdown&> (hdr);
+		return msg;
+	}
+};
+
 /// The message buffer enough for any message
 union MessageBuffer
 {
@@ -243,6 +261,8 @@ union MessageBuffer
 	Reply reply;
 	ReplySystemException system_exception;
 	CancelRequest cancel_request;
+	CloseConnection close_connection;
+	Shutdown shutdown;
 };
 
 /// If reply data size is zero or small, the reply can be sent without
@@ -275,20 +295,6 @@ struct ReplyImmediate : MessageHeader
 };
 
 static_assert (sizeof (MessageBuffer) == sizeof (ReplyImmediate), "sizeof (MessageBuffer) == sizeof (ReplyImmediate)");
-
-struct Shutdown : MessageHeader
-{
-	Shutdown () noexcept :
-	MessageHeader (SHUTDOWN)
-	{}
-
-	static Shutdown& receive (MessageHeader& hdr) noexcept
-	{
-		assert (hdr.message_type == MessageType::SHUTDOWN);
-		Shutdown& msg = static_cast <Shutdown&> (hdr);
-		return msg;
-	}
-};
 
 /// Message dispatch function.
 /// Called by the postman from portability layer.

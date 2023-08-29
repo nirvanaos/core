@@ -38,9 +38,10 @@
 #include "MapUnorderedUnstable.h"
 
 namespace Nirvana {
-namespace Core {
 
 typedef IDL::Sequence <CORBA::Octet> SecurityId;
+
+namespace Core {
 
 /// System domain
 class SysDomain : public CORBA::Core::SysServantImpl <SysDomain, SysDomainCore, Nirvana::SysDomain>
