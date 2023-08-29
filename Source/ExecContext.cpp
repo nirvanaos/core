@@ -39,13 +39,15 @@ void ExecContext::run_in_neutral_context (Runnable& runnable) noexcept
 void ExecContext::neutral_context_loop (Thread& worker) noexcept
 {
 	assert (&current () == &worker.neutral_context ());
-	while (worker.neutral_context ().runnable_) {
+	for (;;) {
+		assert (worker.neutral_context ().runnable_);
 		worker.neutral_context ().run ();
 		ExecDomain* ed = worker.exec_domain ();
 		if (ed) {
 			assert (ed->runnable ());
 			ed->switch_to ();
-		}
+		} else
+			break;
 	}
 }
 
