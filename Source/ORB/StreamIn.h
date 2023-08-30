@@ -184,8 +184,6 @@ public:
 	{
 		ULong val;
 		read_one (val);
-		if (other_endian ())
-			Nirvana::byteswap (val);
 		return val;
 	}
 
@@ -193,6 +191,8 @@ public:
 	void read_one (T& v)
 	{
 		read (Internal::Type <T>::CDR_align, sizeof (T), Internal::Type <T>::CDR_size, 1, &v);
+		if (other_endian ())
+			Internal::Type <T>::byteswap (v);
 	}
 
 	void chunk_mode (bool on) noexcept

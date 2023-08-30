@@ -134,8 +134,6 @@ void RequestIn::final_construct (servant_reference <StreamIn>&& in)
 			encap.read_one (dl);
 			if (encap.end () != 0)
 				throw MARSHAL (StreamIn::MARSHAL_MINOR_MORE);
-			if (encap.other_endian ())
-				Internal::byteswap (dl);
 			deadline_ = dl;
 		}
 	} else {
@@ -154,8 +152,6 @@ void RequestIn::final_construct (servant_reference <StreamIn>&& in)
 					encap.read_one (priority);
 					if (encap.end ())
 						throw BAD_PARAM ();
-					if (encap.other_endian ())
-						Internal::byteswap (priority);
 					deadline_ = Chrono::deadline_from_priority (priority);
 				}
 			}

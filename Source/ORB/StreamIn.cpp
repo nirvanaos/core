@@ -46,8 +46,6 @@ size_t StreamIn::read_size ()
 {
 	uint32_t count;
 	read_one (count);
-	if (other_endian ())
-		byteswap (count);
 	if (sizeof (size_t) < sizeof (uint32_t) && count > std::numeric_limits <size_t>::max ())
 		throw IMP_LIMIT ();
 	return (size_t)count;

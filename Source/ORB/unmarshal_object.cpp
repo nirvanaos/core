@@ -63,8 +63,6 @@ Object::_ref_type unmarshal_object (Internal::String_in primary_iid, StreamIn & 
 		stm.read_string (listen_point.host ());
 		CORBA::UShort port;
 		stm.read_one (port);
-		if (stm.other_endian ())
-			Nirvana::byteswap (port);
 		listen_point.port (port);
 		stm.read_seq (object_key);
 		if (ver.minor () >= 1) {

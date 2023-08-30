@@ -68,8 +68,6 @@ public:
 				encap.read_one (msg_body);
 				if (encap.end ())
 					throw BAD_PARAM ();
-				if (encap.other_endian ())
-					Internal::Type <CSI::MessageInContext>::byteswap (msg_body);
 				if (msg_body.client_context_id () <=
 					std::numeric_limits <Nirvana::Core::Security::ContextABI>::max ()) {
 

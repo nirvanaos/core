@@ -245,10 +245,6 @@ TypeCode::_ref_type TC_FactoryImpl::unmarshal_type_code (TCKind kind, StreamIn& 
 		stream.read_one (digits);
 		Short scale;
 		stream.read_one (scale);
-		if (stream.other_endian ()) {
-			byteswap (digits);
-			byteswap (scale);
-		}
 		ret = make_pseudo <TC_Fixed> (digits, scale);
 	} break;
 
@@ -476,8 +472,6 @@ TypeCode::_ref_type TC_FactoryImpl::unmarshal_type_code_cplx (TCKind kind, Strea
 		stm.read_string (name);
 		ValueModifier modifier;
 		stm.read_one (modifier);
-		if (stm.other_endian ())
-			byteswap (modifier);
 
 		servant_reference <TC_Value> ref = make_reference <TC_Value> (std::move (id), std::move (name), modifier);
 		TypeCode::_ptr_type tc = ref->_get_ptr ();
@@ -498,8 +492,6 @@ TypeCode::_ref_type TC_FactoryImpl::unmarshal_type_code_cplx (TCKind kind, Strea
 					pm->type = TC_Ref (mt, complex_base (mt));
 					Short visibility;
 					stm.read_one (visibility);
-					if (stm.other_endian ())
-						byteswap (visibility);
 					pm->visibility = visibility;
 					++pm;
 				}
