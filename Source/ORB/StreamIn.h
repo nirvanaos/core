@@ -29,7 +29,7 @@
 #pragma once
 
 #include <CORBA/CORBA.h>
-#include <CORBA/GIOP.h>
+#include "../CORBA/GIOP.h"
 #include "../CoreInterface.h"
 #include "../MemContext.h"
 

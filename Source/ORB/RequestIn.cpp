@@ -132,8 +132,8 @@ void RequestIn::final_construct (servant_reference <StreamIn>&& in)
 			ImplStatic <StreamInEncap> encap (std::ref (context->context_data ()));
 			DeadlineTime dl;
 			encap.read_one (dl);
-			if (encap.end ())
-				throw BAD_PARAM ();
+			if (encap.end () != 0)
+				throw MARSHAL (StreamIn::MARSHAL_MINOR_MORE);
 			if (encap.other_endian ())
 				Internal::byteswap (dl);
 			deadline_ = dl;

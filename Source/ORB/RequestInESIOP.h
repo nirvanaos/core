@@ -31,6 +31,7 @@
 #include "RequestIn.h"
 #include "ESIOP.h"
 #include "system_services.h"
+#include "../CORBA/CSI.h"
 
 namespace CORBA {
 namespace Core {
@@ -55,6 +56,36 @@ public:
 				throw CORBA::OBJECT_NOT_EXIST (MAKE_OMG_MINOR (2));
 			ESIOP::erase_prot_domain_id (object_key_);
 		}
+
+		Nirvana::Core::Security::Context security_context;
+		auto context = binary_search (service_context_, IOP::SecurityAttributeService);
+		if (context) {
+			Nirvana::Core::ImplStatic <StreamInEncap> encap (std::ref (context->context_data ()));
+			CSI::MsgType msg_type;
+			encap.read_one (msg_type);
+			if (CSI::MTMessageInContext == msg_type) {
+				CSI::MessageInContext msg_body;
+				encap.read_one (msg_body);
+				if (encap.end ())
+					throw BAD_PARAM ();
+				if (encap.other_endian ())
+					Internal::Type <CSI::MessageInContext>::byteswap (msg_body);
+				if (msg_body.client_context_id () <=
+					std::numeric_limits <Nirvana::Core::Security::ContextABI>::max ()) {
+
+					Nirvana::Core::Security::ContextABI sc = (Nirvana::Core::Security::ContextABI)
+						msg_body.client_context_id ();
+
+					if (Nirvana::Core::Security::is_valid_context (sc))
+						security_context = Nirvana::Core::Security::Context (sc);
+				}
+			}
+		}
+
+		if (security_context.empty ())
+			throw NO_PERMISSION ();
+
+		Nirvana::Core::ExecDomain::set_security_context (std::move (security_context));
 	}
 
 protected:

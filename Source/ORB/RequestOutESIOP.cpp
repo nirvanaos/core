@@ -38,6 +38,7 @@ void RequestOutESIOP::invoke ()
 	// Now it is responsibility of the target domain to release it.
 	stm.detach ();
 	stream_out_ = nullptr;
+	security_context_.detach ();
 }
 
 void RequestOutESIOP::cancel ()

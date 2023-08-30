@@ -33,6 +33,7 @@
 #include "../ExecDomain.h"
 #include "../UserObject.h"
 #include "../Timer.h"
+#include "../Security.h"
 
 namespace CORBA {
 namespace Core {

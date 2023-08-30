@@ -31,6 +31,7 @@
 #include "RequestOut.h"
 #include "StreamOutSM.h"
 #include "OutgoingRequests.h"
+#include "../CORBA/CSI.h"
 
 namespace CORBA {
 namespace Core {
@@ -47,11 +48,16 @@ public:
 		if ((response_flags & 3) == 1)
 			GIOP_minor_ = 2;
 
+		security_context_ = domain ()->create_security_context ();
+		
 		stream_out_ = servant_reference <StreamOut>::create <Nirvana::Core::ImplDynamic <StreamOutSM> >
 			(std::ref (static_cast <DomainProt&> (target_domain)), true);
+		
 		id (get_new_id (IdPolicy::ANY));
-		Nirvana::DeadlineTime dl = deadline ();
+		
 		IOP::ServiceContextList context;
+
+		Nirvana::DeadlineTime dl = deadline ();
 		if (Nirvana::INFINITE_DEADLINE != dl) {
 			Nirvana::Core::ImplStatic <StreamOutEncap> encap;
 			encap.write_one (dl);
@@ -59,6 +65,19 @@ public:
 			context.back ().context_id (ESIOP::CONTEXT_ID_DEADLINE);
 			context.back ().context_data (std::move (encap.data ()));
 		}
+
+		{
+			CSI::MsgType msg_type = CSI::MTMessageInContext;
+			CSI::MessageInContext msg_body (security_context_.abi (), true);
+
+			Nirvana::Core::ImplStatic <StreamOutEncap> encap;
+			encap.write_one (msg_type);
+			encap.write_one (msg_body);
+			context.emplace_back ();
+			context.back ().context_id (IOP::SecurityAttributeService);
+			context.back ().context_data (std::move (encap.data ()));
+		}
+
 		write_header (object_key, context);
 	}
 
@@ -70,6 +89,9 @@ public:
 protected:
 	virtual void invoke () override;
 	virtual void cancel () override;
+
+private:
+	Nirvana::Core::Security::Context security_context_;
 };
 
 }
