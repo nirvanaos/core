@@ -52,7 +52,7 @@ public:
 		return pool_->create ();
 	}
 
-	static void release (ExecDomain& ed)
+	static void release (ExecDomain& ed) noexcept
 	{
 		pool_->release (ed);
 	}
@@ -77,7 +77,7 @@ public:
 		return Ref <ExecDomain>::create <ExecDomain> ();
 	}
 
-	static void release (ExecDomain& ed)
+	static void release (ExecDomain& ed) noexcept
 	{
 		delete& ed;
 	}
