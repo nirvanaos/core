@@ -61,7 +61,7 @@ void EventChannel::ProxyPullConsumer::disconnect_pull_consumer () noexcept
 {
 	CosEventComm::PullSupplier::_ref_type p = std::move (supplier_);
 	if (p) {
-		handler_->destroy ();
+		handler_->disconnect ();
 		handler_ = nullptr;
 		channel_->pull_consumers_.on_disconnect ();
 		try {
@@ -78,6 +78,41 @@ void EventChannel::ProxyPushSupplier::disconnect_push_supplier () noexcept
 		try {
 			p->disconnect_push_consumer ();
 		} catch (...) {}
+	}
+}
+
+void EventChannel::Children::destroy (PortableServer::POA::_ptr_type adapter) noexcept
+{
+	for (auto p : *this) {
+		p->destroy (adapter);
+	}
+	clear ();
+}
+
+void EventChannel::push (const Any& data)
+{
+	if (!pull_suppliers_.empty ()) {
+		servant_reference <SharedAny> sany (make_reference <SharedAny> (std::ref (data)));
+		for (const auto p : pull_suppliers_) {
+			ProxyPullSupplier& sup = static_cast <ProxyPullSupplier&> (*p);
+			if (sup.connected ())
+				sup.push (*sany);
+		}
+	}
+
+	for (const auto p : push_suppliers_) {
+		ProxyPushSupplier& sup = static_cast <ProxyPushSupplier&> (*p);
+		if (sup.connected ())
+			sup.push (data);
+	}
+}
+
+void EventChannel::deactivate (PortableServer::ServantBase::_ptr_type servant,
+	PortableServer::POA::_ptr_type adapter) noexcept
+{
+	try {
+		adapter->deactivate_object (adapter->servant_to_id (servant));
+	} catch (...) {
 	}
 }
 
