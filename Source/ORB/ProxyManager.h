@@ -375,7 +375,7 @@ public:
 	template <class El>
 	using Array = Nirvana::Core::Array <El, Nirvana::Core::HeapAllocator>;
 
-	const Array <InterfaceEntry>& interfaces ()
+	const Array <InterfaceEntry>& interfaces () const noexcept
 	{
 		return metadata_.interfaces;
 	}
