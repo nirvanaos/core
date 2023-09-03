@@ -102,6 +102,13 @@ protected:
 		set_servant (servant, offset);
 	}
 
+	ServantProxyBase (PortableServer::Servant servant, Internal::String_in interface_id) :
+		ProxyManager (interface_id, true),
+		ref_cnt_ (0),
+		servant_ (servant),
+		sync_context_ (&Nirvana::Core::SyncContext::current ())
+	{}
+
 	virtual ~ServantProxyBase ();
 
 	void run_garbage_collector () const noexcept;

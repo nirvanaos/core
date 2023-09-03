@@ -112,11 +112,14 @@ public:
 	void delete_servant (bool from_destructor);
 
 protected:
-	ServantProxyObject (PortableServer::Servant user_servant) :
-		ServantProxyBase (user_servant),
+	ServantProxyObject (PortableServer::Servant servant) :
+		ServantProxyBase (servant),
 		adapter_context_ (&local2proxy (Services::bind (Services::RootPOA))->sync_context ()),
 		references_ (adapter_context_->sync_domain ()->mem_context ().heap ())
 	{}
+
+	// For event proxies
+	ServantProxyObject (PortableServer::Servant servant, Internal::String_in interface_id);
 
 	ReferenceLocalRef get_local_reference () const noexcept;
 

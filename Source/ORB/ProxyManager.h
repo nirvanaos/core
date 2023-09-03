@@ -447,6 +447,15 @@ protected:
 		return Internal::make_op_idx (0, op_idx);
 	}
 
+	void set_interface_metadata (const Internal::InterfaceMetadata* metadata,
+		Internal::Interface* implementation) noexcept
+	{
+		assert (metadata_.interfaces.size () == 1);
+		InterfaceEntry& ie = *metadata_.interfaces.begin ();
+		ie.interface_metadata = metadata;
+		ie.implementation = implementation;
+	}
+
 private:
 	struct OperationEntry
 	{
