@@ -51,7 +51,7 @@ public:
 		check_exist ();
 		destroyed_ = true;
 
-		deactivate (servant, adapter);
+		deactivate_servant (servant, adapter);
 
 		push_suppliers_.destroy (adapter);
 		push_consumers_.destroy (adapter);
@@ -61,22 +61,22 @@ public:
 
 	CosEventChannelAdmin::ProxyPushSupplier::_ref_type obtain_push_supplier ()
 	{
-		return push_suppliers_.create <ProxyPushSupplier> (*this);
+		return push_suppliers_.create <PushSupplier> (std::ref (*this));
 	}
 
 	CosEventChannelAdmin::ProxyPullSupplier::_ref_type obtain_pull_supplier ()
 	{
-		return pull_suppliers_.create <ProxyPullSupplier> (*this);
+		return pull_suppliers_.create <PullSupplier> (std::ref (*this));
 	}
 
 	CosEventChannelAdmin::ProxyPushConsumer::_ref_type obtain_push_consumer ()
 	{
-		return push_consumers_.create <ProxyPushConsumer> (*this);
+		return push_consumers_.create <PushConsumer> (std::ref (*this));
 	}
 
 	CosEventChannelAdmin::ProxyPullConsumer::_ref_type obtain_pull_consumer ()
 	{
-		return pull_consumers_.create <ProxyPullConsumer> (*this);
+		return pull_consumers_.create <PullConsumer> (std::ref (*this));
 	}
 
 protected:
@@ -86,7 +86,7 @@ protected:
 			throw OBJECT_NOT_EXIST ();
 	}
 
-	static void deactivate (PortableServer::ServantBase::_ptr_type servant,
+	static void deactivate_servant (PortableServer::ServantBase::_ptr_type servant,
 		PortableServer::POA::_ptr_type adapter) noexcept;
 
 	template <class S>
@@ -121,7 +121,7 @@ protected:
 		void destroy (PortableServer::ServantBase::_ptr_type servant,
 			PortableServer::POA::_ptr_type adapter) noexcept
 		{
-			deactivate (servant, adapter);
+			deactivate_servant (servant, adapter);
 			channel_ = nullptr;
 		}
 
@@ -161,10 +161,10 @@ protected:
 			assert (connected_cnt_ <= size ());
 		}
 
-		template <class S>
-		typename S::PrimaryInterface::_ref_type create (EventChannelBase& channel)
+		template <class S, class ... Args>
+		typename S::PrimaryInterface::_ref_type create (Args ... args)
 		{
-			servant_reference <S> ref (make_reference <S> (std::ref (channel)));
+			servant_reference <S> ref (make_reference <S> (std::forward <Args> (args)...));
 			insert (&static_cast <ChildObject&> (*ref));
 			return ref->_this ();
 		}
@@ -175,17 +175,17 @@ protected:
 		size_t connected_cnt_;
 	};
 
-	class ProxyPushConsumer :
+	class PushConsumer :
 		public ChildObject,
-		public servant_traits <CosEventChannelAdmin::ProxyPushConsumer>::Servant <ProxyPushConsumer>
+		public servant_traits <CosEventChannelAdmin::ProxyPushConsumer>::Servant <PushConsumer>
 	{
 	public:
-		ProxyPushConsumer (EventChannelBase& channel) :
+		PushConsumer (EventChannelBase& channel) :
 			ChildObject (channel),
 			connected_ (false)
 		{}
 
-		~ProxyPushConsumer ()
+		~PushConsumer ()
 		{
 			disconnect_push_consumer ();
 			if (channel_)
@@ -226,17 +226,17 @@ protected:
 		bool connected_;
 	};
 
-	class ProxyPullSupplier :
+	class PullSupplier :
 		public ChildObject,
-		public servant_traits <CosEventChannelAdmin::ProxyPullSupplier>::Servant <ProxyPullSupplier>
+		public servant_traits <CosEventChannelAdmin::ProxyPullSupplier>::Servant <PullSupplier>
 	{
 	public:
-		ProxyPullSupplier (EventChannelBase& channel) :
+		PullSupplier (EventChannelBase& channel) :
 			ChildObject (channel),
 			connected_ (false)
 		{}
 
-		~ProxyPullSupplier ()
+		~PullSupplier ()
 		{
 			disconnect_pull_supplier ();
 			if (channel_)
@@ -366,16 +366,16 @@ protected:
 		CosEventComm::PullSupplier::_ref_type supplier_;
 	};
 
-	class ProxyPullConsumer :
+	class PullConsumer :
 		public ChildObject,
-		public servant_traits <CosEventChannelAdmin::ProxyPullConsumer>::Servant <ProxyPullConsumer>
+		public servant_traits <CosEventChannelAdmin::ProxyPullConsumer>::Servant <PullConsumer>
 	{
 	public:
-		ProxyPullConsumer (EventChannelBase& channel) :
+		PullConsumer (EventChannelBase& channel) :
 			ChildObject (channel)
 		{}
 
-		~ProxyPullConsumer ()
+		~PullConsumer ()
 		{
 			disconnect_pull_consumer ();
 			if (channel_)
@@ -417,16 +417,16 @@ protected:
 		servant_reference <PullHandler> handler_;
 	};
 
-	class ProxyPushSupplier :
+	class PushSupplier :
 		public ChildObject,
-		public servant_traits <CosEventChannelAdmin::ProxyPushSupplier>::Servant <ProxyPushSupplier>
+		public servant_traits <CosEventChannelAdmin::ProxyPushSupplier>::Servant <PushSupplier>
 	{
 	public:
-		ProxyPushSupplier (EventChannelBase& channel) :
+		PushSupplier (EventChannelBase& channel) :
 			ChildObject (channel)
 		{}
 
-		~ProxyPushSupplier ()
+		~PushSupplier ()
 		{
 			disconnect_push_supplier ();
 			if (channel_)
@@ -468,7 +468,9 @@ protected:
 		CosEventComm::PushConsumer::_ref_type consumer_;
 	};
 
-	class ConsumerAdmin : public ChildObject
+	class ConsumerAdmin :
+		public ChildObject,
+		public servant_traits <CosEventChannelAdmin::ConsumerAdmin>::Servant <ConsumerAdmin>
 	{
 	public:
 		ConsumerAdmin (EventChannelBase& channel) :
@@ -484,9 +486,16 @@ protected:
 		{
 			return check_exist ().obtain_pull_supplier ();
 		}
+
+		virtual void destroy (PortableServer::POA::_ptr_type adapter) noexcept override
+		{
+			ChildObject::destroy (this, adapter);
+		}
 	};
 
-	class SupplierAdmin : public ChildObject
+	class SupplierAdmin :
+		public ChildObject,
+		public servant_traits <CosEventChannelAdmin::SupplierAdmin>::Servant <SupplierAdmin>
 	{
 	public:
 		SupplierAdmin (EventChannelBase& channel) :
@@ -501,6 +510,11 @@ protected:
 		CosEventChannelAdmin::ProxyPullConsumer::_ref_type obtain_pull_consumer ()
 		{
 			return check_exist ().obtain_pull_consumer ();
+		}
+
+		virtual void destroy (PortableServer::POA::_ptr_type adapter) noexcept override
+		{
+			ChildObject::destroy (this, adapter);
 		}
 	};
 
@@ -540,37 +554,6 @@ public:
 		destroy_child (consumer_admin_, adapter);
 		destroy_child (supplier_admin_, adapter);
 	}
-
-private:
-	class SupplierAdmin :
-		public servant_traits <CosEventChannelAdmin::SupplierAdmin>::Servant <SupplierAdmin>,
-		public EventChannelBase::SupplierAdmin
-	{
-	public:
-		SupplierAdmin (EventChannelBase& channel) :
-			EventChannelBase::SupplierAdmin (channel)
-		{}
-
-		virtual void destroy (PortableServer::POA::_ptr_type adapter) noexcept override
-		{
-			ChildObject::destroy (this, adapter);
-		}
-	};
-
-	class ConsumerAdmin :
-		public servant_traits <CosEventChannelAdmin::ConsumerAdmin>::Servant <ConsumerAdmin>,
-		public EventChannelBase::ConsumerAdmin
-	{
-	public:
-		ConsumerAdmin (EventChannelBase& channel) :
-			EventChannelBase::ConsumerAdmin (channel)
-		{}
-
-		virtual void destroy (PortableServer::POA::_ptr_type adapter) noexcept override
-		{
-			ChildObject::destroy (this, adapter);
-		}
-	};
 
 private:
 	servant_reference <ConsumerAdmin> consumer_admin_;

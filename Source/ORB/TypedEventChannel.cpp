@@ -24,7 +24,6 @@
 *  popov.nirvana@gmail.com
 */
 #include "TypedEventChannel.h"
-#include "ServantProxyObject.h"
 
 using namespace CosTypedEventChannelAdmin;
 
@@ -32,73 +31,18 @@ namespace CORBA {
 using namespace Internal;
 namespace Core {
 
-class TypedEventChannel::EventProxy :
-	public ChildObject,
-	public ServantProxyObject
+void TypedEventChannel::ProxyPush::request_proc (PushConsumer* servant, IORequest::_ptr_type call)
 {
-protected:
-	EventProxy (TypedEventChannel& channel, const IDL::String& interface_id);
 
-	const Operation& operation () const noexcept
-	{
-		return interfaces ().front ().operations ().p [0];
-	}
-
-	void set_request_proc (RequestProc proc) noexcept
-	{
-		interface_metadata_ = interfaces ().front ().metadata ();
-		operation_ = interface_metadata_.operations.p [0];
-		interface_metadata_.operations.p = &operation_;
-		operation_.invoke = proc;
-		set_interface_metadata (&interface_metadata_, reinterpret_cast <Interface*> (channel_));
-	}
-
-protected:
-	Operation operation_;
-	InterfaceMetadata interface_metadata_;
-};
-
-TypedEventChannel::EventProxy::EventProxy (TypedEventChannel& channel,
-	const IDL::String& interface_id) :
-	ChildObject (channel),
-	ServantProxyObject (&channel, interface_id)
-{
-	// Interface must not have base interfaces
-	if (interfaces ().size () != 1)
-		throw InterfaceNotSupported ();
 }
 
-class TypedEventChannel::ProxyPush : EventProxy
+void TypedEventChannel::deactivate_object (Object::_ptr_type obj,
+	PortableServer::POA::_ptr_type adapter) noexcept
 {
-public:
-	ProxyPush (TypedEventChannel& channel, const IDL::String& interface_id) :
-		EventProxy (channel, interface_id)
-	{
-		// Interface must have only one operation
-		const Internal::CountedArray <Internal::Operation>& ops = interfaces ().front ().operations ();
-		if (ops.size != 1)
-			throw InterfaceNotSupported ();
-		// Interface operation must have only one input parameter
-		const Internal::Operation& op = operation ();
-		if (op.input.size != 1 || op.output.size != 0)
-			throw InterfaceNotSupported ();
-
-		TypeCode::_ref_type event_type = (op.input.p [0].type) ();
-		if (!channel.event_type_)
-			channel.event_type_ = std::move (event_type);
-		else if (!event_type->equivalent (channel.event_type_))
-			throw InterfaceNotSupported ();
-
-		set_request_proc (request_proc);
+	try {
+		adapter->deactivate_object (adapter->reference_to_id (obj));
+	} catch (...) {
 	}
-
-private:
-	static bool request_proc (Interface* servant, Interface* call);
-};
-
-bool TypedEventChannel::ProxyPush::request_proc (Interface* servant, Interface* call)
-{
-	return true;
 }
 
 }
