@@ -443,24 +443,6 @@ void ProxyManager::rq_repository_id (ProxyManager* servant, CORBA::Internal::IOR
 	Type <IDL::String>::marshal_out (ret, _rq);
 }
 
-bool ProxyManager::call_request_proc (RqProcInternal proc, ProxyManager* servant, Interface* call)
-{
-	IORequest::_ptr_type rq = nullptr;
-	try {
-		rq = IORequest::_check (call);
-		proc (servant, rq);
-		rq->success ();
-	} catch (Exception& e) {
-		if (!rq)
-			return false;
-
-		Any any;
-		any <<= std::move (e);
-		rq->set_exception (any);
-	}
-	return true;
-}
-
 ReferenceLocalRef ProxyManager::get_local_reference (const PortableServer::Core::POA_Base&)
 {
 	return nullptr;
