@@ -40,13 +40,13 @@ const Parameter ProxyManager::is_a_param_ = { "logical_type_id", Type <String>::
 
 const Operation ProxyManager::object_ops_ [(size_t)ObjectOp::OBJECT_OP_CNT] = {
 	{ "_get_interface", {0, 0}, {0, 0}, {0, 0}, {0, 0}, Type <InterfaceDef>::type_code,
-		ObjProcWrapper <rq_get_interface>, Operation::FLAG_OUT_CPLX },
+		call <rq_get_interface>, Operation::FLAG_OUT_CPLX },
 	{ "_is_a", {&is_a_param_, 1}, {0, 0}, {0, 0}, {0, 0}, Type <Boolean>::type_code,
-		ObjProcWrapper <rq_is_a>, 0 },
+		call <rq_is_a>, 0 },
 	{ "_non_existent", {0, 0}, {0, 0}, {0, 0}, {0, 0}, Type <Boolean>::type_code,
-		ObjProcWrapper <rq_non_existent>, 0 },
+		call <rq_non_existent>, 0 },
 	{ "_repository_id", {0, 0}, {0, 0}, {0, 0}, {0, 0}, Type <String>::type_code,
-		ObjProcWrapper <rq_repository_id>, 0 }
+		call <rq_repository_id>, 0 }
 };
 
 struct ProxyManager::OEPred

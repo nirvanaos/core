@@ -34,7 +34,7 @@
 #include "../HeapAllocator.h"
 #include <CORBA/AbstractBase_s.h>
 #include <CORBA/Object_s.h>
-#include <CORBA/Proxy/ProxyBase.h>
+#include <CORBA/Proxy/RqProcWrapper.h>
 #include <CORBA/Proxy/InterfaceMetadata.h>
 #include <CORBA/Proxy/ProxyFactory.h>
 #include <CORBA/Proxy/IOReference_s.h>
@@ -103,7 +103,8 @@ class NIRVANA_NOVTABLE ProxyManager :
 	public Internal::LifeCycleRefCnt <ProxyManager>,
 	public Internal::InterfaceImplBase <ProxyManager, Internal::IOReference>,
 	public Internal::InterfaceImplBase <ProxyManager, Object>,
-	public Internal::InterfaceImplBase <ProxyManager, AbstractBase>
+	public Internal::InterfaceImplBase <ProxyManager, AbstractBase>,
+	public Internal::RqProcWrapper <ProxyManager>
 {
 protected:
 	virtual void _add_ref () = 0;
@@ -480,13 +481,6 @@ private:
 	}
 
 	static void rq_repository_id (ProxyManager* servant, CORBA::Internal::IORequest::_ptr_type _rq);
-
-	template <void (*proc) (ProxyManager*, Internal::IORequest::_ptr_type)>
-	static bool ObjProcWrapper (Internal::Interface* servant, Internal::Interface* call) noexcept
-	{
-		return Internal::ProxyRoot::call_request_proc (
-			(Internal::ProxyRoot::RqProcInternal)proc, servant, call);
-	}
 
 	struct OEPred;
 
