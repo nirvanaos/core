@@ -99,7 +99,7 @@ protected:
 		}
 	}
 
-	void push (const Any& data);
+	virtual void push (const Any& data);
 
 	class ChildObject
 	{

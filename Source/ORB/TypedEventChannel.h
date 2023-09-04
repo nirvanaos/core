@@ -108,9 +108,63 @@ public:
 		return push_consumers_.create <PushConsumer> (std::ref (*this), std::ref (supported_interface));
 	}
 
+	CosTypedEventChannelAdmin::TypedProxyPullSupplier::_ref_type obtain_typed_pull_supplier (
+		const IDL::String& supported_interface)
+	{
+		return pull_suppliers_.create <PullSupplier> (std::ref (*this), std::ref (supported_interface));
+	}
+
+	CosEventChannelAdmin::ProxyPullConsumer::_ref_type obtain_typed_pull_consumer (
+		const IDL::String& uses_interface)
+	{
+		Internal::ProxyFactory::_ref_type pf = get_proxy_factory (uses_interface);
+		TypeCode::_ref_type param_type = check_pull (*pf->metadata ());
+		if (!param_type || !set_event_type (param_type))
+			throw CosTypedEventChannelAdmin::NoSuchImplementation ();
+		return EventChannelBase::obtain_pull_consumer ();
+	}
+
+	CosEventChannelAdmin::ProxyPushSupplier::_ref_type obtain_typed_push_supplier (
+		const IDL::String& uses_interface)
+	{
+		Internal::ProxyFactory::_ref_type pf = get_proxy_factory (uses_interface);
+		TypeCode::_ref_type param_type = check_push (*pf->metadata ());
+		if (!param_type || !set_event_type (param_type))
+			throw CosTypedEventChannelAdmin::NoSuchImplementation ();
+		return EventChannelBase::obtain_push_supplier ();
+	}
+
 private:
 	static void deactivate_object (Object::_ptr_type obj,
 		PortableServer::POA::_ptr_type adapter) noexcept;
+
+	void push (Internal::IORequest::_ptr_type rq)
+	{
+		Any ev;
+		Internal::Type <Any>::unmarshal (event_type_, rq, ev);
+		rq->unmarshal_end ();
+		EventChannelBase::push (ev);
+	}
+
+	virtual void push (const Any& data) override
+	{
+		if (!event_type_ || data.type ()->equivalent (event_type_))
+			EventChannelBase::push (data);
+	}
+
+	static TypeCode::_ref_type check_push (const Internal::InterfaceMetadata& metadata);
+	static TypeCode::_ref_type check_pull (const Internal::InterfaceMetadata& metadata);
+
+	bool set_event_type (TypeCode::_ref_type& event_type)
+	{
+		if (!event_type_) {
+			event_type_ = std::move (event_type);
+			return true;
+		} else
+			return event_type->equivalent (event_type_);
+	}
+
+	static Internal::ProxyFactory::_ref_type get_proxy_factory (const IDL::String& uses_interface);
 
 	class PushConsumer;
 
@@ -123,31 +177,22 @@ private:
 			// Interface must not have base interfaces
 			if (interfaces ().size () != 1)
 				throw CosTypedEventChannelAdmin::InterfaceNotSupported ();
-			// Interface must have only one operation
-			const Internal::CountedArray <Internal::Operation>& ops = interfaces ().front ().operations ();
-			if (ops.size != 1)
-				throw CosTypedEventChannelAdmin::InterfaceNotSupported ();
-			// Interface operation must have only one input parameter
-			const Internal::Operation& op = ops.p [0];
-			if (op.input.size != 1 || op.output.size != 0 || op.return_type)
+
+			// Check interface requirements and obtain event type
+			TypeCode::_ref_type param_type = check_push (*interfaces ().front ().interface_metadata);
+			if (!param_type || !servant.channel ().set_event_type (param_type))
 				throw CosTypedEventChannelAdmin::InterfaceNotSupported ();
 
-			TypeCode::_ref_type param_type = (op.input.p [0].type) ();
-			TypeCode::_ref_type& event_type = servant.event_type ();
-			if (!event_type)
-				event_type = std::move (param_type);
-			else if (!param_type->equivalent (event_type))
-				throw CosTypedEventChannelAdmin::InterfaceNotSupported ();
-
+			// Hack interface metadata
 			interface_metadata_ = interfaces ().front ().metadata ();
 			operation_ = interface_metadata_.operations.p [0];
 			interface_metadata_.operations.p = &operation_;
-			operation_.invoke = request_proc;
+			operation_.invoke = &Internal::RqProcWrapper <PushConsumer>::call <rq_push>;
 			set_interface_metadata (&interface_metadata_, reinterpret_cast <Interface*> (&servant));
 		}
 
 	private:
-		static void request_proc (PushConsumer* servant, Internal::IORequest::_ptr_type call);
+		static void rq_push (PushConsumer* servant, Internal::IORequest::_ptr_type call);
 
 	private:
 		Internal::Operation operation_;
@@ -166,13 +211,11 @@ private:
 			proxy_push_ (*this, supported_interface)
 		{}
 
-		TypeCode::_ref_type& event_type () const noexcept
+		void push (Internal::IORequest::_ptr_type call)
 		{
-			assert (channel_);
-			return channel ()->event_type_;
+			if (channel_)
+				channel ().push (call);
 		}
-
-		void push (Internal::IORequest::_ptr_type call);
 
 		Object::_ref_type get_typed_consumer () const noexcept
 		{
@@ -185,10 +228,10 @@ private:
 			Base::destroy (adapter);
 		}
 
-	private:
-		TypedEventChannel* channel () const noexcept
+		TypedEventChannel& channel () const noexcept
 		{
-			return static_cast <TypedEventChannel*> (channel_);
+			assert (channel_);
+			return static_cast <TypedEventChannel&> (*channel_);
 		}
 
 	private:
@@ -206,33 +249,25 @@ private:
 			// Interface must not have base interfaces
 			if (interfaces ().size () != 1)
 				throw CosTypedEventChannelAdmin::InterfaceNotSupported ();
-			// Interface must have exactly 2 operations
-			const Internal::CountedArray <Internal::Operation>& ops = interfaces ().front ().operations ();
-			if (ops.size != 2)
+
+			// Check interface requirements and obtain event type
+			TypeCode::_ref_type param_type = check_pull (*interfaces ().front ().interface_metadata);
+			if (!param_type || !servant.channel ().set_event_type (param_type))
 				throw CosTypedEventChannelAdmin::InterfaceNotSupported ();
 
-
-			// Interface operation must have only one input parameter
-			const Internal::Operation& op = ops.p [0];
-			if (op.input.size != 1 || op.output.size != 0 || op.return_type)
-				throw CosTypedEventChannelAdmin::InterfaceNotSupported ();
-
-			TypeCode::_ref_type param_type = (op.input.p [0].type) ();
-			TypeCode::_ref_type& event_type = servant.event_type ();
-			if (!event_type)
-				event_type = std::move (param_type);
-			else if (!param_type->equivalent (event_type))
-				throw CosTypedEventChannelAdmin::InterfaceNotSupported ();
-
+			// Hack interface metadata
 			interface_metadata_ = interfaces ().front ().metadata ();
-			operation_ = interface_metadata_.operations.p [0];
-			interface_metadata_.operations.p = &operation_;
-			operation_.invoke = request_proc;
+			operations_ [0] = interface_metadata_.operations.p [0];
+			operations_ [1] = interface_metadata_.operations.p [1];
+			interface_metadata_.operations.p = operations_;
+			operations_ [0].invoke = &Internal::RqProcWrapper <PullSupplier>::call <rq_pull>;
+			operations_ [1].invoke = &Internal::RqProcWrapper <PullSupplier>::call <rq_try>;
 			set_interface_metadata (&interface_metadata_, reinterpret_cast <Interface*> (&servant));
 		}
 
 	private:
-		static bool request_proc (Interface* servant, Interface* call);
+		static void rq_pull (PullSupplier* servant, Internal::IORequest::_ptr_type call);
+		static void rq_try (PullSupplier* servant, Internal::IORequest::_ptr_type call);
 
 	private:
 		Internal::Operation operations_ [2];
@@ -251,12 +286,6 @@ private:
 			proxy_pull_ (*this, supported_interface)
 		{}
 
-		TypeCode::_ref_type& event_type () const noexcept
-		{
-			assert (channel_);
-			return channel ()->event_type_;
-		}
-
 		Object::_ref_type get_typed_supplier () const noexcept
 		{
 			return proxy_pull_.get_proxy ();
@@ -268,17 +297,15 @@ private:
 			Base::destroy (adapter);
 		}
 
-	private:
-		TypedEventChannel* channel () const noexcept
+		TypedEventChannel& channel () const noexcept
 		{
-			return static_cast <TypedEventChannel*> (channel_);
+			assert (channel_);
+			return static_cast <TypedEventChannel&> (*channel_);
 		}
 
 	private:
-		ProxyPush proxy_pull_;
+		ProxyPull proxy_pull_;
 	};
-
-
 
 	class SupplierAdmin : public AddInterface <SupplierAdmin, EventChannelBase::SupplierAdmin,
 		CosTypedEventChannelAdmin::TypedSupplierAdmin>
@@ -294,11 +321,16 @@ private:
 		CosTypedEventChannelAdmin::TypedProxyPushConsumer::_ref_type obtain_typed_push_consumer (
 			const IDL::String& supported_interface)
 		{
-			return static_cast <TypedEventChannel&> (check_exist ()).obtain_typed_push_consumer (supported_interface);
+			return static_cast <TypedEventChannel&> (check_exist ())
+				.obtain_typed_push_consumer (supported_interface);
 		}
 
 		CosEventChannelAdmin::ProxyPullConsumer::_ref_type obtain_typed_pull_consumer (
-			const IDL::String& uses_interface);
+			const IDL::String& uses_interface)
+		{
+			return static_cast <TypedEventChannel&> (check_exist ())
+				.obtain_typed_pull_consumer (uses_interface);
+		}
 	};
 
 	class ConsumerAdmin : public AddInterface <ConsumerAdmin, EventChannelBase::ConsumerAdmin,
@@ -313,18 +345,19 @@ private:
 		{}
 
 		CosTypedEventChannelAdmin::TypedProxyPullSupplier::_ref_type obtain_typed_pull_supplier (
-			const IDL::String& supported_interface);
-		CosEventChannelAdmin::ProxyPushSupplier::_ref_type obtain_typed_push_supplier (
-			const IDL::String& uses_interface);
-	};
+			const IDL::String& supported_interface)
+		{
+			return static_cast <TypedEventChannel&> (check_exist ())
+				.obtain_typed_pull_supplier (supported_interface);
+		}
 
-	void push (Internal::IORequest::_ptr_type rq)
-	{
-		Any ev;
-		Internal::Type <Any>::unmarshal (event_type_, rq, ev);
-		rq->unmarshal_end ();
-		EventChannelBase::push (ev);
-	}
+		CosEventChannelAdmin::ProxyPushSupplier::_ref_type obtain_typed_push_supplier (
+			const IDL::String& uses_interface)
+		{
+			return static_cast <TypedEventChannel&> (check_exist ())
+				.obtain_typed_push_supplier (uses_interface);
+		}
+	};
 
 private:
 	servant_reference <ConsumerAdmin> consumer_admin_;
