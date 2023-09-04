@@ -34,6 +34,7 @@
 #include "../HeapAllocator.h"
 #include <CORBA/AbstractBase_s.h>
 #include <CORBA/Object_s.h>
+#include <CORBA/Proxy/ProxyBase.h>
 #include <CORBA/Proxy/InterfaceMetadata.h>
 #include <CORBA/Proxy/ProxyFactory.h>
 #include <CORBA/Proxy/IOReference_s.h>
@@ -480,14 +481,11 @@ private:
 
 	static void rq_repository_id (ProxyManager* servant, CORBA::Internal::IORequest::_ptr_type _rq);
 
-	typedef void (*RqProcInternal) (ProxyManager* servant, Internal::IORequest::_ptr_type call);
-
-	static bool call_request_proc (RqProcInternal proc, ProxyManager* servant, Interface* call);
-
-	template <RqProcInternal proc>
-	static bool ObjProcWrapper (Internal::Interface* servant, Internal::Interface* call)
+	template <void (*proc) (ProxyManager*, Internal::IORequest::_ptr_type)>
+	static bool ObjProcWrapper (Internal::Interface* servant, Internal::Interface* call) noexcept
 	{
-		return call_request_proc (proc, reinterpret_cast <ProxyManager*> ((void*)servant), call);
+		return Internal::ProxyRoot::call_request_proc (
+			(Internal::ProxyRoot::RqProcInternal)proc, servant, call);
 	}
 
 	struct OEPred;

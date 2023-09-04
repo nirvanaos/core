@@ -44,17 +44,15 @@ PortableServer::ServantBase::_ref_type Proxy <PortableServer::POA>::get_servant 
 	return Core::object2servant (_ret);
 }
 
-void Proxy <PortableServer::POA>::__rq_get_servant (
-	PortableServer::POA::_ptr_type _servant, IORequest::_ptr_type _call)
+void Proxy <PortableServer::POA>::__rq_get_servant (PortableServer::POA* _servant,
+	IORequest::_ptr_type _call)
 {
 	_call->unmarshal_end ();
 	Object::_ref_type ret;
 	{
 		Environment _env;
 		Type <Object>::C_ret _ret (
-			(_servant->_epv ().epv.get_servant) (
-				static_cast <Bridge <PortableServer::POA>*> (&_servant),
-				&_env));
+			(_servant->_epv ().epv.get_servant) (_servant, &_env));
 		_env.check ();
 		ret = _ret;
 	}
@@ -73,15 +71,14 @@ void Proxy <PortableServer::POA>::set_servant (PortableServer::Servant p_servant
 }
 
 void Proxy <PortableServer::POA>::__rq_set_servant (
-	PortableServer::POA::_ptr_type _servant, IORequest::_ptr_type _call)
+	PortableServer::POA* _servant, IORequest::_ptr_type _call)
 {
 	Object::_ref_type p_servant;
 	Type <Object>::unmarshal (_call, p_servant);
 	_call->unmarshal_end ();
 	{
 		Environment _env;
-			(_servant->_epv ().epv.set_servant) (
-				static_cast <Bridge <PortableServer::POA>*> (&_servant),
+			(_servant->_epv ().epv.set_servant) (_servant,
 				&Type <Object>::C_in (p_servant),
 				&_env);
 		_env.check ();
@@ -103,7 +100,7 @@ PortableServer::ObjectId Proxy <PortableServer::POA>::activate_object (PortableS
 }
 
 void Proxy <PortableServer::POA>::__rq_activate_object (
-	PortableServer::POA::_ptr_type _servant, IORequest::_ptr_type _call)
+	PortableServer::POA* _servant, IORequest::_ptr_type _call)
 {
 	Object::_ref_type p_servant;
 	Type <Object>::unmarshal (_call, p_servant);
@@ -112,8 +109,7 @@ void Proxy <PortableServer::POA>::__rq_activate_object (
 	{
 		Environment _env;
 		Type <PortableServer::ObjectId>::C_ret _ret = 
-			(_servant->_epv ().epv.activate_object) (
-				static_cast <Bridge <PortableServer::POA>*> (&_servant),
+			(_servant->_epv ().epv.activate_object) (_servant,
 				&Type <Object>::C_in (p_servant),
 				&_env);
 		_env.check ();
@@ -136,7 +132,7 @@ void Proxy <PortableServer::POA>::activate_object_with_id (const PortableServer:
 }
 
 void Proxy <PortableServer::POA>::__rq_activate_object_with_id (
-	PortableServer::POA::_ptr_type _servant, IORequest::_ptr_type _call)
+	PortableServer::POA* _servant, IORequest::_ptr_type _call)
 {
 	PortableServer::ObjectId oid;
 	Type <PortableServer::ObjectId>::unmarshal (_call, oid);
@@ -145,8 +141,7 @@ void Proxy <PortableServer::POA>::__rq_activate_object_with_id (
 	_call->unmarshal_end ();
 	{
 		Environment _env;
-		(_servant->_epv ().epv.activate_object_with_id) (
-			static_cast <Bridge <PortableServer::POA>*> (&_servant),
+		(_servant->_epv ().epv.activate_object_with_id) (_servant,
 			&Type <PortableServer::ObjectId>::C_in (oid),
 			&Type <Object>::C_in (p_servant), &_env);
 		_env.check ();
@@ -168,7 +163,7 @@ PortableServer::ObjectId Proxy <PortableServer::POA>::servant_to_id (PortableSer
 }
 
 void Proxy <PortableServer::POA>::__rq_servant_to_id (
-	PortableServer::POA::_ptr_type _servant, IORequest::_ptr_type _call)
+	PortableServer::POA* _servant, IORequest::_ptr_type _call)
 {
 	Object::_ref_type p_servant;
 	Type <Object>::unmarshal (_call, p_servant);
@@ -177,8 +172,7 @@ void Proxy <PortableServer::POA>::__rq_servant_to_id (
 	{
 		Environment _env;
 		Type <PortableServer::ObjectId>::C_ret _ret =
-			(_servant->_epv ().epv.servant_to_id) (
-				static_cast <Bridge <PortableServer::POA>*> (&_servant),
+			(_servant->_epv ().epv.servant_to_id) (_servant,
 				&Type <Object>::C_in (p_servant),
 				&_env);
 		_env.check ();
@@ -203,7 +197,7 @@ Object::_ref_type Proxy <PortableServer::POA>::servant_to_reference (PortableSer
 }
 
 void Proxy <PortableServer::POA>::__rq_servant_to_reference (
-	PortableServer::POA::_ptr_type _servant, IORequest::_ptr_type _call)
+	PortableServer::POA* _servant, IORequest::_ptr_type _call)
 {
 	Object::_ref_type p_servant;
 	Type <Object>::unmarshal (_call, p_servant);
@@ -212,8 +206,7 @@ void Proxy <PortableServer::POA>::__rq_servant_to_reference (
 	{
 		Environment _env;
 		Type <Object>::C_ret _ret =
-			(_servant->_epv ().epv.servant_to_reference) (
-				static_cast <Bridge <PortableServer::POA>*> (&_servant),
+			(_servant->_epv ().epv.servant_to_reference) (_servant,
 				&Type <Object>::C_in (p_servant),
 				&_env);
 		_env.check ();
@@ -237,7 +230,7 @@ PortableServer::ServantBase::_ref_type Proxy <PortableServer::POA>::reference_to
 }
 
 void Proxy <PortableServer::POA>::__rq_reference_to_servant (
-	PortableServer::POA::_ptr_type _servant, IORequest::_ptr_type _call)
+	PortableServer::POA* _servant, IORequest::_ptr_type _call)
 {
 	Object::_ref_type reference;
 	Type <Object>::unmarshal (_call, reference);
@@ -246,8 +239,7 @@ void Proxy <PortableServer::POA>::__rq_reference_to_servant (
 	{
 		Environment _env;
 		Type <Object>::C_ret _ret =
-			(_servant->_epv ().epv.reference_to_servant) (
-				static_cast <Bridge <PortableServer::POA>*> (&_servant),
+			(_servant->_epv ().epv.reference_to_servant) (_servant,
 				&Type <Object>::C_in (reference),
 				&_env);
 		_env.check ();
@@ -271,7 +263,7 @@ PortableServer::ServantBase::_ref_type Proxy <PortableServer::POA>::id_to_servan
 }
 
 void Proxy <PortableServer::POA>::__rq_id_to_servant (
-	PortableServer::POA::_ptr_type _servant, IORequest::_ptr_type _call)
+	PortableServer::POA* _servant, IORequest::_ptr_type _call)
 {
 	PortableServer::ObjectId oid;
 	Type <PortableServer::ObjectId>::unmarshal (_call, oid);
@@ -280,8 +272,7 @@ void Proxy <PortableServer::POA>::__rq_id_to_servant (
 	{
 		Environment _env;
 		Type <Object>::C_ret _ret =
-			(_servant->_epv ().epv.id_to_servant) (
-				static_cast <Bridge <PortableServer::POA>*> (&_servant),
+			(_servant->_epv ().epv.id_to_servant) (_servant,
 				&Type <PortableServer::ObjectId>::C_in (oid),
 				&_env);
 		_env.check ();
@@ -317,7 +308,7 @@ PortableServer::ServantBase::_ref_type Proxy <PortableServer::ServantActivator>:
 }
 
 void Proxy <PortableServer::ServantActivator>::__rq_incarnate (
-	PortableServer::ServantActivator::_ptr_type _servant, IORequest::_ptr_type _call)
+	PortableServer::ServantActivator* _servant, IORequest::_ptr_type _call)
 {
 	PortableServer::ObjectId oid;
 	Type <PortableServer::ObjectId>::unmarshal (_call, oid);
@@ -393,7 +384,7 @@ PortableServer::ServantBase::_ref_type Proxy <PortableServer::ServantLocator>::p
 }
 
 void Proxy <PortableServer::ServantLocator>::__rq_preinvoke (
-	PortableServer::ServantLocator::_ptr_type _servant, IORequest::_ptr_type _call)
+	PortableServer::ServantLocator* _servant, IORequest::_ptr_type _call)
 {
 	PortableServer::ObjectId oid;
 	Type <PortableServer::ObjectId>::unmarshal (_call, oid);
@@ -431,7 +422,7 @@ void Proxy <PortableServer::ServantLocator>::postinvoke (
 }
 
 void Proxy <PortableServer::ServantLocator>::__rq_postinvoke (
-	PortableServer::ServantLocator::_ptr_type _servant, IORequest::_ptr_type _call)
+	PortableServer::ServantLocator* _servant, IORequest::_ptr_type _call)
 {
 	PortableServer::ObjectId oid;
 	Type <PortableServer::ObjectId>::unmarshal (_call, oid);
