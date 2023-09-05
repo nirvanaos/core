@@ -30,10 +30,11 @@
 
 namespace CORBA {
 
-template <class S, class Base, class I>
-class AddInterface :
-	public Base,
-	public Internal::InterfaceImpl <S, I>,
+template <class S, class BaseServant, class Primary, class ... Bases>
+class DerivedServant :
+	public BaseServant,
+	public Internal::InterfaceImpl <S, Bases>...,
+	public Internal::InterfaceImpl <S, Primary>,
 	public Internal::ServantTraits <S>,
 	public Internal::LifeCycleRefCnt <S>
 {
@@ -41,7 +42,7 @@ class AddInterface :
 	typedef Internal::LifeCycleRefCnt <S> LifeCycle;
 
 public:
-	typedef I PrimaryInterface;
+	typedef Primary PrimaryInterface;
 
 	using ServantTraits::_implementation;
 	using ServantTraits::_wide_object;
@@ -53,21 +54,22 @@ public:
 
 	Internal::Interface* _query_interface (Internal::String_in id) noexcept
 	{
-		if (id.empty () || Internal::RepId::compatible (Internal::RepIdOf <I>::id, id))
-			return static_cast <Internal::Bridge <I>*> (this);
+		Internal::Interface* itf = Internal::FindInterface <Primary, Bases...>::find (static_cast <S&> (*this), id);
+		if (itf)
+			return itf;
 		else
-			return Base::_query_interface (id);
+			return BaseServant::_query_interface (id);
 	}
 
-	Internal::I_ref <I> _this ()
+	Internal::I_ref <Primary> _this ()
 	{
-		return Base::_get_proxy ().template downcast <I> ();
+		return BaseServant::_get_proxy ().template downcast <Primary> ();
 	}
 
 protected:
 	template <class ... Args>
-	AddInterface (Args ... args) :
-		Base (std::forward <Args> (args)...)
+	DerivedServant (Args ... args) :
+		BaseServant (std::forward <Args> (args)...)
 	{}
 };
 
@@ -199,10 +201,10 @@ private:
 		Internal::InterfaceMetadata interface_metadata_;
 	};
 
-	class PushConsumer : public AddInterface <PushConsumer, EventChannelBase::PushConsumer,
+	class PushConsumer : public DerivedServant <PushConsumer, EventChannelBase::PushConsumer,
 		CosTypedEventChannelAdmin::TypedProxyPushConsumer>
 	{
-		typedef AddInterface <PushConsumer, EventChannelBase::PushConsumer,
+		typedef DerivedServant <PushConsumer, EventChannelBase::PushConsumer,
 			CosTypedEventChannelAdmin::TypedProxyPushConsumer> Base;
 
 	public:
@@ -274,10 +276,10 @@ private:
 		Internal::InterfaceMetadata interface_metadata_;
 	};
 
-	class PullSupplier : public AddInterface <PullSupplier, EventChannelBase::PullSupplier,
+	class PullSupplier : public DerivedServant <PullSupplier, EventChannelBase::PullSupplier,
 		CosTypedEventChannelAdmin::TypedProxyPullSupplier>
 	{
-		typedef AddInterface <PullSupplier, EventChannelBase::PullSupplier,
+		typedef DerivedServant <PullSupplier, EventChannelBase::PullSupplier,
 			CosTypedEventChannelAdmin::TypedProxyPullSupplier> Base;
 
 	public:
@@ -307,10 +309,10 @@ private:
 		ProxyPull proxy_pull_;
 	};
 
-	class SupplierAdmin : public AddInterface <SupplierAdmin, EventChannelBase::SupplierAdmin,
+	class SupplierAdmin : public DerivedServant <SupplierAdmin, EventChannelBase::SupplierAdmin,
 		CosTypedEventChannelAdmin::TypedSupplierAdmin>
 	{
-		typedef AddInterface <SupplierAdmin, EventChannelBase::SupplierAdmin,
+		typedef DerivedServant <SupplierAdmin, EventChannelBase::SupplierAdmin,
 			CosTypedEventChannelAdmin::TypedSupplierAdmin> Base;
 
 	public:
@@ -333,10 +335,10 @@ private:
 		}
 	};
 
-	class ConsumerAdmin : public AddInterface <ConsumerAdmin, EventChannelBase::ConsumerAdmin,
+	class ConsumerAdmin : public DerivedServant <ConsumerAdmin, EventChannelBase::ConsumerAdmin,
 		CosTypedEventChannelAdmin::TypedConsumerAdmin>
 	{
-		typedef AddInterface <ConsumerAdmin, EventChannelBase::ConsumerAdmin,
+		typedef DerivedServant <ConsumerAdmin, EventChannelBase::ConsumerAdmin,
 			CosTypedEventChannelAdmin::TypedConsumerAdmin> Base;
 
 	public:
