@@ -27,52 +27,9 @@
 #include "EventChannel.h"
 #include "ServantProxyObject.h"
 #include "../CORBA/CosTypedEventChannelAdmin_s.h"
+#include <CORBA/DerivedServant.h>
 
 namespace CORBA {
-
-template <class S, class BaseServant, class Primary, class ... Bases>
-class DerivedServant :
-	public BaseServant,
-	public Internal::InterfaceImpl <S, Bases>...,
-	public Internal::InterfaceImpl <S, Primary>,
-	public Internal::ServantTraits <S>,
-	public Internal::LifeCycleRefCnt <S>
-{
-	typedef Internal::ServantTraits <S> ServantTraits;
-	typedef Internal::LifeCycleRefCnt <S> LifeCycle;
-
-public:
-	typedef Primary PrimaryInterface;
-
-	using ServantTraits::_implementation;
-	using ServantTraits::_wide_object;
-	using ServantTraits::_wide;
-	using LifeCycle::__duplicate;
-	using LifeCycle::__release;
-	using LifeCycle::_duplicate;
-	using LifeCycle::_release;
-
-	Internal::Interface* _query_interface (Internal::String_in id) noexcept
-	{
-		Internal::Interface* itf = Internal::FindInterface <Primary, Bases...>::find (static_cast <S&> (*this), id);
-		if (itf)
-			return itf;
-		else
-			return BaseServant::_query_interface (id);
-	}
-
-	Internal::I_ref <Primary> _this ()
-	{
-		return BaseServant::_get_proxy ().template downcast <Primary> ();
-	}
-
-protected:
-	template <class ... Args>
-	DerivedServant (Args ... args) :
-		BaseServant (std::forward <Args> (args)...)
-	{}
-};
-
 namespace Core {
 
 class TypedEventChannel :
@@ -80,7 +37,7 @@ class TypedEventChannel :
 	public EventChannelBase
 {
 public:
-	CosEventChannelAdmin::ConsumerAdmin::_ref_type for_consumers ()
+	CosTypedEventChannelAdmin::TypedConsumerAdmin::_ref_type for_consumers ()
 	{
 		check_exist ();
 		if (!consumer_admin_)
@@ -88,7 +45,7 @@ public:
 		return consumer_admin_->_this ();
 	}
 
-	CosEventChannelAdmin::SupplierAdmin::_ref_type for_suppliers ()
+	CosTypedEventChannelAdmin::TypedSupplierAdmin::_ref_type for_suppliers ()
 	{
 		check_exist ();
 		if (!supplier_admin_)

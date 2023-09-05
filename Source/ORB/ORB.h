@@ -36,7 +36,7 @@
 #include "unmarshal_object.h"
 #include "RefCnt.h"
 #include "../Binder.h"
-#include "EventChannel.h"
+#include "TypedEventChannel.h"
 
 namespace CORBA {
 namespace Core {
@@ -309,6 +309,13 @@ public:
 	{
 		SYNC_BEGIN (Nirvana::Core::g_core_free_sync_context, nullptr)
 			return make_reference <EventChannel> ()->_this ();
+		SYNC_END ()
+	}
+
+	static CosTypedEventChannelAdmin::TypedEventChannel::_ref_type create_typed_channel ()
+	{
+		SYNC_BEGIN (Nirvana::Core::g_core_free_sync_context, nullptr)
+			return make_reference <TypedEventChannel> ()->_this ();
 		SYNC_END ()
 	}
 
