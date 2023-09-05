@@ -100,19 +100,16 @@ private:
 	void push (Internal::IORequest::_ptr_type rq)
 	{
 		Any ev;
-		Internal::Type <Any>::unmarshal (event_type_, rq, ev);
+		if (event_type_->kind () != TCKind::tk_void)
+			Internal::Type <Any>::unmarshal (event_type_, rq, ev);
 		rq->unmarshal_end ();
 		EventChannelBase::push (ev);
 	}
 
-	virtual void push (const Any& data) override
-	{
-		if (!event_type_ || data.type ()->equivalent (event_type_))
-			EventChannelBase::push (data);
-	}
+	virtual void push (const Any& data) override;
 
-	static TypeCode::_ref_type check_push (const Internal::InterfaceMetadata& metadata);
-	static TypeCode::_ref_type check_pull (const Internal::InterfaceMetadata& metadata);
+	static TypeCode::_ptr_type check_push (const Internal::InterfaceMetadata& metadata);
+	static TypeCode::_ptr_type check_pull (const Internal::InterfaceMetadata& metadata);
 
 	bool set_event_type (TypeCode::_ref_type& event_type)
 	{
@@ -147,7 +144,7 @@ private:
 			operation_ = interface_metadata_.operations.p [0];
 			interface_metadata_.operations.p = &operation_;
 			operation_.invoke = &Internal::RqProcWrapper <PushConsumer>::call <rq_push>;
-			set_interface_metadata (&interface_metadata_, reinterpret_cast <Interface*> (&servant));
+			set_interface_metadata (&interface_metadata_, reinterpret_cast <Interface*> ((void*)&servant));
 		}
 
 	private:
@@ -221,7 +218,7 @@ private:
 			interface_metadata_.operations.p = operations_;
 			operations_ [0].invoke = &Internal::RqProcWrapper <PullSupplier>::call <rq_pull>;
 			operations_ [1].invoke = &Internal::RqProcWrapper <PullSupplier>::call <rq_try>;
-			set_interface_metadata (&interface_metadata_, reinterpret_cast <Interface*> (&servant));
+			set_interface_metadata (&interface_metadata_, reinterpret_cast <Interface*> ((void*)&servant));
 		}
 
 	private:
@@ -260,6 +257,17 @@ private:
 		{
 			assert (channel_);
 			return static_cast <TypedEventChannel&> (*channel_);
+		}
+
+		Any try_pull (bool& has_event)
+		{
+			Any ev = EventChannelBase::PullSupplier::try_pull (has_event);
+			if (!has_event) {
+				TypeCode::_ptr_type et = channel ().event_type_;
+				if (et && et->kind () != TCKind::tk_void)
+					ev.construct (et);
+			}
+			return ev;
 		}
 
 	private:
