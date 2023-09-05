@@ -60,6 +60,12 @@ PortableServer::Servant proxy2servant (ServantProxyObject* proxy)
 	return nullptr;
 }
 
+ServantProxyObject::ServantProxyObject (PortableServer::Servant servant, Internal::String_in interface_id) :
+	ServantProxyBase (servant, interface_id),
+	adapter_context_ (&local2proxy (Services::bind (Services::RootPOA))->sync_context ()),
+	references_ (adapter_context_->sync_domain ()->mem_context ().heap ())
+{}
+
 void ServantProxyObject::_add_ref ()
 {
 	static_assert (sizeof (ReferenceLocal) == REF_SIZE, "sizeof (ReferenceLocal)");

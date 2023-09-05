@@ -28,7 +28,7 @@
 namespace CORBA {
 namespace Core {
 
-void EventChannel::ProxyPushConsumer::disconnect_push_consumer () noexcept
+void EventChannelBase::PushConsumer::disconnect_push_consumer () noexcept
 {
 	if (connected_) {
 		CosEventComm::PushSupplier::_ref_type p = std::move (supplier_);
@@ -42,7 +42,7 @@ void EventChannel::ProxyPushConsumer::disconnect_push_consumer () noexcept
 	}
 }
 
-void EventChannel::ProxyPullSupplier::disconnect_pull_supplier () noexcept
+void EventChannelBase::PullSupplier::disconnect_pull_supplier () noexcept
 {
 	if (connected_) {
 		CosEventComm::PullConsumer::_ref_type p = std::move (consumer_);
@@ -57,7 +57,7 @@ void EventChannel::ProxyPullSupplier::disconnect_pull_supplier () noexcept
 	}
 }
 
-void EventChannel::ProxyPullConsumer::disconnect_pull_consumer () noexcept
+void EventChannelBase::PullConsumer::disconnect_pull_consumer () noexcept
 {
 	CosEventComm::PullSupplier::_ref_type p = std::move (supplier_);
 	if (p) {
@@ -70,7 +70,7 @@ void EventChannel::ProxyPullConsumer::disconnect_pull_consumer () noexcept
 	}
 }
 
-void EventChannel::ProxyPushSupplier::disconnect_push_supplier () noexcept
+void EventChannelBase::PushSupplier::disconnect_push_supplier () noexcept
 {
 	CosEventComm::PushConsumer::_ref_type p = std::move (consumer_);
 	if (p) {
@@ -81,7 +81,7 @@ void EventChannel::ProxyPushSupplier::disconnect_push_supplier () noexcept
 	}
 }
 
-void EventChannel::Children::destroy (PortableServer::POA::_ptr_type adapter) noexcept
+void EventChannelBase::Children::destroy (PortableServer::POA::_ptr_type adapter) noexcept
 {
 	for (auto p : *this) {
 		p->destroy (adapter);
@@ -89,25 +89,25 @@ void EventChannel::Children::destroy (PortableServer::POA::_ptr_type adapter) no
 	clear ();
 }
 
-void EventChannel::push (const Any& data)
+void EventChannelBase::push (const Any& data)
 {
 	if (!pull_suppliers_.empty ()) {
 		servant_reference <SharedAny> sany (make_reference <SharedAny> (std::ref (data)));
 		for (const auto p : pull_suppliers_) {
-			ProxyPullSupplier& sup = static_cast <ProxyPullSupplier&> (*p);
+			PullSupplier& sup = static_cast <PullSupplier&> (*p);
 			if (sup.connected ())
 				sup.push (*sany);
 		}
 	}
 
 	for (const auto p : push_suppliers_) {
-		ProxyPushSupplier& sup = static_cast <ProxyPushSupplier&> (*p);
+		PushSupplier& sup = static_cast <PushSupplier&> (*p);
 		if (sup.connected ())
 			sup.push (data);
 	}
 }
 
-void EventChannel::deactivate (PortableServer::ServantBase::_ptr_type servant,
+void EventChannelBase::deactivate_servant (PortableServer::ServantBase::_ptr_type servant,
 	PortableServer::POA::_ptr_type adapter) noexcept
 {
 	try {
