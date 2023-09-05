@@ -27,7 +27,6 @@
 #include "EventChannel.h"
 #include "ServantProxyObject.h"
 #include "../CORBA/CosTypedEventChannelAdmin_s.h"
-#include <CORBA/DerivedServant.h>
 
 namespace CORBA {
 namespace Core {
@@ -64,18 +63,24 @@ public:
 	CosTypedEventChannelAdmin::TypedProxyPushConsumer::_ref_type obtain_typed_push_consumer (
 		const IDL::String& supported_interface)
 	{
+		if (supported_interface.empty ())
+			throw BAD_PARAM ();
 		return push_consumers_.create <PushConsumer> (std::ref (*this), std::ref (supported_interface));
 	}
 
 	CosTypedEventChannelAdmin::TypedProxyPullSupplier::_ref_type obtain_typed_pull_supplier (
 		const IDL::String& supported_interface)
 	{
+		if (supported_interface.empty ())
+			throw BAD_PARAM ();
 		return pull_suppliers_.create <PullSupplier> (std::ref (*this), std::ref (supported_interface));
 	}
 
 	CosEventChannelAdmin::ProxyPullConsumer::_ref_type obtain_typed_pull_consumer (
 		const IDL::String& uses_interface)
 	{
+		if (uses_interface.empty ())
+			throw BAD_PARAM ();
 		Internal::ProxyFactory::_ref_type pf = get_proxy_factory (uses_interface);
 		TypeCode::_ref_type param_type = check_pull (*pf->metadata ());
 		if (!param_type || !set_event_type (param_type))
@@ -86,6 +91,8 @@ public:
 	CosEventChannelAdmin::ProxyPushSupplier::_ref_type obtain_typed_push_supplier (
 		const IDL::String& uses_interface)
 	{
+		if (uses_interface.empty ())
+			throw BAD_PARAM ();
 		Internal::ProxyFactory::_ref_type pf = get_proxy_factory (uses_interface);
 		TypeCode::_ref_type param_type = check_push (*pf->metadata ());
 		if (!param_type || !set_event_type (param_type))
@@ -155,15 +162,12 @@ private:
 		Internal::InterfaceMetadata interface_metadata_;
 	};
 
-	class PushConsumer : public DerivedServant <PushConsumer, EventChannelBase::PushConsumer,
-		CosTypedEventChannelAdmin::TypedProxyPushConsumer>
+	class PushConsumer : public PushConsumerBase,
+		public servant_traits <CosTypedEventChannelAdmin::TypedProxyPushConsumer>::Servant <PushConsumer>
 	{
-		typedef DerivedServant <PushConsumer, EventChannelBase::PushConsumer,
-			CosTypedEventChannelAdmin::TypedProxyPushConsumer> Base;
-
 	public:
 		PushConsumer (TypedEventChannel& channel, const IDL::String& supported_interface) :
-			Base (std::ref (channel)),
+			PushConsumerBase (channel),
 			proxy_push_ (*this, supported_interface)
 		{}
 
@@ -171,6 +175,11 @@ private:
 		{
 			if (channel_)
 				channel ().push (call);
+		}
+
+		void push (const Any& data)
+		{
+			PushConsumerBase::push (data);
 		}
 
 		Object::_ref_type get_typed_consumer () const noexcept
@@ -181,7 +190,7 @@ private:
 		virtual void destroy (PortableServer::POA::_ptr_type adapter) noexcept override
 		{
 			deactivate_object (proxy_push_.get_proxy (), adapter);
-			Base::destroy (adapter);
+			PushConsumerBase::destroy (this, adapter);
 		}
 
 		TypedEventChannel& channel () const noexcept
@@ -230,15 +239,12 @@ private:
 		Internal::InterfaceMetadata interface_metadata_;
 	};
 
-	class PullSupplier : public DerivedServant <PullSupplier, EventChannelBase::PullSupplier,
-		CosTypedEventChannelAdmin::TypedProxyPullSupplier>
+	class PullSupplier : public PullSupplierBase,
+		public servant_traits <CosTypedEventChannelAdmin::TypedProxyPullSupplier>::Servant <PullSupplier>
 	{
-		typedef DerivedServant <PullSupplier, EventChannelBase::PullSupplier,
-			CosTypedEventChannelAdmin::TypedProxyPullSupplier> Base;
-
 	public:
 		PullSupplier (TypedEventChannel& channel, const IDL::String& supported_interface) :
-			Base (std::ref (channel)),
+			PullSupplierBase (channel),
 			proxy_pull_ (*this, supported_interface)
 		{}
 
@@ -250,7 +256,7 @@ private:
 		virtual void destroy (PortableServer::POA::_ptr_type adapter) noexcept override
 		{
 			deactivate_object (proxy_pull_.get_proxy (), adapter);
-			Base::destroy (adapter);
+			PullSupplierBase::destroy (this, adapter);
 		}
 
 		TypedEventChannel& channel () const noexcept
@@ -261,7 +267,7 @@ private:
 
 		Any try_pull (bool& has_event)
 		{
-			Any ev = EventChannelBase::PullSupplier::try_pull (has_event);
+			Any ev = PullSupplierBase::try_pull (has_event);
 			if (!has_event) {
 				TypeCode::_ptr_type et = channel ().event_type_;
 				if (et && et->kind () != TCKind::tk_void)
@@ -274,15 +280,12 @@ private:
 		ProxyPull proxy_pull_;
 	};
 
-	class SupplierAdmin : public DerivedServant <SupplierAdmin, EventChannelBase::SupplierAdmin,
-		CosTypedEventChannelAdmin::TypedSupplierAdmin>
+	class SupplierAdmin : public SupplierAdminBase,
+		public servant_traits <CosTypedEventChannelAdmin::TypedSupplierAdmin>::Servant <SupplierAdmin>
 	{
-		typedef DerivedServant <SupplierAdmin, EventChannelBase::SupplierAdmin,
-			CosTypedEventChannelAdmin::TypedSupplierAdmin> Base;
-
 	public:
 		SupplierAdmin (EventChannelBase& channel) :
-			Base (std::ref (channel))
+			SupplierAdminBase (channel)
 		{}
 
 		CosTypedEventChannelAdmin::TypedProxyPushConsumer::_ref_type obtain_typed_push_consumer (
@@ -298,17 +301,19 @@ private:
 			return static_cast <TypedEventChannel&> (check_exist ())
 				.obtain_typed_pull_consumer (uses_interface);
 		}
+
+		virtual void destroy (PortableServer::POA::_ptr_type adapter) noexcept override
+		{
+			ChildObject::destroy (this, adapter);
+		}
 	};
 
-	class ConsumerAdmin : public DerivedServant <ConsumerAdmin, EventChannelBase::ConsumerAdmin,
-		CosTypedEventChannelAdmin::TypedConsumerAdmin>
+	class ConsumerAdmin : public ConsumerAdminBase,
+		public servant_traits <CosTypedEventChannelAdmin::TypedConsumerAdmin>::Servant <ConsumerAdmin>
 	{
-		typedef DerivedServant <ConsumerAdmin, EventChannelBase::ConsumerAdmin,
-			CosTypedEventChannelAdmin::TypedConsumerAdmin> Base;
-
 	public:
 		ConsumerAdmin (EventChannelBase& channel) :
-			Base (std::ref (channel))
+			ConsumerAdminBase (channel)
 		{}
 
 		CosTypedEventChannelAdmin::TypedProxyPullSupplier::_ref_type obtain_typed_pull_supplier (
@@ -323,6 +328,11 @@ private:
 		{
 			return static_cast <TypedEventChannel&> (check_exist ())
 				.obtain_typed_push_supplier (uses_interface);
+		}
+
+		virtual void destroy (PortableServer::POA::_ptr_type adapter) noexcept override
+		{
+			ChildObject::destroy (this, adapter);
 		}
 	};
 

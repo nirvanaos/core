@@ -28,7 +28,7 @@
 namespace CORBA {
 namespace Core {
 
-void EventChannelBase::PushConsumer::disconnect_push_consumer () noexcept
+void EventChannelBase::PushConsumerBase::disconnect_push_consumer () noexcept
 {
 	if (connected_) {
 		CosEventComm::PushSupplier::_ref_type p = std::move (supplier_);
@@ -42,7 +42,7 @@ void EventChannelBase::PushConsumer::disconnect_push_consumer () noexcept
 	}
 }
 
-void EventChannelBase::PullSupplier::disconnect_pull_supplier () noexcept
+void EventChannelBase::PullSupplierBase::disconnect_pull_supplier () noexcept
 {
 	if (connected_) {
 		CosEventComm::PullConsumer::_ref_type p = std::move (consumer_);
@@ -57,7 +57,7 @@ void EventChannelBase::PullSupplier::disconnect_pull_supplier () noexcept
 	}
 }
 
-void EventChannelBase::PullConsumer::disconnect_pull_consumer () noexcept
+void EventChannelBase::PullConsumerBase::disconnect_pull_consumer () noexcept
 {
 	CosEventComm::PullSupplier::_ref_type p = std::move (supplier_);
 	if (p) {
@@ -70,7 +70,7 @@ void EventChannelBase::PullConsumer::disconnect_pull_consumer () noexcept
 	}
 }
 
-void EventChannelBase::PushSupplier::disconnect_push_supplier () noexcept
+void EventChannelBase::PushSupplierBase::disconnect_push_supplier () noexcept
 {
 	CosEventComm::PushConsumer::_ref_type p = std::move (consumer_);
 	if (p) {
@@ -94,14 +94,14 @@ void EventChannelBase::push (const Any& data)
 	if (!pull_suppliers_.empty ()) {
 		servant_reference <SharedAny> sany (make_reference <SharedAny> (std::ref (data)));
 		for (const auto p : pull_suppliers_) {
-			PullSupplier& sup = static_cast <PullSupplier&> (*p);
+			PullSupplierBase& sup = static_cast <PullSupplierBase&> (*p);
 			if (sup.connected ())
 				sup.push (*sany);
 		}
 	}
 
 	for (const auto p : push_suppliers_) {
-		PushSupplier& sup = static_cast <PushSupplier&> (*p);
+		PushSupplierBase& sup = static_cast <PushSupplierBase&> (*p);
 		if (sup.connected ())
 			sup.push (data);
 	}
