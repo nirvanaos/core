@@ -490,7 +490,7 @@ protected:
 			return bool (consumer_);
 		}
 
-		void push (const Any& data) noexcept
+		virtual void push (const Any& data) noexcept
 		{
 			assert (connected ());
 			try {

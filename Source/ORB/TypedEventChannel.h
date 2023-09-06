@@ -79,6 +79,9 @@ public:
 	CosEventChannelAdmin::ProxyPullConsumer::_ref_type obtain_typed_pull_consumer (
 		const IDL::String& uses_interface)
 	{
+		// I don't think that it will really needed.
+		throw NO_IMPLEMENT ();
+		/*
 		if (uses_interface.empty ())
 			throw BAD_PARAM ();
 		Internal::ProxyFactory::_ref_type pf = get_proxy_factory (uses_interface);
@@ -86,10 +89,11 @@ public:
 		if (!param_type || !set_event_type (param_type))
 			throw CosTypedEventChannelAdmin::NoSuchImplementation ();
 		return EventChannelBase::obtain_pull_consumer ();
+		*/
 	}
 
 	CosEventChannelAdmin::ProxyPushSupplier::_ref_type obtain_typed_push_supplier (
-		const IDL::String& uses_interface)
+		IDL::String& uses_interface)
 	{
 		if (uses_interface.empty ())
 			throw BAD_PARAM ();
@@ -97,7 +101,7 @@ public:
 		TypeCode::_ref_type param_type = check_push (*pf->metadata ());
 		if (!param_type || !set_event_type (param_type))
 			throw CosTypedEventChannelAdmin::NoSuchImplementation ();
-		return EventChannelBase::obtain_push_supplier ();
+		return push_suppliers_.create <PushSupplier> (std::ref (*this), std::move (uses_interface));
 	}
 
 private:
@@ -299,6 +303,66 @@ private:
 		ProxyPull* proxy_pull_;
 	};
 
+	class PushSupplier : public PushSupplierBase,
+		public servant_traits <CosEventChannelAdmin::ProxyPushSupplier>::Servant <PushSupplier>
+	{
+	public:
+		PushSupplier (EventChannelBase& channel, IDL::String&& uses_interface) :
+			PushSupplierBase (channel),
+			uses_interface_ (std::move (uses_interface))
+		{}
+
+		virtual void destroy (PortableServer::POA::_ptr_type adapter) noexcept override
+		{
+			proxy_ = nullptr;
+			PushSupplierBase::destroy (this, adapter);
+		}
+
+		void connect_push_consumer (CosEventComm::PushConsumer::_ptr_type push_consumer)
+		{
+			CosTypedEventComm::TypedPushConsumer::_ref_type typed =
+				CosTypedEventComm::TypedPushConsumer::_narrow (push_consumer);
+			if (!typed)
+				throw CosEventChannelAdmin::TypeError ();
+
+			Object::_ptr_type obj = typed->get_typed_consumer ();
+			ProxyManager* proxy = ProxyManager::cast (obj);
+			if (!proxy)
+				throw BAD_PARAM ();
+			const ProxyManager::InterfaceEntry* ie = proxy->find_interface (uses_interface_);
+			if (!ie)
+				throw CosEventChannelAdmin::TypeError ();
+			TypeCode::_ptr_type tc = check_push (ie->metadata ());
+			const TypedEventChannel& channel = static_cast <const TypedEventChannel&> (check_exist ());
+			if (!tc || !tc->equivalent (channel.event_type_))
+				throw CosEventChannelAdmin::TypeError ();
+			PushSupplierBase::connect_push_consumer (push_consumer);
+			proxy_ = proxy;
+			op_idx_ = Internal::make_op_idx ((UShort)(ie - proxy_->interfaces ().begin () + 1), 0);
+		}
+
+		void disconnect_push_supplier () noexcept
+		{
+			proxy_ = nullptr;
+			PushSupplierBase::disconnect_push_supplier ();
+		}
+
+		virtual void push (const Any& data) noexcept override
+		{
+			assert (proxy_);
+			try {
+				Internal::IORequest::_ptr_type rq = proxy_->create_request (op_idx_, 0, nullptr);
+				data.type ()->n_marshal_in (data.data (), 1, rq);
+				rq->invoke ();
+			} catch (...) {}
+		}
+
+	private:
+		IDL::String uses_interface_;
+		servant_reference <ProxyManager> proxy_;
+		Internal::OperationIndex op_idx_;
+	};
+
 	class SupplierAdmin : public SupplierAdminBase,
 		public servant_traits <CosTypedEventChannelAdmin::TypedSupplierAdmin>::Servant <SupplierAdmin>
 	{
@@ -343,7 +407,7 @@ private:
 		}
 
 		CosEventChannelAdmin::ProxyPushSupplier::_ref_type obtain_typed_push_supplier (
-			const IDL::String& uses_interface)
+			IDL::String& uses_interface)
 		{
 			return static_cast <TypedEventChannel&> (check_exist ())
 				.obtain_typed_push_supplier (uses_interface);
