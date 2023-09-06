@@ -131,16 +131,29 @@ private:
 
 	class PushConsumer;
 
-	class ProxyPush : public ServantProxyObject
+	class ProxyBase : public ServantProxyObject
 	{
-	public:
-		ProxyPush (PushConsumer& servant, const IDL::String& interface_id) :
-			ServantProxyObject (&servant, interface_id)
+	protected:
+		ProxyBase (PortableServer::Servant servant, const IDL::String& interface_id) :
+			ServantProxyObject (servant, interface_id)
 		{
 			// Interface must not have base interfaces
 			if (interfaces ().size () != 1)
 				throw CosTypedEventChannelAdmin::InterfaceNotSupported ();
+		}
 
+		~ProxyBase ()
+		{
+			delete_servant (true);
+		}
+	};
+
+	class ProxyPush : public ProxyBase
+	{
+	public:
+		ProxyPush (PushConsumer& servant, const IDL::String& interface_id) :
+			ProxyBase (&servant, interface_id)
+		{
 			// Check interface requirements and obtain event type
 			TypeCode::_ref_type param_type = check_push (*interfaces ().front ().interface_metadata);
 			if (!param_type || !servant.channel ().set_event_type (param_type))
@@ -168,8 +181,13 @@ private:
 	public:
 		PushConsumer (TypedEventChannel& channel, const IDL::String& supported_interface) :
 			PushConsumerBase (channel),
-			proxy_push_ (*this, supported_interface)
+			proxy_push_ (new ProxyPush (*this, supported_interface))
 		{}
+
+		~PushConsumer ()
+		{
+			delete proxy_push_;
+		}
 
 		void push (Internal::IORequest::_ptr_type call)
 		{
@@ -184,12 +202,12 @@ private:
 
 		Object::_ref_type get_typed_consumer () const noexcept
 		{
-			return proxy_push_.get_proxy ();
+			return proxy_push_->get_proxy ();
 		}
 
 		virtual void destroy (PortableServer::POA::_ptr_type adapter) noexcept override
 		{
-			deactivate_object (proxy_push_.get_proxy (), adapter);
+			deactivate_object (proxy_push_->get_proxy (), adapter);
 			PushConsumerBase::destroy (this, adapter);
 		}
 
@@ -200,21 +218,17 @@ private:
 		}
 
 	private:
-		ProxyPush proxy_push_;
+		ProxyPush* proxy_push_;
 	};
 
 	class PullSupplier;
 
-	class ProxyPull : public ServantProxyObject
+	class ProxyPull : public ProxyBase
 	{
 	public:
 		ProxyPull (PullSupplier& servant, const IDL::String& interface_id) :
-			ServantProxyObject (&servant, interface_id)
+			ProxyBase (&servant, interface_id)
 		{
-			// Interface must not have base interfaces
-			if (interfaces ().size () != 1)
-				throw CosTypedEventChannelAdmin::InterfaceNotSupported ();
-
 			// Check interface requirements and obtain event type
 			TypeCode::_ref_type param_type = check_pull (*interfaces ().front ().interface_metadata);
 			if (!param_type || !servant.channel ().set_event_type (param_type))
@@ -245,17 +259,22 @@ private:
 	public:
 		PullSupplier (TypedEventChannel& channel, const IDL::String& supported_interface) :
 			PullSupplierBase (channel),
-			proxy_pull_ (*this, supported_interface)
+			proxy_pull_ (new ProxyPull (*this, supported_interface))
 		{}
+
+		~PullSupplier ()
+		{
+			delete proxy_pull_;
+		}
 
 		Object::_ref_type get_typed_supplier () const noexcept
 		{
-			return proxy_pull_.get_proxy ();
+			return proxy_pull_->get_proxy ();
 		}
 
 		virtual void destroy (PortableServer::POA::_ptr_type adapter) noexcept override
 		{
-			deactivate_object (proxy_pull_.get_proxy (), adapter);
+			deactivate_object (proxy_pull_->get_proxy (), adapter);
 			PullSupplierBase::destroy (this, adapter);
 		}
 
@@ -277,7 +296,7 @@ private:
 		}
 
 	private:
-		ProxyPull proxy_pull_;
+		ProxyPull* proxy_pull_;
 	};
 
 	class SupplierAdmin : public SupplierAdminBase,

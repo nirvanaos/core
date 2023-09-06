@@ -91,7 +91,7 @@ void EventChannelBase::Children::destroy (PortableServer::POA::_ptr_type adapter
 
 void EventChannelBase::push (const Any& data)
 {
-	if (!pull_suppliers_.empty ()) {
+	if (pull_suppliers_.connected ()) {
 		servant_reference <SharedAny> sany (make_reference <SharedAny> (std::ref (data)));
 		for (const auto p : pull_suppliers_) {
 			PullSupplierBase& sup = static_cast <PullSupplierBase&> (*p);
@@ -100,10 +100,12 @@ void EventChannelBase::push (const Any& data)
 		}
 	}
 
-	for (const auto p : push_suppliers_) {
-		PushSupplierBase& sup = static_cast <PushSupplierBase&> (*p);
-		if (sup.connected ())
-			sup.push (data);
+	if (push_suppliers_.connected ()) {
+		for (const auto p : push_suppliers_) {
+			PushSupplierBase& sup = static_cast <PushSupplierBase&> (*p);
+			if (sup.connected ())
+				sup.push (data);
+		}
 	}
 }
 
