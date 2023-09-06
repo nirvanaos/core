@@ -37,25 +37,94 @@ namespace Core {
 class NIRVANA_NOVTABLE NamingContextBase : public NamingContextRoot
 {
 public:
-	void bind (Name& n, CORBA::Object::_ptr_type obj);
+	void bind (Name& n, CORBA::Object::_ptr_type obj)
+	{
+		check_name (n);
+
+		if (n.size () == 1)
+			bind1 (n, obj);
+		else
+			resolve_child (n)->bind (n, obj);
+	}
+
 	virtual void bind1 (Name& n, CORBA::Object::_ptr_type obj) = 0;
 
-	void rebind (Name& n, CORBA::Object::_ptr_type obj);
+	void rebind (Name& n, CORBA::Object::_ptr_type obj)
+	{
+		check_name (n);
+
+		if (n.size () == 1)
+			rebind1 (n, obj);
+		else
+			resolve_child (n)->rebind (n, obj);
+	}
+
 	virtual void rebind1 (Name& n, CORBA::Object::_ptr_type obj) = 0;
 
-	void bind_context (Name& n, NamingContext::_ptr_type nc);
+	void bind_context (Name& n, NamingContext::_ptr_type nc)
+	{
+		check_name (n);
+
+		if (!nc)
+			throw CORBA::BAD_PARAM ();
+
+		if (n.size () == 1)
+			bind_context1 (n, nc);
+		else
+			resolve_child (n)->bind_context (n, nc);
+	}
+
 	virtual void bind_context1 (Name& n, NamingContext::_ptr_type nc) = 0;
 
-	void rebind_context (Name& n, NamingContext::_ptr_type nc);
+	void rebind_context (Name& n, NamingContext::_ptr_type nc)
+	{
+		check_name (n);
+
+		if (!nc)
+			throw CORBA::BAD_PARAM ();
+
+		if (n.size () == 1)
+			rebind_context1 (n, nc);
+		else
+			resolve_child (n)->rebind_context (n, nc);
+	}
+
 	virtual void rebind_context1 (Name& n, NamingContext::_ptr_type nc) = 0;
 
-	CORBA::Object::_ref_type resolve (Name& n);
+	CORBA::Object::_ref_type resolve (Name& n)
+	{
+		check_name (n);
+
+		if (n.size () == 1)
+			return resolve1 (n);
+		else
+			return resolve_child (n)->resolve (n);
+	}
+
 	virtual CORBA::Object::_ref_type resolve1 (Name& n) = 0;
 
-	void unbind (Name& n);
+	void unbind (Name& n)
+	{
+		check_name (n);
+
+		if (n.size () == 1)
+			unbind1 (n);
+		else
+			resolve_child (n)->unbind (n);
+	}
+
 	virtual void unbind1 (Name& n) = 0;
 
-	NamingContext::_ref_type bind_new_context (Name& n);
+	NamingContext::_ref_type bind_new_context (Name& n)
+	{
+		check_name (n);
+
+		if (n.size () == 1)
+			return bind_new_context1 (n);
+		else
+			return resolve_child (n)->bind_new_context (n);
+	}
+
 	virtual NamingContext::_ref_type bind_new_context1 (Name& n) = 0;
 
 	void list (uint32_t how_many, BindingList& bl, CosNaming::BindingIterator::_ref_type& bi) const
