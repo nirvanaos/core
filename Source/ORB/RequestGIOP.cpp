@@ -101,7 +101,6 @@ bool RequestGIOP::marshal_chunk ()
 {
 	if (!marshal_op ())
 		return false;
-	assert (domain_);
 	if (chunk_level_) {
 		if (stream_out_->chunk_size () >= CHUNK_SIZE_LIMIT)
 			stream_out_->chunk_end ();

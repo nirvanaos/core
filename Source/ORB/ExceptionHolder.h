@@ -34,23 +34,48 @@
 namespace CORBA {
 namespace Core {
 
-class ExceptionHolder :
-	public servant_traits <Messaging::ExceptionHolder>::Servant <ExceptionHolder>
-{
-	typedef servant_traits <Messaging::ExceptionHolder>::Servant <ExceptionHolder> Base;
+class ExceptionHolderImpl;
 
+class NIRVANA_NOVTABLE ExceptionHolder :
+	public Internal::ValueImpl <ExceptionHolder, ValueBase>,
+	public Internal::ValueImpl <ExceptionHolder, ::Messaging::ExceptionHolder>,
+	public Internal::ValueBaseCopy <ExceptionHolderImpl>,
+	public Internal::ValueBaseFactory < ::Messaging::ExceptionHolder>,
+	public Internal::ValueBaseMarshal <ExceptionHolder>,
+	public Internal::ValueNonTruncatable
+{
+	typedef Internal::Aggregated <ExceptionHolder, Messaging::ExceptionHolder> Base;
+
+	DECLARE_CORE_INTERFACE
 public:
+	typedef Messaging::ExceptionHolder PrimaryInterface;
+
 	ExceptionHolder () :
 		user_exceptions_ (nullptr),
 		user_exceptions_cnt_ (0)
 	{}
 
-	ExceptionHolder (Any& exc) :
-		Base (exc.is_system_exception (), Nirvana::endian::native == Nirvana::endian::little,
-			marshal_exception (exc)),
-		user_exceptions_ (nullptr),
-		user_exceptions_cnt_ (0)
-	{}
+	ExceptionHolder (Any& exc);
+
+	Internal::Interface* _query_valuetype (Internal::String_in id) noexcept
+	{
+		return Internal::FindInterface <Messaging::ExceptionHolder>::find (*this, id);
+	}
+
+	static ULong _refcount_value () noexcept
+	{
+		return 1;
+	}
+
+	void _marshal (Internal::IORequest::_ptr_type rq) const
+	{
+		Internal::ValueData <Messaging::ExceptionHolder>::_marshal (rq);
+	}
+
+	void _unmarshal (Internal::IORequest::_ptr_type rq)
+	{
+		Internal::ValueData <Messaging::ExceptionHolder>::_unmarshal (rq);
+	}
 
 	void set_user_exceptions (const Internal::ExceptionEntry* exc_list, size_t count)
 	{
@@ -95,7 +120,7 @@ private:
 
 	static OctetSeq marshal_exception (Any& exc)
 	{
-		Nirvana::Core::ImplStatic <StreamOutEncap> stm;
+		Nirvana::Core::ImplStatic <StreamOutEncap> stm (true);
 		Nirvana::Core::ImplStatic <RequestEncap> rq (nullptr, &stm);
 		TypeCode::_ptr_type tc = exc.type ();
 		Internal::Type <IDL::String>::marshal_in (tc->id (), rq._get_ptr ());
@@ -109,6 +134,34 @@ private:
 
 	// Hold module reference to ensure that user_exceptions_ in module constant memory are available.
 	servant_reference <Nirvana::Core::Module> module_;
+};
+
+class ExceptionHolderImpl :
+	public ExceptionHolder,
+	public Internal::RefCountBase <ExceptionHolderImpl>
+{
+public:
+	ExceptionHolderImpl ()
+	{}
+
+	ExceptionHolderImpl (const ExceptionHolder& src) :
+		ExceptionHolder (src)
+	{}
+
+	ULong _refcount_value () const noexcept
+	{
+		Internal::RefCountBase <ExceptionHolderImpl>::_refcount_value ();
+	}
+
+	virtual void _add_ref () noexcept override
+	{
+		Internal::RefCountBase <ExceptionHolderImpl>::_add_ref ();
+	}
+
+	virtual void _remove_ref () noexcept override
+	{
+		Internal::RefCountBase <ExceptionHolderImpl>::_remove_ref ();
+	}
 };
 
 }

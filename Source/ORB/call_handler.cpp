@@ -41,15 +41,19 @@ void call_handler (const Operation& metadata, IORequest::_ptr_type rq, Object::_
 		IORequest::_ref_type rq_handler;
 		Any exc;
 		if (rq->get_exception (exc)) {
-			Messaging::ExceptionHolder::_ref_type eh;
+			rq_handler = handler_proxy->create_request (op_idx + 1, 0, nullptr);
 			try {
-				eh = make_reference <ExceptionHolder> (std::ref (exc));
+				Nirvana::Core::ImplStatic <ExceptionHolder> eh (std::ref (exc));
+				rq_handler->marshal_value (Messaging::ExceptionHolder::_ptr_type (&eh));
 			} catch (const SystemException& ex) {
 				exc <<= ex;
-				eh = make_reference <ExceptionHolder> (std::ref (exc));
+				try {
+					Nirvana::Core::ImplStatic <ExceptionHolder> eh (std::ref (exc));
+					rq_handler->marshal_value (Messaging::ExceptionHolder::_ptr_type (&eh));
+				} catch (...) {
+					rq_handler->marshal_value (nullptr);
+				}
 			}
-			rq_handler = handler_proxy->create_request (op_idx + 1, 0, nullptr);
-			rq_handler->marshal_value (Messaging::ExceptionHolder::_ptr_type (eh));
 		} else {
 			rq_handler = handler_proxy->create_request (op_idx, 0, nullptr);
 			remarshal_output (metadata, rq, rq_handler);
