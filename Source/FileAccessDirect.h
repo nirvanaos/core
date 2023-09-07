@@ -94,7 +94,7 @@ public:
 				if (it->first < new_size)
 					break;
 				if (it->second.request) {
-					complete_request (it->second.request);
+					complete_request (*it);
 					if (new_size != (volatile Pos&)file_size_)
 						return;
 				}
@@ -117,14 +117,25 @@ public:
 	}
 
 private:
-	class Request;
+	struct CacheEntry;
+
+	// We can not use `phmap::btree_map` here because we need the iterator stability.
+	typedef MapOrderedStable <BlockIdx, CacheEntry, std::less <BlockIdx>,
+		UserAllocator> Cache;
+
+	enum {
+		OP_READ = 1,
+		OP_WRITE = 2
+	};
 
 	struct CacheEntry
 	{
 		SteadyTime last_write_time; // Valid only if dirty_begin != dirty_end
 		SteadyTime last_read_time;
 		void* buffer;
-		Ref <Request> request;
+		Ref <IO_Request> request; // Current request associated with this entry
+		Cache::iterator first_request_entry; // First entry associated with current request.
+		int request_op; // Current request operation: OP_READ or OP_WRITE
 		unsigned lock_cnt;
 		short error;
 		// Dirty base blocks
@@ -146,10 +157,6 @@ private:
 		}
 	};
 
-	// We can not use `phmap::btree_map` here because we need the iterator stability.
-	typedef MapOrderedStable <BlockIdx, CacheEntry, std::less <BlockIdx>,
-		UserAllocator> Cache;
-
 	struct CacheRange
 	{
 		Cache::iterator begin, end;
@@ -168,30 +175,6 @@ private:
 		}
 	};
 
-	typedef Base::Request RequestBase;
-	class Request :
-		public RequestBase
-	{
-		typedef RequestBase Base;
-	public:
-		Request (Operation op, Pos offset, void* buf, Size size, Cache::iterator first_block) :
-			Base (op, offset, buf, size),
-			first_block_ (first_block)
-		{}
-
-		~Request ()
-		{}
-
-		Cache::iterator first_block_;
-	};
-
-	void issue_request (Request& request) noexcept
-	{
-		request.prepare_to_issue ();
-		Base::issue_request (request);
-	}
-
-	void complete_request (Ref <Request> request) noexcept;
 	void complete_request (Cache::reference entry, int op = 0);
 
 	Cache::iterator release_cache (Cache::iterator it, SteadyTime time);
@@ -233,9 +216,10 @@ private:
 	void complete_size_request () noexcept;
 
 private:
-	Pos file_size_;
 	Cache cache_;
-	Ref <Request> size_request_;
+	Pos file_size_;
+	Pos requested_size_;
+	Ref <IO_Request> size_request_;
 	const Size block_size_;
 	Size base_block_size_;
 	size_t dirty_blocks_;
@@ -267,7 +251,7 @@ void FileAccessDirect::read (uint64_t pos, uint32_t size, std::vector <uint8_t>&
 		Cache::iterator block = blocks.begin;
 		// Copy first block
 		{
-			complete_request (*block, Request::OP_READ);
+			complete_request (*block, OP_READ);
 			// Reserve space when read across multiple blocks
 			Cache::iterator second_block = block;
 			if (blocks.end != ++second_block)
@@ -281,7 +265,7 @@ void FileAccessDirect::read (uint64_t pos, uint32_t size, std::vector <uint8_t>&
 		}
 		// Copy remaining blocks
 		while (block != blocks.end) {
-			complete_request (*block, Request::OP_READ);
+			complete_request (*block, OP_READ);
 			const uint8_t* bl = (uint8_t*)block->second.buffer;
 			Size cb = std::min (size, block_size_);
 			data.insert (data.end (), bl, bl + cb);
@@ -483,8 +467,8 @@ void FileAccessDirect::flush ()
 	for (Cache::iterator it = cache_.begin (); it != cache_.end (); ++it) {
 		// Complete pending write requests.
 		// Do not throw the exceptions.
-		if (it->second.request && it->second.request->operation () == Request::OP_WRITE)
-			complete_request (it->second.request);
+		if (it->second.request && it->second.request_op == OP_WRITE)
+			complete_request (*it);
 	}
 	
 	// Set file size if unaligned

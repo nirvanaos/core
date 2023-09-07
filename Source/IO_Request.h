@@ -29,6 +29,7 @@
 #pragma once
 
 #include "Event.h"
+#include "UserObject.h"
 
 namespace Nirvana {
 namespace Core {
@@ -37,39 +38,23 @@ struct IO_Result
 {
 	uint32_t size;
 	int error;
+
+	IO_Result (uint32_t cb, int err) :
+		size (cb),
+		error (err)
+	{}
 };
 
 /// Input/output request.
 class NIRVANA_NOVTABLE IO_Request :
 	public Event,
-	public SharedObject
+	public UserObject
 {
-	DECLARE_CORE_INTERFACE
 public:
-	/// I/O operation code.
-	enum Operation
-	{
-		OP_READ = 1,
-		OP_WRITE = 2,
-		OP_SET_SIZE = 3
-	};
-
-	/// \returns I/O operation code.
-	Operation operation () const noexcept
-	{
-		return operation_;
-	}
-
-	void prepare_to_issue () noexcept
-	{
-		_add_ref ();
-	}
-
 	void signal (const IO_Result& result) noexcept
 	{
 		result_ = result;
 		Event::signal ();
-		_remove_ref ();
 	}
 
 	const IO_Result& result () const noexcept
@@ -77,13 +62,33 @@ public:
 		return result_;
 	}
 
+	virtual void cancel () noexcept = 0;
+
 protected:
-	IO_Request (Operation operation) noexcept :
-		operation_ (operation)
+	IO_Request () noexcept :
+		result_ (0, 0)
 	{}
 
+	virtual ~IO_Request ()
+	{}
+
+	template <class> friend class CORBA::servant_reference;
+
+	void _add_ref () noexcept
+	{
+		ref_cnt_.increment ();
+	}
+
+	void _remove_ref () noexcept
+	{
+		if (!ref_cnt_.decrement ()) {
+			wait ();
+			delete this;
+		}
+	}
+
 private:
-	const Operation operation_;
+	RefCounter ref_cnt_;
 	IO_Result result_;
 };
 

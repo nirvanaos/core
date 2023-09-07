@@ -33,7 +33,7 @@ FileAccessDirect::~FileAccessDirect ()
 {
 	for (Cache::iterator it = cache_.begin (); it != cache_.end (); ++it) {
 		if (it->second.request)
-			complete_request (it->second.request);
+			complete_request (*it);
 		Port::Memory::release (it->second.buffer, block_size_);
 	}
 }
@@ -52,19 +52,26 @@ FileAccessDirect::CacheRange FileAccessDirect::request_read (BlockIdx begin_bloc
 				// Issue new read request
 				size_t cb = (Size)(not_cached_end - begin_block) * block_size_;
 				void* buffer = Port::Memory::allocate (nullptr, cb, 0);
-				Ref <Request> request;
 				unsigned new_blocks = 0;
 				try {
-					for (uint8_t* block_buf = (uint8_t*)buffer;;) {
-						Cache::iterator it = cache_.emplace_hint (cached_block, begin_block, block_buf);
-						blocks.append (it);
+					uint8_t* block_buf = (uint8_t*)buffer;
+					Cache::iterator it_last = cache_.emplace_hint (cached_block, begin_block, block_buf);
+					Cache::iterator it_first = it_last;
+					Pos offset = begin_block * block_size_;
+					for (;;) {
+						blocks.append (it_last);
 						++new_blocks;
-						if (!request)
-							request = Ref <Request>::create <ImplDynamic <Request>> (IO_Request::OP_READ, (Pos)begin_block * (Pos)block_size_, buffer, (Size)cb, it);
-						it->second.request = request;
 						if (not_cached_end == ++begin_block)
 							break;
 						block_buf += block_size_;
+						it_last = cache_.emplace_hint (cached_block, begin_block, block_buf);
+					}
+					Ref <IO_Request> request = Base::read (offset, buffer, (Size)cb);
+					++it_last;
+					for (Cache::iterator it = it_first; it != it_last; ++it) {
+						it->second.request = request;
+						it->second.request_op = OP_READ;
+						it->second.first_request_entry = it_first;
 					}
 				} catch (...) {
 					while (new_blocks--) {
@@ -73,7 +80,6 @@ FileAccessDirect::CacheRange FileAccessDirect::request_read (BlockIdx begin_bloc
 					Port::Memory::release (buffer, cb);
 					throw;
 				}
-				issue_request (*request);
 				if (begin_block == end_block)
 					break;
 			}
@@ -135,15 +141,15 @@ void FileAccessDirect::write_dirty_blocks (SteadyTime timeout)
 				dirty_end *= base_block_size_;
 				Pos pos = (Pos)first_block->first * (Pos)block_size_ + (Pos)dirty_begin;
 				Size size = (Size)((Pos)(idx - 1) * (Pos)block_size_ + (Pos)dirty_end - pos);
-				Ref <Request> request = Ref <Request>::create <ImplDynamic <Request>> (Request::OP_WRITE, pos,
-					(uint8_t*)first_block->second.buffer + dirty_begin, size, first_block);
+				Ref <IO_Request> request = Base::write (pos, (uint8_t*)first_block->second.buffer + dirty_begin, size);
 
-				do {
-					first_block->second.request = request;
-					clear_dirty (*first_block);
+				for (Cache::iterator it = first_block; it != block; ++it) {
+					it->second.request = request;
+					it->second.request_op = OP_WRITE;
+					it->second.first_request_entry = first_block;
+					clear_dirty (*it);
 				} while (++first_block != block);
 
-				issue_request (*request);
 				continue;
 			}
 		}
@@ -151,34 +157,31 @@ void FileAccessDirect::write_dirty_blocks (SteadyTime timeout)
 	}
 }
 
-void FileAccessDirect::complete_request (Ref <Request> request) noexcept
-{
-	request->wait ();
-	if (request->first_block_ != cache_.end ()) {
-		IO_Result result = request->result ();
-		Cache::iterator block = request->first_block_;
-		for (;;) {
-			block->second.request = nullptr;
-			if (result.size >= block_size_) {
-				block->second.error = 0;
-				result.size -= block_size_;
-			} else if ((block->second.error = result.error) && request->operation () == Request::OP_WRITE) {
-				set_dirty (*block, result.size, block_size_ - result.size);
-			}
-			if ((cache_.end () == ++block) || block->second.request != request)
-				break;
-		}
-		request->first_block_ = cache_.end ();
-	}
-}
-
 void FileAccessDirect::complete_request (Cache::reference entry, int op)
 {
 	while (entry.second.request && (entry.second.request->signalled ()
-		|| (!op || entry.second.request->operation () == op)))
-	{
+		|| (!op || entry.second.request_op == op))) {
+
 		lock (entry);
-		complete_request (entry.second.request);
+		{
+			entry.second.request->wait ();
+			if (entry.second.first_request_entry != cache_.end ()) { // Not yet processed
+				Ref <IO_Request> request (std::move (entry.second.request));
+				IO_Result result = request->result ();
+				Cache::iterator block = entry.second.first_request_entry;
+				for (;;) {
+					block->second.request = nullptr;
+					if (result.size >= block_size_) {
+						block->second.error = 0;
+						result.size -= block_size_;
+					} else if ((block->second.error = result.error) && entry.second.request_op == OP_WRITE) {
+						set_dirty (*block, result.size, block_size_ - result.size);
+					}
+					if ((cache_.end () == ++block) || block->second.request != request)
+						break;
+				}
+			}
+		}
 		unlock (entry);
 	}
 	if (entry.second.error)
@@ -190,7 +193,7 @@ void FileAccessDirect::complete_size_request () noexcept
 	size_request_->wait ();
 	if (size_request_) {
 		if (!size_request_->result ().error)
-			file_size_ = size_request_->offset ();
+			file_size_ = requested_size_;
 		size_request_ = nullptr;
 	}
 }
@@ -198,7 +201,7 @@ void FileAccessDirect::complete_size_request () noexcept
 FileAccessDirect::Cache::iterator FileAccessDirect::release_cache (Cache::iterator it, SteadyTime time)
 {
 	if (it->second.request && it->second.request->signalled ())
-		complete_request (it->second.request);
+		complete_request (*it);
 	if (!it->second.lock_cnt && !it->second.dirty ()
 		&& (
 			(Pos)it->first * (Pos)block_size_ >= file_size_
@@ -237,12 +240,11 @@ void FileAccessDirect::set_size (Pos new_size)
 	while (size_request_)
 		complete_size_request ();
 
-	Ref <Request> request = Ref <Request>::create <ImplDynamic <Request>>
-		(Request::OP_SET_SIZE, new_size, nullptr, 0, cache_.end ());
-	size_request_ = request;
-	issue_request (*request);
+	requested_size_ = new_size;
+	Ref <IO_Request> rq = Base::set_size (new_size);
+	size_request_ = rq;
 	complete_size_request ();
-	int err = request->result ().error;
+	int err = rq->result ().error;
 	if (err)
 		throw_INTERNAL (make_minor_errno (err));
 }
