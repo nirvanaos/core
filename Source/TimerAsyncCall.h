@@ -47,6 +47,16 @@ public:
 		return overrun_;
 	}
 
+	const DeadlineTime& deadline () const noexcept
+	{
+		return deadline_;
+	}
+
+	void deadline (const DeadlineTime& deadline) noexcept
+	{
+		deadline_ = deadline;
+	}
+
 protected:
 	TimerAsyncCall (SyncContext& sync_context, const DeadlineTime& deadline);
 

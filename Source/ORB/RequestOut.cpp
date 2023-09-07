@@ -332,7 +332,7 @@ void RequestOut::pre_invoke (IdPolicy id_policy)
 		if (!Nirvana::Core::Port::Debugger::is_debugger_present ())
 #endif
 		timer_.set (std::max (Chrono::deadline_to_time (
-			deadline_ - Chrono::deadline_clock ()), (int64_t)MIN_TIMEOUT), id ());
+			deadline_ - Chrono::deadline_clock ()), (int64_t)MIN_TIMEOUT), id (), memory ().heap ());
 	} else
 		OutgoingRequests::new_request_oneway (*this, id_policy);
 }
@@ -429,9 +429,28 @@ bool RequestOut::get_exception (Any& e)
 	return true;
 }
 
+class RequestOut::Timeout : public Runnable
+{
+public:
+	Timeout (RequestId id) :
+		id_ (id)
+	{}
+
+	virtual void run () override
+	{
+		OutgoingRequests::set_system_exception (id_, TIMEOUT (MAKE_OMG_MINOR (3)));
+	}
+
+private:
+	RequestId id_;
+};
+
 void RequestOut::Timer::signal () noexcept
 {
-	OutgoingRequests::set_system_exception (id_, TIMEOUT (MAKE_OMG_MINOR (3)));
+	try {
+		ExecDomain::async_call <Timeout> (Chrono::make_deadline (timeout_), g_core_free_sync_context,
+			(Heap*)heap_, id_);
+	} catch (...) {}
 }
 
 }

@@ -164,9 +164,11 @@ private:
 	class Timer : public Nirvana::Core::Timer
 	{
 	public:
-		void set (TimeBase::TimeT timeout, RequestId id)
+		void set (TimeBase::TimeT timeout, RequestId id, Nirvana::Core::Heap& heap)
 		{
 			id_ = id;
+			timeout_ = timeout;
+			heap_ = (&heap);
 			Nirvana::Core::Timer::set (0, timeout, 0);
 		}
 
@@ -175,7 +177,11 @@ private:
 
 	private:
 		RequestId id_;
+		servant_reference <Nirvana::Core::Heap> heap_;
+		TimeBase::TimeT timeout_;
 	};
+
+	class Timeout;
 
 	Timer timer_;
 
