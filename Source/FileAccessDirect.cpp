@@ -36,6 +36,8 @@ FileAccessDirect::~FileAccessDirect ()
 			complete_request (*it);
 		Port::Memory::release (it->second.buffer, block_size_);
 	}
+	if (size_request_)
+		size_request_->wait ();
 }
 
 FileAccessDirect::CacheRange FileAccessDirect::request_read (BlockIdx begin_block, BlockIdx end_block)
@@ -164,9 +166,9 @@ void FileAccessDirect::complete_request (Cache::reference entry, int op)
 
 		lock (entry);
 		{
-			entry.second.request->wait ();
-			if (entry.second.first_request_entry != cache_.end ()) { // Not yet processed
-				Ref <IO_Request> request (std::move (entry.second.request));
+			Ref <IO_Request> request = entry.second.request;
+			request->wait ();
+			if (entry.second.request == request) { // Not yet processed
 				IO_Result result = request->result ();
 				Cache::iterator block = entry.second.first_request_entry;
 				for (;;) {
@@ -190,9 +192,11 @@ void FileAccessDirect::complete_request (Cache::reference entry, int op)
 
 void FileAccessDirect::complete_size_request () noexcept
 {
-	size_request_->wait ();
-	if (size_request_) {
-		if (!size_request_->result ().error)
+	assert (size_request_);
+	Ref <IO_Request> rq = size_request_;
+	rq->wait ();
+	if (size_request_ == rq) {
+		if (!rq->result ().error)
 			file_size_ = requested_size_;
 		size_request_ = nullptr;
 	}
