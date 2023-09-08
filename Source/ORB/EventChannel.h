@@ -573,19 +573,21 @@ class EventChannel :
 	public EventChannelBase
 {
 public:
+	EventChannel ()
+	{
+		consumer_admin_ = make_reference <ConsumerAdmin> (std::ref (*this));
+		supplier_admin_ = make_reference <SupplierAdmin> (std::ref (*this));
+	}
+
 	CosEventChannelAdmin::ConsumerAdmin::_ref_type for_consumers ()
 	{
 		check_exist ();
-		if (!consumer_admin_)
-			consumer_admin_ = make_reference <ConsumerAdmin> (std::ref (*this));
 		return consumer_admin_->_this ();
 	}
 
 	CosEventChannelAdmin::SupplierAdmin::_ref_type for_suppliers ()
 	{
 		check_exist ();
-		if (!supplier_admin_)
-			supplier_admin_ = make_reference <SupplierAdmin> (std::ref (*this));
 		return supplier_admin_->_this ();
 	}
 
