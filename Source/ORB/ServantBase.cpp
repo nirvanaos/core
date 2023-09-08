@@ -23,6 +23,7 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
+#include "../pch.h"
 #include "ServantBase.h"
 #include "POA_Root.h"
 #include <CORBA/Proxy/TypeCodeNative.h>

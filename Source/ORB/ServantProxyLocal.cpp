@@ -23,6 +23,7 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
+#include "../pch.h"
 #include "ServantProxyLocal.h"
 
 using namespace Nirvana::Core;

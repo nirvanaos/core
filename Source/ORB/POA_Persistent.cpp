@@ -23,6 +23,7 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
+#include "../pch.h"
 #include "POA_Persistent.h"
 #include "POA_Root.h"
 #include "StreamOutEncap.h"

@@ -33,6 +33,10 @@
 #include "../UserAllocator.h"
 #include <queue>
 
+#if defined (__GNUG__) || defined (__clang__)
+#pragma GCC diagnostic ignored "-Woverloaded-virtual"
+#endif
+
 namespace CORBA {
 namespace Core {
 

@@ -150,7 +150,7 @@ public:
 
 	ULong _refcount_value () const noexcept
 	{
-		Internal::RefCountBase <ExceptionHolderImpl>::_refcount_value ();
+		return Internal::RefCountBase <ExceptionHolderImpl>::_refcount_value ();
 	}
 
 	virtual void _add_ref () noexcept override

@@ -23,6 +23,7 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
+#include "pch.h"
 #include "TLS.h"
 #include "RuntimeGlobal.h"
 #include "MemContextUser.h"

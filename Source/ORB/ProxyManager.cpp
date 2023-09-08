@@ -23,6 +23,7 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
+#include "../pch.h"
 #include "ProxyManager.h"
 #include "../Binder.h"
 #include "RequestLocal.h"

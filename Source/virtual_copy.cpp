@@ -23,6 +23,7 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
+#include "pch.h"
 #include "virtual_copy.h"
 #include <Port/Memory.h>
 #include <Nirvana/real_copy.h>

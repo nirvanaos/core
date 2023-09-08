@@ -23,6 +23,7 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
+#include "pch.h"
 #include "PortableExecutable.h"
 #include <Nirvana/throw_exception.h>
 #include <Nirvana/OLF.h>
