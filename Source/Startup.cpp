@@ -23,7 +23,10 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "pch.h"
+
+// Using the precompiled header with CLang in this file causes error:
+// The OLF static symbols not exported/imported.
+
 #include <CORBA/Server.h>
 #include "Startup.h"
 #include "ExecDomain.h"
