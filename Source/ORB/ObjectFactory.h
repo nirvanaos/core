@@ -32,6 +32,7 @@
 #include "LocalObject.h"
 #include "SyncDomain.h"
 #include <CORBA/ObjectFactory_s.h>
+#include "../WaitableRef.h"
 
 namespace CORBA {
 namespace Core {
@@ -40,6 +41,8 @@ namespace Core {
 class ObjectFactory :
 	public servant_traits <Internal::ObjectFactory>::ServantStatic <ObjectFactory>
 {
+	static const TimeBase::TimeT PROXY_CREATION_DEADLINE = 10 * TimeBase::MILLISECOND;
+
 public:
 	static void* memory_allocate (size_t size)
 	{
@@ -63,14 +66,12 @@ public:
 
 	static void create_servant (PortableServer::Servant servant, void* ref)
 	{
-		Frame frame (&servant);
-		*reinterpret_cast <Internal::Interface**> (ref) = PortableServer::Core::ServantBase::create (servant);
+		create <PortableServer::ServantBase, PortableServer::Core::ServantBase> (servant, ref);
 	}
 
 	static void create_local_object (CORBA::LocalObject::_ptr_type servant, void* ref)
 	{
-		Frame frame (&servant);
-		*reinterpret_cast <Internal::Interface**> (ref) = CORBA::Core::LocalObject::create (servant);
+		create <CORBA::LocalObject, CORBA::Core::LocalObject> (servant, ref);
 	}
 
 	void stateless_begin (StatelessCreationFrame& scf)
@@ -123,7 +124,35 @@ private:
 		bool pop_;
 	};
 
+	typedef Nirvana::Core::WaitableRef <Internal::Interface*> WaitableRef;
+
 	static Nirvana::Core::Heap& stateless_memory ();
+
+	template <class ServantInterface, class ServantObject>
+	static void create (Internal::I_ptr <ServantInterface> servant, void* pref)
+	{
+		if (!servant || !pref)
+			throw BAD_PARAM ();
+		Internal::Interface*& iref = *reinterpret_cast <Internal::Interface**> (pref);
+		if ((uintptr_t)iref & ~1) {
+			assert (false);
+			return; // Already created
+		}
+
+		Frame frame (&servant);
+		if (Nirvana::Core::SyncContext::current ().sync_domain ()) {
+			WaitableRef& wref = *reinterpret_cast <WaitableRef*> (pref);
+			if (wref.is_wait_list ())
+				wref.wait_list ()->wait ();
+			else {
+				wref.initialize (PROXY_CREATION_DEADLINE);
+				wref = ServantObject::create (servant);
+			}
+		} else {
+			assert (((uintptr_t)iref & 1) == 0);
+			iref = ServantObject::create (servant);
+		}
+	}
 };
 
 }
