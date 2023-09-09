@@ -32,7 +32,6 @@
 #include "LocalObject.h"
 #include "SyncDomain.h"
 #include <CORBA/ObjectFactory_s.h>
-#include <CORBA/I_var.h>
 
 namespace CORBA {
 namespace Core {
@@ -62,16 +61,16 @@ public:
 		}
 	}
 
-	static PortableServer::ServantBase::_ref_type create_servant (PortableServer::Servant servant)
+	static void create_servant (PortableServer::Servant servant, void* ref)
 	{
 		Frame frame (&servant);
-		return Internal::I_var <PortableServer::ServantBase> (PortableServer::Core::ServantBase::create (servant));
+		*reinterpret_cast <Internal::Interface**> (ref) = PortableServer::Core::ServantBase::create (servant);
 	}
 
-	static CORBA::LocalObject::_ref_type create_local_object (CORBA::LocalObject::_ptr_type servant)
+	static void create_local_object (CORBA::LocalObject::_ptr_type servant, void* ref)
 	{
 		Frame frame (&servant);
-		return Internal::I_var <CORBA::LocalObject> (CORBA::Core::LocalObject::create (servant));
+		*reinterpret_cast <Internal::Interface**> (ref) = CORBA::Core::LocalObject::create (servant);
 	}
 
 	void stateless_begin (StatelessCreationFrame& scf)
