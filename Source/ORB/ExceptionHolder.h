@@ -55,7 +55,26 @@ public:
 		user_exceptions_cnt_ (0)
 	{}
 
-	ExceptionHolder (Any& exc);
+	ExceptionHolder (Any& exc) :
+		user_exceptions_ (nullptr),
+		user_exceptions_cnt_ (0)
+	{
+		byte_order (Nirvana::endian::native == Nirvana::endian::little);
+		is_system_exception (exc.is_system_exception ());
+		marshaled_exception (marshal_exception (exc));
+	}
+
+	ExceptionHolder (const SystemException& exc) :
+		user_exceptions_ (nullptr),
+		user_exceptions_cnt_ (0)
+	{
+		byte_order (Nirvana::endian::native == Nirvana::endian::little);
+		is_system_exception (true);
+		Nirvana::Core::ImplStatic <StreamOutEncap> stm (true);
+		stm.write_string_c (exc._rep_id ());
+		stm.write_c (4, 8, &exc._data ());
+		marshaled_exception (std::move (stm.data ()));
+	}
 
 	Internal::Interface* _query_valuetype (Internal::String_in id) noexcept
 	{

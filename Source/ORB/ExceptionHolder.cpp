@@ -29,15 +29,6 @@
 namespace CORBA {
 namespace Core {
 
-ExceptionHolder::ExceptionHolder (Any& exc) :
-	user_exceptions_ (nullptr),
-	user_exceptions_cnt_ (0)
-{
-	marshaled_exception (marshal_exception (exc));
-	is_system_exception (exc.is_system_exception ());
-	byte_order (Nirvana::endian::native == Nirvana::endian::little);
-}
-
 }
 }
 

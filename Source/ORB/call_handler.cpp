@@ -33,6 +33,16 @@ namespace CORBA {
 using namespace Internal;
 namespace Core {
 
+static void marshal_system_exception (const SystemException& ex, IORequest::_ptr_type rq)
+{
+	try {
+		Nirvana::Core::ImplStatic <ExceptionHolder> eh (std::ref (ex));
+		rq->marshal_value (Messaging::ExceptionHolder::_ptr_type (&eh));
+	} catch (...) {
+		rq->marshal_value (nullptr);
+	}
+}
+
 void call_handler (const Operation& metadata, IORequest::_ptr_type rq, Object::_ptr_type handler,
 	Internal::OperationIndex op_idx) noexcept
 {
@@ -47,17 +57,16 @@ void call_handler (const Operation& metadata, IORequest::_ptr_type rq, Object::_
 				Nirvana::Core::ImplStatic <ExceptionHolder> eh (std::ref (exc));
 				rq_handler->marshal_value (Messaging::ExceptionHolder::_ptr_type (&eh));
 			} catch (const SystemException& ex) {
-				exc <<= ex;
-				try {
-					Nirvana::Core::ImplStatic <ExceptionHolder> eh (std::ref (exc));
-					rq_handler->marshal_value (Messaging::ExceptionHolder::_ptr_type (&eh));
-				} catch (...) {
-					rq_handler->marshal_value (nullptr);
-				}
+				marshal_system_exception (ex, rq_handler);
 			}
 		} else {
-			rq_handler = handler_proxy->create_request (op_idx, 0, nullptr);
-			remarshal_output (metadata, rq, rq_handler);
+			try {
+				rq_handler = handler_proxy->create_request (op_idx, 0, nullptr);
+				remarshal_output (metadata, rq, rq_handler);
+			} catch (const SystemException& ex) {
+				rq_handler = handler_proxy->create_request (op_idx + 1, 0, nullptr);
+				marshal_system_exception (ex, rq_handler);
+			}
 		}
 		rq_handler->invoke ();
 	} catch (...) {
