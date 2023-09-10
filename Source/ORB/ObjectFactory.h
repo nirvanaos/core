@@ -142,12 +142,16 @@ private:
 		Frame frame (&servant);
 		if (Nirvana::Core::SyncContext::current ().sync_domain ()) {
 			WaitableRef& wref = *reinterpret_cast <WaitableRef*> (pref);
-			if (wref.is_wait_list ())
+			if (wref.initialize (PROXY_CREATION_DEADLINE)) {
+				auto wait_list = wref.wait_list ();
+				try {
+					wref = ServantObject::create (servant);
+				} catch (...) {
+					wait_list->on_exception ();
+					throw;
+				}
+			} else
 				wref.wait_list ()->wait ();
-			else {
-				wref.initialize (PROXY_CREATION_DEADLINE);
-				wref = ServantObject::create (servant);
-			}
 		} else {
 			assert (((uintptr_t)iref & 1) == 0);
 			iref = ServantObject::create (servant);
