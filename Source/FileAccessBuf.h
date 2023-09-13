@@ -112,6 +112,11 @@ public:
 		}
 	}
 
+	Access::_ref_type dup () const
+	{
+		return CORBA::make_reference <FileAccessBuf> (std::ref (*this));
+	}
+
 	Nirvana::File::_ref_type file () const
 	{
 		check ();

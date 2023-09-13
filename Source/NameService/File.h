@@ -229,6 +229,12 @@ void FileAccessDirectProxy::close ()
 	deactivate_servant (this);
 }
 
+inline
+Access::_ref_type FileAccessDirectProxy::dup () const
+{
+	return CORBA::make_reference <FileAccessDirectProxy> (std::ref (*file_), flags_)->_this ();
+}
+
 }
 }
 

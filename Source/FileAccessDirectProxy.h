@@ -120,6 +120,8 @@ public:
 
 	void flags (uint_fast16_t f);
 
+	Access::_ref_type dup () const;
+
 private:
 	void check_exist () const;
 
