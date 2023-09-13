@@ -29,17 +29,32 @@
 namespace Nirvana {
 namespace Core {
 
-FileAccessChar::FileAccessChar (DeadlineTime callback_deadline, unsigned initial_buffer_size) :
+FileAccessChar::FileAccessChar (Nirvana::File::_ptr_type file, unsigned flags, DeadlineTime callback_deadline, unsigned initial_buffer_size) :
+	file_ (file),
 	ring_buffer_ (initial_buffer_size),
 	sync_context_ (&SyncContext::current ()),
 	read_pos_ (0),
 	write_pos_ (0),
 	read_available_ (0),
 	write_available_ (initial_buffer_size),
+	flags_ (flags),
 	callback_ ATOMIC_FLAG_INIT,
-	callback_deadline_ (callback_deadline)
+	callback_deadline_ (callback_deadline),
+	read_error_ (0)
 {
 	buffer_.reserve (initial_buffer_size);
+}
+
+void FileAccessChar::_remove_ref () noexcept
+{
+	if (0 == ref_cnt_.decrement ()) {
+		read_cancel ();
+		if (write_request_) {
+			write_request_->cancel ();
+			write_request_->wait ();
+		}
+		delete this;
+	}
 }
 
 void FileAccessChar::on_read (char c) noexcept
@@ -48,6 +63,17 @@ void FileAccessChar::on_read (char c) noexcept
 	read_available_.increment ();
 	if (write_available_.decrement_seq ())
 		read_start ();
+	async_callback ();
+}
+
+void FileAccessChar::on_read_error (int err) noexcept
+{
+	read_error_ = err;
+	async_callback ();
+}
+
+void FileAccessChar::async_callback () noexcept
+{
 	if (!callback_.test_and_set ()) {
 		try {
 			ExecDomain::async_call <Read> (Chrono::make_deadline (callback_deadline_), *sync_context_,
@@ -63,11 +89,68 @@ void FileAccessChar::read_callback ()
 {
 	callback_.clear ();
 	auto cc = read_available_.load ();
+	assert (cc);
+	bool overflow = cc == ring_buffer_.size ();
+	try {
+		buffer_.reserve (buffer_.size () + cc);
+	} catch (...) {
+		// TODO:: Log
+	}
+	while (cc--) {
+		if (buffer_.capacity () > buffer_.size ())
+			buffer_.push_back (ring_buffer_ [read_pos_]);
+		read_pos_ = (read_pos_ + 1) % ring_buffer_.size ();
+		read_available_.decrement ();
+		write_available_.increment ();
+	}
+	if (overflow) {
+		try {
+			ring_buffer_.resize (ring_buffer_.size () * 2);
+		} catch (...) {
+			// TODO:: Log
+		}
+		read_start ();
+	}
 }
 
 void FileAccessChar::Read::run ()
 {
 	object_->read_callback ();
+}
+
+const char* FileAccessChar::get_valid_utf8_end (const char* begin, const char* end)
+{
+	if (begin < end) {
+		// Drop incomplete UTF8 data
+		if ((0xC0 & *(end - 1)) == 0x80) {
+			const char* pfirst = end - 1;
+			size_t additional_octets = 1;
+			while (pfirst > begin && additional_octets < 3) {
+				if ((0xC0 & *(pfirst - 1)) == 0x80) {
+					++additional_octets;
+					--pfirst;
+				}
+			}
+			char first_octet = *(--pfirst);
+			size_t additional_octets_expected;
+			if ((first_octet & 0x80) == 0)
+				additional_octets_expected = 0;
+			else if ((first_octet & 0xE0) == 0xC0)
+				additional_octets_expected = 1;
+			else if ((first_octet & 0xF0) == 0xE0)
+				additional_octets_expected = 2;
+			else if ((first_octet & 0xF8) == 0xF0)
+				additional_octets_expected = 3;
+			else
+				throw_CODESET_INCOMPATIBLE ();
+
+			if (additional_octets_expected > additional_octets)
+				return pfirst;
+			else if (additional_octets_expected < additional_octets)
+				throw_CODESET_INCOMPATIBLE ();
+		}
+	}
+	return end;
 }
 
 }

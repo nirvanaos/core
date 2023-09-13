@@ -31,6 +31,9 @@
 #include "IO_Request.h"
 #include "UserAllocator.h"
 #include "UserObject.h"
+#include <fnctl.h>
+#include <Nirvana/File.h>
+#include "EventSync.h"
 
 namespace Nirvana {
 namespace Core {
@@ -51,7 +54,37 @@ public:
 			throw_INTERNAL (make_minor_errno (err));
 	}
 
-	void read (uint32_t size, IDL::String& data);
+	void read (uint32_t size, IDL::String& data, bool wait)
+	{
+		if (!size)
+			return;
+
+		for (;;) {
+			size_t cc = std::min (buffer_.size (), (size_t)size);
+			if (cc) {
+				try {
+					cc = get_valid_utf8_end (buffer_.data (), buffer_.data () + cc) - buffer_.data ();
+				} catch (...) {
+					buffer_.clear ();
+					throw; // CODESET_INCOMPATIBLE
+				}
+			}
+
+			if (cc) {
+				data.assign (buffer_.data (), cc);
+				buffer_.erase (buffer_.begin (), buffer_.begin () + cc);
+				break;
+			} else if (wait)
+				read_event_.wait ();
+			else
+				break;
+		}
+	}
+
+	Nirvana::File::_ref_type file () const noexcept
+	{
+		return file_;
+	}
 
 protected:
 	template <class> friend class CORBA::servant_reference;
@@ -61,19 +94,9 @@ protected:
 		ref_cnt_.increment ();
 	}
 
-	void _remove_ref () noexcept
-	{
-		if (0 == ref_cnt_.decrement ()) {
-			read_cancel ();
-			if (write_request_) {
-				write_request_->cancel ();
-				write_request_->wait ();
-			}
-			delete this;
-		}
-	}
+	void _remove_ref () noexcept;
 
-	FileAccessChar (DeadlineTime callback_deadline = 1 * TimeBase::MILLISECOND,
+	FileAccessChar (Nirvana::File::_ptr_type file, unsigned flags = O_RDWR, DeadlineTime callback_deadline = 1 * TimeBase::MILLISECOND,
 		unsigned initial_buffer_size = 256);
 
 	virtual ~FileAccessChar ()
@@ -81,12 +104,22 @@ protected:
 
 	virtual void read_start () = 0;
 	virtual void read_cancel () = 0;
-	void on_read (char c) noexcept;
-
 	virtual Ref <IO_Request> write_start (const IDL::String& data) = 0;
 
+	/// Called from the interrupt level when character is readed.
+	///  
+	/// \param c Readed character.
+	void on_read (char c) noexcept;
+
+	/// Called from the interrupt level on reading error.
+	///
+	/// \param err Error number.
+	void on_read_error (int err) noexcept;
+
 private:
+	void async_callback () noexcept;
 	void read_callback ();
+	static const char* get_valid_utf8_end (const char* begin, const char* end);
 
 private:
 	class Read : public Runnable
@@ -103,6 +136,7 @@ private:
 		Ref <FileAccessChar> object_;
 	};
 
+	Nirvana::File::_ref_type file_;
 	std::vector <char, UserAllocator <char> > buffer_;
 	std::vector <char, UserAllocator <char> > ring_buffer_;
 	Ref <IO_Request> write_request_;
@@ -112,8 +146,11 @@ private:
 	RefCounter ref_cnt_;
 	AtomicCounter <false> read_available_;
 	AtomicCounter <false> write_available_;
+	unsigned flags_;
 	std::atomic_flag callback_;
 	DeadlineTime callback_deadline_;
+	EventSync read_event_;
+	int read_error_;
 };
 
 }
