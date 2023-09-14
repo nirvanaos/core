@@ -66,6 +66,7 @@ public:
 					cc = get_valid_utf8_end (buffer_.data (), buffer_.data () + cc) - buffer_.data ();
 				} catch (...) {
 					buffer_.clear ();
+					read_event_.reset ();
 					throw; // CODESET_INCOMPATIBLE
 				}
 			}
@@ -73,7 +74,13 @@ public:
 			if (cc) {
 				data.assign (buffer_.data (), cc);
 				buffer_.erase (buffer_.begin (), buffer_.begin () + cc);
+				if (buffer_.empty ())
+					read_event_.reset ();
 				break;
+			} else if (exception_code_ != CORBA::Exception::EC_NO_EXCEPTION) {
+				CORBA::Exception::Code ec = exception_code_;
+				exception_code_ = CORBA::Exception::EC_NO_EXCEPTION;
+				CORBA::SystemException::_raise_by_code (ec, exception_data_.minor, exception_data_.completed);
 			} else if (wait)
 				read_event_.wait ();
 			else
@@ -102,8 +109,8 @@ protected:
 	virtual ~FileAccessChar ()
 	{}
 
-	virtual void read_start () = 0;
-	virtual void read_cancel () = 0;
+	virtual void read_start () noexcept = 0;
+	virtual void read_cancel () noexcept = 0;
 	virtual Ref <IO_Request> write_start (const IDL::String& data) = 0;
 
 	/// Called from the interrupt level when character is readed.
@@ -120,6 +127,12 @@ private:
 	void async_callback () noexcept;
 	void read_callback ();
 	static const char* get_valid_utf8_end (const char* begin, const char* end);
+	
+	void on_exception (const CORBA::SystemException& ex) noexcept
+	{
+		exception_code_ = ex.__code ();
+		exception_data_ = ex._data ();
+	}
 
 private:
 	class Read : public Runnable
@@ -150,7 +163,8 @@ private:
 	std::atomic_flag callback_;
 	DeadlineTime callback_deadline_;
 	EventSync read_event_;
-	int read_error_;
+	CORBA::Exception::Code exception_code_;
+	CORBA::SystemException::_Data exception_data_;
 };
 
 }

@@ -40,7 +40,7 @@ FileAccessChar::FileAccessChar (Nirvana::File::_ptr_type file, unsigned flags, D
 	flags_ (flags),
 	callback_ ATOMIC_FLAG_INIT,
 	callback_deadline_ (callback_deadline),
-	read_error_ (0)
+	exception_code_ (CORBA::Exception::EC_NO_EXCEPTION)
 {
 	buffer_.reserve (initial_buffer_size);
 }
@@ -68,7 +68,8 @@ void FileAccessChar::on_read (char c) noexcept
 
 void FileAccessChar::on_read_error (int err) noexcept
 {
-	read_error_ = err;
+	exception_code_ = CORBA::SystemException::EC_INTERNAL;
+	exception_data_.minor = make_minor_errno (err);
 	async_callback ();
 }
 
@@ -93,8 +94,8 @@ void FileAccessChar::read_callback ()
 	bool overflow = cc == ring_buffer_.size ();
 	try {
 		buffer_.reserve (buffer_.size () + cc);
-	} catch (...) {
-		// TODO:: Log
+	} catch (const CORBA::SystemException& ex) {
+		on_exception (ex);
 	}
 	while (cc--) {
 		if (buffer_.capacity () > buffer_.size ())
@@ -103,11 +104,14 @@ void FileAccessChar::read_callback ()
 		read_available_.decrement ();
 		write_available_.increment ();
 	}
+
+	read_event_.signal ();
+
 	if (overflow) {
 		try {
 			ring_buffer_.resize (ring_buffer_.size () * 2);
-		} catch (...) {
-			// TODO:: Log
+		} catch (const CORBA::SystemException& ex) {
+			on_exception (ex);
 		}
 		read_start ();
 	}
