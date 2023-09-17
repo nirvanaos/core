@@ -348,6 +348,18 @@ void FileAccessBuf::flush_internal (bool sync)
 	reset_dirty ();
 }
 
+uint_fast16_t FileAccessBuf::check_flags (uint_fast16_t f) const
+{
+	if (f & O_DIRECT)
+		throw_INV_FLAG (make_minor_errno (EINVAL));
+
+	uint_fast16_t changes = flags () ^ f;
+	if (changes & ~(O_APPEND | O_SYNC | O_TEXT | O_NONBLOCK | O_ACCMODE))
+		throw_INV_FLAG (make_minor_errno (EINVAL));
+
+	return changes;
+}
+
 }
 }
 

@@ -112,9 +112,18 @@ public:
 		}
 	}
 
-	Access::_ref_type dup () const
+	Access::_ref_type dup (uint_fast16_t mask, uint_fast16_t f) const
 	{
-		return CORBA::make_reference <FileAccessBuf> (std::ref (*this));
+		f &= mask;
+		f |= flags () & ~mask;
+		uint_fast16_t changes = check_flags (f);
+		AccessDirect::_ref_type acc;
+		if (changes & O_ACCMODE)
+			acc = AccessDirect::_narrow (access ()->dup (O_ACCMODE, f)->_to_object ());
+		else
+			acc = access ();
+		return CORBA::make_reference <FileAccessBuf> (position (), std::move (acc),
+			block_size (), f, eol ());
 	}
 
 	Nirvana::File::_ref_type file () const
@@ -199,9 +208,9 @@ public:
 	void flags (uint_fast16_t f)
 	{
 		check ();
+
+		uint_fast16_t changes = check_flags (f);
 		if (f & O_DIRECT)
-			throw_INV_FLAG (make_minor_errno (EINVAL));
-		if ((flags () ^ f) & ~(O_APPEND | O_SYNC | O_TEXT | O_NONBLOCK))
 			throw_INV_FLAG (make_minor_errno (EINVAL));
 
 		if (!(flags () & O_SYNC) && (f & O_SYNC) && (flags () & O_ACCMODE)) {
@@ -209,6 +218,9 @@ public:
 				flush_internal ();
 			access ()->flush ();
 		}
+
+		if (changes & O_ACCMODE)
+			access (AccessDirect::_narrow (access ()->dup (O_ACCMODE, f)->_to_object ()));
 
 		Servant::flags (f);
 	}
@@ -224,6 +236,7 @@ private:
 	void check (const void* p) const;
 	void check_read () const;
 	void check_write () const;
+	uint_fast16_t check_flags (uint_fast16_t f) const;
 
 	const void* get_buffer_read_internal (size_t& cb, LockType new_lock_mode);
 	void* get_buffer_write_internal (size_t cb);

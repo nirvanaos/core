@@ -34,7 +34,7 @@ void EventChannelBase::PushConsumerBase::disconnect_push_consumer () noexcept
 	if (connected_) {
 		CosEventComm::PushSupplier::_ref_type p = std::move (supplier_);
 		connected_ = false;
-		channel_->push_consumers_.on_disconnect ();
+		channel_->on_push_consumer_disconnect ();
 		if (p) {
 			try {
 				p->disconnect_push_supplier ();
@@ -48,7 +48,7 @@ void EventChannelBase::PullSupplierBase::disconnect_pull_supplier () noexcept
 	if (connected_) {
 		CosEventComm::PullConsumer::_ref_type p = std::move (consumer_);
 		connected_ = false;
-		channel_->pull_suppliers_.on_disconnect ();
+		channel_->on_pull_supplier_disconnect ();
 		if (p) {
 			try {
 				p->disconnect_pull_consumer ();
@@ -64,7 +64,7 @@ void EventChannelBase::PullConsumerBase::disconnect_pull_consumer () noexcept
 	if (p) {
 		handler_->disconnect ();
 		handler_ = nullptr;
-		channel_->pull_consumers_.on_disconnect ();
+		channel_->on_pull_consumer_disconnect ();
 		try {
 			p->disconnect_pull_supplier ();
 		} catch (...) {}
@@ -75,7 +75,7 @@ void EventChannelBase::PushSupplierBase::disconnect_push_supplier () noexcept
 {
 	CosEventComm::PushConsumer::_ref_type p = std::move (consumer_);
 	if (p) {
-		channel_->push_suppliers_.on_disconnect ();
+		channel_->on_push_supplier_disconnect ();
 		try {
 			p->disconnect_push_consumer ();
 		} catch (...) {}

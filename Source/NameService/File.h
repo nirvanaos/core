@@ -213,7 +213,7 @@ void FileAccessDirectProxy::flags (uint_fast16_t f)
 {
 	check_exist ();
 
-	file_->check_flags (f);
+	check_flags (f);
 	flags_ = f;
 }
 
@@ -230,9 +230,13 @@ void FileAccessDirectProxy::close ()
 }
 
 inline
-Access::_ref_type FileAccessDirectProxy::dup () const
+Access::_ref_type FileAccessDirectProxy::dup (uint_fast16_t mask, uint_fast16_t flags) const
 {
-	return CORBA::make_reference <FileAccessDirectProxy> (std::ref (*file_), flags_)->_this ();
+	check_exist ();
+	flags &= mask;
+	flags |= (flags_ & ~mask);
+	check_flags (flags);
+	return CORBA::make_reference <FileAccessDirectProxy> (std::ref (*file_), flags)->_this ();
 }
 
 }

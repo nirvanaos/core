@@ -105,6 +105,46 @@ protected:
 
 	virtual void push (const Any& data);
 
+	void on_push_supplier_connect ()
+	{
+		push_suppliers_.on_connect ();
+	}
+
+	void on_push_supplier_disconnect ()
+	{
+		push_suppliers_.on_disconnect ();
+	}
+
+	void on_push_consumer_connect ()
+	{
+		push_consumers_.on_connect ();
+	}
+
+	void on_push_consumer_disconnect ()
+	{
+		push_consumers_.on_disconnect ();
+	}
+
+	void on_pull_supplier_connect ()
+	{
+		pull_suppliers_.on_connect ();
+	}
+
+	void on_pull_supplier_disconnect ()
+	{
+		pull_suppliers_.on_disconnect ();
+	}
+
+	void on_pull_consumer_connect ()
+	{
+		pull_consumers_.on_connect ();
+	}
+
+	void on_pull_consumer_disconnect ()
+	{
+		pull_consumers_.on_disconnect ();
+	}
+
 	class ChildObject
 	{
 	public:
@@ -198,7 +238,7 @@ protected:
 		{
 			if (connected_)
 				throw CosEventChannelAdmin::AlreadyConnected ();
-			check_exist ().push_consumers_.on_connect ();
+			check_exist ().on_push_consumer_connect ();
 			supplier_ = push_supplier;
 			connected_ = true;
 		}
@@ -263,7 +303,7 @@ protected:
 		{
 			if (connected_)
 				throw CosEventChannelAdmin::AlreadyConnected ();
-			check_exist ().pull_suppliers_.on_connect ();
+			check_exist ().on_pull_supplier_connect ();
 			consumer_ = pull_consumer;
 			connected_ = true;
 			event_.reset ();
@@ -418,13 +458,13 @@ protected:
 				throw BAD_PARAM ();
 			if (supplier_)
 				throw CosEventChannelAdmin::AlreadyConnected ();
-			check_exist ().pull_consumers_.on_connect ();
+			check_exist ().on_pull_consumer_connect ();
 			try {
 				handler_ = make_reference <PullHandler> (std::ref (check_exist ()), pull_supplier);
 				supplier_ = pull_supplier;
 			} catch (...) {
 				if (channel_)
-					channel_->pull_consumers_.on_disconnect ();
+					channel_->on_pull_consumer_disconnect ();
 				throw;
 			}
 		}
@@ -483,7 +523,7 @@ protected:
 				throw BAD_PARAM ();
 			if (consumer_)
 				throw CosEventChannelAdmin::AlreadyConnected ();
-			check_exist ().push_suppliers_.on_connect ();
+			check_exist ().on_push_supplier_connect ();
 			consumer_ = push_consumer;
 		}
 

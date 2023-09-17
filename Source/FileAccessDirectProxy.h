@@ -120,10 +120,11 @@ public:
 
 	void flags (uint_fast16_t f);
 
-	Access::_ref_type dup () const;
+	Access::_ref_type dup (uint_fast16_t mask, uint_fast16_t flags) const;
 
 private:
 	void check_exist () const;
+	void check_flags (uint_fast16_t flags) const;
 
 private:
 	FileAccessDirect& driver_;
