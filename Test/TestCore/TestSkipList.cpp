@@ -1,7 +1,7 @@
+#include "pch.h"
 #include "../Source/SkipList.h"
 #include "../Source/MemContextCore.h"
 #include <random>
-#include <gtest/gtest.h>
 
 using Nirvana::Core::SkipList;
 

@@ -1,6 +1,6 @@
+#include "pch.h"
 #include "../Source/TaggedPtr.h"
 #include "../Source/AtomicCounter.h"
-#include "gtest/gtest.h"
 #include <thread>
 #include <vector>
 

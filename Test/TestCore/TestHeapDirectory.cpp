@@ -1,6 +1,6 @@
+#include "pch.h"
 #include "../Source/HeapDirectory.h"
 #include <Port/Memory.h>
-#include <gtest/gtest.h>
 #include <random>
 #include <thread>
 #include <atomic>

@@ -28,7 +28,6 @@
 #define NIRVANA_CORE_COREDOMAINS_H_
 
 #include "Nirvana/Domains.idl"
-#include <CORBA/IOP.idl>
 
 module Nirvana {
 

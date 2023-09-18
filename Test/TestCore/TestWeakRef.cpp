@@ -1,8 +1,7 @@
+#include "pch.h"
 #include "../Source/WeakRef.h"
 #include "../Source/HeapUser.h"
-#include "gtest/gtest.h"
 
-using namespace std;
 using namespace Nirvana::Core;
 
 namespace TestWeakRef {
@@ -39,39 +38,39 @@ protected:
 class SmallObject
 {
 public:
-	SmallObject (const string& v) :
+	SmallObject (const std::string& v) :
 		v_ (v)
 	{}
 
-	const string& v () const
+	const std::string& v () const
 	{
 		return v_;
 	}
 
 private:
-	string v_;
+	std::string v_;
 };
 
 class LargeObject
 {
 public:
-	LargeObject (const string& v) :
+	LargeObject (const std::string& v) :
 		v1_ (v),
 		v2_ (v)
 	{}
 
-	const string& v1 () const
+	const std::string& v1 () const
 	{
 		return v1_;
 	}
 
-	const string& v2 () const
+	const std::string& v2 () const
 	{
 		return v2_;
 	}
 
 private:
-	string v1_, v2_;
+	std::string v1_, v2_;
 };
 
 typedef ::testing::Types <SmallObject, LargeObject> Types;

@@ -1,7 +1,7 @@
+#include "pch.h"
 #include "../Source/PriorityQueueReorder.h"
 #include "../Source/SkipListWithPool.h"
 #include "../Source/MemContextCore.h"
-#include <gtest/gtest.h>
 #include <queue>
 #include <array>
 #include <thread>

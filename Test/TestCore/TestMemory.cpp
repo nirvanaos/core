@@ -1,5 +1,5 @@
+#include "pch.h"
 #include <Port/Memory.h>
-#include <gtest/gtest.h>
 
 using namespace Nirvana;
 using namespace Nirvana::Core;

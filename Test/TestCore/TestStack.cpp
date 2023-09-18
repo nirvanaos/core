@@ -1,5 +1,5 @@
+#include "pch.h"
 #include "../Source/Stack.h"
-#include "gtest/gtest.h"
 #include <unordered_set>
 #include <vector>
 #include <thread>
