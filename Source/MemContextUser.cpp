@@ -30,6 +30,7 @@
 #include <Nirvana/Legacy/Legacy_Process.h>
 #include <fnctl.h>
 #include "virtual_copy.h"
+#include "CharFileAdapter.h"
 
 using namespace CosNaming;
 using CORBA::Core::Services;
@@ -58,7 +59,17 @@ class MemContextUser::FileDescriptorChar : public FileDescriptorBase
 public:
 	FileDescriptorChar (AccessChar::_ref_type&& access) :
 		access_ (std::move (access))
-	{}
+	{
+		unsigned flags = access_->flags ();
+		if ((flags & O_ACCMODE) != O_WRONLY)
+			adapter_ = CORBA::make_reference <CharFileAdapter> (AccessChar::_ptr_type (access_), (flags & O_NONBLOCK) != 0);
+	}
+
+	~FileDescriptorChar ()
+	{
+		if (adapter_)
+			adapter_->disconnect_push_consumer ();
+	}
 
 	virtual void close () const;
 	virtual size_t read (void* p, size_t size) const;
@@ -67,6 +78,7 @@ public:
 
 private:
 	AccessChar::_ref_type access_;
+	Ref <CharFileAdapter> adapter_;
 };
 
 MemContextUser::Data* MemContextUser::Data::create ()
@@ -346,15 +358,9 @@ size_t MemContextUser::FileDescriptorBuf::read (void* p, size_t size) const
 
 size_t MemContextUser::FileDescriptorChar::read (void* p, size_t size) const
 {
-	if (sizeof (size_t) > 4 && size > std::numeric_limits <uint32_t>::max ())
-		throw_IMP_LIMIT (make_minor_errno (ENXIO));
-	IDL::String buf;
-	access_->read ((uint32_t)size, buf);
-	size_t readed = buf.size ();
-	if (readed > size)
-		throw_UNKNOWN (make_minor_errno (EIO));
-	Port::Memory::copy (p, const_cast <char*> (buf.data ()), readed, Memory::SRC_DECOMMIT);
-	return readed;
+	if (!adapter_)
+		throw_NO_PERMISSION (make_minor_errno (EBADF));
+	return adapter_->read (p, size);
 }
 
 void MemContextUser::FileDescriptorBuf::write (const void* p, size_t size) const
