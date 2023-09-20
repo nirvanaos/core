@@ -26,7 +26,7 @@
 */
 #include <CORBA/Server.h>
 #include <CORBA/NoDefaultPOA.h>
-#include "../CORBA/CosEventChannelAdmin_s.h"
+#include <CORBA/CosEventChannelAdmin_s.h>
 #include "../CoreInterface.h"
 #include "../EventSync.h"
 #include "../MapUnorderedUnstable.h"

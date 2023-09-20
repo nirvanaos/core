@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "DecCalc_s.h"
+#include <Nirvana/DecCalc_s.h>
 
 using namespace Nirvana;
 

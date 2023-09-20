@@ -26,7 +26,7 @@
 */
 #include "EventChannel.h"
 #include "ServantProxyObject.h"
-#include "../CORBA/CosTypedEventChannelAdmin_s.h"
+#include <CORBA/CosTypedEventChannelAdmin_s.h>
 
 namespace CORBA {
 namespace Core {
