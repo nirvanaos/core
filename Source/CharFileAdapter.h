@@ -27,7 +27,10 @@
 #ifndef NIRVANA_CORE_CHARFILEADAPTER_H_
 #define NIRVANA_CORE_CHARFILEADAPTER_H_
 #pragma once
+
+#include <CORBA/Server.h>
 #include <Nirvana/File_s.h>
+#include <Nirvana/real_copy.h>
 #include "EventSync.h"
 #include <queue>
 
@@ -46,14 +49,10 @@ public:
 		supplier_ = std::move (sup);
 	}
 
-	void received (const CharFileEvent& evt)
+	void received (CharFileEvent& evt)
 	{
-		if (!evt.error () && !queue_.empty () && !queue_.back ().error ())
-			queue_.back ().data () += evt.data ();
-		else {
-			queue_.push (evt);
-			event_.signal ();
-		}
+		queue_.push (std::move (evt));
+		event_.signal ();
 	}
 
 	CORBA::Object::_ref_type get_typed_consumer ()
@@ -67,7 +66,8 @@ public:
 	void disconnect_push_consumer ()
 	{
 		if (supplier_) {
-			CosEventChannelAdmin::ProxyPushSupplier::_ref_type sup = std::move (supplier_);
+			CosEventChannelAdmin::ProxyPushSupplier::_ref_type sup (std::move (supplier_));
+			event_.signal ();
 			sup->disconnect_push_supplier ();
 		}
 	}
@@ -78,6 +78,9 @@ public:
 			return 0;
 
 		while (queue_.empty ()) {
+			if (!supplier_)
+				throw_INTERNAL (make_minor_errno (EBADF)); // Closed, disconnected
+
 			if (non_block_)
 				throw_INTERNAL (make_minor_errno (EAGAIN));
 			else
@@ -90,22 +93,24 @@ public:
 			throw_INTERNAL (make_minor_errno (err));
 		}
 
-		uint8_t* dst = (uint8_t*)p;
+		char* dst = (char*)p;
 		for (;;) {
-			const CharFileEvent& front = queue_.front ();
+			CharFileEvent& front = queue_.front ();
 			assert (!front.error ());
 			size_t cbr = std::min (size, front.data ().size ());
-			virtual_copy (front.data ().data (), cbr, dst);
+			real_copy (front.data ().data (), front.data ().data () + cbr, dst);
 			dst += cbr;
 			size -= cbr;
 			if (front.data ().size () == cbr) {
 				queue_.pop ();
 				if (queue_.empty () || queue_.front ().error ())
 					break;
-			} else
+			} else {
+				front.data ().erase (0, cbr);
 				break;
+			}
 		}
-		return dst - (uint8_t*)p;
+		return dst - (char*)p;
 	}
 
 	bool non_block () const noexcept

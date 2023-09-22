@@ -65,12 +65,6 @@ public:
 			adapter_ = CORBA::make_reference <CharFileAdapter> (AccessChar::_ptr_type (access_), (flags & O_NONBLOCK) != 0);
 	}
 
-	~FileDescriptorChar ()
-	{
-		if (adapter_)
-			adapter_->disconnect_push_consumer ();
-	}
-
 	virtual void close () const;
 	virtual size_t read (void* p, size_t size) const;
 	virtual void write (const void* p, size_t size) const;
@@ -348,24 +342,29 @@ void MemContextUser::FileDescriptorBuf::close () const
 
 void MemContextUser::FileDescriptorChar::close () const
 {
+	if (adapter_)
+		adapter_->disconnect_push_consumer ();
 	access_->close ();
 }
 
 size_t MemContextUser::FileDescriptorBuf::read (void* p, size_t size) const
 {
-	return access_->read (p, size);
+	Nirvana::AccessBuf::_ref_type hold = access_;
+	return hold->read (p, size);
 }
 
 size_t MemContextUser::FileDescriptorChar::read (void* p, size_t size) const
 {
 	if (!adapter_)
 		throw_NO_PERMISSION (make_minor_errno (EBADF));
-	return adapter_->read (p, size);
+	Ref <CharFileAdapter> hold = adapter_;
+	return hold->read (p, size);
 }
 
 void MemContextUser::FileDescriptorBuf::write (const void* p, size_t size) const
 {
-	access_->write (p, size);
+	Nirvana::AccessBuf::_ref_type hold = access_;
+	hold->write (p, size);
 }
 
 void MemContextUser::FileDescriptorChar::write (const void* p, size_t size) const

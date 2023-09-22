@@ -35,7 +35,8 @@ namespace Nirvana {
 namespace Core {
 
 class FileAccessCharProxy :
-	public CORBA::servant_traits <AccessChar>::Servant <FileAccessCharProxy>
+	public CORBA::servant_traits <AccessChar>::Servant <FileAccessCharProxy>,
+	public SimpleList <FileAccessCharProxy>::Element
 {
 public:
 	FileAccessCharProxy (FileAccessChar& access, unsigned flags) :
@@ -62,22 +63,20 @@ public:
 
 	void flags (unsigned fl);
 
-	Access::_ref_type dup () const
+	Access::_ref_type dup (uint_fast16_t mask, uint_fast16_t f) const
 	{
-		return CORBA::make_reference <FileAccessCharProxy> (std::ref (*this));
+		return CORBA::make_reference <FileAccessCharProxy> (std::ref (*this))->_this ();
 	}
 
-	void read (uint32_t size, IDL::String& data)
-	{
-		check ();
-		access_->read (size, data, !(flags_ & O_NONBLOCK));
-	}
-	
 	void write (const IDL::String& data)
 	{
 		check ();
 		access_->write (data);
 	}
+
+	CosTypedEventChannelAdmin::TypedConsumerAdmin::_ref_type for_consumers ();
+
+	void push (const CharFileEvent& evt);
 
 private:
 	void check () const

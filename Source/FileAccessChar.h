@@ -33,10 +33,12 @@
 #include "UserObject.h"
 #include <fnctl.h>
 #include <Nirvana/File.h>
-#include "EventSync.h"
+#include <Nirvana/SimpleList.h>
 
 namespace Nirvana {
 namespace Core {
+
+class FileAccessCharProxy;
 
 /// Base class for character device access
 class FileAccessChar : public UserObject
@@ -52,40 +54,6 @@ public:
 		write_request_ = nullptr;
 		if (err)
 			throw_INTERNAL (make_minor_errno (err));
-	}
-
-	void read (uint32_t size, IDL::String& data, bool wait)
-	{
-		if (!size)
-			return;
-
-		for (;;) {
-			size_t cc = std::min (buffer_.size (), (size_t)size);
-			if (cc) {
-				try {
-					cc = get_valid_utf8_end (buffer_.data (), buffer_.data () + cc) - buffer_.data ();
-				} catch (...) {
-					buffer_.clear ();
-					read_event_.reset ();
-					throw; // CODESET_INCOMPATIBLE
-				}
-			}
-
-			if (cc) {
-				data.assign (buffer_.data (), cc);
-				buffer_.erase (buffer_.begin (), buffer_.begin () + cc);
-				if (buffer_.empty ())
-					read_event_.reset ();
-				break;
-			} else if (exception_code_ != CORBA::Exception::EC_NO_EXCEPTION) {
-				CORBA::Exception::Code ec = exception_code_;
-				exception_code_ = CORBA::Exception::EC_NO_EXCEPTION;
-				CORBA::SystemException::_raise_by_code (ec, exception_data_.minor, exception_data_.completed);
-			} else if (wait)
-				read_event_.wait ();
-			else
-				break;
-		}
 	}
 
 	Nirvana::File::_ref_type file () const noexcept
@@ -124,22 +92,17 @@ protected:
 	void on_read_error (int err) noexcept;
 
 private:
-	void async_callback () noexcept;
-	void read_callback ();
+	void async_callback (int err) noexcept;
+	void read_callback (int err) noexcept;
 	static const char* get_valid_utf8_end (const char* begin, const char* end);
 	
-	void on_exception (const CORBA::SystemException& ex) noexcept
-	{
-		exception_code_ = ex.__code ();
-		exception_data_ = ex._data ();
-	}
-
 private:
-	class Read : public Runnable
+	class ReadCallback : public Runnable
 	{
 	public:
-		Read (FileAccessChar& obj) :
-			object_ (&obj)
+		ReadCallback (FileAccessChar& obj, int err) :
+			object_ (&obj),
+			error_ (err)
 		{}
 
 	private:
@@ -147,24 +110,25 @@ private:
 
 	private:
 		Ref <FileAccessChar> object_;
+		int error_;
 	};
 
 	Nirvana::File::_ref_type file_;
-	std::vector <char, UserAllocator <char> > buffer_;
 	std::vector <char, UserAllocator <char> > ring_buffer_;
+	unsigned read_pos_;
+	unsigned write_pos_;
+	char utf8_tail_ [3];
+	unsigned utf8_tail_size_;
 	Ref <IO_Request> write_request_;
 	Ref <SyncContext> sync_context_;
-	size_t read_pos_;
-	size_t write_pos_;
 	RefCounter ref_cnt_;
 	AtomicCounter <false> read_available_;
 	AtomicCounter <false> write_available_;
 	unsigned flags_;
+	int read_error_;
 	std::atomic_flag callback_;
 	DeadlineTime callback_deadline_;
-	EventSync read_event_;
-	CORBA::Exception::Code exception_code_;
-	CORBA::SystemException::_Data exception_data_;
+	SimpleList <FileAccessCharProxy> proxies_;
 };
 
 }

@@ -24,6 +24,7 @@
 *  popov.nirvana@gmail.com
 */
 #include "FileAccessChar.h"
+#include "FileAccessCharProxy.h"
 #include "Chrono.h"
 
 namespace Nirvana {
@@ -32,18 +33,17 @@ namespace Core {
 FileAccessChar::FileAccessChar (Nirvana::File::_ptr_type file, unsigned flags, DeadlineTime callback_deadline, unsigned initial_buffer_size) :
 	file_ (file),
 	ring_buffer_ (initial_buffer_size),
-	sync_context_ (&SyncContext::current ()),
 	read_pos_ (0),
 	write_pos_ (0),
+	utf8_tail_size_ (0),
+	sync_context_ (&SyncContext::current ()),
 	read_available_ (0),
 	write_available_ (initial_buffer_size),
 	flags_ (flags),
 	callback_ ATOMIC_FLAG_INIT,
 	callback_deadline_ (callback_deadline),
-	exception_code_ (CORBA::Exception::EC_NO_EXCEPTION)
-{
-	buffer_.reserve (initial_buffer_size);
-}
+	read_error_ ()
+{}
 
 void FileAccessChar::_remove_ref () noexcept
 {
@@ -63,22 +63,20 @@ void FileAccessChar::on_read (char c) noexcept
 	read_available_.increment ();
 	if (write_available_.decrement_seq ())
 		read_start ();
-	async_callback ();
+	async_callback (0);
 }
 
 void FileAccessChar::on_read_error (int err) noexcept
 {
-	exception_code_ = CORBA::SystemException::EC_INTERNAL;
-	exception_data_.minor = make_minor_errno (err);
-	async_callback ();
+	async_callback (err);
 }
 
-void FileAccessChar::async_callback () noexcept
+void FileAccessChar::async_callback (int err) noexcept
 {
-	if (!callback_.test_and_set ()) {
+	if (!callback_.test_and_set () || err) {
 		try {
-			ExecDomain::async_call <Read> (Chrono::make_deadline (callback_deadline_), *sync_context_,
-				nullptr, std::ref (*this));
+			ExecDomain::async_call <ReadCallback> (Chrono::make_deadline (callback_deadline_), *sync_context_,
+				nullptr, std::ref (*this), err);
 		} catch (...) {
 			callback_.clear ();
 		}
@@ -86,40 +84,64 @@ void FileAccessChar::async_callback () noexcept
 }
 
 inline
-void FileAccessChar::read_callback ()
+void FileAccessChar::read_callback (int err) noexcept
 {
 	callback_.clear ();
 	auto cc = read_available_.load ();
-	assert (cc);
-	bool overflow = cc == ring_buffer_.size ();
-	try {
-		buffer_.reserve (buffer_.size () + cc);
-	} catch (const CORBA::SystemException& ex) {
-		on_exception (ex);
-	}
-	while (cc--) {
-		if (buffer_.capacity () > buffer_.size ())
-			buffer_.push_back (ring_buffer_ [read_pos_]);
-		read_pos_ = (read_pos_ + 1) % ring_buffer_.size ();
-		read_available_.decrement ();
-		write_available_.increment ();
-	}
-
-	read_event_.signal ();
-
-	if (overflow) {
+	assert (cc || err);
+	CharFileEvent evt;
+	evt.error ((int16_t)err);
+	if (cc) {
+		bool overflow = cc == ring_buffer_.size ();
 		try {
-			ring_buffer_.resize (ring_buffer_.size () * 2);
-		} catch (const CORBA::SystemException& ex) {
-			on_exception (ex);
+			
+			unsigned tail = utf8_tail_size_;
+			utf8_tail_size_ = 0;
+			evt.data ().reserve (cc + tail);
+			evt.data ().append (utf8_tail_, tail);
+
+			while (cc--) {
+				evt.data ().push_back (ring_buffer_ [read_pos_]);
+				read_pos_ = (read_pos_ + 1) % ring_buffer_.size ();
+				read_available_.decrement ();
+				write_available_.increment ();
+			}
+		} catch (...) {
+			evt.error (ENOMEM);
 		}
-		read_start ();
+
+		if (overflow) {
+			try {
+				ring_buffer_.resize (ring_buffer_.size () * 2);
+			} catch (...) {
+				// TODO: Log
+			}
+			read_start ();
+		}
+
+		const char* end = evt.data ().data () + evt.data ().size ();
+		const char* utf8_end = end;
+		try {
+			utf8_end = get_valid_utf8_end (evt.data ().data (), end);
+		} catch (...) {
+			evt.data ().clear ();
+			evt.error (EILSEQ);
+		}
+		if (utf8_end < end) {
+			std::copy (utf8_end, end, utf8_tail_);
+			utf8_tail_size_ = (unsigned)(end - utf8_end);
+			evt.data ().resize (utf8_end - evt.data ().data ());
+		}
+	}
+
+	for (auto it = proxies_.begin (); it != proxies_.end (); ++it) {
+		it->push (evt);
 	}
 }
 
-void FileAccessChar::Read::run ()
+void FileAccessChar::ReadCallback::run ()
 {
-	object_->read_callback ();
+	object_->read_callback (error_);
 }
 
 const char* FileAccessChar::get_valid_utf8_end (const char* begin, const char* end)
