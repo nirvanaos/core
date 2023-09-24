@@ -77,7 +77,7 @@ public:
 		if (!(flags_ & O_WRONLY))
 			driver_.read (pos, size, data);
 		else
-			throw_NO_PERMISSION (make_minor_errno (EACCES));
+			throw_NO_PERMISSION (make_minor_errno (EBADF));
 	}
 
 	void write (FileSize pos, const Bytes& data, const FileLock& rel, bool sync)
@@ -90,7 +90,7 @@ public:
 			dirty_ = true;
 			driver_.write (pos, data);
 		} else
-			throw_NO_PERMISSION (make_minor_errno (EACCES));
+			throw_NO_PERMISSION (make_minor_errno (EBADF));
 	}
 
 	void flush ()

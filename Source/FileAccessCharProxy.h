@@ -28,8 +28,8 @@
 #pragma once
 
 #include <CORBA/Server.h>
-#include "FileAccessChar.h"
-#include <Nirvana/File_s.h>
+#include "NameService/FileChar.h"
+#include "ORB/ORB.h"
 
 namespace Nirvana {
 namespace Core {
@@ -47,7 +47,11 @@ public:
 	Nirvana::File::_ref_type file () const
 	{
 		check ();
-		return access_->file ();
+		FileChar* f = access_->file ();
+		if (f)
+			return f->_this ();
+		else
+			return nullptr;
 	}
 
 	void close ()
@@ -65,6 +69,9 @@ public:
 
 	Access::_ref_type dup (uint_fast16_t mask, uint_fast16_t f) const
 	{
+		check ();
+		f = (f & mask) | (flags_ & ~mask);
+
 		return CORBA::make_reference <FileAccessCharProxy> (std::ref (*this))->_this ();
 	}
 
@@ -74,9 +81,31 @@ public:
 		access_->write (data);
 	}
 
-	CosTypedEventChannelAdmin::TypedConsumerAdmin::_ref_type for_consumers ();
+	CosTypedEventChannelAdmin::TypedConsumerAdmin::_ref_type for_consumers ()
+	{
+		check ();
+		if (flags_ & O_WRONLY)
+			throw_NO_PERMISSION (EBADF);
+		if (!event_channel_) {
+			event_channel_ = CORBA::Core::ORB::create_typed_channel ();
+			CosTypedEventChannelAdmin::TypedProxyPushConsumer::_ref_type consumer =
+				event_channel_->for_suppliers ()->obtain_typed_push_consumer (CORBA::Internal::RepIdOf <CharFileSink>::id);
+			sink_ = CharFileSink::_narrow (consumer->get_typed_consumer ());
+			assert (sink_);
+		}
+		return event_channel_->for_consumers ();
+	}
 
-	void push (const CharFileEvent& evt);
+	void push (const CharFileEvent& evt) noexcept
+	{
+		if (sink_) {
+			try {
+				sink_->received (evt);
+			} catch (...) {
+				// TODO: Log
+			}
+		}
+	}
 
 private:
 	void check () const
@@ -87,6 +116,8 @@ private:
 
 private:
 	Ref <FileAccessChar> access_;
+	CosTypedEventChannelAdmin::TypedEventChannel::_ref_type event_channel_;
+	CharFileSink::_ref_type sink_;
 	unsigned flags_;
 };
 

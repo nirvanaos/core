@@ -62,13 +62,13 @@ void FileAccessBuf::check (const void* p) const
 void FileAccessBuf::check_read () const
 {
 	if ((flags () & O_ACCMODE) == O_WRONLY)
-		throw_NO_PERMISSION (make_minor_errno (EINVAL));
+		throw_NO_PERMISSION (make_minor_errno (EBADF));
 }
 
 void FileAccessBuf::check_write () const
 {
 	if ((flags () & O_ACCMODE) == O_RDONLY)
-		throw_NO_PERMISSION (make_minor_errno (EINVAL));
+		throw_NO_PERMISSION (make_minor_errno (EBADF));
 }
 
 const void* FileAccessBuf::get_buffer_read_internal (size_t& cb, LockType new_lock_mode)

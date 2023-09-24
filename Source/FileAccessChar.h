@@ -32,13 +32,13 @@
 #include "UserAllocator.h"
 #include "UserObject.h"
 #include <fnctl.h>
-#include <Nirvana/File.h>
 #include <Nirvana/SimpleList.h>
 
 namespace Nirvana {
 namespace Core {
 
 class FileAccessCharProxy;
+class FileChar;
 
 /// Base class for character device access
 class FileAccessChar : public UserObject
@@ -56,9 +56,16 @@ public:
 			throw_INTERNAL (make_minor_errno (err));
 	}
 
-	Nirvana::File::_ref_type file () const noexcept
+	FileChar* file () const noexcept
 	{
 		return file_;
+	}
+
+	void check_flags (unsigned flags) const
+	{
+		unsigned acc_mode = flags_ & O_ACCMODE;
+		if ((acc_mode == O_WRONLY || acc_mode == O_RDONLY) && acc_mode != (flags & O_ACCMODE))
+			throw_NO_PERMISSION (make_minor_errno (EACCES)); // File is unaccessible for this mode
 	}
 
 protected:
@@ -71,7 +78,7 @@ protected:
 
 	void _remove_ref () noexcept;
 
-	FileAccessChar (Nirvana::File::_ptr_type file, unsigned flags = O_RDWR, DeadlineTime callback_deadline = 1 * TimeBase::MILLISECOND,
+	FileAccessChar (FileChar* file, unsigned flags = O_RDWR, DeadlineTime callback_deadline = 1 * TimeBase::MILLISECOND,
 		unsigned initial_buffer_size = 256);
 
 	virtual ~FileAccessChar ()
@@ -113,7 +120,7 @@ private:
 		int error_;
 	};
 
-	Nirvana::File::_ref_type file_;
+	Ref <FileChar> file_;
 	std::vector <char, UserAllocator <char> > ring_buffer_;
 	unsigned read_pos_;
 	unsigned write_pos_;

@@ -25,12 +25,13 @@
 */
 #include "FileAccessChar.h"
 #include "FileAccessCharProxy.h"
+#include "NameService/FileChar.h"
 #include "Chrono.h"
 
 namespace Nirvana {
 namespace Core {
 
-FileAccessChar::FileAccessChar (Nirvana::File::_ptr_type file, unsigned flags, DeadlineTime callback_deadline, unsigned initial_buffer_size) :
+FileAccessChar::FileAccessChar (FileChar* file, unsigned flags, DeadlineTime callback_deadline, unsigned initial_buffer_size) :
 	file_ (file),
 	ring_buffer_ (initial_buffer_size),
 	read_pos_ (0),
@@ -53,6 +54,8 @@ void FileAccessChar::_remove_ref () noexcept
 			write_request_->cancel ();
 			write_request_->wait ();
 		}
+		if (file_)
+			file_->on_access_destroy ();
 		delete this;
 	}
 }
