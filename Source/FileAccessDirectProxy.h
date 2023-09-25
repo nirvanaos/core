@@ -118,7 +118,7 @@ public:
 		return flags_;
 	}
 
-	void flags (uint_fast16_t f);
+	void set_flags (uint_fast16_t mask, uint_fast16_t f);
 
 	Access::_ref_type dup (uint_fast16_t mask, uint_fast16_t flags) const;
 

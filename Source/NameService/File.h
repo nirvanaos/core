@@ -209,10 +209,10 @@ Nirvana::File::_ref_type FileAccessDirectProxy::file () const
 }
 
 inline
-void FileAccessDirectProxy::flags (uint_fast16_t f)
+void FileAccessDirectProxy::set_flags (uint_fast16_t mask, uint_fast16_t f)
 {
 	check_exist ();
-
+	f = (f & mask) | (flags () & ~mask);
 	check_flags (f);
 	flags_ = f;
 }

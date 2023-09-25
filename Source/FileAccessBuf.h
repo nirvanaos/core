@@ -205,10 +205,11 @@ public:
 		return Servant::flags ();
 	}
 
-	void flags (uint_fast16_t f)
+	void set_flags (uint_fast16_t mask, uint_fast16_t f)
 	{
 		check ();
 
+		f = (f & mask) | (flags () & ~mask);
 		uint_fast16_t changes = check_flags (f);
 		if (f & O_DIRECT)
 			throw_INV_FLAG (make_minor_errno (EINVAL));
