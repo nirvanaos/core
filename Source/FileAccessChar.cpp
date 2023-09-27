@@ -41,9 +41,9 @@ FileAccessChar::FileAccessChar (FileChar* file, unsigned flags, DeadlineTime cal
 	read_available_ (0),
 	write_available_ (initial_buffer_size),
 	flags_ (flags),
+	read_error_ (0),
 	callback_ ATOMIC_FLAG_INIT,
 	callback_deadline_ (callback_deadline),
-	read_error_ (0),
 	read_proxy_cnt_ (0)
 {}
 

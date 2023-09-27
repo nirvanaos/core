@@ -46,6 +46,7 @@ class FileAccessChar : public UserObject
 public:
 	void write (const IDL::String& data)
 	{
+		Ref <FileAccessChar> hold (this);
 		while (write_request_)
 			write_request_->wait ();
 		write_request_ = write_start (data);
