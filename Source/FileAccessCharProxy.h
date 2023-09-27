@@ -44,6 +44,12 @@ public:
 		flags_ (flags)
 	{}
 
+	~FileAccessCharProxy ()
+	{
+		if (event_channel_)
+			access_->read_off ();
+	}
+
 	Nirvana::File::_ref_type file () const
 	{
 		check ();
@@ -65,7 +71,10 @@ public:
 		return flags_;
 	}
 
-	void set_flags (uint_fast16_t mask, uint_fast16_t f);
+	void set_flags (uint_fast16_t mask, uint_fast16_t f)
+	{
+		throw_NO_IMPLEMENT ();
+	}
 
 	Access::_ref_type dup (uint_fast16_t mask, uint_fast16_t f) const
 	{
@@ -92,6 +101,7 @@ public:
 				event_channel_->for_suppliers ()->obtain_typed_push_consumer (CORBA::Internal::RepIdOf <CharFileSink>::id);
 			sink_ = CharFileSink::_narrow (consumer->get_typed_consumer ());
 			assert (sink_);
+			access_->read_on ();
 		}
 		return event_channel_->for_consumers ();
 	}

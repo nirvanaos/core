@@ -68,6 +68,18 @@ public:
 			throw_NO_PERMISSION (make_minor_errno (EACCES)); // File is unaccessible for this mode
 	}
 
+	void read_on () noexcept
+	{
+		if (1 == ++read_proxy_cnt_)
+			read_start ();
+	}
+
+	void read_off () noexcept
+	{
+		if (0 == --read_proxy_cnt_)
+			read_cancel ();
+	}
+
 protected:
 	template <class> friend class CORBA::servant_reference;
 
@@ -81,8 +93,7 @@ protected:
 	FileAccessChar (FileChar* file, unsigned flags = O_RDWR, DeadlineTime callback_deadline = 1 * TimeBase::MILLISECOND,
 		unsigned initial_buffer_size = 256);
 
-	virtual ~FileAccessChar ()
-	{}
+	virtual ~FileAccessChar ();
 
 	virtual void read_start () noexcept = 0;
 	virtual void read_cancel () noexcept = 0;
@@ -136,6 +147,7 @@ private:
 	std::atomic_flag callback_;
 	DeadlineTime callback_deadline_;
 	SimpleList <FileAccessCharProxy> proxies_;
+	unsigned read_proxy_cnt_;
 };
 
 }

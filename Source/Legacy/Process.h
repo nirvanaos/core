@@ -34,7 +34,6 @@
 #include <Nirvana/Legacy/Legacy_Process_s.h>
 #include "../EventSync.h"
 #include "../MemContextUser.h"
-#include "../Console.h"
 #include "../NameService/FileSystem.h"
 #include "Executable.h"
 #include "ThreadBase.h"
@@ -194,6 +193,7 @@ private:
 	typedef std::vector <char*, Nirvana::Core::UserAllocator <char*> > Pointers;
 	static void copy_strings (Strings& src, Pointers& dst);
 	void finish () noexcept;
+	void error_message (const char* msg);
 
 private:
 	enum
@@ -205,7 +205,6 @@ private:
 
 	int ret_;
 	Nirvana::Core::ImplStatic <Executable> executable_;
-	Nirvana::Core::Console console_;
 	Strings argv_, envp_;
 	Dir::_ref_type current_dir_;
 	ProcessCallback::_ref_type callback_;

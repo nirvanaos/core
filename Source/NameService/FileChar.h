@@ -42,6 +42,9 @@ public:
 		access_ (nullptr)
 	{}
 
+	virtual ~FileChar ()
+	{}
+
 	static FileType type () noexcept
 	{
 		return FileType::character;

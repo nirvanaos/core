@@ -99,7 +99,8 @@ MemContextUser::Data::Data (const InheritedFiles& inh)
 		FileDescriptorRef fd = make_fd (f.access ());
 		for (auto d : f.descriptors ()) {
 			FileDescriptorRef& fdr = get_fd (d);
-			assert (!fdr);
+			if (fdr)
+				throw_BAD_PARAM ();
 			fdr = fd;
 		}
 	}

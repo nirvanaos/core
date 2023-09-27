@@ -41,6 +41,7 @@ class Services
 public:
 	enum Service
 	{
+		Console,
 		NameService,
 		POACurrent,
 		ProtDomain,
@@ -116,6 +117,7 @@ private:
 
 	// Service factories
 	static Object::_ref_type create_POACurrent ();
+	static Object::_ref_type create_Console ();
 
 private:
 	struct Factory

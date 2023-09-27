@@ -43,7 +43,11 @@ FileAccessChar::FileAccessChar (FileChar* file, unsigned flags, DeadlineTime cal
 	flags_ (flags),
 	callback_ ATOMIC_FLAG_INIT,
 	callback_deadline_ (callback_deadline),
-	read_error_ ()
+	read_error_ (0),
+	read_proxy_cnt_ (0)
+{}
+
+FileAccessChar::~FileAccessChar ()
 {}
 
 void FileAccessChar::_remove_ref () noexcept

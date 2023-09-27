@@ -72,10 +72,13 @@ void Process::run ()
 		ret_ = executable_.main ((int)argv_.size (), v.data (), v.data () + argv_.size () + 1);
 	} catch (const std::exception& ex) {
 		ret_ = -1;
-		console_ << "Unhandled exception: " << ex.what () << '\n';
+		std::string msg ("Unhandled exception: ");
+		msg += ex.what ();
+		msg += '\n';
+		error_message (msg.c_str ());
 	} catch (...) {
 		ret_ = -1;
-		console_ << "Unknown exception\n";
+		error_message ("Unknown exception\n");
 	}
 	finish ();
 }
@@ -107,7 +110,7 @@ void Process::on_crash (const siginfo& signal) noexcept
 		ret_ = 3;
 	else
 		ret_ = -1;
-	console_ << "Process crashed.\n";
+	error_message ("Process crashed.\n");
 	finish ();
 }
 
@@ -215,6 +218,11 @@ uint64_t Process::fd_seek (unsigned fd, const int64_t& off, unsigned method)
 	SYNC_BEGIN (*sync_domain_, nullptr);
 	return MemContextUser::fd_seek (fd, off, method);
 	SYNC_END ();
+}
+
+void Process::error_message (const char* msg)
+{
+	fd_write (2, msg, strlen (msg));
 }
 
 }

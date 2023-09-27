@@ -1,4 +1,3 @@
-/// \file
 /*
 * Nirvana Core.
 *
@@ -24,26 +23,16 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_CORE_CONSOLE_H_
-#define NIRVANA_CORE_CONSOLE_H_
-#pragma once
-
-#include "NameService/FileChar.h"
+#include "Console.h"
+#include <Port/FileAccessConsole.h>
 
 namespace Nirvana {
 namespace Core {
 
-class Console : public FileChar
+Ref <FileAccessChar> Console::create_access (unsigned flags)
 {
-public:
-	Console ()
-	{}
-
-protected:
-	virtual Ref <FileAccessChar> create_access (unsigned flags) override;
-};
+	return Ref <FileAccessChar>::create <Port::FileAccessConsole> (this);
+}
 
 }
 }
-
-#endif

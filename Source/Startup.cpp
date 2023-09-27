@@ -33,6 +33,9 @@
 #include "initterm.h"
 #include <Nirvana/Launcher.h>
 #include <Nirvana/Legacy/Legacy_Process_s.h>
+#include <Nirvana/File.h>
+#include "ORB/Services.h"
+#include <fnctl.h>
 
 using namespace Nirvana::Legacy;
 
@@ -84,8 +87,14 @@ void Startup::run ()
 			envp.emplace_back (*env);
 		}
 
-		ProcessCallback::_ref_type cb = CORBA::make_stateless <ShutdownCallback> (std::ref (ret_))->_this ();
-		Static <Launcher>::ptr ()->spawn (argv [0], argv, envp, "/sbin", InheritedFiles (), cb);
+		ProcessCallback::_ref_type callback = CORBA::make_stateless <ShutdownCallback> (std::ref (ret_))->_this ();
+
+		Nirvana::File::_ref_type console = Nirvana::File::_narrow (CORBA::Core::Services::bind (CORBA::Core::Services::Console));
+		assert (console);
+		InheritedFiles files;
+		files.emplace_back (console->open (O_RDWR, 0), IDL::Sequence <uint16_t> ({ 0, 1, 2 }));
+
+		Static <Launcher>::ptr ()->spawn (argv [0], argv, envp, "/sbin", files, callback);
 	}
 }
 

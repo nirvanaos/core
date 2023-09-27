@@ -30,6 +30,7 @@
 #include "PortableServer_Current.h"
 #include "NameService/NameService.h"
 #include "ESIOP.h"
+#include "../Console.h"
 
 namespace Nirvana {
 namespace Core {
@@ -110,6 +111,7 @@ Object::_ref_type Services::bind_internal (Service sidx)
 // Initial services. Must be lexicographically ordered.
 
 const Services::Factory Services::factories_ [SERVICE_COUNT] = {
+	{ "Console", create_Console, 1 * TimeBase::MILLISECOND },
 	{ "NameService", CosNaming::Core::create_NameService, 1 * TimeBase::MILLISECOND },
 	{ "POACurrent", create_POACurrent, 1 * TimeBase::MILLISECOND },
 	{ "ProtDomain", create_ProtDomain, 1 * TimeBase::MILLISECOND },
@@ -123,6 +125,11 @@ const Services::Factory Services::factories_ [SERVICE_COUNT] = {
 Object::_ref_type Services::create_POACurrent ()
 {
 	return make_reference <PortableServer::Core::Current> ()->_this ();
+}
+
+Object::_ref_type Services::create_Console ()
+{
+	return make_reference <Nirvana::Core::Console> ()->_this ();
 }
 
 }
