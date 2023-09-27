@@ -88,16 +88,20 @@ MemContextUser::Data::Data (const InheritedFiles& inh)
 {
 	size_t max = 0;
 	for (const auto& f : inh) {
-		if (max < f.ifd ())
-			max = f.ifd ();
+		for (auto d : f.descriptors ()) {
+			if (max < d)
+				max = d;
+		}
 	}
 	if (max >= StandardFileDescriptor::STD_CNT)
 		file_descriptors_.resize (max + 1 - StandardFileDescriptor::STD_CNT);
 	for (const auto& f : inh) {
-		FileDescriptorRef& fd = get_fd (f.ifd ());
-		assert (!fd);
-		if (!fd)
-			fd = make_fd (f.access ());
+		FileDescriptorRef fd = make_fd (f.access ());
+		for (auto d : f.descriptors ()) {
+			FileDescriptorRef& fdr = get_fd (d);
+			assert (!fdr);
+			fdr = fd;
+		}
 	}
 }
 
