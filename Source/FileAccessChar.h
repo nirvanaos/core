@@ -111,17 +111,37 @@ protected:
 	void on_read_error (int err) noexcept;
 
 private:
-	void async_callback (int err) noexcept;
-	void read_callback (int err) noexcept;
-	static const char* get_valid_utf8_end (const char* begin, const char* end);
-	
+	void async_callback () noexcept;
+	void read_callback () noexcept;
+
+	static bool is_additional_octet (int c) noexcept
+	{
+		return (0xC0 & c) == 0x80;
+	}
+
+	static unsigned utf8_char_size (int first_octet) noexcept
+	{
+		if ((first_octet & 0x80) == 0)
+			return 1;
+		else if ((first_octet & 0xE0) == 0xC0)
+			return 2;
+		else if ((first_octet & 0xF0) == 0xE0)
+			return 3;
+		else if ((first_octet & 0xF8) == 0xF0)
+			return 4;
+		else
+			return 0;
+	}
+
+	bool push_char (char c, IDL::String& s);
+	void push_char (char c, bool& repl, IDL::String& s);
+
 private:
 	class ReadCallback : public Runnable
 	{
 	public:
-		ReadCallback (FileAccessChar& obj, int err) :
-			object_ (&obj),
-			error_ (err)
+		ReadCallback (FileAccessChar& obj) :
+			object_ (&obj)
 		{}
 
 	private:
@@ -129,15 +149,15 @@ private:
 
 	private:
 		Ref <FileAccessChar> object_;
-		int error_;
 	};
 
 	Ref <FileChar> file_;
 	std::vector <char, UserAllocator <char> > ring_buffer_;
 	unsigned read_pos_;
 	unsigned write_pos_;
-	char utf8_tail_ [3];
-	unsigned utf8_tail_size_;
+	char utf8_char_ [4];
+	unsigned utf8_char_size_;
+	unsigned utf8_octet_cnt_;
 	Ref <IO_Request> write_request_;
 	Ref <SyncContext> sync_context_;
 	RefCounter ref_cnt_;

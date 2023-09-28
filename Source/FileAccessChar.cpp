@@ -36,7 +36,8 @@ FileAccessChar::FileAccessChar (FileChar* file, unsigned flags, DeadlineTime cal
 	ring_buffer_ (initial_buffer_size),
 	read_pos_ (0),
 	write_pos_ (0),
-	utf8_tail_size_ (0),
+	utf8_char_size_ (0),
+	utf8_octet_cnt_ (0),
 	sync_context_ (&SyncContext::current ()),
 	read_available_ (0),
 	write_available_ (initial_buffer_size),
@@ -70,20 +71,21 @@ void FileAccessChar::on_read (char c) noexcept
 	read_available_.increment ();
 	if (write_available_.decrement_seq ())
 		read_start ();
-	async_callback (0);
+	async_callback ();
 }
 
 void FileAccessChar::on_read_error (int err) noexcept
 {
-	async_callback (err);
+	read_error_ = err;
+	async_callback ();
 }
 
-void FileAccessChar::async_callback (int err) noexcept
+void FileAccessChar::async_callback () noexcept
 {
-	if (!callback_.test_and_set () || err) {
+	if (!callback_.test_and_set ()) {
 		try {
 			ExecDomain::async_call <ReadCallback> (Chrono::make_deadline (callback_deadline_), *sync_context_,
-				nullptr, std::ref (*this), err);
+				nullptr, std::ref (*this));
 		} catch (...) {
 			callback_.clear ();
 		}
@@ -91,29 +93,69 @@ void FileAccessChar::async_callback (int err) noexcept
 }
 
 inline
-void FileAccessChar::read_callback (int err) noexcept
+bool FileAccessChar::push_char (char c, IDL::String& s)
+{
+	if (utf8_octet_cnt_ < utf8_char_size_) {
+		if (is_additional_octet (c))
+			utf8_char_ [utf8_octet_cnt_++] = c;
+		else {
+			utf8_octet_cnt_ = 0;
+			utf8_char_size_ = 0;
+			return false;
+		}
+	}
+
+	if (utf8_char_size_ != 0 && utf8_octet_cnt_ == utf8_char_size_) {
+		s.append (utf8_char_, utf8_char_size_);
+		utf8_octet_cnt_ = 0;
+		utf8_char_size_ = 0;
+	}
+
+	unsigned char_size = utf8_char_size (c);
+	if (!char_size)
+		return false;
+	else if (char_size > 1) {
+		utf8_octet_cnt_ = 1;
+		utf8_char_size_ = char_size;
+		utf8_char_ [0] = c;
+	} else
+		s += c;
+
+	return true;
+}
+
+inline
+void FileAccessChar::push_char (char c, bool& repl, IDL::String& s)
+{
+	static const char replacement [] = { '\xEF', '\xBF', '\xBD' };
+
+	if (push_char (c, s))
+		repl = false;
+	else if (!repl) {
+		s.append (replacement, sizeof (replacement));
+		repl = true;
+	}
+}
+
+inline
+void FileAccessChar::read_callback () noexcept
 {
 	callback_.clear ();
 	auto cc = read_available_.load ();
-	assert (cc || err);
 	CharFileEvent evt;
-	evt.error ((int16_t)err);
 	if (cc) {
 		bool overflow = cc == ring_buffer_.size ();
 		try {
-			
-			unsigned tail = utf8_tail_size_;
-			utf8_tail_size_ = 0;
-			evt.data ().reserve (cc + tail);
-			evt.data ().append (utf8_tail_, tail);
-
+			evt.data ().reserve (cc + utf8_octet_cnt_);
+			bool repl = false;
 			while (cc--) {
-				evt.data ().push_back (ring_buffer_ [read_pos_]);
+				push_char (ring_buffer_ [read_pos_], repl, evt.data ());
 				read_pos_ = (read_pos_ + 1) % ring_buffer_.size ();
 				read_available_.decrement ();
 				write_available_.increment ();
 			}
 		} catch (...) {
+			evt.data ().clear ();
 			evt.error (ENOMEM);
 		}
 
@@ -121,24 +163,19 @@ void FileAccessChar::read_callback (int err) noexcept
 			try {
 				ring_buffer_.resize (ring_buffer_.size () * 2);
 			} catch (...) {
+				// Do not consider this as an read error
 				// TODO: Log
 			}
 			read_start ();
 		}
 
-		const char* end = evt.data ().data () + evt.data ().size ();
-		const char* utf8_end = end;
-		try {
-			utf8_end = get_valid_utf8_end (evt.data ().data (), end);
-		} catch (...) {
-			evt.data ().clear ();
-			evt.error (EILSEQ);
-		}
-		if (utf8_end < end) {
-			std::copy (utf8_end, end, utf8_tail_);
-			utf8_tail_size_ = (unsigned)(end - utf8_end);
-			evt.data ().resize (utf8_end - evt.data ().data ());
-		}
+	} else {
+		assert (read_error_);
+		if (!read_error_)
+			return;
+		evt.error (read_error_);
+		read_error_ = 0;
+		read_start ();
 	}
 
 	for (auto it = proxies_.begin (); it != proxies_.end (); ++it) {
@@ -148,42 +185,7 @@ void FileAccessChar::read_callback (int err) noexcept
 
 void FileAccessChar::ReadCallback::run ()
 {
-	object_->read_callback (error_);
-}
-
-const char* FileAccessChar::get_valid_utf8_end (const char* begin, const char* end)
-{
-	if (begin < end) {
-		// Drop incomplete UTF8 data
-		if ((0xC0 & *(end - 1)) == 0x80) {
-			const char* pfirst = end - 1;
-			size_t additional_octets = 1;
-			while (pfirst > begin && additional_octets < 3) {
-				if ((0xC0 & *(pfirst - 1)) == 0x80) {
-					++additional_octets;
-					--pfirst;
-				}
-			}
-			char first_octet = *(--pfirst);
-			size_t additional_octets_expected;
-			if ((first_octet & 0x80) == 0)
-				additional_octets_expected = 0;
-			else if ((first_octet & 0xE0) == 0xC0)
-				additional_octets_expected = 1;
-			else if ((first_octet & 0xF0) == 0xE0)
-				additional_octets_expected = 2;
-			else if ((first_octet & 0xF8) == 0xF0)
-				additional_octets_expected = 3;
-			else
-				throw_CODESET_INCOMPATIBLE ();
-
-			if (additional_octets_expected > additional_octets)
-				return pfirst;
-			else if (additional_octets_expected < additional_octets)
-				throw_CODESET_INCOMPATIBLE ();
-		}
-	}
-	return end;
+	object_->read_callback ();
 }
 
 }
