@@ -47,12 +47,20 @@ public:
 	void write (const IDL::String& data)
 	{
 		Ref <FileAccessChar> hold (this);
-		while (write_request_)
-			write_request_->wait ();
-		write_request_ = write_start (data);
-		write_request_->wait ();
-		auto err = write_request_->result ().error;
-		write_request_ = nullptr;
+		while (write_request_) {
+			Ref <IO_Request> rq = write_request_;
+			rq->wait ();
+			if (rq == write_request_) {
+				write_request_ = nullptr;
+				break;
+			}
+		}
+		Ref <IO_Request> rq = write_start (data);
+		write_request_ = rq;
+		rq->wait ();
+		if (rq == write_request_)
+			write_request_ = nullptr;
+		auto err = rq->result ().error;
 		if (err)
 			throw_INTERNAL (make_minor_errno (err));
 	}
@@ -92,12 +100,29 @@ protected:
 	void _remove_ref () noexcept;
 
 	FileAccessChar (FileChar* file, unsigned flags = O_RDWR, DeadlineTime callback_deadline = 1 * TimeBase::MILLISECOND,
-		unsigned initial_buffer_size = 256);
+		unsigned initial_buffer_size = 256, unsigned max_buffer_size = 4096);
 
 	virtual ~FileAccessChar ();
 
+	/// Start reading one character.
+	/// Must be overridden in the implementation class.
+	/// This method must return immediately.
+	/// 
+	/// When character read, on_read() method will be called.
+	/// If error occurred, on_error() method will be called.
+	/// 
+	/// To stop reading, use read_cancel().
+	///
 	virtual void read_start () noexcept = 0;
+
+	/// Stops the input wait.
+	/// This method must guaratee that after return no on_read() or on_error() callback will be called.
 	virtual void read_cancel () noexcept = 0;
+
+	/// Start write buffer to output.
+	/// 
+	/// \param data Characters to write.
+	/// \returns IO_Request reference.
 	virtual Ref <IO_Request> write_start (const IDL::String& data) = 0;
 
 	/// Called from the interrupt level when character is readed.
@@ -153,6 +178,7 @@ private:
 
 	Ref <FileChar> file_;
 	std::vector <char, UserAllocator <char> > ring_buffer_;
+	unsigned max_buffer_size_;
 	unsigned read_pos_;
 	unsigned write_pos_;
 	char utf8_char_ [4];

@@ -31,9 +31,11 @@
 namespace Nirvana {
 namespace Core {
 
-FileAccessChar::FileAccessChar (FileChar* file, unsigned flags, DeadlineTime callback_deadline, unsigned initial_buffer_size) :
+FileAccessChar::FileAccessChar (FileChar* file, unsigned flags, DeadlineTime callback_deadline,
+	unsigned initial_buffer_size, unsigned max_buffer_size) :
 	file_ (file),
 	ring_buffer_ (initial_buffer_size),
+	max_buffer_size_ (max_buffer_size),
 	read_pos_ (0),
 	write_pos_ (0),
 	utf8_char_size_ (0),
@@ -54,7 +56,6 @@ FileAccessChar::~FileAccessChar ()
 void FileAccessChar::_remove_ref () noexcept
 {
 	if (0 == ref_cnt_.decrement ()) {
-		read_cancel ();
 		if (write_request_) {
 			write_request_->cancel ();
 			write_request_->wait ();
@@ -159,9 +160,11 @@ void FileAccessChar::read_callback () noexcept
 			evt.error (ENOMEM);
 		}
 
-		if (overflow) {
+		if (overflow && ring_buffer_.size () < max_buffer_size_) {
 			try {
 				ring_buffer_.resize (ring_buffer_.size () * 2);
+				read_pos_ = 0;
+				write_pos_ = 0;
 			} catch (...) {
 				// Do not consider this as an read error
 				// TODO: Log
