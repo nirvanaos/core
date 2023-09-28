@@ -374,7 +374,8 @@ void MemContextUser::FileDescriptorBuf::write (const void* p, size_t size) const
 
 void MemContextUser::FileDescriptorChar::write (const void* p, size_t size) const
 {
-	access_->write (CORBA::Internal::StringView <char> ((const char*)p, size));
+	Nirvana::AccessChar::_ref_type hold = access_;
+	hold->write (CORBA::Internal::StringView <char> ((const char*)p, size));
 }
 
 uint64_t MemContextUser::FileDescriptorBuf::seek (unsigned method, const int64_t& off) const
@@ -405,7 +406,8 @@ uint64_t MemContextUser::FileDescriptorBuf::seek (unsigned method, const int64_t
 			throw_BAD_PARAM (make_minor_errno (EOVERFLOW));
 	}
 
-	access_->position (pos += off);
+	Nirvana::AccessBuf::_ref_type hold = access_;
+	hold->position (pos += off);
 	return pos;
 }
 
