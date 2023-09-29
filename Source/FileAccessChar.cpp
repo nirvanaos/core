@@ -141,8 +141,8 @@ void FileAccessChar::push_char (char c, bool& repl, IDL::String& s)
 inline
 void FileAccessChar::read_callback () noexcept
 {
-	callback_.clear ();
 	auto cc = read_available_.load ();
+	callback_.clear ();
 	CharFileEvent evt;
 	if (cc) {
 		bool overflow = cc == ring_buffer_.size ();
