@@ -68,7 +68,8 @@ void FileAccessChar::_remove_ref () noexcept
 
 void FileAccessChar::on_read (char c) noexcept
 {
-	ring_buffer_ [write_pos_++] = c;
+	ring_buffer_ [write_pos_] = c;
+	write_pos_ = (write_pos_ + 1) % ring_buffer_.size ();
 	read_available_.increment ();
 	if (write_available_.decrement_seq ())
 		read_start ();
@@ -152,8 +153,8 @@ void FileAccessChar::read_callback () noexcept
 			while (cc--) {
 				push_char (ring_buffer_ [read_pos_], repl, evt.data ());
 				read_pos_ = (read_pos_ + 1) % ring_buffer_.size ();
-				read_available_.decrement ();
 				write_available_.increment ();
+				read_available_.decrement ();
 			}
 		} catch (...) {
 			evt.data ().clear ();
