@@ -35,6 +35,7 @@
 #include "ORB/ESIOP.h"
 #include <Nirvana/CoreDomains_s.h>
 #include <Port/SystemInfo.h>
+#include <Port/SysDomain.h>
 #include "MapUnorderedUnstable.h"
 
 namespace Nirvana {
@@ -44,7 +45,9 @@ typedef IDL::Sequence <CORBA::Octet> SecurityId;
 namespace Core {
 
 /// System domain
-class SysDomain : public CORBA::Core::SysServantImpl <SysDomain, SysDomainCore, Nirvana::SysDomain>
+class SysDomain :
+	public CORBA::Core::SysServantImpl <SysDomain, SysDomainCore, Nirvana::SysDomain>,
+	private Port::SysDomain
 {
 public:
 	SysDomain () :
