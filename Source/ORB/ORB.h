@@ -319,6 +319,11 @@ public:
 		SYNC_END ()
 	}
 
+	static Char to_hex (unsigned d) noexcept
+	{
+		return d < 10 ? '0' + d : 'a' + d - 10;
+	}
+
 private:
 
 	static TC_Factory::_ptr_type tc_factory ()
@@ -327,11 +332,6 @@ private:
 	}
 
 	static ULongLong get_union_label (TypeCode::_ptr_type tc, ULong i);
-
-	static Char to_hex (unsigned d) noexcept
-	{
-		return d < 10 ? '0' + d : 'a' + d - 10;
-	}
 
 	static unsigned from_hex (int x);
 	static bool schema_eq (const Char* schema, const Char* begin, const Char* end) noexcept;

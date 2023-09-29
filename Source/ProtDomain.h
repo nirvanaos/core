@@ -60,6 +60,11 @@ public:
 			CORBA::Core::Services::bind (CORBA::Core::Services::SysDomain));
 	}
 
+	static void shutdown (unsigned flags)
+	{
+		Scheduler::shutdown ();
+	}
+
 	static void request (const CORBA::OctetSeq& data_in, CORBA::OctetSeq& data_out)
 	{
 		throw_NO_IMPLEMENT ();

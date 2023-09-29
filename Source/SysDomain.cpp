@@ -72,6 +72,25 @@ void SysDomain::shutdown (unsigned flags)
 	}
 }
 
+Object::_ref_type SysDomain::prot_domain_ref (ESIOP::ProtDomainId domain_id)
+{
+	const char prefix [] = "corbaloc::1.1@/";
+	IDL::String s;
+	s.reserve (std::size (prefix) - 1 + (sizeof (ESIOP::ProtDomainId) + 1) * 3);
+	s = prefix;
+	ESIOP::ProtDomainId id = domain_id;
+	if (ESIOP::PLATFORMS_ENDIAN_DIFFERENT && endian::native == endian::little)
+		Nirvana::byteswap (id);
+	for (const uint8_t* p = (const uint8_t*)&id, *end = p + sizeof (ESIOP::ProtDomainId); p != end; ++p) {
+		s += '%';
+		uint8_t oct = *p;
+		s += CORBA::Core::ORB::to_hex (oct >> 4);
+		s += CORBA::Core::ORB::to_hex (oct & 0xf);
+	}
+	s += "%01";
+	return CORBA::Core::ORB::string_to_object (s, CORBA::Internal::RepIdOf <Nirvana::ProtDomainCore>::id);
+}
+
 }
 }
 

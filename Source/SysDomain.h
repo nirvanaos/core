@@ -79,9 +79,10 @@ public:
 			CORBA::Core::Services::bind (CORBA::Core::Services::ProtDomain));
 	}
 
-	static Nirvana::ProtDomain::_ref_type create_prot_domain (uint16_t platform)
+	Nirvana::ProtDomain::_ref_type create_prot_domain (uint16_t platform)
 	{
-		throw_NO_IMPLEMENT ();
+		return Nirvana::ProtDomain::_narrow (prot_domain_ref (
+			Port::SysDomain::create_prot_domain (platform, IDL::String (), 0)));
 	}
 
 	static Nirvana::ProtDomain::_ref_type create_prot_domain_as_user (uint16_t platform,
@@ -119,6 +120,7 @@ public:
 	void domain_created (ESIOP::ProtDomainId domain_id, uint_fast16_t platform, SecurityId&& user)
 	{
 		domains_.emplace (domain_id, platform, std::move (user));
+		Port::SysDomain::on_domain_start (domain_id);
 		if (shutdown_started_)
 			ESIOP::send_shutdown (domain_id);
 	}
@@ -134,6 +136,8 @@ public:
 	}
 
 private:
+	static CORBA::Object::_ref_type prot_domain_ref (ESIOP::ProtDomainId domain_id);
+
 	struct DomainInfo
 	{
 		SecurityId user;
