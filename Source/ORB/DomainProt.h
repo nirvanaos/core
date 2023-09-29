@@ -41,7 +41,7 @@ class DomainProt :
 	public ESIOP::OtherDomain
 {
 public:
-	static const TimeBase::TimeT REQUEST_LATENCY = 10 * TimeBase::MILLISECOND;
+	static const TimeBase::TimeT REQUEST_LATENCY = 20 * TimeBase::MILLISECOND;
 	static const TimeBase::TimeT HEARTBEAT_INTERVAL = 30 * TimeBase::SECOND;
 	static const TimeBase::TimeT HEARTBEAT_TIMEOUT = 2 * HEARTBEAT_INTERVAL;
 
