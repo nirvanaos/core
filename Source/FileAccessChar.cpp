@@ -71,9 +71,9 @@ void FileAccessChar::on_read (char c) noexcept
 	ring_buffer_ [write_pos_] = c;
 	write_pos_ = (write_pos_ + 1) % ring_buffer_.size ();
 	read_available_.increment ();
+	async_callback ();
 	if (write_available_.decrement_seq ())
 		read_start ();
-	async_callback ();
 }
 
 void FileAccessChar::on_read_error (int err) noexcept
