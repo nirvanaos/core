@@ -38,6 +38,8 @@ using CORBA::Core::Services;
 namespace Nirvana {
 namespace Core {
 
+const unsigned MemContextUser::POSIX_CHANGEABLE_FLAGS = O_APPEND | O_NONBLOCK;
+
 class MemContextUser::FileDescriptorBuf : public FileDescriptorBase
 {
 public:
@@ -45,10 +47,12 @@ public:
 		access_ (std::move (access))
 	{}
 
-	virtual void close () const;
-	virtual size_t read (void* p, size_t size) const;
-	virtual void write (const void* p, size_t size) const;
-	virtual uint64_t seek (unsigned method, const int64_t& off) const;
+	virtual void close () const override;
+	virtual size_t read (void* p, size_t size) const override;
+	virtual void write (const void* p, size_t size) const override;
+	virtual uint64_t seek (unsigned method, const int64_t& off) const override;
+	virtual unsigned flags () const override;
+	virtual void flags (unsigned fl) override;
 
 private:
 	AccessBuf::_ref_type access_;
@@ -58,21 +62,24 @@ class MemContextUser::FileDescriptorChar : public FileDescriptorBase
 {
 public:
 	FileDescriptorChar (AccessChar::_ref_type&& access) :
-		access_ (std::move (access))
+		access_ (std::move (access)),
+		flags_ (access_->flags ())
 	{
-		unsigned flags = access_->flags ();
-		if ((flags & O_ACCMODE) != O_WRONLY)
-			adapter_ = CORBA::make_reference <CharFileAdapter> (AccessChar::_ptr_type (access_), (flags & O_NONBLOCK) != 0);
+		if ((flags_ & O_ACCMODE) != O_WRONLY)
+			adapter_ = CORBA::make_reference <CharFileAdapter> (AccessChar::_ptr_type (access_), (flags_ & O_NONBLOCK) != 0);
 	}
 
-	virtual void close () const;
-	virtual size_t read (void* p, size_t size) const;
-	virtual void write (const void* p, size_t size) const;
-	virtual uint64_t seek (unsigned method, const int64_t& off) const;
+	virtual void close () const override;
+	virtual size_t read (void* p, size_t size) const override;
+	virtual void write (const void* p, size_t size) const override;
+	virtual uint64_t seek (unsigned method, const int64_t& off) const override;
+	virtual unsigned flags () const override;
+	virtual void flags (unsigned fl) override;
 
 private:
 	AccessChar::_ref_type access_;
 	Ref <CharFileAdapter> adapter_;
+	unsigned flags_;
 };
 
 MemContextUser::Data* MemContextUser::Data::create ()
@@ -98,10 +105,10 @@ MemContextUser::Data::Data (const InheritedFiles& inh)
 	for (const auto& f : inh) {
 		FileDescriptorRef fd = make_fd (f.access ());
 		for (auto d : f.descriptors ()) {
-			FileDescriptorRef& fdr = get_fd (d);
-			if (fdr)
+			FileDescriptorInfo& fdr = get_fd (d);
+			if (fdr.ref)
 				throw_BAD_PARAM ();
-			fdr = fd;
+			fdr.ref = fd;
 		}
 	}
 }
@@ -154,6 +161,28 @@ inline void MemContextUser::Data::chdir (const IDL::String& path)
 	current_dir_ = std::move (new_dir);
 }
 
+size_t MemContextUser::Data::alloc_fd (unsigned start)
+{
+	size_t i;
+	if (start >= (unsigned)STD_CNT)
+		i = start - (unsigned)STD_CNT;
+	else
+		i = 0;
+	if (i < file_descriptors_.size ()) {
+		auto it = file_descriptors_.begin ();
+		for (; it != file_descriptors_.end (); ++it) {
+			if (!it->ref)
+				break;
+		}
+		i = it - file_descriptors_.begin ();
+	}
+	if (i > (unsigned)std::numeric_limits <int16_t>::max () - (unsigned)STD_CNT)
+		throw_IMP_LIMIT (make_minor_errno (EMFILE));
+	if (i >= file_descriptors_.size ())
+		file_descriptors_.resize (i + 1);
+	return i;
+}
+
 inline
 unsigned MemContextUser::Data::fd_open (const IDL::String& path, uint_fast16_t flags, mode_t mode)
 {
@@ -164,38 +193,25 @@ unsigned MemContextUser::Data::fd_open (const IDL::String& path, uint_fast16_t f
 	Access::_ref_type access = root->open (name, flags & ~O_DIRECT, mode);
 
 	// Allocate file descriptor cell
-	unsigned ifd;
-	{
-		auto it = file_descriptors_.begin ();
-		for (; it != file_descriptors_.end (); ++it) {
-			if (!*it)
-				break;
-		}
-		size_t i = it - file_descriptors_.begin ();
-		if (i > (unsigned)std::numeric_limits <int16_t>::max () - (unsigned)STD_CNT)
-			throw_IMP_LIMIT (make_minor_errno (EMFILE));
-		if (it == file_descriptors_.end ())
-			file_descriptors_.emplace_back ();
-		ifd = (unsigned)(i + STD_CNT);
-		file_descriptors_ [i] = make_fd (access);
-	}
+	size_t i = alloc_fd ();
+	file_descriptors_ [i].ref = make_fd (access);
 
-	return ifd;
+	return (unsigned)(i + STD_CNT);
 }
 
 inline
 void MemContextUser::Data::fd_close (unsigned ifd)
 {
-	FileDescriptorRef& fd = get_open_fd (ifd);
-	if (fd->_refcount_value () == 1)
-		fd->close ();
-	fd = nullptr;
-	while (!file_descriptors_.empty () && !file_descriptors_.back ()) {
+	FileDescriptorInfo& fd = get_open_fd (ifd);
+	if (fd.ref->_refcount_value () == 1)
+		fd.ref->close ();
+	fd.ref = nullptr;
+	while (!file_descriptors_.empty () && !file_descriptors_.back ().ref) {
 		file_descriptors_.pop_back ();
 	}
 }
 
-MemContextUser::FileDescriptorRef& MemContextUser::Data::get_fd (unsigned ifd)
+MemContextUser::FileDescriptorInfo& MemContextUser::Data::get_fd (unsigned ifd)
 {
 	if (ifd < StandardFileDescriptor::STD_CNT)
 		return std_file_descriptors_ [ifd];
@@ -205,10 +221,10 @@ MemContextUser::FileDescriptorRef& MemContextUser::Data::get_fd (unsigned ifd)
 	return file_descriptors_ [ifd];
 }
 
-MemContextUser::FileDescriptorRef& MemContextUser::Data::get_open_fd (unsigned ifd)
+MemContextUser::FileDescriptorInfo& MemContextUser::Data::get_open_fd (unsigned ifd)
 {
-	FileDescriptorRef& fd = get_fd (ifd);
-	if (!fd)
+	FileDescriptorInfo& fd = get_fd (ifd);
+	if (!fd.ref)
 		throw_BAD_PARAM (make_minor_errno (EBADF));
 	return fd;
 }
@@ -232,19 +248,55 @@ MemContextUser::FileDescriptorRef MemContextUser::Data::make_fd (CORBA::Abstract
 inline
 size_t MemContextUser::Data::fd_read (unsigned ifd, void* p, size_t size)
 {
-	return get_open_fd (ifd)->read (p, size);
+	return get_open_fd (ifd).ref->read (p, size);
 }
 
 inline
 void MemContextUser::Data::fd_write (unsigned ifd, const void* p, size_t size)
 {
-	get_open_fd (ifd)->write (p, size);
+	get_open_fd (ifd).ref->write (p, size);
 }
 
 inline
 uint64_t MemContextUser::Data::fd_seek (unsigned ifd, const int64_t& off, unsigned method)
 {
-	return get_open_fd (ifd)->seek (method, off);
+	return get_open_fd (ifd).ref->seek (method, off);
+}
+
+inline 
+unsigned MemContextUser::Data::fd_dup (unsigned ifd, unsigned start)
+{
+	FileDescriptorRef src = get_open_fd (ifd).ref;
+	size_t i = alloc_fd (start);
+	file_descriptors_ [i].ref = std::move (src);
+	return (unsigned)(i + STD_CNT);
+}
+
+inline
+unsigned MemContextUser::Data::fd_flags (unsigned ifd)
+{
+	return get_open_fd (ifd).fd_flags;
+}
+
+inline
+void MemContextUser::Data::fd_flags (unsigned ifd, unsigned flags)
+{
+	if (flags & ~FD_CLOEXEC)
+		throw_INV_FLAG (make_minor_errno (EINVAL));
+
+	get_open_fd (ifd).fd_flags = flags;
+}
+
+inline
+unsigned MemContextUser::Data::flags (unsigned ifd)
+{
+	return get_open_fd (ifd).ref->flags ();
+}
+
+inline
+void MemContextUser::Data::flags (unsigned ifd, unsigned flags)
+{
+	return get_open_fd (ifd).ref->flags (flags);
 }
 
 MemContextUser& MemContextUser::current ()
@@ -340,6 +392,27 @@ uint64_t MemContextUser::fd_seek (unsigned fd, const int64_t& off, unsigned meth
 	return data ().fd_seek (fd, off, method);
 }
 
+unsigned MemContextUser::fcntl (unsigned ifd, int cmd, unsigned arg)
+{
+	switch (cmd) {
+		case F_DUPFD:
+			return data ().fd_dup (ifd, arg);
+
+		case F_GETFD:
+			return data ().fd_flags (ifd);
+
+		case F_SETFD:
+			data ().fd_flags (ifd, arg);
+
+		case F_GETFL:
+			return data ().flags (ifd);
+
+		case F_SETFL:
+			data ().flags (ifd, arg);
+	}
+	throw_BAD_PARAM (make_minor_errno (EINVAL));
+}
+
 void MemContextUser::FileDescriptorBuf::close () const
 {
 	access_->close ();
@@ -414,6 +487,29 @@ uint64_t MemContextUser::FileDescriptorBuf::seek (unsigned method, const int64_t
 uint64_t MemContextUser::FileDescriptorChar::seek (unsigned method, const int64_t& off) const
 {
 	throw_BAD_OPERATION (make_minor_errno (ESPIPE));
+}
+
+unsigned MemContextUser::FileDescriptorBuf::flags () const
+{
+	return access_->flags ();
+}
+
+void MemContextUser::FileDescriptorBuf::flags (unsigned fl)
+{
+	access_->set_flags (POSIX_CHANGEABLE_FLAGS, fl);
+}
+
+unsigned MemContextUser::FileDescriptorChar::flags () const
+{
+	return flags_;
+}
+
+void MemContextUser::FileDescriptorChar::flags (unsigned fl)
+{
+	unsigned chg = (fl ^ flags_) & POSIX_CHANGEABLE_FLAGS;
+	if (chg != O_NONBLOCK)
+		access_->set_flags (POSIX_CHANGEABLE_FLAGS, fl);
+	flags_ = (flags_ & ~POSIX_CHANGEABLE_FLAGS) | (fl & POSIX_CHANGEABLE_FLAGS);
 }
 
 }

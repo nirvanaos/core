@@ -136,6 +136,7 @@ public:
 	virtual size_t fd_read (unsigned fd, void* p, size_t size) override;
 	virtual void fd_write (unsigned fd, const void* p, size_t size) override;
 	virtual uint64_t fd_seek (unsigned fd, const int64_t& off, unsigned method) override;
+	virtual unsigned fcntl (unsigned fd, int cmd, unsigned arg) override;
 
 private:
 	template <class S, class ... Args> friend

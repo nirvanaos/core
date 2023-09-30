@@ -279,6 +279,11 @@ public:
 		return MemContextUser::current ().fd_seek (fd, offset, whence);
 	}
 
+	static int_fast16_t fcntl (unsigned fd, int_fast16_t cmd, uint_fast16_t arg)
+	{
+		return MemContextUser::current ().fcntl (fd, cmd, arg);
+	}
+
 };
 
 }

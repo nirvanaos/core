@@ -220,6 +220,13 @@ uint64_t Process::fd_seek (unsigned fd, const int64_t& off, unsigned method)
 	SYNC_END ();
 }
 
+unsigned Process::fcntl (unsigned fd, int cmd, unsigned arg)
+{
+	SYNC_BEGIN (*sync_domain_, nullptr);
+	return MemContextUser::fcntl (fd, cmd, arg);
+	SYNC_END ();
+}
+
 void Process::error_message (const char* msg)
 {
 	fd_write (2, msg, strlen (msg));

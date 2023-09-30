@@ -48,6 +48,8 @@ class RuntimeGlobal;
 /// \brief Memory context full implementation.
 class NIRVANA_NOVTABLE MemContextUser : public MemContext
 {
+	static const unsigned POSIX_CHANGEABLE_FLAGS;
+
 public:
 	/// \returns Current user memory context.
 	/// \throws CORBA::NO_IMPL If current context is not an user context.
@@ -86,6 +88,7 @@ public:
 	virtual size_t fd_read (unsigned ifd, void* p, size_t size);
 	virtual void fd_write (unsigned ifd, const void* p, size_t size);
 	virtual uint64_t fd_seek (unsigned ifd, const int64_t& off, unsigned method);
+	virtual unsigned fcntl (unsigned ifd, int cmd, unsigned arg);
 
 protected:
 	MemContextUser ();
@@ -102,17 +105,30 @@ private:
 	class NIRVANA_NOVTABLE FileDescriptor : public UserObject
 	{
 	public:
-		virtual ~FileDescriptor ()
-		{}
-
 		virtual void close () const = 0;
 		virtual size_t read (void* p, size_t size) const = 0;
 		virtual void write (const void* p, size_t size) const = 0;
 		virtual uint64_t seek (unsigned method, const int64_t& off) const = 0;
+		virtual unsigned flags () const = 0;
+		virtual void flags (unsigned fl) = 0;
+
+	protected:
+		virtual ~FileDescriptor ()
+		{}
 	};
 
 	typedef ImplDynamicSync <FileDescriptor> FileDescriptorBase;
 	typedef Ref <FileDescriptorBase> FileDescriptorRef;
+
+	struct FileDescriptorInfo
+	{
+		FileDescriptorRef ref;
+		unsigned fd_flags;
+
+		FileDescriptorInfo () :
+			fd_flags (0)
+		{}
+	};
 
 	class FileDescriptorBuf;
 	class FileDescriptorChar;
@@ -153,7 +169,12 @@ private:
 		size_t fd_read (unsigned fd, void* p, size_t size);
 		void fd_write (unsigned fd, const void* p, size_t size);
 		uint64_t fd_seek (unsigned fd, const int64_t& off, unsigned method);
-		
+		unsigned fd_dup (unsigned fd, unsigned start);
+		unsigned fd_flags (unsigned fd);
+		void fd_flags (unsigned fd, unsigned flags);
+		unsigned flags (unsigned fd);
+		void flags (unsigned fd, unsigned flags);
+
 		Data (const InheritedFiles& inh);
 
 	private:
@@ -163,8 +184,9 @@ private:
 		CosNaming::Name get_name_from_path (const IDL::String& path) const;
 		static CosNaming::NamingContext::_ref_type name_service ();
 		static FileDescriptorRef make_fd (CORBA::AbstractBase::_ptr_type access);
-		FileDescriptorRef& get_fd (unsigned fd);
-		FileDescriptorRef& get_open_fd (unsigned fd);
+		FileDescriptorInfo& get_fd (unsigned fd);
+		FileDescriptorInfo& get_open_fd (unsigned fd);
+		size_t alloc_fd (unsigned start = 0);
 
 		RuntimeSupportImpl runtime_support_;
 		CosNaming::Name current_dir_;
@@ -177,8 +199,8 @@ private:
 			STD_CNT
 		};
 
-		FileDescriptorRef std_file_descriptors_ [StandardFileDescriptor::STD_CNT];
-		typedef std::vector <FileDescriptorRef, UserAllocator <FileDescriptorRef> > FileDescriptors;
+		FileDescriptorInfo std_file_descriptors_ [StandardFileDescriptor::STD_CNT];
+		typedef std::vector <FileDescriptorInfo, UserAllocator <FileDescriptorInfo> > FileDescriptors;
 		FileDescriptors file_descriptors_;
 	};
 
