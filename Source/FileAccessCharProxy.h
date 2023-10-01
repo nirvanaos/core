@@ -46,8 +46,10 @@ public:
 
 	~FileAccessCharProxy ()
 	{
-		if (event_channel_)
+		if (event_channel_) {
+			remove ();
 			access_->read_off ();
+		}
 	}
 
 	Nirvana::File::_ref_type file () const
@@ -101,7 +103,7 @@ public:
 				event_channel_->for_suppliers ()->obtain_typed_push_consumer (CORBA::Internal::RepIdOf <CharFileSink>::id);
 			sink_ = CharFileSink::_narrow (consumer->get_typed_consumer ());
 			assert (sink_);
-			access_->read_on ();
+			access_->read_on (*this);
 		}
 		return event_channel_->for_consumers ();
 	}
@@ -110,6 +112,14 @@ public:
 	{
 		if (sink_) {
 			try {
+				if (flags_ & O_TEXT && evt.data ().find ('\r') != IDL::String::npos) {
+					CharFileEvent tmp = evt;
+					for (char& c : tmp.data ()) {
+						if ('\r' == c)
+							c = '\n';
+					}
+					sink_->received (tmp);
+				}
 				sink_->received (evt);
 			} catch (...) {
 				// TODO: Log

@@ -76,15 +76,11 @@ public:
 			throw_NO_PERMISSION (make_minor_errno (EACCES)); // File is unaccessible for this mode
 	}
 
-	void read_on () noexcept
-	{
-		if (1 == ++read_proxy_cnt_)
-			read_start ();
-	}
+	void read_on (FileAccessCharProxy& proxy) noexcept;
 
 	void read_off () noexcept
 	{
-		if (0 == --read_proxy_cnt_)
+		if (read_proxies_.empty ())
 			read_cancel ();
 	}
 
@@ -192,8 +188,7 @@ private:
 	int read_error_;
 	std::atomic_flag callback_;
 	DeadlineTime callback_deadline_;
-	SimpleList <FileAccessCharProxy> proxies_;
-	unsigned read_proxy_cnt_;
+	SimpleList <FileAccessCharProxy> read_proxies_;
 };
 
 }

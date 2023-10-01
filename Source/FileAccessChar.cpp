@@ -46,8 +46,7 @@ FileAccessChar::FileAccessChar (FileChar* file, unsigned flags, DeadlineTime cal
 	flags_ (flags),
 	read_error_ (0),
 	callback_ ATOMIC_FLAG_INIT,
-	callback_deadline_ (callback_deadline),
-	read_proxy_cnt_ (0)
+	callback_deadline_ (callback_deadline)
 {}
 
 FileAccessChar::~FileAccessChar ()
@@ -64,6 +63,14 @@ void FileAccessChar::_remove_ref () noexcept
 			file_->on_access_destroy ();
 		delete this;
 	}
+}
+
+void FileAccessChar::read_on (FileAccessCharProxy& proxy) noexcept
+{
+	bool first = read_proxies_.empty ();
+	read_proxies_.push_back (proxy);
+	if (first)
+		read_start ();
 }
 
 void FileAccessChar::on_read (char c) noexcept
@@ -182,7 +189,7 @@ void FileAccessChar::read_callback () noexcept
 		read_start ();
 	}
 
-	for (auto it = proxies_.begin (); it != proxies_.end (); ++it) {
+	for (auto it = read_proxies_.begin (); it != read_proxies_.end (); ++it) {
 		it->push (evt);
 	}
 }
