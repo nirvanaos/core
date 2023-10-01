@@ -92,7 +92,7 @@ void Startup::run ()
 		Nirvana::File::_ref_type console = Nirvana::File::_narrow (CORBA::Core::Services::bind (CORBA::Core::Services::Console));
 		assert (console);
 		InheritedFiles files;
-		files.emplace_back (console->open (O_WRONLY, 0), IDL::Sequence <uint16_t> ({ 0, 1, 2 }));
+		files.emplace_back (console->open (O_RDWR, 0), IDL::Sequence <uint16_t> ({ 0, 1, 2 }));
 
 		Static <Launcher>::ptr ()->spawn (argv [0], argv, envp, "/sbin", files, callback);
 	}
