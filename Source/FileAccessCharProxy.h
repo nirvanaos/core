@@ -108,6 +108,12 @@ public:
 		return event_channel_->for_consumers ();
 	}
 
+	int_fast16_t clear_read_error ()
+	{
+		check ();
+		return access_->clear_read_error ();
+	}
+
 	void push (const CharFileEvent& evt) noexcept
 	{
 		if (sink_) {

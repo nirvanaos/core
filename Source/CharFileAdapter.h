@@ -52,6 +52,8 @@ public:
 
 	void received (CharFileEvent& evt)
 	{
+		if (evt.error () && !queue_.empty () && queue_.back ().error () == evt.error ())
+			return; // Prevent infinite error collecting
 		queue_.push (std::move (evt));
 		event_.signal ();
 	}

@@ -185,8 +185,6 @@ void FileAccessChar::read_callback () noexcept
 		if (!read_error_)
 			return;
 		evt.error (read_error_);
-		read_error_ = 0;
-		read_start ();
 	}
 
 	for (auto it = read_proxies_.begin (); it != read_proxies_.end (); ++it) {

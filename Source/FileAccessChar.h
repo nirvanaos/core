@@ -84,6 +84,18 @@ public:
 			read_cancel ();
 	}
 
+	int_fast16_t clear_read_error () noexcept
+	{
+		if (read_error_) {
+			int_fast16_t err = read_error_;
+			read_error_ = 0;
+			if (!read_proxies_.empty ())
+				read_start ();
+			return err;
+		} else
+			return 0;
+	}
+
 protected:
 	template <class> friend class CORBA::servant_reference;
 
@@ -171,6 +183,7 @@ private:
 		Ref <FileAccessChar> object_;
 	};
 
+private:
 	Ref <FileChar> file_;
 	std::vector <char, UserAllocator <char> > ring_buffer_;
 	unsigned max_buffer_size_;
