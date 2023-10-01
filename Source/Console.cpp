@@ -29,7 +29,7 @@
 namespace Nirvana {
 namespace Core {
 
-Ref <FileAccessChar> Console::create_access (unsigned flags)
+Ref <FileAccessChar> Console::create_access ()
 {
 	return Ref <FileAccessChar>::create <Port::FileAccessConsole> (this);
 }

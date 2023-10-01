@@ -69,13 +69,11 @@ public:
 	{
 		Access::_ref_type ret;
 		if (!access_) {
-			Ref <FileAccessChar> access = create_access (flags);
+			Ref <FileAccessChar> access = create_access ();
 			ret = open (*access, flags);
 			access_ = access;
-		} else {
-			access_->check_flags (flags);
+		} else
 			ret = open (*access_, flags);
-		}
 		return ret;
 	}
 
@@ -85,7 +83,7 @@ public:
 	}
 
 protected:
-	virtual Ref <FileAccessChar> create_access (unsigned flags) = 0;
+	virtual Ref <FileAccessChar> create_access () = 0;
 
 private:
 	static Access::_ref_type open (FileAccessChar& access, unsigned flags);

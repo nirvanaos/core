@@ -40,7 +40,7 @@ public:
 	{}
 
 protected:
-	virtual Ref <FileAccessChar> create_access (unsigned flags) override;
+	virtual Ref <FileAccessChar> create_access () override;
 };
 
 }

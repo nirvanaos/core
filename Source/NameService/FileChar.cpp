@@ -31,6 +31,7 @@ namespace Core {
 
 Access::_ref_type FileChar::open (FileAccessChar& access, unsigned flags)
 {
+	access.check_flags (flags);
 	return CORBA::make_reference <FileAccessCharProxy> (std::ref (access), flags)->_this ();
 }
 
