@@ -243,26 +243,6 @@ TYPED_TEST (TestPriorityQueue, MultiThread)
 	test.finalize ();
 }
 
-TYPED_TEST (TestPriorityQueue, Erase)
-{
-	TypeParam queue;
-	RandomGen rndgen;
-
-	static const unsigned NUM_ELEMENTS = 100;
-	std::vector <Value> values;
-	values.reserve (NUM_ELEMENTS);
-	std::uniform_int_distribution <unsigned> distr;
-	for (int i = 0; i < NUM_ELEMENTS; ++i) {
-		values.push_back ({i, distr (rndgen)});
-	}
-	for (auto p = values.begin (); p != values.end (); ++p) {
-		ASSERT_TRUE (queue.insert (p->deadline, *p));
-	}
-	for (auto p = values.begin (); p != values.end (); ++p) {
-		ASSERT_TRUE (queue.erase (p->deadline, *p));
-	}
-}
-
 TYPED_TEST (TestPriorityQueue, Reorder)
 {
 	TypeParam queue;

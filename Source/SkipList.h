@@ -408,13 +408,6 @@ public:
 		return Base::erase (&keynode);
 	}
 
-	template <class ... Args>
-	bool erase (Args ... args)
-	{
-		NodeVal keynode (1, std::forward <Args> (args)...);
-		return Base::erase (&keynode);
-	}
-
 	bool erase (const NodeVal* keynode) noexcept
 	{
 		return Base::erase (keynode);

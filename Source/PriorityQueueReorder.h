@@ -39,7 +39,7 @@ struct PriorityQueueReorderKeyVal
 {
 	DeadlineTime deadline;
 	Val val;
-	std::atomic <SkipListBase::Node*> first_node;
+	SkipListBase::Node* first_node;
 	RefCounter ref_cnt1;
 	std::atomic_flag dispatched;
 
@@ -127,9 +127,9 @@ public:
 				std::pair <NodeVal*, bool> ins = Base::insert (std::ref (deadline), std::ref (val), first_node);
 				assert (ins.second);
 				// New inserted, try erase old
-				bool ret = Base::erase ((const NodeVal*)old_node);
+				bool ret = Base::erase (old_node);
 				if (!ret) // Old disappeared, try erase new
-					Base::erase ((const NodeVal*)ins.first);
+					Base::erase (ins.first);
 				Base::release_node (old_node);
 				Base::release_node (ins.first);
 				return ret;
@@ -181,7 +181,8 @@ protected:
 	bool pre_deallocate_node (SkipListBase::Node* node) noexcept
 	{
 		typename Base::Value& val = static_cast <NodeVal&> (*node).value ();
-		SkipListBase::Node* first = val.first_node.exchange (nullptr);
+		SkipListBase::Node* first = val.first_node;
+		val.first_node = nullptr;
 		if (first)
 			deallocate_node (first);
 		return 0 == val.ref_cnt1.decrement ();
