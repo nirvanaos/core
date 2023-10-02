@@ -200,15 +200,15 @@ protected:
 		return *this;
 	}
 
-private:
-	static Node* read_node (Link::Lockable& node) noexcept;
-
 	static Node* copy_node (Node* node) noexcept
 	{
 		assert (node);
 		node->ref_cnt.increment ();
 		return node;
 	}
+
+private:
+	static Node* read_node (Link::Lockable& node) noexcept;
 
 	Node* read_next (Node*& node1, int level) noexcept;
 

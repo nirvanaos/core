@@ -39,8 +39,8 @@ struct PriorityQueueReorderKeyVal
 {
 	DeadlineTime deadline;
 	Val val;
-	SkipListBase::Node* first_node;
-	RefCounter ref_cnt;
+	std::atomic <SkipListBase::Node*> first_node;
+	RefCounter ref_cnt1;
 	std::atomic_flag dispatched;
 
 	PriorityQueueReorderKeyVal (const DeadlineTime& dt, const Val& v, SkipListBase::Node* first = nullptr) :
@@ -50,14 +50,14 @@ struct PriorityQueueReorderKeyVal
 		dispatched ATOMIC_FLAG_INIT
 	{}
 
-		PriorityQueueReorderKeyVal (const DeadlineTime& dt, Val&& v) :
+	PriorityQueueReorderKeyVal (const DeadlineTime& dt, Val&& v) :
 		deadline (dt),
 		val (std::move (v)),
 		first_node (nullptr),
 		dispatched ATOMIC_FLAG_INIT
 	{}
 
-	bool operator < (const PriorityQueueReorderKeyVal& rhs) const
+	bool operator < (const PriorityQueueReorderKeyVal& rhs) const noexcept
 	{
 		if (deadline < rhs.deadline)
 			return true;
@@ -122,7 +122,7 @@ public:
 			SkipListBase::Node* first_node = old_node->value ().first_node;
 			if (!first_node)
 				first_node = old_node;
-			static_cast <NodeVal&> (*first_node).value ().ref_cnt.increment ();
+			static_cast <NodeVal&> (*first_node).value ().ref_cnt1.increment ();
 			try {
 				std::pair <NodeVal*, bool> ins = Base::insert (std::ref (deadline), std::ref (val), first_node);
 				assert (ins.second);
@@ -134,7 +134,7 @@ public:
 				Base::release_node (ins.first);
 				return ret;
 			} catch (...) {
-				deallocate_node (first_node); // first_node->value ().ref_cnt.decrement ();
+				deallocate_node (first_node); // first_node->value ().ref_cnt1.decrement ();
 				Base::release_node (old_node);
 			}
 		}
@@ -181,11 +181,10 @@ protected:
 	bool pre_deallocate_node (SkipListBase::Node* node) noexcept
 	{
 		typename Base::Value& val = static_cast <NodeVal&> (*node).value ();
-		if (val.first_node) {
-			deallocate_node (val.first_node);
-			val.first_node = nullptr;
-		}
-		return !val.ref_cnt.decrement ();
+		SkipListBase::Node* first = val.first_node.exchange (nullptr);
+		if (first)
+			deallocate_node (first);
+		return 0 == val.ref_cnt1.decrement ();
 	}
 
 private:
