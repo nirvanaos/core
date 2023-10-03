@@ -126,10 +126,10 @@ public:
 			try {
 				std::pair <NodeVal*, bool> ins = Base::insert (std::ref (deadline), std::ref (val), first_node);
 				assert (ins.second);
-				// New inserted, try erase old
-				bool ret = Base::erase (old_node);
-				if (!ret) // Old disappeared, try erase new
-					Base::erase (ins.first);
+				// New inserted, try remove old
+				bool ret = Base::remove (old_node);
+				if (!ret) // Old disappeared, try remove new
+					Base::remove (ins.first);
 				Base::release_node (old_node);
 				Base::release_node (ins.first);
 				return ret;
