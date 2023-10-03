@@ -157,92 +157,6 @@ TYPED_TEST (TestPriorityQueue, MinMax)
 	ASSERT_TRUE (queue.delete_min (out));
 }
 
-// Ensure that all values are different.
-std::atomic <int> g_timestamp (0);
-
-template <class PQ>
-class ThreadTest
-{
-	static const size_t NUM_PRIORITIES = 20;
-	static const int NUM_ITERATIONS = 10000;
-	static const int MAX_QUEUE_SIZE = 10000;
-
-public:
-	ThreadTest () :
-		queue_ (),
-		queue_size_ (0)
-	{
-		for (int i = 0; i < NUM_PRIORITIES; ++i)
-			counters_ [i] = 0;
-	}
-
-	void thread_proc ();
-
-	void finalize ();
-
-private:
-	std::array <std::atomic <int>, NUM_PRIORITIES> counters_;
-	PQ queue_;
-	std::atomic <int> queue_size_;
-};
-
-template <class PQ>
-void ThreadTest <PQ>::thread_proc ()
-{
-	RandomGen rndgen;
-	std::uniform_int_distribution <int> distr (0, NUM_PRIORITIES - 1);
-
-	for (int i = NUM_ITERATIONS; i > 0; --i) {
-		if (!std::bernoulli_distribution (std::min (1., ((double)queue_size_ / (double)MAX_QUEUE_SIZE))) (rndgen)) {
-			unsigned deadline = distr (rndgen);
-			++counters_ [deadline];
-			++queue_size_;
-			Value val = {g_timestamp++, deadline};
-			queue_.insert (deadline, val);
-		} else {
-			Value val;
-			DeadlineTime deadline;
-			if (queue_.delete_min (val, deadline)) {
-				ASSERT_EQ (val.deadline, deadline);
-				--counters_ [val.deadline];
-				--queue_size_;
-			}
-		}
-	}
-}
-
-template <class PQ>
-void ThreadTest <PQ>::finalize ()
-{
-	Value val;
-	DeadlineTime deadline;
-	while (queue_.delete_min (val, deadline)) {
-		ASSERT_EQ (val.deadline, deadline);
-		--counters_ [val.deadline];
-		--queue_size_;
-	}
-
-	EXPECT_EQ (queue_size_, 0);
-	for (int i = 0; i < NUM_PRIORITIES; ++i)
-		ASSERT_EQ (counters_ [i], 0);
-}
-
-TYPED_TEST (TestPriorityQueue, MultiThread)
-{
-	ThreadTest <TypeParam> test;
-
-	const unsigned int thread_cnt = std::thread::hardware_concurrency ();
-	std::vector <std::thread> threads;
-
-	for (unsigned int i = 0; i < thread_cnt; ++i)
-		threads.emplace_back (&ThreadTest <TypeParam>::thread_proc, &test);
-
-	for (auto p = threads.begin (); p != threads.end (); ++p)
-		p->join ();
-
-	test.finalize ();
-}
-
 TYPED_TEST (TestPriorityQueue, Reorder)
 {
 	TypeParam queue;
@@ -288,6 +202,111 @@ TYPED_TEST (TestPriorityQueue, Reorder)
 	}
 
 	EXPECT_TRUE (queue.empty ());
+}
+
+// Ensure that all values are different.
+std::atomic <int> g_timestamp (0);
+
+template <class PQ>
+class ThreadTest
+{
+	static const size_t NUM_PRIORITIES = 20;
+	static const int NUM_ITERATIONS = 1000000;
+	static const int MAX_QUEUE_SIZE = 10000;
+
+public:
+	ThreadTest () :
+		queue_ (),
+		queue_size_ (0)
+	{
+		for (int i = 0; i < NUM_PRIORITIES; ++i)
+			counters_ [i] = 0;
+	}
+
+	void thread_proc ();
+
+	void finalize ();
+
+private:
+	std::array <std::atomic <int>, NUM_PRIORITIES> counters_;
+	PQ queue_;
+	std::atomic <int> queue_size_;
+};
+
+template <class PQ>
+void ThreadTest <PQ>::thread_proc ()
+{
+	RandomGen rndgen;
+	std::uniform_int_distribution <int> distr (0, NUM_PRIORITIES - 1);
+
+	std::vector <Value> values;
+
+	for (int i = NUM_ITERATIONS; i > 0; --i) {
+		if (!std::bernoulli_distribution (std::min (1., ((double)queue_size_ / (double)MAX_QUEUE_SIZE))) (rndgen)) {
+			unsigned deadline = distr (rndgen);
+			++counters_ [deadline];
+			++queue_size_;
+			Value val = {g_timestamp++, deadline};
+			queue_.insert (deadline, val);
+			values.push_back (val);
+		} else if (values.empty () || std::bernoulli_distribution (0.5) (rndgen)) {
+			Value val;
+			DeadlineTime deadline;
+			if (queue_.delete_min (val, deadline)) {
+				ASSERT_EQ (val.deadline, deadline);
+				--counters_ [val.deadline];
+				--queue_size_;
+			}
+		} else {
+			size_t idx = std::uniform_int_distribution <size_t> (0, values.size () - 1) (rndgen);
+			Value& val = values [idx];
+			unsigned old = val.deadline;
+			unsigned deadline;
+			for (;;) {
+				deadline = distr (rndgen);
+				if (deadline != old)
+					break;
+			}
+			val.deadline = deadline;
+			if (queue_.reorder (deadline, val, old)) {
+				--counters_ [old];
+				++counters_ [deadline];
+			} else
+				values.erase (values.begin () + idx);
+		}
+	}
+}
+
+template <class PQ>
+void ThreadTest <PQ>::finalize ()
+{
+	Value val;
+	DeadlineTime deadline;
+	while (queue_.delete_min (val, deadline)) {
+		ASSERT_EQ (val.deadline, deadline);
+		--counters_ [val.deadline];
+		--queue_size_;
+	}
+
+	EXPECT_EQ (queue_size_, 0);
+	for (int i = 0; i < NUM_PRIORITIES; ++i)
+		ASSERT_EQ (counters_ [i], 0);
+}
+
+TYPED_TEST (TestPriorityQueue, MultiThread)
+{
+	ThreadTest <TypeParam> test;
+
+	const unsigned int thread_cnt = std::thread::hardware_concurrency ();
+	std::vector <std::thread> threads;
+
+	for (unsigned int i = 0; i < thread_cnt; ++i)
+		threads.emplace_back (&ThreadTest <TypeParam>::thread_proc, &test);
+
+	for (auto p = threads.begin (); p != threads.end (); ++p)
+		p->join ();
+
+	test.finalize ();
 }
 
 }
