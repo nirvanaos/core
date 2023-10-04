@@ -7,6 +7,7 @@ using Nirvana::Core::SkipList;
 
 namespace TestSkipList {
 
+template <class SL>
 class TestSkipList : public ::testing::Test
 {
 protected:
@@ -34,31 +35,119 @@ protected:
 	}
 };
 
-typedef SkipList <int, 10> SL;
+typedef ::testing::Types <
+	SkipList <int, 4>,  // 0
+	SkipList <int, 8>,  // 1
+	SkipList <int, 10>, // 2
+	SkipList <int, 16>, // 3
+	SkipList <int, 32>  // 4
+> MaxLevel;
 
-TEST_F (TestSkipList, Move)
+TYPED_TEST_SUITE (TestSkipList, MaxLevel);
+
+TYPED_TEST (TestSkipList, DeleteMin)
 {
-	SL sl;
+	TypeParam sl;
+
+	sl.release_node (sl.insert (0).first);
+	int i;
+	ASSERT_TRUE (sl.delete_min (i));
+	EXPECT_EQ (i, 0);
+#ifdef _DEBUG
+	ASSERT_EQ (sl.dbg_node_cnt (), 0);
+#endif
+
+	std::mt19937 rndgen;
+	static const size_t MAX_COUNT = 1000;
+	std::vector <int> rand_numbers;
+	rand_numbers.reserve (MAX_COUNT);
+	while (rand_numbers.size () < MAX_COUNT) {
+		int r = std::uniform_int_distribution <int> (
+			std::numeric_limits <int>::min (), std::numeric_limits <int>::max ())(rndgen);
+		auto ins = sl.insert (r);
+		sl.release_node (ins.first);
+		if (ins.second)
+			rand_numbers.push_back (r);
+	}
+
+	std::sort (rand_numbers.begin (), rand_numbers.end ());
+
+	for (auto n : rand_numbers) {
+		ASSERT_TRUE (sl.delete_min (i));
+		ASSERT_EQ (i, n);
+	}
+#ifdef _DEBUG
+	EXPECT_EQ (sl.dbg_node_cnt (), 0);
+#endif
+}
+
+TYPED_TEST (TestSkipList, Move)
+{
+	TypeParam sl;
 	sl.release_node (sl.insert (0).first);
 	sl.release_node (sl.insert (1).first);
 	sl.release_node (sl.insert (2).first);
 
-	SL sl1;
+	TypeParam sl1;
 	sl1 = std::move (sl);
+#ifdef _DEBUG
+	ASSERT_EQ (sl.dbg_node_cnt (), 0);
+	ASSERT_EQ (sl1.dbg_node_cnt (), 3);
+#endif
 	ASSERT_FALSE (sl.get_min_node ());
 
 	int i;
 	ASSERT_TRUE (sl1.delete_min (i));
-	ASSERT_EQ (i, 0);
+	EXPECT_EQ (i, 0);
 	ASSERT_TRUE (sl1.delete_min (i));
-	ASSERT_EQ (i, 1);
+	EXPECT_EQ (i, 1);
 	ASSERT_TRUE (sl1.delete_min (i));
-	ASSERT_EQ (i, 2);
+	EXPECT_EQ (i, 2);
 }
 
-void find_and_delete (SL& sl, unsigned i)
+TYPED_TEST (TestSkipList, Equal)
 {
-	std::mt19937 rndgen (i);
+	TypeParam sl;
+
+	auto ins = sl.insert (1);
+	ASSERT_TRUE (ins.second);
+	auto ins2 = sl.insert (1);
+	ASSERT_FALSE (ins2.second);
+	EXPECT_EQ (ins.first, ins2.first);
+	sl.release_node (ins.first);
+	sl.release_node (ins2.first);
+
+	int i;
+	ASSERT_TRUE (sl.delete_min (i));
+	EXPECT_EQ (i, 1);
+	EXPECT_FALSE (sl.delete_min (i));
+#ifdef _DEBUG
+	EXPECT_EQ (sl.dbg_node_cnt (), 0);
+#endif
+}
+
+TYPED_TEST (TestSkipList, MinMax)
+{
+	TypeParam sl;
+
+	auto ins = sl.insert (std::numeric_limits <int>::max ());
+	ASSERT_TRUE (ins.second);
+	sl.release_node (ins.first);
+	int i;
+	ASSERT_TRUE (sl.delete_min (i));
+	EXPECT_EQ (i, std::numeric_limits <int>::max ());
+
+	ins = sl.insert (std::numeric_limits <int>::min ());
+	ASSERT_TRUE (ins.second);
+	sl.release_node (ins.first);
+	ASSERT_TRUE (sl.delete_min (i));
+	EXPECT_EQ (i, std::numeric_limits <int>::min ());
+}
+
+template <class SL>
+void find_and_delete (SL& sl, unsigned seed)
+{
+	std::mt19937 rndgen (seed);
 
 	static const size_t MAX_COUNT = 1000;
 	std::vector <int> rand_numbers;
@@ -75,21 +164,25 @@ void find_and_delete (SL& sl, unsigned i)
 	std::shuffle (rand_numbers.begin (), rand_numbers.end (), rndgen);
 
 	for (auto n : rand_numbers) {
-		SL::NodeVal* p = sl.find_and_delete (n);
+		typename SL::NodeVal* p = sl.find_and_delete (n);
 		EXPECT_TRUE (p);
 		sl.release_node (p);
 	}
 }
 
-TEST_F (TestSkipList, FindAndDelete)
+TYPED_TEST (TestSkipList, FindAndDelete)
 {
-	SL sl;
-	find_and_delete (sl, 0);
+	TypeParam sl;
+	find_and_delete (sl, std::mt19937::default_seed);
+	ASSERT_FALSE (sl.delete_min ());
+#ifdef _DEBUG
+	EXPECT_EQ (sl.dbg_node_cnt (), 0);
+#endif
 }
  
-TEST_F (TestSkipList, FindAndDeleteMT)
+TYPED_TEST (TestSkipList, FindAndDeleteMT)
 {
-	SL sl;
+	TypeParam sl;
 
 	const unsigned int thread_cnt = std::thread::hardware_concurrency ();
 	std::vector <std::thread> threads;
@@ -97,13 +190,76 @@ TEST_F (TestSkipList, FindAndDeleteMT)
 	threads.reserve (thread_cnt);
 	for (int it = 0; it < 10; ++it) {
 		for (unsigned int i = 0; i < thread_cnt; ++i) {
-			threads.emplace_back (find_and_delete, std::ref (sl), it + i + 1);
+			threads.emplace_back (find_and_delete <TypeParam>, std::ref (sl), std::mt19937::default_seed + it + i + 1);
 		}
 		for (unsigned int i = 0; i < thread_cnt; ++i) {
 			threads [i].join ();
 		}
 		threads.clear ();
 		ASSERT_FALSE (sl.delete_min ());
+#ifdef _DEBUG
+		ASSERT_EQ (sl.dbg_node_cnt (), 0);
+#endif
+	}
+}
+
+template <class SL>
+void find_and_remove (SL& sl, unsigned seed)
+{
+	std::mt19937 rndgen (seed);
+
+	static const size_t MAX_COUNT = 1000;
+	std::vector <int> rand_numbers;
+	rand_numbers.reserve (MAX_COUNT);
+	while (rand_numbers.size () < MAX_COUNT) {
+		int r = std::uniform_int_distribution <int> (
+			std::numeric_limits <int>::min (), std::numeric_limits <int>::max ())(rndgen);
+		auto ins = sl.insert (r);
+		sl.release_node (ins.first);
+		if (ins.second)
+			rand_numbers.push_back (r);
+	}
+
+	std::shuffle (rand_numbers.begin (), rand_numbers.end (), rndgen);
+
+	for (auto n : rand_numbers) {
+		typename SL::NodeVal* p = sl.find (n);
+		ASSERT_TRUE (p);
+		ASSERT_TRUE (sl.remove (p));
+		sl.release_node (p);
+	}
+}
+
+TYPED_TEST (TestSkipList, FindAndRemove)
+{
+	TypeParam sl;
+	find_and_remove (sl, std::mt19937::default_seed);
+	ASSERT_FALSE (sl.delete_min ());
+#ifdef _DEBUG
+	EXPECT_EQ (sl.dbg_node_cnt (), 0);
+#endif
+}
+
+TYPED_TEST (TestSkipList, FindAndRemoveMT)
+{
+	TypeParam sl;
+
+	const unsigned int thread_cnt = std::thread::hardware_concurrency ();
+	std::vector <std::thread> threads;
+
+	threads.reserve (thread_cnt);
+	for (int it = 0; it < 10; ++it) {
+		for (unsigned int i = 0; i < thread_cnt; ++i) {
+			threads.emplace_back (find_and_remove <TypeParam>, std::ref (sl), std::mt19937::default_seed + it + i + 1);
+		}
+		for (unsigned int i = 0; i < thread_cnt; ++i) {
+			threads [i].join ();
+		}
+		threads.clear ();
+		ASSERT_FALSE (sl.delete_min ());
+#ifdef _DEBUG
+		ASSERT_EQ (sl.dbg_node_cnt (), 0);
+#endif
 	}
 }
 

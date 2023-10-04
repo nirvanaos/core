@@ -220,8 +220,14 @@ private:
 	void final_delete (Node* node) noexcept;
 	inline void delete_node (Node* node) noexcept;
 
-protected:
 #ifdef _DEBUG
+public:
+	AtomicCounter <false>::IntegralType dbg_node_cnt () const noexcept
+	{
+		return node_cnt_;
+	}
+
+protected:
 	AtomicCounter <false> node_cnt_;
 #endif
 
@@ -440,12 +446,6 @@ public:
 	/// Finds node by value.
 	/// \returns The Node pointer or `nullptr` if value not found.
 	///          Returned pointer must be released by `release_node`.
-	NodeVal* find (const Val& val) noexcept
-	{
-		NodeVal keynode (1, std::ref (val));
-		return static_cast <NodeVal*> (find (&keynode));
-	}
-
 	template <class ... Args>
 	NodeVal* find (Args ... args)
 	{

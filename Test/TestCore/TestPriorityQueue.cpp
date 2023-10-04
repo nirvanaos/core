@@ -81,17 +81,11 @@ public:
 };
 
 typedef ::testing::Types <
-	PriorityQueueReorder <Value, 1>,  // 0
-	PriorityQueueReorder <Value, 2>,  // 1
-	PriorityQueueReorder <Value, 4>,  // 2
-	PriorityQueueReorder <Value, 8>,  // 3
 	PriorityQueueReorder <Value, 10>, // 4
-	PriorityQueueReorder <Value, 16>, // 5
-	PriorityQueueReorder <Value, 32>, // 6
 	QueueWithPool              // 7
-> MaxLevel;
+> QTypes;
 
-TYPED_TEST_SUITE (TestPriorityQueue, MaxLevel);
+TYPED_TEST_SUITE (TestPriorityQueue, QTypes);
 
 TYPED_TEST (TestPriorityQueue, SingleThread)
 {
@@ -126,35 +120,6 @@ TYPED_TEST (TestPriorityQueue, SingleThread)
 	}
 
 	EXPECT_TRUE (queue.empty ());
-}
-
-TYPED_TEST (TestPriorityQueue, Equal)
-{
-	TypeParam queue;
-
-	{
-		Value val = {1, 1};
-		ASSERT_TRUE (queue.insert (1, val));
-		ASSERT_FALSE (queue.insert (1, val));
-	}
-
-	Value val;
-	ASSERT_TRUE (queue.delete_min (val));
-	ASSERT_EQ (val.idx, 1);
-	ASSERT_EQ (val.deadline, 1);
-	ASSERT_FALSE (queue.delete_min (val));
-}
-
-TYPED_TEST (TestPriorityQueue, MinMax)
-{
-	TypeParam queue;
-
-	Value val = {1, 1};
-	Value out;
-	ASSERT_TRUE (queue.insert (std::numeric_limits <DeadlineTime>::max (), val));
-	ASSERT_TRUE (queue.delete_min (out));
-	ASSERT_TRUE (queue.insert (0, val));
-	ASSERT_TRUE (queue.delete_min (out));
 }
 
 TYPED_TEST (TestPriorityQueue, Reorder)
