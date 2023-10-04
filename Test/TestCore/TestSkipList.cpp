@@ -81,6 +81,53 @@ TYPED_TEST (TestSkipList, DeleteMin)
 #endif
 }
 
+std::atomic <size_t> list_size = 0;
+
+template <class SL>
+void delete_min (SL& sl, unsigned seed)
+{
+	std::mt19937 rndgen (seed);
+	static const size_t NUM_ITERATIONS = 200000;
+	static const size_t MAX_LIST_SIZE = 10000;
+	for (size_t i = NUM_ITERATIONS; i > 0; --i) {
+		if (!std::bernoulli_distribution (std::min (1., ((double)list_size / (double)MAX_LIST_SIZE))) (rndgen)) {
+			int r = std::uniform_int_distribution <int> (
+				std::numeric_limits <int>::min (), std::numeric_limits <int>::max ())(rndgen);
+			auto ins = sl.insert (r);
+			sl.release_node (ins.first);
+			if (ins.second)
+				++list_size;
+		} else {
+			int i;
+			if (sl.delete_min (i))
+				--list_size;
+		}
+	}
+}
+
+TYPED_TEST (TestSkipList, DeleteMinMT)
+{
+	TypeParam sl;
+
+	const unsigned int thread_cnt = std::thread::hardware_concurrency ();
+	std::vector <std::thread> threads;
+
+	threads.reserve (thread_cnt);
+	for (unsigned int i = 0; i < thread_cnt; ++i) {
+		threads.emplace_back (delete_min <TypeParam>, std::ref (sl), std::mt19937::default_seed + i);
+	}
+	for (unsigned int i = 0; i < thread_cnt; ++i) {
+		threads [i].join ();
+	}
+	threads.clear ();
+	int i;
+	while (sl.delete_min (i))
+		;
+#ifdef _DEBUG
+	ASSERT_EQ (sl.dbg_node_cnt (), 0);
+#endif
+}
+
 TYPED_TEST (TestSkipList, Move)
 {
 	TypeParam sl;

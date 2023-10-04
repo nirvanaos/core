@@ -206,15 +206,17 @@ void ThreadTest <PQ>::thread_proc ()
 
 	std::vector <Value> values;
 
+	static const bool REORDER = false;
+
 	for (int i = NUM_ITERATIONS; i > 0; --i) {
 		if (!std::bernoulli_distribution (std::min (1., ((double)queue_size_ / (double)MAX_QUEUE_SIZE))) (rndgen)) {
 			unsigned deadline = distr (rndgen);
 			++counters_ [deadline];
 			++queue_size_;
 			Value val = {g_timestamp++, deadline};
-			queue_.insert (deadline, val);
+			ASSERT_TRUE (queue_.insert (deadline, val));
 			values.push_back (val);
-		} else if (values.empty () || std::bernoulli_distribution (0.5) (rndgen)) {
+		} else if (!REORDER || values.empty () || std::bernoulli_distribution (0.5) (rndgen)) {
 			Value val;
 			DeadlineTime deadline;
 			if (queue_.delete_min (val, deadline)) {
