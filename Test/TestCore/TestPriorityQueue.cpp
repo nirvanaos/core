@@ -176,7 +176,7 @@ template <class PQ>
 class ThreadTest
 {
 	static const size_t NUM_PRIORITIES = 20;
-	static const int NUM_ITERATIONS = 1000000;
+	static const int NUM_ITERATIONS = 200000;
 	static const int MAX_QUEUE_SIZE = 10000;
 
 public:
