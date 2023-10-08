@@ -67,7 +67,7 @@ private:
 		NodeBase (unsigned l) noexcept :
 			prev (nullptr),
 			level ((Level)l),
-			valid_level ((Level)1),
+			valid_level ((Level)0),
 			deleted (false)
 		{}
 
