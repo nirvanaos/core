@@ -218,6 +218,7 @@ private:
 
 	void remove_node (Node* node, Node*& prev, int level) noexcept;
 	void final_delete (Node* node) noexcept;
+	void mark_next_links (Node* node, int from_level) noexcept;
 	inline void delete_node (Node* node) noexcept;
 
 #ifdef _DEBUG

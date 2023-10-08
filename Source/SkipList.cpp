@@ -206,10 +206,8 @@ SkipListBase::Node* SkipListBase::read_node (Link::Lockable& node) noexcept
 {
 	Node* p = nullptr;
 	Link link = node.lock ();
-	if (!link.tag_bits ()) {
-		if ((p = link))
-			p->ref_cnt.increment ();
-	}
+	if (!link.tag_bits () && (p = link))
+		p->ref_cnt.increment ();
 	node.unlock ();
 	return p;
 }
@@ -295,21 +293,24 @@ SkipListBase::Node* SkipListBase::delete_min () noexcept
 	return node1;	// Reference counter have to be released by caller.
 }
 
-void SkipListBase::final_delete (Node* node) noexcept
+void SkipListBase::mark_next_links (Node* node, int from_level) noexcept
 {
-	// Mark the deletion bits of the next pointers of the node, starting with the lowest
+	// Mark the deletion bits of the next pointers of the node, starting with the from_level
 	// level and going upwards.
-	for (int i = 0, end = node->level; i < end; ++i) {
+	for (int i = from_level, end = node->level; i < end; ++i) {
 		Link::Lockable& alink2 = node->next [i];
 		Link node2;
 		do {
 			node2 = alink2.load ();
-		} while ((Node*)node2 && !(
-			node2.tag_bits ()
-			||
-			alink2.cas (node2, Link (node2, 1))
-			));
+		} while (!(node2.tag_bits () || alink2.cas (node2, Link (node2, 1))));
 	}
+}
+
+void SkipListBase::final_delete (Node* node) noexcept
+{
+	// Mark the deletion bits of the next pointers of the node, starting with the lowest
+	// level and going upwards.
+	mark_next_links (node, 0);
 
 	// Actual deletion by calling the remove_node procedure, starting at the highest level
 	// and continuing downwards. The reason for doing the deletion in decreasing order
@@ -331,17 +332,7 @@ SkipListBase::Node* SkipListBase::help_delete (Node* node, int level) noexcept
 	assert (node != tail ());
 
 	// Set the deletion mark on all next pointers in case they have not been set.
-	for (int i = level, end = node->level; i < end; ++i) {
-		Link::Lockable& alink2 = node->next [i];
-		Link node2;
-		do {
-			node2 = alink2.load ();
-		} while ((Node*)node2 && !(
-			node2.tag_bits ()
-			||
-			alink2.cas (node2, Link (node2, 1))
-			));
-	}
+	mark_next_links (node, level);
 
 	// Checks if the node given in the prev field is valid for deletion on the current level.
 	Node* prev = node->prev;
