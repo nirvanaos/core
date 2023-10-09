@@ -106,7 +106,7 @@ void SkipListBase::release_node (Node* node) noexcept
 #ifdef _DEBUG
 		assert (node != head ());
 		assert (node != tail ());
-		for (int i = 0, end = node->level; i < end; ++i)
+		for (int i = 0, end = node->valid_level; i < end; ++i)
 			assert (!(Node*)node->next [i].load ());
 #endif
 		delete_node (node);
@@ -173,7 +173,6 @@ SkipListBase::Node* SkipListBase::insert (Node* const new_node, Node** saved_nod
 			release_node (node2);
 			if (new_node->deleted) {
 				deleted = true;
-				anext = Link (nullptr, 1);
 				release_node (new_node);
 				release_node (node1);
 				break;
@@ -376,17 +375,22 @@ void SkipListBase::remove_node (Node* node, Node*& prev, int level) noexcept
 		if (last != node)
 			break;
 
-		Link next = anext.load ();
+		Node* next = anext.lock ();
+		if (next)
+			copy_node (next);
+		anext.unlock ();
 		// Synchronize with the possible other invocations to avoid redundant executions.
-		if (next == Link (nullptr, 1))
+		if (!next)
 			break;
 
 		// Try to remove node by changing the next pointer of the previous node.
-		if (prev->next [level].cas (node, next.untagged ())) {
+		if (prev->next [level].cas (node, next)) {
 			anext = Link (nullptr, 1);
+			release_node (next);
 			release_node (node);
 			break;
-		}
+		} else
+			release_node (next);
 
 		// Synchronize with the possible other invocations to avoid redundant executions.
 		if (anext.load () == Link (nullptr, 1))
