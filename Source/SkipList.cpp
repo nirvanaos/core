@@ -272,8 +272,7 @@ SkipListBase::Node* SkipListBase::delete_min () noexcept
 		}
 		if (!node1->deleted) {
 			// Try to set deletion mark.
-			bool f = false;
-			if (node1->deleted.compare_exchange_strong (f, true)) {
+			if (!node1->deleted.exchange (true)) {
 				// Succeeded, write valid pointer to the prev field of the node.
 				// This prev field is necessary in order to increase the performance of concurrent
 				// help_delete () functions, these operations otherwise
@@ -462,8 +461,7 @@ SkipListBase::Node* SkipListBase::find_and_delete (const Node* keynode) noexcept
 
 	Node* node2 = scan_key (prev, 0, keynode);
 	if (!less (*keynode, *node2)) {
-		bool f = false;
-		if (node2->deleted.compare_exchange_strong (f, true)) {
+		if (!node2->deleted.exchange (true)) {
 			// Succeeded, write valid pointer to the prev field of the node.
 			// This prev field is necessary in order to increase the performance of concurrent
 			// help_delete () functions, these operations otherwise
@@ -478,6 +476,18 @@ SkipListBase::Node* SkipListBase::find_and_delete (const Node* keynode) noexcept
 		release_node (node2);
 		return nullptr;
 	}
+}
+
+bool SkipListBase::remove (Node* node) noexcept
+{
+	if (!node->deleted.exchange (true)) {
+		final_delete (node);
+		return true;
+	} else {
+		copy_node (node);
+		release_node (help_delete (node, 0));
+	}
+	return false;
 }
 
 bool SkipListBase::empty () noexcept

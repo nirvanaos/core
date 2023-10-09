@@ -181,14 +181,7 @@ protected:
 	/// Directly removes node from list.
 	/// `remove (find (keynode));` works slower then `erase (keynode);`.
 	/// But it does not use the comparison and exactly removes the specified node.
-	bool remove (Node* node) noexcept
-	{
-		if (!node->deleted.exchange (true)) {
-			final_delete (node);
-			return true;
-		}
-		return false;
-	}
+	bool remove (Node* node) noexcept;
 
 	/// Only `Node::level` member is valid on return.
 	Node* allocate_node (unsigned level);

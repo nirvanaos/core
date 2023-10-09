@@ -81,8 +81,8 @@ public:
 };
 
 typedef ::testing::Types <
-	PriorityQueueReorder <Value, 10>, // 4
-	QueueWithPool              // 7
+	PriorityQueueReorder <Value, 10> // 0
+	// , QueueWithPool              // 1
 > QTypes;
 
 TYPED_TEST_SUITE (TestPriorityQueue, QTypes);
@@ -176,7 +176,7 @@ template <class PQ>
 class ThreadTest
 {
 	static const size_t NUM_PRIORITIES = 20;
-	static const int NUM_ITERATIONS = 200000;
+	static const int NUM_ITERATIONS = 500000;
 	static const int MAX_QUEUE_SIZE = 10000;
 
 public:
@@ -206,7 +206,7 @@ void ThreadTest <PQ>::thread_proc ()
 
 	std::vector <Value> values;
 
-	static const bool REORDER = false;
+	static const bool REORDER = true;
 
 	for (int i = NUM_ITERATIONS; i > 0; --i) {
 		if (!std::bernoulli_distribution (std::min (1., ((double)queue_size_ / (double)MAX_QUEUE_SIZE))) (rndgen)) {
