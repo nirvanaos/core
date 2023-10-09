@@ -193,15 +193,16 @@ private:
 	/// \return The deleted Node pointer if node deleted or `nullptr` if the queue is empty.
 	NodeVal* delete_min () noexcept
 	{
-		for (NodeVal* node = Base::delete_min (); node; ) {
+		NodeVal* node;
+		while (node = Base::delete_min ()) {
 			SkipListBase::Node* first_node = node->value ().first_node;
 			NodeVal& first = first_node ? static_cast <NodeVal&> (*first_node) : *node;
 			bool dispatched = first.value ().dispatched.test_and_set ();
 			if (!dispatched)
-				return node;
+				break;
 			Base::release_node (node);
 		}
-		return nullptr;
+		return node;
 	}
 };
 
