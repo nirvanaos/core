@@ -205,8 +205,8 @@ SkipListBase::Node* SkipListBase::read_node (Link::Lockable& node) noexcept
 {
 	Node* p = nullptr;
 	Link link = node.lock ();
-	if (!link.tag_bits () && (p = link))
-		p->ref_cnt.increment ();
+	if (!link.tag_bits ())
+		p = copy_node (link);
 	node.unlock ();
 	return p;
 }
