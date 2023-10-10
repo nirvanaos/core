@@ -95,8 +95,10 @@ void Startup::run ()
 		try {
 			console_access = console->open (O_RDWR, 0);
 		} catch (...) {}
-		if (!console_access)
+		if (!console_access) {
 			console_access = console->open (O_WRONLY, 0);
+			AccessChar::_narrow (console_access->_to_object ())->write ("Console input is unavailable.\n");
+		}
 		InheritedFiles files;
 		files.emplace_back (console_access, IDL::Sequence <uint16_t> ({ 0, 1, 2 }));
 
