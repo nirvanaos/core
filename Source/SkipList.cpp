@@ -106,7 +106,7 @@ void SkipListBase::release_node (Node* node) noexcept
 #ifdef _DEBUG
 		assert (node != head ());
 		assert (node != tail ());
-		for (int i = 0, end = node->level; i < end; ++i)
+		for (int i = 0, end = node->valid_level; i < end; ++i)
 			assert (!(Node*)node->next [i].load ());
 #endif
 		delete_node (node);
@@ -173,7 +173,6 @@ SkipListBase::Node* SkipListBase::insert (Node* const new_node, Node** saved_nod
 			release_node (node2);
 			if (new_node->deleted) {
 				deleted = true;
-				anext = Link (nullptr, 1);
 				release_node (new_node);
 				release_node (node1);
 				break;
@@ -206,8 +205,8 @@ SkipListBase::Node* SkipListBase::read_node (Link::Lockable& node) noexcept
 {
 	Node* p = nullptr;
 	Link link = node.lock ();
-	if (!link.tag_bits () && (p = link))
-		p->ref_cnt.increment ();
+	if (!link.tag_bits ())
+		p = copy_node (link);
 	node.unlock ();
 	return p;
 }
