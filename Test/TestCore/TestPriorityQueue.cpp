@@ -82,7 +82,7 @@ public:
 
 typedef ::testing::Types <
 	PriorityQueueReorder <Value, 10> // 0
-	// , QueueWithPool              // 1
+	, QueueWithPool              // 1
 > QTypes;
 
 TYPED_TEST_SUITE (TestPriorityQueue, QTypes);
