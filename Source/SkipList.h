@@ -91,7 +91,7 @@ public:
 		Node (unsigned level) noexcept :
 			NodeBase (level)
 		{
-			std::fill_n ((uintptr_t*)next, level, 0);
+			std::fill_n ((uintptr_t*)next, level, 1);
 		}
 
 		static constexpr size_t size (size_t node_size, unsigned level) noexcept
