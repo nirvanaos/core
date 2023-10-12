@@ -210,7 +210,8 @@ public:
 		Port::Debugger::output_debug_string (evt, s.c_str ());
 		if (evt >= DebugEvent::DEBUG_WARNING) {
 			if (!Port::Debugger::debug_break () && evt >= DebugEvent::DEBUG_ASSERT)
-				raise (SIGABRT);
+				__debugbreak ();
+			//raise (SIGABRT);
 		}
 	}
 
