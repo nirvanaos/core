@@ -194,7 +194,7 @@ private:
 	NodeVal* delete_min () noexcept
 	{
 		NodeVal* node;
-		while (node = Base::delete_min ()) {
+		while ((node = Base::delete_min ())) {
 			SkipListBase::Node* first_node = node->value ().first_node;
 			NodeVal& first = first_node ? static_cast <NodeVal&> (*first_node) : *node;
 			bool dispatched = first.value ().dispatched.test_and_set ();
