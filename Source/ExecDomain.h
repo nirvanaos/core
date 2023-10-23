@@ -344,25 +344,10 @@ public:
 	}
 
 	/// Push new memory context.
-	void mem_context_push (Ref <MemContext>&& mem_context)
-	{
-		MemContext* p = mem_context;
-		mem_context_stack_.emplace (std::move (mem_context));
-		mem_context_ = p;
-#ifdef _DEBUG
-		++dbg_context_stack_size_;
-#endif
-	}
+	void mem_context_push (Ref <MemContext>&& mem_context);
 
 	/// Pop memory context stack.
-	void mem_context_pop () noexcept
-	{
-		mem_context_stack_.pop ();
-#ifdef _DEBUG
-		--dbg_context_stack_size_;
-#endif
-		mem_context_ = mem_context_stack_.top ();
-	}
+	void mem_context_pop () noexcept;
 
 #ifdef _DEBUG
 	size_t dbg_context_stack_size_;

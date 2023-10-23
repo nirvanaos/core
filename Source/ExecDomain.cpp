@@ -256,6 +256,26 @@ MemContext& ExecDomain::mem_context ()
 	return *mem_context_;
 }
 
+void ExecDomain::mem_context_push (Ref <MemContext>&& mem_context)
+{
+	MemContext* p = mem_context;
+	mem_context_stack_.emplace (std::move (mem_context));
+	mem_context_ = p;
+#ifdef _DEBUG
+	++dbg_context_stack_size_;
+#endif
+}
+
+void ExecDomain::mem_context_pop () noexcept
+{
+	ExecContext::on_mem_context_pop ();
+	mem_context_stack_.pop ();
+#ifdef _DEBUG
+	--dbg_context_stack_size_;
+#endif
+	mem_context_ = mem_context_stack_.top ();
+}
+
 void ExecDomain::create_background_worker ()
 {
 	if (!background_worker_)
