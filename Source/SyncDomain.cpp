@@ -150,7 +150,7 @@ void SyncDomainImpl::raise_exception (CORBA::SystemException::Code code, unsigne
 }
 
 SyncDomainCore::SyncDomainCore (Heap& heap) :
-	SyncDomain (Ref <MemContext>::create <MemContextCore> (std::ref (heap)))
+	SyncDomain (MemContextCore::create (&heap))
 {}
 
 Module* SyncDomainCore::module () noexcept

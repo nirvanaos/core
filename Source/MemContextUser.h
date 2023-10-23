@@ -91,7 +91,10 @@ public:
 	virtual unsigned fcntl (unsigned ifd, int cmd, unsigned arg);
 
 protected:
-	MemContextUser ();
+	MemContextUser (Ref <Heap>&& heap) :
+		MemContext (std::move (heap), true)
+	{}
+
 	MemContextUser (Heap& heap, const InheritedFiles& inh);
 	~MemContextUser ();
 

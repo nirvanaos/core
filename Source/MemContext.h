@@ -102,8 +102,22 @@ public:
 	virtual void runtime_proxy_remove (const void* obj) noexcept = 0;
 
 protected:
-	MemContext (bool user);
-	MemContext (Heap& heap, bool user) noexcept;
+	MemContext (Ref <Heap>&& heap, bool user) noexcept;
+
+	template <class Impl>
+	static Ref <MemContext> create (Ref <Heap>&& heap)
+	{
+		size_t cb = sizeof (Impl);
+		return new (heap->allocate (nullptr, cb, 0)) Impl (std::move (heap));
+	}
+
+	template <class Impl>
+	static Ref <MemContext> create ()
+	{
+		return create <Impl> (create_heap ());
+	}
+
+	static Ref <Heap> create_heap ();
 
 	virtual ~MemContext ();
 

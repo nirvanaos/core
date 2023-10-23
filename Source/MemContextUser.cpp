@@ -307,12 +307,8 @@ MemContextUser& MemContextUser::current ()
 	return *p;
 }
 
-MemContextUser::MemContextUser () :
-	MemContext (true)
-{}
-
 MemContextUser::MemContextUser (Heap& heap, const InheritedFiles& inh) :
-	MemContext (heap, true)
+	MemContext (&heap, true)
 {
 	if (!inh.empty ())
 		data_.reset (new Data (inh));

@@ -36,21 +36,19 @@ namespace Core {
 
 class MemContextImpl : public MemContextUser
 {
-	friend class CORBA::servant_reference <MemContext>;
+	friend class MemContext;
 
 public:
-	/// Create MemContextImpl object.
-	/// 
-	/// \returns MemContext reference.
-	static Ref <MemContext> create ()
-	{
-		return Ref <MemContext>::create <MemContextImpl> ();
-	}
-
 	virtual RuntimeGlobal& runtime_global () noexcept override;
 
+	static Ref <MemContext> create ()
+	{
+		return MemContext::create <MemContextImpl> ();
+	}
+
 protected:
-	MemContextImpl ()
+	MemContextImpl (Ref <Heap>&& heap = create_heap ()) :
+		MemContextUser (std::move (heap))
 	{}
 
 private:

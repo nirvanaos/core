@@ -39,15 +39,17 @@ class MemContextCore :
 	public MemContext,
 	public SharedObject
 {
-	friend class CORBA::servant_reference <MemContext>;
+	friend class MemContext;
+
+public:
+	static Ref <MemContext> create (Ref <Heap>&& heap)
+	{
+		return MemContext::create <MemContextCore> (std::move (heap));
+	}
 
 protected:
-	MemContextCore () :
-		MemContext (false)
-	{}
-
-	MemContextCore (Heap& heap) noexcept :
-		MemContext (heap, false)
+	MemContextCore (Ref <Heap>&& heap) noexcept :
+		MemContext (std::move (heap), false)
 	{}
 
 	~MemContextCore ()

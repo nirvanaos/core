@@ -49,9 +49,6 @@ class NIRVANA_NOVTABLE Module :
 	public CORBA::Internal::LifeCycleRefCnt <Module>
 {
 public:
-	using UserObject::operator delete;
-	using UserObject::operator new;
-
 	/// Derived ClassLibrary and Singleton classes must have virtual destructors.
 	virtual ~Module ()
 	{}
