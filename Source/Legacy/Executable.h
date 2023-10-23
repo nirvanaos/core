@@ -32,6 +32,7 @@
 #include "../Binary.h"
 #include <Nirvana/Legacy/Main.h>
 #include "../ORB/LifeCycleStack.h"
+#include "AtExit.h"
 
 namespace Nirvana {
 namespace Legacy {
@@ -52,13 +53,29 @@ public:
 		return (int)entry_point_->main (argc, argv, envp);
 	}
 
+	void cleanup ()
+	{
+		entry_point_->cleanup ();
+	}
+
 	virtual Nirvana::Core::Module* module () noexcept;
 	virtual void raise_exception (CORBA::SystemException::Code code, unsigned minor);
 
 	void unbind () noexcept;
 
+	void atexit (AtExitFunc f)
+	{
+		at_exit_.atexit (Nirvana::Core::MemContext::current ().heap (), f);
+	}
+
+	void execute_atexit (Nirvana::Core::Heap& heap)
+	{
+		at_exit_.execute (heap);
+	}
+
 private:
 	Main::_ptr_type entry_point_;
+	Nirvana::Core::AtExit at_exit_;
 	bool bound_;
 };
 

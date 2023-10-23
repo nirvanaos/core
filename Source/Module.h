@@ -33,6 +33,7 @@
 #include "AtomicCounter.h"
 #include "MemContextImpl.h"
 #include "Chrono.h"
+#include "AtExit.h"
 
 namespace Nirvana {
 namespace Core {
@@ -48,6 +49,9 @@ class NIRVANA_NOVTABLE Module :
 	public CORBA::Internal::LifeCycleRefCnt <Module>
 {
 public:
+	using UserObject::operator delete;
+	using UserObject::operator new;
+
 	/// Derived ClassLibrary and Singleton classes must have virtual destructors.
 	virtual ~Module ()
 	{}
@@ -96,8 +100,15 @@ public:
 
 	void raise_exception (CORBA::SystemException::Code code, unsigned minor);
 
-	using UserObject::operator delete;
-	using UserObject::operator new;
+	void atexit (AtExitFunc f)
+	{
+		at_exit_.atexit (heap (), f);
+	}
+
+	void execute_atexit ()
+	{
+		at_exit_.execute (heap ());
+	}
 
 protected:
 	Module (const StringView& name, bool singleton);
@@ -108,6 +119,7 @@ protected:
 	AtomicCounter <false>::IntegralType initial_ref_cnt_;
 	ModuleInit::_ptr_type entry_point_;
 	SteadyTime release_time_;
+	AtExit at_exit_;
 };
 
 }

@@ -430,7 +430,8 @@ void Binder::unload (Module* mod)
 {
 	remove_exports (mod->metadata ());
 	SYNC_BEGIN (mod->sync_context (), static_cast <MemContext*> (mod));
-	mod->terminate ();
+	mod->execute_atexit ();
+	mod->terminate (); // TODO: Do we stll need this op?
 	module_unbind (mod->_get_ptr (), mod->metadata ());
 	SYNC_END ();
 	delete_module (mod);

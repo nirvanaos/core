@@ -49,7 +49,21 @@ public:
 	template <class I>
 	static void __release (CORBA::Internal::Interface*)
 	{}
+
+	void atexit (AtExitFunc f)
+	{
+		assert (at_exit_cnt_ < MAX_AT_EXIT_ENTRIES);
+		at_exit_table_ [at_exit_cnt_++] = f;
+	}
+
+private:
+	static const size_t MAX_AT_EXIT_ENTRIES = 8;
+	static AtExitFunc at_exit_table_ [MAX_AT_EXIT_ENTRIES];
+	static size_t at_exit_cnt_;
 };
+
+AtExitFunc CoreModule::at_exit_table_ [MAX_AT_EXIT_ENTRIES];
+size_t CoreModule::at_exit_cnt_;
 
 }
 
