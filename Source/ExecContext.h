@@ -93,11 +93,6 @@ public:
 	// Call from worker
 	static void neutral_context_loop (Thread& worker) noexcept;
 
-	void on_mem_context_pop () noexcept
-	{
-		Port::ExecContext::on_mem_context_pop ();
-	}
-
 protected:
 	void run ()
 	{

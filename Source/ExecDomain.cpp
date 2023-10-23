@@ -268,7 +268,6 @@ void ExecDomain::mem_context_push (Ref <MemContext>&& mem_context)
 
 void ExecDomain::mem_context_pop () noexcept
 {
-	ExecContext::on_mem_context_pop ();
 	mem_context_stack_.pop ();
 #ifdef _DEBUG
 	--dbg_context_stack_size_;
