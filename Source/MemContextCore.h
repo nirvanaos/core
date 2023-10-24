@@ -29,15 +29,13 @@
 #pragma once
 
 #include "MemContext.h"
-#include "SharedObject.h"
 
 namespace Nirvana {
 namespace Core {
 
 /// \brief Memory context core implementation.
 class MemContextCore :
-	public MemContext,
-	public SharedObject
+	public MemContext
 {
 	friend class MemContext;
 

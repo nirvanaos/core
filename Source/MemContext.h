@@ -108,7 +108,7 @@ protected:
 	static Ref <MemContext> create (Ref <Heap>&& heap)
 	{
 		size_t cb = sizeof (Impl);
-		return new (heap->allocate (nullptr, cb, 0)) Impl (std::move (heap));
+		return CreateRef (new (heap->allocate (nullptr, cb, 0)) Impl (std::move (heap)));
 	}
 
 	template <class Impl>
@@ -127,6 +127,20 @@ protected:
 	}
 
 	void _remove_ref () noexcept;
+
+	void operator delete (void* p, size_t cb)
+	{
+		MemContext::current ().heap ().release (p, cb);
+	}
+
+private:
+	class CreateRef : public Ref <MemContext>
+	{
+	public:
+		CreateRef (MemContext* p) :
+			Ref <MemContext> (p, false)
+		{}
+	};
 
 private:
 	DeadlineTime deadline_policy_async_;

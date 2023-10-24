@@ -59,6 +59,7 @@ MemContext::~MemContext ()
 void MemContext::_remove_ref () noexcept
 {
 	if (!ref_cnt_.decrement ()) {
+		Ref <Heap> hold (heap_);
 		ExecDomain& ed = ExecDomain::current ();
 		ed.mem_context_replace (*this);
 		delete this;
