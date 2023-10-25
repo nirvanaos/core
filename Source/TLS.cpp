@@ -32,17 +32,21 @@ namespace Nirvana {
 namespace Core {
 
 TLS::BitmapWord TLS::bitmap_ [BITMAP_SIZE];
+Deleter TLS::deleters_ [USER_TLS_INDEXES];
 uint16_t TLS::free_count_;
 
-unsigned TLS::allocate ()
+unsigned TLS::allocate (Deleter deleter)
 {
 	if (BitmapOps::acquire (&free_count_)) {
 		for (BitmapWord* p = bitmap_;;) {
 			int bit;
 			do {
 				bit = BitmapOps::clear_rightmost_one (p);
-				if (bit >= 0)
-					return (unsigned)((p - bitmap_) * sizeof (BitmapWord) * 8) + bit;
+				if (bit >= 0) {
+					unsigned idx = (unsigned)((p - bitmap_) * sizeof (BitmapWord) * 8) + bit;
+					deleters_ [idx] = deleter;
+					return idx;
+				}
 			} while (std::end (bitmap_) != ++p);
 		}
 	} else
@@ -100,7 +104,7 @@ inline void* TLS::get_value (unsigned idx) const noexcept
 		return entries_ [idx].ptr ();
 }
 
-void TLS::Holder::set (unsigned idx, void* p, Deleter deleter)
+void TLS::Holder::set (unsigned idx, void* p)
 {
 	if (idx >= USER_TLS_INDEXES_END)
 		throw_BAD_PARAM ();
@@ -111,7 +115,7 @@ void TLS::Holder::set (unsigned idx, void* p, Deleter deleter)
 
 	if (!p_)
 		p_.reset (new TLS);
-	p_->set_value (idx, p, deleter);
+	p_->set_value (idx, p, deleters_ [idx]);
 }
 
 void* TLS::Holder::get (unsigned idx) const noexcept
@@ -122,9 +126,9 @@ void* TLS::Holder::get (unsigned idx) const noexcept
 		return nullptr;
 }
 
-void TLS::set (unsigned idx, void* p, Deleter deleter)
+void TLS::set (unsigned idx, void* p)
 {
-	MemContextUser::current ().runtime_global ().TLS_set (idx, p, deleter);
+	MemContextUser::current ().runtime_global ().TLS_set (idx, p);
 }
 
 void* TLS::get (unsigned idx) noexcept

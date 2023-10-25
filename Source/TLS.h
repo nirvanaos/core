@@ -58,8 +58,9 @@ public:
 	/// Allocate TLS index.
 	///
 	/// \returns New TLS index.
+	/// \param deleter Optional deleter function.
 	/// \throws CORBA::IMP_LIMIT if the limit of the user TLS indexes is reached.
-	static unsigned allocate ();
+	static unsigned allocate (Deleter deleter);
 
 	/// Release TLS index.
 	///
@@ -71,10 +72,9 @@ public:
 	/// 
 	/// \param idx TLS index.
 	/// \param p Value.
-	/// \param deleter Optional deleter function.
 	/// \throws CORBA::BAD_PARAM if \p idx is wrong.
 	/// \throws CORBA::NO_IMPLEMENT if the current memory context is not user memory context.
-	static void set (unsigned idx, void* p, Deleter deleter);
+	static void set (unsigned idx, void* p);
 
 	/// Get TLS value.
 	/// 
@@ -85,7 +85,7 @@ public:
 	class Holder
 	{
 	public:
-		void set (unsigned idx, void* p, Deleter deleter);
+		void set (unsigned idx, void* p);
 		void* get (unsigned idx) const noexcept;
 
 	private:
@@ -160,6 +160,7 @@ private:
 
 	static const size_t BITMAP_SIZE = (USER_TLS_INDEXES + BW_BITS - 1) / BW_BITS;
 	static BitmapWord bitmap_ [BITMAP_SIZE];
+	static Deleter deleters_ [USER_TLS_INDEXES];
 
 	static const unsigned USER_TLS_INDEXES_END = BITMAP_SIZE * sizeof (BitmapWord) * 8;
 

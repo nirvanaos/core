@@ -219,9 +219,9 @@ public:
 		return ExecDomain::reschedule ();
 	}
 
-	static uint16_t TLS_alloc ()
+	static uint16_t TLS_alloc (Deleter deleter)
 	{
-		return TLS::allocate ();
+		return TLS::allocate (deleter);
 	}
 
 	static void TLS_free (uint16_t idx)
@@ -229,9 +229,9 @@ public:
 		TLS::release (idx);
 	}
 
-	static void TLS_set (uint16_t idx, void* ptr, Deleter deleter)
+	static void TLS_set (uint16_t idx, void* ptr)
 	{
-		TLS::set (idx, ptr, deleter);
+		TLS::set (idx, ptr);
 	}
 
 	static void* TLS_get (uint16_t idx)

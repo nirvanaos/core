@@ -60,9 +60,9 @@ public:
 		return &error_number_;
 	}
 
-	void TLS_set (unsigned idx, void* p, Deleter deleter)
+	void TLS_set (unsigned idx, void* p)
 	{
-		tls_.set (idx, p, deleter);
+		tls_.set (idx, p);
 	}
 
 	void* TLS_get (unsigned idx) const noexcept
