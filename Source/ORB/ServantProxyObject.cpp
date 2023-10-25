@@ -92,7 +92,7 @@ void ServantProxyObject::delete_servant (bool from_destructor)
 		return;
 	}
 
-	if (ref_cnt_.load ())
+	if (ref_cnt_.load () > 0)
 		return;
 
 	if (reference_.load ()) { // Object has at least one active reference
@@ -102,7 +102,7 @@ void ServantProxyObject::delete_servant (bool from_destructor)
 		Nirvana::Core::Synchronized _sync_frame (*adapter_context_, nullptr);
 
 		// Proxy reference can be added during the entering to new context
-		if (ref_cnt_.load ())
+		if (ref_cnt_.load () > 0)
 			return;
 
 		// Now we are going to delete servant.

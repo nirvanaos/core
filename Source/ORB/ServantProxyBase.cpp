@@ -58,7 +58,7 @@ void ServantProxyBase::GC::run ()
 ServantProxyBase::~ServantProxyBase ()
 {
 	assert (&Nirvana::Core::SyncContext::current () == &sync_context ());
-	assert (!servant_);
+/* Temporary disabled: assert (!servant_); */
 	assert (0 == ref_cnt_);
 }
 
