@@ -36,7 +36,7 @@ namespace Core {
 class TC_Ref;
 
 /// Complex TypeCode uses mark-and-sweep garbage collection algorithm.
-class TC_ComplexBase
+class NIRVANA_NOVTABLE TC_ComplexBase
 {
 public:
 	virtual bool mark () noexcept
@@ -88,7 +88,7 @@ private:
 };
 
 template <class Base>
-class TC_Complex :
+class NIRVANA_NOVTABLE TC_Complex :
 	public Base,
 	public TC_ComplexBase
 {

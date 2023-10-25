@@ -29,15 +29,17 @@
 #pragma once
 
 #include <CORBA/Server.h>
+#include "../UserObject.h"
 
 namespace CORBA {
 namespace Core {
 
 template <class S, class Base>
-class TC_Impl :
+class NIRVANA_NOVTABLE TC_Impl :
 	public Base,
 	public servant_traits <TypeCode>::Servant <S>,
-	public Internal::LifeCycleRefCnt <S>
+	public Internal::LifeCycleRefCnt <S>,
+	public Nirvana::Core::UserObject
 {
 public:
 	typedef servant_traits <TypeCode>::Servant <S> Servant;

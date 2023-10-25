@@ -34,7 +34,7 @@
 namespace CORBA {
 namespace Core {
 
-class TC_ArrayBase : public TC_Complex <TC_Base>
+class NIRVANA_NOVTABLE TC_ArrayBase : public TC_Complex <TC_Base>
 {
 public:
 	Boolean equal (TypeCode::_ptr_type other) const

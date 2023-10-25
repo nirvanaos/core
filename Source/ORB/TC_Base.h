@@ -35,7 +35,7 @@
 namespace CORBA {
 namespace Core {
 
-class TC_Base :
+class NIRVANA_NOVTABLE TC_Base :
 	public CORBA::Internal::TypeCodeBase,
 	public SyncGC
 {

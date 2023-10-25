@@ -33,7 +33,7 @@
 namespace CORBA {
 namespace Core {
 
-class TC_RefBase :
+class NIRVANA_NOVTABLE TC_RefBase :
 	public TC_IdName
 {
 public:

@@ -38,7 +38,8 @@ namespace Core {
 class TC_Recursive :
 	public servant_traits <TypeCode>::Servant <TC_Recursive>,
 	public TC_ComplexBase,
-	public Internal::LifeCycleRefCnt <TC_Recursive>
+	public Internal::LifeCycleRefCnt <TC_Recursive>,
+	public Nirvana::Core::UserObject
 {
 public:
 	TC_Recursive (IDL::String&& id) :

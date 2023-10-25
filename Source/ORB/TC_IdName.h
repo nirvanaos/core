@@ -33,7 +33,7 @@
 namespace CORBA {
 namespace Core {
 
-class TC_IdName : public TC_Base
+class NIRVANA_NOVTABLE TC_IdName : public TC_Base
 {
 public:
 	TC_IdName (TCKind kind, IDL::String&& id, IDL::String&& name) noexcept;

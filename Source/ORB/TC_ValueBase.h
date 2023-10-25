@@ -34,7 +34,7 @@
 namespace CORBA {
 namespace Core {
 
-class TC_ValueBase : public TC_Complex <TC_RefBase>
+class NIRVANA_NOVTABLE TC_ValueBase : public TC_Complex <TC_RefBase>
 {
 public:
 	static void n_marshal_in (const void* src, size_t count, Internal::IORequest_ptr rq);
