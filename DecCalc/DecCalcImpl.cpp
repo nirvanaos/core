@@ -13,6 +13,8 @@ struct Context : decContext
 {
 	Context (int32_t digits = DECNUMDIGITS)
 	{
+		// Check for correct DECLITEND macro setting in the decNumber build.
+		assert (0 == decContextTestEndian (1));
 		decContextDefault (this, DEC_INIT_BASE);
 		traps = 0;
 		this->digits = digits;
