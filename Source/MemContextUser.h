@@ -141,7 +141,7 @@ private:
 	// * Runtime proxies for iterator debugging.
 	// * POSIX API.
 	// So we create Data on demand.
-	class Data
+	class Data : public UserObject
 	{
 	public:
 		static Data* create ();
