@@ -37,7 +37,8 @@ namespace Core {
 
 class RefCnt :
 	public servant_traits <CORBA::Internal::RefCnt>::Servant <RefCnt>,
-	public Internal::LifeCycleNoCopy <RefCnt>
+	public Internal::LifeCycleNoCopy <RefCnt>,
+	public Nirvana::Core::UserObject
 {
 public:
 	void add_ref () noexcept
