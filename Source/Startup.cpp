@@ -107,11 +107,16 @@ bool Startup::initialize () noexcept
 	try {
 		Nirvana::Core::initialize ();
 	} catch (const CORBA::Exception& ex) {
-		exception_.set_exception (ex);
-		Port::Scheduler::shutdown ();
+		on_exception (ex);
 		return false;
 	}
 	return true;
+}
+
+void Startup::on_exception (const CORBA::Exception& ex) noexcept
+{
+	exception_.set_exception (ex);
+	Scheduler::shutdown ();
 }
 
 void Startup::on_crash (const siginfo& signal) noexcept

@@ -54,7 +54,6 @@ public:
 	void launch (DeadlineTime deadline);
 
 	virtual void run ();
-	virtual void on_crash (const siginfo& signal) noexcept;
 
 	void check () const
 	{
@@ -74,10 +73,8 @@ protected:
 
 	bool initialize () noexcept;
 
-	void on_exception (const CORBA::Exception& ex) noexcept
-	{
-		exception_.set_exception (ex);
-	}
+	virtual void on_crash (const siginfo& signal) noexcept;
+	void on_exception (const CORBA::Exception& ex) noexcept;
 
 protected:
 	int argc_;
