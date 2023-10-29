@@ -121,9 +121,11 @@ private:
 
 CosNaming::BindingIterator::_ref_type Iterator::create_iterator (std::unique_ptr <Iterator>&& vi)
 {
+	CosNaming::BindingIterator::_ref_type ret;
 	SYNC_BEGIN (g_core_free_sync_context, &MemContext::current ().heap ())
-		return CORBA::make_reference <BindingIterator> (std::move (vi))->_this ();
-	SYNC_END ()
+		ret = CORBA::make_reference <BindingIterator> (std::move (vi))->_this ();
+	SYNC_END ();
+	return ret;
 }
 
 }

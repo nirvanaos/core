@@ -78,9 +78,11 @@ bool Pollable::is_ready (ULong timeout)
 	if (!timeout)
 		return ready_;
 	else {
+		bool ret;
 		SYNC_BEGIN (*sync_domain_, nullptr)
-			return event_.wait (Nirvana::Core::EventSyncTimeout::ms2time (timeout), &_sync_frame);
-		SYNC_END ()
+			ret = event_.wait (Nirvana::Core::EventSyncTimeout::ms2time (timeout), &_sync_frame);
+		SYNC_END ();
+		return ret;
 	}
 }
 

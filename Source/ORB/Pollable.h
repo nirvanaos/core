@@ -204,9 +204,11 @@ private:
 inline
 CORBA::PollableSet::_ref_type Pollable::create_pollable_set () const
 {
+	CORBA::PollableSet::_ref_type ret;
 	SYNC_BEGIN (*sync_domain_, nullptr)
-		return make_reference <PollableSet> ()->_this ();
-	SYNC_END ()
+		ret = make_reference <PollableSet> ()->_this ();
+	SYNC_END ();
+	return ret;
 }
 
 }
