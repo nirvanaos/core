@@ -307,16 +307,20 @@ public:
 
 	static CosEventChannelAdmin::EventChannel::_ref_type create_event_channel ()
 	{
+		CosEventChannelAdmin::EventChannel::_ref_type ret;
 		SYNC_BEGIN (Nirvana::Core::g_core_free_sync_context, nullptr)
-			return make_reference <EventChannel> ()->_this ();
-		SYNC_END ()
+			ret = make_reference <EventChannel> ()->_this ();
+		SYNC_END ();
+		return ret;;
 	}
 
 	static CosTypedEventChannelAdmin::TypedEventChannel::_ref_type create_typed_channel ()
 	{
+		CosTypedEventChannelAdmin::TypedEventChannel::_ref_type ret;
 		SYNC_BEGIN (Nirvana::Core::g_core_free_sync_context, nullptr)
-			return make_reference <TypedEventChannel> ()->_this ();
-		SYNC_END ()
+			ret = make_reference <TypedEventChannel> ()->_this ();
+		SYNC_END ();
+		return ret;;
 	}
 
 	static Char to_hex (unsigned d) noexcept

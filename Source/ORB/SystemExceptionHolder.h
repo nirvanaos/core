@@ -1,3 +1,4 @@
+/// \file
 /*
 * Nirvana Core.
 *
@@ -23,22 +24,35 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "pch.h"
-#include "StartupProt.h"
+#ifndef NIRVANA_ORB_CORE_SYSTEMEXCEPTIONHOLDER_H_
+#define NIRVANA_ORB_CORE_SYSTEMEXCEPTIONHOLDER_H_
+#pragma once
 
-namespace Nirvana {
+#include <CORBA/CORBA.h>
+
+namespace CORBA {
 namespace Core {
 
-void StartupProt::run ()
+class SystemExceptionHolder
 {
-	if (initialize ()) {
-		try {
-			Startup::run ();
-		} catch (const CORBA::Exception& ex) {
-			on_exception (ex);
-		}
+public:
+	SystemExceptionHolder ();
+
+	void set_exception (const Exception& ex) noexcept;
+
+	void set_exception (SystemException::Code ex_code) noexcept
+	{
+		ex_code_ = ex_code;
 	}
-}
+
+	void check () const;
+
+private:
+	SystemException::Code ex_code_;
+	SystemException::_Data ex_data_;
+};
 
 }
 }
+
+#endif

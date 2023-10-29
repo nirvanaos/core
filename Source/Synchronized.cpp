@@ -54,14 +54,6 @@ Synchronized::~Synchronized ()
 		exec_domain_.schedule_return (*call_context_);
 }
 
-NIRVANA_NORETURN void Synchronized::on_exception ()
-{
-	std::exception_ptr ex = std::current_exception ();
-	Ref <SyncContext> context = std::move (call_context_);
-	exec_domain_.schedule_return (*context);
-	std::rethrow_exception (ex);
-}
-
 void Synchronized::suspend_and_return ()
 {
 	assert (call_context_);

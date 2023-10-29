@@ -84,9 +84,11 @@ public:
 	{
 		const std::string& sname = static_cast <const std::string&> (name);
 		SharedString name_copy (sname.c_str (), sname.length ());
+		ObjectRef ret;
 		SYNC_BEGIN (sync_domain (), nullptr);
-		return singleton_->bind_sync (name_copy);
+		ret = singleton_->bind_sync (name_copy);
 		SYNC_END ();
+		return ret;
 	}
 
 	/// Implements System::BindInterface
@@ -95,9 +97,11 @@ public:
 		const std::string& sname = static_cast <const std::string&> (name);
 		const std::string& siid = static_cast <const std::string&> (iid);
 		SharedString name_copy (sname.c_str (), sname.length ()), iid_copy (siid.c_str (), siid.length ());
+		InterfaceRef ret;
 		SYNC_BEGIN (sync_domain (), nullptr);
-		return singleton_->bind_interface_sync (name_copy, iid_copy);
+		ret = singleton_->bind_interface_sync (name_copy, iid_copy);
 		SYNC_END ();
+		return ret;
 	}
 
 	template <class I>
@@ -134,10 +138,12 @@ public:
 		const IDL::String& iid, const IOP::TaggedProfileSeq& addr, const IOP::ObjectKey& object_key,
 		uint32_t ORB_type, const IOP::TaggedComponentSeq& components, CORBA::Core::ReferenceRemoteRef& unconfirmed)
 	{
+		CORBA::Object::_ref_type ret;
 		SYNC_BEGIN (sync_domain (), nullptr)
-			return singleton_->remote_references_.unmarshal (domain, iid, addr, object_key, ORB_type,
+			ret = singleton_->remote_references_.unmarshal (domain, iid, addr, object_key, ORB_type,
 				components, unconfirmed);
-		SYNC_END ()
+		SYNC_END ();
+		return ret;
 	}
 
 	/// Get CORBA::Core::Domain reference.
@@ -146,9 +152,11 @@ public:
 	/// \returns Reference to CORBA::Core::Domain
 	static Ref <CORBA::Core::DomainProt> get_domain (ESIOP::ProtDomainId domain)
 	{
+		Ref <CORBA::Core::DomainProt> ret;
 		SYNC_BEGIN (sync_domain (), nullptr)
-			return singleton_->remote_references_.get_domain (domain);
+			ret = singleton_->remote_references_.get_domain (domain);
 		SYNC_END ();
+		return ret;
 	}
 
 	static Binder& singleton () noexcept

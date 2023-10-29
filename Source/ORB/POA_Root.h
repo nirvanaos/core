@@ -74,6 +74,7 @@ public:
 	static CORBA::Object::_ref_type unmarshal (CORBA::Internal::String_in iid, const IOP::ObjectKey& object_key)
 	{
 		CORBA::Object::_ref_type proxy = get_root (); // Hold root POA proxy reference
+		CORBA::Object::_ref_type ret;
 
 		SYNC_BEGIN (CORBA::Core::local2proxy (proxy)->sync_context (), nullptr)
 
@@ -88,9 +89,11 @@ public:
 			ref = adapter->create_reference (std::move (core_key.object_id ()), iid);
 		}
 
-		return CORBA::Object::_ref_type (ref->get_proxy ());
+		ret = CORBA::Object::_ref_type (ref->get_proxy ());
 
 		SYNC_END ();
+
+		return ret;
 	}
 
 	static void get_DGC_objects (const IDL::Sequence <IOP::ObjectKey>& keys, CORBA::Core::ReferenceLocalRef* refs)

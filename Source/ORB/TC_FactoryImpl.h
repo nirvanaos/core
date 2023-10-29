@@ -342,10 +342,12 @@ public:
 		const ServantProxyLocal* proxy = local2proxy (factory);
 		TC_FactoryImpl* impl = static_cast <TC_FactoryImpl*> (
 			static_cast <Bridge <CORBA::LocalObject>*> (&proxy->servant ()));
+		TypeCode::_ref_type ret;
 		SYNC_BEGIN (proxy->sync_context (), nullptr);
 		IndirectMapUnmarshal indirect_map;
-		return impl->unmarshal_type_code (kind, stream, indirect_map, 0);
+		ret = impl->unmarshal_type_code (kind, stream, indirect_map, 0);
 		SYNC_END ();
+		return ret;
 	}
 
 	static bool is_simple_type (TCKind kind) noexcept

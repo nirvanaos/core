@@ -29,6 +29,7 @@
 #pragma once
 
 #include "SyncContext.h"
+#include "ORB/SystemExceptionHolder.h"
 
 namespace Nirvana {
 namespace Core {
@@ -65,17 +66,26 @@ public:
 	void return_to_caller_context ();
 
 	/// Called on exception inside synchronization frame.
-	NIRVANA_NORETURN void on_exception ();
+	void on_exception (const CORBA::Exception& ex) noexcept
+	{
+		exception_.set_exception (ex);
+	}
+
+	void check () const
+	{
+		exception_.check ();
+	}
 
 private:
 	Ref <SyncContext> call_context_;
 	ExecDomain& exec_domain_;
+	CORBA::Core::SystemExceptionHolder exception_;
 };
 
 }
 }
 
 #define SYNC_BEGIN(target, mem) { ::Nirvana::Core::Synchronized _sync_frame (target, mem); try {
-#define SYNC_END() } catch (...) { _sync_frame.on_exception (); }}
+#define SYNC_END() } catch (const CORBA::Exception& ex) { _sync_frame.on_exception (ex); } _sync_frame.check (); }
 
 #endif

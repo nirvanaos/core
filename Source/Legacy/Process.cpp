@@ -172,10 +172,11 @@ void Process::on_object_destruct (MemContextObject& obj) noexcept
 CosNaming::Name Process::get_current_dir_name () const
 {
 	assert (&MemContext::current () == this);
-
+	CosNaming::Name ret;
 	SYNC_BEGIN (*sync_domain_, nullptr);
-	return MemContextUser::get_current_dir_name ();
+	ret = MemContextUser::get_current_dir_name ();
 	SYNC_END ();
+	return ret;
 }
 
 void Process::chdir (const IDL::String& path)
@@ -189,9 +190,11 @@ void Process::chdir (const IDL::String& path)
 
 unsigned Process::fd_open (const IDL::String& path, uint_fast16_t flags, mode_t mode)
 {
+	unsigned ret;
 	SYNC_BEGIN (*sync_domain_, nullptr);
-	return MemContextUser::fd_open (path, flags, mode);
+	ret = MemContextUser::fd_open (path, flags, mode);
 	SYNC_END ();
+	return ret;
 }
 
 void Process::fd_close (unsigned fd)
@@ -203,9 +206,11 @@ void Process::fd_close (unsigned fd)
 
 size_t Process::fd_read (unsigned fd, void* p, size_t size)
 {
+	size_t ret;
 	SYNC_BEGIN (*sync_domain_, nullptr);
-	return MemContextUser::fd_read (fd, p, size);
+	ret = MemContextUser::fd_read (fd, p, size);
 	SYNC_END ();
+	return ret;
 }
 
 void Process::fd_write (unsigned fd, const void* p, size_t size)
@@ -217,16 +222,20 @@ void Process::fd_write (unsigned fd, const void* p, size_t size)
 
 uint64_t Process::fd_seek (unsigned fd, const int64_t& off, unsigned method)
 {
+	uint64_t ret;
 	SYNC_BEGIN (*sync_domain_, nullptr);
-	return MemContextUser::fd_seek (fd, off, method);
+	ret = MemContextUser::fd_seek (fd, off, method);
 	SYNC_END ();
+	return ret;
 }
 
 unsigned Process::fcntl (unsigned fd, int cmd, unsigned arg)
 {
+	unsigned ret;
 	SYNC_BEGIN (*sync_domain_, nullptr);
-	return MemContextUser::fcntl (fd, cmd, arg);
+	ret = MemContextUser::fcntl (fd, cmd, arg);
 	SYNC_END ();
+	return ret;
 }
 
 void Process::error_message (const char* msg)

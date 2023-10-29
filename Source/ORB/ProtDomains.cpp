@@ -39,7 +39,7 @@ servant_reference <DomainProt> ProtDomainsWaitable::get (ESIOP::ProtDomainId dom
 		typename Map::reference entry = *ins.first;
 		auto wait_list = entry.second.wait_list ();
 		try {
-			DomainProt* p;
+			DomainProt* p = nullptr;
 			SYNC_BEGIN (Nirvana::Core::g_core_free_sync_context, &Nirvana::Core::MemContext::current ().heap ());
 			p = new DomainProt (domain_id);
 			SYNC_END ();

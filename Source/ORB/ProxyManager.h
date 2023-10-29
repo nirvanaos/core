@@ -194,17 +194,21 @@ public:
 
 	static InterfaceDef::_ref_type _get_interface ()
 	{
+		InterfaceDef::_ref_type ret;
 		SYNC_BEGIN (Nirvana::Core::g_core_free_sync_context, nullptr);
-		return get_interface ();
+		ret = get_interface ();
 		SYNC_END ();
+		return ret;
 	}
 
 	Boolean _is_a (const IDL::String& type_id) const
 	{
 		IDL::String tmp (type_id);
+		Boolean ret;
 		SYNC_BEGIN (Nirvana::Core::g_core_free_sync_context, nullptr);
-		return is_a (tmp);
+		ret = is_a (tmp);
 		SYNC_END ();
+		return ret;
 	}
 
 	Boolean _non_existent ()

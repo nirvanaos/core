@@ -36,8 +36,8 @@ void StartupSys::run ()
 		try {
 			CORBA::Core::Services::bind (CORBA::Core::Services::SysDomain);
 			Startup::run ();
-		} catch (...) {
-			on_exception ();
+		} catch (const CORBA::Exception& ex) {
+			on_exception (ex);
 		}
 	}
 }

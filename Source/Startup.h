@@ -30,7 +30,7 @@
 
 #include <CORBA/CORBA.h>
 #include "Runnable.h"
-#include <exception>
+#include "ORB/SystemExceptionHolder.h"
 
 namespace Nirvana {
 
@@ -56,7 +56,10 @@ public:
 	virtual void run ();
 	virtual void on_crash (const siginfo& signal) noexcept;
 
-	void check () const;
+	void check () const
+	{
+		exception_.check ();
+	}
 
 	int ret () const noexcept
 	{
@@ -70,7 +73,11 @@ protected:
 	{}
 
 	bool initialize () noexcept;
-	void on_exception () noexcept;
+
+	void on_exception (const CORBA::Exception& ex) noexcept
+	{
+		exception_.set_exception (ex);
+	}
 
 protected:
 	int argc_;
@@ -79,8 +86,7 @@ protected:
 	int ret_;
 
 private:
-	std::exception_ptr exception_;
-	CORBA::SystemException::Code exception_code_;
+	CORBA::Core::SystemExceptionHolder exception_;
 };
 
 }

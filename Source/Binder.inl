@@ -38,17 +38,18 @@ namespace Core {
 inline
 Legacy::Main::_ptr_type Binder::bind (Legacy::Core::Executable& mod)
 {
+	const ModuleStartup* startup = nullptr;
 	SYNC_BEGIN (singleton_->sync_domain_, nullptr);
-	const ModuleStartup* startup = singleton_->module_bind (mod._get_ptr (), mod.metadata (), nullptr);
+	startup = singleton_->module_bind (mod._get_ptr (), mod.metadata (), nullptr);
 	try {
 		if (!startup || !startup->startup)
 			invalid_metadata ();
-		return Legacy::Main::_check (startup->startup);
 	} catch (...) {
 		release_imports (mod._get_ptr (), mod.metadata ());
 		throw;
 	}
 	SYNC_END ();
+	return Legacy::Main::_check (startup->startup);
 }
 
 inline

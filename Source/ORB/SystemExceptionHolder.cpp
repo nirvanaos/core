@@ -23,22 +23,32 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "pch.h"
-#include "StartupProt.h"
+#include "SystemExceptionHolder.h"
 
-namespace Nirvana {
+namespace CORBA {
 namespace Core {
 
-void StartupProt::run ()
+SystemExceptionHolder::SystemExceptionHolder () :
+	ex_code_ (Exception::EC_NO_EXCEPTION),
+	ex_data_ {0, CompletionStatus::COMPLETED_NO}
+{}
+
+void SystemExceptionHolder::set_exception (const Exception& ex) noexcept
 {
-	if (initialize ()) {
-		try {
-			Startup::run ();
-		} catch (const CORBA::Exception& ex) {
-			on_exception (ex);
-		}
-	}
+	const SystemException* se = SystemException::_downcast (&ex);
+	if (se) {
+		ex_code_ = se->__code ();
+		ex_data_ = se->_data ();
+	} else
+		ex_code_ = SystemException::EC_UNKNOWN;
 }
+
+void SystemExceptionHolder::check () const
+{
+	if (ex_code_ != Exception::EC_NO_EXCEPTION)
+		SystemException::_raise_by_code (ex_code_, ex_data_.minor, ex_data_.completed);
+}
+
 
 }
 }

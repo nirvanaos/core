@@ -46,8 +46,7 @@ Startup::Startup (int argc, char* argv [], char* envp []) :
 	argc_ (argc),
 	argv_ (argv),
 	envp_ (envp),
-	ret_ (0),
-	exception_code_ (CORBA::Exception::EC_NO_EXCEPTION)
+	ret_ (0)
 {}
 
 void Startup::launch (DeadlineTime deadline)
@@ -107,35 +106,21 @@ bool Startup::initialize () noexcept
 {
 	try {
 		Nirvana::Core::initialize ();
-	} catch (...) {
-		exception_ = std::current_exception ();
+	} catch (const CORBA::Exception& ex) {
+		exception_.set_exception (ex);
 		Port::Scheduler::shutdown ();
 		return false;
 	}
 	return true;
 }
 
-void Startup::on_exception () noexcept
-{
-	exception_ = std::current_exception ();
-	Scheduler::shutdown ();
-}
-
 void Startup::on_crash (const siginfo& signal) noexcept
 {
 	if (signal.si_excode == CORBA::Exception::EC_NO_EXCEPTION)
-		exception_code_ = CORBA::SystemException::EC_UNKNOWN;
+		exception_.set_exception (CORBA::SystemException::EC_UNKNOWN);
 	else
-		exception_code_ = (CORBA::Exception::Code)signal.si_excode;
+		exception_.set_exception ((CORBA::SystemException::Code)signal.si_excode);
 	Scheduler::shutdown ();
-}
-
-void Startup::check () const
-{
-	if (CORBA::Exception::EC_NO_EXCEPTION != exception_code_)
-		CORBA::SystemException::_raise_by_code (exception_code_);
-	else if (exception_)
-		std::rethrow_exception (exception_);
 }
 
 }

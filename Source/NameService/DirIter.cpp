@@ -145,9 +145,11 @@ private:
 
 Nirvana::DirIterator::_ref_type DirIter::create_iterator (std::unique_ptr <DirIter>&& vi)
 {
+	Nirvana::DirIterator::_ref_type ret;
 	SYNC_BEGIN (g_core_free_sync_context, &MemContext::current ().heap ())
-		return CORBA::make_reference <DirIterator> (std::move (vi))->_this ();
-	SYNC_END ()
+		ret = CORBA::make_reference <DirIterator> (std::move (vi))->_this ();
+	SYNC_END ();
+	return ret;
 }
 
 }
