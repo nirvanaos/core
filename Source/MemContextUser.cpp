@@ -53,6 +53,7 @@ public:
 	virtual uint64_t seek (unsigned method, const int64_t& off) const override;
 	virtual unsigned flags () const override;
 	virtual void flags (unsigned fl) override;
+	virtual void flush () override;
 
 private:
 	AccessBuf::_ref_type access_;
@@ -75,6 +76,7 @@ public:
 	virtual uint64_t seek (unsigned method, const int64_t& off) const override;
 	virtual unsigned flags () const override;
 	virtual void flags (unsigned fl) override;
+	virtual void flush () override;
 
 private:
 	AccessChar::_ref_type access_;
@@ -299,6 +301,12 @@ void MemContextUser::Data::flags (unsigned ifd, unsigned flags)
 	return get_open_fd (ifd).ref->flags (flags);
 }
 
+inline
+void MemContextUser::Data::fd_flush (unsigned ifd)
+{
+	get_open_fd (ifd).ref->flush ();
+}
+
 MemContextUser& MemContextUser::current ()
 {
 	MemContextUser* p = MemContext::current ().user_context ();
@@ -409,6 +417,11 @@ unsigned MemContextUser::fcntl (unsigned ifd, int cmd, unsigned arg)
 	throw_BAD_PARAM (make_minor_errno (EINVAL));
 }
 
+void MemContextUser::fd_flush (unsigned ifd)
+{
+	data ().fd_flush (ifd);
+}
+
 void MemContextUser::FileDescriptorBuf::close () const
 {
 	access_->close ();
@@ -506,6 +519,16 @@ void MemContextUser::FileDescriptorChar::flags (unsigned fl)
 	if (chg != O_NONBLOCK)
 		access_->set_flags (POSIX_CHANGEABLE_FLAGS, fl);
 	flags_ = (flags_ & ~POSIX_CHANGEABLE_FLAGS) | (fl & POSIX_CHANGEABLE_FLAGS);
+}
+
+void MemContextUser::FileDescriptorBuf::flush ()
+{
+	access_->flush ();
+}
+
+void MemContextUser::FileDescriptorChar::flush ()
+{
+	throw_BAD_OPERATION (make_minor_errno (EINVAL));
 }
 
 }

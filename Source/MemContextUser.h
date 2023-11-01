@@ -89,6 +89,7 @@ public:
 	virtual void fd_write (unsigned ifd, const void* p, size_t size);
 	virtual uint64_t fd_seek (unsigned ifd, const int64_t& off, unsigned method);
 	virtual unsigned fcntl (unsigned ifd, int cmd, unsigned arg);
+	virtual void fd_flush (unsigned ifd);
 
 protected:
 	MemContextUser (Ref <Heap>&& heap) :
@@ -114,6 +115,7 @@ private:
 		virtual uint64_t seek (unsigned method, const int64_t& off) const = 0;
 		virtual unsigned flags () const = 0;
 		virtual void flags (unsigned fl) = 0;
+		virtual void flush () = 0;
 
 	protected:
 		virtual ~FileDescriptor ()
@@ -177,6 +179,7 @@ private:
 		void fd_flags (unsigned fd, unsigned flags);
 		unsigned flags (unsigned fd);
 		void flags (unsigned fd, unsigned flags);
+		void fd_flush (unsigned fd);
 
 		Data (const InheritedFiles& inh);
 

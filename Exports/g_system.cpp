@@ -284,6 +284,11 @@ public:
 		return MemContextUser::current ().fcntl (fd, cmd, arg);
 	}
 
+	static void fd_flush (unsigned fd)
+	{
+		MemContextUser::current ().fd_flush (fd);
+	}
+
 };
 
 }
