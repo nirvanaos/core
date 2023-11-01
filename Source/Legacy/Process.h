@@ -131,7 +131,7 @@ public:
 		noexcept override;
 	virtual CosNaming::Name get_current_dir_name () const override;
 	virtual void chdir (const IDL::String& path) override;
-	virtual unsigned fd_open (const IDL::String& path, uint_fast16_t flags, mode_t mode) override;
+	virtual unsigned fd_add (Access::_ptr_type access) override;
 	virtual void fd_close (unsigned fd) override;
 	virtual size_t fd_read (unsigned fd, void* p, size_t size) override;
 	virtual void fd_write (unsigned fd, const void* p, size_t size) override;

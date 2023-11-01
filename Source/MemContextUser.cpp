@@ -186,14 +186,8 @@ size_t MemContextUser::Data::alloc_fd (unsigned start)
 }
 
 inline
-unsigned MemContextUser::Data::fd_open (const IDL::String& path, uint_fast16_t flags, mode_t mode)
+unsigned MemContextUser::Data::fd_add (Access::_ptr_type access)
 {
-	// Open file access
-	Name name = get_name_from_path (path);
-	name.erase (name.begin ());
-	Dir::_ref_type root = Dir::_narrow (name_service ()->resolve (Name ()));
-	Access::_ref_type access = root->open (name, flags & ~O_DIRECT, mode);
-
 	// Allocate file descriptor cell
 	size_t i = alloc_fd ();
 	file_descriptors_ [i].ref = make_fd (access);
@@ -369,9 +363,9 @@ void MemContextUser::chdir (const IDL::String& path)
 	data ().chdir (path);
 }
 
-unsigned MemContextUser::fd_open (const IDL::String& path, uint_fast16_t flags, mode_t mode)
+unsigned MemContextUser::fd_add (Access::_ptr_type access)
 {
-	return data ().fd_open (path, flags, mode);
+	return data ().fd_add (access);
 }
 
 void MemContextUser::fd_close (unsigned fd)

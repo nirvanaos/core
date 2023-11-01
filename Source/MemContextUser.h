@@ -31,14 +31,13 @@
 #include "MemContext.h"
 #include "MemContextObject.h"
 #include "RuntimeSupport.h"
+#include <Nirvana/File.h>
 #include <memory>
 
 namespace Nirvana {
 
 class InheritedFile;
 typedef IDL::Sequence <InheritedFile> InheritedFiles;
-class AccessBuf;
-class AccessChar;
 
 namespace Core {
 
@@ -83,7 +82,7 @@ public:
 	virtual CosNaming::Name get_current_dir_name () const;
 	virtual void chdir (const IDL::String& path);
 
-	virtual unsigned fd_open (const IDL::String& path, uint_fast16_t flags, mode_t mode);
+	virtual unsigned fd_add (Access::_ptr_type access);
 	virtual void fd_close (unsigned ifd);
 	virtual size_t fd_read (unsigned ifd, void* p, size_t size);
 	virtual void fd_write (unsigned ifd, const void* p, size_t size);
@@ -169,7 +168,7 @@ private:
 
 		static CosNaming::Name default_dir ();
 
-		unsigned fd_open (const IDL::String& path, uint_fast16_t flags, mode_t mode);
+		unsigned fd_add (Access::_ptr_type access);
 		void fd_close (unsigned fd);
 		size_t fd_read (unsigned fd, void* p, size_t size);
 		void fd_write (unsigned fd, const void* p, size_t size);

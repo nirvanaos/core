@@ -239,8 +239,21 @@ public:
 		return TLS::get (idx);
 	}
 
-	static void get_name_from_path (CosNaming::Name& name, const IDL::String& path)
+	static CosNaming::Name get_name_from_path (const IDL::String& path)
 	{
+		IDL::String translated;
+		const IDL::String* ppath;
+		if (Port::FileSystem::translate_path (path, translated))
+			ppath = &translated;
+		else
+			ppath = &path;
+
+		CosNaming::Name name;
+		if (!FileSystem::is_absolute (*ppath))
+			name = get_current_dir_name ();
+		FileSystem::get_name_from_path (name, *ppath);
+		return name;
+
 		FileSystem::get_name_from_path (name, path);
 	}
 
@@ -254,9 +267,9 @@ public:
 		MemContextUser::current ().chdir (path);
 	}
 
-	static uint16_t fd_open (const IDL::String& path, uint_fast16_t flags, uint_fast16_t mode)
+	static uint16_t fd_add (Access::_ptr_type access)
 	{
-		return (uint16_t)MemContextUser::current ().fd_open (path, flags, mode);
+		return (uint16_t)MemContextUser::current ().fd_add (access);
 	}
 
 	static void fd_close (unsigned fd)

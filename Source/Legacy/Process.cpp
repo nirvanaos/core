@@ -188,11 +188,11 @@ void Process::chdir (const IDL::String& path)
 	SYNC_END ();
 }
 
-unsigned Process::fd_open (const IDL::String& path, uint_fast16_t flags, mode_t mode)
+unsigned Process::fd_add (Access::_ptr_type access)
 {
 	unsigned ret;
 	SYNC_BEGIN (*sync_domain_, nullptr);
-	ret = MemContextUser::fd_open (path, flags, mode);
+	ret = MemContextUser::fd_add (access);
 	SYNC_END ();
 	return ret;
 }
