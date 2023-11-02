@@ -113,17 +113,23 @@ public:
 		return adapter_;
 	}
 
-	// Get CosNaming::Name from file system path.
-	static void get_name_from_path (CosNaming::Name& name, const IDL::String& path)
+	/// Translate path from a host-specific form to standard.
+	/// 
+	/// On the UNIX-like systems probably does nothing and just returns `false`.
+	/// 
+	/// \param path Host-specific path.
+	/// \param [out] translated Translated standard path.
+	/// \returns `true` if path was translated and \p translated string is not empty.
+	static bool translate_path (const IDL::String& path, IDL::String& translated)
 	{
-		IDL::String translated;
-		if (Port::FileSystem::translate_path (path, translated))
-			get_name_from_standard_path (name, translated);
-		else
-			get_name_from_standard_path (name, path);
+		return Port::FileSystem::translate_path (path, translated);
 	}
 
-	static void get_name_from_standard_path (CosNaming::Name& name, const IDL::String& path);
+	/// Append filesystem path to CosNaming::Name
+	/// 
+	/// \param [in,out] name Target name.
+	/// \param path Path to append.
+	static void append_path (CosNaming::Name& name, const IDL::String& path);
 
 	static bool is_absolute (const CosNaming::Name& n) noexcept;
 	static bool is_absolute (const IDL::String& path) noexcept;

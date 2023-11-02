@@ -239,22 +239,18 @@ public:
 		return TLS::get (idx);
 	}
 
-	static CosNaming::Name get_name_from_path (const IDL::String& path)
+	static void append_path (CosNaming::Name& name, const IDL::String& path, bool absolute)
 	{
 		IDL::String translated;
 		const IDL::String* ppath;
-		if (Port::FileSystem::translate_path (path, translated))
+		if (FileSystem::translate_path (path, translated))
 			ppath = &translated;
 		else
 			ppath = &path;
 
-		CosNaming::Name name;
-		if (!FileSystem::is_absolute (*ppath))
+		if (name.empty () && absolute && !FileSystem::is_absolute (*ppath))
 			name = get_current_dir_name ();
-		FileSystem::get_name_from_path (name, *ppath);
-		return name;
-
-		FileSystem::get_name_from_path (name, path);
+		FileSystem::append_path (name, *ppath);
 	}
 
 	static CosNaming::Name get_current_dir_name ()

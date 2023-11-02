@@ -141,7 +141,7 @@ void FileSystem::get_bindings (CosNaming::Core::IteratorStack& iter) const
 	}
 }
 
-void FileSystem::get_name_from_standard_path (CosNaming::Name& name, const IDL::String& path)
+void FileSystem::append_path (CosNaming::Name& name, const IDL::String& path)
 {
 	if (path.empty ())
 		return;

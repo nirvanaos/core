@@ -134,7 +134,7 @@ Name MemContextUser::Data::get_name_from_path (const IDL::String& path) const
 	Name name;
 	if (!FileSystem::is_absolute (*ppath))
 		name = current_dir_.empty () ? default_dir () : current_dir_;
-	FileSystem::get_name_from_path (name, *ppath);
+	FileSystem::append_path (name, *ppath);
 	return name;
 }
 

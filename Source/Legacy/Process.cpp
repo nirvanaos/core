@@ -238,6 +238,13 @@ unsigned Process::fcntl (unsigned fd, int cmd, unsigned arg)
 	return ret;
 }
 
+void Process::fd_flush (unsigned fd)
+{
+	SYNC_BEGIN (*sync_domain_, nullptr);
+	MemContextUser::fd_flush (fd);
+	SYNC_END ();
+}
+
 void Process::error_message (const char* msg)
 {
 	fd_write (2, msg, strlen (msg));
