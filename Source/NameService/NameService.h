@@ -70,28 +70,18 @@ public:
 
 	// NamingContextEx
 
-	StringName to_string (Name& n) const
+	static StringName to_string (Name& n)
 	{
-		check_name (n);
+		NamingContextRoot::check_name (n);
 		StringName sn;
-		if (n.size () > 1) {
-			size_t size = n.size () - 1;
-			for (const NameComponent& nc : n) {
-				size += nc.id ().size ();
-				if (!nc.kind ().empty ())
-					size += nc.kind ().size () + 1;
-			}
-			sn.reserve (size);
-			Name::iterator it = n.begin ();
-			append_string (sn, *it++);
-			while (it != n.end ()) {
-				sn += '/';
-				append_string (sn, *it++);
-			}
-		} else
+		if (n.size () > 1)
+			sn = to_string_unchecked (n);
+		else
 			append_string (sn, std::move (n.front ()));
 		return sn;
 	}
+
+	static StringName to_string_unchecked (const Name& n);
 
 	static Name to_name (const StringName& sn);
 

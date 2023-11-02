@@ -133,5 +133,24 @@ Name NameService::to_name (const StringName& sn)
 	return n;
 }
 
+NameService::StringName NameService::to_string_unchecked (const Name& n)
+{
+	StringName sn;
+	size_t size = n.size () - 1;
+	for (const NameComponent& nc : n) {
+		size += nc.id ().size ();
+		if (!nc.kind ().empty ())
+			size += nc.kind ().size () + 1;
+	}
+	sn.reserve (size);
+	Name::const_iterator it = n.begin ();
+	append_string (sn, *it++);
+	while (it != n.end ()) {
+		sn += '/';
+		append_string (sn, *it++);
+	}
+	return sn;
+}
+
 }
 }

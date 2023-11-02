@@ -44,7 +44,7 @@ public:
 	void list (uint32_t how_many, BindingList& bl, CosNaming::BindingIterator::_ref_type& bi) const;
 	virtual std::unique_ptr <Iterator> make_iterator () const = 0;
 
-	void check_name (const Name& n) const;
+	static void check_name (const Name& n);
 	
 	static void append_string (Istring& s, const NameComponent& nc);
 	static void append_string (Istring& s, NameComponent&& nc);

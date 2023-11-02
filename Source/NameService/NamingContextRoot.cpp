@@ -91,7 +91,7 @@ NameComponent NamingContextRoot::to_component (Istring& s, bool may_move)
 	return nc;
 }
 
-void NamingContextRoot::check_name (const Name& n) const
+void NamingContextRoot::check_name (const Name& n)
 {
 	if (n.empty ())
 		throw NamingContext::InvalidName ();

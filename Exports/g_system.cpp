@@ -37,6 +37,7 @@
 #include <Nirvana/Formatter.h>
 #include <unrecoverable_error.h>
 #include <NameService/FileSystem.h>
+#include <NameService/NameService.h>
 
 namespace Nirvana {
 namespace Core {
@@ -237,6 +238,17 @@ public:
 	static void* TLS_get (uint16_t idx)
 	{
 		return TLS::get (idx);
+	}
+
+	static IDL::String to_string (const CosNaming::Name& name)
+	{
+		CosNaming::Core::NamingContextRoot::check_name (name);
+		return CosNaming::Core::NameService::to_string_unchecked (name);
+	}
+
+	static CosNaming::Name to_name (const IDL::String& sn)
+	{
+		return CosNaming::Core::NameService::to_name (sn);
 	}
 
 	static void append_path (CosNaming::Name& name, const IDL::String& path, bool absolute)
