@@ -132,12 +132,14 @@ public:
 	virtual CosNaming::Name get_current_dir_name () const override;
 	virtual void chdir (const IDL::String& path) override;
 	virtual unsigned fd_add (Access::_ptr_type access) override;
-	virtual void fd_close (unsigned fd) override;
-	virtual size_t fd_read (unsigned fd, void* p, size_t size) override;
-	virtual void fd_write (unsigned fd, const void* p, size_t size) override;
-	virtual uint64_t fd_seek (unsigned fd, const int64_t& off, unsigned method) override;
+	virtual void close (unsigned fd) override;
+	virtual size_t read (unsigned fd, void* p, size_t size) override;
+	virtual void write (unsigned fd, const void* p, size_t size) override;
+	virtual uint64_t seek (unsigned fd, const int64_t& off, unsigned method) override;
 	virtual unsigned fcntl (unsigned fd, int cmd, unsigned arg) override;
-	virtual void fd_flush (unsigned fd) override;
+	virtual void flush (unsigned fd) override;
+	virtual void dup2 (unsigned src, unsigned dst) override;
+	virtual bool isatty (unsigned ifd) override;
 
 private:
 	template <class S, class ... Args> friend

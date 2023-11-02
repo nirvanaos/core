@@ -197,34 +197,34 @@ unsigned Process::fd_add (Access::_ptr_type access)
 	return ret;
 }
 
-void Process::fd_close (unsigned fd)
+void Process::close (unsigned fd)
 {
 	SYNC_BEGIN (*sync_domain_, nullptr);
-	MemContextUser::fd_close (fd);
+	MemContextUser::close (fd);
 	SYNC_END ();
 }
 
-size_t Process::fd_read (unsigned fd, void* p, size_t size)
+size_t Process::read (unsigned fd, void* p, size_t size)
 {
 	size_t ret;
 	SYNC_BEGIN (*sync_domain_, nullptr);
-	ret = MemContextUser::fd_read (fd, p, size);
+	ret = MemContextUser::read (fd, p, size);
 	SYNC_END ();
 	return ret;
 }
 
-void Process::fd_write (unsigned fd, const void* p, size_t size)
+void Process::write (unsigned fd, const void* p, size_t size)
 {
 	SYNC_BEGIN (*sync_domain_, nullptr);
-	MemContextUser::fd_write (fd, p, size);
+	MemContextUser::write (fd, p, size);
 	SYNC_END ();
 }
 
-uint64_t Process::fd_seek (unsigned fd, const int64_t& off, unsigned method)
+uint64_t Process::seek (unsigned fd, const int64_t& off, unsigned method)
 {
 	uint64_t ret;
 	SYNC_BEGIN (*sync_domain_, nullptr);
-	ret = MemContextUser::fd_seek (fd, off, method);
+	ret = MemContextUser::seek (fd, off, method);
 	SYNC_END ();
 	return ret;
 }
@@ -238,16 +238,32 @@ unsigned Process::fcntl (unsigned fd, int cmd, unsigned arg)
 	return ret;
 }
 
-void Process::fd_flush (unsigned fd)
+void Process::flush (unsigned fd)
 {
 	SYNC_BEGIN (*sync_domain_, nullptr);
-	MemContextUser::fd_flush (fd);
+	MemContextUser::flush (fd);
 	SYNC_END ();
+}
+
+void Process::dup2 (unsigned src, unsigned dst)
+{
+	SYNC_BEGIN (*sync_domain_, nullptr);
+	MemContextUser::dup2 (src, dst);
+	SYNC_END ();
+}
+
+bool Process::isatty (unsigned ifd)
+{
+	bool ret;
+	SYNC_BEGIN (*sync_domain_, nullptr);
+	ret = MemContextUser::isatty (ifd);
+	SYNC_END ();
+	return ret;
 }
 
 void Process::error_message (const char* msg)
 {
-	fd_write (2, msg, strlen (msg));
+	write (2, msg, strlen (msg));
 }
 
 }

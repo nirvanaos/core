@@ -280,24 +280,24 @@ public:
 		return (uint16_t)MemContextUser::current ().fd_add (access);
 	}
 
-	static void fd_close (unsigned fd)
+	static void close (unsigned fd)
 	{
-		MemContextUser::current ().fd_close (fd);
+		MemContextUser::current ().close (fd);
 	}
 
-	static size_t fd_read (unsigned fd, void* p, size_t size)
+	static size_t read (unsigned fd, void* p, size_t size)
 	{
-		return MemContextUser::current ().fd_read (fd, p, size);
+		return MemContextUser::current ().read (fd, p, size);
 	}
 
-	static void fd_write (unsigned fd, const void* p, size_t size)
+	static void write (unsigned fd, const void* p, size_t size)
 	{
-		MemContextUser::current ().fd_write (fd, p, size);
+		MemContextUser::current ().write (fd, p, size);
 	}
 
-	static FileSize fd_seek (unsigned fd, const FileOff& offset, uint_fast16_t whence)
+	static FileSize seek (unsigned fd, const FileOff& offset, uint_fast16_t whence)
 	{
-		return MemContextUser::current ().fd_seek (fd, offset, whence);
+		return MemContextUser::current ().seek (fd, offset, whence);
 	}
 
 	static int_fast16_t fcntl (unsigned fd, int_fast16_t cmd, uint_fast16_t arg)
@@ -305,9 +305,19 @@ public:
 		return MemContextUser::current ().fcntl (fd, cmd, arg);
 	}
 
-	static void fd_flush (unsigned fd)
+	static void flush (unsigned fd)
 	{
-		MemContextUser::current ().fd_flush (fd);
+		MemContextUser::current ().flush (fd);
+	}
+
+	static void dup2 (unsigned src, unsigned dst)
+	{
+		MemContextUser::current ().dup2 (src, dst);
+	}
+
+	static bool isatty (unsigned fd)
+	{
+		return MemContextUser::current ().isatty (fd);
 	}
 
 };

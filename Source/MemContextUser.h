@@ -83,12 +83,14 @@ public:
 	virtual void chdir (const IDL::String& path);
 
 	virtual unsigned fd_add (Access::_ptr_type access);
-	virtual void fd_close (unsigned ifd);
-	virtual size_t fd_read (unsigned ifd, void* p, size_t size);
-	virtual void fd_write (unsigned ifd, const void* p, size_t size);
-	virtual uint64_t fd_seek (unsigned ifd, const int64_t& off, unsigned method);
+	virtual void close (unsigned ifd);
+	virtual size_t read (unsigned ifd, void* p, size_t size);
+	virtual void write (unsigned ifd, const void* p, size_t size);
+	virtual uint64_t seek (unsigned ifd, const int64_t& off, unsigned method);
 	virtual unsigned fcntl (unsigned ifd, int cmd, unsigned arg);
-	virtual void fd_flush (unsigned ifd);
+	virtual void flush (unsigned ifd);
+	virtual void dup2 (unsigned src, unsigned dst);
+	virtual bool isatty (unsigned ifd);
 
 protected:
 	MemContextUser (Ref <Heap>&& heap) :
@@ -115,6 +117,7 @@ private:
 		virtual unsigned flags () const = 0;
 		virtual void flags (unsigned fl) = 0;
 		virtual void flush () = 0;
+		virtual bool isatty () const = 0;
 
 	protected:
 		virtual ~FileDescriptor ()
@@ -132,6 +135,14 @@ private:
 		FileDescriptorInfo () :
 			fd_flags (0)
 		{}
+
+		void close ()
+		{
+			if (ref->_refcount_value () == 1)
+				ref->close ();
+			ref = nullptr;
+			fd_flags = 0;
+		}
 	};
 
 	class FileDescriptorBuf;
@@ -169,16 +180,18 @@ private:
 		static CosNaming::Name default_dir ();
 
 		unsigned fd_add (Access::_ptr_type access);
-		void fd_close (unsigned fd);
-		size_t fd_read (unsigned fd, void* p, size_t size);
-		void fd_write (unsigned fd, const void* p, size_t size);
-		uint64_t fd_seek (unsigned fd, const int64_t& off, unsigned method);
-		unsigned fd_dup (unsigned fd, unsigned start);
+		void close (unsigned fd);
+		size_t read (unsigned fd, void* p, size_t size);
+		void write (unsigned fd, const void* p, size_t size);
+		uint64_t seek (unsigned fd, const int64_t& off, unsigned method);
+		unsigned dup (unsigned fd, unsigned start);
+		void dup2 (unsigned fd_src, unsigned fd_dst);
 		unsigned fd_flags (unsigned fd);
 		void fd_flags (unsigned fd, unsigned flags);
 		unsigned flags (unsigned fd);
 		void flags (unsigned fd, unsigned flags);
-		void fd_flush (unsigned fd);
+		void flush (unsigned fd);
+		bool isatty (unsigned fd);
 
 		Data (const InheritedFiles& inh);
 
