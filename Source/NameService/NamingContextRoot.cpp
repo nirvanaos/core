@@ -35,17 +35,17 @@ void NamingContextRoot::append_string (Istring& s, const NameComponent& nc)
 	if (!nc.kind ().empty ())
 		size += nc.kind ().size () + 1;
 	s.reserve (s.size () + size);
-	append_escaped (s, nc.id ());
+	append_escaped (s, nc.id (), "\\/");
 	if (!nc.kind ().empty ()) {
 		s += '.';
-		append_escaped (s, nc.kind ());
+		append_escaped (s, nc.kind (), "\\/.");
 	}
 }
 
 void NamingContextRoot::append_string (Istring& s, NameComponent&& nc)
 {
 	if (nc.kind ().empty ())
-		append_escaped (s, std::move (nc.id ()));
+		append_escaped (s, std::move (nc.id ()), "\\/");
 	else
 		append_string (s, const_cast <const NameComponent&> (nc));
 }
@@ -97,10 +97,10 @@ void NamingContextRoot::check_name (const Name& n) const
 		throw NamingContext::InvalidName ();
 }
 
-void NamingContextRoot::append_escaped (Istring& dst, const Istring& src)
+void NamingContextRoot::append_escaped (Istring& dst, const Istring& src, const char* escape_chars)
 {
 	for (size_t pos = 0; pos < src.size ();) {
-		size_t esc = src.find_first_of ("/.\\", pos);
+		size_t esc = src.find_first_of (escape_chars, pos);
 		if (esc != Istring::npos) {
 			dst.append (src, pos, esc - pos);
 			dst.insert (esc, 1, '\\');
@@ -112,12 +112,12 @@ void NamingContextRoot::append_escaped (Istring& dst, const Istring& src)
 	}
 }
 
-void NamingContextRoot::append_escaped (Istring& dst, Istring&& src)
+void NamingContextRoot::append_escaped (Istring& dst, Istring&& src, const char* escape_chars)
 {
-	if (dst.empty () && src.find_first_of ("/.\\") == Istring::npos)
+	if (dst.empty () && src.find_first_of (escape_chars) == Istring::npos)
 		dst = std::move (src);
 	else
-		append_escaped (dst, const_cast <const Istring&> (src));
+		append_escaped (dst, const_cast <const Istring&> (src), escape_chars);
 }
 
 Istring NamingContextRoot::unescape (Istring s)

@@ -59,8 +59,8 @@ public:
 		return to_component (s, true);
 	}
 
-	static void append_escaped (Istring& dst, const Istring& src);
-	static void append_escaped (Istring& dst, Istring&& src);
+	static void append_escaped (Istring& dst, const Istring& src, const char* escape_chars);
+	static void append_escaped (Istring& dst, Istring&& src, const char* escape_chars);
 	static Istring unescape (Istring s);
 
 protected:
