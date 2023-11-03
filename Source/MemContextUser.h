@@ -91,6 +91,7 @@ public:
 	virtual void flush (unsigned ifd);
 	virtual void dup2 (unsigned src, unsigned dst);
 	virtual bool isatty (unsigned ifd);
+	virtual void push_back (unsigned ifd, int c);
 
 protected:
 	MemContextUser (Ref <Heap>&& heap) :
@@ -109,19 +110,49 @@ protected:
 private:
 	class NIRVANA_NOVTABLE FileDescriptor : public UserObject
 	{
+		static const unsigned PUSH_BACK_MAX = 3;
+
 	public:
 		virtual void close () const = 0;
-		virtual size_t read (void* p, size_t size) const = 0;
-		virtual void write (const void* p, size_t size) const = 0;
-		virtual uint64_t seek (unsigned method, const int64_t& off) const = 0;
+		virtual size_t read (void* p, size_t size) = 0;
+		virtual void write (const void* p, size_t size) = 0;
+		virtual uint64_t seek (unsigned method, const int64_t& off) = 0;
 		virtual unsigned flags () const = 0;
 		virtual void flags (unsigned fl) = 0;
 		virtual void flush () = 0;
 		virtual bool isatty () const = 0;
 
+		void push_back (int c)
+		{
+			if (push_back_cnt_ < PUSH_BACK_MAX)
+				push_back_buf_ [push_back_cnt_++] = (uint8_t)c;
+			else
+				throw_IMP_LIMIT (ERANGE);
+		}
+
 	protected:
+		FileDescriptor () :
+			push_back_cnt_ (0)
+		{}
+
 		virtual ~FileDescriptor ()
 		{}
+
+		size_t push_back_read (void*& p, size_t& size) noexcept;
+
+		unsigned push_back_cnt () const noexcept
+		{
+			return push_back_cnt_;
+		}
+
+		void push_back_reset () noexcept
+		{
+			push_back_cnt_ = 0;
+		}
+
+	private:
+		uint8_t push_back_cnt_;
+		uint8_t push_back_buf_ [PUSH_BACK_MAX];
 	};
 
 	typedef ImplDynamicSync <FileDescriptor> FileDescriptorBase;
@@ -192,6 +223,7 @@ private:
 		void flags (unsigned fd, unsigned flags);
 		void flush (unsigned fd);
 		bool isatty (unsigned fd);
+		void push_back (unsigned fd, int c);
 
 		Data (const InheritedFiles& inh);
 

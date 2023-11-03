@@ -320,6 +320,11 @@ public:
 		return MemContextUser::current ().isatty (fd);
 	}
 
+	static void ungetc (unsigned fd, int c)
+	{
+		MemContextUser::current ().push_back (fd, c);
+	}
+
 };
 
 }

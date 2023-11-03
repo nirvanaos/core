@@ -252,13 +252,20 @@ void Process::dup2 (unsigned src, unsigned dst)
 	SYNC_END ();
 }
 
-bool Process::isatty (unsigned ifd)
+bool Process::isatty (unsigned fd)
 {
 	bool ret;
 	SYNC_BEGIN (*sync_domain_, nullptr);
-	ret = MemContextUser::isatty (ifd);
+	ret = MemContextUser::isatty (fd);
 	SYNC_END ();
 	return ret;
+}
+
+void Process::push_back (unsigned fd, int c)
+{
+	SYNC_BEGIN (*sync_domain_, nullptr);
+	MemContextUser::push_back (fd, c);
+	SYNC_END ();
 }
 
 void Process::error_message (const char* msg)

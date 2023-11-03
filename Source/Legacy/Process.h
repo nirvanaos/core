@@ -139,7 +139,8 @@ public:
 	virtual unsigned fcntl (unsigned fd, int cmd, unsigned arg) override;
 	virtual void flush (unsigned fd) override;
 	virtual void dup2 (unsigned src, unsigned dst) override;
-	virtual bool isatty (unsigned ifd) override;
+	virtual bool isatty (unsigned fd) override;
+	virtual void push_back (unsigned fd, int c) override;
 
 private:
 	template <class S, class ... Args> friend

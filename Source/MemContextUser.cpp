@@ -40,6 +40,24 @@ namespace Core {
 
 const unsigned MemContextUser::POSIX_CHANGEABLE_FLAGS = O_APPEND | O_NONBLOCK;
 
+size_t MemContextUser::FileDescriptor::push_back_read (void*& p, size_t& size) noexcept
+{
+	size_t cnt = push_back_cnt_;
+	if (cnt) {
+		const uint8_t* top = push_back_buf_ + cnt;
+		if (cnt > size)
+			cnt = size;
+		const uint8_t* end = top - cnt;
+		uint8_t* dst = (uint8_t*)p;
+		while (top != end) {
+			*(dst++) = *(--top);
+		}
+		size -= cnt;
+		p = dst;
+	}
+	return cnt;
+}
+
 class MemContextUser::FileDescriptorBuf : public FileDescriptorBase
 {
 public:
@@ -48,9 +66,9 @@ public:
 	{}
 
 	virtual void close () const override;
-	virtual size_t read (void* p, size_t size) const override;
-	virtual void write (const void* p, size_t size) const override;
-	virtual uint64_t seek (unsigned method, const int64_t& off) const override;
+	virtual size_t read (void* p, size_t size) override;
+	virtual void write (const void* p, size_t size) override;
+	virtual uint64_t seek (unsigned method, const int64_t& off) override;
 	virtual unsigned flags () const override;
 	virtual void flags (unsigned fl) override;
 	virtual void flush () override;
@@ -72,9 +90,9 @@ public:
 	}
 
 	virtual void close () const override;
-	virtual size_t read (void* p, size_t size) const override;
-	virtual void write (const void* p, size_t size) const override;
-	virtual uint64_t seek (unsigned method, const int64_t& off) const override;
+	virtual size_t read (void* p, size_t size) override;
+	virtual void write (const void* p, size_t size) override;
+	virtual uint64_t seek (unsigned method, const int64_t& off) override;
 	virtual unsigned flags () const override;
 	virtual void flags (unsigned fl) override;
 	virtual void flush () override;
@@ -316,6 +334,12 @@ bool MemContextUser::Data::isatty (unsigned ifd)
 	return get_open_fd (ifd).ref->isatty ();
 }
 
+inline
+void MemContextUser::Data::push_back (unsigned ifd, int c)
+{
+	get_open_fd (ifd).ref->push_back (c);
+}
+
 MemContextUser& MemContextUser::current ()
 {
 	MemContextUser* p = MemContext::current ().user_context ();
@@ -441,6 +465,11 @@ bool MemContextUser::isatty (unsigned ifd)
 	return data ().isatty (ifd);
 }
 
+void MemContextUser::push_back (unsigned ifd, int c)
+{
+	data ().push_back (ifd, c);
+}
+
 void MemContextUser::FileDescriptorBuf::close () const
 {
 	access_->close ();
@@ -453,46 +482,57 @@ void MemContextUser::FileDescriptorChar::close () const
 	access_->close ();
 }
 
-size_t MemContextUser::FileDescriptorBuf::read (void* p, size_t size) const
+size_t MemContextUser::FileDescriptorBuf::read (void* p, size_t size)
 {
-	Nirvana::AccessBuf::_ref_type hold = access_;
-	return hold->read (p, size);
+	size_t cb = push_back_read (p, size);
+	if (size) {
+		Nirvana::AccessBuf::_ref_type hold = access_;
+		cb += hold->read (p, size);
+	}
+	return cb;
 }
 
-size_t MemContextUser::FileDescriptorChar::read (void* p, size_t size) const
+size_t MemContextUser::FileDescriptorChar::read (void* p, size_t size)
 {
 	if (!adapter_)
 		throw_NO_PERMISSION (make_minor_errno (EBADF));
-	Ref <CharFileAdapter> hold = adapter_;
-	return hold->read (p, size);
+	size_t cb = push_back_read (p, size);
+	if (size) {
+		Ref <CharFileAdapter> hold = adapter_;
+		cb += hold->read (p, size);
+	}
+	return cb;
 }
 
-void MemContextUser::FileDescriptorBuf::write (const void* p, size_t size) const
+void MemContextUser::FileDescriptorBuf::write (const void* p, size_t size)
 {
+	push_back_reset ();
 	Nirvana::AccessBuf::_ref_type hold = access_;
 	hold->write (p, size);
 }
 
-void MemContextUser::FileDescriptorChar::write (const void* p, size_t size) const
+void MemContextUser::FileDescriptorChar::write (const void* p, size_t size)
 {
+	push_back_reset ();
 	Nirvana::AccessChar::_ref_type hold = access_;
 	hold->write (CORBA::Internal::StringView <char> ((const char*)p, size));
 }
 
-uint64_t MemContextUser::FileDescriptorBuf::seek (unsigned method, const int64_t& off) const
+uint64_t MemContextUser::FileDescriptorBuf::seek (unsigned method, const int64_t& off)
 {
 	FileSize pos;
+	Nirvana::AccessBuf::_ref_type hold = access_;
 	switch (method) {
 	case SEEK_SET:
 		pos = 0;
 		break;
 
 	case SEEK_CUR:
-		pos = access_->position ();
+		pos = hold->position ();
 		break;
 
 	case SEEK_END:
-		pos = access_->size ();
+		pos = hold->size ();
 		break;
 
 	default:
@@ -507,12 +547,16 @@ uint64_t MemContextUser::FileDescriptorBuf::seek (unsigned method, const int64_t
 			throw_BAD_PARAM (make_minor_errno (EOVERFLOW));
 	}
 
-	Nirvana::AccessBuf::_ref_type hold = access_;
+	if (0 == off)
+		pos -= push_back_cnt ();
+	else
+		push_back_reset ();
+
 	hold->position (pos += off);
 	return pos;
 }
 
-uint64_t MemContextUser::FileDescriptorChar::seek (unsigned method, const int64_t& off) const
+uint64_t MemContextUser::FileDescriptorChar::seek (unsigned method, const int64_t& off) 
 {
 	throw_BAD_OPERATION (make_minor_errno (ESPIPE));
 }
