@@ -65,8 +65,7 @@ public:
 
 }
 
-NIRVANA_SELECTANY extern
-const ImportInterfaceT <System> g_system = { OLF_IMPORT_INTERFACE,
+extern const ImportInterfaceT <System> NIRVANA_SELECTANY (g_system) = { OLF_IMPORT_INTERFACE,
 	"Nirvana/Legacy/g_system", CORBA::Internal::RepIdOf <System>::id,
 	NIRVANA_STATIC_BRIDGE (System, Core::System) };
 

@@ -53,7 +53,6 @@ const Char TypeCodeName <PortableServer::ServantBase>::name_ [] = "Servant";
 }
 }
 
-NIRVANA_SELECTANY
 const Nirvana::ImportInterfaceT <CORBA::TypeCode>
-	PortableServer::_tc_Servant = { Nirvana::OLF_IMPORT_INTERFACE, nullptr, nullptr,
+	NIRVANA_SELECTANY (PortableServer::_tc_Servant) = { Nirvana::OLF_IMPORT_INTERFACE, nullptr, nullptr,
 	NIRVANA_STATIC_BRIDGE (CORBA::TypeCode, PortableServer::Core::TC_Servant) };
