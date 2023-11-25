@@ -23,11 +23,11 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "../pch.h"
+#include "pch.h"
 #include <CORBA/TypeCodeString.h>
 #include <CORBA/Proxy/TypeCodeInterface.h>
 #include <CORBA/Proxy/TypeCodeValue.h>
-#include "tc_impex.h"
+#include <tc_impex.h>
 
 namespace CORBA {
 namespace Internal {

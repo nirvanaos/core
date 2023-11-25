@@ -1,6 +1,3 @@
-/// \file
-/// This file must not be included in the core library build.
-/// It must be included in the Nirvana core executable project instead.
 /*
 * Nirvana Core.
 *
@@ -26,35 +23,23 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "pch.h"
+#include "../pch.h"
+#include <CORBA/Proxy/TypeCodeNative.h>
 #include <Nirvana/OLF.h>
-#include <CORBA/system_exceptions.h>
 
-#define EXPORT_TC(t) NIRVANA_LINK_SYMBOL (_exp_CORBA_##t)
-EXPORT_TC (void)
-EXPORT_TC (short)
-EXPORT_TC (long)
-EXPORT_TC (ushort)
-EXPORT_TC (ulong)
-EXPORT_TC (float)
-EXPORT_TC (double)
-EXPORT_TC (boolean)
-EXPORT_TC (char)
-EXPORT_TC (octet)
-EXPORT_TC (longlong)
-EXPORT_TC (ulonglong)
-EXPORT_TC (longdouble)
-EXPORT_TC (wchar)
-EXPORT_TC (any)
-EXPORT_TC (string)
-EXPORT_TC (wstring)
-EXPORT_TC (Object)
-EXPORT_TC (TCKind)
-EXPORT_TC (TypeCode)
-EXPORT_TC (TypeCode_BadKind)
-EXPORT_TC (TypeCode_Bounds)
-EXPORT_TC (ValueBase)
+namespace CORBA {
+namespace Internal {
+template <>
+const Char TypeCodeName <void*>::name_ [] = "Pointer";
+}
+}
 
-SYSTEM_EXCEPTIONS(EXPORT_TC)
+namespace Nirvana {
+typedef CORBA::Internal::TypeCodeNative <void*> TC_Pointer;
+}
 
-NIRVANA_LINK_SYMBOL (_exp_Nirvana_Pointer)
+const Nirvana::ImportInterfaceT <CORBA::TypeCode> NIRVANA_SELECTANY (Nirvana::_tc_Pointer) = {
+	Nirvana::OLF_IMPORT_INTERFACE, nullptr, nullptr, NIRVANA_STATIC_BRIDGE (CORBA::TypeCode, Nirvana::TC_Pointer) };
+	NIRVANA_EXPORT (_exp_Nirvana_Pointer, CORBA::Internal::RepIdOf <void*>::id, CORBA::TypeCode, Nirvana::TC_Pointer);
+
+
