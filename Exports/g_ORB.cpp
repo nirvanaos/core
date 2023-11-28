@@ -30,7 +30,7 @@ using namespace Nirvana;
 
 namespace CORBA {
 
-const ImportInterfaceT <ORB> NIRVANA_SELECTANY (g_ORB) = { OLF_IMPORT_INTERFACE,
+const ImportInterfaceT <ORB> NIRVANA_SELECTANY g_ORB = { OLF_IMPORT_INTERFACE,
 	"CORBA/g_ORB", Internal::RepIdOf <ORB>::id,
 	NIRVANA_STATIC_BRIDGE (ORB, Core::ORB) };
 
