@@ -1,11 +1,13 @@
-#include "pch.h"
+#include <CORBA/Server.h>
 #include <Nirvana/DecCalc_s.h>
 
-using namespace Nirvana;
+// All calculations are performed with double precision 62 digits
+#define DECNUMDIGITS 62
+extern "C" {
+#include <decNumber/decPacked.h>
+}
 
-#if DECNUMDIGITS != 62
-#error decNumber DECNUMDIGITS must be 62.
-#endif
+using namespace Nirvana;
 
 static_assert (sizeof (decNumber) == sizeof (DecCalc::Number), "Check decNumber library definitions.");
 
