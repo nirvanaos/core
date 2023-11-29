@@ -52,7 +52,7 @@ void BackOff::operator () ()
 
 	unsigned iters = Dist (1U, iterations_)(rndgen_);
 	if (ITERATIONS_MAX <= ITERATIONS_YIELD || iters < ITERATIONS_YIELD) {
-		volatile unsigned cnt = iters;
+		unsigned cnt = iters;
 		do
 			cpu_relax ();
 		while (--cnt);
