@@ -573,8 +573,8 @@ private:
 #endif
 	Children children_;
 	AdapterActivator::_ref_type the_activator_;
-	volatile int request_cnt_;
-	volatile bool destroyed_;
+	int request_cnt_;
+	bool destroyed_;
 	bool destroy_called_;
 	Nirvana::Core::EventSync destroy_completed_;
 
