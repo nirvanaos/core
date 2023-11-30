@@ -38,7 +38,7 @@ namespace Nirvana {
 typedef CORBA::Internal::TypeCodeNative <void*> TC_Pointer;
 }
 
-const Nirvana::ImportInterfaceT <CORBA::TypeCode> NIRVANA_SELECTANY Nirvana::_tc_Pointer
+constexpr Nirvana::ImportInterfaceT <CORBA::TypeCode> NIRVANA_SELECTANY Nirvana::_tc_Pointer
 { Nirvana::OLF_IMPORT_INTERFACE, nullptr, nullptr, NIRVANA_STATIC_BRIDGE (CORBA::TypeCode, Nirvana::TC_Pointer) };
 
 NIRVANA_EXPORT (_exp_Nirvana_Pointer, CORBA::Internal::RepIdOf <void*>::id, CORBA::TypeCode, Nirvana::TC_Pointer);
