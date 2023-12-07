@@ -212,7 +212,7 @@ public:
 
 		// Check name pattern
 		size_t name_size = name.size ();
-		if (name_size < 6 + suffix_len)
+		if (name_size < (size_t)6 + (size_t)suffix_len)
 			throw_BAD_PARAM (make_minor_errno (EINVAL));
 		size_t pattern_end = name_size - suffix_len;
 		size_t pattern_start = pattern_end - 6;
@@ -239,9 +239,9 @@ public:
 		for (int try_cnt = 0;;) {
 			uint32_t timestamp = (uint32_t)Chrono::deadline_clock ();
 			for (auto p = p_start; p != p_end; ++p) {
-				uint_fast16_t d = timestamp & 0x0F;
-				*p = d < 10 ? '0' + d : 'A' + d - 10;
-				timestamp >>= 4;
+				unsigned d = timestamp % 36;
+				timestamp /= 36;
+				*p = d < 10 ? '0' + d : 'a' + d - 10;
 			}
 			try {
 				acc = FileSystem::get_file (get_new_file_id (n))->open (O_EXCL | O_CREAT | O_RDWR
