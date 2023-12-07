@@ -34,7 +34,6 @@
 #include <Port/SystemInfo.h>
 #include <Port/Debugger.h>
 #include <Signals.h>
-#include <Nirvana/Formatter.h>
 #include <unrecoverable_error.h>
 #include <NameService/FileSystem.h>
 #include <NameService/NameService.h>
@@ -193,9 +192,17 @@ public:
 
 		if (!file_name.empty ()) {
 			s.assign (file_name.c_str (), file_name.size ());
-			s += '(';
-			append_format (s, "%i", line_number);
-			s += "): ";
+			if (line_number > 0) {
+				s += '(';
+				size_t len = s.length ();
+				do {
+					unsigned d = line_number % 10;
+					line_number /= 10;
+					s.insert (len, 1, '0' + d);
+				} while (line_number);
+				s += ')';
+			}
+			s += ": ";
 		}
 
 		static const char* const ev_prefix [(size_t)DebugEvent::DEBUG_ERROR + 1] = {
