@@ -105,11 +105,20 @@ public:
 		const char* module_id = (obj_name == "Nirvana/g_dec_calc") ? "DecCalc.olf" : "TestModule.olf";
 		path += '/';
 		path += module_id;
-		ModuleLoad& module_load = bind_info.module_load ();
-		CORBA::Object::_ref_type obj = ns->resolve_str (path);
+		CORBA::Object::_ref_type obj;
+		try {
+			obj = ns->resolve_str (path);
+		} catch (const CORBA::Exception& ex) {
+			const CORBA::SystemException* se = CORBA::SystemException::_downcast (&ex);
+			if (se)
+				se->_raise ();
+			else
+				throw_OBJECT_NOT_EXIST ();
+		}
 		File::_ref_type file = File::_narrow (obj);
 		if (!file)
-			throw_UNKNOWN (make_minor_errno (ENOEXEC));
+			throw_UNKNOWN (make_minor_errno (EISDIR));
+		ModuleLoad& module_load = bind_info.module_load ();
 		module_load.binary (AccessDirect::_narrow (file->open (O_RDONLY | O_DIRECT, 0)->_to_object ()));
 		module_load.module_id (module_id);
 	}
