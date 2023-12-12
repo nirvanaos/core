@@ -363,21 +363,21 @@ void Binder::delete_module (Module* mod)
 	}
 }
 
-Ref <Module> Binder::load (std::string& module_name, bool singleton)
+Ref <Module> Binder::load (ModuleLoad& module_load, bool singleton)
 {
 	if (!initialized_)
 		throw_INITIALIZE ();
 	Module* mod = nullptr;
-	auto ins = module_map_.emplace (std::move (module_name), MODULE_LOADING_DEADLINE_MAX);
+	auto ins = module_map_.emplace (std::move (module_load.module_id ()), MODULE_LOADING_DEADLINE_MAX);
 	ModuleMap::reference entry = *ins.first;
 	if (ins.second) {
 		auto wait_list = entry.second.wait_list ();
 		try {
 			SYNC_BEGIN (g_core_free_sync_context, &memory ());
 			if (singleton)
-				mod = new Singleton (entry.first);
+				mod = new Singleton (module_load.binary ());
 			else
-				mod = new ClassLibrary (entry.first);
+				mod = new ClassLibrary (module_load.binary ());
 			SYNC_END ();
 
 			assert (mod->_refcount_value () == 0);
@@ -499,7 +499,7 @@ Binder::InterfaceRef Binder::find (const ObjectKey& name)
 			sys_domain->get_bind_info (name.name (), PLATFORM, bind_info);
 			if (bind_info._d ()) {
 				try {
-					Ref <Module> mod = load (bind_info.module_name (), false);
+					Ref <Module> mod = load (bind_info.module_load (), false);
 				} catch (const SystemException&) {
 					// TODO: Log
 					throw_OBJECT_NOT_EXIST ();
@@ -508,13 +508,13 @@ Binder::InterfaceRef Binder::find (const ObjectKey& name)
 				if (!itf)
 					throw_OBJECT_NOT_EXIST ();
 			} else {
-				CORBA::Object::_ptr_type obj = bind_info.obj ();
+				CORBA::Object::_ptr_type obj = bind_info.loaded_object ();
 				CORBA::Core::ReferenceRemote* ref = static_cast <CORBA::Core::ReferenceRemote*> (
 					CORBA::Core::ProxyManager::cast (obj));
 				if (!ref)
 					throw_OBJECT_NOT_EXIST ();
 				object_map_.insert (ref->set_object_name (name.name ()), &obj);
-				return std::move (bind_info.obj ());
+				return std::move (bind_info.loaded_object ());
 			}
 		}
 	}

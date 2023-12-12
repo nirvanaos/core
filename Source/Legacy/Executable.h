@@ -28,8 +28,10 @@
 #define NIRVANA_LEGACY_CORE_EXECUTABLE_H_
 #pragma once
 
+#include <CORBA/Server.h>
 #include "../SyncContext.h"
 #include "../Binary.h"
+#include <Nirvana/Module_s.h>
 #include <Nirvana/Legacy/Main.h>
 #include "../ORB/LifeCycleStack.h"
 #include "AtExit.h"
@@ -45,7 +47,7 @@ class Executable :
 	public CORBA::Core::LifeCycleStack
 {
 public:
-	Executable (const std::string& file);
+	Executable (AccessDirect::_ptr_type file);
 	~Executable ();
 
 	int main (int argc, char* argv [], char* envp [])

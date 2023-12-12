@@ -351,7 +351,7 @@ private:
 
 	NIRVANA_NORETURN static void invalid_metadata ();
 
-	Ref <Module> load (std::string& module_name, bool singleton);
+	Ref <Module> load (ModuleLoad& module_load, bool singleton);
 	void unload (Module* pmod);
 
 	void housekeeping_modules ();

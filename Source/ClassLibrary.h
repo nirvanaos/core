@@ -40,8 +40,8 @@ class ClassLibrary :
 	public SyncContextFree
 {
 public:
-	ClassLibrary (const std::string& name) :
-		Module (name, false)
+	ClassLibrary (AccessDirect::_ptr_type file) :
+		Module (file, false)
 	{}
 
 	// Module::

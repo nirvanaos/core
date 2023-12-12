@@ -30,12 +30,15 @@
 #include <CORBA/Server.h>
 #include "Startup.h"
 #include "ExecDomain.h"
+#include "ProtDomain.h"
 #include "initterm.h"
+#include "MemContextUser.h"
 #include <Nirvana/Launcher.h>
 #include <Nirvana/Legacy/Legacy_Process_s.h>
 #include <Nirvana/File.h>
 #include "ORB/Services.h"
 #include <fnctl.h>
+#include <NameService/FileSystem.h>
 
 using namespace Nirvana::Legacy;
 
@@ -98,7 +101,21 @@ void Startup::run ()
 		InheritedFiles files;
 		files.emplace_back (console_access, IDL::Sequence <uint16_t> ({ 1, 2 }));
 
-		Static <Launcher>::ptr ()->spawn (argv [0], argv, envp, "/sbin", files, callback);
+		IDL::String exe_path = argv [0];
+		IDL::String translated;
+		if (FileSystem::translate_path (exe_path, translated))
+			exe_path = std::move (translated);
+
+		if (!FileSystem::is_absolute (exe_path))
+			exe_path = ProtDomain::binary_dir () + '/' + exe_path;
+		auto ns = CosNaming::NamingContextExt::_narrow (CORBA::Core::Services::bind (CORBA::Core::Services::NameService));
+		CORBA::Object::_ref_type obj = ns->resolve_str (exe_path);
+		File::_ref_type file = File::_narrow (obj);
+		if (!file)
+			throw_UNKNOWN (make_minor_errno (ENOEXEC));
+		AccessDirect::_ref_type binary = AccessDirect::_narrow (file->open (O_RDONLY | O_DIRECT, 0)->_to_object ());
+
+		Static <Launcher>::ptr ()->spawn (binary, argv, envp, "/sbin", files, callback);
 	}
 }
 

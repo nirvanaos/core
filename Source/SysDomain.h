@@ -37,6 +37,8 @@
 #include <Port/SystemInfo.h>
 #include <Port/SysDomain.h>
 #include "MapUnorderedUnstable.h"
+#include <NameService/FileSystem.h>
+#include <fnctl.h>
 
 namespace Nirvana {
 
@@ -93,10 +95,23 @@ public:
 
 	void get_bind_info (const IDL::String& obj_name, unsigned platform, BindInfo& bind_info)
 	{
-		if (obj_name == "Nirvana/g_dec_calc")
-			bind_info.module_name ("DecCalc.olf");
-		else
-			bind_info.module_name ("TestModule.olf");
+		// TODO:: Temporary solution, for testing
+		IDL::String path = Port::SysDomain::get_platform_dir (platform);
+		IDL::String translated;
+		if (FileSystem::translate_path (path, translated))
+			path = std::move (translated);
+		auto ns = CosNaming::NamingContextExt::_narrow (CORBA::Core::Services::bind (CORBA::Core::Services::NameService));
+
+		const char* module_id = (obj_name == "Nirvana/g_dec_calc") ? "DecCalc.olf" : "TestModule.olf";
+		path += '/';
+		path += module_id;
+		ModuleLoad& module_load = bind_info.module_load ();
+		CORBA::Object::_ref_type obj = ns->resolve_str (path);
+		File::_ref_type file = File::_narrow (obj);
+		if (!file)
+			throw_UNKNOWN (make_minor_errno (ENOEXEC));
+		module_load.binary (AccessDirect::_narrow (file->open (O_RDONLY | O_DIRECT, 0)->_to_object ()));
+		module_load.module_id (module_id);
 	}
 
 	CORBA::Object::_ref_type get_service (const IDL::String& id)

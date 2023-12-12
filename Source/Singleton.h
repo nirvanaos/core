@@ -39,8 +39,8 @@ class Singleton :
 	public SyncDomain
 {
 public:
-	Singleton (const std::string& name) :
-		Module (name, true),
+	Singleton (AccessDirect::_ptr_type file) :
+		Module (file, true),
 		SyncDomain (Ref <MemContext> (this))
 	{}
 

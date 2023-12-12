@@ -25,6 +25,7 @@
 */
 #include "pch.h"
 #include "ProtDomain.h"
+#include "NameService/FileSystem.h"
 
 using namespace CORBA;
 using namespace CORBA::Core;
@@ -35,6 +36,15 @@ namespace Core {
 Object::_ref_type create_ProtDomain ()
 {
 	return ProtDomain::_this ();
+}
+
+IDL::String ProtDomain::binary_dir ()
+{
+	IDL::String dir = Port::ProtDomain::binary_dir ();
+	IDL::String translated;
+	if (FileSystem::translate_path (dir, translated))
+		dir = std::move (translated);
+	return dir;
 }
 
 }

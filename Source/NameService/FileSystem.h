@@ -60,28 +60,28 @@ public:
 	{
 		PrimaryInterface::_ref_type ret;
 		SYNC_BEGIN (g_core_free_sync_context, &MemContext::current ().heap ())
+
+			// Create file system object adapter
+			PortableServer::POA::_ref_type root_poa = PortableServer::POA::_narrow (
+				CORBA::Core::Services::bind (CORBA::Core::Services::RootPOA));
+			root_poa->find_POA (adapter_name_, true);
+			assert (adapter ());
+
+			// Create file system root object
 			CORBA::servant_reference <FileSystem> fs = CORBA::make_reference <FileSystem> ();
-			PortableServer::POA::_narrow (CORBA::Core::Services::bind (CORBA::Core::Services::RootPOA))
-				->activate_object (fs);
+			root_poa->activate_object (fs);
 			ret = fs->_this ();
+
 		SYNC_END ();
 		return ret;
 	}
 
 	FileSystem ()
 	{
-		{ // Create adapter
-			PortableServer::POA::_ref_type parent = PortableServer::POA::_narrow (
-				CORBA::Core::Services::bind (CORBA::Core::Services::RootPOA));
-			parent->find_POA (adapter_name_, true);
-			assert (adapter ());
-		}
-
-		{ // Build root map
-			Roots roots = Port::FileSystem::get_roots ();
-			for (auto& r : roots) {
-				roots_.emplace (std::move (r.dir), r.factory);
-			}
+		// Build root map
+		Roots roots = Port::FileSystem::get_roots ();
+		for (auto& r : roots) {
+			roots_.emplace (std::move (r.dir), r.factory);
 		}
 	}
 

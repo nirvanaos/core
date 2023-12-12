@@ -31,8 +31,8 @@
 namespace Nirvana {
 namespace Core {
 
-Module::Module (const StringView& name, bool singleton) :
-	Binary (name),
+Module::Module (AccessDirect::_ptr_type file, bool singleton) :
+	Binary (file),
 	singleton_ (singleton),
 	ref_cnt_ (0),
 	initial_ref_cnt_ (0),

@@ -30,7 +30,7 @@ namespace Nirvana {
 namespace Legacy {
 namespace Core {
 
-Executable::Executable (const std::string& file) :
+Executable::Executable (AccessDirect::_ptr_type file) :
 	Nirvana::Core::Binary (file),
 	Nirvana::Core::SyncContext (false),
 	entry_point_ (Nirvana::Core::Binder::bind (*this)),
@@ -61,7 +61,6 @@ void Executable::raise_exception (CORBA::SystemException::Code code, unsigned mi
 	CORBA::Internal::Bridge <Main>* br = static_cast <CORBA::Internal::Bridge <Main>*> (&entry_point_);
 	br->_epv ().epv.raise_exception (br, (short)code, (unsigned short)minor, nullptr);
 }
-
 
 }
 }

@@ -28,7 +28,9 @@
 #define NIRVANA_CORE_MODULE_H_
 #pragma once
 
+#include <CORBA/Server.h>
 #include "Binary.h"
+#include <Nirvana/Module_s.h>
 #include <Nirvana/ModuleInit.h>
 #include "AtomicCounter.h"
 #include "MemContextImpl.h"
@@ -110,7 +112,7 @@ public:
 	}
 
 protected:
-	Module (const StringView& name, bool singleton);
+	Module (AccessDirect::_ptr_type file, bool singleton);
 
 protected:
 	bool singleton_;

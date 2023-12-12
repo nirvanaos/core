@@ -108,7 +108,7 @@ public:
 
 	~Process ();
 
-	static Legacy::Process::_ref_type spawn (const IDL::String& file,
+	static Legacy::Process::_ref_type spawn (AccessDirect::_ptr_type file,
 		IDL::Sequence <IDL::String>& argv, IDL::Sequence <IDL::String>& envp, const IDL::String& work_dir,
 		const InheritedFiles& inherit, ProcessCallback::_ptr_type callback)
 	{
@@ -147,14 +147,14 @@ private:
 		CORBA::servant_reference <S> CORBA::make_reference (Args ...);
 
 	// Constructor. Do not call directly.
-	Process (const IDL::String& file,
+	Process (AccessDirect::_ptr_type file,
 		IDL::Sequence <IDL::String>& argv, IDL::Sequence <IDL::String>& envp, const IDL::String& work_dir,
 		const InheritedFiles& inherit, ProcessCallback::_ptr_type callback) :
 		// Inherit the parent heap
 		MemContextUser (Nirvana::Core::ExecDomain::current ().mem_context ().heap (), inherit),
 		state_ (INIT),
 		ret_ (-1),
-		executable_ (std::ref (file)),
+		executable_ (file),
 		argv_ (std::move (argv)),
 		envp_ (std::move (envp)),
 		callback_ (callback),

@@ -28,8 +28,6 @@
 #define NIRVANA_CORE_BINARY_H_
 #pragma once
 
-#include <CORBA/Server.h>
-#include <Nirvana/Module_s.h>
 #include <Port/Module.h>
 
 namespace Nirvana {
@@ -46,7 +44,7 @@ public:
 	}
 
 protected:
-	Binary (const StringView& file) :
+	Binary (AccessDirect::_ptr_type file) :
 		Nirvana::Core::Port::Module (file)
 	{}
 };

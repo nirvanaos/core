@@ -39,7 +39,7 @@ class Launcher :
 	public CORBA::servant_traits <ProcessFactory>::ServantStatic <Launcher>
 {
 public:
-	static Legacy::Process::_ref_type spawn (const IDL::String& file,
+	static Legacy::Process::_ref_type spawn (AccessDirect::_ptr_type file,
 		StringSeq& argv, StringSeq& envp, IDL::String& work_dir, InheritedFiles& inherit,
 		ProcessCallback::_ref_type callback)
 	{

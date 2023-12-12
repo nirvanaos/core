@@ -74,6 +74,8 @@ public:
 	{
 		throw_NO_IMPLEMENT ();
 	}
+
+	static IDL::String binary_dir ();
 };
 
 }
