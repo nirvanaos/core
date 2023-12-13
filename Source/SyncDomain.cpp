@@ -39,7 +39,7 @@ SyncDomain::SyncDomain (Ref <MemContext>&& mem_context) noexcept :
 	scheduled_deadline_ (0),
 	activity_cnt_ (0)
 {
-#ifdef _DEBUG
+#ifndef NDEBUG
 	Thread* cur = Thread::current_ptr ();
 	if (cur) {
 		ExecDomain* ed = cur->exec_domain ();

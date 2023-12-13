@@ -30,7 +30,7 @@
 namespace Nirvana {
 namespace Core {
 
-#ifdef _DEBUG
+#ifndef NDEBUG
 #define CHECK_VALID_LEVEL(lev, nod) assert(lev < nod->level)
 #else
 #define CHECK_VALID_LEVEL(lev, nod)
@@ -59,7 +59,7 @@ bool SkipListBase::less (const Node& n1, const Node& n2) const noexcept
 }
 
 SkipListBase::SkipListBase (unsigned node_size, unsigned max_level, void* head_tail) noexcept :
-#ifdef _DEBUG
+#ifndef NDEBUG
 	node_cnt_ (0),
 #endif
 	head_ (new (head_tail) Node (max_level)),
@@ -75,7 +75,7 @@ SkipListBase::Node* SkipListBase::allocate_node (unsigned level)
 	size_t cb = node_size (level);
 	Node* p = (Node*)Heap::core_heap ().allocate (0, cb, 0);
 	p->level = (Level)level;
-#ifdef _DEBUG
+#ifndef NDEBUG
 	node_cnt_.increment ();
 #endif
 	return p;
@@ -83,7 +83,7 @@ SkipListBase::Node* SkipListBase::allocate_node (unsigned level)
 
 void SkipListBase::deallocate_node (Node* node) noexcept
 {
-#ifdef _DEBUG
+#ifndef NDEBUG
 	node_cnt_.decrement ();
 #endif
 	Heap::core_heap ().release (node, node_size (node->level));
@@ -103,7 +103,7 @@ void SkipListBase::release_node (Node* node) noexcept
 		Node* prev = node->prev;
 		if (prev)
 			release_node (prev);
-#ifdef _DEBUG
+#ifndef NDEBUG
 		assert (node != head ());
 		assert (node != tail ());
 		for (int i = 0, end = node->valid_level; i < end; ++i)

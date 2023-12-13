@@ -568,7 +568,7 @@ private:
 
 	POA_Base* parent_;
 	const IDL::String* name_;
-#ifdef _DEBUG
+#ifndef NDEBUG
 	const IDL::String dbg_name_;
 #endif
 	Children children_;

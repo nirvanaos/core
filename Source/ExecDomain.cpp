@@ -119,7 +119,7 @@ Ref <ExecDomain> ExecDomain::create (const DeadlineTime deadline, Ref <MemContex
 				ed->security_context_ = parent->security_context_;
 		}
 
-#ifdef _DEBUG
+#ifndef NDEBUG
 		assert (!ed->dbg_context_stack_size_++);
 #endif
 	} catch (...) {
@@ -212,7 +212,7 @@ void ExecDomain::cleanup () noexcept
 	}
 	mem_context_ = nullptr;
 
-#ifdef _DEBUG
+#ifndef NDEBUG
 	dbg_context_stack_size_ = 0;
 #endif
 
@@ -261,7 +261,7 @@ void ExecDomain::mem_context_push (Ref <MemContext>&& mem_context)
 	MemContext* p = mem_context;
 	mem_context_stack_.emplace (std::move (mem_context));
 	mem_context_ = p;
-#ifdef _DEBUG
+#ifndef NDEBUG
 	++dbg_context_stack_size_;
 #endif
 }
@@ -269,7 +269,7 @@ void ExecDomain::mem_context_push (Ref <MemContext>&& mem_context)
 void ExecDomain::mem_context_pop () noexcept
 {
 	mem_context_stack_.pop ();
-#ifdef _DEBUG
+#ifndef NDEBUG
 	--dbg_context_stack_size_;
 #endif
 	mem_context_ = mem_context_stack_.top ();

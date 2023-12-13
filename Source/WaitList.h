@@ -167,7 +167,7 @@ public:
 	{
 		if (result_) {
 			make_ref (result_).~PtrType ();
-#ifdef _DEBUG
+#ifndef NDEBUG
 			result_ = 0; // For assert() in WaitListBase destructor
 #endif
 		}

@@ -101,7 +101,7 @@ TypeCode::_ref_type ORB::get_compact_typecode (TypeCode::_ptr_type tc, const TC_
 bool ORB::tc_equal (TypeCode::_ptr_type left, TypeCode::_ptr_type right, const TC_Pair* parent)
 {
 	// Disable optimization in Debug configuration for testing purposes.
-#ifndef _DEBUG
+#ifdef NDEBUG
 	if (&left == &right)
 		return true;
 #endif
@@ -215,7 +215,7 @@ bool ORB::tc_equivalent (TypeCode::_ptr_type left, TypeCode::_ptr_type right, co
 	right = Internal::TypeCodeBase::dereference_alias (right);
 
 	// Disable optimization in Debug configuration for testing purposes.
-#ifndef _DEBUG
+#ifdef NDEBUG
 	if (&left == &right)
 		return true;
 #endif

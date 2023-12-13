@@ -110,7 +110,7 @@ public:
 	{
 		static_assert (sizeof (R) <= MAX_RUNNABLE_SIZE, "Runnable too large");
 
-#ifdef _DEBUG
+#ifndef NDEBUG
 		{
 			SyncDomain* sd = target.sync_domain ();
 			assert (!sd || &sd->mem_context () == mem_context);
@@ -171,7 +171,7 @@ public:
 	/// \param mem_context The memory context.
 	void schedule_call (SyncContext& target, Ref <MemContext>&& mem_context)
 	{
-#ifdef _DEBUG
+#ifndef NDEBUG
 		{
 			SyncDomain* sd = target.sync_domain ();
 			assert (!sd || &sd->mem_context () == mem_context);
@@ -349,7 +349,7 @@ public:
 	/// Pop memory context stack.
 	void mem_context_pop () noexcept;
 
-#ifdef _DEBUG
+#ifndef NDEBUG
 	size_t dbg_context_stack_size_;
 #endif
 	enum class RestrictedMode
@@ -422,7 +422,7 @@ public:
 private:
 	ExecDomain () :
 		ExecContext (false),
-#ifdef _DEBUG
+#ifndef NDEBUG
 		dbg_context_stack_size_ (0),
 #endif
 		ref_cnt_ (1),

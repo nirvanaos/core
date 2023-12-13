@@ -367,7 +367,7 @@ private:
 		unsigned level = Traits::HEAP_LEVELS - 1 - ::std::min (ntz (offset | Traits::MAX_BLOCK_SIZE), ilog2_floor (size));
 		assert (level < Traits::HEAP_LEVELS);
 
-#ifdef _DEBUG
+#ifndef NDEBUG
 		{ // The check code.
 			size_t mask = Traits::MAX_BLOCK_SIZE - 1;
 			unsigned dlevel = 0;

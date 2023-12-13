@@ -256,7 +256,7 @@ protected:
 			size_t cb = Base::node_size (level);
 			auto ins = Base::insert (new (Heap::allocate (*part, cb, 0, allocation_unit)) NodeVal (level, part));
 			assert (ins.second);
-#ifdef _DEBUG
+#ifndef NDEBUG
 			node_cnt_.increment ();
 #endif
 			return ins.first;

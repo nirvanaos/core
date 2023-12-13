@@ -65,7 +65,7 @@ public:
 
 	Nirvana::Core::MemContext* memory () const noexcept;
 
-#ifdef _DEBUG
+#ifndef NDEBUG
 	RefCntProxy::IntegralType _refcount_value () const noexcept
 	{
 		return ref_cnt_.load ();

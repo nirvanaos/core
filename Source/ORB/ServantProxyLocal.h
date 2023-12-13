@@ -44,11 +44,11 @@ public:
 
 	/// \returns User LocalObject implementation
 	LocalObject::_ptr_type servant () const
-#ifndef _DEBUG
+#ifdef NDEBUG
 		noexcept
 #endif
 	{
-#ifdef _DEBUG
+#ifndef NDEBUG
 		return CORBA::LocalObject::_check (&Base::servant ());
 #else
 		return static_cast <CORBA::LocalObject*> (&Base::servant ());

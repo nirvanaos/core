@@ -214,7 +214,7 @@ private:
 	void mark_next_links (Node* node, int from_level) noexcept;
 	inline void delete_node (Node* node) noexcept;
 
-#ifdef _DEBUG
+#ifndef NDEBUG
 public:
 	AtomicCounter <false>::IntegralType dbg_node_cnt () const noexcept
 	{
@@ -279,7 +279,7 @@ protected:
 			release_node (node);
 		}
 
-#ifdef _DEBUG
+#ifndef NDEBUG
 		new (&node_cnt_) AtomicCounter <false> ((AtomicCounter <false>::IntegralType)other.node_cnt_);
 		new (&other.node_cnt_) AtomicCounter <false> (0);
 #endif

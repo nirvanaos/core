@@ -28,7 +28,7 @@
 #include <CORBA/Servant_var.h>
 #include "Nirvana_policies.h"
 
-#ifdef _DEBUG
+#ifndef NDEBUG
 //#define DISABLE_DGC_BY_DEFAULT
 #endif
 

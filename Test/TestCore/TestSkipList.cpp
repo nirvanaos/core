@@ -53,7 +53,7 @@ TYPED_TEST (TestSkipList, DeleteMin)
 	int i;
 	ASSERT_TRUE (sl.delete_min (i));
 	EXPECT_EQ (i, 0);
-#ifdef _DEBUG
+#ifndef NDEBUG
 	ASSERT_EQ (sl.dbg_node_cnt (), 0);
 #endif
 
@@ -76,7 +76,7 @@ TYPED_TEST (TestSkipList, DeleteMin)
 		ASSERT_TRUE (sl.delete_min (i));
 		ASSERT_EQ (i, n);
 	}
-#ifdef _DEBUG
+#ifndef NDEBUG
 	EXPECT_EQ (sl.dbg_node_cnt (), 0);
 #endif
 }
@@ -123,7 +123,7 @@ TYPED_TEST (TestSkipList, DeleteMinMT)
 	int i;
 	while (sl.delete_min (i))
 		;
-#ifdef _DEBUG
+#ifndef NDEBUG
 	ASSERT_EQ (sl.dbg_node_cnt (), 0);
 #endif
 }
@@ -137,7 +137,7 @@ TYPED_TEST (TestSkipList, Move)
 
 	TypeParam sl1;
 	sl1 = std::move (sl);
-#ifdef _DEBUG
+#ifndef NDEBUG
 	ASSERT_EQ (sl.dbg_node_cnt (), 0);
 	ASSERT_EQ (sl1.dbg_node_cnt (), 3);
 #endif
@@ -168,7 +168,7 @@ TYPED_TEST (TestSkipList, Equal)
 	ASSERT_TRUE (sl.delete_min (i));
 	EXPECT_EQ (i, 1);
 	EXPECT_FALSE (sl.delete_min (i));
-#ifdef _DEBUG
+#ifndef NDEBUG
 	EXPECT_EQ (sl.dbg_node_cnt (), 0);
 #endif
 }
@@ -222,7 +222,7 @@ TYPED_TEST (TestSkipList, FindAndDelete)
 	TypeParam sl;
 	find_and_delete (sl, std::mt19937::default_seed);
 	ASSERT_FALSE (sl.delete_min ());
-#ifdef _DEBUG
+#ifndef NDEBUG
 	EXPECT_EQ (sl.dbg_node_cnt (), 0);
 #endif
 }
@@ -244,7 +244,7 @@ TYPED_TEST (TestSkipList, FindAndDeleteMT)
 		}
 		threads.clear ();
 		ASSERT_FALSE (sl.delete_min ());
-#ifdef _DEBUG
+#ifndef NDEBUG
 		ASSERT_EQ (sl.dbg_node_cnt (), 0);
 #endif
 	}
@@ -282,7 +282,7 @@ TYPED_TEST (TestSkipList, FindAndRemove)
 	TypeParam sl;
 	find_and_remove (sl, std::mt19937::default_seed);
 	ASSERT_FALSE (sl.delete_min ());
-#ifdef _DEBUG
+#ifndef NDEBUG
 	EXPECT_EQ (sl.dbg_node_cnt (), 0);
 #endif
 }
@@ -304,7 +304,7 @@ TYPED_TEST (TestSkipList, FindAndRemoveMT)
 		}
 		threads.clear ();
 		ASSERT_FALSE (sl.delete_min ());
-#ifdef _DEBUG
+#ifndef NDEBUG
 		ASSERT_EQ (sl.dbg_node_cnt (), 0);
 #endif
 	}

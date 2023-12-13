@@ -82,11 +82,11 @@ public:
 
 	/// Returns user ServantBase implementation
 	PortableServer::Servant servant () const
-#ifndef _DEBUG
+#ifdef NDEBUG
 		noexcept
 #endif
 	{
-#ifdef _DEBUG
+#ifndef NDEBUG
 		return PortableServer::ServantBase::_check (&Base::servant ());
 #else
 		return static_cast <PortableServer::ServantBase*> (&Base::servant ());

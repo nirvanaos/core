@@ -161,7 +161,7 @@ POA_Base::POA_Base (POA_Base* parent, const IDL::String* name,
 	base_flags_ (),
 	parent_ (parent),
 	name_ (name),
-#ifdef _DEBUG
+#ifndef NDEBUG
 	dbg_name_ (name ? *name : "RootPOA"),
 #endif
 	request_cnt_ (0),

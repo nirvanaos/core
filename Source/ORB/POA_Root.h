@@ -211,7 +211,7 @@ POA::_ref_type POA_Base::create_POA (const IDL::String& adapter_name,
 {
 	check_exist ();
 
-#ifdef _DEBUG
+#ifndef NDEBUG
 	for (size_t i = 1; i < FACTORY_COUNT; ++i) {
 		assert (factories_ [i - 1].policies < factories_ [i].policies);
 	}

@@ -97,7 +97,7 @@ void terminate0 () noexcept
 {
 	Scheduler::terminate ();
 	ExecDomain::terminate ();
-#ifdef _DEBUG
+#ifndef NDEBUG
 	g_core_free_sync_context.destruct ();
 #endif
 }

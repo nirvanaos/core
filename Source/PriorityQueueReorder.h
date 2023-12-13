@@ -82,7 +82,7 @@ public:
 
 	~PriorityQueueReorder ()
 	{
-#ifdef _DEBUG
+#ifndef NDEBUG
 		assert (!Base::node_cnt_);
 #endif
 	}

@@ -329,7 +329,7 @@ void RequestOut::pre_invoke (IdPolicy id_policy)
 	if (response) {
 		OutgoingRequests::new_request (*this, id_policy);
 
-#ifdef _DEBUG
+#ifndef NDEBUG
 		if (!Nirvana::Core::Port::Debugger::is_debugger_present ())
 #endif
 		timer_.set (std::max (Chrono::deadline_to_time (
