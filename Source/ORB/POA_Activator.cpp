@@ -34,8 +34,11 @@ using namespace CORBA::Core;
 namespace PortableServer {
 namespace Core {
 
+inline
 Object::_ref_type POA_Activator::incarnate (Type <ObjectId>::C_in oid)
 {
+	// IDL-generated client code returns ServantBase.
+	// We need Object instead, so use custom client call.
 	Bridge <ServantActivator>* bridge = static_cast <Bridge <ServantActivator>*>
 		(&ServantActivator::_ptr_type (activator_));
 	EnvironmentEx <ForwardRequest> env;

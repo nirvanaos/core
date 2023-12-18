@@ -57,11 +57,13 @@ MemContext& RequestLocalRoot::target_memory ()
 	switch (state_) {
 	case State::CALLER:
 	case State::CALL:
+		// Caller-side allocation
 		if (!callee_memory_)
 			callee_memory_ = MemContextImpl::create ();
 		return *callee_memory_;
 
 	default:
+		// Callee-side allocation
 		return *caller_memory_;
 	}
 }
@@ -71,14 +73,11 @@ MemContext& RequestLocalRoot::source_memory ()
 	switch (state_) {
 	case State::CALLER:
 	case State::CALL:
+		// Caller-side
 		return *caller_memory_;
 
 	default:
-		if (!callee_memory_) {
-			callee_memory_ = ExecDomain::current ().mem_context_ptr ();
-			if (!callee_memory_)
-				throw MARSHAL ();
-		}
+		// Callee-side allocation
 		return *callee_memory_;
 	}
 }
@@ -86,11 +85,18 @@ MemContext& RequestLocalRoot::source_memory ()
 bool RequestLocalRoot::marshal_op () noexcept
 {
 	if (State::CALL == state_) {
+		ExecDomain& ed = ExecDomain::current ();
+
 		// Leave sync domain, if any.
 		// Output data marshaling performed out of sync domain.
-		ExecDomain::current ().leave_sync_domain ();
+		ed.leave_sync_domain ();
 
+		// Clear caller-marshalled data
 		clear ();
+
+		// callee_memory_ here may be nil or contain temporary memory context.
+		// We must set it to the callee memory context.
+		callee_memory_ = ed.mem_context_ptr ();
 		state_ = State::CALLEE;
 	}
 	return state_ == State::CALLER || (response_flags_ & RESPONSE_DATA)
@@ -259,21 +265,29 @@ void RequestLocalRoot::marshal_segment (size_t align, size_t element_size,
 	if (allocated_size && allocated_size < size)
 		throw BAD_PARAM ();
 	Segment* segment = (Segment*)get_element_buffer (sizeof (Segment));
-	if (allocated_size && &caller_memory_->heap () == &callee_memory_->heap ()) {
-		segment->allocated_size = allocated_size;
-		segment->ptr = data;
-		allocated_size = 0;
-	} else {
-		Heap& target_heap = target_memory ().heap ();
-		if (allocated_size) {
-			Heap& source_heap = source_memory ().heap ();
+
+	Heap& target_heap = target_memory ().heap ();
+
+	// If allocated_size != 0, we can adopt memory block (move semantic).
+	if (allocated_size) {
+		Heap& source_heap = source_memory ().heap ();
+		if (&target_heap == &source_heap) {
+			// Heaps are the same, just adopt memory block
+			segment->allocated_size = allocated_size;
+			segment->ptr = data;
+			allocated_size = 0;
+		} else {
+			// Move memory block from one heap to another
 			segment->ptr = target_heap.move_from (source_heap, data, size);
 			size_t cb_release = allocated_size - size;
 			allocated_size = 0;
 			if (cb_release)
 				source_heap.release ((Octet*)data + size, cb_release);
-		} else
-			segment->ptr = target_heap.copy (nullptr, data, size, 0);
+			segment->allocated_size = size;
+		}
+	} else {
+		// Copy block
+		segment->ptr = target_heap.copy (nullptr, data, size, 0);
 		segment->allocated_size = size;
 	}
 	segment->next = segments_;

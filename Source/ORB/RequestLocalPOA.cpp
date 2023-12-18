@@ -42,9 +42,7 @@ RequestLocalPOA::RequestLocalPOA (ReferenceLocal& reference, OperationIndex op,
 	RequestLocalBase (nullptr, response_flags),
 	reference_ (&reference),
 	op_idx_ (op)
-{
-	callee_memory_ = caller_memory_;
-}
+{}
 
 void RequestLocalPOA::_add_ref () noexcept
 {
@@ -53,7 +51,7 @@ void RequestLocalPOA::_add_ref () noexcept
 
 MemContext* RequestLocalPOA::memory () const noexcept
 {
-	return caller_memory_;
+	return RequestLocalBase::memory ();
 }
 
 const IOP::ObjectKey& RequestLocalPOA::object_key () const noexcept
@@ -74,13 +72,13 @@ void RequestLocalPOA::set_exception (Any& e)
 void RequestLocalPOA::serve (const ServantProxyBase& proxy)
 {
 	SyncContext& sc = proxy.get_sync_context (op_idx ());
-	MemContext* mc = nullptr;
 	SyncDomain* sd = sc.sync_domain ();
-	if (sd) {
+	MemContext* mc = nullptr;
+	if (sd)
 		mc = &sd->mem_context ();
-		callee_memory_ = mc;
-	} else
-		mc = memory ();
+	else
+		mc = callee_memory_;
+
 	SYNC_BEGIN (sc, mc);
 	proxy.invoke (op_idx (), _get_ptr ());
 	SYNC_END ();
