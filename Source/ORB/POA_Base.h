@@ -182,7 +182,7 @@ public:
 	{
 		check_exist ();
 
-		_NTRACE ("POA::destroy started %s", dbg_name_.c_str ());
+		NIRVANA_TRACE ("POA::destroy started %s", dbg_name_.c_str ());
 
 		if (wait_for_completion)
 			check_wait_completion ();
@@ -214,7 +214,7 @@ public:
 		if (wait_for_completion)
 			destroy_completed_.wait ();
 
-		_NTRACE ("POA::destroy completed %s", dbg_name_.c_str ());
+		NIRVANA_TRACE ("POA::destroy completed %s", dbg_name_.c_str ());
 	}
 
 	POA_Ref find_child (const IDL::String& adapter_name, bool activate_it);

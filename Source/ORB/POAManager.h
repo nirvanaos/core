@@ -46,7 +46,7 @@ public:
 
 	~POAManager ()
 	{
-		_NTRACE ("~POAManager ()");
+		NIRVANA_TRACE ("~POAManager ()");
 	}
 
 	CORBA::Core::PolicyMapShared* policies () const noexcept
