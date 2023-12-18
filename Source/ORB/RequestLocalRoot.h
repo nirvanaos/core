@@ -381,13 +381,12 @@ public:
 	///@{
 	/// Callee operations.
 
-	/// End of input data marshaling.
+	/// End of the data unmarshaling.
 	/// 
 	/// Marshaling resources may be released.
 	void unmarshal_end () noexcept
 	{
 		clear ();
-		state_ = State::CALLEE;
 	}
 
 	/// Return exception to caller.
@@ -468,6 +467,11 @@ protected:
 
 	RequestLocalRoot (Nirvana::Core::MemContext* callee_memory, unsigned response_flags)
 		noexcept;
+
+	~RequestLocalRoot ()
+	{
+		cleanup ();
+	}
 
 	Nirvana::Core::MemContext& target_memory ();
 	Nirvana::Core::MemContext& source_memory ();

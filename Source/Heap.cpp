@@ -270,17 +270,14 @@ void* Heap::move_from (Heap& other, void* p, size_t& size)
 	const MemoryBlock& block = node->value ();
 	if (!block.is_large_block ()) {
 		other.block_list_.release_node (node);
+		uint8_t* part_end = block.begin () + other.partition_size ();
+		size_t old_size = size;
+		if ((uint8_t*)p + old_size > part_end)
+			THROW (BAD_PARAM); // p does not belong to the source heap.
 		// Copy
 		void* pc = copy (nullptr, p, size, 0);
 		// Release from other heap partition
-		uint8_t* part_end = block.begin () + other.partition_size ();
-		if ((uint8_t*)p + size <= part_end)
-			other.release (block.directory (), p, size);
-		else {
-			// Something is wrong. Release copy and rethrow.
-			release (pc, size);
-			THROW (FREE_MEM);
-		}
+		other.release (block.directory (), p, old_size);
 		p = pc;
 	} else {
 		// Adopt large block
