@@ -30,9 +30,6 @@
 #include <atomic>
 #include <iostream>
 
-//#define THROW(e) { std::cerr << #e << " " << __FILE__ << ":" << __LINE__ << std::endl; throw_##e ();}
-#define THROW(e) throw_##e ()
-
 namespace Nirvana {
 namespace Core {
 
@@ -128,7 +125,7 @@ void Heap::LBErase::prepare (void* p, size_t size)
 	MemoryBlock* block = &first_block_.node->value ();
 	assert (block->is_large_block ());
 	if (!(first_block_.size = block->large_block_size ()))
-		THROW (BAD_PARAM); // Block is collapsed in another thread.
+		throw_BAD_PARAM (); // Block is collapsed in another thread.
 
 	// Collect contiguos blocks.
 	const uintptr_t au = Port::Memory::ALLOCATION_UNIT;
@@ -142,12 +139,12 @@ void Heap::LBErase::prepare (void* p, size_t size)
 		if (last_block_.node)
 			middle_blocks_.push_back (last_block_);
 		if (!(last_block_.node = heap_.block_list_.find (block_end)))
-			THROW (BAD_PARAM);
+			throw_BAD_PARAM ();
 		block = &last_block_.node->value ();
 		if (!block->is_large_block ())
-			THROW (BAD_PARAM);
+			throw_BAD_PARAM ();
 		if (!(last_block_.size = block->large_block_size ()))
-			THROW (BAD_PARAM);
+			throw_BAD_PARAM ();
 		block_end = block->begin () + last_block_.size;
 	}
 
@@ -157,7 +154,7 @@ void Heap::LBErase::prepare (void* p, size_t size)
 
 	// Collapse collected blocks.
 	if (last_block_.node && !last_block_.collapse ())
-		THROW (BAD_PARAM);
+		throw_BAD_PARAM ();
 
 	for (MiddleBlocks::reverse_iterator it = middle_blocks_.rbegin (); it != middle_blocks_.rend (); ++it) {
 		if (!it->collapse ()) {
@@ -166,13 +163,13 @@ void Heap::LBErase::prepare (void* p, size_t size)
 			while (it > middle_blocks_.rbegin ()) {
 				(--it)->restore ();
 			}
-			THROW (BAD_PARAM);
+			throw_BAD_PARAM ();
 		}
 	}
 
 	try {
 		if (!first_block_.collapse ())
-			THROW (BAD_PARAM);
+			throw_BAD_PARAM ();
 	} catch (...) {
 		rollback_helper ();
 		throw;
@@ -234,7 +231,7 @@ void Heap::release (void* p, size_t size)
 	// Search memory block
 	BlockList::NodeVal* node = block_list_.lower_bound (p);
 	if (!node)
-		THROW (FREE_MEM);
+		throw_FREE_MEM ();
 	const MemoryBlock& block = node->value ();
 	if (!block.is_large_block ()) {
 		// Release from heap partition
@@ -243,7 +240,7 @@ void Heap::release (void* p, size_t size)
 		if ((uint8_t*)p + size <= part_end)
 			release (block.directory (), p, size);
 		else
-			THROW (FREE_MEM);
+			throw_FREE_MEM ();
 	} else {
 		// Release large block
 		LBErase lberase (*this, node);
@@ -266,14 +263,14 @@ void* Heap::move_from (Heap& other, void* p, size_t& size)
 	// Search memory block
 	BlockList::NodeVal* node = other.block_list_.lower_bound (p);
 	if (!node)
-		THROW (BAD_PARAM);
+		throw_BAD_PARAM ();
 	const MemoryBlock& block = node->value ();
 	if (!block.is_large_block ()) {
 		other.block_list_.release_node (node);
 		uint8_t* part_end = block.begin () + other.partition_size ();
 		size_t old_size = size;
 		if ((uint8_t*)p + old_size > part_end)
-			THROW (BAD_PARAM); // p does not belong to the source heap.
+			throw_BAD_PARAM (); // p does not belong to the source heap.
 		// Copy
 		void* pc = copy (nullptr, p, size, 0);
 		// Release from other heap partition
@@ -304,7 +301,7 @@ void Heap::release (Directory& part, void* p, size_t size) const
 	size_t begin = offset / allocation_unit_;
 	size_t end = (offset + size + allocation_unit_ - 1) / allocation_unit_;
 	if (!part.check_allocated (begin, end))
-		THROW (FREE_MEM);
+		throw_FREE_MEM ();
 	if (Directory::IMPLEMENTATION != HeapDirectoryImpl::PLAIN_MEMORY) {
 		HeapInfo hi = { heap, allocation_unit_, Port::Memory::OPTIMAL_COMMIT_UNIT };
 		part.release (begin, end, &hi);
@@ -333,7 +330,7 @@ Heap::Directory* Heap::get_partition (const void* p) noexcept
 void* Heap::allocate (void* p, size_t& size, unsigned flags)
 {
 	if (!size)
-		THROW (BAD_PARAM);
+		throw_BAD_PARAM ();
 
 	if ((flags & ~(Memory::RESERVED | Memory::READ_ONLY | Memory::EXACTLY | Memory::ZERO_INIT))
 		|| ((flags & Memory::READ_ONLY) && !(flags & Memory::RESERVED))
@@ -528,7 +525,7 @@ void* Heap::copy (void* dst, void* src, size_t& size, unsigned flags)
 		return dst;
 
 	if (!src)
-		THROW (BAD_PARAM);
+		throw_BAD_PARAM ();
 
 	if (flags != Memory::SIMPLE_COPY
 		&& (flags & ~(Memory::READ_ONLY | Memory::SRC_RELEASE | Memory::DST_ALLOCATE | Memory::EXACTLY))
@@ -540,7 +537,7 @@ void* Heap::copy (void* dst, void* src, size_t& size, unsigned flags)
 		if (check_owner (dst, size))
 			return Port::Memory::copy (dst, src, size, flags);
 		else if (flags & Memory::READ_ONLY)
-			THROW (NO_PERMISSION);
+			throw_NO_PERMISSION ();
 		return dst;
 	}
 
@@ -549,7 +546,7 @@ void* Heap::copy (void* dst, void* src, size_t& size, unsigned flags)
 	if (release_flags == Memory::SRC_RELEASE) {
 		BlockList::NodeVal* node = block_list_.lower_bound (src);
 		if (!node)
-			THROW (BAD_PARAM);
+			throw_BAD_PARAM ();
 		const MemoryBlock& block = node->value ();
 		if (block.is_large_block ()) {
 			LBErase lberase (*this, node);
@@ -577,13 +574,13 @@ void* Heap::copy (void* dst, void* src, size_t& size, unsigned flags)
 			// Release from the heap partition
 			uint8_t* heap = block.begin ();
 			if ((uint8_t*)src + size > heap + partition_size ())
-				THROW (FREE_MEM);
+				throw_FREE_MEM ();
 			size_t offset = (uint8_t*)src - heap;
 			size_t begin = offset / allocation_unit_;
 			size_t end = (offset + size + allocation_unit_ - 1) / allocation_unit_;
 			Directory* part = (Directory*)heap - 1;
 			if (!part->check_allocated (begin, end))
-				THROW (FREE_MEM);
+				throw_FREE_MEM ();
 
 			if (!dst) {
 				// Memory::SRC_RELEASE is specified, so we can use source block as destination
@@ -622,7 +619,7 @@ void* Heap::copy (void* dst, void* src, size_t& size, unsigned flags)
 				} else {
 					dst_own = check_owner (dst, size);
 					if (!dst_own && (flags & Memory::READ_ONLY))
-						THROW (NO_PERMISSION);
+						throw_NO_PERMISSION ();
 				}
 
 				try {
@@ -645,7 +642,7 @@ void* Heap::copy (void* dst, void* src, size_t& size, unsigned flags)
 	} else if (release_flags) {
 		assert (release_flags == Memory::SRC_DECOMMIT);
 		if (!check_owner (src, size))
-			THROW (NO_PERMISSION);
+			throw_NO_PERMISSION ();
 	}
 
 	uint8_t* alloc_begin = nullptr;
