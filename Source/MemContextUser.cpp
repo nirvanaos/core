@@ -75,7 +75,7 @@ public:
 	virtual bool isatty () const override;
 
 private:
-	AccessBuf::_ref_type access_;
+	const AccessBuf::_ref_type access_;
 };
 
 class MemContextUser::FileDescriptorChar : public FileDescriptorBase
@@ -99,11 +99,12 @@ public:
 	virtual bool isatty () const override;
 
 private:
-	AccessChar::_ref_type access_;
+	const AccessChar::_ref_type access_;
 	Ref <CharFileAdapter> adapter_;
 	unsigned flags_;
 };
 
+inline
 MemContextUser::Data* MemContextUser::Data::create ()
 {
 	return new Data;
@@ -128,9 +129,9 @@ MemContextUser::Data::Data (const InheritedFiles& inh)
 		FileDescriptorRef fd = make_fd (f.access ());
 		for (auto d : f.descriptors ()) {
 			FileDescriptorInfo& fdr = get_fd (d);
-			if (fdr.ref)
+			if (!fdr.closed ())
 				throw_BAD_PARAM ();
-			fdr.ref = fd;
+			fdr.attach (std::move (fd));
 		}
 	}
 }
@@ -193,7 +194,7 @@ size_t MemContextUser::Data::alloc_fd (unsigned start)
 	if (i < file_descriptors_.size ()) {
 		auto it = file_descriptors_.begin ();
 		for (; it != file_descriptors_.end (); ++it) {
-			if (!it->ref)
+			if (it->closed ())
 				break;
 		}
 		i = it - file_descriptors_.begin ();
@@ -210,7 +211,7 @@ unsigned MemContextUser::Data::fd_add (Access::_ptr_type access)
 {
 	// Allocate file descriptor cell
 	size_t i = alloc_fd ();
-	file_descriptors_ [i].ref = make_fd (access);
+	file_descriptors_ [i].attach (make_fd (access));
 
 	return (unsigned)(i + STD_CNT);
 }
@@ -219,7 +220,7 @@ inline
 void MemContextUser::Data::close (unsigned ifd)
 {
 	get_open_fd (ifd).close ();
-	while (!file_descriptors_.empty () && !file_descriptors_.back ().ref) {
+	while (!file_descriptors_.empty () && file_descriptors_.back ().closed ()) {
 		file_descriptors_.pop_back ();
 	}
 }
@@ -237,7 +238,7 @@ MemContextUser::FileDescriptorInfo& MemContextUser::Data::get_fd (unsigned ifd)
 MemContextUser::FileDescriptorInfo& MemContextUser::Data::get_open_fd (unsigned ifd)
 {
 	FileDescriptorInfo& fd = get_fd (ifd);
-	if (!fd.ref)
+	if (fd.closed ())
 		throw_BAD_PARAM (make_minor_errno (EBADF));
 	return fd;
 }
@@ -261,19 +262,19 @@ MemContextUser::FileDescriptorRef MemContextUser::Data::make_fd (CORBA::Abstract
 inline
 size_t MemContextUser::Data::read (unsigned ifd, void* p, size_t size)
 {
-	return get_open_fd (ifd).ref->read (p, size);
+	return get_open_fd (ifd).ref ()->read (p, size);
 }
 
 inline
 void MemContextUser::Data::write (unsigned ifd, const void* p, size_t size)
 {
-	get_open_fd (ifd).ref->write (p, size);
+	get_open_fd (ifd).ref ()->write (p, size);
 }
 
 inline
 uint64_t MemContextUser::Data::seek (unsigned ifd, const int64_t& off, unsigned method)
 {
-	return get_open_fd (ifd).ref->seek (method, off);
+	return get_open_fd (ifd).ref ()->seek (method, off);
 }
 
 inline 
@@ -281,7 +282,7 @@ unsigned MemContextUser::Data::dup (unsigned ifd, unsigned start)
 {
 	const FileDescriptorInfo& src = get_open_fd (ifd);
 	size_t i = alloc_fd (start);
-	file_descriptors_ [i].ref = src.ref;
+	file_descriptors_ [i].dup (src);
 	return (unsigned)(i + STD_CNT);
 }
 
@@ -290,15 +291,15 @@ void MemContextUser::Data::dup2 (unsigned fd_src, unsigned fd_dst)
 {
 	const FileDescriptorInfo& src = get_open_fd (fd_src);
 	FileDescriptorInfo& dst = get_fd (fd_dst);
-	if (dst.ref)
+	if (dst.closed ())
 		dst.close ();
-	dst.ref = src.ref;
+	dst.dup (src);
 }
 
 inline
 unsigned MemContextUser::Data::fd_flags (unsigned ifd)
 {
-	return get_open_fd (ifd).fd_flags;
+	return get_open_fd (ifd).fd_flags ();
 }
 
 inline
@@ -307,37 +308,39 @@ void MemContextUser::Data::fd_flags (unsigned ifd, unsigned flags)
 	if (flags & ~FD_CLOEXEC)
 		throw_INV_FLAG (make_minor_errno (EINVAL));
 
-	get_open_fd (ifd).fd_flags = flags;
+	get_open_fd (ifd).fd_flags (flags);
 }
 
 inline
 unsigned MemContextUser::Data::flags (unsigned ifd)
 {
-	return get_open_fd (ifd).ref->flags ();
+	return get_open_fd (ifd).ptr ()->flags ();
 }
 
 inline
 void MemContextUser::Data::flags (unsigned ifd, unsigned flags)
 {
-	return get_open_fd (ifd).ref->flags (flags);
+	return get_open_fd (ifd).ref ()->flags (flags);
 }
 
 inline
 void MemContextUser::Data::flush (unsigned ifd)
 {
-	get_open_fd (ifd).ref->flush ();
+	get_open_fd (ifd).ref ()->flush ();
 }
 
 inline
 bool MemContextUser::Data::isatty (unsigned ifd)
 {
-	return get_open_fd (ifd).ref->isatty ();
+	// In the future is possible that isatty will perform outgoing call.
+	// So we use ref () just for case here.
+	return get_open_fd (ifd).ref ()->isatty ();
 }
 
 inline
 void MemContextUser::Data::push_back (unsigned ifd, int c)
 {
-	get_open_fd (ifd).ref->push_back (c);
+	get_open_fd (ifd).ptr ()->push_back (c);
 }
 
 MemContextUser& MemContextUser::current ()
@@ -358,7 +361,6 @@ MemContextUser::MemContextUser (Heap& heap, const InheritedFiles& inh) :
 MemContextUser::~MemContextUser ()
 {}
 
-inline
 MemContextUser::Data& MemContextUser::data ()
 {
 	if (!data_)
@@ -407,67 +409,82 @@ unsigned MemContextUser::fd_add (Access::_ptr_type access)
 	return data ().fd_add (access);
 }
 
-void MemContextUser::close (unsigned fd)
+MemContextUser::Data& MemContextUser::data_for_fd () const
 {
 	if (!data_)
 		throw_BAD_PARAM (make_minor_errno (EBADF));
-	data_->close (fd);
+	return *data_;
+}
+
+void MemContextUser::close (unsigned fd)
+{
+	data_for_fd ().close (fd);
 }
 
 size_t MemContextUser::read (unsigned fd, void* p, size_t size)
 {
-	return data ().read (fd, p, size);
+	return data_for_fd ().read (fd, p, size);
 }
 
 void MemContextUser::write (unsigned fd, const void* p, size_t size)
 {
-	data ().write (fd, p, size);
+	data_for_fd ().write (fd, p, size);
 }
 
 uint64_t MemContextUser::seek (unsigned fd, const int64_t& off, unsigned method)
 {
-	return data ().seek (fd, off, method);
+	return data_for_fd ().seek (fd, off, method);
 }
 
 unsigned MemContextUser::fcntl (unsigned ifd, int cmd, unsigned arg)
 {
+	unsigned ret = 0;
+	Data& data = data_for_fd ();
 	switch (cmd) {
 		case F_DUPFD:
-			return data ().dup (ifd, arg);
+			ret = data.dup (ifd, arg);
+			break;
 
 		case F_GETFD:
-			return data ().fd_flags (ifd);
+			ret = data.fd_flags (ifd);
+			break;
 
 		case F_SETFD:
-			data ().fd_flags (ifd, arg);
+			data.fd_flags (ifd, arg);
+			break;
 
 		case F_GETFL:
-			return data ().flags (ifd);
+			ret = data.flags (ifd);
+			break;
 
 		case F_SETFL:
-			data ().flags (ifd, arg);
+			data.flags (ifd, arg);
+			break;
+
+		default:
+			throw_BAD_PARAM (make_minor_errno (EINVAL));
 	}
-	throw_BAD_PARAM (make_minor_errno (EINVAL));
+	return ret;
 }
 
 void MemContextUser::flush (unsigned ifd)
 {
-	data ().flush (ifd);
+	data_for_fd ().flush (ifd);
 }
 
 void MemContextUser::dup2 (unsigned src, unsigned dst)
 {
-	data ().dup2 (src, dst);
+	data_for_fd ().dup2 (src, dst);
 }
 
 bool MemContextUser::isatty (unsigned ifd)
 {
-	return data ().isatty (ifd);
+	return data_for_fd ().isatty (ifd);
 }
 
 void MemContextUser::push_back (unsigned ifd, int c)
 {
-	data ().push_back (ifd, c);
+	data_for_fd ().push_back (ifd, c);
 }
 
 void MemContextUser::FileDescriptorBuf::close () const
@@ -485,10 +502,8 @@ void MemContextUser::FileDescriptorChar::close () const
 size_t MemContextUser::FileDescriptorBuf::read (void* p, size_t size)
 {
 	size_t cb = push_back_read (p, size);
-	if (size) {
-		Nirvana::AccessBuf::_ref_type hold = access_;
-		cb += hold->read (p, size);
-	}
+	if (size)
+		cb += access_->read (p, size);
 	return cb;
 }
 
@@ -497,42 +512,37 @@ size_t MemContextUser::FileDescriptorChar::read (void* p, size_t size)
 	if (!adapter_)
 		throw_NO_PERMISSION (make_minor_errno (EBADF));
 	size_t cb = push_back_read (p, size);
-	if (size) {
-		Ref <CharFileAdapter> hold = adapter_;
-		cb += hold->read (p, size);
-	}
+	if (size)
+		cb += adapter_->read (p, size);
 	return cb;
 }
 
 void MemContextUser::FileDescriptorBuf::write (const void* p, size_t size)
 {
 	push_back_reset ();
-	Nirvana::AccessBuf::_ref_type hold = access_;
-	hold->write (p, size);
+	access_->write (p, size);
 }
 
 void MemContextUser::FileDescriptorChar::write (const void* p, size_t size)
 {
 	push_back_reset ();
-	Nirvana::AccessChar::_ref_type hold = access_;
-	hold->write (CORBA::Internal::StringView <char> ((const char*)p, size));
+	access_->write (CORBA::Internal::StringView <char> ((const char*)p, size));
 }
 
 uint64_t MemContextUser::FileDescriptorBuf::seek (unsigned method, const int64_t& off)
 {
 	FileSize pos;
-	Nirvana::AccessBuf::_ref_type hold = access_;
 	switch (method) {
 	case SEEK_SET:
 		pos = 0;
 		break;
 
 	case SEEK_CUR:
-		pos = hold->position ();
+		pos = access_->position ();
 		break;
 
 	case SEEK_END:
-		pos = hold->size ();
+		pos = access_->size ();
 		break;
 
 	default:
@@ -552,7 +562,7 @@ uint64_t MemContextUser::FileDescriptorBuf::seek (unsigned method, const int64_t
 	else
 		push_back_reset ();
 
-	hold->position (pos += off);
+	access_->position (pos += off);
 	return pos;
 }
 

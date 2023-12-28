@@ -130,8 +130,38 @@ private:
 				throw_IMP_LIMIT (ERANGE);
 		}
 
+		bool error () const noexcept
+		{
+			return error_;
+		}
+
+		bool eof () const noexcept
+		{
+			return eof_;
+		}
+
+		void clearerr () noexcept
+		{
+			error_ = false;
+			eof_ = false;
+		}
+
+		void add_descriptor_ref () noexcept
+		{
+			++descriptor_ref_cnt_;
+		}
+
+		unsigned remove_descriptor_ref () noexcept
+		{
+			assert (descriptor_ref_cnt_);
+			return --descriptor_ref_cnt_;
+		}
+
 	protected:
 		FileDescriptor () :
+			descriptor_ref_cnt_ (1),
+			error_ (false),
+			eof_ (false),
 			push_back_cnt_ (0)
 		{}
 
@@ -151,6 +181,9 @@ private:
 		}
 
 	private:
+		unsigned descriptor_ref_cnt_;
+		bool error_;
+		bool eof_;
 		uint8_t push_back_cnt_;
 		uint8_t push_back_buf_ [PUSH_BACK_MAX];
 	};
@@ -158,22 +191,61 @@ private:
 	typedef ImplDynamicSync <FileDescriptor> FileDescriptorBase;
 	typedef Ref <FileDescriptorBase> FileDescriptorRef;
 
-	struct FileDescriptorInfo
+	class FileDescriptorInfo
 	{
-		FileDescriptorRef ref;
-		unsigned fd_flags;
-
-		FileDescriptorInfo () :
-			fd_flags (0)
+	public:
+		FileDescriptorInfo () noexcept :
+			fd_flags_ (0)
 		{}
 
 		void close ()
 		{
-			if (ref->_refcount_value () == 1)
-				ref->close ();
-			ref = nullptr;
-			fd_flags = 0;
+			if (0 == ref_->remove_descriptor_ref ())
+				ref_->close ();
+			ref_ = nullptr;
+			fd_flags_ = 0;
 		}
+
+		void attach (FileDescriptorRef&& fd) noexcept
+		{
+			assert (!ref_);
+			ref_ = std::move (fd);
+		}
+
+		void dup (const FileDescriptorInfo& src) noexcept
+		{
+			assert (!ref_);
+			(ref_ = src.ref_)->add_descriptor_ref ();
+		}
+
+		bool closed () const noexcept
+		{
+			return !ref_;
+		}
+
+		FileDescriptorRef ref () const noexcept
+		{
+			return ref_;
+		}
+
+		FileDescriptor* ptr () const noexcept
+		{
+			return ref_;
+		}
+
+		unsigned fd_flags () const noexcept
+		{
+			return fd_flags_;
+		}
+
+		void fd_flags (unsigned fl) noexcept
+		{
+			fd_flags_ = fl;
+		}
+
+	private:
+		FileDescriptorRef ref_;
+		unsigned fd_flags_;
 	};
 
 	class FileDescriptorBuf;
@@ -246,6 +318,7 @@ private:
 			STD_IN,
 			STD_OUT,
 			STD_ERR,
+
 			STD_CNT
 		};
 
@@ -255,6 +328,7 @@ private:
 	};
 
 	Data& data ();
+	Data& data_for_fd () const;
 
 private:
 	MemContextObjectList object_list_;
