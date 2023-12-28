@@ -268,6 +268,31 @@ void Process::push_back (unsigned fd, int c)
 	SYNC_END ();
 }
 
+bool Process::ferror (unsigned fd)
+{
+	bool ret;
+	SYNC_BEGIN (*sync_domain_, nullptr);
+	ret = MemContextUser::ferror (fd);
+	SYNC_END ();
+	return ret;
+}
+
+bool Process::feof (unsigned fd)
+{
+	bool ret;
+	SYNC_BEGIN (*sync_domain_, nullptr);
+	ret = MemContextUser::feof (fd);
+	SYNC_END ();
+	return ret;
+}
+
+void Process::clearerr (unsigned fd)
+{
+	SYNC_BEGIN (*sync_domain_, nullptr);
+	MemContextUser::clearerr (fd);
+	SYNC_END ();
+}
+
 void Process::error_message (const char* msg)
 {
 	write (2, msg, strlen (msg));

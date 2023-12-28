@@ -332,6 +332,20 @@ public:
 		MemContextUser::current ().push_back (fd, c);
 	}
 
+	static bool ferror (unsigned fd)
+	{
+		return MemContextUser::current ().ferror (fd);
+	}
+
+	static bool feof (unsigned fd)
+	{
+		return MemContextUser::current ().feof (fd);
+	}
+
+	static void clearerr (unsigned fd)
+	{
+		MemContextUser::current ().clearerr (fd);
+	}
 };
 
 }

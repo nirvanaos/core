@@ -92,6 +92,9 @@ public:
 	virtual void dup2 (unsigned src, unsigned dst);
 	virtual bool isatty (unsigned ifd);
 	virtual void push_back (unsigned ifd, int c);
+	virtual bool ferror (unsigned ifd);
+	virtual bool feof (unsigned ifd);
+	virtual void clearerr (unsigned ifd);
 
 protected:
 	MemContextUser (Ref <Heap>&& heap) :
@@ -182,8 +185,12 @@ private:
 
 	private:
 		unsigned descriptor_ref_cnt_;
+
+	protected:
 		bool error_;
 		bool eof_;
+
+	private:
 		uint8_t push_back_cnt_;
 		uint8_t push_back_buf_ [PUSH_BACK_MAX];
 	};
@@ -283,19 +290,22 @@ private:
 		static CosNaming::Name default_dir ();
 
 		unsigned fd_add (Access::_ptr_type access);
-		void close (unsigned fd);
-		size_t read (unsigned fd, void* p, size_t size);
-		void write (unsigned fd, const void* p, size_t size);
-		uint64_t seek (unsigned fd, const int64_t& off, unsigned method);
-		unsigned dup (unsigned fd, unsigned start);
-		void dup2 (unsigned fd_src, unsigned fd_dst);
-		unsigned fd_flags (unsigned fd);
-		void fd_flags (unsigned fd, unsigned flags);
-		unsigned flags (unsigned fd);
-		void flags (unsigned fd, unsigned flags);
-		void flush (unsigned fd);
-		bool isatty (unsigned fd);
-		void push_back (unsigned fd, int c);
+		void close (unsigned ifd);
+		size_t read (unsigned ifd, void* p, size_t size);
+		void write (unsigned ifd, const void* p, size_t size);
+		uint64_t seek (unsigned ifd, const int64_t& off, unsigned method);
+		unsigned dup (unsigned ifd, unsigned start);
+		void dup2 (unsigned ifd_src, unsigned ifd_dst);
+		unsigned fd_flags (unsigned ifd);
+		void fd_flags (unsigned ifd, unsigned flags);
+		unsigned flags (unsigned ifd);
+		void flags (unsigned ifd, unsigned flags);
+		void flush (unsigned ifd);
+		bool isatty (unsigned ifd);
+		void push_back (unsigned ifd, int c);
+		bool ferror (unsigned ifd);
+		bool feof (unsigned ifd);
+		void clearerr (unsigned ifd);
 
 		Data (const InheritedFiles& inh);
 

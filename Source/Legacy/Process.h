@@ -141,6 +141,9 @@ public:
 	virtual void dup2 (unsigned src, unsigned dst) override;
 	virtual bool isatty (unsigned fd) override;
 	virtual void push_back (unsigned fd, int c) override;
+	virtual bool ferror (unsigned fd) override;
+	virtual bool feof (unsigned fd) override;
+	virtual void clearerr (unsigned fd) override;
 
 private:
 	template <class S, class ... Args> friend

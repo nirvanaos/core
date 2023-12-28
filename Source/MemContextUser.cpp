@@ -332,15 +332,31 @@ void MemContextUser::Data::flush (unsigned ifd)
 inline
 bool MemContextUser::Data::isatty (unsigned ifd)
 {
-	// In the future is possible that isatty will perform outgoing call.
-	// So we use ref () just for case here.
-	return get_open_fd (ifd).ref ()->isatty ();
+	return get_open_fd (ifd).ptr ()->isatty ();
 }
 
 inline
 void MemContextUser::Data::push_back (unsigned ifd, int c)
 {
 	get_open_fd (ifd).ptr ()->push_back (c);
+}
+
+inline
+bool MemContextUser::Data::ferror (unsigned ifd)
+{
+	return get_open_fd (ifd).ptr ()->error ();
+}
+
+inline
+bool MemContextUser::Data::feof (unsigned ifd)
+{
+	return get_open_fd (ifd).ptr ()->eof ();
+}
+
+inline
+void MemContextUser::Data::clearerr (unsigned ifd)
+{
+	get_open_fd (ifd).ptr ()->clearerr ();
 }
 
 MemContextUser& MemContextUser::current ()
@@ -487,6 +503,21 @@ void MemContextUser::push_back (unsigned ifd, int c)
 	data_for_fd ().push_back (ifd, c);
 }
 
+bool MemContextUser::ferror (unsigned ifd)
+{
+	return data_for_fd ().ferror (ifd);
+}
+
+bool MemContextUser::feof (unsigned ifd)
+{
+	return data_for_fd ().feof (ifd);
+}
+
+void MemContextUser::clearerr (unsigned ifd)
+{
+	data_for_fd ().clearerr (ifd);
+}
+
 void MemContextUser::FileDescriptorBuf::close () const
 {
 	access_->close ();
@@ -501,9 +532,20 @@ void MemContextUser::FileDescriptorChar::close () const
 
 size_t MemContextUser::FileDescriptorBuf::read (void* p, size_t size)
 {
+	error_ = false;
+	eof_ = false;
 	size_t cb = push_back_read (p, size);
-	if (size)
-		cb += access_->read (p, size);
+	if (size) {
+		try {
+			size_t cbr = access_->read (p, size);
+			if (cbr < size)
+				eof_ = true;
+			cb += cbr;
+		} catch (...) {
+			error_ = true;
+			throw;
+		}
+	}
 	return cb;
 }
 
@@ -511,9 +553,20 @@ size_t MemContextUser::FileDescriptorChar::read (void* p, size_t size)
 {
 	if (!adapter_)
 		throw_NO_PERMISSION (make_minor_errno (EBADF));
+	error_ = false;
+	eof_ = false;
 	size_t cb = push_back_read (p, size);
-	if (size)
-		cb += adapter_->read (p, size);
+	if (size) {
+		try {
+			size_t cbr = adapter_->read (p, size);
+			if (cbr < size)
+				eof_ = true;
+			cb += cbr;
+		} catch (...) {
+			error_ = true;
+			throw;
+		}
+	}
 	return cb;
 }
 
@@ -596,12 +649,13 @@ void MemContextUser::FileDescriptorChar::flags (unsigned fl)
 
 void MemContextUser::FileDescriptorBuf::flush ()
 {
+	push_back_reset ();
 	access_->flush ();
 }
 
 void MemContextUser::FileDescriptorChar::flush ()
 {
-	throw_BAD_OPERATION (make_minor_errno (EINVAL));
+	push_back_reset ();
 }
 
 bool MemContextUser::FileDescriptorBuf::isatty () const
