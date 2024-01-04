@@ -68,6 +68,20 @@ public:
 			throw_BAD_PARAM ();
 	}
 
+	static Legacy::Thread::_ref_type spawn (Process& process, Nirvana::Legacy::Runnable::_ptr_type runnable)
+	{
+		CORBA::servant_reference <Thread> servant = CORBA::make_reference <Thread> (
+			std::ref (process), runnable);
+		servant->start ();
+		try {
+			Nirvana::Core::ExecDomain::start_legacy_thread (process, *servant);
+		} catch (...) {
+			servant->finish ();
+			throw;
+		}
+		return servant->_get_ptr ();
+	}
+
 	void join ()
 	{
 		event_.wait ();

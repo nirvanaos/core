@@ -46,7 +46,7 @@ public:
 		Process* process = Process::current_ptr ();
 		if (!process)
 			throw_NO_IMPLEMENT (make_minor_errno (ENOTSUP));
-		return CORBA::make_pseudo <Thread> (std::ref (*process), runnable);
+		return Thread::spawn (*process, runnable);
 	}
 
 	static Legacy::Mutex::_ref_type create_mutex ()

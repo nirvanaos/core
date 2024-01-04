@@ -165,17 +165,11 @@ void ExecDomain::spawn (SyncContext& sync_context)
 	}
 }
 
-void ExecDomain::start_legacy_process (Legacy::Core::Process& process)
+void ExecDomain::start_legacy_thread (Legacy::Core::Process& process, Legacy::Core::ThreadBase& thread)
 {
 	// The process must inherit the current heap.
 	assert (&process.heap () == &current ().mem_context ().heap ());
 
-	// Start thread with process as the memory context.
-	start_legacy_thread (process, process);
-}
-
-void ExecDomain::start_legacy_thread (Legacy::Core::Process& process, Legacy::Core::ThreadBase& thread)
-{
 	Ref <ExecDomain> exec_domain = create (INFINITE_DEADLINE, &process);
 	exec_domain->runnable_ = &thread;
 	exec_domain->background_worker_ = &thread;

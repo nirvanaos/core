@@ -117,7 +117,12 @@ public:
 		servant->start ();
 
 		Legacy::Process::_ref_type ret = servant->_this ();
-		Nirvana::Core::ExecDomain::start_legacy_process (*servant);
+		try {
+			Nirvana::Core::ExecDomain::start_legacy_thread (*servant, *servant);
+		} catch (...) {
+			servant->finish ();
+			throw;
+		}
 		return ret;
 	}
 

@@ -131,10 +131,11 @@ public:
 	static void async_call (const DeadlineTime& deadline, Runnable* runnable,
 		SyncContext& target, Heap* heap);
 
-	/// Start legacy process.
+	/// Start legacy thread.
 	/// 
 	/// \param process The Process object.
-	static void start_legacy_process (Legacy::Core::Process& process);
+	/// \param thread The thread object.
+	static void start_legacy_thread (Legacy::Core::Process& process, Legacy::Core::ThreadBase& thread);
 
 	const DeadlineTime& deadline () const noexcept
 	{
@@ -515,8 +516,6 @@ private:
 		} while (!mem_context_stack_.empty ());
 		mem_context_stack_.push (std::move (tmp));
 	}
-
-	static void start_legacy_thread (Legacy::Core::Process& process, Legacy::Core::ThreadBase& thread);
 
 	void create_background_worker ();
 
