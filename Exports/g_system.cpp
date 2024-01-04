@@ -37,6 +37,7 @@
 #include <unrecoverable_error.h>
 #include <NameService/FileSystem.h>
 #include <NameService/NameService.h>
+#include <TimerEvent.h>
 
 namespace Nirvana {
 namespace Core {
@@ -225,6 +226,17 @@ public:
 	static bool yield ()
 	{
 		return ExecDomain::reschedule ();
+	}
+
+	static void sleep (TimeBase::TimeT period100ns)
+	{
+		if (!period100ns)
+			ExecDomain::reschedule ();
+		else {
+			TimerEvent timer;
+			timer.set (0, period100ns, 0);
+			timer.wait ();
+		}
 	}
 
 	static uint16_t TLS_alloc (Deleter deleter)

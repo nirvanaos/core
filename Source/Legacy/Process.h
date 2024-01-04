@@ -170,8 +170,11 @@ private:
 private:
 	// Core::Runnable::
 	virtual void run () override;
+
+public:
 	virtual void on_crash (const siginfo& signal) noexcept override;
 
+private:
 	// ThreadBase::
 	virtual Process& process () noexcept override;
 

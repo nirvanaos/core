@@ -28,7 +28,7 @@
 #include <Nirvana/Legacy/Legacy_s.h>
 #include <Legacy/Process.h>
 #include <Legacy/Mutex.h>
-#include "../TimerEvent.h"
+#include <Legacy/Thread.h>
 
 namespace Nirvana {
 
@@ -41,26 +41,22 @@ class System :
 	public CORBA::servant_traits <Legacy::System>::ServantStatic <System>
 {
 public:
-	static Legacy::Thread::_ref_type create_thread (Runnable::_ptr_type)
+	static Legacy::Thread::_ref_type create_thread (Runnable::_ptr_type runnable)
 	{
-		throw_NO_IMPLEMENT (); // TODO:
+		Process* process = Process::current_ptr ();
+		if (!process)
+			throw_NO_IMPLEMENT (make_minor_errno (ENOTSUP));
+		return CORBA::make_pseudo <Thread> (std::ref (*process), runnable);
 	}
 
 	static Legacy::Mutex::_ref_type create_mutex ()
 	{
-		return Mutex::create (ThreadBase::current ().process ());
+		Process* process = Process::current_ptr ();
+		if (!process)
+			throw_NO_IMPLEMENT (make_minor_errno (ENOTSUP));
+		return Mutex::create (std::ref (*process));
 	}
 
-	static void sleep (TimeBase::TimeT period100ns)
-	{
-		if (!period100ns)
-			ExecDomain::reschedule ();
-		else {
-			TimerEvent timer;
-			timer.set (0, period100ns, 0);
-			timer.wait ();
-		}
-	}
 };
 
 }
