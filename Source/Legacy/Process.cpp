@@ -23,12 +23,12 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
+#include "../pch.h"
 #include "Process.h"
 #include "Synchronized.h"
 #include <iostream>
 
-using namespace Nirvana::Core;
-using namespace CORBA;
+//using namespace Nirvana::Core;
 
 namespace Nirvana {
 namespace Legacy {
@@ -116,7 +116,7 @@ void Process::on_crash (const siginfo& signal) noexcept
 	finish ();
 }
 
-RuntimeGlobal& Process::runtime_global () noexcept
+Nirvana::Core::RuntimeGlobal& Process::runtime_global () noexcept
 {
 	return ThreadBase::current ().runtime_global ();
 }
@@ -126,7 +126,7 @@ RuntimeProxy::_ref_type Process::runtime_proxy_get (const void* obj)
 	assert (&MemContext::current () == this);
 
 	RuntimeProxy::_ref_type ret;
-	if (!RUNTIME_SUPPORT_DISABLE) {
+	if (!Nirvana::Core::RUNTIME_SUPPORT_DISABLE) {
 		SYNC_BEGIN (*sync_domain_, nullptr);
 		ret = MemContextUser::runtime_proxy_get (obj);
 		SYNC_END ();
@@ -144,14 +144,14 @@ void Process::runtime_proxy_remove (const void* obj) noexcept
 		return;
 #endif
 
-	if (!RUNTIME_SUPPORT_DISABLE) {
+	if (!Nirvana::Core::RUNTIME_SUPPORT_DISABLE) {
 		SYNC_BEGIN (*sync_domain_, nullptr);
 		MemContextUser::runtime_proxy_remove (obj);
 		SYNC_END ();
 	}
 }
 
-void Process::on_object_construct (MemContextObject& obj) noexcept
+void Process::on_object_construct (Nirvana::Core::MemContextObject& obj) noexcept
 {
 	assert (&MemContext::current () == this);
 
@@ -160,7 +160,7 @@ void Process::on_object_construct (MemContextObject& obj) noexcept
 	SYNC_END ();
 }
 
-void Process::on_object_destruct (MemContextObject& obj) noexcept
+void Process::on_object_destruct (Nirvana::Core::MemContextObject& obj) noexcept
 {
 	assert (&MemContext::current () == this);
 

@@ -42,16 +42,12 @@ class Process;
 /// Legacy thread base.
 class NIRVANA_NOVTABLE ThreadBase :
 	public Nirvana::Core::ThreadBackground,
-	public Nirvana::Core::UserObject,
 	public SimpleList <ThreadBase>::Element,
 	public Nirvana::Core::Runnable
 {
 	typedef Nirvana::Core::ThreadBackground Base;
 
 public:
-	using Nirvana::Core::UserObject::operator new;
-	using Nirvana::Core::UserObject::operator delete;
-
 	/// \returns Current thread if execution is in legacy mode.
 	///          Otherwise returns `nullptr`.
 	static ThreadBase* current_ptr () noexcept

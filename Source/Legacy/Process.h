@@ -28,7 +28,7 @@
 #define NIRVANA_LEGACY_CORE_PROCESS_H_
 #pragma once
 
-#include <CORBA/Server.h>
+#include "Thread.h"
 #include <CORBA/CosNaming.h>
 #include <CORBA/I_var.h>
 #include <Nirvana/Legacy/Legacy_Process_s.h>
@@ -36,7 +36,6 @@
 #include "../MemContextUser.h"
 #include "../NameService/FileSystem.h"
 #include "Executable.h"
-#include "ThreadBase.h"
 #include "../ORB/Services.h"
 
 namespace Nirvana {
@@ -52,9 +51,11 @@ class Process :
 	typedef CORBA::servant_traits <Nirvana::Legacy::Process>::Servant <Process> Servant;
 
 public:
-	// Override ThreadBase
+	// Override new/delete
 	using Servant::operator new;
 	using Servant::operator delete;
+
+	// Override ThreadBase ref counting
 
 	void _add_ref () noexcept override
 	{
@@ -150,6 +151,32 @@ public:
 	virtual bool feof (unsigned fd) override;
 	virtual void clearerr (unsigned fd) override;
 
+	Legacy::Thread::_ref_type create_thread (Legacy::Runnable::_ptr_type runnable)
+	{
+		CORBA::servant_reference <Legacy::Core::Thread> servant = CORBA::make_reference <Legacy::Core::Thread> (
+			std::ref (*this), runnable);
+		_add_ref ();
+		SYNC_BEGIN (*sync_domain_, nullptr);
+		threads_.push_back (*servant);
+		SYNC_END ();
+		servant->start ();
+		try {
+			Nirvana::Core::ExecDomain::start_legacy_thread (*this, *servant);
+		} catch (...) {
+			servant->finish ();
+			throw;
+		}
+		return servant->_get_ptr ();
+	}
+
+	void on_thread_destruct (Legacy::Core::Thread& thread)
+	{
+		SYNC_BEGIN (*sync_domain_, nullptr);
+		static_cast <SimpleList <Legacy::Core::Thread>::Element> (thread).remove ();
+		SYNC_END ();
+		_remove_ref ();
+	}
+
 private:
 	template <class S, class ... Args> friend
 		CORBA::servant_reference <S> CORBA::make_reference (Args ...);
@@ -226,6 +253,7 @@ private:
 	ProcessCallback::_ref_type callback_;
 	Nirvana::Core::Ref <Nirvana::Core::SyncContext> sync_domain_;
 	Nirvana::Core::EventSync completed_;
+	SimpleList <Legacy::Core::Thread> threads_;
 };
 
 }

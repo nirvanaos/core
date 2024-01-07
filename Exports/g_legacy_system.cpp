@@ -31,9 +31,6 @@
 #include <Legacy/Thread.h>
 
 namespace Nirvana {
-
-using namespace Core;
-
 namespace Legacy {
 namespace Core {
 
@@ -46,7 +43,7 @@ public:
 		Process* process = Process::current_ptr ();
 		if (!process)
 			throw_NO_IMPLEMENT (make_minor_errno (ENOTSUP));
-		return Thread::spawn (*process, runnable);
+		return process->create_thread (runnable);
 	}
 
 	static Legacy::Mutex::_ref_type create_mutex ()

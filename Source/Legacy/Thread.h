@@ -28,8 +28,11 @@
 #define NIRVANA_LEGACY_CORE_THREAD_H_
 #pragma once
 
-#include "Process.h"
+#include "ThreadBase.h"
 #include "../Event.h"
+#include "../LifeCyclePseudo.h"
+#include "../UserObject.h"
+#include <CORBA/Server.h>
 #include <Nirvana/Legacy/Legacy_s.h>
 #include <Nirvana/Legacy/Runnable.h>
 
@@ -41,8 +44,9 @@ namespace Core {
 class Thread :
 	public CORBA::servant_traits <Nirvana::Legacy::Thread>::Servant <Thread>,
 	public Nirvana::Core::LifeCyclePseudo <Thread>,
+	public Nirvana::Core::UserObject,
 	public ThreadBase,
-	public Nirvana::Core::MemContextObject
+	public SimpleList <Thread>::Element
 {
 	typedef Nirvana::Core::LifeCyclePseudo <Thread> LifeCycle;
 
@@ -60,26 +64,14 @@ public:
 		LifeCycle::_remove_ref ();
 	}
 
-	Thread (Process& process, Nirvana::Legacy::Runnable::_ptr_type runnable) :
-		process_ (&process),
-		runnable_ (runnable)
+	void start ()
 	{
-		if (!runnable)
-			throw_BAD_PARAM ();
+		ThreadBase::start ();
 	}
 
-	static Legacy::Thread::_ref_type spawn (Process& process, Nirvana::Legacy::Runnable::_ptr_type runnable)
+	void finish ()
 	{
-		CORBA::servant_reference <Thread> servant = CORBA::make_reference <Thread> (
-			std::ref (process), runnable);
-		servant->start ();
-		try {
-			Nirvana::Core::ExecDomain::start_legacy_thread (process, *servant);
-		} catch (...) {
-			servant->finish ();
-			throw;
-		}
-		return servant->_get_ptr ();
+		ThreadBase::finish ();
 	}
 
 	void join ()
@@ -87,7 +79,20 @@ public:
 		event_.wait ();
 	}
 
+	~Thread ();
+
 private:
+	template <class S, class ... Args> friend
+		CORBA::servant_reference <S> CORBA::make_reference (Args ...);
+
+	Thread (Process& process, Nirvana::Legacy::Runnable::_ptr_type runnable) :
+		process_ (process),
+		runnable_ (runnable)
+	{
+		if (!runnable)
+			throw_BAD_PARAM ();
+	}
+
 	// Core::Runnable::
 	virtual void run () override;
 	virtual void on_crash (const siginfo& signal) noexcept override;
@@ -95,11 +100,11 @@ private:
 	// ThreadBase::
 	virtual Process& process () noexcept override
 	{
-		return *process_;
+		return process_;
 	}
 
 private:
-	Nirvana::Core::Ref <Process> process_;
+	Process& process_;
 	Nirvana::Legacy::Runnable::_ref_type runnable_;
 	Nirvana::Core::Event event_;
 };

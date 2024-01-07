@@ -23,6 +23,7 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
+#include "../pch.h"
 #include "DirIter.h"
 #include "Dir.h"
 #include "../deactivate_servant.h"

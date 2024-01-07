@@ -23,6 +23,7 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
+#include "../pch.h"
 #include "FileSystem.h"
 #include "IteratorStack.h"
 #include "NameService.h"

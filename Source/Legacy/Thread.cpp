@@ -23,11 +23,18 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
+#include "../pch.h"
 #include "Thread.h"
+#include "Process.h"
 
 namespace Nirvana {
 namespace Legacy {
 namespace Core {
+
+Thread::~Thread ()
+{
+	process_.on_thread_destruct (*this);
+}
 
 void Thread::run ()
 {
@@ -38,7 +45,8 @@ void Thread::run ()
 
 void Thread::on_crash (const siginfo& signal) noexcept
 {
-	process_->on_crash (signal);
+	// TODO: Fix
+	process_.on_crash (signal);
 }
 
 }
