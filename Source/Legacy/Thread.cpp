@@ -32,8 +32,17 @@ namespace Legacy {
 namespace Core {
 
 Thread::~Thread ()
+{}
+
+void Thread::_add_ref () noexcept
 {
-	process_.on_thread_destruct (*this);
+	ref_cnt_.increment ();
+}
+
+void Thread::_remove_ref () noexcept
+{
+	if (!ref_cnt_.decrement ())
+		process_.delete_thread (*this);
 }
 
 void Thread::run ()
@@ -45,8 +54,7 @@ void Thread::run ()
 
 void Thread::on_crash (const siginfo& signal) noexcept
 {
-	// TODO: Fix
-	process_.on_crash (signal);
+	process_.on_thread_crash (*this, signal);
 }
 
 }

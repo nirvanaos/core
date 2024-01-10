@@ -169,12 +169,20 @@ public:
 		return servant->_get_ptr ();
 	}
 
-	void on_thread_destruct (Legacy::Core::Thread& thread)
+	void delete_thread (Legacy::Core::Thread& thread)
 	{
 		SYNC_BEGIN (*sync_domain_, nullptr);
 		static_cast <SimpleList <Legacy::Core::Thread>::Element> (thread).remove ();
 		SYNC_END ();
+		thread.~Thread ();
+		heap ().release (&thread, sizeof (Legacy::Core::Thread));
 		_remove_ref ();
+	}
+
+	void on_thread_crash (Legacy::Core::Thread& thread, const siginfo& signal)
+	{
+		// TODO: Implement
+		unrecoverable_error (signal.si_signo);
 	}
 
 private:

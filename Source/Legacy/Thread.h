@@ -30,7 +30,6 @@
 
 #include "ThreadBase.h"
 #include "../Event.h"
-#include "../LifeCyclePseudo.h"
 #include "../UserObject.h"
 #include <CORBA/Server.h>
 #include <Nirvana/Legacy/Legacy_s.h>
@@ -43,26 +42,17 @@ namespace Core {
 /// Legacy thread
 class Thread :
 	public CORBA::servant_traits <Nirvana::Legacy::Thread>::Servant <Thread>,
-	public Nirvana::Core::LifeCyclePseudo <Thread>,
+	public CORBA::Internal::LifeCycleRefCnt <Thread>,
 	public Nirvana::Core::UserObject,
 	public ThreadBase,
 	public SimpleList <Thread>::Element
 {
-	typedef Nirvana::Core::LifeCyclePseudo <Thread> LifeCycle;
-
 public:
 	using Nirvana::Core::UserObject::operator new;
 	using Nirvana::Core::UserObject::operator delete;
 
-	void _add_ref () noexcept override
-	{
-		LifeCycle::_add_ref ();
-	}
-
-	void _remove_ref () noexcept override
-	{
-		LifeCycle::_remove_ref ();
-	}
+	void _add_ref () noexcept override;
+	void _remove_ref () noexcept override;
 
 	void start ()
 	{
@@ -107,6 +97,7 @@ private:
 	Process& process_;
 	Nirvana::Legacy::Runnable::_ref_type runnable_;
 	Nirvana::Core::Event event_;
+	Nirvana::Core::RefCounter ref_cnt_;
 };
 
 }

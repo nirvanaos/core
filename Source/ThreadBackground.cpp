@@ -49,6 +49,5 @@ void ThreadBackground::on_thread_proc_end () noexcept
 	Scheduler::activity_end ();
 }
 
-
 }
 }
