@@ -77,8 +77,8 @@ public:
 	}
 
 private:
-	Ref <SyncContext> call_context_;
 	ExecDomain& exec_domain_;
+	Ref <SyncContext> call_context_;
 	CORBA::Core::SystemExceptionHolder exception_;
 };
 
