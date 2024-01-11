@@ -57,7 +57,10 @@ public:
 
 	void join ()
 	{
-		event_.wait ();
+		if (current_ptr () != this)
+			event_.wait ();
+		else
+			throw_BAD_PARAM (make_minor_errno (EDEADLK));
 	}
 
 	~Thread ();
