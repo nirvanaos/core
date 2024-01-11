@@ -48,21 +48,12 @@ class Thread :
 	public SimpleList <Thread>::Element
 {
 public:
-	using Nirvana::Core::UserObject::operator new;
-	using Nirvana::Core::UserObject::operator delete;
-
-	void _add_ref () noexcept override;
-	void _remove_ref () noexcept override;
-
-	void start ()
+	void _add_ref () noexcept
 	{
-		ThreadBase::start ();
+		ref_cnt_.increment ();
 	}
 
-	void finish ()
-	{
-		ThreadBase::finish ();
-	}
+	void _remove_ref () noexcept;
 
 	void join ()
 	{

@@ -55,14 +55,14 @@ public:
 	using Servant::operator new;
 	using Servant::operator delete;
 
-	// Override ThreadBase ref counting
+	// Override MemContext ref counting
 
-	void _add_ref () noexcept override
+	void _add_ref () noexcept
 	{
 		Servant::_add_ref ();
 	}
 
-	void _remove_ref () noexcept override
+	void _remove_ref () noexcept
 	{
 		Servant::_remove_ref ();
 	}
@@ -115,15 +115,11 @@ public:
 	{
 		CORBA::servant_reference <Process> servant = CORBA::make_reference <Process> (
 			std::ref (file), std::ref (argv), std::ref (envp), std::ref (work_dir), std::ref (inherit), callback);
-		servant->start ();
 
 		Legacy::Process::_ref_type ret = servant->_this ();
-		try {
-			Nirvana::Core::ExecDomain::start_legacy_thread (*servant, *servant);
-		} catch (...) {
-			servant->finish ();
-			throw;
-		}
+
+		Nirvana::Core::ExecDomain::async_call (INFINITE_DEADLINE, *servant, servant->sync_context (), servant);
+
 		return ret;
 	}
 
@@ -153,20 +149,19 @@ public:
 
 	Legacy::Thread::_ref_type create_thread (Legacy::Runnable::_ptr_type runnable)
 	{
-		CORBA::servant_reference <Legacy::Core::Thread> servant = CORBA::make_reference <Legacy::Core::Thread> (
+		CORBA::servant_reference <Legacy::Core::Thread> thread = CORBA::make_reference <Legacy::Core::Thread> (
 			std::ref (*this), runnable);
+		
+		// We must not destruct memory context while some thread exists
 		_add_ref ();
+
 		SYNC_BEGIN (*sync_domain_, nullptr);
-		threads_.push_back (*servant);
+		threads_.push_back (*thread);
 		SYNC_END ();
-		servant->start ();
-		try {
-			Nirvana::Core::ExecDomain::start_legacy_thread (*this, *servant);
-		} catch (...) {
-			servant->finish ();
-			throw;
-		}
-		return servant->_get_ptr ();
+
+		Nirvana::Core::ExecDomain::async_call (INFINITE_DEADLINE, *thread, sync_context (), this);
+
+		return thread->_get_ptr ();
 	}
 
 	void delete_thread (Legacy::Core::Thread& thread)
@@ -217,27 +212,6 @@ public:
 private:
 	// ThreadBase::
 	virtual Process& process () noexcept override;
-
-	void start ()
-	{
-		CORBA::Internal::I_var <Legacy::Process> proxy (_this ());
-		Nirvana::Core::Scheduler::activity_begin ();
-		try {
-			// Directly call Port::ThreadBackground to skip _add_ref in Core::ThreadBackground
-			Nirvana::Core::Port::ThreadBackground::start ();
-		} catch (...) {
-			Nirvana::Core::Scheduler::activity_end ();
-			throw;
-		}
-		proxy._retn (); // Keep proxy reference on successfull start
-	}
-
-	virtual void on_thread_proc_end () noexcept override
-	{
-		// Release proxy reference on the main thread finish
-		CORBA::Internal::interface_release (&Legacy::Process::_ptr_type (_this ()));
-		Nirvana::Core::Scheduler::activity_end ();
-	}
 
 private:
 	typedef std::vector <std::string> Strings;

@@ -28,10 +28,8 @@
 #define NIRVANA_LEGACY_CORE_THREADBASE_H_
 #pragma once
 
-#include "../ThreadBackground.h"
 #include "../RuntimeGlobal.h"
 #include <Nirvana/SimpleList.h>
-#include <memory>
 
 namespace Nirvana {
 namespace Legacy {
@@ -41,22 +39,13 @@ class Process;
 
 /// Legacy thread base.
 class NIRVANA_NOVTABLE ThreadBase :
-	public Nirvana::Core::ThreadBackground,
-	public SimpleList <ThreadBase>::Element,
-	public Nirvana::Core::Runnable
+	public Nirvana::Core::Runnable,
+	public SimpleList <ThreadBase>::Element
 {
-	typedef Nirvana::Core::ThreadBackground Base;
-
 public:
 	/// \returns Current thread if execution is in legacy mode.
 	///          Otherwise returns `nullptr`.
-	static ThreadBase* current_ptr () noexcept
-	{
-		if (Nirvana::Core::SyncContext::current ().is_legacy_mode ())
-			return static_cast <ThreadBase*> (&Base::current ());
-		else
-			return nullptr;
-	}
+	static ThreadBase* current_ptr () noexcept;
 
 	/// When we run in the legacy subsystem, every thread is a ThreadLegacy instance.
 	static ThreadBase& current () noexcept
@@ -73,12 +62,31 @@ public:
 		return runtime_global_;
 	}
 
+	Nirvana::Core::ExecDomain* exec_domain () const
+	{
+		return exec_domain_;
+	}
+
 protected:
-	ThreadBase () = default;
+	ThreadBase () :
+		exec_domain_ (nullptr)
+	{}
+
+	// Must be called in run()
+
+	void run_begin ()
+	{
+		exec_domain_ = &Nirvana::Core::ExecDomain::current ();
+	}
+
+	void run_end ()
+	{
+		exec_domain_ = nullptr;
+	}
 
 private:
 	Nirvana::Core::RuntimeGlobal runtime_global_;
-
+	Nirvana::Core::ExecDomain* exec_domain_;
 };
 
 }

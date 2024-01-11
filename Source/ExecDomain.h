@@ -111,7 +111,7 @@ public:
 		static_assert (sizeof (R) <= MAX_RUNNABLE_SIZE, "Runnable too large");
 
 #ifndef NDEBUG
-		{
+		if (mem_context) {
 			SyncDomain* sd = target.sync_domain ();
 			assert (!sd || &sd->mem_context () == mem_context);
 		}
@@ -125,11 +125,20 @@ public:
 	/// Asynchronous call.
 	/// 
 	/// \param deadline Deadline.
-	/// \param runnable Pointer to the Runnable object.
+	/// \param runnable The Runnable object to execute.
 	/// \param target   Target Synchronization context.
 	/// \param heap     Shared heap (optional).
-	static void async_call (const DeadlineTime& deadline, Runnable* runnable,
+	static void async_call (const DeadlineTime& deadline, Runnable& runnable,
 		SyncContext& target, Heap* heap);
+
+	/// Asynchronous call.
+	/// 
+	/// \param deadline Deadline.
+	/// \param runnable The Runnable object to execute.
+	/// \param target   Target Synchronization context.
+	/// \param mem_context Memory context.
+	static void async_call (const DeadlineTime& deadline, Runnable& runnable,
+		SyncContext& target, Ref <MemContext>&& mem_context);
 
 	/// Start legacy thread.
 	/// 

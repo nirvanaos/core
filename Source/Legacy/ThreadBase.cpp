@@ -24,36 +24,19 @@
 *  popov.nirvana@gmail.com
 */
 #include "../pch.h"
-#include "Thread.h"
-#include "Process.h"
+#include "ThreadBase.h"
 
 namespace Nirvana {
 namespace Legacy {
 namespace Core {
 
-Thread::~Thread ()
-{}
-
-void Thread::_remove_ref () noexcept
+ThreadBase* ThreadBase::current_ptr () noexcept
 {
-	if (!ref_cnt_.decrement ())
-		process_.delete_thread (*this);
-}
-
-void Thread::run ()
-{
-	run_begin ();
-
-	runnable_->run ();
-	runnable_ = nullptr;
-	event_.signal ();
-
-	run_end ();
-}
-
-void Thread::on_crash (const siginfo& signal) noexcept
-{
-	process_.on_thread_crash (*this, signal);
+	const Nirvana::Core::ExecDomain& ed = Nirvana::Core::ExecDomain::current ();
+	if (ed.sync_context ().is_legacy_mode ())
+		return static_cast <ThreadBase*> (ed.runnable ());
+	else
+		return nullptr;
 }
 
 }

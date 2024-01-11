@@ -25,7 +25,7 @@
 */
 #include "pch.h"
 #include "ExecDomain.h"
-#include "Legacy/Process.h"
+//#include "Legacy/Process.h"
 #include "Chrono.h"
 #include "MemContextCore.h"
 #include "MemContextImpl.h"
@@ -142,12 +142,26 @@ Ref <MemContext> ExecDomain::get_mem_context (SyncContext& target, Heap* heap)
 	return mem_context;
 }
 
-void ExecDomain::async_call (const DeadlineTime& deadline, Runnable* runnable,
+void ExecDomain::async_call (const DeadlineTime& deadline, Runnable& runnable,
 	SyncContext& target, Heap* heap)
 {
-	assert (runnable);
 	Ref <ExecDomain> exec_domain = create (deadline, target, heap);
-	exec_domain->runnable_ = runnable;
+	exec_domain->runnable_ = &runnable;
+	exec_domain->spawn (target);
+}
+
+void ExecDomain::async_call (const DeadlineTime& deadline, Runnable& runnable,
+	SyncContext& target, Ref <MemContext>&& mem_context)
+{
+#ifndef NDEBUG
+	if (mem_context) {
+		SyncDomain* sd = target.sync_domain ();
+		assert (!sd || &sd->mem_context () == mem_context);
+	}
+#endif
+
+	Ref <ExecDomain> exec_domain = create (deadline, std::move (mem_context));
+	exec_domain->runnable_ = &runnable;
 	exec_domain->spawn (target);
 }
 
@@ -164,7 +178,7 @@ void ExecDomain::spawn (SyncContext& sync_context)
 		throw;
 	}
 }
-
+/*
 void ExecDomain::start_legacy_thread (Legacy::Core::Process& process, Legacy::Core::ThreadBase& thread)
 {
 	// The process must inherit the current heap.
@@ -175,7 +189,7 @@ void ExecDomain::start_legacy_thread (Legacy::Core::Process& process, Legacy::Co
 	exec_domain->background_worker_ = &thread;
 	exec_domain->spawn (process.sync_context ());
 }
-
+*/
 void ExecDomain::execute () noexcept
 {
 	Thread::current ().exec_domain (*this);

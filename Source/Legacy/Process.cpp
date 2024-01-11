@@ -61,8 +61,12 @@ void Process::copy_strings (Strings& src, Pointers& dst)
 
 void Process::run ()
 {
+	run_begin ();
+
 	assert (INIT == state_);
 	state_ = RUNNING;
+
+	Legacy::Process::_ref_type hold = _this ();
 
 	try {
 		Pointers v;
@@ -83,6 +87,8 @@ void Process::run ()
 		error_message ("Unknown exception\n");
 	}
 	finish ();
+
+	run_end ();
 }
 
 void Process::finish () noexcept
