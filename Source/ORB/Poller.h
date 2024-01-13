@@ -54,7 +54,7 @@ public:
 	Poller (ProxyManager& proxy, Internal::OperationIndex op);
 	Poller (const Poller& src);
 
-	virtual Internal::Interface* _query_valuetype (const IDL::String& id) noexcept override;
+	virtual Internal::Interface* _query_valuetype (Internal::String_in id) noexcept override;
 
 	Object::_ptr_type operation_target () const noexcept
 	{

@@ -45,14 +45,18 @@ namespace Core {
 class PollableSet;
 
 class NIRVANA_NOVTABLE Pollable :
-	public Internal::Aggregated <Pollable, CORBA::Pollable>,
+	public Internal::ValueImpl <Pollable, ValueBase>,
+	public Internal::ValueImpl <Pollable, CORBA::Pollable>,
+	public Internal::ValueBaseNoCopy,
+	public Internal::ValueBaseNoFactory,
+	public Internal::ValueNonTruncatable,
 	public Internal::ValueImplBase <Pollable, RequestCallback>,
 	public SyncGC,
 	public Nirvana::Core::UserObject
 {
-	typedef Internal::Aggregated <Pollable, CORBA::Pollable> Servant;
-
 public:
+	typedef CORBA::Pollable PrimaryInterface;
+
 	virtual void _add_ref () noexcept override;
 	virtual void _remove_ref () noexcept override;
 
@@ -67,9 +71,9 @@ public:
 			static_cast <Internal::Bridge <CORBA::Pollable>*> (&ptr));
 	}
 
-	virtual Internal::Interface* _query_valuetype (const IDL::String& id) noexcept
+	virtual Internal::Interface* _query_valuetype (Internal::String_in id) noexcept
 	{
-		return Servant::_query_valuetype (id);
+		return Internal::FindInterface <CORBA::Pollable>::find (*this, id);
 	}
 
 	// Outline, called also in Poller
@@ -133,7 +137,7 @@ public:
 	using CORBA::Internal::LifeCycleRefCnt <DIIPollable>::_duplicate;
 	using CORBA::Internal::LifeCycleRefCnt <DIIPollable>::_release;
 
-	virtual Internal::Interface* _query_valuetype (const IDL::String& id) noexcept override
+	virtual Internal::Interface* _query_valuetype (Internal::String_in id) noexcept override
 	{
 		return Internal::FindInterface <CORBA::DIIPollable, CORBA::Pollable>::find (*this, id);
 	}
