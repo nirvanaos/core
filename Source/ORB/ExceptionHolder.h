@@ -44,9 +44,8 @@ class NIRVANA_NOVTABLE ExceptionHolder :
 	public Internal::ValueBaseMarshal <ExceptionHolder>,
 	public Internal::ValueNonTruncatable
 {
-	typedef Internal::Aggregated <ExceptionHolder, Messaging::ExceptionHolder> Base;
-
 	DECLARE_CORE_INTERFACE
+
 public:
 	typedef Messaging::ExceptionHolder PrimaryInterface;
 
