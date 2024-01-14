@@ -37,12 +37,8 @@ namespace Core {
 class ExceptionHolderImpl;
 
 class NIRVANA_NOVTABLE ExceptionHolder :
-	public Internal::ValueImpl <ExceptionHolder, ValueBase>,
-	public Internal::ValueImpl <ExceptionHolder, ::Messaging::ExceptionHolder>,
-	public Internal::ValueBaseCopy <ExceptionHolderImpl>,
-	public Internal::ValueBaseFactory < ::Messaging::ExceptionHolder>,
-	public Internal::ValueBaseMarshal <ExceptionHolder>,
-	public Internal::ValueNonTruncatable
+	public Internal::ValueBaseConcrete <ExceptionHolder, ::Messaging::ExceptionHolder>,
+	public Internal::ValueImpl <ExceptionHolder, ::Messaging::ExceptionHolder>
 {
 	DECLARE_CORE_INTERFACE
 
@@ -117,6 +113,8 @@ public:
 		return make_pseudo <Nirvana::Core::ImplDynamic <Request> > (std::ref (*this));
 	}
 
+	Internal::Type <ValueBase>::VRet _copy_value () const;
+
 private:
 	class Request :
 		public RequestEncap
@@ -181,6 +179,15 @@ public:
 		Internal::RefCountBase <ExceptionHolderImpl>::_remove_ref ();
 	}
 };
+
+inline Internal::Type <ValueBase>::VRet ExceptionHolder::_copy_value () const
+{
+#ifndef LEGACY_CORBA_CPP
+	return make_reference <ExceptionHolderImpl> (std::ref (static_cast <const ExceptionHolderImpl&> (*this)));
+#else
+	return new ExceptionHolderImpl (static_cast <const ExceptionHolderImpl&> (*this));
+#endif
+}
 
 }
 }

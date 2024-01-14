@@ -45,11 +45,8 @@ namespace Core {
 class PollableSet;
 
 class NIRVANA_NOVTABLE Pollable :
-	public Internal::ValueImpl <Pollable, ValueBase>,
+	public Internal::ValueBaseAbstract <Pollable>,
 	public Internal::ValueImpl <Pollable, CORBA::Pollable>,
-	public Internal::ValueBaseNoCopy,
-	public Internal::ValueBaseNoFactory,
-	public Internal::ValueNonTruncatable,
 	public Internal::ValueImplBase <Pollable, RequestCallback>,
 	public SyncGC,
 	public Nirvana::Core::UserObject
