@@ -39,24 +39,14 @@ void RequestLocalBase::marshal_value (Interface::_ptr_type val)
 	if (marshal_op ()) {
 		if (!val)
 			write8 (0);
-		else {
-			ValueBase::_ptr_type base = value_type2base (val);
-			ValueFactoryBase::_ref_type factory = base->_factory ();
-			if (factory)
-				marshal_value_internal (base, factory);
-			else {
-				// Marshal abstract value as interface
-				write8 (3);
-				marshal_interface_internal (val);
-			}
-		}
+		else
+			marshal_value_internal (value_type2base (val));
 	}
 }
 
-void RequestLocalBase::marshal_value_internal (ValueBase::_ptr_type base, ValueFactoryBase::_ptr_type factory)
+void RequestLocalBase::marshal_value_internal (ValueBase::_ptr_type base)
 {
 	assert (base);
-	assert (factory);
 
 	auto ins = value_map_.marshal_map ().emplace (&base, (uintptr_t)cur_ptr_);
 	if (!ins.second) {
@@ -65,7 +55,7 @@ void RequestLocalBase::marshal_value_internal (ValueBase::_ptr_type base, ValueF
 		write (alignof (uintptr_t), sizeof (uintptr_t), &ins.first->second);
 	} else {
 		write8 (1);
-		marshal_interface_internal (ValueFactoryBase::_ptr_type (factory));
+		marshal_interface_internal (base->_factory ());
 		base->_marshal (_get_ptr ());
 	}
 }
@@ -99,10 +89,6 @@ Interface::_ref_type RequestLocalBase::unmarshal_value (const IDL::String& inter
 		ret = static_cast <ValueBase*> (vb)->_query_valuetype (interface_id);
 	} break;
 
-	case 3:
-		ret = unmarshal_interface (interface_id);
-		break;
-
 	default:
 		throw MARSHAL (); // Unexpected
 	}
@@ -130,10 +116,7 @@ void RequestLocalBase::marshal_abstract (Interface::_ptr_type itf)
 				if (!value)
 					Nirvana::throw_MARSHAL (); // Unexpected
 				write8 (0);
-				ValueFactoryBase::_ref_type factory = value->_factory ();
-				if (!factory)
-					throw MARSHAL (MAKE_OMG_MINOR (1)); // Try to marshal abstract value
-				marshal_value_internal (value, factory);
+				marshal_value_internal (value);
 			}
 		}
 	}

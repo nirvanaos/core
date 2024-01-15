@@ -99,7 +99,7 @@ public:
 		return ucnt > std::numeric_limits <ULong>::max () ? std::numeric_limits <ULong>::max () : (ULong)ucnt;
 	}
 
-	Internal::Interface* _query_interface (const IDL::String& type_id) const
+	Internal::Interface::_ptr_type _query_interface (const IDL::String& type_id) const
 	{
 		return proxy_._query_interface (type_id);
 	}

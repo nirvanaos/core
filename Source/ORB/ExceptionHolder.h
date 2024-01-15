@@ -71,7 +71,7 @@ public:
 		marshaled_exception (std::move (stm.data ()));
 	}
 
-	Internal::Interface* _query_valuetype (Internal::String_in id) noexcept
+	Internal::Interface::_ptr_type _query_valuetype (Internal::String_in id)
 	{
 		return Internal::FindInterface <Messaging::ExceptionHolder>::find (*this, id);
 	}

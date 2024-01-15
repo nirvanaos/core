@@ -324,9 +324,6 @@ TypeCode::_ref_type RequestGIOP::unmarshal_type_code ()
 
 void RequestGIOP::marshal_value (ValueBase::_ptr_type base, Interface::_ptr_type val)
 {
-	if (!base->_factory ())
-		throw MARSHAL (MAKE_OMG_MINOR (1)); // Try to marshal abstract value
-
 	size_t pos = round_up (stream_out_->size (), (size_t)4);
 	auto ins = value_map_.marshal_map ().emplace (&base, pos);
 	if (!ins.second) {

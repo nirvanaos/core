@@ -56,7 +56,7 @@ protected:
 	}
 
 private:
-	void marshal_value_internal (ValueBase::_ptr_type base, ValueFactoryBase::_ptr_type factory);
+	void marshal_value_internal (ValueBase::_ptr_type base);
 
 private:
 	IndirectMapItf value_map_;

@@ -202,7 +202,7 @@ public:
 
 	uint_fast16_t flags () const noexcept
 	{
-		return Servant::flags ();
+		return Servant::private_flags ();
 	}
 
 	void set_flags (uint_fast16_t mask, uint_fast16_t f)
@@ -223,7 +223,7 @@ public:
 		if (changes & O_ACCMODE)
 			access (AccessDirect::_narrow (access ()->dup (O_ACCMODE, f)->_to_object ()));
 
-		Servant::flags (f);
+		Servant::private_flags (f);
 	}
 
 private:

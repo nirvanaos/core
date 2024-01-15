@@ -31,7 +31,7 @@ namespace CORBA {
 using namespace Internal;
 namespace Core {
 
-Interface* Poller::_query_valuetype (String_in id) noexcept
+Interface::_ptr_type Poller::_query_valuetype (String_in id)
 {
 	if (id.empty ())
 		return &primary_->value;

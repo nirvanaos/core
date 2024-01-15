@@ -169,7 +169,7 @@ public:
 	}
 
 	// Query interface
-	Internal::Interface* _query_interface (const IDL::String& type_id) const
+	Internal::Interface::_ptr_type _query_interface (const IDL::String& type_id) const
 	{
 		if (type_id.empty ())
 			return &metadata_.primary_interface->proxy;
