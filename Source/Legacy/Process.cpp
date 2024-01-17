@@ -66,8 +66,6 @@ void Process::run ()
 	assert (INIT == state_);
 	state_ = RUNNING;
 
-	Legacy::Process::_ref_type hold = _this ();
-
 	try {
 		Pointers v;
 		v.reserve (argv_.size () + envp_.size () + 2);
@@ -103,12 +101,14 @@ void Process::finish () noexcept
 	executable_.unbind ();
 	state_ = COMPLETED;
 	completed_.signal ();
+
 	if (callback_) {
+		ProcessCallback::_ref_type callback (std::move (callback_));
+		Legacy::Process::_ref_type proxy (std::move (proxy_));
 		try {
-			callback_->on_process_finish (_this ());
+			callback->on_process_finish (proxy);
 		} catch (...) {
 		}
-		callback_ = nullptr;
 	}
 }
 

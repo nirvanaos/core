@@ -118,7 +118,15 @@ public:
 
 		Legacy::Process::_ref_type ret = servant->_this ();
 
-		Nirvana::Core::ExecDomain::async_call (INFINITE_DEADLINE, *servant, servant->sync_context (), servant);
+		if (servant->callback_)
+			servant->proxy_ = ret;
+
+		try {
+			Nirvana::Core::ExecDomain::async_call (INFINITE_DEADLINE, *servant, servant->sync_context (), servant);
+		} catch (...) {
+			servant->proxy_ = nullptr;
+			throw;
+		}
 
 		return ret;
 	}
@@ -233,6 +241,7 @@ private:
 	Strings argv_, envp_;
 	Dir::_ref_type current_dir_;
 	ProcessCallback::_ref_type callback_;
+	Legacy::Process::_ref_type proxy_;
 	Nirvana::Core::Ref <Nirvana::Core::SyncContext> sync_domain_;
 	Nirvana::Core::EventSync completed_;
 	SimpleList <Legacy::Core::Thread> threads_;
