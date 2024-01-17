@@ -526,10 +526,14 @@ Binder::InterfaceRef Binder::bind_interface_sync (const ObjectKey& name, String_
 	InterfaceRef itf = find (name);
 	CORBA::Internal::StringView <char> itf_id = itf->_epv ().interface_id;
 	if (!RepId::compatible (itf_id, iid)) {
-		if (!RepId::compatible (itf_id, RepIdOf <PseudoBase>::id))
-			throw_INV_OBJREF ();
-		PseudoBase::_ptr_type b = static_cast <PseudoBase*> (&InterfacePtr (itf));
-		InterfacePtr qi = b->_query_interface (iid);
+		InterfacePtr qi = nullptr;
+		if (RepId::compatible (itf_id, RepIdOf <PseudoBase>::id)) {
+			PseudoBase::_ptr_type b = static_cast <PseudoBase*> (&InterfacePtr (itf));
+			qi = b->_query_interface (iid);
+		} else if (RepId::compatible (itf_id, RepIdOf <ValueBase>::id)) {
+			ValueBase::_ptr_type b = static_cast <ValueBase*> (&InterfacePtr (itf));
+			qi = b->_query_valuetype (iid);
+		}
 		if (!qi)
 			throw_INV_OBJREF ();
 		itf = qi;
