@@ -362,5 +362,3 @@ uint_fast16_t FileAccessBuf::check_flags (uint_fast16_t f) const
 
 }
 }
-
-NIRVANA_VALUETYPE_IMPL (Nirvana::AccessBuf, Nirvana::Core::FileAccessBuf)

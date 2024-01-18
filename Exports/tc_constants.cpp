@@ -25,8 +25,8 @@
 */
 #include "pch.h"
 #include <CORBA/TypeCodeString.h>
+#include <CORBA/TypeCodeValue.h>
 #include <CORBA/Proxy/TypeCodeInterface.h>
-#include <CORBA/Proxy/TypeCodeValue.h>
 #include <tc_impex.h>
 
 namespace CORBA {

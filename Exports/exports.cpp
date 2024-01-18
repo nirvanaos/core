@@ -23,12 +23,9 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "../pch.h"
-#include "ExceptionHolder.h"
+#include "pch.h"
+#include <FileAccessBuf.h>
+#include <ExceptionHolder.h>
 
-namespace CORBA {
-namespace Core {
-
-}
-}
-
+NIRVANA_VALUETYPE_IMPL (_exp_Nirvana_AccessBuf, Nirvana::AccessBuf, Nirvana::Core::FileAccessBuf)
+NIRVANA_VALUETYPE_IMPL (_exp_Messaging_ExceptionHolder, Messaging::ExceptionHolder, CORBA::Core::ExceptionHolderImpl)

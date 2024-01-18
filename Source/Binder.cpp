@@ -58,7 +58,7 @@ void Binder::ObjectMap::insert (const char* name, InterfacePtr itf)
 	assert (itf);
 	assert (*name);
 	if (!ObjectMapBase::emplace (name, itf).second)
-		throw_INV_OBJREF ();	// Duplicated name
+		throw_INV_OBJREF ();	// Duplicated name TODO: Log
 }
 
 void Binder::ObjectMap::erase (const char* name) noexcept
@@ -73,7 +73,7 @@ void Binder::ObjectMap::merge (const ObjectMap& src)
 			for (auto it1 = src.begin (); it1 != it; ++it1) {
 				ObjectMapBase::erase (it1->first);
 			}
-			throw_INV_OBJREF ();	// Duplicated name
+			throw_INV_OBJREF ();	// Duplicated name TODO: Log
 		}
 	}
 }
