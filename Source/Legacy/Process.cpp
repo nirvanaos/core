@@ -28,8 +28,6 @@
 #include "Synchronized.h"
 #include <iostream>
 
-//using namespace Nirvana::Core;
-
 namespace Nirvana {
 namespace Legacy {
 namespace Core {
@@ -102,9 +100,10 @@ void Process::finish () noexcept
 	state_ = COMPLETED;
 	completed_.signal ();
 
+	Legacy::Process::_ref_type proxy (std::move (proxy_));
+
 	if (callback_) {
 		ProcessCallback::_ref_type callback (std::move (callback_));
-		Legacy::Process::_ref_type proxy (std::move (proxy_));
 		try {
 			callback->on_process_finish (proxy);
 		} catch (...) {

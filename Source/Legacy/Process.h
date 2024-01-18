@@ -118,8 +118,8 @@ public:
 
 		Legacy::Process::_ref_type ret = servant->_this ();
 
-		if (servant->callback_)
-			servant->proxy_ = ret;
+		// Hold the proxy to keep object alive even if process is not referenced by any client.
+		servant->proxy_ = ret;
 
 		try {
 			Nirvana::Core::ExecDomain::async_call (INFINITE_DEADLINE, *servant, servant->sync_context (), servant);
