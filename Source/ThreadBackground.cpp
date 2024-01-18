@@ -33,12 +33,10 @@ namespace Core {
 void ThreadBackground::start ()
 {
 	_add_ref ();
-	Scheduler::activity_begin ();
 	try {
 		Base::start ();
 	} catch (...) {
 		_remove_ref ();
-		Scheduler::activity_end ();
 		throw;
 	}
 }
@@ -46,7 +44,6 @@ void ThreadBackground::start ()
 void ThreadBackground::on_thread_proc_end () noexcept
 {
 	_remove_ref ();
-	Scheduler::activity_end ();
 }
 
 }

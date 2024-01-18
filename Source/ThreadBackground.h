@@ -52,7 +52,7 @@ public:
 
 	void execute (ExecDomain& exec_domain)
 	{
-		Base::exec_domain (exec_domain);
+		Thread::exec_domain (exec_domain);
 		Base::resume ();
 	}
 
