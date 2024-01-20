@@ -45,6 +45,7 @@ class TC_Enum :
 public:
 	using Servant::_s_id;
 	using Servant::_s_name;
+	using Servant::_s_get_compact_typecode;
 	using Servant::_s_member_count;
 	using Servant::_s_member_name;
 

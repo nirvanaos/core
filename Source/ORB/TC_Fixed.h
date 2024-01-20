@@ -40,6 +40,8 @@ class TC_Fixed :
 {
 	typedef TC_Impl <TC_Fixed, TC_Base> Impl;
 public:
+	using CORBA::Internal::TypeCodeBase::_s_get_compact_typecode;
+
 	TC_Fixed (UShort digits, Short scale) noexcept :
 		Impl (TCKind::tk_fixed),
 		digits_ (digits),

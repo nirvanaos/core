@@ -48,6 +48,7 @@ public:
 	using TC_RefBase::_s_n_byteswap;
 	using Servant::_s_id;
 	using Servant::_s_name;
+	using Servant::_s_get_compact_typecode;
 
 	TC_Interface (TCKind kind, IDL::String&& id, IDL::String&& name) noexcept;
 

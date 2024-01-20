@@ -49,6 +49,7 @@ public:
 	using Servant::_s_id;
 	using Servant::_s_name;
 	using Servant::_s_content_type;
+	using Servant::_s_get_compact_typecode;
 
 	TC_ValueBox (IDL::String&& id, IDL::String&& name) noexcept :
 		Impl (TCKind::tk_value_box, std::move (id), std::move (name))

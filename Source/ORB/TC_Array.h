@@ -46,6 +46,7 @@ public:
 	using Servant::_s_n_aligned_size;
 	using Servant::_s_n_align;
 	using Servant::_s_n_byteswap;
+	using Servant::_s_get_compact_typecode;
 
 	TC_Array () :
 		Impl (TCKind::tk_array)

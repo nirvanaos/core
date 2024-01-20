@@ -44,6 +44,7 @@ class TC_Native :
 public:
 	using Servant::_s_id;
 	using Servant::_s_name;
+	using Servant::_s_get_compact_typecode;
 	using Ops::_s_n_CDR_size;
 	using Ops::_s_n_aligned_size;
 	using Ops::_s_n_align;

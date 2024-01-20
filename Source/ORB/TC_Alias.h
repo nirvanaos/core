@@ -47,6 +47,10 @@ public:
 	using Servant::_s_n_aligned_size;
 	using Servant::_s_n_byteswap;
 
+	// The get_compact_typecode operation strips out all optional name and member name fields,
+	// but it leaves all alias typecodes intact.
+	using Internal::TypeCodeBase::_s_get_compact_typecode;
+
 	TC_Alias (IDL::String&& id, IDL::String&& name) noexcept :
 		Impl (TCKind::tk_alias, std::move (id), std::move (name))
 	{}

@@ -52,6 +52,7 @@ public:
 	using Servant::_s_member_name;
 	using Servant::_s_member_type;
 	using Servant::_s_member_label;
+	using Servant::_s_get_compact_typecode;
 
 	struct Member
 	{

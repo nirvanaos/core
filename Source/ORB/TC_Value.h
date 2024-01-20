@@ -56,6 +56,7 @@ public:
 	using Servant::_s_member_visibility;
 	using Servant::_s_type_modifier;
 	using Servant::_s_concrete_base_type;
+	using Servant::_s_get_compact_typecode;
 
 	struct Member
 	{

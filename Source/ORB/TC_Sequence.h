@@ -43,6 +43,7 @@ class TC_Sequence : public TC_Impl <TC_Sequence, TC_ArrayBase>
 public:
 	using Servant::_s_length;
 	using Servant::_s_content_type;
+	using Servant::_s_get_compact_typecode;
 
 	TC_Sequence () :
 		Impl (TCKind::tk_sequence)
