@@ -272,9 +272,9 @@ public:
 	/// Unmarshal interface.
 	/// 
 	/// \param rep_id The interface repository id.
+	/// \param [out] itf The interface.
 	/// 
-	/// \returns Interface.
-	virtual Internal::Interface::_ref_type unmarshal_interface (const IDL::String& interface_id);
+	virtual void unmarshal_interface (const IDL::String& interface_id, Internal::Interface::_ref_type& itf);
 
 	/// Marshal TypeCode.
 	/// 
@@ -290,8 +290,8 @@ public:
 
 	/// Unmarshal TypeCode.
 	/// 
-	/// \returns TypeCode.
-	virtual TypeCode::_ref_type unmarshal_type_code ();
+	/// \param [out] TypeCode.
+	virtual void unmarshal_type_code (TypeCode::_ref_type& tc);
 
 	/// Marshal value type.
 	/// 
@@ -315,9 +315,9 @@ public:
 	/// Unmarshal value type.
 	/// 
 	/// \param rep_id The value type repository id.
+	/// \param [out] val The value interface.
 	/// 
-	/// \returns Value type interface.
-	virtual Internal::Interface::_ref_type unmarshal_value (const IDL::String& interface_id);
+	virtual void unmarshal_value (const IDL::String& interface_id, Internal::Interface::_ref_type& val);
 
 	/// Marshal abstract interface.
 	/// 
@@ -355,9 +355,9 @@ public:
 	/// Unmarshal abstract interface.
 	/// 
 	/// \param rep_id The interface repository id.
+	/// \param [out] itf The nterface.
 	/// 
-	/// \returns Interface.
-	virtual Internal::Interface::_ref_type unmarshal_abstract (const IDL::String& interface_id);
+	virtual void unmarshal_abstract (const IDL::String& interface_id, Internal::Interface::_ref_type& itf);
 
 	///@}
 

@@ -103,10 +103,10 @@ protected:
 	virtual void unmarshal_wchar (size_t count, WChar* data) override;
 	virtual void unmarshal_wstring (IDL::WString& s) override;
 	virtual void unmarshal_wchar_seq (IDL::Sequence <WChar>& s) override;
-	virtual Internal::Interface::_ref_type unmarshal_interface (const IDL::String& interface_id) override;
-	virtual TypeCode::_ref_type unmarshal_type_code () override;
-	virtual Internal::Interface::_ref_type unmarshal_value (const IDL::String& interface_id) override;
-	virtual Internal::Interface::_ref_type unmarshal_abstract (const IDL::String& interface_id) override;
+	virtual void unmarshal_interface (const IDL::String& interface_id, Internal::Interface::_ref_type& itf) override;
+	virtual void unmarshal_type_code (TypeCode::_ref_type& tc) override;
+	virtual void unmarshal_value (const IDL::String& interface_id, Internal::Interface::_ref_type& val) override;
+	virtual void unmarshal_abstract (const IDL::String& interface_id, Internal::Interface::_ref_type& itf) override;
 	virtual void unmarshal_end () override;
 
 	virtual bool marshal_op () override;

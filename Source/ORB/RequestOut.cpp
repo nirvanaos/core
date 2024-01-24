@@ -261,36 +261,36 @@ void RequestOut::unmarshal_wchar_seq (IDL::Sequence <WChar>& s)
 		RequestGIOP::unmarshal_wchar_seq (s);
 }
 
-Interface::_ref_type RequestOut::unmarshal_interface (const IDL::String& interface_id)
+void RequestOut::unmarshal_interface (const IDL::String& interface_id, Interface::_ref_type& itf)
 {
 	if (preunmarshaled_)
-		return preunmarshaled_->unmarshal_interface (interface_id);
+		preunmarshaled_->unmarshal_interface (interface_id, itf);
 	else
-		return RequestGIOP::unmarshal_interface (interface_id);
+		RequestGIOP::unmarshal_interface (interface_id, itf);
 }
 
-TypeCode::_ref_type RequestOut::unmarshal_type_code ()
+void RequestOut::unmarshal_type_code (TypeCode::_ref_type& tc)
 {
 	if (preunmarshaled_)
-		return preunmarshaled_->unmarshal_type_code ();
+		preunmarshaled_->unmarshal_type_code (tc);
 	else
-		return RequestGIOP::unmarshal_type_code ();
+		RequestGIOP::unmarshal_type_code (tc);
 }
 
-Interface::_ref_type RequestOut::unmarshal_value (const IDL::String& interface_id)
+void RequestOut::unmarshal_value (const IDL::String& interface_id, Interface::_ref_type& val)
 {
 	if (preunmarshaled_)
-		return preunmarshaled_->unmarshal_value (interface_id);
+		preunmarshaled_->unmarshal_value (interface_id, val);
 	else
-		return RequestGIOP::unmarshal_value (interface_id);
+		RequestGIOP::unmarshal_value (interface_id, val);
 }
 
-Interface::_ref_type RequestOut::unmarshal_abstract (const IDL::String& interface_id)
+void RequestOut::unmarshal_abstract (const IDL::String& interface_id, Interface::_ref_type& itf)
 {
 	if (preunmarshaled_)
-		return preunmarshaled_->unmarshal_abstract (interface_id);
+		preunmarshaled_->unmarshal_abstract (interface_id, itf);
 	else
-		return RequestGIOP::unmarshal_abstract (interface_id);
+		RequestGIOP::unmarshal_abstract (interface_id, itf);
 }
 
 void RequestOut::unmarshal_end ()

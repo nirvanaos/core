@@ -355,7 +355,7 @@ void RequestLocalRoot::marshal_interface_internal (Interface::_ptr_type itf)
 	interfaces_ = itf_rec;
 }
 
-Interface::_ref_type RequestLocalRoot::unmarshal_interface (const IDL::String& interface_id)
+void RequestLocalRoot::unmarshal_interface (const IDL::String& interface_id, Interface::_ref_type& itf)
 {
 	Interface** pitf = (Interface**)round_up (cur_ptr_, alignof (Interface*));
 	const Octet* block_end = cur_block_end ();
@@ -367,7 +367,8 @@ Interface::_ref_type RequestLocalRoot::unmarshal_interface (const IDL::String& i
 
 	if (!*pitf) {
 		cur_ptr_ = (Octet*)(pitf + 1);
-		return nullptr;
+		itf = nullptr;
+		return;
 	}
 
 	if (!interfaces_)
@@ -381,7 +382,7 @@ Interface::_ref_type RequestLocalRoot::unmarshal_interface (const IDL::String& i
 	Interface::_check ((Interface*)itf_rec->ptr, interface_id);
 	interfaces_ = (ItfRecord*)(itf_rec->next);
 	cur_ptr_ = (Octet*)(itf_rec + 1);
-	return std::move ((Interface::_ref_type&)(itf_rec->ptr));
+	itf = std::move (reinterpret_cast <Interface::_ref_type&> (itf_rec->ptr));
 }
 
 void RequestLocalRoot::marshal_value (Interface::_ptr_type val)
@@ -389,9 +390,9 @@ void RequestLocalRoot::marshal_value (Interface::_ptr_type val)
 	marshal_interface (val);
 }
 
-Interface::_ref_type RequestLocalRoot::unmarshal_value (const IDL::String& interface_id)
+void RequestLocalRoot::unmarshal_value (const IDL::String& interface_id, Interface::_ref_type& val)
 {
-	return unmarshal_interface (interface_id);
+	unmarshal_interface (interface_id, val);
 }
 
 void RequestLocalRoot::marshal_abstract (Interface::_ptr_type itf)
@@ -399,9 +400,9 @@ void RequestLocalRoot::marshal_abstract (Interface::_ptr_type itf)
 	marshal_interface (itf);
 }
 
-Interface::_ref_type RequestLocalRoot::unmarshal_abstract (const IDL::String& interface_id)
+void RequestLocalRoot::unmarshal_abstract (const IDL::String& interface_id, Interface::_ref_type& itf)
 {
-	return unmarshal_interface (interface_id);
+	unmarshal_interface (interface_id, itf);
 }
 
 void RequestLocalRoot::invoke ()

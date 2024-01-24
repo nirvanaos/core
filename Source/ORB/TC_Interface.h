@@ -72,7 +72,7 @@ public:
 		Internal::check_pointer (dst);
 		for (Internal::Interface::_ref_type* p = reinterpret_cast <Internal::Interface::_ref_type*> (dst);
 			count; ++p, --count) {
-			*p = rq->unmarshal_interface (id_);
+			rq->unmarshal_interface (id_, *p);
 		}
 	}
 };

@@ -40,9 +40,9 @@ class NIRVANA_NOVTABLE RequestLocalBase : public RequestLocalRoot
 
 public:
 	virtual void marshal_value (Internal::Interface::_ptr_type val) override;
-	virtual Internal::Interface::_ref_type unmarshal_value (const IDL::String& interface_id) override;
+	virtual void unmarshal_value (const IDL::String& interface_id, Internal::Interface::_ref_type& val) override;
 	virtual void marshal_abstract (Internal::Interface::_ptr_type itf) override;
-	virtual Internal::Interface::_ref_type unmarshal_abstract (const IDL::String& interface_id) override;
+	virtual void unmarshal_abstract (const IDL::String& interface_id, Internal::Interface::_ref_type& itf) override;
 
 protected:
 	RequestLocalBase (Nirvana::Core::MemContext* callee_memory, unsigned response_flags) noexcept :

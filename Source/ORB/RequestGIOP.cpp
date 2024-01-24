@@ -133,23 +133,21 @@ void RequestGIOP::marshal_object (Object::_ptr_type obj)
 		marshaled_DGC_references_.emplace (std::move (ref));
 }
 
-Interface::_ref_type RequestGIOP::unmarshal_interface (const IDL::String& interface_id)
+void RequestGIOP::unmarshal_interface (const IDL::String& interface_id, Interface::_ref_type& itf)
 {
 	ReferenceRemoteRef unconfirmed_remote_ref;
 	Object::_ref_type obj = unmarshal_object (*stream_in_, unconfirmed_remote_ref);
-	Interface::_ref_type ret;
 	if (obj) {
 		if (RepId::compatible (RepIdOf <Object>::id, interface_id))
-			ret = std::move (obj);
+			itf = std::move (obj);
 		else {
-			ret = obj->_query_interface (interface_id);
-			if (!ret)
+			itf = obj->_query_interface (interface_id);
+			if (!itf)
 				throw INV_OBJREF ();
 		}
 		if (unconfirmed_remote_ref)
 			references_to_confirm_.push_back (std::move (unconfirmed_remote_ref));
 	}
-	return ret;
 }
 
 void RequestGIOP::marshal_type_code (StreamOut& stream, TypeCode::_ptr_type tc, IndirectMapMarshal& map, size_t parent_offset)
@@ -299,7 +297,7 @@ void RequestGIOP::marshal_type_code (StreamOut& stream, TypeCode::_ptr_type tc, 
 	stream.write_seq (encap.data (), true);
 }
 
-TypeCode::_ref_type RequestGIOP::unmarshal_type_code ()
+void RequestGIOP::unmarshal_type_code (TypeCode::_ref_type& tc)
 {
 	size_t start_pos = round_up (stream_in_->position (), (size_t)4);
 	ULong kind = stream_in_->read32 ();
@@ -310,16 +308,14 @@ TypeCode::_ref_type RequestGIOP::unmarshal_type_code ()
 		Interface* itf = top_level_tc_unmarshal_.find (start_pos + 4 + off);
 		if (!itf)
 			throw BAD_TYPECODE ();
-		return TypeCode::_ptr_type (static_cast <TypeCode*> (itf));
+		tc = TypeCode::_ptr_type (static_cast <TypeCode*> (itf));
 	}
 
-	TypeCode::_ref_type ret;
-	if (!TC_FactoryImpl::get_simple_tc ((TCKind)kind, ret)) {
-		ret = TC_FactoryImpl::unmarshal_type_code ((TCKind)kind, *stream_in_,
+	if (!TC_FactoryImpl::get_simple_tc ((TCKind)kind, tc)) {
+		tc = TC_FactoryImpl::unmarshal_type_code ((TCKind)kind, *stream_in_,
 			top_level_tc_unmarshal_.get_allocator ().heap ());
-		top_level_tc_unmarshal_.emplace (start_pos, &TypeCode::_ptr_type (ret));
+		top_level_tc_unmarshal_.emplace (start_pos, &TypeCode::_ptr_type (tc));
 	}
-	return ret;
 }
 
 void RequestGIOP::marshal_value (ValueBase::_ptr_type base, Interface::_ptr_type val)
@@ -403,7 +399,7 @@ void RequestGIOP::marshal_val_rep_id (Internal::String_in id)
 	}
 }
 
-Interface::_ref_type RequestGIOP::unmarshal_value (const IDL::String& interface_id)
+void RequestGIOP::unmarshal_value (const IDL::String& interface_id, Interface::_ref_type& val)
 {
 	if (chunk_level_) {
 		if (stream_in_->chunk_tail ())
@@ -412,8 +408,10 @@ Interface::_ref_type RequestGIOP::unmarshal_value (const IDL::String& interface_
 	}
 	size_t start_pos = round_up (stream_in_->position (), (size_t)4);
 	Long value_tag = stream_in_->read32 ();
-	if (0 == value_tag)
-		return nullptr;
+	if (0 == value_tag) {
+		val = nullptr;
+		return;
+	}
 
 	IndirectMapUnmarshal& unmarshal_map = value_map_.unmarshal_map ();
 	if (INDIRECTION_TAG == value_tag) {
@@ -426,7 +424,8 @@ Interface::_ref_type RequestGIOP::unmarshal_value (const IDL::String& interface_
 		Interface::_ptr_type itf = static_cast <ValueBase*> (vb)->_query_valuetype (interface_id);
 		if (!itf)
 			throw MARSHAL (); // Unexpected
-		return itf;
+		val = itf;
+		return;
 	}
 
 	if (value_tag < 0x7FFFFF00)
@@ -483,8 +482,8 @@ Interface::_ref_type RequestGIOP::unmarshal_value (const IDL::String& interface_
 	}
 
 	ValueBase::_ref_type base (factory->create_for_unmarshal ());
-	Interface::_ref_type ret (base->_query_valuetype (interface_id));
-	if (!ret)
+	val = base->_query_valuetype (interface_id);
+	if (!val)
 		throw MARSHAL (); // Unexpected
 
 	unmarshal_map.emplace (start_pos, &ValueBase::_ptr_type (base));
@@ -511,8 +510,6 @@ Interface::_ref_type RequestGIOP::unmarshal_value (const IDL::String& interface_
 			throw MARSHAL ();
 		chunk_level_ = end_tag + 1;
 	}
-
-	return ret;
 }
 
 const RequestGIOP::RepositoryId& RequestGIOP::unmarshal_val_rep_id ()
@@ -537,14 +534,14 @@ const RequestGIOP::RepositoryId& RequestGIOP::unmarshal_val_rep_id ()
 	return unmarshal_map.emplace (pos, std::move (id)).first->second;
 }
 
-Interface::_ref_type RequestGIOP::unmarshal_abstract (const IDL::String& interface_id)
+void RequestGIOP::unmarshal_abstract (const IDL::String& interface_id, Interface::_ref_type& itf)
 {
 	Octet is_object;
 	stream_in_->read_one (is_object);
 	if (is_object)
-		return RequestGIOP::unmarshal_interface (interface_id);
+		unmarshal_interface (interface_id, itf);
 	else
-		return RequestGIOP::unmarshal_value (interface_id);
+		unmarshal_value (interface_id, itf);
 }
 
 }

@@ -60,7 +60,7 @@ void RequestLocalBase::marshal_value_internal (ValueBase::_ptr_type base)
 	}
 }
 
-Interface::_ref_type RequestLocalBase::unmarshal_value (const IDL::String& interface_id)
+void RequestLocalBase::unmarshal_value (const IDL::String& interface_id, Interface::_ref_type& val)
 {
 	Internal::Interface::_ref_type ret;
 	uintptr_t pos = (uintptr_t)cur_ptr_;
@@ -70,13 +70,14 @@ Interface::_ref_type RequestLocalBase::unmarshal_value (const IDL::String& inter
 		break;
 
 	case 1: {
-		ValueFactoryBase::_ref_type factory = unmarshal_interface (Internal::RepIdOf <ValueFactoryBase>::id).template downcast <ValueFactoryBase> ();
+		ValueFactoryBase::_ref_type factory;
+		unmarshal_interface (Internal::RepIdOf <ValueFactoryBase>::id, reinterpret_cast <Interface::_ref_type&> (factory));
 		if (!factory)
-			throw MARSHAL (); // Unexpected
+			throw MARSHAL (MAKE_OMG_MINOR (1)); // Unable to locate value factory.
 		ValueBase::_ref_type base (factory->create_for_unmarshal ());
 		base->_unmarshal (_get_ptr ());
 		value_map_.unmarshal_map ().emplace (pos, &ValueBase::_ptr_type (base));
-		ret = base->_query_valuetype (interface_id);
+		val = base->_query_valuetype (interface_id);
 	} break;
 
 	case 2: {
@@ -85,18 +86,16 @@ Interface::_ref_type RequestLocalBase::unmarshal_value (const IDL::String& inter
 		const auto& unmarshal_map = value_map_.unmarshal_map ();
 		Interface* vb = unmarshal_map.find (p);
 		if (!vb)
-			throw MARSHAL ();
-		ret = static_cast <ValueBase*> (vb)->_query_valuetype (interface_id);
+			throw MARSHAL (); // Unexpected
+		val = static_cast <ValueBase*> (vb)->_query_valuetype (interface_id);
 	} break;
 
 	default:
 		throw MARSHAL (); // Unexpected
 	}
 
-	if (tag && !ret)
+	if (tag && !val)
 		throw MARSHAL (); // Unexpected
-
-	return ret;
 }
 
 void RequestLocalBase::marshal_abstract (Interface::_ptr_type itf)
@@ -122,13 +121,13 @@ void RequestLocalBase::marshal_abstract (Interface::_ptr_type itf)
 	}
 }
 
-Interface::_ref_type RequestLocalBase::unmarshal_abstract (const IDL::String& interface_id)
+void RequestLocalBase::unmarshal_abstract (const IDL::String& interface_id, Interface::_ref_type& itf)
 {
 	uint8_t tag = read8 ();
 	if (tag)
-		return unmarshal_interface (interface_id);
+		unmarshal_interface (interface_id, itf);
 	else
-		return unmarshal_value (interface_id);
+		unmarshal_value (interface_id, itf);
 }
 
 }
