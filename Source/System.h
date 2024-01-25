@@ -23,21 +23,23 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "pch.h"
+#ifndef NIRVANA_CORE_SYSTEM_H_
+#define NIRVANA_CORE_SYSTEM_H_
+
 #include <CORBA/Server.h>
 #include <signal.h>
 #include <Nirvana/System_s.h>
-#include <Binder.h>
-#include <Chrono.h>
-#include <ExecDomain.h>
-#include <HeapDynamic.h>
+#include "Binder.h"
+#include "Chrono.h"
+#include "ExecDomain.h"
+#include "HeapDynamic.h"
 #include <Port/SystemInfo.h>
 #include <Port/Debugger.h>
-#include <Signals.h>
-#include <unrecoverable_error.h>
-#include <NameService/FileSystem.h>
-#include <NameService/NameService.h>
-#include <TimerEvent.h>
+#include "Signals.h"
+#include "unrecoverable_error.h"
+#include "NameService/FileSystem.h"
+#include "NameService/NameService.h"
+#include "TimerEvent.h"
 
 namespace Nirvana {
 namespace Core {
@@ -361,11 +363,6 @@ public:
 };
 
 }
-
-constexpr ImportInterfaceT <System> NIRVANA_SELECTANY g_system = { OLF_IMPORT_INTERFACE,
-	"Nirvana/g_system", CORBA::Internal::RepIdOf <System>::id,
-	NIRVANA_STATIC_BRIDGE (System, Core::System) };
-
 }
 
-NIRVANA_EXPORT (_exp_Nirvana_g_system, "Nirvana/g_system", Nirvana::System, Nirvana::Core::System)
+#endif

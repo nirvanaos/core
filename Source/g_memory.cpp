@@ -23,23 +23,14 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "../pch.h"
-#include <CORBA/Proxy/TypeCodeNative.h>
-
-namespace CORBA {
-namespace Internal {
-template <>
-const Char TypeCodeName <void*>::name_ [] = "Pointer";
-}
-}
+#include "pch.h"
+#include "Memory.h"
 
 namespace Nirvana {
-typedef CORBA::Internal::TypeCodeNative <void*> TC_Pointer;
+
+constexpr ImportInterfaceT <Memory> NIRVANA_SELECTANY g_memory = { OLF_IMPORT_INTERFACE,
+	"Nirvana/g_memory", CORBA::Internal::RepIdOf <Memory>::id,
+	NIRVANA_STATIC_BRIDGE (Memory, Core::Memory) };
+
 }
-
-constexpr Nirvana::ImportInterfaceT <CORBA::TypeCode> NIRVANA_SELECTANY Nirvana::_tc_Pointer
-{ Nirvana::OLF_IMPORT_INTERFACE, nullptr, nullptr, NIRVANA_STATIC_BRIDGE (CORBA::TypeCode, Nirvana::TC_Pointer) };
-
-NIRVANA_EXPORT (_exp_Nirvana_Pointer, CORBA::Internal::RepIdOf <void*>::id, CORBA::TypeCode, Nirvana::TC_Pointer);
-
 

@@ -24,22 +24,16 @@
 *  popov.nirvana@gmail.com
 */
 #include "../pch.h"
-#include <CORBA/Proxy/TypeCodeNative.h>
+#include "ObjectFactory.h"
 
 namespace CORBA {
 namespace Internal {
-template <>
-const Char TypeCodeName <void*>::name_ [] = "Pointer";
+
+extern constexpr Nirvana::ImportInterfaceT <ObjectFactory> g_object_factory = {
+	Nirvana::OLF_IMPORT_INTERFACE, "CORBA/Internal/g_object_factory",
+	RepIdOf <ObjectFactory>::id, NIRVANA_STATIC_BRIDGE (ObjectFactory,
+	Core::ObjectFactory)
+};
+
 }
 }
-
-namespace Nirvana {
-typedef CORBA::Internal::TypeCodeNative <void*> TC_Pointer;
-}
-
-constexpr Nirvana::ImportInterfaceT <CORBA::TypeCode> NIRVANA_SELECTANY Nirvana::_tc_Pointer
-{ Nirvana::OLF_IMPORT_INTERFACE, nullptr, nullptr, NIRVANA_STATIC_BRIDGE (CORBA::TypeCode, Nirvana::TC_Pointer) };
-
-NIRVANA_EXPORT (_exp_Nirvana_Pointer, CORBA::Internal::RepIdOf <void*>::id, CORBA::TypeCode, Nirvana::TC_Pointer);
-
-

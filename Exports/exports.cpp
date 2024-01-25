@@ -24,8 +24,17 @@
 *  popov.nirvana@gmail.com
 */
 #include "pch.h"
+#include <Memory.h>
 #include <FileAccessBuf.h>
 #include <ExceptionHolder.h>
+#include <ORB/ORB.h>
+#include <ORB/ObjectFactory.h>
+#include <System.h>
 
-NIRVANA_VALUETYPE_IMPL (_exp_Nirvana_AccessBuf, Nirvana::AccessBuf, Nirvana::Core::FileAccessBuf)
-NIRVANA_VALUETYPE_IMPL (_exp_Messaging_ExceptionHolder, Messaging::ExceptionHolder, CORBA::Core::ExceptionHolderImpl)
+NIRVANA_EXPORT (_exp_Nirvana_g_memory, "Nirvana/g_memory", Nirvana::Memory, Nirvana::Core::Memory)
+NIRVANA_EXPORT_FACTORY (_exp_Nirvana_AccessBuf, Nirvana::AccessBuf)
+NIRVANA_EXPORT_FACTORY (_exp_Messaging_ExceptionHolder, Messaging::ExceptionHolder)
+NIRVANA_EXPORT (_exp_CORBA_g_ORB, "CORBA/g_ORB", CORBA::ORB, CORBA::Core::ORB)
+NIRVANA_EXPORT (_exp_CORBA_Internal_g_object_factory, "CORBA/Internal/g_object_factory", CORBA::Internal::ObjectFactory, CORBA::Core::ObjectFactory)
+NIRVANA_EXPORT (_exp_Nirvana_g_system, "Nirvana/g_system", Nirvana::System, Nirvana::Core::System)
+

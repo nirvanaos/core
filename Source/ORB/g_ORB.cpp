@@ -23,17 +23,13 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "pch.h"
-#include <ORB/ORB.h>
-
-using namespace Nirvana;
+#include "../pch.h"
+#include "ORB.h"
 
 namespace CORBA {
 
-constexpr ImportInterfaceT <ORB> NIRVANA_SELECTANY g_ORB = { OLF_IMPORT_INTERFACE,
+constexpr Nirvana::ImportInterfaceT <ORB> NIRVANA_SELECTANY g_ORB = { Nirvana::OLF_IMPORT_INTERFACE,
 	"CORBA/g_ORB", Internal::RepIdOf <ORB>::id,
 	NIRVANA_STATIC_BRIDGE (ORB, Core::ORB) };
 
 }
-
-NIRVANA_EXPORT (_exp_CORBA_g_ORB, "CORBA/g_ORB", CORBA::ORB, CORBA::Core::ORB)

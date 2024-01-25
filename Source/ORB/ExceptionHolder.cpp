@@ -32,3 +32,4 @@ namespace Core {
 }
 }
 
+NIRVANA_GET_FACTORY (Messaging::ExceptionHolder, CORBA::Core::ExceptionHolderImpl)

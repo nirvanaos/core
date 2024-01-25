@@ -24,19 +24,12 @@
 *  popov.nirvana@gmail.com
 */
 #include "pch.h"
-#include <ORB/ObjectFactory.h>
-#include <Nirvana/OLF.h>
+#include "System.h"
 
-namespace CORBA {
-namespace Internal {
+namespace Nirvana {
 
-extern constexpr Nirvana::ImportInterfaceT <ObjectFactory> g_object_factory = {
-	Nirvana::OLF_IMPORT_INTERFACE, "CORBA/Internal/g_object_factory",
-	RepIdOf <ObjectFactory>::id, NIRVANA_STATIC_BRIDGE (ObjectFactory,
-	Core::ObjectFactory)
-};
+constexpr ImportInterfaceT <System> NIRVANA_SELECTANY g_system = { OLF_IMPORT_INTERFACE,
+	"Nirvana/g_system", CORBA::Internal::RepIdOf <System>::id,
+	NIRVANA_STATIC_BRIDGE (System, Core::System) };
 
 }
-}
-
-NIRVANA_EXPORT (_exp_CORBA_Internal_g_object_factory, "CORBA/Internal/g_object_factory", CORBA::Internal::ObjectFactory, CORBA::Core::ObjectFactory)
