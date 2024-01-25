@@ -30,7 +30,7 @@
 #include <CORBA/Server.h>
 #include <Nirvana/Legacy/Legacy_Process_s.h>
 #include <Nirvana/Launcher.h>
-#include <Legacy/Process.h>
+#include "../Source/Legacy/Process.h"
 
 namespace Nirvana {
 namespace Legacy {

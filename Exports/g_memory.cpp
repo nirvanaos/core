@@ -23,17 +23,15 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "../pch.h"
-#include "ObjectFactory.h"
+#include "pch.h"
+#include "../Source/Memory.h"
+	
+namespace Nirvana {
 
-namespace CORBA {
-namespace Internal {
-
-extern constexpr Nirvana::ImportInterfaceT <ObjectFactory> g_object_factory = {
-	Nirvana::OLF_IMPORT_INTERFACE, "CORBA/Internal/g_object_factory",
-	RepIdOf <ObjectFactory>::id, NIRVANA_STATIC_BRIDGE (ObjectFactory,
-	Core::ObjectFactory)
-};
+constexpr ImportInterfaceT <Memory> NIRVANA_SELECTANY g_memory = { OLF_IMPORT_INTERFACE,
+	"Nirvana/g_memory", CORBA::Internal::RepIdOf <Memory>::id,
+	NIRVANA_STATIC_BRIDGE (Memory, Core::Memory) };
 
 }
-}
+
+NIRVANA_EXPORT (_exp_Nirvana_g_memory, "Nirvana/g_memory", Nirvana::Memory, Nirvana::Core::Memory)

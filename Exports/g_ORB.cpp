@@ -24,13 +24,14 @@
 *  popov.nirvana@gmail.com
 */
 #include "pch.h"
-#include "Memory.h"
+#include "../Source/ORB/ORB.h"
 
-namespace Nirvana {
+namespace CORBA {
 
-constexpr ImportInterfaceT <Memory> NIRVANA_SELECTANY g_memory = { OLF_IMPORT_INTERFACE,
-	"Nirvana/g_memory", CORBA::Internal::RepIdOf <Memory>::id,
-	NIRVANA_STATIC_BRIDGE (Memory, Core::Memory) };
+constexpr Nirvana::ImportInterfaceT <ORB> NIRVANA_SELECTANY g_ORB = { Nirvana::OLF_IMPORT_INTERFACE,
+	"CORBA/g_ORB", Internal::RepIdOf <ORB>::id,
+	NIRVANA_STATIC_BRIDGE (ORB, Core::ORB) };
 
 }
 
+NIRVANA_EXPORT (_exp_CORBA_g_ORB, "CORBA/g_ORB", CORBA::ORB, CORBA::Core::ORB)

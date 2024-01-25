@@ -24,7 +24,7 @@
 *  popov.nirvana@gmail.com
 */
 #include "pch.h"
-#include "System.h"
+#include "../Source/System.h"
 
 namespace Nirvana {
 
@@ -33,3 +33,5 @@ constexpr ImportInterfaceT <System> NIRVANA_SELECTANY g_system = { OLF_IMPORT_IN
 	NIRVANA_STATIC_BRIDGE (System, Core::System) };
 
 }
+
+NIRVANA_EXPORT (_exp_Nirvana_g_system, "Nirvana/g_system", Nirvana::System, Nirvana::Core::System)

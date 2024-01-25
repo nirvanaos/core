@@ -26,7 +26,7 @@
 #include "pch.h"
 #include <CORBA/Proxy/TypeCodeEnum.h>
 #include <CORBA/Proxy/TypeCodeException.h>
-#include "tc_impex.h"
+#include "../Source/ORB/tc_impex.h"
 #include <CORBA/system_exceptions.h>
 
 namespace CORBA {

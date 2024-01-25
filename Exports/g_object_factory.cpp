@@ -23,13 +23,19 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "../pch.h"
-#include "ORB.h"
+#include "pch.h"
+#include "../Source/ORB/ObjectFactory.h"
 
 namespace CORBA {
+namespace Internal {
 
-constexpr Nirvana::ImportInterfaceT <ORB> NIRVANA_SELECTANY g_ORB = { Nirvana::OLF_IMPORT_INTERFACE,
-	"CORBA/g_ORB", Internal::RepIdOf <ORB>::id,
-	NIRVANA_STATIC_BRIDGE (ORB, Core::ORB) };
+extern constexpr Nirvana::ImportInterfaceT <ObjectFactory> g_object_factory = {
+	Nirvana::OLF_IMPORT_INTERFACE, "CORBA/Internal/g_object_factory",
+	RepIdOf <ObjectFactory>::id, NIRVANA_STATIC_BRIDGE (ObjectFactory,
+	Core::ObjectFactory)
+};
 
 }
+}
+
+NIRVANA_EXPORT (_exp_CORBA_Internal_g_object_factory, "CORBA/Internal/g_object_factory", CORBA::Internal::ObjectFactory, CORBA::Core::ObjectFactory)

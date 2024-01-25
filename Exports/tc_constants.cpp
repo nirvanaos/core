@@ -27,7 +27,7 @@
 #include <CORBA/TypeCodeString.h>
 #include <CORBA/TypeCodeValue.h>
 #include <CORBA/Proxy/TypeCodeInterface.h>
-#include <tc_impex.h>
+#include "../Source/ORB/tc_impex.h"
 
 namespace CORBA {
 namespace Internal {
