@@ -33,7 +33,6 @@
 #include "ProtDomain.h"
 #include "initterm.h"
 #include "MemContextUser.h"
-#include <Nirvana/Launcher.h>
 #include <Nirvana/Legacy/Legacy_Process_s.h>
 #include <Nirvana/File.h>
 #include "ORB/Services.h"
@@ -115,7 +114,7 @@ void Startup::run ()
 			throw_UNKNOWN (make_minor_errno (ENOEXEC));
 		AccessDirect::_ref_type binary = AccessDirect::_narrow (file->open (O_RDONLY | O_DIRECT, 0)->_to_object ());
 
-		Static <Launcher>::ptr ()->spawn (binary, argv, envp, "/sbin", files, callback);
+		Legacy::g_launcher->spawn (binary, argv, envp, "/sbin", files, callback);
 	}
 }
 

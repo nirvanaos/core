@@ -29,14 +29,13 @@
 
 #include <CORBA/Server.h>
 #include <Nirvana/Legacy/Legacy_Process_s.h>
-#include <Nirvana/Launcher.h>
 #include "../Source/Legacy/Process.h"
 
 namespace Nirvana {
 namespace Legacy {
 
-class Launcher :
-	public CORBA::servant_traits <ProcessFactory>::ServantStatic <Launcher>
+class Static_g_launcher :
+	public CORBA::servant_traits <ProcessFactory>::ServantStatic <Static_g_launcher>
 {
 public:
 	static Legacy::Process::_ref_type spawn (AccessDirect::_ptr_type file,
@@ -50,6 +49,4 @@ public:
 }
 }
 
-#if !DISABLE_LEGACY_SUPPORT ()
-NIRVANA_STATIC_EXP (Nirvana, Legacy, Launcher)
-#endif
+NIRVANA_EXPORT_OBJECT (_exp_Nirvana_Legacy_g_launcher, Nirvana::Legacy::Static_g_launcher)
