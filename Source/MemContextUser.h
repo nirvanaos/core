@@ -29,7 +29,6 @@
 #pragma once
 
 #include "MemContext.h"
-#include "MemContextObject.h"
 #include "RuntimeSupport.h"
 #include <Nirvana/File.h>
 #include <memory>
@@ -41,7 +40,6 @@ typedef IDL::Sequence <InheritedFile> InheritedFiles;
 
 namespace Core {
 
-class MemContextObject;
 class RuntimeGlobal;
 
 /// \brief Memory context full implementation.
@@ -68,16 +66,6 @@ public:
 	/// 
 	/// \param obj Pointer used as a key.
 	virtual void runtime_proxy_remove (const void* obj) noexcept override;
-
-	/// Add object to list.
-	/// 
-	/// \param obj New object.
-	virtual void on_object_construct (MemContextObject& obj) noexcept;
-
-	/// Remove object from list.
-	/// 
-	/// \param obj Object.
-	virtual void on_object_destruct (MemContextObject& obj) noexcept;
 
 	virtual CosNaming::Name get_current_dir_name () const;
 	virtual void chdir (const IDL::String& path);
@@ -106,7 +94,6 @@ protected:
 
 	void clear () noexcept
 	{
-		object_list_.clear ();
 		data_.reset ();
 	}
 
@@ -341,8 +328,6 @@ private:
 	Data& data_for_fd () const;
 
 private:
-	MemContextObjectList object_list_;
-
 	std::unique_ptr <Data> data_;
 };
 

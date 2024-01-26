@@ -395,16 +395,6 @@ void MemContextUser::runtime_proxy_remove (const void* obj) noexcept
 		data_->runtime_proxy_remove (obj);
 }
 
-void MemContextUser::on_object_construct (MemContextObject& obj) noexcept
-{
-	object_list_.push_back (obj);
-}
-
-void MemContextUser::on_object_destruct (MemContextObject& obj) noexcept
-{
-	// The object itself will remove from list. Nothing to do.
-}
-
 CosNaming::Name MemContextUser::get_current_dir_name () const
 {
 	CosNaming::Name cur_dir;

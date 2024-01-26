@@ -156,24 +156,6 @@ void Process::runtime_proxy_remove (const void* obj) noexcept
 	}
 }
 
-void Process::on_object_construct (Nirvana::Core::MemContextObject& obj) noexcept
-{
-	assert (&MemContext::current () == this);
-
-	SYNC_BEGIN (*sync_domain_, nullptr);
-	MemContextUser::on_object_construct (obj);
-	SYNC_END ();
-}
-
-void Process::on_object_destruct (Nirvana::Core::MemContextObject& obj) noexcept
-{
-	assert (&MemContext::current () == this);
-
-	SYNC_BEGIN (*sync_domain_, nullptr);
-	MemContextUser::on_object_destruct (obj);
-	SYNC_END ();
-}
-
 CosNaming::Name Process::get_current_dir_name () const
 {
 	assert (&MemContext::current () == this);

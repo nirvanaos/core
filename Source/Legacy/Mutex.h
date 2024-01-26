@@ -42,9 +42,10 @@ class ThreadBase;
 
 class Mutex :
 	public CORBA::servant_traits <Nirvana::Legacy::Mutex>::Servant <Mutex>,
-	public Nirvana::Core::LifeCyclePseudo <Mutex>,
+	public CORBA::Internal::LifeCycleRefCnt <Mutex>,
+	public CORBA::Internal::RefCountBase <Mutex>,
 	public Nirvana::Core::SyncDomainImpl,
-	public Nirvana::Core::MemContextObject
+	public Nirvana::Core::UserObject
 {
 public:
 	using Nirvana::Core::UserObject::operator new;
@@ -115,12 +116,12 @@ public:
 
 	void _add_ref () noexcept
 	{
-		Nirvana::Core::LifeCyclePseudo <Mutex>::_add_ref ();
+		CORBA::Internal::RefCountLink::_add_ref ();
 	}
 
 	void _remove_ref () noexcept
 	{
-		Nirvana::Core::LifeCyclePseudo <Mutex>::_remove_ref ();
+		CORBA::Internal::RefCountLink::_remove_ref ();
 	}
 
 private:

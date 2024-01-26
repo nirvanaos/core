@@ -135,10 +135,6 @@ public:
 	virtual Nirvana::Core::RuntimeGlobal& runtime_global () noexcept override;
 	virtual RuntimeProxy::_ref_type runtime_proxy_get (const void* obj) override;
 	virtual void runtime_proxy_remove (const void* obj) noexcept override;
-	virtual void on_object_construct (Nirvana::Core::MemContextObject& obj)
-		noexcept override;
-	virtual void on_object_destruct (Nirvana::Core::MemContextObject& obj)
-		noexcept override;
 	virtual CosNaming::Name get_current_dir_name () const override;
 	virtual void chdir (const IDL::String& path) override;
 	virtual unsigned fd_add (Access::_ptr_type access) override;
