@@ -62,7 +62,7 @@ TypeCode::_ref_type ORB::get_compact_typecode (TypeCode::_ptr_type tc, const TC_
 					return create_union_tc (tc->id (), IDL::String (), tc->discriminator_type (), members);
 				}
 
-				case TCKind::tk_value: {
+				default: {
 					ValueMemberSeq members (member_count);
 					for (ULong i = 0; i < member_count; ++i) {
 						ValueMember& m = members [i];
@@ -92,6 +92,15 @@ TypeCode::_ref_type ORB::get_compact_typecode (TypeCode::_ptr_type tc, const TC_
 			}
 			return create_exception_tc (tc->id (), IDL::String (), members);
 		}
+
+		case TCKind::tk_abstract_interface:
+			return create_abstract_interface_tc (tc->id (), IDL::String ());
+
+		case TCKind::tk_local_interface:
+			return create_local_interface_tc (tc->id (), IDL::String ());
+
+		case TCKind::tk_objref:
+			return create_interface_tc (tc->id (), IDL::String ());
 
 		default:
 			return tc->get_compact_typecode ();
