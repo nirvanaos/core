@@ -106,13 +106,17 @@ void ProxyManager::check_metadata (const InterfaceMetadata* metadata, String_in 
 	}
 
 	// Check operations
+	unsigned local = metadata->flags & InterfaceMetadata::FLAG_LOCAL;
+	bool need_invoke = servant_side && (metadata->flags & InterfaceMetadata::FLAG_LOCAL_STATELESS) != InterfaceMetadata::FLAG_LOCAL_STATELESS;
 	for (const Operation* op = metadata->operations.p, *end = op + metadata->operations.size; op != end; ++op) {
-		if (!op->name || (!(servant_side && metadata->flags & InterfaceMetadata::FLAG_LOCAL_STATELESS) && !op->invoke))
+		if ((!local && !op->name) || (need_invoke && !op->invoke))
 			throw OBJ_ADAPTER (); // TODO: Log
-		check_parameters (op->input);
-		check_parameters (op->output);
-		if (op->return_type)
-			check_type_code ((op->return_type) ());
+		if (!local) {
+			check_parameters (op->input);
+			check_parameters (op->output);
+			if (op->return_type)
+				check_type_code ((op->return_type) ());
+		}
 	}
 }
 
@@ -139,11 +143,14 @@ ProxyManager::ProxyManager (String_in primary_iid, bool servant_side) :
 
 void ProxyManager::build_metadata (Metadata& md, String_in primary_iid, bool servant_side) const
 {
+	unsigned local_object = 0;
 	if (!primary_iid.empty ()) {
 		ProxyFactory::_ref_type proxy_factory = Nirvana::Core::Binder::bind_interface <ProxyFactory> (primary_iid);
 
 		const InterfaceMetadata* metadata = proxy_factory->metadata ();
 		check_metadata (metadata, primary_iid, servant_side);
+
+		local_object = metadata->flags & InterfaceMetadata::FLAG_LOCAL;
 
 		// Proxy interface version can be different
 		const Char* proxy_primary_iid = metadata->interfaces.p [0];
@@ -188,33 +195,22 @@ void ProxyManager::build_metadata (Metadata& md, String_in primary_iid, bool ser
 		md.primary_interface = primary;
 	}
 
-	// Total count of operations
-	size_t op_cnt = countof (object_ops_);
-	for (const InterfaceEntry* ie = md.interfaces.begin (); ie != md.interfaces.end (); ++ie) {
-		op_cnt += ie->operations ().size;
-	}
+	if (!local_object) {
 
-	// Fill operation table
-	md.operations.allocate (op_cnt);
-	OperationEntry* op = md.operations.begin ();
+		// Total count of operations
+		size_t op_cnt = countof (object_ops_);
+		for (const InterfaceEntry* ie = md.interfaces.begin (); ie != md.interfaces.end (); ++ie) {
+			op_cnt += ie->operations ().size;
+		}
 
-	// Object operations
-	UShort itf_idx = 0;
-	OperationIndex idx = 0;
-	for (const Operation* p = object_ops_, *e = std::end (object_ops_); p != e; ++p) {
-		const Char* name = p->name;
-		op->name = name;
-		op->name_len = strlen (name);
-		op->idx = idx;
-		++idx;
-		++op;
-	}
+		// Fill operation table
+		md.operations.allocate (op_cnt);
+		OperationEntry* op = md.operations.begin ();
 
-	// Interface operations
-	for (const InterfaceEntry* ie = md.interfaces.begin (); ie != md.interfaces.end (); ++ie) {
-		idx = make_op_idx (++itf_idx, 0);
-		const auto& operations = ie->operations ();
-		for (const Operation* p = operations.p, *end = p + operations.size; p != end; ++p) {
+		// Object operations
+		UShort itf_idx = 0;
+		OperationIndex idx = 0;
+		for (const Operation* p = object_ops_, *e = std::end (object_ops_); p != e; ++p) {
 			const Char* name = p->name;
 			op->name = name;
 			op->name_len = strlen (name);
@@ -222,14 +218,28 @@ void ProxyManager::build_metadata (Metadata& md, String_in primary_iid, bool ser
 			++idx;
 			++op;
 		}
+
+		// Interface operations
+		for (const InterfaceEntry* ie = md.interfaces.begin (); ie != md.interfaces.end (); ++ie) {
+			idx = make_op_idx (++itf_idx, 0);
+			const auto& operations = ie->operations ();
+			for (const Operation* p = operations.p, *end = p + operations.size; p != end; ++p) {
+				const Char* name = p->name;
+				op->name = name;
+				op->name_len = strlen (name);
+				op->idx = idx;
+				++idx;
+				++op;
+			}
+		}
+
+		std::sort (md.operations.begin (), md.operations.end (), OEPred ());
+
+		// Check name uniqueness
+
+		if (!is_ascending (md.operations.begin (), md.operations.end (), OEPred ()))
+			throw OBJ_ADAPTER (); // TODO: Log
 	}
-
-	std::sort (md.operations.begin (), md.operations.end (), OEPred ());
-
-	// Check name uniqueness
-
-	if (!is_ascending (md.operations.begin (), md.operations.end (), OEPred ()))
-		throw OBJ_ADAPTER (); // TODO: Log
 }
 
 ProxyManager::ProxyManager (const ProxyManager& src) :

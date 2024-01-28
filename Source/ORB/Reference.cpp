@@ -49,12 +49,6 @@ IDL::String Reference::_repository_id ()
 	}
 }
 
-void Reference::request_repository_id ()
-{
-	assert (!has_primary_interface ());
-	ProxyManager::set_primary_interface (_repository_id ());
-}
-
 Policy::_ref_type Reference::_get_policy (PolicyType policy_type)
 {
 	Policy::_ref_type policy;

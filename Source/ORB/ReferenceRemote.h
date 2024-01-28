@@ -49,7 +49,14 @@ public:
 	ReferenceRemote (const OctetSeq& addr, servant_reference <Domain>&& domain,
 		const IOP::ObjectKey& object_key, Internal::String_in primary_iid, ULong ORB_type,
 		const IOP::TaggedComponentSeq& components);
+
 	~ReferenceRemote ();
+
+	void request_repository_id ()
+	{
+		assert (!has_primary_interface ());
+		ProxyManager::set_primary_interface (_repository_id ());
+	}
 
 	virtual ReferenceRef marshal (StreamOut& out) override;
 	

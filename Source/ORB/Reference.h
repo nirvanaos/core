@@ -78,8 +78,6 @@ public:
 
 	virtual IDL::String _repository_id () override;
 
-	void request_repository_id ();
-
 protected:
 	Reference (Internal::String_in primary_iid, unsigned flags) :
 		ProxyManager (primary_iid, false),
