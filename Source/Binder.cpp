@@ -33,7 +33,7 @@
 #include "ORB/LocalObject.h"
 #include "ClassLibrary.h"
 #include "Singleton.h"
-#include "Legacy/Executable.h"
+#include "Executable.h"
 #include "Nirvana/Domains.h"
 
 using namespace CORBA;
@@ -41,12 +41,6 @@ using namespace CORBA::Internal;
 using namespace CORBA::Core;
 
 namespace Nirvana {
-
-namespace Legacy {
-class System;
-extern const ImportInterfaceT <System> g_system;
-}
-
 namespace Core {
 
 StaticallyAllocated <ImplStatic <SyncDomainCore> > Binder::sync_domain_;
@@ -194,7 +188,6 @@ const ModuleStartup* Binder::module_bind (::Nirvana::Module::_ptr_type mod, cons
 		unsigned flags = 0;
 		ObjectKey k_gmodule (g_module.imp.name);
 		ObjectKey k_object_factory (g_object_factory.imp.name);
-		ObjectKey k_legacy (Legacy::g_system.imp.name);
 		for (OLF_Iterator it (metadata.address, metadata.size); !it.end (); it.next ()) {
 			switch (*it.cur ()) {
 				case OLF_IMPORT_INTERFACE:
@@ -208,17 +201,14 @@ const ModuleStartup* Binder::module_bind (::Nirvana::Module::_ptr_type mod, cons
 								invalid_metadata ();
 							module_entry = ps;
 							break;
-						} else if (mod_context) {
-							if (key == k_legacy)
-								invalid_metadata (); // Only legacy process can import Legacy::System interface
-						} else if (key == k_object_factory)
-							invalid_metadata (); // Legacy process can not import ObjectFactory interface
+						} else if (!mod_context && key == k_object_factory)
+							invalid_metadata (); // Process can not import ObjectFactory interface
 					}
 					flags |= MetadataFlags::IMPORT_INTERFACES;
 					break;
 
 				case OLF_EXPORT_INTERFACE: {
-					if (!mod_context) // Legacy process can not export
+					if (!mod_context) // Process can not export
 						invalid_metadata ();
 					const ExportInterface* ps = reinterpret_cast <const ExportInterface*> (it.cur ());
 					mod_context->exports.insert (ps->name, ps->itf);
@@ -226,7 +216,7 @@ const ModuleStartup* Binder::module_bind (::Nirvana::Module::_ptr_type mod, cons
 
 				case OLF_EXPORT_OBJECT:
 				case OLF_EXPORT_LOCAL:
-					if (!mod_context) // Legacy process can not export
+					if (!mod_context) // Process can not export
 						invalid_metadata ();
 					flags |= MetadataFlags::EXPORT_OBJECTS;
 					break;
@@ -268,7 +258,7 @@ const ModuleStartup* Binder::module_bind (::Nirvana::Module::_ptr_type mod, cons
 
 			// Pass 3: Export objects.
 			if (flags & MetadataFlags::EXPORT_OBJECTS) {
-				assert (mod_context); // Legacy executable can not export.
+				assert (mod_context); // Executable can not export.
 				SYNC_BEGIN (mod_context->sync_context, nullptr);
 				for (OLF_Iterator it (metadata.address, metadata.size); !it.end (); it.next ()) {
 					switch (*it.cur ()) {

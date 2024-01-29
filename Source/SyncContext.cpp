@@ -43,14 +43,10 @@ Heap* SyncContext::stateless_memory () noexcept
 	return nullptr;
 }
 
-#if !DISABLE_LEGACY_SUPPORT ()
-
-bool SyncContext::is_legacy_mode () const noexcept
+bool SyncContext::is_process () const noexcept
 {
 	return !const_cast <SyncContext&> (*this).sync_domain () && !is_free_sync_context ();
 }
-
-#endif
 
 Heap* SyncContextCore::stateless_memory () noexcept
 {

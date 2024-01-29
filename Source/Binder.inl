@@ -30,13 +30,13 @@
 #include "Binder.h"
 #include "ClassLibrary.h"
 #include "Singleton.h"
-#include "Legacy/Executable.h"
+#include "Executable.h"
 
 namespace Nirvana {
 namespace Core {
 
 inline
-Legacy::Main::_ptr_type Binder::bind (Legacy::Core::Executable& mod)
+Main::_ptr_type Binder::bind (Executable& mod)
 {
 	const ModuleStartup* startup = nullptr;
 	SYNC_BEGIN (singleton_->sync_domain_, nullptr);
@@ -49,11 +49,11 @@ Legacy::Main::_ptr_type Binder::bind (Legacy::Core::Executable& mod)
 		throw;
 	}
 	SYNC_END ();
-	return Legacy::Main::_check (startup->startup);
+	return Main::_check (startup->startup);
 }
 
 inline
-void Binder::unbind (Legacy::Core::Executable& mod) noexcept
+void Binder::unbind (Executable& mod) noexcept
 {
 	release_imports (mod._get_ptr (), mod.metadata ());
 }

@@ -23,30 +23,44 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-
-// Using the precompiled header with CLang in this file causes error:
-// The OLF static symbols not exported/imported.
-
-#include <CORBA/Server.h>
-#include <Nirvana/Legacy/Legacy_Process_s.h>
-#include "../Source/Legacy/Process.h"
+#include "pch.h"
+#include "Executable.h"
+#include "Binder.inl"
 
 namespace Nirvana {
-namespace Legacy {
+namespace Core {
 
-class Static_g_launcher :
-	public CORBA::servant_traits <ProcessFactory>::ServantStatic <Static_g_launcher>
+Executable::Executable (AccessDirect::_ptr_type file) :
+	Binary (file),
+	SyncContext (false),
+	entry_point_ (Binder::bind (*this)),
+	bound_ (true)
+{}
+
+Executable::~Executable ()
 {
-public:
-	static Legacy::Process::_ref_type spawn (AccessDirect::_ptr_type file,
-		StringSeq& argv, StringSeq& envp, IDL::String& work_dir, InheritedFiles& inherit,
-		ProcessCallback::_ref_type callback)
-	{
-		return Core::Process::spawn (file, argv, envp, work_dir, inherit, callback);
+	if (bound_)
+		Binder::unbind (*this);
+}
+
+void Executable::unbind () noexcept
+{
+	if (bound_) {
+		bound_ = false;
+		Binder::unbind (*this);
 	}
-};
+}
+
+Nirvana::Core::Module* Executable::module () noexcept
+{
+	return nullptr;
+}
+
+void Executable::raise_exception (CORBA::SystemException::Code code, unsigned minor)
+{
+	CORBA::Internal::Bridge <Main>* br = static_cast <CORBA::Internal::Bridge <Main>*> (&entry_point_);
+	br->_epv ().epv.raise_exception (br, (short)code, (unsigned short)minor, nullptr);
+}
 
 }
 }
-
-NIRVANA_EXPORT_OBJECT (_exp_Nirvana_Legacy_g_launcher, Nirvana::Legacy::Static_g_launcher)

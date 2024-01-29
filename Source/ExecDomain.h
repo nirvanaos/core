@@ -42,14 +42,6 @@
 #include <signal.h>
 
 namespace Nirvana {
-
-namespace Legacy {
-namespace Core {
-class Process;
-class ThreadBase;
-}
-}
-
 namespace Core {
 
 /// Core TLS indexes.
@@ -139,12 +131,6 @@ public:
 	/// \param mem_context Memory context.
 	static void async_call (const DeadlineTime& deadline, Runnable& runnable,
 		SyncContext& target, Ref <MemContext>&& mem_context);
-
-	/// Start legacy thread.
-	/// 
-	/// \param process The Process object.
-	/// \param thread The thread object.
-	static void start_legacy_thread (Legacy::Core::Process& process, Legacy::Core::ThreadBase& thread);
 
 	const DeadlineTime& deadline () const noexcept
 	{

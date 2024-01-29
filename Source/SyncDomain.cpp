@@ -119,7 +119,7 @@ SyncDomain& SyncDomain::enter ()
 	SyncDomain* psd = sync_context.sync_domain ();
 	if (!psd) {
 		if (!sync_context.is_free_sync_context ())
-			throw_NO_PERMISSION (); // Legacy process called value factory with interface support
+			throw_NO_PERMISSION (); // Process called value factory with interface support
 		Ref <SyncDomain> sd = Ref <SyncDomain>::create
 			<ImplDynamic <SyncDomainImpl> > (std::ref (sync_context),
 				std::ref (exec_domain.mem_context ()));

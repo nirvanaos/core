@@ -34,7 +34,7 @@
 #include "Module.h"
 #include "BinderMemory.h"
 #include <CORBA/RepId.h>
-#include <Nirvana/Legacy/Main.h>
+#include <Nirvana/Main.h>
 #include <Nirvana/ModuleInit.h>
 #include "WaitableRef.h"
 #include "Chrono.h"
@@ -44,17 +44,11 @@
 #include "TimerAsyncCall.h"
 
 namespace Nirvana {
-
-namespace Legacy {
-namespace Core {
-class Executable;
-}
-}
-
 namespace Core {
 
 class ClassLibrary;
 class Singleton;
+class Executable;
 
 /// Implements object binding and module loading.
 class Binder
@@ -110,18 +104,18 @@ public:
 		return bind_interface (name, CORBA::Internal::RepIdOf <I>::id).template downcast <I> ();
 	}
 
-	/// Bind legacy process executable.
+	/// Bind executable.
 	/// 
 	/// \param mod Module interface.
 	/// \param metadata Module OLF metadata section.
 	/// \returns The Main interface pointer.
-	inline static Legacy::Main::_ptr_type bind (Legacy::Core::Executable& mod);
+	inline static Main::_ptr_type bind (Executable& mod);
 
-	/// Unbind legacy executable.
+	/// Unbind executable.
 	/// 
 	/// \param mod The Nirvana::Module interface.
 	/// \param metadata Module metadata.
-	inline static void unbind (Legacy::Core::Executable& mod) noexcept;
+	inline static void unbind (Executable& mod) noexcept;
 
 	/// Unmarshal remote reference.
 	/// 
@@ -336,7 +330,7 @@ private:
 	/// \param mod The Nirvana::Module interface.
 	/// \param metadata Module metadata.
 	/// \param mod_context Module binding context.
-	///   If module is Legacy::Executable, mod_context must be `nullptr`.
+	///   If module is Executable, mod_context must be `nullptr`.
 	/// 
 	/// \returns Pointer to the ModuleStartup metadata structure, if found. Otherwise `nullptr`.
 	const ModuleStartup* module_bind (Nirvana::Module::_ptr_type mod, const Section& metadata, ModuleContext* mod_context);

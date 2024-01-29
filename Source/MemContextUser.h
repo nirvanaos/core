@@ -30,6 +30,7 @@
 
 #include "MemContext.h"
 #include "RuntimeSupport.h"
+#include "RuntimeGlobal.h"
 #include <Nirvana/File.h>
 #include <memory>
 
@@ -40,20 +41,27 @@ typedef IDL::Sequence <InheritedFile> InheritedFiles;
 
 namespace Core {
 
-class RuntimeGlobal;
-
 /// \brief Memory context full implementation.
-class NIRVANA_NOVTABLE MemContextUser : public MemContext
+class MemContextUser : public MemContext
 {
 	static const unsigned POSIX_CHANGEABLE_FLAGS;
 
 public:
+	/// Creates a new memory context with defaults.
+	static Ref <MemContext> create ()
+	{
+		return MemContext::create <MemContextUser> ();
+	}
+
 	/// \returns Current user memory context.
 	/// \throws CORBA::NO_IMPL If current context is not an user context.
 	static MemContextUser& current ();
 
 	/// POSIX run-time library global state
-	virtual RuntimeGlobal& runtime_global () noexcept = 0;
+	RuntimeGlobal& runtime_global () noexcept
+	{
+		return runtime_global_;
+	}
 
 	/// Search map for runtime proxy for object \p obj.
 	/// If proxy exists, returns it. Otherwise creates a new one.
@@ -67,25 +75,28 @@ public:
 	/// \param obj Pointer used as a key.
 	virtual void runtime_proxy_remove (const void* obj) noexcept override;
 
-	virtual CosNaming::Name get_current_dir_name () const;
-	virtual void chdir (const IDL::String& path);
+	CosNaming::Name get_current_dir_name () const;
+	void chdir (const IDL::String& path);
 
-	virtual unsigned fd_add (Access::_ptr_type access);
-	virtual void close (unsigned ifd);
-	virtual size_t read (unsigned ifd, void* p, size_t size);
-	virtual void write (unsigned ifd, const void* p, size_t size);
-	virtual uint64_t seek (unsigned ifd, const int64_t& off, unsigned method);
-	virtual unsigned fcntl (unsigned ifd, int cmd, unsigned arg);
-	virtual void flush (unsigned ifd);
-	virtual void dup2 (unsigned src, unsigned dst);
-	virtual bool isatty (unsigned ifd);
-	virtual void push_back (unsigned ifd, int c);
-	virtual bool ferror (unsigned ifd);
-	virtual bool feof (unsigned ifd);
-	virtual void clearerr (unsigned ifd);
+	// TODO: Make inline
+	unsigned fd_add (Access::_ptr_type access);
+	void close (unsigned ifd);
+	size_t read (unsigned ifd, void* p, size_t size);
+	void write (unsigned ifd, const void* p, size_t size);
+	uint64_t seek (unsigned ifd, const int64_t& off, unsigned method);
+	unsigned fcntl (unsigned ifd, int cmd, unsigned arg);
+	void flush (unsigned ifd);
+	void dup2 (unsigned src, unsigned dst);
+	bool isatty (unsigned ifd);
+	void push_back (unsigned ifd, int c);
+	bool ferror (unsigned ifd);
+	bool feof (unsigned ifd);
+	void clearerr (unsigned ifd);
 
 protected:
-	MemContextUser (Ref <Heap>&& heap) :
+	friend class MemContext;
+
+	MemContextUser (Ref <Heap>&& heap = create_heap ()) :
 		MemContext (std::move (heap), true)
 	{}
 
@@ -329,6 +340,7 @@ private:
 
 private:
 	std::unique_ptr <Data> data_;
+	RuntimeGlobal runtime_global_;
 };
 
 inline MemContextUser* MemContext::user_context () noexcept

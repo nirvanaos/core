@@ -183,9 +183,9 @@ public:
 		return Port::SystemInfo::hardware_concurrency ();
 	}
 
-	static bool is_legacy_mode ()
+	static bool is_process ()
 	{
-		return SyncContext::current ().is_legacy_mode ();
+		return SyncContext::current ().is_process ();
 	}
 
 	static void debug_event (DebugEvent evt, const IDL::String& msg, const IDL::String& file_name, int32_t line_number)

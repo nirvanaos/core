@@ -25,10 +25,9 @@
 */
 #include "pch.h"
 #include "ExecDomain.h"
-//#include "Legacy/Process.h"
 #include "Chrono.h"
 #include "MemContextCore.h"
-#include "MemContextImpl.h"
+#include "MemContextUser.h"
 #include <Port/SystemInfo.h>
 
 namespace Nirvana {
@@ -178,18 +177,7 @@ void ExecDomain::spawn (SyncContext& sync_context)
 		throw;
 	}
 }
-/*
-void ExecDomain::start_legacy_thread (Legacy::Core::Process& process, Legacy::Core::ThreadBase& thread)
-{
-	// The process must inherit the current heap.
-	assert (&process.heap () == &current ().mem_context ().heap ());
 
-	Ref <ExecDomain> exec_domain = create (INFINITE_DEADLINE, &process);
-	exec_domain->runnable_ = &thread;
-	exec_domain->background_worker_ = &thread;
-	exec_domain->spawn (process.sync_context ());
-}
-*/
 void ExecDomain::execute () noexcept
 {
 	Thread::current ().exec_domain (*this);
@@ -259,7 +247,7 @@ MemContext& ExecDomain::mem_context ()
 {
 	if (!mem_context_) {
 		mem_context_ =
-			mem_context_stack_.top () = MemContextImpl::create ();
+			mem_context_stack_.top () = MemContextUser::create ();
 	}
 	return *mem_context_;
 }

@@ -33,7 +33,7 @@
 #include <Nirvana/Module_s.h>
 #include <Nirvana/ModuleInit.h>
 #include "AtomicCounter.h"
-#include "MemContextImpl.h"
+#include "MemContextUser.h"
 #include "Chrono.h"
 #include "AtExit.h"
 
@@ -46,7 +46,7 @@ class SyncContext;
 class NIRVANA_NOVTABLE Module :
 	public UserObject,
 	public Binary,
-	public MemContextImpl,
+	public MemContextUser,
 	public CORBA::servant_traits <Nirvana::Module>::Servant <Module>,
 	public CORBA::Internal::LifeCycleRefCnt <Module>
 {

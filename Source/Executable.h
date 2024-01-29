@@ -29,20 +29,19 @@
 #pragma once
 
 #include <CORBA/Server.h>
-#include "../SyncContext.h"
-#include "../Binary.h"
+#include "SyncContext.h"
+#include "Binary.h"
 #include <Nirvana/Module_s.h>
-#include <Nirvana/Legacy/Main.h>
-#include "../ORB/LifeCycleStack.h"
+#include <Nirvana/Main.h>
+#include "ORB/LifeCycleStack.h"
 #include "AtExit.h"
 
 namespace Nirvana {
-namespace Legacy {
 namespace Core {
 
 class Executable :
-	public Nirvana::Core::Binary,
-	public Nirvana::Core::SyncContext,
+	public Binary,
+	public SyncContext,
 	public CORBA::servant_traits <Nirvana::Module>::Servant <Executable>,
 	public CORBA::Core::LifeCycleStack
 {
@@ -67,21 +66,20 @@ public:
 
 	void atexit (AtExitFunc f)
 	{
-		at_exit_.atexit (Nirvana::Core::MemContext::current ().heap (), f);
+		at_exit_.atexit (MemContext::current ().heap (), f);
 	}
 
-	void execute_atexit (Nirvana::Core::Heap& heap)
+	void execute_atexit (Heap& heap)
 	{
 		at_exit_.execute (heap);
 	}
 
 private:
 	Main::_ptr_type entry_point_;
-	Nirvana::Core::AtExit at_exit_;
+	AtExit at_exit_;
 	bool bound_;
 };
 
-}
 }
 }
 

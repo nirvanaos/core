@@ -47,7 +47,7 @@ class Module;
 ///   - Synchronization domain
 ///   - Free synchronization context for core stateless objects
 ///   - Free synchronization context for class library
-///   - Legacy::Executable
+///   - Executable
 class NIRVANA_NOVTABLE SyncContext
 {
 DECLARE_CORE_INTERFACE
@@ -72,7 +72,7 @@ public:
 	/// Returns the Module object associated with this context.
 	/// 
 	/// \returns Pointer to the Module object.
-	///          Core and legacy executable contexts return `nullptr`.
+	///          Core and process executable contexts return `nullptr`.
 	virtual Module* module () noexcept = 0;
 
 	/// Raise system exception in the binary object (Module or Executable).
@@ -81,15 +81,8 @@ public:
 	/// \minor System exception minor code.
 	virtual void raise_exception (CORBA::SystemException::Code code, unsigned minor) = 0;
 
-	/// \returns `true` if current execution context is legacy.
-#if DISABLE_LEGACY_SUPPORT ()
-	static bool is_legacy_mode () noexcept
-	{
-		return false;
-	}
-#else
-	bool is_legacy_mode () const noexcept;
-#endif
+	/// \returns `true` if current execution context is process.
+	bool is_process () const noexcept;
 
 protected:
 	SyncContext (bool sync_domain) :

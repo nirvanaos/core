@@ -27,7 +27,6 @@
 #include "FileSystem.h"
 #include "IteratorStack.h"
 #include "NameService.h"
-#include "Legacy/Process.h"
 
 using namespace CORBA;
 using namespace PortableServer;

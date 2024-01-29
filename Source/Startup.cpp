@@ -33,13 +33,11 @@
 #include "ProtDomain.h"
 #include "initterm.h"
 #include "MemContextUser.h"
-#include <Nirvana/Legacy/Legacy_Process_s.h>
+#include <Nirvana/ProcessFactory_s.h>
 #include <Nirvana/File.h>
 #include "ORB/Services.h"
 #include <fnctl.h>
 #include <NameService/FileSystem.h>
-
-using namespace Nirvana::Legacy;
 
 namespace Nirvana {
 namespace Core {
@@ -114,7 +112,7 @@ void Startup::run ()
 			throw_UNKNOWN (make_minor_errno (ENOEXEC));
 		AccessDirect::_ref_type binary = AccessDirect::_narrow (file->open (O_RDONLY | O_DIRECT, 0)->_to_object ());
 
-		Legacy::g_launcher->spawn (binary, argv, envp, "/sbin", files, callback);
+		g_launcher->spawn (binary, argv, envp, "/sbin", files, callback);
 	}
 }
 

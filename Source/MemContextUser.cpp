@@ -27,10 +27,10 @@
 #include "MemContextUser.h"
 #include "NameService/FileSystem.h"
 #include "ORB/Services.h"
-#include <Nirvana/Legacy/Legacy_Process.h>
 #include <fnctl.h>
 #include "virtual_copy.h"
 #include "CharFileAdapter.h"
+#include <Nirvana/ProcessFactory.h>
 
 using namespace CosNaming;
 using CORBA::Core::Services;

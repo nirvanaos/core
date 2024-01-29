@@ -33,13 +33,6 @@
 #include "ORB/SystemExceptionHolder.h"
 
 namespace Nirvana {
-
-namespace Legacy {
-namespace Core {
-class Executable;
-}
-}
-
 namespace Core {
 
 /// Startup runnable base.

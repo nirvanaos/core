@@ -24,38 +24,23 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_CORE_MEMCONTEXTIMPL_H_
-#define NIRVANA_CORE_MEMCONTEXTIMPL_H_
-#pragma once
 
-#include "MemContextUser.h"
-#include "RuntimeGlobal.h"
+#include <CORBA/Server.h>
+#include <Nirvana/ProcessFactory_s.h>
+#include "Nirvana_Process.h"
 
 namespace Nirvana {
-namespace Core {
 
-class MemContextImpl : public MemContextUser
+class Static_g_launcher :
+	public CORBA::servant_traits <ProcessFactory>::ServantStatic <Static_g_launcher>
 {
-	friend class MemContext;
-
 public:
-	virtual RuntimeGlobal& runtime_global () noexcept override;
-
-	static Ref <MemContext> create ()
+	static Process::_ref_type spawn (AccessDirect::_ptr_type file,
+		StringSeq& argv, StringSeq& envp, IDL::String& work_dir, InheritedFiles& inherit,
+		ProcessCallback::_ref_type callback)
 	{
-		return MemContext::create <MemContextImpl> ();
+		return Core::Process::spawn (file, argv, envp, work_dir, inherit, callback);
 	}
-
-protected:
-	MemContextImpl (Ref <Heap>&& heap = create_heap ()) :
-		MemContextUser (std::move (heap))
-	{}
-
-private:
-	RuntimeGlobal runtime_global_;
 };
 
 }
-}
-
-#endif

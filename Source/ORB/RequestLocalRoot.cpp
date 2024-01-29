@@ -25,7 +25,7 @@
 */
 #include "../pch.h"
 #include "RequestLocalRoot.h"
-#include "../MemContextImpl.h"
+#include "../MemContextUser.h"
 #include "../virtual_copy.h"
 
 using namespace Nirvana;
@@ -59,7 +59,7 @@ MemContext& RequestLocalRoot::target_memory ()
 	case State::CALL:
 		// Caller-side allocation
 		if (!callee_memory_)
-			callee_memory_ = MemContextImpl::create ();
+			callee_memory_ = MemContextUser::create ();
 		return *callee_memory_;
 
 	default:
