@@ -43,9 +43,9 @@ Heap* SyncContext::stateless_memory () noexcept
 	return nullptr;
 }
 
-bool SyncContext::is_process () const noexcept
+SyncContext::Type SyncContextFree::sync_context_type () const noexcept
 {
-	return !const_cast <SyncContext&> (*this).sync_domain () && !is_free_sync_context ();
+	return FREE;
 }
 
 Heap* SyncContextCore::stateless_memory () noexcept

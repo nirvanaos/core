@@ -59,9 +59,6 @@ public:
 		entry_point_->cleanup ();
 	}
 
-	virtual Nirvana::Core::Module* module () noexcept;
-	virtual void raise_exception (CORBA::SystemException::Code code, unsigned minor);
-
 	void unbind () noexcept;
 
 	void atexit (AtExitFunc f)
@@ -73,6 +70,12 @@ public:
 	{
 		at_exit_.execute (heap);
 	}
+
+	// SyncContext::
+
+	virtual SyncContext::Type sync_context_type () const noexcept override;
+	virtual Nirvana::Core::Module* module () noexcept override;
+	virtual void raise_exception (CORBA::SystemException::Code code, unsigned minor) override;
 
 private:
 	Main::_ptr_type entry_point_;

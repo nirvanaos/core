@@ -139,6 +139,11 @@ void SyncDomain::release_queue_node (QueueNode* node) noexcept
 	activity_end ();
 }
 
+SyncContext::Type SyncDomain::sync_context_type () const noexcept
+{
+	return SyncContext::SYNC_DOMAIN;
+}
+
 Module* SyncDomainImpl::module () noexcept
 {
 	return parent_->module ();

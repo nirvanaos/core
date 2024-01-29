@@ -73,6 +73,20 @@ void ClassLibrary::terminate () noexcept
 	Module::terminate ();
 }
 
+SyncContext::Type ClassLibrary::sync_context_type () const noexcept
+{
+	switch (ExecDomain::current ().restricted_mode ()) {
+	case ExecDomain::RestrictedMode::CLASS_LIBRARY_INIT:
+		return FREE_MODULE_INIT;
+
+	case ExecDomain::RestrictedMode::MODULE_TERMINATE:
+		return FREE_MODULE_TERM;
+
+	default:
+		return FREE;
+	}
+}
+
 Heap* ClassLibrary::stateless_memory () noexcept
 {
 	return &heap ();

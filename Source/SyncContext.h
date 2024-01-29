@@ -55,14 +55,57 @@ public:
 	/// \returns Current synchronization context.
 	static SyncContext& current () noexcept;
 
+	/// Synchronization and execution context type.
+	/// See Nirvana::System::ContextType - it must be equivalent.
+	enum Type
+	{
+		/// Execution context is a Nirvana process.
+		/// Global variables are read-write.
+		/// Object creation is prohibited.
+		PROCESS,
+
+		/// This is a synchronization domain.
+		/// Global variables are read-only.
+		SYNC_DOMAIN,
+
+		/// Free synchronization context.
+		/// Global variables are read-only.
+		FREE,
+
+		/// Class library initialization code executed in the free synchronization context.
+		/// Global variables are read-write.
+		FREE_MODULE_INIT,
+
+		/// Class library termination code executed in the free synchronization context.
+		/// Global variables are read-write.
+		/// Object creation is prohibited.
+		/// Object binding is prohibited.
+		FREE_MODULE_TERM,
+
+		/// This is synchronization domain in singleton module.
+		/// Global variables are read-write.
+		SYNC_DOMAIN_SINGLETON,
+
+		/// Singleton termination code executed in the synchronization domain.
+		/// Global variables are read-write.
+		/// Object creation is prohibited.
+		/// Object binding is prohibited.
+		SINGLETON_TERM
+	};
+
+	virtual Type sync_context_type () const noexcept = 0;
+
 	/// \returns SyncDomain associated with this context.
-	/// Returns `nullptr` if there is not synchronization domain.
+	///   Returns `nullptr` if this context is not a synchronization domain.
+	/// 
+	/// This method is implemented inline for the performance reasons.
 	SyncDomain* sync_domain () noexcept;
 
 	/// \returns `true` if this context is free sync context.
 	bool is_free_sync_context () const noexcept
 	{
-		return const_cast <SyncContext&> (*this).stateless_memory () != nullptr;
+		Type t = sync_context_type ();
+		return FREE <= t && t < SYNC_DOMAIN_SINGLETON;
 	}
 
 	/// \returns Free sync context returns pointer to the stateless objects heap.
@@ -82,7 +125,10 @@ public:
 	virtual void raise_exception (CORBA::SystemException::Code code, unsigned minor) = 0;
 
 	/// \returns `true` if current execution context is process.
-	bool is_process () const noexcept;
+	bool is_process () const noexcept
+	{
+		return sync_context_type () == PROCESS;
+	}
 
 protected:
 	SyncContext (bool sync_domain) :
@@ -99,6 +145,7 @@ class NIRVANA_NOVTABLE SyncContextFree :
 {
 public:
 	virtual Heap* stateless_memory () noexcept = 0;
+	virtual Type sync_context_type () const noexcept override;
 
 protected:
 	SyncContextFree () :

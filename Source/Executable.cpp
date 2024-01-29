@@ -51,7 +51,12 @@ void Executable::unbind () noexcept
 	}
 }
 
-Nirvana::Core::Module* Executable::module () noexcept
+SyncContext::Type Executable::sync_context_type () const noexcept
+{
+	return SyncContext::PROCESS;
+}
+
+Module* Executable::module () noexcept
 {
 	return nullptr;
 }

@@ -66,6 +66,7 @@ public:
 
 	// SyncContext::
 
+	virtual SyncContext::Type sync_context_type () const noexcept override;
 	virtual Module* module () noexcept;
 	virtual void raise_exception (CORBA::SystemException::Code code, unsigned minor);
 

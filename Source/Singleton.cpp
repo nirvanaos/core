@@ -29,6 +29,14 @@
 namespace Nirvana {
 namespace Core {
 
+SyncContext::Type Singleton::sync_context_type () const noexcept
+{
+	if (ExecDomain::current ().restricted_mode () == ExecDomain::RestrictedMode::MODULE_TERMINATE)
+		return SyncContext::SINGLETON_TERM;
+	else
+		return SyncContext::SYNC_DOMAIN_SINGLETON;
+}
+
 Module* Singleton::module () noexcept
 {
 	return this;

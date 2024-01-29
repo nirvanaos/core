@@ -108,7 +108,7 @@ public:
 		return stateless_memory ().copy (nullptr, const_cast <void*> (src), size, Nirvana::Memory::READ_ONLY);
 	}
 
-	static bool is_free_sync_context ()
+	static bool is_free_sync_context () noexcept
 	{
 		return Nirvana::Core::SyncContext::current ().is_free_sync_context ();
 	}

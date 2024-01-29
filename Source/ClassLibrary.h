@@ -56,9 +56,10 @@ public:
 
 	// SyncContext::
 
-	virtual Heap* stateless_memory () noexcept;
-	virtual Module* module () noexcept;
-	virtual void raise_exception (CORBA::SystemException::Code code, unsigned minor);
+	virtual Type sync_context_type () const noexcept override;
+	virtual Heap* stateless_memory () noexcept override;
+	virtual Module* module () noexcept override;
+	virtual void raise_exception (CORBA::SystemException::Code code, unsigned minor) override;
 
 private:
 	void _add_ref () noexcept

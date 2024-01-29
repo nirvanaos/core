@@ -143,6 +143,8 @@ public:
 
 	void leave () noexcept;
 
+	virtual SyncContext::Type sync_context_type () const noexcept override;
+
 protected:
 	SyncDomain (Ref <MemContext>&& mem_context) noexcept;
 	~SyncDomain ();

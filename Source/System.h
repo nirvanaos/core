@@ -183,9 +183,9 @@ public:
 		return Port::SystemInfo::hardware_concurrency ();
 	}
 
-	static bool is_process ()
+	static ContextType context_type ()
 	{
-		return SyncContext::current ().is_process ();
+		return (ContextType)SyncContext::current ().sync_context_type ();
 	}
 
 	static void debug_event (DebugEvent evt, const IDL::String& msg, const IDL::String& file_name, int32_t line_number)
