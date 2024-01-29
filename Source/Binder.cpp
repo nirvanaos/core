@@ -208,8 +208,12 @@ const ModuleStartup* Binder::module_bind (::Nirvana::Module::_ptr_type mod, cons
 					break;
 
 				case OLF_EXPORT_INTERFACE: {
-					if (!mod_context) // Process can not export
+					if (!mod_context // Process can not export
+						|| // Singleton can not export interfaces
+						mod_context->sync_context.sync_context_type () == SyncContext::SYNC_DOMAIN_SINGLETON
+						)
 						invalid_metadata ();
+
 					const ExportInterface* ps = reinterpret_cast <const ExportInterface*> (it.cur ());
 					mod_context->exports.insert (ps->name, ps->itf);
 				} break;
