@@ -254,7 +254,7 @@ public:
 					throw;
 			}
 			if (acc) {
-				real_copy (&*p_start, &*p_end, &*name_p + pattern_start);
+				std::copy (p_start, p_end, name_p + pattern_start);
 				return acc;
 			}
 		}
