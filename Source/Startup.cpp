@@ -24,9 +24,7 @@
 *  popov.nirvana@gmail.com
 */
 
-// Using the precompiled header with CLang in this file causes error:
-// The OLF static symbols not exported/imported.
-
+#include "pch.h"
 #include <CORBA/Server.h>
 #include "Startup.h"
 #include "ExecDomain.h"

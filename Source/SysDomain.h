@@ -33,11 +33,11 @@
 #include "ORB/Services.h"
 #include "ORB/system_services.h"
 #include "ORB/ESIOP.h"
-#include <Nirvana/CoreDomains_s.h>
+#include "Nirvana/CoreDomains_s.h"
 #include <Port/SystemInfo.h>
 #include <Port/SysDomain.h>
 #include "MapUnorderedUnstable.h"
-#include <NameService/FileSystem.h>
+#include "NameService/FileSystem.h"
 #include <fnctl.h>
 
 namespace Nirvana {
