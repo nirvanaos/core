@@ -33,6 +33,7 @@
 #include "RuntimeGlobal.h"
 #include <Nirvana/File.h>
 #include <memory>
+#include <fnctl.h>
 
 namespace Nirvana {
 
@@ -78,20 +79,96 @@ public:
 	CosNaming::Name get_current_dir_name () const;
 	void chdir (const IDL::String& path);
 
-	// TODO: Make inline
-	unsigned fd_add (Access::_ptr_type access);
-	void close (unsigned ifd);
-	size_t read (unsigned ifd, void* p, size_t size);
-	void write (unsigned ifd, const void* p, size_t size);
-	uint64_t seek (unsigned ifd, const int64_t& off, unsigned method);
-	unsigned fcntl (unsigned ifd, int cmd, unsigned arg);
-	void flush (unsigned ifd);
-	void dup2 (unsigned src, unsigned dst);
-	bool isatty (unsigned ifd);
-	void push_back (unsigned ifd, int c);
-	bool ferror (unsigned ifd);
-	bool feof (unsigned ifd);
-	void clearerr (unsigned ifd);
+	unsigned fd_add (Access::_ptr_type access)
+	{
+		return data ().fd_add (access);
+	}
+
+	void close (unsigned ifd)
+	{
+		data_for_fd ().close (ifd);
+	}
+
+	size_t read (unsigned ifd, void* p, size_t size)
+	{
+		return data_for_fd ().read (ifd, p, size);
+	}
+
+	void write (unsigned ifd, const void* p, size_t size)
+	{
+		data_for_fd ().write (ifd, p, size);
+	}
+
+	uint64_t seek (unsigned ifd, const int64_t& off, unsigned method)
+	{
+		return data_for_fd ().seek (ifd, off, method);
+	}
+
+	unsigned fcntl (unsigned ifd, int cmd, unsigned arg)
+	{
+		unsigned ret = 0;
+		Data& data = data_for_fd ();
+		switch (cmd) {
+		case F_DUPFD:
+			ret = data.dup (ifd, arg);
+			break;
+
+		case F_GETFD:
+			ret = data.fd_flags (ifd);
+			break;
+
+		case F_SETFD:
+			data.fd_flags (ifd, arg);
+			break;
+
+		case F_GETFL:
+			ret = data.flags (ifd);
+			break;
+
+		case F_SETFL:
+			data.flags (ifd, arg);
+			break;
+
+		default:
+			throw_BAD_PARAM (make_minor_errno (EINVAL));
+		}
+		return ret;
+	}
+
+	void flush (unsigned ifd)
+	{
+		data_for_fd ().flush (ifd);
+	}
+
+	void dup2 (unsigned src, unsigned dst)
+	{
+		data_for_fd ().dup2 (src, dst);
+	}
+
+	bool isatty (unsigned ifd)
+	{
+		return data_for_fd ().isatty (ifd);
+	}
+
+	void push_back (unsigned ifd, int c)
+	{
+		data_for_fd ().push_back (ifd, c);
+	}
+
+	bool ferror (unsigned ifd)
+	{
+		return data_for_fd ().ferror (ifd);
+	}
+
+	bool feof (unsigned ifd)
+	{
+		return data_for_fd ().feof (ifd);
+	}
+
+	void clearerr (unsigned ifd)
+	{
+		data_for_fd ().clearerr (ifd);
+	}
 
 protected:
 	friend class MemContext;
@@ -217,6 +294,12 @@ private:
 			ref_ = std::move (fd);
 		}
 
+		void assign (const FileDescriptorRef& fd) noexcept
+		{
+			assert (!ref_);
+			(ref_ = fd)->add_descriptor_ref ();
+		}
+
 		void dup (const FileDescriptorInfo& src) noexcept
 		{
 			assert (!ref_);
@@ -287,23 +370,107 @@ private:
 
 		static CosNaming::Name default_dir ();
 
-		unsigned fd_add (Access::_ptr_type access);
-		void close (unsigned ifd);
-		size_t read (unsigned ifd, void* p, size_t size);
-		void write (unsigned ifd, const void* p, size_t size);
-		uint64_t seek (unsigned ifd, const int64_t& off, unsigned method);
-		unsigned dup (unsigned ifd, unsigned start);
-		void dup2 (unsigned ifd_src, unsigned ifd_dst);
-		unsigned fd_flags (unsigned ifd);
-		void fd_flags (unsigned ifd, unsigned flags);
-		unsigned flags (unsigned ifd);
-		void flags (unsigned ifd, unsigned flags);
-		void flush (unsigned ifd);
-		bool isatty (unsigned ifd);
-		void push_back (unsigned ifd, int c);
-		bool ferror (unsigned ifd);
-		bool feof (unsigned ifd);
-		void clearerr (unsigned ifd);
+		unsigned fd_add (Access::_ptr_type access)
+		{
+			// Allocate file descriptor cell
+			size_t i = alloc_fd ();
+			file_descriptors_ [i].attach (make_fd (access));
+
+			return (unsigned)(i + STD_CNT);
+		}
+
+		void close (unsigned ifd)
+		{
+			get_open_fd (ifd).close ();
+			while (!file_descriptors_.empty () && file_descriptors_.back ().closed ()) {
+				file_descriptors_.pop_back ();
+			}
+		}
+
+		size_t read (unsigned ifd, void* p, size_t size)
+		{
+			return get_open_fd (ifd).ref ()->read (p, size);
+		}
+
+		void write (unsigned ifd, const void* p, size_t size)
+		{
+			get_open_fd (ifd).ref ()->write (p, size);
+		}
+
+		uint64_t seek (unsigned ifd, const int64_t& off, unsigned method)
+		{
+			return get_open_fd (ifd).ref ()->seek (method, off);
+		}
+
+		unsigned dup (unsigned ifd, unsigned start)
+		{
+			const FileDescriptorInfo& src = get_open_fd (ifd);
+			size_t i = alloc_fd (start);
+			file_descriptors_ [i].dup (src);
+			return (unsigned)(i + STD_CNT);
+		}
+
+		void dup2 (unsigned ifd_src, unsigned ifd_dst)
+		{
+			const FileDescriptorInfo& src = get_open_fd (ifd_src);
+			FileDescriptorInfo& dst = get_fd (ifd_dst);
+			if (dst.closed ())
+				dst.close ();
+			dst.dup (src);
+		}
+
+		unsigned fd_flags (unsigned ifd)
+		{
+			return get_open_fd (ifd).fd_flags ();
+		}
+
+		void fd_flags (unsigned ifd, unsigned flags)
+		{
+			if (flags & ~FD_CLOEXEC)
+				throw_INV_FLAG (make_minor_errno (EINVAL));
+
+			get_open_fd (ifd).fd_flags (flags);
+		}
+
+		unsigned flags (unsigned ifd)
+		{
+			return get_open_fd (ifd).ptr ()->flags ();
+		}
+
+		void flags (unsigned ifd, unsigned flags)
+		{
+			return get_open_fd (ifd).ref ()->flags (flags);
+		}
+
+		void flush (unsigned ifd)
+		{
+			get_open_fd (ifd).ref ()->flush ();
+		}
+
+		bool isatty (unsigned ifd)
+		{
+			return get_open_fd (ifd).ptr ()->isatty ();
+		}
+
+		void push_back (unsigned ifd, int c)
+		{
+			get_open_fd (ifd).ptr ()->push_back (c);
+		}
+
+		bool ferror (unsigned ifd)
+		{
+			return get_open_fd (ifd).ptr ()->error ();
+		}
+
+		bool feof (unsigned ifd)
+		{
+			return get_open_fd (ifd).ptr ()->eof ();
+		}
+
+		void clearerr (unsigned ifd)
+		{
+			get_open_fd (ifd).ptr ()->clearerr ();
+		}
 
 		Data (const InheritedFiles& inh);
 

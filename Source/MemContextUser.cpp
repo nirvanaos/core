@@ -27,7 +27,6 @@
 #include "MemContextUser.h"
 #include "NameService/FileSystem.h"
 #include "ORB/Services.h"
-#include <fnctl.h>
 #include "virtual_copy.h"
 #include "CharFileAdapter.h"
 #include <Nirvana/ProcessFactory.h>
@@ -127,11 +126,12 @@ MemContextUser::Data::Data (const InheritedFiles& inh)
 		file_descriptors_.resize (max + 1 - StandardFileDescriptor::STD_CNT);
 	for (const auto& f : inh) {
 		FileDescriptorRef fd = make_fd (f.access ());
+		fd->remove_descriptor_ref ();
 		for (auto d : f.descriptors ()) {
 			FileDescriptorInfo& fdr = get_fd (d);
 			if (!fdr.closed ())
 				throw_BAD_PARAM ();
-			fdr.attach (std::move (fd));
+			fdr.assign (fd);
 		}
 	}
 }
@@ -206,25 +206,6 @@ size_t MemContextUser::Data::alloc_fd (unsigned start)
 	return i;
 }
 
-inline
-unsigned MemContextUser::Data::fd_add (Access::_ptr_type access)
-{
-	// Allocate file descriptor cell
-	size_t i = alloc_fd ();
-	file_descriptors_ [i].attach (make_fd (access));
-
-	return (unsigned)(i + STD_CNT);
-}
-
-inline
-void MemContextUser::Data::close (unsigned ifd)
-{
-	get_open_fd (ifd).close ();
-	while (!file_descriptors_.empty () && file_descriptors_.back ().closed ()) {
-		file_descriptors_.pop_back ();
-	}
-}
-
 MemContextUser::FileDescriptorInfo& MemContextUser::Data::get_fd (unsigned ifd)
 {
 	if (ifd < StandardFileDescriptor::STD_CNT)
@@ -257,106 +238,6 @@ MemContextUser::FileDescriptorRef MemContextUser::Data::make_fd (CORBA::Abstract
 			throw_UNKNOWN (make_minor_errno (EIO));
 		return CORBA::make_reference <FileDescriptorChar> (std::move (ac));
 	}
-}
-
-inline
-size_t MemContextUser::Data::read (unsigned ifd, void* p, size_t size)
-{
-	return get_open_fd (ifd).ref ()->read (p, size);
-}
-
-inline
-void MemContextUser::Data::write (unsigned ifd, const void* p, size_t size)
-{
-	get_open_fd (ifd).ref ()->write (p, size);
-}
-
-inline
-uint64_t MemContextUser::Data::seek (unsigned ifd, const int64_t& off, unsigned method)
-{
-	return get_open_fd (ifd).ref ()->seek (method, off);
-}
-
-inline 
-unsigned MemContextUser::Data::dup (unsigned ifd, unsigned start)
-{
-	const FileDescriptorInfo& src = get_open_fd (ifd);
-	size_t i = alloc_fd (start);
-	file_descriptors_ [i].dup (src);
-	return (unsigned)(i + STD_CNT);
-}
-
-inline
-void MemContextUser::Data::dup2 (unsigned fd_src, unsigned fd_dst)
-{
-	const FileDescriptorInfo& src = get_open_fd (fd_src);
-	FileDescriptorInfo& dst = get_fd (fd_dst);
-	if (dst.closed ())
-		dst.close ();
-	dst.dup (src);
-}
-
-inline
-unsigned MemContextUser::Data::fd_flags (unsigned ifd)
-{
-	return get_open_fd (ifd).fd_flags ();
-}
-
-inline
-void MemContextUser::Data::fd_flags (unsigned ifd, unsigned flags)
-{
-	if (flags & ~FD_CLOEXEC)
-		throw_INV_FLAG (make_minor_errno (EINVAL));
-
-	get_open_fd (ifd).fd_flags (flags);
-}
-
-inline
-unsigned MemContextUser::Data::flags (unsigned ifd)
-{
-	return get_open_fd (ifd).ptr ()->flags ();
-}
-
-inline
-void MemContextUser::Data::flags (unsigned ifd, unsigned flags)
-{
-	return get_open_fd (ifd).ref ()->flags (flags);
-}
-
-inline
-void MemContextUser::Data::flush (unsigned ifd)
-{
-	get_open_fd (ifd).ref ()->flush ();
-}
-
-inline
-bool MemContextUser::Data::isatty (unsigned ifd)
-{
-	return get_open_fd (ifd).ptr ()->isatty ();
-}
-
-inline
-void MemContextUser::Data::push_back (unsigned ifd, int c)
-{
-	get_open_fd (ifd).ptr ()->push_back (c);
-}
-
-inline
-bool MemContextUser::Data::ferror (unsigned ifd)
-{
-	return get_open_fd (ifd).ptr ()->error ();
-}
-
-inline
-bool MemContextUser::Data::feof (unsigned ifd)
-{
-	return get_open_fd (ifd).ptr ()->eof ();
-}
-
-inline
-void MemContextUser::Data::clearerr (unsigned ifd)
-{
-	get_open_fd (ifd).ptr ()->clearerr ();
 }
 
 MemContextUser& MemContextUser::current ()
@@ -410,102 +291,11 @@ void MemContextUser::chdir (const IDL::String& path)
 	data ().chdir (path);
 }
 
-unsigned MemContextUser::fd_add (Access::_ptr_type access)
-{
-	return data ().fd_add (access);
-}
-
 MemContextUser::Data& MemContextUser::data_for_fd () const
 {
 	if (!data_)
 		throw_BAD_PARAM (make_minor_errno (EBADF));
 	return *data_;
-}
-
-void MemContextUser::close (unsigned fd)
-{
-	data_for_fd ().close (fd);
-}
-
-size_t MemContextUser::read (unsigned fd, void* p, size_t size)
-{
-	return data_for_fd ().read (fd, p, size);
-}
-
-void MemContextUser::write (unsigned fd, const void* p, size_t size)
-{
-	data_for_fd ().write (fd, p, size);
-}
-
-uint64_t MemContextUser::seek (unsigned fd, const int64_t& off, unsigned method)
-{
-	return data_for_fd ().seek (fd, off, method);
-}
-
-unsigned MemContextUser::fcntl (unsigned ifd, int cmd, unsigned arg)
-{
-	unsigned ret = 0;
-	Data& data = data_for_fd ();
-	switch (cmd) {
-		case F_DUPFD:
-			ret = data.dup (ifd, arg);
-			break;
-
-		case F_GETFD:
-			ret = data.fd_flags (ifd);
-			break;
-
-		case F_SETFD:
-			data.fd_flags (ifd, arg);
-			break;
-
-		case F_GETFL:
-			ret = data.flags (ifd);
-			break;
-
-		case F_SETFL:
-			data.flags (ifd, arg);
-			break;
-
-		default:
-			throw_BAD_PARAM (make_minor_errno (EINVAL));
-	}
-	return ret;
-}
-
-void MemContextUser::flush (unsigned ifd)
-{
-	data_for_fd ().flush (ifd);
-}
-
-void MemContextUser::dup2 (unsigned src, unsigned dst)
-{
-	data_for_fd ().dup2 (src, dst);
-}
-
-bool MemContextUser::isatty (unsigned ifd)
-{
-	return data_for_fd ().isatty (ifd);
-}
-
-void MemContextUser::push_back (unsigned ifd, int c)
-{
-	data_for_fd ().push_back (ifd, c);
-}
-
-bool MemContextUser::ferror (unsigned ifd)
-{
-	return data_for_fd ().ferror (ifd);
-}
-
-bool MemContextUser::feof (unsigned ifd)
-{
-	return data_for_fd ().feof (ifd);
-}
-
-void MemContextUser::clearerr (unsigned ifd)
-{
-	data_for_fd ().clearerr (ifd);
 }
 
 void MemContextUser::FileDescriptorBuf::close () const
