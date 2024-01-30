@@ -76,6 +76,9 @@ void Process::run ()
 		ret_ = -1;
 		error_message ("Unknown exception\n");
 	}
+
+	executable_.unload ();
+
 	finish ();
 
 	run_end ();
@@ -90,7 +93,6 @@ void Process::finish () noexcept
 	{
 		Strings tmp (std::move (envp_));
 	}
-	executable_.unbind ();
 	state_ = COMPLETED;
 	completed_.signal ();
 
