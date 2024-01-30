@@ -77,8 +77,6 @@ void Process::run ()
 		error_message ("Unknown exception\n");
 	}
 
-	executable_.unload ();
-
 	finish ();
 
 	run_end ();
@@ -86,6 +84,8 @@ void Process::run ()
 
 void Process::finish () noexcept
 {
+	executable_.unload ();
+
 	MemContextUser::clear ();
 	{
 		Strings tmp (std::move (argv_));

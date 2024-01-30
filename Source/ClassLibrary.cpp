@@ -44,11 +44,11 @@ void ClassLibrary::initialize (ModuleInit::_ptr_type entry_point, AtomicCounter 
 	if (Port::Memory::FLAGS & Memory::ACCESS_CHECK) {
 		get_data_sections (data_sections_);
 		heap ().change_protection (true);
-		/* Temporary disable until CRT will ready 
 		for (auto it = data_sections_.cbegin (); it != data_sections_.cend (); ++it) {
 			void* p = const_cast <void*> (it->address);
-			Port::Memory::copy (p, p, it->size, Memory::READ_ONLY | Memory::EXACTLY);
-		}*/
+			size_t cb = it->size;
+			Port::Memory::copy (p, p, cb, Memory::READ_ONLY | Memory::EXACTLY);
+		}
 	}
 	ed.restricted_mode (rm);
 }
@@ -59,11 +59,11 @@ void ClassLibrary::terminate () noexcept
 	if (Port::Memory::FLAGS & Memory::ACCESS_CHECK) {
 		try {
 			heap ().change_protection (false);
-			/* TODO: Temporary disabled until CRTL will ready
-				for (auto it = data_sections_.cbegin (); it != data_sections_.cend (); ++it) {
+			for (auto it = data_sections_.cbegin (); it != data_sections_.cend (); ++it) {
 				void* p = const_cast <void*> (it->address);
-				Port::Memory::copy (p, p, it->size, Memory::READ_WRITE | Memory::EXACTLY);
-			}*/
+				size_t cb = it->size;
+				Port::Memory::copy (p, p, cb, Memory::READ_WRITE | Memory::EXACTLY);
+			}
 		} catch (...) {
 			// TODO: Log
 			return;
