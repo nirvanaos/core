@@ -29,7 +29,7 @@
 namespace CORBA {
 namespace Internal {
 
-extern constexpr Nirvana::ImportInterfaceT <ObjectFactory> g_object_factory = {
+extern const Nirvana::ImportInterfaceT <ObjectFactory> g_object_factory = {
 	Nirvana::OLF_IMPORT_INTERFACE, "CORBA/Internal/g_object_factory",
 	RepIdOf <ObjectFactory>::id, NIRVANA_STATIC_BRIDGE (ObjectFactory,
 	Core::ObjectFactory)

@@ -216,7 +216,7 @@ public:
 		};
 
 		s += ev_prefix [(unsigned)evt];
-		s += msg;
+		s.append (msg.c_str (), msg.size ());
 		s += '\n';
 		Port::Debugger::output_debug_string (evt, s.c_str ());
 		if (evt >= DebugEvent::DEBUG_WARNING) {

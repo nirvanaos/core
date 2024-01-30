@@ -269,8 +269,8 @@ void StreamIn::read_string (Internal::StringT <C>& s)
 		throw MARSHAL ();
 
 	if (sizeof (C) > 1 && other_endian ())
-		for (C* p = s.data (), *e = p + s.size (); p != e; ++p) {
-			Internal::Type <C>::byteswap (*p);
+		for (C& c : s) {
+			Internal::Type <C>::byteswap (c);
 		}
 }
 

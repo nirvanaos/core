@@ -216,7 +216,7 @@ public:
 			throw_BAD_PARAM (make_minor_errno (EINVAL));
 		size_t pattern_end = name_size - suffix_len;
 		size_t pattern_start = pattern_end - 6;
-		char* name_p = name.data ();
+		auto name_p = name.begin ();
 		for (auto p = name_p + pattern_start, end = name_p + pattern_end; p != end; ++p) {
 			if ('X' != *p)
 				throw_BAD_PARAM (make_minor_errno (EINVAL));
@@ -231,8 +231,8 @@ public:
 		if (ext != IDL::String::npos)
 			n.front ().kind (name.substr (ext + 1));
 
-		char* p_start = n.front ().id ().data ();
-		char* p_end = p_start + pattern_end;
+		auto p_start = n.front ().id ().begin ();
+		auto p_end = p_start + pattern_end;
 		p_start += pattern_start;
 
 		Access::_ref_type acc;
@@ -254,7 +254,7 @@ public:
 					throw;
 			}
 			if (acc) {
-				real_copy (p_start, p_end, name_p + pattern_start);
+				real_copy (&*p_start, &*p_end, &*name_p + pattern_start);
 				return acc;
 			}
 		}
