@@ -144,7 +144,7 @@ class NIRVANA_NOVTABLE SyncContextFree :
 	public SyncContext
 {
 public:
-	virtual Heap* stateless_memory () noexcept = 0;
+	virtual Heap* stateless_memory () noexcept override = 0;
 	virtual Type sync_context_type () const noexcept override;
 
 protected:
@@ -158,9 +158,9 @@ class SyncContextCore :
 	public SyncContextFree
 {
 public:
-	virtual Heap* stateless_memory () noexcept;
-	virtual Module* module () noexcept;
-	virtual void raise_exception (CORBA::SystemException::Code code, unsigned minor);
+	virtual Heap* stateless_memory () noexcept override;
+	virtual Module* module () noexcept override;
+	virtual void raise_exception (CORBA::SystemException::Code code, unsigned minor) override;
 };
 
 extern StaticallyAllocated <ImplStatic <SyncContextCore> > g_core_free_sync_context;
