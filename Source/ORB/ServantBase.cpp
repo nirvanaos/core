@@ -26,17 +26,9 @@
 #include "../pch.h"
 #include "ServantBase.h"
 #include "POA_Root.h"
-#include <CORBA/Proxy/TypeCodeNative.h>
-
-using namespace CORBA::Internal;
-using namespace CORBA;
-using namespace Nirvana::Core;
-using namespace Nirvana;
 
 namespace PortableServer {
 namespace Core {
-
-typedef TypeCodeNative <PortableServer::ServantBase> TC_Servant;
 
 ServantBase* ServantBase::create (Servant user_servant)
 {
@@ -45,13 +37,3 @@ ServantBase* ServantBase::create (Servant user_servant)
 
 }
 }
-
-namespace CORBA {
-namespace Internal {
-template <>
-const Char TypeCodeName <PortableServer::ServantBase>::name_ [] = "Servant";
-}
-}
-
-const Nirvana::ImportInterfaceT <CORBA::TypeCode> NIRVANA_SELECTANY PortableServer::_tc_Servant
-{ Nirvana::OLF_IMPORT_INTERFACE, nullptr, nullptr, NIRVANA_STATIC_BRIDGE (CORBA::TypeCode, PortableServer::Core::TC_Servant) };
