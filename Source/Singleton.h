@@ -44,12 +44,12 @@ public:
 		SyncDomain (Ref <MemContext> (this))
 	{}
 
-	void _add_ref () noexcept
+	void _add_ref () noexcept override
 	{
 		Module::_add_ref ();
 	}
 
-	void _remove_ref () noexcept
+	void _remove_ref () noexcept override
 	{
 		Module::_remove_ref ();
 	}
@@ -59,7 +59,7 @@ public:
 
 	// Module::
 
-	virtual SyncContext& sync_context () noexcept
+	virtual SyncContext& sync_context () noexcept override
 	{
 		return *this;
 	}
@@ -67,8 +67,8 @@ public:
 	// SyncContext::
 
 	virtual SyncContext::Type sync_context_type () const noexcept override;
-	virtual Module* module () noexcept;
-	virtual void raise_exception (CORBA::SystemException::Code code, unsigned minor);
+	virtual Module* module () noexcept override;
+	virtual void raise_exception (CORBA::SystemException::Code code, unsigned minor) override;
 
 };
 

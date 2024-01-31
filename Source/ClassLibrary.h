@@ -46,13 +46,13 @@ public:
 
 	// Module::
 
-	virtual SyncContext& sync_context () noexcept
+	virtual SyncContext& sync_context () noexcept override
 	{
 		return *this;
 	}
 
-	virtual void initialize (ModuleInit::_ptr_type entry_point, AtomicCounter <false>::IntegralType initial_ref_cnt);
-	virtual void terminate () noexcept;
+	virtual void initialize (ModuleInit::_ptr_type entry_point, AtomicCounter <false>::IntegralType initial_ref_cnt) override;
+	virtual void terminate () noexcept override;
 
 	// SyncContext::
 
@@ -62,12 +62,12 @@ public:
 	virtual void raise_exception (CORBA::SystemException::Code code, unsigned minor) override;
 
 private:
-	void _add_ref () noexcept
+	void _add_ref () noexcept override
 	{
 		Module::_add_ref ();
 	}
 
-	void _remove_ref () noexcept
+	void _remove_ref () noexcept override
 	{
 		Module::_remove_ref ();
 	}
