@@ -46,7 +46,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*----------------------------------------------------------------------------
 *----------------------------------------------------------------------------*/
-#define THREAD_LOCAL __declspec (thread)
+//#define THREAD_LOCAL __declspec (thread)
 
 #if defined (__GNUG__) || defined (__clang__)
 #define SOFTFLOAT_BUILTIN_CLZ 1
