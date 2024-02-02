@@ -102,7 +102,14 @@ public:
 			path = std::move (translated);
 		auto ns = CosNaming::NamingContextExt::_narrow (CORBA::Core::Services::bind (CORBA::Core::Services::NameService));
 
-		const char* module_id = (obj_name == "Nirvana/g_dec_calc") ? "DecCalc.olf" : "TestModule.olf";
+		const char* module_id;
+		if (obj_name == "Nirvana/g_dec_calc")
+			module_id = "DecCalc.olf";
+		else if (obj_name == "CORBA/Internal/g_sfloat16")
+			module_id = "SFloat.olf";
+		else
+			module_id = "TestModule.olf";
+
 		path += '/';
 		path += module_id;
 		CORBA::Object::_ref_type obj;
