@@ -88,6 +88,7 @@ bool Pollable::is_ready (ULong timeout)
 
 void Pollable::on_complete (Internal::IORequest::_ptr_type reply)
 {
+	// Called in synchronization domain
 	event_.signal_all ();
 	ready_ = true;
 	if (cur_set_)

@@ -80,6 +80,9 @@ private:
 	ExecDomain& exec_domain_;
 	Ref <SyncContext> call_context_;
 	CORBA::Core::SystemExceptionHolder exception_;
+#ifndef NDEBUG
+	size_t dbg_ed_mem_stack_size_;
+#endif
 };
 
 }

@@ -346,7 +346,7 @@ public:
 	void mem_context_pop () noexcept;
 
 #ifndef NDEBUG
-	size_t dbg_context_stack_size_;
+	size_t dbg_mem_context_stack_size_;
 #endif
 	enum class RestrictedMode
 	{
@@ -419,7 +419,7 @@ private:
 	ExecDomain () :
 		ExecContext (false),
 #ifndef NDEBUG
-		dbg_context_stack_size_ (0),
+		dbg_mem_context_stack_size_ (0),
 #endif
 		ref_cnt_ (1),
 		ret_qnodes_ (nullptr),
@@ -510,6 +510,9 @@ private:
 			mem_context_ = tmp;
 		} while (!mem_context_stack_.empty ());
 		mem_context_stack_.push (std::move (tmp));
+#ifndef NDEBUG
+		dbg_mem_context_stack_size_ = 1;
+#endif
 	}
 
 	void create_background_worker ();

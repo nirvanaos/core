@@ -119,7 +119,7 @@ Ref <ExecDomain> ExecDomain::create (const DeadlineTime deadline, Ref <MemContex
 		}
 
 #ifndef NDEBUG
-		assert (!ed->dbg_context_stack_size_++);
+		assert (!ed->dbg_mem_context_stack_size_++);
 #endif
 	} catch (...) {
 		ed->cleanup ();
@@ -200,6 +200,7 @@ void ExecDomain::cleanup () noexcept
 	ret_qnodes_clear ();
 	
 	assert (!mem_context_stack_.empty ());
+	assert (1 == dbg_mem_context_stack_size_);
 	for (;;) {
 		mem_context_stack_.pop ();
 		if (mem_context_stack_.empty ())
@@ -209,7 +210,7 @@ void ExecDomain::cleanup () noexcept
 	mem_context_ = nullptr;
 
 #ifndef NDEBUG
-	dbg_context_stack_size_ = 0;
+	dbg_mem_context_stack_size_ = 0;
 #endif
 
 	if (scheduler_item_created_) {
@@ -258,7 +259,7 @@ void ExecDomain::mem_context_push (Ref <MemContext>&& mem_context)
 	mem_context_stack_.emplace (std::move (mem_context));
 	mem_context_ = p;
 #ifndef NDEBUG
-	++dbg_context_stack_size_;
+	++dbg_mem_context_stack_size_;
 #endif
 }
 
@@ -266,7 +267,7 @@ void ExecDomain::mem_context_pop () noexcept
 {
 	mem_context_stack_.pop ();
 #ifndef NDEBUG
-	--dbg_context_stack_size_;
+	--dbg_mem_context_stack_size_;
 #endif
 	mem_context_ = mem_context_stack_.top ();
 }

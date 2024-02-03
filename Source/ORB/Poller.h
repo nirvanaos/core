@@ -96,16 +96,13 @@ public:
 			else
 				throw NO_RESPONSE (MAKE_OMG_MINOR (1));
 		}
-		Internal::IORequest::_ref_type ret;
-		SYNC_BEGIN (sync_domain (), nullptr)
+		// Request is ready here, we don't need to synchronize.
 		if (!reply_) {
 			is_from_poller_ = true;
 			throw OBJECT_NOT_EXIST (MAKE_OMG_MINOR (5));
 		}
 		is_from_poller_ = false;
-		ret = std::move (reply_);
-		SYNC_END ();
-		return ret;
+		return std::move (reply_);
 	}
 
 private:
