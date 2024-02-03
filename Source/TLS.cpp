@@ -110,8 +110,8 @@ void TLS::Holder::set (unsigned idx, void* p)
 		throw_BAD_PARAM ();
 	size_t i = idx / BW_BITS;
 	BitmapWord mask = (BitmapWord)1 << (idx % BW_BITS);
-	if (!(bitmap_ [i] & mask))
-		throw_BAD_PARAM ();
+	if (bitmap_ [i] & mask)
+		throw_BAD_PARAM (); // This index is free
 
 	if (!p_)
 		p_.reset (new TLS);
