@@ -51,14 +51,7 @@ public:
 	virtual CORBA::Long skip_chunks () override;
 
 protected:
-	StreamInSM (void* mem) noexcept :
-		cur_block_ ((StreamHdr*)mem),
-		cur_ptr_ ((const uint8_t*)((StreamHdr*)mem + 1)),
-		segments_ (((StreamHdr*)mem)->segments),
-		position_ (0),
-		chunk_end_ (0)
-	{}
-
+	StreamInSM (void* mem) noexcept;
 	StreamInSM (const StreamInSM&) = delete;
 	StreamInSM (StreamInSM&&) = delete;
 

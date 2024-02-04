@@ -48,6 +48,14 @@ void StreamInSM::release_block (BlockHdr* block)
 	Port::Memory::release (block, size);
 }
 
+StreamInSM::StreamInSM (void* mem) noexcept :
+	cur_block_ ((StreamHdr*)mem),
+	cur_ptr_ (round_up ((const uint8_t*)((StreamHdr*)mem + 1), 8)),
+	segments_ (((StreamHdr*)mem)->segments),
+	position_ (0),
+	chunk_end_ (0)
+{}
+
 StreamInSM::~StreamInSM ()
 {
 	// Release segments

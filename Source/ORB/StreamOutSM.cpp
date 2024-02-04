@@ -41,7 +41,8 @@ void StreamOutSM::initialize ()
 	allocate_block (sizes_.sizeof_pointer, sizes_.sizeof_pointer);
 	stream_hdr_ = cur_block ().other_ptr;
 	segments_tail_ = cur_ptr_;
-	cur_ptr_ = (uint8_t*)other_domain_->store_pointer (segments_tail_, 0); // segments
+	uint8_t* ptr = (uint8_t*)other_domain_->store_pointer (segments_tail_, 0); // segments
+	cur_ptr_ = round_up (ptr, 8);
 }
 
 void StreamOutSM::clear (size_t leave_header) noexcept
