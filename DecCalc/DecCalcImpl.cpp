@@ -66,8 +66,10 @@ void Context::check () const
 	}
 }
 
-class DecCalcImpl :
-	public CORBA::servant_traits <DecCalc>::ServantStatic <DecCalcImpl>
+namespace Nirvana {
+
+class Static_g_dec_calc :
+	public CORBA::servant_traits <DecCalc>::ServantStatic <Static_g_dec_calc>
 {
 public:
 	static void from_long (Number& n, int32_t l)
@@ -238,4 +240,6 @@ public:
 	}
 };
 
-NIRVANA_EXPORT (_exp_Nirvana_g_dec_calc, "Nirvana/g_dec_calc", DecCalc, DecCalcImpl)
+}
+
+NIRVANA_EXPORT_PSEUDO (_exp_Nirvana_g_dec_calc, Nirvana::Static_g_dec_calc)

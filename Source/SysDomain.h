@@ -105,7 +105,13 @@ public:
 		const char* module_id;
 		if (obj_name == "Nirvana/g_dec_calc")
 			module_id = "DecCalc.olf";
-		else if (obj_name == "CORBA/Internal/g_sfloat16")
+		else if (
+			(!std::is_same <float, CORBA::Float>::value && obj_name == "CORBA/Internal/g_sfloat4")
+			||
+			(!std::is_same <double, CORBA::Double>::value && obj_name == "CORBA/Internal/g_sfloat8")
+			||
+			(!std::is_same <long double, CORBA::LongDouble>::value && obj_name == "CORBA/Internal/g_sfloat16")
+		)
 			module_id = "SFloat.olf";
 		else
 			module_id = "TestModule.olf";
