@@ -41,7 +41,7 @@ class LocalObject :
 	typedef CoreServant <LocalObject, ServantProxyLocal> Base;
 
 public:
-	static LocalObject* create (CORBA::LocalObject::_ptr_type user_servant);
+	static LocalObject* create (CORBA::LocalObject::_ptr_type user_servant, Object::_ptr_type comp);
 
 	// LocalObject default implementation
 
@@ -68,13 +68,13 @@ class LocalObjectImpl :
 	public LocalObject
 {
 public:
-	LocalObjectImpl (CORBA::LocalObject::_ptr_type user_servant);
+	LocalObjectImpl (CORBA::LocalObject::_ptr_type user_servant, Object::_ptr_type comp);
 };
 
 inline
-LocalObject* LocalObject::create (CORBA::LocalObject::_ptr_type user_servant)
+LocalObject* LocalObject::create (CORBA::LocalObject::_ptr_type user_servant, Object::_ptr_type comp)
 {
-	return new LocalObjectImpl (user_servant);
+	return new LocalObjectImpl (user_servant, comp);
 }
 
 }

@@ -42,7 +42,7 @@ class ServantBase :
 	typedef CORBA::Core::CoreServant <ServantBase, CORBA::Core::ServantProxyObject> Base;
 
 public:
-	static ServantBase* create (Servant user_servant);
+	static ServantBase* create (Servant user_servant, CORBA::Object::_ptr_type comp);
 
 	// ServantBase default implementation
 
@@ -83,8 +83,8 @@ class ServantBaseImpl :
 	public ServantBase
 {
 public:
-	ServantBaseImpl (Servant user_servant) :
-		CORBA::Core::ServantProxyObject (user_servant),
+	ServantBaseImpl (Servant user_servant, CORBA::Object::_ptr_type comp) :
+		CORBA::Core::ServantProxyObject (user_servant, comp),
 		ServantBase (static_cast <CORBA::Core::ServantProxyObject&> (*this))
 	{}
 };

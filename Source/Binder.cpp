@@ -269,7 +269,7 @@ const ModuleStartup* Binder::module_bind (::Nirvana::Module::_ptr_type mod, cons
 						case OLF_EXPORT_OBJECT: {
 							ExportObject* ps = reinterpret_cast <ExportObject*> (it.cur ());
 							PortableServer::Core::ServantBase* core_object = PortableServer::Core::ServantBase::create (
-									Type <PortableServer::Servant>::in (ps->servant_base));
+									Type <PortableServer::Servant>::in (ps->servant_base), nullptr);
 							Object::_ptr_type obj = core_object->proxy ().get_proxy ();
 							ps->core_object = &PortableServer::Servant (core_object);
 							mod_context->exports.insert (ps->name, obj);
@@ -278,7 +278,7 @@ const ModuleStartup* Binder::module_bind (::Nirvana::Module::_ptr_type mod, cons
 						case OLF_EXPORT_LOCAL: {
 							ExportLocal* ps = reinterpret_cast <ExportLocal*> (it.cur ());
 							CORBA::Core::LocalObject* core_object = CORBA::Core::LocalObject::create (
-									Type <CORBA::LocalObject>::in (ps->local_object));
+									Type <CORBA::LocalObject>::in (ps->local_object), nullptr);
 							Object::_ptr_type obj = core_object->proxy ().get_proxy ();
 							ps->core_object = &CORBA::LocalObject::_ptr_type (core_object);
 							mod_context->exports.insert (ps->name, obj);

@@ -167,7 +167,7 @@ IORequest::_ref_type ServantProxyBase::create_request (OperationIndex op, unsign
 
 Object::_ref_type ServantProxyBase::_get_component ()
 {
-	return nullptr; // TODO: Implement
+	return component_;
 }
 
 }

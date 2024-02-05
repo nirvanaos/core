@@ -32,7 +32,7 @@ namespace Core {
 
 inline
 SysObject::SysObject (CORBA::LocalObject::_ptr_type servant, const Octet* id, size_t id_len) :
-	LocalObjectImpl (servant),
+	LocalObjectImpl (servant, nullptr),
 	id_ (id),
 	id_len_ (id_len)
 {}

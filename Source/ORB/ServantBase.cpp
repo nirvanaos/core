@@ -30,9 +30,9 @@
 namespace PortableServer {
 namespace Core {
 
-ServantBase* ServantBase::create (Servant user_servant)
+ServantBase* ServantBase::create (Servant user_servant, CORBA::Object::_ptr_type comp)
 {
-	return new ServantBaseImpl (user_servant);
+	return new ServantBaseImpl (user_servant, comp);
 }
 
 }

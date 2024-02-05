@@ -112,8 +112,8 @@ public:
 	void delete_servant (bool from_destructor);
 
 protected:
-	ServantProxyObject (PortableServer::Servant servant) :
-		ServantProxyBase (servant),
+	ServantProxyObject (PortableServer::Servant servant, Object::_ptr_type comp) :
+		ServantProxyBase (servant, comp),
 		adapter_context_ (&local2proxy (Services::bind (Services::RootPOA))->sync_context ()),
 		references_ (adapter_context_->sync_domain ()->mem_context ().heap ())
 	{}

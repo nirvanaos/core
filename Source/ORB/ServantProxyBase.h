@@ -94,10 +94,11 @@ public:
 
 protected:
 	template <class I>
-	ServantProxyBase (Internal::I_ptr <I> servant) :
+	ServantProxyBase (Internal::I_ptr <I> servant, Object::_ptr_type comp) :
 		ProxyManager (get_primary_interface_id (servant), true),
 		ref_cnt_ (0),
-		sync_context_ (&Nirvana::Core::SyncContext::current ())
+		sync_context_ (&Nirvana::Core::SyncContext::current ()),
+		component_ (comp)
 	{
 		size_t offset = offset_ptr ();
 		servant_ = offset_ptr (static_cast <Internal::Interface::_ptr_type> (servant), offset);
@@ -137,6 +138,7 @@ protected:
 	RefCntProxy ref_cnt_;
 	Internal::Interface::_ptr_type servant_;
 	servant_reference <Nirvana::Core::SyncContext> sync_context_;
+	Object::_ref_type component_;
 };
 
 inline

@@ -64,14 +64,14 @@ public:
 		}
 	}
 
-	static void create_servant (PortableServer::Servant servant, void* ref)
+	static void create_servant (PortableServer::Servant servant, void* ref, Object::_ptr_type comp)
 	{
-		create <PortableServer::ServantBase, PortableServer::Core::ServantBase> (servant, ref);
+		create <PortableServer::ServantBase, PortableServer::Core::ServantBase> (servant, ref, comp);
 	}
 
-	static void create_local_object (CORBA::LocalObject::_ptr_type servant, void* ref)
+	static void create_local_object (CORBA::LocalObject::_ptr_type servant, void* ref, Object::_ptr_type comp)
 	{
-		create <CORBA::LocalObject, CORBA::Core::LocalObject> (servant, ref);
+		create <CORBA::LocalObject, CORBA::Core::LocalObject> (servant, ref, comp);
 	}
 
 	void stateless_begin (StatelessCreationFrame& scf)
@@ -129,7 +129,7 @@ private:
 	static Nirvana::Core::Heap& stateless_memory ();
 
 	template <class ServantInterface, class ServantObject>
-	static void create (Internal::I_ptr <ServantInterface> servant, void* pref)
+	static void create (Internal::I_ptr <ServantInterface> servant, void* pref, Object::_ptr_type comp)
 	{
 		if (!servant || !pref)
 			throw BAD_PARAM ();
@@ -145,7 +145,7 @@ private:
 			if (wref.initialize (PROXY_CREATION_DEADLINE)) {
 				auto wait_list = wref.wait_list ();
 				try {
-					wref = ServantObject::create (servant);
+					wref = ServantObject::create (servant, comp);
 				} catch (...) {
 					wait_list->on_exception ();
 					throw;
@@ -154,7 +154,7 @@ private:
 				wref.wait_list ()->wait ();
 		} else {
 			assert (((uintptr_t)iref & 1) == 0);
-			iref = ServantObject::create (servant);
+			iref = ServantObject::create (servant, comp);
 		}
 	}
 };

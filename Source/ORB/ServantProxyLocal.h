@@ -79,8 +79,8 @@ public:
 	}
 
 protected:
-	ServantProxyLocal (LocalObject::_ptr_type servant) :
-		ServantProxyBase (servant)
+	ServantProxyLocal (LocalObject::_ptr_type servant, Object::_ptr_type comp) :
+		ServantProxyBase (servant, comp)
 	{}
 
 };
