@@ -77,6 +77,7 @@ public:
 	virtual Policy::_ref_type _get_policy (PolicyType policy_type) override;
 
 	virtual IDL::String _repository_id () override;
+	virtual Object::_ref_type _get_component () override;
 
 protected:
 	Reference (Internal::String_in primary_iid, unsigned flags) :

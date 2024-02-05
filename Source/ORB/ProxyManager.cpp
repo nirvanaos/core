@@ -40,14 +40,18 @@ namespace Core {
 const Parameter ProxyManager::is_a_param_ = { "logical_type_id", Type <String>::type_code };
 
 const Operation ProxyManager::object_ops_ [(size_t)ObjectOp::OBJECT_OP_CNT] = {
-	{ "_get_interface", {0, 0}, {0, 0}, {0, 0}, {0, 0}, Type <InterfaceDef>::type_code,
+	{ "_interface", {0, 0}, {0, 0}, {0, 0}, {0, 0}, Type <InterfaceDef>::type_code,
 		call <rq_get_interface>, Operation::FLAG_OUT_CPLX },
 	{ "_is_a", {&is_a_param_, 1}, {0, 0}, {0, 0}, {0, 0}, Type <Boolean>::type_code,
 		call <rq_is_a>, 0 },
 	{ "_non_existent", {0, 0}, {0, 0}, {0, 0}, {0, 0}, Type <Boolean>::type_code,
 		call <rq_non_existent>, 0 },
+	{ "_domain_managers", {0, 0}, {0, 0}, {0, 0}, {0, 0}, Type <Boolean>::type_code,
+		call <rq_domain_managers>, Operation::FLAG_OUT_CPLX },
 	{ "_repository_id", {0, 0}, {0, 0}, {0, 0}, {0, 0}, Type <String>::type_code,
-		call <rq_repository_id>, 0 }
+		call <rq_repository_id>, 0 },
+	{ "_component", {0, 0}, {0, 0}, {0, 0}, {0, 0}, Type <String>::type_code,
+		call <rq_component>, Operation::FLAG_OUT_CPLX }
 };
 
 struct ProxyManager::OEPred
@@ -452,6 +456,18 @@ void ProxyManager::rq_repository_id (ProxyManager* servant, CORBA::Internal::IOR
 	_rq->unmarshal_end ();
 	IDL::String ret = servant->repository_id ();
 	Type <IDL::String>::marshal_out (ret, _rq);
+}
+
+void ProxyManager::rq_domain_managers (ProxyManager* servant, CORBA::Internal::IORequest::_ptr_type _rq)
+{
+	DomainManagersList ret = servant->_get_domain_managers ();
+	Type <DomainManagersList>::marshal_out (ret, _rq);
+}
+
+void ProxyManager::rq_component (ProxyManager* servant, CORBA::Internal::IORequest::_ptr_type _rq)
+{
+	Object::_ref_type ret = servant->_get_component ();
+	Type <Object>::marshal_out (ret, _rq);
 }
 
 ReferenceLocalRef ProxyManager::get_local_reference (const PortableServer::Core::POA_Base&)

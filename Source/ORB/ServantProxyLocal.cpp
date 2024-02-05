@@ -53,12 +53,12 @@ ReferenceRef ServantProxyLocal::marshal (StreamOut& out)
 
 Policy::_ref_type ServantProxyLocal::_get_policy (PolicyType policy_type)
 {
-	throw NO_IMPLEMENT (MAKE_OMG_MINOR (8));
+	throw NO_IMPLEMENT (MAKE_OMG_MINOR (8)); // Operation not implemented in local object.
 }
 
 DomainManagersList ServantProxyLocal::_get_domain_managers ()
 {
-	throw NO_IMPLEMENT (MAKE_OMG_MINOR (8));
+	throw NO_IMPLEMENT (MAKE_OMG_MINOR (8)); // Operation not implemented in local object.
 }
 
 }

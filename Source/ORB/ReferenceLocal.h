@@ -72,7 +72,9 @@ public:
 	static void marshal (const ProxyManager& proxy, const Octet* obj_key, size_t obj_key_size,
 		const PolicyMap* policies, StreamOut& out);
 
+	virtual IDL::String _repository_id () override;
 	virtual DomainManagersList _get_domain_managers () override;
+	virtual Object::_ref_type _get_component () override;
 
 	virtual Boolean _is_equivalent (Object::_ptr_type other_object) const noexcept override;
 

@@ -90,6 +90,8 @@ public:
 		return servant_;
 	}
 
+	virtual Object::_ref_type _get_component () override;
+
 protected:
 	template <class I>
 	ServantProxyBase (Internal::I_ptr <I> servant) :

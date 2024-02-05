@@ -299,7 +299,7 @@ IORequest::_ref_type ReferenceLocal::create_request (OperationIndex op, unsigned
 
 DomainManagersList ReferenceLocal::_get_domain_managers ()
 {
-	throw NO_IMPLEMENT ();
+	return DomainManagersList (); // TODO: Implement
 }
 
 Boolean ReferenceLocal::_is_equivalent (Object::_ptr_type other_object) const noexcept
@@ -316,6 +316,29 @@ Boolean ReferenceLocal::_is_equivalent (Object::_ptr_type other_object) const no
 		return servant->_is_equivalent (other_object);
 	else
 		return false;
+}
+
+IDL::String ReferenceLocal::_repository_id ()
+{
+	if (has_primary_interface ())
+		return ProxyManager::_repository_id ();
+
+	servant_reference <ServantProxyObject> active_servant = get_active_servant_with_lock ();
+
+	if (active_servant)
+		return active_servant->_repository_id ();
+
+	return Reference::_repository_id ();
+}
+
+Object::_ref_type ReferenceLocal::_get_component ()
+{
+	servant_reference <ServantProxyObject> active_servant = get_active_servant_with_lock ();
+
+	if (active_servant)
+		return active_servant->_get_component ();
+
+	return Reference::_get_component ();
 }
 
 }

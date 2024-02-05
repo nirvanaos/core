@@ -105,11 +105,6 @@ IORequest::_ref_type ReferenceRemote::create_request (OperationIndex op, unsigne
 	return domain_->create_request (flags, object_key_, operation_metadata (op), this, std::move (callback));
 }
 
-DomainManagersList ReferenceRemote::_get_domain_managers ()
-{
-	throw NO_IMPLEMENT ();
-}
-
 Boolean ReferenceRemote::_is_equivalent (Object::_ptr_type other_object) const noexcept
 {
 	if (!other_object)
@@ -125,6 +120,17 @@ Boolean ReferenceRemote::_is_equivalent (Object::_ptr_type other_object) const n
 
 	const ReferenceRemote& other = static_cast <ReferenceRemote&> (*ref);
 	return domain_ == other.domain_ && object_key_ == other.object_key_;
+}
+
+DomainManagersList ReferenceRemote::_get_domain_managers ()
+{
+	IORequest::_ref_type rq = create_request (_make_op_idx ((UShort)ObjectOp::GET_DOMAIN_MANAGERS), 3,
+		nullptr);
+	rq->invoke ();
+	DomainManagersList _ret;
+	Internal::Type <DomainManagersList>::unmarshal (rq, _ret);
+	rq->unmarshal_end ();
+	return _ret;
 }
 
 }

@@ -284,10 +284,7 @@ public:
 		return repository_id ();
 	}
 	
-	Object::_ref_type _get_component ()
-	{
-		return Object::_nil ();
-	}
+	virtual Object::_ref_type _get_component () = 0;
 
 	// Abstract base implementation
 
@@ -443,7 +440,9 @@ protected:
 		GET_INTERFACE,
 		IS_A,
 		NON_EXISTENT,
+		GET_DOMAIN_MANAGERS,
 		REPOSITORY_ID,
+		GET_COMPONENT,
 
 		OBJECT_OP_CNT
 	};
@@ -478,6 +477,9 @@ private:
 
 	virtual Boolean non_existent ();
 	static void rq_non_existent (ProxyManager* servant, CORBA::Internal::IORequest::_ptr_type _rq);
+
+	static void rq_domain_managers (ProxyManager* servant, CORBA::Internal::IORequest::_ptr_type _rq);
+	static void rq_component (ProxyManager* servant, CORBA::Internal::IORequest::_ptr_type _rq);
 
 	IDL::String repository_id () const
 	{

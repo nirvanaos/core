@@ -63,8 +63,6 @@ public:
 	virtual Internal::IORequest::_ref_type create_request (Internal::OperationIndex op, unsigned flags,
 		CallbackRef&& callback) override;
 
-	virtual DomainManagersList _get_domain_managers () override;
-
 	const Char* set_object_name (const Char* name)
 	{
 		object_name_ = name;
@@ -92,6 +90,7 @@ public:
 	}
 
 	virtual Boolean _is_equivalent (Object::_ptr_type other_object) const noexcept override;
+	virtual DomainManagersList _get_domain_managers () override;
 
 	virtual void _add_ref () noexcept override;
 	virtual void _remove_ref () noexcept override;

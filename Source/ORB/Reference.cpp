@@ -57,5 +57,16 @@ Policy::_ref_type Reference::_get_policy (PolicyType policy_type)
 	return policy;
 }
 
+Object::_ref_type Reference::_get_component ()
+{
+	IORequest::_ref_type rq = create_request (_make_op_idx ((UShort)ObjectOp::GET_COMPONENT), 3,
+		nullptr);
+	rq->invoke ();
+	Object::_ref_type _ret;
+	Internal::Type <Object>::unmarshal (rq, _ret);
+	rq->unmarshal_end ();
+	return _ret;
+}
+
 }
 }
