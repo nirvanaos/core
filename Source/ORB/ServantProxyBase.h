@@ -58,7 +58,7 @@ public:
 	virtual Nirvana::Core::SyncContext& get_sync_context (Internal::OperationIndex op)
 		const noexcept override
 	{
-		if (ProxyManager::is_object_op (op))
+		if (ProxyManager::is_local_object_op (op))
 			return ProxyManager::get_sync_context (op);
 		return *sync_context_;
 	}

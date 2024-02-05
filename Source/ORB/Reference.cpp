@@ -68,5 +68,23 @@ Object::_ref_type Reference::_get_component ()
 	return _ret;
 }
 
+bool Reference::is_local_object_op (Internal::OperationIndex op) const noexcept
+{
+	if (ProxyManager::is_local_object_op (op)) {
+		switch ((ObjectOp)Internal::operation_idx (op)) {
+		case ObjectOp::REPOSITORY_ID:
+			return has_primary_interface ();
+
+		case ObjectOp::GET_DOMAIN_MANAGERS:
+		case ObjectOp::GET_COMPONENT:
+			return false;
+
+		default:
+			return true;
+		}
+	} else
+		return false;
+}
+
 }
 }

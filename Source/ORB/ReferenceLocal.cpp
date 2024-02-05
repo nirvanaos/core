@@ -273,7 +273,7 @@ ReferenceLocalRef ReferenceLocal::get_local_reference (const PortableServer::Cor
 IORequest::_ref_type ReferenceLocal::create_request (OperationIndex op, unsigned flags,
 	CallbackRef&& callback)
 {
-	if (is_object_op (op))
+	if (is_local_object_op (op))
 		return ProxyManager::create_request (op, flags, std::move (callback));
 
 	// If servant is active, create direct request for performance.

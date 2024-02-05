@@ -330,7 +330,7 @@ OperationIndex ProxyManager::find_operation (String_in name) const
 
 IORequest::_ref_type ProxyManager::create_request (OperationIndex op, unsigned flags,	CallbackRef&& callback)
 {
-	assert (is_object_op (op));
+	assert (is_local_object_op (op));
 	if (flags == 2 || flags > 3)
 		throw INV_FLAG ();
 

@@ -309,9 +309,9 @@ public:
 
 	const Internal::Operation& operation_metadata (Internal::OperationIndex op) const noexcept;
 
-	static bool is_object_op (Internal::OperationIndex op) noexcept
+	static bool is_local_object_op (Internal::OperationIndex op) noexcept
 	{
-		return Internal::interface_idx (op) == 0 && Internal::operation_idx (op) != (UShort)ObjectOp::NON_EXISTENT;
+		return Internal::interface_idx (op) == 0 && (ObjectOp)Internal::operation_idx (op) != ObjectOp::NON_EXISTENT;
 	}
 
 	void check_create_request (Internal::OperationIndex op, unsigned flags) const;
@@ -532,10 +532,12 @@ private:
 	static const Internal::Parameter is_a_param_;
 
 	// This array contains metadata of the operations:
-	// - _get_interface
+	// - _get_interface (op name is "_interface")
 	// - _is_a
 	// - _non_existent
+	// - _get_domain_managers (op name is "_domain_managers")
 	// - _repository_id
+	// - _get_component (op name is "_component")
 	static const Internal::Operation object_ops_ [(size_t)ObjectOp::OBJECT_OP_CNT];
 
 	Metadata metadata_;

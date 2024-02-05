@@ -94,7 +94,7 @@ ReferenceRef ReferenceRemote::marshal (StreamOut& out)
 IORequest::_ref_type ReferenceRemote::create_request (OperationIndex op, unsigned flags,
 	CallbackRef&& callback)
 {
-	if (is_object_op (op))
+	if (is_local_object_op (op))
 		return ProxyManager::create_request (op, flags, std::move (callback));
 
 	check_create_request (op, flags);

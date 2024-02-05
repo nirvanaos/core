@@ -144,7 +144,7 @@ MemContext* ServantProxyBase::memory () const noexcept
 IORequest::_ref_type ServantProxyBase::create_request (OperationIndex op, unsigned flags,
 	CallbackRef&& callback)
 {
-	if (is_object_op (op))
+	if (is_local_object_op (op))
 		return ProxyManager::create_request (op, flags, std::move (callback));
 
 	check_create_request (op, flags);
