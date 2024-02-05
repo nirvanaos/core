@@ -79,7 +79,7 @@ Policy::_ref_type PolicyFactory::create (PolicyType type, const OctetSeq& data)
 	const Functions* f = functions (type);
 	if (f && f->read) {
 		ImplStatic <StreamInEncap> stm (std::ref (data));
-		return (f->read) (stm);
+		return (f->read) (std::ref (stm));
 	} else
 		throw PolicyError (BAD_POLICY);
 }

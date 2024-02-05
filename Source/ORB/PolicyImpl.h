@@ -32,6 +32,7 @@
 #include <CORBA/NoDefaultPOA.h>
 #include <CORBA/Policy_s.h>
 #include "PolicyFactory.h"
+#include "../Synchronized.h"
 
 namespace CORBA {
 namespace Core {
@@ -92,7 +93,11 @@ public:
 template <class PolicyItf, PolicyType id, typename ValueType>
 typename PolicyItf::_ref_type PolicyImplBase <PolicyItf, id, ValueType>::create (const ValueType& val)
 {
-	return make_stateless <PolicyImpl <id> > (std::ref (val))->_this ();
+	typename PolicyItf::_ref_type ret;
+	SYNC_BEGIN (Nirvana::Core::g_core_free_sync_context, nullptr)
+	ret = make_stateless <PolicyImpl <id> > (std::ref (val))->_this ();
+	SYNC_END ();
+	return ret;
 }
 
 template <class PolicyItf, PolicyType id, typename ValueType>
