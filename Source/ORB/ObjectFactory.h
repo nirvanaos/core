@@ -133,14 +133,18 @@ private:
 	{
 		if (!servant || !pref)
 			throw BAD_PARAM ();
+
 		Internal::Interface*& iref = *reinterpret_cast <Internal::Interface**> (pref);
-		if ((uintptr_t)iref & ~1) {
-			assert (false);
+		uintptr_t ref_bits = (uintptr_t)iref;
+		if ((ref_bits & ~1) && !(ref_bits & 1)) {
+			assert (false); // Must be checked at the user side
 			return; // Already created
 		}
 
 		Frame frame (&servant);
-		if (Nirvana::Core::SyncContext::current ().sync_domain ()) {
+		if ((ref_bits & 1) && Nirvana::Core::SyncContext::current ().sync_domain ()) {
+			if (ref_bits == 1)
+				iref = nullptr;
 			WaitableRef& wref = *reinterpret_cast <WaitableRef*> (pref);
 			if (wref.initialize (PROXY_CREATION_DEADLINE)) {
 				auto wait_list = wref.wait_list ();
@@ -153,7 +157,7 @@ private:
 			} else
 				wref.wait_list ()->wait ();
 		} else {
-			assert (((uintptr_t)iref & 1) == 0);
+			assert ((ref_bits & ~1) == 0);
 			iref = ServantObject::create (servant, comp);
 		}
 	}
