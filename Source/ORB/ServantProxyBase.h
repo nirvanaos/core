@@ -138,7 +138,7 @@ protected:
 	RefCntProxy ref_cnt_;
 	Internal::Interface::_ptr_type servant_;
 	servant_reference <Nirvana::Core::SyncContext> sync_context_;
-	Object::_ref_type component_;
+	Object::_ptr_type component_; // TODO: We need weak reference here
 };
 
 inline

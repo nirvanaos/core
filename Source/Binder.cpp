@@ -490,7 +490,7 @@ Binder::InterfaceRef Binder::find (const ObjectKey& name)
 		itf = object_map_.find (name);
 		if (!itf) {
 			if (!install_repo_)
-				install_repo_ = SysDomainCore::_narrow (Services::bind (Services::SysDomain));
+				install_repo_ = SysDomain::_narrow (Services::bind (Services::SysDomain))->provide_packages ();
 			BindInfo bind_info;
 			install_repo_->get_bind_info (name.name (), PLATFORM, bind_info);
 			if (bind_info._d ()) {

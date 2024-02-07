@@ -25,72 +25,43 @@
 */
 #include "pch.h"
 #include "SysDomain.h"
-#include "ORB/Services.h"
-#include <CORBA/IOP.h>
-#include <CORBA/Proxy/ProxyBase.h>
-#include "Binder.h"
 #include "ORB/ORB.h"
+#include "SysManager.h"
+#include "Packages.h"
 
 using namespace CORBA;
-using namespace CORBA::Core;
-using namespace CORBA::Internal;
-using namespace PortableServer;
 
 namespace Nirvana {
 namespace Core {
 
+inline
+SysDomain::SysDomain ()
+{
+	// Component reference
+	Object::_ref_type comp;// = _this ();
+
+	// Create stateless
+	packages_ = make_stateless <Packages> (Object::_ptr_type (comp))->_this ();
+
+	// Create stateful
+	manager_ = make_reference <SysManager> (Object::_ptr_type (comp))->_this ();
+}
+
 Object::_ref_type create_SysDomain ()
 {
 	if (ESIOP::is_system_domain ())
-		return make_reference <SysDomain> ()->_this ();
+		return make_stateless <SysDomain> ()->_this ();
 	else
 		return CORBA::Core::ORB::string_to_object (
-			"corbaloc::1.1@/%00", CORBA::Internal::RepIdOf <Nirvana::SysDomainCore>::id);
+			"corbaloc::1.1@/%00", CORBA::Internal::RepIdOf <Nirvana::SysDomain>::id);
 }
 
-void SysDomain::get_call_context (Ref <SysDomain>& impl, Ref <SyncContext>& sync)
+SysDomain& SysDomain::implementation ()
 {
 	assert (ESIOP::is_system_domain ());
-	Object::_ref_type obj = Services::bind (Services::SysDomain);
-	impl = static_cast <SysDomain*> (get_implementation (obj));
-	const ServantProxyLocal* proxy = get_proxy (obj);
-	sync = &proxy->sync_context ();
-}
-
-void SysDomain::shutdown (unsigned flags)
-{
-	if (shutdown_started_)
-		return;
-	shutdown_started_ = true;
-	try {
-		if (domains_.empty ())
-			Scheduler::shutdown ();
-		else
-			domains_.shutdown ();
-	} catch (...) {
-		shutdown_started_ = false;
-	}
-}
-
-Object::_ref_type SysDomain::prot_domain_ref (ESIOP::ProtDomainId domain_id)
-{
-	const char prefix [] = "corbaloc::1.1@/";
-	IDL::String s;
-	s.reserve (std::size (prefix) - 1 + (sizeof (ESIOP::ProtDomainId) + 1) * 3);
-	s = prefix;
-	ESIOP::ProtDomainId id = domain_id;
-	if (ESIOP::PLATFORMS_ENDIAN_DIFFERENT && endian::native == endian::little)
-		Nirvana::byteswap (id);
-	for (const uint8_t* p = (const uint8_t*)&id, *end = p + sizeof (ESIOP::ProtDomainId); p != end; ++p) {
-		s += '%';
-		uint8_t oct = *p;
-		s += CORBA::Core::ORB::to_hex (oct >> 4);
-		s += CORBA::Core::ORB::to_hex (oct & 0xf);
-	}
-	s += "%01";
-	return CORBA::Core::ORB::string_to_object (s, CORBA::Internal::RepIdOf <Nirvana::ProtDomainCore>::id);
+	Object::_ref_type obj = CORBA::Core::Services::bind (CORBA::Core::Services::SysDomain);
+	return *static_cast <SysDomain*> (get_implementation (obj));
 }
 
 }
 }
-

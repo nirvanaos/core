@@ -31,34 +31,10 @@
 
 module Nirvana {
 
-interface AccessDirect;
-
 interface ProtDomainCore : ProtDomain
 {
 	void request (in CORBA::OctetSeq data_in, out CORBA::OctetSeq data_out);
 	oneway void request_oneway (in CORBA::OctetSeq data);
-};
-
-/// Module load information.
-struct ModuleLoad
-{
-	string module_id; ///< Unique module ID.
-	AccessDirect binary; /// Access to module binary file.
-};
-
-/// Object binding information.
-union BindInfo switch (boolean)
-{
-	/// The object binding requires loading of the module.
-	case TRUE: ModuleLoad module_load;
-
-	/// The object was bound in other protection domain.
-	case FALSE: Object loaded_object;
-};
-
-interface SysDomainCore : SysDomain
-{
-	void get_bind_info (in string obj_name, in unsigned short platform, out BindInfo bind_info);
 };
 
 };
