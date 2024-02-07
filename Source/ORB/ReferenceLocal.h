@@ -37,9 +37,13 @@ namespace Core {
 
 /// Base for all POA references.
 class ReferenceLocal :
-	public Reference
+	public Reference,
+	public Nirvana::Core::UserObject // Allocated from POA sync domain
 {
 public:
+	using Nirvana::Core::UserObject::operator new;
+	using Nirvana::Core::UserObject::operator delete;
+
 	ReferenceLocal (const IOP::ObjectKey& object_key, PortableServer::Core::POA_Base& adapter,
 		Internal::String_in primary_iid, unsigned flags, PolicyMapShared* policies);
 	ReferenceLocal (const IOP::ObjectKey& object_key, PortableServer::Core::POA_Base& adapter,

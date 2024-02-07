@@ -40,7 +40,7 @@ namespace Core {
 /// Base for remote references.
 class ReferenceRemote :
 	public Reference,
-	public Nirvana::Core::BinderObject
+	public Nirvana::Core::BinderObject // Allocated from Binder memory
 {
 public:
 	using Nirvana::Core::BinderObject::operator new;

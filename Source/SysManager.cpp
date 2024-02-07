@@ -74,7 +74,7 @@ void SysManager::get_call_context (Ref <SysManager>& impl, Ref <SyncContext>& sy
 	Core::SysDomain& sd = Core::SysDomain::implementation ();
 	Nirvana::SysManager::_ref_type ref = sd.provide_manager ();
 	CORBA::Core::ServantProxyObject* proxy = CORBA::Core::object2proxy (ref);
-	impl = static_cast <SysManager*> (static_cast <Internal::Bridge <PortableServer::ServantBase>*> (&CORBA::Core::proxy2servant (proxy)));
+	impl = static_cast <SysManager*> (static_cast <Internal::Bridge <PortableServer::ServantBase>*> (&proxy->servant ()));
 	sync = &proxy->sync_context ();
 }
 
