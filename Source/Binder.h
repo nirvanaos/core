@@ -377,6 +377,7 @@ private:
 	};
 
 private:
+	SysDomainCore::_ref_type install_repo_;
 	ObjectMap object_map_;
 	ModuleMap module_map_;
 	CORBA::Core::RemoteReferences remote_references_;

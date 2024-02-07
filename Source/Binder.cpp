@@ -142,6 +142,7 @@ void Binder::terminate ()
 
 	SYNC_BEGIN (sync_domain (), nullptr);
 	initialized_ = false;
+	singleton_->install_repo_ = nullptr;
 	singleton_->unload_modules ();
 	SYNC_END ();
 	Section metadata;
@@ -488,9 +489,10 @@ Binder::InterfaceRef Binder::find (const ObjectKey& name)
 			throw_OBJECT_NOT_EXIST ();
 		itf = object_map_.find (name);
 		if (!itf) {
-			SysDomainCore::_ref_type sys_domain = SysDomainCore::_narrow (Services::bind (Services::SysDomain));
+			if (!install_repo_)
+				install_repo_ = SysDomainCore::_narrow (Services::bind (Services::SysDomain));
 			BindInfo bind_info;
-			sys_domain->get_bind_info (name.name (), PLATFORM, bind_info);
+			install_repo_->get_bind_info (name.name (), PLATFORM, bind_info);
 			if (bind_info._d ()) {
 				try {
 					Ref <Module> mod = load (bind_info.module_load (), false);
