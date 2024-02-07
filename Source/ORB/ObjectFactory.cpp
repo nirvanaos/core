@@ -33,7 +33,7 @@ namespace CORBA {
 namespace Core {
 
 ObjectFactory::Frame::Frame (const Internal::Interface* servant) :
-	StatelessCreationFrame (nullptr, 0, 0, nullptr),
+	StatelessCreationFrame (nullptr, 0, 0, nullptr, nullptr, nullptr),
 	pop_ (false)
 {
 	ExecDomain* ed = ::Nirvana::Core::Thread::current ().exec_domain ();

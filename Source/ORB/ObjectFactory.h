@@ -78,8 +78,10 @@ public:
 	{
 		if (!(scf.tmp () && scf.size ()))
 			throw BAD_PARAM ();
-		void* p = stateless_memory ().allocate (0, scf.size (), Nirvana::Memory::READ_ONLY | Nirvana::Memory::RESERVED);
+		Nirvana::Core::Heap& sm = stateless_memory ();
+		void* p = sm.allocate (0, scf.size (), Nirvana::Memory::READ_ONLY | Nirvana::Memory::RESERVED);
 		scf.offset ((uint8_t*)p - (uint8_t*)scf.tmp ());
+		scf.memory (&sm);
 		Nirvana::Core::ExecDomain& ed = Nirvana::Core::ExecDomain::current ();
 		scf.next (ed.TLS_get (Nirvana::Core::CoreTLS::CORE_TLS_OBJECT_FACTORY));
 		ed.TLS_set (Nirvana::Core::CoreTLS::CORE_TLS_OBJECT_FACTORY, &scf);
@@ -91,11 +93,11 @@ public:
 		StatelessCreationFrame* scf = (StatelessCreationFrame*)ed.TLS_get (Nirvana::Core::CoreTLS::CORE_TLS_OBJECT_FACTORY);
 		if (!scf)
 			throw BAD_INV_ORDER ();
-		ed.TLS_set (Nirvana::Core::CoreTLS::CORE_TLS_OBJECT_FACTORY, scf->next ());
 		void* p = (Octet*)scf->tmp () + scf->offset ();
-		Nirvana::Core::Heap& sm = stateless_memory ();
+		Nirvana::Core::Heap& sm = *(Nirvana::Core::Heap*)scf->memory ();
 		if (success) {
 			sm.copy (p, const_cast <void*> (scf->tmp ()), scf->size (), Nirvana::Memory::READ_ONLY);
+			ed.TLS_set (Nirvana::Core::CoreTLS::CORE_TLS_OBJECT_FACTORY, scf->next ());
 			return p;
 		} else {
 			sm.release (p, scf->size ());
