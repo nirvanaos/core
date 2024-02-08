@@ -29,6 +29,7 @@
 #pragma once
 
 #include <Port/File.h>
+#include <CORBA/Server.h>
 #include <Nirvana/File_s.h>
 #include "../FileAccessDirectProxy.h"
 #include "../FileAccessBuf.h"
@@ -164,6 +165,11 @@ public:
 				std::move (direct), access_->block_size (), flags, Port::FileSystem::eol ());
 
 		return ret;
+	}
+
+	const DirItemId& id () const noexcept
+	{
+		return Port::File::id ();
 	}
 
 	void on_delete_proxy () noexcept

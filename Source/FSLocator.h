@@ -24,27 +24,35 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_CORE_ROOTS_H_
-#define NIRVANA_CORE_ROOTS_H_
+#ifndef NIRVANA_CORE_FSLOCATOR_H_
+#define NIRVANA_CORE_FSLOCATOR_H_
 #pragma once
 
-#include <CORBA/CORBA.h>
+#include <CORBA/Server.h>
+#include <Nirvana/File_s.h>
+#include "NameService/FileSystem.h"
 
 namespace Nirvana {
 namespace Core {
 
-typedef CORBA::OctetSeq DirItemId;
+/// File system locator
+class FSLocator :
+	public CORBA::servant_traits <Nirvana::FSLocator>::Servant <FSLocator>
+{
+public:
+	FSLocator (CORBA::Object::_ptr_type comp) :
+		CORBA::servant_traits <Nirvana::FSLocator>::Servant <FSLocator> (comp)
+	{}
 
-typedef DirItemId (*GetRootId) (const IDL::String& root, bool& may_cache);
-
-struct Root {
-	std::string dir;
-	GetRootId factory;
+	DirItem::_ref_type get_item (const DirItemId& id)
+	{
+		return FileSystem::get_reference (id);
+	}
 };
 
-typedef std::vector <Root> Roots;
 
 }
 }
 
 #endif
+

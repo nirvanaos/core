@@ -176,6 +176,11 @@ public:
 		throw_BAD_OPERATION (make_minor_errno (ENOSYS));
 	}
 
+	static DirItemId id ()
+	{
+		return DirItemId (1, 0);
+	}
+
 	// NamingContextBase
 	virtual void bind1 (CosNaming::Name& n, CORBA::Object::_ptr_type obj) override;
 	virtual void rebind1 (CosNaming::Name& n, CORBA::Object::_ptr_type obj) override;

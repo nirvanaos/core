@@ -77,6 +77,11 @@ public:
 		return ret;
 	}
 
+	static DirItemId id () noexcept
+	{
+		return DirItemId ();
+	}
+
 	void on_access_destroy () noexcept
 	{
 		access_ = nullptr;

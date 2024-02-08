@@ -28,6 +28,7 @@
 #define NIRVANA_CORE_DIR_H_
 #pragma once
 
+#include <CORBA/Server.h>
 #include <Port/Dir.h>
 #include "NamingContextRoot.h"
 #include "FileSystem.h"
@@ -117,6 +118,11 @@ public:
 		check_exist ();
 		Base::remove ();
 		etherealize ();
+	}
+
+	const DirItemId& id () const noexcept
+	{
+		return Base::id ();
 	}
 
 	void bind (CosNaming::Name& n, CORBA::Object::_ptr_type obj, bool rebind = false);
