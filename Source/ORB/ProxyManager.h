@@ -39,7 +39,6 @@
 #include <CORBA/Proxy/ProxyFactory.h>
 #include <CORBA/Proxy/IOReference_s.h>
 #include <CORBA/Proxy/OperationIndex.h>
-#include "offset_ptr.h"
 #include "CallbackRef.h"
 
 namespace PortableServer {
@@ -410,26 +409,6 @@ protected:
 			const_cast <ProxyManager&> (*this)));
 	}
 
-	template <class I>
-	void set_servant (Internal::I_ptr <I> servant, size_t offset)
-	{
-		// Fill implementation pointers
-		for (InterfaceEntry* ie = metadata_.interfaces.begin (); ie != metadata_.interfaces.end (); ++ie) {
-			assert (!ie->implementation);
-			Internal::Interface::_ptr_type impl = servant->_query_interface (ie->iid);
-			if (!impl)
-				throw OBJ_ADAPTER (); // Implementation not found. TODO: Log
-			ie->implementation = &offset_ptr (impl, offset);
-		}
-	}
-
-	void reset_servant () noexcept
-	{
-		for (InterfaceEntry* ie = metadata_.interfaces.begin (); ie != metadata_.interfaces.end (); ++ie) {
-			ie->implementation = nullptr;
-		}
-	}
-
 	// The implicit object reference operations _non_existent, _is_a, _repository_id and _get_interface
 	// may be invoked using DII. No other implicit object reference operations may be invoked via DII.
 	// Only _non_existent operation can cause the call to servant.
@@ -539,6 +518,7 @@ private:
 	// - _get_component (op name is "_component")
 	static const Internal::Operation object_ops_ [(size_t)ObjectOp::OBJECT_OP_CNT];
 
+protected:
 	Metadata metadata_;
 };
 

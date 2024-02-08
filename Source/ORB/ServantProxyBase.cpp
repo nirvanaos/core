@@ -84,7 +84,9 @@ void ServantProxyBase::_remove_ref ()
 void ServantProxyBase::reset_servant () noexcept
 {
 	servant_ = nullptr;
-	ProxyManager::reset_servant ();
+	for (InterfaceEntry* ie = metadata_.interfaces.begin (); ie != metadata_.interfaces.end (); ++ie) {
+		ie->implementation = nullptr;
+	}
 }
 
 void ServantProxyBase::add_ref_servant () const

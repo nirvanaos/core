@@ -74,7 +74,7 @@ public:
 		create <CORBA::LocalObject, CORBA::Core::LocalObject> (servant, ref, comp);
 	}
 
-	void stateless_begin (StatelessCreationFrame& scf)
+	static void stateless_begin (StatelessCreationFrame& scf)
 	{
 		if (!(scf.tmp () && scf.size ()))
 			throw BAD_PARAM ();
@@ -87,7 +87,7 @@ public:
 		ed.TLS_set (Nirvana::Core::CoreTLS::CORE_TLS_OBJECT_FACTORY, &scf);
 	}
 
-	void* stateless_end (bool success)
+	static void* stateless_end (bool success)
 	{
 		Nirvana::Core::ExecDomain& ed = Nirvana::Core::ExecDomain::current ();
 		StatelessCreationFrame* scf = (StatelessCreationFrame*)ed.TLS_get (Nirvana::Core::CoreTLS::CORE_TLS_OBJECT_FACTORY);
@@ -96,13 +96,15 @@ public:
 		void* p = (Octet*)scf->tmp () + scf->offset ();
 		Nirvana::Core::Heap& sm = *(Nirvana::Core::Heap*)scf->memory ();
 		if (success) {
+			if (scf->proxy ())
+				((ServantProxyBase*)scf->proxy ())->apply_offset (scf->offset ());
 			sm.copy (p, const_cast <void*> (scf->tmp ()), scf->size (), Nirvana::Memory::READ_ONLY);
-			ed.TLS_set (Nirvana::Core::CoreTLS::CORE_TLS_OBJECT_FACTORY, scf->next ());
-			return p;
 		} else {
 			sm.release (p, scf->size ());
-			return nullptr;
+			p = nullptr;
 		}
+		ed.TLS_set (Nirvana::Core::CoreTLS::CORE_TLS_OBJECT_FACTORY, scf->next ());
+		return p;
 	}
 
 	static const void* stateless_copy (const void* src, size_t size)
@@ -115,17 +117,9 @@ public:
 		return Nirvana::Core::SyncContext::current ().is_free_sync_context ();
 	}
 
+	static StatelessCreationFrame* begin_proxy_creation (const Internal::Interface* servant);
+
 private:
-	class Frame : public StatelessCreationFrame
-	{
-	public:
-		Frame (const Internal::Interface* servant);
-		~Frame ();
-
-	private:
-		bool pop_;
-	};
-
 	typedef Nirvana::Core::WaitableRef <Internal::Interface*> WaitableRef;
 
 	static Nirvana::Core::Heap& stateless_memory ();
@@ -143,7 +137,8 @@ private:
 			return; // Already created
 		}
 
-		Frame frame (&servant);
+		StatelessCreationFrame* scf = begin_proxy_creation (&servant);
+		ServantObject* proxy = nullptr;
 		if ((ref_bits & 1) && Nirvana::Core::SyncContext::current ().sync_domain ()) {
 			if (ref_bits == 1)
 				iref = nullptr;
@@ -151,7 +146,7 @@ private:
 			if (wref.initialize (PROXY_CREATION_DEADLINE)) {
 				auto wait_list = wref.wait_list ();
 				try {
-					wref = ServantObject::create (servant, comp);
+					wref = proxy = ServantObject::create (servant, comp);
 				} catch (...) {
 					wait_list->on_exception ();
 					throw;
@@ -160,8 +155,11 @@ private:
 				wref.wait_list ()->wait ();
 		} else {
 			assert ((ref_bits & ~1) == 0);
-			iref = ServantObject::create (servant, comp);
+			iref = proxy = ServantObject::create (servant, comp);
 		}
+
+		if (scf && proxy)
+			scf->proxy (&static_cast <ServantProxyBase&> (proxy->proxy ()));
 	}
 };
 

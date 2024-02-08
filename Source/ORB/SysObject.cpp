@@ -26,6 +26,7 @@
 #include "../pch.h"
 #include "SysObject.h"
 #include "ReferenceLocal.h"
+#include "ObjectFactory.h"
 
 namespace CORBA {
 namespace Core {
@@ -39,7 +40,11 @@ SysObject::SysObject (CORBA::LocalObject::_ptr_type servant, const Octet* id, si
 
 SysObject* SysObject::create (CORBA::LocalObject::_ptr_type servant, const Octet* id, size_t id_len)
 {
-	return new SysObject (servant, id, id_len);
+	ObjectFactory::StatelessCreationFrame* scf = ObjectFactory::begin_proxy_creation (&servant);
+	SysObject* proxy = new SysObject (servant, id, id_len);
+	if (scf)
+		scf->proxy (&static_cast <ServantProxyBase&> (proxy->proxy ()));
+	return proxy;
 }
 
 ReferenceRef SysObject::marshal (StreamOut& out)

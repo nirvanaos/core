@@ -32,32 +32,22 @@ using namespace Nirvana::Core;
 namespace CORBA {
 namespace Core {
 
-ObjectFactory::Frame::Frame (const Internal::Interface* servant) :
-	StatelessCreationFrame (nullptr, 0, 0, nullptr, nullptr, nullptr),
-	pop_ (false)
+ObjectFactory::StatelessCreationFrame* ObjectFactory::begin_proxy_creation (const Internal::Interface* servant)
 {
 	ExecDomain* ed = ::Nirvana::Core::Thread::current ().exec_domain ();
 	if (!ed)
-		throw_BAD_INV_ORDER ();
+		throw BAD_INV_ORDER ();
 
 	if (ExecDomain::RestrictedMode::MODULE_TERMINATE == ed->restricted_mode ())
-		throw_NO_PERMISSION ();
+		throw NO_PERMISSION ();
 
-	StatelessCreationFrame* scf = (StatelessCreationFrame*)ed->TLS_get (CoreTLS::CORE_TLS_OBJECT_FACTORY);
 	// Check for the stateless creation.
 	// If scf established and servant pointer is inside the object, then it is stateless object creation.
-	if (!scf || servant < scf->tmp () || ((const Octet*)scf->tmp () + scf->size ()) <= (const Octet*)servant) {
-		// It is not a stateless object, we must establish a new frame.
-		next (ed->TLS_get (CoreTLS::CORE_TLS_OBJECT_FACTORY));
-		ed->TLS_set (CoreTLS::CORE_TLS_OBJECT_FACTORY, static_cast <StatelessCreationFrame*> (this));
-		pop_ = true;
-	}
-}
-
-ObjectFactory::Frame::~Frame ()
-{
-	if (pop_)
-		ExecDomain::current ().TLS_set (CoreTLS::CORE_TLS_OBJECT_FACTORY, next ());
+	StatelessCreationFrame* scf = (StatelessCreationFrame*)ed->TLS_get (CoreTLS::CORE_TLS_OBJECT_FACTORY);
+	if (!scf || servant < scf->tmp () || ((const Octet*)scf->tmp () + scf->size ()) <= (const Octet*)servant)
+		return nullptr; // Not a stateless object.
+	else
+		return scf; // A stateless object
 }
 
 Heap& ObjectFactory::stateless_memory ()

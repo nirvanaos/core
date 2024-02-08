@@ -25,6 +25,7 @@
 */
 #include "../pch.h"
 #include "RequestLocal.h"
+#include "../ExecDomain.h"
 
 using namespace Nirvana::Core;
 

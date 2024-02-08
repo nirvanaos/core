@@ -118,7 +118,7 @@ protected:
 		references_ (adapter_context_->sync_domain ()->mem_context ().heap ())
 	{}
 
-	// For event proxies
+	// This constructor is used in custom scenarios (e. g. event channels)
 	ServantProxyObject (PortableServer::Servant servant, Internal::String_in interface_id);
 
 	ReferenceLocalRef get_local_reference () const noexcept;

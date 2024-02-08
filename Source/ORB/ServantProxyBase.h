@@ -83,11 +83,17 @@ public:
 			delete this;
 	}
 
-	void reset_servant () noexcept;
-
 	Internal::Interface::_ptr_type servant () const noexcept
 	{
 		return servant_;
+	}
+
+	void apply_offset (ptrdiff_t offset) noexcept
+	{
+		servant_ = (Internal::Interface*)((Octet*)&servant_ + offset);
+		for (InterfaceEntry* ie = metadata_.interfaces.begin (); ie != metadata_.interfaces.end (); ++ie) {
+			ie->implementation = (Internal::Interface*)((Octet*)ie->implementation + offset);
+		}
 	}
 
 	virtual Object::_ref_type _get_component () override;
@@ -100,11 +106,11 @@ protected:
 		sync_context_ (&Nirvana::Core::SyncContext::current ()),
 		component_ (comp)
 	{
-		size_t offset = offset_ptr ();
-		servant_ = offset_ptr (static_cast <Internal::Interface::_ptr_type> (servant), offset);
-		set_servant (servant, offset);
+		servant_ = static_cast <Internal::Interface::_ptr_type> (servant);
+		set_servant (servant);
 	}
 
+	// This constructor is used in custom scenarios (e. g. event channels)
 	ServantProxyBase (PortableServer::Servant servant, Internal::String_in interface_id) :
 		ProxyManager (interface_id, true),
 		ref_cnt_ (0),
@@ -113,6 +119,21 @@ protected:
 	{}
 
 	virtual ~ServantProxyBase ();
+
+	template <class I>
+	void set_servant (Internal::I_ptr <I> servant)
+	{
+		// Fill implementation pointers
+		for (InterfaceEntry* ie = metadata_.interfaces.begin (); ie != metadata_.interfaces.end (); ++ie) {
+			assert (!ie->implementation);
+			Internal::Interface::_ptr_type impl = servant->_query_interface (ie->iid);
+			if (!impl)
+				throw OBJ_ADAPTER (); // Implementation not found. TODO: Log
+			ie->implementation = &impl;
+		}
+	}
+
+	void reset_servant () noexcept;
 
 	void run_garbage_collector () const noexcept;
 
