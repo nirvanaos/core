@@ -36,9 +36,7 @@ namespace Core {
 
 void ServantProxyLocal::_add_ref ()
 {
-	RefCntProxy::IntegralType cnt = ref_cnt_.increment_seq ();
-	if (1 == cnt)
-		add_ref_servant ();
+	ServantProxyBase::add_ref ();
 }
 
 Boolean ServantProxyLocal::non_existent ()

@@ -47,6 +47,9 @@ SysDomain::SysDomain (Object::_ref_type& comp)
 	manager_ = make_reference <SysManager> (Object::_ptr_type (comp))->_this ();
 }
 
+SysDomain::~SysDomain ()
+{}
+
 Object::_ref_type create_SysDomain ()
 {
 	if (ESIOP::is_system_domain ()) {

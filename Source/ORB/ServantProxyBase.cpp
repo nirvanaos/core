@@ -62,6 +62,22 @@ ServantProxyBase::~ServantProxyBase ()
 	assert (0 == ref_cnt_);
 }
 
+RefCntProxy::IntegralType ServantProxyBase::add_ref ()
+{
+	RefCntProxy::IntegralType cnt = ref_cnt_.increment_seq ();
+	try {
+		if (1 == cnt) {
+			if (servant_)
+				add_ref_servant ();
+		} else if (2 == cnt && component_)
+			interface_duplicate (&component_);
+	} catch (...) {
+		ref_cnt_.decrement ();
+		throw;
+	}
+	return cnt;
+}
+
 void ServantProxyBase::_remove_ref ()
 {
 	RefCntProxy::IntegralType cnt = ref_cnt_.decrement ();
@@ -78,7 +94,8 @@ void ServantProxyBase::_remove_ref ()
 
 			delete this;
 		}
-	}
+	} else if (1 == cnt && component_)
+		interface_release (&component_);
 }
 
 void ServantProxyBase::reset_servant () noexcept

@@ -71,14 +71,19 @@ void ServantProxyObject::_add_ref ()
 {
 	static_assert (sizeof (ReferenceLocal) == REF_SIZE, "sizeof (ReferenceLocal)");
 
-	RefCntProxy::IntegralType cnt = ref_cnt_.increment_seq ();
-	if (1 == cnt && servant_) {
-		add_ref_servant ();
-		if (!reference_.load ()) {
-			PortableServer::POA::_ref_type adapter = servant ()->_default_POA ();
-			if (adapter && POA_Base::implicit_activation (adapter))
-				POA_Base::implicit_activate (adapter, *this);
+	RefCntProxy::IntegralType cnt = ServantProxyBase::add_ref ();
+
+	try {
+		if (1 == cnt && servant_) {
+			if (!reference_.load ()) {
+				PortableServer::POA::_ref_type adapter = servant ()->_default_POA ();
+				if (adapter && POA_Base::implicit_activation (adapter))
+					POA_Base::implicit_activate (adapter, *this);
+			}
 		}
+	} catch (...) {
+		ServantProxyBase::_remove_ref ();
+		throw;
 	}
 }
 

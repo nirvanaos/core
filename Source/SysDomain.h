@@ -44,9 +44,7 @@ class SysDomain :
 {
 public:
 	SysDomain (CORBA::Object::_ref_type& comp);
-
-	~SysDomain ()
-	{}
+	~SysDomain ();
 
 	static SysDomain& implementation ();
 

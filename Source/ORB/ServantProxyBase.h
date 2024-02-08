@@ -72,6 +72,8 @@ public:
 	}
 #endif
 
+	RefCntProxy::IntegralType add_ref ();
+
 	virtual void _remove_ref () override;
 
 	void delete_proxy () noexcept
@@ -115,7 +117,8 @@ protected:
 		ProxyManager (interface_id, true),
 		ref_cnt_ (0),
 		servant_ (servant),
-		sync_context_ (&Nirvana::Core::SyncContext::current ())
+		sync_context_ (&Nirvana::Core::SyncContext::current ()),
+		component_ (nullptr)
 	{}
 
 	virtual ~ServantProxyBase ();
@@ -159,7 +162,7 @@ protected:
 	RefCntProxy ref_cnt_;
 	Internal::Interface::_ptr_type servant_;
 	servant_reference <Nirvana::Core::SyncContext> sync_context_;
-	Object::_ptr_type component_; // TODO: We need weak reference here
+	Object::_ptr_type component_;
 };
 
 inline
