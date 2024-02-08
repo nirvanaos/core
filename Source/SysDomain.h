@@ -43,7 +43,7 @@ class SysDomain :
 	public CORBA::Core::SysServantImpl <SysDomain, Nirvana::SysDomain>
 {
 public:
-	SysDomain ();
+	SysDomain (CORBA::Object::_ref_type& comp);
 
 	~SysDomain ()
 	{}
