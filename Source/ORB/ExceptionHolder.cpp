@@ -26,10 +26,4 @@
 #include "../pch.h"
 #include "ExceptionHolder.h"
 
-namespace CORBA {
-namespace Core {
-
-}
-}
-
 NIRVANA_GET_FACTORY (Messaging::ExceptionHolder, CORBA::Core::ExceptionHolderImpl)

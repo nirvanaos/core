@@ -23,14 +23,23 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "pch.h"
-#include "../Source/FileAccessBuf.h"
-#include "../Source/Launcher.h"
-#include "../Source/ORB/ExceptionHolder.h"
-//#include "../Source/ORB/CCM_Cookie.h"
+#include <CORBA/Server.h>
 #include <CORBA/ccm/CCM_Cookie_s.h>
 
-NIRVANA_EXPORT_FACTORY (_exp_Nirvana_AccessBuf, Nirvana::AccessBuf)
-NIRVANA_EXPORT_FACTORY (_exp_Messaging_ExceptionHolder, Messaging::ExceptionHolder)
-NIRVANA_EXPORT_OBJECT (_exp_Nirvana_g_launcher, Nirvana::Static_g_launcher)
-NIRVANA_EXPORT_FACTORY (_exp_Components_Cookie, Components::Cookie)
+namespace Components {
+namespace Core {
+
+class Cookie : public IDL::traits <Components::Cookie>::Servant <Cookie>
+{
+public:
+	Cookie ()
+	{}
+
+	~Cookie ()
+	{}
+};
+
+}
+}
+
+NIRVANA_GET_FACTORY (Components::Cookie, Components::Core::Cookie)

@@ -36,12 +36,37 @@
 #include <Port/SystemInfo.h>
 #include <Nirvana/File.h>
 
+namespace CORBA {
+namespace Internal {
+
+template <class S>
+class CCMObjectImpl <S, Nirvana::SysDomain> : public CCMObjectImplBase
+{
+public:
+	Type <CORBA::Object>::VRet provide_facet (const Components::FeatureName& name)
+	{
+		if (name == "packages")
+			return static_cast <S&> (*this).provide_packages ();
+		else if (name == "manager")
+			return static_cast <S&> (*this).provide_manager ();
+		else if (name == "fs_locator")
+			return static_cast <S&> (*this).provide_fs_locator ();
+		else
+			return CCMObjectImplBase::provide_facet (name);
+	}
+};
+
+}
+}
+
 namespace Nirvana {
 namespace Core {
 
 /// System domain
 class SysDomain :
-	public CORBA::Core::SysServantImpl <SysDomain, Nirvana::SysDomain>
+	public CORBA::Core::SysServantImpl <SysDomain, Nirvana::SysDomain, Components::Navigation,
+		Components::Receptacles, Components::Events, Components::CCMObject>,
+	public CORBA::Internal::CCMObjectImpl <SysDomain, Nirvana::SysDomain>
 {
 public:
 	SysDomain (CORBA::Object::_ref_type& comp);
@@ -60,7 +85,7 @@ public:
 			Port::SystemInfo::supported_platforms () + Port::SystemInfo::SUPPORTED_PLATFORM_CNT);
 	}
 
-	Nirvana::SysDomain::_ref_type connect (const IDL::String& user, const IDL::String& password)
+	Nirvana::SysDomain::_ref_type login (const IDL::String& user, const IDL::String& password)
 	{
 		return _this ();
 	}
