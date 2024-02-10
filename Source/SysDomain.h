@@ -36,29 +36,6 @@
 #include <Port/SystemInfo.h>
 #include <Nirvana/File.h>
 
-namespace CORBA {
-namespace Internal {
-
-template <class S>
-class CCMObjectImpl <S, Nirvana::SysDomain> : public CCMObjectImplBase
-{
-public:
-	Type <CORBA::Object>::VRet provide_facet (const Components::FeatureName& name)
-	{
-		if (name == "packages")
-			return static_cast <S&> (*this).provide_packages ();
-		else if (name == "manager")
-			return static_cast <S&> (*this).provide_manager ();
-		else if (name == "fs_locator")
-			return static_cast <S&> (*this).provide_fs_locator ();
-		else
-			return CCMObjectImplBase::provide_facet (name);
-	}
-};
-
-}
-}
-
 namespace Nirvana {
 namespace Core {
 
