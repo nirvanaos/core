@@ -43,9 +43,11 @@ namespace Core {
 class SysDomain :
 	public CORBA::Core::SysServantImpl <SysDomain, Nirvana::SysDomain, Components::Navigation,
 		Components::Receptacles, Components::Events, Components::CCMObject>,
-	public CORBA::Internal::CCMObjectImpl <SysDomain, Nirvana::SysDomain>
+	public CORBA::Internal::CCM_ObjectFeatures <SysDomain, Nirvana::SysDomain>
 {
 public:
+	using CORBA::Internal::CCM_ObjectFeatures <SysDomain, Nirvana::SysDomain>::provide_facet;
+
 	SysDomain (CORBA::Object::_ref_type& comp);
 	~SysDomain ();
 
