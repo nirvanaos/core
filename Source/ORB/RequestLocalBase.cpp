@@ -54,8 +54,11 @@ void RequestLocalBase::marshal_value_internal (ValueBase::_ptr_type base)
 		write8 (2);
 		write (alignof (uintptr_t), sizeof (uintptr_t), &ins.first->second);
 	} else {
+		auto factory = base->_factory ();
+		if (!factory)
+			throw MARSHAL (MAKE_OMG_MINOR (1)); // Unable to locate value factory.
 		write8 (1);
-		marshal_interface_internal (base->_factory ());
+		marshal_interface_internal (factory);
 		base->_marshal (_get_ptr ());
 	}
 }
