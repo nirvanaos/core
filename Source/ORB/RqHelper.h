@@ -38,23 +38,25 @@ namespace Core {
 class RqHelper
 {
 public:
-	static Object::_ptr_type interface2object (Internal::Interface::_ptr_type itf);
-	static ValueBase::_ptr_type value_type2base (Internal::Interface::_ptr_type val);
-	static AbstractBase::_ptr_type abstract_interface2base (Internal::Interface::_ptr_type itf);
+	static Object::_ptr_type interface2object (Internal::Interface::_ptr_type itf)
+	{
+		return Internal::interface2object (itf);
+	}
+
+	static ValueBase::_ptr_type value_type2base (Internal::Interface::_ptr_type val)
+	{
+		return Internal::value_type2base (val);
+
+	}
+
+	static AbstractBase::_ptr_type abstract_interface2base (Internal::Interface::_ptr_type itf)
+	{
+		return Internal::abstract_interface2base (itf);
+	}
+
 	static void check_align (size_t align);
 	static Any signal2exception (const siginfo& signal) noexcept;
 	static Any exception2any (Exception&& e);
-
-private:
-	struct EPV_Header
-	{
-		Internal::Interface::EPV header;
-		struct
-		{
-			Internal::Interface* (*to_base) (Internal::Interface*, const Internal::ABI <IDL::String>*, Internal::Interface*);
-		}
-		base;
-	};
 
 };
 

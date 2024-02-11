@@ -28,54 +28,7 @@
 #include <signal.h>
 
 namespace CORBA {
-
-using namespace Internal;
-
 namespace Core {
-
-Object::_ptr_type RqHelper::interface2object (Interface::_ptr_type itf)
-{
-	assert (itf);
-	Object::_ptr_type obj;
-	const CORBA::Internal::StringView <Char> interface_id = itf->_epv ().interface_id;
-	if (RepId::compatible (interface_id, RepIdOf <Object>::id))
-		obj = (Object*)&itf;
-	else {
-		Internal::Environment env;
-		Interface* p = ((const EPV_Header&)itf->_epv ()).base.to_base (&itf,
-			&Type <IDL::String>::C_in (RepIdOf <Object>::id), &env);
-		env.check ();
-		obj = Object::_check (p);
-	}
-	return obj;
-}
-
-ValueBase::_ptr_type RqHelper::value_type2base (Interface::_ptr_type val)
-{
-	assert (val);
-	ValueBase::_ptr_type base;
-	const CORBA::Internal::StringView <Char> interface_id = val->_epv ().interface_id;
-	if (RepId::compatible (interface_id, RepIdOf <ValueBase>::id))
-		base = (ValueBase*)&val;
-	else {
-		Internal::Environment env;
-		Interface* p = ((const EPV_Header&)val->_epv ()).base.to_base (&val, &Type <IDL::String>::C_in (RepIdOf <ValueBase>::id), &env);
-		env.check ();
-		base = ValueBase::_check (p);
-	}
-	return base;
-}
-
-AbstractBase::_ptr_type RqHelper::abstract_interface2base (Interface::_ptr_type itf)
-{
-	assert (itf);
-	AbstractBase::_ptr_type base;
-	Internal::Environment env;
-	Interface* p = ((const EPV_Header&)itf->_epv ()).base.to_base (&itf, &Type <IDL::String>::C_in (RepIdOf <AbstractBase>::id), &env);
-	env.check ();
-	base = AbstractBase::_check (p);
-	return base;
-}
 
 void RqHelper::check_align (size_t align)
 {
@@ -90,7 +43,7 @@ Any RqHelper::signal2exception (const siginfo& signal) noexcept
 		ec = (Exception::Code)signal.si_excode;
 	else
 		ec = SystemException::EC_UNKNOWN;
-	const ExceptionEntry* ee = SystemException::_get_exception_entry (ec);
+	const Internal::ExceptionEntry* ee = SystemException::_get_exception_entry (ec);
 	std::aligned_storage <sizeof (SystemException), alignof (SystemException)>::type buf;
 	(ee->construct) (&buf);
 	Any a;
