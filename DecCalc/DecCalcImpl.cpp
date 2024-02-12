@@ -23,7 +23,7 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include <CORBA/Server.h>
+#include <Nirvana/Nirvana.h>
 #include <Nirvana/DecCalc_s.h>
 
 // All calculations are performed with double precision 62 digits
@@ -69,7 +69,7 @@ void Context::check () const
 namespace Nirvana {
 
 class Static_g_dec_calc :
-	public CORBA::servant_traits <DecCalc>::ServantStatic <Static_g_dec_calc>
+	public IDL::traits <DecCalc>::ServantStatic <Static_g_dec_calc>
 {
 public:
 	static void from_long (Number& n, int32_t l)

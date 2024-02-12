@@ -23,7 +23,7 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include <CORBA/CORBA.h>
+#include <Nirvana/Nirvana.h>
 #include <CORBA/SFloat_s.h>
 #include "Context.h"
 
