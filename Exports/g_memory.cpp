@@ -28,7 +28,7 @@
 	
 namespace Nirvana {
 
-const ImportInterfaceT <Memory> NIRVANA_SELECTANY g_memory = { OLF_IMPORT_INTERFACE,
+NIRVANA_STATIC_IMPORT ImportInterfaceT <Memory> NIRVANA_SELECTANY g_memory = { OLF_IMPORT_INTERFACE,
 	"Nirvana/g_memory", CORBA::Internal::RepIdOf <Memory>::id,
 	NIRVANA_STATIC_BRIDGE (Memory, Core::Memory) };
 

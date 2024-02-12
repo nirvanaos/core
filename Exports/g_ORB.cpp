@@ -28,7 +28,7 @@
 
 namespace CORBA {
 
-const Nirvana::ImportInterfaceT <ORB> NIRVANA_SELECTANY g_ORB = { Nirvana::OLF_IMPORT_INTERFACE,
+extern NIRVANA_STATIC_IMPORT Nirvana::ImportInterfaceT <ORB> NIRVANA_SELECTANY g_ORB = { Nirvana::OLF_IMPORT_INTERFACE,
 	"CORBA/g_ORB", Internal::RepIdOf <ORB>::id,
 	NIRVANA_STATIC_BRIDGE (ORB, Core::ORB) };
 

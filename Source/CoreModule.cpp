@@ -67,7 +67,7 @@ size_t CoreModule::at_exit_cnt_;
 
 }
 
-extern const ImportInterfaceT <Module> g_module = { OLF_IMPORT_INTERFACE,
+extern NIRVANA_STATIC_IMPORT ImportInterfaceT <Module> g_module = { OLF_IMPORT_INTERFACE,
 "Nirvana/g_module", CORBA::Internal::RepIdOf <Module>::id,
 NIRVANA_STATIC_BRIDGE (Module, Core::CoreModule) };
 

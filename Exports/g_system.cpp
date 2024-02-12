@@ -28,7 +28,7 @@
 
 namespace Nirvana {
 
-const ImportInterfaceT <System> NIRVANA_SELECTANY g_system = { OLF_IMPORT_INTERFACE,
+NIRVANA_STATIC_IMPORT ImportInterfaceT <System> NIRVANA_SELECTANY g_system = { OLF_IMPORT_INTERFACE,
 	"Nirvana/g_system", CORBA::Internal::RepIdOf <System>::id,
 	NIRVANA_STATIC_BRIDGE (System, Core::System) };
 
