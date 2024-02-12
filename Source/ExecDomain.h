@@ -243,6 +243,7 @@ public:
 			sd->leave ();
 		sync_context_ = &g_core_free_sync_context;
 
+		// Unwind MemContext stack
 		unwind_mem_context ();
 
 		if (runnable_) {
@@ -267,7 +268,7 @@ public:
 		// TODO: Check for the signal handlers and return true if signal is handled.
 		if (signal.si_excode != CORBA::Exception::EC_NO_EXCEPTION) {
 			sync_context ().raise_exception ((CORBA::SystemException::Code)signal.si_excode, signal.si_code);
-			return true;
+			raise (SIGABRT);
 		}
 
 		return false;

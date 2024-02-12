@@ -89,7 +89,7 @@ public:
 			throw_UNKNOWN (make_minor_errno (EISDIR));
 		ModuleLoad& module_load = bind_info.module_load ();
 		module_load.binary (AccessDirect::_narrow (file->open (O_RDONLY | O_DIRECT, 0)->_to_object ()));
-		module_load.module_id (module_id);
+		module_load.module_id (std::move (module_id));
 	}
 
 };

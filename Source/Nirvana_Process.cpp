@@ -113,8 +113,12 @@ void Process::on_crash (const siginfo& signal) noexcept
 		ret_ = 3;
 	else
 		ret_ = -1;
+
+	ExecDomain& ed = ExecDomain::current ();
+	ed.mem_context_replace (*this);
 	error_message ("Process crashed.\n");
 	finish ();
+	ed.mem_context_restore ();
 }
 
 void Process::runtime_proxy_remove (const void* obj) noexcept

@@ -379,6 +379,12 @@ Ref <Module> Binder::load (ModuleLoad& module_load, bool singleton)
 			ModuleContext context{ mod->sync_context () };
 			const ModuleStartup* startup = module_bind (mod->_get_ptr (), mod->metadata (), &context);
 			try {
+
+				// Module without an entry point is a special case reserved for future.
+				// Currently we prohibit it.
+				if (!startup)
+					invalid_metadata ();
+
 				if (startup && (startup->flags & OLF_MODULE_SINGLETON) && !singleton)
 					invalid_metadata ();
 
