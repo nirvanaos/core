@@ -175,6 +175,8 @@ public:
 			const InterfaceEntry* ie = find_interface (type_id);
 			if (ie)
 				return &ie->proxy;
+			else if (Internal::RepId::compatible (Internal::RepIdOf <Object>::id, type_id))
+				return get_proxy ();
 			else
 				return nullptr;
 		}
