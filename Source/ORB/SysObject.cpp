@@ -43,7 +43,7 @@ SysObject* SysObject::create (CORBA::LocalObject::_ptr_type servant, const Octet
 	ObjectFactory::StatelessCreationFrame* scf = ObjectFactory::begin_proxy_creation (&servant);
 	SysObject* proxy = new SysObject (servant, id, id_len);
 	if (scf)
-		scf->proxy (&static_cast <ServantProxyBase&> (proxy->proxy ()));
+		scf->proxies ().push_back (&static_cast <ServantProxyBase&> (proxy->proxy ()));
 	return proxy;
 }
 
