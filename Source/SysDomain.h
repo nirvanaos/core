@@ -34,7 +34,8 @@
 #include "ORB/system_services.h"
 #include "ORB/Services.h"
 #include <Port/SystemInfo.h>
-#include <Nirvana/File.h>
+#include "Packages.h"
+#include "FSLocator.h"
 
 namespace Nirvana {
 namespace Core {
@@ -74,9 +75,9 @@ public:
 			CORBA::Core::Services::bind (CORBA::Core::Services::ProtDomain));
 	}
 
-	Nirvana::Packages::_ref_type provide_packages () const noexcept
+	Nirvana::Packages::_ref_type provide_packages ()
 	{
-		return packages_;
+		return packages_._this ();
 	}
 
 	Nirvana::SysManager::_ref_type provide_manager () const noexcept
@@ -84,9 +85,9 @@ public:
 		return manager_;
 	}
 
-	Nirvana::FSLocator::_ref_type provide_fs_locator () const noexcept
+	Nirvana::FSLocator::_ref_type provide_fs_locator ()
 	{
-		return fs_locator_;
+		return fs_locator_._this ();
 	}
 
 	CORBA::Object::_ref_type get_service (const IDL::String& id)
@@ -96,8 +97,8 @@ public:
 
 private:
 	Nirvana::SysManager::_ref_type manager_;
-	Nirvana::Packages::_ref_type packages_;
-	Nirvana::FSLocator::_ref_type fs_locator_;
+	Packages packages_;
+	FSLocator fs_locator_;
 };
 
 }

@@ -96,9 +96,9 @@ public:
 		void* p = (Octet*)scf->tmp () + scf->offset ();
 		Nirvana::Core::Heap& sm = *(Nirvana::Core::Heap*)scf->memory ();
 		if (success) {
+			sm.copy (p, const_cast <void*> (scf->tmp ()), scf->size (), Nirvana::Memory::READ_ONLY);
 			if (scf->proxy ())
 				((ServantProxyBase*)scf->proxy ())->apply_offset (scf->offset ());
-			sm.copy (p, const_cast <void*> (scf->tmp ()), scf->size (), Nirvana::Memory::READ_ONLY);
 		} else {
 			sm.release (p, scf->size ());
 			p = nullptr;
@@ -158,8 +158,10 @@ private:
 			iref = proxy = ServantObject::create (servant, comp);
 		}
 
-		if (scf && proxy)
+		if (scf && proxy) {
+			assert (!scf->proxy ());
 			scf->proxy (&static_cast <ServantProxyBase&> (proxy->proxy ()));
+		}
 	}
 };
 

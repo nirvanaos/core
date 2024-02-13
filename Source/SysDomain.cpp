@@ -27,8 +27,6 @@
 #include "SysDomain.h"
 #include "ORB/ORB.h"
 #include "SysManager.h"
-#include "Packages.h"
-#include "FSLocator.h"
 
 using namespace CORBA;
 
@@ -36,17 +34,17 @@ namespace Nirvana {
 namespace Core {
 
 inline
-SysDomain::SysDomain ()
+SysDomain::SysDomain () :
+	packages_ (*this),
+	fs_locator_ (*this)
 {
 	// Parent component
 	Object::_ptr_type comp = _object ();
 
-	// Create stateless
-	packages_ = make_stateless <Packages> (comp)->_this ();
-	fs_locator_ = make_stateless <FSLocator> (comp)->_this ();
-
 	// Create stateful
+	SYNC_BEGIN (g_core_free_sync_context, nullptr)
 	manager_ = make_reference <SysManager> (comp)->_this ();
+	SYNC_END ()
 }
 
 SysDomain::~SysDomain ()
