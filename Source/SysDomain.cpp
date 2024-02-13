@@ -36,17 +36,17 @@ namespace Nirvana {
 namespace Core {
 
 inline
-SysDomain::SysDomain (Object::_ref_type& comp)
+SysDomain::SysDomain ()
 {
-	// Component reference
-	comp = _this ();
+	// Parent component
+	Object::_ptr_type comp = _object ();
 
 	// Create stateless
-	packages_ = make_stateless <Packages> (Object::_ptr_type (comp))->_this ();
-	fs_locator_ = make_stateless <FSLocator> (Object::_ptr_type (comp))->_this ();
+	packages_ = make_stateless <Packages> (comp)->_this ();
+	fs_locator_ = make_stateless <FSLocator> (comp)->_this ();
 
 	// Create stateful
-	manager_ = make_reference <SysManager> (Object::_ptr_type (comp))->_this ();
+	manager_ = make_reference <SysManager> (comp)->_this ();
 }
 
 SysDomain::~SysDomain ()
@@ -54,11 +54,9 @@ SysDomain::~SysDomain ()
 
 Object::_ref_type create_SysDomain ()
 {
-	if (ESIOP::is_system_domain ()) {
-		Object::_ref_type comp;
-		make_stateless <SysDomain> (std::ref (comp));
-		return comp;
-	} else
+	if (ESIOP::is_system_domain ())
+		return make_stateless <SysDomain> ()->_this ();
+	else
 		return CORBA::Core::ORB::string_to_object (
 			"corbaloc::1.1@/%00", CORBA::Internal::RepIdOf <Nirvana::SysDomain>::id);
 }
