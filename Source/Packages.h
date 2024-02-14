@@ -30,8 +30,8 @@
 
 #include <CORBA/Server.h>
 #include <Nirvana/Domains_s.h>
-#include "NameService/FileSystem.h"
 #include <Port/SysDomain.h>
+#include "NameService/FileSystem.h"
 #include <fnctl.h>
 
 namespace Nirvana {
@@ -39,14 +39,14 @@ namespace Core {
 
 /// Package manager
 class Packages :
-	public CORBA::FacetLocal <CORBA::servant_traits <Nirvana::Packages>::Servant <Packages> >,
+	public CORBA::servant_traits <Nirvana::Packages>::Servant <Packages>,
 	private Port::SysDomain
 {
-	typedef CORBA::FacetLocal <CORBA::servant_traits <Nirvana::Packages>::Servant <Packages> > Servant;
+	typedef CORBA::servant_traits <Nirvana::Packages>::Servant <Packages> Servant;
 
 public:
-	Packages (ParentServant& parent) :
-		Servant (parent)
+	Packages (CORBA::Object::_ptr_type comp) :
+		Servant (comp)
 	{}
 
 	void get_bind_info (const IDL::String& obj_name, unsigned platform, BindInfo& bind_info)

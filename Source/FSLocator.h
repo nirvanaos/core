@@ -29,6 +29,7 @@
 #pragma once
 
 #include <CORBA/Server.h>
+#include <Nirvana/File_s.h>
 #include "NameService/FileSystem.h"
 
 namespace Nirvana {
@@ -36,13 +37,11 @@ namespace Core {
 
 /// File system locator
 class FSLocator :
-	public CORBA::FacetLocal <CORBA::servant_traits <Nirvana::FSLocator>::Servant <FSLocator> >
+	public CORBA::servant_traits <Nirvana::FSLocator>::Servant <FSLocator>
 {
-	typedef CORBA::FacetLocal <CORBA::servant_traits <Nirvana::FSLocator>::Servant <FSLocator> > Servant;
-
 public:
-	FSLocator (ParentServant& parent) :
-		Servant (parent)
+	FSLocator (CORBA::Object::_ptr_type comp) :
+		CORBA::servant_traits <Nirvana::FSLocator>::Servant <FSLocator> (comp)
 	{}
 
 	DirItem::_ref_type get_item (const DirItemId& id)
@@ -50,6 +49,7 @@ public:
 		return FileSystem::get_reference (id);
 	}
 };
+
 
 }
 }
