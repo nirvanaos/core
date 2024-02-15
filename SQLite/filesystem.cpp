@@ -93,7 +93,12 @@ int xOpen (sqlite3_vfs*, sqlite3_filename zName, sqlite3_file* file,
 				return SQLITE_CANTOPEN;
 			fa = file->open (O_RDWR | O_DIRECT, 0);
 		} else {
-			fa = global.driver ().open_file (zName, O_CREAT | O_DIRECT);
+			uint_fast16_t open_flags = O_RDWR | O_DIRECT;
+			if (flags & SQLITE_OPEN_CREATE)
+				open_flags |= O_CREAT;
+			if (flags & SQLITE_OPEN_EXCLUSIVE)
+				open_flags |= O_EXCL;
+			fa = global.driver ().open_file (zName, open_flags);
 		}
 	} catch (CORBA::NO_MEMORY ()) {
 		return SQLITE_NOMEM;
