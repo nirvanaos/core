@@ -24,20 +24,48 @@
 *  popov.nirvana@gmail.com
 */
 #include "pch.h"
-#include "Driver.h"
+#include <assert.h>
 #include <Nirvana/System.h>
+#include "sqlite/sqlite3.h"
 
-namespace SQLite {
+// For debugging
 
-Nirvana::Access::_ref_type Driver::open_file (const IDL::String& url, uint_fast16_t flags) const
+struct sqlite3_mutex
 {
-	// Get full path name
-	CosNaming::Name name;
-	Nirvana::g_system->append_path (name, url, true);
+	size_t exec_domain_id;
+	size_t cnt;
+};
 
-	// Open file
-	name.erase (name.begin ());
-	return file_system_->open (name, flags, 0);
+extern "C" sqlite3_mutex* sqlite3_mutex_alloc (int)
+{
+	sqlite3_mutex* pm = (sqlite3_mutex*)sqlite3_malloc (sizeof (sqlite3_mutex));
+	pm->exec_domain_id = 0;
+	pm->cnt = 0;
+	return pm;
 }
 
+extern "C" void sqlite3_mutex_free (sqlite3_mutex* pm)
+{
+	sqlite3_free (pm);
+}
+
+extern "C" void sqlite3_mutex_enter (sqlite3_mutex* pm)
+{
+	size_t ed_id = Nirvana::g_system->exec_domain_id ();
+	assert (!pm->cnt || pm->exec_domain_id == ed_id);
+	if (pm->cnt++)
+		pm->exec_domain_id = ed_id;
+}
+
+extern "C" int sqlite3_mutex_try (sqlite3_mutex* pm)
+{
+	sqlite3_mutex_enter (pm);
+	return 0;
+}
+
+extern "C" void sqlite3_mutex_leave (sqlite3_mutex* pm)
+{
+	size_t ed_id = Nirvana::g_system->exec_domain_id ();
+	assert (pm->cnt && pm->exec_domain_id == ed_id);
+	--(pm->cnt);
 }

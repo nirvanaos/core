@@ -1,5 +1,5 @@
 /*
-* Nirvana SQLite module.
+* Nirvana SQLite driver.
 *
 * This is a part of the Nirvana project.
 *
@@ -28,7 +28,6 @@
 #pragma once
 
 #include "Driver.h"
-#include "sqlite/sqlite3.h"
 
 namespace SQLite {
 
@@ -37,16 +36,8 @@ namespace SQLite {
 class Global
 {
 public:
-	Global () :
-		driver_ (CORBA::make_reference <Driver> ())
-	{
-		sqlite3_initialize ();
-	}
-
-	~Global ()
-	{
-		sqlite3_shutdown ();
-	}
+	Global ();
+	~Global ();
 	
 	Driver& driver () const noexcept
 	{

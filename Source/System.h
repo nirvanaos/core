@@ -360,6 +360,11 @@ public:
 	{
 		MemContextUser::current ().clearerr (fd);
 	}
+
+	static size_t exec_domain_id ()
+	{
+		return ExecDomain::current ().id ();
+	}
 };
 
 }

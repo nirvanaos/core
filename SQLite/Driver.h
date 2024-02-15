@@ -1,5 +1,5 @@
 /*
-* Nirvana SQLite module.
+* Nirvana SQLite driver.
 *
 * This is a part of the Nirvana project.
 *

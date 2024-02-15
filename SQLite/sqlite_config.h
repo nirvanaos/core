@@ -23,37 +23,33 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "pch.h"
-#include "Global.h"
+#ifndef SQLITE_CONFIG_H_
+#define SQLITE_CONFIG_H_
+#pragma once
 
-namespace SQLite {
+#define SQLITE_OS_OTHER (1)
+#define SQLITE_WITHOUT_MSIZE
+#define SQLITE_DEFAULT_MEMSTATUS (0)
+#define SQLITE_LIKE_DOESNT_MATCH_BLOBS
+#define SQLITE_OMIT_DEPRECATED
+#define SQLITE_OMIT_PROGRESS_CALLBACK
+#define SQLITE_OMIT_SHARED_CACHE
+#define SQLITE_USE_ALLOCA
+#define SQLITE_OMIT_AUTOINIT
+#define SQLITE_STRICT_SUBTYPE (1)
+#define SQLITE_DEFAULT_MMAP_SIZE (0)
+#define SQLITE_ENABLE_COLUMN_METADATA
 
-class DriverFactory;
+#define HAVE_LOCALTIME_R (1)
+#define HAVE_GMTIME_R (1)
 
-}
+#ifdef NDEBUG
+#define SQLITE_THREADSAFE (0)
+#else
+#define SQLITE_MUTEX_APPDEF (1)
+#define SQLITE_MUTEX_OMIT
+#endif
 
-namespace CORBA {
-namespace Internal {
+#define SQLITE_OMIT_SEH
 
-template <>
-const char StaticId <SQLite::DriverFactory>::id [] = "Nirvana/DB/factory_sqlite";
-
-}
-}
-
-namespace SQLite {
-
-class DriverFactory :
-	public CORBA::servant_traits <NDBC::DriverFactory>::ServantStatic <DriverFactory>
-{
-public:
-	static NDBC::Driver::_ref_type getDriver ()
-	{
-		return global.driver ()._this ();
-	}
-};
-
-}
-
-NIRVANA_EXPORT_OBJECT (_exp_SQLite_factory, SQLite::DriverFactory)
-
+#endif

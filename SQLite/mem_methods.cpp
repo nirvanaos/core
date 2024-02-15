@@ -24,36 +24,56 @@
 *  popov.nirvana@gmail.com
 */
 #include "pch.h"
-#include "Global.h"
+#include "mem_methods.h"
+#include <Nirvana/c_heap_dbg.h>
+
+using namespace Nirvana;
 
 namespace SQLite {
 
-class DriverFactory;
-
-}
-
-namespace CORBA {
-namespace Internal {
-
-template <>
-const char StaticId <SQLite::DriverFactory>::id [] = "Nirvana/DB/factory_sqlite";
-
-}
-}
-
-namespace SQLite {
-
-class DriverFactory :
-	public CORBA::servant_traits <NDBC::DriverFactory>::ServantStatic <DriverFactory>
+void* xMalloc (int size) noexcept
 {
-public:
-	static NDBC::Driver::_ref_type getDriver ()
-	{
-		return global.driver ()._this ();
-	}
+	return c_malloc <HeapBlockHdrType> (alignof (std::max_align_t), size);
+}
+
+void xFree (void* p) noexcept
+{
+	c_free <HeapBlockHdrType> (p);
+}
+
+void* xRealloc (void* p, int size) noexcept
+{
+	return c_realloc <HeapBlockHdrType> (p, size);
+}
+
+int xSize (void* p) noexcept
+{
+	return (int)c_size <HeapBlockHdrType> (p);
+}
+
+int xRoundup (int size) noexcept
+{
+	if (size < std::numeric_limits <size_t>::max () / 4)
+		size = (int)(clp2 (size + sizeof (HeapBlockHdrType)) - sizeof (HeapBlockHdrType));
+	return size;
+}
+
+int xInit (void*) noexcept
+{
+	return SQLITE_OK;
+}
+
+void xShutdown (void*) noexcept
+{}
+
+const struct sqlite3_mem_methods mem_methods = {
+	&xMalloc,
+	&xFree,
+	&xRealloc,
+	&xSize,
+	&xRoundup,
+	&xInit,
+	&xShutdown
 };
 
 }
-
-NIRVANA_EXPORT_OBJECT (_exp_SQLite_factory, SQLite::DriverFactory)
-

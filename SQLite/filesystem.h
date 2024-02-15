@@ -1,5 +1,5 @@
 /*
-* Nirvana SQLite module.
+* Nirvana SQLite driver.
 *
 * This is a part of the Nirvana project.
 *
@@ -29,6 +29,7 @@
 
 #include <Nirvana/Nirvana.h>
 #include <Nirvana/base64.h>
+#include "sqlite/sqlite3.h"
 
 #define OBJID_PREFIX "id:"
 #define VFS_NAME "nirvana"
@@ -40,6 +41,8 @@ std::string id_to_string (const Nirvana::DirItemId& id)
 {
 	return OBJID_PREFIX + base64::encode_into <std::string> (id.begin (), id.end ());
 }
+
+extern struct sqlite3_vfs vfs;
 
 }
 

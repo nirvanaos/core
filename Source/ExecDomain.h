@@ -416,6 +416,11 @@ public:
 		thr.impersonate (ed->security_context_);
 	}
 
+	size_t id () const noexcept
+	{
+		return ((uintptr_t)this); // / core_object_align (sizeof (*this));
+	}
+
 private:
 	ExecDomain () :
 		ExecContext (false),
@@ -579,7 +584,7 @@ private:
 	RestrictedMode restricted_mode_;
 
 	Security::Context security_context_;
-	
+
 	void* tls_ [CORE_TLS_COUNT];
 
 	typename std::aligned_storage <MAX_RUNNABLE_SIZE>::type runnable_space_;

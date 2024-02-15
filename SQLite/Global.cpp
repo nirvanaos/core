@@ -25,35 +25,24 @@
 */
 #include "pch.h"
 #include "Global.h"
+#include "mem_methods.h"
+#include "filesystem.h"
 
 namespace SQLite {
 
-class DriverFactory;
-
-}
-
-namespace CORBA {
-namespace Internal {
-
-template <>
-const char StaticId <SQLite::DriverFactory>::id [] = "Nirvana/DB/factory_sqlite";
-
-}
-}
-
-namespace SQLite {
-
-class DriverFactory :
-	public CORBA::servant_traits <NDBC::DriverFactory>::ServantStatic <DriverFactory>
+Global::Global () :
+	driver_ (CORBA::make_reference <Driver> ())
 {
-public:
-	static NDBC::Driver::_ref_type getDriver ()
-	{
-		return global.driver ()._this ();
-	}
-};
-
+	sqlite3_config (SQLITE_CONFIG_MALLOC, &mem_methods);
+	sqlite3_vfs_register (&vfs, 1);
+	sqlite3_initialize ();
 }
 
-NIRVANA_EXPORT_OBJECT (_exp_SQLite_factory, SQLite::DriverFactory)
+Global::~Global ()
+{
+	sqlite3_shutdown ();
+}
 
+const Global global;
+
+}

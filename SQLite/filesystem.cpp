@@ -1,5 +1,5 @@
 /*
-* Nirvana SQLite module.
+* Nirvana SQLite driver.
 *
 * This is a part of the Nirvana project.
 *
@@ -28,6 +28,16 @@
 #include "Global.h"
 #include "sqlite/sqlite3.h"
 
+extern "C" int sqlite3_os_init ()
+{
+	return SQLITE_OK;
+}
+
+extern "C" int sqlite3_os_end ()
+{
+	return SQLITE_OK;
+}
+
 namespace SQLite {
 
 const char* is_id (const char* file) noexcept
@@ -53,7 +63,7 @@ struct File : sqlite3_file
 			try {
 				access->flush ();
 				access = nullptr;
-				return 0;
+				return SQLITE_OK;
 			} catch (const CORBA::SystemException& ex) {
 				int e = Nirvana::get_minor_errno (ex.minor ());
 				if (e)
@@ -71,7 +81,7 @@ int close (sqlite3_file* p) noexcept
 {
 	if (p)
 		static_cast <File&> (*p).close ();
-	return 0;
+	return SQLITE_OK;
 }
 
 const sqlite3_io_methods io_methods = {
@@ -108,10 +118,10 @@ int xOpen (sqlite3_vfs*, sqlite3_filename zName, sqlite3_file* file,
 	File& f = static_cast <File&> (*file);
 	f.pMethods = &io_methods;
 	f.access = Nirvana::AccessDirect::_narrow (fa->_to_object ());
-	return 0;
+	return SQLITE_OK;
 }
 
-const struct sqlite3_vfs vfs = {
+struct sqlite3_vfs vfs = {
 	3,                   /* Structure version number (currently 3) */
 	(int)sizeof (File),  /* Size of subclassed sqlite3_file */
   1024,                /* Maximum file pathname length */

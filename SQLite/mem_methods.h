@@ -23,37 +23,16 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "pch.h"
-#include "Global.h"
+#ifndef SQLITE_MEM_METHODS_H_
+#define SQLITE_MEM_METHODS_H_
+#pragma once
+
+#include "sqlite/sqlite3.h"
 
 namespace SQLite {
 
-class DriverFactory;
+extern const struct sqlite3_mem_methods mem_methods;
 
 }
 
-namespace CORBA {
-namespace Internal {
-
-template <>
-const char StaticId <SQLite::DriverFactory>::id [] = "Nirvana/DB/factory_sqlite";
-
-}
-}
-
-namespace SQLite {
-
-class DriverFactory :
-	public CORBA::servant_traits <NDBC::DriverFactory>::ServantStatic <DriverFactory>
-{
-public:
-	static NDBC::Driver::_ref_type getDriver ()
-	{
-		return global.driver ()._this ();
-	}
-};
-
-}
-
-NIRVANA_EXPORT_OBJECT (_exp_SQLite_factory, SQLite::DriverFactory)
-
+#endif
