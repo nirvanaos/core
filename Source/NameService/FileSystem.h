@@ -46,7 +46,7 @@ namespace Nirvana {
 namespace Core {
 
 class FileSystem : 
-	public CORBA::servant_traits <Nirvana::Dir>::Servant <FileSystem>,
+	public CORBA::servant_traits <Nirvana::FileSystem>::Servant <FileSystem>,
 	public PortableServer::NoDefaultPOA,
 	public CosNaming::Core::NamingContextBase,
 	private Port::FileSystem
@@ -190,6 +190,12 @@ public:
 	virtual void unbind1 (CosNaming::Name& n) override;
 	virtual CosNaming::NamingContext::_ref_type bind_new_context1 (CosNaming::Name& n) override;
 	virtual void get_bindings (CosNaming::Core::IteratorStack& iter) const override;
+
+	// FileSystem
+	DirItem::_ref_type get_item (const DirItemId& id)
+	{
+		return get_reference (id);
+	}
 
 	static CosNaming::NamingContext::_ref_type new_context ()
 	{

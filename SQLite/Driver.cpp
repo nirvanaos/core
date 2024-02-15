@@ -1,6 +1,5 @@
-/// \file
 /*
-* Nirvana Core.
+* Nirvana SQLite module.
 *
 * This is a part of the Nirvana project.
 *
@@ -24,35 +23,21 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_CORE_FSLOCATOR_H_
-#define NIRVANA_CORE_FSLOCATOR_H_
-#pragma once
+#include "pch.h"
+#include "Driver.h"
+#include <Nirvana/System.h>
 
-#include <CORBA/Server.h>
-#include <Nirvana/File_s.h>
-#include "NameService/FileSystem.h"
+namespace SQLite {
 
-namespace Nirvana {
-namespace Core {
-
-/// File system locator
-class FSLocator :
-	public CORBA::servant_traits <Nirvana::FSLocator>::Servant <FSLocator>
+Nirvana::Access::_ref_type Driver::open_file (const IDL::String& url, uint_fast16_t flags) const
 {
-public:
-	FSLocator (CORBA::Object::_ptr_type comp) :
-		CORBA::servant_traits <Nirvana::FSLocator>::Servant <FSLocator> (comp)
-	{}
+	// Get full path name
+	CosNaming::Name name;
+	Nirvana::g_system->append_path (name, url, true);
 
-	DirItem::_ref_type get_item (const DirItemId& id)
-	{
-		return FileSystem::get_reference (id);
-	}
-};
-
-
-}
+	// Open file
+	name.erase (name.begin ());
+	return file_system_->open (name, flags, 0);
 }
 
-#endif
-
+}

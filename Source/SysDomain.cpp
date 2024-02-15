@@ -28,7 +28,6 @@
 #include "ORB/ORB.h"
 #include "SysManager.h"
 #include "Packages.h"
-#include "FSLocator.h"
 
 using namespace CORBA;
 
@@ -43,7 +42,6 @@ SysDomain::SysDomain (CORBA::Object::_ref_type& comp)
 
 	// Create stateless
 	packages_ = make_stateless <Packages> (comp)->_this ();
-	fs_locator_ = make_stateless <FSLocator> (comp)->_this ();
 
 	// Create stateful
 	manager_ = make_reference <SysManager> (comp)->_this ();

@@ -1,5 +1,5 @@
 /*
-* Nirvana Core.
+* Nirvana DecCalc module.
 *
 * This is a part of the Nirvana project.
 *
