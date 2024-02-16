@@ -52,4 +52,11 @@
 
 #define SQLITE_OMIT_SEH
 
+// Declare for CLang
+#if defined (_MSC_VER) && defined (__clang__)
+unsigned short _byteswap_ushort (unsigned short);
+unsigned long _byteswap_ulong (unsigned long);
+unsigned __int64 __cdecl _byteswap_uint64 (unsigned __int64);
+#endif
+
 #endif
