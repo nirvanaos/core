@@ -53,7 +53,7 @@ int xSize (void* p) noexcept
 
 int xRoundup (int size) noexcept
 {
-	if (size < std::numeric_limits <size_t>::max () / 4)
+	if (size < (int)(std::numeric_limits <size_t>::max () / 4))
 		size = (int)(clp2 (size + sizeof (HeapBlockHdrType)) - sizeof (HeapBlockHdrType));
 	return size;
 }
