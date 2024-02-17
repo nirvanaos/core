@@ -28,19 +28,46 @@
 
 namespace SQLite {
 
-void PreparedStatement::check_exist () const
-{
-	if (!stmt_)
-		throw CORBA::OBJECT_NOT_EXIST ();
-}
-
-unsigned PreparedStatement::get_param_index (const IDL::String& name) const
+PreparedStatement::ParamIndex PreparedStatement::get_param_index (unsigned i) const
 {
 	check_exist ();
-	int idx = sqlite3_bind_parameter_index (stmt_, name.c_str ());
-	if (idx < 1)
-		throw NDBC::SQLException (NDBC::SQLWarning (0, "Parameter not found: " + name), NDBC::SQLWarnings ());
-	return idx;
+	for (const auto& st : statements ()) {
+		auto stmt = st.stmt;
+		int par_cnt = sqlite3_bind_parameter_count (stmt);
+		if (i <= (unsigned)par_cnt)
+			return { stmt, i };
+		i -= par_cnt;
+	}
+	throw NDBC::SQLException (NDBC::SQLWarning (0, "Invalid parameter index"), NDBC::SQLWarnings ());
+}
+
+PreparedStatement::ParamIndex PreparedStatement::get_param_index (const IDL::String& name) const
+{
+	check_exist ();
+	for (auto st : statements ()) {
+		auto stmt = st.stmt;
+		int i = sqlite3_bind_parameter_index (stmt, name.c_str ());
+		if (i >= 1)
+			return { stmt, (unsigned)i };
+	}
+	throw NDBC::SQLException (NDBC::SQLWarning (0, "Parameter not found: " + name), NDBC::SQLWarnings ());
+}
+
+void PreparedStatement::clearParameters ()
+{
+	check_exist ();
+	for (auto st : statements ()) {
+		sqlite3_clear_bindings (st.stmt);
+		CORBA::servant_reference <Cursor> cur = std::move (st.cursor);
+		if (cur)
+			cur->close ();
+	}
+}
+
+bool PreparedStatement::execute ()
+{
+	check_exist ();
+	return Statement::execute_first ();
 }
 
 }

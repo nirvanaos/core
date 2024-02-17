@@ -27,57 +27,49 @@
 #define SQLITE_PREPAREDSTATEMENT_H_
 #pragma once
 
-#include "Connection.h"
+#include "Statement.h"
 
 namespace SQLite {
 
-class Connection;
-
 class PreparedStatement :
-	public CORBA::servant_traits <NDBC::PreparedStatement>::Servant <PreparedStatement>
+	public virtual CORBA::servant_traits <NDBC::PreparedStatement>::base_type,
+	public virtual Statement
 {
 public:
 	PreparedStatement (Connection& conn, const IDL::String& sql, unsigned flags) :
-		connection_ (&conn)
+		Statement (conn)
 	{
-		const char* tail;
-		connection_->check_result (sqlite3_prepare_v3 (connection_->sqlite (), sql.c_str (), (int)sql.size (), flags & SQLITE_PREPARE_PERSISTENT, &stmt_, &tail));
-		if (*tail)
-			connection_->add_warning (IDL::String ("SQL code not used: ") + tail);
+		prepare (sql, flags);
 	}
 
 	~PreparedStatement ()
+	{}
+
+	struct ParamIndex
 	{
-		if (stmt_)
-			connection_->check_warning (sqlite3_finalize (stmt_));
+		sqlite3_stmt* stmt;
+		unsigned idx;
+	};
+
+	virtual void clearParameters () override;
+	
+	virtual bool execute () override;
+
+	virtual void setInt (uint16_t i, int32_t v) override
+	{
+		ParamIndex pi = get_param_index (i);
+		connection ().check_result (sqlite3_bind_int (pi.stmt, pi.idx, v));
 	}
 
-	void check_exist () const;
-
-	void close ()
+	virtual void setIntByName (const IDL::String& name, int32_t v) override
 	{
-		check_exist ();
-		connection_->check_result (sqlite3_finalize (stmt_));
-		stmt_ = nullptr;
-		deactivate_servant (this);
+		ParamIndex pi = get_param_index (name);
+		connection ().check_result (sqlite3_bind_int (pi.stmt, pi.idx, v));
 	}
 
-	void setInt (unsigned i, long v)
-	{
-		check_exist ();
-		connection_->check_result (sqlite3_bind_int (stmt_, i, v));
-	}
+	ParamIndex get_param_index (unsigned i) const;
+	ParamIndex get_param_index (const IDL::String & name) const;
 
-	void setIntByName (const IDL::String& name, long v)
-	{
-		connection_->check_result (sqlite3_bind_int (stmt_, get_param_index (name), v));
-	}
-
-	unsigned get_param_index (const IDL::String& name) const;
-
-private:
-	CORBA::servant_reference <Connection> connection_;
-	sqlite3_stmt* stmt_;
 };
 
 NDBC::PreparedStatement::_ref_type Connection::prepareStatement (const IDL::String& sql, unsigned flags)

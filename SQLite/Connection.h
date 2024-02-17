@@ -144,6 +144,7 @@ public:
 	}
 
 	void add_warning (IDL::String&& msg);
+	void add_warnings (NDBC::SQLWarnings&& warnings);
 
 	void check_warning (int err) noexcept;
 
