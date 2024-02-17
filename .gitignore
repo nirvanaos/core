@@ -1,8 +1,6 @@
-/DecCalc/DecCalc.h
-/DecCalc/DecCalc_s.h
 /Source/CORBA/
 /Source/Nirvana/
 /Exports/IDL/
-/InterfaceRepository/IDL/
 /Source/IDL/
-/dbc/IDL/
+/dbc/NDBC_p.cpp
+/InterfaceRepository/InterfaceRepository_p.cpp
