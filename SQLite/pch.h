@@ -11,5 +11,6 @@
 #include <Nirvana/Nirvana.h>
 #include <Nirvana/File.h>
 #include <Nirvana/NDBC.h>
+#include "sqlite/sqlite3.h"
 
 #endif //PCH_H

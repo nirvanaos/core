@@ -24,46 +24,23 @@
 *  popov.nirvana@gmail.com
 */
 #include "pch.h"
-#include <assert.h>
-#include <Nirvana/System.h>
+#include "PreparedStatement.h"
 
-// For debugging
+namespace SQLite {
 
-struct sqlite3_mutex
+void PreparedStatement::check_exist () const
 {
-	size_t exec_domain_id;
-	size_t cnt;
-};
-
-extern "C" sqlite3_mutex* sqlite3_mutex_alloc (int)
-{
-	sqlite3_mutex* pm = (sqlite3_mutex*)sqlite3_malloc (sizeof (sqlite3_mutex));
-	pm->exec_domain_id = 0;
-	pm->cnt = 0;
-	return pm;
+	if (!stmt_)
+		throw CORBA::OBJECT_NOT_EXIST ();
 }
 
-extern "C" void sqlite3_mutex_free (sqlite3_mutex* pm)
+unsigned PreparedStatement::get_param_index (const IDL::String& name) const
 {
-	sqlite3_free (pm);
+	check_exist ();
+	int idx = sqlite3_bind_parameter_index (stmt_, name.c_str ());
+	if (idx < 1)
+		throw NDBC::SQLException (NDBC::SQLWarning (0, "Parameter not found: " + name), NDBC::SQLWarnings ());
+	return idx;
 }
 
-extern "C" void sqlite3_mutex_enter (sqlite3_mutex* pm)
-{
-	size_t ed_id = Nirvana::g_system->exec_domain_id ();
-	assert (!pm->cnt || pm->exec_domain_id == ed_id);
-	if (pm->cnt++)
-		pm->exec_domain_id = ed_id;
-}
-
-extern "C" int sqlite3_mutex_try (sqlite3_mutex* pm)
-{
-	sqlite3_mutex_enter (pm);
-	return 0;
-}
-
-extern "C" void sqlite3_mutex_leave (sqlite3_mutex* pm)
-{
-	assert (pm->cnt && pm->exec_domain_id == Nirvana::g_system->exec_domain_id ());
-	--(pm->cnt);
 }

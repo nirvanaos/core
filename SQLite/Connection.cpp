@@ -24,46 +24,40 @@
 *  popov.nirvana@gmail.com
 */
 #include "pch.h"
-#include <assert.h>
-#include <Nirvana/System.h>
+#include "Connection.h"
 
-// For debugging
+namespace SQLite {
 
-struct sqlite3_mutex
+void deactivate_servant (PortableServer::Servant servant)
 {
-	size_t exec_domain_id;
-	size_t cnt;
-};
-
-extern "C" sqlite3_mutex* sqlite3_mutex_alloc (int)
-{
-	sqlite3_mutex* pm = (sqlite3_mutex*)sqlite3_malloc (sizeof (sqlite3_mutex));
-	pm->exec_domain_id = 0;
-	pm->cnt = 0;
-	return pm;
+	PortableServer::POA::_ref_type adapter = servant->_default_POA ();
+	adapter->deactivate_object (adapter->servant_to_id (servant));
 }
 
-extern "C" void sqlite3_mutex_free (sqlite3_mutex* pm)
+NDBC::SQLWarning Connection::create_warning (int err) const
 {
-	sqlite3_free (pm);
+	return NDBC::SQLWarning (err, sqlite3_errmsg (sqlite_));
 }
 
-extern "C" void sqlite3_mutex_enter (sqlite3_mutex* pm)
+void Connection::add_warning (IDL::String&& msg)
 {
-	size_t ed_id = Nirvana::g_system->exec_domain_id ();
-	assert (!pm->cnt || pm->exec_domain_id == ed_id);
-	if (pm->cnt++)
-		pm->exec_domain_id = ed_id;
+	warnings_.emplace_back (0, std::move (msg));
 }
 
-extern "C" int sqlite3_mutex_try (sqlite3_mutex* pm)
+void Connection::check_warning (int err) noexcept
 {
-	sqlite3_mutex_enter (pm);
-	return 0;
+	if (err) {
+		try {
+			warnings_.emplace_back (create_warning (err));
+		} catch (...) {
+		}
+	}
 }
 
-extern "C" void sqlite3_mutex_leave (sqlite3_mutex* pm)
+void Connection::check_result (int err) const
 {
-	assert (pm->cnt && pm->exec_domain_id == Nirvana::g_system->exec_domain_id ());
-	--(pm->cnt);
+	if (err)
+		throw NDBC::SQLException (create_warning (err), NDBC::SQLWarnings ());
+}
+
 }

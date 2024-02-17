@@ -33,6 +33,8 @@
 
 namespace SQLite {
 
+void deactivate_servant (PortableServer::Servant servant);
+
 class Connection : public CORBA::servant_traits <NDBC::Connection>::Servant <Connection>
 {
 public:
@@ -118,15 +120,12 @@ public:
 		return sql;
 	}
 
-	NDBC::CallableStatement::_ref_type prepareCall (const IDL::String& sql, int32_t resultSetType, int32_t resultSetConcurrency)
+	NDBC::CallableStatement::_ref_type prepareCall (const IDL::String& sql)
 	{
 		throw CORBA::NO_IMPLEMENT ();
 	}
 
-	NDBC::PreparedStatement::_ref_type prepareStatement (const IDL::String& sql, int32_t resultSetType, int32_t resultSetConcurrency)
-	{
-		throw CORBA::NO_IMPLEMENT ();
-	}
+	NDBC::PreparedStatement::_ref_type prepareStatement (const IDL::String& sql, unsigned flags);
 
 	void rollback ()
 	{}
@@ -139,9 +138,23 @@ public:
 	void transactionIsolation (int)
 	{}
 
+	sqlite3* sqlite () const noexcept
+	{
+		return sqlite_;
+	}
+
+	void add_warning (IDL::String&& msg);
+
+	void check_warning (int err) noexcept;
+
+	void check_result (int err) const;
+
+	NDBC::SQLWarning create_warning (int err) const;
+
 private:
 	NDBC::DataSource::_ref_type parent_; // Keep DataSource reference active
 	sqlite3* sqlite_;
+	NDBC::SQLWarnings warnings_;
 };
 
 }
