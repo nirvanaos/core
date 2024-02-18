@@ -196,12 +196,6 @@ private:
 	static double fixed2double (const CORBA::Any& v);
 };
 
-inline
-NDBC::PreparedStatement::_ref_type Connection::prepareStatement (const IDL::String& sql, unsigned flags)
-{
-	return CORBA::make_reference <PreparedStatement> (std::ref (*this), sql, flags)->_this ();
-}
-
 }
 
 #endif

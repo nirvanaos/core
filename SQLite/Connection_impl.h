@@ -23,39 +23,26 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef SQLITE_DATASOURCE_H_
-#define SQLITE_DATASOURCE_H_
+#ifndef SQLITE_CONNECTION_IMPL_H_
+#define SQLITE_CONNECTION_IMPL_H_
 #pragma once
 
-#include <Nirvana/Nirvana.h>
-#include "Connection_impl.h"
-#include "filesystem.h"
+#include "Statement.h"
+#include "PreparedStatement.h"
 
 namespace SQLite {
 
-class DataSource : public CORBA::servant_traits <NDBC::DataSource>::Servant <DataSource>
+inline
+NDBC::Statement::_ref_type Connection::createStatement ()
 {
-public:
-	DataSource (const PortableServer::ObjectId& id) :
-		sqlite_ (nullptr)
-	{
-		std::string file = OBJID_PREFIX + id_to_string (id);
-		sqlite3_open_v2 (file.c_str (), &sqlite_, 0, VFS_NAME);
-	}
+	return CORBA::make_reference <Statement> (std::ref (*this))->_this ();
+}
 
-	~DataSource ()
-	{
-		sqlite3_close_v2 (sqlite_);
-	}
-
-	NDBC::Connection::_ref_type getConnection (const IDL::String& user, const IDL::String& pwd)
-	{
-		return CORBA::make_reference <Connection> (_this (), sqlite_)->_this ();
-	}
-
-private:
-	sqlite3* sqlite_;
-};
+inline
+NDBC::PreparedStatement::_ref_type Connection::prepareStatement (const IDL::String& sql, unsigned flags)
+{
+	return CORBA::make_reference <PreparedStatement> (std::ref (*this), sql, flags)->_this ();
+}
 
 }
 

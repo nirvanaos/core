@@ -88,6 +88,12 @@ public:
 		return names;
 	}
 
+	NDBC::StatementBase::_ref_type statement ()
+	{
+		check_exist ();
+		return parent_->_this ();
+	}
+
 	static NDBC::Row get_row (sqlite3_stmt* stmt, uint32_t& size);
 
 private:

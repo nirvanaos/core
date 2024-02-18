@@ -48,12 +48,6 @@ public:
 	virtual int32_t executeUpdate (const IDL::String& sql) override;
 };
 
-inline
-NDBC::Statement::_ref_type Connection::createStatement ()
-{
-	return CORBA::make_reference <Statement> (std::ref (*this))->_this ();
-}
-
 }
 
 #endif
