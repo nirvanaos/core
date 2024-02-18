@@ -28,11 +28,10 @@
 
 namespace SQLite {
 
-PreparedStatement::ParamIndex PreparedStatement::get_param_index (unsigned i) const
+PreparedStatement::ParamIndex PreparedStatement::get_param_index (unsigned i)
 {
 	check_exist ();
-	for (const auto& st : statements ()) {
-		auto stmt = st.stmt;
+	for (auto stmt : statements ()) {
 		int par_cnt = sqlite3_bind_parameter_count (stmt);
 		if (i <= (unsigned)par_cnt)
 			return { stmt, i };
@@ -41,11 +40,10 @@ PreparedStatement::ParamIndex PreparedStatement::get_param_index (unsigned i) co
 	throw NDBC::SQLException (NDBC::SQLWarning (0, "Invalid parameter index"), NDBC::SQLWarnings ());
 }
 
-PreparedStatement::ParamIndex PreparedStatement::get_param_index (const IDL::String& name) const
+PreparedStatement::ParamIndex PreparedStatement::get_param_index (const IDL::String& name)
 {
 	check_exist ();
-	for (auto st : statements ()) {
-		auto stmt = st.stmt;
+	for (auto stmt : statements ()) {
 		int i = sqlite3_bind_parameter_index (stmt, name.c_str ());
 		if (i >= 1)
 			return { stmt, (unsigned)i };
@@ -53,21 +51,41 @@ PreparedStatement::ParamIndex PreparedStatement::get_param_index (const IDL::Str
 	throw NDBC::SQLException (NDBC::SQLWarning (0, "Parameter not found: " + name), NDBC::SQLWarnings ());
 }
 
+double PreparedStatement::fixed2double (const CORBA::Any& v)
+{
+	CORBA::Fixed f;
+	CORBA::Any::to_fixed tf (f, 62, 31);
+	if (v >>= tf)
+		return (double)(long double)f;
+	else
+		throw CORBA::BAD_PARAM ();
+}
+
 void PreparedStatement::clearParameters ()
 {
 	check_exist ();
-	for (auto st : statements ()) {
-		sqlite3_clear_bindings (st.stmt);
-		CORBA::servant_reference <Cursor> cur = std::move (st.cursor);
-		if (cur)
-			cur->close ();
+	change_version ();
+	for (auto stmt : statements ()) {
+		sqlite3_clear_bindings (stmt);
 	}
 }
 
 bool PreparedStatement::execute ()
 {
 	check_exist ();
-	return Statement::execute_first ();
+	return execute_first ();
+}
+
+NDBC::ResultSet::_ref_type PreparedStatement::executeQuery ()
+{
+	execute ();
+	return getResultSet ();
+}
+
+int32_t PreparedStatement::executeUpdate ()
+{
+	execute ();
+	return getUpdateCount ();
 }
 
 }

@@ -33,7 +33,7 @@
 
 namespace SQLite {
 
-void deactivate_servant (PortableServer::Servant servant);
+void deactivate_servant (PortableServer::Servant servant) noexcept;
 
 class Connection : public CORBA::servant_traits <NDBC::Connection>::Servant <Connection>
 {
@@ -63,22 +63,27 @@ public:
 	{}
 
 	void clearWarnings ()
-	{}
+	{
+		warnings_.clear ();
+	}
+
+	void check_exist () const;
 
 	void close ()
-	{}
+	{
+		check_exist ();
+		parent_ = nullptr;
+		deactivate_servant (this);
+	}
 
 	void commit ()
 	{}
 
-	NDBC::Statement::_ref_type createStatement (int32_t resultSetType, int32_t resultSetConcurrency)
-	{
-		throw CORBA::NO_IMPLEMENT ();
-	}
+	NDBC::Statement::_ref_type createStatement ();
 
 	NDBC::SQLWarnings getWarnings () const
 	{
-		return NDBC::SQLWarnings ();
+		return warnings_;
 	}
 
 	int32_t holdability () const
@@ -99,7 +104,7 @@ public:
 
 	bool isClosed () const noexcept
 	{
-		return false;
+		return !parent_;
 	}
 
 	bool isReadOnly () const noexcept
@@ -112,7 +117,7 @@ public:
 
 	bool isValid () const noexcept
 	{
-		return true;
+		return (bool)parent_;
 	}
 
 	IDL::String nativeSQL (IDL::String& sql)
@@ -142,9 +147,6 @@ public:
 	{
 		return sqlite_;
 	}
-
-	void add_warning (IDL::String&& msg);
-	void add_warnings (NDBC::SQLWarnings&& warnings);
 
 	void check_warning (int err) noexcept;
 

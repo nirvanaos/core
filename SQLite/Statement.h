@@ -27,72 +27,32 @@
 #define SQLITE_STATEMENT_H_
 #pragma once
 
-#include "Cursor.h"
+#include "StatementBase.h"
 
 namespace SQLite {
 
-class Statement :
-	public virtual CORBA::servant_traits <NDBC::PreparedStatement>::base_type
+class Statement final :
+	public virtual CORBA::servant_traits <NDBC::Statement>::base_type,
+	public virtual StatementBase
 {
 public:
 	Statement (Connection& connection) :
-		connection_ (&connection),
-		cur_statement_ (0),
-		version_ (0),
-		changed_rows_ (0)
+		StatementBase (connection)
 	{}
 
 	~Statement ()
-	{
-		finalize ();
-	}
+	{}
 
-	virtual void close () override;
-	virtual void clearWarnings () override;
-	virtual bool getMoreResults () override;
-	virtual NDBC::ResultSet::_ref_type getResultSet () override;
-	virtual int32_t getUpdateCount () override;
-	virtual NDBC::SQLWarnings getWarnings () override;
-
-protected:
-	Connection& connection () const;
-
-	void prepare (const IDL::String& sql, unsigned flags);
-	void check_exist () const;
-	void finalize () noexcept;
-
-	struct Stmt
-	{
-		sqlite3_stmt* stmt;
-		CORBA::servant_reference <Cursor> cursor;
-	};
-
-	typedef std::vector <Stmt> Statements;
-
-	const Statements& statements () const noexcept
-	{
-		return statements_;
-	}
-
-	bool execute_first ()
-	{
-		++version_;
-		assert (!statements ().empty ());
-		cur_statement_ = 0;
-		return execute_next ();
-	}
-
-	bool execute_next ();
-
-private:
-	CORBA::servant_reference <Connection> connection_;
-	Statements statements_;
-	NDBC::SQLWarnings warnings_;
-	size_t cur_statement_;
-	unsigned version_;
-	unsigned changed_rows_;
-	NDBC::ResultSet::_ref_type result_set_;
+	virtual bool execute (const IDL::String& sql) override;
+	virtual NDBC::ResultSet::_ref_type executeQuery (const IDL::String& sql) override;
+	virtual int32_t executeUpdate (const IDL::String& sql) override;
 };
+
+inline
+NDBC::Statement::_ref_type Connection::createStatement ()
+{
+	return CORBA::make_reference <Statement> (std::ref (*this))->_this ();
+}
 
 }
 

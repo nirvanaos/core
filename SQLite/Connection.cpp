@@ -28,20 +28,25 @@
 
 namespace SQLite {
 
-void deactivate_servant (PortableServer::Servant servant)
+void deactivate_servant (PortableServer::Servant servant) noexcept
 {
-	PortableServer::POA::_ref_type adapter = servant->_default_POA ();
-	adapter->deactivate_object (adapter->servant_to_id (servant));
+	try {
+		PortableServer::POA::_ref_type adapter = servant->_default_POA ();
+		adapter->deactivate_object (adapter->servant_to_id (servant));
+	} catch (...) {
+		assert (false);
+	}
+}
+
+void Connection::check_exist () const
+{
+	if (!parent_)
+		throw CORBA::OBJECT_NOT_EXIST ();
 }
 
 NDBC::SQLWarning Connection::create_warning (int err) const
 {
 	return NDBC::SQLWarning (err, sqlite3_errmsg (sqlite_));
-}
-
-void Connection::add_warning (IDL::String&& msg)
-{
-	warnings_.emplace_back (0, std::move (msg));
 }
 
 void Connection::check_warning (int err) noexcept

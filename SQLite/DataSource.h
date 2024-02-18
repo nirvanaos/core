@@ -28,7 +28,8 @@
 #pragma once
 
 #include <Nirvana/Nirvana.h>
-#include "Connection.h"
+#include "Statement.h"
+#include "PreparedStatement.h"
 #include "filesystem.h"
 
 namespace SQLite {

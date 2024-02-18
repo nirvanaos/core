@@ -27,39 +27,79 @@
 #define SQLITE_CURSOR_H_
 #pragma once
 
-#include "Connection.h"
+#include "StatementBase.h"
 
 namespace SQLite {
-
-class Statement;
 
 class Cursor : public CORBA::servant_traits <NDBC::Cursor>::Servant <Cursor>
 {
 public:
-	Cursor (Connection& connection, sqlite3_stmt* stmt, bool floating_fields) :
-		connection_ (&connection),
+	Cursor (StatementBase& parent, sqlite3_stmt* stmt, uint32_t position) :
+		parent_ (&parent),
+		parent_version_ (parent.version ()),
 		stmt_ (stmt),
-		position_ (1),
-		floating_fields_ (floating_fields)
+		position_ (position ? position : 1),
+		after_end_ (!position),
+		error_ (0)
 	{}
 
-	NDBC::Records getNext (uint32_t from, uint32_t max_cnt)
+	void check_exist ();
+
+	NDBC::Rows getNext (uint32_t from, uint32_t max_cnt, uint32_t max_size)
 	{
-		if (!connection_)
-			throw CORBA::OBJECT_NOT_EXIST ();
-		throw CORBA::NO_IMPLEMENT ();
+		if (!from)
+			throw CORBA::BAD_PARAM ();
+
+		check_exist ();
+
+		if (from < position_) {
+			parent_->connection ().check_result (sqlite3_reset (stmt_));
+			position_ = 0;
+			after_end_ = false;
+			error_ = 0;
+		}
+
+		while (!after_end_ && !error_ && position_ <= from) {
+			step ();
+		}
+		
+		NDBC::Rows rows;
+		uint32_t size = 0;
+		while (!after_end_ && !error_ && rows.size () < max_cnt && size < max_size) {
+			uint32_t cb;
+			rows.push_back (get_row (stmt_, cb));
+			size += cb;
+			step ();
+		}
+
+		return rows;
 	}
 
-	void close () noexcept
+	NDBC::ColumnNames getColumnNames ()
 	{
-		connection_ = nullptr;
+		check_exist ();
+
+		NDBC::ColumnNames names;
+		int cnt = sqlite3_column_count (stmt_);
+		for (int i = 0; i < cnt; ++i) {
+			names.emplace_back (sqlite3_column_name (stmt_, i));
+		}
+
+		return names;
 	}
+
+	static NDBC::Row get_row (sqlite3_stmt* stmt, uint32_t& size);
 
 private:
-	CORBA::servant_reference <Connection> connection_;
+	void step ();
+
+private:
+	CORBA::servant_reference <StatementBase> parent_;
+	const StatementBase::Version parent_version_;
 	sqlite3_stmt* stmt_;
 	uint32_t position_;
-	bool floating_fields_;
+	bool after_end_;
+	int error_;
 };
 
 }
