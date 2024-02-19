@@ -106,7 +106,8 @@ bool StatementBase::execute_next ()
 		}
 		NDBC::Cursor::_ref_type cursor = CORBA::make_reference <Cursor> (
 			std::ref (*this), stmt, (uint32_t)prefetch.size ())->_this ();
-		result_set_ = NDBC::ResultSet::_factory->create (column_cnt, 0, std::move (cursor), std::move (prefetch), page_max_count_, page_max_size_);
+		result_set_ = NDBC::ResultSet::_factory->create (column_cnt, NDBC::ResultSet::FLAG_FORWARD_ONLY,
+			std::move (cursor), std::move (prefetch), page_max_count_, page_max_size_);
 		return true;
 	} else
 		return false;

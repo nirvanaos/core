@@ -30,6 +30,8 @@
 #include <Nirvana/Nirvana.h>
 #include <Nirvana/NDBC_s.h>
 #include <unordered_map>
+#include <time.h>
+#include <Nirvana/Formatter.h>
 
 namespace NDBC {
 
@@ -44,6 +46,8 @@ public:
 		Base::flags (flags);
 		Base::cursor (cursor);
 		Base::cache (rows);
+		Base::row (1);
+		Base::after_last (rows.empty ());
 		Base::pageMaxCount (fetch_max_count);
 		Base::pageMaxSize (fetch_max_size);
 	}
@@ -52,6 +56,18 @@ public:
 	{}
 
 	~ResultSetImpl ();
+
+	uint32_t pageMaxCount () const noexcept
+	{
+		return Base::pageMaxCount ();
+	}
+
+	void pageMaxCount (uint32_t v)
+	{
+		if (!v)
+			throw CORBA::BAD_PARAM ();
+		Base::pageMaxCount (v);
+	}
 
 	bool absolute (uint32_t row)
 	{
@@ -69,18 +85,16 @@ public:
 	}
 
 	void clearWarnings ()
-	{
-		throw CORBA::NO_IMPLEMENT ();
-	}
+	{}
 
 	void close ()
 	{
 		check ();
 		Base::cache ().clear ();
 		Base::column_names ().clear ();
-		Base::position (0);
+		Base::row (0);
 		Base::column_count (0);
-		Base::cache_position (0);
+		Base::cache_row (0);
 		Base::cursor (nullptr);
 	}
 
@@ -156,7 +170,7 @@ public:
 	uint32_t getRow () const noexcept
 	{
 		check ();
-		return position ();
+		return row ();
 	}
 
 	int16_t getSmallInt (Ordinal columnIndex)
@@ -172,7 +186,18 @@ public:
 
 	IDL::String getString (Ordinal columnIndex)
 	{
-		throw CORBA::NO_IMPLEMENT ();
+		return getString (field (columnIndex));
+	}
+
+	RSType getType () const
+	{
+		check ();
+		if (flags () & FLAG_FORWARD_ONLY)
+			return RSType::TYPE_FORWARD_ONLY;
+		else if (flags () & FLAG_SCROLL_SENSITIVE)
+			return RSType::TYPE_SCROLL_SENSITIVE;
+		else
+			return RSType::TYPE_SCROLL_INSENSITIVE;
 	}
 
 	SQLWarnings getWarnings () const
@@ -181,24 +206,24 @@ public:
 		return SQLWarnings ();
 	}
 
-	bool isAfterLast ()
+	bool isAfterLast () const noexcept
 	{
-		throw CORBA::NO_IMPLEMENT ();
+		return after_last ();
 	}
 
-	bool isBeforeFirst ()
+	bool isBeforeFirst () const noexcept
 	{
-		throw CORBA::NO_IMPLEMENT ();
+		return row () == 0;
 	}
 
-	bool isClosed ()
+	bool isClosed () const noexcept
 	{
-		throw CORBA::NO_IMPLEMENT ();
+		return !cursor ();
 	}
 
 	bool isFirst ()
 	{
-		throw CORBA::NO_IMPLEMENT ();
+		return row () == 1 && !after_last ();
 	}
 
 	bool isLast ()
@@ -213,7 +238,27 @@ public:
 
 	bool next ()
 	{
-		throw CORBA::NO_IMPLEMENT ();
+		check ();
+		uint32_t next_cached = Base::cache_row () + 1;
+		if (!after_last ()) {
+			uint32_t next_row = Base::row () + 1;
+			if (next_cached >= cache ().size ()) {
+				Rows rows = cursor ()->getNext (next_row, Base::pageMaxCount (), Base::pageMaxSize ());
+				if (rows.empty ())
+					Base::after_last (true);
+				if (!rows.empty () || (flags () & FLAG_FORWARD_ONLY)) {
+					cache (std::move (rows));
+					Base::cache_row (0);
+					next_cached = 0;
+				}
+			} else if (flags () & FLAG_FORWARD_ONLY)
+				cache ().erase (cache ().begin ());
+			else
+				Base::cache_row (next_cached);
+			Base::row (next_row);
+		}
+
+		return !after_last ();
 	}
 
 	bool previous ()
@@ -227,11 +272,8 @@ public:
 	}
 
 private:
-	void check () const
-	{
-		if (!cursor ())
-			throw_exception ("ResultSet is closed");
-	}
+	void check () const;
+	void check_row_valid () const;
 
 	static bool is_ascii (const IDL::String& s) noexcept
 	{
@@ -261,6 +303,7 @@ private:
 
 	NIRVANA_NORETURN static void throw_exception (IDL::String msg);
 	NIRVANA_NORETURN static void data_conversion_error ();
+	NIRVANA_NORETURN static void error_forward_only ();
 
 	static std::wstring u2w (const IDL::String& utf8);
 
@@ -286,6 +329,68 @@ private:
 		}
 
 		data_conversion_error ();
+	}
+
+	static IDL::String getString (const Variant& v)
+	{
+		IDL::String ret;
+		switch (v._d ()) {
+		case DB_STRING:
+			ret = v.s_val ();
+			break;
+
+		case DB_NULL:
+			ret = "NULL";
+			break;
+		case DB_BIGINT:
+			ret = std::to_string (v.ll_val ());
+			break;
+		case DB_DATE: {
+			struct tm tminfo;
+			time_t time = ((time_t)v.l_val () * TimeBase::DAY - Nirvana::UNIX_EPOCH) / TimeBase::SECOND;
+			gmtime_r (&time, &tminfo);
+			char buffer [16];
+			strftime (buffer, sizeof (buffer), "%Y-%m-%d", &tminfo);
+			ret = buffer;
+		} break;
+		case DB_DATETIME: {
+			struct tm tminfo;
+			time_t time = ((time_t)v.ll_val () - Nirvana::UNIX_EPOCH) / TimeBase::SECOND;
+			gmtime_r (&time, &tminfo);
+			char buffer [64];
+			strftime (buffer, sizeof (buffer), "%Y-%m-%d %H:%M:%S", &tminfo);
+			ret = buffer;
+		} break;
+
+		case DB_DOUBLE:
+			ret = std::to_string (v.dbl_val ());
+			break;
+		case DB_FLOAT:
+			ret = std::to_string (v.flt_val ());
+			break;
+		case DB_INT:
+			ret = std::to_string (v.l_val ());
+			break;
+		case DB_SMALLINT:
+			ret = std::to_string (v.si_val ());
+			break;
+		case DB_TINYINT:
+			ret = std::to_string (v.byte_val ());
+			break;
+		case DB_TIME: {
+			uint32_t s = (uint32_t)(v.ll_val () / TimeBase::SECOND);
+			unsigned m = s / 60;
+			s %= 60;
+			unsigned h = m / 60;
+			m %= 60;
+			Nirvana::append_format (ret, "%02u:%02u:%02u", h, m, s);
+		} break;
+
+		default:
+			data_conversion_error ();
+		}
+
+		return ret;
 	}
 
 private:

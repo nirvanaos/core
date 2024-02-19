@@ -39,8 +39,10 @@ NIRVANA_NORETURN void ResultSetImpl::data_conversion_error ()
 	throw_exception ("Data conversion error");
 }
 
-ResultSetImpl::~ResultSetImpl ()
-{}
+NIRVANA_NORETURN void ResultSetImpl::error_forward_only ()
+{
+	throw_exception ("ResultSet if forward-only");
+}
 
 std::wstring ResultSetImpl::u2w (const IDL::String& utf8)
 {
@@ -49,14 +51,30 @@ std::wstring ResultSetImpl::u2w (const IDL::String& utf8)
 	return ret;
 }
 
+ResultSetImpl::~ResultSetImpl ()
+{}
+
+void ResultSetImpl::check () const
+{
+	if (!cursor ())
+		throw_exception ("ResultSet is closed");
+}
+
+void ResultSetImpl::check_row_valid () const
+{
+	check ();
+	if (row () == 0 || after_last ())
+		throw_exception ("No current record");
+}
+
 const Variant& ResultSetImpl::field (Ordinal ord) const
 {
+	check_row_valid ();
 	if (ord == 0 || ord > column_count ())
 		throw_exception ("Invalid column index");
-	return cache () [cache_position ()][ord - 1];
+	return cache () [cache_row ()][ord - 1];
 }
 
 }
 
 NIRVANA_VALUETYPE_IMPL (_exp_NDBC_ResultSet, NDBC::ResultSet, NDBC::ResultSetImpl)
-
