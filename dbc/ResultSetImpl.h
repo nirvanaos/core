@@ -132,29 +132,34 @@ public:
 		return column_count ();
 	}
 
-	CORBA::Any getDecimal (Ordinal columnIndex)
+	int64_t getBigInt (Ordinal columnIndex)
 	{
-		throw CORBA::NO_IMPLEMENT ();
+		return getBigInt (field (columnIndex));
 	}
 
 	Blob getBlob (Ordinal columnIndex)
 	{
-		throw CORBA::NO_IMPLEMENT ();
+		return getBlob (field (columnIndex));
 	}
 
 	bool getBoolean (Ordinal columnIndex)
 	{
-		throw CORBA::NO_IMPLEMENT ();
+		return getBoolean (field (columnIndex));
 	}
 
 	CORBA::Octet getByte (Ordinal columnIndex)
+	{
+		return getByte (field (columnIndex));
+	}
+
+	CORBA::Any getDecimal (Ordinal columnIndex)
 	{
 		throw CORBA::NO_IMPLEMENT ();
 	}
 
 	CORBA::Double getDouble (Ordinal columnIndex)
 	{
-		throw CORBA::NO_IMPLEMENT ();
+		return getDouble (field (columnIndex));
 	}
 
 	CORBA::Float getFloat (Ordinal columnIndex)
@@ -175,7 +180,7 @@ public:
 
 	int16_t getSmallInt (Ordinal columnIndex)
 	{
-		throw CORBA::NO_IMPLEMENT ();
+		return getSmallInt (field (columnIndex));
 	}
 
 	StatementBase::_ref_type getStatement ()
@@ -309,6 +314,25 @@ private:
 
 	const Variant& field (Ordinal ord) const;
 
+	static int64_t getBigInt (const Variant& v)
+	{
+		switch (v._d ()) {
+		case DB_NULL:
+			return 0;
+		case DB_DATE:
+		case DB_INT:
+			return v.l_val ();
+		case DB_SMALLINT:
+			return v.si_val ();
+		case DB_TINYINT:
+			return v.byte_val ();
+		case DB_BIGINT:
+			return v.ll_val ();
+		}
+
+		data_conversion_error ();
+	}
+
 	static int32_t getInt (const Variant& v)
 	{
 		switch (v._d ()) {
@@ -325,6 +349,57 @@ private:
 			int64_t ll = v.ll_val ();
 			if (std::numeric_limits <int32_t>::min () <= ll && ll <= std::numeric_limits <int32_t>::max ())
 				return (int32_t)ll;
+		} break;
+		}
+
+		data_conversion_error ();
+	}
+
+	static int32_t getSmallInt (const Variant& v)
+	{
+		switch (v._d ()) {
+		case DB_NULL:
+			return 0;
+		case DB_INT: {
+			int32_t l = v.l_val ();
+			if (std::numeric_limits <int16_t>::min () <= l && l <= std::numeric_limits <int16_t>::max ())
+				return (int16_t)l;
+		} break;
+		case DB_SMALLINT:
+			return v.si_val ();
+		case DB_TINYINT:
+			return v.byte_val ();
+		case DB_BIGINT: {
+			int64_t ll = v.ll_val ();
+			if (std::numeric_limits <int16_t>::min () <= ll && ll <= std::numeric_limits <int16_t>::max ())
+				return (int16_t)ll;
+		} break;
+		}
+
+		data_conversion_error ();
+	}
+
+	static uint8_t getByte (const Variant& v)
+	{
+		switch (v._d ()) {
+		case DB_NULL:
+			return 0;
+		case DB_INT: {
+			int32_t l = v.l_val ();
+			if (std::numeric_limits <int8_t>::min () <= l && l <= std::numeric_limits <int8_t>::max ())
+				return (int8_t)l;
+		} break;
+		case DB_SMALLINT: {
+			int16_t si = v.si_val ();
+			if (std::numeric_limits <int8_t>::min () <= si && si <= std::numeric_limits <int8_t>::max ())
+				return (int8_t)si;
+		} break;
+		case DB_TINYINT:
+			return v.byte_val ();
+		case DB_BIGINT: {
+			int64_t ll = v.ll_val ();
+			if (std::numeric_limits <int8_t>::min () <= ll && ll <= std::numeric_limits <int8_t>::max ())
+				return (int8_t)ll;
 		} break;
 		}
 
@@ -391,6 +466,54 @@ private:
 		}
 
 		return ret;
+	}
+
+	static Blob getBlob (const Variant& v)
+	{
+		switch (v._d ()) {
+		case DB_NULL:
+			return Blob ();
+		case DB_BINARY:
+			return v.blob ();
+		}
+
+		data_conversion_error ();
+	}
+
+	static bool getBoolean (const Variant& v)
+	{
+		switch (v._d ()) {
+		case DB_BIGINT:
+			return v.ll_val () != 0;
+		case DB_INT:
+			return v.l_val () != 0;
+		case DB_SMALLINT:
+			return v.si_val () != 0;
+		case DB_TINYINT:
+			return v.byte_val () != 0;
+		}
+
+		data_conversion_error ();
+	}
+
+	static double getDouble (const Variant& v)
+	{
+		switch (v._d ()) {
+		case DB_NULL:
+			return 0;
+		case DB_INT:
+			return v.l_val ();
+		case DB_SMALLINT:
+			return v.si_val ();
+		case DB_TINYINT:
+			return v.byte_val ();
+		case DB_DOUBLE:
+			return v.dbl_val ();
+		case DB_FLOAT:
+			return v.flt_val ();
+		}
+
+		data_conversion_error ();
 	}
 
 private:
