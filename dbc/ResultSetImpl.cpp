@@ -1,5 +1,5 @@
 /*
-* Nirvana SQLite driver.
+* Database connection module.
 *
 * This is a part of the Nirvana project.
 *
@@ -24,50 +24,39 @@
 *  popov.nirvana@gmail.com
 */
 #include "pch.h"
-#include "Connection_impl.h"
+#include "ResultSetImpl.h"
+#include <Nirvana/string_conv.h>
 
-namespace SQLite {
+namespace NDBC {
 
-void deactivate_servant (PortableServer::Servant servant) noexcept
-{
-	try {
-		PortableServer::POA::_ref_type adapter = servant->_default_POA ();
-		adapter->deactivate_object (adapter->servant_to_id (servant));
-	} catch (...) {
-		assert (false);
-	}
-}
-
-NIRVANA_NORETURN void throw_exception (IDL::String msg)
+NIRVANA_NORETURN void ResultSetImpl::throw_exception (IDL::String msg)
 {
 	throw NDBC::SQLException (NDBC::SQLWarning (0, std::move (msg)), NDBC::SQLWarnings ());
 }
 
-void Connection::check_exist () const
+NIRVANA_NORETURN void ResultSetImpl::data_conversion_error ()
 {
-	if (!parent_)
-		throw CORBA::OBJECT_NOT_EXIST ();
+	throw_exception ("Data conversion error");
 }
 
-NDBC::SQLWarning Connection::create_warning (int err) const
+ResultSetImpl::~ResultSetImpl ()
+{}
+
+std::wstring ResultSetImpl::u2w (const IDL::String& utf8)
 {
-	return NDBC::SQLWarning (err, sqlite3_errmsg (sqlite_));
+	std::wstring ret;
+	Nirvana::append_wide (utf8, ret);
+	return ret;
 }
 
-void Connection::check_warning (int err) noexcept
+const Variant& ResultSetImpl::field (Ordinal ord) const
 {
-	if (err) {
-		try {
-			warnings_.emplace_back (create_warning (err));
-		} catch (...) {
-		}
-	}
-}
-
-void Connection::check_result (int err) const
-{
-	if (err)
-		throw NDBC::SQLException (create_warning (err), NDBC::SQLWarnings ());
+	if (ord == 0 || ord > column_count ())
+		throw_exception ("Invalid column index");
+	return cache () [cache_position ()][ord - 1];
 }
 
 }
+
+NIRVANA_VALUETYPE_IMPL (_exp_NDBC_ResultSet, NDBC::ResultSet, NDBC::ResultSetImpl)
+

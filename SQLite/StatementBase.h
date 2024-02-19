@@ -56,10 +56,7 @@ public:
 		return connection ()._this ();
 	}
 
-	virtual bool getMoreResults () override
-	{
-		return cur_statement_ < statements_.size ();
-	}
+	virtual bool getMoreResults () override;
 
 	virtual NDBC::ResultSet::_ref_type getResultSet () override
 	{

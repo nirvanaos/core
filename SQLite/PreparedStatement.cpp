@@ -37,7 +37,7 @@ PreparedStatement::ParamIndex PreparedStatement::get_param_index (unsigned i)
 			return { stmt, i };
 		i -= par_cnt;
 	}
-	throw NDBC::SQLException (NDBC::SQLWarning (0, "Invalid parameter index"), NDBC::SQLWarnings ());
+	throw_exception ("Invalid parameter index");
 }
 
 PreparedStatement::ParamIndex PreparedStatement::get_param_index (const IDL::String& name)
@@ -48,7 +48,7 @@ PreparedStatement::ParamIndex PreparedStatement::get_param_index (const IDL::Str
 		if (i >= 1)
 			return { stmt, (unsigned)i };
 	}
-	throw NDBC::SQLException (NDBC::SQLWarning (0, "Parameter not found: " + name), NDBC::SQLWarnings ());
+	throw_exception ("Parameter not found: " + name);
 }
 
 double PreparedStatement::fixed2double (const CORBA::Any& v)

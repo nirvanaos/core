@@ -25,6 +25,7 @@
 */
 #include "pch.h"
 #include "Cursor.h"
+#include <limits>
 
 namespace SQLite {
 
@@ -39,10 +40,22 @@ NDBC::Row Cursor::get_row (sqlite3_stmt* stmt, uint32_t& size)
 		NDBC::Variant v;
 		int ct = sqlite3_column_type (stmt, i);
 		switch (ct) {
-		case SQLITE_INTEGER:
-			v.ll_val (sqlite3_column_int64 (stmt, i));
-			cb += 8;
-			break;
+		case SQLITE_INTEGER: {
+			sqlite3_int64 i64 = sqlite3_column_int64 (stmt, i);
+			if (i64 >= 0 && i64 <= std::numeric_limits <CORBA::Octet>::max ()) {
+				v.byte_val ((CORBA::Octet)i64);
+				cb += 1;
+			} else if (std::numeric_limits <CORBA::Short>::min () <= i64 && i64 <= std::numeric_limits <CORBA::Short>::max ()) {
+				v.si_val ((CORBA::Short)i64);
+				cb += 2;
+			} else if (std::numeric_limits <CORBA::Long>::min () <= i64 && i64 <= std::numeric_limits <CORBA::Long>::max ()) {
+				v.l_val ((CORBA::Long)i64);
+				cb += 4;
+			} else {
+				v.ll_val (i64);
+				cb += 8;
+			}
+		} break;
 		case SQLITE_FLOAT:
 			v.dbl_val (sqlite3_column_double (stmt, i));
 			cb += 8;
@@ -55,7 +68,7 @@ NDBC::Row Cursor::get_row (sqlite3_stmt* stmt, uint32_t& size)
 		case SQLITE_BLOB: {
 			size_t size = sqlite3_column_bytes (stmt, i);
 			const CORBA::Octet* b = (const CORBA::Octet*)sqlite3_column_blob (stmt, i);
-			v.blob (NDBC::BLOB (b, b + size));
+			v.blob (NDBC::Blob (b, b + size));
 			cb += size;
 		} break;
 		}

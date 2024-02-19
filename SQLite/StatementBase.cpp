@@ -90,7 +90,8 @@ bool StatementBase::execute_next ()
 	int step_result = step (stmt);
 	changed_rows_ = sqlite3_changes (connection ().sqlite ());
 
-	if (SQLITE_ROW == step_result || sqlite3_column_count (stmt) > 0) {
+	int column_cnt = sqlite3_column_count (stmt);
+	if (SQLITE_ROW == step_result || column_cnt > 0) {
 		NDBC::Rows prefetch;
 		uint32_t cnt = 0;
 		uint32_t size = 0;
@@ -105,7 +106,7 @@ bool StatementBase::execute_next ()
 		}
 		NDBC::Cursor::_ref_type cursor = CORBA::make_reference <Cursor> (
 			std::ref (*this), stmt, (uint32_t)prefetch.size ())->_this ();
-		result_set_ = NDBC::ResultSet::_factory->create (std::move (cursor), std::move (prefetch), page_max_count_, page_max_size_);
+		result_set_ = NDBC::ResultSet::_factory->create (column_cnt, 0, std::move (cursor), std::move (prefetch), page_max_count_, page_max_size_);
 		return true;
 	} else
 		return false;
@@ -131,6 +132,15 @@ int StatementBase::step (sqlite3_stmt* stmt)
 	}
 
 	return step_result;
+}
+
+bool StatementBase::getMoreResults ()
+{
+	check_exist ();
+	if (0 < cur_statement_ && cur_statement_ < statements_.size ())
+		return execute_next ();
+	else
+		throw_exception ("No results available");
 }
 
 }

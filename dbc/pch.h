@@ -9,5 +9,6 @@
 
 // add headers that you want to pre-compile here
 #include <Nirvana/Nirvana.h>
+#include <Nirvana/NDBC_s.h>
 
 #endif //PCH_H

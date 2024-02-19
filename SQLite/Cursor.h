@@ -88,7 +88,7 @@ public:
 		return names;
 	}
 
-	NDBC::StatementBase::_ref_type statement ()
+	NDBC::StatementBase::_ref_type getStatement ()
 	{
 		check_exist ();
 		return parent_->_this ();

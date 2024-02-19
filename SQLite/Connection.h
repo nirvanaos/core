@@ -35,6 +35,8 @@ namespace SQLite {
 
 void deactivate_servant (PortableServer::Servant servant) noexcept;
 
+NIRVANA_NORETURN void throw_exception (IDL::String msg);
+
 class Connection : public CORBA::servant_traits <NDBC::Connection>::Servant <Connection>
 {
 public:

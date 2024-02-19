@@ -69,14 +69,14 @@ public:
 		connection ().check_result (sqlite3_bind_int64 (pi.stmt, pi.idx, v));
 	}
 
-	virtual void setBlob (NDBC::Ordinal i, const NDBC::BLOB& v) override
+	virtual void setBlob (NDBC::Ordinal i, const NDBC::Blob& v) override
 	{
 		ParamIndex pi = get_param_index (i);
 		connection ().check_result (sqlite3_bind_blob64 (pi.stmt, pi.idx, v.data (),
 			(sqlite3_uint64)v.size (), nullptr));
 	}
 
-	virtual void setBlobByName (const IDL::String& name, const NDBC::BLOB& v) override
+	virtual void setBlobByName (const IDL::String& name, const NDBC::Blob& v) override
 	{
 		ParamIndex pi = get_param_index (name);
 		connection ().check_result (sqlite3_bind_blob64 (pi.stmt, pi.idx, v.data (),
