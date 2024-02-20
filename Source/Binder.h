@@ -59,7 +59,6 @@ class Binder
 
 public:
 	typedef CORBA::Internal::Interface::_ref_type InterfaceRef;
-	typedef CORBA::Object::_ref_type ObjectRef;
 	template <class T>
 	using Allocator = BinderMemory::Allocator <T>;
 
@@ -73,27 +72,22 @@ public:
 	static void initialize ();
 	static void terminate ();
 
-	// Implements System::Bind
-	static ObjectRef bind (CORBA::Internal::String_in name)
+	// Implements System::bind()
+	static CORBA::Object::_ref_type bind (const IDL::String& name)
 	{
-		const std::string& sname = static_cast <const std::string&> (name);
-		SharedString name_copy (sname.c_str (), sname.length ());
-		ObjectRef ret;
+		CORBA::Object::_ref_type ret;
 		SYNC_BEGIN (sync_domain (), nullptr);
-		ret = singleton_->bind_sync (name_copy);
+		ret = singleton_->bind_sync (name);
 		SYNC_END ();
 		return ret;
 	}
 
-	/// Implements System::BindInterface
-	static InterfaceRef bind_interface (CORBA::Internal::String_in name, CORBA::Internal::String_in iid)
+	/// Implements System::bind_interface()
+	static InterfaceRef bind_interface (const IDL::String& name, const IDL::String& iid)
 	{
-		const std::string& sname = static_cast <const std::string&> (name);
-		const std::string& siid = static_cast <const std::string&> (iid);
-		SharedString name_copy (sname.c_str (), sname.length ()), iid_copy (siid.c_str (), siid.length ());
 		InterfaceRef ret;
 		SYNC_BEGIN (sync_domain (), nullptr);
-		ret = singleton_->bind_interface_sync (name_copy, iid_copy);
+		ret = singleton_->bind_interface_sync (name, iid);
 		SYNC_END ();
 		return ret;
 	}
@@ -221,6 +215,15 @@ public:
 		}
 	}
 
+	static CORBA::Object::_ref_type load_and_bind (const ModuleLoad& mod, bool singleton, CORBA::Internal::String_in name)
+	{
+		CORBA::Object::_ref_type ret;
+		SYNC_BEGIN (sync_domain (), nullptr);
+		ret = singleton_->load_and_bind_sync (mod, singleton, ObjectKey (name.data(), name.size ()));
+		SYNC_END ();
+		return ret;
+	}
+
 private:
 	typedef CORBA::Internal::RepId RepId;
 	typedef CORBA::Internal::RepId::Version Version;
@@ -339,7 +342,7 @@ private:
 	static void release_imports (Nirvana::Module::_ptr_type mod, const Section& metadata);
 
 	InterfaceRef bind_interface_sync (const ObjectKey& name, CORBA::Internal::String_in iid);
-	ObjectRef bind_sync (const ObjectKey& name);
+	CORBA::Object::_ref_type bind_sync (const ObjectKey& name);
 
 	InterfaceRef find (const ObjectKey& name);
 
@@ -347,6 +350,15 @@ private:
 
 	Ref <Module> load (const ModuleLoad& module_load, bool singleton);
 	void unload (Module* pmod);
+
+	CORBA::Object::_ref_type load_and_bind_sync (const ModuleLoad& mod, bool singleton, const ObjectKey& name)
+	{
+		load (mod, singleton);
+		InterfaceRef itf = object_map_.find (name);
+		if (itf && CORBA::Internal::RepId::compatible (itf->_epv ().interface_id, CORBA::Internal::RepIdOf <CORBA::Object>::id))
+			return itf.template downcast <CORBA::Object> ();
+		throw_OBJECT_NOT_EXIST ();
+	}
 
 	void housekeeping_modules ();
 	void delete_module (Module* mod);
@@ -377,7 +389,7 @@ private:
 	};
 
 private:
-	Packages::_ref_type install_repo_;
+	Packages::_ref_type packages_;
 	ObjectMap object_map_;
 	ModuleMap module_map_;
 	CORBA::Core::RemoteReferences remote_references_;

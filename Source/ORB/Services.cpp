@@ -37,6 +37,7 @@ namespace Core {
 
 extern CORBA::Object::_ref_type create_SysDomain ();
 extern CORBA::Object::_ref_type create_ProtDomain ();
+extern CORBA::Object::_ref_type create_ProtDomain ();
 
 }
 }

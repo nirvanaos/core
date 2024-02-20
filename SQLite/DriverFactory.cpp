@@ -36,7 +36,7 @@ namespace CORBA {
 namespace Internal {
 
 template <>
-const char StaticId <SQLite::DriverFactory>::id [] = "Nirvana/DB/factory_sqlite";
+const char StaticId <SQLite::DriverFactory>::id [] = "NDBC/factory_sqlite";
 
 }
 }

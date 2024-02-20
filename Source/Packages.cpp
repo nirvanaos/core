@@ -23,14 +23,30 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "DriverManager.h"
+#include "pch.h"
+#include "Packages.h"
+#include <fnctl.h>
 
 namespace Nirvana {
 namespace Core {
 
-NIRVANA_NORETURN void DriverManager::raise (IDL::String msg)
+IDL::traits <AccessDirect>::ref_type Packages::open_binary (CosNaming::NamingContextExt::_ptr_type ns,
+	IDL::String path)
 {
-	throw NDBC::SQLException (NDBC::SQLWarning (0, std::move (msg)), NDBC::SQLWarnings ());
+	CORBA::Object::_ref_type obj;
+	try {
+		obj = ns->resolve_str (path);
+	} catch (const CORBA::Exception& ex) {
+		const CORBA::SystemException* se = CORBA::SystemException::_downcast (&ex);
+		if (se)
+			se->_raise ();
+		else
+			throw_OBJECT_NOT_EXIST ();
+	}
+	File::_ref_type file = File::_narrow (obj);
+	if (!file)
+		throw_UNKNOWN (make_minor_errno (EISDIR));
+	return AccessDirect::_narrow (file->open (O_RDONLY | O_DIRECT, 0)->_to_object ());
 }
 
 }

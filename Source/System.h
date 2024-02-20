@@ -62,12 +62,16 @@ public:
 			MemContext::current ().runtime_proxy_remove (obj);
 	}
 
-	static CORBA::Object::_ref_type bind (const IDL::String& name)
+	// This operation can cause context switch.
+	// So we make private copies of the client strings in stak.
+	static CORBA::Object::_ref_type bind (IDL::String name)
 	{
 		return Binder::bind (name);
 	}
 
-	static CORBA::Internal::Interface::_ref_type bind_interface (const IDL::String& name, const IDL::String& iid)
+	// This operation can cause context switch.
+	// So we make private copies of the client strings in stak.
+	static CORBA::Internal::Interface::_ref_type bind_interface (IDL::String name, IDL::String iid)
 	{
 		return Binder::bind_interface (name, iid);
 	}

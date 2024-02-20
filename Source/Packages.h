@@ -30,9 +30,10 @@
 
 #include <CORBA/Server.h>
 #include <Nirvana/Domains_s.h>
+#include <Nirvana/NDBC.h>
 #include <Port/SysDomain.h>
 #include "NameService/FileSystem.h"
-#include <fnctl.h>
+#include "Binder.h"
 
 namespace Nirvana {
 namespace Core {
@@ -46,20 +47,18 @@ class Packages :
 
 public:
 	Packages (CORBA::Object::_ptr_type comp) :
-		Servant (comp)
+		Servant (comp),
+		name_service_ (CosNaming::NamingContextExt::_narrow (CORBA::Core::Services::bind (
+			CORBA::Core::Services::NameService)))
 	{}
 
-	void get_bind_info (const IDL::String& obj_name, unsigned platform, BindInfo& bind_info)
+	void get_bind_info (const IDL::String& obj_name, unsigned platform, BindInfo& bind_info) const
 	{
-		// TODO:: Temporary solution, for testing
-		IDL::String path = Port::SysDomain::get_platform_dir (platform);
-		IDL::String translated;
-		if (FileSystem::translate_path (path, translated))
-			path = std::move (translated);
-		auto ns = CosNaming::NamingContextExt::_narrow (CORBA::Core::Services::bind (CORBA::Core::Services::NameService));
-
 		int32_t module_id;
 		const char* module_name;
+
+		const char dbc [] = "IDL:NDBC/";
+
 		if (obj_name == "Nirvana/g_dec_calc") {
 			module_name = "DecCalc.olf";
 			module_id = 1;
@@ -69,34 +68,48 @@ public:
 			(!std::is_same <double, CORBA::Double>::value && obj_name == "CORBA/Internal/g_sfloat8")
 			||
 			(!std::is_same <long double, CORBA::LongDouble>::value && obj_name == "CORBA/Internal/g_sfloat16")
-			)
-		{
+		) {
 			module_name = "SFloat.olf";
 			module_id = 2;
+		} else if (obj_name.size () >= sizeof (dbc) && 0 == obj_name.compare (0, sizeof (dbc) - 1, dbc)) {
+			module_name = "dbc.olf";
+			module_id = 3;
+		} else if (obj_name == "NDBC/manager") {
+			bind_info.loaded_object (Binder::load_and_bind (
+				ModuleLoad (4, Packages::open_binary (name_service_, "/sbin/DriverManager.olf")), true,
+				"NDBC/manager"));
+			return;
 		} else {
+			// TODO:: Temporary solution, for testing
 			module_name = "TestModule.olf";
 			module_id = 100;
 		}
 
-		path += '/';
-		path += module_name;
-		CORBA::Object::_ref_type obj;
-		try {
-			obj = ns->resolve_str (path);
-		} catch (const CORBA::Exception& ex) {
-			const CORBA::SystemException* se = CORBA::SystemException::_downcast (&ex);
-			if (se)
-				se->_raise ();
-			else
-				throw_OBJECT_NOT_EXIST ();
-		}
-		File::_ref_type file = File::_narrow (obj);
-		if (!file)
-			throw_UNKNOWN (make_minor_errno (EISDIR));
 		ModuleLoad& module_load = bind_info.module_load ();
-		module_load.binary (AccessDirect::_narrow (file->open (O_RDONLY | O_DIRECT, 0)->_to_object ()));
+		module_load.binary (open_system_binary (platform, module_name));
 		module_load.module_id (module_id);
 	}
+
+	static IDL::traits <AccessDirect>::ref_type open_binary (CosNaming::NamingContextExt::_ptr_type ns,
+		IDL::String path);
+
+private:
+	IDL::traits <AccessDirect>::ref_type open_system_binary (unsigned platform,
+		const char* module_name) const
+	{
+		IDL::String path = Port::SysDomain::get_platform_dir (platform);
+		IDL::String translated;
+		if (FileSystem::translate_path (path, translated))
+			path = std::move (translated);
+
+		path += '/';
+		path += module_name;
+
+		return open_binary (name_service_, path);
+	}
+
+private:
+	CosNaming::NamingContextExt::_ref_type name_service_;
 
 };
 

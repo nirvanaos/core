@@ -33,6 +33,8 @@ module Nirvana {
 
 interface ProtDomainCore : ProtDomain
 {
+	Object load_and_bind (in long mod_id, in string mod_path, in boolean singleton, in string name);
+
 	void request (in CORBA::OctetSeq data_in, out CORBA::OctetSeq data_out);
 	oneway void request_oneway (in CORBA::OctetSeq data);
 };

@@ -142,7 +142,7 @@ void Binder::terminate ()
 
 	SYNC_BEGIN (sync_domain (), nullptr);
 	initialized_ = false;
-	singleton_->install_repo_ = nullptr;
+	singleton_->packages_ = nullptr;
 	singleton_->unload_modules ();
 	SYNC_END ();
 	Section metadata;
@@ -376,7 +376,7 @@ Ref <Module> Binder::load (const ModuleLoad& module_load, bool singleton)
 			SYNC_END ();
 
 			assert (mod->_refcount_value () == 0);
-			ModuleContext context{ mod->sync_context () };
+			ModuleContext context { mod->sync_context () };
 			const ModuleStartup* startup = module_bind (mod->_get_ptr (), mod->metadata (), &context);
 			try {
 
@@ -495,13 +495,13 @@ Binder::InterfaceRef Binder::find (const ObjectKey& name)
 			throw_OBJECT_NOT_EXIST ();
 		itf = object_map_.find (name);
 		if (!itf) {
-			if (!install_repo_)
-				install_repo_ = SysDomain::_narrow (Services::bind (Services::SysDomain))->provide_packages ();
+			if (!packages_)
+				packages_ = SysDomain::_narrow (Services::bind (Services::SysDomain))->provide_packages ();
 			BindInfo bind_info;
-			install_repo_->get_bind_info (name.name (), PLATFORM, bind_info);
+			packages_->get_bind_info (name.name (), PLATFORM, bind_info);
 			if (bind_info._d ()) {
 				try {
-					Ref <Module> mod = load (bind_info.module_load (), false);
+					load (bind_info.module_load (), false);
 				} catch (const SystemException&) {
 					// TODO: Log
 					throw_OBJECT_NOT_EXIST ();
@@ -548,7 +548,7 @@ Object::_ref_type Binder::bind_sync (const ObjectKey& name)
 {
 	InterfaceRef itf = find (name);
 	if (RepId::compatible (itf->_epv ().interface_id, RepIdOf <Object>::id))
-		return reinterpret_cast <Object::_ref_type&&> (itf);
+		return itf.template downcast <CORBA::Object> ();
 	else
 		throw_INV_OBJREF ();
 }
