@@ -510,12 +510,15 @@ Binder::InterfaceRef Binder::find (const ObjectKey& name)
 				if (!itf)
 					throw_OBJECT_NOT_EXIST ();
 			} else {
-				CORBA::Object::_ptr_type obj = bind_info.loaded_object ();
-				CORBA::Core::ReferenceRemote* ref = static_cast <CORBA::Core::ReferenceRemote*> (
-					CORBA::Core::ProxyManager::cast (obj));
-				if (!ref)
+				Object::_ptr_type obj = bind_info.loaded_object ();
+				ProxyManager* proxy = ProxyManager::cast (obj);
+				if (!proxy)
 					throw_OBJECT_NOT_EXIST ();
-				object_map_.insert (ref->set_object_name (name.name ()), &obj);
+				Reference* ref = proxy->to_reference ();
+				if (ref && !(ref->flags () & Reference::LOCAL)) {
+					ReferenceRemote& rr = static_cast <ReferenceRemote&> (*ref);
+					object_map_.insert (rr.set_object_name (name.name ()), &obj);
+				}
 				return std::move (bind_info.loaded_object ());
 			}
 		}
