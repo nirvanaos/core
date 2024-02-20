@@ -27,7 +27,8 @@
 #define SQLITE_GLOBAL_H_
 #pragma once
 
-#include "Driver.h"
+#include <Nirvana/Nirvana.h>
+#include <Nirvana/File.h>
 
 namespace SQLite {
 
@@ -38,14 +39,24 @@ class Global
 public:
 	Global ();
 	~Global ();
-	
-	Driver& driver () const noexcept
+
+	PortableServer::POA::_ptr_type adapter () const noexcept
 	{
-		return *driver_;
+		assert (adapter_);
+		return adapter_;
+	}
+	
+	Nirvana::FileSystem::_ptr_type file_system () const noexcept
+	{
+		assert (file_system_);
+		return file_system_;
 	}
 
+	Nirvana::Access::_ref_type open_file (const IDL::String& url, uint_fast16_t flags) const;
+
 private:
-	const CORBA::servant_reference <Driver> driver_;
+	Nirvana::FileSystem::_ref_type file_system_;
+	PortableServer::POA::_ref_type adapter_;
 };
 
 extern const Global global;

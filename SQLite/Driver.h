@@ -27,9 +27,8 @@
 #define SQLITE_DRIVER_H_
 #pragma once
 
-#include <Nirvana/Nirvana.h>
-#include <Nirvana/File.h>
-#include "Activator.h"
+#include "Global.h"
+#include <Nirvana/NDBC_s.h>
 #include <fnctl.h>
 
 namespace SQLite {
@@ -37,46 +36,19 @@ namespace SQLite {
 class Driver : public CORBA::servant_traits <NDBC::Driver>::Servant <Driver>
 {
 public:
-	Driver () :
-		file_system_ (Nirvana::FileSystem::_narrow (CosNaming::NamingContext::_narrow (
-			CORBA::g_ORB->resolve_initial_references ("NameService"))->resolve (CosNaming::Name (1))))
-	{
-		PortableServer::POA::_ref_type root = PortableServer::POA::_narrow (
-			CORBA::g_ORB->resolve_initial_references ("RootPOA"));
-
-		if (!file_system_ || !root)
-			throw CORBA::INITIALIZE ();
-
-		CORBA::PolicyList policies;
-		policies.push_back (root->create_lifespan_policy (PortableServer::LifespanPolicyValue::PERSISTENT));
-		policies.push_back (root->create_id_assignment_policy (PortableServer::IdAssignmentPolicyValue::USER_ID));
-		policies.push_back (root->create_request_processing_policy (PortableServer::RequestProcessingPolicyValue::USE_SERVANT_MANAGER));
-		policies.push_back (root->create_id_uniqueness_policy (PortableServer::IdUniquenessPolicyValue::MULTIPLE_ID));
-		PortableServer::POA::_ref_type adapter = root->create_POA ("sqlite", root->the_POAManager (), policies);
-		adapter->set_servant_manager (CORBA::make_stateless <Activator> ()->_this ());
-		adapter_ = std::move (adapter);
-	}
+	Driver ()
+	{}
 
 	NDBC::DataSource::_ref_type getDataSource (const IDL::String& url) const
 	{
 		// Create file if not exists
-		Nirvana::File::_ref_type file = open_file (url, O_CREAT)->file ();
+		Nirvana::File::_ref_type file = global.open_file (url, O_CREAT)->file ();
 
 		// Get file ID and create reference
 		return NDBC::DataSource::_narrow (
-			adapter_->create_reference_with_id (file->id (), NDBC::_tc_DataSource->id ()));
+			global.adapter ()->create_reference_with_id (file->id (), NDBC::_tc_DataSource->id ()));
 	}
 
-	Nirvana::FileSystem::_ptr_type file_system () const
-	{
-		return file_system_;
-	}
-
-	Nirvana::Access::_ref_type open_file (const IDL::String& url, uint_fast16_t flags) const;
-
-private:
-	Nirvana::FileSystem::_ref_type file_system_;
-	PortableServer::POA::_ref_type adapter_;
 };
 
 }

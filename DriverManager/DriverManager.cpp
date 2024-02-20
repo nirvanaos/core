@@ -70,6 +70,9 @@ private:
 				throw_INITIALIZE ();
 		}
 
+		~Manager ()
+		{}
+
 		Driver::_ref_type getDriver (IDL::String& id)
 		{
 			std::transform (id.begin (), id.end (), id.begin (), tolower);

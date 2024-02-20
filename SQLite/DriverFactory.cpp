@@ -24,7 +24,7 @@
 *  popov.nirvana@gmail.com
 */
 #include "pch.h"
-#include "Global.h"
+#include "Driver.h"
 
 namespace SQLite {
 
@@ -49,7 +49,7 @@ class DriverFactory :
 public:
 	static NDBC::Driver::_ref_type getDriver ()
 	{
-		return global.driver ()._this ();
+		return CORBA::make_stateless <Driver> ()->_this ();
 	}
 };
 

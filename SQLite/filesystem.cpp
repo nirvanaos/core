@@ -27,6 +27,7 @@
 #include "filesystem.h"
 #include "Global.h"
 #include "sqlite/sqlite3.h"
+#include <fnctl.h>
 
 extern "C" int sqlite3_os_init ()
 {
@@ -97,7 +98,7 @@ int xOpen (sqlite3_vfs*, sqlite3_filename zName, sqlite3_file* file,
 		const char* id_begin = is_id (zName);
 		if (id_begin) {
 			Nirvana::File::_ref_type file = Nirvana::File::_narrow (
-				global.driver ().file_system ()->get_item (
+				global.file_system ()->get_item (
 					string_to_id (id_begin, id_begin + strlen (id_begin))));
 			if (!file)
 				return SQLITE_CANTOPEN;
@@ -108,7 +109,7 @@ int xOpen (sqlite3_vfs*, sqlite3_filename zName, sqlite3_file* file,
 				open_flags |= O_CREAT;
 			if (flags & SQLITE_OPEN_EXCLUSIVE)
 				open_flags |= O_EXCL;
-			fa = global.driver ().open_file (zName, open_flags);
+			fa = global.open_file (zName, open_flags);
 		}
 	} catch (CORBA::NO_MEMORY ()) {
 		return SQLITE_NOMEM;
