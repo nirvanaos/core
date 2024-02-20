@@ -31,7 +31,7 @@
 namespace SQLite {
 
 Global::Global () :
-	driver_ (CORBA::make_reference <Driver> ())
+	driver_ (CORBA::make_stateless <Driver> ())
 {
 	sqlite3_config (SQLITE_CONFIG_MALLOC, &mem_methods);
 	sqlite3_vfs_register (&vfs, 1);

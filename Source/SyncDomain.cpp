@@ -118,8 +118,17 @@ SyncDomain& SyncDomain::enter ()
 	SyncContext& sync_context = exec_domain.sync_context ();
 	SyncDomain* psd = sync_context.sync_domain ();
 	if (!psd) {
+		
 		if (!sync_context.is_free_sync_context ())
 			throw_NO_PERMISSION (); // Process called value factory with interface support
+
+		switch (exec_domain.restricted_mode ()) {
+		case ExecDomain::RestrictedMode::CLASS_LIBRARY_INIT:
+		case ExecDomain::RestrictedMode::MODULE_TERMINATE:
+			// Must not create sync domain in read-only heap
+			throw_NO_PERMISSION ();
+		}
+
 		Ref <SyncDomain> sd = Ref <SyncDomain>::create
 			<ImplDynamic <SyncDomainImpl> > (std::ref (sync_context),
 				std::ref (exec_domain.mem_context ()));
