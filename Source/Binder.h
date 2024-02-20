@@ -310,8 +310,8 @@ private:
 	// but it seems that not.
 	typedef WaitableRef <Module*> ModulePtr;
 	typedef MapUnorderedStable
-		<std::string, ModulePtr, std::hash <std::string>,
-		std::equal_to <std::string>, Allocator> ModuleMap;
+		<int32_t, ModulePtr, std::hash <int32_t>,
+		std::equal_to <int32_t>, Allocator> ModuleMap;
 
 	/// Module binding context
 	struct ModuleContext
@@ -345,7 +345,7 @@ private:
 
 	NIRVANA_NORETURN static void invalid_metadata ();
 
-	Ref <Module> load (ModuleLoad& module_load, bool singleton);
+	Ref <Module> load (const ModuleLoad& module_load, bool singleton);
 	void unload (Module* pmod);
 
 	void housekeeping_modules ();

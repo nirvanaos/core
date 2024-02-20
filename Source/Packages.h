@@ -58,22 +58,28 @@ public:
 			path = std::move (translated);
 		auto ns = CosNaming::NamingContextExt::_narrow (CORBA::Core::Services::bind (CORBA::Core::Services::NameService));
 
-		const char* module_id;
-		if (obj_name == "Nirvana/g_dec_calc")
-			module_id = "DecCalc.olf";
-		else if (
+		int32_t module_id;
+		const char* module_name;
+		if (obj_name == "Nirvana/g_dec_calc") {
+			module_name = "DecCalc.olf";
+			module_id = 1;
+		} else if (
 			(!std::is_same <float, CORBA::Float>::value && obj_name == "CORBA/Internal/g_sfloat4")
 			||
 			(!std::is_same <double, CORBA::Double>::value && obj_name == "CORBA/Internal/g_sfloat8")
 			||
 			(!std::is_same <long double, CORBA::LongDouble>::value && obj_name == "CORBA/Internal/g_sfloat16")
 			)
-			module_id = "SFloat.olf";
-		else
-			module_id = "TestModule.olf";
+		{
+			module_name = "SFloat.olf";
+			module_id = 2;
+		} else {
+			module_name = "TestModule.olf";
+			module_id = 100;
+		}
 
 		path += '/';
-		path += module_id;
+		path += module_name;
 		CORBA::Object::_ref_type obj;
 		try {
 			obj = ns->resolve_str (path);

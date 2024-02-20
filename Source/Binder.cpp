@@ -358,12 +358,12 @@ void Binder::delete_module (Module* mod)
 	}
 }
 
-Ref <Module> Binder::load (ModuleLoad& module_load, bool singleton)
+Ref <Module> Binder::load (const ModuleLoad& module_load, bool singleton)
 {
 	if (!initialized_)
 		throw_INITIALIZE ();
 	Module* mod = nullptr;
-	auto ins = module_map_.emplace (std::move (module_load.module_id ()), MODULE_LOADING_DEADLINE_MAX);
+	auto ins = module_map_.emplace (module_load.module_id (), MODULE_LOADING_DEADLINE_MAX);
 	ModuleMap::reference entry = *ins.first;
 	if (ins.second) {
 		auto wait_list = entry.second.wait_list ();
