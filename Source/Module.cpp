@@ -55,7 +55,6 @@ void Module::initialize (ModuleInit::_ptr_type entry_point)
 		entry_point->initialize ();
 		entry_point_ = entry_point;
 	}
-	initial_ref_cnt_ = _refcount_value ();
 }
 
 void Module::terminate () noexcept

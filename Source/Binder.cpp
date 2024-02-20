@@ -394,6 +394,8 @@ Ref <Module> Binder::load (const ModuleLoad& module_load, bool singleton)
 				mod->initialize (startup ? ModuleInit::_check (startup->startup) : nullptr);
 				SYNC_END ();
 
+				mod->initial_ref_cnt_ = mod->_refcount_value ();
+
 				try {
 					object_map_.merge (context.exports);
 				} catch (...) {

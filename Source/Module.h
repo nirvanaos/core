@@ -41,6 +41,7 @@ namespace Nirvana {
 namespace Core {
 
 class SyncContext;
+class Binder;
 
 /// Loadable module
 class NIRVANA_NOVTABLE Module :
@@ -115,6 +116,8 @@ protected:
 	Module (AccessDirect::_ptr_type file, bool singleton);
 
 protected:
+	friend class Binder;
+
 	bool singleton_;
 	AtomicCounter <false> ref_cnt_;
 	AtomicCounter <false>::IntegralType initial_ref_cnt_;
