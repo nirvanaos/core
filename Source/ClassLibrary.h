@@ -51,7 +51,7 @@ public:
 		return *this;
 	}
 
-	virtual void initialize (ModuleInit::_ptr_type entry_point, AtomicCounter <false>::IntegralType initial_ref_cnt) override;
+	virtual void initialize (ModuleInit::_ptr_type entry_point) override;
 	virtual void terminate () noexcept override;
 
 	// SyncContext::

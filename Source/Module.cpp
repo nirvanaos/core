@@ -49,13 +49,13 @@ void Module::_remove_ref () noexcept
 	}
 }
 
-void Module::initialize (ModuleInit::_ptr_type entry_point, AtomicCounter <false>::IntegralType initial_ref_cnt)
+void Module::initialize (ModuleInit::_ptr_type entry_point)
 {
-	initial_ref_cnt_ = initial_ref_cnt;
 	if (entry_point) {
 		entry_point->initialize ();
 		entry_point_ = entry_point;
 	}
+	initial_ref_cnt_ = _refcount_value ();
 }
 
 void Module::terminate () noexcept

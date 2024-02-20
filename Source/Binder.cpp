@@ -113,6 +113,7 @@ void Binder::unload_modules ()
 			// Module was not loaded.
 			// Just remove the entry from table.
 			if (!pmod || !pmod->bound ()) {
+				NIRVANA_TRACE ("Unload module %d", it->first);
 				it = module_map_.erase (it);
 				if (pmod)
 					unload (pmod);
@@ -128,6 +129,7 @@ void Binder::unload_modules ()
 	// If so, unload the bound modules also.
 	while (!module_map_.empty ()) {
 		auto it = module_map_.begin ();
+		NIRVANA_TRACE ("Force unload module %d", it->first);
 		Module* pmod = it->second.get ();
 		module_map_.erase (it);
 		unload (pmod);
@@ -388,9 +390,8 @@ Ref <Module> Binder::load (const ModuleLoad& module_load, bool singleton)
 				if (startup && (startup->flags & OLF_MODULE_SINGLETON) && !singleton)
 					invalid_metadata ();
 
-				auto initial_ref_cnt = mod->_refcount_value ();
 				SYNC_BEGIN (context.sync_context, static_cast <MemContext*> (mod));
-				mod->initialize (startup ? ModuleInit::_check (startup->startup) : nullptr, initial_ref_cnt);
+				mod->initialize (startup ? ModuleInit::_check (startup->startup) : nullptr);
 				SYNC_END ();
 
 				try {
@@ -519,6 +520,10 @@ Binder::InterfaceRef Binder::find (const ObjectKey& name)
 					ReferenceRemote& rr = static_cast <ReferenceRemote&> (*ref);
 					object_map_.insert (rr.set_object_name (name.name ()), &obj);
 				}
+#ifndef NDEBUG
+				else
+					assert (object_map_.find (name));
+#endif
 				return std::move (bind_info.loaded_object ());
 			}
 		}

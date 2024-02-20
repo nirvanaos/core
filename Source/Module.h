@@ -96,7 +96,7 @@ public:
 		return !bound () && release_time_ <= t;
 	}
 
-	virtual void initialize (ModuleInit::_ptr_type entry_point, AtomicCounter <false>::IntegralType initial_ref_cnt);
+	virtual void initialize (ModuleInit::_ptr_type entry_point);
 	virtual void terminate () noexcept;
 
 	void raise_exception (CORBA::SystemException::Code code, unsigned minor);
