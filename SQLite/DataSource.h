@@ -37,24 +37,34 @@ class DataSource : public CORBA::servant_traits <NDBC::DataSource>::Servant <Dat
 {
 public:
 	DataSource (const PortableServer::ObjectId& id) :
-		sqlite_ (nullptr)
+		file_ (OBJID_PREFIX + id_to_string (id))
 	{
-		std::string file = OBJID_PREFIX + id_to_string (id);
-		sqlite3_open_v2 (file.c_str (), &sqlite_, 0, VFS_NAME);
+		SQLite conn (file_);
+		Stmt stmt (conn, "PRAGMA journal_mode=WAL;");
+		sqlite3_step (stmt);
 	}
 
 	~DataSource ()
-	{
-		sqlite3_close_v2 (sqlite_);
-	}
+	{}
 
-	NDBC::Connection::_ref_type getConnection (const IDL::String& user, const IDL::String& pwd)
+	NDBC::Connection::_ref_type getConnection (const NDBC::Properties& props)
 	{
-		return CORBA::make_reference <Connection> (_this (), sqlite_)->_this ();
+		if (!props.empty ()) {
+			std::string uri = "file:" + file_;
+			auto it = props.begin ();
+			uri += '?';
+			uri += *it;
+			while (props.end () != ++it) {
+				uri += '&';
+				uri += *it;
+			}
+			return CORBA::make_reference <Connection> (_this (), uri)->_this ();
+		} else
+			return CORBA::make_reference <Connection> (_this (), file_)->_this ();
 	}
 
 private:
-	sqlite3* sqlite_;
+	std::string file_;
 };
 
 }

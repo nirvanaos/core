@@ -95,8 +95,20 @@ private:
 		Connection::_ref_type getConnection (IDL::String& url, const IDL::String& user,
 			const IDL::String& pwd)
 		{
+			NDBC::Properties props;
+
+			size_t params = url.find ('?');
+			if (params != IDL::String::npos) {
+				for (size_t param = params + 1;;) {
+					size_t end = url.find ('&', param);
+					props.push_back (url.substr (param, end));
+					if (end == IDL::String::npos)
+						break;
+				}
+				url.resize (params);
+			}
 			DataSource::_ref_type ds = getDataSource (url);
-			return ds->getConnection (user, pwd);
+			return ds->getConnection (props);
 		}
 
 	private:

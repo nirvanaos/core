@@ -70,6 +70,7 @@ void Module::terminate () noexcept
 		}
 		ed.restricted_mode (rm);
 	}
+	MemContextUser::clear ();
 }
 
 void Module::raise_exception (CORBA::SystemException::Code code, unsigned minor)

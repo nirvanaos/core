@@ -30,6 +30,7 @@
 #include <Nirvana/Nirvana.h>
 #include <Nirvana/NDBC_s.h>
 #include "sqlite/sqlite3.h"
+#include "filesystem.h"
 
 namespace SQLite {
 
@@ -37,39 +38,89 @@ void deactivate_servant (PortableServer::Servant servant) noexcept;
 
 NIRVANA_NORETURN void throw_exception (IDL::String msg);
 
-class Connection : public CORBA::servant_traits <NDBC::Connection>::Servant <Connection>
+NDBC::SQLWarning create_warning (sqlite3* conn, int err);
+void check_result (sqlite3* conn, int err);
+
+class SQLite
 {
 public:
-	Connection (NDBC::DataSource::_ref_type&& parent, sqlite3* sqlite) :
-		parent_ (parent),
-		sqlite_ (sqlite)
+	SQLite (const SQLite&) = delete;
+	SQLite& operator = (const SQLite&) = delete;
+
+	SQLite (const std::string& uri)
+	{
+		int err = sqlite3_open_v2 (uri.c_str (), &sqlite_, 0, VFS_NAME);
+		if (err)
+			throw_exception (sqlite3_errstr (err));
+	}
+
+	~SQLite ()
+	{
+		sqlite3_close_v2 (sqlite_);
+	}
+
+	operator sqlite3* () const noexcept
+	{
+		return sqlite_;
+	}
+
+	void check_result (int err) const
+	{
+		::SQLite::check_result (sqlite_, err);
+	}
+
+	NDBC::SQLWarning create_warning (int err) const
+	{
+		return ::SQLite::create_warning (sqlite_, err);
+	}
+
+private:
+	sqlite3* sqlite_;
+};
+
+class Stmt
+{
+public:
+	Stmt (const Stmt&) = delete;
+	Stmt& operator = (const Stmt&) = delete;
+
+	Stmt (const SQLite& conn, const char* sql, int len = -1, unsigned flags = 0,
+		const char** tail = nullptr)
+	{
+		conn.check_result (sqlite3_prepare_v3 (conn, sql, len, flags, &stmt_, tail));
+	}
+
+	~Stmt ()
+	{
+		sqlite3_finalize (stmt_);
+	}
+
+	operator sqlite3_stmt* () const noexcept
+	{
+		return stmt_;
+	}
+
+private:
+	sqlite3_stmt* stmt_;
+};
+
+class Connection :
+	public CORBA::servant_traits <NDBC::Connection>::Servant <Connection>,
+	public SQLite
+{
+public:
+	Connection (NDBC::DataSource::_ref_type&& parent, const std::string& uri) :
+		SQLite (uri),
+		parent_ (std::move (parent))
 	{}
 
 	void abort ()
-	{}
-
-	bool autoCommit () const
-	{
-		return false;
-	}
-
-	void autoCommit (bool on)
-	{}
-
-	static IDL::String catalog () noexcept
-	{
-		return IDL::String ();
-	}
-
-	static void catalog (const IDL::String&)
 	{}
 
 	void clearWarnings ()
 	{
 		warnings_.clear ();
 	}
-
-	void check_exist () const;
 
 	void close ()
 	{
@@ -79,30 +130,36 @@ public:
 	}
 
 	void commit ()
-	{}
+	{
+		throw CORBA::NO_IMPLEMENT ();
+	}
 
-	NDBC::Statement::_ref_type createStatement ();
+	NDBC::Statement::_ref_type createStatement (NDBC::ResultSet::RSType resultSetType);
+
+	bool getAutoCommit () const
+	{
+		return false;
+	}
+
+	static IDL::String getCatalog () noexcept
+	{
+		return IDL::String ();
+	}
+
+	IDL::String getSchema ()
+	{
+		return IDL::String ();
+	}
+
+	int16_t getTransactionIsolation () const noexcept
+	{
+		return 0;
+	}
 
 	NDBC::SQLWarnings getWarnings () const
 	{
 		return warnings_;
 	}
-
-	int32_t holdability () const
-	{
-		return 0;
-	}
-
-	void holdability (int32_t)
-	{}
-
-	IDL::String schema ()
-	{
-		return IDL::String ();
-	}
-	
-	void schema (const IDL::String&)
-	{}
 
 	bool isClosed () const noexcept
 	{
@@ -114,51 +171,64 @@ public:
 		return false;
 	}
 
-	void isReadOnly (bool)
-	{}
-
 	bool isValid () const noexcept
 	{
 		return (bool)parent_;
 	}
 
-	IDL::String nativeSQL (IDL::String& sql)
-	{
-		return sql;
-	}
-
-	NDBC::CallableStatement::_ref_type prepareCall (const IDL::String& sql)
+	NDBC::CallableStatement::_ref_type prepareCall (const IDL::String& sql, NDBC::ResultSet::RSType resultSetType)
 	{
 		throw CORBA::NO_IMPLEMENT ();
 	}
 
-	NDBC::PreparedStatement::_ref_type prepareStatement (const IDL::String& sql, unsigned flags);
+	NDBC::PreparedStatement::_ref_type prepareStatement (const IDL::String& sql, NDBC::ResultSet::RSType resultSetType, unsigned flags);
 
-	void rollback ()
-	{}
-
-	int16_t transactionIsolation () const noexcept
+	void releaseSavepoint (const IDL::String& name)
 	{
-		return 0;
+		throw CORBA::NO_IMPLEMENT ();
 	}
 
-	void transactionIsolation (int)
-	{}
-
-	sqlite3* sqlite () const noexcept
+	void rollback (const IDL::String& name)
 	{
-		return sqlite_;
+		throw CORBA::NO_IMPLEMENT ();
 	}
+
+	void setAutoCommit (bool on)
+	{
+		throw CORBA::NO_IMPLEMENT ();
+	}
+
+	static void setCatalog (const IDL::String&)
+	{
+		throw CORBA::NO_IMPLEMENT ();
+	}
+
+	void setReadOnly (bool)
+	{
+		throw CORBA::NO_IMPLEMENT ();
+	}
+
+	IDL::String setSavepoint (IDL::String& name)
+	{
+		throw CORBA::NO_IMPLEMENT ();
+	}
+
+	void setSchema (const IDL::String&)
+	{
+		throw CORBA::NO_IMPLEMENT ();
+	}
+
+	void setTransactionIsolation (int level)
+	{
+		throw CORBA::NO_IMPLEMENT ();
+	}
+
+	void check_exist () const;
 
 	void check_warning (int err) noexcept;
 
-	void check_result (int err) const;
-
-	NDBC::SQLWarning create_warning (int err) const;
-
 private:
 	NDBC::DataSource::_ref_type parent_; // Keep DataSource reference active
-	sqlite3* sqlite_;
 	NDBC::SQLWarnings warnings_;
 };
 

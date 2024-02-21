@@ -51,7 +51,7 @@ void StatementBase::prepare (const IDL::String& sql, unsigned flags)
 	try {
 		for (;;) {
 			sqlite3_stmt* stmt = nullptr;
-			connection ().check_result (sqlite3_prepare_v3 (connection ().sqlite (), tail, (int)(end - tail), flags, &stmt, &tail));
+			connection ().check_result (sqlite3_prepare_v3 (connection (), tail, (int)(end - tail), flags, &stmt, &tail));
 			assert (stmt);
 			statements.emplace_back (stmt);
 			if (!*tail)
@@ -88,7 +88,7 @@ bool StatementBase::execute_next ()
 
 	sqlite3_stmt* stmt = statements_ [cur_statement_++];
 	int step_result = step (stmt);
-	changed_rows_ = sqlite3_changes (connection ().sqlite ());
+	changed_rows_ = sqlite3_changes (connection ());
 
 	int column_cnt = sqlite3_column_count (stmt);
 	if (SQLITE_ROW == step_result || column_cnt > 0) {

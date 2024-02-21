@@ -43,15 +43,21 @@ NIRVANA_NORETURN void throw_exception (IDL::String msg)
 	throw NDBC::SQLException (NDBC::SQLWarning (0, std::move (msg)), NDBC::SQLWarnings ());
 }
 
+NDBC::SQLWarning create_warning (sqlite3* conn, int err)
+{
+	return NDBC::SQLWarning (err, sqlite3_errmsg (conn));
+}
+
+void check_result (sqlite3* conn, int err)
+{
+	if (err)
+		throw NDBC::SQLException (create_warning (conn, err), NDBC::SQLWarnings ());
+}
+
 void Connection::check_exist () const
 {
 	if (!parent_)
 		throw CORBA::OBJECT_NOT_EXIST ();
-}
-
-NDBC::SQLWarning Connection::create_warning (int err) const
-{
-	return NDBC::SQLWarning (err, sqlite3_errmsg (sqlite_));
 }
 
 void Connection::check_warning (int err) noexcept
@@ -62,12 +68,6 @@ void Connection::check_warning (int err) noexcept
 		} catch (...) {
 		}
 	}
-}
-
-void Connection::check_result (int err) const
-{
-	if (err)
-		throw NDBC::SQLException (create_warning (err), NDBC::SQLWarnings ());
 }
 
 }

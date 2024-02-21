@@ -33,14 +33,18 @@
 namespace SQLite {
 
 inline
-NDBC::Statement::_ref_type Connection::createStatement ()
+NDBC::Statement::_ref_type Connection::createStatement (NDBC::ResultSet::RSType resultSetType)
 {
+	if (resultSetType != NDBC::ResultSet::RSType::TYPE_FORWARD_ONLY)
+		throw_exception ("Unsupported ResultSet type");
 	return CORBA::make_reference <Statement> (std::ref (*this))->_this ();
 }
 
 inline
-NDBC::PreparedStatement::_ref_type Connection::prepareStatement (const IDL::String& sql, unsigned flags)
+NDBC::PreparedStatement::_ref_type Connection::prepareStatement (const IDL::String& sql, NDBC::ResultSet::RSType resultSetType, unsigned flags)
 {
+	if (resultSetType != NDBC::ResultSet::RSType::TYPE_FORWARD_ONLY)
+		throw_exception ("Unsupported ResultSet type");
 	return CORBA::make_reference <PreparedStatement> (std::ref (*this), sql, flags)->_this ();
 }
 
