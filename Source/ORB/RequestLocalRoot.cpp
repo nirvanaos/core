@@ -78,6 +78,8 @@ MemContext& RequestLocalRoot::source_memory ()
 
 	default:
 		// Callee-side allocation
+		if (!callee_memory_)
+			callee_memory_ = &MemContext::current ();
 		return *callee_memory_;
 	}
 }

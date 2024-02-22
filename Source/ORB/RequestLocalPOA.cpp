@@ -75,7 +75,7 @@ void RequestLocalPOA::serve (const ServantProxyBase& proxy)
 	SyncDomain* sd = sc.sync_domain ();
 	MemContext* mc = nullptr;
 	if (sd)
-		mc = &sd->mem_context ();
+		callee_memory_ = mc = &sd->mem_context ();
 	else
 		mc = callee_memory_;
 

@@ -618,8 +618,7 @@ public:
 	virtual void _remove_ref () noexcept override
 	{
 		if (0 == Base::ref_cnt_.decrement ()) {
-			servant_reference <Nirvana::Core::MemContext> mc =
-				std::move (Base::caller_memory_);
+			servant_reference <Nirvana::Core::MemContext> mc = Base::caller_memory_;
 			this->RequestLocalImpl::~RequestLocalImpl ();
 			mc->heap ().release (this, sizeof (*this));
 		}
