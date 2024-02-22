@@ -146,6 +146,12 @@ public:
 		return IDL::String ();
 	}
 
+	NDBC::DataSource::_ref_type getDataSource () const
+	{
+		check_exist ();
+		return parent_;
+	}
+
 	IDL::String getSchema ()
 	{
 		return IDL::String ();

@@ -63,6 +63,11 @@ public:
 		return std::move (result_set_);
 	}
 
+	virtual NDBC::ResultSet::RSType getResultSetType () override
+	{
+		return NDBC::ResultSet::RSType::TYPE_FORWARD_ONLY;
+	}
+
 	virtual int32_t getUpdateCount () override
 	{
 		return changed_rows_;

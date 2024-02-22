@@ -27,7 +27,7 @@
 #define SQLITE_DATASOURCE_H_
 #pragma once
 
-#include <Nirvana/Nirvana.h>
+#include "Driver.h"
 #include "Connection_impl.h"
 #include "filesystem.h"
 
@@ -37,11 +37,16 @@ class DataSource : public CORBA::servant_traits <NDBC::DataSource>::Servant <Dat
 {
 public:
 	DataSource (const PortableServer::ObjectId& id) :
-		file_ (OBJID_PREFIX + id_to_string (id))
+		file_ (Nirvana::File::_narrow (global.file_system ()->get_item (id)))
 	{
-		SQLite conn (file_);
-		Stmt stmt (conn, "PRAGMA journal_mode=WAL;");
-		sqlite3_step (stmt);
+		if (!file_)
+			throw CORBA::OBJECT_NOT_EXIST ();
+		file_name_ = OBJID_PREFIX + id_to_string (id);
+		if (!file_->size ()) {
+			SQLite conn (file_name_);
+			Stmt stmt (conn, "PRAGMA journal_mode=WAL;");
+			sqlite3_step (stmt);
+		}
 	}
 
 	~DataSource ()
@@ -50,21 +55,31 @@ public:
 	NDBC::Connection::_ref_type getConnection (const NDBC::Properties& props)
 	{
 		if (!props.empty ()) {
-			std::string uri = "file:" + file_;
+			std::string uri = "file:" + file_name_;
 			auto it = props.begin ();
 			uri += '?';
-			uri += *it;
+			uri += it->name ();
+			uri += '=';
+			uri += it->value ();
 			while (props.end () != ++it) {
 				uri += '&';
-				uri += *it;
+				uri += it->name ();
+				uri += '=';
+				uri += it->value ();
 			}
 			return CORBA::make_reference <Connection> (_this (), uri)->_this ();
 		} else
-			return CORBA::make_reference <Connection> (_this (), file_)->_this ();
+			return CORBA::make_reference <Connection> (_this (), file_name_)->_this ();
+	}
+
+	static NDBC::Driver::_ref_type getDriver ()
+	{
+		return Driver::_this ();
 	}
 
 private:
-	std::string file_;
+	Nirvana::File::_ref_type file_; // Keep reference to prevent DGC
+	std::string file_name_;
 };
 
 }

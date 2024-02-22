@@ -39,20 +39,48 @@ NIRVANA_NORETURN void ResultSetImpl::data_conversion_error ()
 	throw_exception ("Data conversion error");
 }
 
-NIRVANA_NORETURN void ResultSetImpl::error_forward_only ()
-{
-	throw_exception ("ResultSet if forward-only");
-}
-
-std::wstring ResultSetImpl::u2w (const IDL::String& utf8)
-{
-	std::wstring ret;
-	Nirvana::append_wide (utf8, ret);
-	return ret;
-}
-
 ResultSetImpl::~ResultSetImpl ()
 {}
+
+bool ResultSetImpl::fetch (RowOff i)
+{
+	check ();
+
+	if (i)
+		check_scrollable ();
+
+	if (empty ())
+		return false;
+
+	if (0 == position () && !row ().empty ()) {
+		// Special case: initial state after construction
+		assert (!after_last ());
+		if (i == 0 || i == 1) {
+			position (1);
+			return true;
+		}
+	}
+
+	Row tmp;
+	RowIdx ri = cursor ()->fetch (i, tmp);
+	position (ri);
+	bool fetched = !tmp.empty ();
+	bool after_last = i >= 0 && !fetched;
+	Base::after_last (after_last);
+	if (after_last)
+		last_row (ri - 1);
+	else if (-1 == i)
+		last_row (ri);
+	row ().swap (tmp);
+	return fetched;
+}
+
+void ResultSetImpl::check_scrollable () const
+{
+	check ();
+	if (flags () & FLAG_FORWARD_ONLY)
+		throw_exception ("ResultSet if forward-only");
+}
 
 void ResultSetImpl::check () const
 {
@@ -63,7 +91,7 @@ void ResultSetImpl::check () const
 void ResultSetImpl::check_row_valid () const
 {
 	check ();
-	if (row () == 0 || after_last ())
+	if (row ().empty ())
 		throw_exception ("No current record");
 }
 
@@ -72,7 +100,7 @@ const Variant& ResultSetImpl::field (Ordinal ord) const
 	check_row_valid ();
 	if (ord == 0 || ord > column_count ())
 		throw_exception ("Invalid column index");
-	return cache () [cache_row ()][ord - 1];
+	return row () [ord - 1];
 }
 
 }

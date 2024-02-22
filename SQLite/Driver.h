@@ -33,13 +33,25 @@
 
 namespace SQLite {
 
-class Driver : public CORBA::servant_traits <NDBC::Driver>::Servant <Driver>
+class Driver;
+
+}
+
+namespace CORBA {
+namespace Internal {
+
+template <>
+const char StaticId <SQLite::Driver>::id [] = "NDBC/sqlite";
+
+}
+}
+
+namespace SQLite {
+
+class Driver : public CORBA::servant_traits <NDBC::Driver>::ServantStatic <Driver>
 {
 public:
-	Driver ()
-	{}
-
-	NDBC::DataSource::_ref_type getDataSource (const IDL::String& url) const
+	static NDBC::DataSource::_ref_type getDataSource (const IDL::String& url)
 	{
 		// Create file if not exists
 		Nirvana::File::_ref_type file = global.open_file (url, O_CREAT)->file ();
@@ -49,6 +61,25 @@ public:
 			global.adapter ()->create_reference_with_id (file->id (), NDBC::_tc_DataSource->id ()));
 	}
 
+	static NDBC::PropertyInfo getPropertyInfo ()
+	{
+		NDBC::PropertyInfo props {
+			NDBC::DriverProperty {
+				"mode",
+				"Open mode",
+				"",
+				{"ro", "rw", "rwc", "memory"},
+				false
+			}
+		};
+
+		return props;
+	}
+
+	static NDBC::Connection::_ref_type connect (const IDL::String& url, const NDBC::Properties& props)
+	{
+		return getDataSource (url)->getConnection (props);
+	}
 };
 
 }

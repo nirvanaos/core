@@ -92,22 +92,11 @@ bool StatementBase::execute_next ()
 
 	int column_cnt = sqlite3_column_count (stmt);
 	if (SQLITE_ROW == step_result || column_cnt > 0) {
-		NDBC::Rows prefetch;
-		uint32_t cnt = 0;
-		uint32_t size = 0;
-		while (SQLITE_ROW == step_result) {
-			uint32_t cb;
-			prefetch.push_back (Cursor::get_row (stmt, cb));
-			++cnt;
-			size += cb;
-			if (cnt >= prefetch_max_count_ || size >= prefetch_max_size_)
-				break;
-			step_result = step (stmt);
-		}
+		NDBC::Row row = Cursor::get_row (stmt);
 		NDBC::Cursor::_ref_type cursor = CORBA::make_reference <Cursor> (
-			std::ref (*this), stmt, (uint32_t)prefetch.size ())->_this ();
+			std::ref (*this), stmt)->_this ();
 		result_set_ = NDBC::ResultSet::_factory->create (column_cnt, NDBC::ResultSet::FLAG_FORWARD_ONLY,
-			std::move (cursor), std::move (prefetch), page_max_count_, page_max_size_);
+			std::move (cursor), std::move (row));
 		return true;
 	} else
 		return false;

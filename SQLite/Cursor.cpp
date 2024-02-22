@@ -29,10 +29,9 @@
 
 namespace SQLite {
 
-NDBC::Row Cursor::get_row (sqlite3_stmt* stmt, uint32_t& size)
+NDBC::Row Cursor::get_row (sqlite3_stmt* stmt)
 {
 	NDBC::Row row;
-	size_t cb = 0;
 
 	int cnt = sqlite3_data_count (stmt);
 	assert (cnt > 0);
@@ -42,41 +41,32 @@ NDBC::Row Cursor::get_row (sqlite3_stmt* stmt, uint32_t& size)
 		switch (ct) {
 		case SQLITE_INTEGER: {
 			sqlite3_int64 i64 = sqlite3_column_int64 (stmt, i);
-			if (i64 >= 0 && i64 <= std::numeric_limits <CORBA::Octet>::max ()) {
+			if (i64 >= 0 && i64 <= std::numeric_limits <CORBA::Octet>::max ())
 				v.byte_val ((CORBA::Octet)i64);
-				cb += 1;
-			} else if (std::numeric_limits <CORBA::Short>::min () <= i64 && i64 <= std::numeric_limits <CORBA::Short>::max ()) {
+			else if (std::numeric_limits <CORBA::Short>::min () <= i64 && i64 <= std::numeric_limits <CORBA::Short>::max ())
 				v.si_val ((CORBA::Short)i64);
-				cb += 2;
-			} else if (std::numeric_limits <CORBA::Long>::min () <= i64 && i64 <= std::numeric_limits <CORBA::Long>::max ()) {
+			else if (std::numeric_limits <CORBA::Long>::min () <= i64 && i64 <= std::numeric_limits <CORBA::Long>::max ())
 				v.l_val ((CORBA::Long)i64);
-				cb += 4;
-			} else {
+			else
 				v.ll_val (i64);
-				cb += 8;
-			}
 		} break;
 		case SQLITE_FLOAT:
 			v.dbl_val (sqlite3_column_double (stmt, i));
-			cb += 8;
 			break;
 		case SQLITE_TEXT: {
 			size_t size = sqlite3_column_bytes (stmt, i);
 			v.s_val (IDL::String ((const char*)sqlite3_column_text (stmt, i), size));
-			cb += size;
 		} break;
 		case SQLITE_BLOB: {
 			size_t size = sqlite3_column_bytes (stmt, i);
 			const CORBA::Octet* b = (const CORBA::Octet*)sqlite3_column_blob (stmt, i);
 			v.blob (NDBC::Blob (b, b + size));
-			cb += size;
 		} break;
 		}
 
 		row.push_back (std::move (v));
 	}
 
-	size = (uint32_t)cb;
 	return row;
 }
 
@@ -91,23 +81,6 @@ void Cursor::check_exist ()
 		parent_ = nullptr;
 		deactivate_servant (this);
 		throw;
-	}
-}
-
-void Cursor::step ()
-{
-	int step_result = sqlite3_step (stmt_);
-	switch (step_result) {
-	case SQLITE_ROW:
-		++position_;
-	case SQLITE_DONE:
-		++position_;
-		after_end_ = true;
-		break;
-	default:
-		error_ = step_result;
-		parent_->connection ().check_result (step_result);
-		break;
 	}
 }
 

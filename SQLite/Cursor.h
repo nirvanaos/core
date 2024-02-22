@@ -34,45 +34,32 @@ namespace SQLite {
 class Cursor : public CORBA::servant_traits <NDBC::Cursor>::Servant <Cursor>
 {
 public:
-	Cursor (StatementBase& parent, sqlite3_stmt* stmt, uint32_t position) :
+	Cursor (StatementBase& parent, sqlite3_stmt* stmt) :
 		parent_ (&parent),
 		parent_version_ (parent.version ()),
 		stmt_ (stmt),
-		position_ (position ? position : 1),
-		after_end_ (!position),
-		error_ (0)
+		position_ (0),
+		after_end_ (false)
 	{}
 
 	void check_exist ();
 
-	NDBC::Rows getNext (uint32_t from, uint32_t max_cnt, uint32_t max_size)
+	NDBC::RowIdx fetch (NDBC::RowOff pos, NDBC::Row& row)
 	{
-		if (!from)
+		if (pos)
 			throw CORBA::BAD_PARAM ();
 
 		check_exist ();
 
-		if (from < position_) {
-			parent_->connection ().check_result (sqlite3_reset (stmt_));
-			position_ = 0;
-			after_end_ = false;
-			error_ = 0;
-		}
+		if (after_end_)
+			return position_;
 
-		while (!after_end_ && !error_ && position_ <= from) {
-			step ();
-		}
+		step ();
 		
-		NDBC::Rows rows;
-		uint32_t size = 0;
-		while (!after_end_ && !error_ && rows.size () < max_cnt && size < max_size) {
-			uint32_t cb;
-			rows.push_back (get_row (stmt_, cb));
-			size += cb;
-			step ();
-		}
+		if (!after_end_)
+			row = get_row (stmt_);
 
-		return rows;
+		return position_;
 	}
 
 	NDBC::ColumnNames getColumnNames ()
@@ -94,10 +81,24 @@ public:
 		return parent_->_this ();
 	}
 
-	static NDBC::Row get_row (sqlite3_stmt* stmt, uint32_t& size);
+	static NDBC::Row get_row (sqlite3_stmt* stmt);
 
 private:
-	void step ();
+	void step ()
+	{
+		int step_result = sqlite3_step (stmt_);
+		switch (step_result) {
+		case SQLITE_ROW:
+			++position_;
+		case SQLITE_DONE:
+			++position_;
+			after_end_ = true;
+			break;
+		default:
+			parent_->connection ().check_result (step_result);
+			break;
+		}
+	}
 
 private:
 	CORBA::servant_reference <StatementBase> parent_;
@@ -105,7 +106,6 @@ private:
 	sqlite3_stmt* stmt_;
 	uint32_t position_;
 	bool after_end_;
-	int error_;
 };
 
 }

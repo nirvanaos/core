@@ -28,8 +28,8 @@
 #pragma once
 
 #include <Nirvana/Nirvana.h>
+#include "ColumnIndex.h"
 #include <Nirvana/NDBC_s.h>
-#include <unordered_map>
 #include <time.h>
 #include <Nirvana/Formatter.h>
 
@@ -40,16 +40,17 @@ class ResultSetImpl : public IDL::traits <ResultSet>::Servant <ResultSetImpl>
 	typedef IDL::traits <ResultSet>::Servant <ResultSetImpl> Base;
 
 public:
-	ResultSetImpl (Ordinal column_count, uint_fast16_t flags, Cursor::_ptr_type cursor, const Rows& rows, uint32_t fetch_max_count, uint32_t fetch_max_size)
+	ResultSetImpl (Ordinal column_count, uint_fast16_t flags, Cursor::_ptr_type cursor, const Row& init_row)
 	{
 		Base::column_count (column_count);
 		Base::flags (flags);
 		Base::cursor (cursor);
-		Base::cache (rows);
-		Base::row (1);
-		Base::after_last (rows.empty ());
-		Base::pageMaxCount (fetch_max_count);
-		Base::pageMaxSize (fetch_max_size);
+		if (init_row.empty ()) {
+			// Empty rowset
+			Base::position (1);
+			Base::after_last (true);
+		} else
+			Base::row (init_row);
 	}
 
 	ResultSetImpl ()
@@ -57,31 +58,33 @@ public:
 
 	~ResultSetImpl ();
 
-	uint32_t pageMaxCount () const noexcept
+	bool absolute (RowOff pos)
 	{
-		return Base::pageMaxCount ();
-	}
-
-	void pageMaxCount (uint32_t v)
-	{
-		if (!v)
-			throw CORBA::BAD_PARAM ();
-		Base::pageMaxCount (v);
-	}
-
-	bool absolute (uint32_t row)
-	{
-		throw CORBA::NO_IMPLEMENT ();
+		if (!pos) {
+			beforeFirst ();
+			return !row ().empty ();
+		} else
+			return fetch (pos);
 	}
 
 	void afterLast ()
 	{
-		throw CORBA::NO_IMPLEMENT ();
+		check_scrollable ();
+		if (!empty ()) {
+			position (0);
+			after_last (true);
+			row ().clear ();
+		}
 	}
 
 	void beforeFirst ()
 	{
-		throw CORBA::NO_IMPLEMENT ();
+		check_scrollable ();
+		if (!empty ()) {
+			position (0);
+			after_last (false);
+			row ().clear ();
+		}
 	}
 
 	void clearWarnings ()
@@ -90,11 +93,10 @@ public:
 	void close ()
 	{
 		check ();
-		Base::cache ().clear ();
+		Base::row ().clear ();
 		Base::column_names ().clear ();
-		Base::row (0);
+		Base::position (0);
 		Base::column_count (0);
-		Base::cache_row (0);
 		Base::cursor (nullptr);
 	}
 
@@ -107,12 +109,8 @@ public:
 			if (it != names.end ())
 				return (Ordinal)(it - names.begin () + 1);
 		} else {
-			if (column_index_.empty ()) {
-				if (flags () & FLAG_COLUMNS_NON_ASCII)
-					column_index_.build_wide (names);
-				else
-					column_index_.build_narrow (names);
-			}
+			if (column_index_.empty ())
+				column_index_.build (names);
 
 			const Ordinal* pf = column_index_.find (columnLabel);
 			if (pf)
@@ -123,7 +121,7 @@ public:
 
 	bool first ()
 	{
-		throw CORBA::NO_IMPLEMENT ();
+		return fetch (1);
 	}
 
 	Ordinal getColumnCount () const noexcept
@@ -172,10 +170,13 @@ public:
 		return getInt (field (columnIndex));
 	}
 
-	uint32_t getRow () const noexcept
+	RowIdx getRow () const noexcept
 	{
 		check ();
-		return row ();
+		if (after_last ())
+			return 0;
+		else
+			return position ();
 	}
 
 	int16_t getSmallInt (Ordinal columnIndex)
@@ -218,7 +219,7 @@ public:
 
 	bool isBeforeFirst () const noexcept
 	{
-		return row () == 0;
+		return position () == 0;
 	}
 
 	bool isClosed () const noexcept
@@ -228,89 +229,112 @@ public:
 
 	bool isFirst ()
 	{
-		return row () == 1 && !after_last ();
+		return position () == 1 && !after_last ();
 	}
 
 	bool isLast ()
 	{
-		throw CORBA::NO_IMPLEMENT ();
+		check_scrollable ();
+		if (position () == 0)
+			return false;
+
+		if (!last_row ()) {
+			Row tmp;
+			last_row (cursor ()->fetch (-1, tmp));
+		}
+
+		return position () == last_row ();
 	}
 
 	bool last ()
 	{
-		throw CORBA::NO_IMPLEMENT ();
+		return fetch (-1);
 	}
 
 	bool next ()
 	{
-		check ();
-		uint32_t next_cached = Base::cache_row () + 1;
-		if (!after_last ()) {
-			uint32_t next_row = Base::row () + 1;
-			if (next_cached >= cache ().size ()) {
-				Rows rows = cursor ()->getNext (next_row, Base::pageMaxCount (), Base::pageMaxSize ());
-				if (rows.empty ())
-					Base::after_last (true);
-				if (!rows.empty () || (flags () & FLAG_FORWARD_ONLY)) {
-					cache (std::move (rows));
-					Base::cache_row (0);
-					next_cached = 0;
-				}
-			} else if (flags () & FLAG_FORWARD_ONLY)
-				cache ().erase (cache ().begin ());
-			else
-				Base::cache_row (next_cached);
-			Base::row (next_row);
-		}
-
-		return !after_last ();
+		return fetch (0);
 	}
 
 	bool previous ()
 	{
-		throw CORBA::NO_IMPLEMENT ();
+		check_scrollable ();
+		RowIdx pos = position ();
+		switch (pos) {
+		case 0:
+			return false;
+		case 1:
+			if (!after_last ()) {
+				position (0);
+				row ().clear ();
+			}
+			return false;
+
+		default:
+			if (after_last ())
+				return fetch (-1);
+			else
+				return fetch (pos - 1);
+		}
 	}
 
-	bool relative (int32_t rows)
+	bool relative (RowOff rows)
 	{
-		throw CORBA::NO_IMPLEMENT ();
+		if (empty ())
+			return false;
+
+		switch (rows) {
+		case 0:
+			return !row ().empty ();
+
+		case 1:
+			return next ();
+
+		case -1:
+			return previous ();
+
+		default:
+			check_scrollable ();
+			if (rows > 0) {
+				RowOff pos = (RowOff)position () + rows;
+				if (pos <= 0) {
+					afterLast ();
+					return false;
+				} else
+					return fetch (pos);
+			} else {
+				RowOff pos = (RowOff)position () - rows;
+				if (pos <= 0) {
+					beforeFirst ();
+					return false;
+				} else
+					return fetch (pos);
+			}
+		}
 	}
 
 private:
-	void check () const;
-	void check_row_valid () const;
-
-	static bool is_ascii (const IDL::String& s) noexcept
-	{
-		for (auto c : s) {
-			if (c & 0x80)
-				return false;
-		}
-		return true;
-	}
-
 	const ColumnNames& column_names ()
 	{
 		check ();
-		if (Base::column_names ().empty ()) {
+		if (Base::column_names ().empty ())
 			Base::column_names (cursor ()->getColumnNames ());
-			if (!(flags () & FLAG_COLUMNS_NON_ASCII)) {
-				for (const auto& name : column_names ()) {
-					if (!is_ascii (name)) {
-						flags () |= FLAG_COLUMNS_NON_ASCII;
-						break;
-					}
-				}
-			}
-		}
 		return Base::column_names ();
 	}
 
 	NIRVANA_NORETURN static void throw_exception (IDL::String msg);
 	NIRVANA_NORETURN static void data_conversion_error ();
-	NIRVANA_NORETURN static void error_forward_only ();
 
-	static std::wstring u2w (const IDL::String& utf8);
+	void check () const;
+	void check_row_valid () const;
+	void check_scrollable () const;
+
+	bool empty () const noexcept
+	{
+		return 1 == position () && after_last ();
+	}
+
+	bool fetch (RowOff i);
 
 	const Variant& field (Ordinal ord) const;
 
@@ -517,127 +541,6 @@ private:
 	}
 
 private:
-	using ColumnMap = std::unordered_map <std::string, Ordinal>;
-	using ColumnMapW = std::unordered_map <std::wstring, Ordinal>;
-
-	class ColumnIndex
-	{
-	public:
-		ColumnIndex () :
-			d_ (Type::EMPTY)
-		{}
-
-		~ColumnIndex ()
-		{
-			switch (d_) {
-			case Type::NARROW:
-				destruct (u_.narrow);
-				break;
-			case Type::WIDE:
-				destruct (u_.wide);
-				break;
-			}
-		}
-
-		ColumnIndex (const ColumnIndex& src) :
-			d_ (Type::EMPTY)
-		{
-			switch (d_) {
-			case Type::NARROW:
-				new (&u_.narrow) ColumnMap (src.u_.narrow);
-				break;
-			case Type::WIDE:
-				new (&u_.wide) ColumnMapW (src.u_.wide);
-				break;
-			}
-			d_ = src.d_;
-		}
-
-		bool empty () const noexcept
-		{
-			return Type::EMPTY == d_;
-		}
-
-		void build_narrow (const ColumnNames& names)
-		{
-			assert (Type::EMPTY == d_);
-			new (&u_.narrow) ColumnMap ();
-			d_ = Type::NARROW;
-
-			Ordinal ord = 1;
-			for (auto it = names.begin (); it != names.end (); ++it, ++ord) {
-				std::string lc = *it;
-				std::transform (lc.begin (), lc.end (), lc.begin (), tolower);
-				u_.narrow.emplace (lc, ord);
-			}
-		}
-
-		void build_wide (const ColumnNames& names)
-		{
-			assert (Type::EMPTY == d_);
-			new (&u_.wide) ColumnMapW ();
-			d_ = Type::WIDE;
-
-			Ordinal ord = 1;
-			for (auto it = names.begin (); it != names.end (); ++it, ++ord) {
-				std::wstring lc = u2w (*it);
-				std::transform (lc.begin (), lc.end (), lc.begin (), towlower);
-				u_.wide.emplace (lc, ord);
-			}
-		}
-
-		const Ordinal* find (const IDL::String& name) const
-		{
-			switch (d_) {
-			case Type::NARROW: {
-				std::string lc = name;
-				std::transform (lc.begin (), lc.end (), lc.begin (), tolower);
-				auto it = u_.narrow.find (lc);
-				if (it != u_.narrow.end ())
-					return &it->second;
-			} break;
-
-			case Type::WIDE: {
-				std::wstring lc = u2w (name);
-				std::transform (lc.begin (), lc.end (), lc.begin (), towlower);
-				auto it = u_.wide.find (lc);
-				if (it != u_.wide.end ())
-					return &it->second;
-			} break;
-
-			default:
-				NIRVANA_UNREACHABLE_CODE ();
-			}
-
-			return nullptr;
-		}
-
-	private:
-		template <class T>
-		static void destruct (T& v) noexcept
-		{
-			v.~T ();
-		}
-
-		enum class Type {
-			EMPTY,
-			NARROW,
-			WIDE
-		};
-
-		union U {
-			U ()
-			{}
-
-			~U ()
-			{}
-
-			ColumnMap narrow;
-			ColumnMapW wide;
-		} u_;
-
-		Type d_;
-	};
 
 	ColumnIndex column_index_;
 };
