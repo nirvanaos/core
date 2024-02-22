@@ -179,7 +179,12 @@ public:
 				break;
 			case State::ACTIVE:
 				adapter.on_request_start ();
-				adapter.serve_request (request);
+				try {
+					adapter.serve_request (request);
+				} catch (...) {
+					adapter.on_request_finish ();
+					throw;
+				}
 				adapter.on_request_finish ();
 				break;
 			case State::DISCARDING:
