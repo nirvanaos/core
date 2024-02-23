@@ -109,5 +109,22 @@ void ClassLibrary::raise_exception (CORBA::SystemException::Code code, unsigned 
 	Module::raise_exception (code, minor);
 }
 
+void ClassLibrary::atexit (AtExitFunc f)
+{
+	ExecDomain& ed = ExecDomain::current ();
+	if (!mem_context_) {
+		if (ed.restricted_mode () == ExecDomain::RestrictedMode::CLASS_LIBRARY_INIT)
+			mem_context_ = &ed.mem_context ();
+		else
+			mem_context_ = MemContextUser::create ();
+	}
+	at_exit_.atexit (mem_context_->heap (), f);
+}
+
+void ClassLibrary::execute_atexit () noexcept
+{
+	at_exit_.execute ();
+}
+
 }
 }

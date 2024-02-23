@@ -25,30 +25,53 @@
 */
 #include "pch.h"
 #include "AtExit.h"
-#include "MemContext.h"
+#include "ExecDomain.h"
 
 namespace Nirvana {
 namespace Core {
 
-void AtExit::atexit (Heap& heap, AtExitFunc f)
+void AtExitSync::atexit (AtExitFunc f)
+{
+	entries_.push_back (f);
+}
+
+void AtExitSync::execute ()
+{
+	for (auto it = entries_.rbegin (); it != entries_.rend (); ++it) {
+		try {
+			(*it) ();
+		} catch (...) {
+		}
+	}
+}
+
+void AtExitAsync::atexit (Heap& heap, AtExitFunc f)
 {
 	size_t size = sizeof (Entry);
 	Entry* entry = (Entry*)heap.allocate (nullptr, size, 0);
 	entry->func = f;
 	entry->prev = last_.load ();
+	entry->mem_context = &MemContext::current ();
 	for (BackOff bo; true; bo ()) {
 		if (last_.compare_exchange_weak (entry->prev, entry))
 			break;
 	}
 }
 
-void AtExit::execute ()
+void AtExitAsync::execute ()
 {
 	Entry* entry = last_.load ();
 	if (entry) {
-		Heap& heap = MemContext::current ().heap ();
+		ExecDomain& ed = ExecDomain::current ();
+		Heap& heap = ed.mem_context_ptr ()->heap ();
 		do {
-			(entry->func) ();
+			ed.mem_context_replace (*entry->mem_context);
+			try {
+				(entry->func) ();
+			} catch (...) {
+			}
+			ed.mem_context_restore ();
+			entry->mem_context = nullptr;
 			Entry* prev = entry->prev;
 			heap.release (entry, sizeof (Entry));
 			entry = prev;

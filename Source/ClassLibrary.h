@@ -53,6 +53,9 @@ public:
 		return *this;
 	}
 
+	virtual void atexit (AtExitFunc f) override;
+	virtual void execute_atexit () noexcept override;
+
 	virtual void initialize (ModuleInit::_ptr_type entry_point) override;
 	virtual void terminate () noexcept override;
 
@@ -76,6 +79,7 @@ private:
 
 private:
 	DataSections data_sections_;
+	AtExitAsync at_exit_;
 };
 
 }

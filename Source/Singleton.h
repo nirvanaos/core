@@ -64,11 +64,25 @@ public:
 		return *this;
 	}
 
+	virtual void atexit (AtExitFunc f) override
+	{
+		at_exit_.atexit (f);
+
+	}
+
+	virtual void execute_atexit () noexcept override
+	{
+		at_exit_.execute ();
+	}
+
 	// SyncContext::
 
 	virtual SyncContext::Type sync_context_type () const noexcept override;
 	virtual Module* module () noexcept override;
 	virtual void raise_exception (CORBA::SystemException::Code code, unsigned minor) override;
+
+private:
+	AtExitSync at_exit_;
 
 };
 

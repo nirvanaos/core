@@ -101,22 +101,8 @@ public:
 
 	void raise_exception (CORBA::SystemException::Code code, unsigned minor);
 
-	void atexit (AtExitFunc f)
-	{
-		ExecDomain& ed = ExecDomain::current ();
-		if (!mem_context_) {
-			if (ed.restricted_mode () == ExecDomain::RestrictedMode::CLASS_LIBRARY_INIT)
-				mem_context_ = &ed.mem_context ();
-			else
-				mem_context_ = MemContextUser::create ();
-		}
-		at_exit_.atexit (mem_context_->heap (), f);
-	}
-
-	void execute_atexit ()
-	{
-		at_exit_.execute ();
-	}
+	virtual void atexit (AtExitFunc f) = 0;
+	virtual void execute_atexit () noexcept = 0;
 
 	MemContext* mem_context () const noexcept
 	{
@@ -142,7 +128,6 @@ protected:
 	Ref <MemContext> mem_context_;
 
 	SteadyTime release_time_;
-	AtExit at_exit_;
 	AtomicCounter <false> ref_cnt_;
 	AtomicCounter <false>::IntegralType initial_ref_cnt_;
 	bool singleton_;

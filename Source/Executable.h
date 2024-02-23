@@ -67,7 +67,7 @@ public:
 
 	void atexit (AtExitFunc f)
 	{
-		at_exit_.atexit (MemContext::current ().heap (), f);
+		at_exit_.atexit (f);
 	}
 
 	void execute_atexit ()
@@ -86,7 +86,7 @@ private:
 
 private:
 	Main::_ptr_type entry_point_;
-	AtExit at_exit_;
+	AtExitSync at_exit_;
 	bool bound_;
 };
 

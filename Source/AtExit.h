@@ -35,10 +35,25 @@
 namespace Nirvana {
 namespace Core {
 
-class AtExit
+class AtExitSync
 {
 public:
-	AtExit () :
+	AtExitSync ()
+	{}
+
+	void atexit (AtExitFunc f);
+	void execute ();
+
+private:
+	std::vector <AtExitFunc> entries_;
+};
+
+class MemContext;
+
+class AtExitAsync
+{
+public:
+	AtExitAsync () :
 		last_ (nullptr)
 	{}
 
@@ -49,6 +64,7 @@ private:
 	struct Entry
 	{
 		Entry* prev;
+		Ref <MemContext> mem_context;
 		AtExitFunc func;
 	};
 
