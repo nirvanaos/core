@@ -41,7 +41,7 @@ class Singleton :
 public:
 	Singleton (AccessDirect::_ptr_type file) :
 		Module (file, true),
-		SyncDomain (Ref <MemContext> (this))
+		SyncDomain (&mem_context_create ())
 	{}
 
 	void _add_ref () noexcept override

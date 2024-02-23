@@ -43,7 +43,7 @@ public:
 	{}
 
 	void atexit (Heap& heap, AtExitFunc f);
-	void execute (Heap& heap);
+	void execute ();
 
 private:
 	struct Entry

@@ -70,9 +70,9 @@ public:
 		at_exit_.atexit (MemContext::current ().heap (), f);
 	}
 
-	void execute_atexit (Heap& heap)
+	void execute_atexit ()
 	{
-		at_exit_.execute (heap);
+		at_exit_.execute ();
 	}
 
 	// SyncContext::

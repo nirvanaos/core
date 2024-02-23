@@ -33,10 +33,10 @@ namespace Core {
 
 Module::Module (AccessDirect::_ptr_type file, bool singleton) :
 	Binary (file),
-	singleton_ (singleton),
+	entry_point_ (nullptr),
 	ref_cnt_ (0),
 	initial_ref_cnt_ (0),
-	entry_point_ (nullptr)
+	singleton_ (singleton)
 {}
 
 void Module::_remove_ref () noexcept
@@ -55,6 +55,7 @@ void Module::initialize (ModuleInit::_ptr_type entry_point)
 		entry_point->initialize ();
 		entry_point_ = entry_point;
 	}
+	mem_context_ = ExecDomain::current ().mem_context_ptr ();
 }
 
 void Module::terminate () noexcept
@@ -70,7 +71,6 @@ void Module::terminate () noexcept
 		}
 		ed.restricted_mode (rm);
 	}
-	MemContextUser::clear ();
 }
 
 void Module::raise_exception (CORBA::SystemException::Code code, unsigned minor)

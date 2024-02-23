@@ -28,7 +28,6 @@
 #pragma once
 
 #include <UserAllocator.h>
-#include <forward_list>
 
 namespace Nirvana {
 namespace Core {
@@ -39,7 +38,7 @@ struct Section
 	size_t size;
 };
 
-typedef std::forward_list <Section, UserAllocator <Section> > DataSections;
+typedef std::vector <Section, UserAllocator <Section> > DataSections;
 
 }
 }

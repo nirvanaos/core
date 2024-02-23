@@ -47,7 +47,6 @@ class Binder;
 class NIRVANA_NOVTABLE Module :
 	public UserObject,
 	public Binary,
-	public MemContextUser,
 	public CORBA::servant_traits <Nirvana::Module>::Servant <Module>,
 	public CORBA::Internal::LifeCycleRefCnt <Module>
 {
@@ -104,26 +103,49 @@ public:
 
 	void atexit (AtExitFunc f)
 	{
-		at_exit_.atexit (heap (), f);
+		ExecDomain& ed = ExecDomain::current ();
+		if (!mem_context_) {
+			if (ed.restricted_mode () == ExecDomain::RestrictedMode::CLASS_LIBRARY_INIT)
+				mem_context_ = &ed.mem_context ();
+			else
+				mem_context_ = MemContextUser::create ();
+		}
+		at_exit_.atexit (mem_context_->heap (), f);
 	}
 
 	void execute_atexit ()
 	{
-		at_exit_.execute (heap ());
+		at_exit_.execute ();
+	}
+
+	MemContext* mem_context () const noexcept
+	{
+		return mem_context_;
 	}
 
 protected:
 	Module (AccessDirect::_ptr_type file, bool singleton);
 
+	MemContext& mem_context_create ()
+	{
+		if (!mem_context_)
+			mem_context_ = MemContextUser::create ();
+		return *mem_context_;
+	}
+
 protected:
 	friend class Binder;
 
-	bool singleton_;
-	AtomicCounter <false> ref_cnt_;
-	AtomicCounter <false>::IntegralType initial_ref_cnt_;
 	ModuleInit::_ptr_type entry_point_;
+
+	// Memory context. For class library this is module initialization memory context and may be nil.
+	Ref <MemContext> mem_context_;
+
 	SteadyTime release_time_;
 	AtExit at_exit_;
+	AtomicCounter <false> ref_cnt_;
+	AtomicCounter <false>::IntegralType initial_ref_cnt_;
+	bool singleton_;
 };
 
 }

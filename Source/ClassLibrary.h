@@ -42,7 +42,9 @@ class ClassLibrary :
 public:
 	ClassLibrary (AccessDirect::_ptr_type file) :
 		Module (file, false)
-	{}
+	{
+		get_data_sections (data_sections_);
+	}
 
 	// Module::
 
@@ -57,7 +59,7 @@ public:
 	// SyncContext::
 
 	virtual Type sync_context_type () const noexcept override;
-	virtual Heap* stateless_memory () noexcept override;
+	virtual Heap* stateless_memory () override;
 	virtual Module* module () noexcept override;
 	virtual void raise_exception (CORBA::SystemException::Code code, unsigned minor) override;
 

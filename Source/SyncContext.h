@@ -110,7 +110,7 @@ public:
 
 	/// \returns Free sync context returns pointer to the stateless objects heap.
 	///          Other sync contexts return `nullptr`.
-	virtual Heap* stateless_memory () noexcept;
+	virtual Heap* stateless_memory ();
 
 	/// Returns the Module object associated with this context.
 	/// 
@@ -144,7 +144,7 @@ class NIRVANA_NOVTABLE SyncContextFree :
 	public SyncContext
 {
 public:
-	virtual Heap* stateless_memory () noexcept override = 0;
+	virtual Heap* stateless_memory () override = 0;
 	virtual Type sync_context_type () const noexcept override;
 
 protected:

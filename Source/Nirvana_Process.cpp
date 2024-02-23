@@ -64,7 +64,7 @@ void Process::run ()
 		copy_strings (argv_, v);
 		copy_strings (envp_, v);
 		ret_ = executable_.main ((int)argv_.size (), v.data (), v.data () + argv_.size () + 1);
-		executable_.execute_atexit (heap ());
+		executable_.execute_atexit ();
 		executable_.cleanup ();
 	} catch (const std::exception& ex) {
 		ret_ = -1;

@@ -42,13 +42,17 @@ void AtExit::atexit (Heap& heap, AtExitFunc f)
 	}
 }
 
-void AtExit::execute (Heap& heap)
+void AtExit::execute ()
 {
-	for (Entry* entry = last_.load (); entry;) {
-		(entry->func) ();
-		Entry* prev = entry->prev;
-		heap.release (entry, sizeof (Entry));
-		entry = prev;
+	Entry* entry = last_.load ();
+	if (entry) {
+		Heap& heap = MemContext::current ().heap ();
+		do {
+			(entry->func) ();
+			Entry* prev = entry->prev;
+			heap.release (entry, sizeof (Entry));
+			entry = prev;
+		} while (entry);
 	}
 }
 

@@ -32,8 +32,8 @@ namespace Core {
 void ClassLibrary::initialize (ModuleInit::_ptr_type entry_point)
 {
 	ExecDomain& ed = ExecDomain::current ();
-	assert (MemContext::is_current (this));
 	ExecDomain::RestrictedMode rm = ed.restricted_mode ();
+
 	ed.restricted_mode (ExecDomain::RestrictedMode::CLASS_LIBRARY_INIT);
 	try {
 		Module::initialize (entry_point);
@@ -42,8 +42,12 @@ void ClassLibrary::initialize (ModuleInit::_ptr_type entry_point)
 		throw;
 	}
 	if (Port::Memory::FLAGS & Memory::ACCESS_CHECK) {
-		get_data_sections (data_sections_);
-		heap ().change_protection (true);
+
+		// Make global data read-only
+
+		if (mem_context_)
+			mem_context_->heap ().change_protection (true);
+
 		for (auto it = data_sections_.cbegin (); it != data_sections_.cend (); ++it) {
 			void* p = const_cast <void*> (it->address);
 			size_t cb = it->size;
@@ -55,10 +59,14 @@ void ClassLibrary::initialize (ModuleInit::_ptr_type entry_point)
 
 void ClassLibrary::terminate () noexcept
 {
-	assert (MemContext::is_current (this));
 	if (Port::Memory::FLAGS & Memory::ACCESS_CHECK) {
 		try {
-			heap ().change_protection (false);
+
+			// Make global data read-write
+
+			if (mem_context_)
+				mem_context_->heap ().change_protection (false);
+
 			for (auto it = data_sections_.cbegin (); it != data_sections_.cend (); ++it) {
 				void* p = const_cast <void*> (it->address);
 				size_t cb = it->size;
@@ -69,7 +77,6 @@ void ClassLibrary::terminate () noexcept
 			return;
 		}
 	}
-	data_sections_.clear ();
 	Module::terminate ();
 }
 
@@ -87,9 +94,9 @@ SyncContext::Type ClassLibrary::sync_context_type () const noexcept
 	}
 }
 
-Heap* ClassLibrary::stateless_memory () noexcept
+Heap* ClassLibrary::stateless_memory ()
 {
-	return &heap ();
+	return &mem_context_create ().heap ();
 }
 
 Module* ClassLibrary::module () noexcept
