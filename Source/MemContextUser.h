@@ -183,6 +183,7 @@ protected:
 	void clear () noexcept
 	{
 		data_.reset ();
+		runtime_global_.clear ();
 	}
 
 private:

@@ -42,24 +42,8 @@ public:
 		last_ (nullptr)
 	{}
 
-	void atexit (Heap& heap, AtExitFunc f)
-	{
-		size_t size = sizeof (Entry);
-		Entry* entry = (Entry*)heap.allocate (nullptr, size, 0);
-		entry->func = f;
-		entry->prev = last_.load ();
-		while (!last_.compare_exchange_weak (entry->prev, entry))
-			;
-	}
-
-	void execute (Heap& heap)
-	{
-		for (Entry* entry = last_.load (); entry;) {
-			Entry* prev = entry->prev;
-			heap.release (entry, sizeof (Entry));
-			entry = prev;
-		}
-	}
+	void atexit (Heap& heap, AtExitFunc f);
+	void execute (Heap& heap);
 
 private:
 	struct Entry

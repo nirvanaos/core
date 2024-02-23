@@ -88,6 +88,11 @@ public:
 		void set (unsigned idx, void* p);
 		void* get (unsigned idx) const noexcept;
 
+		void reset () noexcept
+		{
+			p_.reset ();
+		}
+
 	private:
 		std::unique_ptr <TLS> p_;
 	};

@@ -1,4 +1,3 @@
-/// \file
 /*
 * Nirvana Core.
 *
@@ -24,64 +23,34 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_CORE_RUNTIMEGLOBAL_H_
-#define NIRVANA_CORE_RUNTIMEGLOBAL_H_
-#pragma once
-
-#include "RandomGen.h"
-#include "TLS.h"
+#include "pch.h"
+#include "AtExit.h"
+#include "MemContext.h"
 
 namespace Nirvana {
 namespace Core {
 
-/// POSIX run-time library global state
-class RuntimeGlobal
+void AtExit::atexit (Heap& heap, AtExitFunc f)
 {
-public:
-	static RuntimeGlobal& current ();
-
-	RuntimeGlobal () noexcept :
-		random_ (1),
-		error_number_ (0)
-	{}
-
-	int rand () noexcept
-	{
-		return random_.operator () () & RAND_MAX;
+	size_t size = sizeof (Entry);
+	Entry* entry = (Entry*)heap.allocate (nullptr, size, 0);
+	entry->func = f;
+	entry->prev = last_.load ();
+	for (BackOff bo; true; bo ()) {
+		if (last_.compare_exchange_weak (entry->prev, entry))
+			break;
 	}
+}
 
-	void srand (unsigned seed) noexcept
-	{
-		random_.state (seed);
+void AtExit::execute (Heap& heap)
+{
+	for (Entry* entry = last_.load (); entry;) {
+		(entry->func) ();
+		Entry* prev = entry->prev;
+		heap.release (entry, sizeof (Entry));
+		entry = prev;
 	}
-
-	int* error_number () noexcept
-	{
-		return &error_number_;
-	}
-
-	void TLS_set (unsigned idx, void* p)
-	{
-		tls_.set (idx, p);
-	}
-
-	void* TLS_get (unsigned idx) const noexcept
-	{
-		return tls_.get (idx);
-	}
-
-	void clear () noexcept
-	{
-		tls_.reset ();
-	}
-
-private:
-	TLS::Holder tls_;
-	RandomGen random_;
-	int error_number_;
-};
+}
 
 }
 }
-
-#endif
