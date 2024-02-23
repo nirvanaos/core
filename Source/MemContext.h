@@ -45,7 +45,8 @@ class MemContextUser;
 /// MemContext can not be static.
 class NIRVANA_NOVTABLE MemContext
 {
-	friend class CORBA::servant_reference <MemContext>;
+	template <class>
+	friend class CORBA::servant_reference;
 
 public:
 	/// \returns Current memory context.

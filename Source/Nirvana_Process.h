@@ -45,28 +45,11 @@ namespace Core {
 /// Nirvana process.
 class Process :
 	public CORBA::servant_traits <Nirvana::Process>::Servant <Process>,
-	public MemContextUser,
 	public Runnable
 {
 	typedef CORBA::servant_traits <Nirvana::Process>::Servant <Process> Servant;
 
 public:
-	// Override new/delete
-	using Servant::operator new;
-	using Servant::operator delete;
-
-	// Override MemContext ref counting
-
-	void _add_ref () noexcept
-	{
-		Servant::_add_ref ();
-	}
-
-	void _remove_ref () noexcept
-	{
-		Servant::_remove_ref ();
-	}
-
 	/// \returns Current process if execution is in legacy mode.
 	///          Otherwise returns `nullptr`.
 	static Process* current_ptr () noexcept;
@@ -122,7 +105,7 @@ public:
 		servant->proxy_ = ret;
 
 		try {
-			Nirvana::Core::ExecDomain::async_call (INFINITE_DEADLINE, *servant, servant->sync_context (), servant);
+			Nirvana::Core::ExecDomain::async_call (INFINITE_DEADLINE, *servant, servant->sync_context (), servant->mem_context_);
 		} catch (...) {
 			servant->proxy_ = nullptr;
 			throw;
@@ -130,8 +113,6 @@ public:
 
 		return ret;
 	}
-
-	virtual void runtime_proxy_remove (const void* obj) noexcept override;
 
 private:
 	template <class S, class ... Args> friend
@@ -141,18 +122,17 @@ private:
 	Process (AccessDirect::_ptr_type file,
 		IDL::Sequence <IDL::String>& argv, IDL::Sequence <IDL::String>& envp, const IDL::String& work_dir,
 		const InheritedFiles& inherit, ProcessCallback::_ptr_type callback) :
-		// Inherit the parent heap
-		MemContextUser (ExecDomain::current ().mem_context ().heap (), inherit),
 		state_ (INIT),
 		ret_ (-1),
 		executable_ (file),
 		argv_ (std::move (argv)),
 		envp_ (std::move (envp)),
 		callback_ (callback),
-		sync_domain_ (&SyncDomain::current ())
+		mem_context_ (MemContext::current ().user_context ())
 	{
+		mem_context_->set_inherited_files (inherit);
 		if (!work_dir.empty ())
-			chdir (work_dir);
+			mem_context_->chdir (work_dir);
 	}
 
 private:
@@ -179,7 +159,7 @@ private:
 	typedef std::vector <char*, Nirvana::Core::UserAllocator <char*> > Pointers;
 	static void copy_strings (Strings& src, Pointers& dst);
 	void finish () noexcept;
-	void error_message (const char* msg);
+	void error_message (const char* msg) const;
 
 private:
 	enum
@@ -192,10 +172,9 @@ private:
 	int ret_;
 	ImplStatic <Executable> executable_;
 	Strings argv_, envp_;
-	Dir::_ref_type current_dir_;
 	ProcessCallback::_ref_type callback_;
 	Nirvana::Process::_ref_type proxy_;
-	Ref <SyncContext> sync_domain_;
+	Ref <MemContextUser> mem_context_;
 	EventSync completed_;
 	ExecDomain* exec_domain_;
 };

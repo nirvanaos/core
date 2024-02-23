@@ -51,6 +51,7 @@ class Module;
 class NIRVANA_NOVTABLE SyncContext
 {
 DECLARE_CORE_INTERFACE
+
 public:
 	/// \returns Current synchronization context.
 	static SyncContext& current () noexcept;

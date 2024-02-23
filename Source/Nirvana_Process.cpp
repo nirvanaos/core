@@ -86,7 +86,6 @@ void Process::finish () noexcept
 {
 	executable_.unload ();
 
-	MemContextUser::clear ();
 	{
 		Strings tmp (std::move (argv_));
 	}
@@ -115,28 +114,15 @@ void Process::on_crash (const siginfo& signal) noexcept
 		ret_ = -1;
 
 	ExecDomain& ed = ExecDomain::current ();
-	ed.mem_context_replace (*this);
+	ed.mem_context_replace (*mem_context_);
 	error_message ("Process crashed.\n");
 	finish ();
 	ed.mem_context_restore ();
 }
 
-void Process::runtime_proxy_remove (const void* obj) noexcept
+void Process::error_message (const char* msg) const
 {
-	assert (&MemContext::current () == this);
-
-	// Debug iterators
-#ifdef NIRVANA_DEBUG_ITERATORS
-	if (RUNNING != state_)
-		return;
-#endif
-
-	MemContextUser::runtime_proxy_remove (obj);
-}
-
-void Process::error_message (const char* msg)
-{
-	write (2, msg, strlen (msg));
+	mem_context_->write (2, msg, strlen (msg));
 }
 
 }

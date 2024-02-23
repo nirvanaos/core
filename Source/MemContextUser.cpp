@@ -29,7 +29,6 @@
 #include "ORB/Services.h"
 #include "virtual_copy.h"
 #include "CharFileAdapter.h"
-#include <Nirvana/ProcessFactory.h>
 
 using namespace CosNaming;
 using CORBA::Core::Services;
@@ -111,30 +110,6 @@ MemContextUser::Data* MemContextUser::Data::create ()
 
 MemContextUser::Data::~Data ()
 {}
-
-inline
-MemContextUser::Data::Data (const InheritedFiles& inh)
-{
-	size_t max = 0;
-	for (const auto& f : inh) {
-		for (auto d : f.descriptors ()) {
-			if (max < d)
-				max = d;
-		}
-	}
-	if (max >= StandardFileDescriptor::STD_CNT)
-		file_descriptors_.resize (max + 1 - StandardFileDescriptor::STD_CNT);
-	for (const auto& f : inh) {
-		FileDescriptorRef fd = make_fd (f.access ());
-		fd->remove_descriptor_ref ();
-		for (auto d : f.descriptors ()) {
-			FileDescriptorInfo& fdr = get_fd (d);
-			if (!fdr.closed ())
-				throw_BAD_PARAM ();
-			fdr.assign (fd);
-		}
-	}
-}
 
 Name MemContextUser::Data::default_dir ()
 {
@@ -246,13 +221,6 @@ MemContextUser& MemContextUser::current ()
 	if (!p)
 		throw_BAD_OPERATION (); // Unavailable for core contexts
 	return *p;
-}
-
-MemContextUser::MemContextUser (Heap& heap, const InheritedFiles& inh) :
-	MemContext (&heap, true)
-{
-	if (!inh.empty ())
-		data_.reset (new Data (inh));
 }
 
 MemContextUser::~MemContextUser ()

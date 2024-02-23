@@ -32,6 +32,7 @@
 #include "RuntimeSupport.h"
 #include "RuntimeGlobal.h"
 #include <Nirvana/File.h>
+#include <Nirvana/ProcessFactory.h>
 #include <memory>
 #include <fnctl.h>
 
@@ -43,7 +44,7 @@ typedef IDL::Sequence <InheritedFile> InheritedFiles;
 namespace Core {
 
 /// \brief Memory context full implementation.
-class MemContextUser : public MemContext
+class MemContextUser final : public MemContext
 {
 	static const unsigned POSIX_CHANGEABLE_FLAGS;
 
@@ -170,23 +171,21 @@ public:
 		data_for_fd ().clearerr (ifd);
 	}
 
-protected:
+	void set_inherited_files (const InheritedFiles& inh)
+	{
+		if (!inh.empty ())
+			data ().set_inherited_files (inh);
+	}
+
+private:
 	friend class MemContext;
 
 	MemContextUser (Ref <Heap>&& heap = create_heap ()) :
 		MemContext (std::move (heap), true)
 	{}
 
-	MemContextUser (Heap& heap, const InheritedFiles& inh);
 	~MemContextUser ();
 
-	void clear () noexcept
-	{
-		data_.reset ();
-		runtime_global_.clear ();
-	}
-
-private:
 	class NIRVANA_NOVTABLE FileDescriptor : public UserObject
 	{
 		static const unsigned PUSH_BACK_MAX = 3;
@@ -473,7 +472,28 @@ private:
 			get_open_fd (ifd).ptr ()->clearerr ();
 		}
 
-		Data (const InheritedFiles& inh);
+		void set_inherited_files (const InheritedFiles& inh)
+		{
+			size_t max = 0;
+			for (const auto& f : inh) {
+				for (auto d : f.descriptors ()) {
+					if (max < d)
+						max = d;
+				}
+			}
+			if (max >= StandardFileDescriptor::STD_CNT)
+				file_descriptors_.resize (max + 1 - StandardFileDescriptor::STD_CNT);
+			for (const auto& f : inh) {
+				FileDescriptorRef fd = make_fd (f.access ());
+				fd->remove_descriptor_ref ();
+				for (auto d : f.descriptors ()) {
+					FileDescriptorInfo& fdr = get_fd (d);
+					if (!fdr.closed ())
+						throw_BAD_PARAM ();
+					fdr.assign (fd);
+				}
+			}
+		}
 
 	private:
 		Data ()
@@ -485,6 +505,8 @@ private:
 		FileDescriptorInfo& get_fd (unsigned fd);
 		FileDescriptorInfo& get_open_fd (unsigned fd);
 		size_t alloc_fd (unsigned start = 0);
+
+
 
 		RuntimeSupportImpl runtime_support_;
 		CosNaming::Name current_dir_;

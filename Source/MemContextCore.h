@@ -34,8 +34,7 @@ namespace Nirvana {
 namespace Core {
 
 /// \brief Memory context core implementation.
-class MemContextCore :
-	public MemContext
+class MemContextCore final : public MemContext
 {
 	friend class MemContext;
 
@@ -45,7 +44,7 @@ public:
 		return MemContext::create <MemContextCore> (std::move (heap));
 	}
 
-protected:
+private:
 	MemContextCore (Ref <Heap>&& heap) noexcept :
 		MemContext (std::move (heap), false)
 	{}
