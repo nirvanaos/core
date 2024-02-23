@@ -24,6 +24,7 @@
 *  popov.nirvana@gmail.com
 */
 #include "pch.h"
+#include "mutex_methods.h"
 #include <assert.h>
 #include <Nirvana/System.h>
 
@@ -35,7 +36,21 @@ struct sqlite3_mutex
 	size_t cnt;
 };
 
-extern "C" sqlite3_mutex* sqlite3_mutex_alloc (int)
+using namespace Nirvana;
+
+namespace SQLite {
+
+extern "C" int xMutexInit (void)
+{
+	return SQLITE_OK;
+}
+
+extern "C" int xMutexEnd (void)
+{
+	return SQLITE_OK;
+}
+
+extern "C" sqlite3_mutex* xMutexAlloc (int)
 {
 	sqlite3_mutex* pm = (sqlite3_mutex*)sqlite3_malloc (sizeof (sqlite3_mutex));
 	pm->exec_domain_id = 0;
@@ -43,27 +58,51 @@ extern "C" sqlite3_mutex* sqlite3_mutex_alloc (int)
 	return pm;
 }
 
-extern "C" void sqlite3_mutex_free (sqlite3_mutex* pm)
+extern "C" void xMutexFree (sqlite3_mutex * pm)
 {
 	sqlite3_free (pm);
 }
 
-extern "C" void sqlite3_mutex_enter (sqlite3_mutex* pm)
+extern "C" void xMutexEnter (sqlite3_mutex * pm)
 {
 	size_t ed_id = Nirvana::g_system->exec_domain_id ();
 	assert (!pm->cnt || pm->exec_domain_id == ed_id);
-	if (pm->cnt++)
+	if (!pm->cnt++)
 		pm->exec_domain_id = ed_id;
 }
 
-extern "C" int sqlite3_mutex_try (sqlite3_mutex* pm)
+extern "C" int xMutexTry (sqlite3_mutex * pm)
 {
 	sqlite3_mutex_enter (pm);
 	return 0;
 }
 
-extern "C" void sqlite3_mutex_leave (sqlite3_mutex* pm)
+extern "C" void xMutexLeave (sqlite3_mutex * pm)
 {
 	assert (pm->cnt && pm->exec_domain_id == Nirvana::g_system->exec_domain_id ());
 	--(pm->cnt);
+}
+
+extern "C" int xMutexHeld (sqlite3_mutex * pm)
+{
+	return pm->cnt && pm->exec_domain_id == Nirvana::g_system->exec_domain_id ();
+}
+
+extern "C" int xMutexNotheld (sqlite3_mutex * pm)
+{
+	return !pm->cnt || pm->exec_domain_id != Nirvana::g_system->exec_domain_id ();
+}
+
+const struct sqlite3_mutex_methods mutex_methods = {
+	xMutexInit,
+	xMutexEnd,
+	xMutexAlloc,
+	xMutexFree,
+	xMutexEnter,
+	xMutexTry,
+	xMutexLeave,
+	xMutexHeld,
+	xMutexNotheld
+};
+
 }

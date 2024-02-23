@@ -70,6 +70,13 @@ public:
 				"",
 				{"ro", "rw", "rwc", "memory"},
 				false
+			},
+			NDBC::DriverProperty {
+				"immutable",
+				"Read-only media",
+				"",
+				{"1"},
+				false
 			}
 		};
 
@@ -79,6 +86,11 @@ public:
 	static NDBC::Connection::_ref_type connect (const IDL::String& url, const NDBC::Properties& props)
 	{
 		return getDataSource (url)->getConnection (props);
+	}
+
+	static IDL::String version ()
+	{
+		return sqlite3_version;
 	}
 };
 

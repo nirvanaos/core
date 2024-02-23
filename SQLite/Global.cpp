@@ -26,6 +26,7 @@
 #include "pch.h"
 #include "Global.h"
 #include "mem_methods.h"
+#include "mutex_methods.h"
 #include "filesystem.h"
 #include "Activator.h"
 #include <Nirvana/System.h>
@@ -52,7 +53,9 @@ Global::Global () :
 	adapter->set_servant_manager (CORBA::make_stateless <Activator> ()->_this ());
 	adapter_ = std::move (adapter);
 
+	sqlite3_config (SQLITE_CONFIG_PAGECACHE, nullptr, 0, 0);
 	sqlite3_config (SQLITE_CONFIG_MALLOC, &mem_methods);
+	sqlite3_config (SQLITE_CONFIG_MUTEX, &mutex_methods);
 	sqlite3_vfs_register (&vfs, 1);
 	sqlite3_initialize ();
 }

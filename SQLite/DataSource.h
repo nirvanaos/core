@@ -42,7 +42,7 @@ public:
 	{
 		if (!file_)
 			throw CORBA::OBJECT_NOT_EXIST ();
-		file_name_ = OBJID_PREFIX + id_to_string (id);
+		file_name_ = id_to_string (id);
 	}
 
 	~DataSource ()

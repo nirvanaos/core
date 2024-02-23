@@ -48,9 +48,9 @@
 
 #ifdef NDEBUG
 #define SQLITE_THREADSAFE (0)
+#define SQLITE_MUTEX_OMIT
 #else
 #define SQLITE_MUTEX_APPDEF (1)
-#define SQLITE_MUTEX_OMIT
 #endif
 
 #define SQLITE_OMIT_SEH

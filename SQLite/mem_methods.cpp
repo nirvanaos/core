@@ -31,49 +31,49 @@ using namespace Nirvana;
 
 namespace SQLite {
 
-void* xMalloc (int size) noexcept
+extern "C" void* xMalloc (int size)
 {
 	return c_malloc <HeapBlockHdrType> (alignof (std::max_align_t), size);
 }
 
-void xFree (void* p) noexcept
+extern "C" void xFree (void* p)
 {
 	c_free <HeapBlockHdrType> (p);
 }
 
-void* xRealloc (void* p, int size) noexcept
+extern "C" void* xRealloc (void* p, int size)
 {
 	return c_realloc <HeapBlockHdrType> (p, size);
 }
 
-int xSize (void* p) noexcept
+extern "C" int xSize (void* p)
 {
 	return (int)c_size <HeapBlockHdrType> (p);
 }
 
-int xRoundup (int size) noexcept
+extern "C" int xRoundup (int size)
 {
 	if (size < (int)(std::numeric_limits <size_t>::max () / 4))
 		size = (int)(clp2 (size + sizeof (HeapBlockHdrType)) - sizeof (HeapBlockHdrType));
 	return size;
 }
 
-int xInit (void*) noexcept
+extern "C" int xInit (void*) noexcept
 {
 	return SQLITE_OK;
 }
 
-void xShutdown (void*) noexcept
+extern "C" void xShutdown (void*) noexcept
 {}
 
 const struct sqlite3_mem_methods mem_methods = {
-	&xMalloc,
-	&xFree,
-	&xRealloc,
-	&xSize,
-	&xRoundup,
-	&xInit,
-	&xShutdown
+	xMalloc,
+	xFree,
+	xRealloc,
+	xSize,
+	xRoundup,
+	xInit,
+	xShutdown
 };
 
 }

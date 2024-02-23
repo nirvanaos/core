@@ -50,7 +50,7 @@ namespace SQLite {
 
 const char* is_id (const char* file) noexcept
 {
-	const char* prefix_end = file + std::size (OBJID_PREFIX);
+	const char* prefix_end = file + std::size (OBJID_PREFIX) - 1;
 	if (std::equal (file, prefix_end, OBJID_PREFIX))
 		return prefix_end;
 	return nullptr;
@@ -254,18 +254,18 @@ extern "C" int xUnfetch (sqlite3_file* f, sqlite3_int64 iOfst, void* p)
 
 const sqlite3_io_methods io_methods = {
 	3,
-	&xClose,
-	&xRead,
-	&xWrite,
-	&xTruncate,
-	&xSync,
-	&xFileSize,
-	&xLock,
-	&xUnlock,
-	&xCheckReservedLock,
+	xClose,
+	xRead,
+	xWrite,
+	xTruncate,
+	xSync,
+	xFileSize,
+	xLock,
+	xUnlock,
+	xCheckReservedLock,
 	nullptr, // xFileControl
-	&xSectorSize,
-	&xDeviceCharacteristics,
+	xSectorSize,
+	xDeviceCharacteristics,
 	nullptr, // xShmMap
 	nullptr, // xShmLock
 	nullptr, // xShmBarrier
@@ -279,6 +279,10 @@ int xOpen (sqlite3_vfs*, sqlite3_filename zName, sqlite3_file* file,
 {
 	Access::_ref_type fa;
 	try {
+		uint_fast16_t open_flags = O_DIRECT;
+		if (flags & SQLITE_OPEN_READWRITE)
+			open_flags |= O_RDWR;
+
 		const char* id_begin = is_id (zName);
 		if (id_begin) {
 			Nirvana::File::_ref_type file = Nirvana::File::_narrow (
@@ -286,9 +290,8 @@ int xOpen (sqlite3_vfs*, sqlite3_filename zName, sqlite3_file* file,
 					string_to_id (id_begin, id_begin + strlen (id_begin))));
 			if (!file)
 				return SQLITE_CANTOPEN;
-			fa = file->open (O_RDWR | O_DIRECT, 0);
+			fa = file->open (open_flags, 0);
 		} else {
-			uint_fast16_t open_flags = O_RDWR | O_DIRECT;
 			if (flags & SQLITE_OPEN_CREATE)
 				open_flags |= O_CREAT;
 			if (flags & SQLITE_OPEN_EXCLUSIVE)
@@ -385,19 +388,19 @@ struct sqlite3_vfs vfs = {
 	nullptr,             /* Next registered VFS */
 	VFS_NAME,            /* Name of this virtual file system */
 	nullptr,             /* Pointer to application-specific data */
-	&xOpen,
-	&xDelete,
-	&xAccess,
-	&xFullPathname,
+	xOpen,
+	xDelete,
+	xAccess,
+	xFullPathname,
 	nullptr, // xDlOpen
 	nullptr, // xDlError
 	nullptr, // xDlSym
 	nullptr, // xDlClose
 	nullptr, // xRandomness
-	&xSleep,
+	xSleep,
 	nullptr, // xCurrentTime
 	nullptr, // xGetLastError
-	&xCurrentTimeInt64
+	xCurrentTimeInt64
 };
 
 }

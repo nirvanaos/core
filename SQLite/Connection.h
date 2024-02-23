@@ -49,7 +49,9 @@ public:
 
 	SQLite (const std::string& uri)
 	{
-		int err = sqlite3_open_v2 (uri.c_str (), &sqlite_, 0, VFS_NAME);
+		int err = sqlite3_open_v2 (uri.c_str (), &sqlite_,
+			SQLITE_OPEN_URI | SQLITE_OPEN_EXRESCODE | SQLITE_OPEN_READWRITE,
+			VFS_NAME);
 		if (err)
 			throw_exception (sqlite3_errstr (err));
 	}
