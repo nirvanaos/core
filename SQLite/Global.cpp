@@ -30,13 +30,15 @@
 #include "filesystem.h"
 #include "Activator.h"
 #include <Nirvana/System.h>
+#include <signal.h>
 
 namespace SQLite {
 
 inline
 Global::Global () :
 	file_system_ (Nirvana::FileSystem::_narrow (CosNaming::NamingContext::_narrow (
-		CORBA::g_ORB->resolve_initial_references ("NameService"))->resolve (CosNaming::Name (1))))
+		CORBA::g_ORB->resolve_initial_references ("NameService"))->resolve (CosNaming::Name (1)))),
+	tls_index_ (-1)
 {
 	PortableServer::POA::_ref_type root = PortableServer::POA::_narrow (
 		CORBA::g_ORB->resolve_initial_references ("RootPOA"));
@@ -58,15 +60,18 @@ Global::Global () :
 	sqlite3_config (SQLITE_CONFIG_MUTEX, &mutex_methods);
 	sqlite3_vfs_register (&vfs, 1);
 	sqlite3_initialize ();
+
+	tls_index_ = Nirvana::g_system->TLS_alloc (wsd_deleter);
 }
 
 inline
 Global::~Global ()
 {
 	sqlite3_shutdown ();
+	Nirvana::g_system->TLS_free (tls_index_);
 }
 
-const Global global;
+Global global;
 
 Nirvana::Access::_ref_type Global::open_file (const IDL::String& url, uint_fast16_t flags) const
 {
@@ -79,4 +84,40 @@ Nirvana::Access::_ref_type Global::open_file (const IDL::String& url, uint_fast1
 	return file_system_->open (name, flags, 0);
 }
 
+void Global::wsd_deleter (void* p)
+{
+	delete reinterpret_cast <WritableStaticData*> (p);
 }
+
+WritableStaticData& Global::static_data ()
+{
+	if (tls_index_ < 0) {
+		// Initialization stage
+		return initial_static_data_;
+	} else {
+		void* p = Nirvana::g_system->TLS_get (tls_index_);
+		if (!p) {
+			p = new WritableStaticData (initial_static_data_);
+			Nirvana::g_system->TLS_set (tls_index_, p);
+		}
+		return *reinterpret_cast <WritableStaticData*> (p);
+	}
+}
+
+}
+
+extern "C" int sqlite3_wsd_init (int N, int J)
+{
+	return SQLITE_OK;
+}
+
+extern "C" void* sqlite3_wsd_find (void* K, int L)
+{
+	try {
+		return SQLite::global.static_data ().get (K, L);
+	} catch (...) {
+		Nirvana::g_system->raise (SIGABRT);
+	}
+	return nullptr;
+}
+

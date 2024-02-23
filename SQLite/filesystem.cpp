@@ -252,6 +252,11 @@ extern "C" int xUnfetch (sqlite3_file* f, sqlite3_int64 iOfst, void* p)
 	return static_cast <File&> (*f).unfetch (iOfst, p);
 }
 
+extern "C" int xFileControl (sqlite3_file * f, int op, void* pArg)
+{
+	return SQLITE_NOTFOUND;
+}
+
 const sqlite3_io_methods io_methods = {
 	3,
 	xClose,
@@ -263,7 +268,7 @@ const sqlite3_io_methods io_methods = {
 	xLock,
 	xUnlock,
 	xCheckReservedLock,
-	nullptr, // xFileControl
+	xFileControl,
 	xSectorSize,
 	xDeviceCharacteristics,
 	nullptr, // xShmMap

@@ -23,50 +23,46 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef SQLITE_GLOBAL_H_
-#define SQLITE_GLOBAL_H_
+#ifndef SQLITE_WRITABLESTATICDATA_H_
+#define SQLITE_WRITABLESTATICDATA_H_
 #pragma once
 
-#include "WritableStaticData.h"
-#include <Nirvana/File.h>
+#include <Nirvana/Nirvana.h>
+#include "../Source/MapUnorderedUnstable.h"
 
 namespace SQLite {
 
-/// Module global data
-/// 
-class Global
+class WritableStaticData
 {
 public:
-	Global ();
-	~Global ();
-
-	PortableServer::POA::_ptr_type adapter () const noexcept
+	void* get (const void* key, size_t size)
 	{
-		assert (adapter_);
-		return adapter_;
+		auto ins = map_.emplace (key, 0);
+		if (ins.second) {
+			try {
+				size_t offset = data_.size ();
+				if (size >= 8)
+					offset = Nirvana::round_up (offset, (size_t)8);
+				else if (size >= 4)
+					offset = Nirvana::round_up (offset, (size_t)4);
+				else if (size >= 2)
+					offset = Nirvana::round_up (offset, (size_t)2);
+				data_.resize (offset + size);
+				memcpy (data_.data () + offset, key, size);
+				ins.first->second = offset;
+			} catch (...) {
+				map_.erase (ins.first);
+				throw;
+			}
+		}
+		return data_.data () + ins.first->second;
 	}
-	
-	Nirvana::FileSystem::_ptr_type file_system () const noexcept
-	{
-		assert (file_system_);
-		return file_system_;
-	}
-
-	Nirvana::Access::_ref_type open_file (const IDL::String& url, uint_fast16_t flags) const;
-
-	WritableStaticData& static_data ();
 
 private:
-	static void wsd_deleter (void*);
-
-private:
-	Nirvana::FileSystem::_ref_type file_system_;
-	PortableServer::POA::_ref_type adapter_;
-	WritableStaticData initial_static_data_;
-	int tls_index_;
+	typedef Nirvana::Core::MapUnorderedUnstable <const void*, size_t> Map;
+	Map map_;
+	std::vector <uint8_t> data_;
 };
-
-extern Global global;
 
 }
 

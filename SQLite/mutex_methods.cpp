@@ -34,11 +34,17 @@ struct sqlite3_mutex
 {
 	size_t exec_domain_id;
 	size_t cnt;
+	int type;
+	bool dynamic;
 };
 
 using namespace Nirvana;
 
 namespace SQLite {
+
+const size_t STATIC_MUTEX_CNT = SQLITE_MUTEX_STATIC_VFS3 - SQLITE_MUTEX_RECURSIVE;
+
+sqlite3_mutex static_mutexes [STATIC_MUTEX_CNT];
 
 extern "C" int xMutexInit (void)
 {
@@ -50,25 +56,35 @@ extern "C" int xMutexEnd (void)
 	return SQLITE_OK;
 }
 
-extern "C" sqlite3_mutex* xMutexAlloc (int)
+extern "C" sqlite3_mutex* xMutexAlloc (int type)
 {
-	sqlite3_mutex* pm = (sqlite3_mutex*)sqlite3_malloc (sizeof (sqlite3_mutex));
-	pm->exec_domain_id = 0;
-	pm->cnt = 0;
-	return pm;
+	int static_mutex = type - SQLITE_MUTEX_RECURSIVE - 1;
+	if (static_mutex >= 0)
+		return static_mutexes + static_mutex;
+	else {
+		sqlite3_mutex* pm = (sqlite3_mutex*)sqlite3_malloc (sizeof (sqlite3_mutex));
+		pm->exec_domain_id = 0;
+		pm->cnt = 0;
+		pm->type = type;
+		pm->dynamic = true;
+		return pm;
+	}
 }
 
 extern "C" void xMutexFree (sqlite3_mutex * pm)
 {
-	sqlite3_free (pm);
+	if (pm->dynamic)
+		sqlite3_free (pm);
 }
 
 extern "C" void xMutexEnter (sqlite3_mutex * pm)
 {
-	size_t ed_id = Nirvana::g_system->exec_domain_id ();
-	assert (!pm->cnt || pm->exec_domain_id == ed_id);
-	if (!pm->cnt++)
-		pm->exec_domain_id = ed_id;
+	if (pm->dynamic) {
+		size_t ed_id = Nirvana::g_system->exec_domain_id ();
+		assert (!pm->cnt || pm->exec_domain_id == ed_id);
+		if (!pm->cnt++)
+			pm->exec_domain_id = ed_id;
+	}
 }
 
 extern "C" int xMutexTry (sqlite3_mutex * pm)
@@ -79,18 +95,21 @@ extern "C" int xMutexTry (sqlite3_mutex * pm)
 
 extern "C" void xMutexLeave (sqlite3_mutex * pm)
 {
-	assert (pm->cnt && pm->exec_domain_id == Nirvana::g_system->exec_domain_id ());
-	--(pm->cnt);
+	if (pm->dynamic) {
+		assert (pm->cnt && pm->exec_domain_id == Nirvana::g_system->exec_domain_id ());
+		--(pm->cnt);
+	}
 }
 
 extern "C" int xMutexHeld (sqlite3_mutex * pm)
 {
-	return pm->cnt && pm->exec_domain_id == Nirvana::g_system->exec_domain_id ();
+	return !pm->dynamic ||
+		(pm->cnt && pm->exec_domain_id == Nirvana::g_system->exec_domain_id ());
 }
 
 extern "C" int xMutexNotheld (sqlite3_mutex * pm)
 {
-	return !pm->cnt || pm->exec_domain_id != Nirvana::g_system->exec_domain_id ();
+	return 0 == xMutexHeld (pm);
 }
 
 const struct sqlite3_mutex_methods mutex_methods = {
