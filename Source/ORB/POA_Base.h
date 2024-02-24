@@ -547,7 +547,6 @@ protected:
 	bool check_path (const AdapterPath& path, AdapterPath::const_iterator it) const
 		noexcept;
 
-
 	virtual void serve_request (Request& request, const ObjectId& oid, CORBA::Core::ReferenceLocal* reference);
 	virtual void serve_default (Request& request, const ObjectId& oid, CORBA::Core::ReferenceLocal* reference);
 	void serve_request (Request& request, const ObjectId& oid,

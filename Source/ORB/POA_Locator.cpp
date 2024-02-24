@@ -111,5 +111,11 @@ void POA_Locator::serve_default (Request& request, const ObjectId& oid, Referenc
 	postinvoke (oid, op, cookie, servant);
 }
 
+void POA_Locator::deactivate_objects (bool etherealize) noexcept
+{
+	POA_Base::deactivate_objects (etherealize);
+	locator_ = nullptr;
+}
+
 }
 }

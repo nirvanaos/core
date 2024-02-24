@@ -40,12 +40,6 @@ public:
 	Global ();
 	~Global ();
 
-	PortableServer::POA::_ptr_type adapter () const noexcept
-	{
-		assert (adapter_);
-		return adapter_;
-	}
-	
 	Nirvana::FileSystem::_ptr_type file_system () const noexcept
 	{
 		assert (file_system_);
@@ -61,7 +55,6 @@ private:
 
 private:
 	Nirvana::FileSystem::_ref_type file_system_;
-	PortableServer::POA::_ref_type adapter_;
 	WritableStaticData initial_static_data_;
 	int tls_index_;
 };

@@ -128,6 +128,12 @@ void POA_Activator::set_servant_manager (ServantManager::_ptr_type imgr)
 		throw OBJ_ADAPTER (MAKE_OMG_MINOR (4));
 }
 
+void POA_Activator::deactivate_objects (bool etherealize) noexcept
+{
+	POA_Retain::deactivate_objects (etherealize);
+	activator_ = nullptr;
+}
+
 ReferenceLocalRef POA_Activator::create_reference (ObjectId&& oid, CORBA::Internal::String_in iid)
 {
 	check_exist ();

@@ -27,38 +27,41 @@
 #define SQLITE_DRIVER_H_
 #pragma once
 
+#include "Activator.h"
 #include "Global.h"
-#include <Nirvana/NDBC_s.h>
 #include <fnctl.h>
 
 namespace SQLite {
 
-class Driver;
-
-}
-
-namespace CORBA {
-namespace Internal {
-
-template <>
-const char StaticId <SQLite::Driver>::id [] = "NDBC/sqlite";
-
-}
-}
-
-namespace SQLite {
-
-class Driver : public CORBA::servant_traits <NDBC::Driver>::ServantStatic <Driver>
+class Driver : public CORBA::servant_traits <NDBC::Driver>::Servant <Driver>
 {
 public:
-	static NDBC::DataSource::_ref_type getDataSource (const IDL::String& url)
+	Driver ()
+	{
+		PortableServer::POA::_ref_type root = PortableServer::POA::_narrow (
+			CORBA::g_ORB->resolve_initial_references ("RootPOA"));
+
+		CORBA::PolicyList policies;
+		policies.push_back (root->create_lifespan_policy (PortableServer::LifespanPolicyValue::PERSISTENT));
+		policies.push_back (root->create_id_assignment_policy (PortableServer::IdAssignmentPolicyValue::USER_ID));
+		policies.push_back (root->create_request_processing_policy (PortableServer::RequestProcessingPolicyValue::USE_SERVANT_MANAGER));
+		policies.push_back (root->create_id_uniqueness_policy (PortableServer::IdUniquenessPolicyValue::MULTIPLE_ID));
+		PortableServer::POA::_ref_type adapter = root->create_POA ("sqlite", root->the_POAManager (), policies);
+		adapter->set_servant_manager (CORBA::make_stateless <Activator> ()->_this ());
+		adapter_ = std::move (adapter);
+	}
+
+	~Driver ()
+	{}
+
+	NDBC::DataSource::_ref_type getDataSource (const IDL::String& url) const
 	{
 		// Create file if not exists
 		Nirvana::File::_ref_type file = global.open_file (url, O_CREAT)->file ();
 
 		// Get file ID and create reference
 		return NDBC::DataSource::_narrow (
-			global.adapter ()->create_reference_with_id (file->id (), NDBC::_tc_DataSource->id ()));
+			adapter_->create_reference_with_id (file->id (), NDBC::_tc_DataSource->id ()));
 	}
 
 	static NDBC::PropertyInfo getPropertyInfo ()
@@ -83,7 +86,7 @@ public:
 		return props;
 	}
 
-	static NDBC::Connection::_ref_type connect (const IDL::String& url, const NDBC::Properties& props)
+	NDBC::Connection::_ref_type connect (const IDL::String& url, const NDBC::Properties& props) const
 	{
 		return getDataSource (url)->getConnection (props);
 	}
@@ -92,6 +95,15 @@ public:
 	{
 		return sqlite3_version;
 	}
+
+	void close ()
+	{
+		adapter_->destroy (true, true);
+		deactivate_servant (this);
+	}
+
+private:
+	PortableServer::POA::_ref_type adapter_;
 };
 
 }

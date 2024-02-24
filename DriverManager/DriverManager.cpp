@@ -107,11 +107,6 @@ class Static_manager :
 	public servant_traits <DriverManager>::ServantStatic <Static_manager>
 {
 public:
-	static Driver::_ref_type getDriver (IDL::String& id)
-	{
-		return manager_.getDriver (id);
-	}
-
 	static DataSource::_ref_type getDataSource (IDL::String& url)
 	{
 		return manager_.getDataSource (url);
@@ -133,11 +128,6 @@ private:
 
 		~Manager ()
 		{}
-
-		Driver::_ref_type getDriver (IDL::String& id)
-		{
-			return get_driver_info (id).driver;
-		}
 
 		DataSource::_ref_type getDataSource (IDL::String& url)
 		{
@@ -214,6 +204,13 @@ private:
 				}
 				lowercase (properties);
 				sort (properties);
+			}
+
+			~DriverInfo ()
+			{
+				try {
+					driver->close ();
+				} catch (...) {}
 			}
 
 			PropertyInfo properties;

@@ -44,6 +44,8 @@ protected:
 	virtual void serve_default (Request& request, const ObjectId& oid,
 		CORBA::Core::ReferenceLocal* reference) override;
 
+	virtual void deactivate_objects (bool etherealize) noexcept override;
+
 private:
 	inline
 	CORBA::Object::_ref_type preinvoke (CORBA::Internal::Type <ObjectId>::C_in oid,

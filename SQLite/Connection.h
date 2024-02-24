@@ -76,6 +76,11 @@ public:
 		return ::SQLite::create_warning (sqlite_, err);
 	}
 
+	void exec (const char* sql)
+	{
+		check_result (sqlite3_exec (sqlite_, sql, nullptr, nullptr, nullptr));
+	}
+
 private:
 	sqlite3* sqlite_;
 };

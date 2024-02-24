@@ -28,7 +28,6 @@
 #include "mem_methods.h"
 #include "mutex_methods.h"
 #include "filesystem.h"
-#include "Activator.h"
 #include <Nirvana/System.h>
 #include <signal.h>
 
@@ -40,21 +39,6 @@ Global::Global () :
 		CORBA::g_ORB->resolve_initial_references ("NameService"))->resolve (CosNaming::Name (1)))),
 	tls_index_ (-1)
 {
-	PortableServer::POA::_ref_type root = PortableServer::POA::_narrow (
-		CORBA::g_ORB->resolve_initial_references ("RootPOA"));
-
-	if (!file_system_ || !root)
-		throw CORBA::INITIALIZE ();
-
-	CORBA::PolicyList policies;
-	policies.push_back (root->create_lifespan_policy (PortableServer::LifespanPolicyValue::PERSISTENT));
-	policies.push_back (root->create_id_assignment_policy (PortableServer::IdAssignmentPolicyValue::USER_ID));
-	policies.push_back (root->create_request_processing_policy (PortableServer::RequestProcessingPolicyValue::USE_SERVANT_MANAGER));
-	policies.push_back (root->create_id_uniqueness_policy (PortableServer::IdUniquenessPolicyValue::MULTIPLE_ID));
-	PortableServer::POA::_ref_type adapter = root->create_POA ("sqlite", root->the_POAManager (), policies);
-	adapter->set_servant_manager (CORBA::make_stateless <Activator> ()->_this ());
-	adapter_ = std::move (adapter);
-
 	sqlite3_config (SQLITE_CONFIG_PAGECACHE, nullptr, 0, 0);
 	sqlite3_config (SQLITE_CONFIG_MALLOC, &mem_methods);
 	sqlite3_config (SQLITE_CONFIG_MUTEX, &mutex_methods);

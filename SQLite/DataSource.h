@@ -27,7 +27,7 @@
 #define SQLITE_DATASOURCE_H_
 #pragma once
 
-#include "Driver.h"
+#include "Global.h"
 #include "Connection_impl.h"
 #include "filesystem.h"
 
@@ -36,7 +36,7 @@ namespace SQLite {
 class DataSource : public CORBA::servant_traits <NDBC::DataSource>::Servant <DataSource>
 {
 public:
-	DataSource (const PortableServer::ObjectId& id) :
+	DataSource (const PortableServer::ObjectId & id) :
 		file_ (Nirvana::File::_narrow (global.file_system ()->get_item (id))),
 		tuned_ (false)
 	{
@@ -52,11 +52,11 @@ public:
 	{
 		if (!tuned_) {
 			tuned_ = true;
+			/*
 			if (!file_->size ()) {
 				SQLite conn (file_name_);
-				Stmt stmt (conn, "PRAGMA journal_mode=WAL;");
-				sqlite3_step (stmt);
-			}
+				conn.exec ("PRAGMA journal_mode=WAL;");
+			}*/
 		}
 
 		if (!props.empty ()) {
@@ -75,11 +75,6 @@ public:
 			return CORBA::make_reference <Connection> (_this (), uri)->_this ();
 		} else
 			return CORBA::make_reference <Connection> (_this (), file_name_)->_this ();
-	}
-
-	static NDBC::Driver::_ref_type getDriver ()
-	{
-		return Driver::_this ();
 	}
 
 private:

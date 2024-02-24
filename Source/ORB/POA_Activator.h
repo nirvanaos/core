@@ -56,6 +56,8 @@ protected:
 	virtual void etherialize (const CORBA::Core::ReferenceLocal& ref, CORBA::Core::ServantProxyObject& proxy,
 		bool cleanup_in_progress) noexcept override;
 
+	virtual void deactivate_objects (bool etherealize) noexcept override;
+
 private:
 	CORBA::Object::_ref_type incarnate (CORBA::Internal::Type <ObjectId>::C_in oid);
 
