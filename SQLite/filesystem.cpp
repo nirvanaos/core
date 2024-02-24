@@ -83,7 +83,7 @@ public:
 		return SQLITE_OK;
 	}
 
-	int read (void* p, int cb, sqlite3_int64 off) noexcept
+	int read (void* p, int cb, sqlite3_int64 off) const noexcept
 	{
 		int ret = SQLITE_OK;
 		try {
@@ -98,7 +98,7 @@ public:
 		return ret;
 	}
 
-	int write (const void* p, int cb, sqlite3_int64 off) noexcept
+	int write (const void* p, int cb, sqlite3_int64 off) const noexcept
 	{
 		int ret = SQLITE_OK;
 		try {
@@ -114,7 +114,7 @@ public:
 		return ret;
 	}
 
-	int truncate (sqlite3_int64 size) noexcept
+	int truncate (sqlite3_int64 size) const noexcept
 	{
 		int ret = SQLITE_OK;
 		try {
@@ -125,7 +125,7 @@ public:
 		return ret;
 	}
 
-	int sync () noexcept
+	int sync () const noexcept
 	{
 		int ret = SQLITE_OK;
 		try {
@@ -136,7 +136,7 @@ public:
 		return ret;
 	}
 
-	int size (sqlite3_int64& cb) noexcept
+	int size (sqlite3_int64& cb) const noexcept
 	{
 		int ret = SQLITE_OK;
 		try {
@@ -147,12 +147,14 @@ public:
 		return ret;
 	}
 
-	int sector_size () noexcept
+	int sector_size () const noexcept
 	{
-		int su = (int)g_memory->query (nullptr, Memory::QueryParam::SHARING_UNIT);
-		if (!su)
-			su = 512;
-		return su;
+		int ret = 512;
+		try {
+			ret = (int)access_->block_size ();
+		} catch (...) {
+		}
+		return ret;
 	}
 
 	int fetch (sqlite3_int64 off, int cb, void** pp) noexcept
@@ -239,7 +241,10 @@ extern "C" int xSectorSize (sqlite3_file* f)
 
 int xDeviceCharacteristics (sqlite3_file*)
 {
-	return 0; // TODO: implement
+	return
+		SQLITE_IOCAP_UNDELETABLE_WHEN_OPEN |
+		SQLITE_IOCAP_POWERSAFE_OVERWRITE |
+		SQLITE_IOCAP_ATOMIC;
 }
 
 extern "C" int xFetch (sqlite3_file* f, sqlite3_int64 iOfst, int iAmt, void** pp)

@@ -47,9 +47,9 @@ Ref <Heap> MemContext::create_heap ()
 }
 
 MemContext::MemContext (Ref <Heap>&& heap, bool user) noexcept :
+	heap_ (std::move (heap)),
 	deadline_policy_async_ (0),
 	deadline_policy_oneway_ (INFINITE_DEADLINE),
-	heap_ (std::move (heap)),
 	user_ (user)
 {}
 

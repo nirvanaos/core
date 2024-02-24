@@ -144,9 +144,9 @@ private:
 	};
 
 private:
+	Ref <Heap> heap_;
 	DeadlineTime deadline_policy_async_;
 	DeadlineTime deadline_policy_oneway_;
-	Ref <Heap> heap_;
 	RefCounter ref_cnt_;
 	const bool user_;
 };

@@ -122,6 +122,12 @@ public:
 
 	Access::_ref_type dup (uint_fast16_t mask, uint_fast16_t flags) const;
 
+	uint32_t block_size () const
+	{
+		check_exist ();
+		return driver_.block_size ();
+	}
+
 private:
 	void check_exist () const;
 	void check_flags (uint_fast16_t flags) const;

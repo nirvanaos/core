@@ -102,12 +102,8 @@ protected:
 	StatementBase (Connection& connection) :
 		connection_ (&connection),
 		cur_statement_ (0),
-		version_ (0),
 		changed_rows_ (0),
-		prefetch_max_count_ (16),
-		prefetch_max_size_ (65536),
-		page_max_count_ (16),
-		page_max_size_ (65536)
+		version_ (0)
 	{}
 
 	~StatementBase ()
@@ -140,15 +136,11 @@ protected:
 private:
 	CORBA::servant_reference <Connection> connection_;
 	Statements statements_;
-	NDBC::SQLWarnings warnings_;
 	size_t cur_statement_;
-	Version version_;
-	uint32_t changed_rows_;
-	uint32_t prefetch_max_count_;
-	uint32_t prefetch_max_size_;
-	uint32_t page_max_count_;
-	uint32_t page_max_size_;
+	NDBC::SQLWarnings warnings_;
 	NDBC::ResultSet::_ref_type result_set_;
+	uint32_t changed_rows_;
+	Version version_;
 };
 
 }

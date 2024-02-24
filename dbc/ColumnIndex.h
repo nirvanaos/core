@@ -80,7 +80,7 @@ public:
 		assert (empty ());
 
 		bool non_ascii = false;
-		for (const auto name : names) {
+		for (const auto& name : names) {
 			if (!is_ascii (name)) {
 				non_ascii = true;
 				break;
