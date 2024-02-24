@@ -78,7 +78,7 @@ void Synchronized::suspend_and_return ()
 	}
 }
 
-void Synchronized::return_to_caller_context ()
+void Synchronized::return_to_caller_context () noexcept
 {
 	if (call_context_) {
 		Ref <SyncContext> context = std::move (call_context_);

@@ -61,14 +61,15 @@ public:
 	void suspend_and_return ();
 
 	/// Return to the caller synchronization context.
-	/// Skip rescehdule if possible.
+	/// Skip reschedule if possible.
 	///  
-	void return_to_caller_context ();
+	void return_to_caller_context () noexcept;
 
 	/// Called on exception inside synchronization frame.
 	void on_exception (const CORBA::Exception& ex) noexcept
 	{
 		exception_.set_exception (ex);
+		return_to_caller_context ();
 	}
 
 	void check () const
