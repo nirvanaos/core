@@ -78,10 +78,16 @@ MemContext& RequestLocalRoot::source_memory ()
 
 	default:
 		// Callee-side allocation
-		if (!callee_memory_)
-			callee_memory_ = &MemContext::current ();
+		// callee_memory_ must be set in marshal_op ()
+		assert (callee_memory_);
 		return *callee_memory_;
 	}
+}
+
+void RequestLocalRoot::clear_on_callee_side () noexcept
+{
+	cleanup ();
+	reset ();
 }
 
 bool RequestLocalRoot::marshal_op () noexcept
@@ -89,16 +95,14 @@ bool RequestLocalRoot::marshal_op () noexcept
 	if (State::CALL == state_) {
 		ExecDomain& ed = ExecDomain::current ();
 
+		// callee_memory_ here may be nil or contain temporary memory context.
+		// We must set it to the callee memory context.
+		callee_memory_ = ed.mem_context_ptr ();
+
 		// Leave sync domain, if any.
 		// Output data marshaling performed out of sync domain.
 		ed.leave_sync_domain ();
 
-		// Clear caller-marshalled data
-		clear ();
-
-		// callee_memory_ here may be nil or contain temporary memory context.
-		// We must set it to the callee memory context.
-		callee_memory_ = ed.mem_context_ptr ();
 		state_ = State::CALLEE;
 	}
 	return state_ == State::CALLER || (response_flags_ & RESPONSE_DATA)

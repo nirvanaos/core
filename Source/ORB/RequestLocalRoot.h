@@ -387,7 +387,11 @@ public:
 	/// Marshaling resources may be released.
 	void unmarshal_end () noexcept
 	{
-		clear ();
+		clear_on_callee_side ();
+
+		// callee_memory_ may contain temporary memory context.
+		// Release it. It will be assigned to callee memory context in marshal_op().
+		callee_memory_ = nullptr;
 	}
 
 	/// Return exception to caller.
@@ -396,7 +400,9 @@ public:
 	{
 		if (e.type ()->kind () != TCKind::tk_except)
 			throw BAD_PARAM (MAKE_OMG_MINOR (21));
-		clear ();
+
+		clear_on_callee_side ();
+		marshal_op ();
 		state_ = State::EXCEPTION;
 		if (response_flags_) {
 			try {
@@ -527,11 +533,7 @@ protected:
 		cur_block_ = nullptr;
 	}
 
-	void clear () noexcept
-	{
-		cleanup ();
-		reset ();
-	}
+	void clear_on_callee_side () noexcept;
 
 	void cleanup () noexcept;
 

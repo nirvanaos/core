@@ -288,7 +288,7 @@ public:
 	/// Leave the current sync domain, if any.
 	void leave_sync_domain () noexcept
 	{
-		SyncDomain* sd = sync_context ().sync_domain ();
+		Ref <SyncDomain> sd = sync_context ().sync_domain ();
 		if (sd) {
 			sync_context (g_core_free_sync_context);
 			sd->leave ();
