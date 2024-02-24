@@ -89,7 +89,7 @@ extern "C" void xMutexEnter (sqlite3_mutex * pm)
 
 extern "C" int xMutexTry (sqlite3_mutex * pm)
 {
-	sqlite3_mutex_enter (pm);
+	xMutexEnter (pm);
 	return 0;
 }
 
