@@ -78,7 +78,7 @@ public:
 	}
 
 	/// \returns `true` if module is singleton library.
-	bool singleton () const
+	bool singleton () const noexcept
 	{
 		return singleton_;
 	}

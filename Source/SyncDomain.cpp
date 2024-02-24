@@ -122,10 +122,12 @@ SyncDomain& SyncDomain::enter ()
 		if (!sync_context.is_free_sync_context ())
 			throw_NO_PERMISSION (); // Process called value factory with interface support
 
-		switch (exec_domain.restricted_mode ()) {
-		case ExecDomain::RestrictedMode::CLASS_LIBRARY_INIT:
-		case ExecDomain::RestrictedMode::MODULE_TERMINATE:
+		switch (exec_domain.sync_context ().sync_context_type ()) {
+		case SyncContext::Type::FREE_MODULE_INIT:
+		case SyncContext::Type::FREE_MODULE_TERM:
 			// Must not create sync domain in read-only heap
+		case SyncContext::Type::SINGLETON_TERM:
+			// Must not create sync domain in singleton termination code
 			throw_NO_PERMISSION ();
 		}
 
@@ -150,7 +152,7 @@ void SyncDomain::release_queue_node (QueueNode* node) noexcept
 
 SyncContext::Type SyncDomain::sync_context_type () const noexcept
 {
-	return SyncContext::SYNC_DOMAIN;
+	return SyncContext::Type::SYNC_DOMAIN;
 }
 
 Module* SyncDomainImpl::module () noexcept

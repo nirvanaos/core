@@ -41,7 +41,8 @@ class Singleton :
 public:
 	Singleton (AccessDirect::_ptr_type file) :
 		Module (file, true),
-		SyncDomain (MemContextUser::create (false))
+		SyncDomain (MemContextUser::create (false)),
+		sync_context_type_ (SyncContext::Type::SYNC_DOMAIN_SINGLETON)
 	{}
 
 	void _add_ref () noexcept override
@@ -80,6 +81,8 @@ public:
 		return &SyncDomain::mem_context ();
 	}
 
+	virtual void terminate () noexcept override;
+
 	// SyncContext::
 
 	virtual SyncContext::Type sync_context_type () const noexcept override;
@@ -89,6 +92,7 @@ public:
 private:
 	AtExitSync at_exit_;
 
+	SyncContext::Type sync_context_type_;
 };
 
 }

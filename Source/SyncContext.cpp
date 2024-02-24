@@ -45,7 +45,7 @@ Heap* SyncContext::stateless_memory ()
 
 SyncContext::Type SyncContextFree::sync_context_type () const noexcept
 {
-	return FREE;
+	return SyncContext::Type::FREE;
 }
 
 Heap* SyncContextCore::stateless_memory () noexcept

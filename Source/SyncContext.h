@@ -58,7 +58,7 @@ public:
 
 	/// Synchronization and execution context type.
 	/// See Nirvana::System::ContextType - it must be equivalent.
-	enum Type
+	enum class Type
 	{
 		/// Execution context is a Nirvana process.
 		/// Global variables are read-write.
@@ -106,7 +106,7 @@ public:
 	bool is_free_sync_context () const noexcept
 	{
 		Type t = sync_context_type ();
-		return FREE <= t && t < SYNC_DOMAIN_SINGLETON;
+		return Type::FREE <= t && t < Type::SYNC_DOMAIN_SINGLETON;
 	}
 
 	/// \returns Free sync context returns pointer to the stateless objects heap.
@@ -128,7 +128,7 @@ public:
 	/// \returns `true` if current execution context is process.
 	bool is_process () const noexcept
 	{
-		return sync_context_type () == PROCESS;
+		return sync_context_type () == SyncContext::Type::PROCESS;
 	}
 
 protected:

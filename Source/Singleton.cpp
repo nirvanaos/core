@@ -31,11 +31,16 @@ namespace Core {
 
 SyncContext::Type Singleton::sync_context_type () const noexcept
 {
-	if (ExecDomain::current ().restricted_mode () == ExecDomain::RestrictedMode::MODULE_TERMINATE)
-		return SyncContext::SINGLETON_TERM;
-	else
-		return SyncContext::SYNC_DOMAIN_SINGLETON;
+	return sync_context_type_;
 }
+
+void Singleton::terminate () noexcept
+{
+	sync_context_type_ = SyncContext::Type::SINGLETON_TERM;
+	Module::terminate ();
+	sync_context_type_ = SyncContext::Type::SYNC_DOMAIN_SINGLETON;
+}
+
 
 Module* Singleton::module () noexcept
 {

@@ -31,18 +31,17 @@ namespace Core {
 
 void ClassLibrary::initialize (ModuleInit::_ptr_type entry_point)
 {
-	ExecDomain& ed = ExecDomain::current ();
-	ExecDomain::RestrictedMode rm = ed.restricted_mode ();
-
-	ed.restricted_mode (ExecDomain::RestrictedMode::CLASS_LIBRARY_INIT);
+	sync_context_type_ = SyncContext::Type::FREE_MODULE_INIT;
 	try {
 		Module::initialize (entry_point);
 	} catch (...) {
-		ed.restricted_mode (rm);
+		sync_context_type_ = SyncContext::Type::FREE;
 		throw;
 	}
+	sync_context_type_ = SyncContext::Type::FREE;
 
-	initterm_mem_context_ = ed.mem_context_ptr ();
+	initterm_mem_context_ = ExecDomain::current ().mem_context_ptr ();
+
 	if (Port::Memory::FLAGS & Memory::ACCESS_CHECK) {
 
 		// Make global data read-only
@@ -56,7 +55,6 @@ void ClassLibrary::initialize (ModuleInit::_ptr_type entry_point)
 			Port::Memory::copy (p, p, cb, Memory::READ_ONLY | Memory::EXACTLY);
 		}
 	}
-	ed.restricted_mode (rm);
 }
 
 void ClassLibrary::terminate () noexcept
@@ -79,21 +77,14 @@ void ClassLibrary::terminate () noexcept
 			return;
 		}
 	}
+	sync_context_type_ = SyncContext::Type::FREE_MODULE_TERM;
 	Module::terminate ();
+	sync_context_type_ = SyncContext::Type::FREE;
 }
 
 SyncContext::Type ClassLibrary::sync_context_type () const noexcept
 {
-	switch (ExecDomain::current ().restricted_mode ()) {
-	case ExecDomain::RestrictedMode::CLASS_LIBRARY_INIT:
-		return FREE_MODULE_INIT;
-
-	case ExecDomain::RestrictedMode::MODULE_TERMINATE:
-		return FREE_MODULE_TERM;
-
-	default:
-		return FREE;
-	}
+	return sync_context_type_;
 }
 
 Heap* ClassLibrary::stateless_memory ()
@@ -115,10 +106,9 @@ void ClassLibrary::raise_exception (CORBA::SystemException::Code code, unsigned 
 
 void ClassLibrary::atexit (AtExitFunc f)
 {
-	ExecDomain& ed = ExecDomain::current ();
 	if (!initterm_mem_context_) {
-		if (ed.restricted_mode () == ExecDomain::RestrictedMode::CLASS_LIBRARY_INIT)
-			initterm_mem_context_ = &ed.mem_context ();
+		if (SyncContext::Type::FREE_MODULE_INIT == sync_context_type_)
+			initterm_mem_context_ = &ExecDomain::current ().mem_context ();
 		else
 			initterm_mem_context_ = MemContextUser::create (true);
 	}

@@ -60,15 +60,12 @@ void Module::initialize (ModuleInit::_ptr_type entry_point)
 void Module::terminate () noexcept
 {
 	if (entry_point_) {
-		ExecDomain& ed = ExecDomain::current ();
-		ExecDomain::RestrictedMode rm = ed.restricted_mode ();
-		ed.restricted_mode (ExecDomain::RestrictedMode::MODULE_TERMINATE);
 		try {
 			entry_point_->terminate ();
 		} catch (...) {
 			// TODO: Log
 		}
-		ed.restricted_mode (rm);
+		entry_point_ = nullptr;
 	}
 }
 

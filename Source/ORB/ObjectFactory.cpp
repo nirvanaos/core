@@ -38,8 +38,11 @@ ObjectFactory::StatelessCreationFrame* ObjectFactory::begin_proxy_creation (cons
 	if (!ed)
 		throw BAD_INV_ORDER ();
 
-	if (ExecDomain::RestrictedMode::MODULE_TERMINATE == ed->restricted_mode ())
+	switch (ed->sync_context ().sync_context_type ()) {
+	case SyncContext::Type::FREE_MODULE_TERM:
+	case SyncContext::Type::SINGLETON_TERM:
 		throw NO_PERMISSION ();
+	}
 
 	// Check for the stateless creation.
 	// If scf established and servant pointer is inside the object, then it is stateless object creation.

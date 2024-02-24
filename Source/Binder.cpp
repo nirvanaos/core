@@ -213,7 +213,7 @@ const ModuleStartup* Binder::module_bind (::Nirvana::Module::_ptr_type mod, cons
 				case OLF_EXPORT_INTERFACE: {
 					if (!mod_context // Process can not export
 						|| // Singleton can not export interfaces
-						mod_context->sync_context.sync_context_type () == SyncContext::SYNC_DOMAIN_SINGLETON
+						mod_context->sync_context.sync_context_type () == SyncContext::Type::SYNC_DOMAIN_SINGLETON
 						)
 						invalid_metadata ();
 
@@ -487,8 +487,11 @@ void Binder::release_imports (Nirvana::Module::_ptr_type mod, const Section& met
 Binder::InterfaceRef Binder::find (const ObjectKey& name)
 {
 	const ExecDomain& exec_domain = ExecDomain::current ();
-	if (ExecDomain::RestrictedMode::MODULE_TERMINATE == exec_domain.restricted_mode ())
+	switch (exec_domain.sync_context ().sync_context_type ()) {
+	case SyncContext::Type::FREE_MODULE_TERM:
+	case SyncContext::Type::SINGLETON_TERM:
 		throw_NO_PERMISSION ();
+	}
 	ModuleContext* context = reinterpret_cast <ModuleContext*> (exec_domain.TLS_get (CoreTLS::CORE_TLS_BINDER));
 	InterfaceRef itf;
 	if (context)

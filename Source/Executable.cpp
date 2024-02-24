@@ -53,7 +53,7 @@ void Executable::unbind () noexcept
 
 SyncContext::Type Executable::sync_context_type () const noexcept
 {
-	return SyncContext::PROCESS;
+	return SyncContext::Type::PROCESS;
 }
 
 Module* Executable::module () noexcept

@@ -352,8 +352,6 @@ public:
 	enum class RestrictedMode
 	{
 		NO_RESTRICTIONS,
-		CLASS_LIBRARY_INIT,
-		MODULE_TERMINATE,
 		SUPPRESS_ASYNC_GC
 	};
 

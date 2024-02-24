@@ -41,7 +41,8 @@ class ClassLibrary :
 {
 public:
 	ClassLibrary (AccessDirect::_ptr_type file) :
-		Module (file, false)
+		Module (file, false),
+		sync_context_type_ (Type::FREE)
 	{
 		get_data_sections (data_sections_);
 	}
@@ -88,6 +89,8 @@ private:
 
 	// Initialization/termination memory context may be nil.
 	Ref <MemContext> initterm_mem_context_;
+
+	SyncContext::Type sync_context_type_;
 };
 
 }
