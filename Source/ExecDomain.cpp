@@ -248,7 +248,7 @@ MemContext& ExecDomain::mem_context ()
 {
 	if (!mem_context_) {
 		mem_context_ =
-			mem_context_stack_.top () = MemContextUser::create ();
+			mem_context_stack_.top () = MemContextUser::create (restricted_mode () == RestrictedMode::CLASS_LIBRARY_INIT);
 	}
 	return *mem_context_;
 }

@@ -50,10 +50,7 @@ class MemContextUser final : public MemContext
 
 public:
 	/// Creates a new memory context with defaults.
-	static Ref <MemContext> create ()
-	{
-		return MemContext::create <MemContextUser> ();
-	}
+	static Ref <MemContext> create (bool class_library_init);
 
 	/// \returns Current user memory context.
 	/// \throws CORBA::NO_IMPL If current context is not an user context.
@@ -180,11 +177,10 @@ public:
 private:
 	friend class MemContext;
 
-	MemContextUser (Ref <Heap>&& heap = create_heap ()) :
-		MemContext (std::move (heap), true)
-	{}
+	MemContextUser ();
 
-	~MemContextUser ();
+	~MemContextUser ()
+	{}
 
 	class NIRVANA_NOVTABLE FileDescriptor : public UserObject
 	{
@@ -535,7 +531,7 @@ private:
 
 inline MemContextUser* MemContext::user_context () noexcept
 {
-	if (user_)
+	if (type_ > MC_CORE)
 		return static_cast <MemContextUser*> (this);
 	else
 		return nullptr;

@@ -104,29 +104,15 @@ public:
 	virtual void atexit (AtExitFunc f) = 0;
 	virtual void execute_atexit () noexcept = 0;
 
-	MemContext* mem_context () const noexcept
-	{
-		return mem_context_;
-	}
+	virtual MemContext* initterm_mem_context () const noexcept = 0;
 
 protected:
 	Module (AccessDirect::_ptr_type file, bool singleton);
-
-	MemContext& mem_context_create ()
-	{
-		if (!mem_context_)
-			mem_context_ = MemContextUser::create ();
-		return *mem_context_;
-	}
 
 protected:
 	friend class Binder;
 
 	ModuleInit::_ptr_type entry_point_;
-
-	// Memory context. For class library this is module initialization memory context and may be nil.
-	Ref <MemContext> mem_context_;
-
 	SteadyTime release_time_;
 	AtomicCounter <false> ref_cnt_;
 	AtomicCounter <false>::IntegralType initial_ref_cnt_;

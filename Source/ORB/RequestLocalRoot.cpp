@@ -59,7 +59,7 @@ MemContext& RequestLocalRoot::target_memory ()
 	case State::CALL:
 		// Caller-side allocation
 		if (!callee_memory_)
-			callee_memory_ = MemContextUser::create ();
+			callee_memory_ = MemContextUser::create (false);
 		return *callee_memory_;
 
 	default:

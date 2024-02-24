@@ -132,7 +132,7 @@ public:
 	virtual void execute () noexcept override;
 
 	/// \returns Domain memory context.
-	MemContext& mem_context () noexcept
+	MemContext& mem_context () const noexcept
 	{
 		assert (mem_context_);
 		return *mem_context_;

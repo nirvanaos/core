@@ -103,24 +103,34 @@ public:
 	virtual void runtime_proxy_remove (const void* obj) noexcept = 0;
 
 protected:
-	MemContext (Ref <Heap>&& heap, bool user) noexcept;
-
-	template <class Impl>
-	static Ref <MemContext> create (Ref <Heap>&& heap)
+	enum Type
 	{
-		size_t cb = sizeof (Impl);
-		return CreateRef (new (heap->allocate (nullptr, cb, 0)) Impl (std::move (heap)));
-	}
+		MC_CORE,
+		MC_USER,
+		MC_CLASS_LIBRARY
+	};
 
-	template <class Impl>
-	static Ref <MemContext> create ()
-	{
-		return create <Impl> (create_heap ());
-	}
+	MemContext () noexcept;
 
 	static Ref <Heap> create_heap ();
 
-	virtual ~MemContext ();
+	template <class Impl>
+	static Ref <MemContext> create (Heap& ha, Ref <Heap>&& heap, Type type)
+	{
+		size_t cb = sizeof (Impl);
+		Ref <MemContext> mc = CreateRef (new (ha.allocate (nullptr, cb, 0)) Impl ());
+		mc->heap_ = std::move (heap);
+		mc->type_ = type;
+		return mc;
+	}
+
+	template <class Impl>
+	static Ref <MemContext> create (Ref <Heap>&& heap, Type type)
+	{
+		return create <Impl> (*heap, std::move (heap), type);
+	}
+
+	~MemContext ();
 
 	void _add_ref () noexcept
 	{
@@ -148,7 +158,7 @@ private:
 	DeadlineTime deadline_policy_async_;
 	DeadlineTime deadline_policy_oneway_;
 	RefCounter ref_cnt_;
-	const bool user_;
+	Type type_;
 };
 
 }

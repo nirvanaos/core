@@ -390,7 +390,7 @@ Ref <Module> Binder::load (const ModuleLoad& module_load, bool singleton)
 				if (startup && (startup->flags & OLF_MODULE_SINGLETON) && !singleton)
 					invalid_metadata ();
 
-				SYNC_BEGIN (context.sync_context, mod->mem_context ());
+				SYNC_BEGIN (context.sync_context, mod->initterm_mem_context ());
 				mod->initialize (startup ? ModuleInit::_check (startup->startup) : nullptr);
 				SYNC_END ();
 
@@ -399,14 +399,14 @@ Ref <Module> Binder::load (const ModuleLoad& module_load, bool singleton)
 				try {
 					object_map_.merge (context.exports);
 				} catch (...) {
-					SYNC_BEGIN (context.sync_context, mod->mem_context ());
+					SYNC_BEGIN (context.sync_context, mod->initterm_mem_context ());
 					mod->terminate ();
 					SYNC_END ();
 					throw;
 				}
 
 			} catch (...) {
-				SYNC_BEGIN (context.sync_context, mod->mem_context ());
+				SYNC_BEGIN (context.sync_context, mod->initterm_mem_context ());
 				module_unbind (mod->_get_ptr (), mod->metadata ());
 				SYNC_END ();
 				throw;
@@ -433,7 +433,7 @@ Ref <Module> Binder::load (const ModuleLoad& module_load, bool singleton)
 void Binder::unload (Module* mod)
 {
 	remove_exports (mod->metadata ());
-	SYNC_BEGIN (mod->sync_context (), mod->mem_context ());
+	SYNC_BEGIN (mod->sync_context (), mod->initterm_mem_context ());
 	mod->execute_atexit ();
 	mod->terminate (); // TODO: Do we stll need this op?
 	module_unbind (mod->_get_ptr (), mod->metadata ());

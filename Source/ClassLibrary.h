@@ -59,6 +59,11 @@ public:
 	virtual void initialize (ModuleInit::_ptr_type entry_point) override;
 	virtual void terminate () noexcept override;
 
+	virtual MemContext* initterm_mem_context () const noexcept override
+	{
+		return initterm_mem_context_;
+	}
+
 	// SyncContext::
 
 	virtual Type sync_context_type () const noexcept override;
@@ -80,6 +85,9 @@ private:
 private:
 	DataSections data_sections_;
 	AtExitAsync at_exit_;
+
+	// Initialization/termination memory context may be nil.
+	Ref <MemContext> initterm_mem_context_;
 };
 
 }

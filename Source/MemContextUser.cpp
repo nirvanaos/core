@@ -29,6 +29,7 @@
 #include "ORB/Services.h"
 #include "virtual_copy.h"
 #include "CharFileAdapter.h"
+#include "BinderMemory.h"
 
 using namespace CosNaming;
 using CORBA::Core::Services;
@@ -37,6 +38,15 @@ namespace Nirvana {
 namespace Core {
 
 const unsigned MemContextUser::POSIX_CHANGEABLE_FLAGS = O_APPEND | O_NONBLOCK;
+
+Ref <MemContext> MemContextUser::create (bool class_library_init)
+{
+	ExecDomain& ed = ExecDomain::current ();
+	if (class_library_init)
+		return MemContext::create <MemContextUser> (BinderMemory::heap (), create_heap (), MC_CLASS_LIBRARY);
+	else
+		return MemContext::create <MemContextUser> (create_heap (), MC_USER);
+}
 
 size_t MemContextUser::FileDescriptor::push_back_read (void*& p, size_t& size) noexcept
 {
@@ -223,7 +233,7 @@ MemContextUser& MemContextUser::current ()
 	return *p;
 }
 
-MemContextUser::~MemContextUser ()
+MemContextUser::MemContextUser ()
 {}
 
 MemContextUser::Data& MemContextUser::data ()

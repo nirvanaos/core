@@ -39,14 +39,11 @@ class MemContextCore final : public MemContext
 	friend class MemContext;
 
 public:
-	static Ref <MemContext> create (Ref <Heap>&& heap)
-	{
-		return MemContext::create <MemContextCore> (std::move (heap));
-	}
+	static Ref <MemContext> create (Ref <Heap>&& heap);
 
 private:
-	MemContextCore (Ref <Heap>&& heap) noexcept :
-		MemContext (std::move (heap), false)
+	MemContextCore () noexcept :
+		MemContext ()
 	{}
 
 	~MemContextCore ()

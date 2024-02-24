@@ -41,12 +41,14 @@ void ClassLibrary::initialize (ModuleInit::_ptr_type entry_point)
 		ed.restricted_mode (rm);
 		throw;
 	}
+
+	initterm_mem_context_ = ed.mem_context_ptr ();
 	if (Port::Memory::FLAGS & Memory::ACCESS_CHECK) {
 
 		// Make global data read-only
 
-		if (mem_context_)
-			mem_context_->heap ().change_protection (true);
+		if (initterm_mem_context_)
+			initterm_mem_context_->heap ().change_protection (true);
 
 		for (auto it = data_sections_.cbegin (); it != data_sections_.cend (); ++it) {
 			void* p = const_cast <void*> (it->address);
@@ -64,8 +66,8 @@ void ClassLibrary::terminate () noexcept
 
 			// Make global data read-write
 
-			if (mem_context_)
-				mem_context_->heap ().change_protection (false);
+			if (initterm_mem_context_)
+				initterm_mem_context_->heap ().change_protection (false);
 
 			for (auto it = data_sections_.cbegin (); it != data_sections_.cend (); ++it) {
 				void* p = const_cast <void*> (it->address);
@@ -96,7 +98,9 @@ SyncContext::Type ClassLibrary::sync_context_type () const noexcept
 
 Heap* ClassLibrary::stateless_memory ()
 {
-	return &mem_context_create ().heap ();
+	if (!initterm_mem_context_)
+		initterm_mem_context_ = MemContextUser::create (true);
+	return &initterm_mem_context_->heap ();
 }
 
 Module* ClassLibrary::module () noexcept
@@ -112,13 +116,13 @@ void ClassLibrary::raise_exception (CORBA::SystemException::Code code, unsigned 
 void ClassLibrary::atexit (AtExitFunc f)
 {
 	ExecDomain& ed = ExecDomain::current ();
-	if (!mem_context_) {
+	if (!initterm_mem_context_) {
 		if (ed.restricted_mode () == ExecDomain::RestrictedMode::CLASS_LIBRARY_INIT)
-			mem_context_ = &ed.mem_context ();
+			initterm_mem_context_ = &ed.mem_context ();
 		else
-			mem_context_ = MemContextUser::create ();
+			initterm_mem_context_ = MemContextUser::create (true);
 	}
-	at_exit_.atexit (mem_context_->heap (), f);
+	at_exit_.atexit (initterm_mem_context_->heap (), f);
 }
 
 void ClassLibrary::execute_atexit () noexcept

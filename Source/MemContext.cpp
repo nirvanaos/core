@@ -24,7 +24,11 @@
 *  popov.nirvana@gmail.com
 */
 #include "pch.h"
+#include "MemContext.h"
+#include "MemContextCore.h"
+#include "MemContextUser.h"
 #include "ExecDomain.h"
+#include "BinderMemory.h"
 
 namespace Nirvana {
 namespace Core {
@@ -46,11 +50,9 @@ Ref <Heap> MemContext::create_heap ()
 		Ref <Heap> (&Heap::shared_heap ());
 }
 
-MemContext::MemContext (Ref <Heap>&& heap, bool user) noexcept :
-	heap_ (std::move (heap)),
+MemContext::MemContext () noexcept :
 	deadline_policy_async_ (0),
-	deadline_policy_oneway_ (INFINITE_DEADLINE),
-	user_ (user)
+	deadline_policy_oneway_ (INFINITE_DEADLINE)
 {}
 
 MemContext::~MemContext ()
@@ -59,11 +61,28 @@ MemContext::~MemContext ()
 void MemContext::_remove_ref () noexcept
 {
 	if (!ref_cnt_.decrement ()) {
-		Ref <Heap> hold (heap_);
+		
+		Ref <Heap> heap (heap_);
+		Type type = type_;
+
 		ExecDomain& ed = ExecDomain::current ();
 		ed.mem_context_replace (*this);
-		delete this;
+		if (MC_CORE == type)
+			static_cast <MemContextCore*> (this)->~MemContextCore ();
+		else
+			static_cast <MemContextUser*> (this)->~MemContextUser ();
 		ed.mem_context_restore ();
+
+		switch (type_) {
+			case MC_CORE:
+				heap->release (this, sizeof (MemContextCore));
+				break;
+			case MC_USER:
+				heap->release (this, sizeof (MemContextUser));
+				break;
+			default:
+				BinderMemory::heap ().release (this, sizeof (MemContextUser));
+		}
 	}
 }
 
