@@ -139,6 +139,12 @@ public:
 				memset ((char*)p + data.size (), (size_t)cb - data.size (), 0);
 				ret = SQLITE_IOERR_SHORT_READ;
 			}
+		} catch (const CORBA::SystemException& ex) {
+			int minor = get_minor_errno (ex.minor ());
+			if (EOVERFLOW == minor)
+				ret = SQLITE_IOERR_SHORT_READ;
+			else
+				ret = SQLITE_IOERR_READ;
 		} catch (...) {
 			ret = SQLITE_IOERR_READ;
 		}
@@ -469,6 +475,14 @@ extern "C" int xCurrentTimeInt64 (sqlite3_vfs*, sqlite3_int64* time)
 	return SQLITE_OK;
 }
 
+extern "C" int xRandomness (sqlite3_vfs*, int nByte, char* zOut)
+{
+	for (int cnt = nByte; cnt > 0; --cnt) {
+		(*zOut++) = (char)Nirvana::g_system->rand ();
+	}
+	return nByte;
+}
+
 struct sqlite3_vfs vfs = {
 	3,                   /* Structure version number (currently 3) */
 	(int)sizeof (File),  /* Size of subclassed sqlite3_file */
@@ -484,7 +498,7 @@ struct sqlite3_vfs vfs = {
 	nullptr, // xDlError
 	nullptr, // xDlSym
 	nullptr, // xDlClose
-	nullptr, // xRandomness
+	xRandomness,
 	xSleep,
 	nullptr, // xCurrentTime
 	nullptr, // xGetLastError

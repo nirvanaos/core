@@ -30,6 +30,7 @@
 #include "Global.h"
 #include "Connection_impl.h"
 #include "filesystem.h"
+#include <Nirvana/System.h>
 
 namespace SQLite {
 
@@ -43,6 +44,7 @@ public:
 		if (!file_)
 			throw CORBA::OBJECT_NOT_EXIST ();
 		file_name_ = id_to_string (id);
+		Nirvana::g_system->srand ((uint32_t)(uintptr_t)this);
 	}
 
 	~DataSource ()
