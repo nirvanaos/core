@@ -38,9 +38,9 @@ void deactivate_servant (PortableServer::Servant servant) noexcept
 	}
 }
 
-NIRVANA_NORETURN void throw_exception (IDL::String msg)
+NIRVANA_NORETURN void throw_exception (IDL::String msg, int code)
 {
-	throw NDBC::SQLException (NDBC::SQLWarning (0, std::move (msg)), NDBC::SQLWarnings ());
+	throw NDBC::SQLException (NDBC::SQLWarning (code, std::move (msg)), NDBC::SQLWarnings ());
 }
 
 NDBC::SQLWarning create_warning (sqlite3* conn, int err)
@@ -48,10 +48,15 @@ NDBC::SQLWarning create_warning (sqlite3* conn, int err)
 	return NDBC::SQLWarning (err, sqlite3_errmsg (conn));
 }
 
+NDBC::SQLException create_exception (sqlite3* conn, int err)
+{
+	return NDBC::SQLException (create_warning (conn, err), NDBC::SQLWarnings ());
+}
+
 void check_result (sqlite3* conn, int err)
 {
 	if (err)
-		throw NDBC::SQLException (create_warning (conn, err), NDBC::SQLWarnings ());
+		throw create_exception (conn, err);
 }
 
 void Connection::check_exist () const

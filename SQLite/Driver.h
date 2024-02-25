@@ -56,8 +56,15 @@ public:
 	~Driver ()
 	{}
 
-	NDBC::DataSource::_ref_type getDataSource (const IDL::String& url) const
+	NDBC::DataSource::_ref_type getDataSource (IDL::String& url) const
 	{
+		size_t col = url.find (':');
+		if (col != IDL::String::npos) {
+			if (url.compare (0, col, "file") == 0)
+				url.erase (0, col + 1);
+			else
+				throw_exception ("Invalid URL");
+		}
 		// Create file if not exists
 		Nirvana::File::_ref_type file = global.open_file (url, O_CREAT)->file ();
 
@@ -88,7 +95,7 @@ public:
 		return props;
 	}
 
-	NDBC::Connection::_ref_type connect (const IDL::String& url, const NDBC::Properties& props) const
+	NDBC::Connection::_ref_type connect (IDL::String& url, const NDBC::Properties& props) const
 	{
 		return getDataSource (url)->getConnection (props);
 	}

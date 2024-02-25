@@ -62,7 +62,8 @@ extern "C" sqlite3_mutex* xMutexAlloc (int type)
 	if (static_mutex >= 0)
 		return static_mutexes + static_mutex;
 	else {
-		sqlite3_mutex* pm = (sqlite3_mutex*)sqlite3_malloc (sizeof (sqlite3_mutex));
+		size_t cb = sizeof (sqlite3_mutex);
+		sqlite3_mutex* pm = (sqlite3_mutex*)g_memory->allocate (nullptr, cb, 0);
 		pm->exec_domain_id = 0;
 		pm->cnt = 0;
 		pm->type = type;
@@ -74,7 +75,7 @@ extern "C" sqlite3_mutex* xMutexAlloc (int type)
 extern "C" void xMutexFree (sqlite3_mutex * pm)
 {
 	if (pm->dynamic)
-		sqlite3_free (pm);
+		g_memory->release (pm, sizeof (sqlite3_mutex));
 }
 
 extern "C" void xMutexEnter (sqlite3_mutex * pm)

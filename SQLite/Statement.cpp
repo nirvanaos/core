@@ -32,7 +32,7 @@ bool Statement::execute (const IDL::String& sql)
 {
 	check_exist ();
 	prepare (sql, 0);
-	return execute_first ();
+	return execute_first (true);
 }
 
 NDBC::ResultSet::_ref_type Statement::executeQuery (const IDL::String& sql)
@@ -45,7 +45,9 @@ uint32_t Statement::executeUpdate (const IDL::String& sql)
 {
 	check_exist ();
 	prepare (sql, 0);
-	return StatementBase::executeUpdate ();
+	uint32_t ret = StatementBase::executeUpdate ();
+	finalize ();
+	return ret;
 }
 
 }

@@ -48,7 +48,7 @@ extern "C" void* xRealloc (void* p, int size)
 
 extern "C" int xSize (void* p)
 {
-	return (int)c_size <HeapBlockHdrType> (p);
+	return (int)c_usable_size <HeapBlockHdrType> (p);
 }
 
 extern "C" int xRoundup (int size)

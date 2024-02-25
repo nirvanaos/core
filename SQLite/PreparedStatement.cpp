@@ -73,7 +73,7 @@ void PreparedStatement::clearParameters ()
 bool PreparedStatement::execute ()
 {
 	check_exist ();
-	return execute_first ();
+	return execute_first (true);
 }
 
 NDBC::ResultSet::_ref_type PreparedStatement::executeQuery ()

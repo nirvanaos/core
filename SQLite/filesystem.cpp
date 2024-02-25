@@ -32,6 +32,7 @@
 #include <fnctl.h>
 #include <unordered_map>
 #include <time.h>
+#include <Nirvana/md5.h>
 
 extern "C" int sqlite3_os_init ()
 {
@@ -48,6 +49,8 @@ using namespace CORBA;
 
 namespace SQLite {
 
+const char LOG_DIR [] = "/var/tmp";
+
 const char* is_id (const char* file) noexcept
 {
 	const char* prefix_end = file + std::size (OBJID_PREFIX) - 1;
@@ -60,6 +63,44 @@ inline
 Nirvana::DirItemId string_to_id (const char* begin, const char* end)
 {
 	return base64::decode_into <DirItemId> (begin, end);
+}
+
+inline char to_hex (unsigned d) noexcept
+{
+	return d < 10 ? '0' + d : 'A' + d - 10;
+}
+
+std::string get_journal_path (const char* id_begin, const char* end)
+{
+	std::string name;
+	const char* id_end = end;
+	for (;;) {
+		if (id_begin >= --id_end)
+			break;
+		char c = *id_end;
+		if ('-' == c || '=' == c)
+			break;
+	}
+	if ('-' == *id_end) {
+
+		// Generate journal file name
+
+		Nirvana::DirItemId id = string_to_id (id_begin, id_end);
+		MD5_CTX md5ctx;
+		MD5Init (&md5ctx);
+		MD5Update (&md5ctx, id.data (), (unsigned int)id.size ());
+		unsigned char md5 [16];
+		MD5Final (md5, &md5ctx);
+
+		name.reserve (sizeof (LOG_DIR) - 1 + 32 + (end - id_end));
+		name = "/var/tmp/";
+		for (unsigned d : md5) {
+			name.push_back (to_hex (d >> 4));
+			name.push_back (to_hex (d & 0xf));
+		}
+		name.append (id_end, end);
+	}
+	return name;
 }
 
 extern const sqlite3_io_methods io_methods;
@@ -89,9 +130,15 @@ public:
 		try {
 			NDBC::Blob data;
 			access_->read (FileLock (), off, cb, LockType::LOCK_NONE, false, data);
-			if ((int)data.size () < cb)
-				ret = SQLITE_IOERR_SHORT_READ;
 			memcpy (p, data.data (), data.size ());
+			if ((int)data.size () < cb) {
+				// If xRead () returns SQLITE_IOERR_SHORT_READ it must also fill in the unread portions of the
+				// buffer with zeros.A VFS that fails to zero - fill short reads might seem to work.
+				// However, failure to zero - fill short reads will eventually lead to database corruption.
+				// https://www.sqlite.org/c3ref/io_methods.html
+				memset ((char*)p + data.size (), (size_t)cb - data.size (), 0);
+				ret = SQLITE_IOERR_SHORT_READ;
+			}
 		} catch (...) {
 			ret = SQLITE_IOERR_READ;
 		}
@@ -292,22 +339,29 @@ int xOpen (sqlite3_vfs*, sqlite3_filename zName, sqlite3_file* file,
 		uint_fast16_t open_flags = O_DIRECT;
 		if (flags & SQLITE_OPEN_READWRITE)
 			open_flags |= O_RDWR;
+		if (flags & SQLITE_OPEN_CREATE)
+			open_flags |= O_CREAT;
+		if (flags & SQLITE_OPEN_EXCLUSIVE)
+			open_flags |= O_EXCL;
 
 		const char* id_begin = is_id (zName);
 		if (id_begin) {
-			Nirvana::File::_ref_type file = Nirvana::File::_narrow (
-				global.file_system ()->get_item (
-					string_to_id (id_begin, id_begin + strlen (id_begin))));
-			if (!file)
-				return SQLITE_CANTOPEN;
-			fa = file->open (open_flags, 0);
-		} else {
-			if (flags & SQLITE_OPEN_CREATE)
-				open_flags |= O_CREAT;
-			if (flags & SQLITE_OPEN_EXCLUSIVE)
-				open_flags |= O_EXCL;
+			const char* end = id_begin + strlen (id_begin);
+
+			std::string journal = get_journal_path (id_begin, end);
+			if (!journal.empty ())
+				fa = global.open_file (journal, open_flags);
+			else {
+				;
+				Nirvana::File::_ref_type file = Nirvana::File::_narrow (
+					global.file_system ()->get_item (string_to_id (id_begin, end)));
+				if (!file)
+					return SQLITE_CANTOPEN;
+				fa = file->open (open_flags & ~(O_CREAT | O_EXCL), 0);
+			}
+		} else
 			fa = global.open_file (zName, open_flags);
-		}
+
 	} catch (CORBA::NO_MEMORY ()) {
 		return SQLITE_NOMEM;
 	} catch (...) {
@@ -321,9 +375,23 @@ extern "C" int xDelete (sqlite3_vfs*, sqlite3_filename zName, int syncDir)
 {
 	assert (!is_id (zName));
 	try {
+
+		std::string path;
+		const char* id_begin = is_id (zName);
+		if (id_begin) {
+			const char* end = id_begin + strlen (id_begin);
+
+			path = get_journal_path (id_begin, end);
+			assert (!path.empty ());
+			if (path.empty ())
+				return SQLITE_ERROR;
+
+		} else
+			path = zName;
+
 		// Get full path name
 		CosNaming::Name name;
-		g_system->append_path (name, zName, true);
+		g_system->append_path (name, path, true);
 		// Remove root name
 		name.erase (name.begin ());
 		// Delete
@@ -337,26 +405,36 @@ extern "C" int xDelete (sqlite3_vfs*, sqlite3_filename zName, int syncDir)
 extern "C" int xAccess (sqlite3_vfs*, const char* zName, int flags, int* pResOut)
 {
 	*pResOut = 0;
-	const char* id_begin = is_id (zName);
-	DirItem::_ref_type item;
 	try {
-		if (id_begin)
-			item = global.file_system ()->get_item (string_to_id (id_begin, id_begin + strlen (id_begin)));
-		else {
+		const char* id_begin = is_id (zName);
+		DirItem::_ref_type item;
+		std::string path;
+		if (id_begin) {
+			const char* end = id_begin + strlen (id_begin);
+			path = get_journal_path (id_begin, end);
+			if (path.empty ())
+				item = global.file_system ()->get_item (string_to_id (id_begin, end));
+		} else
+			path = zName;
+
+		if (!path.empty ()) {
 			// Get full path name
 			CosNaming::Name name;
-			g_system->append_path (name, zName, true);
+			g_system->append_path (name, path, true);
 			// Remove root name
 			name.erase (name.begin ());
 			// Resolve name
-			item = DirItem::_narrow (global.file_system ()->resolve (name));
+			try {
+				item = DirItem::_narrow (global.file_system ()->resolve (name));
+			} catch (CosNaming::NamingContext::NotFound&) {
+			}
 		}
+		// TODO: Improve implementation
+		if (item)
+			*pResOut = 1;
 	} catch (...) {
 		return SQLITE_ERROR;
 	}
-	// TODO: Improve implementation
-	if (item)
-		*pResOut = 1;
 	return SQLITE_OK;
 }
 

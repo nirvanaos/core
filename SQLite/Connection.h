@@ -36,8 +36,9 @@ namespace SQLite {
 
 void deactivate_servant (PortableServer::Servant servant) noexcept;
 
-NIRVANA_NORETURN void throw_exception (IDL::String msg);
+NIRVANA_NORETURN void throw_exception (IDL::String msg, int code = 0);
 
+NDBC::SQLException create_exception (sqlite3* conn, int err);
 NDBC::SQLWarning create_warning (sqlite3* conn, int err);
 void check_result (sqlite3* conn, int err);
 
@@ -47,13 +48,21 @@ public:
 	SQLite (const SQLite&) = delete;
 	SQLite& operator = (const SQLite&) = delete;
 
-	SQLite (const std::string& uri)
+	SQLite (const std::string& uri) :
+		sqlite_ (nullptr)
 	{
 		int err = sqlite3_open_v2 (uri.c_str (), &sqlite_,
-			SQLITE_OPEN_URI | SQLITE_OPEN_EXRESCODE | SQLITE_OPEN_READWRITE,
+			SQLITE_OPEN_URI | SQLITE_OPEN_EXRESCODE | SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE,
 			VFS_NAME);
-		if (err)
-			throw_exception (sqlite3_errstr (err));
+
+		if (SQLITE_OK != err) {
+			if (sqlite_) {
+				NDBC::SQLException ex = create_exception (err);
+				sqlite3_close_v2 (sqlite_);
+				throw ex;
+			} else
+				throw_exception (sqlite3_errstr (err), err);
+		}
 	}
 
 	~SQLite ()
@@ -74,6 +83,11 @@ public:
 	NDBC::SQLWarning create_warning (int err) const
 	{
 		return ::SQLite::create_warning (sqlite_, err);
+	}
+
+	NDBC::SQLException create_exception (int err) const
+	{
+		return ::SQLite::create_exception (sqlite_, err);
 	}
 
 	void exec (const char* sql)

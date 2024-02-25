@@ -121,19 +121,18 @@ protected:
 
 	uint32_t executeUpdate ();
 
-	bool execute_first ()
+	bool execute_first (bool resultset)
 	{
 		change_version ();
 		assert (!statements ().empty ());
 		cur_statement_ = 0;
-		return execute_next ();
+		return execute_next (resultset);
 	}
 
-private:
 	void finalize () noexcept;
 
-	bool execute_next ();
-
+private:
+	bool execute_next (bool resultset);
 	int step (sqlite3_stmt* stmt);
 
 private:
