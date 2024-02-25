@@ -55,7 +55,7 @@ public:
 	
 	virtual bool execute () override;
 	virtual NDBC::ResultSet::_ref_type executeQuery () override;
-	virtual int32_t executeUpdate () override;
+	virtual uint32_t executeUpdate () override;
 
 	virtual void setBigInt (NDBC::Ordinal i, int64_t v) override
 	{

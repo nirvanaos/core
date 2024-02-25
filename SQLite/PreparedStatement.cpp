@@ -82,10 +82,9 @@ NDBC::ResultSet::_ref_type PreparedStatement::executeQuery ()
 	return getResultSet ();
 }
 
-int32_t PreparedStatement::executeUpdate ()
+uint32_t PreparedStatement::executeUpdate ()
 {
-	execute ();
-	return getUpdateCount ();
+	return StatementBase::executeUpdate ();
 }
 
 }

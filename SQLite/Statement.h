@@ -45,7 +45,7 @@ public:
 
 	virtual bool execute (const IDL::String& sql) override;
 	virtual NDBC::ResultSet::_ref_type executeQuery (const IDL::String& sql) override;
-	virtual int32_t executeUpdate (const IDL::String& sql) override;
+	virtual uint32_t executeUpdate (const IDL::String& sql) override;
 };
 
 }

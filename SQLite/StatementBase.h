@@ -35,7 +35,6 @@ class StatementBase :
 	public virtual CORBA::servant_traits <NDBC::StatementBase>::base_type
 {
 public:
-
 	virtual void close () override
 	{
 		finalize ();
@@ -112,7 +111,6 @@ protected:
 	}
 
 	void prepare (const IDL::String& sql, unsigned flags);
-	void finalize () noexcept;
 
 	typedef std::vector <sqlite3_stmt*> Statements;
 
@@ -121,6 +119,8 @@ protected:
 		return statements_;
 	}
 
+	uint32_t executeUpdate ();
+
 	bool execute_first ()
 	{
 		change_version ();
@@ -128,6 +128,9 @@ protected:
 		cur_statement_ = 0;
 		return execute_next ();
 	}
+
+private:
+	void finalize () noexcept;
 
 	bool execute_next ();
 

@@ -70,12 +70,14 @@ void StatementBase::prepare (const IDL::String& sql, unsigned flags)
 
 void StatementBase::finalize () noexcept
 {
-	Connection& conn = connection ();
-	Statements statements (std::move (statements_));
-	cur_statement_ = 0;
-	change_version ();
-	for (auto stmt : statements) {
-		conn.check_warning (sqlite3_finalize (stmt));
+	if (!statements_.empty ()) {
+		Connection& conn = connection ();
+		Statements statements (std::move (statements_));
+		cur_statement_ = 0;
+		change_version ();
+		for (auto stmt : statements) {
+			conn.check_warning (sqlite3_finalize (stmt));
+		}
 	}
 }
 
@@ -131,6 +133,20 @@ bool StatementBase::getMoreResults ()
 		return execute_next ();
 	else
 		throw_exception ("No results available");
+}
+
+uint32_t StatementBase::executeUpdate ()
+{
+	uint32_t cnt = 0;
+	execute_first ();
+	for (;;) {
+		result_set_ = nullptr;
+		cnt += changed_rows_;
+		if (cur_statement_ >= statements_.size ())
+			break;
+		execute_next ();
+	}
+	return cnt;
 }
 
 }

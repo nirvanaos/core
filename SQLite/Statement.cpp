@@ -41,10 +41,11 @@ NDBC::ResultSet::_ref_type Statement::executeQuery (const IDL::String& sql)
 	return getResultSet ();
 }
 
-int32_t Statement::executeUpdate (const IDL::String& sql)
+uint32_t Statement::executeUpdate (const IDL::String& sql)
 {
-	execute (sql);
-	return getUpdateCount ();
+	check_exist ();
+	prepare (sql, 0);
+	return StatementBase::executeUpdate ();
 }
 
 }

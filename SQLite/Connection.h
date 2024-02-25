@@ -161,7 +161,8 @@ public:
 
 	IDL::String getSchema ()
 	{
-		return IDL::String ();
+		check_exist ();
+		return sqlite3_db_name (*this, 0);
 	}
 
 	int16_t getTransactionIsolation () const noexcept
