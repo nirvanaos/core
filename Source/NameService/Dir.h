@@ -192,7 +192,7 @@ public:
 		for (;;) {
 			if (flags & O_CREAT) {
 				try {
-					return FileSystem::get_file (get_new_file_id (n))->open (flags & O_EXCL, mode);
+					return FileSystem::get_file (get_new_file_id (n))->open (flags, mode);
 				} catch (const CORBA::SystemException& err) {
 					if ((flags & O_EXCL) || get_minor_errno (err.minor ()) != EEXIST)
 						throw;

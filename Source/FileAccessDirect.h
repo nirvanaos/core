@@ -232,7 +232,7 @@ inline
 void FileAccessDirect::read (uint64_t pos, uint32_t size, std::vector <uint8_t>& data)
 {
 	if (pos > file_size_)
-		throw_INTERNAL (make_minor_errno (ESPIPE));
+		throw_BAD_PARAM (make_minor_errno (EOVERFLOW));
 	Pos end = (Pos)pos + size;
 	if (end > file_size_) {
 		end = file_size_;
