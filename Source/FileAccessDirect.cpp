@@ -43,6 +43,8 @@ FileAccessDirect::~FileAccessDirect ()
 
 FileAccessDirect::CacheRange FileAccessDirect::request_read (BlockIdx begin_block, BlockIdx end_block)
 {
+	assert (end_block > begin_block);
+
 	CacheRange blocks (cache_);
 	try {
 		for (Cache::iterator cached_block = cache_.lower_bound (begin_block);;) {
@@ -86,11 +88,15 @@ FileAccessDirect::CacheRange FileAccessDirect::request_read (BlockIdx begin_bloc
 				if (begin_block == end_block)
 					break;
 			}
-			++(cached_block->second.lock_cnt);
-			blocks.append (cached_block);
+
+			if (cached_block != cache_.end ()) {
+				++(cached_block->second.lock_cnt);
+				blocks.append (cached_block);
+				++cached_block;
+			}
+
 			if (end_block == ++begin_block)
 				break;
-			++cached_block;
 		}
 
 	} catch (...) {
@@ -203,7 +209,7 @@ void FileAccessDirect::complete_size_request () noexcept
 	}
 }
 
-FileAccessDirect::Cache::iterator FileAccessDirect::release_cache (Cache::iterator it, SteadyTime time)
+bool FileAccessDirect::release_cache (Cache::iterator& it, SteadyTime time)
 {
 	if (it->second.request && it->second.request->signalled ())
 		complete_request (*it);
@@ -214,9 +220,10 @@ FileAccessDirect::Cache::iterator FileAccessDirect::release_cache (Cache::iterat
 				&& it->second.last_read_time <= time)))
 	{
 		Port::Memory::release (it->second.buffer, block_size_);
-		return cache_.erase (it);
+		it = cache_.erase (it);
+		return true;
 	} else
-		return ++it;
+		return false;
 }
 
 void FileAccessDirect::clear_cache (BlockIdx excl_begin, BlockIdx excl_end)
@@ -225,17 +232,21 @@ void FileAccessDirect::clear_cache (BlockIdx excl_begin, BlockIdx excl_end)
 	if (time < discard_timeout_)
 		return;
 	time -= discard_timeout_;
-	for (Cache::iterator p = cache_.begin (); p != cache_.end ();) {
-		if (p->first < excl_begin)
-			p = release_cache (p, time);
-		else
+
+	for (Cache::iterator it = cache_.begin (); it != cache_.end ();) {
+		if (it->first < excl_begin) {
+			if (!release_cache (it, time))
+				++it;
+		} else
 			break;
 	}
-	for (Cache::iterator p = cache_.end (); p != cache_.begin ();) {
-		--p;
-		if (p->first >= excl_end)
-			p = release_cache (p, time);
-		else
+	
+	for (Cache::iterator it = cache_.end (); it != cache_.begin ();) {
+		--it;
+		if (it->first >= excl_end) {
+			if (release_cache (it, time))
+				--it;
+		} else
 			break;
 	}
 }

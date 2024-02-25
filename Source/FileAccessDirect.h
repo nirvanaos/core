@@ -177,7 +177,7 @@ private:
 
 	void complete_request (Cache::reference entry, int op = 0);
 
-	Cache::iterator release_cache (Cache::iterator it, SteadyTime time);
+	bool release_cache (Cache::iterator& it, SteadyTime time);
 
 	void clear_cache (BlockIdx excl_begin, BlockIdx excl_end);
 
@@ -337,7 +337,7 @@ void FileAccessDirect::write (uint64_t pos, const std::vector <uint8_t>& data)
 	Cache::iterator read_blocks [2] = { cache_.end (), cache_.end () }; // Head, tail
 	try {
 		if (read_ranges [0].count) {
-			CacheRange blocks = request_read (read_ranges [0].start, read_ranges [0].count);
+			CacheRange blocks = request_read (read_ranges [0].start, read_ranges [0].start + read_ranges [0].count);
 			assert (blocks.begin != blocks.end);
 			read_blocks [0] = blocks.begin;
 			if (blocks.end != ++blocks.begin) {
@@ -346,7 +346,7 @@ void FileAccessDirect::write (uint64_t pos, const std::vector <uint8_t>& data)
 			}
 		}
 		if (read_ranges [1].count) {
-			CacheRange blocks = request_read (read_ranges [0].start, read_ranges [0].count);
+			CacheRange blocks = request_read (read_ranges [0].start, read_ranges [0].start + read_ranges [0].count);
 			assert (blocks.begin != blocks.end);
 			read_blocks [1] = blocks.begin;
 			assert (blocks.end == ++blocks.begin);
@@ -423,7 +423,7 @@ void FileAccessDirect::write (uint64_t pos, const std::vector <uint8_t>& data)
 			}
 			// Write to cached block
 			complete_request (*cached_block); // Complete previous read/write operation
-			size_t cb_copy = std::max (block_size_ - block_offset, src_size);
+			size_t cb_copy = std::min (block_size_ - block_offset, src_size);
 			Port::Memory::copy ((uint8_t*)cached_block->second.buffer + block_offset, const_cast <uint8_t*> (src_data), cb_copy, 0);
 			set_dirty (*cached_block, Chrono::steady_clock (), block_offset, cb_copy);
 
