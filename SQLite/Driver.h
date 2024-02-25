@@ -46,9 +46,11 @@ public:
 		policies.push_back (root->create_id_assignment_policy (PortableServer::IdAssignmentPolicyValue::USER_ID));
 		policies.push_back (root->create_request_processing_policy (PortableServer::RequestProcessingPolicyValue::USE_SERVANT_MANAGER));
 		policies.push_back (root->create_id_uniqueness_policy (PortableServer::IdUniquenessPolicyValue::MULTIPLE_ID));
-		PortableServer::POA::_ref_type adapter = root->create_POA ("sqlite", root->the_POAManager (), policies);
+		PortableServer::POAManager::_ref_type manager = root->the_POAManager ();
+		PortableServer::POA::_ref_type adapter = root->create_POA ("sqlite", manager, policies);
 		adapter->set_servant_manager (CORBA::make_stateless <Activator> ()->_this ());
 		adapter_ = std::move (adapter);
+		adapter_manager_ = std::move (manager);
 	}
 
 	~Driver ()
@@ -98,12 +100,15 @@ public:
 
 	void close ()
 	{
-		adapter_->destroy (true, true);
-		deactivate_servant (this);
+		if (adapter_manager_->get_state () == PortableServer::POAManager::State::ACTIVE) {
+			adapter_->destroy (true, true);
+			deactivate_servant (this);
+		}
 	}
 
 private:
 	PortableServer::POA::_ref_type adapter_;
+	PortableServer::POAManager::_ref_type adapter_manager_;
 };
 
 }

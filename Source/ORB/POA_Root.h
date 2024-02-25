@@ -170,7 +170,16 @@ public:
 
 	static void shutdown (CORBA::Object::_ptr_type root)
 	{
-		POA::_narrow (root)->destroy (true, true); // Block incoming requests and complete currently executed ones.
+		POA::_ref_type adapter = POA::_narrow (root);
+
+		// Deactivate all managers to reject incoming requests.
+		POAManagerFactory::POAManagerSeq managers = adapter->the_POAManagerFactory ()->list ();
+		for (const auto& mgr : managers) {
+			mgr->deactivate (false, false);
+		}
+
+		// Block incoming requests and complete currently executed ones.
+		adapter->destroy (true, true);
 	}
 
 	static CORBA::Object::_ref_type create ();
