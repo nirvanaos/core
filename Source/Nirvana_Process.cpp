@@ -43,14 +43,6 @@ Process* Process::current_ptr () noexcept
 Process::~Process ()
 {}
 
-void Process::copy_strings (Strings& src, Pointers& dst)
-{
-	for (auto& s : src) {
-		dst.push_back (const_cast <char*> (s.data ()));
-	}
-	dst.push_back (nullptr);
-}
-
 void Process::run ()
 {
 	run_begin ();
@@ -59,11 +51,7 @@ void Process::run ()
 	state_ = RUNNING;
 
 	try {
-		Pointers v;
-		v.reserve (argv_.size () + envp_.size () + 2);
-		copy_strings (argv_, v);
-		copy_strings (envp_, v);
-		ret_ = executable_.main ((int)argv_.size (), v.data (), v.data () + argv_.size () + 1);
+		ret_ = executable_.main (argv_, envp_);
 		executable_.execute_atexit ();
 		executable_.cleanup ();
 	} catch (const std::exception& ex) {

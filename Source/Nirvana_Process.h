@@ -156,8 +156,6 @@ public:
 
 private:
 	typedef std::vector <std::string> Strings;
-	typedef std::vector <char*, Nirvana::Core::UserAllocator <char*> > Pointers;
-	static void copy_strings (Strings& src, Pointers& dst);
 	void finish () noexcept;
 	void error_message (const char* msg) const;
 

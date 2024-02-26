@@ -49,9 +49,9 @@ public:
 	Executable (AccessDirect::_ptr_type file);
 	~Executable ();
 
-	int main (int argc, char* argv [], char* envp [])
+	int main (Main::Strings& argv, Main::Strings& envp)
 	{
-		return (int)entry_point_->main (argc, argv, envp);
+		return (int)entry_point_->main (argv, envp);
 	}
 
 	void cleanup ()
