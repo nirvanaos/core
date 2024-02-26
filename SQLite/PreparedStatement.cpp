@@ -61,30 +61,4 @@ double PreparedStatement::fixed2double (const CORBA::Any& v)
 		throw CORBA::BAD_PARAM ();
 }
 
-void PreparedStatement::clearParameters ()
-{
-	check_exist ();
-	change_version ();
-	for (auto stmt : statements ()) {
-		sqlite3_clear_bindings (stmt);
-	}
-}
-
-bool PreparedStatement::execute ()
-{
-	check_exist ();
-	return execute_first (true);
-}
-
-NDBC::ResultSet::_ref_type PreparedStatement::executeQuery ()
-{
-	execute ();
-	return getResultSet ();
-}
-
-uint32_t PreparedStatement::executeUpdate ()
-{
-	return StatementBase::executeUpdate ();
-}
-
 }

@@ -26,28 +26,3 @@
 #include "pch.h"
 #include "Statement.h"
 
-namespace SQLite {
-
-bool Statement::execute (const IDL::String& sql)
-{
-	check_exist ();
-	prepare (sql, 0);
-	return execute_first (true);
-}
-
-NDBC::ResultSet::_ref_type Statement::executeQuery (const IDL::String& sql)
-{
-	execute (sql);
-	return getResultSet ();
-}
-
-uint32_t Statement::executeUpdate (const IDL::String& sql)
-{
-	check_exist ();
-	prepare (sql, 0);
-	uint32_t ret = StatementBase::executeUpdate ();
-	finalize ();
-	return ret;
-}
-
-}

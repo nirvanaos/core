@@ -97,7 +97,7 @@ bool StatementBase::execute_next (bool resultset)
 		if (SQLITE_ROW == step_result || column_cnt > 0) {
 			NDBC::Row row = Cursor::get_row (stmt);
 			NDBC::Cursor::_ref_type cursor = CORBA::make_reference <Cursor> (
-				std::ref (*this), stmt)->_this ();
+				std::ref (*this), servant_, stmt)->_this ();
 			result_set_ = NDBC::ResultSet::_factory->create (column_cnt, NDBC::ResultSet::FLAG_FORWARD_ONLY,
 				std::move (cursor), std::move (row));
 			return true;
@@ -126,15 +126,6 @@ int StatementBase::step (sqlite3_stmt* stmt)
 	}
 
 	return step_result;
-}
-
-bool StatementBase::getMoreResults ()
-{
-	check_exist ();
-	if (0 < cur_statement_ && cur_statement_ < statements_.size ())
-		return execute_next (true);
-	else
-		throw_exception ("No results available");
 }
 
 uint32_t StatementBase::executeUpdate ()

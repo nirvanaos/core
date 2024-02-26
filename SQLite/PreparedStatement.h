@@ -33,12 +33,12 @@
 namespace SQLite {
 
 class PreparedStatement final :
-	public virtual CORBA::servant_traits <NDBC::PreparedStatement>::base_type,
-	public virtual StatementBase
+	public StatementBase,
+	public CORBA::servant_traits <NDBC::PreparedStatement>::Servant <PreparedStatement>
 {
 public:
 	PreparedStatement (Connection& conn, const IDL::String& sql, unsigned flags) :
-		StatementBase (conn)
+		StatementBase (conn, this)
 	{
 		prepare (sql, flags);
 	}
@@ -52,152 +52,167 @@ public:
 		unsigned idx;
 	};
 
-	virtual void clearParameters () override;
-	
-	virtual bool execute () override;
-	virtual NDBC::ResultSet::_ref_type executeQuery () override;
-	virtual uint32_t executeUpdate () override;
+	void clearParameters ()
+	{
+		check_exist ();
+		change_version ();
+		for (auto stmt : statements ()) {
+			sqlite3_clear_bindings (stmt);
+		}
+	}
 
-	virtual void setBigInt (NDBC::Ordinal i, int64_t v) override
+	bool execute ()
+	{
+		check_exist ();
+		return execute_first (true);
+	}
+
+	NDBC::ResultSet::_ref_type executeQuery ()
+	{
+		execute ();
+		return getResultSet ();
+	}
+
+	void setBigInt (NDBC::Ordinal i, int64_t v)
 	{
 		ParamIndex pi = get_param_index (i);
 		connection ().check_result (sqlite3_bind_int64 (pi.stmt, pi.idx, v));
 	}
 
-	virtual void setBigIntByName (const IDL::String& name, int64_t v) override
+	void setBigIntByName (const IDL::String& name, int64_t v)
 	{
 		ParamIndex pi = get_param_index (name);
 		connection ().check_result (sqlite3_bind_int64 (pi.stmt, pi.idx, v));
 	}
 
-	virtual void setBlob (NDBC::Ordinal i, const NDBC::Blob& v) override
+	void setBlob (NDBC::Ordinal i, const NDBC::Blob& v)
 	{
 		ParamIndex pi = get_param_index (i);
 		connection ().check_result (sqlite3_bind_blob64 (pi.stmt, pi.idx, v.data (),
 			(sqlite3_uint64)v.size (), nullptr));
 	}
 
-	virtual void setBlobByName (const IDL::String& name, const NDBC::Blob& v) override
+	void setBlobByName (const IDL::String& name, const NDBC::Blob& v)
 	{
 		ParamIndex pi = get_param_index (name);
 		connection ().check_result (sqlite3_bind_blob64 (pi.stmt, pi.idx, v.data (),
 			(sqlite3_uint64)v.size (), nullptr));
 	}
 
-	virtual void setBoolean (NDBC::Ordinal i, bool v) override
+	void setBoolean (NDBC::Ordinal i, bool v)
 	{
 		ParamIndex pi = get_param_index (i);
 		connection ().check_result (sqlite3_bind_int (pi.stmt, pi.idx, v));
 	}
 
-	virtual void setBooleanByName (const IDL::String& name, bool v) override
+	void setBooleanByName (const IDL::String& name, bool v)
 	{
 		ParamIndex pi = get_param_index (name);
 		connection ().check_result (sqlite3_bind_int (pi.stmt, pi.idx, v));
 	}
 
-	virtual void setByte (NDBC::Ordinal i, uint8_t v) override
+	void setByte (NDBC::Ordinal i, uint8_t v)
 	{
 		ParamIndex pi = get_param_index (i);
 		connection ().check_result (sqlite3_bind_int (pi.stmt, pi.idx, v));
 	}
 
-	virtual void setByteByName (const IDL::String& name, uint8_t v) override
+	void setByteByName (const IDL::String& name, uint8_t v)
 	{
 		ParamIndex pi = get_param_index (name);
 		connection ().check_result (sqlite3_bind_int (pi.stmt, pi.idx, v));
 	}
 
-	virtual void setDecimal (NDBC::Ordinal i, const CORBA::Any& v) override
+	void setDecimal (NDBC::Ordinal i, const CORBA::Any& v)
 	{
 		setDouble (i, fixed2double (v));
 	}
 
-	virtual void setDecimalByName (const IDL::String& name, const CORBA::Any& v) override
+	void setDecimalByName (const IDL::String& name, const CORBA::Any& v)
 	{
 		setDoubleByName (name, fixed2double (v));
 	}
 
-	virtual void setDouble (NDBC::Ordinal i, CORBA::Double v) override
+	void setDouble (NDBC::Ordinal i, CORBA::Double v)
 	{
 		ParamIndex pi = get_param_index (i);
 		connection ().check_result (sqlite3_bind_double (pi.stmt, pi.idx, v));
 	}
 
-	virtual void setDoubleByName (const IDL::String& name, CORBA::Double v) override
+	void setDoubleByName (const IDL::String& name, CORBA::Double v)
 	{
 		ParamIndex pi = get_param_index (name);
 		connection ().check_result (sqlite3_bind_double (pi.stmt, pi.idx, v));
 	}
 
-	virtual void setFloat (NDBC::Ordinal i, float v) override
+	void setFloat (NDBC::Ordinal i, float v)
 	{
 		ParamIndex pi = get_param_index (i);
 		connection ().check_result (sqlite3_bind_double (pi.stmt, pi.idx, v));
 	}
 
-	virtual void setFloatByName (const IDL::String& name, float v) override
+	void setFloatByName (const IDL::String& name, float v)
 	{
 		ParamIndex pi = get_param_index (name);
 		connection ().check_result (sqlite3_bind_double (pi.stmt, pi.idx, v));
 	}
 
-	virtual void setInt (NDBC::Ordinal i, int32_t v) override
+	void setInt (NDBC::Ordinal i, int32_t v)
 	{
 		ParamIndex pi = get_param_index (i);
 		connection ().check_result (sqlite3_bind_int (pi.stmt, pi.idx, v));
 	}
 
-	virtual void setIntByName (const IDL::String& name, int32_t v) override
+	void setIntByName (const IDL::String& name, int32_t v)
 	{
 		ParamIndex pi = get_param_index (name);
 		connection ().check_result (sqlite3_bind_int (pi.stmt, pi.idx, v));
 	}
 
-	virtual void setNull (NDBC::Ordinal i) override
+	void setNull (NDBC::Ordinal i)
 	{
 		ParamIndex pi = get_param_index (i);
 		connection ().check_result (sqlite3_bind_null (pi.stmt, pi.idx));
 	}
 
-	virtual void setNullByName (const IDL::String& name) override
+	void setNullByName (const IDL::String& name)
 	{
 		ParamIndex pi = get_param_index (name);
 		connection ().check_result (sqlite3_bind_null (pi.stmt, pi.idx));
 	}
 
-	virtual void setSmallInt (NDBC::Ordinal i, int16_t v) override
+	void setSmallInt (NDBC::Ordinal i, int16_t v)
 	{
 		ParamIndex pi = get_param_index (i);
 		connection ().check_result (sqlite3_bind_int (pi.stmt, pi.idx, v));
 	}
 
-	virtual void setSmallIntByName (const IDL::String& name, int16_t v) override
+	void setSmallIntByName (const IDL::String& name, int16_t v)
 	{
 		ParamIndex pi = get_param_index (name);
 		connection ().check_result (sqlite3_bind_int (pi.stmt, pi.idx, v));
 	}
 
-	virtual void setString (NDBC::Ordinal i, const IDL::String& v) override
+	void setString (NDBC::Ordinal i, const IDL::String& v)
 	{
 		ParamIndex pi = get_param_index (i);
 		connection ().check_result (sqlite3_bind_text (pi.stmt, pi.idx, v.data (), (int)v.size (), nullptr));
 	}
 
-	virtual void setStringByName (const IDL::String& name, const IDL::String& v) override
+	void setStringByName (const IDL::String& name, const IDL::String& v)
 	{
 		ParamIndex pi = get_param_index (name);
 		connection ().check_result (sqlite3_bind_text (pi.stmt, pi.idx, v.data (), (int)v.size (), nullptr));
 	}
 
-	virtual void setWString (NDBC::Ordinal i, const IDL::WString& v) override
+	void setWString (NDBC::Ordinal i, const IDL::WString& v)
 	{
 		IDL::String s;
 		Nirvana::append_utf8 (v, s);
 		setString (i, s);
 	}
 
-	virtual void setWStringByName (const IDL::String& name, const IDL::WString& v) override
+	void setWStringByName (const IDL::String& name, const IDL::WString& v)
 	{
 		IDL::String s;
 		Nirvana::append_utf8 (v, s);

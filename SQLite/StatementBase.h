@@ -31,48 +31,56 @@
 
 namespace SQLite {
 
-class StatementBase :
-	public virtual CORBA::servant_traits <NDBC::StatementBase>::base_type
+class StatementBase
 {
 public:
-	virtual void close () override
+	void close ()
 	{
 		finalize ();
 		if (connection_) {
 			connection_ = nullptr;
-			deactivate_servant (this);
+			deactivate_servant (servant_);
 		}
 	}
 
-	virtual void clearWarnings () override
+	void clearWarnings ()
 	{
 		check_exist ();
 		warnings_.clear ();
 	}
 
-	virtual NDBC::Connection::_ref_type getConnection () override
+	uint32_t executeUpdate ();
+
+	NDBC::Connection::_ref_type getConnection ()
 	{
 		return connection ()._this ();
 	}
 
-	virtual bool getMoreResults () override;
+	bool getMoreResults ()
+	{
+		check_exist ();
+		if (0 < cur_statement_ && cur_statement_ < statements_.size ())
+			return execute_next (true);
+		else
+			throw_exception ("No results available");
+	}
 
-	virtual NDBC::ResultSet::_ref_type getResultSet () override
+	NDBC::ResultSet::_ref_type getResultSet () noexcept
 	{
 		return std::move (result_set_);
 	}
 
-	virtual NDBC::ResultSet::RSType getResultSetType () override
+	static NDBC::ResultSet::RSType getResultSetType () noexcept
 	{
 		return NDBC::ResultSet::RSType::TYPE_FORWARD_ONLY;
 	}
 
-	virtual int32_t getUpdateCount () override
+	int32_t getUpdateCount ()
 	{
 		return changed_rows_;
 	}
 
-	virtual NDBC::SQLWarnings getWarnings () override
+	NDBC::SQLWarnings getWarnings ()
 	{
 		return warnings_;
 	}
@@ -98,8 +106,9 @@ public:
 	}
 
 protected:
-	StatementBase (Connection& connection) :
+	StatementBase (Connection& connection, PortableServer::Servant servant) :
 		connection_ (&connection),
+		servant_ (servant),
 		cur_statement_ (0),
 		changed_rows_ (0),
 		version_ (0)
@@ -119,8 +128,6 @@ protected:
 		return statements_;
 	}
 
-	uint32_t executeUpdate ();
-
 	bool execute_first (bool resultset)
 	{
 		change_version ();
@@ -137,6 +144,7 @@ private:
 
 private:
 	CORBA::servant_reference <Connection> connection_;
+	PortableServer::Servant servant_;
 	Statements statements_;
 	size_t cur_statement_;
 	NDBC::SQLWarnings warnings_;

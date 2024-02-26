@@ -32,20 +32,39 @@
 namespace SQLite {
 
 class Statement final :
-	public virtual CORBA::servant_traits <NDBC::Statement>::base_type,
-	public virtual StatementBase
+	public StatementBase,
+	public CORBA::servant_traits <NDBC::Statement>::Servant <Statement>
 {
 public:
 	Statement (Connection& connection) :
-		StatementBase (connection)
+		StatementBase (connection, this)
 	{}
 
 	~Statement ()
 	{}
 
-	virtual bool execute (const IDL::String& sql) override;
-	virtual NDBC::ResultSet::_ref_type executeQuery (const IDL::String& sql) override;
-	virtual uint32_t executeUpdate (const IDL::String& sql) override;
+	bool execute (const IDL::String& sql)
+	{
+		check_exist ();
+		prepare (sql, 0);
+		return execute_first (true);
+	}
+
+	NDBC::ResultSet::_ref_type executeQuery (const IDL::String& sql)
+	{
+		execute (sql);
+		return getResultSet ();
+	}
+
+	uint32_t executeUpdate (const IDL::String& sql)
+	{
+		check_exist ();
+		prepare (sql, 0);
+		uint32_t ret = StatementBase::executeUpdate ();
+		finalize ();
+		return ret;
+	}
+
 };
 
 }

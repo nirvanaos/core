@@ -73,15 +73,21 @@ NDBC::Row Cursor::get_row (sqlite3_stmt* stmt)
 void Cursor::check_exist ()
 {
 	if (!parent_)
-		throw CORBA::OBJECT_NOT_EXIST ();
+		raise_closed ();
 	try {
 		if (parent_version_ != parent_->version ())
-			throw CORBA::OBJECT_NOT_EXIST ();
+			raise_closed ();
 	} catch (...) {
 		parent_ = nullptr;
+		statement_servant_ = nullptr;
 		deactivate_servant (this);
 		throw;
 	}
+}
+
+NIRVANA_NORETURN void Cursor::raise_closed ()
+{
+	throw_exception ("Cursor was closed");
 }
 
 }

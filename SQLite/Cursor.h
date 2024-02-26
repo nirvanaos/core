@@ -34,8 +34,9 @@ namespace SQLite {
 class Cursor : public CORBA::servant_traits <NDBC::Cursor>::Servant <Cursor>
 {
 public:
-	Cursor (StatementBase& parent, sqlite3_stmt* stmt) :
+	Cursor (StatementBase& parent, PortableServer::Servant statement_servant, sqlite3_stmt* stmt) :
 		parent_ (&parent),
+		statement_servant_ (statement_servant),
 		parent_version_ (parent.version ()),
 		stmt_ (stmt),
 		position_ (0),
@@ -78,7 +79,7 @@ public:
 	NDBC::StatementBase::_ref_type getStatement ()
 	{
 		check_exist ();
-		return parent_->_this ();
+		return statement_servant_->_core_servant ()->_query_interface <NDBC::StatementBase> ();
 	}
 
 	static NDBC::Row get_row (sqlite3_stmt* stmt);
@@ -100,8 +101,11 @@ private:
 		}
 	}
 
+	NIRVANA_NORETURN static void raise_closed ();
+
 private:
-	CORBA::servant_reference <StatementBase> parent_;
+	StatementBase* parent_;
+	PortableServer::ServantBase::_ref_type statement_servant_;
 	const StatementBase::Version parent_version_;
 	sqlite3_stmt* stmt_;
 	uint32_t position_;
