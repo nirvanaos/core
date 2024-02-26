@@ -346,7 +346,7 @@ void FileAccessDirect::write (uint64_t pos, const std::vector <uint8_t>& data)
 			}
 		}
 		if (read_ranges [1].count) {
-			CacheRange blocks = request_read (read_ranges [0].start, read_ranges [0].start + read_ranges [0].count);
+			CacheRange blocks = request_read (read_ranges [1].start, read_ranges [1].start + read_ranges [1].count);
 			assert (blocks.begin != blocks.end);
 			read_blocks [1] = blocks.begin;
 			assert (blocks.end == ++blocks.begin);
