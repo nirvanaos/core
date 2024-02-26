@@ -231,8 +231,12 @@ private:
 inline
 void FileAccessDirect::read (uint64_t pos, uint32_t size, std::vector <uint8_t>& data)
 {
-	if (pos > file_size_)
-		throw_BAD_PARAM (make_minor_errno (EOVERFLOW));
+	// No data transfer shall occur past the current end-of-file.
+	// If the starting position is at or after the end-of-file, 0 shall be returned.
+	// See https://pubs.opengroup.org/onlinepubs/9699919799/
+	if (pos >= file_size_)
+		return;
+
 	Pos end = (Pos)pos + size;
 	if (end > file_size_) {
 		end = file_size_;
@@ -306,7 +310,7 @@ void FileAccessDirect::write (uint64_t pos, const std::vector <uint8_t>& data)
 		return;
 
 	// If write is not block-aligned, we have to read before write.
-	// As maximum we need to read 2 block: at head and at tail.
+	// As a maximum we need to read 2 blocks: at head and at tail.
 	// read_ranges array contains the reading block ranges.
 	struct ReadRange
 	{
@@ -345,6 +349,7 @@ void FileAccessDirect::write (uint64_t pos, const std::vector <uint8_t>& data)
 
 	// Maximal count of block to read is 2 (head and tail).
 	assert (read_ranges [0].count + read_ranges [1].count <= 2);
+	assert (read_ranges [1].count <= 1);
 
 	Cache::iterator read_blocks [2] = { cache_.end (), cache_.end () }; // Head, tail
 	try {
