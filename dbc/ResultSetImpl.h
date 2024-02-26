@@ -195,6 +195,13 @@ public:
 		return getString (field (columnIndex));
 	}
 
+	IDL::WString getWString (Ordinal columnIndex)
+	{
+		IDL::WString ws;
+		Nirvana::append_wide (getString (columnIndex), ws);
+		return ws;
+	}
+
 	RSType getType () const
 	{
 		check ();

@@ -118,6 +118,21 @@ public:
 		return manager_.getConnection (url, user, pwd);
 	}
 
+	InstalledDrivers getDrivers () const
+	{
+		return manager_.getDrivers ();
+	}
+
+	IDL::String getDriverVersion (IDL::String& id) const
+	{
+		return manager_.getDriverVersion (id);
+	}
+
+	PropertyInfo getPropertyInfo (IDL::String& id) const
+	{
+		return manager_.getPropertyInfo (id);
+	}
+
 private:
 	class Manager
 	{
@@ -154,8 +169,8 @@ private:
 					if (eq == std::string::npos)
 						raise ("Invalid parameter: " + s);
 					Property prop (s.substr (0, eq), s.substr (eq + 1));
-					auto it = find (driver.properties, prop.name ());
-					if (it == driver.properties.end ())
+					auto it = find (driver.prop_info.properties (), prop.name ());
+					if (it == driver.prop_info.properties ().end ())
 						raise ("Invalid property: " + prop.name ());
 					if (!it->choices ().empty () && find (it->choices (), prop.value ()) == it->choices ().end ())
 						raise ("Invalid value \'" + prop.value () + " for property \'" + prop.name () + "\'");
@@ -167,21 +182,42 @@ private:
 				url.resize (params);
 			}
 			if (!user.empty ()) {
-				auto it = find (driver.properties, "user");
-				if (it != driver.properties.end ())
+				auto it = find (driver.prop_info.properties (), "user");
+				if (it != driver.prop_info.properties ().end ())
 					props.emplace_back ("user", user);
 			}
 			if (!pwd.empty ()) {
-				auto it = find (driver.properties, "password");
-				if (it != driver.properties.end ())
+				auto it = find (driver.prop_info.properties (), "password");
+				if (it != driver.prop_info.properties ().end ())
 					props.emplace_back ("password", pwd);
 			}
 			sort (props);
-			for (const auto& p : driver.properties) {
+			for (const auto& p : driver.prop_info.properties ()) {
 				if (p.required () && find (props, p.name ()) == props.end ())
 					raise ("Property \'" + p.name () + "\' is required");
 			}
 			return driver.driver->connect (url, props);
+		}
+
+		InstalledDrivers getDrivers () const
+		{
+			InstalledDrivers list;
+			list.emplace_back ("sqlite", sqlite_.prop_info.version ());
+			return list;
+		}
+
+		IDL::String getDriverVersion (IDL::String& id) const
+		{
+			const DriverInfo* di = find_driver_info (id);
+			IDL::String ver;
+			if (di)
+				ver = di->prop_info.version ();
+			return ver;
+		}
+
+		PropertyInfo getPropertyInfo (IDL::String& id) const
+		{
+			return get_driver_info (id).prop_info;
 		}
 
 	private:
@@ -197,13 +233,13 @@ private:
 					if (!driver)
 						throw INITIALIZE ();
 				}
-				properties = driver->getPropertyInfo ();
-				for (auto& p : properties) {
+				prop_info = driver->getPropertyInfo ();
+				for (auto& p : prop_info.properties ()) {
 					lowercase (p.choices ());
 					sort (p.choices ());
 				}
-				lowercase (properties);
-				sort (properties);
+				lowercase (prop_info.properties ());
+				sort (prop_info.properties ());
 			}
 
 			~DriverInfo ()
@@ -213,7 +249,7 @@ private:
 				} catch (...) {}
 			}
 
-			PropertyInfo properties;
+			PropertyInfo prop_info;
 			Driver::_ref_type driver;
 		};
 
@@ -227,12 +263,20 @@ private:
 			return id;
 		}
 
-		const DriverInfo& get_driver_info (IDL::String& id) const
+		const DriverInfo* find_driver_info (IDL::String& id) const
 		{
 			lowercase (id);
 			if (id != "sqlite")
+				return nullptr;
+			return &sqlite_;
+		}
+
+		const DriverInfo& get_driver_info (IDL::String& id) const
+		{
+			const DriverInfo* di = find_driver_info (id);
+			if (!di)
 				raise ("Unknown driver: " + id);
-			return sqlite_;
+			return *di;
 		}
 
 		static Object::_ref_type load_sqlite ()

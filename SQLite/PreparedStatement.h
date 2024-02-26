@@ -28,6 +28,7 @@
 #pragma once
 
 #include "StatementBase.h"
+#include <Nirvana/string_conv.h>
 
 namespace SQLite {
 
@@ -187,6 +188,20 @@ public:
 	{
 		ParamIndex pi = get_param_index (name);
 		connection ().check_result (sqlite3_bind_text (pi.stmt, pi.idx, v.data (), (int)v.size (), nullptr));
+	}
+
+	virtual void setWString (NDBC::Ordinal i, const IDL::WString& v) override
+	{
+		IDL::String s;
+		Nirvana::append_utf8 (v, s);
+		setString (i, s);
+	}
+
+	virtual void setWStringByName (const IDL::String& name, const IDL::WString& v) override
+	{
+		IDL::String s;
+		Nirvana::append_utf8 (v, s);
+		setStringByName (name, s);
 	}
 
 private:

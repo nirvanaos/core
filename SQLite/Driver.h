@@ -76,19 +76,20 @@ public:
 	static NDBC::PropertyInfo getPropertyInfo ()
 	{
 		NDBC::PropertyInfo props {
-			NDBC::DriverProperty {
-				"mode",
-				"Open mode",
-				"",
-				{"ro", "rw", "rwc", "memory"},
-				false
-			},
-			NDBC::DriverProperty {
-				"immutable",
-				"Read-only media",
-				"",
-				{"1"},
-				false
+			sqlite3_version,
+			{
+				NDBC::DriverProperty {
+					"mode",
+					"Open mode",
+					{"ro", "rw", "rwc", "memory"},
+					false
+				},
+				NDBC::DriverProperty {
+					"immutable",
+					"Read-only media",
+					{"1"},
+					false
+				}
 			}
 		};
 
