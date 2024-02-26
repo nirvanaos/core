@@ -81,6 +81,28 @@ void StatementBase::finalize () noexcept
 	}
 }
 
+void StatementBase::reset () noexcept
+{
+	if (cur_statement_ > 0) {
+		size_t i = cur_statement_;
+		do {
+			check_warning (sqlite3_reset (statements_ [--i]));
+		} while (i > 0);
+		cur_statement_ = 0;
+		change_version ();
+	}
+}
+
+void StatementBase::check_warning (int err) noexcept
+{
+	if (err) {
+		try {
+			warnings_.emplace_back (connection_->create_warning (err));
+		} catch (...) {
+		}
+	}
+}
+
 bool StatementBase::execute_next (bool resultset)
 {
 	assert (cur_statement_ < statements_.size ());

@@ -137,6 +137,8 @@ protected:
 	}
 
 	void finalize () noexcept;
+	void reset () noexcept;
+	void check_warning (int err) noexcept;
 
 private:
 	bool execute_next (bool resultset);

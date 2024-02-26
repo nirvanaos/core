@@ -34,8 +34,8 @@ struct sqlite3_mutex
 {
 	size_t exec_domain_id;
 	size_t cnt;
-	int type;
 	bool dynamic;
+	bool recursive;
 };
 
 using namespace Nirvana;
@@ -66,8 +66,8 @@ extern "C" sqlite3_mutex* xMutexAlloc (int type)
 		sqlite3_mutex* pm = (sqlite3_mutex*)g_memory->allocate (nullptr, cb, 0);
 		pm->exec_domain_id = 0;
 		pm->cnt = 0;
-		pm->type = type;
 		pm->dynamic = true;
+		pm->recursive = SQLITE_MUTEX_RECURSIVE == type;
 		return pm;
 	}
 }
@@ -82,7 +82,10 @@ extern "C" void xMutexEnter (sqlite3_mutex * pm)
 {
 	if (pm->dynamic) {
 		size_t ed_id = Nirvana::g_system->exec_domain_id ();
-		assert (!pm->cnt || pm->exec_domain_id == ed_id);
+		if (!pm->recursive)
+			assert (!pm->cnt);
+		else
+			assert (!pm->cnt || pm->exec_domain_id == ed_id);
 		if (!pm->cnt++)
 			pm->exec_domain_id = ed_id;
 	}

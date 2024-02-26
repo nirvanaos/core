@@ -93,11 +93,12 @@ public:
 	void close ()
 	{
 		check ();
+		Base::cursor ()->close ();
+		Base::cursor (nullptr);
 		Base::row ().clear ();
 		Base::column_names ().clear ();
 		Base::position (0);
 		Base::column_count (0);
-		Base::cursor (nullptr);
 	}
 
 	Ordinal findColumn (const IDL::String& columnLabel)

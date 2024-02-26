@@ -442,14 +442,18 @@ extern "C" int xFullPathname (sqlite3_vfs*, const char* zName, int nOut, char* z
 		if (strcpy_s (zOut, nOut, zName))
 			return SQLITE_CANTOPEN;
 	} else {
-		// Get full path name
-		CosNaming::Name name;
-		g_system->append_path (name, zName, true);
-		auto s = g_system->to_string (name);
-		if ((int)s.size () >= nOut)
+		try {
+			// Get full path name
+			CosNaming::Name name;
+			g_system->append_path (name, zName, true);
+			auto s = g_system->to_string (name);
+			if ((int)s.size () >= nOut)
+				return SQLITE_CANTOPEN;
+			const char* n = s.c_str ();
+			std::copy (n, n + s.size () + 1, zOut);
+		} catch (...) {
 			return SQLITE_CANTOPEN;
-		const char* n = s.c_str ();
-		std::copy (n, n + s.size () + 1, zOut);
+		}
 	}
 	return SQLITE_OK;
 }

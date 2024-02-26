@@ -204,7 +204,7 @@ public:
 		return (bool)parent_;
 	}
 
-	NDBC::CallableStatement::_ref_type prepareCall (const IDL::String& sql, NDBC::ResultSet::RSType resultSetType)
+	NDBC::PreparedStatement::_ref_type prepareCall (const IDL::String& sql, NDBC::ResultSet::RSType resultSetType)
 	{
 		throw CORBA::NO_IMPLEMENT ();
 	}

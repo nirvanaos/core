@@ -43,14 +43,12 @@ public:
 		after_end_ (false)
 	{}
 
-	void check_exist ();
-
 	NDBC::RowIdx fetch (NDBC::RowOff pos, NDBC::Row& row)
 	{
+		check_parent ();
+
 		if (pos)
 			throw CORBA::BAD_PARAM ();
-
-		check_exist ();
 
 		if (after_end_)
 			return position_;
@@ -65,7 +63,7 @@ public:
 
 	NDBC::ColumnNames getColumnNames ()
 	{
-		check_exist ();
+		check_parent ();
 
 		NDBC::ColumnNames names;
 		int cnt = sqlite3_column_count (stmt_);
@@ -78,19 +76,42 @@ public:
 
 	NDBC::StatementBase::_ref_type getStatement ()
 	{
-		check_exist ();
+		check_parent ();
 		return statement_servant_->_core_servant ()->_query_interface <NDBC::StatementBase> ();
+	}
+
+	void close ()
+	{
+		check_exist ();
+		close_no_check ();
 	}
 
 	static NDBC::Row get_row (sqlite3_stmt* stmt);
 
 private:
+	void check_exist ()
+	{
+		if (!parent_)
+			raise_closed ();
+	}
+
+	void check_parent ();
+
+	void close_no_check () noexcept
+	{
+		parent_ = nullptr;
+		statement_servant_ = nullptr;
+		// Do not call deactivate_servant for cursors to avoid
+		// raising OBJECT_NOT_EXIST exception in rowset navigation ops.
+	}
+
 	void step ()
 	{
 		int step_result = sqlite3_step (stmt_);
 		switch (step_result) {
 		case SQLITE_ROW:
 			++position_;
+			break;
 		case SQLITE_DONE:
 			++position_;
 			after_end_ = true;

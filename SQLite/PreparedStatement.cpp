@@ -33,8 +33,10 @@ PreparedStatement::ParamIndex PreparedStatement::get_param_index (unsigned i)
 	check_exist ();
 	for (auto stmt : statements ()) {
 		int par_cnt = sqlite3_bind_parameter_count (stmt);
-		if (i <= (unsigned)par_cnt)
+		if (i <= (unsigned)par_cnt) {
+			reset ();
 			return { stmt, i };
+		}
 		i -= par_cnt;
 	}
 	throw_exception ("Invalid parameter index");
@@ -45,8 +47,10 @@ PreparedStatement::ParamIndex PreparedStatement::get_param_index (const IDL::Str
 	check_exist ();
 	for (auto stmt : statements ()) {
 		int i = sqlite3_bind_parameter_index (stmt, name.c_str ());
-		if (i >= 1)
+		if (i >= 1) {
+			reset ();
 			return { stmt, (unsigned)i };
+		}
 	}
 	throw_exception ("Parameter not found: " + name);
 }
