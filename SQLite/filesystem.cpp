@@ -139,12 +139,6 @@ public:
 				memset ((char*)p + data.size (), (size_t)cb - data.size (), 0);
 				ret = SQLITE_IOERR_SHORT_READ;
 			}
-		} catch (const CORBA::SystemException& ex) {
-			int minor = get_minor_errno (ex.minor ());
-			if (EOVERFLOW == minor)
-				ret = SQLITE_IOERR_SHORT_READ;
-			else
-				ret = SQLITE_IOERR_READ;
 		} catch (...) {
 			ret = SQLITE_IOERR_READ;
 		}
@@ -379,9 +373,7 @@ int xOpen (sqlite3_vfs*, sqlite3_filename zName, sqlite3_file* file,
 
 extern "C" int xDelete (sqlite3_vfs*, sqlite3_filename zName, int syncDir)
 {
-	assert (!is_id (zName));
 	try {
-
 		std::string path;
 		const char* id_begin = is_id (zName);
 		if (id_begin) {

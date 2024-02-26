@@ -90,7 +90,7 @@ public:
 		return ::SQLite::create_exception (sqlite_, err);
 	}
 
-	void exec (const char* sql)
+	void exec (const char* sql) const
 	{
 		check_result (sqlite3_exec (sqlite_, sql, nullptr, nullptr, nullptr));
 	}

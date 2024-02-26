@@ -54,11 +54,10 @@ public:
 	{
 		if (!tuned_) {
 			tuned_ = true;
-			/*
 			if (!file_->size ()) {
 				SQLite conn (file_name_);
 				conn.exec ("PRAGMA journal_mode=WAL;");
-			}*/
+			}
 		}
 
 		if (!props.empty ()) {
