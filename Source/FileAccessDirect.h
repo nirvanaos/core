@@ -305,6 +305,9 @@ void FileAccessDirect::write (uint64_t pos, const std::vector <uint8_t>& data)
 	if (data.empty ())
 		return;
 
+	// If write is not block-aligned, we have to read before write.
+	// As maximum we need to read 2 block: at head and at tail.
+	// read_ranges array contains the reading block ranges.
 	struct ReadRange
 	{
 		BlockIdx start;
@@ -320,19 +323,28 @@ void FileAccessDirect::write (uint64_t pos, const std::vector <uint8_t>& data)
 		}
 
 		if (end % block_size_) {
-			BlockIdx tail = end / block_size_;
-			if ((Pos)tail * (Pos)block_size_ < file_size_) {
+			BlockIdx tail_block = end / block_size_; // Last block in range
+			if ((Pos)tail_block * (Pos)block_size_ < file_size_) {
 				// We need to read last block before writing to it.
-				if (read_ranges [0].count && tail <= read_ranges [0].start + 1) {
-					if (tail > read_ranges [0].start)
+				if (!read_ranges [0].count) {
+					read_ranges [0].start = tail_block;
+					read_ranges [0].count = 1;
+				} else if (tail_block <= read_ranges [0].start + 1) {
+					if (tail_block > read_ranges [0].start)
 						++read_ranges [0].count;
 				} else {
-					read_ranges [1].start = tail;
+					read_ranges [1].start = tail_block;
 					read_ranges [1].count = 1;
 				}
 			}
 		}
 	}
+
+	// If the second read range exits, first range exists too.
+	assert (read_ranges [0].count || !read_ranges [1].count);
+
+	// Maximal count of block to read is 2 (head and tail).
+	assert (read_ranges [0].count + read_ranges [1].count <= 2);
 
 	Cache::iterator read_blocks [2] = { cache_.end (), cache_.end () }; // Head, tail
 	try {
@@ -348,22 +360,17 @@ void FileAccessDirect::write (uint64_t pos, const std::vector <uint8_t>& data)
 		if (read_ranges [1].count) {
 			CacheRange blocks = request_read (read_ranges [1].start, read_ranges [1].start + read_ranges [1].count);
 			assert (blocks.begin != blocks.end);
+			assert (read_blocks [1] == cache_.end ());
 			read_blocks [1] = blocks.begin;
-			assert (blocks.end == ++blocks.begin);
+			assert (blocks.end == ++blocks.begin); // Exactly 1 block
 		}
 
-		// Try to decide first block iterator in cache without the search
+		// Try to decide first block cache iterator without the search
 		Cache::iterator cached_block = read_blocks [0];
-		if (cached_block == cache_.end ()) {
-			if (read_blocks [1] != cache_.end ()) {
-				cached_block = read_blocks [1];
-				assert (cached_block != cache_.begin ());
-				--cached_block;
-				if (cached_block->first != cur_block)
-					cached_block = cache_.end ();
-			}
-		}
-		// Find next cached block
+		if (cached_block != cache_.end () && cached_block->first != cur_block)
+			cached_block = cache_.end ();
+
+		// Find first cached block if it is unknown
 		if (cached_block == cache_.end ())
 			cached_block = cache_.lower_bound (cur_block);
 
