@@ -31,11 +31,12 @@ namespace SQLite {
 PreparedStatement::ParamIndex PreparedStatement::get_param_index (unsigned i)
 {
 	check_exist ();
-	for (auto stmt : statements ()) {
-		int par_cnt = sqlite3_bind_parameter_count (stmt);
+
+	for (unsigned si = 0; si < statements ().size (); ++si) {
+		int par_cnt = sqlite3_bind_parameter_count (statements () [si]);
 		if (i <= (unsigned)par_cnt) {
 			reset ();
-			return { stmt, i };
+			return { si, i };
 		}
 		i -= par_cnt;
 	}
@@ -45,11 +46,12 @@ PreparedStatement::ParamIndex PreparedStatement::get_param_index (unsigned i)
 PreparedStatement::ParamIndex PreparedStatement::get_param_index (const IDL::String& name)
 {
 	check_exist ();
-	for (auto stmt : statements ()) {
-		int i = sqlite3_bind_parameter_index (stmt, name.c_str ());
+
+	for (unsigned si = 0; si < statements ().size (); ++si) {
+		int i = sqlite3_bind_parameter_index (statements () [si], name.c_str ());
 		if (i >= 1) {
 			reset ();
-			return { stmt, (unsigned)i };
+			return { si, (unsigned)i };
 		}
 	}
 	throw_exception ("Parameter not found: " + name);
@@ -63,6 +65,43 @@ double PreparedStatement::fixed2double (const CORBA::Any& v)
 		return (double)(long double)f;
 	else
 		throw CORBA::BAD_PARAM ();
+}
+
+PreparedStatement::ParamStorage& PreparedStatement::param_storage (const ParamIndex& pi)
+{
+	assert (pi.stmt < statements ().size ());
+	size_t idx = 0;
+	for (unsigned si = 0; si < pi.stmt; ++si) {
+		idx += sqlite3_bind_parameter_count (statements () [si]);
+	}
+	idx += (pi.param - 1);
+	if (param_storage_.size () <= idx)
+		param_storage_.resize (idx + 1);
+	return param_storage_ [idx];
+}
+
+void PreparedStatement::ParamStorage::destruct () noexcept
+{
+	switch (d_) {
+	case STRING:
+		destruct (u_.string);
+		break;
+	case BLOB:
+		destruct (u_.blob);
+		break;
+	}
+}
+
+void PreparedStatement::ParamStorage::adopt (ParamStorage&& src) noexcept
+{
+	switch (d_ = src.d_) {
+	case STRING:
+		construct (u_.string, std::move (src.u_.string));
+		break;
+	case BLOB:
+		construct (u_.blob, std::move (src.u_.blob));
+		break;
+	}
 }
 
 }
