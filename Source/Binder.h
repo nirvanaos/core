@@ -215,11 +215,14 @@ public:
 		}
 	}
 
-	static CORBA::Object::_ref_type load_and_bind (const ModuleLoad& mod, bool singleton, CORBA::Internal::String_in name)
+	static CORBA::Object::_ref_type load_and_bind (int32_t mod_id, CORBA::Internal::String_in mod_path,
+		CosNaming::NamingContextExt::_ptr_type name_service, bool singleton,
+		CORBA::Internal::String_in name)
 	{
 		CORBA::Object::_ref_type ret;
 		SYNC_BEGIN (sync_domain (), nullptr);
-		ret = singleton_->load_and_bind_sync (mod, singleton, ObjectKey (name.data(), name.size ()));
+		ret = singleton_->load_and_bind_sync (mod_id, mod_path, name_service, singleton,
+			ObjectKey (name.data(), name.size ()));
 		SYNC_END ();
 		return ret;
 	}
@@ -348,15 +351,18 @@ private:
 
 	NIRVANA_NORETURN static void invalid_metadata ();
 
-	Ref <Module> load (const ModuleLoad& module_load, bool singleton);
+	Ref <Module> load (int32_t mod_id, AccessDirect::_ref_type binary, const IDL::String& mod_path,
+		CosNaming::NamingContextExt::_ref_type name_service, bool singleton);
 	void unload (Module* pmod);
 
-	CORBA::Object::_ref_type load_and_bind_sync (const ModuleLoad& mod, bool singleton, const ObjectKey& name)
+	CORBA::Object::_ref_type load_and_bind_sync (int32_t mod_id, CORBA::Internal::String_in mod_path,
+		CosNaming::NamingContextExt::_ptr_type name_service, bool singleton, const ObjectKey& name)
 	{
-		load (mod, singleton);
+		load (mod_id, nullptr, mod_path, name_service, singleton);
 		InterfaceRef itf = object_map_.find (name);
-		if (itf && CORBA::Internal::RepId::compatible (itf->_epv ().interface_id, CORBA::Internal::RepIdOf <CORBA::Object>::id))
-			return itf.template downcast <CORBA::Object> ();
+		if (itf && CORBA::Internal::RepId::compatible (itf->_epv ().interface_id,
+			CORBA::Internal::RepIdOf <CORBA::Object>::id))
+				return itf.template downcast <CORBA::Object> ();
 		throw_OBJECT_NOT_EXIST ();
 	}
 

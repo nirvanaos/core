@@ -34,6 +34,7 @@
 #include "ClassLibrary.h"
 #include "Singleton.h"
 #include "Executable.h"
+#include "Packages.h"
 #include "Nirvana/Domains.h"
 
 using namespace CORBA;
@@ -360,21 +361,34 @@ void Binder::delete_module (Module* mod)
 	}
 }
 
-Ref <Module> Binder::load (const ModuleLoad& module_load, bool singleton)
+Ref <Module> Binder::load (int32_t mod_id, AccessDirect::_ref_type binary,
+	const IDL::String& mod_path, CosNaming::NamingContextExt::_ref_type name_service,
+	bool singleton)
 {
 	if (!initialized_)
 		throw_INITIALIZE ();
 	Module* mod = nullptr;
-	auto ins = module_map_.emplace (module_load.module_id (), MODULE_LOADING_DEADLINE_MAX);
+	auto ins = module_map_.emplace (mod_id, MODULE_LOADING_DEADLINE_MAX);
 	ModuleMap::reference entry = *ins.first;
 	if (ins.second) {
 		auto wait_list = entry.second.wait_list ();
 		try {
 			SYNC_BEGIN (g_core_free_sync_context, &memory ());
+			
+			if (!binary) {
+				
+				if (!name_service)
+					name_service = CosNaming::NamingContextExt::_narrow (CORBA::Core::Services::bind (
+						CORBA::Core::Services::NameService));
+
+				binary = Packages::open_binary (name_service, mod_path);
+			}
+
 			if (singleton)
-				mod = new Singleton (module_load.binary ());
+				mod = new Singleton (binary);
 			else
-				mod = new ClassLibrary (module_load.binary ());
+				mod = new ClassLibrary (binary);
+
 			SYNC_END ();
 
 			assert (mod->_refcount_value () == 0);
@@ -507,7 +521,8 @@ Binder::InterfaceRef Binder::find (const ObjectKey& name)
 			packages_->get_bind_info (name.name (), PLATFORM, bind_info);
 			if (bind_info._d ()) {
 				try {
-					load (bind_info.module_load (), false);
+					const ModuleLoad& ml = bind_info.module_load ();
+					load (ml.module_id (), ml.binary (), IDL::String (), nullptr, false);
 				} catch (const SystemException&) {
 					// TODO: Log
 					throw_OBJECT_NOT_EXIST ();

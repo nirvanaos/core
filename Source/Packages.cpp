@@ -30,8 +30,8 @@
 namespace Nirvana {
 namespace Core {
 
-IDL::traits <AccessDirect>::ref_type Packages::open_binary (CosNaming::NamingContextExt::_ptr_type ns,
-	IDL::String path)
+IDL::traits <AccessDirect>::ref_type Packages::open_binary (
+	CosNaming::NamingContextExt::_ptr_type ns, CORBA::Internal::String_in path)
 {
 	CORBA::Object::_ref_type obj;
 	try {

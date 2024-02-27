@@ -75,9 +75,8 @@ public:
 			module_name = "dbc.olf";
 			module_id = 3;
 		} else if (obj_name == "NDBC/manager") {
-			bind_info.loaded_object (Binder::load_and_bind (
-				ModuleLoad (4, Packages::open_binary (name_service_, "/sbin/DriverManager.olf")), true,
-				"NDBC/manager"));
+			bind_info.loaded_object (Binder::load_and_bind (4, "/sbin/DriverManager.olf", name_service_,
+				true, "NDBC/manager"));
 			return;
 		} else {
 			// TODO:: Temporary solution, for testing
@@ -91,7 +90,7 @@ public:
 	}
 
 	static IDL::traits <AccessDirect>::ref_type open_binary (CosNaming::NamingContextExt::_ptr_type ns,
-		IDL::String path);
+		CORBA::Internal::String_in path);
 
 private:
 	IDL::traits <AccessDirect>::ref_type open_system_binary (unsigned platform,

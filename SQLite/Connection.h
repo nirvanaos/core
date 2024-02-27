@@ -53,7 +53,7 @@ public:
 	{
 		int err = sqlite3_open_v2 (uri.c_str (), &sqlite_,
 			SQLITE_OPEN_URI | SQLITE_OPEN_EXRESCODE | SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE,
-			VFS_NAME);
+			nullptr);
 
 		if (SQLITE_OK != err) {
 			if (sqlite_) {

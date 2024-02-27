@@ -32,7 +32,6 @@
 #include <Nirvana/CoreDomains_s.h>
 #include <Port/ProtDomain.h>
 #include "Binder.h"
-#include "Packages.h"
 #include "ORB/Services.h"
 #include "ORB/system_services.h"
 
@@ -66,12 +65,10 @@ public:
 		Scheduler::shutdown ();
 	}
 
-	static CORBA::Object::_ref_type load_and_bind (int32_t mod_id, const IDL::String& mod_path, bool singleton, const IDL::String& name)
+	static CORBA::Object::_ref_type load_and_bind (int32_t mod_id, const IDL::String& mod_path,
+		bool singleton, const IDL::String& name)
 	{
-		ModuleLoad ml (mod_id,
-			Packages::open_binary (CosNaming::NamingContextExt::_narrow (CORBA::Core::Services::bind (
-				CORBA::Core::Services::NameService)), mod_path));
-		return Binder::load_and_bind (ml, singleton, name);
+		return Binder::load_and_bind (mod_id, mod_path, nullptr, singleton, name);
 	}
 
 	static void request (const CORBA::OctetSeq& data_in, CORBA::OctetSeq& data_out)
