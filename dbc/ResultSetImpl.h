@@ -40,17 +40,17 @@ class ResultSetImpl : public IDL::traits <ResultSet>::Servant <ResultSetImpl>
 	typedef IDL::traits <ResultSet>::Servant <ResultSetImpl> Base;
 
 public:
-	ResultSetImpl (Ordinal column_count, uint_fast16_t flags, Cursor::_ptr_type cursor, const Row& init_row)
+	ResultSetImpl (Ordinal column_count, uint_fast16_t flags, Cursor::_ref_type&& cursor, Row&& init_row)
 	{
 		Base::column_count (column_count);
 		Base::flags (flags);
-		Base::cursor (cursor);
+		Base::cursor (std::move (cursor));
 		if (init_row.empty ()) {
 			// Empty rowset
 			Base::position (1);
 			Base::after_last (true);
 		} else
-			Base::row (init_row);
+			Base::row (std::move (init_row));
 	}
 
 	ResultSetImpl ()
