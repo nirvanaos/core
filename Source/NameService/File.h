@@ -121,7 +121,6 @@ public:
 
 	Access::_ref_type open (uint_fast16_t flags, uint_fast16_t mode)
 	{
-		bool create = (flags & (O_EXCL | O_CREAT | O_TRUNC)) == (O_EXCL | O_CREAT);
 		if (!(flags & (O_CREAT | O_TRUNC)))
 			check_exist ();
 

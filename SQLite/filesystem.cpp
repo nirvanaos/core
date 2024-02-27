@@ -136,7 +136,7 @@ public:
 				// buffer with zeros.A VFS that fails to zero - fill short reads might seem to work.
 				// However, failure to zero - fill short reads will eventually lead to database corruption.
 				// https://www.sqlite.org/c3ref/io_methods.html
-				memset ((char*)p + data.size (), (size_t)cb - data.size (), 0);
+				memset ((char*)p + data.size (), 0, (size_t)cb - data.size ());
 				ret = SQLITE_IOERR_SHORT_READ;
 			}
 		} catch (...) {

@@ -403,7 +403,7 @@ private:
 	struct SimpleType
 	{
 		TCKind kind;
-		NIRVANA_STATIC_IMPORT Nirvana::ImportInterfaceT <TypeCode>& imp;
+		const Internal::StaticTC& imp;
 	};
 
 	struct SimpleTypePred
