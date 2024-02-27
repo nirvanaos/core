@@ -30,6 +30,10 @@
 #include "StatementBase.h"
 #include <Nirvana/string_conv.h>
 
+#define PS_PARAM(name, type)\
+void set##name (NDBC::Ordinal param, type v) { setParam (get_param_index (param), v); } \
+void set##name##ByName (const IDL::String& param, type v) { setParam (get_param_index (param), v); }
+
 namespace SQLite {
 
 class PreparedStatement final :
@@ -59,6 +63,7 @@ public:
 		for (auto stmt : statements ()) {
 			sqlite3_clear_bindings (stmt);
 		}
+		param_storage_.clear ();
 	}
 
 	bool execute ()
@@ -73,155 +78,26 @@ public:
 		return getResultSet ();
 	}
 
-	void setBigInt (NDBC::Ordinal i, int64_t v)
+	PS_PARAM (BigInt, int64_t);
+	PS_PARAM (Blob, NDBC::Blob&);
+	PS_PARAM (Boolean, bool);
+	PS_PARAM (Byte, CORBA::Octet);
+	PS_PARAM (Decimal, const CORBA::Any&);
+	PS_PARAM (Double, CORBA::Double);
+	PS_PARAM (Float, CORBA::Float);
+	PS_PARAM (Int, int32_t);
+	PS_PARAM (SmallInt, int16_t);
+	PS_PARAM (String, IDL::String&);
+	PS_PARAM (NString, const IDL::WString&);
+
+	void setNull (NDBC::Ordinal param)
 	{
-		ParamIndex pi = get_param_index (i);
-		connection ().check_result (sqlite3_bind_int64 (statements () [pi.stmt], pi.param, v));
+		setParam (get_param_index (param));
 	}
 
-	void setBigIntByName (const IDL::String& name, int64_t v)
+	void setNullByName (const IDL::String& param)
 	{
-		ParamIndex pi = get_param_index (name);
-		connection ().check_result (sqlite3_bind_int64 (statements () [pi.stmt], pi.param, v));
-	}
-
-	void setBlob (NDBC::Ordinal i, NDBC::Blob& v)
-	{
-		ParamIndex pi = get_param_index (i);
-		connection ().check_result (sqlite3_bind_blob64 (statements () [pi.stmt], pi.param,
-			v.data (), (sqlite3_uint64)v.size (), nullptr));
-		param_storage (pi) = std::move (v);
-	}
-
-	void setBlobByName (const IDL::String& name, NDBC::Blob& v)
-	{
-		ParamIndex pi = get_param_index (name);
-		connection ().check_result (sqlite3_bind_blob64 (statements () [pi.stmt], pi.param,
-			v.data (), (sqlite3_uint64)v.size (), nullptr));
-		param_storage (pi) = std::move (v);
-	}
-
-	void setBoolean (NDBC::Ordinal i, bool v)
-	{
-		ParamIndex pi = get_param_index (i);
-		connection ().check_result (sqlite3_bind_int (statements () [pi.stmt], pi.param, v));
-	}
-
-	void setBooleanByName (const IDL::String& name, bool v)
-	{
-		ParamIndex pi = get_param_index (name);
-		connection ().check_result (sqlite3_bind_int (statements () [pi.stmt], pi.param, v));
-	}
-
-	void setByte (NDBC::Ordinal i, uint8_t v)
-	{
-		ParamIndex pi = get_param_index (i);
-		connection ().check_result (sqlite3_bind_int (statements () [pi.stmt], pi.param, v));
-	}
-
-	void setByteByName (const IDL::String& name, uint8_t v)
-	{
-		ParamIndex pi = get_param_index (name);
-		connection ().check_result (sqlite3_bind_int (statements () [pi.stmt], pi.param, v));
-	}
-
-	void setDecimal (NDBC::Ordinal i, const CORBA::Any& v)
-	{
-		setDouble (i, fixed2double (v));
-	}
-
-	void setDecimalByName (const IDL::String& name, const CORBA::Any& v)
-	{
-		setDoubleByName (name, fixed2double (v));
-	}
-
-	void setDouble (NDBC::Ordinal i, CORBA::Double v)
-	{
-		ParamIndex pi = get_param_index (i);
-		connection ().check_result (sqlite3_bind_double (statements () [pi.stmt], pi.param, v));
-	}
-
-	void setDoubleByName (const IDL::String& name, CORBA::Double v)
-	{
-		ParamIndex pi = get_param_index (name);
-		connection ().check_result (sqlite3_bind_double (statements () [pi.stmt], pi.param, v));
-	}
-
-	void setFloat (NDBC::Ordinal i, float v)
-	{
-		ParamIndex pi = get_param_index (i);
-		connection ().check_result (sqlite3_bind_double (statements () [pi.stmt], pi.param, v));
-	}
-
-	void setFloatByName (const IDL::String& name, float v)
-	{
-		ParamIndex pi = get_param_index (name);
-		connection ().check_result (sqlite3_bind_double (statements () [pi.stmt], pi.param, v));
-	}
-
-	void setInt (NDBC::Ordinal i, int32_t v)
-	{
-		ParamIndex pi = get_param_index (i);
-		connection ().check_result (sqlite3_bind_int (statements () [pi.stmt], pi.param, v));
-	}
-
-	void setIntByName (const IDL::String& name, int32_t v)
-	{
-		ParamIndex pi = get_param_index (name);
-		connection ().check_result (sqlite3_bind_int (statements () [pi.stmt], pi.param, v));
-	}
-
-	void setNull (NDBC::Ordinal i)
-	{
-		ParamIndex pi = get_param_index (i);
-		connection ().check_result (sqlite3_bind_null (statements () [pi.stmt], pi.param));
-	}
-
-	void setNullByName (const IDL::String& name)
-	{
-		ParamIndex pi = get_param_index (name);
-		connection ().check_result (sqlite3_bind_null (statements () [pi.stmt], pi.param));
-	}
-
-	void setSmallInt (NDBC::Ordinal i, int16_t v)
-	{
-		ParamIndex pi = get_param_index (i);
-		connection ().check_result (sqlite3_bind_int (statements () [pi.stmt], pi.param, v));
-	}
-
-	void setSmallIntByName (const IDL::String& name, int16_t v)
-	{
-		ParamIndex pi = get_param_index (name);
-		connection ().check_result (sqlite3_bind_int (statements () [pi.stmt], pi.param, v));
-	}
-
-	void setString (NDBC::Ordinal i, IDL::String& v)
-	{
-		ParamIndex pi = get_param_index (i);
-		connection ().check_result (sqlite3_bind_text (statements () [pi.stmt], pi.param, v.data (), (int)v.size (), nullptr));
-		param_storage (pi) = std::move (v);
-		const ParamStorage& test = param_storage (pi);
-	}
-
-	void setStringByName (const IDL::String& name, IDL::String& v)
-	{
-		ParamIndex pi = get_param_index (name);
-		connection ().check_result (sqlite3_bind_text (statements () [pi.stmt], pi.param, v.data (), (int)v.size (), nullptr));
-		param_storage (pi) = std::move (v);
-	}
-
-	void setWString (NDBC::Ordinal i, const IDL::WString& v)
-	{
-		IDL::String s;
-		Nirvana::append_utf8 (v, s);
-		setString (i, s);
-	}
-
-	void setWStringByName (const IDL::String& name, const IDL::WString& v)
-	{
-		IDL::String s;
-		Nirvana::append_utf8 (v, s);
-		setStringByName (name, s);
+		setParam (get_param_index (param));
 	}
 
 	void close ()
@@ -231,6 +107,72 @@ public:
 	}
 
 private:
+	void setParam (const ParamIndex& pi, int64_t v)
+	{
+		connection ().check_result (sqlite3_bind_int64 (statements () [pi.stmt], pi.param, v));
+	}
+
+	void setParam (const ParamIndex& pi, NDBC::Blob& v)
+	{
+		const auto& p = save_param (pi, v);
+		connection ().check_result (sqlite3_bind_blob (statements () [pi.stmt], pi.param,
+			p.data (), (int)p.size (), SQLITE_STATIC));
+	}
+
+	void setParam (const ParamIndex& pi, bool v)
+	{
+		connection ().check_result (sqlite3_bind_int (statements () [pi.stmt], pi.param, v));
+	}
+
+	void setParam (const ParamIndex& pi, uint8_t v)
+	{
+		connection ().check_result (sqlite3_bind_int (statements () [pi.stmt], pi.param, v));
+	}
+
+	void setParam (const ParamIndex& pi, const CORBA::Any& v)
+	{
+		setParam (pi, fixed2double (v));
+	}
+
+	void setParam (const ParamIndex& pi, CORBA::Double v)
+	{
+		connection ().check_result (sqlite3_bind_double (statements () [pi.stmt], pi.param, v));
+	}
+
+	void setParam (const ParamIndex& pi, float v)
+	{
+		connection ().check_result (sqlite3_bind_double (statements () [pi.stmt], pi.param, v));
+	}
+
+	void setParam (const ParamIndex& pi, int32_t v)
+	{
+		connection ().check_result (sqlite3_bind_int (statements () [pi.stmt], pi.param, v));
+	}
+
+	void setParam (const ParamIndex& pi)
+	{
+		connection ().check_result (sqlite3_bind_null (statements () [pi.stmt], pi.param));
+	}
+
+	void setParam (const ParamIndex& pi, int16_t v)
+	{
+		connection ().check_result (sqlite3_bind_int (statements () [pi.stmt], pi.param, v));
+	}
+
+	void setParam (const ParamIndex& pi, IDL::String& v)
+	{
+		const auto& p = save_param (pi, v);
+		connection ().check_result (sqlite3_bind_text (statements () [pi.stmt], pi.param,
+			p.data (), (int)p.size (), SQLITE_STATIC));
+	}
+
+	void setParam (const ParamIndex& pi, const IDL::WString& v)
+	{
+		IDL::String s;
+		Nirvana::append_utf8 (v, s);
+		setParam (pi, s);
+	}
+
 	ParamIndex get_param_index (unsigned i);
 	ParamIndex get_param_index (const IDL::String & name);
 
@@ -261,20 +203,20 @@ private:
 			return *this;
 		}
 
-		ParamStorage& operator = (IDL::String&& v) noexcept
+		const IDL::String& operator = (IDL::String&& v) noexcept
 		{
 			destruct ();
 			construct (u_.string, std::move (v));
 			d_ = STRING;
-			return *this;
+			return u_.string;
 		}
 
-		ParamStorage& operator = (NDBC::Blob&& v) noexcept
+		const NDBC::Blob& operator = (NDBC::Blob&& v) noexcept
 		{
 			destruct ();
 			construct (u_.blob, std::move (v));
 			d_ = BLOB;
-			return *this;
+			return u_.blob;
 		}
 
 	private:
@@ -313,10 +255,18 @@ private:
 
 	ParamStorage& param_storage (const ParamIndex& pi);
 
+	template <class T>
+	const T& save_param (const ParamIndex& pi, T& v)
+	{
+		return param_storage (pi) = std::move (v);
+	}
+
 private:
 	std::vector <ParamStorage> param_storage_;
 };
 
 }
+
+#undef PS_PARAM
 
 #endif

@@ -196,7 +196,7 @@ public:
 		return getString (field (columnIndex));
 	}
 
-	IDL::WString getWString (Ordinal columnIndex)
+	IDL::WString getNString (Ordinal columnIndex)
 	{
 		IDL::WString ws;
 		Nirvana::append_wide (getString (columnIndex), ws);
