@@ -77,7 +77,9 @@ public:
 	NDBC::StatementBase::_ref_type getStatement ()
 	{
 		check_parent ();
-		return statement_servant_->_core_servant ()->_query_interface <NDBC::StatementBase> ();
+
+		PortableServer::ServantBase::_ref_type servant = statement_servant_;
+		return NDBC::StatementBase::_narrow (servant->_default_POA ()->servant_to_reference (servant));
 	}
 
 	void close ()
