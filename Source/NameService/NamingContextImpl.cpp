@@ -25,95 +25,14 @@
 */
 #include "../pch.h"
 #include "NamingContextImpl.h"
+#include "NamingContextDefault.h"
 #include "NameService.h"
-#include <CORBA/Server.h>
-#include <CORBA/CosNaming_s.h>
 #include "../ORB/ReferenceLocal.h"
-#include "../deactivate_servant.h"
 
 using namespace CORBA;
 
 namespace CosNaming {
 namespace Core {
-
-/// Default implementation of the NamingContex interface.
-class NamingContextDefault :
-	public servant_traits <NamingContext>::Servant <NamingContextDefault>,
-	public NamingContextImpl
-{
-public:
-	bool _non_existent () const
-	{
-		return destroyed ();
-	}
-	
-	static servant_reference <NamingContextDefault> create ();
-
-	void destroy ()
-	{
-		if (!bindings_.empty ())
-			throw NotEmpty ();
-
-		if (links_.empty ()) {
-			NamingContextImpl::destroy ();
-			Nirvana::Core::deactivate_servant (this);
-		}
-	}
-
-	virtual NamingContext::_ptr_type this_context () override
-	{
-		return _this ();
-	}
-
-	virtual void add_link (const NamingContextImpl& parent) override;
-	virtual bool remove_link (const NamingContextImpl& parent) override;
-	virtual bool is_cyclic (ContextSet& parents) const override;
-
-private:
-	ContextSet links_;
-};
-
-servant_reference <NamingContextDefault> NamingContextDefault::create ()
-{
-	return make_reference <NamingContextDefault> ();
-}
-
-void NamingContextDefault::add_link (const NamingContextImpl& parent)
-{
-	links_.insert (&parent);
-}
-
-bool NamingContextDefault::remove_link (const NamingContextImpl& parent)
-{
-	if (links_.size () > 1) {
-		bool garbage = true;
-		for (auto p : links_) {
-			ContextSet parents;
-			parents.insert (this);
-			if (p != &parent && !p->is_cyclic (parents)) {
-				garbage = false;
-				break;
-			}
-		}
-		if (garbage)
-			return false;
-	}
-	links_.erase (&parent);
-	return true;
-}
-
-bool NamingContextDefault::is_cyclic (ContextSet& parents) const
-{
-	if (links_.empty ())
-		return false;
-	if (!parents.insert (this).second)
-		return true;
-	for (auto p : links_) {
-		if (!p->is_cyclic (parents))
-			return false;
-	}
-	return true;
-}
 
 NamingContextImpl* NamingContextImpl::cast (Object::_ptr_type obj) noexcept
 {
@@ -301,11 +220,6 @@ void NamingContextImpl::unbind1 (Name& n)
 	if (BindingType::ncontext == it->second.binding_type)
 		unlink (it->second.object, n);
 	bindings_.erase (it);
-}
-
-NamingContext::_ref_type NamingContextImpl::new_context ()
-{
-	return NamingContextDefault::create ()->_this ();
 }
 
 NamingContext::_ref_type NamingContextImpl::bind_new_context1 (Name& n)

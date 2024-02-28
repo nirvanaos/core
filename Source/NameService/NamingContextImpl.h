@@ -51,7 +51,7 @@ public:
 
 	virtual NamingContext::_ptr_type this_context () = 0;
 
-	NamingContext::_ref_type new_context ();
+	static NamingContext::_ref_type new_context ();
 
 	typedef Nirvana::Core::PointerSet <const NamingContextImpl> ContextSet;
 

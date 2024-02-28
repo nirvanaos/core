@@ -25,7 +25,6 @@
 */
 #include "../pch.h"
 #include "NamingContextRoot.h"
-#include "Iterator.h"
 
 namespace CosNaming {
 namespace Core {
@@ -128,15 +127,6 @@ Istring NamingContextRoot::unescape (Istring s)
 		++pos;
 	}
 	return s;
-}
-
-void NamingContextRoot::list (uint32_t how_many, BindingList& bl, 
-	CosNaming::BindingIterator::_ref_type& bi) const
-{
-	auto vi = make_iterator ();
-	vi->next_n (how_many, bl);
-	if (!vi->end ())
-		bi = Iterator::create_iterator (std::move (vi));
 }
 
 }

@@ -30,6 +30,7 @@
 
 #include <CORBA/CORBA.h>
 #include <CORBA/CosNaming.h>
+#include "Iterator.h"
 #include <memory>
 
 namespace CosNaming {
@@ -41,7 +42,14 @@ class Iterator;
 class NIRVANA_NOVTABLE NamingContextRoot
 {
 public:
-	void list (uint32_t how_many, BindingList& bl, CosNaming::BindingIterator::_ref_type& bi) const;
+	void list (uint32_t how_many, BindingList& bl, CosNaming::BindingIterator::_ref_type& bi) const
+	{
+		auto vi = make_iterator ();
+		vi->next_n (how_many, bl);
+		if (!vi->end ())
+			bi = Iterator::create_iterator (std::move (vi));
+	}
+
 	virtual std::unique_ptr <Iterator> make_iterator () const = 0;
 
 	static void check_name (const Name& n);

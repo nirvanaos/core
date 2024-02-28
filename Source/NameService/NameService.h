@@ -28,9 +28,7 @@
 #define NIRVANA_NAMESERVICE_NAMESERVICE_H_
 #pragma once
 
-#include "NamingContextImpl.h"
-#include <CORBA/Server.h>
-#include <CORBA/CosNaming_s.h>
+#include "NamingContextDefault.h"
 #include "ORB/SysServant.h"
 #include "ORB/system_services.h"
 
