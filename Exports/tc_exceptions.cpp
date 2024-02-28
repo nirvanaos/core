@@ -48,15 +48,57 @@ const Parameter TypeCodeMembers <SystemException>::members_ [] = {
 	{ "completed", Type <CompletionStatus>::type_code }
 };
 
-template <class E>
-class TypeCodeSystemException :
-	public TypeCodeStatic <TypeCodeSystemException <E>, TypeCodeWithId <TCKind::tk_except, E>, TypeCodeOps <SystemException::_Data> >,
-	public TypeCodeMembers <SystemException>
+class TypeCodeSystemExceptionBase :
+	public TypeCodeTK <TCKind::tk_except>,
+	public TypeCodeOps <SystemException::_Data>,
+	public TypeCodeMembers <SystemException>,
+	public TypeCodeORB
 {
 public:
+	using TypeCodeORB::_s_get_compact_typecode;
 	using TypeCodeMembers <SystemException>::_s_member_count;
 	using TypeCodeMembers <SystemException>::_s_member_name;
 	using TypeCodeMembers <SystemException>::_s_member_type;
+};
+
+template <class E>
+class TypeCodeSystemException :
+	public ServantStatic <TypeCodeSystemException <E>, TypeCode>,
+	public TypeCodeSystemExceptionBase
+{
+	typedef TypeCodeSystemExceptionBase Base;
+
+public:
+	using Base::_s_kind;
+	using Base::_s_id;
+	using Base::_s_name;
+	using Base::_s_equal;
+	using Base::_s_equivalent;
+	using Base::_s_get_compact_typecode;
+	using Base::_s_member_count;
+	using Base::_s_member_name;
+	using Base::_s_member_type;
+	using Base::_s_member_label;
+	using Base::_s_discriminator_type;
+	using Base::_s_default_index;
+	using Base::_s_length;
+	using Base::_s_content_type;
+	using Base::_s_fixed_digits;
+	using Base::_s_fixed_scale;
+	using Base::_s_member_visibility;
+	using Base::_s_type_modifier;
+	using Base::_s_concrete_base_type;
+	using Base::_s_n_aligned_size;
+	using Base::_s_n_CDR_size;
+	using Base::_s_n_align;
+	using Base::_s_n_is_CDR;
+
+	typedef RepIdOf <E> RepositoryType;
+
+	static Type <String>::ABI_ret _s_id (Bridge <TypeCode>* _b, Interface* _env)
+	{
+		return const_string_ret (RepositoryType::id);
+	}
 
 	static Type <String>::ABI_ret _s_name (Bridge <TypeCode>* _b, Interface* _env)
 	{

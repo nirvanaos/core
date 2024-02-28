@@ -451,7 +451,12 @@ void Binder::unload (Module* mod)
 	mod->execute_atexit ();
 	mod->terminate ();
 	module_unbind (mod->_get_ptr (), mod->metadata ());
-	assert (mod->_refcount_value ());
+	assert (mod->_refcount_value () == 1);
+
+	// TODO: Temporary solution, fix!
+	if (!mod->_refcount_value ())
+		mod->ref_cnt_.increment ();
+
 	SYNC_END ();
 	delete_module (mod);
 }
