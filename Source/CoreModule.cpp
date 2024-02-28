@@ -35,9 +35,14 @@ class CoreModule :
 	public CORBA::servant_traits <Nirvana::Module>::ServantStatic <CoreModule>
 {
 public:
-	static const void* base_address ()
+	static const void* base_address () noexcept
 	{
 		return nullptr;
+	}
+
+	static int32_t id () noexcept
+	{
+		return 0;
 	}
 
 	template <class I>

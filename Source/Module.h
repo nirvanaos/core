@@ -106,8 +106,13 @@ public:
 
 	virtual MemContext* initterm_mem_context () const noexcept = 0;
 
+	int32_t id () const noexcept
+	{
+		return id_;
+	}
+
 protected:
-	Module (AccessDirect::_ptr_type file, bool singleton);
+	Module (int32_t id, AccessDirect::_ptr_type file, bool singleton);
 
 protected:
 	friend class Binder;
@@ -116,6 +121,7 @@ protected:
 	SteadyTime release_time_;
 	AtomicCounter <false> ref_cnt_;
 	AtomicCounter <false>::IntegralType initial_ref_cnt_;
+	int32_t id_;
 	bool singleton_;
 };
 

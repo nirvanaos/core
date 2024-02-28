@@ -40,8 +40,8 @@ class ClassLibrary :
 	public SyncContextFree
 {
 public:
-	ClassLibrary (AccessDirect::_ptr_type file) :
-		Module (file, false),
+	ClassLibrary (int32_t id, AccessDirect::_ptr_type file) :
+		Module (id, file, false),
 		sync_context_type_ (Type::FREE)
 	{
 		get_data_sections (data_sections_);

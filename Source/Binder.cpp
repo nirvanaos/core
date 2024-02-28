@@ -385,9 +385,9 @@ Ref <Module> Binder::load (int32_t mod_id, AccessDirect::_ref_type binary,
 			}
 
 			if (singleton)
-				mod = new Singleton (binary);
+				mod = new Singleton (mod_id, binary);
 			else
-				mod = new ClassLibrary (binary);
+				mod = new ClassLibrary (mod_id, binary);
 
 			SYNC_END ();
 
@@ -449,8 +449,9 @@ void Binder::unload (Module* mod)
 	remove_exports (mod->metadata ());
 	SYNC_BEGIN (mod->sync_context (), mod->initterm_mem_context ());
 	mod->execute_atexit ();
-	mod->terminate (); // TODO: Do we stll need this op?
+	mod->terminate ();
 	module_unbind (mod->_get_ptr (), mod->metadata ());
+	assert (mod->_refcount_value ());
 	SYNC_END ();
 	delete_module (mod);
 }

@@ -75,6 +75,11 @@ public:
 		at_exit_.execute ();
 	}
 
+	static int32_t id () noexcept
+	{
+		return 0;
+	}
+
 	// SyncContext::
 
 	virtual SyncContext::Type sync_context_type () const noexcept override;

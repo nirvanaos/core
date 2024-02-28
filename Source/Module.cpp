@@ -31,17 +31,19 @@
 namespace Nirvana {
 namespace Core {
 
-Module::Module (AccessDirect::_ptr_type file, bool singleton) :
+Module::Module (int32_t id, AccessDirect::_ptr_type file, bool singleton) :
 	Binary (file),
 	entry_point_ (nullptr),
 	ref_cnt_ (0),
 	initial_ref_cnt_ (0),
+	id_ (id),
 	singleton_ (singleton)
 {}
 
 void Module::_remove_ref () noexcept
 {
-	if (ref_cnt_.decrement_seq () == initial_ref_cnt_) {
+	AtomicCounter <false>::IntegralType rcnt = ref_cnt_.decrement_seq ();
+	if (rcnt == initial_ref_cnt_) {
 		if (ref_cnt_.increment_seq () == initial_ref_cnt_ + 1) {
 			release_time_ = Chrono::steady_clock ();
 			ref_cnt_.decrement ();
