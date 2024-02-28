@@ -33,9 +33,6 @@ namespace CORBA {
 namespace Internal {
 
 template <>
-const Char RepIdOf <CompletionStatus>::id [] = CORBA_REPOSITORY_ID ("CompletionStatus");
-
-template <>
 const Char TypeCodeName <CompletionStatus>::name_ [] = "CompletionStatus";
 
 template <>
