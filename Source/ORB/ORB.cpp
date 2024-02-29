@@ -145,6 +145,11 @@ bool ORB::tc_equal (TypeCode::_ptr_type left, TypeCode::_ptr_type right, const T
 			}
 			break;
 
+		case TCKind::tk_objref:
+		case TCKind::tk_local_interface:
+		case TCKind::tk_abstract_interface:
+			return left->id () == right->id () && left->name () == right->name ();
+
 		case TCKind::tk_sequence:
 		case TCKind::tk_array:
 			if (left->length () != right->length ())
@@ -263,6 +268,11 @@ bool ORB::tc_equivalent (TypeCode::_ptr_type left, TypeCode::_ptr_type right, co
 					return id_left == id_right;
 			}
 			break;
+
+		case TCKind::tk_objref:
+		case TCKind::tk_local_interface:
+		case TCKind::tk_abstract_interface:
+			return left->id () == right->id ();
 
 		case TCKind::tk_sequence:
 		case TCKind::tk_array:
