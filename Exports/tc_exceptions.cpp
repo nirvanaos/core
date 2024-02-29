@@ -48,7 +48,7 @@ const Parameter TypeCodeMembers <UnknownUserException>::members_ [] = {
 	{ "exception", Type <Any>::type_code }
 };
 
-typedef TypeCodeException <UnknownUserException, true> TC_UnknownUserException;
+typedef TypeCodeException <UnknownUserException> TC_UnknownUserException;
 
 }
 }

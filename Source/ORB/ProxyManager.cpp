@@ -120,6 +120,12 @@ void ProxyManager::check_metadata (const InterfaceMetadata* metadata, String_in 
 			check_parameters (op->output);
 			if (op->return_type)
 				check_type_code ((op->return_type) ());
+			for (const GetTypeCode* ue = op->user_exceptions.p, *end = ue + op->user_exceptions.size; ue != end; ++ue) {
+				TypeCode::_ptr_type tc = (*ue) ();
+				check_type_code (tc);
+				if (tc->kind () != TCKind::tk_except)
+					throw OBJ_ADAPTER (); // TODO: Log
+			}
 		}
 	}
 }

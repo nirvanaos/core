@@ -408,7 +408,7 @@ bool RequestOut::get_exception (Any& e)
 		stream_in_->read_string (id);
 		TypeCode::_ptr_type tc;
 		for (auto p = metadata_.user_exceptions.p, end = p + metadata_.user_exceptions.size; p != end; ++p) {
-			TypeCode::_ptr_type tcp = **p;
+			TypeCode::_ptr_type tcp = (*p) ();
 			if (RepId::compatible (tcp->id (), id)) {
 				tc = tcp;
 				break;
