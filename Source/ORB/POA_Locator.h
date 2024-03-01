@@ -48,10 +48,10 @@ protected:
 
 private:
 	inline
-	CORBA::Object::_ref_type preinvoke (CORBA::Internal::Type <ObjectId>::C_in oid,
+	CORBA::Object::_ref_type preinvoke (IDL::Type <ObjectId>::C_in oid,
 		CORBA::Internal::String_in operation, void*& the_cookie);
 
-	void postinvoke (CORBA::Internal::Type <ObjectId>::C_in oid,
+	void postinvoke (IDL::Type <ObjectId>::C_in oid,
 		CORBA::Internal::String_in operation, void* the_cookie,
 		CORBA::Object::_ptr_type the_servant) noexcept;
 

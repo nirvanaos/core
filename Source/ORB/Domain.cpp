@@ -231,12 +231,12 @@ void Domain::DGC_Request::invoke ()
 	auto add_end = it + add_cnt_;
 	try {
 		for (; it != add_end; ++it) {
-			Internal::Type <IOP::ObjectKey>::marshal_in (**it, request_);
+			IDL::Type <IOP::ObjectKey>::marshal_in (**it, request_);
 			(*it)->request (static_cast <DGC_Request&> (*this));
 		}
 		request_->marshal_seq_begin (keys_.size () - add_cnt_);
 		for (; it != keys_.end (); ++it) {
-			Internal::Type <IOP::ObjectKey>::marshal_in (**it, request_);
+			IDL::Type <IOP::ObjectKey>::marshal_in (**it, request_);
 			(*it)->request (static_cast <DGC_Request&> (*this));
 		}
 		request_->invoke ();

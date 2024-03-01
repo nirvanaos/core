@@ -214,7 +214,7 @@ public:
 	void marshal_string (Internal::StringT <C>& s, bool move)
 	{
 		if (marshal_op ()) {
-			typedef typename Internal::Type <Internal::StringT <C> >::ABI ABI;
+			typedef typename IDL::Type <Internal::StringT <C> >::ABI ABI;
 			ABI& abi = (ABI&)s;
 			size_t size;
 			C* ptr;
@@ -242,7 +242,7 @@ public:
 	template <typename C>
 	void unmarshal_string (Internal::StringT <C>& s)
 	{
-		typedef typename Internal::Type <Internal::StringT <C> >::ABI ABI;
+		typedef typename IDL::Type <Internal::StringT <C> >::ABI ABI;
 
 		size_t size;
 		read (alignof (size_t), sizeof (size_t), &size);
@@ -269,7 +269,7 @@ public:
 	template <typename C>
 	void marshal_char_seq (IDL::Sequence <C>& s, bool move)
 	{
-		typedef typename Internal::Type <IDL::Sequence <C> >::ABI ABI;
+		typedef typename IDL::Type <IDL::Sequence <C> >::ABI ABI;
 		ABI& abi = (ABI&)s;
 		if (move) {
 			marshal_seq (alignof (C), sizeof (C), sizeof (C), abi.size, abi.ptr, abi.allocated);
@@ -284,7 +284,7 @@ public:
 	template <typename C>
 	void unmarshal_char_seq (IDL::Sequence <C>& s)
 	{
-		typedef typename Internal::Type <IDL::Sequence <C> >::ABI ABI;
+		typedef typename IDL::Type <IDL::Sequence <C> >::ABI ABI;
 		ABI& abi = (ABI&)s;
 		unmarshal_seq (alignof (C), sizeof (C), sizeof (C), abi.size, (void*&)abi.ptr, abi.allocated);
 	}
@@ -406,7 +406,7 @@ public:
 		state_ = State::EXCEPTION;
 		if (response_flags_) {
 			try {
-				Internal::Type <Any>::marshal_out (e, _get_ptr ());
+				IDL::Type <Any>::marshal_out (e, _get_ptr ());
 			} catch (...) {}
 			rewind ();
 		}
@@ -437,7 +437,7 @@ public:
 	bool get_exception (Any& e)
 	{
 		if (State::EXCEPTION == state_) {
-			Internal::Type <Any>::unmarshal (_get_ptr (), e);
+			IDL::Type <Any>::unmarshal (_get_ptr (), e);
 			return true;
 		} else
 			return false;

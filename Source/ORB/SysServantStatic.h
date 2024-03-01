@@ -49,7 +49,7 @@ public:
 	using Internal::LocalObjectStaticDummy::__refcount_value;
 	using Internal::LocalObjectStaticDummy::__delete_object;
 
-	static Internal::Bridge <Object>* _get_object (Internal::Type <IDL::String>::ABI_in iid,
+	static Internal::Bridge <Object>* _get_object (IDL::Type <IDL::String>::ABI_in iid,
 		Internal::Interface* env) noexcept
 	{
 		return Internal::get_object_from_core (core_object (), iid, env);

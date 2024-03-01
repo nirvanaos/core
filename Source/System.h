@@ -96,9 +96,9 @@ public:
 		return Chrono::deadline_clock ();
 	}
 
-	static CORBA::Internal::Type <DeadlineTime>::ConstRef _s__get_deadline_clock_frequency (CORBA::Internal::Bridge <Nirvana::System>* _b, CORBA::Internal::Interface* _env)
+	static IDL::Type <DeadlineTime>::ConstRef _s__get_deadline_clock_frequency (CORBA::Internal::Bridge <Nirvana::System>* _b, CORBA::Internal::Interface* _env)
 	{
-		return CORBA::Internal::Type <DeadlineTime>::ret (Chrono::deadline_clock_frequency ());
+		return IDL::Type <DeadlineTime>::ret (Chrono::deadline_clock_frequency ());
 	}
 
 	static DeadlineTime deadline_from_UTC (const TimeBase::UtcT& utc)

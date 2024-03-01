@@ -43,7 +43,7 @@ IDL::String Reference::_repository_id ()
 			nullptr);
 		rq->invoke ();
 		IDL::String _ret;
-		Internal::Type <IDL::String>::unmarshal (rq, _ret);
+		IDL::Type <IDL::String>::unmarshal (rq, _ret);
 		rq->unmarshal_end ();
 		return _ret;
 	}
@@ -63,7 +63,7 @@ Object::_ref_type Reference::_get_component ()
 		nullptr);
 	rq->invoke ();
 	Object::_ref_type _ret;
-	Internal::Type <Object>::unmarshal (rq, _ret);
+	IDL::Type <Object>::unmarshal (rq, _ret);
 	rq->unmarshal_end ();
 	return _ret;
 }

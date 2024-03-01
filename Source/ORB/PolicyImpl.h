@@ -106,7 +106,7 @@ void PolicyImplBase <PolicyItf, id, ValueType>::read_value (StreamIn& s, ValueTy
 	// Assume all policy data is CDR
 	s.read_one (val);
 	if (s.other_endian ())
-		Internal::Type <ValueType>::byteswap (val);
+		IDL::Type <ValueType>::byteswap (val);
 }
 
 template <class PolicyItf, PolicyType id, typename ValueType>

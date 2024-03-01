@@ -475,14 +475,14 @@ public:
 	static void _s_set_servant (CORBA::Internal::Bridge <POA>* _b,
 		CORBA::Internal::Interface* p_servant, CORBA::Internal::Interface* _env);
 
-	static CORBA::Internal::Type <ObjectId>::ABI_ret _s_activate_object (CORBA::Internal::Bridge <POA>* _b,
+	static IDL::Type <ObjectId>::ABI_ret _s_activate_object (CORBA::Internal::Bridge <POA>* _b,
 		CORBA::Internal::Interface* p_servant, CORBA::Internal::Interface* env);
 
 	static void _s_activate_object_with_id (CORBA::Internal::Bridge <POA>* _b,
-		CORBA::Internal::Type <ObjectId>::ABI_in oid, CORBA::Internal::Interface* p_servant,
+		IDL::Type <ObjectId>::ABI_in oid, CORBA::Internal::Interface* p_servant,
 		CORBA::Internal::Interface* env);
 
-	static CORBA::Internal::Type <ObjectId>::ABI_ret _s_servant_to_id (CORBA::Internal::Bridge <POA>* _b,
+	static IDL::Type <ObjectId>::ABI_ret _s_servant_to_id (CORBA::Internal::Bridge <POA>* _b,
 		CORBA::Internal::Interface* p_servant, CORBA::Internal::Interface* env);
 
 	static CORBA::Internal::Interface* _s_servant_to_reference (	CORBA::Internal::Bridge <POA>* _b,
@@ -492,7 +492,7 @@ public:
 		CORBA::Internal::Interface* reference, CORBA::Internal::Interface* env);
 
 	static CORBA::Internal::Interface* _s_id_to_servant (CORBA::Internal::Bridge <POA>* _b,
-		CORBA::Internal::Type <ObjectId>::ABI_in oid, CORBA::Internal::Interface* env);
+		IDL::Type <ObjectId>::ABI_in oid, CORBA::Internal::Interface* env);
 
 	virtual ~POA_Base ();
 

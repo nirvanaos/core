@@ -96,7 +96,7 @@ public:
 	template <class T>
 	void write_one (const T& v)
 	{
-		write_c (Internal::Type <T>::CDR_align, Internal::Type <T>::CDR_size, &v);
+		write_c (IDL::Type <T>::CDR_align, IDL::Type <T>::CDR_size, &v);
 	}
 
 	/// Write GIOP message header.
@@ -176,7 +176,7 @@ public:
 template <typename C>
 void StreamOut::write_string (Internal::StringT <C>& s, bool move)
 {
-	typedef typename Internal::Type <Internal::StringT <C> >::ABI ABI;
+	typedef typename IDL::Type <Internal::StringT <C> >::ABI ABI;
 	ABI& abi = (ABI&)s;
 	uint32_t size;
 	C* ptr;
@@ -199,16 +199,16 @@ void StreamOut::write_string (Internal::StringT <C>& s, bool move)
 template <typename T>
 void StreamOut::write_seq (IDL::Sequence <T>& s, bool move)
 {
-	typedef typename Internal::Type <IDL::Sequence <T> >::ABI ABI;
+	typedef typename IDL::Type <IDL::Sequence <T> >::ABI ABI;
 	ABI& abi = (ABI&)s;
 	if (move) {
-		write_seq (Internal::Type <T>::CDR_align, sizeof (T), Internal::Type <T>::CDR_size,
+		write_seq (IDL::Type <T>::CDR_align, sizeof (T), IDL::Type <T>::CDR_size,
 			abi.size, abi.ptr, abi.allocated);
 		if (!abi.allocated)
 			abi.reset ();
 	} else {
 		size_t zero = 0;
-		write_seq (Internal::Type <T>::CDR_align, sizeof (T), Internal::Type <T>::CDR_size,
+		write_seq (IDL::Type <T>::CDR_align, sizeof (T), IDL::Type <T>::CDR_size,
 			abi.size, abi.ptr, zero);
 	}
 }

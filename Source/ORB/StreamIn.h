@@ -190,9 +190,9 @@ public:
 	template <class T>
 	void read_one (T& v)
 	{
-		read (Internal::Type <T>::CDR_align, sizeof (T), Internal::Type <T>::CDR_size, 1, &v);
+		read (IDL::Type <T>::CDR_align, sizeof (T), IDL::Type <T>::CDR_size, 1, &v);
 		if (other_endian ())
-			Internal::Type <T>::byteswap (v);
+			IDL::Type <T>::byteswap (v);
 	}
 
 	void chunk_mode (bool on) noexcept
@@ -234,7 +234,7 @@ void StreamIn::read_string (std::basic_string <C, std::char_traits <C>, A>& s)
 template <typename C>
 void StreamIn::read_string (Internal::StringT <C>& s)
 {
-	typedef typename Internal::Type <Internal::StringT <C> >::ABI ABI;
+	typedef typename IDL::Type <Internal::StringT <C> >::ABI ABI;
 
 	size_t size = read_size ();
 	if (!size)
@@ -270,21 +270,21 @@ void StreamIn::read_string (Internal::StringT <C>& s)
 
 	if (sizeof (C) > 1 && other_endian ())
 		for (C& c : s) {
-			Internal::Type <C>::byteswap (c);
+			IDL::Type <C>::byteswap (c);
 		}
 }
 
 template <typename T>
 void StreamIn::read_seq (IDL::Sequence <T>& s)
 {
-	typedef typename Internal::Type <IDL::Sequence <T> >::ABI ABI;
+	typedef typename IDL::Type <IDL::Sequence <T> >::ABI ABI;
 	ABI& abi = (ABI&)s;
-	bool other_endian = read_seq (Internal::Type <T>::CDR_align, sizeof (T), Internal::Type <T>::CDR_size,
+	bool other_endian = read_seq (IDL::Type <T>::CDR_align, sizeof (T), IDL::Type <T>::CDR_size,
 		abi.size, (void*&)abi.ptr, abi.allocated);
 	
-	if (sizeof (typename Internal::Type <T>::ABI) > 1 && other_endian)
+	if (sizeof (typename IDL::Type <T>::ABI) > 1 && other_endian)
 		for (T* p = s.data (), *e = p + s.size (); p != e; ++p) {
-			Internal::Type <T>::byteswap (*p);
+			IDL::Type <T>::byteswap (*p);
 		}
 }
 

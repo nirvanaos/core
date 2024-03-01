@@ -113,7 +113,7 @@ public:
 		return make_pseudo <Nirvana::Core::ImplDynamic <Request> > (std::ref (*this));
 	}
 
-	Internal::Type <ValueBase>::VRet _copy_value () const;
+	IDL::Type <ValueBase>::VRet _copy_value () const;
 
 private:
 	class Request :
@@ -139,7 +139,7 @@ private:
 		Nirvana::Core::ImplStatic <StreamOutEncap> stm (true);
 		Nirvana::Core::ImplStatic <RequestEncap> rq (nullptr, &stm);
 		TypeCode::_ptr_type tc = exc.type ();
-		Internal::Type <IDL::String>::marshal_in (tc->id (), rq._get_ptr ());
+		IDL::Type <IDL::String>::marshal_in (tc->id (), rq._get_ptr ());
 		tc->n_marshal_out (exc.data (), 1, rq._get_ptr ());
 		return std::move (stm.data ());
 	}
@@ -180,7 +180,7 @@ public:
 	}
 };
 
-inline Internal::Type <ValueBase>::VRet ExceptionHolder::_copy_value () const
+inline IDL::Type <ValueBase>::VRet ExceptionHolder::_copy_value () const
 {
 #ifndef LEGACY_CORBA_CPP
 	return make_reference <ExceptionHolderImpl> (std::ref (static_cast <const ExceptionHolderImpl&> (*this)));

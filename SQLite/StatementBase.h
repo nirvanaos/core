@@ -70,9 +70,9 @@ public:
 		return std::move (result_set_);
 	}
 
-	static NDBC::ResultSet::RSType getResultSetType () noexcept
+	static NDBC::ResultSet::Type getResultSetType () noexcept
 	{
-		return NDBC::ResultSet::RSType::TYPE_FORWARD_ONLY;
+		return NDBC::ResultSet::Type::TYPE_FORWARD_ONLY;
 	}
 
 	int32_t getUpdateCount ()

@@ -216,7 +216,7 @@ public:
 		Internal::IORequest::_ref_type rq = create_request (_make_op_idx ((UShort)ObjectOp::NON_EXISTENT), 3, nullptr);
 		rq->invoke ();
 		Boolean _ret;
-		Internal::Type <Boolean>::unmarshal (rq, _ret);
+		IDL::Type <Boolean>::unmarshal (rq, _ret);
 		rq->unmarshal_end ();
 		return _ret;
 	}

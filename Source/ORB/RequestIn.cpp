@@ -166,8 +166,8 @@ void RequestIn::get_object_key (const IOP::TaggedProfile& profile)
 		ImplStatic <StreamInEncap> stm (ref (profile.profile_data ()));
 
 		// Skip IIOP version
-		stm.read (Internal::Type <IIOP::Version>::CDR_align, sizeof (IIOP::Version),
-			Internal::Type <IIOP::Version>::CDR_size, 1, nullptr);
+		stm.read (IDL::Type <IIOP::Version>::CDR_align, sizeof (IIOP::Version),
+			IDL::Type <IIOP::Version>::CDR_size, 1, nullptr);
 
 		// Skip host name
 		size_t host_len = stm.read_size ();

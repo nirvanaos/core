@@ -198,7 +198,7 @@ protected:
 		Octet ocnt = (Octet)cnt;
 		out.write_c (1, 1, &ocnt);
 		if (Nirvana::endian::native != Nirvana::endian::little)
-			Internal::Type <U>::byteswap (c);
+			IDL::Type <U>::byteswap (c);
 		out.write_c (1, cnt, &c);
 	}
 
@@ -209,7 +209,7 @@ protected:
 		uint32_t u;
 		in.read (1, ocnt, ocnt, 1, &u);
 		if (Nirvana::endian::native != Nirvana::endian::little)
-			Internal::Type <uint32_t>::byteswap (u);
+			IDL::Type <uint32_t>::byteswap (u);
 		return u;
 	}
 };

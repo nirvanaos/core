@@ -81,7 +81,7 @@ class SysServant :
 	}
 
 public:
-	static Bridge <AbstractBase>* _get_abstract_base (Internal::Type <IDL::String>::ABI_in iid,
+	static Bridge <AbstractBase>* _get_abstract_base (IDL::Type <IDL::String>::ABI_in iid,
 		Internal::Interface* env) noexcept
 	{
 		assert (false);

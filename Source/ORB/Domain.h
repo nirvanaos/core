@@ -98,8 +98,8 @@ public:
 	{
 		last_ping_in_time_ = Nirvana::Core::Chrono::steady_clock ();
 		IDL::Sequence <IOP::ObjectKey> add, del;
-		Internal::Type <IDL::Sequence <IOP::ObjectKey> >::unmarshal (rq, add);
-		Internal::Type <IDL::Sequence <IOP::ObjectKey> >::unmarshal (rq, del);
+		IDL::Type <IDL::Sequence <IOP::ObjectKey> >::unmarshal (rq, add);
+		IDL::Type <IDL::Sequence <IOP::ObjectKey> >::unmarshal (rq, del);
 		rq->unmarshal_end ();
 		complex_ping (add, del);
 		rq->success ();

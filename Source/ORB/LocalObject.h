@@ -50,9 +50,9 @@ public:
 		return false;
 	}
 	
-	Bridge <Object>* _get_object (Internal::Type <IDL::String>::ABI_in iid, Interface* env) noexcept
+	Bridge <Object>* _get_object (IDL::Type <IDL::String>::ABI_in iid, Interface* env) noexcept
 	{
-		if (Internal::RepId::check (Internal::RepIdOf <Object>::id, Internal::Type <IDL::String>::in (iid)) != Internal::RepId::COMPATIBLE)
+		if (Internal::RepId::check (Internal::RepIdOf <Object>::id, IDL::Type <IDL::String>::in (iid)) != Internal::RepId::COMPATIBLE)
 			set_INV_OBJREF (env);
 		return static_cast <Bridge <Object>*> (&proxy ().get_proxy ());
 	}

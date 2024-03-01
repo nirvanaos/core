@@ -59,9 +59,9 @@ protected:
 	virtual void deactivate_objects (bool etherealize) noexcept override;
 
 private:
-	CORBA::Object::_ref_type incarnate (CORBA::Internal::Type <ObjectId>::C_in oid);
+	CORBA::Object::_ref_type incarnate (IDL::Type <ObjectId>::C_in oid);
 
-	void etherialize (CORBA::Internal::Type <ObjectId>::C_in oid, CORBA::Object::_ptr_type serv,
+	void etherialize (IDL::Type <ObjectId>::C_in oid, CORBA::Object::_ptr_type serv,
 		bool cleanup_in_progress,
 		bool remaining_activations) noexcept;
 

@@ -128,7 +128,7 @@ DomainManagersList ReferenceRemote::_get_domain_managers ()
 		nullptr);
 	rq->invoke ();
 	DomainManagersList _ret;
-	Internal::Type <DomainManagersList>::unmarshal (rq, _ret);
+	IDL::Type <DomainManagersList>::unmarshal (rq, _ret);
 	rq->unmarshal_end ();
 	return _ret;
 }

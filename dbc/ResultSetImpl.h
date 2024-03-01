@@ -203,15 +203,15 @@ public:
 		return ws;
 	}
 
-	RSType getType () const
+	Type getType () const
 	{
 		check ();
 		if (flags () & FLAG_FORWARD_ONLY)
-			return RSType::TYPE_FORWARD_ONLY;
+			return Type::TYPE_FORWARD_ONLY;
 		else if (flags () & FLAG_SCROLL_SENSITIVE)
-			return RSType::TYPE_SCROLL_SENSITIVE;
+			return Type::TYPE_SCROLL_SENSITIVE;
 		else
-			return RSType::TYPE_SCROLL_INSENSITIVE;
+			return Type::TYPE_SCROLL_INSENSITIVE;
 	}
 
 	SQLWarnings getWarnings () const

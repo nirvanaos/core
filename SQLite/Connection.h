@@ -129,7 +129,7 @@ public:
 		throw CORBA::NO_IMPLEMENT ();
 	}
 
-	NDBC::Statement::_ref_type createStatement (NDBC::ResultSet::RSType resultSetType);
+	NDBC::Statement::_ref_type createStatement (NDBC::ResultSet::Type resultSetType);
 
 	bool getAutoCommit () const
 	{
@@ -178,12 +178,12 @@ public:
 		return (bool)parent_;
 	}
 
-	NDBC::PreparedStatement::_ref_type prepareCall (const IDL::String& sql, NDBC::ResultSet::RSType resultSetType)
+	NDBC::PreparedStatement::_ref_type prepareCall (const IDL::String& sql, NDBC::ResultSet::Type resultSetType)
 	{
 		throw CORBA::NO_IMPLEMENT ();
 	}
 
-	NDBC::PreparedStatement::_ref_type prepareStatement (const IDL::String& sql, NDBC::ResultSet::RSType resultSetType, unsigned flags);
+	NDBC::PreparedStatement::_ref_type prepareStatement (const IDL::String& sql, NDBC::ResultSet::Type resultSetType, unsigned flags);
 
 	void releaseSavepoint (const IDL::String& name)
 	{

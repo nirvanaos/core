@@ -112,7 +112,7 @@ private:
 	{
 		Any ev;
 		if (event_type_->kind () != TCKind::tk_void)
-			Internal::Type <Any>::unmarshal (event_type_, rq, ev);
+			IDL::Type <Any>::unmarshal (event_type_, rq, ev);
 		rq->unmarshal_end ();
 		EventChannelBase::push (ev);
 	}
