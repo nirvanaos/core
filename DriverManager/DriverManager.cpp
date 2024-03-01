@@ -86,7 +86,7 @@ void sort (std::vector <std::string>& v)
 }
 
 template <typename T>
-std::vector <T>::const_iterator find (const std::vector <T>& v, const std::string& s)
+typename std::vector <T>::const_iterator find (const std::vector <T>& v, const std::string& s)
 {
 	typename std::vector <T>::const_iterator it = std::lower_bound (v.begin (), v.end (), s, NamePred <T> ());
 	if (it != v.end () && it->name () == s)
@@ -95,7 +95,7 @@ std::vector <T>::const_iterator find (const std::vector <T>& v, const std::strin
 }
 
 template <> inline
-std::vector <std::string>::const_iterator find (const std::vector <std::string>& v, const std::string& s)
+typename std::vector <std::string>::const_iterator find (const std::vector <std::string>& v, const std::string& s)
 {
 	std::vector <std::string>::const_iterator it = std::lower_bound (v.begin (), v.end (), s);
 	if (it != v.end () && *it == s)
