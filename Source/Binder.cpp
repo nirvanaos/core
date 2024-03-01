@@ -58,7 +58,7 @@ void Binder::ObjectMap::insert (const char* name, InterfacePtr itf)
 
 void Binder::ObjectMap::erase (const char* name) noexcept
 {
-	verify (ObjectMapBase::erase (name));
+	NIRVANA_VERIFY (ObjectMapBase::erase (name));
 }
 
 void Binder::ObjectMap::merge (const ObjectMap& src)
@@ -125,12 +125,12 @@ void Binder::unload_modules ()
 	} while (unloaded);
 
 	// If everything is OK, molule map must be empty
-	assert (module_map_.empty ());
+	NIRVANA_ASSERT_EX (module_map_.empty (), true);
 
 	// If so, unload the bound modules also.
 	while (!module_map_.empty ()) {
 		auto it = module_map_.begin ();
-		NIRVANA_TRACE ("Force unload module %d", it->first);
+		NIRVANA_WARNING ("Force unload module %d", it->first);
 		Module* pmod = it->second.get ();
 		module_map_.erase (it);
 		unload (pmod);
@@ -246,7 +246,7 @@ const ModuleStartup* Binder::module_bind (::Nirvana::Module::_ptr_type mod, cons
 
 		if (flags || module_entry) {
 			if (Port::Memory::FLAGS & Memory::ACCESS_CHECK)
-				verify (Port::Memory::copy (const_cast <void*> (metadata.address),
+				NIRVANA_VERIFY (Port::Memory::copy (const_cast <void*> (metadata.address),
 					const_cast <void*> (metadata.address), const_cast <size_t&> (metadata.size),
 					Memory::READ_WRITE | Memory::EXACTLY));
 
@@ -311,7 +311,7 @@ const ModuleStartup* Binder::module_bind (::Nirvana::Module::_ptr_type mod, cons
 				}
 
 			if (Port::Memory::FLAGS & Memory::ACCESS_CHECK)
-				verify (Port::Memory::copy (const_cast <void*> (metadata.address),
+				NIRVANA_VERIFY (Port::Memory::copy (const_cast <void*> (metadata.address),
 					const_cast <void*> (metadata.address), const_cast <size_t&> (metadata.size),
 					Memory::READ_ONLY | Memory::EXACTLY));
 		}
@@ -447,17 +447,17 @@ Ref <Module> Binder::load (int32_t mod_id, AccessDirect::_ref_type binary,
 void Binder::unload (Module* mod)
 {
 	remove_exports (mod->metadata ());
+	
 	SYNC_BEGIN (mod->sync_context (), mod->initterm_mem_context ());
+
 	mod->execute_atexit ();
 	mod->terminate ();
 	module_unbind (mod->_get_ptr (), mod->metadata ());
-	assert (mod->_refcount_value () == 1);
-
-	// TODO: Temporary solution, fix!
-	if (!mod->_refcount_value ())
-		mod->ref_cnt_.increment ();
+	
+	NIRVANA_ASSERT_EX (mod->_refcount_value () == 1, true);
 
 	SYNC_END ();
+	
 	delete_module (mod);
 }
 

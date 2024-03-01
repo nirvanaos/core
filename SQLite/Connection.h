@@ -99,32 +99,6 @@ private:
 	sqlite3* sqlite_;
 };
 
-class Stmt
-{
-public:
-	Stmt (const Stmt&) = delete;
-	Stmt& operator = (const Stmt&) = delete;
-
-	Stmt (const SQLite& conn, const char* sql, int len = -1, unsigned flags = 0,
-		const char** tail = nullptr)
-	{
-		conn.check_result (sqlite3_prepare_v3 (conn, sql, len, flags, &stmt_, tail));
-	}
-
-	~Stmt ()
-	{
-		sqlite3_finalize (stmt_);
-	}
-
-	operator sqlite3_stmt* () const noexcept
-	{
-		return stmt_;
-	}
-
-private:
-	sqlite3_stmt* stmt_;
-};
-
 class Connection :
 	public CORBA::servant_traits <NDBC::Connection>::Servant <Connection>,
 	public SQLite

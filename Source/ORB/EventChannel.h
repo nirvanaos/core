@@ -201,7 +201,7 @@ protected:
 
 		void on_destruct (ChildObject& child) noexcept
 		{
-			verify (erase (&child));
+			NIRVANA_VERIFY (erase (&child));
 			assert (connected_cnt_ <= size ());
 		}
 

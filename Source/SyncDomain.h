@@ -104,7 +104,7 @@ public:
 	{
 		activity_begin ();
 		try {
-			verify (queue_.insert (deadline, &executor));
+			NIRVANA_VERIFY (queue_.insert (deadline, &executor));
 		} catch (...) {
 			activity_end ();
 			throw;
@@ -123,7 +123,7 @@ public:
 		assert (node);
 		assert (node->domain_ == this);
 		unsigned level = node->level;
-		verify (queue_.insert (new (node) Queue::NodeVal (level, deadline, &executor)));
+		NIRVANA_VERIFY (queue_.insert (new (node) Queue::NodeVal (level, deadline, &executor)));
 		schedule ();
 	}
 

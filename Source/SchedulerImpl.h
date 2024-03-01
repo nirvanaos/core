@@ -67,7 +67,7 @@ public:
 
 	void schedule (const DeadlineTime& deadline, const ExecutorRef& executor) noexcept
 	{
-		verify (queue_.insert (deadline, executor));
+		NIRVANA_VERIFY (queue_.insert (deadline, executor));
 		queue_items_.increment ();
 		execute_next ();
 	}

@@ -367,7 +367,7 @@ private:
 	}
 
 	void housekeeping_modules ();
-	void delete_module (Module* mod);
+	static void delete_module (Module* mod);
 	void unload_modules ();
 
 	class HousekeepingTimerModules : public TimerAsyncCall

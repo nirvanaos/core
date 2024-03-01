@@ -116,7 +116,7 @@ protected:
 
 	~StatementBase ()
 	{
-		finalize ();
+		finalize (true);
 	}
 
 	void prepare (const IDL::String& sql, unsigned flags);
@@ -136,7 +136,7 @@ protected:
 		return execute_next (resultset);
 	}
 
-	void finalize () noexcept;
+	void finalize (bool silent = false) noexcept;
 	void reset () noexcept;
 	void check_warning (int err) noexcept;
 

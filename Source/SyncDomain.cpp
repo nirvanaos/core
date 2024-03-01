@@ -86,7 +86,7 @@ void SyncDomain::execute () noexcept
 	assert (State::SCHEDULED == state_);
 	state_ = State::RUNNING;
 	Executor* executor;
-	verify (queue_.delete_min (executor));
+	NIRVANA_VERIFY (queue_.delete_min (executor));
 	executor->execute ();
 }
 

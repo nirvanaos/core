@@ -68,7 +68,7 @@ void StatementBase::prepare (const IDL::String& sql, unsigned flags)
 	cur_statement_ = statements_.size ();
 }
 
-void StatementBase::finalize () noexcept
+void StatementBase::finalize (bool silent) noexcept
 {
 	if (!statements_.empty ()) {
 		Connection& conn = connection ();
@@ -76,7 +76,9 @@ void StatementBase::finalize () noexcept
 		cur_statement_ = 0;
 		change_version ();
 		for (auto stmt : statements) {
-			conn.check_warning (sqlite3_finalize (stmt));
+			int err = sqlite3_finalize (stmt);
+			if (!silent)
+				conn.check_warning (err);
 		}
 	}
 }

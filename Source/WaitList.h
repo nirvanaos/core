@@ -83,7 +83,7 @@ protected:
 	WaitableRefBase (TimeBase::TimeT deadline) :
 		pointer_ (0)
 	{
-		verify (initialize (deadline));
+		NIRVANA_VERIFY (initialize (deadline));
 	}
 
 	~WaitableRefBase ()

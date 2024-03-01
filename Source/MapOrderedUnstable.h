@@ -30,10 +30,7 @@
 
 #include <CORBA/CORBA.h>
 
-#pragma push_macro ("verify")
-#undef verify
 #include "parallel-hashmap/parallel_hashmap/btree.h"
-#pragma pop_macro ("verify")
 
 namespace Nirvana {
 namespace Core {

@@ -224,7 +224,7 @@ public:
 
 	int unfetch (sqlite3_int64 off, void* p) noexcept
 	{
-		verify (cache_.erase (p));
+		NIRVANA_VERIFY (cache_.erase (p));
 		return SQLITE_OK;
 	}
 

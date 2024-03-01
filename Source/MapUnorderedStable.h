@@ -32,10 +32,7 @@
 
 // phmap::node_hash_map is quick unordered map with pointer stability.
 
-#pragma push_macro ("verify")
-#undef verify
 #include "parallel-hashmap/parallel_hashmap/phmap.h"
-#pragma pop_macro ("verify")
 
 namespace Nirvana {
 namespace Core {
