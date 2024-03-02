@@ -103,6 +103,14 @@ const Variant& ResultSetImpl::field (Ordinal ord) const
 	return row () [ord - 1];
 }
 
+const NDBC::MetaData& ResultSetImpl::getMetaData ()
+{
+	check ();
+	if (Base::metadata ().empty ())
+		Base::metadata (cursor ()->getMetaData ());
+	return Base::metadata ();
+}
+
 }
 
 NIRVANA_VALUETYPE_IMPL (_exp_NDBC_ResultSet, NDBC::ResultSet, NDBC::ResultSetImpl)
