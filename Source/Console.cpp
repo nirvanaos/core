@@ -35,5 +35,10 @@ Ref <FileAccessChar> Console::create_access ()
 	return Ref <FileAccessChar>::create <Port::FileAccessConsole> (this);
 }
 
+unsigned Console::access_mode ()
+{
+	return Port::FileAccessConsole::access_mode ();
+}
+
 }
 }

@@ -41,6 +41,7 @@ public:
 
 protected:
 	virtual Ref <FileAccessChar> create_access () override;
+	virtual unsigned access_mode () override;
 };
 
 }

@@ -35,6 +35,7 @@
 #include "NamingContextBase.h"
 #include <Nirvana/File_s.h>
 #include <CORBA/NoDefaultPOA.h>
+#include <unistd.h>
 
 namespace PortableServer {
 namespace Core {
@@ -181,7 +182,13 @@ public:
 		return DirItemId (1, 0);
 	}
 
+	static uint_fast16_t access () noexcept
+	{
+		return F_OK | R_OK | X_OK;
+	}
+
 	// NamingContextBase
+
 	virtual void bind1 (CosNaming::Name& n, CORBA::Object::_ptr_type obj) override;
 	virtual void rebind1 (CosNaming::Name& n, CORBA::Object::_ptr_type obj) override;
 	virtual void bind_context1 (CosNaming::Name& n, CosNaming::NamingContext::_ptr_type nc) override;

@@ -76,6 +76,11 @@ public:
 			throw_NO_PERMISSION (make_minor_errno (EACCES)); // File is unaccessible for this mode
 	}
 
+	unsigned flags () const noexcept
+	{
+		return flags_;
+	}
+
 	void read_on (FileAccessCharProxy& proxy) noexcept;
 
 	void read_off () noexcept

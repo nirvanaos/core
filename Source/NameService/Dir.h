@@ -113,6 +113,11 @@ public:
 		}
 	}
 
+	uint_fast16_t access ()
+	{
+		return Base::access ();
+	}
+
 	void remove ()
 	{
 		check_exist ();

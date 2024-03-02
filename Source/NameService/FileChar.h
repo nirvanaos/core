@@ -31,6 +31,7 @@
 #include <CORBA/Server.h>
 #include <Nirvana/File_s.h>
 #include "../FileAccessChar.h"
+#include <unistd.h>
 
 namespace Nirvana {
 namespace Core {
@@ -82,6 +83,30 @@ public:
 		return DirItemId ();
 	}
 
+	uint_fast16_t access ()
+	{
+		unsigned flags;
+		if (access_)
+			flags = access_->flags ();
+		else
+			flags = access_mode ();
+
+		uint_fast16_t ret = F_OK;
+		switch (flags & O_ACCMODE) {
+		case O_RDONLY:
+			ret |= R_OK;
+			break;
+		case O_WRONLY:
+			ret |= W_OK;
+			break;
+		case O_RDWR:
+			ret |= R_OK | W_OK;
+			break;
+		}
+
+		return ret;
+	}
+
 	void on_access_destroy () noexcept
 	{
 		access_ = nullptr;
@@ -89,6 +114,7 @@ public:
 
 protected:
 	virtual Ref <FileAccessChar> create_access () = 0;
+	virtual unsigned access_mode () = 0;
 
 private:
 	static Access::_ref_type open (FileAccessChar& access, unsigned flags);
