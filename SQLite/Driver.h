@@ -27,96 +27,22 @@
 #define SQLITE_DRIVER_H_
 #pragma once
 
-#include "Activator.h"
-#include "Global.h"
-#include <fnctl.h>
+#include "Connection.h"
 
 namespace SQLite {
 
-class Driver : public CORBA::servant_traits <NDBC::Driver>::Servant <Driver>
+class Static_driver : public CORBA::servant_traits <NDBC::Driver>::ServantStatic <Static_driver>
 {
 public:
-	Driver ()
+	static NDBC::Connection::_ref_type connect (const IDL::String& url, const IDL::String&, const IDL::String&)
 	{
-		PortableServer::POA::_ref_type root = PortableServer::POA::_narrow (
-			CORBA::g_ORB->resolve_initial_references ("RootPOA"));
-
-		CORBA::PolicyList policies;
-		policies.push_back (root->create_lifespan_policy (PortableServer::LifespanPolicyValue::PERSISTENT));
-		policies.push_back (root->create_id_assignment_policy (PortableServer::IdAssignmentPolicyValue::USER_ID));
-		policies.push_back (root->create_request_processing_policy (PortableServer::RequestProcessingPolicyValue::USE_SERVANT_MANAGER));
-		policies.push_back (root->create_id_uniqueness_policy (PortableServer::IdUniquenessPolicyValue::MULTIPLE_ID));
-		PortableServer::POAManager::_ref_type manager = root->the_POAManager ();
-		PortableServer::POA::_ref_type adapter = root->create_POA ("sqlite", manager, policies);
-		adapter->set_servant_manager (CORBA::make_stateless <Activator> ()->_this ());
-		adapter_ = std::move (adapter);
-		adapter_manager_ = std::move (manager);
-	}
-
-	~Driver ()
-	{}
-
-	NDBC::DataSource::_ref_type getDataSource (IDL::String& url) const
-	{
-		size_t col = url.find (':');
-		if (col != IDL::String::npos) {
-			if (url.compare (0, col, "file") == 0)
-				url.erase (0, col + 1);
-			else
-				throw_exception ("Invalid URL");
-		}
-		// Create file if not exists
-		Nirvana::File::_ref_type file = global.open_file (url, O_CREAT)->file ();
-
-		// Get file ID and create reference
-		return NDBC::DataSource::_narrow (
-			adapter_->create_reference_with_id (file->id (), NDBC::_tc_DataSource->id ()));
-	}
-
-	static NDBC::PropertyInfo getPropertyInfo ()
-	{
-		NDBC::PropertyInfo props {
-			sqlite3_version,
-			{
-				NDBC::DriverProperty {
-					"mode",
-					"Open mode",
-					{"ro", "rw", "rwc", "memory"},
-					false
-				},
-				NDBC::DriverProperty {
-					"immutable",
-					"Read-only media",
-					{"1"},
-					false
-				}
-			}
-		};
-
-		return props;
-	}
-
-	NDBC::Connection::_ref_type connect (IDL::String& url, const NDBC::Properties& props) const
-	{
-		return getDataSource (url)->getConnection (props);
+		return CORBA::make_reference <Connection> (std::ref (url))->_this ();
 	}
 
 	static IDL::String version ()
 	{
 		return sqlite3_version;
 	}
-
-	void close ()
-	{
-		if (adapter_manager_->get_state () == PortableServer::POAManager::State::ACTIVE) {
-			adapter_->destroy (true, true);
-			deactivate_servant (this);
-		}
-	}
-
-private:
-	PortableServer::POA::_ref_type adapter_;
-	PortableServer::POAManager::_ref_type adapter_manager_;
 };
 
 }

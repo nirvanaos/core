@@ -59,10 +59,25 @@ void check_result (sqlite3* conn, int err)
 		throw create_exception (conn, err);
 }
 
+void SQLite::close () noexcept
+{
+	if (sqlite_) {
+		sqlite3_close_v2 (sqlite_);
+		sqlite_ = nullptr;
+	}
+}
+
 void Connection::check_exist () const
 {
-	if (!parent_)
+	if (isClosed ())
 		throw CORBA::OBJECT_NOT_EXIST ();
+}
+
+void Connection::check_ready () const
+{
+	check_exist ();
+	if (busy_)
+		throw_exception ("Connection is busy");
 }
 
 void Connection::check_warning (int err) noexcept
@@ -73,6 +88,19 @@ void Connection::check_warning (int err) noexcept
 		} catch (...) {
 		}
 	}
+}
+
+void Connection::exec (const char* sql)
+{
+	Lock lock (*this);
+	SQLite::exec (sql);
+}
+
+Connection::Lock::Lock (Connection& conn) :
+	conn_ (conn)
+{
+	conn_.check_ready ();
+	conn_.busy_ = true;
 }
 
 }

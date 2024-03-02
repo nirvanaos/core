@@ -47,7 +47,7 @@ public:
 
 	int rand () noexcept
 	{
-		return random_.operator () () & RAND_MAX;
+		return random_.operator () ();
 	}
 
 	void srand (unsigned seed) noexcept

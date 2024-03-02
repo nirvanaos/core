@@ -57,7 +57,7 @@ Global::~Global ()
 
 Global global;
 
-Nirvana::Access::_ref_type Global::open_file (const IDL::String& url, uint_fast16_t flags) const
+Nirvana::Access::_ref_type Global::open_file (const char* url, uint_fast16_t flags) const
 {
 	// Get full path name
 	CosNaming::Name name;

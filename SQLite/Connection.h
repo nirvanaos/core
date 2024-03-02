@@ -30,7 +30,6 @@
 #include <Nirvana/Nirvana.h>
 #include <Nirvana/NDBC_s.h>
 #include "sqlite/sqlite3.h"
-#include "filesystem.h"
 
 namespace SQLite {
 
@@ -67,7 +66,14 @@ public:
 
 	~SQLite ()
 	{
-		sqlite3_close_v2 (sqlite_);
+		close ();
+	}
+
+	void close () noexcept;
+
+	bool isClosed () const noexcept
+	{
+		return !sqlite_;
 	}
 
 	operator sqlite3* () const noexcept
@@ -104,36 +110,54 @@ class Connection :
 	public SQLite
 {
 public:
-	Connection (NDBC::DataSource::_ref_type&& parent, const std::string& uri) :
-		SQLite (uri),
-		parent_ (std::move (parent))
-	{}
+	class Lock
+	{
+	public:
+		Lock (Connection& conn);
 
-	void abort ()
+		~Lock ()
+		{
+			conn_.busy_ = false;
+		}
+
+	private:
+		Connection& conn_;
+	};
+
+	Connection (const std::string& uri) :
+		SQLite (uri),
+		busy_ (false),
+		savepoint_ (0)
 	{}
 
 	void clearWarnings ()
 	{
+		check_exist ();
 		warnings_.clear ();
 	}
 
 	void close ()
 	{
-		check_exist ();
-		parent_ = nullptr;
-		deactivate_servant (this);
+		if (!isClosed ()) {
+			{
+				Lock lock (*this);
+				SQLite::close ();
+			}
+			deactivate_servant (this);
+		}
 	}
 
 	void commit ()
 	{
-		throw CORBA::NO_IMPLEMENT ();
+		exec ("END");
 	}
 
 	NDBC::Statement::_ref_type createStatement (NDBC::ResultSet::Type resultSetType);
 
 	bool getAutoCommit () const
 	{
-		return false;
+		check_ready ();
+		return sqlite3_get_autocommit (*this);
 	}
 
 	static IDL::String getCatalog () noexcept
@@ -141,21 +165,15 @@ public:
 		return IDL::String ();
 	}
 
-	NDBC::DataSource::_ref_type getDataSource () const
+	IDL::String getSchema () const
 	{
-		check_exist ();
-		return parent_;
-	}
-
-	IDL::String getSchema ()
-	{
-		check_exist ();
+		check_ready ();
 		return sqlite3_db_name (*this, 0);
 	}
 
-	int16_t getTransactionIsolation () const noexcept
+	TransactionIsolation getTransactionIsolation () const noexcept
 	{
-		return 0;
+		return TransactionIsolation::TRANSACTION_SERIALIZABLE;
 	}
 
 	NDBC::SQLWarnings getWarnings () const
@@ -163,19 +181,15 @@ public:
 		return warnings_;
 	}
 
-	bool isClosed () const noexcept
-	{
-		return !parent_;
-	}
-
 	bool isReadOnly () const noexcept
 	{
-		return false;
+		check_exist ();
+		return sqlite3_db_readonly (*this, nullptr);
 	}
 
 	bool isValid () const noexcept
 	{
-		return (bool)parent_;
+		return !isClosed () && !busy_;
 	}
 
 	NDBC::PreparedStatement::_ref_type prepareCall (const IDL::String& sql, NDBC::ResultSet::Type resultSetType)
@@ -185,19 +199,27 @@ public:
 
 	NDBC::PreparedStatement::_ref_type prepareStatement (const IDL::String& sql, NDBC::ResultSet::Type resultSetType, unsigned flags);
 
-	void releaseSavepoint (const IDL::String& name)
+	void releaseSavepoint (const NDBC::Savepoint& savepoint)
 	{
-		throw CORBA::NO_IMPLEMENT ();
+		exec (("RELEASE " + savepoint).c_str ());
 	}
 
-	void rollback (const IDL::String& name)
+	void rollback (const NDBC::Savepoint& savepoint)
 	{
-		throw CORBA::NO_IMPLEMENT ();
+		if (savepoint.empty ())
+			exec ("ROLLBACK");
+		else
+			exec (("ROLLBACK TO " + savepoint).c_str ());
 	}
 
 	void setAutoCommit (bool on)
 	{
-		throw CORBA::NO_IMPLEMENT ();
+		bool current = getAutoCommit ();
+		if (on) {
+			if (!current)
+				commit ();
+		} else if (current)
+			exec ("BEGIN");
 	}
 
 	static void setCatalog (const IDL::String&)
@@ -205,14 +227,19 @@ public:
 		throw CORBA::NO_IMPLEMENT ();
 	}
 
-	void setReadOnly (bool)
+	void setReadOnly (bool read_only)
 	{
-		throw CORBA::NO_IMPLEMENT ();
+		if (isReadOnly () != read_only)
+			throw CORBA::NO_PERMISSION ();
 	}
 
-	IDL::String setSavepoint (IDL::String& name)
+	NDBC::Savepoint setSavepoint (IDL::String& name)
 	{
-		throw CORBA::NO_IMPLEMENT ();
+		NDBC::Savepoint sp = std::move (name);
+		if (sp.empty ())
+			sp = std::to_string (++savepoint_);
+		exec (("SAVEPOINT " + sp).c_str ());
+		return sp;
 	}
 
 	void setSchema (const IDL::String&)
@@ -225,13 +252,18 @@ public:
 		throw CORBA::NO_IMPLEMENT ();
 	}
 
-	void check_exist () const;
-
 	void check_warning (int err) noexcept;
 
 private:
-	NDBC::DataSource::_ref_type parent_; // Keep DataSource reference active
+	void exec (const char* sql);
+
+	void check_exist () const;
+	void check_ready () const;
+
+private:
 	NDBC::SQLWarnings warnings_;
+	bool busy_;
+	unsigned savepoint_;
 };
 
 }

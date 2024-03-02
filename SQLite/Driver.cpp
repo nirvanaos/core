@@ -26,34 +26,4 @@
 #include "pch.h"
 #include "Driver.h"
 
-namespace SQLite {
-
-class DriverFactory;
-
-}
-
-namespace CORBA {
-namespace Internal {
-
-template <>
-const char StaticId <SQLite::DriverFactory>::id [] = "NDBC/sqlite";
-
-}
-}
-
-namespace SQLite {
-
-class DriverFactory :
-	public CORBA::servant_traits <NDBC::DriverFactory>::ServantStatic <DriverFactory>
-{
-public:
-	static NDBC::Driver::_ref_type getDriver ()
-	{
-		return CORBA::make_stateless <Driver> ()->_this ();
-	}
-};
-
-}
-
-NIRVANA_EXPORT_OBJECT (_exp_SQLite_driver, SQLite::DriverFactory)
-
+NIRVANA_EXPORT_OBJECT (_exp_SQLite_driver, SQLite::Static_driver)

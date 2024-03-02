@@ -28,19 +28,11 @@
 #pragma once
 
 #include <Nirvana/Nirvana.h>
-#include <Nirvana/base64.h>
 #include "sqlite/sqlite3.h"
 
-#define OBJID_PREFIX "id:"
 #define VFS_NAME "nirvana"
 
 namespace SQLite {
-
-inline
-std::string id_to_string (const Nirvana::DirItemId& id)
-{
-	return OBJID_PREFIX + base64::encode_into <std::string> (id.begin (), id.end ());
-}
 
 extern struct sqlite3_vfs vfs;
 
