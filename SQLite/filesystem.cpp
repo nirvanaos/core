@@ -338,8 +338,10 @@ extern "C" int xAccess (sqlite3_vfs*, const char* zName, int flags, int* pResOut
 				break;
 			case SQLITE_ACCESS_READWRITE:
 				mask = R_OK | W_OK;
+				break;
 			case SQLITE_ACCESS_READ:
 				mask = R_OK;
+				break;
 			}
 			*pResOut = (item->access () & mask) == mask;
 		}

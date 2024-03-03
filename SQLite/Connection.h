@@ -51,7 +51,7 @@ public:
 		sqlite_ (nullptr)
 	{
 		int err = sqlite3_open_v2 (uri.c_str (), &sqlite_,
-			SQLITE_OPEN_URI | SQLITE_OPEN_EXRESCODE | SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE,
+			SQLITE_OPEN_URI | SQLITE_OPEN_EXRESCODE | SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE | SQLITE_OPEN_NOMUTEX,
 			nullptr);
 
 		if (SQLITE_OK != err) {
