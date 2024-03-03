@@ -27,7 +27,7 @@
 #define SQLITE_DRIVER_H_
 #pragma once
 
-#include "Connection.h"
+#include "Connection_impl.h"
 
 namespace SQLite {
 
