@@ -44,9 +44,9 @@ class ProtDomain :
 	private Port::ProtDomain
 {
 public:
-	static IDL::String user ()
+	static SecurityId user ()
 	{
-		return Port::ProtDomain::user ();
+		return Security::prot_domain_context ().security_id ();
 	}
 
 	static CORBA::Object::_ref_type bind (const IDL::String& name)

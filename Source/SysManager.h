@@ -34,9 +34,6 @@
 #include "ORB/ESIOP.h"
 
 namespace Nirvana {
-
-typedef IDL::Sequence <CORBA::Octet> SecurityId;
-
 namespace Core {
 
 /// System manager

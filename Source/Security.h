@@ -33,10 +33,89 @@
 namespace Nirvana {
 namespace Core {
 
-class Security : public Port::Security
+class Security : private Port::Security
 {
-public:
+	typedef Port::Security Base;
 
+public:
+	// Implementation - specific methods must be called explicitly.
+	Base& port () noexcept
+	{
+		return *this;
+	}
+
+	class Context : private Port::Security::Context
+	{
+		typedef Port::Security::Context Base;
+
+	public:
+		typedef Base::ABI ABI;
+
+		static const Context& current () noexcept;
+
+		// Implementation - specific methods must be called explicitly.
+		Base& port () noexcept
+		{
+			return *this;
+		}
+
+		const Base& port () const noexcept
+		{
+			return *this;
+		}
+
+		Context () = default;
+		
+		explicit Context (ABI abi) noexcept :
+			Base (abi)
+		{}
+		
+		Context (const Context& src) = default;
+
+		Context (Context&& src) noexcept = default;
+
+		~Context () = default;
+
+		Context& operator = (const Context& src) = default;
+		Context& operator = (Context&& src) noexcept = default;
+
+		void clear () noexcept
+		{
+			Base::clear ();
+		}
+
+		bool empty () const noexcept
+		{
+			return Base::empty ();
+		}
+
+		SecurityId security_id () const
+		{
+			return Base::security_id ();
+		}
+
+		ABI abi () const noexcept
+		{
+			return Base::abi ();
+		}
+
+		void detach () noexcept
+		{
+			Base::detach ();
+		}
+
+		friend class Security;
+	};
+
+	static const Context& prot_domain_context () noexcept
+	{
+		return static_cast <const Context&> (Base::prot_domain_context ());
+	}
+
+	static bool is_valid_context (Context::ABI context) noexcept
+	{
+		return Base::is_valid_context (context);
+	}
 };
 
 }

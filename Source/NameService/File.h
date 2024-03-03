@@ -98,7 +98,8 @@ public:
 
 	uint_fast16_t access ()
 	{
-		check_exist ();
+		if (type () == FileType::not_found)
+			return 0;
 
 		try {
 			return Base::access ();

@@ -332,7 +332,7 @@ private:
 void ReceiveShutdownSys::run ()
 {
 	try {
-		ExecDomain::set_security_context (std::move (security_context_));
+		ExecDomain::set_impersonation_context (std::move (security_context_));
 		sys_domain_->shutdown (0);
 	} catch (...) {}
 }

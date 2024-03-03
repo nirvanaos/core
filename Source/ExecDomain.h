@@ -400,18 +400,18 @@ public:
 	/// Called on core shutdown.
 	static void terminate () noexcept;
 
-	const Security::Context& security_context () const noexcept
+	const Security::Context& impersonation_context () const noexcept
 	{
-		return security_context_;
+		return impersonation_context_;
 	}
 
-	static void set_security_context (Security::Context&& ctx)
+	static void set_impersonation_context (Security::Context&& ctx)
 	{
 		Thread& thr = Thread::current ();
 		ExecDomain* ed = thr.exec_domain ();
 		assert (ed);
-		ed->security_context_ = std::move (ctx);
-		thr.impersonate (ed->security_context_);
+		ed->impersonation_context_ = std::move (ctx);
+		thr.impersonate (ed->impersonation_context_);
 	}
 
 	size_t id () const noexcept
@@ -581,7 +581,7 @@ private:
 	Ref <ThreadBackground> background_worker_;
 	RestrictedMode restricted_mode_;
 
-	Security::Context security_context_;
+	Security::Context impersonation_context_;
 
 	void* tls_ [CORE_TLS_COUNT];
 

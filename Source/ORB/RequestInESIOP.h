@@ -69,9 +69,9 @@ public:
 				if (encap.end ())
 					throw BAD_PARAM ();
 				if (msg_body.client_context_id () <=
-					std::numeric_limits <Nirvana::Core::Security::ContextABI>::max ()) {
+					std::numeric_limits <Nirvana::Core::Security::Context::ABI>::max ()) {
 
-					Nirvana::Core::Security::ContextABI sc = (Nirvana::Core::Security::ContextABI)
+					Nirvana::Core::Security::Context::ABI sc = (Nirvana::Core::Security::Context::ABI)
 						msg_body.client_context_id ();
 
 					if (Nirvana::Core::Security::is_valid_context (sc))
@@ -83,7 +83,7 @@ public:
 		if (security_context.empty ())
 			throw NO_PERMISSION ();
 
-		Nirvana::Core::ExecDomain::set_security_context (std::move (security_context));
+		Nirvana::Core::ExecDomain::set_impersonation_context (std::move (security_context));
 	}
 
 protected:

@@ -74,10 +74,9 @@ public:
 		} else if (obj_name.size () >= sizeof (dbc) && 0 == obj_name.compare (0, sizeof (dbc) - 1, dbc)) {
 			module_name = "dbc.olf";
 			module_id = 3;
-		} else if (obj_name == "NDBC/manager") {
-			bind_info.loaded_object (Binder::load_and_bind (4, "/sbin/DriverManager.olf", name_service_,
-				true, "NDBC/manager"));
-			return;
+		} else if (obj_name == "SQLite/driver") {
+			module_name = "SQLite.olf";
+			module_id = 4;
 		} else {
 			// TODO:: Temporary solution, for testing
 			module_name = "TestModule.olf";

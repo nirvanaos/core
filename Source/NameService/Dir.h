@@ -106,7 +106,7 @@ public:
 		check_exist ();
 
 		try {
-			return Base::stat (st);
+			Base::stat (st);
 		} catch (const CORBA::OBJECT_NOT_EXIST&) {
 			etherealize ();
 			throw;
@@ -115,7 +115,13 @@ public:
 
 	uint_fast16_t access ()
 	{
-		return Base::access ();
+		check_exist ();
+		try {
+			return Base::access ();
+		} catch (const CORBA::OBJECT_NOT_EXIST&) {
+			etherealize ();
+			throw;
+		}
 	}
 
 	void remove ()

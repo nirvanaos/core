@@ -115,7 +115,7 @@ Ref <ExecDomain> ExecDomain::create (const DeadlineTime deadline, Ref <MemContex
 		if (th) {
 			ExecDomain* parent = th->exec_domain ();
 			if (parent)
-				ed->security_context_ = parent->security_context_;
+				ed->impersonation_context_ = parent->impersonation_context_;
 		}
 
 #ifndef NDEBUG
@@ -181,8 +181,8 @@ void ExecDomain::spawn (SyncContext& sync_context)
 void ExecDomain::execute () noexcept
 {
 	Thread::current ().exec_domain (*this);
-	if (!security_context_.empty ())
-		Thread::impersonate (security_context_);
+	if (!impersonation_context_.empty ())
+		Thread::impersonate (impersonation_context_);
 	switch_to ();
 }
 
@@ -225,7 +225,7 @@ void ExecDomain::cleanup () noexcept
 
 	std::fill_n (tls_, CoreTLS::CORE_TLS_COUNT, nullptr);
 
-	security_context_.clear ();
+	impersonation_context_.clear ();
 
 	ExecContext::run_in_neutral_context (deleter_);
 }

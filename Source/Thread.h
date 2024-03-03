@@ -94,7 +94,7 @@ public:
 
 	static void impersonate (const Security::Context& sec_context)
 	{
-		Port::Thread::impersonate (sec_context);
+		Port::Thread::impersonate (sec_context.port ());
 	}
 
 protected:

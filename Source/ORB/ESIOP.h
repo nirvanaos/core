@@ -239,9 +239,9 @@ struct CloseConnection : MessageHeader
 
 struct Shutdown : MessageHeader
 {
-	Nirvana::Core::Security::ContextABI security_context;
+	Nirvana::Core::Security::Context::ABI security_context;
 
-	Shutdown (Nirvana::Core::Security::ContextABI sc) noexcept :
+	Shutdown (Nirvana::Core::Security::Context::ABI sc) noexcept :
 		MessageHeader (SHUTDOWN),
 		security_context (sc)
 	{}
