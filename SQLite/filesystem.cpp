@@ -152,12 +152,13 @@ public:
 	{
 		int ret = SQLITE_OK;
 		*pp = nullptr;
+		assert (cb);
+		assert (cache_.find (off) == cache_.end ());
 		try {
 			NDBC::Blob data;
 			access_->read (Nirvana::FileLock (), off, cb, Nirvana::LockType::LOCK_NONE, false, data);
-			if ((int)data.size () < cb)
-				ret = SQLITE_IOERR_SHORT_READ;
-			*pp = cache_.emplace (data.data (), std::move (data)).first->first;
+			if ((int)data.size () == cb)
+				*pp = cache_.emplace (off, std::move (data)).first->second.data ();
 		} catch (const CORBA::NO_MEMORY&) {
 			ret = SQLITE_IOERR_NOMEM;
 		} catch (...) {
@@ -168,14 +169,14 @@ public:
 
 	int unfetch (sqlite3_int64 off, void* p) noexcept
 	{
-		NIRVANA_VERIFY (cache_.erase (p));
+		NIRVANA_VERIFY (cache_.erase (off));
 		return SQLITE_OK;
 	}
 
 private:
 	Nirvana::AccessDirect::_ref_type access_;
 
-	typedef std::unordered_map <void*, NDBC::Blob> Cache;
+	typedef std::unordered_map <sqlite3_int64, NDBC::Blob> Cache;
 	Cache cache_;
 };
 
