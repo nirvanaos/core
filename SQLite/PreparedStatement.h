@@ -58,7 +58,7 @@ public:
 
 	void clearParameters ()
 	{
-		check_exist ();
+		Connection::Lock lock (connection ());
 		change_version ();
 		for (auto stmt : statements ()) {
 			sqlite3_clear_bindings (stmt);
@@ -68,7 +68,7 @@ public:
 
 	bool execute ()
 	{
-		check_exist ();
+		Connection::Lock lock (connection ());
 		return execute_first (true);
 	}
 
@@ -109,24 +109,28 @@ public:
 private:
 	void setParam (const ParamIndex& pi, int64_t v)
 	{
-		connection ().check_result (sqlite3_bind_int64 (statements () [pi.stmt], pi.param, v));
+		Connection::Lock lock (connection ());
+		lock.connection ().check_result (sqlite3_bind_int64 (statements () [pi.stmt], pi.param, v));
 	}
 
 	void setParam (const ParamIndex& pi, NDBC::Blob& v)
 	{
+		Connection::Lock lock (connection ());
 		const auto& p = save_param (pi, v);
-		connection ().check_result (sqlite3_bind_blob (statements () [pi.stmt], pi.param,
+		lock.connection ().check_result (sqlite3_bind_blob (statements () [pi.stmt], pi.param,
 			p.data (), (int)p.size (), SQLITE_STATIC));
 	}
 
 	void setParam (const ParamIndex& pi, bool v)
 	{
-		connection ().check_result (sqlite3_bind_int (statements () [pi.stmt], pi.param, v));
+		Connection::Lock lock (connection ());
+		lock.connection ().check_result (sqlite3_bind_int (statements () [pi.stmt], pi.param, v));
 	}
 
 	void setParam (const ParamIndex& pi, uint8_t v)
 	{
-		connection ().check_result (sqlite3_bind_int (statements () [pi.stmt], pi.param, v));
+		Connection::Lock lock (connection ());
+		lock.connection ().check_result (sqlite3_bind_int (statements () [pi.stmt], pi.param, v));
 	}
 
 	void setParam (const ParamIndex& pi, const CORBA::Any& v)
@@ -136,33 +140,39 @@ private:
 
 	void setParam (const ParamIndex& pi, CORBA::Double v)
 	{
-		connection ().check_result (sqlite3_bind_double (statements () [pi.stmt], pi.param, v));
+		Connection::Lock lock (connection ());
+		lock.connection ().check_result (sqlite3_bind_double (statements () [pi.stmt], pi.param, v));
 	}
 
 	void setParam (const ParamIndex& pi, float v)
 	{
-		connection ().check_result (sqlite3_bind_double (statements () [pi.stmt], pi.param, v));
+		Connection::Lock lock (connection ());
+		lock.connection ().check_result (sqlite3_bind_double (statements () [pi.stmt], pi.param, v));
 	}
 
 	void setParam (const ParamIndex& pi, int32_t v)
 	{
-		connection ().check_result (sqlite3_bind_int (statements () [pi.stmt], pi.param, v));
+		Connection::Lock lock (connection ());
+		lock.connection ().check_result (sqlite3_bind_int (statements () [pi.stmt], pi.param, v));
 	}
 
 	void setParam (const ParamIndex& pi)
 	{
-		connection ().check_result (sqlite3_bind_null (statements () [pi.stmt], pi.param));
+		Connection::Lock lock (connection ());
+		lock.connection ().check_result (sqlite3_bind_null (statements () [pi.stmt], pi.param));
 	}
 
 	void setParam (const ParamIndex& pi, int16_t v)
 	{
-		connection ().check_result (sqlite3_bind_int (statements () [pi.stmt], pi.param, v));
+		Connection::Lock lock (connection ());
+		lock.connection ().check_result (sqlite3_bind_int (statements () [pi.stmt], pi.param, v));
 	}
 
 	void setParam (const ParamIndex& pi, IDL::String& v)
 	{
+		Connection::Lock lock (connection ());
 		const auto& p = save_param (pi, v);
-		connection ().check_result (sqlite3_bind_text (statements () [pi.stmt], pi.param,
+		lock.connection ().check_result (sqlite3_bind_text (statements () [pi.stmt], pi.param,
 			p.data (), (int)p.size (), SQLITE_STATIC));
 	}
 

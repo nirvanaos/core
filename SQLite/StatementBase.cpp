@@ -70,8 +70,9 @@ void StatementBase::prepare (const IDL::String& sql, unsigned flags)
 
 void StatementBase::finalize (bool silent) noexcept
 {
+	assert (connection_);
 	if (!statements_.empty ()) {
-		Connection& conn = connection ();
+		Connection& conn = *connection_;
 		Statements statements (std::move (statements_));
 		cur_statement_ = 0;
 		change_version ();

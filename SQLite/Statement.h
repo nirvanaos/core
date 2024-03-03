@@ -45,7 +45,7 @@ public:
 
 	bool execute (const IDL::String& sql)
 	{
-		check_exist ();
+		Connection::Lock lock (connection ());
 		prepare (sql, 0);
 		return execute_first (true);
 	}
@@ -58,7 +58,7 @@ public:
 
 	uint32_t executeUpdate (const IDL::String& sql)
 	{
-		check_exist ();
+		Connection::Lock lock (connection ());
 		prepare (sql, 0);
 		uint32_t ret = StatementBase::executeUpdate ();
 		finalize ();

@@ -36,8 +36,9 @@ class StatementBase
 public:
 	void close ()
 	{
-		finalize ();
 		if (connection_) {
+			connection_->check_ready ();
+			finalize ();
 			connection_ = nullptr;
 			deactivate_servant (servant_);
 		}
@@ -58,7 +59,7 @@ public:
 
 	bool getMoreResults ()
 	{
-		check_exist ();
+		Connection::Lock lock (connection ());
 		if (0 < cur_statement_ && cur_statement_ < statements_.size ())
 			return execute_next (true);
 		else
@@ -94,9 +95,8 @@ public:
 
 	typedef unsigned Version;
 
-	Version version ()
+	Version version () const noexcept
 	{
-		check_exist ();
 		return version_;
 	}
 

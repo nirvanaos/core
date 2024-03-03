@@ -117,11 +117,16 @@ public:
 
 		~Lock ()
 		{
-			conn_.busy_ = false;
+			connection_.busy_ = false;
+		}
+
+		Connection& connection () const noexcept
+		{
+			return connection_;
 		}
 
 	private:
-		Connection& conn_;
+		Connection& connection_;
 	};
 
 	Connection (const std::string& uri) :
@@ -254,11 +259,12 @@ public:
 
 	void check_warning (int err) noexcept;
 
+	void check_ready () const;
+
 private:
 	void exec (const char* sql);
 
 	void check_exist () const;
-	void check_ready () const;
 
 private:
 	NDBC::SQLWarnings warnings_;

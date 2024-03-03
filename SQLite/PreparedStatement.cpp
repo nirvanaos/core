@@ -30,8 +30,6 @@ namespace SQLite {
 
 PreparedStatement::ParamIndex PreparedStatement::get_param_index (unsigned i)
 {
-	check_exist ();
-
 	for (unsigned si = 0; si < statements ().size (); ++si) {
 		int par_cnt = sqlite3_bind_parameter_count (statements () [si]);
 		if (i <= (unsigned)par_cnt) {
@@ -45,8 +43,6 @@ PreparedStatement::ParamIndex PreparedStatement::get_param_index (unsigned i)
 
 PreparedStatement::ParamIndex PreparedStatement::get_param_index (const IDL::String& name)
 {
-	check_exist ();
-
 	for (unsigned si = 0; si < statements ().size (); ++si) {
 		int i = sqlite3_bind_parameter_index (statements () [si], name.c_str ());
 		if (i >= 1) {

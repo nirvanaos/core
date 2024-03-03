@@ -97,10 +97,10 @@ void Connection::exec (const char* sql)
 }
 
 Connection::Lock::Lock (Connection& conn) :
-	conn_ (conn)
+	connection_ (conn)
 {
-	conn_.check_ready ();
-	conn_.busy_ = true;
+	connection_.check_ready ();
+	connection_.busy_ = true;
 }
 
 }

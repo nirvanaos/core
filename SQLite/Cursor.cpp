@@ -70,13 +70,14 @@ NDBC::Row Cursor::get_row (sqlite3_stmt* stmt)
 	return row;
 }
 
-void Cursor::check_parent ()
+Connection& Cursor::check_parent ()
 {
 	if (!parent_)
 		raise_closed ();
 	try {
 		if (parent_version_ != parent_->version ())
 			raise_closed ();
+		return parent_->connection ();
 	} catch (...) {
 		close_no_check ();
 		throw;

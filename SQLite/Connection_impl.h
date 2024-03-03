@@ -37,6 +37,7 @@ NDBC::Statement::_ref_type Connection::createStatement (NDBC::ResultSet::Type re
 {
 	if (resultSetType != NDBC::ResultSet::Type::TYPE_FORWARD_ONLY)
 		throw_exception ("Unsupported ResultSet type");
+
 	return CORBA::make_reference <Statement> (std::ref (*this))->_this ();
 }
 
@@ -45,6 +46,8 @@ NDBC::PreparedStatement::_ref_type Connection::prepareStatement (const IDL::Stri
 {
 	if (resultSetType != NDBC::ResultSet::Type::TYPE_FORWARD_ONLY)
 		throw_exception ("Unsupported ResultSet type");
+
+	Lock lock (*this);
 	return CORBA::make_reference <PreparedStatement> (std::ref (*this), sql, flags)->_this ();
 }
 

@@ -45,7 +45,7 @@ public:
 
 	NDBC::RowIdx fetch (NDBC::RowOff pos, NDBC::Row& row)
 	{
-		check_parent ();
+		Connection::Lock lock (check_parent ());
 
 		if (pos)
 			throw CORBA::BAD_PARAM ();
@@ -63,7 +63,7 @@ public:
 
 	NDBC::MetaData getMetaData ()
 	{
-		check_parent ();
+		Connection::Lock lock (check_parent ());
 
 		NDBC::MetaData metadata;
 		int cnt = sqlite3_column_count (stmt_);
@@ -100,20 +100,14 @@ public:
 
 	void close ()
 	{
-		check_exist ();
-		close_no_check ();
+		if (parent_)
+			close_no_check ();
 	}
 
 	static NDBC::Row get_row (sqlite3_stmt* stmt);
 
 private:
-	void check_exist ()
-	{
-		if (!parent_)
-			raise_closed ();
-	}
-
-	void check_parent ();
+	Connection& check_parent ();
 
 	void close_no_check () noexcept
 	{
