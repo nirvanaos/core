@@ -44,6 +44,11 @@ public:
 		}
 	}
 
+	bool isClosed () const noexcept
+	{
+		return !connection_;
+	}
+
 	void clearWarnings ()
 	{
 		check_exist ();
