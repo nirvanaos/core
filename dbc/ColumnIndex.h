@@ -75,13 +75,13 @@ public:
 		return Type::EMPTY == d_;
 	}
 
-	void build (const NDBC::MetaData& metadata)
+	void build (const NDBC::ColumnNames& column_names)
 	{
 		assert (empty ());
 
 		bool non_ascii = false;
-		for (const auto& column : metadata) {
-			if (!is_ascii (column.name ())) {
+		for (const auto& column : column_names) {
+			if (!is_ascii (column)) {
 				non_ascii = true;
 				break;
 			}
@@ -92,8 +92,8 @@ public:
 			d_ = Type::NARROW;
 
 			Ordinal ord = 1;
-			for (auto it = metadata.cbegin (); it != metadata.cend (); ++it, ++ord) {
-				std::string lc = it->name ();
+			for (auto it = column_names.cbegin (); it != column_names.cend (); ++it, ++ord) {
+				std::string lc = *it;
 				std::transform (lc.begin (), lc.end (), lc.begin (), tolower);
 				u_.narrow.emplace (lc, ord);
 			}
@@ -102,8 +102,8 @@ public:
 			d_ = Type::WIDE;
 
 			Ordinal ord = 1;
-			for (auto it = metadata.cbegin (); it != metadata.cend (); ++it, ++ord) {
-				std::wstring lc = u2w (it->name ());
+			for (auto it = column_names.cbegin (); it != column_names.cend (); ++it, ++ord) {
+				std::wstring lc = u2w (*it);
 				std::transform (lc.begin (), lc.end (), lc.begin (), towlower);
 				u_.wide.emplace (lc, ord);
 			}

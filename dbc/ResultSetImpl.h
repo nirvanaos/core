@@ -96,23 +96,21 @@ public:
 		Base::cursor ()->close ();
 		Base::cursor (nullptr);
 		Base::row ().clear ();
-		Base::metadata ().clear ();
+		Base::column_names ().clear ();
 		Base::position (0);
 		Base::column_count (0);
 	}
 
 	Ordinal findColumn (const IDL::String& columnLabel)
 	{
-		check ();
-		const NDBC::MetaData& metadata = getMetaData ();
+		const NDBC::ColumnNames& column_names = getColumnNames ();
 		if (flags () & FLAG_COLUMNS_CASE_SENSITIVE) {
-			auto it = std::find_if (metadata.begin (), metadata.end (),
-				[&columnLabel](const NDBC::Column& column) { return column.name () == columnLabel; });
-			if (it != metadata.end ())
-				return (Ordinal)(it - metadata.begin () + 1);
+			auto it = std::find (column_names.begin (), column_names.end (), columnLabel);
+			if (it != column_names.end ())
+				return (Ordinal)(it - column_names.begin () + 1);
 		} else {
 			if (column_index_.empty ())
-				column_index_.build (metadata);
+				column_index_.build (column_names);
 
 			const Ordinal* pf = column_index_.find (columnLabel);
 			if (pf)
@@ -132,7 +130,7 @@ public:
 		return column_count ();
 	}
 
-	const NDBC::MetaData& getMetaData ();
+	const NDBC::ColumnNames& getColumnNames ();
 
 	int64_t getBigInt (Ordinal columnIndex)
 	{

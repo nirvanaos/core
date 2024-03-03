@@ -61,33 +61,17 @@ public:
 		return position_;
 	}
 
-	NDBC::MetaData getMetaData ()
+	NDBC::ColumnNames getColumnNames ()
 	{
 		Connection::Lock lock (check_parent ());
 
-		NDBC::MetaData metadata;
+		NDBC::ColumnNames column_names;
 		int cnt = sqlite3_column_count (stmt_);
 		for (int i = 0; i < cnt; ++i) {
-			int ct = sqlite3_column_type (stmt_, i);
-			unsigned dt = NDBC::DB_NULL;
-			switch (ct) {
-			case SQLITE_INTEGER:
-				dt = NDBC::DB_INT;
-				break;
-			case SQLITE_FLOAT:
-				dt = NDBC::DB_DOUBLE;
-				break;
-			case SQLITE_TEXT:
-				dt = NDBC::DB_STRING;
-				break;
-			case SQLITE_BLOB:
-				dt = NDBC::DB_BINARY;
-				break;
-			}
-			metadata.emplace_back (sqlite3_column_name (stmt_, i), dt, 0, 0);
+			column_names.emplace_back (sqlite3_column_name (stmt_, i));
 		}
 
-		return metadata;
+		return column_names;
 	}
 
 	NDBC::StatementBase::_ref_type getStatement ()

@@ -103,12 +103,12 @@ const Variant& ResultSetImpl::field (Ordinal ord) const
 	return row () [ord - 1];
 }
 
-const NDBC::MetaData& ResultSetImpl::getMetaData ()
+const NDBC::ColumnNames& ResultSetImpl::getColumnNames ()
 {
 	check ();
-	if (Base::metadata ().empty ())
-		Base::metadata (cursor ()->getMetaData ());
-	return Base::metadata ();
+	if (Base::column_names ().empty ())
+		Base::column_names (cursor ()->getColumnNames ());
+	return Base::column_names ();
 }
 
 }

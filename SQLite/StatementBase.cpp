@@ -120,7 +120,9 @@ bool StatementBase::execute_next (bool resultset)
 	if (resultset) {
 		int column_cnt = sqlite3_column_count (stmt);
 		if (SQLITE_ROW == step_result || column_cnt > 0) {
-			NDBC::Row row = Cursor::get_row (stmt);
+			NDBC::Row row;
+			if (SQLITE_ROW == step_result)
+				row = Cursor::get_row (stmt);
 			NDBC::Cursor::_ref_type cursor = CORBA::make_reference <Cursor> (
 				std::ref (*this), servant_, stmt)->_this ();
 			result_set_ = NDBC::ResultSet::_factory->create (column_cnt, NDBC::ResultSet::FLAG_FORWARD_ONLY,
