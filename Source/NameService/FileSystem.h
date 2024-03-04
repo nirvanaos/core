@@ -146,7 +146,7 @@ public:
 			throw_OBJECT_NOT_EXIST (make_minor_errno (ENOENT));
 	}
 
-	Access::_ref_type mkostemps (IDL::String&, uint_fast16_t, uint_fast16_t)
+	Access::_ref_type mkostemps (IDL::String&, uint_fast16_t, uint_fast16_t, mode_t)
 	{
 		throw_NO_IMPLEMENT (make_minor_errno (ENOSYS));
 	}

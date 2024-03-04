@@ -34,6 +34,7 @@
 #include "FileSystem.h"
 #include "../Chrono.h"
 #include <fnctl.h>
+#include <sys/stat.h>
 #include "DirIter.h"
 
 namespace Nirvana {
@@ -223,9 +224,12 @@ public:
 		}
 	}
 
-	Access::_ref_type mkostemps (IDL::String& name, uint_fast16_t suffix_len, uint_fast16_t flags)
+	Access::_ref_type mkostemps (IDL::String& name, uint_fast16_t suffix_len, uint_fast16_t flags, mode_t mode)
 	{
 		check_exist ();
+
+		if (!mode)
+			mode = S_IRUSR | S_IWUSR;
 
 		// Check name pattern
 		size_t name_size = name.size ();
@@ -262,7 +266,7 @@ public:
 			}
 			try {
 				acc = FileSystem::get_file (get_new_file_id (n))->open (O_EXCL | O_CREAT | O_RDWR
-					| (flags & (O_DIRECT | O_APPEND)), 0600);
+					| (flags & (O_DIRECT | O_APPEND)), mode);
 			} catch (const CORBA::OBJECT_NOT_EXIST&) {
 				etherealize ();
 				throw;

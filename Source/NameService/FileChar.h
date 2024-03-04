@@ -32,6 +32,7 @@
 #include <Nirvana/File_s.h>
 #include "../FileAccessChar.h"
 #include <unistd.h>
+#include <sys/stat.h>
 
 namespace Nirvana {
 namespace Core {
@@ -53,7 +54,7 @@ public:
 
 	static void stat (FileStat& st) noexcept
 	{
-		zero (st);
+		st.mode (S_IFCHR | S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
 	}
 
 	static void remove ()
