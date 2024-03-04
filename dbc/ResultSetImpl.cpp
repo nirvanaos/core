@@ -92,7 +92,7 @@ void ResultSetImpl::check_row_valid () const
 {
 	check ();
 	if (row ().empty ())
-		throw_exception ("No current record");
+		throw_exception ("No current row");
 }
 
 const Variant& ResultSetImpl::field (Ordinal ord) const

@@ -322,6 +322,12 @@ public:
 		}
 	}
 
+	const NDBC::Row& currentRow () const
+	{
+		check_row_valid ();
+		return row ();
+	}
+
 private:
 	NIRVANA_NORETURN static void throw_exception (IDL::String msg);
 	NIRVANA_NORETURN static void data_conversion_error ();
