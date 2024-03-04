@@ -105,7 +105,7 @@ public:
 		}
 		abi.size = 0;
 		if (abi.allocated) {
-			Nirvana::g_memory->release (abi.ptr, abi.allocated);
+			Nirvana::memory->release (abi.ptr, abi.allocated);
 			abi.allocated = 0;
 			abi.ptr = nullptr;
 		}
@@ -126,13 +126,13 @@ public:
 				throw BAD_PARAM ();
 
 			if (content_kind_ != KIND_NONCDR) {
-				abi_dst.ptr = Nirvana::g_memory->copy (nullptr, abi_src.ptr, size, 0);
+				abi_dst.ptr = Nirvana::memory->copy (nullptr, abi_src.ptr, size, 0);
 				abi_dst.size = count;
 				abi_dst.allocated = size;
 			} else {
 				const Octet* psrc = (const Octet*)abi_src.ptr;
 				const Octet* src_end = psrc + size;
-				void* ptr = Nirvana::g_memory->allocate (nullptr, size, 0);
+				void* ptr = Nirvana::memory->allocate (nullptr, size, 0);
 				Octet* pdst = (Octet*)ptr;
 				try {
 					do {
@@ -145,7 +145,7 @@ public:
 						content_type_->n_destruct (pdst);
 						pdst -= element_aligned_size_;
 					}
-					Nirvana::g_memory->release (ptr, size);
+					Nirvana::memory->release (ptr, size);
 					throw;
 				}
 				abi_dst.ptr = ptr;
@@ -208,11 +208,11 @@ public:
 					size_t size = rq->unmarshal_seq_begin ();
 					if (size) {
 						size_t cb = size * element_aligned_size_;
-						void* p = Nirvana::g_memory->allocate (nullptr, cb, 0);
+						void* p = Nirvana::memory->allocate (nullptr, cb, 0);
 						try {
 							content_type_->n_unmarshal (rq, size, p);
 						} catch (...) {
-							Nirvana::g_memory->release (p, cb);
+							Nirvana::memory->release (p, cb);
 							throw;
 						}
 					}

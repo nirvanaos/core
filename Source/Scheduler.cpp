@@ -49,7 +49,7 @@ void Scheduler::Terminator::run ()
 {
 	// Terminate
 #ifdef DEBUG_SHUTDOWN
-	g_system->debug_event (System::DebugEvent::DEBUG_INFO, "Core::terminate ()");
+	system->debug_event (System::DebugEvent::DEBUG_INFO, "Core::terminate ()");
 #endif
 	Core::terminate ();
 }
@@ -59,13 +59,13 @@ StaticallyAllocated <Scheduler::GlobalData> Scheduler::global_;
 void Scheduler::do_shutdown ()
 {
 #ifdef DEBUG_SHUTDOWN
-	g_system->debug_event (System::DebugEvent::DEBUG_INFO, "Core::shutdown ()");
+	system->debug_event (System::DebugEvent::DEBUG_INFO, "Core::shutdown ()");
 #endif
 
 	Core::shutdown ();
 
 #ifdef DEBUG_SHUTDOWN
-	g_system->debug_event (System::DebugEvent::DEBUG_INFO, "Core::shutdown () end");
+	system->debug_event (System::DebugEvent::DEBUG_INFO, "Core::shutdown () end");
 #endif
 
 	// If no activity - toggle it.
@@ -96,7 +96,7 @@ void Scheduler::activity_end () noexcept
 				State state = State::SHUTDOWN_STARTED;
 				if (global_->state.compare_exchange_strong (state, State::TERMINATE)) {
 #ifdef DEBUG_SHUTDOWN
-					g_system->debug_event (System::DebugEvent::DEBUG_INFO, "ExecDomain::async_call <Terminator>");
+					system->debug_event (System::DebugEvent::DEBUG_INFO, "ExecDomain::async_call <Terminator>");
 #endif
 					try {
 						ExecDomain::async_call <Terminator> (SHUTDOWN_DEADLINE, g_core_free_sync_context, nullptr);

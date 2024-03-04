@@ -24,14 +24,14 @@
 *  popov.nirvana@gmail.com
 */
 #include "pch.h"
-#include "../Source/System.h"
-
+#include "../Source/Memory.h"
+	
 namespace Nirvana {
 
-NIRVANA_STATIC_IMPORT ImportInterfaceT <System> NIRVANA_SELECTANY g_system = { OLF_IMPORT_INTERFACE,
-	"Nirvana/g_system", CORBA::Internal::RepIdOf <System>::id,
-	NIRVANA_STATIC_BRIDGE (System, Core::System) };
+NIRVANA_STATIC_IMPORT ImportInterfaceT <Memory> NIRVANA_SELECTANY memory = { OLF_IMPORT_INTERFACE,
+	"Nirvana/memory", CORBA::Internal::RepIdOf <Memory>::id,
+	NIRVANA_STATIC_BRIDGE (Memory, Core::Memory) };
 
 }
 
-NIRVANA_EXPORT (_exp_Nirvana_g_system, "Nirvana/g_system", Nirvana::System, Nirvana::Core::System)
+NIRVANA_EXPORT (_exp_Nirvana_memory, "Nirvana/memory", Nirvana::Memory, Nirvana::Core::Memory)

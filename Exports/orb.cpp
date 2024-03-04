@@ -28,10 +28,10 @@
 
 namespace CORBA {
 
-extern NIRVANA_STATIC_IMPORT Nirvana::ImportInterfaceT <ORB> NIRVANA_SELECTANY g_ORB = { Nirvana::OLF_IMPORT_INTERFACE,
-	"CORBA/g_ORB", Internal::RepIdOf <ORB>::id,
+extern NIRVANA_STATIC_IMPORT Nirvana::ImportInterfaceT <ORB> NIRVANA_SELECTANY orb = { Nirvana::OLF_IMPORT_INTERFACE,
+	"CORBA/orb", Internal::RepIdOf <ORB>::id,
 	NIRVANA_STATIC_BRIDGE (ORB, Core::ORB) };
 
 }
 
-NIRVANA_EXPORT (_exp_CORBA_g_ORB, "CORBA/g_ORB", CORBA::ORB, CORBA::Core::ORB)
+NIRVANA_EXPORT (_exp_CORBA_orb, "CORBA/orb", CORBA::ORB, CORBA::Core::ORB)

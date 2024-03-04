@@ -110,7 +110,7 @@ void Startup::run ()
 			throw_UNKNOWN (make_minor_errno (ENOEXEC));
 		AccessDirect::_ref_type binary = AccessDirect::_narrow (file->open (O_RDONLY | O_DIRECT, 0)->_to_object ());
 
-		g_launcher->spawn (binary, argv, envp, "/sbin", files, callback);
+		launcher->spawn (binary, argv, envp, "/sbin", files, callback);
 	}
 }
 

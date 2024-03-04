@@ -31,8 +31,8 @@
 
 namespace Nirvana {
 
-class Static_g_launcher :
-	public CORBA::servant_traits <ProcessFactory>::ServantStatic <Static_g_launcher>
+class Static_launcher :
+	public CORBA::servant_traits <ProcessFactory>::ServantStatic <Static_launcher>
 {
 public:
 	static Process::_ref_type spawn (AccessDirect::_ptr_type file,

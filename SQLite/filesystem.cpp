@@ -305,7 +305,7 @@ extern "C" int xDelete (sqlite3_vfs*, sqlite3_filename zName, int syncDir)
 	try {
 		// Get full path name
 		CosNaming::Name name;
-		Nirvana::g_system->append_path (name, zName, true);
+		Nirvana::system->append_path (name, zName, true);
 		// Remove root name
 		name.erase (name.begin ());
 		// Delete
@@ -322,7 +322,7 @@ extern "C" int xAccess (sqlite3_vfs*, const char* zName, int flags, int* pResOut
 	try {
 		// Get full path name
 		CosNaming::Name name;
-		Nirvana::g_system->append_path (name, zName, true);
+		Nirvana::system->append_path (name, zName, true);
 		// Remove root name
 		name.erase (name.begin ());
 		// Resolve name
@@ -357,8 +357,8 @@ extern "C" int xFullPathname (sqlite3_vfs*, const char* zName, int nOut, char* z
 	try {
 		// Get full path name
 		CosNaming::Name name;
-		Nirvana::g_system->append_path (name, zName, true);
-		auto s = Nirvana::g_system->to_string (name);
+		Nirvana::system->append_path (name, zName, true);
+		auto s = Nirvana::system->to_string (name);
 		if ((int)s.size () >= nOut)
 			return SQLITE_CANTOPEN;
 		const char* n = s.c_str ();
@@ -371,13 +371,13 @@ extern "C" int xFullPathname (sqlite3_vfs*, const char* zName, int nOut, char* z
 
 extern "C" int xSleep (sqlite3_vfs*, int microseconds)
 {
-	Nirvana::g_system->sleep ((TimeBase::TimeT)microseconds * TimeBase::MICROSECOND);
+	Nirvana::system->sleep ((TimeBase::TimeT)microseconds * TimeBase::MICROSECOND);
 	return SQLITE_OK;
 }
 
 extern "C" int xCurrentTimeInt64 (sqlite3_vfs*, sqlite3_int64* time)
 {
-	TimeBase::UtcT t = Nirvana::g_system->system_clock ();
+	TimeBase::UtcT t = Nirvana::system->system_clock ();
 	*time = (t.time () + t.tdf () * 600000000LL) / TimeBase::MILLISECOND + TimeBase::JULIAN_MS;
 	return SQLITE_OK;
 }
@@ -386,18 +386,18 @@ extern "C" int xRandomness (sqlite3_vfs*, int nByte, char* zOut)
 {
 #if (RAND_MAX >= 0xFFFFFFFF)
 	for (; nByte >= 4; zOut += 4, nByte -= 4) {
-		*(uint32_t*)zOut = (uint32_t)Nirvana::g_system->rand ();
+		*(uint32_t*)zOut = (uint32_t)Nirvana::system->rand ();
 	}
 #endif
 
 #if (RAND_MAX >= 0xFFFF)
 	for (; nByte >= 2; zOut += 2, nByte -= 2) {
-		*(uint16_t*)zOut = (uint16_t)Nirvana::g_system->rand ();
+		*(uint16_t*)zOut = (uint16_t)Nirvana::system->rand ();
 	}
 #endif
 
 	for (; nByte > 0; ++zOut, --nByte) {
-		*zOut = (char)Nirvana::g_system->rand ();
+		*zOut = (char)Nirvana::system->rand ();
 	}
 	return nByte;
 }

@@ -29,8 +29,8 @@
 namespace CORBA {
 namespace Internal {
 
-extern NIRVANA_STATIC_IMPORT Nirvana::ImportInterfaceT <ObjectFactory> g_object_factory = {
-	Nirvana::OLF_IMPORT_INTERFACE, "CORBA/Internal/g_object_factory",
+extern NIRVANA_STATIC_IMPORT Nirvana::ImportInterfaceT <ObjectFactory> object_factory = {
+	Nirvana::OLF_IMPORT_INTERFACE, "CORBA/Internal/object_factory",
 	RepIdOf <ObjectFactory>::id, NIRVANA_STATIC_BRIDGE (ObjectFactory,
 	Core::ObjectFactory)
 };
@@ -38,4 +38,4 @@ extern NIRVANA_STATIC_IMPORT Nirvana::ImportInterfaceT <ObjectFactory> g_object_
 }
 }
 
-NIRVANA_EXPORT (_exp_CORBA_Internal_g_object_factory, "CORBA/Internal/g_object_factory", CORBA::Internal::ObjectFactory, CORBA::Core::ObjectFactory)
+NIRVANA_EXPORT (_exp_CORBA_Internal_object_factory, "CORBA/Internal/object_factory", CORBA::Internal::ObjectFactory, CORBA::Core::ObjectFactory)

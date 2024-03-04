@@ -32,5 +32,5 @@
 
 NIRVANA_EXPORT_FACTORY (_exp_Nirvana_AccessBuf, Nirvana::AccessBuf)
 NIRVANA_EXPORT_FACTORY (_exp_Messaging_ExceptionHolder, Messaging::ExceptionHolder)
-NIRVANA_EXPORT_OBJECT (_exp_Nirvana_g_launcher, Nirvana::Static_g_launcher)
+NIRVANA_EXPORT_OBJECT (_exp_Nirvana_launcher, Nirvana::Static_launcher)
 NIRVANA_EXPORT_FACTORY (_exp_Components_Cookie, Components::Cookie)

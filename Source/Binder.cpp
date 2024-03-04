@@ -188,10 +188,10 @@ const ModuleStartup* Binder::module_bind (::Nirvana::Module::_ptr_type mod, cons
 
 	try {
 
-		// Pass 1: Export pseudo objects and bind g_module.
+		// Pass 1: Export pseudo objects and bind module.
 		unsigned flags = 0;
-		ObjectKey k_gmodule (g_module.imp.name);
-		ObjectKey k_object_factory (g_object_factory.imp.name);
+		ObjectKey k_gmodule (module.imp.name);
+		ObjectKey k_object_factory (object_factory.imp.name);
 		for (OLF_Iterator it (metadata.address, metadata.size); !it.end (); it.next ()) {
 			switch (*it.cur ()) {
 				case OLF_IMPORT_INTERFACE:
