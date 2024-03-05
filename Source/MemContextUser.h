@@ -34,7 +34,7 @@
 #include <Nirvana/File.h>
 #include <Nirvana/ProcessFactory.h>
 #include <memory>
-#include <fnctl.h>
+#include <Nirvana/posix.h>
 
 namespace Nirvana {
 

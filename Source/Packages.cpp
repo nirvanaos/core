@@ -25,7 +25,7 @@
 */
 #include "pch.h"
 #include "Packages.h"
-#include <fnctl.h>
+#include <Nirvana/posix.h>
 
 namespace Nirvana {
 namespace Core {

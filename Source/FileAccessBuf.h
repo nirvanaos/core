@@ -31,7 +31,7 @@
 #include <CORBA/Server.h>
 #include <Nirvana/File_s.h>
 #include <Nirvana/bitutils.h>
-#include <fnctl.h>
+#include <Nirvana/posix.h>
 #include "virtual_copy.h"
 #include "Event.h"
 

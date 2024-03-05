@@ -34,7 +34,7 @@
 #include <Nirvana/ProcessFactory_s.h>
 #include <Nirvana/File.h>
 #include "ORB/Services.h"
-#include <fnctl.h>
+#include <Nirvana/posix.h>
 #include <NameService/FileSystem.h>
 
 namespace Nirvana {

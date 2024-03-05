@@ -33,8 +33,7 @@
 #include "NamingContextRoot.h"
 #include "FileSystem.h"
 #include "../Chrono.h"
-#include <fnctl.h>
-#include <sys/stat.h>
+#include <Nirvana/posix.h>
 #include "DirIter.h"
 
 namespace Nirvana {

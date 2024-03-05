@@ -29,8 +29,7 @@
 #include <Nirvana/File.h>
 #include <Nirvana/System.h>
 #include <Nirvana/c_heap_dbg.h>
-#include <fnctl.h>
-#include <unistd.h>
+#include <Nirvana/posix.h>
 #include <time.h>
 #include <unordered_map>
 

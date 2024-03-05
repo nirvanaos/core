@@ -31,7 +31,7 @@
 #include "IO_Request.h"
 #include "UserAllocator.h"
 #include "UserObject.h"
-#include <fnctl.h>
+#include <Nirvana/posix.h>
 #include <Nirvana/SimpleList.h>
 
 namespace Nirvana {

@@ -35,7 +35,7 @@
 #include "NamingContextBase.h"
 #include <Nirvana/File_s.h>
 #include <CORBA/NoDefaultPOA.h>
-#include <unistd.h>
+#include <Nirvana/posix.h>
 
 namespace PortableServer {
 namespace Core {

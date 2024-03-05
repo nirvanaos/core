@@ -30,7 +30,7 @@
 
 #include "FileAccessDirect.h"
 #include <Nirvana/File_s.h>
-#include <fnctl.h>
+#include <Nirvana/posix.h>
 
 namespace Nirvana {
 namespace Core {

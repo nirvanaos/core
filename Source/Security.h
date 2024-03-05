@@ -107,14 +107,25 @@ public:
 		friend class Security;
 	};
 
+	/// \returns Current protection domain owner.
 	static const Context& prot_domain_context () noexcept
 	{
 		return static_cast <const Context&> (Base::prot_domain_context ());
 	}
 
+	/// \brief Check unmarshalled security context ABI for validity.
 	static bool is_valid_context (Context::ABI context) noexcept
 	{
 		return Base::is_valid_context (context);
+	}
+
+	/// \brief Get display name of the principal.
+	///
+	/// \param id Principal ID.
+	/// \returns Principal name.
+	static IDL::String get_name (const SecurityId& id)
+	{
+		return Base::get_name (id);
 	}
 };
 
