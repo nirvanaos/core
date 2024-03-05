@@ -80,7 +80,7 @@ void Scheduler::shutdown ()
 	State state = State::RUNNING;
 	if (global_->state.compare_exchange_strong (state, State::SHUTDOWN_STARTED)) {
 		// If called from worker thread and not from the invocation context dispatched from some POA,
-		// do shutdown in the current execution domain. Otherwise start acync call.
+		// do shutdown in the current execution domain. Otherwise start async call.
 		if (Thread::current_ptr () && !ExecDomain::current ().TLS_get (CoreTLS::CORE_TLS_PORTABLE_SERVER))
 			do_shutdown ();
 		else
