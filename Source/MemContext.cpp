@@ -61,27 +61,27 @@ MemContext::~MemContext ()
 void MemContext::_remove_ref () noexcept
 {
 	if (!ref_cnt_.decrement ()) {
-		
+
+		// Hold heap reference
 		Ref <Heap> heap (heap_);
 		Type type = type_;
 
-		ExecDomain& ed = ExecDomain::current ();
-		ed.mem_context_replace (*this);
-		if (MC_CORE == type)
-			static_cast <MemContextCore*> (this)->~MemContextCore ();
-		else
-			static_cast <MemContextUser*> (this)->~MemContextUser ();
-		ed.mem_context_restore ();
+		if (MC_CORE == type) {
+			static_cast <MemContextCore&> (*this).~MemContextCore ();
+			heap->release (this, sizeof (MemContextCore));
+		} else {
 
-		switch (type_) {
-			case MC_CORE:
-				heap->release (this, sizeof (MemContextCore));
-				break;
-			case MC_USER:
-				heap->release (this, sizeof (MemContextUser));
-				break;
-			default:
+			MemContextUser& user_context = static_cast <MemContextUser&> (*this);
+			user_context.before_destruct ();
+			ExecDomain& ed = ExecDomain::current ();
+			ed.mem_context_replace (*this);
+			user_context.~MemContextUser ();
+			ed.mem_context_restore ();
+
+			if (MC_CLASS_LIBRARY == type)
 				BinderMemory::heap ().release (this, sizeof (MemContextUser));
+			else
+				heap->release (this, sizeof (MemContextUser));
 		}
 	}
 }

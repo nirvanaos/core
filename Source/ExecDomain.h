@@ -315,6 +315,9 @@ public:
 	/// \param other Other memory context
 	void mem_context_swap (Ref <MemContext>& other) noexcept
 	{
+		// Ensure that memory context is not temporary replaced
+		assert (mem_context_ == mem_context_stack_.top ());
+
 		mem_context_ = other;
 		mem_context_stack_.top ().swap (other);
 	}

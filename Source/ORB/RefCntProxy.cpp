@@ -31,7 +31,7 @@ namespace Core {
 
 RefCntProxy::IntegralType RefCntProxy::decrement ()
 {
-	IntegralType cnt = Base::decrement_seq ();
+	IntegralType cnt = decrement_seq ();
 	if (cnt < 0) {
 		Base::increment ();
 		throw BAD_INV_ORDER ();

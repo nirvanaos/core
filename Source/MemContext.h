@@ -112,6 +112,9 @@ protected:
 
 	MemContext () noexcept;
 
+	MemContext (const MemContext&) = delete;
+	MemContext& operator = (const MemContext&) = delete;
+
 	static Ref <Heap> create_heap ();
 
 	template <class Impl>

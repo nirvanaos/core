@@ -37,7 +37,7 @@
 namespace Nirvana {
 namespace Core {
 
-/// \brief Adapter to implement POSIT read() over the character device
+/// \brief Adapter to implement POSIX read() over the character device
 class CharFileAdapter :
 	public CORBA::servant_traits <CharFileReceiver>::Servant <CharFileAdapter>
 {

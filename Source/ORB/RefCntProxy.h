@@ -48,7 +48,10 @@ public:
 	IntegralType decrement ();
 
 private:
-	IntegralType decrement_seq () noexcept; // Prohibited, use decrement() instead
+	IntegralType decrement_seq () noexcept // Prohibited, use decrement() instead
+	{
+		return Base::decrement_seq ();
+	}
 };
 
 }

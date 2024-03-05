@@ -130,7 +130,6 @@ void ServantProxyBase::run_garbage_collector () const noexcept
 				Nirvana::INFINITE_DEADLINE : Nirvana::Core::Chrono::make_deadline (
 					Nirvana::Core::PROXY_GC_DEADLINE);
 
-			// in the current memory context.
 			ExecDomain::async_call <GC> (deadline, sync_context (), nullptr, servant_);
 			return;
 		} catch (...) {

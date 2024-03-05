@@ -72,6 +72,7 @@ public:
 		access_ (std::move (access))
 	{}
 
+	virtual void before_destruct () noexcept override;
 	virtual void close () const override;
 	virtual size_t read (void* p, size_t size) override;
 	virtual void write (const void* p, size_t size) override;
@@ -82,7 +83,7 @@ public:
 	virtual bool isatty () const override;
 
 private:
-	const AccessBuf::_ref_type access_;
+	AccessBuf::_ref_type access_;
 };
 
 class MemContextUser::FileDescriptorChar : public FileDescriptorBase
@@ -96,6 +97,7 @@ public:
 			adapter_ = CORBA::make_reference <CharFileAdapter> (AccessChar::_ptr_type (access_), (flags_ & O_NONBLOCK) != 0);
 	}
 
+	virtual void before_destruct () noexcept override;
 	virtual void close () const override;
 	virtual size_t read (void* p, size_t size) override;
 	virtual void write (const void* p, size_t size) override;
@@ -106,7 +108,7 @@ public:
 	virtual bool isatty () const override;
 
 private:
-	const AccessChar::_ref_type access_;
+	AccessChar::_ref_type access_;
 	Ref <CharFileAdapter> adapter_;
 	unsigned flags_;
 };
@@ -280,11 +282,27 @@ void MemContextUser::FileDescriptorBuf::close () const
 	access_->close ();
 }
 
+void MemContextUser::FileDescriptorBuf::before_destruct () noexcept
+{
+	access_ = nullptr;
+}
+
 void MemContextUser::FileDescriptorChar::close () const
 {
 	if (adapter_)
 		adapter_->disconnect_push_consumer ();
 	access_->close ();
+}
+
+void MemContextUser::FileDescriptorChar::before_destruct () noexcept
+{
+	if (adapter_) {
+		try {
+			adapter_->disconnect_push_consumer ();
+		} catch (...) {
+		}
+	}
+	access_ = nullptr;
 }
 
 size_t MemContextUser::FileDescriptorBuf::read (void* p, size_t size)

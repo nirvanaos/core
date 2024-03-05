@@ -201,13 +201,9 @@ void ExecDomain::cleanup () noexcept
 	
 	assert (!mem_context_stack_.empty ());
 	assert (1 == dbg_mem_context_stack_size_);
-	for (;;) {
-		mem_context_stack_.pop ();
-		if (mem_context_stack_.empty ())
-			break;
-		mem_context_ = mem_context_stack_.top ();
-	}
-	mem_context_ = nullptr;
+	do {
+		mem_context_pop ();
+	} while (!mem_context_stack_.empty ());
 
 #ifndef NDEBUG
 	dbg_mem_context_stack_size_ = 0;
@@ -256,6 +252,9 @@ MemContext& ExecDomain::mem_context ()
 
 void ExecDomain::mem_context_push (Ref <MemContext>&& mem_context)
 {
+	// Ensure that memory context is not temporary replaced
+	assert ((mem_context_ == nullptr && mem_context_stack_.empty ()) || mem_context_ == mem_context_stack_.top ());
+
 	MemContext* p = mem_context;
 	mem_context_stack_.emplace (std::move (mem_context));
 	mem_context_ = p;
@@ -266,11 +265,17 @@ void ExecDomain::mem_context_push (Ref <MemContext>&& mem_context)
 
 void ExecDomain::mem_context_pop () noexcept
 {
+	// Ensure that memory context is not temporary replaced
+	assert (mem_context_ == mem_context_stack_.top ());
+
 	mem_context_stack_.pop ();
 #ifndef NDEBUG
 	--dbg_mem_context_stack_size_;
 #endif
-	mem_context_ = mem_context_stack_.top ();
+	if (!mem_context_stack_.empty ())
+		mem_context_ = mem_context_stack_.top ();
+	else
+		mem_context_ = nullptr;
 }
 
 void ExecDomain::create_background_worker ()
