@@ -121,7 +121,6 @@ private:
 template <class S, class Proxy>
 void CoreServant <S, Proxy>::delete_servant (bool from_destructor) const noexcept
 {
-	assert (&Nirvana::Core::SyncContext::current () == &proxy_.sync_context ());
 	if (proxy_.servant ()) {
 		try {
 			// If from_destructor == true, we must not call _delete_object() on servant to avoid recursion
