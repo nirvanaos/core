@@ -268,6 +268,9 @@ void ExecDomain::mem_context_pop () noexcept
 	// Ensure that memory context is not temporary replaced
 	assert (mem_context_ == mem_context_stack_.top ());
 
+	// On releasing the memory context reference, stack must be consistent.
+	Ref <MemContext> tmp (std::move (mem_context_stack_.top ()));
+
 	mem_context_stack_.pop ();
 #ifndef NDEBUG
 	--dbg_mem_context_stack_size_;
