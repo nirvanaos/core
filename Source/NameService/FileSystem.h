@@ -143,7 +143,7 @@ public:
 			n.erase (n.begin ());
 			return dir->open (n, flags, mode);
 		} else
-			throw_OBJECT_NOT_EXIST (make_minor_errno (ENOENT));
+			throw NotFound (NotFoundReason::missing_node, std::move (n));
 	}
 
 	Access::_ref_type mkostemps (IDL::String&, uint_fast16_t, uint_fast16_t, mode_t)
@@ -155,6 +155,17 @@ public:
 		uint32_t how_many, DirEntryList& l, DirIterator::_ref_type& di)
 	{
 		throw CORBA::NO_IMPLEMENT ();
+	}
+
+	Nirvana::Dir::_ref_type mkdir (CosNaming::Name& n, uint_fast16_t mode)
+	{
+		check_name (n);
+		Nirvana::Dir::_ref_type dir (resolve_root (n));
+		if (dir) {
+			n.erase (n.begin ());
+			return dir->mkdir (n, mode);
+		} else
+			throw NotFound (NotFoundReason::missing_node, std::move (n));
 	}
 
 	void destroy ()

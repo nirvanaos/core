@@ -32,13 +32,13 @@ using namespace CORBA;
 namespace Nirvana {
 namespace Core {
 
-void Dir::check_exist ()
+void Dir::check_exist () const
 {
 	if (Base::type () == FileType::not_found)
 		throw OBJECT_NOT_EXIST (make_minor_errno (ENOTDIR));
 }
 
-void Dir::check_name (const CosNaming::Name& n)
+void Dir::check_name (const CosNaming::Name& n) const
 {
 	check_exist ();
 	Base::check_name (n);
@@ -85,6 +85,17 @@ void Dir::bind_context (Name& n, NamingContext::_ptr_type nc, bool rebind)
 		bind_dir (n, nc, rebind);
 	else
 		throw BAD_PARAM (make_minor_errno (ENOTDIR));
+}
+
+Nirvana::Dir::_ref_type Dir::mkdir (CosNaming::Name& n, uint_fast16_t mode)
+{
+	check_name (n);
+	try {
+		return FileSystem::get_dir (Base::create_dir (n, mode));
+	} catch (const CORBA::OBJECT_NOT_EXIST&) {
+		etherealize ();
+		throw;
+	}
 }
 
 void Dir::etherealize ()
