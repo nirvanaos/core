@@ -60,7 +60,7 @@ bool DirIter::next_one (DirEntry& de)
 		Name n (1, b.name);
 
 		try {
-			DirItem::_ref_type item = dir_->resolve_const (n);
+			DirItem::_ref_type item = dir_.resolve_const (n);
 			item->stat (de.st ());
 			de.name (std::move (b.name));
 		} catch (const CORBA::NO_PERMISSION ()) {
@@ -73,7 +73,6 @@ bool DirIter::next_one (DirEntry& de)
 	}
 
 	iterator_ = nullptr;
-	dir_ = nullptr;
 	return false;
 }
 
@@ -97,7 +96,7 @@ class DirIterator :
 	public CORBA::servant_traits <Nirvana::DirIterator>::Servant <DirIterator>
 {
 public:
-	static Nirvana::DirIterator::_ref_type create (std::unique_ptr <DirIter>&& vi);
+	static Nirvana::DirIterator::_ref_type create (Nirvana::Dir::_ptr_type dir, std::unique_ptr <DirIter>&& vi);
 
 	bool _non_existent () const noexcept
 	{
@@ -136,19 +135,23 @@ private:
 	template <class T, class ... Args>
 	friend CORBA::servant_reference <T> CORBA::make_reference (Args ... args);
 
-	DirIterator (std::unique_ptr <DirIter>&& vi) :
+	DirIterator (Nirvana::Dir::_ref_type&& dir, std::unique_ptr <DirIter>&& vi) :
+		dir_ (std::move (dir)),
 		vi_ (std::move (vi))
 	{}
 
 private:
+	Nirvana::Dir::_ref_type dir_; // Hold Dir object reference
 	std::unique_ptr <DirIter> vi_;
 };
 
-Nirvana::DirIterator::_ref_type DirIter::create_iterator (std::unique_ptr <DirIter>&& vi)
+Nirvana::DirIterator::_ref_type DirIter::create_iterator (Nirvana::Dir::_ref_type&& dir, std::unique_ptr <DirIter>&& vi)
 {
-	// Create iterator object in the Dir object sync context because we use Dir servant reference
-	// directly.
-	return CORBA::make_reference <DirIterator> (std::move (vi))->_this ();
+	Nirvana::DirIterator::_ref_type ret;
+	SYNC_BEGIN (g_core_free_sync_context, &MemContext::current ().heap ())
+		ret = CORBA::make_reference <DirIterator> (std::move (dir), std::move (vi))->_this ();
+	SYNC_END ();
+	return ret;
 }
 
 }

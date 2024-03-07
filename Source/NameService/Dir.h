@@ -286,7 +286,7 @@ private:
 
 inline
 DirIter::DirIter (Dir& dir, const std::string& regexp, unsigned flags) :
-	dir_ (&dir),
+	dir_ (dir),
 	iterator_ (dir.make_iterator ()),
 	flags_ (flags & ~USE_REGEX)
 {
@@ -310,7 +310,7 @@ void Dir::opendir (const IDL::String& regexp, unsigned flags,
 	}
 	iter->next_n (how_many, l);
 	if (!iter->end ())
-		di = DirIter::create_iterator (std::move (iter));
+		di = DirIter::create_iterator (_this (), std::move (iter));
 }
 
 }

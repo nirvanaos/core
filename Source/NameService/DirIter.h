@@ -51,7 +51,7 @@ class DirIter
 public:
 	DirIter (Dir& dir, const std::string& regexp, unsigned flags);
 
-	static Nirvana::DirIterator::_ref_type create_iterator (std::unique_ptr <DirIter>&& vi);
+	static Nirvana::DirIterator::_ref_type create_iterator (Nirvana::Dir::_ref_type&& dir, std::unique_ptr <DirIter>&& vi);
 
 	bool next_one (DirEntry& de);
 	bool next_n (uint32_t how_many, DirEntryList& l);
@@ -62,7 +62,7 @@ public:
 	}
 
 private:
-	Ref <Dir> dir_;
+	Dir& dir_;
 	std::unique_ptr <CosNaming::Core::Iterator> iterator_;
 	unsigned flags_;
 
