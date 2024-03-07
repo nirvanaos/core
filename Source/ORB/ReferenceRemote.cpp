@@ -65,6 +65,7 @@ ReferenceRemote::~ReferenceRemote ()
 {
 	if (DGC_key_)
 		domain_->on_DGC_reference_delete (*DGC_key_);
+	assert (0 == ref_cnt_);
 }
 
 void ReferenceRemote::_add_ref () noexcept

@@ -93,9 +93,7 @@ protected:
 	{}
 
 	~Reference ()
-	{
-		assert (0 == ref_cnt_);
-	}
+	{}
 
 	bool is_local_object_op (Internal::OperationIndex op) const noexcept;
 

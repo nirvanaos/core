@@ -68,6 +68,7 @@ ReferenceLocal::ReferenceLocal (const IOP::ObjectKey& object_key, POA_Base& adap
 ReferenceLocal::~ReferenceLocal ()
 {
 	assert (&SyncContext::current () == adapter_context_);
+	assert (0 == ref_cnt_);
 }
 
 void ReferenceLocal::_add_ref () noexcept
