@@ -221,9 +221,6 @@ public:
 	{
 		check_exist ();
 
-		if (!mode)
-			mode = S_IRUSR | S_IWUSR;
-
 		// Check name pattern
 		size_t name_size = name.size ();
 		if (name_size < (size_t)6 + (size_t)suffix_len)
