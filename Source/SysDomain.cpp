@@ -44,7 +44,9 @@ SysDomain::SysDomain (CORBA::Object::_ref_type& comp)
 	packages_ = make_stateless <Packages> (comp)->_this ();
 
 	// Create stateful
+	SYNC_BEGIN (g_core_free_sync_context, &MemContext::current ());
 	manager_ = make_reference <SysManager> (comp)->_this ();
+	SYNC_END ();
 }
 
 SysDomain::~SysDomain ()

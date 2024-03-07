@@ -315,9 +315,15 @@ void Proxy <PortableServer::ServantActivator>::__rq_incarnate (
 	PortableServer::POA::_ref_type adapter;
 	Type <PortableServer::POA>::unmarshal (_call, adapter);
 	_call->unmarshal_end ();
-	PortableServer::ServantBase::_ref_type _ret = _servant->incarnate (oid, adapter);
+	Object::_ref_type obj;
+	{
+		PortableServer::ServantBase::_ref_type _ret = _servant->incarnate (oid, adapter);
+		obj = Core::servant2object (_ret);
+		assert (&CORBA::Core::object2proxy (obj)->sync_context () == &Nirvana::Core::SyncContext::current ());
+		// We must release ServantBase reference here, in the current sync context.
+		// After marshal_out() call the sync context may be changed.
+	}
 	// Marshal output
-	Object::_ref_type obj = Core::servant2object (_ret);
 	Type <Object>::marshal_out (obj, _call);
 }
 /*

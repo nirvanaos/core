@@ -148,7 +148,7 @@ CORBA::Object::_ptr_type servant2object (PortableServer::Servant servant) noexce
 /// \param obj Object pointer.
 ///   Ensure that it is really object, not a reference or local object.
 /// \returns Proxy pointer.
-inline CORBA::Core::ServantProxyObject* object2proxy (CORBA::Object::_ptr_type obj) noexcept
+inline ServantProxyObject* object2proxy (CORBA::Object::_ptr_type obj) noexcept
 {
 	return const_cast <ServantProxyObject*> (
 		static_cast <const ServantProxyObject*> (object2proxy_base (obj)));

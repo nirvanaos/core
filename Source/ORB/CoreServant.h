@@ -56,8 +56,6 @@ public:
 	{
 		S& srv = S::_implementation (static_cast <Internal::Bridge <I>*> (itf));
 
-		// For the dynamic objects servant is already deleted.
-		// Call delete_servant for static objects here.
 		srv.delete_servant (true);
 
 		// Delete proxy object
@@ -76,31 +74,37 @@ public:
 	}
 
 	// Implementation of the servant object life cycle
+	// These operations are always called from the servant synchronization context.
 
 	static void __delete_object (Internal::Bridge <PrimaryInterface>* obj, Internal::Interface* env)
 	{
-		assert (false);
+		// This operation must not be called at all.
+		NIRVANA_UNREACHABLE_CODE ();
 	}
 
 	void _add_ref () noexcept
 	{
+		assert (&Nirvana::Core::SyncContext::current () == &proxy_.sync_context ());
 		ref_cnt_.increment ();
 	}
 
 	void _remove_ref () noexcept
 	{
+		assert (&Nirvana::Core::SyncContext::current () == &proxy_.sync_context ());
 		if (0 == ref_cnt_.decrement ())
 			delete_servant (false);
 	}
 
 	ULong _refcount_value () const noexcept
 	{
+		assert (&Nirvana::Core::SyncContext::current () == &proxy_.sync_context ());
 		Nirvana::Core::RefCounter::IntegralType ucnt = ref_cnt_;
 		return ucnt > std::numeric_limits <ULong>::max () ? std::numeric_limits <ULong>::max () : (ULong)ucnt;
 	}
 
 	Internal::Interface::_ptr_type _query_interface (const IDL::String& type_id) const
 	{
+		assert (&Nirvana::Core::SyncContext::current () == &proxy_.sync_context ());
 		return proxy_._query_interface (type_id);
 	}
 
@@ -111,7 +115,7 @@ protected:
 	{}
 
 private:
-	void delete_servant (bool static_object) const noexcept;
+	void delete_servant (bool from_destructor) const noexcept;
 
 private:
 	RefCntProxy ref_cnt_;
