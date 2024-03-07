@@ -66,8 +66,6 @@ void Process::run ()
 	}
 
 	finish ();
-
-	run_end ();
 }
 
 void Process::finish () noexcept
@@ -92,6 +90,8 @@ void Process::finish () noexcept
 		} catch (...) {
 		}
 	}
+
+	run_end ();
 }
 
 void Process::on_crash (const siginfo& signal) noexcept
@@ -101,11 +101,14 @@ void Process::on_crash (const siginfo& signal) noexcept
 	else
 		ret_ = -1;
 
-	ExecDomain& ed = ExecDomain::current ();
-	ed.mem_context_replace (*mem_context_);
+	// Memory context must be unwound in ExecDomain::on_crash ()
+	assert (ExecDomain::current ().mem_context_ptr () == mem_context_);
+	
+	// We are in our memory context but not in sync domain here.
+	// I think, it is not urgent because nobody other can access process data here.
+
 	error_message ("Process crashed.\n");
 	finish ();
-	ed.mem_context_restore ();
 }
 
 void Process::error_message (const char* msg) const

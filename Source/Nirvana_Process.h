@@ -138,6 +138,7 @@ private:
 private:
 	// Core::Runnable::
 	virtual void run () override;
+	virtual void on_crash (const siginfo& signal) noexcept override;
 
 	// Must be called in run()
 
@@ -150,9 +151,6 @@ private:
 	{
 		exec_domain_ = nullptr;
 	}
-
-public:
-	virtual void on_crash (const siginfo& signal) noexcept override;
 
 private:
 	typedef std::vector <std::string> Strings;

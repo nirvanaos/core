@@ -613,8 +613,8 @@ protected:
 };
 
 class EventChannel :
-	public servant_traits <CosEventChannelAdmin::EventChannel>::Servant <EventChannel>,
-	public EventChannelBase
+	public EventChannelBase,
+	public servant_traits <CosEventChannelAdmin::EventChannel>::Servant <EventChannel>
 {
 public:
 	CosEventChannelAdmin::ConsumerAdmin::_ref_type for_consumers ()

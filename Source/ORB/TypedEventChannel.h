@@ -32,8 +32,8 @@ namespace CORBA {
 namespace Core {
 
 class TypedEventChannel :
-	public servant_traits <CosTypedEventChannelAdmin::TypedEventChannel>::Servant <TypedEventChannel>,
-	public EventChannelBase
+	public EventChannelBase,
+	public servant_traits <CosTypedEventChannelAdmin::TypedEventChannel>::Servant <TypedEventChannel>
 {
 public:
 	CosTypedEventChannelAdmin::TypedConsumerAdmin::_ref_type for_consumers ()
