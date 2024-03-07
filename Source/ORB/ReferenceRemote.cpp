@@ -65,7 +65,10 @@ ReferenceRemote::~ReferenceRemote ()
 {
 	if (DGC_key_)
 		domain_->on_DGC_reference_delete (*DGC_key_);
-	assert (0 == ref_cnt_);
+
+	// On shutdown, remote reference can be forcedly destructed.
+	// So issue assertion without break.
+	NIRVANA_ASSERT_EX (0 == ref_cnt_, 1);
 }
 
 void ReferenceRemote::_add_ref () noexcept
