@@ -69,13 +69,13 @@ Object::_ref_type SysManager::prot_domain_ref (ESIOP::ProtDomainId domain_id)
 	return CORBA::Core::ORB::string_to_object (s, CORBA::Internal::RepIdOf <Nirvana::ProtDomainCore>::id);
 }
 
-void SysManager::get_call_context (Ref <SysManager>& impl, Ref <SyncContext>& sync)
+SysManager& SysManager::get_call_context (Nirvana::SysManager::_ref_type& ref, Ref <SyncContext>& sync)
 {
 	Core::SysDomain& sd = Core::SysDomain::implementation ();
-	Nirvana::SysManager::_ref_type ref = sd.provide_manager ();
+	ref = sd.provide_manager ();
 	CORBA::Core::ServantProxyObject* proxy = CORBA::Core::object2proxy (ref);
-	impl = static_cast <SysManager*> (static_cast <Internal::Bridge <PortableServer::ServantBase>*> (&proxy->servant ()));
 	sync = &proxy->sync_context ();
+	return *static_cast <SysManager*> (static_cast <Internal::Bridge <PortableServer::ServantBase>*> (&proxy->servant ()));
 }
 
 }

@@ -66,13 +66,36 @@ public:
 		throw_NO_IMPLEMENT ();
 	}
 
-	void shutdown (unsigned flags);
+	class AsyncCall : public Runnable
+	{
+	protected:
+		AsyncCall (Nirvana::SysManager::_ref_type&& ref, SysManager& impl) noexcept :
+			ref_ (std::move (ref)),
+			impl_ (impl)
+		{
+		}
 
-	/// Get context for asynchronous call from the port.
-	/// 
-	/// \param impl SysDomain servant reference.
-	/// \param sync_context SyncContext reference.
-	static void get_call_context (Ref <SysManager>& impl, Ref <SyncContext>& sync_context);
+		SysManager& sys_manager () const noexcept
+		{
+			return impl_;
+		}
+
+	private:
+		Nirvana::SysManager::_ref_type ref_;
+		SysManager& impl_;
+	};
+
+	template <class RunnableClass, class ... Args>
+	static void async_call (const DeadlineTime& deadline, Args ... args)
+	{
+		Nirvana::SysManager::_ref_type ref;
+		Ref <SyncContext> sync_context;
+		SysManager& impl = SysManager::get_call_context (ref, sync_context);
+		ExecDomain::async_call <RunnableClass> (deadline,
+			*sync_context, nullptr, std::move (ref), std::ref (impl), std::forward <Args> (args)...);
+	}
+
+	void shutdown (unsigned flags);
 
 	/// Called from the port level
 	/// 
@@ -98,6 +121,8 @@ public:
 	}
 
 private:
+	static SysManager& get_call_context (Nirvana::SysManager::_ref_type& ref, Ref <SyncContext>& sync_context);
+
 	static CORBA::Object::_ref_type prot_domain_ref (ESIOP::ProtDomainId domain_id);
 
 	struct DomainInfo

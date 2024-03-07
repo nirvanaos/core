@@ -312,12 +312,12 @@ void ReceiveCloseConnection::run ()
 }
 
 /// Receive shutdown Runnable
-class ReceiveShutdownSys :
-	public Runnable
+class ReceiveShutdownSys : public Nirvana::Core::SysManager::AsyncCall
 {
 public:
-	ReceiveShutdownSys (const Shutdown& msg, Ref <Nirvana::Core::SysManager>&& sd) noexcept :
-		sys_domain_ (std::move (sd)),
+	ReceiveShutdownSys (Nirvana::SysManager::_ref_type&& ref, Nirvana::Core::SysManager& impl,
+		const Shutdown& msg) noexcept :
+		Nirvana::Core::SysManager::AsyncCall (std::move (ref), impl),
 		security_context_ (msg.security_context)
 	{}
 
@@ -325,7 +325,6 @@ private:
 	virtual void run () override;
 
 private:
-	Ref <Nirvana::Core::SysManager> sys_domain_;
 	Security::Context security_context_;
 };
 
@@ -333,7 +332,7 @@ void ReceiveShutdownSys::run ()
 {
 	try {
 		ExecDomain::set_impersonation_context (std::move (security_context_));
-		sys_domain_->shutdown (0);
+		sys_manager ().shutdown (0);
 	} catch (...) {}
 }
 
@@ -413,11 +412,7 @@ void dispatch_message (MessageHeader& message) noexcept
 				break;
 			if (is_system_domain ()) {
 				try {
-					Ref <Nirvana::Core::SysManager> sd;
-					Ref <SyncContext> sc;
-					Nirvana::Core::SysManager::get_call_context (sd, sc);
-					ExecDomain::async_call <ReceiveShutdownSys> (INFINITE_DEADLINE, *sc, nullptr,
-						std::ref (msg), std::move (sd));
+					Nirvana::Core::SysManager::async_call <ReceiveShutdownSys> (INFINITE_DEADLINE, std::ref (msg));
 				} catch (...) {
 				}
 			} else {
