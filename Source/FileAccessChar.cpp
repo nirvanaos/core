@@ -66,12 +66,20 @@ void FileAccessChar::_remove_ref () noexcept
 	}
 }
 
-void FileAccessChar::read_on (FileAccessCharProxy& proxy) noexcept
+void FileAccessChar::add_push_consumer (FileAccessCharProxy& proxy)
 {
-	bool first = read_proxies_.empty ();
-	read_proxies_.push_back (proxy);
+	bool first = push_proxies_.empty () && !pull_consumer_cnt_;
+	push_proxies_.push_back (proxy);
 	if (first)
 		read_start ();
+}
+
+void FileAccessChar::remove_push_consumer (FileAccessCharProxy& proxy) noexcept
+{
+	assert (!push_proxies_.empty ());
+	proxy.remove ();
+	if (push_proxies_.empty () && !pull_consumer_cnt_)
+		read_cancel ();
 }
 
 void FileAccessChar::on_read (char c) noexcept
@@ -137,6 +145,7 @@ bool FileAccessChar::push_char (char c, IDL::String& s)
 inline
 void FileAccessChar::push_char (char c, bool& repl, IDL::String& s)
 {
+	// Invalid UTF-8 character replacement
 	static const char replacement [] = { '\xEF', '\xBF', '\xBD' };
 
 	if (push_char (c, s))
@@ -152,21 +161,22 @@ void FileAccessChar::read_callback () noexcept
 {
 	auto cc = read_available_.load ();
 	callback_.clear ();
-	CharFileEvent evt;
+	IDL::String data;
+	AccessChar::Error error{ 0 };
 	if (cc) {
 		bool overflow = cc == ring_buffer_.size ();
 		try {
-			evt.data ().reserve (cc + utf8_octet_cnt_);
+			data.reserve (cc + utf8_octet_cnt_);
 			bool repl = false;
 			while (cc--) {
-				push_char (ring_buffer_ [read_pos_], repl, evt.data ());
+				push_char (ring_buffer_ [read_pos_], repl, data);
 				read_pos_ = (read_pos_ + 1) % ring_buffer_.size ();
 				write_available_.increment ();
 				read_available_.decrement ();
 			}
 		} catch (...) {
-			evt.data ().clear ();
-			evt.error (ENOMEM);
+			data.clear ();
+			error.error (ENOMEM);
 		}
 
 		if (overflow && ring_buffer_.size () < max_buffer_size_) {
@@ -185,10 +195,41 @@ void FileAccessChar::read_callback () noexcept
 		assert (read_error_);
 		if (!read_error_)
 			return;
-		evt.error (read_error_);
+		error.error (read_error_);
+		read_error_ = 0;
 	}
 
-	for (auto it = read_proxies_.begin (); it != read_proxies_.end (); ++it) {
+	CORBA::Any evt;
+	if (!error.error ())
+		evt <<= std::move (data);
+	else
+		evt <<= error;
+
+	push_event (evt);
+	
+	if (pull_consumer_cnt_) {
+		try {
+			if (pull_queue_.empty ()) {
+				pull_queue_.push (std::move (evt));
+				pull_event_.signal ();
+			} else {
+				Event& last = pull_queue_.back ();
+				if (last.type () == Event::READ && !error.error ()) {
+					const IDL::String* p;
+					evt >>= p;
+					last.data () += *p;
+				} else if (last.type () != Event::ERROR || last.error () != error.error ())
+					pull_queue_.push (std::move (evt));
+			}
+		} catch (...) {
+			// TODO: Log
+		}
+	}
+}
+
+void FileAccessChar::push_event (const CORBA::Any& evt) noexcept
+{
+	for (auto it = push_proxies_.begin (); it != push_proxies_.end (); ++it) {
 		it->push (evt);
 	}
 }

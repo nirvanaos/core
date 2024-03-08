@@ -31,8 +31,12 @@
 #include "IO_Request.h"
 #include "UserAllocator.h"
 #include "UserObject.h"
+#include "EventSync.h"
+#include <Nirvana/File.h>
 #include <Nirvana/posix.h>
 #include <Nirvana/SimpleList.h>
+#include <CORBA/CosEventChannelAdmin.h>
+#include <queue>
 
 namespace Nirvana {
 namespace Core {
@@ -81,11 +85,24 @@ public:
 		return flags_;
 	}
 
-	void read_on (FileAccessCharProxy& proxy) noexcept;
+	void add_push_consumer (FileAccessCharProxy& proxy);
+	void remove_push_consumer (FileAccessCharProxy& proxy) noexcept;
 
-	void read_off () noexcept
+	void add_pull_consumer ()
 	{
-		if (read_proxies_.empty ())
+		// Does not allow more than one pull consumer.
+		if (pull_consumer_cnt_)
+			throw CosEventChannelAdmin::AlreadyConnected ();
+		bool first = push_proxies_.empty () && !pull_consumer_cnt_;
+		++pull_consumer_cnt_;
+		if (first)
+			read_start ();
+	}
+
+	void remove_pull_consumer () noexcept
+	{
+		assert (pull_consumer_cnt_);
+		if (push_proxies_.empty () && !--pull_consumer_cnt_)
 			read_cancel ();
 	}
 
@@ -94,11 +111,31 @@ public:
 		if (read_error_) {
 			int_fast16_t err = read_error_;
 			read_error_ = 0;
-			if (!read_proxies_.empty ())
+			if (!push_proxies_.empty () || pull_consumer_cnt_)
 				read_start ();
 			return err;
 		} else
 			return 0;
+	}
+
+	CORBA::Any pull ()
+	{
+		while (pull_queue_.empty ()) {
+			pull_event_.wait ();
+		}
+		return pull_queue_.pop ();
+	}
+
+	CORBA::Any try_pull (bool& has_event) noexcept
+	{
+		CORBA::Any ret;
+		if (pull_queue_.empty ())
+			has_event = false;
+		else {
+			ret = pull_queue_.pop ();
+			has_event = true;
+		}
+		return ret;
 	}
 
 protected:
@@ -147,6 +184,15 @@ protected:
 	/// \param err Error number.
 	void on_read_error (int err) noexcept;
 
+	/// Push custom event.
+	/// 
+	void push_custom_event (CORBA::Any&& evt)
+	{
+		push_event (evt);
+		if (pull_consumer_cnt_)
+			pull_queue_.push (std::move (evt));
+	}
+
 private:
 	void async_callback () noexcept;
 	void read_callback () noexcept;
@@ -172,6 +218,7 @@ private:
 
 	bool push_char (char c, IDL::String& s);
 	void push_char (char c, bool& repl, IDL::String& s);
+	void push_event (const CORBA::Any& evt) noexcept;
 
 private:
 	class ReadCallback : public Runnable
@@ -186,6 +233,170 @@ private:
 
 	private:
 		Ref <FileAccessChar> object_;
+	};
+
+	class Event
+	{
+	public:
+		enum Type
+		{
+			READ,
+			ERROR,
+			OTHER
+		};
+
+		Event (IDL::String&& data) :
+			type_ (READ),
+			u_ (std::move (data))
+		{}
+
+		Event (AccessChar::Error err) :
+			type_ (ERROR),
+			u_ (err)
+		{}
+
+		Event (CORBA::Any&& evt) :
+			type_ (OTHER),
+			u_ (std::move (evt))
+		{}
+
+		Event (Event&& src) :
+			type_ (src.type_),
+			u_ (src.type_, std::move (src.u_))
+		{}
+
+		~Event ()
+		{
+			u_.destruct (type_);
+		}
+
+		Event& operator = (Event&& src)
+		{
+			u_.destruct (type_);
+			new (&u_) U (type_ = src.type_, std::move (src.u_));
+			return *this;
+		}
+
+		Type type () const noexcept
+		{
+			return type_;
+		}
+
+		IDL::String& data () noexcept
+		{
+			assert (READ == type_);
+			return u_.data;
+		}
+
+		int error () const noexcept
+		{
+			assert (ERROR == type_);
+			return u_.error.error ();
+		}
+
+		CORBA::Any get_any () noexcept
+		{
+			CORBA::Any any;
+			switch (type_) {
+			case READ:
+				any <<= std::move (u_.data);
+				break;
+
+			case ERROR:
+				any <<= u_.error;
+				break;
+
+			default:
+				any = std::move (u_.other);
+				break;
+			}
+
+			return any;
+		}
+
+	private:
+		union U
+		{
+			U (IDL::String&& s)
+			{
+				CORBA::Internal::construct (data, std::move (s));
+			}
+
+			U (AccessChar::Error err) :
+				error (err)
+			{}
+
+			U (CORBA::Any&& evt) :
+				other (std::move (evt))
+			{}
+
+			U (Type type, U&& src)
+			{
+				switch (type) {
+				case READ:
+					CORBA::Internal::construct (data, std::move (src.data));
+					break;
+				case ERROR:
+					error = src.error;
+					break;
+				default:
+					CORBA::Internal::construct (other, std::move (src.other));
+				}
+			}
+
+			~U ()
+			{}
+
+			void destruct (Type type)
+			{
+				switch (type) {
+				case READ:
+					CORBA::Internal::destruct (data);
+					break;
+				case ERROR:
+					break;
+				default:
+					CORBA::Internal::destruct (other);
+				}
+			}
+
+			IDL::String data;
+			AccessChar::Error error;
+			CORBA::Any other;
+		};
+		
+		Type type_;
+		U u_;
+	};
+
+	class EventQueue : private std::queue <Event>
+	{
+		typedef std::queue <Event> Base;
+
+	public:
+		void push (CORBA::Any&& evt)
+		{
+			Base::emplace (std::move (evt));
+		}
+
+		bool empty () const noexcept
+		{
+			return Base::empty ();
+		}
+
+		CORBA::Any pop ()
+		{
+			assert (!empty ());
+			CORBA::Any any = front ().get_any ();
+			Base::pop ();
+			return any;
+		}
+
+		Event& back () noexcept
+		{
+			assert (!empty ());
+			return Base::back ();
+		}
 	};
 
 private:
@@ -206,7 +417,12 @@ private:
 	int read_error_;
 	std::atomic_flag callback_;
 	DeadlineTime callback_deadline_;
-	SimpleList <FileAccessCharProxy> read_proxies_;
+	SimpleList <FileAccessCharProxy> push_proxies_;
+
+	// If pull_consumer_cnt_ != 0 we have to maintain event queue.
+	unsigned pull_consumer_cnt_;
+	EventQueue pull_queue_;
+	EventSync pull_event_;
 };
 
 }

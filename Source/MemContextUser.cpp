@@ -28,8 +28,8 @@
 #include "NameService/FileSystem.h"
 #include "ORB/Services.h"
 #include "virtual_copy.h"
-#include "CharFileAdapter.h"
 #include "BinderMemory.h"
+#include <queue>
 
 using namespace CosNaming;
 using CORBA::Core::Services;
@@ -94,7 +94,7 @@ public:
 		flags_ (access_->flags ())
 	{
 		if ((flags_ & O_ACCMODE) != O_WRONLY)
-			adapter_ = CORBA::make_reference <CharFileAdapter> (AccessChar::_ptr_type (access_), (flags_ & O_NONBLOCK) != 0);
+			access_->connect_pull_consumer (nullptr);
 	}
 
 	virtual void before_destruct () noexcept override;
@@ -108,8 +108,9 @@ public:
 	virtual bool isatty () const override;
 
 private:
+	typedef std::queue <char> Buffer;
 	AccessChar::_ref_type access_;
-	Ref <CharFileAdapter> adapter_;
+	Buffer buffer_;
 	unsigned flags_;
 };
 
@@ -289,18 +290,14 @@ void MemContextUser::FileDescriptorBuf::before_destruct () noexcept
 
 void MemContextUser::FileDescriptorChar::close () const
 {
-	if (adapter_)
-		adapter_->disconnect_push_consumer ();
 	access_->close ();
 }
 
 void MemContextUser::FileDescriptorChar::before_destruct () noexcept
 {
-	if (adapter_) {
-		try {
-			adapter_->disconnect_push_consumer ();
-		} catch (...) {
-		}
+	try {
+		access_->close ();
+	} catch (...) {
 	}
 	access_ = nullptr;
 }
@@ -326,22 +323,56 @@ size_t MemContextUser::FileDescriptorBuf::read (void* p, size_t size)
 
 size_t MemContextUser::FileDescriptorChar::read (void* p, size_t size)
 {
-	if (!adapter_)
+	if ((flags_ & O_ACCMODE) == O_WRONLY)
 		throw_NO_PERMISSION (make_minor_errno (EBADF));
+
 	error_ = false;
 	eof_ = false;
+
+	if (!size)
+		return 0;
+
 	size_t cb = push_back_read (p, size);
-	if (size) {
-		try {
-			size_t cbr = adapter_->read (p, size);
-			if (cbr < size)
+	for (;;) {
+		while (size && !buffer_.empty ()) {
+			*(char*)p = buffer_.front ();
+			buffer_.pop ();
+			++cb;
+			--size;
+		}
+
+		if (cb)
+			break;
+
+		CORBA::Any evt;
+		if (flags_ & O_NONBLOCK) {
+			bool has_event;
+			evt = access_->try_pull (has_event);
+			if (!has_event) {
 				eof_ = true;
-			cb += cbr;
-		} catch (...) {
-			error_ = true;
-			throw;
+				throw_TRANSIENT (make_minor_errno (EAGAIN));
+			}
+		} else
+			evt = access_->pull ();
+
+		const IDL::String* ps;
+		if (evt >>= ps) {
+			if (ps->empty ()) {
+				eof_ = true;
+				break;
+			}
+			for (char c : *ps) {
+				buffer_.push (c);
+			}
+		} else {
+			AccessChar::Error error;
+			if (evt >>= error) {
+				error_ = true;
+				throw_COMM_FAILURE (make_minor_errno (error.error ()));
+			}
 		}
 	}
+
 	return cb;
 }
 

@@ -41,14 +41,15 @@ class FileAccessCharProxy :
 public:
 	FileAccessCharProxy (FileAccessChar& access, unsigned flags) :
 		access_ (&access),
-		flags_ (flags)
+		flags_ (flags),
+		pull_consumer_connected_ (false)
 	{}
 
 	~FileAccessCharProxy ()
 	{
-		if (event_channel_) {
-			remove ();
-			access_->read_off ();
+		if (access_) {
+			disconnect_push_supplier ();
+			disconnect_pull_supplier ();
 		}
 	}
 
@@ -65,6 +66,8 @@ public:
 	void close ()
 	{
 		check ();
+		disconnect_push_supplier ();
+		disconnect_pull_supplier ();
 		access_ = nullptr;
 	}
 
@@ -92,45 +95,56 @@ public:
 		access_->write (data);
 	}
 
-	CosTypedEventChannelAdmin::TypedConsumerAdmin::_ref_type for_consumers ()
+	int_fast16_t clear_read_error ()
 	{
 		check ();
 		if (flags_ & O_WRONLY)
 			throw_NO_PERMISSION (EBADF);
-		if (!event_channel_) {
-			event_channel_ = CORBA::Core::ORB::create_typed_channel ();
-			CosTypedEventChannelAdmin::TypedProxyPushConsumer::_ref_type consumer =
-				event_channel_->for_suppliers ()->obtain_typed_push_consumer (CORBA::Internal::RepIdOf <CharFileSink>::id);
-			sink_ = CharFileSink::_narrow (consumer->get_typed_consumer ());
-			assert (sink_);
-			access_->read_on (*this);
-		}
-		return event_channel_->for_consumers ();
-	}
-
-	int_fast16_t clear_read_error ()
-	{
-		check ();
 		return access_->clear_read_error ();
 	}
 
-	void push (const CharFileEvent& evt) noexcept
+	void connect_push_consumer (CosEventComm::PushConsumer::_ptr_type consumer)
 	{
-		if (sink_) {
-			try {
-				if (flags_ & O_TEXT && evt.data ().find ('\r') != IDL::String::npos) {
-					CharFileEvent tmp = evt;
-					for (char& c : tmp.data ()) {
-						if ('\r' == c)
-							c = '\n';
-					}
-					sink_->received (tmp);
-				}
-				sink_->received (evt);
-			} catch (...) {
-				// TODO: Log
-			}
+		if (push_consumer_)
+			throw CosEventChannelAdmin::AlreadyConnected ();
+		push_consumer_ = consumer;
+	}
+
+	void disconnect_push_supplier () noexcept;
+
+	void push (const CORBA::Any& evt) noexcept
+	{
+		assert (push_consumer_);
+		try {
+			push_consumer_->push (evt);
+		} catch (...) {
+			// TODO: Log
 		}
+	}
+
+	void connect_pull_consumer (CosEventComm::PullConsumer::_ptr_type consumer)
+	{
+		if (pull_consumer_connected_)
+			throw CosEventChannelAdmin::AlreadyConnected ();
+		access_->add_pull_consumer ();
+		pull_consumer_connected_ = true;
+		pull_consumer_ = consumer;
+	}
+
+	void disconnect_pull_supplier () noexcept;
+
+	CORBA::Any pull () const
+	{
+		if (!pull_consumer_connected_)
+			throw CosEventComm::Disconnected ();
+		return access_->pull ();
+	}
+
+	CORBA::Any try_pull (bool& has_event) const
+	{
+		if (!pull_consumer_connected_)
+			throw CosEventComm::Disconnected ();
+		return access_->try_pull (has_event);
 	}
 
 private:
@@ -142,9 +156,10 @@ private:
 
 private:
 	Ref <FileAccessChar> access_;
-	CosTypedEventChannelAdmin::TypedEventChannel::_ref_type event_channel_;
-	CharFileSink::_ref_type sink_;
+	CosEventComm::PushConsumer::_ref_type push_consumer_;
+	CosEventComm::PullConsumer::_ref_type pull_consumer_;
 	unsigned flags_;
+	bool pull_consumer_connected_;
 };
 
 }
