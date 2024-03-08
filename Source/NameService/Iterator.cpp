@@ -46,6 +46,7 @@ bool Iterator::next_one (CosNaming::Binding& b)
 {
 	Binding vb;
 	if (next_one (vb)) {
+		b.binding_name ().clear ();
 		b.binding_name ().push_back (std::move (vb.name));
 		b.binding_type (vb.type);
 		return true;

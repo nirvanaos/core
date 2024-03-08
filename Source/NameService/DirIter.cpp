@@ -63,9 +63,14 @@ bool DirIter::next_one (DirEntry& de)
 			DirItem::_ref_type item = dir_.resolve_const (n);
 			item->stat (de.st ());
 			de.name (std::move (b.name));
-		} catch (const CORBA::NO_PERMISSION ()) {
-			if (flags_ & Nirvana::Dir::SKIP_PERMISSION_DENIED)
+		} catch (const NamingContext::NotFound&) {
+			b.clear ();
+			continue; // Item was deleted
+		} catch (const CORBA::NO_PERMISSION&) {
+			if (flags_ & Nirvana::Dir::SKIP_PERMISSION_DENIED) {
+				b.clear ();
 				continue;
+			}
 			throw;
 		}
 

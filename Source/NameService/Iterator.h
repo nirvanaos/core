@@ -60,6 +60,12 @@ public:
 		{}
 
 		Binding (NameComponent&& nc, BindingType t) noexcept;
+
+		void clear () noexcept
+		{
+			name.id ().clear ();
+			name.kind ().clear ();
+		}
 	};
 
 	virtual bool next_one (Binding& b) = 0;
