@@ -240,23 +240,23 @@ private:
 	public:
 		enum Type
 		{
-			READ,
-			ERROR,
-			OTHER
+			EVT_READ,
+			EVT_ERROR,
+			EVT_OTHER
 		};
 
 		Event (IDL::String&& data) :
-			type_ (READ),
+			type_ (EVT_READ),
 			u_ (std::move (data))
 		{}
 
 		Event (AccessChar::Error err) :
-			type_ (ERROR),
+			type_ (EVT_ERROR),
 			u_ (err)
 		{}
 
 		Event (CORBA::Any&& evt) :
-			type_ (OTHER),
+			type_ (EVT_OTHER),
 			u_ (std::move (evt))
 		{}
 
@@ -284,13 +284,13 @@ private:
 
 		IDL::String& data () noexcept
 		{
-			assert (READ == type_);
+			assert (EVT_READ == type_);
 			return u_.data;
 		}
 
 		int error () const noexcept
 		{
-			assert (ERROR == type_);
+			assert (EVT_ERROR == type_);
 			return u_.error.error ();
 		}
 
@@ -298,11 +298,11 @@ private:
 		{
 			CORBA::Any any;
 			switch (type_) {
-			case READ:
+			case EVT_READ:
 				any <<= std::move (u_.data);
 				break;
 
-			case ERROR:
+			case EVT_ERROR:
 				any <<= u_.error;
 				break;
 
@@ -333,10 +333,10 @@ private:
 			U (Type type, U&& src)
 			{
 				switch (type) {
-				case READ:
+				case EVT_READ:
 					CORBA::Internal::construct (data, std::move (src.data));
 					break;
-				case ERROR:
+				case EVT_ERROR:
 					error = src.error;
 					break;
 				default:
@@ -350,10 +350,10 @@ private:
 			void destruct (Type type)
 			{
 				switch (type) {
-				case READ:
+				case EVT_READ:
 					CORBA::Internal::destruct (data);
 					break;
-				case ERROR:
+				case EVT_ERROR:
 					break;
 				default:
 					CORBA::Internal::destruct (other);

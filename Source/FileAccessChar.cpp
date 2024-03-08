@@ -214,11 +214,11 @@ void FileAccessChar::read_callback () noexcept
 				pull_event_.signal ();
 			} else {
 				Event& last = pull_queue_.back ();
-				if (last.type () == Event::READ && !error.error ()) {
+				if (last.type () == Event::EVT_READ && !error.error ()) {
 					const IDL::String* p;
 					evt >>= p;
 					last.data () += *p;
-				} else if (last.type () != Event::ERROR || last.error () != error.error ())
+				} else if (last.type () != Event::EVT_ERROR || last.error () != error.error ())
 					pull_queue_.push (std::move (evt));
 			}
 		} catch (...) {
