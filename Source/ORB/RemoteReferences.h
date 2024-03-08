@@ -55,7 +55,12 @@ public:
 	~RemoteReferences ()
 	{
 		for (auto& r : references_) {
-			delete r.second.get_if_constructed ();
+			RefPtr p = r.second.get_if_constructed ();
+#ifndef NDEBUG
+			if (p)
+				p->dbg_terminate ();
+#endif
+			delete p;
 		}
 	}
 

@@ -44,6 +44,9 @@ ReferenceRemote::ReferenceRemote (const OctetSeq& addr, servant_reference <Domai
 	domain_ (std::move (domain)),
 	object_key_ (object_key),
 	DGC_key_ (nullptr)
+#ifndef NDEBUG
+	, dbg_terminate_ (false)
+#endif
 {
 	auto p = binary_search (components, IOP::TAG_POLICIES);
 	if (p) {
@@ -66,9 +69,7 @@ ReferenceRemote::~ReferenceRemote ()
 	if (DGC_key_)
 		domain_->on_DGC_reference_delete (*DGC_key_);
 
-	// On shutdown, remote reference can be forcedly destructed.
-	// So issue assertion without break.
-	NIRVANA_ASSERT_EX (0 == ref_cnt_, 1);
+	assert (dbg_terminate_ || 0 == ref_cnt_);
 }
 
 void ReferenceRemote::_add_ref () noexcept

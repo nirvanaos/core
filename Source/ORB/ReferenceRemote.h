@@ -95,12 +95,23 @@ public:
 	virtual void _add_ref () noexcept override;
 	virtual void _remove_ref () noexcept override;
 
+#ifndef NDEBUG
+	void dbg_terminate () noexcept
+	{
+		dbg_terminate_ = true;
+	}
+#endif
+
 private:
 	const OctetSeq& address_;
 	servant_reference <Domain> domain_;
 	const IOP::ObjectKey object_key_;
 	IDL::String object_name_;
 	Domain::DGC_RefKey* DGC_key_;
+
+#ifndef NDEBUG
+	bool dbg_terminate_;
+#endif
 };
 
 typedef servant_reference <ReferenceRemote> ReferenceRemoteRef;
