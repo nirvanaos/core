@@ -66,22 +66,6 @@ void FileAccessChar::_remove_ref () noexcept
 	}
 }
 
-void FileAccessChar::add_push_consumer (FileAccessCharProxy& proxy)
-{
-	bool first = push_proxies_.empty () && !pull_consumer_cnt_;
-	push_proxies_.push_back (proxy);
-	if (first)
-		read_start ();
-}
-
-void FileAccessChar::remove_push_consumer (FileAccessCharProxy& proxy) noexcept
-{
-	assert (!push_proxies_.empty ());
-	proxy.remove ();
-	if (push_proxies_.empty () && !pull_consumer_cnt_)
-		read_cancel ();
-}
-
 void FileAccessChar::on_read (char c) noexcept
 {
 	ring_buffer_ [write_pos_] = c;
@@ -227,16 +211,52 @@ void FileAccessChar::read_callback () noexcept
 	}
 }
 
-void FileAccessChar::push_event (const CORBA::Any& evt) noexcept
+void FileAccessChar::push_event (const CORBA::Any& evt) const noexcept
 {
 	for (auto it = push_proxies_.begin (); it != push_proxies_.end (); ++it) {
 		it->push (evt);
 	}
 }
 
+CORBA::Any FileAccessChar::pull_queue_pop () noexcept
+{
+	assert (!pull_queue_.empty ());
+	CORBA::Any ret = pull_queue_.pop ();
+	if (pull_queue_.empty ())
+		pull_event_.reset ();
+	return ret;
+}
+
 void FileAccessChar::ReadCallback::run ()
 {
 	object_->read_callback ();
+}
+
+FileAccessChar::Event::U::U (Type type, U&& src) noexcept
+{
+	switch (type) {
+	case EVT_READ:
+		CORBA::Internal::construct (data, std::move (src.data));
+		break;
+	case EVT_ERROR:
+		error = src.error;
+		break;
+	default:
+		CORBA::Internal::construct (other, std::move (src.other));
+	}
+}
+
+void FileAccessChar::Event::U::destruct (Type type) noexcept
+{
+	switch (type) {
+	case EVT_READ:
+		CORBA::Internal::destruct (data);
+		break;
+	case EVT_ERROR:
+		break;
+	default:
+		CORBA::Internal::destruct (other);
+	}
 }
 
 }

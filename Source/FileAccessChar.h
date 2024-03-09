@@ -104,6 +104,7 @@ public:
 		assert (pull_consumer_cnt_);
 		if (!--pull_consumer_cnt_) {
 			pull_queue_.clear ();
+			pull_event_.reset ();
 			if (push_proxies_.empty ())
 				read_cancel ();
 		}
@@ -126,7 +127,7 @@ public:
 		while (pull_queue_.empty ()) {
 			pull_event_.wait ();
 		}
-		return pull_queue_.pop ();
+		return pull_queue_pop ();
 	}
 
 	CORBA::Any try_pull (bool& has_event) noexcept
@@ -135,11 +136,13 @@ public:
 		if (pull_queue_.empty ())
 			has_event = false;
 		else {
-			ret = pull_queue_.pop ();
+			ret = pull_queue_pop ();
 			has_event = true;
 		}
 		return ret;
 	}
+
+	CORBA::Any pull_queue_pop () noexcept;
 
 protected:
 	template <class> friend class CORBA::servant_reference;
@@ -189,6 +192,8 @@ protected:
 
 	/// Push custom event.
 	/// 
+	/// Derived device drivers can push own event types.
+	/// 
 	void push_custom_event (CORBA::Any&& evt)
 	{
 		push_event (evt);
@@ -221,7 +226,7 @@ private:
 
 	bool push_char (char c, IDL::String& s);
 	void push_char (char c, bool& repl, IDL::String& s);
-	void push_event (const CORBA::Any& evt) noexcept;
+	void push_event (const CORBA::Any& evt) const noexcept;
 
 private:
 	class ReadCallback : public Runnable
@@ -248,22 +253,22 @@ private:
 			EVT_OTHER
 		};
 
-		Event (IDL::String&& data) :
+		Event (IDL::String&& data) noexcept :
 			type_ (EVT_READ),
 			u_ (std::move (data))
 		{}
 
-		Event (AccessChar::Error err) :
+		Event (AccessChar::Error err) noexcept :
 			type_ (EVT_ERROR),
 			u_ (err)
 		{}
 
-		Event (CORBA::Any&& evt) :
+		Event (CORBA::Any&& evt) noexcept :
 			type_ (EVT_OTHER),
 			u_ (std::move (evt))
 		{}
 
-		Event (Event&& src) :
+		Event (Event&& src) noexcept :
 			type_ (src.type_),
 			u_ (src.type_, std::move (src.u_))
 		{}
@@ -273,7 +278,7 @@ private:
 			u_.destruct (type_);
 		}
 
-		Event& operator = (Event&& src)
+		Event& operator = (Event&& src) noexcept
 		{
 			u_.destruct (type_);
 			new (&u_) U (type_ = src.type_, std::move (src.u_));
@@ -320,48 +325,25 @@ private:
 	private:
 		union U
 		{
-			U (IDL::String&& s)
+			U (IDL::String&& s) noexcept
 			{
 				CORBA::Internal::construct (data, std::move (s));
 			}
 
-			U (AccessChar::Error err) :
+			U (AccessChar::Error err) noexcept :
 				error (err)
 			{}
 
-			U (CORBA::Any&& evt) :
+			U (CORBA::Any&& evt) noexcept :
 				other (std::move (evt))
 			{}
 
-			U (Type type, U&& src)
-			{
-				switch (type) {
-				case EVT_READ:
-					CORBA::Internal::construct (data, std::move (src.data));
-					break;
-				case EVT_ERROR:
-					error = src.error;
-					break;
-				default:
-					CORBA::Internal::construct (other, std::move (src.other));
-				}
-			}
+			U (Type type, U&& src) noexcept;
 
 			~U ()
 			{}
 
-			void destruct (Type type)
-			{
-				switch (type) {
-				case EVT_READ:
-					CORBA::Internal::destruct (data);
-					break;
-				case EVT_ERROR:
-					break;
-				default:
-					CORBA::Internal::destruct (other);
-				}
-			}
+			void destruct (Type type) noexcept;
 
 			IDL::String data;
 			AccessChar::Error error;
@@ -387,7 +369,7 @@ private:
 			return Base::empty ();
 		}
 
-		CORBA::Any pop ()
+		CORBA::Any pop () noexcept
 		{
 			assert (!empty ());
 			CORBA::Any any = front ().get_any ();

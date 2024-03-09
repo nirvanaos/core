@@ -23,13 +23,14 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "FileAccessCharProxy.h"
+#include "FileAccessChar_impl.h"
 
 namespace Nirvana {
 namespace Core {
 
 void FileAccessCharProxy::disconnect_push_supplier () noexcept
 {
+	check ();
 	CosEventComm::PushConsumer::_ref_type tmp (std::move (push_consumer_));
 	if (tmp) {
 		access_->remove_push_consumer (*this);
@@ -43,6 +44,7 @@ void FileAccessCharProxy::disconnect_push_supplier () noexcept
 
 void FileAccessCharProxy::disconnect_pull_supplier () noexcept
 {
+	check ();
 	if (pull_consumer_connected_) {
 		CosEventComm::PullConsumer::_ref_type tmp = pull_consumer_;
 		pull_consumer_connected_ = false;

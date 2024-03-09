@@ -66,7 +66,6 @@ public:
 
 	void close ()
 	{
-		check ();
 		disconnect_push_supplier ();
 		disconnect_pull_supplier ();
 		access_ = nullptr;
@@ -106,8 +105,10 @@ public:
 
 	void connect_push_consumer (CosEventComm::PushConsumer::_ptr_type consumer)
 	{
+		check ();
 		if (push_consumer_)
 			throw CosEventChannelAdmin::AlreadyConnected ();
+		access_->add_push_consumer (*this);
 		push_consumer_ = consumer;
 	}
 
@@ -115,6 +116,7 @@ public:
 
 	void connect_pull_consumer (CosEventComm::PullConsumer::_ptr_type consumer)
 	{
+		check ();
 		if (pull_consumer_connected_)
 			throw CosEventChannelAdmin::AlreadyConnected ();
 		access_->add_pull_consumer ();
@@ -124,7 +126,7 @@ public:
 
 	void disconnect_pull_supplier () noexcept;
 
-	void push (const CORBA::Any& evt) noexcept
+	void push (const CORBA::Any& evt) const noexcept
 	{
 		assert (push_consumer_);
 		try {
