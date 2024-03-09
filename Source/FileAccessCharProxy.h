@@ -30,6 +30,7 @@
 #include <CORBA/Server.h>
 #include "NameService/FileChar.h"
 #include "ORB/ORB.h"
+#include <Port/FileSystem.h>
 
 namespace Nirvana {
 namespace Core {
@@ -112,16 +113,6 @@ public:
 
 	void disconnect_push_supplier () noexcept;
 
-	void push (const CORBA::Any& evt) noexcept
-	{
-		assert (push_consumer_);
-		try {
-			push_consumer_->push (evt);
-		} catch (...) {
-			// TODO: Log
-		}
-	}
-
 	void connect_pull_consumer (CosEventComm::PullConsumer::_ptr_type consumer)
 	{
 		if (pull_consumer_connected_)
@@ -133,18 +124,38 @@ public:
 
 	void disconnect_pull_supplier () noexcept;
 
+	void push (const CORBA::Any& evt) noexcept
+	{
+		assert (push_consumer_);
+		try {
+			if (need_text_fix (evt)) {
+				CORBA::Any tmp (evt);
+				text_fix (tmp);
+				push_consumer_->push (tmp);
+			} else
+				push_consumer_->push (evt);
+		} catch (...) {
+			// TODO: Log
+		}
+	}
+
 	CORBA::Any pull () const
 	{
 		if (!pull_consumer_connected_)
 			throw CosEventComm::Disconnected ();
-		return access_->pull ();
+		CORBA::Any evt = access_->pull ();
+		text_fix (evt);
+		return evt;
 	}
 
 	CORBA::Any try_pull (bool& has_event) const
 	{
 		if (!pull_consumer_connected_)
 			throw CosEventComm::Disconnected ();
-		return access_->try_pull (has_event);
+		CORBA::Any evt = access_->try_pull (has_event);
+		if (has_event)
+			text_fix (evt);
+		return evt;
 	}
 
 private:
@@ -153,6 +164,22 @@ private:
 		if (!access_)
 			throw_BAD_PARAM (make_minor_errno (EBADF));
 	}
+
+	static char replace_eol () noexcept
+	{
+		return Port::FileSystem::eol () [0];
+	}
+
+	bool need_text_fix (const CORBA::Any& evt) const
+	{
+		if (replace_eol ())
+			return really_need_text_fix (evt);
+		return false;
+	}
+
+	bool really_need_text_fix (const CORBA::Any& evt) const;
+
+	static void text_fix (CORBA::Any& evt);
 
 private:
 	Ref <FileAccessChar> access_;

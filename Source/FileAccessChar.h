@@ -36,7 +36,7 @@
 #include <Nirvana/posix.h>
 #include <Nirvana/SimpleList.h>
 #include <CORBA/CosEventChannelAdmin.h>
-#include <queue>
+#include <deque>
 
 namespace Nirvana {
 namespace Core {
@@ -102,8 +102,11 @@ public:
 	void remove_pull_consumer () noexcept
 	{
 		assert (pull_consumer_cnt_);
-		if (push_proxies_.empty () && !--pull_consumer_cnt_)
-			read_cancel ();
+		if (!--pull_consumer_cnt_) {
+			pull_queue_.clear ();
+			if (push_proxies_.empty ())
+				read_cancel ();
+		}
 	}
 
 	int_fast16_t clear_read_error () noexcept
@@ -369,14 +372,14 @@ private:
 		U u_;
 	};
 
-	class EventQueue : private std::queue <Event>
+	class EventQueue : private std::deque <Event>
 	{
-		typedef std::queue <Event> Base;
+		typedef std::deque <Event> Base;
 
 	public:
 		void push (CORBA::Any&& evt)
 		{
-			Base::emplace (std::move (evt));
+			Base::emplace_back (std::move (evt));
 		}
 
 		bool empty () const noexcept
@@ -388,7 +391,7 @@ private:
 		{
 			assert (!empty ());
 			CORBA::Any any = front ().get_any ();
-			Base::pop ();
+			Base::pop_front ();
 			return any;
 		}
 
@@ -396,6 +399,11 @@ private:
 		{
 			assert (!empty ());
 			return Base::back ();
+		}
+
+		void clear () noexcept
+		{
+			return Base::clear ();
 		}
 	};
 

@@ -57,5 +57,26 @@ void FileAccessCharProxy::disconnect_pull_supplier () noexcept
 	}
 }
 
+bool FileAccessCharProxy::really_need_text_fix (const CORBA::Any& evt) const
+{
+	if (flags_ & O_TEXT) {
+		const IDL::String* s;
+		if (evt >>= s)
+			return s->find (Port::FileSystem::eol () [0]) != IDL::String::npos;
+	}
+	return false;
+}
+
+void FileAccessCharProxy::text_fix (CORBA::Any& evt)
+{
+	IDL::String* s;
+	if (evt >>= s) {
+		for (char& c : *s) {
+			if (replace_eol () == c)
+				c = '\n';
+		}
+	}
+}
+
 }
 }

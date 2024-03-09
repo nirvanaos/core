@@ -295,10 +295,6 @@ void MemContextUser::FileDescriptorChar::close () const
 
 void MemContextUser::FileDescriptorChar::before_destruct () noexcept
 {
-	try {
-		access_->close ();
-	} catch (...) {
-	}
 	access_ = nullptr;
 }
 
