@@ -72,7 +72,6 @@ public:
 		access_ (std::move (access))
 	{}
 
-	virtual void before_destruct () noexcept override;
 	virtual void close () const override;
 	virtual size_t read (void* p, size_t size) override;
 	virtual void write (const void* p, size_t size) override;
@@ -83,7 +82,7 @@ public:
 	virtual bool isatty () const override;
 
 private:
-	AccessBuf::_ref_type access_;
+	const AccessBuf::_ref_type access_;
 };
 
 class MemContextUser::FileDescriptorChar : public FileDescriptorBase
@@ -97,7 +96,6 @@ public:
 			access_->connect_pull_consumer (nullptr);
 	}
 
-	virtual void before_destruct () noexcept override;
 	virtual void close () const override;
 	virtual size_t read (void* p, size_t size) override;
 	virtual void write (const void* p, size_t size) override;
@@ -109,7 +107,7 @@ public:
 
 private:
 	typedef std::queue <char> Buffer;
-	AccessChar::_ref_type access_;
+	const AccessChar::_ref_type access_;
 	Buffer buffer_;
 	unsigned flags_;
 };
@@ -283,19 +281,9 @@ void MemContextUser::FileDescriptorBuf::close () const
 	access_->close ();
 }
 
-void MemContextUser::FileDescriptorBuf::before_destruct () noexcept
-{
-	access_ = nullptr;
-}
-
 void MemContextUser::FileDescriptorChar::close () const
 {
 	access_->close ();
-}
-
-void MemContextUser::FileDescriptorChar::before_destruct () noexcept
-{
-	access_ = nullptr;
 }
 
 size_t MemContextUser::FileDescriptorBuf::read (void* p, size_t size)

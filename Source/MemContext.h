@@ -156,11 +156,13 @@ private:
 		{}
 	};
 
+	class Replacer;
+
 private:
 	Ref <Heap> heap_;
 	DeadlineTime deadline_policy_async_;
 	DeadlineTime deadline_policy_oneway_;
-	RefCounter ref_cnt_;
+	AtomicCounter <false> ref_cnt_;
 	Type type_;
 };
 

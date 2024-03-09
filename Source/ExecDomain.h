@@ -349,6 +349,11 @@ public:
 	/// Pop memory context stack.
 	void mem_context_pop () noexcept;
 
+	bool mem_context_stack_empty () const noexcept
+	{
+		return mem_context_stack_.empty ();
+	}
+
 #ifndef NDEBUG
 	size_t dbg_mem_context_stack_size_;
 #endif

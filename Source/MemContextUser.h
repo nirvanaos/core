@@ -180,12 +180,6 @@ public:
 			data ().set_inherited_files (inh);
 	}
 
-	void before_destruct () noexcept
-	{
-		if (data_)
-			data_->before_destruct ();
-	}
-
 private:
 	friend class MemContext;
 
@@ -199,7 +193,6 @@ private:
 		static const unsigned PUSH_BACK_MAX = 3;
 
 	public:
-		virtual void before_destruct () noexcept = 0;
 		virtual void close () const = 0;
 		virtual size_t read (void* p, size_t size) = 0;
 		virtual void write (const void* p, size_t size) = 0;
@@ -338,12 +331,6 @@ private:
 		void fd_flags (unsigned fl) noexcept
 		{
 			fd_flags_ = fl;
-		}
-
-		void before_destruct () noexcept
-		{
-			if (ref_)
-				ref_->before_destruct ();
 		}
 
 	private:
@@ -507,16 +494,6 @@ private:
 						throw_BAD_PARAM ();
 					fdr.assign (fd);
 				}
-			}
-		}
-
-		void before_destruct () noexcept
-		{
-			for (auto& fd : file_descriptors_) {
-				fd.before_destruct ();
-			}
-			for (auto& fd : std_file_descriptors_) {
-				fd.before_destruct ();
 			}
 		}
 

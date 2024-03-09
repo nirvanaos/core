@@ -37,7 +37,6 @@
 #include "NameService/FileSystem.h"
 #include "Executable.h"
 #include "ORB/Services.h"
-#include "RuntimeGlobal.h"
 
 namespace Nirvana {
 namespace Core {

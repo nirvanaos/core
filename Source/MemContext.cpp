@@ -52,36 +52,72 @@ Ref <Heap> MemContext::create_heap ()
 
 MemContext::MemContext () noexcept :
 	deadline_policy_async_ (0),
-	deadline_policy_oneway_ (INFINITE_DEADLINE)
+	deadline_policy_oneway_ (INFINITE_DEADLINE),
+	ref_cnt_ (1)
 {}
 
 MemContext::~MemContext ()
 {}
 
+class MemContext::Replacer
+{
+public:
+	Replacer (MemContext& mc) :
+		exec_domain_ (ExecDomain::current ())
+	{
+		// Increment reference counter to prevent recursive deletion
+		mc.ref_cnt_.increment ();
+		if (exec_domain_.mem_context_stack_empty ()) {
+			pop_ = true;
+			exec_domain_.mem_context_push (&mc);
+		} else {
+			pop_ = false;
+			ref_ = &mc;
+			exec_domain_.mem_context_swap (ref_);
+		}
+	}
+
+	~Replacer ()
+	{
+		if (pop_)
+			exec_domain_.mem_context_pop ();
+		else
+			exec_domain_.mem_context_swap (ref_);
+	}
+
+private:
+	ExecDomain& exec_domain_;
+	Ref <MemContext> ref_;
+	bool pop_;
+};
+
 void MemContext::_remove_ref () noexcept
 {
-	if (!ref_cnt_.decrement ()) {
+	if (!ref_cnt_.decrement_seq ()) {
 
 		// Hold heap reference
 		Ref <Heap> heap (heap_);
 		Type type = type_;
 
-		if (MC_CORE == type) {
-			static_cast <MemContextCore&> (*this).~MemContextCore ();
-			heap->release (this, sizeof (MemContextCore));
-		} else {
+		{
+			// Replace memory context and call destructor
+			Replacer replace (*this);
 
-			MemContextUser& user_context = static_cast <MemContextUser&> (*this);
-			user_context.before_destruct ();
-			ExecDomain& ed = ExecDomain::current ();
-			ed.mem_context_replace (*this);
-			user_context.~MemContextUser ();
-			ed.mem_context_restore ();
-
-			if (MC_CLASS_LIBRARY == type)
-				BinderMemory::heap ().release (this, sizeof (MemContextUser));
+			if (MC_CORE == type)
+				static_cast <MemContextCore&> (*this).~MemContextCore ();
 			else
-				heap->release (this, sizeof (MemContextUser));
+				static_cast <MemContextUser&> (*this).~MemContextUser ();
+		}
+
+		switch (type) {
+		case MC_CORE:
+			heap->release (this, sizeof (MemContextCore));
+			break;
+		case MC_USER:
+			heap->release (this, sizeof (MemContextUser));
+			break;
+		default:
+			BinderMemory::heap ().release (this, sizeof (MemContextUser));
 		}
 	}
 }

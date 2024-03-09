@@ -25,7 +25,7 @@
 */
 #include "../pch.h"
 #include "FileChar.h"
-#include "../FileAccessCharProxy.h"
+#include "../FileAccessChar_impl.h"
 
 namespace Nirvana {
 namespace Core {

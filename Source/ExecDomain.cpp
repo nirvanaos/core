@@ -197,8 +197,6 @@ void ExecDomain::cleanup () noexcept
 	}
 	sync_context_ = nullptr;
 
-	ret_qnodes_clear ();
-	
 	assert (!mem_context_stack_.empty ());
 	assert (1 == dbg_mem_context_stack_size_);
 	do {
@@ -208,6 +206,8 @@ void ExecDomain::cleanup () noexcept
 #ifndef NDEBUG
 	dbg_mem_context_stack_size_ = 0;
 #endif
+
+	ret_qnodes_clear ();
 
 	if (scheduler_item_created_) {
 		Scheduler::delete_item ();
