@@ -47,10 +47,16 @@ public:
 		ProtDomain,
 		RootPOA,
 		SysDomain,
+
+		// End of user available services.
+		// Services below are internal.
+
 		TC_Factory,
 
 		SERVICE_COUNT
 	};
+
+	static const size_t USER_SERVICE_COUNT = TC_Factory;
 
 	/// Bind service.
 	/// 
@@ -74,8 +80,8 @@ public:
 	{
 		ORB::ObjectIdList list;
 		list.reserve (SERVICE_COUNT);
-		for (const Factory* f = factories_; f != std::end (factories_); ++f)
-			list.emplace_back (f->id);
+		for (const UserService* s = user_services_; s != std::end (user_services_); ++s)
+			list.emplace_back (s->id);
 		return list;
 	}
 
@@ -98,10 +104,10 @@ public:
 private:
 	static Service find_service (const Char* id) noexcept
 	{
-		const Factory* f = std::lower_bound (factories_, std::end (factories_), id, Less ());
-		if (f < std::end (factories_) && strcmp (id, f->id))
-			f = std::end (factories_);
-		return (Service)(f - factories_);
+		const UserService* f = std::lower_bound (user_services_, std::end (user_services_), id, Less ());
+		if (f < std::end (user_services_) && strcmp (id, f->id))
+			f = std::end (user_services_);
+		return (Service)(f - user_services_);
 	}
 
 	Object::_ref_type bind_internal (Service sidx);
@@ -120,24 +126,28 @@ private:
 	static Object::_ref_type create_Console ();
 
 private:
-	struct Factory
+	struct UserService
 	{
 		const Char* id;
-		Object::_ref_type (*factory) ();
-		TimeBase::TimeT creation_deadline;
 	};
 
 	struct Less
 	{
-		bool operator () (const Factory& l, const Char* r) const noexcept
+		bool operator () (const UserService& l, const Char* r) const noexcept
 		{
 			return strcmp (l.id, r) < 0;
 		}
 
-		bool operator () (const Char* l, const Factory& r) const noexcept
+		bool operator () (const Char* l, const UserService& r) const noexcept
 		{
 			return strcmp (l, r.id) < 0;
 		}
+	};
+
+	struct Factory
+	{
+		Object::_ref_type (*factory) ();
+		TimeBase::TimeT creation_deadline;
 	};
 
 	typedef Nirvana::Core::WaitableRef <Object::_ref_type> ServiceRef;
@@ -147,6 +157,7 @@ private:
 
 	static Nirvana::Core::StaticallyAllocated <Services> singleton_;
 
+	static const UserService user_services_ [USER_SERVICE_COUNT];
 	static const Factory factories_ [SERVICE_COUNT];
 };
 

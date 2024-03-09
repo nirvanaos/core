@@ -111,14 +111,26 @@ Object::_ref_type Services::bind_internal (Service sidx)
 
 // Initial services. Must be lexicographically ordered.
 
+const Services::UserService Services::user_services_ [USER_SERVICE_COUNT] = {
+	{ "Console" },
+	{ "NameService" },
+	{ "POACurrent" },
+	{ "ProtDomain" },
+	{ "RootPOA" },
+	{ "SysDomain" }
+};
+
 const Services::Factory Services::factories_ [SERVICE_COUNT] = {
-	{ "Console", create_Console, 1 * TimeBase::MILLISECOND },
-	{ "NameService", CosNaming::Core::create_NameService, 1 * TimeBase::MILLISECOND },
-	{ "POACurrent", create_POACurrent, 1 * TimeBase::MILLISECOND },
-	{ "ProtDomain", create_ProtDomain, 1 * TimeBase::MILLISECOND },
-	{ "RootPOA", PortableServer::Core::POA_Root::create, 1 * TimeBase::MILLISECOND },
-	{ "SysDomain", create_SysDomain, 10 * TimeBase::MILLISECOND }, // May cause inter-domain call
-	{ "TC_Factory", create_TC_Factory, 1 * TimeBase::MILLISECOND }
+	{ create_Console, 1 * TimeBase::MILLISECOND },
+	{ CosNaming::Core::create_NameService, 1 * TimeBase::MILLISECOND },
+	{ create_POACurrent, 1 * TimeBase::MILLISECOND },
+	{ create_ProtDomain, 1 * TimeBase::MILLISECOND },
+	{ PortableServer::Core::POA_Root::create, 1 * TimeBase::MILLISECOND },
+	{ create_SysDomain, 10 * TimeBase::MILLISECOND }, // May cause inter-domain call
+
+	// Internal services are below
+
+	{ create_TC_Factory, 1 * TimeBase::MILLISECOND }
 };
 
 // Service factories
