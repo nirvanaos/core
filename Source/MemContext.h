@@ -90,18 +90,6 @@ public:
 		deadline_policy_oneway_ = dp;
 	}
 
-	/// Search map for runtime proxy for object \p obj.
-	/// If proxy exists, returns it. Otherwise creates a new one.
-	/// 
-	/// \param obj Pointer used as a key.
-	/// \returns RuntimeProxy for obj.
-	virtual RuntimeProxy::_ref_type runtime_proxy_get (const void* obj) = 0;
-
-	/// Remove runtime proxy for object \p obj.
-	/// 
-	/// \param obj Pointer used as a key.
-	virtual void runtime_proxy_remove (const void* obj) noexcept = 0;
-
 protected:
 	enum Type
 	{

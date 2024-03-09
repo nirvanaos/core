@@ -83,7 +83,7 @@ public:
 	}
 
 	/// Implements System::bind_interface()
-	static InterfaceRef bind_interface (const IDL::String& name, const IDL::String& iid)
+	static InterfaceRef bind_interface (CORBA::Internal::String_in name, CORBA::Internal::String_in iid)
 	{
 		InterfaceRef ret;
 		SYNC_BEGIN (sync_domain (), nullptr);
@@ -256,6 +256,10 @@ private:
 
 		template <class A>
 		ObjectKey (const std::basic_string <char, std::char_traits <char>, A>& id) noexcept :
+			ObjectKey (id.c_str (), id.length ())
+		{}
+
+		ObjectKey (const CORBA::Internal::StringView <char>& id) noexcept :
 			ObjectKey (id.c_str (), id.length ())
 		{}
 

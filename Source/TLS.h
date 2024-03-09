@@ -28,9 +28,8 @@
 #define NIRVANA_CORE_TLS_H_
 #pragma once
 
+#include "MemContextUser.h"
 #include "BitmapOps.h"
-#include "UserAllocator.h"
-#include <memory>
 
 namespace Nirvana {
 
@@ -45,7 +44,10 @@ class TLS
 	static const unsigned BW_BITS = sizeof (BitmapWord) * 8;
 
 	/// Limit of the user TLS indexes.
-	static const unsigned USER_TLS_INDEXES = 128;
+	static const unsigned USER_TLS_INDEXES_MIN = 128;
+
+	static const size_t BITMAP_SIZE = (USER_TLS_INDEXES_MIN + BW_BITS - 1) / BW_BITS;
+	static const unsigned USER_TLS_INDEXES_END = BITMAP_SIZE * sizeof (BitmapWord) * 8;
 
 public:
 	/// Called on system startup.
@@ -60,115 +62,77 @@ public:
 	/// \returns New TLS index.
 	/// \param deleter Optional deleter function.
 	/// \throws CORBA::IMP_LIMIT if the limit of the user TLS indexes is reached.
-	static unsigned allocate (Deleter deleter);
+	static unsigned allocate (Deleter deleter)
+	{
+		if (BitmapOps::acquire (&free_count_)) {
+			for (BitmapWord* p = bitmap_;;) {
+				int bit;
+				do {
+					bit = BitmapOps::clear_rightmost_one (p);
+					if (bit >= 0) {
+						unsigned idx = (unsigned)((p - bitmap_) * sizeof (BitmapWord) * 8) + bit;
+						deleters_ [idx] = deleter;
+						return idx;
+					}
+				} while (std::end (bitmap_) != ++p);
+			}
+		} else
+			throw_IMP_LIMIT ();
+	}
 
 	/// Release TLS index.
 	///
 	/// \param idx TLS index.
 	/// \throws CORBA::BAD_PARAM if \p is not allocated.
-	static void release (unsigned idx);
+	static void release (unsigned idx)
+	{
+		if (idx >= USER_TLS_INDEXES_END)
+			throw_BAD_PARAM ();
+		size_t i = idx / BW_BITS;
+		BitmapWord mask = (BitmapWord)1 << (idx % BW_BITS);
+		if (BitmapOps::bit_set (bitmap_ + i, mask))
+			BitmapOps::release (&free_count_);
+		else
+			throw_BAD_PARAM ();
+	}
 
 	/// Set TLS value.
 	/// 
 	/// \param idx TLS index.
 	/// \param p Value.
 	/// \throws CORBA::BAD_PARAM if \p idx is wrong.
-	/// \throws CORBA::NO_IMPLEMENT if the current memory context is not user memory context.
-	static void set (unsigned idx, void* p);
+	static void set (unsigned idx, void* p)
+	{
+		{
+			if (idx >= USER_TLS_INDEXES_END)
+				throw_BAD_PARAM ();
+			size_t i = idx / BW_BITS;
+			BitmapWord mask = (BitmapWord)1 << (idx % BW_BITS);
+			if (bitmap_ [i] & mask)
+				throw_BAD_PARAM (); // This index is free
+
+			MemContextUser::current ().tls ().set_value (idx, p, deleters_ [idx]);
+		}
+	}
 
 	/// Get TLS value.
 	/// 
 	/// \param idx TLS index.
 	/// \returns TLS value.
-	static void* get (unsigned idx) noexcept;
-
-	class Holder
+	static void* get (unsigned idx) noexcept
 	{
-	public:
-		void set (unsigned idx, void* p);
-		void* get (unsigned idx) const noexcept;
-
-		void reset () noexcept
-		{
-			p_.reset ();
+		MemContextUser* mc = MemContext::current ().user_context ();
+		if (mc) {
+			TLS_Context* ctx = mc->tls_ptr ();
+			if (ctx)
+				return ctx->get_value (idx);
 		}
-
-	private:
-		std::unique_ptr <TLS> p_;
-	};
-
-	~TLS ();
+		return nullptr;
+	}
 
 private:
-	friend class Holder;
-
-	TLS ();
-
-	void set_value (unsigned idx, void* p, Deleter deleter);
-	void* get_value (unsigned idx) const noexcept;
-
-	class Entry
-	{
-	public:
-		Entry () :
-			ptr_ (nullptr),
-			deleter_ (nullptr)
-		{}
-
-		Entry (void* ptr, Deleter deleter) noexcept :
-			ptr_ (ptr),
-			deleter_ (deleter)
-		{}
-
-		Entry (Entry&& src) noexcept :
-			ptr_ (src.ptr_),
-			deleter_ (src.deleter_)
-		{
-			src.deleter_ = nullptr;
-		}
-
-		Entry& operator = (Entry&& src) noexcept
-		{
-			destruct ();
-			ptr_ = src.ptr_;
-			deleter_ = src.deleter_;
-			src.deleter_ = nullptr;
-			return *this;
-		}
-
-		~Entry ()
-		{
-			destruct ();
-		}
-
-		void* ptr () const
-		{
-			return ptr_;
-		}
-
-		void reset () noexcept
-		{
-			ptr_ = nullptr;
-			deleter_ = nullptr;
-		}
-
-	private:
-		void destruct () noexcept;
-
-	private:
-		void* ptr_;
-		Deleter deleter_;
-	};
-
-	typedef std::vector <Entry, UserAllocator <Entry> > Entries;
-	Entries entries_;
-
-	static const size_t BITMAP_SIZE = (USER_TLS_INDEXES + BW_BITS - 1) / BW_BITS;
 	static BitmapWord bitmap_ [BITMAP_SIZE];
-	static Deleter deleters_ [USER_TLS_INDEXES];
-
-	static const unsigned USER_TLS_INDEXES_END = BITMAP_SIZE * sizeof (BitmapWord) * 8;
-
+	static Deleter deleters_ [USER_TLS_INDEXES_END];
 	static uint16_t free_count_;
 };
 

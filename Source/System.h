@@ -40,6 +40,10 @@
 #include "NameService/FileSystem.h"
 #include "NameService/NameService.h"
 #include "TimerEvent.h"
+#include "TLS.h"
+#include "RuntimeSupport.h"
+#include "FileDescriptors.h"
+#include "CurrentDir.h"
 
 namespace Nirvana {
 namespace Core {
@@ -50,16 +54,12 @@ class System :
 public:
 	static RuntimeProxy::_ref_type runtime_proxy_get (const void* obj)
 	{
-		if (!RUNTIME_SUPPORT_DISABLE)
-			return MemContext::current ().runtime_proxy_get (obj);
-		else
-			return nullptr;
+		return RuntimeSupport::proxy_get (obj);
 	}
 
 	static void runtime_proxy_remove (const void* obj)
 	{
-		if (!RUNTIME_SUPPORT_DISABLE)
-			MemContext::current ().runtime_proxy_remove (obj);
+		RuntimeSupport::proxy_remove (obj);
 	}
 
 	// This operation can cause context switch.
@@ -292,77 +292,77 @@ public:
 
 	static CosNaming::Name get_current_dir_name ()
 	{
-		return MemContextUser::current ().get_current_dir_name ();
+		return CurrentDir::current_dir ();
 	}
 
 	static void chdir (const IDL::String& path)
 	{
-		MemContextUser::current ().chdir (path);
+		CurrentDir::chdir (path);
 	}
 
 	static uint16_t fd_add (Access::_ptr_type access)
 	{
-		return (uint16_t)MemContextUser::current ().fd_add (access);
+		return (uint16_t)FileDescriptors::fd_add (access);
 	}
 
 	static void close (unsigned fd)
 	{
-		MemContextUser::current ().close (fd);
+		FileDescriptors::close (fd);
 	}
 
 	static size_t read (unsigned fd, void* p, size_t size)
 	{
-		return MemContextUser::current ().read (fd, p, size);
+		return FileDescriptors::read (fd, p, size);
 	}
 
 	static void write (unsigned fd, const void* p, size_t size)
 	{
-		MemContextUser::current ().write (fd, p, size);
+		FileDescriptors::write (fd, p, size);
 	}
 
 	static FileSize seek (unsigned fd, const FileOff& offset, uint_fast16_t whence)
 	{
-		return MemContextUser::current ().seek (fd, offset, whence);
+		return FileDescriptors::seek (fd, offset, whence);
 	}
 
 	static int_fast16_t fcntl (unsigned fd, int_fast16_t cmd, uint_fast16_t arg)
 	{
-		return MemContextUser::current ().fcntl (fd, cmd, arg);
+		return FileDescriptors::fcntl (fd, cmd, arg);
 	}
 
 	static void flush (unsigned fd)
 	{
-		MemContextUser::current ().flush (fd);
+		FileDescriptors::flush (fd);
 	}
 
 	static void dup2 (unsigned src, unsigned dst)
 	{
-		MemContextUser::current ().dup2 (src, dst);
+		FileDescriptors::dup2 (src, dst);
 	}
 
 	static bool isatty (unsigned fd)
 	{
-		return MemContextUser::current ().isatty (fd);
+		return FileDescriptors::isatty (fd);
 	}
 
 	static void ungetc (unsigned fd, int c)
 	{
-		MemContextUser::current ().push_back (fd, c);
+		FileDescriptors::push_back (fd, c);
 	}
 
 	static bool ferror (unsigned fd)
 	{
-		return MemContextUser::current ().ferror (fd);
+		return FileDescriptors::ferror (fd);
 	}
 
 	static bool feof (unsigned fd)
 	{
-		return MemContextUser::current ().feof (fd);
+		return FileDescriptors::feof (fd);
 	}
 
 	static void clearerr (unsigned fd)
 	{
-		MemContextUser::current ().clearerr (fd);
+		FileDescriptors::clearerr (fd);
 	}
 
 	static size_t exec_domain_id ()

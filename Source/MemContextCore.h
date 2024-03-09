@@ -49,8 +49,6 @@ private:
 	~MemContextCore ()
 	{}
 
-	virtual RuntimeProxy::_ref_type runtime_proxy_get (const void* obj) override;
-	virtual void runtime_proxy_remove (const void* obj) noexcept override;
 };
 
 }

@@ -113,7 +113,7 @@ void Process::on_crash (const siginfo& signal) noexcept
 
 void Process::error_message (const char* msg) const
 {
-	mem_context_->write (2, msg, strlen (msg));
+	mem_context_->file_descriptors ().write (2, msg, strlen (msg));
 }
 
 }

@@ -34,13 +34,5 @@ Ref <MemContext> MemContextCore::create (Ref <Heap>&& heap)
 	return MemContext::create <MemContextCore> (std::move (heap), MC_CORE);
 }
 
-RuntimeProxy::_ref_type MemContextCore::runtime_proxy_get (const void* obj)
-{
-	return nullptr;
-}
-
-void MemContextCore::runtime_proxy_remove (const void* obj) noexcept
-{}
-
 }
 }

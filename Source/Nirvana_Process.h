@@ -129,7 +129,7 @@ private:
 		callback_ (callback),
 		mem_context_ (MemContext::current ().user_context ())
 	{
-		mem_context_->set_inherited_files (inherit);
+		mem_context_->file_descriptors().set_inherited_files (inherit);
 		if (!work_dir.empty ())
 			mem_context_->chdir (work_dir);
 	}

@@ -28,83 +28,41 @@
 #define NIRVANA_CORE_RUNTIMESUPPORT_H_
 #pragma once
 
-#include <CORBA/Server.h>
-#include <signal.h>
-#include <Nirvana/System_s.h>
-#include "LifeCyclePseudo.h"
-#include "UserObject.h"
-#include "UserAllocator.h"
-#include "CoreInterface.h"
-#include <Port/config.h>
-#include "MapUnorderedUnstable.h"
+#include "MemContextUser.h"
 
 namespace Nirvana {
 namespace Core {
 
-/// Implements System::runtime_proxy_get() and System::runtime_proxy_remove().
-class RuntimeSupport
-{
-	/// Implements RuntimeProxy interface.
-	class RuntimeProxyImpl :
-		public CORBA::Internal::ImplementationPseudo <RuntimeProxyImpl, RuntimeProxy>,
-		public LifeCyclePseudo <RuntimeProxyImpl>,
-		public UserObject
-	{
-	public:
-		RuntimeProxyImpl (const void* obj) noexcept :
-			object_ (obj)
-		{}
-
-		~RuntimeProxyImpl ()
-		{}
-
-		const void* object () const noexcept
-		{
-			return object_;
-		}
-
-		void remove () noexcept
-		{
-			assert (object_);
-			object_ = nullptr;
-		}
-
-	private:
-		const void* object_;
-	};
-
-	typedef MapUnorderedUnstable <const void*, Ref <RuntimeProxyImpl>,
-		std::hash <const void*>, std::equal_to <const void*>, UserAllocator> ProxyMap;
-
-public:
-	RuntimeProxy::_ref_type runtime_proxy_get (const void* obj);
-	void runtime_proxy_remove (const void* obj) noexcept;
-
-	void clear () noexcept;
-
-	RuntimeSupport ();
-	~RuntimeSupport ();
-
-private:
-	ProxyMap proxy_map_;
-};
-
-class RuntimeSupportFake
+class RuntimeSupportReal
 {
 public:
-	RuntimeProxy::_ref_type runtime_proxy_get (const void* obj)
+	/// Search map for runtime proxy for object \p obj.
+	/// If proxy exists, returns it. Otherwise creates a new one.
+	/// 
+	/// \param obj Pointer used as a key.
+	/// \returns RuntimeProxy for obj.
+	///   May return nil reference if RuntimeSupport is disabled.
+	static RuntimeProxy::_ref_type proxy_get (const void* obj)
 	{
-		return RuntimeProxy::_nil ();
+		MemContextUser* mc = MemContext::current ().user_context ();
+		if (mc)
+			return static_cast <RuntimeSupportContext&> (*mc).proxy_get (obj);
+		else
+			return nullptr;
 	}
 
-	void runtime_proxy_remove (const void* obj) noexcept
-	{}
-
-	void clear () noexcept
-	{}
+	/// Remove runtime proxy for object \p obj.
+	/// 
+	/// \param obj Pointer used as a key.
+	static void proxy_remove (const void* obj) noexcept
+	{
+		MemContextUser* mc = MemContext::current ().user_context ();
+		if (mc)
+			static_cast <RuntimeSupportContext&> (*mc).proxy_remove (obj);
+	}
 };
 
-typedef std::conditional <RUNTIME_SUPPORT_DISABLE, RuntimeSupportFake, RuntimeSupport>::type RuntimeSupportImpl;
+typedef std::conditional <RUNTIME_SUPPORT_DISABLE, RuntimeSupportFake, RuntimeSupportReal>::type RuntimeSupport;
 
 }
 }

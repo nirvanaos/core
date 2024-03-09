@@ -1,4 +1,3 @@
-/// \file
 /*
 * Nirvana Core.
 *
@@ -24,47 +23,27 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_CORE_RUNTIMEGLOBAL_H_
-#define NIRVANA_CORE_RUNTIMEGLOBAL_H_
-#pragma once
-
-#include "RandomGen.h"
+#include "pch.h"
+#include "FileDescriptors.h"
 
 namespace Nirvana {
 namespace Core {
 
-/// POSIX run-time library global state
-class RuntimeGlobal
+FileDescriptorsContext& FileDescriptors::context_for_fd ()
 {
-public:
-	static RuntimeGlobal& current ();
-
-	RuntimeGlobal () noexcept :
-		random_ (1),
-		error_number_ (0)
-	{}
-
-	int rand () noexcept
-	{
-		return random_.operator () ();
+	MemContextUser* mc = MemContext::current ().user_context ();
+	if (mc) {
+		FileDescriptorsContext* ctx = mc->file_descriptors_ptr ();
+		if (ctx)
+			return *ctx;
 	}
+	throw_BAD_PARAM (make_minor_errno (EBADF));
+}
 
-	void srand (unsigned seed) noexcept
-	{
-		random_.state (seed);
-	}
-
-	int* error_number () noexcept
-	{
-		return &error_number_;
-	}
-
-private:
-	RandomGen random_;
-	int error_number_;
-};
+FileDescriptorsContext& FileDescriptors::context ()
+{
+	return MemContextUser::current ().file_descriptors ();
+}
 
 }
 }
-
-#endif

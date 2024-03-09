@@ -1,3 +1,4 @@
+/// \file
 /*
 * Nirvana Core.
 *
@@ -23,45 +24,38 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "pch.h"
-#include "RuntimeSupport.h"
+#ifndef NIRVANA_CORE_CURRENTDIRCONTEXT_H_
+#define NIRVANA_CORE_CURRENTDIRCONTEXT_H_
+#pragma once
+
+#include <Nirvana/Nirvana.h>
+#include <CORBA/CosNaming.h>
 
 namespace Nirvana {
 namespace Core {
 
-RuntimeSupport::RuntimeSupport ()
-{}
-
-RuntimeSupport::~RuntimeSupport ()
-{}
-
-void RuntimeSupport::clear () noexcept
+class CurrentDirContext
 {
-	ProxyMap tmp = std::move (proxy_map_);
-}
-
-RuntimeProxy::_ref_type RuntimeSupport::runtime_proxy_get (const void* obj)
-{
-	auto ins = proxy_map_.emplace (obj, nullptr);
-	if (ins.second) {
-		try {
-			ins.first->second = Ref <RuntimeProxyImpl>::template create <RuntimeProxyImpl> (obj);
-		} catch (...) {
-			proxy_map_.erase (ins.first);
-			throw;
-		}
+public:
+	const CosNaming::Name& current_dir () const
+	{
+		return current_dir_;
 	}
-	return ins.first->second->_get_ptr ();
+
+	void chdir (const IDL::String& path);
+
+	static CosNaming::Name default_dir ();
+
+private:
+	CosNaming::Name get_name_from_path (const IDL::String& path) const;
+	static CosNaming::NamingContext::_ref_type name_service ();
+
+private:
+	CosNaming::Name current_dir_;
+};
+
+
+}
 }
 
-void RuntimeSupport::runtime_proxy_remove (const void* obj) noexcept
-{
-	auto f = proxy_map_.find (obj);
-	if (f != proxy_map_.end ()) {
-		f->second->remove ();
-		proxy_map_.erase (f);
-	}
-}
-
-}
-}
+#endif

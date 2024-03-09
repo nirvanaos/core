@@ -24,44 +24,45 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_CORE_RUNTIMEGLOBAL_H_
-#define NIRVANA_CORE_RUNTIMEGLOBAL_H_
+#ifndef NIRVANA_CORE_CURRENTDIR_H_
+#define NIRVANA_CORE_CURRENTDIR_H_
 #pragma once
 
-#include "RandomGen.h"
+#include "MemContextUser.h"
 
 namespace Nirvana {
 namespace Core {
 
-/// POSIX run-time library global state
-class RuntimeGlobal
+class CurrentDir
 {
 public:
-	static RuntimeGlobal& current ();
-
-	RuntimeGlobal () noexcept :
-		random_ (1),
-		error_number_ (0)
-	{}
-
-	int rand () noexcept
+	static CosNaming::Name current_dir ()
 	{
-		return random_.operator () ();
+		CosNaming::Name dir;
+		MemContextUser* mc = MemContext::current ().user_context ();
+		if (mc) {
+			const CurrentDirContext* ctx = mc->current_dir_ptr ();
+			if (ctx) {
+				dir = ctx->current_dir ();
+			}
+		}
+		if (dir.empty ())
+			dir = CurrentDirContext::default_dir ();
+		return dir;
 	}
 
-	void srand (unsigned seed) noexcept
+	static void chdir (const IDL::String& path)
 	{
-		random_.state (seed);
+		MemContextUser& mc = MemContextUser::current ();
+		CurrentDirContext* ctx;
+		if (!path.empty ())
+			ctx = &mc.current_dir ();
+		else
+			ctx = mc.current_dir_ptr ();
+		if (ctx)
+			ctx->chdir (path);
 	}
 
-	int* error_number () noexcept
-	{
-		return &error_number_;
-	}
-
-private:
-	RandomGen random_;
-	int error_number_;
 };
 
 }

@@ -38,7 +38,6 @@
 #include "Services.h"
 #include "ReferenceLocal.h"
 #include "PolicyMap.h"
-#include "../TLS.h"
 #include "../EventSync.h"
 
 namespace CORBA {

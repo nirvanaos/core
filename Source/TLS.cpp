@@ -25,47 +25,15 @@
 */
 #include "pch.h"
 #include "TLS.h"
-#include "RuntimeGlobal.h"
-#include "MemContextUser.h"
 
 namespace Nirvana {
 namespace Core {
 
 TLS::BitmapWord TLS::bitmap_ [BITMAP_SIZE];
-Deleter TLS::deleters_ [USER_TLS_INDEXES];
+Deleter TLS::deleters_ [USER_TLS_INDEXES_END];
 uint16_t TLS::free_count_;
 
-unsigned TLS::allocate (Deleter deleter)
-{
-	if (BitmapOps::acquire (&free_count_)) {
-		for (BitmapWord* p = bitmap_;;) {
-			int bit;
-			do {
-				bit = BitmapOps::clear_rightmost_one (p);
-				if (bit >= 0) {
-					unsigned idx = (unsigned)((p - bitmap_) * sizeof (BitmapWord) * 8) + bit;
-					deleters_ [idx] = deleter;
-					return idx;
-				}
-			} while (std::end (bitmap_) != ++p);
-		}
-	} else
-		throw_IMP_LIMIT ();
-}
-
-void TLS::release (unsigned idx)
-{
-	if (idx >= USER_TLS_INDEXES_END)
-		throw_BAD_PARAM ();
-	size_t i = idx / BW_BITS;
-	BitmapWord mask = (BitmapWord)1 << (idx % BW_BITS);
-	if (BitmapOps::bit_set (bitmap_ + i, mask))
-		BitmapOps::release (&free_count_);
-	else
-		throw_BAD_PARAM ();
-}
-
-void TLS::Entry::destruct () noexcept
+void TLS_Context::Entry::destruct () noexcept
 {
 	if (deleter_ && ptr_) {
 		try {
@@ -74,70 +42,6 @@ void TLS::Entry::destruct () noexcept
 			// TODO: Log
 		}
 	}
-}
-
-inline TLS::TLS ()
-{}
-
-TLS::~TLS ()
-{}
-
-inline void TLS::set_value (unsigned idx, void* p, Deleter deleter)
-{
-	if (!p)
-		deleter = nullptr;
-	if (entries_.size () <= idx) {
-		if (!p)
-			return;
-		entries_.resize (idx + 1);
-	}
-	entries_ [idx] = Entry (p, deleter);
-}
-
-inline void* TLS::get_value (unsigned idx) const noexcept
-{
-	// Do not check that index is really allocated, just return nullptr.
-	// It is for performance.
-	if (entries_.size () <= idx)
-		return nullptr;
-	else
-		return entries_ [idx].ptr ();
-}
-
-void TLS::Holder::set (unsigned idx, void* p)
-{
-	if (idx >= USER_TLS_INDEXES_END)
-		throw_BAD_PARAM ();
-	size_t i = idx / BW_BITS;
-	BitmapWord mask = (BitmapWord)1 << (idx % BW_BITS);
-	if (bitmap_ [i] & mask)
-		throw_BAD_PARAM (); // This index is free
-
-	if (!p_)
-		p_.reset (new TLS);
-	p_->set_value (idx, p, deleters_ [idx]);
-}
-
-void* TLS::Holder::get (unsigned idx) const noexcept
-{
-	if (p_)
-		return p_->get_value (idx);
-	else
-		return nullptr;
-}
-
-void TLS::set (unsigned idx, void* p)
-{
-	MemContextUser::current ().runtime_global ().TLS_set (idx, p);
-}
-
-void* TLS::get (unsigned idx) noexcept
-{
-	MemContextUser* mc = MemContext::current ().user_context ();
-	if (mc)
-		return mc->runtime_global ().TLS_get (idx);
-	else
-		return nullptr;
 }
 
 }
