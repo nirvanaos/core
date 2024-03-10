@@ -29,7 +29,7 @@
 #include <CORBA/Server.h>
 #include <CORBA/CosNaming_s.h>
 #include "../Synchronized.h"
-#include "../MemContext.h"
+#include "../Heap.h"
 #include "../deactivate_servant.h"
 
 using namespace Nirvana::Core;
@@ -124,7 +124,7 @@ private:
 CosNaming::BindingIterator::_ref_type Iterator::create_iterator (std::unique_ptr <Iterator>&& vi)
 {
 	CosNaming::BindingIterator::_ref_type ret;
-	SYNC_BEGIN (g_core_free_sync_context, &MemContext::current ().heap ())
+	SYNC_BEGIN (g_core_free_sync_context, &Heap::user_heap ())
 		ret = CORBA::make_reference <BindingIterator> (std::move (vi))->_this ();
 	SYNC_END ();
 	return ret;

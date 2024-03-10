@@ -33,8 +33,7 @@
 #include <Nirvana/Module_s.h>
 #include <Nirvana/ModuleInit.h>
 #include "AtomicCounter.h"
-#include "MemContextUser.h"
-#include "Chrono.h"
+#include "UserObject.h"
 #include "AtExit.h"
 
 namespace Nirvana {

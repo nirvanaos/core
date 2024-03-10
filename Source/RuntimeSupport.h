@@ -28,7 +28,7 @@
 #define NIRVANA_CORE_RUNTIMESUPPORT_H_
 #pragma once
 
-#include "MemContextUser.h"
+#include "MemContext.h"
 
 namespace Nirvana {
 namespace Core {
@@ -44,11 +44,7 @@ public:
 	///   May return nil reference if RuntimeSupport is disabled.
 	static RuntimeProxy::_ref_type proxy_get (const void* obj)
 	{
-		MemContextUser* mc = MemContext::current ().user_context ();
-		if (mc)
-			return static_cast <RuntimeSupportContext&> (*mc).proxy_get (obj);
-		else
-			return nullptr;
+		return MemContext::current ().runtime_support ().proxy_get (obj);
 	}
 
 	/// Remove runtime proxy for object \p obj.
@@ -56,9 +52,9 @@ public:
 	/// \param obj Pointer used as a key.
 	static void proxy_remove (const void* obj) noexcept
 	{
-		MemContextUser* mc = MemContextUser::current_ptr ();
+		MemContext* mc = MemContext::current_ptr ();
 		if (mc)
-			static_cast <RuntimeSupportContext&> (*mc).proxy_remove (obj);
+			mc->runtime_support ().proxy_remove (obj);
 	}
 };
 

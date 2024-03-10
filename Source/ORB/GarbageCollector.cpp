@@ -39,22 +39,27 @@ void GarbageCollector::schedule (SyncGC& garbage, Nirvana::Core::SyncContext& sy
 noexcept
 {
 	assert (sync_context.sync_domain ());
-	try {
-		DeadlineTime deadline =
-			PROXY_GC_DEADLINE == INFINITE_DEADLINE ?
-			INFINITE_DEADLINE : Chrono::make_deadline (PROXY_GC_DEADLINE);
-
-		ExecDomain::async_call <GarbageCollector> (
-			deadline, sync_context, nullptr, std::ref (garbage));
-	} catch (...) {
+	ExecDomain& ed = ExecDomain::current ();
+	if (ed.restricted_mode () != ExecDomain::RestrictedMode::SUPPRESS_ASYNC_GC) {
 		try {
-			servant_reference <SyncGC> ref;
-			SYNC_BEGIN (sync_context, nullptr)
-				ref = nullptr;
-			SYNC_END ()
+			DeadlineTime deadline =
+				PROXY_GC_DEADLINE == INFINITE_DEADLINE ?
+				INFINITE_DEADLINE : Chrono::make_deadline (PROXY_GC_DEADLINE);
+
+			ExecDomain::async_call <GarbageCollector> (
+				deadline, sync_context, nullptr, std::ref (garbage));
 		} catch (...) {
-			assert (false);
+			// Async call failed, maybe resources are exausted.
+			// Fallback to collect garbage synchronous.
 		}
+	}
+	try {
+		servant_reference <SyncGC> ref;
+		SYNC_BEGIN (sync_context, nullptr)
+			ref = nullptr;
+		SYNC_END ()
+	} catch (...) {
+		assert (false);
 	}
 }
 

@@ -51,7 +51,7 @@ void AtExitAsync::atexit (Heap& heap, AtExitFunc f)
 	Entry* entry = (Entry*)heap.allocate (nullptr, size, 0);
 	entry->func = f;
 	entry->prev = last_.load ();
-	entry->mem_context = &MemContext::current ();
+	entry->mem_context = MemContext::current_ptr ();
 	for (BackOff bo; true; bo ()) {
 		if (last_.compare_exchange_weak (entry->prev, entry))
 			break;
@@ -65,13 +65,13 @@ void AtExitAsync::execute ()
 		ExecDomain& ed = ExecDomain::current ();
 		Heap& heap = ed.mem_context_ptr ()->heap ();
 		do {
-			ed.mem_context_replace (*entry->mem_context);
+			Ref <MemContext> tmp (std::move (entry->mem_context));
+			ed.mem_context_swap (tmp);
 			try {
 				(entry->func) ();
 			} catch (...) {
 			}
-			ed.mem_context_restore ();
-			entry->mem_context = nullptr;
+			ed.mem_context_swap (tmp);
 			Entry* prev = entry->prev;
 			heap.release (entry, sizeof (Entry));
 			entry = prev;

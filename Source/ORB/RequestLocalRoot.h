@@ -156,7 +156,7 @@ public:
 			unmarshal_segment (p, size);
 			size_t allocated = allocated_size;
 			if (allocated)
-				Nirvana::Core::MemContext::current ().heap ().release (data, allocated);
+				Nirvana::Core::Heap::user_heap ().release (data, allocated);
 			allocated_size = size;
 			data = p;
 		}

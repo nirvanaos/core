@@ -465,7 +465,7 @@ private:
 	{
 	public:
 		IndirectRepIdMarshal () :
-			IndirectRepIdMarshalCont (Nirvana::Core::MemContext::current ().heap ())
+			IndirectRepIdMarshalCont (Nirvana::Core::Heap::user_heap ())
 		{}
 	};
 
@@ -473,7 +473,7 @@ private:
 	{
 	public:
 		IndirectRepIdUnmarshal () :
-			IndirectRepIdUnmarshalCont (Nirvana::Core::MemContext::current ().heap ())
+			IndirectRepIdUnmarshalCont (Nirvana::Core::Heap::user_heap ())
 		{}
 	};
 

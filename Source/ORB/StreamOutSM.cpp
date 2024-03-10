@@ -96,7 +96,7 @@ void StreamOutSM::write (size_t align, size_t element_size, size_t CDR_element_s
 		oa.ptr = other_domain_->copy (0, data, adopted_size, (allocated_size != 0) ? Nirvana::Memory::SRC_DECOMMIT : 0);
 		oa.size = adopted_size;
 		if (allocated_size) {
-			MemContext::current ().heap ().release ((uint8_t*)data, allocated_size);
+			Nirvana::Core::Heap::user_heap ().release ((uint8_t*)data, allocated_size);
 			allocated_size = 0;
 		}
 

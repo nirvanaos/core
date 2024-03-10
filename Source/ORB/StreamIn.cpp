@@ -26,7 +26,7 @@
 #include "../pch.h"
 #include "StreamIn.h"
 #include <algorithm>
-#include "../MemContext.h"
+#include "../Heap.h"
 
 using namespace Nirvana;
 
@@ -66,7 +66,7 @@ bool StreamIn::read_seq (size_t align, size_t element_size, size_t CDR_element_s
 			size = 0;
 			void* new_data = read (align, element_size, CDR_element_size, count, size);
 			if (allocated_size) {
-				Nirvana::Core::MemContext::current ().heap ().release (data, allocated_size);
+				Nirvana::Core::Heap::user_heap ().release (data, allocated_size);
 				allocated_size = 0;
 			}
 			data = new_data;

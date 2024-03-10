@@ -28,7 +28,7 @@
 #define NIRVANA_CORE_TLS_H_
 #pragma once
 
-#include "MemContextUser.h"
+#include "MemContext.h"
 #include "BitmapOps.h"
 
 namespace Nirvana {
@@ -111,7 +111,7 @@ public:
 			if (bitmap_ [i] & mask)
 				throw_BAD_PARAM (); // This index is free
 
-			MemContextUser::current ().tls ().set_value (idx, p, deleters_ [idx]);
+			MemContext::current ().tls ().set_value (idx, p, deleters_ [idx]);
 		}
 	}
 
@@ -121,7 +121,7 @@ public:
 	/// \returns TLS value.
 	static void* get (unsigned idx) noexcept
 	{
-		MemContextUser* mc = MemContextUser::current_ptr ();
+		MemContext* mc = MemContext::current_ptr ();
 		if (mc) {
 			TLS_Context* ctx = mc->tls_ptr ();
 			if (ctx)

@@ -61,9 +61,9 @@ void RequestGIOP::_remove_ref () noexcept
 	if (!ref_cnt_.decrement ()) {
 		ExecDomain& ed = ExecDomain::current ();
 		servant_reference <MemContext> mc = std::move (mem_context_);
-		ed.mem_context_replace (*mc);
+		ed.mem_context_swap (mc);
 		delete this;
-		ed.mem_context_restore ();
+		ed.mem_context_swap (mc);
 	}
 }
 

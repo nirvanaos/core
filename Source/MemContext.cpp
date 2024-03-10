@@ -25,9 +25,8 @@
 */
 #include "pch.h"
 #include "MemContext.h"
-#include "MemContextCore.h"
-#include "MemContextUser.h"
 #include "ExecDomain.h"
+#include "HeapUser.h"
 #include "BinderMemory.h"
 
 namespace Nirvana {
@@ -50,10 +49,31 @@ Ref <Heap> MemContext::create_heap ()
 		Ref <Heap> (&Heap::shared_heap ());
 }
 
-MemContext::MemContext () noexcept :
-	ref_cnt_ (1)
+Ref <MemContext> MemContext::create (Ref <Heap>&& heap, bool class_library_init)
+{
+	Heap& allocate_from = class_library_init ? BinderMemory::heap () : *heap;
+	size_t cb = sizeof (MemContext);
+	return CreateRef (new (allocate_from.allocate (nullptr, cb, 0)) MemContext (std::move (heap), class_library_init));
+}
+
+MemContext& MemContext::current ()
+{
+	return ExecDomain::current ().mem_context ();
+}
+
+MemContext* MemContext::current_ptr () noexcept
+{
+	return ExecDomain::current ().mem_context_ptr ();
+}
+
+inline
+MemContext::MemContext (Ref <Heap>&& heap, bool class_library_init) noexcept :
+	heap_ (std::move (heap)),
+	ref_cnt_ (1),
+	class_library_init_ (class_library_init)
 {}
 
+inline
 MemContext::~MemContext ()
 {}
 
@@ -95,29 +115,20 @@ void MemContext::_remove_ref () noexcept
 	if (!ref_cnt_.decrement_seq ()) {
 
 		// Hold heap reference
-		Ref <Heap> heap (heap_);
-		Type type = type_;
+		Ref <Heap> heap;
+		if (class_library_init_)
+			heap = &BinderMemory::heap ();
+		else
+			heap = heap_;
 
 		{
 			// Replace memory context and call destructor
 			Replacer replace (*this);
-
-			if (MC_CORE == type)
-				static_cast <MemContextCore&> (*this).~MemContextCore ();
-			else
-				static_cast <MemContextUser&> (*this).~MemContextUser ();
+			this->~MemContext ();
 		}
 
-		switch (type) {
-		case MC_CORE:
-			heap->release (this, sizeof (MemContextCore));
-			break;
-		case MC_USER:
-			heap->release (this, sizeof (MemContextUser));
-			break;
-		default:
-			BinderMemory::heap ().release (this, sizeof (MemContextUser));
-		}
+		// Release memory
+		heap->release (this, sizeof (MemContext));
 	}
 }
 

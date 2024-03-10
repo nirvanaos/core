@@ -25,6 +25,7 @@
 */
 #include "pch.h"
 #include "ClassLibrary.h"
+#include "MemContext.h"
 
 namespace Nirvana {
 namespace Core {
@@ -40,7 +41,7 @@ void ClassLibrary::initialize (ModuleInit::_ptr_type entry_point)
 	}
 	sync_context_type_ = SyncContext::Type::FREE;
 
-	initterm_mem_context_ = ExecDomain::current ().mem_context_ptr ();
+	initterm_mem_context_ = MemContext::current_ptr ();
 
 	if (Port::Memory::FLAGS & Memory::ACCESS_CHECK) {
 
@@ -90,7 +91,7 @@ SyncContext::Type ClassLibrary::sync_context_type () const noexcept
 Heap* ClassLibrary::stateless_memory ()
 {
 	if (!initterm_mem_context_)
-		initterm_mem_context_ = MemContextUser::create (true);
+		initterm_mem_context_ = MemContext::create (true);
 	return &initterm_mem_context_->heap ();
 }
 
@@ -108,9 +109,9 @@ void ClassLibrary::atexit (AtExitFunc f)
 {
 	if (!initterm_mem_context_) {
 		if (SyncContext::Type::FREE_MODULE_INIT == sync_context_type_)
-			initterm_mem_context_ = &ExecDomain::current ().mem_context ();
+			initterm_mem_context_ = MemContext::create (true);
 		else
-			initterm_mem_context_ = MemContextUser::create (true);
+			initterm_mem_context_ = &MemContext::current ();
 	}
 	at_exit_.atexit (initterm_mem_context_->heap (), f);
 }

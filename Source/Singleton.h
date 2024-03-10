@@ -28,6 +28,7 @@
 #pragma once
 
 #include "Module.h"
+#include "SyncDomain.h"
 
 namespace Nirvana {
 namespace Core {
@@ -41,7 +42,7 @@ class Singleton :
 public:
 	Singleton (int32_t id, AccessDirect::_ptr_type file) :
 		Module (id, file, true),
-		SyncDomain (MemContextUser::create (false)),
+		SyncDomain (MemContext::create ()),
 		sync_context_type_ (SyncContext::Type::SYNC_DOMAIN_SINGLETON)
 	{}
 

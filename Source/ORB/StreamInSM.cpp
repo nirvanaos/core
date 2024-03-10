@@ -227,16 +227,16 @@ void* StreamInSM::read (size_t align, size_t element_size, size_t CDR_element_si
 	if (segment) {
 		inc_position (align, size);
 		// Adopt segment
-		MemContext::current ().heap ().add_large_block (segment->pointer, segment->size);
+		Nirvana::Core::Heap::user_heap ().add_large_block (segment->pointer, segment->size);
 		size = round_up (segment->size, Port::Memory::ALLOCATION_UNIT);
 		ret = segment->pointer;
 	} else {
 		// Allocate buffer and read
-		ret = MemContext::current ().heap ().allocate (nullptr, size, 0);
+		ret = Nirvana::Core::Heap::user_heap ().allocate (nullptr, size, 0);
 		try {
 			read (align, element_size, CDR_element_size, element_count, ret);
 		} catch (...) {
-			MemContext::current ().heap ().release (ret, size);
+			Nirvana::Core::Heap::user_heap ().release (ret, size);
 			throw;
 		}
 	}

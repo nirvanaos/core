@@ -25,7 +25,6 @@
 */
 #include "pch.h"
 #include "ExecDomain.h"
-#include "MemContextCore.h"
 
 namespace Nirvana {
 namespace Core {
@@ -166,7 +165,7 @@ void SyncDomainImpl::raise_exception (CORBA::SystemException::Code code, unsigne
 }
 
 SyncDomainCore::SyncDomainCore (Heap& heap) :
-	SyncDomain (MemContextCore::create (&heap))
+	SyncDomain (MemContext::create (heap))
 {}
 
 Module* SyncDomainCore::module () noexcept

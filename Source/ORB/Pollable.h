@@ -34,6 +34,7 @@
 #include "../EventSyncTimeout.h"
 #include "../MapUnorderedUnstable.h"
 #include "../Synchronized.h"
+#include "../SyncDomain.h"
 #include "../UserObject.h"
 #include "../CORBA/RequestCallback_s.h"
 #include "GarbageCollector.h"

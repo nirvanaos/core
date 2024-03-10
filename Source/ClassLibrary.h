@@ -29,6 +29,7 @@
 #pragma once
 
 #include "Module.h"
+#include "SyncContext.h"
 
 namespace Nirvana {
 namespace Core {

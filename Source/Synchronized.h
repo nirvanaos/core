@@ -34,7 +34,7 @@
 namespace Nirvana {
 namespace Core {
 
-class SyncDomain;
+class MemContext;
 
 class Synchronized
 {

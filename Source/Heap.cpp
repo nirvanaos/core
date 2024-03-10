@@ -24,7 +24,7 @@
 *  popov.nirvana@gmail.com
 */
 #include "pch.h"
-#include "Heap.h"
+#include "MemContext.h"
 #include "HeapUser.h"
 #include "HeapAllocator.h"
 #include <atomic>
@@ -35,6 +35,11 @@ namespace Core {
 
 StaticallyAllocated <ImplStatic <HeapCore> > Heap::core_heap_;
 StaticallyAllocated <ImplStatic <HeapUser> > Heap::shared_heap_;
+
+Heap& Heap::user_heap ()
+{
+	return MemContext::current ().heap ();
+}
 
 class Heap::LBErase
 {

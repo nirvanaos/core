@@ -26,8 +26,7 @@
 #include "pch.h"
 #include "ExecDomain.h"
 #include "Chrono.h"
-#include "MemContextCore.h"
-#include "MemContextUser.h"
+#include "MemContext.h"
 #include "DeadlinePolicy.h"
 #include <Port/SystemInfo.h>
 
@@ -137,7 +136,7 @@ Ref <MemContext> ExecDomain::get_mem_context (SyncContext& target, Heap* heap)
 		assert (!heap || heap == &sd->mem_context ().heap ());
 		mem_context = &sd->mem_context ();
 	} else if (heap)
-		mem_context = MemContextCore::create (heap);
+		mem_context = MemContext::create (*heap);
 
 	return mem_context;
 }
@@ -245,7 +244,7 @@ MemContext& ExecDomain::mem_context ()
 {
 	if (!mem_context_) {
 		mem_context_ =
-			mem_context_stack_.top () = MemContextUser::create (
+			mem_context_stack_.top () = MemContext::create (
 				sync_context ().sync_context_type () == SyncContext::Type::FREE_MODULE_INIT);
 	}
 	return *mem_context_;

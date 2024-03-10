@@ -60,7 +60,7 @@ public:
 	static PrimaryInterface::_ref_type create ()
 	{
 		PrimaryInterface::_ref_type ret;
-		SYNC_BEGIN (g_core_free_sync_context, &MemContext::current ().heap ())
+		SYNC_BEGIN (g_core_free_sync_context, &Heap::user_heap ())
 
 			// Create file system object adapter
 			PortableServer::POA::_ref_type root_poa = PortableServer::POA::_narrow (

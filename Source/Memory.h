@@ -29,7 +29,7 @@
 
 #include <CORBA/Server.h>
 #include <Nirvana/Memory_s.h>
-#include "ExecDomain.h"
+#include "Heap.h"
 
 namespace Nirvana {
 namespace Core {
@@ -42,37 +42,37 @@ public:
 	// Memory::
 	static void* allocate (void* dst, size_t& size, unsigned flags)
 	{
-		return MemContext::current ().heap ().allocate (dst, size, flags);
+		return Heap::user_heap ().allocate (dst, size, flags);
 	}
 
 	static void release (void* p, size_t size)
 	{
-		return MemContext::current ().heap ().release (p, size);
+		return Heap::user_heap ().release (p, size);
 	}
 
 	static void commit (void* p, size_t size)
 	{
-		return MemContext::current ().heap ().commit (p, size);
+		return Heap::user_heap ().commit (p, size);
 	}
 
 	static void decommit (void* p, size_t size)
 	{
-		return MemContext::current ().heap ().decommit (p, size);
+		return Heap::user_heap ().decommit (p, size);
 	}
 
 	static void* copy (void* dst, void* src, size_t& size, unsigned flags)
 	{
-		return MemContext::current ().heap ().copy (dst, src, size, flags);
+		return Heap::user_heap ().copy (dst, src, size, flags);
 	}
 
 	static bool is_private (const void* p, size_t size)
 	{
-		return MemContext::current ().heap ().is_private (p, size);
+		return Heap::user_heap ().is_private (p, size);
 	}
 
 	static intptr_t query (const void* p, Memory::QueryParam q)
 	{
-		return MemContext::current ().heap ().query (p, q);
+		return Heap::user_heap ().query (p, q);
 	}
 };
 

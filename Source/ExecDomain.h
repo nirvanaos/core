@@ -599,18 +599,6 @@ private:
 	static StaticallyAllocated <Reschedule> reschedule_;
 };
 
-inline
-MemContext& MemContext::current ()
-{
-	return ExecDomain::current ().mem_context ();
-}
-
-inline
-MemContext* MemContext::current_ptr () noexcept
-{
-	return ExecDomain::current ().mem_context_ptr ();
-}
-
 }
 }
 

@@ -30,7 +30,6 @@
 #include "ExecDomain.h"
 #include "ProtDomain.h"
 #include "initterm.h"
-#include "MemContextUser.h"
 #include <Nirvana/ProcessFactory_s.h>
 #include <Nirvana/File.h>
 #include "ORB/Services.h"

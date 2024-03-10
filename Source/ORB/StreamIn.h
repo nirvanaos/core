@@ -31,7 +31,7 @@
 #include <CORBA/CORBA.h>
 #include "../CORBA/GIOP.h"
 #include "../CoreInterface.h"
-#include "../MemContext.h"
+#include "../Heap.h"
 
 namespace CORBA {
 namespace Core {
@@ -258,7 +258,7 @@ void StreamIn::read_string (Internal::StringT <C>& s)
 			size_t allocated_size;
 			void* data = read (alignof (C), sizeof (C), sizeof (C), size, allocated_size);
 			if (allocated)
-				Nirvana::Core::MemContext::current ().heap ().release (abi.large_pointer (), allocated);
+				Nirvana::Core::Heap::user_heap ().release (abi.large_pointer (), allocated);
 			abi.large_size (size - 1);
 			abi.large_pointer ((C*)data);
 			abi.allocated (allocated_size);

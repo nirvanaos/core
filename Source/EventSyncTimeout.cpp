@@ -27,6 +27,7 @@
 #include "EventSyncTimeout.h"
 #include "Chrono.h"
 #include "Synchronized.h"
+#include "ExecDomain.h"
 
 namespace Nirvana {
 namespace Core {

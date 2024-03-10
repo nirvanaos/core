@@ -124,6 +124,10 @@ public:
 	/// Returns shared heap.
 	static Heap& shared_heap () noexcept;
 
+	/// Returns current user memory context heap.
+	/// If no current memory context present, a new memory context will be created.
+	static Heap& user_heap ();
+
 	/// Global class initialization.
 	static bool initialize () noexcept;
 	

@@ -28,7 +28,7 @@
 #define NIRVANA_CORE_USEROBJECT_H_
 #pragma once
 
-#include "MemContext.h"
+#include "Heap.h"
 
 namespace Nirvana {
 namespace Core {
@@ -39,12 +39,12 @@ class UserObject
 public:
 	void* operator new (size_t cb)
 	{
-		return MemContext::current ().heap ().allocate (nullptr, cb, 0);
+		return Heap::user_heap ().allocate (nullptr, cb, 0);
 	}
 
 	void operator delete (void* p, size_t cb)
 	{
-		MemContext::current ().heap ().release (p, cb);
+		Heap::user_heap ().release (p, cb);
 	}
 
 	void* operator new (size_t cb, void* place)

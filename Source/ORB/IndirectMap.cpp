@@ -25,7 +25,7 @@
 */
 #include "../pch.h"
 #include "IndirectMap.h"
-#include "../MemContext.h"
+#include "../Heap.h"
 
 using namespace Nirvana::Core;
 
@@ -33,7 +33,7 @@ namespace CORBA {
 namespace Core {
 
 IndirectMapMarshal::IndirectMapMarshal () :
-	Base (MemContext::current ().heap ())
+	Base (Heap::user_heap ())
 {}
 
 std::pair <IndirectMapMarshal::iterator, bool> IndirectMapMarshal::emplace (uintptr_t key, uintptr_t val)

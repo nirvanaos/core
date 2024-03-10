@@ -25,7 +25,7 @@
 */
 #include "../pch.h"
 #include "RequestLocalRoot.h"
-#include "../MemContextUser.h"
+#include "../ExecDomain.h"
 #include "../virtual_copy.h"
 
 using namespace Nirvana;
@@ -59,7 +59,7 @@ MemContext& RequestLocalRoot::target_memory ()
 	case State::CALL:
 		// Caller-side allocation
 		if (!callee_memory_)
-			callee_memory_ = MemContextUser::create (false);
+			callee_memory_ = MemContext::create ();
 		return *callee_memory_;
 
 	default:
@@ -319,7 +319,7 @@ void RequestLocalRoot::unmarshal_segment (void*& data, size_t& allocated_size)
 	void* p = segment->ptr;
 	size_t size = segment->allocated_size;
 
-	Heap& cur_heap = MemContext::current ().heap ();
+	Heap& cur_heap = Heap::user_heap ();
 	Heap& target_heap = target_memory ().heap ();
 	if (&cur_heap != &target_heap) {
 		try {

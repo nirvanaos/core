@@ -28,7 +28,7 @@
 #define NIRVANA_CORE_USERALLOCATOR_H_
 #pragma once
 
-#include "ExecDomain.h"
+#include "Heap.h"
 
 namespace Nirvana {
 namespace Core {
@@ -44,13 +44,13 @@ public:
 
 	static void deallocate (T* p, size_t cnt)
 	{
-		MemContext::current ().heap ().release (p, cnt * sizeof (T));
+		Heap::user_heap ().release (p, cnt * sizeof (T));
 	}
 
 	static T* allocate (size_t cnt)
 	{
 		size_t cb = cnt * sizeof (T);
-		return (T*)MemContext::current ().heap ().allocate (nullptr, cb, 0);
+		return (T*)Heap::user_heap ().allocate (nullptr, cb, 0);
 	}
 };
 

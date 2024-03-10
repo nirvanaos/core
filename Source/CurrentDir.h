@@ -28,7 +28,7 @@
 #define NIRVANA_CORE_CURRENTDIR_H_
 #pragma once
 
-#include "MemContextUser.h"
+#include "MemContext.h"
 
 namespace Nirvana {
 namespace Core {
@@ -39,7 +39,7 @@ public:
 	static CosNaming::Name current_dir ()
 	{
 		CosNaming::Name dir;
-		MemContextUser* mc = MemContextUser::current_ptr ();
+		MemContext* mc = MemContext::current_ptr ();
 		if (mc) {
 			const CurrentDirContext* ctx = mc->current_dir_ptr ();
 			if (ctx) {
@@ -53,14 +53,17 @@ public:
 
 	static void chdir (const IDL::String& path)
 	{
-		MemContextUser& mc = MemContextUser::current ();
-		CurrentDirContext* ctx;
 		if (!path.empty ())
-			ctx = &mc.current_dir ();
-		else
-			ctx = mc.current_dir_ptr ();
-		if (ctx)
-			ctx->chdir (path);
+			MemContext::current ().current_dir ().chdir (path);
+		else {
+			CurrentDirContext* ctx;
+			MemContext* mc = MemContext::current_ptr ();
+			if (mc) {
+				CurrentDirContext* ctx = mc->current_dir_ptr ();
+				if (ctx)
+					ctx->chdir (path);
+			}
+		}
 	}
 
 };

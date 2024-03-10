@@ -99,7 +99,7 @@ void* StreamInEncap::read (size_t align, size_t element_size, size_t CDR_element
 
 	Range range;
 	prepare (align, CDR_element_size * element_count, range);
-	void* p = MemContext::current ().heap ().allocate (nullptr, size, 0);
+	void* p = Nirvana::Core::Heap::user_heap ().allocate (nullptr, size, 0);
 	read (range, element_size, CDR_element_size, element_count, p);
 	return p;
 }

@@ -25,13 +25,14 @@
 */
 #include "pch.h"
 #include "FileDescriptors.h"
+#include "MemContext.h"
 
 namespace Nirvana {
 namespace Core {
 
 FileDescriptorsContext& FileDescriptors::context_for_fd ()
 {
-	MemContextUser* mc = MemContextUser::current_ptr ();
+	MemContext* mc = MemContext::current_ptr ();
 	if (mc) {
 		FileDescriptorsContext* ctx = mc->file_descriptors_ptr ();
 		if (ctx)
@@ -42,7 +43,7 @@ FileDescriptorsContext& FileDescriptors::context_for_fd ()
 
 FileDescriptorsContext& FileDescriptors::context ()
 {
-	return MemContextUser::current ().file_descriptors ();
+	return MemContext::current ().file_descriptors ();
 }
 
 }

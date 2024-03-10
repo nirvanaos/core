@@ -33,7 +33,7 @@
 #include <CORBA/I_var.h>
 #include <Nirvana/ProcessFactory_s.h>
 #include "EventSync.h"
-#include "MemContextUser.h"
+#include "ExecDomain.h"
 #include "NameService/FileSystem.h"
 #include "Executable.h"
 #include "ORB/Services.h"
@@ -104,7 +104,8 @@ public:
 		servant->proxy_ = ret;
 
 		try {
-			Nirvana::Core::ExecDomain::async_call (INFINITE_DEADLINE, *servant, servant->sync_context (), servant->mem_context_);
+			Nirvana::Core::ExecDomain::async_call (INFINITE_DEADLINE, *servant, servant->sync_context (),
+				Ref <MemContext> (servant->mem_context_));
 		} catch (...) {
 			servant->proxy_ = nullptr;
 			throw;
@@ -127,11 +128,11 @@ private:
 		argv_ (std::move (argv)),
 		envp_ (std::move (envp)),
 		callback_ (callback),
-		mem_context_ (MemContext::current ().user_context ())
+		mem_context_ (&MemContext::current ())
 	{
 		mem_context_->file_descriptors().set_inherited_files (inherit);
 		if (!work_dir.empty ())
-			mem_context_->chdir (work_dir);
+			mem_context_->current_dir ().chdir (work_dir);
 	}
 
 private:
@@ -169,7 +170,7 @@ private:
 	Strings argv_, envp_;
 	ProcessCallback::_ref_type callback_;
 	Nirvana::Process::_ref_type proxy_;
-	Ref <MemContextUser> mem_context_;
+	Ref <MemContext> mem_context_;
 	EventSync completed_;
 	ExecDomain* exec_domain_;
 };

@@ -25,18 +25,14 @@
 */
 #include "pch.h"
 #include "RuntimeGlobal.h"
-#include "MemContextUser.h"
+#include "MemContext.h"
 
 namespace Nirvana {
 namespace Core {
 
 RuntimeGlobal& RuntimeGlobal::current ()
 {
-	MemContextUser* mc = MemContext::current ().user_context ();
-	if (mc)
-		return mc->runtime_global ();
-	else
-		throw CORBA::NO_IMPLEMENT ();
+	return MemContext::current ().runtime_global ();
 }
 
 }
