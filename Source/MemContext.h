@@ -105,9 +105,14 @@ public:
 		return *heap_;
 	}
 
-	RuntimeSupportContext& runtime_support () noexcept
+	RuntimeSupportContext* runtime_support_ptr () noexcept
 	{
-		return data_holder_;
+		return data_holder_.runtime_support_ptr ();
+	}
+
+	RuntimeSupportContext& runtime_support ()
+	{
+		return data_holder_.runtime_support ();
 	}
 
 	DeadlinePolicyContext* deadline_policy_ptr () noexcept
@@ -187,22 +192,27 @@ private:
 		{}
 	};
 
-	class DataHolder :
-		public RuntimeSupportContext // sizeof (void*) or 0
+	class DataHolder32
 	{
 	public:
-		DataHolder () :
-			data_ (nullptr)
-		{}
+		RuntimeSupportContext& runtime_support ()
+		{
+			return data ();
+		}
+
+		RuntimeSupportContext* runtime_support_ptr () noexcept
+		{
+			return data_ptr ();
+		}
 
 		DeadlinePolicyContext& deadline_policy ()
 		{
-			return deadline_policy_;
+			return data ();
 		}
 
 		DeadlinePolicyContext* deadline_policy_ptr () noexcept
 		{
-			return &deadline_policy_;
+			return data_ptr ();
 		}
 
 		TLS_Context* tls_ptr () const noexcept
@@ -247,19 +257,13 @@ private:
 
 	private:
 		class Data : public UserObject,
+			public RuntimeSupportContext,
+			public DeadlinePolicyContext,
 			public RuntimeGlobal,
 			public TLS_Context,
 			public CurrentDirContext,
 			public FileDescriptorsContext
-		{
-		public:
-			Data ()
-			{}
-
-			~Data ()
-			{}
-
-		};
+		{};
 
 		Data& data ()
 		{
@@ -274,17 +278,123 @@ private:
 		}
 
 	private:
-		DeadlinePolicyContext deadline_policy_; // 16 bytes
-		std::unique_ptr <Data> data_; // sizeof (void*)
+		std::unique_ptr <Data> data_;
 	};
+
+	class DataHolder64
+	{
+	public:
+		RuntimeSupportContext& runtime_support ()
+		{
+			return data0 ();
+		}
+
+		RuntimeSupportContext* runtime_support_ptr () noexcept
+		{
+			return data_ptr0 ();
+		}
+
+		DeadlinePolicyContext& deadline_policy ()
+		{
+			return data0 ();
+		}
+
+		DeadlinePolicyContext* deadline_policy_ptr () noexcept
+		{
+			return data_ptr0 ();
+		}
+
+		TLS_Context* tls_ptr () const noexcept
+		{
+			return data_ptr0 ();
+		}
+
+		TLS_Context& tls ()
+		{
+			return data0 ();
+		}
+
+		FileDescriptorsContext* file_descriptors_ptr () const noexcept
+		{
+			return data_ptr1 ();
+		}
+
+		FileDescriptorsContext& file_descriptors ()
+		{
+			return data1 ();
+		}
+
+		RuntimeGlobal* runtime_global_ptr () const noexcept
+		{
+			return data_ptr1 ();
+		}
+
+		RuntimeGlobal& runtime_global ()
+		{
+			return data1 ();
+		}
+
+		CurrentDirContext* current_dir_ptr () const noexcept
+		{
+			return data_ptr0 ();
+		}
+
+		CurrentDirContext& current_dir ()
+		{
+			return data0 ();
+		}
+
+	private:
+		class Data0 : public UserObject,
+			public RuntimeSupportContext,
+			public DeadlinePolicyContext,
+			public TLS_Context,
+			public CurrentDirContext
+		{};
+
+		class Data1 : public UserObject,
+			public RuntimeGlobal,
+			public FileDescriptorsContext
+		{};
+
+		Data0& data0 ()
+		{
+			if (!data0_)
+				data0_.reset (new Data0 ());
+			return *data0_;
+		}
+
+		Data0* data_ptr0 () const noexcept
+		{
+			return data0_.get ();
+		}
+
+		Data1& data1 ()
+		{
+			if (!data1_)
+				data1_.reset (new Data1 ());
+			return *data1_;
+		}
+
+		Data1* data_ptr1 () const noexcept
+		{
+			return data1_.get ();
+		}
+
+	private:
+		std::unique_ptr <Data0> data0_;
+		std::unique_ptr <Data1> data1_;
+	};
+
+	typedef std::conditional <sizeof (void*) < 8, DataHolder32, DataHolder64>::type DataHolder;
 
 	class Replacer;
 
 private:
-	DataHolder data_holder_;
 	Ref <Heap> heap_;
 	AtomicCounter <false> ref_cnt_;
 	bool class_library_init_;
+	DataHolder data_holder_;
 };
 
 }

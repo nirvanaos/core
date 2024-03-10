@@ -45,15 +45,25 @@ class RuntimeSupportContextReal
 public:
 	RuntimeProxy::_ref_type proxy_get (const void* obj)
 	{
-		if (!impl_)
-			impl_.reset (new Impl);
-		return impl_->proxy_get (obj);
+		auto ins = proxy_map_.emplace (obj, nullptr);
+		if (ins.second) {
+			try {
+				ins.first->second = Ref <RuntimeProxyImpl>::template create <RuntimeProxyImpl> (obj);
+			} catch (...) {
+				proxy_map_.erase (ins.first);
+				throw;
+			}
+		}
+		return ins.first->second->_get_ptr ();
 	}
 
 	void proxy_remove (const void* obj) noexcept
 	{
-		if (impl_)
-			impl_->proxy_remove (obj);
+		auto f = proxy_map_.find (obj);
+		if (f != proxy_map_.end ()) {
+			f->second->remove ();
+			proxy_map_.erase (f);
+		}
 	}
 
 private:
@@ -86,41 +96,12 @@ private:
 		const void* object_;
 	};
 
-	class Impl : public UserObject
-	{
-	public:
-		RuntimeProxy::_ref_type proxy_get (const void* obj)
-		{
-			auto ins = proxy_map_.emplace (obj, nullptr);
-			if (ins.second) {
-				try {
-					ins.first->second = Ref <RuntimeProxyImpl>::template create <RuntimeProxyImpl> (obj);
-				} catch (...) {
-					proxy_map_.erase (ins.first);
-					throw;
-				}
-			}
-			return ins.first->second->_get_ptr ();
-		}
-
-		void proxy_remove (const void* obj) noexcept
-		{
-			auto f = proxy_map_.find (obj);
-			if (f != proxy_map_.end ()) {
-				f->second->remove ();
-				proxy_map_.erase (f);
-			}
-		}
-
-	private:
-		typedef MapUnorderedUnstable <const void*, Ref <RuntimeProxyImpl>,
-			std::hash <const void*>, std::equal_to <const void*>, UserAllocator> ProxyMap;
-		ProxyMap proxy_map_;
-	};
-
 private:
-	std::unique_ptr <Impl> impl_;
+	typedef MapUnorderedUnstable <const void*, Ref <RuntimeProxyImpl>,
+		std::hash <const void*>, std::equal_to <const void*>, UserAllocator> ProxyMap;
+	ProxyMap proxy_map_;
 };
+
 
 class RuntimeSupportFake
 {
