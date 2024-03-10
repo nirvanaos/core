@@ -28,6 +28,7 @@
 #include "Chrono.h"
 #include "MemContextCore.h"
 #include "MemContextUser.h"
+#include "DeadlinePolicy.h"
 #include <Port/SystemInfo.h>
 
 namespace Nirvana {
@@ -385,17 +386,26 @@ void ExecDomain::schedule_return (SyncContext& target, bool no_reschedule) noexc
 
 DeadlineTime ExecDomain::get_request_deadline (bool oneway) const noexcept
 {
-	const DeadlineTime dp = oneway ?
-		(mem_context_ptr () ? mem_context_ptr ()->deadline_policy_oneway () : INFINITE_DEADLINE)
+	const DeadlinePolicyContext* deadline_context = nullptr;
+	{
+		MemContext* mc = mem_context_ptr ();
+		if (mc)
+			deadline_context = mc->deadline_policy_ptr ();
+	}
+
+	System::DeadlinePolicy deadline_policy = deadline_context ?
+		(oneway ? deadline_context->policy_oneway () : deadline_context->policy_async ())
 		:
-		(mem_context_ptr () ? mem_context_ptr ()->deadline_policy_async () : 0);
-	DeadlineTime dl = INFINITE_DEADLINE;
-	if (dp == 0)
+		(oneway ? DeadlinePolicyContext::ONEWAY_DEFAULT : DeadlinePolicyContext::ASYNC_DEFAULT);
+
+	DeadlineTime dl;
+	if (deadline_policy == System::DEADLINE_POLICY_INHERIT)
 		dl = deadline ();
-	else if (INFINITE_DEADLINE == dp)
+	else if (deadline_policy == System::DEADLINE_POLICY_INFINITE)
 		dl = INFINITE_DEADLINE;
 	else
-		dl = Chrono::make_deadline (dp);
+		dl = Chrono::make_deadline (deadline_policy);
+
 	return dl;
 }
 

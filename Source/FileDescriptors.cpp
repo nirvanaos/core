@@ -31,7 +31,7 @@ namespace Core {
 
 FileDescriptorsContext& FileDescriptors::context_for_fd ()
 {
-	MemContextUser* mc = MemContext::current ().user_context ();
+	MemContextUser* mc = MemContextUser::current_ptr ();
 	if (mc) {
 		FileDescriptorsContext* ctx = mc->file_descriptors_ptr ();
 		if (ctx)

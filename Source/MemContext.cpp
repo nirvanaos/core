@@ -51,8 +51,6 @@ Ref <Heap> MemContext::create_heap ()
 }
 
 MemContext::MemContext () noexcept :
-	deadline_policy_async_ (0),
-	deadline_policy_oneway_ (INFINITE_DEADLINE),
 	ref_cnt_ (1)
 {}
 
@@ -68,6 +66,7 @@ public:
 		// Increment reference counter to prevent recursive deletion
 		mc.ref_cnt_.increment ();
 		if (exec_domain_.mem_context_stack_empty ()) {
+			// If context stack is empty, mem_context_push definitely won't throw an exception.
 			pop_ = true;
 			exec_domain_.mem_context_push (&mc);
 		} else {

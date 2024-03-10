@@ -52,6 +52,11 @@ public:
 	/// \throws CORBA::NO_IMPL If current context is not an user context.
 	static MemContextUser& current ();
 
+	static MemContextUser* current_ptr () noexcept
+	{
+		return cast (MemContext::current_ptr ());
+	}
+
 	/// Cast MemContext pointer to MemContextUser pointer.
 	static MemContextUser* cast (MemContext* p) noexcept
 	{

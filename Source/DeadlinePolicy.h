@@ -24,45 +24,49 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_CORE_CURRENTDIR_H_
-#define NIRVANA_CORE_CURRENTDIR_H_
+#ifndef NIRVANA_CORE_DEADLINEPOLICY_H_
+#define NIRVANA_CORE_DEADLINEPOLICY_H_
 #pragma once
 
-#include "MemContextUser.h"
+#include "MemContext.h"
 
 namespace Nirvana {
 namespace Core {
 
-class CurrentDir
+class DeadlinePolicy
 {
 public:
-	static CosNaming::Name current_dir ()
+	static const DeadlineTime& policy_async () noexcept
 	{
-		CosNaming::Name dir;
-		MemContextUser* mc = MemContextUser::current_ptr ();
+		MemContext* mc = MemContext::current_ptr ();
 		if (mc) {
-			const CurrentDirContext* ctx = mc->current_dir_ptr ();
-			if (ctx) {
-				dir = ctx->current_dir ();
-			}
+			const DeadlinePolicyContext* ctx = MemContext::current ().deadline_policy_ptr ();
+			if (ctx)
+				return ctx->policy_async ();
 		}
-		if (dir.empty ())
-			dir = CurrentDirContext::default_dir ();
-		return dir;
+		return DeadlinePolicyContext::ASYNC_DEFAULT;
 	}
 
-	static void chdir (const IDL::String& path)
+	static void policy_async (const DeadlineTime& dp)
 	{
-		MemContextUser& mc = MemContextUser::current ();
-		CurrentDirContext* ctx;
-		if (!path.empty ())
-			ctx = &mc.current_dir ();
-		else
-			ctx = mc.current_dir_ptr ();
-		if (ctx)
-			ctx->chdir (path);
+		MemContext::current ().deadline_policy ().policy_async (dp);
 	}
 
+	static const DeadlineTime& policy_oneway () noexcept
+	{
+		MemContext* mc = MemContext::current_ptr ();
+		if (mc) {
+			const DeadlinePolicyContext* ctx = MemContext::current ().deadline_policy_ptr ();
+			if (ctx)
+				return ctx->policy_oneway ();
+		}
+		return DeadlinePolicyContext::ONEWAY_DEFAULT;
+	}
+
+	static void policy_oneway (const DeadlineTime& dp)
+	{
+		MemContext::current ().deadline_policy ().policy_oneway (dp);
+	}
 };
 
 }

@@ -121,7 +121,7 @@ public:
 	/// \returns TLS value.
 	static void* get (unsigned idx) noexcept
 	{
-		MemContextUser* mc = MemContext::current ().user_context ();
+		MemContextUser* mc = MemContextUser::current_ptr ();
 		if (mc) {
 			TLS_Context* ctx = mc->tls_ptr ();
 			if (ctx)

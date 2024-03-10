@@ -28,8 +28,8 @@
 #define NIRVANA_CORE_MEMCONTEXT_H_
 #pragma once
 
-#include "HeapUser.h"
-#include <Nirvana/System.h>
+#include "Heap.h"
+#include "DeadlinePolicyContext.h"
 
 namespace Nirvana {
 namespace Core {
@@ -43,7 +43,7 @@ class MemContextUser;
 /// execution context at the given time.
 /// A number of the memory contexts can share the one heap.
 /// MemContext can not be static.
-class NIRVANA_NOVTABLE MemContext
+class MemContext
 {
 	template <class>
 	friend class CORBA::servant_reference;
@@ -53,6 +53,10 @@ public:
 	///          If there is no current memory context, a new user memory context will be created.
 	/// \throws CORBA::NO_MEMORY.
 	static MemContext& current ();
+
+	/// \returns Current memory context.
+	///          If there is no current memory context, `null` will be returned.
+	static MemContext* current_ptr () noexcept;
 
 	/// Check if specific memory context is current.
 	/// 
@@ -66,29 +70,17 @@ public:
 		return *heap_;
 	}
 
-	/// \returns If this is an user memory context, returns MemContextUser pointer.
-	///          For the core memory context, returns `false.
+	DeadlinePolicyContext& deadline_policy ()
+	{
+		return deadline_policy_;
+	}
+
+	DeadlinePolicyContext* deadline_policy_ptr () noexcept
+	{
+		return &deadline_policy_;
+	}
+
 	MemContextUser* user_context () noexcept;
-
-	const DeadlineTime& deadline_policy_async () const noexcept
-	{
-		return deadline_policy_async_;
-	}
-
-	void deadline_policy_async (const DeadlineTime& dp) noexcept
-	{
-		deadline_policy_async_ = dp;
-	}
-
-	const DeadlineTime& deadline_policy_oneway () const noexcept
-	{
-		return deadline_policy_oneway_;
-	}
-
-	void deadline_policy_oneway (const DeadlineTime& dp) noexcept
-	{
-		deadline_policy_oneway_ = dp;
-	}
 
 protected:
 	enum Type
@@ -130,11 +122,6 @@ protected:
 
 	void _remove_ref () noexcept;
 
-	void operator delete (void* p, size_t cb)
-	{
-		MemContext::current ().heap ().release (p, cb);
-	}
-
 private:
 	class CreateRef : public Ref <MemContext>
 	{
@@ -148,8 +135,7 @@ private:
 
 private:
 	Ref <Heap> heap_;
-	DeadlineTime deadline_policy_async_;
-	DeadlineTime deadline_policy_oneway_;
+	DeadlinePolicyContext deadline_policy_;
 	AtomicCounter <false> ref_cnt_;
 	Type type_;
 };

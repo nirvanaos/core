@@ -44,6 +44,7 @@
 #include "RuntimeSupport.h"
 #include "FileDescriptors.h"
 #include "CurrentDir.h"
+#include "DeadlinePolicy.h"
 
 namespace Nirvana {
 namespace Core {
@@ -123,22 +124,22 @@ public:
 
 	static const DeadlinePolicy& deadline_policy_async ()
 	{
-		return MemContext::current ().deadline_policy_async ();
+		return Core::DeadlinePolicy::policy_async ();
 	}
 
 	static void deadline_policy_async (const DeadlinePolicy& dp)
 	{
-		MemContext::current ().deadline_policy_async (dp);
+		Core::DeadlinePolicy::policy_async (dp);
 	}
 
 	static const DeadlinePolicy& deadline_policy_oneway ()
 	{
-		return MemContext::current ().deadline_policy_oneway ();
+		return Core::DeadlinePolicy::policy_oneway ();
 	}
 
 	static void deadline_policy_oneway (const DeadlinePolicy& dp)
 	{
-		MemContext::current ().deadline_policy_oneway (dp);
+		Core::DeadlinePolicy::policy_oneway (dp);
 	}
 
 	static int* error_number ()

@@ -56,7 +56,7 @@ public:
 	/// \param obj Pointer used as a key.
 	static void proxy_remove (const void* obj) noexcept
 	{
-		MemContextUser* mc = MemContext::current ().user_context ();
+		MemContextUser* mc = MemContextUser::current_ptr ();
 		if (mc)
 			static_cast <RuntimeSupportContext&> (*mc).proxy_remove (obj);
 	}
