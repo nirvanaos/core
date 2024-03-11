@@ -56,7 +56,6 @@ public:
 		if (!path.empty ())
 			MemContext::current ().current_dir ().chdir (path);
 		else {
-			CurrentDirContext* ctx;
 			MemContext* mc = MemContext::current_ptr ();
 			if (mc) {
 				CurrentDirContext* ctx = mc->current_dir_ptr ();

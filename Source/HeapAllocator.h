@@ -29,6 +29,7 @@
 #pragma once
 
 #include "Heap.h"
+#include <memory>
 
 namespace Nirvana {
 namespace Core {

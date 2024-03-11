@@ -24,7 +24,7 @@
 *  popov.nirvana@gmail.com
 */
 #include "pch.h"
-#include "HeapUser.h"
+#include "Heap.h"
 #include "SkipList.h"
 
 namespace Nirvana {

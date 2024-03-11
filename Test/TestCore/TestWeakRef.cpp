@@ -1,6 +1,5 @@
 #include "pch.h"
 #include "../Source/WeakRef.h"
-#include "../Source/HeapUser.h"
 
 using namespace Nirvana::Core;
 

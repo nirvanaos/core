@@ -29,7 +29,6 @@
 #pragma once
 
 #include "../Runnable.h"
-#include "../SharedObject.h"
 
 namespace Nirvana {
 namespace Core {

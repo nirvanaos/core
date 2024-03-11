@@ -34,7 +34,6 @@
 #include "PreallocatedStack.h"
 #include "ObjectPool.h"
 #include "ThreadBackground.h"
-#include "CoreObject.h"
 #include "unrecoverable_error.h"
 #include "Security.h"
 #include <limits>

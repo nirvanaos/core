@@ -26,7 +26,6 @@
 #include "pch.h"
 #include "MemContext.h"
 #include "ExecDomain.h"
-#include "HeapUser.h"
 #include "BinderMemory.h"
 
 namespace Nirvana {

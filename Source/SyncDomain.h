@@ -32,7 +32,6 @@
 #include "Scheduler.h"
 #include "Executor.h"
 #include "SyncContext.h"
-#include "SharedObject.h"
 #include "MemContext.h"
 #include <atomic>
 

@@ -28,12 +28,13 @@
 #define NIRVANA_CORE_SHAREDALLOCATOR_H_
 #pragma once
 
-#include "HeapUser.h"
+#include "Heap.h"
+#include <memory>
 
 namespace Nirvana {
 namespace Core {
 
-/// Allocate from shared memory context.
+/// Allocate from the shared heap.
 template <class T>
 class SharedAllocator :
 	public std::allocator <T>

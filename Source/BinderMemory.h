@@ -28,7 +28,7 @@
 #define NIRVANA_CORE_BINDERMEMORY_H_
 #pragma once
 
-#include "HeapUser.h"
+#include "Heap.h"
 #include "StaticallyAllocated.h"
 #include "SharedAllocator.h"
 

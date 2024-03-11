@@ -29,7 +29,6 @@
 #pragma once
 
 #include "StreamIn.h"
-#include "../SharedObject.h"
 
 namespace CORBA {
 namespace Core {

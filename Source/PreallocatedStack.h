@@ -28,7 +28,7 @@
 #define NIRVANA_CORE_PREALLOCATEDSTACK_H_
 #pragma once
 
-#include "HeapUser.h"
+#include "Heap.h"
 #include <type_traits>
 #include <utility>
 

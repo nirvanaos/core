@@ -28,8 +28,8 @@
 #define NIRVANA_CORE_HEAPDYNAMIC_H_
 #pragma once
 
-#include "HeapUser.h"
 #include <CORBA/Server.h>
+#include "Heap.h"
 #include <Nirvana/Memory_s.h>
 
 namespace Nirvana {

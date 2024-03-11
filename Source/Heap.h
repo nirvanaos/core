@@ -129,10 +129,11 @@ public:
 	static Heap& user_heap ();
 
 	/// Global class initialization.
-	static bool initialize () noexcept;
+	/// Place
+	inline static bool initialize () noexcept;
 	
 	/// Global class temination.
-	static void terminate () noexcept;
+	inline static void terminate () noexcept;
 
 protected:
 	Heap (size_t allocation_unit = HEAP_UNIT_DEFAULT) noexcept;
@@ -334,6 +335,120 @@ public:
 private:
 	virtual MemoryBlock* add_new_partition (MemoryBlock*& tail);
 };
+
+/// Object allocated from the core heap.
+///
+/// Rarely used. Use SharedObject instead.
+/// The core heap is relatively small and therefore fast.
+/// Use CoreObject only when an object should be created extrememly quickly.
+class CoreObject
+{
+public:
+	void* operator new (size_t cb)
+	{
+		return Heap::core_heap ().allocate (nullptr, cb, 0);
+	}
+
+	void operator delete (void* p, size_t cb)
+	{
+		Heap::core_heap ().release (p, cb);
+	}
+
+	void* operator new (size_t cb, void* place)
+	{
+		return place;
+	}
+
+	void operator delete (void*, void*)
+	{}
+};
+
+/// \brief Object allocated from the shared memory context.
+class SharedObject
+{
+public:
+	void* operator new (size_t cb)
+	{
+		return Heap::shared_heap ().allocate (nullptr, cb, 0);
+	}
+
+	void operator delete (void* p, size_t cb)
+	{
+		Heap::shared_heap ().release (p, cb);
+	}
+
+	void* operator new (size_t cb, void* place)
+	{
+		return place;
+	}
+
+	void operator delete (void*, void*)
+	{}
+};
+
+/// User-mode heap.
+class HeapUser :
+	public Heap,
+	public CoreObject // Must be created quickly
+{
+public:
+	HeapUser (size_t allocation_unit = HEAP_UNIT_DEFAULT) :
+		Heap (allocation_unit)
+	{}
+
+	~HeapUser ()
+	{
+		cleanup ();
+		// TODO: Log message if memory leaks detected.
+	}
+
+	/// \brief Releases all memory.
+	/// \returns `true` if no memory leaks.
+	bool cleanup ();
+
+	/* Unused. Kept just for case.
+	HeapUser& operator = (HeapUser&& other) noexcept
+	{
+		cleanup ();
+		allocation_unit_ = other.allocation_unit_;
+		part_list_ = other.part_list_;
+		other.part_list_ = nullptr;
+		block_list_ = std::move (other.block_list_);
+		return *this;
+	}
+	*/
+};
+
+inline Heap& Heap::core_heap () noexcept
+{
+	return core_heap_;
+}
+
+inline Heap& Heap::shared_heap () noexcept
+{
+	if (sizeof (void*) > 2)
+		return shared_heap_;
+	else
+		return core_heap_;
+}
+
+inline bool Heap::initialize () noexcept
+{
+	if (!Port::Memory::initialize ())
+		return false;
+	core_heap_.construct ();
+	if (sizeof (void*) > 2)
+		shared_heap_.construct ();
+	return true;
+}
+
+inline void Heap::terminate () noexcept
+{
+	if (sizeof (void*) > 2)
+		shared_heap_.destruct ();
+	core_heap_.destruct ();
+	Port::Memory::terminate ();
+}
 
 }
 }

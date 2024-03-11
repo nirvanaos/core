@@ -30,7 +30,7 @@
 #pragma once
 
 #include "CoreInterface.h"
-#include "SharedObject.h"
+#include "Heap.h"
 
 namespace Nirvana {
 namespace Core {

@@ -28,7 +28,7 @@
 #define NIRVANA_CORE_THREADBACKGROUND_H_
 #pragma once
 
-#include "SharedObject.h"
+#include "Heap.h"
 #include <Port/ThreadBackground.h>
 
 namespace Nirvana {

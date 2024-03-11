@@ -41,13 +41,15 @@
 namespace Nirvana {
 namespace Core {
 
-/// Memory context.
-/// Contains heap and some other stuff.
-///
+/// Memory context. Isolated computation environment.
+/// 
+/// Memory context contains reference to a heap.
 /// Unlike the heap, memory context is not thread-safe and and must be used by exactly one
 /// execution context at the given time.
 /// A number of the memory contexts can share the one heap.
+/// 
 /// MemContext can not be static.
+/// 
 class MemContext final
 {
 	template <class>

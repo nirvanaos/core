@@ -29,12 +29,13 @@
 #pragma once
 
 #include "Heap.h"
+#include <memory>
 
 namespace Nirvana {
 namespace Core {
 
-/// Allocate from domain memory.
-/// Used to skip calls to global Memory object interface inside the Core code.
+/// Allocate from current memory contex.
+/// Used for optimization: skip calls to the global interface Memory inside the Core code.
 template <class T>
 class UserAllocator :
 	public std::allocator <T>

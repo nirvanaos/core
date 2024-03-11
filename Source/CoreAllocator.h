@@ -29,10 +29,13 @@
 #pragma once
 
 #include "Heap.h"
+#include <memory>
 
 namespace Nirvana {
 namespace Core {
 
+/// Allocates memory from the core heap.
+/// Currently unused. Just for case.
 template <class T>
 class CoreAllocator :
 	public std::allocator <T>
