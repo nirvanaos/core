@@ -29,7 +29,6 @@
 #include <CORBA/Server.h>
 #include <signal.h>
 #include <Nirvana/System_s.h>
-#include "Binder.h"
 #include "Chrono.h"
 #include "ExecDomain.h"
 #include <Port/SystemInfo.h>
@@ -51,20 +50,6 @@ class System :
 	public CORBA::servant_traits <Nirvana::System>::ServantStatic <System>
 {
 public:
-	// This operation can cause context switch.
-	// So we make private copies of the client strings in stak.
-	static CORBA::Object::_ref_type bind (IDL::String name)
-	{
-		return Binder::bind (name);
-	}
-
-	// This operation can cause context switch.
-	// So we make private copies of the client strings in stak.
-	static CORBA::Internal::Interface::_ref_type bind_interface (IDL::String name, IDL::String iid)
-	{
-		return Binder::bind_interface (name, iid);
-	}
-
 	static TimeBase::UtcT _s_system_clock (CORBA::Internal::Bridge <Nirvana::System>* _b, CORBA::Internal::Interface* _env)
 	{
 		return Chrono::system_clock ();
