@@ -63,7 +63,7 @@ extern "C" sqlite3_mutex* xMutexAlloc (int type)
 		return static_mutexes + static_mutex;
 	else {
 		size_t cb = sizeof (sqlite3_mutex);
-		sqlite3_mutex* pm = (sqlite3_mutex*)memory->allocate (nullptr, cb, 0);
+		sqlite3_mutex* pm = (sqlite3_mutex*)the_memory->allocate (nullptr, cb, 0);
 		pm->exec_domain_id = 0;
 		pm->cnt = 0;
 		pm->dynamic = true;
@@ -75,13 +75,13 @@ extern "C" sqlite3_mutex* xMutexAlloc (int type)
 extern "C" void xMutexFree (sqlite3_mutex * pm)
 {
 	if (pm->dynamic)
-		memory->release (pm, sizeof (sqlite3_mutex));
+		the_memory->release (pm, sizeof (sqlite3_mutex));
 }
 
 extern "C" void xMutexEnter (sqlite3_mutex * pm)
 {
 	if (pm->dynamic) {
-		size_t ed_id = Nirvana::system->exec_domain_id ();
+		size_t ed_id = Nirvana::the_system->exec_domain_id ();
 		if (!pm->recursive)
 			assert (!pm->cnt);
 		else
@@ -100,7 +100,7 @@ extern "C" int xMutexTry (sqlite3_mutex * pm)
 extern "C" void xMutexLeave (sqlite3_mutex * pm)
 {
 	if (pm->dynamic) {
-		assert (pm->cnt && pm->exec_domain_id == Nirvana::system->exec_domain_id ());
+		assert (pm->cnt && pm->exec_domain_id == Nirvana::the_system->exec_domain_id ());
 		--(pm->cnt);
 	}
 }
@@ -108,7 +108,7 @@ extern "C" void xMutexLeave (sqlite3_mutex * pm)
 extern "C" int xMutexHeld (sqlite3_mutex * pm)
 {
 	return !pm->dynamic ||
-		(pm->cnt && pm->exec_domain_id == Nirvana::system->exec_domain_id ());
+		(pm->cnt && pm->exec_domain_id == Nirvana::the_system->exec_domain_id ());
 }
 
 extern "C" int xMutexNotheld (sqlite3_mutex * pm)

@@ -102,7 +102,7 @@ public:
 		if (already_compact)
 			return Servant::_get_ptr ();
 		else
-			return Static_orb_impl::create_enum_tc (id_, IDL::String (), EnumMemberSeq (members_.size ()));
+			return Static_the_orb::create_enum_tc (id_, IDL::String (), EnumMemberSeq (members_.size ()));
 	}
 
 	size_t n_aligned_size () const noexcept

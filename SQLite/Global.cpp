@@ -36,7 +36,7 @@ namespace SQLite {
 inline
 Global::Global () :
 	file_system_ (Nirvana::FileSystem::_narrow (CosNaming::NamingContext::_narrow (
-		CORBA::orb_impl->resolve_initial_references ("NameService"))->resolve (CosNaming::Name (1)))),
+		CORBA::the_orb->resolve_initial_references ("NameService"))->resolve (CosNaming::Name (1)))),
 	tls_index_ (-1)
 {
 	sqlite3_config (SQLITE_CONFIG_PAGECACHE, nullptr, 0, 0);
@@ -45,14 +45,14 @@ Global::Global () :
 	sqlite3_vfs_register (&vfs, 1);
 	sqlite3_initialize ();
 
-	tls_index_ = Nirvana::system->TLS_alloc (wsd_deleter);
+	tls_index_ = Nirvana::the_system->TLS_alloc (wsd_deleter);
 }
 
 inline
 Global::~Global ()
 {
 	sqlite3_shutdown ();
-	Nirvana::system->TLS_free (tls_index_);
+	Nirvana::the_system->TLS_free (tls_index_);
 }
 
 Global global;
@@ -61,7 +61,7 @@ Nirvana::Access::_ref_type Global::open_file (const char* url, uint_fast16_t fla
 {
 	// Get full path name
 	CosNaming::Name name;
-	Nirvana::system->append_path (name, url, true);
+	Nirvana::the_system->append_path (name, url, true);
 
 	// Open file
 	name.erase (name.begin ());
@@ -79,10 +79,10 @@ WritableStaticData& Global::static_data ()
 		// Initialization stage
 		return initial_static_data_;
 	} else {
-		void* p = Nirvana::system->TLS_get (tls_index_);
+		void* p = Nirvana::the_system->TLS_get (tls_index_);
 		if (!p) {
 			p = new WritableStaticData (initial_static_data_);
-			Nirvana::system->TLS_set (tls_index_, p);
+			Nirvana::the_system->TLS_set (tls_index_, p);
 		}
 		return *reinterpret_cast <WritableStaticData*> (p);
 	}
@@ -100,7 +100,7 @@ extern "C" void* sqlite3_wsd_find (void* K, int L)
 	try {
 		return SQLite::global.static_data ().get (K, L);
 	} catch (...) {
-		Nirvana::system->raise (SIGABRT);
+		Nirvana::the_system->raise (SIGABRT);
 	}
 	return nullptr;
 }

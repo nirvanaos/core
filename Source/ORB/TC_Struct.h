@@ -78,12 +78,12 @@ public:
 
 	Boolean equal (TypeCode::_ptr_type other)
 	{
-		return Static_orb_impl::tc_equal (Impl::_get_ptr (), other);
+		return Static_the_orb::tc_equal (Impl::_get_ptr (), other);
 	}
 
 	bool equivalent (TypeCode::_ptr_type other)
 	{
-		return Static_orb_impl::tc_equivalent (Impl::_get_ptr (), other);
+		return Static_the_orb::tc_equivalent (Impl::_get_ptr (), other);
 	}
 
 	ULong member_count () const noexcept
@@ -107,7 +107,7 @@ public:
 
 	TypeCode::_ref_type get_compact_typecode ()
 	{
-		return Static_orb_impl::get_compact_typecode (_get_ptr ());
+		return Static_the_orb::get_compact_typecode (_get_ptr ());
 	}
 
 	size_t n_aligned_size () const noexcept

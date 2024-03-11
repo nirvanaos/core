@@ -29,7 +29,7 @@
 
 namespace CORBA {
 
-TypeCode::_ref_type Static_orb_impl::get_compact_typecode (TypeCode::_ptr_type tc, const TC_Recurse* parent)
+TypeCode::_ref_type Static_the_orb::get_compact_typecode (TypeCode::_ptr_type tc, const TC_Recurse* parent)
 {
 	TCKind kind = tc->kind ();
 	switch (kind) {
@@ -106,7 +106,7 @@ TypeCode::_ref_type Static_orb_impl::get_compact_typecode (TypeCode::_ptr_type t
 	}
 }
 
-bool Static_orb_impl::tc_equal (TypeCode::_ptr_type left, TypeCode::_ptr_type right, const TC_Pair* parent)
+bool Static_the_orb::tc_equal (TypeCode::_ptr_type left, TypeCode::_ptr_type right, const TC_Pair* parent)
 {
 	// Disable optimization in Debug configuration for testing purposes.
 #ifdef NDEBUG
@@ -222,7 +222,7 @@ bool Static_orb_impl::tc_equal (TypeCode::_ptr_type left, TypeCode::_ptr_type ri
 	return true;
 }
 
-bool Static_orb_impl::tc_equivalent (TypeCode::_ptr_type left, TypeCode::_ptr_type right, const TC_Pair* parent)
+bool Static_the_orb::tc_equivalent (TypeCode::_ptr_type left, TypeCode::_ptr_type right, const TC_Pair* parent)
 {
 	left = Internal::TypeCodeBase::dereference_alias (left);
 	right = Internal::TypeCodeBase::dereference_alias (right);
@@ -343,7 +343,7 @@ bool Static_orb_impl::tc_equivalent (TypeCode::_ptr_type left, TypeCode::_ptr_ty
 	return true;
 }
 
-ULongLong Static_orb_impl::get_union_label (TypeCode::_ptr_type tc, ULong i)
+ULongLong Static_the_orb::get_union_label (TypeCode::_ptr_type tc, ULong i)
 {
 	Any a = tc->member_label (i);
 	ULongLong u = 0;
@@ -351,7 +351,7 @@ ULongLong Static_orb_impl::get_union_label (TypeCode::_ptr_type tc, ULong i)
 	return u;
 }
 
-unsigned Static_orb_impl::from_hex (int x)
+unsigned Static_the_orb::from_hex (int x)
 {
 	if ('0' <= x && x <= '9')
 		return x - '0';
@@ -363,7 +363,7 @@ unsigned Static_orb_impl::from_hex (int x)
 		throw BAD_PARAM (MAKE_OMG_MINOR (9));
 }
 
-bool Static_orb_impl::schema_eq (const Char* schema, const Char* begin, const Char* end) noexcept
+bool Static_the_orb::schema_eq (const Char* schema, const Char* begin, const Char* end) noexcept
 {
 	do {
 		Char c = *begin;
@@ -377,7 +377,7 @@ bool Static_orb_impl::schema_eq (const Char* schema, const Char* begin, const Ch
 	return !*schema && begin == end;
 }
 
-OctetSeq Static_orb_impl::unescape_object_key (const Char* begin, const Char* end)
+OctetSeq Static_the_orb::unescape_object_key (const Char* begin, const Char* end)
 {
 	OctetSeq key;
 	key.reserve (end - begin);
@@ -394,7 +394,7 @@ OctetSeq Static_orb_impl::unescape_object_key (const Char* begin, const Char* en
 	return key;
 }
 
-Object::_ref_type Static_orb_impl::string_to_object (Internal::String_in str, Internal::String_in iid)
+Object::_ref_type Static_the_orb::string_to_object (Internal::String_in str, Internal::String_in iid)
 {
 	const Char* str_begin = str.data ();
 	const Char* str_end = str_begin + str.size ();

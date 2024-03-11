@@ -41,7 +41,7 @@
 namespace CORBA {
 
 /// Implementation of the CORBA::ORB interface.
-class Static_orb_impl : public servant_traits <CORBA::ORB>::ServantStatic <Static_orb_impl>
+class Static_the_orb : public servant_traits <CORBA::ORB>::ServantStatic <Static_the_orb>
 {
 public:
 	static const UShort IIOP_DEFAULT_PORT = 2809;

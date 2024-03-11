@@ -42,12 +42,12 @@ namespace Internal {
 
 SFloatTLS::SFloatTLS ()
 {
-	tls_idx_ = Nirvana::system->TLS_alloc (nullptr);
+	tls_idx_ = Nirvana::the_system->TLS_alloc (nullptr);
 }
 
 SFloatTLS::~SFloatTLS ()
 {
-	Nirvana::system->TLS_free (tls_idx_);
+	Nirvana::the_system->TLS_free (tls_idx_);
 }
 
 static CORBA::Internal::SFloatTLS sfloat_tls;
@@ -55,12 +55,12 @@ static CORBA::Internal::SFloatTLS sfloat_tls;
 SFloatContext::SFloatContext () :
 	exception_flags_ (0)
 {
-	Nirvana::system->TLS_set (sfloat_tls.tls_idx (), &exception_flags_);
+	Nirvana::the_system->TLS_set (sfloat_tls.tls_idx (), &exception_flags_);
 }
 
 SFloatContext::~SFloatContext ()
 {
-	Nirvana::system->TLS_set (sfloat_tls.tls_idx (), nullptr);
+	Nirvana::the_system->TLS_set (sfloat_tls.tls_idx (), nullptr);
 }
 
 }
@@ -68,5 +68,5 @@ SFloatContext::~SFloatContext ()
 
 extern "C" uint_fast8_t * _softfloat_exceptionFlags ()
 {
-	return (uint_fast8_t*)Nirvana::system->TLS_get (CORBA::Internal::sfloat_tls.tls_idx ());
+	return (uint_fast8_t*)Nirvana::the_system->TLS_get (CORBA::Internal::sfloat_tls.tls_idx ());
 }

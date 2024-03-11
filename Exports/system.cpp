@@ -28,10 +28,10 @@
 
 namespace Nirvana {
 
-NIRVANA_STATIC_IMPORT ImportInterfaceT <System> NIRVANA_SELECTANY system = { OLF_IMPORT_INTERFACE,
-	"Nirvana/system", CORBA::Internal::RepIdOf <System>::id,
+NIRVANA_STATIC_IMPORT ImportInterfaceT <System> NIRVANA_SELECTANY the_system = { OLF_IMPORT_INTERFACE,
+	"Nirvana/the_system", CORBA::Internal::RepIdOf <System>::id,
 	NIRVANA_STATIC_BRIDGE (System, Core::System) };
 
 }
 
-NIRVANA_EXPORT (_exp_Nirvana_system, "Nirvana/system", Nirvana::System, Nirvana::Core::System)
+NIRVANA_EXPORT (_exp_Nirvana_the_system, "Nirvana/the_system", Nirvana::System, Nirvana::Core::System)

@@ -28,10 +28,10 @@
 	
 namespace Nirvana {
 
-NIRVANA_STATIC_IMPORT ImportInterfaceT <Memory> NIRVANA_SELECTANY memory = { OLF_IMPORT_INTERFACE,
-	"Nirvana/memory", CORBA::Internal::RepIdOf <Memory>::id,
+NIRVANA_STATIC_IMPORT ImportInterfaceT <Memory> NIRVANA_SELECTANY the_memory = { OLF_IMPORT_INTERFACE,
+	"Nirvana/the_memory", CORBA::Internal::RepIdOf <Memory>::id,
 	NIRVANA_STATIC_BRIDGE (Memory, Core::Memory) };
 
 }
 
-NIRVANA_EXPORT (_exp_Nirvana_memory, "Nirvana/memory", Nirvana::Memory, Nirvana::Core::Memory)
+NIRVANA_EXPORT (_exp_Nirvana_the_memory, "Nirvana/the_memory", Nirvana::Memory, Nirvana::Core::Memory)

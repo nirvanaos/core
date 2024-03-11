@@ -62,7 +62,7 @@ public:
 		if (&content_type_ == &TypeCode::_ptr_type (compact_content))
 			return Impl::get_compact_typecode ();
 		else
-			return Static_orb_impl::create_array_tc (bound_, compact_content);
+			return Static_the_orb::create_array_tc (bound_, compact_content);
 	}
 
 	size_t n_aligned_size () const noexcept
