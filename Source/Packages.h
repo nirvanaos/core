@@ -59,7 +59,7 @@ public:
 
 		const char dbc [] = "IDL:NDBC/";
 
-		if (obj_name == "Nirvana/g_dec_calc") {
+		if (obj_name == "Nirvana/dec_calc") {
 			module_name = "DecCalc.olf";
 			module_id = 1;
 		} else if (

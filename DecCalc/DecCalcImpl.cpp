@@ -68,8 +68,8 @@ void Context::check () const
 
 namespace Nirvana {
 
-class Static_g_dec_calc :
-	public IDL::traits <DecCalc>::ServantStatic <Static_g_dec_calc>
+class Static_dec_calc :
+	public IDL::traits <DecCalc>::ServantStatic <Static_dec_calc>
 {
 public:
 	static void from_long (Number& n, int32_t l)
@@ -243,4 +243,4 @@ public:
 
 }
 
-NIRVANA_EXPORT_PSEUDO (_exp_Nirvana_g_dec_calc, Nirvana::Static_g_dec_calc)
+NIRVANA_EXPORT_PSEUDO (_exp_Nirvana_g_dec_calc, Nirvana::Static_dec_calc)
