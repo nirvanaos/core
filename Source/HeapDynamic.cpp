@@ -23,15 +23,25 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "pch.h"
-#include "../Source/Memory.h"
-	
+#include "HeapDynamic.h"
+
 namespace Nirvana {
+namespace Core {
 
-NIRVANA_STATIC_IMPORT ImportInterfaceT <Memory> NIRVANA_SELECTANY the_memory = { OLF_IMPORT_INTERFACE,
-	"Nirvana/the_memory", CORBA::Internal::RepIdOf <Memory>::id,
-	NIRVANA_STATIC_BRIDGE (Memory, Core::Memory) };
-
+Nirvana::Memory::_ref_type HeapDynamic::create (size_t allocation_unit)
+{
+	return CORBA::make_pseudo <HeapDynamic> (allocation_unit);
 }
 
-NIRVANA_EXPORT (_exp_Nirvana_the_memory, "Nirvana/the_memory", Nirvana::Memory, Nirvana::Core::Memory)
+void HeapDynamic::_add_ref () noexcept
+{
+	CORBA::Internal::RefCountLink::_add_ref ();
+}
+
+void HeapDynamic::_remove_ref () noexcept
+{
+	CORBA::Internal::RefCountLink::_remove_ref ();
+}
+
+}
+}

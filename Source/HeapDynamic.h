@@ -30,6 +30,7 @@
 
 #include <CORBA/Server.h>
 #include "Heap.h"
+#include "UserObject.h"
 #include <Nirvana/Memory_s.h>
 
 namespace Nirvana {
@@ -42,28 +43,27 @@ class HeapDynamic :
 	public CORBA::Internal::RefCountBase <HeapDynamic>,
 	public UserObject
 {
+	friend class CORBA::Internal::LifeCycleRefCnt <HeapDynamic>;
+
 public:
 	using UserObject::operator new;
 	using UserObject::operator delete;
 
-	static Nirvana::Memory::_ref_type create (uint16_t allocation_unit)
+	static Nirvana::Memory::_ref_type create (size_t allocation_unit);
+
+	static Nirvana::Memory::_ref_type create_heap (size_t granularity)
 	{
-		return CORBA::make_pseudo <HeapDynamic> (allocation_unit);
+		return create (granularity);
 	}
 
-	HeapDynamic (uint16_t allocation_unit) :
+	HeapDynamic (size_t allocation_unit) :
 		HeapUser (allocation_unit)
 	{}
 
-	virtual void _add_ref () noexcept override
-	{
-		CORBA::Internal::RefCountLink::_add_ref ();
-	}
+private:
+	virtual void _add_ref () noexcept override;
+	virtual void _remove_ref () noexcept override;
 
-	virtual void _remove_ref () noexcept override
-	{
-		CORBA::Internal::RefCountLink::_remove_ref ();
-	}
 };
 
 }

@@ -24,17 +24,22 @@
 *  popov.nirvana@gmail.com
 */
 #include "pch.h"
+#include "../Source/Memory.h"
 #include "../Source/FileAccessBuf.h"
 #include "../Source/Launcher.h"
 #include "../Source/ORB/ExceptionHolder.h"
 #include <CORBA/ccm/CCM_Cookie_s.h>
 #include "../Source/ORB/ObjectFactory.h"
 #include "../Source/ORB/ORB.h"
+#include "../Source/RuntimeSupport.h"
+#include "../Source/System.h"
 
+NIRVANA_EXPORT (_exp_Nirvana_the_memory, "Nirvana/the_memory", Nirvana::Memory, Nirvana::Core::Memory)
+NIRVANA_EXPORT (_exp_Nirvana_runtime_support, "Nirvana/runtime_support", Nirvana::RuntimeSupport, Nirvana::Core::RuntimeSupport)
+NIRVANA_EXPORT (_exp_Nirvana_the_system, "Nirvana/the_system", Nirvana::System, Nirvana::Core::System)
 NIRVANA_EXPORT_FACTORY (_exp_Nirvana_AccessBuf, Nirvana::AccessBuf)
 NIRVANA_EXPORT_FACTORY (_exp_Messaging_ExceptionHolder, Messaging::ExceptionHolder)
 NIRVANA_EXPORT_OBJECT (_exp_Nirvana_launcher, Nirvana::Static_launcher)
 NIRVANA_EXPORT_FACTORY (_exp_Components_Cookie, Components::Cookie)
 NIRVANA_EXPORT_PSEUDO (_exp_CORBA_Internal_object_factory, CORBA::Internal::Static_object_factory)
 NIRVANA_EXPORT_PSEUDO (_exp_CORBA_the_orb, CORBA::Static_the_orb)
-

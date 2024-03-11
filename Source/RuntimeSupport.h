@@ -50,15 +50,20 @@ public:
 	/// Remove runtime proxy for object \p obj.
 	/// 
 	/// \param obj Pointer used as a key.
-	static void proxy_remove (const void* obj) noexcept
+	static void proxy_reset (const void* obj) noexcept
 	{
 		MemContext* mc = MemContext::current_ptr ();
 		if (mc)
-			mc->runtime_support ().proxy_remove (obj);
+			mc->runtime_support ().proxy_reset (obj);
 	}
 };
 
-typedef std::conditional <RUNTIME_SUPPORT_DISABLE, RuntimeSupportFake, RuntimeSupportReal>::type RuntimeSupport;
+typedef std::conditional <RUNTIME_SUPPORT_DISABLE, RuntimeSupportFake, RuntimeSupportReal>::type RuntimeSupportBase;
+
+class RuntimeSupport :
+	public CORBA::servant_traits <Nirvana::RuntimeSupport>::ServantStatic <RuntimeSupport>,
+	public RuntimeSupportBase
+{};
 
 }
 }

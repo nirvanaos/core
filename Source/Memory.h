@@ -27,9 +27,7 @@
 #define NIRVANA_CORE_MEMORY_H_
 #pragma once
 
-#include <CORBA/Server.h>
-#include <Nirvana/Memory_s.h>
-#include "Heap.h"
+#include "HeapDynamic.h"
 
 namespace Nirvana {
 namespace Core {
@@ -73,6 +71,11 @@ public:
 	static intptr_t query (const void* p, Memory::QueryParam q)
 	{
 		return Heap::user_heap ().query (p, q);
+	}
+
+	static Nirvana::Memory::_ref_type create_heap (size_t granularity)
+	{
+		return HeapDynamic::create (granularity);
 	}
 };
 

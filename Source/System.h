@@ -32,7 +32,6 @@
 #include "Binder.h"
 #include "Chrono.h"
 #include "ExecDomain.h"
-#include "HeapDynamic.h"
 #include <Port/SystemInfo.h>
 #include <Port/Debugger.h>
 #include "Signals.h"
@@ -41,7 +40,6 @@
 #include "NameService/NameService.h"
 #include "TimerEvent.h"
 #include "TLS.h"
-#include "RuntimeSupport.h"
 #include "FileDescriptors.h"
 #include "CurrentDir.h"
 #include "DeadlinePolicy.h"
@@ -53,16 +51,6 @@ class System :
 	public CORBA::servant_traits <Nirvana::System>::ServantStatic <System>
 {
 public:
-	static RuntimeProxy::_ref_type runtime_proxy_get (const void* obj)
-	{
-		return RuntimeSupport::proxy_get (obj);
-	}
-
-	static void runtime_proxy_remove (const void* obj)
-	{
-		RuntimeSupport::proxy_remove (obj);
-	}
-
 	// This operation can cause context switch.
 	// So we make private copies of the client strings in stak.
 	static CORBA::Object::_ref_type bind (IDL::String name)
@@ -145,11 +133,6 @@ public:
 	static int* error_number ()
 	{
 		return RuntimeGlobal::current ().error_number ();
-	}
-
-	static Nirvana::Memory::_ref_type create_heap (uint16_t granularity)
-	{
-		return HeapDynamic::create (granularity);
 	}
 
 	static void raise (int signal)

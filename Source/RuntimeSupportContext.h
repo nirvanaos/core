@@ -29,7 +29,7 @@
 #pragma once
 
 #include <CORBA/Server.h>
-#include <Nirvana/System_s.h>
+#include <Nirvana/RuntimeSupport_s.h>
 #include "LifeCyclePseudo.h"
 #include "UserObject.h"
 #include "UserAllocator.h"
@@ -57,7 +57,7 @@ public:
 		return ins.first->second->_get_ptr ();
 	}
 
-	void proxy_remove (const void* obj) noexcept
+	void proxy_reset (const void* obj) noexcept
 	{
 		auto f = proxy_map_.find (obj);
 		if (f != proxy_map_.end ()) {
@@ -111,7 +111,7 @@ public:
 		return RuntimeProxy::_nil ();
 	}
 
-	static void proxy_remove (const void* obj) noexcept
+	static void proxy_reset (const void* obj) noexcept
 	{}
 
 };
