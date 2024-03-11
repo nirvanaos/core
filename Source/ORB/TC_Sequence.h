@@ -59,7 +59,7 @@ public:
 		if (&content_type_ == &TypeCode::_ptr_type (compact_content))
 			return Impl::get_compact_typecode ();
 		else
-			return ORB::create_sequence_tc (bound_, compact_content);
+			return Static_orb_impl::create_sequence_tc (bound_, compact_content);
 	}
 
 	static size_t _s_n_aligned_size (Internal::Bridge <TypeCode>*, Internal::Interface*)

@@ -27,10 +27,14 @@
 #include "../Source/FileAccessBuf.h"
 #include "../Source/Launcher.h"
 #include "../Source/ORB/ExceptionHolder.h"
-//#include "../Source/ORB/CCM_Cookie.h"
 #include <CORBA/ccm/CCM_Cookie_s.h>
+#include "../Source/ORB/ObjectFactory.h"
+#include "../Source/ORB/ORB.h"
 
 NIRVANA_EXPORT_FACTORY (_exp_Nirvana_AccessBuf, Nirvana::AccessBuf)
 NIRVANA_EXPORT_FACTORY (_exp_Messaging_ExceptionHolder, Messaging::ExceptionHolder)
 NIRVANA_EXPORT_OBJECT (_exp_Nirvana_launcher, Nirvana::Static_launcher)
 NIRVANA_EXPORT_FACTORY (_exp_Components_Cookie, Components::Cookie)
+NIRVANA_EXPORT_PSEUDO (_exp_CORBA_Internal_object_factory, CORBA::Internal::Static_object_factory)
+NIRVANA_EXPORT_PSEUDO (_exp_CORBA_orb_impl, CORBA::Static_orb_impl)
+

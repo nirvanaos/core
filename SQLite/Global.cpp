@@ -36,7 +36,7 @@ namespace SQLite {
 inline
 Global::Global () :
 	file_system_ (Nirvana::FileSystem::_narrow (CosNaming::NamingContext::_narrow (
-		CORBA::orb->resolve_initial_references ("NameService"))->resolve (CosNaming::Name (1)))),
+		CORBA::orb_impl->resolve_initial_references ("NameService"))->resolve (CosNaming::Name (1)))),
 	tls_index_ (-1)
 {
 	sqlite3_config (SQLITE_CONFIG_PAGECACHE, nullptr, 0, 0);

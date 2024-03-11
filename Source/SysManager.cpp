@@ -62,11 +62,11 @@ Object::_ref_type SysManager::prot_domain_ref (ESIOP::ProtDomainId domain_id)
 	for (const uint8_t* p = (const uint8_t*)&id, *end = p + sizeof (ESIOP::ProtDomainId); p != end; ++p) {
 		s += '%';
 		uint8_t oct = *p;
-		s += CORBA::Core::ORB::to_hex (oct >> 4);
-		s += CORBA::Core::ORB::to_hex (oct & 0xf);
+		s += CORBA::Static_orb_impl::to_hex (oct >> 4);
+		s += CORBA::Static_orb_impl::to_hex (oct & 0xf);
 	}
 	s += "%01";
-	return CORBA::Core::ORB::string_to_object (s, CORBA::Internal::RepIdOf <Nirvana::ProtDomainCore>::id);
+	return CORBA::Static_orb_impl::string_to_object (s, CORBA::Internal::RepIdOf <Nirvana::ProtDomainCore>::id);
 }
 
 SysManager& SysManager::get_call_context (Nirvana::SysManager::_ref_type& ref, Ref <SyncContext>& sync)

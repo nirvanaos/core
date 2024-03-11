@@ -39,10 +39,9 @@
 #include "TypedEventChannel.h"
 
 namespace CORBA {
-namespace Core {
 
 /// Implementation of the CORBA::ORB interface.
-class ORB : public servant_traits <CORBA::ORB>::ServantStatic <ORB>
+class Static_orb_impl : public servant_traits <CORBA::ORB>::ServantStatic <Static_orb_impl>
 {
 public:
 	static const UShort IIOP_DEFAULT_PORT = 2809;
@@ -54,8 +53,8 @@ public:
 
 	static IDL::String object_to_string (Object::_ptr_type obj)
 	{
-		Nirvana::Core::ImplStatic <StreamOutEncap> stm;
-		ProxyManager::cast (obj)->marshal (stm);
+		Nirvana::Core::ImplStatic <Core::StreamOutEncap> stm;
+		Core::ProxyManager::cast (obj)->marshal (stm);
 		IDL::String str;
 		str.reserve (4 + stm.data ().size () * 2);
 		str += "ior:";
@@ -110,12 +109,12 @@ public:
 
 	static ObjectIdList list_initial_services ()
 	{
-		return Services::list_initial_services ();
+		return Core::Services::list_initial_services ();
 	}
 
 	static Object::_ref_type resolve_initial_references (const Internal::StringView <Char>& identifier)
 	{
-		return Services::bind (identifier);
+		return Core::Services::bind (identifier);
 	}
 
 	static TypeCode::_ref_type create_struct_tc (const RepositoryId& id,
@@ -259,7 +258,7 @@ public:
 
 	static Policy::_ref_type create_policy (PolicyType type, const Any& val)
 	{
-		return PolicyFactory::create (type, val);
+		return Core::PolicyFactory::create (type, val);
 	}
 
 	// Value factory operations
@@ -302,14 +301,14 @@ public:
 
 	static Internal::RefCnt::_ref_type create_ref_cnt (Internal::DynamicServant::_ptr_type deleter)
 	{
-		return make_pseudo <RefCnt> (deleter);
+		return make_pseudo <Core::RefCnt> (deleter);
 	}
 
 	static CosEventChannelAdmin::EventChannel::_ref_type create_event_channel ()
 	{
 		CosEventChannelAdmin::EventChannel::_ref_type ret;
 		SYNC_BEGIN (Nirvana::Core::g_core_free_sync_context, nullptr)
-			ret = make_reference <EventChannel> ()->_this ();
+			ret = make_reference <Core::EventChannel> ()->_this ();
 		SYNC_END ();
 		return ret;;
 	}
@@ -318,7 +317,7 @@ public:
 	{
 		CosTypedEventChannelAdmin::TypedEventChannel::_ref_type ret;
 		SYNC_BEGIN (Nirvana::Core::g_core_free_sync_context, nullptr)
-			ret = make_reference <TypedEventChannel> ()->_this ();
+			ret = make_reference <Core::TypedEventChannel> ()->_this ();
 		SYNC_END ();
 		return ret;;
 	}
@@ -330,9 +329,9 @@ public:
 
 private:
 
-	static TC_Factory::_ptr_type tc_factory ()
+	static Core::TC_Factory::_ptr_type tc_factory ()
 	{
-		return TC_Factory::_narrow (Services::bind (Services::TC_Factory));
+		return Core::TC_Factory::_narrow (Core::Services::bind (Core::Services::TC_Factory));
 	}
 
 	static ULongLong get_union_label (TypeCode::_ptr_type tc, ULong i);
@@ -343,7 +342,6 @@ private:
 	static OctetSeq unescape_object_key (const Char* begin, const Char* end);
 };
 
-}
 }
 
 #endif

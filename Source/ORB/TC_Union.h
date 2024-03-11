@@ -81,12 +81,12 @@ public:
 
 	bool equal (TypeCode::_ptr_type other)
 	{
-		return ORB::tc_equal (Impl::_get_ptr (), other);
+		return Static_orb_impl::tc_equal (Impl::_get_ptr (), other);
 	}
 
 	bool equivalent (TypeCode::_ptr_type other)
 	{
-		return ORB::tc_equivalent (Impl::_get_ptr (), other);
+		return Static_orb_impl::tc_equivalent (Impl::_get_ptr (), other);
 	}
 
 	TypeCode::_ref_type discriminator_type () const noexcept
@@ -127,7 +127,7 @@ public:
 
 	TypeCode::_ref_type get_compact_typecode ()
 	{
-		return ORB::get_compact_typecode (_get_ptr ());
+		return Static_orb_impl::get_compact_typecode (_get_ptr ());
 	}
 
 	size_t n_aligned_size () const noexcept

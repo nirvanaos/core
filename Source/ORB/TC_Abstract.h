@@ -73,7 +73,7 @@ public:
 		if (name_.empty ())
 			return Impl::get_compact_typecode ();
 		else
-			return ORB::create_abstract_interface_tc (id_, IDL::String ());
+			return Static_orb_impl::create_abstract_interface_tc (id_, IDL::String ());
 	}
 };
 

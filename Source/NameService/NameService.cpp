@@ -40,7 +40,7 @@ Object::_ref_type create_NameService ()
 	if (ESIOP::is_system_domain ())
 		return make_reference <NameService> ()->_this ();
 	else
-		return CORBA::Core::ORB::string_to_object (
+		return CORBA::Static_orb_impl::string_to_object (
 			"corbaloc::1.1@/NameService", CORBA::Internal::RepIdOf <CosNaming::NamingContextExt>::id);
 }
 

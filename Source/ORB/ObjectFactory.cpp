@@ -30,9 +30,9 @@ using namespace Nirvana;
 using namespace Nirvana::Core;
 
 namespace CORBA {
-namespace Core {
+namespace Internal {
 
-ObjectFactory::StatelessCreationFrame* ObjectFactory::begin_proxy_creation (const Internal::Interface* servant)
+ObjectFactory::StatelessCreationFrame* Static_object_factory::begin_proxy_creation (const Internal::Interface* servant)
 {
 	ExecDomain* ed = ::Nirvana::Core::Thread::current ().exec_domain ();
 	if (!ed)
@@ -53,7 +53,7 @@ ObjectFactory::StatelessCreationFrame* ObjectFactory::begin_proxy_creation (cons
 		return scf; // A stateless object
 }
 
-Heap& ObjectFactory::stateless_memory ()
+Heap& Static_object_factory::stateless_memory ()
 {
 	SyncContext& sc = SyncContext::current ();
 	Heap* heap = sc.stateless_memory ();

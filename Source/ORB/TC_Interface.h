@@ -57,7 +57,7 @@ public:
 		if (name_.empty ())
 			return Impl::get_compact_typecode ();
 		else
-			return ORB::create_interface_tc (id_, IDL::String ());
+			return Static_orb_impl::create_interface_tc (id_, IDL::String ());
 	}
 
 	static void n_marshal_in (const void* src, size_t count, Internal::IORequest_ptr rq);

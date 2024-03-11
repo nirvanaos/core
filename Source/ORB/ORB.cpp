@@ -28,9 +28,8 @@
 #include <CORBA/TypeCodeImpl.h>
 
 namespace CORBA {
-namespace Core {
 
-TypeCode::_ref_type ORB::get_compact_typecode (TypeCode::_ptr_type tc, const TC_Recurse* parent)
+TypeCode::_ref_type Static_orb_impl::get_compact_typecode (TypeCode::_ptr_type tc, const TC_Recurse* parent)
 {
 	TCKind kind = tc->kind ();
 	switch (kind) {
@@ -107,7 +106,7 @@ TypeCode::_ref_type ORB::get_compact_typecode (TypeCode::_ptr_type tc, const TC_
 	}
 }
 
-bool ORB::tc_equal (TypeCode::_ptr_type left, TypeCode::_ptr_type right, const TC_Pair* parent)
+bool Static_orb_impl::tc_equal (TypeCode::_ptr_type left, TypeCode::_ptr_type right, const TC_Pair* parent)
 {
 	// Disable optimization in Debug configuration for testing purposes.
 #ifdef NDEBUG
@@ -223,7 +222,7 @@ bool ORB::tc_equal (TypeCode::_ptr_type left, TypeCode::_ptr_type right, const T
 	return true;
 }
 
-bool ORB::tc_equivalent (TypeCode::_ptr_type left, TypeCode::_ptr_type right, const TC_Pair* parent)
+bool Static_orb_impl::tc_equivalent (TypeCode::_ptr_type left, TypeCode::_ptr_type right, const TC_Pair* parent)
 {
 	left = Internal::TypeCodeBase::dereference_alias (left);
 	right = Internal::TypeCodeBase::dereference_alias (right);
@@ -344,7 +343,7 @@ bool ORB::tc_equivalent (TypeCode::_ptr_type left, TypeCode::_ptr_type right, co
 	return true;
 }
 
-ULongLong ORB::get_union_label (TypeCode::_ptr_type tc, ULong i)
+ULongLong Static_orb_impl::get_union_label (TypeCode::_ptr_type tc, ULong i)
 {
 	Any a = tc->member_label (i);
 	ULongLong u = 0;
@@ -352,7 +351,7 @@ ULongLong ORB::get_union_label (TypeCode::_ptr_type tc, ULong i)
 	return u;
 }
 
-unsigned ORB::from_hex (int x)
+unsigned Static_orb_impl::from_hex (int x)
 {
 	if ('0' <= x && x <= '9')
 		return x - '0';
@@ -364,7 +363,7 @@ unsigned ORB::from_hex (int x)
 		throw BAD_PARAM (MAKE_OMG_MINOR (9));
 }
 
-bool ORB::schema_eq (const Char* schema, const Char* begin, const Char* end) noexcept
+bool Static_orb_impl::schema_eq (const Char* schema, const Char* begin, const Char* end) noexcept
 {
 	do {
 		Char c = *begin;
@@ -378,7 +377,7 @@ bool ORB::schema_eq (const Char* schema, const Char* begin, const Char* end) noe
 	return !*schema && begin == end;
 }
 
-OctetSeq ORB::unescape_object_key (const Char* begin, const Char* end)
+OctetSeq Static_orb_impl::unescape_object_key (const Char* begin, const Char* end)
 {
 	OctetSeq key;
 	key.reserve (end - begin);
@@ -395,7 +394,7 @@ OctetSeq ORB::unescape_object_key (const Char* begin, const Char* end)
 	return key;
 }
 
-Object::_ref_type ORB::string_to_object (Internal::String_in str, Internal::String_in iid)
+Object::_ref_type Static_orb_impl::string_to_object (Internal::String_in str, Internal::String_in iid)
 {
 	const Char* str_begin = str.data ();
 	const Char* str_end = str_begin + str.size ();
@@ -414,8 +413,8 @@ Object::_ref_type ORB::string_to_object (Internal::String_in str, Internal::Stri
 		for (const Char* pd = schema_end + 1; pd != str_end; pd += 2) {
 			octets.push_back ((from_hex (pd [0]) << 4) | from_hex (pd [1]));
 		}
-		ReferenceRemoteRef unconfirmed_ref;
-		Nirvana::Core::ImplStatic <StreamInEncap> stm (std::ref (octets));
+		Core::ReferenceRemoteRef unconfirmed_ref;
+		Nirvana::Core::ImplStatic <Core::StreamInEncap> stm (std::ref (octets));
 		obj = unmarshal_object (stm, unconfirmed_ref);
 
 	} else if (schema_eq ("corbaloc", str_begin, schema_end)) {
@@ -435,7 +434,7 @@ Object::_ref_type ORB::string_to_object (Internal::String_in str, Internal::Stri
 			if (schema_end == addr_begin || schema_eq ("iiop", addr_begin, schema_end)) {
 				// iiop protocol
 
-				Nirvana::Core::ImplStatic <StreamOutEncap> octets (true);
+				Nirvana::Core::ImplStatic <Core::StreamOutEncap> octets (true);
 				{
 					const Char* ver_begin = schema_end + 1;
 					const Char* ver_end = std::find (ver_begin, prot_end, '@');
@@ -471,14 +470,14 @@ Object::_ref_type ORB::string_to_object (Internal::String_in str, Internal::Stri
 						port = (UShort)u;
 					}
 
-					Nirvana::Core::ImplStatic <StreamOutEncap> encap;
+					Nirvana::Core::ImplStatic <Core::StreamOutEncap> encap;
 					encap.write_one (ver);
 					size_t host_len = host_end - host_begin;
 					if (host_len) {
 						encap.write_size (host_len);
 						encap.write_c (1, host_len, host_begin);
 					} else {
-						encap.write_string_c (LocalAddress::singleton ().host ());
+						encap.write_string_c (Core::LocalAddress::singleton ().host ());
 					}
 					encap.write_c (2, 2, &port);
 
@@ -491,7 +490,7 @@ Object::_ref_type ORB::string_to_object (Internal::String_in str, Internal::Stri
 					if (ver.minor () > 0) {
 						IOP::TaggedComponentSeq components;
 						if (!iid.empty ()) {
-							Nirvana::Core::ImplStatic <StreamOutEncap> encap;
+							Nirvana::Core::ImplStatic <Core::StreamOutEncap> encap;
 							uint32_t ORB_type = ESIOP::ORB_TYPE;
 							encap.write_c (4, 4, &ORB_type);
 							components.emplace_back (IOP::TAG_ORB_TYPE, std::move (encap.data ()));
@@ -506,8 +505,8 @@ Object::_ref_type ORB::string_to_object (Internal::String_in str, Internal::Stri
 					octets.write_tagged (addr);
 				}
 
-				ReferenceRemoteRef unconfirmed_ref;
-				Nirvana::Core::ImplStatic <StreamInEncap> stm (std::ref (octets.data ()), true);
+				Core::ReferenceRemoteRef unconfirmed_ref;
+				Nirvana::Core::ImplStatic <Core::StreamInEncap> stm (std::ref (octets.data ()), true);
 				obj = unmarshal_object (iid, stm, unconfirmed_ref);
 
 			} else if (schema_eq ("rir", addr_begin, schema_end)) {
@@ -537,5 +536,4 @@ Object::_ref_type ORB::string_to_object (Internal::String_in str, Internal::Stri
 	return obj;
 }
 
-}
 }

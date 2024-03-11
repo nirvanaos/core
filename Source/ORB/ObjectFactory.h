@@ -35,11 +35,11 @@
 #include "../WaitableRef.h"
 
 namespace CORBA {
-namespace Core {
+namespace Internal {
 
 /// Implementation of CORBA::Internal::ObjectFactory.
-class ObjectFactory :
-	public servant_traits <Internal::ObjectFactory>::ServantStatic <ObjectFactory>
+class Static_object_factory :
+	public servant_traits <ObjectFactory>::ServantStatic <Static_object_factory>
 {
 	static const TimeBase::TimeT PROXY_CREATION_DEADLINE = 10 * TimeBase::MILLISECOND;
 
@@ -98,7 +98,7 @@ public:
 		if (success) {
 			sm.copy (p, const_cast <void*> (scf->tmp ()), scf->size (), Nirvana::Memory::READ_ONLY);
 			for (auto pr : scf->proxies ()) {
-				((ServantProxyBase*)pr)->apply_offset (scf->offset ());
+				((CORBA::Core::ServantProxyBase*)pr)->apply_offset (scf->offset ());
 			}
 		} else {
 			sm.release (p, scf->size ());
@@ -118,20 +118,20 @@ public:
 		return Nirvana::Core::SyncContext::current ().is_free_sync_context ();
 	}
 
-	static StatelessCreationFrame* begin_proxy_creation (const Internal::Interface* servant);
+	static StatelessCreationFrame* begin_proxy_creation (const Interface* servant);
 
 private:
-	typedef Nirvana::Core::WaitableRef <Internal::Interface*> WaitableRef;
+	typedef Nirvana::Core::WaitableRef <Interface*> WaitableRef;
 
 	static Nirvana::Core::Heap& stateless_memory ();
 
 	template <class ServantInterface, class ServantObject>
-	static void create (Internal::I_ptr <ServantInterface> servant, void* pref, Object::_ptr_type comp)
+	static void create (I_ptr <ServantInterface> servant, void* pref, Object::_ptr_type comp)
 	{
 		if (!servant || !pref)
 			throw BAD_PARAM ();
 
-		Internal::Interface*& iref = *reinterpret_cast <Internal::Interface**> (pref);
+		Interface*& iref = *reinterpret_cast <Interface**> (pref);
 		uintptr_t ref_bits = (uintptr_t)iref;
 		if ((ref_bits & ~1) && !(ref_bits & 1)) {
 			assert (false); // Must be checked at the user side
@@ -160,7 +160,7 @@ private:
 		}
 
 		if (scf && proxy)
-			scf->proxies ().push_back (&static_cast <ServantProxyBase&> (proxy->proxy ()));
+			scf->proxies ().push_back (&static_cast <CORBA::Core::ServantProxyBase&> (proxy->proxy ()));
 	}
 };
 

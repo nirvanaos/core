@@ -243,4 +243,4 @@ public:
 
 }
 
-NIRVANA_EXPORT_PSEUDO (_exp_Nirvana_g_dec_calc, Nirvana::Static_dec_calc)
+NIRVANA_EXPORT_PSEUDO (_exp_Nirvana_dec_calc, Nirvana::Static_dec_calc)

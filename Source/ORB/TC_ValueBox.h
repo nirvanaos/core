@@ -85,7 +85,7 @@ public:
 		if (name_.empty ())
 			return Impl::get_compact_typecode ();
 		else
-			return ORB::create_value_box_tc (id_, IDL::String (), content_type_);
+			return Static_orb_impl::create_value_box_tc (id_, IDL::String (), content_type_);
 	}
 
 protected:
