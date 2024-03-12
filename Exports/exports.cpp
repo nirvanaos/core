@@ -45,3 +45,19 @@ NIRVANA_EXPORT_FACTORY (_exp_Components_Cookie, Components::Cookie)
 NIRVANA_EXPORT_PSEUDO (_exp_CORBA_Internal_object_factory, CORBA::Internal::Static_object_factory)
 NIRVANA_EXPORT_PSEUDO (_exp_CORBA_the_orb, CORBA::Static_the_orb)
 NIRVANA_EXPORT_PSEUDO (_exp_Nirvana_the_binder, Nirvana::Static_the_binder)
+
+namespace Nirvana {
+
+NIRVANA_STATIC_IMPORT ImportInterfaceT <Memory> NIRVANA_SELECTANY the_memory = { OLF_IMPORT_INTERFACE,
+	"Nirvana/the_memory", CORBA::Internal::RepIdOf <Memory>::id,
+	NIRVANA_STATIC_BRIDGE (Memory, Core::Memory) };
+
+NIRVANA_STATIC_IMPORT ImportInterfaceT <System> NIRVANA_SELECTANY the_system = { OLF_IMPORT_INTERFACE,
+	"Nirvana/the_system", CORBA::Internal::RepIdOf <System>::id,
+	NIRVANA_STATIC_BRIDGE (System, Core::System) };
+
+NIRVANA_STATIC_IMPORT ImportInterfaceT <RuntimeSupport> NIRVANA_SELECTANY runtime_support = { OLF_IMPORT_INTERFACE,
+	"Nirvana/runtime_support", CORBA::Internal::RepIdOf <System>::id,
+	NIRVANA_STATIC_BRIDGE (RuntimeSupport, Core::RuntimeSupport) };
+
+}
