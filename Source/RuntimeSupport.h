@@ -58,12 +58,7 @@ public:
 	}
 };
 
-typedef std::conditional <RUNTIME_SUPPORT_DISABLE, RuntimeSupportFake, RuntimeSupportReal>::type RuntimeSupportBase;
-
-class RuntimeSupport :
-	public CORBA::servant_traits <Nirvana::RuntimeSupport>::ServantStatic <RuntimeSupport>,
-	public RuntimeSupportBase
-{};
+typedef std::conditional <RUNTIME_SUPPORT_DISABLE, RuntimeSupportFake, RuntimeSupportReal>::type RuntimeSupport;
 
 }
 }

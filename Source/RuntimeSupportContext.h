@@ -29,7 +29,7 @@
 #pragma once
 
 #include <CORBA/Server.h>
-#include <Nirvana/RuntimeSupport_s.h>
+#include <Nirvana/Debugger_s.h>
 #include "LifeCyclePseudo.h"
 #include "UserObject.h"
 #include "UserAllocator.h"

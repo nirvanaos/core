@@ -31,13 +31,13 @@
 #include <CORBA/ccm/CCM_Cookie_s.h>
 #include "../Source/ORB/ObjectFactory.h"
 #include "../Source/ORB/ORB.h"
-#include "../Source/RuntimeSupport.h"
+#include "../Source/Debugger.h"
 #include "../Source/System.h"
 #include "../Source/the_binder.h"
 
 NIRVANA_EXPORT (_exp_Nirvana_the_memory, "Nirvana/the_memory", Nirvana::Memory, Nirvana::Core::Memory)
-NIRVANA_EXPORT (_exp_Nirvana_runtime_support, "Nirvana/runtime_support", Nirvana::RuntimeSupport, Nirvana::Core::RuntimeSupport)
-NIRVANA_EXPORT (_exp_Nirvana_the_system, "Nirvana/the_system", Nirvana::System, Nirvana::Core::System)
+NIRVANA_EXPORT (_exp_Nirvana_the_debugger, "Nirvana/the_debugger", Nirvana::Debugger, Nirvana::Core::Debugger)
+NIRVANA_EXPORT_PSEUDO (_exp_Nirvana_the_system, Nirvana::Static_the_system)
 NIRVANA_EXPORT_FACTORY (_exp_Nirvana_AccessBuf, Nirvana::AccessBuf)
 NIRVANA_EXPORT_FACTORY (_exp_Messaging_ExceptionHolder, Messaging::ExceptionHolder)
 NIRVANA_EXPORT_OBJECT (_exp_Nirvana_launcher, Nirvana::Static_launcher)
@@ -52,12 +52,8 @@ NIRVANA_STATIC_IMPORT ImportInterfaceT <Memory> NIRVANA_SELECTANY the_memory = {
 	"Nirvana/the_memory", CORBA::Internal::RepIdOf <Memory>::id,
 	NIRVANA_STATIC_BRIDGE (Memory, Core::Memory) };
 
-NIRVANA_STATIC_IMPORT ImportInterfaceT <System> NIRVANA_SELECTANY the_system = { OLF_IMPORT_INTERFACE,
-	"Nirvana/the_system", CORBA::Internal::RepIdOf <System>::id,
-	NIRVANA_STATIC_BRIDGE (System, Core::System) };
-
-NIRVANA_STATIC_IMPORT ImportInterfaceT <RuntimeSupport> NIRVANA_SELECTANY runtime_support = { OLF_IMPORT_INTERFACE,
-	"Nirvana/runtime_support", CORBA::Internal::RepIdOf <System>::id,
-	NIRVANA_STATIC_BRIDGE (RuntimeSupport, Core::RuntimeSupport) };
+NIRVANA_STATIC_IMPORT ImportInterfaceT <Debugger> NIRVANA_SELECTANY the_debugger = { OLF_IMPORT_INTERFACE,
+	"Nirvana/the_debugger", CORBA::Internal::RepIdOf <Debugger>::id,
+	NIRVANA_STATIC_BRIDGE (Debugger, Core::Debugger) };
 
 }

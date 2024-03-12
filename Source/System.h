@@ -32,7 +32,6 @@
 #include "Chrono.h"
 #include "ExecDomain.h"
 #include <Port/SystemInfo.h>
-#include <Port/Debugger.h>
 #include "Signals.h"
 #include "unrecoverable_error.h"
 #include "NameService/FileSystem.h"
@@ -44,55 +43,54 @@
 #include "DeadlinePolicy.h"
 
 namespace Nirvana {
-namespace Core {
 
-class System :
-	public CORBA::servant_traits <Nirvana::System>::ServantStatic <System>
+class Static_the_system :
+	public CORBA::servant_traits <Nirvana::System>::ServantStatic <Static_the_system>
 {
 public:
 	static TimeBase::UtcT _s_system_clock (CORBA::Internal::Bridge <Nirvana::System>* _b, CORBA::Internal::Interface* _env)
 	{
-		return Chrono::system_clock ();
+		return Core::Chrono::system_clock ();
 	}
 
 	static TimeBase::UtcT _s_UTC (CORBA::Internal::Bridge <Nirvana::System>* _b, CORBA::Internal::Interface* _env)
 	{
-		return Chrono::UTC ();
+		return Core::Chrono::UTC ();
 	}
 
 	static SteadyTime _s_steady_clock (CORBA::Internal::Bridge <Nirvana::System>* _b, CORBA::Internal::Interface* _env)
 	{
-		return Chrono::steady_clock ();
+		return Core::Chrono::steady_clock ();
 	}
 
 	static DeadlineTime _s_deadline_clock (CORBA::Internal::Bridge <Nirvana::System>* _b, CORBA::Internal::Interface* _env)
 	{
-		return Chrono::deadline_clock ();
+		return Core::Chrono::deadline_clock ();
 	}
 
 	static IDL::Type <DeadlineTime>::ConstRef _s__get_deadline_clock_frequency (CORBA::Internal::Bridge <Nirvana::System>* _b, CORBA::Internal::Interface* _env)
 	{
-		return IDL::Type <DeadlineTime>::ret (Chrono::deadline_clock_frequency ());
+		return IDL::Type <DeadlineTime>::ret (Core::Chrono::deadline_clock_frequency ());
 	}
 
 	static DeadlineTime deadline_from_UTC (const TimeBase::UtcT& utc)
 	{
-		return Chrono::deadline_from_UTC (utc);
+		return Core::Chrono::deadline_from_UTC (utc);
 	}
 
 	static TimeBase::UtcT deadline_to_UTC (const DeadlineTime& deadline)
 	{
-		return Chrono::deadline_to_UTC (deadline);
+		return Core::Chrono::deadline_to_UTC (deadline);
 	}
 
 	static DeadlineTime make_deadline (const TimeBase::TimeT& timeout)
 	{
-		return Chrono::make_deadline (timeout);
+		return Core::Chrono::make_deadline (timeout);
 	}
 
 	static const DeadlineTime& deadline ()
 	{
-		return ExecDomain::current ().deadline ();
+		return Core::ExecDomain::current ().deadline ();
 	}
 
 	static const DeadlinePolicy& deadline_policy_async ()
@@ -117,16 +115,16 @@ public:
 
 	static int* error_number ()
 	{
-		return RuntimeGlobal::current ().error_number ();
+		return Core::RuntimeGlobal::current ().error_number ();
 	}
 
 	static void raise (int signal)
 	{
-		Thread* th = Thread::current_ptr ();
+		Core::Thread* th = Core::Thread::current_ptr ();
 		if (th) {
-			ExecDomain* ed = th->exec_domain ();
+			Core::ExecDomain* ed = th->exec_domain ();
 			if (ed) {
-				if (Signals::is_supported (signal))
+				if (Core::Signals::is_supported (signal))
 					ed->raise (signal);
 				else
 					throw_BAD_PARAM ();
@@ -143,72 +141,35 @@ public:
 
 	static void srand (unsigned seed)
 	{
-		RuntimeGlobal::current ().srand (seed);
+		Core::RuntimeGlobal::current ().srand (seed);
 	}
 
 	static int rand ()
 	{
-		return RuntimeGlobal::current ().rand ();
+		return Core::RuntimeGlobal::current ().rand ();
 	}
 
 	static size_t _s__get_hardware_concurrency (CORBA::Internal::Bridge <Nirvana::System>* _b, CORBA::Internal::Interface* _env)
 	{
-		return Port::SystemInfo::hardware_concurrency ();
+		return Core::Port::SystemInfo::hardware_concurrency ();
 	}
 
 	static ContextType context_type ()
 	{
-		return (ContextType)SyncContext::current ().sync_context_type ();
-	}
-
-	static void debug_event (DebugEvent evt, const IDL::String& msg, const IDL::String& file_name, int32_t line_number)
-	{
-		// Use shared string to avoid possible problems with the memory context.
-		SharedString s;
-
-		if (!file_name.empty ()) {
-			s.assign (file_name.c_str (), file_name.size ());
-			if (line_number > 0) {
-				s += '(';
-				size_t len = s.length ();
-				do {
-					unsigned d = line_number % 10;
-					line_number /= 10;
-					s.insert (len, 1, '0' + d);
-				} while (line_number);
-				s += ')';
-			}
-			s += ": ";
-		}
-
-		static const char* const ev_prefix [(size_t)DebugEvent::DEBUG_ERROR + 1] = {
-			"INFO: ",
-			"WARNING: ",
-			"Assertion failed: ",
-			"ERROR: "
-		};
-
-		s += ev_prefix [(unsigned)evt];
-		s.append (msg.c_str (), msg.size ());
-		s += '\n';
-		Port::Debugger::output_debug_string (evt, s.c_str ());
-		if (evt >= DebugEvent::DEBUG_WARNING) {
-			if (!Port::Debugger::debug_break () && evt >= DebugEvent::DEBUG_ASSERT)
-				raise (SIGABRT);
-		}
+		return (ContextType)Core::SyncContext::current ().sync_context_type ();
 	}
 
 	static bool yield ()
 	{
-		return ExecDomain::reschedule ();
+		return Core::ExecDomain::reschedule ();
 	}
 
 	static void sleep (TimeBase::TimeT period100ns)
 	{
 		if (!period100ns)
-			ExecDomain::reschedule ();
+			Core::ExecDomain::reschedule ();
 		else {
-			TimerEvent timer;
+			Core::TimerEvent timer;
 			timer.set (0, period100ns, 0);
 			timer.wait ();
 		}
@@ -216,22 +177,22 @@ public:
 
 	static uint16_t TLS_alloc (Deleter deleter)
 	{
-		return TLS::allocate (deleter);
+		return Core::TLS::allocate (deleter);
 	}
 
 	static void TLS_free (uint16_t idx)
 	{
-		TLS::release (idx);
+		Core::TLS::release (idx);
 	}
 
 	static void TLS_set (uint16_t idx, void* ptr)
 	{
-		TLS::set (idx, ptr);
+		Core::TLS::set (idx, ptr);
 	}
 
 	static void* TLS_get (uint16_t idx)
 	{
-		return TLS::get (idx);
+		return Core::TLS::get (idx);
 	}
 
 	static IDL::String to_string (const CosNaming::Name& name)
@@ -249,98 +210,97 @@ public:
 	{
 		IDL::String translated;
 		const IDL::String* ppath;
-		if (FileSystem::translate_path (path, translated))
+		if (Core::FileSystem::translate_path (path, translated))
 			ppath = &translated;
 		else
 			ppath = &path;
 
-		if (name.empty () && absolute && !FileSystem::is_absolute (*ppath))
+		if (name.empty () && absolute && !Core::FileSystem::is_absolute (*ppath))
 			name = get_current_dir_name ();
-		FileSystem::append_path (name, *ppath);
+		Core::FileSystem::append_path (name, *ppath);
 	}
 
 	static CosNaming::Name get_current_dir_name ()
 	{
-		return CurrentDir::current_dir ();
+		return Core::CurrentDir::current_dir ();
 	}
 
 	static void chdir (const IDL::String& path)
 	{
-		CurrentDir::chdir (path);
+		Core::CurrentDir::chdir (path);
 	}
 
 	static uint16_t fd_add (Access::_ptr_type access)
 	{
-		return (uint16_t)FileDescriptors::fd_add (access);
+		return (uint16_t)Core::FileDescriptors::fd_add (access);
 	}
 
 	static void close (unsigned fd)
 	{
-		FileDescriptors::close (fd);
+		Core::FileDescriptors::close (fd);
 	}
 
 	static size_t read (unsigned fd, void* p, size_t size)
 	{
-		return FileDescriptors::read (fd, p, size);
+		return Core::FileDescriptors::read (fd, p, size);
 	}
 
 	static void write (unsigned fd, const void* p, size_t size)
 	{
-		FileDescriptors::write (fd, p, size);
+		Core::FileDescriptors::write (fd, p, size);
 	}
 
 	static FileSize seek (unsigned fd, const FileOff& offset, uint_fast16_t whence)
 	{
-		return FileDescriptors::seek (fd, offset, whence);
+		return Core::FileDescriptors::seek (fd, offset, whence);
 	}
 
 	static int_fast16_t fcntl (unsigned fd, int_fast16_t cmd, uint_fast16_t arg)
 	{
-		return FileDescriptors::fcntl (fd, cmd, arg);
+		return Core::FileDescriptors::fcntl (fd, cmd, arg);
 	}
 
 	static void flush (unsigned fd)
 	{
-		FileDescriptors::flush (fd);
+		Core::FileDescriptors::flush (fd);
 	}
 
 	static void dup2 (unsigned src, unsigned dst)
 	{
-		FileDescriptors::dup2 (src, dst);
+		Core::FileDescriptors::dup2 (src, dst);
 	}
 
 	static bool isatty (unsigned fd)
 	{
-		return FileDescriptors::isatty (fd);
+		return Core::FileDescriptors::isatty (fd);
 	}
 
 	static void ungetc (unsigned fd, int c)
 	{
-		FileDescriptors::push_back (fd, c);
+		Core::FileDescriptors::push_back (fd, c);
 	}
 
 	static bool ferror (unsigned fd)
 	{
-		return FileDescriptors::ferror (fd);
+		return Core::FileDescriptors::ferror (fd);
 	}
 
 	static bool feof (unsigned fd)
 	{
-		return FileDescriptors::feof (fd);
+		return Core::FileDescriptors::feof (fd);
 	}
 
 	static void clearerr (unsigned fd)
 	{
-		FileDescriptors::clearerr (fd);
+		Core::FileDescriptors::clearerr (fd);
 	}
 
 	static size_t exec_domain_id ()
 	{
-		return ExecDomain::current ().id ();
+		return Core::ExecDomain::current ().id ();
 	}
 };
 
-}
 }
 
 #endif
