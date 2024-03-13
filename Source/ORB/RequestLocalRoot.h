@@ -115,7 +115,7 @@ public:
 		size_t& allocated_size)
 	{
 		check_align (align);
-		if (CDR_element_size > element_size)
+		if (CDR_element_size > element_size || element_size % align)
 			throw BAD_PARAM ();
 		if (marshal_op ()) {
 			write (alignof (size_t), sizeof (size_t), &element_count);
@@ -146,14 +146,14 @@ public:
 		size_t& allocated_size)
 	{
 		check_align (align);
-		if (CDR_element_size > element_size)
+		if (CDR_element_size > element_size || element_size % align)
 			throw BAD_PARAM ();
 		size_t count;
 		read (alignof (size_t), sizeof (size_t), &count);
 		if (count) {
 			void* p;
 			size_t size;
-			unmarshal_segment (p, size);
+			unmarshal_segment (count * element_size, p, size);
 			size_t allocated = allocated_size;
 			if (allocated)
 				Nirvana::Core::Heap::user_heap ().release (data, allocated);
@@ -258,7 +258,7 @@ public:
 		} else {
 			void* data;
 			size_t allocated_size;
-			unmarshal_segment (data, allocated_size);
+			unmarshal_segment ((size + 1) * sizeof (C), data, allocated_size);
 			abi.large_size (size);
 			abi.large_pointer ((C*)data);
 			abi.allocated (allocated_size);
@@ -524,7 +524,7 @@ protected:
 
 	void marshal_segment (size_t align, size_t element_size,
 		size_t element_count, void* data, size_t& allocated_size);
-	void unmarshal_segment (void*& data, size_t& allocated_size);
+	void unmarshal_segment (size_t min_size, void*& data, size_t& allocated_size);
 
 	void rewind () noexcept;
 
@@ -577,8 +577,8 @@ private:
 
 	Element* get_element_buffer (size_t size);
 
-	void allocate_block (size_t align, size_t size);
-	void next_block ();
+	Octet* allocate_block (size_t align, size_t size);
+	const Octet* next_block (size_t align);
 
 	void invert_list (Element*& head);
 

@@ -173,6 +173,7 @@ void RequestLocalRoot::write (size_t align, size_t size, const void* data)
 	Octet* dst = round_up (cur_ptr_, align);
 	ptrdiff_t cb = block_end - dst;
 	if (cb >= (ptrdiff_t)align) {
+		// Write at current block
 		if ((size_t)cb > size)
 			cb = size;
 		virtual_copy (src, cb, dst);
@@ -184,15 +185,15 @@ void RequestLocalRoot::write (size_t align, size_t size, const void* data)
 			align = size;
 	}
 	if (size) {
-		allocate_block (align, size);
-		dst = sizeof (BlockHdr) >= 8 ? cur_ptr_ : round_up (cur_ptr_, align);
+		// If there is data left, write it all to the new block.
+		dst = allocate_block (align, size);
 		virtual_copy (src, size, dst);
 		dst += size;
 	}
 	cur_ptr_ = dst;
 }
 
-void RequestLocalRoot::allocate_block (size_t align, size_t size)
+Octet* RequestLocalRoot::allocate_block (size_t align, size_t size)
 {
 	size_t data_offset = round_up (sizeof (BlockHdr), align);
 	size_t block_size = std::max (BLOCK_SIZE, data_offset + size);
@@ -204,7 +205,7 @@ void RequestLocalRoot::allocate_block (size_t align, size_t size)
 	if (cur_block_)
 		cur_block_->next = block;
 	cur_block_ = block;
-	cur_ptr_ = (Octet*)block + data_offset;
+	return (cur_ptr_ = (Octet*)block + data_offset);
 }
 
 void RequestLocalRoot::read (size_t align, size_t size, void* data)
@@ -219,6 +220,7 @@ void RequestLocalRoot::read (size_t align, size_t size, void* data)
 		const Octet* block_end = cur_block_end ();
 		ptrdiff_t cb = block_end - src;
 		if (cb >= (ptrdiff_t)align) {
+			// Read from current block
 			if ((size_t)cb > size)
 				cb = size;
 			virtual_copy (src, cb, dst);
@@ -232,14 +234,13 @@ void RequestLocalRoot::read (size_t align, size_t size, void* data)
 				align = size;
 		}
 
-		next_block ();
-		src = round_up (cur_ptr_, align);
+		src = next_block (align);
 	}
 
 	cur_ptr_ = (Octet*)src;
 }
 
-void RequestLocalRoot::next_block ()
+const Octet* RequestLocalRoot::next_block (size_t align)
 {
 	if (!cur_block_)
 		cur_block_ = first_block_;
@@ -247,7 +248,7 @@ void RequestLocalRoot::next_block ()
 		cur_block_ = cur_block_->next;
 	if (!cur_block_)
 		throw MARSHAL (MARSHAL_MINOR_FEWER);
-	cur_ptr_ = (Octet*)(cur_block_ + 1);
+	return (cur_ptr_ = round_up ((Octet*)(cur_block_ + 1), align));
 }
 
 RequestLocalRoot::Element* RequestLocalRoot::get_element_buffer (size_t size)
@@ -255,10 +256,8 @@ RequestLocalRoot::Element* RequestLocalRoot::get_element_buffer (size_t size)
 	const Octet* block_end = cur_block_end ();
 	Octet* dst = round_up (cur_ptr_, alignof (Element));
 	ptrdiff_t cb = block_end - dst;
-	if (cb < (ptrdiff_t)size) {
-		allocate_block (alignof (Element), size);
-		dst = cur_ptr_;
-	}
+	if (cb < (ptrdiff_t)size)
+		dst = allocate_block (alignof (Element), size);
 	cur_ptr_ = dst + size;
 	return (Element*)dst;
 }
@@ -300,18 +299,16 @@ void RequestLocalRoot::marshal_segment (size_t align, size_t element_size,
 	segments_ = segment;
 }
 
-void RequestLocalRoot::unmarshal_segment (void*& data, size_t& allocated_size)
+void RequestLocalRoot::unmarshal_segment (size_t min_size, void*& data, size_t& allocated_size)
 {
 	if (!segments_)
 		throw MARSHAL (MARSHAL_MINOR_FEWER);
 
 	const Segment* segment = (const Segment*)round_up (cur_ptr_, alignof (Element));
 	const Octet* block_end = cur_block_end ();
-	if (block_end - (const Octet*)segment < sizeof (Segment)) {
-		next_block ();
-		segment = (const Segment*)round_up (cur_ptr_, alignof (Element));
-	}
-	if (segments_ != segment)
+	if (block_end - (const Octet*)segment < sizeof (Segment))
+		segment = (const Segment*)next_block (alignof (Element));
+	if (segments_ != segment || segment->allocated_size < min_size)
 		throw MARSHAL ();
 	segments_ = (Segment*)(segment->next);
 	cur_ptr_ = (Octet*)(segment + 1);
@@ -363,11 +360,11 @@ void RequestLocalRoot::marshal_interface_internal (Interface::_ptr_type itf)
 
 void RequestLocalRoot::unmarshal_interface (const IDL::String& interface_id, Interface::_ref_type& itf)
 {
+	static_assert (alignof (Interface*) == alignof (ItfRecord), "alignof (Interface*) == alignof (ItfRecord)");
 	Interface** pitf = (Interface**)round_up (cur_ptr_, alignof (Interface*));
 	const Octet* block_end = cur_block_end ();
 	if (block_end - (const Octet*)pitf < sizeof (Interface*)) {
-		next_block ();
-		pitf = (Interface**)round_up (cur_ptr_, alignof (Interface*));
+		pitf = (Interface**)next_block (alignof (Interface*));
 		block_end = cur_block_end ();
 	}
 
@@ -379,9 +376,11 @@ void RequestLocalRoot::unmarshal_interface (const IDL::String& interface_id, Int
 
 	if (!interfaces_)
 		throw MARSHAL (MARSHAL_MINOR_FEWER);
+	ItfRecord* itf_rec;
 	if (block_end - (const Octet*)pitf < sizeof (ItfRecord))
-		next_block ();
-	ItfRecord* itf_rec = (ItfRecord*)round_up (cur_ptr_, alignof (Element));
+		itf_rec = (ItfRecord*)next_block (alignof (ItfRecord));
+	else
+		itf_rec = (ItfRecord*)pitf;
 	if (interfaces_ != itf_rec)
 		throw MARSHAL ();
 
