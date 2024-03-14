@@ -135,19 +135,10 @@ public:
 			return;
 
 		Internal::check_pointer (dst);
-		switch (content_kind_) {
-			case KIND_CHAR:
-				rq->unmarshal_char (count, (Char*)dst);
-				break;
-
-			case KIND_WCHAR:
-				rq->unmarshal_wchar (count, (WChar*)dst);
-				break;
-
-			default:
-				content_type_->n_unmarshal (rq, count, dst);
-				break;
-		}
+		if (KIND_WCHAR == content_kind_)
+			rq->unmarshal_wchar (count, (WChar*)dst);
+		else
+			content_type_->n_unmarshal (rq, count, dst);
 	}
 
 private:

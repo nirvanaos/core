@@ -198,19 +198,6 @@ public:
 	/// Marshal/unmarshal character data.
 
 	template <typename C>
-	void marshal_char (size_t count, const C* data)
-	{
-		if (marshal_op ())
-			write (alignof (C), count * sizeof (C), data);
-	}
-
-	template <typename C>
-	void unmarshal_char (size_t count, C* data)
-	{
-		read (alignof (C), count * sizeof (C), data);
-	}
-
-	template <typename C>
 	void marshal_string (Internal::StringT <C>& s, bool move)
 	{
 		if (marshal_op ()) {
@@ -266,37 +253,15 @@ public:
 		s = std::move (tmp);
 	}
 
-	template <typename C>
-	void marshal_char_seq (IDL::Sequence <C>& s, bool move)
+	void marshal_wchar (size_t count, const wchar_t* data)
 	{
-		typedef typename IDL::Type <IDL::Sequence <C> >::ABI ABI;
-		ABI& abi = (ABI&)s;
-		if (move) {
-			marshal_seq (alignof (C), sizeof (C), sizeof (C), abi.size, abi.ptr, abi.allocated);
-			if (!abi.allocated)
-				abi.reset ();
-		} else {
-			size_t zero = 0;
-			marshal_seq (alignof (C), sizeof (C), sizeof (C), abi.size, abi.ptr, zero);
-		}
+		if (marshal_op ())
+			write (alignof (wchar_t), count * sizeof (wchar_t), data);
 	}
 
-	template <typename C>
-	void unmarshal_char_seq (IDL::Sequence <C>& s)
+	void unmarshal_wchar (size_t count, wchar_t* data)
 	{
-		typedef typename IDL::Type <IDL::Sequence <C> >::ABI ABI;
-		ABI& abi = (ABI&)s;
-		unmarshal_seq (alignof (C), sizeof (C), sizeof (C), abi.size, (void*&)abi.ptr, abi.allocated);
-	}
-
-	void marshal_wchar (size_t count, const WChar* data)
-	{
-		marshal_char (count, data);
-	}
-
-	void unmarshal_wchar (size_t count, WChar* data)
-	{
-		unmarshal_char (count, data);
+		read (alignof (wchar_t), count * sizeof (wchar_t), data);
 	}
 
 	void marshal_wstring (IDL::WString& s, bool move)
@@ -309,14 +274,25 @@ public:
 		unmarshal_string (s);
 	}
 
-	void marshal_wchar_seq (WCharSeq& s, bool move)
+	void marshal_wchar_seq (IDL::Sequence <wchar_t>& s, bool move)
 	{
-		marshal_char_seq (s, move);
+		typedef typename IDL::Type <IDL::Sequence <wchar_t> >::ABI ABI;
+		ABI& abi = (ABI&)s;
+		if (move) {
+			marshal_seq (alignof (wchar_t), sizeof (wchar_t), sizeof (wchar_t), abi.size, abi.ptr, abi.allocated);
+			if (!abi.allocated)
+				abi.reset ();
+		} else {
+			size_t zero = 0;
+			marshal_seq (alignof (wchar_t), sizeof (wchar_t), sizeof (wchar_t), abi.size, abi.ptr, zero);
+		}
 	}
 
-	void unmarshal_wchar_seq (WCharSeq& s)
+	void unmarshal_wchar_seq (IDL::Sequence <wchar_t>& s)
 	{
-		unmarshal_char_seq (s);
+		typedef typename IDL::Type <IDL::Sequence <wchar_t> >::ABI ABI;
+		ABI& abi = (ABI&)s;
+		unmarshal_seq (alignof (wchar_t), sizeof (wchar_t), sizeof (wchar_t), abi.size, (void*&)abi.ptr, abi.allocated);
 	}
 
 	///@}

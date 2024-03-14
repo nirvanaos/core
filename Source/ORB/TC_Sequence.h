@@ -169,36 +169,26 @@ public:
 	{
 		Internal::check_pointer (dst);
 		ABI* pdst = (ABI*)dst, * end = pdst + count;
-		switch (content_kind_) {
-			case KIND_CHAR:
-				for (; pdst != end; ++pdst) {
-					rq->unmarshal_char_seq ((IDL::Sequence <Char>&)*pdst);
-				}
-				break;
-
-			case KIND_WCHAR:
-				for (; pdst != end; ++pdst) {
-					rq->unmarshal_wchar_seq ((IDL::Sequence <WChar>&)*pdst);
-				}
-				break;
-
-			default:
-				for (; pdst != end; ++pdst) {
-					content_type_->n_destruct (pdst);
-					pdst->reset ();
-					size_t size = rq->unmarshal_seq_begin ();
-					if (size) {
-						size_t cb = size * element_size_;
-						void* p = Nirvana::the_memory->allocate (nullptr, cb, 0);
-						try {
-							content_type_->n_unmarshal (rq, size, p);
-						} catch (...) {
-							Nirvana::the_memory->release (p, cb);
-							throw;
-						}
+		if (KIND_WCHAR == content_kind_) {
+			for (; pdst != end; ++pdst) {
+				rq->unmarshal_wchar_seq ((IDL::Sequence <WChar>&) * pdst);
+			}
+		} else {
+			for (; pdst != end; ++pdst) {
+				content_type_->n_destruct (pdst);
+				pdst->reset ();
+				size_t size = rq->unmarshal_seq_begin ();
+				if (size) {
+					size_t cb = size * element_size_;
+					void* p = Nirvana::the_memory->allocate (nullptr, cb, 0);
+					try {
+						content_type_->n_unmarshal (rq, size, p);
+					} catch (...) {
+						Nirvana::the_memory->release (p, cb);
+						throw;
 					}
 				}
-				break;
+			}
 		}
 	}
 

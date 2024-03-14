@@ -43,24 +43,20 @@ void TC_ArrayBase::initialize ()
 
 	element_size_ = content_type_->n_size ();
 	TCKind element_kind = TCKind::tk_array == kind_
-		? get_array_kind (content_type_) : content_type_->kind ();
-	switch (element_kind) {
-		case TCKind::tk_char:
-			content_kind_ = KIND_CHAR;
-			break;
-		case TCKind::tk_wchar:
-			content_kind_ = KIND_WCHAR;
-			break;
-		default:
-			content_kind_ = is_var_len (content_type_) ? KIND_VARLEN : KIND_FIXLEN;
-	}
+		? get_array_kind (content_type_) : dereference_alias (content_type_)->kind ();
+
+	if (TCKind::tk_wchar == element_kind)
+		content_kind_ = KIND_WCHAR;
+	else
+		content_kind_ = is_var_len (content_type_) ? KIND_VARLEN : KIND_FIXLEN;
 }
 
 TCKind TC_ArrayBase::get_array_kind (TypeCode::_ptr_type tc)
 {
-	TCKind kind = tc->kind ();
+	TypeCode::_ref_type t = dereference_alias (tc);
+	TCKind kind = t->kind ();
 	if (TCKind::tk_array == kind)
-		return get_array_kind (tc->content_type ());
+		return get_array_kind (t->content_type ());
 	else
 		return kind;
 }

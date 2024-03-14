@@ -85,7 +85,6 @@ protected:
 
 	enum
 	{
-		KIND_CHAR,
 		KIND_WCHAR,
 		KIND_FIXLEN,
 		KIND_VARLEN

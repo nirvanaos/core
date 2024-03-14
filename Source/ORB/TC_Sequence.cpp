@@ -33,29 +33,21 @@ void TC_Sequence::marshal (const void* src, size_t count, Internal::IORequest_pt
 {
 	Internal::check_pointer (src);
 	ABI* psrc = (ABI*)src, *end = psrc + count;
-	switch (content_kind_) {
-		case KIND_CHAR:
-			for (; psrc != end; ++psrc) {
-				rq->marshal_char_seq ((IDL::Sequence <Char>&)*psrc, out);
+	if (KIND_WCHAR == content_kind_) {
+		for (; psrc != end; ++psrc) {
+			rq->marshal_wchar_seq ((IDL::Sequence <WChar>&) * psrc, out);
+		}
+	} else {
+		for (; psrc != end; ++psrc) {
+			size_t size = psrc->size;
+			rq->marshal_seq_begin (size);
+			if (size) {
+				if (out)
+					content_type_->n_marshal_out (psrc->ptr, size, rq);
+				else
+					content_type_->n_marshal_in (psrc->ptr, size, rq);
 			}
-			break;
-		case KIND_WCHAR:
-			for (; psrc != end; ++psrc) {
-				rq->marshal_wchar_seq ((IDL::Sequence <WChar>&)*psrc, out);
-			}
-			break;
-		default:
-			for (; psrc != end; ++psrc) {
-				size_t size = psrc->size;
-				rq->marshal_seq_begin (size);
-				if (size) {
-					if (out)
-						content_type_->n_marshal_out (psrc->ptr, size, rq);
-					else
-						content_type_->n_marshal_in (psrc->ptr, size, rq);
-				}
-			}
-			break;
+		}
 	}
 }
 

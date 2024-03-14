@@ -213,28 +213,12 @@ size_t RequestOut::unmarshal_seq_begin ()
 		return RequestGIOP::unmarshal_seq_begin ();
 }
 
-void RequestOut::unmarshal_char (size_t count, Char* data)
-{
-	if (preunmarshaled_)
-		preunmarshaled_->unmarshal_char (count, data);
-	else
-		RequestGIOP::unmarshal_char (count, data);
-}
-
 void RequestOut::unmarshal_string (IDL::String& s)
 {
 	if (preunmarshaled_)
 		preunmarshaled_->unmarshal_string (s);
 	else
 		RequestGIOP::unmarshal_string (s);
-}
-
-void RequestOut::unmarshal_char_seq (IDL::Sequence <Char>& s)
-{
-	if (preunmarshaled_)
-		preunmarshaled_->unmarshal_char_seq (s);
-	else
-		RequestGIOP::unmarshal_char_seq (s);
 }
 
 void RequestOut::unmarshal_wchar (size_t count, WChar* data)

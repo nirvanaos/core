@@ -184,17 +184,6 @@ public:
 	///@{
 	/// Marshal/unmarshal character data.
 
-	void marshal_char (size_t count, const Char* data)
-	{
-		if (marshal_chunk ())
-			stream_out_->write_c (1, count, data);
-	}
-
-	virtual void unmarshal_char (size_t count, Char* data)
-	{
-		stream_in_->read (1, sizeof (Char), 1, count, data);
-	}
-
 	void marshal_string (IDL::String& s, bool move)
 	{
 		if (marshal_chunk ())
@@ -204,18 +193,6 @@ public:
 	virtual void unmarshal_string (IDL::String& s)
 	{
 		code_set_conv_->unmarshal_string (*stream_in_, s);
-	}
-
-	template <typename C>
-	void marshal_char_seq (IDL::Sequence <C>& s, bool move)
-	{
-		if (marshal_chunk ())
-			stream_out_->write_seq (s, move);
-	}
-
-	virtual void unmarshal_char_seq (IDL::Sequence <Char>& s)
-	{
-		stream_in_->read_seq (s);
 	}
 
 	void marshal_wchar (size_t count, const WChar* data)

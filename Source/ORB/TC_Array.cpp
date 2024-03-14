@@ -35,19 +35,12 @@ void TC_Array::marshal (const void* src, size_t count, Internal::IORequest_ptr r
 		return;
 
 	Internal::check_pointer (src);
-	switch (content_kind_) {
-		case KIND_CHAR:
-			rq->marshal_char (count * element_size_, (const Char*)src);
-			break;
-		case KIND_WCHAR:
-			rq->marshal_wchar (count * element_size_ / sizeof (WChar), (const WChar*)src);
-			break;
-		default:
-			if (out)
-				content_type_->n_marshal_out (const_cast <void*> (src), count, rq);
-			else
-				content_type_->n_marshal_in (src, count, rq);
-	}
+	if (KIND_WCHAR == content_kind_)
+		rq->marshal_wchar (count * element_size_ / sizeof (WChar), (const WChar*)src);
+	else if (out)
+		content_type_->n_marshal_out (const_cast <void*> (src), count, rq);
+	else
+		content_type_->n_marshal_in (src, count, rq);
 }
 
 }
