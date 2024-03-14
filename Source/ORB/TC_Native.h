@@ -45,10 +45,8 @@ public:
 	using Servant::_s_id;
 	using Servant::_s_name;
 	using Servant::_s_get_compact_typecode;
-	using Ops::_s_n_CDR_size;
-	using Ops::_s_n_aligned_size;
+	using Ops::_s_n_size;
 	using Ops::_s_n_align;
-	using Ops::_s_n_is_CDR;
 	using Ops::_s_n_construct;
 	using Ops::_s_n_destruct;
 	using Ops::_s_n_copy;
@@ -56,7 +54,6 @@ public:
 	using Ops::_s_n_marshal_in;
 	using Ops::_s_n_marshal_out;
 	using Ops::_s_n_unmarshal;
-	using Ops::_s_n_byteswap;
 
 	TC_Native (IDL::String&& id, IDL::String&& name) noexcept :
 		Impl (TCKind::tk_native, std::move (id), std::move (name))

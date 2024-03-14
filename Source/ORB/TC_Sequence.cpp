@@ -44,13 +44,6 @@ void TC_Sequence::marshal (const void* src, size_t count, Internal::IORequest_pt
 				rq->marshal_wchar_seq ((IDL::Sequence <WChar>&)*psrc, out);
 			}
 			break;
-		case KIND_CDR:
-			for (; psrc != end; ++psrc) {
-				size_t zero = 0;
-				rq->marshal_seq (element_align_, element_aligned_size_, element_CDR_size_,
-					psrc->size, psrc->ptr, out ? psrc->allocated : zero);
-			}
-			break;
 		default:
 			for (; psrc != end; ++psrc) {
 				size_t size = psrc->size;

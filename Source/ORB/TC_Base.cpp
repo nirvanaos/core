@@ -33,9 +33,6 @@ using Nirvana::Core::SyncContext;
 namespace CORBA {
 namespace Core {
 
-void TC_Base::_s_n_byteswap (Internal::Bridge <TypeCode>*, void*, size_t, Internal::Interface*)
-{}
-
 void TC_Base::_add_ref () noexcept
 {
 	ref_cnt_.increment ();
@@ -56,6 +53,66 @@ void TC_Base::collect_garbage () noexcept
 		else
 			GarbageCollector::schedule (*this, sc);
 	} catch (...) {}
+}
+
+TypeCode::_ref_type TC_Base::dereference_alias (TypeCode::_ptr_type tc)
+{
+	TypeCode::_ref_type ret = tc;
+	for (;;) {
+
+		if (!ret)
+			throw BAD_TYPECODE (MAKE_OMG_MINOR (2));
+
+		switch (ret->kind ()) {
+		case TCKind::tk_null:
+		case TCKind::tk_void:
+		case TCKind::tk_except:
+			throw BAD_TYPECODE (MAKE_OMG_MINOR (2));
+			break;
+
+		case TCKind::tk_alias:
+			ret = ret->content_type ();
+			continue;
+		}
+
+		break;
+	}
+
+	return ret;
+}
+
+bool TC_Base::is_var_len (TypeCode::_ptr_type tc)
+{
+	TypeCode::_ref_type t = dereference_alias (tc);
+	switch (t->kind ()) {
+	case TCKind::tk_any:
+	case TCKind::tk_TypeCode:
+	case TCKind::tk_Principal:
+	case TCKind::tk_objref:
+	case TCKind::tk_string:
+	case TCKind::tk_sequence:
+	case TCKind::tk_wstring:
+	case TCKind::tk_value:
+	case TCKind::tk_value_box:
+	case TCKind::tk_native:
+	case TCKind::tk_abstract_interface:
+	case TCKind::tk_local_interface:
+		return true;
+
+	case TCKind::tk_array:
+		return is_var_len (t->content_type ());
+
+	case TCKind::tk_struct:
+	case TCKind::tk_union:
+	{
+		for (ULong cnt = t->member_count (), i = 0; i < cnt; ++i) {
+			if (is_var_len (t->member_type (i)))
+				return true;
+		}
+	} break;
+	}
+
+	return false;
 }
 
 }

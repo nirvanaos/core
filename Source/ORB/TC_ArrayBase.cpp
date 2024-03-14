@@ -41,9 +41,7 @@ void TC_ArrayBase::initialize ()
 	if (content_type_.is_recursive ())
 		return;
 
-	element_aligned_size_ = content_type_->n_aligned_size ();
-	element_CDR_size_ = content_type_->n_CDR_size ();
-	element_align_ = content_type_->n_align ();
+	element_size_ = content_type_->n_size ();
 	TCKind element_kind = TCKind::tk_array == kind_
 		? get_array_kind (content_type_) : content_type_->kind ();
 	switch (element_kind) {
@@ -54,10 +52,7 @@ void TC_ArrayBase::initialize ()
 			content_kind_ = KIND_WCHAR;
 			break;
 		default:
-			if (content_type_->n_is_CDR ())
-				content_kind_ = KIND_CDR;
-			else
-				content_kind_ = KIND_NONCDR;
+			content_kind_ = is_var_len (content_type_) ? KIND_VARLEN : KIND_FIXLEN;
 	}
 }
 

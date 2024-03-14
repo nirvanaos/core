@@ -34,7 +34,7 @@ TC_Union::TC_Union (IDL::String&& id, IDL::String&& name, TypeCode::_ref_type&& 
 	discriminator_type_ (std::move (discriminator_type)),
 	default_index_ (default_index)
 {
-	discriminator_size_ = discriminator_type_->n_CDR_size ();
+	discriminator_size_ = discriminator_type_->n_size ();
 }
 
 void TC_Union::set_members (Members&& members)
@@ -42,19 +42,17 @@ void TC_Union::set_members (Members&& members)
 	members_ = std::move (members);
 	size_t align = discriminator_type_->n_align ();
 	size_t size = discriminator_size_;
-	TC_Ref self (_get_ptr (), this);
 	for (auto& m : members_) {
-		m.type.replace_recursive_placeholder (id_, self);
-		size_t a = m.type->n_align ();
-		if (align < a)
-			align = a;
-		size_t off = Nirvana::round_up (discriminator_size_, a);
+		size_t m_align = m.type->n_align ();
+		if (align < m_align)
+			align = m_align;
+		size_t off = Nirvana::round_up (discriminator_size_, m_align);
 		m.offset = off;
-		off += m.type->n_aligned_size ();
+		off += m.type->n_size ();
 		if (size < off)
 			size = off;
 	}
-	aligned_size_ = size;
+	size_ = Nirvana::round_up (size, align);
 	align_ = align;
 }
 

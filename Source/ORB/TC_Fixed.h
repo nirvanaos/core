@@ -73,12 +73,7 @@ public:
 		return scale_;
 	}
 
-	size_t n_aligned_size () const noexcept
-	{
-		return size ();
-	}
-
-	size_t n_CDR_size () const noexcept
+	size_t n_size () const noexcept
 	{
 		return size ();
 	}
@@ -86,11 +81,6 @@ public:
 	static size_t _s_n_align (Internal::Bridge <TypeCode>*, Internal::Interface*)
 	{
 		return 1;
-	}
-
-	static Octet _s_n_is_CDR (Internal::Bridge <TypeCode>*, Internal::Interface*)
-	{
-		return true;
 	}
 
 	void n_construct (void* p) const
@@ -128,8 +118,6 @@ public:
 		}
 		Nirvana::Core::virtual_copy (data, total, dst);
 	}
-
-	using TC_Base::_s_n_byteswap;
 
 private:
 	size_t size () const noexcept

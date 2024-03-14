@@ -43,9 +43,7 @@ public:
 	using Servant::_s_id;
 	using Servant::_s_name;
 	using Servant::_s_content_type;
-	using Servant::_s_n_CDR_size;
-	using Servant::_s_n_aligned_size;
-	using Servant::_s_n_byteswap;
+	using Servant::_s_n_size;
 
 	// The get_compact_typecode operation strips out all optional name and member name fields,
 	// but it leaves all alias typecodes intact.
@@ -80,24 +78,14 @@ public:
 		return content_type_;
 	}
 
-	size_t n_aligned_size () const
+	size_t n_size () const
 	{
-		return content_type_->n_aligned_size ();
-	}
-
-	size_t n_CDR_size () const
-	{
-		return content_type_->n_CDR_size ();
+		return content_type_->n_size ();
 	}
 
 	size_t n_align () const
 	{
 		return content_type_->n_align ();
-	}
-
-	bool n_is_CDR () const
-	{
-		return content_type_->n_is_CDR ();
 	}
 
 	void n_construct (void* p) const
@@ -133,11 +121,6 @@ public:
 	void n_unmarshal (Internal::IORequest_ptr rq, size_t count, void* dst) const
 	{
 		content_type_->n_unmarshal (rq, count, dst);
-	}
-
-	void n_byteswap (void* p, size_t count) const
-	{
-		content_type_->n_byteswap (p, count);
 	}
 
 protected:

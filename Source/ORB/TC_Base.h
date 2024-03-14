@@ -48,8 +48,6 @@ public:
 		return kind_;
 	}
 	
-	static void _s_n_byteswap (Internal::Bridge <TypeCode>*, void*, size_t, Internal::Interface*);
-
 protected:
 	TC_Base (TCKind kind) noexcept :
 		ref_cnt_ (1),
@@ -60,6 +58,9 @@ protected:
 	{}
 
 	virtual void collect_garbage () noexcept;
+
+	static TypeCode::_ref_type dereference_alias (TypeCode::_ptr_type tc);
+	static bool is_var_len (TypeCode::_ptr_type tc);
 
 protected:
 	RefCntProxy ref_cnt_;

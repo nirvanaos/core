@@ -42,10 +42,8 @@ class TC_Array : public TC_Impl <TC_Array, TC_ArrayBase>
 public:
 	using Servant::_s_length;
 	using Servant::_s_content_type;
-	using Servant::_s_n_CDR_size;
-	using Servant::_s_n_aligned_size;
+	using Servant::_s_n_size;
 	using Servant::_s_n_align;
-	using Servant::_s_n_byteswap;
 	using Servant::_s_get_compact_typecode;
 
 	TC_Array () :
@@ -54,7 +52,9 @@ public:
 
 	TC_Array (TC_Ref&& content_type, ULong bound) :
 		Impl (TCKind::tk_array, std::move (content_type), bound)
-	{}
+	{
+		element_align_ = content_type_->n_align ();
+	}
 
 	TypeCode::_ref_type get_compact_typecode ()
 	{
@@ -65,24 +65,14 @@ public:
 			return Static_the_orb::create_array_tc (bound_, compact_content);
 	}
 
-	size_t n_aligned_size () const noexcept
+	size_t n_size () const noexcept
 	{
-		return bound_ * element_aligned_size_;
-	}
-
-	size_t n_CDR_size () const noexcept
-	{
-		return bound_ * element_CDR_size_;
+		return bound_ * element_size_;
 	}
 
 	size_t n_align () const noexcept
 	{
 		return element_align_;
-	}
-
-	Boolean n_is_CDR () const noexcept
-	{
-		return KIND_CDR == content_kind_;
 	}
 
 	void n_construct (void* p) const
@@ -91,7 +81,7 @@ public:
 		size_t count = bound_;
 		do {
 			content_type_->n_construct (pv);
-			pv += element_aligned_size_;
+			pv += element_size_;
 		} while (--count);
 	}
 
@@ -101,7 +91,7 @@ public:
 		size_t count = bound_;
 		do {
 			content_type_->n_destruct (pv);
-			pv += element_aligned_size_;
+			pv += element_size_;
 		} while (--count);
 	}
 
@@ -112,8 +102,8 @@ public:
 		size_t count = bound_;
 		do {
 			content_type_->n_copy (pd, ps);
-			ps += element_aligned_size_;
-			pd += element_aligned_size_;
+			ps += element_size_;
+			pd += element_size_;
 		} while (--count);
 	}
 
@@ -124,8 +114,8 @@ public:
 		size_t count = bound_;
 		do {
 			content_type_->n_move (pd, ps);
-			ps += element_aligned_size_;
-			pd += element_aligned_size_;
+			ps += element_size_;
+			pd += element_size_;
 		} while (--count);
 	}
 
@@ -154,25 +144,17 @@ public:
 				rq->unmarshal_wchar (count, (WChar*)dst);
 				break;
 
-			case KIND_CDR:
-				if (1 == count || element_aligned_size_ == element_CDR_size_) {
-					rq->unmarshal (element_align_, element_CDR_size_ * count, dst);
-					break;
-				}
-
 			default:
 				content_type_->n_unmarshal (rq, count, dst);
 				break;
 		}
 	}
 
-	void n_byteswap (void* p, size_t count) const
-	{
-		content_type_->n_byteswap (p, count * bound_);
-	}
-
 private:
 	void marshal (const void* src, size_t count, Internal::IORequest_ptr rq, bool out) const;
+
+private:
+	size_t element_align_;
 };
 
 }

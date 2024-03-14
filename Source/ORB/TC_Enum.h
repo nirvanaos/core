@@ -105,12 +105,7 @@ public:
 			return Static_the_orb::create_enum_tc (id_, IDL::String (), EnumMemberSeq (members_.size ()));
 	}
 
-	size_t n_aligned_size () const noexcept
-	{
-		return sizeof (Internal::ABI_enum);
-	}
-
-	size_t n_CDR_size () const noexcept
+	size_t n_size () const noexcept
 	{
 		return sizeof (Internal::ABI_enum);
 	}
@@ -118,11 +113,6 @@ public:
 	size_t n_align () const noexcept
 	{
 		return alignof (Internal::ABI_enum);
-	}
-
-	bool n_is_CDR () const noexcept
-	{
-		return true;
 	}
 
 	void n_construct (void* p) const
@@ -157,16 +147,6 @@ public:
 				Nirvana::byteswap (*pv);
 			}
 		check (p, count);
-	}
-
-	using Servant::_s_n_byteswap;
-
-	static void n_byteswap (void* p, size_t count)
-	{
-		Internal::check_pointer (p);
-		for (Internal::ABI_enum* pv = (Internal::ABI_enum*)p, *end = pv + count; pv != end; ++pv) {
-			Nirvana::byteswap (*pv);
-		}
 	}
 
 private:

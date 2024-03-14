@@ -41,11 +41,8 @@ class TC_ValueBox :
 	typedef TC_Impl <TC_ValueBox, TC_ValueBase> Impl;
 
 public:
-	using TC_RefBase::_s_n_aligned_size;
-	using TC_RefBase::_s_n_CDR_size;
+	using TC_RefBase::_s_n_size;
 	using TC_RefBase::_s_n_align;
-	using TC_RefBase::_s_n_is_CDR;
-	using TC_RefBase::_s_n_byteswap;
 	using Servant::_s_id;
 	using Servant::_s_name;
 	using Servant::_s_content_type;

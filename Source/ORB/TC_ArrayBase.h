@@ -81,17 +81,16 @@ private:
 
 protected:
 	TC_Ref content_type_;
-	size_t element_CDR_size_;
-	size_t element_aligned_size_;
-	size_t element_align_;
+	size_t element_size_;
 
 	enum
 	{
 		KIND_CHAR,
 		KIND_WCHAR,
-		KIND_CDR,
-		KIND_NONCDR
-	} content_kind_;
+		KIND_FIXLEN,
+		KIND_VARLEN
+	}
+	content_kind_;
 
 	ULong bound_;
 };

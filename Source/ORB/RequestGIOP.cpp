@@ -226,7 +226,7 @@ void RequestGIOP::marshal_type_code (StreamOut& stream, TypeCode::_ptr_type tc, 
 			encap.write_id_name (tc);
 			TypeCode::_ref_type discriminator_type = tc->discriminator_type ();
 			marshal_type_code (encap, discriminator_type, map, pos);
-			size_t discriminator_size = discriminator_type->n_CDR_size ();
+			size_t discriminator_size = discriminator_type->n_size ();
 			Long default_index = tc->default_index ();
 			encap.write32 (default_index);
 			ULong cnt = tc->member_count ();

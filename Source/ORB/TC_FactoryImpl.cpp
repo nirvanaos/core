@@ -342,7 +342,7 @@ TypeCode::_ref_type TC_FactoryImpl::unmarshal_type_code_cplx (TCKind kind, Strea
 			encap_pos);
 		if (!discriminator_type)
 			throw BAD_TYPECODE (MAKE_OMG_MINOR (2));
-		size_t discriminator_size = discriminator_type->n_CDR_size ();
+		size_t discriminator_size = discriminator_type->n_size ();
 		Long default_index = stm.read32 ();
 		ULong cnt = stm.read32 ();
 		if (!cnt)
@@ -357,16 +357,28 @@ TypeCode::_ref_type TC_FactoryImpl::unmarshal_type_code_cplx (TCKind kind, Strea
 			members.construct (cnt);
 			TC_Union::Member* pm = members.begin ();
 			for (ULong i = 0; i < cnt; ++pm, ++i) {
-				ULongLong buf = 0;
+				Octet buf [sizeof (ULongLong)];
 				stm.read (discriminator_size, discriminator_size, discriminator_size, 1, &buf);
-				if (stm.other_endian ())
-					discriminator_type->n_byteswap (&buf, 1);
+				if (stm.other_endian ()) {
+					switch (discriminator_size) {
+					case 2:
+						*(UShort*)buf = Nirvana::byteswap (*(UShort*)buf);
+						break;
+					case 4:
+						*(ULong*)buf = Nirvana::byteswap (*(ULong*)buf);
+						break;
+					case 8:
+						*(ULongLong*)buf = Nirvana::byteswap (*(ULongLong*)buf);
+						break;
+					}
+				}
+
 				// The discriminant value used in the actual typecode parameter associated with the default
 				// member position in the list, may be any valid value of the discriminant type, and has no
 				// semantic significance (i.e., it should be ignored and is only included for syntactic
 				// completeness of union type code marshaling).
 				if (i != default_index)
-					pm->label.copy_from (discriminator_type, &buf);
+					pm->label.copy_from (discriminator_type, buf);
 				else
 					pm->label <<= Any::from_octet (0);
 				stm.read_string (pm->name);

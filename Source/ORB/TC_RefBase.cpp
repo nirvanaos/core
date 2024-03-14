@@ -29,12 +29,7 @@
 namespace CORBA {
 namespace Core {
 
-size_t TC_RefBase::_s_n_aligned_size (Internal::Bridge <TypeCode>*, Internal::Interface*)
-{
-	return sizeof (Internal::Interface*);
-}
-
-size_t TC_RefBase::_s_n_CDR_size (Internal::Bridge <TypeCode>*, Internal::Interface*)
+size_t TC_RefBase::_s_n_size (Internal::Bridge <TypeCode>*, Internal::Interface*)
 {
 	return sizeof (Internal::Interface*);
 }
@@ -42,11 +37,6 @@ size_t TC_RefBase::_s_n_CDR_size (Internal::Bridge <TypeCode>*, Internal::Interf
 size_t TC_RefBase::_s_n_align (Internal::Bridge <TypeCode>*, Internal::Interface*)
 {
 	return alignof (Internal::Interface*);
-}
-
-Octet TC_RefBase::_s_n_is_CDR (Internal::Bridge <TypeCode>*, Internal::Interface*)
-{
-	return false;
 }
 
 }

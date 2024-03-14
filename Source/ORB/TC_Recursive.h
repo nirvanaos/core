@@ -165,24 +165,14 @@ public:
 		return content ()->concrete_base_type ();
 	}
 
-	size_t n_aligned_size () const
+	size_t n_size () const
 	{
-		return content ()->n_aligned_size ();
-	}
-
-	size_t n_CDR_size () const
-	{
-		return content ()->n_CDR_size ();
+		return content ()->n_size ();
 	}
 
 	size_t n_align () const
 	{
 		return content ()->n_align ();
-	}
-
-	bool n_is_CDR () const
-	{
-		return content ()->n_is_CDR ();
 	}
 
 	void n_construct (void* p) const
@@ -218,11 +208,6 @@ public:
 	void n_unmarshal (Internal::IORequest_ptr rq, size_t count, void* dst) const
 	{
 		content ()->n_unmarshal (rq, count, dst);
-	}
-
-	void n_byteswap (void* p, size_t count) const
-	{
-		content ()->n_byteswap (p, count);
 	}
 
 	void _add_ref () noexcept

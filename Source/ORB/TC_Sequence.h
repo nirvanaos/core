@@ -62,12 +62,7 @@ public:
 			return Static_the_orb::create_sequence_tc (bound_, compact_content);
 	}
 
-	static size_t _s_n_aligned_size (Internal::Bridge <TypeCode>*, Internal::Interface*)
-	{
-		return sizeof (ABI);
-	}
-
-	static size_t _s_n_CDR_size (Internal::Bridge <TypeCode>*, Internal::Interface*)
+	static size_t _s_n_size (Internal::Bridge <TypeCode>*, Internal::Interface*)
 	{
 		return sizeof (ABI);
 	}
@@ -75,11 +70,6 @@ public:
 	static size_t _s_n_align (Internal::Bridge <TypeCode>*, Internal::Interface*)
 	{
 		return alignof (ABI);
-	}
-
-	static Octet _s_n_is_CDR (Internal::Bridge <TypeCode>*, Internal::Interface*)
-	{
-		return false;
 	}
 
 	void n_construct (void* p) const
@@ -95,11 +85,11 @@ public:
 		size_t size = abi.size;
 		if (size) {
 			Internal::check_pointer (abi.ptr);
-			if (content_kind_ == KIND_NONCDR) {
+			if (content_kind_ == KIND_VARLEN) {
 				Octet* p = (Octet*)abi.ptr;
 				do {
 					content_type_->n_destruct (p);
-					p += element_aligned_size_;
+					p += element_size_;
 				} while (--size);
 			}
 		}
@@ -121,11 +111,11 @@ public:
 		size_t count = abi_src.size;
 		if (count) {
 			Internal::check_pointer (abi_src.ptr);
-			size_t size = count * element_aligned_size_;
+			size_t size = count * element_size_;
 			if (abi_src.allocated < size)
 				throw BAD_PARAM ();
 
-			if (content_kind_ != KIND_NONCDR) {
+			if (content_kind_ != KIND_VARLEN) {
 				abi_dst.ptr = Nirvana::the_memory->copy (nullptr, abi_src.ptr, size, 0);
 				abi_dst.size = count;
 				abi_dst.allocated = size;
@@ -137,13 +127,13 @@ public:
 				try {
 					do {
 						content_type_->n_copy (pdst, psrc);
-						pdst += element_aligned_size_;
-						psrc += element_aligned_size_;
+						pdst += element_size_;
+						psrc += element_size_;
 					} while (psrc != src_end);
 				} catch (...) {
 					while (pdst > ptr) {
 						content_type_->n_destruct (pdst);
-						pdst -= element_aligned_size_;
+						pdst -= element_size_;
 					}
 					Nirvana::the_memory->release (ptr, size);
 					throw;
@@ -192,22 +182,13 @@ public:
 				}
 				break;
 
-			case KIND_CDR:
-				for (; pdst != end; ++pdst) {
-					if (rq->unmarshal_seq (element_align_, element_aligned_size_, element_CDR_size_,
-						pdst->size, pdst->ptr, pdst->allocated)
-						)
-						content_type_->n_byteswap (pdst->ptr, pdst->size);
-				}
-				break;
-
 			default:
 				for (; pdst != end; ++pdst) {
 					content_type_->n_destruct (pdst);
 					pdst->reset ();
 					size_t size = rq->unmarshal_seq_begin ();
 					if (size) {
-						size_t cb = size * element_aligned_size_;
+						size_t cb = size * element_size_;
 						void* p = Nirvana::the_memory->allocate (nullptr, cb, 0);
 						try {
 							content_type_->n_unmarshal (rq, size, p);
@@ -220,8 +201,6 @@ public:
 				break;
 		}
 	}
-
-	using TC_Base::_s_n_byteswap;
 
 private:
 	void marshal (const void* src, size_t count, Internal::IORequest_ptr rq, bool out) const;

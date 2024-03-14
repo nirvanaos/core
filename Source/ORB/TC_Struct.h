@@ -64,6 +64,7 @@ public:
 		Impl (kind, std::move (id), std::move (name))
 	{
 		set_members (std::move (members));
+
 		TC_Ref self (_get_ptr (), this);
 		for (auto& m : members_) {
 			m.type.replace_recursive_placeholder (id_, self);
@@ -71,7 +72,10 @@ public:
 	}
 
 	TC_Struct (TCKind kind, IDL::String&& id, IDL::String&& name) :
-		Impl (kind, std::move (id), std::move (name))
+		Impl (kind, std::move (id), std::move (name)),
+		align_ (1),
+		size_ (0),
+		var_len_ (false)
 	{}
 
 	void set_members (Members&& members);
@@ -110,24 +114,14 @@ public:
 		return Static_the_orb::get_compact_typecode (_get_ptr ());
 	}
 
-	size_t n_aligned_size () const noexcept
+	size_t n_size () const noexcept
 	{
-		return aligned_size_;
-	}
-
-	size_t n_CDR_size () const noexcept
-	{
-		return CDR_size_;
+		return size_;
 	}
 
 	size_t n_align () const noexcept
 	{
 		return align_;
-	}
-
-	bool n_is_CDR () const noexcept
-	{
-		return is_CDR_;
 	}
 
 	void n_construct (void* p) const
@@ -150,8 +144,8 @@ public:
 	{
 		Internal::check_pointer (dst);
 		Internal::check_pointer (src);
-		if (is_CDR_)
-			Nirvana::real_move ((const Octet*)src, (const Octet*)src + aligned_size_, (Octet*)dst);
+		if (!var_len_)
+			Nirvana::real_move ((const Octet*)src, (const Octet*)src + size_, (Octet*)dst);
 		else
 			for (const auto& m : members_) {
 				m.type->n_copy ((Octet*)dst + m.offset, (const Octet*)src + m.offset);
@@ -162,8 +156,8 @@ public:
 	{
 		Internal::check_pointer (dst);
 		Internal::check_pointer (src);
-		if (is_CDR_)
-			Nirvana::real_move ((const Octet*)src, (const Octet*)src + aligned_size_, (Octet*)dst);
+		if (!var_len_)
+			Nirvana::real_move ((const Octet*)src, (const Octet*)src + size_, (Octet*)dst);
 		else
 			for (const auto& m : members_) {
 				m.type->n_move ((Octet*)dst + m.offset, (Octet*)src + m.offset);
@@ -173,54 +167,30 @@ public:
 	void n_marshal_in (const void* src, size_t count, Internal::IORequest_ptr rq) const
 	{
 		Internal::check_pointer (src);
-		// TODO: Optimize
-		if (is_CDR_ && aligned_size_ == CDR_size_)
-			rq->marshal (align_, CDR_size_ * count, src);
-		else
-			for (const Octet* osrc = (const Octet*)src; count; osrc += aligned_size_, --count) {
-				for (const auto& m : members_) {
-					m.type->n_marshal_in (osrc + m.offset, 1, rq);
-				}
+		for (const Octet* osrc = (const Octet*)src; count; osrc += size_, --count) {
+			for (const auto& m : members_) {
+				m.type->n_marshal_in (osrc + m.offset, 1, rq);
 			}
+		}
 	}
 
 	void n_marshal_out (void* src, size_t count, Internal::IORequest_ptr rq) const
 	{
 		Internal::check_pointer (src);
-		// TODO: Optimize
-		if (is_CDR_ && aligned_size_ == CDR_size_)
-			rq->marshal (align_, CDR_size_ * count, src);
-		else
-			for (Octet* osrc = (Octet*)src; count; osrc += aligned_size_, --count) {
-				for (const auto& m : members_) {
-					m.type->n_marshal_out (osrc + m.offset, 1, rq);
-				}
+		for (Octet* osrc = (Octet*)src; count; osrc += size_, --count) {
+			for (const auto& m : members_) {
+				m.type->n_marshal_out (osrc + m.offset, 1, rq);
 			}
+		}
 	}
 
 	void n_unmarshal (Internal::IORequest_ptr rq, size_t count, void* dst) const
 	{
 		Internal::check_pointer (dst);
-		// TODO: Optimize
-		if (is_CDR_ && aligned_size_ == CDR_size_) {
-			if (rq->unmarshal (align_, CDR_size_ * count, dst))
-				byteswap (dst, count);
-		} else {
-			for (Octet* odst = (Octet*)dst; count; odst += aligned_size_, --count) {
-				for (const auto& m : members_) {
-					m.type->n_unmarshal (rq, 1, odst + m.offset);
-				}
+		for (Octet* odst = (Octet*)dst; count; odst += size_, --count) {
+			for (const auto& m : members_) {
+				m.type->n_unmarshal (rq, 1, odst + m.offset);
 			}
-		}
-	}
-
-	using Servant::_s_n_byteswap;
-
-	void n_byteswap (void* p, size_t count) const
-	{
-		if (is_CDR_) {
-			Internal::check_pointer (p);
-			byteswap (p, count);
 		}
 	}
 
@@ -229,14 +199,10 @@ protected:
 	virtual bool set_recursive (const IDL::String& id, const TC_Ref& ref) noexcept override;
 
 private:
-	void byteswap (void* p, size_t count) const;
-
-private:
 	Members members_;
 	size_t align_;
-	size_t aligned_size_;
-	size_t CDR_size_;
-	bool is_CDR_;
+	size_t size_;
+	bool var_len_;
 };
 
 }

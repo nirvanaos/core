@@ -34,7 +34,7 @@ namespace Core {
 static void remarshal_param (TypeCode::_ptr_type tc, std::vector <Octet>& buf,
 	IORequest::_ptr_type src, IORequest::_ptr_type dst)
 {
-	size_t cb = tc->n_aligned_size ();
+	size_t cb = tc->n_size ();
 	if (buf.size () < cb) {
 		std::vector <Octet> new_buf (Nirvana::round_up (cb, Nirvana::Core::HEAP_UNIT_DEFAULT));
 		buf.swap (new_buf);

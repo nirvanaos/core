@@ -71,6 +71,7 @@ public:
 		TC_Union (std::move (id), std::move (name), TypeCode::_ref_type (discriminator_type), default_index)
 	{
 		set_members (std::move (members));
+
 		TC_Ref self (_get_ptr (), this);
 		for (auto& m : members_) {
 			m.type.replace_recursive_placeholder (id_, self);
@@ -130,24 +131,14 @@ public:
 		return Static_the_orb::get_compact_typecode (_get_ptr ());
 	}
 
-	size_t n_aligned_size () const noexcept
+	size_t n_size () const noexcept
 	{
-		return aligned_size_;
-	}
-
-	size_t n_CDR_size () const noexcept
-	{
-		return 0;
+		return size_;
 	}
 
 	size_t n_align () const noexcept
 	{
 		return align_;
-	}
-
-	bool n_is_CDR () const noexcept
-	{
-		return false;
 	}
 
 	void n_construct (void* p) const
@@ -223,8 +214,6 @@ public:
 		}
 	}
 
-	using TC_Base::_s_n_byteswap;
-
 protected:
 	virtual bool mark () noexcept override;
 	virtual bool set_recursive (const IDL::String& id, const TC_Ref& ref) noexcept override;
@@ -245,7 +234,7 @@ private:
 	const TypeCode::_ref_type discriminator_type_;
 	Members members_;
 	size_t align_;
-	size_t aligned_size_;
+	size_t size_;
 	size_t discriminator_size_;
 	const Long default_index_;
 };
