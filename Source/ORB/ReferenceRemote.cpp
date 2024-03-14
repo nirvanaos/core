@@ -27,6 +27,7 @@
 #include "ReferenceRemote.h"
 #include "../Binder.h"
 #include "Nirvana_policies.h"
+#include "PortableServer_policies.h"
 
 using namespace Nirvana::Core;
 

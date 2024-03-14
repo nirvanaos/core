@@ -36,6 +36,7 @@
 #include <CORBA/RepId.h>
 #include <Nirvana/Main.h>
 #include <Nirvana/ModuleInit.h>
+#include <Nirvana/Domains.h>
 #include "WaitableRef.h"
 #include "Chrono.h"
 #include "MapOrderedUnstable.h"

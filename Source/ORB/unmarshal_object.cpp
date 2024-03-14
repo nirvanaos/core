@@ -25,6 +25,7 @@
 */
 #include "../pch.h"
 #include "unmarshal_object.h"
+#include "POA_Root.h"
 #include "../Binder.h"
 #include "../ProtDomain.h"
 

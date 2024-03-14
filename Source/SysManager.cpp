@@ -28,7 +28,7 @@
 #include "SysDomain.h"
 #include "ORB/ORB.h"
 #include "ORB/ServantProxyObject.h"
-//#include <CORBA/Proxy/ProxyBase.h>
+#include "Nirvana/CoreDomains.h"
 
 using namespace CORBA;
 

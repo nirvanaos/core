@@ -35,7 +35,6 @@
 #include "RqHelper.h"
 #include <CORBA/IIOP.h>
 #include "CodeSetConverter.h"
-#include "POA_Root.h"
 #include "LocalAddress.h"
 #include "IndirectMap.h"
 #include "ReferenceRemote.h"

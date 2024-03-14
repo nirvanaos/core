@@ -32,6 +32,7 @@
 #include <CORBA/NoDefaultPOA.h>
 #include <CORBA/Policy_s.h>
 #include "PolicyFactory.h"
+#include "RequestEncap.h"
 #include "../Synchronized.h"
 
 namespace CORBA {
@@ -103,10 +104,14 @@ typename PolicyItf::_ref_type PolicyImplBase <PolicyItf, id, ValueType>::create 
 template <class PolicyItf, PolicyType id, typename ValueType>
 void PolicyImplBase <PolicyItf, id, ValueType>::read_value (StreamIn& s, ValueType& val)
 {
-	// Assume all policy data is CDR
-	s.read_one (val);
-	if (s.other_endian ())
-		IDL::Type <ValueType>::byteswap (val);
+	if (IDL::Type <ValueType>::is_CDR) {
+		s.read_one (val);
+		if (s.other_endian ())
+			IDL::Type <ValueType>::byteswap (val);
+	} else {
+		Nirvana::Core::ImplStatic <RequestEncap> rq (&s, nullptr);
+		IDL::Type <ValueType>::unmarshal (rq._get_ptr (), val);
+	}
 }
 
 template <class PolicyItf, PolicyType id, typename ValueType>
