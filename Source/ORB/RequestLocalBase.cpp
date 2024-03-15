@@ -67,7 +67,7 @@ void RequestLocalBase::unmarshal_value (const IDL::String& interface_id, Interfa
 {
 	Internal::Interface::_ref_type ret;
 	uintptr_t pos = (uintptr_t)cur_ptr_;
-	uint8_t tag = read8 ();
+	unsigned tag = read8 ();
 	switch (tag) {
 	case 0:
 		break;
@@ -126,7 +126,7 @@ void RequestLocalBase::marshal_abstract (Interface::_ptr_type itf)
 
 void RequestLocalBase::unmarshal_abstract (const IDL::String& interface_id, Interface::_ref_type& itf)
 {
-	uint8_t tag = read8 ();
+	unsigned tag = read8 ();
 	if (tag)
 		unmarshal_interface (interface_id, itf);
 	else

@@ -140,21 +140,24 @@ void RequestLocalRoot::cleanup () noexcept
 		}
 	}
 	{
-		const Segment* p = segments_;
-		segments_ = nullptr;
-		while (p) {
-			caller_memory_->heap ().release (p->ptr, p->allocated_size);
-			p = (const Segment*)p->next;
+		const Segment* segment = segments_;
+		if (segment) {
+			segments_ = nullptr;
+			Heap& heap = target_memory ().heap ();
+			do {
+				heap.release (segment->ptr, segment->allocated_size);
+				segment = (const Segment*)segment->next;
+			} while (segment);
 		}
 	}
 	{
 		BlockHdr* block = first_block_;
 		if (block) {
 			first_block_ = nullptr;
-			Heap& mem = caller_memory_->heap ();
+			Heap& heap = caller_memory_->heap ();
 			while (block) {
 				BlockHdr* next = block->next;
-				mem.release (block, block->size);
+				heap.release (block, block->size);
 				block = next;
 			}
 		}
@@ -193,6 +196,24 @@ void RequestLocalRoot::write (size_t align, size_t size, const void* data)
 		dst += size;
 	}
 	cur_ptr_ = dst;
+}
+
+void RequestLocalRoot::write_size (size_t size)
+{
+	Octet* dst = round_up (cur_ptr_, alignof (size_t));
+	if (cur_block_end () - dst < (ptrdiff_t)sizeof (size_t))
+		dst = allocate_block (alignof (size_t), sizeof (size_t));
+	*(size_t*)dst = size;
+	cur_ptr_ = dst + sizeof (size_t);
+}
+
+void RequestLocalRoot::write8 (unsigned val)
+{
+	Octet* dst = cur_ptr_;
+	if (cur_block_end () - dst < 1)
+		dst = allocate_block (1, 1);
+	*dst = (Octet)val;
+	cur_ptr_ = dst + 1;
 }
 
 Octet* RequestLocalRoot::allocate_block (size_t align, size_t size)
@@ -239,6 +260,26 @@ void RequestLocalRoot::read (size_t align, size_t size, void* data)
 	}
 
 	cur_ptr_ = (Octet*)src;
+}
+
+size_t RequestLocalRoot::read_size ()
+{
+	const Octet* src = round_up (cur_ptr_, alignof (size_t));
+	if (cur_block_end () - src < (ptrdiff_t)sizeof (size_t))
+		src = next_block (alignof (size_t));
+	size_t ret = *(const size_t*)src;
+	cur_ptr_ = (Octet*)src + sizeof (size_t);
+	return ret;
+}
+
+unsigned RequestLocalRoot::read8 ()
+{
+	const Octet* src = cur_ptr_;
+	if (cur_block_end () - src < 1)
+		src = next_block (1);
+	unsigned ret = *src;
+	cur_ptr_ = (Octet*)src + 1;
+	return ret;
 }
 
 const Octet* RequestLocalRoot::next_block (size_t align)

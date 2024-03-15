@@ -118,7 +118,7 @@ public:
 		if (CDR_element_size > element_size || element_size % align)
 			throw BAD_PARAM ();
 		if (marshal_op ()) {
-			write (alignof (size_t), sizeof (size_t), &element_count);
+			write_size (element_count);
 			if (element_count)
 				marshal_segment (align, element_size, element_count, data, allocated_size);
 		}
@@ -148,8 +148,7 @@ public:
 		check_align (align);
 		if (CDR_element_size > element_size || element_size % align)
 			throw BAD_PARAM ();
-		size_t count;
-		read (alignof (size_t), sizeof (size_t), &count);
+		size_t count = read_size ();
 		if (count) {
 			void* p;
 			size_t size;
@@ -176,7 +175,7 @@ public:
 	bool marshal_seq_begin (size_t element_count)
 	{
 		if (marshal_op ()) {
-			write (alignof (size_t), sizeof (size_t), &element_count);
+			write_size (element_count);
 			return true;
 		} else
 			return false;
@@ -187,9 +186,7 @@ public:
 	/// \returns The sequence size.
 	size_t unmarshal_seq_begin ()
 	{
-		size_t element_count;
-		read (alignof (size_t), sizeof (size_t), &element_count);
-		return element_count;
+		return read_size ();
 	}
 
 	///@}
@@ -212,7 +209,7 @@ public:
 				size = abi.small_size ();
 				ptr = abi.small_pointer ();
 			}
-			write (alignof (size_t), sizeof (size_t), &size);
+			write_size (size);
 			if (size) {
 				if (size <= ABI::SMALL_CAPACITY)
 					write (alignof (C), size * sizeof (C), ptr);
@@ -231,8 +228,7 @@ public:
 	{
 		typedef typename IDL::Type <Internal::StringT <C> >::ABI ABI;
 
-		size_t size;
-		read (alignof (size_t), sizeof (size_t), &size);
+		size_t size = read_size ();
 		Internal::StringT <C> tmp;
 		ABI& abi = (ABI&)tmp;
 		if (size <= ABI::SMALL_CAPACITY) {
@@ -470,31 +466,15 @@ protected:
 	bool marshal_op () noexcept;
 	void write (size_t align, size_t size, const void* data);
 
-	void write32 (uint32_t val)
-	{
-		write (4, 4, &val);
-	}
+	void write8 (unsigned val);
 
-	void write8 (uint8_t val)
-	{
-		write (1, 1, &val);
-	}
+	void write_size (size_t size);
 
 	void read (size_t align, size_t size, void* data);
 
-	uint32_t read32 ()
-	{
-		uint32_t val;
-		read (4, 4, &val);
-		return val;
-	}
+	unsigned read8 ();
 
-	uint8_t read8 ()
-	{
-		uint8_t val;
-		read (1, 1, &val);
-		return val;
-	}
+	size_t read_size ();
 
 	void marshal_interface_internal (Internal::Interface::_ptr_type itf);
 
