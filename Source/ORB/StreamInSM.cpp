@@ -178,7 +178,7 @@ void StreamInSM::physical_read (size_t& align, size_t& size, void* buf)
 		inc_position (align, cb);
 		// Adjust alignment if the remaining size less than it
 		if (align > size)
-			align = size;
+			align = flp2 (size);
 
 	} while (size);
 }

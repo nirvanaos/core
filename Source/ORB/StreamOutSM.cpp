@@ -154,7 +154,7 @@ void StreamOutSM::write (size_t align, size_t element_size, size_t CDR_element_s
 			size -= cb;
 			// Adjust alignment if the remaining size less than it
 			if (align > size)
-				align = size;
+				align = flp2 (size);
 		} while (size);
 	}
 
