@@ -46,12 +46,23 @@ public:
 	using Servant::_s_get_compact_typecode;
 
 	TC_Sequence () :
-		Impl (TCKind::tk_sequence)
+		Impl (TCKind::tk_sequence),
+		content_kind_ (KIND_CDR),
+		CDR_size_ (4),
+		element_size_ (0)
 	{}
 
 	TC_Sequence (TC_Ref&& content_type, ULong bound) :
-		Impl (TCKind::tk_sequence, std::move (content_type), bound)
-	{}
+		TC_Sequence ()
+	{
+		set_content_type (std::move (content_type), bound);
+	}
+
+	void set_content_type (TC_Ref&& content_type, ULong bound)
+	{
+		if (TC_ArrayBase::set_content_type (std::move (content_type), bound))
+			initialize ();
+	}
 
 	TypeCode::_ref_type get_compact_typecode ()
 	{
@@ -83,17 +94,19 @@ public:
 		Internal::check_pointer (p);
 		ABI& abi = *reinterpret_cast <ABI*> (p);
 		size_t size = abi.size;
-		if (size) {
+		if (size || abi.allocated)
 			Internal::check_pointer (abi.ptr);
-			if (content_kind_ == KIND_VARLEN) {
-				Octet* p = (Octet*)abi.ptr;
-				do {
-					content_type_->n_destruct (p);
-					p += element_size_;
-				} while (--size);
-			}
+
+		if (size && content_kind_ == KIND_VARLEN) {
+			Octet* p = (Octet*)abi.ptr;
+			do {
+				content_type_->n_destruct (p);
+				p += element_size_;
+			} while (--size);
 		}
+
 		abi.size = 0;
+
 		if (abi.allocated) {
 			Nirvana::the_memory->release (abi.ptr, abi.allocated);
 			abi.allocated = 0;
@@ -169,11 +182,23 @@ public:
 	{
 		Internal::check_pointer (dst);
 		ABI* pdst = (ABI*)dst, * end = pdst + count;
-		if (KIND_WCHAR == content_kind_) {
+
+		switch (content_kind_) {
+		case KIND_CDR:
+			for (; pdst != end; ++pdst) {
+				ABI* abi_dst = (ABI*)dst;
+				rq->unmarshal_seq (CDR_size_.alignment, element_size_, CDR_size_.size,
+					abi_dst->size, abi_dst->ptr, abi_dst->allocated);
+			}
+			break;
+
+		case KIND_WCHAR:
 			for (; pdst != end; ++pdst) {
 				rq->unmarshal_wchar_seq ((IDL::Sequence <WChar>&) * pdst);
 			}
-		} else {
+			break;
+
+		default:
 			for (; pdst != end; ++pdst) {
 				content_type_->n_destruct (pdst);
 				pdst->reset ();
@@ -189,11 +214,27 @@ public:
 					}
 				}
 			}
+			break;
 		}
 	}
 
 private:
+	virtual bool set_recursive (const IDL::String& id, const TC_Ref& ref) noexcept override;
+	void initialize ();
 	void marshal (const void* src, size_t count, Internal::IORequest_ptr rq, bool out) const;
+
+private:
+	enum
+	{
+		KIND_CDR,
+		KIND_WCHAR,
+		KIND_FIXLEN,
+		KIND_VARLEN
+	}
+	content_kind_;
+
+	SizeAndAlign CDR_size_;
+	size_t element_size_;
 };
 
 }

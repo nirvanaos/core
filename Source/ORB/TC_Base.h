@@ -60,7 +60,43 @@ protected:
 	virtual void collect_garbage () noexcept;
 
 	static TypeCode::_ref_type dereference_alias (TypeCode::_ptr_type tc);
-	static bool is_var_len (TypeCode::_ptr_type tc);
+
+	struct SizeAndAlign
+	{
+		unsigned alignment; // Alignment of first element after a gap
+		unsigned size;      // Size of data after the gap.
+
+		SizeAndAlign (unsigned initial_align = 1) :
+			alignment (initial_align),
+			size (0)
+		{}
+
+		bool append (unsigned member_align, unsigned member_size) noexcept;
+
+		void invalidate () noexcept
+		{
+			size = std::numeric_limits <unsigned>::max ();
+		}
+
+		bool is_valid () const noexcept
+		{
+			return size != std::numeric_limits <unsigned>::max ();
+		}
+	};
+
+	static bool is_var_len (TypeCode::_ptr_type tc, SizeAndAlign& sa);
+
+	struct ArrayTraits
+	{
+		TypeCode::_ref_type element_type;
+		size_t element_count;
+
+		ArrayTraits (ULong bound) :
+			element_count (bound)
+		{}
+	};
+
+	static void get_array_traits (TypeCode::_ptr_type content_tc, ArrayTraits& traits);
 
 protected:
 	RefCntProxy ref_cnt_;

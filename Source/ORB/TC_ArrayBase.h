@@ -57,40 +57,20 @@ public:
 		return content_type_;
 	}
 
-	void set_content_type (TC_Ref&& content_type, ULong bound);
-
 protected:
 	TC_ArrayBase (TCKind kind) :
 		TC_Complex <TC_Base> (kind)
 	{}
 
-	TC_ArrayBase (TCKind kind, TC_Ref&& content_type, ULong bound) :
-		TC_Complex <TC_Base> (kind),
-		content_type_ (std::move (content_type)),
-		bound_ (bound)
-	{
-		initialize ();
-	}
+	bool set_content_type (TC_Ref&& content_type, ULong bound);
 
 	virtual bool mark () noexcept override;
-	virtual bool set_recursive (const IDL::String& id, const TC_Ref& ref) noexcept override;
 
 private:
 	static TCKind get_array_kind (TypeCode::_ptr_type tc);
-	void initialize ();
 
 protected:
 	TC_Ref content_type_;
-	size_t element_size_;
-
-	enum
-	{
-		KIND_WCHAR,
-		KIND_FIXLEN,
-		KIND_VARLEN
-	}
-	content_kind_;
-
 	ULong bound_;
 };
 

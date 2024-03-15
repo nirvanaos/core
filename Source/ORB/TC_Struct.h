@@ -60,8 +60,15 @@ public:
 
 	typedef Nirvana::Core::Array <Member, Nirvana::Core::UserAllocator> Members;
 
+	TC_Struct (TCKind kind, IDL::String&& id, IDL::String&& name) :
+		Impl (kind, std::move (id), std::move (name)),
+		align_ (1),
+		size_ (0),
+		kind_ (KIND_CDR)
+	{}
+
 	TC_Struct (TCKind kind, IDL::String&& id, IDL::String&& name, Members&& members) :
-		Impl (kind, std::move (id), std::move (name))
+		TC_Struct (kind, std::move (id), std::move (name))
 	{
 		set_members (std::move (members));
 
@@ -70,13 +77,6 @@ public:
 			m.type.replace_recursive_placeholder (id_, self);
 		}
 	}
-
-	TC_Struct (TCKind kind, IDL::String&& id, IDL::String&& name) :
-		Impl (kind, std::move (id), std::move (name)),
-		align_ (1),
-		size_ (0),
-		var_len_ (false)
-	{}
 
 	void set_members (Members&& members);
 
@@ -135,8 +135,10 @@ public:
 	void n_destruct (void* p) const
 	{
 		Internal::check_pointer (p);
-		for (const auto& m : members_) {
-			m.type->n_destruct ((Octet*)p + m.offset);
+		if (KIND_VARLEN == kind_) {
+			for (const auto& m : members_) {
+				m.type->n_destruct ((Octet*)p + m.offset);
+			}
 		}
 	}
 
@@ -144,7 +146,7 @@ public:
 	{
 		Internal::check_pointer (dst);
 		Internal::check_pointer (src);
-		if (!var_len_)
+		if (KIND_VARLEN != kind_)
 			Nirvana::real_move ((const Octet*)src, (const Octet*)src + size_, (Octet*)dst);
 		else
 			for (const auto& m : members_) {
@@ -156,7 +158,7 @@ public:
 	{
 		Internal::check_pointer (dst);
 		Internal::check_pointer (src);
-		if (!var_len_)
+		if (KIND_VARLEN != kind_)
 			Nirvana::real_move ((const Octet*)src, (const Octet*)src + size_, (Octet*)dst);
 		else
 			for (const auto& m : members_) {
@@ -167,9 +169,13 @@ public:
 	void n_marshal_in (const void* src, size_t count, Internal::IORequest_ptr rq) const
 	{
 		Internal::check_pointer (src);
-		for (const Octet* osrc = (const Octet*)src; count; osrc += size_, --count) {
-			for (const auto& m : members_) {
-				m.type->n_marshal_in (osrc + m.offset, 1, rq);
+		if (KIND_CDR == kind_)
+			marshal_CDR (src, count, rq);
+		else {
+			for (const Octet* osrc = (const Octet*)src; count; osrc += size_, --count) {
+				for (const auto& m : members_) {
+					m.type->n_marshal_in (osrc + m.offset, 1, rq);
+				}
 			}
 		}
 	}
@@ -177,9 +183,13 @@ public:
 	void n_marshal_out (void* src, size_t count, Internal::IORequest_ptr rq) const
 	{
 		Internal::check_pointer (src);
-		for (Octet* osrc = (Octet*)src; count; osrc += size_, --count) {
-			for (const auto& m : members_) {
-				m.type->n_marshal_out (osrc + m.offset, 1, rq);
+		if (KIND_CDR == kind_)
+			marshal_CDR (src, count, rq);
+		else {
+			for (Octet* osrc = (Octet*)src; count; osrc += size_, --count) {
+				for (const auto& m : members_) {
+					m.type->n_marshal_out (osrc + m.offset, 1, rq);
+				}
 			}
 		}
 	}
@@ -187,9 +197,15 @@ public:
 	void n_unmarshal (Internal::IORequest_ptr rq, size_t count, void* dst) const
 	{
 		Internal::check_pointer (dst);
-		for (Octet* odst = (Octet*)dst; count; odst += size_, --count) {
-			for (const auto& m : members_) {
-				m.type->n_unmarshal (rq, 1, odst + m.offset);
+		if (KIND_CDR == kind_) {
+			for (Octet* odst = (Octet*)dst; count; odst += size_, --count) {
+				rq->unmarshal (CDR_size_.alignment, CDR_size_.size, odst);
+			}
+		} else {
+			for (Octet* odst = (Octet*)dst; count; odst += size_, --count) {
+				for (const auto& m : members_) {
+					m.type->n_unmarshal (rq, 1, odst + m.offset);
+				}
 			}
 		}
 	}
@@ -199,10 +215,22 @@ protected:
 	virtual bool set_recursive (const IDL::String& id, const TC_Ref& ref) noexcept override;
 
 private:
+	void marshal_CDR (const void* src, size_t count, Internal::IORequest_ptr rq) const;
+
+private:
 	Members members_;
 	size_t align_;
 	size_t size_;
-	bool var_len_;
+
+	enum
+	{
+		KIND_CDR,
+		KIND_FIXLEN,
+		KIND_VARLEN
+	}
+	kind_;
+
+	SizeAndAlign CDR_size_;
 };
 
 }

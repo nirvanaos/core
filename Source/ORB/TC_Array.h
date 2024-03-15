@@ -47,13 +47,23 @@ public:
 	using Servant::_s_get_compact_typecode;
 
 	TC_Array () :
-		Impl (TCKind::tk_array)
+		Impl (TCKind::tk_array),
+		traits_ (0),
+		element_align_ (1),
+		element_size_ (0),
+		var_len_ (false)
 	{}
 
 	TC_Array (TC_Ref&& content_type, ULong bound) :
-		Impl (TCKind::tk_array, std::move (content_type), bound)
+		TC_Array ()
 	{
-		element_align_ = content_type_->n_align ();
+		set_content_type (std::move (content_type), bound);
+	}
+
+	void set_content_type (TC_Ref&& content_type, ULong bound)
+	{
+		if (TC_ArrayBase::set_content_type (std::move (content_type), bound))
+			initialize ();
 	}
 
 	TypeCode::_ref_type get_compact_typecode ()
@@ -67,7 +77,7 @@ public:
 
 	size_t n_size () const noexcept
 	{
-		return bound_ * element_size_;
+		return traits_.element_count * element_size_;
 	}
 
 	size_t n_align () const noexcept
@@ -78,7 +88,7 @@ public:
 	void n_construct (void* p) const
 	{
 		Octet* pv = (Octet*)p;
-		size_t count = bound_;
+		size_t count = traits_.element_count;
 		do {
 			content_type_->n_construct (pv);
 			pv += element_size_;
@@ -87,46 +97,62 @@ public:
 
 	void n_destruct (void* p) const
 	{
-		Octet* pv = (Octet*)p;
-		size_t count = bound_;
-		do {
-			content_type_->n_destruct (pv);
-			pv += element_size_;
-		} while (--count);
+		if (var_len_) {
+			Octet* pv = (Octet*)p;
+			size_t count = traits_.element_count;
+			do {
+				content_type_->n_destruct (pv);
+				pv += element_size_;
+			} while (--count);
+		}
 	}
 
 	void n_copy (void* dst, const void* src) const
 	{
-		const Octet* ps = (const Octet*)src;
-		Octet* pd = (Octet*)dst;
-		size_t count = bound_;
-		do {
-			content_type_->n_copy (pd, ps);
-			ps += element_size_;
-			pd += element_size_;
-		} while (--count);
+		if (var_len_) {
+			const Octet* ps = (const Octet*)src;
+			Octet* pd = (Octet*)dst;
+			size_t count = traits_.element_count;
+			do {
+				content_type_->n_copy (pd, ps);
+				ps += element_size_;
+				pd += element_size_;
+			} while (--count);
+		} else
+			Nirvana::real_copy ((const Octet*)src, (const Octet*)src + element_size_ * traits_.element_count, (Octet*)dst);
 	}
 
 	void n_move (void* dst, void* src) const
 	{
-		Octet* ps = (Octet*)src;
-		Octet* pd = (Octet*)dst;
-		size_t count = bound_;
-		do {
-			content_type_->n_move (pd, ps);
-			ps += element_size_;
-			pd += element_size_;
-		} while (--count);
+		if (var_len_) {
+			Octet* ps = (Octet*)src;
+			Octet* pd = (Octet*)dst;
+			size_t count = traits_.element_count;
+			do {
+				content_type_->n_move (pd, ps);
+				ps += element_size_;
+				pd += element_size_;
+			} while (--count);
+		} else
+			Nirvana::real_copy ((const Octet*)src, (const Octet*)src + element_size_ * traits_.element_count, (Octet*)dst);
 	}
 
 	void n_marshal_in (const void* src, size_t count, Internal::IORequest_ptr rq) const
 	{
-		marshal (src, count, rq, false);
+		if (!count)
+			return;
+
+		Internal::check_pointer (src);
+		traits_.element_type->n_marshal_in (src, count * traits_.element_count, rq);
 	}
 
 	void n_marshal_out (void* src, size_t count, Internal::IORequest_ptr rq) const
 	{
-		marshal (src, count, rq, true);
+		if (!count)
+			return;
+
+		Internal::check_pointer (src);
+		traits_.element_type->n_marshal_out (src, count * traits_.element_count, rq);
 	}
 
 	void n_unmarshal (Internal::IORequest_ptr rq, size_t count, void* dst) const
@@ -135,17 +161,18 @@ public:
 			return;
 
 		Internal::check_pointer (dst);
-		if (KIND_WCHAR == content_kind_)
-			rq->unmarshal_wchar (count, (WChar*)dst);
-		else
-			content_type_->n_unmarshal (rq, count, dst);
+		traits_.element_type->n_unmarshal (rq, count * traits_.element_count, dst);
 	}
 
 private:
-	void marshal (const void* src, size_t count, Internal::IORequest_ptr rq, bool out) const;
+	virtual bool set_recursive (const IDL::String& id, const TC_Ref& ref) noexcept override;
+	void initialize ();
 
 private:
+	ArrayTraits traits_;
 	size_t element_align_;
+	size_t element_size_;
+	bool var_len_;
 };
 
 }

@@ -36,6 +36,7 @@ void TC_Struct::set_members (Members&& members)
 	bool cdr = true;
 	size_t align = 1;
 	bool var_len = false;
+	SizeAndAlign sa (1);
 	for (auto& m : members_) {
 		size_t m_align = m.type->n_align ();
 		off = Nirvana::round_up (off, m_align);
@@ -43,12 +44,19 @@ void TC_Struct::set_members (Members&& members)
 		off += m.type->n_size ();
 		if (align < m_align)
 			align = m_align;
-		if (!var_len && is_var_len (m.type))
+		if (!var_len && is_var_len (m.type, sa))
 			var_len = true;
 	}
 	size_ = Nirvana::round_up (off, align);
 	align_ = align;
-	var_len_ = var_len;
+
+	if (var_len)
+		kind_ = KIND_VARLEN;
+	else if (sa.is_valid ()) {
+		CDR_size_ = sa;
+		kind_ = KIND_CDR;
+	} else
+		kind_ = KIND_FIXLEN;
 }
 
 bool TC_Struct::mark () noexcept
@@ -67,6 +75,13 @@ bool TC_Struct::set_recursive (const IDL::String& id, const TC_Ref& ref) noexcep
 		m.type.replace_recursive_placeholder (id, ref);
 	}
 	return false;
+}
+
+void TC_Struct::marshal_CDR (const void* src, size_t count, Internal::IORequest_ptr rq) const
+{
+	for (const Octet* osrc = (const Octet*)src; count; osrc += size_, --count) {
+		rq->marshal (CDR_size_.alignment, CDR_size_.size, osrc);
+	}
 }
 
 }

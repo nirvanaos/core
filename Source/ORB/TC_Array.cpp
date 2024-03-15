@@ -29,18 +29,22 @@
 namespace CORBA {
 namespace Core {
 
-void TC_Array::marshal (const void* src, size_t count, Internal::IORequest_ptr rq, bool out) const
+void TC_Array::initialize ()
 {
-	if (!count)
-		return;
+	traits_.element_count = bound_;
+	get_array_traits (content_type_, traits_);
+	element_align_ = traits_.element_type->n_align ();
+	element_size_ = traits_.element_type->n_size ();
 
-	Internal::check_pointer (src);
-	if (KIND_WCHAR == content_kind_)
-		rq->marshal_wchar (count * element_size_ / sizeof (WChar), (const WChar*)src);
-	else if (out)
-		content_type_->n_marshal_out (const_cast <void*> (src), count, rq);
-	else
-		content_type_->n_marshal_in (src, count, rq);
+	SizeAndAlign sa (1);
+	var_len_ = is_var_len (traits_.element_type, sa);
+}
+
+bool TC_Array::set_recursive (const IDL::String& id, const TC_Ref& ref) noexcept
+{
+	if (content_type_.replace_recursive_placeholder (id, ref))
+		initialize ();
+	return false;
 }
 
 }
