@@ -33,7 +33,6 @@ void TC_Struct::set_members (Members&& members)
 {
 	members_ = std::move (members);
 	size_t off = 0;
-	bool cdr = true;
 	size_t align = 1;
 	bool var_len = false;
 	SizeAndAlign sa (1);
