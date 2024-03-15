@@ -189,7 +189,7 @@ void RequestLocalRoot::write (size_t align, size_t size, const void* data)
 
 		// Adjust alignment if the remaining size less than it
 		if (align > size)
-			align = size;
+			align = flp2 (size);
 
 		dst = allocate_block (align, size);
 		virtual_copy (src, size, dst);
@@ -253,7 +253,7 @@ void RequestLocalRoot::read (size_t align, size_t size, void* data)
 				break;
 			// Adjust alignment if the remaining size less than it
 			if (align > size)
-				align = size;
+				align = flp2 (size);
 		}
 
 		src = next_block (align);
