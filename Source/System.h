@@ -29,90 +29,22 @@
 #include <CORBA/Server.h>
 #include <signal.h>
 #include <Nirvana/System_s.h>
-#include "Chrono.h"
 #include "ExecDomain.h"
 #include <Port/SystemInfo.h>
 #include "Signals.h"
 #include "unrecoverable_error.h"
 #include "NameService/FileSystem.h"
 #include "NameService/NameService.h"
-#include "TimerEvent.h"
 #include "TLS.h"
 #include "FileDescriptors.h"
 #include "CurrentDir.h"
-#include "DeadlinePolicy.h"
 
 namespace Nirvana {
 
 class Static_the_system :
-	public CORBA::servant_traits <Nirvana::System>::ServantStatic <Static_the_system>
+	public CORBA::servant_traits <System>::ServantStatic <Static_the_system>
 {
 public:
-	static TimeBase::UtcT _s_system_clock (CORBA::Internal::Bridge <Nirvana::System>* _b, CORBA::Internal::Interface* _env)
-	{
-		return Core::Chrono::system_clock ();
-	}
-
-	static TimeBase::UtcT _s_UTC (CORBA::Internal::Bridge <Nirvana::System>* _b, CORBA::Internal::Interface* _env)
-	{
-		return Core::Chrono::UTC ();
-	}
-
-	static SteadyTime _s_steady_clock (CORBA::Internal::Bridge <Nirvana::System>* _b, CORBA::Internal::Interface* _env)
-	{
-		return Core::Chrono::steady_clock ();
-	}
-
-	static DeadlineTime _s_deadline_clock (CORBA::Internal::Bridge <Nirvana::System>* _b, CORBA::Internal::Interface* _env)
-	{
-		return Core::Chrono::deadline_clock ();
-	}
-
-	static IDL::Type <DeadlineTime>::ConstRef _s__get_deadline_clock_frequency (CORBA::Internal::Bridge <Nirvana::System>* _b, CORBA::Internal::Interface* _env)
-	{
-		return IDL::Type <DeadlineTime>::ret (Core::Chrono::deadline_clock_frequency ());
-	}
-
-	static DeadlineTime deadline_from_UTC (const TimeBase::UtcT& utc)
-	{
-		return Core::Chrono::deadline_from_UTC (utc);
-	}
-
-	static TimeBase::UtcT deadline_to_UTC (const DeadlineTime& deadline)
-	{
-		return Core::Chrono::deadline_to_UTC (deadline);
-	}
-
-	static DeadlineTime make_deadline (const TimeBase::TimeT& timeout)
-	{
-		return Core::Chrono::make_deadline (timeout);
-	}
-
-	static const DeadlineTime& deadline ()
-	{
-		return Core::ExecDomain::current ().deadline ();
-	}
-
-	static const DeadlinePolicy& deadline_policy_async ()
-	{
-		return Core::DeadlinePolicy::policy_async ();
-	}
-
-	static void deadline_policy_async (const DeadlinePolicy& dp)
-	{
-		Core::DeadlinePolicy::policy_async (dp);
-	}
-
-	static const DeadlinePolicy& deadline_policy_oneway ()
-	{
-		return Core::DeadlinePolicy::policy_oneway ();
-	}
-
-	static void deadline_policy_oneway (const DeadlinePolicy& dp)
-	{
-		Core::DeadlinePolicy::policy_oneway (dp);
-	}
-
 	static int* error_number ()
 	{
 		return Core::RuntimeGlobal::current ().error_number ();
@@ -157,22 +89,6 @@ public:
 	static ContextType context_type ()
 	{
 		return (ContextType)Core::SyncContext::current ().sync_context_type ();
-	}
-
-	static bool yield ()
-	{
-		return Core::ExecDomain::reschedule ();
-	}
-
-	static void sleep (TimeBase::TimeT period100ns)
-	{
-		if (!period100ns)
-			Core::ExecDomain::reschedule ();
-		else {
-			Core::TimerEvent timer;
-			timer.set (0, period100ns, 0);
-			timer.wait ();
-		}
 	}
 
 	static uint16_t TLS_alloc (Deleter deleter)

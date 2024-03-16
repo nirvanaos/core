@@ -88,7 +88,7 @@ RequestOut::RequestOut (unsigned response_flags, Domain& target_domain,
 		deadline_ = ed.get_request_deadline (true);
 
 	if (INFINITE_DEADLINE == deadline_)
-		deadline_ = Chrono::make_deadline (DEFAULT_TIMEOUT);
+		deadline_ = Nirvana::Core::Chrono::make_deadline (DEFAULT_TIMEOUT);
 }
 
 RequestOut::~RequestOut ()
@@ -316,8 +316,8 @@ void RequestOut::pre_invoke (IdPolicy id_policy)
 #ifndef NDEBUG
 		if (!Nirvana::Core::Port::Debugger::is_debugger_present ())
 #endif
-		timer_.set (std::max (Chrono::deadline_to_time (
-			deadline_ - Chrono::deadline_clock ()), (int64_t)MIN_TIMEOUT), id (), memory ().heap ());
+		timer_.set (std::max (Nirvana::Core::Chrono::deadline_to_time (
+			deadline_ - Nirvana::Core::Chrono::deadline_clock ()), (int64_t)MIN_TIMEOUT), id (), memory ().heap ());
 	} else
 		OutgoingRequests::new_request_oneway (*this, id_policy);
 }
@@ -433,8 +433,8 @@ private:
 void RequestOut::Timer::signal () noexcept
 {
 	try {
-		ExecDomain::async_call <Timeout> (Chrono::make_deadline (timeout_), g_core_free_sync_context,
-			(Heap*)heap_, id_);
+		ExecDomain::async_call <Timeout> (Nirvana::Core::Chrono::make_deadline (timeout_),
+			g_core_free_sync_context, (Heap*)heap_, id_);
 	} catch (...) {}
 }
 

@@ -24,53 +24,25 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_CORE_DEADLINEPOLICYCONTEXT_H_
-#define NIRVANA_CORE_DEADLINEPOLICYCONTEXT_H_
+#ifndef NIRVANA_CORE_THE_SECURITY_H_
+#define NIRVANA_CORE_THE_SECURITY_H_
 #pragma once
 
-#include <Nirvana/Nirvana.h>
-#include <Nirvana/Chrono.h>
+#include "Security.h"
+#include <Nirvana/Security_s.h>
 
 namespace Nirvana {
-namespace Core {
 
-class DeadlinePolicyContext
+class Static_the_security :
+	public IDL::traits <Security>::ServantStatic <Static_the_security>
 {
 public:
-	static const DeadlineTime ASYNC_DEFAULT = Nirvana::Chrono::DEADLINE_POLICY_INHERIT;
-	static const DeadlineTime ONEWAY_DEFAULT = Nirvana::Chrono::DEADLINE_POLICY_INFINITE;
-
-	DeadlinePolicyContext () :
-		policy_async_ (ASYNC_DEFAULT),
-		policy_oneway_ (ONEWAY_DEFAULT)
-	{}
-
-	const DeadlineTime& policy_async () const noexcept
+	static IDL::String get_name (const SecurityId& id)
 	{
-		return policy_async_;
+		return Core::Security::get_name (id);
 	}
-
-	void policy_async (const DeadlineTime& dp) noexcept
-	{
-		policy_async_ = dp;
-	}
-
-	const DeadlineTime& policy_oneway () const noexcept
-	{
-		return policy_oneway_;
-	}
-
-	void policy_oneway (const DeadlineTime& dp) noexcept
-	{
-		policy_oneway_ = dp;
-	}
-
-private:
-	DeadlineTime policy_async_;
-	DeadlineTime policy_oneway_;
 };
 
-}
 }
 
 #endif

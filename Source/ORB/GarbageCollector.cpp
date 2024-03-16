@@ -44,7 +44,7 @@ noexcept
 		try {
 			DeadlineTime deadline =
 				PROXY_GC_DEADLINE == INFINITE_DEADLINE ?
-				INFINITE_DEADLINE : Chrono::make_deadline (PROXY_GC_DEADLINE);
+				INFINITE_DEADLINE : Nirvana::Core::Chrono::make_deadline (PROXY_GC_DEADLINE);
 
 			ExecDomain::async_call <GarbageCollector> (
 				deadline, sync_context, nullptr, std::ref (garbage));

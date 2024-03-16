@@ -32,19 +32,26 @@
 #include "../Source/ORB/ObjectFactory.h"
 #include "../Source/ORB/ORB.h"
 #include "../Source/Debugger.h"
-#include "../Source/System.h"
 #include "../Source/the_binder.h"
+#include "../Source/the_chrono.h"
+#include "../Source/the_security.h"
+#include "../Source/System.h"
 
 NIRVANA_EXPORT (_exp_Nirvana_the_memory, "Nirvana/the_memory", Nirvana::Memory, Nirvana::Core::Memory)
 NIRVANA_EXPORT (_exp_Nirvana_the_debugger, "Nirvana/the_debugger", Nirvana::Debugger, Nirvana::Core::Debugger)
-NIRVANA_EXPORT_PSEUDO (_exp_Nirvana_the_system, Nirvana::Static_the_system)
+
 NIRVANA_EXPORT_FACTORY (_exp_Nirvana_AccessBuf, Nirvana::AccessBuf)
 NIRVANA_EXPORT_FACTORY (_exp_Messaging_ExceptionHolder, Messaging::ExceptionHolder)
-NIRVANA_EXPORT_OBJECT (_exp_Nirvana_launcher, Nirvana::Static_launcher)
 NIRVANA_EXPORT_FACTORY (_exp_Components_Cookie, Components::Cookie)
+
+NIRVANA_EXPORT_OBJECT (_exp_Nirvana_launcher, Nirvana::Static_launcher)
+
 NIRVANA_EXPORT_PSEUDO (_exp_CORBA_Internal_object_factory, CORBA::Internal::Static_object_factory)
 NIRVANA_EXPORT_PSEUDO (_exp_CORBA_the_orb, CORBA::Static_the_orb)
 NIRVANA_EXPORT_PSEUDO (_exp_Nirvana_the_binder, Nirvana::Static_the_binder)
+NIRVANA_EXPORT_PSEUDO (_exp_Nirvana_the_chrono, Nirvana::Static_the_chrono)
+NIRVANA_EXPORT_PSEUDO (_exp_Nirvana_the_security, Nirvana::Static_the_security)
+NIRVANA_EXPORT_PSEUDO (_exp_Nirvana_the_system, Nirvana::Static_the_system)
 
 namespace Nirvana {
 

@@ -343,7 +343,7 @@ void dispatch_message (MessageHeader& message) noexcept
 			const auto& msg = Request::receive (message);
 			try {
 				ExecDomain::async_call <ReceiveRequest> (
-					Chrono::make_deadline (INITIAL_REQUEST_DEADLINE_LOCAL), g_core_free_sync_context, nullptr,
+					Nirvana::Core::Chrono::make_deadline (INITIAL_REQUEST_DEADLINE_LOCAL), g_core_free_sync_context, nullptr,
 					std::ref (msg));
 			} catch (const SystemException& ex) {
 				// async_call failed.
@@ -361,7 +361,7 @@ void dispatch_message (MessageHeader& message) noexcept
 			const auto& msg = Reply::receive (message);
 			try {
 				ExecDomain::async_call <ReceiveReply> (
-					Chrono::make_deadline (INITIAL_REQUEST_DEADLINE_LOCAL), g_core_free_sync_context, nullptr,
+					Nirvana::Core::Chrono::make_deadline (INITIAL_REQUEST_DEADLINE_LOCAL), g_core_free_sync_context, nullptr,
 					std::ref (msg));
 			} catch (const SystemException& ex) {
 				// async_call failed.
@@ -377,7 +377,7 @@ void dispatch_message (MessageHeader& message) noexcept
 			const auto& msg = ReplyImmediate::receive (message);
 			try {
 				ExecDomain::async_call <ReceiveReplyImmediate> (
-					Chrono::make_deadline (INITIAL_REQUEST_DEADLINE_LOCAL), g_core_free_sync_context, nullptr,
+					Nirvana::Core::Chrono::make_deadline (INITIAL_REQUEST_DEADLINE_LOCAL), g_core_free_sync_context, nullptr,
 					std::ref (msg));
 			} catch (const SystemException& ex) {
 				OutgoingRequests::set_system_exception (msg.request_id, ex);
@@ -388,7 +388,7 @@ void dispatch_message (MessageHeader& message) noexcept
 			const auto& msg = ReplySystemException::receive (message);
 			try {
 				ExecDomain::async_call <ReceiveSystemException> (
-					Chrono::make_deadline (INITIAL_REQUEST_DEADLINE_LOCAL), g_core_free_sync_context, nullptr,
+					Nirvana::Core::Chrono::make_deadline (INITIAL_REQUEST_DEADLINE_LOCAL), g_core_free_sync_context, nullptr,
 					std::ref (msg));
 			} catch (...) {
 				OutgoingRequests::set_system_exception (msg.request_id, msg.code, msg.minor,
@@ -400,7 +400,7 @@ void dispatch_message (MessageHeader& message) noexcept
 			const auto& msg = CancelRequest::receive (message);
 			try {
 				ExecDomain::async_call <ReceiveCancel> (
-					Chrono::make_deadline (CANCEL_REQUEST_DEADLINE), g_core_free_sync_context, nullptr,
+					Nirvana::Core::Chrono::make_deadline (CANCEL_REQUEST_DEADLINE), g_core_free_sync_context, nullptr,
 					std::ref (msg));
 			} catch (...) {
 			}
@@ -425,7 +425,7 @@ void dispatch_message (MessageHeader& message) noexcept
 			const auto& msg = CloseConnection::receive (message);
 			try {
 				ExecDomain::async_call <ReceiveCloseConnection> (
-					Chrono::make_deadline (CLOSE_CONNECTION_DEADLINE), Nirvana::Core::Binder::sync_domain (),
+					Nirvana::Core::Chrono::make_deadline (CLOSE_CONNECTION_DEADLINE), Nirvana::Core::Binder::sync_domain (),
 					nullptr, std::ref (msg));
 			} catch (...) {
 			}

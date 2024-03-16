@@ -165,9 +165,9 @@ void Domain::schedule_del () noexcept
 {
 	if (!DGC_scheduled_ && !zombie_ && (Scheduler::state () == Scheduler::RUNNING)) {
 		DGC_scheduled_ = true;
-		DeadlineTime deadline =
+		Nirvana::DeadlineTime deadline =
 			PROXY_GC_DEADLINE == INFINITE_DEADLINE ?
-			INFINITE_DEADLINE : Chrono::make_deadline (PROXY_GC_DEADLINE);
+			INFINITE_DEADLINE : Nirvana::Core::Chrono::make_deadline (PROXY_GC_DEADLINE);
 		try {
 			ExecDomain::async_call <GC> (deadline, Binder::sync_domain (), nullptr, std::ref (*this));
 		} catch (...) {
@@ -218,7 +218,7 @@ void Domain::DGC_Request::invoke ()
 {
 	DeadlinePolicyContext& dp = MemContext::current ().deadline_policy ();
 
-	System::DeadlinePolicy old = dp.policy_async ();
+	Nirvana::Chrono::DeadlinePolicy old = dp.policy_async ();
 	dp.policy_async (domain_.request_latency ());
 
 	event_ = make_reference <RequestEvent> ();

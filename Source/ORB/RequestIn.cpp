@@ -140,11 +140,11 @@ void RequestIn::final_construct (servant_reference <StreamIn>&& in)
 	} else {
 		TimeBase::UtcT end_time;
 		if (invocation_policies_.get_value <Messaging::REQUEST_END_TIME_POLICY_TYPE> (end_time))
-			deadline_ = Chrono::deadline_from_UTC (end_time);
+			deadline_ = Nirvana::Core::Chrono::deadline_from_UTC (end_time);
 		else {
 			Messaging::PriorityRange priority_range;
 			if (invocation_policies_.get_value <Messaging::REQUEST_PRIORITY_POLICY_TYPE> (priority_range))
-				deadline_ = Chrono::deadline_from_priority ((priority_range.min () + priority_range.max ()) / 2);
+				deadline_ = Nirvana::Core::Chrono::deadline_from_priority ((priority_range.min () + priority_range.max ()) / 2);
 			else {
 				context = binary_search (service_context_, IOP::RTCorbaPriority);
 				if (context) {
@@ -153,7 +153,7 @@ void RequestIn::final_construct (servant_reference <StreamIn>&& in)
 					encap.read_one (priority);
 					if (encap.end ())
 						throw BAD_PARAM ();
-					deadline_ = Chrono::deadline_from_priority (priority);
+					deadline_ = Nirvana::Core::Chrono::deadline_from_priority (priority);
 				}
 			}
 		}
@@ -404,7 +404,7 @@ void RequestIn::DelayedReleaseTimer::signal () noexcept
 	try {
 		DeadlineTime deadline =
 			PROXY_GC_DEADLINE == INFINITE_DEADLINE ?
-			INFINITE_DEADLINE : Chrono::make_deadline (PROXY_GC_DEADLINE);
+			INFINITE_DEADLINE : Nirvana::Core::Chrono::make_deadline (PROXY_GC_DEADLINE);
 		ExecDomain::async_call <DelayedRelease> (deadline, g_core_free_sync_context, nullptr, std::ref (request_));
 	} catch (...) {
 		assert (false);
