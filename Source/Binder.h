@@ -358,7 +358,7 @@ private:
 
 	Ref <Module> load (int32_t mod_id, AccessDirect::_ref_type binary, const IDL::String& mod_path,
 		CosNaming::NamingContextExt::_ref_type name_service, bool singleton);
-	void unload (Module* pmod);
+	void unload (Module* pmod) noexcept;
 
 	CORBA::Object::_ref_type load_and_bind_sync (int32_t mod_id, CORBA::Internal::String_in mod_path,
 		CosNaming::NamingContextExt::_ptr_type name_service, bool singleton, const ObjectKey& name)
@@ -372,7 +372,7 @@ private:
 	}
 
 	void housekeeping_modules ();
-	static void delete_module (Module* mod);
+	static void delete_module (Module* mod) noexcept;
 	void unload_modules ();
 
 	class HousekeepingTimerModules : public TimerAsyncCall

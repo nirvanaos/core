@@ -83,7 +83,7 @@ public:
 	static void async_call (const DeadlineTime& deadline, SyncContext& target, Heap* heap,
 		Args ... args)
 	{
-		async_call <R, Args...> (deadline, target, get_mem_context (target, heap),
+		async_call_impl <R, Args...> (deadline, target, get_mem_context (target, heap),
 			std::forward <Args> (args)...);
 	}
 
@@ -99,18 +99,17 @@ public:
 	static void async_call (const DeadlineTime& deadline, SyncContext& target,
 		Ref <MemContext>&& mem_context, Args ... args)
 	{
-		static_assert (sizeof (R) <= MAX_RUNNABLE_SIZE, "Runnable too large");
-
 #ifndef NDEBUG
 		if (mem_context) {
 			SyncDomain* sd = target.sync_domain ();
-			assert (!sd || &sd->mem_context () == mem_context);
+			if (sd)
+				assert (&sd->mem_context () == mem_context);
+			else // We must not pass current memory context
+				assert (!MemContext::is_current (mem_context));
 		}
 #endif
 
-		Ref <ExecDomain> exec_domain = create (deadline, std::move (mem_context));
-		exec_domain->runnable_ = new (&exec_domain->runnable_space_) R (std::forward <Args> (args)...);
-		exec_domain->spawn (target);
+		async_call_impl <R, Args...> (deadline, target, std::move (mem_context), std::forward <Args> (args)...);
 	}
 
 	/// Asynchronous call.
@@ -427,6 +426,17 @@ public:
 	}
 
 private:
+	template <class R, class ... Args>
+	static void async_call_impl (const DeadlineTime& deadline, SyncContext& target,
+		Ref <MemContext>&& mem_context, Args ... args)
+	{
+		static_assert (sizeof (R) <= MAX_RUNNABLE_SIZE, "Runnable too large");
+
+		Ref <ExecDomain> exec_domain = create (deadline, std::move (mem_context));
+		exec_domain->runnable_ = new (&exec_domain->runnable_space_) R (std::forward <Args> (args)...);
+		exec_domain->spawn (target);
+	}
+
 	ExecDomain () :
 		ExecContext (false),
 #ifndef NDEBUG

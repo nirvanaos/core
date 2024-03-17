@@ -128,11 +128,20 @@ private:
 		argv_ (std::move (argv)),
 		envp_ (std::move (envp)),
 		callback_ (callback),
-		mem_context_ (&MemContext::current ())
+		mem_context_ (MemContext::create (MemContext::current ().heap ()))
 	{
-		mem_context_->file_descriptors().set_inherited_files (inherit);
-		if (!work_dir.empty ())
-			mem_context_->current_dir ().chdir (work_dir);
+		Ref <MemContext> tmp (mem_context_);
+		ExecDomain& ed = ExecDomain::current ();
+		ed.mem_context_swap (tmp);
+		try {
+			mem_context_->file_descriptors ().set_inherited_files (inherit);
+			if (!work_dir.empty ())
+				mem_context_->current_dir ().chdir (work_dir);
+		} catch (...) {
+			ed.mem_context_swap (tmp);
+			throw;
+		}
+		ed.mem_context_swap (tmp);
 	}
 
 private:

@@ -54,8 +54,8 @@ IORequest::_ref_type DomainRemote::create_request (unsigned response_flags,
 void DomainRemote::add_DGC_objects (ReferenceSet <Nirvana::Core::HeapAllocator>& references) noexcept
 {
 	assert (!(flags () & GARBAGE_COLLECTION));
-	Nirvana::Core::Synchronized _sync_frame (Nirvana::Core::Binder::sync_domain (), nullptr);
 	try {
+		Nirvana::Core::Synchronized _sync_frame (Nirvana::Core::Binder::sync_domain (), nullptr);
 		for (auto& ref : references) {
 			assert (ref->flags () & Reference::GARBAGE_COLLECTION);
 			if (!(ref->flags () & Reference::PERSISTENT))
