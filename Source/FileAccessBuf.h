@@ -157,7 +157,7 @@ public:
 			throw_NO_IMPLEMENT (make_minor_errno (ENOSYS));
 		if (!cb)
 			return nullptr;
-		return get_buffer_read_internal (cb, LockType::LOCK_READ);
+		return get_buffer_read_internal (cb, LockType::LOCK_SHARED);
 	}
 
 	void* get_buffer_write (size_t cb);
@@ -263,7 +263,7 @@ inline size_t FileAccessBuf::read (void* p, size_t cb)
 				position (position () - 1);
 			}
 			size_t cbr = cb * 2;
-			const char* src = (const char*)get_buffer_read_internal (cbr, LockType::LOCK_READ);
+			const char* src = (const char*)get_buffer_read_internal (cbr, LockType::LOCK_SHARED);
 			if (prefetch)
 				position (position () + 1);
 			if (cbr) {
@@ -299,7 +299,7 @@ inline size_t FileAccessBuf::read (void* p, size_t cb)
 			}
 			return dst - (char*)p;
 		} else {
-			const char* src = (const char*)get_buffer_read_internal (cb, LockType::LOCK_READ);
+			const char* src = (const char*)get_buffer_read_internal (cb, LockType::LOCK_SHARED);
 			const char* end = src + cb;
 			while (src < end) {
 				const char* e = std::find (src, end, eol () [0]);
@@ -316,7 +316,7 @@ inline size_t FileAccessBuf::read (void* p, size_t cb)
 			return cb;
 		}
 	} else {
-		const void* buf = get_buffer_read_internal (cb, LockType::LOCK_READ);
+		const void* buf = get_buffer_read_internal (cb, LockType::LOCK_SHARED);
 		if (cb) {
 			virtual_copy (buf, cb, p);
 			position (position () + cb);

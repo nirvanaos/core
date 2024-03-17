@@ -210,7 +210,7 @@ void FileAccessBuf::flush_buf_shift (const BufPos& new_buf_pos)
 {
 	// If dropped parts of the buffer are dirty, save them
 	if (dirty ()) {
-		assert (LockType::LOCK_WRITE == lock_mode_);
+		assert (LockType::LOCK_EXCLUSIVE == lock_mode_);
 
 		bool save = false;
 		FileSize buffer_end = buf_pos_ + buffer_.size ();
@@ -240,7 +240,7 @@ void* FileAccessBuf::get_buffer_write_internal (size_t cb)
 
 	if ((flags () & O_ACCMODE) != O_WRONLY) {
 		size_t cbr = cb;
-		get_buffer_read_internal (cbr, LockType::LOCK_WRITE);
+		get_buffer_read_internal (cbr, LockType::LOCK_EXCLUSIVE);
 	}
 
 	FileSize write_end = position () + cb;
@@ -268,10 +268,10 @@ void* FileAccessBuf::get_buffer_write_internal (size_t cb)
 			}
 			size_t new_size = (size_t)(new_buf_pos.end - new_buf_pos.begin);
 			Bytes new_buf (new_size);
-			access ()->lock (release, FileLock (new_buf_pos.begin, new_size, LockType::LOCK_WRITE), flags () & O_NONBLOCK);
+			access ()->lock (release, FileLock (new_buf_pos.begin, new_size, LockType::LOCK_EXCLUSIVE), flags () & O_NONBLOCK);
 
 			buffer_.swap (new_buf);
-			lock_mode_ = LockType::LOCK_WRITE;
+			lock_mode_ = LockType::LOCK_EXCLUSIVE;
 
 		} else {
 			// Extend/shift buffer
@@ -289,13 +289,13 @@ void* FileAccessBuf::get_buffer_write_internal (size_t cb)
 					drop_tail = (size_t)(buffer_end - new_buf_pos.end);
 					release.start (new_buf_pos.end);
 					release.len (drop_tail);
-					release.type (LockType::LOCK_WRITE);
+					release.type (LockType::LOCK_EXCLUSIVE);
 				}
 				uint32_t cb_before = (uint32_t)(buf_pos_ - new_buf_pos.begin);
 				buffer_.resize (buffer_.size () - drop_tail);
 				buffer_.insert (buffer_.begin (), cb_before, 0);
 				try {
-					access ()->lock (release, FileLock (new_buf_pos.begin, cb_before, LockType::LOCK_WRITE), flags () & O_NONBLOCK);
+					access ()->lock (release, FileLock (new_buf_pos.begin, cb_before, LockType::LOCK_EXCLUSIVE), flags () & O_NONBLOCK);
 				} catch (...) {
 					buffer_.erase (buffer_.begin (), buffer_.begin () + cb_before);
 					throw;
@@ -309,12 +309,12 @@ void* FileAccessBuf::get_buffer_write_internal (size_t cb)
 				if (buf_pos_ < new_buf_pos.begin) {
 					release.start (buf_pos_);
 					release.len (new_buf_pos.begin - buf_pos_);
-					release.type (LockType::LOCK_WRITE);
+					release.type (LockType::LOCK_EXCLUSIVE);
 				}
 				uint32_t cb_after = (uint32_t)(new_buf_pos.end - buffer_end);
 				buffer_.insert (buffer_.end (), cb_after, 0);
 				try {
-					access ()->lock (release, FileLock (buffer_end, cb_after, LockType::LOCK_WRITE), flags () & O_NONBLOCK);
+					access ()->lock (release, FileLock (buffer_end, cb_after, LockType::LOCK_EXCLUSIVE), flags () & O_NONBLOCK);
 				} catch (...) {
 					buffer_.resize (buffer_.size () - cb_after);
 					throw;
