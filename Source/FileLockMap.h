@@ -30,7 +30,8 @@
 
 #include <Nirvana/Nirvana.h>
 #include <Nirvana/File.h>
-#include "MapOrderedUnstable.h"
+#include <vector>
+#include <algorithm>
 #include "UserAllocator.h"
 
 namespace Nirvana {
@@ -39,54 +40,76 @@ namespace Core {
 class FileLockMap
 {
 public:
-	bool acquire (const FileLock& fl, const void* owner)
+	bool acquire (const FileLock& fl, const void* owner);
+	bool release (const FileLock& fl, const void* owner) noexcept;
+
+	bool check_read (const FileSize& begin, const FileSize& end, const void* proxy) const noexcept
 	{
-		LockType type = fl.type ();
-		assert (type > LockType::LOCK_NONE);
-		FileSize begin = fl.start (), end;
-		Map::iterator it_end = get_end (fl, end);
-		Map::iterator it_begin = it_end;
-		while (map_.begin () != it_begin) {
-			--it_begin;
-			if (it_begin->second.end < begin) {
-				if (type > LockType::LOCK_SHARED)
-					return false;
-			} else {
-				++it_begin;
-				break;
-			}
+		Ranges::const_iterator it = get_end (end);
+		while (it != ranges_.begin ()) {
+			--it;
+			if (it->end > begin &&
+				it->level == LockType::LOCK_EXCLUSIVE && it->owner != proxy
+				)
+				return false;
 		}
+		return true;
 	}
 
-	void release (const FileLock& fl)
+	bool check_write (const FileSize& begin, const FileSize& end, const void* proxy) const noexcept
 	{
+		Ranges::const_iterator it = get_end (end);
+		while (it != ranges_.begin ()) {
+			--it;
+			if (it->end > begin &&
+				it->level < LockType::LOCK_EXCLUSIVE || it->owner != proxy
+				)
+				return false;
+		}
+		return true;
 	}
 
 private:
 	struct Entry {
+		FileSize begin;
 		FileSize end;
-		unsigned shared_cnt;
-		LockType level;
 		const void* owner;
+		LockType level;
+
+		Entry (const FileSize& _begin, const FileSize& _end, LockType _level, const void* _owner)
+			noexcept :
+			begin (_begin),
+			end (_end),
+			owner (_owner),
+			level (_level)
+		{}
 	};
 
-	typedef MapOrderedUnstable <FileSize, Entry, std::less <FileSize>, UserAllocator> Map;
-
-	Map::iterator get_end (const FileLock& fl, FileSize& end) noexcept
+	struct Comp
 	{
-		Map::iterator it;
-		if (0 == fl.len ()) {
-			end = std::numeric_limits <FileSize>::max ();
-			it = map_.end ();
-		} else {
-			end = fl.start () + fl.len ();
-			it = map_.lower_bound (end);
+		bool operator () (const Entry& l, const Entry& r) const noexcept
+		{
+			return l.begin < r.begin;
 		}
-		return it;
-	}
+
+		bool operator () (const Entry& l, const FileSize& r) const noexcept
+		{
+			return l.begin < r;
+		}
+
+		bool operator () (const FileSize& l, const Entry& r) const noexcept
+		{
+			return l < r.begin;
+		}
+	};
+
+	typedef std::vector <Entry, UserAllocator <Entry> > Ranges;
+
+	Ranges::iterator get_end (const FileLock& fl, FileSize& end) noexcept;
+	Ranges::const_iterator get_end (const FileSize& end) const noexcept;
 
 private:
-	Map map_;
+	Ranges ranges_;
 };
 
 }
