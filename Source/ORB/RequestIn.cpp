@@ -255,30 +255,28 @@ void RequestIn::serve (const ServantProxyBase& proxy)
 
 	SyncContext* sync_context = &proxy.get_sync_context (op);
 	SyncDomain* sync_domain = sync_context->sync_domain ();
-	servant_reference <MemContext> mem;
-	if (sync_domain)
-		mem = &sync_domain->mem_context ();
-	else {
-		Heap* h = heap ();
-		if (h)
-			mem = MemContext::create (*h);
-	}
-
 	const Operation& op_md = proxy.operation_metadata (op);
-	if (sync_domain && (op_md.flags & Operation::FLAG_IN_CPLX)) {
-		// Do not enter sync domain immediately.
-		// We enter to free sync context now and will enter sync_domain_
-		// in unmarshal_end () when all input objects unmarshaled.
-		sync_domain_ = sync_domain;
-		sync_context = &g_core_free_sync_context;
-	}
-
 	has_context_ = op_md.context.size != 0;
 
-	// We don't need to handle exceptions here, because invoke () does not throw exceptions.
-	Nirvana::Core::Synchronized _sync_frame (*sync_context, std::move (mem));
-	if (!is_cancelled ())
+	if (sync_domain && (op_md.flags & Operation::FLAG_IN_CPLX)) {
+		// Do not enter synchronization domain immediately.
+		// We push memory context now and will enter sync_domain_
+		// in unmarshal_end () when all input objects unmarshaled.
+		sync_domain_ = sync_domain;
+		ExecDomain& ed = ExecDomain::current ();
+		SyncContext& ret_context = ed.sync_context ();
+		ed.mem_context_push (&sync_domain->mem_context ());
 		proxy.invoke (op, _get_ptr ());
+		ed.schedule_return (ret_context);
+	} else {
+		// Enter the target synchronization context now.
+		// We don't need to handle exceptions here, because invoke () does not throw exceptions.
+		Nirvana::Core::Synchronized _sync_frame (*sync_context, sync_domain ? nullptr : heap ());
+
+		// 
+		if (!is_cancelled ())
+			proxy.invoke (op, _get_ptr ());
+	}
 }
 
 void RequestIn::unmarshal_end ()
