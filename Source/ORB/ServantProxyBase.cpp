@@ -150,15 +150,6 @@ void ServantProxyBase::run_garbage_collector () const noexcept
 		collect_garbage (servant_);
 }
 
-MemContext* ServantProxyBase::memory () const noexcept
-{
-	MemContext* mc = nullptr;
-	SyncDomain* sd = sync_context_->sync_domain ();
-	if (sd)
-		mc = &sd->mem_context ();
-	return mc;
-}
-
 IORequest::_ref_type ServantProxyBase::create_request (OperationIndex op, unsigned flags,
 	CallbackRef&& callback)
 {
@@ -167,7 +158,12 @@ IORequest::_ref_type ServantProxyBase::create_request (OperationIndex op, unsign
 
 	check_create_request (op, flags);
 
-	MemContext* mem = memory ();
+	Heap* mem;
+	SyncDomain* sd = sync_context ().sync_domain ();
+	if (sd)
+		mem = &sd->mem_context ().heap ();
+	else
+		mem = nullptr;
 
 	if (callback) {
 		if (!(flags & IORequest::RESPONSE_EXPECTED))

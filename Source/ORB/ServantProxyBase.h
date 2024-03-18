@@ -63,8 +63,6 @@ public:
 		return *sync_context_;
 	}
 
-	Nirvana::Core::MemContext* memory () const noexcept;
-
 #ifndef NDEBUG
 	RefCntProxy::IntegralType _refcount_value () const noexcept
 	{

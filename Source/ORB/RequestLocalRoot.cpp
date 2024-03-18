@@ -37,7 +37,7 @@ using namespace Internal;
 
 namespace Core {
 
-RequestLocalRoot::RequestLocalRoot (MemContext* callee_memory, unsigned response_flags) noexcept :
+RequestLocalRoot::RequestLocalRoot (Heap* callee_memory, unsigned response_flags) noexcept :
 	caller_memory_ (&MemContext::current ()),
 	callee_memory_ (callee_memory),
 	cur_ptr_ (nullptr),
@@ -52,29 +52,29 @@ RequestLocalRoot::RequestLocalRoot (MemContext* callee_memory, unsigned response
 	assert ((uintptr_t)this % BLOCK_SIZE == 0);
 }
 
-MemContext& RequestLocalRoot::target_memory ()
+Heap& RequestLocalRoot::target_memory ()
 {
 	switch (state_) {
 	case State::CALLER:
 	case State::CALL:
 		// Caller-side allocation
 		if (!callee_memory_)
-			callee_memory_ = MemContext::create ();
+			callee_memory_ = MemContext::create_heap ();
 		return *callee_memory_;
 
 	default:
 		// Callee-side allocation
-		return *caller_memory_;
+		return caller_memory_->heap ();
 	}
 }
 
-MemContext& RequestLocalRoot::source_memory ()
+Heap& RequestLocalRoot::source_memory ()
 {
 	switch (state_) {
 	case State::CALLER:
 	case State::CALL:
 		// Caller-side
-		return *caller_memory_;
+		return caller_memory_->heap ();
 
 	default:
 		// Callee-side allocation
@@ -97,7 +97,11 @@ bool RequestLocalRoot::marshal_op () noexcept
 
 		// callee_memory_ here may be nil or contain temporary memory context.
 		// We must set it to the callee memory context.
-		callee_memory_ = ed.mem_context_ptr ();
+		MemContext* mc = ed.mem_context_ptr ();
+		if (mc)
+			callee_memory_ = &mc->heap ();
+		else
+			callee_memory_ = nullptr;
 
 		// Leave sync domain, if any.
 		// Output data marshaling performed out of sync domain.
@@ -143,7 +147,7 @@ void RequestLocalRoot::cleanup () noexcept
 		const Segment* segment = segments_;
 		if (segment) {
 			segments_ = nullptr;
-			Heap& heap = target_memory ().heap ();
+			Heap& heap = target_memory ();
 			do {
 				heap.release (segment->ptr, segment->allocated_size);
 				segment = (const Segment*)segment->next;
@@ -312,11 +316,11 @@ void RequestLocalRoot::marshal_segment (size_t align, size_t element_size,
 		throw BAD_PARAM ();
 	Segment* segment = (Segment*)get_element_buffer (sizeof (Segment));
 
-	Heap& target_heap = target_memory ().heap ();
+	Heap& target_heap = target_memory ();
 
 	// If allocated_size != 0, we can adopt memory block (move semantic).
 	if (allocated_size) {
-		Heap& source_heap = source_memory ().heap ();
+		Heap& source_heap = source_memory ();
 		if (&target_heap == &source_heap) {
 			// Heaps are the same, just adopt memory block
 			segment->allocated_size = allocated_size;
@@ -357,7 +361,7 @@ void RequestLocalRoot::unmarshal_segment (size_t min_size, void*& data, size_t& 
 	size_t size = segment->allocated_size;
 
 	Heap& cur_heap = Heap::user_heap ();
-	Heap& target_heap = target_memory ().heap ();
+	Heap& target_heap = target_memory ();
 	if (&cur_heap != &target_heap) {
 		try {
 			p = cur_heap.move_from (target_heap, p, size);

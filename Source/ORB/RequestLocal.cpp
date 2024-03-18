@@ -33,7 +33,7 @@ namespace CORBA {
 namespace Core {
 
 RequestLocal::RequestLocal (ProxyManager& proxy, Internal::OperationIndex op_idx,
-	Nirvana::Core::MemContext* callee_memory, unsigned response_flags) noexcept :
+	Nirvana::Core::Heap* callee_memory, unsigned response_flags) noexcept :
 	RequestLocalBase (callee_memory, response_flags),
 	proxy_ (&proxy),
 	op_idx_ (op_idx)
@@ -44,7 +44,7 @@ void RequestLocal::invoke ()
 	RequestLocalBase::invoke ();
 	// We don't need to handle exceptions here, because invoke_sync ()
 	// does not throw exceptions.
-	Nirvana::Core::Synchronized _sync_frame (proxy ().get_sync_context (op_idx ()), memory ());
+	Nirvana::Core::Synchronized _sync_frame (proxy ().get_sync_context (op_idx ()), target_heap ());
 	invoke_sync ();
 }
 
@@ -58,7 +58,7 @@ void RequestLocalOneway::invoke ()
 {
 	RequestLocalBase::invoke (); // rewind
 	ExecDomain::async_call <Runnable> (ExecDomain::current ().get_request_deadline (!response_flags ()),
-		proxy ().get_sync_context (op_idx ()), memory (), std::ref (*this));
+		proxy ().get_sync_context (op_idx ()), target_heap (), std::ref (*this));
 }
 
 void RequestLocalOneway::Runnable::run ()

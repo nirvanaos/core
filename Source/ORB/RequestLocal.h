@@ -39,7 +39,7 @@ class NIRVANA_NOVTABLE RequestLocal : public RequestLocalBase
 {
 protected:
 	RequestLocal (ProxyManager& proxy, Internal::OperationIndex op_idx,
-		Nirvana::Core::MemContext* callee_memory, unsigned response_flags) noexcept;
+		Nirvana::Core::Heap* callee_memory, unsigned response_flags) noexcept;
 
 	ProxyManager& proxy () const noexcept
 	{
@@ -65,7 +65,7 @@ class NIRVANA_NOVTABLE RequestLocalOneway : public RequestLocal
 
 protected:
 	RequestLocalOneway (ProxyManager& proxy, Internal::OperationIndex op_idx,
-		Nirvana::Core::MemContext* callee_memory, unsigned response_flags) noexcept :
+		Nirvana::Core::Heap* callee_memory, unsigned response_flags) noexcept :
 		Base (proxy, op_idx, callee_memory, response_flags)
 	{}
 
@@ -100,7 +100,7 @@ class NIRVANA_NOVTABLE RequestLocalAsync : public RequestLocalOneway
 
 protected:
 	RequestLocalAsync (ProxyManager & proxy, Internal::OperationIndex op_idx,
-		Nirvana::Core::MemContext* callee_memory, unsigned response_flags, CallbackRef&& callback) noexcept :
+		Nirvana::Core::Heap* callee_memory, unsigned response_flags, CallbackRef&& callback) noexcept :
 		Base (proxy, op_idx, callee_memory, response_flags),
 		callback_ (std::move (callback))
 	{

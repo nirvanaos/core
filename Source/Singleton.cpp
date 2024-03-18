@@ -29,9 +29,29 @@
 namespace Nirvana {
 namespace Core {
 
+SyncContext& Singleton::sync_context () noexcept
+{
+	return *this;
+}
+
 SyncContext::Type Singleton::sync_context_type () const noexcept
 {
 	return sync_context_type_;
+}
+
+void Singleton::atexit (AtExitFunc f)
+{
+	at_exit_.atexit (f);
+}
+
+void Singleton::execute_atexit () noexcept
+{
+	at_exit_.execute ();
+}
+
+MemContext* Singleton::initterm_mem_context () const noexcept
+{
+	return &SyncDomain::mem_context ();
 }
 
 void Singleton::terminate () noexcept
@@ -40,7 +60,6 @@ void Singleton::terminate () noexcept
 	Module::terminate ();
 	sync_context_type_ = SyncContext::Type::SYNC_DOMAIN_SINGLETON;
 }
-
 
 Module* Singleton::module () noexcept
 {

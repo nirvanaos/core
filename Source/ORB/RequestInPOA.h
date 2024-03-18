@@ -34,7 +34,7 @@
 namespace Nirvana {
 namespace Core {
 
-class MemContext;
+class Heap;
 
 }
 }
@@ -69,7 +69,7 @@ public:
 
 	virtual bool is_cancelled () const noexcept = 0;
 
-	virtual Nirvana::Core::MemContext* memory () const noexcept = 0;
+	virtual Nirvana::Core::Heap* heap () const noexcept = 0;
 
 protected:
 	RequestInPOA ();

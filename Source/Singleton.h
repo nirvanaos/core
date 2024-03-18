@@ -61,27 +61,10 @@ public:
 
 	// Module::
 
-	virtual SyncContext& sync_context () noexcept override
-	{
-		return *this;
-	}
-
-	virtual void atexit (AtExitFunc f) override
-	{
-		at_exit_.atexit (f);
-
-	}
-
-	virtual void execute_atexit () noexcept override
-	{
-		at_exit_.execute ();
-	}
-
-	virtual MemContext* initterm_mem_context () const noexcept override
-	{
-		return &SyncDomain::mem_context ();
-	}
-
+	virtual SyncContext& sync_context () noexcept override;
+	virtual void atexit (AtExitFunc f) override;
+	virtual void execute_atexit () noexcept override;
+	virtual MemContext* initterm_mem_context () const noexcept override;
 	virtual void terminate () noexcept override;
 
 	// SyncContext::

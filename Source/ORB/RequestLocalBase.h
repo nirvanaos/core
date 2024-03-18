@@ -45,7 +45,7 @@ public:
 	virtual void unmarshal_abstract (const IDL::String& interface_id, Internal::Interface::_ref_type& itf) override;
 
 protected:
-	RequestLocalBase (Nirvana::Core::MemContext* callee_memory, unsigned response_flags) noexcept :
+	RequestLocalBase (Nirvana::Core::Heap* callee_memory, unsigned response_flags) noexcept :
 		RequestLocalRoot (callee_memory, response_flags)
 	{}
 

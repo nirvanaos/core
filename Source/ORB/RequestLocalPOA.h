@@ -49,7 +49,7 @@ protected:
 		unsigned response_flags);
 
 	virtual void _add_ref () noexcept override;
-	virtual Nirvana::Core::MemContext* memory () const noexcept override;
+	virtual Nirvana::Core::Heap* heap () const noexcept override;
 
 	virtual void set_exception (Any& e) override;
 	virtual void invoke () override;

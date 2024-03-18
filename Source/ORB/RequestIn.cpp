@@ -194,9 +194,9 @@ void RequestIn::_remove_ref () noexcept
 	RequestGIOP::_remove_ref ();
 }
 
-MemContext* RequestIn::memory () const noexcept
+Heap* RequestIn::heap () const noexcept
 {
-	return &RequestGIOP::memory ();
+	return &RequestGIOP::memory ().heap ();
 }
 
 void RequestIn::switch_to_reply (GIOP::ReplyStatusType status)
@@ -255,11 +255,14 @@ void RequestIn::serve (const ServantProxyBase& proxy)
 
 	SyncContext* sync_context = &proxy.get_sync_context (op);
 	SyncDomain* sync_domain = sync_context->sync_domain ();
-	MemContext* mem;
+	servant_reference <MemContext> mem;
 	if (sync_domain)
 		mem = &sync_domain->mem_context ();
-	else
-		mem = memory ();
+	else {
+		Heap* h = heap ();
+		if (h)
+			mem = MemContext::create (*h);
+	}
 
 	const Operation& op_md = proxy.operation_metadata (op);
 	if (sync_domain && (op_md.flags & Operation::FLAG_IN_CPLX)) {
@@ -273,7 +276,7 @@ void RequestIn::serve (const ServantProxyBase& proxy)
 	has_context_ = op_md.context.size != 0;
 
 	// We don't need to handle exceptions here, because invoke () does not throw exceptions.
-	Nirvana::Core::Synchronized _sync_frame (*sync_context, mem);
+	Nirvana::Core::Synchronized _sync_frame (*sync_context, std::move (mem));
 	if (!is_cancelled ())
 		proxy.invoke (op, _get_ptr ());
 }

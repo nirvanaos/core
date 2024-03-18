@@ -61,11 +61,6 @@ public:
 
 	virtual void _remove_ref () noexcept = 0;
 
-	Nirvana::Core::MemContext* memory () const noexcept
-	{
-		return callee_memory_;
-	}
-
 	///@{
 	/// Marshal/unmarshal data that meet the common data representation.
 
@@ -433,8 +428,6 @@ public:
 	}
 
 protected:
-	using MemContext = Nirvana::Core::MemContext;
-
 	enum class State : uint8_t
 	{
 		CALLER,
@@ -444,7 +437,7 @@ protected:
 		EXCEPTION
 	};
 
-	RequestLocalRoot (Nirvana::Core::MemContext* callee_memory, unsigned response_flags)
+	RequestLocalRoot (Nirvana::Core::Heap* callee_memory, unsigned response_flags)
 		noexcept;
 
 	~RequestLocalRoot ()
@@ -452,8 +445,13 @@ protected:
 		cleanup ();
 	}
 
-	Nirvana::Core::MemContext& target_memory ();
-	Nirvana::Core::MemContext& source_memory ();
+	Nirvana::Core::Heap& target_memory ();
+	Nirvana::Core::Heap& source_memory ();
+
+	Nirvana::Core::Heap* target_heap () const noexcept
+	{
+		return callee_memory_;
+	}
 
 	const Octet* cur_block_end () const noexcept
 	{
@@ -540,8 +538,8 @@ private:
 
 protected:
 	Nirvana::Core::RefCounter ref_cnt_;
-	servant_reference <MemContext> caller_memory_;
-	servant_reference <MemContext> callee_memory_;
+	servant_reference <Nirvana::Core::MemContext> caller_memory_;
+	servant_reference <Nirvana::Core::Heap> callee_memory_;
 	Octet* cur_ptr_;
 	State state_;
 	uint8_t response_flags_;
