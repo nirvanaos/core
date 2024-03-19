@@ -149,21 +149,6 @@ void ExecDomain::async_call (const DeadlineTime& deadline, Runnable& runnable,
 	exec_domain->spawn (target);
 }
 
-void ExecDomain::async_call (const DeadlineTime& deadline, Runnable& runnable,
-	SyncContext& target, Ref <MemContext>&& mem_context)
-{
-#ifndef NDEBUG
-	if (mem_context) {
-		SyncDomain* sd = target.sync_domain ();
-		assert (!sd || &sd->mem_context () == mem_context);
-	}
-#endif
-
-	Ref <ExecDomain> exec_domain = create (deadline, std::move (mem_context));
-	exec_domain->runnable_ = &runnable;
-	exec_domain->spawn (target);
-}
-
 void ExecDomain::spawn (SyncContext& sync_context)
 {
 	assert (ExecContext::current_ptr () != this);

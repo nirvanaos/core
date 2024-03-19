@@ -83,32 +83,9 @@ public:
 	static void async_call (const DeadlineTime& deadline, SyncContext& target, Heap* heap,
 		Args ... args)
 	{
-		async_call <R, Args...> (deadline, target, get_mem_context (target, heap),
-			std::forward <Args> (args)...);
-	}
-
-	/// \brief Asynchronous call.
-	///
-	/// \tparam R Runnable class
-	/// \param deadline    Deadline.
-	/// \param target      Target Synchronization context.
-	/// \param mem_context Memory context.
-	/// \param args        Arguments for R constructor.
-	/// 
-	template <class R, class ... Args>
-	static void async_call (const DeadlineTime& deadline, SyncContext& target,
-		Ref <MemContext>&& mem_context, Args ... args)
-	{
 		static_assert (sizeof (R) <= MAX_RUNNABLE_SIZE, "Runnable too large");
 
-#ifndef NDEBUG
-		if (mem_context) {
-			SyncDomain* sd = target.sync_domain ();
-			assert (!sd || &sd->mem_context () == mem_context);
-		}
-#endif
-
-		Ref <ExecDomain> exec_domain = create (deadline, std::move (mem_context));
+		Ref <ExecDomain> exec_domain = create (deadline, get_mem_context (target, heap));
 		exec_domain->runnable_ = new (&exec_domain->runnable_space_) R (std::forward <Args> (args)...);
 		exec_domain->spawn (target);
 	}
@@ -122,14 +99,18 @@ public:
 	static void async_call (const DeadlineTime& deadline, Runnable& runnable,
 		SyncContext& target, Heap* heap);
 
-	/// Asynchronous call.
+	/// Start process.
 	/// 
-	/// \param deadline Deadline.
 	/// \param runnable The Runnable object to execute.
 	/// \param target   Target Synchronization context.
 	/// \param mem_context Memory context.
-	static void async_call (const DeadlineTime& deadline, Runnable& runnable,
-		SyncContext& target, Ref <MemContext>&& mem_context);
+	static void start_process (Runnable& runnable,
+		SyncContext& target, Ref <MemContext>&& mem_context)
+	{
+		Ref <ExecDomain> exec_domain = create (INFINITE_DEADLINE, std::move (mem_context));
+		exec_domain->runnable_ = &runnable;
+		exec_domain->spawn (target);
+	}
 
 	const DeadlineTime& deadline () const noexcept
 	{

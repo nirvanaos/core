@@ -74,7 +74,7 @@ protected:
 	// RequestInPOA
 	virtual void _add_ref () noexcept override;
 	virtual void _remove_ref () noexcept override;
-	virtual Nirvana::Core::MemContext* memory () const noexcept override;
+	virtual Nirvana::Core::Heap* heap () const noexcept override;
 
 public:
 	const RequestKey& key () const noexcept

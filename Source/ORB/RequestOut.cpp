@@ -167,7 +167,7 @@ void RequestOut::set_reply (unsigned status, IOP::ServiceContextList&& context,
 				// Memory context must be set by caller.
 				assert (ed.mem_context_ptr () == &memory ());
 				servant_reference <RequestLocalRoot> pre = servant_reference <RequestLocalRoot>::
-					create <RequestLocalImpl <RequestLocalRoot> > (&memory (), 3);
+					create <RequestLocalImpl <RequestLocalRoot> > (&memory ().heap (), 3);
 				remarshal_output (metadata_, _get_ptr (), pre->_get_ptr ());
 				pre->invoke (); // Rewind to begin
 				preunmarshaled_ = std::move (pre);

@@ -74,7 +74,7 @@ public:
 								adapter.on_request_start ();
 								try {
 									Nirvana::Core::ExecDomain::async_call <ServeRequest> (
-										top.deadline, sc, top.request->memory (), std::ref (top));
+										top.deadline, sc, top.request->heap (), std::ref (top));
 								} catch (CORBA::Exception& e) {
 									top.request->set_exception (std::move (e));
 									adapter.on_request_finish ();
