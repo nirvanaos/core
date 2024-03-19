@@ -104,7 +104,7 @@ public:
 		servant->proxy_ = ret;
 
 		try {
-			Nirvana::Core::ExecDomain::async_call (INFINITE_DEADLINE, *servant, servant->sync_context (),
+			Nirvana::Core::ExecDomain::start_process (*servant, servant->sync_context (),
 				Ref <MemContext> (servant->mem_context_));
 		} catch (...) {
 			servant->proxy_ = nullptr;
