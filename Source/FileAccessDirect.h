@@ -33,7 +33,7 @@
 #include "UserAllocator.h"
 #include "Chrono.h"
 #include "MapOrderedStable.h"
-#include "FileLockMap.h"
+#include "FileLockRanges.h"
 
 namespace Nirvana {
 namespace Core {
@@ -220,7 +220,7 @@ private:
 	Cache cache_;
 	Pos file_size_;
 	Pos requested_size_;
-	FileLockMap lock_map_;
+	FileLockRanges lock_ranges_;
 	Ref <IO_Request> size_request_;
 	const Size block_size_;
 	Size base_block_size_;

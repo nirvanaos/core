@@ -135,7 +135,6 @@ private:
 private:
 	FileAccessDirect& driver_;
 	Ref <File> file_;
-	FileLockMap lock_map_;
 	uint_fast16_t flags_;
 	bool dirty_;
 };

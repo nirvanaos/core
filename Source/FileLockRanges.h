@@ -24,8 +24,8 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_CORE_FILELOCKMAP_H_
-#define NIRVANA_CORE_FILELOCKMAP_H_
+#ifndef NIRVANA_CORE_FILELOCKRANGES_H_
+#define NIRVANA_CORE_FILELOCKRANGES_H_
 #pragma once
 
 #include <Nirvana/Nirvana.h>
@@ -37,15 +37,30 @@
 namespace Nirvana {
 namespace Core {
 
-class FileLockMap
+class FileLockRanges
 {
 public:
-	bool acquire (const FileLock& fl, const void* owner);
+	enum AcqOption
+	{
+		USUAL, // Request as usual
+		FROM_QUEUE, // Retry request from queue
+		NONBLOCK // Non-blocking request
+	};
+
+	enum AcqResult
+	{
+		ACQUIRED, // Lock successfully acquired
+		DELAY,    // Lock must be queued
+		COLLISION // Lock level collision: throw BAD_INV_ORDER
+	};
+
+	AcqResult acquire (const FileLock& fl, const void* owner, AcqOption opt);
+
 	bool release (const FileLock& fl, const void* owner) noexcept;
 
 	bool check_read (const FileSize& begin, const FileSize& end, const void* proxy) const noexcept
 	{
-		Ranges::const_iterator it = get_end (end);
+		Ranges::const_iterator it = lower_bound (end);
 		while (it != ranges_.begin ()) {
 			--it;
 			if (it->end > begin &&
@@ -58,7 +73,7 @@ public:
 
 	bool check_write (const FileSize& begin, const FileSize& end, const void* proxy) const noexcept
 	{
-		Ranges::const_iterator it = get_end (end);
+		Ranges::const_iterator it = lower_bound (end);
 		while (it != ranges_.begin ()) {
 			--it;
 			if (it->end > begin &&
@@ -76,13 +91,18 @@ private:
 		const void* owner;
 		LockType level;
 
-		Entry (const FileSize& _begin, const FileSize& _end, LockType _level, const void* _owner)
+		Entry (const FileSize& _begin, const FileSize& _end, const void* _owner, LockType _level)
 			noexcept :
 			begin (_begin),
 			end (_end),
 			owner (_owner),
 			level (_level)
 		{}
+
+		bool operator < (const Entry& rhs) const noexcept
+		{
+			return begin < rhs.begin;
+		}
 	};
 
 	struct Comp
@@ -106,7 +126,12 @@ private:
 	typedef std::vector <Entry, UserAllocator <Entry> > Ranges;
 
 	Ranges::iterator get_end (const FileLock& fl, FileSize& end) noexcept;
-	Ranges::const_iterator get_end (const FileSize& end) const noexcept;
+	Ranges::iterator lower_bound (const FileSize& end) noexcept;
+
+	Ranges::const_iterator lower_bound (const FileSize& end) const noexcept
+	{
+		return const_cast <FileLockRanges&> (*this).lower_bound (end);
+	}
 
 private:
 	Ranges ranges_;
