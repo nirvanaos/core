@@ -141,7 +141,7 @@ void Binder::terminate ()
 {
 	if (!initialized_)
 		return;
-	SYNC_BEGIN (g_core_free_sync_context, &memory ().heap ());
+	SYNC_BEGIN (g_core_free_sync_context, &BinderMemory::heap ());
 
 	SYNC_BEGIN (sync_domain (), nullptr);
 	initialized_ = false;
@@ -355,20 +355,16 @@ void Binder::module_unbind (Nirvana::Module::_ptr_type mod, const Section& metad
 void Binder::delete_module (Module* mod) noexcept
 {
 	if (mod) {
+		assert (&SyncDomain::current () == &sync_domain ());
 		try {
-			SYNC_BEGIN (g_core_free_sync_context, &memory ().heap ());
+			SYNC_BEGIN (g_core_free_sync_context, &BinderMemory::heap ());
 			Module* tmp = mod;
 			mod = nullptr;
 			delete tmp;
 			SYNC_END ();
 		} catch (...) {
-			if (mod) {
-				ExecDomain& ed = ExecDomain::current ();
-				Ref <MemContext> tmp (&memory ());
-				ed.mem_context_swap (tmp);
+			if (mod)
 				delete mod;
-				ed.mem_context_swap (tmp);
-			}
 		}
 	}
 }
@@ -385,7 +381,7 @@ Ref <Module> Binder::load (int32_t mod_id, AccessDirect::_ref_type binary,
 	if (ins.second) {
 		auto wait_list = entry.second.wait_list ();
 		try {
-			SYNC_BEGIN (g_core_free_sync_context, &memory ().heap ());
+			SYNC_BEGIN (g_core_free_sync_context, &BinderMemory::heap ());
 			
 			if (!binary) {
 				

@@ -131,7 +131,7 @@ SyncDomain& SyncDomain::enter ()
 		}
 
 		Ref <SyncDomain> sd = Ref <SyncDomain>::create
-			<ImplDynamic <SyncDomainImpl> > (std::ref (sync_context),
+			<ImplDynamic <SyncDomainUser> > (std::ref (sync_context),
 				std::ref (exec_domain.mem_context ()));
 		sd->activity_begin ();
 		sd->state_ = State::RUNNING;
@@ -154,12 +154,12 @@ SyncContext::Type SyncDomain::sync_context_type () const noexcept
 	return SyncContext::Type::SYNC_DOMAIN;
 }
 
-Module* SyncDomainImpl::module () noexcept
+Module* SyncDomainUser::module () noexcept
 {
 	return parent_->module ();
 }
 
-void SyncDomainImpl::raise_exception (CORBA::SystemException::Code code, unsigned minor)
+void SyncDomainUser::raise_exception (CORBA::SystemException::Code code, unsigned minor)
 {
 	parent_->raise_exception (code, minor);
 }

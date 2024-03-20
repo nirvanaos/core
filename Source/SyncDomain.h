@@ -183,21 +183,21 @@ inline SyncDomain* SyncContext::sync_domain () noexcept
 }
 
 /// User sync domain implementation.
-class SyncDomainImpl : public SyncDomain
+class SyncDomainUser : public SyncDomain
 {
 protected:
 	/// Constructor.
 	/// 
 	/// param parent Parent free sync context.
 	/// param memory Memory context.
-	SyncDomainImpl (SyncContext& parent, MemContext& mem_context) noexcept :
+	SyncDomainUser (SyncContext& parent, MemContext& mem_context) noexcept :
 		SyncDomain (Ref <MemContext> (&mem_context)),
 		parent_ (&parent)
 	{
 		assert (!parent.sync_domain ());
 	}
 
-	~SyncDomainImpl ()
+	~SyncDomainUser ()
 	{}
 
 	// SyncContext::
