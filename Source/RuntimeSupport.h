@@ -44,7 +44,11 @@ public:
 	///   May return nil reference if RuntimeSupport is disabled.
 	static RuntimeProxy::_ref_type proxy_get (const void* obj)
 	{
-		return MemContext::current ().runtime_support ().proxy_get (obj);
+		MemContext& mc = MemContext::current ();
+		if (mc.core_context ())
+			return nullptr;
+		else
+			return mc.runtime_support ().proxy_get (obj);
 	}
 
 	/// Remove runtime proxy for object \p obj.
@@ -53,7 +57,7 @@ public:
 	static void proxy_reset (const void* obj) noexcept
 	{
 		MemContext* mc = MemContext::current_ptr ();
-		if (mc)
+		if (mc && !mc->core_context ())
 			mc->runtime_support ().proxy_reset (obj);
 	}
 };

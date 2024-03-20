@@ -85,7 +85,7 @@ public:
 	/// 
 	static Ref <MemContext> create (bool class_library_init = false)
 	{
-		return create (create_heap (), class_library_init);
+		return create (create_heap (), class_library_init, false);
 	}
 
 	/// Prevent error with implicit conversion of Heap* to bool.
@@ -94,11 +94,12 @@ public:
 	/// Create new memory context for existing heap.
 	/// 
 	/// \param heap Existing heap.
+	/// \param core_context `true` for core memory context
 	/// \returns New memory context reference.
 	/// 
-	static Ref <MemContext> create (Heap& heap)
+	static Ref <MemContext> create (Heap& heap, bool core_context = false)
 	{
-		return create (&heap, false);
+		return create (&heap, false, core_context);
 	}
 
 	/// \returns Heap.
@@ -167,12 +168,17 @@ public:
 		return data_holder_.current_dir ();
 	}
 
+	bool core_context () const noexcept
+	{
+		return core_context_;
+	}
+
 private:
-	static Ref <MemContext> create (Ref <Heap>&& heap, bool class_library_init);
+	static Ref <MemContext> create (Ref <Heap>&& heap, bool class_library_init, bool core_context);
 
 	~MemContext ();
 
-	MemContext (Ref <Heap>&& heap, bool class_library_init) noexcept;
+	MemContext (Ref <Heap>&& heap, bool class_library_init, bool core_context) noexcept;
 
 	MemContext (const MemContext&) = delete;
 
@@ -396,6 +402,7 @@ private:
 	Ref <Heap> heap_;
 	AtomicCounter <false> ref_cnt_;
 	bool class_library_init_;
+	bool core_context_;
 	DataHolder data_holder_;
 };
 

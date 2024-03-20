@@ -165,7 +165,7 @@ void SyncDomainUser::raise_exception (CORBA::SystemException::Code code, unsigne
 }
 
 SyncDomainCore::SyncDomainCore (Heap& heap) :
-	SyncDomain (MemContext::create (heap))
+	SyncDomain (MemContext::create (heap, true))
 {}
 
 Module* SyncDomainCore::module () noexcept

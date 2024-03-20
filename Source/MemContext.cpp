@@ -48,11 +48,12 @@ Ref <Heap> MemContext::create_heap ()
 		Ref <Heap> (&Heap::shared_heap ());
 }
 
-Ref <MemContext> MemContext::create (Ref <Heap>&& heap, bool class_library_init)
+Ref <MemContext> MemContext::create (Ref <Heap>&& heap, bool class_library_init, bool core_context)
 {
 	Heap& allocate_from = class_library_init ? BinderMemory::heap () : *heap;
 	size_t cb = sizeof (MemContext);
-	return CreateRef (new (allocate_from.allocate (nullptr, cb, 0)) MemContext (std::move (heap), class_library_init));
+	return CreateRef (new (allocate_from.allocate (nullptr, cb, 0))
+		MemContext (std::move (heap), class_library_init, core_context));
 }
 
 MemContext& MemContext::current ()
@@ -66,10 +67,11 @@ MemContext* MemContext::current_ptr () noexcept
 }
 
 inline
-MemContext::MemContext (Ref <Heap>&& heap, bool class_library_init) noexcept :
+MemContext::MemContext (Ref <Heap>&& heap, bool class_library_init, bool core_context) noexcept :
 	heap_ (std::move (heap)),
 	ref_cnt_ (1),
-	class_library_init_ (class_library_init)
+	class_library_init_ (class_library_init),
+	core_context_ (core_context)
 {}
 
 inline
