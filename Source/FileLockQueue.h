@@ -33,6 +33,7 @@
 #include <Nirvana/SimpleList.h>
 #include "UserObject.h"
 #include "EventSync.h"
+#include "ExecDomain.h"
 
 namespace Nirvana {
 namespace Core {
@@ -46,20 +47,45 @@ public:
 		public UserObject
 	{
 	public:
+		Entry (const FileLock& lock, const void* owner) :
+			FileLock (lock),
+			owner_ (owner),
+			deadline_ (ExecDomain::current ().deadline ())
+		{}
+
 		const void* owner () const noexcept
 		{
 			return owner_;
 		}
 
+		const DeadlineTime& deadline () const noexcept
+		{
+			return deadline_;
+		}
+
 	private:
 		const void* owner_;
 		EventSync event_;
+		DeadlineTime deadline_;
 	};
 
-	void enqueue (const FileLock& lock, const void* owner);
-	
 	typedef SimpleList <Entry>::iterator iterator;
 
+	void enqueue (const FileLock& lock, const void* owner)
+	{
+		Entry* entry = new Entry (lock, owner);
+		iterator ins = list_.end ();
+		while (ins != list_.begin ()) {
+			iterator prev = ins;
+			--prev;
+			if (prev->deadline () > entry->deadline ())
+				ins = prev;
+			else
+				break;
+		}
+		entry->insert (*ins);
+	}
+	
 	iterator begin () const noexcept
 	{
 		return list_.begin ();
@@ -68,6 +94,11 @@ public:
 	iterator end () const noexcept
 	{
 		return list_.end ();
+	}
+
+	void dequeue (iterator it) noexcept
+	{
+		list_.remove (it);
 	}
 
 private:
