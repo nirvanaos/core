@@ -158,6 +158,11 @@ public:
 		return sync_domain_;
 	}
 
+	static MemContext& memory () noexcept
+	{
+		return sync_domain_->mem_context ();
+	}
+
 	CORBA::Core::RemoteReferences& remote_references () noexcept
 	{
 		return remote_references_;
