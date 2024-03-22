@@ -75,7 +75,7 @@ public:
 		check_exist ();
 
 		if (!(flags_ & O_WRONLY))
-			driver_.read (pos, size, data);
+			driver_.read (rel, pos, size, lock, nonblock, data, this);
 		else
 			throw_NO_PERMISSION (make_minor_errno (EBADF));
 	}
@@ -88,7 +88,7 @@ public:
 			if (flags_ & O_APPEND)
 				pos = std::numeric_limits <FileSize>::max ();
 			dirty_ = true;
-			driver_.write (pos, data);
+			driver_.write (pos, data, rel, sync, this);
 		} else
 			throw_NO_PERMISSION (make_minor_errno (EBADF));
 	}

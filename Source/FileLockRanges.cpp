@@ -29,185 +29,182 @@
 namespace Nirvana {
 namespace Core {
 
-FileLockRanges::AcqResult FileLockRanges::acquire (const FileLock& fl, const void* owner, AcqOption opt)
+LockType FileLockRanges::acquire (const FileSize& begin, const FileSize& end,
+	LockType level_max, LockType level_min, const void* owner)
 {
-	LockType level = fl.type ();
-	assert (level > LockType::LOCK_NONE);
-	FileSize begin = fl.start (), end;
-	Ranges::iterator it = get_end (fl, end);
-	Ranges::iterator it_next = it;
-	Ranges::iterator replace = ranges_.end ();
-	bool shared = false;
+	assert (level_max > LockType::LOCK_NONE);
+	assert (LockType::LOCK_NONE < level_min && level_min <= level_max);
+
+	Ranges::iterator it = lower_bound (end);
+	Ranges::iterator it_next = it; // Where to insert
+	LockType level = level_max;
 	while (ranges_.begin () != it) {
 		--it;
-		if (it->begin >= begin)
+		if (it->begin > begin)
 			it_next = it;
 		if (it->end > begin) {
 			LockType cur_level = it->level;
-			if (it->owner == owner) {
-				if (LockType::LOCK_EXCLUSIVE == level && AcqOption::FROM_QUEUE == opt && cur_level == LockType::LOCK_PENDING)
-					replace = it;
-				else if (level > LockType::LOCK_SHARED || cur_level > LockType::LOCK_SHARED) {
-					assert (AcqOption::FROM_QUEUE != opt);
-					return AcqResult::COLLISION;
-				}
-			} else if (cur_level > LockType::LOCK_RESERVED)
-				return AcqResult::DELAY;
+			if (cur_level >= LockType::LOCK_PENDING)
+				return LockType::LOCK_NONE;
 			else if (cur_level > LockType::LOCK_SHARED) {
-				if (level > LockType::LOCK_SHARED)
-					return AcqResult::DELAY;
+				if (level_min > LockType::LOCK_SHARED)
+					return LockType::LOCK_NONE;
+				else
+					level = LockType::LOCK_SHARED;
 			} else {
 				// Shared lock present
+
+				// Owner of shared lock may not acquire other lock from scratch.
+				// It must upgrade existent shared lock.
+				if (it->owner == owner && level_max > LockType::LOCK_SHARED)
+					throw_BAD_INV_ORDER (make_minor_errno (EACCES));
+
 				if (LockType::LOCK_EXCLUSIVE == level) {
-					if (AcqOption::USUAL == opt)
-						level = LockType::LOCK_PENDING;
+					if (LockType::LOCK_EXCLUSIVE == level_min)
+						return LockType::LOCK_NONE;
 					else
-						return AcqResult::DELAY;
+						level = LockType::LOCK_PENDING;
 				}
-				shared = true;
 			}
 		}
 	}
 
-	if (replace != ranges_.end ()) {
+	// We can acquire lock
 
-		// Replace LOCK_PENDING with LOCK_EXCLUSIVE if no shared locks exist
-		assert (replace->begin <= begin && end <= replace->end);
-		assert (LockType::LOCK_EXCLUSIVE == level);
-		assert (LockType::LOCK_PENDING == replace->level);
-		
-		if (shared)
-			return AcqResult::DELAY;
-
-		if (replace->begin == begin) {
-			if (end < replace->end)
-				ranges_.emplace (lower_bound (end), end, replace->end, owner, LockType::LOCK_PENDING);
-			replace->level = LockType::LOCK_EXCLUSIVE;
-		} else {
-			assert (replace->begin < begin);
-			if (end < replace->end) {
-				ranges_.reserve (ranges_.size () + 2);
-				ranges_.emplace (lower_bound (end), end, replace->end, owner, LockType::LOCK_PENDING);
-			}
-			ranges_.emplace (lower_bound (begin), begin, end, owner, LockType::LOCK_EXCLUSIVE);
+	Ranges::iterator merge_prev = ranges_.end ();
+	for (it = it_next; it != ranges_.begin ();) {
+		--it;
+		if (it->owner == owner && it->level == level && it->end == begin) {
+			merge_prev = it;
+			break;
 		}
+	}
 
-	} else {
-
-		// We can acquire lock
-
-		Ranges::iterator merge_prev = ranges_.end ();
-		for (it = it_next; it != ranges_.begin ();) {
-			--it;
-			if (it->owner == owner && it->level == level && it->end == begin) {
-				merge_prev = it;
-				break;
-			}
+	Ranges::iterator merge_next = ranges_.end ();
+	for (it = it_next; it != ranges_.end () && it->begin <= end; ++it) {
+		if (it->owner == owner && it->level == level && it->begin == end) {
+			merge_next = it;
+			break;
 		}
+	}
 
-		Ranges::iterator merge_next = ranges_.end ();
-		for (it = it_next; it != ranges_.end () && it->begin <= end; ++it) {
-			if (it->owner == owner && it->level == level && it->begin == end) {
-				merge_next = it;
-				break;
-			}
-		}
+	if (merge_prev != ranges_.end ()) {
+		// Merge to prev
+		if (merge_next != ranges_.end ()) {
+			merge_prev->end = merge_next->end;
+			ranges_.erase (merge_next);
+		} else
+			merge_prev->end = end;
+	} else if (merge_next != ranges_.end ()) {
 
-		if (merge_prev != ranges_.end ()) {
-			// Merge to prev
-			if (merge_next != ranges_.end ()) {
-				merge_prev->end = merge_next->end;
-				ranges_.erase (merge_next);
+		// Merge to next
+		merge_next->begin = begin;
+
+		// Bubble re-sort
+		while (merge_next != ranges_.begin ()) {
+			Ranges::iterator prev = merge_next - 1;
+			if (begin < prev->begin) {
+				std::swap (*merge_next, *prev);
+				merge_next = prev;
 			} else
-				merge_prev->end = end;
-		} else if (merge_next != ranges_.end ()) {
-
-			// Merge to next
-			merge_next->begin = begin;
-
-			// Bubble re-sort
-			while (merge_next != ranges_.begin ()) {
-				Ranges::iterator prev = merge_next - 1;
-				if (begin < prev->begin) {
-					std::swap (*merge_next, *prev);
-					merge_next = prev;
-				} else
-					break;
-			}
-
-		} else {
-			// Just insert a new entry
-			ranges_.emplace (it_next, begin, end, owner, level);
+				break;
 		}
-	}
 
-	return AcqResult::ACQUIRED;
-}
-
-bool FileLockRanges::release (const FileLock& fl, const void* owner) noexcept
-{
-	LockType level = fl.type ();
-	assert (level > LockType::LOCK_NONE);
-	FileSize begin = fl.start (), end;
-	if (0 == fl.len ())
-		end = std::numeric_limits <FileSize>::max ();
-	else
-		end = fl.start () + fl.len ();
-
-	for (Ranges::iterator it = ranges_.begin ();;) {
-		if (it == ranges_.end () || it->begin > begin)
-			return false;
-		if (it->owner == owner && it->level == level && it->begin < end && it->end >= begin) {
-			// Found. Releasing range must be a part of the found range.
-			if (it->begin > begin || it->end < end)
-				return false; // Wrong range
-
-			if (it->begin == begin) {
-				if (it->end == end) {
-					// Simplest case. Erase and return.
-					ranges_.erase (it);
-					return true;
-				} else {
-					assert (it->end > end);
-					it->begin = end;
-					// Bubble re-sort
-					while (it != ranges_.end ()) {
-						Ranges::iterator next = it + 1;
-						if (end < next->begin) {
-							std::swap (*it, *next);
-							it = next;
-						} else
-							break;
-					}
-				}
-			} else {
-				assert (it->begin < begin);
-				if (it->end > end)  // Need to insert a new entry
-					ranges_.emplace (lower_bound (end), begin, end, owner, level);
-				it->end = begin;
-			}
-
-			return true;
-		}
-	}
-}
-
-FileLockRanges::Ranges::iterator FileLockRanges::get_end (const FileLock& fl, FileSize& end) noexcept
-{
-	Ranges::iterator it;
-	if (0 == fl.len ()) {
-		end = std::numeric_limits <FileSize>::max ();
-		it = ranges_.end ();
 	} else {
-		end = fl.start () + fl.len ();
-		it = lower_bound (end);
+		// Just insert a new entry
+		ranges_.emplace (it_next, begin, end, owner, level);
 	}
-	return it;
+
+	return level;
 }
 
-FileLockRanges::Ranges::iterator FileLockRanges::lower_bound (const FileSize& end) noexcept
+LockType FileLockRanges::replace (const FileSize& begin, const FileSize& end,
+	LockType level_old, LockType level_new, const void* owner)
 {
-	return std::lower_bound (ranges_.begin (), ranges_.end (), end, Comp ());
+	assert (level_old > LockType::LOCK_NONE);
+
+	Ranges::iterator it = lower_bound (end);
+	Ranges::iterator found = ranges_.end ();
+	while (ranges_.begin () != it) {
+		--it;
+		if (it->owner == owner && it->level == level_old && it->begin < end && it->end >= begin) {
+			found = it;
+			if (level_new <= level_old)
+				break;
+		} else if (level_new > level_old && it->end > begin) {
+			LockType cur_level = it->level;
+			if (cur_level > LockType::LOCK_SHARED) {
+				assert (level_old == LockType::LOCK_SHARED);
+				assert (level_new > LockType::LOCK_SHARED);
+				return level_old;
+			} else {
+				// Shared lock present
+				if (LockType::LOCK_EXCLUSIVE == level_new) {
+					level_new = LockType::LOCK_PENDING;
+					if (level_old == level_new)
+						return level_old;
+				}
+			}
+		}
+	}
+
+	if (found == ranges_.end ())
+		throw_BAD_PARAM (make_minor_errno (ENOLCK));
+
+	assert (found->begin <= begin && end <= found->end);
+	
+	if (level_old == level_new) // Dry check
+		return level_old;
+
+	if (level_new == LockType::LOCK_NONE) {
+		// Remove lock
+		if (found->begin == begin) {
+			if (found->end == end) {
+				// Simplest case. Erase and return.
+				ranges_.erase (it);
+			} else {
+				assert (it->end > end);
+				it->begin = end;
+				// Bubble re-sort
+				while (it != ranges_.end ()) {
+					Ranges::iterator next = it + 1;
+					if (end < next->begin) {
+						std::swap (*it, *next);
+						it = next;
+					} else
+						break;
+				}
+			}
+		} else {
+			assert (it->begin < begin);
+			if (it->end > end)  // Need to insert a new entry
+				ranges_.emplace (lower_bound (end), begin, end, owner, level_old);
+			it->end = begin;
+		}
+	} else {
+		if (found->begin == begin) {
+			if (end < found->end)
+				ranges_.emplace (lower_bound (end), end, found->end, owner, level_old);
+			found->level = level_new;
+		} else {
+			assert (found->begin < begin);
+			if (end < found->end) {
+				ranges_.reserve (ranges_.size () + 2);
+				ranges_.emplace (lower_bound (end), end, found->end, owner, level_old);
+			}
+			ranges_.emplace (lower_bound (begin), begin, end, owner, level_new);
+		}
+	}
+
+	return level_new;
+}
+
+FileLockRanges::Ranges::iterator FileLockRanges::lower_bound (FileSize end) noexcept
+{
+	if (end == std::numeric_limits <FileSize>::max ())
+		return ranges_.end ();
+	else
+		return std::lower_bound (ranges_.begin (), ranges_.end (), end, Comp ());
 }
 
 }

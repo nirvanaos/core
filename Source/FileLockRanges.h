@@ -40,23 +40,11 @@ namespace Core {
 class FileLockRanges
 {
 public:
-	enum AcqOption
-	{
-		USUAL, // Request as usual
-		FROM_QUEUE, // Retry request from queue
-		NONBLOCK // Non-blocking request
-	};
+	LockType acquire (const FileSize& begin, const FileSize& end,
+		LockType level_max, LockType level_min, const void* owner);
 
-	enum AcqResult
-	{
-		ACQUIRED, // Lock successfully acquired
-		DELAY,    // Lock must be queued
-		COLLISION // Lock level collision: throw BAD_INV_ORDER
-	};
-
-	AcqResult acquire (const FileLock& fl, const void* owner, AcqOption opt);
-
-	bool release (const FileLock& fl, const void* owner) noexcept;
+	LockType replace (const FileSize& begin, const FileSize& end,
+		LockType level_old, LockType level_new, const void* owner);
 
 	bool check_read (const FileSize& begin, const FileSize& end, const void* proxy) const noexcept
 	{
@@ -125,8 +113,7 @@ private:
 
 	typedef std::vector <Entry, UserAllocator <Entry> > Ranges;
 
-	Ranges::iterator get_end (const FileLock& fl, FileSize& end) noexcept;
-	Ranges::iterator lower_bound (const FileSize& end) noexcept;
+	Ranges::iterator lower_bound (FileSize end) noexcept;
 
 	Ranges::const_iterator lower_bound (const FileSize& end) const noexcept
 	{
