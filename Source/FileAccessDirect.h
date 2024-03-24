@@ -123,11 +123,10 @@ public:
 	}
 
 	inline
-	void read (const FileLock& rel, uint64_t pos, uint32_t size, LockType lock, bool nonblock, std::vector <uint8_t>& data,
-		const void* proxy);
+	void read (uint64_t pos, uint32_t size, std::vector <uint8_t>& data, const void* proxy);
 
 	inline
-	void write (uint64_t pos, const std::vector <uint8_t>& data, const FileLock& rel, bool sync, const void* proxy);
+	void write (uint64_t pos, const std::vector <uint8_t>& data, bool sync, const void* proxy);
 
 	unsigned flags () const noexcept
 	{
@@ -249,8 +248,7 @@ private:
 };
 
 inline
-void FileAccessDirect::read (const FileLock& rel, uint64_t pos, uint32_t size, LockType lock,
-	bool nonblock, std::vector <uint8_t>& data, const void* proxy)
+void FileAccessDirect::read (uint64_t pos, uint32_t size, std::vector <uint8_t>& data, const void* proxy)
 {
 	// No data transfer shall occur past the current end-of-file.
 	// If the starting position is at or after the end-of-file, 0 shall be returned.
@@ -264,16 +262,8 @@ void FileAccessDirect::read (const FileLock& rel, uint64_t pos, uint32_t size, L
 		size = (uint32_t)(file_size_ - pos);
 	}
 
-	if (rel.type () != LockType::LOCK_NONE)
-		lock_ranges_.replace (rel.start (), end_of (rel), rel.type (), LockType::LOCK_NONE, proxy);
-
-	if (lock != LockType::LOCK_NONE) {
-		lock_ranges_.acquire (pos, end, lock, lock, proxy);
-	}
-
-	if (!lock_ranges_.check_read (pos, end, proxy)) {
-
-	}
+//	if (!lock_ranges_.check_read (pos, end, proxy))
+//		throw_TRANSIENT (EAGAIN);
 
 	BlockIdx begin_block = pos / block_size_, end_block = (end + block_size_ - 1) / block_size_;
 
@@ -328,7 +318,7 @@ void FileAccessDirect::read (const FileLock& rel, uint64_t pos, uint32_t size, L
 }
 
 inline
-void FileAccessDirect::write (uint64_t pos, const std::vector <uint8_t>& data, const FileLock& rel, bool sync, const void* proxy)
+void FileAccessDirect::write (uint64_t pos, const std::vector <uint8_t>& data, bool sync, const void* proxy)
 {
 	if (pos == std::numeric_limits <uint64_t>::max ())
 		pos = file_size_;
@@ -336,11 +326,8 @@ void FileAccessDirect::write (uint64_t pos, const std::vector <uint8_t>& data, c
 	BlockIdx cur_block = pos / block_size_;
 	BlockIdx end_block = (end + block_size_ - 1) / block_size_;
 
-	if (rel.type () != LockType::LOCK_NONE) // Dry check
-		lock_ranges_.replace (rel.start (), end_of (rel), rel.type (), rel.type (), proxy);
-
-	if (!lock_ranges_.check_write (pos, end, proxy))
-		throw_BAD_INV_ORDER (make_minor_errno (EAGAIN));
+//	if (!lock_ranges_.check_write (pos, end, proxy))
+//		throw_TRANSIENT (EAGAIN);
 
 	clear_cache (cur_block, end_block);
 
@@ -508,9 +495,6 @@ void FileAccessDirect::write (uint64_t pos, const std::vector <uint8_t>& data, c
 
 		write_dirty_blocks (write_timeout_);
 	}
-
-	if (rel.type () != LockType::LOCK_NONE)
-		lock_ranges_.replace (rel.start (), end_of (rel), rel.type (), LockType::LOCK_NONE, proxy);
 }
 
 void FileAccessDirect::flush ()

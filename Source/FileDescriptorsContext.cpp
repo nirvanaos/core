@@ -261,7 +261,7 @@ uint64_t FileDescriptorsContext::DescriptorBuf::seek (unsigned method, const int
 		break;
 
 	case SEEK_END:
-		pos = access_->size ();
+		pos = access_->direct ()->size ();
 		break;
 
 	default:

@@ -322,7 +322,7 @@ public:
 
 	/// Marshal value type.
 	/// 
-	/// \param val  ValueBase.
+	/// \param val The value interface.
 	virtual void marshal_value (Internal::Interface::_ptr_type val);
 
 	/// Unmarshal value type.

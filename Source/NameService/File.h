@@ -156,14 +156,13 @@ public:
 
 		check_flags (flags);
 
-		uint_fast16_t direct_flags = (flags & O_DIRECT) ? flags : (flags & ~(O_APPEND | O_TEXT | O_SYNC | O_NONBLOCK));
+		uint_fast16_t direct_flags = (flags & O_DIRECT) ? flags : (flags & ~(O_APPEND | O_TEXT | O_SYNC | O_NONBLOCK)) | O_DIRECT;
 
 		AccessDirect::_ref_type direct;
-		++proxy_cnt_;
 		try {
-			direct = CORBA::make_reference <FileAccessDirectProxy> ( std::ref (*this), direct_flags)->_this ();
+			direct = CORBA::make_reference <FileAccessDirectProxy> (std::ref (*this), direct_flags)->_this ();
 		} catch (...) {
-			if (!--proxy_cnt_)
+			if (!proxy_cnt_)
 				access_ = nullptr;
 			throw;
 		}
@@ -172,9 +171,20 @@ public:
 
 		if (flags & O_DIRECT)
 			ret = direct;
-		else
-			ret = CORBA::make_reference <FileAccessBuf> ((flags & O_ATE) ? access_->size () : 0,
-				std::move (direct), access_->block_size (), flags, Port::FileSystem::eol ());
+		else {
+			Bytes buf;
+			FileSize pos;
+			uint32_t block_size = access_->block_size ();
+			if (flags & O_ATE)
+				pos = access_->size ();
+			else {
+				pos = 0;
+				if ((flags & O_ACCMODE) != O_WRONLY && access_->size ())
+					direct->read (0, block_size, buf);
+			}
+			ret = CORBA::make_reference <FileAccessBuf> (pos, 0,
+				std::move (direct), std::move (buf), block_size, flags, Port::FileSystem::eol ());
+		}
 
 		return ret;
 	}
@@ -211,6 +221,7 @@ FileAccessDirectProxy::FileAccessDirectProxy (File& file, uint_fast16_t flags) :
 	dirty_ (false)
 {
 	assert (file.access_);
+	++file.proxy_cnt_;
 }
 
 inline
