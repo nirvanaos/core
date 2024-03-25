@@ -69,6 +69,16 @@ void FileAccessBuf::check_write () const
 		throw_NO_PERMISSION (make_minor_errno (EBADF));
 }
 
+Nirvana::AccessDirect::_ptr_type FileAccessBuf::direct ()
+{
+	check ();
+	if (private_flags () & ACCESS_COPIED) {
+		private_flags () &= ~ACCESS_COPIED;
+		access (AccessDirect::_narrow (access ()->dup (0, 0)->_to_object ()));
+	}
+	return access ();
+}
+
 const void* FileAccessBuf::get_buffer_read_internal (size_t& cb)
 {
 	assert (cb);
@@ -95,10 +105,10 @@ const void* FileAccessBuf::get_buffer_read_internal (size_t& cb)
 				flush_internal ();
 			uint32_t cb_read = (uint32_t)(new_buf_pos.end - new_buf_pos.begin);
 			if (buffer ().empty ())
-				access ()->read (new_buf_pos.begin, cb_read, buffer ());
+				direct ()->read (new_buf_pos.begin, cb_read, buffer ());
 			else {
 				Bytes new_buf;
-				access ()->read (new_buf_pos.begin, cb_read, new_buf);
+				direct ()->read (new_buf_pos.begin, cb_read, new_buf);
 				buffer ().swap (new_buf);
 			}
 
@@ -117,7 +127,7 @@ const void* FileAccessBuf::get_buffer_read_internal (size_t& cb)
 					drop_tail = (size_t)(buffer_end - new_buf_pos.end);
 				Bytes new_buf;
 				uint32_t cb_before = (uint32_t)(buf_pos () - new_buf_pos.begin);
-				access ()->read (new_buf_pos.begin, cb_before, new_buf);
+				direct ()->read (new_buf_pos.begin, cb_before, new_buf);
 				buffer ().resize (buffer ().size () - drop_tail);
 				new_buf.insert (new_buf.end (), buffer ().data (), buffer ().data () + buffer ().size ());
 				buffer ().swap (new_buf);
@@ -134,7 +144,7 @@ const void* FileAccessBuf::get_buffer_read_internal (size_t& cb)
 					drop_front = (size_t)(new_buf_pos.begin - buf_pos ());
 				Bytes new_buf;
 				uint32_t cb_after = (uint32_t)(new_buf_pos.end - buffer_end);
-				access ()->read (buffer_end, cb_after, new_buf);
+				direct ()->read (buffer_end, cb_after, new_buf);
 				buffer ().insert (buffer ().end (), new_buf.data (), new_buf.data () + new_buf.size ());
 			}
 		}
@@ -259,10 +269,10 @@ void FileAccessBuf::flush_internal (bool sync)
 		sync = flags () & O_SYNC;
 
 	if (dirty_begin_ == 0 && dirty_end_ == buffer ().size ())
-		access ()->write (buf_pos (), buffer (), sync);
+		direct ()->write (buf_pos (), buffer (), sync);
 	else {
 		Bytes tmp (buffer ().data () + dirty_begin_, buffer ().data () + dirty_end_);
-		access ()->write (buf_pos () + dirty_begin_, tmp, sync);
+		direct ()->write (buf_pos () + dirty_begin_, tmp, sync);
 	}
 	reset_dirty ();
 }

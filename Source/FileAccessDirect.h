@@ -262,8 +262,8 @@ void FileAccessDirect::read (uint64_t pos, uint32_t size, std::vector <uint8_t>&
 		size = (uint32_t)(file_size_ - pos);
 	}
 
-//	if (!lock_ranges_.check_read (pos, end, proxy))
-//		throw_TRANSIENT (EAGAIN);
+	if (!lock_ranges_.check_read (pos, end, proxy))
+		throw_TRANSIENT (EAGAIN);
 
 	BlockIdx begin_block = pos / block_size_, end_block = (end + block_size_ - 1) / block_size_;
 
@@ -326,8 +326,8 @@ void FileAccessDirect::write (uint64_t pos, const std::vector <uint8_t>& data, b
 	BlockIdx cur_block = pos / block_size_;
 	BlockIdx end_block = (end + block_size_ - 1) / block_size_;
 
-//	if (!lock_ranges_.check_write (pos, end, proxy))
-//		throw_TRANSIENT (EAGAIN);
+	if (!lock_ranges_.check_write (pos, end, proxy))
+		throw_TRANSIENT (EAGAIN);
 
 	clear_cache (cur_block, end_block);
 

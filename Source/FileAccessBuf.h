@@ -90,7 +90,7 @@ class FileAccessBuf :
 {
 	typedef IDL::traits <AccessBuf>::Servant <FileAccessBuf> Servant;
 
-	static const unsigned UNMARSHAL_DUP = 0x8000;
+	static const CORBA::UShort ACCESS_COPIED = 0x8000;
 
 public:
 	FileAccessBuf (const FileSize& position, const FileSize& buf_pos, AccessDirect::_ref_type&& access,
@@ -106,8 +106,7 @@ public:
 		Servant (src),
 		FileAccessBufData (src)
 	{
-		assert (private_flags () & UNMARSHAL_DUP);
-		access (AccessDirect::_narrow (access ()->dup (0, 0)->_to_object ()));
+		private_flags () |= ACCESS_COPIED;
 	}
 
 	~FileAccessBuf ()
@@ -119,24 +118,26 @@ public:
 		}
 	}
 
-	void _unmarshal (CORBA::Internal::IORequest_ptr rq)
+	void _marshal (CORBA::Internal::IORequest_ptr rq)
 	{
-		Servant::_unmarshal (rq);
-		if (private_flags () & UNMARSHAL_DUP)
-			access (AccessDirect::_narrow (access ()->dup (0, 0)->_to_object ()));
-		private_flags () |= UNMARSHAL_DUP;
+		Servant::_marshal (rq);
+		private_flags () |= ACCESS_COPIED;
 	}
 
 	Access::_ref_type dup (uint_fast16_t mask, uint_fast16_t f) const
 	{
+		mask &= ~ACCESS_COPIED;
 		f &= mask;
-		f |= (flags () & ~mask) | UNMARSHAL_DUP;
+		f |= flags () & ~mask;
 		uint_fast16_t changes = check_flags (f);
 		AccessDirect::_ref_type acc;
-		if (changes & O_ACCMODE)
+		if (changes & O_ACCMODE) {
 			acc = AccessDirect::_narrow (access ()->dup (O_ACCMODE, f)->_to_object ());
-		else
+			f &= ~ACCESS_COPIED;
+		} else {
 			acc = access ();
+			f |= ACCESS_COPIED;
+		}
 		return CORBA::make_reference <FileAccessBuf> (position (), buf_pos (), std::move (acc),
 			buffer (), block_size (), f, eol ());
 	}
@@ -147,18 +148,15 @@ public:
 		return access ()->file ();
 	}
 
-	Nirvana::AccessDirect::_ref_type direct () const
-	{
-		check ();
-		return access ();
-	}
+	Nirvana::AccessDirect::_ptr_type direct ();
 
 	void close ()
 	{
 		check ();
 		if (dirty ())
 			flush_internal ();
-		access ()->close ();
+		if (!(private_flags () & ACCESS_COPIED))
+			access ()->close ();
 		buffer ().clear ();
 		buffer ().shrink_to_fit ();
 	}
@@ -226,7 +224,7 @@ public:
 		}
 
 		if (changes & O_ACCMODE)
-			access ()->set_flags (O_ACCMODE, f);
+			direct ()->set_flags (O_ACCMODE, f);
 
 		Servant::private_flags (f);
 	}
@@ -368,7 +366,7 @@ inline void FileAccessBuf::write (const void* p, size_t cb)
 		size_t cbw = dst - buf;
 		if (O_APPEND) {
 			append.resize (cbw);
-			access ()->write (std::numeric_limits <FileSize>::max (), append, private_flags () & O_SYNC);
+			direct ()->write (std::numeric_limits <FileSize>::max (), append, private_flags () & O_SYNC);
 		} else
 			position (position () + cbw);
 
@@ -376,7 +374,7 @@ inline void FileAccessBuf::write (const void* p, size_t cb)
 		if (sizeof (size_t) > sizeof (uint32_t) && cb > std::numeric_limits <uint32_t>::max ())
 			throw_IMP_LIMIT (make_minor_errno (ENOBUFS));
 
-		access ()->write (std::numeric_limits <FileSize>::max (), Bytes ((const uint8_t*)p, (const uint8_t*)p + cb), private_flags () & O_SYNC);
+		direct ()->write (std::numeric_limits <FileSize>::max (), Bytes ((const uint8_t*)p, (const uint8_t*)p + cb), private_flags () & O_SYNC);
 		return;
 	} else {
 		void* buf = get_buffer_write_internal (cb);
