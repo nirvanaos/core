@@ -33,6 +33,7 @@
 #include <Nirvana/SimpleList.h>
 #include "UserObject.h"
 #include "EventSync.h"
+#include "ExecDomain.h"
 
 namespace Nirvana {
 namespace Core {
@@ -41,25 +42,93 @@ class FileLockQueue
 {
 public:
 	class Entry :
-		public FileLock,
 		public SimpleList <Entry>::Element,
 		public UserObject
 	{
 	public:
+		Entry (const FileSize& begin, const FileSize& end, LockType level_max, LockType level_min,
+			const void* owner) noexcept :
+			begin_ (begin),
+			end_ (end),
+			deadline_ (ExecDomain::current ().deadline ()),
+			owner_ (owner),
+			level_max_ (level_max),
+			level_min_ (level_min)
+		{}
+
+		const FileSize& begin () const noexcept
+		{
+			return begin_;
+		}
+
+		const FileSize& end () const noexcept
+		{
+			return end_;
+		}
+
+		LockType level_max () const noexcept
+		{
+			return level_max_;
+		}
+
+		LockType level_min () const noexcept
+		{
+			return level_min_;
+		}
+
 		const void* owner () const noexcept
 		{
 			return owner_;
 		}
 
+		const DeadlineTime& deadline () const noexcept
+		{
+			return deadline_;
+		}
+
+		LockType wait ()
+		{
+			event_.wait ();
+			LockType ret = level_max_;
+			delete this;
+			return ret;
+		}
+
+		void signal (LockType level) noexcept
+		{
+			level_max_ = level;
+			event_.signal ();
+		}
+
 	private:
+		FileSize begin_;
+		FileSize end_;
+		DeadlineTime deadline_;
 		const void* owner_;
 		EventSync event_;
+		LockType level_max_;
+		LockType level_min_;
 	};
 
-	void enqueue (const FileLock& lock, const void* owner);
-	
 	typedef SimpleList <Entry>::iterator iterator;
 
+	LockType enqueue (const FileSize& begin, const FileSize& end, LockType level_max, LockType level_min,
+		const void* owner)
+	{
+		Entry* entry = new Entry (begin, end, level_max, level_min, owner);
+		iterator ins = list_.end ();
+		while (ins != list_.begin ()) {
+			iterator prev = ins;
+			--prev;
+			if (prev->deadline () > entry->deadline ())
+				ins = prev;
+			else
+				break;
+		}
+		entry->insert (*ins);
+		return entry->wait ();
+	}
+	
 	iterator begin () const noexcept
 	{
 		return list_.begin ();
@@ -68,6 +137,19 @@ public:
 	iterator end () const noexcept
 	{
 		return list_.end ();
+	}
+
+	iterator dequeue (iterator it, LockType level) noexcept
+	{
+		iterator next = it->next ();
+		list_.remove (it);
+		it->signal (level);
+		return next;
+	}
+
+	bool empty () const noexcept
+	{
+		return list_.empty ();
 	}
 
 private:

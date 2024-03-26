@@ -72,7 +72,7 @@ public:
 		int ret = SQLITE_OK;
 		try {
 			NDBC::Blob data;
-			access_->read (Nirvana::FileLock (), off, cb, Nirvana::LockType::LOCK_NONE, false, data);
+			access_->read (off, cb, data);
 			memcpy (p, data.data (), data.size ());
 			if ((int)data.size () < cb) {
 				// If xRead () returns SQLITE_IOERR_SHORT_READ it must also fill in the unread portions of the
@@ -92,8 +92,7 @@ public:
 	{
 		int ret = SQLITE_OK;
 		try {
-			access_->write (off, NDBC::Blob ((const CORBA::Octet*)p, (const CORBA::Octet*)p + cb),
-				Nirvana::FileLock (), false);
+			access_->write (off, NDBC::Blob ((const CORBA::Octet*)p, (const CORBA::Octet*)p + cb), false);
 		} catch (const CORBA::SystemException& ex) {
 			if (ENOSPC == Nirvana::get_minor_errno (ex.minor ()))
 				ret = SQLITE_FULL;
@@ -156,7 +155,7 @@ public:
 		assert (cache_.find (off) == cache_.end ());
 		try {
 			NDBC::Blob data;
-			access_->read (Nirvana::FileLock (), off, cb, Nirvana::LockType::LOCK_NONE, false, data);
+			access_->read (off, cb, data);
 			if ((int)data.size () == cb)
 				*pp = cache_.emplace (off, std::move (data)).first->second.data ();
 		} catch (const CORBA::NO_MEMORY&) {

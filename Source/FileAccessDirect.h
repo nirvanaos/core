@@ -34,6 +34,7 @@
 #include "Chrono.h"
 #include "MapOrderedStable.h"
 #include "FileLockRanges.h"
+#include "FileLockQueue.h"
 
 namespace Nirvana {
 namespace Core {
@@ -106,15 +107,72 @@ public:
 		set_size (new_size);
 	}
 
-	inline
-	void read (uint64_t pos, uint32_t size, std::vector <uint8_t>& data);
+	static FileSize add_pos (const FileSize& x, const FileSize& y)
+	{
+		if (y > std::numeric_limits <FileSize>::max () - x)
+			throw_BAD_PARAM (make_minor_errno (EOVERFLOW));
+		return x + y;
+	}
+
+	static FileSize end_of (const FileLock& fl)
+	{
+		if (fl.start () == std::numeric_limits <FileSize>::max ())
+			throw_BAD_PARAM (make_minor_errno (EOVERFLOW));
+		if (fl.len ())
+			return add_pos (fl.start (), fl.len ());
+		else
+			return std::numeric_limits <FileSize>::max ();
+	}
 
 	inline
-	void write (uint64_t pos, const std::vector <uint8_t>& data);
+	void read (uint64_t pos, uint32_t size, std::vector <uint8_t>& data, const void* proxy);
+
+	inline
+	void write (uint64_t pos, const std::vector <uint8_t>& data, bool sync, const void* proxy);
 
 	unsigned flags () const noexcept
 	{
 		return Base::flags ();
+	}
+
+	LockType lock (const FileLock& fl, LockType tmin, bool wait, const void* proxy)
+	{
+		FileSize end = end_of (fl);
+		if (fl.type () == LockType::LOCK_NONE) {
+			if (lock_ranges_.unchecked_set (fl.start (), end, proxy, LockType::LOCK_NONE))
+				retry_lock ();
+			return LockType::LOCK_NONE;
+		} else {
+			if (tmin > fl.type ())
+				throw_BAD_PARAM ();
+			LockType level_min;
+			if (wait && fl.type () == LockType::LOCK_EXCLUSIVE && tmin == LockType::LOCK_EXCLUSIVE)
+				level_min = LockType::LOCK_PENDING;
+			else
+				level_min = tmin;
+			bool downgraded;
+			LockType ret = lock_ranges_.set (fl.start (), end_of (fl), fl.type (), level_min, proxy,
+				downgraded);
+			if (ret < tmin) {
+				if (wait) {
+					ret = lock_queue_.enqueue (fl.start (), end, fl.type (), tmin, proxy);
+					if (ret < tmin)
+						throw_NO_MEMORY ();
+				} else
+					ret = LockType::LOCK_NONE;
+			} else if (downgraded)
+				retry_lock ();
+			return ret;
+		}
+	}
+
+	void get_lock (FileLock& fl, const void* proxy) const
+	{
+		LockType level = fl.type ();
+		if (LockType::LOCK_NONE != level) {
+			if (!lock_ranges_.get (fl.start (), end_of (fl), proxy, level, fl))
+				fl.type (LockType::LOCK_NONE);
+		}
 	}
 
 private:
@@ -216,11 +274,14 @@ private:
 
 	void complete_size_request () noexcept;
 
+	void retry_lock () noexcept;
+
 private:
 	Cache cache_;
 	Pos file_size_;
 	Pos requested_size_;
 	FileLockRanges lock_ranges_;
+	FileLockQueue lock_queue_;
 	Ref <IO_Request> size_request_;
 	const Size block_size_;
 	Size base_block_size_;
@@ -231,7 +292,7 @@ private:
 };
 
 inline
-void FileAccessDirect::read (uint64_t pos, uint32_t size, std::vector <uint8_t>& data)
+void FileAccessDirect::read (uint64_t pos, uint32_t size, std::vector <uint8_t>& data, const void* proxy)
 {
 	// No data transfer shall occur past the current end-of-file.
 	// If the starting position is at or after the end-of-file, 0 shall be returned.
@@ -239,11 +300,14 @@ void FileAccessDirect::read (uint64_t pos, uint32_t size, std::vector <uint8_t>&
 	if (pos >= file_size_)
 		return;
 
-	Pos end = (Pos)pos + size;
+	Pos end = add_pos (pos, size);
 	if (end > file_size_) {
 		end = file_size_;
 		size = (uint32_t)(file_size_ - pos);
 	}
+
+	if (!lock_ranges_.check_read (pos, end, proxy))
+		throw_TRANSIENT (EAGAIN);
 
 	BlockIdx begin_block = pos / block_size_, end_block = (end + block_size_ - 1) / block_size_;
 
@@ -298,180 +362,183 @@ void FileAccessDirect::read (uint64_t pos, uint32_t size, std::vector <uint8_t>&
 }
 
 inline
-void FileAccessDirect::write (uint64_t pos, const std::vector <uint8_t>& data)
+void FileAccessDirect::write (uint64_t pos, const std::vector <uint8_t>& data, bool sync, const void* proxy)
 {
 	if (pos == std::numeric_limits <uint64_t>::max ())
 		pos = file_size_;
-	Pos end = (Pos)pos + data.size ();
+	Pos end = add_pos (pos, data.size ());
 	BlockIdx cur_block = pos / block_size_;
 	BlockIdx end_block = (end + block_size_ - 1) / block_size_;
 
+	if (!lock_ranges_.check_write (pos, end, proxy))
+		throw_TRANSIENT (EAGAIN);
+
 	clear_cache (cur_block, end_block);
 
-	if (data.empty ())
-		return;
+	if (!data.empty ()) {
 
-	// If write is not block-aligned, we have to read before write.
-	// As a maximum we need to read 2 blocks: at head and at tail.
-	// read_ranges array contains the reading block ranges.
-	struct ReadRange
-	{
-		BlockIdx start;
-		unsigned count;
-	} read_ranges [2] = { {0}, {0} }; // Head, tail
+		// If write is not block-aligned, we have to read before write.
+		// As a maximum we need to read 2 blocks: at head and at tail.
+		// read_ranges array contains the reading block ranges.
+		struct ReadRange
+		{
+			BlockIdx start;
+			unsigned count;
+		} read_ranges [2] = { {0}, {0} }; // Head, tail
 
-	if (file_size_ > pos) {
+		if (file_size_ > pos) {
 
-		if (pos % block_size_) {
-			// We need to read the first block before writing to it.
-			read_ranges [0].start = cur_block;
-			read_ranges [0].count = 1;
-		}
-
-		if (end % block_size_) {
-			BlockIdx tail_block = end / block_size_; // Last block in range
-			if ((Pos)tail_block * (Pos)block_size_ < file_size_) {
-				// We need to read last block before writing to it.
-				if (!read_ranges [0].count) {
-					read_ranges [0].start = tail_block;
-					read_ranges [0].count = 1;
-				} else if (tail_block <= read_ranges [0].start + 1) {
-					if (tail_block > read_ranges [0].start)
-						++read_ranges [0].count;
-				} else {
-					read_ranges [1].start = tail_block;
-					read_ranges [1].count = 1;
-				}
+			if (pos % block_size_) {
+				// We need to read the first block before writing to it.
+				read_ranges [0].start = cur_block;
+				read_ranges [0].count = 1;
 			}
-		}
-	}
 
-	// If the second read range exits, first range exists too.
-	assert (read_ranges [0].count || !read_ranges [1].count);
-
-	// Maximal count of block to read is 2 (head and tail).
-	assert (read_ranges [0].count + read_ranges [1].count <= 2);
-	assert (read_ranges [1].count <= 1);
-
-	Cache::iterator read_blocks [2] = { cache_.end (), cache_.end () }; // Head, tail
-	try {
-		if (read_ranges [0].count) {
-			CacheRange blocks = request_read (read_ranges [0].start, read_ranges [0].start + read_ranges [0].count);
-			assert (blocks.begin != blocks.end);
-			read_blocks [0] = blocks.begin;
-			if (blocks.end != ++blocks.begin) {
-				assert (!read_ranges [1].count);
-				read_blocks [1] = blocks.begin;
-			}
-		}
-		if (read_ranges [1].count) {
-			CacheRange blocks = request_read (read_ranges [1].start, read_ranges [1].start + read_ranges [1].count);
-			assert (blocks.begin != blocks.end);
-			assert (read_blocks [1] == cache_.end ());
-			read_blocks [1] = blocks.begin;
-			assert (blocks.end == ++blocks.begin); // Exactly 1 block
-		}
-
-		// Try to decide first block cache iterator without the search
-		Cache::iterator cached_block = read_blocks [0];
-		if (cached_block != cache_.end () && cached_block->first != cur_block)
-			cached_block = cache_.end ();
-
-		// Find first cached block if it is unknown
-		if (cached_block == cache_.end ())
-			cached_block = cache_.lower_bound (cur_block);
-
-		// Copy data to cache
-		const uint8_t* src_data = data.data ();
-		size_t src_size = data.size ();
-		size_t block_offset = pos % block_size_;
-		for (;; block_offset = 0) {
-			BlockIdx not_cached_end;
-			if (cached_block == cache_.end ())
-				not_cached_end = end_block;
-			else
-				not_cached_end = std::min (end_block, cached_block->first);
-			if (cur_block < not_cached_end) {
-				// Insert new blocks to cache
-				size_t cb = (size_t)((not_cached_end - cur_block) * block_size_);
-				uint8_t* buffer = nullptr;
-				CacheRange new_blocks (cache_);
-				try {
-					size_t cb_copy;
-					if (!block_offset && src_size >= cb) {
-						buffer = (uint8_t*)Port::Memory::copy (nullptr, const_cast <uint8_t*> (src_data), cb, 0);
-						cb_copy = cb;
+			if (end % block_size_) {
+				BlockIdx tail_block = end / block_size_; // Last block in range
+				if ((Pos)tail_block * (Pos)block_size_ < file_size_) {
+					// We need to read last block before writing to it.
+					if (!read_ranges [0].count) {
+						read_ranges [0].start = tail_block;
+						read_ranges [0].count = 1;
+					} else if (tail_block <= read_ranges [0].start + 1) {
+						if (tail_block > read_ranges [0].start)
+							++read_ranges [0].count;
 					} else {
-						buffer = (uint8_t*)Port::Memory::allocate (nullptr, cb, 0);
-						cb_copy = std::min (cb - block_offset, src_size);
-						Port::Memory::copy (buffer + block_offset, const_cast <uint8_t*> (src_data), cb_copy, 0);
+						read_ranges [1].start = tail_block;
+						read_ranges [1].count = 1;
 					}
-					src_data += cb_copy;
-					src_size -= cb_copy;
-					Pos end = (Pos)cur_block * (Pos)block_size_ + cb_copy;
-					SteadyTime time = Chrono::steady_clock ();
-					for (uint8_t* block_buf = buffer;;) {
-						Cache::iterator it = cache_.emplace_hint (cached_block, cur_block, block_buf);
-						size_t dirty_size = std::min ((size_t)block_size_ - block_offset, cb_copy);
-						set_dirty (*it, time, block_offset, dirty_size);
-						block_offset = 0;
-						cb_copy -= dirty_size;
-						new_blocks.append (it);
-						if (not_cached_end == ++cur_block)
-							break;
-						block_buf += block_size_;
-					}
-
-					// Update file size
-					if (file_size_ < end)
-						file_size_ = end;
-				} catch (...) {
-					while (new_blocks.begin != new_blocks.end)
-						cache_.erase (--new_blocks.end);
-					Port::Memory::release (buffer, cb);
-					throw;
 				}
-				block_offset = 0;
-				if (cur_block == end_block)
-					break;
 			}
-			// Write to cached block
-			complete_request (*cached_block); // Complete previous read/write operation
-			size_t cb_copy = std::min (block_size_ - block_offset, src_size);
-			Port::Memory::copy ((uint8_t*)cached_block->second.buffer + block_offset, const_cast <uint8_t*> (src_data), cb_copy, 0);
-			set_dirty (*cached_block, Chrono::steady_clock (), block_offset, cb_copy);
+		}
 
-			// Update file size
-			Pos end = (Pos)cached_block->first * (Pos)block_size_ + block_offset + cb_copy;
-			if (file_size_ < end)
-				file_size_ = end;
+		// If the second read range exits, first range exists too.
+		assert (read_ranges [0].count || !read_ranges [1].count);
 
-			// If this block is readed block, unlock it
+		// Maximal count of block to read is 2 (head and tail).
+		assert (read_ranges [0].count + read_ranges [1].count <= 2);
+		assert (read_ranges [1].count <= 1);
+
+		Cache::iterator read_blocks [2] = { cache_.end (), cache_.end () }; // Head, tail
+		try {
+			if (read_ranges [0].count) {
+				CacheRange blocks = request_read (read_ranges [0].start, read_ranges [0].start + read_ranges [0].count);
+				assert (blocks.begin != blocks.end);
+				read_blocks [0] = blocks.begin;
+				if (blocks.end != ++blocks.begin) {
+					assert (!read_ranges [1].count);
+					read_blocks [1] = blocks.begin;
+				}
+			}
+			if (read_ranges [1].count) {
+				CacheRange blocks = request_read (read_ranges [1].start, read_ranges [1].start + read_ranges [1].count);
+				assert (blocks.begin != blocks.end);
+				assert (read_blocks [1] == cache_.end ());
+				read_blocks [1] = blocks.begin;
+				assert (blocks.end == ++blocks.begin); // Exactly 1 block
+			}
+
+			// Try to decide first block cache iterator without the search
+			Cache::iterator cached_block = read_blocks [0];
+			if (cached_block != cache_.end () && cached_block->first != cur_block)
+				cached_block = cache_.end ();
+
+			// Find first cached block if it is unknown
+			if (cached_block == cache_.end ())
+				cached_block = cache_.lower_bound (cur_block);
+
+			// Copy data to cache
+			const uint8_t* src_data = data.data ();
+			size_t src_size = data.size ();
+			size_t block_offset = pos % block_size_;
+			for (;; block_offset = 0) {
+				BlockIdx not_cached_end;
+				if (cached_block == cache_.end ())
+					not_cached_end = end_block;
+				else
+					not_cached_end = std::min (end_block, cached_block->first);
+				if (cur_block < not_cached_end) {
+					// Insert new blocks to cache
+					size_t cb = (size_t)((not_cached_end - cur_block) * block_size_);
+					uint8_t* buffer = nullptr;
+					CacheRange new_blocks (cache_);
+					try {
+						size_t cb_copy;
+						if (!block_offset && src_size >= cb) {
+							buffer = (uint8_t*)Port::Memory::copy (nullptr, const_cast <uint8_t*> (src_data), cb, 0);
+							cb_copy = cb;
+						} else {
+							buffer = (uint8_t*)Port::Memory::allocate (nullptr, cb, 0);
+							cb_copy = std::min (cb - block_offset, src_size);
+							Port::Memory::copy (buffer + block_offset, const_cast <uint8_t*> (src_data), cb_copy, 0);
+						}
+						src_data += cb_copy;
+						src_size -= cb_copy;
+						Pos end = (Pos)cur_block * (Pos)block_size_ + cb_copy;
+						SteadyTime time = Chrono::steady_clock ();
+						for (uint8_t* block_buf = buffer;;) {
+							Cache::iterator it = cache_.emplace_hint (cached_block, cur_block, block_buf);
+							size_t dirty_size = std::min ((size_t)block_size_ - block_offset, cb_copy);
+							set_dirty (*it, time, block_offset, dirty_size);
+							block_offset = 0;
+							cb_copy -= dirty_size;
+							new_blocks.append (it);
+							if (not_cached_end == ++cur_block)
+								break;
+							block_buf += block_size_;
+						}
+
+						// Update file size
+						if (file_size_ < end)
+							file_size_ = end;
+					} catch (...) {
+						while (new_blocks.begin != new_blocks.end)
+							cache_.erase (--new_blocks.end);
+						Port::Memory::release (buffer, cb);
+						throw;
+					}
+					block_offset = 0;
+					if (cur_block == end_block)
+						break;
+				}
+				// Write to cached block
+				complete_request (*cached_block); // Complete previous read/write operation
+				size_t cb_copy = std::min (block_size_ - block_offset, src_size);
+				Port::Memory::copy ((uint8_t*)cached_block->second.buffer + block_offset, const_cast <uint8_t*> (src_data), cb_copy, 0);
+				set_dirty (*cached_block, Chrono::steady_clock (), block_offset, cb_copy);
+
+				// Update file size
+				Pos end = (Pos)cached_block->first * (Pos)block_size_ + block_offset + cb_copy;
+				if (file_size_ < end)
+					file_size_ = end;
+
+				// If this block is readed block, unlock it
+				for (auto p = read_blocks; p != std::end (read_blocks); ++p) {
+					Cache::iterator block = *p;
+					if (block == cached_block) {
+						unlock (*block);
+						*p = cache_.end ();
+						break;
+					}
+				}
+				src_data += cb_copy;
+				src_size -= cb_copy;
+				if (end_block == ++cur_block)
+					break;
+				++cached_block;
+			}
+
+		} catch (...) {
 			for (auto p = read_blocks; p != std::end (read_blocks); ++p) {
 				Cache::iterator block = *p;
-				if (block == cached_block) {
+				if (block != cache_.end ())
 					unlock (*block);
-					*p = cache_.end ();
-					break;
-				}
 			}
-			src_data += cb_copy;
-			src_size -= cb_copy;
-			if (end_block == ++cur_block)
-				break;
-			++cached_block;
+			throw;
 		}
 
-	} catch (...) {
-		for (auto p = read_blocks; p != std::end (read_blocks); ++p) {
-			Cache::iterator block = *p;
-			if (block != cache_.end ())
-				unlock (*block);
-		}
-		throw;
+		write_dirty_blocks (write_timeout_);
 	}
-
-	write_dirty_blocks (write_timeout_);
 }
 
 void FileAccessDirect::flush ()

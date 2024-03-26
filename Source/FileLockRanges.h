@@ -40,23 +40,47 @@ namespace Core {
 class FileLockRanges
 {
 public:
-	enum AcqOption
+	LockType set (const FileSize& begin, const FileSize& end,
+		LockType level_max, LockType level_min, const void* owner, bool& downgraded);
+
+	bool unchecked_set (const FileSize& begin, const FileSize& end, const void* owner, LockType level)
 	{
-		USUAL, // Request as usual
-		FROM_QUEUE, // Retry request from queue
-		NONBLOCK // Non-blocking request
-	};
+		return unchecked_set (begin, end, lower_bound (end), owner, level);
+	}
 
-	enum AcqResult
+	bool get (const FileSize& begin, const FileSize& end, const void* owner, LockType level, FileLock& out)
+		const noexcept
 	{
-		ACQUIRED, // Lock successfully acquired
-		DELAY,    // Lock must be queued
-		COLLISION // Lock level collision: throw BAD_INV_ORDER
-	};
+		assert (begin < end);
+		assert (level > LockType::LOCK_NONE);
+		Ranges::const_iterator found = ranges_.end ();
+		for (auto it = lower_bound (end); ranges_.begin () != it; ) {
+			--it;
+			if (it->end > begin && it->owner != owner) {
+				LockType other_level = it->level;
+				if (other_level >= LockType::LOCK_PENDING) {
+					found = it;
+					break;
+				} else if (other_level > LockType::LOCK_SHARED) {
+					if (level > LockType::LOCK_SHARED) {
+						found = it;
+						break;
+					}
+				} else if (level == LockType::LOCK_EXCLUSIVE) {
+					found = it;
+					break;
+				}
+			}
+		}
 
-	AcqResult acquire (const FileLock& fl, const void* owner, AcqOption opt);
-
-	bool release (const FileLock& fl, const void* owner) noexcept;
+		if (found != ranges_.end ()) {
+			out.start (found->begin);
+			out.len (found->end == std::numeric_limits <FileSize>::max () ? 0 : found->end - found->begin);
+			out.type (found->level);
+			return true;
+		}
+		return false;
+	}
 
 	bool check_read (const FileSize& begin, const FileSize& end, const void* proxy) const noexcept
 	{
@@ -125,13 +149,15 @@ private:
 
 	typedef std::vector <Entry, UserAllocator <Entry> > Ranges;
 
-	Ranges::iterator get_end (const FileLock& fl, FileSize& end) noexcept;
-	Ranges::iterator lower_bound (const FileSize& end) noexcept;
+	Ranges::iterator lower_bound (FileSize end) noexcept;
 
 	Ranges::const_iterator lower_bound (const FileSize& end) const noexcept
 	{
 		return const_cast <FileLockRanges&> (*this).lower_bound (end);
 	}
+
+	bool unchecked_set (const FileSize& begin, const FileSize& end, Ranges::iterator it_end,
+		const void* owner, LockType level);
 
 private:
 	Ranges ranges_;

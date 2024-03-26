@@ -70,17 +70,17 @@ public:
 			throw_NO_PERMISSION (make_minor_errno (EACCES));
 	}
 
-	void read (const FileLock& rel, const FileSize& pos, uint32_t size, LockType lock, bool nonblock, Bytes& data) const
+	void read (const FileSize& pos, uint32_t size, Bytes& data) const
 	{
 		check_exist ();
 
 		if (!(flags_ & O_WRONLY))
-			driver_.read (pos, size, data);
+			driver_.read (pos, size, data, this);
 		else
 			throw_NO_PERMISSION (make_minor_errno (EBADF));
 	}
 
-	void write (FileSize pos, const Bytes& data, const FileLock& rel, bool sync)
+	void write (FileSize pos, const Bytes& data, bool sync)
 	{
 		check_exist ();
 
@@ -88,7 +88,7 @@ public:
 			if (flags_ & O_APPEND)
 				pos = std::numeric_limits <FileSize>::max ();
 			dirty_ = true;
-			driver_.write (pos, data);
+			driver_.write (pos, data, sync, this);
 		} else
 			throw_NO_PERMISSION (make_minor_errno (EBADF));
 	}
@@ -103,14 +103,16 @@ public:
 		}
 	}
 
-	void lock (const FileLock& rem, const FileLock& add, bool nonblock)
+	LockType lock (const FileLock& fl, LockType tmin, bool wait)
 	{
-		// TODO: Implement
+		check_exist ();
+		return driver_.lock (fl, tmin, wait, this);
 	}
 
 	void get_lock (FileLock& fl) const
 	{
-		throw_NO_IMPLEMENT ();
+		check_exist ();
+		driver_.get_lock (fl, this);
 	}
 
 	uint_fast16_t flags () const noexcept
