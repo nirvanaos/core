@@ -25,6 +25,7 @@
 */
 #include "pch.h"
 #include "FileLockRanges.h"
+#include <algorithm>
 
 namespace Nirvana {
 namespace Core {

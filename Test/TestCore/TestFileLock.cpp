@@ -24,20 +24,20 @@
 *  popov.nirvana@gmail.com
 */
 #include "pch.h"
-#include "../Source/PreallocatedStack.h"
+#include "../Source/FileLockRanges.h"
 
-using namespace Nirvana::Core;
+using Nirvana::Core::FileLockRanges;
 
-namespace TestPreallocatedStack {
+namespace TestFileLock {
 
-class TestPreallocatedStack :
+class TestFileLock :
 	public ::testing::Test
 {
 protected:
-	TestPreallocatedStack ()
+	TestFileLock ()
 	{}
 
-	virtual ~TestPreallocatedStack ()
+	virtual ~TestFileLock ()
 	{}
 
 	// If the constructor and destructor are not enough for setting up
@@ -47,41 +47,28 @@ protected:
 	{
 		// Code here will be called immediately after the constructor (right
 		// before each test).
-		ASSERT_TRUE (Heap::initialize ());
 	}
 
 	virtual void TearDown ()
 	{
 		// Code here will be called immediately after each test (right
 		// before the destructor).
-		Heap::terminate ();
 	}
+
+	static const void* owner (uintptr_t i)
+	{
+		return (const void*)i;
+	}
+
+	static const Nirvana::FileSize FILE_SIZE_MAX = std::numeric_limits <Nirvana::FileSize>::max ();
 };
 
-TEST_F (TestPreallocatedStack, Test)
+TEST_F (TestFileLock, Empty)
 {
-	PreallocatedStack <int, 16, 16> stack;
+	FileLockRanges ranges;
 
-	ASSERT_TRUE (stack.empty ());
-
-	for (int i = 0; i < 100; ++i) {
-		stack.push (i);
-		ASSERT_FALSE (stack.empty ());
-		ASSERT_EQ (i, stack.top ());
-	}
-
-	for (int i = 99; i >= 0; --i) {
-		ASSERT_EQ (i, stack.top ());
-		ASSERT_FALSE (stack.empty ());
-		stack.pop ();
-	}
-}
-
-TEST_F (TestPreallocatedStack, Init)
-{
-	PreallocatedStack <int> stack (1);
-	ASSERT_FALSE (stack.empty ());
-	EXPECT_EQ (stack.top (), 1);
+	EXPECT_TRUE (ranges.check_read (0, FILE_SIZE_MAX, owner (1)));
+	EXPECT_TRUE (ranges.check_write (0, FILE_SIZE_MAX, owner (1)));
 }
 
 }

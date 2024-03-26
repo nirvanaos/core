@@ -31,8 +31,6 @@
 #include <Nirvana/Nirvana.h>
 #include <Nirvana/File.h>
 #include <vector>
-#include <algorithm>
-#include "UserAllocator.h"
 
 namespace Nirvana {
 namespace Core {
@@ -147,7 +145,7 @@ private:
 		}
 	};
 
-	typedef std::vector <Entry, UserAllocator <Entry> > Ranges;
+	typedef std::vector <Entry> Ranges;
 
 	Ranges::iterator lower_bound (FileSize end) noexcept;
 
