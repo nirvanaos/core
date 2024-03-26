@@ -99,7 +99,7 @@ public:
 		while (it != ranges_.begin ()) {
 			--it;
 			if (it->end > begin &&
-				it->level < LockType::LOCK_EXCLUSIVE || it->owner != proxy
+				(it->level < LockType::LOCK_EXCLUSIVE || it->owner != proxy)
 				)
 				return false;
 		}

@@ -145,7 +145,14 @@ const void* FileAccessBuf::get_buffer_read_internal (size_t& cb)
 				Bytes new_buf;
 				uint32_t cb_after = (uint32_t)(new_buf_pos.end - buffer_end);
 				direct ()->read (buffer_end, cb_after, new_buf);
+				if (drop_front) {
+					ptrdiff_t add = new_buf.size () - drop_front;
+					if (add > 0)
+						buffer ().reserve (buffer ().size () + add);
+					buffer ().erase (buffer ().begin (), buffer ().begin () + drop_front);
+				}
 				buffer ().insert (buffer ().end (), new_buf.data (), new_buf.data () + new_buf.size ());
+				buf_pos (new_buf_pos.begin);
 			}
 		}
 	}
