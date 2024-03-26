@@ -111,7 +111,8 @@ public:
 
 	void get_lock (FileLock& fl) const
 	{
-		throw_NO_IMPLEMENT ();
+		check_exist ();
+		driver_.get_lock (fl, this);
 	}
 
 	uint_fast16_t flags () const noexcept

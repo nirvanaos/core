@@ -116,6 +116,8 @@ public:
 
 	static FileSize end_of (const FileLock& fl)
 	{
+		if (fl.start () == std::numeric_limits <FileSize>::max ())
+			throw_BAD_PARAM (make_minor_errno (EOVERFLOW));
 		if (fl.len ())
 			return add_pos (fl.start (), fl.len ());
 		else
@@ -135,8 +137,6 @@ public:
 
 	LockType lock (const FileLock& fl, LockType tmin, bool wait, const void* proxy)
 	{
-		if (fl.start () == std::numeric_limits <FileSize>::max ())
-			throw_BAD_PARAM ();
 		FileSize end = end_of (fl);
 		if (fl.type () == LockType::LOCK_NONE) {
 			if (lock_ranges_.unchecked_set (fl.start (), end, proxy, LockType::LOCK_NONE))
@@ -163,6 +163,15 @@ public:
 			} else if (downgraded)
 				retry_lock ();
 			return ret;
+		}
+	}
+
+	void get_lock (FileLock& fl, const void* proxy) const
+	{
+		LockType level = fl.type ();
+		if (LockType::LOCK_NONE != level) {
+			if (!lock_ranges_.get (fl.start (), end_of (fl), proxy, level, fl))
+				fl.type (LockType::LOCK_NONE);
 		}
 	}
 

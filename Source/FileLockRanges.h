@@ -48,6 +48,40 @@ public:
 		return unchecked_set (begin, end, lower_bound (end), owner, level);
 	}
 
+	bool get (const FileSize& begin, const FileSize& end, const void* owner, LockType level, FileLock& out)
+		const noexcept
+	{
+		assert (begin < end);
+		assert (level > LockType::LOCK_NONE);
+		Ranges::const_iterator found = ranges_.end ();
+		for (auto it = lower_bound (end); ranges_.begin () != it; ) {
+			--it;
+			if (it->end > begin && it->owner != owner) {
+				LockType other_level = it->level;
+				if (other_level >= LockType::LOCK_PENDING) {
+					found = it;
+					break;
+				} else if (other_level > LockType::LOCK_SHARED) {
+					if (level > LockType::LOCK_SHARED) {
+						found = it;
+						break;
+					}
+				} else if (level == LockType::LOCK_EXCLUSIVE) {
+					found = it;
+					break;
+				}
+			}
+		}
+
+		if (found != ranges_.end ()) {
+			out.start (found->begin);
+			out.len (found->end == std::numeric_limits <FileSize>::max () ? 0 : found->end - found->begin);
+			out.type (found->level);
+			return true;
+		}
+		return false;
+	}
+
 	bool check_read (const FileSize& begin, const FileSize& end, const void* proxy) const noexcept
 	{
 		Ranges::const_iterator it = lower_bound (end);
