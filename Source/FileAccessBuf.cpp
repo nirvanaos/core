@@ -111,6 +111,7 @@ const void* FileAccessBuf::get_buffer_read_internal (size_t& cb)
 				direct ()->read (new_buf_pos.begin, cb_read, new_buf);
 				buffer ().swap (new_buf);
 			}
+			buf_pos (new_buf_pos.begin);
 
 		} else {
 			// Extend/shift buffer
