@@ -41,9 +41,9 @@ public:
 	LockType set (const FileSize& begin, const FileSize& end,
 		LockType level_max, LockType level_min, const void* owner, bool& downgraded);
 
-	bool unchecked_set (const FileSize& begin, const FileSize& end, const void* owner, LockType level)
+	bool clear (const FileSize& begin, const FileSize& end, const void* owner)
 	{
-		return unchecked_set (begin, end, lower_bound (end), owner, level);
+		return unchecked_set (begin, end, owner, LockType::LOCK_NONE);
 	}
 
 	bool get (const FileSize& begin, const FileSize& end, const void* owner, LockType level, FileLock& out)
@@ -80,30 +80,42 @@ public:
 		return false;
 	}
 
-	bool check_read (const FileSize& begin, const FileSize& end, const void* proxy) const noexcept
+	bool check_read (const FileSize& begin, const FileSize& end, const void* owner) const noexcept
 	{
 		Ranges::const_iterator it = lower_bound (end);
 		while (it != ranges_.begin ()) {
 			--it;
 			if (it->end > begin &&
-				it->level == LockType::LOCK_EXCLUSIVE && it->owner != proxy
+				it->level == LockType::LOCK_EXCLUSIVE && it->owner != owner
 				)
 				return false;
 		}
 		return true;
 	}
 
-	bool check_write (const FileSize& begin, const FileSize& end, const void* proxy) const noexcept
+	bool check_write (const FileSize& begin, const FileSize& end, const void* owner) const noexcept
 	{
 		Ranges::const_iterator it = lower_bound (end);
 		while (it != ranges_.begin ()) {
 			--it;
 			if (it->end > begin &&
-				(it->level < LockType::LOCK_EXCLUSIVE || it->owner != proxy)
+				(it->level < LockType::LOCK_EXCLUSIVE || it->owner != owner)
 				)
 				return false;
 		}
 		return true;
+	}
+
+	std::vector <FileLock> get_all (const void* owner) const
+	{
+		std::vector <FileLock> ret;
+		for (const Entry& e : ranges_) {
+			if (e.owner == owner) {
+				ret.emplace_back (e.begin, e.end == std::numeric_limits <FileSize>::max ()
+					? 0 : e.end - e.begin, e.level);
+			}
+		}
+		return ret;
 	}
 
 private:
@@ -154,8 +166,7 @@ private:
 		return const_cast <FileLockRanges&> (*this).lower_bound (end);
 	}
 
-	bool unchecked_set (const FileSize& begin, const FileSize& end, Ranges::iterator it_end,
-		const void* owner, LockType level);
+	bool unchecked_set (FileSize begin, FileSize end, const void* owner, LockType level);
 
 private:
 	Ranges ranges_;

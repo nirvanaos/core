@@ -139,7 +139,7 @@ public:
 	{
 		FileSize end = end_of (fl);
 		if (fl.type () == LockType::LOCK_NONE) {
-			if (lock_ranges_.unchecked_set (fl.start (), end, proxy, LockType::LOCK_NONE))
+			if (lock_ranges_.clear (fl.start (), end, proxy))
 				retry_lock ();
 			return LockType::LOCK_NONE;
 		} else {

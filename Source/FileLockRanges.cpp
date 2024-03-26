@@ -42,7 +42,7 @@ LockType FileLockRanges::set (const FileSize& begin, const FileSize& end,
 	LockType level = level_max;
 
 	// Scan other locks
-	LockType cur_min_level = LockType::LOCK_NONE, cur_max_level = LockType::LOCK_NONE;
+	LockType cur_max_level = LockType::LOCK_NONE;
 	for (auto it = it_end; ranges_.begin () != it;) {
 		--it;
 		if (it->end > begin) {
@@ -66,107 +66,93 @@ LockType FileLockRanges::set (const FileSize& begin, const FileSize& end,
 				}
 			} else {
 				LockType own_level = it->level;
-				if (LockType::LOCK_NONE == cur_min_level) {
-					cur_min_level = own_level;
+				if (cur_max_level < own_level)
 					cur_max_level = own_level;
-				} else {
-					if (cur_min_level > own_level)
-						cur_min_level = own_level;
-					if (cur_max_level < own_level)
-						cur_max_level = own_level;
-				}
 			}
 		}
 	}
 
 	// We can set the lock
 
-	if (cur_min_level >= level && cur_max_level <= level_max)
-		return cur_min_level; // Nothing to change
-
-	unchecked_set (begin, end, it_end, owner, level);
+	unchecked_set (begin, end, owner, level);
 
 	downgraded = level < cur_max_level;
 
 	return level;
 }
 
-bool FileLockRanges::unchecked_set (const FileSize& begin, const FileSize& end,
-	Ranges::iterator it_end, const void* owner, LockType level)
+bool FileLockRanges::unchecked_set (FileSize begin, FileSize end, const void* owner, LockType level)
 {
 	assert (begin < end);
+	bool changed = false;
+	bool insert = true;
 
-	if (LockType::LOCK_NONE != level) // Insert at most 2 elements
+	if (LockType::LOCK_NONE != level) // We will insert at most 2 elements
 		ranges_.reserve (ranges_.size () + 2);
 
-	Ranges::iterator it_last = ranges_.end (), it_first = ranges_.end ();
-	bool changed = false;
-	for (auto it = it_end; ranges_.begin () != it;) {
+	Ranges::iterator it_begin = ranges_.end ();
+	Ranges::iterator it_ub = std::upper_bound (ranges_.begin (), ranges_.end (), end, Comp ());
+	for (auto it = it_ub; ranges_.begin () != it;) {
 		--it;
-		if (it->owner == owner && it->end > begin) {
-			if (it->begin <= begin)
-				it_first = it;
-			if (it->end >= end)
-				it_last = it;
-			if (it != it_first && it != it_last) {
-				it = ranges_.erase (it);
-				changed = true;
-			}
-		}
-	}
-	if (it_first != ranges_.end ()) {
-		if (it_last == it_first) {
-			if (it_first->level != level) {
-				if (it_first->begin == begin && it_first->end == end) {
-					if (LockType::LOCK_NONE != level)
-						it_first->level = level;
-					else
-						ranges_.erase (it_first);
-				}
-				it_last = ranges_.emplace (std::upper_bound (it_first + 1, ranges_.end (), end, Comp ()), end, it_last->end, owner, it_last->level);
-				if (LockType::LOCK_NONE != level)
-					ranges_.emplace (std::upper_bound (it_first + 1, it_last, begin, Comp ()), begin, end, owner, level);
-				changed = true;
-			}
-			it_last = ranges_.end ();
-		} else
-			it_first->end = begin;
-	}
-	if (it_last != ranges_.end ()) {
-		assert (it_last->begin > begin);
-		if (LockType::LOCK_NONE != level && (it_last->level == level || it_last->end == end)) {
-			// Extend begin
-			it_last->begin = begin;
-			// Bubble
-			while (it_last != ranges_.begin ()) {
-				auto prev = it_last - 1;
-				if (prev->begin > begin) {
-					std::swap (*prev, *it_last);
-					it_last = prev;
-				} else
-					break;
-			}
-		} else {
-			if (it_last->end > end) {
-				it_last->begin = end;
-				// Bubble
-				for (;;) {
-					auto next = it_last + 1;
-					if (next != ranges_.end () && next->begin < end) {
-						std::swap (*next, *it_last);
-						it_last = next;
-					} else
+		assert (it->begin <= end); // We step left from upper bound
+		if (it->owner == owner) {
+			if (it->end > end) {
+				FileSize tail_end = it->end;
+				LockType tail_level = it->level;
+				if (tail_level == level) {
+					if (it->begin <= begin) {
+						insert = false;
 						break;
+					}
+					--it_ub;
+					it = ranges_.erase (it);
+					end = tail_end;
+					changed = true;
+				} else if (it->begin < end) {
+					--it_ub;
+					it = ranges_.erase (it);
+					ranges_.emplace (std::upper_bound (it, it_ub, end, Comp ()), end, tail_end, owner, tail_level);
+					changed = true;
 				}
-				if (LockType::LOCK_NONE != level)
-					ranges_.emplace (std::upper_bound (ranges_.begin (), it_last, begin, Comp ()), begin, end, owner, level);
-			} else {
-				assert (LockType::LOCK_NONE == level);
-				ranges_.erase (it_last);
-			}
+			} else if (it->end >= begin) {
+				if (it->begin > begin) {
+					--it_ub;
+					it = ranges_.erase (it);
+					changed = true;
+				} else {
+					if (it->begin < begin) {
+						if (it->level == level) {
+							changed |= it->end != end;
+							it->end = end;
+							insert = false;
+						} else {
+							it->end = begin;
+							changed = true;
+						}
+					} else {
+						if (level != LockType::LOCK_NONE) {
+							changed |= it->level != level || it->end != end;
+							it->level = level;
+							it->end = end;
+						} else {
+							--it_ub;
+							it = ranges_.erase (it);
+							changed = true;
+						}
+						insert = false;
+					}
+					break;
+				}
+			} else
+				break;
 		}
+	}
+
+	if (insert && level != LockType::LOCK_NONE) {
+		ranges_.emplace (std::upper_bound (ranges_.begin (), it_ub, begin, Comp ()), begin, end, owner, level);
 		changed = true;
 	}
+
 	return changed;
 }
 

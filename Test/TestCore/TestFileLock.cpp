@@ -27,6 +27,8 @@
 #include "../Source/FileLockRanges.h"
 
 using Nirvana::Core::FileLockRanges;
+using Nirvana::LockType;
+using Nirvana::FileLock;
 
 namespace TestFileLock {
 
@@ -69,6 +71,155 @@ TEST_F (TestFileLock, Empty)
 
 	EXPECT_TRUE (ranges.check_read (0, FILE_SIZE_MAX, owner (1)));
 	EXPECT_TRUE (ranges.check_write (0, FILE_SIZE_MAX, owner (1)));
+}
+
+TEST_F (TestFileLock, Shared)
+{
+	FileLockRanges ranges;
+
+	bool downgraded;
+	ASSERT_EQ (ranges.set (0, FILE_SIZE_MAX, LockType::LOCK_SHARED, LockType::LOCK_SHARED, owner (1),
+		downgraded), LockType::LOCK_SHARED);
+	EXPECT_FALSE (downgraded);
+	ASSERT_EQ (ranges.set (0, FILE_SIZE_MAX, LockType::LOCK_SHARED, LockType::LOCK_SHARED, owner (2),
+		downgraded), LockType::LOCK_SHARED);
+	EXPECT_FALSE (downgraded);
+
+	EXPECT_TRUE (ranges.check_read (0, FILE_SIZE_MAX, owner (1)));
+	EXPECT_TRUE (ranges.check_read (0, FILE_SIZE_MAX, owner (2)));
+	EXPECT_TRUE (ranges.check_read (0, FILE_SIZE_MAX, owner (3)));
+	EXPECT_FALSE (ranges.check_write (0, FILE_SIZE_MAX, owner (1)));
+	EXPECT_FALSE (ranges.check_write (0, FILE_SIZE_MAX, owner (2)));
+	EXPECT_FALSE (ranges.check_write (0, FILE_SIZE_MAX, owner (3)));
+
+	EXPECT_TRUE (ranges.clear (0, FILE_SIZE_MAX, owner (1)));
+	EXPECT_TRUE (ranges.get_all (owner (1)).empty ());
+	EXPECT_TRUE (ranges.clear (0, FILE_SIZE_MAX, owner (2)));
+	EXPECT_TRUE (ranges.get_all (owner (2)).empty ());
+	EXPECT_FALSE (ranges.clear (0, FILE_SIZE_MAX, owner (2)));
+	EXPECT_TRUE (ranges.check_write (0, FILE_SIZE_MAX, owner (1)));
+	EXPECT_TRUE (ranges.check_write (0, FILE_SIZE_MAX, owner (2)));
+	EXPECT_TRUE (ranges.check_write (0, FILE_SIZE_MAX, owner (3)));
+}
+
+TEST_F (TestFileLock, Upgrade)
+{
+	FileLockRanges ranges;
+
+	bool downgraded;
+	ASSERT_EQ (ranges.set (0, FILE_SIZE_MAX, LockType::LOCK_SHARED, LockType::LOCK_SHARED, owner (1),
+		downgraded), LockType::LOCK_SHARED);
+	EXPECT_FALSE (downgraded);
+	ASSERT_EQ (ranges.set (0, FILE_SIZE_MAX, LockType::LOCK_SHARED, LockType::LOCK_SHARED, owner (2),
+		downgraded), LockType::LOCK_SHARED);
+	EXPECT_FALSE (downgraded);
+	ASSERT_EQ (ranges.set (0, FILE_SIZE_MAX, LockType::LOCK_RESERVED, LockType::LOCK_RESERVED, owner (1),
+		downgraded), LockType::LOCK_RESERVED);
+	EXPECT_FALSE (downgraded);
+	ASSERT_EQ (ranges.set (0, FILE_SIZE_MAX, LockType::LOCK_RESERVED, LockType::LOCK_RESERVED, owner (2),
+		downgraded), LockType::LOCK_NONE);
+	EXPECT_FALSE (downgraded);
+
+	EXPECT_EQ (ranges.get_all (owner (1)).size (), 1);
+	EXPECT_EQ (ranges.get_all (owner (2)).size (), 1);
+
+	EXPECT_TRUE (ranges.check_read (0, FILE_SIZE_MAX, owner (1)));
+	EXPECT_TRUE (ranges.check_read (0, FILE_SIZE_MAX, owner (2)));
+	EXPECT_TRUE (ranges.check_read (0, FILE_SIZE_MAX, owner (3)));
+	EXPECT_FALSE (ranges.check_write (0, FILE_SIZE_MAX, owner (1)));
+	EXPECT_FALSE (ranges.check_write (0, FILE_SIZE_MAX, owner (2)));
+	EXPECT_FALSE (ranges.check_write (0, FILE_SIZE_MAX, owner (3)));
+
+	ASSERT_EQ (ranges.set (0, FILE_SIZE_MAX, LockType::LOCK_SHARED, LockType::LOCK_SHARED, owner (1),
+		downgraded), LockType::LOCK_SHARED);
+	EXPECT_TRUE (downgraded);
+	ASSERT_EQ (ranges.set (0, FILE_SIZE_MAX, LockType::LOCK_RESERVED, LockType::LOCK_RESERVED, owner (2),
+		downgraded), LockType::LOCK_RESERVED);
+	EXPECT_FALSE (downgraded);
+
+	EXPECT_EQ (ranges.get_all (owner (1)).size (), 1);
+	EXPECT_EQ (ranges.get_all (owner (2)).size (), 1);
+
+	ASSERT_EQ (ranges.set (0, FILE_SIZE_MAX, LockType::LOCK_EXCLUSIVE, LockType::LOCK_PENDING, owner (2),
+		downgraded), LockType::LOCK_PENDING);
+	EXPECT_FALSE (downgraded);
+	EXPECT_EQ (ranges.get_all (owner (2)).size (), 1);
+
+	EXPECT_TRUE (ranges.clear (0, FILE_SIZE_MAX, owner (1)));
+	EXPECT_TRUE (ranges.get_all (owner (1)).empty ());
+
+	ASSERT_EQ (ranges.set (0, FILE_SIZE_MAX, LockType::LOCK_SHARED, LockType::LOCK_SHARED, owner (1),
+		downgraded), LockType::LOCK_NONE);
+	EXPECT_FALSE (downgraded);
+	EXPECT_TRUE (ranges.get_all (owner (1)).empty ());
+
+	ASSERT_EQ (ranges.set (0, FILE_SIZE_MAX, LockType::LOCK_EXCLUSIVE, LockType::LOCK_PENDING, owner (2),
+		downgraded), LockType::LOCK_EXCLUSIVE);
+	EXPECT_FALSE (downgraded);
+	EXPECT_EQ (ranges.get_all (owner (2)).size (), 1);
+
+	EXPECT_FALSE (ranges.check_read (0, FILE_SIZE_MAX, owner (1)));
+	EXPECT_TRUE (ranges.check_read (0, FILE_SIZE_MAX, owner (2)));
+	EXPECT_FALSE (ranges.check_write (0, FILE_SIZE_MAX, owner (1)));
+	EXPECT_TRUE (ranges.check_write (0, FILE_SIZE_MAX, owner (2)));
+
+	EXPECT_TRUE (ranges.clear (0, FILE_SIZE_MAX, owner (2)));
+	ASSERT_EQ (ranges.set (0, FILE_SIZE_MAX, LockType::LOCK_EXCLUSIVE, LockType::LOCK_PENDING, owner (1),
+		downgraded), LockType::LOCK_EXCLUSIVE);
+	EXPECT_FALSE (downgraded);
+
+	EXPECT_FALSE (ranges.check_read (0, FILE_SIZE_MAX, owner (2)));
+	EXPECT_TRUE (ranges.check_read (0, FILE_SIZE_MAX, owner (1)));
+	EXPECT_FALSE (ranges.check_write (0, FILE_SIZE_MAX, owner (2)));
+	EXPECT_TRUE (ranges.check_write (0, FILE_SIZE_MAX, owner (1)));
+}
+
+TEST_F (TestFileLock, Merge)
+{
+	FileLockRanges ranges;
+
+	bool dg;
+	EXPECT_EQ (ranges.set (2, 7, LockType::LOCK_SHARED, LockType::LOCK_SHARED, owner (1), dg), LockType::LOCK_SHARED);
+	EXPECT_FALSE (dg);
+
+	std::vector <FileLock> locks = ranges.get_all (owner (1));
+	EXPECT_EQ (locks.size (), 1);
+	EXPECT_EQ (locks.front ().start (), 2);
+	EXPECT_EQ (locks.front ().len (), 5);
+	EXPECT_EQ (locks.front ().type (), LockType::LOCK_SHARED);
+
+	EXPECT_EQ (ranges.set (8, 12, LockType::LOCK_SHARED, LockType::LOCK_SHARED, owner (1), dg), LockType::LOCK_SHARED);
+	EXPECT_FALSE (dg);
+	locks = ranges.get_all (owner (1));
+	EXPECT_EQ (locks.size (), 2);
+	EXPECT_EQ (locks.front ().start (), 2);
+	EXPECT_EQ (locks.front ().len (), 5);
+	EXPECT_EQ (locks.back ().start (), 8);
+	EXPECT_EQ (locks.back ().len (), 4);
+
+	EXPECT_EQ (ranges.set (7, 8, LockType::LOCK_SHARED, LockType::LOCK_SHARED, owner (1), dg), LockType::LOCK_SHARED);
+	EXPECT_FALSE (dg);
+	locks = ranges.get_all (owner (1));
+	EXPECT_EQ (locks.size (), 1);
+	EXPECT_EQ (locks.front ().start (), 2);
+	EXPECT_EQ (locks.front ().len (), 10);
+
+	EXPECT_EQ (ranges.set (1, 23, LockType::LOCK_SHARED, LockType::LOCK_SHARED, owner (1), dg), LockType::LOCK_SHARED);
+	EXPECT_FALSE (dg);
+	locks = ranges.get_all (owner (1));
+	EXPECT_EQ (locks.size (), 1);
+	EXPECT_EQ (locks.front ().start (), 1);
+	EXPECT_EQ (locks.front ().len (), 22);
+
+	EXPECT_TRUE (ranges.clear (0, FILE_SIZE_MAX, owner (1)));
+	EXPECT_TRUE (ranges.get_all (owner (1)).empty ());
+
+	EXPECT_EQ (ranges.set (2, 7, LockType::LOCK_SHARED, LockType::LOCK_SHARED, owner (1), dg), LockType::LOCK_SHARED);
+	EXPECT_EQ (ranges.set (7, 10, LockType::LOCK_SHARED, LockType::LOCK_SHARED, owner (1), dg), LockType::LOCK_SHARED);
+	locks = ranges.get_all (owner (1));
+	EXPECT_EQ (locks.size (), 1);
+	EXPECT_EQ (locks.front ().start (), 2);
+	EXPECT_EQ (locks.front ().len (), 8);
 }
 
 }
