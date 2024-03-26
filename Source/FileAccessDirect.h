@@ -133,6 +133,39 @@ public:
 		return Base::flags ();
 	}
 
+	LockType lock (const FileLock& fl, LockType tmin, bool wait, const void* proxy)
+	{
+		if (fl.start () == std::numeric_limits <FileSize>::max ())
+			throw_BAD_PARAM ();
+		FileSize end = end_of (fl);
+		if (fl.type () == LockType::LOCK_NONE) {
+			if (lock_ranges_.unchecked_set (fl.start (), end, proxy, LockType::LOCK_NONE))
+				retry_lock ();
+			return LockType::LOCK_NONE;
+		} else {
+			if (tmin > fl.type ())
+				throw_BAD_PARAM ();
+			LockType level_min;
+			if (wait && fl.type () == LockType::LOCK_EXCLUSIVE && tmin == LockType::LOCK_EXCLUSIVE)
+				level_min = LockType::LOCK_PENDING;
+			else
+				level_min = tmin;
+			bool downgraded;
+			LockType ret = lock_ranges_.set (fl.start (), end_of (fl), fl.type (), level_min, proxy,
+				downgraded);
+			if (ret < tmin) {
+				if (wait) {
+					ret = lock_queue_.enqueue (fl.start (), end, fl.type (), tmin, proxy);
+					if (ret < tmin)
+						throw_NO_MEMORY ();
+				} else
+					ret = LockType::LOCK_NONE;
+			} else if (downgraded)
+				retry_lock ();
+			return ret;
+		}
+	}
+
 private:
 	struct CacheEntry;
 
@@ -231,6 +264,8 @@ private:
 	void set_size (Pos new_size);
 
 	void complete_size_request () noexcept;
+
+	void retry_lock () noexcept;
 
 private:
 	Cache cache_;

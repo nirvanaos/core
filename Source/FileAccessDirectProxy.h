@@ -103,9 +103,10 @@ public:
 		}
 	}
 
-	LockType lock (const FileLock& rel, const FileLock& acq, LockType asq_min, bool wait)
+	LockType lock (const FileLock& fl, LockType tmin, bool wait)
 	{
-		throw_NO_IMPLEMENT ();
+		check_exist ();
+		return driver_.lock (fl, tmin, wait, this);
 	}
 
 	void get_lock (FileLock& fl) const

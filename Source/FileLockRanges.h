@@ -40,11 +40,13 @@ namespace Core {
 class FileLockRanges
 {
 public:
-	LockType acquire (const FileSize& begin, const FileSize& end,
-		LockType level_max, LockType level_min, const void* owner);
+	LockType set (const FileSize& begin, const FileSize& end,
+		LockType level_max, LockType level_min, const void* owner, bool& downgraded);
 
-	LockType replace (const FileSize& begin, const FileSize& end,
-		LockType level_old, LockType level_new, const void* owner);
+	bool unchecked_set (const FileSize& begin, const FileSize& end, const void* owner, LockType level)
+	{
+		return unchecked_set (begin, end, lower_bound (end), owner, level);
+	}
 
 	bool check_read (const FileSize& begin, const FileSize& end, const void* proxy) const noexcept
 	{
@@ -119,6 +121,9 @@ private:
 	{
 		return const_cast <FileLockRanges&> (*this).lower_bound (end);
 	}
+
+	bool unchecked_set (const FileSize& begin, const FileSize& end, Ranges::iterator it_end,
+		const void* owner, LockType level);
 
 private:
 	Ranges ranges_;
