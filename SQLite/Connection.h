@@ -133,7 +133,18 @@ public:
 		SQLite (uri),
 		busy_ (false),
 		savepoint_ (0)
-	{}
+	{
+		sqlite3_filename fn = sqlite3_db_filename (*this, nullptr);
+		if (fn) {
+			const char* journal_mode = sqlite3_uri_parameter (fn, "journal_mode");
+			if (journal_mode) {
+				std::string cmd = "PRAGMA journal_mode=";
+				cmd += journal_mode;
+				cmd += ';';
+				SQLite::exec (cmd.c_str ());
+			}
+		}
+	}
 
 	void clearWarnings ()
 	{
