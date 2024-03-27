@@ -52,7 +52,8 @@ class File : public sqlite3_file
 {
 public:
 	File (Nirvana::AccessDirect::_ref_type fa) noexcept :
-		access_ (std::move (fa))
+		access_ (std::move (fa)),
+		lock_level_ (Nirvana::LockType::LOCK_NONE)
 	{
 		pMethods = &io_methods;
 	}
@@ -172,8 +173,54 @@ public:
 		return SQLITE_OK;
 	}
 
+	int lock (Nirvana::LockType level) noexcept
+	{
+		if (level > lock_level_) {
+			try {
+				Nirvana::LockType level_min = Nirvana::LockType::LOCK_EXCLUSIVE == level
+				? Nirvana::LockType::LOCK_PENDING : level;
+				Nirvana::LockType ret = access_->lock (Nirvana::FileLock (0, 0, level), level_min, false);
+				if (ret != Nirvana::LockType::LOCK_NONE)
+					lock_level_ = ret;
+			} catch (...) {
+				if (level > Nirvana::LockType::LOCK_SHARED)
+					return SQLITE_IOERR_LOCK;
+				else
+					return SQLITE_IOERR_RDLOCK;
+			}
+		}
+		return lock_level_ >= level ? SQLITE_OK : SQLITE_BUSY;
+	}
+
+	int unlock (Nirvana::LockType level) noexcept
+	{
+		if (lock_level_ > level) {
+			try {
+				lock_level_ = access_->lock (Nirvana::FileLock (0, 0, level), level, false);
+			} catch (...) {
+				return SQLITE_IOERR_UNLOCK;
+			}
+		}
+		return SQLITE_OK;
+	}
+
+	int check_reserved_lock (int& ret) const noexcept
+	{
+		if (lock_level_ > Nirvana::LockType::LOCK_SHARED)
+			return true;
+		try {
+			Nirvana::FileLock fl (0, 0, Nirvana::LockType::LOCK_RESERVED);
+			access_->get_lock (fl);
+			ret = fl.type () != Nirvana::LockType::LOCK_NONE;
+		} catch (...) {
+			return SQLITE_IOERR_CHECKRESERVEDLOCK;
+		}
+		return SQLITE_OK;
+	}
+
 private:
 	Nirvana::AccessDirect::_ref_type access_;
+	Nirvana::LockType lock_level_;
 
 	typedef std::unordered_map <sqlite3_int64, NDBC::Blob> Cache;
 	Cache cache_;
@@ -209,20 +256,21 @@ extern "C" int xFileSize (sqlite3_file* f, sqlite3_int64* pSize)
 	return static_cast <File&> (*f).size (*pSize);
 }
 
-extern "C" int xLock (sqlite3_file* f, int)
+extern "C" int xLock (sqlite3_file* f, int level)
 {
-	return SQLITE_OK;
+	assert ((int)Nirvana::LockType::LOCK_SHARED <= level && level <= (int)Nirvana::LockType::LOCK_EXCLUSIVE);
+	return static_cast <File&> (*f).lock ((Nirvana::LockType)level);
 }
 
-extern "C" int xUnlock (sqlite3_file* f, int)
+extern "C" int xUnlock (sqlite3_file* f, int level)
 {
-	return SQLITE_OK;
+	assert ((int)Nirvana::LockType::LOCK_NONE <= level && level <= (int)Nirvana::LockType::LOCK_SHARED);
+	return static_cast <File&> (*f).unlock ((Nirvana::LockType)level);
 }
 
 extern "C" int xCheckReservedLock (sqlite3_file* f, int* pResOut)
 {
-	*pResOut = 0;
-	return SQLITE_OK;
+	return static_cast <File&> (*f).check_reserved_lock (*pResOut);
 }
 
 extern "C" int xSectorSize (sqlite3_file* f)
