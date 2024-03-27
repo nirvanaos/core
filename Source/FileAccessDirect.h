@@ -154,11 +154,9 @@ public:
 			LockType ret = lock_ranges_.set (fl.start (), end_of (fl), fl.type (), level_min, proxy,
 				downgraded);
 			if (ret < tmin) {
-				if (wait) {
+				if (wait)
 					ret = lock_queue_.enqueue (fl.start (), end, fl.type (), tmin, proxy);
-					if (ret < tmin)
-						throw_NO_MEMORY ();
-				} else
+				else
 					ret = LockType::LOCK_NONE;
 			} else if (downgraded)
 				retry_lock ();
@@ -173,6 +171,12 @@ public:
 			if (!lock_ranges_.get (fl.start (), end_of (fl), proxy, level, fl))
 				fl.type (LockType::LOCK_NONE);
 		}
+	}
+
+	void on_delete_proxy (const void* proxy) noexcept
+	{
+		if (lock_ranges_.delete_all (proxy))
+			retry_lock ();
 	}
 
 private:

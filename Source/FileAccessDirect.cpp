@@ -278,9 +278,8 @@ void FileAccessDirect::retry_lock () noexcept
 				it = lock_queue_.dequeue (it, l);
 			else
 				++it;
-		} catch (...) {
-			// Memory
-			it = lock_queue_.dequeue (it, LockType::LOCK_NONE);
+		} catch (const CORBA::SystemException& ex) {
+			it = lock_queue_.dequeue (it, ex.__code ());
 		}
 	}
 }

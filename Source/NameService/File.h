@@ -194,10 +194,12 @@ public:
 		return Port::File::id ();
 	}
 
-	void on_delete_proxy () noexcept
+	void on_delete_proxy (FileAccessDirectProxy* proxy) noexcept
 	{
 		if (!--proxy_cnt_)
 			access_ = nullptr;
+		else
+			access_->on_delete_proxy (proxy);
 	}
 
 	void check_flags (unsigned flags) const;
@@ -228,7 +230,7 @@ inline
 FileAccessDirectProxy::~FileAccessDirectProxy ()
 {
 	if (file_)
-		file_->on_delete_proxy ();
+		file_->on_delete_proxy (this);
 }
 
 inline
@@ -253,7 +255,7 @@ void FileAccessDirectProxy::close ()
 
 	if (flags_ & O_ACCMODE)
 		flush ();
-	file_->on_delete_proxy ();
+	file_->on_delete_proxy (this);
 	file_ = nullptr;
 	deactivate_servant (this);
 }

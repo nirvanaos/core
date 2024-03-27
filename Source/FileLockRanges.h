@@ -106,6 +106,18 @@ public:
 		return true;
 	}
 
+	bool delete_all (const void* owner) noexcept
+	{
+		bool changed = false;
+		for (auto it = ranges_.rbegin (); it != ranges_.rend (); ++it) {
+			if (it->owner == owner) {
+				changed = true;
+				ranges_.erase (it.base ());
+			}
+		}
+		return changed;
+	}
+
 	std::vector <FileLock> get_all (const void* owner) const
 	{
 		std::vector <FileLock> ret;
