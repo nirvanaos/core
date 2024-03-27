@@ -176,50 +176,65 @@ TEST_F (TestFileLock, Upgrade)
 
 TEST_F (TestFileLock, Merge)
 {
-	FileLockRanges ranges;
-
 	bool dg;
-	EXPECT_EQ (ranges.set (2, 7, LockType::LOCK_SHARED, LockType::LOCK_SHARED, owner (1), dg), LockType::LOCK_SHARED);
-	EXPECT_FALSE (dg);
 
-	std::vector <FileLock> locks = ranges.get_all (owner (1));
-	EXPECT_EQ (locks.size (), 1);
-	EXPECT_EQ (locks.front ().start (), 2);
-	EXPECT_EQ (locks.front ().len (), 5);
-	EXPECT_EQ (locks.front ().type (), LockType::LOCK_SHARED);
+	{
+		FileLockRanges ranges;
 
-	EXPECT_EQ (ranges.set (8, 12, LockType::LOCK_SHARED, LockType::LOCK_SHARED, owner (1), dg), LockType::LOCK_SHARED);
-	EXPECT_FALSE (dg);
-	locks = ranges.get_all (owner (1));
-	EXPECT_EQ (locks.size (), 2);
-	EXPECT_EQ (locks.front ().start (), 2);
-	EXPECT_EQ (locks.front ().len (), 5);
-	EXPECT_EQ (locks.back ().start (), 8);
-	EXPECT_EQ (locks.back ().len (), 4);
+		EXPECT_EQ (ranges.set (2, 7, LockType::LOCK_SHARED, LockType::LOCK_SHARED, owner (1), dg), LockType::LOCK_SHARED);
+		EXPECT_FALSE (dg);
 
-	EXPECT_EQ (ranges.set (7, 8, LockType::LOCK_SHARED, LockType::LOCK_SHARED, owner (1), dg), LockType::LOCK_SHARED);
-	EXPECT_FALSE (dg);
-	locks = ranges.get_all (owner (1));
-	EXPECT_EQ (locks.size (), 1);
-	EXPECT_EQ (locks.front ().start (), 2);
-	EXPECT_EQ (locks.front ().len (), 10);
+		std::vector <FileLock> locks = ranges.get_all (owner (1));
+		EXPECT_EQ (locks.size (), 1);
+		EXPECT_EQ (locks.front ().start (), 2);
+		EXPECT_EQ (locks.front ().len (), 5);
+		EXPECT_EQ (locks.front ().type (), LockType::LOCK_SHARED);
 
-	EXPECT_EQ (ranges.set (1, 23, LockType::LOCK_SHARED, LockType::LOCK_SHARED, owner (1), dg), LockType::LOCK_SHARED);
-	EXPECT_FALSE (dg);
-	locks = ranges.get_all (owner (1));
-	EXPECT_EQ (locks.size (), 1);
-	EXPECT_EQ (locks.front ().start (), 1);
-	EXPECT_EQ (locks.front ().len (), 22);
+		EXPECT_EQ (ranges.set (8, 12, LockType::LOCK_SHARED, LockType::LOCK_SHARED, owner (1), dg), LockType::LOCK_SHARED);
+		EXPECT_FALSE (dg);
+		locks = ranges.get_all (owner (1));
+		EXPECT_EQ (locks.size (), 2);
+		EXPECT_EQ (locks.front ().start (), 2);
+		EXPECT_EQ (locks.front ().len (), 5);
+		EXPECT_EQ (locks.back ().start (), 8);
+		EXPECT_EQ (locks.back ().len (), 4);
 
-	EXPECT_TRUE (ranges.clear (0, FILE_SIZE_MAX, owner (1)));
-	EXPECT_TRUE (ranges.get_all (owner (1)).empty ());
+		EXPECT_EQ (ranges.set (7, 8, LockType::LOCK_SHARED, LockType::LOCK_SHARED, owner (1), dg), LockType::LOCK_SHARED);
+		EXPECT_FALSE (dg);
+		locks = ranges.get_all (owner (1));
+		EXPECT_EQ (locks.size (), 1);
+		EXPECT_EQ (locks.front ().start (), 2);
+		EXPECT_EQ (locks.front ().len (), 10);
 
-	EXPECT_EQ (ranges.set (2, 7, LockType::LOCK_SHARED, LockType::LOCK_SHARED, owner (1), dg), LockType::LOCK_SHARED);
-	EXPECT_EQ (ranges.set (7, 10, LockType::LOCK_SHARED, LockType::LOCK_SHARED, owner (1), dg), LockType::LOCK_SHARED);
-	locks = ranges.get_all (owner (1));
-	EXPECT_EQ (locks.size (), 1);
-	EXPECT_EQ (locks.front ().start (), 2);
-	EXPECT_EQ (locks.front ().len (), 8);
+		EXPECT_EQ (ranges.set (1, 23, LockType::LOCK_SHARED, LockType::LOCK_SHARED, owner (1), dg), LockType::LOCK_SHARED);
+		EXPECT_FALSE (dg);
+		locks = ranges.get_all (owner (1));
+		EXPECT_EQ (locks.size (), 1);
+		EXPECT_EQ (locks.front ().start (), 1);
+		EXPECT_EQ (locks.front ().len (), 22);
+	}
+
+	{
+		FileLockRanges ranges;
+
+		EXPECT_EQ (ranges.set (2, 7, LockType::LOCK_SHARED, LockType::LOCK_SHARED, owner (1), dg), LockType::LOCK_SHARED);
+		EXPECT_EQ (ranges.set (7, 10, LockType::LOCK_SHARED, LockType::LOCK_SHARED, owner (1), dg), LockType::LOCK_SHARED);
+		std::vector <FileLock> locks = ranges.get_all (owner (1));
+		EXPECT_EQ (locks.size (), 1);
+		EXPECT_EQ (locks.front ().start (), 2);
+		EXPECT_EQ (locks.front ().len (), 8);
+	}
+
+	{
+		FileLockRanges ranges;
+
+		EXPECT_EQ (ranges.set (7, 10, LockType::LOCK_SHARED, LockType::LOCK_SHARED, owner (1), dg), LockType::LOCK_SHARED);
+		EXPECT_EQ (ranges.set (2, 7, LockType::LOCK_SHARED, LockType::LOCK_SHARED, owner (1), dg), LockType::LOCK_SHARED);
+		std::vector <FileLock> locks = ranges.get_all (owner (1));
+		EXPECT_EQ (locks.size (), 1);
+		EXPECT_EQ (locks.front ().start (), 2);
+		EXPECT_EQ (locks.front ().len (), 8);
+	}
 }
 
 }
