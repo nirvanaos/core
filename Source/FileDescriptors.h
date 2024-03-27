@@ -61,7 +61,7 @@ public:
 		return context_for_fd ().seek (ifd, off, method);
 	}
 
-	static unsigned fcntl (unsigned ifd, int cmd, unsigned arg)
+	static unsigned fcntl (unsigned ifd, int cmd, uintptr_t arg)
 	{
 		unsigned ret = 0;
 		FileDescriptorsContext& data = context_for_fd ();

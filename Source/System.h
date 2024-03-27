@@ -171,7 +171,7 @@ public:
 		return Core::FileDescriptors::seek (fd, offset, whence);
 	}
 
-	static int_fast16_t fcntl (unsigned fd, int_fast16_t cmd, uint_fast16_t arg)
+	static int_fast16_t fcntl (unsigned fd, int_fast16_t cmd, uintptr_t arg)
 	{
 		return Core::FileDescriptors::fcntl (fd, cmd, arg);
 	}
