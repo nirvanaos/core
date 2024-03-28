@@ -53,14 +53,19 @@ public:
 	void wait ();
 
 	/// Tests event state without wait.
-/// \returns 'true' if object is already in the signalled state.
+	/// \returns 'true' if object is already in the signalled state.
 	bool signalled () const noexcept
 	{
 		return signalled_;
 	}
 
 	/// Sets object into the signalled state.
+	/// Resume all waiting execution domains.
 	void signal () noexcept;
+
+	/// Sets object into the signalled state.
+	/// Resume all waiting execution domains with exception.
+	void signal (const CORBA::Exception& ex) noexcept;
 
 	/// Reset object into the non-signalled state.
 	void reset () noexcept

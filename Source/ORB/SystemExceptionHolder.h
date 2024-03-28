@@ -36,7 +36,10 @@ namespace Core {
 class SystemExceptionHolder
 {
 public:
-	SystemExceptionHolder ();
+	SystemExceptionHolder () noexcept
+	{
+		reset ();
+	}
 
 	void set_exception (const Exception& ex) noexcept;
 
@@ -46,6 +49,8 @@ public:
 	}
 
 	void check () const;
+
+	void reset () noexcept;
 
 private:
 	SystemException::Code ex_code_;

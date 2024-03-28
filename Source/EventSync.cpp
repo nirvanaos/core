@@ -41,27 +41,47 @@ EventSync::EventSync (bool signalled) :
 void EventSync::wait ()
 {
 	if (!signalled_) {
+		
 		ExecDomain& ed = ExecDomain::current ();
-		static_cast <StackElem&> (ed).next = wait_list_;
-		wait_list_ = &ed;
+		
+		ExecDomain* next = wait_list_;
+		ExecDomain** prev = &wait_list_;
+
+		while (next && next->deadline () < ed.deadline ()) {
+			prev = reinterpret_cast <ExecDomain**> (&static_cast <StackElem&> (*next).next);
+			next = *prev;
+		}
+		static_cast <StackElem&> (ed).next = next;
+		*prev = &ed;
+
 		try {
-			ed.suspend ();
+			ed.suspend_prepare ();
 		} catch (...) {
-			wait_list_ = reinterpret_cast <ExecDomain*> (static_cast <StackElem&> (ed).next);
+			*prev = next;
 			throw;
 		}
+
+		ed.suspend ();
 	}
 }
 
 void EventSync::signal () noexcept
 {
-	// TODO: Can cause priority inversion.
-	// We should sort released ED by deadline.
 	assert (!signalled_);
 	signalled_ = true;
 	while (ExecDomain* ed = wait_list_) {
 		wait_list_ = reinterpret_cast <ExecDomain*> (static_cast <StackElem&> (*ed).next);
 		ed->resume ();
+	}
+}
+
+void EventSync::signal (const CORBA::Exception& ex) noexcept
+{
+	assert (!signalled_);
+	signalled_ = true;
+	while (ExecDomain* ed = wait_list_) {
+		wait_list_ = reinterpret_cast <ExecDomain*> (static_cast <StackElem&> (*ed).next);
+		ed->resume (ex);
 	}
 }
 

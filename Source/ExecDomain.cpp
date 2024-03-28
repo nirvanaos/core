@@ -190,6 +190,7 @@ void ExecDomain::cleanup () noexcept
 
 #ifndef NDEBUG
 	dbg_mem_context_stack_size_ = 0;
+	dbg_suspend_prepared_ = false;
 #endif
 
 	ret_qnodes_clear ();
@@ -207,6 +208,8 @@ void ExecDomain::cleanup () noexcept
 	std::fill_n (tls_, CoreTLS::CORE_TLS_COUNT, nullptr);
 
 	impersonation_context_.clear ();
+
+	resume_exception_.reset ();
 
 	ExecContext::run_in_neutral_context (deleter_);
 }
@@ -410,6 +413,7 @@ void ExecDomain::Schedule::run ()
 void ExecDomain::suspend_prepare (SyncContext* resume_context)
 {
 	assert (Thread::current ().exec_domain () == this);
+	assert (!dbg_suspend_prepared_);
 	SyncDomain* sync_domain = sync_context_->sync_domain ();
 	if (sync_domain) {
 		if (!resume_context)
@@ -418,6 +422,35 @@ void ExecDomain::suspend_prepare (SyncContext* resume_context)
 	}
 	if (resume_context)
 		sync_context_ = resume_context;
+
+#ifndef NDEBUG
+	dbg_suspend_prepared_ = true;
+#endif
+}
+
+void ExecDomain::suspend_prepared () noexcept
+{
+#ifndef NDEBUG
+	assert (Thread::current ().exec_domain () == this);
+	assert (&ExecContext::current () == &Thread::current ().neutral_context ());
+	assert (dbg_suspend_prepared_);
+	dbg_suspend_prepared_ = false;
+#endif
+
+	Thread::current ().yield ();
+	resume_exception_.check ();
+}
+
+void ExecDomain::resume () noexcept
+{
+	assert (ExecContext::current_ptr () != this);
+	assert (sync_context_);
+
+	// Hold reference to sync_context_ to avoid it's destruction out of context.
+	Ref <SyncContext> tmp (sync_context_);
+
+	// schedule with ret = true does not throw exceptions
+	schedule (tmp, true);
 }
 
 bool ExecDomain::reschedule ()
@@ -426,6 +459,7 @@ bool ExecDomain::reschedule ()
 	ExecDomain* ed = thr.exec_domain ();
 	assert (ed);
 	if (&thr != ed->background_worker_) {
+		ed->suspend_prepare ();
 		ExecContext::run_in_neutral_context (reschedule_);
 		return true;
 	}
@@ -434,40 +468,20 @@ bool ExecDomain::reschedule ()
 
 void ExecDomain::Reschedule::run ()
 {
-	ExecDomain* ed = Thread::current ().exec_domain ();
-	assert (ed);
-	try {
-		ed->suspend_prepare (nullptr);
-		ed->suspend_prepared ();
-	} catch (...) {
-		return;
-	}
-	ed->resume ();
+	ExecDomain& ed = ExecDomain::current ();
+	ed.suspend_prepared ();
+	ed.resume ();
 }
 
-void ExecDomain::suspend (SyncContext* resume_context)
+void ExecDomain::suspend ()
 {
-	suspend_.resume_context_ = resume_context;
+	assert (dbg_suspend_prepared ());
 	ExecContext::run_in_neutral_context (suspend_);
-	suspend_.resume_context_ = nullptr;
-	// Handle possible exceptions
-	if (CORBA::SystemException::EC_NO_EXCEPTION != suspend_.exception_) {
-		CORBA::SystemException::Code exc = suspend_.exception_;
-		suspend_.exception_ = CORBA::SystemException::EC_NO_EXCEPTION;
-		CORBA::SystemException::_raise_by_code (exc);
-	}
 }
 
 void ExecDomain::Suspend::run ()
 {
-	ExecDomain* ed = Thread::current ().exec_domain ();
-	assert (ed);
-	try {
-		ed->suspend_prepare (resume_context_);
-		ed->suspend_prepared ();
-	} catch (const CORBA::SystemException& ex) {
-		exception_ = ex.__code ();
-	}
+	ExecDomain::current ().suspend_prepared ();
 }
 
 }

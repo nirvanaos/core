@@ -36,6 +36,7 @@
 #include "ThreadBackground.h"
 #include "unrecoverable_error.h"
 #include "Security.h"
+#include "ORB/SystemExceptionHolder.h"
 #include <limits>
 #include <utility>
 #include <signal.h>
@@ -170,28 +171,30 @@ public:
 	///        as current.
 	void schedule_return (SyncContext& target, bool no_reschedule = false) noexcept;
 
-	/// Suspend execution
+	/// Prepare for suspend
 	/// 
 	/// \param resume_context Context where to resume or nullptr for current context.
-	void suspend (SyncContext* resume_context = nullptr);
-
+	/// 
 	void suspend_prepare (SyncContext* resume_context = nullptr);
 
-	void suspend_prepared () noexcept
-	{
-		assert (Thread::current ().exec_domain () == this);
-		assert (&ExecContext::current () == &Thread::current ().neutral_context ());
-		Thread::current ().yield ();
-	}
+	/// Suspend execution.
+	/// 
+	/// Must be called in the neutral context after successfull call to suspend_prepare ()
+	/// 
+	void suspend_prepared () noexcept;
 
-	/// Resume suspended domain
-	void resume () noexcept
+	/// Suspend execution.
+	/// Call suspend_prepared () in the neutral context.
+	void suspend ();
+
+	/// Resume suspended execution
+	void resume () noexcept;
+
+	/// Resume suspended execution with system exception
+	void resume (const CORBA::Exception& ex) noexcept
 	{
-		assert (ExecContext::current_ptr () != this);
-		assert (sync_context_);
-		// schedule with ret = true does not throw exceptions
-		Ref <SyncContext> tmp (sync_context_);
-		schedule (tmp, true);
+		resume_exception_.set_exception (ex);
+		resume ();
 	}
 
 	/// Reschedule
@@ -335,8 +338,19 @@ public:
 	}
 
 #ifndef NDEBUG
-	size_t dbg_mem_context_stack_size_;
+
+	size_t dbg_mem_context_stack_size () const noexcept
+	{
+		return dbg_mem_context_stack_size_;
+	}
+
+	bool dbg_suspend_prepared () const noexcept
+	{
+		return dbg_suspend_prepared_;
+	}
+
 #endif
+
 	enum class RestrictedMode
 	{
 		NO_RESTRICTIONS,
@@ -410,14 +424,15 @@ public:
 private:
 	ExecDomain () :
 		ExecContext (false),
-#ifndef NDEBUG
-		dbg_mem_context_stack_size_ (0),
-#endif
 		ref_cnt_ (1),
 		ret_qnodes_ (nullptr),
 		mem_context_ (nullptr),
 		scheduler_item_created_ (false),
 		restricted_mode_ (RestrictedMode::NO_RESTRICTIONS)
+#ifndef NDEBUG
+		, dbg_mem_context_stack_size_ (0)
+		, dbg_suspend_prepared_ (false)
+#endif
 	{
 		std::fill_n (tls_, CoreTLS::CORE_TLS_COUNT, nullptr);
 	}
@@ -539,14 +554,6 @@ private:
 
 	class Suspend : public Runnable
 	{
-	public:
-		Suspend () :
-			exception_ (CORBA::SystemException::EC_NO_EXCEPTION)
-		{}
-
-		Ref <SyncContext> resume_context_;
-		CORBA::SystemException::Code exception_;
-
 	private:
 		virtual void run ();
 	};
@@ -572,6 +579,13 @@ private:
 	Security::Context impersonation_context_;
 
 	void* tls_ [CORE_TLS_COUNT];
+
+	CORBA::Core::SystemExceptionHolder resume_exception_;
+
+#ifndef NDEBUG
+	size_t dbg_mem_context_stack_size_;
+	bool dbg_suspend_prepared_;
+#endif
 
 	typename std::aligned_storage <MAX_RUNNABLE_SIZE>::type runnable_space_;
 

@@ -53,8 +53,7 @@ public:
 			deadline_ (ExecDomain::current ().deadline ()),
 			owner_ (owner),
 			level_max_ (level_max),
-			level_min_ (level_min),
-			exception_ (CORBA::SystemException::EC_NO_EXCEPTION)
+			level_min_ (level_min)
 		{}
 
 		const FileSize& begin () const noexcept
@@ -89,12 +88,14 @@ public:
 
 		LockType wait ()
 		{
-			event_.wait ();
+			try {
+				event_.wait ();
+			} catch (...) {
+				delete this;
+				throw;
+			}
 			LockType ret = level_max_;
-			CORBA::SystemException::Code exc = exception_;
 			delete this;
-			if (CORBA::SystemException::EC_NO_EXCEPTION != exc)
-				CORBA::SystemException::_raise_by_code (exc);
 			return ret;
 		}
 
@@ -104,10 +105,9 @@ public:
 			event_.signal ();
 		}
 
-		void signal (CORBA::SystemException::Code exc) noexcept
+		void signal (const CORBA::Exception& exc) noexcept
 		{
-			exception_ = exc;
-			event_.signal ();
+			event_.signal (exc);
 		}
 
 	private:
@@ -118,7 +118,6 @@ public:
 		EventSync event_;
 		LockType level_max_;
 		LockType level_min_;
-		CORBA::SystemException::Code exception_;
 	};
 
 	typedef SimpleList <Entry>::iterator iterator;
@@ -158,7 +157,7 @@ public:
 		return next;
 	}
 
-	iterator dequeue (iterator it, CORBA::SystemException::Code exc) noexcept
+	iterator dequeue (iterator it, const CORBA::Exception& exc) noexcept
 	{
 		iterator next = it->next ();
 		list_.remove (it);
@@ -173,8 +172,9 @@ public:
 
 	~FileLockQueue ()
 	{
+		CORBA::OBJECT_NOT_EXIST exc;
 		while (!list_.empty ()) {
-			dequeue (list_.begin (), CORBA::SystemException::EC_OBJECT_NOT_EXIST);
+			dequeue (list_.begin (), exc);
 		}
 	}
 

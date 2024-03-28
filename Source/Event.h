@@ -59,7 +59,12 @@ public:
 	}
 
 	/// Sets object into the signalled state.
+	/// Resume all waiting execution domains.
 	void signal () noexcept;
+
+	/// Sets object into the signalled state.
+	/// Resume all waiting execution domains with exception.
+	void signal (const CORBA::Exception& ex) noexcept;
 
 	/// Reset object into the non-signalled state.
 	void reset () noexcept

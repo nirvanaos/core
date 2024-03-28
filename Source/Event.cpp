@@ -56,12 +56,19 @@ void Event::WaitOp::run ()
 
 void Event::signal () noexcept
 {
-	// TODO: Can cause priority inversion.
-	// We should sort released ED by deadline.
 	assert (!signalled_);
 	signalled_ = true;
 	while (ExecDomain* ed = pop ()) {
 		ed->resume ();
+	}
+}
+
+void Event::signal (const CORBA::Exception& ex) noexcept
+{
+	assert (!signalled_);
+	signalled_ = true;
+	while (ExecDomain* ed = pop ()) {
+		ed->resume (ex);
 	}
 }
 

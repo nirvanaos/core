@@ -34,7 +34,7 @@ Synchronized::Synchronized (SyncContext& target, Heap* heap) :
 	exec_domain_ (ExecDomain::current ()),
 	call_context_ (&exec_domain_.sync_context ())
 #ifndef NDEBUG
-	, dbg_ed_mem_stack_size_ (exec_domain_.dbg_mem_context_stack_size_)
+	, dbg_ed_mem_stack_size_ (exec_domain_.dbg_mem_context_stack_size ())
 #endif
 {
 	// Target can not be legacy thread
@@ -47,7 +47,7 @@ Synchronized::Synchronized (SyncContext& target, Ref <MemContext>&& mem_context)
 	exec_domain_ (ExecDomain::current ()),
 	call_context_ (&exec_domain_.sync_context ())
 #ifndef NDEBUG
-	, dbg_ed_mem_stack_size_ (exec_domain_.dbg_mem_context_stack_size_)
+	, dbg_ed_mem_stack_size_ (exec_domain_.dbg_mem_context_stack_size ())
 #endif
 {
 	// We must not pass current sync domain memory context except for the core contexts.
@@ -65,18 +65,18 @@ Synchronized::~Synchronized ()
 	if (call_context_) // If no exception and no suspend_and_return ()
 		exec_domain_.schedule_return (*call_context_);
 #ifndef NDEBUG
-	assert (dbg_ed_mem_stack_size_ == exec_domain_.dbg_mem_context_stack_size_);
+	assert (dbg_ed_mem_stack_size_ == exec_domain_.dbg_mem_context_stack_size ());
 #endif
 }
 
-void Synchronized::suspend_and_return ()
+void Synchronized::prepare_suspend_and_return ()
 {
 	assert (call_context_);
 	Ref <SyncContext> sync_context = std::move (call_context_);
 	Ref <MemContext> mem_context = exec_domain_.mem_context_ptr ();
 	exec_domain_.mem_context_pop ();
 	try {
-		exec_domain_.suspend (sync_context);
+		exec_domain_.suspend_prepare (sync_context);
 	} catch (...) {
 		call_context_ = std::move (sync_context);
 		exec_domain_.mem_context_push (std::move (mem_context));

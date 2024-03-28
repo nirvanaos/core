@@ -41,6 +41,7 @@
 #include "HashOctetSeq.h"
 #include "ReferenceLocal.h"
 #include "RequestEvent.h"
+#include "SystemExceptionHolder.h"
 #include <array>
 
 namespace CORBA {
@@ -162,8 +163,7 @@ public:
 		DGC_RefKey (const IOP::ObjectKey& object_key) :
 			IOP::ObjectKey (object_key),
 			reference_cnt_ (1),
-			added_ (false),
-			exception_code_ (SystemException::EC_NO_EXCEPTION)
+			added_ (false)
 		{}
 
 		// Add remote reference with this key
@@ -216,10 +216,8 @@ public:
 		{
 			assert (request_);
 			request_ = nullptr;
-			if (!added_) {
-				exception_code_ = ex.__code ();
-				exception_data_ = ex._data ();
-			}
+			if (!added_)
+				exception_.set_exception (ex);
 		}
 
 		DGC_Request* request () const noexcept
@@ -229,23 +227,20 @@ public:
 
 		void request (DGC_Request& rq) noexcept
 		{
-			exception_code_ = SystemException::EC_NO_EXCEPTION;
+			exception_.reset ();
 			request_ = &static_cast <DGC_RequestImpl&> (rq);
 		}
 
 		void check ()
 		{
-			if (SystemException::EC_NO_EXCEPTION != exception_code_)
-				SystemException::_raise_by_code (exception_code_, exception_data_.minor,
-					exception_data_.completed);
+			exception_.check ();
 		}
 
 	private:
 		unsigned reference_cnt_;
 		bool added_;
 		DGC_RequestRef request_;
-		SystemException::Code exception_code_;
-		SystemException::_Data exception_data_;
+		SystemExceptionHolder exception_;
 	};
 
 	DGC_RefKey* on_DGC_reference_unmarshal (const IOP::ObjectKey& object_key)

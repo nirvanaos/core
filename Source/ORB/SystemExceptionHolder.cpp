@@ -29,10 +29,12 @@
 namespace CORBA {
 namespace Core {
 
-SystemExceptionHolder::SystemExceptionHolder () :
-	ex_code_ (Exception::EC_NO_EXCEPTION),
-	ex_data_ {0, CompletionStatus::COMPLETED_NO}
-{}
+void SystemExceptionHolder::reset () noexcept
+{
+	ex_code_ = Exception::EC_NO_EXCEPTION;
+	ex_data_.minor = 0;
+	ex_data_.completed = CompletionStatus::COMPLETED_NO;
+}
 
 void SystemExceptionHolder::set_exception (const Exception& ex) noexcept
 {
@@ -49,7 +51,6 @@ void SystemExceptionHolder::check () const
 	if (ex_code_ != Exception::EC_NO_EXCEPTION)
 		SystemException::_raise_by_code (ex_code_, ex_data_.minor, ex_data_.completed);
 }
-
 
 }
 }

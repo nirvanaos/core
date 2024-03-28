@@ -49,7 +49,7 @@ bool EventSyncTimeout::wait (TimeBase::TimeT timeout, Synchronized* frame)
 
 	volatile bool result = false;
 
-	ExecDomain& cur_ed = ExecDomain::current ();
+	ExecDomain& cur_ed = frame ? frame->exec_domain () : ExecDomain::current ();
 
 	ListEntry entry{ &cur_ed, std::numeric_limits <TimeBase::TimeT>::max (), &result };
 	if (timeout != std::numeric_limits <TimeBase::TimeT>::max ()) {
@@ -68,13 +68,15 @@ bool EventSyncTimeout::wait (TimeBase::TimeT timeout, Synchronized* frame)
 	list_.push_front (entry);
 	try {
 		if (frame)
-			frame->suspend_and_return ();
+			frame->prepare_suspend_and_return ();
 		else
-			cur_ed.suspend ();
+			cur_ed.suspend_prepare ();
 	} catch (...) {
 		list_.pop_front ();
 		throw;
 	}
+
+	cur_ed.suspend ();
 
 	return result;
 }

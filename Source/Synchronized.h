@@ -56,9 +56,10 @@ public:
 		return exec_domain_;
 	}
 
-	/// Suspend execution.
-	/// On resume, return to the caller synchronization context.
-	void suspend_and_return ();
+	/// Prepare to suspend execution.
+	/// exec_domain ().suspend () must be called immediately after successfull call.
+	/// On resume, esecution will return to the caller synchronization context.
+	void prepare_suspend_and_return ();
 
 	/// Return to the caller synchronization context.
 	/// Skip reschedule if possible.
