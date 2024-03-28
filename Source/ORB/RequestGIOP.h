@@ -104,7 +104,7 @@ public:
 	/// \param size  Data size.
 	/// \param data Pointer to the data buffer.
 	/// \returns `true` if the byte order must be swapped after unmarshaling.
-	virtual bool unmarshal (size_t align, size_t size, void* data);
+	bool unmarshal (size_t align, size_t size, void* data);
 
 	/// Marshal CDR sequence or array.
 	/// 
@@ -151,7 +151,7 @@ public:
 	///              
 	/// \returns `true` if the byte order must be swapped after unmarshaling.
 	/// 
-	virtual bool unmarshal_seq (size_t align, size_t element_size, size_t CDR_element_size,
+	bool unmarshal_seq (size_t align, size_t element_size, size_t CDR_element_size,
 		size_t& element_count, void*& data, size_t& allocated_size);
 
 	///@}
@@ -173,7 +173,7 @@ public:
 	/// Get unmarshaling sequence size.
 	/// 
 	/// \returns The sequence size.
-	virtual size_t unmarshal_seq_begin ()
+	size_t unmarshal_seq_begin ()
 	{
 		return stream_in_->read_size ();
 	}
@@ -189,7 +189,7 @@ public:
 			code_set_conv_->marshal_string (s, move, *stream_out_);
 	}
 
-	virtual void unmarshal_string (IDL::String& s)
+	void unmarshal_string (IDL::String& s)
 	{
 		code_set_conv_->unmarshal_string (*stream_in_, s);
 	}
@@ -200,7 +200,7 @@ public:
 			code_set_conv_w_->marshal_char (count, data, *stream_out_);
 	}
 
-	virtual void unmarshal_wchar (size_t count, WChar* data)
+	void unmarshal_wchar (size_t count, WChar* data)
 	{
 		code_set_conv_w_->unmarshal_char (*stream_in_, count, data);
 	}
@@ -211,7 +211,7 @@ public:
 			code_set_conv_w_->marshal_string (s, move, *stream_out_);
 	}
 
-	virtual void unmarshal_wstring (IDL::WString& s)
+	void unmarshal_wstring (IDL::WString& s)
 	{
 		code_set_conv_w_->unmarshal_string (*stream_in_, s);
 	}
@@ -222,7 +222,7 @@ public:
 			code_set_conv_w_->marshal_char_seq (s, move, *stream_out_);
 	}
 
-	virtual void unmarshal_wchar_seq (WCharSeq& s)
+	void unmarshal_wchar_seq (WCharSeq& s)
 	{
 		code_set_conv_w_->unmarshal_char_seq (*stream_in_, s);
 	}
@@ -250,7 +250,7 @@ public:
 	/// \param rep_id The interface repository id.
 	/// \param [out] itf The interface.
 	/// 
-	virtual void unmarshal_interface (const IDL::String& interface_id, Internal::Interface::_ref_type& itf);
+	void unmarshal_interface (const IDL::String& interface_id, Internal::Interface::_ref_type& itf);
 
 	/// Marshal TypeCode.
 	/// 
@@ -267,7 +267,7 @@ public:
 	/// Unmarshal TypeCode.
 	/// 
 	/// \param [out] TypeCode.
-	virtual void unmarshal_type_code (TypeCode::_ref_type& tc);
+	void unmarshal_type_code (TypeCode::_ref_type& tc);
 
 	/// Marshal value type.
 	/// 
@@ -293,7 +293,7 @@ public:
 	/// \param rep_id The value type repository id.
 	/// \param [out] val The value interface.
 	/// 
-	virtual void unmarshal_value (const IDL::String& interface_id, Internal::Interface::_ref_type& val);
+	void unmarshal_value (const IDL::String& interface_id, Internal::Interface::_ref_type& val);
 
 	/// Marshal abstract interface.
 	/// 
@@ -333,7 +333,7 @@ public:
 	/// \param rep_id The interface repository id.
 	/// \param [out] itf The nterface.
 	/// 
-	virtual void unmarshal_abstract (const IDL::String& interface_id, Internal::Interface::_ref_type& itf);
+	void unmarshal_abstract (const IDL::String& interface_id, Internal::Interface::_ref_type& itf);
 
 	///@}
 

@@ -78,8 +78,6 @@ RequestOut::RequestOut (unsigned response_flags, Domain& target_domain,
 	system_exception_data_{ 0, COMPLETED_NO }
 {
 	SyncContext& sc = SyncContext::current ();
-	if ((metadata.flags & Operation::FLAG_OUT_CPLX) && !sc.is_free_sync_context ())
-		response_flags_ |= FLAG_PREUNMARSHAL;
 
 	ExecDomain& ed = ExecDomain::current ();
 	if (response_flags & RESPONSE_EXPECTED)
@@ -160,18 +158,6 @@ void RequestOut::set_reply (unsigned status, IOP::ServiceContextList&& context,
 				break;
 			}
 			stream_in_ = std::move (stream);
-			if (FLAG_PREUNMARSHAL & response_flags_) {
-				// Preunmarshal data.
-				ExecDomain& ed = ExecDomain::current ();
-				ed.deadline (deadline_);
-				// Memory context must be set by caller.
-				assert (ed.mem_context_ptr () == &memory ());
-				servant_reference <RequestLocalRoot> pre = servant_reference <RequestLocalRoot>::
-					create <RequestLocalImpl <RequestLocalRoot> > (&memory ().heap (), 3);
-				remarshal_output (metadata_, _get_ptr (), pre->_get_ptr ());
-				pre->invoke (); // Rewind to begin
-				preunmarshaled_ = std::move (pre);
-			}
 
 			finalize ();
 			break;
@@ -186,103 +172,6 @@ void RequestOut::set_reply (unsigned status, IOP::ServiceContextList&& context,
 		default:
 			throw UNKNOWN (); // Unexpected reply
 	}
-}
-
-bool RequestOut::unmarshal (size_t align, size_t size, void* data)
-{
-	if (preunmarshaled_)
-		return preunmarshaled_->unmarshal (align, size, data);
-	else
-		return RequestGIOP::unmarshal (align, size, data);
-}
-
-bool RequestOut::unmarshal_seq (size_t align, size_t element_size, size_t CDR_element_size,
-	size_t& element_count, void*& data, size_t& allocated_size)
-{
-	if (preunmarshaled_)
-		return preunmarshaled_->unmarshal_seq (align, element_size, CDR_element_size, element_count, data, allocated_size);
-	else
-		return RequestGIOP::unmarshal_seq (align, element_size, CDR_element_size, element_count, data, allocated_size);
-}
-
-size_t RequestOut::unmarshal_seq_begin ()
-{
-	if (preunmarshaled_)
-		return preunmarshaled_->unmarshal_seq_begin ();
-	else
-		return RequestGIOP::unmarshal_seq_begin ();
-}
-
-void RequestOut::unmarshal_string (IDL::String& s)
-{
-	if (preunmarshaled_)
-		preunmarshaled_->unmarshal_string (s);
-	else
-		RequestGIOP::unmarshal_string (s);
-}
-
-void RequestOut::unmarshal_wchar (size_t count, WChar* data)
-{
-	if (preunmarshaled_)
-		preunmarshaled_->unmarshal_wchar (count, data);
-	else
-		RequestGIOP::unmarshal_wchar (count, data);
-}
-
-void RequestOut::unmarshal_wstring (IDL::WString& s)
-{
-	if (preunmarshaled_)
-		preunmarshaled_->unmarshal_wstring (s);
-	else
-		RequestGIOP::unmarshal_wstring (s);
-}
-
-void RequestOut::unmarshal_wchar_seq (IDL::Sequence <WChar>& s)
-{
-	if (preunmarshaled_)
-		preunmarshaled_->unmarshal_wchar_seq (s);
-	else
-		RequestGIOP::unmarshal_wchar_seq (s);
-}
-
-void RequestOut::unmarshal_interface (const IDL::String& interface_id, Interface::_ref_type& itf)
-{
-	if (preunmarshaled_)
-		preunmarshaled_->unmarshal_interface (interface_id, itf);
-	else
-		RequestGIOP::unmarshal_interface (interface_id, itf);
-}
-
-void RequestOut::unmarshal_type_code (TypeCode::_ref_type& tc)
-{
-	if (preunmarshaled_)
-		preunmarshaled_->unmarshal_type_code (tc);
-	else
-		RequestGIOP::unmarshal_type_code (tc);
-}
-
-void RequestOut::unmarshal_value (const IDL::String& interface_id, Interface::_ref_type& val)
-{
-	if (preunmarshaled_)
-		preunmarshaled_->unmarshal_value (interface_id, val);
-	else
-		RequestGIOP::unmarshal_value (interface_id, val);
-}
-
-void RequestOut::unmarshal_abstract (const IDL::String& interface_id, Interface::_ref_type& itf)
-{
-	if (preunmarshaled_)
-		preunmarshaled_->unmarshal_abstract (interface_id, itf);
-	else
-		RequestGIOP::unmarshal_abstract (interface_id, itf);
-}
-
-void RequestOut::unmarshal_end ()
-{
-	if (preunmarshaled_)
-		preunmarshaled_->unmarshal_end ();
-	else
-		RequestGIOP::unmarshal_end ();
 }
 
 bool RequestOut::marshal_op ()
