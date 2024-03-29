@@ -25,7 +25,7 @@
 */
 #include "../pch.h"
 #include "ORB.h"
-#include <CORBA/TypeCodeImpl.h>
+#include "LocalAddress.h"
 
 namespace CORBA {
 

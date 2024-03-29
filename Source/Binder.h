@@ -189,10 +189,10 @@ public:
 		} catch (...) {}
 	}
 
-	static void complex_ping (CORBA::Core::RequestIn& rq)
+	static void complex_ping (const CORBA::Core::DomainAddress& domain, CORBA::Internal::IORequest::_ptr_type rq)
 	{
 		SYNC_BEGIN (sync_domain (), nullptr)
-			singleton_->remote_references_.complex_ping (rq);
+			singleton_->remote_references_.complex_ping (domain, rq);
 		_sync_frame.return_to_caller_context ();
 		SYNC_END ();
 	}

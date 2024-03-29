@@ -79,7 +79,7 @@ void IncomingRequests::receive (servant_reference <RequestIn> rq, uint64_t times
 	if (rq->object_key ().empty ()) {
 		// DGC ping
 		if (static_cast <const std::string&> (op) == "ping") {
-			Nirvana::Core::Binder::complex_ping (*rq);
+			Nirvana::Core::Binder::complex_ping (rq->key (), rq->_get_ptr ());
 			return;
 		} else
 			throw BAD_OPERATION (MAKE_OMG_MINOR (2));
