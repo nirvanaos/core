@@ -52,8 +52,6 @@ public:
 	{
 		assert (callback_);
 		Base::deadline_ = Nirvana::Core::ExecDomain::current ().get_request_deadline (false);
-		if (callback_.is_handler ())
-			Base::clear_preunmarshal ();
 	}
 
 private:

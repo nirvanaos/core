@@ -29,7 +29,6 @@
 #pragma once
 
 #include "RequestGIOP.h"
-#include "RequestLocalRoot.h"
 #include "../ExecDomain.h"
 #include "../UserObject.h"
 #include "../Timer.h"
@@ -42,7 +41,6 @@ namespace Core {
 class NIRVANA_NOVTABLE RequestOut : public RequestGIOP
 {
 	typedef RequestGIOP Base;
-	static const unsigned FLAG_PREUNMARSHAL = 8;
 
 	static const TimeBase::TimeT DEFAULT_TIMEOUT = 10 * TimeBase::MINUTE;
 	static const TimeBase::TimeT MIN_TIMEOUT = 1 * TimeBase::SECOND;
@@ -93,20 +91,6 @@ protected:
 
 	void write_header (const IOP::ObjectKey& object_key, IOP::ServiceContextList& context);
 
-	virtual bool unmarshal (size_t align, size_t size, void* data) override;
-	virtual bool unmarshal_seq (size_t align, size_t element_size, size_t CDR_element_size,
-		size_t& element_count, void*& data, size_t& allocated_size) override;
-	virtual size_t unmarshal_seq_begin() override;
-	virtual void unmarshal_string (IDL::String& s) override;
-	virtual void unmarshal_wchar (size_t count, WChar* data) override;
-	virtual void unmarshal_wstring (IDL::WString& s) override;
-	virtual void unmarshal_wchar_seq (IDL::Sequence <WChar>& s) override;
-	virtual void unmarshal_interface (const IDL::String& interface_id, Internal::Interface::_ref_type& itf) override;
-	virtual void unmarshal_type_code (TypeCode::_ref_type& tc) override;
-	virtual void unmarshal_value (const IDL::String& interface_id, Internal::Interface::_ref_type& val) override;
-	virtual void unmarshal_abstract (const IDL::String& interface_id, Internal::Interface::_ref_type& itf) override;
-	virtual void unmarshal_end () override;
-
 	virtual bool marshal_op () override;
 	virtual void success () override;
 	virtual void set_exception (Any& e) override;
@@ -124,11 +108,6 @@ protected:
 	const Internal::Operation& metadata () const noexcept
 	{
 		return metadata_;
-	}
-
-	void clear_preunmarshal () noexcept
-	{
-		response_flags_ &= ~FLAG_PREUNMARSHAL;
 	}
 
 private:
@@ -153,8 +132,6 @@ private:
 	status_;
 
 	size_t request_id_offset_;
-
-	servant_reference <RequestLocalRoot> preunmarshaled_;
 
 	SystemException::Code system_exception_code_;
 	SystemException::_Data system_exception_data_;

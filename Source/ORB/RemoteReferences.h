@@ -32,7 +32,7 @@
 #include "RemoteDomains.h"
 #include "ReferenceRemote.h"
 #include "HashOctetSeq.h"
-#include "RequestIn.h"
+#include "DomainAddress.h"
 #include "PolicyMap.h"
 #include <CORBA/I_var.h>
 #include "../Chrono.h"
@@ -142,9 +142,9 @@ public:
 			p->simple_ping ();
 	}
 
-	void complex_ping (RequestIn& rq)
+	void complex_ping (const DomainAddress& domain, Internal::IORequest::_ptr_type rq)
 	{
-		get_domain (rq.key ())->complex_ping (rq._get_ptr ());
+		get_domain (domain)->complex_ping (rq);
 	}
 
 	void close_connection (ESIOP::ProtDomainId domain_id)

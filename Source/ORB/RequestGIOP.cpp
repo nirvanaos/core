@@ -26,7 +26,6 @@
 #include "../pch.h"
 #include "RequestGIOP.h"
 #include "StreamOutEncap.h"
-#include "TC_FactoryImpl.h"
 #include "../Binder.h"
 #include "unmarshal_object.h"
 #include <list>
@@ -108,21 +107,6 @@ bool RequestGIOP::marshal_chunk ()
 		stream_out_->chunk_begin ();
 	}
 	return true;
-}
-
-bool RequestGIOP::unmarshal (size_t align, size_t size, void* data)
-{
-	check_align (align);
-	stream_in_->read (align, size, size, 1, data);
-	return stream_in_->other_endian ();
-}
-
-bool RequestGIOP::unmarshal_seq (size_t align, size_t element_size, size_t CDR_element_size,
-	size_t& element_count, void*& data, size_t& allocated_size)
-{
-	check_align (align);
-	return stream_in_->read_seq (align, element_size, CDR_element_size,
-		element_count, data, allocated_size);
 }
 
 void RequestGIOP::marshal_object (Object::_ptr_type obj)
@@ -295,27 +279,6 @@ void RequestGIOP::marshal_type_code (StreamOut& stream, TypeCode::_ptr_type tc, 
 			throw BAD_TYPECODE ();
 	}
 	stream.write_seq (encap.data (), true);
-}
-
-void RequestGIOP::unmarshal_type_code (TypeCode::_ref_type& tc)
-{
-	size_t start_pos = round_up (stream_in_->position (), (size_t)4);
-	ULong kind = stream_in_->read32 ();
-	if (INDIRECTION_TAG == kind) {
-		Long off = stream_in_->read32 ();
-		if (off >= -4)
-			throw MARSHAL ();
-		Interface* itf = top_level_tc_unmarshal_.find (start_pos + 4 + off);
-		if (!itf)
-			throw BAD_TYPECODE ();
-		tc = TypeCode::_ptr_type (static_cast <TypeCode*> (itf));
-	}
-
-	if (!TC_FactoryImpl::get_simple_tc ((TCKind)kind, tc)) {
-		tc = TC_FactoryImpl::unmarshal_type_code ((TCKind)kind, *stream_in_,
-			top_level_tc_unmarshal_.get_allocator ().heap ());
-		top_level_tc_unmarshal_.emplace (start_pos, &TypeCode::_ptr_type (tc));
-	}
 }
 
 void RequestGIOP::marshal_value (ValueBase::_ptr_type base, Interface::_ptr_type val)
@@ -532,16 +495,6 @@ const RequestGIOP::RepositoryId& RequestGIOP::unmarshal_val_rep_id ()
 	if (buf [size - 1]) // Not zero-terminated
 		throw MARSHAL ();
 	return unmarshal_map.emplace (pos, std::move (id)).first->second;
-}
-
-void RequestGIOP::unmarshal_abstract (const IDL::String& interface_id, Interface::_ref_type& itf)
-{
-	Octet is_object;
-	stream_in_->read_one (is_object);
-	if (is_object)
-		unmarshal_interface (interface_id, itf);
-	else
-		unmarshal_value (interface_id, itf);
 }
 
 }

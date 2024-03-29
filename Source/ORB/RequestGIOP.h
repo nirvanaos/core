@@ -38,6 +38,7 @@
 #include "LocalAddress.h"
 #include "IndirectMap.h"
 #include "ReferenceRemote.h"
+#include "TC_FactoryImpl.h"
 
 namespace CORBA {
 namespace Core {
@@ -104,7 +105,12 @@ public:
 	/// \param size  Data size.
 	/// \param data Pointer to the data buffer.
 	/// \returns `true` if the byte order must be swapped after unmarshaling.
-	virtual bool unmarshal (size_t align, size_t size, void* data);
+	bool unmarshal (size_t align, size_t size, void* data)
+	{
+		check_align (align);
+		stream_in_->read (align, size, size, 1, data);
+		return stream_in_->other_endian ();
+	}
 
 	/// Marshal CDR sequence or array.
 	/// 
@@ -151,8 +157,13 @@ public:
 	///              
 	/// \returns `true` if the byte order must be swapped after unmarshaling.
 	/// 
-	virtual bool unmarshal_seq (size_t align, size_t element_size, size_t CDR_element_size,
-		size_t& element_count, void*& data, size_t& allocated_size);
+	bool unmarshal_seq (size_t align, size_t element_size, size_t CDR_element_size,
+		size_t& element_count, void*& data, size_t& allocated_size)
+	{
+		check_align (align);
+		return stream_in_->read_seq (align, element_size, CDR_element_size,
+			element_count, data, allocated_size);
+	}
 
 	///@}
 
@@ -173,7 +184,7 @@ public:
 	/// Get unmarshaling sequence size.
 	/// 
 	/// \returns The sequence size.
-	virtual size_t unmarshal_seq_begin ()
+	size_t unmarshal_seq_begin ()
 	{
 		return stream_in_->read_size ();
 	}
@@ -189,7 +200,7 @@ public:
 			code_set_conv_->marshal_string (s, move, *stream_out_);
 	}
 
-	virtual void unmarshal_string (IDL::String& s)
+	void unmarshal_string (IDL::String& s)
 	{
 		code_set_conv_->unmarshal_string (*stream_in_, s);
 	}
@@ -200,7 +211,7 @@ public:
 			code_set_conv_w_->marshal_char (count, data, *stream_out_);
 	}
 
-	virtual void unmarshal_wchar (size_t count, WChar* data)
+	void unmarshal_wchar (size_t count, WChar* data)
 	{
 		code_set_conv_w_->unmarshal_char (*stream_in_, count, data);
 	}
@@ -211,7 +222,7 @@ public:
 			code_set_conv_w_->marshal_string (s, move, *stream_out_);
 	}
 
-	virtual void unmarshal_wstring (IDL::WString& s)
+	void unmarshal_wstring (IDL::WString& s)
 	{
 		code_set_conv_w_->unmarshal_string (*stream_in_, s);
 	}
@@ -222,7 +233,7 @@ public:
 			code_set_conv_w_->marshal_char_seq (s, move, *stream_out_);
 	}
 
-	virtual void unmarshal_wchar_seq (WCharSeq& s)
+	void unmarshal_wchar_seq (WCharSeq& s)
 	{
 		code_set_conv_w_->unmarshal_char_seq (*stream_in_, s);
 	}
@@ -250,7 +261,7 @@ public:
 	/// \param rep_id The interface repository id.
 	/// \param [out] itf The interface.
 	/// 
-	virtual void unmarshal_interface (const IDL::String& interface_id, Internal::Interface::_ref_type& itf);
+	void unmarshal_interface (const IDL::String& interface_id, Internal::Interface::_ref_type& itf);
 
 	/// Marshal TypeCode.
 	/// 
@@ -267,9 +278,28 @@ public:
 	/// Unmarshal TypeCode.
 	/// 
 	/// \param [out] TypeCode.
-	virtual void unmarshal_type_code (TypeCode::_ref_type& tc);
+	void unmarshal_type_code (TypeCode::_ref_type& tc)
+	{
+		size_t start_pos = Nirvana::round_up (stream_in_->position (), (size_t)4);
+		ULong kind = stream_in_->read32 ();
+		if (INDIRECTION_TAG == kind) {
+			Long off = stream_in_->read32 ();
+			if (off >= -4)
+				throw MARSHAL ();
+			Interface* itf = top_level_tc_unmarshal_.find (start_pos + 4 + off);
+			if (!itf)
+				throw BAD_TYPECODE ();
+			tc = TypeCode::_ptr_type (static_cast <TypeCode*> (itf));
+		}
 
-	/// Marshal value type.
+		if (!TC_FactoryImpl::get_simple_tc ((TCKind)kind, tc)) {
+			tc = TC_FactoryImpl::unmarshal_type_code ((TCKind)kind, *stream_in_,
+				top_level_tc_unmarshal_.get_allocator ().heap ());
+			top_level_tc_unmarshal_.emplace (start_pos, &TypeCode::_ptr_type (tc));
+		}
+	}
+
+	/// 	/// Marshal value type.
 	/// 
 	/// \param val  ValueBase.
 	void marshal_value (Internal::Interface::_ptr_type val)
@@ -293,7 +323,7 @@ public:
 	/// \param rep_id The value type repository id.
 	/// \param [out] val The value interface.
 	/// 
-	virtual void unmarshal_value (const IDL::String& interface_id, Internal::Interface::_ref_type& val);
+	void unmarshal_value (const IDL::String& interface_id, Internal::Interface::_ref_type& val);
 
 	/// Marshal abstract interface.
 	/// 
@@ -333,7 +363,15 @@ public:
 	/// \param rep_id The interface repository id.
 	/// \param [out] itf The nterface.
 	/// 
-	virtual void unmarshal_abstract (const IDL::String& interface_id, Internal::Interface::_ref_type& itf);
+	void unmarshal_abstract (const IDL::String& interface_id, Internal::Interface::_ref_type& itf)
+	{
+		Octet is_object;
+		stream_in_->read_one (is_object);
+		if (is_object)
+			unmarshal_interface (interface_id, itf);
+		else
+			unmarshal_value (interface_id, itf);
+	}
 
 	///@}
 
