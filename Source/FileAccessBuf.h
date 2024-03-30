@@ -33,7 +33,8 @@
 #include <Nirvana/bitutils.h>
 #include <Nirvana/posix.h>
 #include "virtual_copy.h"
-#include "Event.h"
+#include "WaitableRef.h"
+#include <algorithm>
 
 namespace Nirvana {
 namespace Core {
@@ -41,31 +42,17 @@ namespace Core {
 class FileAccessBufData
 {
 protected:
-	FileAccessBufData () noexcept;
+	FileAccessBufData (AccessDirect::_ptr_type acc = nullptr) noexcept;
 
 	FileAccessBufData (const FileAccessBufData&) noexcept :
-		FileAccessBufData ()
+		FileAccessBufData (nullptr)
 	{}
 
 	FileAccessBufData (FileAccessBufData&&) noexcept :
-		FileAccessBufData ()
+		FileAccessBufData (nullptr)
 	{}
 
 	FileAccessBufData& operator = (const FileAccessBufData&) = delete;
-
-	class LockEvent
-	{
-	public:
-		LockEvent (FileAccessBufData& obj) noexcept;
-
-		~LockEvent ()
-		{
-			event_.signal ();
-		}
-
-	private:
-		Event& event_;
-	};
 
 	bool dirty () const noexcept
 	{
@@ -80,7 +67,7 @@ protected:
 
 protected:
 	size_t dirty_begin_, dirty_end_;
-	Event event_;
+	WaitableRef <AccessDirect::_ptr_type> own_direct_;
 };
 
 /// Implementation of FileAccessBuf value type.
@@ -90,13 +77,20 @@ class FileAccessBuf :
 {
 	typedef IDL::traits <AccessBuf>::Servant <FileAccessBuf> Servant;
 
-	static const CORBA::UShort ACCESS_COPIED = 0x8000;
+	// Direct access is used by other object and must be duplicated before use.
+	static const CORBA::UShort DIRECT_USED = 0x8000;
+
+	// Direct access duplication deadline timeout for sync domains.
+	static const TimeBase::TimeT DIRECT_DUP_TIMEOUT = 100 * TimeBase::MILLISECOND;
 
 public:
 	FileAccessBuf (const FileSize& position, const FileSize& buf_pos, AccessDirect::_ref_type&& access,
 		Bytes&& buffer, uint32_t block_size, uint_fast16_t flags, std::array <char, 2> eol) :
-		Servant (position, buf_pos, std::move (access), std::move (buffer), block_size, flags, eol)
-	{}
+		Servant (position, buf_pos, std::move (access), std::move (buffer), block_size, flags, eol),
+		FileAccessBufData (Servant::access ())
+	{
+		assert (!(private_flags () & DIRECT_USED));
+	}
 
 	// For unmarshal
 	FileAccessBuf ()
@@ -106,7 +100,7 @@ public:
 		Servant (src),
 		FileAccessBufData (src)
 	{
-		private_flags () |= ACCESS_COPIED;
+		dup_direct ();
 	}
 
 	~FileAccessBuf ()
@@ -121,23 +115,25 @@ public:
 	void _marshal (CORBA::Internal::IORequest_ptr rq)
 	{
 		Servant::_marshal (rq);
-		private_flags () |= ACCESS_COPIED;
+		private_flags () |= DIRECT_USED;
+	}
+
+	void _unmarshal (CORBA::Internal::IORequest_ptr rq)
+	{
+		Servant::_unmarshal (rq);
+		if (private_flags () & DIRECT_USED)
+			dup_direct ();
+		else
+			own_direct_ = nullptr;
 	}
 
 	Access::_ref_type dup (uint_fast16_t mask, uint_fast16_t f) const
 	{
-		mask &= ~ACCESS_COPIED;
+		mask &= ~DIRECT_USED;
 		f &= mask;
-		f |= flags () & ~mask;
-		uint_fast16_t changes = check_flags (f);
-		AccessDirect::_ref_type acc;
-		if (changes & O_ACCMODE) {
-			acc = AccessDirect::_narrow (access ()->dup (O_ACCMODE, f)->_to_object ());
-			f &= ~ACCESS_COPIED;
-		} else {
-			acc = access ();
-			f |= ACCESS_COPIED;
-		}
+		f |= private_flags () & ~mask;
+		check_flags (f);
+		AccessDirect::_ref_type acc = AccessDirect::_narrow (Servant::access ()->dup (O_ACCMODE, f)->_to_object ());
 		return CORBA::make_reference <FileAccessBuf> (position (), buf_pos (), std::move (acc),
 			buffer (), block_size (), f, eol ());
 	}
@@ -145,44 +141,33 @@ public:
 	Nirvana::File::_ref_type file () const
 	{
 		check ();
-		return access ()->file ();
+		return Servant::access ()->file ();
 	}
 
-	Nirvana::AccessDirect::_ptr_type direct ();
+	// Always returns the private copy of AccessDirect.
+	// Also set DIRECT_USED flag to indicate that current direct access is busy.
+	AccessDirect::_ptr_type access ();
+
+	AccessDirect::_ptr_type direct ()
+	{
+		check ();
+		return access ();
+	}
 
 	void close ()
 	{
 		check ();
-		if (dirty ())
-			flush_internal ();
-		if (!(private_flags () & ACCESS_COPIED))
-			access ()->close ();
+		flush_internal ();
+		if (own_direct_.initialized ())
+			own_direct_.get ()->close ();
+		Servant::access (nullptr);
+		own_direct_ = nullptr;
 		buffer ().clear ();
 		buffer ().shrink_to_fit ();
 	}
 
 	size_t read (void* p, size_t cb);
 	void write (const void* p, size_t cb);
-	
-	const void* get_buffer_read (size_t& cb)
-	{
-		check_read ();
-		if (flags () & O_TEXT)
-			throw_NO_IMPLEMENT (make_minor_errno (ENOSYS));
-		if (!cb)
-			return nullptr;
-		return get_buffer_read_internal (cb);
-	}
-
-	void* get_buffer_write (size_t cb);
-
-	void release_buffer (size_t cb)
-	{
-		check ();
-		position (position () + cb);
-		if ((flags () & O_SYNC) && dirty ())
-			flush_internal ();
-	}
 
 	FileSize position () const noexcept
 	{
@@ -199,34 +184,33 @@ public:
 	void flush ()
 	{
 		check ();
-		if (dirty ())
-			flush_internal (true);
+		flush_internal (true);
 	}
 
 	uint_fast16_t flags () const noexcept
 	{
-		return Servant::private_flags ();
+		check ();
+		return Servant::private_flags () & ~DIRECT_USED;
 	}
 
 	void set_flags (uint_fast16_t mask, uint_fast16_t f)
 	{
 		check ();
 
-		f = (f & mask) | (flags () & ~mask);
+		f = (f & mask) | (private_flags () & ~mask);
 		uint_fast16_t changes = check_flags (f);
 		if (f & O_DIRECT)
 			throw_INV_FLAG (make_minor_errno (EINVAL));
 
-		if (!(flags () & O_SYNC) && (f & O_SYNC) && (flags () & O_ACCMODE)) {
-			if (dirty ())
-				flush_internal ();
+		if (!(private_flags () & O_SYNC) && (f & O_SYNC) && (private_flags () & O_ACCMODE)) {
+			flush_internal ();
 			access ()->flush ();
 		}
 
 		if (changes & O_ACCMODE)
-			direct ()->set_flags (O_ACCMODE, f);
+			access ()->set_flags (O_ACCMODE, f);
 
-		Servant::private_flags (f);
+		private_flags (f);
 	}
 
 private:
@@ -236,99 +220,134 @@ private:
 		FileSize end;
 	};
 
+	static AccessDirect::_ref_type dup_direct (AccessDirect::_ptr_type acc);
+	void dup_direct ();
+	static bool is_sync_domain () noexcept;
+
 	void check () const;
 	void check (const void* p) const;
 	void check_read () const;
 	void check_write () const;
 	uint_fast16_t check_flags (uint_fast16_t f) const;
 
-	const void* get_buffer_read_internal (size_t& cb);
-	void* get_buffer_write_internal (size_t cb);
 	void flush_internal (bool sync = false);
-	void get_new_buf_pos (size_t cb, BufPos& new_buf_pos) const;
-	void flush_buf_shift (const BufPos& new_buf_pos);
+
+	Bytes::const_iterator get_buffer_read (FileSize pos, size_t cb);
+	Bytes::iterator get_buffer_write (FileSize pos, size_t cb);
+
+	void write_internal (const void* p, size_t cb);
+
+	size_t min_buf_size () const noexcept
+	{
+		// TODO: Adjust
+		return block_size ();
+	}
+
+	void shrink_buffer ();
+
+#ifndef NDEBUG
+
+	FileSize buf_pos () const noexcept
+	{
+		assert (Servant::buf_pos () % Servant::block_size () == 0);
+		return Servant::buf_pos ();
+	}
+
+	void buf_pos (FileSize pos) noexcept
+	{
+		assert (pos % Servant::block_size () == 0);
+		Servant::buf_pos (pos);
+	}
+
+#endif
 };
 
-inline size_t FileAccessBuf::read (void* p, size_t cb)
+inline
+size_t FileAccessBuf::read (void* p, size_t cb)
 {
 	check (p);
 	check_read ();
 	if (!cb)
 		return 0;
 
-	if ((flags () & O_TEXT) && eol () [0]) {
-		char* dst = (char*)p;
-		if (eol () [1]) {
-			// 2-char line terminator
-			bool prefetch = false;
-			if (position () > 0) {
-				prefetch = true;
-				position (position () - 1);
-			}
-			size_t cbr = cb * 2;
-			const char* src = (const char*)get_buffer_read_internal (cbr);
-			if (prefetch)
-				position (position () + 1);
-			if (cbr) {
-				const char* src_end = src + cbr;
-				size_t cb_readed = 0;
-				if (prefetch) {
-					if (cbr >= 2 && src [0] == eol () [0] && src [1] == eol () [1]) {
-						src += 2;
-						++cb_readed;
-					} else
-						++src;
+	FileSize pos = position ();
+	Bytes::const_iterator src = get_buffer_read (pos, cb);
+	if (src == buffer ().end ())
+		return 0;
+
+	uint8_t* dst = (uint8_t*)p;
+
+	if ((private_flags () & O_TEXT) && eol () [0]) {
+
+		// Translate line end
+
+		do {
+			size_t cbr = buffer ().end () - src;
+			if (cbr > cb)
+				cbr = cb;
+			do {
+				
+				size_t cbline = std::find (src, src + cbr, eol () [0]) - src;
+				if (cbline) {
+					virtual_copy (&*src, cbline, dst);
+					dst += cbline;
+					cbr -= cbline;
+					cb -= cbline;
+					src += cbline;
+					pos += cbline;
 				}
-				char* end = dst + cb;
-				while (src < src_end && dst < end) {
-					const char* e = std::find (src, src_end, eol () [0]);
-					size_t cc = e - src;
-					virtual_copy (src, cc, dst);
-					dst += cc;
-					cb_readed += cc;
-					if (e != src_end) {
-						if (e < src_end - 1 && e [1] == eol () [1]) {
-							*(dst++) = '\n';
-							src = e + 2;
-							cb_readed += 2;
-						} else {
-							*(dst++) = *e;
-							src = e + 1;
-							++cb_readed;
+
+				if (cbr) {
+					// Broken on EOL
+
+					*(dst++) = '\n';
+					++src;
+					--cbr;
+					--cb;
+					++pos;
+
+					if (eol () [1]) {
+						
+						// 2 character EOL
+						if (buffer ().end () == src) {
+							if (buffer ().end () == (src = get_buffer_read (pos, cb)))
+								goto exitloop;
 						}
+
+						if (eol () [1] == *src) {
+							++src;
+							++Servant::position ();
+						}
+						
+						cbr = buffer ().end () - src;
+						if (cbr > cb)
+							cbr = cb;
 					}
 				}
-				position (position () + cb_readed);
-			}
-			return dst - (char*)p;
-		} else {
-			const char* src = (const char*)get_buffer_read_internal (cb);
-			const char* end = src + cb;
-			while (src < end) {
-				const char* e = std::find (src, end, eol () [0]);
-				size_t cc = e - src;
-				virtual_copy (src, cc, dst);
-				dst += cc;
-				if (e != end) {
-					*(dst++) = '\n';
-					src = e + 1;
-				} else
-					break;
-			}
-			position (position () + cb);
-			return cb;
-		}
+			} while (cbr);
+		} while (cb && ((src = get_buffer_read (pos, cb)) != buffer ().end ()));
+
 	} else {
-		const void* buf = get_buffer_read_internal (cb);
-		if (cb) {
-			virtual_copy (buf, cb, p);
-			position (position () + cb);
-		}
-		return cb;
+		// No line end translation
+		do {
+			size_t cbr = buffer ().end () - src;
+			if (cbr > cb)
+				cbr = cb;
+			virtual_copy (&*src, cbr, dst);
+			dst += cbr;
+			cb -= cbr;
+			pos += cbr;
+		} while (cb && ((src = get_buffer_read (pos, cb)) != buffer ().end ()));
 	}
+
+exitloop:
+	Servant::position (pos);
+	shrink_buffer ();
+	return dst - (uint8_t*)p;
 }
 
-inline void FileAccessBuf::write (const void* p, size_t cb)
+inline
+void FileAccessBuf::write (const void* p, size_t cb)
 {
 	check (p);
 	check_write ();
@@ -336,63 +355,95 @@ inline void FileAccessBuf::write (const void* p, size_t cb)
 	if (!cb)
 		return;
 
-	if ((flags () & O_TEXT) && eol () [0]) {
+	if ((private_flags () & O_APPEND)
+		|| (private_flags () & (O_ACCMODE | O_SYNC)) == (O_WRONLY | O_SYNC)
+	) {
+		// Direct write
 
-		const char* src = (const char*)p;
-		const char* end = src + cb;
-		size_t buf_size = eol () [1] ? cb * 2 : cb;
-		char* buf;
-		Bytes append;
-		if (flags () & O_TEXT) {
-			append.resize (buf_size);
-			buf = (char*)append.data ();
-		} else
-			buf = (char*)get_buffer_write_internal (buf_size);
-		char* dst = buf;
-		do {
-			const char* e = std::find (src, end, '\n');
-			size_t cb = e - src;
-			virtual_copy (src, cb, dst);
-			dst += cb;
-			src += cb;
-			if (e != end) {
-				(*dst++) = eol () [0];
+		Bytes buf ((const uint8_t*)p, (const uint8_t*)p + cb);
+		
+		if ((private_flags () & O_TEXT) && eol () [0]) {
+			for (auto it = buf.begin (); (it = std::find (it, buf.end (), '\n')) != buf.end ();) {
+				*(it++) = eol () [0];
 				if (eol () [1])
-					(*dst++) = eol () [1];
-				++src;
+					it = buf.insert (it, eol () [1]) + 1;
 			}
-		} while (src != end);
+		}
 
-		size_t cbw = dst - buf;
-		if (O_APPEND) {
-			append.resize (cbw);
-			direct ()->write (std::numeric_limits <FileSize>::max (), append, private_flags () & O_SYNC);
-		} else
-			position (position () + cbw);
-
-	} else if (flags () & O_APPEND) {
-		if (sizeof (size_t) > sizeof (uint32_t) && cb > std::numeric_limits <uint32_t>::max ())
-			throw_IMP_LIMIT (make_minor_errno (ENOBUFS));
-
-		direct ()->write (std::numeric_limits <FileSize>::max (), Bytes ((const uint8_t*)p, (const uint8_t*)p + cb), private_flags () & O_SYNC);
-		return;
+		FileSize pos = (private_flags () & O_APPEND) ? std::numeric_limits <FileSize>::max () : position ();
+		access ()->write (pos, buf, private_flags () & O_SYNC);
+		if (!(private_flags () & O_APPEND))
+			Servant::position () += buf.size ();
 	} else {
-		void* buf = get_buffer_write_internal (cb);
-		virtual_copy (p, cb, buf);
-		position (position () + cb);
-	}
-	if (flags () & O_SYNC)
-		flush_internal ();
-}
+		// Buffered write
 
-inline void* FileAccessBuf::get_buffer_write (size_t cb)
-{
-	check_write ();
-	if (flags () & (O_TEXT | O_APPEND))
-		throw_NO_IMPLEMENT (make_minor_errno (ENOSYS));
-	if (!cb)
-		return nullptr;
-	return get_buffer_write_internal (cb);
+		if ((private_flags () & O_TEXT) && eol () [0]) {
+
+			const uint8_t* src = (const uint8_t*)p, * end = src + cb;
+			const uint8_t* line_end = std::find (src, end, '\n');
+			if (line_end != end) {
+
+				if (eol () [1]) {
+					Bytes buf;
+					buf.reserve (cb + 1);
+					for (;;) {
+						buf.insert (buf.end (), src, line_end);
+						buf.insert (buf.end (), eol ().begin (), eol ().end ());
+						src = line_end + 1;
+						line_end = std::find (src, end, '\n');
+						if (line_end == end) {
+							buf.insert (buf.end (), src, line_end);
+							break;
+						}
+					}
+
+					write_internal (buf.data (), buf.size ());
+
+				} else {
+
+					FileSize pos = position ();
+					Bytes::iterator dst = get_buffer_write (pos, cb);
+
+					for (;;) {
+						if (src < line_end) {
+							
+							if (dst == buffer ().end ())
+								dst = get_buffer_write (pos, cb);
+
+							size_t cbc = std::min (line_end - src, buffer ().end () - dst);
+							virtual_copy (src, cbc, &*dst);
+							src += cbc;
+							cb -= cbc;
+							dst += cbc;
+							pos += cbc;
+						}
+
+						if (src == line_end && line_end != end) {
+							*(dst++) = eol () [0];
+							++src;
+							--cb;
+							++pos;
+							line_end = std::find (src, end, '\n');
+						}
+
+						if (!cb)
+							break;
+						if (dst == buffer ().end ())
+							dst = get_buffer_write (pos, cb);
+					}
+
+					Servant::position (pos);
+				}
+			} else
+				write_internal (p, cb);
+		} else
+			write_internal (p, cb);
+
+		if (private_flags () & O_SYNC)
+			flush_internal ();
+
+		shrink_buffer ();
+	}
 }
 
 }

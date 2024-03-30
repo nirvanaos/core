@@ -88,7 +88,9 @@ public:
 			if (flags_ & O_APPEND)
 				pos = std::numeric_limits <FileSize>::max ();
 			dirty_ = true;
-			driver_.write (pos, data, sync, this);
+			if (!sync && flags_ & O_SYNC)
+				sync = true;
+			driver_.write (pos, data, flags_ & O_SYNC, this);
 		} else
 			throw_NO_PERMISSION (make_minor_errno (EBADF));
 	}

@@ -26,6 +26,7 @@
 #include "pch.h"
 #include "WaitableRef.h"
 #include "WaitList.h"
+#include "SyncContext.h"
 #include <new>
 
 namespace Nirvana {
@@ -41,6 +42,7 @@ WaitListRef <WaitListBase> WaitableRefBase::detach_list () noexcept
 
 bool WaitableRefBase::initialize (TimeBase::TimeT deadline)
 {
+	assert (SyncContext::current ().sync_domain ());
 	if (!pointer_) {
 		::new (&pointer_) WaitListRef <WaitListBase> (WaitListRef <WaitListBase>::create <WaitListImpl <WaitListBase> > (deadline, this));
 		assert (!(pointer_ & 1));
