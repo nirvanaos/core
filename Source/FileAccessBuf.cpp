@@ -125,7 +125,7 @@ uint_fast16_t FileAccessBuf::check_flags (uint_fast16_t f) const
 
 Bytes::const_iterator FileAccessBuf::get_buffer_read (FileSize pos, size_t cb)
 {
-	if (pos < buf_pos () || pos >= buf_pos () + buffer ().size ()) {
+	if (pos < buf_pos () || pos >= (buf_pos () + buffer ().size ())) {
 		FileSize new_buf_pos = round_down (pos, (FileSize)block_size ());
 		size_t new_buf_size = cb + (size_t)(pos - new_buf_pos);
 		size_t mbs = min_buf_size ();
@@ -146,16 +146,29 @@ Bytes::const_iterator FileAccessBuf::get_buffer_read (FileSize pos, size_t cb)
 
 Bytes::iterator FileAccessBuf::get_buffer_write (FileSize pos, size_t cb)
 {
-	if (pos < buf_pos () || pos >= buf_pos () + round_up (buffer ().size (), (size_t)block_size ())) {
+	bool drop_buffer = pos < buf_pos ();
+
+	if (!drop_buffer) {
+		FileSize buf_off = pos - buf_pos ();
+		FileSize max_buf_off = std::min (buffer ().size (), min_buf_size () - 1);
+		drop_buffer = buf_off > max_buf_off;
+	}
+	
+	if (drop_buffer) {
+		
 		flush_internal ();
+		
 		FileSize new_buf_pos = round_down (pos, (FileSize)block_size ());
-		uint32_t unaligned = pos % block_size ();
-		if (unaligned) {
+		uint32_t read_size = pos % block_size ();
+		if ((size_t)read_size + cb < (size_t)block_size ())
+			read_size = block_size ();
+		if (read_size) {
 			Bytes new_buf;
-			access ()->read (new_buf_pos, unaligned, new_buf);
+			access ()->read (new_buf_pos, read_size, new_buf);
 			buffer (std::move (new_buf));
 		} else
 			buffer ().clear ();
+
 		buf_pos (new_buf_pos);
 	}
 
