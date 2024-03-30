@@ -144,10 +144,6 @@ public:
 		return Servant::access ()->file ();
 	}
 
-	// Always returns the private copy of AccessDirect.
-	// Also set DIRECT_USED flag to indicate that current direct access is busy.
-	AccessDirect::_ptr_type access ();
-
 	AccessDirect::_ptr_type direct ()
 	{
 		check ();
@@ -223,6 +219,10 @@ private:
 	static AccessDirect::_ref_type dup_direct (AccessDirect::_ptr_type acc);
 	void dup_direct ();
 	static bool is_sync_domain () noexcept;
+
+	// Always returns the private copy of AccessDirect.
+	// Also set DIRECT_USED flag to indicate that current direct access is busy.
+	AccessDirect::_ptr_type access ();
 
 	void check () const;
 	void check (const void* p) const;
