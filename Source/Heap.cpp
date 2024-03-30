@@ -547,35 +547,51 @@ void* Heap::copy (void* dst, void* src, size_t& size, unsigned flags)
 	size_t cb_copy = size;
 	unsigned release_flags = flags & Memory::SRC_RELEASE;
 	if (release_flags == Memory::SRC_RELEASE) {
-		BlockList::NodeVal* node = block_list_.lower_bound (src);
-		if (!node)
+		BlockList::NodeVal* src_node = block_list_.lower_bound (src);
+		if (!src_node)
 			throw_BAD_PARAM ();
-		const MemoryBlock& block = node->value ();
-		if (block.is_large_block ()) {
-			LBErase lberase (*this, node);
+		const MemoryBlock& src_block = src_node->value ();
+		if (src_block.is_large_block ()) {
+			LBErase lberase (*this, src_node);
 			lberase.prepare (src, size);
-			BlockList::NodeVal* new_node = nullptr;
-			try {
-				new_node = block_list_.create_node ();
-				dst = Port::Memory::copy (dst, src, size, flags);
-				if (dst)
-					new_node->value () = MemoryBlock (dst, size);
-			} catch (...) {
-				if (new_node)
+			if (!dst || (flags & Memory::DST_ALLOCATE)) {
+				// New block allocation
+				BlockList::NodeVal* new_node = nullptr;
+				try {
+					new_node = block_list_.create_node ();
+					dst = Port::Memory::copy (dst, src, size, flags);
+					if (dst)
+						new_node->value () = MemoryBlock (dst, size);
+				} catch (...) {
+					if (new_node)
+						block_list_.release_node (new_node);
+					lberase.rollback ();
+					throw;
+				}
+				if (dst) {
+					lberase.commit ();
+					block_list_.insert (new_node);
+				} else {
+					lberase.rollback ();
 					block_list_.release_node (new_node);
-				lberase.rollback ();
-				throw;
-			}
-			if (dst) {
-				lberase.commit ();
-				block_list_.insert (new_node);
+				}
 			} else {
-				lberase.rollback ();
-				block_list_.release_node (new_node);
+				// No new block allocation
+				try {
+#ifndef NDEBUG
+					void* dbg_dst = dst;
+#endif
+					dst = Port::Memory::copy (dst, src, size, flags);
+					assert (dst == dbg_dst);
+				} catch (...) {
+					lberase.rollback ();
+					throw;
+				}
+				lberase.commit ();
 			}
 		} else {
 			// Release from the heap partition
-			uint8_t* heap = block.begin ();
+			uint8_t* heap = src_block.begin ();
 			if ((uint8_t*)src + size > heap + partition_size ())
 				throw_FREE_MEM ();
 			size_t offset = (uint8_t*)src - heap;
