@@ -28,6 +28,7 @@
 #include "Global.h"
 #include <Nirvana/File.h>
 #include <Nirvana/System.h>
+#include <Nirvana/POSIX.h>
 #include <Nirvana/Chrono.h>
 #include <Nirvana/c_heap_dbg.h>
 #include <Nirvana/posix_defs.h>
@@ -352,7 +353,7 @@ extern "C" int xDelete (sqlite3_vfs*, sqlite3_filename zName, int syncDir)
 	try {
 		// Get full path name
 		CosNaming::Name name;
-		Nirvana::the_system->append_path (name, zName, true);
+		Nirvana::the_posix->append_path (name, zName, true);
 		// Remove root name
 		name.erase (name.begin ());
 		// Delete
@@ -369,7 +370,7 @@ extern "C" int xAccess (sqlite3_vfs*, const char* zName, int flags, int* pResOut
 	try {
 		// Get full path name
 		CosNaming::Name name;
-		Nirvana::the_system->append_path (name, zName, true);
+		Nirvana::the_posix->append_path (name, zName, true);
 		// Remove root name
 		name.erase (name.begin ());
 		// Resolve name
@@ -404,7 +405,7 @@ extern "C" int xFullPathname (sqlite3_vfs*, const char* zName, int nOut, char* z
 	try {
 		// Get full path name
 		CosNaming::Name name;
-		Nirvana::the_system->append_path (name, zName, true);
+		Nirvana::the_posix->append_path (name, zName, true);
 		auto s = Nirvana::the_system->to_string (name);
 		if ((int)s.size () >= nOut)
 			return SQLITE_CANTOPEN;
@@ -418,7 +419,7 @@ extern "C" int xFullPathname (sqlite3_vfs*, const char* zName, int nOut, char* z
 
 extern "C" int xSleep (sqlite3_vfs*, int microseconds)
 {
-	Nirvana::the_chrono->sleep ((TimeBase::TimeT)microseconds * TimeBase::MICROSECOND);
+	Nirvana::the_posix->sleep ((TimeBase::TimeT)microseconds * TimeBase::MICROSECOND);
 	return SQLITE_OK;
 }
 
@@ -433,18 +434,18 @@ extern "C" int xRandomness (sqlite3_vfs*, int nByte, char* zOut)
 {
 #if (RAND_MAX >= 0xFFFFFFFF)
 	for (; nByte >= 4; zOut += 4, nByte -= 4) {
-		*(uint32_t*)zOut = (uint32_t)Nirvana::the_system->rand ();
+		*(uint32_t*)zOut = (uint32_t)Nirvana::the_posix->rand ();
 	}
 #endif
 
 #if (RAND_MAX >= 0xFFFF)
 	for (; nByte >= 2; zOut += 2, nByte -= 2) {
-		*(uint16_t*)zOut = (uint16_t)Nirvana::the_system->rand ();
+		*(uint16_t*)zOut = (uint16_t)Nirvana::the_posix->rand ();
 	}
 #endif
 
 	for (; nByte > 0; ++zOut, --nByte) {
-		*zOut = (char)Nirvana::the_system->rand ();
+		*zOut = (char)Nirvana::the_posix->rand ();
 	}
 	return nByte;
 }

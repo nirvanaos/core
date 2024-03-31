@@ -29,6 +29,7 @@
 #include "mutex_methods.h"
 #include "filesystem.h"
 #include <Nirvana/System.h>
+#include <Nirvana/POSIX.h>
 #include <signal.h>
 
 namespace SQLite {
@@ -61,7 +62,7 @@ Nirvana::Access::_ref_type Global::open_file (const char* url, uint_fast16_t fla
 {
 	// Get full path name
 	CosNaming::Name name;
-	Nirvana::the_system->append_path (name, url, true);
+	Nirvana::the_posix->append_path (name, url, true);
 
 	// Open file
 	name.erase (name.begin ());
@@ -100,7 +101,7 @@ extern "C" void* sqlite3_wsd_find (void* K, int L)
 	try {
 		return SQLite::global.static_data ().get (K, L);
 	} catch (...) {
-		Nirvana::the_system->raise (SIGABRT);
+		Nirvana::the_posix->raise (SIGABRT);
 	}
 	return nullptr;
 }

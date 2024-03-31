@@ -30,7 +30,6 @@
 
 #include "Chrono.h"
 #include "DeadlinePolicy.h"
-#include "TimerEvent.h"
 #include <Nirvana/Chrono_s.h>
 
 namespace Nirvana {
@@ -107,17 +106,6 @@ public:
 	static bool yield ()
 	{
 		return Core::ExecDomain::reschedule ();
-	}
-
-	static void sleep (TimeBase::TimeT period100ns)
-	{
-		if (!period100ns)
-			Core::ExecDomain::reschedule ();
-		else {
-			Core::TimerEvent timer;
-			timer.set (0, period100ns, 0);
-			timer.wait ();
-		}
 	}
 
 };

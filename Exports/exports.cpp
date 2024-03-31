@@ -36,9 +36,22 @@
 #include "../Source/the_chrono.h"
 #include "../Source/the_security.h"
 #include "../Source/System.h"
+#include "../Source/POSIX.h"
 
 NIRVANA_EXPORT (_exp_Nirvana_the_memory, "Nirvana/the_memory", Nirvana::Memory, Nirvana::Core::Memory)
 NIRVANA_EXPORT (_exp_Nirvana_the_debugger, "Nirvana/the_debugger", Nirvana::Debugger, Nirvana::Core::Debugger)
+
+namespace Nirvana {
+
+NIRVANA_STATIC_IMPORT ImportInterfaceT <Memory> NIRVANA_SELECTANY the_memory = { OLF_IMPORT_INTERFACE,
+	"Nirvana/the_memory", CORBA::Internal::RepIdOf <Memory>::id,
+	NIRVANA_STATIC_BRIDGE (Memory, Core::Memory) };
+
+NIRVANA_STATIC_IMPORT ImportInterfaceT <Debugger> NIRVANA_SELECTANY the_debugger = { OLF_IMPORT_INTERFACE,
+	"Nirvana/the_debugger", CORBA::Internal::RepIdOf <Debugger>::id,
+	NIRVANA_STATIC_BRIDGE (Debugger, Core::Debugger) };
+
+}
 
 NIRVANA_EXPORT_FACTORY (_exp_Nirvana_AccessBuf, Nirvana::AccessBuf)
 NIRVANA_EXPORT_FACTORY (_exp_Messaging_ExceptionHolder, Messaging::ExceptionHolder)
@@ -52,15 +65,4 @@ NIRVANA_EXPORT_PSEUDO (_exp_Nirvana_the_binder, Nirvana::Static_the_binder)
 NIRVANA_EXPORT_PSEUDO (_exp_Nirvana_the_chrono, Nirvana::Static_the_chrono)
 NIRVANA_EXPORT_PSEUDO (_exp_Nirvana_the_security, Nirvana::Static_the_security)
 NIRVANA_EXPORT_PSEUDO (_exp_Nirvana_the_system, Nirvana::Static_the_system)
-
-namespace Nirvana {
-
-NIRVANA_STATIC_IMPORT ImportInterfaceT <Memory> NIRVANA_SELECTANY the_memory = { OLF_IMPORT_INTERFACE,
-	"Nirvana/the_memory", CORBA::Internal::RepIdOf <Memory>::id,
-	NIRVANA_STATIC_BRIDGE (Memory, Core::Memory) };
-
-NIRVANA_STATIC_IMPORT ImportInterfaceT <Debugger> NIRVANA_SELECTANY the_debugger = { OLF_IMPORT_INTERFACE,
-	"Nirvana/the_debugger", CORBA::Internal::RepIdOf <Debugger>::id,
-	NIRVANA_STATIC_BRIDGE (Debugger, Core::Debugger) };
-
-}
+NIRVANA_EXPORT_PSEUDO (_exp_Nirvana_the_posix, Nirvana::Static_the_posix)
