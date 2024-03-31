@@ -31,7 +31,7 @@
 #include <CORBA/Server.h>
 #include <CORBA/CosNaming.h>
 #include <CORBA/I_var.h>
-#include <Nirvana/ProcessFactory_s.h>
+#include <Nirvana/Shell_s.h>
 #include "EventSync.h"
 #include "ExecDomain.h"
 #include "NameService/FileSystem.h"

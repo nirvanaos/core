@@ -25,14 +25,18 @@
 *  popov.nirvana@gmail.com
 */
 
+#ifndef NIRVANA_CORE_SHELL_H_
+#define NIRVANA_CORE_SHELL_H_
+#pragma once
+
 #include <CORBA/Server.h>
-#include <Nirvana/ProcessFactory_s.h>
+#include <Nirvana/Shell_s.h>
 #include "Nirvana_Process.h"
 
 namespace Nirvana {
 
-class Static_launcher :
-	public CORBA::servant_traits <ProcessFactory>::ServantStatic <Static_launcher>
+class Static_the_shell :
+	public CORBA::servant_traits <Shell>::ServantStatic <Static_the_shell>
 {
 public:
 	static Process::_ref_type spawn (AccessDirect::_ptr_type file,
@@ -44,3 +48,5 @@ public:
 };
 
 }
+
+#endif

@@ -30,7 +30,7 @@
 #include "ExecDomain.h"
 #include "ProtDomain.h"
 #include "initterm.h"
-#include <Nirvana/ProcessFactory_s.h>
+#include <Nirvana/Shell_s.h>
 #include <Nirvana/File.h>
 #include "ORB/Services.h"
 #include <NameService/FileSystem.h>
@@ -108,7 +108,7 @@ void Startup::run ()
 			throw_UNKNOWN (make_minor_errno (ENOEXEC));
 		AccessDirect::_ref_type binary = AccessDirect::_narrow (file->open (O_RDONLY | O_DIRECT, 0)->_to_object ());
 
-		launcher->spawn (binary, argv, envp, "/sbin", files, callback);
+		the_shell->spawn (binary, argv, envp, "/sbin", files, callback);
 	}
 }
 

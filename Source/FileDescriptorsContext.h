@@ -33,7 +33,7 @@
 #include <Nirvana/posix_defs.h>
 #include "UserObject.h"
 #include "UserAllocator.h"
-#include <Nirvana/ProcessFactory.h> // For InheritedFiles
+#include <Nirvana/Shell.h> // For InheritedFiles
 
 namespace Nirvana {
 namespace Core {
