@@ -28,7 +28,7 @@
 #define NIRVANA_CORE_FILEACCESSBUF_H_
 #pragma once
 
-#include <CORBA/Server.h>
+#include <Nirvana/Nirvana.h>
 #include <Nirvana/File_s.h>
 #include <Nirvana/bitutils.h>
 #include <Nirvana/posix.h>
@@ -121,10 +121,7 @@ public:
 	void _unmarshal (CORBA::Internal::IORequest_ptr rq)
 	{
 		Servant::_unmarshal (rq);
-		if (private_flags () & DIRECT_USED)
-			dup_direct ();
-		else
-			own_direct_ = nullptr;
+		own_direct_.reset ();
 	}
 
 	Access::_ref_type dup (uint_fast16_t mask, uint_fast16_t f) const
@@ -157,7 +154,7 @@ public:
 		if (own_direct_.initialized ())
 			own_direct_.get ()->close ();
 		Servant::access (nullptr);
-		own_direct_ = nullptr;
+		own_direct_.reset ();
 		buffer ().clear ();
 		buffer ().shrink_to_fit ();
 	}
