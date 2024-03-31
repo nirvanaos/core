@@ -218,7 +218,7 @@ void Domain::DGC_Request::invoke ()
 {
 	DeadlinePolicyContext& dp = MemContext::current ().deadline_policy ();
 
-	Nirvana::Chrono::DeadlinePolicy old = dp.policy_async ();
+	Nirvana::System::DeadlinePolicy old = dp.policy_async ();
 	dp.policy_async (domain_.request_latency ());
 
 	event_ = make_reference <RequestEvent> ();

@@ -33,7 +33,6 @@
 #include "../Source/ORB/ORB.h"
 #include "../Source/Debugger.h"
 #include "../Source/the_binder.h"
-#include "../Source/the_chrono.h"
 #include "../Source/the_security.h"
 #include "../Source/System.h"
 #include "../Source/POSIX.h"
@@ -62,7 +61,6 @@ NIRVANA_EXPORT_OBJECT (_exp_Nirvana_launcher, Nirvana::Static_launcher)
 NIRVANA_EXPORT_PSEUDO (_exp_CORBA_Internal_object_factory, CORBA::Internal::Static_object_factory)
 NIRVANA_EXPORT_PSEUDO (_exp_CORBA_the_orb, CORBA::Static_the_orb)
 NIRVANA_EXPORT_PSEUDO (_exp_Nirvana_the_binder, Nirvana::Static_the_binder)
-NIRVANA_EXPORT_PSEUDO (_exp_Nirvana_the_chrono, Nirvana::Static_the_chrono)
 NIRVANA_EXPORT_PSEUDO (_exp_Nirvana_the_security, Nirvana::Static_the_security)
 NIRVANA_EXPORT_PSEUDO (_exp_Nirvana_the_system, Nirvana::Static_the_system)
 NIRVANA_EXPORT_PSEUDO (_exp_Nirvana_the_posix, Nirvana::Static_the_posix)

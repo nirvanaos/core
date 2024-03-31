@@ -29,7 +29,7 @@
 #pragma once
 
 #include <Nirvana/Nirvana.h>
-#include <Nirvana/Chrono.h>
+#include <Nirvana/System.h>
 
 namespace Nirvana {
 namespace Core {
@@ -37,8 +37,8 @@ namespace Core {
 class DeadlinePolicyContext
 {
 public:
-	static const DeadlineTime ASYNC_DEFAULT = Nirvana::Chrono::DEADLINE_POLICY_INHERIT;
-	static const DeadlineTime ONEWAY_DEFAULT = Nirvana::Chrono::DEADLINE_POLICY_INFINITE;
+	static const DeadlineTime ASYNC_DEFAULT = Nirvana::System::DEADLINE_POLICY_INHERIT;
+	static const DeadlineTime ONEWAY_DEFAULT = Nirvana::System::DEADLINE_POLICY_INFINITE;
 
 	DeadlinePolicyContext () :
 		policy_async_ (ASYNC_DEFAULT),

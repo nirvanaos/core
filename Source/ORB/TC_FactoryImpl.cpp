@@ -75,9 +75,9 @@ inline void TC_FactoryImpl::schedule_GC () noexcept
 		DeadlinePolicyContext& ctx = MemContext::current ().deadline_policy ();
 		auto saved = ctx.policy_oneway ();
 		try {
-			Nirvana::Chrono::DeadlinePolicy dp;
+			Nirvana::System::DeadlinePolicy dp;
 			if (PROXY_GC_DEADLINE == INFINITE_DEADLINE)
-				dp = Nirvana::Chrono::DEADLINE_POLICY_INFINITE;
+				dp = Nirvana::System::DEADLINE_POLICY_INFINITE;
 			else
 				dp = PROXY_GC_DEADLINE;
 			ctx.policy_oneway (dp);

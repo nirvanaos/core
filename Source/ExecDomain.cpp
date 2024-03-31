@@ -380,15 +380,15 @@ DeadlineTime ExecDomain::get_request_deadline (bool oneway) const noexcept
 			deadline_context = mc->deadline_policy_ptr ();
 	}
 
-	Nirvana::Chrono::DeadlinePolicy deadline_policy = deadline_context ?
+	Nirvana::System::DeadlinePolicy deadline_policy = deadline_context ?
 		(oneway ? deadline_context->policy_oneway () : deadline_context->policy_async ())
 		:
 		(oneway ? DeadlinePolicyContext::ONEWAY_DEFAULT : DeadlinePolicyContext::ASYNC_DEFAULT);
 
 	DeadlineTime dl;
-	if (deadline_policy == Nirvana::Chrono::DEADLINE_POLICY_INHERIT)
+	if (deadline_policy == Nirvana::System::DEADLINE_POLICY_INHERIT)
 		dl = deadline ();
-	else if (deadline_policy == Nirvana::Chrono::DEADLINE_POLICY_INFINITE)
+	else if (deadline_policy == Nirvana::System::DEADLINE_POLICY_INFINITE)
 		dl = INFINITE_DEADLINE;
 	else
 		dl = Chrono::make_deadline (deadline_policy);

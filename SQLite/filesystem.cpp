@@ -29,7 +29,6 @@
 #include <Nirvana/File.h>
 #include <Nirvana/System.h>
 #include <Nirvana/POSIX.h>
-#include <Nirvana/Chrono.h>
 #include <Nirvana/c_heap_dbg.h>
 #include <Nirvana/posix_defs.h>
 #include <time.h>
@@ -425,7 +424,7 @@ extern "C" int xSleep (sqlite3_vfs*, int microseconds)
 
 extern "C" int xCurrentTimeInt64 (sqlite3_vfs*, sqlite3_int64* time)
 {
-	TimeBase::UtcT t = Nirvana::the_chrono->system_clock ();
+	TimeBase::UtcT t = Nirvana::the_system->system_clock ();
 	*time = (t.time () + t.tdf () * 600000000LL) / TimeBase::MILLISECOND + TimeBase::JULIAN_MS;
 	return SQLITE_OK;
 }
