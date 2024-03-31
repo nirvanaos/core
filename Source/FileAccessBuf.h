@@ -31,7 +31,7 @@
 #include <Nirvana/Nirvana.h>
 #include <Nirvana/File_s.h>
 #include <Nirvana/bitutils.h>
-#include <Nirvana/posix.h>
+#include <Nirvana/posix_defs.h>
 #include "virtual_copy.h"
 #include "WaitableRef.h"
 #include <algorithm>

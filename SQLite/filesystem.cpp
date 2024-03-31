@@ -30,7 +30,7 @@
 #include <Nirvana/System.h>
 #include <Nirvana/Chrono.h>
 #include <Nirvana/c_heap_dbg.h>
-#include <Nirvana/posix.h>
+#include <Nirvana/posix_defs.h>
 #include <time.h>
 #include <unordered_map>
 

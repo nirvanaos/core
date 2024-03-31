@@ -33,7 +33,7 @@
 #include "UserObject.h"
 #include "EventSync.h"
 #include <Nirvana/File.h>
-#include <Nirvana/posix.h>
+#include <Nirvana/posix_defs.h>
 #include <Nirvana/SimpleList.h>
 #include <CORBA/CosEventChannelAdmin.h>
 #include <deque>

@@ -30,7 +30,7 @@
 
 #include <Nirvana/Nirvana.h>
 #include <Nirvana/File.h>
-#include <Nirvana/posix.h>
+#include <Nirvana/posix_defs.h>
 #include "UserObject.h"
 #include "UserAllocator.h"
 #include <Nirvana/ProcessFactory.h> // For InheritedFiles
