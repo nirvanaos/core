@@ -34,6 +34,7 @@
 #include <Port/SystemInfo.h>
 #include "NameService/NameService.h"
 #include "TLS.h"
+#include "Binder.h"
 
 namespace Nirvana {
 
@@ -150,6 +151,20 @@ public:
 	static CosNaming::Name to_name (const IDL::String& sn)
 	{
 		return CosNaming::Core::NameService::to_name (sn);
+	}
+
+	// This operation can cause context switch.
+	// So we make private copies of the client strings in stak.
+	static CORBA::Object::_ref_type bind (IDL::String name)
+	{
+		return Core::Binder::bind (name);
+	}
+
+	// This operation can cause context switch.
+	// So we make private copies of the client strings in stak.
+	static CORBA::Internal::Interface::_ref_type bind_interface (IDL::String name, IDL::String iid)
+	{
+		return Core::Binder::bind_interface (name, iid);
 	}
 
 	static size_t exec_domain_id ()
