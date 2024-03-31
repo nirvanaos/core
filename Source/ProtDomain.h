@@ -71,16 +71,6 @@ public:
 		return Binder::load_and_bind (mod_id, mod_path, nullptr, singleton, name);
 	}
 
-	static void request (const CORBA::OctetSeq& data_in, CORBA::OctetSeq& data_out)
-	{
-		throw_NO_IMPLEMENT ();
-	}
-
-	static void request_oneway (const CORBA::OctetSeq& data)
-	{
-		throw_NO_IMPLEMENT ();
-	}
-
 	static IDL::String binary_dir ();
 };
 

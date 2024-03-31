@@ -83,7 +83,7 @@ public:
 		return is_from_poller_;
 	}
 
-	Internal::IORequest::_ref_type get_reply (uint32_t timeout, Internal::OperationIndex op)
+	Internal::IORequest::_ref_type n_get_reply (uint32_t timeout, Internal::OperationIndex op)
 	{
 		if (op != op_) {
 			is_from_poller_ = true;

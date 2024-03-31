@@ -5,7 +5,7 @@
 #ifndef _CSIIOP_IDL_
 #define _CSIIOP_IDL_
 
-#include <CORBA/IOP.idl>
+#include "IOP.idl"
 #include "CSI.idl"
 
 module CSIIOP {

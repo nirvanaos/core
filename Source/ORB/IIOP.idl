@@ -4,7 +4,7 @@
 #ifndef _IIOP_IDL_
 #define _IIOP_IDL_
 
-#include <CORBA/IOP.idl>
+#include "IOP.idl"
 
 module IIOP {       // IDL extended for version 1.1 and 1.2
 
