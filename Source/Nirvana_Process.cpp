@@ -51,7 +51,7 @@ void Process::run ()
 	state_ = RUNNING;
 
 	try {
-		ret_ = executable_.main (argv_, envp_);
+		ret_ = executable_.main (argv_);
 		executable_.execute_atexit ();
 		executable_.cleanup ();
 	} catch (const std::exception& ex) {
@@ -74,9 +74,6 @@ void Process::finish () noexcept
 
 	{
 		Strings tmp (std::move (argv_));
-	}
-	{
-		Strings tmp (std::move (envp_));
 	}
 	state_ = COMPLETED;
 	completed_.signal ();

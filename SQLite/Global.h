@@ -56,7 +56,7 @@ private:
 private:
 	Nirvana::FileSystem::_ref_type file_system_;
 	WritableStaticData initial_static_data_;
-	int tls_index_;
+	int cs_key_;
 };
 
 extern Global global;

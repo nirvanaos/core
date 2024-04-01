@@ -38,7 +38,7 @@ inline
 Global::Global () :
 	file_system_ (Nirvana::FileSystem::_narrow (CosNaming::NamingContext::_narrow (
 		CORBA::the_orb->resolve_initial_references ("NameService"))->resolve (CosNaming::Name (1)))),
-	tls_index_ (-1)
+	cs_key_ (-1)
 {
 	sqlite3_config (SQLITE_CONFIG_PAGECACHE, nullptr, 0, 0);
 	sqlite3_config (SQLITE_CONFIG_MALLOC, &mem_methods);
@@ -46,14 +46,14 @@ Global::Global () :
 	sqlite3_vfs_register (&vfs, 1);
 	sqlite3_initialize ();
 
-	tls_index_ = Nirvana::the_system->TLS_alloc (wsd_deleter);
+	cs_key_ = Nirvana::the_system->CS_alloc (wsd_deleter);
 }
 
 inline
 Global::~Global ()
 {
 	sqlite3_shutdown ();
-	Nirvana::the_system->TLS_free (tls_index_);
+	Nirvana::the_system->CS_free (cs_key_);
 }
 
 Global global;
@@ -76,14 +76,14 @@ void Global::wsd_deleter (void* p)
 
 WritableStaticData& Global::static_data ()
 {
-	if (tls_index_ < 0) {
+	if (cs_key_ < 0) {
 		// Initialization stage
 		return initial_static_data_;
 	} else {
-		void* p = Nirvana::the_system->TLS_get (tls_index_);
+		void* p = Nirvana::the_system->CS_get (cs_key_);
 		if (!p) {
 			p = new WritableStaticData (initial_static_data_);
-			Nirvana::the_system->TLS_set (tls_index_, p);
+			Nirvana::the_system->CS_set (cs_key_, p);
 		}
 		return *reinterpret_cast <WritableStaticData*> (p);
 	}

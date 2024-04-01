@@ -77,10 +77,6 @@ void Startup::run ()
 		for (char** arg = argv_ + 1, **end = argv_ + argc_; arg != end; ++arg) {
 			argv.emplace_back (*arg);
 		}
-		std::vector <std::string> envp;
-		for (char** env = envp_; *env; ++env) {
-			envp.emplace_back (*env);
-		}
 
 		ProcessCallback::_ref_type callback = CORBA::make_stateless <ShutdownCallback> (std::ref (ret_))->_this ();
 
@@ -108,7 +104,7 @@ void Startup::run ()
 			throw_UNKNOWN (make_minor_errno (ENOEXEC));
 		AccessDirect::_ref_type binary = AccessDirect::_narrow (file->open (O_RDONLY | O_DIRECT, 0)->_to_object ());
 
-		the_shell->spawn (binary, argv, envp, "/sbin", files, callback);
+		the_shell->spawn (binary, argv, "/sbin", files, callback);
 	}
 }
 

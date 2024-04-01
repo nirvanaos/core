@@ -122,22 +122,22 @@ public:
 		return (ContextType)Core::SyncContext::current ().sync_context_type ();
 	}
 
-	static uint16_t TLS_alloc (Deleter deleter)
+	static CS_Key CS_alloc (Deleter deleter)
 	{
-		return Core::TLS::allocate (deleter);
+		return (CS_Key)Core::TLS::allocate (deleter);
 	}
 
-	static void TLS_free (uint16_t idx)
+	static void CS_free (unsigned idx)
 	{
 		Core::TLS::release (idx);
 	}
 
-	static void TLS_set (uint16_t idx, void* ptr)
+	static void CS_set (unsigned idx, void* ptr)
 	{
 		Core::TLS::set (idx, ptr);
 	}
 
-	static void* TLS_get (uint16_t idx)
+	static void* CS_get (unsigned idx)
 	{
 		return Core::TLS::get (idx);
 	}

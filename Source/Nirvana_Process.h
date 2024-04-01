@@ -92,11 +92,11 @@ public:
 	~Process ();
 
 	static Nirvana::Process::_ref_type spawn (AccessDirect::_ptr_type file,
-		IDL::Sequence <IDL::String>& argv, IDL::Sequence <IDL::String>& envp, const IDL::String& work_dir,
+		IDL::Sequence <IDL::String>& argv, const IDL::String& work_dir,
 		const FileDescriptors& inherit, ProcessCallback::_ptr_type callback)
 	{
 		CORBA::servant_reference <Process> servant = CORBA::make_reference <Process> (
-			std::ref (file), std::ref (argv), std::ref (envp), std::ref (work_dir), std::ref (inherit), callback);
+			std::ref (file), std::ref (argv), std::ref (work_dir), std::ref (inherit), callback);
 
 		Nirvana::Process::_ref_type ret = servant->_this ();
 
@@ -120,15 +120,15 @@ private:
 
 	// Constructor. Do not call directly.
 	Process (AccessDirect::_ptr_type file,
-		IDL::Sequence <IDL::String>& argv, IDL::Sequence <IDL::String>& envp, const IDL::String& work_dir,
+		IDL::Sequence <IDL::String>& argv, const IDL::String& work_dir,
 		const FileDescriptors& inherit, ProcessCallback::_ptr_type callback) :
 		state_ (INIT),
 		ret_ (-1),
 		executable_ (file),
 		argv_ (std::move (argv)),
-		envp_ (std::move (envp)),
 		callback_ (callback),
-		mem_context_ (MemContext::create (MemContext::current ().heap ()))
+		mem_context_ (MemContext::create (MemContext::current ().heap ())),
+		exec_domain_ (nullptr)
 	{
 		Ref <MemContext> tmp (mem_context_);
 		ExecDomain& ed = ExecDomain::current ();
@@ -176,7 +176,7 @@ private:
 
 	int ret_;
 	ImplStatic <Executable> executable_;
-	Strings argv_, envp_;
+	Strings argv_;
 	ProcessCallback::_ref_type callback_;
 	Nirvana::Process::_ref_type proxy_;
 	Ref <MemContext> mem_context_;
