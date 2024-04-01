@@ -91,7 +91,7 @@ void Startup::run ()
 		try {
 			console_access = console->open (O_RDWR, 0);
 		} catch (...) {}*/
-		InheritedFiles files;
+		FileDescriptors files;
 		files.emplace_back (console_access, IDL::Sequence <uint16_t> ({ 1, 2 }));
 
 		IDL::String exe_path = argv [0];

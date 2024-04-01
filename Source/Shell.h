@@ -40,11 +40,23 @@ class Static_the_shell :
 {
 public:
 	static Process::_ref_type spawn (AccessDirect::_ptr_type file,
-		StringSeq& argv, StringSeq& envp, IDL::String& work_dir, InheritedFiles& inherit,
+		StringSeq& argv, StringSeq& envp, IDL::String& work_dir, FileDescriptors& files,
 		ProcessCallback::_ref_type callback)
 	{
-		return Core::Process::spawn (file, argv, envp, work_dir, inherit, callback);
+		return Core::Process::spawn (file, argv, envp, work_dir, files, callback);
 	}
+
+	static short run_cmdlet (const IDL::String& name, StringSeq& argv, StringSeq& envp,
+		IDL::String& work_dir, FileDescriptors& files)
+	{
+		throw_NO_IMPLEMENT ();
+	}
+
+	static void create_pipe (AccessChar::_ref_type& pipe_out, AccessChar::_ref_type& pipe_in)
+	{
+		throw_NO_IMPLEMENT ();
+	}
+
 };
 
 }

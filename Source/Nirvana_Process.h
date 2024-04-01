@@ -93,7 +93,7 @@ public:
 
 	static Nirvana::Process::_ref_type spawn (AccessDirect::_ptr_type file,
 		IDL::Sequence <IDL::String>& argv, IDL::Sequence <IDL::String>& envp, const IDL::String& work_dir,
-		const InheritedFiles& inherit, ProcessCallback::_ptr_type callback)
+		const FileDescriptors& inherit, ProcessCallback::_ptr_type callback)
 	{
 		CORBA::servant_reference <Process> servant = CORBA::make_reference <Process> (
 			std::ref (file), std::ref (argv), std::ref (envp), std::ref (work_dir), std::ref (inherit), callback);
@@ -121,7 +121,7 @@ private:
 	// Constructor. Do not call directly.
 	Process (AccessDirect::_ptr_type file,
 		IDL::Sequence <IDL::String>& argv, IDL::Sequence <IDL::String>& envp, const IDL::String& work_dir,
-		const InheritedFiles& inherit, ProcessCallback::_ptr_type callback) :
+		const FileDescriptors& inherit, ProcessCallback::_ptr_type callback) :
 		state_ (INIT),
 		ret_ (-1),
 		executable_ (file),

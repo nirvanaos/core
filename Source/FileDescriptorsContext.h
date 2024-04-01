@@ -33,7 +33,7 @@
 #include <Nirvana/posix_defs.h>
 #include "UserObject.h"
 #include "UserAllocator.h"
-#include <Nirvana/Shell.h> // For InheritedFiles
+#include <Nirvana/Shell.h> // For FileDescriptors
 
 namespace Nirvana {
 namespace Core {
@@ -149,10 +149,10 @@ public:
 		get_open_fd (ifd).ptr ()->clearerr ();
 	}
 
-	void set_inherited_files (const InheritedFiles& inh)
+	void set_inherited_files (const FileDescriptors& files)
 	{
 		size_t max = 0;
-		for (const auto& f : inh) {
+		for (const auto& f : files) {
 			for (auto d : f.descriptors ()) {
 				if (max < d)
 					max = d;
@@ -160,7 +160,7 @@ public:
 		}
 		if (max >= StandardFileDescriptor::STD_CNT)
 			file_descriptors_.resize (max + 1 - StandardFileDescriptor::STD_CNT);
-		for (const auto& f : inh) {
+		for (const auto& f : files) {
 			DescriptorRef fd = make_fd (f.access ());
 			fd->remove_descriptor_ref ();
 			for (auto d : f.descriptors ()) {
