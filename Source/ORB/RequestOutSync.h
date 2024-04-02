@@ -119,6 +119,8 @@ public:
 	virtual void invoke () override
 	{
 		RequestOutSyncBase::pre_invoke ();
+		// Base::invoke () performs the actual send message.
+		// SyncDomain is leaved here so message sending does not block other request processing.
 		Base::invoke ();
 		RequestOutSyncBase::post_invoke ();
 	}
@@ -130,9 +132,9 @@ protected:
 		RequestOutSyncBase::post_finalize ();
 	}
 
-	virtual void unmarshal_end () override
+	virtual void unmarshal_end (bool no_check_size) override
 	{
-		Base::unmarshal_end ();
+		Base::unmarshal_end (no_check_size);
 		RequestOutSyncBase::post_unmarshal_end ();
 	}
 

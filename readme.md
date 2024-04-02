@@ -41,6 +41,14 @@ Package, by John R. Hauser](https://github.com/ucb-bar/berkeley-softfloat-3).
 
 Interface repository module.
 
+### dbc
+
+Database connectivity module.
+
+### SQLite
+
+SQLite database driver module.
+
 ## How to build
 The Nirvana core executable builded from the 3 parts:
 * LibCore

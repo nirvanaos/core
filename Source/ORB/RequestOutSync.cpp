@@ -54,9 +54,6 @@ void RequestOutSyncBase::pre_invoke ()
 
 void RequestOutSyncBase::post_finalize () noexcept
 {
-	if (!base_.status_no_exception ())
-		sync_domain_after_unmarshal_ = nullptr;
-
 	if (state_.exchange (State::FINALIZED) == State::SUSPENDED)
 		source_exec_domain_->resume ();
 }

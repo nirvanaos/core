@@ -260,11 +260,11 @@ bool RequestOut::get_exception (Any& e)
 			stream_in_->read (4, 8, 8, 1, &system_exception_data_);
 			if (stream_in_->other_endian ())
 				Type <SystemException::_Data>::byteswap (system_exception_data_);
-			
+
 			ee = SystemException::_get_exception_entry (id);
 			if (!ee) {
 				ee = SystemException::_get_exception_entry (SystemException::EC_UNKNOWN);
-				system_exception_data_.minor = MAKE_OMG_MINOR (1);
+				system_exception_data_.minor = MAKE_OMG_MINOR (2); // Non-standard System Exception not supported.
 			}
 		}
 		std::aligned_storage <sizeof (SystemException), alignof (SystemException)>::type buf;
@@ -272,6 +272,7 @@ bool RequestOut::get_exception (Any& e)
 		SystemException& se = reinterpret_cast <SystemException&> (buf);
 		se.minor (system_exception_data_.minor);
 		se.completed (system_exception_data_.completed);
+		unmarshal_end (true);
 		e <<= se;
 	}
 	return true;
@@ -280,7 +281,9 @@ bool RequestOut::get_exception (Any& e)
 		IDL::String id;
 		stream_in_->read_string (id);
 		TypeCode::_ptr_type tc;
-		for (auto p = metadata_.user_exceptions.p, end = p + metadata_.user_exceptions.size; p != end; ++p) {
+		for (auto p = metadata_.user_exceptions.p, end = p + metadata_.user_exceptions.size; p != end;
+			++p)
+		{
 			TypeCode::_ptr_type tcp = (*p) ();
 			if (RepId::compatible (tcp->id (), id)) {
 				tc = tcp;
@@ -289,9 +292,10 @@ bool RequestOut::get_exception (Any& e)
 		}
 		if (tc) {
 			Type <Any>::unmarshal (tc, _get_ptr (), e);
+			unmarshal_end (true);
 			return true;
 		} else
-			unknown_minor = MAKE_OMG_MINOR (2);
+			unknown_minor = MAKE_OMG_MINOR (1); // Unlisted user exception received by client.
 	} break;
 
 	default:
@@ -299,6 +303,7 @@ bool RequestOut::get_exception (Any& e)
 		// If status_ is other than NO_EXCEPTION, SYSTEM_EXCEPTION or USER_EXCEPTION
 		// we return UNKNOWN with minor = 0
 	}
+	unmarshal_end (true);
 	e <<= UNKNOWN (unknown_minor);
 	return true;
 }

@@ -279,7 +279,7 @@ void RequestIn::serve (const ServantProxyBase& proxy)
 	}
 }
 
-void RequestIn::unmarshal_end ()
+void RequestIn::unmarshal_end (bool no_check_size)
 {
 	if (has_context_) {
 		IDL::Sequence <IDL::String> context;
@@ -287,7 +287,7 @@ void RequestIn::unmarshal_end ()
 		ExecDomain::current ().set_context (context);
 	}
 
-	RequestGIOP::unmarshal_end ();
+	RequestGIOP::unmarshal_end (no_check_size);
 
 	// Here we must enter the target sync domain, if any.
 	SyncDomain* sd;

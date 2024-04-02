@@ -381,7 +381,7 @@ public:
 	/// End of input data marshaling.
 	/// 
 	/// Marshaling resources may be released.
-	virtual void unmarshal_end ();
+	virtual void unmarshal_end (bool no_check_size = false);
 
 	/// Return exception to caller.
 	/// Operation has move semantics so \p e may be cleared.

@@ -158,7 +158,7 @@ private:
 	virtual void invoke () override;
 	virtual bool get_exception (Any& e) override;
 
-	virtual void unmarshal_end () override;
+	virtual void unmarshal_end (bool no_check_size) override;
 	virtual bool marshal_op () override;
 
 	void switch_to_reply (GIOP::ReplyStatusType status = GIOP::ReplyStatusType::NO_EXCEPTION);

@@ -80,13 +80,13 @@ void RequestGIOP::invoke ()
 	rep_id_map_.clear ();
 }
 
-void RequestGIOP::unmarshal_end ()
+void RequestGIOP::unmarshal_end (bool no_check_size)
 {
 	if (stream_in_) {
 		top_level_tc_unmarshal_.clear ();
 		value_map_.clear ();
 		rep_id_map_.clear ();
-		size_t more_data = stream_in_->end ();
+		size_t more_data = no_check_size ? 0 : stream_in_->end ();
 		stream_in_ = nullptr;
 		if (more_data > 7) // 8-byte alignment is ignored
 			throw MARSHAL (StreamIn::MARSHAL_MINOR_MORE);
