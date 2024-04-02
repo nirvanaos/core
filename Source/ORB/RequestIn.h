@@ -203,8 +203,8 @@ private:
 	IDL::String operation_;
 	void* map_iterator_;
 
-	/// SyncDomain of the target object.
-	Nirvana::Core::SyncDomain* sync_domain_;
+	/// SyncDomain of the target object to enter after unmarshal_end.
+	Nirvana::Core::SyncDomain* sync_domain_after_unmarshal_;
 
 	size_t reply_status_offset_;
 	size_t reply_header_end_;

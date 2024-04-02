@@ -28,40 +28,114 @@
 #define NIRVANA_ORB_CORE_REQUESTOUTSYNC_H_
 #pragma once
 
-#include "../Event.h"
+#include "RequestOut.h"
+#include <atomic>
 
 namespace CORBA {
 namespace Core {
+
+class RequestOutSyncBase
+{
+protected:
+	RequestOutSyncBase (RequestOut& base) :
+		base_ (base),
+		source_exec_domain_ (&Nirvana::Core::ExecDomain::current ()),
+		sync_domain_after_unmarshal_ (nullptr),
+		wait_op_ (std::ref (*this)),
+		state_ (State::INVOKE)
+	{}
+
+	void pre_invoke ();
+
+	void post_invoke () noexcept
+	{
+		Nirvana::Core::ExecContext::run_in_neutral_context (wait_op_);
+	}
+
+	void post_finalize () noexcept;
+
+	void post_unmarshal_end ()
+	{
+		// Here we must enter the target sync domain, if any.
+		Nirvana::Core::SyncDomain* sd;
+		if ((sd = sync_domain_after_unmarshal_)) {
+			sync_domain_after_unmarshal_ = nullptr;
+			source_exec_domain_->schedule_return (*sd);
+		}
+	}
+
+private:
+	RequestOut& base_;
+
+	// Source execution domain to resume.
+	Nirvana::Core::ExecDomain* source_exec_domain_;
+
+	// Source synchronization domain to enter after unmarshal.
+	Nirvana::Core::SyncDomain* sync_domain_after_unmarshal_;
+
+	class WaitOp : public Nirvana::Core::Runnable
+	{
+	public:
+		WaitOp (RequestOutSyncBase& obj) :
+			obj_ (obj)
+		{}
+
+	private:
+		virtual void run ();
+
+	private:
+		RequestOutSyncBase& obj_;
+	};
+
+	WaitOp wait_op_;
+
+	enum class State
+	{
+		INVOKE,
+		SUSPENDED,
+		FINALIZED
+	};
+
+	std::atomic <State> state_;
+};
 
 /// \brief Synchronous outgoing request.
 /// 
 /// \typeparam Rq Base request class, derived from RequestOut.
 template <class Rq>
-class RequestOutSync : public Rq
+class RequestOutSync :
+	public Rq,
+	public RequestOutSyncBase
 {
 	typedef Rq Base;
 
 public:
 	RequestOutSync (unsigned response_flags, Domain& target_domain,
 		const IOP::ObjectKey& object_key, const Internal::Operation& metadata, ReferenceRemote* ref) :
-		Base (response_flags, target_domain, object_key, metadata, ref)
+		Base (response_flags, target_domain, object_key, metadata, ref),
+		RequestOutSyncBase (static_cast <RequestOut&> (*this))
 	{}
 
 	virtual void invoke () override
 	{
+		RequestOutSyncBase::pre_invoke ();
 		Base::invoke ();
-		event_.wait ();
+		RequestOutSyncBase::post_invoke ();
 	}
 
 protected:
 	virtual void finalize () noexcept override
 	{
 		Base::finalize ();
-		event_.signal ();
+		RequestOutSyncBase::post_finalize ();
 	}
 
-private:
-	Nirvana::Core::Event event_;
+	virtual void unmarshal_end () override
+	{
+		Base::unmarshal_end ();
+		RequestOutSyncBase::post_unmarshal_end ();
+	}
+
 };
 
 }

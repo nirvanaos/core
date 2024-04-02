@@ -55,7 +55,7 @@ CallbackRef::CallbackRef (Internal::Interface::_ptr_type callback, const ProxyMa
 	}
 }
 
-void CallbackRef::call (const Operation& metadata, IORequest::_ptr_type rq)
+void CallbackRef::call (const Operation& metadata, IORequest::_ptr_type rq) noexcept
 {
 	Interface::_ref_type cb = std::move (callback_);
 	assert (cb);
@@ -64,8 +64,15 @@ void CallbackRef::call (const Operation& metadata, IORequest::_ptr_type rq)
 
 	if (is_handler ())
 		call_handler (metadata, rq, static_cast <Object*> (&Interface::_ptr_type (cb)), handler_op_idx_);
-	else
-		static_cast <RequestCallback*> (&Interface::_ptr_type (cb))->completed (rq);
+	else {
+		try {
+			static_cast <RequestCallback*> (&Interface::_ptr_type (cb))->completed (rq);
+		} catch (...) {
+			// We have no cases to handle this situation.
+			assert (false);
+			// TODO: Log
+		}
+	}
 }
 
 }

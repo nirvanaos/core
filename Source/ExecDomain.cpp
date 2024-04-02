@@ -410,13 +410,13 @@ void ExecDomain::Schedule::run ()
 	}
 }
 
-void ExecDomain::suspend_prepare (SyncContext* resume_context)
+void ExecDomain::suspend_prepare (SyncContext* resume_context, bool push_qnode)
 {
 	assert (Thread::current ().exec_domain () == this);
 	assert (!dbg_suspend_prepared_);
 	SyncDomain* sync_domain = sync_context_->sync_domain ();
 	if (sync_domain) {
-		if (!resume_context)
+		if (!resume_context || push_qnode)
 			ret_qnode_push (*sync_domain);
 		sync_domain->leave ();
 	}

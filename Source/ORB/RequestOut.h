@@ -84,6 +84,16 @@ public:
 	void set_system_exception (SystemException::Code code, uint32_t minor, CompletionStatus completed)
 		noexcept;
 
+	const Internal::Operation& metadata () const noexcept
+	{
+		return metadata_;
+	}
+
+	bool status_no_exception () const noexcept
+	{
+		return Status::NO_EXCEPTION == status_;
+	}
+
 protected:
 	RequestOut (unsigned response_flags, Domain& target_domain,
 		const Internal::Operation& metadata, ReferenceRemote* ref);
@@ -103,11 +113,6 @@ protected:
 	virtual void finalize () noexcept
 	{
 		timer_.cancel ();
-	}
-
-	const Internal::Operation& metadata () const noexcept
-	{
-		return metadata_;
 	}
 
 private:

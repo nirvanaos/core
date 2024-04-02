@@ -45,7 +45,7 @@ RequestIn::RequestIn (const DomainAddress& client, unsigned GIOP_minor) :
 	RequestGIOP (GIOP_minor, 0, nullptr),
 	key_ (client),
 	map_iterator_ (nullptr),
-	sync_domain_ (nullptr),
+	sync_domain_after_unmarshal_ (nullptr),
 	reply_status_offset_ (0),
 	reply_header_end_ (0),
 	cancelled_ (false),
@@ -262,7 +262,7 @@ void RequestIn::serve (const ServantProxyBase& proxy)
 		// Do not enter synchronization domain immediately.
 		// We push memory context now and will enter sync_domain_
 		// in unmarshal_end () when all input objects unmarshaled.
-		sync_domain_ = sync_domain;
+		sync_domain_after_unmarshal_ = sync_domain;
 		ExecDomain& ed = ExecDomain::current ();
 		SyncContext& ret_context = ed.sync_context ();
 		ed.mem_context_push (&sync_domain->mem_context ());
@@ -281,18 +281,18 @@ void RequestIn::serve (const ServantProxyBase& proxy)
 
 void RequestIn::unmarshal_end ()
 {
-	RequestGIOP::unmarshal_end ();
-
 	if (has_context_) {
 		IDL::Sequence <IDL::String> context;
 		Type <IDL::Sequence <IDL::String> >::unmarshal (_get_ptr (), context);
 		ExecDomain::current ().set_context (context);
 	}
 
+	RequestGIOP::unmarshal_end ();
+
 	// Here we must enter the target sync domain, if any.
 	SyncDomain* sd;
-	if ((sd = sync_domain_)) {
-		sync_domain_ = nullptr;
+	if ((sd = sync_domain_after_unmarshal_)) {
+		sync_domain_after_unmarshal_ = nullptr;
 		ExecDomain::current ().schedule_call_no_push_mem (*sd);
 	}
 }

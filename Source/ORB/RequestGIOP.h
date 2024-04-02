@@ -453,6 +453,7 @@ protected:
 	/// \param GIOP_minor GIOP minor version number.
 	/// \param response_flags Response flags
 	/// \param domain Domain pointer for outgoing request, `nullptr` for incoming request.
+	///        For the incoming requests, domain_ will be set in RequestIn::create_output ().
 	RequestGIOP (unsigned GIOP_minor, unsigned response_flags, Domain* domain);
 
 	RequestGIOP (const RequestGIOP&) = delete;

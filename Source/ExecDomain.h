@@ -174,8 +174,10 @@ public:
 	/// Prepare for suspend
 	/// 
 	/// \param resume_context Context where to resume or nullptr for current context.
+	/// \param push_qnode Force qnode_push if current context is SyncDomain
+	///        and resume_context != nullptr;
 	/// 
-	void suspend_prepare (SyncContext* resume_context = nullptr);
+	void suspend_prepare (SyncContext* resume_context = nullptr, bool push_qnode = false);
 
 	/// Suspend execution.
 	/// 
