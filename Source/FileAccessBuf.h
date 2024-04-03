@@ -269,8 +269,6 @@ size_t FileAccessBuf::read (void* p, size_t cb)
 
 	FileSize pos = position ();
 	Bytes::const_iterator src = get_buffer_read (pos, cb);
-	if (src == buffer ().end ())
-		return 0;
 
 	uint8_t* dst = (uint8_t*)p;
 
@@ -278,7 +276,7 @@ size_t FileAccessBuf::read (void* p, size_t cb)
 
 		// Translate line end
 
-		do {
+		while (buffer ().end () != src) {
 			size_t cbr = buffer ().end () - src;
 			if (cbr > cb)
 				cbr = cb;
@@ -307,7 +305,8 @@ size_t FileAccessBuf::read (void* p, size_t cb)
 						
 						// 2 character EOL
 						if (buffer ().end () == src) {
-							if (buffer ().end () == (src = get_buffer_read (pos, cb)))
+							src = get_buffer_read (pos, cb);
+							if (buffer ().end () == src)
 								goto exitloop;
 						}
 
@@ -322,11 +321,15 @@ size_t FileAccessBuf::read (void* p, size_t cb)
 					}
 				}
 			} while (cbr);
-		} while (cb && ((src = get_buffer_read (pos, cb)) != buffer ().end ()));
+
+			if (!cb)
+				break;
+			src = get_buffer_read (pos, cb);
+		}
 
 	} else {
 		// No line end translation
-		do {
+		while (buffer ().end () != src) {
 			size_t cbr = buffer ().end () - src;
 			if (cbr > cb)
 				cbr = cb;
@@ -334,7 +337,11 @@ size_t FileAccessBuf::read (void* p, size_t cb)
 			dst += cbr;
 			cb -= cbr;
 			pos += cbr;
-		} while (cb && ((src = get_buffer_read (pos, cb)) != buffer ().end ()));
+
+			if (!cb)
+				break;
+			src = get_buffer_read (pos, cb);
+		}
 	}
 
 exitloop:
