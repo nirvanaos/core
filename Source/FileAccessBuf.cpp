@@ -125,7 +125,12 @@ uint_fast16_t FileAccessBuf::check_flags (uint_fast16_t f) const
 
 Bytes::const_iterator FileAccessBuf::get_buffer_read (FileSize pos, size_t cb)
 {
-	if (pos < buf_pos () || pos >= (buf_pos () + buffer ().size ())) {
+	while (pos < buf_pos () || pos >= (buf_pos () + buffer ().size ())) {
+		// Out of the old buffer. We must drop old buffer and read a new.
+		
+		if (flush_internal ())
+			continue; // Buffer position may be changed, do new check
+
 		FileSize new_buf_pos = round_down (pos, (FileSize)block_size ());
 		size_t new_buf_size = cb + (size_t)(pos - new_buf_pos);
 		size_t mbs = min_buf_size ();
@@ -134,48 +139,55 @@ Bytes::const_iterator FileAccessBuf::get_buffer_read (FileSize pos, size_t cb)
 		else
 			new_buf_size = round_up (new_buf_size, (size_t)block_size ());
 		Bytes new_buf;
-		access ()->read (new_buf_pos, (uint32_t)new_buf_size, new_buf);
+		access ()->read (new_buf_pos, (uint32_t)limit32 (new_buf_size), new_buf);
 		if (new_buf.empty ())
 			return buffer ().end ();
 
 		buf_pos (new_buf_pos);
 		buffer (std::move (new_buf));
+
+		break;
 	}
 	return buffer ().begin () + (size_t)(pos - buf_pos ());
 }
 
 Bytes::iterator FileAccessBuf::get_buffer_write (FileSize pos, size_t cb)
 {
-	bool drop_buffer = pos < buf_pos ();
+	for (;;) {
+		bool drop_buffer = pos < buf_pos ();
 
-	if (!drop_buffer) {
-		FileSize buf_off = pos - buf_pos ();
-		FileSize max_buf_off = std::min (buffer ().size (), min_buf_size () - 1);
-		drop_buffer = buf_off > max_buf_off;
-	}
-	
-	if (drop_buffer) {
-		
-		flush_internal ();
-		
-		FileSize new_buf_pos = round_down (pos, (FileSize)block_size ());
-		uint32_t read_size = pos % block_size ();
-		if ((size_t)read_size + cb < (size_t)block_size ())
-			read_size = block_size ();
-		if (read_size) {
-			Bytes new_buf;
-			access ()->read (new_buf_pos, read_size, new_buf);
-			buffer (std::move (new_buf));
-		} else
-			buffer ().clear ();
+		if (!drop_buffer) {
+			FileSize buf_off = pos - buf_pos ();
+			if (buf_off > buffer ().size ())
+				drop_buffer = true;
+			else if (buf_off >= min_buf_size ())
+				drop_buffer = true;
+		}
 
-		buf_pos (new_buf_pos);
+		if (drop_buffer) {
+
+			if (flush_internal ())
+				continue; // Buffer position may be changed, do new check
+
+			FileSize new_buf_pos = round_down (pos, (FileSize)block_size ());
+			size_t read_size = pos - new_buf_pos;
+			if (read_size + cb < min_buf_size ())
+				read_size = min_buf_size ();
+			if (read_size) {
+				Bytes new_buf;
+				access ()->read (new_buf_pos, (uint32_t)read_size, new_buf);
+				buffer (std::move (new_buf));
+			} else
+				buffer ().clear ();
+
+			buf_pos (new_buf_pos);
+		}
+
+		break;
 	}
 
 	size_t buf_offset = pos - buf_pos ();
-	size_t buf_end = cb + buf_offset;
-	if (buf_end > std::numeric_limits <uint32_t>::max ())
-		buf_end = std::numeric_limits <uint32_t>::max () / 2 + 1;
+	size_t buf_end = limit32 (cb + buf_offset);
 	if (buffer ().size () < buf_end) {
 		size_t res_buf_size = buf_end;
 		size_t mbs = min_buf_size ();
@@ -214,38 +226,47 @@ void FileAccessBuf::write_internal (const void* p, size_t cb)
 	Servant::position (pos);
 }
 
-void FileAccessBuf::flush_internal (bool sync)
+bool FileAccessBuf::flush_internal (bool sync)
 {
 	assert (buffer ().size () <= std::numeric_limits <uint32_t>::max ());
 	if (dirty ()) {
 		if (!sync)
 			sync = flags () & O_SYNC;
 
-		if (dirty_begin_ == 0 && dirty_end_ == buffer ().size ())
+		assert (dirty_begin_ < buffer ().size () && dirty_end_ <= buffer ().size ());
+		if (dirty_begin_ == 0 && dirty_end_ == buffer ().size ()) {
+			reset_dirty ();
 			direct ()->write (buf_pos (), buffer (), sync);
-		else {
+		} else {
 			Bytes tmp (buffer ().data () + dirty_begin_, buffer ().data () + dirty_end_);
-			direct ()->write (buf_pos () + dirty_begin_, tmp, sync);
+			FileSize pos = buf_pos () + dirty_begin_;
+			reset_dirty ();
+			direct ()->write (pos, tmp, sync);
 		}
-		reset_dirty ();
+		return true;
 	}
+	return false;
 }
 
 void FileAccessBuf::shrink_buffer ()
 {
 	size_t mbs = min_buf_size ();
-	if (buffer ().size () > mbs) {
+	while (buffer ().size () > mbs) {
 		size_t drop_size = round_down (buffer ().size () - mbs, (size_t)block_size ());
 		if (drop_size) {
-			if (dirty_begin_ < drop_size)
-				flush_internal ();
+			if (dirty_begin_ < drop_size && flush_internal ())
+				continue; // Buffer position may be changed, do new check
+
 			buffer ().erase (buffer ().begin (), buffer ().begin () + drop_size);
+			buffer ().shrink_to_fit ();
 			buf_pos (buf_pos () + drop_size);
 			if (dirty ()) {
 				dirty_begin_ -= drop_size;
 				dirty_end_ -= drop_size;
 			}
 		}
+
+		break;
 	}
 }
 

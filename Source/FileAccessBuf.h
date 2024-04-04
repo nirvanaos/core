@@ -227,7 +227,7 @@ private:
 	void check_write () const;
 	uint_fast16_t check_flags (uint_fast16_t f) const;
 
-	void flush_internal (bool sync = false);
+	bool flush_internal (bool sync = false);
 
 	Bytes::const_iterator get_buffer_read (FileSize pos, size_t cb);
 	Bytes::iterator get_buffer_write (FileSize pos, size_t cb);
@@ -241,6 +241,13 @@ private:
 	}
 
 	void shrink_buffer ();
+
+	static size_t limit32 (size_t size) noexcept
+	{
+		if (sizeof (size_t) > sizeof (uint32_t) && size > (size_t)std::numeric_limits <uint32_t>::max ())
+			size = 0x80000000;
+		return size;
+	}
 
 #ifndef NDEBUG
 
