@@ -31,6 +31,7 @@
 #include <CORBA/Server.h>
 #include <Nirvana/Domains_s.h>
 #include <Nirvana/NDBC.h>
+#include <Nirvana/Installer.h>
 #include <Port/SysDomain.h>
 #include "NameService/FileSystem.h"
 #include "Binder.h"
@@ -86,6 +87,11 @@ public:
 		ModuleLoad& module_load = bind_info.module_load ();
 		module_load.binary (open_system_binary (platform, module_name));
 		module_load.module_id (module_id);
+	}
+
+	Installer::_ref_type get_installer ()
+	{
+		return nullptr;
 	}
 
 	static IDL::traits <AccessDirect>::ref_type open_binary (CosNaming::NamingContextExt::_ptr_type ns,

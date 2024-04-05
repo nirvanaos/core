@@ -4,3 +4,4 @@
 /Source/IDL/
 /dbc/NDBC_p.cpp
 /InterfaceRepository/InterfaceRepository_p.cpp
+/Installer/Installer_p.cpp
