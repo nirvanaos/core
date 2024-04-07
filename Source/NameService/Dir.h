@@ -163,7 +163,16 @@ public:
 
 	CosNaming::NamingContext::_ref_type bind_new_context (CosNaming::Name& n)
 	{
-		return mkdir (n, 0);
+		check_name (n);
+		DirItemId id;
+		try {
+			if (!Base::create_dir (n, S_IRWXU | S_IRWXG | S_IRWXO, &id))
+				throw CosNaming::NamingContext::AlreadyBound ();
+		} catch (const CORBA::OBJECT_NOT_EXIST&) {
+			etherealize ();
+			throw;
+		}
+		return FileSystem::get_dir (id);
 	}
 
 	void list (uint32_t how_many, CosNaming::BindingList& bl, CosNaming::BindingIterator::_ref_type& bi)
@@ -262,7 +271,16 @@ public:
 	void opendir (const IDL::String& regexp, unsigned flags,
 		uint32_t how_many, DirEntryList& l, DirIterator::_ref_type& di);
 
-	Nirvana::Dir::_ref_type mkdir (CosNaming::Name& n, uint_fast16_t mode);
+	bool mkdir (CosNaming::Name& n, uint_fast16_t mode)
+	{
+		check_name (n);
+		try {
+			return Base::create_dir (n, mode, nullptr);
+		} catch (const CORBA::OBJECT_NOT_EXIST&) {
+			etherealize ();
+			throw;
+		}
+	}
 
 	uint_fast16_t access (CosNaming::Name& n)
 	{

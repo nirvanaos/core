@@ -157,7 +157,7 @@ public:
 		throw CORBA::NO_IMPLEMENT ();
 	}
 
-	Nirvana::Dir::_ref_type mkdir (CosNaming::Name& n, uint_fast16_t mode)
+	bool mkdir (CosNaming::Name& n, uint_fast16_t mode)
 	{
 		check_name (n);
 		Nirvana::Dir::_ref_type dir (resolve_root (n));

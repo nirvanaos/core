@@ -51,9 +51,10 @@ extern const sqlite3_io_methods io_methods;
 class File : public sqlite3_file
 {
 public:
-	File (Nirvana::AccessDirect::_ref_type fa) noexcept :
+	File (Nirvana::AccessDirect::_ref_type fa, bool delete_on_close) noexcept :
 		access_ (std::move (fa)),
-		lock_level_ (Nirvana::LockType::LOCK_NONE)
+		lock_level_ (Nirvana::LockType::LOCK_NONE),
+		delete_on_close_ (delete_on_close)
 	{
 		pMethods = &io_methods;
 	}
@@ -61,8 +62,14 @@ public:
 	int close () noexcept
 	{
 		try {
+			Nirvana::File::_ref_type file_to_delete;
+			if (delete_on_close_) {
+				file_to_delete = access_->file ();
+			}
 			access_->close ();
 			access_ = nullptr;
+			if (file_to_delete)
+				file_to_delete->remove ();
 		} catch (...) {
 		}
 		return SQLITE_OK;
@@ -221,6 +228,7 @@ public:
 private:
 	Nirvana::AccessDirect::_ref_type access_;
 	Nirvana::LockType lock_level_;
+	bool delete_on_close_;
 
 	typedef std::unordered_map <sqlite3_int64, NDBC::Blob> Cache;
 	Cache cache_;
@@ -326,24 +334,15 @@ const sqlite3_io_methods io_methods = {
 int xOpen (sqlite3_vfs*, sqlite3_filename zName, sqlite3_file* file,
 	int flags, int* pOutFlags) noexcept
 {
-	Nirvana::Access::_ref_type fa;
+	Nirvana::AccessDirect::_ref_type fa;
 	try {
-		uint_fast16_t open_flags = O_DIRECT;
-		if (flags & SQLITE_OPEN_READWRITE)
-			open_flags |= O_RDWR;
-		if (flags & SQLITE_OPEN_CREATE)
-			open_flags |= O_CREAT;
-		if (flags & SQLITE_OPEN_EXCLUSIVE)
-			open_flags |= O_EXCL;
-
-		fa = global.open_file (zName, open_flags);
-
+		fa = global.open_file (zName, flags);
 	} catch (CORBA::NO_MEMORY ()) {
 		return SQLITE_NOMEM;
 	} catch (...) {
 		return SQLITE_CANTOPEN;
 	}
-	new (file) File (Nirvana::AccessDirect::_narrow (fa->_to_object ()));
+	new (file) File (fa, flags & SQLITE_OPEN_DELETEONCLOSE);
 	return SQLITE_OK;
 }
 

@@ -46,7 +46,7 @@ public:
 		return file_system_;
 	}
 
-	Nirvana::Access::_ref_type open_file (const char* url, uint_fast16_t flags) const;
+	Nirvana::AccessDirect::_ref_type open_file (const char* path, uint_fast16_t flags) const;
 
 	WritableStaticData& static_data ();
 
