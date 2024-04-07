@@ -77,6 +77,8 @@ private:
 void InstallerImpl::Singleton::create_database (Statement::_ptr_type st)
 {
 	st->executeUpdate (
+		"BEGIN;"
+
 		"CREATE TABLE IF NOT EXISTS packages(id INTEGER PRIMARY KEY AUTOINCREMENT,name TEXT UNIQUE);"
 
 		"CREATE TABLE IF NOT EXISTS modules(id INTEGER PRIMARY KEY AUTOINCREMENT,name TEXT UNIQUE,"
@@ -91,7 +93,9 @@ void InstallerImpl::Singleton::create_database (Statement::_ptr_type st)
 		"CREATE TABLE IF NOT EXISTS objects(name TEXT, version INTEGER,"
 		"module INTEGER REFERENCES modules(id), flags INTEGER, PRIMARY KEY(name,version));"
 
-		//"PRAGMA user_version=" STRINGIZE (DATABASE_VERSION) ";"
+		"PRAGMA user_version=" STRINGIZE (DATABASE_VERSION) ";"
+
+		"END;"
 	);
 }
 

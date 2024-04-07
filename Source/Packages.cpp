@@ -31,7 +31,7 @@
 namespace Nirvana {
 namespace Core {
 
-const char Packages::database_url_ [] = "file:/var/lib/packages.db?mode=r";
+const char Packages::database_url_ [] = "file:/var/lib/packages.db?mode=ro";
 
 const char* const Packages::sys_module_names_ [MODULE_INSTALLER] = {
 	"DecCalc.olf",
