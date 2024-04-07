@@ -34,7 +34,7 @@ extern "C" {
 namespace CORBA {
 namespace Internal {
 
-class Static_g_sfloat16 : public IDL::traits <SFloat16>::ServantStatic <Static_g_sfloat16>
+class Static_sfloat_16 : public IDL::traits <SFloat16>::ServantStatic <Static_sfloat_16>
 {
 public:
 	static uint16_t from_double (const NativeDouble& x, FloatIEEE& f)
@@ -164,5 +164,5 @@ public:
 }
 }
 
-NIRVANA_EXPORT_PSEUDO (_exp_CORBA_Internal_g_sfloat16, CORBA::Internal::Static_g_sfloat16)
+NIRVANA_EXPORT_PSEUDO (_exp_CORBA_Internal_sfloat_16, CORBA::Internal::Static_sfloat_16)
 

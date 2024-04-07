@@ -146,6 +146,7 @@ void Binder::terminate ()
 	SYNC_BEGIN (sync_domain (), nullptr);
 	initialized_ = false;
 	singleton_->packages_ = nullptr;
+	singleton_->name_service_ = nullptr;
 	singleton_->unload_modules ();
 	SYNC_END ();
 	Section metadata;
@@ -199,13 +200,13 @@ const ModuleStartup* Binder::module_bind (::Nirvana::Module::_ptr_type mod, cons
 						ImportInterface* ps = reinterpret_cast <ImportInterface*> (it.cur ());
 						assert (!ps->itf);
 						ObjectKey key (ps->name);
-						if (key == k_gmodule) {
+						if (key.name_eq (k_gmodule)) {
 							assert (mod);
 							if (!k_gmodule.compatible (key))
 								invalid_metadata ();
 							module_entry = ps;
 							break;
-						} else if (!mod_context && key == k_object_factory)
+						} else if (!mod_context && key.name_eq (k_object_factory))
 							invalid_metadata (); // Process can not import ObjectFactory interface
 					}
 					flags |= MetadataFlags::IMPORT_INTERFACES;
@@ -375,11 +376,15 @@ void Binder::delete_module (Module* mod) noexcept
 }
 
 Ref <Module> Binder::load (int32_t mod_id, AccessDirect::_ref_type binary,
-	const IDL::String& mod_path, CosNaming::NamingContextExt::_ref_type name_service,
+	const IDL::String& mod_path, CosNaming::NamingContextExt::_ptr_type name_service,
 	bool singleton)
 {
 	if (!initialized_)
 		throw_INITIALIZE ();
+
+	if (name_service && !name_service_)
+		name_service_ = name_service;
+
 	Module* mod = nullptr;
 	auto ins = module_map_.emplace (mod_id, MODULE_LOADING_DEADLINE_MAX);
 	ModuleMap::reference entry = *ins.first;
@@ -392,11 +397,11 @@ Ref <Module> Binder::load (int32_t mod_id, AccessDirect::_ref_type binary,
 			
 			if (!binary) {
 				
-				if (!name_service)
-					name_service = CosNaming::NamingContextExt::_narrow (CORBA::Core::Services::bind (
+				if (!name_service_)
+					name_service_ = CosNaming::NamingContextExt::_narrow (CORBA::Core::Services::bind (
 						CORBA::Core::Services::NameService));
 
-				binary = Packages::open_binary (name_service, mod_path);
+				binary = Packages::open_binary (name_service_, mod_path);
 			}
 
 			if (singleton)
@@ -536,36 +541,50 @@ Binder::InterfaceRef Binder::find (const ObjectKey& name)
 			throw_OBJECT_NOT_EXIST ();
 		itf = object_map_.find (name);
 		if (!itf) {
-			if (!packages_)
-				packages_ = SysDomain::_narrow (Services::bind (Services::SysDomain))->provide_packages ();
-			BindInfo bind_info;
-			packages_->get_bind_info (name.name (), PLATFORM, bind_info);
-			if (bind_info._d ()) {
-				try {
-					const ModuleLoad& ml = bind_info.module_load ();
-					load (ml.module_id (), ml.binary (), IDL::String (), nullptr, false);
-				} catch (const SystemException&) {
-					// TODO: Log
-					throw_OBJECT_NOT_EXIST ();
-				}
+
+			IDL::String sys_mod_path;
+			int32_t sys_mod_id = Packages::get_sys_bind_info (
+				CORBA::Internal::StringView <Char> (name.name (), name.name_len ()), sys_mod_path);
+			if (sys_mod_id) {
+
+				load (sys_mod_id, nullptr, sys_mod_path, nullptr, false);
 				itf = object_map_.find (name);
 				if (!itf)
 					throw_OBJECT_NOT_EXIST ();
+
 			} else {
-				Object::_ptr_type obj = bind_info.loaded_object ();
-				ProxyManager* proxy = ProxyManager::cast (obj);
-				if (!proxy)
-					throw_OBJECT_NOT_EXIST ();
-				Reference* ref = proxy->to_reference ();
-				if (ref && !(ref->flags () & Reference::LOCAL)) {
-					ReferenceRemote& rr = static_cast <ReferenceRemote&> (*ref);
-					object_map_.insert (rr.set_object_name (name.name ()), &obj);
-				}
+				if (!packages_)
+					packages_ = SysDomain::_narrow (Services::bind (Services::SysDomain))->provide_packages ();
+
+				BindInfo bind_info;
+				packages_->get_bind_info (name.name (), PLATFORM, bind_info);
+				if (bind_info._d ()) {
+					try {
+						const ModuleLoad& ml = bind_info.module_load ();
+						load (ml.module_id (), ml.binary (), IDL::String (), nullptr, false);
+					} catch (const SystemException&) {
+						// TODO: Log
+						throw_OBJECT_NOT_EXIST ();
+					}
+					itf = object_map_.find (name);
+					if (!itf)
+						throw_OBJECT_NOT_EXIST ();
+				} else {
+					Object::_ptr_type obj = bind_info.loaded_object ();
+					ProxyManager* proxy = ProxyManager::cast (obj);
+					if (!proxy)
+						throw_OBJECT_NOT_EXIST ();
+					Reference* ref = proxy->to_reference ();
+					if (ref && !(ref->flags () & Reference::LOCAL)) {
+						ReferenceRemote& rr = static_cast <ReferenceRemote&> (*ref);
+						object_map_.insert (rr.set_object_name (name.name ()), &obj);
+					}
 #ifndef NDEBUG
-				else
-					assert (object_map_.find (name));
+					else
+						assert (object_map_.find (name));
 #endif
-				return std::move (bind_info.loaded_object ());
+					return std::move (bind_info.loaded_object ());
+				}
 			}
 		}
 	}

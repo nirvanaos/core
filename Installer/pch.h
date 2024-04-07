@@ -8,6 +8,7 @@
 #define PCH_H
 
 // add headers that you want to pre-compile here
+#include <CORBA/Server.h>
 #include <Nirvana/Nirvana.h>
 
 #endif //PCH_H

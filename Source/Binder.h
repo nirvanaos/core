@@ -280,19 +280,24 @@ private:
 			return version_ < rhs.version_;
 		}
 
-		bool operator == (const ObjectKey& rhs) const noexcept
+		bool name_eq (const ObjectKey& rhs) const noexcept
 		{
 			return length_ == rhs.length_ && std::equal (name_, name_ + length_, rhs.name_);
 		}
 
 		bool compatible (const ObjectKey& rhs) const noexcept
 		{
-			return operator == (rhs) && version_.compatible (rhs.version_);
+			return name_eq (rhs) && version_.compatible (rhs.version_);
 		}
 
 		const char* name () const noexcept
 		{
 			return name_;
+		}
+
+		size_t name_len () const noexcept
+		{
+			return length_;
 		}
 
 	private:
@@ -357,7 +362,7 @@ private:
 	NIRVANA_NORETURN static void invalid_metadata ();
 
 	Ref <Module> load (int32_t mod_id, AccessDirect::_ref_type binary, const IDL::String& mod_path,
-		CosNaming::NamingContextExt::_ref_type name_service, bool singleton);
+		CosNaming::NamingContextExt::_ptr_type name_service, bool singleton);
 	void unload (Module* pmod) noexcept;
 
 	CORBA::Object::_ref_type load_and_bind_sync (int32_t mod_id, CORBA::Internal::String_in mod_path,
@@ -401,6 +406,7 @@ private:
 
 private:
 	Packages::_ref_type packages_;
+	CosNaming::NamingContextExt::_ref_type name_service_;
 	ObjectMap object_map_;
 	ModuleMap module_map_;
 	CORBA::Core::RemoteReferences remote_references_;
