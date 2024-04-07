@@ -168,6 +168,17 @@ public:
 			throw NotFound (NotFoundReason::missing_node, std::move (n));
 	}
 
+	uint_fast16_t access (CosNaming::Name& n)
+	{
+		check_name (n);
+		Nirvana::Dir::_ref_type dir (resolve_root (n));
+		if (dir) {
+			n.erase (n.begin ());
+			return dir->access (n);
+		} else
+			return 0;
+	}
+
 	void destroy ()
 	{
 		throw NotEmpty ();
@@ -191,11 +202,6 @@ public:
 	static DirItemId id ()
 	{
 		return DirItemId (1, 0);
-	}
-
-	static uint_fast16_t access () noexcept
-	{
-		return F_OK | R_OK | X_OK;
 	}
 
 	// NamingContextBase

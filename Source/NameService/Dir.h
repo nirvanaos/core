@@ -112,17 +112,6 @@ public:
 		}
 	}
 
-	uint_fast16_t access ()
-	{
-		check_exist ();
-		try {
-			return Base::access ();
-		} catch (const CORBA::OBJECT_NOT_EXIST&) {
-			etherealize ();
-			throw;
-		}
-	}
-
 	void remove ()
 	{
 		check_exist ();
@@ -274,6 +263,17 @@ public:
 		uint32_t how_many, DirEntryList& l, DirIterator::_ref_type& di);
 
 	Nirvana::Dir::_ref_type mkdir (CosNaming::Name& n, uint_fast16_t mode);
+
+	uint_fast16_t access (CosNaming::Name& n)
+	{
+		check_name (n);
+		try {
+			return Base::access (n);
+		} catch (const CORBA::OBJECT_NOT_EXIST&) {
+			etherealize ();
+			throw;
+		}
+	}
 
 private:
 	void check_name (const CosNaming::Name& n) const;

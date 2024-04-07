@@ -372,27 +372,19 @@ extern "C" int xAccess (sqlite3_vfs*, const char* zName, int flags, int* pResOut
 		Nirvana::the_posix->append_path (name, zName, true);
 		// Remove root name
 		name.erase (name.begin ());
-		// Resolve name
-		Nirvana::DirItem::_ref_type item;
-		try {
-			item = Nirvana::DirItem::_narrow (global.file_system ()->resolve (name));
-		} catch (CosNaming::NamingContext::NotFound&) {
+		unsigned mask = 0;
+		switch (flags) {
+		case SQLITE_ACCESS_EXISTS:
+			mask = F_OK;
+			break;
+		case SQLITE_ACCESS_READWRITE:
+			mask = R_OK | W_OK;
+			break;
+		case SQLITE_ACCESS_READ:
+			mask = R_OK;
+			break;
 		}
-		if (item) {
-			unsigned mask = 0;
-			switch (flags) {
-			case SQLITE_ACCESS_EXISTS:
-				mask = F_OK;
-				break;
-			case SQLITE_ACCESS_READWRITE:
-				mask = R_OK | W_OK;
-				break;
-			case SQLITE_ACCESS_READ:
-				mask = R_OK;
-				break;
-			}
-			*pResOut = (item->access () & mask) == mask;
-		}
+		*pResOut = (global.file_system ()->access (name) & mask) == mask;
 	} catch (...) {
 		return SQLITE_ERROR;
 	}

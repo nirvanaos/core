@@ -96,19 +96,6 @@ public:
 			st.size (access_->size ());
 	}
 
-	uint_fast16_t access ()
-	{
-		if (type () == FileType::not_found)
-			return 0;
-
-		try {
-			return Base::access ();
-		} catch (const CORBA::OBJECT_NOT_EXIST&) {
-			etherealize ();
-			throw;
-		}
-	}
-
 	void remove ()
 	{
 		check_exist ();
