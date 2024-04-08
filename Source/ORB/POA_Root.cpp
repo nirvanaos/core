@@ -35,6 +35,8 @@ using namespace CORBA::Core;
 namespace PortableServer {
 namespace Core {
 
+bool POA_Root::shutdown_;
+
 Object::_ref_type POA_Root::create ()
 {
 	auto manager_factory = CORBA::make_reference <POAManagerFactory> ();

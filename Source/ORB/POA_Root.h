@@ -170,6 +170,8 @@ public:
 
 	static void shutdown (CORBA::Object::_ptr_type root)
 	{
+		shutdown_ = true;
+
 		POA::_ref_type adapter = POA::_narrow (root);
 
 		// Deactivate all managers to reject incoming requests.
@@ -180,6 +182,11 @@ public:
 
 		// Block incoming requests and complete currently executed ones.
 		adapter->destroy (true, true);
+	}
+
+	static bool shutdown_started () noexcept
+	{
+		return shutdown_;
 	}
 
 	static CORBA::Object::_ref_type create ();
@@ -194,6 +201,8 @@ private:
 	CORBA::servant_reference <POAManagerFactory> manager_factory_;
 	RandomGen random_gen_;
 	std::uniform_int_distribution <RandomGen::result_type> dist_;
+
+	static bool shutdown_;
 };
 
 inline

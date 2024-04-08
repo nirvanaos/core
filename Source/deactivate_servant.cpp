@@ -25,6 +25,7 @@
 */
 #include "pch.h"
 #include "deactivate_servant.h"
+#include "ORB/POA_Root.h"
 
 namespace Nirvana {
 namespace Core {
@@ -32,12 +33,14 @@ namespace Core {
 void deactivate_servant (PortableServer::Servant servant) noexcept
 {
 	assert (servant);
-	try {
-		PortableServer::POA::_ref_type adapter = servant->_default_POA ();
-		assert (adapter);
-		adapter->deactivate_object (adapter->servant_to_id (servant));
-	} catch (...) {
-		assert (false);
+	if (!PortableServer::Core::POA_Root::shutdown_started ()) {
+		try {
+			PortableServer::POA::_ref_type adapter = servant->_default_POA ();
+			assert (adapter);
+			adapter->deactivate_object (adapter->servant_to_id (servant));
+		} catch (...) {
+			assert (false);
+		}
 	}
 }
 
