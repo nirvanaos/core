@@ -105,7 +105,7 @@ Nirvana::AccessDirect::_ref_type Global::open_file (const char* path, uint_fast1
 
 		if (missing_directories) {
 			for (CosNaming::Name dir_name (name.begin (), name.begin () + name.size () - missing_directories);;) {
-				file_system_->mkdir (dir_name, S_IRWXU | S_IRWXG | S_IRWXO);
+				file_system_->mkdir (dir_name, 0);
 				if (dir_name.size () == name.size () - 1)
 					break;
 				dir_name.push_back (name [dir_name.size ()]);
