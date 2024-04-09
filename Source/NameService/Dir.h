@@ -166,7 +166,7 @@ public:
 		check_name (n);
 		DirItemId id;
 		try {
-			if (!Base::create_dir (n, S_IRWXU | S_IRWXG | S_IRWXO, &id))
+			if (!Base::create_dir (n, 0, &id))
 				throw CosNaming::NamingContext::AlreadyBound ();
 		} catch (const CORBA::OBJECT_NOT_EXIST&) {
 			etherealize ();
