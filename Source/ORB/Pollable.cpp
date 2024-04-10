@@ -41,7 +41,7 @@ Pollable::Pollable () :
 	if (cur_sd)
 		sync_domain_ = cur_sd;
 	else
-		sync_domain_ = Ref <SyncDomain>::create <ImplDynamic <SyncDomainCore> > (
+		sync_domain_ = Ref <SyncDomain>::create <SyncDomainDyn <SyncDomainCore> > (
 			std::ref (Heap::user_heap ()));
 }
 

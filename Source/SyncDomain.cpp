@@ -131,7 +131,7 @@ SyncDomain& SyncDomain::enter ()
 		}
 
 		Ref <SyncDomain> sd = Ref <SyncDomain>::create
-			<ImplDynamic <SyncDomainUser> > (std::ref (sync_context),
+			<SyncDomainDyn <SyncDomainUser> > (std::ref (sync_context),
 				std::ref (exec_domain.mem_context ()));
 		sd->activity_begin ();
 		sd->state_ = State::RUNNING;

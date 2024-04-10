@@ -56,8 +56,8 @@ public:
 		Module::_remove_ref ();
 	}
 
-	using SharedObject::operator new;
-	using SharedObject::operator delete;
+	using UserObject::operator new;
+	using UserObject::operator delete;
 
 	// Module::
 

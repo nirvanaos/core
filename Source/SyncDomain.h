@@ -40,7 +40,6 @@ namespace Core {
 
 /// Synchronization domain.
 class NIRVANA_NOVTABLE SyncDomain :
-	public SharedObject,
 	public Executor,
 	public SyncContext
 {
@@ -221,6 +220,44 @@ protected:
 	// SyncContext::
 	virtual Module* module () noexcept;
 	virtual void raise_exception (CORBA::SystemException::Code code, unsigned minor);
+};
+
+template <class T>
+class SyncDomainDyn final :
+	public T,
+	public UserObject
+{
+protected:
+	template <class> friend class CORBA::servant_reference;
+
+	template <class S, class ... Args> friend
+		CORBA::Internal::I_ref <typename S::PrimaryInterface> CORBA::make_pseudo (Args ... args);
+
+	template <class ... Args>
+	SyncDomainDyn (Args ... args) :
+		T (std::forward <Args> (args)...)
+	{}
+
+	~SyncDomainDyn ()
+	{}
+
+	void _add_ref () noexcept
+	{
+		ref_cnt_.increment ();
+	}
+
+	void _remove_ref () noexcept
+	{
+		if (!ref_cnt_.decrement ()) {
+			SyncDomain& sd = static_cast <SyncDomain&> (*this);
+			Ref <Heap> heap = &sd.mem_context ().heap ();
+			this->~SyncDomainDyn ();
+			heap->release (this, sizeof (*this));
+		}
+	}
+
+private:
+	RefCounter ref_cnt_;
 };
 
 }
