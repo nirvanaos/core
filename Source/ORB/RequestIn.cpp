@@ -262,11 +262,17 @@ void RequestIn::serve (const ServantProxyBase& proxy)
 		// Do not enter synchronization domain immediately.
 		// We push memory context now and will enter sync_domain_
 		// in unmarshal_end () when all input objects unmarshaled.
-		sync_domain_after_unmarshal_ = sync_domain;
 		ExecDomain& ed = ExecDomain::current ();
 		SyncContext& ret_context = ed.sync_context ();
 		ed.mem_context_push (&sync_domain->mem_context ());
+		sync_domain_after_unmarshal_ = sync_domain;
 		proxy.invoke (op, _get_ptr ());
+		if (sync_domain_after_unmarshal_) {
+			// Exception was occur before schedule_call_no_push_mem,
+			// we must pop unused memory context from stack.
+			sync_domain_after_unmarshal_ = nullptr;
+			ed.mem_context_pop ();
+		}
 		ed.schedule_return (ret_context);
 	} else {
 		// Enter the target synchronization context now.
@@ -292,8 +298,8 @@ void RequestIn::unmarshal_end (bool no_check_size)
 	// Here we must enter the target sync domain, if any.
 	SyncDomain* sd;
 	if ((sd = sync_domain_after_unmarshal_)) {
-		sync_domain_after_unmarshal_ = nullptr;
 		ExecDomain::current ().schedule_call_no_push_mem (*sd);
+		sync_domain_after_unmarshal_ = nullptr;
 	}
 }
 
