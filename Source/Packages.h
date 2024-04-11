@@ -66,7 +66,6 @@ public:
 		static const char sfloat_16 [] = "CORBA/Internal/sfloat_16";
 
 		int32_t module_id = 0;
-		const char* module_name = nullptr;
 
 		if (obj_name == dec_calc) {
 			module_id = MODULE_DECCALC;

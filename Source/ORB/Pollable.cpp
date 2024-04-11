@@ -40,9 +40,10 @@ Pollable::Pollable () :
 	SyncDomain* cur_sd = SyncContext::current ().sync_domain ();
 	if (cur_sd)
 		sync_domain_ = cur_sd;
-	else
-		sync_domain_ = Ref <SyncDomain>::create <SyncDomainDyn <SyncDomainCore> > (
-			std::ref (Heap::user_heap ()));
+	else {
+		Heap& heap = Heap::user_heap ();
+		sync_domain_ = SyncDomainDyn <SyncDomainCore>::create (heap, std::ref (heap));
+	}
 }
 
 Pollable::Pollable (const Pollable& src) :

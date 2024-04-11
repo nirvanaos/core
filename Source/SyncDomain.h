@@ -224,14 +224,21 @@ protected:
 
 template <class T>
 class SyncDomainDyn final :
-	public T,
-	public UserObject
+	public T
 {
-protected:
-	template <class> friend class CORBA::servant_reference;
+public:
+	template <class ... Args>
+	static Ref <SyncDomain> create (Heap& heap, Args ... args)
+	{
+		size_t cb = sizeof (SyncDomainDyn);
+		SyncDomain* sd = new (heap.allocate (nullptr, cb, 0))
+			SyncDomainDyn (std::forward <Args> (args)...);
+		assert (&sd->mem_context ().heap () == &heap);
+		return CreateRef (sd);
+	}
 
-	template <class S, class ... Args> friend
-		CORBA::Internal::I_ref <typename S::PrimaryInterface> CORBA::make_pseudo (Args ... args);
+private:
+	template <class> friend class CORBA::servant_reference;
 
 	template <class ... Args>
 	SyncDomainDyn (Args ... args) :
@@ -255,6 +262,15 @@ protected:
 			heap->release (this, sizeof (*this));
 		}
 	}
+
+private:
+	class CreateRef : public Ref <SyncDomain>
+	{
+	public:
+		CreateRef (SyncDomain* p) :
+			Ref <SyncDomain> (p, false)
+		{}
+	};
 
 private:
 	RefCounter ref_cnt_;

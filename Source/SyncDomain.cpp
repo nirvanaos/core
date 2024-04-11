@@ -130,9 +130,9 @@ SyncDomain& SyncDomain::enter ()
 			throw_NO_PERMISSION ();
 		}
 
-		Ref <SyncDomain> sd = Ref <SyncDomain>::create
-			<SyncDomainDyn <SyncDomainUser> > (std::ref (sync_context),
-				std::ref (exec_domain.mem_context ()));
+		MemContext& mc = exec_domain.mem_context ();
+		Ref <SyncDomain> sd = SyncDomainDyn <SyncDomainUser>::create (mc.heap (),
+			std::ref (sync_context), std::ref (mc));
 		sd->activity_begin ();
 		sd->state_ = State::RUNNING;
 		exec_domain.sync_context (*sd);

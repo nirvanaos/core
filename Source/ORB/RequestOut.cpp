@@ -77,8 +77,6 @@ RequestOut::RequestOut (unsigned response_flags, Domain& target_domain,
 	system_exception_code_ (SystemException::EC_NO_EXCEPTION),
 	system_exception_data_{ 0, COMPLETED_NO }
 {
-	SyncContext& sc = SyncContext::current ();
-
 	ExecDomain& ed = ExecDomain::current ();
 	if (response_flags & RESPONSE_EXPECTED)
 		deadline_ = ed.deadline ();
