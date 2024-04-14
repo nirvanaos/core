@@ -27,7 +27,6 @@
 #include <CORBA/Server.h>
 #include "Binder.inl"
 #include <Port/SystemInfo.h>
-#include <Nirvana/OLF.h>
 #include <Nirvana/OLF_Iterator.h>
 #include "ORB/ServantBase.h"
 #include "ORB/LocalObject.h"
@@ -193,7 +192,7 @@ const ModuleStartup* Binder::module_bind (::Nirvana::Module::_ptr_type mod, cons
 		unsigned flags = 0;
 		ObjectKey k_gmodule (the_module.imp.name);
 		ObjectKey k_object_factory (object_factory.imp.name);
-		for (OLF_Iterator it (metadata.address, metadata.size); !it.end (); it.next ()) {
+		for (OLF_Iterator <> it (metadata.address, metadata.size); !it.end (); it.next ()) {
 			switch (*it.cur ()) {
 				case OLF_IMPORT_INTERFACE:
 					if (!module_entry) {
