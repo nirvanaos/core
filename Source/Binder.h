@@ -300,6 +300,11 @@ private:
 			return length_;
 		}
 
+		const Version& version () const noexcept
+		{
+			return version_;
+		}
+
 	private:
 		const char* name_;
 		size_t length_;

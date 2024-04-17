@@ -541,9 +541,9 @@ Binder::InterfaceRef Binder::find (const ObjectKey& name)
 		itf = object_map_.find (name);
 		if (!itf) {
 
+			CORBA::Internal::StringView <Char> vname (name.name ());
 			IDL::String sys_mod_path;
-			int32_t sys_mod_id = Packages::get_sys_bind_info (
-				CORBA::Internal::StringView <Char> (name.name (), name.name_len ()), sys_mod_path);
+			int32_t sys_mod_id = Packages::get_sys_bind_info (vname, sys_mod_path);
 			if (sys_mod_id) {
 
 				load (sys_mod_id, nullptr, sys_mod_path, nullptr, false);
@@ -556,7 +556,7 @@ Binder::InterfaceRef Binder::find (const ObjectKey& name)
 					packages_ = SysDomain::_narrow (Services::bind (Services::SysDomain))->provide_packages ();
 
 				BindInfo bind_info;
-				packages_->get_bind_info (name.name (), PLATFORM, bind_info);
+				packages_->get_bind_info (vname, PLATFORM, bind_info);
 				if (bind_info._d ()) {
 					try {
 						const ModuleLoad& ml = bind_info.module_load ();
