@@ -412,38 +412,17 @@ Ref <Module> Binder::load (int32_t mod_id, AccessDirect::_ref_type binary,
 
 			assert (mod->_refcount_value () == 0);
 			ModuleContext context { mod->sync_context () };
-			const ModuleStartup* startup = module_bind (mod->_get_ptr (), mod->metadata (), &context);
+			bind_and_init (*mod, context, singleton);
 			try {
-
-				// Module without an entry point is a special case reserved for future.
-				// Currently we prohibit it.
-				if (!startup)
-					invalid_metadata ();
-
-				if (startup && (startup->flags & OLF_MODULE_SINGLETON) && !singleton)
-					invalid_metadata ();
-
-				SYNC_BEGIN (context.sync_context, mod->initterm_mem_context ());
-				mod->initialize (startup ? ModuleInit::_check (startup->startup) : nullptr);
-				SYNC_END ();
-
-				mod->initial_ref_cnt_ = mod->_refcount_value ();
-
-				try {
-					object_map_.merge (context.exports);
-				} catch (...) {
-					SYNC_BEGIN (context.sync_context, mod->initterm_mem_context ());
-					mod->terminate ();
-					SYNC_END ();
-					throw;
-				}
-
+				object_map_.merge (context.exports);
 			} catch (...) {
 				SYNC_BEGIN (context.sync_context, mod->initterm_mem_context ());
+				mod->terminate ();
 				module_unbind (mod->_get_ptr (), mod->metadata ());
 				SYNC_END ();
 				throw;
 			}
+
 		} catch (...) {
 			wait_list->on_exception ();
 			delete_module (mod);
@@ -461,6 +440,31 @@ Ref <Module> Binder::load (int32_t mod_id, AccessDirect::_ref_type binary,
 			throw_BAD_PARAM ();
 	}
 	return mod;
+}
+
+void Binder::bind_and_init (Module& mod, ModuleContext& context, bool singleton)
+{
+	const ModuleStartup* startup = module_bind (mod._get_ptr (), mod.metadata (), &context);
+
+	SYNC_BEGIN (context.sync_context, mod.initterm_mem_context ());
+
+	try {
+		// Module without an entry point is a special case reserved for future.
+		// Currently we prohibit it.
+		if (!startup)
+			invalid_metadata ();
+
+		if (startup && (startup->flags & OLF_MODULE_SINGLETON) && !singleton)
+			invalid_metadata ();
+
+		mod.initialize (startup ? ModuleInit::_check (startup->startup) : nullptr);
+	} catch (...) {
+		module_unbind (mod._get_ptr (), mod.metadata ());
+		throw;
+	}
+	SYNC_END ();
+
+	mod.initial_ref_cnt_ = mod._refcount_value ();
 }
 
 void Binder::unload (Module* mod) noexcept

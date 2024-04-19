@@ -355,7 +355,13 @@ private:
 	/// 
 	/// \returns Pointer to the ModuleStartup metadata structure, if found. Otherwise `nullptr`.
 	const ModuleStartup* module_bind (Nirvana::Module::_ptr_type mod, const Section& metadata, ModuleContext* mod_context);
+
+	void bind_and_init (Module& mod, ModuleContext& context, bool singleton);
+	
+	/// Unbind module.
+	/// Must be called from the module synchronization context.
 	static void module_unbind (Nirvana::Module::_ptr_type mod, const Section& metadata) noexcept;
+	
 	inline void remove_exports (const Section& metadata) noexcept;
 	static void release_imports (Nirvana::Module::_ptr_type mod, const Section& metadata);
 
