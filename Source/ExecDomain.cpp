@@ -280,7 +280,7 @@ void ExecDomain::schedule (Ref <SyncContext>& target, bool ret)
 	// Called in neutral execution context
 	assert (ExecContext::current_ptr () != this);
 
-	SyncDomain* sync_domain = target->sync_domain ();
+	Ref <SyncDomain> sync_domain = target->sync_domain ();
 	bool background = false;
 	if (!sync_domain) {
 		if (INFINITE_DEADLINE == deadline ()) {
