@@ -25,11 +25,13 @@
 */
 #include "pch.h"
 #include <CORBA/Server.h>
+#include <CORBA/Proxy/ProxyBase.h>
 #include "Binder.inl"
 #include <Port/SystemInfo.h>
 #include <Nirvana/OLF_Iterator.h>
 #include "ORB/ServantBase.h"
 #include "ORB/LocalObject.h"
+#include "ORB/RequestLocalBase.h"
 #include "ClassLibrary.h"
 #include "Singleton.h"
 #include "Executable.h"
@@ -42,6 +44,20 @@ using namespace CORBA::Core;
 
 namespace Nirvana {
 namespace Core {
+
+class Binder::Request : public RequestLocalBase
+{
+public:
+	static Ref <Request> create ()
+	{
+		return Ref <Request>::create <RequestLocalImpl <Request> > ();
+	}
+
+protected:
+	Request () : RequestLocalBase (&BinderMemory::heap (),
+		IORequest::RESPONSE_EXPECTED | IORequest::RESPONSE_DATA)
+	{}
+};
 
 StaticallyAllocated <ImplStatic <SyncDomainCore> > Binder::sync_domain_;
 StaticallyAllocated <Binder> Binder::singleton_;
@@ -615,6 +631,27 @@ Binder::InterfaceRef Binder::bind_interface_sync (const ObjectKey& name, String_
 	return itf;
 }
 
+Binder::InterfaceRef Binder::bind_interface (CORBA::Internal::String_in name, CORBA::Internal::String_in iid)
+{
+	InterfaceRef ret;
+	Ref <Request> rq = Request::create ();
+	rq->invoke ();
+	{
+		Synchronized _sync_frame (sync_domain (), nullptr);
+		try {
+			rq->unmarshal_end ();
+			ret = singleton_->bind_interface_sync (name, iid);
+			rq->success ();
+		} catch (CORBA::Exception& e) {
+			rq->set_exception (std::move (e));
+		} catch (...) {
+			rq->set_unknown_exception ();
+		}
+	}
+	CORBA::Internal::ProxyRoot::check_request (rq->_get_ptr ());
+	return ret;
+}
+
 Object::_ref_type Binder::bind_sync (const ObjectKey& name)
 {
 	InterfaceRef itf = find (name);
@@ -622,6 +659,51 @@ Object::_ref_type Binder::bind_sync (const ObjectKey& name)
 		return itf.template downcast <CORBA::Object> ();
 	else
 		throw_INV_OBJREF ();
+}
+
+CORBA::Object::_ref_type Binder::bind (const IDL::String& name)
+{
+	CORBA::Object::_ref_type ret;
+	Ref <Request> rq = Request::create ();
+	rq->invoke ();
+	{
+		Synchronized _sync_frame (sync_domain (), nullptr);
+		try {
+			rq->unmarshal_end ();
+			ret = singleton_->bind_sync (name);
+			rq->success ();
+		} catch (CORBA::Exception& e) {
+			rq->set_exception (std::move (e));
+		} catch (...) {
+			rq->set_unknown_exception ();
+		}
+	}
+	CORBA::Internal::ProxyRoot::check_request (rq->_get_ptr ());
+	return ret;
+}
+
+CORBA::Object::_ref_type Binder::load_and_bind (int32_t mod_id, CORBA::Internal::String_in mod_path,
+	CosNaming::NamingContextExt::_ptr_type name_service, bool singleton,
+	CORBA::Internal::String_in name)
+{
+	CORBA::Object::_ref_type ret;
+	Ref <Request> rq = Request::create ();
+	rq->invoke ();
+	{
+		Synchronized _sync_frame (sync_domain (), nullptr);
+		try {
+			rq->unmarshal_end ();
+			ret = singleton_->load_and_bind_sync (mod_id, mod_path, name_service, singleton,
+				ObjectKey (name.data (), name.size ()));
+			rq->success ();
+		} catch (CORBA::Exception& e) {
+			rq->set_exception (std::move (e));
+		} catch (...) {
+			rq->set_unknown_exception ();
+		}
+	}
+	CORBA::Internal::ProxyRoot::check_request (rq->_get_ptr ());
+	return ret;
 }
 
 inline

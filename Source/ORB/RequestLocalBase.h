@@ -436,22 +436,7 @@ public:
 
 	/// Return exception to caller.
 	/// Operation has move semantics so \p e may be cleared.
-	void set_exception (Any& e)
-	{
-		if (e.type ()->kind () != TCKind::tk_except)
-			throw BAD_PARAM (MAKE_OMG_MINOR (21));
-
-		clear_on_callee_side ();
-		marshal_op ();
-		state_ = State::EXCEPTION;
-		if (response_flags_) {
-			try {
-				IDL::Type <Any>::marshal_out (e, _get_ptr ());
-			} catch (...) {}
-			rewind ();
-		}
-		finalize ();
-	}
+	void set_exception (Any& e);
 
 	/// Marks request as successful.
 	void success ()
@@ -499,6 +484,9 @@ public:
 	{
 		return response_flags_;
 	}
+
+	void set_exception (Exception&& e) noexcept;
+	void set_unknown_exception () noexcept;
 
 protected:
 	enum class State : uint8_t

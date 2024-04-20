@@ -74,30 +74,20 @@ public:
 	static void terminate ();
 
 	// Implements System::bind()
-	static CORBA::Object::_ref_type bind (const IDL::String& name)
-	{
-		CORBA::Object::_ref_type ret;
-		SYNC_BEGIN (sync_domain (), nullptr);
-		ret = singleton_->bind_sync (name);
-		SYNC_END ();
-		return ret;
-	}
+	static CORBA::Object::_ref_type bind (const IDL::String& name);
 
 	/// Implements System::bind_interface()
-	static InterfaceRef bind_interface (CORBA::Internal::String_in name, CORBA::Internal::String_in iid)
-	{
-		InterfaceRef ret;
-		SYNC_BEGIN (sync_domain (), nullptr);
-		ret = singleton_->bind_interface_sync (name, iid);
-		SYNC_END ();
-		return ret;
-	}
+	static InterfaceRef bind_interface (CORBA::Internal::String_in name, CORBA::Internal::String_in iid);
 
 	template <class I>
 	static CORBA::Internal::I_ref <I> bind_interface (CORBA::Internal::String_in name)
 	{
 		return bind_interface (name, CORBA::Internal::RepIdOf <I>::id).template downcast <I> ();
 	}
+
+	static CORBA::Object::_ref_type load_and_bind (int32_t mod_id, CORBA::Internal::String_in mod_path,
+		CosNaming::NamingContextExt::_ptr_type name_service, bool singleton,
+		CORBA::Internal::String_in name);
 
 	/// Bind executable.
 	/// 
@@ -214,18 +204,6 @@ public:
 			housekeeping_timer_domains_.set (0, interval, interval);
 			housekeeping_domains_on_ = true;
 		}
-	}
-
-	static CORBA::Object::_ref_type load_and_bind (int32_t mod_id, CORBA::Internal::String_in mod_path,
-		CosNaming::NamingContextExt::_ptr_type name_service, bool singleton,
-		CORBA::Internal::String_in name)
-	{
-		CORBA::Object::_ref_type ret;
-		SYNC_BEGIN (sync_domain (), nullptr);
-		ret = singleton_->load_and_bind_sync (mod_id, mod_path, name_service, singleton,
-			ObjectKey (name.data(), name.size ()));
-		SYNC_END ();
-		return ret;
 	}
 
 private:
@@ -414,6 +392,8 @@ private:
 	private:
 		virtual void run (const TimeBase::TimeT& signal_time);
 	};
+
+	class Request;
 
 private:
 	Packages::_ref_type packages_;

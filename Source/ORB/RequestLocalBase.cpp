@@ -459,5 +459,39 @@ void RequestLocalBase::marshal_value_internal (ValueBase::_ptr_type base)
 	}
 }
 
+void RequestLocalBase::set_exception (Any& e)
+{
+	if (e.type ()->kind () != TCKind::tk_except)
+		throw BAD_PARAM (MAKE_OMG_MINOR (21));
+
+	clear_on_callee_side ();
+	marshal_op ();
+	state_ = State::EXCEPTION;
+	if (response_flags_) {
+		try {
+			IDL::Type <Any>::marshal_out (e, _get_ptr ());
+		} catch (...) {}
+		rewind ();
+	}
+	finalize ();
+}
+
+void RequestLocalBase::set_exception (Exception&& e) noexcept
+{
+	try {
+		Any any = exception2any (std::move (e));
+		set_exception (any);
+	} catch (...) {
+		set_unknown_exception ();
+	}
+}
+
+void RequestLocalBase::set_unknown_exception () noexcept
+{
+	try {
+		set_exception (UNKNOWN ());
+	} catch (...) {}
+}
+
 }
 }
