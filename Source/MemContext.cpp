@@ -145,7 +145,12 @@ void MemContext::_remove_ref () noexcept
 				ASYNC_DESTROY_DEADLINE == INFINITE_DEADLINE ?
 				INFINITE_DEADLINE : Chrono::make_deadline (ASYNC_DESTROY_DEADLINE);
 
-			ExecDomain::async_call <Deleter> (deadline, g_core_free_sync_context, nullptr, std::ref (*this));
+			try {
+				ExecDomain::async_call <Deleter> (deadline, g_core_free_sync_context, nullptr, std::ref (*this));
+			} catch (...) {
+				assert (false);
+				// TODO: Log
+			}
 		}
 	}
 }
