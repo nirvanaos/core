@@ -27,6 +27,7 @@
 #include "MemContext.h"
 #include "ExecDomain.h"
 #include "BinderMemory.h"
+#include "Chrono.h"
 
 namespace Nirvana {
 namespace Core {
@@ -81,19 +82,19 @@ MemContext::~MemContext ()
 class MemContext::Replacer
 {
 public:
-	Replacer (MemContext& mc) :
-		exec_domain_ (ExecDomain::current ())
+	Replacer (MemContext& mc, ExecDomain& ed) :
+		exec_domain_ (ed)
 	{
 		// Increment reference counter to prevent recursive deletion
 		mc.ref_cnt_.increment ();
-		if (exec_domain_.mem_context_stack_empty ()) {
+		if (ed.mem_context_stack_empty ()) {
 			// If context stack is empty, mem_context_push definitely won't throw an exception.
 			pop_ = true;
-			exec_domain_.mem_context_push (&mc);
+			ed.mem_context_push (&mc);
 		} else {
 			pop_ = false;
 			ref_ = &mc;
-			exec_domain_.mem_context_swap (ref_);
+			ed.mem_context_swap (ref_);
 		}
 	}
 
@@ -111,26 +112,61 @@ private:
 	bool pop_;
 };
 
+class MemContext::Deleter : public Runnable
+{
+public:
+	Deleter (MemContext& mc) :
+		mc_ (mc)
+	{}
+
+private:
+	virtual void run () override
+	{
+		mc_.destroy (ExecDomain::current ());
+	}
+
+private:
+	MemContext& mc_;
+};
+
 void MemContext::_remove_ref () noexcept
 {
 	if (!ref_cnt_.decrement_seq ()) {
 
-		// Hold heap reference
-		Ref <Heap> heap;
-		if (class_library_init_)
-			heap = &BinderMemory::heap ();
-		else
-			heap = heap_;
+		ExecDomain* ed = Thread::current ().exec_domain ();
 
-		{
-			// Replace memory context and call destructor
-			Replacer replace (*this);
-			this->~MemContext ();
+		if (ed)
+			destroy (*ed);
+		else {
+			// Sometimes (rarely) MemContext may be released out of the execution domain.
+			// In this case we create special execution domain for this.
+
+			Nirvana::DeadlineTime deadline =
+				ASYNC_DESTROY_DEADLINE == INFINITE_DEADLINE ?
+				INFINITE_DEADLINE : Chrono::make_deadline (ASYNC_DESTROY_DEADLINE);
+
+			ExecDomain::async_call <Deleter> (deadline, g_core_free_sync_context, nullptr, std::ref (*this));
 		}
-
-		// Release memory
-		heap->release (this, sizeof (MemContext));
 	}
+}
+
+void MemContext::destroy (ExecDomain& cur_ed) noexcept
+{
+	// Hold heap reference
+	Ref <Heap> heap;
+	if (class_library_init_)
+		heap = &BinderMemory::heap ();
+	else
+		heap = heap_;
+
+	{
+		// Replace memory context and call destructor
+		Replacer replace (*this, cur_ed);
+		this->~MemContext ();
+	}
+
+	// Release memory
+	heap->release (this, sizeof (MemContext));
 }
 
 }

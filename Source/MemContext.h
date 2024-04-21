@@ -41,6 +41,8 @@
 namespace Nirvana {
 namespace Core {
 
+class ExecDomain;
+
 /// Memory context. Isolated computation environment.
 /// 
 /// Memory context contains reference to a heap.
@@ -177,6 +179,7 @@ private:
 	static Ref <MemContext> create (Ref <Heap>&& heap, bool class_library_init, bool core_context);
 
 	~MemContext ();
+	void destroy (ExecDomain& cur_ed) noexcept;
 
 	MemContext (Ref <Heap>&& heap, bool class_library_init, bool core_context) noexcept;
 
@@ -398,12 +401,16 @@ private:
 
 	class Replacer;
 
+	class Deleter;
+
 private:
 	Ref <Heap> heap_;
 	AtomicCounter <false> ref_cnt_;
 	bool class_library_init_;
 	bool core_context_;
 	DataHolder data_holder_;
+
+	static const DeadlineTime ASYNC_DESTROY_DEADLINE = INFINITE_DEADLINE;
 };
 
 }
