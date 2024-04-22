@@ -271,7 +271,7 @@ const ModuleStartup* Binder::module_bind (::Nirvana::Module::_ptr_type mod, cons
 
 			// Pass 2: Import pseudo objects.
 			if (flags & MetadataFlags::IMPORT_INTERFACES)
-				for (OLF_Iterator it (metadata.address, metadata.size); !it.end (); it.next ()) {
+				for (OLF_Iterator <> it (metadata.address, metadata.size); !it.end (); it.next ()) {
 					if (OLF_IMPORT_INTERFACE == *it.cur ()) {
 						ImportInterface* ps = reinterpret_cast <ImportInterface*> (it.cur ());
 						if (!mod || ps != module_entry)
@@ -284,7 +284,7 @@ const ModuleStartup* Binder::module_bind (::Nirvana::Module::_ptr_type mod, cons
 			if (flags & MetadataFlags::EXPORT_OBJECTS) {
 				assert (mod_context); // Executable can not export.
 				SYNC_BEGIN (mod_context->sync_context, nullptr);
-				for (OLF_Iterator it (metadata.address, metadata.size); !it.end (); it.next ()) {
+				for (OLF_Iterator <> it (metadata.address, metadata.size); !it.end (); it.next ()) {
 					switch (*it.cur ()) {
 						case OLF_EXPORT_OBJECT: {
 							ExportObject* ps = reinterpret_cast <ExportObject*> (it.cur ());
@@ -310,7 +310,7 @@ const ModuleStartup* Binder::module_bind (::Nirvana::Module::_ptr_type mod, cons
 
 			// Pass 4: Import objects.
 			if (flags & MetadataFlags::IMPORT_OBJECTS)
-				for (OLF_Iterator it (metadata.address, metadata.size); !it.end (); it.next ()) {
+				for (OLF_Iterator <> it (metadata.address, metadata.size); !it.end (); it.next ()) {
 					if (OLF_IMPORT_OBJECT == *it.cur ()) {
 						ImportInterface* ps = reinterpret_cast <ImportInterface*> (it.cur ());
 						Object::_ref_type obj = bind_sync (ps->name);
@@ -353,7 +353,7 @@ void Binder::module_unbind (Nirvana::Module::_ptr_type mod, const Section& metad
 	release_imports (mod, metadata);
 
 	// Pass 2: Release proxies for all exported objects.
-	for (OLF_Iterator it (metadata.address, metadata.size); !it.end (); it.next ()) {
+	for (OLF_Iterator <> it (metadata.address, metadata.size); !it.end (); it.next ()) {
 		switch (*it.cur ()) {
 			case OLF_EXPORT_OBJECT: {
 				ExportObject* ps = reinterpret_cast <ExportObject*> (it.cur ());
@@ -505,7 +505,7 @@ void Binder::remove_exports (const Section& metadata) noexcept
 {
 	// Pass 1: Remove all exports from the map.
 	// This pass will not cause inter-domain calls.
-	for (OLF_Iterator it (metadata.address, metadata.size); !it.end (); it.next ()) {
+	for (OLF_Iterator <> it (metadata.address, metadata.size); !it.end (); it.next ()) {
 		switch (*it.cur ()) {
 			case OLF_EXPORT_INTERFACE: {
 				const ExportInterface* ps = reinterpret_cast <const ExportInterface*> (it.cur ());
@@ -530,7 +530,7 @@ void Binder::release_imports (Nirvana::Module::_ptr_type mod, const Section& met
 	ExecDomain& ed = ExecDomain::current ();
 	ExecDomain::RestrictedMode rm = ed.restricted_mode ();
 	ed.restricted_mode (ExecDomain::RestrictedMode::SUPPRESS_ASYNC_GC);
-	for (OLF_Iterator it (metadata.address, metadata.size); !it.end (); it.next ()) {
+	for (OLF_Iterator <> it (metadata.address, metadata.size); !it.end (); it.next ()) {
 		switch (*it.cur ()) {
 			case OLF_IMPORT_INTERFACE:
 			case OLF_IMPORT_OBJECT: {
