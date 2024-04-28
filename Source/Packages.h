@@ -56,7 +56,8 @@ class Packages :
 public:
 	Packages (CORBA::Object::_ptr_type comp);
 
-	static int32_t get_sys_bind_info (CORBA::Internal::String_in obj_name, IDL::String& module_path)
+	static int32_t get_sys_bind_info (CORBA::Internal::String_in obj_name, 
+		unsigned major, unsigned minor, IDL::String& module_path)
 	{
 		static const char dbc [] = "IDL:NDBC/";
 		static const char dec_calc [] = "Nirvana/dec_calc";
@@ -89,7 +90,8 @@ public:
 		return module_id;
 	}
 
-	void get_bind_info (const IDL::String& obj_name, unsigned platform, BindInfo& bind_info) const
+	void get_bind_info (const IDL::String& obj_name, unsigned platform, 
+		unsigned major, unsigned minor, BindInfo& bind_info) const
 	{
 		// TODO:: Temporary solution, for testing
 		ModuleLoad& module_load = bind_info.module_load ();

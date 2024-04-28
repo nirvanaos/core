@@ -25,7 +25,7 @@
 */
 
 #include "pch.h"
-#include <Nirvana/Domains_s.h>
+#include "../Source/Nirvana/CoreDomains_s.h"
 #include <Nirvana/NDBC.h>
 
 #define DATABASE_PATH "/var/lib/packages.db"
@@ -38,24 +38,48 @@ using namespace NDBC;
 
 namespace Nirvana {
 
-class InstallerImpl : public CORBA::servant_traits <Installer>::ServantStatic <InstallerImpl>
+static const char db_script [] =
+"BEGIN;"
+
+"CREATE TABLE IF NOT EXISTS packages(id INTEGER PRIMARY KEY AUTOINCREMENT,name TEXT UNIQUE);"
+
+"CREATE TABLE IF NOT EXISTS modules(id INTEGER PRIMARY KEY AUTOINCREMENT,name TEXT UNIQUE,"
+"flags INTEGER);"
+
+"CREATE TABLE IF NOT EXISTS mod2pack(package INTEGER REFERENCES packages(id),"
+"module INTEGER REFERENCES modules(id));"
+
+"CREATE TABLE IF NOT EXISTS binaries(module INTEGER REFERENCES modules(id),platform INTEGER,"
+"path TEXT UNIQUE, UNIQUE(module,platform));"
+
+"CREATE TABLE IF NOT EXISTS objects(name TEXT, version INTEGER,"
+"module INTEGER REFERENCES modules(id), flags INTEGER, PRIMARY KEY(name,version));"
+
+"PRAGMA user_version=" STRINGIZE (DATABASE_VERSION) ";"
+
+"END;";
+
+class InstallerImpl : public CORBA::servant_traits <Installer>::Servant <InstallerImpl>
 {
 public:
-	static void register_module (const CosNaming::Name& path, unsigned flags)
+	static Installer::_ref_type get_singleton ()
+	{
+		CORBA::servant_reference <InstallerImpl> servant;
+		if (!singleton_)
+			servant = CORBA::make_reference <InstallerImpl> ();
+		else
+			servant = singleton_;
+		return servant->_this ();
+	}
+
+	void register_module (const CosNaming::Name& path, unsigned flags)
 	{}
 
-	class Singleton;
-
-	static Singleton singleton_;
-};
-
-class InstallerImpl::Singleton
-{
-public:
-	Singleton ()
+	InstallerImpl ()
 	{
-		connection_ = SQLite::driver->connect ("file:" DATABASE_PATH "?mode=rwc&journal_mode=WAL", "", "");
+		singleton_ = this;
 
+		connection_ = SQLite::driver->connect ("file:" DATABASE_PATH "?mode=rwc&journal_mode=WAL", "", "");
 		Statement::_ref_type st = connection_->createStatement (ResultSet::Type::TYPE_FORWARD_ONLY);
 
 		ResultSet::_ref_type rs = st->executeQuery ("PRAGMA user_version;");
@@ -65,41 +89,32 @@ public:
 			create_database (st);
 	}
 
-	~Singleton ()
-	{}
+	~InstallerImpl ()
+	{
+		singleton_ = nullptr;
+	}
 
-	static void create_database (Statement::_ptr_type st);
+	static void create_database (Statement::_ptr_type st)
+	{
+		st->executeUpdate (db_script);
+	}
 
 private:
 	NDBC::Connection::_ref_type connection_;
+
+	static InstallerImpl* singleton_;
 };
 
-void InstallerImpl::Singleton::create_database (Statement::_ptr_type st)
+InstallerImpl* InstallerImpl::singleton_ = nullptr;
+
+class InstallerFactoryImpl : public CORBA::servant_traits <InstallerFactory>::ServantStatic <InstallerFactoryImpl>
 {
-	st->executeUpdate (
-		"BEGIN;"
-
-		"CREATE TABLE IF NOT EXISTS packages(id INTEGER PRIMARY KEY AUTOINCREMENT,name TEXT UNIQUE);"
-
-		"CREATE TABLE IF NOT EXISTS modules(id INTEGER PRIMARY KEY AUTOINCREMENT,name TEXT UNIQUE,"
-		"flags INTEGER);"
-
-		"CREATE TABLE IF NOT EXISTS mod2pack(package INTEGER REFERENCES packages(id),"
-		"module INTEGER REFERENCES modules(id));"
-
-		"CREATE TABLE IF NOT EXISTS binaries(module INTEGER REFERENCES modules(id),platform INTEGER,"
-		"path TEXT UNIQUE, UNIQUE(module,platform));"
-
-		"CREATE TABLE IF NOT EXISTS objects(name TEXT, version INTEGER,"
-		"module INTEGER REFERENCES modules(id), flags INTEGER, PRIMARY KEY(name,version));"
-
-		"PRAGMA user_version=" STRINGIZE (DATABASE_VERSION) ";"
-
-		"END;"
-	);
-}
-
-static InstallerImpl::Singleton singleton_;
+public:
+	static Installer::_ref_type get_installer ()
+	{
+		return InstallerImpl::get_singleton ();
+	}
+};
 
 }
 
@@ -107,9 +122,9 @@ namespace CORBA {
 namespace Internal {
 
 template <>
-const char StaticId < ::Nirvana::InstallerImpl>::id [] = "Nirvana/the_installer";
+const char StaticId < ::Nirvana::InstallerFactoryImpl>::id [] = "Nirvana/installer_factory";
 
 }
 }
 
-NIRVANA_EXPORT_OBJECT (_exp_Nirvana_the_installer, Nirvana::InstallerImpl)
+NIRVANA_EXPORT_OBJECT (_exp_Nirvana_installer_factory, Nirvana::InstallerFactoryImpl)

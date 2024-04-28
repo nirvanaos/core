@@ -33,7 +33,7 @@
 #include "../MapUnorderedStable.h"
 #include "HashOctetSeq.h"
 #include <CORBA/Servant_var.h>
-#include <Nirvana/CoreDomains.h>
+#include "../Nirvana/CoreDomains.h"
 #include <random>
 
 namespace IOP {

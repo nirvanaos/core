@@ -38,6 +38,11 @@ interface ProtDomainCore : ProtDomain
 	Object load_and_bind (in long mod_id, in string mod_path, in boolean singleton, in string name);
 };
 
+interface InstallerFactory
+{
+	Installer get_installer ();
+};
+
 };
 
 #endif

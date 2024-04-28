@@ -27,6 +27,7 @@
 #include "Packages.h"
 #include "Binder.h"
 #include <Nirvana/posix_defs.h>
+#include "Nirvana/CoreDomains.h"
 
 namespace Nirvana {
 namespace Core {
@@ -112,7 +113,8 @@ IDL::String Packages::get_system_binary_path (unsigned platform, const char* mod
 
 Installer::_ref_type Packages::get_installer () const
 {
-	return Installer::_narrow (load_and_bind (MODULE_INSTALLER, true, "Nirvana/the_installer"));
+	return InstallerFactory::_narrow (
+		load_and_bind (MODULE_INSTALLER, true, "Nirvana/installer_factory"))->get_installer ();
 }
 
 }
