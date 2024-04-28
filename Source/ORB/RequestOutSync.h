@@ -40,7 +40,6 @@ protected:
 	RequestOutSyncBase (RequestOut& base) :
 		base_ (base),
 		source_exec_domain_ (&Nirvana::Core::ExecDomain::current ()),
-		sync_domain_after_unmarshal_ (nullptr),
 		wait_op_ (std::ref (*this)),
 		state_ (State::INVOKE)
 	{}
@@ -57,11 +56,9 @@ protected:
 	void post_unmarshal_end ()
 	{
 		// Here we must enter the target sync domain, if any.
-		Nirvana::Core::SyncDomain* sd;
-		if ((sd = sync_domain_after_unmarshal_)) {
-			sync_domain_after_unmarshal_ = nullptr;
+		servant_reference <Nirvana::Core::SyncDomain> sd;
+		if ((sd = std::move (sync_domain_after_unmarshal_)))
 			source_exec_domain_->schedule_return (*sd);
-		}
 	}
 
 private:
@@ -71,7 +68,7 @@ private:
 	Nirvana::Core::ExecDomain* source_exec_domain_;
 
 	// Source synchronization domain to enter after unmarshal.
-	Nirvana::Core::SyncDomain* sync_domain_after_unmarshal_;
+	servant_reference <Nirvana::Core::SyncDomain> sync_domain_after_unmarshal_;
 
 	class WaitOp : public Nirvana::Core::Runnable
 	{

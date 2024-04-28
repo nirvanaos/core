@@ -318,12 +318,14 @@ void ExecDomain::schedule_call_no_push_mem (SyncContext& target)
 	// If old context is a synchronization domain, we
 	// allocate queue node to perform return without a risk
 	// of memory allocation failure.
-	SyncDomain* old_sd = sync_context ().sync_domain ();
-	if (old_sd) {
-		ret_qnode_push (*old_sd);
-		old_sd->leave ();
-	} else if (deadline () == INFINITE_DEADLINE)
-		create_background_worker (); // Prepare to return to background
+	{
+		Ref <SyncDomain> old_sd = sync_context ().sync_domain ();
+		if (old_sd) {
+			ret_qnode_push (*old_sd);
+			old_sd->leave ();
+		} else if (deadline () == INFINITE_DEADLINE)
+			create_background_worker (); // Prepare to return to background
+	}
 
 	if (target.sync_domain () ||
 		!(deadline () == INFINITE_DEADLINE && &Thread::current () == background_worker_)) {
@@ -355,9 +357,11 @@ void ExecDomain::schedule_return (SyncContext& target, bool no_reschedule) noexc
 	if (no_reschedule && (&sync_context () == &target))
 		return;
 
-	SyncDomain* old_sd = sync_context ().sync_domain ();
-	if (old_sd)
-		old_sd->leave ();
+	{
+		Ref <SyncDomain> old_sd = sync_context ().sync_domain ();
+		if (old_sd)
+			old_sd->leave ();
+	}
 
 	if (target.sync_domain ()
 		|| !(deadline () == INFINITE_DEADLINE && &Thread::current () == background_worker_)) {

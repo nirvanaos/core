@@ -41,13 +41,14 @@ void RequestOutSyncBase::pre_invoke ()
 	Nirvana::Core::SyncDomain* sync_domain = source_exec_domain_->sync_context ().sync_domain ();
 	if (sync_domain && base_.metadata ().flags & Internal::Operation::FLAG_OUT_CPLX) {
 		source_exec_domain_->mem_context_push (Nirvana::Core::MemContext::create (base_.memory ().heap ()));
+		sync_domain_after_unmarshal_ = sync_domain;
 		try {
 			source_exec_domain_->suspend_prepare (&Nirvana::Core::g_core_free_sync_context, true);
 		} catch (...) {
 			source_exec_domain_->mem_context_pop ();
+			sync_domain_after_unmarshal_ = nullptr;
 			throw;
 		}
-		sync_domain_after_unmarshal_ = sync_domain;
 	} else
 		source_exec_domain_->suspend_prepare ();
 }

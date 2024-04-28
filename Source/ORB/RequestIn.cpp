@@ -45,7 +45,6 @@ RequestIn::RequestIn (const DomainAddress& client, unsigned GIOP_minor) :
 	RequestGIOP (GIOP_minor, 0, nullptr),
 	key_ (client),
 	map_iterator_ (nullptr),
-	sync_domain_after_unmarshal_ (nullptr),
 	reply_status_offset_ (0),
 	reply_header_end_ (0),
 	cancelled_ (false),
