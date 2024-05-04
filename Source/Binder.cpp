@@ -209,6 +209,9 @@ const ModuleStartup* Binder::module_bind (::Nirvana::Module::_ptr_type mod, cons
 		ObjectKey k_gmodule (the_module.imp.name);
 		ObjectKey k_object_factory (object_factory.imp.name);
 		for (OLF_Iterator <> it (metadata.address, metadata.size); !it.end (); it.next ()) {
+			if (!it.valid ())
+				invalid_metadata ();
+
 			switch (*it.cur ()) {
 				case OLF_IMPORT_INTERFACE:
 					if (!module_entry) {
@@ -256,7 +259,7 @@ const ModuleStartup* Binder::module_bind (::Nirvana::Module::_ptr_type mod, cons
 					break;
 
 				default:
-					invalid_metadata ();
+					NIRVANA_UNREACHABLE_CODE ();
 			}
 		}
 
@@ -289,16 +292,16 @@ const ModuleStartup* Binder::module_bind (::Nirvana::Module::_ptr_type mod, cons
 						case OLF_EXPORT_OBJECT: {
 							ExportObject* ps = reinterpret_cast <ExportObject*> (it.cur ());
 							PortableServer::Core::ServantBase* core_object = PortableServer::Core::ServantBase::create (
-									Type <PortableServer::Servant>::in (ps->servant_base), nullptr);
+									Type <PortableServer::Servant>::in (ps->servant), nullptr);
 							Object::_ptr_type obj = core_object->proxy ().get_proxy ();
 							ps->core_object = &PortableServer::Servant (core_object);
 							mod_context->exports.insert (ps->name, obj);
 						} break;
 
 						case OLF_EXPORT_LOCAL: {
-							ExportLocal* ps = reinterpret_cast <ExportLocal*> (it.cur ());
+							ExportObject* ps = reinterpret_cast <ExportObject*> (it.cur ());
 							CORBA::Core::LocalObject* core_object = CORBA::Core::LocalObject::create (
-									Type <CORBA::LocalObject>::in (ps->local_object), nullptr);
+									Type <CORBA::LocalObject>::in (ps->servant), nullptr);
 							Object::_ptr_type obj = core_object->proxy ().get_proxy ();
 							ps->core_object = &CORBA::LocalObject::_ptr_type (core_object);
 							mod_context->exports.insert (ps->name, obj);
@@ -355,13 +358,9 @@ void Binder::module_unbind (Nirvana::Module::_ptr_type mod, const Section& metad
 	// Pass 2: Release proxies for all exported objects.
 	for (OLF_Iterator <> it (metadata.address, metadata.size); !it.end (); it.next ()) {
 		switch (*it.cur ()) {
-			case OLF_EXPORT_OBJECT: {
-				ExportObject* ps = reinterpret_cast <ExportObject*> (it.cur ());
-				CORBA::Internal::interface_release (ps->core_object);
-			} break;
-
+			case OLF_EXPORT_OBJECT:
 			case OLF_EXPORT_LOCAL: {
-				ExportLocal* ps = reinterpret_cast <ExportLocal*> (it.cur ());
+				ExportObject* ps = reinterpret_cast <ExportObject*> (it.cur ());
 				CORBA::Internal::interface_release (ps->core_object);
 			} break;
 		}
@@ -512,13 +511,9 @@ void Binder::remove_exports (const Section& metadata) noexcept
 				object_map_.erase (ps->name);
 			} break;
 
-			case OLF_EXPORT_OBJECT: {
-				ExportObject* ps = reinterpret_cast <ExportObject*> (it.cur ());
-				object_map_.erase (ps->name);
-			} break;
-
+			case OLF_EXPORT_OBJECT:
 			case OLF_EXPORT_LOCAL: {
-				ExportLocal* ps = reinterpret_cast <ExportLocal*> (it.cur ());
+				ExportObject* ps = reinterpret_cast <ExportObject*> (it.cur ());
 				object_map_.erase (ps->name);
 			} break;
 		}
