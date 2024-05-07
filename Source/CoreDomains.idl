@@ -31,11 +31,25 @@
 
 module Nirvana {
 
+struct ObjectId
+{
+	string name;
+	unsigned short major, minor;
+};
+
+typedef sequence <ObjectId> ObjectIds;
+
+struct ModuleBindings
+{
+	ObjectIds exports, dependencies;
+};
+
 /// The core extension of the ProtDomain interface.
 /// This interface is subject of change and intended for internal use by Nirvana core.
 interface ProtDomainCore : ProtDomain
 {
 	Object load_and_bind (in long mod_id, in string mod_path, in boolean singleton, in string name);
+	ModuleBindings get_module_bindings (in AccessDirect file, in boolean singleton);
 };
 
 interface InstallerFactory

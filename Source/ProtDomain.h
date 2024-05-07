@@ -71,6 +71,11 @@ public:
 		return Binder::load_and_bind (mod_id, mod_path, nullptr, singleton, name);
 	}
 
+	static Nirvana::ModuleBindings get_module_bindings (Nirvana::AccessDirect::_ptr_type binary, bool singleton)
+	{
+		return Binder::get_module_bindings (binary, singleton);
+	}
+
 	static IDL::String binary_dir ();
 };
 
