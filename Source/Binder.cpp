@@ -609,7 +609,7 @@ Binder::InterfaceRef Binder::find (const ObjectKey& name)
 			}
 		}
 
-		if (context->collect_dependencies)
+		if (context && context->collect_dependencies)
 			context->dependencies.insert (name);
 	}
 	return itf;
@@ -733,10 +733,17 @@ Nirvana::ModuleBindings Binder::get_module_bindings_sync (AccessDirect::_ptr_typ
 		mod = new ClassLibrary (-1, binary);
 	SYNC_END ();
 
-	Nirvana::ModuleBindings bindings;
-	{
-		ModuleContext context (mod->sync_context (), true);
+	ModuleContext context (mod->sync_context (), true);
+	try {
 		bind_and_init (*mod, context, singleton);
+	} catch (...) {
+		delete_module (mod);
+		throw;
+	}
+
+	Nirvana::ModuleBindings bindings;
+
+	try {
 		for (const auto& el : context.exports) {
 			bindings.exports ().emplace_back (IDL::String (el.first.name (), el.first.name_len ()),
 				el.first.version ().major, el.first.version ().minor);
@@ -745,13 +752,12 @@ Nirvana::ModuleBindings Binder::get_module_bindings_sync (AccessDirect::_ptr_typ
 			bindings.dependencies ().emplace_back (IDL::String (el.name (), el.name_len ()),
 				el.version ().major, el.version ().minor);
 		}
-		SYNC_BEGIN (context.sync_context, mod->initterm_mem_context ());
-		mod->terminate ();
-		module_unbind (mod->_get_ptr (), mod->metadata ());
-		SYNC_END ();
+	} catch (...) {
+		unload (mod);
+		throw;
 	}
 
-	delete_module (mod);
+	unload (mod);
 
 	return bindings;
 }
@@ -776,6 +782,7 @@ Nirvana::ModuleBindings Binder::get_module_bindings (AccessDirect::_ptr_type bin
 	CORBA::Internal::ProxyRoot::check_request (rq->_get_ptr ());
 	Nirvana::ModuleBindings ret;
 	Type <Nirvana::ModuleBindings>::unmarshal (rq->_get_ptr (), ret);
+	rq->unmarshal_end ();
 	return ret;
 }
 
