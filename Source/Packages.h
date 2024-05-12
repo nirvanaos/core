@@ -49,8 +49,7 @@ class Packages :
 		MODULE_DECCALC = 1,
 		MODULE_SFLOAT = 2,
 		MODULE_DBC = 3,
-		MODULE_SQLITE = 4,
-		MODULE_INSTALLER = 5
+		MODULE_SQLITE = 4
 	};
 
 public:
@@ -99,7 +98,8 @@ public:
 		module_load.module_id (100);
 	}
 
-	Installer::_ref_type get_installer () const;
+	void register_module (const CosNaming::Name& path, unsigned flags)
+	{}
 
 	static IDL::traits <AccessDirect>::ref_type open_binary (CosNaming::NamingContextExt::_ptr_type ns,
 		CORBA::Internal::String_in path);
@@ -113,16 +113,16 @@ private:
 		return open_binary (name_service_, get_system_binary_path (platform, module_name));
 	}
 
-	void connect (NDBC::Driver::_ptr_type driver);
-
 	CORBA::Object::_ref_type load_and_bind (SysModuleId id, bool singleton, const char* name) const;
+
+	static void create_database (NDBC::Statement::_ptr_type st);
 
 private:
 	CosNaming::NamingContextExt::_ref_type name_service_;
 	NDBC::Connection::_ref_type connection_;
 
 	static const char database_url_ [];
-	static const int32_t database_version_ = 1;
+	static const char* const db_script_ [];
 
 	static const char* const sys_module_names_ [];
 };

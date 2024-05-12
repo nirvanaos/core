@@ -49,10 +49,6 @@ Database connectivity module.
 
 SQLite database driver module.
 
-### Installer
-
-Package installer module.
-
 ## How to build
 The Nirvana core executable builded from the 3 parts:
 * LibCore

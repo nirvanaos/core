@@ -52,11 +52,6 @@ interface ProtDomainCore : ProtDomain
 	ModuleBindings get_module_bindings (in AccessDirect file, in boolean singleton);
 };
 
-interface InstallerFactory
-{
-	Installer get_installer ();
-};
-
 };
 
 #endif

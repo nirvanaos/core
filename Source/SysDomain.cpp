@@ -40,12 +40,14 @@ SysDomain::SysDomain (CORBA::Object::_ref_type& comp)
 	// Parent component
 	comp = _this ();
 
-	// Create stateless
-	packages_ = make_stateless <Packages> (comp)->_this ();
-
-	// Create stateful
+	// Create SysManager
 	SYNC_BEGIN (g_core_free_sync_context, &MemContext::current ());
 	manager_ = make_reference <SysManager> (comp)->_this ();
+	SYNC_END ();
+
+	// Create Packages
+	SYNC_BEGIN (g_core_free_sync_context, &MemContext::current ());
+	packages_ = make_reference <Packages> (comp)->_this ();
 	SYNC_END ();
 }
 
