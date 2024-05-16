@@ -36,7 +36,7 @@
 #include <CORBA/RepId.h>
 #include <Nirvana/Main.h>
 #include <Nirvana/ModuleInit.h>
-#include <Nirvana/Domains.h>
+#include "Nirvana/CoreDomains.h"
 #include "WaitableRef.h"
 #include "Chrono.h"
 #include "MapOrderedUnstable.h"
@@ -137,6 +137,8 @@ public:
 		SYNC_END ();
 		return ret;
 	}
+
+	static Nirvana::ModuleBindings get_module_bindings (AccessDirect::_ptr_type binary, bool singleton);
 
 	static Binder& singleton () noexcept
 	{
@@ -312,6 +314,9 @@ private:
 		<int32_t, ModulePtr, std::hash <int32_t>,
 		std::equal_to <int32_t>, Allocator> ModuleMap;
 
+	// Module dependencies
+	typedef SetOrderedUnstable <ObjectKey> Dependencies;
+
 	/// Module binding context
 	struct ModuleContext
 	{
@@ -322,6 +327,15 @@ private:
 
 		/// Module exports.
 		ObjectMap exports;
+
+		Dependencies dependencies;
+
+		bool collect_dependencies;
+
+		ModuleContext (SyncContext& sc, bool depends = false) :
+			sync_context (sc),
+			collect_dependencies (depends)
+		{}
 	};
 
 	/// Bind module.
@@ -355,15 +369,9 @@ private:
 	void unload (Module* pmod) noexcept;
 
 	CORBA::Object::_ref_type load_and_bind_sync (int32_t mod_id, CORBA::Internal::String_in mod_path,
-		CosNaming::NamingContextExt::_ptr_type name_service, bool singleton, const ObjectKey& name)
-	{
-		load (mod_id, nullptr, mod_path, name_service, singleton);
-		InterfaceRef itf = object_map_.find (name);
-		if (itf && CORBA::Internal::RepId::compatible (itf->_epv ().interface_id,
-			CORBA::Internal::RepIdOf <CORBA::Object>::id))
-				return itf.template downcast <CORBA::Object> ();
-		throw_OBJECT_NOT_EXIST ();
-	}
+		CosNaming::NamingContextExt::_ptr_type name_service, bool singleton, const ObjectKey& name);
+
+	Nirvana::ModuleBindings get_module_bindings_sync (AccessDirect::_ptr_type binary, bool singleton);
 
 	void housekeeping_modules ();
 	static void delete_module (Module* mod) noexcept;

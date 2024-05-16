@@ -107,7 +107,7 @@ void Binder::initialize ()
 		throw_INITIALIZE ();
 
 	SYNC_BEGIN (sync_domain (), nullptr);
-	ModuleContext context{ g_core_free_sync_context };
+	ModuleContext context (g_core_free_sync_context);
 	singleton_->module_bind (nullptr, metadata, &context);
 	singleton_->object_map_ = std::move (context.exports);
 	initialized_ = true;
@@ -186,7 +186,8 @@ NIRVANA_NORETURN void Binder::invalid_metadata ()
 	throw_INTERNAL (make_minor_errno (ENOEXEC));
 }
 
-const ModuleStartup* Binder::module_bind (::Nirvana::Module::_ptr_type mod, const Section& metadata, ModuleContext* mod_context)
+const ModuleStartup* Binder::module_bind (::Nirvana::Module::_ptr_type mod,
+	const Section& metadata, ModuleContext* mod_context)
 {
 	ExecDomain& ed = ExecDomain::current ();
 	void* prev_context = ed.TLS_get (CoreTLS::CORE_TLS_BINDER);
@@ -259,7 +260,7 @@ const ModuleStartup* Binder::module_bind (::Nirvana::Module::_ptr_type mod, cons
 					break;
 
 				default:
-					NIRVANA_UNREACHABLE_CODE ();
+					invalid_metadata ();
 			}
 		}
 
@@ -426,7 +427,7 @@ Ref <Module> Binder::load (int32_t mod_id, AccessDirect::_ref_type binary,
 			SYNC_END ();
 
 			assert (mod->_refcount_value () == 0);
-			ModuleContext context { mod->sync_context () };
+			ModuleContext context (mod->sync_context (), mod_id);
 			bind_and_init (*mod, context, singleton);
 			try {
 				object_map_.merge (context.exports);
@@ -477,6 +478,7 @@ void Binder::bind_and_init (Module& mod, ModuleContext& context, bool singleton)
 		module_unbind (mod._get_ptr (), mod.metadata ());
 		throw;
 	}
+
 	SYNC_END ();
 
 	mod.initial_ref_cnt_ = mod._refcount_value ();
@@ -591,6 +593,9 @@ Binder::InterfaceRef Binder::find (const ObjectKey& name)
 					if (!proxy)
 						throw_OBJECT_NOT_EXIST ();
 					Reference* ref = proxy->to_reference ();
+
+					// If object is local, then it is already inserted in the object map.
+					// Otherwise insert it.
 					if (ref && !(ref->flags () & Reference::LOCAL)) {
 						ReferenceRemote& rr = static_cast <ReferenceRemote&> (*ref);
 						object_map_.insert (rr.set_object_name (name.name ()), &obj);
@@ -599,10 +604,13 @@ Binder::InterfaceRef Binder::find (const ObjectKey& name)
 					else
 						assert (object_map_.find (name));
 #endif
-					return std::move (bind_info.loaded_object ());
+					itf = std::move (bind_info.loaded_object ());
 				}
 			}
 		}
+
+		if (context && context->collect_dependencies)
+			context->dependencies.insert (name);
 	}
 	return itf;
 }
@@ -679,6 +687,18 @@ CORBA::Object::_ref_type Binder::bind (const IDL::String& name)
 	return ret;
 }
 
+inline
+CORBA::Object::_ref_type Binder::load_and_bind_sync (int32_t mod_id, CORBA::Internal::String_in mod_path,
+	CosNaming::NamingContextExt::_ptr_type name_service, bool singleton, const ObjectKey& name)
+{
+	load (mod_id, nullptr, mod_path, name_service, singleton);
+	InterfaceRef itf = object_map_.find (name);
+	if (itf && CORBA::Internal::RepId::compatible (itf->_epv ().interface_id,
+		CORBA::Internal::RepIdOf <CORBA::Object>::id))
+		return itf.template downcast <CORBA::Object> ();
+	throw_OBJECT_NOT_EXIST ();
+}
+
 CORBA::Object::_ref_type Binder::load_and_bind (int32_t mod_id, CORBA::Internal::String_in mod_path,
 	CosNaming::NamingContextExt::_ptr_type name_service, bool singleton,
 	CORBA::Internal::String_in name)
@@ -700,6 +720,69 @@ CORBA::Object::_ref_type Binder::load_and_bind (int32_t mod_id, CORBA::Internal:
 		}
 	}
 	CORBA::Internal::ProxyRoot::check_request (rq->_get_ptr ());
+	return ret;
+}
+
+Nirvana::ModuleBindings Binder::get_module_bindings_sync (AccessDirect::_ptr_type binary, bool singleton)
+{
+	Module* mod = nullptr;
+	SYNC_BEGIN (g_core_free_sync_context, &memory ());
+	if (singleton)
+		mod = new Singleton (-1, binary);
+	else
+		mod = new ClassLibrary (-1, binary);
+	SYNC_END ();
+
+	ModuleContext context (mod->sync_context (), true);
+	try {
+		bind_and_init (*mod, context, singleton);
+	} catch (...) {
+		delete_module (mod);
+		throw;
+	}
+
+	Nirvana::ModuleBindings bindings;
+
+	try {
+		for (const auto& el : context.exports) {
+			bindings.exports ().emplace_back (IDL::String (el.first.name (), el.first.name_len ()),
+				el.first.version ().major, el.first.version ().minor);
+		}
+		for (const auto& el : context.dependencies) {
+			bindings.dependencies ().emplace_back (IDL::String (el.name (), el.name_len ()),
+				el.version ().major, el.version ().minor);
+		}
+	} catch (...) {
+		unload (mod);
+		throw;
+	}
+
+	unload (mod);
+
+	return bindings;
+}
+
+Nirvana::ModuleBindings Binder::get_module_bindings (AccessDirect::_ptr_type binary, bool singleton)
+{
+	Ref <Request> rq = Request::create ();
+	rq->invoke ();
+	{
+		Synchronized _sync_frame (sync_domain (), nullptr);
+		try {
+			rq->unmarshal_end ();
+			Nirvana::ModuleBindings md = singleton_->get_module_bindings_sync (binary, singleton);
+			Type <Nirvana::ModuleBindings>::marshal_out (md, rq->_get_ptr ());
+			rq->success ();
+		} catch (CORBA::Exception& e) {
+			rq->set_exception (std::move (e));
+		} catch (...) {
+			rq->set_unknown_exception ();
+		}
+	}
+	CORBA::Internal::ProxyRoot::check_request (rq->_get_ptr ());
+	Nirvana::ModuleBindings ret;
+	Type <Nirvana::ModuleBindings>::unmarshal (rq->_get_ptr (), ret);
+	rq->unmarshal_end ();
 	return ret;
 }
 

@@ -40,6 +40,11 @@ template <class Key, class T, class Compare = std::less <Key>,
 	template <class> class Allocator = std::allocator>
 	using MapOrderedUnstable = phmap::btree_map <Key, T, Compare, Allocator <std::pair <const Key, T> > >;
 
+/// Fast ordered set without the pointer stability.
+template <class Key, class Compare = std::less <Key>,
+	template <class> class Allocator = std::allocator>
+	using SetOrderedUnstable = phmap::btree_set <Key, Compare, Allocator <Key> >;
+
 }
 }
 

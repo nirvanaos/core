@@ -29,17 +29,41 @@
 #include <Nirvana/posix_defs.h>
 #include "Nirvana/CoreDomains.h"
 
+#define DATABASE_PATH "/var/lib/packages.db"
+#define DATABASE_VERSION 1
+
+#define STRINGIZE0(n) #n
+#define STRINGIZE(n) STRINGIZE0 (n)
+
 namespace Nirvana {
 namespace Core {
 
 const char Packages::database_url_ [] = "file:/var/lib/packages.db?mode=ro";
 
-const char* const Packages::sys_module_names_ [MODULE_INSTALLER] = {
+const char* const Packages::db_script_ [] = {
+"CREATE TABLE object(name TEXT NOT NULL,version INTEGER NOT NULL,PRIMARY KEY(name, version));"
+
+"CREATE TABLE module(name TEXT UNIQUE,id INTEGER PRIMARY KEY AUTOINCREMENT,flags INTEGER);"
+
+"CREATE TABLE binary(module INTEGER NOT NULL REFERENCES module(id),platform INTEGER NOT NULL,"
+"path TEXT NOT NULL,UNIQUE(module,platform));"
+
+"CREATE TABLE export(module INTEGER NOT NULL REFERENCES module(id),"
+"object INTEGER NOT NULL REFERENCES object(rowid),flags INTEGER NOT NULL);"
+
+"CREATE TABLE import(module INTEGER NOT NULL REFERENCES module(id),"
+"object INTEGER NOT NULL REFERENCES object(rowid));",
+
+"INSERT INTO module VALUES('100', 100, 0);"
+"DELETE FROM module WHERE id=100;"
+"PRAGMA user_version=" STRINGIZE (DATABASE_VERSION) ";"
+};
+
+const char* const Packages::sys_module_names_ [MODULE_SQLITE] = {
 	"DecCalc.olf",
 	"SFloat.olf",
 	"dbc.olf",
-	"SQLite.olf",
-	"Installer.olf"
+	"SQLite.olf"
 };
 
 Packages::Packages (CORBA::Object::_ptr_type comp) :
@@ -50,26 +74,22 @@ Packages::Packages (CORBA::Object::_ptr_type comp) :
 	NDBC::Driver::_ref_type driver = NDBC::Driver::_narrow (
 		load_and_bind (MODULE_SQLITE, false, "SQLite/driver"));
 
-	try {
-		connect (driver);
-		NDBC::Statement::_ref_type st = connection_->createStatement (NDBC::ResultSet::Type::TYPE_FORWARD_ONLY);
-		NDBC::ResultSet::_ref_type rs = st->executeQuery ("PRAGMA user_version;");
-		rs->next ();
-		int32_t cur_version = rs->getInt (1);
-		if (database_version_ == cur_version)
-			return;
-	} catch (...) {
-	}
+	connection_ = driver->connect ("file:" DATABASE_PATH "?mode=rwc&journal_mode=WAL",
+		IDL::String (), IDL::String ());
 
-	// Load installer to fix db
-	get_installer ();
-	// Retry connection
-	connect (driver);
+	NDBC::Statement::_ref_type st = connection_->createStatement (NDBC::ResultSet::Type::TYPE_FORWARD_ONLY);
+	NDBC::ResultSet::_ref_type rs = st->executeQuery ("PRAGMA user_version;");
+	rs->next ();
+	int32_t cur_version = rs->getInt (1);
+	if (DATABASE_VERSION != cur_version)
+		create_database (st);
 }
 
-void Packages::connect (NDBC::Driver::_ptr_type driver)
+inline void Packages::create_database (NDBC::Statement::_ptr_type st)
 {
-	connection_ = driver->connect (database_url_, IDL::String (), IDL::String ());
+	for (const char* sql : db_script_) {
+		st->executeUpdate (sql);
+	}
 }
 
 CORBA::Object::_ref_type Packages::load_and_bind (SysModuleId id, bool singleton, const char* name) const
@@ -109,12 +129,6 @@ IDL::String Packages::get_system_binary_path (unsigned platform, const char* mod
 	path += module_name;
 
 	return path;
-}
-
-Installer::_ref_type Packages::get_installer () const
-{
-	return InstallerFactory::_narrow (
-		load_and_bind (MODULE_INSTALLER, true, "Nirvana/installer_factory"))->get_installer ();
 }
 
 }
