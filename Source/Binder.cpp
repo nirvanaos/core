@@ -103,7 +103,8 @@ void Binder::initialize ()
 	sync_domain_.construct (std::ref (BinderMemory::heap ()));
 	singleton_.construct ();
 	Section metadata;
-	if (!Port::SystemInfo::get_OLF_section (metadata))
+	metadata.address = Port::SystemInfo::get_OLF_section (metadata.size);
+	if (!metadata.address)
 		throw_INITIALIZE ();
 
 	SYNC_BEGIN (sync_domain (), nullptr);
@@ -165,7 +166,7 @@ void Binder::terminate ()
 	singleton_->unload_modules ();
 	SYNC_END ();
 	Section metadata;
-	Port::SystemInfo::get_OLF_section (metadata);
+	metadata.address = Port::SystemInfo::get_OLF_section (metadata.size);
 	ExecDomain& ed = ExecDomain::current ();
 	ed.restricted_mode (ExecDomain::RestrictedMode::SUPPRESS_ASYNC_GC);
 	singleton_->module_unbind (nullptr, metadata);

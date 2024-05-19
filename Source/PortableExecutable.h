@@ -28,7 +28,6 @@
 #pragma once
 
 #include "COFF.h"
-#include "Section.h"
 
 namespace Nirvana {
 namespace Core {
@@ -48,7 +47,7 @@ public:
 		return (const uint8_t*)base_address_ + s.VirtualAddress;
 	}
 
-	bool find_OLF_section (Core::Section& section) const noexcept;
+	const void* find_OLF_section (size_t& size) const noexcept;
 
 private:
 	static const void* get_COFF (const void* base_address);

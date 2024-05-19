@@ -53,15 +53,14 @@ PortableExecutable::PortableExecutable (const void* base_address) :
 	base_address_ (base_address)
 {}
 
-bool PortableExecutable::find_OLF_section (Core::Section& section) const noexcept
+const void* PortableExecutable::find_OLF_section (size_t& size) const noexcept
 {
 	const COFF::Section* ps = COFF::find_section (OLF_BIND);
 	if (ps) {
-		section.address = section_address (*ps);
-		section.size = ps->VirtualSize;
-		return true;
+		size = ps->VirtualSize;
+		return section_address (*ps);
 	}
-	return false;
+	return nullptr;
 }
 
 }
