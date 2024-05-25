@@ -41,18 +41,15 @@ namespace Core {
 const char Packages::database_url_ [] = "file:/var/lib/packages.db?mode=ro";
 
 const char* const Packages::db_script_ [] = {
-"CREATE TABLE object(name TEXT NOT NULL,version INTEGER NOT NULL,PRIMARY KEY(name, version));"
-
 "CREATE TABLE module(name TEXT UNIQUE,id INTEGER PRIMARY KEY AUTOINCREMENT,flags INTEGER);"
 
-"CREATE TABLE binary(module INTEGER NOT NULL REFERENCES module(id),platform INTEGER NOT NULL,"
-"path TEXT NOT NULL,UNIQUE(module,platform));"
+"CREATE TABLE export(name TEXT NOT NULL,major INTEGER NOT NULL,minor INTEGER NOT NULL,flags INTEGER NOT NULL,"
+"module INTEGER NOT NULL REFERENCES module(id)ON DELETE CASCADE,"
+"PRIMARY KEY(name, major));"
 
-"CREATE TABLE export(module INTEGER NOT NULL REFERENCES module(id),"
-"object INTEGER NOT NULL REFERENCES object(rowid),flags INTEGER NOT NULL);"
-
-"CREATE TABLE import(module INTEGER NOT NULL REFERENCES module(id),"
-"object INTEGER NOT NULL REFERENCES object(rowid));",
+"CREATE TABLE binary("
+"module INTEGER NOT NULL REFERENCES module(id)ON DELETE CASCADE,"
+"platform INTEGER NOT NULL,path TEXT NOT NULL,UNIQUE(module,platform));",
 
 "INSERT INTO module VALUES('100', 100, 0);"
 "DELETE FROM module WHERE id=100;"
