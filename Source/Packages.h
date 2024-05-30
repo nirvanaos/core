@@ -102,14 +102,12 @@ public:
 
 	void register_module (const CosNaming::Name& path, unsigned flags)
 	{
-		/*
 		CORBA::Object::_ref_type obj;
 		name_service_->bind (path, obj);
 		Nirvana::File::_ref_type file = Nirvana::File::_narrow (obj);
 		AccessBuf::_ref_type acc = AccessBuf::_downcast (file->open (O_RDONLY, 0)->_to_value ());
 		Stream stm (acc);
 		ModuleMetadata metadata = get_module_metadata (stm);
-		*/
 	}
 
 	static IDL::traits <AccessDirect>::ref_type open_binary (CosNaming::NamingContextExt::_ptr_type ns,
