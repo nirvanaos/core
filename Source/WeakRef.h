@@ -48,7 +48,7 @@ private:
 	template <class> friend class CORBA::servant_reference;
 
 	template <class ... Args>
-	ImplShared (Args ... args) :
+	ImplShared (Args&& ... args) :
 		T (std::forward <Args> (args)...)
 	{}
 

@@ -43,7 +43,7 @@ public:
 	/// 
 	/// \param ...args Arguments for constructor.
 	template <class ... Args>
-	void construct (Args ... args)
+	void construct (Args&& ... args)
 	{
 		assert (!constructed_);
 		new (&storage_) T (std::forward <Args> (args)...);

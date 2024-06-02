@@ -206,7 +206,7 @@ protected:
 		}
 
 		template <class S, class ... Args>
-		typename S::PrimaryInterface::_ref_type create (Args ... args)
+		typename S::PrimaryInterface::_ref_type create (Args&& ... args)
 		{
 			servant_reference <S> ref (make_reference <S> (std::forward <Args> (args)...));
 			insert (&static_cast <ChildObject&> (*ref));

@@ -111,7 +111,7 @@ public:
 
 private:
 	template <class T, class ... Args>
-	friend CORBA::servant_reference <T> CORBA::make_reference (Args ... args);
+	friend CORBA::servant_reference <T> CORBA::make_reference (Args&& ... args);
 
 	BindingIterator (std::unique_ptr <Iterator>&& vi) :
 		vi_ (std::move (vi))

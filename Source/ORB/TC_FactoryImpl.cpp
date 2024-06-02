@@ -180,12 +180,12 @@ TypeCode::_ref_type TC_FactoryImpl::create_struct_tc (TCKind kind, RepositoryId&
 	return tc;
 }
 
-TypeCode::_ref_type TC_FactoryImpl::create_interface_tc (TCKind kind, const RepositoryId& id,
-	const Identifier& name)
+TypeCode::_ref_type TC_FactoryImpl::create_interface_tc (TCKind kind, RepositoryId&& id,
+	Identifier&& name)
 {
 	check_id (id);
 	check_name (name);
-	return make_pseudo <TC_Interface> (kind, id, name);
+	return make_pseudo <TC_Interface> (kind, std::move (id), std::move (name));
 }
 
 TC_ComplexBase* TC_FactoryImpl::complex_base (TypeCode::_ptr_type p) const noexcept

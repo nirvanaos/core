@@ -68,10 +68,10 @@ protected:
 	template <class> friend class CORBA::servant_reference;
 
 	template <class S, class ... Args> friend
-	CORBA::Internal::I_ref <typename S::PrimaryInterface> CORBA::make_pseudo (Args ... args);
+	CORBA::Internal::I_ref <typename S::PrimaryInterface> CORBA::make_pseudo (Args&& ... args);
 
 	template <class ... Args>
-	ImplDynamic (Args ... args) :
+	ImplDynamic (Args&& ... args) :
 		T (std::forward <Args> (args)...)
 	{}
 
@@ -108,10 +108,10 @@ protected:
 	template <class> friend class CORBA::servant_reference;
 
 	template <class S, class ... Args> friend
-		CORBA::servant_reference <S> CORBA::make_reference (Args ... args);
+		CORBA::servant_reference <S> CORBA::make_reference (Args&& ... args);
 
 	template <class ... Args>
-	ImplDynamicSync (Args ... args) :
+	ImplDynamicSync (Args&& ... args) :
 		T (std::forward <Args> (args)...),
 		ref_cnt_ (1)
 	{}
@@ -139,7 +139,7 @@ class ImplStatic : public T
 {
 public:
 	template <class ... Args>
-	ImplStatic (Args ... args) :
+	ImplStatic (Args&& ... args) :
 		T (std::forward <Args> (args)...)
 	{}
 
@@ -160,7 +160,7 @@ protected:
 	template <class> friend class CORBA::servant_reference;
 
 	template <class ... Args>
-	ImplNoAddRef (Args ... args) :
+	ImplNoAddRef (Args&& ... args) :
 		T (std::forward <Args> (args)...)
 	{}
 

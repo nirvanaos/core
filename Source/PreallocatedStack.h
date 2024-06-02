@@ -66,7 +66,7 @@ public:
 	/// 
 	/// \param args Arguments to construct first element.
 	template <class ... Args>
-	PreallocatedStack (Args ... args) noexcept :
+	PreallocatedStack (Args&& ... args) noexcept :
 		last_block_ (nullptr),
 		top_ (((El*)&preallocated_) + 1)
 	{
@@ -119,7 +119,7 @@ public:
 	}
 
 	template <class ... Args>
-	void emplace (Args ... args)
+	void emplace (Args&& ... args)
 	{
 		allocate ();
 		try {

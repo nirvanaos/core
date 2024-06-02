@@ -251,7 +251,7 @@ public:
 		}
 		servant_reference <TC_Value> ref =
 			make_reference <TC_Value> (std::move (id), std::move (name), type_modifier,
-				ref_base, std::move (smembers));
+				std::move (ref_base), std::move (smembers));
 		TypeCode::_ptr_type tc = ref->_get_ptr ();
 		complex_objects_.emplace (&tc, ref);
 		return tc;
@@ -390,8 +390,8 @@ private:
 	TypeCode::_ref_type create_struct_tc (TCKind kind, RepositoryId&& id,
 		Identifier&& name, StructMemberSeq& members);
 
-	static TypeCode::_ref_type create_interface_tc (TCKind kind, const RepositoryId& id,
-		const Identifier& name);
+	static TypeCode::_ref_type create_interface_tc (TCKind kind, RepositoryId&& id,
+		Identifier&& name);
 
 	TC_ComplexBase* complex_base (TypeCode::_ptr_type p) const noexcept;
 

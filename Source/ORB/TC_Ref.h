@@ -94,7 +94,7 @@ class NIRVANA_NOVTABLE TC_Complex :
 {
 protected:
 	template <class ... Args>
-	TC_Complex (Args ... args) :
+	TC_Complex (Args&& ... args) :
 		Base (std::forward <Args> (args)...)
 	{}
 

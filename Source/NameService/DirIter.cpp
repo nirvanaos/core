@@ -138,7 +138,7 @@ public:
 
 private:
 	template <class T, class ... Args>
-	friend CORBA::servant_reference <T> CORBA::make_reference (Args ... args);
+	friend CORBA::servant_reference <T> CORBA::make_reference (Args&& ... args);
 
 	DirIterator (Nirvana::Dir::_ref_type&& dir, std::unique_ptr <DirIter>&& vi) :
 		dir_ (std::move (dir)),

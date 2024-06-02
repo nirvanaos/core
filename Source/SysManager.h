@@ -86,7 +86,7 @@ public:
 	};
 
 	template <class RunnableClass, class ... Args>
-	static void async_call (const DeadlineTime& deadline, Args ... args)
+	static void async_call (const DeadlineTime& deadline, Args&& ... args)
 	{
 		Nirvana::SysManager::_ref_type ref;
 		Ref <SyncContext> sync_context;

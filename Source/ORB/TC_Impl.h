@@ -80,7 +80,7 @@ public:
 
 protected:
 	template <class ... Args>
-	TC_Impl (Args ... args) :
+	TC_Impl (Args&& ... args) :
 		Base (std::forward <Args> (args)...)
 	{}
 };

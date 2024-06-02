@@ -623,7 +623,7 @@ class RequestLocalImpl :
 {
 public:
 	template <class ... Args>
-	RequestLocalImpl (Args ... args) noexcept :
+	RequestLocalImpl (Args&& ... args) noexcept :
 		Base (std::forward <Args> (args)...)
 	{
 		Base::cur_ptr_ = block_;

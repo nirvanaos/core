@@ -82,7 +82,7 @@ public:
 	/// 
 	template <class R, class ... Args>
 	static void async_call (const DeadlineTime& deadline, SyncContext& target, Heap* heap,
-		Args ... args)
+		Args&& ... args)
 	{
 		static_assert (sizeof (R) <= MAX_RUNNABLE_SIZE, "Runnable too large");
 

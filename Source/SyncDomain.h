@@ -228,7 +228,7 @@ class SyncDomainDyn final :
 {
 public:
 	template <class ... Args>
-	static Ref <SyncDomain> create (Heap& heap, Args ... args)
+	static Ref <SyncDomain> create (Heap& heap, Args&& ... args)
 	{
 		size_t cb = sizeof (SyncDomainDyn);
 		SyncDomain* sd = new (heap.allocate (nullptr, cb, 0))
@@ -241,7 +241,7 @@ private:
 	template <class> friend class CORBA::servant_reference;
 
 	template <class ... Args>
-	SyncDomainDyn (Args ... args) :
+	SyncDomainDyn (Args&& ... args) :
 		T (std::forward <Args> (args)...)
 	{}
 

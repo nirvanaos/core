@@ -330,7 +330,7 @@ public:
 		}
 
 		template <class ... Args>
-		NodeVal (int level, Args ... args) noexcept :
+		NodeVal (int level, Args&& ... args) noexcept :
 			Base::Node (level)
 		{
 			new (&value ()) Value (std::forward <Args> (args)...);
@@ -352,7 +352,7 @@ public:
 	///          first must be released by `release_node`.
 	///          second is `true` if new node was inserted, false if node already exists.
 	template <class ... Args>
-	std::pair <NodeVal*, bool> insert (Args ... args)
+	std::pair <NodeVal*, bool> insert (Args&& ... args)
 	{
 		return insert (create_node (std::forward <Args> (args)...));
 	}
@@ -364,7 +364,7 @@ public:
 	}
 
 	template <class ... Args>
-	NodeVal* create_node (Args ... args)
+	NodeVal* create_node (Args&& ... args)
 	{
 		SkipListBase::Node* node = this->allocate_node ();
 		// Initialize node
@@ -441,7 +441,7 @@ public:
 	/// \returns The Node pointer or `nullptr` if value not found.
 	///          Returned pointer must be released by `release_node`.
 	template <class ... Args>
-	NodeVal* find (Args ... args)
+	NodeVal* find (Args&& ... args)
 	{
 		NodeVal keynode (1, std::forward <Args> (args)...);
 		return static_cast <NodeVal*> (Base::find (&keynode));

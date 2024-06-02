@@ -71,7 +71,7 @@ public:
 	}
 
 	template <class ... Args>
-	File (Args ... args) :
+	File (Args&& ... args) :
 		Base (std::forward <Args> (args)...),
 		proxy_cnt_ (0)
 	{}

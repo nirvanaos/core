@@ -116,7 +116,7 @@ public:
 
 private:
 	template <class S, class ... Args> friend
-		CORBA::servant_reference <S> CORBA::make_reference (Args ...);
+		CORBA::servant_reference <S> CORBA::make_reference (Args&& ...);
 
 	// Constructor. Do not call directly.
 	Process (AccessDirect::_ptr_type file,

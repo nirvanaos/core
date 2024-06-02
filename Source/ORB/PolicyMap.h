@@ -125,7 +125,7 @@ protected:
 	{}
 
 	template <class ... Args>
-	PolicyMapUser (Args ... args) :
+	PolicyMapUser (Args&& ... args) :
 		PolicyMap (std::forward <Args> (args)...)
 	{}
 

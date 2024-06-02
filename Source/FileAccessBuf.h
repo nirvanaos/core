@@ -132,7 +132,7 @@ public:
 		check_flags (f);
 		AccessDirect::_ref_type acc = AccessDirect::_narrow (Servant::access ()->dup (O_ACCMODE, f)->_to_object ());
 		return CORBA::make_reference <FileAccessBuf> (position (), buf_pos (), std::move (acc),
-			buffer (), block_size (), f, eol ());
+			Bytes (buffer ()), block_size (), f, eol ());
 	}
 
 	Nirvana::File::_ref_type file () const

@@ -78,7 +78,7 @@ class Dir : public DirImpl <Dir>,
 
 public:
 	template <class ... Args>
-	Dir (Args ... args) :
+	Dir (Args&& ... args) :
 		Base (std::forward <Args> (args)...)
 	{}
 
