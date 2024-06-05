@@ -291,18 +291,53 @@ private:
 		Version version_;
 	};
 
+	struct ObjectVal
+	{
+		InterfacePtr itf;
+		Module* mod;
+
+		ObjectVal (InterfacePtr _itf, Module* _mod) :
+			itf (_itf),
+			mod (_mod)
+		{}
+	};
+
+	struct FindResult
+	{
+		InterfaceRef itf;
+		Module* mod;
+
+		FindResult () :
+			mod (nullptr)
+		{}
+
+		FindResult& operator = (const FindResult&) = default;
+
+		FindResult& operator = (const ObjectVal* pf) noexcept
+		{
+			if (pf) {
+				itf = pf->itf;
+				mod = pf->mod;
+			}
+
+			return *this;
+		}
+	};
+
+	static Module* const CORE_MODULE;
+
 	// We use fast binary tree without the iterator stability.
-	typedef MapOrderedUnstable <ObjectKey, InterfacePtr, std::less <ObjectKey>,
+	typedef MapOrderedUnstable <ObjectKey, ObjectVal, std::less <ObjectKey>,
 		Allocator> ObjectMapBase;
 
 	// Name->interface map.
 	class ObjectMap : public ObjectMapBase
 	{
 	public:
-		void insert (const char* name, InterfacePtr itf);
+		void insert (const char* name, InterfacePtr itf, Module* mod);
 		void erase (const char* name) noexcept;
 		void merge (const ObjectMap& src);
-		InterfacePtr find (const ObjectKey& key) const;
+		const ObjectVal* find (const ObjectKey& key) const;
 	};
 
 	// Map of the loaded modules.
@@ -317,12 +352,14 @@ private:
 	// Module dependencies
 	typedef SetOrderedUnstable <ObjectKey> Dependencies;
 
-	/// Module binding context
+	// Module binding context
 	struct ModuleContext
 	{
-		/// Synchronization context.
-		///   If module is ClassLibrary, sync_context is free context.
-		///   If module is Singleton, sync_context is the singleton synchronization domain.
+		Module* mod;
+
+		// Synchronization context.
+		//   If module is ClassLibrary, sync_context is free context.
+		//   If module is Singleton, sync_context is the singleton synchronization domain.
 		SyncContext& sync_context;
 
 		/// Module exports.
@@ -332,7 +369,8 @@ private:
 
 		bool collect_dependencies;
 
-		ModuleContext (SyncContext& sc, bool depends = false) :
+		ModuleContext (Module* m, SyncContext& sc, bool depends = false) :
+			mod (m),
 			sync_context (sc),
 			collect_dependencies (depends)
 		{}
@@ -360,7 +398,7 @@ private:
 	InterfaceRef bind_interface_sync (const ObjectKey& name, CORBA::Internal::String_in iid);
 	CORBA::Object::_ref_type bind_sync (const ObjectKey& name);
 
-	InterfaceRef find (const ObjectKey& name);
+	FindResult find (const ObjectKey& name);
 
 	NIRVANA_NORETURN static void invalid_metadata ();
 
