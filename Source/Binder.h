@@ -208,6 +208,22 @@ public:
 		}
 	}
 
+	static void raise_exception (const siginfo_t& signal)
+	{
+		Binary* binary = nullptr;
+		SYNC_BEGIN (sync_domain (), nullptr)
+		auto it = singleton_->binary_map_.upper_bound (signal.si_addr);
+		assert (it != singleton_->binary_map_.begin ());
+		if (it != singleton_->binary_map_.begin ())
+			binary = (--it)->second;
+		SYNC_END ();
+
+		if (binary)
+			binary->raise_exception ((CORBA::SystemException::Code)signal.si_excode, signal.si_code);
+		else
+			CORBA::SystemException::_raise_by_code ((CORBA::SystemException::Code)signal.si_excode, signal.si_code);
+	}
+
 private:
 	typedef CORBA::Internal::RepId RepId;
 	typedef CORBA::Internal::RepId::Version Version;
@@ -376,6 +392,28 @@ private:
 		{}
 	};
 
+	// Map of the binaries.
+	// Used for the signals to exception.
+	class BinaryMap :
+		public MapOrderedUnstable <const void*, Binary*, std::less <const void*>, Allocator>
+	{
+	public:
+		BinaryMap ()
+		{
+			emplace (Port::SystemInfo::base_address (), nullptr);
+		}
+
+		void add (Binary& binary)
+		{
+			emplace (binary.base_address (), &binary);
+		}
+
+		void remove (Binary& binary)
+		{
+			erase (binary.base_address ());
+		}
+	};
+
 	/// Bind module.
 	/// 
 	/// \param mod The Nirvana::Module interface.
@@ -384,7 +422,8 @@ private:
 	///   If module is Executable, mod_context must be `nullptr`.
 	/// 
 	/// \returns Pointer to the ModuleStartup metadata structure, if found. Otherwise `nullptr`.
-	const ModuleStartup* module_bind (Nirvana::Module::_ptr_type mod, const Section& metadata, ModuleContext* mod_context);
+	const ModuleStartup* module_bind (Nirvana::Module::_ptr_type mod, const Section& metadata,
+		ModuleContext* mod_context);
 
 	void bind_and_init (Module& mod, ModuleContext& context, bool singleton);
 	
@@ -446,6 +485,7 @@ private:
 	CosNaming::NamingContextExt::_ref_type name_service_;
 	ObjectMap object_map_;
 	ModuleMap module_map_;
+	BinaryMap binary_map_;
 	CORBA::Core::RemoteReferences remote_references_;
 	ImplStatic <HousekeepingTimerModules> housekeeping_timer_modules_;
 	ImplStatic <HousekeepingTimerDomains> housekeeping_timer_domains_;

@@ -32,6 +32,7 @@
 #include <CORBA/Server.h>
 #include <Nirvana/Shell_s.h>
 #include "Nirvana_Process.h"
+#include "Binder.h"
 
 namespace Nirvana {
 

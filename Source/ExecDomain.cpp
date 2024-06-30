@@ -25,6 +25,7 @@
 */
 #include "pch.h"
 #include "ExecDomain.h"
+#include "Binder.h"
 #include "Chrono.h"
 #include "MemContext.h"
 #include "DeadlinePolicy.h"
@@ -486,6 +487,14 @@ void ExecDomain::suspend ()
 void ExecDomain::Suspend::run ()
 {
 	ExecDomain::current ().suspend_prepared ();
+}
+
+bool ExecDomain::on_signal (const siginfo_t& signal)
+{
+	// TODO: Check for the signal handlers and return true if signal is handled.
+	Binder::raise_exception (signal);
+
+	return false;
 }
 
 }

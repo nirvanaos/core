@@ -58,10 +58,5 @@ Module* SyncContextCore::module () noexcept
 	return nullptr;
 }
 
-void SyncContextCore::raise_exception (CORBA::SystemException::Code code, unsigned minor)
-{
-	CORBA::SystemException::_raise_by_code (code, minor);
-}
-
 }
 }

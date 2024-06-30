@@ -44,6 +44,7 @@ Main::_ptr_type Binder::bind (Executable& mod)
 	try {
 		if (!startup || !startup->startup)
 			invalid_metadata ();
+		singleton_->binary_map_.add (mod);
 	} catch (...) {
 		release_imports (mod._get_ptr (), mod.metadata ());
 		throw;
@@ -55,6 +56,9 @@ Main::_ptr_type Binder::bind (Executable& mod)
 inline
 void Binder::unbind (Executable& mod) noexcept
 {
+	SYNC_BEGIN (singleton_->sync_domain_, nullptr);
+	singleton_->binary_map_.remove (mod);
+	SYNC_END ();
 	release_imports (mod._get_ptr (), mod.metadata ());
 }
 

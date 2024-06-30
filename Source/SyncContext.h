@@ -119,12 +119,6 @@ public:
 	///          Core and process executable contexts return `nullptr`.
 	virtual Module* module () noexcept = 0;
 
-	/// Raise system exception in the binary object (Module or Executable).
-	/// 
-	/// \code  System exception code.
-	/// \minor System exception minor code.
-	virtual void raise_exception (CORBA::SystemException::Code code, unsigned minor) = 0;
-
 	/// \returns `true` if current execution context is process.
 	bool is_process () const noexcept
 	{
@@ -161,7 +155,6 @@ class SyncContextCore :
 public:
 	virtual Heap* stateless_memory () noexcept override;
 	virtual Module* module () noexcept override;
-	virtual void raise_exception (CORBA::SystemException::Code code, unsigned minor) override;
 };
 
 extern StaticallyAllocated <ImplStatic <SyncContextCore> > g_core_free_sync_context;

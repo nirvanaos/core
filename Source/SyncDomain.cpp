@@ -159,11 +159,6 @@ Module* SyncDomainUser::module () noexcept
 	return parent_->module ();
 }
 
-void SyncDomainUser::raise_exception (CORBA::SystemException::Code code, unsigned minor)
-{
-	parent_->raise_exception (code, minor);
-}
-
 SyncDomainCore::SyncDomainCore (Heap& heap) :
 	SyncDomain (MemContext::create (heap, true))
 {}
@@ -171,11 +166,6 @@ SyncDomainCore::SyncDomainCore (Heap& heap) :
 Module* SyncDomainCore::module () noexcept
 {
 	return nullptr;
-}
-
-void SyncDomainCore::raise_exception (CORBA::SystemException::Code code, unsigned minor)
-{
-	CORBA::SystemException::_raise_by_code (code, minor);
 }
 
 }

@@ -43,6 +43,12 @@ public:
 		return Port::Module::address ();
 	}
 
+	/// \brief Raise system exception in the binary object (Module or Executable).
+	/// 
+	/// \code  System exception code.
+	/// \minor System exception minor code.
+	virtual void raise_exception (CORBA::SystemException::Code code, unsigned minor) = 0;
+
 protected:
 	Binary (AccessDirect::_ptr_type file) :
 		Nirvana::Core::Port::Module (file)

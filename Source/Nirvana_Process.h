@@ -127,8 +127,7 @@ private:
 		executable_ (file),
 		argv_ (std::move (argv)),
 		callback_ (callback),
-		mem_context_ (MemContext::create (MemContext::current ().heap ())),
-		exec_domain_ (nullptr)
+		mem_context_ (MemContext::create (MemContext::current ().heap ()))
 	{
 		Ref <MemContext> tmp (mem_context_);
 		ExecDomain& ed = ExecDomain::current ();
@@ -148,18 +147,6 @@ private:
 	// Core::Runnable::
 	virtual void run () override;
 	virtual void on_crash (const siginfo& signal) noexcept override;
-
-	// Must be called in run()
-
-	void run_begin ()
-	{
-		exec_domain_ = &Nirvana::Core::ExecDomain::current ();
-	}
-
-	void run_end ()
-	{
-		exec_domain_ = nullptr;
-	}
 
 private:
 	typedef std::vector <std::string> Strings;
@@ -181,7 +168,6 @@ private:
 	Nirvana::Process::_ref_type proxy_;
 	Ref <MemContext> mem_context_;
 	EventSync completed_;
-	ExecDomain* exec_domain_;
 };
 
 }

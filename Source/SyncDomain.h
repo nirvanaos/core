@@ -201,7 +201,6 @@ protected:
 
 	// SyncContext::
 	virtual Module* module () noexcept;
-	virtual void raise_exception (CORBA::SystemException::Code code, unsigned minor);
 
 private:
 	// Parent free sync context.
@@ -219,7 +218,6 @@ protected:
 
 	// SyncContext::
 	virtual Module* module () noexcept;
-	virtual void raise_exception (CORBA::SystemException::Code code, unsigned minor);
 };
 
 template <class T>

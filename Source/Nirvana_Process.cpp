@@ -45,8 +45,6 @@ Process::~Process ()
 
 void Process::run ()
 {
-	run_begin ();
-
 	assert (INIT == state_);
 	state_ = RUNNING;
 
@@ -87,8 +85,6 @@ void Process::finish () noexcept
 		} catch (...) {
 		}
 	}
-
-	run_end ();
 }
 
 void Process::on_crash (const siginfo& signal) noexcept
