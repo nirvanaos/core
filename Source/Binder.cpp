@@ -45,8 +45,6 @@ using namespace CORBA::Core;
 namespace Nirvana {
 namespace Core {
 
-Module* const Binder::CORE_MODULE = (Module*)1;
-
 class Binder::Request : public RequestLocalBase
 {
 public:
@@ -65,11 +63,11 @@ StaticallyAllocated <ImplStatic <SyncDomainCore> > Binder::sync_domain_;
 StaticallyAllocated <Binder> Binder::singleton_;
 bool Binder::initialized_ = false;
 
-void Binder::ObjectMap::insert (const char* name, InterfacePtr itf, Module* mod)
+void Binder::ObjectMap::insert (const char* name, InterfacePtr itf, SyncContext* sc)
 {
 	assert (itf);
 	assert (*name);
-	if (!ObjectMapBase::emplace (name, ObjectVal (itf, mod)).second)
+	if (!ObjectMapBase::emplace (name, ObjectVal (itf, sc)).second)
 		throw_INV_OBJREF ();	// Duplicated name TODO: Log
 }
 
@@ -110,7 +108,7 @@ void Binder::initialize ()
 		throw_INITIALIZE ();
 
 	SYNC_BEGIN (sync_domain (), nullptr);
-	ModuleContext context (CORE_MODULE, g_core_free_sync_context);
+	ModuleContext context (nullptr, g_core_free_sync_context);
 	singleton_->module_bind (nullptr, metadata, &context);
 	singleton_->object_map_ = std::move (context.exports);
 	initialized_ = true;
@@ -242,7 +240,7 @@ const ModuleStartup* Binder::module_bind (::Nirvana::Module::_ptr_type mod,
 						invalid_metadata ();
 
 					const ExportInterface* ps = reinterpret_cast <const ExportInterface*> (it.cur ());
-					mod_context->exports.insert (ps->name, ps->itf, mod_context->mod);
+					mod_context->exports.insert (ps->name, ps->itf, &mod_context->sync_context);
 				} break;
 
 				case OLF_EXPORT_OBJECT:
@@ -282,8 +280,8 @@ const ModuleStartup* Binder::module_bind (::Nirvana::Module::_ptr_type mod,
 					if (OLF_IMPORT_INTERFACE == *it.cur ()) {
 						ImportInterface* ps = reinterpret_cast <ImportInterface*> (it.cur ());
 						if (!mod || ps != module_entry)
-							reinterpret_cast <InterfaceRef&> (ps->itf) = bind_interface_sync (
-								ps->name, ps->interface_id);
+							reinterpret_cast <InterfaceRef&> (ps->itf) = std::move (bind_interface_sync (
+								ps->name, ps->interface_id).itf);
 					}
 				}
 
@@ -299,7 +297,7 @@ const ModuleStartup* Binder::module_bind (::Nirvana::Module::_ptr_type mod,
 									Type <PortableServer::Servant>::in (ps->servant), nullptr);
 							Object::_ptr_type obj = core_object->proxy ().get_proxy ();
 							ps->core_object = &PortableServer::Servant (core_object);
-							mod_context->exports.insert (ps->name, obj, mod_context->mod);
+							mod_context->exports.insert (ps->name, obj, &mod_context->sync_context);
 						} break;
 
 						case OLF_EXPORT_LOCAL: {
@@ -308,7 +306,7 @@ const ModuleStartup* Binder::module_bind (::Nirvana::Module::_ptr_type mod,
 									Type <CORBA::LocalObject>::in (ps->servant), nullptr);
 							Object::_ptr_type obj = core_object->proxy ().get_proxy ();
 							ps->core_object = &CORBA::LocalObject::_ptr_type (core_object);
-							mod_context->exports.insert (ps->name, obj, mod_context->mod);
+							mod_context->exports.insert (ps->name, obj, &mod_context->sync_context);
 						} break;
 					}
 				}
@@ -543,7 +541,7 @@ void Binder::release_imports (Nirvana::Module::_ptr_type mod, const Section& met
 	ed.restricted_mode (rm);
 }
 
-Binder::FindResult Binder::find (const ObjectKey& name)
+Binder::BindResult Binder::find (const ObjectKey& name)
 {
 	const ExecDomain& exec_domain = ExecDomain::current ();
 	switch (exec_domain.sync_context ().sync_context_type ()) {
@@ -552,7 +550,7 @@ Binder::FindResult Binder::find (const ObjectKey& name)
 		throw_NO_PERMISSION ();
 	}
 	ModuleContext* context = reinterpret_cast <ModuleContext*> (exec_domain.TLS_get (CoreTLS::CORE_TLS_BINDER));
-	FindResult ret;
+	BindResult ret;
 	if (context)
 		ret = context->exports.find (name);
 	if (!ret.itf) {
@@ -618,9 +616,9 @@ Binder::FindResult Binder::find (const ObjectKey& name)
 	return ret;
 }
 
-Binder::InterfaceRef Binder::bind_interface_sync (const ObjectKey& name, String_in iid)
+Binder::BindResult Binder::bind_interface_sync (const ObjectKey& name, String_in iid)
 {
-	FindResult fr = find (name);
+	BindResult fr = find (name);
 	CORBA::Internal::StringView <char> itf_id = fr.itf->_epv ().interface_id;
 	if (!RepId::compatible (itf_id, iid)) {
 		InterfacePtr qi = nullptr;
@@ -636,12 +634,12 @@ Binder::InterfaceRef Binder::bind_interface_sync (const ObjectKey& name, String_
 		fr.itf = qi;
 	}
 
-	return fr.itf;
+	return fr;
 }
 
-Binder::InterfaceRef Binder::bind_interface (CORBA::Internal::String_in name, CORBA::Internal::String_in iid)
+Binder::BindResult Binder::bind_interface (CORBA::Internal::String_in name, CORBA::Internal::String_in iid)
 {
-	InterfaceRef ret;
+	BindResult ret;
 	Ref <Request> rq = Request::create ();
 	rq->invoke ();
 	{
@@ -662,7 +660,7 @@ Binder::InterfaceRef Binder::bind_interface (CORBA::Internal::String_in name, CO
 
 Object::_ref_type Binder::bind_sync (const ObjectKey& name)
 {
-	FindResult fr = find (name);
+	BindResult fr = find (name);
 	if (RepId::compatible (fr.itf->_epv ().interface_id, RepIdOf <Object>::id))
 		return fr.itf.template downcast <CORBA::Object> ();
 	else
@@ -699,10 +697,14 @@ CORBA::Object::_ref_type Binder::load_and_bind_sync (int32_t mod_id, CORBA::Inte
 	if (ov
 		&& CORBA::Internal::RepId::compatible (ov->itf->_epv ().interface_id,
 			CORBA::Internal::RepIdOf <CORBA::Object>::id)
-		&& ov->mod && ov->mod != CORE_MODULE && ov->mod->id () == mod_id
 		) {
-		InterfaceRef itf = ov->itf;
-		return itf.template downcast <CORBA::Object> ();
+		if (ov->sync_context) {
+			Module* mod = ov->sync_context->module ();
+			if (mod && mod->id () == mod_id) {
+				InterfaceRef itf = ov->itf;
+				return itf.template downcast <CORBA::Object> ();
+			}
+		}
 	}
 	throw_OBJECT_NOT_EXIST ();
 }

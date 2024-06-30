@@ -50,6 +50,7 @@ public:
 	static short run_cmdlet (const IDL::String& name, StringSeq& argv,
 		IDL::String& work_dir, FileDescriptors& files)
 	{
+		auto cmdlet = Core::Binder::bind_interface (name, CORBA::Internal::RepIdOf <Cmdlet>::id);
 		throw_NO_IMPLEMENT ();
 	}
 

@@ -164,7 +164,7 @@ public:
 	// So we make private copies of the client strings in stak.
 	static CORBA::Internal::Interface::_ref_type bind_interface (IDL::String name, IDL::String iid)
 	{
-		return Core::Binder::bind_interface (name, iid);
+		return std::move (Core::Binder::bind_interface (name, iid).itf);
 	}
 
 	static size_t exec_domain_id ()

@@ -58,6 +58,8 @@ class Binder
 	/// it will be temporary adjusted. TODO: config.h
 	static const TimeBase::TimeT MODULE_LOADING_DEADLINE_MAX = 1 * TimeBase::SECOND;
 
+	struct ObjectVal;
+
 public:
 	typedef CORBA::Internal::Interface::_ref_type InterfaceRef;
 	template <class T>
@@ -76,13 +78,27 @@ public:
 	// Implements System::bind()
 	static CORBA::Object::_ref_type bind (const IDL::String& name);
 
+	struct BindResult
+	{
+		InterfaceRef itf;
+		SyncContext* sync_context;
+
+		BindResult () :
+			sync_context (nullptr)
+		{}
+
+		BindResult& operator = (const BindResult&) = default;
+
+		BindResult& operator = (const ObjectVal* pf) noexcept;
+	};
+
 	/// Implements System::bind_interface()
-	static InterfaceRef bind_interface (CORBA::Internal::String_in name, CORBA::Internal::String_in iid);
+	static BindResult bind_interface (CORBA::Internal::String_in name, CORBA::Internal::String_in iid);
 
 	template <class I>
 	static CORBA::Internal::I_ref <I> bind_interface (CORBA::Internal::String_in name)
 	{
-		return bind_interface (name, CORBA::Internal::RepIdOf <I>::id).template downcast <I> ();
+		return std::move (bind_interface (name, CORBA::Internal::RepIdOf <I>::id).itf).template downcast <I> ();
 	}
 
 	static CORBA::Object::_ref_type load_and_bind (int32_t mod_id, CORBA::Internal::String_in mod_path,
@@ -211,13 +227,15 @@ public:
 	static void raise_exception (const siginfo_t& signal)
 	{
 		Binary* binary = nullptr;
-		SYNC_BEGIN (sync_domain (), nullptr)
-		auto it = singleton_->binary_map_.upper_bound (signal.si_addr);
-		assert (it != singleton_->binary_map_.begin ());
-		if (it != singleton_->binary_map_.begin ())
-			binary = (--it)->second;
-		SYNC_END ();
-
+		Thread* th = Thread::current_ptr ();
+		if (th && th->exec_domain ()) {
+			SYNC_BEGIN (sync_domain (), nullptr)
+				auto it = singleton_->binary_map_.upper_bound (signal.si_addr);
+			assert (it != singleton_->binary_map_.begin ());
+			if (it != singleton_->binary_map_.begin ())
+				binary = (--it)->second;
+			SYNC_END ();
+		}
 		if (binary)
 			binary->raise_exception ((CORBA::SystemException::Code)signal.si_excode, signal.si_code);
 		else
@@ -310,37 +328,13 @@ private:
 	struct ObjectVal
 	{
 		InterfacePtr itf;
-		Module* mod;
+		SyncContext* sync_context;
 
-		ObjectVal (InterfacePtr _itf, Module* _mod) :
-			itf (_itf),
-			mod (_mod)
+		ObjectVal (InterfacePtr i, SyncContext* sc) :
+			itf (i),
+			sync_context (sc)
 		{}
 	};
-
-	struct FindResult
-	{
-		InterfaceRef itf;
-		Module* mod;
-
-		FindResult () :
-			mod (nullptr)
-		{}
-
-		FindResult& operator = (const FindResult&) = default;
-
-		FindResult& operator = (const ObjectVal* pf) noexcept
-		{
-			if (pf) {
-				itf = pf->itf;
-				mod = pf->mod;
-			}
-
-			return *this;
-		}
-	};
-
-	static Module* const CORE_MODULE;
 
 	// We use fast binary tree without the iterator stability.
 	typedef MapOrderedUnstable <ObjectKey, ObjectVal, std::less <ObjectKey>,
@@ -350,7 +344,7 @@ private:
 	class ObjectMap : public ObjectMapBase
 	{
 	public:
-		void insert (const char* name, InterfacePtr itf, Module* mod);
+		void insert (const char* name, InterfacePtr itf, SyncContext* sc);
 		void erase (const char* name) noexcept;
 		void merge (const ObjectMap& src);
 		const ObjectVal* find (const ObjectKey& key) const;
@@ -434,10 +428,10 @@ private:
 	inline void remove_exports (const Section& metadata) noexcept;
 	static void release_imports (Nirvana::Module::_ptr_type mod, const Section& metadata);
 
-	InterfaceRef bind_interface_sync (const ObjectKey& name, CORBA::Internal::String_in iid);
+	BindResult bind_interface_sync (const ObjectKey& name, CORBA::Internal::String_in iid);
 	CORBA::Object::_ref_type bind_sync (const ObjectKey& name);
 
-	FindResult find (const ObjectKey& name);
+	BindResult find (const ObjectKey& name);
 
 	NIRVANA_NORETURN static void invalid_metadata ();
 
@@ -495,6 +489,16 @@ private:
 	static StaticallyAllocated <Binder> singleton_;
 	static bool initialized_;
 };
+
+inline Binder::BindResult& Binder::BindResult::operator = (const Binder::ObjectVal* pf) noexcept
+{
+	if (pf) {
+		itf = pf->itf;
+		sync_context = pf->sync_context;
+	}
+
+	return *this;
+}
 
 }
 }
