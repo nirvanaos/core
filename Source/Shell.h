@@ -47,11 +47,21 @@ public:
 		return Core::Process::spawn (file, argv, work_dir, files, callback);
 	}
 
-	static short run_cmdlet (const IDL::String& name, StringSeq& argv,
+	static int_fast16_t run_cmdlet (const IDL::String& name, StringSeq& argv,
 		IDL::String& work_dir, FileDescriptors& files)
 	{
+		int_fast16_t ret = -1;
+
 		auto cmdlet = Core::Binder::bind_interface (name, CORBA::Internal::RepIdOf <Cmdlet>::id);
-		throw_NO_IMPLEMENT ();
+		SYNC_BEGIN (*cmdlet.sync_context, &Core::Heap::user_heap ());
+		Core::MemContext& mc = Core::MemContext::current ();
+		mc.file_descriptors ().set_inherited_files (files);
+		if (!work_dir.empty ())
+			mc.current_dir ().chdir (work_dir);
+		ret = cmdlet.itf.template downcast <Cmdlet> ()->run (argv);
+		SYNC_END ();
+
+		return ret;
 	}
 
 	static void create_pipe (AccessChar::_ref_type& pipe_out, AccessChar::_ref_type& pipe_in)
