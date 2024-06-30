@@ -100,11 +100,6 @@ Module* ClassLibrary::module () noexcept
 	return this;
 }
 
-void ClassLibrary::raise_exception (CORBA::SystemException::Code code, unsigned minor)
-{
-	Module::raise_exception (code, minor);
-}
-
 void ClassLibrary::atexit (AtExitFunc f)
 {
 	if (!initterm_mem_context_) {

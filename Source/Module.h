@@ -98,7 +98,7 @@ public:
 	virtual void initialize (ModuleInit::_ptr_type entry_point);
 	virtual void terminate () noexcept;
 
-	void raise_exception (CORBA::SystemException::Code code, unsigned minor);
+	virtual void raise_exception (CORBA::SystemException::Code code, unsigned minor) override;
 
 	virtual void atexit (AtExitFunc f) = 0;
 	virtual void execute_atexit () noexcept = 0;
