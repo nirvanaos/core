@@ -41,6 +41,7 @@
 #include "Chrono.h"
 #include "MapOrderedUnstable.h"
 #include "MapUnorderedStable.h"
+#include "MapUnorderedUnstable.h"
 #include "ORB/RemoteReferences.h"
 #include "TimerAsyncCall.h"
 
@@ -325,6 +326,25 @@ private:
 		Version version_;
 	};
 
+	struct ObjectHash
+	{
+		size_t operator () (const ObjectKey& key) const noexcept
+		{
+			size_t h = Hash::hash_bytes (key.name (), key.name_len ());
+			return Hash::append_bytes (h, &key.version ().major, sizeof (key.version ().major));
+		}
+	};
+
+	struct ObjectEq
+	{
+		size_t operator () (const ObjectKey& l, const ObjectKey& r) const noexcept
+		{
+			return l.name_len () == r.name_len () &&
+				std::equal (l.name (), l.name () + l.name_len (), r.name ()) &&
+				l.version ().major == r.version ().major;
+		}
+	};
+
 	struct ObjectVal
 	{
 		InterfacePtr itf;
@@ -336,9 +356,9 @@ private:
 		{}
 	};
 
-	// We use fast binary tree without the iterator stability.
-	typedef MapOrderedUnstable <ObjectKey, ObjectVal, std::less <ObjectKey>,
-		Allocator> ObjectMapBase;
+	// Fast hash map without the iterator stability.
+	typedef MapUnorderedUnstable <ObjectKey, ObjectVal, ObjectHash, ObjectEq, Allocator>
+		ObjectMapBase;
 
 	// Name->interface map.
 	class ObjectMap : public ObjectMapBase

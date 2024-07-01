@@ -90,10 +90,9 @@ void Binder::ObjectMap::merge (const ObjectMap& src)
 
 const Binder::ObjectVal* Binder::ObjectMap::find (const ObjectKey& key) const
 {
-	auto pf = lower_bound (key);
-	if (pf != end () && pf->first.compatible (key)) {
+	auto pf = ObjectMapBase::find (key);
+	if (pf != end () && key.version ().minor <= pf->first.version ().minor)
 		return &pf->second;
-	}
 	return nullptr;
 }
 

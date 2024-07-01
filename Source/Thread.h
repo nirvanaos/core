@@ -38,7 +38,7 @@ namespace Core {
 class ExecDomain;
 
 /// Thread class.
-class NIRVANA_NOVTABLE Thread :
+class Thread :
 	protected Port::Thread
 {
 	friend class Port::Thread;
