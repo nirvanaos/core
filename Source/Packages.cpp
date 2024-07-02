@@ -93,7 +93,7 @@ CORBA::Object::_ref_type Packages::load_and_bind (SysModuleId id, bool singleton
 {
 	return Binder::load_and_bind (id,
 		get_system_binary_path (PLATFORM, sys_module_names_ [(int)id - 1]),
-		name_service_, true, name);
+		name_service_, singleton, name);
 }
 
 IDL::traits <AccessDirect>::ref_type Packages::open_binary (
