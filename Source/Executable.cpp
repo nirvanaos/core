@@ -32,23 +32,13 @@ namespace Core {
 
 Executable::Executable (AccessDirect::_ptr_type file) :
 	Binary (file),
-	SyncContext (false),
-	entry_point_ (Binder::bind (*this)),
-	bound_ (true)
+	ImplStatic <SyncContext> (false),
+	entry_point_ (Binder::bind (*this))
 {}
 
 Executable::~Executable ()
 {
-	if (bound_)
-		Binder::unbind (*this);
-}
-
-void Executable::unbind () noexcept
-{
-	if (bound_) {
-		bound_ = false;
-		Binder::unbind (*this);
-	}
+	Binder::unbind (*this);
 }
 
 SyncContext::Type Executable::sync_context_type () const noexcept

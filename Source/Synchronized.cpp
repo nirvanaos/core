@@ -37,9 +37,6 @@ Synchronized::Synchronized (SyncContext& target, Heap* heap) :
 	, dbg_ed_mem_stack_size_ (exec_domain_.dbg_mem_context_stack_size ())
 #endif
 {
-	// Target can not be legacy thread
-	assert (target.sync_domain () || target.is_free_sync_context ());
-
 	exec_domain_.schedule_call (target, heap);
 }
 
@@ -53,9 +50,6 @@ Synchronized::Synchronized (SyncContext& target, Ref <MemContext>&& mem_context)
 	// We must not pass current sync domain memory context except for the core contexts.
 	assert (call_context_ == &target || !call_context_->sync_domain () || !MemContext::is_current (mem_context)
 		|| mem_context->core_context ());
-
-	// Target can not be legacy thread
-	assert (target.sync_domain () || target.is_free_sync_context ());
 
 	exec_domain_.schedule_call (target, std::move (mem_context));
 }

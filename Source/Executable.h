@@ -41,7 +41,7 @@ namespace Core {
 
 class Executable :
 	public Binary,
-	public SyncContext,
+	public ImplStatic <SyncContext>,
 	public CORBA::servant_traits <Nirvana::Module>::Servant <Executable>,
 	public CORBA::Core::LifeCycleStack
 {
@@ -51,28 +51,15 @@ public:
 
 	int main (Main::Strings& argv)
 	{
-		return (int)entry_point_->main (argv);
-	}
-
-	void cleanup ()
-	{
+		int ret = entry_point_->main (argv);
+		at_exit_.execute ();
 		entry_point_->cleanup ();
-	}
-
-	void unload () noexcept
-	{
-		unbind ();
-		Binary::unload ();
+		return ret;
 	}
 
 	void atexit (AtExitFunc f)
 	{
 		at_exit_.atexit (f);
-	}
-
-	void execute_atexit ()
-	{
-		at_exit_.execute ();
 	}
 
 	static int32_t id () noexcept
@@ -87,12 +74,8 @@ public:
 	virtual void raise_exception (CORBA::SystemException::Code code, unsigned minor) override;
 
 private:
-	void unbind () noexcept;
-
-private:
 	Main::_ptr_type entry_point_;
 	AtExitSync at_exit_;
-	bool bound_;
 };
 
 }

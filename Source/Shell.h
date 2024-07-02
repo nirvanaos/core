@@ -31,7 +31,7 @@
 
 #include <CORBA/Server.h>
 #include <Nirvana/Shell_s.h>
-#include "Nirvana_Process.h"
+#include "Executable.h"
 #include "Binder.h"
 
 namespace Nirvana {
@@ -40,19 +40,29 @@ class Static_the_shell :
 	public CORBA::servant_traits <Shell>::ServantStatic <Static_the_shell>
 {
 public:
-	static Process::_ref_type spawn (AccessDirect::_ptr_type file,
-		StringSeq& argv, IDL::String& work_dir, FileDescriptors& files,
-		ProcessCallback::_ref_type callback)
+	static int spawn (AccessDirect::_ptr_type file,
+		StringSeq& argv, IDL::String& work_dir, FileDescriptors& files)
 	{
-		return Core::Process::spawn (file, argv, work_dir, files, callback);
+		Core::Executable executable (file);
+
+		int ret = -1;
+		SYNC_BEGIN (executable, &Core::Heap::user_heap ());
+		Core::MemContext& mc = Core::MemContext::current ();
+		mc.file_descriptors ().set_inherited_files (files);
+		if (!work_dir.empty ())
+			mc.current_dir ().chdir (work_dir);
+		ret = executable.main (argv);
+		SYNC_END ();
+
+		return ret;
 	}
 
-	static int_fast16_t run_cmdlet (const IDL::String& name, StringSeq& argv,
+	static int run_cmdlet (const IDL::String& name, StringSeq& argv,
 		IDL::String& work_dir, FileDescriptors& files)
 	{
-		int_fast16_t ret = -1;
-
 		auto cmdlet = Core::Binder::bind_interface (name, CORBA::Internal::RepIdOf <Cmdlet>::id);
+
+		int ret = -1;
 		SYNC_BEGIN (*cmdlet.sync_context, &Core::Heap::user_heap ());
 		Core::MemContext& mc = Core::MemContext::current ();
 		mc.file_descriptors ().set_inherited_files (files);

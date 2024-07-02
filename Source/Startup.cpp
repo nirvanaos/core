@@ -50,24 +50,6 @@ void Startup::launch (DeadlineTime deadline)
 	ExecDomain::async_call (deadline, *this, g_core_free_sync_context, &Heap::shared_heap ());
 }
 
-class ShutdownCallback :
-	public CORBA::servant_traits <ProcessCallback>::Servant <ShutdownCallback>
-{
-public:
-	ShutdownCallback (int& ret) :
-		ret_ (ret)
-	{}
-
-	void on_process_finish (Process::_ptr_type process) const
-	{
-		ret_ = process->exit_code ();
-		Scheduler::shutdown ();
-	}
-
-private:
-	int& ret_;
-};
-
 void Startup::run ()
 {
 	if (argc_ > 1) {
@@ -77,8 +59,6 @@ void Startup::run ()
 		for (char** arg = argv_ + 1, **end = argv_ + argc_; arg != end; ++arg) {
 			argv.emplace_back (*arg);
 		}
-
-		ProcessCallback::_ref_type callback = CORBA::make_stateless <ShutdownCallback> (std::ref (ret_))->_this ();
 
 		Nirvana::File::_ref_type console = Nirvana::File::_narrow (CORBA::Core::Services::bind (CORBA::Core::Services::Console));
 		assert (console);
@@ -104,7 +84,9 @@ void Startup::run ()
 			throw_UNKNOWN (make_minor_errno (ENOEXEC));
 		AccessDirect::_ref_type binary = AccessDirect::_narrow (file->open (O_RDONLY | O_DIRECT, 0)->_to_object ());
 
-		the_shell->spawn (binary, argv, "/sbin", files, callback);
+		ret_ = (int)the_shell->spawn (binary, argv, "/sbin", files);
+
+		Scheduler::shutdown ();
 	}
 }
 
