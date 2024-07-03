@@ -36,7 +36,7 @@ public:
 	{
 		static const char usage [] = "Usage: regmod <module path>\n";
 		if (argv.size () != 1) {
-			the_posix->write (1, usage, sizeof (usage) - 1);
+			print (1, usage);
 			return -1;
 		}
 
@@ -47,11 +47,92 @@ public:
 			CORBA::the_orb->resolve_initial_references ("SysDomain")
 		)->provide_packages ();
 
-		packages->register_module (name, 0);
+		int ret = 0;
 
-		return 0;
+		try {
+			packages->register_module (name, 0);
+		} catch (const BindError::Error& ex) {
+			ret = -1;
+			print (packages, ex.info ());
+			for (auto it = ex.stack ().crbegin (), end = ex.stack ().crend (); it != end; ++it) {
+				print (packages, *it);
+			}
+		}
+
+		return ret;
 	}
+
+private:
+	static void print (int fd, const char* s);
+	static void print (int fd, const std::string& s);
+	static void print (int fd, int d);
+	static void println (int fd);
+	static void print (Packages::_ptr_type packages, const BindError::Info& err);
 };
+
+void Static_regmod::print (int fd, const char* s)
+{
+	the_posix->write (fd, s, strlen (s));
+}
+
+void Static_regmod::print (int fd, const std::string& s)
+{
+	the_posix->write (fd, s.data (), s.size ());
+}
+
+void Static_regmod::println (int fd)
+{
+	const char n = '\n';
+	the_posix->write (fd, &n, 1);
+}
+
+void Static_regmod::print (int fd, int d)
+{
+	print (fd, std::to_string (d));
+}
+
+void Static_regmod::print (Packages::_ptr_type packages, const BindError::Info& err)
+{
+	switch (err._d ()) {
+	case BindError::Type::ERR_TEXT:
+		print (2, err.message ());
+		break;
+
+	case BindError::Type::ERR_OBJ_NOT_FOUND:
+		print (2, "Object not found: ");
+		print (2, err.obj_name ());
+		break;
+
+	case BindError::Type::ERR_ITF_NOT_FOUND:
+		print (2, "Interface ");
+		print (2, err.itf_info ().itf_id ());
+		print (2, " not available for object ");
+		print (2, err.itf_info ().obj_name ());
+		break;
+
+	case BindError::Type::ERR_INIT_FAILURE:
+		print (2, "Module initialization failed: ");
+		print (2, packages->get_module_name (err.module_id ()));
+		break;
+
+	case BindError::Type::ERR_SYSTEM: {
+		CORBA::UNKNOWN se;
+		err.system_exception () >>= se;
+		print (2, se.what ());
+	} break;
+
+	case BindError::Type::ERR_UNSUP_PLATFORM:
+		print (2, "Unsupported platform: ");
+		print (2, err.platform_id ());
+		break;
+
+	default:
+		print (2, "Unknown error");
+		break;
+	}
+
+	println (2);
+}
 
 }
 

@@ -118,6 +118,20 @@ public:
 		}
 	}
 
+	IDL::String get_module_name (int32_t id)
+	{
+		NDBC::PreparedStatement::_ref_type st =
+			connection_->prepareStatement ("SELECT name FROM module WHERE id=?", NDBC::ResultSet::Type::TYPE_FORWARD_ONLY, 0);
+		st->setInt (1, id);
+		NDBC::ResultSet::_ref_type rs = st->executeQuery ();
+
+		IDL::String name;
+		if (rs->next ())
+			name = rs->getString (1);
+
+		return name;
+	}
+
 	static IDL::traits <AccessDirect>::ref_type open_binary (CosNaming::NamingContextExt::_ptr_type ns,
 		CORBA::Internal::String_in path);
 

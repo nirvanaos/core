@@ -53,10 +53,19 @@ void Startup::launch (DeadlineTime deadline)
 void Startup::run ()
 {
 	if (argc_ > 1) {
+
+		bool cmdlet = false;
+		const char* prog = argv_ [1];
+		char** args = argv_ + 2, ** end = argv_ + argc_;
+
+		if (prog [0] == '-' && prog [1] == 'c' && prog [2] == 0 && args != end) {
+			prog = *(args++);
+			cmdlet = true;
+		}
 		
 		std::vector <std::string> argv;
-		argv.reserve (argc_ - 1);
-		for (char** arg = argv_ + 1, **end = argv_ + argc_; arg != end; ++arg) {
+		argv.reserve (end - args);
+		for (char** arg = args; arg != end; ++arg) {
 			argv.emplace_back (*arg);
 		}
 
@@ -70,22 +79,26 @@ void Startup::run ()
 		FileDescriptors files;
 		files.emplace_back (console_access, IDL::Sequence <uint16_t> ({ 1, 2 }));
 
-		IDL::String exe_path = argv [0];
-		IDL::String translated;
-		if (FileSystem::translate_path (exe_path, translated))
-			exe_path = std::move (translated);
+		if (cmdlet) {
+			ret_ = (int)the_shell->cmdlet (prog, argv, "/sbin", files);
+		} else {
 
-		if (!FileSystem::is_absolute (exe_path))
-			exe_path = ProtDomain::binary_dir () + '/' + exe_path;
-		auto ns = CosNaming::NamingContextExt::_narrow (CORBA::Core::Services::bind (CORBA::Core::Services::NameService));
-		CORBA::Object::_ref_type obj = ns->resolve_str (exe_path);
-		File::_ref_type file = File::_narrow (obj);
-		if (!file)
-			throw_UNKNOWN (make_minor_errno (ENOEXEC));
-		AccessDirect::_ref_type binary = AccessDirect::_narrow (file->open (O_RDONLY | O_DIRECT, 0)->_to_object ());
+			IDL::String exe_path = prog;
+			IDL::String translated;
+			if (FileSystem::translate_path (exe_path, translated))
+				exe_path = std::move (translated);
 
-		ret_ = (int)the_shell->spawn (binary, argv, "/sbin", files);
+			if (!FileSystem::is_absolute (exe_path))
+				exe_path = ProtDomain::binary_dir () + '/' + exe_path;
+			auto ns = CosNaming::NamingContextExt::_narrow (CORBA::Core::Services::bind (CORBA::Core::Services::NameService));
+			CORBA::Object::_ref_type obj = ns->resolve_str (exe_path);
+			File::_ref_type file = File::_narrow (obj);
+			if (!file)
+				throw_UNKNOWN (make_minor_errno (ENOEXEC));
+			AccessDirect::_ref_type binary = AccessDirect::_narrow (file->open (O_RDONLY | O_DIRECT, 0)->_to_object ());
 
+			ret_ = (int)the_shell->process (binary, argv, "/sbin", files);
+		}
 		Scheduler::shutdown ();
 	}
 }

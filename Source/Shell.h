@@ -40,7 +40,7 @@ class Static_the_shell :
 	public CORBA::servant_traits <Shell>::ServantStatic <Static_the_shell>
 {
 public:
-	static int spawn (AccessDirect::_ptr_type file,
+	static int process (AccessDirect::_ptr_type file,
 		StringSeq& argv, IDL::String& work_dir, FileDescriptors& files)
 	{
 		Core::Executable executable (file);
@@ -57,7 +57,7 @@ public:
 		return ret;
 	}
 
-	static int run_cmdlet (const IDL::String& name, StringSeq& argv,
+	static int cmdlet (const IDL::String& name, StringSeq& argv,
 		IDL::String& work_dir, FileDescriptors& files)
 	{
 		auto cmdlet = Core::Binder::bind_interface (name, CORBA::Internal::RepIdOf <Cmdlet>::id);
