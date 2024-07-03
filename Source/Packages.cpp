@@ -28,6 +28,7 @@
 #include "Binder.h"
 #include <Nirvana/posix_defs.h>
 #include "Nirvana/CoreDomains.h"
+#include <Port/SysDomain.h>
 
 #define DATABASE_PATH "/var/lib/packages.db"
 #define DATABASE_VERSION 1

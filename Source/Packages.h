@@ -31,7 +31,7 @@
 #include <CORBA/Server.h>
 #include <Nirvana/Domains_s.h>
 #include <Nirvana/NDBC.h>
-#include <Port/SysDomain.h>
+#include <Port/SystemInfo.h>
 #include "NameService/FileSystem.h"
 #include <Nirvana/ModuleMetadata.h>
 
@@ -40,8 +40,7 @@ namespace Core {
 
 /// Package manager
 class Packages :
-	public CORBA::servant_traits <Nirvana::Packages>::Servant <Packages>,
-	private Port::SysDomain
+	public CORBA::servant_traits <Nirvana::Packages>::Servant <Packages>
 {
 	typedef CORBA::servant_traits <Nirvana::Packages>::Servant <Packages> Servant;
 
@@ -105,6 +104,18 @@ public:
 		name_service_->bind (path, obj);
 		Nirvana::File::_ref_type file = Nirvana::File::_narrow (obj);
 		ModuleMetadata metadata = get_module_metadata (AccessBuf::_downcast (file->open (O_RDONLY, 0)->_to_value ()));
+		if (!metadata.check ()) {
+			BindError::Error err;
+			err.info ().message (std::move (metadata.error));
+			throw err;
+		}
+		if (std::find (Port::SystemInfo::supported_platforms (),
+			Port::SystemInfo::supported_platforms () + Port::SystemInfo::SUPPORTED_PLATFORM_CNT,
+			metadata.platform) == Port::SystemInfo::supported_platforms () + Port::SystemInfo::SUPPORTED_PLATFORM_CNT)
+		{
+			BindError::Error err;
+//			err.info ().
+		}
 	}
 
 	static IDL::traits <AccessDirect>::ref_type open_binary (CosNaming::NamingContextExt::_ptr_type ns,
