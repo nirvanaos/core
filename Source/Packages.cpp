@@ -42,19 +42,39 @@ namespace Core {
 const char Packages::database_url_ [] = "file:/var/lib/packages.db?mode=ro";
 
 const char* const Packages::db_script_ [] = {
-"CREATE TABLE module(name TEXT UNIQUE,id INTEGER PRIMARY KEY AUTOINCREMENT,flags INTEGER);"
 
-"CREATE TABLE export(name TEXT NOT NULL,major INTEGER NOT NULL,minor INTEGER NOT NULL,flags INTEGER NOT NULL,"
-"module INTEGER NOT NULL REFERENCES module(id)ON DELETE CASCADE,"
-"PRIMARY KEY(name, major));"
+"BEGIN;"
 
+// Modules
+"CREATE TABLE module("
+"id INTEGER PRIMARY KEY AUTOINCREMENT,name TEXT NOT NULL,version INTEGER NOT NULL,"
+"prerelease TEXT,flags INTEGER NOT NULL,"
+"UNIQUE (name,version,prerelease)"
+");",
+
+// Module binaries
 "CREATE TABLE binary("
 "module INTEGER NOT NULL REFERENCES module(id)ON DELETE CASCADE,"
-"platform INTEGER NOT NULL,path TEXT NOT NULL,UNIQUE(module,platform));",
+"platform INTEGER NOT NULL,path TEXT NOT NULL,"
+"UNIQUE(module,platform)"
+");"
 
-"INSERT INTO module VALUES('100', 100, 0);"
+// Module imports and exports
+"CREATE TABLE object("
+"name TEXT NOT NULL,version INTEGER NOT NULL,"
+"module INTEGER NOT NULL REFERENCES module(id)ON DELETE CASCADE,flags INTEGER NOT NULL,"
+// For the each particular object:version, the specific module may import or export it but not both.
+// If the module exports and imports the same object, then only export must be recorded to database.
+"UNIQUE(name,version,module)"
+");"
+
+// Reserve first 100 module identifiers as the system
+"INSERT INTO module(id, name, version, flags)VALUES(100,'',0,0);"
 "DELETE FROM module WHERE id=100;"
+
+// Set database version
 "PRAGMA user_version=" STRINGIZE (DATABASE_VERSION) ";"
+"COMMIT;"
 };
 
 const char* const Packages::sys_module_names_ [MODULE_SQLITE] = {
@@ -86,7 +106,17 @@ Packages::Packages (CORBA::Object::_ptr_type comp) :
 inline void Packages::create_database (NDBC::Statement::_ptr_type st)
 {
 	for (const char* sql : db_script_) {
-		st->executeUpdate (sql);
+#ifndef NDEBUG
+		try {
+#endif
+			st->executeUpdate (sql);
+#ifndef NDEBUG
+		} catch (const NDBC::SQLException& ex) {
+			NIRVANA_TRACE ("Error: %s\n", ex.error ().sqlState ().c_str ());
+			NIRVANA_TRACE ("SQL: %s\n", sql);
+			throw;
+		}
+#endif
 	}
 }
 
