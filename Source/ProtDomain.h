@@ -62,7 +62,7 @@ public:
 
 	static void shutdown (unsigned flags)
 	{
-		Scheduler::shutdown ();
+		Scheduler::shutdown (flags);
 	}
 
 	static CORBA::Object::_ref_type load_and_bind (int32_t mod_id, const IDL::String& mod_path,

@@ -28,6 +28,8 @@
 #include "ExecDomain.h"
 #include "initterm.h"
 #include "Chrono.h"
+#include "ORB/ESIOP.h"
+#include "SysManager.h"
 
 // Output debug messages on shutdown.
 //#define DEBUG_SHUTDOWN
@@ -72,6 +74,14 @@ void Scheduler::do_shutdown ()
 		global_->activity_cnt.increment ();
 		activity_end ();
 	}
+}
+
+void Scheduler::shutdown (unsigned flags)
+{
+	if (ESIOP::is_system_domain ())
+		SysManager::async_call <SysManager::ReceiveShutdown> (INFINITE_DEADLINE, flags);
+	else
+		shutdown ();
 }
 
 void Scheduler::shutdown ()

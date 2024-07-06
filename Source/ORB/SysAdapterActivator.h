@@ -47,7 +47,7 @@ public:
 		root->the_activator (CORBA::make_stateless <SysAdapterActivator> ()->_this ());
 	}
 
-	static void terminate ()
+	static void terminate () noexcept
 	{
 		FileActivator::terminate ();
 	}

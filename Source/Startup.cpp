@@ -99,7 +99,7 @@ void Startup::run ()
 
 			ret_ = (int)the_shell->process (binary, argv, "/sbin", files);
 		}
-		Scheduler::shutdown ();
+		Scheduler::shutdown (0);
 	}
 }
 
@@ -117,7 +117,7 @@ bool Startup::initialize () noexcept
 void Startup::on_exception (const CORBA::Exception& ex) noexcept
 {
 	exception_.set_exception (ex);
-	Scheduler::shutdown ();
+	Scheduler::shutdown (0);
 }
 
 void Startup::on_crash (const siginfo& signal) noexcept
@@ -126,7 +126,7 @@ void Startup::on_crash (const siginfo& signal) noexcept
 		exception_.set_exception (CORBA::SystemException::EC_UNKNOWN);
 	else
 		exception_.set_exception ((CORBA::SystemException::Code)signal.si_excode);
-	Scheduler::shutdown ();
+	Scheduler::shutdown (0);
 }
 
 }

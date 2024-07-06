@@ -152,31 +152,38 @@ void Binder::unload_modules ()
 	}
 }
 
-void Binder::terminate ()
+void Binder::terminate () noexcept
 {
 	if (!initialized_)
 		return;
-	SYNC_BEGIN (g_core_free_sync_context, &memory ());
 
-	SYNC_BEGIN (sync_domain (), nullptr);
-	initialized_ = false;
-	singleton_->packages_ = nullptr;
-	singleton_->name_service_ = nullptr;
-	singleton_->unload_modules ();
-	SYNC_END ();
-	Section metadata;
-	metadata.address = Port::SystemInfo::get_OLF_section (metadata.size);
-	ExecDomain& ed = ExecDomain::current ();
-	ed.restricted_mode (ExecDomain::RestrictedMode::SUPPRESS_ASYNC_GC);
-	singleton_->module_unbind (nullptr, metadata);
-	
-	SYNC_BEGIN (sync_domain (), nullptr);
-	singleton_.destruct ();
-	SYNC_END ();
+	try {
 
-	sync_domain_.destruct ();
+		SYNC_BEGIN (g_core_free_sync_context, &memory ());
 
-	SYNC_END ();
+		SYNC_BEGIN (sync_domain (), nullptr);
+		initialized_ = false;
+		singleton_->packages_ = nullptr;
+		singleton_->name_service_ = nullptr;
+		singleton_->unload_modules ();
+		SYNC_END ();
+		Section metadata;
+		metadata.address = Port::SystemInfo::get_OLF_section (metadata.size);
+		ExecDomain& ed = ExecDomain::current ();
+		ed.restricted_mode (ExecDomain::RestrictedMode::SUPPRESS_ASYNC_GC);
+		singleton_->module_unbind (nullptr, metadata);
+
+		SYNC_BEGIN (sync_domain (), nullptr);
+		singleton_.destruct ();
+		SYNC_END ();
+
+		sync_domain_.destruct ();
+
+		SYNC_END ();
+
+	} catch (...) {
+		assert (false);
+	}
 
 	BinderMemory::terminate ();
 }

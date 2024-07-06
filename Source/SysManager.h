@@ -32,6 +32,7 @@
 #include <Nirvana/Domains_s.h>
 #include <Port/SysDomain.h>
 #include "ORB/ESIOP.h"
+#include "ORB/ServantProxyObject.h"
 
 namespace Nirvana {
 namespace Core {
@@ -49,10 +50,14 @@ public:
 	SysManager (CORBA::Object::_ptr_type comp) :
 		Servant (comp),
 		shutdown_started_ (false)
-	{}
+	{
+		proxy_.construct (CORBA::Core::object2proxy (CORBA::Core::servant2object (this)));
+	}
 
 	~SysManager ()
 	{}
+
+	// Nirvana::SysManager
 
 	Nirvana::ProtDomain::_ref_type create_prot_domain (uint16_t platform)
 	{
@@ -66,48 +71,79 @@ public:
 		throw_NO_IMPLEMENT ();
 	}
 
-	class AsyncCall : public Runnable
-	{
-	protected:
-		AsyncCall (Nirvana::SysManager::_ref_type&& ref, SysManager& impl) noexcept :
-			ref_ (std::move (ref)),
-			impl_ (impl)
-		{
-		}
+	void shutdown (unsigned flags) noexcept;
 
+	// Internal core API
+
+	class AsyncCallContext
+	{
+	public:
 		SysManager& sys_manager () const noexcept
 		{
-			return impl_;
+			return *implementation_;
 		}
 
 	private:
-		Nirvana::SysManager::_ref_type ref_;
-		SysManager& impl_;
+		friend class SysManager;
+		Ref <CORBA::Core::ServantProxyObject> proxy_;
+		SysManager* implementation_;
+	};
+
+	class AsyncCall :
+		public AsyncCallContext,
+		public Runnable
+	{
+	protected:
+		AsyncCall (AsyncCallContext&& context) noexcept :
+			AsyncCallContext (std::move (context))
+		{}
 	};
 
 	template <class RunnableClass, class ... Args>
-	static void async_call (const DeadlineTime& deadline, Args&& ... args)
+	static bool async_call (const DeadlineTime& deadline, Args&& ... args)
 	{
-		Nirvana::SysManager::_ref_type ref;
-		Ref <SyncContext> sync_context;
-		SysManager& impl = SysManager::get_call_context (ref, sync_context);
-		ExecDomain::async_call <RunnableClass> (deadline,
-			*sync_context, nullptr, std::move (ref), std::ref (impl), std::forward <Args> (args)...);
+		AsyncCallContext ctx;
+		if (get_call_context (ctx)) {
+			SyncContext& sync_context = ctx.proxy_->sync_context ();
+			ExecDomain::async_call <RunnableClass> (deadline,
+				sync_context, nullptr, std::move (ctx), std::forward <Args> (args)...);
+			return true;
+		}
+		return false;
 	}
 
-	void shutdown (unsigned flags);
+	/// Receive shutdown Runnable
+	class ReceiveShutdown : public AsyncCall
+	{
+	public:
+		ReceiveShutdown (AsyncCallContext&& ctx, unsigned flags) noexcept :
+			Nirvana::Core::SysManager::AsyncCall (std::move (ctx)),
+			flags_ (flags)
+		{}
+
+	protected:
+		virtual void run () override;
+
+	private:
+		unsigned flags_;
+	};
 
 	/// Called from the port level
 	/// 
 	/// \param domain_id Protection domain id.
 	/// \param platform Platform id.
 	/// \param user User id.
-	void domain_created (ESIOP::ProtDomainId domain_id, uint_fast16_t platform, SecurityId&& user)
+	void domain_created (ESIOP::ProtDomainId domain_id, uint_fast16_t platform,
+		SecurityId&& user) noexcept
 	{
-		domains_.emplace (domain_id, platform, std::move (user));
 		Port::SysDomain::on_domain_start (domain_id);
-		if (shutdown_started_)
-			ESIOP::send_shutdown (domain_id);
+		if (!shutdown_started_) {
+			try {
+				domains_.emplace (domain_id, platform, std::move (user));
+				return;
+			} catch (...) {}
+		}
+		ESIOP::send_shutdown (domain_id);
 	}
 
 	/// Called from the port level
@@ -117,11 +153,17 @@ public:
 	{
 		domains_.erase (domain_id);
 		if (shutdown_started_ && domains_.empty ())
-			Scheduler::shutdown ();
+			final_shutdown ();
 	}
 
 private:
-	static SysManager& get_call_context (Nirvana::SysManager::_ref_type& ref, Ref <SyncContext>& sync_context);
+	void final_shutdown ()
+	{
+		proxy_->operator = (nullptr);
+		Scheduler::shutdown ();
+	}
+
+	static bool get_call_context (AsyncCallContext& ctx);
 
 	static CORBA::Object::_ref_type prot_domain_ref (ESIOP::ProtDomainId domain_id);
 
@@ -191,6 +233,9 @@ private:
 
 	Domains domains_;
 	bool shutdown_started_;
+
+	// Singleton proxy
+	static StaticallyAllocated <LockablePtrT <CORBA::Core::ServantProxyObject> > proxy_;
 };
 
 }

@@ -27,30 +27,14 @@
 #include "SysManager.h"
 #include "SysDomain.h"
 #include "ORB/ORB.h"
-#include "ORB/ServantProxyObject.h"
 #include "Nirvana/CoreDomains.h"
-
-using namespace CORBA;
 
 namespace Nirvana {
 namespace Core {
 
-void SysManager::shutdown (unsigned flags)
-{
-	if (shutdown_started_)
-		return;
-	shutdown_started_ = true;
-	try {
-		if (domains_.empty ())
-			Scheduler::shutdown ();
-		else
-			domains_.shutdown ();
-	} catch (...) {
-		shutdown_started_ = false;
-	}
-}
+StaticallyAllocated <LockablePtrT <CORBA::Core::ServantProxyObject> > SysManager::proxy_;
 
-Object::_ref_type SysManager::prot_domain_ref (ESIOP::ProtDomainId domain_id)
+CORBA::Object::_ref_type SysManager::prot_domain_ref (ESIOP::ProtDomainId domain_id)
 {
 	const char prefix [] = "corbaloc::1.1@/";
 	IDL::String s;
@@ -69,13 +53,39 @@ Object::_ref_type SysManager::prot_domain_ref (ESIOP::ProtDomainId domain_id)
 	return CORBA::Static_the_orb::string_to_object (s, CORBA::Internal::RepIdOf <Nirvana::ProtDomainCore>::id);
 }
 
-SysManager& SysManager::get_call_context (Nirvana::SysManager::_ref_type& ref, Ref <SyncContext>& sync)
+bool SysManager::get_call_context (AsyncCallContext& ctx)
 {
-	Core::SysDomain& sd = Core::SysDomain::implementation ();
-	ref = sd.provide_manager ();
-	CORBA::Core::ServantProxyObject* proxy = CORBA::Core::object2proxy (ref);
-	sync = &proxy->sync_context ();
-	return *static_cast <SysManager*> (static_cast <Internal::Bridge <PortableServer::ServantBase>*> (&proxy->servant ()));
+	ctx.proxy_ = proxy_->lock ();
+	proxy_->unlock ();
+	if (ctx.proxy_) {
+		ctx.implementation_ = static_cast <SysManager*> (
+			static_cast <CORBA::Internal::Bridge <PortableServer::ServantBase>*> (
+				&ctx.proxy_->servant ()));
+		return true;
+	}
+	return false;
+}
+
+void SysManager::shutdown (unsigned flags) noexcept
+{
+	if (shutdown_started_)
+		return;
+	shutdown_started_ = true;
+	try {
+		if (domains_.empty ())
+			final_shutdown ();
+		else
+			domains_.shutdown ();
+	} catch (...) {
+		shutdown_started_ = false;
+	}
+}
+
+void SysManager::ReceiveShutdown::run ()
+{
+	try {
+		sys_manager ().shutdown (flags_);
+	} catch (...) {}
 }
 
 }

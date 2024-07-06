@@ -33,8 +33,17 @@
 #include <atomic>
 #include "StaticallyAllocated.h"
 
+namespace ESIOP {
+
+struct MessageHeader;
+void dispatch_message (MessageHeader& message) noexcept;
+
+}
+
 namespace Nirvana {
 namespace Core {
+
+class SysManager;
 
 class Scheduler
 {
@@ -76,7 +85,7 @@ public:
 
 	/// Initiates shutdown.
 	/// Shutdown will be completed when activity count became zero.
-	static void shutdown ();
+	static void shutdown (unsigned flags);
 
 	/// Reserve space for an active item.
 	/// \throws CORBA::NO_MEMORY
@@ -112,6 +121,11 @@ public:
 	}
 
 private:
+	friend class SysManager;
+	friend void ESIOP::dispatch_message (ESIOP::MessageHeader& message) noexcept;
+
+	static void shutdown ();
+
 	static void do_shutdown ();
 
 	class Shutdown : public Runnable

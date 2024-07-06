@@ -74,7 +74,7 @@ public:
 	{}
 
 	static void initialize ();
-	static void terminate ();
+	static void terminate () noexcept;
 
 	// Implements System::bind()
 	static CORBA::Object::_ref_type bind (const IDL::String& name);

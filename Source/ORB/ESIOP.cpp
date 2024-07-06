@@ -312,12 +312,14 @@ void ReceiveCloseConnection::run ()
 }
 
 /// Receive shutdown Runnable
-class ReceiveShutdownSys : public Nirvana::Core::SysManager::AsyncCall
+class ReceiveShutdownSys : public Nirvana::Core::SysManager::ReceiveShutdown
 {
+	typedef Nirvana::Core::SysManager::ReceiveShutdown Base;
+
 public:
-	ReceiveShutdownSys (Nirvana::SysManager::_ref_type&& ref, Nirvana::Core::SysManager& impl,
+	ReceiveShutdownSys (Nirvana::Core::SysManager::AsyncCallContext&& ctx,
 		const Shutdown& msg) noexcept :
-		Nirvana::Core::SysManager::AsyncCall (std::move (ref), impl),
+		Base (std::move (ctx), 0),
 		security_context_ (msg.security_context)
 	{}
 
@@ -332,8 +334,11 @@ void ReceiveShutdownSys::run ()
 {
 	try {
 		ExecDomain::set_impersonation_context (std::move (security_context_));
-		sys_manager ().shutdown (0);
-	} catch (...) {}
+	} catch (...) {
+		assert (false);
+	}
+
+	Base::run ();
 }
 
 void dispatch_message (MessageHeader& message) noexcept
