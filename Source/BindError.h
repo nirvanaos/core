@@ -24,34 +24,20 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_CORE_COREDOMAINS_H_
-#define NIRVANA_CORE_COREDOMAINS_H_
+#ifndef NIRVANA_CORE_BINDERROR_H_
+#define NIRVANA_CORE_BINDERROR_H_
+#pragma once
 
-#include "Nirvana/Domains.idl"
+#include <Nirvana/Nirvana.h>
+#include <Nirvana/BindError.h>
 
-module Nirvana {
+namespace Nirvana {
+namespace BindError {
 
-struct ObjectId
-{
-	string name;
-	unsigned short major, minor;
-};
+NIRVANA_NORETURN void throw_message (std::string msg);
+NIRVANA_NORETURN void throw_invalid_metadata ();
 
-typedef sequence <ObjectId> ObjectIds;
-
-struct ModuleBindings
-{
-	ObjectIds exports, dependencies;
-};
-
-/// The core extension of the ProtDomain interface.
-/// This interface is subject of change and intended for internal use by Nirvana core.
-interface ProtDomainCore : ProtDomain
-{
-	Object load_and_bind (in long mod_id, in string mod_path, in string name) raises (BindError::Error);
-	ModuleBindings get_module_bindings (in AccessDirect file) raises (BindError::Error);
-};
-
-};
+}
+}
 
 #endif

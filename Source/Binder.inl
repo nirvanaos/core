@@ -31,6 +31,7 @@
 #include "ClassLibrary.h"
 #include "Singleton.h"
 #include "Executable.h"
+#include "BindError.h"
 
 namespace Nirvana {
 namespace Core {
@@ -43,7 +44,7 @@ Main::_ptr_type Binder::bind (Executable& mod)
 	startup = singleton_->module_bind (mod._get_ptr (), mod.metadata (), nullptr);
 	try {
 		if (!startup || !startup->startup)
-			invalid_metadata ();
+			BindError::throw_message ("Entry point not found");
 		singleton_->binary_map_.add (mod);
 	} catch (...) {
 		release_imports (mod._get_ptr (), mod.metadata ());

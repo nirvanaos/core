@@ -35,13 +35,19 @@ public:
 	static int run (StringSeq& argv)
 	{
 		static const char usage [] = "Usage: regmod <module path>\n";
-		if (argv.size () != 1) {
+		if (argv.size () < 1 || argv.size () > 2) {
 			print (1, usage);
 			return -1;
 		}
 
-		CosNaming::Name name;
-		the_posix->append_path (name, argv [0], true);
+		CosNaming::Name bin_path;
+		the_posix->append_path (bin_path, argv [0], true);
+
+		const std::string* pname;
+		if (argv.size () > 1)
+			pname = &argv [1];
+		else
+			pname = &bin_path.back ().id ();
 
 		Packages::_ref_type packages = SysDomain::_narrow (
 			CORBA::the_orb->resolve_initial_references ("SysDomain")
@@ -50,7 +56,7 @@ public:
 		int ret = 0;
 
 		try {
-			packages->register_module (name, 0);
+			packages->register_module (bin_path, *pname, 0);
 		} catch (const BindError::Error& ex) {
 			ret = -1;
 			print (packages, ex.info ());
@@ -119,6 +125,9 @@ void Static_regmod::print (Packages::_ptr_type packages, const BindError::Info& 
 		CORBA::UNKNOWN se;
 		err.system_exception () >>= se;
 		print (2, se.what ());
+		print (2, " (");
+		print (2, se.minor ());
+		print (2, ")");
 	} break;
 
 	case BindError::Type::ERR_UNSUP_PLATFORM:

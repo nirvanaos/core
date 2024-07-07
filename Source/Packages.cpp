@@ -28,6 +28,7 @@
 #include "Binder.h"
 #include <Nirvana/posix_defs.h>
 #include "Nirvana/CoreDomains.h"
+#include "NameService/FileSystem.h"
 #include <Port/SysDomain.h>
 
 #define DATABASE_PATH "/var/lib/packages.db"
@@ -86,11 +87,11 @@ const char* const Packages::sys_module_names_ [MODULE_SQLITE] = {
 
 Packages::Packages (CORBA::Object::_ptr_type comp) :
 	Servant (comp),
-	name_service_ (CosNaming::NamingContextExt::_narrow (CORBA::Core::Services::bind (
-		CORBA::Core::Services::NameService)))
+	name_service_ (CosNaming::NamingContextExt::_narrow (
+		CORBA::the_orb->resolve_initial_references ("NameService")))
 {
 	NDBC::Driver::_ref_type driver = NDBC::Driver::_narrow (
-		load_and_bind (MODULE_SQLITE, false, "SQLite/driver"));
+		load_and_bind (MODULE_SQLITE, "SQLite/driver"));
 
 	connection_ = driver->connect ("file:" DATABASE_PATH "?mode=rwc&journal_mode=WAL",
 		IDL::String (), IDL::String ());
@@ -120,11 +121,11 @@ inline void Packages::create_database (NDBC::Statement::_ptr_type st)
 	}
 }
 
-CORBA::Object::_ref_type Packages::load_and_bind (SysModuleId id, bool singleton, const char* name) const
+CORBA::Object::_ref_type Packages::load_and_bind (SysModuleId id, const char* name) const
 {
 	return Binder::load_and_bind (id,
 		get_system_binary_path (PLATFORM, sys_module_names_ [(int)id - 1]),
-		name_service_, singleton, name);
+		name_service_, name);
 }
 
 IDL::traits <AccessDirect>::ref_type Packages::open_binary (

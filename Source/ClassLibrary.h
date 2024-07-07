@@ -41,8 +41,8 @@ class ClassLibrary :
 	public SyncContextFree
 {
 public:
-	ClassLibrary (int32_t id, AccessDirect::_ptr_type file) :
-		Module (id, file, false),
+	ClassLibrary (int32_t id, Port::Module&& bin, unsigned flags) :
+		Module (id, std::move (bin), flags),
 		sync_context_type_ (Type::FREE)
 	{
 		get_data_sections (data_sections_);

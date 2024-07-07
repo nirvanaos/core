@@ -31,9 +31,11 @@
 #include <CORBA/Server.h>
 #include <Nirvana/Domains_s.h>
 #include <Nirvana/NDBC.h>
+#include <Nirvana/posix_defs.h>
 #include <Port/SystemInfo.h>
-#include "NameService/FileSystem.h"
-#include <Nirvana/ModuleMetadata.h>
+#include <Port/Module.h>
+#include "Nirvana/CoreDomains.h"
+#include "BindError.h"
 
 namespace Nirvana {
 namespace Core {
@@ -98,24 +100,37 @@ public:
 		module_load.module_id (100);
 	}
 
-	void register_module (const CosNaming::Name& path, unsigned flags)
+	uint16_t register_module (const CosNaming::Name& path, const IDL::String& name, unsigned flags)
 	{
-		CORBA::Object::_ref_type obj;
-		name_service_->bind (path, obj);
-		Nirvana::File::_ref_type file = Nirvana::File::_narrow (obj);
-		ModuleMetadata metadata = get_module_metadata (AccessBuf::_downcast (file->open (O_RDONLY, 0)->_to_value ()));
-		if (!metadata.check ()) {
-			BindError::Error err;
-			err.info ().message (std::move (metadata.error));
-			throw err;
+		AccessDirect::_ref_type binary;
+
+		{
+			CORBA::Object::_ref_type obj = name_service_->resolve (path);
+			Nirvana::File::_ref_type file = Nirvana::File::_narrow (obj);
+			binary = AccessDirect::_narrow (file->open (O_RDONLY | O_DIRECT, 0)->_to_object ());
 		}
+
+		uint16_t platform = Port::Module::get_platform (binary);
 		if (std::find (Port::SystemInfo::supported_platforms (),
 			Port::SystemInfo::supported_platforms () + Port::SystemInfo::SUPPORTED_PLATFORM_CNT,
-			metadata.platform) == Port::SystemInfo::supported_platforms () + Port::SystemInfo::SUPPORTED_PLATFORM_CNT)
+			platform) == Port::SystemInfo::supported_platforms () + Port::SystemInfo::SUPPORTED_PLATFORM_CNT)
 		{
-			BindError::Error err;
-//			err.info ().
+			BindError::throw_message ("Unsupported platform");
 		}
+
+		Nirvana::SysDomain::_ref_type sys_domain = Nirvana::SysDomain::_narrow (
+			CORBA::the_orb->resolve_initial_references ("SysDomain"));
+
+		Nirvana::ProtDomain::_ref_type bind_domain;
+		if (SINGLE_DOMAIN)
+			bind_domain = sys_domain->prot_domain ();
+		else
+			bind_domain = sys_domain->provide_manager ()->create_prot_domain (platform);
+		
+		ModuleBindings module_bindings =
+			ProtDomainCore::_narrow (bind_domain)->get_module_bindings (binary);
+
+		return platform;
 	}
 
 	IDL::String get_module_name (int32_t id)
@@ -144,7 +159,7 @@ private:
 		return open_binary (name_service_, get_system_binary_path (platform, module_name));
 	}
 
-	CORBA::Object::_ref_type load_and_bind (SysModuleId id, bool singleton, const char* name) const;
+	CORBA::Object::_ref_type load_and_bind (SysModuleId id, const char* name) const;
 
 	static void create_database (NDBC::Statement::_ptr_type st);
 

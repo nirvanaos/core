@@ -36,7 +36,7 @@
 #include "Singleton.h"
 #include "Executable.h"
 #include "Packages.h"
-#include "Nirvana/Domains.h"
+#include <Nirvana/Domains.h>
 
 using namespace CORBA;
 using namespace CORBA::Internal;
@@ -188,11 +188,6 @@ void Binder::terminate () noexcept
 	BinderMemory::terminate ();
 }
 
-NIRVANA_NORETURN void Binder::invalid_metadata ()
-{
-	throw_INTERNAL (make_minor_errno (ENOEXEC));
-}
-
 const ModuleStartup* Binder::module_bind (::Nirvana::Module::_ptr_type mod,
 	const Section& metadata, ModuleContext* mod_context)
 {
@@ -218,7 +213,7 @@ const ModuleStartup* Binder::module_bind (::Nirvana::Module::_ptr_type mod,
 		ObjectKey k_object_factory (object_factory.imp.name);
 		for (OLF_Iterator <> it (metadata.address, metadata.size); !it.end (); it.next ()) {
 			if (!it.valid ())
-				invalid_metadata ();
+				BindError::throw_invalid_metadata ();
 
 			switch (*it.cur ()) {
 				case OLF_IMPORT_INTERFACE:
@@ -229,21 +224,20 @@ const ModuleStartup* Binder::module_bind (::Nirvana::Module::_ptr_type mod,
 						if (key.name_eq (k_gmodule)) {
 							assert (mod);
 							if (!k_gmodule.compatible (key))
-								invalid_metadata ();
+								BindError::throw_message ("Module interface version mismatch");
 							module_entry = ps;
 							break;
 						} else if (!mod_context && key.name_eq (k_object_factory))
-							invalid_metadata (); // Process can not import ObjectFactory interface
+							BindError::throw_message ("Process must not import ObjectFactory interface");
 					}
 					flags |= MetadataFlags::IMPORT_INTERFACES;
 					break;
 
 				case OLF_EXPORT_INTERFACE: {
-					if (!mod_context // Process can not export
-						|| // Singleton can not export interfaces
-						mod_context->sync_context.sync_context_type () == SyncContext::Type::SYNC_DOMAIN_SINGLETON
-						)
-						invalid_metadata ();
+					if (!mod_context) // Process can not export
+						BindError::throw_message ("Process must not export interfaces");
+					if (mod_context->sync_context.sync_context_type () == SyncContext::Type::SYNC_DOMAIN_SINGLETON)
+						BindError::throw_message ("Singleton must not export interfaces");
 
 					const ExportInterface* ps = reinterpret_cast <const ExportInterface*> (it.cur ());
 					mod_context->exports.insert (ps->name, ps->itf, &mod_context->sync_context);
@@ -252,7 +246,7 @@ const ModuleStartup* Binder::module_bind (::Nirvana::Module::_ptr_type mod,
 				case OLF_EXPORT_OBJECT:
 				case OLF_EXPORT_LOCAL:
 					if (!mod_context) // Process can not export
-						invalid_metadata ();
+						BindError::throw_message ("Process must not export interfaces");
 					flags |= MetadataFlags::EXPORT_OBJECTS;
 					break;
 
@@ -262,12 +256,12 @@ const ModuleStartup* Binder::module_bind (::Nirvana::Module::_ptr_type mod,
 
 				case OLF_MODULE_STARTUP:
 					if (module_startup)
-						invalid_metadata (); // Must be only one startup entry
+						BindError::throw_message ("Duplicated OLF_MODULE_STARTUP entry");
 					module_startup = reinterpret_cast <const ModuleStartup*> (it.cur ());
 					break;
 
 				default:
-					invalid_metadata ();
+					BindError::throw_invalid_metadata ();
 			}
 		}
 
@@ -398,8 +392,7 @@ void Binder::delete_module (Module* mod) noexcept
 }
 
 Ref <Module> Binder::load (int32_t mod_id, AccessDirect::_ref_type binary,
-	const IDL::String& mod_path, CosNaming::NamingContextExt::_ptr_type name_service,
-	bool singleton)
+	const IDL::String& mod_path, CosNaming::NamingContextExt::_ptr_type name_service)
 {
 	if (!initialized_)
 		throw_INITIALIZE ();
@@ -426,16 +419,13 @@ Ref <Module> Binder::load (int32_t mod_id, AccessDirect::_ref_type binary,
 				binary = Packages::open_binary (name_service_, mod_path);
 			}
 
-			if (singleton)
-				mod = new Singleton (mod_id, binary);
-			else
-				mod = new ClassLibrary (mod_id, binary);
+			mod = Module::create (mod_id, binary);
 
 			SYNC_END ();
 
 			assert (mod->_refcount_value () == 0);
 			ModuleContext context (mod, mod->sync_context (), mod_id);
-			bind_and_init (*mod, context, singleton);
+			bind_and_init (*mod, context);
 			try {
 				object_map_.merge (context.exports);
 			} catch (...) {
@@ -459,13 +449,11 @@ Ref <Module> Binder::load (int32_t mod_id, AccessDirect::_ref_type binary,
 
 	} else {
 		mod = entry.second.get ();
-		if (mod->singleton () != singleton)
-			throw_BAD_PARAM ();
 	}
 	return mod;
 }
 
-void Binder::bind_and_init (Module& mod, ModuleContext& context, bool singleton)
+void Binder::bind_and_init (Module& mod, ModuleContext& context)
 {
 	const ModuleStartup* startup = module_bind (mod._get_ptr (), mod.metadata (), &context);
 
@@ -475,10 +463,7 @@ void Binder::bind_and_init (Module& mod, ModuleContext& context, bool singleton)
 		// Module without an entry point is a special case reserved for future.
 		// Currently we prohibit it.
 		if (!startup)
-			invalid_metadata ();
-
-		if (startup && (startup->flags & OLF_MODULE_SINGLETON) && !singleton)
-			invalid_metadata ();
+			BindError::throw_message ("Entry point not found");
 
 		mod.initialize (startup ? ModuleInit::_check (startup->startup) : nullptr);
 	} catch (...) {
@@ -571,7 +556,7 @@ Binder::BindResult Binder::find (const ObjectKey& name)
 				name.version ().major, name.version ().minor, sys_mod_path);
 			if (sys_mod_id) {
 
-				load (sys_mod_id, nullptr, sys_mod_path, nullptr, false);
+				load (sys_mod_id, nullptr, sys_mod_path, nullptr);
 				ret = object_map_.find (name);
 				if (!ret.itf)
 					throw_OBJECT_NOT_EXIST ();
@@ -586,7 +571,7 @@ Binder::BindResult Binder::find (const ObjectKey& name)
 				if (bind_info._d ()) {
 					try {
 						const ModuleLoad& ml = bind_info.module_load ();
-						load (ml.module_id (), ml.binary (), IDL::String (), nullptr, false);
+						load (ml.module_id (), ml.binary (), IDL::String (), nullptr);
 					} catch (const SystemException&) {
 						// TODO: Log
 						throw_OBJECT_NOT_EXIST ();
@@ -696,9 +681,9 @@ CORBA::Object::_ref_type Binder::bind (const IDL::String& name)
 
 inline
 CORBA::Object::_ref_type Binder::load_and_bind_sync (int32_t mod_id, CORBA::Internal::String_in mod_path,
-	CosNaming::NamingContextExt::_ptr_type name_service, bool singleton, const ObjectKey& name)
+	CosNaming::NamingContextExt::_ptr_type name_service, const ObjectKey& name)
 {
-	load (mod_id, nullptr, mod_path, name_service, singleton);
+	load (mod_id, nullptr, mod_path, name_service);
 	const ObjectVal* ov = object_map_.find (name);
 	if (ov
 		&& CORBA::Internal::RepId::compatible (ov->itf->_epv ().interface_id,
@@ -716,8 +701,7 @@ CORBA::Object::_ref_type Binder::load_and_bind_sync (int32_t mod_id, CORBA::Inte
 }
 
 CORBA::Object::_ref_type Binder::load_and_bind (int32_t mod_id, CORBA::Internal::String_in mod_path,
-	CosNaming::NamingContextExt::_ptr_type name_service, bool singleton,
-	CORBA::Internal::String_in name)
+	CosNaming::NamingContextExt::_ptr_type name_service, CORBA::Internal::String_in name)
 {
 	CORBA::Object::_ref_type ret;
 	Ref <Request> rq = Request::create ();
@@ -726,7 +710,7 @@ CORBA::Object::_ref_type Binder::load_and_bind (int32_t mod_id, CORBA::Internal:
 		Synchronized _sync_frame (sync_domain (), nullptr);
 		try {
 			rq->unmarshal_end ();
-			ret = singleton_->load_and_bind_sync (mod_id, mod_path, name_service, singleton,
+			ret = singleton_->load_and_bind_sync (mod_id, mod_path, name_service,
 				ObjectKey (name.data (), name.size ()));
 			rq->success ();
 		} catch (CORBA::Exception& e) {
@@ -739,19 +723,16 @@ CORBA::Object::_ref_type Binder::load_and_bind (int32_t mod_id, CORBA::Internal:
 	return ret;
 }
 
-Nirvana::ModuleBindings Binder::get_module_bindings_sync (AccessDirect::_ptr_type binary, bool singleton)
+Nirvana::ModuleBindings Binder::get_module_bindings_sync (AccessDirect::_ptr_type binary)
 {
 	Module* mod = nullptr;
 	SYNC_BEGIN (g_core_free_sync_context, &memory ());
-	if (singleton)
-		mod = new Singleton (-1, binary);
-	else
-		mod = new ClassLibrary (-1, binary);
+	mod = Module::create (-1, binary);
 	SYNC_END ();
 
 	ModuleContext context (mod, mod->sync_context (), true);
 	try {
-		bind_and_init (*mod, context, singleton);
+		bind_and_init (*mod, context);
 	} catch (...) {
 		delete_module (mod);
 		throw;
@@ -778,7 +759,7 @@ Nirvana::ModuleBindings Binder::get_module_bindings_sync (AccessDirect::_ptr_typ
 	return bindings;
 }
 
-Nirvana::ModuleBindings Binder::get_module_bindings (AccessDirect::_ptr_type binary, bool singleton)
+Nirvana::ModuleBindings Binder::get_module_bindings (AccessDirect::_ptr_type binary)
 {
 	Ref <Request> rq = Request::create ();
 	rq->invoke ();
@@ -786,7 +767,7 @@ Nirvana::ModuleBindings Binder::get_module_bindings (AccessDirect::_ptr_type bin
 		Synchronized _sync_frame (sync_domain (), nullptr);
 		try {
 			rq->unmarshal_end ();
-			Nirvana::ModuleBindings md = singleton_->get_module_bindings_sync (binary, singleton);
+			Nirvana::ModuleBindings md = singleton_->get_module_bindings_sync (binary);
 			Type <Nirvana::ModuleBindings>::marshal_out (md, rq->_get_ptr ());
 			rq->success ();
 		} catch (CORBA::Exception& e) {

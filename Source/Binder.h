@@ -103,8 +103,7 @@ public:
 	}
 
 	static CORBA::Object::_ref_type load_and_bind (int32_t mod_id, CORBA::Internal::String_in mod_path,
-		CosNaming::NamingContextExt::_ptr_type name_service, bool singleton,
-		CORBA::Internal::String_in name);
+		CosNaming::NamingContextExt::_ptr_type name_service, CORBA::Internal::String_in name);
 
 	/// Bind executable.
 	/// 
@@ -155,7 +154,7 @@ public:
 		return ret;
 	}
 
-	static Nirvana::ModuleBindings get_module_bindings (AccessDirect::_ptr_type binary, bool singleton);
+	static Nirvana::ModuleBindings get_module_bindings (AccessDirect::_ptr_type binary);
 
 	static Binder& singleton () noexcept
 	{
@@ -439,7 +438,7 @@ private:
 	const ModuleStartup* module_bind (Nirvana::Module::_ptr_type mod, const Section& metadata,
 		ModuleContext* mod_context);
 
-	void bind_and_init (Module& mod, ModuleContext& context, bool singleton);
+	void bind_and_init (Module& mod, ModuleContext& context);
 	
 	/// Unbind module.
 	/// Must be called from the module synchronization context.
@@ -453,16 +452,14 @@ private:
 
 	BindResult find (const ObjectKey& name);
 
-	NIRVANA_NORETURN static void invalid_metadata ();
-
 	Ref <Module> load (int32_t mod_id, AccessDirect::_ref_type binary, const IDL::String& mod_path,
-		CosNaming::NamingContextExt::_ptr_type name_service, bool singleton);
+		CosNaming::NamingContextExt::_ptr_type name_service);
 	void unload (Module* pmod) noexcept;
 
 	CORBA::Object::_ref_type load_and_bind_sync (int32_t mod_id, CORBA::Internal::String_in mod_path,
-		CosNaming::NamingContextExt::_ptr_type name_service, bool singleton, const ObjectKey& name);
+		CosNaming::NamingContextExt::_ptr_type name_service, const ObjectKey& name);
 
-	Nirvana::ModuleBindings get_module_bindings_sync (AccessDirect::_ptr_type binary, bool singleton);
+	Nirvana::ModuleBindings get_module_bindings_sync (AccessDirect::_ptr_type binary);
 
 	void housekeeping_modules ();
 	static void delete_module (Module* mod) noexcept;

@@ -66,14 +66,14 @@ public:
 	}
 
 	static CORBA::Object::_ref_type load_and_bind (int32_t mod_id, const IDL::String& mod_path,
-		bool singleton, const IDL::String& name)
+		const IDL::String& name)
 	{
-		return Binder::load_and_bind (mod_id, mod_path, nullptr, singleton, name);
+		return Binder::load_and_bind (mod_id, mod_path, nullptr, name);
 	}
 
-	static Nirvana::ModuleBindings get_module_bindings (Nirvana::AccessDirect::_ptr_type binary, bool singleton)
+	static Nirvana::ModuleBindings get_module_bindings (Nirvana::AccessDirect::_ptr_type binary)
 	{
-		return Binder::get_module_bindings (binary, singleton);
+		return Binder::get_module_bindings (binary);
 	}
 
 	static IDL::String binary_dir ();

@@ -53,6 +53,10 @@ protected:
 	Binary (AccessDirect::_ptr_type file) :
 		Nirvana::Core::Port::Module (file)
 	{}
+
+	Binary (Port::Module&& mod) :
+		Nirvana::Core::Port::Module (std::move (mod))
+	{}
 };
 
 }

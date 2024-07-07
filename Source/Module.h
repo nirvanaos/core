@@ -50,7 +50,7 @@ class NIRVANA_NOVTABLE Module :
 	public CORBA::Internal::LifeCycleRefCnt <Module>
 {
 public:
-	using UserObject::operator delete;
+	static Module* create (int32_t id, AccessDirect::_ptr_type file);
 
 	/// Derived ClassLibrary and Singleton classes must have virtual destructors.
 	virtual ~Module ()
@@ -61,13 +61,13 @@ public:
 	///   If module is Singleton, returned context is the singleton synchronization domain.
 	virtual SyncContext& sync_context () noexcept = 0;
 
-	/// Called on the module static object _add_ref().
+	/// Called on the_module reference _duplicate().
 	void _add_ref () noexcept
 	{
 		ref_cnt_.increment ();
 	}
 
-	/// Called on the module static object _remove_ref().
+	/// Called on the_module reference _release().
 	void _remove_ref () noexcept;
 
 	/// \returns Current reference count.
@@ -77,9 +77,15 @@ public:
 	}
 
 	/// \returns `true` if module is singleton library.
-	bool singleton () const noexcept
+	bool is_singleton () const noexcept
 	{
-		return singleton_;
+		return flags_ & OLF_MODULE_SINGLETON;
+	}
+
+	/// \returns Module metadata flags.
+	unsigned flags () const noexcept
+	{
+		return flags_;
 	}
 
 	/// If bound () returns `false`, the module may be safely unloaded.
@@ -111,7 +117,7 @@ public:
 	}
 
 protected:
-	Module (int32_t id, AccessDirect::_ptr_type file, bool singleton);
+	Module (int32_t id, Port::Module&& bin, unsigned flags);
 
 protected:
 	friend class Binder;
@@ -121,7 +127,7 @@ protected:
 	AtomicCounter <false> ref_cnt_;
 	AtomicCounter <false>::IntegralType initial_ref_cnt_;
 	int32_t id_;
-	bool singleton_;
+	unsigned flags_;
 };
 
 }
