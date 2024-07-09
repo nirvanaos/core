@@ -155,16 +155,9 @@ public:
 
 	// This operation can cause context switch.
 	// So we make private copies of the client strings in stak.
-	static CORBA::Object::_ref_type bind (IDL::String name)
+	static CORBA::Internal::Interface::_ref_type bind (IDL::String name, IDL::String iid)
 	{
-		return Core::Binder::bind (name);
-	}
-
-	// This operation can cause context switch.
-	// So we make private copies of the client strings in stak.
-	static CORBA::Internal::Interface::_ref_type bind_interface (IDL::String name, IDL::String iid)
-	{
-		return std::move (Core::Binder::bind_interface (name, iid).itf);
+		return Core::Binder::bind_interface (name, iid).itf;
 	}
 
 	static size_t exec_domain_id ()

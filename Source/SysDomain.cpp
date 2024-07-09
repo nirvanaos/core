@@ -53,11 +53,6 @@ SysDomain::SysDomain (CORBA::Object::_ref_type& comp)
 	SYNC_BEGIN (g_core_free_sync_context, &MemContext::current ());
 	manager_ = make_reference <SysManager> (comp)->_this ();
 	SYNC_END ();
-
-	// Create Packages
-	SYNC_BEGIN (g_core_free_sync_context, &MemContext::current ());
-	packages_ = make_reference <Packages> (comp)->_this ();
-	SYNC_END ();
 }
 
 SysDomain::~SysDomain ()
@@ -74,11 +69,17 @@ Object::_ref_type create_SysDomain ()
 			"corbaloc::1.1@/%00", CORBA::Internal::RepIdOf <SysDomain::PrimaryInterface>::id);
 }
 
-SysDomain& SysDomain::implementation ()
+void SysDomain::do_startup (Object::_ptr_type obj)
 {
-	assert (ESIOP::is_system_domain ());
-	Object::_ref_type obj = CORBA::Core::Services::bind (CORBA::Core::Services::SysDomain);
-	return *static_cast <SysDomain*> (get_implementation (obj));
+	// Create Packages
+	SYNC_BEGIN (g_core_free_sync_context, &MemContext::current ());
+	packages_ = make_reference <Packages> (obj)->_this ();
+	SYNC_END ();
+}
+
+void SysDomain::startup (Object::_ptr_type obj)
+{
+	get_implementation (get_proxy (obj))->do_startup (obj);
 }
 
 AccessDirect::_ref_type SysDomain::open_binary (const IDL::String& module_path)

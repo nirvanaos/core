@@ -46,23 +46,13 @@ class SysDomain :
 	public CORBA::Core::SysServantImpl <SysDomain, Nirvana::SysDomainCore, Nirvana::SysDomain,
 		Components::Navigation, Components::Receptacles, Components::Events, Components::CCMObject>
 {
-	enum SysModuleId
-	{
-		MODULE_DECCALC = 1,
-		MODULE_SFLOAT = 2,
-		MODULE_DBC = 3,
-		MODULE_SQLITE = 4
-	};
-
 public:
 	using CORBA::Internal::CCM_ObjectFeatures <SysDomain, Nirvana::SysDomain>::provide_facet;
 
 	SysDomain (CORBA::Object::_ref_type& comp);
 	~SysDomain ();
 
-	static SysDomain& implementation ();
-
-	static Version version ()
+	static Version version () noexcept
 	{
 		return { 0, 0, 0, 0 };
 	}
@@ -111,7 +101,14 @@ public:
 		return CORBA::Core::Services::bind (id);
 	}
 
+	static void startup (CORBA::Object::_ptr_type obj);
+
 private:
+	static SysDomain* get_implementation (const CORBA::Core::ServantProxyLocal* proxy) noexcept
+	{
+		return static_cast <SysDomain*> (SysObjectLink::get_implementation (proxy));
+	}
+
 	static AccessDirect::_ref_type open_binary (const IDL::String& module_path);
 
 	static const IDL::String get_sys_binary_path (unsigned platform, const char* module_name)
@@ -126,6 +123,14 @@ private:
 		path += module_name;
 		return path;
 	}
+
+	enum SysModuleId
+	{
+		MODULE_DECCALC = 1,
+		MODULE_SFLOAT = 2,
+		MODULE_DBC = 3,
+		MODULE_SQLITE = 4
+	};
 
 	static bool get_sys_bind_info (CORBA::Internal::String_in obj_name, unsigned platform,
 		unsigned major, unsigned minor, BindInfo& bind_info)
@@ -164,6 +169,8 @@ private:
 
 		return false;
 	}
+
+	void do_startup (CORBA::Object::_ptr_type obj);
 
 private:
 	Nirvana::SysManager::_ref_type manager_;

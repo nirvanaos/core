@@ -25,6 +25,7 @@
 */
 #include "pch.h"
 #include "StartupSys.h"
+#include "SysDomain.h"
 #include "ORB/Services.h"
 
 namespace Nirvana {
@@ -34,7 +35,10 @@ void StartupSys::run ()
 {
 	if (initialize ()) {
 		try {
-			CORBA::Core::Services::bind (CORBA::Core::Services::SysDomain);
+			{
+				CORBA::Object::_ref_type sys_domain = CORBA::Core::Services::bind (CORBA::Core::Services::SysDomain);
+				SysDomain::startup (sys_domain);
+			}
 			Startup::run ();
 		} catch (const CORBA::Exception& ex) {
 			on_exception (ex);

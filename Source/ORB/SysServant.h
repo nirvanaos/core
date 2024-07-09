@@ -54,12 +54,16 @@ protected:
 		return local2proxy (obj);
 	}
 
-	static Internal::Bridge <CORBA::LocalObject>* get_implementation (Object::_ptr_type obj) noexcept
+	static Internal::Bridge <CORBA::LocalObject>* get_implementation (const ServantProxyLocal* proxy) noexcept
 	{
-		const ServantProxyLocal* proxy = get_proxy (obj);
 		if (proxy)
 			return static_cast <Internal::Bridge <CORBA::LocalObject>*> (&proxy->servant ());
 		return nullptr;
+	}
+
+	static Internal::Bridge <CORBA::LocalObject>* get_implementation (Object::_ptr_type obj) noexcept
+	{
+		return get_implementation (get_proxy (obj));
 	}
 };
 

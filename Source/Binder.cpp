@@ -279,8 +279,8 @@ const ModuleStartup* Binder::module_bind (::Nirvana::Module::_ptr_type mod,
 					if (OLF_IMPORT_INTERFACE == *it.cur ()) {
 						ImportInterface* ps = reinterpret_cast <ImportInterface*> (it.cur ());
 						if (!mod || ps != module_entry)
-							reinterpret_cast <InterfaceRef&> (ps->itf) = std::move (bind_interface_sync (
-								ps->name, ps->interface_id).itf);
+							reinterpret_cast <InterfaceRef&> (ps->itf) = bind_interface_sync (
+								ps->name, ps->interface_id).itf;
 					}
 				}
 
@@ -317,16 +317,8 @@ const ModuleStartup* Binder::module_bind (::Nirvana::Module::_ptr_type mod,
 				for (OLF_Iterator <> it (metadata.address, metadata.size); !it.end (); it.next ()) {
 					if (OLF_IMPORT_OBJECT == *it.cur ()) {
 						ImportInterface* ps = reinterpret_cast <ImportInterface*> (it.cur ());
-						Object::_ref_type obj = bind_sync (ps->name);
-						const CORBA::Internal::StringView <char> requested_iid (ps->interface_id);
-						if (RepId::compatible (obj->_epv ().header.interface_id, requested_iid))
-							reinterpret_cast <Object::_ref_type&> (ps->itf) = std::move (obj);
-						else {
-							InterfacePtr itf = obj->_query_interface (requested_iid);
-							if (!itf)
-								throw_INV_OBJREF ();
-							ps->itf = interface_duplicate (&itf);
-						}
+						reinterpret_cast <InterfaceRef&> (ps->itf) = bind_interface_sync (
+							ps->name, ps->interface_id).itf;
 					}
 				}
 
@@ -580,27 +572,6 @@ Binder::BindResult Binder::find (const ObjectKey& name)
 	return ret;
 }
 
-Binder::BindResult Binder::bind_interface_sync (const ObjectKey& name, String_in iid)
-{
-	BindResult fr = find (name);
-	CORBA::Internal::StringView <char> itf_id = fr.itf->_epv ().interface_id;
-	if (!RepId::compatible (itf_id, iid)) {
-		InterfacePtr qi = nullptr;
-		if (RepId::compatible (itf_id, RepIdOf <PseudoBase>::id)) {
-			PseudoBase::_ptr_type b = static_cast <PseudoBase*> (&InterfacePtr (fr.itf));
-			qi = b->_query_interface (iid);
-		} else if (RepId::compatible (itf_id, RepIdOf <ValueBase>::id)) {
-			ValueBase::_ptr_type b = static_cast <ValueBase*> (&InterfacePtr (fr.itf));
-			qi = b->_query_valuetype (iid);
-		}
-		if (!qi)
-			throw_INV_OBJREF ();
-		fr.itf = qi;
-	}
-
-	return fr;
-}
-
 Binder::BindResult Binder::bind_interface (CORBA::Internal::String_in name, CORBA::Internal::String_in iid)
 {
 	BindResult ret;
@@ -622,67 +593,67 @@ Binder::BindResult Binder::bind_interface (CORBA::Internal::String_in name, CORB
 	return ret;
 }
 
-Object::_ref_type Binder::bind_sync (const ObjectKey& name)
+Binder::BindResult Binder::bind_interface_sync (const ObjectKey& name, String_in iid)
 {
-	BindResult fr = find (name);
-	if (RepId::compatible (fr.itf->_epv ().interface_id, RepIdOf <Object>::id))
-		return fr.itf.template downcast <CORBA::Object> ();
-	else
-		throw_INV_OBJREF ();
+	BindResult ret = find (name);
+	query_interface (ret, iid);
+	return ret;
 }
 
-CORBA::Object::_ref_type Binder::bind (const IDL::String& name)
+Binder::InterfaceRef Binder::query_interface (InterfacePtr itf, CORBA::Internal::String_in iid)
 {
-	CORBA::Object::_ref_type ret;
-	Ref <Request> rq = Request::create ();
-	rq->invoke ();
-	{
-		Synchronized _sync_frame (sync_domain (), nullptr);
-		try {
-			rq->unmarshal_end ();
-			ret = singleton_->bind_sync (name);
-			rq->success ();
-		} catch (CORBA::Exception& e) {
-			rq->set_exception (std::move (e));
-		} catch (...) {
-			rq->set_unknown_exception ();
+	InterfacePtr ret = nullptr;
+	if (itf) {
+		CORBA::Internal::StringView <char> itf_id = itf->_epv ().interface_id;
+		if (RepId::compatible (itf_id, iid))
+			ret = itf;
+		else {
+			if (RepId::compatible (itf_id, RepIdOf <Object>::id)) {
+				Object::_ptr_type b = static_cast <Object*> (&itf);
+				ret = b->_query_interface (iid);
+			} else if (RepId::compatible (itf_id, RepIdOf <PseudoBase>::id)) {
+				PseudoBase::_ptr_type b = static_cast <PseudoBase*> (&itf);
+				ret = b->_query_interface (iid);
+			} else if (RepId::compatible (itf_id, RepIdOf <ValueBase>::id)) {
+				ValueBase::_ptr_type b = static_cast <ValueBase*> (&itf);
+				ret = b->_query_valuetype (iid);
+			}
 		}
 	}
-	CORBA::Internal::ProxyRoot::check_request (rq->_get_ptr ());
+	if (!ret)
+		throw_INV_OBJREF ();
 	return ret;
 }
 
 inline
-CORBA::Object::_ref_type Binder::load_and_bind_sync (int32_t mod_id, AccessDirect::_ptr_type binary, const ObjectKey& name)
+Binder::BindResult Binder::load_and_bind_sync (int32_t mod_id, AccessDirect::_ptr_type binary,
+	const ObjectKey& name, String_in iid)
 {
 	load (mod_id, binary);
 	const ObjectVal* ov = object_map_.find (name);
-	if (ov
-		&& CORBA::Internal::RepId::compatible (ov->itf->_epv ().interface_id,
-			CORBA::Internal::RepIdOf <CORBA::Object>::id)
-		) {
-		if (ov->sync_context) {
-			Module* mod = ov->sync_context->module ();
-			if (mod && mod->id () == mod_id) {
-				InterfaceRef itf = ov->itf;
-				return itf.template downcast <CORBA::Object> ();
-			}
+	if (ov && ov->sync_context) {
+		Module* mod = ov->sync_context->module ();
+		if (mod && mod->id () == mod_id) {
+			BindResult ret;
+			ret.itf = query_interface (ov->itf, iid);
+			ret.sync_context = ov->sync_context;
+			return ret;
 		}
 	}
 	throw_OBJECT_NOT_EXIST ();
 }
 
-CORBA::Object::_ref_type Binder::load_and_bind (int32_t mod_id,
-	Nirvana::AccessDirect::_ptr_type binary, CORBA::Internal::String_in name)
+Binder::BindResult Binder::load_and_bind (int32_t mod_id,
+	Nirvana::AccessDirect::_ptr_type binary, String_in name, String_in iid)
 {
-	CORBA::Object::_ref_type ret;
+	Binder::BindResult ret;
 	Ref <Request> rq = Request::create ();
 	rq->invoke ();
 	{
 		Synchronized _sync_frame (sync_domain (), nullptr);
 		try {
 			rq->unmarshal_end ();
-			ret = singleton_->load_and_bind_sync (mod_id, binary, ObjectKey (name.data (), name.size ()));
+			ret = singleton_->load_and_bind_sync (mod_id, binary, ObjectKey (name.data (), name.size ()), iid);
 			rq->success ();
 		} catch (CORBA::Exception& e) {
 			rq->set_exception (std::move (e));

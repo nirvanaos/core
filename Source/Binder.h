@@ -76,9 +76,6 @@ public:
 	static void initialize ();
 	static void terminate () noexcept;
 
-	// Implements System::bind()
-	static CORBA::Object::_ref_type bind (const IDL::String& name);
-
 	struct BindResult
 	{
 		InterfaceRef itf;
@@ -99,10 +96,19 @@ public:
 	template <class I>
 	static CORBA::Internal::I_ref <I> bind_interface (CORBA::Internal::String_in name)
 	{
-		return std::move (bind_interface (name, CORBA::Internal::RepIdOf <I>::id).itf).template downcast <I> ();
+		return bind_interface (name, CORBA::Internal::RepIdOf <I>::id).itf.template downcast <I> ();
 	}
 
-	static CORBA::Object::_ref_type load_and_bind (int32_t mod_id, Nirvana::AccessDirect::_ptr_type binary, CORBA::Internal::String_in name);
+	static BindResult load_and_bind (int32_t mod_id, Nirvana::AccessDirect::_ptr_type binary,
+		CORBA::Internal::String_in name, CORBA::Internal::String_in iid);
+
+	template <class I>
+	static CORBA::Internal::I_ref <I> load_and_bind (int32_t mod_id,
+		Nirvana::AccessDirect::_ptr_type binary, CORBA::Internal::String_in name)
+	{
+		return load_and_bind (mod_id, binary, name, CORBA::Internal::RepIdOf <I>::id).itf
+			.template downcast <I> ();
+	}
 
 	/// Bind executable.
 	/// 
@@ -447,14 +453,21 @@ private:
 	static void release_imports (Nirvana::Module::_ptr_type mod, const Section& metadata);
 
 	BindResult bind_interface_sync (const ObjectKey& name, CORBA::Internal::String_in iid);
-	CORBA::Object::_ref_type bind_sync (const ObjectKey& name);
-
+	
 	BindResult find (const ObjectKey& name);
+
+	static InterfaceRef query_interface (InterfacePtr itf, CORBA::Internal::String_in iid);
+
+	static void query_interface (BindResult& ref, CORBA::Internal::String_in iid)
+	{
+		ref.itf = query_interface (ref.itf, iid);
+	}
 
 	Ref <Module> load (int32_t mod_id, AccessDirect::_ptr_type binary);
 	void unload (Module* pmod) noexcept;
 
-	CORBA::Object::_ref_type load_and_bind_sync (int32_t mod_id, AccessDirect::_ptr_type binary, const ObjectKey& name);
+	BindResult load_and_bind_sync (int32_t mod_id, AccessDirect::_ptr_type binary,
+		const ObjectKey& name, CORBA::Internal::String_in iid);
 
 	Nirvana::ModuleBindings get_module_bindings_sync (AccessDirect::_ptr_type binary);
 

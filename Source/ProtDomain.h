@@ -51,7 +51,7 @@ public:
 
 	static CORBA::Object::_ref_type bind (const IDL::String& name)
 	{
-		return Binder::bind (name);
+		return Binder::bind_interface <CORBA::Object> (name);
 	}
 
 	static Nirvana::SysDomain::_ref_type sys_domain ()
@@ -68,7 +68,7 @@ public:
 	static CORBA::Object::_ref_type load_and_bind (int32_t mod_id, AccessDirect::_ptr_type file,
 		const IDL::String& name)
 	{
-		return Binder::load_and_bind (mod_id, file, name);
+		return Binder::load_and_bind <CORBA::Object> (mod_id, file, name);
 	}
 
 	static Nirvana::ModuleBindings get_module_bindings (Nirvana::AccessDirect::_ptr_type binary)
