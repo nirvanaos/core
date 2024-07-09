@@ -528,15 +528,14 @@ Binder::BindResult Binder::find (const ObjectKey& name)
 		ret = object_map_.find (name);
 		if (!ret.itf) {
 
-			BindInfo bind_info;
+			Binding binding;
 			
-			SysDomainCore::_narrow (Services::bind (Services::SysDomain))->get_bind_info (
-				IDL::String (name.name (), name.name_len ()), PLATFORM,
-				name.version ().major, name.version ().minor, bind_info);
+			SysDomainCore::_narrow (Services::bind (Services::SysDomain))->get_binding (
+				CORBA::Internal::StringView <char> (name.name (), name.full_length ()), PLATFORM, binding);
 
-			if (bind_info._d ()) {
+			if (binding._d ()) {
 				try {
-					const ModuleLoad& ml = bind_info.module_load ();
+					const ModuleLoad& ml = binding.module_load ();
 					load (ml.module_id (), ml.binary ());
 				} catch (const SystemException&) {
 					// TODO: Log
@@ -546,7 +545,7 @@ Binder::BindResult Binder::find (const ObjectKey& name)
 				if (!ret.itf)
 					throw_OBJECT_NOT_EXIST ();
 			} else {
-				Object::_ptr_type obj = bind_info.loaded_object ();
+				Object::_ptr_type obj = binding.loaded_object ();
 				ProxyManager* proxy = ProxyManager::cast (obj);
 				if (!proxy)
 					throw_OBJECT_NOT_EXIST ();
@@ -562,7 +561,7 @@ Binder::BindResult Binder::find (const ObjectKey& name)
 				else
 					assert (object_map_.find (name));
 #endif
-				ret.itf = std::move (bind_info.loaded_object ());
+				ret.itf = std::move (binding.loaded_object ());
 			}
 		}
 
@@ -684,11 +683,11 @@ Nirvana::ModuleBindings Binder::get_module_bindings_sync (Nirvana::AccessDirect:
 
 	try {
 		for (const auto& el : context.exports) {
-			bindings.exports ().emplace_back (IDL::String (el.first.name (), el.first.name_len ()),
+			bindings.exports ().emplace_back (IDL::String (el.first.name (), el.first.name_length ()),
 				el.first.version ().major, el.first.version ().minor);
 		}
 		for (const auto& el : context.dependencies) {
-			bindings.dependencies ().emplace_back (IDL::String (el.name (), el.name_len ()),
+			bindings.dependencies ().emplace_back (IDL::String (el.name (), el.name_length ()),
 				el.version ().major, el.version ().minor);
 		}
 	} catch (...) {

@@ -258,10 +258,11 @@ private:
 	{
 	public:
 		ObjectKey (const char* id, size_t length) noexcept :
-			name_ (id)
+			name_ (id),
+			full_length_ (length)
 		{
 			const char* sver = RepId::version (id, id + length);
-			length_ = sver - id;
+			name_length_ = sver - id;
 			version_ = Version (sver);
 		}
 
@@ -283,25 +284,9 @@ private:
 			ObjectKey (id.c_str (), id.length ())
 		{}
 
-		bool operator < (const ObjectKey& rhs) const noexcept
-		{
-			if (length_ < rhs.length_)
-				return true;
-			else if (length_ > rhs.length_)
-				return false;
-			else {
-				int c = RepId::lex_compare (name_, name_ + length_, rhs.name_, rhs.name_ + length_);
-				if (c < 0)
-					return true;
-				else if (c > 0)
-					return false;
-			}
-			return version_ < rhs.version_;
-		}
-
 		bool name_eq (const ObjectKey& rhs) const noexcept
 		{
-			return length_ == rhs.length_ && std::equal (name_, name_ + length_, rhs.name_);
+			return name_length_ == rhs.name_length_ && std::equal (name_, name_ + name_length_, rhs.name_);
 		}
 
 		bool compatible (const ObjectKey& rhs) const noexcept
@@ -314,9 +299,14 @@ private:
 			return name_;
 		}
 
-		size_t name_len () const noexcept
+		size_t name_length () const noexcept
 		{
-			return length_;
+			return name_length_;
+		}
+
+		size_t full_length () const noexcept
+		{
+			return full_length_;
 		}
 
 		const Version& version () const noexcept
@@ -326,7 +316,8 @@ private:
 
 	private:
 		const char* name_;
-		size_t length_;
+		size_t full_length_;
+		size_t name_length_;
 		Version version_;
 	};
 
@@ -334,7 +325,7 @@ private:
 	{
 		size_t operator () (const ObjectKey& key) const noexcept
 		{
-			size_t h = Hash::hash_bytes (key.name (), key.name_len ());
+			size_t h = Hash::hash_bytes (key.name (), key.name_length ());
 			return Hash::append_bytes (h, &key.version ().major, sizeof (key.version ().major));
 		}
 	};
@@ -343,8 +334,8 @@ private:
 	{
 		size_t operator () (const ObjectKey& l, const ObjectKey& r) const noexcept
 		{
-			return l.name_len () == r.name_len () &&
-				std::equal (l.name (), l.name () + l.name_len (), r.name ()) &&
+			return l.name_length () == r.name_length () &&
+				std::equal (l.name (), l.name () + l.name_length (), r.name ()) &&
 				l.version ().major == r.version ().major;
 		}
 	};
@@ -384,7 +375,7 @@ private:
 		std::equal_to <int32_t>, Allocator> ModuleMap;
 
 	// Module dependencies
-	typedef SetOrderedUnstable <ObjectKey> Dependencies;
+	typedef SetUnorderedUnstable <ObjectKey, ObjectHash, ObjectEq, Allocator> Dependencies;
 
 	// Module binding context
 	struct ModuleContext

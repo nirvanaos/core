@@ -49,6 +49,10 @@ class Packages :
 public:
 	Packages (CORBA::Object::_ptr_type comp);
 
+	void get_binding (const IDL::String& name, PlatformId platform, Binding& binding);
+
+	PacMan::_ref_type manage ();
+
 	IDL::String get_module_name (int32_t id) const
 	{
 		//		NDBC::PreparedStatement::_ref_type st =
@@ -62,6 +66,9 @@ public:
 
 		return name;
 	}
+
+	Modules get_module_dependencies (ModuleId id);
+	Modules get_dependent_modules (ModuleId id);
 
 	uint16_t register_module (const CosNaming::Name& path, const IDL::String& name, unsigned flags)
 	{

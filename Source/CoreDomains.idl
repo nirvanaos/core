@@ -41,7 +41,7 @@ struct ModuleLoad
 };
 
 /// Object binding information.
-union BindInfo switch (boolean) {
+union Binding switch (boolean) {
 	/// The object binding requires loading of the module.
 case TRUE: ModuleLoad module_load;
 
@@ -76,13 +76,15 @@ interface SysDomainCore : SysDomain
 {
 	/// Get binding information for the specified object name.
 	/// 
-	/// \param obj_name Static object name.
+	/// \param name Static object name.
 	/// \param platform Target platform ID.
-	/// \param major Major version number.
-	/// \param minor Minor version number.
-	/// \param bind_info Binding information returned.
-	void get_bind_info (in string obj_name, in PlatformId platform,
-		in unsigned short major, in unsigned short minor, out BindInfo bind_info);
+	/// \param binding Binding information returned.
+	void get_binding (in string name, in PlatformId platform, out Binding binding);
+};
+
+pseudo interface PacFac
+{
+	Packages create (in Object comp);
 };
 
 };

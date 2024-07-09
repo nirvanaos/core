@@ -74,14 +74,13 @@ public:
 			CORBA::Core::Services::bind (CORBA::Core::Services::ProtDomain));
 	}
 
-	void get_bind_info (const IDL::String& obj_name, unsigned platform,
-		unsigned major, unsigned minor, BindInfo& bind_info) const
+	void get_binding (const IDL::String& name, unsigned platform, Binding& binding) const
 	{
-		if (get_sys_bind_info (obj_name, platform, major, minor, bind_info))
+		if (get_sys_binding (name, platform, binding))
 			return;
 
 		// TODO:: Temporary solution, for testing
-		ModuleLoad& module_load = bind_info.module_load ();
+		ModuleLoad& module_load = binding.module_load ();
 		module_load.binary (open_binary (get_sys_binary_path (platform, "TestModule.olf")));
 		module_load.module_id (100);
 	}
@@ -132,8 +131,7 @@ private:
 		MODULE_SQLITE = 4
 	};
 
-	static bool get_sys_bind_info (CORBA::Internal::String_in obj_name, unsigned platform,
-		unsigned major, unsigned minor, BindInfo& bind_info)
+	static bool get_sys_binding (CORBA::Internal::String_in name, unsigned platform, Binding& binding)
 	{
 		static const char dbc [] = "IDL:NDBC/";
 		static const char dec_calc [] = "Nirvana/dec_calc";
@@ -144,24 +142,24 @@ private:
 
 		int32_t module_id = 0;
 
-		if (obj_name == dec_calc) {
+		if (name == dec_calc) {
 			module_id = MODULE_DECCALC;
 		} else if (
-			(!std::is_same <float, CORBA::Float>::value && obj_name == sfloat_4)
+			(!std::is_same <float, CORBA::Float>::value && name == sfloat_4)
 			||
-			(!std::is_same <double, CORBA::Double>::value && obj_name == sfloat_8)
+			(!std::is_same <double, CORBA::Double>::value && name == sfloat_8)
 			||
-			(!std::is_same <long double, CORBA::LongDouble>::value && obj_name == sfloat_16)
+			(!std::is_same <long double, CORBA::LongDouble>::value && name == sfloat_16)
 			) {
 			module_id = MODULE_SFLOAT;
-		} else if (obj_name.size () >= sizeof (dbc) && std::equal (dbc, dbc + sizeof (dbc) - 1, obj_name.data ())) {
+		} else if (name.size () >= sizeof (dbc) && std::equal (dbc, dbc + sizeof (dbc) - 1, name.data ())) {
 			module_id = MODULE_DBC;
-		} else if (obj_name == sqlite_driver) {
+		} else if (name == sqlite_driver) {
 			module_id = MODULE_SQLITE;
 		}
 
 		if (module_id) {
-			ModuleLoad& module_load = bind_info.module_load ();
+			ModuleLoad& module_load = binding.module_load ();
 			module_load.binary (open_binary (get_sys_binary_path (PLATFORM, sys_module_names_ [module_id - 1])));
 			module_load.module_id (module_id);
 			return true;
