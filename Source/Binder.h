@@ -102,8 +102,7 @@ public:
 		return std::move (bind_interface (name, CORBA::Internal::RepIdOf <I>::id).itf).template downcast <I> ();
 	}
 
-	static CORBA::Object::_ref_type load_and_bind (int32_t mod_id, CORBA::Internal::String_in mod_path,
-		CosNaming::NamingContextExt::_ptr_type name_service, CORBA::Internal::String_in name);
+	static CORBA::Object::_ref_type load_and_bind (int32_t mod_id, Nirvana::AccessDirect::_ptr_type binary, CORBA::Internal::String_in name);
 
 	/// Bind executable.
 	/// 
@@ -452,12 +451,10 @@ private:
 
 	BindResult find (const ObjectKey& name);
 
-	Ref <Module> load (int32_t mod_id, AccessDirect::_ref_type binary, const IDL::String& mod_path,
-		CosNaming::NamingContextExt::_ptr_type name_service);
+	Ref <Module> load (int32_t mod_id, AccessDirect::_ptr_type binary);
 	void unload (Module* pmod) noexcept;
 
-	CORBA::Object::_ref_type load_and_bind_sync (int32_t mod_id, CORBA::Internal::String_in mod_path,
-		CosNaming::NamingContextExt::_ptr_type name_service, const ObjectKey& name);
+	CORBA::Object::_ref_type load_and_bind_sync (int32_t mod_id, AccessDirect::_ptr_type binary, const ObjectKey& name);
 
 	Nirvana::ModuleBindings get_module_bindings_sync (AccessDirect::_ptr_type binary);
 
@@ -493,7 +490,6 @@ private:
 
 private:
 	Packages::_ref_type packages_;
-	CosNaming::NamingContextExt::_ref_type name_service_;
 	ObjectMap object_map_;
 	ModuleMap module_map_;
 	BinaryMap binary_map_;

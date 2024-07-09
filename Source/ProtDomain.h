@@ -65,10 +65,10 @@ public:
 		Scheduler::shutdown (flags);
 	}
 
-	static CORBA::Object::_ref_type load_and_bind (int32_t mod_id, const IDL::String& mod_path,
+	static CORBA::Object::_ref_type load_and_bind (int32_t mod_id, AccessDirect::_ptr_type file,
 		const IDL::String& name)
 	{
-		return Binder::load_and_bind (mod_id, mod_path, nullptr, name);
+		return Binder::load_and_bind (mod_id, file, name);
 	}
 
 	static Nirvana::ModuleBindings get_module_bindings (Nirvana::AccessDirect::_ptr_type binary)

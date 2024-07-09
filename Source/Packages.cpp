@@ -28,7 +28,6 @@
 #include "Binder.h"
 #include <Nirvana/posix_defs.h>
 #include "Nirvana/CoreDomains.h"
-#include "NameService/FileSystem.h"
 #include <Port/SysDomain.h>
 
 #define DATABASE_PATH "/var/lib/packages.db"
@@ -78,20 +77,14 @@ const char* const Packages::db_script_ [] = {
 "COMMIT;"
 };
 
-const char* const Packages::sys_module_names_ [MODULE_SQLITE] = {
-	"DecCalc.olf",
-	"SFloat.olf",
-	"dbc.olf",
-	"SQLite.olf"
-};
-
 Packages::Packages (CORBA::Object::_ptr_type comp) :
 	Servant (comp),
 	name_service_ (CosNaming::NamingContextExt::_narrow (
 		CORBA::the_orb->resolve_initial_references ("NameService")))
 {
+	/*
 	NDBC::Driver::_ref_type driver = NDBC::Driver::_narrow (
-		load_and_bind (MODULE_SQLITE, "SQLite/driver"));
+		load_and_bind (4, "SQLite/driver"));
 
 	connection_ = driver->connect ("file:" DATABASE_PATH "?mode=rwc&journal_mode=WAL",
 		IDL::String (), IDL::String ());
@@ -102,6 +95,7 @@ Packages::Packages (CORBA::Object::_ptr_type comp) :
 	int32_t cur_version = rs->getInt (1);
 	if (DATABASE_VERSION != cur_version)
 		create_database (st);
+		*/
 }
 
 inline void Packages::create_database (NDBC::Statement::_ptr_type st)
@@ -119,45 +113,6 @@ inline void Packages::create_database (NDBC::Statement::_ptr_type st)
 		}
 #endif
 	}
-}
-
-CORBA::Object::_ref_type Packages::load_and_bind (SysModuleId id, const char* name) const
-{
-	return Binder::load_and_bind (id,
-		get_system_binary_path (PLATFORM, sys_module_names_ [(int)id - 1]),
-		name_service_, name);
-}
-
-IDL::traits <AccessDirect>::ref_type Packages::open_binary (
-	CosNaming::NamingContextExt::_ptr_type ns, CORBA::Internal::String_in path)
-{
-	CORBA::Object::_ref_type obj;
-	try {
-		obj = ns->resolve_str (path);
-	} catch (const CORBA::Exception& ex) {
-		const CORBA::SystemException* se = CORBA::SystemException::_downcast (&ex);
-		if (se)
-			se->_raise ();
-		else
-			throw_OBJECT_NOT_EXIST ();
-	}
-	File::_ref_type file = File::_narrow (obj);
-	if (!file)
-		throw_UNKNOWN (make_minor_errno (EISDIR));
-	return AccessDirect::_narrow (file->open (O_RDONLY | O_DIRECT, 0)->_to_object ());
-}
-
-IDL::String Packages::get_system_binary_path (unsigned platform, const char* module_name)
-{
-	IDL::String path = Port::SysDomain::get_platform_dir (platform);
-	IDL::String translated;
-	if (FileSystem::translate_path (path, translated))
-		path = std::move (translated);
-
-	path += '/';
-	path += module_name;
-
-	return path;
 }
 
 }

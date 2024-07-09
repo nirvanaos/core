@@ -31,6 +31,24 @@
 
 module Nirvana {
 
+interface AccessDirect;
+
+/// Module load information.
+struct ModuleLoad
+{
+	long module_id; ///< Unique module ID.
+	AccessDirect binary; ///< Access to module binary file.
+};
+
+/// Object binding information.
+union BindInfo switch (boolean) {
+	/// The object binding requires loading of the module.
+case TRUE: ModuleLoad module_load;
+
+	/// The object was bound in other protection domain.
+case FALSE: Object loaded_object;
+};
+
 struct ObjectId
 {
 	string name;
@@ -48,8 +66,23 @@ struct ModuleBindings
 /// This interface is subject of change and intended for internal use by Nirvana core.
 interface ProtDomainCore : ProtDomain
 {
-	Object load_and_bind (in long mod_id, in string mod_path, in string name) raises (BindError::Error);
+	Object load_and_bind (in long mod_id, in AccessDirect file, in string name) raises (BindError::Error);
 	ModuleBindings get_module_bindings (in AccessDirect file) raises (BindError::Error);
+};
+
+/// The core extension of the SysDomain interface.
+/// This interface is subject of change and intended for internal use by Nirvana core.
+interface SysDomainCore : SysDomain
+{
+	/// Get binding information for the specified object name.
+	/// 
+	/// \param obj_name Static object name.
+	/// \param platform Target platform ID.
+	/// \param major Major version number.
+	/// \param minor Minor version number.
+	/// \param bind_info Binding information returned.
+	void get_bind_info (in string obj_name, in PlatformId platform,
+		in unsigned short major, in unsigned short minor, out BindInfo bind_info);
 };
 
 };

@@ -164,7 +164,6 @@ void Binder::terminate () noexcept
 		SYNC_BEGIN (sync_domain (), nullptr);
 		initialized_ = false;
 		singleton_->packages_ = nullptr;
-		singleton_->name_service_ = nullptr;
 		singleton_->unload_modules ();
 		SYNC_END ();
 		Section metadata;
@@ -391,14 +390,10 @@ void Binder::delete_module (Module* mod) noexcept
 	}
 }
 
-Ref <Module> Binder::load (int32_t mod_id, AccessDirect::_ref_type binary,
-	const IDL::String& mod_path, CosNaming::NamingContextExt::_ptr_type name_service)
+Ref <Module> Binder::load (int32_t mod_id, AccessDirect::_ptr_type binary)
 {
 	if (!initialized_)
 		throw_INITIALIZE ();
-
-	if (name_service && !name_service_)
-		name_service_ = name_service;
 
 	Module* mod = nullptr;
 	auto ins = module_map_.emplace (mod_id, MODULE_LOADING_DEADLINE_MAX);
@@ -410,15 +405,6 @@ Ref <Module> Binder::load (int32_t mod_id, AccessDirect::_ref_type binary,
 			// Module loading may be a long operation, do it in core context.
 			SYNC_BEGIN (g_core_free_sync_context, &memory ());
 			
-			if (!binary) {
-				
-				if (!name_service_)
-					name_service_ = CosNaming::NamingContextExt::_narrow (CORBA::Core::Services::bind (
-						CORBA::Core::Services::NameService));
-
-				binary = Packages::open_binary (name_service_, mod_path);
-			}
-
 			mod = Module::create (mod_id, binary);
 
 			SYNC_END ();
@@ -550,54 +536,41 @@ Binder::BindResult Binder::find (const ObjectKey& name)
 		ret = object_map_.find (name);
 		if (!ret.itf) {
 
-			IDL::String vname (name.name (), name.name_len ());
-			IDL::String sys_mod_path;
-			int32_t sys_mod_id = Packages::get_sys_bind_info (vname,
-				name.version ().major, name.version ().minor, sys_mod_path);
-			if (sys_mod_id) {
+			BindInfo bind_info;
+			
+			SysDomainCore::_narrow (Services::bind (Services::SysDomain))->get_bind_info (
+				IDL::String (name.name (), name.name_len ()), PLATFORM,
+				name.version ().major, name.version ().minor, bind_info);
 
-				load (sys_mod_id, nullptr, sys_mod_path, nullptr);
+			if (bind_info._d ()) {
+				try {
+					const ModuleLoad& ml = bind_info.module_load ();
+					load (ml.module_id (), ml.binary ());
+				} catch (const SystemException&) {
+					// TODO: Log
+					throw_OBJECT_NOT_EXIST ();
+				}
 				ret = object_map_.find (name);
 				if (!ret.itf)
 					throw_OBJECT_NOT_EXIST ();
-
 			} else {
-				if (!packages_)
-					packages_ = SysDomain::_narrow (Services::bind (Services::SysDomain))->provide_packages ();
+				Object::_ptr_type obj = bind_info.loaded_object ();
+				ProxyManager* proxy = ProxyManager::cast (obj);
+				if (!proxy)
+					throw_OBJECT_NOT_EXIST ();
+				Reference* ref = proxy->to_reference ();
 
-				BindInfo bind_info;
-				packages_->get_bind_info (vname, PLATFORM, 
-					name.version ().major, name.version ().minor, bind_info);
-				if (bind_info._d ()) {
-					try {
-						const ModuleLoad& ml = bind_info.module_load ();
-						load (ml.module_id (), ml.binary (), IDL::String (), nullptr);
-					} catch (const SystemException&) {
-						// TODO: Log
-						throw_OBJECT_NOT_EXIST ();
-					}
-					ret = object_map_.find (name);
-					if (!ret.itf)
-						throw_OBJECT_NOT_EXIST ();
-				} else {
-					Object::_ptr_type obj = bind_info.loaded_object ();
-					ProxyManager* proxy = ProxyManager::cast (obj);
-					if (!proxy)
-						throw_OBJECT_NOT_EXIST ();
-					Reference* ref = proxy->to_reference ();
-
-					// If object is local, then it is already inserted in the object map.
-					// Otherwise insert it.
-					if (ref && !(ref->flags () & Reference::LOCAL)) {
-						ReferenceRemote& rr = static_cast <ReferenceRemote&> (*ref);
-						object_map_.insert (rr.set_object_name (name.name ()), &obj, nullptr);
-					}
-#ifndef NDEBUG
-					else
-						assert (object_map_.find (name));
-#endif
-					ret.itf = std::move (bind_info.loaded_object ());
+				// If object is local, then it is already inserted in the object map.
+				// Otherwise insert it.
+				if (ref && !(ref->flags () & Reference::LOCAL)) {
+					ReferenceRemote& rr = static_cast <ReferenceRemote&> (*ref);
+					object_map_.insert (rr.set_object_name (name.name ()), &obj, nullptr);
 				}
+#ifndef NDEBUG
+				else
+					assert (object_map_.find (name));
+#endif
+				ret.itf = std::move (bind_info.loaded_object ());
 			}
 		}
 
@@ -680,10 +653,9 @@ CORBA::Object::_ref_type Binder::bind (const IDL::String& name)
 }
 
 inline
-CORBA::Object::_ref_type Binder::load_and_bind_sync (int32_t mod_id, CORBA::Internal::String_in mod_path,
-	CosNaming::NamingContextExt::_ptr_type name_service, const ObjectKey& name)
+CORBA::Object::_ref_type Binder::load_and_bind_sync (int32_t mod_id, AccessDirect::_ptr_type binary, const ObjectKey& name)
 {
-	load (mod_id, nullptr, mod_path, name_service);
+	load (mod_id, binary);
 	const ObjectVal* ov = object_map_.find (name);
 	if (ov
 		&& CORBA::Internal::RepId::compatible (ov->itf->_epv ().interface_id,
@@ -700,8 +672,8 @@ CORBA::Object::_ref_type Binder::load_and_bind_sync (int32_t mod_id, CORBA::Inte
 	throw_OBJECT_NOT_EXIST ();
 }
 
-CORBA::Object::_ref_type Binder::load_and_bind (int32_t mod_id, CORBA::Internal::String_in mod_path,
-	CosNaming::NamingContextExt::_ptr_type name_service, CORBA::Internal::String_in name)
+CORBA::Object::_ref_type Binder::load_and_bind (int32_t mod_id,
+	Nirvana::AccessDirect::_ptr_type binary, CORBA::Internal::String_in name)
 {
 	CORBA::Object::_ref_type ret;
 	Ref <Request> rq = Request::create ();
@@ -710,8 +682,7 @@ CORBA::Object::_ref_type Binder::load_and_bind (int32_t mod_id, CORBA::Internal:
 		Synchronized _sync_frame (sync_domain (), nullptr);
 		try {
 			rq->unmarshal_end ();
-			ret = singleton_->load_and_bind_sync (mod_id, mod_path, name_service,
-				ObjectKey (name.data (), name.size ()));
+			ret = singleton_->load_and_bind_sync (mod_id, binary, ObjectKey (name.data (), name.size ()));
 			rq->success ();
 		} catch (CORBA::Exception& e) {
 			rq->set_exception (std::move (e));
@@ -723,7 +694,7 @@ CORBA::Object::_ref_type Binder::load_and_bind (int32_t mod_id, CORBA::Internal:
 	return ret;
 }
 
-Nirvana::ModuleBindings Binder::get_module_bindings_sync (AccessDirect::_ptr_type binary)
+Nirvana::ModuleBindings Binder::get_module_bindings_sync (Nirvana::AccessDirect::_ptr_type binary)
 {
 	Module* mod = nullptr;
 	SYNC_BEGIN (g_core_free_sync_context, &memory ());

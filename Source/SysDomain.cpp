@@ -26,13 +26,22 @@
 #include "pch.h"
 #include "SysDomain.h"
 #include "ORB/ORB.h"
+#include "ORB/Services.h"
 #include "SysManager.h"
 #include "Packages.h"
+#include "NameService/FileSystem.h"
 
 using namespace CORBA;
 
 namespace Nirvana {
 namespace Core {
+
+const char* const SysDomain::sys_module_names_ [MODULE_SQLITE] = {
+	"DecCalc.olf",
+	"SFloat.olf",
+	"dbc.olf",
+	"SQLite.olf"
+};
 
 inline
 SysDomain::SysDomain (CORBA::Object::_ref_type& comp)
@@ -62,7 +71,7 @@ Object::_ref_type create_SysDomain ()
 		return comp;
 	} else
 		return CORBA::Static_the_orb::string_to_object (
-			"corbaloc::1.1@/%00", CORBA::Internal::RepIdOf <Nirvana::SysDomain>::id);
+			"corbaloc::1.1@/%00", CORBA::Internal::RepIdOf <SysDomain::PrimaryInterface>::id);
 }
 
 SysDomain& SysDomain::implementation ()
@@ -70,6 +79,27 @@ SysDomain& SysDomain::implementation ()
 	assert (ESIOP::is_system_domain ());
 	Object::_ref_type obj = CORBA::Core::Services::bind (CORBA::Core::Services::SysDomain);
 	return *static_cast <SysDomain*> (get_implementation (obj));
+}
+
+AccessDirect::_ref_type SysDomain::open_binary (const IDL::String& module_path)
+{
+	CosNaming::NamingContextExt::_ref_type ns = CosNaming::NamingContextExt::_narrow (
+		CORBA::Core::Services::bind (CORBA::Core::Services::NameService));
+
+	CORBA::Object::_ref_type obj;
+	try {
+		obj = ns->resolve_str (module_path);
+	} catch (const CORBA::Exception& ex) {
+		const CORBA::SystemException* se = CORBA::SystemException::_downcast (&ex);
+		if (se)
+			se->_raise ();
+		else
+			throw_OBJECT_NOT_EXIST ();
+	}
+	File::_ref_type file = File::_narrow (obj);
+	if (!file)
+		throw_UNKNOWN (make_minor_errno (EISDIR));
+	return AccessDirect::_narrow (file->open (O_RDONLY | O_DIRECT, 0)->_to_object ());
 }
 
 }
