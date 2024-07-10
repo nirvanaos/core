@@ -1,5 +1,6 @@
+/// \file
 /*
-* Nirvana package manager.
+* Nirvana Core.
 *
 * This is a part of the Nirvana project.
 *
@@ -23,19 +24,13 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_PACMAN_PCH_H_
-#define NIRVANA_PACMAN_PCH_H_
+#ifndef NIRVANA_CORE_PACKAGEDB_H_
+#define NIRVANA_CORE_PACKAGEDB_H_
 #pragma once
 
-#include <Nirvana/Nirvana.h>
-#include <CORBA/Server.h>
-#include <CORBA/CosNaming.h>
-#include <CORBA/CosEventChannelAdmin.h>
-#include <Nirvana/NDBC.h>
-#include <Nirvana/File.h>
-#include "../Source/Binary.h"
-#include "../Source/BindError.h"
-#include "../Source/Nirvana/CoreDomains_s.h"
-#include "../Source/packagedb.h"
+#define MAX_SYS_MODULE_ID 100
+#define MODULE_FLAG_SINGLETON 1
+#define OBJECT_FLAG_EXPORT 1
+#define OBJECT_FLAG_OBJECT 2
 
 #endif

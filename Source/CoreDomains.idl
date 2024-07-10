@@ -49,17 +49,17 @@ case TRUE: ModuleLoad module_load;
 case FALSE: Object loaded_object;
 };
 
-struct ObjectId
+struct ModuleBinding
 {
 	string name;
-	unsigned short major, minor;
+	unsigned long version;
+	unsigned short flags;
 };
-
-typedef sequence <ObjectId> ObjectIds;
 
 struct ModuleBindings
 {
-	ObjectIds exports, dependencies;
+	sequence <ModuleBinding> bindings;
+	unsigned short flags;
 };
 
 /// The core extension of the ProtDomain interface.

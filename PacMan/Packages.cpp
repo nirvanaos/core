@@ -59,8 +59,8 @@ const char* const Packages::db_script_ [] = {
 ");"
 
 // Reserve first 100 module identifiers as the system
-"INSERT INTO module(id, name, version, flags)VALUES(100,'',0,0);"
-"DELETE FROM module WHERE id=100;"
+"INSERT INTO module(id, name, version, flags)VALUES(" STRINGIZE (MAX_SYS_MODULE_ID) ",'',0,0); "
+"DELETE FROM module WHERE id=" STRINGIZE (MAX_SYS_MODULE_ID) ";"
 
 // Set database version
 "PRAGMA user_version=" STRINGIZE (DATABASE_VERSION) ";"

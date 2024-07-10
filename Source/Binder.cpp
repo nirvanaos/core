@@ -26,16 +26,17 @@
 #include "pch.h"
 #include <CORBA/Server.h>
 #include <CORBA/Proxy/ProxyBase.h>
+#include <Nirvana/Domains.h>
+#include <Nirvana/OLF_Iterator.h>
 #include "Binder.inl"
 #include <Port/SystemInfo.h>
-#include <Nirvana/OLF_Iterator.h>
 #include "ORB/ServantBase.h"
 #include "ORB/LocalObject.h"
 #include "ORB/RequestLocalBase.h"
 #include "ClassLibrary.h"
 #include "Singleton.h"
 #include "Executable.h"
-#include <Nirvana/Domains.h>
+#include "packagedb.h"
 
 using namespace CORBA;
 using namespace CORBA::Internal;
@@ -564,8 +565,16 @@ Binder::BindResult Binder::find (const ObjectKey& name)
 			}
 		}
 
-		if (context && context->collect_dependencies)
-			context->dependencies.insert (name);
+		if (context && context->collect_dependencies) {
+			bool system = false;
+			if (ret.sync_context) {
+				Module* pmod = ret.sync_context->module ();
+				if (!pmod || pmod->id () <= MAX_SYS_MODULE_ID)
+					system = true;
+			}
+			if (!system)
+				context->dependencies.insert (name);
+		}
 	}
 	return ret;
 }
@@ -680,14 +689,26 @@ Nirvana::ModuleBindings Binder::get_module_bindings_sync (Nirvana::AccessDirect:
 
 	Nirvana::ModuleBindings bindings;
 
+	if (mod->is_singleton ())
+		bindings.flags (MODULE_FLAG_SINGLETON);
+
 	try {
 		for (const auto& el : context.exports) {
-			bindings.exports ().emplace_back (IDL::String (el.first.name (), el.first.name_length ()),
-				el.first.version ().major, el.first.version ().minor);
+			uint_fast16_t flags = OBJECT_FLAG_EXPORT;
+			InterfacePtr itf = el.second.itf;
+			if (RepId::compatible (itf->_epv ().interface_id, RepIdOf <Object>::id)) {
+				const ServantProxyBase* proxy = object2proxy_base (itf.template downcast <Object> ());
+				InterfacePtr servant = proxy->servant ();
+				if (RepId::compatible (servant->_epv ().interface_id, RepIdOf <PortableServer::ServantBase>::id)) {
+					flags |= OBJECT_FLAG_OBJECT;
+				}
+			}
+			bindings.bindings ().emplace_back (IDL::String (el.first.name (), el.first.name_length ()),
+				(uint32_t)(el.first.version ().major) << 16 + el.first.version ().minor, flags);
 		}
 		for (const auto& el : context.dependencies) {
-			bindings.dependencies ().emplace_back (IDL::String (el.name (), el.name_length ()),
-				el.version ().major, el.version ().minor);
+			bindings.bindings ().emplace_back (IDL::String (el.name (), el.name_length ()),
+				(uint32_t)(el.version ().major) << 16 + el.version ().minor, 0);
 		}
 	} catch (...) {
 		unload (mod);
