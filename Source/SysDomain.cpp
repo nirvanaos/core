@@ -28,7 +28,6 @@
 #include "ORB/ORB.h"
 #include "ORB/Services.h"
 #include "SysManager.h"
-#include "Packages.h"
 #include "NameService/FileSystem.h"
 
 using namespace CORBA;
@@ -36,11 +35,12 @@ using namespace CORBA;
 namespace Nirvana {
 namespace Core {
 
-const char* const SysDomain::sys_module_names_ [MODULE_SQLITE] = {
+const char* const SysDomain::sys_module_names_ [] = {
 	"DecCalc.olf",
 	"SFloat.olf",
 	"dbc.olf",
-	"SQLite.olf"
+	"SQLite.olf",
+	"PacMan.olf"
 };
 
 inline
@@ -72,8 +72,12 @@ Object::_ref_type create_SysDomain ()
 void SysDomain::do_startup (Object::_ptr_type obj)
 {
 	// Create Packages
-	SYNC_BEGIN (g_core_free_sync_context, &MemContext::current ());
-	packages_ = make_reference <Packages> (obj)->_this ();
+	Binder::BindResult br = Binder::load_and_bind (MODULE_PACKAGES,
+		open_sys_binary (PLATFORM, MODULE_PACKAGES),
+		"Nirvana/PM/pac_factory", CORBA::Internal::RepIdOf <PM::PacFactory>::id);
+	PM::PacFactory::_ref_type pf = std::move (br.itf).template downcast <PM::PacFactory> ();
+	SYNC_BEGIN (*br.sync_context, &MemContext::current ());
+	packages_ = pf->create (obj);
 	SYNC_END ();
 }
 
@@ -101,6 +105,11 @@ AccessDirect::_ref_type SysDomain::open_binary (const IDL::String& module_path)
 	if (!file)
 		throw_UNKNOWN (make_minor_errno (EISDIR));
 	return AccessDirect::_narrow (file->open (O_RDONLY | O_DIRECT, 0)->_to_object ());
+}
+
+AccessDirect::_ref_type SysDomain::open_sys_binary (unsigned platform, SysModuleId module_id)
+{
+	return open_binary (get_sys_binary_path (platform, sys_module_names_ [module_id - 1]));
 }
 
 }

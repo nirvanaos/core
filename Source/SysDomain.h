@@ -128,8 +128,11 @@ private:
 		MODULE_DECCALC = 1,
 		MODULE_SFLOAT = 2,
 		MODULE_DBC = 3,
-		MODULE_SQLITE = 4
+		MODULE_SQLITE = 4,
+		MODULE_PACKAGES = 5
 	};
+
+	static AccessDirect::_ref_type open_sys_binary (unsigned platform, SysModuleId module_id);
 
 	static bool get_sys_binding (CORBA::Internal::String_in name, unsigned platform, Binding& binding)
 	{
@@ -140,7 +143,7 @@ private:
 		static const char sfloat_8 [] = "CORBA/Internal/sfloat_8";
 		static const char sfloat_16 [] = "CORBA/Internal/sfloat_16";
 
-		int32_t module_id = 0;
+		SysModuleId module_id;
 
 		if (name == dec_calc) {
 			module_id = MODULE_DECCALC;
@@ -156,16 +159,13 @@ private:
 			module_id = MODULE_DBC;
 		} else if (name == sqlite_driver) {
 			module_id = MODULE_SQLITE;
-		}
+		} else
+			return false;
 
-		if (module_id) {
-			ModuleLoad& module_load = binding.module_load ();
-			module_load.binary (open_binary (get_sys_binary_path (PLATFORM, sys_module_names_ [module_id - 1])));
-			module_load.module_id (module_id);
-			return true;
-		}
-
-		return false;
+		ModuleLoad& module_load = binding.module_load ();
+		module_load.binary (open_sys_binary (platform, module_id));
+		module_load.module_id (module_id);
+		return true;
 	}
 
 	void do_startup (CORBA::Object::_ptr_type obj);

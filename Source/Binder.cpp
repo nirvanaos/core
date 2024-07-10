@@ -35,7 +35,6 @@
 #include "ClassLibrary.h"
 #include "Singleton.h"
 #include "Executable.h"
-#include "Packages.h"
 #include <Nirvana/Domains.h>
 
 using namespace CORBA;

@@ -53,15 +53,21 @@ public:
 			CORBA::the_orb->resolve_initial_references ("SysDomain")
 		)->provide_packages ();
 
+		PacMan::_ref_type pacman = packages->manage ();
+		if (!pacman) {
+			print (2, "Installation session is already started, try later.\n");
+			return -1;
+		}
+
 		int ret = 0;
 
 		try {
-			packages->register_module (bin_path, *pname, 0);
+			pacman->register_binary (bin_path, *pname, 0);
 		} catch (const BindError::Error& ex) {
 			ret = -1;
-			print (packages, ex.info ());
+			print (pacman, ex.info ());
 			for (auto it = ex.stack ().crbegin (), end = ex.stack ().crend (); it != end; ++it) {
-				print (packages, *it);
+				print (pacman, *it);
 			}
 		}
 
@@ -73,7 +79,7 @@ private:
 	static void print (int fd, const std::string& s);
 	static void print (int fd, int d);
 	static void println (int fd);
-	static void print (Packages::_ptr_type packages, const BindError::Info& err);
+	static void print (PackagesDB::_ptr_type packages, const BindError::Info& err);
 };
 
 void Static_regmod::print (int fd, const char* s)
@@ -97,7 +103,7 @@ void Static_regmod::print (int fd, int d)
 	print (fd, std::to_string (d));
 }
 
-void Static_regmod::print (Packages::_ptr_type packages, const BindError::Info& err)
+void Static_regmod::print (PackagesDB::_ptr_type packages, const BindError::Info& err)
 {
 	switch (err._d ()) {
 	case BindError::Type::ERR_TEXT:
@@ -116,9 +122,9 @@ void Static_regmod::print (Packages::_ptr_type packages, const BindError::Info& 
 		print (2, err.itf_info ().obj_name ());
 		break;
 
-	case BindError::Type::ERR_INIT_FAILURE:
-		print (2, "Module initialization failed: ");
-		print (2, packages->get_module_name (err.module_id ()));
+	case BindError::Type::ERR_MOD_LOAD:
+		print (2, "Module load failed: ");
+		print (2, packages->get_module_name (err.mod_info ().module_id ()));
 		break;
 
 	case BindError::Type::ERR_SYSTEM: {

@@ -1,5 +1,5 @@
 /*
-* Nirvana Core.
+* Nirvana package manager.
 *
 * This is a part of the Nirvana project.
 *
@@ -25,21 +25,11 @@
 */
 #include "pch.h"
 #include "Packages.h"
-#include "Binder.h"
-#include <Nirvana/posix_defs.h>
-#include "Nirvana/CoreDomains.h"
-#include <Port/SysDomain.h>
 
-#define DATABASE_PATH "/var/lib/packages.db"
 #define DATABASE_VERSION 1
 
 #define STRINGIZE0(n) #n
 #define STRINGIZE(n) STRINGIZE0 (n)
-
-namespace Nirvana {
-namespace Core {
-
-const char Packages::database_url_ [] = "file:/var/lib/packages.db?mode=ro";
 
 const char* const Packages::db_script_ [] = {
 
@@ -77,43 +67,34 @@ const char* const Packages::db_script_ [] = {
 "COMMIT;"
 };
 
-Packages::Packages (CORBA::Object::_ptr_type comp) :
-	Servant (comp),
-	name_service_ (CosNaming::NamingContextExt::_narrow (
-		CORBA::the_orb->resolve_initial_references ("NameService")))
+Packages::Packages (CORBA::Object::_ptr_type component) :
+	Servant (component)
 {
-	/*
-	NDBC::Driver::_ref_type driver = NDBC::Driver::_narrow (
-		load_and_bind (4, "SQLite/driver"));
+	create_database ();
+	connect (open_ro ());
+}
 
-	connection_ = driver->connect ("file:" DATABASE_PATH "?mode=rwc&journal_mode=WAL",
-		IDL::String (), IDL::String ());
-
-	NDBC::Statement::_ref_type st = connection_->createStatement (NDBC::ResultSet::Type::TYPE_FORWARD_ONLY);
+inline void Packages::create_database ()
+{
+	NDBC::Connection::_ref_type connection = open_rwc ();
+	NDBC::Statement::_ref_type st = connection->createStatement (NDBC::ResultSet::Type::TYPE_FORWARD_ONLY);
 	NDBC::ResultSet::_ref_type rs = st->executeQuery ("PRAGMA user_version;");
 	rs->next ();
 	int32_t cur_version = rs->getInt (1);
-	if (DATABASE_VERSION != cur_version)
-		create_database (st);
-		*/
-}
-
-inline void Packages::create_database (NDBC::Statement::_ptr_type st)
-{
-	for (const char* sql : db_script_) {
+	if (DATABASE_VERSION != cur_version) {
+		for (const char* sql : db_script_) {
 #ifndef NDEBUG
-		try {
+			try {
 #endif
-			st->executeUpdate (sql);
+				st->executeUpdate (sql);
 #ifndef NDEBUG
-		} catch (const NDBC::SQLException& ex) {
-			NIRVANA_TRACE ("Error: %s\n", ex.error ().sqlState ().c_str ());
-			NIRVANA_TRACE ("SQL: %s\n", sql);
-			throw;
+			} catch (const NDBC::SQLException& ex) {
+				NIRVANA_TRACE ("Error: %s\n", ex.error ().sqlState ().c_str ());
+				NIRVANA_TRACE ("SQL: %s\n", sql);
+				throw;
+			}
+#endif
 		}
-#endif
 	}
 }
 
-}
-}

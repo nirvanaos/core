@@ -35,12 +35,36 @@ namespace Core {
 
 /// Binary: Nirvana::Module interface implementation.
 class Binary :
-	public Port::Module
+	private Port::Module
 {
 public:
+	static uint16_t get_platform (AccessDirect::_ptr_type file)
+	{
+		return Port::Module::get_platform (file);
+	}
+
 	const void* base_address () const noexcept
 	{
 		return Port::Module::address ();
+	}
+
+	const Section& metadata () const noexcept
+	{
+		return Port::Module::metadata ();
+	}
+
+	/// \brief Return all read/write data sections
+	/// 
+	/// \param sections List of r/w data sections
+	void get_data_sections (DataSections& sections) const
+	{
+		Port::Module::get_data_sections (sections);
+	}
+
+	/// Unload module (only for executables).
+	void unload () noexcept
+	{
+		Port::Module::unload ();
 	}
 
 	/// \brief Raise system exception in the binary object (Module or Executable).

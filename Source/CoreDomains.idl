@@ -82,9 +82,13 @@ interface SysDomainCore : SysDomain
 	void get_binding (in string name, in PlatformId platform, out Binding binding);
 };
 
-pseudo interface PacFac
+module PM {
+
+pseudo interface PacFactory
 {
 	Packages create (in Object comp);
+};
+
 };
 
 };
