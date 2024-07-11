@@ -1,6 +1,5 @@
-/// \file
 /*
-* Nirvana Core.
+* Nirvana package manager.
 *
 * This is a part of the Nirvana project.
 *
@@ -24,24 +23,21 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_CORE_BINDERROR_H_
-#define NIRVANA_CORE_BINDERROR_H_
+#ifndef NIRVANA_PACMAN_SEMVER_H_
+#define NIRVANA_PACMAN_SEMVER_H_
 #pragma once
 
 #include <Nirvana/Nirvana.h>
-#include <Nirvana/BindError.h>
 
-namespace Nirvana {
-namespace BindError {
+// Semantc-versioned name
+struct SemVer
+{
+	int64_t version;
+	std::string name;
+	std::string prerelease;
 
-NIRVANA_NORETURN void throw_message (std::string msg);
-NIRVANA_NORETURN void throw_invalid_metadata ();
-Info& push (Error& err);
-void set_message (Info& info, std::string msg);
-void set_system (Error& err, const CORBA::SystemException& ex);
-void push_obj_name (Error& err, std::string name);
-
-}
-}
+	bool from_string (const std::string& full_name);
+	std::string to_string () const;
+};
 
 #endif

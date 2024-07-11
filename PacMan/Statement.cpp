@@ -1,6 +1,5 @@
-/// \file
 /*
-* Nirvana Core.
+* Nirvana package manager.
 *
 * This is a part of the Nirvana project.
 *
@@ -24,24 +23,16 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_CORE_BINDERROR_H_
-#define NIRVANA_CORE_BINDERROR_H_
-#pragma once
+#include "pch.h"
+#include "Statement.h"
 
-#include <Nirvana/Nirvana.h>
-#include <Nirvana/BindError.h>
-
-namespace Nirvana {
-namespace BindError {
-
-NIRVANA_NORETURN void throw_message (std::string msg);
-NIRVANA_NORETURN void throw_invalid_metadata ();
-Info& push (Error& err);
-void set_message (Info& info, std::string msg);
-void set_system (Error& err, const CORBA::SystemException& ex);
-void push_obj_name (Error& err, std::string name);
-
+void Statement::return_to_pool () noexcept
+{
+	if (statement_) {
+		try {
+			pool_.push (std::move (statement_));
+		} catch (...) {
+			statement_ = nullptr;
+		}
+	}
 }
-}
-
-#endif

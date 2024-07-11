@@ -66,7 +66,9 @@ struct ModuleBindings
 /// This interface is subject of change and intended for internal use by Nirvana core.
 interface ProtDomainCore : ProtDomain
 {
-	Object load_and_bind (in long mod_id, in AccessDirect file, in string name) raises (BindError::Error);
+	Object load_and_bind (in long mod_id, in AccessDirect file, in string name)
+		raises (BindError::Error);
+
 	ModuleBindings get_module_bindings (in AccessDirect file) raises (BindError::Error);
 };
 
@@ -79,7 +81,8 @@ interface SysDomainCore : SysDomain
 	/// \param name Static object name.
 	/// \param platform Target platform ID.
 	/// \param binding Binding information returned.
-	void get_binding (in string name, in PlatformId platform, out Binding binding);
+	void get_binding (in string name, in PlatformId platform, out Binding binding)
+		raises (BindError::Error);
 };
 
 module PM {

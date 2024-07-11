@@ -447,11 +447,11 @@ private:
 	
 	BindResult find (const ObjectKey& name);
 
-	static InterfaceRef query_interface (InterfacePtr itf, CORBA::Internal::String_in iid);
+	static InterfaceRef query_interface (InterfacePtr itf, CORBA::Internal::String_in iid, const ObjectKey& name);
 
-	static void query_interface (BindResult& ref, CORBA::Internal::String_in iid)
+	static void query_interface (BindResult& ref, CORBA::Internal::String_in iid, const ObjectKey& name)
 	{
-		ref.itf = query_interface (ref.itf, iid);
+		ref.itf = query_interface (ref.itf, iid, name);
 	}
 
 	Ref <Module> load (int32_t mod_id, AccessDirect::_ptr_type binary);
@@ -465,6 +465,8 @@ private:
 	void housekeeping_modules ();
 	static void delete_module (Module* mod) noexcept;
 	void unload_modules ();
+
+	static NIRVANA_NORETURN void throw_object_not_in_module (const ObjectKey& name, int32_t mod_id);
 
 	class HousekeepingTimerModules : public TimerAsyncCall
 	{

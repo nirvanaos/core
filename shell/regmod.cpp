@@ -59,16 +59,17 @@ public:
 			return -1;
 		}
 
-		int ret = 0;
+		int ret = -1;
 
 		try {
-			pacman->register_binary (bin_path, *pname, 0);
+			pacman->register_binary (the_system->to_string (bin_path), *pname, 0);
+			pacman->commit ();
+			ret = 0;
 		} catch (const BindError::Error& ex) {
-			ret = -1;
-			print (pacman, ex.info ());
-			for (auto it = ex.stack ().crbegin (), end = ex.stack ().crend (); it != end; ++it) {
-				print (pacman, *it);
-			}
+			print (pacman, ex);
+		} catch (const std::exception& ex) {
+			print (2, ex.what ());
+			println (2);
 		}
 
 		return ret;
@@ -79,6 +80,7 @@ private:
 	static void print (int fd, const std::string& s);
 	static void print (int fd, int d);
 	static void println (int fd);
+	static void print (PackagesDB::_ptr_type packages, const BindError::Error& err);
 	static void print (PackagesDB::_ptr_type packages, const BindError::Info& err);
 };
 
@@ -103,27 +105,34 @@ void Static_regmod::print (int fd, int d)
 	print (fd, std::to_string (d));
 }
 
+void Static_regmod::print (PackagesDB::_ptr_type packages, const BindError::Error& err)
+{
+	print (packages, err.info ());
+	for (auto it = err.stack ().cbegin (), end = err.stack ().cend (); it != end; ++it) {
+		print (packages, *it);
+	}
+}
+
 void Static_regmod::print (PackagesDB::_ptr_type packages, const BindError::Info& err)
 {
 	switch (err._d ()) {
-	case BindError::Type::ERR_TEXT:
-		print (2, err.message ());
+	case BindError::Type::ERR_MESSAGE:
+		print (2, err.s ());
 		break;
 
-	case BindError::Type::ERR_OBJ_NOT_FOUND:
-		print (2, "Object not found: ");
-		print (2, err.obj_name ());
+	case BindError::Type::ERR_OBJ_NAME:
+		print (2, "Error binding object: ");
+		print (2, err.s ());
 		break;
 
 	case BindError::Type::ERR_ITF_NOT_FOUND:
 		print (2, "Interface ");
-		print (2, err.itf_info ().itf_id ());
-		print (2, " not available for object ");
-		print (2, err.itf_info ().obj_name ());
+		print (2, err.s ());
+		print (2, " is not available for object");
 		break;
 
 	case BindError::Type::ERR_MOD_LOAD:
-		print (2, "Module load failed: ");
+		print (2, "Module load: ");
 		print (2, packages->get_module_name (err.mod_info ().module_id ()));
 		break;
 
@@ -131,9 +140,11 @@ void Static_regmod::print (PackagesDB::_ptr_type packages, const BindError::Info
 		CORBA::UNKNOWN se;
 		err.system_exception () >>= se;
 		print (2, se.what ());
-		print (2, " (");
-		print (2, se.minor ());
-		print (2, ")");
+		int err = get_minor_errno (se.minor ());
+		if (err) {
+			print (2, " errno: ");
+			print (2, err);
+		}
 	} break;
 
 	case BindError::Type::ERR_UNSUP_PLATFORM:

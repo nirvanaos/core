@@ -29,6 +29,7 @@
 #include "ORB/Services.h"
 #include "SysManager.h"
 #include "NameService/FileSystem.h"
+#include "open_binary.h"
 
 using namespace CORBA;
 
@@ -91,20 +92,7 @@ AccessDirect::_ref_type SysDomain::open_binary (const IDL::String& module_path)
 	CosNaming::NamingContextExt::_ref_type ns = CosNaming::NamingContextExt::_narrow (
 		CORBA::Core::Services::bind (CORBA::Core::Services::NameService));
 
-	CORBA::Object::_ref_type obj;
-	try {
-		obj = ns->resolve_str (module_path);
-	} catch (const CORBA::Exception& ex) {
-		const CORBA::SystemException* se = CORBA::SystemException::_downcast (&ex);
-		if (se)
-			se->_raise ();
-		else
-			throw_OBJECT_NOT_EXIST ();
-	}
-	File::_ref_type file = File::_narrow (obj);
-	if (!file)
-		throw_UNKNOWN (make_minor_errno (EISDIR));
-	return AccessDirect::_narrow (file->open (O_RDONLY | O_DIRECT, 0)->_to_object ());
+	return Core::open_binary (ns, module_path);
 }
 
 AccessDirect::_ref_type SysDomain::open_sys_binary (unsigned platform, SysModuleId module_id)

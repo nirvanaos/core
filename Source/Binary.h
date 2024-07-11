@@ -38,10 +38,12 @@ class Binary :
 	private Port::Module
 {
 public:
-	static uint16_t get_platform (AccessDirect::_ptr_type file)
+	static uint_fast16_t get_platform (AccessDirect::_ptr_type file)
 	{
 		return Port::Module::get_platform (file);
 	}
+
+	static bool is_supported_platform (uint_fast16_t platform) noexcept;
 
 	const void* base_address () const noexcept
 	{

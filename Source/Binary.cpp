@@ -1,4 +1,3 @@
-/// \file
 /*
 * Nirvana Core.
 *
@@ -24,24 +23,19 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_CORE_BINDERROR_H_
-#define NIRVANA_CORE_BINDERROR_H_
-#pragma once
-
-#include <Nirvana/Nirvana.h>
-#include <Nirvana/BindError.h>
+#include "pch.h"
+#include "Binary.h"
+#include <Port/SystemInfo.h>
 
 namespace Nirvana {
-namespace BindError {
+namespace Core {
 
-NIRVANA_NORETURN void throw_message (std::string msg);
-NIRVANA_NORETURN void throw_invalid_metadata ();
-Info& push (Error& err);
-void set_message (Info& info, std::string msg);
-void set_system (Error& err, const CORBA::SystemException& ex);
-void push_obj_name (Error& err, std::string name);
+bool Binary::is_supported_platform (uint_fast16_t platform) noexcept
+{
+	return std::find (Port::SystemInfo::supported_platforms (),
+		Port::SystemInfo::supported_platforms () + Port::SystemInfo::SUPPORTED_PLATFORM_CNT,
+		platform) != Port::SystemInfo::supported_platforms () + Port::SystemInfo::SUPPORTED_PLATFORM_CNT;
+}
 
 }
 }
-
-#endif

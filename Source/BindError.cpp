@@ -29,16 +29,42 @@
 namespace Nirvana {
 namespace BindError {
 
-void throw_message (std::string msg)
+void set_message (Info& info, std::string msg)
+{
+	info.s (std::move (msg));
+	info._d (Type::ERR_MESSAGE);
+}
+
+NIRVANA_NORETURN void throw_message (std::string msg)
 {
 	Nirvana::BindError::Error err;
-	err.info ().message (std::move (msg));
+	set_message (err.info (), std::move (msg));
 	throw err;
 }
 
-void throw_invalid_metadata ()
+NIRVANA_NORETURN void throw_invalid_metadata ()
 {
 	throw_message ("Invalid metadata");
+}
+
+void set_system (Error& err, const CORBA::SystemException& ex)
+{
+	CORBA::Any any;
+	any <<= ex;
+	err.info ().system_exception (std::move (any));
+}
+
+Info& push (Error& err)
+{
+	err.stack ().emplace_back ();
+	return err.stack ().back ();
+}
+
+void push_obj_name (Error& err, std::string name)
+{
+	Info& info = push (err);
+	info.s (std::move (name));
+	info._d (Type::ERR_OBJ_NAME);
 }
 
 }

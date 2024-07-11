@@ -32,6 +32,8 @@
 #include <Nirvana/Domains_s.h>
 #include <Nirvana/posix_defs.h>
 #include "Connection.h"
+#include "SemVer.h"
+#include "../Source/open_binary.h"
 
 class PacMan :
 	public CORBA::servant_traits <Nirvana::PacMan>::Servant <PacMan>,
@@ -42,41 +44,73 @@ public:
 		sys_domain_ (sys_domain),
 		name_service_ (CosNaming::NamingContextExt::_narrow (
 			CORBA::the_orb->resolve_initial_references ("NameService"))),
-		completion_ (completion)
+		completion_ (completion),
+		busy_ (false)
 	{}
+
+	// Does not allow parallel installation
+	class Lock
+	{
+	public:
+		Lock (PacMan& obj);
+
+		~Lock ()
+		{
+			obj_.busy_ = false;
+		}
+
+	private:
+		PacMan& obj_;
+	};
 
 	void commit ()
 	{
-		check_active ();
+		Lock lock (*this);
 		Connection::commit ();
 		complete ();
 	}
 
 	void rollback ()
 	{
-		check_active ();
+		Lock lock (*this);
 		Connection::rollback ();
 		complete ();
 	}
 
-	uint16_t register_binary (const CosNaming::Name& path, const IDL::String& module_name, unsigned flags)
+	struct BindingLess
 	{
-		Nirvana::AccessDirect::_ref_type binary;
-
+		bool operator () (const Nirvana::ModuleBinding& l, const Nirvana::ModuleBinding& r) const noexcept
 		{
-			CORBA::Object::_ref_type obj = name_service_->resolve (path);
-			Nirvana::File::_ref_type file = Nirvana::File::_narrow (obj);
-			binary = Nirvana::AccessDirect::_narrow (file->open (O_RDONLY | O_DIRECT, 0)->_to_object ());
+			int cmp = l.name ().compare (r.name ());
+			if (cmp < 0)
+				return true;
+			else if (cmp > 0)
+				return false;
+			if ((int32_t)l.version () < (int32_t)r.version ())
+				return true;
+			else if ((int32_t)l.version () > (int32_t)r.version ())
+				return false;
+
+			return (int)l.flags () < (int)r.flags ();
 		}
+	};
 
-		uint16_t platform = Nirvana::Core::Binary::get_platform (binary);
+	uint16_t register_binary (const IDL::String& path, const IDL::String& module_name, unsigned flags)
+	{
+		Lock lock (*this);
 
-		/*
-		if (std::find (Port::SystemInfo::supported_platforms (),
-			Port::SystemInfo::supported_platforms () + Port::SystemInfo::SUPPORTED_PLATFORM_CNT,
-			platform) == Port::SystemInfo::supported_platforms () + Port::SystemInfo::SUPPORTED_PLATFORM_CNT) {
-			Nirvana::BindError::throw_message ("Unsupported platform");
-		}*/
+		SemVer svname;
+		if (!svname.from_string (module_name))
+			Nirvana::BindError::throw_message ("Module name '" + module_name + "' is invalid");
+
+		Nirvana::AccessDirect::_ref_type binary = Nirvana::Core::open_binary (name_service_, path);
+
+		uint_fast16_t platform = Nirvana::Core::Binary::get_platform (binary);
+		if (!Nirvana::Core::Binary::is_supported_platform (platform)) {
+			Nirvana::BindError::Error err;
+			err.info ().platform_id (platform);
+			throw err;
+		}
 
 		Nirvana::ProtDomain::_ref_type bind_domain;
 		if (Nirvana::Core::SINGLE_DOMAIN)
@@ -84,11 +118,86 @@ public:
 		else
 			bind_domain = sys_domain_->provide_manager ()->create_prot_domain (platform);
 
-		Nirvana::ModuleBindings module_bindings =
+		Nirvana::ModuleBindings metadata =
 			Nirvana::ProtDomainCore::_narrow (bind_domain)->get_module_bindings (binary);
 
 		if (!Nirvana::Core::SINGLE_DOMAIN)
 			bind_domain->shutdown (0);
+
+		try {
+
+			Statement stm = get_statement ("SELECT id,flags FROM module WHERE name=? AND version=? AND prerelease=?");
+
+			stm->setString (1, svname.name);
+			stm->setBigInt (2, svname.version);
+			stm->setString (3, svname.prerelease);
+
+			NDBC::ResultSet::_ref_type rs = stm->executeQuery ();
+
+			int32_t module_id;
+			if (rs->next ()) {
+				module_id = rs->getInt (1);
+				if (metadata.flags () != rs->getSmallInt (2))
+					Nirvana::BindError::throw_message ("Module type mismatch");
+
+				rs = nullptr;
+				std::sort (metadata.bindings ().begin (), metadata.bindings ().end (), BindingLess ());
+
+				stm = get_statement ("SELECT name,version,flags FROM object WHERE module=? ORDER BY name,version,flags");
+
+				bool mismatch = false;
+				for (auto it = metadata.bindings ().cbegin (), end = metadata.bindings ().cend (); it != end; ++it) {
+					if (!rs->next ()) {
+						mismatch = true;
+						break;
+					}
+					if (rs->getString (1) != it->name ()) {
+						mismatch = true;
+						break;
+					}
+					if (rs->getInt (2) != it->version ()) {
+						mismatch = true;
+						break;
+					}
+					if (rs->getInt (3) != it->flags ()) {
+						mismatch = true;
+						break;
+					}
+				}
+
+				if (!mismatch && rs->next ())
+					mismatch = true;
+
+				if (mismatch)
+					Nirvana::BindError::throw_message ("Metadata mismatch");
+
+			} else {
+				rs = nullptr;
+				stm = get_statement ("INSERT INTO module(name,version,prerelease,flags)VALUES(?,?,?)RETURNING id");
+				stm->setString (1, svname.name);
+				stm->setBigInt (2, svname.version);
+				stm->setString (3, svname.prerelease);
+				stm->setInt (4, metadata.flags ());
+				rs = stm->executeQuery ();
+				rs->next ();
+				module_id = rs->getInt (1);
+			}
+
+			rs = nullptr;
+			stm = get_statement ("INSERT OR REPLACE INTO binary VALUES(?,?,?)");
+			stm->setInt (1, module_id);
+			stm->setInt (2, platform);
+			stm->setString (3, path);
+			stm->executeUpdate ();
+
+		} catch (NDBC::SQLException& ex) {
+			Nirvana::BindError::Error err;
+			Nirvana::BindError::set_message (err.info (), std::move (ex.error ().sqlState ()));
+			for (NDBC::SQLWarning& sqle : ex.next ()) {
+				Nirvana::BindError::set_message (Nirvana::BindError::push (err), std::move (sqle.sqlState ()));
+			}
+			throw err;
+		}
 
 		return platform;
 	}
@@ -100,12 +209,12 @@ public:
 
 private:
 	void complete ();
-	void check_active () const;
 
 private:
 	Nirvana::SysDomain::_ref_type sys_domain_;
 	CosNaming::NamingContextExt::_ref_type name_service_;
 	CosEventComm::PushConsumer::_ref_type completion_;
+	bool busy_;
 };
 
 #endif

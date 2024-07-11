@@ -1,4 +1,3 @@
-/// \file
 /*
 * Nirvana Core.
 *
@@ -24,24 +23,26 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_CORE_BINDERROR_H_
-#define NIRVANA_CORE_BINDERROR_H_
-#pragma once
-
-#include <Nirvana/Nirvana.h>
-#include <Nirvana/BindError.h>
+#include "open_binary.h"
+#include <Nirvana/posix_defs.h>
+#include "BindError.h"
 
 namespace Nirvana {
-namespace BindError {
+namespace Core {
 
-NIRVANA_NORETURN void throw_message (std::string msg);
-NIRVANA_NORETURN void throw_invalid_metadata ();
-Info& push (Error& err);
-void set_message (Info& info, std::string msg);
-void set_system (Error& err, const CORBA::SystemException& ex);
-void push_obj_name (Error& err, std::string name);
+AccessDirect::_ref_type open_binary (CosNaming::NamingContextExt::_ptr_type ns, const IDL::String& path)
+{
+	CORBA::Object::_ref_type obj;
+	try {
+		obj = ns->resolve_str (path);
+	} catch (const CosNaming::NamingContext::NotFound&) {
+		BindError::throw_message ("Path not found: " + path);
+	}
+	File::_ref_type file = File::_narrow (obj);
+	if (!file)
+		throw_UNKNOWN (make_minor_errno (EISDIR));
+	return AccessDirect::_narrow (file->open (O_RDONLY | O_DIRECT, 0)->_to_object ());
+}
 
 }
 }
-
-#endif

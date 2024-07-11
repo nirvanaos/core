@@ -79,11 +79,10 @@ void Binder::ObjectMap::erase (const char* name) noexcept
 void Binder::ObjectMap::merge (const ObjectMap& src)
 {
 	for (auto it = src.begin (); it != src.end (); ++it) {
-		if (!ObjectMapBase::insert (*it).second) {
-			for (auto it1 = src.begin (); it1 != it; ++it1) {
-				ObjectMapBase::erase (it1->first);
-			}
-			throw_INV_OBJREF ();	// Duplicated name TODO: Log
+		auto ins = ObjectMapBase::insert (*it);
+		if (!ins.second && ins.first->first.version ().minor < it->first.version ().minor) {
+			ObjectMapBase::erase (ins.first);
+			ObjectMapBase::insert (*it);
 		}
 	}
 }
@@ -391,40 +390,48 @@ Ref <Module> Binder::load (int32_t mod_id, AccessDirect::_ptr_type binary)
 	auto ins = module_map_.emplace (mod_id, MODULE_LOADING_DEADLINE_MAX);
 	ModuleMap::reference entry = *ins.first;
 	if (ins.second) {
-		auto wait_list = entry.second.wait_list ();
 		try {
-
-			// Module loading may be a long operation, do it in core context.
-			SYNC_BEGIN (g_core_free_sync_context, &memory ());
-			
-			mod = Module::create (mod_id, binary);
-
-			SYNC_END ();
-
-			assert (mod->_refcount_value () == 0);
-			ModuleContext context (mod, mod->sync_context (), mod_id);
-			bind_and_init (*mod, context);
+			auto wait_list = entry.second.wait_list ();
 			try {
-				object_map_.merge (context.exports);
-			} catch (...) {
-				SYNC_BEGIN (context.sync_context, mod->initterm_mem_context ());
-				mod->terminate ();
-				module_unbind (mod->_get_ptr (), mod->metadata ());
+
+				// Module loading may be a long operation, do it in core context.
+				SYNC_BEGIN (g_core_free_sync_context, &memory ());
+				mod = Module::create (mod_id, binary);
 				SYNC_END ();
+
+				assert (mod->_refcount_value () == 0);
+				ModuleContext context (mod, mod->sync_context (), mod_id);
+				bind_and_init (*mod, context);
+				try {
+					object_map_.merge (context.exports);
+				} catch (...) {
+					SYNC_BEGIN (context.sync_context, mod->initterm_mem_context ());
+					mod->terminate ();
+					module_unbind (mod->_get_ptr (), mod->metadata ());
+					SYNC_END ();
+					throw;
+				}
+
+			} catch (...) {
+				wait_list->on_exception ();
+				delete_module (mod);
+				module_map_.erase (entry.first);
 				throw;
 			}
 
-		} catch (...) {
-			wait_list->on_exception ();
-			delete_module (mod);
-			module_map_.erase (entry.first);
-			throw;
+			wait_list->finish_construction (mod);
+			if (module_map_.size () == 1)
+				housekeeping_timer_modules_.set (0, MODULE_UNLOAD_TIMEOUT, MODULE_UNLOAD_TIMEOUT);
+
+		} catch (const SystemException& ex) {
+			BindError::Error err;
+			BindError::set_system (err, ex);
+			BindError::push (err).mod_info (BindError::ModInfo (mod_id, PLATFORM));
+			throw err;
+		} catch (BindError::Error& err) {
+			BindError::push (err).mod_info (BindError::ModInfo (mod_id, PLATFORM));
+			throw err;
 		}
-
-		wait_list->finish_construction (mod);
-		if (module_map_.size () == 1)
-			housekeeping_timer_modules_.set (0, MODULE_UNLOAD_TIMEOUT, MODULE_UNLOAD_TIMEOUT);
-
 	} else {
 		mod = entry.second.get ();
 	}
@@ -444,9 +451,13 @@ void Binder::bind_and_init (Module& mod, ModuleContext& context)
 			BindError::throw_message ("Entry point not found");
 
 		mod.initialize (startup ? ModuleInit::_check (startup->startup) : nullptr);
-	} catch (...) {
+
+	} catch (const SystemException& ex) {
 		module_unbind (mod._get_ptr (), mod.metadata ());
-		throw;
+		BindError::Error err;
+		BindError::set_system (err, ex);
+		BindError::set_message (BindError::push (err), "Module initialization error");
+		throw err;
 	}
 
 	SYNC_END ();
@@ -534,16 +545,16 @@ Binder::BindResult Binder::find (const ObjectKey& name)
 				CORBA::Internal::StringView <char> (name.name (), name.full_length ()), PLATFORM, binding);
 
 			if (binding._d ()) {
+				const ModuleLoad& ml = binding.module_load ();
 				try {
-					const ModuleLoad& ml = binding.module_load ();
 					load (ml.module_id (), ml.binary ());
-				} catch (const SystemException&) {
-					// TODO: Log
-					throw_OBJECT_NOT_EXIST ();
+				} catch (BindError::Error& ex) {
+					BindError::push_obj_name (ex, name.name ());
+					throw ex;
 				}
 				ret = object_map_.find (name);
 				if (!ret.itf)
-					throw_OBJECT_NOT_EXIST ();
+					throw_object_not_in_module (name, ml.module_id ());
 			} else {
 				Object::_ptr_type obj = binding.loaded_object ();
 				ProxyManager* proxy = ProxyManager::cast (obj);
@@ -579,6 +590,15 @@ Binder::BindResult Binder::find (const ObjectKey& name)
 	return ret;
 }
 
+NIRVANA_NORETURN void Binder::throw_object_not_in_module (const ObjectKey& name, int32_t mod_id)
+{
+	BindError::Error ex;
+	BindError::set_message (ex.info (), "Object not found in module");
+	BindError::push (ex).mod_info (BindError::ModInfo (mod_id, PLATFORM));
+	BindError::push_obj_name (ex, name.name ());
+	throw ex;
+}
+
 Binder::BindResult Binder::bind_interface (CORBA::Internal::String_in name, CORBA::Internal::String_in iid)
 {
 	BindResult ret;
@@ -603,11 +623,12 @@ Binder::BindResult Binder::bind_interface (CORBA::Internal::String_in name, CORB
 Binder::BindResult Binder::bind_interface_sync (const ObjectKey& name, String_in iid)
 {
 	BindResult ret = find (name);
-	query_interface (ret, iid);
+	query_interface (ret, iid, name);
 	return ret;
 }
 
-Binder::InterfaceRef Binder::query_interface (InterfacePtr itf, CORBA::Internal::String_in iid)
+Binder::InterfaceRef Binder::query_interface (InterfacePtr itf, CORBA::Internal::String_in iid,
+	const ObjectKey& name)
 {
 	InterfacePtr ret = nullptr;
 	if (itf) {
@@ -627,8 +648,17 @@ Binder::InterfaceRef Binder::query_interface (InterfacePtr itf, CORBA::Internal:
 			}
 		}
 	}
-	if (!ret)
-		throw_INV_OBJREF ();
+
+	if (!ret) {
+		BindError::Error err;
+		err.info ().s (iid);
+		err.info ()._d (BindError::Type::ERR_ITF_NOT_FOUND);
+		BindError::Info& info = BindError::push (err);
+		info.s (name.name ());
+		info._d (BindError::Type::ERR_OBJ_NAME);
+		throw err;
+	}
+		
 	return ret;
 }
 
@@ -642,12 +672,12 @@ Binder::BindResult Binder::load_and_bind_sync (int32_t mod_id, AccessDirect::_pt
 		Module* mod = ov->sync_context->module ();
 		if (mod && mod->id () == mod_id) {
 			BindResult ret;
-			ret.itf = query_interface (ov->itf, iid);
+			ret.itf = query_interface (ov->itf, iid, name);
 			ret.sync_context = ov->sync_context;
 			return ret;
 		}
 	}
-	throw_OBJECT_NOT_EXIST ();
+	throw_object_not_in_module (name, mod_id);
 }
 
 Binder::BindResult Binder::load_and_bind (int32_t mod_id,
@@ -689,8 +719,7 @@ Nirvana::ModuleBindings Binder::get_module_bindings_sync (Nirvana::AccessDirect:
 
 	Nirvana::ModuleBindings bindings;
 
-	if (mod->is_singleton ())
-		bindings.flags (MODULE_FLAG_SINGLETON);
+	bindings.flags ((uint16_t)mod->flags ());
 
 	try {
 		for (const auto& el : context.exports) {

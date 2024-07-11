@@ -26,6 +26,18 @@
 #include "pch.h"
 #include "PacMan.h"
 
+PacMan::Lock::Lock (PacMan& obj) :
+	obj_ (obj)
+{
+	if (!obj.completion_)
+		Nirvana::throw_TRANSACTION_UNAVAILABLE ();
+
+	if (obj.busy_)
+		Nirvana::throw_INVALID_TRANSACTION ();
+
+	obj.busy_ = true;
+}
+
 void PacMan::complete ()
 {
 	if (completion_) {
@@ -35,10 +47,4 @@ void PacMan::complete ()
 		completion_ = nullptr;
 		tmp->push (CORBA::Any ());
 	}
-}
-
-void PacMan::check_active () const
-{
-	if (!completion_)
-		Nirvana::throw_OBJECT_NOT_EXIST ();
 }

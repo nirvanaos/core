@@ -34,6 +34,7 @@
 #include <Nirvana/File.h>
 #include "ORB/Services.h"
 #include <NameService/FileSystem.h>
+#include "open_binary.h"
 
 namespace Nirvana {
 namespace Core {
@@ -91,11 +92,7 @@ void Startup::run ()
 			if (!FileSystem::is_absolute (exe_path))
 				exe_path = ProtDomain::binary_dir () + '/' + exe_path;
 			auto ns = CosNaming::NamingContextExt::_narrow (CORBA::Core::Services::bind (CORBA::Core::Services::NameService));
-			CORBA::Object::_ref_type obj = ns->resolve_str (exe_path);
-			File::_ref_type file = File::_narrow (obj);
-			if (!file)
-				throw_UNKNOWN (make_minor_errno (ENOEXEC));
-			AccessDirect::_ref_type binary = AccessDirect::_narrow (file->open (O_RDONLY | O_DIRECT, 0)->_to_object ());
+			AccessDirect::_ref_type binary = open_binary (ns, exe_path);
 
 			ret_ = (int)the_shell->process (binary, argv, "/sbin", files);
 		}

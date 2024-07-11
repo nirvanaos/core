@@ -29,6 +29,8 @@
 
 #include <Nirvana/Nirvana.h>
 #include <Nirvana/NDBC.h>
+#include <unordered_map>
+#include "Statement.h"
 
 #define DATABASE_PATH "/var/lib/packages.db"
 
@@ -68,6 +70,17 @@ public:
 		Nirvana::throw_NO_IMPLEMENT ();
 	}
 
+	Statement get_statement (const std::string& sql)
+	{
+		StatementPool& pool = statements_ [sql];
+		if (!pool.empty ()) {
+			Statement ret (std::move (pool.top ()), pool);
+			pool.pop ();
+			return ret;
+		} else
+			return Statement (connection ()->prepareStatement (sql, NDBC::ResultSet::Type::TYPE_FORWARD_ONLY, 0), pool);
+	}
+
 protected:
 	static NDBC::Connection::_ref_type open_database (const char* url)
 	{
@@ -103,17 +116,18 @@ protected:
 		connection_ = nullptr;
 	}
 
-	struct SemVer
+	NDBC::Connection::_ptr_type connection () const noexcept
 	{
-		uint64_t version;
-		std::string name;
-		std::string prerelease;
+		NIRVANA_ASSERT (connection_);
+		return connection_;
+	}
 
-		SemVer (const std::string& mod_name);
-	};
+private:
+	typedef std::unordered_map <std::string, StatementPool> Statements;
 
 private:
 	NDBC::Connection::_ref_type connection_;
+	Statements statements_;
 };
 
 #endif
