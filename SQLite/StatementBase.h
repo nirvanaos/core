@@ -121,7 +121,10 @@ protected:
 
 	~StatementBase ()
 	{
-		finalize (true);
+		if (connection_) {
+			finalize (true);
+			connection_ = nullptr;
+		}
 	}
 
 	void prepare (const IDL::String& sql, unsigned flags);
