@@ -127,10 +127,11 @@ private:
 	enum SysModuleId
 	{
 		MODULE_DECCALC = 1,
-		MODULE_SFLOAT = 2,
-		MODULE_DBC = 3,
-		MODULE_SQLITE = 4,
-		MODULE_PACKAGES = 5
+		MODULE_SFLOAT,
+		MODULE_DBC,
+		MODULE_SQLITE,
+		MODULE_PACKAGES,
+		MODULE_SHELL
 	};
 
 	static AccessDirect::_ref_type open_sys_binary (unsigned platform, SysModuleId module_id);
@@ -143,6 +144,7 @@ private:
 		static const char sfloat_4 [] = "CORBA/Internal/sfloat_4";
 		static const char sfloat_8 [] = "CORBA/Internal/sfloat_8";
 		static const char sfloat_16 [] = "CORBA/Internal/sfloat_16";
+		static const char regmod [] = "Nirvana/regmod";
 
 		SysModuleId module_id;
 
@@ -160,6 +162,8 @@ private:
 			module_id = MODULE_DBC;
 		} else if (name == sqlite_driver) {
 			module_id = MODULE_SQLITE;
+		} else if (name == regmod) {
+			module_id = MODULE_SHELL;
 		} else
 			return false;
 

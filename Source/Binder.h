@@ -435,6 +435,7 @@ private:
 		ModuleContext* mod_context);
 
 	void bind_and_init (Module& mod, ModuleContext& context);
+	void terminate_and_unbind (Module& mod) noexcept;
 	
 	/// Unbind module.
 	/// Must be called from the module synchronization context.

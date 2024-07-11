@@ -28,7 +28,6 @@
 #pragma once
 
 #include <CORBA/Server.h>
-#include <CORBA/CosEventComm.h>
 #include <Nirvana/Domains_s.h>
 #include "PacMan.h"
 #include "PM.h"
@@ -55,9 +54,12 @@ public:
 		}
 
 		auto channel = CORBA::the_orb->create_event_channel ();
-		CosEventComm::PullSupplier::_ref_type supplier = channel->for_consumers ()->obtain_pull_supplier ();
+		CosEventChannelAdmin::ProxyPullSupplier::_ref_type supplier = channel->for_consumers ()->obtain_pull_supplier ();
+		supplier->connect_pull_consumer (nullptr);
+
 		Nirvana::PacMan::_ref_type pacman = Nirvana::PM::pacman_factory->create (sys_domain (),
 			channel->for_suppliers ()->obtain_push_consumer ());
+
 		manager_completion_ = std::move (supplier);
 
 		return pacman;

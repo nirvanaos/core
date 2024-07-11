@@ -34,7 +34,7 @@ class Static_pacman_factory :
 	public CORBA::servant_traits <Nirvana::PM::PacManFactory>::ServantStatic <Static_pacman_factory>
 {
 public:
-	static PacMan::_ref_type create (Nirvana::SysDomain::_ptr_type sys_domain, CosEventComm::PushConsumer::_ptr_type completion)
+	static PacMan::_ref_type create (Nirvana::SysDomain::_ptr_type sys_domain, CosEventChannelAdmin::ProxyPushConsumer::_ptr_type completion)
 	{
 		return CORBA::make_reference <::PacMan> (sys_domain, completion)->_this ();
 	}

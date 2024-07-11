@@ -38,13 +38,17 @@ PacMan::Lock::Lock (PacMan& obj) :
 	obj.busy_ = true;
 }
 
-void PacMan::complete ()
+void PacMan::complete () noexcept
 {
 	if (completion_) {
 		CosEventComm::PushConsumer::_ref_type tmp = std::move (completion_);
 		name_service_ = nullptr;
 		sys_domain_ = nullptr;
 		completion_ = nullptr;
-		tmp->push (CORBA::Any ());
+		try {
+			tmp->push (CORBA::Any ());
+		} catch (...) {
+			NIRVANA_ASSERT (false);
+		}
 	}
 }

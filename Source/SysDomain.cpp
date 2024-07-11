@@ -36,12 +36,13 @@ using namespace CORBA;
 namespace Nirvana {
 namespace Core {
 
-const char* const SysDomain::sys_module_names_ [] = {
+const char* const SysDomain::sys_module_names_ [MODULE_SHELL] = {
 	"DecCalc.olf",
 	"SFloat.olf",
 	"dbc.olf",
 	"SQLite.olf",
-	"PacMan.olf"
+	"PacMan.olf",
+	"shell.olf"
 };
 
 inline

@@ -28,7 +28,7 @@
 #pragma once
 
 #include <CORBA/Server.h>
-#include <CORBA/CosEventComm.h>
+#include <CORBA/CosEventChannelAdmin.h>
 #include <Nirvana/Domains_s.h>
 #include <Nirvana/posix_defs.h>
 #include "Connection.h"
@@ -40,13 +40,21 @@ class PacMan :
 	public Connection
 {
 public:
-	PacMan (Nirvana::SysDomain::_ptr_type sys_domain, CosEventComm::PushConsumer::_ptr_type completion) :
+	PacMan (Nirvana::SysDomain::_ptr_type sys_domain, CosEventChannelAdmin::ProxyPushConsumer::_ptr_type completion) :
+		Connection (open_rw ()),
 		sys_domain_ (sys_domain),
 		name_service_ (CosNaming::NamingContextExt::_narrow (
 			CORBA::the_orb->resolve_initial_references ("NameService"))),
-		completion_ (completion),
 		busy_ (false)
-	{}
+	{
+		completion->connect_push_supplier (nullptr);
+		completion_ = std::move (completion);
+	}
+
+	~PacMan ()
+	{
+		complete ();
+	}
 
 	// Does not allow parallel installation
 	class Lock
@@ -208,7 +216,7 @@ public:
 	}
 
 private:
-	void complete ();
+	void complete () noexcept;
 
 private:
 	Nirvana::SysDomain::_ref_type sys_domain_;

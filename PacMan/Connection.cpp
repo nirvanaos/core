@@ -23,18 +23,17 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include <Nirvana/Domains.idl>
-#include <CORBA/CosEventChannelAdmin.idl>
+#include "pch.h"
+#include "Connection.h"
 
-module Nirvana {
-module PM {
-
-local interface PacManFactory
+Statement Connection::get_statement (const char* sql)
 {
-	PacMan create (in SysDomain sys_domain, in CosEventChannelAdmin::ProxyPushConsumer completion);
-};
-
-const PacManFactory pacman_factory;
-
-};
-};
+	auto ins = statements_.emplace (sql, StatementPool ());
+	StatementPool& pool = ins.first->second;
+	if (!pool.empty ()) {
+		Statement ret (std::move (pool.top ()), pool);
+		pool.pop ();
+		return ret;
+	} else
+		return Statement (connection ()->prepareStatement (ins.first->first, NDBC::ResultSet::Type::TYPE_FORWARD_ONLY, 0), pool);
+}

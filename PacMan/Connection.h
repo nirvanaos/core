@@ -70,16 +70,7 @@ public:
 		Nirvana::throw_NO_IMPLEMENT ();
 	}
 
-	Statement get_statement (const std::string& sql)
-	{
-		StatementPool& pool = statements_ [sql];
-		if (!pool.empty ()) {
-			Statement ret (std::move (pool.top ()), pool);
-			pool.pop ();
-			return ret;
-		} else
-			return Statement (connection ()->prepareStatement (sql, NDBC::ResultSet::Type::TYPE_FORWARD_ONLY, 0), pool);
-	}
+	Statement get_statement (const char* sql);
 
 protected:
 	static NDBC::Connection::_ref_type open_database (const char* url)

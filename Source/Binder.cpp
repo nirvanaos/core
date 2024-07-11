@@ -405,17 +405,14 @@ Ref <Module> Binder::load (int32_t mod_id, AccessDirect::_ptr_type binary)
 				try {
 					object_map_.merge (context.exports);
 				} catch (...) {
-					SYNC_BEGIN (context.sync_context, mod->initterm_mem_context ());
-					mod->terminate ();
-					module_unbind (mod->_get_ptr (), mod->metadata ());
-					SYNC_END ();
+					terminate_and_unbind (*mod);
 					throw;
 				}
 
 			} catch (...) {
+				module_map_.erase (entry.first);
 				wait_list->on_exception ();
 				delete_module (mod);
-				module_map_.erase (entry.first);
 				throw;
 			}
 
@@ -468,18 +465,23 @@ void Binder::bind_and_init (Module& mod, ModuleContext& context)
 void Binder::unload (Module* mod) noexcept
 {
 	remove_exports (mod->metadata ());
-
-	{
-		::Nirvana::Core::Synchronized _sync_frame (mod->sync_context (), mod->initterm_mem_context ());
-
-		mod->execute_atexit ();
-		mod->terminate ();
-		module_unbind (mod->_get_ptr (), mod->metadata ());
-
-		NIRVANA_ASSERT_EX (mod->_refcount_value () == 1, true);
-	}
-	
+	terminate_and_unbind (*mod);
 	delete_module (mod);
+}
+
+void Binder::terminate_and_unbind (Module& mod) noexcept
+{
+	try {
+		Synchronized _sync_frame (mod.sync_context (), mod.initterm_mem_context ());
+
+		mod.execute_atexit ();
+		mod.terminate ();
+		module_unbind (mod._get_ptr (), mod.metadata ());
+		NIRVANA_ASSERT_EX (mod._refcount_value () == 1, true);
+	} catch (...) {
+		release_imports (mod._get_ptr (), mod.metadata ());
+		assert (false);
+	}
 }
 
 inline
@@ -728,9 +730,8 @@ Nirvana::ModuleBindings Binder::get_module_bindings_sync (Nirvana::AccessDirect:
 			if (RepId::compatible (itf->_epv ().interface_id, RepIdOf <Object>::id)) {
 				const ServantProxyBase* proxy = object2proxy_base (itf.template downcast <Object> ());
 				InterfacePtr servant = proxy->servant ();
-				if (RepId::compatible (servant->_epv ().interface_id, RepIdOf <PortableServer::ServantBase>::id)) {
+				if (RepId::compatible (servant->_epv ().interface_id, RepIdOf <PortableServer::ServantBase>::id))
 					flags |= OBJECT_FLAG_OBJECT;
-				}
 			}
 			bindings.bindings ().emplace_back (IDL::String (el.first.name (), el.first.name_length ()),
 				(uint32_t)(el.first.version ().major) << 16 + el.first.version ().minor, flags);
@@ -740,11 +741,13 @@ Nirvana::ModuleBindings Binder::get_module_bindings_sync (Nirvana::AccessDirect:
 				(uint32_t)(el.version ().major) << 16 + el.version ().minor, 0);
 		}
 	} catch (...) {
-		unload (mod);
+		terminate_and_unbind (*mod);
+		delete_module (mod);
 		throw;
 	}
 
-	unload (mod);
+	terminate_and_unbind (*mod);
+	delete_module (mod);
 
 	return bindings;
 }
