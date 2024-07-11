@@ -38,7 +38,7 @@ const char* const Packages::db_script_ [] = {
 // Modules
 "CREATE TABLE module("
 "id INTEGER PRIMARY KEY AUTOINCREMENT,name TEXT NOT NULL,version INTEGER NOT NULL,"
-"prerelease TEXT,flags INTEGER NOT NULL,"
+"prerelease TEXT NOT NULL DEFAULT '',flags INTEGER NOT NULL,"
 "UNIQUE (name,version,prerelease)"
 ");",
 

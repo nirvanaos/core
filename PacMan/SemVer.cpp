@@ -26,7 +26,7 @@
 #include "pch.h"
 #include "SemVer.h"
 
-bool SemVer::from_string (const std::string& full_name)
+bool SemVer::from_string (const IDL::String& full_name)
 {
 	// Version number begins from the first colon
 	size_t ver = full_name.find ('.');
@@ -90,9 +90,9 @@ bool SemVer::from_string (const std::string& full_name)
 	return true;
 }
 
-std::string SemVer::to_string () const
+IDL::String SemVer::to_string () const
 {
-	std::string s = name;
+	IDL::String s = name;
 
 	if (version || !prerelease.empty ()) {
 		uint16_t major = (uint16_t)(version >> 32);

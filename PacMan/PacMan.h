@@ -32,7 +32,6 @@
 #include <Nirvana/Domains_s.h>
 #include <Nirvana/posix_defs.h>
 #include "Connection.h"
-#include "SemVer.h"
 #include "../Source/open_binary.h"
 
 class PacMan :
@@ -49,6 +48,7 @@ public:
 	{
 		completion->connect_push_supplier (nullptr);
 		completion_ = std::move (completion);
+		connection ()->setAutoCommit (false);
 	}
 
 	~PacMan ()
@@ -148,10 +148,12 @@ public:
 				if (metadata.flags () != rs->getSmallInt (2))
 					Nirvana::BindError::throw_message ("Module type mismatch");
 
-				rs = nullptr;
 				std::sort (metadata.bindings ().begin (), metadata.bindings ().end (), BindingLess ());
 
 				stm = get_statement ("SELECT name,version,flags FROM object WHERE module=? ORDER BY name,version,flags");
+				stm->setInt (1, module_id);
+
+				rs = stm->executeQuery ();
 
 				bool mismatch = false;
 				for (auto it = metadata.bindings ().cbegin (), end = metadata.bindings ().cend (); it != end; ++it) {
@@ -180,8 +182,7 @@ public:
 					Nirvana::BindError::throw_message ("Metadata mismatch");
 
 			} else {
-				rs = nullptr;
-				stm = get_statement ("INSERT INTO module(name,version,prerelease,flags)VALUES(?,?,?)RETURNING id");
+				stm = get_statement ("INSERT INTO module(name,version,prerelease,flags)VALUES(?,?,?,?)RETURNING id");
 				stm->setString (1, svname.name);
 				stm->setBigInt (2, svname.version);
 				stm->setString (3, svname.prerelease);
@@ -189,9 +190,16 @@ public:
 				rs = stm->executeQuery ();
 				rs->next ();
 				module_id = rs->getInt (1);
-			}
 
-			rs = nullptr;
+				stm = get_statement ("INSERT INTO object VALUES(?,?,?,?)");
+				stm->setInt (3, module_id);
+				for (auto b : metadata.bindings ()) {
+					stm->setString (1, b.name ());
+					stm->setInt (2, b.version ());
+					stm->setInt (4, b.flags ());
+					stm->executeUpdate ();
+				}
+			}
 			stm = get_statement ("INSERT OR REPLACE INTO binary VALUES(?,?,?)");
 			stm->setInt (1, module_id);
 			stm->setInt (2, platform);
@@ -199,12 +207,7 @@ public:
 			stm->executeUpdate ();
 
 		} catch (NDBC::SQLException& ex) {
-			Nirvana::BindError::Error err;
-			Nirvana::BindError::set_message (err.info (), std::move (ex.error ().sqlState ()));
-			for (NDBC::SQLWarning& sqle : ex.next ()) {
-				Nirvana::BindError::set_message (Nirvana::BindError::push (err), std::move (sqle.sqlState ()));
-			}
-			throw err;
+			on_sql_exception (ex);
 		}
 
 		return platform;

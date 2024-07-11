@@ -47,6 +47,7 @@ void PacMan::complete () noexcept
 		completion_ = nullptr;
 		try {
 			tmp->push (CORBA::Any ());
+			tmp->disconnect_push_consumer ();
 		} catch (...) {
 			NIRVANA_ASSERT (false);
 		}

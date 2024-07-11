@@ -38,7 +38,7 @@ class Statement
 public:
 	Statement (NDBC::PreparedStatement::_ref_type&& stmt, StatementPool& pool) noexcept :
 		statement_ (std::move (stmt)),
-		pool_ (pool)
+		pool_ (&pool)
 	{}
 
 	~Statement ()
@@ -49,11 +49,11 @@ public:
 	Statement (Statement&&) = default;
 	Statement (const Statement&) = delete;
 
-	Statement& operator = (Statement&& src)
+	Statement& operator = (Statement&& src) noexcept
 	{
-		NIRVANA_ASSERT (&pool_ == &src.pool_);
 		return_to_pool ();
 		statement_ = std::move (src.statement_);
+		pool_ = src.pool_;
 		return *this;
 	}
 
@@ -61,7 +61,7 @@ public:
 
 	NDBC::PreparedStatement::_ptr_type operator -> () const noexcept
 	{
-		NIRVANA_ASSERT (statement_);
+		assert (statement_);
 		return statement_;
 	}
 
@@ -70,7 +70,7 @@ private:
 
 private:
 	NDBC::PreparedStatement::_ref_type statement_;
-	StatementPool& pool_;
+	StatementPool* pool_;
 };
 
 #endif

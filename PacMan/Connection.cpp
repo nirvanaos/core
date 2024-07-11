@@ -37,3 +37,15 @@ Statement Connection::get_statement (const char* sql)
 	} else
 		return Statement (connection ()->prepareStatement (ins.first->first, NDBC::ResultSet::Type::TYPE_FORWARD_ONLY, 0), pool);
 }
+
+NIRVANA_NORETURN void Connection::on_sql_exception (NDBC::SQLException& ex)
+{
+	Nirvana::BindError::Error err;
+	NIRVANA_TRACE ("SQL error: %s\n", ex.error ().sqlState ().c_str ());
+	Nirvana::BindError::set_message (err.info (), std::move (ex.error ().sqlState ()));
+	for (NDBC::SQLWarning& sqle : ex.next ()) {
+		NIRVANA_TRACE ("SQL error: %s\n", sqle.sqlState ().c_str ());
+		Nirvana::BindError::set_message (Nirvana::BindError::push (err), std::move (sqle.sqlState ()));
+	}
+	throw err;
+}

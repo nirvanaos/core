@@ -31,6 +31,7 @@
 #include <Nirvana/NDBC.h>
 #include <unordered_map>
 #include "Statement.h"
+#include "SemVer.h"
 
 #define DATABASE_PATH "/var/lib/packages.db"
 
@@ -57,7 +58,18 @@ public:
 
 	IDL::String get_module_name (Nirvana::ModuleId id)
 	{
-		Nirvana::throw_NO_IMPLEMENT ();
+		Statement stm = get_statement ("SELECT name,version,prerelease FROM module WHERE id=?");
+		stm->setInt (1, id);
+		NDBC::ResultSet::_ref_type rs = stm->executeQuery ();
+		IDL::String name;
+		if (rs->next ()) {
+			SemVer svname;
+			svname.name = rs->getString (1);
+			svname.version = rs->getBigInt (2);
+			svname.prerelease = rs->getString (3);
+			name = svname.to_string ();
+		}
+		return name;
 	}
 
 	Nirvana::Packages::Modules get_module_dependencies (Nirvana::ModuleId id)
@@ -69,8 +81,6 @@ public:
 	{
 		Nirvana::throw_NO_IMPLEMENT ();
 	}
-
-	Statement get_statement (const char* sql);
 
 protected:
 	static NDBC::Connection::_ref_type open_database (const char* url)
@@ -93,18 +103,36 @@ protected:
 		return open_database ("file:" DATABASE_PATH "?mode=rw");
 	}
 
+	Statement get_statement (const char* sql);
+
+	static NIRVANA_NORETURN void on_sql_exception (NDBC::SQLException& ex);
+
 	void commit ()
 	{
-		connection_->commit ();
-		connection_->close ();
-		connection_ = nullptr;
+		try {
+			for (auto& st : statements_) {
+				while (!st.second.empty ()) {
+					st.second.top ()->close ();
+					st.second.pop ();
+				}
+			}
+			connection_->commit ();
+			connection_->close ();
+			connection_ = nullptr;
+		} catch (NDBC::SQLException& ex) {
+			on_sql_exception (ex);
+		}
 	}
 
 	void rollback ()
 	{
-		connection_->rollback (nullptr);
-		connection_->close ();
-		connection_ = nullptr;
+		try {
+			connection_->rollback (nullptr);
+			connection_->close ();
+			connection_ = nullptr;
+		} catch (NDBC::SQLException& ex) {
+			on_sql_exception (ex);
+		}
 	}
 
 	NDBC::Connection::_ptr_type connection () const noexcept

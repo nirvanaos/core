@@ -33,11 +33,11 @@
 struct SemVer
 {
 	int64_t version;
-	std::string name;
-	std::string prerelease;
+	IDL::String name;
+	IDL::String prerelease;
 
-	bool from_string (const std::string& full_name);
-	std::string to_string () const;
+	bool from_string (const IDL::String& full_name);
+	IDL::String to_string () const;
 };
 
 #endif

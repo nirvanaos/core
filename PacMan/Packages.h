@@ -42,14 +42,21 @@ class Packages :
 public:
 	Packages (CORBA::Object::_ptr_type component);
 
+	~Packages ()
+	{
+		if (manager_completion_)
+			manager_completion_->disconnect_pull_supplier ();
+	}
+
 	Nirvana::PacMan::_ref_type manage ()
 	{
 		if (manager_completion_) {
 			bool completed = false;
 			manager_completion_->try_pull (completed);
-			if (completed)
+			if (completed) {
+				manager_completion_->disconnect_pull_supplier ();
 				manager_completion_ = nullptr;
-			else
+			} else
 				return nullptr;
 		}
 
