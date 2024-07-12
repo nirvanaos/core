@@ -31,9 +31,9 @@
 #include <Nirvana/Nirvana.h>
 #include <Nirvana/File.h>
 #include <Nirvana/posix_defs.h>
+#include <Nirvana/Shell.h> // For FileDescriptors
 #include "UserObject.h"
 #include "UserAllocator.h"
-#include <Nirvana/Shell.h> // For FileDescriptors
 
 namespace Nirvana {
 namespace Core {
@@ -149,28 +149,8 @@ public:
 		get_open_fd (ifd).ptr ()->clearerr ();
 	}
 
-	void set_inherited_files (const FileDescriptors& files)
-	{
-		size_t max = 0;
-		for (const auto& f : files) {
-			for (auto d : f.descriptors ()) {
-				if (max < d)
-					max = d;
-			}
-		}
-		if (max >= StandardFileDescriptor::STD_CNT)
-			file_descriptors_.resize (max + 1 - StandardFileDescriptor::STD_CNT);
-		for (const auto& f : files) {
-			DescriptorRef fd = make_fd (f.access ());
-			fd->remove_descriptor_ref ();
-			for (auto d : f.descriptors ()) {
-				DescriptorInfo& fdr = get_fd (d);
-				if (!fdr.closed ())
-					throw_BAD_PARAM ();
-				fdr.assign (fd);
-			}
-		}
-	}
+	void set_inherited_files (const FileDescriptors& files);
+	FileDescriptors get_inherited_files (unsigned* std_mask) const;
 
 private:
 	class NIRVANA_NOVTABLE Descriptor : public UserObject
@@ -178,6 +158,7 @@ private:
 		static const unsigned PUSH_BACK_MAX = 3;
 
 	public:
+		virtual Access::_ref_type access () const = 0;
 		virtual void close () const = 0;
 		virtual size_t read (void* p, size_t size) = 0;
 		virtual void write (const void* p, size_t size) = 0;
@@ -328,7 +309,14 @@ private:
 
 private:
 	static DescriptorRef make_fd (CORBA::AbstractBase::_ptr_type access);
+	
 	DescriptorInfo& get_fd (unsigned fd);
+	
+	const DescriptorInfo& get_fd (unsigned fd) const
+	{
+		return const_cast <FileDescriptorsContext*> (this)->get_fd (fd);
+	}
+	
 	DescriptorInfo& get_open_fd (unsigned fd);
 	size_t alloc_fd (unsigned start = 0);
 

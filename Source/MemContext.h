@@ -175,6 +175,8 @@ public:
 		return core_context_;
 	}
 
+	FileDescriptors get_inherited_files (unsigned create_std_mask) const;
+
 private:
 	static Ref <MemContext> create (Ref <Heap>&& heap, bool class_library_init, bool core_context);
 

@@ -25,6 +25,7 @@
 */
 #include "pch.h"
 #include "FileDescriptorsContext.h"
+#include "MapUnorderedUnstable.h"
 #include <queue>
 
 namespace Nirvana {
@@ -55,6 +56,7 @@ public:
 		access_ (std::move (access))
 	{}
 
+	virtual Access::_ref_type access () const override;
 	virtual void close () const override;
 	virtual size_t read (void* p, size_t size) override;
 	virtual void write (const void* p, size_t size) override;
@@ -79,6 +81,7 @@ public:
 			access_->connect_pull_consumer (nullptr);
 	}
 
+	virtual Access::_ref_type access () const override;
 	virtual void close () const override;
 	virtual size_t read (void* p, size_t size) override;
 	virtual void write (const void* p, size_t size) override;
@@ -150,6 +153,66 @@ FileDescriptorsContext::DescriptorRef FileDescriptorsContext::make_fd (
 			throw_UNKNOWN (make_minor_errno (EIO));
 		return CORBA::make_reference <DescriptorChar> (std::move (ac));
 	}
+}
+
+void FileDescriptorsContext::set_inherited_files (const FileDescriptors& files)
+{
+	size_t max = 0;
+	for (const auto& f : files) {
+		for (auto d : f.descriptors ()) {
+			if (max < d)
+				max = d;
+		}
+	}
+	if (max >= StandardFileDescriptor::STD_CNT)
+		file_descriptors_.resize (max + 1 - StandardFileDescriptor::STD_CNT);
+	for (const auto& f : files) {
+		DescriptorRef fd = make_fd (f.access ());
+		fd->remove_descriptor_ref ();
+		for (auto d : f.descriptors ()) {
+			DescriptorInfo& fdr = get_fd (d);
+			if (!fdr.closed ())
+				throw_BAD_PARAM ();
+			fdr.assign (fd);
+		}
+	}
+}
+
+FileDescriptors FileDescriptorsContext::get_inherited_files (unsigned* std_mask) const
+{
+	using Inherited = MapUnorderedUnstable <Descriptor*, IDL::Sequence <uint16_t>,
+		std::hash <Descriptor*>, std::equal_to <Descriptor*>, UserAllocator>;
+
+	Inherited inherited;
+	unsigned std = 0;
+	for (unsigned ifd = 0, end = StandardFileDescriptor::STD_CNT + file_descriptors_.size (); ifd < end; ++ifd) {
+		const DescriptorInfo& d = get_fd (ifd);
+		if (!d.closed () && !(d.fd_flags () & FD_CLOEXEC)) {
+			inherited [d.ptr ()].push_back ((uint16_t)ifd);
+			if (ifd < StandardFileDescriptor::STD_CNT)
+				std |= 1 << ifd;
+		}
+	}
+
+	FileDescriptors files;
+	for (auto& f : inherited) {
+		files.emplace_back (f.first->access ()->dup (0, 0), std::move (f.second));
+	}
+
+	if (std_mask)
+		*std_mask = std;
+
+	return files;
+}
+
+Access::_ref_type FileDescriptorsContext::DescriptorBuf::access () const
+{
+	return access_;
+}
+
+Access::_ref_type FileDescriptorsContext::DescriptorChar::access () const
+{
+	return access_;
 }
 
 void FileDescriptorsContext::DescriptorBuf::close () const

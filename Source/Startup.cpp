@@ -31,8 +31,6 @@
 #include "ProtDomain.h"
 #include "initterm.h"
 #include <Nirvana/Shell_s.h>
-#include <Nirvana/File.h>
-#include "ORB/Services.h"
 #include <NameService/FileSystem.h>
 #include "open_binary.h"
 
@@ -70,15 +68,7 @@ void Startup::run ()
 			argv.emplace_back (*arg);
 		}
 
-		Nirvana::File::_ref_type console = Nirvana::File::_narrow (CORBA::Core::Services::bind (CORBA::Core::Services::Console));
-		assert (console);
-		Nirvana::Access::_ref_type console_access = console->open (O_WRONLY, 0);
-		/*
-		try {
-			console_access = console->open (O_RDWR, 0);
-		} catch (...) {}*/
-		FileDescriptors files;
-		files.emplace_back (console_access, IDL::Sequence <uint16_t> ({ 1, 2 }));
+		FileDescriptors files = MemContext::current ().get_inherited_files (6);
 
 		if (cmdlet) {
 			ret_ = (int)the_shell->cmdlet (prog, argv, "/sbin", files);

@@ -28,6 +28,7 @@
 #include "ExecDomain.h"
 #include "BinderMemory.h"
 #include "Chrono.h"
+#include "ORB/Services.h"
 
 namespace Nirvana {
 namespace Core {
@@ -172,6 +173,34 @@ void MemContext::destroy (ExecDomain& cur_ed) noexcept
 
 	// Release memory
 	heap->release (this, sizeof (MemContext));
+}
+
+FileDescriptors MemContext::get_inherited_files (unsigned create_std_mask) const
+{
+	FileDescriptors files;
+	const FileDescriptorsContext* fdc = file_descriptors_ptr ();
+	if (fdc) {
+		unsigned std_mask;
+		files = fdc->get_inherited_files (&std_mask);
+		create_std_mask &= ~std_mask;
+	}
+
+	if (create_std_mask) {
+
+		Nirvana::File::_ref_type console = Nirvana::File::_narrow (CORBA::Core::Services::bind (CORBA::Core::Services::Console));
+		assert (console);
+		Nirvana::Access::_ref_type console_access = console->open ((create_std_mask & 1) ? O_RDWR : O_WRONLY, 0);
+
+		IDL::Sequence <uint16_t> descr;
+		for (unsigned i = 0, mask = 1; i < 3; mask <<= 1, ++i) {
+			if (mask & create_std_mask) {
+				descr.push_back (i);
+			}
+		}
+		files.emplace_back (std::move (console_access), std::move (descr));
+	}
+
+	return files;
 }
 
 }

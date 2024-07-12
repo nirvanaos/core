@@ -168,6 +168,11 @@ public:
 		Core::FileDescriptors::clearerr (fd);
 	}
 
+	static FileDescriptors get_inherited_files (unsigned std_creation_mask)
+	{
+		return Core::MemContext::current ().get_inherited_files (std_creation_mask);
+	}
+
 	static void sleep (TimeBase::TimeT period100ns)
 	{
 		if (!period100ns)
