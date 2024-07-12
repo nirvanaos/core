@@ -143,7 +143,7 @@ public:
 			int32_t module_id;
 			if (rs->next ()) {
 				module_id = rs->getInt (1);
-				if (metadata.flags () != rs->getSmallInt (2))
+				if (metadata.module_flags () != rs->getSmallInt (2))
 					Nirvana::BindError::throw_message ("Module type mismatch");
 
 				std::sort (metadata.bindings ().begin (), metadata.bindings ().end (), BindingLess ());
@@ -184,7 +184,7 @@ public:
 				stm->setString (1, svname.name ());
 				stm->setBigInt (2, svname.version ());
 				stm->setString (3, svname.prerelease ());
-				stm->setInt (4, metadata.flags ());
+				stm->setInt (4, metadata.module_flags ());
 				rs = stm->executeQuery ();
 				rs->next ();
 				module_id = rs->getInt (1);

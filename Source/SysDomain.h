@@ -37,7 +37,6 @@
 #include <Port/SysDomain.h>
 #include <Nirvana/File.h>
 #include "NameService/FileSystem.h"
-#include "packagedb.h"
 
 namespace Nirvana {
 namespace Core {
@@ -83,7 +82,7 @@ public:
 		// TODO:: Temporary solution, for testing
 		ModuleLoad& module_load = binding.module_load ();
 		module_load.binary (open_binary (get_sys_binary_path (platform, "TestModule.olf")));
-		module_load.module_id (MAX_SYS_MODULE_ID + 1);
+		module_load.module_id (PM::MAX_SYS_MODULE_ID + 1);
 	}
 
 	PM::Packages::_ref_type provide_packages () const noexcept

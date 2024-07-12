@@ -36,7 +36,6 @@
 #include "ClassLibrary.h"
 #include "Singleton.h"
 #include "Executable.h"
-#include "packagedb.h"
 
 using namespace CORBA;
 using namespace CORBA::Internal;
@@ -582,7 +581,7 @@ Binder::BindResult Binder::find (const ObjectKey& name)
 			bool system = false;
 			if (ret.sync_context) {
 				Module* pmod = ret.sync_context->module ();
-				if (!pmod || pmod->id () <= MAX_SYS_MODULE_ID)
+				if (!pmod || pmod->id () <= PM::MAX_SYS_MODULE_ID)
 					system = true;
 			}
 			if (!system)
@@ -721,17 +720,17 @@ PM::ModuleBindings Binder::get_module_bindings_sync (Nirvana::AccessDirect::_ptr
 
 	PM::ModuleBindings bindings;
 
-	bindings.flags ((uint16_t)mod->flags ());
+	bindings.module_flags ((uint16_t)mod->flags ());
 
 	try {
 		for (const auto& el : context.exports) {
-			uint_fast16_t flags = OBJECT_FLAG_EXPORT;
+			uint_fast16_t flags = PM::OBJECT_FLAG_EXPORT;
 			InterfacePtr itf = el.second.itf;
 			if (RepId::compatible (itf->_epv ().interface_id, RepIdOf <Object>::id)) {
 				const ServantProxyBase* proxy = object2proxy_base (itf.template downcast <Object> ());
 				InterfacePtr servant = proxy->servant ();
 				if (RepId::compatible (servant->_epv ().interface_id, RepIdOf <PortableServer::ServantBase>::id))
-					flags |= OBJECT_FLAG_OBJECT;
+					flags |= PM::OBJECT_FLAG_OBJECT;
 			}
 			bindings.bindings ().emplace_back (IDL::String (el.first.name (), el.first.name_length ()),
 				((uint32_t)(el.first.version ().major) << 16) + el.first.version ().minor, flags);

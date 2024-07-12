@@ -27,9 +27,12 @@
 #include "Packages.h"
 
 #define DATABASE_VERSION 1
+#define RESERVE_SYS_MODULE_ID 100
 
 #define STRINGIZE0(n) #n
 #define STRINGIZE(n) STRINGIZE0 (n)
+
+static_assert (Nirvana::PM::MAX_SYS_MODULE_ID == RESERVE_SYS_MODULE_ID, "RESERVE_SYS_MODULE_ID");
 
 const char* const Packages::db_script_ [] = {
 
@@ -59,8 +62,8 @@ const char* const Packages::db_script_ [] = {
 ");"
 
 // Reserve first 100 module identifiers as the system
-"INSERT INTO module(id, name, version, flags)VALUES(" STRINGIZE (MAX_SYS_MODULE_ID) ",'',0,0); "
-"DELETE FROM module WHERE id=" STRINGIZE (MAX_SYS_MODULE_ID) ";"
+"INSERT INTO module(id, name, version, flags)VALUES(" STRINGIZE (RESERVE_SYS_MODULE_ID) ",'',0,0); "
+"DELETE FROM module WHERE id=" STRINGIZE (RESERVE_SYS_MODULE_ID) ";"
 
 // Set database version
 "PRAGMA user_version=" STRINGIZE (DATABASE_VERSION) ";"

@@ -165,7 +165,7 @@ public:
 
 	void commit ()
 	{
-		exec ("END");
+		exec ("END;BEGIN");
 	}
 
 	NDBC::Statement::_ref_type createStatement (NDBC::ResultSet::Type resultSetType);
@@ -223,7 +223,7 @@ public:
 	void rollback (const NDBC::Savepoint& savepoint)
 	{
 		if (savepoint.empty ())
-			exec ("ROLLBACK");
+			exec ("ROLLBACK;BEGIN");
 		else
 			exec (("ROLLBACK TO " + savepoint).c_str ());
 	}
@@ -233,7 +233,7 @@ public:
 		bool current = getAutoCommit ();
 		if (on) {
 			if (!current)
-				commit ();
+				exec ("END");
 		} else if (current)
 			exec ("BEGIN");
 	}
