@@ -71,7 +71,7 @@ public:
 		return Binder::load_and_bind <CORBA::Object> (mod_id, file, name);
 	}
 
-	static Nirvana::ModuleBindings get_module_bindings (Nirvana::AccessDirect::_ptr_type binary)
+	static PM::ModuleBindings get_module_bindings (Nirvana::AccessDirect::_ptr_type binary)
 	{
 		return Binder::get_module_bindings (binary);
 	}

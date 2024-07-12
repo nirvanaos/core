@@ -35,7 +35,7 @@
 #include "../Source/open_binary.h"
 
 class PacMan :
-	public CORBA::servant_traits <Nirvana::PacMan>::Servant <PacMan>,
+	public CORBA::servant_traits <Nirvana::PM::PacMan>::Servant <PacMan>,
 	public Connection
 {
 public:
@@ -87,7 +87,7 @@ public:
 
 	struct BindingLess
 	{
-		bool operator () (const Nirvana::ModuleBinding& l, const Nirvana::ModuleBinding& r) const noexcept
+		bool operator () (const Nirvana::PM::ModuleBinding& l, const Nirvana::PM::ModuleBinding& r) const noexcept
 		{
 			int cmp = l.name ().compare (r.name ());
 			if (cmp < 0)
@@ -107,9 +107,7 @@ public:
 	{
 		Lock lock (*this);
 
-		SemVer svname;
-		if (!svname.from_string (module_name))
-			Nirvana::BindError::throw_message ("Module name '" + module_name + "' is invalid");
+		SemVer svname (module_name);
 
 		Nirvana::AccessDirect::_ref_type binary = Nirvana::Core::open_binary (name_service_, path);
 
@@ -126,7 +124,7 @@ public:
 		else
 			bind_domain = sys_domain_->provide_manager ()->create_prot_domain (platform);
 
-		Nirvana::ModuleBindings metadata =
+		Nirvana::PM::ModuleBindings metadata =
 			Nirvana::ProtDomainCore::_narrow (bind_domain)->get_module_bindings (binary);
 
 		if (!Nirvana::Core::SINGLE_DOMAIN)
@@ -136,9 +134,9 @@ public:
 
 			Statement stm = get_statement ("SELECT id,flags FROM module WHERE name=? AND version=? AND prerelease=?");
 
-			stm->setString (1, svname.name);
-			stm->setBigInt (2, svname.version);
-			stm->setString (3, svname.prerelease);
+			stm->setString (1, svname.name ());
+			stm->setBigInt (2, svname.version ());
+			stm->setString (3, svname.prerelease ());
 
 			NDBC::ResultSet::_ref_type rs = stm->executeQuery ();
 
@@ -183,9 +181,9 @@ public:
 
 			} else {
 				stm = get_statement ("INSERT INTO module(name,version,prerelease,flags)VALUES(?,?,?,?)RETURNING id");
-				stm->setString (1, svname.name);
-				stm->setBigInt (2, svname.version);
-				stm->setString (3, svname.prerelease);
+				stm->setString (1, svname.name ());
+				stm->setBigInt (2, svname.version ());
+				stm->setString (3, svname.prerelease ());
 				stm->setInt (4, metadata.flags ());
 				rs = stm->executeQuery ();
 				rs->next ();

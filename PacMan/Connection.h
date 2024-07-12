@@ -51,7 +51,7 @@ public:
 	}
 
 	void get_binding (const IDL::String& name, Nirvana::PlatformId platform,
-		Nirvana::Packages::Binding& binding)
+		Nirvana::PM::Binding& binding)
 	{
 		Nirvana::throw_NO_IMPLEMENT ();
 	}
@@ -63,21 +63,18 @@ public:
 		NDBC::ResultSet::_ref_type rs = stm->executeQuery ();
 		IDL::String name;
 		if (rs->next ()) {
-			SemVer svname;
-			svname.name = rs->getString (1);
-			svname.version = rs->getBigInt (2);
-			svname.prerelease = rs->getString (3);
+			SemVer svname (rs->getString (1), rs->getBigInt (2), rs->getString (3));
 			name = svname.to_string ();
 		}
 		return name;
 	}
 
-	Nirvana::Packages::Modules get_module_dependencies (Nirvana::ModuleId id)
+	Nirvana::PM::Packages::Modules get_module_dependencies (Nirvana::ModuleId id)
 	{
 		Nirvana::throw_NO_IMPLEMENT ();
 	}
 
-	Nirvana::Packages::Modules get_dependent_modules (Nirvana::ModuleId)
+	Nirvana::PM::Packages::Modules get_dependent_modules (Nirvana::ModuleId)
 	{
 		Nirvana::throw_NO_IMPLEMENT ();
 	}

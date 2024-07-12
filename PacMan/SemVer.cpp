@@ -26,40 +26,39 @@
 #include "pch.h"
 #include "SemVer.h"
 
-bool SemVer::from_string (const IDL::String& full_name)
+SemVer::SemVer (const IDL::String& full_name) :
+	version_ (0)
 {
 	// Version number begins from the first colon
 	size_t ver = full_name.find ('.');
-	if (std::string::npos == ver) {
-		name = full_name;
-		version = 0;
-		prerelease.clear ();
-	} else if (0 == ver)
-		return false;
+	if (std::string::npos == ver)
+		name_ = full_name;
+	else if (0 == ver)
+		invalid_name (full_name);
 	else {
 		const char* p = full_name.data () + ver;
 		++p;
 		char* end;
 		unsigned long major = strtoul (p, &end, 10);
 		if (end == p)
-			return false;
+			invalid_name (full_name);
 		if (major == 0 || major > std::numeric_limits <uint16_t>::max ())
-			return false;
+			invalid_name (full_name);
 		unsigned long minor = 0, patch = 0;
 		if ('.' == *end) {
 			p = end + 1;
 			minor = strtoul (p, &end, 10);
 			if (end == p)
-				return false;
+				invalid_name (full_name);
 			if (minor > std::numeric_limits <uint16_t>::max ())
-				return false;
+				invalid_name (full_name);
 			if ('.' == *end) {
 				p = end + 1;
 				patch = strtoul (p, &end, 10);
 				if (end == p)
-					return false;
+					invalid_name (full_name);
 				if (patch > std::numeric_limits <uint16_t>::max ())
-					return false;
+					invalid_name (full_name);
 			}
 		}
 		p = end;
@@ -75,29 +74,33 @@ bool SemVer::from_string (const IDL::String& full_name)
 			pre = 0;
 			break;
 		default:
-			return false;
+			invalid_name (full_name);
 		}
 
-		name.assign (full_name, 0, ver);
-		version = ((int64_t)major << 32) + (minor << 16) + patch;
+		name_.assign (full_name, 0, ver);
+		version_ = ((int64_t)major << 32) + (minor << 16) + patch;
 		if (pre) {
 			const char* end = full_name.data () + full_name.size ();
 			end = std::find (p, end, '+');
-			prerelease.assign (p, end);
-		} else
-			prerelease.clear ();
+			prerelease_.assign (p, end);
+		}
 	}
-	return true;
 }
+
+SemVer::SemVer (IDL::String&& name, int64_t version, IDL::String&& prerelease) noexcept :
+	version_ (version),
+	name_ (std::move (name)),
+	prerelease_ (std::move (prerelease))
+{}
 
 IDL::String SemVer::to_string () const
 {
-	IDL::String s = name;
+	IDL::String s = name_;
 
-	if (version || !prerelease.empty ()) {
-		uint16_t major = (uint16_t)(version >> 32);
-		uint16_t minor = (uint16_t)(version >> 16);
-		uint16_t patch = (uint16_t)version;
+	if (version_ || !prerelease_.empty ()) {
+		uint16_t major = (uint16_t)(version_ >> 32);
+		uint16_t minor = (uint16_t)(version_ >> 16);
+		uint16_t patch = (uint16_t)version_;
 
 		s += '.';
 		s += std::to_string (major);
@@ -108,11 +111,16 @@ IDL::String SemVer::to_string () const
 			s += std::to_string (patch);
 		}
 
-		if (!prerelease.empty ()) {
+		if (!prerelease_.empty ()) {
 			s += '-';
-			s += prerelease;
+			s += prerelease_;
 		}
 	}
 
 	return s;
+}
+
+NIRVANA_NORETURN void SemVer::invalid_name (const IDL::String& full_name)
+{
+	Nirvana::BindError::throw_message ("Invalid name: " + full_name);
 }

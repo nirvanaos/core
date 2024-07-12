@@ -704,7 +704,7 @@ Binder::BindResult Binder::load_and_bind (int32_t mod_id,
 	return ret;
 }
 
-Nirvana::ModuleBindings Binder::get_module_bindings_sync (Nirvana::AccessDirect::_ptr_type binary)
+PM::ModuleBindings Binder::get_module_bindings_sync (Nirvana::AccessDirect::_ptr_type binary)
 {
 	Module* mod = nullptr;
 	SYNC_BEGIN (g_core_free_sync_context, &memory ());
@@ -719,7 +719,7 @@ Nirvana::ModuleBindings Binder::get_module_bindings_sync (Nirvana::AccessDirect:
 		throw;
 	}
 
-	Nirvana::ModuleBindings bindings;
+	PM::ModuleBindings bindings;
 
 	bindings.flags ((uint16_t)mod->flags ());
 
@@ -752,7 +752,7 @@ Nirvana::ModuleBindings Binder::get_module_bindings_sync (Nirvana::AccessDirect:
 	return bindings;
 }
 
-Nirvana::ModuleBindings Binder::get_module_bindings (AccessDirect::_ptr_type binary)
+PM::ModuleBindings Binder::get_module_bindings (AccessDirect::_ptr_type binary)
 {
 	Ref <Request> rq = Request::create ();
 	rq->invoke ();
@@ -760,8 +760,8 @@ Nirvana::ModuleBindings Binder::get_module_bindings (AccessDirect::_ptr_type bin
 		Synchronized _sync_frame (sync_domain (), nullptr);
 		try {
 			rq->unmarshal_end ();
-			Nirvana::ModuleBindings md = singleton_->get_module_bindings_sync (binary);
-			Type <Nirvana::ModuleBindings>::marshal_out (md, rq->_get_ptr ());
+			PM::ModuleBindings md = singleton_->get_module_bindings_sync (binary);
+			Type <PM::ModuleBindings>::marshal_out (md, rq->_get_ptr ());
 			rq->success ();
 		} catch (CORBA::Exception& e) {
 			rq->set_exception (std::move (e));
@@ -770,8 +770,8 @@ Nirvana::ModuleBindings Binder::get_module_bindings (AccessDirect::_ptr_type bin
 		}
 	}
 	CORBA::Internal::ProxyRoot::check_request (rq->_get_ptr ());
-	Nirvana::ModuleBindings ret;
-	Type <Nirvana::ModuleBindings>::unmarshal (rq->_get_ptr (), ret);
+	PM::ModuleBindings ret;
+	Type <PM::ModuleBindings>::unmarshal (rq->_get_ptr (), ret);
 	rq->unmarshal_end ();
 	return ret;
 }

@@ -28,7 +28,6 @@
 #define NIRVANA_CORE_COREDOMAINS_IDL_
 
 #include "Nirvana/Domains.idl"
-#include "Nirvana/Packages.idl"
 
 module Nirvana {
 
@@ -50,19 +49,6 @@ case TRUE: ModuleLoad module_load;
 case FALSE: Object loaded_object;
 };
 
-struct ModuleBinding
-{
-	string name;
-	unsigned long version;
-	unsigned short flags;
-};
-
-struct ModuleBindings
-{
-	sequence <ModuleBinding> bindings;
-	unsigned short flags;
-};
-
 /// The core extension of the ProtDomain interface.
 /// This interface is subject of change and intended for internal use by Nirvana core.
 interface ProtDomainCore : ProtDomain
@@ -70,7 +56,7 @@ interface ProtDomainCore : ProtDomain
 	Object load_and_bind (in long mod_id, in AccessDirect file, in string name)
 		raises (BindError::Error);
 
-	ModuleBindings get_module_bindings (in AccessDirect file) raises (BindError::Error);
+	PM::ModuleBindings get_module_bindings (in AccessDirect file) raises (BindError::Error);
 };
 
 /// The core extension of the SysDomain interface.

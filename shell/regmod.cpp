@@ -50,11 +50,11 @@ public:
 		else
 			pname = &bin_path.back ().id ();
 
-		Packages::_ref_type packages = SysDomain::_narrow (
+		PM::Packages::_ref_type packages = SysDomain::_narrow (
 			CORBA::the_orb->resolve_initial_references ("SysDomain")
 		)->provide_packages ();
 
-		PacMan::_ref_type pacman = packages->manage ();
+		PM::PacMan::_ref_type pacman = packages->manage ();
 		if (!pacman) {
 			print (2, "Installation session is already started, try later.\n");
 			return -1;
@@ -81,8 +81,8 @@ private:
 	static void print (int fd, const std::string& s);
 	static void print (int fd, int d);
 	static void println (int fd);
-	static void print (PackagesDB::_ptr_type packages, const BindError::Error& err);
-	static void print (PackagesDB::_ptr_type packages, const BindError::Info& err);
+	static void print (PM::PackageDB::_ptr_type packages, const BindError::Error& err);
+	static void print (PM::PackageDB::_ptr_type packages, const BindError::Info& err);
 };
 
 void Static_regmod::print (int fd, const char* s)
@@ -106,7 +106,7 @@ void Static_regmod::print (int fd, int d)
 	print (fd, std::to_string (d));
 }
 
-void Static_regmod::print (PackagesDB::_ptr_type packages, const BindError::Error& err)
+void Static_regmod::print (PM::PackageDB::_ptr_type packages, const BindError::Error& err)
 {
 	print (packages, err.info ());
 	for (auto it = err.stack ().cbegin (), end = err.stack ().cend (); it != end; ++it) {
@@ -114,7 +114,7 @@ void Static_regmod::print (PackagesDB::_ptr_type packages, const BindError::Erro
 	}
 }
 
-void Static_regmod::print (PackagesDB::_ptr_type packages, const BindError::Info& err)
+void Static_regmod::print (PM::PackageDB::_ptr_type packages, const BindError::Info& err)
 {
 	switch (err._d ()) {
 	case BindError::Type::ERR_MESSAGE:

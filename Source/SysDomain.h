@@ -86,7 +86,7 @@ public:
 		module_load.module_id (MAX_SYS_MODULE_ID + 1);
 	}
 
-	Nirvana::Packages::_ref_type provide_packages () const noexcept
+	PM::Packages::_ref_type provide_packages () const noexcept
 	{
 		return packages_;
 	}
@@ -177,7 +177,7 @@ private:
 
 private:
 	Nirvana::SysManager::_ref_type manager_;
-	Nirvana::Packages::_ref_type packages_;
+	PM::Packages::_ref_type packages_;
 
 	static const char* const sys_module_names_ [];
 };

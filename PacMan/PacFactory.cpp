@@ -30,7 +30,7 @@ class Static_pac_factory :
 	public CORBA::servant_traits <Nirvana::PM::PacFactory>::ServantStatic <Static_pac_factory>
 {
 public:
-	static Nirvana::Packages::_ref_type create (CORBA::Object::_ptr_type comp)
+	static Nirvana::PM::Packages::_ref_type create (CORBA::Object::_ptr_type comp)
 	{
 		return CORBA::make_reference <Packages> (comp)->_this ();
 	}

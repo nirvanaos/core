@@ -159,7 +159,7 @@ public:
 		return ret;
 	}
 
-	static Nirvana::ModuleBindings get_module_bindings (AccessDirect::_ptr_type binary);
+	static PM::ModuleBindings get_module_bindings (AccessDirect::_ptr_type binary);
 
 	static Binder& singleton () noexcept
 	{
@@ -461,7 +461,7 @@ private:
 	BindResult load_and_bind_sync (int32_t mod_id, AccessDirect::_ptr_type binary,
 		const ObjectKey& name, CORBA::Internal::String_in iid);
 
-	Nirvana::ModuleBindings get_module_bindings_sync (AccessDirect::_ptr_type binary);
+	PM::ModuleBindings get_module_bindings_sync (AccessDirect::_ptr_type binary);
 
 	void housekeeping_modules ();
 	static void delete_module (Module* mod) noexcept;
@@ -496,7 +496,7 @@ private:
 	class Request;
 
 private:
-	Packages::_ref_type packages_;
+	PM::Packages::_ref_type packages_;
 	ObjectMap object_map_;
 	ModuleMap module_map_;
 	BinaryMap binary_map_;

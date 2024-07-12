@@ -34,10 +34,10 @@
 #include "Connection.h"
 
 class Packages :
-	public CORBA::servant_traits <Nirvana::Packages>::Servant <Packages>,
+	public CORBA::servant_traits <Nirvana::PM::Packages>::Servant <Packages>,
 	public Connection
 {
-	typedef CORBA::servant_traits <Nirvana::Packages>::Servant <Packages> Servant;
+	typedef CORBA::servant_traits <Nirvana::PM::Packages>::Servant <Packages> Servant;
 
 public:
 	Packages (CORBA::Object::_ptr_type component);
@@ -48,7 +48,7 @@ public:
 			manager_completion_->disconnect_pull_supplier ();
 	}
 
-	Nirvana::PacMan::_ref_type manage ()
+	Nirvana::PM::PacMan::_ref_type manage ()
 	{
 		if (manager_completion_) {
 			bool completed = false;
@@ -64,7 +64,7 @@ public:
 		CosEventChannelAdmin::ProxyPullSupplier::_ref_type supplier = channel->for_consumers ()->obtain_pull_supplier ();
 		supplier->connect_pull_consumer (nullptr);
 
-		Nirvana::PacMan::_ref_type pacman = Nirvana::PM::pacman_factory->create (sys_domain (),
+		Nirvana::PM::PacMan::_ref_type pacman = Nirvana::PM::pacman_factory->create (sys_domain (),
 			channel->for_suppliers ()->obtain_push_consumer ());
 
 		manager_completion_ = std::move (supplier);

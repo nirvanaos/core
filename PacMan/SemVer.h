@@ -29,15 +29,37 @@
 
 #include <Nirvana/Nirvana.h>
 
-// Semantc-versioned name
-struct SemVer
+// Semantic-versioned name
+class SemVer
 {
-	int64_t version;
-	IDL::String name;
-	IDL::String prerelease;
+public:
+	SemVer (IDL::String&& name, int64_t version, IDL::String&& prerelease) noexcept;
+	SemVer (const IDL::String& full_name);
 
-	bool from_string (const IDL::String& full_name);
+	const IDL::String& name () const noexcept
+	{
+		return name_;
+	}
+
+	int64_t version () const noexcept
+	{
+		return version_;
+	}
+
+	const IDL::String& prerelease () const noexcept
+	{
+		return prerelease_;
+	}
+
 	IDL::String to_string () const;
+
+private:
+	static NIRVANA_NORETURN void invalid_name (const IDL::String& full_name);
+
+private:
+	int64_t version_;
+	IDL::String name_;
+	IDL::String prerelease_;
 };
 
 #endif
