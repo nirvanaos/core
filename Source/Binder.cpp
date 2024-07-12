@@ -734,11 +734,11 @@ Nirvana::ModuleBindings Binder::get_module_bindings_sync (Nirvana::AccessDirect:
 					flags |= OBJECT_FLAG_OBJECT;
 			}
 			bindings.bindings ().emplace_back (IDL::String (el.first.name (), el.first.name_length ()),
-				(uint32_t)(el.first.version ().major) << 16 + el.first.version ().minor, flags);
+				((uint32_t)(el.first.version ().major) << 16) + el.first.version ().minor, flags);
 		}
 		for (const auto& el : context.dependencies) {
 			bindings.bindings ().emplace_back (IDL::String (el.name (), el.name_length ()),
-				(uint32_t)(el.version ().major) << 16 + el.version ().minor, 0);
+				((uint32_t)(el.version ().major) << 16) + el.version ().minor, 0);
 		}
 	} catch (...) {
 		terminate_and_unbind (*mod);

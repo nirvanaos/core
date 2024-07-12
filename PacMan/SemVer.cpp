@@ -79,7 +79,7 @@ bool SemVer::from_string (const IDL::String& full_name)
 		}
 
 		name.assign (full_name, 0, ver);
-		version = (int64_t)major << 32 + minor << 16 + patch;
+		version = ((int64_t)major << 32) + (minor << 16) + patch;
 		if (pre) {
 			const char* end = full_name.data () + full_name.size ();
 			end = std::find (p, end, '+');

@@ -25,6 +25,7 @@
 */
 #include "pch.h"
 #include <Nirvana/Domains.h>
+#include <Nirvana/Packages.h>
 
 namespace Nirvana {
 

@@ -23,7 +23,12 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
+
+#ifndef PACMAN_INTERNAL_IDL_
+#define PACMAN_INTERNAL_IDL_
+
 #include <Nirvana/Domains.idl>
+#include <Nirvana/Packages.idl>
 #include <CORBA/CosEventChannelAdmin.idl>
 
 module Nirvana {
@@ -38,3 +43,5 @@ const PacManFactory pacman_factory;
 
 };
 };
+
+#endif

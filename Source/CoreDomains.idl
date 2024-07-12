@@ -24,10 +24,11 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_CORE_COREDOMAINS_H_
-#define NIRVANA_CORE_COREDOMAINS_H_
+#ifndef NIRVANA_CORE_COREDOMAINS_IDL_
+#define NIRVANA_CORE_COREDOMAINS_IDL_
 
 #include "Nirvana/Domains.idl"
+#include "Nirvana/Packages.idl"
 
 module Nirvana {
 

@@ -23,8 +23,8 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_PACMAN_PCH_H_
-#define NIRVANA_PACMAN_PCH_H_
+#ifndef PACMAN_PCH_H_
+#define PACMAN_PCH_H_
 #pragma once
 
 #include <Nirvana/Nirvana.h>

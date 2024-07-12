@@ -23,14 +23,14 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_PACMAN_PACKAGES_H_
-#define NIRVANA_PACMAN_PACKAGES_H_
+#ifndef PACMAN_PACKAGES_H_
+#define PACMAN_PACKAGES_H_
 #pragma once
 
 #include <CORBA/Server.h>
 #include <Nirvana/Domains_s.h>
 #include "PacMan.h"
-#include "PM.h"
+#include "internal.h"
 #include "Connection.h"
 
 class Packages :

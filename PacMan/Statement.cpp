@@ -30,6 +30,7 @@ void Statement::return_to_pool () noexcept
 {
 	if (statement_) {
 		try {
+			statement_->clearParameters ();
 			pool_->push (std::move (statement_));
 		} catch (...) {
 			statement_ = nullptr;
