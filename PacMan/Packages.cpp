@@ -47,7 +47,7 @@ const char* const Packages::db_script_ [] = {
 "CREATE TABLE binary("
 "module INTEGER NOT NULL REFERENCES module(id)ON DELETE CASCADE,"
 "platform INTEGER NOT NULL,path TEXT NOT NULL,"
-"UNIQUE(module,platform)"
+"UNIQUE(module,platform),UNIQUE(path)"
 ");"
 
 // Module exports
@@ -75,15 +75,15 @@ const char* const Packages::db_script_ [] = {
 };
 
 Packages::Packages (CORBA::Object::_ptr_type component) :
-	Servant (component)
+	Servant (component),
+	ConnectionPool (::Connection::connect_ro)
 {
 	create_database ();
-	connect (open_ro ());
 }
 
 inline void Packages::create_database ()
 {
-	NDBC::Connection::_ref_type connection = open_rwc ();
+	NDBC::Connection::_ref_type connection = ::Connection::open_database (::Connection::connect_rwc);
 	NDBC::Statement::_ref_type st = connection->createStatement (NDBC::ResultSet::Type::TYPE_FORWARD_ONLY);
 	NDBC::ResultSet::_ref_type rs = st->executeQuery ("PRAGMA user_version;");
 	rs->next ();
@@ -106,4 +106,3 @@ inline void Packages::create_database ()
 		connection->commit ();
 	}
 }
-

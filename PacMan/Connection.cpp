@@ -26,16 +26,41 @@
 #include "pch.h"
 #include "Connection.h"
 
-Statement Connection::get_statement (const char* sql)
+#define DATABASE_PATH "/var/lib/packages.db"
+
+const char Connection::connect_rwc [] = "file:" DATABASE_PATH "?mode=rwc&journal_mode=WAL";
+const char Connection::connect_rw [] = "file:" DATABASE_PATH "?mode=rw";
+const char Connection::connect_ro [] = "file:" DATABASE_PATH "?mode=ro";
+
+NDBC::Connection::_ref_type Connection::open_database (const char* url)
 {
-	auto ins = statements_.emplace (sql, StatementPool ());
-	StatementPool& pool = ins.first->second;
-	if (!pool.empty ()) {
-		Statement ret (std::move (pool.top ()), pool);
-		pool.pop ();
-		return ret;
-	} else
-		return Statement (connection ()->prepareStatement (ins.first->first, NDBC::ResultSet::Type::TYPE_FORWARD_ONLY, 0), pool);
+	return SQLite::driver->connect (url, nullptr, nullptr);
+}
+
+Connection::~Connection ()
+{}
+
+Connection::Statement Connection::get_statement (std::string sql)
+{
+	auto ins = statements_.emplace (std::move (sql), NDBC::PreparedStatement::_ref_type ());
+	if (ins.second) {
+		try {
+			ins.first->second = connection_->prepareStatement (ins.first->first,
+				NDBC::ResultSet::Type::TYPE_FORWARD_ONLY, NDBC::PreparedStatement::PREPARE_PERSISTENT);
+		} catch (...) {
+			statements_.erase (ins.first);
+			throw;
+		}
+	}
+	return ins.first->second;
+}
+
+void Connection::close_statements ()
+{
+	for (auto& st : statements_) {
+		st.second->close ();
+	}
+	statements_.clear ();
 }
 
 NIRVANA_NORETURN void Connection::on_sql_exception (NDBC::SQLException& ex)
@@ -50,13 +75,23 @@ NIRVANA_NORETURN void Connection::on_sql_exception (NDBC::SQLException& ex)
 	throw err;
 }
 
-void Connection::get_module_bindings (int32_t module_id, Nirvana::PM::ModuleBindings& metadata)
+Nirvana::PM::Packages::Modules Connection::get_module_dependencies (Nirvana::ModuleId id)
+{
+	Nirvana::throw_NO_IMPLEMENT ();
+}
+
+Nirvana::PM::Packages::Modules Connection::get_dependent_modules (Nirvana::ModuleId)
+{
+	Nirvana::throw_NO_IMPLEMENT ();
+}
+
+void Connection::get_module_bindings (Nirvana::ModuleId id, Nirvana::PM::ModuleBindings& metadata)
 {
 	Statement stm = get_statement (
 		"SELECT name,major,minor,primary,type FROM export WHERE module=? ORDER BY name,major,minor;"
 		"SELECT name,version,interface FROM import WHERE module=? ORDER BY name,version,interface;"
 	);
-	stm->setInt (1, module_id);
+	stm->setInt (1, id);
 
 	auto rs = stm->executeQuery ();
 
@@ -76,3 +111,24 @@ void Connection::get_module_bindings (int32_t module_id, Nirvana::PM::ModuleBind
 			rs->getString (3));
 	}
 }
+
+void Connection::get_binding (const IDL::String& name, Nirvana::PlatformId platform,
+	Nirvana::PM::Binding& binding)
+{
+	Nirvana::throw_NO_IMPLEMENT ();
+}
+
+IDL::String Connection::get_module_name (Nirvana::ModuleId id)
+{
+	Statement stm = get_statement ("SELECT name,version,prerelease FROM module WHERE id=?");
+	stm->setInt (1, id);
+	NDBC::ResultSet::_ref_type rs = stm->executeQuery ();
+	IDL::String name;
+	if (rs->next ()) {
+		SemVer svname (rs->getString (1), rs->getBigInt (2), rs->getString (3));
+		name = svname.to_string ();
+	}
+	return name;
+}
+
+

@@ -40,7 +40,7 @@ class PacMan :
 {
 public:
 	PacMan (Nirvana::SysDomain::_ptr_type sys_domain, CosEventChannelAdmin::ProxyPushConsumer::_ptr_type completion) :
-		Connection (open_rw ()),
+		Connection (Connection::connect_rw),
 		sys_domain_ (sys_domain),
 		busy_ (false)
 	{
@@ -54,7 +54,7 @@ public:
 		complete ();
 	}
 
-	// Does not allow parallel installation
+	// Does not allow parallel installations
 	class Lock
 	{
 	public:

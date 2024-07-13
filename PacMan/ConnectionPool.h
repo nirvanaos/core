@@ -23,17 +23,48 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "pch.h"
-#include "Statement.h"
+#ifndef PACMAN_CONNECTIONPOOL_H_
+#define PACMAN_CONNECTIONPOOL_H_
+#pragma once
 
-void Statement::return_to_pool () noexcept
+#include "Connection.h"
+#include <stack>
+#include <memory>
+
+class ConnectionPool
 {
-	if (statement_) {
-		try {
-			statement_->clearParameters ();
-			pool_->push (std::move (statement_));
-		} catch (...) {
-			statement_ = nullptr;
+	typedef std::unique_ptr <::Connection> ConnectionPtr;
+
+public:
+	ConnectionPool (const char* connstr) noexcept :
+		connstr_ (connstr)
+	{}
+
+	class Connection
+	{
+	public:
+		Connection (ConnectionPool& pool);
+		~Connection ();
+
+		Connection (const Connection&) = delete;
+		Connection (Connection&&) = delete;
+
+		Connection& operator = (const Connection&) = delete;
+		Connection& operator = (Connection&&) = delete;
+
+		::Connection* operator -> () const noexcept
+		{
+			return ptr_.get ();
 		}
-	}
-}
+
+	private:
+		ConnectionPool& pool_;
+		ConnectionPtr ptr_;
+	};
+
+private:
+	const char* connstr_;
+	std::stack <ConnectionPtr> stack_;
+};
+
+#endif

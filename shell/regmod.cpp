@@ -35,20 +35,14 @@ class Static_regmod :
 public:
 	static int run (StringSeq& argv)
 	{
-		static const char usage [] = "Usage: regmod <module path>\n";
-		if (argv.size () < 1 || argv.size () > 2) {
+		static const char usage [] = "Usage: regmod <binary path> <module name>\n";
+		if (argv.size () != 2) {
 			print (1, usage);
 			return -1;
 		}
 
 		CosNaming::Name bin_path;
 		the_posix->append_path (bin_path, argv [0], true);
-
-		const std::string* pname;
-		if (argv.size () > 1)
-			pname = &argv [1];
-		else
-			pname = &bin_path.back ().id ();
 
 		PM::Packages::_ref_type packages = SysDomain::_narrow (
 			CORBA::the_orb->resolve_initial_references ("SysDomain")
@@ -63,7 +57,7 @@ public:
 		int ret = -1;
 
 		try {
-			pacman->register_binary (the_system->to_string (bin_path), *pname, 0);
+			pacman->register_binary (the_system->to_string (bin_path), argv [1], 0);
 			pacman->commit ();
 			ret = 0;
 		} catch (const BindError::Error& ex) {

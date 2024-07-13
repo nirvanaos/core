@@ -30,91 +30,44 @@
 #include <Nirvana/Nirvana.h>
 #include <Nirvana/NDBC.h>
 #include <unordered_map>
-#include "Statement.h"
 #include "SemVer.h"
-
-#define DATABASE_PATH "/var/lib/packages.db"
 
 class Connection
 {
 public:
-	Connection ()
+	static const char connect_rwc [];
+	static const char connect_rw [];
+	static const char connect_ro [];
+
+	static NDBC::Connection::_ref_type open_database (const char* url);
+
+	Connection (const char* connstr) :
+		connection_ (open_database (connstr))
 	{}
 
-	Connection (NDBC::Connection::_ref_type&& conn) noexcept :
-		connection_ (std::move (conn))
-	{}
+	~Connection ();
 
-	void connect (NDBC::Connection::_ref_type&& conn) noexcept
-	{
-		connection_ = std::move (conn);
-	}
+	typedef NDBC::PreparedStatement::_ptr_type Statement;
 
 	void get_binding (const IDL::String& name, Nirvana::PlatformId platform,
-		Nirvana::PM::Binding& binding)
-	{
-		Nirvana::throw_NO_IMPLEMENT ();
-	}
+		Nirvana::PM::Binding& binding);
 
-	IDL::String get_module_name (Nirvana::ModuleId id)
-	{
-		Statement stm = get_statement ("SELECT name,version,prerelease FROM module WHERE id=?");
-		stm->setInt (1, id);
-		NDBC::ResultSet::_ref_type rs = stm->executeQuery ();
-		IDL::String name;
-		if (rs->next ()) {
-			SemVer svname (rs->getString (1), rs->getBigInt (2), rs->getString (3));
-			name = svname.to_string ();
-		}
-		return name;
-	}
+	IDL::String get_module_name (Nirvana::ModuleId id);
 
-	Nirvana::PM::Packages::Modules get_module_dependencies (Nirvana::ModuleId id)
-	{
-		Nirvana::throw_NO_IMPLEMENT ();
-	}
+	Nirvana::PM::Packages::Modules get_module_dependencies (Nirvana::ModuleId id);
+	Nirvana::PM::Packages::Modules get_dependent_modules (Nirvana::ModuleId id);
 
-	Nirvana::PM::Packages::Modules get_dependent_modules (Nirvana::ModuleId)
-	{
-		Nirvana::throw_NO_IMPLEMENT ();
-	}
-
-	void get_module_bindings (int32_t module_id, Nirvana::PM::ModuleBindings& metadata);
+	void get_module_bindings (Nirvana::ModuleId id, Nirvana::PM::ModuleBindings& metadata);
 
 protected:
-	static NDBC::Connection::_ref_type open_database (const char* url)
-	{
-		return SQLite::driver->connect (url, nullptr, nullptr);
-	}
-
-	static NDBC::Connection::_ref_type open_rwc ()
-	{
-		return open_database ("file:" DATABASE_PATH "?mode=rwc&journal_mode=WAL");
-	}
-
-	static NDBC::Connection::_ref_type open_ro ()
-	{
-		return open_database ("file:" DATABASE_PATH "?mode=ro");
-	}
-
-	static NDBC::Connection::_ref_type open_rw ()
-	{
-		return open_database ("file:" DATABASE_PATH "?mode=rw");
-	}
-
-	Statement get_statement (const char* sql);
+	Statement get_statement (std::string sql);
 
 	static NIRVANA_NORETURN void on_sql_exception (NDBC::SQLException& ex);
 
 	void commit ()
 	{
 		try {
-			for (auto& st : statements_) {
-				while (!st.second.empty ()) {
-					st.second.top ()->close ();
-					st.second.pop ();
-				}
-			}
+			close_statements ();
 			connection_->commit ();
 			connection_->close ();
 			connection_ = nullptr;
@@ -126,6 +79,7 @@ protected:
 	void rollback ()
 	{
 		try {
+			close_statements ();
 			connection_->rollback (nullptr);
 			connection_->close ();
 			connection_ = nullptr;
@@ -136,7 +90,6 @@ protected:
 
 	NDBC::Connection::_ptr_type connection () const noexcept
 	{
-		NIRVANA_ASSERT (connection_);
 		return connection_;
 	}
 
@@ -156,9 +109,10 @@ protected:
 	}
 
 private:
-	typedef std::unordered_map <std::string, StatementPool> Statements;
+	void close_statements ();
 
 private:
+	typedef std::unordered_map <std::string, NDBC::PreparedStatement::_ref_type> Statements;
 	NDBC::Connection::_ref_type connection_;
 	Statements statements_;
 };

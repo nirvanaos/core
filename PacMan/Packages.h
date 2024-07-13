@@ -31,11 +31,11 @@
 #include <Nirvana/Domains_s.h>
 #include "PacMan.h"
 #include "factory.h"
-#include "Connection.h"
+#include "ConnectionPool.h"
 
 class Packages :
 	public CORBA::servant_traits <Nirvana::PM::Packages>::Servant <Packages>,
-	public Connection
+	public ConnectionPool
 {
 	typedef CORBA::servant_traits <Nirvana::PM::Packages>::Servant <Packages> Servant;
 
@@ -46,6 +46,32 @@ public:
 	{
 		if (manager_completion_)
 			manager_completion_->disconnect_pull_supplier ();
+	}
+
+	void get_binding (const IDL::String& name, Nirvana::PlatformId platform,
+		Nirvana::PM::Binding& binding)
+	{
+		Connection (*this)->get_binding (name, platform, binding);
+	}
+
+	IDL::String get_module_name (Nirvana::ModuleId id)
+	{
+		return Connection (*this)->get_module_name (id);
+	}
+
+	Nirvana::PM::Packages::Modules get_module_dependencies (Nirvana::ModuleId id)
+	{
+		return Connection (*this)->get_module_dependencies (id);
+	}
+
+	Nirvana::PM::Packages::Modules get_dependent_modules (Nirvana::ModuleId id)
+	{
+		return Connection (*this)->get_dependent_modules (id);
+	}
+
+	void get_module_bindings (Nirvana::ModuleId id, Nirvana::PM::ModuleBindings& metadata)
+	{
+		Connection (*this)->get_module_bindings (id, metadata);
 	}
 
 	Nirvana::PM::PacMan::_ref_type manage ()

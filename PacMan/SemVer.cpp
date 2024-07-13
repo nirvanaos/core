@@ -31,9 +31,15 @@ SemVer::SemVer (const IDL::String& full_name) :
 {
 	// Version number begins from the first colon
 	size_t ver = full_name.find ('.');
-	if (std::string::npos == ver)
+	for (; IDL::String::npos != ver; ver = full_name.find ('.', ver + 1)) {
+		char d = full_name [ver + 1];
+		if ('0' <= d && d <= '9')
+			break;
+	}
+	if (IDL::String::npos == ver) {
 		name_ = full_name;
-	else if (0 == ver)
+		version_ = (int64_t)1 << 32;
+	} else if (0 == ver)
 		invalid_name (full_name);
 	else {
 		const char* p = full_name.data () + ver;
@@ -42,7 +48,7 @@ SemVer::SemVer (const IDL::String& full_name) :
 		unsigned long major = strtoul (p, &end, 10);
 		if (end == p)
 			invalid_name (full_name);
-		if (major == 0 || major > std::numeric_limits <uint16_t>::max ())
+		if (major > std::numeric_limits <uint16_t>::max ())
 			invalid_name (full_name);
 		unsigned long minor = 0, patch = 0;
 		if ('.' == *end) {
@@ -78,7 +84,7 @@ SemVer::SemVer (const IDL::String& full_name) :
 		}
 
 		name_.assign (full_name, 0, ver);
-		version_ = ((int64_t)major << 32) + (minor << 16) + patch;
+		version_ = ((int64_t)major << 32) | ((int64_t)minor << 16) | patch;
 		if (pre) {
 			const char* end = full_name.data () + full_name.size ();
 			end = std::find (p, end, '+');
@@ -97,24 +103,22 @@ IDL::String SemVer::to_string () const
 {
 	IDL::String s = name_;
 
-	if (version_ || !prerelease_.empty ()) {
-		uint16_t major = (uint16_t)(version_ >> 32);
-		uint16_t minor = (uint16_t)(version_ >> 16);
-		uint16_t patch = (uint16_t)version_;
+	uint16_t major = (uint16_t)(version_ >> 32);
+	uint16_t minor = (uint16_t)(version_ >> 16);
+	uint16_t patch = (uint16_t)version_;
 
+	s += '.';
+	s += std::to_string (major);
+	s += '.';
+	s += std::to_string (minor);
+	if (patch) {
 		s += '.';
-		s += std::to_string (major);
-		s += '.';
-		s += std::to_string (minor);
-		if (patch) {
-			s += '.';
-			s += std::to_string (patch);
-		}
+		s += std::to_string (patch);
+	}
 
-		if (!prerelease_.empty ()) {
-			s += '-';
-			s += prerelease_;
-		}
+	if (!prerelease_.empty ()) {
+		s += '-';
+		s += prerelease_;
 	}
 
 	return s;
