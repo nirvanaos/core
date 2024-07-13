@@ -68,8 +68,8 @@ public:
 			ret = 0;
 		} catch (const BindError::Error& ex) {
 			print (pacman, ex);
-		} catch (const std::exception& ex) {
-			print (2, ex.what ());
+		} catch (const CORBA::SystemException& ex) {
+			print (ex);
 			println (2);
 		}
 
@@ -83,6 +83,7 @@ private:
 	static void println (int fd);
 	static void print (PM::PackageDB::_ptr_type packages, const BindError::Error& err);
 	static void print (PM::PackageDB::_ptr_type packages, const BindError::Info& err);
+	static void print (const CORBA::SystemException& se);
 };
 
 void Static_regmod::print (int fd, const char* s)
@@ -140,12 +141,7 @@ void Static_regmod::print (PM::PackageDB::_ptr_type packages, const BindError::I
 	case BindError::Type::ERR_SYSTEM: {
 		CORBA::UNKNOWN se;
 		err.system_exception () >>= se;
-		print (2, se.what ());
-		int err = get_minor_errno (se.minor ());
-		if (err) {
-			print (2, " errno: ");
-			print (2, err);
-		}
+		print (se);
 	} break;
 
 	case BindError::Type::ERR_UNSUP_PLATFORM:
@@ -159,6 +155,16 @@ void Static_regmod::print (PM::PackageDB::_ptr_type packages, const BindError::I
 	}
 
 	println (2);
+}
+
+void Static_regmod::print (const CORBA::SystemException& se)
+{
+	print (2, se.what ());
+	int err = get_minor_errno (se.minor ());
+	if (err) {
+		print (2, " errno: ");
+		print (2, err);
+	}
 }
 
 }

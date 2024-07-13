@@ -66,8 +66,10 @@ void Binder::ObjectMap::insert (const char* name, InterfacePtr itf, SyncContext*
 {
 	assert (itf);
 	assert (*name);
-	if (!ObjectMapBase::emplace (name, ObjectVal (itf, sc)).second)
-		throw_INV_OBJREF ();	// Duplicated name TODO: Log
+	auto ins = ObjectMapBase::emplace (name, ObjectVal (itf, sc));
+	if (!ins.second)
+		BindError::throw_message (IDL::String ("Duplicated export: ")
+			+ ins.first->first.name () + " and " + name);
 }
 
 void Binder::ObjectMap::erase (const char* name) noexcept
@@ -524,68 +526,45 @@ void Binder::release_imports (Nirvana::Module::_ptr_type mod, const Section& met
 
 Binder::BindResult Binder::find (const ObjectKey& name)
 {
-	const ExecDomain& exec_domain = ExecDomain::current ();
-	switch (exec_domain.sync_context ().sync_context_type ()) {
-	case SyncContext::Type::FREE_MODULE_TERM:
-	case SyncContext::Type::SINGLETON_TERM:
-		throw_NO_PERMISSION ();
-	}
-	ModuleContext* context = reinterpret_cast <ModuleContext*> (exec_domain.TLS_get (CoreTLS::CORE_TLS_BINDER));
-	BindResult ret;
-	if (context)
-		ret = context->exports.find (name);
+	if (!initialized_)
+		throw_OBJECT_NOT_EXIST ();
+	BindResult ret = object_map_.find (name);
 	if (!ret.itf) {
-		if (!initialized_)
-			throw_OBJECT_NOT_EXIST ();
-		ret = object_map_.find (name);
-		if (!ret.itf) {
 
-			Binding binding;
+		Binding binding;
 			
-			SysDomainCore::_narrow (Services::bind (Services::SysDomain))->get_binding (
-				CORBA::Internal::StringView <char> (name.name (), name.full_length ()), PLATFORM, binding);
+		SysDomainCore::_narrow (Services::bind (Services::SysDomain))->get_binding (
+			CORBA::Internal::StringView <char> (name.name (), name.full_length ()), PLATFORM, binding);
 
-			if (binding._d ()) {
-				const ModuleLoad& ml = binding.module_load ();
-				try {
-					load (ml.module_id (), ml.binary ());
-				} catch (BindError::Error& ex) {
-					BindError::push_obj_name (ex, name.name ());
-					throw ex;
-				}
-				ret = object_map_.find (name);
-				if (!ret.itf)
-					throw_object_not_in_module (name, ml.module_id ());
-			} else {
-				Object::_ptr_type obj = binding.loaded_object ();
-				ProxyManager* proxy = ProxyManager::cast (obj);
-				if (!proxy)
-					throw_OBJECT_NOT_EXIST ();
-				Reference* ref = proxy->to_reference ();
+		if (binding._d ()) {
+			const ModuleLoad& ml = binding.module_load ();
+			try {
+				load (ml.module_id (), ml.binary ());
+			} catch (BindError::Error& ex) {
+				BindError::push_obj_name (ex, name.name ());
+				throw ex;
+			}
+			ret = object_map_.find (name);
+			if (!ret.itf)
+				throw_object_not_in_module (name, ml.module_id ());
+		} else {
+			Object::_ptr_type obj = binding.loaded_object ();
+			ProxyManager* proxy = ProxyManager::cast (obj);
+			if (!proxy)
+				throw_OBJECT_NOT_EXIST ();
+			Reference* ref = proxy->to_reference ();
 
-				// If object is local, then it is already inserted in the object map.
-				// Otherwise insert it.
-				if (ref && !(ref->flags () & Reference::LOCAL)) {
-					ReferenceRemote& rr = static_cast <ReferenceRemote&> (*ref);
-					object_map_.insert (rr.set_object_name (name.name ()), &obj, nullptr);
-				}
+			// If object is local, then it is already inserted in the object map.
+			// Otherwise insert it.
+			if (ref && !(ref->flags () & Reference::LOCAL)) {
+				ReferenceRemote& rr = static_cast <ReferenceRemote&> (*ref);
+				object_map_.insert (rr.set_object_name (name.name ()), &obj, nullptr);
+			}
 #ifndef NDEBUG
-				else
-					assert (object_map_.find (name));
+			else
+				assert (object_map_.find (name));
 #endif
-				ret.itf = std::move (binding.loaded_object ());
-			}
-		}
-
-		if (context && context->collect_dependencies) {
-			bool system = false;
-			if (ret.sync_context) {
-				Module* pmod = ret.sync_context->module ();
-				if (!pmod || pmod->id () <= PM::MAX_SYS_MODULE_ID)
-					system = true;
-			}
-			if (!system)
-				context->dependencies.insert (name);
+			ret.itf = std::move (binding.loaded_object ());
 		}
 	}
 	return ret;
@@ -623,8 +602,41 @@ Binder::BindResult Binder::bind_interface (CORBA::Internal::String_in name, CORB
 
 Binder::BindResult Binder::bind_interface_sync (const ObjectKey& name, String_in iid)
 {
-	BindResult ret = find (name);
+	const ExecDomain& exec_domain = ExecDomain::current ();
+	switch (exec_domain.sync_context ().sync_context_type ()) {
+	case SyncContext::Type::FREE_MODULE_TERM:
+	case SyncContext::Type::SINGLETON_TERM:
+		throw_NO_PERMISSION ();
+	}
+
+	ModuleContext* context = reinterpret_cast <ModuleContext*> (exec_domain.TLS_get (CoreTLS::CORE_TLS_BINDER));
+
+	BindResult ret;
+	bool self = false;
+	if (context) {
+		ret = context->exports.find (name);
+		if (ret.itf)
+			self = true;
+	}
+
+	if (!self)
+		ret = find (name);
+
+	assert (ret.itf);
 	query_interface (ret, iid, name);
+
+	if (!self && context && context->collect_dependencies) {
+		bool system = false;
+		if (ret.sync_context) {
+			Module* pmod = ret.sync_context->module ();
+			if (!pmod || pmod->id () <= PM::MAX_SYS_MODULE_ID)
+				system = true;
+		}
+		if (!system)
+			context->dependencies.emplace (IDL::String (name.name (), name.name_length ()),
+				name.version ().major, name.version ().minor, iid);
+	}
+
 	return ret;
 }
 
@@ -703,7 +715,8 @@ Binder::BindResult Binder::load_and_bind (int32_t mod_id,
 	return ret;
 }
 
-PM::ModuleBindings Binder::get_module_bindings_sync (Nirvana::AccessDirect::_ptr_type binary)
+uint_fast16_t Binder::get_module_bindings_sync (Nirvana::AccessDirect::_ptr_type binary,
+	PM::ModuleBindings& bindings)
 {
 	Module* mod = nullptr;
 	SYNC_BEGIN (g_core_free_sync_context, &memory ());
@@ -718,49 +731,76 @@ PM::ModuleBindings Binder::get_module_bindings_sync (Nirvana::AccessDirect::_ptr
 		throw;
 	}
 
-	PM::ModuleBindings bindings;
-
-	bindings.module_flags ((uint16_t)mod->flags ());
-
 	try {
+
 		for (const auto& el : context.exports) {
-			uint_fast16_t flags = PM::OBJECT_FLAG_EXPORT;
 			InterfacePtr itf = el.second.itf;
-			if (RepId::compatible (itf->_epv ().interface_id, RepIdOf <Object>::id)) {
-				const ServantProxyBase* proxy = object2proxy_base (itf.template downcast <Object> ());
+
+			// Object type
+			PM::ObjType type = PM::ObjType::OT_PSEUDO;
+			const char* interface_id = itf->_epv ().interface_id;
+
+			// Is it Object?
+			if (RepId::compatible (interface_id, RepIdOf <Object>::id)) {
+				
+				Object::_ptr_type obj = itf.template downcast <Object> ();
+
+				// Is it local?
+				const ServantProxyBase* proxy = object2proxy_base (obj);
 				InterfacePtr servant = proxy->servant ();
 				if (RepId::compatible (servant->_epv ().interface_id, RepIdOf <PortableServer::ServantBase>::id))
-					flags |= PM::OBJECT_FLAG_OBJECT;
+					type = PM::ObjType::OT_OBJECT;
+				else
+					type = PM::ObjType::OT_LOCAL;
+
+				// Get primary interface
+				interface_id = obj->_query_interface (nullptr)->_epv ().interface_id;
+
+			} else if (RepId::compatible (itf->_epv ().interface_id, RepIdOf <ValueBase>::id)) {
+
+				// It is a value
+				type = PM::ObjType::OT_VALUE;
+
+				// Get primary interface
+				ValueBase::_ptr_type val = itf.template downcast <ValueBase> ();
+				interface_id = val->_query_valuetype (nullptr)->_epv ().interface_id;
 			}
-			bindings.bindings ().emplace_back (IDL::String (el.first.name (), el.first.name_length ()),
-				((uint32_t)(el.first.version ().major) << 16) + el.first.version ().minor, flags);
+
+			bindings.exports ().emplace_back (PM::ObjBinding (
+				IDL::String (el.first.name (), el.first.name_length ()),
+				el.first.version ().major, el.first.version ().minor, interface_id), type);
 		}
-		for (const auto& el : context.dependencies) {
-			bindings.bindings ().emplace_back (IDL::String (el.name (), el.name_length ()),
-				((uint32_t)(el.version ().major) << 16) + el.version ().minor, 0);
+
+		for (auto& el : context.dependencies) {
+			bindings.imports ().push_back (std::move (const_cast <PM::ObjBinding&> (el)));
 		}
+
 	} catch (...) {
 		terminate_and_unbind (*mod);
 		delete_module (mod);
 		throw;
 	}
 
+	uint_fast16_t ret = (uint_fast16_t)mod->flags ();
+
 	terminate_and_unbind (*mod);
 	delete_module (mod);
 
-	return bindings;
+	return ret;
 }
 
-PM::ModuleBindings Binder::get_module_bindings (AccessDirect::_ptr_type binary)
+uint_fast16_t Binder::get_module_bindings (AccessDirect::_ptr_type binary, PM::ModuleBindings& bindings)
 {
+	uint_fast16_t ret;
 	Ref <Request> rq = Request::create ();
 	rq->invoke ();
 	{
 		Synchronized _sync_frame (sync_domain (), nullptr);
 		try {
 			rq->unmarshal_end ();
-			PM::ModuleBindings md = singleton_->get_module_bindings_sync (binary);
-			Type <PM::ModuleBindings>::marshal_out (md, rq->_get_ptr ());
+			PM::ModuleBindings bindings;
+			ret = singleton_->get_module_bindings_sync (binary, bindings);
+			Type <PM::ModuleBindings>::marshal_out (bindings, rq->_get_ptr ());
 			rq->success ();
 		} catch (CORBA::Exception& e) {
 			rq->set_exception (std::move (e));
@@ -769,8 +809,7 @@ PM::ModuleBindings Binder::get_module_bindings (AccessDirect::_ptr_type binary)
 		}
 	}
 	CORBA::Internal::ProxyRoot::check_request (rq->_get_ptr ());
-	PM::ModuleBindings ret;
-	Type <PM::ModuleBindings>::unmarshal (rq->_get_ptr (), ret);
+	Type <PM::ModuleBindings>::unmarshal (rq->_get_ptr (), bindings);
 	rq->unmarshal_end ();
 	return ret;
 }

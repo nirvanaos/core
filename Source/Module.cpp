@@ -29,7 +29,7 @@
 #include "Singleton.h"
 #include "Binder.h"
 #include "ExecDomain.h"
-#include "BindError.h"
+#include <Nirvana/BindErrorUtl.h>
 
 namespace Nirvana {
 namespace Core {

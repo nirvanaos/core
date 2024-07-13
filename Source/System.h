@@ -164,6 +164,12 @@ public:
 	{
 		return Core::ExecDomain::current ().id ();
 	}
+
+	static Platforms get_supported_platforms ()
+	{
+		return Platforms (Core::Port::SystemInfo::supported_platforms (),
+			Core::Port::SystemInfo::supported_platforms () + Core::Port::SystemInfo::SUPPORTED_PLATFORM_CNT);
+	}
 };
 
 }

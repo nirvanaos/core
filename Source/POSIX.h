@@ -36,6 +36,7 @@
 #include "ExecDomain.h"
 #include "TimerEvent.h"
 #include "unrecoverable_error.h"
+#include "open_binary.h"
 
 namespace Nirvana {
 
@@ -182,6 +183,16 @@ public:
 			timer.set (0, period100ns, 0);
 			timer.wait ();
 		}
+	}
+
+	static AccessDirect::_ref_type open_binary (const IDL::String& path)
+	{
+		return Core::open_binary (path);
+	}
+
+	static PlatformId get_binary_platform (AccessDirect::_ptr_type binary)
+	{
+		return Core::Binary::get_platform (binary);
 	}
 
 };

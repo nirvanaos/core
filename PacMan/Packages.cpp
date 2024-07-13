@@ -36,8 +36,6 @@ static_assert (Nirvana::PM::MAX_SYS_MODULE_ID == RESERVE_SYS_MODULE_ID, "RESERVE
 
 const char* const Packages::db_script_ [] = {
 
-"BEGIN;"
-
 // Modules
 "CREATE TABLE module("
 "id INTEGER PRIMARY KEY AUTOINCREMENT,name TEXT NOT NULL,version INTEGER NOT NULL,"
@@ -52,13 +50,20 @@ const char* const Packages::db_script_ [] = {
 "UNIQUE(module,platform)"
 ");"
 
-// Module imports and exports
-"CREATE TABLE object("
-"name TEXT NOT NULL,version INTEGER NOT NULL,"
-"module INTEGER NOT NULL REFERENCES module(id)ON DELETE CASCADE,flags INTEGER NOT NULL,"
-// For the each particular object:version, the specific module may import or export it but not both.
-// If the module exports and imports the same object, then only export must be recorded to database.
-"UNIQUE(name,version,module)"
+// Module exports
+"CREATE TABLE export("
+"name TEXT NOT NULL,major INTEGER NOT NULL,minor INTEGER NOT NULL,"
+"module INTEGER NOT NULL REFERENCES module(id)ON DELETE CASCADE,"
+"type INTEGER NOT NULL,primary TEXT NOT NULL,"
+"UNIQUE(name,major,module)"
+");"
+
+// Module imports
+// Version stored as major << 16 | minor
+"CREATE TABLE import("
+"name TEXT NOT NULL,version INTEGER NOT NULL,interface TEXT NOT NULL,"
+"module INTEGER NOT NULL REFERENCES module(id)ON DELETE CASCADE,"
+"UNIQUE(name,version,interface,module)"
 ");"
 
 // Reserve first 100 module identifiers as the system
@@ -67,7 +72,6 @@ const char* const Packages::db_script_ [] = {
 
 // Set database version
 "PRAGMA user_version=" STRINGIZE (DATABASE_VERSION) ";"
-"COMMIT;"
 };
 
 Packages::Packages (CORBA::Object::_ptr_type component) :
@@ -85,6 +89,7 @@ inline void Packages::create_database ()
 	rs->next ();
 	int32_t cur_version = rs->getInt (1);
 	if (DATABASE_VERSION != cur_version) {
+		connection->setAutoCommit (false);
 		for (const char* sql : db_script_) {
 #ifndef NDEBUG
 			try {
@@ -98,6 +103,7 @@ inline void Packages::create_database ()
 			}
 #endif
 		}
+		connection->commit ();
 	}
 }
 

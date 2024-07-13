@@ -187,9 +187,11 @@ FileDescriptors MemContext::get_inherited_files (unsigned create_std_mask) const
 
 	if (create_std_mask) {
 
-		Nirvana::File::_ref_type console = Nirvana::File::_narrow (CORBA::Core::Services::bind (CORBA::Core::Services::Console));
+		Nirvana::File::_ref_type console = Nirvana::File::_narrow (
+			CORBA::Core::Services::bind (CORBA::Core::Services::Console));
 		assert (console);
-		Nirvana::Access::_ref_type console_access = console->open ((create_std_mask & 1) ? O_RDWR : O_WRONLY, 0);
+		Nirvana::Access::_ref_type console_access = console->open (
+			((create_std_mask & 1) ? O_RDWR : O_WRONLY) | O_TEXT, 0);
 
 		IDL::Sequence <uint16_t> descr;
 		for (unsigned i = 0, mask = 1; i < 3; mask <<= 1, ++i) {

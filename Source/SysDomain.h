@@ -30,6 +30,7 @@
 
 #include <CORBA/Server.h>
 #include <Nirvana/CoreDomains_s.h>
+#include <Nirvana/BindErrorUtl.h>
 #include "ORB/SysServant.h"
 #include "ORB/system_services.h"
 #include "ORB/Services.h"
@@ -37,6 +38,8 @@
 #include <Port/SysDomain.h>
 #include <Nirvana/File.h>
 #include "NameService/FileSystem.h"
+#include "open_binary.h"
+#include "Binary.h"
 
 namespace Nirvana {
 namespace Core {
@@ -95,6 +98,22 @@ public:
 		return manager_;
 	}
 
+	int32_t exec (const IDL::String& path, const StringSeq& argv, const IDL::String& work_dir,
+		const FileDescriptors& files)
+	{
+		AccessDirect::_ref_type binary = open_binary (path);
+		PlatformId platform = Binary::get_platform (binary);
+		if (!Binary::is_supported_platform (platform))
+			BindError::throw_unsupported_platform (platform);
+
+		Nirvana::ProtDomain::_ref_type domain = manager_->create_prot_domain (platform);
+		Nirvana::Shell::_ref_type shell = Nirvana::Shell::_narrow (domain->bind ("Nirvana/the_shell"));
+		int32_t ret = shell->process (binary, argv, work_dir, files);
+		domain->shutdown (0);
+
+		return ret;
+	}
+
 	CORBA::Object::_ref_type get_service (const IDL::String& id)
 	{
 		return CORBA::Core::Services::bind (id);
@@ -107,8 +126,6 @@ private:
 	{
 		return static_cast <SysDomain*> (SysObjectLink::get_implementation (proxy));
 	}
-
-	static AccessDirect::_ref_type open_binary (const IDL::String& module_path);
 
 	static const IDL::String get_sys_binary_path (unsigned platform, const char* module_name)
 	{

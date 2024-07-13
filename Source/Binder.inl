@@ -31,7 +31,7 @@
 #include "ClassLibrary.h"
 #include "Singleton.h"
 #include "Executable.h"
-#include "BindError.h"
+#include <Nirvana/BindErrorUtl.h>
 
 namespace Nirvana {
 namespace Core {

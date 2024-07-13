@@ -81,8 +81,7 @@ void Startup::run ()
 
 			if (!FileSystem::is_absolute (exe_path))
 				exe_path = ProtDomain::binary_dir () + '/' + exe_path;
-			auto ns = CosNaming::NamingContextExt::_narrow (CORBA::Core::Services::bind (CORBA::Core::Services::NameService));
-			AccessDirect::_ref_type binary = open_binary (ns, exe_path);
+			AccessDirect::_ref_type binary = open_binary (exe_path);
 
 			ret_ = (int)the_shell->process (binary, argv, "/sbin", files);
 		}

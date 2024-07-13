@@ -85,6 +85,8 @@ public:
 			sync_context (nullptr)
 		{}
 
+		BindResult (const ObjectVal* pf) noexcept;
+
 		BindResult& operator = (const BindResult&) = default;
 
 		BindResult& operator = (const ObjectVal* pf) noexcept;
@@ -159,7 +161,7 @@ public:
 		return ret;
 	}
 
-	static PM::ModuleBindings get_module_bindings (AccessDirect::_ptr_type binary);
+	static uint_fast16_t get_module_bindings (AccessDirect::_ptr_type binary, PM::ModuleBindings& bindings);
 
 	static Binder& singleton () noexcept
 	{
@@ -375,7 +377,28 @@ private:
 		std::equal_to <int32_t>, Allocator> ModuleMap;
 
 	// Module dependencies
-	typedef SetUnorderedUnstable <ObjectKey, ObjectHash, ObjectEq, Allocator> Dependencies;
+
+	struct BindingHash
+	{
+		size_t operator () (const PM::ObjBinding& binding) const noexcept
+		{
+			size_t h = Hash::hash_bytes (binding.name ().data (), binding.name ().size ());
+			uint32_t v = ((uint32_t)binding.major () << 16) | binding.minor ();
+			h = Hash::append_bytes (h, &v, sizeof (v));
+			return Hash::append_bytes (h, binding.itf_id ().data (), binding.itf_id ().size ());
+		}
+	};
+
+	struct BindingEq
+	{
+		size_t operator () (const PM::ObjBinding& l, const PM::ObjBinding& r) const noexcept
+		{
+			return l.name () == r.name () && l.major () == r.major () && l.minor () == r.minor ()
+				&& l.itf_id () == r.itf_id ();
+		}
+	};
+
+	typedef SetUnorderedUnstable <PM::ObjBinding, BindingHash, BindingEq, Allocator> Dependencies;
 
 	// Module binding context
 	struct ModuleContext
@@ -461,7 +484,7 @@ private:
 	BindResult load_and_bind_sync (int32_t mod_id, AccessDirect::_ptr_type binary,
 		const ObjectKey& name, CORBA::Internal::String_in iid);
 
-	PM::ModuleBindings get_module_bindings_sync (AccessDirect::_ptr_type binary);
+	uint_fast16_t get_module_bindings_sync (AccessDirect::_ptr_type binary, PM::ModuleBindings& bindings);
 
 	void housekeeping_modules ();
 	static void delete_module (Module* mod) noexcept;
@@ -509,6 +532,15 @@ private:
 	static StaticallyAllocated <Binder> singleton_;
 	static bool initialized_;
 };
+
+inline Binder::BindResult::BindResult (const ObjectVal* pf) noexcept :
+	sync_context (nullptr)
+{
+	if (pf) {
+		itf = pf->itf;
+		sync_context = pf->sync_context;
+	}
+}
 
 inline Binder::BindResult& Binder::BindResult::operator = (const Binder::ObjectVal* pf) noexcept
 {

@@ -79,6 +79,8 @@ public:
 		Nirvana::throw_NO_IMPLEMENT ();
 	}
 
+	void get_module_bindings (int32_t module_id, Nirvana::PM::ModuleBindings& metadata);
+
 protected:
 	static NDBC::Connection::_ref_type open_database (const char* url)
 	{
@@ -136,6 +138,21 @@ protected:
 	{
 		NIRVANA_ASSERT (connection_);
 		return connection_;
+	}
+
+	static uint16_t major (uint32_t v) noexcept
+	{
+		return (uint16_t)(v >> 16);
+	}
+
+	static uint16_t minor (uint32_t v) noexcept
+	{
+		return (uint16_t)v;
+	}
+
+	static int32_t version (uint16_t major, uint16_t minor) noexcept
+	{
+		return ((int32_t)major << 16) | minor;
 	}
 
 private:

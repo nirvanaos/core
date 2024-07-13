@@ -49,3 +49,30 @@ NIRVANA_NORETURN void Connection::on_sql_exception (NDBC::SQLException& ex)
 	}
 	throw err;
 }
+
+void Connection::get_module_bindings (int32_t module_id, Nirvana::PM::ModuleBindings& metadata)
+{
+	Statement stm = get_statement (
+		"SELECT name,major,minor,primary,type FROM export WHERE module=? ORDER BY name,major,minor;"
+		"SELECT name,version,interface FROM import WHERE module=? ORDER BY name,version,interface;"
+	);
+	stm->setInt (1, module_id);
+
+	auto rs = stm->executeQuery ();
+
+	while (rs->next ()) {
+		metadata.exports ().emplace_back (
+			Nirvana::PM::ObjBinding (rs->getString (1), rs->getSmallInt (2), rs->getSmallInt (3),
+				rs->getString (4)),
+			(Nirvana::PM::ObjType)rs->getInt (5));
+	}
+
+	NIRVANA_VERIFY (stm->getMoreResults ());
+	rs = stm->getResultSet ();
+
+	while (rs->next ()) {
+		uint32_t ver = rs->getInt (2);
+		metadata.imports ().emplace_back (rs->getString (1), major (ver), minor (ver),
+			rs->getString (3));
+	}
+}

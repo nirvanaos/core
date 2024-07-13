@@ -28,13 +28,14 @@
 #pragma once
 
 #include <Nirvana/Nirvana.h>
-#include <CORBA/Server.h>
 #include <CORBA/CosNaming.h>
 #include <CORBA/CosEventChannelAdmin.h>
 #include <Nirvana/NDBC.h>
 #include <Nirvana/File.h>
-#include "../Source/Binary.h"
-#include "../Source/BindError.h"
+#include <Nirvana/BindErrorUtl.h>
+#include <Nirvana/System.h>
+#include <Nirvana/POSIX.h>
+#include <CORBA/Server.h>
 #include "../Source/Nirvana/CoreDomains_s.h"
 
 #endif

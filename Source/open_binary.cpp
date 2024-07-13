@@ -24,19 +24,21 @@
 *  popov.nirvana@gmail.com
 */
 #include "open_binary.h"
+#include "ORB/Services.h"
 #include <Nirvana/posix_defs.h>
-#include "BindError.h"
 
 namespace Nirvana {
 namespace Core {
 
-AccessDirect::_ref_type open_binary (CosNaming::NamingContextExt::_ptr_type ns, const IDL::String& path)
+AccessDirect::_ref_type open_binary (const IDL::String& path)
 {
+	CosNaming::NamingContextExt::_ref_type ns = CosNaming::NamingContextExt::_narrow (
+		CORBA::Core::Services::bind (CORBA::Core::Services::NameService));
 	CORBA::Object::_ref_type obj;
 	try {
 		obj = ns->resolve_str (path);
 	} catch (const CosNaming::NamingContext::NotFound&) {
-		BindError::throw_message ("Path not found: " + path);
+		throw_UNKNOWN (make_minor_errno (ENOENT));
 	}
 	File::_ref_type file = File::_narrow (obj);
 	if (!file)

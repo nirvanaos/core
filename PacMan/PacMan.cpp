@@ -42,7 +42,6 @@ void PacMan::complete () noexcept
 {
 	if (completion_) {
 		CosEventComm::PushConsumer::_ref_type tmp = std::move (completion_);
-		name_service_ = nullptr;
 		sys_domain_ = nullptr;
 		completion_ = nullptr;
 		try {
@@ -52,4 +51,13 @@ void PacMan::complete () noexcept
 			NIRVANA_ASSERT (false);
 		}
 	}
+}
+
+long PacMan::compare_name (const Nirvana::PM::ObjBinding& l, const Nirvana::PM::ObjBinding& r) noexcept
+{
+	long cmp = l.name ().compare (r.name ());
+	if (cmp != 0)
+		return cmp;
+
+	return version (r.major (), r.minor ()) - version (l.major (), l.minor ());
 }

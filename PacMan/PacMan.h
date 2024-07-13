@@ -42,8 +42,6 @@ public:
 	PacMan (Nirvana::SysDomain::_ptr_type sys_domain, CosEventChannelAdmin::ProxyPushConsumer::_ptr_type completion) :
 		Connection (open_rw ()),
 		sys_domain_ (sys_domain),
-		name_service_ (CosNaming::NamingContextExt::_narrow (
-			CORBA::the_orb->resolve_initial_references ("NameService"))),
 		busy_ (false)
 	{
 		completion->connect_push_supplier (nullptr);
@@ -85,21 +83,39 @@ public:
 		complete ();
 	}
 
-	struct BindingLess
+	static long compare_name (const Nirvana::PM::ObjBinding& l, const Nirvana::PM::ObjBinding& r) noexcept;
+
+	struct Less
 	{
-		bool operator () (const Nirvana::PM::ModuleBinding& l, const Nirvana::PM::ModuleBinding& r) const noexcept
+		bool operator () (const Nirvana::PM::ObjBinding& l, const Nirvana::PM::ObjBinding& r) const noexcept
 		{
-			int cmp = l.name ().compare (r.name ());
+			long cmp = compare_name (l, r);
 			if (cmp < 0)
 				return true;
 			else if (cmp > 0)
 				return false;
-			if ((int32_t)l.version () < (int32_t)r.version ())
-				return true;
-			else if ((int32_t)l.version () > (int32_t)r.version ())
-				return false;
 
-			return (int)l.flags () < (int)r.flags ();
+			return l.itf_id () < r.itf_id ();
+		}
+
+		bool operator () (const Nirvana::PM::Export& l, const Nirvana::PM::Export& r) const noexcept
+		{
+			return compare_name (l.binding (), r.binding ()) < 0;
+		}
+	};
+
+	struct Equal
+	{
+		bool operator () (const Nirvana::PM::ObjBinding& l, const Nirvana::PM::ObjBinding& r)
+			const noexcept
+		{
+			return l.name () == r.name () && l.major () == r.major () && l.minor () == r.minor ()
+				&& l.itf_id () == r.itf_id ();
+		}
+
+		bool operator () (const Nirvana::PM::Export& l, const Nirvana::PM::Export& r) const noexcept
+		{
+			return operator () (l.binding (), r.binding ()) && l.type () == r.type ();
 		}
 	};
 
@@ -109,26 +125,18 @@ public:
 
 		SemVer svname (module_name);
 
-		Nirvana::AccessDirect::_ref_type binary = Nirvana::Core::open_binary (name_service_, path);
+		Nirvana::AccessDirect::_ref_type binary = Nirvana::the_posix->open_binary (path);
 
-		uint_fast16_t platform = Nirvana::Core::Binary::get_platform (binary);
-		if (!Nirvana::Core::Binary::is_supported_platform (platform)) {
-			Nirvana::BindError::Error err;
-			err.info ().platform_id (platform);
-			throw err;
-		}
+		uint_fast16_t platform = Nirvana::the_posix->get_binary_platform (binary);
+		Nirvana::Platforms supported_platforms = Nirvana::the_system->get_supported_platforms ();
+		if (std::find (supported_platforms.begin (), supported_platforms.end (), platform) == supported_platforms.end ())
+			Nirvana::BindError::throw_unsupported_platform (platform);
 
-		Nirvana::ProtDomain::_ref_type bind_domain;
-		if (Nirvana::Core::SINGLE_DOMAIN)
-			bind_domain = sys_domain_->prot_domain ();
-		else
-			bind_domain = sys_domain_->provide_manager ()->create_prot_domain (platform);
+		Nirvana::ProtDomain::_ref_type bind_domain = sys_domain_->provide_manager ()->create_prot_domain (platform);
 
-		Nirvana::PM::ModuleBindings metadata =
-			Nirvana::ProtDomainCore::_narrow (bind_domain)->get_module_bindings (binary);
-
-		if (!Nirvana::Core::SINGLE_DOMAIN)
-			bind_domain->shutdown (0);
+		Nirvana::PM::ModuleBindings metadata;
+		unsigned module_flags = Nirvana::ProtDomainCore::_narrow (bind_domain)->get_module_bindings (binary, metadata);
+		bind_domain->shutdown (0);
 
 		try {
 
@@ -142,62 +150,54 @@ public:
 
 			int32_t module_id;
 			if (rs->next ()) {
+
 				module_id = rs->getInt (1);
-				if (metadata.module_flags () != rs->getSmallInt (2))
+				if (module_flags != rs->getSmallInt (2))
 					Nirvana::BindError::throw_message ("Module type mismatch");
 
-				std::sort (metadata.bindings ().begin (), metadata.bindings ().end (), BindingLess ());
+				std::sort (metadata.imports ().begin (), metadata.imports ().end (), Less ());
+				std::sort (metadata.exports ().begin (), metadata.exports ().end (), Less ());
 
-				stm = get_statement ("SELECT name,version,flags FROM object WHERE module=? ORDER BY name,version,flags");
-				stm->setInt (1, module_id);
+				Nirvana::PM::ModuleBindings cur_md;
+				get_module_bindings (module_id, cur_md);
 
-				rs = stm->executeQuery ();
-
-				bool mismatch = false;
-				for (auto it = metadata.bindings ().cbegin (), end = metadata.bindings ().cend (); it != end; ++it) {
-					if (!rs->next ()) {
-						mismatch = true;
-						break;
-					}
-					if (rs->getString (1) != it->name ()) {
-						mismatch = true;
-						break;
-					}
-					if (rs->getInt (2) != it->version ()) {
-						mismatch = true;
-						break;
-					}
-					if (rs->getInt (3) != it->flags ()) {
-						mismatch = true;
-						break;
-					}
-				}
-
-				if (!mismatch && rs->next ())
-					mismatch = true;
-
-				if (mismatch)
-					Nirvana::BindError::throw_message ("Metadata mismatch");
+				check_match (metadata, cur_md);
 
 			} else {
-				stm = get_statement ("INSERT INTO module(name,version,prerelease,flags)VALUES(?,?,?,?)RETURNING id");
+
+				stm = get_statement ("INSERT INTO module(name,version,prerelease,flags)VALUES(?,?,?,?)"
+					"RETURNING id");
 				stm->setString (1, svname.name ());
 				stm->setBigInt (2, svname.version ());
 				stm->setString (3, svname.prerelease ());
-				stm->setInt (4, metadata.module_flags ());
+				stm->setInt (4, module_flags);
 				rs = stm->executeQuery ();
 				rs->next ();
 				module_id = rs->getInt (1);
 
-				stm = get_statement ("INSERT INTO object VALUES(?,?,?,?)");
-				stm->setInt (3, module_id);
-				for (auto b : metadata.bindings ()) {
-					stm->setString (1, b.name ());
-					stm->setInt (2, b.version ());
-					stm->setInt (4, b.flags ());
+				stm = get_statement ("INSERT INTO export(module,name,major,minor,type,primary)"
+					"VALUES(?,?,?,?,?,?)");
+				stm->setInt (1, module_id);
+				for (const auto& e : metadata.exports ()) {
+					stm->setString (2, e.binding ().name ());
+					stm->setInt (3, e.binding ().major ());
+					stm->setInt (4, e.binding ().minor ());
+					stm->setInt (5, (int)e.type ());
+					stm->setString (6, e.binding ().itf_id ());
+					stm->executeUpdate ();
+				}
+
+				stm = get_statement ("INSERT INTO import(module,name,version,interface)"
+					"VALUES(?,?,?,?)");
+				stm->setInt (1, module_id);
+				for (const auto& b : metadata.imports ()) {
+					stm->setString (2, b.name ());
+					stm->setInt (3, version (b.major (), b.minor ()));
+					stm->setString (4, b.itf_id ());
 					stm->executeUpdate ();
 				}
 			}
+
 			stm = get_statement ("INSERT OR REPLACE INTO binary VALUES(?,?,?)");
 			stm->setInt (1, module_id);
 			stm->setInt (2, platform);
@@ -219,9 +219,20 @@ public:
 private:
 	void complete () noexcept;
 
+	static void check_match (const Nirvana::PM::ModuleBindings& l, const Nirvana::PM::ModuleBindings& r)
+	{
+		if (!
+			std::equal (l.exports ().begin (), l.exports ().end (),
+				r.exports ().begin (), r.exports ().end (), Equal ())
+			&&
+			std::equal (l.imports ().begin (), l.imports ().end (),
+				r.imports ().begin (), r.imports ().end (), Equal ())
+			)
+			Nirvana::BindError::throw_message ("Metadata mismatch");
+	}
+
 private:
 	Nirvana::SysDomain::_ref_type sys_domain_;
-	CosNaming::NamingContextExt::_ref_type name_service_;
 	CosEventComm::PushConsumer::_ref_type completion_;
 	bool busy_;
 };

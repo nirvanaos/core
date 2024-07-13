@@ -26,10 +26,8 @@
 #include "pch.h"
 #include "SysDomain.h"
 #include "ORB/ORB.h"
-#include "ORB/Services.h"
 #include "SysManager.h"
 #include "NameService/FileSystem.h"
-#include "open_binary.h"
 
 using namespace CORBA;
 
@@ -86,14 +84,6 @@ void SysDomain::do_startup (Object::_ptr_type obj)
 void SysDomain::startup (Object::_ptr_type obj)
 {
 	get_implementation (get_proxy (obj))->do_startup (obj);
-}
-
-AccessDirect::_ref_type SysDomain::open_binary (const IDL::String& module_path)
-{
-	CosNaming::NamingContextExt::_ref_type ns = CosNaming::NamingContextExt::_narrow (
-		CORBA::Core::Services::bind (CORBA::Core::Services::NameService));
-
-	return Core::open_binary (ns, module_path);
 }
 
 AccessDirect::_ref_type SysDomain::open_sys_binary (unsigned platform, SysModuleId module_id)

@@ -71,9 +71,9 @@ public:
 		return Binder::load_and_bind <CORBA::Object> (mod_id, file, name);
 	}
 
-	static PM::ModuleBindings get_module_bindings (Nirvana::AccessDirect::_ptr_type binary)
+	static uint_fast16_t get_module_bindings (Nirvana::AccessDirect::_ptr_type binary, PM::ModuleBindings& bindings)
 	{
-		return Binder::get_module_bindings (binary);
+		return Binder::get_module_bindings (binary, bindings);
 	}
 
 	static IDL::String binary_dir ();

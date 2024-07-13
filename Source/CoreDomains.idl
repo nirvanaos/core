@@ -56,7 +56,9 @@ interface ProtDomainCore : ProtDomain
 	Object load_and_bind (in long mod_id, in AccessDirect file, in string name)
 		raises (BindError::Error);
 
-	PM::ModuleBindings get_module_bindings (in AccessDirect file) raises (BindError::Error);
+	// returns module flags
+	unsigned short get_module_bindings (in AccessDirect file, out PM::ModuleBindings bindings)
+		raises (BindError::Error);
 };
 
 /// The core extension of the SysDomain interface.

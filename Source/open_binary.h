@@ -35,7 +35,7 @@
 namespace Nirvana {
 namespace Core {
 
-AccessDirect::_ref_type open_binary (CosNaming::NamingContextExt::_ptr_type ns, const IDL::String& path);
+AccessDirect::_ref_type open_binary (const IDL::String& path);
 
 }
 }
