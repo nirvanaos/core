@@ -125,18 +125,8 @@ public:
 
 		SemVer svname (module_name);
 
-		Nirvana::AccessDirect::_ref_type binary = Nirvana::the_posix->open_binary (path);
-
-		uint_fast16_t platform = Nirvana::the_posix->get_binary_platform (binary);
-		Nirvana::Platforms supported_platforms = Nirvana::the_system->get_supported_platforms ();
-		if (std::find (supported_platforms.begin (), supported_platforms.end (), platform) == supported_platforms.end ())
-			Nirvana::BindError::throw_unsupported_platform (platform);
-
-		Nirvana::ProtDomain::_ref_type bind_domain = sys_domain_->provide_manager ()->create_prot_domain (platform);
-
 		Nirvana::PM::ModuleBindings metadata;
-		unsigned module_flags = Nirvana::ProtDomainCore::_narrow (bind_domain)->get_module_bindings (binary, metadata);
-		bind_domain->shutdown (0);
+		Nirvana::BinaryInfo bi = sys_domain_->get_module_bindings (path, metadata);
 
 		try {
 
@@ -152,7 +142,7 @@ public:
 			if (rs->next ()) {
 
 				module_id = rs->getInt (1);
-				if (module_flags != rs->getSmallInt (2))
+				if (bi.module_flags () != rs->getSmallInt (2))
 					Nirvana::BindError::throw_message ("Module type mismatch");
 
 				std::sort (metadata.imports ().begin (), metadata.imports ().end (), Less ());
@@ -170,7 +160,7 @@ public:
 				stm->setString (1, svname.name ());
 				stm->setBigInt (2, svname.version ());
 				stm->setString (3, svname.prerelease ());
-				stm->setInt (4, module_flags);
+				stm->setInt (4, bi.module_flags ());
 				rs = stm->executeQuery ();
 				rs->next ();
 				module_id = rs->getInt (1);
@@ -200,7 +190,7 @@ public:
 
 			stm = get_statement ("INSERT OR REPLACE INTO binary VALUES(?,?,?)");
 			stm->setInt (1, module_id);
-			stm->setInt (2, platform);
+			stm->setInt (2, bi.platform ());
 			stm->setString (3, path);
 			stm->executeUpdate ();
 
@@ -208,7 +198,7 @@ public:
 			on_sql_exception (ex);
 		}
 
-		return platform;
+		return bi.platform ();
 	}
 
 	void unregister (const IDL::String& module_name)

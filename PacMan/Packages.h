@@ -30,7 +30,7 @@
 #include <CORBA/Server.h>
 #include <Nirvana/Domains_s.h>
 #include "PacMan.h"
-#include "internal.h"
+#include "factory.h"
 #include "Connection.h"
 
 class Packages :

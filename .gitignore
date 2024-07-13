@@ -4,7 +4,7 @@
 /Source/IDL/
 /dbc/NDBC_p.cpp
 /InterfaceRepository/InterfaceRepository_p.cpp
-/PacMan/internal_p.cpp
-/PacMan/internal_s.h
-/PacMan/internal.cpp
-/PacMan/internal.h
+/PacMan/factory_p.cpp
+/PacMan/factory_s.h
+/PacMan/factory.cpp
+/PacMan/factory.h

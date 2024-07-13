@@ -74,15 +74,6 @@ interface SysDomainCore : SysDomain
 		raises (BindError::Error);
 };
 
-module PM {
-
-pseudo interface PacFactory
-{
-	Packages create (in Object comp);
-};
-
-};
-
 };
 
 #endif

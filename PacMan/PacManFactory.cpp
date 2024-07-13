@@ -25,7 +25,7 @@
 */
 #include "pch.h"
 #include "PacMan.h"
-#include "internal_s.h"
+#include "factory_s.h"
 
 namespace Nirvana {
 namespace PM {

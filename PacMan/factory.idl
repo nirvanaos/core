@@ -24,14 +24,19 @@
 *  popov.nirvana@gmail.com
 */
 
-#ifndef PACMAN_INTERNAL_IDL_
-#define PACMAN_INTERNAL_IDL_
+#ifndef PACMAN_FACTORY_IDL_
+#define PACMAN_FACTORY_IDL_
 
 #include <Nirvana/Domains.idl>
 #include <CORBA/CosEventChannelAdmin.idl>
 
 module Nirvana {
 module PM {
+
+pseudo interface PacFactory
+{
+	Packages create (in Object comp);
+};
 
 local interface PacManFactory
 {

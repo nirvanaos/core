@@ -35,7 +35,7 @@
 #include <Nirvana/BindErrorUtl.h>
 #include <Nirvana/System.h>
 #include <Nirvana/POSIX.h>
+#include <Nirvana/Domains.h>
 #include <CORBA/Server.h>
-#include "../Source/Nirvana/CoreDomains_s.h"
 
 #endif

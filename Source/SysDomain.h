@@ -40,6 +40,7 @@
 #include "NameService/FileSystem.h"
 #include "open_binary.h"
 #include "Binary.h"
+#include "../PacMan/factory.h"
 
 namespace Nirvana {
 namespace Core {
@@ -106,12 +107,38 @@ public:
 		if (!Binary::is_supported_platform (platform))
 			BindError::throw_unsupported_platform (platform);
 
-		Nirvana::ProtDomain::_ref_type domain = manager_->create_prot_domain (platform);
-		Nirvana::Shell::_ref_type shell = Nirvana::Shell::_narrow (domain->bind ("Nirvana/the_shell"));
-		int32_t ret = shell->process (binary, argv, work_dir, files);
-		domain->shutdown (0);
+		if (SINGLE_DOMAIN)
+			return the_shell->process (binary, argv, work_dir, files);
+		else {
+			Nirvana::ProtDomain::_ref_type domain = manager_->create_prot_domain (platform);
+			Nirvana::Shell::_ref_type shell = Nirvana::Shell::_narrow (domain->bind ("Nirvana/the_shell"));
+			int32_t ret = shell->process (binary, argv, work_dir, files);
+			domain->shutdown (0);
+			return ret;
+		}
+	}
 
-		return ret;
+	BinaryInfo get_module_bindings (const IDL::String& path, PM::ModuleBindings& bindings)
+	{
+		AccessDirect::_ref_type binary = open_binary (path);
+
+		BinaryInfo info;
+		info.platform (Binary::get_platform (binary));
+		if (!Binary::is_supported_platform (info.platform ()))
+			Nirvana::BindError::throw_unsupported_platform (info.platform ());
+
+		Nirvana::ProtDomain::_ref_type domain;
+		if (SINGLE_DOMAIN)
+			domain = prot_domain ();
+		else
+			domain = manager_->create_prot_domain (info.platform ());
+
+		info.module_flags (ProtDomainCore::_narrow (domain)->get_module_bindings (binary, bindings));
+
+		if (!SINGLE_DOMAIN)
+			domain->shutdown (0);
+
+		return info;
 	}
 
 	CORBA::Object::_ref_type get_service (const IDL::String& id)

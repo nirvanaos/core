@@ -25,6 +25,7 @@
 */
 #include "pch.h"
 #include "Packages.h"
+#include "factory_s.h"
 
 class Static_pac_factory :
 	public CORBA::servant_traits <Nirvana::PM::PacFactory>::ServantStatic <Static_pac_factory>
