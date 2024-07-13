@@ -548,7 +548,6 @@ private:
 	}
 
 private:
-
 	ColumnIndex column_index_;
 };
 

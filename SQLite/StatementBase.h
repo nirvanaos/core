@@ -67,8 +67,11 @@ public:
 		Connection::Lock lock (connection ());
 		if (0 < cur_statement_ && cur_statement_ < statements_.size ())
 			return execute_next (true);
-		else
-			throw_exception ("No results available");
+		else {
+			result_set_ = nullptr;
+			changed_rows_ = -1;
+			return false;
+		}
 	}
 
 	NDBC::ResultSet::_ref_type getResultSet () noexcept
@@ -115,7 +118,7 @@ protected:
 		connection_ (&connection),
 		servant_ (servant),
 		cur_statement_ (0),
-		changed_rows_ (0),
+		changed_rows_ (-1),
 		version_ (0)
 	{}
 
@@ -159,7 +162,7 @@ private:
 	size_t cur_statement_;
 	NDBC::SQLWarnings warnings_;
 	NDBC::ResultSet::_ref_type result_set_;
-	uint32_t changed_rows_;
+	int32_t changed_rows_;
 	Version version_;
 };
 

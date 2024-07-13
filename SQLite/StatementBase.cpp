@@ -73,6 +73,7 @@ void StatementBase::finalize (bool silent) noexcept
 	assert (connection_);
 
 	result_set_ = nullptr;
+	changed_rows_ = -1;
 	if (!statements_.empty ()) {
 		Connection& conn = *connection_;
 		Statements statements (std::move (statements_));
@@ -113,7 +114,7 @@ bool StatementBase::execute_next (bool resultset)
 	assert (cur_statement_ < statements_.size ());
 
 	result_set_ = nullptr;
-	changed_rows_ = 0;
+	changed_rows_ = -1;
 
 	sqlite3_stmt* stmt = statements_ [cur_statement_++];
 	int step_result = step (stmt);
