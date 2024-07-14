@@ -144,6 +144,12 @@ public:
 				SQLite::exec (cmd.c_str ());
 			}
 		}
+		NIRVANA_TRACE ("SQLite: Connection created\n");
+	}
+
+	~Connection ()
+	{
+		NIRVANA_TRACE ("SQLite: Connection destructed\n");
 	}
 
 	void clearWarnings ()

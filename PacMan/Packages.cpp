@@ -48,15 +48,15 @@ const char* const Packages::db_script_ [] = {
 "module INTEGER NOT NULL REFERENCES module(id)ON DELETE CASCADE,"
 "platform INTEGER NOT NULL,path TEXT NOT NULL,"
 "UNIQUE(module,platform),UNIQUE(path)"
-");"
+");",
 
 // Module exports
 "CREATE TABLE export("
 "name TEXT NOT NULL,major INTEGER NOT NULL,minor INTEGER NOT NULL,"
 "module INTEGER NOT NULL REFERENCES module(id)ON DELETE CASCADE,"
-"type INTEGER NOT NULL,primary TEXT NOT NULL,"
+"type INTEGER NOT NULL,interface TEXT NOT NULL,"
 "UNIQUE(name,major,module)"
-");"
+");",
 
 // Module imports
 // Version stored as major << 16 | minor
@@ -64,11 +64,11 @@ const char* const Packages::db_script_ [] = {
 "name TEXT NOT NULL,version INTEGER NOT NULL,interface TEXT NOT NULL,"
 "module INTEGER NOT NULL REFERENCES module(id)ON DELETE CASCADE,"
 "UNIQUE(name,version,interface,module)"
-");"
+");",
 
 // Reserve first 100 module identifiers as the system
 "INSERT INTO module(id, name, version, flags)VALUES(" STRINGIZE (RESERVE_SYS_MODULE_ID) ",'',0,0); "
-"DELETE FROM module WHERE id=" STRINGIZE (RESERVE_SYS_MODULE_ID) ";"
+"DELETE FROM module WHERE id=" STRINGIZE (RESERVE_SYS_MODULE_ID) ";",
 
 // Set database version
 "PRAGMA user_version=" STRINGIZE (DATABASE_VERSION) ";"
@@ -97,8 +97,7 @@ inline void Packages::create_database ()
 				st->executeUpdate (sql);
 #ifndef NDEBUG
 			} catch (const NDBC::SQLException& ex) {
-				NIRVANA_TRACE ("Error: %s\n", ex.error ().sqlState ().c_str ());
-				NIRVANA_TRACE ("SQL: %s\n", sql);
+				NIRVANA_WARNING ("SQL Error: %s\n%s\n", ex.error ().sqlState ().c_str (), sql);
 				throw;
 			}
 #endif

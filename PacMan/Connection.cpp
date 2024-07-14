@@ -25,6 +25,7 @@
 */
 #include "pch.h"
 #include "Connection.h"
+#include "version.h"
 
 #define DATABASE_PATH "/var/lib/packages.db"
 
@@ -43,7 +44,15 @@ Connection::~Connection ()
 Connection::Statement Connection::get_statement (std::string sql)
 {
 	auto ins = statements_.emplace (std::move (sql), NDBC::PreparedStatement::_ref_type ());
-	if (ins.second) {
+	if (!ins.second) {
+		try {
+			cleanup (ins.first->second);
+		} catch (...) {
+			assert (false);
+			ins.first->second = nullptr;
+		}
+	}
+	if (!ins.first->second) {
 		try {
 			ins.first->second = connection_->prepareStatement (ins.first->first,
 				NDBC::ResultSet::Type::TYPE_FORWARD_ONLY, NDBC::PreparedStatement::PREPARE_PERSISTENT);
@@ -55,12 +64,21 @@ Connection::Statement Connection::get_statement (std::string sql)
 	return ins.first->second;
 }
 
-void Connection::close_statements ()
+void Connection::close_statements () noexcept
 {
-	for (auto& st : statements_) {
-		st.second->close ();
+	Statements tmp (std::move (statements_));
+	for (auto& st : tmp) {
+		try {
+			st.second->close ();
+		} catch (...) {
+			assert (false);
+		}
 	}
-	statements_.clear ();
+}
+
+void Connection::cleanup (NDBC::PreparedStatement::_ptr_type st)
+{
+	st->clearParameters ();
 }
 
 NIRVANA_NORETURN void Connection::on_sql_exception (NDBC::SQLException& ex)
@@ -88,7 +106,7 @@ Nirvana::PM::Packages::Modules Connection::get_dependent_modules (Nirvana::Modul
 void Connection::get_module_bindings (Nirvana::ModuleId id, Nirvana::PM::ModuleBindings& metadata)
 {
 	Statement stm = get_statement (
-		"SELECT name,major,minor,primary,type FROM export WHERE module=? ORDER BY name,major,minor;"
+		"SELECT name,major,minor,interface,type FROM export WHERE module=? ORDER BY name,major,minor;"
 		"SELECT name,version,interface FROM import WHERE module=? ORDER BY name,version,interface;"
 	);
 	stm->setInt (1, id);

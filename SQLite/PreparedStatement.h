@@ -62,6 +62,7 @@ public:
 		change_version ();
 		for (auto stmt : statements ()) {
 			sqlite3_clear_bindings (stmt);
+			sqlite3_reset (stmt);
 		}
 		param_storage_.clear ();
 	}

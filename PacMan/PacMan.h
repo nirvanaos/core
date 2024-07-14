@@ -32,7 +32,7 @@
 #include <Nirvana/Domains_s.h>
 #include <Nirvana/posix_defs.h>
 #include "Connection.h"
-#include "../Source/open_binary.h"
+#include "version.h"
 
 class PacMan :
 	public CORBA::servant_traits <Nirvana::PM::PacMan>::Servant <PacMan>,
@@ -165,7 +165,7 @@ public:
 				rs->next ();
 				module_id = rs->getInt (1);
 
-				stm = get_statement ("INSERT INTO export(module,name,major,minor,type,primary)"
+				stm = get_statement ("INSERT INTO export(module,name,major,minor,type,interface)"
 					"VALUES(?,?,?,?,?,?)");
 				stm->setInt (1, module_id);
 				for (const auto& e : metadata.exports ()) {

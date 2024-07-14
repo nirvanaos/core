@@ -23,26 +23,25 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "pch.h"
-#include "ConnectionPool.h"
+#ifndef PACMAN_VERSION_H_
+#define PACMAN_VERSION_H_
+#pragma once
 
-ConnectionPool::Connection::Connection (ConnectionPool& pool) :
-	pool_ (pool)
+#include <Nirvana/Nirvana.h>
+
+static uint16_t major (uint32_t v) noexcept
 {
-	if (pool.stack_.empty ())
-		ptr_ = std::make_unique <::Connection> (pool.connstr_);
-	else {
-		ptr_ = std::move (pool.stack_.top ());
-		pool.stack_.pop ();
-	}
+	return (uint16_t)(v >> 16);
 }
 
-ConnectionPool::Connection::~Connection ()
+static uint16_t minor (uint32_t v) noexcept
 {
-	try {
-		ptr_->cleanup ();
-		pool_.stack_.push (std::move (ptr_));
-	} catch (...) {
-		assert (false);
-	}
+	return (uint16_t)v;
 }
+
+static int32_t version (uint16_t major, uint16_t minor) noexcept
+{
+	return ((int32_t)major << 16) | minor;
+}
+
+#endif

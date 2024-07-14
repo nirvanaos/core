@@ -47,7 +47,19 @@ public:
 
 	~Connection ();
 
-	typedef NDBC::PreparedStatement::_ptr_type Statement;
+	// For connection pool
+	void cleanup ()
+	{
+		for (auto it = statements_.begin (); it != statements_.end ();) {
+			try {
+				cleanup (it->second);
+				++it;
+			} catch (...) {
+				assert (false);
+				it = statements_.erase (it);
+			}
+		}
+	}
 
 	void get_binding (const IDL::String& name, Nirvana::PlatformId platform,
 		Nirvana::PM::Binding& binding);
@@ -60,6 +72,7 @@ public:
 	void get_module_bindings (Nirvana::ModuleId id, Nirvana::PM::ModuleBindings& metadata);
 
 protected:
+	using Statement = NDBC::PreparedStatement::_ptr_type;
 	Statement get_statement (std::string sql);
 
 	static NIRVANA_NORETURN void on_sql_exception (NDBC::SQLException& ex);
@@ -93,23 +106,9 @@ protected:
 		return connection_;
 	}
 
-	static uint16_t major (uint32_t v) noexcept
-	{
-		return (uint16_t)(v >> 16);
-	}
-
-	static uint16_t minor (uint32_t v) noexcept
-	{
-		return (uint16_t)v;
-	}
-
-	static int32_t version (uint16_t major, uint16_t minor) noexcept
-	{
-		return ((int32_t)major << 16) | minor;
-	}
-
 private:
-	void close_statements ();
+	void close_statements () noexcept;
+	static void cleanup (NDBC::PreparedStatement::_ptr_type st);
 
 private:
 	typedef std::unordered_map <std::string, NDBC::PreparedStatement::_ref_type> Statements;

@@ -41,7 +41,14 @@ public:
 		stmt_ (stmt),
 		position_ (0),
 		after_end_ (false)
-	{}
+	{
+		NIRVANA_TRACE ("SQLite: Cursor created\n");
+	}
+
+	~Cursor ()
+	{
+		NIRVANA_TRACE ("SQLite: Cursor destructed\n");
+	}
 
 	NDBC::RowIdx fetch (NDBC::RowOff pos, NDBC::Row& row)
 	{

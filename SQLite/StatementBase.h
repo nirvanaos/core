@@ -120,7 +120,9 @@ protected:
 		cur_statement_ (0),
 		changed_rows_ (-1),
 		version_ (0)
-	{}
+	{
+		NIRVANA_TRACE ("SQLite: Statement created\n");
+	}
 
 	~StatementBase ()
 	{
@@ -128,6 +130,7 @@ protected:
 			finalize (true);
 			connection_ = nullptr;
 		}
+		NIRVANA_TRACE ("SQLite: Statement desctructed\n");
 	}
 
 	void prepare (const IDL::String& sql, unsigned flags);
