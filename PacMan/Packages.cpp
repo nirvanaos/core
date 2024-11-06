@@ -38,33 +38,33 @@ const char* const Packages::db_script_ [] = {
 
 // Modules
 "CREATE TABLE module("
-"id INTEGER PRIMARY KEY AUTOINCREMENT,name TEXT NOT NULL,version INTEGER NOT NULL,"
-"prerelease TEXT NOT NULL DEFAULT '',flags INTEGER NOT NULL,"
+"id INTEGER PRIMARY KEY AUTOINCREMENT,name TEXT NOT NULL,version INT NOT NULL,"
+"prerelease TEXT NOT NULL DEFAULT '',flags INT NOT NULL,"
 "UNIQUE (name,version,prerelease)"
-");",
+")STRICT",
 
 // Module binaries
 "CREATE TABLE binary("
-"module INTEGER NOT NULL REFERENCES module(id)ON DELETE CASCADE,"
-"platform INTEGER NOT NULL,path TEXT NOT NULL,"
+"module INT NOT NULL REFERENCES module(id)ON DELETE CASCADE,"
+"platform INT NOT NULL,path TEXT NOT NULL,"
 "UNIQUE(module,platform),UNIQUE(path)"
-");",
+")STRICT",
 
 // Module exports
 "CREATE TABLE export("
-"name TEXT NOT NULL,major INTEGER NOT NULL,minor INTEGER NOT NULL,"
-"module INTEGER NOT NULL REFERENCES module(id)ON DELETE CASCADE,"
-"type INTEGER NOT NULL,interface TEXT NOT NULL,"
+"name TEXT NOT NULL,major INT NOT NULL,minor INT NOT NULL,"
+"module INT NOT NULL REFERENCES module(id)ON DELETE CASCADE,"
+"type INT NOT NULL,interface TEXT NOT NULL,"
 "UNIQUE(name,major,module)"
-");",
+")STRICT",
 
 // Module imports
 // Version stored as major << 16 | minor
 "CREATE TABLE import("
-"name TEXT NOT NULL,version INTEGER NOT NULL,interface TEXT NOT NULL,"
-"module INTEGER NOT NULL REFERENCES module(id)ON DELETE CASCADE,"
+"name TEXT NOT NULL,version INT NOT NULL,interface TEXT NOT NULL,"
+"module INT NOT NULL REFERENCES module(id)ON DELETE CASCADE,"
 "UNIQUE(name,version,interface,module)"
-");",
+")STRICT",
 
 // Reserve first 100 module identifiers as the system
 "INSERT INTO module(id, name, version, flags)VALUES(" STRINGIZE (RESERVE_SYS_MODULE_ID) ",'',0,0); "
