@@ -160,24 +160,36 @@ public:
 		int ret = SQLITE_OK;
 		*pp = nullptr;
 		assert (cb);
-		assert (cache_.find (off) == cache_.end ());
-		try {
-			NDBC::Blob data;
-			access_->read (off, cb, data);
-			if ((int)data.size () == cb)
-				*pp = cache_.emplace (off, std::move (data)).first->second.data ();
-		} catch (const CORBA::NO_MEMORY&) {
-			ret = SQLITE_IOERR_NOMEM;
-		} catch (...) {
-			ret = SQLITE_IOERR_READ;
+		auto it = cache_.find (off);
+		if (it == cache_.end ()) {
+			try {
+				CacheEntry entry;
+				access_->read (off, cb, entry.block);
+				if ((int)entry.block.size () == cb)
+					*pp = cache_.emplace (off, std::move (entry)).first->second.block.data ();
+			} catch (const CORBA::NO_MEMORY&) {
+				ret = SQLITE_IOERR_NOMEM;
+			} catch (...) {
+				ret = SQLITE_IOERR_READ;
+			}
+		} else {
+			if (cb > it->second.block.size ()) {
+				assert (false);
+				ret = SQLITE_IOERR_READ;
+			}
+			it->second.ref_cnt++;
+			*pp = it->second.block.data ();
 		}
 		return ret;
 	}
 
 	int unfetch (sqlite3_int64 off, void* p) noexcept
 	{
-		NIRVANA_VERIFY (cache_.erase (off));
-		return SQLITE_OK;
+		auto it = cache_.find (off);
+		assert (it != cache_.end ());
+		if (it != cache_.end () && !--(it->second.ref_cnt))
+			cache_.erase (it);
+	return SQLITE_OK;
 	}
 
 	int lock (Nirvana::LockType level) noexcept
@@ -230,7 +242,17 @@ private:
 	Nirvana::LockType lock_level_;
 	bool delete_on_close_;
 
-	typedef std::unordered_map <sqlite3_int64, NDBC::Blob> Cache;
+	struct CacheEntry
+	{
+		NDBC::Blob block;
+		unsigned ref_cnt;
+
+		CacheEntry () :
+			ref_cnt (1)
+		{}
+	};
+
+	typedef std::unordered_map <sqlite3_int64, CacheEntry> Cache;
 	Cache cache_;
 };
 
