@@ -32,10 +32,20 @@ namespace CORBA {
 namespace Core {
 
 class TypedEventChannel :
-	public EventChannelBase,
-	public servant_traits <CosTypedEventChannelAdmin::TypedEventChannel>::Servant <TypedEventChannel>
+	public servant_traits <CosTypedEventChannelAdmin::TypedEventChannel>::Servant <TypedEventChannel>,
+	public EventChannelBase
 {
 public:
+	TypedEventChannel ()
+	{}
+
+	~TypedEventChannel ()
+	{
+		// Destroy all child objects
+		if (!destroyed ())
+			destroy ();
+	}
+
 	CosTypedEventChannelAdmin::TypedConsumerAdmin::_ref_type for_consumers ()
 	{
 		check_exist ();
@@ -54,10 +64,9 @@ public:
 
 	void destroy ()
 	{
-		PortableServer::POA::_ref_type adapter = _default_POA ();
-		EventChannelBase::destroy (this, adapter);
-		destroy_child (consumer_admin_, adapter);
-		destroy_child (supplier_admin_, adapter);
+		EventChannelBase::destroy ();
+		destroy_child (consumer_admin_);
+		destroy_child (supplier_admin_);
 	}
 
 	CosTypedEventChannelAdmin::TypedProxyPushConsumer::_ref_type obtain_typed_push_consumer (
@@ -199,7 +208,7 @@ private:
 				channel ().push (call);
 		}
 
-		void push (const Any& data)
+		void push (const Any& data) const
 		{
 			PushConsumerBase::push (data);
 		}
@@ -207,12 +216,6 @@ private:
 		Object::_ref_type get_typed_consumer () const noexcept
 		{
 			return proxy_push_->get_proxy ();
-		}
-
-		virtual void destroy (PortableServer::POA::_ptr_type adapter) noexcept override
-		{
-			deactivate_object (proxy_push_->get_proxy (), adapter);
-			PushConsumerBase::destroy (this, adapter);
 		}
 
 		TypedEventChannel& channel () const noexcept
@@ -276,12 +279,6 @@ private:
 			return proxy_pull_->get_proxy ();
 		}
 
-		virtual void destroy (PortableServer::POA::_ptr_type adapter) noexcept override
-		{
-			deactivate_object (proxy_pull_->get_proxy (), adapter);
-			PullSupplierBase::destroy (this, adapter);
-		}
-
 		TypedEventChannel& channel () const noexcept
 		{
 			assert (channel_);
@@ -312,10 +309,10 @@ private:
 			uses_interface_ (std::move (uses_interface))
 		{}
 
-		virtual void destroy (PortableServer::POA::_ptr_type adapter) noexcept override
+		virtual void destroy () noexcept override
 		{
 			proxy_ = nullptr;
-			PushSupplierBase::destroy (this, adapter);
+			PushSupplierBase::destroy ();
 		}
 
 		void connect_push_consumer (CosEventComm::PushConsumer::_ptr_type push_consumer)
@@ -384,11 +381,6 @@ private:
 			return static_cast <TypedEventChannel&> (check_exist ())
 				.obtain_typed_pull_consumer (uses_interface);
 		}
-
-		virtual void destroy (PortableServer::POA::_ptr_type adapter) noexcept override
-		{
-			ChildObject::destroy (this, adapter);
-		}
 	};
 
 	class ConsumerAdmin : public ConsumerAdminBase,
@@ -411,11 +403,6 @@ private:
 		{
 			return static_cast <TypedEventChannel&> (check_exist ())
 				.obtain_typed_push_supplier (uses_interface);
-		}
-
-		virtual void destroy (PortableServer::POA::_ptr_type adapter) noexcept override
-		{
-			ChildObject::destroy (this, adapter);
 		}
 	};
 

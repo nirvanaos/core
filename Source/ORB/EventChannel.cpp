@@ -29,6 +29,15 @@
 namespace CORBA {
 namespace Core {
 
+void EventChannelBase::destroy ()
+{
+	check_exist ();
+	push_suppliers_.destroy ();
+	push_consumers_.destroy ();
+	pull_suppliers_.destroy ();
+	pull_consumers_.destroy ();
+}
+
 void EventChannelBase::PushConsumerBase::disconnect_push_consumer () noexcept
 {
 	if (connected_) {
@@ -82,12 +91,12 @@ void EventChannelBase::PushSupplierBase::disconnect_push_supplier () noexcept
 	}
 }
 
-void EventChannelBase::Children::destroy (PortableServer::POA::_ptr_type adapter) noexcept
+void EventChannelBase::Children::destroy () noexcept
 {
-	for (auto p : *this) {
-		p->destroy (adapter);
+	for (auto p : set_) {
+		p->destroy ();
 	}
-	clear ();
+	set_.clear ();
 }
 
 void EventChannelBase::push (const Any& data)
@@ -107,15 +116,6 @@ void EventChannelBase::push (const Any& data)
 			if (sup.connected ())
 				sup.push (data);
 		}
-	}
-}
-
-void EventChannelBase::deactivate_servant (PortableServer::ServantBase::_ptr_type servant,
-	PortableServer::POA::_ptr_type adapter) noexcept
-{
-	try {
-		adapter->deactivate_object (adapter->servant_to_id (servant));
-	} catch (...) {
 	}
 }
 
