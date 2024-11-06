@@ -86,12 +86,14 @@ public:
 				return nullptr;
 		}
 
-		auto channel = CORBA::the_orb->create_event_channel ();
-		CosEventChannelAdmin::ProxyPullSupplier::_ref_type supplier = channel->for_consumers ()->obtain_pull_supplier ();
+		if (!event_channel_)
+			event_channel_ = CORBA::the_orb->create_event_channel ();
+
+		CosEventChannelAdmin::ProxyPullSupplier::_ref_type supplier = event_channel_->for_consumers ()->obtain_pull_supplier ();
 		supplier->connect_pull_consumer (nullptr);
 
 		Nirvana::PM::PacMan::_ref_type pacman = Nirvana::PM::pacman_factory->create (sys_domain (),
-			channel->for_suppliers ()->obtain_push_consumer ());
+			event_channel_->for_suppliers ()->obtain_push_consumer ());
 
 		manager_completion_ = std::move (supplier);
 
@@ -108,6 +110,7 @@ private:
 
 private:
 	NDBC::Connection::_ref_type connection_;
+	CosEventChannelAdmin::EventChannel::_ref_type event_channel_;
 	CosEventComm::PullSupplier::_ref_type manager_completion_;
 
 	static const char* const db_script_ [];

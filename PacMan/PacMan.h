@@ -45,7 +45,7 @@ public:
 		busy_ (false)
 	{
 		completion->connect_push_supplier (nullptr);
-		completion_ = std::move (completion);
+		completion_ = completion;
 		connection ()->setAutoCommit (false);
 	}
 

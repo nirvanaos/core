@@ -43,7 +43,6 @@ void PacMan::complete () noexcept
 	if (completion_) {
 		CosEventComm::PushConsumer::_ref_type tmp = std::move (completion_);
 		sys_domain_ = nullptr;
-		completion_ = nullptr;
 		try {
 			tmp->push (CORBA::Any ());
 			tmp->disconnect_push_consumer ();
