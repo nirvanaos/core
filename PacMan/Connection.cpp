@@ -133,7 +133,37 @@ void Connection::get_module_bindings (Nirvana::ModuleId id, Nirvana::PM::ModuleB
 void Connection::get_binding (const IDL::String& name, Nirvana::PlatformId platform,
 	Nirvana::PM::Binding& binding)
 {
-	Nirvana::throw_NO_IMPLEMENT ();
+	const char* name_begin = name.data ();
+	const char* sver = CORBA::Internal::RepId::version (name_begin, name_begin + name.size ());
+	CORBA::Internal::RepId::Version version (sver);
+	NDBC::ResultSet::_ref_type rs;
+	try {
+		Statement stm = get_statement ("SELECT id,path,platform,flags"
+			" FROM module JOIN export ON export.module=module.id JOIN binary ON binary.module=module.id"
+			" WHERE export.name=? AND platform=? AND major=? AND minor>=?");
+		stm->setString (1, IDL::String (name_begin, sver - name_begin));
+		stm->setInt (2, platform);
+		stm->setInt (3, version.major);
+		stm->setInt (4, version.minor);
+		rs = stm->executeQuery ();
+	} catch (const NDBC::SQLException& ex) {
+		Nirvana::BindError::Error err;
+		err.info ().s (ex.error ().sqlState ());
+		err.info ()._d (Nirvana::BindError::Type::ERR_MESSAGE);
+		throw err;
+	}
+
+	if (rs->next ()) {
+		binding.module_id (rs->getInt (1));
+		binding.binary_path (rs->getString (2));
+		binding.platform (rs->getInt (3));
+		binding.module_flags (rs->getSmallInt (4));
+	} else {
+		Nirvana::BindError::Error err;
+		err.info ().s (name);
+		err.info ()._d (Nirvana::BindError::Type::ERR_OBJ_NAME);
+		throw err;
+	}
 }
 
 IDL::String Connection::get_module_name (Nirvana::ModuleId id)

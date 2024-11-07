@@ -83,10 +83,14 @@ public:
 		if (get_sys_binding (name, platform, binding))
 			return;
 
-		// TODO:: Temporary solution, for testing
+		PM::Binding pm_binding;
+		packages_->get_binding (name, platform, pm_binding);
+		if (pm_binding.module_flags () & PM::MODULE_FLAG_SINGLETON) {
+			throw CORBA::NO_IMPLEMENT (); // Singletons are not supported yet
+		}
 		ModuleLoad& module_load = binding.module_load ();
-		module_load.binary (open_binary (get_sys_binary_path (platform, "TestModule.olf")));
-		module_load.module_id (PM::MAX_SYS_MODULE_ID + 1);
+		module_load.binary (open_binary (pm_binding.binary_path ()));
+		module_load.module_id (pm_binding.module_id ());
 	}
 
 	PM::Packages::_ref_type provide_packages () const noexcept
