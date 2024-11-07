@@ -45,6 +45,9 @@ typedef Nirvana::Core::ImplDynamicSync <Any> SharedAny;
 class EventChannelBase
 {
 public:
+	void destroy (PortableServer::ServantBase::_ptr_type servant,
+		PortableServer::POA::_ptr_type adapter);
+
 	CosEventChannelAdmin::ProxyPushSupplier::_ref_type obtain_push_supplier ()
 	{
 		return push_suppliers_.create <PushSupplier> (std::ref (*this));
@@ -71,27 +74,27 @@ protected:
 	{}
 
 	~EventChannelBase ()
-	{}
+	{
+		assert (destroyed_);
+	}
+
+	void check_exist () const;
 
 	bool destroyed () const noexcept
 	{
 		return destroyed_;
 	}
 
-	void check_exist () const
-	{
-		if (destroyed_)
-			throw OBJECT_NOT_EXIST ();
-	}
-
-	void destroy ();
+	static void deactivate_servant (PortableServer::ServantBase::_ptr_type servant,
+		PortableServer::POA::_ptr_type adapter) noexcept;
 
 	template <class S>
-	static void destroy_child (servant_reference <S>& child) noexcept
+	static void destroy_child (servant_reference <S>& child,
+		PortableServer::POA::_ptr_type adapter) noexcept
 	{
 		if (child) {
 			servant_reference <S> tmp (std::move (child));
-			tmp->destroy ();
+			tmp->destroy (adapter);
 		}
 	}
 
@@ -140,10 +143,7 @@ protected:
 	class ChildObject
 	{
 	public:
-		virtual void destroy () noexcept
-		{
-			channel_ = nullptr;
-		}
+		virtual void destroy (PortableServer::POA::_ptr_type adapter) noexcept = 0;
 
 	protected:
 		ChildObject (EventChannelBase& channel) :
@@ -152,42 +152,40 @@ protected:
 
 		EventChannelBase& check_exist () const
 		{
-			if (!channel_ || channel_->destroyed ())
+			if (!channel_ || channel_->destroyed_)
 				throw OBJECT_NOT_EXIST ();
 			return *channel_;
+		}
+
+		void destroy (PortableServer::ServantBase::_ptr_type servant,
+			PortableServer::POA::_ptr_type adapter) noexcept
+		{
+			deactivate_servant (servant, adapter);
+			channel_ = nullptr;
 		}
 
 	protected:
 		EventChannelBase* channel_;
 	};
 
-	class Children
+	class Children :
+		public Nirvana::Core::SetUnorderedUnstable <ChildObject*, std::hash <void*>,
+			std::equal_to <void*>, Nirvana::Core::UserAllocator>
 	{
-		typedef Nirvana::Core::SetUnorderedUnstable <ChildObject*, std::hash <void*>,
-			std::equal_to <void*>, Nirvana::Core::UserAllocator> Set;
-
 	public:
 		Children () :
 			connected_cnt_ (0)
 		{}
 
-		~Children ()
-		{}
-
-		Children (const Children&) = delete;
-
-		Children& operator = (const Children&) = delete;
-
 		void on_connect () noexcept
 		{
 			++connected_cnt_;
-			assert (connected_cnt_ <= set_.size ());
+			assert (connected_cnt_ <= size ());
 		}
 
 		void on_disconnect () noexcept
 		{
 			assert (connected_cnt_);
-			assert (connected_cnt_ <= set_.size ());
 			--connected_cnt_;
 		}
 
@@ -198,39 +196,21 @@ protected:
 
 		void on_destruct (ChildObject& child) noexcept
 		{
-			NIRVANA_VERIFY (set_.erase (&child));
-			assert (connected_cnt_ <= set_.size ());
+			NIRVANA_VERIFY (erase (&child));
+			assert (connected_cnt_ <= size ());
 		}
 
 		template <class S, class ... Args>
 		typename S::PrimaryInterface::_ref_type create (Args&& ... args)
 		{
 			servant_reference <S> ref (make_reference <S> (std::forward <Args> (args)...));
-			set_.insert (&static_cast <ChildObject&> (*ref));
+			insert (&static_cast <ChildObject&> (*ref));
 			return ref->_this ();
 		}
 
-		void destroy () noexcept;
-
-		typedef Set::const_iterator const_iterator;
-
-		const_iterator begin () const noexcept
-		{
-			return set_.begin ();
-		}
-
-		const_iterator end () const noexcept
-		{
-			return set_.end ();
-		}
-
-		bool empty () const noexcept
-		{
-			return set_.empty ();
-		}
+		void destroy (PortableServer::POA::_ptr_type adapter) noexcept;
 
 	private:
-		Set set_;
 		size_t connected_cnt_;
 	};
 
@@ -260,7 +240,7 @@ protected:
 
 		void disconnect_push_consumer () noexcept;
 
-		void push (const Any& data) const
+		void push (const Any& data)
 		{
 			if (!connected_)
 				throw CosEventComm::Disconnected ();
@@ -273,10 +253,11 @@ protected:
 		}
 
 	protected:
-		void destroy () noexcept
+		void destroy (PortableServer::ServantBase::_ptr_type servant,
+			PortableServer::POA::_ptr_type adapter) noexcept
 		{
 			disconnect_push_consumer ();
-			ChildObject::destroy ();
+			ChildObject::destroy (servant, adapter);
 		}
 
 	private:
@@ -291,6 +272,11 @@ protected:
 		PushConsumer (EventChannelBase& channel) :
 			PushConsumerBase (channel)
 		{}
+
+		virtual void destroy (PortableServer::POA::_ptr_type adapter) noexcept override
+		{
+			PushConsumerBase::destroy (this, adapter);
+		}
 	};
 
 	class PullSupplierBase : public ChildObject
@@ -357,10 +343,11 @@ protected:
 		}
 
 	protected:
-		void destroy () noexcept
+		void destroy (PortableServer::ServantBase::_ptr_type servant,
+			PortableServer::POA::_ptr_type adapter) noexcept
 		{
 			disconnect_pull_supplier ();
-			ChildObject::destroy ();
+			ChildObject::destroy (servant, adapter);
 		}
 
 	private:
@@ -385,6 +372,11 @@ protected:
 		PullSupplier (EventChannelBase& channel) :
 			PullSupplierBase (channel)
 		{}
+
+		virtual void destroy (PortableServer::POA::_ptr_type adapter) noexcept override
+		{
+			PullSupplierBase::destroy (this, adapter);
+		}
 	};
 
 	class PullHandler :
@@ -480,10 +472,11 @@ protected:
 		}
 
 	protected:
-		void destroy () noexcept
+		void destroy (PortableServer::ServantBase::_ptr_type servant,
+			PortableServer::POA::_ptr_type adapter) noexcept
 		{
 			disconnect_pull_consumer ();
-			ChildObject::destroy ();
+			ChildObject::destroy (servant, adapter);
 		}
 
 	private:
@@ -498,6 +491,11 @@ protected:
 		PullConsumer (EventChannelBase& channel) :
 			PullConsumerBase (channel)
 		{}
+
+		virtual void destroy (PortableServer::POA::_ptr_type adapter) noexcept override
+		{
+			PullConsumerBase::destroy (this, adapter);
+		}
 	};
 
 	class PushSupplierBase : public ChildObject
@@ -540,10 +538,11 @@ protected:
 		}
 
 	protected:
-		void destroy () noexcept
+		void destroy (PortableServer::ServantBase::_ptr_type servant,
+			PortableServer::POA::_ptr_type adapter) noexcept
 		{
 			disconnect_push_supplier ();
-			ChildObject::destroy ();
+			ChildObject::destroy (servant, adapter);
 		}
 
 	private:
@@ -558,9 +557,9 @@ protected:
 			PushSupplierBase (channel)
 		{}
 
-		virtual void destroy () noexcept override
+		virtual void destroy (PortableServer::POA::_ptr_type adapter) noexcept override
 		{
-			PushSupplierBase::destroy ();
+			PushSupplierBase::destroy (this, adapter);
 		}
 	};
 
@@ -605,12 +604,14 @@ protected:
 	Children push_consumers_;
 	Children pull_suppliers_;
 	Children pull_consumers_;
+
+private:
 	bool destroyed_;
 };
 
 class EventChannel :
-	public servant_traits <CosEventChannelAdmin::EventChannel>::Servant <EventChannel>,
-	public EventChannelBase
+	public EventChannelBase,
+	public servant_traits <CosEventChannelAdmin::EventChannel>::Servant <EventChannel>
 {
 public:
 	EventChannel ()
@@ -618,9 +619,13 @@ public:
 
 	~EventChannel ()
 	{
-		// Destroy all child objects
 		if (!destroyed ())
-			destroy ();
+			destroy (nullptr);
+	}
+
+	void destroy ()
+	{
+		destroy (_default_POA ());
 	}
 
 	CosEventChannelAdmin::ConsumerAdmin::_ref_type for_consumers ()
@@ -639,13 +644,6 @@ public:
 		return supplier_admin_->_this ();
 	}
 
-	void destroy ()
-	{
-		EventChannelBase::destroy ();
-		destroy_child (consumer_admin_);
-		destroy_child (supplier_admin_);
-	}
-
 	class ConsumerAdmin : public ConsumerAdminBase,
 		public servant_traits <CosEventChannelAdmin::ConsumerAdmin>::Servant <ConsumerAdmin>
 	{
@@ -653,6 +651,11 @@ public:
 		ConsumerAdmin (EventChannelBase& channel) :
 			ConsumerAdminBase (channel)
 		{}
+
+		virtual void destroy (PortableServer::POA::_ptr_type adapter) noexcept override
+		{
+			ChildObject::destroy (this, adapter);
+		}
 	};
 
 	class SupplierAdmin : public SupplierAdminBase,
@@ -662,7 +665,15 @@ public:
 		SupplierAdmin (EventChannelBase& channel) :
 			SupplierAdminBase (channel)
 		{}
+
+		virtual void destroy (PortableServer::POA::_ptr_type adapter) noexcept override
+		{
+			ChildObject::destroy (this, adapter);
+		}
 	};
+
+private:
+	void destroy (PortableServer::POA::_ptr_type adapter);
 
 private:
 	servant_reference <ConsumerAdmin> consumer_admin_;

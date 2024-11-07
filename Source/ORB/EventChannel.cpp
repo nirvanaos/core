@@ -29,13 +29,18 @@
 namespace CORBA {
 namespace Core {
 
-void EventChannelBase::destroy ()
+void EventChannelBase::destroy (PortableServer::ServantBase::_ptr_type servant,
+	PortableServer::POA::_ptr_type adapter)
 {
 	check_exist ();
-	push_suppliers_.destroy ();
-	push_consumers_.destroy ();
-	pull_suppliers_.destroy ();
-	pull_consumers_.destroy ();
+	destroyed_ = true;
+
+	deactivate_servant (servant, adapter);
+
+	push_suppliers_.destroy (adapter);
+	push_consumers_.destroy (adapter);
+	pull_suppliers_.destroy (adapter);
+	pull_consumers_.destroy (adapter);
 }
 
 void EventChannelBase::PushConsumerBase::disconnect_push_consumer () noexcept
@@ -91,12 +96,12 @@ void EventChannelBase::PushSupplierBase::disconnect_push_supplier () noexcept
 	}
 }
 
-void EventChannelBase::Children::destroy () noexcept
+void EventChannelBase::Children::destroy (PortableServer::POA::_ptr_type adapter) noexcept
 {
-	for (auto p : set_) {
-		p->destroy ();
+	for (auto p : *this) {
+		p->destroy (adapter);
 	}
-	set_.clear ();
+	clear ();
 }
 
 void EventChannelBase::push (const Any& data)
@@ -117,6 +122,30 @@ void EventChannelBase::push (const Any& data)
 				sup.push (data);
 		}
 	}
+}
+
+void EventChannelBase::deactivate_servant (PortableServer::ServantBase::_ptr_type servant,
+	PortableServer::POA::_ptr_type adapter) noexcept
+{
+	if (servant && adapter) {
+		try {
+			adapter->deactivate_object (adapter->servant_to_id (servant));
+		} catch (...) {
+		}
+	}
+}
+
+void EventChannelBase::check_exist () const
+{
+	if (destroyed_)
+		throw OBJECT_NOT_EXIST ();
+}
+
+void EventChannel::destroy (PortableServer::POA::_ptr_type adapter)
+{
+	EventChannelBase::destroy (this, adapter);
+	destroy_child (consumer_admin_, adapter);
+	destroy_child (supplier_admin_, adapter);
 }
 
 }

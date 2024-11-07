@@ -108,9 +108,11 @@ TypeCode::_ptr_type TypedEventChannel::check_pull (const Internal::InterfaceMeta
 void TypedEventChannel::deactivate_object (Object::_ptr_type obj,
 	PortableServer::POA::_ptr_type adapter) noexcept
 {
-	try {
-		adapter->deactivate_object (adapter->reference_to_id (obj));
-	} catch (...) {
+	if (obj && adapter) {
+		try {
+			adapter->deactivate_object (adapter->reference_to_id (obj));
+		} catch (...) {
+		}
 	}
 }
 
@@ -134,6 +136,13 @@ void TypedEventChannel::push (const Any& data)
 			return;
 	}
 	EventChannelBase::push (data);
+}
+
+void TypedEventChannel::destroy (PortableServer::POA::_ptr_type adapter)
+{
+	EventChannelBase::destroy (this, adapter);
+	destroy_child (consumer_admin_, adapter);
+	destroy_child (supplier_admin_, adapter);
 }
 
 }
