@@ -76,7 +76,7 @@ Services::~Services ()
 		PortableServer::Core::POA_Root::shutdown (POA_root);
 }
 
-Object::_ref_type Services::bind_internal (Service sidx)
+inline Object::_ref_type Services::bind_internal (Service sidx)
 {
 	if (sidx >= SERVICE_COUNT)
 		throw ORB::InvalidName ();
@@ -107,6 +107,13 @@ Object::_ref_type Services::bind_internal (Service sidx)
 		SYNC_END ();
 	}
 	return ret;
+}
+
+Object::_ref_type Services::bind (Service sidx)
+{
+	if (Nirvana::Core::Scheduler::state () != Nirvana::Core::Scheduler::RUNNING)
+		return nullptr;
+	return singleton_->bind_internal (sidx);
 }
 
 // Initial services. Must be lexicographically ordered.

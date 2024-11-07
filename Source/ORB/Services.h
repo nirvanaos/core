@@ -62,10 +62,7 @@ public:
 	/// 
 	/// \param sidx Service index.
 	/// \returns Service object reference.
-	static Object::_ref_type bind (Service sidx)
-	{
-		return singleton_->bind_internal (sidx);
-	}
+	static Object::_ref_type bind (Service sidx);
 
 	/// Bind service.
 	/// 

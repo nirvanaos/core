@@ -44,8 +44,8 @@ public:
 
 	~Packages ()
 	{
-		if (manager_completion_)
-			manager_completion_->disconnect_pull_supplier ();
+		if (event_channel_)
+			event_channel_->destroy ();
 	}
 
 	void get_binding (const IDL::String& name, Nirvana::PlatformId platform,
