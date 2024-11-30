@@ -36,6 +36,7 @@
 #include "ClassLibrary.h"
 #include "Singleton.h"
 #include "Executable.h"
+#include "SysDomain.h"
 
 using namespace CORBA;
 using namespace CORBA::Internal;
@@ -532,9 +533,9 @@ Binder::BindResult Binder::find (const ObjectKey& name)
 	if (!ret.itf) {
 
 		Binding binding;
-			
-		SysDomainCore::_narrow (Services::bind (Services::SysDomain))->get_binding (
-			CORBA::Internal::StringView <char> (name.name (), name.full_length ()), PLATFORM, binding);
+		CORBA::Internal::StringView <char> sname (name.name (), name.full_length ());
+		if (!SysDomain::get_sys_binding (sname, PLATFORM, binding))
+			SysDomainCore::_narrow (Services::bind (Services::SysDomain))->get_binding (sname, PLATFORM, binding);
 
 		if (binding._d ()) {
 			const ModuleLoad& ml = binding.module_load ();

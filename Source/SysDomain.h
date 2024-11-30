@@ -93,6 +93,8 @@ public:
 		module_load.module_id (pm_binding.module_id ());
 	}
 
+	static bool get_sys_binding (CORBA::Internal::String_in name, unsigned platform, Binding& binding);
+
 	PM::Packages::_ref_type provide_packages () const noexcept
 	{
 		return packages_;
@@ -150,8 +152,6 @@ public:
 		return CORBA::Core::Services::bind (id);
 	}
 
-	static void startup (CORBA::Object::_ptr_type obj);
-
 private:
 	static SysDomain* get_implementation (const CORBA::Core::ServantProxyLocal* proxy) noexcept
 	{
@@ -182,45 +182,6 @@ private:
 	};
 
 	static AccessDirect::_ref_type open_sys_binary (unsigned platform, SysModuleId module_id);
-
-	static bool get_sys_binding (CORBA::Internal::String_in name, unsigned platform, Binding& binding)
-	{
-		static const char dbc [] = "IDL:NDBC/";
-		static const char dec_calc [] = "Nirvana/dec_calc";
-		static const char sqlite_driver [] = "SQLite/driver";
-		static const char sfloat_4 [] = "CORBA/Internal/sfloat_4";
-		static const char sfloat_8 [] = "CORBA/Internal/sfloat_8";
-		static const char sfloat_16 [] = "CORBA/Internal/sfloat_16";
-		static const char regmod [] = "Nirvana/regmod";
-
-		SysModuleId module_id;
-
-		if (name == dec_calc) {
-			module_id = MODULE_DECCALC;
-		} else if (
-			(!std::is_same <float, CORBA::Float>::value && name == sfloat_4)
-			||
-			(!std::is_same <double, CORBA::Double>::value && name == sfloat_8)
-			||
-			(!std::is_same <long double, CORBA::LongDouble>::value && name == sfloat_16)
-			) {
-			module_id = MODULE_SFLOAT;
-		} else if (name.size () >= sizeof (dbc) && std::equal (dbc, dbc + sizeof (dbc) - 1, name.data ())) {
-			module_id = MODULE_DBC;
-		} else if (name == sqlite_driver) {
-			module_id = MODULE_SQLITE;
-		} else if (name == regmod) {
-			module_id = MODULE_SHELL;
-		} else
-			return false;
-
-		ModuleLoad& module_load = binding.module_load ();
-		module_load.binary (open_sys_binary (platform, module_id));
-		module_load.module_id (module_id);
-		return true;
-	}
-
-	void do_startup (CORBA::Object::_ptr_type obj);
 
 private:
 	Nirvana::SysManager::_ref_type manager_;

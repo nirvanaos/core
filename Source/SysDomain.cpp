@@ -46,9 +46,20 @@ const char* const SysDomain::sys_module_names_ [MODULE_SHELL] = {
 inline
 SysDomain::SysDomain ()
 {
+	CORBA::Object::_ptr_type component = _object ();
+
 	// Create SysManager
 	SYNC_BEGIN (g_core_free_sync_context, &MemContext::current ());
-	manager_ = make_reference <SysManager> (_object ())->_this ();
+	manager_ = make_reference <SysManager> (component)->_this ();
+	SYNC_END ();
+
+	// Create Packages object
+	Binder::BindResult br = Binder::load_and_bind (MODULE_PACKAGES,
+		open_sys_binary (PLATFORM, MODULE_PACKAGES),
+		"Nirvana/PM/pac_factory", CORBA::Internal::RepIdOf <PM::PacFactory>::id);
+	PM::PacFactory::_ref_type pf = std::move (br.itf).template downcast <PM::PacFactory> ();
+	SYNC_BEGIN (*br.sync_context, &MemContext::current ());
+	packages_ = pf->create (component);
 	SYNC_END ();
 }
 
@@ -57,9 +68,6 @@ SysDomain::~SysDomain ()
 
 Object::_ref_type create_SysDomain ()
 {
-	// Use make_stateless to create object in the free sync context
-	// The IDL API does not change state of the SysDomain servant.
-	// The only do_startup () method is change state but it is called only once in StartupSys::run ().
 	if (ESIOP::is_system_domain ())
 		return make_stateless <SysDomain> ()->_this ();
 	else
@@ -67,27 +75,46 @@ Object::_ref_type create_SysDomain ()
 			"corbaloc::1.1@/%00", CORBA::Internal::RepIdOf <SysDomain::PrimaryInterface>::id);
 }
 
-inline void SysDomain::do_startup (Object::_ptr_type obj)
-{
-	// Create Packages object
-	// This method called once from StartupSys::run ().
-	Binder::BindResult br = Binder::load_and_bind (MODULE_PACKAGES,
-		open_sys_binary (PLATFORM, MODULE_PACKAGES),
-		"Nirvana/PM/pac_factory", CORBA::Internal::RepIdOf <PM::PacFactory>::id);
-	PM::PacFactory::_ref_type pf = std::move (br.itf).template downcast <PM::PacFactory> ();
-	SYNC_BEGIN (*br.sync_context, &MemContext::current ());
-	packages_ = pf->create (obj);
-	SYNC_END ();
-}
-
-void SysDomain::startup (Object::_ptr_type obj)
-{
-	get_implementation (get_proxy (obj))->do_startup (obj);
-}
-
 AccessDirect::_ref_type SysDomain::open_sys_binary (unsigned platform, SysModuleId module_id)
 {
 	return open_binary (get_sys_binary_path (platform, sys_module_names_ [module_id - 1]));
+}
+
+bool SysDomain::get_sys_binding (CORBA::Internal::String_in name, unsigned platform, Binding& binding)
+{
+	static const char dbc [] = "IDL:NDBC/";
+	static const char dec_calc [] = "Nirvana/dec_calc";
+	static const char sqlite_driver [] = "SQLite/driver";
+	static const char sfloat_4 [] = "CORBA/Internal/sfloat_4";
+	static const char sfloat_8 [] = "CORBA/Internal/sfloat_8";
+	static const char sfloat_16 [] = "CORBA/Internal/sfloat_16";
+	static const char regmod [] = "Nirvana/regmod";
+
+	SysModuleId module_id;
+
+	if (name == dec_calc) {
+		module_id = MODULE_DECCALC;
+	} else if (
+		(!std::is_same <float, CORBA::Float>::value && name == sfloat_4)
+		||
+		(!std::is_same <double, CORBA::Double>::value && name == sfloat_8)
+		||
+		(!std::is_same <long double, CORBA::LongDouble>::value && name == sfloat_16)
+		) {
+		module_id = MODULE_SFLOAT;
+	} else if (name.size () >= sizeof (dbc) && std::equal (dbc, dbc + sizeof (dbc) - 1, name.data ())) {
+		module_id = MODULE_DBC;
+	} else if (name == sqlite_driver) {
+		module_id = MODULE_SQLITE;
+	} else if (name == regmod) {
+		module_id = MODULE_SHELL;
+	} else
+		return false;
+
+	ModuleLoad& module_load = binding.module_load ();
+	module_load.binary (open_sys_binary (platform, module_id));
+	module_load.module_id (module_id);
+	return true;
 }
 
 }
