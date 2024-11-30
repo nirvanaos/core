@@ -44,14 +44,11 @@ const char* const SysDomain::sys_module_names_ [MODULE_SHELL] = {
 };
 
 inline
-SysDomain::SysDomain (CORBA::Object::_ref_type& comp)
+SysDomain::SysDomain ()
 {
-	// Parent component
-	comp = _this ();
-
 	// Create SysManager
 	SYNC_BEGIN (g_core_free_sync_context, &MemContext::current ());
-	manager_ = make_reference <SysManager> (comp)->_this ();
+	manager_ = make_reference <SysManager> (_object ())->_this ();
 	SYNC_END ();
 }
 
@@ -60,18 +57,20 @@ SysDomain::~SysDomain ()
 
 Object::_ref_type create_SysDomain ()
 {
-	if (ESIOP::is_system_domain ()) {
-		CORBA::Object::_ref_type comp;
-		make_stateless <SysDomain> (std::ref (comp));
-		return comp;
-	} else
+	// Use make_stateless to create object in the free sync context
+	// The IDL API does not change state of the SysDomain servant.
+	// The only do_startup () method is change state but it is called only once in StartupSys::run ().
+	if (ESIOP::is_system_domain ())
+		return make_stateless <SysDomain> ()->_this ();
+	else
 		return CORBA::Static_the_orb::string_to_object (
 			"corbaloc::1.1@/%00", CORBA::Internal::RepIdOf <SysDomain::PrimaryInterface>::id);
 }
 
-void SysDomain::do_startup (Object::_ptr_type obj)
+inline void SysDomain::do_startup (Object::_ptr_type obj)
 {
-	// Create Packages
+	// Create Packages object
+	// This method called once from StartupSys::run ().
 	Binder::BindResult br = Binder::load_and_bind (MODULE_PACKAGES,
 		open_sys_binary (PLATFORM, MODULE_PACKAGES),
 		"Nirvana/PM/pac_factory", CORBA::Internal::RepIdOf <PM::PacFactory>::id);
