@@ -25,6 +25,7 @@
 */
 #include <Nirvana/Nirvana.h>
 #include <Nirvana/DecCalc_s.h>
+#include <signal.h>
 
 // All calculations are performed with double precision 62 digits
 #define DECNUMDIGITS 62
