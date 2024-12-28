@@ -33,6 +33,7 @@
 #include <Nirvana/Shell_s.h>
 #include "Executable.h"
 #include "Binder.h"
+#include "open_binary.h"
 
 namespace Nirvana {
 
@@ -77,6 +78,21 @@ public:
 	static void create_pipe (AccessChar::_ref_type& pipe_out, AccessChar::_ref_type& pipe_in)
 	{
 		throw_NO_IMPLEMENT ();
+	}
+
+	static FileDescriptors get_inherited_files (unsigned std_creation_mask)
+	{
+		return Core::MemContext::current ().get_inherited_files (std_creation_mask);
+	}
+
+	static AccessDirect::_ref_type open_binary (const IDL::String& path)
+	{
+		return Core::open_binary (path);
+	}
+
+	static PlatformId get_binary_platform (AccessDirect::_ptr_type binary)
+	{
+		return Core::Binary::get_platform (binary);
 	}
 
 };
