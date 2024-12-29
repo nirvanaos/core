@@ -79,19 +79,7 @@ public:
 		return Core::RuntimeGlobal::current ().rand ();
 	}
 
-	static void append_path (CosNaming::Name& name, const IDL::String& path, bool absolute)
-	{
-		IDL::String translated;
-		const IDL::String* ppath;
-		if (Core::FileSystem::translate_path (path, translated))
-			ppath = &translated;
-		else
-			ppath = &path;
-
-		if (name.empty () && absolute && !Core::FileSystem::is_absolute (*ppath))
-			name = get_current_dir_name ();
-		Core::FileSystem::append_path (name, *ppath);
-	}
+	static void append_path (CosNaming::Name& name, const IDL::String& path, bool absolute);
 
 	static CosNaming::Name get_current_dir_name ()
 	{
@@ -103,9 +91,47 @@ public:
 		Core::CurrentDir::chdir (path);
 	}
 
-	static uint16_t fd_add (Access::_ptr_type access)
+	static uint16_t open (const IDL::String& path, unsigned oflag, unsigned mode)
 	{
+		if (!(oflag & O_CREAT))
+			mode = 0;
+		// Get full path name
+		CosNaming::Name name;
+		append_path (name, path, true);
+		// Remove root name
+		name.erase (name.begin ());
+		// Get file system root
+		Nirvana::Dir::_ref_type root = Nirvana::Dir::_narrow (name_service ()->resolve (CosNaming::Name ()));
+		// Open file
+		Nirvana::Access::_ref_type access = root->open (name, oflag & ~O_DIRECT, mode);
 		return (uint16_t)Core::FileDescriptors::fd_add (access);
+	}
+
+	uint16_t mkostemps (CharPtr tpl, unsigned suffix_len, unsigned flags)
+	{
+		CosNaming::Name dir_name;
+		IDL::String file;
+		size_t tpl_len;
+		{
+			IDL::String tpl_path (tpl);
+			tpl_len = tpl_path.size ();
+			append_path (dir_name, tpl_path, true);
+			CosNaming::Name file_name;
+			file_name.push_back (std::move (dir_name.back ()));
+			dir_name.pop_back ();
+			file = CosNaming::Core::NameService::to_string_unchecked (file_name);
+		}
+
+		Nirvana::AccessBuf::_ref_type access = Nirvana::AccessBuf::_downcast (
+			Nirvana::Dir::_narrow (name_service ()->resolve (dir_name))->
+			mkostemps (file, (uint16_t)suffix_len, (uint16_t)flags, 0)->_to_value ());
+
+		unsigned fd = Core::FileDescriptors::fd_add (access);
+		size_t src_end = file.size () - suffix_len;
+		size_t src_begin = src_end - 6;
+		const char* src = file.c_str ();
+		Nirvana::real_copy (src + src_begin, src + src_end, tpl + tpl_len - suffix_len - 6);
+		return (uint16_t)fd;
 	}
 
 	static void close (unsigned fd)
@@ -179,7 +205,27 @@ public:
 		}
 	}
 
+private:
+	static CosNaming::NamingContextExt::_ref_type name_service ()
+	{
+		return CosNaming::NamingContextExt::_narrow (CORBA::Core::Services::bind (
+			CORBA::Core::Services::NameService));
+	}
 };
+
+void Static_the_posix::append_path (CosNaming::Name& name, const IDL::String& path, bool absolute)
+{
+	IDL::String translated;
+	const IDL::String* ppath;
+	if (Core::FileSystem::translate_path (path, translated))
+		ppath = &translated;
+	else
+		ppath = &path;
+
+	if (name.empty () && absolute && !Core::FileSystem::is_absolute (*ppath))
+		name = get_current_dir_name ();
+	Core::FileSystem::append_path (name, *ppath);
+}
 
 }
 
