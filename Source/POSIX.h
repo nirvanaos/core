@@ -28,6 +28,8 @@
 
 #include <Nirvana/Nirvana.h>
 #include <Nirvana/POSIX_s.h>
+//#include <Nirvana/sys_stat.h>
+#include <Nirvana/Hash.h>
 #include <signal.h>
 #include "Signals.h"
 #include "FileDescriptors.h"
@@ -203,6 +205,69 @@ public:
 			timer.set (0, period100ns, 0);
 			timer.wait ();
 		}
+	}
+
+	static void unlink (const IDL::String& path)
+	{
+		CosNaming::Name name;
+		append_path (name, path, true);
+		name_service ()->unbind (name);
+	}
+
+	static void rmdir (const IDL::String& path)
+	{
+		CosNaming::Name name;
+		append_path (name, path, true);
+		auto ns = name_service ();
+		Nirvana::Dir::_ref_type dir = Nirvana::Dir::_narrow (ns->resolve (name));
+		if (dir) {
+			dir->destroy ();
+			dir = nullptr;
+			ns->unbind (name);
+		} else
+			throw_BAD_PARAM (make_minor_errno (ENOTDIR));
+	}
+
+	static void mkdir (const IDL::String& path, unsigned mode)
+	{
+		CosNaming::Name name;
+		append_path (name, path, true);
+		// Remove root name
+		name.erase (name.begin ());
+		// Get file system root
+		Nirvana::Dir::_ref_type root = Nirvana::Dir::_narrow (name_service ()->resolve (CosNaming::Name ()));
+		// Create directory
+		if (!root->mkdir (name, mode))
+			throw_BAD_PARAM (make_minor_errno (EEXIST));
+	}
+
+	static void to_timespec (const TimeBase::TimeT& time, struct timespec& ts)
+	{
+		ts.tv_sec = time / 10000000;
+		ts.tv_nsec = (time % 10000000) * 100;
+	}
+
+	void stat (const IDL::String& path, struct stat* st)
+	{
+		throw_NO_IMPLEMENT ();
+		/*
+		Nirvana::FileStat fst;
+		CosNaming::Name name;
+		Nirvana::the_posix->append_path (name, path, true);
+		Nirvana::DirItem::_narrow (name_service ()->resolve (name))->stat (fst);
+		st->st_dev = fst.dev ();
+		st->st_ino = Nirvana::HashFunction <ino_t>::hash_bytes (fst.id ().data (), (int)fst.id ().size ());
+		st->st_uid = Nirvana::HashFunction <uid_t>::hash_bytes (fst.owner ().data (), (int)fst.owner ().size ());
+		st->st_gid = Nirvana::HashFunction <gid_t>::hash_bytes (fst.group ().data (), (int)fst.group ().size ());
+		st->st_mode = fst.mode ();
+		st->st_nlink = fst.nlink ();
+		st->st_size = fst.size ();
+		to_timespec (fst.last_access_time ().time (), st->st_atim);
+		to_timespec (fst.last_write_time ().time (), st->st_mtim);
+		to_timespec (fst.creation_time ().time (), st->st_ctim);
+		st->st_blksize = fst.blksize ();
+		st->st_blocks = fst.blkcnt ();
+		*/
 	}
 
 private:
