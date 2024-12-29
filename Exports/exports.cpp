@@ -35,6 +35,7 @@
 #include "../Source/the_security.h"
 #include "../Source/System.h"
 #include "../Source/POSIX.h"
+#include "../Source/CoreModule.h"
 
 NIRVANA_EXPORT (_exp_Nirvana_the_memory, "Nirvana/the_memory", Nirvana::Memory, Nirvana::Core::Memory)
 NIRVANA_EXPORT (_exp_Nirvana_the_debugger, "Nirvana/the_debugger", Nirvana::Debugger, Nirvana::Core::Debugger)
@@ -48,6 +49,10 @@ NIRVANA_STATIC_IMPORT ImportInterfaceT <Memory> NIRVANA_SELECTANY the_memory = {
 NIRVANA_STATIC_IMPORT ImportInterfaceT <Debugger> NIRVANA_SELECTANY the_debugger = { OLF_IMPORT_INTERFACE,
 	"Nirvana/the_debugger", CORBA::Internal::RepIdOf <Debugger>::id,
 	NIRVANA_STATIC_BRIDGE (Debugger, Core::Debugger) };
+
+extern NIRVANA_STATIC_IMPORT ImportInterfaceT <Module> the_module = { OLF_IMPORT_INTERFACE,
+	"Nirvana/the_module", CORBA::Internal::RepIdOf <Module>::id,
+	NIRVANA_STATIC_BRIDGE (Module, Core::CoreModule) };
 
 }
 

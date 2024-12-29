@@ -71,9 +71,4 @@ AtExitFunc CoreModule::at_exit_table_ [MAX_AT_EXIT_ENTRIES];
 size_t CoreModule::at_exit_cnt_;
 
 }
-
-extern NIRVANA_STATIC_IMPORT ImportInterfaceT <Module> the_module = { OLF_IMPORT_INTERFACE,
-"Nirvana/the_module", CORBA::Internal::RepIdOf <Module>::id,
-NIRVANA_STATIC_BRIDGE (Module, Core::CoreModule) };
-
 }
