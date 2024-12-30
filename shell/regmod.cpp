@@ -42,7 +42,7 @@ public:
 		}
 
 		CosNaming::Name bin_path;
-		the_posix->append_path (bin_path, argv [0], true);
+		the_system->append_path (bin_path, argv [0], true);
 
 		PM::Packages::_ref_type packages = SysDomain::_narrow (
 			CORBA::the_orb->resolve_initial_references ("SysDomain")

@@ -1,4 +1,3 @@
-/// \file
 /*
 * Nirvana Core.
 *
@@ -24,23 +23,27 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_CORE_UNRECOVERABLE_ERROR_H_
-#define NIRVANA_CORE_UNRECOVERABLE_ERROR_H_
-#pragma once
-
-#include <Nirvana/Nirvana.h>
+#include "pch.h"
+#include "append_path.h"
+#include "NameService/FileSystem.h"
+#include "CurrentDir.h"
 
 namespace Nirvana {
 namespace Core {
-namespace Port {
 
-NIRVANA_NORETURN void _unrecoverable_error (int code, const char* file, unsigned line);
+void append_path (CosNaming::Name& name, const IDL::String& path, bool absolute)
+{
+	IDL::String translated;
+	const IDL::String* ppath;
+	if (FileSystem::translate_path (path, translated))
+		ppath = &translated;
+	else
+		ppath = &path;
+
+	if (name.empty () && absolute && !FileSystem::is_absolute (*ppath))
+		name = CurrentDir::current_dir ();
+	FileSystem::append_path (name, *ppath);
+}
 
 }
 }
-}
-
-/// Unrecoverable error macro. Currently unused.
-#define unrecoverable_error(code) ::Nirvana::Core::Port::_unrecoverable_error (code, __FILE__, __LINE__)
-
-#endif

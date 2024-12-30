@@ -39,6 +39,7 @@
 
 NIRVANA_EXPORT (_exp_Nirvana_the_memory, "Nirvana/the_memory", Nirvana::Memory, Nirvana::Core::Memory)
 NIRVANA_EXPORT (_exp_Nirvana_the_debugger, "Nirvana/the_debugger", Nirvana::Debugger, Nirvana::Core::Debugger)
+NIRVANA_EXPORT (_exp_Nirvana_the_posix, "Nirvana/the_posix", Nirvana::POSIX, Nirvana::Static_the_posix)
 
 namespace Nirvana {
 
@@ -54,6 +55,10 @@ extern NIRVANA_STATIC_IMPORT ImportInterfaceT <Module> the_module = { OLF_IMPORT
 	"Nirvana/the_module", CORBA::Internal::RepIdOf <Module>::id,
 	NIRVANA_STATIC_BRIDGE (Module, Core::CoreModule) };
 
+extern NIRVANA_STATIC_IMPORT ImportInterfaceT <POSIX> the_posix = { OLF_IMPORT_INTERFACE,
+	"Nirvana/the_posix", CORBA::Internal::RepIdOf <POSIX>::id,
+	NIRVANA_STATIC_BRIDGE (POSIX, Static_the_posix) };
+
 }
 
 NIRVANA_EXPORT_FACTORY (_exp_Nirvana_AccessBuf, Nirvana::AccessBuf)
@@ -65,5 +70,4 @@ NIRVANA_EXPORT_OBJECT (_exp_Nirvana_the_shell, Nirvana::Static_the_shell)
 NIRVANA_EXPORT_PSEUDO (_exp_CORBA_Internal_object_factory, CORBA::Internal::Static_object_factory)
 NIRVANA_EXPORT_PSEUDO (_exp_CORBA_the_orb, CORBA::Static_the_orb)
 NIRVANA_EXPORT_PSEUDO (_exp_Nirvana_the_system, Nirvana::Static_the_system)
-NIRVANA_EXPORT_PSEUDO (_exp_Nirvana_the_posix, Nirvana::Static_the_posix)
 NIRVANA_EXPORT_PSEUDO (_exp_Nirvana_the_security, Nirvana::Static_the_security)

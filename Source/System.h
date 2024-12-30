@@ -35,6 +35,8 @@
 #include "NameService/NameService.h"
 #include "TLS.h"
 #include "Binder.h"
+#include "append_path.h"
+#include "CurrentDir.h"
 
 namespace Nirvana {
 
@@ -151,6 +153,16 @@ public:
 	static CosNaming::Name to_name (const IDL::String& sn)
 	{
 		return CosNaming::Core::NameService::to_name (sn);
+	}
+
+	void append_path (CosNaming::Name& name, const IDL::String& path, bool absolute)
+	{
+		Core::append_path (name, path, absolute);
+	}
+
+	static CosNaming::Name get_current_dir ()
+	{
+		return Core::CurrentDir::current_dir ();
 	}
 
 	// This operation can cause context switch.

@@ -24,23 +24,19 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_CORE_UNRECOVERABLE_ERROR_H_
-#define NIRVANA_CORE_UNRECOVERABLE_ERROR_H_
+#ifndef NIRVANA_CORE_APPEND_PATH_H_
+#define NIRVANA_CORE_APPEND_PATH_H_
 #pragma once
 
-#include <Nirvana/Nirvana.h>
+#include <CORBA/CORBA.h>
+#include <CORBA/CosNaming.h>
 
 namespace Nirvana {
 namespace Core {
-namespace Port {
 
-NIRVANA_NORETURN void _unrecoverable_error (int code, const char* file, unsigned line);
+void append_path (CosNaming::Name& name, const IDL::String& path, bool absolute);
 
 }
 }
-}
-
-/// Unrecoverable error macro. Currently unused.
-#define unrecoverable_error(code) ::Nirvana::Core::Port::_unrecoverable_error (code, __FILE__, __LINE__)
 
 #endif

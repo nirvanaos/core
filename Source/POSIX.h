@@ -32,9 +32,9 @@
 #include "Signals.h"
 #include "FileDescriptors.h"
 #include "CurrentDir.h"
-#include "NameService/FileSystem.h"
 #include "ExecDomain.h"
 #include "TimerEvent.h"
+#include "append_path.h"
 #include "unrecoverable_error.h"
 
 namespace Nirvana {
@@ -79,11 +79,9 @@ public:
 		return Core::RuntimeGlobal::current ().rand ();
 	}
 
-	static void append_path (CosNaming::Name& name, const IDL::String& path, bool absolute);
-
-	static CosNaming::Name get_current_dir_name ()
+	static IDL::String get_current_dir ()
 	{
-		return Core::CurrentDir::current_dir ();
+		return CosNaming::Core::NameService::to_string_unchecked (Core::CurrentDir::current_dir ());
 	}
 
 	static void chdir (const IDL::String& path)
@@ -97,7 +95,7 @@ public:
 			mode = 0;
 		// Get full path name
 		CosNaming::Name name;
-		append_path (name, path, true);
+		Core::append_path (name, path, true);
 		// Remove root name
 		name.erase (name.begin ());
 		// Get file system root
@@ -115,7 +113,7 @@ public:
 		{
 			IDL::String tpl_path (tpl);
 			tpl_len = tpl_path.size ();
-			append_path (dir_name, tpl_path, true);
+			Core::append_path (dir_name, tpl_path, true);
 			CosNaming::Name file_name;
 			file_name.push_back (std::move (dir_name.back ()));
 			dir_name.pop_back ();
@@ -208,14 +206,14 @@ public:
 	static void unlink (const IDL::String& path)
 	{
 		CosNaming::Name name;
-		append_path (name, path, true);
+		Core::append_path (name, path, true);
 		name_service ()->unbind (name);
 	}
 
 	static void rmdir (const IDL::String& path)
 	{
 		CosNaming::Name name;
-		append_path (name, path, true);
+		Core::append_path (name, path, true);
 		auto ns = name_service ();
 		Nirvana::Dir::_ref_type dir = Nirvana::Dir::_narrow (ns->resolve (name));
 		if (dir) {
@@ -229,7 +227,7 @@ public:
 	static void mkdir (const IDL::String& path, unsigned mode)
 	{
 		CosNaming::Name name;
-		append_path (name, path, true);
+		Core::append_path (name, path, true);
 		// Remove root name
 		name.erase (name.begin ());
 		// Get file system root
@@ -242,7 +240,7 @@ public:
 	void stat (const IDL::String& path, FileStat& st)
 	{
 		CosNaming::Name name;
-		append_path (name, path, true);
+		Core::append_path (name, path, true);
 		Nirvana::DirItem::_narrow (name_service ()->resolve (name))->stat (st);
 	}
 
@@ -253,20 +251,6 @@ private:
 			CORBA::Core::Services::NameService));
 	}
 };
-
-void Static_the_posix::append_path (CosNaming::Name& name, const IDL::String& path, bool absolute)
-{
-	IDL::String translated;
-	const IDL::String* ppath;
-	if (Core::FileSystem::translate_path (path, translated))
-		ppath = &translated;
-	else
-		ppath = &path;
-
-	if (name.empty () && absolute && !Core::FileSystem::is_absolute (*ppath))
-		name = get_current_dir_name ();
-	Core::FileSystem::append_path (name, *ppath);
-}
 
 }
 

@@ -373,7 +373,7 @@ extern "C" int xDelete (sqlite3_vfs*, sqlite3_filename zName, int syncDir)
 	try {
 		// Get full path name
 		CosNaming::Name name;
-		Nirvana::the_posix->append_path (name, zName, true);
+		Nirvana::the_system->append_path (name, zName, true);
 		// Remove root name
 		name.erase (name.begin ());
 		// Delete
@@ -390,7 +390,7 @@ extern "C" int xAccess (sqlite3_vfs*, const char* zName, int flags, int* pResOut
 	try {
 		// Get full path name
 		CosNaming::Name name;
-		Nirvana::the_posix->append_path (name, zName, true);
+		Nirvana::the_system->append_path (name, zName, true);
 		// Remove root name
 		name.erase (name.begin ());
 		unsigned mask = 0;
@@ -417,7 +417,7 @@ extern "C" int xFullPathname (sqlite3_vfs*, const char* zName, int nOut, char* z
 	try {
 		// Get full path name
 		CosNaming::Name name;
-		Nirvana::the_posix->append_path (name, zName, true);
+		Nirvana::the_system->append_path (name, zName, true);
 		auto s = Nirvana::the_system->to_string (name);
 		if ((int)s.size () >= nOut)
 			return SQLITE_CANTOPEN;
