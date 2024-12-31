@@ -105,7 +105,7 @@ public:
 		return (uint16_t)Core::FileDescriptors::fd_add (access);
 	}
 
-	uint16_t mkostemps (CharPtr tpl, unsigned suffix_len, unsigned flags)
+	static uint16_t mkostemps (CharPtr tpl, unsigned suffix_len, unsigned flags)
 	{
 		CosNaming::Name dir_name;
 		IDL::String file;
@@ -157,7 +157,7 @@ public:
 		return Core::FileDescriptors::fcntl (fd, cmd, arg);
 	}
 
-	static void flush (unsigned fd)
+	static void fsync (unsigned fd)
 	{
 		Core::FileDescriptors::flush (fd);
 	}
@@ -237,7 +237,7 @@ public:
 			throw_BAD_PARAM (make_minor_errno (EEXIST));
 	}
 
-	void stat (const IDL::String& path, FileStat& st)
+	static void stat (const IDL::String& path, FileStat& st)
 	{
 		CosNaming::Name name;
 		Core::append_path (name, path, true);

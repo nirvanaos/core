@@ -160,16 +160,10 @@ public:
 			ret = direct;
 		else {
 			Bytes buf;
-			FileSize pos;
 			uint32_t block_size = access_->block_size ();
-			if (flags & O_ATE)
-				pos = access_->size ();
-			else {
-				pos = 0;
-				if ((flags & O_ACCMODE) != O_WRONLY && access_->size ())
-					direct->read (0, block_size, buf);
-			}
-			ret = CORBA::make_reference <FileAccessBuf> (pos, 0,
+			if ((flags & O_ACCMODE) != O_WRONLY && access_->size ())
+				direct->read (0, block_size, buf);
+			ret = CORBA::make_reference <FileAccessBuf> (0, 0,
 				std::move (direct), std::move (buf), block_size, flags, Port::FileSystem::eol ());
 		}
 
