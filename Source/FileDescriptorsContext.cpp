@@ -31,24 +31,6 @@
 namespace Nirvana {
 namespace Core {
 
-size_t FileDescriptorsContext::Descriptor::push_back_read (void*& p, size_t& size) noexcept
-{
-	size_t cnt = push_back_cnt_;
-	if (cnt) {
-		const uint8_t* top = push_back_buf_ + cnt;
-		if (cnt > size)
-			cnt = size;
-		const uint8_t* end = top - cnt;
-		uint8_t* dst = (uint8_t*)p;
-		while (top != end) {
-			*(dst++) = *(--top);
-		}
-		size -= cnt;
-		p = dst;
-	}
-	return cnt;
-}
-
 class FileDescriptorsContext::DescriptorBuf : public DescriptorBase
 {
 public:
@@ -227,21 +209,7 @@ void FileDescriptorsContext::DescriptorChar::close () const
 
 size_t FileDescriptorsContext::DescriptorBuf::read (void* p, size_t size)
 {
-	error_ = false;
-	eof_ = false;
-	size_t cb = push_back_read (p, size);
-	if (size) {
-		try {
-			size_t cbr = access_->read (p, size);
-			if (cbr < size)
-				eof_ = true;
-			cb += cbr;
-		} catch (...) {
-			error_ = true;
-			throw;
-		}
-	}
-	return cb;
+	return access_->read (p, size);
 }
 
 size_t FileDescriptorsContext::DescriptorChar::read (void* p, size_t size)
@@ -249,13 +217,10 @@ size_t FileDescriptorsContext::DescriptorChar::read (void* p, size_t size)
 	if ((flags_ & O_ACCMODE) == O_WRONLY)
 		throw_NO_PERMISSION (make_minor_errno (EBADF));
 
-	error_ = false;
-	eof_ = false;
-
 	if (!size)
 		return 0;
 
-	size_t cb = push_back_read (p, size);
+	size_t cb = 0;
 	for (;;) {
 		while (size && !buffer_.empty ()) {
 			*(char*)p = buffer_.front ();
@@ -271,28 +236,22 @@ size_t FileDescriptorsContext::DescriptorChar::read (void* p, size_t size)
 		if (flags_ & O_NONBLOCK) {
 			bool has_event;
 			evt = access_->try_pull (has_event);
-			if (!has_event) {
-				eof_ = true;
+			if (!has_event)
 				throw_TRANSIENT (make_minor_errno (EAGAIN));
-			}
 		} else
 			evt = access_->pull ();
 
 		const IDL::String* ps;
 		if (evt >>= ps) {
-			if (ps->empty ()) {
-				eof_ = true;
+			if (ps->empty ())
 				break;
-			}
 			for (char c : *ps) {
 				buffer_.push (c);
 			}
 		} else {
 			AccessChar::Error error;
-			if (evt >>= error) {
-				error_ = true;
+			if (evt >>= error)
 				throw_COMM_FAILURE (make_minor_errno (error.error ()));
-			}
 		}
 	}
 
@@ -301,13 +260,11 @@ size_t FileDescriptorsContext::DescriptorChar::read (void* p, size_t size)
 
 void FileDescriptorsContext::DescriptorBuf::write (const void* p, size_t size)
 {
-	push_back_reset ();
 	access_->write (p, size);
 }
 
 void FileDescriptorsContext::DescriptorChar::write (const void* p, size_t size)
 {
-	push_back_reset ();
 	access_->write (CORBA::Internal::StringView <char> ((const char*)p, size));
 }
 
@@ -338,11 +295,6 @@ uint64_t FileDescriptorsContext::DescriptorBuf::seek (unsigned method, const int
 		if (std::numeric_limits <FileSize>::max () - pos < (FileSize)off)
 			throw_BAD_PARAM (make_minor_errno (EOVERFLOW));
 	}
-
-	if (0 == off)
-		pos -= push_back_cnt ();
-	else
-		push_back_reset ();
 
 	access_->position (pos += off);
 	return pos;
@@ -378,13 +330,11 @@ void FileDescriptorsContext::DescriptorChar::flags (unsigned fl)
 
 void FileDescriptorsContext::DescriptorBuf::flush ()
 {
-	push_back_reset ();
 	access_->flush ();
 }
 
 void FileDescriptorsContext::DescriptorChar::flush ()
 {
-	push_back_reset ();
 }
 
 bool FileDescriptorsContext::DescriptorBuf::isatty () const

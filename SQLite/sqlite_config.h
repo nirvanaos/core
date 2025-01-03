@@ -46,7 +46,7 @@
 #define SQLITE_USE_URI 1
 #define SQLITE_WITHOUT_MSIZE
 
-#define HAVE_LOCALTIME_R (1)
+#define HAVE_LOCALTIME_S (1)
 #define HAVE_GMTIME_R (1)
 
 #ifdef NDEBUG

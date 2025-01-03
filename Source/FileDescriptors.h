@@ -107,26 +107,6 @@ public:
 		return context_for_fd ().isatty (ifd);
 	}
 
-	static void push_back (unsigned ifd, int c)
-	{
-		context_for_fd ().push_back (ifd, c);
-	}
-
-	static bool ferror (unsigned ifd)
-	{
-		return context_for_fd ().ferror (ifd);
-	}
-
-	static bool feof (unsigned ifd)
-	{
-		return context_for_fd ().feof (ifd);
-	}
-
-	static void clearerr (unsigned ifd)
-	{
-		context_for_fd ().clearerr (ifd);
-	}
-
 private:
 	static FileDescriptorsContext& context_for_fd ();
 	static FileDescriptorsContext& context ();

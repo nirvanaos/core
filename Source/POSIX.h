@@ -172,26 +172,6 @@ public:
 		return Core::FileDescriptors::isatty (fd);
 	}
 
-	static void ungetc (unsigned fd, int c)
-	{
-		Core::FileDescriptors::push_back (fd, c);
-	}
-
-	static bool ferror (unsigned fd)
-	{
-		return Core::FileDescriptors::ferror (fd);
-	}
-
-	static bool feof (unsigned fd)
-	{
-		return Core::FileDescriptors::feof (fd);
-	}
-
-	static void clearerr (unsigned fd)
-	{
-		Core::FileDescriptors::clearerr (fd);
-	}
-
 	static void sleep (TimeBase::TimeT period100ns)
 	{
 		if (!period100ns)

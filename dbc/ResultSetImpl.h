@@ -454,7 +454,7 @@ private:
 		case DB_DATE: {
 			struct tm tminfo;
 			time_t time = ((time_t)v.l_val () * TimeBase::DAY - TimeBase::UNIX_EPOCH) / TimeBase::SECOND;
-			gmtime_r (&time, &tminfo);
+			gmtime_s (&time, &tminfo);
 			char buffer [16];
 			strftime (buffer, sizeof (buffer), "%Y-%m-%d", &tminfo);
 			ret = buffer;
@@ -462,7 +462,7 @@ private:
 		case DB_DATETIME: {
 			struct tm tminfo;
 			time_t time = ((time_t)v.ll_val () - TimeBase::UNIX_EPOCH) / TimeBase::SECOND;
-			gmtime_r (&time, &tminfo);
+			gmtime_s (&time, &tminfo);
 			char buffer [64];
 			strftime (buffer, sizeof (buffer), "%Y-%m-%d %H:%M:%S", &tminfo);
 			ret = buffer;

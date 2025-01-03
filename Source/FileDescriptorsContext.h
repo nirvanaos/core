@@ -129,26 +129,6 @@ public:
 		return get_open_fd (ifd).ptr ()->isatty ();
 	}
 
-	void push_back (unsigned ifd, int c)
-	{
-		get_open_fd (ifd).ptr ()->push_back (c);
-	}
-
-	bool ferror (unsigned ifd)
-	{
-		return get_open_fd (ifd).ptr ()->error ();
-	}
-
-	bool feof (unsigned ifd)
-	{
-		return get_open_fd (ifd).ptr ()->eof ();
-	}
-
-	void clearerr (unsigned ifd)
-	{
-		get_open_fd (ifd).ptr ()->clearerr ();
-	}
-
 	void set_inherited_files (const FileDescriptors& files);
 	FileDescriptors get_inherited_files (unsigned* std_mask) const;
 
@@ -168,30 +148,6 @@ private:
 		virtual void flush () = 0;
 		virtual bool isatty () const = 0;
 
-		void push_back (int c)
-		{
-			if (push_back_cnt_ < PUSH_BACK_MAX)
-				push_back_buf_ [push_back_cnt_++] = (uint8_t)c;
-			else
-				throw_IMP_LIMIT (ERANGE);
-		}
-
-		bool error () const noexcept
-		{
-			return error_;
-		}
-
-		bool eof () const noexcept
-		{
-			return eof_;
-		}
-
-		void clearerr () noexcept
-		{
-			error_ = false;
-			eof_ = false;
-		}
-
 		void add_descriptor_ref () noexcept
 		{
 			++descriptor_ref_cnt_;
@@ -205,37 +161,14 @@ private:
 
 	protected:
 		Descriptor () :
-			descriptor_ref_cnt_ (1),
-			error_ (false),
-			eof_ (false),
-			push_back_cnt_ (0)
+			descriptor_ref_cnt_ (1)
 		{}
 
 		virtual ~Descriptor ()
 		{}
 
-		size_t push_back_read (void*& p, size_t& size) noexcept;
-
-		unsigned push_back_cnt () const noexcept
-		{
-			return push_back_cnt_;
-		}
-
-		void push_back_reset () noexcept
-		{
-			push_back_cnt_ = 0;
-		}
-
 	private:
 		unsigned descriptor_ref_cnt_;
-
-	protected:
-		bool error_;
-		bool eof_;
-
-	private:
-		uint8_t push_back_cnt_;
-		uint8_t push_back_buf_ [PUSH_BACK_MAX];
 	};
 
 	typedef ImplDynamicSync <Descriptor> DescriptorBase;
