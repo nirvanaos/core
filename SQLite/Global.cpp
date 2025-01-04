@@ -47,14 +47,14 @@ Global::Global () :
 	sqlite3_vfs_register (&vfs, 1);
 	sqlite3_initialize ();
 
-	cs_key_ = Nirvana::the_system->CS_alloc (wsd_deleter);
+	cs_key_ = Nirvana::the_posix->CS_alloc (wsd_deleter);
 }
 
 inline
 Global::~Global ()
 {
 	sqlite3_shutdown ();
-	Nirvana::the_system->CS_free (cs_key_);
+	Nirvana::the_posix->CS_free (cs_key_);
 }
 
 Global global;
@@ -143,10 +143,10 @@ WritableStaticData& Global::static_data ()
 		// Initialization stage
 		return initial_static_data_;
 	} else {
-		void* p = Nirvana::the_system->CS_get (cs_key_);
+		void* p = Nirvana::the_posix->CS_get (cs_key_);
 		if (!p) {
 			p = new WritableStaticData (initial_static_data_);
-			Nirvana::the_system->CS_set (cs_key_, p);
+			Nirvana::the_posix->CS_set (cs_key_, p);
 		}
 		return *reinterpret_cast <WritableStaticData*> (p);
 	}

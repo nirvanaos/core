@@ -224,10 +224,45 @@ public:
 		Nirvana::DirItem::_narrow (name_service ()->resolve (name))->stat (st);
 	}
 
-private:
-	static CosNaming::NamingContextExt::_ref_type name_service ()
+	static void rename (const IDL::String& old_path, const IDL::String& new_path)
 	{
-		return CosNaming::NamingContextExt::_narrow (CORBA::Core::Services::bind (
+		CosNaming::Name old_name, new_name;
+		Core::append_path (old_name, old_path, true);
+		Core::append_path (new_name, new_path, true);
+
+		CosNaming::NamingContext::_ref_type nc = name_service ();
+		CORBA::Object::_ref_type obj = nc->resolve (old_name);
+		CosNaming::NamingContext::_ref_type dir = CosNaming::NamingContext::_narrow (obj);
+		if (dir)
+			nc->rebind_context (new_name, dir);
+		else
+			nc->rebind (new_name, obj);
+	}
+
+	static CS_Key CS_alloc (Deleter deleter)
+	{
+		return (CS_Key)Core::TLS::allocate (deleter);
+	}
+
+	static void CS_free (unsigned idx)
+	{
+		Core::TLS::release (idx);
+	}
+
+	static void CS_set (unsigned idx, void* ptr)
+	{
+		Core::TLS::set (idx, ptr);
+	}
+
+	static void* CS_get (unsigned idx)
+	{
+		return Core::TLS::get (idx);
+	}
+
+private:
+	static CosNaming::NamingContext::_ref_type name_service ()
+	{
+		return CosNaming::NamingContext::_narrow (CORBA::Core::Services::bind (
 			CORBA::Core::Services::NameService));
 	}
 };

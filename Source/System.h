@@ -124,26 +124,6 @@ public:
 		return (ContextType)Core::SyncContext::current ().sync_context_type ();
 	}
 
-	static CS_Key CS_alloc (Deleter deleter)
-	{
-		return (CS_Key)Core::TLS::allocate (deleter);
-	}
-
-	static void CS_free (unsigned idx)
-	{
-		Core::TLS::release (idx);
-	}
-
-	static void CS_set (unsigned idx, void* ptr)
-	{
-		Core::TLS::set (idx, ptr);
-	}
-
-	static void* CS_get (unsigned idx)
-	{
-		return Core::TLS::get (idx);
-	}
-
 	static IDL::String to_string (const CosNaming::Name& name)
 	{
 		CosNaming::Core::NamingContextRoot::check_name (name);

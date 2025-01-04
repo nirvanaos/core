@@ -24,7 +24,7 @@
 *  popov.nirvana@gmail.com
 */
 #include "Context.h"
-#include <Nirvana/System.h>
+#include <Nirvana/POSIX.h>
 
 extern "C" {
 
@@ -42,12 +42,12 @@ namespace Internal {
 
 SFloatTLS::SFloatTLS ()
 {
-	cs_key_ = Nirvana::the_system->CS_alloc (nullptr);
+	cs_key_ = Nirvana::the_posix->CS_alloc (nullptr);
 }
 
 SFloatTLS::~SFloatTLS ()
 {
-	Nirvana::the_system->CS_free (cs_key_);
+	Nirvana::the_posix->CS_free (cs_key_);
 }
 
 static CORBA::Internal::SFloatTLS sfloat_tls;
@@ -55,12 +55,12 @@ static CORBA::Internal::SFloatTLS sfloat_tls;
 SFloatContext::SFloatContext () :
 	exception_flags_ (0)
 {
-	Nirvana::the_system->CS_set (sfloat_tls.cs_key (), &exception_flags_);
+	Nirvana::the_posix->CS_set (sfloat_tls.cs_key (), &exception_flags_);
 }
 
 SFloatContext::~SFloatContext ()
 {
-	Nirvana::the_system->CS_set (sfloat_tls.cs_key (), nullptr);
+	Nirvana::the_posix->CS_set (sfloat_tls.cs_key (), nullptr);
 }
 
 }
@@ -68,5 +68,5 @@ SFloatContext::~SFloatContext ()
 
 extern "C" uint_fast8_t * _softfloat_exceptionFlags ()
 {
-	return (uint_fast8_t*)Nirvana::the_system->CS_get (CORBA::Internal::sfloat_tls.cs_key ());
+	return (uint_fast8_t*)Nirvana::the_posix->CS_get (CORBA::Internal::sfloat_tls.cs_key ());
 }
