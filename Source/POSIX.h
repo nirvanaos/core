@@ -28,6 +28,7 @@
 
 #include <Nirvana/Nirvana.h>
 #include <Nirvana/POSIX_s.h>
+#include <Nirvana/nls.h>
 #include <signal.h>
 #include "Signals.h"
 #include "FileDescriptors.h"
@@ -257,6 +258,25 @@ public:
 	static void* CS_get (unsigned idx)
 	{
 		return Core::TLS::get (idx);
+	}
+
+	static Locale::_ptr_type locale ()
+	{
+		Core::MemContext* mc = Core::MemContext::current_ptr ();
+		if (mc)
+			return mc->locale ();
+		else
+			return nullptr;
+	}
+
+	static void locale (Locale::_ptr_type)
+	{
+		throw_NO_IMPLEMENT ();
+	}
+
+	static Locale::_ref_type create_locale (unsigned mask, const IDL::String& locale, Locale::_ptr_type base)
+	{
+		throw_NO_IMPLEMENT ();
 	}
 
 private:

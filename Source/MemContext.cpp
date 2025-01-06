@@ -29,6 +29,7 @@
 #include "BinderMemory.h"
 #include "Chrono.h"
 #include "ORB/Services.h"
+#include "LocaleImpl.h"
 
 namespace Nirvana {
 namespace Core {
@@ -65,7 +66,11 @@ MemContext& MemContext::current ()
 
 MemContext* MemContext::current_ptr () noexcept
 {
-	return ExecDomain::current ().mem_context_ptr ();
+	ExecDomain* ed = Thread::current ().exec_domain ();
+	if (ed)
+		return ed->mem_context_ptr ();
+	else
+		return nullptr;
 }
 
 inline
@@ -74,7 +79,13 @@ MemContext::MemContext (Ref <Heap>&& heap, bool class_library_init, bool core_co
 	ref_cnt_ (1),
 	class_library_init_ (class_library_init),
 	core_context_ (core_context)
-{}
+{
+	MemContext* parent = current_ptr ();
+	if (parent)
+		locale_ = parent->locale_;
+	else
+		locale_ = locale_default ();
+}
 
 inline
 MemContext::~MemContext ()

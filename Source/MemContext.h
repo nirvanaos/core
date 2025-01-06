@@ -36,6 +36,7 @@
 #include "FileDescriptorsContext.h"
 #include "CurrentDirContext.h"
 #include "UserObject.h"
+#include <Nirvana/nls.h>
 #include <memory>
 
 namespace Nirvana {
@@ -176,6 +177,16 @@ public:
 	}
 
 	FileDescriptors get_inherited_files (unsigned create_std_mask) const;
+
+	Nirvana::Locale::_ptr_type locale () const noexcept
+	{
+		return locale_;
+	}
+
+	void locale (Nirvana::Locale::_ptr_type loc) noexcept
+	{
+		locale_ = loc;
+	}
 
 private:
 	static Ref <MemContext> create (Ref <Heap>&& heap, bool class_library_init, bool core_context);
@@ -411,6 +422,7 @@ private:
 	bool class_library_init_;
 	bool core_context_;
 	DataHolder data_holder_;
+	Nirvana::Locale::_ref_type locale_;
 
 	static const DeadlineTime ASYNC_DESTROY_DEADLINE = INFINITE_DEADLINE;
 };
