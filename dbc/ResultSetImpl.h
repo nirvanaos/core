@@ -489,7 +489,7 @@ private:
 			s %= 60;
 			unsigned h = m / 60;
 			m %= 60;
-			Nirvana::append_format (ret, "%02u:%02u:%02u", h, m, s);
+			Nirvana::Formatter::append_format (ret, "%02u:%02u:%02u", h, m, s);
 		} break;
 
 		default:
