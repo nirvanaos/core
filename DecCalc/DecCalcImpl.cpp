@@ -148,16 +148,16 @@ public:
 		if (n.digits () == digits && n.exponent () == -scale)
 			decPackedFromNumber (bcd, (digits + 2) / 2, &s, (const decNumber*)&n);
 		else {
-			Context ctx (digits);
 			decNumber exp;
 			decNumberZero (&exp);
 			exp.digits = digits;
 			exp.exponent = -scale;
 			decNumber tmp;
 			zero (tmp);
+			Context ctx (digits);
 			decNumberReduce (&tmp, (const decNumber*)&n, &ctx);
 			decNumberQuantize (&tmp, &tmp, &exp, &ctx);
-			if (ctx.status)
+			if (ctx.status & ~(DEC_Rounded | DEC_Inexact))
 				throw_DATA_CONVERSION ();
 			assert (tmp.digits <= digits);
 			tmp.digits = digits;
