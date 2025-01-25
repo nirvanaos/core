@@ -269,12 +269,12 @@ public:
 			return nullptr;
 	}
 
-	static void locale (Locale::_ptr_type)
+	static void locale (Locale::_ptr_type loc)
 	{
-		throw_NO_IMPLEMENT ();
+		Core::MemContext::current ().locale (loc);
 	}
 
-	static Locale::_ref_type create_locale (unsigned mask, const IDL::String& locale, Locale::_ptr_type base)
+	static Locale::_ref_type create_locale (Int mask, const IDL::String& locale, Locale::_ptr_type base)
 	{
 		throw_NO_IMPLEMENT ();
 	}

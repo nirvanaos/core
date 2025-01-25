@@ -37,27 +37,39 @@
 namespace Nirvana {
 namespace Core {
 
-template <const struct lconv* LCONV, CORBA::Internal::Bridge <Nirvana::CodePage>* CP>
+struct LocaleDef
+{
+	const char* name;
+	const struct lconv* lc;
+	CORBA::Internal::Bridge <Nirvana::CodePage>* cp;
+};
+
+template <const LocaleDef* LD>
 class LocaleStatic :
-	public CORBA::servant_traits <Nirvana::Locale>::ServantStatic <LocaleStatic <LCONV, CP> >
+	public CORBA::servant_traits <Nirvana::Locale>::ServantStatic <LocaleStatic <LD> >
 {
 public:
-	Nirvana::CodePage::_ptr_type code_page () const noexcept
+	static Nirvana::CodePage::_ptr_type code_page () noexcept
 	{
-		return Nirvana::CodePage::_ptr_type (static_cast <Nirvana::CodePage*> (CP));
+		return Nirvana::CodePage::_ptr_type (static_cast <Nirvana::CodePage*> (LD->cp));
 	}
 
-	const struct lconv* localeconv () const noexcept
+	static const struct lconv* localeconv () noexcept
 	{
-		return LCONV;
+		return LD->lc;
+	}
+
+	static const char* get_name (int) noexcept
+	{
+		return LD->name;
 	}
 };
 
-extern const struct lconv lconv_posix;
+extern const struct LocaleDef locale_posix;
 
 inline Nirvana::Locale::_ptr_type locale_default ()
 {
-	return LocaleStatic <&lconv_posix, nullptr>::_get_ptr ();
+	return LocaleStatic <&locale_posix>::_get_ptr ();
 }
 
 /// \brief Locale is immutable object.
@@ -86,11 +98,20 @@ public:
 		return &lconv_;
 	}
 
+	const char* get_name (unsigned category) const noexcept
+	{
+		if (category <= LC_MAX)
+			return names_ [category];
+		else
+			return nullptr;
+	}
+
 private:
 	Locale (unsigned mask, Nirvana::Locale::_ptr_type locale, Nirvana::Locale::_ptr_type base);
 
-	void copy_monetary (const struct lconv* src);
-	void copy_numeric (const struct lconv* src);
+	void copy_code_page (Nirvana::Locale::_ptr_type src);
+	void copy_monetary (Nirvana::Locale::_ptr_type src);
+	void copy_numeric (Nirvana::Locale::_ptr_type src);
 
 private:
 	Nirvana::CodePage::_ref_type code_page_;
@@ -115,6 +136,9 @@ private:
 
 #pragma pop_macro("STR")
 
+	Nirvana::Locale::_ref_type parent_, base_;
+
+	const char* names_ [LC_MAX + 1];
 };
 
 }
