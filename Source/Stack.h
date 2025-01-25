@@ -49,8 +49,11 @@ class Stack
 {
 	Stack (const Stack&) = delete;
 	Stack& operator = (const Stack&) = delete;
+
+protected:
 	typedef LockablePtrT <T, 0, ALIGN> LockablePtr;
 	typedef typename LockablePtr::Ptr Ptr;
+
 public:
 	Stack () noexcept :
 		head_ (nullptr)

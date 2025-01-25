@@ -39,21 +39,24 @@ namespace Core {
 /// \tparam T Object type.
 ///           T must derive StackElem and have default constructor.
 template <class T>
-class ObjectPool
+class ObjectPool : private Stack <T>
 {
+	typedef Stack <T> Base;
+
 public:
 	/// Constructor.
 	/// 
 	/// \param max_size Maximal object count in the pool.
 	ObjectPool (unsigned max_size) :
-		max_size_ (max_size)
-	{}
+		max_size_ (max_size),
+		size_ (0)
+	{};
 
 	/// Destructor.
-	/// Dletes all objects from the pool.
+	/// Deletes all objects from the pool.
 	~ObjectPool ()
 	{
-		while (T* obj = stack_.pop ())
+		while (T* obj = Base::pop ())
 			delete obj;
 	}
 
@@ -65,12 +68,16 @@ public:
 	/// \returns Ref <T>.
 	Ref <T> create ()
 	{
-		T* obj = stack_.pop ();
+		Ref <T> ret;
+		T* obj = Base::pop ();
 		if (obj) {
 			--size_;
-			return obj;
+			ret = obj;
 		} else
-			return Ref <T>::template create <T> ();
+			ret = Ref <T>::template create <T> ();
+
+		assert (((uintptr_t)static_cast <T*> (ret) & Base::Ptr::ALIGN_MASK) == 0);
+		return ret;
 	}
 
 	/// Release object to the pool.
@@ -84,11 +91,10 @@ public:
 			--size_;
 			delete& obj;
 		} else
-			stack_.push (obj);
+			Base::push (obj);
 	}
 
 private:
-	Stack <T> stack_;
 	unsigned max_size_;
 	std::atomic <unsigned> size_;
 };
