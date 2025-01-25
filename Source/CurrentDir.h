@@ -53,9 +53,16 @@ public:
 
 	static void chdir (const IDL::String& path)
 	{
-		if (!path.empty ())
-			MemContext::current ().current_dir ().chdir (path);
-		else {
+		if (!path.empty ()) {
+			try {
+				MemContext::current ().current_dir ().chdir (path);
+			} catch (const CosNaming::NamingContext::InvalidName&) {
+				throw_BAD_PARAM (make_minor_errno (ENOENT));
+			} catch (const CosNaming::NamingContext::NotFound& ex) {
+				int err = (ex.why () == CosNaming::NamingContext::NotFoundReason::not_context) ? ENOTDIR : ENOENT;
+				throw_BAD_PARAM (make_minor_errno (err));
+			}
+		} else {
 			MemContext* mc = MemContext::current_ptr ();
 			if (mc) {
 				CurrentDirContext* ctx = mc->current_dir_ptr ();
