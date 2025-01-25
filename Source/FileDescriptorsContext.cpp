@@ -95,7 +95,7 @@ size_t FileDescriptorsContext::alloc_fd (unsigned start)
 		}
 		i = it - file_descriptors_.begin ();
 	}
-	if (i > (unsigned)std::numeric_limits <int16_t>::max () - (unsigned)STD_CNT)
+	if (i > (unsigned)std::numeric_limits <int>::max () - (unsigned)STD_CNT)
 		throw_IMP_LIMIT (make_minor_errno (EMFILE));
 	if (i >= file_descriptors_.size ())
 		file_descriptors_.resize (i + 1);
