@@ -36,7 +36,7 @@
 #include "FileDescriptorsContext.h"
 #include "CurrentDirContext.h"
 #include "UserObject.h"
-#include <Nirvana/nls.h>
+#include "LocaleImpl.h"
 #include <memory>
 
 namespace Nirvana {
@@ -178,8 +178,10 @@ public:
 
 	FileDescriptors get_inherited_files (unsigned create_std_mask) const;
 
-	Nirvana::Locale::_ptr_type locale () const noexcept
+	Nirvana::Locale::_ptr_type locale () noexcept
 	{
+		if (!locale_)
+			locale_ = locale_default ();
 		return locale_;
 	}
 

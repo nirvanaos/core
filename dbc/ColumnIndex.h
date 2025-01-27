@@ -94,7 +94,7 @@ public:
 			Ordinal ord = 1;
 			for (auto it = column_names.cbegin (); it != column_names.cend (); ++it, ++ord) {
 				std::string lc = *it;
-				std::transform (lc.begin (), lc.end (), lc.begin (), tolower);
+				std::transform (lc.begin (), lc.end (), lc.begin (), tolower_ascii);
 				u_.narrow.emplace (lc, ord);
 			}
 		} else {
@@ -144,6 +144,15 @@ private:
 				return false;
 		}
 		return true;
+	}
+
+	static int tolower_ascii (int c) noexcept
+	{
+		assert ((unsigned)c <= 127);
+		if ('A' <= c && c <= 'Z')
+			return c + 0x20;
+		else
+			return c;
 	}
 
 	static std::wstring u2w (const std::string& u)

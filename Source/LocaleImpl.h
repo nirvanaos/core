@@ -30,116 +30,26 @@
 
 #include <CORBA/Server.h>
 #include <Nirvana/nls_s.h>
-#include <Nirvana/locale.h>
-#include "Heap.h"
-#include "CoreInterface.h"
 
 namespace Nirvana {
 namespace Core {
 
+/// @brief Base locale definition, always UTF-8
 struct LocaleDef
 {
 	const char* name;
 	const struct lconv* lc;
-	CORBA::Internal::Bridge <Nirvana::CodePage>* cp;
 };
 
-template <const LocaleDef* LD>
-class LocaleStatic :
-	public CORBA::servant_traits <Nirvana::Locale>::ServantStatic <LocaleStatic <LD> >
+Nirvana::Locale::_ref_type locale_get_utf8 (const char* name);
+
+inline Nirvana::Locale::_ref_type locale_default ()
 {
-public:
-	static Nirvana::CodePage::_ptr_type code_page () noexcept
-	{
-		return Nirvana::CodePage::_ptr_type (static_cast <Nirvana::CodePage*> (LD->cp));
-	}
-
-	static const struct lconv* localeconv () noexcept
-	{
-		return LD->lc;
-	}
-
-	static const char* get_name (int) noexcept
-	{
-		return LD->name;
-	}
-};
-
-extern const struct LocaleDef locale_posix;
-
-inline Nirvana::Locale::_ptr_type locale_default ()
-{
-	return LocaleStatic <&locale_posix>::_get_ptr ();
+	return locale_get_utf8 ("c");
 }
 
-/// \brief Locale is immutable object.
-/// We can create a new one but can't change existing.
-class Locale :
-	public CORBA::servant_traits <Nirvana::Locale>::Servant <ImplDynamic <Locale> >,
-	public CORBA::Internal::LifeCycleRefCnt <ImplDynamic <Locale> >,
-	public SharedObject
-{
-public:
-	friend class ImplDynamic <Locale>;
-
-	static Nirvana::Locale::_ref_type create (unsigned mask, Nirvana::Locale::_ptr_type locale,
-		Nirvana::Locale::_ptr_type base)
-	{
-		return CORBA::make_pseudo <ImplDynamic <Locale> > (mask, locale, base);
-	}
-
-	Nirvana::CodePage::_ptr_type code_page () const noexcept
-	{
-		return code_page_;
-	}
-
-	const struct lconv* localeconv () const noexcept
-	{
-		return &lconv_;
-	}
-
-	const char* get_name (unsigned category) const noexcept
-	{
-		if (category <= LC_MAX)
-			return names_ [category];
-		else
-			return nullptr;
-	}
-
-private:
-	Locale (unsigned mask, Nirvana::Locale::_ptr_type locale, Nirvana::Locale::_ptr_type base);
-
-	void copy_code_page (Nirvana::Locale::_ptr_type src);
-	void copy_monetary (Nirvana::Locale::_ptr_type src);
-	void copy_numeric (Nirvana::Locale::_ptr_type src);
-
-private:
-	Nirvana::CodePage::_ref_type code_page_;
-	struct lconv lconv_;
-
-#pragma push_macro("STR")
-#define STR(name, len) static const size_t name##_max_ = len; char name##_ [name##_max_ + 1]
-
-	STR (decimal_point, 4);
-	STR (thousands_sep, 4);
-	STR (grouping, 5);
-	STR (mon_decimal_point, 4);
-	STR (mon_thousands_sep, 4);
-	STR (mon_grouping, 5);
-
-	STR (positive_sign, 4);
-	STR (negative_sign, 4);
-
-	STR (int_curr_symbol, 4);
-
-	STR (currency_symbol, 4);
-
-#pragma pop_macro("STR")
-
-	Nirvana::Locale::_ref_type parent_, base_;
-
-	const char* names_ [LC_MAX + 1];
-};
+Nirvana::Locale::_ref_type locale_create (unsigned mask, const IDL::String& locale,
+	Nirvana::Locale::_ptr_type base);
 
 }
 }

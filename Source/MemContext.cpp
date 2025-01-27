@@ -29,7 +29,6 @@
 #include "BinderMemory.h"
 #include "Chrono.h"
 #include "ORB/Services.h"
-#include "LocaleImpl.h"
 
 namespace Nirvana {
 namespace Core {
@@ -83,8 +82,6 @@ MemContext::MemContext (Ref <Heap>&& heap, bool class_library_init, bool core_co
 	MemContext* parent = current_ptr ();
 	if (parent)
 		locale_ = parent->locale_;
-	else
-		locale_ = locale_default ();
 }
 
 inline

@@ -274,11 +274,6 @@ public:
 		Core::MemContext::current ().locale (loc);
 	}
 
-	static Locale::_ref_type create_locale (Int mask, const IDL::String& locale, Locale::_ptr_type base)
-	{
-		throw_NO_IMPLEMENT ();
-	}
-
 private:
 	static CosNaming::NamingContext::_ref_type name_service ()
 	{
