@@ -90,7 +90,7 @@ public:
 		Core::CurrentDir::chdir (path);
 	}
 
-	static FileDescr open (const IDL::String& path, unsigned oflag, unsigned mode)
+	static FilDesc open (const IDL::String& path, unsigned oflag, unsigned mode)
 	{
 		if (!(oflag & O_CREAT))
 			mode = 0;
@@ -102,11 +102,11 @@ public:
 		// Get file system root
 		Nirvana::Dir::_ref_type root = Nirvana::Dir::_narrow (name_service ()->resolve (CosNaming::Name ()));
 		// Open file
-		Nirvana::Access::_ref_type access = root->open (name, oflag & ~O_DIRECT, mode);
-		return Core::FileDescriptors::fd_add (access);
+		Nirvana::Access::_ref_type access = root->open (name, oflag, mode);
+		return Core::FileDescriptors::fd_add (access, oflag);
 	}
 
-	static FileDescr mkostemps (CharPtr tpl, unsigned suffix_len, unsigned flags)
+	static FilDesc mkostemps (CharPtr tpl, unsigned suffix_len, unsigned flags)
 	{
 		CosNaming::Name dir_name;
 		IDL::String file;
@@ -133,42 +133,42 @@ public:
 		return fd;
 	}
 
-	static void close (FileDescr fd)
+	static void close (FilDesc fd)
 	{
 		Core::FileDescriptors::close (fd);
 	}
 
-	static size_t read (FileDescr fd, void* p, size_t size)
+	static size_t read (FilDesc fd, void* p, size_t size)
 	{
 		return Core::FileDescriptors::read (fd, p, size);
 	}
 
-	static void write (FileDescr fd, const void* p, size_t size)
+	static void write (FilDesc fd, const void* p, size_t size)
 	{
 		Core::FileDescriptors::write (fd, p, size);
 	}
 
-	static FileSize seek (FileDescr fd, const FileOff& offset, uint_fast16_t whence)
+	static FileSize seek (FilDesc fd, const FileOff& offset, uint_fast16_t whence)
 	{
 		return Core::FileDescriptors::seek (fd, offset, whence);
 	}
 
-	static FileDescr fcntl (FileDescr fd, unsigned cmd, uintptr_t arg)
+	static FilDesc fcntl (FilDesc fd, unsigned cmd, uintptr_t arg)
 	{
 		return Core::FileDescriptors::fcntl (fd, cmd, arg);
 	}
 
-	static void fsync (FileDescr fd)
+	static void fsync (FilDesc fd)
 	{
 		Core::FileDescriptors::flush (fd);
 	}
 
-	static void dup2 (FileDescr src, FileDescr dst)
+	static void dup2 (FilDesc src, FilDesc dst)
 	{
 		Core::FileDescriptors::dup2 (src, dst);
 	}
 
-	static bool isatty (FileDescr fd)
+	static bool isatty (FilDesc fd)
 	{
 		return Core::FileDescriptors::isatty (fd);
 	}

@@ -36,9 +36,9 @@ namespace Core {
 class FileDescriptors
 {
 public:
-	static unsigned fd_add (Access::_ptr_type access)
+	static unsigned fd_add (Access::_ptr_type access, unsigned flags)
 	{
-		return context ().fd_add (access);
+		return context ().fd_add (access, flags);
 	}
 
 	static void close (unsigned ifd)

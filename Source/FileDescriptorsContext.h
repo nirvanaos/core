@@ -47,11 +47,11 @@ public:
 	FileDescriptorsContext ()
 	{}
 
-	unsigned fd_add (Access::_ptr_type access)
+	unsigned fd_add (Access::_ptr_type access, unsigned flags = 0, FileSize pos = 0)
 	{
 		// Allocate file descriptor cell
 		size_t i = alloc_fd ();
-		file_descriptors_ [i].attach (make_fd (access));
+		file_descriptors_ [i].attach (make_fd (access, flags, pos));
 
 		return (unsigned)(i + STD_CNT);
 	}
@@ -74,7 +74,7 @@ public:
 		get_open_fd (ifd).ref ()->write (p, size);
 	}
 
-	uint64_t seek (unsigned ifd, const int64_t& off, unsigned method)
+	FileSize seek (unsigned ifd, const FileOff& off, unsigned method)
 	{
 		return get_open_fd (ifd).ref ()->seek (method, off);
 	}
@@ -142,11 +142,12 @@ private:
 		virtual void close () const = 0;
 		virtual size_t read (void* p, size_t size) = 0;
 		virtual void write (const void* p, size_t size) = 0;
-		virtual uint64_t seek (unsigned method, const int64_t& off) = 0;
+		virtual FileSize seek (unsigned method, FileOff off) = 0;
 		virtual unsigned flags () const = 0;
 		virtual void flags (unsigned fl) = 0;
 		virtual void flush () = 0;
 		virtual bool isatty () const = 0;
+		virtual void get_file_descr (FileDescr& fd) const;
 
 		void add_descriptor_ref () noexcept
 		{
@@ -239,9 +240,10 @@ private:
 
 	class DescriptorBuf;
 	class DescriptorChar;
+	class DescriptorDirect;
 
 private:
-	static DescriptorRef make_fd (CORBA::AbstractBase::_ptr_type access);
+	static DescriptorRef make_fd (CORBA::AbstractBase::_ptr_type access, unsigned flags, FileSize pos);
 	
 	DescriptorInfo& get_fd (unsigned fd);
 	

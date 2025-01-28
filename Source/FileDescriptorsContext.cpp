@@ -31,6 +31,11 @@
 namespace Nirvana {
 namespace Core {
 
+void FileDescriptorsContext::Descriptor::get_file_descr (FileDescr& fd) const
+{
+	fd.access (access ()->dup (0, 0));
+}
+
 class FileDescriptorsContext::DescriptorBuf : public DescriptorBase
 {
 public:
@@ -42,7 +47,7 @@ public:
 	virtual void close () const override;
 	virtual size_t read (void* p, size_t size) override;
 	virtual void write (const void* p, size_t size) override;
-	virtual uint64_t seek (unsigned method, const int64_t& off) override;
+	virtual FileSize seek (unsigned method, FileOff off) override;
 	virtual unsigned flags () const override;
 	virtual void flags (unsigned fl) override;
 	virtual void flush () override;
@@ -67,7 +72,7 @@ public:
 	virtual void close () const override;
 	virtual size_t read (void* p, size_t size) override;
 	virtual void write (const void* p, size_t size) override;
-	virtual uint64_t seek (unsigned method, const int64_t& off) override;
+	virtual FileSize seek (unsigned method, FileOff off) override;
 	virtual unsigned flags () const override;
 	virtual void flags (unsigned fl) override;
 	virtual void flush () override;
@@ -78,6 +83,32 @@ private:
 	const AccessChar::_ref_type access_;
 	Buffer buffer_;
 	unsigned flags_;
+};
+
+class FileDescriptorsContext::DescriptorDirect : public DescriptorBase
+{
+public:
+	DescriptorDirect (AccessDirect::_ref_type&& access, unsigned flags, FileSize pos) :
+		access_ (std::move (access)),
+		flags_ (flags),
+		pos_ (pos)
+	{}
+
+	virtual Access::_ref_type access () const override;
+	virtual void close () const override;
+	virtual size_t read (void* p, size_t size) override;
+	virtual void write (const void* p, size_t size) override;
+	virtual FileSize seek (unsigned method, FileOff off) override;
+	virtual unsigned flags () const override;
+	virtual void flags (unsigned fl) override;
+	virtual void flush () override;
+	virtual bool isatty () const override;
+	virtual void get_file_descr (FileDescr& fd) const override;
+
+private:
+	const AccessDirect::_ref_type access_;
+	unsigned flags_;
+	FileSize pos_;
 };
 
 size_t FileDescriptorsContext::alloc_fd (unsigned start)
@@ -121,7 +152,7 @@ FileDescriptorsContext::DescriptorInfo& FileDescriptorsContext::get_open_fd (uns
 }
 
 FileDescriptorsContext::DescriptorRef FileDescriptorsContext::make_fd (
-	CORBA::AbstractBase::_ptr_type access)
+	CORBA::AbstractBase::_ptr_type access, unsigned flags, FileSize pos)
 {
 	CORBA::ValueBase::_ref_type val = access->_to_value ();
 	if (val) {
@@ -130,11 +161,15 @@ FileDescriptorsContext::DescriptorRef FileDescriptorsContext::make_fd (
 			throw_UNKNOWN (make_minor_errno (EIO));
 		return CORBA::make_reference <DescriptorBuf> (std::move (ab));
 	} else {
-		AccessChar::_ref_type ac = AccessChar::_narrow (access->_to_object ());
-		if (!ac)
-			throw_UNKNOWN (make_minor_errno (EIO));
-		return CORBA::make_reference <DescriptorChar> (std::move (ac));
+		CORBA::Object::_ref_type obj = access->_to_object ();
+		AccessChar::_ref_type ac = AccessChar::_narrow (obj);
+		if (ac)
+			return CORBA::make_reference <DescriptorChar> (std::move (ac));
+		AccessDirect::_ref_type ad = AccessDirect::_narrow (obj);
+		if (ad)
+			return CORBA::make_reference <DescriptorDirect> (std::move (ad), flags, pos);
 	}
+	throw_UNKNOWN (make_minor_errno (EIO));
 }
 
 void FileDescriptorsContext::set_inherited_files (const FileDescriptors& files)
@@ -146,13 +181,16 @@ void FileDescriptorsContext::set_inherited_files (const FileDescriptors& files)
 				max = d;
 		}
 	}
-	if (max >= StandardFileDescriptor::STD_CNT)
+	if (max >= StandardFileDescriptor::STD_CNT) {
+		if (max > std::numeric_limits <int>::max ())
+			throw_BAD_PARAM ();
 		file_descriptors_.resize (max + 1 - StandardFileDescriptor::STD_CNT);
+	}
 	for (const auto& f : files) {
-		DescriptorRef fd = make_fd (f.access ());
+		DescriptorRef fd = make_fd (f.access (), f.flags (), f.pos ());
 		fd->remove_descriptor_ref ();
 		for (auto d : f.descriptors ()) {
-			DescriptorInfo& fdr = get_fd (d);
+			DescriptorInfo& fdr = get_fd ((unsigned)d);
 			if (!fdr.closed ())
 				throw_BAD_PARAM ();
 			fdr.assign (fd);
@@ -162,7 +200,7 @@ void FileDescriptorsContext::set_inherited_files (const FileDescriptors& files)
 
 FileDescriptors FileDescriptorsContext::get_inherited_files (unsigned* std_mask) const
 {
-	using Inherited = MapUnorderedUnstable <Descriptor*, IDL::Sequence <uint16_t>,
+	using Inherited = MapUnorderedUnstable <Descriptor*, IDL::Sequence <int>,
 		std::hash <Descriptor*>, std::equal_to <Descriptor*>, UserAllocator>;
 
 	Inherited inherited;
@@ -170,7 +208,7 @@ FileDescriptors FileDescriptorsContext::get_inherited_files (unsigned* std_mask)
 	for (unsigned ifd = 0, end = StandardFileDescriptor::STD_CNT + file_descriptors_.size (); ifd < end; ++ifd) {
 		const DescriptorInfo& d = get_fd (ifd);
 		if (!d.closed () && !(d.fd_flags () & FD_CLOEXEC)) {
-			inherited [d.ptr ()].push_back ((uint16_t)ifd);
+			inherited [d.ptr ()].push_back (ifd);
 			if (ifd < StandardFileDescriptor::STD_CNT)
 				std |= 1 << ifd;
 		}
@@ -178,7 +216,10 @@ FileDescriptors FileDescriptorsContext::get_inherited_files (unsigned* std_mask)
 
 	FileDescriptors files;
 	for (auto& f : inherited) {
-		files.emplace_back (f.first->access ()->dup (0, 0), std::move (f.second));
+		FileDescr fd;
+		f.first->get_file_descr (fd);
+		fd.descriptors (std::move (f.second));
+		files.push_back (std::move (fd));
 	}
 
 	if (std_mask)
@@ -268,7 +309,7 @@ void FileDescriptorsContext::DescriptorChar::write (const void* p, size_t size)
 	access_->write (CORBA::Internal::StringView <char> ((const char*)p, size));
 }
 
-uint64_t FileDescriptorsContext::DescriptorBuf::seek (unsigned method, const int64_t& off)
+FileSize FileDescriptorsContext::DescriptorBuf::seek (unsigned method, FileOff off)
 {
 	FileSize pos;
 	switch (method) {
@@ -300,7 +341,7 @@ uint64_t FileDescriptorsContext::DescriptorBuf::seek (unsigned method, const int
 	return pos;
 }
 
-uint64_t FileDescriptorsContext::DescriptorChar::seek (unsigned method, const int64_t& off)
+FileSize FileDescriptorsContext::DescriptorChar::seek (unsigned method, FileOff off)
 {
 	throw_BAD_OPERATION (make_minor_errno (ESPIPE));
 }
