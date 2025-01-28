@@ -25,6 +25,8 @@
 */
 #include "pch.h"
 #include "LocaleImpl.h"
+#include <CORBA/Server.h>
+#include <Nirvana/nls_s.h>
 #include <Nirvana/locale.h>
 #include "Heap.h"
 #include "CoreInterface.h"
@@ -45,23 +47,26 @@ template <const LocaleDef* def>
 class LocaleStatic :
 	public CORBA::servant_traits <Nirvana::Locale>::ServantStatic <LocaleStatic <def> >
 {
+	using Servant = LocaleStatic <def>;
+
 public:
-	static Nirvana::CodePage::_ptr_type code_page () noexcept
+	static const char* name () noexcept
 	{
-		return nullptr;
+		return def->name;
+	}
+
+	static Nirvana::Facet::_ref_type get_facet (int category) noexcept
+	{
+		if (LC_CTYPE == category)
+			return nullptr;
+		else
+			return Nirvana::Facet::_ptr_type (
+				CORBA::servant_traits <Nirvana::Facet>::ServantStatic <Servant>::_get_ptr ());
 	}
 
 	static const struct lconv* localeconv () noexcept
 	{
 		return def->lc;
-	}
-
-	static const char* get_name (int category) noexcept
-	{
-		if (category == LC_CTYPE)
-			return strchr (def->name, '.') + 1;
-		else
-			return def->name;
 	}
 };
 
@@ -156,17 +161,37 @@ Nirvana::Locale::_ref_type locale_get_utf8 (const char* name)
 	return nullptr;
 }
 
-/// \brief Locale is immutable object.
+/// \brief Locale is immutable object to combine two locales together.
 /// We can create a new one but can't change existing.
+class Locale;
+using LocaleImpl = ImplDynamic <Locale>;
+
 class Locale :
-	public CORBA::servant_traits <Nirvana::Locale>::Servant <ImplDynamic <Locale> >,
-	public CORBA::Internal::LifeCycleRefCnt <ImplDynamic <Locale> >,
+	public CORBA::Internal::ValueBaseAbstract <LocaleImpl>,
+	public CORBA::Internal::ValueImpl <LocaleImpl, ::Nirvana::Facet>,
+	public CORBA::Internal::ValueImpl <LocaleImpl, ::Nirvana::Locale>,
 	public SharedObject
 {
 public:
-	Nirvana::CodePage::_ptr_type code_page () const noexcept
+	typedef ::Nirvana::Locale PrimaryInterface;
+
+	CORBA::Internal::I_ptr <Interface> _query_valuetype (const CORBA::Internal::String& id)
 	{
-		return code_page_;
+		return CORBA::Internal::FindInterface < ::Nirvana::Locale, ::Nirvana::Facet>::find (
+			static_cast <LocaleImpl&> (*this), id);
+	}
+
+	const char* name () const noexcept
+	{
+		return facets_ [LC_ALL]->name ();
+	}
+
+	Nirvana::Facet::_ref_type get_facet (unsigned category) const noexcept
+	{
+		if (category < std::size (facets_))
+			return facets_ [category];
+		else
+			return nullptr;
 	}
 
 	const struct lconv* localeconv () const noexcept
@@ -174,16 +199,8 @@ public:
 		return &lconv_;
 	}
 
-	const char* get_name (unsigned category) const noexcept
-	{
-		if (category < std::size (names_))
-			return names_ [category];
-		else
-			return nullptr;
-	}
-
 protected:
-	Locale (unsigned mask, const char* locale, Nirvana::Locale::_ptr_type base);
+	Locale (unsigned mask, Nirvana::Locale::_ptr_type parent, Nirvana::Locale::_ptr_type base);
 
 private:
 	void copy_code_page (Nirvana::Locale::_ptr_type src);
@@ -191,44 +208,54 @@ private:
 	void copy_numeric (Nirvana::Locale::_ptr_type src);
 
 private:
-	Nirvana::CodePage::_ref_type code_page_;
 	struct lconv lconv_;
-	Nirvana::Locale::_ref_type parent_, base_;
-	const char* names_ [LC_TIME + 1];
+	Nirvana::Facet::_ref_type facets_ [LC_TIME + 1];
 };
 
-static Nirvana::Locale::_ref_type create (unsigned mask, const char* locale,
-	Nirvana::Locale::_ptr_type base)
-{
-	return CORBA::make_pseudo <ImplDynamic <Locale> > (mask, locale, base);
-}
-
-inline
-Locale::Locale (unsigned mask, const char* name, Nirvana::Locale::_ptr_type base)
+Nirvana::Locale::_ref_type locale_create (unsigned mask, const IDL::String& name,
+	Nirvana::Locale::_ptr_type base_ptr)
 {
 	if (mask & ~LC_ALL_MASK)
 		throw_BAD_PARAM (make_minor_errno (EINVAL));
 
-	if (!name [0])
-		name = "c";
+	const char* cname;
+	if (!name.empty ())
+		cname = name.c_str ();
+	else
+		cname = "c";
 
-	parent_ = locale_get_utf8 (name);
-	if (!parent_)
-		throw_BAD_PARAM (make_minor_errno (ENOENT));
-
-	if ((mask & LC_ALL_MASK) != LC_ALL_MASK) {
-		if (base)
-			base_ = base;
-		else
-			base_ = locale_default ();
+	Nirvana::Locale::_ref_type locale;
+	if (mask) {
+		locale = locale_get_utf8 (cname);
+		if (!locale)
+			throw_BAD_PARAM (make_minor_errno (ENOENT));
 	}
 
-	std::fill (names_, std::end (names_), nullptr);
-	names_ [LC_ALL] = parent_->get_name (LC_ALL);
+	Nirvana::Locale::_ref_type base;
+	if ((mask & LC_ALL_MASK) != LC_ALL_MASK) {
+		if (base_ptr)
+			base = base_ptr;
+		else
+			base = locale_default ();
+	}
 
-	copy_code_page ((mask & LC_CTYPE_MASK) ? parent_ : base_);
-	copy_numeric ((mask & LC_NUMERIC_MASK) ? parent_ : base_);
-	copy_monetary ((mask & LC_MONETARY_MASK) ? parent_ : base_);
+	if (locale && base && &Nirvana::Locale::_ptr_type (locale) != &Nirvana::Locale::_ptr_type (base))
+		locale = CORBA::make_reference <ImplDynamic <Locale> > (mask, locale, base);
+	else if (!locale)
+		locale = std::move (base);
+
+	return locale;
+}
+
+inline
+Locale::Locale (unsigned mask, Nirvana::Locale::_ptr_type parent, Nirvana::Locale::_ptr_type base)
+{
+	assert (parent && base);
+	facets_ [LC_ALL] = parent;
+
+	copy_code_page ((mask & LC_CTYPE_MASK) ? parent : base);
+	copy_numeric ((mask & LC_NUMERIC_MASK) ? parent : base);
+	copy_monetary ((mask & LC_MONETARY_MASK) ? parent : base);
 }
 
 #define COPY_STR(lc, name) lconv_.name = lc->name
@@ -236,13 +263,12 @@ Locale::Locale (unsigned mask, const char* name, Nirvana::Locale::_ptr_type base
 
 inline void Locale::copy_code_page (Nirvana::Locale::_ptr_type src)
 {
-	code_page_ = src->code_page ();
-	names_ [LC_CTYPE] = src->get_name (LC_CTYPE);
+	facets_ [LC_CTYPE] = src->get_facet (LC_CTYPE);
 }
 
 inline void Locale::copy_numeric (Nirvana::Locale::_ptr_type loc)
 {
-	names_ [LC_NUMERIC] = loc->get_name (LC_NUMERIC);
+	facets_ [LC_NUMERIC] = loc->get_facet (LC_NUMERIC);
 	const struct lconv* src = loc->localeconv ();
 
 	COPY_STR (src, decimal_point);
@@ -252,7 +278,7 @@ inline void Locale::copy_numeric (Nirvana::Locale::_ptr_type loc)
 
 inline void Locale::copy_monetary (Nirvana::Locale::_ptr_type loc)
 {
-	names_ [LC_MONETARY] = loc->get_name (LC_MONETARY);
+	facets_ [LC_MONETARY] = loc->get_facet (LC_MONETARY);
 	const struct lconv* src = loc->localeconv ();
 
 	COPY_STR (src, mon_decimal_point);
@@ -277,12 +303,6 @@ inline void Locale::copy_monetary (Nirvana::Locale::_ptr_type loc)
 	COPY_CHAR (src, int_n_sep_by_space);
 	COPY_CHAR (src, int_p_sign_posn);
 	COPY_CHAR (src, int_n_sign_posn);
-}
-
-Nirvana::Locale::_ref_type locale_create (unsigned mask, const IDL::String& locale,
-	Nirvana::Locale::_ptr_type base)
-{
-	return CORBA::make_pseudo <ImplDynamic <Locale> > (mask, locale.c_str (), base);
 }
 
 }

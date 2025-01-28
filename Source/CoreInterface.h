@@ -64,12 +64,21 @@ virtual void _remove_ref () noexcept = 0;
 template <class T>
 class ImplDynamic final : public T
 {
+public:
+	unsigned _refcount_value () const noexcept
+	{
+		return ref_cnt_;
+	}
+
 protected:
 	template <class> friend class CORBA::servant_reference;
 	friend class CORBA::Internal::LifeCycleRefCnt <ImplDynamic <T> >;
 
 	template <class S, class ... Args> friend
 	CORBA::Internal::I_ref <typename S::PrimaryInterface> CORBA::make_pseudo (Args&& ... args);
+
+	template <class T, class ... Args> friend
+	CORBA::servant_reference <T> CORBA::make_reference (Args&& ...);
 
 	template <class ... Args>
 	ImplDynamic (Args&& ... args) :

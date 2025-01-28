@@ -28,8 +28,8 @@
 #define NIRVANA_CORE_LOCALEIMPL_H_
 #pragma once
 
-#include <CORBA/Server.h>
-#include <Nirvana/nls_s.h>
+#include <CORBA/CORBA.h>
+#include <Nirvana/nls.h>
 
 namespace Nirvana {
 namespace Core {
