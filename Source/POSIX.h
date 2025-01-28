@@ -274,6 +274,11 @@ public:
 		Core::MemContext::current ().locale (loc);
 	}
 
+	static Nirvana::Locale::_ref_type create_locale (int mask, const IDL::String& name, Nirvana::Locale::_ptr_type base)
+	{
+		return Core::locale_create (mask, name, base);
+	}
+
 private:
 	static CosNaming::NamingContext::_ref_type name_service ()
 	{
