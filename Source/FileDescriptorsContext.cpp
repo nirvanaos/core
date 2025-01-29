@@ -27,6 +27,7 @@
 #include "FileDescriptorsContext.h"
 #include "MapUnorderedUnstable.h"
 #include "virtual_copy.h"
+#include <Nirvana/posix_defs.h>
 #include <queue>
 
 namespace Nirvana {
@@ -35,6 +36,20 @@ namespace Core {
 void FileDescriptorsContext::Descriptor::get_file_descr (FileDescr& fd) const
 {
 	fd.access (access ()->dup (0, 0));
+}
+
+LockType FileDescriptorsContext::Descriptor::get_lock_type (int l_type)
+{
+	switch (l_type) {
+	case F_UNLCK:
+		return LockType::LOCK_NONE;
+	case F_RDLCK:
+		return LockType::LOCK_SHARED;
+	case F_WRLCK:
+		return LockType::LOCK_EXCLUSIVE;
+	default:
+		throw_BAD_PARAM (make_minor_errno (EINVAL));
+	}
 }
 
 class FileDescriptorsContext::DescriptorBuf : public DescriptorBase
@@ -53,6 +68,12 @@ public:
 	virtual void flags (unsigned fl) override;
 	virtual void flush () override;
 	virtual bool isatty () const override;
+	virtual void lock (const struct flock& lk, bool wait) const override;
+	virtual void get_lock (struct flock& lk) const override;
+
+private:
+	FileSize calc_pos (unsigned method, FileOff off) const;
+	void conv_lock (const struct flock& from, FileLock& to) const;
 
 private:
 	const AccessBuf::_ref_type access_;
@@ -78,6 +99,8 @@ public:
 	virtual void flags (unsigned fl) override;
 	virtual void flush () override;
 	virtual bool isatty () const override;
+	virtual void lock (const struct flock& lk, bool wait) const override;
+	virtual void get_lock (struct flock& lk) const override;
 
 private:
 	typedef std::queue <char> Buffer;
@@ -104,7 +127,13 @@ public:
 	virtual void flags (unsigned fl) override;
 	virtual void flush () override;
 	virtual bool isatty () const override;
+	virtual void lock (const struct flock& lk, bool wait) const override;
+	virtual void get_lock (struct flock& lk) const override;
 	virtual void get_file_descr (FileDescr& fd) const override;
+
+private:
+	FileSize calc_pos (unsigned method, FileOff off) const;
+	void conv_lock (const struct flock& from, FileLock& to) const;
 
 private:
 	const AccessDirect::_ref_type access_;
@@ -380,22 +409,29 @@ void FileDescriptorsContext::DescriptorDirect::write (const void* p, size_t size
 
 FileSize FileDescriptorsContext::DescriptorBuf::seek (unsigned method, FileOff off)
 {
+	FileSize pos = calc_pos (method, off);
+	access_->position (pos);
+	return pos;
+}
+
+FileSize FileDescriptorsContext::DescriptorBuf::calc_pos (unsigned method, FileOff off) const
+{
 	FileSize pos;
 	switch (method) {
-	case SEEK_SET:
-		pos = 0;
-		break;
+		case SEEK_SET:
+			pos = 0;
+			break;
 
-	case SEEK_CUR:
-		pos = access_->position ();
-		break;
+		case SEEK_CUR:
+			pos = access_->position ();
+			break;
 
-	case SEEK_END:
-		pos = access_->direct ()->size ();
-		break;
+		case SEEK_END:
+			pos = access_->size ();
+			break;
 
-	default:
-		throw_BAD_PARAM (make_minor_errno (EINVAL));
+		default:
+			throw_BAD_PARAM (make_minor_errno (EINVAL));
 	}
 
 	if (off < 0) {
@@ -406,11 +442,10 @@ FileSize FileDescriptorsContext::DescriptorBuf::seek (unsigned method, FileOff o
 			throw_BAD_PARAM (make_minor_errno (EOVERFLOW));
 	}
 
-	access_->position (pos += off);
-	return pos;
+	return pos + off;
 }
 
-FileSize FileDescriptorsContext::DescriptorDirect::seek (unsigned method, FileOff off)
+FileSize FileDescriptorsContext::DescriptorDirect::calc_pos (unsigned method, FileOff off) const
 {
 	FileSize pos;
 	switch (method) {
@@ -438,7 +473,12 @@ FileSize FileDescriptorsContext::DescriptorDirect::seek (unsigned method, FileOf
 			throw_BAD_PARAM (make_minor_errno (EOVERFLOW));
 	}
 
-	return pos_ += off;
+	return pos + off;
+}
+
+FileSize FileDescriptorsContext::DescriptorDirect::seek (unsigned method, FileOff off)
+{
+	return pos_ = calc_pos (method, off);
 }
 
 FileSize FileDescriptorsContext::DescriptorChar::seek (unsigned method, FileOff off)
@@ -506,6 +546,58 @@ bool FileDescriptorsContext::DescriptorChar::isatty () const
 bool FileDescriptorsContext::DescriptorDirect::isatty () const
 {
 	return false;
+}
+
+void FileDescriptorsContext::DescriptorBuf::conv_lock (const struct flock& from, FileLock& to) const
+{
+	to.start (calc_pos (from.l_whence, from.l_start));
+	to.len (from.l_len);
+	to.type (get_lock_type (from.l_type));
+}
+
+void FileDescriptorsContext::DescriptorBuf::lock (const struct flock& lk, bool wait) const
+{
+	FileLock file_lock;
+	conv_lock (lk, file_lock);
+	access_->lock (file_lock, file_lock.type (), wait);
+}
+
+void FileDescriptorsContext::DescriptorChar::lock (const struct flock& lk, bool wait) const
+{
+	throw_BAD_PARAM (make_minor_errno (EINVAL));
+}
+
+void FileDescriptorsContext::DescriptorDirect::conv_lock (const struct flock& from, FileLock& to) const
+{
+	to.start (calc_pos (from.l_whence, from.l_start));
+	to.len (from.l_len);
+	to.type (get_lock_type (from.l_type));
+}
+
+void FileDescriptorsContext::DescriptorDirect::lock (const struct flock& lk, bool wait) const
+{
+	FileLock file_lock;
+	conv_lock (lk, file_lock);
+	access_->lock (file_lock, file_lock.type (), wait);
+}
+
+void FileDescriptorsContext::DescriptorBuf::get_lock (struct flock& lk) const
+{
+	FileLock file_lock;
+	conv_lock (lk, file_lock);
+	access_->get_lock (file_lock);
+}
+
+void FileDescriptorsContext::DescriptorDirect::get_lock (struct flock& lk) const
+{
+	FileLock file_lock;
+	conv_lock (lk, file_lock);
+	access_->get_lock (file_lock);
+}
+
+void FileDescriptorsContext::DescriptorChar::get_lock (struct flock& lk) const
+{
+	throw_BAD_PARAM (make_minor_errno (EINVAL));
 }
 
 }

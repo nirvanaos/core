@@ -86,6 +86,19 @@ public:
 			data.flags (ifd, arg);
 			break;
 
+		case F_GETLK:
+			if (!arg)
+				throw_BAD_PARAM (make_minor_errno (EINVAL));
+			data.get_lock (ifd, *(struct flock*)arg);
+			break;
+
+		case F_SETLK:
+		case F_SETLKW:
+			if (!arg)
+				throw_BAD_PARAM (make_minor_errno (EINVAL));
+			data.lock (ifd, *(struct flock*)arg, F_SETLKW == cmd);
+			break;
+
 		default:
 			throw_BAD_PARAM (make_minor_errno (EINVAL));
 		}

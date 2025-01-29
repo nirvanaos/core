@@ -129,6 +129,16 @@ public:
 		return get_open_fd (ifd).ptr ()->isatty ();
 	}
 
+	void get_lock (unsigned ifd, struct flock& lk)
+	{
+		get_open_fd (ifd).ref ()->get_lock (lk);
+	}
+
+	void lock (unsigned ifd, const struct flock& lk, bool wait)
+	{
+		get_open_fd (ifd).ref ()->lock (lk, wait);
+	}
+
 	void set_inherited_files (const FileDescriptors& files);
 	FileDescriptors get_inherited_files (unsigned* std_mask) const;
 
@@ -148,6 +158,8 @@ private:
 		virtual void flush () = 0;
 		virtual bool isatty () const = 0;
 		virtual void get_file_descr (FileDescr& fd) const;
+		virtual void lock (const struct flock& lk, bool wait) const = 0;
+		virtual void get_lock (struct flock& lk) const = 0;
 
 		void add_descriptor_ref () noexcept
 		{
@@ -167,6 +179,8 @@ private:
 
 		virtual ~Descriptor ()
 		{}
+
+		static LockType get_lock_type (int l_type);
 
 	private:
 		unsigned descriptor_ref_cnt_;
@@ -213,11 +227,13 @@ private:
 			return !ref_;
 		}
 
+		// For operations with context switch, hold descriptor reference
 		DescriptorRef ref () const noexcept
 		{
 			return ref_;
 		}
 
+		// For simple operations, just a pointer
 		Descriptor* ptr () const noexcept
 		{
 			return ref_;

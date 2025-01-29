@@ -45,7 +45,7 @@ void FileAccessBuf::dup_direct ()
 {
 	Servant::access (dup_direct (Servant::access ()));
 	own_direct_ = Servant::access ();
-	private_flags () &= ~DIRECT_USED;
+	pflags () &= ~DIRECT_USED;
 }
 
 bool FileAccessBuf::is_sync_domain () noexcept
@@ -62,7 +62,7 @@ bool FileAccessBuf::is_sync_domain () noexcept
 AccessDirect::_ptr_type FileAccessBuf::access ()
 {
 	if (Servant::access () && !own_direct_.initialized ()) {
-		if (private_flags () & DIRECT_USED) {
+		if (pflags () & DIRECT_USED) {
 			// We need to duplicate direct access to obtain private proxy.
 			if (is_sync_domain ()) {
 				if (own_direct_.initialize (DIRECT_DUP_TIMEOUT)) {
@@ -82,7 +82,7 @@ AccessDirect::_ptr_type FileAccessBuf::access ()
 			own_direct_ = Servant::access ();
 	}
 
-	private_flags () |= DIRECT_USED;
+	pflags () |= DIRECT_USED;
 	return Servant::access ();
 }
 
@@ -131,13 +131,13 @@ Bytes::const_iterator FileAccessBuf::get_buffer_read (FileSize pos, size_t cb)
 		if (flush_internal ())
 			continue; // Buffer position may be changed, do new check
 
-		FileSize new_buf_pos = round_down (pos, (FileSize)block_size ());
+		FileSize new_buf_pos = round_down (pos, (FileSize)blksz ());
 		size_t new_buf_size = cb + (size_t)(pos - new_buf_pos);
 		size_t mbs = min_buf_size ();
 		if (new_buf_size <= mbs)
 			new_buf_size = mbs;
 		else
-			new_buf_size = round_up (new_buf_size, (size_t)block_size ());
+			new_buf_size = round_up (new_buf_size, (size_t)blksz ());
 		Bytes new_buf;
 		access ()->read (new_buf_pos, (uint32_t)limit32 (new_buf_size), new_buf);
 		if (new_buf.empty ())
@@ -169,7 +169,7 @@ Bytes::iterator FileAccessBuf::get_buffer_write (FileSize pos, size_t cb)
 			if (flush_internal ())
 				continue; // Buffer position may be changed, do new check
 
-			FileSize new_buf_pos = round_down (pos, (FileSize)block_size ());
+			FileSize new_buf_pos = round_down (pos, (FileSize)blksz ());
 			size_t read_size = pos - new_buf_pos;
 			if (read_size + cb < min_buf_size ())
 				read_size = min_buf_size ();
@@ -194,7 +194,7 @@ Bytes::iterator FileAccessBuf::get_buffer_write (FileSize pos, size_t cb)
 		if (res_buf_size <= mbs)
 			res_buf_size = mbs;
 		else
-			res_buf_size = round_up (res_buf_size, (size_t)block_size ());
+			res_buf_size = round_up (res_buf_size, (size_t)blksz ());
 		buffer ().reserve (res_buf_size);
 		buffer ().resize (buf_end);
 	}
@@ -236,12 +236,12 @@ bool FileAccessBuf::flush_internal (bool sync)
 		assert (dirty_begin_ < buffer ().size () && dirty_end_ <= buffer ().size ());
 		if (dirty_begin_ == 0 && dirty_end_ == buffer ().size ()) {
 			reset_dirty ();
-			direct ()->write (buf_pos (), buffer (), sync);
+			access ()->write (buf_pos (), buffer (), sync);
 		} else {
 			Bytes tmp (buffer ().data () + dirty_begin_, buffer ().data () + dirty_end_);
 			FileSize pos = buf_pos () + dirty_begin_;
 			reset_dirty ();
-			direct ()->write (pos, tmp, sync);
+			access ()->write (pos, tmp, sync);
 		}
 		return true;
 	}
@@ -252,7 +252,7 @@ void FileAccessBuf::shrink_buffer ()
 {
 	size_t mbs = min_buf_size ();
 	while (buffer ().size () > mbs) {
-		size_t drop_size = round_down (buffer ().size () - mbs, (size_t)block_size ());
+		size_t drop_size = round_down (buffer ().size () - mbs, (size_t)blksz ());
 		if (drop_size) {
 			if (dirty_begin_ < drop_size && flush_internal ())
 				continue; // Buffer position may be changed, do new check

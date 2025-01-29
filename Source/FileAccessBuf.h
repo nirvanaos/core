@@ -89,7 +89,7 @@ public:
 		Servant (position, buf_pos, std::move (access), std::move (buffer), block_size, flags, eol),
 		FileAccessBufData (Servant::access ())
 	{
-		assert (!(private_flags () & DIRECT_USED));
+		assert (!(pflags () & DIRECT_USED));
 	}
 
 	// For unmarshal
@@ -115,7 +115,7 @@ public:
 	void _marshal (CORBA::Internal::IORequest_ptr rq)
 	{
 		Servant::_marshal (rq);
-		private_flags () |= DIRECT_USED;
+		pflags () |= DIRECT_USED;
 	}
 
 	void _unmarshal (CORBA::Internal::IORequest_ptr rq)
@@ -128,11 +128,11 @@ public:
 	{
 		mask &= ~DIRECT_USED;
 		f &= mask;
-		f |= private_flags () & ~mask;
+		f |= pflags () & ~mask;
 		check_flags (f);
 		AccessDirect::_ref_type acc = AccessDirect::_narrow (Servant::access ()->dup (O_ACCMODE, f)->_to_object ());
 		return CORBA::make_reference <FileAccessBuf> (position (), buf_pos (), std::move (acc),
-			Bytes (buffer ()), block_size (), f, eol ());
+			Bytes (buffer ()), blksz (), f, eol ());
 	}
 
 	Nirvana::File::_ref_type file () const
@@ -141,10 +141,10 @@ public:
 		return Servant::access ()->file ();
 	}
 
-	AccessDirect::_ptr_type direct ()
+	FileSize size ()
 	{
 		check ();
-		return access ();
+		return access ()->size ();
 	}
 
 	void close ()
@@ -183,19 +183,19 @@ public:
 	uint_fast16_t flags () const noexcept
 	{
 		check ();
-		return Servant::private_flags () & ~DIRECT_USED;
+		return Servant::pflags () & ~DIRECT_USED;
 	}
 
 	void set_flags (uint_fast16_t mask, uint_fast16_t f)
 	{
 		check ();
 
-		f = (f & mask) | (private_flags () & ~mask);
+		f = (f & mask) | (pflags () & ~mask);
 		uint_fast16_t changes = check_flags (f);
 		if (f & O_DIRECT)
 			throw_INV_FLAG (make_minor_errno (EINVAL));
 
-		if (!(private_flags () & O_SYNC) && (f & O_SYNC) && (private_flags () & O_ACCMODE)) {
+		if (!(pflags () & O_SYNC) && (f & O_SYNC) && (pflags () & O_ACCMODE)) {
 			flush_internal ();
 			access ()->flush ();
 		}
@@ -203,7 +203,17 @@ public:
 		if (changes & O_ACCMODE)
 			access ()->set_flags (O_ACCMODE, f);
 
-		private_flags (f);
+		pflags (f);
+	}
+
+	LockType lock (const FileLock& fl, LockType tmin, bool wait)
+	{
+		return access ()->lock (fl, tmin, wait);
+	}
+
+	void get_lock (FileLock& fl)
+	{
+		access ()->get_lock (fl);
 	}
 
 private:
@@ -237,7 +247,7 @@ private:
 	size_t min_buf_size () const noexcept
 	{
 		// TODO: Adjust
-		return block_size ();
+		return blksz ();
 	}
 
 	void shrink_buffer ();
@@ -253,13 +263,13 @@ private:
 
 	FileSize buf_pos () const noexcept
 	{
-		assert (Servant::buf_pos () % Servant::block_size () == 0);
+		assert (Servant::buf_pos () % Servant::blksz () == 0);
 		return Servant::buf_pos ();
 	}
 
 	void buf_pos (FileSize pos) noexcept
 	{
-		assert (pos % Servant::block_size () == 0);
+		assert (pos % Servant::blksz () == 0);
 		Servant::buf_pos (pos);
 	}
 
@@ -279,7 +289,7 @@ size_t FileAccessBuf::read (void* p, size_t cb)
 
 	uint8_t* dst = (uint8_t*)p;
 
-	if ((private_flags () & O_TEXT) && eol () [0]) {
+	if ((pflags () & O_TEXT) && eol () [0]) {
 
 		// Translate line end
 
@@ -366,14 +376,14 @@ void FileAccessBuf::write (const void* p, size_t cb)
 	if (!cb)
 		return;
 
-	if ((private_flags () & O_APPEND)
-		|| (private_flags () & (O_ACCMODE | O_SYNC)) == (O_WRONLY | O_SYNC)
+	if ((pflags () & O_APPEND)
+		|| (pflags () & (O_ACCMODE | O_SYNC)) == (O_WRONLY | O_SYNC)
 	) {
 		// Direct write
 
 		Bytes buf ((const uint8_t*)p, (const uint8_t*)p + cb);
 		
-		if ((private_flags () & O_TEXT) && eol () [0]) {
+		if ((pflags () & O_TEXT) && eol () [0]) {
 			for (auto it = buf.begin (); (it = std::find (it, buf.end (), '\n')) != buf.end ();) {
 				*(it++) = eol () [0];
 				if (eol () [1])
@@ -381,14 +391,14 @@ void FileAccessBuf::write (const void* p, size_t cb)
 			}
 		}
 
-		FileSize pos = (private_flags () & O_APPEND) ? std::numeric_limits <FileSize>::max () : position ();
-		access ()->write (pos, buf, private_flags () & O_SYNC);
-		if (!(private_flags () & O_APPEND))
+		FileSize pos = (pflags () & O_APPEND) ? std::numeric_limits <FileSize>::max () : position ();
+		access ()->write (pos, buf, pflags () & O_SYNC);
+		if (!(pflags () & O_APPEND))
 			Servant::position () += buf.size ();
 	} else {
 		// Buffered write
 
-		if ((private_flags () & O_TEXT) && eol () [0]) {
+		if ((pflags () & O_TEXT) && eol () [0]) {
 
 			const uint8_t* src = (const uint8_t*)p, * end = src + cb;
 			const uint8_t* line_end = std::find (src, end, '\n');
@@ -450,7 +460,7 @@ void FileAccessBuf::write (const void* p, size_t cb)
 		} else
 			write_internal (p, cb);
 
-		if (private_flags () & O_SYNC)
+		if (pflags () & O_SYNC)
 			flush_internal ();
 
 		shrink_buffer ();
