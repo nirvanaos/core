@@ -115,7 +115,7 @@ public:
 		switch (d_) {
 		case Type::NARROW: {
 			std::string lc = name;
-			std::transform (lc.begin (), lc.end (), lc.begin (), tolower);
+			std::transform (lc.begin (), lc.end (), lc.begin (), tolower_ascii);
 			auto it = u_.narrow.find (lc);
 			if (it != u_.narrow.end ())
 				return &it->second;
