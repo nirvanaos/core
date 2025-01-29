@@ -31,7 +31,7 @@
 namespace Nirvana {
 namespace Core {
 
-void virtual_copy (const void* src, size_t size, void* dst)
+void virtual_copy (const void* src, size_t size, void* dst, unsigned flags)
 {
 	if (!Port::Memory::SHARING_UNIT || size < Port::Memory::SHARING_UNIT
 		||
@@ -39,7 +39,7 @@ void virtual_copy (const void* src, size_t size, void* dst)
 	)
 		real_move (src, (const void*)((const uint8_t*)src + size), dst);
 	else
-		Port::Memory::copy (dst, const_cast <void*> (src), size, Memory::SIMPLE_COPY);
+		Port::Memory::copy (dst, const_cast <void*> (src), size, flags);
 }
 
 }

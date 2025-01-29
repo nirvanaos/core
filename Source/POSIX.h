@@ -125,7 +125,7 @@ public:
 			Nirvana::Dir::_narrow (name_service ()->resolve (dir_name))->
 			mkostemps (file, (uint16_t)suffix_len, (uint16_t)flags, 0)->_to_value ());
 
-		unsigned fd = Core::FileDescriptors::fd_add (access);
+		unsigned fd = Core::FileDescriptors::fd_add (access, flags);
 		size_t src_end = file.size () - suffix_len;
 		size_t src_begin = src_end - 6;
 		const char* src = file.c_str ();

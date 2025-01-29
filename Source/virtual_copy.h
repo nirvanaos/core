@@ -28,10 +28,12 @@
 #define NIRVANA_CORE_VIRTUAL_COPY_H_
 #pragma once
 
+#include <CORBA/CORBA.h>
+
 namespace Nirvana {
 namespace Core {
 
-void virtual_copy (const void* src, size_t size, void* dst);
+void virtual_copy (const void* src, size_t size, void* dst, unsigned flags = Memory::SIMPLE_COPY);
 
 }
 }

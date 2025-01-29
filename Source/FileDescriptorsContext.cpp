@@ -26,6 +26,7 @@
 #include "pch.h"
 #include "FileDescriptorsContext.h"
 #include "MapUnorderedUnstable.h"
+#include "virtual_copy.h"
 #include <queue>
 
 namespace Nirvana {
@@ -110,6 +111,13 @@ private:
 	unsigned flags_;
 	FileSize pos_;
 };
+
+void FileDescriptorsContext::DescriptorDirect::get_file_descr (FileDescr& fd) const
+{
+	Descriptor::get_file_descr (fd);
+	fd.flags (flags_);
+	fd.pos (pos_);
+}
 
 size_t FileDescriptorsContext::alloc_fd (unsigned start)
 {
@@ -238,12 +246,22 @@ Access::_ref_type FileDescriptorsContext::DescriptorChar::access () const
 	return access_;
 }
 
+Access::_ref_type FileDescriptorsContext::DescriptorDirect::access () const
+{
+	return access_;
+}
+
 void FileDescriptorsContext::DescriptorBuf::close () const
 {
 	access_->close ();
 }
 
 void FileDescriptorsContext::DescriptorChar::close () const
+{
+	access_->close ();
+}
+
+void FileDescriptorsContext::DescriptorDirect::close () const
 {
 	access_->close ();
 }
@@ -299,6 +317,34 @@ size_t FileDescriptorsContext::DescriptorChar::read (void* p, size_t size)
 	return cb;
 }
 
+size_t FileDescriptorsContext::DescriptorDirect::read (void* p, size_t size)
+{
+	if ((flags_ & O_ACCMODE) == O_WRONLY)
+		throw_NO_PERMISSION (make_minor_errno (EBADF));
+
+	if (!size)
+		return 0;
+
+	FileSize pos = pos_;
+	FileSize next = pos + size;
+	if (next < pos)
+		throw_BAD_PARAM (make_minor_errno (EOVERFLOW));
+
+	Bytes data;
+	pos_ = next;
+	try {
+		access_->read (pos, size, data);
+	} catch (...) {
+		pos_ = pos;
+		throw;
+	}
+	if (!data.empty ()) {
+		assert (data.size () <= size);
+		virtual_copy (data.data (), data.size (), p, Memory::SRC_DECOMMIT);
+	}
+	return data.size ();
+}
+
 void FileDescriptorsContext::DescriptorBuf::write (const void* p, size_t size)
 {
 	access_->write (p, size);
@@ -307,6 +353,29 @@ void FileDescriptorsContext::DescriptorBuf::write (const void* p, size_t size)
 void FileDescriptorsContext::DescriptorChar::write (const void* p, size_t size)
 {
 	access_->write (CORBA::Internal::StringView <char> ((const char*)p, size));
+}
+
+void FileDescriptorsContext::DescriptorDirect::write (const void* p, size_t size)
+{
+	if ((flags_ & O_ACCMODE) == O_RDONLY)
+		throw_NO_PERMISSION (make_minor_errno (EBADF));
+
+	if (!size)
+		return;
+
+	FileSize pos = pos_;
+	FileSize next = pos + size;
+	if (next < pos)
+		throw_BAD_PARAM (make_minor_errno (EOVERFLOW));
+
+	Bytes data ((const uint8_t*)p, (const uint8_t*)p + size);
+	pos_ = next;
+	try {
+		access_->write (pos, data, flags_ & O_SYNC);
+	} catch (...) {
+		pos_ = pos;
+		throw;
+	}
 }
 
 FileSize FileDescriptorsContext::DescriptorBuf::seek (unsigned method, FileOff off)
@@ -341,6 +410,37 @@ FileSize FileDescriptorsContext::DescriptorBuf::seek (unsigned method, FileOff o
 	return pos;
 }
 
+FileSize FileDescriptorsContext::DescriptorDirect::seek (unsigned method, FileOff off)
+{
+	FileSize pos;
+	switch (method) {
+		case SEEK_SET:
+			pos = 0;
+			break;
+
+		case SEEK_CUR:
+			pos = pos_;
+			break;
+
+		case SEEK_END:
+			pos = access_->size ();
+			break;
+
+		default:
+			throw_BAD_PARAM (make_minor_errno (EINVAL));
+	}
+
+	if (off < 0) {
+		if (pos < (FileSize)(-off))
+			throw_BAD_PARAM (make_minor_errno (EOVERFLOW));
+	} else {
+		if (std::numeric_limits <FileSize>::max () - pos < (FileSize)off)
+			throw_BAD_PARAM (make_minor_errno (EOVERFLOW));
+	}
+
+	return pos_ += off;
+}
+
 FileSize FileDescriptorsContext::DescriptorChar::seek (unsigned method, FileOff off)
 {
 	throw_BAD_OPERATION (make_minor_errno (ESPIPE));
@@ -369,6 +469,16 @@ void FileDescriptorsContext::DescriptorChar::flags (unsigned fl)
 	flags_ = (flags_ & ~POSIX_CHANGEABLE_FLAGS) | (fl & POSIX_CHANGEABLE_FLAGS);
 }
 
+unsigned FileDescriptorsContext::DescriptorDirect::flags () const
+{
+	return access_->flags ();
+}
+
+void FileDescriptorsContext::DescriptorDirect::flags (unsigned fl)
+{
+	access_->set_flags (POSIX_CHANGEABLE_FLAGS, fl);
+}
+
 void FileDescriptorsContext::DescriptorBuf::flush ()
 {
 	access_->flush ();
@@ -376,6 +486,11 @@ void FileDescriptorsContext::DescriptorBuf::flush ()
 
 void FileDescriptorsContext::DescriptorChar::flush ()
 {
+}
+
+void FileDescriptorsContext::DescriptorDirect::flush ()
+{
+	access_->flush ();
 }
 
 bool FileDescriptorsContext::DescriptorBuf::isatty () const
@@ -386,6 +501,11 @@ bool FileDescriptorsContext::DescriptorBuf::isatty () const
 bool FileDescriptorsContext::DescriptorChar::isatty () const
 {
 	return true;
+}
+
+bool FileDescriptorsContext::DescriptorDirect::isatty () const
+{
+	return false;
 }
 
 }
