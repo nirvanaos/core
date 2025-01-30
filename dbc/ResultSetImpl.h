@@ -40,7 +40,7 @@ class ResultSetImpl : public IDL::traits <ResultSet>::Servant <ResultSetImpl>
 	typedef IDL::traits <ResultSet>::Servant <ResultSetImpl> Base;
 
 public:
-	ResultSetImpl (Statement::_ptr_type statement, Ordinal column_count, uint_fast16_t flags, Cursor::_ref_type&& cursor, Row&& init_row)
+	ResultSetImpl (StatementBase::_ptr_type statement, Ordinal column_count, uint_fast16_t flags, Cursor::_ref_type&& cursor, Row&& init_row)
 	{
 		Base::statement (statement);
 		Base::column_count (column_count);

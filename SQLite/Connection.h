@@ -183,17 +183,6 @@ public:
 		return sqlite3_get_autocommit (*this);
 	}
 
-	static IDL::String getCatalog () noexcept
-	{
-		return IDL::String ();
-	}
-
-	IDL::String getSchema () const
-	{
-		check_ready ();
-		return sqlite3_db_name (*this, 0);
-	}
-
 	TransactionIsolation getTransactionIsolation () const noexcept
 	{
 		return TransactionIsolation::TRANSACTION_SERIALIZABLE;
@@ -253,9 +242,15 @@ public:
 			exec ("BEGIN");
 	}
 
-	static void setCatalog (const IDL::String&)
+	static IDL::String getCatalog () noexcept
 	{
-		throw CORBA::NO_IMPLEMENT ();
+		return IDL::String ();
+	}
+
+	static void setCatalog (const IDL::String& c)
+	{
+		if (!c.empty ())
+			throw CORBA::NO_IMPLEMENT ();
 	}
 
 	void setReadOnly (bool read_only)
@@ -273,14 +268,22 @@ public:
 		return sp;
 	}
 
-	void setSchema (const IDL::String&)
+	IDL::String getSchema () const
 	{
-		throw CORBA::NO_IMPLEMENT ();
+		check_ready ();
+		return sqlite3_db_name (*this, 0);
 	}
 
-	void setTransactionIsolation (int level)
+	void setSchema (const IDL::String& s)
 	{
-		throw CORBA::NO_IMPLEMENT ();
+		if (s != sqlite3_db_name (*this, 0))
+			throw CORBA::NO_IMPLEMENT ();
+	}
+
+	void setTransactionIsolation (TransactionIsolation level)
+	{
+		if (level != TransactionIsolation::TRANSACTION_SERIALIZABLE)
+			throw CORBA::NO_IMPLEMENT ();
 	}
 
 	void check_warning (int err) noexcept;

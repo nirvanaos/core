@@ -29,7 +29,7 @@
 
 #include "PoolableStatement.h"
 #include <unordered_map>
-#include <Nirvana/Hash.h>
+#include <unordered_set>
 
 namespace NDBC {
 
@@ -43,6 +43,9 @@ struct ConnectionData : public Connection::_ref_type
 {
 	StatementPool <Statement> statements;
 	std::unordered_map <std::string, StatementPool <PreparedStatement> > prepared_statements;
+
+	ConnectionData ()
+	{}
 
 	ConnectionData (Connection::_ref_type&& conn) :
 		Connection::_ref_type (std::move (conn))
@@ -62,9 +65,14 @@ class PoolableConnection :
 	using Base = PoolableS <ConnectionData, PoolableConnection>;
 
 public:
-	PoolableConnection (Pool <ConnectionData>& pool, ConnectionData&& data) :
-		Base (pool, std::move (data))
-	{}
+	PoolableConnection (Pool <ConnectionData>& pool, ConnectionData&& cd) :
+		Base (pool, std::move (cd))
+	{
+		catalog_ = data ()->getCatalog ();
+		schema_ = data ()->getSchema ();
+		read_only_ = data ()->isReadOnly ();
+		ti_ = data ()->getTransactionIsolation ();
+	}
 
 	bool isValid (uint32_t sec)
 	{
@@ -89,7 +97,7 @@ public:
 	{
 		auto& d = data ();
 		RefPool <PreparedStatement>& pool = d.prepared_statements.emplace (sql,
-			StatementPool <PreparedStatement> ()).first->second [(size_t)resultSetType];
+			StatementPool <PreparedStatement> ()).first->second.types [(size_t)resultSetType];
 		PreparedStatement::_ref_type s;
 		if (!pool.empty ()) {
 			s = std::move (pool.top ());
@@ -98,6 +106,123 @@ public:
 			s = data ()->prepareStatement (sql, resultSetType, PreparedStatement::PREPARE_PERSISTENT);
 		return CORBA::make_reference <PoolablePreparedStatement> (_this (), std::ref (pool), std::move (s))->_this ();
 	}
+
+	SQLWarnings getWarnings ()
+	{
+		return data ()->getWarnings ();
+	}
+
+	void clearWarnings ()
+	{
+		data ()->clearWarnings ();
+	}
+
+	bool getAutoCommit ()
+	{
+		return data ()->getAutoCommit ();
+	}
+
+	void setAutoCommit (bool autoCommit)
+	{
+		data ()->setAutoCommit (autoCommit);
+	}
+
+	void commit ()
+	{
+		data ()->commit ();
+	}
+
+	IDL::String getCatalog ()
+	{
+		return data ()->getCatalog ();
+	}
+
+	void setCatalog (const IDL::String& catalog)
+	{
+		data ()->setCatalog (catalog);
+	}
+
+	IDL::String getSchema ()
+	{
+		return data ()->getSchema ();
+	}
+
+	void setSchema (const IDL::String& catalog)
+	{
+		data ()->setSchema (catalog);
+	}
+
+	TransactionIsolation getTransactionIsolation ()
+	{
+		return data ()->getTransactionIsolation ();
+	}
+
+	void setTransactionIsolation (TransactionIsolation level)
+	{
+		data ()->setTransactionIsolation (level);
+	}
+
+	bool isReadOnly ()
+	{
+		return data ()->isReadOnly ();
+	}
+
+	void setReadOnly (bool ro)
+	{
+		data ()->setReadOnly (ro);
+	}
+
+	Savepoint setSavepoint (const IDL::String& name)
+	{
+		Savepoint sp = data ()->setSavepoint (name);
+		try {
+			savepoints_.insert (sp);
+		} catch (...) {
+			try {
+				data ()->releaseSavepoint (sp);
+			} catch (...) {}
+			throw;
+		}
+		return sp;
+	}
+
+	void releaseSavepoint (const Savepoint& savepoint)
+	{
+		data ()->releaseSavepoint (savepoint);
+		savepoints_.erase (savepoint);
+	}
+
+	void rollback (const Savepoint& savepoint)
+	{
+		data ()->rollback (savepoint);
+	}
+
+	void cleanup (ConnectionData& data)
+	{
+		for (const auto& sp : savepoints_) {
+			try {
+				data->releaseSavepoint (sp);
+			} catch (...) {
+				assert (false);
+			}
+		}
+
+		if (!data->getAutoCommit ()) {
+			data->rollback (nullptr);
+			data->setAutoCommit (true);
+		}
+
+		data->setTransactionIsolation (ti_);
+		data->setCatalog (catalog_);
+		data->setSchema (schema_);
+		data->setReadOnly (read_only_);
+	}
+
+private:
+	IDL::String catalog_, schema_;
+	std::unordered_set <Savepoint> savepoints_;
+	TransactionIsolation ti_;
+	bool read_only_;
 };
 
 }

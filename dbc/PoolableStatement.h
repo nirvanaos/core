@@ -74,8 +74,9 @@ protected:
 
 	void close () noexcept;
 
-private:
 	StatementBase::_ptr_type base () const;
+
+	static void cleanup (StatementBase::_ptr_type s);
 
 private:
 	Connection::_ref_type conn_;
@@ -83,7 +84,7 @@ private:
 };
 
 template <class I>
-using RefPool = Pool <typename I::ref_type>;
+using RefPool = Pool <typename I::_ref_type>;
 
 template <class I, class S>
 class PoolableStatementS :
@@ -102,7 +103,7 @@ public:
 	ResultSet::_ref_type getResultSet ()
 	{
 		ResultSet::_ref_type rs = base ()->getResultSet ();
-		rs->statement (Servant::_this ());
+		rs->statement () = Servant::_this ();
 		return rs;
 	}
 
@@ -112,13 +113,17 @@ public:
 		PoolableStatementBase::close ();
 	}
 
+	static void cleanup (StatementBase::_ptr_type s)
+	{
+		PoolableStatementBase::cleanup (s);
+	}
+
 protected:
 	PoolableStatementS (Connection::_ref_type&& conn, PoolType& pool, typename I::_ref_type&& impl)
 		noexcept :
 		PoolableStatementBase (std::move (conn), impl),
 		Base (pool, std::move (impl))
 	{}
-
 };
 
 class PoolableStatement : public PoolableStatementS <Statement, PoolableStatement>
@@ -132,6 +137,22 @@ public:
 		noexcept :
 		Base (std::move (conn), pool, std::move (impl))
 	{}
+
+	bool execute (const IDL::String& sql)
+	{
+		return data ()->execute (sql);
+	}
+
+	ResultSet::_ref_type executeQuery (const IDL::String& sql)
+	{
+		return data ()->executeQuery (sql);
+	}
+
+	uint32_t executeUpdate (const IDL::String& sql)
+	{
+		return data ()->executeUpdate (sql);
+	}
+
 };
 
 class PoolablePreparedStatement : public PoolableStatementS <PreparedStatement,
@@ -144,6 +165,154 @@ public:
 		PreparedStatement::_ref_type&& impl) noexcept :
 		Base (std::move (conn), pool, std::move (impl))
 	{}
+
+	void setBigInt (Ordinal idx, int64_t v)
+	{
+		data ()->setBigInt (idx, v);
+	}
+
+	void setBigIntByName (const IDL::String& name, int64_t v)
+	{
+		data ()->setBigIntByName (name, v);
+	}
+
+	void setBlob (Ordinal idx, const Blob& v)
+	{
+		data ()->setBlob (idx, v);
+	}
+
+	void setBlobByName (const IDL::String& name, const Blob& v)
+	{
+		data ()->setBlobByName (name, v);
+	}
+
+	void setBoolean (Ordinal idx, bool v)
+	{
+		data ()->setBoolean (idx, v);
+	}
+
+	void setBooleanByName (const IDL::String& name, bool v)
+	{
+		data ()->setBooleanByName (name, v);
+	}
+
+	void setByte (Ordinal idx, uint8_t v)
+	{
+		data ()->setByte (idx, v);
+	}
+
+	void setByteByName (const IDL::String& name, uint8_t v)
+	{
+		data ()->setByteByName (name, v);
+	}
+
+	void setDecimal (Ordinal idx, const CORBA::Any& v)
+	{
+		data ()->setDecimal (idx, v);
+	}
+
+	void setDecimalByName (const IDL::String& name, const CORBA::Any& v)
+	{
+		data ()->setDecimalByName (name, v);
+	}
+
+	void setDouble (Ordinal idx, double v)
+	{
+		data ()->setDouble (idx, v);
+	}
+
+	void setDoubleByName (const IDL::String& name, double v)
+	{
+		data ()->setDoubleByName (name, v);
+	}
+
+	void setFloat (Ordinal idx, float v)
+	{
+		data ()->setFloat (idx, v);
+	}
+
+	void setFloatByName (const IDL::String& name, float v)
+	{
+		data ()->setFloatByName (name, v);
+	}
+
+	void setInt (Ordinal idx, int32_t v)
+	{
+		data ()->setInt (idx, v);
+	}
+
+	void setIntByName (const IDL::String& name, int32_t v)
+	{
+		data ()->setIntByName (name, v);
+	}
+
+	void setNull (Ordinal idx)
+	{
+		data ()->setNull (idx);
+	}
+
+	void setNullByName (const IDL::String& name)
+	{
+		data ()->setNullByName (name);
+	}
+
+	void setSmallInt (Ordinal idx, int16_t v)
+	{
+		data ()->setSmallInt (idx, v);
+	}
+
+	void setSmallIntByName (const IDL::String& name, int16_t v)
+	{
+		data ()->setSmallIntByName (name, v);
+	}
+
+	void setString (Ordinal idx, const IDL::String& v)
+	{
+		data ()->setString (idx, v);
+	}
+
+	void setStringByName (const IDL::String& name, const IDL::String& v)
+	{
+		data ()->setStringByName (name, v);
+	}
+
+	void setNString (Ordinal idx, const IDL::WString& v)
+	{
+		data ()->setNString (idx, v);
+	}
+
+	void setNStringByName (const IDL::String& name, const IDL::WString& v)
+	{
+		data ()->setNStringByName (name, v);
+	}
+
+	bool execute ()
+	{
+		return data ()->execute ();
+	}
+
+	ResultSet::_ref_type executeQuery ()
+	{
+		ResultSet::_ref_type rs = data ()->executeQuery ();
+		rs->statement () = _this ();
+		return rs;
+	}
+
+	uint32_t executeUpdate ()
+	{
+		return data ()->executeUpdate ();
+	}
+
+	void clearParameters ()
+	{
+		data ()->clearParameters ();
+	}
+
+	static void cleanup (PreparedStatement::_ref_type& s)
+	{
+		s->clearParameters ();
+		Base::cleanup (s);
+	}
 };
 
 }

@@ -35,14 +35,31 @@ class ConnectionPoolImpl :
 	public CORBA::servant_traits <ConnectionPool>::Servant <ConnectionPoolImpl>
 {
 public:
-	ConnectionPoolImpl (Driver::_ptr_type driver, IDL::String&& url, IDL::String&& user, IDL::String&& password);
+	ConnectionPoolImpl (Driver::_ptr_type driver, IDL::String&& url, IDL::String&& user,
+		IDL::String&& password) :
+		driver_ (driver),
+		url_ (std::move (url)),
+		user_ (std::move (user)),
+		password_ (std::move (password))
+	{}
 
-	Connection::_ref_type getConnection ();
+	Connection::_ref_type getConnection ()
+	{
+		ConnectionData data;
+
+		if (!connections_.empty ()) {
+			data = std::move (connections_.top ());
+			connections_.pop ();
+		} else
+			data = ConnectionData (driver_->connect (url_, user_, password_));
+
+		return CORBA::make_reference <PoolableConnection> (std::ref (connections_), std::move (data))->_this ();
+	}
 
 private:
 	Driver::_ref_type driver_;
 	IDL::String url_, user_, password_;
-	Pool <Connection> connections_;
+	Pool <ConnectionData> connections_;
 };
 
 }

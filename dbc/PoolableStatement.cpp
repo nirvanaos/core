@@ -46,4 +46,12 @@ StatementBase::_ptr_type PoolableStatementBase::base () const
 	return base_;
 }
 
+void PoolableStatementBase::cleanup (StatementBase::_ptr_type s)
+{
+	while (s->getMoreResults ())
+		;
+	s->getUpdateCount ();
+	s->clearWarnings ();
+}
+
 }

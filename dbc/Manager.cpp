@@ -41,4 +41,4 @@ public:
 
 }
 
-//NIRVANA_EXPORT_OBJECT (_exp_NDBC_the_manager, NDBC::Static_the_manager)
+NIRVANA_EXPORT_OBJECT (_exp_NDBC_the_manager, NDBC::Static_the_manager)
