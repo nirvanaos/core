@@ -28,6 +28,7 @@
 #pragma once
 
 #include <Nirvana/Nirvana.h>
+#include <Nirvana/System.h>
 #include <Nirvana/NDBC_s.h>
 #include "sqlite/sqlite3.h"
 
@@ -209,14 +210,22 @@ public:
 		return sqlite3_db_readonly (*this, nullptr);
 	}
 
-	bool isValid () const noexcept
+	bool isValid (uint32_t seconds) const noexcept
 	{
-		return !isClosed () && !busy_;
-	}
-
-	NDBC::PreparedStatement::_ref_type prepareCall (const IDL::String& sql, NDBC::ResultSet::Type resultSetType)
-	{
-		throw CORBA::NO_IMPLEMENT ();
+		if (isClosed ())
+			return false;
+		if (!seconds)
+			return !busy_;
+		for (auto start = Nirvana::the_system->steady_clock ();;) {
+			if (!Nirvana::the_system->yield ())
+				return false;
+			if (isClosed ())
+				return false;
+			if (!busy_)
+				return true;
+			if ((Nirvana::the_system->steady_clock () - start) / TimeBase::SECOND >= seconds)
+				return false;
+		}
 	}
 
 	NDBC::PreparedStatement::_ref_type prepareStatement (const IDL::String& sql, NDBC::ResultSet::Type resultSetType, unsigned flags);
