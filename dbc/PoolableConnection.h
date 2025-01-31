@@ -74,9 +74,9 @@ public:
 		ti_ = data ()->getTransactionIsolation ();
 	}
 
-	bool isValid (uint32_t sec)
+	bool isValid (TimeBase::TimeT timeout)
 	{
-		return data ()->isValid (sec);
+		return data ()->isValid (timeout);
 	}
 
 	Statement::_ref_type createStatement (ResultSet::Type resultSetType)

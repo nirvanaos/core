@@ -118,7 +118,7 @@ public:
 
 		~Lock ()
 		{
-			connection_.busy_ = false;
+			connection_.data_state_->consistent ();
 		}
 
 		Connection& connection () const noexcept
@@ -132,7 +132,7 @@ public:
 
 	Connection (const std::string& uri) :
 		SQLite (uri),
-		busy_ (false),
+		data_state_ (Nirvana::the_system->create_data_state ()),
 		savepoint_ (0)
 	{
 		sqlite3_filename fn = sqlite3_db_filename (*this, nullptr);
@@ -179,13 +179,19 @@ public:
 
 	bool getAutoCommit () const
 	{
-		check_ready ();
+		check_exist ();
 		return sqlite3_get_autocommit (*this);
 	}
 
-	TransactionIsolation getTransactionIsolation () const noexcept
+	void setAutoCommit (bool on)
 	{
-		return TransactionIsolation::TRANSACTION_SERIALIZABLE;
+		check_ready ();
+		bool current = sqlite3_get_autocommit (*this);
+		if (on) {
+			if (!current)
+				exec ("END");
+		} else if (current)
+			exec ("BEGIN");
 	}
 
 	NDBC::SQLWarnings getWarnings () const
@@ -193,28 +199,11 @@ public:
 		return warnings_;
 	}
 
-	bool isReadOnly () const noexcept
-	{
-		check_exist ();
-		return sqlite3_db_readonly (*this, nullptr);
-	}
-
-	bool isValid (uint32_t seconds) const noexcept
+	bool isValid (TimeBase::TimeT timeout) const noexcept
 	{
 		if (isClosed ())
 			return false;
-		if (!seconds)
-			return !busy_;
-		for (auto start = Nirvana::the_system->steady_clock ();;) {
-			if (!Nirvana::the_system->yield ())
-				return false;
-			if (isClosed ())
-				return false;
-			if (!busy_)
-				return true;
-			if ((Nirvana::the_system->steady_clock () - start) / TimeBase::SECOND >= seconds)
-				return false;
-		}
+		return data_state_->is_consistent (timeout);
 	}
 
 	NDBC::PreparedStatement::_ref_type prepareStatement (const IDL::String& sql, NDBC::ResultSet::Type resultSetType, unsigned flags);
@@ -232,16 +221,6 @@ public:
 			exec (("ROLLBACK TO " + savepoint).c_str ());
 	}
 
-	void setAutoCommit (bool on)
-	{
-		bool current = getAutoCommit ();
-		if (on) {
-			if (!current)
-				exec ("END");
-		} else if (current)
-			exec ("BEGIN");
-	}
-
 	static IDL::String getCatalog () noexcept
 	{
 		return IDL::String ();
@@ -253,7 +232,13 @@ public:
 			throw CORBA::NO_IMPLEMENT ();
 	}
 
-	void setReadOnly (bool read_only)
+	bool isReadOnly () const noexcept
+	{
+		check_exist ();
+		return sqlite3_db_readonly (*this, nullptr);
+	}
+
+	void setReadOnly (bool read_only) const
 	{
 		if (isReadOnly () != read_only)
 			throw CORBA::NO_PERMISSION ();
@@ -270,7 +255,7 @@ public:
 
 	IDL::String getSchema () const
 	{
-		check_ready ();
+		check_exist ();
 		return sqlite3_db_name (*this, 0);
 	}
 
@@ -278,6 +263,11 @@ public:
 	{
 		if (s != sqlite3_db_name (*this, 0))
 			throw CORBA::NO_IMPLEMENT ();
+	}
+
+	TransactionIsolation getTransactionIsolation () const noexcept
+	{
+		return TransactionIsolation::TRANSACTION_SERIALIZABLE;
 	}
 
 	void setTransactionIsolation (TransactionIsolation level)
@@ -297,7 +287,7 @@ private:
 
 private:
 	NDBC::SQLWarnings warnings_;
-	bool busy_;
+	Nirvana::DataState::_ref_type data_state_;
 	unsigned savepoint_;
 };
 

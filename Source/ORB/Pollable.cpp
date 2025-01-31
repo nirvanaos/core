@@ -76,8 +76,10 @@ void Pollable::_remove_ref () noexcept
 
 bool Pollable::is_ready (ULong timeout)
 {
-	if (!timeout)
-		return ready_;
+	if (ready_)
+		return true;
+	else if (!timeout)
+		return false;
 	else {
 		bool ret;
 		SYNC_BEGIN (*sync_domain_, nullptr)

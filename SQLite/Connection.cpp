@@ -76,8 +76,8 @@ void Connection::check_exist () const
 void Connection::check_ready () const
 {
 	check_exist ();
-	if (busy_)
-		throw_exception ("Connection is busy");
+	if (!data_state_->is_consistent (0))
+		throw CORBA::TRANSIENT ();
 }
 
 void Connection::check_warning (int err) noexcept
@@ -99,8 +99,7 @@ void Connection::exec (const char* sql)
 Connection::Lock::Lock (Connection& conn) :
 	connection_ (conn)
 {
-	connection_.check_ready ();
-	connection_.busy_ = true;
+	connection_.data_state_->inconststent ();
 }
 
 }
