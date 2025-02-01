@@ -74,7 +74,7 @@ public:
 		ti_ = data ()->getTransactionIsolation ();
 	}
 
-	bool isValid (TimeBase::TimeT timeout)
+	bool isValid (const TimeBase::TimeT& timeout)
 	{
 		return data ()->isValid (timeout);
 	}

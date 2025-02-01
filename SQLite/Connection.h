@@ -199,7 +199,7 @@ public:
 		return warnings_;
 	}
 
-	bool isValid (TimeBase::TimeT timeout) const noexcept
+	bool isValid (const TimeBase::TimeT& timeout) const noexcept
 	{
 		if (isClosed ())
 			return false;
