@@ -75,8 +75,20 @@ public:
 			return true;
 		else if (!timeout)
 			return false;
-		else
-			return event_.wait (timeout);
+		else {
+			TimeBase::TimeT start_time = Chrono::steady_clock ();
+			TimeBase::TimeT end_time = start_time + timeout;
+			for (;;) {
+				if (!event_.wait (timeout))
+					return false;
+				if (!inconsistent_)
+					return true;
+				TimeBase::TimeT cur_time = Chrono::steady_clock ();
+				if (cur_time >= end_time)
+					return false;
+				timeout = end_time - cur_time;
+			}
+		}
 	}
 
 private:
