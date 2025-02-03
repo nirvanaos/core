@@ -381,7 +381,11 @@ void FileDescriptorsContext::DescriptorBuf::write (const void* p, size_t size)
 
 void FileDescriptorsContext::DescriptorChar::write (const void* p, size_t size)
 {
-	access_->write (CORBA::Internal::StringView <char> ((const char*)p, size));
+	const char* pc = (const char*)p;
+	if (!pc [size])
+		access_->write (CORBA::Internal::StringView <char> (pc, size));
+	else
+		access_->write (IDL::String (pc, size));
 }
 
 void FileDescriptorsContext::DescriptorDirect::write (const void* p, size_t size)

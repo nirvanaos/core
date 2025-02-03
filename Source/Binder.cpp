@@ -107,8 +107,9 @@ void Binder::initialize ()
 	if (!metadata.address)
 		throw_INITIALIZE ();
 
+	ModuleContext context (g_core_free_sync_context, MemContext::current_ptr ());
+	assert (context.mem_context && &context.mem_context->heap () == &Heap::shared_heap ());
 	SYNC_BEGIN (sync_domain (), nullptr);
-	ModuleContext context (nullptr, g_core_free_sync_context);
 	singleton_->module_bind (nullptr, metadata, &context);
 	singleton_->object_map_ = std::move (context.exports);
 	initialized_ = true;
@@ -288,7 +289,7 @@ const ModuleStartup* Binder::module_bind (::Nirvana::Module::_ptr_type mod,
 			// Pass 3: Export objects.
 			if (flags & MetadataFlags::EXPORT_OBJECTS) {
 				assert (mod_context); // Executable can not export.
-				SYNC_BEGIN (mod_context->sync_context, nullptr);
+				SYNC_BEGIN (mod_context->sync_context, mod_context->mem_context);
 				for (OLF_Iterator <> it (metadata.address, metadata.size); !it.end (); it.next ()) {
 					switch (*it.cur ()) {
 						case OLF_EXPORT_OBJECT: {
@@ -402,7 +403,7 @@ Ref <Module> Binder::load (int32_t mod_id, AccessDirect::_ptr_type binary)
 				SYNC_END ();
 
 				assert (mod->_refcount_value () == 0);
-				ModuleContext context (mod, mod->sync_context (), mod_id);
+				ModuleContext context (mod);
 				bind_and_init (*mod, context);
 				try {
 					object_map_.merge (context.exports);
@@ -724,7 +725,7 @@ uint_fast16_t Binder::get_module_bindings_sync (Nirvana::AccessDirect::_ptr_type
 	mod = Module::create (-1, binary);
 	SYNC_END ();
 
-	ModuleContext context (mod, mod->sync_context (), true);
+	ModuleContext context (mod, true);
 	try {
 		bind_and_init (*mod, context);
 	} catch (...) {
