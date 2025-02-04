@@ -201,9 +201,23 @@ public:
 		return bi.platform ();
 	}
 
-	void unregister (const IDL::String& module_name)
+	uint32_t unregister (const IDL::String& module_name)
 	{
-		Nirvana::throw_NO_IMPLEMENT ();
+		Lock lock (*this);
+
+		SemVer svname (module_name);
+
+		try {
+
+			Statement stm = get_statement ("DELETE FROM module WHERE name=? AND version=? AND prerelease=?");
+			stm->setString (1, svname.name ());
+			stm->setBigInt (2, svname.version ());
+			stm->setString (3, svname.prerelease ());
+
+			return stm->executeUpdate ();
+		} catch (NDBC::SQLException& ex) {
+			on_sql_exception (ex);
+		}
 	}
 
 private:
