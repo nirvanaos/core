@@ -133,6 +133,7 @@ public:
 	Connection (const std::string& uri) :
 		SQLite (uri),
 		data_state_ (Nirvana::the_system->create_data_state ()),
+		timeout_ (0),
 		savepoint_ (0)
 	{
 		sqlite3_filename fn = sqlite3_db_filename (*this, nullptr);
@@ -185,7 +186,6 @@ public:
 
 	void setAutoCommit (bool on)
 	{
-		check_ready ();
 		bool current = sqlite3_get_autocommit (*this);
 		if (on) {
 			if (!current)
@@ -199,11 +199,14 @@ public:
 		return warnings_;
 	}
 
-	bool isValid (const TimeBase::TimeT& timeout) const noexcept
+	void setTimeout (const TimeBase::TimeT& timeout) noexcept
 	{
-		if (isClosed ())
-			return false;
-		return data_state_->is_consistent (timeout);
+		timeout_ = timeout;
+	}
+
+	TimeBase::TimeT getTimeout () const noexcept
+	{
+		return timeout_;
 	}
 
 	NDBC::PreparedStatement::_ref_type prepareStatement (const IDL::String& sql, NDBC::ResultSet::Type resultSetType, unsigned flags);
@@ -278,8 +281,6 @@ public:
 
 	void check_warning (int err) noexcept;
 
-	void check_ready () const;
-
 private:
 	void exec (const char* sql);
 
@@ -288,6 +289,7 @@ private:
 private:
 	NDBC::SQLWarnings warnings_;
 	Nirvana::DataState::_ref_type data_state_;
+	TimeBase::TimeT timeout_;
 	unsigned savepoint_;
 };
 

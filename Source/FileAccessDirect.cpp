@@ -243,10 +243,9 @@ void FileAccessDirect::clear_cache (BlockIdx excl_begin, BlockIdx excl_end)
 	
 	for (Cache::iterator it = cache_.end (); it != cache_.begin ();) {
 		--it;
-		if (it->first >= excl_end) {
-			if (release_cache (it, time))
-				--it;
-		} else
+		if (it->first >= excl_end)
+			release_cache (it, time);
+		else
 			break;
 	}
 }

@@ -37,8 +37,10 @@ public:
 	void close ()
 	{
 		if (connection_) {
-			connection_->check_ready ();
-			finalize ();
+			{
+				Connection::Lock lock (*connection_);
+				finalize ();
+			}
 			connection_ = nullptr;
 			deactivate_servant (servant_);
 		}

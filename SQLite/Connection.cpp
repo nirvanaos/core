@@ -73,13 +73,6 @@ void Connection::check_exist () const
 		throw CORBA::OBJECT_NOT_EXIST ();
 }
 
-void Connection::check_ready () const
-{
-	check_exist ();
-	if (!data_state_->is_consistent (0))
-		throw CORBA::TRANSIENT ();
-}
-
 void Connection::check_warning (int err) noexcept
 {
 	if (err) {
@@ -99,7 +92,10 @@ void Connection::exec (const char* sql)
 Connection::Lock::Lock (Connection& conn) :
 	connection_ (conn)
 {
-	connection_.data_state_->inconststent ();
+	conn.check_exist ();
+
+	if (!conn.data_state_->inconsistent (conn.timeout_))
+		throw CORBA::TRANSIENT ();
 }
 
 }

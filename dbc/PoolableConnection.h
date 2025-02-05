@@ -74,9 +74,12 @@ public:
 		ti_ = data ()->getTransactionIsolation ();
 	}
 
-	bool isValid (const TimeBase::TimeT& timeout)
+	void setTimeout (const TimeBase::TimeT&) const noexcept
+	{}
+
+	TimeBase::TimeT getTimeout () const noexcept
 	{
-		return data ()->isValid (timeout);
+		return 0;
 	}
 
 	Statement::_ref_type createStatement (ResultSet::Type resultSetType)
@@ -199,9 +202,10 @@ public:
 
 	void cleanup (ConnectionData& data)
 	{
-		for (const auto& sp : savepoints_) {
+		if (!savepoints_.empty ())
+		for (auto it = savepoints_.cbegin (); it != savepoints_.cend (); ++it) {
 			try {
-				data->releaseSavepoint (sp);
+				data->releaseSavepoint (*it);
 			} catch (...) {
 				assert (false);
 			}

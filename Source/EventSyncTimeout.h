@@ -63,6 +63,11 @@ public:
 		signal_cnt_ = 0;
 	}
 
+	size_t signal_cnt () const noexcept
+	{
+		return signal_cnt_;
+	}
+
 	static TimeBase::TimeT ms2time (uint32_t ms) noexcept
 	{
 		switch (ms) {

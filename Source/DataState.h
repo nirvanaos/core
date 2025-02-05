@@ -46,54 +46,27 @@ public:
 	using UserObject::operator new;
 	using UserObject::operator delete;
 
-	DataState () :
-		inconsistent_ (false)
+	DataState ()
 	{
 		if (!SyncContext::current ().sync_domain ())
 			throw CORBA::BAD_INV_ORDER ();
+		event_.signal_one ();
 	}
 
-	void inconststent ()
+	bool inconsistent (const TimeBase::TimeT& timeout)
 	{
-		if (inconsistent_)
-			throw CORBA::TRANSIENT ();
-		event_.reset_all ();
-		inconsistent_ = true;
+		return event_.wait (timeout);
 	}
 
 	void consistent ()
 	{
-		if (!inconsistent_)
+		if (event_.signal_cnt ())
 			throw CORBA::BAD_INV_ORDER ();
-		inconsistent_ = false;
-		event_.signal_all ();
-	}
-
-	bool is_consistent (TimeBase::TimeT timeout)
-	{
-		if (!inconsistent_)
-			return true;
-		else if (!timeout)
-			return false;
-		else {
-			TimeBase::TimeT start_time = Chrono::steady_clock ();
-			TimeBase::TimeT end_time = start_time + timeout;
-			for (;;) {
-				if (!event_.wait (timeout))
-					return false;
-				if (!inconsistent_)
-					return true;
-				TimeBase::TimeT cur_time = Chrono::steady_clock ();
-				if (cur_time >= end_time)
-					return false;
-				timeout = end_time - cur_time;
-			}
-		}
+		event_.signal_one ();
 	}
 
 private:
 	EventSyncTimeout event_;
-	bool inconsistent_;
 };
 
 }

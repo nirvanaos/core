@@ -189,7 +189,7 @@ public:
 		assert (it != cache_.end ());
 		if (it != cache_.end () && !--(it->second.ref_cnt))
 			cache_.erase (it);
-	return SQLITE_OK;
+		return SQLITE_OK;
 	}
 
 	int lock (Nirvana::LockType level) noexcept
