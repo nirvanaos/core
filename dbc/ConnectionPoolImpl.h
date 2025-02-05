@@ -41,7 +41,9 @@ public:
 		url_ (std::move (url)),
 		user_ (std::move (user)),
 		password_ (std::move (password))
-	{}
+	{
+		getConnection ();
+	}
 
 	Connection::_ref_type getConnection ()
 	{
