@@ -410,9 +410,6 @@ private:
 		//   If module is Singleton, sync_context is the singleton synchronization domain.
 		SyncContext& sync_context;
 
-		// Memory context for proxy creation
-		MemContext* mem_context;
-
 		// Module exports.
 		ObjectMap exports;
 
@@ -420,17 +417,15 @@ private:
 
 		bool collect_dependencies;
 
-		ModuleContext (SyncContext& sc, MemContext* mc) :
+		ModuleContext (SyncContext& sc) :
 			mod (nullptr),
 			sync_context (sc),
-			mem_context (mc),
 			collect_dependencies (false)
 		{}
 
 		ModuleContext (Module* m, bool depends = false) :
 			mod (m),
 			sync_context (m->sync_context ()),
-			mem_context (m->initterm_mem_context ()),
 			collect_dependencies (depends)
 		{}
 	};

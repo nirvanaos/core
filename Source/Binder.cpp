@@ -107,8 +107,7 @@ void Binder::initialize ()
 	if (!metadata.address)
 		throw_INITIALIZE ();
 
-	ModuleContext context (g_core_free_sync_context, MemContext::current_ptr ());
-	assert (context.mem_context && &context.mem_context->heap () == &Heap::shared_heap ());
+	ModuleContext context (g_core_free_sync_context);
 	SYNC_BEGIN (sync_domain (), nullptr);
 	singleton_->module_bind (nullptr, metadata, &context);
 	singleton_->object_map_ = std::move (context.exports);
@@ -289,7 +288,7 @@ const ModuleStartup* Binder::module_bind (::Nirvana::Module::_ptr_type mod,
 			// Pass 3: Export objects.
 			if (flags & MetadataFlags::EXPORT_OBJECTS) {
 				assert (mod_context); // Executable can not export.
-				SYNC_BEGIN (mod_context->sync_context, mod_context->mem_context);
+				SYNC_BEGIN (mod_context->sync_context, nullptr);
 				for (OLF_Iterator <> it (metadata.address, metadata.size); !it.end (); it.next ()) {
 					switch (*it.cur ()) {
 						case OLF_EXPORT_OBJECT: {
