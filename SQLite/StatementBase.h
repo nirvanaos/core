@@ -57,8 +57,6 @@ public:
 		warnings_.clear ();
 	}
 
-	uint32_t executeUpdate ();
-
 	NDBC::Connection::_ref_type getConnection ()
 	{
 		return connection ()._this ();
@@ -155,6 +153,7 @@ protected:
 	void finalize (bool silent = false) noexcept;
 	void reset () noexcept;
 	void check_warning (int err) noexcept;
+	uint32_t executeUpdate ();
 
 private:
 	bool execute_next (bool resultset);

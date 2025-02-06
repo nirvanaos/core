@@ -79,6 +79,12 @@ public:
 		return getResultSet ();
 	}
 
+	uint32_t executeUpdate ()
+	{
+		Connection::Lock lock (connection ());
+		return StatementBase::executeUpdate ();
+	}
+
 	PS_PARAM (BigInt, int64_t);
 	PS_PARAM (Blob, NDBC::Blob&);
 	PS_PARAM (Boolean, bool);
