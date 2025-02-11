@@ -35,7 +35,27 @@
 namespace NDBC {
 
 template <class Data>
-using Pool = std::stack <Data>;
+class Pool : public std::stack <Data>
+{
+	using Base = std::stack <Data>;
+
+public:
+	~Pool ();
+};
+
+template <class Data>
+Pool <Data>::~Pool ()
+{
+	while (!Base::empty ()) {
+		try {
+			Base::top ()->close ();
+		} catch (...) {
+			assert (false);
+			// TODO: Log
+		}
+		Base::pop ();
+	}
+}
 
 class PoolableBase
 {
