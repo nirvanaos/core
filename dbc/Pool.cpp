@@ -34,4 +34,13 @@ void PoolableBase::check (bool valid)
 		throw NDBC::SQLException (NDBC::SQLWarning (0, "Object is closed"), NDBC::SQLWarnings ());
 }
 
+void PoolableBase::deactivate (PortableServer::Servant servant) noexcept
+{
+	try {
+		adapter_->deactivate_object (adapter_->servant_to_id (servant));
+	} catch (...) {
+		assert (false);
+	}
+}
+
 }

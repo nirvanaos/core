@@ -41,10 +41,25 @@ class PoolableBase
 {
 public:
 	static void check (bool valid);
+
+protected:
+	PoolableBase (PortableServer::POA::_ptr_type adapter) :
+		adapter_ (adapter)
+	{}
+
+	PortableServer::POA::_ptr_type adapter () const noexcept
+	{
+		return adapter_;
+	}
+
+	void deactivate (PortableServer::Servant servant) noexcept;
+
+private:
+	const PortableServer::POA::_ptr_type adapter_;
 };
 
 template <class Data>
-class Poolable
+class Poolable : public PoolableBase
 {
 public:
 	using DataType = Data;
@@ -56,7 +71,8 @@ public:
 	}
 
 protected:
-	Poolable (PoolType& pool, DataType&& data) noexcept :
+	Poolable (PoolType& pool, DataType&& data, PortableServer::POA::_ptr_type adapter) noexcept :
+		PoolableBase (adapter),
 		pool_ (pool),
 		data_ (std::move (data))
 	{}
@@ -83,8 +99,10 @@ Data& Poolable <Data>::data ()
 	return data_;
 }
 
-template <class Data, class S>
-class PoolableS : public Poolable <Data>
+template <class Data, class I, class S>
+class PoolableS : 
+	public CORBA::servant_traits <I>::template Servant <S>,
+	public Poolable <Data>
 {
 	using Base = Poolable <Data>;
 
@@ -93,11 +111,12 @@ public:
 	{
 		Base::check ();
 		release_to_pool ();
+		Base::deactivate (this);
 	}
 
 protected:
-	PoolableS (Pool <Data>& pool, Data&& data) noexcept :
-		Base (pool, std::move (data))
+	PoolableS (Pool <Data>& pool, Data&& data, PortableServer::POA::_ptr_type adapter) noexcept :
+		Base (pool, std::move (data), adapter)
 	{}
 
 	~PoolableS ()
@@ -110,8 +129,8 @@ private:
 	void release_to_pool () noexcept;
 };
 
-template <class Data, class S>
-void PoolableS <Data, S>::release_to_pool () noexcept
+template <class Data, class I, class S>
+void PoolableS <Data, I, S>::release_to_pool () noexcept
 {
 	assert (static_cast <bool> (Base::data_));
 	Data data = std::move (Base::data_);

@@ -59,14 +59,13 @@ struct ConnectionData : public Connection::_ref_type
 };
 
 class PoolableConnection : 
-	public CORBA::servant_traits <Connection>::Servant <PoolableConnection>,
-	public PoolableS <ConnectionData, PoolableConnection>
+	public PoolableS <ConnectionData, Connection, PoolableConnection>
 {
-	using Base = PoolableS <ConnectionData, PoolableConnection>;
+	using Base = PoolableS <ConnectionData, Connection, PoolableConnection>;
 
 public:
-	PoolableConnection (Pool <ConnectionData>& pool, ConnectionData&& cd) :
-		Base (pool, std::move (cd))
+	PoolableConnection (Pool <ConnectionData>& pool, ConnectionData&& cd, PortableServer::POA::_ptr_type adapter) :
+		Base (pool, std::move (cd), adapter)
 	{
 		catalog_ = data ()->getCatalog ();
 		schema_ = data ()->getSchema ();
@@ -92,7 +91,7 @@ public:
 			pool.pop ();
 		} else
 			s = data ()->createStatement (resultSetType);
-		return CORBA::make_reference <PoolableStatement> (_this (), std::ref (pool), std::move (s))->_this ();
+		return CORBA::make_reference <PoolableStatement> (_this (), std::ref (pool), std::move (s), adapter ())->_this ();
 	}
 
 	PreparedStatement::_ref_type prepareStatement (const IDL::String& sql,
@@ -107,7 +106,7 @@ public:
 			pool.pop ();
 		} else
 			s = data ()->prepareStatement (sql, resultSetType, PreparedStatement::PREPARE_PERSISTENT);
-		return CORBA::make_reference <PoolablePreparedStatement> (_this (), std::ref (pool), std::move (s))->_this ();
+		return CORBA::make_reference <PoolablePreparedStatement> (_this (), std::ref (pool), std::move (s), adapter ())->_this ();
 	}
 
 	SQLWarnings getWarnings ()

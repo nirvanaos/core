@@ -89,10 +89,9 @@ using RefPool = Pool <typename I::_ref_type>;
 template <class I, class S>
 class PoolableStatementS :
 	public PoolableStatementBase,
-	public PoolableS <typename I::_ref_type, S>,
-	public CORBA::servant_traits <I>::Servant <S>
+	public PoolableS <typename I::_ref_type, I, S>
 {
-	using Base = PoolableS <typename I::_ref_type, S>;
+	using Base = PoolableS <typename I::_ref_type, I, S>;
 	using Servant = CORBA::servant_traits <I>::Servant <S>;
 
 public:
@@ -119,10 +118,10 @@ public:
 	}
 
 protected:
-	PoolableStatementS (Connection::_ref_type&& conn, PoolType& pool, typename I::_ref_type&& impl)
-		noexcept :
+	PoolableStatementS (Connection::_ref_type&& conn, PoolType& pool, typename I::_ref_type&& impl,
+		PortableServer::POA::_ptr_type adapter) noexcept :
 		PoolableStatementBase (std::move (conn), impl),
-		Base (pool, std::move (impl))
+		Base (pool, std::move (impl), adapter)
 	{}
 };
 
@@ -133,9 +132,9 @@ class PoolableStatement : public PoolableStatementS <Statement, PoolableStatemen
 	using DataType = Base::DataType;
 
 public:
-	PoolableStatement (Connection::_ref_type&& conn, PoolType& pool, Statement::_ref_type&& impl)
-		noexcept :
-		Base (std::move (conn), pool, std::move (impl))
+	PoolableStatement (Connection::_ref_type&& conn, PoolType& pool, Statement::_ref_type&& impl,
+		PortableServer::POA::_ptr_type adapter) noexcept :
+		Base (std::move (conn), pool, std::move (impl), adapter)
 	{}
 
 	bool execute (const IDL::String& sql)
@@ -162,8 +161,8 @@ class PoolablePreparedStatement : public PoolableStatementS <PreparedStatement,
 
 public:
 	PoolablePreparedStatement (Connection::_ref_type&& conn, PoolType& pool,
-		PreparedStatement::_ref_type&& impl) noexcept :
-		Base (std::move (conn), pool, std::move (impl))
+		PreparedStatement::_ref_type&& impl, PortableServer::POA::_ptr_type adapter) noexcept :
+		Base (std::move (conn), pool, std::move (impl), adapter)
 	{}
 
 	void setBigInt (Ordinal idx, int64_t v)
