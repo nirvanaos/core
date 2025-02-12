@@ -40,32 +40,58 @@ class Pool : public std::stack <Data>
 	using Base = std::stack <Data>;
 
 public:
+	Pool () = default;
 	~Pool ();
+
+	Pool (const Pool&) = delete;
+	Pool (Pool&&) = default;
+
+	Pool& operator = (const Pool&) = delete;
+	Pool& operator = (Pool&&) = delete;
 };
 
 template <class Data>
 Pool <Data>::~Pool ()
 {
 	while (!Base::empty ()) {
+		Data data (std::move (Base::top ()));
+		Base::pop ();
 		try {
-			Base::top ()->close ();
+			data->close ();
 		} catch (...) {
 			assert (false);
 			// TODO: Log
 		}
-		Base::pop ();
 	}
 }
 
 class PoolableBase
 {
 public:
-	static void check (bool valid);
+	bool isClosed () const noexcept
+	{
+		return closed_;
+	}
+
+	static void throw_closed ();
 
 protected:
 	PoolableBase (PortableServer::POA::_ptr_type adapter) :
-		adapter_ (adapter)
+		adapter_ (adapter),
+		closed_ (false)
 	{}
+
+	void check () const
+	{
+		if (closed_)
+			throw_closed ();
+	}
+
+	void close ()
+	{
+		check ();
+		closed_ = true;
+	}
 
 	PortableServer::POA::_ptr_type adapter () const noexcept
 	{
@@ -76,6 +102,7 @@ protected:
 
 private:
 	const PortableServer::POA::_ptr_type adapter_;
+	bool closed_;
 };
 
 template <class Data>
@@ -85,11 +112,6 @@ public:
 	using DataType = Data;
 	using PoolType = Pool <Data>;
 
-	bool isClosed () const
-	{
-		return !static_cast <bool> (data_);
-	}
-
 protected:
 	Poolable (PoolType& pool, DataType&& data, PortableServer::POA::_ptr_type adapter) noexcept :
 		PoolableBase (adapter),
@@ -97,12 +119,11 @@ protected:
 		data_ (std::move (data))
 	{}
 
-	void check () const
+	DataType& data ()
 	{
-		PoolableBase::check (static_cast <bool> (data_));
+		check ();
+		return data_;
 	}
-
-	DataType& data ();
 
 	static void cleanup (DataType& data)
 	{}
@@ -111,13 +132,6 @@ protected:
 	PoolType& pool_;
 	DataType data_;
 };
-
-template <class Data>
-Data& Poolable <Data>::data ()
-{
-	check ();
-	return data_;
-}
 
 template <class Data, class I, class S>
 class PoolableS : 
@@ -129,7 +143,7 @@ class PoolableS :
 public:
 	void close ()
 	{
-		Base::check ();
+		Base::close ();
 		release_to_pool ();
 		Base::deactivate (this);
 	}
@@ -141,20 +155,17 @@ protected:
 
 	~PoolableS ()
 	{
-		if (static_cast <bool> (Base::data_))
+		if (!Base::isClosed ())
 			release_to_pool ();
 	}
 
-private:
 	void release_to_pool () noexcept;
 };
 
 template <class Data, class I, class S>
 void PoolableS <Data, I, S>::release_to_pool () noexcept
 {
-	assert (static_cast <bool> (Base::data_));
 	Data data = std::move (Base::data_);
-	assert (!static_cast <bool> (Base::data_));
 	try {
 		static_cast <S&> (*this).cleanup (data);
 		Base::pool_.push (std::move (data));

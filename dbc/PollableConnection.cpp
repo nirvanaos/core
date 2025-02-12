@@ -24,22 +24,19 @@
 *  popov.nirvana@gmail.com
 */
 #include "pch.h"
-#include "Pool.h"
+#include "ConnectionPoolImpl.h"
 
 namespace NDBC {
 
-void PoolableBase::throw_closed ()
-{
-	throw NDBC::SQLException (NDBC::SQLWarning (0, "Object is closed"), NDBC::SQLWarnings ());
-}
-
-void PoolableBase::deactivate (PortableServer::Servant servant) noexcept
-{
-	try {
-		adapter_->deactivate_object (adapter_->servant_to_id (servant));
-	} catch (...) {
-		assert (false);
-	}
-}
+PoolableConnection::PoolableConnection (ConnectionPoolImpl& pool, ConnectionData&& cd,
+	PortableServer::POA::_ptr_type adapter) :
+	Base (pool.connections (), std::move (cd), adapter),
+	pool_ (&pool),
+	catalog_ (data ()->getCatalog ()),
+	schema_ (data ()->getSchema ()),
+	ti_ (data ()->getTransactionIsolation ()),
+	read_only_ (data ()->isReadOnly ()),
+	active_statements_ (false)
+{}
 
 }

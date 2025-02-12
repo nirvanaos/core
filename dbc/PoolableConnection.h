@@ -58,20 +58,16 @@ struct ConnectionData : public Connection::_ref_type
 	ConnectionData& operator = (ConnectionData&&) = default;
 };
 
+class ConnectionPoolImpl;
+
 class PoolableConnection : 
 	public PoolableS <ConnectionData, Connection, PoolableConnection>
 {
 	using Base = PoolableS <ConnectionData, Connection, PoolableConnection>;
 
 public:
-	PoolableConnection (Pool <ConnectionData>& pool, ConnectionData&& cd, PortableServer::POA::_ptr_type adapter) :
-		Base (pool, std::move (cd), adapter)
-	{
-		catalog_ = data ()->getCatalog ();
-		schema_ = data ()->getSchema ();
-		read_only_ = data ()->isReadOnly ();
-		ti_ = data ()->getTransactionIsolation ();
-	}
+	PoolableConnection (ConnectionPoolImpl& pool, ConnectionData&& cd,
+		PortableServer::POA::_ptr_type adapter);
 
 	void setTimeout (const TimeBase::TimeT&) const noexcept
 	{}
@@ -91,7 +87,8 @@ public:
 			pool.pop ();
 		} else
 			s = data ()->createStatement (resultSetType);
-		return CORBA::make_reference <PoolableStatement> (_this (), std::ref (pool), std::move (s), adapter ())->_this ();
+		return CORBA::make_reference <PoolableStatement> (std::ref (*this), std::ref (pool),
+			std::move (s), adapter ())->_this ();
 	}
 
 	PreparedStatement::_ref_type prepareStatement (const IDL::String& sql,
@@ -106,7 +103,8 @@ public:
 			pool.pop ();
 		} else
 			s = data ()->prepareStatement (sql, resultSetType, PreparedStatement::PREPARE_PERSISTENT);
-		return CORBA::make_reference <PoolablePreparedStatement> (_this (), std::ref (pool), std::move (s), adapter ())->_this ();
+		return CORBA::make_reference <PoolablePreparedStatement> (std::ref (*this), std::ref (pool),
+			std::move (s), adapter ())->_this ();
 	}
 
 	SQLWarnings getWarnings ()
@@ -199,9 +197,29 @@ public:
 		data ()->rollback (savepoint);
 	}
 
+	void close ()
+	{
+		PoolableBase::close ();
+		if (0 == active_statements_)
+			release_to_pool ();
+		Base::deactivate (this);
+	}
+
+	void add_active_statement () noexcept
+	{
+		++active_statements_;
+	}
+
+	void remove_active_statement () noexcept
+	{
+		if ((0 == --active_statements_) && isClosed ())
+			release_to_pool ();
+	}
+
+	void release_to_pool () noexcept;
+
 	void cleanup (ConnectionData& data)
 	{
-		if (!savepoints_.empty ())
 		for (auto it = savepoints_.cbegin (); it != savepoints_.cend (); ++it) {
 			try {
 				data->releaseSavepoint (*it);
@@ -222,11 +240,18 @@ public:
 	}
 
 private:
+	CORBA::servant_reference <ConnectionPoolImpl> pool_;
 	IDL::String catalog_, schema_;
 	std::unordered_set <Savepoint> savepoints_;
 	TransactionIsolation ti_;
 	bool read_only_;
+	unsigned active_statements_;
 };
+
+inline Connection::_ref_type PoolableStatementBase::getConnection () const
+{
+	return conn_->_this ();
+}
 
 }
 

@@ -31,6 +31,8 @@
 
 namespace NDBC {
 
+class PoolableConnection;
+
 class PoolableStatementBase
 {
 public:
@@ -64,22 +66,24 @@ public:
 		return base ()->getResultSetType ();
 	}
 
-	Connection::_ref_type getConnection () const
-	{
-		return conn_;
-	}
+	Connection::_ref_type getConnection () const;
 
 protected:
-	PoolableStatementBase (Connection::_ref_type&& conn, StatementBase::_ptr_type base) noexcept;
+	PoolableStatementBase (PoolableConnection& conn, StatementBase::_ptr_type base) noexcept;
 
 	void close () noexcept;
 
-	StatementBase::_ptr_type base () const;
+	StatementBase::_ptr_type base () const
+	{
+		if (!base_)
+			PoolableBase::throw_closed ();
+		return base_;
+	}
 
 	static void cleanup (StatementBase::_ptr_type s);
 
 private:
-	Connection::_ref_type conn_;
+	CORBA::servant_reference <PoolableConnection> conn_;
 	StatementBase::_ptr_type base_;
 };
 
@@ -118,9 +122,9 @@ public:
 	}
 
 protected:
-	PoolableStatementS (Connection::_ref_type&& conn, PoolType& pool, typename I::_ref_type&& impl,
+	PoolableStatementS (PoolableConnection& conn, PoolType& pool, typename I::_ref_type&& impl,
 		PortableServer::POA::_ptr_type adapter) noexcept :
-		PoolableStatementBase (std::move (conn), impl),
+		PoolableStatementBase (conn, impl),
 		Base (pool, std::move (impl), adapter)
 	{}
 };
@@ -132,9 +136,9 @@ class PoolableStatement : public PoolableStatementS <Statement, PoolableStatemen
 	using DataType = Base::DataType;
 
 public:
-	PoolableStatement (Connection::_ref_type&& conn, PoolType& pool, Statement::_ref_type&& impl,
+	PoolableStatement (PoolableConnection& conn, PoolType& pool, Statement::_ref_type&& impl,
 		PortableServer::POA::_ptr_type adapter) noexcept :
-		Base (std::move (conn), pool, std::move (impl), adapter)
+		Base (conn, pool, std::move (impl), adapter)
 	{}
 
 	bool execute (const IDL::String& sql)
@@ -160,9 +164,9 @@ class PoolablePreparedStatement : public PoolableStatementS <PreparedStatement,
 	using Base = PoolableStatementS <PreparedStatement, PoolablePreparedStatement>;
 
 public:
-	PoolablePreparedStatement (Connection::_ref_type&& conn, PoolType& pool,
+	PoolablePreparedStatement (PoolableConnection& conn, PoolType& pool,
 		PreparedStatement::_ref_type&& impl, PortableServer::POA::_ptr_type adapter) noexcept :
-		Base (std::move (conn), pool, std::move (impl), adapter)
+		Base (conn, pool, std::move (impl), adapter)
 	{}
 
 	void setBigInt (Ordinal idx, int64_t v)

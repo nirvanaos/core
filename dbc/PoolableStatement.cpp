@@ -24,26 +24,24 @@
 *  popov.nirvana@gmail.com
 */
 #include "pch.h"
-#include "PoolableStatement.h"
+#include "PoolableConnection.h"
 
 namespace NDBC {
 
-PoolableStatementBase::PoolableStatementBase (Connection::_ref_type&& conn,
+PoolableStatementBase::PoolableStatementBase (PoolableConnection& conn,
 	StatementBase::_ptr_type base) noexcept :
-	conn_ (std::move (conn)),
+	conn_ (&conn),
 	base_ (base)
-{}
+{
+	conn_->add_active_statement ();
+}
 
 void PoolableStatementBase::close () noexcept
 {
+	assert (conn_);
+	conn_->remove_active_statement ();
 	conn_ = nullptr;
 	base_ = nullptr;
-}
-
-StatementBase::_ptr_type PoolableStatementBase::base () const
-{
-	PoolableBase::check (static_cast <bool> (base_));
-	return base_;
 }
 
 void PoolableStatementBase::cleanup (StatementBase::_ptr_type s)

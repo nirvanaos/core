@@ -53,20 +53,24 @@ public:
 
 	Connection::_ref_type getConnection ()
 	{
-		ConnectionData data;
-
 		if (!connections_.empty ()) {
-			data = std::move (connections_.top ());
+			ConnectionData data (std::move (connections_.top ()));
 			connections_.pop ();
-		} else
-			data = ConnectionData (driver_->connect (url_, user_, password_));
-
-		return CORBA::make_reference <PoolableConnection> (std::ref (connections_), std::move (data), adapter ())->_this ();
+			return CORBA::make_reference <PoolableConnection> (std::ref (*this), std::move (data), adapter ())->_this ();
+		} else {
+			return CORBA::make_reference <PoolableConnection> (std::ref (*this),
+				ConnectionData (driver_->connect (url_, user_, password_)), adapter ())->_this ();
+		}
 	}
 
 	PortableServer::POA::_ptr_type adapter () const noexcept
 	{
 		return adapter_;
+	}
+
+	Pool <ConnectionData>& connections () noexcept
+	{
+		return connections_;
 	}
 
 private:
@@ -75,6 +79,12 @@ private:
 	Pool <ConnectionData> connections_;
 	PortableServer::POA::_ref_type adapter_;
 };
+
+inline void PoolableConnection::release_to_pool () noexcept
+{
+	Base::release_to_pool ();
+	pool_ = nullptr;
+}
 
 }
 
