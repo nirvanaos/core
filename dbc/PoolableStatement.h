@@ -106,7 +106,7 @@ public:
 	ResultSet::_ref_type getResultSet ()
 	{
 		ResultSet::_ref_type rs = base ()->getResultSet ();
-		rs->statement () = Servant::_this ();
+		rs->statement (Servant::_this ());
 		return rs;
 	}
 
@@ -149,7 +149,7 @@ public:
 	ResultSet::_ref_type executeQuery (const IDL::String& sql)
 	{
 		ResultSet::_ref_type rs = data ()->executeQuery (sql);
-		rs->statement () = _this ();
+		rs->statement (_this ());
 		return rs;
 	}
 
@@ -299,7 +299,7 @@ public:
 	ResultSet::_ref_type executeQuery ()
 	{
 		ResultSet::_ref_type rs = data ()->executeQuery ();
-		rs->statement () = _this ();
+		rs->statement (_this ());
 		return rs;
 	}
 

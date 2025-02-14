@@ -169,7 +169,9 @@ void PoolableS <Data, I, S>::release_to_pool () noexcept
 	try {
 		static_cast <S&> (*this).cleanup (data);
 		Base::pool_.push (std::move (data));
-	} catch (...) {}
+	} catch (...) {
+		assert (false);
+	}
 }
 
 }
