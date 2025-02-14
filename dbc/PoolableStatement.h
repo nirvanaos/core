@@ -148,7 +148,9 @@ public:
 
 	ResultSet::_ref_type executeQuery (const IDL::String& sql)
 	{
-		return data ()->executeQuery (sql);
+		ResultSet::_ref_type rs = data ()->executeQuery (sql);
+		rs->statement () = _this ();
+		return rs;
 	}
 
 	uint32_t executeUpdate (const IDL::String& sql)

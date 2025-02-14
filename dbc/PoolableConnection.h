@@ -227,6 +227,7 @@ public:
 				assert (false);
 			}
 		}
+		savepoints_.clear ();
 
 		if (!data->getAutoCommit ()) {
 			data->rollback (nullptr);
