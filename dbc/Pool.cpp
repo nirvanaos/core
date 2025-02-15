@@ -30,7 +30,7 @@ namespace NDBC {
 
 void PoolableBase::throw_closed ()
 {
-	throw NDBC::SQLException (NDBC::SQLWarning (0, "Object is closed"), NDBC::SQLWarnings ());
+	throw CORBA::OBJECT_NOT_EXIST ();
 }
 
 void PoolableBase::deactivate (PortableServer::Servant servant) noexcept

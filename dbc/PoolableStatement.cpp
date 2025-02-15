@@ -36,6 +36,12 @@ PoolableStatementBase::PoolableStatementBase (PoolableConnection& conn,
 	conn_->add_active_statement ();
 }
 
+PoolableStatementBase::~PoolableStatementBase ()
+{
+	if (conn_)
+		conn_->remove_active_statement ();
+}
+
 void PoolableStatementBase::close () noexcept
 {
 	assert (conn_);

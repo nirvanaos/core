@@ -76,6 +76,8 @@ void StatementBase::finalize (bool silent) noexcept
 	changed_rows_ = -1;
 	if (!statements_.empty ()) {
 		Connection& conn = *connection_;
+		if (!silent && conn.isClosed ())
+			silent = true;
 		Statements statements (std::move (statements_));
 		cur_statement_ = 0;
 		change_version ();

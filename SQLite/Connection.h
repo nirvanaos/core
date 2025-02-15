@@ -114,7 +114,7 @@ public:
 	class Lock
 	{
 	public:
-		Lock (Connection& conn);
+		Lock (Connection& conn, bool no_check_exist = false);
 
 		~Lock ()
 		{

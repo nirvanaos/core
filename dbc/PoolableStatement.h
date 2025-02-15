@@ -70,6 +70,7 @@ public:
 
 protected:
 	PoolableStatementBase (PoolableConnection& conn, StatementBase::_ptr_type base) noexcept;
+	~PoolableStatementBase ();
 
 	void close () noexcept;
 

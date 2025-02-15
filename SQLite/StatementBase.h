@@ -38,7 +38,7 @@ public:
 	{
 		if (connection_) {
 			{
-				Connection::Lock lock (*connection_);
+				Connection::Lock lock (*connection_, true);
 				finalize ();
 			}
 			connection_ = nullptr;
