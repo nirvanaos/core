@@ -25,6 +25,7 @@
 */
 #include "pch.h"
 #include "Connection_impl.h"
+#include <Nirvana/POSIX.h>
 
 namespace SQLite {
 
@@ -97,6 +98,13 @@ Connection::Lock::Lock (Connection& conn, bool no_check_exist) :
 
 	if (!conn.data_state_->inconsistent (conn.timeout_))
 		throw CORBA::TRANSIENT ();
+}
+
+int Connection::busy_handler (void*, int attempt) noexcept
+{
+	NIRVANA_TRACE ("SQLite: Connection is locked, attempt %d\n", attempt);
+	Nirvana::the_posix->sleep (BUSY_WAIT_BASE << attempt);
+	return 1;
 }
 
 }

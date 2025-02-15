@@ -110,6 +110,8 @@ class Connection :
 	public CORBA::servant_traits <NDBC::Connection>::Servant <Connection>,
 	public SQLite
 {
+	static const TimeBase::TimeT BUSY_WAIT_BASE = TimeBase::MICROSECOND * 10;
+
 public:
 	class Lock
 	{
@@ -146,6 +148,7 @@ public:
 				SQLite::exec (cmd.c_str ());
 			}
 		}
+		sqlite3_busy_handler (*this, busy_handler, nullptr);
 		NIRVANA_TRACE ("SQLite: Connection created\n");
 	}
 
@@ -283,8 +286,9 @@ public:
 
 private:
 	void exec (const char* sql);
-
 	void check_exist () const;
+
+	static int busy_handler (void*, int attempt) noexcept;
 
 private:
 	NDBC::SQLWarnings warnings_;
