@@ -111,6 +111,7 @@ class Connection :
 	public SQLite
 {
 	static const TimeBase::TimeT BUSY_WAIT_BASE = TimeBase::MICROSECOND * 10;
+	static const TimeBase::TimeT BUSY_WAIT_MAX = TimeBase::MILLISECOND * 500;
 
 public:
 	class Lock
