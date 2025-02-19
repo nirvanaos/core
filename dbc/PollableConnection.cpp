@@ -39,4 +39,10 @@ PoolableConnection::PoolableConnection (ConnectionPoolImpl& pool, ConnectionData
 	active_statements_ (false)
 {}
 
+PoolableConnection::~PoolableConnection ()
+{
+	if (!Base::isClosed ())
+		release_to_pool ();
+}
+
 }

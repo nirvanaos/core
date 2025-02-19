@@ -153,12 +153,6 @@ protected:
 		Base (pool, std::move (data), adapter)
 	{}
 
-	~PoolableS ()
-	{
-		if (!Base::isClosed ())
-			release_to_pool ();
-	}
-
 	void release_to_pool () noexcept;
 };
 

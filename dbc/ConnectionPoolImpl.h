@@ -56,7 +56,8 @@ public:
 		if (!connections_.empty ()) {
 			ConnectionData data (std::move (connections_.top ()));
 			connections_.pop ();
-			return CORBA::make_reference <PoolableConnection> (std::ref (*this), std::move (data), adapter ())->_this ();
+			return CORBA::make_reference <PoolableConnection> (std::ref (*this), std::move (data),
+				adapter ())->_this ();
 		} else {
 			return CORBA::make_reference <PoolableConnection> (std::ref (*this),
 				ConnectionData (driver_->connect (url_, user_, password_)), adapter ())->_this ();

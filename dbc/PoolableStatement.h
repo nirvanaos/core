@@ -128,6 +128,12 @@ protected:
 		PoolableStatementBase (conn, impl),
 		Base (pool, std::move (impl), adapter)
 	{}
+
+	~PoolableStatementS ()
+	{
+		if (!Base::isClosed ())
+			Base::release_to_pool ();
+	}
 };
 
 class PoolableStatement : public PoolableStatementS <Statement, PoolableStatement>

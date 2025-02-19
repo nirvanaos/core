@@ -69,6 +69,8 @@ public:
 	PoolableConnection (ConnectionPoolImpl& pool, ConnectionData&& cd,
 		PortableServer::POA::_ptr_type adapter);
 
+	~PoolableConnection ();
+
 	void setTimeout (const TimeBase::TimeT&) const noexcept
 	{}
 
@@ -207,6 +209,7 @@ public:
 
 	void add_active_statement () noexcept
 	{
+		assert (!isClosed ());
 		++active_statements_;
 	}
 
