@@ -100,11 +100,14 @@ public:
 		SYNC_END ()
 	}
 
-	Pollable (const Pollable& src);
 	virtual ~Pollable ();
 
 protected:
 	Pollable ();
+	Pollable (const Pollable&) = delete;
+	Pollable (Pollable&&) = delete;
+	Pollable& operator = (const Pollable&) = delete;
+	Pollable& operator = (Pollable&&) = delete;
 
 	virtual void on_complete (Internal::IORequest::_ptr_type reply);
 

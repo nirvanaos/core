@@ -46,13 +46,6 @@ Pollable::Pollable () :
 	}
 }
 
-Pollable::Pollable (const Pollable& src) :
-	sync_domain_ (src.sync_domain_),
-	cur_set_ (nullptr),
-	ref_cnt_ (1),
-	ready_ (false)
-{}
-
 Pollable::~Pollable ()
 {
 	assert (&SyncContext::current () == sync_domain_);
