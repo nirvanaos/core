@@ -31,18 +31,8 @@ namespace NDBC {
 PoolableConnection::PoolableConnection (ConnectionPoolImpl& pool, ConnectionData&& cd,
 	PortableServer::POA::_ptr_type adapter) :
 	Base (pool.connections (), std::move (cd), adapter),
-	pool_ (&pool),
-	catalog_ (data ()->getCatalog ()),
-	schema_ (data ()->getSchema ()),
-	ti_ (data ()->getTransactionIsolation ()),
-	read_only_ (data ()->isReadOnly ()),
-	active_statements_ (false)
+	parent_ (&pool),
+	active_statements_ (0)
 {}
-
-PoolableConnection::~PoolableConnection ()
-{
-	if (!Base::isClosed ())
-		release_to_pool ();
-}
 
 }

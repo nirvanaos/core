@@ -153,20 +153,24 @@ protected:
 		Base (pool, std::move (data), adapter)
 	{}
 
-	void release_to_pool () noexcept;
-};
-
-template <class Data, class I, class S>
-void PoolableS <Data, I, S>::release_to_pool () noexcept
-{
-	Data data = std::move (Base::data_);
-	try {
-		static_cast <S&> (*this).cleanup (data);
-		Base::pool_.push (std::move (data));
-	} catch (...) {
-		assert (false);
+	void destruct () noexcept
+	{
+		if (!Base::isClosed ())
+			static_cast <S&> (*this).release_to_pool ();
 	}
-}
+
+	void release_to_pool () noexcept
+	{
+		Data data = std::move (Base::data_);
+		try {
+			static_cast <S&> (*this).cleanup (data);
+			Base::pool_.push (std::move (data));
+		} catch (...) {
+			assert (false);
+		}
+	}
+
+};
 
 }
 

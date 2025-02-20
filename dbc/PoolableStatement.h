@@ -131,8 +131,7 @@ protected:
 
 	~PoolableStatementS ()
 	{
-		if (!Base::isClosed ())
-			Base::release_to_pool ();
+		Base::destruct ();
 	}
 };
 

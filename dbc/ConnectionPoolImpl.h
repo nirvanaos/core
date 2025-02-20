@@ -35,12 +35,12 @@ class ConnectionPoolImpl :
 	public CORBA::servant_traits <ConnectionPool>::Servant <ConnectionPoolImpl>
 {
 public:
-	ConnectionPoolImpl (Driver::_ptr_type driver, IDL::String&& url, IDL::String&& user,
-		IDL::String&& password) :
+	ConnectionPoolImpl (Driver::_ptr_type driver, const IDL::String& url, const IDL::String& user,
+		const IDL::String& password) :
 		driver_ (driver),
-		url_ (std::move (url)),
-		user_ (std::move (user)),
-		password_ (std::move (password)),
+		url_ (url),
+		user_ (user),
+		password_ (password),
 		adapter_ (_default_POA ())
 	{
 		// Create connection to ensure that parameters are correct
@@ -53,15 +53,16 @@ public:
 
 	Connection::_ref_type getConnection ()
 	{
+		CORBA::servant_reference <PoolableConnection> conn;
 		if (!connections_.empty ()) {
-			ConnectionData data (std::move (connections_.top ()));
+			conn = CORBA::make_reference <PoolableConnection> (std::ref (*this),
+				std::move (connections_.top ()), adapter ());
 			connections_.pop ();
-			return CORBA::make_reference <PoolableConnection> (std::ref (*this), std::move (data),
-				adapter ())->_this ();
 		} else {
-			return CORBA::make_reference <PoolableConnection> (std::ref (*this),
-				ConnectionData (driver_->connect (url_, user_, password_)), adapter ())->_this ();
+			conn = CORBA::make_reference <PoolableConnection> (std::ref (*this),
+				ConnectionData (driver_->connect (url_, user_, password_)), adapter ());
 		}
+		return conn->_this ();
 	}
 
 	PortableServer::POA::_ptr_type adapter () const noexcept
@@ -84,7 +85,7 @@ private:
 inline void PoolableConnection::release_to_pool () noexcept
 {
 	Base::release_to_pool ();
-	pool_ = nullptr;
+	parent_ = nullptr;
 }
 
 }

@@ -48,14 +48,30 @@ struct ConnectionData : public Connection::_ref_type
 	{}
 
 	ConnectionData (Connection::_ref_type&& conn) :
-		Connection::_ref_type (std::move (conn))
+		Connection::_ref_type (std::move (conn)),
+		catalog (p_->getCatalog ()),
+		schema (p_->getSchema ()),
+		ti (p_->getTransactionIsolation ()),
+		read_only (p_->isReadOnly ())
 	{}
+
+	void reset () const
+	{
+		p_->setTransactionIsolation (ti);
+		p_->setCatalog (catalog);
+		p_->setSchema (schema);
+		p_->setReadOnly (read_only);
+	}
 
 	ConnectionData (const ConnectionData&) = delete;
 	ConnectionData (ConnectionData&&) = default;
 
 	ConnectionData& operator = (const ConnectionData&) = delete;
-	ConnectionData& operator = (ConnectionData&&) = default;
+	ConnectionData& operator = (ConnectionData&&) = delete;
+
+	IDL::String catalog, schema;
+	Connection::TransactionIsolation ti;
+	bool read_only;
 };
 
 class ConnectionPoolImpl;
@@ -69,7 +85,10 @@ public:
 	PoolableConnection (ConnectionPoolImpl& pool, ConnectionData&& cd,
 		PortableServer::POA::_ptr_type adapter);
 
-	~PoolableConnection ();
+	~PoolableConnection ()
+	{
+		destruct ();
+	}
 
 	void setTimeout (const TimeBase::TimeT&) const noexcept
 	{}
@@ -237,18 +256,12 @@ public:
 			data->setAutoCommit (true);
 		}
 
-		data->setTransactionIsolation (ti_);
-		data->setCatalog (catalog_);
-		data->setSchema (schema_);
-		data->setReadOnly (read_only_);
+		data.reset ();
 	}
 
 private:
-	CORBA::servant_reference <ConnectionPoolImpl> pool_;
-	IDL::String catalog_, schema_;
+	CORBA::servant_reference <ConnectionPoolImpl> parent_;
 	std::unordered_set <Savepoint> savepoints_;
-	TransactionIsolation ti_;
-	bool read_only_;
 	unsigned active_statements_;
 };
 
