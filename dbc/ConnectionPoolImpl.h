@@ -35,12 +35,12 @@ class ConnectionPoolImpl :
 	public CORBA::servant_traits <ConnectionPool>::Servant <ConnectionPoolImpl>
 {
 public:
-	ConnectionPoolImpl (Driver::_ptr_type driver, const IDL::String& url, const IDL::String& user,
-		const IDL::String& password) :
-		driver_ (driver),
-		url_ (url),
-		user_ (user),
-		password_ (password),
+	ConnectionPoolImpl (Driver::_ptr_type driver, IDL::String&& url, IDL::String&& user,
+		IDL::String&& password) :
+		driver_ (std::move (driver)),
+		url_ (std::move (url)),
+		user_ (std::move (user)),
+		password_ (std::move (password)),
 		adapter_ (_default_POA ())
 	{
 		// Create connection to ensure that parameters are correct
