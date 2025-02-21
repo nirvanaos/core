@@ -419,12 +419,24 @@ void ExecDomain::suspend_prepare (SyncContext* resume_context, bool push_qnode)
 {
 	assert (Thread::current ().exec_domain () == this);
 	assert (!dbg_suspend_prepared_);
-	SyncDomain* sync_domain = sync_context_->sync_domain ();
-	if (sync_domain) {
-		if (!resume_context || push_qnode)
-			ret_qnode_push (*sync_domain);
-		sync_domain->leave ();
+
+	{ // If a background worker will need for resume, create it now.
+		SyncContext* res_ctx = resume_context;
+		if (!res_ctx)
+			res_ctx = sync_context_;
+		if (!res_ctx->sync_domain () && INFINITE_DEADLINE == deadline ())
+			create_background_worker ();
 	}
+
+	{ // Leave the current sync domain
+		SyncDomain* sync_domain = sync_context_->sync_domain ();
+		if (sync_domain) {
+			if (!resume_context || push_qnode)
+				ret_qnode_push (*sync_domain);
+			sync_domain->leave ();
+		}
+	}
+
 	if (resume_context)
 		sync_context_ = resume_context;
 
