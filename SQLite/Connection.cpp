@@ -103,7 +103,10 @@ Connection::Lock::Lock (Connection& conn, bool no_check_exist) :
 int Connection::busy_handler (void*, int attempt) noexcept
 {
 	NIRVANA_TRACE ("SQLite: Connection is locked, attempt %d\n", attempt);
-	Nirvana::the_posix->sleep (std::max (BUSY_WAIT_BASE << attempt, BUSY_WAIT_MAX));
+	unsigned pow = attempt;
+	if (pow > 10)
+		pow = 10;
+	Nirvana::the_posix->sleep ((TimeBase::MILLISECOND * 10) << pow);
 	return 1;
 }
 
