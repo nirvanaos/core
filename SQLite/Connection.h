@@ -134,7 +134,9 @@ public:
 		SQLite (uri),
 		data_state_ (Nirvana::the_system->create_data_state ()),
 		timeout_ (0),
-		savepoint_ (0)
+		savepoint_ (0),
+		last_busy_cnt_ (1),
+		busy_timeout_pow_ (BUSY_TIMEOUT_POW_MAX / 4)
 	{
 		sqlite3_filename fn = sqlite3_db_filename (*this, nullptr);
 		if (fn) {
@@ -146,7 +148,7 @@ public:
 				SQLite::exec (cmd.c_str ());
 			}
 		}
-		sqlite3_busy_handler (*this, busy_handler, nullptr);
+		sqlite3_busy_handler (*this, s_busy_handler, this);
 		NIRVANA_TRACE ("SQLite: Connection created\n");
 	}
 
@@ -286,13 +288,19 @@ private:
 	void exec (const char* sql);
 	void check_exist () const;
 
-	static int busy_handler (void*, int attempt) noexcept;
+	static int s_busy_handler (void*, int attempt) noexcept;
+	inline int busy_handler (int attempt) noexcept;
 
 private:
 	NDBC::SQLWarnings warnings_;
 	Nirvana::DataState::_ref_type data_state_;
 	TimeBase::TimeT timeout_;
 	unsigned savepoint_;
+	unsigned last_busy_cnt_;
+	unsigned busy_timeout_pow_;
+
+	static const TimeBase::TimeT BUSY_TIMEOUT_MIN = TimeBase::MILLISECOND;
+	static const unsigned BUSY_TIMEOUT_POW_MAX = 10;
 };
 
 }

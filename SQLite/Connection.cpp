@@ -100,14 +100,37 @@ Connection::Lock::Lock (Connection& conn, bool no_check_exist) :
 		throw CORBA::TRANSIENT ();
 }
 
-int Connection::busy_handler (void*, int attempt) noexcept
+inline int Connection::busy_handler (int attempt) noexcept
 {
 	NIRVANA_TRACE ("SQLite: Connection is locked, attempt %d\n", attempt);
-	unsigned pow = attempt;
-	if (pow > 10)
-		pow = 10;
-	Nirvana::the_posix->sleep ((TimeBase::MILLISECOND * 10) << pow);
+	assert (attempt == 0 || attempt == last_busy_cnt_ + 1);
+
+	unsigned pow;
+	if (attempt == 0) {
+		if (last_busy_cnt_ == 0) {
+			if (busy_timeout_pow_ > 0)
+				--busy_timeout_pow_;
+		} else {
+			unsigned newpow = busy_timeout_pow_ + last_busy_cnt_ / 2;
+			if (newpow < BUSY_TIMEOUT_POW_MAX)
+				newpow = BUSY_TIMEOUT_POW_MAX;
+			busy_timeout_pow_ = newpow;
+		}
+		pow = busy_timeout_pow_;
+	} else {
+		pow = busy_timeout_pow_ + attempt;
+		if (pow > BUSY_TIMEOUT_POW_MAX)
+			pow = BUSY_TIMEOUT_POW_MAX;
+	}
+	last_busy_cnt_ = attempt;
+
+	Nirvana::the_posix->sleep (BUSY_TIMEOUT_MIN << pow);
 	return 1;
+}
+
+int Connection::s_busy_handler (void* obj, int attempt) noexcept
+{
+	return ((Connection*)obj)->busy_handler (attempt);
 }
 
 }
