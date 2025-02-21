@@ -112,7 +112,7 @@ inline int Connection::busy_handler (int attempt) noexcept
 				--busy_timeout_pow_;
 		} else {
 			unsigned newpow = busy_timeout_pow_ + last_busy_cnt_ / 2;
-			if (newpow < BUSY_TIMEOUT_POW_MAX)
+			if (newpow > BUSY_TIMEOUT_POW_MAX)
 				newpow = BUSY_TIMEOUT_POW_MAX;
 			busy_timeout_pow_ = newpow;
 		}
