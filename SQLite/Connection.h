@@ -138,6 +138,7 @@ public:
 		last_busy_cnt_ (1),
 		busy_timeout_pow_ (BUSY_TIMEOUT_POW_MAX / 4)
 	{
+		sqlite3_busy_handler (*this, s_busy_handler, this);
 		sqlite3_filename fn = sqlite3_db_filename (*this, nullptr);
 		if (fn) {
 			const char* journal_mode = sqlite3_uri_parameter (fn, "journal_mode");
@@ -148,7 +149,6 @@ public:
 				SQLite::exec (cmd.c_str ());
 			}
 		}
-		sqlite3_busy_handler (*this, s_busy_handler, this);
 		NIRVANA_TRACE ("SQLite: Connection created\n");
 	}
 
