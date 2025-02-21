@@ -48,6 +48,7 @@ noexcept
 
 			ExecDomain::async_call <GarbageCollector> (
 				deadline, sync_context, nullptr, std::ref (garbage));
+			return;
 		} catch (...) {
 			// Async call failed, maybe resources are exausted.
 			// Fallback to collect garbage synchronous.
