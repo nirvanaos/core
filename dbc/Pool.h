@@ -76,8 +76,7 @@ public:
 	static void throw_closed ();
 
 protected:
-	PoolableBase (PortableServer::POA::_ptr_type adapter) :
-		adapter_ (adapter),
+	PoolableBase () :
 		closed_ (false)
 	{}
 
@@ -93,15 +92,9 @@ protected:
 		closed_ = true;
 	}
 
-	PortableServer::POA::_ptr_type adapter () const noexcept
-	{
-		return adapter_;
-	}
-
-	void deactivate (PortableServer::Servant servant) noexcept;
+	static void deactivate (PortableServer::Servant servant) noexcept;
 
 private:
-	const PortableServer::POA::_ptr_type adapter_;
 	bool closed_;
 };
 
@@ -113,8 +106,7 @@ public:
 	using PoolType = Pool <Data>;
 
 protected:
-	Poolable (PoolType& pool, DataType&& data, PortableServer::POA::_ptr_type adapter) noexcept :
-		PoolableBase (adapter),
+	Poolable (PoolType& pool, DataType&& data) noexcept :
 		pool_ (pool),
 		data_ (std::move (data))
 	{}
@@ -149,8 +141,8 @@ public:
 	}
 
 protected:
-	PoolableS (Pool <Data>& pool, Data&& data, PortableServer::POA::_ptr_type adapter) noexcept :
-		Base (pool, std::move (data), adapter)
+	PoolableS (Pool <Data>& pool, Data&& data) noexcept :
+		Base (pool, std::move (data))
 	{}
 
 	void destruct () noexcept

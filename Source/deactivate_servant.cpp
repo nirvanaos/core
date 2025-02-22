@@ -36,8 +36,9 @@ void deactivate_servant (PortableServer::Servant servant) noexcept
 	if (!PortableServer::Core::POA_Root::shutdown_started ()) {
 		try {
 			PortableServer::POA::_ref_type adapter = servant->_default_POA ();
-			assert (adapter);
-			adapter->deactivate_object (adapter->servant_to_id (servant));
+			// Core returns nil reference if shutdown is started
+			if (adapter)
+				adapter->deactivate_object (adapter->servant_to_id (servant));
 		} catch (...) {
 			assert (false);
 		}

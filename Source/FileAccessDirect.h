@@ -137,7 +137,7 @@ public:
 
 	LockType lock (const FileLock& fl, LockType tmin, bool wait, const void* proxy)
 	{
-		FileSize end = end_of (fl);
+		const FileSize end = end_of (fl);
 		if (fl.type () == LockType::LOCK_NONE) {
 			if (lock_ranges_.clear (fl.start (), end, proxy))
 				retry_lock ();
@@ -151,7 +151,7 @@ public:
 			else
 				level_min = tmin;
 			bool downgraded;
-			LockType ret = lock_ranges_.set (fl.start (), end_of (fl), fl.type (), level_min, proxy,
+			LockType ret = lock_ranges_.set (fl.start (), end, fl.type (), level_min, proxy,
 				downgraded);
 			if (ret < tmin) {
 				if (wait)

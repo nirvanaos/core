@@ -82,8 +82,7 @@ class PoolableConnection :
 	using Base = PoolableS <ConnectionData, Connection, PoolableConnection>;
 
 public:
-	PoolableConnection (ConnectionPoolImpl& pool, ConnectionData&& cd,
-		PortableServer::POA::_ptr_type adapter);
+	PoolableConnection (ConnectionPoolImpl& pool, ConnectionData&& cd);
 
 	~PoolableConnection ()
 	{
@@ -109,7 +108,7 @@ public:
 		} else
 			s = data ()->createStatement (resultSetType);
 		return CORBA::make_reference <PoolableStatement> (std::ref (*this), std::ref (pool),
-			std::move (s), adapter ())->_this ();
+			std::move (s))->_this ();
 	}
 
 	PreparedStatement::_ref_type prepareStatement (const IDL::String& sql,
@@ -125,7 +124,7 @@ public:
 		} else
 			s = data ()->prepareStatement (sql, resultSetType, PreparedStatement::PREPARE_PERSISTENT);
 		return CORBA::make_reference <PoolablePreparedStatement> (std::ref (*this), std::ref (pool),
-			std::move (s), adapter ())->_this ();
+			std::move (s))->_this ();
 	}
 
 	SQLWarnings getWarnings ()

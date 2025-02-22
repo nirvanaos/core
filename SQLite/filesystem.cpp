@@ -196,8 +196,8 @@ public:
 	{
 		if (level > lock_level_) {
 			try {
-				Nirvana::LockType level_min = Nirvana::LockType::LOCK_EXCLUSIVE == level
-				? Nirvana::LockType::LOCK_PENDING : level;
+				Nirvana::LockType level_min = 
+					Nirvana::LockType::LOCK_EXCLUSIVE == level ? Nirvana::LockType::LOCK_PENDING : level;
 				Nirvana::LockType ret = access_->lock (Nirvana::FileLock (0, 0, level), level_min, false);
 				if (ret != Nirvana::LockType::LOCK_NONE)
 					lock_level_ = ret;

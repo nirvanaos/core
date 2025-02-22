@@ -136,8 +136,8 @@ public:
 
 	Connection (const std::string& uri) :
 		SQLite (uri),
-		data_state_ (Nirvana::the_system->create_data_state ()),
 		timeout_ (0),
+		data_state_ (Nirvana::the_system->create_data_state ()),
 		savepoint_ (0),
 		last_busy_cnt_ (1),
 		busy_timeout_pow_ (BUSY_TIMEOUT_POW_MAX / 4)
@@ -296,9 +296,9 @@ private:
 	inline int busy_handler (int attempt) noexcept;
 
 private:
-	NDBC::SQLWarnings warnings_;
-	Nirvana::DataState::_ref_type data_state_;
 	TimeBase::TimeT timeout_;
+	Nirvana::DataState::_ref_type data_state_;
+	NDBC::SQLWarnings warnings_;
 	unsigned savepoint_;
 	unsigned last_busy_cnt_;
 	unsigned busy_timeout_pow_;

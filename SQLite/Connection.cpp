@@ -33,7 +33,9 @@ void deactivate_servant (PortableServer::Servant servant) noexcept
 {
 	try {
 		PortableServer::POA::_ref_type adapter = servant->_default_POA ();
-		adapter->deactivate_object (adapter->servant_to_id (servant));
+		// If shutdown is started, adapter will be nill reference
+		if (adapter)
+			adapter->deactivate_object (adapter->servant_to_id (servant));
 	} catch (...) {
 		assert (false);
 	}

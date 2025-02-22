@@ -40,8 +40,7 @@ public:
 		driver_ (std::move (driver)),
 		url_ (std::move (url)),
 		user_ (std::move (user)),
-		password_ (std::move (password)),
-		adapter_ (_default_POA ())
+		password_ (std::move (password))
 	{
 		// Create connection to ensure that parameters are correct
 		Connection::_ref_type conn = getConnection ();
@@ -56,18 +55,13 @@ public:
 		CORBA::servant_reference <PoolableConnection> conn;
 		if (!connections_.empty ()) {
 			conn = CORBA::make_reference <PoolableConnection> (std::ref (*this),
-				std::move (connections_.top ()), adapter ());
+				std::move (connections_.top ()));
 			connections_.pop ();
 		} else {
 			conn = CORBA::make_reference <PoolableConnection> (std::ref (*this),
-				ConnectionData (driver_->connect (url_, user_, password_)), adapter ());
+				ConnectionData (driver_->connect (url_, user_, password_)));
 		}
 		return conn->_this ();
-	}
-
-	PortableServer::POA::_ptr_type adapter () const noexcept
-	{
-		return adapter_;
 	}
 
 	Pool <ConnectionData>& connections () noexcept
@@ -79,7 +73,6 @@ private:
 	Driver::_ref_type driver_;
 	IDL::String url_, user_, password_;
 	Pool <ConnectionData> connections_;
-	PortableServer::POA::_ref_type adapter_;
 };
 
 inline void PoolableConnection::release_to_pool () noexcept

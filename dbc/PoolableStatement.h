@@ -123,10 +123,10 @@ public:
 	}
 
 protected:
-	PoolableStatementS (PoolableConnection& conn, PoolType& pool, typename I::_ref_type&& impl,
-		PortableServer::POA::_ptr_type adapter) noexcept :
+	PoolableStatementS (PoolableConnection& conn, PoolType& pool, typename I::_ref_type&& impl)
+		noexcept :
 		PoolableStatementBase (conn, impl),
-		Base (pool, std::move (impl), adapter)
+		Base (pool, std::move (impl))
 	{}
 
 	~PoolableStatementS ()
@@ -142,9 +142,9 @@ class PoolableStatement : public PoolableStatementS <Statement, PoolableStatemen
 	using DataType = Base::DataType;
 
 public:
-	PoolableStatement (PoolableConnection& conn, PoolType& pool, Statement::_ref_type&& impl,
-		PortableServer::POA::_ptr_type adapter) noexcept :
-		Base (conn, pool, std::move (impl), adapter)
+	PoolableStatement (PoolableConnection& conn, PoolType& pool, Statement::_ref_type&& impl)
+		noexcept :
+		Base (conn, pool, std::move (impl))
 	{}
 
 	bool execute (const IDL::String& sql)
@@ -173,8 +173,8 @@ class PoolablePreparedStatement : public PoolableStatementS <PreparedStatement,
 
 public:
 	PoolablePreparedStatement (PoolableConnection& conn, PoolType& pool,
-		PreparedStatement::_ref_type&& impl, PortableServer::POA::_ptr_type adapter) noexcept :
-		Base (conn, pool, std::move (impl), adapter)
+		PreparedStatement::_ref_type&& impl) noexcept :
+		Base (conn, pool, std::move (impl))
 	{}
 
 	void setBigInt (Ordinal idx, int64_t v)

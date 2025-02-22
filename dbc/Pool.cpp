@@ -36,7 +36,9 @@ void PoolableBase::throw_closed ()
 void PoolableBase::deactivate (PortableServer::Servant servant) noexcept
 {
 	try {
-		adapter_->deactivate_object (adapter_->servant_to_id (servant));
+		PortableServer::POA::_ref_type adapter = servant->_default_POA ();
+		if (adapter)
+			adapter->deactivate_object (adapter->servant_to_id (servant));
 	} catch (...) {
 		assert (false);
 	}

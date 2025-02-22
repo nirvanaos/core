@@ -28,9 +28,8 @@
 
 namespace NDBC {
 
-PoolableConnection::PoolableConnection (ConnectionPoolImpl& pool, ConnectionData&& cd,
-	PortableServer::POA::_ptr_type adapter) :
-	Base (pool.connections (), std::move (cd), adapter),
+PoolableConnection::PoolableConnection (ConnectionPoolImpl& pool, ConnectionData&& cd) :
+	Base (pool.connections (), std::move (cd)),
 	parent_ (&pool),
 	active_statements_ (0)
 {}

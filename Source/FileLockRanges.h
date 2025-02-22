@@ -85,9 +85,7 @@ public:
 		Ranges::const_iterator it = lower_bound (end);
 		while (it != ranges_.begin ()) {
 			--it;
-			if (it->end > begin &&
-				it->level == LockType::LOCK_EXCLUSIVE && it->owner != owner
-				)
+			if (it->end > begin && it->level == LockType::LOCK_EXCLUSIVE && it->owner != owner)
 				return false;
 		}
 		return true;
@@ -98,9 +96,7 @@ public:
 		Ranges::const_iterator it = lower_bound (end);
 		while (it != ranges_.begin ()) {
 			--it;
-			if (it->end > begin &&
-				(it->level < LockType::LOCK_EXCLUSIVE || it->owner != owner)
-				)
+			if (it->end > begin && (it->level < LockType::LOCK_EXCLUSIVE || it->owner != owner))
 				return false;
 		}
 		return true;
