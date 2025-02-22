@@ -105,6 +105,9 @@ inline int Connection::busy_handler (int attempt) noexcept
 	NIRVANA_TRACE ("SQLite: Connection is locked, attempt %d\n", attempt);
 	assert (attempt == 0 || attempt == last_busy_cnt_ + 1);
 
+	if (attempt >= (int)BUSY_TRY_MAX)
+		return 0; // Stop attempts and throw SQLITE_BUSY
+
 	unsigned pow;
 	if (attempt == 0) {
 		if (last_busy_cnt_ == 0) {

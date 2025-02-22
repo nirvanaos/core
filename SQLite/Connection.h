@@ -110,6 +110,10 @@ class Connection :
 	public CORBA::servant_traits <NDBC::Connection>::Servant <Connection>,
 	public SQLite
 {
+	static const TimeBase::TimeT BUSY_TIMEOUT_MIN = TimeBase::MILLISECOND * 1;
+	static const unsigned BUSY_TIMEOUT_POW_MAX = 10;
+	static const unsigned BUSY_TRY_MAX = 20;
+
 public:
 	class Lock
 	{
@@ -298,9 +302,6 @@ private:
 	unsigned savepoint_;
 	unsigned last_busy_cnt_;
 	unsigned busy_timeout_pow_;
-
-	static const TimeBase::TimeT BUSY_TIMEOUT_MIN = TimeBase::MILLISECOND;
-	static const unsigned BUSY_TIMEOUT_POW_MAX = 10;
 };
 
 }
