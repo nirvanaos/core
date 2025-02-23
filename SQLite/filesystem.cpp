@@ -444,21 +444,20 @@ extern "C" int xCurrentTimeInt64 (sqlite3_vfs*, sqlite3_int64* time)
 
 extern "C" int xRandomness (sqlite3_vfs*, int nByte, char* zOut)
 {
-#if (RAND_MAX >= 0xFFFFFFFF)
-	for (; nByte >= 4; zOut += 4, nByte -= 4) {
-		*(uint32_t*)zOut = (uint32_t)Nirvana::the_posix->rand ();
+	for (; nByte >= sizeof (unsigned); zOut += sizeof (unsigned), nByte -= sizeof (unsigned)) {
+		*(unsigned*)zOut = Nirvana::the_posix->rand ();
 	}
-#endif
 
-#if (RAND_MAX >= 0xFFFF)
-	for (; nByte >= 2; zOut += 2, nByte -= 2) {
-		*(uint16_t*)zOut = (uint16_t)Nirvana::the_posix->rand ();
+	if (sizeof (unsigned) > sizeof (uint16_t)) {
+		for (; nByte >= sizeof (uint16_t); zOut += sizeof (uint16_t), nByte -= sizeof (uint16_t)) {
+			*(uint16_t*)zOut = (uint16_t)Nirvana::the_posix->rand ();
+		}
 	}
-#endif
 
 	for (; nByte > 0; ++zOut, --nByte) {
-		*zOut = (char)Nirvana::the_posix->rand ();
+		*zOut = (uint8_t)Nirvana::the_posix->rand ();
 	}
+
 	return nByte;
 }
 

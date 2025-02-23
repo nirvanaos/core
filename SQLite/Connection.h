@@ -143,6 +143,7 @@ public:
 		busy_timeout_pow_ (BUSY_TIMEOUT_POW_MAX / 4)
 	{
 		sqlite3_busy_handler (*this, s_busy_handler, this);
+
 		sqlite3_filename fn = sqlite3_db_filename (*this, nullptr);
 		if (fn) {
 			const char* journal_mode = sqlite3_uri_parameter (fn, "journal_mode");
@@ -161,12 +162,6 @@ public:
 		NIRVANA_TRACE ("SQLite: Connection destructed\n");
 	}
 
-	void clearWarnings ()
-	{
-		check_exist ();
-		warnings_.clear ();
-	}
-
 	void close ()
 	{
 		if (!isClosed ()) {
@@ -178,13 +173,6 @@ public:
 		}
 	}
 
-	void commit ()
-	{
-		exec ("END;BEGIN");
-	}
-
-	NDBC::Statement::_ref_type createStatement (NDBC::ResultSet::Type resultSetType);
-
 	bool getAutoCommit () const
 	{
 		check_exist ();
@@ -193,6 +181,7 @@ public:
 
 	void setAutoCommit (bool on)
 	{
+		check_exist ();
 		bool current = sqlite3_get_autocommit (*this);
 		if (on) {
 			if (!current)
@@ -201,9 +190,29 @@ public:
 			exec ("BEGIN");
 	}
 
+	void commit ()
+	{
+		check_exist ();
+		exec ("END;BEGIN");
+	}
+
+	void rollback (const NDBC::Savepoint& savepoint)
+	{
+		check_exist ();
+		if (savepoint.empty ())
+			exec ("ROLLBACK;BEGIN");
+		else
+			exec (("ROLLBACK TO " + savepoint).c_str ());
+	}
+
 	NDBC::SQLWarnings getWarnings () const
 	{
 		return warnings_;
+	}
+
+	void clearWarnings ()
+	{
+		warnings_.clear ();
 	}
 
 	void setTimeout (const TimeBase::TimeT& timeout) noexcept
@@ -216,20 +225,9 @@ public:
 		return timeout_;
 	}
 
+	NDBC::Statement::_ref_type createStatement (NDBC::ResultSet::Type resultSetType);
+
 	NDBC::PreparedStatement::_ref_type prepareStatement (const IDL::String& sql, NDBC::ResultSet::Type resultSetType, unsigned flags);
-
-	void releaseSavepoint (const NDBC::Savepoint& savepoint)
-	{
-		exec (("RELEASE " + savepoint).c_str ());
-	}
-
-	void rollback (const NDBC::Savepoint& savepoint)
-	{
-		if (savepoint.empty ())
-			exec ("ROLLBACK;BEGIN");
-		else
-			exec (("ROLLBACK TO " + savepoint).c_str ());
-	}
 
 	static IDL::String getCatalog () noexcept
 	{
@@ -261,6 +259,11 @@ public:
 			sp = std::to_string (++savepoint_);
 		exec (("SAVEPOINT " + sp).c_str ());
 		return sp;
+	}
+
+	void releaseSavepoint (const NDBC::Savepoint& savepoint)
+	{
+		exec (("RELEASE " + savepoint).c_str ());
 	}
 
 	IDL::String getSchema () const

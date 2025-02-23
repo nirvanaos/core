@@ -28,7 +28,7 @@
 #define NIRVANA_CORE_RUNTIMEGLOBAL_H_
 #pragma once
 
-#include "RandomGen.h"
+#include <Nirvana/RandomGen.h>
 
 namespace Nirvana {
 namespace Core {

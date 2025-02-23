@@ -37,7 +37,7 @@
 using Nirvana::DeadlineTime;
 using Nirvana::Core::PriorityQueueReorder;
 using Nirvana::Core::SkipListWithPool;
-using Nirvana::Core::RandomGen;
+using Nirvana::RandomGen;
 
 namespace TestPriorityQueue {
 
