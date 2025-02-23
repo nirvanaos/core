@@ -130,8 +130,8 @@ inline int Connection::busy_handler (int attempt) noexcept
 	last_busy_cnt_ = attempt;
 
 	TimeBase::TimeT tsleep = BUSY_TIMEOUT_MIN << pow;
-//	tsleep += ((BUSY_TIMEOUT_MIN * Nirvana::the_posix->rand ()) >> (sizeof (unsigned) * 8))
-//		- BUSY_TIMEOUT_MIN / 2;
+	tsleep += ((BUSY_TIMEOUT_MIN * Nirvana::the_posix->rand ()) >> (sizeof (unsigned) * 8))
+		- BUSY_TIMEOUT_MIN / 2;
 	assert (tsleep < (BUSY_TIMEOUT_MIN << (BUSY_TIMEOUT_POW_MAX + 1)));
 	Nirvana::the_posix->sleep (tsleep);
 	return 1;

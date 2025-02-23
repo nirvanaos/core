@@ -196,8 +196,9 @@ public:
 	{
 		if (level > lock_level_) {
 			try {
-				Nirvana::LockType level_min = 
-					Nirvana::LockType::LOCK_EXCLUSIVE == level ? Nirvana::LockType::LOCK_PENDING : level;
+				Nirvana::LockType level_min = level;
+				if (Nirvana::LockType::LOCK_EXCLUSIVE == level && lock_level_ < Nirvana::LockType::LOCK_PENDING)
+					level_min = Nirvana::LockType::LOCK_PENDING;
 				Nirvana::LockType ret = access_->lock (Nirvana::FileLock (0, 0, level), level_min, false);
 				if (ret != Nirvana::LockType::LOCK_NONE)
 					lock_level_ = ret;
@@ -216,6 +217,7 @@ public:
 		if (lock_level_ > level) {
 			try {
 				lock_level_ = access_->lock (Nirvana::FileLock (0, 0, level), level, false);
+				assert (lock_level_ == level);
 			} catch (...) {
 				return SQLITE_IOERR_UNLOCK;
 			}

@@ -89,12 +89,14 @@ public:
 		destruct ();
 	}
 
-	void setTimeout (const TimeBase::TimeT&) const noexcept
-	{}
-
-	TimeBase::TimeT getTimeout () const noexcept
+	void setTimeout (const TimeBase::TimeT& t)
 	{
-		return 0;
+		data ()->setTimeout (t);
+	}
+
+	TimeBase::TimeT getTimeout ()
+	{
+		return data ()->getTimeout ();
 	}
 
 	Statement::_ref_type createStatement (ResultSet::Type resultSetType)

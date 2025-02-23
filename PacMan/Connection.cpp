@@ -29,7 +29,7 @@
 
 #define DATABASE_PATH "/var/lib/packages.db"
 
-const char Connection::connect_rwc [] = "file:" DATABASE_PATH "?mode=rwc&journal_mode=WAL";
+const char Connection::connect_rwc [] = "file:" DATABASE_PATH "?mode=rwc";
 const char Connection::connect_rw [] = "file:" DATABASE_PATH "?mode=rw";
 const char Connection::connect_ro [] = "file:" DATABASE_PATH "?mode=ro";
 

@@ -37,6 +37,8 @@ LockType FileLockRanges::set (const FileSize& begin, const FileSize& end,
 	assert (level_max > LockType::LOCK_NONE);
 	assert (LockType::LOCK_NONE < level_min && level_min <= level_max);
 
+	downgraded = false;
+
 	const Ranges::iterator it_end = lower_bound (end);
 
 	LockType level = level_max;
@@ -86,10 +88,8 @@ LockType FileLockRanges::set (const FileSize& begin, const FileSize& end,
 
 	// The lock is allowed
 
-	if (cur_min_level >= level && cur_max_level <= level_max) {
-		downgraded = false;
+	if (cur_min_level >= level && cur_max_level <= level_max)
 		return cur_min_level; // Nothing to change
-	}
 
 	unchecked_set (begin, end, owner, level);
 

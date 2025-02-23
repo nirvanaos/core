@@ -268,9 +268,10 @@ void FileAccessDirect::retry_lock () noexcept
 {
 	for (auto it = lock_queue_.begin (); it != lock_queue_.end ();) {
 		LockType lmin = it->level_min ();
+		LockType lmax = it->level_max ();
 		try {
 			bool downgraded;
-			LockType l = lock_ranges_.set (it->begin (), it->end (), it->level_max (), lmin, it->owner (),
+			LockType l = lock_ranges_.set (it->begin (), it->end (), lmax, lmin, it->owner (),
 				downgraded);
 			assert (!downgraded);
 			if (l >= lmin)
