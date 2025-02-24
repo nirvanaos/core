@@ -80,7 +80,22 @@ public:
 		int ret = SQLITE_OK;
 		try {
 			NDBC::Blob data;
-			access_->read (off, cb, data);
+			if (lock_level_ < Nirvana::LockType::LOCK_SHARED) {
+				Nirvana::FileLock fl (off, cb, Nirvana::LockType::LOCK_SHARED);
+				if (access_->lock (fl, Nirvana::LockType::LOCK_SHARED, LOCK_TIMEOUT)
+					== Nirvana::LockType::LOCK_NONE)
+					return SQLITE_BUSY;
+				else {
+					try {
+						access_->read (off, cb, data);
+					} catch (...) {
+						unlock_noex (fl);
+						throw;
+					}
+					unlock_noex (fl);
+				}
+			} else
+				access_->read (off, cb, data);
 			memcpy (p, data.data (), data.size ());
 			if ((int)data.size () < cb) {
 				// If xRead () returns SQLITE_IOERR_SHORT_READ it must also fill in the unread portions of the
@@ -256,6 +271,9 @@ public:
 	}
 
 private:
+	void unlock_noex (Nirvana::FileLock& fl) const noexcept;
+
+private:
 	Nirvana::AccessDirect::_ref_type access_;
 	Nirvana::LockType lock_level_;
 	bool delete_on_close_;
@@ -273,6 +291,14 @@ private:
 	typedef std::unordered_map <sqlite3_int64, CacheEntry> Cache;
 	Cache cache_;
 };
+
+void File::unlock_noex (Nirvana::FileLock& fl) const noexcept
+{
+	fl.type (Nirvana::LockType::LOCK_NONE);
+	try {
+		access_->lock (fl, Nirvana::LockType::LOCK_NONE, 0);
+	} catch (...) {}
+}
 
 extern "C" int xClose (sqlite3_file * f) noexcept
 {

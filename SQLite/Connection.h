@@ -110,7 +110,7 @@ class Connection :
 	public CORBA::servant_traits <NDBC::Connection>::Servant <Connection>,
 	public SQLite
 {
-	static const TimeBase::TimeT DEFAULT_TIMEOUT = TimeBase::SECOND * 1;
+	static const TimeBase::TimeT DEFAULT_TIMEOUT = TimeBase::SECOND * 10;
 
 public:
 	class Lock
