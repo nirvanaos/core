@@ -30,7 +30,7 @@
 #include <Nirvana/Nirvana.h>
 #include <Nirvana/System.h>
 #include <Nirvana/NDBC_s.h>
-#include "sqlite/sqlite3.h"
+#include "filesystem.h"
 
 namespace SQLite {
 
@@ -110,9 +110,7 @@ class Connection :
 	public CORBA::servant_traits <NDBC::Connection>::Servant <Connection>,
 	public SQLite
 {
-	static const TimeBase::TimeT BUSY_TIMEOUT_MIN = TimeBase::MILLISECOND * 1;
-	static const unsigned BUSY_TIMEOUT_POW_MAX = 10;
-	static const unsigned BUSY_TRY_MAX = 20;
+	static const TimeBase::TimeT DEFAULT_TIMEOUT = TimeBase::SECOND * 1;
 
 public:
 	class Lock
@@ -136,11 +134,10 @@ public:
 
 	Connection (const std::string& uri) :
 		SQLite (uri),
-		timeout_ (0),
+		timeout_ (DEFAULT_TIMEOUT),
 		data_state_ (Nirvana::the_system->create_data_state ()),
 		savepoint_ (0),
-		last_busy_cnt_ (1),
-		busy_timeout_pow_ (BUSY_TIMEOUT_POW_MAX / 4)
+		busy_retry_max_ (DEFAULT_TIMEOUT / LOCK_TIMEOUT)
 	{
 		sqlite3_busy_handler (*this, s_busy_handler, this);
 
@@ -218,6 +215,7 @@ public:
 	void setTimeout (const TimeBase::TimeT& timeout) noexcept
 	{
 		timeout_ = timeout;
+		busy_retry_max_ = timeout / LOCK_TIMEOUT;
 	}
 
 	TimeBase::TimeT getTimeout () const noexcept
@@ -303,8 +301,7 @@ private:
 	Nirvana::DataState::_ref_type data_state_;
 	NDBC::SQLWarnings warnings_;
 	unsigned savepoint_;
-	unsigned last_busy_cnt_;
-	unsigned busy_timeout_pow_;
+	int busy_retry_max_;
 };
 
 }

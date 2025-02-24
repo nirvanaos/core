@@ -90,7 +90,7 @@ public:
 			dirty_ = true;
 			if (!sync && flags_ & O_SYNC)
 				sync = true;
-			driver_.write (pos, data, flags_ & O_SYNC, this);
+			driver_.write (pos, data, sync, this);
 		} else
 			throw_NO_PERMISSION (make_minor_errno (EBADF));
 	}
@@ -105,10 +105,10 @@ public:
 		}
 	}
 
-	LockType lock (const FileLock& fl, LockType tmin, bool wait)
+	LockType lock (const FileLock& fl, LockType tmin, const TimeBase::TimeT& timeout)
 	{
 		check_exist ();
-		return driver_.lock (fl, tmin, wait, this);
+		return driver_.lock (fl, tmin, timeout, this);
 	}
 
 	void get_lock (FileLock& fl) const

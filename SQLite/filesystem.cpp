@@ -196,12 +196,28 @@ public:
 	{
 		if (level > lock_level_) {
 			try {
-				Nirvana::LockType level_min = level;
-				if (Nirvana::LockType::LOCK_EXCLUSIVE == level && lock_level_ < Nirvana::LockType::LOCK_PENDING)
-					level_min = Nirvana::LockType::LOCK_PENDING;
-				Nirvana::LockType ret = access_->lock (Nirvana::FileLock (0, 0, level), level_min, false);
-				if (ret != Nirvana::LockType::LOCK_NONE)
+				if (Nirvana::LockType::LOCK_EXCLUSIVE == level) {
+					Nirvana::FileLock fl_excl (0, 0, Nirvana::LockType::LOCK_EXCLUSIVE);
+					if (lock_level_ < Nirvana::LockType::LOCK_PENDING) {
+						Nirvana::LockType ret = access_->lock (fl_excl, Nirvana::LockType::LOCK_PENDING,
+							LOCK_TIMEOUT);
+						if (ret <= lock_level_)
+							return SQLITE_BUSY;
+						lock_level_ = ret;
+					}
+					if (lock_level_ < Nirvana::LockType::LOCK_EXCLUSIVE) {
+						Nirvana::LockType ret = access_->lock (fl_excl, Nirvana::LockType::LOCK_EXCLUSIVE,
+							LOCK_TIMEOUT);
+						if (ret <= lock_level_)
+							return SQLITE_BUSY;
+						lock_level_ = ret;
+					}
+				} else {
+					Nirvana::LockType ret = access_->lock (Nirvana::FileLock (0, 0, level), level, LOCK_TIMEOUT);
+					if (ret <= lock_level_)
+						return SQLITE_BUSY;
 					lock_level_ = ret;
+				}
 			} catch (...) {
 				if (level > Nirvana::LockType::LOCK_SHARED)
 					return SQLITE_IOERR_LOCK;
@@ -209,14 +225,14 @@ public:
 					return SQLITE_IOERR_RDLOCK;
 			}
 		}
-		return lock_level_ >= level ? SQLITE_OK : SQLITE_BUSY;
+		return SQLITE_OK;
 	}
 
 	int unlock (Nirvana::LockType level) noexcept
 	{
 		if (lock_level_ > level) {
 			try {
-				lock_level_ = access_->lock (Nirvana::FileLock (0, 0, level), level, false);
+				lock_level_ = access_->lock (Nirvana::FileLock (0, 0, level), level, 0);
 				assert (lock_level_ == level);
 			} catch (...) {
 				return SQLITE_IOERR_UNLOCK;

@@ -177,10 +177,9 @@ public:
 
 	void on_delete_proxy (FileAccessDirectProxy* proxy) noexcept
 	{
+		access_->on_delete_proxy (proxy);
 		if (!--proxy_cnt_)
 			access_ = nullptr;
-		else
-			access_->on_delete_proxy (proxy);
 	}
 
 	void check_flags (unsigned flags) const;

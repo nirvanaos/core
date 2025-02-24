@@ -206,9 +206,9 @@ public:
 		pflags (f);
 	}
 
-	LockType lock (const FileLock& fl, LockType tmin, bool wait)
+	LockType lock (const FileLock& fl, LockType tmin, const TimeBase::TimeT& timeout)
 	{
-		return access ()->lock (fl, tmin, wait);
+		return access ()->lock (fl, tmin, timeout);
 	}
 
 	void get_lock (FileLock& fl)

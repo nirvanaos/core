@@ -25,7 +25,6 @@
 */
 #include "pch.h"
 #include "Connection_impl.h"
-#include <Nirvana/POSIX.h>
 
 namespace SQLite {
 
@@ -105,36 +104,10 @@ Connection::Lock::Lock (Connection& conn, bool no_check_exist) :
 inline int Connection::busy_handler (int attempt) noexcept
 {
 	NIRVANA_TRACE ("SQLite: Connection is locked, attempt %d\n", attempt);
-	assert (attempt == 0 || attempt == last_busy_cnt_ + 1);
-
-	if (attempt >= (int)BUSY_TRY_MAX)
+	if (attempt >= busy_retry_max_)
 		return 0; // Stop attempts and throw SQLITE_BUSY
-
-	unsigned pow;
-	if (attempt == 0) {
-		if (last_busy_cnt_ == 0) {
-			if (busy_timeout_pow_ > 0)
-				--busy_timeout_pow_;
-		} else {
-			unsigned newpow = busy_timeout_pow_ + last_busy_cnt_ / 2;
-			if (newpow > BUSY_TIMEOUT_POW_MAX)
-				newpow = BUSY_TIMEOUT_POW_MAX;
-			busy_timeout_pow_ = newpow;
-		}
-		pow = busy_timeout_pow_;
-	} else {
-		pow = busy_timeout_pow_ + attempt;
-		if (pow > BUSY_TIMEOUT_POW_MAX)
-			pow = BUSY_TIMEOUT_POW_MAX;
-	}
-	last_busy_cnt_ = attempt;
-
-	TimeBase::TimeT tsleep = BUSY_TIMEOUT_MIN << pow;
-	tsleep += ((BUSY_TIMEOUT_MIN * Nirvana::the_posix->rand ()) >> (sizeof (unsigned) * 8))
-		- BUSY_TIMEOUT_MIN / 2;
-	assert (tsleep < (BUSY_TIMEOUT_MIN << (BUSY_TIMEOUT_POW_MAX + 1)));
-	Nirvana::the_posix->sleep (tsleep);
-	return 1;
+	else
+		return 1;
 }
 
 int Connection::s_busy_handler (void* obj, int attempt) noexcept

@@ -68,7 +68,7 @@ public:
 	virtual void flags (unsigned fl) override;
 	virtual void flush () override;
 	virtual bool isatty () const override;
-	virtual void lock (const struct flock& lk, bool wait) const override;
+	virtual bool lock (const struct flock& lk, TimeBase::TimeT timeout) const override;
 	virtual void get_lock (struct flock& lk) const override;
 
 private:
@@ -99,7 +99,7 @@ public:
 	virtual void flags (unsigned fl) override;
 	virtual void flush () override;
 	virtual bool isatty () const override;
-	virtual void lock (const struct flock& lk, bool wait) const override;
+	virtual bool lock (const struct flock& lk, TimeBase::TimeT timeout) const override;
 	virtual void get_lock (struct flock& lk) const override;
 
 private:
@@ -127,7 +127,7 @@ public:
 	virtual void flags (unsigned fl) override;
 	virtual void flush () override;
 	virtual bool isatty () const override;
-	virtual void lock (const struct flock& lk, bool wait) const override;
+	virtual bool lock (const struct flock& lk, TimeBase::TimeT timeout) const override;
 	virtual void get_lock (struct flock& lk) const override;
 	virtual void get_file_descr (FileDescr& fd) const override;
 
@@ -559,14 +559,14 @@ void FileDescriptorsContext::DescriptorBuf::conv_lock (const struct flock& from,
 	to.type (get_lock_type (from.l_type));
 }
 
-void FileDescriptorsContext::DescriptorBuf::lock (const struct flock& lk, bool wait) const
+bool FileDescriptorsContext::DescriptorBuf::lock (const struct flock& lk, TimeBase::TimeT timeout) const
 {
 	FileLock file_lock;
 	conv_lock (lk, file_lock);
-	access_->lock (file_lock, file_lock.type (), wait);
+	return access_->lock (file_lock, file_lock.type (), timeout) == file_lock.type ();
 }
 
-void FileDescriptorsContext::DescriptorChar::lock (const struct flock& lk, bool wait) const
+bool FileDescriptorsContext::DescriptorChar::lock (const struct flock& lk, TimeBase::TimeT timeout) const
 {
 	throw_BAD_PARAM (make_minor_errno (EINVAL));
 }
@@ -578,11 +578,11 @@ void FileDescriptorsContext::DescriptorDirect::conv_lock (const struct flock& fr
 	to.type (get_lock_type (from.l_type));
 }
 
-void FileDescriptorsContext::DescriptorDirect::lock (const struct flock& lk, bool wait) const
+bool FileDescriptorsContext::DescriptorDirect::lock (const struct flock& lk, TimeBase::TimeT timeout) const
 {
 	FileLock file_lock;
 	conv_lock (lk, file_lock);
-	access_->lock (file_lock, file_lock.type (), wait);
+	return access_->lock (file_lock, file_lock.type (), timeout) == file_lock.type ();
 }
 
 void FileDescriptorsContext::DescriptorBuf::get_lock (struct flock& lk) const

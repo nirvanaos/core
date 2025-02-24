@@ -83,18 +83,28 @@ AccessDirect::_ref_type SysDomain::open_sys_binary (unsigned platform, SysModule
 bool SysDomain::get_sys_binding (CORBA::Internal::String_in name, unsigned platform, Binding& binding)
 {
 	static const char dbc [] = "IDL:NDBC/";
-	static const char dec_calc [] = "Nirvana/dec_calc";
-	static const char sqlite_driver [] = "SQLite/driver";
 	static const char sfloat_4 [] = "CORBA/Internal/sfloat_4";
 	static const char sfloat_8 [] = "CORBA/Internal/sfloat_8";
 	static const char sfloat_16 [] = "CORBA/Internal/sfloat_16";
-	static const char regmod [] = "Nirvana/regmod";
+
+	struct SysObject
+	{
+		const char* name;
+		SysModuleId module_id;
+	};
+
+	static const SysObject sys_objects [] = {
+		{ "NDBC/the_manager", MODULE_DBC},
+		{ "Nirvana/dec_calc", MODULE_DECCALC },
+		{ "Nirvana/regmod", MODULE_SHELL },
+		{ "SQLite/driver", MODULE_SQLITE }
+	};
 
 	SysModuleId module_id;
 
-	if (name == dec_calc) {
-		module_id = MODULE_DECCALC;
-	} else if (
+	if (name.size () >= sizeof (dbc) && std::equal (dbc, dbc + sizeof (dbc) - 1, name.data ()))
+		module_id = MODULE_DBC;
+	else if (
 		(!std::is_same <float, CORBA::Float>::value && name == sfloat_4)
 		||
 		(!std::is_same <double, CORBA::Double>::value && name == sfloat_8)
@@ -102,14 +112,17 @@ bool SysDomain::get_sys_binding (CORBA::Internal::String_in name, unsigned platf
 		(!std::is_same <long double, CORBA::LongDouble>::value && name == sfloat_16)
 		) {
 		module_id = MODULE_SFLOAT;
-	} else if (name.size () >= sizeof (dbc) && std::equal (dbc, dbc + sizeof (dbc) - 1, name.data ())) {
-		module_id = MODULE_DBC;
-	} else if (name == sqlite_driver) {
-		module_id = MODULE_SQLITE;
-	} else if (name == regmod) {
-		module_id = MODULE_SHELL;
-	} else
-		return false;
+	} else {
+		const SysObject* p = sys_objects;
+		for (; p != std::end (sys_objects); ++p) {
+			if (name == p->name)
+				break;
+		}
+		if (p != std::end (sys_objects))
+			module_id = p->module_id;
+		else
+			return false;
+	}
 
 	ModuleLoad& module_load = binding.module_load ();
 	module_load.binary (open_sys_binary (platform, module_id));

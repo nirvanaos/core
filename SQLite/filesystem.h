@@ -34,6 +34,8 @@
 
 namespace SQLite {
 
+const TimeBase::TimeT LOCK_TIMEOUT = 5 * TimeBase::SECOND;
+
 extern struct sqlite3_vfs vfs;
 
 }
