@@ -31,10 +31,11 @@
 #include <Port/File.h>
 #include <CORBA/Server.h>
 #include <Nirvana/File_s.h>
+#include "FileSystem.h"
 #include "../FileAccessDirectProxy.h"
 #include "../FileAccessBuf.h"
-#include "FileSystem.h"
 #include "../deactivate_servant.h"
+#include "../TimerAsyncCall.h"
 
 namespace Nirvana {
 namespace Core {
@@ -44,6 +45,8 @@ class File :
 	protected Port::File
 {
 	typedef Port::File Base;
+
+	static const TimeBase::TimeT HOUSEKEEPING_PERIOD = FileAccessDirect::HOUSEKEEPING_PERIOD;
 
 public:
 	// Implementation - specific methods can be called explicitly.
@@ -132,12 +135,23 @@ public:
 			throw_INV_FLAG (make_minor_errno (EINVAL));
 
 		if (!access_) {
+
 			try {
 				access_ = std::make_unique <Nirvana::Core::FileAccessDirect> (std::ref (port ()), flags, mode);
 			} catch (const CORBA::OBJECT_NOT_EXIST&) {
 				etherealize ();
 				throw;
 			}
+
+			try {
+				if (!housekeeping_timer_)
+					housekeeping_timer_ = Ref <HousekeepingTimer>::create <ImplDynamicSync <HousekeepingTimer> > (std::ref (*this));
+				housekeeping_timer_->set (0, HOUSEKEEPING_PERIOD, HOUSEKEEPING_PERIOD);
+			} catch (...) {
+				access_ = nullptr;
+				throw;
+			}
+
 		} else if ((flags & (O_EXCL | O_CREAT)) == (O_EXCL | O_CREAT))
 			throw_BAD_PARAM (make_minor_errno (EEXIST));
 
@@ -150,7 +164,7 @@ public:
 			direct = CORBA::make_reference <FileAccessDirectProxy> (std::ref (*this), direct_flags)->_this ();
 		} catch (...) {
 			if (!proxy_cnt_)
-				access_ = nullptr;
+				destroy_access ();
 			throw;
 		}
 
@@ -179,7 +193,7 @@ public:
 	{
 		access_->on_delete_proxy (proxy);
 		if (!--proxy_cnt_)
-			access_ = nullptr;
+			destroy_access ();
 	}
 
 	void check_flags (unsigned flags) const;
@@ -188,10 +202,37 @@ private:
 	void check_exist ();
 	void etherealize ();
 
+	class HousekeepingTimer : public TimerAsyncCall
+	{
+	protected:
+		HousekeepingTimer (File& file) :
+			TimerAsyncCall (SyncContext::current (), INFINITE_DEADLINE),
+			file_ (&file)
+		{}
+
+	private:
+		void run (const TimeBase::TimeT&) override
+		{
+			file_->housekeeping ();
+		}
+
+	private:
+		Ref <File> file_;
+	};
+
+	void housekeeping () const noexcept
+	{
+		if (access_)
+			access_->housekeeping ();
+	}
+
+	void destroy_access () noexcept;
+
 private:
 	friend class FileAccessDirectProxy;
 
 	std::unique_ptr <Nirvana::Core::FileAccessDirect> access_;
+	Ref <HousekeepingTimer> housekeeping_timer_;
 	unsigned proxy_cnt_;
 };
 

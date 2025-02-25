@@ -35,7 +35,6 @@
 #include "MapOrderedStable.h"
 #include "FileLockRanges.h"
 #include "FileLockQueue.h"
-#include "TimerAsyncCall.h"
 
 namespace Nirvana {
 namespace Core {
@@ -58,13 +57,10 @@ public:
 		block_size_ (std::max (base_block_size_, (Size)Port::Memory::SHARING_ASSOCIATIVITY)),
 		dirty_blocks_ (0),
 		write_timeout_ (DEFAULT_WRITE_TIMEOUT),
-		discard_timeout_ (DEFAULT_DISCARD_TIMEOUT),
-		housekeeping_timer_ (std::ref (*this))
+		discard_timeout_ (DEFAULT_DISCARD_TIMEOUT)
 	{
 		if (block_size_ / base_block_size_ > 128)
 			throw_INTERNAL (make_minor_errno (ENOTSUP));
-
-		housekeeping_timer_.set (0, HOUSEKEEPING_PERIOD, HOUSEKEEPING_PERIOD);
 	}
 
 	/// Destructor. Without the flush() call all dirty entries will be lost!
@@ -185,6 +181,19 @@ public:
 			retry_lock ();
 	}
 
+	void housekeeping () noexcept
+	{
+		try {
+			clear_cache (0, 0);
+		} catch (...) {}
+
+		try {
+			write_dirty_blocks (write_timeout_);
+		} catch (...) {}
+
+		lock_queue_.housekeeping ();
+	}
+
 private:
 	struct CacheEntry;
 
@@ -281,37 +290,6 @@ private:
 	void complete_size_request () noexcept;
 	void retry_lock () noexcept;
 
-	class HousekeepingTimer : public TimerAsyncCall
-	{
-	protected:
-		HousekeepingTimer (FileAccessDirect& driver) :
-			TimerAsyncCall (SyncContext::current (), INFINITE_DEADLINE),
-			driver_ (driver)
-		{}
-
-	private:
-		void run (const TimeBase::TimeT& signal_time) override
-		{
-			driver_.housekeeping (signal_time);
-		}
-
-	private:
-		FileAccessDirect& driver_;
-	};
-
-	void housekeeping (const TimeBase::TimeT& signal_time) noexcept
-	{
-		try {
-			clear_cache (0, 0);
-		} catch (...) {}
-
-		try {
-			write_dirty_blocks (write_timeout_);
-		} catch (...) {}
-
-		lock_queue_.housekeeping ();
-	}
-
 private:
 	Cache cache_;
 	Pos file_size_;
@@ -322,7 +300,6 @@ private:
 	const Size block_size_;
 	Size base_block_size_;
 	size_t dirty_blocks_;
-	ImplStatic <HousekeepingTimer> housekeeping_timer_;
 
 	const SteadyTime write_timeout_;
 	const SteadyTime discard_timeout_;
