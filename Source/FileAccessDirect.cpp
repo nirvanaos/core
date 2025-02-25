@@ -32,13 +32,20 @@ namespace Core {
 
 FileAccessDirect::~FileAccessDirect ()
 {
-	for (Cache::iterator it = cache_.begin (); it != cache_.end (); ++it) {
-		if (it->second.request)
-			complete_request (*it);
-		Port::Memory::release (it->second.buffer, block_size_);
+	try {
+		housekeeping_timer_->cancel ();
+
+		for (Cache::iterator it = cache_.begin (); it != cache_.end (); ++it) {
+			if (it->second.request)
+				complete_request (*it);
+			Port::Memory::release (it->second.buffer, block_size_);
+		}
+		if (size_request_)
+			size_request_->wait ();
+	} catch (...) {
+		// TODO: Log
+		assert (false);
 	}
-	if (size_request_)
-		size_request_->wait ();
 }
 
 FileAccessDirect::CacheRange FileAccessDirect::request_read (BlockIdx begin_block, BlockIdx end_block)
