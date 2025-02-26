@@ -405,7 +405,12 @@ int xOpen (sqlite3_vfs*, sqlite3_filename zName, sqlite3_file* file,
 		fa = global.open_file (zName, flags);
 	} catch (CORBA::NO_MEMORY ()) {
 		return SQLITE_NOMEM;
+#ifndef NDEBUG
+	} catch (const std::exception& ex) {
+		NIRVANA_TRACE ("%s\n", ex.what ());
+#else
 	} catch (...) {
+#endif
 		return SQLITE_CANTOPEN;
 	}
 	new (file) File (fa, flags & SQLITE_OPEN_DELETEONCLOSE);
