@@ -51,6 +51,7 @@ public:
 	enum State
 	{
 		RUNNING = 0,
+		SHUTDOWN_PLANNED,
 		SHUTDOWN_STARTED,
 		TERMINATE,
 		SHUTDOWN_FINISH
@@ -66,9 +67,9 @@ public:
 		//global_.destruct ();
 	}
 
-	static State state () noexcept
+	static bool shutdown_started () noexcept
 	{
-		return global_->state;
+		return global_->state >= State::SHUTDOWN_STARTED;
 	}
 
 	/// Start new activity.
@@ -86,6 +87,8 @@ public:
 	/// Initiates shutdown.
 	/// Shutdown will be completed when activity count became zero.
 	static void shutdown (unsigned flags);
+
+	static const unsigned SHUTDOWN_FLAG_FORCE = 1;
 
 	/// Reserve space for an active item.
 	/// \throws CORBA::NO_MEMORY
@@ -124,9 +127,13 @@ private:
 	friend class SysManager;
 	friend void ESIOP::dispatch_message (ESIOP::MessageHeader& message) noexcept;
 
-	static void shutdown ();
+	static void internal_shutdown (unsigned flags);
+
+	static void start_shutdown (State from_state);
 
 	static void do_shutdown ();
+
+	static void toggle_activity () noexcept;
 
 	class Shutdown : public Runnable
 	{

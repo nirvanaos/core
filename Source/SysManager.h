@@ -122,7 +122,7 @@ public:
 		{}
 
 	protected:
-		virtual void run () override;
+		void run () override;
 
 	private:
 		unsigned flags_;
@@ -143,7 +143,7 @@ public:
 				return;
 			} catch (...) {}
 		}
-		ESIOP::send_shutdown (domain_id);
+		ESIOP::send_shutdown (domain_id, 0);
 	}
 
 	/// Called from the port level
@@ -160,7 +160,7 @@ private:
 	void final_shutdown ()
 	{
 		proxy_->operator = (nullptr);
-		Scheduler::shutdown ();
+		Scheduler::internal_shutdown (shutdown_flags_);
 	}
 
 	static bool get_call_context (AsyncCallContext& ctx);
@@ -200,10 +200,10 @@ private:
 			return domains_.empty ();
 		}
 
-		void shutdown ()
+		void shutdown (unsigned flags)
 		{
 			for (const auto& d : domains_) {
-				ESIOP::send_shutdown (d.first);
+				ESIOP::send_shutdown (d.first, flags);
 			}
 		}
 
@@ -233,6 +233,7 @@ private:
 
 	Domains domains_;
 	bool shutdown_started_;
+	unsigned shutdown_flags_;
 
 	// Singleton proxy
 	static StaticallyAllocated <LockablePtrT <CORBA::Core::ServantProxyObject> > proxy_;

@@ -128,7 +128,7 @@ POA_Ref POA_Root::find_child (const AdapterPath& path, bool activate_it)
 void POA_Root::invoke (RequestRef request, bool async) noexcept
 {
 	try {
-		if (Scheduler::state () != Scheduler::RUNNING)
+		if (Scheduler::shutdown_started ())
 			throw CORBA::OBJ_ADAPTER (MAKE_OMG_MINOR (1));
 
 		Object::_ref_type root = get_root (); // Hold root POA reference
@@ -182,7 +182,7 @@ private:
 
 void POA_Root::invoke_async (RequestRef request, DeadlineTime deadline)
 {
-	if (Scheduler::state () != Scheduler::RUNNING)
+	if (Scheduler::shutdown_started ())
 		throw CORBA::OBJ_ADAPTER (MAKE_OMG_MINOR (1));
 
 	const ServantProxyLocal* adapter_proxy = CORBA::Core::local2proxy (get_root ());

@@ -241,8 +241,8 @@ struct Shutdown : MessageHeader
 {
 	Nirvana::Core::Security::Context::ABI security_context;
 
-	Shutdown (Nirvana::Core::Security::Context::ABI sc) noexcept :
-		MessageHeader (SHUTDOWN),
+	Shutdown (Nirvana::Core::Security::Context::ABI sc, unsigned flags) noexcept :
+		MessageHeader (SHUTDOWN, (uint8_t)flags),
 		security_context (sc)
 	{}
 
@@ -253,6 +253,11 @@ struct Shutdown : MessageHeader
 		if (hdr.other_endian ())
 			Nirvana::byteswap (msg.security_context);
 		return msg;
+	}
+
+	unsigned flags () const noexcept
+	{
+		return MessageHeader::flags & 0x7F;
 	}
 };
 

@@ -163,7 +163,7 @@ void Domain::append_del (DGC_Request& rq)
 
 void Domain::schedule_del () noexcept
 {
-	if (!DGC_scheduled_ && !zombie_ && (Scheduler::state () == Scheduler::RUNNING)) {
+	if (!DGC_scheduled_ && !zombie_ && !Scheduler::shutdown_started ()) {
 		DGC_scheduled_ = true;
 		Nirvana::DeadlineTime deadline =
 			PROXY_GC_DEADLINE == INFINITE_DEADLINE ?

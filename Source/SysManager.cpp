@@ -71,11 +71,12 @@ void SysManager::shutdown (unsigned flags) noexcept
 	if (shutdown_started_)
 		return;
 	shutdown_started_ = true;
+	shutdown_flags_ = flags;
 	try {
 		if (domains_.empty ())
 			final_shutdown ();
 		else
-			domains_.shutdown ();
+			domains_.shutdown (flags);
 	} catch (...) {
 		shutdown_started_ = false;
 	}
