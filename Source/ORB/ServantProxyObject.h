@@ -114,7 +114,7 @@ public:
 protected:
 	ServantProxyObject (PortableServer::Servant servant, Object::_ptr_type comp) :
 		ServantProxyBase (servant, comp),
-		adapter_context_ (&local2proxy (Services::bind (Services::RootPOA))->sync_context ()),
+		adapter_context_ (&get_adapter_context ()),
 		references_ (adapter_context_->sync_domain ()->mem_context ().heap ())
 	{}
 
@@ -122,6 +122,16 @@ protected:
 	ServantProxyObject (PortableServer::Servant servant, Internal::String_in interface_id);
 
 	ReferenceLocalRef get_local_reference () const noexcept;
+
+private:
+	static Nirvana::Core::SyncContext& get_adapter_context ()
+	{
+		Object::_ref_type root = Services::bind (Services::RootPOA);
+		// If shutdown was initiated, root_poa is nil
+		if (!root)
+			throw OBJ_ADAPTER ();
+		return local2proxy (root)->sync_context ();
+	}
 
 protected:
 	servant_reference <Nirvana::Core::SyncContext> adapter_context_;
