@@ -67,9 +67,14 @@ public:
 		//global_.destruct ();
 	}
 
+	static State state () noexcept
+	{
+		return global_->state;
+	}
+
 	static bool shutdown_started () noexcept
 	{
-		return global_->state >= State::SHUTDOWN_STARTED;
+		return state () >= State::SHUTDOWN_STARTED;
 	}
 
 	/// Start new activity.
@@ -129,7 +134,7 @@ private:
 
 	static void internal_shutdown (unsigned flags);
 
-	static void start_shutdown (State from_state);
+	static bool start_shutdown (State& from_state) noexcept;
 
 	static void do_shutdown ();
 

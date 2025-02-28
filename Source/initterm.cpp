@@ -68,7 +68,7 @@ void initialize ()
 	Port::PostOffice::initialize (CORBA::Core::LocalAddress::singleton ().host (), CORBA::Core::LocalAddress::singleton ().port ());
 }
 
-void shutdown ()
+void shutdown () noexcept
 {
 	// Perform GC for services synchronously
 	ExecDomain::current ().restricted_mode (ExecDomain::RestrictedMode::SUPPRESS_ASYNC_GC);
@@ -81,7 +81,7 @@ void shutdown ()
 	Binder::clear_remote_references ();
 }
 
-void terminate ()
+void terminate () noexcept
 {
 	Port::PostOffice::terminate (); // Stop receiving messages. But we can still send messages.
 

@@ -28,12 +28,13 @@
 #define NIRVANA_CORE_TIMER_H_
 #pragma once
 
+#include "Scheduler.h"
 #include <Port/Timer.h>
 
 namespace Nirvana {
 namespace Core {
 
-class Timer : 
+class NIRVANA_NOVTABLE Timer : 
 	private Port::Timer
 {
 public:
@@ -42,6 +43,8 @@ public:
 
 	/// \brief Sets the timer object, replacing the previous timer, if any.
 	/// 
+	/// \param flags Flags.
+	///
 	/// \param initial Initial expiration.
 	///   If TIMER_ABSOLUTE flag is specified, initial is interpreted as absolute UTC value.
 	/// 
@@ -52,6 +55,7 @@ public:
 	///   until the timer is canceled.
 	void set (unsigned flags, TimeBase::TimeT initial, TimeBase::TimeT period)
 	{
+		periodic_ = !period;
 		Port::Timer::set (flags, initial, period);
 	}
 
@@ -78,9 +82,28 @@ public:
 	}
 
 protected:
+	Timer ()
+	{}
+
+	~Timer ()
+	{}
+
 	/// Signal timer.
 	/// Called from the kernel thread.
 	virtual void signal () noexcept = 0;
+
+private:
+	friend class Port::Timer;
+
+	void port_signal () noexcept
+	{
+		// If shutdown is initiated, all periodic timers are disabled
+		if (!periodic_ || Scheduler::state () == Scheduler::RUNNING)
+			signal ();
+	}
+
+private:
+	bool periodic_;
 };
 
 }
