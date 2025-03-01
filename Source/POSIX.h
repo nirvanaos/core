@@ -75,7 +75,7 @@ public:
 		Core::RuntimeGlobal::current ().srand (seed);
 	}
 
-	static int rand ()
+	static unsigned rand ()
 	{
 		return Core::RuntimeGlobal::current ().rand ();
 	}

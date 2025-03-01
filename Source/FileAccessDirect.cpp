@@ -32,13 +32,20 @@ namespace Core {
 
 FileAccessDirect::~FileAccessDirect ()
 {
-	for (Cache::iterator it = cache_.begin (); it != cache_.end (); ++it) {
-		if (it->second.request)
-			complete_request (*it);
-		Port::Memory::release (it->second.buffer, block_size_);
+	try {
+		housekeeping_timer_->cancel ();
+
+		for (Cache::iterator it = cache_.begin (); it != cache_.end (); ++it) {
+			if (it->second.request)
+				complete_request (*it);
+			Port::Memory::release (it->second.buffer, block_size_);
+		}
+		if (size_request_)
+			size_request_->wait ();
+	} catch (...) {
+		// TODO: Log
+		assert (false);
 	}
-	if (size_request_)
-		size_request_->wait ();
 }
 
 FileAccessDirect::CacheRange FileAccessDirect::request_read (BlockIdx begin_block, BlockIdx end_block)
@@ -243,10 +250,9 @@ void FileAccessDirect::clear_cache (BlockIdx excl_begin, BlockIdx excl_end)
 	
 	for (Cache::iterator it = cache_.end (); it != cache_.begin ();) {
 		--it;
-		if (it->first >= excl_end) {
-			if (release_cache (it, time))
-				--it;
-		} else
+		if (it->first >= excl_end)
+			release_cache (it, time);
+		else
 			break;
 	}
 }
@@ -269,9 +275,10 @@ void FileAccessDirect::retry_lock () noexcept
 {
 	for (auto it = lock_queue_.begin (); it != lock_queue_.end ();) {
 		LockType lmin = it->level_min ();
+		LockType lmax = it->level_max ();
 		try {
 			bool downgraded;
-			LockType l = lock_ranges_.set (it->begin (), it->end (), it->level_max (), lmin, it->owner (),
+			LockType l = lock_ranges_.set (it->begin (), it->end (), lmax, lmin, it->owner (),
 				downgraded);
 			assert (!downgraded);
 			if (l >= lmin)

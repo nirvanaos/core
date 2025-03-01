@@ -40,8 +40,9 @@ class ResultSetImpl : public IDL::traits <ResultSet>::Servant <ResultSetImpl>
 	typedef IDL::traits <ResultSet>::Servant <ResultSetImpl> Base;
 
 public:
-	ResultSetImpl (Ordinal column_count, uint_fast16_t flags, Cursor::_ref_type&& cursor, Row&& init_row)
+	ResultSetImpl (StatementBase::_ptr_type statement, Ordinal column_count, uint_fast16_t flags, Cursor::_ref_type&& cursor, Row&& init_row)
 	{
+		Base::statement (statement);
 		Base::column_count (column_count);
 		Base::flags (flags);
 		Base::cursor (std::move (cursor));
@@ -93,6 +94,7 @@ public:
 	void close ()
 	{
 		check ();
+		Base::statement (nullptr);
 		Base::cursor ()->close ();
 		Base::cursor (nullptr);
 		Base::row ().clear ();
@@ -189,7 +191,7 @@ public:
 	StatementBase::_ref_type getStatement ()
 	{
 		check ();
-		return cursor ()->getStatement ();
+		return statement ();
 	}
 
 	IDL::String getString (Ordinal columnIndex)

@@ -42,6 +42,7 @@ namespace Core {
 class FileDescriptorsContext
 {
 	static const unsigned POSIX_CHANGEABLE_FLAGS = O_APPEND | O_NONBLOCK;
+	static const TimeBase::TimeT SETLOCK_WAIT_TIMEOUT = TimeBase::SECOND * 30;
 
 public:
 	FileDescriptorsContext ()
@@ -136,7 +137,9 @@ public:
 
 	void lock (unsigned ifd, const struct flock& lk, bool wait)
 	{
-		get_open_fd (ifd).ref ()->lock (lk, wait);
+		TimeBase::TimeT timeout = wait ? SETLOCK_WAIT_TIMEOUT : 0;
+		if (!get_open_fd (ifd).ref ()->lock (lk, timeout))
+			throw_TRANSIENT (make_minor_errno (EAGAIN));
 	}
 
 	void set_inherited_files (const FileDescriptors& files);
@@ -158,7 +161,7 @@ private:
 		virtual void flush () = 0;
 		virtual bool isatty () const = 0;
 		virtual void get_file_descr (FileDescr& fd) const;
-		virtual void lock (const struct flock& lk, bool wait) const = 0;
+		virtual bool lock (const struct flock& lk, TimeBase::TimeT timeout) const = 0;
 		virtual void get_lock (struct flock& lk) const = 0;
 
 		void add_descriptor_ref () noexcept

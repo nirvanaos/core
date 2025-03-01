@@ -32,7 +32,9 @@ void deactivate_servant (PortableServer::Servant servant) noexcept
 {
 	try {
 		PortableServer::POA::_ref_type adapter = servant->_default_POA ();
-		adapter->deactivate_object (adapter->servant_to_id (servant));
+		// If shutdown is started, adapter will be nill reference
+		if (adapter)
+			adapter->deactivate_object (adapter->servant_to_id (servant));
 	} catch (...) {
 		assert (false);
 	}
@@ -73,13 +75,6 @@ void Connection::check_exist () const
 		throw CORBA::OBJECT_NOT_EXIST ();
 }
 
-void Connection::check_ready () const
-{
-	check_exist ();
-	if (busy_)
-		throw_exception ("Connection is busy");
-}
-
 void Connection::check_warning (int err) noexcept
 {
 	if (err) {
@@ -96,11 +91,28 @@ void Connection::exec (const char* sql)
 	SQLite::exec (sql);
 }
 
-Connection::Lock::Lock (Connection& conn) :
+Connection::Lock::Lock (Connection& conn, bool no_check_exist) :
 	connection_ (conn)
 {
-	connection_.check_ready ();
-	connection_.busy_ = true;
+	if (!no_check_exist)
+		conn.check_exist ();
+
+	if (!conn.data_state_->inconsistent (conn.timeout_))
+		throw CORBA::TRANSIENT ();
+}
+
+inline int Connection::busy_handler (int attempt) noexcept
+{
+	NIRVANA_TRACE ("SQLite: Connection is locked, attempt %d\n", attempt);
+	if (attempt >= busy_retry_max_)
+		return 0; // Stop attempts and throw SQLITE_BUSY
+	else
+		return 1;
+}
+
+int Connection::s_busy_handler (void* obj, int attempt) noexcept
+{
+	return ((Connection*)obj)->busy_handler (attempt);
 }
 
 }

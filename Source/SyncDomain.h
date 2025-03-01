@@ -147,6 +147,11 @@ protected:
 	SyncDomain (Ref <MemContext>&& mem_context) noexcept;
 	~SyncDomain ();
 
+	SyncDomain (const SyncDomain&) = delete;
+	SyncDomain (SyncDomain&&) = delete;
+	SyncDomain& operator = (const SyncDomain&) = delete;
+	SyncDomain& operator = (SyncDomain&&) = delete;
+
 private:
 	void schedule () noexcept;
 
@@ -216,6 +221,9 @@ protected:
 	/// \param heap The heap.
 	SyncDomainCore (Heap& heap);
 
+	~SyncDomainCore ()
+	{}
+
 	// SyncContext::
 	virtual Module* module () noexcept;
 };
@@ -257,7 +265,7 @@ private:
 			SyncDomain& sd = static_cast <SyncDomain&> (*this);
 			Ref <Heap> heap = &sd.mem_context ().heap ();
 			this->~SyncDomainDyn ();
-			heap->release (this, sizeof (*this));
+			heap->release (this, sizeof (SyncDomainDyn));
 		}
 	}
 

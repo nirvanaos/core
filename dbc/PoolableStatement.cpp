@@ -1,12 +1,11 @@
-/// \file
 /*
-* Nirvana Core.
+* Database connection module.
 *
 * This is a part of the Nirvana project.
 *
 * Author: Igor Popov
 *
-* Copyright (c) 2021 Igor Popov.
+* Copyright (c) 2025 Igor Popov.
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU Lesser General Public License as published by
@@ -24,28 +23,39 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_CORE_RANDOMGEN_H_
-#define NIRVANA_CORE_RANDOMGEN_H_
-#pragma once
+#include "pch.h"
+#include "ConnectionPoolImpl.h"
 
-#include <Nirvana/RandomGen.h>
+namespace NDBC {
 
-namespace Nirvana {
-namespace Core {
-
-/// Atomic pseudorandom number generator.
-class RandomGenAtomic :
-	public RandomGen
+PoolableStatementBase::PoolableStatementBase (PoolableConnection& conn,
+	StatementBase::_ptr_type base) noexcept :
+	conn_ (&conn),
+	base_ (base)
 {
-public:
-	RandomGenAtomic () : // Use `this` as a seed value
-		RandomGen ((result_type)reinterpret_cast <uintptr_t> (this))
-	{}
-
-	result_type operator () () noexcept;
-};
-
-}
+	conn_->add_active_statement ();
 }
 
-#endif
+PoolableStatementBase::~PoolableStatementBase ()
+{
+	if (conn_)
+		conn_->remove_active_statement ();
+}
+
+void PoolableStatementBase::close () noexcept
+{
+	assert (conn_);
+	conn_->remove_active_statement ();
+	conn_ = nullptr;
+	base_ = nullptr;
+}
+
+void PoolableStatementBase::cleanup (StatementBase::_ptr_type s)
+{
+	while (s->getMoreResults ())
+		;
+	s->getUpdateCount ();
+	s->clearWarnings ();
+}
+
+}

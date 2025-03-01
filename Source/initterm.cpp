@@ -68,13 +68,10 @@ void initialize ()
 	Port::PostOffice::initialize (CORBA::Core::LocalAddress::singleton ().host (), CORBA::Core::LocalAddress::singleton ().port ());
 }
 
-void shutdown ()
+void shutdown () noexcept
 {
 	// Perform GC for services synchronously
 	ExecDomain::current ().restricted_mode (ExecDomain::RestrictedMode::SUPPRESS_ASYNC_GC);
-
-	// Disable all timers
-	Timer::terminate ();
 
 	// Block incoming requests and complete currently executed ones.
 	// Release all service proxies.
@@ -84,11 +81,12 @@ void shutdown ()
 	Binder::clear_remote_references ();
 }
 
-void terminate ()
+void terminate () noexcept
 {
-	ExecDomain::current ().restricted_mode (ExecDomain::RestrictedMode::SUPPRESS_ASYNC_GC);
-
 	Port::PostOffice::terminate (); // Stop receiving messages. But we can still send messages.
+
+	// Disable all timers
+	Timer::terminate ();
 
 	if (ESIOP::is_system_domain ())
 		PortableServer::Core::SysAdapterActivator::terminate ();

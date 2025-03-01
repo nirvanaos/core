@@ -70,6 +70,11 @@ void Scheduler::do_shutdown ()
 #endif
 
 	// If no activity - toggle it.
+	toggle_activity ();
+}
+
+void Scheduler::toggle_activity () noexcept
+{
 	if (!global_->activity_cnt.load ()) {
 		global_->activity_cnt.increment ();
 		activity_end ();
@@ -81,29 +86,58 @@ void Scheduler::shutdown (unsigned flags)
 	if (ESIOP::is_system_domain ())
 		SysManager::async_call <SysManager::ReceiveShutdown> (INFINITE_DEADLINE, flags);
 	else
-		shutdown ();
+		internal_shutdown (flags);
 }
 
-void Scheduler::shutdown ()
+void Scheduler::internal_shutdown (unsigned flags)
 {
-	State state = State::RUNNING;
-	if (global_->state.compare_exchange_strong (state, State::SHUTDOWN_STARTED)) {
-		// If called from worker thread and not from the invocation context dispatched from some POA,
-		// do shutdown in the current execution domain. Otherwise start async call.
-		if (Thread::current_ptr () && !ExecDomain::current ().TLS_get (CoreTLS::CORE_TLS_PORTABLE_SERVER))
-			do_shutdown ();
-		else
-			ExecDomain::async_call <Shutdown> (SHUTDOWN_DEADLINE, g_core_free_sync_context, nullptr);
+	if (flags & SHUTDOWN_FLAG_FORCE) {
+		State state = State::RUNNING;
+		start_shutdown (state);
+	} else {
+		State state = State::RUNNING;
+		if (global_->state.compare_exchange_strong (state, State::SHUTDOWN_PLANNED))
+			toggle_activity ();
 	}
+}
+
+bool Scheduler::start_shutdown (State& from_state) noexcept
+{
+	if (global_->state.compare_exchange_strong (from_state, State::SHUTDOWN_STARTED)) {
+		try {
+			// If called from worker thread and not from the invocation context dispatched from some POA,
+			// do shutdown in the current execution domain. Otherwise start async call.
+			Thread* th = Thread::current_ptr ();
+			if (th) {
+				ExecDomain* ed = th->exec_domain ();
+				if (ed && !ed->TLS_get (CoreTLS::CORE_TLS_PORTABLE_SERVER)) {
+					do_shutdown ();
+					return true;
+				}
+			}
+			ExecDomain::async_call <Shutdown> (SHUTDOWN_DEADLINE, g_core_free_sync_context, nullptr);
+			return true;
+		} catch (...) {
+			global_->state = from_state;
+		}
+	}
+	return false;
 }
 
 void Scheduler::activity_end () noexcept
 {
 	if (!global_->activity_cnt.decrement_seq ()) {
-		switch (global_->state) {
-			case State::SHUTDOWN_STARTED: {
-				State state = State::SHUTDOWN_STARTED;
-				if (global_->state.compare_exchange_strong (state, State::TERMINATE)) {
+		State state = global_->state.load ();
+		for (;;) {
+			switch (state) {
+				case State::SHUTDOWN_PLANNED:
+					if (!start_shutdown (state))
+						continue;
+					break;
+
+				case State::SHUTDOWN_STARTED:
+					if (!global_->state.compare_exchange_strong (state, State::TERMINATE))
+						continue;
 #ifdef DEBUG_SHUTDOWN
 					the_system->debug_event (System::DebugEvent::DEBUG_INFO, "ExecDomain::async_call <Terminator>");
 #endif
@@ -114,15 +148,15 @@ void Scheduler::activity_end () noexcept
 						activity_begin ();
 						activity_end ();
 					}
-				}
-			} break;
+					break;
 
-			case State::TERMINATE: {
-				State state = State::TERMINATE;
-				if (global_->state.compare_exchange_strong (state, State::SHUTDOWN_FINISH)) {
+				case State::TERMINATE:
+					if (!global_->state.compare_exchange_strong (state, State::SHUTDOWN_FINISH))
+						continue;
 					Port::Scheduler::shutdown ();
-				}
-			} break;
+					break;
+			}
+			break;
 		}
 	}
 }

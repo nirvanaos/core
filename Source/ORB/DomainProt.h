@@ -41,7 +41,10 @@ class DomainProt :
 	public ESIOP::OtherDomain
 {
 public:
-	static const TimeBase::TimeT REQUEST_LATENCY = 20 * TimeBase::MILLISECOND;
+	// Estimated maximal time of the request delivery
+	// If it is too small, the DGC will fail.
+	static const TimeBase::TimeT REQUEST_LATENCY = 1 * TimeBase::SECOND;
+
 	static const TimeBase::TimeT HEARTBEAT_INTERVAL = 30 * TimeBase::SECOND;
 	static const TimeBase::TimeT HEARTBEAT_TIMEOUT = 2 * HEARTBEAT_INTERVAL;
 

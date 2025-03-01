@@ -76,6 +76,8 @@ void StatementBase::finalize (bool silent) noexcept
 	changed_rows_ = -1;
 	if (!statements_.empty ()) {
 		Connection& conn = *connection_;
+		if (!silent && conn.isClosed ())
+			silent = true;
 		Statements statements (std::move (statements_));
 		cur_statement_ = 0;
 		change_version ();
@@ -126,10 +128,16 @@ bool StatementBase::execute_next (bool resultset)
 			NDBC::Row row;
 			if (SQLITE_ROW == step_result)
 				row = Cursor::get_row (stmt);
+
 			NDBC::Cursor::_ref_type cursor = CORBA::make_reference <Cursor> (
-				std::ref (*this), servant_, stmt)->_this ();
-			result_set_ = NDBC::ResultSet::_factory->create (column_cnt, NDBC::ResultSet::FLAG_FORWARD_ONLY,
+				std::ref (*this), stmt)->_this ();
+			
+			PortableServer::ServantBase::_ref_type servant (servant_);
+			NDBC::StatementBase::_ref_type parent = NDBC::StatementBase::_narrow (servant->_default_POA ()->servant_to_reference (servant));
+
+			result_set_ = NDBC::ResultSet::_factory->create (parent, column_cnt, NDBC::ResultSet::FLAG_FORWARD_ONLY,
 				std::move (cursor), std::move (row));
+
 			return true;
 		}
 	}

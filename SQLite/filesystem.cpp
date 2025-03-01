@@ -80,7 +80,22 @@ public:
 		int ret = SQLITE_OK;
 		try {
 			NDBC::Blob data;
-			access_->read (off, cb, data);
+			if (lock_level_ < Nirvana::LockType::LOCK_SHARED) {
+				Nirvana::FileLock fl (off, cb, Nirvana::LockType::LOCK_SHARED);
+				if (access_->lock (fl, Nirvana::LockType::LOCK_SHARED, LOCK_TIMEOUT)
+					== Nirvana::LockType::LOCK_NONE)
+					return SQLITE_BUSY;
+				else {
+					try {
+						access_->read (off, cb, data);
+					} catch (...) {
+						unlock_noex (fl);
+						throw;
+					}
+					unlock_noex (fl);
+				}
+			} else
+				access_->read (off, cb, data);
 			memcpy (p, data.data (), data.size ());
 			if ((int)data.size () < cb) {
 				// If xRead () returns SQLITE_IOERR_SHORT_READ it must also fill in the unread portions of the
@@ -186,21 +201,38 @@ public:
 	int unfetch (sqlite3_int64 off, void* p) noexcept
 	{
 		auto it = cache_.find (off);
-		assert (it != cache_.end ());
+//		assert (it != cache_.end ());
 		if (it != cache_.end () && !--(it->second.ref_cnt))
 			cache_.erase (it);
-	return SQLITE_OK;
+		return SQLITE_OK;
 	}
 
 	int lock (Nirvana::LockType level) noexcept
 	{
 		if (level > lock_level_) {
 			try {
-				Nirvana::LockType level_min = Nirvana::LockType::LOCK_EXCLUSIVE == level
-				? Nirvana::LockType::LOCK_PENDING : level;
-				Nirvana::LockType ret = access_->lock (Nirvana::FileLock (0, 0, level), level_min, false);
-				if (ret != Nirvana::LockType::LOCK_NONE)
+				if (Nirvana::LockType::LOCK_EXCLUSIVE == level) {
+					Nirvana::FileLock fl_excl (0, 0, Nirvana::LockType::LOCK_EXCLUSIVE);
+					if (lock_level_ < Nirvana::LockType::LOCK_PENDING) {
+						Nirvana::LockType ret = access_->lock (fl_excl, Nirvana::LockType::LOCK_PENDING,
+							LOCK_TIMEOUT);
+						if (ret <= lock_level_)
+							return SQLITE_BUSY;
+						lock_level_ = ret;
+					}
+					if (lock_level_ < Nirvana::LockType::LOCK_EXCLUSIVE) {
+						Nirvana::LockType ret = access_->lock (fl_excl, Nirvana::LockType::LOCK_EXCLUSIVE,
+							LOCK_TIMEOUT);
+						if (ret <= lock_level_)
+							return SQLITE_BUSY;
+						lock_level_ = ret;
+					}
+				} else {
+					Nirvana::LockType ret = access_->lock (Nirvana::FileLock (0, 0, level), level, LOCK_TIMEOUT);
+					if (ret <= lock_level_)
+						return SQLITE_BUSY;
 					lock_level_ = ret;
+				}
 			} catch (...) {
 				if (level > Nirvana::LockType::LOCK_SHARED)
 					return SQLITE_IOERR_LOCK;
@@ -208,14 +240,15 @@ public:
 					return SQLITE_IOERR_RDLOCK;
 			}
 		}
-		return lock_level_ >= level ? SQLITE_OK : SQLITE_BUSY;
+		return SQLITE_OK;
 	}
 
 	int unlock (Nirvana::LockType level) noexcept
 	{
 		if (lock_level_ > level) {
 			try {
-				lock_level_ = access_->lock (Nirvana::FileLock (0, 0, level), level, false);
+				lock_level_ = access_->lock (Nirvana::FileLock (0, 0, level), level, 0);
+				assert (lock_level_ == level);
 			} catch (...) {
 				return SQLITE_IOERR_UNLOCK;
 			}
@@ -238,6 +271,9 @@ public:
 	}
 
 private:
+	void unlock_noex (Nirvana::FileLock& fl) const noexcept;
+
+private:
 	Nirvana::AccessDirect::_ref_type access_;
 	Nirvana::LockType lock_level_;
 	bool delete_on_close_;
@@ -255,6 +291,14 @@ private:
 	typedef std::unordered_map <sqlite3_int64, CacheEntry> Cache;
 	Cache cache_;
 };
+
+void File::unlock_noex (Nirvana::FileLock& fl) const noexcept
+{
+	fl.type (Nirvana::LockType::LOCK_NONE);
+	try {
+		access_->lock (fl, Nirvana::LockType::LOCK_NONE, 0);
+	} catch (...) {}
+}
 
 extern "C" int xClose (sqlite3_file * f) noexcept
 {
@@ -361,7 +405,12 @@ int xOpen (sqlite3_vfs*, sqlite3_filename zName, sqlite3_file* file,
 		fa = global.open_file (zName, flags);
 	} catch (CORBA::NO_MEMORY ()) {
 		return SQLITE_NOMEM;
+#ifndef NDEBUG
+	} catch (const std::exception& ex) {
+		NIRVANA_TRACE ("%s\n", ex.what ());
+#else
 	} catch (...) {
+#endif
 		return SQLITE_CANTOPEN;
 	}
 	new (file) File (fa, flags & SQLITE_OPEN_DELETEONCLOSE);
@@ -444,21 +493,20 @@ extern "C" int xCurrentTimeInt64 (sqlite3_vfs*, sqlite3_int64* time)
 
 extern "C" int xRandomness (sqlite3_vfs*, int nByte, char* zOut)
 {
-#if (RAND_MAX >= 0xFFFFFFFF)
-	for (; nByte >= 4; zOut += 4, nByte -= 4) {
-		*(uint32_t*)zOut = (uint32_t)Nirvana::the_posix->rand ();
+	for (; nByte >= sizeof (unsigned); zOut += sizeof (unsigned), nByte -= sizeof (unsigned)) {
+		*(unsigned*)zOut = Nirvana::the_posix->rand ();
 	}
-#endif
 
-#if (RAND_MAX >= 0xFFFF)
-	for (; nByte >= 2; zOut += 2, nByte -= 2) {
-		*(uint16_t*)zOut = (uint16_t)Nirvana::the_posix->rand ();
+	if (sizeof (unsigned) > sizeof (uint16_t)) {
+		for (; nByte >= sizeof (uint16_t); zOut += sizeof (uint16_t), nByte -= sizeof (uint16_t)) {
+			*(uint16_t*)zOut = (uint16_t)Nirvana::the_posix->rand ();
+		}
 	}
-#endif
 
 	for (; nByte > 0; ++zOut, --nByte) {
-		*zOut = (char)Nirvana::the_posix->rand ();
+		*zOut = (uint8_t)Nirvana::the_posix->rand ();
 	}
+
 	return nByte;
 }
 

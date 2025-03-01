@@ -410,16 +410,22 @@ private:
 		//   If module is Singleton, sync_context is the singleton synchronization domain.
 		SyncContext& sync_context;
 
-		/// Module exports.
+		// Module exports.
 		ObjectMap exports;
 
 		Dependencies dependencies;
 
 		bool collect_dependencies;
 
-		ModuleContext (Module* m, SyncContext& sc, bool depends = false) :
-			mod (m),
+		ModuleContext (SyncContext& sc) :
+			mod (nullptr),
 			sync_context (sc),
+			collect_dependencies (false)
+		{}
+
+		ModuleContext (Module* m, bool depends = false) :
+			mod (m),
+			sync_context (m->sync_context ()),
 			collect_dependencies (depends)
 		{}
 	};

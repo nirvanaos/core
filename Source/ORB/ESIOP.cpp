@@ -422,7 +422,7 @@ void dispatch_message (MessageHeader& message) noexcept
 				}
 			} else {
 				Security::Context tmp (msg.security_context);
-				Scheduler::shutdown ();
+				Scheduler::shutdown (msg.flags ());
 			}
 		} break;
 

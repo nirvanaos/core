@@ -41,16 +41,25 @@ namespace Core {
 class FileLockQueue
 {
 public:
+	~FileLockQueue ()
+	{
+		CORBA::OBJECT_NOT_EXIST exc;
+		while (!list_.empty ()) {
+			dequeue (list_.begin (), exc);
+		}
+	}
+
 	class Entry :
 		public SimpleList <Entry>::Element,
 		public UserObject
 	{
 	public:
 		Entry (const FileSize& begin, const FileSize& end, LockType level_max, LockType level_min,
-			const void* owner) noexcept :
+			const void* owner, const TimeBase::TimeT& timeout) noexcept :
 			begin_ (begin),
 			end_ (end),
 			deadline_ (ExecDomain::current ().deadline ()),
+			expire_time_ (calc_expire_time (timeout)),
 			owner_ (owner),
 			level_max_ (level_max),
 			level_min_ (level_min)
@@ -110,10 +119,30 @@ public:
 			event_.signal (exc);
 		}
 
+		const SteadyTime& expire_time () const noexcept
+		{
+			return expire_time_;
+		}
+
+	private:
+		static SteadyTime calc_expire_time (const TimeBase::TimeT& timeout) noexcept
+		{
+			SteadyTime exp;
+			if (timeout < std::numeric_limits <TimeBase::TimeT>::max ()) {
+				SteadyTime time = Chrono::steady_clock ();
+				exp = time + timeout;
+				if (exp < time) // Overflow
+					exp = std::numeric_limits <SteadyTime>::max ();
+			} else
+				exp = std::numeric_limits <SteadyTime>::max ();
+			return exp;
+		}
+
 	private:
 		FileSize begin_;
 		FileSize end_;
 		DeadlineTime deadline_;
+		SteadyTime expire_time_;
 		const void* owner_;
 		EventSync event_;
 		LockType level_max_;
@@ -122,10 +151,11 @@ public:
 
 	typedef SimpleList <Entry>::iterator iterator;
 
-	LockType enqueue (const FileSize& begin, const FileSize& end, LockType level_max, LockType level_min,
-		const void* owner)
+	LockType enqueue (const FileSize& begin, const FileSize& end,
+		LockType level_max, LockType level_min,
+		const void* owner, const TimeBase::TimeT& timeout)
 	{
-		Entry* entry = new Entry (begin, end, level_max, level_min, owner);
+		Entry* entry = new Entry (begin, end, level_max, level_min, owner, timeout);
 		iterator ins = list_.end ();
 		while (ins != list_.begin ()) {
 			iterator prev = ins;
@@ -170,11 +200,24 @@ public:
 		return list_.empty ();
 	}
 
-	~FileLockQueue ()
+	void on_delete_proxy (const void* owner) noexcept
 	{
-		CORBA::OBJECT_NOT_EXIST exc;
-		while (!list_.empty ()) {
-			dequeue (list_.begin (), exc);
+		for (iterator it = begin (); it != end ();) {
+			if (it->owner () == owner)
+				it = dequeue (it, LockType::LOCK_NONE);
+			else
+				++it;
+		}
+	}
+
+	void housekeeping () noexcept
+	{
+		SteadyTime time = Chrono::steady_clock ();
+		for (iterator it = begin (); it != end ();) {
+			if (it->expire_time () <= time)
+				it = dequeue (it, LockType::LOCK_NONE);
+			else
+				++it;
 		}
 	}
 

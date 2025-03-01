@@ -28,6 +28,8 @@
 #include "Pollable.h"
 #include "call_handler.h"
 #include "ProxyManager.h"
+#include "../unrecoverable_error.h"
+#include <signal.h>
 
 namespace CORBA {
 using namespace Internal;
@@ -69,7 +71,7 @@ void CallbackRef::call (const Operation& metadata, IORequest::_ptr_type rq) noex
 			static_cast <RequestCallback*> (&Interface::_ptr_type (cb))->completed (rq);
 		} catch (...) {
 			// We have no cases to handle this situation.
-			assert (false);
+			unrecoverable_error (SIGABRT);
 			// TODO: Log
 		}
 	}

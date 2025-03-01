@@ -40,10 +40,10 @@ void initialize0 () noexcept;
 void initialize ();
 
 /// Called on shutdown start.
-void shutdown ();
+void shutdown () noexcept;
 
 /// Called asynchronously before the kernel termination.
-void terminate ();
+void terminate () noexcept;
 
 /// Called by kernel on the final termination.
 void terminate0 () noexcept;

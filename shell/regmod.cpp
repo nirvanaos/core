@@ -35,14 +35,11 @@ class Static_regmod :
 public:
 	static int run (StringSeq& argv)
 	{
-		static const char usage [] = "Usage: regmod <binary path> <module name>\n";
+		static const char usage [] = "Usage: regmod (<binary path> | -u) <module name>\n";
 		if (argv.size () != 2) {
 			print (1, usage);
 			return -1;
 		}
-
-		CosNaming::Name bin_path;
-		the_system->append_path (bin_path, argv [0], true);
 
 		PM::Packages::_ref_type packages = SysDomain::_narrow (
 			CORBA::the_orb->resolve_initial_references ("SysDomain")
@@ -57,9 +54,47 @@ public:
 		int ret = -1;
 
 		try {
-			pacman->register_binary (the_system->to_string (bin_path), argv [1], 0);
-			pacman->commit ();
-			ret = 0;
+			if (argv [0][0] != '-') {
+
+				IDL::String bin_path;
+				{
+					CosNaming::Name name;
+					the_system->append_path (name, argv [0], true);
+					bin_path = the_system->to_string (name);
+				}
+				uint16_t platform = pacman->register_binary (bin_path, argv [1], 0);
+				pacman->commit ();
+				ret = 0;
+
+				print (1, "Binary '");
+				print (1, bin_path);
+				print (1, "' was successfully registered for platform ");
+				print (1, platform);
+				print (1, " of module ");
+				print (1, argv [1]);
+				print (1, ".");
+				println (1);
+			} else if (argv [0][1] == 'u') {
+				uint32_t cnt = pacman->unregister (argv [1]);
+				if (cnt) {
+					pacman->commit ();
+					ret = 0;
+
+					print (1, "Module ");
+					print (1, argv [1]);
+					print (1, " was successfully unregistered.");
+					println (1);
+				} else {
+					print (2, "Module ");
+					print (2, argv [1]);
+					print (2, " not found.");
+					println (2);
+				}
+			} else {
+				print (2, "Unknown option: ");
+				print (2, argv [0]);
+				println (2);
+			}
 		} catch (const BindError::Error& ex) {
 			print (pacman, ex);
 		} catch (const CORBA::SystemException& ex) {

@@ -401,8 +401,7 @@ void ProxyManager::invoke (OperationIndex op, IORequest::_ptr_type rq) const noe
 				throw UNKNOWN ();
 
 		} catch (Exception& e) {
-			Any any;
-			any <<= std::move (e);
+			Any any = RqHelper::exception2any (std::move (e));
 			rq->set_exception (any);
 		}
 	} catch (...) {

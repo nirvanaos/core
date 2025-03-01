@@ -84,7 +84,7 @@ inline Object::_ref_type Services::bind_internal (Service sidx)
 	ServiceRef& ref = services_ [sidx];
 	Object::_ref_type ret = ref.get_if_constructed ();
 	if (!ret) {
-		if (Scheduler::state () != Scheduler::RUNNING)
+		if (Scheduler::shutdown_started ())
 			throw INITIALIZE ();
 
 		// Create service
@@ -111,7 +111,7 @@ inline Object::_ref_type Services::bind_internal (Service sidx)
 
 Object::_ref_type Services::bind (Service sidx)
 {
-	if (Nirvana::Core::Scheduler::state () != Nirvana::Core::Scheduler::RUNNING)
+	if (Nirvana::Core::Scheduler::shutdown_started ())
 		return nullptr;
 	return singleton_->bind_internal (sidx);
 }

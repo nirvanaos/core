@@ -37,8 +37,10 @@ public:
 	void close ()
 	{
 		if (connection_) {
-			connection_->check_ready ();
-			finalize ();
+			{
+				Connection::Lock lock (*connection_, true);
+				finalize ();
+			}
 			connection_ = nullptr;
 			deactivate_servant (servant_);
 		}
@@ -54,8 +56,6 @@ public:
 		check_exist ();
 		warnings_.clear ();
 	}
-
-	uint32_t executeUpdate ();
 
 	NDBC::Connection::_ref_type getConnection ()
 	{
@@ -153,6 +153,7 @@ protected:
 	void finalize (bool silent = false) noexcept;
 	void reset () noexcept;
 	void check_warning (int err) noexcept;
+	uint32_t executeUpdate ();
 
 private:
 	bool execute_next (bool resultset);

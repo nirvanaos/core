@@ -46,13 +46,6 @@ Pollable::Pollable () :
 	}
 }
 
-Pollable::Pollable (const Pollable& src) :
-	sync_domain_ (src.sync_domain_),
-	cur_set_ (nullptr),
-	ref_cnt_ (1),
-	ready_ (false)
-{}
-
 Pollable::~Pollable ()
 {
 	assert (&SyncContext::current () == sync_domain_);
@@ -76,8 +69,10 @@ void Pollable::_remove_ref () noexcept
 
 bool Pollable::is_ready (ULong timeout)
 {
-	if (!timeout)
-		return ready_;
+	if (ready_)
+		return true;
+	else if (!timeout)
+		return false;
 	else {
 		bool ret;
 		SYNC_BEGIN (*sync_domain_, nullptr)

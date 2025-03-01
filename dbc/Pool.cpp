@@ -1,12 +1,11 @@
-/// \file
 /*
-* Nirvana Core.
+* Database connection module.
 *
 * This is a part of the Nirvana project.
 *
 * Author: Igor Popov
 *
-* Copyright (c) 2021 Igor Popov.
+* Copyright (c) 2025 Igor Popov.
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU Lesser General Public License as published by
@@ -24,28 +23,25 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_CORE_RANDOMGEN_H_
-#define NIRVANA_CORE_RANDOMGEN_H_
-#pragma once
+#include "pch.h"
+#include "Pool.h"
 
-#include <Nirvana/RandomGen.h>
+namespace NDBC {
 
-namespace Nirvana {
-namespace Core {
-
-/// Atomic pseudorandom number generator.
-class RandomGenAtomic :
-	public RandomGen
+void PoolableBase::throw_closed ()
 {
-public:
-	RandomGenAtomic () : // Use `this` as a seed value
-		RandomGen ((result_type)reinterpret_cast <uintptr_t> (this))
-	{}
-
-	result_type operator () () noexcept;
-};
-
-}
+	throw CORBA::OBJECT_NOT_EXIST ();
 }
 
-#endif
+void PoolableBase::deactivate (PortableServer::Servant servant) noexcept
+{
+	try {
+		PortableServer::POA::_ref_type adapter = servant->_default_POA ();
+		if (adapter)
+			adapter->deactivate_object (adapter->servant_to_id (servant));
+	} catch (...) {
+		assert (false);
+	}
+}
+
+}

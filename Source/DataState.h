@@ -1,12 +1,12 @@
 /// \file
 /*
-* Nirvana Core.
+* Nirvana runtime library.
 *
 * This is a part of the Nirvana project.
 *
 * Author: Igor Popov
 *
-* Copyright (c) 2021 Igor Popov.
+* Copyright (c) 2025 Igor Popov.
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU Lesser General Public License as published by
@@ -24,44 +24,49 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_CORE_RUNTIMEGLOBAL_H_
-#define NIRVANA_CORE_RUNTIMEGLOBAL_H_
+#ifndef NIRVANA_CORE_DATASTATE_H_
+#define NIRVANA_CORE_DATASTATE_H_
 #pragma once
 
-#include <Nirvana/RandomGen.h>
+#include <CORBA/Server.h>
+#include <Nirvana/System_s.h>
+#include "EventSyncTimeout.h"
+#include "SyncDomain.h"
 
 namespace Nirvana {
 namespace Core {
 
-/// POSIX run-time library global state
-class RuntimeGlobal
+class DataState :
+	public CORBA::servant_traits <Nirvana::DataState>::Servant <DataState>,
+	public CORBA::Internal::LifeCycleRefCnt <DataState>,
+	public CORBA::Internal::RefCountBase <DataState>,
+	public UserObject
 {
 public:
-	static RuntimeGlobal& current ();
+	using UserObject::operator new;
+	using UserObject::operator delete;
 
-	RuntimeGlobal () noexcept :
-		random_ (1),
-		error_number_ (0)
-	{}
-
-	int rand () noexcept
+	DataState ()
 	{
-		return random_.operator () ();
+		if (!SyncContext::current ().sync_domain ())
+			throw CORBA::BAD_INV_ORDER ();
+		event_.signal_one ();
 	}
 
-	void srand (unsigned seed) noexcept
+	bool inconsistent (const TimeBase::TimeT& timeout)
 	{
-		random_.state (seed);
+		return event_.wait (timeout);
 	}
 
-	int* error_number () noexcept
+	void consistent ()
 	{
-		return &error_number_;
+		if (event_.signal_cnt ())
+			throw CORBA::BAD_INV_ORDER ();
+		event_.signal_one ();
 	}
 
 private:
-	RandomGen random_;
-	int error_number_;
+	EventSyncTimeout event_;
 };
 
 }

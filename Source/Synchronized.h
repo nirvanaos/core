@@ -67,10 +67,19 @@ public:
 	void return_to_caller_context () noexcept;
 
 	/// Called on exception inside synchronization frame.
-	void on_exception (const CORBA::Exception& ex) noexcept
+	void on_exception (CORBA::Exception& ex) noexcept
 	{
 		exception_.set_exception (ex);
-		return_to_caller_context ();
+	}
+
+	void on_exception (std::bad_alloc& ex) noexcept
+	{
+		exception_.set_exception (CORBA::SystemException::EC_NO_MEMORY);
+	}
+
+	void on_exception (std::exception& ex) noexcept
+	{
+		exception_.set_exception (CORBA::SystemException::EC_UNKNOWN);
 	}
 
 	void check () const
@@ -91,6 +100,9 @@ private:
 }
 
 #define SYNC_BEGIN(target, mem) { ::Nirvana::Core::Synchronized _sync_frame (target, mem); try {
-#define SYNC_END() } catch (const CORBA::Exception& ex) { _sync_frame.on_exception (ex); } _sync_frame.check (); }
+#define SYNC_END() } catch (CORBA::Exception& ex) { _sync_frame.on_exception (ex); }\
+ catch (std::bad_alloc& ex) { _sync_frame.on_exception (ex); }\
+ catch (std::exception& ex) { _sync_frame.on_exception (ex); }\
+ _sync_frame.check (); }
 
 #endif

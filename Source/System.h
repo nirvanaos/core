@@ -37,6 +37,7 @@
 #include "Binder.h"
 #include "append_path.h"
 #include "CurrentDir.h"
+#include "DataState.h"
 
 namespace Nirvana {
 
@@ -161,6 +162,11 @@ public:
 	{
 		return Platforms (Core::Port::SystemInfo::supported_platforms (),
 			Core::Port::SystemInfo::supported_platforms () + Core::Port::SystemInfo::SUPPORTED_PLATFORM_CNT);
+	}
+
+	static DataState::_ref_type create_data_state ()
+	{
+		return CORBA::make_pseudo <Core::DataState> ();
 	}
 };
 

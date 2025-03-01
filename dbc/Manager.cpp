@@ -1,12 +1,11 @@
-/// \file
 /*
-* Nirvana Core.
+* Database connection module.
 *
 * This is a part of the Nirvana project.
 *
 * Author: Igor Popov
 *
-* Copyright (c) 2021 Igor Popov.
+* Copyright (c) 2025 Igor Popov.
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU Lesser General Public License as published by
@@ -24,28 +23,23 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_CORE_RANDOMGEN_H_
-#define NIRVANA_CORE_RANDOMGEN_H_
-#pragma once
+#include "pch.h"
+#include "ConnectionPoolImpl.h"
 
-#include <Nirvana/RandomGen.h>
+namespace NDBC {
 
-namespace Nirvana {
-namespace Core {
-
-/// Atomic pseudorandom number generator.
-class RandomGenAtomic :
-	public RandomGen
+class Static_the_manager :
+	public CORBA::servant_traits <Manager>::ServantStatic <Static_the_manager>
 {
 public:
-	RandomGenAtomic () : // Use `this` as a seed value
-		RandomGen ((result_type)reinterpret_cast <uintptr_t> (this))
-	{}
-
-	result_type operator () () noexcept;
+	static ConnectionPool::_ref_type createConnectionPool (Driver::_ptr_type driver,
+		IDL::String& url, IDL::String& user, IDL::String& password, unsigned options)
+	{
+		return CORBA::make_reference <ConnectionPoolImpl> (driver, std::move (url), std::move (user),
+			std::move (password))->_this ();
+	}
 };
 
 }
-}
 
-#endif
+NIRVANA_EXPORT_OBJECT (_exp_NDBC_the_manager, NDBC::Static_the_manager)

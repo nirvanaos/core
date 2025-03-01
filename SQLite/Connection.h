@@ -28,8 +28,9 @@
 #pragma once
 
 #include <Nirvana/Nirvana.h>
+#include <Nirvana/System.h>
 #include <Nirvana/NDBC_s.h>
-#include "sqlite/sqlite3.h"
+#include "filesystem.h"
 
 namespace SQLite {
 
@@ -109,15 +110,17 @@ class Connection :
 	public CORBA::servant_traits <NDBC::Connection>::Servant <Connection>,
 	public SQLite
 {
+	static const TimeBase::TimeT DEFAULT_TIMEOUT = TimeBase::SECOND * 10;
+
 public:
 	class Lock
 	{
 	public:
-		Lock (Connection& conn);
+		Lock (Connection& conn, bool no_check_exist = false);
 
 		~Lock ()
 		{
-			connection_.busy_ = false;
+			connection_.data_state_->consistent ();
 		}
 
 		Connection& connection () const noexcept
@@ -131,9 +134,13 @@ public:
 
 	Connection (const std::string& uri) :
 		SQLite (uri),
-		busy_ (false),
-		savepoint_ (0)
+		timeout_ (DEFAULT_TIMEOUT),
+		data_state_ (Nirvana::the_system->create_data_state ()),
+		savepoint_ (0),
+		busy_retry_max_ (DEFAULT_TIMEOUT / LOCK_TIMEOUT)
 	{
+		sqlite3_busy_handler (*this, s_busy_handler, this);
+
 		sqlite3_filename fn = sqlite3_db_filename (*this, nullptr);
 		if (fn) {
 			const char* journal_mode = sqlite3_uri_parameter (fn, "journal_mode");
@@ -152,12 +159,6 @@ public:
 		NIRVANA_TRACE ("SQLite: Connection destructed\n");
 	}
 
-	void clearWarnings ()
-	{
-		check_exist ();
-		warnings_.clear ();
-	}
-
 	void close ()
 	{
 		if (!isClosed ()) {
@@ -169,38 +170,72 @@ public:
 		}
 	}
 
+	bool getAutoCommit () const
+	{
+		check_exist ();
+		return sqlite3_get_autocommit (*this);
+	}
+
+	void setAutoCommit (bool on)
+	{
+		check_exist ();
+		bool current = sqlite3_get_autocommit (*this);
+		if (on) {
+			if (!current)
+				exec ("END");
+		} else if (current)
+			exec ("BEGIN");
+	}
+
 	void commit ()
 	{
+		check_exist ();
 		exec ("END;BEGIN");
+	}
+
+	void rollback (const NDBC::Savepoint& savepoint)
+	{
+		check_exist ();
+		if (savepoint.empty ())
+			exec ("ROLLBACK;BEGIN");
+		else
+			exec (("ROLLBACK TO " + savepoint).c_str ());
+	}
+
+	NDBC::SQLWarnings getWarnings () const
+	{
+		return warnings_;
+	}
+
+	void clearWarnings ()
+	{
+		warnings_.clear ();
+	}
+
+	void setTimeout (const TimeBase::TimeT& timeout) noexcept
+	{
+		timeout_ = timeout;
+		busy_retry_max_ = timeout / LOCK_TIMEOUT;
+	}
+
+	TimeBase::TimeT getTimeout () const noexcept
+	{
+		return timeout_;
 	}
 
 	NDBC::Statement::_ref_type createStatement (NDBC::ResultSet::Type resultSetType);
 
-	bool getAutoCommit () const
-	{
-		check_ready ();
-		return sqlite3_get_autocommit (*this);
-	}
+	NDBC::PreparedStatement::_ref_type prepareStatement (const IDL::String& sql, NDBC::ResultSet::Type resultSetType, unsigned flags);
 
 	static IDL::String getCatalog () noexcept
 	{
 		return IDL::String ();
 	}
 
-	IDL::String getSchema () const
+	static void setCatalog (const IDL::String& c)
 	{
-		check_ready ();
-		return sqlite3_db_name (*this, 0);
-	}
-
-	TransactionIsolation getTransactionIsolation () const noexcept
-	{
-		return TransactionIsolation::TRANSACTION_SERIALIZABLE;
-	}
-
-	NDBC::SQLWarnings getWarnings () const
-	{
-		return warnings_;
+		if (!c.empty ())
+			throw CORBA::NO_IMPLEMENT ();
 	}
 
 	bool isReadOnly () const noexcept
@@ -209,47 +244,7 @@ public:
 		return sqlite3_db_readonly (*this, nullptr);
 	}
 
-	bool isValid () const noexcept
-	{
-		return !isClosed () && !busy_;
-	}
-
-	NDBC::PreparedStatement::_ref_type prepareCall (const IDL::String& sql, NDBC::ResultSet::Type resultSetType)
-	{
-		throw CORBA::NO_IMPLEMENT ();
-	}
-
-	NDBC::PreparedStatement::_ref_type prepareStatement (const IDL::String& sql, NDBC::ResultSet::Type resultSetType, unsigned flags);
-
-	void releaseSavepoint (const NDBC::Savepoint& savepoint)
-	{
-		exec (("RELEASE " + savepoint).c_str ());
-	}
-
-	void rollback (const NDBC::Savepoint& savepoint)
-	{
-		if (savepoint.empty ())
-			exec ("ROLLBACK;BEGIN");
-		else
-			exec (("ROLLBACK TO " + savepoint).c_str ());
-	}
-
-	void setAutoCommit (bool on)
-	{
-		bool current = getAutoCommit ();
-		if (on) {
-			if (!current)
-				exec ("END");
-		} else if (current)
-			exec ("BEGIN");
-	}
-
-	static void setCatalog (const IDL::String&)
-	{
-		throw CORBA::NO_IMPLEMENT ();
-	}
-
-	void setReadOnly (bool read_only)
+	void setReadOnly (bool read_only) const
 	{
 		if (isReadOnly () != read_only)
 			throw CORBA::NO_PERMISSION ();
@@ -264,29 +259,49 @@ public:
 		return sp;
 	}
 
-	void setSchema (const IDL::String&)
+	void releaseSavepoint (const NDBC::Savepoint& savepoint)
 	{
-		throw CORBA::NO_IMPLEMENT ();
+		exec (("RELEASE " + savepoint).c_str ());
 	}
 
-	void setTransactionIsolation (int level)
+	IDL::String getSchema () const
 	{
-		throw CORBA::NO_IMPLEMENT ();
+		check_exist ();
+		return sqlite3_db_name (*this, 0);
+	}
+
+	void setSchema (const IDL::String& s)
+	{
+		if (s != sqlite3_db_name (*this, 0))
+			throw CORBA::NO_IMPLEMENT ();
+	}
+
+	TransactionIsolation getTransactionIsolation () const noexcept
+	{
+		return TransactionIsolation::TRANSACTION_SERIALIZABLE;
+	}
+
+	void setTransactionIsolation (TransactionIsolation level)
+	{
+		if (level != TransactionIsolation::TRANSACTION_SERIALIZABLE)
+			throw CORBA::NO_IMPLEMENT ();
 	}
 
 	void check_warning (int err) noexcept;
 
-	void check_ready () const;
-
 private:
 	void exec (const char* sql);
-
 	void check_exist () const;
 
+	static int s_busy_handler (void*, int attempt) noexcept;
+	inline int busy_handler (int attempt) noexcept;
+
 private:
+	TimeBase::TimeT timeout_;
+	Nirvana::DataState::_ref_type data_state_;
 	NDBC::SQLWarnings warnings_;
-	bool busy_;
 	unsigned savepoint_;
+	int busy_retry_max_;
 };
 
 }

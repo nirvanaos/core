@@ -107,8 +107,8 @@ void Binder::initialize ()
 	if (!metadata.address)
 		throw_INITIALIZE ();
 
+	ModuleContext context (g_core_free_sync_context);
 	SYNC_BEGIN (sync_domain (), nullptr);
-	ModuleContext context (nullptr, g_core_free_sync_context);
 	singleton_->module_bind (nullptr, metadata, &context);
 	singleton_->object_map_ = std::move (context.exports);
 	initialized_ = true;
@@ -402,7 +402,7 @@ Ref <Module> Binder::load (int32_t mod_id, AccessDirect::_ptr_type binary)
 				SYNC_END ();
 
 				assert (mod->_refcount_value () == 0);
-				ModuleContext context (mod, mod->sync_context (), mod_id);
+				ModuleContext context (mod);
 				bind_and_init (*mod, context);
 				try {
 					object_map_.merge (context.exports);
@@ -724,7 +724,7 @@ uint_fast16_t Binder::get_module_bindings_sync (Nirvana::AccessDirect::_ptr_type
 	mod = Module::create (-1, binary);
 	SYNC_END ();
 
-	ModuleContext context (mod, mod->sync_context (), true);
+	ModuleContext context (mod, true);
 	try {
 		bind_and_init (*mod, context);
 	} catch (...) {

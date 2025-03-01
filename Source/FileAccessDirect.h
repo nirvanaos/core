@@ -35,6 +35,7 @@
 #include "MapOrderedStable.h"
 #include "FileLockRanges.h"
 #include "FileLockQueue.h"
+#include "TimerAsyncCall.h"
 
 namespace Nirvana {
 namespace Core {
@@ -50,16 +51,20 @@ class FileAccessDirect :
 public:
 	static const SteadyTime DEFAULT_WRITE_TIMEOUT = 500 * TimeBase::MILLISECOND;
 	static const SteadyTime DEFAULT_DISCARD_TIMEOUT = 500 * TimeBase::MILLISECOND;
+	static const TimeBase::TimeT HOUSEKEEPING_PERIOD = 500 * TimeBase::MILLISECOND;
 
 	FileAccessDirect (Port::File& file, uint_fast16_t flags, uint_fast16_t mode) :
 		Base (file, flags, mode, file_size_, base_block_size_),
 		block_size_ (std::max (base_block_size_, (Size)Port::Memory::SHARING_ASSOCIATIVITY)),
 		dirty_blocks_ (0),
 		write_timeout_ (DEFAULT_WRITE_TIMEOUT),
-		discard_timeout_ (DEFAULT_DISCARD_TIMEOUT)
+		discard_timeout_ (DEFAULT_DISCARD_TIMEOUT),
+		housekeeping_timer_ (Ref <HousekeepingTimer>::create <ImplDynamic <HousekeepingTimer> > ())
 	{
 		if (block_size_ / base_block_size_ > 128)
 			throw_INTERNAL (make_minor_errno (ENOTSUP));
+
+		housekeeping_timer_->set (*this, HOUSEKEEPING_PERIOD);
 	}
 
 	/// Destructor. Without the flush() call all dirty entries will be lost!
@@ -135,9 +140,9 @@ public:
 		return Base::flags ();
 	}
 
-	LockType lock (const FileLock& fl, LockType tmin, bool wait, const void* proxy)
+	LockType lock (const FileLock& fl, LockType tmin, const TimeBase::TimeT& timeout, const void* proxy)
 	{
-		FileSize end = end_of (fl);
+		const FileSize end = end_of (fl);
 		if (fl.type () == LockType::LOCK_NONE) {
 			if (lock_ranges_.clear (fl.start (), end, proxy))
 				retry_lock ();
@@ -146,16 +151,16 @@ public:
 			if (tmin > fl.type ())
 				throw_BAD_PARAM ();
 			LockType level_min;
-			if (wait && fl.type () == LockType::LOCK_EXCLUSIVE && tmin == LockType::LOCK_EXCLUSIVE)
+			if (timeout && fl.type () == LockType::LOCK_EXCLUSIVE && tmin == LockType::LOCK_EXCLUSIVE)
 				level_min = LockType::LOCK_PENDING;
 			else
 				level_min = tmin;
 			bool downgraded;
-			LockType ret = lock_ranges_.set (fl.start (), end_of (fl), fl.type (), level_min, proxy,
+			LockType ret = lock_ranges_.set (fl.start (), end, fl.type (), level_min, proxy,
 				downgraded);
 			if (ret < tmin) {
-				if (wait)
-					ret = lock_queue_.enqueue (fl.start (), end, fl.type (), tmin, proxy);
+				if (timeout)
+					ret = lock_queue_.enqueue (fl.start (), end, fl.type (), tmin, proxy, timeout);
 				else
 					ret = LockType::LOCK_NONE;
 			} else if (downgraded)
@@ -175,6 +180,7 @@ public:
 
 	void on_delete_proxy (const void* proxy) noexcept
 	{
+		lock_queue_.on_delete_proxy (proxy);
 		if (lock_ranges_.delete_all (proxy))
 			retry_lock ();
 	}
@@ -239,11 +245,8 @@ private:
 	};
 
 	void complete_request (Cache::reference entry, int op = 0);
-
 	bool release_cache (Cache::iterator& it, SteadyTime time);
-
 	void clear_cache (BlockIdx excl_begin, BlockIdx excl_end);
-
 	CacheRange request_read (BlockIdx begin, BlockIdx end);
 
 	void set_dirty (Cache::reference entry, const SteadyTime& time,
@@ -275,10 +278,53 @@ private:
 	}
 
 	void set_size (Pos new_size);
-
 	void complete_size_request () noexcept;
-
 	void retry_lock () noexcept;
+
+	class HousekeepingTimer : public TimerAsyncCall
+	{
+	public:
+		void set (FileAccessDirect& obj, const TimeBase::TimeT& period)
+		{
+			driver_ = &obj;
+			TimerAsyncCall::set (0, period, period);
+		}
+
+		void cancel () noexcept
+		{
+			driver_ = nullptr;
+			TimerAsyncCall::cancel ();
+		}
+
+	protected:
+		HousekeepingTimer () :
+			TimerAsyncCall (SyncContext::current (), INFINITE_DEADLINE),
+			driver_ (nullptr)
+		{}
+
+	private:
+		void run (const TimeBase::TimeT& signal_time) override
+		{
+			if (driver_)
+				driver_->housekeeping (signal_time);
+		}
+
+	private:
+		FileAccessDirect* driver_;
+	};
+
+	void housekeeping (const TimeBase::TimeT& signal_time) noexcept
+	{
+		try {
+			clear_cache (0, 0);
+		} catch (...) {}
+
+		try {
+			write_dirty_blocks (write_timeout_);
+		} catch (...) {}
+
+		lock_queue_.housekeeping ();
+	}
 
 private:
 	Cache cache_;
@@ -290,6 +336,7 @@ private:
 	const Size block_size_;
 	Size base_block_size_;
 	size_t dirty_blocks_;
+	Ref <HousekeepingTimer> housekeeping_timer_;
 
 	const SteadyTime write_timeout_;
 	const SteadyTime discard_timeout_;
@@ -540,9 +587,9 @@ void FileAccessDirect::write (uint64_t pos, const std::vector <uint8_t>& data, b
 			}
 			throw;
 		}
-
-		write_dirty_blocks (write_timeout_);
 	}
+
+	write_dirty_blocks (sync ? 0 : write_timeout_);
 }
 
 void FileAccessDirect::flush ()
