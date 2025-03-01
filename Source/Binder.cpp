@@ -288,29 +288,37 @@ const ModuleStartup* Binder::module_bind (::Nirvana::Module::_ptr_type mod,
 			// Pass 3: Export objects.
 			if (flags & MetadataFlags::EXPORT_OBJECTS) {
 				assert (mod_context); // Executable can not export.
+				Ref <Request> rq = Request::create ();
+				rq->invoke ();
 				SYNC_BEGIN (mod_context->sync_context, nullptr);
-				for (OLF_Iterator <> it (metadata.address, metadata.size); !it.end (); it.next ()) {
-					switch (*it.cur ()) {
-						case OLF_EXPORT_OBJECT: {
-							ExportObject* ps = reinterpret_cast <ExportObject*> (it.cur ());
-							PortableServer::Core::ServantBase* core_object = PortableServer::Core::ServantBase::create (
+				try {
+					for (OLF_Iterator <> it (metadata.address, metadata.size); !it.end (); it.next ()) {
+						switch (*it.cur ()) {
+							case OLF_EXPORT_OBJECT: {
+								ExportObject* ps = reinterpret_cast <ExportObject*> (it.cur ());
+								PortableServer::Core::ServantBase* core_object = PortableServer::Core::ServantBase::create (
 									Type <PortableServer::Servant>::in (ps->servant), nullptr);
-							Object::_ptr_type obj = core_object->proxy ().get_proxy ();
-							ps->core_object = &PortableServer::Servant (core_object);
-							mod_context->exports.insert (ps->name, obj, &mod_context->sync_context);
-						} break;
+								Object::_ptr_type obj = core_object->proxy ().get_proxy ();
+								ps->core_object = &PortableServer::Servant (core_object);
+								mod_context->exports.insert (ps->name, obj, &mod_context->sync_context);
+							} break;
 
-						case OLF_EXPORT_LOCAL: {
-							ExportObject* ps = reinterpret_cast <ExportObject*> (it.cur ());
-							CORBA::Core::LocalObject* core_object = CORBA::Core::LocalObject::create (
+							case OLF_EXPORT_LOCAL: {
+								ExportObject* ps = reinterpret_cast <ExportObject*> (it.cur ());
+								CORBA::Core::LocalObject* core_object = CORBA::Core::LocalObject::create (
 									Type <CORBA::LocalObject>::in (ps->servant), nullptr);
-							Object::_ptr_type obj = core_object->proxy ().get_proxy ();
-							ps->core_object = &CORBA::LocalObject::_ptr_type (core_object);
-							mod_context->exports.insert (ps->name, obj, &mod_context->sync_context);
-						} break;
+								Object::_ptr_type obj = core_object->proxy ().get_proxy ();
+								ps->core_object = &CORBA::LocalObject::_ptr_type (core_object);
+								mod_context->exports.insert (ps->name, obj, &mod_context->sync_context);
+							} break;
+						}
 					}
+					rq->success ();
+				} catch (CORBA::UserException& ex) {
+					rq->set_exception (std::move (ex));
 				}
 				SYNC_END ();
+				CORBA::Internal::ProxyRoot::check_request (rq->_get_ptr ());
 			}
 
 			// Pass 4: Import objects.
@@ -585,18 +593,15 @@ Binder::BindResult Binder::bind_interface (CORBA::Internal::String_in name, CORB
 	BindResult ret;
 	Ref <Request> rq = Request::create ();
 	rq->invoke ();
-	{
-		Synchronized _sync_frame (sync_domain (), nullptr);
-		try {
-			rq->unmarshal_end ();
-			ret = singleton_->bind_interface_sync (name, iid);
-			rq->success ();
-		} catch (CORBA::Exception& e) {
-			rq->set_exception (std::move (e));
-		} catch (...) {
-			rq->set_unknown_exception ();
-		}
+	SYNC_BEGIN (sync_domain (), nullptr);
+	try {
+		rq->unmarshal_end ();
+		ret = singleton_->bind_interface_sync (name, iid);
+		rq->success ();
+	} catch (CORBA::UserException& e) {
+		rq->set_exception (std::move (e));
 	}
+	SYNC_END ();
 	CORBA::Internal::ProxyRoot::check_request (rq->_get_ptr ());
 	return ret;
 }
@@ -700,18 +705,17 @@ Binder::BindResult Binder::load_and_bind (int32_t mod_id,
 	Binder::BindResult ret;
 	Ref <Request> rq = Request::create ();
 	rq->invoke ();
-	{
-		Synchronized _sync_frame (sync_domain (), nullptr);
-		try {
-			rq->unmarshal_end ();
-			ret = singleton_->load_and_bind_sync (mod_id, binary, ObjectKey (name.data (), name.size ()), iid);
-			rq->success ();
-		} catch (CORBA::Exception& e) {
-			rq->set_exception (std::move (e));
-		} catch (...) {
-			rq->set_unknown_exception ();
-		}
+	SYNC_BEGIN (sync_domain (), nullptr);
+	try {
+		rq->unmarshal_end ();
+		ret = singleton_->load_and_bind_sync (mod_id, binary, ObjectKey (name.data (), name.size ()), iid);
+		rq->success ();
+	} catch (CORBA::Exception& e) {
+		rq->set_exception (std::move (e));
+	} catch (...) {
+		rq->set_unknown_exception ();
 	}
+	SYNC_END ();
 	CORBA::Internal::ProxyRoot::check_request (rq->_get_ptr ());
 	return ret;
 }
@@ -795,20 +799,17 @@ uint_fast16_t Binder::get_module_bindings (AccessDirect::_ptr_type binary, PM::M
 	uint_fast16_t ret;
 	Ref <Request> rq = Request::create ();
 	rq->invoke ();
-	{
-		Synchronized _sync_frame (sync_domain (), nullptr);
-		try {
-			rq->unmarshal_end ();
-			PM::ModuleBindings bindings;
-			ret = singleton_->get_module_bindings_sync (binary, bindings);
-			Type <PM::ModuleBindings>::marshal_out (bindings, rq->_get_ptr ());
-			rq->success ();
-		} catch (CORBA::Exception& e) {
-			rq->set_exception (std::move (e));
-		} catch (...) {
-			rq->set_unknown_exception ();
-		}
+	SYNC_BEGIN (sync_domain (), nullptr);
+	try {
+		rq->unmarshal_end ();
+		PM::ModuleBindings bindings;
+		ret = singleton_->get_module_bindings_sync (binary, bindings);
+		Type <PM::ModuleBindings>::marshal_out (bindings, rq->_get_ptr ());
+		rq->success ();
+	} catch (CORBA::UserException& e) {
+		rq->set_exception (std::move (e));
 	}
+	SYNC_END ()
 	CORBA::Internal::ProxyRoot::check_request (rq->_get_ptr ());
 	Type <PM::ModuleBindings>::unmarshal (rq->_get_ptr (), bindings);
 	rq->unmarshal_end ();

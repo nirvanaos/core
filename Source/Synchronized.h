@@ -72,12 +72,7 @@ public:
 		exception_.set_exception (ex);
 	}
 
-	void on_exception (std::bad_alloc& ex) noexcept
-	{
-		exception_.set_exception (CORBA::SystemException::EC_NO_MEMORY);
-	}
-
-	void on_exception (std::exception& ex) noexcept
+	void on_exception () noexcept
 	{
 		exception_.set_exception (CORBA::SystemException::EC_UNKNOWN);
 	}
@@ -101,8 +96,7 @@ private:
 
 #define SYNC_BEGIN(target, mem) { ::Nirvana::Core::Synchronized _sync_frame (target, mem); try {
 #define SYNC_END() } catch (CORBA::Exception& ex) { _sync_frame.on_exception (ex); }\
- catch (std::bad_alloc& ex) { _sync_frame.on_exception (ex); }\
- catch (std::exception& ex) { _sync_frame.on_exception (ex); }\
+ catch (...) { _sync_frame.on_exception (); }\
  _sync_frame.check (); }
 
 #endif
