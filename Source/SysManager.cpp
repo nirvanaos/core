@@ -76,7 +76,7 @@ void SysManager::shutdown (unsigned flags) noexcept
 		if (domains_.empty ())
 			final_shutdown ();
 		else
-			domains_.shutdown (flags);
+			domains_.shutdown (flags); // final_shutdown will be called on the last domain destruction
 	} catch (...) {
 		shutdown_started_ = false;
 	}

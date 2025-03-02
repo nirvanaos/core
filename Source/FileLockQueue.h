@@ -127,12 +127,13 @@ public:
 	private:
 		static SteadyTime calc_expire_time (const TimeBase::TimeT& timeout) noexcept
 		{
+			assert (timeout);
 			SteadyTime exp;
 			if (timeout < std::numeric_limits <TimeBase::TimeT>::max ()) {
 				SteadyTime time = Chrono::steady_clock ();
 				exp = time + timeout;
 				if (exp < time) // Overflow
-					exp = std::numeric_limits <SteadyTime>::max ();
+					throw_BAD_PARAM ();
 			} else
 				exp = std::numeric_limits <SteadyTime>::max ();
 			return exp;

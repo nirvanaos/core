@@ -159,7 +159,7 @@ public:
 			LockType ret = lock_ranges_.set (fl.start (), end, fl.type (), level_min, proxy,
 				downgraded);
 			if (ret < tmin) {
-				if (timeout)
+				if (timeout && !Scheduler::shutdown_started ())
 					ret = lock_queue_.enqueue (fl.start (), end, fl.type (), tmin, proxy, timeout);
 				else
 					ret = LockType::LOCK_NONE;

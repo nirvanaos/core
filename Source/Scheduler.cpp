@@ -91,14 +91,11 @@ void Scheduler::shutdown (unsigned flags)
 
 void Scheduler::internal_shutdown (unsigned flags)
 {
-	if (flags & SHUTDOWN_FLAG_FORCE) {
-		State state = State::RUNNING;
+	State state = State::RUNNING;
+	if (flags & SHUTDOWN_FLAG_FORCE)
 		start_shutdown (state);
-	} else {
-		State state = State::RUNNING;
-		if (global_->state.compare_exchange_strong (state, State::SHUTDOWN_PLANNED))
-			toggle_activity ();
-	}
+	else if (global_->state.compare_exchange_strong (state, State::SHUTDOWN_PLANNED))
+		toggle_activity ();
 }
 
 bool Scheduler::start_shutdown (State& from_state) noexcept
@@ -126,18 +123,15 @@ bool Scheduler::start_shutdown (State& from_state) noexcept
 
 void Scheduler::activity_end () noexcept
 {
-	if (!global_->activity_cnt.decrement_seq ()) {
+	if (0 == global_->activity_cnt.decrement_seq ()) {
 		State state = global_->state.load ();
-		for (;;) {
-			switch (state) {
-				case State::SHUTDOWN_PLANNED:
-					if (!start_shutdown (state))
-						continue;
-					break;
+		switch (state) {
+			case State::SHUTDOWN_PLANNED:
+				start_shutdown (state);
+				break;
 
-				case State::SHUTDOWN_STARTED:
-					if (!global_->state.compare_exchange_strong (state, State::TERMINATE))
-						continue;
+			case State::SHUTDOWN_STARTED:
+				if (global_->state.compare_exchange_strong (state, State::TERMINATE)) {
 #ifdef DEBUG_SHUTDOWN
 					the_system->debug_event (System::DebugEvent::DEBUG_INFO, "ExecDomain::async_call <Terminator>");
 #endif
@@ -148,15 +142,13 @@ void Scheduler::activity_end () noexcept
 						activity_begin ();
 						activity_end ();
 					}
-					break;
+				}
+				break;
 
-				case State::TERMINATE:
-					if (!global_->state.compare_exchange_strong (state, State::SHUTDOWN_FINISH))
-						continue;
+			case State::TERMINATE:
+				if (global_->state.compare_exchange_strong (state, State::SHUTDOWN_FINISH))
 					Port::Scheduler::shutdown ();
-					break;
-			}
-			break;
+				break;
 		}
 	}
 }

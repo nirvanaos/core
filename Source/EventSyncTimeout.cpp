@@ -44,7 +44,7 @@ bool EventSyncTimeout::wait (TimeBase::TimeT timeout, Synchronized* frame)
 	if (acq_signal ())
 		return true;
 		
-	if (!timeout)
+	if (!timeout || Scheduler::shutdown_started ())
 		return false;
 
 	volatile bool result = false;

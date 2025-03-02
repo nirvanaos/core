@@ -55,7 +55,6 @@ public:
 	///   until the timer is canceled.
 	void set (unsigned flags, TimeBase::TimeT initial, TimeBase::TimeT period)
 	{
-		periodic_ = !period;
 		Port::Timer::set (flags, initial, period);
 	}
 
@@ -97,13 +96,9 @@ private:
 
 	void port_signal () noexcept
 	{
-		// If shutdown is initiated, all periodic timers are disabled
-		if (!periodic_ || Scheduler::state () == Scheduler::RUNNING)
-			signal ();
+		signal ();
 	}
 
-private:
-	bool periodic_;
 };
 
 }
