@@ -133,6 +133,9 @@ bool Static_the_orb::tc_equal (TypeCode::_ptr_type left, TypeCode::_ptr_type rig
 		case TCKind::tk_union:
 		case TCKind::tk_value:
 		case TCKind::tk_except:
+			if (left->id () != right->id () || left->name () != right->name ())
+				return false;
+
 			member_count = left->member_count ();
 			if (member_count != right->member_count ()
 				|| left->id () != right->id ()
