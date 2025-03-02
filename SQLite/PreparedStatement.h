@@ -29,6 +29,8 @@
 
 #include "StatementBase.h"
 #include <Nirvana/string_conv.h>
+#include <Nirvana/Hash.h>
+#include <unordered_map>
 
 #define PS_PARAM(name, type)\
 void set##name (NDBC::Ordinal param, type v) { setParam (get_param_index (param), v); } \
@@ -49,12 +51,6 @@ public:
 
 	~PreparedStatement ()
 	{}
-
-	struct ParamIndex
-	{
-		unsigned stmt;
-		unsigned param;
-	};
 
 	void clearParameters ()
 	{
@@ -114,6 +110,25 @@ public:
 	}
 
 private:
+	struct ParamIndex
+	{
+		unsigned stmt;
+		unsigned param;
+
+		bool operator == (const ParamIndex& rhs) const noexcept
+		{
+			return stmt == rhs.stmt && param == rhs.param;
+		}
+	};
+
+	struct ParamHash
+	{
+		size_t operator () (const ParamIndex& pi) const
+		{
+			return Nirvana::Hash::hash_bytes (&pi, sizeof (pi));
+		}
+	};
+
 	void setParam (const ParamIndex& pi, int64_t v)
 	{
 		Connection::Lock lock (connection ());
@@ -202,9 +217,11 @@ private:
 			d_ (EMPTY)
 		{}
 
+		ParamStorage (const ParamStorage&) = delete;
+
 		ParamStorage (ParamStorage&& src) noexcept
 		{
-			adopt (std::move (src));
+			adopt (src);
 		}
 
 		~ParamStorage ()
@@ -212,15 +229,16 @@ private:
 			destruct ();
 		}
 
+		ParamStorage& operator = (const ParamStorage& src) = delete;
+
 		ParamStorage& operator = (ParamStorage&& src) noexcept
 		{
 			destruct ();
-			d_ = EMPTY;
-			adopt (std::move (src));
+			adopt (src);
 			return *this;
 		}
 
-		const IDL::String& operator = (IDL::String&& v) noexcept
+		const IDL::String& set (IDL::String& v) noexcept
 		{
 			destruct ();
 			construct (u_.string, std::move (v));
@@ -228,7 +246,7 @@ private:
 			return u_.string;
 		}
 
-		const NDBC::Blob& operator = (NDBC::Blob&& v) noexcept
+		const NDBC::Blob& set (NDBC::Blob& v) noexcept
 		{
 			destruct ();
 			construct (u_.blob, std::move (v));
@@ -250,7 +268,7 @@ private:
 		}
 
 		void destruct () noexcept;
-		void adopt (ParamStorage&& src) noexcept;
+		void adopt (ParamStorage& src) noexcept;
 
 		enum D
 		{
@@ -275,11 +293,14 @@ private:
 	template <class T>
 	const T& save_param (const ParamIndex& pi, T& v)
 	{
-		return param_storage (pi) = std::move (v);
+		if (v.empty ())
+			return v;
+		else
+			return param_storage (pi).set (v);
 	}
 
 private:
-	std::vector <ParamStorage> param_storage_;
+	std::unordered_map <ParamIndex, ParamStorage, ParamHash> param_storage_;
 };
 
 }

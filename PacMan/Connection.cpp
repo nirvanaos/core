@@ -178,5 +178,3 @@ IDL::String Connection::get_module_name (Nirvana::ModuleId id)
 	}
 	return name;
 }
-
-

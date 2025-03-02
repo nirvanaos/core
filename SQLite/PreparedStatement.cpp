@@ -65,15 +65,7 @@ double PreparedStatement::fixed2double (const CORBA::Any& v)
 
 PreparedStatement::ParamStorage& PreparedStatement::param_storage (const ParamIndex& pi)
 {
-	assert (pi.stmt < statements ().size ());
-	size_t idx = 0;
-	for (unsigned si = 0; si < pi.stmt; ++si) {
-		idx += sqlite3_bind_parameter_count (statements () [si]);
-	}
-	idx += (pi.param - 1);
-	if (param_storage_.size () <= idx)
-		param_storage_.resize (idx + 1);
-	return param_storage_ [idx];
+	return param_storage_ [pi];
 }
 
 void PreparedStatement::ParamStorage::destruct () noexcept
@@ -88,7 +80,7 @@ void PreparedStatement::ParamStorage::destruct () noexcept
 	}
 }
 
-void PreparedStatement::ParamStorage::adopt (ParamStorage&& src) noexcept
+void PreparedStatement::ParamStorage::adopt (ParamStorage& src) noexcept
 {
 	switch (d_ = src.d_) {
 	case STRING:
@@ -98,6 +90,7 @@ void PreparedStatement::ParamStorage::adopt (ParamStorage&& src) noexcept
 		construct (u_.blob, std::move (src.u_.blob));
 		break;
 	}
+	src.d_ = EMPTY;
 }
 
 }
