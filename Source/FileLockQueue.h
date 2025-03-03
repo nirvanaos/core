@@ -43,6 +43,9 @@ class FileLockQueue
 {
 	static const TimeBase::TimeT TIMER_DEADLINE = 1 * TimeBase::MILLISECOND;
 
+	// Even we do not have timeouts, we need to check for shutdown periodically.
+	static const TimeBase::TimeT CHECK_TIMEOUT = 1 * TimeBase::SECOND;
+
 public:
 	FileLockQueue () :
 		list_ (nullptr),
@@ -184,7 +187,8 @@ public:
 			nearest_expire_time_ = entry.expire_time ();
 			if (!timer_)
 				timer_ = Ref <Timer>::create <ImplDynamic <Timer> > (std::ref (*this));
-			timer_->set (0, entry.expire_time () - Chrono::steady_clock (), 0);
+			TimeBase::TimeT timeout = std::min (entry.expire_time () - Chrono::steady_clock (), CHECK_TIMEOUT);
+			timer_->set (0, timeout, 0);
 		}
 
 		entry.exec_domain ().suspend ();
@@ -223,8 +227,6 @@ private:
 	void on_timer () noexcept
 	{
 		if (Scheduler::shutdown_started ()) {
-			if (timer_)
-				timer_->cancel ();
 			while (list_) {
 				Entry* entry = list_;
 				list_ = entry->next ();

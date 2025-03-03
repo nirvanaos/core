@@ -91,11 +91,12 @@ bool EventSyncTimeout::wait (TimeBase::TimeT timeout, Synchronized* frame)
 	} else
 		list_ = &entry;
 
+	if (!timer_)
+		timer_ = Ref <Timer>::create <ImplDynamic <Timer> > (std::ref (*this));
 	if (nearest_expire_time_ > entry.expire_time) {
 		nearest_expire_time_ = entry.expire_time;
-		if (!timer_)
-			timer_ = Ref <Timer>::create <ImplDynamic <Timer> > (std::ref (*this));
-		timer_->set (0, entry.expire_time - Chrono::steady_clock (), 0);
+		TimeBase::TimeT timeout = std::min (entry.expire_time - Chrono::steady_clock (), CHECK_TIMEOUT);
+		timer_->set (0, timeout, 0);
 	}
 
 	cur_ed.suspend ();
@@ -105,6 +106,24 @@ bool EventSyncTimeout::wait (TimeBase::TimeT timeout, Synchronized* frame)
 	else if (std::numeric_limits <TimeBase::TimeT>::max () == entry.expire_time)
 		throw_BAD_INV_ORDER ();
 	return false;
+}
+
+void EventSyncTimeout::nearest_expire_time (TimeBase::TimeT t) noexcept
+{
+	if (timer_ && nearest_expire_time_ != t) {
+		if (!list_) {
+			nearest_expire_time_ = std::numeric_limits <TimeBase::TimeT>::max ();
+			timer_->cancel ();
+		} else {
+			nearest_expire_time_ = t;
+			TimeBase::TimeT timeout = std::min (t - Chrono::steady_clock (), CHECK_TIMEOUT);
+			try {
+				timer_->set (0, timeout, 0);
+			} catch (const CORBA::Exception& exc) {
+				resume_all (&exc);
+			}
+		}
+	}
 }
 
 void EventSyncTimeout::signal_all () noexcept
@@ -144,13 +163,7 @@ void EventSyncTimeout::signal_one () noexcept
 				if (expire_time > entry->expire_time)
 					expire_time = entry->expire_time;
 			}
-			if (nearest_expire_time_ != expire_time) {
-				nearest_expire_time_ = expire_time;
-				if (std::numeric_limits <TimeBase::TimeT>::max () == expire_time)
-					timer_->cancel ();
-				else
-					timer_->set (0, expire_time - Chrono::steady_clock (), 0);
-			}
+			nearest_expire_time (expire_time);
 		}
 	} else
 		++signal_cnt_;
@@ -181,9 +194,7 @@ void EventSyncTimeout::on_timer () noexcept
 			}
 		}
 
-		nearest_expire_time_ = next_time;
-		if (next_time != std::numeric_limits <TimeBase::TimeT>::max ())
-			timer_->set (0, next_time - Chrono::steady_clock (), 0);
+		nearest_expire_time (next_time);
 	}
 }
 

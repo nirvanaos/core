@@ -49,9 +49,9 @@ class FileAccessDirect :
 	typedef Base::BlockIdx BlockIdx;
 
 public:
-	static const SteadyTime DEFAULT_WRITE_TIMEOUT = 500 * TimeBase::MILLISECOND;
-	static const SteadyTime DEFAULT_DISCARD_TIMEOUT = 500 * TimeBase::MILLISECOND;
-	static const TimeBase::TimeT HOUSEKEEPING_PERIOD = 500 * TimeBase::MILLISECOND;
+	static const SteadyTime DEFAULT_WRITE_TIMEOUT = 1000 * TimeBase::MILLISECOND;
+	static const SteadyTime DEFAULT_DISCARD_TIMEOUT = 5000 * TimeBase::MILLISECOND;
+	static const TimeBase::TimeT HOUSEKEEPING_PERIOD = 1000 * TimeBase::MILLISECOND;
 
 	FileAccessDirect (Port::File& file, uint_fast16_t flags, uint_fast16_t mode) :
 		Base (file, flags, mode, file_size_, base_block_size_),

@@ -136,9 +136,9 @@ public:
 		SQLite (uri),
 		timeout_ (DEFAULT_TIMEOUT),
 		consistent_ (Nirvana::the_system->create_event (false, true)),
-		savepoint_ (0)
+		savepoint_ (0),
+		busy_retry_max_ (busy_retry_max (DEFAULT_TIMEOUT))
 	{
-		set_busy_retry_max ();
 		sqlite3_busy_handler (*this, s_busy_handler, this);
 
 		sqlite3_filename fn = sqlite3_db_filename (*this, nullptr);
@@ -215,7 +215,7 @@ public:
 	void setTimeout (const TimeBase::TimeT& timeout) noexcept
 	{
 		timeout_ = timeout;
-		set_busy_retry_max ();
+		busy_retry_max_ = busy_retry_max (timeout);
 	}
 
 	TimeBase::TimeT getTimeout () const noexcept
@@ -296,14 +296,14 @@ private:
 	static int s_busy_handler (void*, int attempt) noexcept;
 	inline int busy_handler (int attempt) noexcept;
 
-	void set_busy_retry_max () noexcept
+	static constexpr int busy_retry_max (const TimeBase::TimeT& timeout) noexcept
 	{
-		if (timeout_ <= LOCK_TIMEOUT)
-			busy_retry_max_ = 0;
-		else if (timeout_ == std::numeric_limits <TimeBase::TimeT>::max ())
-			busy_retry_max_ = std::numeric_limits <int>::max ();
+		if (timeout <= LOCK_TIMEOUT)
+			return 0;
+		else if (timeout == std::numeric_limits <TimeBase::TimeT>::max ())
+			return std::numeric_limits <int>::max ();
 		else
-			busy_retry_max_ = (timeout_ - 1) / LOCK_TIMEOUT;
+			return (timeout - 1) / LOCK_TIMEOUT;
 	}
 
 private:

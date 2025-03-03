@@ -42,6 +42,9 @@ class EventSyncTimeout
 {
 	static const TimeBase::TimeT TIMER_DEADLINE = 1 * TimeBase::MILLISECOND;
 
+	// Even we do not have timeouts, we need to check for shutdown periodically.
+	static const TimeBase::TimeT CHECK_TIMEOUT = 1 * TimeBase::SECOND;
+
 public:
 	EventSyncTimeout ();
 	~EventSyncTimeout ();
@@ -96,6 +99,8 @@ private:
 	}
 
 	void resume_all (const CORBA::Exception* exc) noexcept;
+
+	void nearest_expire_time (TimeBase::TimeT t) noexcept;
 
 private:
 	struct ListEntry

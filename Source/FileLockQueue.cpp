@@ -86,12 +86,14 @@ void FileLockQueue::adjust_timer () noexcept
 void FileLockQueue::nearest_expire_time (TimeBase::TimeT nearest) noexcept
 {
 	if (nearest_expire_time_ != nearest) {
-		nearest_expire_time_ = nearest;
-		if (nearest == std::numeric_limits <TimeBase::TimeT>::max ())
+		if (!list_) {
+			nearest_expire_time_ = std::numeric_limits <TimeBase::TimeT>::max ();
 			timer_->cancel ();
-		else {
+		} else {
+			nearest_expire_time_ = nearest;
+			TimeBase::TimeT timeout = std::min (nearest - Chrono::steady_clock (), CHECK_TIMEOUT);
 			try {
-				timer_->set (0, nearest - Chrono::steady_clock (), 0);
+				timer_->set (0, timeout, 0);
 			} catch (const CORBA::Exception& exc) {
 				signal_all (exc);
 			}
