@@ -455,7 +455,6 @@ void ExecDomain::suspend_prepared () noexcept
 #endif
 
 	Thread::current ().yield ();
-	resume_exception_.check ();
 }
 
 void ExecDomain::resume () noexcept
@@ -494,6 +493,7 @@ void ExecDomain::suspend ()
 {
 	assert (dbg_suspend_prepared ());
 	ExecContext::run_in_neutral_context (suspend_);
+	resume_exception_.check ();
 }
 
 void ExecDomain::Suspend::run ()
