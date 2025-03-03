@@ -37,7 +37,7 @@
 #include "Binder.h"
 #include "append_path.h"
 #include "CurrentDir.h"
-#include "DataState.h"
+#include "EventUser.h"
 
 namespace Nirvana {
 
@@ -164,9 +164,9 @@ public:
 			Core::Port::SystemInfo::supported_platforms () + Core::Port::SystemInfo::SUPPORTED_PLATFORM_CNT);
 	}
 
-	static DataState::_ref_type create_data_state ()
+	static Event::_ref_type create_event (bool manual_reset, bool initial_state)
 	{
-		return CORBA::make_pseudo <Core::DataState> ();
+		return CORBA::make_pseudo <Core::EventUser> (manual_reset, initial_state);
 	}
 };
 

@@ -120,7 +120,7 @@ public:
 
 		~Lock ()
 		{
-			connection_.data_state_->consistent ();
+			connection_.consistent_->signal ();
 		}
 
 		Connection& connection () const noexcept
@@ -135,7 +135,7 @@ public:
 	Connection (const std::string& uri) :
 		SQLite (uri),
 		timeout_ (DEFAULT_TIMEOUT),
-		data_state_ (Nirvana::the_system->create_data_state ()),
+		consistent_ (Nirvana::the_system->create_event (false, true)),
 		savepoint_ (0)
 	{
 		set_busy_retry_max ();
@@ -308,7 +308,7 @@ private:
 
 private:
 	TimeBase::TimeT timeout_;
-	Nirvana::DataState::_ref_type data_state_;
+	Nirvana::Event::_ref_type consistent_;
 	NDBC::SQLWarnings warnings_;
 	unsigned savepoint_;
 	int busy_retry_max_;

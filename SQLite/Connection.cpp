@@ -97,7 +97,7 @@ Connection::Lock::Lock (Connection& conn, bool no_check_exist) :
 	if (!no_check_exist)
 		conn.check_exist ();
 
-	if (!conn.data_state_->inconsistent (conn.timeout_))
+	if (!conn.consistent_->wait (conn.timeout_))
 		throw CORBA::TRANSIENT ();
 }
 

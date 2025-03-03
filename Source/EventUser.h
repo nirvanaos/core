@@ -24,8 +24,8 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_CORE_DATASTATE_H_
-#define NIRVANA_CORE_DATASTATE_H_
+#ifndef NIRVANA_CORE_EVENTUSER_H_
+#define NIRVANA_CORE_EVENTUSER_H_
 #pragma once
 
 #include <CORBA/Server.h>
@@ -36,37 +36,55 @@
 namespace Nirvana {
 namespace Core {
 
-class DataState :
-	public CORBA::servant_traits <Nirvana::DataState>::Servant <DataState>,
-	public CORBA::Internal::LifeCycleRefCnt <DataState>,
-	public CORBA::Internal::RefCountBase <DataState>,
+class EventUser :
+	public CORBA::servant_traits <Nirvana::Event>::Servant <EventUser>,
+	public CORBA::Internal::LifeCycleRefCnt <EventUser>,
+	public CORBA::Internal::RefCountBase <EventUser>,
 	public UserObject
 {
 public:
 	using UserObject::operator new;
 	using UserObject::operator delete;
 
-	DataState ()
+	EventUser (bool manual_reset, bool initial_state) :
+		manual_reset_ (manual_reset)
 	{
 		if (!SyncContext::current ().sync_domain ())
 			throw CORBA::BAD_INV_ORDER ();
-		event_.signal_one ();
+		if (initial_state) {
+			if (manual_reset)
+				event_.signal_one ();
+			else
+				event_.signal_one ();
+		}
 	}
 
-	bool inconsistent (const TimeBase::TimeT& timeout)
+	bool wait (const TimeBase::TimeT& timeout)
 	{
-		return event_.wait (timeout);
+		bool ret = event_.wait (timeout);
+		if (ret && !manual_reset_)
+			event_.reset_all ();
+		return ret;
 	}
 
-	void consistent ()
+	void signal ()
 	{
 		if (event_.signal_cnt ())
 			throw CORBA::BAD_INV_ORDER ();
-		event_.signal_one ();
+		if (manual_reset_)
+			event_.signal_all ();
+		else
+			event_.signal_one ();
+	}
+
+	void reset ()
+	{
+		event_.reset_all ();
 	}
 
 private:
 	EventSyncTimeout event_;
+	const bool manual_reset_;
 };
 
 }
