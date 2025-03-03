@@ -33,7 +33,7 @@ namespace Core {
 
 EventSyncTimeout::EventSyncTimeout () :
 	list_ (nullptr),
-	nearest_expire_time_ (std::numeric_limits <TimeBase::TimeT>::max ()),
+	nearest_expire_time_ (0),
 	signal_cnt_ (0)
 {}
 
@@ -80,6 +80,9 @@ bool EventSyncTimeout::wait (TimeBase::TimeT timeout, Synchronized* frame)
 		prev = next;
 	}
 
+	if (!timer_)
+		timer_ = Ref <Timer>::create <ImplDynamic <Timer> > (std::ref (*this));
+
 	if (frame)
 		frame->prepare_suspend_and_return ();
 	else
@@ -88,12 +91,12 @@ bool EventSyncTimeout::wait (TimeBase::TimeT timeout, Synchronized* frame)
 	if (prev) {
 		entry.next = prev->next;
 		prev->next = &entry;
-	} else
+	} else {
+		entry.next = list_;
 		list_ = &entry;
+	}
 
-	if (!timer_)
-		timer_ = Ref <Timer>::create <ImplDynamic <Timer> > (std::ref (*this));
-	if (nearest_expire_time_ > entry.expire_time) {
+	if (0 == nearest_expire_time_ || nearest_expire_time_ > entry.expire_time) {
 		nearest_expire_time_ = entry.expire_time;
 		TimeBase::TimeT timeout = std::min (entry.expire_time - Chrono::steady_clock (), CHECK_TIMEOUT);
 		timer_->set (0, timeout, 0);
@@ -112,7 +115,7 @@ void EventSyncTimeout::nearest_expire_time (TimeBase::TimeT t) noexcept
 {
 	if (timer_ && nearest_expire_time_ != t) {
 		if (!list_) {
-			nearest_expire_time_ = std::numeric_limits <TimeBase::TimeT>::max ();
+			nearest_expire_time_ = 0;
 			timer_->cancel ();
 		} else {
 			nearest_expire_time_ = t;

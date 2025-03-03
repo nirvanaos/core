@@ -63,7 +63,7 @@ protected:
 	virtual void run (const TimeBase::TimeT& signal_time) = 0;
 
 private:
-	virtual void signal () noexcept override;
+	void signal () noexcept override;
 
 	void run_complete () noexcept
 	{

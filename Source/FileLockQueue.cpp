@@ -87,7 +87,7 @@ void FileLockQueue::nearest_expire_time (TimeBase::TimeT nearest) noexcept
 {
 	if (nearest_expire_time_ != nearest) {
 		if (!list_) {
-			nearest_expire_time_ = std::numeric_limits <TimeBase::TimeT>::max ();
+			nearest_expire_time_ = 0;
 			timer_->cancel ();
 		} else {
 			nearest_expire_time_ = nearest;

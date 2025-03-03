@@ -40,7 +40,8 @@ class EventUser :
 	public CORBA::servant_traits <Nirvana::Event>::Servant <EventUser>,
 	public CORBA::Internal::LifeCycleRefCnt <EventUser>,
 	public CORBA::Internal::RefCountBase <EventUser>,
-	public UserObject
+	public UserObject,
+	private EventSyncTimeout
 {
 public:
 	using UserObject::operator new;
@@ -48,43 +49,54 @@ public:
 
 	EventUser (bool manual_reset, bool initial_state) :
 		manual_reset_ (manual_reset)
+#ifndef NDEBUG
+		,dbg_sc_ (SyncContext::current ())
+#endif
 	{
 		if (!SyncContext::current ().sync_domain ())
 			throw CORBA::BAD_INV_ORDER ();
 		if (initial_state) {
 			if (manual_reset)
-				event_.signal_one ();
+				EventSyncTimeout::signal_all ();
 			else
-				event_.signal_one ();
+				EventSyncTimeout::signal_one ();
 		}
 	}
 
 	bool wait (const TimeBase::TimeT& timeout)
 	{
-		bool ret = event_.wait (timeout);
+		assert (&dbg_sc_ == &SyncContext::current ());
+
+		bool ret = EventSyncTimeout::wait (timeout);
 		if (ret && !manual_reset_)
-			event_.reset_all ();
+			EventSyncTimeout::reset_all ();
 		return ret;
 	}
 
 	void signal ()
 	{
-		if (event_.signal_cnt ())
+		assert (&dbg_sc_ == &SyncContext::current ());
+
+		if (EventSyncTimeout::signal_cnt ())
 			throw CORBA::BAD_INV_ORDER ();
 		if (manual_reset_)
-			event_.signal_all ();
+			EventSyncTimeout::signal_all ();
 		else
-			event_.signal_one ();
+			EventSyncTimeout::signal_one ();
 	}
 
 	void reset ()
 	{
-		event_.reset_all ();
+		assert (&dbg_sc_ == &SyncContext::current ());
+		EventSyncTimeout::reset_all ();
 	}
 
 private:
-	EventSyncTimeout event_;
 	const bool manual_reset_;
+
+#ifndef NDEBUG
+	const SyncContext& dbg_sc_;
+#endif
 };
 
 }

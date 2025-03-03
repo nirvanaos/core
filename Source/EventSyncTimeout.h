@@ -62,7 +62,6 @@ public:
 
 	void reset_all () noexcept
 	{
-		assert (!list_);
 		signal_cnt_ = 0;
 	}
 
@@ -124,7 +123,9 @@ private:
 		Timer (EventSyncTimeout& ev) :
 			TimerAsyncCall (SyncContext::current (), TIMER_DEADLINE),
 			event_ (&ev)
-		{}
+		{
+			assert (SyncContext::current ().sync_domain ());
+		}
 
 	private:
 		void run (const TimeBase::TimeT& signal_time) override;
