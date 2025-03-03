@@ -43,7 +43,9 @@ void initialize ();
 void shutdown () noexcept;
 
 /// Called asynchronously before the kernel termination.
-void terminate () noexcept;
+void terminate2 () noexcept;
+
+void terminate1 () noexcept;
 
 /// Called by kernel on the final termination.
 void terminate0 () noexcept;

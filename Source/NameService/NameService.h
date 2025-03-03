@@ -101,20 +101,23 @@ public:
 		return _this ();
 	}
 
-	static void shutdown (CORBA::Object::_ptr_type root)
+	static void terminate ()
 	{
-		const CORBA::Core::ServantProxyLocal* proxy = get_proxy (root);
-		SYNC_BEGIN (proxy->sync_context (), nullptr);
-		NameService* impl = static_cast <NameService*> (get_implementation (root));
-		assert (impl);
-		impl->shutdown ();
-		SYNC_END ();
+		CORBA::Object::_ref_type root = CORBA::Core::Services::get_if_constructed (CORBA::Core::Services::NameService);
+		if (root) {
+			const CORBA::Core::ServantProxyLocal* proxy = get_proxy (root);
+			SYNC_BEGIN (proxy->sync_context (), nullptr);
+			NameService* impl = static_cast <NameService*> (get_implementation (root));
+			assert (impl);
+			impl->terminate_impl ();
+			SYNC_END ();
+		}
 	}
 
 protected:
-	void shutdown () noexcept
+	void terminate_impl () noexcept
 	{
-		NamingContextImpl::shutdown ();
+		NamingContextImpl::terminate ();
 	}
 
 	virtual void add_link (const NamingContextImpl& parent) override

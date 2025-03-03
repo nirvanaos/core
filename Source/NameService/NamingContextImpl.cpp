@@ -91,7 +91,7 @@ NamingContextImpl::NamingContextImpl () :
 NamingContextImpl::~NamingContextImpl ()
 {}
 
-void NamingContextImpl::shutdown () noexcept
+void NamingContextImpl::terminate () noexcept
 {
 	Bindings bindings (std::move (bindings_));
 	while (!bindings.empty ()) {
@@ -99,7 +99,7 @@ void NamingContextImpl::shutdown () noexcept
 		if (b->second.binding_type == BindingType::ncontext) {
 			NamingContextImpl* impl = cast (b->second.object);
 			if (impl)
-				impl->shutdown ();
+				impl->terminate ();
 		}
 		bindings.erase (b);
 	}

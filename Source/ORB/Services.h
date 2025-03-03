@@ -73,6 +73,8 @@ public:
 		return bind (find_service (id.c_str ()));
 	}
 
+	static Object::_ref_type get_if_constructed (Service sidx) noexcept;
+
 	static ORB::ObjectIdList list_initial_services ()
 	{
 		ORB::ObjectIdList list;
@@ -86,7 +88,8 @@ public:
 		sync_domain_ (std::ref (Nirvana::Core::Heap::shared_heap ()))
 	{}
 
-	~Services ();
+	~Services ()
+	{}
 
 	static void initialize () noexcept
 	{

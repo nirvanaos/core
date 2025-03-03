@@ -51,9 +51,13 @@ public:
 	enum State
 	{
 		RUNNING = 0,
-		SHUTDOWN_PLANNED,
+		SHUTDOWN_PLANNED, // Start shutdown on the last activity end
+
+		// Disabled async GC, object creation, periodic timers wait events
 		SHUTDOWN_STARTED,
-		TERMINATE,
+
+		TERMINATE2,
+		TERMINATE1,
 		SHUTDOWN_FINISH
 	};
 
@@ -146,7 +150,13 @@ private:
 		virtual void run ();
 	};
 
-	class Terminator : public Runnable
+	class Terminator2 : public Runnable
+	{
+	private:
+		virtual void run ();
+	};
+
+	class Terminator1 : public Runnable
 	{
 	private:
 		virtual void run ();

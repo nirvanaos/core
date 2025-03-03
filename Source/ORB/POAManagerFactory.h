@@ -87,6 +87,13 @@ public:
 		return ret;
 	}
 
+	void deactivate_all ()
+	{
+		for (auto& entry : managers_) {
+			const_cast <POAManager&> (entry).deactivate (false, false);
+		}
+	}
+
 private:
 	friend class POAManager;
 

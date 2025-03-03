@@ -63,7 +63,7 @@ protected:
 	virtual void add_link (const NamingContextImpl& parent) = 0;
 	virtual bool remove_link (const NamingContextImpl& parent) = 0;
 
-	void shutdown () noexcept;
+	void terminate () noexcept;
 
 	static Istring to_string (const NameComponent& nc)
 	{

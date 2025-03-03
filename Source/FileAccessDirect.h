@@ -279,7 +279,11 @@ private:
 
 	void set_size (Pos new_size);
 	void complete_size_request () noexcept;
-	void retry_lock () noexcept;
+	
+	void retry_lock () noexcept
+	{
+		lock_queue_.retry_lock (lock_ranges_);
+	}
 
 	class HousekeepingTimer : public TimerAsyncCall
 	{
@@ -322,8 +326,6 @@ private:
 		try {
 			write_dirty_blocks (write_timeout_);
 		} catch (...) {}
-
-		lock_queue_.housekeeping ();
 	}
 
 private:

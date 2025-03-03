@@ -29,7 +29,6 @@
 #include "POA_Root.h"
 #include "PortableServer_Current.h"
 #include "NameService/NameService.h"
-#include "ESIOP.h"
 #include "../Console.h"
 
 namespace Nirvana {
@@ -62,19 +61,6 @@ namespace Core {
 extern Object::_ref_type create_TC_Factory ();
 
 Nirvana::Core::StaticallyAllocated <Services> Services::singleton_;
-
-Services::~Services ()
-{
-	if (ESIOP::is_system_domain ()) {
-		Object::_ref_type name_service = services_ [NameService].get_if_constructed ();
-		if (name_service)
-			CosNaming::Core::NameService::shutdown (name_service);
-	}
-
-	Object::_ref_type POA_root = services_ [RootPOA].get_if_constructed ();
-	if (POA_root) // Block incoming requests and complete currently executed ones.
-		PortableServer::Core::POA_Root::shutdown (POA_root);
-}
 
 inline Object::_ref_type Services::bind_internal (Service sidx)
 {
@@ -114,6 +100,11 @@ Object::_ref_type Services::bind (Service sidx)
 	if (Nirvana::Core::Scheduler::shutdown_started ())
 		return nullptr;
 	return singleton_->bind_internal (sidx);
+}
+
+Object::_ref_type Services::get_if_constructed (Service sidx) noexcept
+{
+	return singleton_->services_ [sidx].get_if_constructed ();
 }
 
 // Initial services. Must be lexicographically ordered.

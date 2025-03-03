@@ -32,7 +32,7 @@
 #include "SysManager.h"
 
 // Output debug messages on shutdown.
-//#define DEBUG_SHUTDOWN
+#define DEBUG_SHUTDOWN
 
 // If we use INFINITE_DEADLINE, the new background thread will be created for shutdown.
 //#define SHUTDOWN_DEADLINE Chrono::make_deadline (1 * TimeBase::MINUTE)
@@ -46,13 +46,20 @@ void Scheduler::Shutdown::run ()
 	do_shutdown ();
 }
 
-void Scheduler::Terminator::run ()
+void Scheduler::Terminator2::run ()
+{
+	// Terminate
+	NIRVANA_TRACE ("Core::terminate2 ()");
+	Core::terminate2 ();
+}
+
+void Scheduler::Terminator1::run ()
 {
 	// Terminate
 #ifdef DEBUG_SHUTDOWN
-	the_system->debug_event (System::DebugEvent::DEBUG_INFO, "Core::terminate ()");
+	the_debugger->debug_event (Debugger::DebugEvent::DEBUG_INFO, "Core::terminate1 ()", __FILE__, __LINE__);
 #endif
-	Core::terminate ();
+	Core::terminate1 ();
 }
 
 StaticallyAllocated <Scheduler::GlobalData> Scheduler::global_;
@@ -60,13 +67,13 @@ StaticallyAllocated <Scheduler::GlobalData> Scheduler::global_;
 void Scheduler::do_shutdown ()
 {
 #ifdef DEBUG_SHUTDOWN
-	the_system->debug_event (System::DebugEvent::DEBUG_INFO, "Core::shutdown ()");
+	the_debugger->debug_event (Debugger::DebugEvent::DEBUG_INFO, "Core::shutdown ()", __FILE__, __LINE__);
 #endif
 
 	Core::shutdown ();
 
 #ifdef DEBUG_SHUTDOWN
-	the_system->debug_event (System::DebugEvent::DEBUG_INFO, "Core::shutdown () end");
+	the_debugger->debug_event (Debugger::DebugEvent::DEBUG_INFO, "Core::shutdown () end", __FILE__, __LINE__);
 #endif
 
 	// If no activity - toggle it.
@@ -131,21 +138,34 @@ void Scheduler::activity_end () noexcept
 				break;
 
 			case State::SHUTDOWN_STARTED:
-				if (global_->state.compare_exchange_strong (state, State::TERMINATE)) {
+				if (global_->state.compare_exchange_strong (state, State::TERMINATE2)) {
 #ifdef DEBUG_SHUTDOWN
-					the_system->debug_event (System::DebugEvent::DEBUG_INFO, "ExecDomain::async_call <Terminator>");
+					the_debugger->debug_event (Debugger::DebugEvent::DEBUG_INFO, "ExecDomain::async_call <Terminator2>", __FILE__, __LINE__);
 #endif
 					try {
-						ExecDomain::async_call <Terminator> (SHUTDOWN_DEADLINE, g_core_free_sync_context, nullptr);
+						ExecDomain::async_call <Terminator2> (SHUTDOWN_DEADLINE, g_core_free_sync_context, nullptr);
 					} catch (...) {
 						// Fallback
-						activity_begin ();
-						activity_end ();
+						toggle_activity ();
 					}
 				}
 				break;
 
-			case State::TERMINATE:
+			case State::TERMINATE2:
+				if (global_->state.compare_exchange_strong (state, State::TERMINATE1)) {
+#ifdef DEBUG_SHUTDOWN
+					the_debugger->debug_event (Debugger::DebugEvent::DEBUG_INFO, "ExecDomain::async_call <Terminator1>", __FILE__, __LINE__);
+#endif
+					try {
+						ExecDomain::async_call <Terminator1> (SHUTDOWN_DEADLINE, g_core_free_sync_context, nullptr);
+					} catch (...) {
+						// Fallback
+						toggle_activity ();
+					}
+				}
+				break;
+
+			case State::TERMINATE1:
 				if (global_->state.compare_exchange_strong (state, State::SHUTDOWN_FINISH))
 					Port::Scheduler::shutdown ();
 				break;

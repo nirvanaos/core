@@ -34,8 +34,10 @@
 #include "ORB/Services.h"
 #include "ORB/LocalAddress.h"
 #include "ORB/SysAdapterActivator.h"
+#include "ORB/POA_Root.h"
 #include <Port/PostOffice.h>
 #include "ProtDomain.h"
+#include "NameService/NameService.h"
 
 namespace Nirvana {
 namespace Core {
@@ -73,24 +75,36 @@ void shutdown () noexcept
 	// Perform GC for services synchronously
 	ExecDomain::current ().restricted_mode (ExecDomain::RestrictedMode::SUPPRESS_ASYNC_GC);
 
-	// Block incoming requests and complete currently executed ones.
+	// Deactivate all managers to reject incoming requests.
+	PortableServer::Core::POA_Root::deactivate_all ();
+	
+	// Block incoming requests and complete currently executing ones.
+	PortableServer::Core::POA_Root::shutdown ();
+}
+
+void terminate2 () noexcept
+{
+	if (ESIOP::is_system_domain ())
+		CosNaming::Core::NameService::terminate ();
+
 	// Release all service proxies.
 	CORBA::Core::Services::terminate ();
 
 	// Clear remote references, if any
 	Binder::clear_remote_references ();
-}
 
-void terminate () noexcept
-{
-	Port::PostOffice::terminate (); // Stop receiving messages. But we can still send messages.
+	// Stop receiving messages. But we can still send messages.
+	Port::PostOffice::terminate ();
 
 	// Disable all timers
 	Timer::terminate ();
 
 	if (ESIOP::is_system_domain ())
 		PortableServer::Core::SysAdapterActivator::terminate ();
+}
 
+void terminate1 () noexcept
+{
 	ProtDomain::terminate ();
 	Binder::terminate ();
 	CORBA::Core::terminate ();

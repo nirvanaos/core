@@ -30,10 +30,10 @@
 
 #include "POA_Implicit.h"
 #include "POAManagerFactory.h"
-#include "../MapUnorderedStable.h"
 #include "HashOctetSeq.h"
-#include <CORBA/Servant_var.h>
+#include "../MapUnorderedStable.h"
 #include "../Nirvana/CoreDomains.h"
+#include <CORBA/Servant_var.h>
 #include <random>
 
 namespace IOP {
@@ -168,20 +168,26 @@ public:
 		return DGC_policies_;
 	}
 
-	static void shutdown (CORBA::Object::_ptr_type root)
+	static void deactivate_all ()
+	{
+		// Deactivate all managers to reject incoming requests.
+		CORBA::Object::_ref_type root_adapter = CORBA::Core::Services::get_if_constructed (CORBA::Core::Services::RootPOA);
+		if (root_adapter) {
+			const CORBA::Core::ServantProxyLocal* proxy = CORBA::Core::local2proxy (root_adapter);
+			SYNC_BEGIN (proxy->sync_context (), nullptr);
+			root ().manager_factory ().deactivate_all ();
+			SYNC_END ();
+		}
+	}
+
+	static void shutdown ()
 	{
 		shutdown_ = true;
 
-		POA::_ref_type adapter = POA::_narrow (root);
-
-		// Deactivate all managers to reject incoming requests.
-		POAManagerFactory::POAManagerSeq managers = adapter->the_POAManagerFactory ()->list ();
-		for (const auto& mgr : managers) {
-			mgr->deactivate (false, false);
-		}
-
 		// Block incoming requests and complete currently executed ones.
-		adapter->destroy (true, true);
+		CORBA::Object::_ref_type root_adapter = CORBA::Core::Services::get_if_constructed (CORBA::Core::Services::RootPOA);
+		if (root_adapter)
+			PortableServer::POA::_narrow (root_adapter)->destroy (true, true);
 	}
 
 	static bool shutdown_started () noexcept

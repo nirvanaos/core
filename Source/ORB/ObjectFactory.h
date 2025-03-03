@@ -78,6 +78,10 @@ public:
 	{
 		if (!(scf.tmp () && scf.size ()))
 			throw BAD_PARAM ();
+
+		if (Nirvana::Core::Scheduler::shutdown_started ())
+			throw BAD_INV_ORDER ();
+
 		Nirvana::Core::Heap& sm = stateless_memory ();
 		void* p = sm.allocate (0, scf.size (), Nirvana::Memory::READ_ONLY | Nirvana::Memory::RESERVED);
 		scf.offset ((uint8_t*)p - (uint8_t*)scf.tmp ());
@@ -137,6 +141,9 @@ private:
 			assert (false); // Must be checked at the user side
 			return; // Already created
 		}
+
+		if (Nirvana::Core::Scheduler::shutdown_started ())
+			throw BAD_INV_ORDER ();
 
 		StatelessCreationFrame* scf = begin_proxy_creation (&servant);
 		ServantObject* proxy = nullptr;

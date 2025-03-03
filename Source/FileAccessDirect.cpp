@@ -271,25 +271,5 @@ void FileAccessDirect::set_size (Pos new_size)
 		throw_INTERNAL (make_minor_errno (err));
 }
 
-void FileAccessDirect::retry_lock () noexcept
-{
-	for (auto it = lock_queue_.begin (); it != lock_queue_.end ();) {
-		LockType lmin = it->level_min ();
-		LockType lmax = it->level_max ();
-		try {
-			bool downgraded;
-			LockType l = lock_ranges_.set (it->begin (), it->end (), lmax, lmin, it->owner (),
-				downgraded);
-			assert (!downgraded);
-			if (l >= lmin)
-				it = lock_queue_.dequeue (it, l);
-			else
-				++it;
-		} catch (const CORBA::Exception& ex) {
-			it = lock_queue_.dequeue (it, ex);
-		}
-	}
-}
-
 }
 }

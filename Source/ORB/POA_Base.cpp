@@ -177,6 +177,7 @@ POA_Base::POA_Base (POA_Base* parent, const IDL::String* name,
 	}
 
 	the_POAManager_->on_adapter_create (*this);
+	the_POAManager_->_this (); // Create proxy forward
 	NIRVANA_TRACE ("POA_Base (%s)", dbg_name_.c_str ());
 }
 

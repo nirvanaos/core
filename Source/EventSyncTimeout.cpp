@@ -27,15 +27,23 @@
 #include "EventSyncTimeout.h"
 #include "Chrono.h"
 #include "Synchronized.h"
-#include "ExecDomain.h"
 
 namespace Nirvana {
 namespace Core {
 
 EventSyncTimeout::EventSyncTimeout () :
-	next_timeout_ (std::numeric_limits <TimeBase::TimeT>::max ()),
+	list_ (nullptr),
+	nearest_expire_time_ (std::numeric_limits <TimeBase::TimeT>::max ()),
 	signal_cnt_ (0)
 {}
+
+EventSyncTimeout::~EventSyncTimeout ()
+{
+	if (timer_)
+		timer_->disconnect ();
+	CORBA::OBJECT_NOT_EXIST exc;
+	resume_all (&exc);
+}
 
 bool EventSyncTimeout::wait (TimeBase::TimeT timeout, Synchronized* frame)
 {
@@ -44,41 +52,59 @@ bool EventSyncTimeout::wait (TimeBase::TimeT timeout, Synchronized* frame)
 	if (acq_signal ())
 		return true;
 		
-	if (!timeout || Scheduler::shutdown_started ())
+	if (!timeout)
 		return false;
 
-	volatile bool result = false;
+	if (Scheduler::shutdown_started ()) {
+		if (timeout != std::numeric_limits <TimeBase::TimeT>::max ())
+			return false;
+		else
+			throw_BAD_INV_ORDER ();
+	}
 
 	ExecDomain& cur_ed = frame ? frame->exec_domain () : ExecDomain::current ();
+	DeadlineTime deadline = cur_ed.deadline ();
 
-	ListEntry entry{ &cur_ed, std::numeric_limits <TimeBase::TimeT>::max (), &result };
+	ListEntry entry { std::numeric_limits <TimeBase::TimeT>::max (), &cur_ed, nullptr, false };
 	if (timeout != std::numeric_limits <TimeBase::TimeT>::max ()) {
 		TimeBase::TimeT cur_time = Chrono::steady_clock ();
 		if (std::numeric_limits <TimeBase::TimeT>::max () - cur_time <= timeout)
 			throw_BAD_PARAM ();
 		entry.expire_time = cur_time + timeout;
-		if (!timer_)
-			timer_ = Ref <Timer>::create <ImplDynamic <Timer> > (std::ref (*this));
-		if (next_timeout_ > entry.expire_time) {
-			timer_->set (0, timeout, 0);
-			next_timeout_ = entry.expire_time;
-		}
 	}
 
-	list_.push_front (entry);
-	try {
-		if (frame)
-			frame->prepare_suspend_and_return ();
-		else
-			cur_ed.suspend_prepare ();
-	} catch (...) {
-		list_.pop_front ();
-		throw;
+	ListEntry* prev = nullptr;
+	for (ListEntry* next = list_; next; next = next->next) {
+		if (next->exec_domain->deadline () > deadline)
+			break;
+		prev = next;
+	}
+
+	if (frame)
+		frame->prepare_suspend_and_return ();
+	else
+		cur_ed.suspend_prepare ();
+
+	if (prev) {
+		entry.next = prev->next;
+		prev->next = &entry;
+	} else
+		list_ = &entry;
+
+	if (nearest_expire_time_ > entry.expire_time) {
+		nearest_expire_time_ = entry.expire_time;
+		if (!timer_)
+			timer_ = Ref <Timer>::create <ImplDynamic <Timer> > (std::ref (*this));
+		timer_->set (0, entry.expire_time - Chrono::steady_clock (), 0);
 	}
 
 	cur_ed.suspend ();
 
-	return result;
+	if (entry.result)
+		return true;
+	else if (std::numeric_limits <TimeBase::TimeT>::max () == entry.expire_time)
+		throw_BAD_INV_ORDER ();
+	return false;
 }
 
 void EventSyncTimeout::signal_all () noexcept
@@ -91,11 +117,10 @@ void EventSyncTimeout::signal_all () noexcept
 	if (timer_)
 		timer_->cancel ();
 
-	while (!list_.empty ()) {
-		ListEntry& entry = list_.front ();
-		*entry.result_ptr = true;
-		ExecDomain* ed = entry.exec_domain;
-		list_.pop_front ();
+	while (list_) {
+		list_->result = true;
+		ExecDomain* ed = list_->exec_domain;
+		list_ = list_->next;
 		ed->resume ();
 	}
 }
@@ -106,14 +131,27 @@ void EventSyncTimeout::signal_one () noexcept
 
 	assert (signal_cnt_ != std::numeric_limits <size_t>::max ());
 
-	if (!list_.empty ()) {
-		ListEntry& entry = list_.front ();
-		*entry.result_ptr = true;
-		ExecDomain* ed = entry.exec_domain;
-		list_.pop_front ();
-		if (list_.empty () && timer_)
-			timer_->cancel ();
+	if (list_) {
+		list_->result = true;
+		ExecDomain* ed = list_->exec_domain;
+		TimeBase::TimeT expire_time = list_->expire_time;
+		list_ = list_->next;
 		ed->resume ();
+		if (timer_ && std::numeric_limits <TimeBase::TimeT>::max () != expire_time
+			&& expire_time <= nearest_expire_time_) {
+			expire_time = std::numeric_limits <TimeBase::TimeT>::max ();
+			for (ListEntry* entry = list_; entry; entry = entry->next) {
+				if (expire_time > entry->expire_time)
+					expire_time = entry->expire_time;
+			}
+			if (nearest_expire_time_ != expire_time) {
+				nearest_expire_time_ = expire_time;
+				if (std::numeric_limits <TimeBase::TimeT>::max () == expire_time)
+					timer_->cancel ();
+				else
+					timer_->set (0, expire_time - Chrono::steady_clock (), 0);
+			}
+		}
 	} else
 		++signal_cnt_;
 }
@@ -123,31 +161,52 @@ void EventSyncTimeout::on_timer () noexcept
 {
 	assert (SyncContext::current ().sync_domain ());
 
-	TimeBase::TimeT cur_time = Chrono::steady_clock ();
-	TimeBase::TimeT next_timeout = std::numeric_limits <TimeBase::TimeT>::max ();
-	for (List::iterator it = list_.before_begin ();;) {
-		List::iterator next = it;
-		++next;
-		if (next == list_.end ())
-			break;
-		TimeBase::TimeT expire_time = next->expire_time;
-		if (expire_time <= cur_time) {
-			next->exec_domain->resume ();
-			list_.erase_after (it);
-		} else {
-			if (next_timeout > expire_time)
-				next_timeout = expire_time;
-			it = next;
+	if (Scheduler::shutdown_started ())
+		resume_all (nullptr);
+	else {
+		TimeBase::TimeT cur_time = Chrono::steady_clock ();
+		TimeBase::TimeT next_time = std::numeric_limits <TimeBase::TimeT>::max ();
+		for (ListEntry* entry = list_, *prev = nullptr; entry;) {
+			if (entry->expire_time >= cur_time) {
+				if (prev)
+					prev->next = entry->next;
+				else
+					list_ = entry->next;
+				entry->exec_domain->resume ();
+			} else {
+				if (next_time > entry->expire_time)
+					next_time = entry->expire_time;
+				prev = entry;
+				entry = entry->next;
+			}
 		}
-	}
 
-	if (next_timeout != std::numeric_limits <TimeBase::TimeT>::max ())
-		timer_->set (0, next_timeout - cur_time, 0);
+		nearest_expire_time_ = next_time;
+		if (next_time != std::numeric_limits <TimeBase::TimeT>::max ())
+			timer_->set (0, next_time - Chrono::steady_clock (), 0);
+	}
+}
+
+void EventSyncTimeout::resume_all (const CORBA::Exception* exc) noexcept
+{
+	if (timer_)
+		timer_->cancel ();
+
+	while (list_) {
+		list_->result = true;
+		ExecDomain* ed = list_->exec_domain;
+		list_ = list_->next;
+		if (exc)
+			ed->resume (*exc);
+		else
+			ed->resume ();
+	}
 }
 
 void EventSyncTimeout::Timer::run (const TimeBase::TimeT& signal_time)
 {
-	event_.on_timer ();
+	if (event_)
+		event_->on_timer ();
 }
 
 }

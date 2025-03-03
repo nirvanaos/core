@@ -28,9 +28,8 @@
 #define NIRVANA_CORE_EVENTSYNCTIMEOUT_H_
 #pragma once
 
-#include "UserAllocator.h"
+#include "ExecDomain.h"
 #include "TimerAsyncCall.h"
-#include <forward_list>
 
 namespace Nirvana {
 namespace Core {
@@ -45,6 +44,7 @@ class EventSyncTimeout
 
 public:
 	EventSyncTimeout ();
+	~EventSyncTimeout ();
 
 	bool wait (TimeBase::TimeT timeout, Synchronized* frame = nullptr);
 
@@ -59,7 +59,7 @@ public:
 
 	void reset_all () noexcept
 	{
-		assert (list_.empty ());
+		assert (!list_);
 		signal_cnt_ = 0;
 	}
 
@@ -95,34 +95,42 @@ private:
 		return false;
 	}
 
+	void resume_all (const CORBA::Exception* exc) noexcept;
+
 private:
 	struct ListEntry
 	{
-		ExecDomain* exec_domain;
 		TimeBase::TimeT expire_time;
-		volatile bool * result_ptr;
+		ExecDomain* exec_domain;
+		ListEntry* next;
+		bool result;
 	};
-
-	typedef std::forward_list <ListEntry, UserAllocator <ListEntry> > List;
 
 	class Timer : public TimerAsyncCall
 	{
+	public:
+		void disconnect () noexcept
+		{
+			event_ = nullptr;
+			TimerAsyncCall::cancel ();
+		}
+
 	protected:
 		Timer (EventSyncTimeout& ev) :
 			TimerAsyncCall (SyncContext::current (), TIMER_DEADLINE),
-			event_ (ev)
+			event_ (&ev)
 		{}
 
 	private:
-		virtual void run (const TimeBase::TimeT& signal_time) override;
+		void run (const TimeBase::TimeT& signal_time) override;
 
 	private:
-		EventSyncTimeout& event_;
+		EventSyncTimeout* event_;
 	};
 
-	List list_;
+	ListEntry* list_;
 	Ref <Timer> timer_;
-	TimeBase::TimeT next_timeout_;
+	TimeBase::TimeT nearest_expire_time_;
 	size_t signal_cnt_;
 };
 

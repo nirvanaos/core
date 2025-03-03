@@ -30,37 +30,43 @@
 
 #include <Nirvana/Nirvana.h>
 #include <Nirvana/File.h>
-#include <Nirvana/SimpleList.h>
-#include "UserObject.h"
-#include "EventSync.h"
 #include "ExecDomain.h"
+#include "TimerAsyncCall.h"
+#include "Chrono.h"
 
 namespace Nirvana {
 namespace Core {
 
+class FileLockRanges;
+
 class FileLockQueue
 {
+	static const TimeBase::TimeT TIMER_DEADLINE = 1 * TimeBase::MILLISECOND;
+
 public:
+	FileLockQueue () :
+		list_ (nullptr),
+		nearest_expire_time_ (std::numeric_limits <TimeBase::TimeT>::max ())
+	{}
+
 	~FileLockQueue ()
 	{
-		CORBA::OBJECT_NOT_EXIST exc;
-		while (!list_.empty ()) {
-			dequeue (list_.begin (), exc);
-		}
+		if (timer_)
+			timer_->disconnect ();
+		signal_all (CORBA::OBJECT_NOT_EXIST ());
 	}
 
-	class Entry :
-		public SimpleList <Entry>::Element,
-		public UserObject
+	class Entry
 	{
 	public:
 		Entry (const FileSize& begin, const FileSize& end, LockType level_max, LockType level_min,
 			const void* owner, const TimeBase::TimeT& timeout) noexcept :
 			begin_ (begin),
 			end_ (end),
-			deadline_ (ExecDomain::current ().deadline ()),
 			expire_time_ (calc_expire_time (timeout)),
+			exec_domain_ (ExecDomain::current ()),
 			owner_ (owner),
+			next_ (nullptr),
 			level_max_ (level_max),
 			level_min_ (level_min)
 		{}
@@ -92,36 +98,38 @@ public:
 
 		const DeadlineTime& deadline () const noexcept
 		{
-			return deadline_;
+			return exec_domain_.deadline ();
 		}
 
-		LockType wait ()
+		ExecDomain& exec_domain () const noexcept
 		{
-			try {
-				event_.wait ();
-			} catch (...) {
-				delete this;
-				throw;
-			}
-			LockType ret = level_max_;
-			delete this;
-			return ret;
+			return exec_domain_;
 		}
 
 		void signal (LockType level) noexcept
 		{
 			level_max_ = level;
-			event_.signal ();
+			exec_domain_.resume ();
 		}
 
 		void signal (const CORBA::Exception& exc) noexcept
 		{
-			event_.signal (exc);
+			exec_domain_.resume (exc);
 		}
 
 		const SteadyTime& expire_time () const noexcept
 		{
 			return expire_time_;
+		}
+
+		Entry* next () const noexcept
+		{
+			return next_;
+		}
+
+		void next (Entry* p) noexcept
+		{
+			next_ = p;
 		}
 
 	private:
@@ -142,88 +150,138 @@ public:
 	private:
 		FileSize begin_;
 		FileSize end_;
-		DeadlineTime deadline_;
 		SteadyTime expire_time_;
+		ExecDomain& exec_domain_;
 		const void* owner_;
-		EventSync event_;
+		Entry* next_;
 		LockType level_max_;
 		LockType level_min_;
 	};
-
-	typedef SimpleList <Entry>::iterator iterator;
 
 	LockType enqueue (const FileSize& begin, const FileSize& end,
 		LockType level_max, LockType level_min,
 		const void* owner, const TimeBase::TimeT& timeout)
 	{
-		Entry* entry = new Entry (begin, end, level_max, level_min, owner, timeout);
-		iterator ins = list_.end ();
-		while (ins != list_.begin ()) {
-			iterator prev = ins;
-			--prev;
-			if (prev->deadline () > entry->deadline ())
-				ins = prev;
-			else
+		Entry entry (begin, end, level_max, level_min, owner, timeout);
+		DeadlineTime deadline = entry.deadline ();
+
+		Entry* prev = nullptr;
+		for (Entry* next = list_; next; next = next->next ()) {
+			if (next->deadline () > deadline)
 				break;
+			prev = next;
 		}
-		entry->insert (*ins);
-		return entry->wait ();
+
+		entry.exec_domain ().suspend_prepare ();
+
+		if (prev) {
+			entry.next (prev->next ());
+			prev->next (&entry);
+		} else
+			list_ = &entry;
+
+		if (nearest_expire_time_ > entry.expire_time ()) {
+			nearest_expire_time_ = entry.expire_time ();
+			if (!timer_)
+				timer_ = Ref <Timer>::create <ImplDynamic <Timer> > (std::ref (*this));
+			timer_->set (0, entry.expire_time () - Chrono::steady_clock (), 0);
+		}
+
+		entry.exec_domain ().suspend ();
+
+		return entry.level_max ();
 	}
 	
-	iterator begin () const noexcept
-	{
-		return list_.begin ();
-	}
-
-	iterator end () const noexcept
-	{
-		return list_.end ();
-	}
-
-	iterator dequeue (iterator it, LockType level) noexcept
-	{
-		iterator next = it->next ();
-		list_.remove (it);
-		it->signal (level);
-		return next;
-	}
-
-	iterator dequeue (iterator it, const CORBA::Exception& exc) noexcept
-	{
-		iterator next = it->next ();
-		list_.remove (it);
-		it->signal (exc);
-		return next;
-	}
+	Entry* dequeue (Entry* prev, Entry* entry) noexcept;
 
 	bool empty () const noexcept
 	{
-		return list_.empty ();
+		return !list_;
 	}
 
 	void on_delete_proxy (const void* owner) noexcept
 	{
-		for (iterator it = begin (); it != end ();) {
-			if (it->owner () == owner)
-				it = dequeue (it, LockType::LOCK_NONE);
-			else
-				++it;
+		bool changed = false;
+		for (Entry* entry = list_, *prev = nullptr; entry;) {
+			if (entry->owner () == owner) {
+				Entry* next = dequeue (prev, entry);
+				entry->signal (LockType::LOCK_NONE);
+				entry = next;
+				changed = true;
+			} else {
+				prev = entry;
+				entry = entry->next ();
+			}
 		}
+		if (changed)
+			adjust_timer ();
 	}
 
-	void housekeeping () noexcept
-	{
-		SteadyTime time = Chrono::steady_clock ();
-		for (iterator it = begin (); it != end ();) {
-			if (it->expire_time () <= time)
-				it = dequeue (it, LockType::LOCK_NONE);
-			else
-				++it;
-		}
-	}
+	void retry_lock (FileLockRanges& lock_ranges) noexcept;
 
 private:
-	SimpleList <Entry> list_;
+	void on_timer () noexcept
+	{
+		if (Scheduler::shutdown_started ()) {
+			if (timer_)
+				timer_->cancel ();
+			while (list_) {
+				Entry* entry = list_;
+				list_ = entry->next ();
+				if (entry->expire_time () < std::numeric_limits <SteadyTime>::max ())
+					entry->signal (LockType::LOCK_NONE);
+				else
+					entry->signal (CORBA::BAD_INV_ORDER ());
+			}
+		} else {
+			SteadyTime time = Chrono::steady_clock ();
+			TimeBase::TimeT next_time = std::numeric_limits <TimeBase::TimeT>::max ();
+			for (Entry* entry = list_, *prev = nullptr; entry;) {
+				if (entry->expire_time () <= time) {
+					Entry* next = dequeue (prev, entry);
+					entry->signal (LockType::LOCK_NONE);
+					entry = next;
+				} else {
+					if (next_time > entry->expire_time ())
+						next_time = entry->expire_time ();
+					prev = entry;
+					entry = entry->next ();
+				}
+			}
+			nearest_expire_time (next_time);
+		}
+	}
+
+	void adjust_timer () noexcept;
+	void nearest_expire_time (TimeBase::TimeT t) noexcept;
+	void signal_all (const CORBA::Exception& exc) noexcept;
+
+	class Timer : public TimerAsyncCall
+	{
+	public:
+		void disconnect () noexcept
+		{
+			obj_ = nullptr;
+			TimerAsyncCall::cancel ();
+		}
+
+	protected:
+		Timer (FileLockQueue& obj) :
+			TimerAsyncCall (SyncContext::current (), TIMER_DEADLINE),
+			obj_ (&obj)
+		{}
+
+	private:
+		void run (const TimeBase::TimeT& signal_time) override;
+
+	private:
+		FileLockQueue* obj_;
+	};
+
+private:
+	Entry* list_;
+	Ref <Timer> timer_;
+	TimeBase::TimeT nearest_expire_time_;
 };
 
 }
