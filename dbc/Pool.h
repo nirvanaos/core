@@ -151,15 +151,17 @@ protected:
 			static_cast <S&> (*this).release_to_pool ();
 	}
 
-	void release_to_pool () noexcept
+	bool release_to_pool () noexcept
 	{
 		Data data = std::move (Base::data_);
 		try {
 			static_cast <S&> (*this).cleanup (data);
 			Base::pool_.push (std::move (data));
+			return true;
 		} catch (...) {
 			assert (false);
 		}
+		return false;
 	}
 
 };

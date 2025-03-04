@@ -36,11 +36,13 @@ class ConnectionPoolImpl :
 {
 public:
 	ConnectionPoolImpl (Driver::_ptr_type driver, IDL::String&& url, IDL::String&& user,
-		IDL::String&& password) :
+		IDL::String&& password, uint32_t max_size) :
 		driver_ (std::move (driver)),
 		url_ (std::move (url)),
 		user_ (std::move (user)),
-		password_ (std::move (password))
+		password_ (std::move (password)),
+		max_size_ (max_size),
+		cur_size_ (0)
 	{
 		// Create connection to ensure that parameters are correct
 		Connection::_ref_type conn = getConnection ();
@@ -64,20 +66,50 @@ public:
 		return conn->_this ();
 	}
 
+	uint32_t max_size () const noexcept
+	{
+		return max_size_;
+	}
+
+	void max_size (uint32_t limit) noexcept
+	{
+		max_size_ = limit;
+		while (cur_size_ > max_size_) {
+			--cur_size_;
+			connections_.pop ();
+		}
+	}
+
 	Pool <ConnectionData>& connections () noexcept
 	{
 		return connections_;
+	}
+
+	bool release_to_pool () noexcept
+	{
+		if (cur_size_ < max_size_) {
+			++cur_size_;
+			return true;
+		}
+		return false;
+	}
+
+	void release_failed () noexcept
+	{
+		--cur_size_;
 	}
 
 private:
 	Driver::_ref_type driver_;
 	IDL::String url_, user_, password_;
 	Pool <ConnectionData> connections_;
+	uint32_t max_size_, cur_size_;
 };
 
 inline void PoolableConnection::release_to_pool () noexcept
 {
-	Base::release_to_pool ();
+	if (parent_->release_to_pool () && !Base::release_to_pool ())
+		parent_->release_failed ();
 	parent_ = nullptr;
 }
 
