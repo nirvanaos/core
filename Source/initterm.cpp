@@ -72,9 +72,6 @@ void initialize ()
 
 void shutdown () noexcept
 {
-	// Perform GC for services synchronously
-	ExecDomain::current ().restricted_mode (ExecDomain::RestrictedMode::SUPPRESS_ASYNC_GC);
-
 	// Deactivate all managers to reject incoming requests.
 	PortableServer::Core::POA_Root::deactivate_all ();
 	
@@ -84,6 +81,9 @@ void shutdown () noexcept
 
 void terminate2 () noexcept
 {
+	// Perform GC for services synchronously
+//	ExecDomain::current ().restricted_mode (ExecDomain::RestrictedMode::SUPPRESS_ASYNC_GC);
+
 	if (ESIOP::is_system_domain ())
 		CosNaming::Core::NameService::terminate ();
 
@@ -92,9 +92,6 @@ void terminate2 () noexcept
 
 	// Clear remote references, if any
 	Binder::clear_remote_references ();
-
-	// Stop receiving messages. But we can still send messages.
-	Port::PostOffice::terminate ();
 
 	// Disable all timers
 	Timer::terminate ();
@@ -105,6 +102,9 @@ void terminate2 () noexcept
 
 void terminate1 () noexcept
 {
+	// Stop receiving messages. But we can still send messages.
+	Port::PostOffice::terminate ();
+
 	ProtDomain::terminate ();
 	Binder::terminate ();
 	CORBA::Core::terminate ();
