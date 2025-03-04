@@ -38,15 +38,9 @@ namespace Core {
 
 class EventUser :
 	public CORBA::servant_traits <Nirvana::Event>::Servant <EventUser>,
-	public CORBA::Internal::LifeCycleRefCnt <EventUser>,
-	public CORBA::Internal::RefCountBase <EventUser>,
-	public UserObject,
 	private EventSyncTimeout
 {
 public:
-	using UserObject::operator new;
-	using UserObject::operator delete;
-
 	EventUser (bool manual_reset, bool initial_state) :
 		manual_reset_ (manual_reset)
 #ifndef NDEBUG

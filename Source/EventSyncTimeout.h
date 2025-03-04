@@ -29,7 +29,7 @@
 #pragma once
 
 #include "ExecDomain.h"
-#include "TimerAsyncCall.h"
+#include "Timeout.h"
 
 namespace Nirvana {
 namespace Core {
@@ -38,19 +38,15 @@ class ExecDomain;
 class Synchronized;
 
 /// \brief Implements wait list for synchronized operations with timeout feature.
-class EventSyncTimeout
+class EventSyncTimeout : public Timeout <EventSyncTimeout>
 {
 	static const TimeBase::TimeT TIMER_DEADLINE = 1 * TimeBase::MILLISECOND;
-
-	// Even we do not have timeouts, we need to check for shutdown periodically.
-	static const TimeBase::TimeT CHECK_TIMEOUT = 1 * TimeBase::SECOND;
 
 public:
 	EventSyncTimeout ();
 	~EventSyncTimeout ();
 
 	bool wait (TimeBase::TimeT timeout, Synchronized* frame = nullptr);
-
 	void signal_all () noexcept;
 	void signal_one () noexcept;
 
@@ -84,59 +80,38 @@ public:
 		}
 	}
 
-private:
-	void on_timer () noexcept;
-
-	bool acq_signal () noexcept
+public:
+	void on_timer (TimeBase::TimeT cur_time) noexcept
 	{
-		if (signal_cnt_) {
-			if (std::numeric_limits <size_t>::max () != signal_cnt_)
-				--signal_cnt_;
-			return true;
+		TimeBase::TimeT next_time = NO_EXPIRE;
+		for (ListEntry** link = &list_;;) {
+			ListEntry* entry = *link;
+			if (!entry)
+				break;
+			if (entry->expire_time >= cur_time) {
+				*link = entry->next;
+				entry->exec_domain.resume ();
+			} else {
+				if (next_time > entry->expire_time)
+					next_time = entry->expire_time;
+				link = &entry->next;
+			}
 		}
-		return false;
+		nearest_expire_time (next_time);
 	}
 
-	void resume_all (const CORBA::Exception* exc) noexcept;
-
-	void nearest_expire_time (TimeBase::TimeT t) noexcept;
+	void on_exception (const CORBA::Exception& exc) noexcept;
 
 private:
 	struct ListEntry
 	{
 		TimeBase::TimeT expire_time;
-		ExecDomain* exec_domain;
+		ExecDomain& exec_domain;
 		ListEntry* next;
 		bool result;
 	};
 
-	class Timer : public TimerAsyncCall
-	{
-	public:
-		void disconnect () noexcept
-		{
-			event_ = nullptr;
-			TimerAsyncCall::cancel ();
-		}
-
-	protected:
-		Timer (EventSyncTimeout& ev) :
-			TimerAsyncCall (SyncContext::current (), TIMER_DEADLINE),
-			event_ (&ev)
-		{
-			assert (SyncContext::current ().sync_domain ());
-		}
-
-	private:
-		void run (const TimeBase::TimeT& signal_time) override;
-
-	private:
-		EventSyncTimeout* event_;
-	};
-
 	ListEntry* list_;
-	Ref <Timer> timer_;
-	TimeBase::TimeT nearest_expire_time_;
 	size_t signal_cnt_;
 };
 

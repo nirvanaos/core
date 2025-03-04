@@ -166,7 +166,7 @@ public:
 
 	static Event::_ref_type create_event (bool manual_reset, bool initial_state)
 	{
-		return CORBA::make_pseudo <Core::EventUser> (manual_reset, initial_state);
+		return CORBA::make_reference <Core::EventUser> (manual_reset, initial_state);
 	}
 };
 

@@ -30,41 +30,29 @@
 namespace Nirvana {
 namespace Core {
 
-FileLockQueue::Entry* FileLockQueue::dequeue (Entry* prev, Entry* entry) noexcept
-{
-	Entry* next = entry->next ();
-	if (prev)
-		prev->next (next);
-	else
-		list_ = next;
-	return next;
-}
-
 void FileLockQueue::retry_lock (FileLockRanges& lock_ranges) noexcept
 {
 	bool changed = false;
-	for (Entry* entry = list_, *prev = nullptr; entry;) {
-		LockType lmin = entry->level_min ();
-		LockType lmax = entry->level_max ();
+	for (Entry** link = &list_;;) {
+		Entry* entry = *link;
+		if (!entry)
+			break;
+		LockType lmin = entry->level_min;
+		LockType lmax = entry->level_max;
 		try {
 			bool downgraded;
-			LockType l = lock_ranges.set (entry->begin (), entry->end (), lmax, lmin, entry->owner (),
+			LockType l = lock_ranges.set (entry->begin, entry->end, lmax, lmin, entry->owner,
 				downgraded);
 			assert (!downgraded);
 			if (l >= lmin) {
-				Entry* next = dequeue (prev, entry);
+				*link = entry->next;
 				entry->signal (l);
-				entry = next;
 				changed = true;
-			} else {
-				prev = entry;
-				entry = entry->next ();
-			}
+			} else
+				link = &entry->next;
 		} catch (const CORBA::Exception& ex) {
-			Entry* next = dequeue (prev, entry);
-			entry->signal (ex);
-			entry = next;
-			changed = true;
+			on_exception (ex);
+			return;
 		}
 	}
 	if (changed)
@@ -74,46 +62,26 @@ void FileLockQueue::retry_lock (FileLockRanges& lock_ranges) noexcept
 void FileLockQueue::adjust_timer () noexcept
 {
 	if (timer_) {
-		TimeBase::TimeT nearest = std::numeric_limits <TimeBase::TimeT>::max ();
-		for (Entry* entry = list_; entry; entry = entry->next ()) {
-			if (nearest > entry->expire_time ())
-				nearest = entry->expire_time ();
+		TimeBase::TimeT nearest = NO_EXPIRE;
+		for (Entry* entry = list_; entry; entry = entry->next) {
+			if (nearest > entry->expire_time)
+				nearest = entry->expire_time;
 		}
 		nearest_expire_time (nearest);
 	}
 }
 
-void FileLockQueue::nearest_expire_time (TimeBase::TimeT nearest) noexcept
+void FileLockQueue::on_exception (const CORBA::Exception& exc) noexcept
 {
-	if (nearest_expire_time_ != nearest) {
-		if (!list_) {
-			nearest_expire_time_ = 0;
-			timer_->cancel ();
-		} else {
-			nearest_expire_time_ = nearest;
-			TimeBase::TimeT timeout = std::min (nearest - Chrono::steady_clock (), CHECK_TIMEOUT);
-			try {
-				timer_->set (0, timeout, 0);
-			} catch (const CORBA::Exception& exc) {
-				signal_all (exc);
-			}
-		}
-	}
-}
+	nearest_expire_time (NO_EXPIRE);
 
-void FileLockQueue::signal_all (const CORBA::Exception& exc) noexcept
-{
-	while (list_) {
-		Entry* entry = list_;
-		list_ = entry->next ();
-		entry->signal (exc);
+	Entry* entry = list_;
+	list_ = nullptr;
+	while (entry) {
+		Entry* next = entry->next;
+		entry->exec_domain.resume (exc);
+		entry = next;
 	}
-}
-
-void FileLockQueue::Timer::run (const TimeBase::TimeT&)
-{
-	if (obj_)
-		obj_->on_timer ();
 }
 
 }
