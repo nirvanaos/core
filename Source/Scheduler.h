@@ -68,7 +68,7 @@ public:
 
 	static void terminate () noexcept
 	{
-		//global_.destruct ();
+		global_.destruct ();
 	}
 
 	static State state () noexcept
