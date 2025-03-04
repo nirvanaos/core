@@ -144,7 +144,7 @@ public:
 				break;
 			if (entry->expire_time >= cur_time) {
 				*link = entry->next;
-				entry->exec_domain.resume ();
+				entry->signal (LockType::LOCK_NONE);
 			} else {
 				if (next_time > entry->expire_time)
 					next_time = entry->expire_time;
