@@ -65,11 +65,13 @@ MemContext& MemContext::current ()
 
 MemContext* MemContext::current_ptr () noexcept
 {
-	ExecDomain* ed = Thread::current ().exec_domain ();
-	if (ed)
-		return ed->mem_context_ptr ();
-	else
-		return nullptr;
+	Thread* th = Thread::current_ptr ();
+	if (th) {
+		ExecDomain* ed = th->exec_domain ();
+		if (ed)
+			return ed->mem_context_ptr ();
+	}
+	return nullptr;
 }
 
 inline
