@@ -102,6 +102,8 @@ public:
 
 	virtual ~Pollable ();
 
+	static TimeBase::TimeT ms2time (uint32_t ms) noexcept;
+
 protected:
 	Pollable ();
 	Pollable (const Pollable&) = delete;
@@ -168,7 +170,7 @@ public:
 
 	CORBA::Pollable::_ref_type get_ready_pollable (uint32_t timeout)
 	{
-		if (event_.wait (Nirvana::Core::EventSyncTimeout::ms2time (timeout))) {
+		if (event_.wait (Pollable::ms2time (timeout))) {
 			for (Set::iterator it = set_.begin (); it != set_.end (); ++it) {
 				Pollable* p = *it;
 				if (p->is_ready (0)) { // Does not cause context switch

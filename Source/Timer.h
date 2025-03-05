@@ -53,7 +53,7 @@ public:
 	///   If this parameter is greater than zero, the timer is periodic.
 	///   A periodic timer automatically reactivates each time the period elapses,
 	///   until the timer is canceled.
-	void set (unsigned flags, TimeBase::TimeT initial, TimeBase::TimeT period)
+	void set (unsigned flags, const TimeBase::TimeT& initial, const TimeBase::TimeT& period)
 	{
 		periodic_ = period != 0;
 		Port::Timer::set (flags, initial, period);

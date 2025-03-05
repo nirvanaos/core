@@ -39,21 +39,30 @@ namespace Core {
 const Operation Domain::op_heartbeat_ = {"FT_HB"};
 const Operation Domain::DGC_Request::operation_ = {"ping"};
 
-Domain::Domain (unsigned flags, unsigned GIOP_minor, TimeBase::TimeT request_latency, TimeBase::TimeT heartbeat_interval,
+Domain::Domain (unsigned flags, unsigned GIOP_minor, TimeBase::TimeT rq_latency, TimeBase::TimeT heartbeat_interval,
 	TimeBase::TimeT heartbeat_timeout) :
 	flags_ (flags),
 	GIOP_minor_ (GIOP_minor),
 	last_ping_in_time_ (Nirvana::Core::Chrono::steady_clock ()),
 	last_ping_out_time_ (Nirvana::Core::Chrono::steady_clock ()),
-	request_latency_ (request_latency),
 	heartbeat_interval_ (heartbeat_interval),
 	heartbeat_timeout_ (heartbeat_timeout),
 	DGC_scheduled_ (false),
 	zombie_ (false)
-{}
+{
+	request_latency (rq_latency);
+}
 
 Domain::~Domain ()
 {}
+
+void Domain::request_latency (TimeBase::TimeT latency) noexcept
+{
+	request_latency_ = latency;
+	DeadlineTime dt = Chrono::time_to_deadline (latency);
+	request_add_deadline_ = dt / DGC_DEADLINE_ADD_DIV;
+	request_del_deadline_ = dt * DGC_DEADLINE_DEL_MUL;
+}
 
 void Domain::add_owned_objects (IDL::Sequence <IOP::ObjectKey>& keys, ReferenceLocalRef* objs)
 {
@@ -219,7 +228,8 @@ void Domain::DGC_Request::invoke ()
 	DeadlinePolicyContext& dp = MemContext::current ().deadline_policy ();
 
 	Nirvana::System::DeadlinePolicy old = dp.policy_async ();
-	dp.policy_async (domain_.request_latency ());
+
+	dp.policy_async (add_cnt_ ? domain_.request_add_deadline () : domain_.request_del_deadline ());
 
 	event_ = make_reference <RequestEvent> ();
 	request_ = domain_.create_request (IORequest::RESPONSE_EXPECTED, IOP::ObjectKey (), operation_,

@@ -76,7 +76,7 @@ bool Pollable::is_ready (ULong timeout)
 	else {
 		bool ret;
 		SYNC_BEGIN (*sync_domain_, nullptr)
-			ret = event_.wait (Nirvana::Core::EventSyncTimeout::ms2time (timeout), &_sync_frame);
+			ret = event_.wait (ms2time (timeout), &_sync_frame);
 		SYNC_END ();
 		return ret;
 	}
@@ -89,6 +89,20 @@ void Pollable::on_complete (Internal::IORequest::_ptr_type reply)
 	ready_ = true;
 	if (cur_set_)
 		cur_set_->pollable_ready ();
+}
+
+TimeBase::TimeT Pollable::ms2time (uint32_t ms) noexcept
+{
+	switch (ms) {
+		case 0:
+			return 0;
+
+		case std::numeric_limits <uint32_t>::max ():
+			return std::numeric_limits <TimeBase::TimeT>::max ();
+
+		default:
+			return (TimeBase::TimeT)ms * TimeBase::MILLISECOND;
+	}
 }
 
 inline

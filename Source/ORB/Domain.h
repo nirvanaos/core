@@ -55,7 +55,17 @@ class NIRVANA_NOVTABLE Domain : public Nirvana::Core::BinderObject
 {
 	template <class D> friend class CORBA::servant_reference;
 
+	// For DGC add requests, deadline policy is request_latency () / DGC_DEADLINE_ADD_DIV.
+	static const unsigned DGC_DEADLINE_ADD_DIV = 1000;
+
+	// For DGC del requests, deadline policy is request_latency () * DGC_DEADLINE_DEL_MUL.
+	static const unsigned DGC_DEADLINE_DEL_MUL = 5;
+
 public:
+	// If an incoming request returns DGC references, it must be holded until the reference
+	// confirmation. Destruction delayed on request_latency () * DGC_IN_REQUEST_DELAY_RELEASE_MUL;
+	static const unsigned DGC_IN_REQUEST_DELAY_RELEASE_MUL = 4;
+
 	virtual Internal::IORequest::_ref_type create_request (unsigned response_flags,
 		const IOP::ObjectKey& object_key, const Internal::Operation& metadata, ReferenceRemote* ref,
 		CallbackRef&& callback) = 0;
@@ -85,9 +95,23 @@ public:
 		return GIOP_minor_;
 	}
 
-	const TimeBase::TimeT& request_latency () const noexcept
+	// Estimated maximal time of the request delivery.
+	// If it is too small, the DGC will fail with OBJECT_NOT_EXIST.
+	const TimeBase::TimeT request_latency () const noexcept
 	{
 		return request_latency_;
+	}
+
+	void request_latency (TimeBase::TimeT latency) noexcept;
+
+	Nirvana::DeadlineTime request_add_deadline () const noexcept
+	{
+		return request_add_deadline_;
+	}
+
+	Nirvana::DeadlineTime request_del_deadline () const noexcept
+	{
+		return request_del_deadline_;
 	}
 
 	void simple_ping () noexcept
@@ -391,6 +415,8 @@ private:
 	TimeBase::TimeT last_ping_in_time_;
 	TimeBase::TimeT last_ping_out_time_;
 	TimeBase::TimeT request_latency_;
+	Nirvana::DeadlineTime request_add_deadline_;
+	Nirvana::DeadlineTime request_del_deadline_;
 	TimeBase::TimeT heartbeat_interval_;
 	TimeBase::TimeT heartbeat_timeout_;
 
