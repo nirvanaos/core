@@ -234,7 +234,7 @@ public:
 	{
 		if (lock_level_ > level) {
 			try {
-				lock_level_ = access_->lock (Nirvana::FileLock (0, 0, level), level, 0);
+				lock_level_ = access_->lock (Nirvana::FileLock (FILE_HEADER_SIZE, 0, level), level, 0);
 				assert (lock_level_ == level);
 			} catch (...) {
 				return SQLITE_IOERR_UNLOCK;
@@ -248,7 +248,7 @@ public:
 		if (lock_level_ > Nirvana::LockType::LOCK_SHARED)
 			return true;
 		try {
-			Nirvana::FileLock fl (0, 0, Nirvana::LockType::LOCK_RESERVED);
+			Nirvana::FileLock fl (FILE_HEADER_SIZE, 0, Nirvana::LockType::LOCK_RESERVED);
 			access_->get_lock (fl);
 			ret = fl.type () != Nirvana::LockType::LOCK_NONE;
 		} catch (...) {
