@@ -84,16 +84,6 @@ public:
 		Core::DeadlinePolicy::policy_oneway (dp);
 	}
 
-	static bool yield ()
-	{
-		return Core::ExecDomain::reschedule ();
-	}
-
-	static uint32_t _s__get_hardware_concurrency (CORBA::Internal::Bridge <Nirvana::System>* _b, CORBA::Internal::Interface* _env)
-	{
-		return Core::Port::SystemInfo::hardware_concurrency ();
-	}
-
 	static ContextType context_type ()
 	{
 		return (ContextType)Core::SyncContext::current ().sync_context_type ();

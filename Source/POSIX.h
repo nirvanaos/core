@@ -38,6 +38,7 @@
 #include "append_path.h"
 #include "unrecoverable_error.h"
 #include "Chrono.h"
+#include <Port/SystemInfo.h>
 
 namespace Nirvana {
 
@@ -210,6 +211,11 @@ public:
 		}
 	}
 
+	static bool yield ()
+	{
+		return Core::ExecDomain::reschedule ();
+	}
+
 	static void unlink (const IDL::String& path)
 	{
 		CosNaming::Name name;
@@ -303,6 +309,11 @@ public:
 	static Nirvana::Locale::_ref_type create_locale (int mask, const IDL::String& name, Nirvana::Locale::_ptr_type base)
 	{
 		return Core::locale_create (mask, name, base);
+	}
+
+	static uint32_t _s__get_hardware_concurrency (CORBA::Internal::Bridge <Nirvana::POSIX>* _b, CORBA::Internal::Interface* _env)
+	{
+		return Core::Port::SystemInfo::hardware_concurrency ();
 	}
 
 private:
