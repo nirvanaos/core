@@ -93,7 +93,7 @@ LockType FileLockRanges::set (const FileSize& begin, const FileSize& end,
 
 	unchecked_set (begin, end, owner, level);
 
-	if (LockType::LOCK_EXCLUSIVE == cur_max_level)
+	if (cur_max_level >= LockType::LOCK_PENDING)
 		downgraded = level < LockType::LOCK_PENDING;
 	else
 		downgraded = level < cur_max_level;

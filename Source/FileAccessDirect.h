@@ -150,13 +150,8 @@ public:
 		} else {
 			if (tmin > fl.type ())
 				throw_BAD_PARAM ();
-			LockType level_min;
-			if (timeout && fl.type () == LockType::LOCK_EXCLUSIVE && tmin == LockType::LOCK_EXCLUSIVE)
-				level_min = LockType::LOCK_PENDING;
-			else
-				level_min = tmin;
 			bool downgraded;
-			LockType ret = lock_ranges_.set (fl.start (), end, fl.type (), level_min, proxy,
+			LockType ret = lock_ranges_.set (fl.start (), end, fl.type (), tmin, proxy,
 				downgraded);
 			if (ret < tmin) {
 				if (timeout && !Scheduler::shutdown_started ())

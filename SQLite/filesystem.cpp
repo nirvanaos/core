@@ -46,6 +46,8 @@ extern "C" int sqlite3_os_end ()
 
 namespace SQLite {
 
+static const Nirvana::FileSize FILE_HEADER_SIZE = 100;
+
 extern const sqlite3_io_methods io_methods;
 
 class File : public sqlite3_file
@@ -80,22 +82,7 @@ public:
 		int ret = SQLITE_OK;
 		try {
 			NDBC::Blob data;
-			if (lock_level_ < Nirvana::LockType::LOCK_SHARED) {
-				Nirvana::FileLock fl (off, cb, Nirvana::LockType::LOCK_SHARED);
-				if (access_->lock (fl, Nirvana::LockType::LOCK_SHARED, LOCK_TIMEOUT)
-					== Nirvana::LockType::LOCK_NONE)
-					return SQLITE_BUSY;
-				else {
-					try {
-						access_->read (off, cb, data);
-					} catch (...) {
-						unlock_noex (fl);
-						throw;
-					}
-					unlock_noex (fl);
-				}
-			} else
-				access_->read (off, cb, data);
+			access_->read (off, cb, data);
 			memcpy (p, data.data (), data.size ());
 			if ((int)data.size () < cb) {
 				// If xRead () returns SQLITE_IOERR_SHORT_READ it must also fill in the unread portions of the
@@ -212,7 +199,7 @@ public:
 		if (level > lock_level_) {
 			try {
 				if (Nirvana::LockType::LOCK_EXCLUSIVE == level) {
-					Nirvana::FileLock fl_excl (0, 0, Nirvana::LockType::LOCK_EXCLUSIVE);
+					Nirvana::FileLock fl_excl (FILE_HEADER_SIZE, 0, Nirvana::LockType::LOCK_EXCLUSIVE);
 					if (lock_level_ < Nirvana::LockType::LOCK_PENDING) {
 						Nirvana::LockType ret = access_->lock (fl_excl, Nirvana::LockType::LOCK_PENDING,
 							LOCK_TIMEOUT);
@@ -228,7 +215,7 @@ public:
 						lock_level_ = ret;
 					}
 				} else {
-					Nirvana::LockType ret = access_->lock (Nirvana::FileLock (0, 0, level), level, LOCK_TIMEOUT);
+					Nirvana::LockType ret = access_->lock (Nirvana::FileLock (FILE_HEADER_SIZE, 0, level), level, LOCK_TIMEOUT);
 					if (ret <= lock_level_)
 						return SQLITE_BUSY;
 					lock_level_ = ret;

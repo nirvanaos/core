@@ -80,7 +80,7 @@ private:
 		void run (const TimeBase::TimeT&) override
 		{
 			if (object_)
-				((T*)object_)->on_timer (Chrono::steady_clock ());
+				((Timeout*)object_)->call_on_timer ();
 		}
 	};
 
@@ -90,25 +90,39 @@ protected:
 		return nearest_expire_time_;
 	}
 
-	void nearest_expire_time (const TimeBase::TimeT& t);
+	void nearest_expire_time (TimeBase::TimeT t) noexcept;
 
+private:
+	void call_on_timer () noexcept
+	{
+		nearest_expire_time_ = NO_EXPIRE;
+		static_cast <T&> (*this).on_timer (Chrono::steady_clock ());
+	}
 };
 
 template <class T>
-void Timeout <T>::nearest_expire_time (const TimeBase::TimeT& t)
+void Timeout <T>::nearest_expire_time (TimeBase::TimeT t) noexcept
 {
 	if (nearest_expire_time_ != t) {
 		nearest_expire_time_ = t;
 		if (NO_EXPIRE == t)
 			timer_->cancel ();
-		else
+		else {
 			try {
+
 				if (!timer_)
 					timer_ = Ref <TimerBase>::create <ImplDynamic <Timer> > (static_cast <T*> (this));
-				timer_->set (0, t - Chrono::steady_clock (), 0);
+				
+				TimeBase::TimeT cur_t = Chrono::steady_clock ();
+				if (cur_t >= t)
+					t = 0;
+				else
+					t -= cur_t;
+				timer_->set (0, t, 0);
 			} catch (const CORBA::Exception& exc) {
 				static_cast <T&> (*this).on_exception (exc);
 			}
+		}
 	}
 }
 

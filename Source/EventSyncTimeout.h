@@ -88,7 +88,7 @@ public:
 			ListEntry* entry = *link;
 			if (!entry)
 				break;
-			if (entry->expire_time >= cur_time) {
+			if (entry->expire_time <= cur_time) {
 				*link = entry->next;
 				entry->exec_domain.resume ();
 			} else {
