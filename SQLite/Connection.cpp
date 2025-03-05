@@ -101,18 +101,4 @@ Connection::Lock::Lock (Connection& conn, bool no_check_exist) :
 		throw CORBA::TRANSIENT ();
 }
 
-inline int Connection::busy_handler (int attempt) noexcept
-{
-	NIRVANA_TRACE ("SQLite: Connection is locked, attempt %d\n", attempt);
-	if (attempt >= busy_retry_max_)
-		return 0; // Stop attempts and throw SQLITE_BUSY
-	else
-		return 1;
-}
-
-int Connection::s_busy_handler (void* obj, int attempt) noexcept
-{
-	return ((Connection*)obj)->busy_handler (attempt);
-}
-
 }

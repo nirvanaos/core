@@ -31,6 +31,7 @@
 #include <Nirvana/System.h>
 #include <Nirvana/NDBC_s.h>
 #include "filesystem.h"
+#include "Global.h"
 
 namespace SQLite {
 
@@ -110,9 +111,6 @@ class Connection :
 	public CORBA::servant_traits <NDBC::Connection>::Servant <Connection>,
 	public SQLite
 {
-	static const TimeBase::TimeT DEFAULT_TIMEOUT = std::numeric_limits <TimeBase::TimeT>::max ();
-		//TimeBase::SECOND * 10;
-
 public:
 	class Lock
 	{
@@ -137,11 +135,8 @@ public:
 		SQLite (uri),
 		timeout_ (DEFAULT_TIMEOUT),
 		consistent_ (Nirvana::the_system->create_event (false, true)),
-		savepoint_ (0),
-		busy_retry_max_ (busy_retry_max (DEFAULT_TIMEOUT))
+		savepoint_ (0)
 	{
-		sqlite3_busy_handler (*this, s_busy_handler, this);
-
 		sqlite3_filename fn = sqlite3_db_filename (*this, nullptr);
 		if (fn) {
 			const char* journal_mode = sqlite3_uri_parameter (fn, "journal_mode");
@@ -216,7 +211,7 @@ public:
 	void setTimeout (const TimeBase::TimeT& timeout) noexcept
 	{
 		timeout_ = timeout;
-		busy_retry_max_ = busy_retry_max (timeout);
+		global.static_data ().timeout (timeout);
 	}
 
 	TimeBase::TimeT getTimeout () const noexcept
@@ -294,25 +289,11 @@ private:
 	void exec (const char* sql);
 	void check_exist () const;
 
-	static int s_busy_handler (void*, int attempt) noexcept;
-	inline int busy_handler (int attempt) noexcept;
-
-	static constexpr int busy_retry_max (const TimeBase::TimeT& timeout) noexcept
-	{
-		if (timeout <= LOCK_TIMEOUT)
-			return 0;
-		else if (timeout == std::numeric_limits <TimeBase::TimeT>::max ())
-			return std::numeric_limits <int>::max ();
-		else
-			return (timeout - 1) / LOCK_TIMEOUT;
-	}
-
 private:
 	TimeBase::TimeT timeout_;
 	Nirvana::Event::_ref_type consistent_;
 	NDBC::SQLWarnings warnings_;
 	unsigned savepoint_;
-	int busy_retry_max_;
 };
 
 }

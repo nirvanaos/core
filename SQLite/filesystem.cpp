@@ -32,7 +32,6 @@
 #include <Nirvana/c_heap_dbg.h>
 #include <Nirvana/posix_defs.h>
 #include <time.h>
-#include <unordered_map>
 
 extern "C" int sqlite3_os_init ()
 {
@@ -198,24 +197,26 @@ public:
 	{
 		if (level > lock_level_) {
 			try {
+				TimeBase::TimeT timeout = global.static_data ().timeout ();
 				if (Nirvana::LockType::LOCK_EXCLUSIVE == level) {
 					Nirvana::FileLock fl_excl (FILE_HEADER_SIZE, 0, Nirvana::LockType::LOCK_EXCLUSIVE);
 					if (lock_level_ < Nirvana::LockType::LOCK_PENDING) {
 						Nirvana::LockType ret = access_->lock (fl_excl, Nirvana::LockType::LOCK_PENDING,
-							LOCK_TIMEOUT);
+							timeout);
 						if (ret <= lock_level_)
 							return SQLITE_BUSY;
 						lock_level_ = ret;
 					}
 					if (lock_level_ < Nirvana::LockType::LOCK_EXCLUSIVE) {
 						Nirvana::LockType ret = access_->lock (fl_excl, Nirvana::LockType::LOCK_EXCLUSIVE,
-							LOCK_TIMEOUT);
+							timeout);
 						if (ret <= lock_level_)
 							return SQLITE_BUSY;
 						lock_level_ = ret;
 					}
 				} else {
-					Nirvana::LockType ret = access_->lock (Nirvana::FileLock (FILE_HEADER_SIZE, 0, level), level, LOCK_TIMEOUT);
+					Nirvana::LockType ret = access_->lock (Nirvana::FileLock (FILE_HEADER_SIZE, 0, level),
+						level, timeout);
 					if (ret <= lock_level_)
 						return SQLITE_BUSY;
 					lock_level_ = ret;
@@ -275,7 +276,7 @@ private:
 		{}
 	};
 
-	typedef std::unordered_map <sqlite3_int64, CacheEntry> Cache;
+	typedef Nirvana::Core::MapUnorderedUnstable <sqlite3_int64, CacheEntry> Cache;
 	Cache cache_;
 };
 

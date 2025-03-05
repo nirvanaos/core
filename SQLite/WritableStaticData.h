@@ -29,12 +29,19 @@
 
 #include <Nirvana/Nirvana.h>
 #include "../Source/MapUnorderedUnstable.h"
+#include <CORBA/TimeBase.h>
 
 namespace SQLite {
+
+const TimeBase::TimeT DEFAULT_TIMEOUT = std::numeric_limits <TimeBase::TimeT>::max ();
 
 class WritableStaticData
 {
 public:
+	WritableStaticData () :
+		timeout_ (DEFAULT_TIMEOUT)
+	{}
+
 	void* get (const void* key, size_t size)
 	{
 		auto ins = map_.emplace (key, 0);
@@ -58,10 +65,21 @@ public:
 		return data_.data () + ins.first->second;
 	}
 
+	TimeBase::TimeT timeout () const noexcept
+	{
+		return timeout_;
+	}
+
+	void timeout (const TimeBase::TimeT& t) noexcept
+	{
+		timeout_ = t;
+	}
+
 private:
 	typedef Nirvana::Core::MapUnorderedUnstable <const void*, size_t> Map;
 	Map map_;
 	std::vector <uint8_t> data_;
+	TimeBase::TimeT timeout_;
 };
 
 }
