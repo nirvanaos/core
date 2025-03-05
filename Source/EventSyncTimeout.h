@@ -66,20 +66,6 @@ public:
 		return signal_cnt_;
 	}
 
-	static TimeBase::TimeT ms2time (uint32_t ms) noexcept
-	{
-		switch (ms) {
-		case 0:
-			return 0;
-
-		case std::numeric_limits <uint32_t>::max ():
-			return std::numeric_limits <TimeBase::TimeT>::max ();
-
-		default:
-			return (TimeBase::TimeT)ms * TimeBase::MILLISECOND;
-		}
-	}
-
 public:
 	void on_timer (TimeBase::TimeT cur_time) noexcept
 	{

@@ -381,7 +381,8 @@ void RequestIn::post_send_success () noexcept
 		if (!(domain_->flags () & Domain::GARBAGE_COLLECTION))
 			static_cast <DomainRemote&> (*domain_).add_DGC_objects (marshaled_DGC_references_);
 		else {
-			// For DGC-enabled target domain we need to delay request release
+			// For DGC-enabled target domain we need to delay request release.
+			// Caller must have enough time to confirm DGC references.
 			try {
 				new (&delayed_release_timer_) DelayedReleaseTimer (std::ref (*this));
 			} catch (...) {
@@ -389,7 +390,8 @@ void RequestIn::post_send_success () noexcept
 			}
 			_add_ref ();
 			try {
-				((DelayedReleaseTimer*)&delayed_release_timer_)->set (0, domain_->request_latency () * 2, 0);
+				((DelayedReleaseTimer*)&delayed_release_timer_)->set (0, domain_->request_latency () * 
+					Domain::DGC_IN_REQUEST_DELAY_RELEASE_MUL, 0);
 			} catch (...) {
 				((DelayedReleaseTimer*)&delayed_release_timer_)->DelayedReleaseTimer::~DelayedReleaseTimer ();
 				_remove_ref ();
