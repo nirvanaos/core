@@ -28,7 +28,6 @@
 
 #include <Nirvana/Nirvana.h>
 #include <Nirvana/System_s.h>
-#include "Chrono.h"
 #include "DeadlinePolicy.h"
 #include "ExecDomain.h"
 #include <Port/SystemInfo.h>
@@ -45,31 +44,6 @@ class Static_the_system :
 	public CORBA::servant_traits <System>::ServantStatic <Static_the_system>
 {
 public:
-	static TimeBase::UtcT _s_system_clock (CORBA::Internal::Bridge <System>* _b, CORBA::Internal::Interface* _env)
-	{
-		return Core::Chrono::system_clock ();
-	}
-
-	static TimeBase::UtcT _s_UTC (CORBA::Internal::Bridge <System>* _b, CORBA::Internal::Interface* _env)
-	{
-		return Core::Chrono::UTC ();
-	}
-
-	static SteadyTime _s_steady_clock (CORBA::Internal::Bridge <System>* _b, CORBA::Internal::Interface* _env)
-	{
-		return Core::Chrono::steady_clock ();
-	}
-
-	static DeadlineTime _s_deadline_clock (CORBA::Internal::Bridge <System>* _b, CORBA::Internal::Interface* _env)
-	{
-		return Core::Chrono::deadline_clock ();
-	}
-
-	static IDL::Type <DeadlineTime>::ConstRef _s__get_deadline_clock_frequency (CORBA::Internal::Bridge <System>* _b, CORBA::Internal::Interface* _env)
-	{
-		return IDL::Type <DeadlineTime>::ret (Core::Chrono::deadline_clock_frequency ());
-	}
-
 	static DeadlineTime deadline_from_UTC (const TimeBase::UtcT& utc)
 	{
 		return Core::Chrono::deadline_from_UTC (utc);
@@ -108,16 +82,6 @@ public:
 	static void deadline_policy_oneway (const DeadlinePolicy& dp)
 	{
 		Core::DeadlinePolicy::policy_oneway (dp);
-	}
-
-	static bool yield ()
-	{
-		return Core::ExecDomain::reschedule ();
-	}
-
-	static uint32_t _s__get_hardware_concurrency (CORBA::Internal::Bridge <Nirvana::System>* _b, CORBA::Internal::Interface* _env)
-	{
-		return Core::Port::SystemInfo::hardware_concurrency ();
 	}
 
 	static ContextType context_type ()

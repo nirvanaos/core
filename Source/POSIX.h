@@ -37,6 +37,8 @@
 #include "TimerEvent.h"
 #include "append_path.h"
 #include "unrecoverable_error.h"
+#include "Chrono.h"
+#include <Port/SystemInfo.h>
 
 namespace Nirvana {
 
@@ -44,6 +46,31 @@ class Static_the_posix :
 	public IDL::traits <POSIX>::ServantStatic <Static_the_posix>
 {
 public:
+	static TimeBase::UtcT _s_system_clock (CORBA::Internal::Bridge <POSIX>* _b, CORBA::Internal::Interface* _env)
+	{
+		return Core::Chrono::system_clock ();
+	}
+
+	static TimeBase::UtcT _s_UTC (CORBA::Internal::Bridge <POSIX>* _b, CORBA::Internal::Interface* _env)
+	{
+		return Core::Chrono::UTC ();
+	}
+
+	static SteadyTime _s_steady_clock (CORBA::Internal::Bridge <POSIX>* _b, CORBA::Internal::Interface* _env)
+	{
+		return Core::Chrono::steady_clock ();
+	}
+
+	static DeadlineTime _s_deadline_clock (CORBA::Internal::Bridge <POSIX>* _b, CORBA::Internal::Interface* _env)
+	{
+		return Core::Chrono::deadline_clock ();
+	}
+
+	static IDL::Type <DeadlineTime>::ConstRef _s__get_deadline_clock_frequency (CORBA::Internal::Bridge <POSIX>* _b, CORBA::Internal::Interface* _env)
+	{
+		return IDL::Type <DeadlineTime>::ret (Core::Chrono::deadline_clock_frequency ());
+	}
+
 	static int* error_number ()
 	{
 		return Core::RuntimeGlobal::current ().error_number ();
@@ -184,6 +211,11 @@ public:
 		}
 	}
 
+	static bool yield ()
+	{
+		return Core::ExecDomain::reschedule ();
+	}
+
 	static void unlink (const IDL::String& path)
 	{
 		CosNaming::Name name;
@@ -277,6 +309,11 @@ public:
 	static Nirvana::Locale::_ref_type create_locale (int mask, const IDL::String& name, Nirvana::Locale::_ptr_type base)
 	{
 		return Core::locale_create (mask, name, base);
+	}
+
+	static uint32_t _s__get_hardware_concurrency (CORBA::Internal::Bridge <Nirvana::POSIX>* _b, CORBA::Internal::Interface* _env)
+	{
+		return Core::Port::SystemInfo::hardware_concurrency ();
 	}
 
 private:

@@ -473,7 +473,7 @@ extern "C" int xSleep (sqlite3_vfs*, int microseconds)
 
 extern "C" int xCurrentTimeInt64 (sqlite3_vfs*, sqlite3_int64* time)
 {
-	TimeBase::UtcT t = Nirvana::the_system->system_clock ();
+	TimeBase::UtcT t = Nirvana::the_posix->system_clock ();
 	*time = (t.time () + t.tdf () * 600000000LL) / TimeBase::MILLISECOND + TimeBase::JULIAN_MS;
 	return SQLITE_OK;
 }
