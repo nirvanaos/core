@@ -28,6 +28,7 @@
 #pragma once
 
 #include "PoolableConnection.h"
+#include <Nirvana/System.h>
 
 namespace NDBC {
 
@@ -36,14 +37,21 @@ class ConnectionPoolImpl :
 {
 public:
 	ConnectionPoolImpl (Driver::_ptr_type driver, IDL::String&& url, IDL::String&& user,
-		IDL::String&& password, uint32_t max_size) :
+		IDL::String&& password, uint32_t max_size, uint32_t max_create) :
 		driver_ (std::move (driver)),
 		url_ (std::move (url)),
 		user_ (std::move (user)),
 		password_ (std::move (password)),
 		max_size_ (max_size),
-		cur_size_ (0)
+		cur_size_ (0),
+		max_create_ (max_create),
+		cur_created_ (0),
+		may_create_ (Nirvana::the_system->create_event (false, true)),
+		creation_timeout_ (std::numeric_limits <TimeBase::TimeT>::max ())
 	{
+		if (max_create == 0 || max_create < max_size)
+			throw CORBA::BAD_PARAM ();
+
 		// Create connection to ensure that parameters are correct
 		Connection::_ref_type conn = getConnection ();
 		conn->close ();
@@ -59,25 +67,57 @@ public:
 			conn = CORBA::make_reference <PoolableConnection> (std::ref (*this),
 				std::move (connections_.top ()));
 			connections_.pop ();
+			--cur_size_;
 		} else {
+
+			if (cur_created_ >= max_create_ && !may_create_->wait (creation_timeout_))
+				throw SQLException (SQLWarning (1, "Connection create timeout"), NDBC::SQLWarnings ());
+			assert (cur_created_ < max_create_);
+
 			conn = CORBA::make_reference <PoolableConnection> (std::ref (*this),
 				ConnectionData (driver_->connect (url_, user_, password_)));
+			if (max_create_ <= ++cur_created_)
+				may_create_->reset ();
 		}
 		return conn->_this ();
 	}
 
-	uint32_t max_size () const noexcept
+	uint32_t maxSize () const noexcept
 	{
 		return max_size_;
 	}
 
-	void max_size (uint32_t limit) noexcept
+	void maxSize (uint32_t limit) noexcept
 	{
 		max_size_ = limit;
 		while (cur_size_ > max_size_) {
 			--cur_size_;
 			connections_.pop ();
 		}
+	}
+
+	uint32_t maxCreate () const noexcept
+	{
+		return max_create_;
+	}
+
+	void maxCreate (uint32_t limit)
+	{
+		if (0 == limit)
+			throw CORBA::BAD_PARAM ();
+		if (limit > max_create_ && max_create_ <= cur_created_)
+			may_create_->signal ();
+		max_create_ = limit;
+	}
+
+	TimeBase::TimeT creationTimeout () const noexcept
+	{
+		return creation_timeout_;
+	}
+
+	void creationTimeout (TimeBase::TimeT t) noexcept
+	{
+		creation_timeout_ = t;
 	}
 
 	Pool <ConnectionData>& connections () noexcept
@@ -97,19 +137,35 @@ public:
 	void release_failed () noexcept
 	{
 		--cur_size_;
+		connection_destructed ();
+	}
+
+	void connection_destructed ()
+	{
+		if (cur_created_-- == max_create_)
+			may_create_->signal ();
 	}
 
 private:
 	Driver::_ref_type driver_;
 	IDL::String url_, user_, password_;
 	Pool <ConnectionData> connections_;
-	uint32_t max_size_, cur_size_;
+	uint32_t max_size_, cur_size_, max_create_, cur_created_;
+	Nirvana::Event::_ref_type may_create_;
+	TimeBase::TimeT creation_timeout_;
 };
 
 inline void PoolableConnection::release_to_pool () noexcept
 {
-	if (parent_->release_to_pool () && !Base::release_to_pool ())
-		parent_->release_failed ();
+	if (parent_->release_to_pool ()) {
+		if (!Base::release_to_pool ())
+			parent_->release_failed ();
+	} else {
+		{
+			ConnectionData data (std::move (Base::data_));
+		}
+		parent_->connection_destructed ();
+	}
 	parent_ = nullptr;
 }
 

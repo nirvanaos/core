@@ -153,7 +153,7 @@ protected:
 
 	bool release_to_pool () noexcept
 	{
-		Data data = std::move (Base::data_);
+		Data data (std::move (Base::data_));
 		try {
 			static_cast <S&> (*this).cleanup (data);
 			Base::pool_.push (std::move (data));
