@@ -56,14 +56,16 @@ class NIRVANA_NOVTABLE Domain : public Nirvana::Core::BinderObject
 	template <class D> friend class CORBA::servant_reference;
 
 	// For DGC add requests, deadline policy is request_latency () / DGC_DEADLINE_ADD_DIV.
-	static const unsigned DGC_DEADLINE_ADD_DIV = 1000;
+	static const unsigned DGC_DEADLINE_ADD_DIV = 20;
 
 	// For DGC del requests, deadline policy is request_latency () * DGC_DEADLINE_DEL_MUL.
-	static const unsigned DGC_DEADLINE_DEL_MUL = 5;
+	static const unsigned DGC_DEADLINE_DEL_MUL = 10;
 
 public:
 	// If an incoming request returns DGC references, it must be holded until the reference
 	// confirmation. Destruction delayed on request_latency () * DGC_IN_REQUEST_DELAY_RELEASE_MUL;
+	// Must be > 2 to let the incoming request passed to caller and then pass the DGC ping request
+	// to the object owners.
 	static const unsigned DGC_IN_REQUEST_DELAY_RELEASE_MUL = 4;
 
 	virtual Internal::IORequest::_ref_type create_request (unsigned response_flags,
