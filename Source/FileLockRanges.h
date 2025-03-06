@@ -157,7 +157,7 @@ public:
 	{
 		SharedLocks ret = SharedLocks::NO_LOCKS;
 		for (const Entry& e : ranges_) {
-			if (e.owner == owner && e.level == LockType::LOCK_SHARED) {
+			if (e.owner == owner && (e.level == LockType::LOCK_SHARED || e.level == LockType::LOCK_RESERVED)) {
 				if (e.begin < begin || e.end > end) {
 					ret = SharedLocks::OUTSIDE;
 					break;
