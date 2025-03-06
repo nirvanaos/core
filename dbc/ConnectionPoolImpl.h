@@ -33,7 +33,7 @@
 namespace NDBC {
 
 class ConnectionPoolImpl :
-	public CORBA::servant_traits <ConnectionPool>::Servant <ConnectionPoolImpl>
+	public IDL::traits <ConnectionPool>::Servant <ConnectionPoolImpl>
 {
 public:
 	ConnectionPoolImpl (Driver::_ptr_type driver, IDL::String&& url, IDL::String&& user,

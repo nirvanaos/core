@@ -29,7 +29,7 @@
 namespace NDBC {
 
 class Static_the_manager :
-	public CORBA::servant_traits <Manager>::ServantStatic <Static_the_manager>
+	public IDL::traits <Manager>::ServantStatic <Static_the_manager>
 {
 public:
 	static ConnectionPool::_ref_type createConnectionPool (Driver::_ptr_type driver,

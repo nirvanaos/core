@@ -119,8 +119,8 @@ void EventSyncTimeout::signal_one () noexcept
 
 	assert (signal_cnt_ != std::numeric_limits <size_t>::max ());
 
-	if (list_) {
-		ListEntry* entry = list_;
+	ListEntry* entry = list_;
+	if (entry) {
 		list_ = entry->next;
 		entry->result = true;
 		TimeBase::TimeT expire_time = entry->expire_time;

@@ -37,7 +37,7 @@ namespace Nirvana {
 namespace Core {
 
 class EventUser :
-	public CORBA::servant_traits <Nirvana::Event>::Servant <EventUser>,
+	public IDL::traits <Nirvana::Event>::Servant <EventUser>,
 	private EventSyncTimeout
 {
 public:

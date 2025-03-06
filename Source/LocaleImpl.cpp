@@ -45,7 +45,7 @@ namespace Core {
 
 template <const LocaleDef* def>
 class LocaleStatic :
-	public CORBA::servant_traits <Nirvana::Locale>::ServantStatic <LocaleStatic <def> >
+	public IDL::traits <Nirvana::Locale>::ServantStatic <LocaleStatic <def> >
 {
 	using Servant = LocaleStatic <def>;
 
@@ -61,7 +61,7 @@ public:
 			return nullptr;
 		else
 			return Nirvana::Facet::_ptr_type (
-				CORBA::servant_traits <Nirvana::Facet>::ServantStatic <Servant>::_get_ptr ());
+				IDL::traits <Nirvana::Facet>::ServantStatic <Servant>::_get_ptr ());
 	}
 
 	static const struct lconv* localeconv () noexcept
