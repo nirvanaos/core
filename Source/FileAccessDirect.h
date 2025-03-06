@@ -142,35 +142,57 @@ public:
 
 	LockType lock (const FileLock& fl, LockType tmin, const TimeBase::TimeT& timeout, const void* proxy)
 	{
+		if (tmin > fl.type ())
+			throw_BAD_PARAM ();
+
 		const FileSize end = end_of (fl);
+		LockType ret = LockType::LOCK_NONE;
 		if (fl.type () == LockType::LOCK_NONE) {
 			if (lock_ranges_.clear (fl.start (), end, proxy))
 				retry_lock ();
-			return LockType::LOCK_NONE;
 		} else {
-			if (tmin > fl.type ())
-				throw_BAD_PARAM ();
-			bool downgraded;
-			LockType ret = lock_ranges_.set (fl.start (), end, fl.type (), tmin, proxy,
-				downgraded);
-			if (ret < tmin) {
-				if (timeout && !Scheduler::shutdown_started ())
-					ret = lock_queue_.enqueue (fl.start (), end, fl.type (), tmin, proxy, timeout);
-				else
-					ret = LockType::LOCK_NONE;
-			} else if (downgraded)
+
+			LockType try_min = tmin;
+			if (LockType::LOCK_NONE == try_min) {
+				if ((try_min = fl.type ()) == LockType::LOCK_EXCLUSIVE)
+					try_min = LockType::LOCK_PENDING;
+			}
+
+			FileLockRanges::TestResult test_result;
+			if (lock_ranges_.test_lock (fl.start (), end, fl.type (), try_min, proxy, test_result)) {
+				ret = test_result.can_set;
+				if (test_result.cur_max != ret || test_result.cur_min != ret)
+					lock_ranges_.unchecked_set (fl.start (), end, proxy, ret);
+				if (ret < test_result.cur_max)
+					retry_lock ();
+			} else if (timeout && !Scheduler::shutdown_started ()) {
+				bool retry = false;
+				FileLockRanges::SharedLocks shared = lock_ranges_.has_shared_locks (fl.start (), end, proxy);
+				if (shared != FileLockRanges::SharedLocks::NO_LOCKS) {
+					if (shared == FileLockRanges::SharedLocks::OUTSIDE || tmin != LockType::LOCK_NONE)
+						throw_BAD_INV_ORDER (make_minor_errno (EDEADLK));
+					retry = lock_ranges_.clear (fl.start (), end, proxy);
+					assert (retry);
+				}
+				ret = lock_queue_.enqueue (fl.start (), end, fl.type (), try_min, proxy, timeout);
+				if (retry)
+					retry_lock ();
+			} else if (LockType::LOCK_NONE == tmin && test_result.cur_max > LockType::LOCK_NONE) {
+				lock_ranges_.clear (fl.start (), end, proxy);
 				retry_lock ();
-			return ret;
+			}
 		}
+
+		return ret;
 	}
 
 	void get_lock (FileLock& fl, const void* proxy) const
 	{
 		LockType level = fl.type ();
-		if (LockType::LOCK_NONE != level) {
-			if (!lock_ranges_.get (fl.start (), end_of (fl), proxy, level, fl))
-				fl.type (LockType::LOCK_NONE);
-		}
+		if (LockType::LOCK_NONE != level && !lock_ranges_.get (fl.start (), end_of (fl), proxy,
+			level, fl)
+		)
+			fl.type (LockType::LOCK_NONE);
 	}
 
 	void on_delete_proxy (const void* proxy) noexcept

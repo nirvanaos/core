@@ -42,7 +42,7 @@ namespace Core {
 class FileDescriptorsContext
 {
 	static const unsigned POSIX_CHANGEABLE_FLAGS = O_APPEND | O_NONBLOCK;
-	static const TimeBase::TimeT SETLOCK_WAIT_TIMEOUT = TimeBase::SECOND * 30;
+	static const TimeBase::TimeT SETLOCK_WAIT_TIMEOUT = std::numeric_limits<TimeBase::TimeT>::max ();
 
 public:
 	FileDescriptorsContext ()

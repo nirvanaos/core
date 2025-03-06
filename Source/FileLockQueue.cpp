@@ -40,10 +40,7 @@ void FileLockQueue::retry_lock (FileLockRanges& lock_ranges) noexcept
 		LockType lmin = entry->level_min;
 		LockType lmax = entry->level_max;
 		try {
-			bool downgraded;
-			LockType l = lock_ranges.set (entry->begin, entry->end, lmax, lmin, entry->owner,
-				downgraded);
-			assert (!downgraded);
+			LockType l = lock_ranges.set (entry->begin, entry->end, lmax, lmin, entry->owner);
 			if (l >= lmin) {
 				*link = entry->next;
 				entry->signal (l);

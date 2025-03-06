@@ -201,25 +201,32 @@ public:
 				if (Nirvana::LockType::LOCK_EXCLUSIVE == level) {
 					Nirvana::FileLock fl_excl (FILE_HEADER_SIZE, 0, Nirvana::LockType::LOCK_EXCLUSIVE);
 					if (lock_level_ < Nirvana::LockType::LOCK_PENDING) {
-						Nirvana::LockType ret = access_->lock (fl_excl, Nirvana::LockType::LOCK_PENDING,
-							timeout);
-						if (ret <= lock_level_)
+						Nirvana::LockType lock_min = Nirvana::LockType::LOCK_SHARED == lock_level_ ?
+							Nirvana::LockType::LOCK_NONE : Nirvana::LockType::LOCK_PENDING;
+						Nirvana::LockType ret = access_->lock (fl_excl, lock_min, timeout);
+						if (ret >= lock_min)
+							lock_level_ = ret;
+						if (lock_level_ == Nirvana::LockType::LOCK_NONE)
 							return SQLITE_BUSY;
-						lock_level_ = ret;
 					}
+					assert (lock_level_ >= Nirvana::LockType::LOCK_PENDING);
 					if (lock_level_ < Nirvana::LockType::LOCK_EXCLUSIVE) {
 						Nirvana::LockType ret = access_->lock (fl_excl, Nirvana::LockType::LOCK_EXCLUSIVE,
 							timeout);
-						if (ret <= lock_level_)
+						if (ret == Nirvana::LockType::LOCK_NONE)
 							return SQLITE_BUSY;
+						assert (ret == Nirvana::LockType::LOCK_EXCLUSIVE);
 						lock_level_ = ret;
 					}
 				} else {
+					Nirvana::LockType lock_min = Nirvana::LockType::LOCK_SHARED == lock_level_ ?
+						Nirvana::LockType::LOCK_NONE : level;
 					Nirvana::LockType ret = access_->lock (Nirvana::FileLock (FILE_HEADER_SIZE, 0, level),
-						level, timeout);
-					if (ret <= lock_level_)
+						lock_min, timeout);
+					if (ret >= lock_min)
+						lock_level_ = ret;
+					if (lock_level_ < level)
 						return SQLITE_BUSY;
-					lock_level_ = ret;
 				}
 			} catch (...) {
 				if (level > Nirvana::LockType::LOCK_SHARED)

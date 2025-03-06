@@ -30,22 +30,19 @@
 namespace Nirvana {
 namespace Core {
 
-LockType FileLockRanges::set (const FileSize& begin, const FileSize& end,
-	LockType level_max, LockType level_min, const void* owner, bool& downgraded)
+bool FileLockRanges::test_lock (const FileSize begin, const FileSize end,
+	LockType level_max, LockType level_min, const void* owner, TestResult& result) const
 {
 	assert (begin < end);
 	assert (level_max > LockType::LOCK_NONE);
 	assert (LockType::LOCK_NONE < level_min && level_min <= level_max);
 
-	downgraded = false;
-
-	const Ranges::iterator it_end = lower_bound (end);
-
 	LockType level = level_max;
+	int cur_min = (int)LockType::LOCK_EXCLUSIVE + 1, cur_max = (int)LockType::LOCK_NONE;
 
 	// Scan locks
-	LockType cur_max_level = LockType::LOCK_NONE, cur_min_level = LockType::LOCK_EXCLUSIVE;
 	FileSize right = end;
+	const Ranges::const_iterator it_end = lower_bound (end);
 	for (auto it = it_end; ranges_.begin () != it;) {
 		--it;
 		if (it->end > begin) {
@@ -53,52 +50,43 @@ LockType FileLockRanges::set (const FileSize& begin, const FileSize& end,
 			if (it->owner != owner) {
 				// Other lock
 				if (it_level >= LockType::LOCK_PENDING)
-					return LockType::LOCK_NONE;
+					return false;
 				else if (it_level > LockType::LOCK_SHARED) {
 					if (level_min > LockType::LOCK_SHARED)
-						return LockType::LOCK_NONE;
+						return false;
 					else
 						level = LockType::LOCK_SHARED;
 				} else {
 					// Other shared lock present
 					if (LockType::LOCK_EXCLUSIVE == level) {
 						if (LockType::LOCK_EXCLUSIVE == level_min)
-							return LockType::LOCK_NONE;
+							return false;
 						else
 							level = LockType::LOCK_PENDING;
 					}
 				}
 			} else {
-				
-				if (cur_max_level < it_level)
-					cur_max_level = it_level;
-				
+				// Own lock
+				if (cur_max < (int)it_level)
+					cur_max = (int)it_level;
 				if (it->end < right)
-					cur_min_level = LockType::LOCK_NONE;
-				else if (cur_min_level > it_level)
-					cur_min_level = it_level;
-
+					cur_min = (int)LockType::LOCK_NONE;
+				else if (cur_min > (int)it_level)
+					cur_min = (int)it_level;
 				right = it->begin;
 			}
 		}
 	}
 
-	if (begin < right)
-		cur_min_level = LockType::LOCK_NONE;
-
 	// The lock is allowed
-
-	if (cur_min_level >= level && cur_max_level <= level_max)
-		return cur_min_level; // Nothing to change
-
-	unchecked_set (begin, end, owner, level);
-
-	if (cur_max_level >= LockType::LOCK_PENDING)
-		downgraded = level < LockType::LOCK_PENDING;
+	result.can_set = level;
+	result.cur_max = (LockType)cur_max;
+	if (cur_min > (int)LockType::LOCK_EXCLUSIVE)
+		result.cur_min = LockType::LOCK_NONE;
 	else
-		downgraded = level < cur_max_level;
+		result.cur_min = (LockType)cur_min;
 
-	return level;
+	return true;
 }
 
 bool FileLockRanges::unchecked_set (FileSize begin, FileSize end, const void* owner, LockType level)

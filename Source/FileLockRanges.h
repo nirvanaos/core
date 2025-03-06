@@ -38,13 +38,34 @@ namespace Core {
 class FileLockRanges
 {
 public:
+	struct TestResult
+	{
+		LockType can_set, cur_max, cur_min;
+	};
+
+	bool test_lock (const FileSize begin, const FileSize end,
+		LockType level_max, LockType level_min, const void* owner,
+		TestResult& result) const;
+
 	LockType set (const FileSize& begin, const FileSize& end,
-		LockType level_max, LockType level_min, const void* owner, bool& downgraded);
+		LockType level_max, LockType level_min, const void* owner)
+	{
+		LockType ret = LockType::LOCK_NONE;
+		TestResult test_result;
+		if (test_lock (begin, end, level_max, level_min, owner, test_result)) {
+			ret = test_result.can_set;
+			if (test_result.cur_max != ret || test_result.cur_min != ret)
+				unchecked_set (begin, end, owner, ret);
+		}
+		return ret;
+	}
 
 	bool clear (const FileSize& begin, const FileSize& end, const void* owner)
 	{
 		return unchecked_set (begin, end, owner, LockType::LOCK_NONE);
 	}
+
+	bool unchecked_set (FileSize begin, FileSize end, const void* owner, LockType level);
 
 	bool get (const FileSize& begin, const FileSize& end, const void* owner, LockType level, FileLock& out)
 		const noexcept
@@ -126,6 +147,27 @@ public:
 		return ret;
 	}
 
+	enum class SharedLocks {
+		NO_LOCKS,
+		INSIDE,
+		OUTSIDE
+	};
+
+	SharedLocks has_shared_locks (const FileSize& begin, const FileSize& end, const void* owner) const noexcept
+	{
+		SharedLocks ret = SharedLocks::NO_LOCKS;
+		for (const Entry& e : ranges_) {
+			if (e.owner == owner && e.level == LockType::LOCK_SHARED) {
+				if (e.begin < begin || e.end > end) {
+					ret = SharedLocks::OUTSIDE;
+					break;
+				} else
+					ret = SharedLocks::INSIDE;
+			}
+		}
+		return ret;
+	}
+
 private:
 	struct Entry {
 		FileSize begin;
@@ -173,8 +215,6 @@ private:
 	{
 		return const_cast <FileLockRanges&> (*this).lower_bound (end);
 	}
-
-	bool unchecked_set (FileSize begin, FileSize end, const void* owner, LockType level);
 
 private:
 	Ranges ranges_;
