@@ -30,7 +30,7 @@
 #include "StatementBase.h"
 #include <Nirvana/string_conv.h>
 #include <Nirvana/Hash.h>
-#include <unordered_map>
+#include "../Source/MapUnorderedStable.h"
 
 #define PS_PARAM(name, type)\
 void set##name (NDBC::Ordinal param, type v) { setParam (get_param_index (param), v); } \
@@ -300,7 +300,7 @@ private:
 	}
 
 private:
-	std::unordered_map <ParamIndex, ParamStorage, ParamHash> param_storage_;
+	Nirvana::Core::MapUnorderedStable <ParamIndex, ParamStorage, ParamHash> param_storage_;
 };
 
 }
