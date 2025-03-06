@@ -49,21 +49,21 @@ bool FileLockRanges::test_lock (const FileSize begin, const FileSize end,
 			LockType it_level = it->level;
 			if (it->owner != owner) {
 				// Other lock
+				
 				if (it_level >= LockType::LOCK_PENDING)
-					return false;
-				else if (it_level > LockType::LOCK_SHARED) {
+					return false; // Pending lock prohibits new lock
+				else if (it_level == LockType::LOCK_RESERVED) {
 					if (level_min > LockType::LOCK_SHARED)
 						return false;
 					else
 						level = LockType::LOCK_SHARED;
 				} else {
 					// Other shared lock present
-					if (LockType::LOCK_EXCLUSIVE == level) {
-						if (LockType::LOCK_EXCLUSIVE == level_min)
-							return false;
-						else
-							level = LockType::LOCK_PENDING;
-					}
+					// We can obtain LOCK_PENDING and below
+					if (LockType::LOCK_PENDING < level_min)
+						return false;
+					if (level > LockType::LOCK_PENDING)
+						level = LockType::LOCK_PENDING;
 				}
 			} else {
 				// Own lock

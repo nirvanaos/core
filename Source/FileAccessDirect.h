@@ -169,10 +169,12 @@ public:
 				bool retry = false;
 				FileLockRanges::SharedLocks shared = lock_ranges_.has_shared_locks (fl.start (), end, proxy);
 				if (shared != FileLockRanges::SharedLocks::NO_LOCKS) {
-					if (shared == FileLockRanges::SharedLocks::OUTSIDE || tmin != LockType::LOCK_NONE)
+					if (shared == FileLockRanges::SharedLocks::OUTSIDE)
 						throw_BAD_INV_ORDER (make_minor_errno (EDEADLK));
-					retry = lock_ranges_.clear (fl.start (), end, proxy);
-					assert (retry);
+					if (tmin == LockType::LOCK_NONE) {
+						retry = lock_ranges_.clear (fl.start (), end, proxy);
+						assert (retry);
+					}
 				}
 				ret = lock_queue_.enqueue (fl.start (), end, fl.type (), try_min, proxy, timeout);
 				if (retry)
