@@ -40,7 +40,7 @@ class PacMan :
 {
 public:
 	PacMan (Nirvana::SysDomain::_ptr_type sys_domain, CosEventChannelAdmin::ProxyPushConsumer::_ptr_type completion) :
-		Connection (Connection::connect_rw),
+		Connection (Connection::create_pool (connect_rw, 0, 1)),
 		sys_domain_ (sys_domain),
 		busy_ (false)
 	{
@@ -130,7 +130,7 @@ public:
 
 		try {
 
-			Statement stm = get_statement ("SELECT id,flags FROM module WHERE name=? AND version=? AND prerelease=?");
+			auto stm = get_statement ("SELECT id,flags FROM module WHERE name=? AND version=? AND prerelease=?");
 
 			stm->setString (1, svname.name ());
 			stm->setBigInt (2, svname.version ());
@@ -209,7 +209,7 @@ public:
 
 		try {
 
-			Statement stm = get_statement ("DELETE FROM module WHERE name=? AND version=? AND prerelease=?");
+			auto stm = get_statement ("DELETE FROM module WHERE name=? AND version=? AND prerelease=?");
 			stm->setString (1, svname.name ());
 			stm->setBigInt (2, svname.version ());
 			stm->setString (3, svname.prerelease ());
