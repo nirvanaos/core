@@ -37,13 +37,17 @@ template <class I>
 struct StatementPool
 {
 	RefPool <I> types [(size_t)ResultSet::Type::TYPE_SCROLL_SENSITIVE + 1];
+
+	void clear () noexcept
+	{
+		for (auto& pool : types) {
+			pool.clear ();
+		}
+	}
 };
 
 struct ConnectionData : public Connection::_ref_type
 {
-	StatementPool <Statement> statements;
-	Nirvana::Core::MapUnorderedStable <std::string, StatementPool <PreparedStatement> > prepared_statements;
-
 	ConnectionData ()
 	{}
 
@@ -69,6 +73,8 @@ struct ConnectionData : public Connection::_ref_type
 	ConnectionData& operator = (const ConnectionData&) = delete;
 	ConnectionData& operator = (ConnectionData&&) = delete;
 
+	StatementPool <Statement> statements_;
+	Nirvana::Core::MapUnorderedStable <std::string, StatementPool <PreparedStatement> > prepared_statements_;
 	IDL::String catalog, schema;
 	Connection::TransactionIsolation ti;
 	bool read_only;
@@ -101,14 +107,14 @@ public:
 
 	Statement::_ref_type createStatement (ResultSet::Type resultSetType)
 	{
-		auto& d = data ();
-		RefPool <Statement>& pool = d.statements.types [(size_t)resultSetType];
+		ConnectionData& d = data ();
+		RefPool <Statement>& pool = d.statements_.types [(size_t)resultSetType];
 		Statement::_ref_type s;
 		if (!pool.empty ()) {
 			s = std::move (pool.top ());
 			pool.pop ();
 		} else
-			s = data ()->createStatement (resultSetType);
+			s = d->createStatement (resultSetType);
 		return CORBA::make_reference <PoolableStatement> (std::ref (*this), std::ref (pool),
 			std::move (s))->_this ();
 	}
@@ -116,15 +122,15 @@ public:
 	PreparedStatement::_ref_type prepareStatement (const IDL::String& sql,
 		ResultSet::Type resultSetType, unsigned flags)
 	{
-		auto& d = data ();
-		RefPool <PreparedStatement>& pool = d.prepared_statements.emplace (sql,
+		ConnectionData& d = data ();
+		RefPool <PreparedStatement>& pool = d.prepared_statements_.emplace (sql,
 			StatementPool <PreparedStatement> ()).first->second.types [(size_t)resultSetType];
 		PreparedStatement::_ref_type s;
 		if (!pool.empty ()) {
 			s = std::move (pool.top ());
 			pool.pop ();
 		} else
-			s = data ()->prepareStatement (sql, resultSetType, PreparedStatement::PREPARE_PERSISTENT);
+			s = d->prepareStatement (sql, resultSetType, PreparedStatement::PREPARE_PERSISTENT);
 		return CORBA::make_reference <PoolablePreparedStatement> (std::ref (*this), std::ref (pool),
 			std::move (s))->_this ();
 	}

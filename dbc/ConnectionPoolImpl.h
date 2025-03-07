@@ -128,6 +128,20 @@ public:
 		creation_timeout_ = t;
 	}
 
+	uint32_t options () const noexcept
+	{
+		return 0;
+	}
+
+	void options (uint32_t) noexcept
+	{
+	}
+
+	uint32_t connectionCount () const noexcept
+	{
+		return cur_created_;
+	}
+
 	Pool <ConnectionData>& connections () noexcept
 	{
 		return connections_;

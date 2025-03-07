@@ -41,7 +41,7 @@ public:
 
 	static NDBC::ConnectionPool::_ref_type create_pool (const char* url, unsigned max_keep, unsigned max_create)
 	{
-		return NDBC::the_manager->createConnectionPool (SQLite::driver, url, nullptr, nullptr, max_keep, max_create);
+		return NDBC::the_manager->createConnectionPool (SQLite::driver, url, nullptr, nullptr, max_keep, max_create, 0);
 	}
 
 	Connection (const char* url) :

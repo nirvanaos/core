@@ -41,7 +41,13 @@ class Pool : public std::stack <Data>
 
 public:
 	Pool () = default;
-	~Pool ();
+	
+	~Pool ()
+	{
+		clear ();
+	}
+
+	void clear () noexcept;
 
 	Pool (const Pool&) = delete;
 	Pool (Pool&&) = default;
@@ -51,7 +57,7 @@ public:
 };
 
 template <class Data>
-Pool <Data>::~Pool ()
+void Pool <Data>::clear () noexcept
 {
 	while (!Base::empty ()) {
 		Data data (std::move (Base::top ()));
