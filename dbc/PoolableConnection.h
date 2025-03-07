@@ -28,8 +28,8 @@
 #pragma once
 
 #include "PoolableStatement.h"
-#include <unordered_map>
-#include <unordered_set>
+#include "../Source/MapUnorderedStable.h"
+#include "../Source/MapUnorderedUnstable.h"
 
 namespace NDBC {
 
@@ -42,7 +42,7 @@ struct StatementPool
 struct ConnectionData : public Connection::_ref_type
 {
 	StatementPool <Statement> statements;
-	std::unordered_map <std::string, StatementPool <PreparedStatement> > prepared_statements;
+	Nirvana::Core::MapUnorderedUnstable <std::string, StatementPool <PreparedStatement> > prepared_statements;
 
 	ConnectionData ()
 	{}
@@ -262,7 +262,7 @@ public:
 
 private:
 	CORBA::servant_reference <ConnectionPoolImpl> parent_;
-	std::unordered_set <Savepoint> savepoints_;
+	Nirvana::Core::SetUnorderedUnstable <Savepoint> savepoints_;
 	unsigned active_statements_;
 };
 
