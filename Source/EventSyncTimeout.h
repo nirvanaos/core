@@ -76,7 +76,7 @@ public:
 				break;
 			if (entry->expire_time <= cur_time) {
 				*link = entry->next;
-				entry->exec_domain.resume ();
+				entry->exec_domain->resume ();
 			} else {
 				if (next_time > entry->expire_time)
 					next_time = entry->expire_time;
@@ -92,7 +92,7 @@ private:
 	struct ListEntry
 	{
 		TimeBase::TimeT expire_time;
-		ExecDomain& exec_domain;
+		Ref <ExecDomain> exec_domain;
 		ListEntry* next;
 		bool result;
 	};

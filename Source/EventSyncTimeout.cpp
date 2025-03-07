@@ -57,7 +57,7 @@ bool EventSyncTimeout::wait (TimeBase::TimeT timeout, Synchronized* frame)
 	ExecDomain& cur_ed = frame ? frame->exec_domain () : ExecDomain::current ();
 	DeadlineTime deadline = cur_ed.deadline ();
 
-	ListEntry entry { NO_EXPIRE, cur_ed, nullptr, false };
+	ListEntry entry { NO_EXPIRE, &cur_ed, nullptr, false };
 	if (timeout != std::numeric_limits <TimeBase::TimeT>::max ()) {
 		TimeBase::TimeT cur_time = Chrono::steady_clock ();
 		if (std::numeric_limits <TimeBase::TimeT>::max () - cur_time <= timeout)
@@ -68,7 +68,7 @@ bool EventSyncTimeout::wait (TimeBase::TimeT timeout, Synchronized* frame)
 	ListEntry** link = &list_;
 	for (;;) {
 		ListEntry* next = *link;
-		if (!next || next->exec_domain.deadline () > deadline)
+		if (!next || next->exec_domain->deadline () > deadline)
 			break;
 		link = &(next->next);
 	}
@@ -106,10 +106,10 @@ void EventSyncTimeout::signal_all () noexcept
 	ListEntry* entry = list_;
 	list_ = nullptr;
 	while (entry) {
+		ListEntry* next = entry->next;
 		entry->result = true;
-		ExecDomain& ed = entry->exec_domain;
-		entry = entry->next;
-		ed.resume ();
+		entry->exec_domain->resume ();
+		entry = next;
 	}
 }
 
@@ -121,10 +121,11 @@ void EventSyncTimeout::signal_one () noexcept
 
 	ListEntry* entry = list_;
 	if (entry) {
-		list_ = entry->next;
+		ListEntry* next = entry->next;
+		list_ = next;
 		entry->result = true;
 		TimeBase::TimeT expire_time = entry->expire_time;
-		entry->exec_domain.resume ();
+		entry->exec_domain->resume ();
 		if (NO_EXPIRE != expire_time && expire_time <= nearest_expire_time ()) {
 			expire_time = std::numeric_limits <TimeBase::TimeT>::max ();
 			for (ListEntry* entry = list_; entry; entry = entry->next) {
@@ -145,7 +146,7 @@ void EventSyncTimeout::on_exception (const CORBA::Exception& exc) noexcept
 	list_ = nullptr;
 	while (entry) {
 		ListEntry* next = entry->next;
-		entry->exec_domain.resume (exc);
+		entry->exec_domain->resume (exc);
 		entry = next;
 	}
 }

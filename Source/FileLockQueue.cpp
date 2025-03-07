@@ -76,7 +76,7 @@ void FileLockQueue::on_exception (const CORBA::Exception& exc) noexcept
 	list_ = nullptr;
 	while (entry) {
 		Entry* next = entry->next;
-		entry->exec_domain.resume (exc);
+		entry->exec_domain->resume (exc);
 		entry = next;
 	}
 }
