@@ -97,7 +97,6 @@ class PoolableStatementS :
 	public PoolableS <typename I::_ref_type, I, S>
 {
 	using Base = PoolableS <typename I::_ref_type, I, S>;
-	using Servant = CORBA::servant_traits <I>::Servant <S>;
 
 public:
 	using PoolType = Base::PoolType;
@@ -107,14 +106,14 @@ public:
 	ResultSet::_ref_type getResultSet ()
 	{
 		ResultSet::_ref_type rs = base ()->getResultSet ();
-		rs->statement (Servant::_this ());
+		rs->statement (Base::_this ());
 		return rs;
 	}
 
 	void close ()
 	{
-		Base::close ();
-		PoolableStatementBase::close ();
+		if (Base::close ())
+			PoolableStatementBase::close ();
 	}
 
 	static void cleanup (StatementBase::_ptr_type s)

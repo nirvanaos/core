@@ -75,16 +75,16 @@ const char* const Packages::db_script_ [] = {
 };
 
 Packages::Packages (CORBA::Object::_ptr_type component) :
-	Servant (component),
-	ConnectionPool (::Connection::connect_ro)
+	Servant (component)
 {
 	create_database ();
+	pool_ = Connection::create_pool (Connection::connect_ro, POOL_MAX_CACHE, POOL_MAX_CREATE);
 }
 
 inline void Packages::create_database ()
 {
-	NDBC::Connection::_ref_type connection = ::Connection::open_database (::Connection::connect_rwc);
-	NDBC::Statement::_ref_type st = connection->createStatement (NDBC::ResultSet::Type::TYPE_FORWARD_ONLY);
+	Connection connection (Connection::connect_rwc);
+	auto st (connection.get_statement ());
 	NDBC::ResultSet::_ref_type rs = st->executeQuery ("PRAGMA user_version;");
 	rs->next ();
 	int32_t cur_version = rs->getInt (1);
@@ -102,6 +102,6 @@ inline void Packages::create_database ()
 			}
 #endif
 		}
-		connection->commit ();
+		connection.commit ();
 	}
 }

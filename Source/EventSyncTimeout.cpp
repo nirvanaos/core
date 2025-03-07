@@ -31,9 +31,9 @@
 namespace Nirvana {
 namespace Core {
 
-EventSyncTimeout::EventSyncTimeout () :
+EventSyncTimeout::EventSyncTimeout (SignalCount initial_cnt) :
 	list_ (nullptr),
-	signal_cnt_ (0)
+	signal_cnt_ (initial_cnt)
 {}
 
 EventSyncTimeout::~EventSyncTimeout ()
@@ -46,7 +46,7 @@ bool EventSyncTimeout::wait (TimeBase::TimeT timeout, Synchronized* frame)
 	assert (SyncContext::current ().sync_domain ());
 
 	if (signal_cnt_) {
-		if (std::numeric_limits <size_t>::max () != signal_cnt_)
+		if (SIGNAL_ALL != signal_cnt_)
 			--signal_cnt_;
 		return true;
 	}
@@ -98,7 +98,7 @@ void EventSyncTimeout::signal_all () noexcept
 	assert (SyncContext::current ().sync_domain ());
 
 	assert (!signal_cnt_);
-	signal_cnt_ = std::numeric_limits <size_t>::max ();
+	signal_cnt_ = SIGNAL_ALL;
 
 	if (timer_)
 		timer_->cancel ();
@@ -106,10 +106,10 @@ void EventSyncTimeout::signal_all () noexcept
 	ListEntry* entry = list_;
 	list_ = nullptr;
 	while (entry) {
+		ListEntry* next = entry->next;
 		entry->result = true;
-		ExecDomain& ed = entry->exec_domain;
-		entry = entry->next;
-		ed.resume ();
+		entry->exec_domain.resume ();
+		entry = next;
 	}
 }
 
@@ -117,11 +117,12 @@ void EventSyncTimeout::signal_one () noexcept
 {
 	assert (SyncContext::current ().sync_domain ());
 
-	assert (signal_cnt_ != std::numeric_limits <size_t>::max ());
+	assert (signal_cnt_ != SIGNAL_ALL);
 
-	if (list_) {
-		ListEntry* entry = list_;
-		list_ = entry->next;
+	ListEntry* entry = list_;
+	if (entry) {
+		ListEntry* next = entry->next;
+		list_ = next;
 		entry->result = true;
 		TimeBase::TimeT expire_time = entry->expire_time;
 		entry->exec_domain.resume ();

@@ -37,11 +37,13 @@ namespace Nirvana {
 namespace Core {
 
 class EventUser :
-	public CORBA::servant_traits <Nirvana::Event>::Servant <EventUser>,
+	public IDL::traits <Nirvana::Event>::Servant <EventUser>,
 	private EventSyncTimeout
 {
 public:
 	EventUser (bool manual_reset, bool initial_state) :
+		EventSyncTimeout (initial_state ?
+			(manual_reset ? SIGNAL_ALL : 1) : 0),
 		manual_reset_ (manual_reset)
 #ifndef NDEBUG
 		,dbg_sc_ (SyncContext::current ())
@@ -49,12 +51,6 @@ public:
 	{
 		if (!SyncContext::current ().sync_domain ())
 			throw CORBA::BAD_INV_ORDER ();
-		if (initial_state) {
-			if (manual_reset)
-				EventSyncTimeout::signal_all ();
-			else
-				EventSyncTimeout::signal_one ();
-		}
 	}
 
 	bool wait (const TimeBase::TimeT& timeout)

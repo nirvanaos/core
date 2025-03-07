@@ -31,13 +31,14 @@
 #include <Nirvana/Domains_s.h>
 #include "PacMan.h"
 #include "factory.h"
-#include "ConnectionPool.h"
 
 class Packages :
-	public CORBA::servant_traits <Nirvana::PM::Packages>::Servant <Packages>,
-	public ConnectionPool
+	public CORBA::servant_traits <Nirvana::PM::Packages>::Servant <Packages>
 {
 	typedef CORBA::servant_traits <Nirvana::PM::Packages>::Servant <Packages> Servant;
+
+	static const unsigned POOL_MAX_CACHE = 10;
+	static const unsigned POOL_MAX_CREATE = 1000;
 
 public:
 	Packages (CORBA::Object::_ptr_type component);
@@ -51,27 +52,27 @@ public:
 	void get_binding (const IDL::String& name, Nirvana::PlatformId platform,
 		Nirvana::PM::Binding& binding)
 	{
-		Connection (*this)->get_binding (name, platform, binding);
+		Connection (pool_).get_binding (name, platform, binding);
 	}
 
 	IDL::String get_module_name (Nirvana::ModuleId id)
 	{
-		return Connection (*this)->get_module_name (id);
+		return Connection (pool_).get_module_name (id);
 	}
 
 	Nirvana::PM::Packages::Modules get_module_dependencies (Nirvana::ModuleId id)
 	{
-		return Connection (*this)->get_module_dependencies (id);
+		return Connection (pool_).get_module_dependencies (id);
 	}
 
 	Nirvana::PM::Packages::Modules get_dependent_modules (Nirvana::ModuleId id)
 	{
-		return Connection (*this)->get_dependent_modules (id);
+		return Connection (pool_).get_dependent_modules (id);
 	}
 
 	void get_module_bindings (Nirvana::ModuleId id, Nirvana::PM::ModuleBindings& metadata)
 	{
-		Connection (*this)->get_module_bindings (id, metadata);
+		Connection (pool_).get_module_bindings (id, metadata);
 	}
 
 	Nirvana::PM::PacMan::_ref_type manage ()
@@ -109,7 +110,7 @@ private:
 	static void create_database ();
 
 private:
-	NDBC::Connection::_ref_type connection_;
+	NDBC::ConnectionPool::_ref_type pool_;
 	CosEventChannelAdmin::EventChannel::_ref_type event_channel_;
 	CosEventComm::PullSupplier::_ref_type manager_completion_;
 

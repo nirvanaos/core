@@ -70,14 +70,22 @@ public:
 			--cur_size_;
 		} else {
 
-			if (cur_created_ >= max_create_ && !may_create_->wait (creation_timeout_))
-				throw SQLException (SQLWarning (1, "Connection create timeout"), NDBC::SQLWarnings ());
-			assert (cur_created_ < max_create_);
+			for (;;) {
+				if (cur_created_ >= max_create_ && !may_create_->wait (creation_timeout_))
+					throw SQLException (SQLWarning (1, "Connection create timeout"), NDBC::SQLWarnings ());
+				assert (cur_created_ < max_create_);
 
-			conn = CORBA::make_reference <PoolableConnection> (std::ref (*this),
-				ConnectionData (driver_->connect (url_, user_, password_)));
-			if (max_create_ <= ++cur_created_)
-				may_create_->reset ();
+				conn = CORBA::make_reference <PoolableConnection> (std::ref (*this),
+					ConnectionData (driver_->connect (url_, user_, password_)));
+				if (max_create_ == ++cur_created_)
+					may_create_->reset ();
+				if (cur_created_ > max_create_) {
+					conn->close ();
+					conn = nullptr;
+					--max_create_;
+				} else
+					break;
+			}
 		}
 		return conn->_this ();
 	}
@@ -118,6 +126,20 @@ public:
 	void creationTimeout (TimeBase::TimeT t) noexcept
 	{
 		creation_timeout_ = t;
+	}
+
+	uint32_t options () const noexcept
+	{
+		return 0;
+	}
+
+	void options (uint32_t) noexcept
+	{
+	}
+
+	uint32_t connectionCount () const noexcept
+	{
+		return cur_created_;
 	}
 
 	Pool <ConnectionData>& connections () noexcept

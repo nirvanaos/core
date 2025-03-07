@@ -45,7 +45,7 @@ public:
 
 	bool test_lock (const FileSize begin, const FileSize end,
 		LockType level_max, LockType level_min, const void* owner,
-		TestResult& result) const;
+		TestResult& result) const noexcept;
 
 	LockType set (const FileSize& begin, const FileSize& end,
 		LockType level_max, LockType level_min, const void* owner)
@@ -157,7 +157,7 @@ public:
 	{
 		SharedLocks ret = SharedLocks::NO_LOCKS;
 		for (const Entry& e : ranges_) {
-			if (e.owner == owner && e.level == LockType::LOCK_SHARED) {
+			if (e.owner == owner && (e.level == LockType::LOCK_SHARED || e.level == LockType::LOCK_RESERVED)) {
 				if (e.begin < begin || e.end > end) {
 					ret = SharedLocks::OUTSIDE;
 					break;

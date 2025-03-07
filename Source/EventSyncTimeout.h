@@ -43,7 +43,10 @@ class EventSyncTimeout : public Timeout <EventSyncTimeout>
 	static const TimeBase::TimeT TIMER_DEADLINE = 1 * TimeBase::MILLISECOND;
 
 public:
-	EventSyncTimeout ();
+	typedef size_t SignalCount;
+	static const SignalCount SIGNAL_ALL = std::numeric_limits <SignalCount>::max ();
+
+	EventSyncTimeout (SignalCount initial_cnt = 0);
 	~EventSyncTimeout ();
 
 	bool wait (TimeBase::TimeT timeout, Synchronized* frame = nullptr);
@@ -98,7 +101,7 @@ private:
 	};
 
 	ListEntry* list_;
-	size_t signal_cnt_;
+	SignalCount signal_cnt_;
 };
 
 }
