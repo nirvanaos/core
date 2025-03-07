@@ -55,12 +55,12 @@ public:
 		void signal (LockType level) noexcept
 		{
 			level_max = level;
-			exec_domain->resume ();
+			exec_domain.resume ();
 		}
 
 		void signal (const CORBA::Exception& exc) noexcept
 		{
-			exec_domain->resume (exc);
+			exec_domain.resume (exc);
 		}
 
 		FileSize begin;
@@ -68,7 +68,7 @@ public:
 		LockType level_max;
 		LockType level_min;
 		TimeBase::TimeT expire_time;
-		Ref <ExecDomain> exec_domain;
+		ExecDomain& exec_domain;
 		const void* owner;
 		Entry* next;
 	};
@@ -78,7 +78,7 @@ public:
 		const void* owner, const TimeBase::TimeT& timeout)
 	{
 		Entry entry { begin, end, level_max, level_min,
-			std::numeric_limits <TimeBase::TimeT>::max (), &ExecDomain::current (), owner, nullptr };
+			std::numeric_limits <TimeBase::TimeT>::max (), ExecDomain::current (), owner, nullptr };
 
 		if (timeout != std::numeric_limits <TimeBase::TimeT>::max ()) {
 			TimeBase::TimeT cur_time = Chrono::steady_clock ();
@@ -87,12 +87,12 @@ public:
 			entry.expire_time = cur_time + timeout;
 		}
 
-		DeadlineTime deadline = entry.exec_domain->deadline ();
+		DeadlineTime deadline = entry.exec_domain.deadline ();
 
 		Entry** link = &list_;
 		for (;;) {
 			Entry* next = *link;
-			if (!next || next->exec_domain->deadline () > deadline)
+			if (!next || next->exec_domain.deadline () > deadline)
 				break;
 			link = &(next->next);
 		}
@@ -100,12 +100,12 @@ public:
 		if (entry.expire_time < nearest_expire_time ())
 			nearest_expire_time (entry.expire_time);
 
-		entry.exec_domain->suspend_prepare ();
+		entry.exec_domain.suspend_prepare ();
 
 		entry.next = *link;
 		*link = &entry;
 
-		entry.exec_domain->suspend ();
+		entry.exec_domain.suspend ();
 
 		return entry.level_max;
 	}

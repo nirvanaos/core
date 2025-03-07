@@ -31,9 +31,9 @@
 namespace Nirvana {
 namespace Core {
 
-EventSyncTimeout::EventSyncTimeout () :
+EventSyncTimeout::EventSyncTimeout (SignalCount initial_cnt) :
 	list_ (nullptr),
-	signal_cnt_ (0)
+	signal_cnt_ (initial_cnt)
 {}
 
 EventSyncTimeout::~EventSyncTimeout ()
@@ -46,7 +46,7 @@ bool EventSyncTimeout::wait (TimeBase::TimeT timeout, Synchronized* frame)
 	assert (SyncContext::current ().sync_domain ());
 
 	if (signal_cnt_) {
-		if (std::numeric_limits <size_t>::max () != signal_cnt_)
+		if (SIGNAL_ALL != signal_cnt_)
 			--signal_cnt_;
 		return true;
 	}
@@ -57,7 +57,7 @@ bool EventSyncTimeout::wait (TimeBase::TimeT timeout, Synchronized* frame)
 	ExecDomain& cur_ed = frame ? frame->exec_domain () : ExecDomain::current ();
 	DeadlineTime deadline = cur_ed.deadline ();
 
-	ListEntry entry { NO_EXPIRE, &cur_ed, nullptr, false };
+	ListEntry entry { NO_EXPIRE, cur_ed, nullptr, false };
 	if (timeout != std::numeric_limits <TimeBase::TimeT>::max ()) {
 		TimeBase::TimeT cur_time = Chrono::steady_clock ();
 		if (std::numeric_limits <TimeBase::TimeT>::max () - cur_time <= timeout)
@@ -68,7 +68,7 @@ bool EventSyncTimeout::wait (TimeBase::TimeT timeout, Synchronized* frame)
 	ListEntry** link = &list_;
 	for (;;) {
 		ListEntry* next = *link;
-		if (!next || next->exec_domain->deadline () > deadline)
+		if (!next || next->exec_domain.deadline () > deadline)
 			break;
 		link = &(next->next);
 	}
@@ -98,7 +98,7 @@ void EventSyncTimeout::signal_all () noexcept
 	assert (SyncContext::current ().sync_domain ());
 
 	assert (!signal_cnt_);
-	signal_cnt_ = std::numeric_limits <size_t>::max ();
+	signal_cnt_ = SIGNAL_ALL;
 
 	if (timer_)
 		timer_->cancel ();
@@ -108,7 +108,7 @@ void EventSyncTimeout::signal_all () noexcept
 	while (entry) {
 		ListEntry* next = entry->next;
 		entry->result = true;
-		entry->exec_domain->resume ();
+		entry->exec_domain.resume ();
 		entry = next;
 	}
 }
@@ -117,7 +117,7 @@ void EventSyncTimeout::signal_one () noexcept
 {
 	assert (SyncContext::current ().sync_domain ());
 
-	assert (signal_cnt_ != std::numeric_limits <size_t>::max ());
+	assert (signal_cnt_ != SIGNAL_ALL);
 
 	ListEntry* entry = list_;
 	if (entry) {
@@ -125,7 +125,7 @@ void EventSyncTimeout::signal_one () noexcept
 		list_ = next;
 		entry->result = true;
 		TimeBase::TimeT expire_time = entry->expire_time;
-		entry->exec_domain->resume ();
+		entry->exec_domain.resume ();
 		if (NO_EXPIRE != expire_time && expire_time <= nearest_expire_time ()) {
 			expire_time = std::numeric_limits <TimeBase::TimeT>::max ();
 			for (ListEntry* entry = list_; entry; entry = entry->next) {
@@ -146,7 +146,7 @@ void EventSyncTimeout::on_exception (const CORBA::Exception& exc) noexcept
 	list_ = nullptr;
 	while (entry) {
 		ListEntry* next = entry->next;
-		entry->exec_domain->resume (exc);
+		entry->exec_domain.resume (exc);
 		entry = next;
 	}
 }

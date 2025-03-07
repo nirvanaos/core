@@ -43,7 +43,10 @@ class EventSyncTimeout : public Timeout <EventSyncTimeout>
 	static const TimeBase::TimeT TIMER_DEADLINE = 1 * TimeBase::MILLISECOND;
 
 public:
-	EventSyncTimeout ();
+	typedef size_t SignalCount;
+	static const SignalCount SIGNAL_ALL = std::numeric_limits <SignalCount>::max ();
+
+	EventSyncTimeout (SignalCount initial_cnt = 0);
 	~EventSyncTimeout ();
 
 	bool wait (TimeBase::TimeT timeout, Synchronized* frame = nullptr);
@@ -76,7 +79,7 @@ public:
 				break;
 			if (entry->expire_time <= cur_time) {
 				*link = entry->next;
-				entry->exec_domain->resume ();
+				entry->exec_domain.resume ();
 			} else {
 				if (next_time > entry->expire_time)
 					next_time = entry->expire_time;
@@ -92,13 +95,13 @@ private:
 	struct ListEntry
 	{
 		TimeBase::TimeT expire_time;
-		Ref <ExecDomain> exec_domain;
+		ExecDomain& exec_domain;
 		ListEntry* next;
 		bool result;
 	};
 
 	ListEntry* list_;
-	size_t signal_cnt_;
+	SignalCount signal_cnt_;
 };
 
 }
