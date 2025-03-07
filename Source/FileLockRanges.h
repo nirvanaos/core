@@ -45,7 +45,7 @@ public:
 
 	bool test_lock (const FileSize begin, const FileSize end,
 		LockType level_max, LockType level_min, const void* owner,
-		TestResult& result) const;
+		TestResult& result) const noexcept;
 
 	LockType set (const FileSize& begin, const FileSize& end,
 		LockType level_max, LockType level_min, const void* owner)

@@ -188,7 +188,7 @@ public:
 		return ret;
 	}
 
-	void get_lock (FileLock& fl, const void* proxy) const
+	void get_lock (FileLock& fl, const void* proxy) const noexcept
 	{
 		LockType level = fl.type ();
 		if (LockType::LOCK_NONE != level && !lock_ranges_.get (fl.start (), end_of (fl), proxy,

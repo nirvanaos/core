@@ -31,7 +31,7 @@ namespace Nirvana {
 namespace Core {
 
 bool FileLockRanges::test_lock (const FileSize begin, const FileSize end,
-	LockType level_max, LockType level_min, const void* owner, TestResult& result) const
+	LockType level_max, LockType level_min, const void* owner, TestResult& result) const noexcept
 {
 	assert (begin < end);
 	assert (level_max > LockType::LOCK_NONE);
