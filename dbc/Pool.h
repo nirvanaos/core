@@ -86,10 +86,13 @@ protected:
 			throw_closed ();
 	}
 
-	void close ()
+	bool close ()
 	{
-		check ();
-		closed_ = true;
+		if (!closed_) {
+			closed_ = true;
+			return true;
+		}
+		return false;
 	}
 
 	static void deactivate (PortableServer::Servant servant) noexcept;
@@ -133,11 +136,14 @@ class PoolableS :
 	using Base = Poolable <Data>;
 
 public:
-	void close ()
+	bool close ()
 	{
-		Base::close ();
-		release_to_pool ();
-		Base::deactivate (this);
+		if (Base::close ()) {
+			release_to_pool ();
+			Base::deactivate (this);
+			return true;
+		}
+		return false;
 	}
 
 protected:

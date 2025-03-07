@@ -112,8 +112,8 @@ public:
 
 	void close ()
 	{
-		Base::close ();
-		PoolableStatementBase::close ();
+		if (Base::close ())
+			PoolableStatementBase::close ();
 	}
 
 	static void cleanup (StatementBase::_ptr_type s)

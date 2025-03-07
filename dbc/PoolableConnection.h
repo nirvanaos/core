@@ -42,7 +42,7 @@ struct StatementPool
 struct ConnectionData : public Connection::_ref_type
 {
 	StatementPool <Statement> statements;
-	Nirvana::Core::MapUnorderedUnstable <std::string, StatementPool <PreparedStatement> > prepared_statements;
+	Nirvana::Core::MapUnorderedStable <std::string, StatementPool <PreparedStatement> > prepared_statements;
 
 	ConnectionData ()
 	{}
@@ -221,10 +221,11 @@ public:
 
 	void close ()
 	{
-		PoolableBase::close ();
-		if (0 == active_statements_)
-			release_to_pool ();
-		Base::deactivate (this);
+		if (PoolableBase::close ()) {
+			if (0 == active_statements_)
+				release_to_pool ();
+			Base::deactivate (this);
+		}
 	}
 
 	void add_active_statement () noexcept
