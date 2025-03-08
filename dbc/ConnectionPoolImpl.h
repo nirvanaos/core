@@ -177,7 +177,7 @@ private:
 
 inline void PoolableConnection::cleanup (ConnectionData& data)
 {
-	if (parent_->options () & ConnectionPool::DO_NOT_CACHE_PREPARED)
+	if (parent_->options () & Manager::DO_NOT_SHARE_PREPARED)
 		data.prepared_statements.clear ();
 
 	for (auto it = savepoints_.cbegin (); it != savepoints_.cend (); ++it) {
