@@ -37,7 +37,7 @@ class ConnectionPoolImpl :
 {
 public:
 	ConnectionPoolImpl (Driver::_ptr_type driver, IDL::String&& url, IDL::String&& user,
-		IDL::String&& password, uint32_t max_size, uint32_t max_create) :
+		IDL::String&& password, uint32_t max_size, uint32_t max_create, uint16_t options) :
 		driver_ (std::move (driver)),
 		url_ (std::move (url)),
 		user_ (std::move (user)),
@@ -47,7 +47,8 @@ public:
 		max_create_ (max_create),
 		cur_created_ (0),
 		may_create_ (Nirvana::the_system->create_event (false, true)),
-		creation_timeout_ (std::numeric_limits <TimeBase::TimeT>::max ())
+		creation_timeout_ (std::numeric_limits <TimeBase::TimeT>::max ()),
+		options_ (options)
 	{
 		if (max_create == 0 || max_create < max_size)
 			throw CORBA::BAD_PARAM ();
@@ -128,15 +129,6 @@ public:
 		creation_timeout_ = t;
 	}
 
-	uint32_t options () const noexcept
-	{
-		return 0;
-	}
-
-	void options (uint32_t) noexcept
-	{
-	}
-
 	uint32_t connectionCount () const noexcept
 	{
 		return cur_created_;
@@ -168,6 +160,11 @@ public:
 			may_create_->signal ();
 	}
 
+	unsigned options () const noexcept
+	{
+		return options_;
+	}
+
 private:
 	Driver::_ref_type driver_;
 	IDL::String url_, user_, password_;
@@ -175,7 +172,30 @@ private:
 	uint32_t max_size_, cur_size_, max_create_, cur_created_;
 	Nirvana::Event::_ref_type may_create_;
 	TimeBase::TimeT creation_timeout_;
+	const unsigned options_;
 };
+
+inline void PoolableConnection::cleanup (ConnectionData& data)
+{
+	if (parent_->options () & ConnectionPool::DO_NOT_CACHE_PREPARED)
+		data.prepared_statements.clear ();
+
+	for (auto it = savepoints_.cbegin (); it != savepoints_.cend (); ++it) {
+		try {
+			data->releaseSavepoint (*it);
+		} catch (...) {
+			assert (false);
+		}
+	}
+	savepoints_.clear ();
+
+	if (!data->getAutoCommit ()) {
+		data->rollback (nullptr);
+		data->setAutoCommit (true);
+	}
+
+	data.reset ();
+}
 
 inline void PoolableConnection::release_to_pool () noexcept
 {
