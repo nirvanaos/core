@@ -45,20 +45,6 @@ using namespace CORBA::Core;
 namespace Nirvana {
 namespace Core {
 
-class Binder::Request : public RequestLocalBase
-{
-public:
-	static Ref <Request> create ()
-	{
-		return Ref <Request>::create <RequestLocalImpl <Request> > ();
-	}
-
-protected:
-	Request () : RequestLocalBase (&BinderMemory::heap (),
-		IORequest::RESPONSE_EXPECTED | IORequest::RESPONSE_DATA)
-	{}
-};
-
 StaticallyAllocated <ImplStatic <SyncDomainCore> > Binder::sync_domain_;
 StaticallyAllocated <Binder> Binder::singleton_;
 bool Binder::initialized_ = false;
@@ -449,26 +435,32 @@ void Binder::bind_and_init (Module& mod, ModuleContext& context)
 {
 	const ModuleStartup* startup = module_bind (mod._get_ptr (), mod.metadata (), &context);
 
+	BindResult ret;
+	Ref <Request> rq = Request::create ();
+	rq->invoke ();
 	SYNC_BEGIN (context.sync_context, mod.initterm_mem_context ());
-
 	try {
-		// Module without an entry point is a special case reserved for future.
-		// Currently we prohibit it.
-		if (!startup)
-			BindError::throw_message ("Entry point not found");
+		try {
+			// Module without an entry point is a special case reserved for future.
+			// Currently we prohibit it.
+			if (!startup)
+				BindError::throw_message ("Entry point not found");
 
-		mod.initialize (startup ? ModuleInit::_check (startup->startup) : nullptr);
+			mod.initialize (startup ? ModuleInit::_check (startup->startup) : nullptr);
 
-	} catch (const SystemException& ex) {
-		module_unbind (mod._get_ptr (), mod.metadata ());
-		BindError::Error err;
-		BindError::set_system (err, ex);
-		BindError::set_message (BindError::push (err), "Module initialization error");
-		throw err;
+		} catch (const SystemException& ex) {
+			module_unbind (mod._get_ptr (), mod.metadata ());
+			BindError::Error err;
+			BindError::set_system (err, ex);
+			BindError::set_message (BindError::push (err), "Module initialization error");
+			throw err;
+		}
+		rq->success ();
+	} catch (CORBA::UserException& ex) {
+		rq->set_exception (std::move (ex));
 	}
-
 	SYNC_END ();
-
+	CORBA::Internal::ProxyRoot::check_request (rq->_get_ptr ());
 	mod.initial_ref_cnt_ = mod._refcount_value ();
 }
 
