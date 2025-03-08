@@ -36,11 +36,13 @@ namespace Core {
 
 class ExecDomain::WithPool
 {
+	/// Pool size is calculated as processor count multiplied by POOL_SIZE_MUL.
+	static const unsigned POOL_SIZE_MUL = 8;
+
 public:
 	static void initialize () noexcept
 	{
-		// Set initial pool size with processor count.
-		pool_.construct (Port::SystemInfo::hardware_concurrency ());
+		pool_.construct (Port::SystemInfo::hardware_concurrency () * POOL_SIZE_MUL);
 	}
 
 	static void terminate () noexcept
