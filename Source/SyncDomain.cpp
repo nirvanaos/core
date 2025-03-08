@@ -32,11 +32,9 @@ namespace Core {
 SyncDomain::SyncDomain (Ref <MemContext>&& mem_context) noexcept :
 	SyncContext (true),
 	mem_context_ (std::move (mem_context)),
-	scheduling_ ATOMIC_FLAG_INIT,
-	need_schedule_ (false),
 	state_ (State::IDLE),
-	scheduled_deadline_ (0),
-	activity_cnt_ (0)
+	activity_cnt_ (0),
+	need_schedule_ (false)
 {
 #ifndef NDEBUG
 	Thread* cur = Thread::current_ptr ();
@@ -54,61 +52,73 @@ SyncDomain::~SyncDomain ()
 		Scheduler::delete_item ();
 }
 
-void SyncDomain::schedule () noexcept
+void SyncDomain::do_schedule () noexcept
 {
-	need_schedule_ = true;
-	// Only one thread perform scheduling at a time.
-	while (need_schedule_ && State::RUNNING != state_ && !scheduling_.test_and_set ()) {
+	// Only one thread perform scheduling at a given time.
+	State state = State::IDLE;
+	if (state_.compare_exchange_strong (state, State::SCHEDULING)) {
+		
+		assert (need_schedule_.load (std::memory_order_acquire));
 		need_schedule_ = false;
 		DeadlineTime min_deadline;
-		if (queue_.get_min_deadline (min_deadline)) {
-			if (State::IDLE == state_) {
-				state_ = State::SCHEDULED;
-				Scheduler::schedule (min_deadline, *this);
-				scheduled_deadline_ = min_deadline;
-			} else if (State::SCHEDULED == state_) {
-				DeadlineTime scheduled_deadline = scheduled_deadline_;
-				if (
-					min_deadline != scheduled_deadline
-					&&
-					Scheduler::reschedule (min_deadline, *this, scheduled_deadline)
-					)
-						scheduled_deadline_ = min_deadline;
+		NIRVANA_VERIFY (queue_.get_min_deadline (min_deadline));
+		Scheduler::schedule (min_deadline, *this);
+
+		while (need_schedule_.exchange (false)) {
+
+			state = State::STOP_SCHEDULING;
+			if (state_.compare_exchange_strong (state, State::SCHEDULED))
+				break;
+
+			DeadlineTime new_deadline;
+			if (!queue_.get_min_deadline (new_deadline))
+				break;
+
+			if (new_deadline < min_deadline) {
+				if (Scheduler::reschedule (new_deadline, *this, min_deadline))
+					min_deadline = new_deadline;
+				else
+					break;
 			}
 		}
-		scheduling_.clear ();
+		state_.store (State::SCHEDULED, std::memory_order_release);
 	}
 }
 
 void SyncDomain::execute () noexcept
 {
-	assert (State::SCHEDULED == state_);
-	state_ = State::RUNNING;
+	_add_ref ();
+
+	State state = State::SCHEDULING;
+	state_.compare_exchange_strong (state, State::STOP_SCHEDULING);
+
 	Executor* executor;
 	NIRVANA_VERIFY (queue_.delete_min (executor));
 	executor->execute ();
+	end_execute ();
+	
+	_remove_ref ();
 }
 
-void SyncDomain::activity_begin ()
+void SyncDomain::end_execute () noexcept
 {
-	if (1 == activity_cnt_.increment_seq ())
-		Scheduler::create_item ();
-}
+	State state = State::SCHEDULED;
+	for (BackOff bo; !state_.compare_exchange_weak (state, State::IDLE); bo ()) {
+		if (State::IDLE == state)
+			break;
+		state = State::SCHEDULED;
+	}
 
-void SyncDomain::activity_end () noexcept
-{
-	if (0 == activity_cnt_.decrement_seq ())
-		Scheduler::delete_item ();
+	if (need_schedule_.load (std::memory_order_acquire))
+		do_schedule ();
 }
 
 void SyncDomain::leave () noexcept
 {
-	assert (State::RUNNING == state_);
 	// activity_begin() was called in schedule (const DeadlineTime& deadline, Executor& executor);
 	// So we call activity_end () here for the balance.
 	activity_end ();
-	state_ = State::IDLE;
-	schedule ();
+	end_execute ();
 }
 
 SyncDomain& SyncDomain::enter ()
@@ -134,11 +144,23 @@ SyncDomain& SyncDomain::enter ()
 		Ref <SyncDomain> sd = SyncDomainDyn <SyncDomainUser>::create (mc.heap (),
 			std::ref (sync_context), std::ref (mc));
 		sd->activity_begin ();
-		sd->state_ = State::RUNNING;
+		sd->state_ = State::SCHEDULED;
 		exec_domain.sync_context (*sd);
 		psd = sd;
 	}
 	return *psd;
+}
+
+void SyncDomain::activity_begin ()
+{
+	if (1 == activity_cnt_.increment_seq ())
+		Scheduler::create_item ();
+}
+
+void SyncDomain::activity_end () noexcept
+{
+	if (0 == activity_cnt_.decrement_seq ())
+		Scheduler::delete_item ();
 }
 
 void SyncDomain::release_queue_node (QueueNode* node) noexcept

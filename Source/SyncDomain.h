@@ -139,6 +139,7 @@ public:
 	/// If we currently run out of SD, create new SD and enter into it.
 	static SyncDomain& enter ();
 
+	/// Leave this SD
 	void leave () noexcept;
 
 	virtual SyncContext::Type sync_context_type () const noexcept override;
@@ -153,7 +154,14 @@ protected:
 	SyncDomain& operator = (SyncDomain&&) = delete;
 
 private:
-	void schedule () noexcept;
+	void schedule () noexcept
+	{
+		need_schedule_ = true;
+		do_schedule ();
+	}
+
+	void do_schedule () noexcept;
+	void end_execute () noexcept;
 
 	void activity_begin ();
 	void activity_end () noexcept;
@@ -162,20 +170,17 @@ private:
 	Queue queue_;
 	Ref <MemContext> mem_context_;
 
-	// Thread that acquires this flag become a scheduling thread.
-	std::atomic_flag scheduling_;
-	volatile bool need_schedule_;
-
 	enum class State
 	{
 		IDLE,
-		SCHEDULED,
-		RUNNING
+		SCHEDULING,
+		STOP_SCHEDULING,
+		SCHEDULED
 	};
-	volatile State state_;
-	volatile DeadlineTime scheduled_deadline_;
 
+	std::atomic <State> state_;
 	AtomicCounter <false> activity_cnt_;
+	std::atomic <bool> need_schedule_;
 };
 
 inline SyncDomain* SyncContext::sync_domain () noexcept
