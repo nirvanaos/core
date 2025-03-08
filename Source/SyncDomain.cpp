@@ -58,21 +58,23 @@ void SyncDomain::do_schedule () noexcept
 	State state = State::IDLE;
 	if (state_.compare_exchange_strong (state, State::SCHEDULING)) {
 		
-		assert (need_schedule_.load (std::memory_order_acquire));
+		assert (need_schedule_);
 		need_schedule_ = false;
 		DeadlineTime min_deadline;
 		NIRVANA_VERIFY (queue_.get_min_deadline (min_deadline));
 		Scheduler::schedule (min_deadline, *this);
 
-		while (need_schedule_.exchange (false)) {
+		for (;;) {
 
 			state = State::STOP_SCHEDULING;
 			if (state_.compare_exchange_strong (state, State::SCHEDULED))
+				return;
+
+			if (!need_schedule_.exchange (false))
 				break;
 
 			DeadlineTime new_deadline;
-			if (!queue_.get_min_deadline (new_deadline))
-				break;
+			NIRVANA_VERIFY (queue_.get_min_deadline (new_deadline));
 
 			if (new_deadline < min_deadline) {
 				if (Scheduler::reschedule (new_deadline, *this, min_deadline))
@@ -81,32 +83,39 @@ void SyncDomain::do_schedule () noexcept
 					break;
 			}
 		}
+
 		state_.store (State::SCHEDULED, std::memory_order_release);
 	}
 }
 
 void SyncDomain::execute () noexcept
 {
+	assert (State::IDLE != state_);
 	State state = State::SCHEDULING;
 	state_.compare_exchange_strong (state, State::STOP_SCHEDULING);
+	state = State::SCHEDULED;
+	for (BackOff bo; !state_.compare_exchange_weak (state, State::EXECUTING); bo ()) {
+		state = State::SCHEDULED;
+	}
+
+	// During the execution, state is always State::EXECUTING
 
 	Ref <Executor> executor;
 	NIRVANA_VERIFY (queue_.delete_min (executor));
 	executor->execute ();
+
 	end_execute ();
 }
 
 void SyncDomain::end_execute () noexcept
 {
-	State state = State::SCHEDULED;
-	for (BackOff bo; !state_.compare_exchange_weak (state, State::IDLE); bo ()) {
-		if (State::IDLE == state)
-			break;
-		state = State::SCHEDULED;
+	if (State::EXECUTING == state_.load (std::memory_order_acquire)) {
+		if (!queue_.empty ())
+			need_schedule_.store (true, std::memory_order_release);
+		state_.store (State::IDLE, std::memory_order_release);
+		if (need_schedule_.load (std::memory_order_acquire))
+			do_schedule ();
 	}
-
-	if (need_schedule_.load (std::memory_order_acquire))
-		do_schedule ();
 }
 
 void SyncDomain::leave () noexcept
@@ -140,7 +149,7 @@ SyncDomain& SyncDomain::enter ()
 		Ref <SyncDomain> sd = SyncDomainDyn <SyncDomainUser>::create (mc.heap (),
 			std::ref (sync_context), std::ref (mc));
 		sd->activity_begin ();
-		sd->state_ = State::SCHEDULED;
+		sd->state_ = State::EXECUTING;
 		exec_domain.sync_context (*sd);
 		psd = sd;
 	}

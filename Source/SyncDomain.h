@@ -156,7 +156,7 @@ protected:
 private:
 	void schedule () noexcept
 	{
-		need_schedule_ = true;
+		need_schedule_.store (true, std::memory_order_release);
 		do_schedule ();
 	}
 
@@ -175,7 +175,8 @@ private:
 		IDLE,
 		SCHEDULING,
 		STOP_SCHEDULING,
-		SCHEDULED
+		SCHEDULED,
+		EXECUTING
 	};
 
 	std::atomic <State> state_;

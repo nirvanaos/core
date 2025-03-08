@@ -80,6 +80,16 @@ public:
 #endif
 	}
 
+	bool empty () noexcept
+	{
+		NodeVal* node = Base::get_min_node ();
+		if (node) {
+			Base::release_node (node);
+			return false;
+		}
+		return true;
+	}
+
 	bool get_min_deadline (DeadlineTime& dt) noexcept
 	{
 		NodeVal* node = Base::get_min_node ();
