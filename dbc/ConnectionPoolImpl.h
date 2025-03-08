@@ -56,6 +56,7 @@ public:
 		// Create connection to ensure that parameters are correct.
 		// Do not activate it, return to pool immediately.
 		connections_.push (ConnectionData (driver_->connect (url_, user_, password_)));
+		cur_created_ = 1;
 	}
 
 	~ConnectionPoolImpl ()
@@ -80,10 +81,11 @@ public:
 					ConnectionData (driver_->connect (url_, user_, password_)));
 				if (max_create_ == ++cur_created_)
 					may_create_->reset ();
-				if (cur_created_ > max_create_) {
+				else if (cur_created_ > max_create_) {
 					conn->close ();
 					conn = nullptr;
-					--max_create_;
+					if (max_create_ == --cur_created_)
+						may_create_->reset ();
 				} else
 					break;
 			}
@@ -156,7 +158,7 @@ public:
 
 	void connection_destructed ()
 	{
-		if (cur_created_-- == max_create_)
+		if ((cur_created_--) == max_create_)
 			may_create_->signal ();
 	}
 
