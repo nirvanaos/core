@@ -87,17 +87,13 @@ void SyncDomain::do_schedule () noexcept
 
 void SyncDomain::execute () noexcept
 {
-	_add_ref ();
-
 	State state = State::SCHEDULING;
 	state_.compare_exchange_strong (state, State::STOP_SCHEDULING);
 
-	Executor* executor;
+	Ref <Executor> executor;
 	NIRVANA_VERIFY (queue_.delete_min (executor));
 	executor->execute ();
 	end_execute ();
-	
-	_remove_ref ();
 }
 
 void SyncDomain::end_execute () noexcept
