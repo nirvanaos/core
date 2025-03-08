@@ -52,9 +52,9 @@ public:
 		if (max_create == 0 || max_create < max_size)
 			throw CORBA::BAD_PARAM ();
 
-		// Create connection to ensure that parameters are correct
-		Connection::_ref_type conn = getConnection ();
-		conn->close ();
+		// Create connection to ensure that parameters are correct.
+		// Do not activate it, return to pool immediately.
+		connections_.push (ConnectionData (driver_->connect (url_, user_, password_)));
 	}
 
 	~ConnectionPoolImpl ()
