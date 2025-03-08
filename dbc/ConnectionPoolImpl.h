@@ -46,7 +46,7 @@ public:
 		cur_size_ (0),
 		max_create_ (max_create),
 		cur_created_ (0),
-		may_create_ (Nirvana::the_system->create_event (false, true)),
+		may_create_ (Nirvana::the_system->create_event (false, max_create > 1)),
 		creation_timeout_ (std::numeric_limits <TimeBase::TimeT>::max ()),
 		options_ (options)
 	{
@@ -57,6 +57,7 @@ public:
 		// Do not activate it, return to pool immediately.
 		connections_.push (ConnectionData (driver_->connect (url_, user_, password_)));
 		cur_created_ = 1;
+		cur_size_ = 1;
 	}
 
 	~ConnectionPoolImpl ()
