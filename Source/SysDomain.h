@@ -53,7 +53,7 @@ class SysDomain :
 public:
 	using CORBA::Internal::CCM_ObjectFeatures <SysDomain, Nirvana::SysDomain>::provide_facet;
 
-	SysDomain ();
+	SysDomain (CORBA::Object::_ref_type& obj);
 	~SysDomain ();
 
 	static Version version () noexcept
