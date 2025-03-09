@@ -32,6 +32,7 @@ namespace Core {
 SyncDomain::SyncDomain (Ref <MemContext>&& mem_context) noexcept :
 	SyncContext (true),
 	mem_context_ (std::move (mem_context)),
+	executing_domain_ (nullptr),
 	state_ (State::IDLE),
 	activity_cnt_ (0),
 	need_schedule_ (false)
@@ -101,14 +102,19 @@ void SyncDomain::execute () noexcept
 
 	Ref <Executor> executor;
 	NIRVANA_VERIFY (queue_.delete_min (executor));
-	executor->execute ();
-
+	ExecDomain& ed = static_cast <ExecDomain&> (*executor);
+	executing_domain_ = &ed;
+	ed.execute (*this);
 	end_execute ();
 }
 
 void SyncDomain::end_execute () noexcept
 {
-	if (State::EXECUTING == state_.load (std::memory_order_acquire)) {
+	if (executing_domain_ && executing_domain_ == &ExecDomain::current ()) {
+		assert (State::EXECUTING == state_);
+		assert (executing_domain_->execution_sync_domain () == this);
+		executing_domain_->on_leave_sync_domain ();
+		executing_domain_ = nullptr;
 		bool sched = !queue_.empty ();
 		state_.store (State::IDLE, std::memory_order_relaxed);
 		if (sched)
@@ -118,6 +124,9 @@ void SyncDomain::end_execute () noexcept
 
 void SyncDomain::leave () noexcept
 {
+	assert (executing_domain_);
+	assert (executing_domain_ == &ExecDomain::current ());
+	assert (executing_domain_->execution_sync_domain () == this);
 	assert (State::IDLE != state_);
 
 	// activity_begin() was called in schedule (const DeadlineTime& deadline, Executor& executor);
@@ -151,6 +160,8 @@ SyncDomain& SyncDomain::enter ()
 		sd->activity_begin ();
 		sd->state_ = State::EXECUTING;
 		exec_domain.sync_context (*sd);
+		sd->executing_domain_ = &exec_domain;
+		exec_domain.on_enter_sync_domain (*sd);
 		psd = sd;
 	}
 	return *psd;

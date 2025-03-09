@@ -223,10 +223,7 @@ public:
 	void on_crash (const siginfo& signal) noexcept
 	{
 		// Leave sync domain if one.
-		SyncDomain* sd = sync_context_->sync_domain ();
-		if (sd)
-			sd->leave ();
-		sync_context_ = &g_core_free_sync_context;
+		switch_to_free_sync_context ();
 
 		// Unwind MemContext stack
 		unwind_mem_context ();
@@ -261,14 +258,34 @@ public:
 		sync_context_ = &sync_context;
 	}
 
-	/// Leave the current sync domain, if any.
+	SyncDomain* execution_sync_domain () const noexcept
+	{
+		return execution_sync_domain_;
+	}
+
 	void leave_sync_domain () noexcept
 	{
-		Ref <SyncDomain> sd = sync_context ().sync_domain ();
-		if (sd) {
-			sync_context (g_core_free_sync_context);
-			sd->leave ();
-		}
+		if (execution_sync_domain_)
+			execution_sync_domain_->leave ();
+	}
+
+	void on_leave_sync_domain () noexcept
+	{
+		assert (execution_sync_domain_);
+		execution_sync_domain_ = nullptr;
+	}
+
+	void on_enter_sync_domain (SyncDomain& sd) noexcept
+	{
+		assert (!execution_sync_domain_);
+		execution_sync_domain_ = &sd;
+	}
+
+	/// Leave the current sync domain, if any, and switch to free sync context.
+	void switch_to_free_sync_context () noexcept
+	{
+		leave_sync_domain ();
+		sync_context_ = &g_core_free_sync_context;
 	}
 
 	/// \brief Returns current memory context.
@@ -414,10 +431,21 @@ public:
 		return ((uintptr_t)this); // / core_object_align (sizeof (*this));
 	}
 
+	/// Executor::execute ()
+	/// Called from worker thread.
+	virtual void execute () noexcept override;
+
+	void execute (SyncDomain& sd) noexcept
+	{
+		execution_sync_domain_ = &sd;
+		execute ();
+	}
+
 private:
 	ExecDomain () :
 		ExecContext (false),
 		ref_cnt_ (1),
+		execution_sync_domain_ (nullptr),
 		ret_qnodes_ (nullptr),
 		mem_context_ (nullptr),
 		scheduler_item_created_ (false),
@@ -473,10 +501,6 @@ private:
 	///   On return contains old context.
 	/// \param ret `true` if scheduled return from call.
 	void schedule (Ref <SyncContext>& sync_context, bool ret = false);
-
-	/// Executor::execute ()
-	/// Called from worker thread.
-	virtual void execute () noexcept override;
 
 	void ret_qnode_push (SyncDomain& sd)
 	{
@@ -555,6 +579,7 @@ private:
 	AtomicCounter <false> ref_cnt_;
 	DeadlineTime deadline_;
 	Ref <SyncContext> sync_context_;
+	SyncDomain* execution_sync_domain_;
 	SyncDomain::QueueNode* ret_qnodes_;
 	
 	PreallocatedStack <Ref <MemContext> > mem_context_stack_;

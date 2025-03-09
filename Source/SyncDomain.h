@@ -97,7 +97,7 @@ public:
 	/// May throw memory allocation exception.
 	/// 
 	/// \param deadline Deadline time.
-	/// \param executor An ExecContext reference.
+	/// \param executor An ExecDomain reference.
 	void schedule (const DeadlineTime& deadline, Executor& executor)
 	{
 		activity_begin ();
@@ -115,7 +115,7 @@ public:
 	/// 
 	/// \param node Preallocated node.
 	/// \param deadline Deadline time.
-	/// \param executor An ExecContext reference.
+	/// \param executor An ExecDomain reference.
 	void schedule (QueueNode* node, const DeadlineTime& deadline, Executor& executor) noexcept
 	{
 		assert (node);
@@ -167,9 +167,6 @@ private:
 	void activity_end () noexcept;
 
 private:
-	Queue queue_;
-	Ref <MemContext> mem_context_;
-
 	enum class State
 	{
 		IDLE,
@@ -179,6 +176,9 @@ private:
 		EXECUTING
 	};
 
+	Queue queue_;
+	Ref <MemContext> mem_context_;
+	ExecDomain* executing_domain_;
 	std::atomic <State> state_;
 	AtomicCounter <false> activity_cnt_;
 	std::atomic <bool> need_schedule_;
