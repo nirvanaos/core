@@ -139,10 +139,17 @@ public:
 		else
 			domain = manager_->create_prot_domain (info.platform ());
 
-		info.module_flags (ProtDomainCore::_narrow (domain)->get_module_bindings (binary, bindings));
-
-		if (!SINGLE_DOMAIN)
-			domain->shutdown (0);
+		if (SINGLE_DOMAIN)
+			info.module_flags (ProtDomainCore::_narrow (domain)->get_module_bindings (binary, bindings));
+		else {
+			try {
+				info.module_flags (ProtDomainCore::_narrow (domain)->get_module_bindings (binary, bindings));
+			} catch (...) {
+				domain->shutdown (SHUTDOWN_FLAG_FORCE);
+				throw;
+			}
+			domain->shutdown (SHUTDOWN_FLAG_FORCE);
+		}
 
 		return info;
 	}

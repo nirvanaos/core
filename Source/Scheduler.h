@@ -97,8 +97,6 @@ public:
 	/// Shutdown will be completed when activity count became zero.
 	static void shutdown (unsigned flags);
 
-	static const unsigned SHUTDOWN_FLAG_FORCE = 1;
-
 	/// Reserve space for an active item.
 	/// \throws CORBA::NO_MEMORY
 	static void create_item ()
