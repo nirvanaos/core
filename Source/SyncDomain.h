@@ -161,7 +161,6 @@ private:
 	}
 
 	void do_schedule () noexcept;
-	void end_execute () noexcept;
 
 	void activity_begin ();
 	void activity_end () noexcept;

@@ -99,42 +99,33 @@ void SyncDomain::execute () noexcept
 	ExecDomain& ed = static_cast <ExecDomain&> (*executor);
 	executing_domain_ = &ed;
 	ed.execute (*this);
-
-	end_execute ();
-}
-
-void SyncDomain::end_execute () noexcept
-{
-	if (executing_domain_ && executing_domain_ == &ExecDomain::current ()) {
-		
-		assert (executing_domain_->execution_sync_domain () == this);
-		executing_domain_->on_leave_sync_domain ();
-		executing_domain_ = nullptr;
-
-		// Wait for the scheduling is complete
-		for (BackOff bo; state_.load (std::memory_order_acquire) != State::SCHEDULED;) {
-			bo ();
-		}
-
-		// Check queue and enter the State::IDLE
-		bool sched = !queue_.empty ();
-		state_.store (State::IDLE, std::memory_order_relaxed);
-		if (sched)
-			do_schedule ();
-	}
+	assert (!executing_domain_);
 }
 
 void SyncDomain::leave () noexcept
 {
-	assert (executing_domain_);
-	assert (executing_domain_ == &ExecDomain::current ());
-	assert (executing_domain_->execution_sync_domain () == this);
-	assert (State::IDLE != state_);
-
 	// activity_begin() was called in schedule (const DeadlineTime& deadline, Executor& executor);
 	// So we call activity_end () here for the balance.
 	activity_end ();
-	end_execute ();
+
+	// Wait for the scheduling is complete
+	for (BackOff bo; state_.load (std::memory_order_acquire) != State::SCHEDULED;) {
+		bo ();
+	}
+
+	assert (executing_domain_);
+	assert (executing_domain_ == &ExecDomain::current ());
+	assert (executing_domain_->execution_sync_domain () == this);
+	assert (State::SCHEDULED == state_);
+
+	executing_domain_->on_leave_sync_domain ();
+	executing_domain_ = nullptr;
+
+	// Check queue and enter the State::IDLE
+	bool sched = !queue_.empty ();
+	state_.store (State::IDLE, std::memory_order_relaxed);
+	if (sched)
+		do_schedule ();
 }
 
 SyncDomain& SyncDomain::enter ()
