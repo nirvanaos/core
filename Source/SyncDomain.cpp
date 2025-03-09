@@ -90,31 +90,33 @@ void SyncDomain::execute () noexcept
 	assert (State::IDLE != state_);
 	assert (!queue_.empty ());
 
+	// Signal schedulig thread to stop further rescheduling.
 	State state = State::SCHEDULING;
 	state_.compare_exchange_strong (state, State::STOP_SCHEDULING);
-	state = State::SCHEDULED;
-	for (BackOff bo; !state_.compare_exchange_weak (state, State::EXECUTING); bo ()) {
-		state = State::SCHEDULED;
-	}
-
-	// During the execution, state is always State::EXECUTING
-	assert (State::EXECUTING == state_);
 
 	Ref <Executor> executor;
 	NIRVANA_VERIFY (queue_.delete_min (executor));
 	ExecDomain& ed = static_cast <ExecDomain&> (*executor);
 	executing_domain_ = &ed;
 	ed.execute (*this);
+
 	end_execute ();
 }
 
 void SyncDomain::end_execute () noexcept
 {
 	if (executing_domain_ && executing_domain_ == &ExecDomain::current ()) {
-		assert (State::EXECUTING == state_);
+		
 		assert (executing_domain_->execution_sync_domain () == this);
 		executing_domain_->on_leave_sync_domain ();
 		executing_domain_ = nullptr;
+
+		// Wait for the scheduling is complete
+		for (BackOff bo; state_.load (std::memory_order_acquire) != State::SCHEDULED;) {
+			bo ();
+		}
+
+		// Check queue and enter the State::IDLE
 		bool sched = !queue_.empty ();
 		state_.store (State::IDLE, std::memory_order_relaxed);
 		if (sched)
@@ -158,7 +160,7 @@ SyncDomain& SyncDomain::enter ()
 		Ref <SyncDomain> sd = SyncDomainDyn <SyncDomainUser>::create (mc.heap (),
 			std::ref (sync_context), std::ref (mc));
 		sd->activity_begin ();
-		sd->state_ = State::EXECUTING;
+		sd->state_ = State::SCHEDULED;
 		exec_domain.sync_context (*sd);
 		sd->executing_domain_ = &exec_domain;
 		exec_domain.on_enter_sync_domain (*sd);

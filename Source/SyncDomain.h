@@ -172,8 +172,7 @@ private:
 		IDLE,
 		SCHEDULING,
 		STOP_SCHEDULING,
-		SCHEDULED,
-		EXECUTING
+		SCHEDULED
 	};
 
 	Queue queue_;
