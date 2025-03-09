@@ -54,6 +54,13 @@ bool EventSyncTimeout::wait (TimeBase::TimeT timeout, Synchronized* frame)
 	if (!timeout)
 		return false;
 
+	if (Scheduler::shutdown_started ()) {
+		if (std::numeric_limits <TimeBase::TimeT>::max () == timeout)
+			throw_BAD_INV_ORDER ();
+		else
+			return false;
+	}
+
 	ExecDomain& cur_ed = frame ? frame->exec_domain () : ExecDomain::current ();
 	DeadlineTime deadline = cur_ed.deadline ();
 

@@ -53,10 +53,12 @@ public:
 		RUNNING = 0,
 		SHUTDOWN_PLANNED, // Start shutdown on the last activity end
 
-		// Disabled async GC, object creation, periodic timers wait events
+		// Disabled object creation, periodic timers and wait events
 		SHUTDOWN_STARTED,
 
 		TERMINATE2,
+
+		// Disabled async GC
 		TERMINATE1,
 		SHUTDOWN_FINISH
 	};
@@ -73,12 +75,17 @@ public:
 
 	static State state () noexcept
 	{
-		return global_->state;
+		return global_->state.load (std::memory_order_acquire);
 	}
 
 	static bool shutdown_started () noexcept
 	{
 		return state () >= State::SHUTDOWN_STARTED;
+	}
+
+	static bool async_gc_allowed () noexcept
+	{
+		return state () < State::TERMINATE1;
 	}
 
 	/// Start new activity.

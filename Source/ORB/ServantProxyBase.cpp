@@ -26,6 +26,7 @@
 #include "../pch.h"
 #include "ServantProxyBase.h"
 #include "RequestLocal.h"
+#include "GarbageCollector.h"
 
 using namespace Nirvana::Core;
 
@@ -122,8 +123,7 @@ void ServantProxyBase::run_garbage_collector () const noexcept
 {
 	using namespace Nirvana::Core;
 
-	ExecDomain& ed = ExecDomain::current ();
-	if (ed.restricted_mode () != ExecDomain::RestrictedMode::SUPPRESS_ASYNC_GC) {
+	if (GarbageCollector::async_gc_allowed ()) {
 		try {
 			Nirvana::DeadlineTime deadline =
 				Nirvana::Core::PROXY_GC_DEADLINE == Nirvana::INFINITE_DEADLINE ?

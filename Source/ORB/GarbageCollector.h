@@ -56,6 +56,8 @@ public:
 		ref_ (&garbage)
 	{}
 
+	static bool async_gc_allowed () noexcept;
+
 private:
 	virtual void run () override;
 

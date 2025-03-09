@@ -165,7 +165,13 @@ public:
 					lock_ranges_.unchecked_set (fl.start (), end, proxy, ret);
 				if (ret < test_result.cur_max)
 					retry_lock ();
-			} else if (timeout && !Scheduler::shutdown_started ()) {
+			} else if (timeout) {
+				if (Scheduler::shutdown_started ()) {
+					if (std::numeric_limits <TimeBase::TimeT>::max () == timeout)
+						throw_BAD_INV_ORDER ();
+					else
+						return LockType::LOCK_NONE;
+				}
 				bool retry = false;
 				FileLockRanges::SharedLocks shared = lock_ranges_.has_shared_locks (fl.start (), end, proxy);
 				if (shared != FileLockRanges::SharedLocks::NO_LOCKS) {

@@ -29,7 +29,6 @@
 #pragma once
 
 #include "SyncDomain.h"
-#include "Scheduler.h"
 #include "Stack.h"
 #include "PreallocatedStack.h"
 #include "ObjectPool.h"

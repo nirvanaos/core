@@ -81,9 +81,6 @@ void shutdown () noexcept
 
 void terminate2 () noexcept
 {
-	// Perform GC for services synchronously
-//	ExecDomain::current ().restricted_mode (ExecDomain::RestrictedMode::SUPPRESS_ASYNC_GC);
-
 	if (ESIOP::is_system_domain ())
 		CosNaming::Core::NameService::terminate ();
 

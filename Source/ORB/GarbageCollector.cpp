@@ -35,19 +35,23 @@ using namespace Nirvana::Core;
 namespace CORBA {
 namespace Core {
 
+bool GarbageCollector::async_gc_allowed () noexcept
+{
+	return Scheduler::async_gc_allowed () &&
+		ExecDomain::current ().restricted_mode () != ExecDomain::RestrictedMode::SUPPRESS_ASYNC_GC;
+}
+
 void GarbageCollector::schedule (SyncGC& garbage, Nirvana::Core::SyncContext& sync_context)
 noexcept
 {
 	assert (sync_context.sync_domain ());
-	ExecDomain& ed = ExecDomain::current ();
-	if (ed.restricted_mode () != ExecDomain::RestrictedMode::SUPPRESS_ASYNC_GC) {
+	if (async_gc_allowed ()) {
 		try {
 			DeadlineTime deadline =
 				PROXY_GC_DEADLINE == INFINITE_DEADLINE ?
 				INFINITE_DEADLINE : Nirvana::Core::Chrono::make_deadline (PROXY_GC_DEADLINE);
 
-			ExecDomain::async_call <GarbageCollector> (
-				deadline, sync_context, nullptr, std::ref (garbage));
+			ExecDomain::async_call <GarbageCollector> (deadline, sync_context, nullptr, std::ref (garbage));
 			return;
 		} catch (...) {
 			// Async call failed, maybe resources are exausted.
