@@ -179,11 +179,11 @@ void ExecDomain::cleanup () noexcept
 	assert (!runnable_);
 
 	if (sync_context_) {
-		SyncDomain* sd = sync_context_->sync_domain ();
+		Ref <SyncContext> sc (sync_context_);
+		SyncDomain* sd = sc->sync_domain ();
 		if (sd)
 			sd->leave ();
 	}
-	sync_context_ = nullptr;
 
 	assert (!mem_context_stack_.empty ());
 	assert (1 == dbg_mem_context_stack_size_);
