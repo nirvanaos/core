@@ -37,7 +37,7 @@ class ConnectionPoolImpl :
 {
 public:
 	ConnectionPoolImpl (Driver::_ptr_type driver, IDL::String&& url, IDL::String&& user,
-		IDL::String&& password, uint32_t max_size, uint32_t max_create) :
+		IDL::String&& password, uint32_t max_size, uint32_t max_create, uint16_t options) :
 		driver_ (std::move (driver)),
 		url_ (std::move (url)),
 		user_ (std::move (user)),
@@ -46,15 +46,18 @@ public:
 		cur_size_ (0),
 		max_create_ (max_create),
 		cur_created_ (0),
-		may_create_ (Nirvana::the_system->create_event (false, true)),
-		creation_timeout_ (std::numeric_limits <TimeBase::TimeT>::max ())
+		may_create_ (Nirvana::the_system->create_event (false, max_create > 1)),
+		creation_timeout_ (std::numeric_limits <TimeBase::TimeT>::max ()),
+		options_ (options)
 	{
 		if (max_create == 0 || max_create < max_size)
 			throw CORBA::BAD_PARAM ();
 
-		// Create connection to ensure that parameters are correct
-		Connection::_ref_type conn = getConnection ();
-		conn->close ();
+		// Create connection to ensure that parameters are correct.
+		// Do not activate it, return to pool immediately.
+		connections_.push (ConnectionData (driver_->connect (url_, user_, password_)));
+		cur_created_ = 1;
+		cur_size_ = 1;
 	}
 
 	~ConnectionPoolImpl ()
@@ -79,10 +82,11 @@ public:
 					ConnectionData (driver_->connect (url_, user_, password_)));
 				if (max_create_ == ++cur_created_)
 					may_create_->reset ();
-				if (cur_created_ > max_create_) {
+				else if (cur_created_ > max_create_) {
 					conn->close ();
 					conn = nullptr;
-					--max_create_;
+					if (max_create_ == --cur_created_)
+						may_create_->reset ();
 				} else
 					break;
 			}
@@ -128,15 +132,6 @@ public:
 		creation_timeout_ = t;
 	}
 
-	uint32_t options () const noexcept
-	{
-		return 0;
-	}
-
-	void options (uint32_t) noexcept
-	{
-	}
-
 	uint32_t connectionCount () const noexcept
 	{
 		return cur_created_;
@@ -164,8 +159,13 @@ public:
 
 	void connection_destructed ()
 	{
-		if (cur_created_-- == max_create_)
+		if ((cur_created_--) == max_create_)
 			may_create_->signal ();
+	}
+
+	unsigned options () const noexcept
+	{
+		return options_;
 	}
 
 private:
@@ -175,7 +175,30 @@ private:
 	uint32_t max_size_, cur_size_, max_create_, cur_created_;
 	Nirvana::Event::_ref_type may_create_;
 	TimeBase::TimeT creation_timeout_;
+	const unsigned options_;
 };
+
+inline void PoolableConnection::cleanup (ConnectionData& data)
+{
+	if (parent_->options () & Manager::DO_NOT_SHARE_PREPARED)
+		data.prepared_statements.clear ();
+
+	for (auto it = savepoints_.cbegin (); it != savepoints_.cend (); ++it) {
+		try {
+			data->releaseSavepoint (*it);
+		} catch (...) {
+			assert (false);
+		}
+	}
+	savepoints_.clear ();
+
+	if (!data->getAutoCommit ()) {
+		data->rollback (nullptr);
+		data->setAutoCommit (true);
+	}
+
+	data.reset ();
+}
 
 inline void PoolableConnection::release_to_pool () noexcept
 {

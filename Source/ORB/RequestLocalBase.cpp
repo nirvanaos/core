@@ -105,7 +105,7 @@ bool RequestLocalBase::marshal_op () noexcept
 
 		// Leave sync domain, if any.
 		// Output data marshaling performed out of sync domain.
-		ed.leave_sync_domain ();
+		ed.switch_to_free_sync_context ();
 
 		state_ = State::CALLEE;
 	}

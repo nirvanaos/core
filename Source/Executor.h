@@ -27,11 +27,15 @@
 #define NIRVANA_CORE_EXECUTOR_H_
 #pragma once
 
+#include "CoreInterface.h"
+
 namespace Nirvana {
 namespace Core {
 
 class NIRVANA_NOVTABLE Executor
 {
+	DECLARE_CORE_INTERFACE
+
 public:
 	virtual void execute () noexcept = 0;
 };

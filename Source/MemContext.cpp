@@ -144,24 +144,27 @@ void MemContext::_remove_ref () noexcept
 {
 	if (!ref_cnt_.decrement_seq ()) {
 
-		ExecDomain* ed = Thread::current ().exec_domain ();
-
-		if (ed)
-			destroy (*ed);
-		else {
-			// Sometimes (rarely) MemContext may be released out of the execution domain.
-			// In this case we create special execution domain for this.
-
-			Nirvana::DeadlineTime deadline =
-				ASYNC_DESTROY_DEADLINE == INFINITE_DEADLINE ?
-				INFINITE_DEADLINE : Chrono::make_deadline (ASYNC_DESTROY_DEADLINE);
-
-			try {
-				ExecDomain::async_call <Deleter> (deadline, g_core_free_sync_context, nullptr, std::ref (*this));
-			} catch (...) {
-				assert (false);
-				// TODO: Log
+		Thread* th = Thread::current_ptr ();
+		if (th) {
+			ExecDomain* ed = th->exec_domain ();
+			if (ed) {
+				destroy (*ed);
+				return;
 			}
+		}
+
+		// Sometimes (rarely) MemContext may be released out of the execution domain.
+		// In this case we create special execution domain for this.
+
+		Nirvana::DeadlineTime deadline =
+			ASYNC_DESTROY_DEADLINE == INFINITE_DEADLINE ?
+			INFINITE_DEADLINE : Chrono::make_deadline (ASYNC_DESTROY_DEADLINE);
+
+		try {
+			ExecDomain::async_call <Deleter> (deadline, g_core_free_sync_context, nullptr, std::ref (*this));
+		} catch (...) {
+			assert (false);
+			// TODO: Log
 		}
 	}
 }

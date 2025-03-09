@@ -95,7 +95,7 @@ public:
 	}
 
 private:
-	unsigned max_size_;
+	const unsigned max_size_;
 	std::atomic <unsigned> size_;
 };
 

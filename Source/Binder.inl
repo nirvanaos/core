@@ -31,26 +31,52 @@
 #include "ClassLibrary.h"
 #include "Singleton.h"
 #include "Executable.h"
+#include "ORB/RequestLocalBase.h"
 #include <Nirvana/BindErrorUtl.h>
+#include <CORBA/Proxy/ProxyBase.h>
 
 namespace Nirvana {
 namespace Core {
+
+class Binder::Request : public CORBA::Core::RequestLocalBase
+{
+public:
+	static Ref <Request> create ()
+	{
+		return Ref <Request>::create <CORBA::Core::RequestLocalImpl <Request> > ();
+	}
+
+protected:
+	Request () : RequestLocalBase (&BinderMemory::heap (),
+		CORBA::Internal::IORequest::RESPONSE_EXPECTED | CORBA::Internal::IORequest::RESPONSE_DATA)
+	{}
+};
 
 inline
 Main::_ptr_type Binder::bind (Executable& mod)
 {
 	const ModuleStartup* startup = nullptr;
+
+	BindResult ret;
+	Ref <Request> rq = Request::create ();
+	rq->invoke ();
 	SYNC_BEGIN (singleton_->sync_domain_, nullptr);
-	startup = singleton_->module_bind (mod._get_ptr (), mod.metadata (), nullptr);
 	try {
-		if (!startup || !startup->startup)
-			BindError::throw_message ("Entry point not found");
-		singleton_->binary_map_.add (mod);
-	} catch (...) {
-		release_imports (mod._get_ptr (), mod.metadata ());
-		throw;
+		startup = singleton_->module_bind (mod._get_ptr (), mod.metadata (), nullptr);
+		try {
+			if (!startup || !startup->startup)
+				BindError::throw_message ("Entry point not found");
+			singleton_->binary_map_.add (mod);
+		} catch (...) {
+			release_imports (mod._get_ptr (), mod.metadata ());
+			throw;
+		}
+		rq->success ();
+	} catch (CORBA::UserException& ex) {
+		rq->set_exception (std::move (ex));
 	}
 	SYNC_END ();
+	CORBA::Internal::ProxyRoot::check_request (rq->_get_ptr ());
 	return Main::_check (startup->startup);
 }
 

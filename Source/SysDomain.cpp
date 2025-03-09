@@ -44,9 +44,9 @@ const char* const SysDomain::sys_module_names_ [MODULE_SHELL] = {
 };
 
 inline
-SysDomain::SysDomain ()
+SysDomain::SysDomain (CORBA::Object::_ref_type& obj)
 {
-	CORBA::Object::_ptr_type component = _object ();
+	CORBA::Object::_ref_type component = _this ();
 
 	// Create SysManager
 	SYNC_BEGIN (g_core_free_sync_context, &MemContext::current ());
@@ -61,6 +61,8 @@ SysDomain::SysDomain ()
 	SYNC_BEGIN (*br.sync_context, &MemContext::current ());
 	packages_ = pf->create (component);
 	SYNC_END ();
+
+	obj = std::move (component);
 }
 
 SysDomain::~SysDomain ()
@@ -68,9 +70,11 @@ SysDomain::~SysDomain ()
 
 Object::_ref_type create_SysDomain ()
 {
-	if (ESIOP::is_system_domain ())
-		return make_stateless <SysDomain> ()->_this ();
-	else
+	if (ESIOP::is_system_domain ()) {
+		CORBA::Object::_ref_type obj;
+		make_stateless <SysDomain> (std::ref (obj));
+		return obj;
+	} else
 		return CORBA::Static_the_orb::string_to_object (
 			"corbaloc::1.1@/%00", CORBA::Internal::RepIdOf <SysDomain::PrimaryInterface>::id);
 }

@@ -34,10 +34,10 @@ class Static_the_manager :
 public:
 	static ConnectionPool::_ref_type createConnectionPool (Driver::_ptr_type driver,
 		IDL::String& url, IDL::String& user, IDL::String& password, uint32_t max_cache,
-		uint32_t max_create, uint32_t options)
+		uint32_t max_create, unsigned options)
 	{
 		return CORBA::make_reference <ConnectionPoolImpl> (driver, std::move (url), std::move (user),
-			std::move (password), max_cache, max_create)->_this ();
+			std::move (password), max_cache, max_create, options)->_this ();
 	}
 };
 

@@ -202,7 +202,7 @@ void RequestIn::switch_to_reply (GIOP::ReplyStatusType status)
 {
 	if (!stream_out_) {
 		// Leave the object synchronization domain, if any.
-		ExecDomain::current ().leave_sync_domain ();
+		ExecDomain::current ().switch_to_free_sync_context ();
 		stream_in_ = nullptr;
 		if (response_flags_ & RESPONSE_EXPECTED) {
 			stream_out_ = create_output ();

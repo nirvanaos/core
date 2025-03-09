@@ -46,7 +46,7 @@ class NIRVANA_NOVTABLE SyncDomain :
 	DECLARE_CORE_INTERFACE
 	
 private:
-	typedef PriorityQueue <Executor*, SYNC_DOMAIN_PRIORITY_QUEUE_LEVELS> Queue;
+	typedef PriorityQueue <Ref <Executor>, SYNC_DOMAIN_PRIORITY_QUEUE_LEVELS> Queue;
 
 public:
 	/// \brief Pre-allocated queue node
@@ -97,7 +97,7 @@ public:
 	/// May throw memory allocation exception.
 	/// 
 	/// \param deadline Deadline time.
-	/// \param executor An ExecContext reference.
+	/// \param executor An ExecDomain reference.
 	void schedule (const DeadlineTime& deadline, Executor& executor)
 	{
 		activity_begin ();
@@ -115,7 +115,7 @@ public:
 	/// 
 	/// \param node Preallocated node.
 	/// \param deadline Deadline time.
-	/// \param executor An ExecContext reference.
+	/// \param executor An ExecDomain reference.
 	void schedule (QueueNode* node, const DeadlineTime& deadline, Executor& executor) noexcept
 	{
 		assert (node);
@@ -139,6 +139,7 @@ public:
 	/// If we currently run out of SD, create new SD and enter into it.
 	static SyncDomain& enter ();
 
+	/// Leave this SD
 	void leave () noexcept;
 
 	virtual SyncContext::Type sync_context_type () const noexcept override;
@@ -153,29 +154,33 @@ protected:
 	SyncDomain& operator = (SyncDomain&&) = delete;
 
 private:
-	void schedule () noexcept;
+	void schedule () noexcept
+	{
+		need_schedule_.store (true, std::memory_order_relaxed);
+		do_schedule ();
+	}
+
+	void do_schedule () noexcept;
+	void end_execute () noexcept;
 
 	void activity_begin ();
 	void activity_end () noexcept;
 
 private:
-	Queue queue_;
-	Ref <MemContext> mem_context_;
-
-	// Thread that acquires this flag become a scheduling thread.
-	std::atomic_flag scheduling_;
-	volatile bool need_schedule_;
-
 	enum class State
 	{
 		IDLE,
-		SCHEDULED,
-		RUNNING
+		SCHEDULING,
+		STOP_SCHEDULING,
+		SCHEDULED
 	};
-	volatile State state_;
-	volatile DeadlineTime scheduled_deadline_;
 
+	Queue queue_;
+	Ref <MemContext> mem_context_;
+	ExecDomain* executing_domain_;
+	std::atomic <State> state_;
 	AtomicCounter <false> activity_cnt_;
+	std::atomic <bool> need_schedule_;
 };
 
 inline SyncDomain* SyncContext::sync_domain () noexcept

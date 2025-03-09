@@ -73,8 +73,8 @@ struct ConnectionData : public Connection::_ref_type
 	ConnectionData& operator = (const ConnectionData&) = delete;
 	ConnectionData& operator = (ConnectionData&&) = delete;
 
-	StatementPool <Statement> statements_;
-	Nirvana::Core::MapUnorderedStable <std::string, StatementPool <PreparedStatement> > prepared_statements_;
+	StatementPool <Statement> statements;
+	Nirvana::Core::MapUnorderedStable <std::string, StatementPool <PreparedStatement> > prepared_statements;
 	IDL::String catalog, schema;
 	Connection::TransactionIsolation ti;
 	bool read_only;
@@ -108,7 +108,7 @@ public:
 	Statement::_ref_type createStatement (ResultSet::Type resultSetType)
 	{
 		ConnectionData& d = data ();
-		RefPool <Statement>& pool = d.statements_.types [(size_t)resultSetType];
+		RefPool <Statement>& pool = d.statements.types [(size_t)resultSetType];
 		Statement::_ref_type s;
 		if (!pool.empty ()) {
 			s = std::move (pool.top ());
@@ -123,7 +123,7 @@ public:
 		ResultSet::Type resultSetType, unsigned flags)
 	{
 		ConnectionData& d = data ();
-		RefPool <PreparedStatement>& pool = d.prepared_statements_.emplace (sql,
+		RefPool <PreparedStatement>& pool = d.prepared_statements.emplace (sql,
 			StatementPool <PreparedStatement> ()).first->second.types [(size_t)resultSetType];
 		PreparedStatement::_ref_type s;
 		if (!pool.empty ()) {
@@ -247,25 +247,7 @@ public:
 	}
 
 	void release_to_pool () noexcept;
-
-	void cleanup (ConnectionData& data)
-	{
-		for (auto it = savepoints_.cbegin (); it != savepoints_.cend (); ++it) {
-			try {
-				data->releaseSavepoint (*it);
-			} catch (...) {
-				assert (false);
-			}
-		}
-		savepoints_.clear ();
-
-		if (!data->getAutoCommit ()) {
-			data->rollback (nullptr);
-			data->setAutoCommit (true);
-		}
-
-		data.reset ();
-	}
+	void cleanup (ConnectionData& data);
 
 private:
 	CORBA::servant_reference <ConnectionPoolImpl> parent_;
