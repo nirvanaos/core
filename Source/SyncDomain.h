@@ -156,7 +156,7 @@ protected:
 private:
 	void schedule () noexcept
 	{
-		need_schedule_.store (true, std::memory_order_release);
+		need_schedule_.store (true, std::memory_order_relaxed);
 		do_schedule ();
 	}
 

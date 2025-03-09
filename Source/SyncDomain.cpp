@@ -58,20 +58,16 @@ void SyncDomain::do_schedule () noexcept
 	State state = State::IDLE;
 	if (state_.compare_exchange_strong (state, State::SCHEDULING)) {
 		
-		assert (need_schedule_);
 		need_schedule_ = false;
 		DeadlineTime min_deadline;
 		NIRVANA_VERIFY (queue_.get_min_deadline (min_deadline));
 		Scheduler::schedule (min_deadline, *this);
 
-		for (;;) {
+		while (need_schedule_.exchange (false, std::memory_order_acquire)) {
 
 			state = State::STOP_SCHEDULING;
 			if (state_.compare_exchange_strong (state, State::SCHEDULED))
 				return;
-
-			if (!need_schedule_.exchange (false))
-				break;
 
 			DeadlineTime new_deadline;
 			NIRVANA_VERIFY (queue_.get_min_deadline (new_deadline));
@@ -84,13 +80,15 @@ void SyncDomain::do_schedule () noexcept
 			}
 		}
 
-		state_.store (State::SCHEDULED, std::memory_order_release);
+		state_.store (State::SCHEDULED, std::memory_order_relaxed);
 	}
 }
 
 void SyncDomain::execute () noexcept
 {
 	assert (State::IDLE != state_);
+	assert (!queue_.empty ());
+
 	State state = State::SCHEDULING;
 	state_.compare_exchange_strong (state, State::STOP_SCHEDULING);
 	state = State::SCHEDULED;
@@ -99,6 +97,7 @@ void SyncDomain::execute () noexcept
 	}
 
 	// During the execution, state is always State::EXECUTING
+	assert (State::EXECUTING == state_);
 
 	Ref <Executor> executor;
 	NIRVANA_VERIFY (queue_.delete_min (executor));
@@ -110,16 +109,17 @@ void SyncDomain::execute () noexcept
 void SyncDomain::end_execute () noexcept
 {
 	if (State::EXECUTING == state_.load (std::memory_order_acquire)) {
-		if (!queue_.empty ())
-			need_schedule_.store (true, std::memory_order_release);
-		state_.store (State::IDLE, std::memory_order_release);
-		if (need_schedule_.load (std::memory_order_acquire))
+		bool sched = !queue_.empty ();
+		state_.store (State::IDLE, std::memory_order_relaxed);
+		if (sched)
 			do_schedule ();
 	}
 }
 
 void SyncDomain::leave () noexcept
 {
+	assert (State::IDLE != state_);
+
 	// activity_begin() was called in schedule (const DeadlineTime& deadline, Executor& executor);
 	// So we call activity_end () here for the balance.
 	activity_end ();
