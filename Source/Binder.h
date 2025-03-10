@@ -87,7 +87,9 @@ public:
 
 		BindResult (const ObjectVal* pf) noexcept;
 
-		BindResult& operator = (const BindResult&) = default;
+		BindResult (BindResult&&) = default;
+
+		BindResult& operator = (BindResult&&) = default;
 
 		BindResult& operator = (const ObjectVal* pf) noexcept;
 	};
@@ -525,7 +527,6 @@ private:
 	class Request;
 
 private:
-	PM::Packages::_ref_type packages_;
 	ObjectMap object_map_;
 	ModuleMap module_map_;
 	BinaryMap binary_map_;

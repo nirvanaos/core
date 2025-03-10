@@ -150,7 +150,6 @@ void Binder::terminate () noexcept
 
 		SYNC_BEGIN (sync_domain (), nullptr);
 		initialized_ = false;
-		singleton_->packages_ = nullptr;
 		singleton_->unload_modules ();
 		SYNC_END ();
 		Section metadata;
@@ -461,7 +460,7 @@ void Binder::bind_and_init (Module& mod, ModuleContext& context)
 	}
 	SYNC_END ();
 	CORBA::Internal::ProxyRoot::check_request (rq->_get_ptr ());
-	mod.initial_ref_cnt_ = mod._refcount_value ();
+	mod.on_load_complete ();
 }
 
 void Binder::unload (Module* mod) noexcept
@@ -704,8 +703,6 @@ Binder::BindResult Binder::load_and_bind (int32_t mod_id,
 		rq->success ();
 	} catch (CORBA::Exception& e) {
 		rq->set_exception (std::move (e));
-	} catch (...) {
-		rq->set_unknown_exception ();
 	}
 	SYNC_END ();
 	CORBA::Internal::ProxyRoot::check_request (rq->_get_ptr ());

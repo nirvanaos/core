@@ -88,6 +88,12 @@ public:
 		return flags_;
 	}
 
+	/// Called when module is loaded completely
+	void on_load_complete () noexcept
+	{
+		initial_ref_cnt_ = ref_cnt_.load ();
+	}
+
 	/// If bound () returns `false`, the module may be safely unloaded.
 	/// 
 	/// \returns `true` if some objects of this module are bound from other modules.

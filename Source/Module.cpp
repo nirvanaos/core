@@ -46,12 +46,9 @@ Module::Module (int32_t id, Port::Module&& bin, unsigned flags) :
 void Module::_remove_ref () noexcept
 {
 	AtomicCounter <false>::IntegralType rcnt = ref_cnt_.decrement_seq ();
-	if (rcnt == initial_ref_cnt_) {
-		if (ref_cnt_.increment_seq () == initial_ref_cnt_ + 1) {
-			release_time_ = Chrono::steady_clock ();
-			ref_cnt_.decrement ();
-		}
-	}
+	// Storing the release_time_ may be not atomic, but it is not critical.
+	if (rcnt == initial_ref_cnt_)
+		release_time_ = Chrono::steady_clock ();
 }
 
 void Module::initialize (ModuleInit::_ptr_type entry_point)
