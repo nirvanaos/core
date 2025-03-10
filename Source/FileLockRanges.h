@@ -153,16 +153,21 @@ public:
 		OUTSIDE
 	};
 
-	SharedLocks has_shared_locks (const FileSize& begin, const FileSize& end, const void* owner) const noexcept
+	bool has_shared_locks_only (const FileSize& begin, const FileSize& end, const void* owner) const noexcept
 	{
-		SharedLocks ret = SharedLocks::NO_LOCKS;
-		for (const Entry& e : ranges_) {
-			if (e.owner == owner && (e.level == LockType::LOCK_SHARED || e.level == LockType::LOCK_RESERVED)) {
-				if (e.begin < begin || e.end > end) {
-					ret = SharedLocks::OUTSIDE;
-					break;
-				} else
-					ret = SharedLocks::INSIDE;
+		bool ret = false;
+		const Ranges::const_iterator it_end = lower_bound (end);
+		for (auto it = it_end; ranges_.begin () != it;) {
+			--it;
+			if (it->end > begin) {
+				if (it->owner == owner) {
+					if (it->level == LockType::LOCK_SHARED)
+						ret = true;
+					else {
+						ret = false;
+						break;
+					}
+				}
 			}
 		}
 		return ret;
