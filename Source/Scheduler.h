@@ -83,10 +83,7 @@ public:
 		return state () >= State::SHUTDOWN_STARTED;
 	}
 
-	static bool async_gc_allowed () noexcept
-	{
-		return state () < State::TERMINATE1;
-	}
+	static bool async_GC_allowed () noexcept;
 
 	/// Start new activity.
 	/// Called on creation of the execution domain.

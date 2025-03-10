@@ -59,10 +59,22 @@ void Scheduler::Terminator1::run ()
 #ifdef DEBUG_SHUTDOWN
 	the_debugger->debug_event (Debugger::DebugEvent::DEBUG_INFO, "Core::terminate1 ()", __FILE__, __LINE__);
 #endif
+
+	// Ensure that all asynchronous GC is completed.
+	const auto& activity_cnt = global_->activity_cnt;
+	for (BackOff bo; activity_cnt.load () > 1;) {
+		bo ();
+	}
 	Core::terminate1 ();
 }
 
 StaticallyAllocated <Scheduler::GlobalData> Scheduler::global_;
+
+bool Scheduler::async_GC_allowed () noexcept
+{
+	return state () < State::TERMINATE1
+		&& ExecDomain::current ().restricted_mode () != ExecDomain::RestrictedMode::SUPPRESS_ASYNC_GC;
+}
 
 void Scheduler::do_shutdown ()
 {
