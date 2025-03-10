@@ -334,12 +334,14 @@ void ExecDomain::schedule_call_no_push_mem (SyncContext& target)
 	// allocate queue node to perform return without a risk
 	// of memory allocation failure.
 	{
-		if (execution_sync_domain_) {
-			ret_qnode_push (*execution_sync_domain_);
-			execution_sync_domain_->leave ();
-		} else if (deadline () == INFINITE_DEADLINE)
+		SyncDomain* sd = sync_context_->sync_domain ();
+		if (sd)
+			ret_qnode_push (*sd);
+		else if (deadline () == INFINITE_DEADLINE)
 			create_background_worker (); // Prepare to return to background
 	}
+
+	leave_sync_domain ();
 
 	if (target.sync_domain () ||
 		!(deadline () == INFINITE_DEADLINE && &Thread::current () == background_worker_)) {
