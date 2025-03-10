@@ -79,6 +79,7 @@ Packages::Packages (CORBA::Object::_ptr_type component) :
 {
 	create_database ();
 	pool_ = Connection::create_pool (Connection::connect_ro, POOL_MAX_CACHE, POOL_MAX_CREATE);
+	manager_ = Nirvana::PM::man_factory->create ();
 }
 
 inline void Packages::create_database ()

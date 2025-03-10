@@ -24,24 +24,23 @@
 *  popov.nirvana@gmail.com
 */
 #include "pch.h"
-#include "PacMan.h"
+#include "Packages.h"
 #include "factory_s.h"
 
 namespace Nirvana {
 namespace PM {
 
-class Static_pacman_factory :
-	public CORBA::servant_traits <Nirvana::PM::PacManFactory>::ServantStatic <Static_pacman_factory>
+class Static_pac_factory :
+	public CORBA::servant_traits <Nirvana::PM::PacFactory>::ServantStatic <Static_pac_factory>
 {
 public:
-	static PacMan::_ref_type create (Nirvana::SysDomain::_ptr_type sys_domain, CosEventChannelAdmin::ProxyPushConsumer::_ptr_type completion)
+	static Nirvana::PM::Packages::_ref_type create (CORBA::Object::_ptr_type comp)
 	{
-		return CORBA::make_reference <::PacMan> (sys_domain, completion)->_this ();
+		return CORBA::make_stateless <::Packages> (comp)->_this ();
 	}
 };
 
 }
 }
 
-NIRVANA_EXPORT_OBJECT (_exp_Nirvana_PM_pacman_factory, Nirvana::PM::Static_pacman_factory)
-
+NIRVANA_EXPORT_PSEUDO (_exp_Nirvana_PM_pac_factory, Nirvana::PM::Static_pac_factory)

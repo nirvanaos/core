@@ -28,24 +28,23 @@
 #pragma once
 
 #include <CORBA/Server.h>
-#include <CORBA/CosEventChannelAdmin.h>
 #include <Nirvana/Domains_s.h>
 #include <Nirvana/posix_defs.h>
 #include "Connection.h"
 #include "version.h"
+
+class Manager;
 
 class PacMan :
 	public CORBA::servant_traits <Nirvana::PM::PacMan>::Servant <PacMan>,
 	public Connection
 {
 public:
-	PacMan (Nirvana::SysDomain::_ptr_type sys_domain, CosEventChannelAdmin::ProxyPushConsumer::_ptr_type completion) :
+	PacMan (CORBA::servant_reference <Manager>&& manager) :
 		Connection (Connection::create_pool (connect_rw, 0, 1)),
-		sys_domain_ (sys_domain),
+		manager_ (std::move (manager)),
 		busy_ (false)
 	{
-		completion->connect_push_supplier (nullptr);
-		completion_ = completion;
 		connection ()->setAutoCommit (false);
 	}
 
@@ -53,21 +52,6 @@ public:
 	{
 		complete ();
 	}
-
-	// Does not allow parallel installations
-	class Lock
-	{
-	public:
-		Lock (PacMan& obj);
-
-		~Lock ()
-		{
-			obj_.busy_ = false;
-		}
-
-	private:
-		PacMan& obj_;
-	};
 
 	void commit ()
 	{
@@ -125,8 +109,10 @@ public:
 
 		SemVer svname (module_name);
 
+		Nirvana::SysDomain::_ref_type sys_domain = Nirvana::SysDomain::_narrow (
+			CORBA::the_orb->resolve_initial_references ("SysDomain"));
 		Nirvana::PM::ModuleBindings metadata;
-		Nirvana::BinaryInfo bi = sys_domain_->get_module_bindings (path, metadata);
+		Nirvana::BinaryInfo bi = sys_domain->get_module_bindings (path, metadata);
 
 		try {
 
@@ -221,6 +207,21 @@ public:
 	}
 
 private:
+	// Does not allow parallel installations
+	class Lock
+	{
+	public:
+		Lock (PacMan& obj);
+
+		~Lock ()
+		{
+			obj_.busy_ = false;
+		}
+
+	private:
+		PacMan& obj_;
+	};
+
 	void complete () noexcept;
 
 	static void check_match (const Nirvana::PM::ModuleBindings& l, const Nirvana::PM::ModuleBindings& r)
@@ -236,8 +237,7 @@ private:
 	}
 
 private:
-	Nirvana::SysDomain::_ref_type sys_domain_;
-	CosEventComm::PushConsumer::_ref_type completion_;
+	CORBA::servant_reference <Manager> manager_;
 	bool busy_;
 };
 

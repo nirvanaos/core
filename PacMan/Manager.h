@@ -23,18 +23,38 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#include "pch.h"
-#include "Packages.h"
+#ifndef PACMAN_MANAGER_H_
+#define PACMAN_MANAGER_H_
+#pragma once
+
+#include <CORBA/Server.h>
+#include "PacMan.h"
 #include "factory_s.h"
 
-class Static_pac_factory :
-	public CORBA::servant_traits <Nirvana::PM::PacFactory>::ServantStatic <Static_pac_factory>
+class Manager :
+	public CORBA::servant_traits <Nirvana::PM::Manager>::Servant <Manager>
 {
 public:
-	static Nirvana::PM::Packages::_ref_type create (CORBA::Object::_ptr_type comp)
+	Manager () noexcept :
+		in_progress_ (false)
+	{}
+
+	~Manager ()
+	{}
+
+	void on_complete () noexcept
 	{
-		return CORBA::make_reference <Packages> (comp)->_this ();
+		assert (in_progress_);
+		in_progress_ = false;
 	}
+
+	Nirvana::PM::PacMan::_ref_type allocate ()
+	{
+		return CORBA::make_reference <PacMan> (this)->_this ();
+	}
+
+private:
+	bool in_progress_;
 };
 
-NIRVANA_EXPORT (_exp_Nirvana_PM_pac_factory, "Nirvana/PM/pac_factory", Nirvana::PM::PacFactory, Static_pac_factory)
+#endif

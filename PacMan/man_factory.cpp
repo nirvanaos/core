@@ -26,28 +26,20 @@
 #include "pch.h"
 #include "Manager.h"
 
-PacMan::Lock::Lock (PacMan& obj) :
-	obj_ (obj)
-{
-	if (!obj.connection ())
-		Nirvana::throw_TRANSACTION_UNAVAILABLE ();
+namespace Nirvana {
+namespace PM {
 
-	if (obj.busy_)
-		Nirvana::throw_INVALID_TRANSACTION ();
-	obj.busy_ = true;
+class Static_man_factory :
+	public CORBA::servant_traits <Nirvana::PM::ManagerFactory>::ServantStatic <Static_man_factory>
+{
+public:
+	static Manager::_ref_type create ()
+	{
+		return CORBA::make_reference <::Manager> ()->_this ();
+	}
+};
+
+}
 }
 
-long PacMan::compare_name (const Nirvana::PM::ObjBinding& l, const Nirvana::PM::ObjBinding& r) noexcept
-{
-	long cmp = l.name ().compare (r.name ());
-	if (cmp != 0)
-		return cmp;
-
-	return version (r.major (), r.minor ()) - version (l.major (), l.minor ());
-}
-
-void PacMan::complete () noexcept
-{
-	manager_->on_complete ();
-	manager_ = nullptr;
-}
+NIRVANA_EXPORT_OBJECT (_exp_Nirvana_PM_pacman_factory, Nirvana::PM::Static_man_factory)

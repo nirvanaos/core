@@ -38,12 +38,19 @@ pseudo interface PacFactory
 	Packages create (in Object comp);
 };
 
-local interface PacManFactory
+const PacFactory pac_factory;
+
+local interface Manager
 {
-	PacMan create (in SysDomain sys_domain, in CosEventChannelAdmin::ProxyPushConsumer completion);
+	PacMan allocate ();
 };
 
-const PacManFactory pacman_factory;
+local interface ManagerFactory
+{
+	Manager create ();
+};
+
+const ManagerFactory man_factory;
 
 };
 };
