@@ -85,7 +85,7 @@ void SyncDomain::do_schedule () noexcept
 	}
 }
 
-void SyncDomain::execute () noexcept
+void SyncDomain::execute (Thread& worker) noexcept
 {
 	assert (State::IDLE != state_);
 	assert (!queue_.empty ());
@@ -98,7 +98,7 @@ void SyncDomain::execute () noexcept
 	NIRVANA_VERIFY (queue_.delete_min (executor));
 	ExecDomain& ed = static_cast <ExecDomain&> (*executor);
 	executing_domain_ = &ed;
-	ed.execute (*this);
+	ed.execute (worker, *this);
 }
 
 void SyncDomain::leave () noexcept

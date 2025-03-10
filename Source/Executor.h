@@ -32,12 +32,14 @@
 namespace Nirvana {
 namespace Core {
 
+class Thread;
+
 class NIRVANA_NOVTABLE Executor
 {
 	DECLARE_CORE_INTERFACE
 
 public:
-	virtual void execute () noexcept = 0;
+	virtual void execute (Thread& worker) noexcept = 0;
 };
 
 }

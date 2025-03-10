@@ -166,9 +166,8 @@ void ExecDomain::spawn (SyncContext& sync_context)
 	}
 }
 
-void ExecDomain::execute () noexcept
+void ExecDomain::execute (Thread& thread) noexcept
 {
-	Thread& thread = Thread::current ();
 	thread.exec_domain (*this);
 	if (!impersonation_context_.empty ())
 		Thread::impersonate (impersonation_context_);

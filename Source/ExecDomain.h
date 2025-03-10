@@ -432,12 +432,12 @@ public:
 
 	/// Executor::execute ()
 	/// Called from worker thread.
-	void execute () noexcept override;
+	void execute (Thread& worker) noexcept override;
 
-	void execute (SyncDomain& sd) noexcept
+	void execute (Thread& worker, SyncDomain& sd) noexcept
 	{
 		execution_sync_domain_ = &sd;
-		execute ();
+		execute (worker);
 	}
 
 private:

@@ -36,9 +36,10 @@ namespace Core {
 void ThreadWorker::execute (Executor& executor) noexcept
 {
 	// Always called in the neutral context.
-	assert (&ExecContext::current () == &Core::Thread::current ().neutral_context ());
+	assert (context () == &neutral_context ());
+
 	// Switch to executor context.
-	executor.execute ();
+	executor.execute (*this);
 }
 
 }

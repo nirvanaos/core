@@ -127,7 +127,7 @@ public:
 
 	/// Executor::execute ()
 	/// Called from worker thread.
-	virtual void execute () noexcept override;
+	void execute (Thread& worker) noexcept override;
 
 	/// \returns Domain memory context.
 	MemContext& mem_context () const noexcept

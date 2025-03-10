@@ -41,8 +41,8 @@ class NIRVANA_NOVTABLE ThreadWorker :
 	public Thread
 {
 public:
-	/// This static method is called by the scheduler.
-	static void execute (Executor& executor) noexcept;
+	/// This method is called by the scheduler.
+	void execute (Executor& executor) noexcept;
 };
 
 }
