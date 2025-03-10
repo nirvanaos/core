@@ -30,27 +30,32 @@ namespace Nirvana {
 namespace Core {
 
 Event::Event (bool signalled) noexcept :
-	wait_op_ (std::ref (*this)),
 	signalled_ (signalled)
 {
 }
 
-void Event::wait () {
+void Event::wait ()
+{
 	if (!signalled_) {
-		ExecDomain::current ().suspend_prepare ();
-		ExecContext::run_in_neutral_context (wait_op_);
+		ExecDomain& cur_ed = ExecDomain::current ();
+		cur_ed.suspend_prepare ();
+		push (cur_ed);
+		if (signalled_) {
+			while (ExecDomain* ed = pop ()) {
+				if (&cur_ed != ed)
+					ed->resume (eh_);
+				else
+					ed->suspend_unprepare (eh_);
+			}
+		} else
+			cur_ed.suspend ();
 	}
 }
 
-void Event::WaitOp::run ()
+void Event::resume_all () noexcept
 {
-	ExecDomain& ed = ExecDomain::current ();
-	ed.suspend_prepared ();
-	obj_.push (ed);
-	if (obj_.signalled_) {
-		ExecDomain* ed = obj_.pop ();
-		if (ed)
-			ed->resume ();
+	while (ExecDomain* ed = pop ()) {
+		ed->resume (eh_);
 	}
 }
 
@@ -58,18 +63,15 @@ void Event::signal () noexcept
 {
 	assert (!signalled_);
 	signalled_ = true;
-	while (ExecDomain* ed = pop ()) {
-		ed->resume ();
-	}
+	resume_all ();
 }
 
 void Event::signal (const CORBA::Exception& ex) noexcept
 {
 	assert (!signalled_);
+	eh_.set_exception (ex);
 	signalled_ = true;
-	while (ExecDomain* ed = pop ()) {
-		ed->resume (ex);
-	}
+	resume_all ();
 }
 
 }

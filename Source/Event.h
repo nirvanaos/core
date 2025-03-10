@@ -29,6 +29,7 @@
 #pragma once
 
 #include "ExecDomain.h"
+#include "ORB/SystemExceptionHolder.h"
 
 namespace Nirvana {
 namespace Core {
@@ -70,24 +71,14 @@ public:
 	void reset () noexcept
 	{
 		signalled_ = false;
+		eh_.reset ();
 	}
 
 private:
-	class WaitOp : public Runnable
-	{
-	public:
-		WaitOp (Event& obj) :
-			obj_ (obj)
-		{}
+	void resume_all () noexcept;
 
-	private:
-		virtual void run ();
-
-	private:
-		Event& obj_;
-	};
-
-	ImplStatic <WaitOp> wait_op_;
+private:
+	CORBA::Core::SystemExceptionHolder eh_;
 	volatile bool signalled_;
 };
 

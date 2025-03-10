@@ -51,15 +51,11 @@ void EventSync::wait ()
 			prev = reinterpret_cast <ExecDomain**> (&static_cast <StackElem&> (*next).next);
 			next = *prev;
 		}
+
+		ed.suspend_prepare ();
+
 		static_cast <StackElem&> (ed).next = next;
 		*prev = &ed;
-
-		try {
-			ed.suspend_prepare ();
-		} catch (...) {
-			*prev = next;
-			throw;
-		}
 
 		ed.suspend ();
 	}
