@@ -169,7 +169,7 @@ public:
 	/// \param no_reschedule (optional) Do not re-schedule if the target context is the same
 	///        as current.
 	void schedule_return (SyncContext& target, bool no_reschedule = false) noexcept;
-
+	
 	/// Prepare for suspend
 	/// 
 	/// \param resume_context Context where to resume or nullptr for current context.
@@ -177,6 +177,16 @@ public:
 	///        and resume_context != nullptr;
 	/// 
 	void suspend_prepare (SyncContext* resume_context = nullptr, bool push_qnode = false);
+
+	void suspend_unprepare (const CORBA::Core::SystemExceptionHolder& eh) noexcept
+	{
+#ifndef NDEBUG
+		assert (dbg_suspend_prepared_);
+		dbg_suspend_prepared_ = false;
+#endif
+		resume_exception_ = eh;
+		schedule_return_internal (*sync_context_);
+	}
 
 	/// Suspend execution.
 	/// 
@@ -195,6 +205,12 @@ public:
 	void resume (const CORBA::Exception& ex) noexcept
 	{
 		resume_exception_.set_exception (ex);
+		resume ();
+	}
+
+	void resume (const CORBA::Core::SystemExceptionHolder& eh) noexcept
+	{
+		resume_exception_ = eh;
 		resume ();
 	}
 
@@ -546,6 +562,8 @@ private:
 
 	// Perform possible neutral context calls, then return.
 	static void neutral_context_loop (Thread& worker) noexcept;
+
+	void schedule_return_internal (SyncContext& target) noexcept;
 
 private:
 	class Schedule : public Runnable

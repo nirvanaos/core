@@ -194,12 +194,8 @@ void ExecDomain::cleanup () noexcept
 {
 	assert (!runnable_);
 
-	if (sync_context_) {
-		SyncDomain* sd = sync_context_->sync_domain ();
-		if (sd)
-			sd->leave ();
-		sync_context_ = nullptr;
-	}
+	leave_sync_domain ();
+	sync_context_ = nullptr;
 
 	assert (!mem_context_stack_.empty ());
 	assert (1 == dbg_mem_context_stack_size_);
@@ -338,10 +334,9 @@ void ExecDomain::schedule_call_no_push_mem (SyncContext& target)
 	// allocate queue node to perform return without a risk
 	// of memory allocation failure.
 	{
-		Ref <SyncDomain> old_sd = sync_context ().sync_domain ();
-		if (old_sd) {
-			ret_qnode_push (*old_sd);
-			old_sd->leave ();
+		if (execution_sync_domain_) {
+			ret_qnode_push (*execution_sync_domain_);
+			execution_sync_domain_->leave ();
 		} else if (deadline () == INFINITE_DEADLINE)
 			create_background_worker (); // Prepare to return to background
 	}
@@ -364,11 +359,14 @@ void ExecDomain::schedule_return (SyncContext& target, bool no_reschedule) noexc
 	if (no_reschedule && (&sync_context () == &target))
 		return;
 
-	{
-		Ref <SyncDomain> old_sd = sync_context ().sync_domain ();
-		if (old_sd)
-			old_sd->leave ();
-	}
+	leave_sync_domain ();
+
+	schedule_return_internal (target);
+}
+
+void ExecDomain::schedule_return_internal (SyncContext& target) noexcept
+{
+	assert (!execution_sync_domain_);
 
 	if (target.sync_domain ()
 		|| !(deadline () == INFINITE_DEADLINE && &Thread::current () == background_worker_)) {
@@ -457,12 +455,10 @@ void ExecDomain::suspend_prepare (SyncContext* resume_context, bool push_qnode)
 
 	{ // Leave the current sync domain
 		SyncDomain* sync_domain = sync_context_->sync_domain ();
-		if (sync_domain) {
-			if (!resume_context || push_qnode)
-				ret_qnode_push (*sync_domain);
-			sync_domain->leave ();
-		}
+		if (sync_domain && (!resume_context || push_qnode))
+			ret_qnode_push (*sync_domain);
 	}
+	leave_sync_domain ();
 
 	if (resume_context)
 		sync_context_ = resume_context;
@@ -488,6 +484,10 @@ void ExecDomain::resume () noexcept
 {
 	assert (ExecContext::current_ptr () != this);
 	assert (sync_context_);
+
+#ifndef NDEBUG
+	dbg_suspend_prepared_ = false;
+#endif
 
 	// Hold reference to sync_context_ to avoid it's destruction out of context.
 	Ref <SyncContext> tmp (sync_context_);
