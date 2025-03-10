@@ -97,7 +97,7 @@ public:
 
 	PM::Packages::_ref_type provide_packages () const noexcept
 	{
-		return packages_;
+		return PM::Packages::_narrow (packages_);
 	}
 
 	Nirvana::SysManager::_ref_type provide_manager () const noexcept
@@ -192,7 +192,7 @@ private:
 
 private:
 	Nirvana::SysManager::_ref_type manager_;
-	PM::Packages::_ref_type packages_;
+	PM::PackageDB::_ref_type packages_;
 
 	static const char* const sys_module_names_ [];
 };
