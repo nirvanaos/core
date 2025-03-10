@@ -179,10 +179,10 @@ void ExecDomain::cleanup () noexcept
 	assert (!runnable_);
 
 	if (sync_context_) {
-		Ref <SyncContext> sc (sync_context_);
-		SyncDomain* sd = sc->sync_domain ();
+		SyncDomain* sd = sync_context_->sync_domain ();
 		if (sd)
 			sd->leave ();
+		sync_context_ = nullptr;
 	}
 
 	assert (!mem_context_stack_.empty ());
@@ -335,19 +335,7 @@ void ExecDomain::schedule_call_no_push_mem (SyncContext& target)
 		// Need to schedule
 
 		// Call schedule() in the neutral context
-		schedule_.sync_context_ = &target;
-		schedule_.ret_ = false;
-		ExecContext::run_in_neutral_context (schedule_);
-		schedule_.sync_context_ = nullptr;
-		// Handle possible schedule() exceptions
-		if (CORBA::SystemException::EC_NO_EXCEPTION != schedule_.exception_) {
-			CORBA::SystemException::Code exc = schedule_.exception_;
-			schedule_.exception_ = CORBA::SystemException::EC_NO_EXCEPTION;
-			// We leaved old sync domain so we must enter into prev synchronization domain back
-			// before throwing the exception.
-			schedule_return (sync_context (), true);
-			CORBA::SystemException::_raise_by_code (exc);
-		}
+		schedule_.call (sync_context (), target);
 
 	} else
 		sync_context (target);
@@ -369,11 +357,7 @@ void ExecDomain::schedule_return (SyncContext& target, bool no_reschedule) noexc
 	if (target.sync_domain ()
 		|| !(deadline () == INFINITE_DEADLINE && &Thread::current () == background_worker_)) {
 
-		schedule_.sync_context_ = &target;
-		schedule_.ret_ = true;
-		ExecContext::run_in_neutral_context (schedule_);
-		schedule_.sync_context_ = nullptr;
-		// schedule() can not throw exception in the return mode.
+		schedule_.ret (target);
 	} else
 		sync_context (target);
 }
@@ -410,11 +394,36 @@ void ExecDomain::Schedule::run ()
 	assert (ed);
 	try {
 		th.yield ();
-		ed->schedule (sync_context_, ret_);
+		Ref <SyncContext> sc (sync_context_);
+		ed->schedule (sc, ret_);
 	} catch (const CORBA::SystemException& ex) {
 		th.exec_domain (*ed);
 		exception_ = ex.__code ();
 	}
+}
+
+inline void ExecDomain::Schedule::call (SyncContext& source, SyncContext& target)
+{
+	sync_context_ = &target;
+	ret_ = false;
+	ExecContext::run_in_neutral_context (*this);
+	// Handle possible schedule() exceptions
+	if (CORBA::SystemException::EC_NO_EXCEPTION != exception_) {
+		CORBA::SystemException::Code exc = exception_;
+		exception_ = CORBA::SystemException::EC_NO_EXCEPTION;
+		// We leaved old sync domain so we must enter into prev synchronization domain back
+		// before throwing the exception.
+		ret (source);
+		CORBA::SystemException::_raise_by_code (exc);
+	}
+}
+
+void ExecDomain::Schedule::ret (SyncContext& target) noexcept
+{
+	sync_context_ = &target;
+	ret_ = true;
+	ExecContext::run_in_neutral_context (*this);
+	// schedule() can not throw exception in the return mode.
 }
 
 void ExecDomain::suspend_prepare (SyncContext* resume_context, bool push_qnode)

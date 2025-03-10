@@ -471,7 +471,11 @@ private:
 	}
 
 	~ExecDomain () noexcept
-	{}
+	{
+		assert (!sync_context_);
+		assert (mem_context_stack_.empty ());
+		assert (!background_worker_);
+	}
 
 	void final_release () noexcept;
 
@@ -548,12 +552,16 @@ private:
 			exception_ (CORBA::SystemException::EC_NO_EXCEPTION)
 		{}
 
-		Ref <SyncContext> sync_context_;
-		CORBA::SystemException::Code exception_;
-		bool ret_;
+		void call (SyncContext& source, SyncContext& target);
+		void ret (SyncContext& target) noexcept;
 
 	private:
 		virtual void run ();
+
+	private:
+		SyncContext* sync_context_;
+		CORBA::SystemException::Code exception_;
+		bool ret_;
 	};
 
 	class Deleter : public Runnable
