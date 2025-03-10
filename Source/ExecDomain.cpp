@@ -168,10 +168,27 @@ void ExecDomain::spawn (SyncContext& sync_context)
 
 void ExecDomain::execute () noexcept
 {
-	Thread::current ().exec_domain (*this);
+	Thread& thread = Thread::current ();
+	thread.exec_domain (*this);
 	if (!impersonation_context_.empty ())
 		Thread::impersonate (impersonation_context_);
 	switch_to ();
+
+	// Perform possible neutral context calls, then return.
+	neutral_context_loop (thread);
+}
+
+inline void ExecDomain::neutral_context_loop (Thread& worker) noexcept
+{
+	assert (&ExecContext::current () == &worker.neutral_context ());
+	while (worker.neutral_context ().runnable ()) {
+		worker.neutral_context ().run ();
+		ExecDomain* ed = worker.exec_domain ();
+		if (ed) {
+			assert (ed->runnable ());
+			ed->switch_to ();
+		}
+	}
 }
 
 void ExecDomain::cleanup () noexcept

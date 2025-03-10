@@ -39,8 +39,6 @@ void ThreadWorker::execute (Executor& executor) noexcept
 	assert (&ExecContext::current () == &Core::Thread::current ().neutral_context ());
 	// Switch to executor context.
 	executor.execute ();
-	// Perform possible neutral context calls, then return.
-	ExecContext::neutral_context_loop (current ());
 }
 
 }

@@ -74,7 +74,7 @@ public:
 	/// Assign ExecDomain to thread
 	void exec_domain (ExecDomain& exec_domain) noexcept
 	{
-		assert (!exec_domain_);
+		assert (!exec_domain_ || exec_domain_ == &exec_domain);
 		exec_domain_ = &exec_domain;
 	}
 

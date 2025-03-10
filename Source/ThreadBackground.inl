@@ -37,12 +37,8 @@ inline
 void ThreadBackground::execute () noexcept
 {
 	ExecDomain* ed = exec_domain ();
-	if (ed) {
-		if (!ed->impersonation_context ().empty ())
-			impersonate (ed->impersonation_context ());
-		ed->switch_to ();
-		ExecContext::neutral_context_loop (*this);
-	}
+	if (ed)
+		ed->execute ();
 }
 
 }

@@ -432,7 +432,7 @@ public:
 
 	/// Executor::execute ()
 	/// Called from worker thread.
-	virtual void execute () noexcept override;
+	void execute () noexcept override;
 
 	void execute (SyncDomain& sd) noexcept
 	{
@@ -543,6 +543,9 @@ private:
 	}
 
 	void create_background_worker ();
+
+	// Perform possible neutral context calls, then return.
+	static void neutral_context_loop (Thread& worker) noexcept;
 
 private:
 	class Schedule : public Runnable

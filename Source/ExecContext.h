@@ -90,10 +90,6 @@ public:
 	// Execute Runnable in the neutral context
 	static void run_in_neutral_context (Runnable& runnable) noexcept;
 
-	// Call from worker
-	static void neutral_context_loop (Thread& worker) noexcept;
-
-protected:
 	void run ()
 	{
 		assert (runnable_);
