@@ -147,12 +147,9 @@ public:
 		return ret;
 	}
 
-	enum class SharedLocks {
-		NO_LOCKS,
-		INSIDE,
-		OUTSIDE
-	};
+	bool clear_shared_locks (const FileSize& begin, const FileSize& end, const void* owner) noexcept;
 
+private:
 	bool has_shared_locks_only (const FileSize& begin, const FileSize& end, const void* owner) const noexcept
 	{
 		bool ret = false;

@@ -140,7 +140,8 @@ public:
 		return Base::flags ();
 	}
 
-	LockType lock (const FileLock& fl, LockType tmin, const TimeBase::TimeT& timeout, const void* proxy)
+	LockType lock (const FileLock& fl, LockType tmin, const TimeBase::TimeT& timeout,
+		const void* proxy)
 	{
 		if (tmin > fl.type ())
 			throw_BAD_PARAM ();
@@ -172,20 +173,14 @@ public:
 					else
 						return LockType::LOCK_NONE;
 				}
-				bool retry = false;
-				if (tmin == LockType::LOCK_NONE
-					&& lock_ranges_.has_shared_locks_only (fl.start (), end, proxy))
-				{
-					retry = lock_ranges_.clear (fl.start (), end, proxy);
-					assert (retry);
-				}
+				bool retry = tmin == LockType::LOCK_NONE
+					&& lock_ranges_.clear_shared_locks (fl.start (), end, proxy);
 				ret = lock_queue_.enqueue (fl.start (), end, fl.type (), try_min, proxy, timeout);
 				if (retry)
 					retry_lock ();
-			} else if (LockType::LOCK_NONE == tmin && test_result.cur_max > LockType::LOCK_NONE) {
-				lock_ranges_.clear (fl.start (), end, proxy);
-				retry_lock ();
-			}
+			} else if (tmin == LockType::LOCK_NONE
+				&& lock_ranges_.clear_shared_locks (fl.start (), end, proxy))
+					retry_lock ();
 		}
 
 		return ret;

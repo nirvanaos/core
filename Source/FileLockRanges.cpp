@@ -89,7 +89,8 @@ bool FileLockRanges::test_lock (const FileSize begin, const FileSize end,
 	return true;
 }
 
-bool FileLockRanges::unchecked_set (FileSize begin, FileSize end, const void* owner, LockType level)
+bool FileLockRanges::unchecked_set (FileSize begin, FileSize end, const void* owner,
+	LockType level)
 {
 	assert (begin < end);
 	bool changed = false;
@@ -157,11 +158,22 @@ bool FileLockRanges::unchecked_set (FileSize begin, FileSize end, const void* ow
 	}
 
 	if (insert && level != LockType::LOCK_NONE) {
-		ranges_.emplace (std::upper_bound (ranges_.begin (), it_ub, begin, Comp ()), begin, end, owner, level);
+		ranges_.emplace (std::upper_bound (ranges_.begin (), it_ub, begin, Comp ()), begin, end, owner,
+			level);
 		changed = true;
 	}
 
 	return changed;
+}
+
+bool FileLockRanges::clear_shared_locks (const FileSize& begin, const FileSize& end,
+	const void* owner) noexcept
+{
+	if (has_shared_locks_only (begin, end, owner)) {
+		NIRVANA_VERIFY (clear (begin, end, owner));
+		return true;
+	}
+	return false;
 }
 
 FileLockRanges::Ranges::iterator FileLockRanges::lower_bound (FileSize end) noexcept
