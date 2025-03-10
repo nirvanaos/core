@@ -50,7 +50,14 @@ public:
 
 	Nirvana::PM::PacMan::_ref_type allocate ()
 	{
-		return CORBA::make_reference <PacMan> (this)->_this ();
+		Nirvana::PM::PacMan::_ref_type obj;
+		if (!in_progress_) {
+			obj = CORBA::make_reference <PacMan> (this)->_this ();
+			if (in_progress_)
+				obj = nullptr;
+			in_progress_ = true;
+		}
+		return obj;
 	}
 
 private:

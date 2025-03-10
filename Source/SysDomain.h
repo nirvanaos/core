@@ -133,21 +133,23 @@ public:
 		if (!Binary::is_supported_platform (info.platform ()))
 			Nirvana::BindError::throw_unsupported_platform (info.platform ());
 
-		Nirvana::ProtDomain::_ref_type domain;
-		if (SINGLE_DOMAIN)
-			domain = prot_domain ();
-		else
-			domain = manager_->create_prot_domain (info.platform ());
+		if (SINGLE_DOMAIN) {
 
-		if (SINGLE_DOMAIN)
-			info.module_flags (ProtDomainCore::_narrow (domain)->get_module_bindings (binary, bindings));
-		else {
+			info.module_flags (ProtDomainCore::_narrow (
+				prot_domain ())->get_module_bindings (binary, bindings));
+
+		} else {
+
+			ProtDomainCore::_ref_type domain = ProtDomainCore::_narrow (
+				manager_->create_prot_domain (info.platform ()));
+
 			try {
 				info.module_flags (ProtDomainCore::_narrow (domain)->get_module_bindings (binary, bindings));
 			} catch (...) {
 				domain->shutdown (SHUTDOWN_FLAG_FORCE);
 				throw;
 			}
+
 			domain->shutdown (SHUTDOWN_FLAG_FORCE);
 		}
 

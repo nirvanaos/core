@@ -37,6 +37,12 @@ PacMan::Lock::Lock (PacMan& obj) :
 	obj.busy_ = true;
 }
 
+PacMan::~PacMan ()
+{
+	if (manager_)
+		manager_->on_complete ();
+}
+
 long PacMan::compare_name (const Nirvana::PM::ObjBinding& l, const Nirvana::PM::ObjBinding& r) noexcept
 {
 	long cmp = l.name ().compare (r.name ());

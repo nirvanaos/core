@@ -48,10 +48,7 @@ public:
 		connection ()->setAutoCommit (false);
 	}
 
-	~PacMan ()
-	{
-		complete ();
-	}
+	~PacMan ();
 
 	void commit ()
 	{
