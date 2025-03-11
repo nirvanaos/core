@@ -26,6 +26,7 @@
 #include "pch.h"
 #include <Nirvana/Domains.h>
 #include <Nirvana/Packages.h>
+#include <Nirvana/platform.h>
 
 namespace Nirvana {
 
@@ -69,7 +70,11 @@ public:
 				print (1, "Binary '");
 				print (1, bin_path);
 				print (1, "' was successfully registered for platform ");
-				print (1, platform);
+				const char* platform_name = get_platform_name (platform);
+				if (platform_name)
+					print (1, platform_name);
+				else
+					print (1, platform);
 				print (1, " of module ");
 				print (1, argv [1]);
 				print (1, ".");
