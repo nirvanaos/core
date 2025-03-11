@@ -72,6 +72,11 @@ bool EventSyncTimeout::wait (TimeBase::TimeT timeout, Synchronized* frame)
 		entry.expire_time = cur_time + timeout;
 	}
 
+	if (frame)
+		frame->prepare_suspend_and_return ();
+	else
+		cur_ed.suspend_prepare ();
+
 	ListEntry** link = &list_;
 	for (;;) {
 		ListEntry* next = *link;
@@ -82,11 +87,6 @@ bool EventSyncTimeout::wait (TimeBase::TimeT timeout, Synchronized* frame)
 
 	if (entry.expire_time < nearest_expire_time ())
 		nearest_expire_time (entry.expire_time);
-
-	if (frame)
-		frame->prepare_suspend_and_return ();
-	else
-		cur_ed.suspend_prepare ();
 
 	entry.next = *link;
 	*link = &entry;

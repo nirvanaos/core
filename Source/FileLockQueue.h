@@ -87,6 +87,8 @@ public:
 			entry.expire_time = cur_time + timeout;
 		}
 
+		entry.exec_domain.suspend_prepare ();
+
 		DeadlineTime deadline = entry.exec_domain.deadline ();
 
 		Entry** link = &list_;
@@ -97,13 +99,11 @@ public:
 			link = &(next->next);
 		}
 
-		if (entry.expire_time < nearest_expire_time ())
-			nearest_expire_time (entry.expire_time);
-
-		entry.exec_domain.suspend_prepare ();
-
 		entry.next = *link;
 		*link = &entry;
+
+		if (entry.expire_time < nearest_expire_time ())
+			nearest_expire_time (entry.expire_time);
 
 		entry.exec_domain.suspend ();
 

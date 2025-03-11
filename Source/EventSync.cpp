@@ -42,8 +42,13 @@ void EventSync::wait ()
 {
 	if (!signalled_) {
 		
+		if (Scheduler::shutdown_started ())
+			throw_BAD_INV_ORDER ();
+
 		ExecDomain& ed = ExecDomain::current ();
 		
+		ed.suspend_prepare ();
+
 		ExecDomain* next = wait_list_;
 		ExecDomain** prev = &wait_list_;
 
@@ -51,8 +56,6 @@ void EventSync::wait ()
 			prev = reinterpret_cast <ExecDomain**> (&static_cast <StackElem&> (*next).next);
 			next = *prev;
 		}
-
-		ed.suspend_prepare ();
 
 		static_cast <StackElem&> (ed).next = next;
 		*prev = &ed;
