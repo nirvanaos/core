@@ -176,17 +176,15 @@ public:
 	/// \param push_qnode Force qnode_push if current context is SyncDomain
 	///        and resume_context != nullptr;
 	/// 
-	void suspend_prepare (SyncContext* resume_context = nullptr, bool push_qnode = false);
-
-	void suspend_unprepare (const CORBA::Core::SystemExceptionHolder& eh) noexcept
+	void suspend_prepare (SyncContext* resume_context = nullptr, bool push_qnode = false)
 	{
-#ifndef NDEBUG
-		assert (dbg_suspend_prepared_);
-		dbg_suspend_prepared_ = false;
-#endif
-		resume_exception_ = eh;
-		schedule_return_internal (*sync_context_);
+		suspend_prepare_no_leave (resume_context, push_qnode);
+		leave_sync_domain ();
 	}
+
+	bool suspend_prepare_no_leave (SyncContext* resume_context = nullptr, bool push_qnode = false);
+
+	void suspend_unprepare (bool pop_qnode) noexcept;
 
 	/// Suspend execution.
 	/// 
@@ -197,6 +195,14 @@ public:
 	/// Suspend execution.
 	/// Call suspend_prepared () in the neutral context.
 	void suspend ();
+
+	void leave_and_suspend ()
+	{
+		leave_sync_domain ();
+		suspend ();
+	}
+
+	bool suspended () const noexcept;
 
 	/// Resume suspended execution
 	void resume () noexcept;
@@ -369,11 +375,6 @@ public:
 		return dbg_mem_context_stack_size_;
 	}
 
-	bool dbg_suspend_prepared () const noexcept
-	{
-		return dbg_suspend_prepared_;
-	}
-
 #endif
 
 	enum class RestrictedMode
@@ -464,10 +465,10 @@ private:
 		ret_qnodes_ (nullptr),
 		mem_context_ (nullptr),
 		scheduler_item_created_ (false),
-		restricted_mode_ (RestrictedMode::NO_RESTRICTIONS)
+		restricted_mode_ (RestrictedMode::NO_RESTRICTIONS),
+		suspend_state_ (SuspendState::NOT_SUSPENDED)
 #ifndef NDEBUG
 		, dbg_mem_context_stack_size_ (0)
-		, dbg_suspend_prepared_ (false)
 #endif
 	{
 		std::fill_n (tls_, CoreTLS::CORE_TLS_COUNT, nullptr);
@@ -563,8 +564,6 @@ private:
 	// Perform possible neutral context calls, then return.
 	static void neutral_context_loop (Thread& worker) noexcept;
 
-	void schedule_return_internal (SyncContext& target) noexcept;
-
 private:
 	class Schedule : public Runnable
 	{
@@ -604,34 +603,47 @@ private:
 	};
 
 private:
-	AtomicCounter <false> ref_cnt_;
-	DeadlineTime deadline_;
 	Ref <SyncContext> sync_context_;
 	SyncDomain* execution_sync_domain_;
 	SyncDomain::QueueNode* ret_qnodes_;
-	
+	Ref <ThreadBackground> background_worker_;
+
 	PreallocatedStack <Ref <MemContext> > mem_context_stack_;
 	// When we perform mem_context_stack_.pop (), the top memory context is still
 	// current. This is necessary for correct memory deallocations in MemContext
 	// destructor.
 	MemContext* mem_context_;
 
+	DeadlineTime deadline_;
+
+	AtomicCounter <false> ref_cnt_;
+
+	enum class SuspendState
+	{
+		NOT_SUSPENDED,
+		PREPARED,
+		SUSPENDED
+	};
+
+	std::atomic <SuspendState> suspend_state_;
+
+	RestrictedMode restricted_mode_;
+
 	bool scheduler_item_created_;
+
+	// Runnables
 	Schedule schedule_;
 	Suspend suspend_;
-	Ref <ThreadBackground> background_worker_;
-	RestrictedMode restricted_mode_;
+
+#ifndef NDEBUG
+	size_t dbg_mem_context_stack_size_;
+#endif
 
 	Security::Context impersonation_context_;
 
 	void* tls_ [CORE_TLS_COUNT];
 
 	CORBA::Core::SystemExceptionHolder resume_exception_;
-
-#ifndef NDEBUG
-	size_t dbg_mem_context_stack_size_;
-	bool dbg_suspend_prepared_;
-#endif
 
 	typename std::aligned_storage <MAX_RUNNABLE_SIZE>::type runnable_space_;
 

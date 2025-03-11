@@ -205,8 +205,10 @@ void ExecDomain::cleanup () noexcept
 
 #ifndef NDEBUG
 	dbg_mem_context_stack_size_ = 0;
-	dbg_suspend_prepared_ = false;
 #endif
+
+	suspend_state_.store (SuspendState::NOT_SUSPENDED, std::memory_order_relaxed);
+	restricted_mode_ = RestrictedMode::NO_RESTRICTIONS;
 
 	ret_qnodes_clear ();
 
@@ -363,13 +365,6 @@ void ExecDomain::schedule_return (SyncContext& target, bool no_reschedule) noexc
 
 	leave_sync_domain ();
 
-	schedule_return_internal (target);
-}
-
-void ExecDomain::schedule_return_internal (SyncContext& target) noexcept
-{
-	assert (!execution_sync_domain_);
-
 	if (target.sync_domain ()
 		|| !(deadline () == INFINITE_DEADLINE && &Thread::current () == background_worker_)) {
 
@@ -442,10 +437,10 @@ void ExecDomain::Schedule::ret (SyncContext& target) noexcept
 	// schedule() can not throw exception in the return mode.
 }
 
-void ExecDomain::suspend_prepare (SyncContext* resume_context, bool push_qnode)
+bool ExecDomain::suspend_prepare_no_leave (SyncContext* resume_context, bool push_qnode)
 {
 	assert (Thread::current ().exec_domain () == this);
-	assert (!dbg_suspend_prepared_);
+	assert (suspend_state_ == SuspendState::NOT_SUSPENDED);
 
 	{ // If a background worker will need for resume, create it now.
 		SyncContext* res_ctx = resume_context;
@@ -455,29 +450,40 @@ void ExecDomain::suspend_prepare (SyncContext* resume_context, bool push_qnode)
 			create_background_worker ();
 	}
 
-	{ // Leave the current sync domain
+	bool qnode = false;
+
+	{ // Prepare return to the current sync domain
 		SyncDomain* sync_domain = sync_context_->sync_domain ();
-		if (sync_domain && (!resume_context || push_qnode))
+		if (sync_domain && (!resume_context || push_qnode)) {
 			ret_qnode_push (*sync_domain);
+			qnode = true;
+		}
 	}
-	leave_sync_domain ();
 
 	if (resume_context)
 		sync_context_ = resume_context;
 
-#ifndef NDEBUG
-	dbg_suspend_prepared_ = true;
-#endif
+	suspend_state_.store (SuspendState::PREPARED, std::memory_order_release);
+
+	return qnode;
+}
+
+void ExecDomain::suspend_unprepare (bool pop_qnode) noexcept
+{
+	suspend_state_.store (SuspendState::NOT_SUSPENDED, std::memory_order_release);
+	if (pop_qnode)
+		ret_qnode_pop ()->release ();
 }
 
 void ExecDomain::suspend_prepared () noexcept
 {
-#ifndef NDEBUG
 	assert (Thread::current ().exec_domain () == this);
 	assert (&ExecContext::current () == &Thread::current ().neutral_context ());
-	assert (dbg_suspend_prepared_);
-	dbg_suspend_prepared_ = false;
-#endif
+	assert (suspend_state_ == SuspendState::PREPARED);
+
+	assert (!execution_sync_domain_);
+
+	suspend_state_.store (SuspendState::SUSPENDED, std::memory_order_release);
 
 	Thread::current ().yield ();
 }
@@ -486,10 +492,9 @@ void ExecDomain::resume () noexcept
 {
 	assert (ExecContext::current_ptr () != this);
 	assert (sync_context_);
+	assert (suspend_state_ == SuspendState::SUSPENDED);
 
-#ifndef NDEBUG
-	dbg_suspend_prepared_ = false;
-#endif
+	suspend_state_.store (SuspendState::NOT_SUSPENDED, std::memory_order_release);
 
 	// Hold reference to sync_context_ to avoid it's destruction out of context.
 	Ref <SyncContext> tmp (sync_context_);
@@ -520,9 +525,22 @@ void ExecDomain::Reschedule::run ()
 
 void ExecDomain::suspend ()
 {
-	assert (dbg_suspend_prepared ());
+	assert (suspend_state_ == SuspendState::PREPARED);
 	ExecContext::run_in_neutral_context (suspend_);
 	resume_exception_.check ();
+}
+
+bool ExecDomain::suspended () const noexcept
+{
+	for (BackOff bo;; bo ()) {
+		SuspendState state = suspend_state_.load (std::memory_order_acquire);
+		switch (state) {
+			case SuspendState::NOT_SUSPENDED:
+				return false;
+			case SuspendState::SUSPENDED:
+				return true;
+		}
+	}
 }
 
 void ExecDomain::Suspend::run ()

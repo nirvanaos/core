@@ -40,7 +40,7 @@ namespace Core {
 struct StackElem
 {
 	void* next;
-	RefCounter ref_cnt;
+	AtomicCounter <false> ref_cnt;
 };
 
 /// Lock-free stack implementation.
@@ -66,9 +66,8 @@ public:
 	{
 		StackElem* node = &static_cast <StackElem&> (elem);
 		// Initialize ref_cnt with 1.
-		// We can not use operator = because it has no effect for RefCounter.
-		::new (&(node->ref_cnt)) RefCounter ();
-		// While element is attached to the stack, ref_cnt always > 0.
+		::new (&(node->ref_cnt)) AtomicCounter <false> (1);
+		// While element is attached to the stack, ref_cnt is always > 0.
 
 		// Push element to the stack
 		Ptr ptr = &elem;
@@ -83,18 +82,19 @@ public:
 	/// \returns The object pointer or `nullptr` if the stack is empty.
 	T* pop () noexcept
 	{
-		for (StackElem* node = nullptr;;) {
+		for (;;) {
 			// Get head and increment counter on it
 			Ptr head = head_.lock ();
 			if ((T*)head) {
-				node = static_cast <StackElem*> ((T*)head);
+				StackElem* node = static_cast <StackElem*> ((T*)head);
 				node->ref_cnt.increment ();
 				head_.unlock ();
 				if (head_.cas (head, (T*)(node->next)))
-					node->ref_cnt.decrement (); // node was detached from stack so we decrement the counter
+					// Node was detached from stack so we decrement the counter
+					node->ref_cnt.decrement ();
 
 				// First thread that decrement counter to zero will return detached node
-				if (!node->ref_cnt.decrement ())
+				if (!node->ref_cnt.decrement_seq ())
 					return head;
 			} else {
 				head_.unlock ();

@@ -62,6 +62,9 @@ public:
 	/// The integral type of the atomic type.
 	using IntegralType = std::conditional_t <SIGNED, Signed, Unsigned>;
 
+	AtomicCounter ()
+	{}
+
 	/// Constructor.
 	/// 
 	/// \param init The initial value.
@@ -105,7 +108,7 @@ public:
 	/// \returns The incremented value.
 	IntegralType increment_seq () noexcept
 	{
-		return cnt_.fetch_add (1, std::memory_order_release) + 1;
+		return cnt_.fetch_add (1, std::memory_order_acq_rel) + 1;
 	}
 
 	/// Relaxed decrement.
@@ -122,7 +125,7 @@ public:
 	IntegralType decrement_seq () noexcept
 	{
 		assert (SIGNED || cnt_ > 0);
-		return cnt_.fetch_sub (1, std::memory_order_release) - 1;
+		return cnt_.fetch_sub (1, std::memory_order_acq_rel) - 1;
 	}
 
 	/// Decrement counter if it is not zero.

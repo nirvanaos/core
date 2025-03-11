@@ -68,11 +68,7 @@ public:
 	void signal (const CORBA::Exception& ex) noexcept;
 
 	/// Reset object into the non-signalled state.
-	void reset () noexcept
-	{
-		signalled_ = false;
-		eh_.reset ();
-	}
+	void reset () noexcept;
 
 private:
 	void resume_all () noexcept;

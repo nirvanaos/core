@@ -38,24 +38,23 @@ void Event::wait ()
 {
 	if (!signalled_) {
 		ExecDomain& cur_ed = ExecDomain::current ();
-		cur_ed.suspend_prepare ();
+		bool pop_qnode = cur_ed.suspend_prepare_no_leave ();
 		push (cur_ed);
 		if (signalled_) {
-			while (ExecDomain* ed = pop ()) {
-				if (&cur_ed != ed)
-					ed->resume (eh_);
-				else
-					ed->suspend_unprepare (eh_);
-			}
+			cur_ed.suspend_unprepare (pop_qnode);
+			resume_all ();
+			eh_.check ();
 		} else
-			cur_ed.suspend ();
-	}
+			cur_ed.leave_and_suspend ();
+	} else
+		resume_all (); // Help others
 }
 
 void Event::resume_all () noexcept
 {
 	while (ExecDomain* ed = pop ()) {
-		ed->resume (eh_);
+		if (ed->suspended ())
+			ed->resume (eh_);
 	}
 }
 
@@ -72,6 +71,16 @@ void Event::signal (const CORBA::Exception& ex) noexcept
 	eh_.set_exception (ex);
 	signalled_ = true;
 	resume_all ();
+}
+
+void Event::reset () noexcept
+{
+	assert (signalled_);
+	if (signalled_) {
+		signalled_ = false;
+		resume_all ();
+	}
+	eh_.reset ();
 }
 
 }
