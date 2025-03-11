@@ -153,14 +153,14 @@ public:
 				retry_lock ();
 		} else {
 
-			LockType try_min = tmin;
-			if (LockType::LOCK_NONE == try_min) {
-				if ((try_min = fl.type ()) == LockType::LOCK_EXCLUSIVE)
-					try_min = LockType::LOCK_PENDING;
+			if (LockType::LOCK_NONE == tmin) {
+				if (lock_ranges_.clear (fl.start (), end, proxy))
+					retry_lock ();
+				tmin = fl.type ();
 			}
 
 			FileLockRanges::TestResult test_result;
-			if (lock_ranges_.test_lock (fl.start (), end, fl.type (), try_min, proxy, test_result)) {
+			if (lock_ranges_.test_lock (fl.start (), end, fl.type (), tmin, proxy, test_result)) {
 				ret = test_result.can_set;
 				if (test_result.cur_max != ret || test_result.cur_min != ret)
 					lock_ranges_.unchecked_set (fl.start (), end, proxy, ret);
@@ -173,14 +173,8 @@ public:
 					else
 						return LockType::LOCK_NONE;
 				}
-				bool retry = tmin == LockType::LOCK_NONE
-					&& lock_ranges_.clear_shared_locks (fl.start (), end, proxy);
-				ret = lock_queue_.enqueue (fl.start (), end, fl.type (), try_min, proxy, timeout);
-				if (retry)
-					retry_lock ();
-			} else if (tmin == LockType::LOCK_NONE
-				&& lock_ranges_.clear_shared_locks (fl.start (), end, proxy))
-					retry_lock ();
+				ret = lock_queue_.enqueue (fl.start (), end, fl.type (), tmin, proxy, timeout);
+			}
 		}
 
 		return ret;

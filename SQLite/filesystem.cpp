@@ -241,9 +241,17 @@ public:
 	int unlock (Nirvana::LockType level) noexcept
 	{
 		if (lock_level_ > level) {
+			Nirvana::LockType lmin;
+			TimeBase::TimeT timeout;
+			if (Nirvana::LockType::LOCK_SHARED == level) {
+				lmin = Nirvana::LockType::LOCK_NONE;
+				timeout = global.static_data ().timeout ();
+			} else {
+				lmin = level;
+				timeout = 0;
+			}
 			try {
-				lock_level_ = access_->lock (Nirvana::FileLock (FILE_HEADER_SIZE, 0, level), level, 0);
-				assert (lock_level_ == level);
+				lock_level_ = access_->lock (Nirvana::FileLock (FILE_HEADER_SIZE, 0, level), lmin, timeout);
 			} catch (...) {
 				return SQLITE_IOERR_UNLOCK;
 			}
