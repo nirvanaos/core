@@ -29,20 +29,16 @@
 #include "Chrono.h"
 #include "MemContext.h"
 #include "DeadlinePolicy.h"
-#include <Port/SystemInfo.h>
 
 namespace Nirvana {
 namespace Core {
 
 class ExecDomain::CreatorWithPool
 {
-	/// Pool size is calculated as processor count multiplied by POOL_SIZE_MUL.
-	static const unsigned POOL_SIZE_MUL = 8;
-
 public:
 	static void initialize () noexcept
 	{
-		pool_.construct (Port::SystemInfo::hardware_concurrency () * POOL_SIZE_MUL);
+		pool_.construct ();
 	}
 
 	static void terminate () noexcept

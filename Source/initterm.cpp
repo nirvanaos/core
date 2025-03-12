@@ -46,14 +46,13 @@ void initialize0 () noexcept
 {
 	TLS::initialize ();
 	g_core_free_sync_context.construct ();
+	Timer::initialize ();
 	ExecDomain::initialize ();
 	Scheduler::initialize ();
 }
 
 void initialize ()
 {
-	Timer::initialize ();
-
 	// CORBA::Core::Services must be initialized before Binder
 	CORBA::Core::initialize ();
 

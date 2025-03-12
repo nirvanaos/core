@@ -29,27 +29,49 @@
 #pragma once
 
 #include "Stack.h"
+#include "Timer.h"
 
 namespace Nirvana {
 namespace Core {
+
+class ObjectPoolBottom
+{
+public:
+	void bottom () noexcept
+	{
+		cleanup_.store (false, std::memory_order_relaxed);
+	}
+
+	bool cleanup () noexcept
+	{
+		return cleanup_.exchange (true, std::memory_order_relaxed);
+	}
+
+private:
+	std::atomic <bool> cleanup_;
+};
 
 /// Object pool
 /// 
 /// \tparam T Object type.
 ///           T must derive StackElem and have default constructor.
 template <class T, unsigned ALIGN = core_object_align (sizeof (T))>
-class ObjectPool : private Stack <T, ALIGN>
+class ObjectPool :
+	private Stack <T, ALIGN, ObjectPoolBottom>,
+	private Timer
 {
-	typedef Stack <T> Base;
+	typedef Stack <T, ALIGN, ObjectPoolBottom> Base;
 
 public:
+	static const TimeBase::TimeT DEFAULT_HOUSEKEEPING_INTERVAL = 10 * TimeBase::SECOND;
+
 	/// Constructor.
 	/// 
-	/// \param max_size Maximal object count in the pool.
-	ObjectPool (unsigned max_size) :
-		max_size_ (max_size),
-		size_ (0)
-	{};
+	/// \param housekeeping_interval Housekeeping interval.
+	ObjectPool (const TimeBase::TimeT& housekeeping_interval = DEFAULT_HOUSEKEEPING_INTERVAL)
+	{
+		Timer::set (0, housekeeping_interval, housekeeping_interval);
+	};
 
 	/// Destructor.
 	/// Deletes all objects from the pool.
@@ -69,12 +91,12 @@ public:
 	{
 		ObjRef ret;
 		T* obj = Base::pop ();
-		if (obj) {
-			if (obj)
-				--size_;
+		if (obj)
 			ret = obj;
-		} else
+		else {
+			Base::bottom ();
 			create_new (ret);
+		}
 
 		assert (((uintptr_t)static_cast <T*> (ret) & Base::Ptr::ALIGN_MASK) == 0);
 		return ret;
@@ -82,16 +104,10 @@ public:
 
 	/// Release object to the pool.
 	/// 
-	/// If pool size reached the limit, object will be deleted.
-	/// 
 	/// \param obj Object to release.
 	void release (T& obj) noexcept
 	{
-		if (max_size_ < ++size_) {
-			--size_;
-			delete& obj;
-		} else
-			Base::push (obj);
+		Base::push (obj);
 	}
 
 private:
@@ -105,9 +121,12 @@ private:
 		ref = new T ();
 	}
 
-private:
-	const unsigned max_size_;
-	std::atomic <unsigned> size_;
+	void signal () noexcept override
+	{
+		if (Base::cleanup ())
+			delete Base::pop ();
+	}
+
 };
 
 }
