@@ -98,7 +98,8 @@ public:
 				T* next = (T*)(node->next);
 				if (head_.cas (head, next)) {
 					// Node was detached from stack so we decrement the counter
-					Base::bottom ();
+					if (!next)
+						Base::bottom ();
 					node->ref_cnt.decrement ();
 				}
 
