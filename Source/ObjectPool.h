@@ -29,7 +29,6 @@
 #pragma once
 
 #include "Stack.h"
-#include "CoreInterface.h"
 
 namespace Nirvana {
 namespace Core {
@@ -38,8 +37,8 @@ namespace Core {
 /// 
 /// \tparam T Object type.
 ///           T must derive StackElem and have default constructor.
-template <class T>
-class ObjectPool : private Stack <T>
+template <class T, unsigned ALIGN = core_object_align (sizeof (T))>
+class ObjectPool : private Stack <T, ALIGN>
 {
 	typedef Stack <T> Base;
 
@@ -60,21 +59,22 @@ public:
 			delete obj;
 	}
 
-	/// Create/get object.
-	/// 
+	using ObjRef = typename std::conditional <std::is_object <Ref <T> >::value, Ref <T>, T*>::type;
+
 	/// Tries to get object from the pool.
 	/// If the pool is empty, creates a new object.
 	/// 
-	/// \returns Ref <T>.
-	Ref <T> create ()
+	/// \returns object reference.
+	ObjRef create ()
 	{
-		Ref <T> ret;
+		ObjRef ret;
 		T* obj = Base::pop ();
 		if (obj) {
-			--size_;
+			if (obj)
+				--size_;
 			ret = obj;
 		} else
-			ret = Ref <T>::template create <T> ();
+			create_new (ret);
 
 		assert (((uintptr_t)static_cast <T*> (ret) & Base::Ptr::ALIGN_MASK) == 0);
 		return ret;
@@ -92,6 +92,17 @@ public:
 			delete& obj;
 		} else
 			Base::push (obj);
+	}
+
+private:
+	static void create_new (Ref <T>& ref)
+	{
+		ref = Ref <T>::template create <T> ();
+	}
+
+	static void create_new (T*& ref)
+	{
+		ref = new T ();
 	}
 
 private:

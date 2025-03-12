@@ -59,7 +59,7 @@ void SyncDomain::do_schedule () noexcept
 	State state = State::IDLE;
 	if (state_.compare_exchange_strong (state, State::SCHEDULING)) {
 		
-		need_schedule_ = false;
+		need_schedule_.store (false, std::memory_order_relaxed);
 		DeadlineTime min_deadline;
 		NIRVANA_VERIFY (queue_.get_min_deadline (min_deadline));
 		Scheduler::schedule (min_deadline, *this);
@@ -81,7 +81,7 @@ void SyncDomain::do_schedule () noexcept
 			}
 		}
 
-		state_.store (State::SCHEDULED, std::memory_order_relaxed);
+		state_.store (State::SCHEDULED, std::memory_order_release);
 	}
 }
 

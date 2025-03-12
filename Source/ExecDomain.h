@@ -474,10 +474,10 @@ private:
 		std::fill_n (tls_, CoreTLS::CORE_TLS_COUNT, nullptr);
 	}
 
-	class WithPool;
-	class NoPool;
+	class CreatorWithPool;
+	class CreatorNoPool;
 
-	using Creator = std::conditional <EXEC_DOMAIN_POOLING, WithPool, NoPool>::type;
+	using Creator = std::conditional <EXEC_DOMAIN_POOLING, CreatorWithPool, CreatorNoPool>::type;
 
 	static Ref <ExecDomain> create (const DeadlineTime deadline, Ref <MemContext>&& mem_context);
 	static Ref <MemContext> get_mem_context (SyncContext& target, Heap* heap = nullptr);
@@ -487,17 +487,12 @@ private:
 		return create (deadline, get_mem_context (target, heap));
 	}
 
-	~ExecDomain () noexcept
-	{
-		assert (!sync_context_);
-		assert (mem_context_stack_.empty ());
-		assert (!background_worker_);
-	}
+	~ExecDomain ();
 
 	void final_release () noexcept;
 
 	friend class CORBA::servant_reference <ExecDomain>;
-	friend class ObjectPool <ExecDomain>;
+	template <class T, unsigned ALIGN> friend class ObjectPool;
 	
 	void _add_ref () noexcept
 	{

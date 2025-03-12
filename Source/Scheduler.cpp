@@ -94,10 +94,8 @@ void Scheduler::do_shutdown ()
 
 void Scheduler::toggle_activity () noexcept
 {
-	if (!global_->activity_cnt.load ()) {
-		global_->activity_cnt.increment ();
-		activity_end ();
-	}
+	global_->activity_cnt.increment ();
+	activity_end ();
 }
 
 void Scheduler::shutdown (unsigned flags)

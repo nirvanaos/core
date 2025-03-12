@@ -34,7 +34,7 @@
 namespace Nirvana {
 namespace Core {
 
-class ExecDomain::WithPool
+class ExecDomain::CreatorWithPool
 {
 	/// Pool size is calculated as processor count multiplied by POOL_SIZE_MUL.
 	static const unsigned POOL_SIZE_MUL = 8;
@@ -64,9 +64,9 @@ private:
 	static StaticallyAllocated <ObjectPool <ExecDomain>> pool_;
 };
 
-StaticallyAllocated <ObjectPool <ExecDomain>> ExecDomain::WithPool::pool_;
+StaticallyAllocated <ObjectPool <ExecDomain>> ExecDomain::CreatorWithPool::pool_;
 
-class ExecDomain::NoPool
+class ExecDomain::CreatorNoPool
 {
 public:
 	static void initialize () noexcept
@@ -100,6 +100,13 @@ void ExecDomain::initialize () noexcept
 void ExecDomain::terminate () noexcept
 {
 	Creator::terminate ();
+}
+
+ExecDomain::~ExecDomain ()
+{
+	assert (!sync_context_);
+	assert (mem_context_stack_.empty ());
+	assert (!background_worker_);
 }
 
 Ref <ExecDomain> ExecDomain::create (const DeadlineTime deadline, Ref <MemContext>&& mem_context)

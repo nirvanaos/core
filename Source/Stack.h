@@ -43,9 +43,15 @@ struct StackElem
 	AtomicCounter <false> ref_cnt;
 };
 
+struct StackBaseDummy
+{
+	static void bottom () noexcept
+	{}
+};
+
 /// Lock-free stack implementation.
-template <class T, unsigned ALIGN = core_object_align (sizeof (T))>
-class Stack
+template <class T, unsigned ALIGN = core_object_align (sizeof (T)), class Base = StackBaseDummy>
+class Stack : public Base
 {
 	Stack (const Stack&) = delete;
 	Stack& operator = (const Stack&) = delete;
@@ -80,7 +86,7 @@ public:
 	/// Pop object from the stack.
 	/// 
 	/// \returns The object pointer or `nullptr` if the stack is empty.
-	T* pop () noexcept
+	T* pop (bool* last = nullptr) noexcept
 	{
 		for (;;) {
 			// Get head and increment counter on it
@@ -89,9 +95,12 @@ public:
 				StackElem* node = static_cast <StackElem*> ((T*)head);
 				node->ref_cnt.increment ();
 				head_.unlock ();
-				if (head_.cas (head, (T*)(node->next)))
+				T* next = (T*)(node->next);
+				if (head_.cas (head, next)) {
 					// Node was detached from stack so we decrement the counter
+					Base::bottom ();
 					node->ref_cnt.decrement ();
+				}
 
 				// First thread that decrement counter to zero will return detached node
 				if (!node->ref_cnt.decrement_seq ())
