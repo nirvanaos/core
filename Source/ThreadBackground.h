@@ -29,23 +29,39 @@
 #pragma once
 
 #include "Heap.h"
+#include "ConditionalCreator.h"
 #include <Port/ThreadBackground.h>
+#include <Port/config.h>
 
 namespace Nirvana {
 namespace Core {
 
-class NIRVANA_NOVTABLE ThreadBackground :
+class ThreadBackground :
 	public SharedObject,
-	public Port::ThreadBackground
+	public Port::ThreadBackground,
+	public ConditionalObjectBase <BACKGROUND_THREAD_POOLING>
 {
-	DECLARE_CORE_INTERFACE
-
 	friend class Port::ThreadBackground;
 	typedef Port::ThreadBackground Base;
+	friend class CORBA::servant_reference <ThreadBackground>;
+	friend class ObjectCreator <ThreadBackground>;
+	
+	using Creator = ConditionalCreator <ThreadBackground, BACKGROUND_THREAD_POOLING>;
+
 public:
+	static void initialize ()
+	{
+		Creator::initialize ();
+	}
+
+	static void terminate () noexcept
+	{
+		Creator::terminate ();
+	}
+
 	static Ref <ThreadBackground> spawn ()
 	{
-		Ref <ThreadBackground> ref = Ref <ThreadBackground>::create <ImplDynamic <ThreadBackground> > ();
+		Ref <ThreadBackground> ref = Creator::create ();
 		ref->start ();
 		return ref;
 	}
@@ -62,7 +78,8 @@ public:
 	}
 
 protected:
-	ThreadBackground ()
+	ThreadBackground () :
+		ref_cnt_ (1)
 	{}
 
 	~ThreadBackground ()
@@ -77,6 +94,19 @@ private:
 	// Called from port.
 	inline void execute () noexcept;
 
+	void _add_ref () noexcept
+	{
+		ref_cnt_.increment ();
+	}
+
+	void _remove_ref () noexcept
+	{
+		if (0 == ref_cnt_.decrement_seq ())
+			Creator::release (*this);
+	}
+
+private:
+	AtomicCounter <false> ref_cnt_;
 };
 
 }

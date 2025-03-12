@@ -33,55 +33,6 @@
 namespace Nirvana {
 namespace Core {
 
-class ExecDomain::CreatorWithPool
-{
-public:
-	static void initialize () noexcept
-	{
-		pool_.construct ();
-	}
-
-	static void terminate () noexcept
-	{
-		pool_.destruct ();
-	}
-
-	static Ref <ExecDomain> create ()
-	{
-		return pool_->create ();
-	}
-
-	static void release (ExecDomain& ed) noexcept
-	{
-		pool_->release (ed);
-	}
-
-private:
-	static StaticallyAllocated <ObjectPool <ExecDomain>> pool_;
-};
-
-StaticallyAllocated <ObjectPool <ExecDomain>> ExecDomain::CreatorWithPool::pool_;
-
-class ExecDomain::CreatorNoPool
-{
-public:
-	static void initialize () noexcept
-	{}
-
-	static void terminate () noexcept
-	{}
-
-	static Ref <ExecDomain> create ()
-	{
-		return Ref <ExecDomain>::create <ExecDomain> ();
-	}
-
-	static void release (ExecDomain& ed) noexcept
-	{
-		delete& ed;
-	}
-};
-
 StaticallyAllocated <ExecDomain::Deleter> ExecDomain::deleter_;
 StaticallyAllocated <ExecDomain::Reschedule> ExecDomain::reschedule_;
 

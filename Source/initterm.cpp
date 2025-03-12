@@ -47,6 +47,7 @@ void initialize0 () noexcept
 	TLS::initialize ();
 	g_core_free_sync_context.construct ();
 	Timer::initialize ();
+	ThreadBackground::initialize ();
 	ExecDomain::initialize ();
 	Scheduler::initialize ();
 }
@@ -67,10 +68,14 @@ void initialize ()
 
 	// Start receiving messages from other domains
 	Port::PostOffice::initialize (CORBA::Core::LocalAddress::singleton ().host (), CORBA::Core::LocalAddress::singleton ().port ());
+
+	ObjectPoolBase::housekeeping_start ();
 }
 
 void shutdown () noexcept
 {
+	ObjectPoolBase::housekeeping_stop ();
+
 	// Deactivate all managers to reject incoming requests.
 	PortableServer::Core::POA_Root::deactivate_all ();
 	
@@ -110,6 +115,7 @@ void terminate0 () noexcept
 {
 	Scheduler::terminate ();
 	ExecDomain::terminate ();
+	ThreadBackground::terminate ();
 #ifndef NDEBUG
 	g_core_free_sync_context.destruct ();
 #endif

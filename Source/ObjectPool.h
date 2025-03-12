@@ -6,7 +6,7 @@
 *
 * Author: Igor Popov
 *
-* Copyright (c) 2021 Igor Popov.
+* Copyright (c) 2025 Igor Popov.
 *
 * This program is free software; you can redistribute it and/or modify
 * it under the terms of the GNU Lesser General Public License as published by
@@ -30,15 +30,18 @@
 
 #include "Stack.h"
 #include "Timer.h"
+#include "StaticallyAllocated.h"
+#include <Port/config.h>
 
 namespace Nirvana {
 namespace Core {
 
-class ObjectPoolBottom
+class ObjectPoolCleanup
 {
 public:
 	void bottom () noexcept
 	{
+		// Object pool bottom is reached, reset cleanup flag.
 		cleanup_.store (false, std::memory_order_relaxed);
 	}
 
@@ -51,37 +54,92 @@ private:
 	std::atomic <bool> cleanup_;
 };
 
+template <class T>
+class ObjectCreator
+{
+public:
+	using ObjRef = typename std::conditional <std::is_object <Ref <T> >::value, Ref <T>, T*>::type;
+
+	static void create (Ref <T>& ref)
+	{
+		ref = Ref <T>::template create <T> ();
+	}
+
+	static void create (T*& ref)
+	{
+		ref = new T ();
+	}
+
+	static void release (T& obj) noexcept
+	{
+		delete& obj;
+	}
+};
+
+class NIRVANA_NOVTABLE ObjectPoolBase
+{
+public:
+	static void housekeeping_start ()
+	{
+		if (pool_list_) {
+			timer_.construct ();
+			timer_->set (0, OBJECT_POOL_HOUSEKEEPING_PERIOD, OBJECT_POOL_HOUSEKEEPING_PERIOD);
+		}
+	}
+
+	static void housekeeping_stop () noexcept
+	{
+		if (pool_list_)
+			timer_.destruct ();
+	}
+
+protected:
+	ObjectPoolBase ();
+
+	virtual void housekeeping () noexcept = 0;
+
+private:
+	class Timer : public Core::Timer
+	{
+	private:
+		void signal () noexcept override;
+	};
+
+private:
+	ObjectPoolBase* next_;
+
+	static ObjectPoolBase* pool_list_;
+	static StaticallyAllocated <Timer> timer_;
+};
+
 /// Object pool
 /// 
 /// \tparam T Object type.
 ///           T must derive StackElem and have default constructor.
 template <class T, unsigned ALIGN = core_object_align (sizeof (T))>
 class ObjectPool :
-	private Stack <T, ALIGN, ObjectPoolBottom>,
-	private Timer
+	private Stack <T, ALIGN, ObjectPoolCleanup>,
+	private ObjectCreator <T>,
+	private ObjectPoolBase
 {
-	typedef Stack <T, ALIGN, ObjectPoolBottom> Base;
+	typedef Stack <T, ALIGN, ObjectPoolCleanup> Base;
+	typedef ObjectCreator <T> Creator;
+	typedef Creator::ObjRef ObjRef;
 
 public:
-	static const TimeBase::TimeT DEFAULT_HOUSEKEEPING_INTERVAL = 10 * TimeBase::SECOND;
-
 	/// Constructor.
 	/// 
 	/// \param housekeeping_interval Housekeeping interval.
-	ObjectPool (const TimeBase::TimeT& housekeeping_interval = DEFAULT_HOUSEKEEPING_INTERVAL)
-	{
-		Timer::set (0, housekeeping_interval, housekeeping_interval);
-	};
+	ObjectPool ()
+	{}
 
 	/// Destructor.
 	/// Deletes all objects from the pool.
 	~ObjectPool ()
 	{
 		while (T* obj = Base::pop ())
-			delete obj;
+			Creator::release (*obj);
 	}
-
-	using ObjRef = typename std::conditional <std::is_object <Ref <T> >::value, Ref <T>, T*>::type;
 
 	/// Tries to get object from the pool.
 	/// If the pool is empty, creates a new object.
@@ -95,7 +153,7 @@ public:
 			ret = obj;
 		else {
 			Base::bottom ();
-			create_new (ret);
+			Creator::create (ret);
 		}
 
 		assert (((uintptr_t)static_cast <T*> (ret) & Base::Ptr::ALIGN_MASK) == 0);
@@ -111,20 +169,13 @@ public:
 	}
 
 private:
-	static void create_new (Ref <T>& ref)
+	void housekeeping () noexcept override
 	{
-		ref = Ref <T>::template create <T> ();
-	}
-
-	static void create_new (T*& ref)
-	{
-		ref = new T ();
-	}
-
-	void signal () noexcept override
-	{
-		if (Base::cleanup ())
-			delete Base::pop ();
+		if (Base::cleanup ()) {
+			T* obj = Base::pop ();
+			if (obj)
+				Creator::release (*obj);
+		}
 	}
 
 };

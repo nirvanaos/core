@@ -36,6 +36,7 @@
 #include "unrecoverable_error.h"
 #include "Security.h"
 #include "ORB/SystemExceptionHolder.h"
+#include "ConditionalCreator.h"
 #include <limits>
 #include <utility>
 #include <signal.h>
@@ -60,6 +61,9 @@ class ExecDomain final :
 	public Executor,
 	public StackElem
 {
+	friend class CORBA::servant_reference <ExecDomain>;
+	friend class ObjectCreator <ExecDomain>;
+
 public:
 	static const size_t MAX_RUNNABLE_SIZE = 2 * sizeof (void*) + 24;
 
@@ -474,10 +478,7 @@ private:
 		std::fill_n (tls_, CoreTLS::CORE_TLS_COUNT, nullptr);
 	}
 
-	class CreatorWithPool;
-	class CreatorNoPool;
-
-	using Creator = std::conditional <EXEC_DOMAIN_POOLING, CreatorWithPool, CreatorNoPool>::type;
+	using Creator = ConditionalCreator <ExecDomain, EXEC_DOMAIN_POOLING>;
 
 	static Ref <ExecDomain> create (const DeadlineTime deadline, Ref <MemContext>&& mem_context);
 	static Ref <MemContext> get_mem_context (SyncContext& target, Heap* heap = nullptr);
@@ -491,9 +492,6 @@ private:
 
 	void final_release () noexcept;
 
-	friend class CORBA::servant_reference <ExecDomain>;
-	template <class T, unsigned ALIGN> friend class ObjectPool;
-	
 	void _add_ref () noexcept
 	{
 		ref_cnt_.increment ();
