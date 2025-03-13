@@ -48,7 +48,7 @@ public:
 		assert (!constructed_);
 		new (&storage_) T (std::forward <Args> (args)...);
 #ifndef NDEBUG
-		constructed_ = true;
+		constructed_ = (const T*)&storage_;
 #endif
 	}
 
@@ -58,7 +58,7 @@ public:
 		assert (constructed_);
 		((T&)storage_).T::~T ();
 #ifndef NDEBUG
-		constructed_ = false;
+		constructed_ = nullptr;
 #endif
 	}
 
@@ -90,7 +90,7 @@ public:
 private:
 	typename std::aligned_storage <sizeof (T), alignof (T)>::type storage_;
 #ifndef NDEBUG
-	bool constructed_;
+	const T* constructed_;
 #endif
 };
 
