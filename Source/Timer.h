@@ -70,7 +70,9 @@ public:
 	/// Called on system startup.
 	static void initialize ()
 	{
+		assert (!initialized_);
 		Port::Timer::initialize ();
+		initialized_ = true;
 	}
 
 	/// Terminate all timers.
@@ -78,7 +80,14 @@ public:
 	/// Called on system shutdown.
 	static void terminate () noexcept
 	{
+		assert (initialized_);
+		initialized_ = false;
 		Port::Timer::terminate ();
+	}
+
+	static bool initialized () noexcept
+	{
+		return initialized_;
 	}
 
 protected:
@@ -105,6 +114,8 @@ private:
 
 private:
 	bool periodic_;
+
+	static volatile bool initialized_;
 };
 
 }

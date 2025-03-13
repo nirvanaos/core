@@ -30,6 +30,8 @@
 namespace Nirvana {
 namespace Core {
 
+volatile bool Timer::initialized_;
+
 TimerAsyncCall::TimerAsyncCall (SyncContext& sync_context, const DeadlineTime& deadline) :
 	sync_context_ (&sync_context),
 	deadline_ (deadline),
