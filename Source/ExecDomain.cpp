@@ -171,10 +171,7 @@ void ExecDomain::cleanup () noexcept
 		scheduler_item_created_ = false;
 	}
 	
-	if (background_worker_) {
-		background_worker_->finish ();
-		background_worker_ = nullptr;
-	}
+	background_worker_ = nullptr;
 
 	std::fill_n (tls_, CoreTLS::CORE_TLS_COUNT, nullptr);
 

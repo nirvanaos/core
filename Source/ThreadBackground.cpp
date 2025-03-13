@@ -30,21 +30,5 @@
 namespace Nirvana {
 namespace Core {
 
-void ThreadBackground::start ()
-{
-	_add_ref ();
-	try {
-		Base::start ();
-	} catch (...) {
-		_remove_ref ();
-		throw;
-	}
-}
-
-void ThreadBackground::on_thread_proc_end () noexcept
-{
-	_remove_ref ();
-}
-
 }
 }

@@ -61,9 +61,7 @@ public:
 
 	static Ref <ThreadBackground> spawn ()
 	{
-		Ref <ThreadBackground> ref = Creator::create ();
-		ref->start ();
-		return ref;
+		return Creator::create ();
 	}
 
 	void execute (ExecDomain& exec_domain)
@@ -72,23 +70,20 @@ public:
 		Base::resume ();
 	}
 
-	void finish () noexcept
-	{
-		Base::finish ();
-	}
-
 protected:
 	ThreadBackground () :
 		ref_cnt_ (1)
-	{}
+	{
+		Base::start ();
+	}
 
 	~ThreadBackground ()
-	{}
-
-	void start ();
-
-	// Called from port.
-	virtual void on_thread_proc_end () noexcept;
+	{
+		if (BACKGROUND_THREAD_POOLING) {
+			Base::stop ();
+			Base::join ();
+		}
+	}
 
 private:
 	// Called from port.
@@ -101,7 +96,18 @@ private:
 
 	void _remove_ref () noexcept
 	{
-		if (0 == ref_cnt_.decrement_seq ())
+		if (0 == ref_cnt_.decrement_seq ()) {
+			if (BACKGROUND_THREAD_POOLING)
+				Creator::release (*this);
+			else
+				Base::stop ();
+		}
+	}
+
+	// Called from port.
+	void on_thread_proc_end () noexcept
+	{
+		if (!BACKGROUND_THREAD_POOLING)
 			Creator::release (*this);
 	}
 
