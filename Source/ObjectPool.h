@@ -36,43 +36,39 @@
 namespace Nirvana {
 namespace Core {
 
-class ObjectPoolCleanup
+template <class ObjRef> class ObjectCreator;
+
+template <class T>
+class ObjectCreator <Ref <T> >
 {
 public:
-	void bottom () noexcept
+	typedef T Object;
+
+	static Ref <Object> create ()
 	{
-		// Object pool bottom is reached, reset cleanup flag.
-		shrink_.store (false, std::memory_order_relaxed);
+		return Ref <Object>::template create <Object> ();
 	}
 
-	bool shrink () noexcept
+	static void release (Object* obj) noexcept
 	{
-		return shrink_.exchange (true, std::memory_order_relaxed);
+		delete obj;
 	}
-
-private:
-	std::atomic <bool> shrink_;
 };
 
 template <class T>
-class ObjectCreator
+class ObjectCreator <T*>
 {
 public:
-	using ObjRef = typename std::conditional <std::is_object <Ref <T> >::value, Ref <T>, T*>::type;
+	typedef T Object;
 
-	static void create (Ref <T>& ref)
+	static Object* create ()
 	{
-		ref = Ref <T>::template create <T> ();
+		return new Object ();
 	}
 
-	static void create (T*& ref)
+	static void release (Object* obj) noexcept
 	{
-		ref = new T ();
-	}
-
-	static void release (T& obj) noexcept
-	{
-		delete& obj;
+		delete obj;
 	}
 };
 
@@ -119,21 +115,46 @@ private:
 	static Timer* timer_;
 };
 
+class ObjectPoolCleanup
+{
+public:
+	void bottom () noexcept
+	{
+		// Object pool bottom is reached, reset cleanup flag.
+		shrink_.store (false, std::memory_order_relaxed);
+	}
+
+	bool shrink () noexcept
+	{
+		return shrink_.exchange (true, std::memory_order_relaxed);
+	}
+
+private:
+	std::atomic <bool> shrink_;
+};
+
+template <class ObjRef>
+using ObjectPoolStack = Stack <
+	typename ObjectCreator <ObjRef>::Object,
+	core_object_align (sizeof (typename ObjectCreator <ObjRef>::Object)),
+		ObjectPoolCleanup>;
+
 /// Object pool
 /// 
-/// \tparam T Object type.
-///           T must derive StackElem and have default constructor.
-template <class T, unsigned ALIGN = core_object_align (sizeof (T))>
+/// \tparam RefType Object reference type.
+///   Object must derive StackElem and have default constructor.
+template <class ObjRef>
 class ObjectPool :
-	private Stack <T, ALIGN, ObjectPoolCleanup>,
-	private ObjectCreator <T>,
-	private ObjectPoolBase
+	private ObjectPoolBase,
+	private ObjectCreator <ObjRef>,
+	private ObjectPoolStack <ObjRef>
 {
-	typedef Stack <T, ALIGN, ObjectPoolCleanup> Base;
-	typedef ObjectCreator <T> Creator;
-	typedef Creator::ObjRef ObjRef;
+	typedef ObjectPoolStack <ObjRef> Stack;
+	typedef ObjectCreator <ObjRef> Creator;
 
 public:
+	typedef typename ObjectCreator <ObjRef>::Object Object;
+
 	/// Constructor.
 	/// 
 	/// \param housekeeping_interval Housekeeping interval.
@@ -144,8 +165,8 @@ public:
 	/// Deletes all objects from the pool.
 	~ObjectPool ()
 	{
-		while (T* obj = Base::pop ())
-			Creator::release (*obj);
+		while (Object* obj = Stack::pop ())
+			Creator::release (obj);
 	}
 
 	/// Tries to get object from the pool.
@@ -155,33 +176,33 @@ public:
 	ObjRef create ()
 	{
 		ObjRef ret;
-		T* obj = Base::pop ();
+		Object* obj = Stack::pop ();
 		if (obj)
 			ret = obj;
 		else {
-			Base::bottom ();
-			Creator::create (ret);
+			Stack::bottom ();
+			ret = Creator::create ();
 		}
 
-		assert (((uintptr_t)static_cast <T*> (ret) & Base::Ptr::ALIGN_MASK) == 0);
+		assert (((uintptr_t)static_cast <Object*> (ret) & Stack::Ptr::ALIGN_MASK) == 0);
 		return ret;
 	}
 
 	/// Release object to the pool.
 	/// 
 	/// \param obj Object to release.
-	void release (T& obj) noexcept
+	void release (Object* obj) noexcept
 	{
-		Base::push (obj);
+		Stack::push (*obj);
 	}
 
 private:
 	void shrink () noexcept override
 	{
-		if (Base::shrink ()) {
-			T* obj = Base::pop ();
+		if (Stack::shrink ()) {
+			Object* obj = Stack::pop ();
 			if (obj)
-				Creator::release (*obj);
+				Creator::release (obj);
 		}
 	}
 

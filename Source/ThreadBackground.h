@@ -43,10 +43,9 @@ class ThreadBackground :
 {
 	friend class Port::ThreadBackground;
 	typedef Port::ThreadBackground Base;
-	friend class CORBA::servant_reference <ThreadBackground>;
-	friend class ObjectCreator <ThreadBackground>;
+	friend class ObjectCreator <ThreadBackground*>;
 	
-	using Creator = ConditionalCreator <ThreadBackground, BACKGROUND_THREAD_POOLING>;
+	using Creator = ConditionalCreator <ThreadBackground*, BACKGROUND_THREAD_POOLING>;
 
 public:
 	static void initialize ()
@@ -59,9 +58,20 @@ public:
 		Creator::terminate ();
 	}
 
-	static Ref <ThreadBackground> spawn ()
+	static ThreadBackground* spawn ()
 	{
 		return Creator::create ();
+	}
+
+	void stop () noexcept
+	{
+		// yield() must be called before stop()
+		assert (!exec_domain ());
+
+		if (BACKGROUND_THREAD_POOLING)
+			Creator::release (this);
+		else
+			Base::stop ();
 	}
 
 	void execute (ExecDomain& exec_domain)
@@ -71,48 +81,24 @@ public:
 	}
 
 protected:
-	ThreadBackground () :
-		ref_cnt_ (1)
+	ThreadBackground ()
 	{
 		Base::start ();
 	}
 
-	~ThreadBackground ()
-	{
-		if (BACKGROUND_THREAD_POOLING) {
-			Base::stop ();
-			Base::join ();
-		}
-	}
+	~ThreadBackground ();
 
 private:
 	// Called from port.
 	inline void execute () noexcept;
 
-	void _add_ref () noexcept
-	{
-		ref_cnt_.increment ();
-	}
-
-	void _remove_ref () noexcept
-	{
-		if (0 == ref_cnt_.decrement_seq ()) {
-			if (BACKGROUND_THREAD_POOLING)
-				Creator::release (*this);
-			else
-				Base::stop ();
-		}
-	}
-
 	// Called from port.
 	void on_thread_proc_end () noexcept
 	{
 		if (!BACKGROUND_THREAD_POOLING)
-			Creator::release (*this);
+			Creator::release (this);
 	}
 
-private:
-	AtomicCounter <false> ref_cnt_;
 };
 
 }

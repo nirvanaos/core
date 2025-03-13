@@ -33,12 +33,12 @@
 namespace Nirvana {
 namespace Core {
 
-template <class T>
+template <class ObjRef>
 class CreatorWithPool
 {
-public:
-	using ObjRef = typename ObjectCreator <T>::ObjRef;
+	using Pool = ObjectPool <ObjRef>;
 
+public:
 	static void initialize () noexcept
 	{
 		pool_.construct ();
@@ -54,42 +54,32 @@ public:
 		return pool_->create ();
 	}
 
-	static void release (T& obj) noexcept
+	static void release (typename Pool::Object* obj) noexcept
 	{
 		pool_->release (obj);
 	}
 
 private:
-	static StaticallyAllocated <ObjectPool <T> > pool_;
+	static StaticallyAllocated <ObjectPool <ObjRef> > pool_;
 };
 
-template <class T>
-StaticallyAllocated <ObjectPool <T> > CreatorWithPool <T>::pool_;
+template <class ObjRef>
+StaticallyAllocated <ObjectPool <ObjRef> > CreatorWithPool <ObjRef>::pool_;
 
-template <class T>
-class CreatorNoPool : public ObjectCreator <T>
+template <class ObjRef>
+class CreatorNoPool : public ObjectCreator <ObjRef>
 {
 public:
-	using ObjRef = typename ObjectCreator <T>::ObjRef;
-
 	static void initialize () noexcept
 	{}
 
 	static void terminate () noexcept
 	{}
-
-	static ObjRef create ()
-	{
-		ObjRef obj;
-		ObjectCreator <T>::create (obj);
-		return obj;
-	}
-
 };
 
-template <class T, bool use_pool>
+template <class ObjRef, bool use_pool>
 using ConditionalCreator = typename std::conditional <use_pool,
-	CreatorWithPool <T>, CreatorNoPool <T> >::type;
+	CreatorWithPool <ObjRef>, CreatorNoPool <ObjRef> >::type;
 
 class Empty
 {};

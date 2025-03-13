@@ -30,5 +30,13 @@
 namespace Nirvana {
 namespace Core {
 
+ThreadBackground::~ThreadBackground ()
+{
+	if (BACKGROUND_THREAD_POOLING) {
+		Base::stop ();
+		Base::join ();
+	}
+}
+
 }
 }

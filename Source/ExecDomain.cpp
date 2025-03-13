@@ -171,8 +171,6 @@ void ExecDomain::cleanup () noexcept
 		scheduler_item_created_ = false;
 	}
 	
-	background_worker_ = nullptr;
-
 	std::fill_n (tls_, CoreTLS::CORE_TLS_COUNT, nullptr);
 
 	impersonation_context_.clear ();
@@ -184,7 +182,7 @@ void ExecDomain::cleanup () noexcept
 
 void ExecDomain::final_release () noexcept
 {
-	Creator::release (*this);
+	Creator::release (this);
 	Scheduler::activity_end ();
 }
 
@@ -192,7 +190,13 @@ void ExecDomain::Deleter::run ()
 {
 	ExecDomain* ed = Thread::current ().exec_domain ();
 	assert (ed);
+
 	Thread::current ().yield ();
+	if (ed->background_worker_) {
+		ed->background_worker_->stop ();
+		ed->background_worker_ = nullptr;
+	}
+
 	ed->_remove_ref ();
 }
 

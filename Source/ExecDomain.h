@@ -62,7 +62,7 @@ class ExecDomain final :
 	public StackElem
 {
 	friend class CORBA::servant_reference <ExecDomain>;
-	friend class ObjectCreator <ExecDomain>;
+	friend class ObjectCreator <Ref <ExecDomain> >;
 
 public:
 	static const size_t MAX_RUNNABLE_SIZE = 2 * sizeof (void*) + 24;
@@ -468,6 +468,7 @@ private:
 		execution_sync_domain_ (nullptr),
 		ret_qnodes_ (nullptr),
 		mem_context_ (nullptr),
+		background_worker_ (nullptr),
 		scheduler_item_created_ (false),
 		restricted_mode_ (RestrictedMode::NO_RESTRICTIONS),
 		suspend_state_ (SuspendState::NOT_SUSPENDED)
@@ -478,7 +479,7 @@ private:
 		std::fill_n (tls_, CoreTLS::CORE_TLS_COUNT, nullptr);
 	}
 
-	using Creator = ConditionalCreator <ExecDomain, EXEC_DOMAIN_POOLING>;
+	using Creator = ConditionalCreator <Ref <ExecDomain>, EXEC_DOMAIN_POOLING>;
 
 	static Ref <ExecDomain> create (const DeadlineTime deadline, Ref <MemContext>&& mem_context);
 	static Ref <MemContext> get_mem_context (SyncContext& target, Heap* heap = nullptr);
@@ -599,13 +600,14 @@ private:
 	Ref <SyncContext> sync_context_;
 	SyncDomain* execution_sync_domain_;
 	SyncDomain::QueueNode* ret_qnodes_;
-	Ref <ThreadBackground> background_worker_;
 
 	PreallocatedStack <Ref <MemContext> > mem_context_stack_;
 	// When we perform mem_context_stack_.pop (), the top memory context is still
 	// current. This is necessary for correct memory deallocations in MemContext
 	// destructor.
 	MemContext* mem_context_;
+
+	ThreadBackground* background_worker_;
 
 	DeadlineTime deadline_;
 
