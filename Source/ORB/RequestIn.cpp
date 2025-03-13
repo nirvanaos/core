@@ -411,8 +411,8 @@ void RequestIn::DelayedReleaseTimer::signal () noexcept
 {
 	try {
 		DeadlineTime deadline =
-			PROXY_GC_DEADLINE == INFINITE_DEADLINE ?
-			INFINITE_DEADLINE : Nirvana::Core::Chrono::make_deadline (PROXY_GC_DEADLINE);
+			GC_DEADLINE == INFINITE_DEADLINE ?
+			INFINITE_DEADLINE : Nirvana::Core::Chrono::make_deadline (GC_DEADLINE);
 		ExecDomain::async_call <DelayedRelease> (deadline, g_core_free_sync_context, nullptr, std::ref (request_));
 	} catch (...) {
 		assert (false);

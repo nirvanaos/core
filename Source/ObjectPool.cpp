@@ -31,7 +31,7 @@ namespace Nirvana {
 namespace Core {
 
 ObjectPoolBase* ObjectPoolBase::pool_list_;
-StaticallyAllocated <ObjectPoolBase::Timer> ObjectPoolBase::timer_;
+ObjectPoolBase::Timer* ObjectPoolBase::timer_;
 
 ObjectPoolBase::ObjectPoolBase () :
 	next_ (pool_list_)
@@ -39,15 +39,10 @@ ObjectPoolBase::ObjectPoolBase () :
 	pool_list_ = this;
 }
 
-void housekeeping_start ()
-{
-
-}
-
-void ObjectPoolBase::Timer::signal () noexcept
+void ObjectPoolBase::Timer::run (const TimeBase::TimeT&) noexcept
 {
 	for (ObjectPoolBase* p = pool_list_; p; p = p->next_) {
-		p->housekeeping ();
+		p->shrink ();
 	}
 }
 

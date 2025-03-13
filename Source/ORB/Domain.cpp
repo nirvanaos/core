@@ -175,8 +175,8 @@ void Domain::schedule_del () noexcept
 	if (!DGC_scheduled_ && !zombie_ && !Scheduler::shutdown_started ()) {
 		DGC_scheduled_ = true;
 		Nirvana::DeadlineTime deadline =
-			PROXY_GC_DEADLINE == INFINITE_DEADLINE ?
-			INFINITE_DEADLINE : Nirvana::Core::Chrono::make_deadline (PROXY_GC_DEADLINE);
+			GC_DEADLINE == INFINITE_DEADLINE ?
+			INFINITE_DEADLINE : Nirvana::Core::Chrono::make_deadline (GC_DEADLINE);
 		try {
 			ExecDomain::async_call <GC> (deadline, Binder::sync_domain (), nullptr, std::ref (*this));
 		} catch (...) {

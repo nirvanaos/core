@@ -29,8 +29,8 @@
 #pragma once
 
 #include "Stack.h"
-#include "Timer.h"
-#include "StaticallyAllocated.h"
+#include "TimerAsyncCall.h"
+#include "Heap.h"
 #include <Port/config.h>
 
 namespace Nirvana {
@@ -42,16 +42,16 @@ public:
 	void bottom () noexcept
 	{
 		// Object pool bottom is reached, reset cleanup flag.
-		cleanup_.store (false, std::memory_order_relaxed);
+		shrink_.store (false, std::memory_order_relaxed);
 	}
 
-	bool cleanup () noexcept
+	bool shrink () noexcept
 	{
-		return cleanup_.exchange (true, std::memory_order_relaxed);
+		return shrink_.exchange (true, std::memory_order_relaxed);
 	}
 
 private:
-	std::atomic <bool> cleanup_;
+	std::atomic <bool> shrink_;
 };
 
 template <class T>
@@ -82,34 +82,41 @@ public:
 	static void housekeeping_start ()
 	{
 		if (pool_list_) {
-			timer_.construct ();
-			timer_->set (0, OBJECT_POOL_HOUSEKEEPING_PERIOD, OBJECT_POOL_HOUSEKEEPING_PERIOD);
+			reinterpret_cast <Ref <Timer>&> (timer_) = Ref <Timer>::create <ImplDynamic <Timer> > ();
+			timer_->set (0, OBJECT_POOL_SHRINK_PERIOD, OBJECT_POOL_SHRINK_PERIOD);
 		}
 	}
 
 	static void housekeeping_stop () noexcept
 	{
 		if (pool_list_)
-			timer_.destruct ();
+			reinterpret_cast <Ref <Timer>&> (timer_).~Ref <Timer> ();
 	}
 
 protected:
 	ObjectPoolBase ();
 
-	virtual void housekeeping () noexcept = 0;
+	virtual void shrink () noexcept = 0;
 
 private:
-	class Timer : public Core::Timer
+	class Timer :
+		public TimerAsyncCall,
+		public SharedObject
 	{
+	protected:
+		Timer () :
+			TimerAsyncCall (g_core_free_sync_context, GC_DEADLINE)
+		{}
+
 	private:
-		void signal () noexcept override;
+		void run (const TimeBase::TimeT&) noexcept override;
 	};
 
 private:
 	ObjectPoolBase* next_;
 
 	static ObjectPoolBase* pool_list_;
-	static StaticallyAllocated <Timer> timer_;
+	static Timer* timer_;
 };
 
 /// Object pool
@@ -169,9 +176,9 @@ public:
 	}
 
 private:
-	void housekeeping () noexcept override
+	void shrink () noexcept override
 	{
-		if (Base::cleanup ()) {
+		if (Base::shrink ()) {
 			T* obj = Base::pop ();
 			if (obj)
 				Creator::release (*obj);

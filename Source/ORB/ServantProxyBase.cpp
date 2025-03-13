@@ -125,9 +125,9 @@ void ServantProxyBase::run_garbage_collector () const noexcept
 	if (Scheduler::async_GC_allowed ()) {
 		try {
 			Nirvana::DeadlineTime deadline =
-				Nirvana::Core::PROXY_GC_DEADLINE == Nirvana::INFINITE_DEADLINE ?
+				Nirvana::Core::GC_DEADLINE == Nirvana::INFINITE_DEADLINE ?
 				Nirvana::INFINITE_DEADLINE : Nirvana::Core::Chrono::make_deadline (
-					Nirvana::Core::PROXY_GC_DEADLINE);
+					Nirvana::Core::GC_DEADLINE);
 
 			ExecDomain::async_call <GC> (deadline, sync_context (), nullptr, servant_);
 			return;

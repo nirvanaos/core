@@ -76,10 +76,10 @@ inline void TC_FactoryImpl::schedule_GC () noexcept
 		auto saved = ctx.policy_oneway ();
 		try {
 			Nirvana::System::DeadlinePolicy dp;
-			if (PROXY_GC_DEADLINE == INFINITE_DEADLINE)
+			if (GC_DEADLINE == INFINITE_DEADLINE)
 				dp = Nirvana::System::DEADLINE_POLICY_INFINITE;
 			else
-				dp = PROXY_GC_DEADLINE;
+				dp = GC_DEADLINE;
 			ctx.policy_oneway (dp);
 			TC_Factory::_narrow (Services::bind (Services::TC_Factory))->collect_garbage ();
 		} catch (...) {

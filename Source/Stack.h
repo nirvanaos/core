@@ -95,7 +95,7 @@ public:
 				StackElem* node = static_cast <StackElem*> ((T*)head);
 				node->ref_cnt.increment ();
 				head_.unlock ();
-				T* next = (T*)(node->next);
+				Ptr next = (T*)(node->next);
 				if (head_.cas (head, next)) {
 					// Node was detached from stack so we decrement the counter
 					if (!next)
