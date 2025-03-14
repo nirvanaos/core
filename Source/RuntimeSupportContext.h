@@ -30,7 +30,6 @@
 
 #include <CORBA/Server.h>
 #include <Nirvana/Debugger_s.h>
-#include "LifeCyclePseudo.h"
 #include "UserObject.h"
 #include "UserAllocator.h"
 #include <Port/config.h>
@@ -45,10 +44,10 @@ class RuntimeSupportContextReal
 public:
 	RuntimeProxy::_ref_type proxy_get (const void* obj)
 	{
-		auto ins = proxy_map_.emplace (obj, nullptr);
+		auto ins = proxy_map_.emplace (obj, ProxyEntry ());
 		if (ins.second) {
 			try {
-				ins.first->second = Ref <RuntimeProxyImpl>::template create <RuntimeProxyImpl> (obj);
+				ins.first->second = ProxyEntry (obj);
 			} catch (...) {
 				proxy_map_.erase (ins.first);
 				throw;
@@ -59,21 +58,21 @@ public:
 
 	void proxy_reset (const void* obj) noexcept
 	{
-		auto f = proxy_map_.find (obj);
-		if (f != proxy_map_.end ()) {
-			f->second->remove ();
-			proxy_map_.erase (f);
-		}
+		proxy_map_.erase (obj);
 	}
 
 private:
 	/// Implements RuntimeProxy interface.
 	class RuntimeProxyImpl :
 		public CORBA::Internal::ImplementationPseudo <RuntimeProxyImpl, RuntimeProxy>,
-		public LifeCyclePseudo <RuntimeProxyImpl>,
+		public CORBA::Internal::LifeCycleRefCnt <RuntimeProxyImpl>,
+		public CORBA::Internal::RefCountBase <RuntimeProxyImpl>,
 		public UserObject
 	{
 	public:
+		using UserObject::operator new;
+		using UserObject::operator delete;
+
 		RuntimeProxyImpl (const void* obj) noexcept :
 			object_ (obj)
 		{}
@@ -97,11 +96,34 @@ private:
 	};
 
 private:
-	typedef MapUnorderedUnstable <const void*, Ref <RuntimeProxyImpl>,
+	class ProxyEntry : public Ref <RuntimeProxyImpl>
+	{
+	public:
+		ProxyEntry () noexcept
+		{}
+
+		ProxyEntry (const void* obj) :
+			Ref <RuntimeProxyImpl> (Ref <RuntimeProxyImpl>::template create <RuntimeProxyImpl> (obj))
+		{}
+
+		~ProxyEntry ()
+		{
+			if (p_)
+				p_->remove ();
+		}
+
+		ProxyEntry (const ProxyEntry&) = delete;
+		ProxyEntry (ProxyEntry&&) = default;
+
+		ProxyEntry& operator = (const ProxyEntry&) = delete;
+		ProxyEntry& operator = (ProxyEntry&&) = default;
+	};
+
+	typedef MapUnorderedUnstable <const void*, ProxyEntry,
 		std::hash <const void*>, std::equal_to <const void*>, UserAllocator> ProxyMap;
+
 	ProxyMap proxy_map_;
 };
-
 
 class RuntimeSupportFake
 {
