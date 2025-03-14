@@ -55,33 +55,40 @@ SyncDomain::~SyncDomain ()
 
 void SyncDomain::do_schedule () noexcept
 {
-	// Only one thread perform scheduling at a given time.
-	State state = State::IDLE;
-	if (state_.compare_exchange_strong (state, State::SCHEDULING)) {
-		
-		need_schedule_.store (false, std::memory_order_relaxed);
-		DeadlineTime min_deadline;
-		NIRVANA_VERIFY (queue_.get_min_deadline (min_deadline));
-		Scheduler::schedule (min_deadline, *this);
+	while (need_schedule_.load (std::memory_order_acquire)) {
+		// Only one thread perform scheduling at a given time.
+		State state = State::IDLE;
+		if (!state_.compare_exchange_strong (state, State::SCHEDULING))
+			break;
 
-		while (need_schedule_.exchange (false, std::memory_order_acquire)) {
+		if (!need_schedule_.exchange (false, std::memory_order_acquire))
+			state_.store (State::IDLE, std::memory_order_release);
+		else {
 
-			state = State::STOP_SCHEDULING;
-			if (state_.compare_exchange_strong (state, State::SCHEDULED))
-				return;
+			DeadlineTime min_deadline;
+			NIRVANA_VERIFY (queue_.get_min_deadline (min_deadline));
+			Scheduler::schedule (min_deadline, *this);
 
-			DeadlineTime new_deadline;
-			NIRVANA_VERIFY (queue_.get_min_deadline (new_deadline));
+			while (need_schedule_.exchange (false, std::memory_order_acquire)) {
 
-			if (new_deadline < min_deadline) {
-				if (Scheduler::reschedule (new_deadline, *this, min_deadline))
-					min_deadline = new_deadline;
-				else
-					break;
+				state = State::STOP_SCHEDULING;
+				if (state_.compare_exchange_strong (state, State::SCHEDULED))
+					return;
+
+				DeadlineTime new_deadline;
+				NIRVANA_VERIFY (queue_.get_min_deadline (new_deadline));
+
+				if (new_deadline < min_deadline) {
+					if (Scheduler::reschedule (new_deadline, *this, min_deadline))
+						min_deadline = new_deadline;
+					else
+						break;
+				}
 			}
-		}
 
-		state_.store (State::SCHEDULED, std::memory_order_release);
+			state_.store (State::SCHEDULED, std::memory_order_release);
+			break;
+		}
 	}
 }
 
@@ -123,7 +130,7 @@ void SyncDomain::leave () noexcept
 	bool sched = !queue_.empty ();
 	state_.store (State::IDLE, std::memory_order_relaxed);
 	if (sched)
-		do_schedule ();
+		schedule ();
 }
 
 SyncDomain& SyncDomain::enter ()
