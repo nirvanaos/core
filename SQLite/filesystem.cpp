@@ -410,7 +410,7 @@ int xOpen (sqlite3_vfs*, sqlite3_filename zName, sqlite3_file* file,
 		return SQLITE_NOMEM;
 #ifndef NDEBUG
 	} catch (const std::exception& ex) {
-		NIRVANA_TRACE ("%s\n", ex.what ());
+		NIRVANA_TRACE ("%s", ex.what ());
 #else
 	} catch (...) {
 #endif
