@@ -168,7 +168,7 @@ public:
 
 	bool compare_exchange (Ptr& cur, const Ptr& to) noexcept
 	{
-		return ptr_.compare_exchange_weak (cur.ptr_, to.ptr_, std::memory_order_release, std::memory_order_relaxed);
+		return ptr_.compare_exchange_weak (cur.ptr_, to.ptr_);
 	}
 
 	Ptr exchange (const Ptr& to) noexcept
@@ -210,7 +210,7 @@ public:
 	{
 		assert ((src.ptr_ & SPIN_MASK) == 0);
 		uintptr_t p = ptr_.load (std::memory_order_relaxed) & ~SPIN_MASK;
-		while (!ptr_.compare_exchange_weak (p, src.ptr_, std::memory_order_release, std::memory_order_relaxed)) {
+		while (!ptr_.compare_exchange_weak (p, src.ptr_)) {
 			p &= ~SPIN_MASK;
 		}
 		return src;
@@ -252,8 +252,8 @@ bool LockablePtr <TAG_BITS, ALIGN>::compare_exchange (Ptr& cur, const Ptr& to) n
 {
 	uintptr_t tcur = cur.ptr_;
 	assert ((tcur & SPIN_MASK) == 0);
-	for (BackOff bo; !ptr_.compare_exchange_weak (tcur, to.ptr_,
-		std::memory_order_release, std::memory_order_relaxed); bo ())
+	assert ((to.ptr_ & SPIN_MASK) == 0);
+	for (BackOff bo; !ptr_.compare_exchange_weak (tcur, to.ptr_); bo ())
 	{
 		tcur &= ~SPIN_MASK;
 		if (tcur != cur.ptr_) {
@@ -268,9 +268,9 @@ template <unsigned TAG_BITS, unsigned ALIGN>
 typename LockablePtr <TAG_BITS, ALIGN>::Ptr LockablePtr <TAG_BITS, ALIGN>::lock () noexcept
 {
 	for (BackOff bo; true; bo ()) {
-		uintptr_t cur = ptr_.load (std::memory_order_relaxed);
+		uintptr_t cur = ptr_.load (std::memory_order_acquire);
 		while ((cur & SPIN_MASK) != SPIN_MASK) {
-			if (ptr_.compare_exchange_weak (cur, cur + Ptr::TAG_MASK + 1, std::memory_order_release, std::memory_order_relaxed))
+			if (ptr_.compare_exchange_weak (cur, cur + Ptr::TAG_MASK + 1))
 				return Ptr (cur & ~SPIN_MASK);
 		}
 	}

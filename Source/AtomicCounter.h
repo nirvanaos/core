@@ -137,7 +137,7 @@ public:
 		for (;;) {
 			if (!cur)
 				return false;
-			if (cnt_.compare_exchange_weak (cur, cur - 1, std::memory_order_release, std::memory_order_relaxed))
+			if (cnt_.compare_exchange_weak (cur, cur - 1))
 				return true;
 		}
 	}
@@ -151,7 +151,7 @@ public:
 		for (;;) {
 			if (!cur)
 				return false;
-			if (cnt_.compare_exchange_weak (cur, cur + 1, std::memory_order_release, std::memory_order_relaxed))
+			if (cnt_.compare_exchange_weak (cur, cur + 1))
 				return true;
 		}
 	}

@@ -46,21 +46,21 @@ RequestOut::RequestId RequestOut::get_new_id (IdPolicy id_policy) noexcept
 	IdGenType id;
 	switch (id_policy) {
 		case IdPolicy::ANY:
-			id = last_id_.fetch_add (1, std::memory_order_release) + 1;
+			id = last_id_.fetch_add (1) + 1;
 			break;
 
 		case IdPolicy::EVEN: {
 			IdGenType last = last_id_.load (std::memory_order_relaxed);
 			do {
 				id = last + 2 - (last & 1);
-			} while (!last_id_.compare_exchange_weak (last, id, std::memory_order_release, std::memory_order_relaxed));
+			} while (!last_id_.compare_exchange_weak (last, id));
 		} break;
 
 		case IdPolicy::ODD: {
 			IdGenType last = last_id_.load (std::memory_order_relaxed);
 			do {
 				id = last + 1 + (last & 1);
-			} while (!last_id_.compare_exchange_weak (last, id, std::memory_order_release, std::memory_order_relaxed));
+			} while (!last_id_.compare_exchange_weak (last, id));
 		} break;
 	}
 	return (RequestId)id;
