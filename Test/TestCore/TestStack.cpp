@@ -25,6 +25,7 @@
 */
 #include "pch.h"
 #include "../Source/Stack.h"
+#include "../Source/Heap.h"
 #include <unordered_set>
 #include <vector>
 #include <thread>
@@ -32,6 +33,9 @@
 
 namespace TestStack {
 
+using namespace Nirvana::Core;
+
+template <class Val>
 class TestStack :
 	public ::testing::Test
 {
@@ -49,37 +53,44 @@ protected:
 	{
 		// Code here will be called immediately after the constructor (right
 		// before each test).
+		ASSERT_TRUE (Heap::initialize ());
 	}
 
 	virtual void TearDown ()
 	{
 		// Code here will be called immediately after each test (right
 		// before the destructor).
+		Heap::terminate ();
 	}
+
 };
 
+template <size_t SIZE>
 class Value : 
-	public Nirvana::Core::StackElem
+	public StackElem,
+	public CoreObject
 {
 public:
 	virtual ~Value ()	// Make class virtual to test unaligned StackElem
 	{}
 
-	void* operator new (size_t size)
-	{
-		return _aligned_malloc (size, Nirvana::Core::core_object_align (sizeof (Value)));
-	}
-
-	void operator delete (void* p)
-	{
-		_aligned_free (p);
-	}
+	size_t dummy [SIZE];
 };
 
-typedef Nirvana::Core::Stack <Value> MyStack;
+typedef ::testing::Types <
+	Value <4>,
+	Value <8>,
+	Value <100>
+> ValTypes;
 
-TEST_F (TestStack, SingleThread)
+TYPED_TEST_SUITE (TestStack, ValTypes);
+
+
+TYPED_TEST (TestStack, SingleThread)
 {
+	using Value = TypeParam;
+	using MyStack = Stack <Value>;
+
 	MyStack stack;
 	ASSERT_FALSE (stack.pop ());
 	for (int i = 0; i < 3; ++i) {
@@ -93,32 +104,15 @@ TEST_F (TestStack, SingleThread)
 	ASSERT_FALSE (stack.pop ());
 }
 
-void thread_proc (MyStack& stack, unsigned elements, unsigned iterations)
+TYPED_TEST (TestStack, MultiThread)
 {
-	std::random_device rd;
-	std::mt19937 rndgen (rd ());
-	std::uniform_int_distribution <> distrib (0, elements);
-	std::vector <Value*> buf (elements);
-	while (iterations--) {
-		unsigned cnt = distrib (rndgen);
-		for (unsigned i = 0; i < cnt; ++i) {
-			Value* val = stack.pop ();
-			EXPECT_TRUE (val);
-			if (!val)
-				return;
-			buf [i] = val;
-		}
-		for (unsigned i = 0; i < cnt; ++i) {
-			stack.push (*buf [i]);
-		}
-	}
-}
+	using Value = TypeParam;
+	using MyStack = Stack <Value>;
 
-TEST_F (TestStack, MultiThread)
-{
 	static const unsigned thread_cnt = std::thread::hardware_concurrency ();
 	static const unsigned element_cnt = 20;
 	static const unsigned iterations = 10000;
+
 	MyStack stack;
 	std::unordered_set <Value*> valset;
 	for (unsigned cnt = thread_cnt * element_cnt; cnt; --cnt) {
@@ -129,12 +123,31 @@ TEST_F (TestStack, MultiThread)
 
 	std::vector <std::thread> threads;
 	threads.reserve (thread_cnt);
+	std::random_device rd;
 	for (unsigned cnt = thread_cnt; cnt; --cnt) {
-		threads.emplace_back (std::thread (thread_proc, std::ref (stack), element_cnt, iterations));
+		threads.emplace_back (std::thread (
+			[&stack](unsigned seed) {
+				std::mt19937 rndgen (seed);
+				std::uniform_int_distribution <> distrib (0, element_cnt);
+				std::vector <Value*> buf (element_cnt);
+				for (unsigned i = 0; i < iterations; ++i) {
+					unsigned cnt = distrib (rndgen);
+					for (unsigned i = 0; i < cnt; ++i) {
+						Value* val = stack.pop ();
+						EXPECT_TRUE (val);
+						if (!val)
+							return;
+						buf [i] = val;
+					}
+					for (unsigned i = 0; i < cnt; ++i) {
+						stack.push (*buf [i]);
+					}
+				}
+			}, rd ()));
 	}
 
-	for (auto p = threads.begin (); p != threads.end (); ++p) {
-		p->join ();
+	for (auto& t : threads) {
+		t.join ();
 	}
 
 	for (unsigned cnt = thread_cnt * element_cnt; cnt; --cnt) {
@@ -146,6 +159,39 @@ TEST_F (TestStack, MultiThread)
 
 	ASSERT_TRUE (valset.empty ());
 	ASSERT_FALSE (stack.pop ());
+}
+
+TYPED_TEST (TestStack, Stress)
+{
+	using Value = TypeParam;
+	using MyStack = Stack <Value>;
+
+	static const unsigned thread_cnt = std::thread::hardware_concurrency ();
+	static const unsigned iterations = 100000;
+
+	MyStack stack;
+
+	std::vector <std::thread> threads;
+	threads.reserve (thread_cnt);
+	for (unsigned cnt = thread_cnt; cnt; --cnt) {
+		threads.emplace_back (std::thread (
+			[&stack]() {
+				for (unsigned i = 0; i < iterations; ++i) {
+					Value* val = stack.pop ();
+					if (!val)
+						val = new Value;
+					stack.push (*val);
+				}
+			}));
+	}
+
+	for (auto& t : threads) {
+		t.join ();
+	}
+
+	while (Value* val = stack.pop ()) {
+		delete val;
+	}
 }
 
 }
