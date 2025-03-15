@@ -253,8 +253,7 @@ bool LockablePtr <TAG_BITS, ALIGN>::compare_exchange (Ptr& cur, const Ptr& to) n
 	uintptr_t tcur = cur.ptr_;
 	assert ((tcur & SPIN_MASK) == 0);
 	assert ((to.ptr_ & SPIN_MASK) == 0);
-	for (BackOff bo; !ptr_.compare_exchange_weak (tcur, to.ptr_); bo ())
-	{
+	while (!ptr_.compare_exchange_weak (tcur, to.ptr_)) {
 		tcur &= ~SPIN_MASK;
 		if (tcur != cur.ptr_) {
 			cur.ptr_ = tcur;
