@@ -38,7 +38,7 @@
 #include "append_path.h"
 #include "unrecoverable_error.h"
 #include "Chrono.h"
-#include <Port/SystemInfo.h>
+#include "SystemInfo.h"
 
 namespace Nirvana {
 
@@ -313,7 +313,7 @@ public:
 
 	static uint32_t _s__get_hardware_concurrency (CORBA::Internal::Bridge <Nirvana::POSIX>* _b, CORBA::Internal::Interface* _env)
 	{
-		return Core::Port::SystemInfo::hardware_concurrency ();
+		return Core::SystemInfo::hardware_concurrency ();
 	}
 
 private:

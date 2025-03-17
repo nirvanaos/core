@@ -33,6 +33,14 @@
 namespace Nirvana {
 namespace Core {
 
+BackOff::BackOff () :
+	iterations_ (1),
+	rndgen_ ((RandomGen::result_type)(uintptr_t)this)
+{}
+
+BackOff::~BackOff ()
+{}
+
 inline void BackOff::cpu_relax ()
 {
 #if defined (_MSVC_LANG)
@@ -44,20 +52,23 @@ inline void BackOff::cpu_relax ()
 
 void BackOff::operator () ()
 {
-	if ((iterations_ <<= 1) > ITERATIONS_MAX)
-		iterations_ = ITERATIONS_MAX;
-
 	// TODO: We can try other distributions: geometric, exponential...
 	typedef std::uniform_int_distribution <unsigned> Dist;
 
-	unsigned iters = Dist (1U, iterations_)(rndgen_);
-	if (ITERATIONS_MAX <= ITERATIONS_YIELD || iters < ITERATIONS_YIELD) {
-		unsigned cnt = iters;
+	unsigned iterations = iterations_;
+	if (iterations >= 4)
+		iterations = Dist (iterations / 2 + 1, iterations) (rndgen_);
+
+	if (iterations < iterations_yield () && SystemInfo::hardware_concurrency () > 1) {
 		do
 			cpu_relax ();
-		while (--cnt);
+		while (--iterations);
 	} else
-		Port::BackOff::yield (iters);
+		Port::BackOff::yield (iterations);
+
+	unsigned imax = iterations_max ();
+	if ((iterations_ <<= 1) > imax)
+		iterations_ = imax;
 }
 
 }

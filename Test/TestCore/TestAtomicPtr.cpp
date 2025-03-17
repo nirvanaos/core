@@ -24,8 +24,11 @@
 *  popov.nirvana@gmail.com
 */
 #include "pch.h"
-#include "../Source/TaggedPtr.h"
+#include "../Source/AtomicPtr.h"
+#include "../Source/LockablePtr.h"
 #include "../Source/AtomicCounter.h"
+#include "../Source/Chrono.h"
+#include "../Source/SystemInfo.h"
 #include <thread>
 #include <vector>
 
@@ -86,6 +89,8 @@ protected:
 	{
 		// Code here will be called immediately after the constructor (right
 		// before each test).
+		Nirvana::Core::SystemInfo::initialize ();
+		Nirvana::Core::Chrono::initialize ();
 	}
 
 	virtual void TearDown ()
@@ -95,6 +100,8 @@ protected:
 		Value* p = shared_ptr_.load ();
 		if (p)
 			p->remove_ref ();
+		Nirvana::Core::Chrono::terminate ();
+		Nirvana::Core::SystemInfo::terminate ();
 	}
 
 	typedef TaggedPtrT <Value, 0, alignment> Ptr;

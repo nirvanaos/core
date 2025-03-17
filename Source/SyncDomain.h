@@ -102,6 +102,7 @@ public:
 	{
 		activity_begin ();
 		try {
+			Port::Thread::PriorityBoost boost;
 			NIRVANA_VERIFY (queue_.insert (deadline, &executor));
 		} catch (...) {
 			activity_end ();
@@ -121,7 +122,10 @@ public:
 		assert (node);
 		assert (node->domain_ == this);
 		unsigned level = node->level;
-		NIRVANA_VERIFY (queue_.insert (new (node) Queue::NodeVal (level, deadline, &executor)));
+		{
+			Port::Thread::PriorityBoost boost;
+			NIRVANA_VERIFY (queue_.insert (new (node) Queue::NodeVal (level, deadline, &executor)));
+		}
 		schedule ();
 	}
 

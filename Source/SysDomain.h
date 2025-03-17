@@ -34,7 +34,7 @@
 #include "ORB/SysServant.h"
 #include "ORB/system_services.h"
 #include "ORB/Services.h"
-#include <Port/SystemInfo.h>
+#include "SystemInfo.h"
 #include <Port/SysDomain.h>
 #include <Nirvana/File.h>
 #include "NameService/FileSystem.h"
@@ -63,8 +63,8 @@ public:
 
 	static Platforms supported_platforms ()
 	{
-		return Platforms (Port::SystemInfo::supported_platforms (),
-			Port::SystemInfo::supported_platforms () + Port::SystemInfo::SUPPORTED_PLATFORM_CNT);
+		return Platforms (SystemInfo::supported_platforms (),
+			SystemInfo::supported_platforms () + SystemInfo::SUPPORTED_PLATFORM_CNT);
 	}
 
 	Nirvana::SysDomain::_ref_type login (const IDL::String& user, const IDL::String& password)

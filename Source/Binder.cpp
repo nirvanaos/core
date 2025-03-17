@@ -29,7 +29,6 @@
 #include <Nirvana/Domains.h>
 #include <Nirvana/OLF_Iterator.h>
 #include "Binder.inl"
-#include <Port/SystemInfo.h>
 #include "ORB/ServantBase.h"
 #include "ORB/LocalObject.h"
 #include "ORB/RequestLocalBase.h"
@@ -89,7 +88,7 @@ void Binder::initialize ()
 	sync_domain_.construct (std::ref (BinderMemory::heap ()));
 	singleton_.construct ();
 	Section metadata;
-	metadata.address = Port::SystemInfo::get_OLF_section (metadata.size);
+	metadata.address = SystemInfo::get_OLF_section (metadata.size);
 	if (!metadata.address)
 		throw_INITIALIZE ();
 

@@ -25,6 +25,7 @@
 */
 #include "pch.h"
 #include "../Source/WeakRef.h"
+#include "../Source/Chrono.h"
 
 using namespace Nirvana::Core;
 

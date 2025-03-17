@@ -30,7 +30,7 @@
 #include <Nirvana/System_s.h>
 #include "DeadlinePolicy.h"
 #include "ExecDomain.h"
-#include <Port/SystemInfo.h>
+#include "SystemInfo.h"
 #include "NameService/NameService.h"
 #include "TLS.h"
 #include "Binder.h"
@@ -124,8 +124,8 @@ public:
 
 	static Platforms get_supported_platforms ()
 	{
-		return Platforms (Core::Port::SystemInfo::supported_platforms (),
-			Core::Port::SystemInfo::supported_platforms () + Core::Port::SystemInfo::SUPPORTED_PLATFORM_CNT);
+		return Platforms (Core::SystemInfo::supported_platforms (),
+			Core::SystemInfo::supported_platforms () + Core::SystemInfo::SUPPORTED_PLATFORM_CNT);
 	}
 
 	static Event::_ref_type create_event (bool manual_reset, bool initial_state)

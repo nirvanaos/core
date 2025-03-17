@@ -25,6 +25,7 @@
 */
 #include "pch.h"
 #include "initterm.h"
+#include "Chrono.h"
 #include "Binder.h"
 #include "Scheduler.h"
 #include "ExecDomain.h"
@@ -42,8 +43,9 @@
 namespace Nirvana {
 namespace Core {
 
-void initialize0 () noexcept
+void initialize0 ()
 {
+	Chrono::initialize ();
 	TLS::initialize ();
 	g_core_free_sync_context.construct ();
 	Timer::initialize ();
@@ -119,6 +121,7 @@ void terminate0 () noexcept
 #ifndef NDEBUG
 	g_core_free_sync_context.destruct ();
 #endif
+	Chrono::terminate ();
 }
 
 }

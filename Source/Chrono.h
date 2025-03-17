@@ -38,6 +38,16 @@ namespace Core {
 class Chrono : private Port::Chrono
 {
 public:
+	static void initialize ()
+	{
+		Port::Chrono::initialize ();
+	}
+
+	static void terminate () noexcept
+	{
+		Port::Chrono::terminate ();
+	}
+
 	/// Current system time.
 	static TimeBase::UtcT system_clock () noexcept
 	{

@@ -29,7 +29,7 @@
 
 #include "PriorityQueueReorder.h"
 #include "SkipListWithPool.h"
-#include <Port/SystemInfo.h>
+#include "SystemInfo.h"
 
 namespace Nirvana {
 namespace Core {
@@ -44,14 +44,14 @@ class SchedulerImpl
 	typedef SkipListWithPool <PriorityQueueReorder <ExecutorRef, SYS_DOMAIN_PRIORITY_QUEUE_LEVELS> > Queue;
 public:
 	SchedulerImpl () noexcept :
-		queue_ (Port::SystemInfo::hardware_concurrency ()),
-		free_cores_ (Port::SystemInfo::hardware_concurrency ()),
+		queue_ (SystemInfo::hardware_concurrency ()),
+		free_cores_ (SystemInfo::hardware_concurrency ()),
 		queue_items_ (0)
 	{}
 
 	~SchedulerImpl ()
 	{
-		assert (free_cores_ == Port::SystemInfo::hardware_concurrency ());
+		assert (free_cores_ == SystemInfo::hardware_concurrency ());
 		assert (queue_items_ == 0);
 	}
 

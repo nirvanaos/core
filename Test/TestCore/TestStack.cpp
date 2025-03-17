@@ -26,6 +26,8 @@
 #include "pch.h"
 #include "../Source/Stack.h"
 #include "../Source/Heap.h"
+#include "../Source/Chrono.h"
+#include "../Source/SystemInfo.h"
 #include <unordered_set>
 #include <vector>
 #include <thread>
@@ -53,14 +55,18 @@ protected:
 	{
 		// Code here will be called immediately after the constructor (right
 		// before each test).
+		Nirvana::Core::SystemInfo::initialize ();
 		ASSERT_TRUE (Heap::initialize ());
+		Nirvana::Core::Chrono::initialize ();
 	}
 
 	virtual void TearDown ()
 	{
 		// Code here will be called immediately after each test (right
 		// before the destructor).
+		Nirvana::Core::Chrono::terminate ();
 		Heap::terminate ();
+		Nirvana::Core::SystemInfo::terminate ();
 	}
 
 };

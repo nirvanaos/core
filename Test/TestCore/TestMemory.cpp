@@ -25,6 +25,8 @@
 */
 #include "pch.h"
 #include <Port/Memory.h>
+#include "../Source/Chrono.h"
+#include "../Source/SystemInfo.h"
 
 using namespace Nirvana;
 using namespace Nirvana::Core;
@@ -49,14 +51,18 @@ protected:
 	{
 		// Code here will be called immediately after the constructor (right
 		// before each test).
+		SystemInfo::initialize ();
 		ASSERT_TRUE (Port::Memory::initialize ());
+		Chrono::initialize ();
 	}
 
 	virtual void TearDown ()
 	{
 		// Code here will be called immediately after each test (right
 		// before the destructor).
+		Chrono::terminate ();
 		Port::Memory::terminate ();
+		SystemInfo::terminate ();
 	}
 };
 

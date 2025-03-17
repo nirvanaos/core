@@ -44,6 +44,7 @@
 #include "MapUnorderedUnstable.h"
 #include "ORB/RemoteReferences.h"
 #include "TimerAsyncCall.h"
+#include "SystemInfo.h"
 
 namespace Nirvana {
 namespace Core {
@@ -440,7 +441,7 @@ private:
 	public:
 		BinaryMap ()
 		{
-			emplace (Port::SystemInfo::base_address (), nullptr);
+			emplace (SystemInfo::base_address (), nullptr);
 		}
 
 		void add (Binary& binary)

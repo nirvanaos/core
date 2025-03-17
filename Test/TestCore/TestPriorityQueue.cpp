@@ -27,6 +27,8 @@
 #include "../Source/PriorityQueueReorder.h"
 #include "../Source/SkipListWithPool.h"
 #include "../Source/Heap.h"
+#include "../Source/Chrono.h"
+#include "../Source/SystemInfo.h"
 #include <queue>
 #include <array>
 #include <thread>
@@ -59,14 +61,18 @@ protected:
 	{
 		// Code here will be called immediately after the constructor (right
 		// before each test).
+		Nirvana::Core::SystemInfo::initialize ();
 		ASSERT_TRUE (Nirvana::Core::Heap::initialize ());
+		Nirvana::Core::Chrono::initialize ();
 	}
 
 	virtual void TearDown ()
 	{
 		// Code here will be called immediately after each test (right
 		// before the destructor).
+		Nirvana::Core::Chrono::terminate ();
 		Nirvana::Core::Heap::terminate ();
+		Nirvana::Core::SystemInfo::terminate ();
 	}
 };
 
@@ -282,7 +288,7 @@ void ThreadTest <PQ>::finalize ()
 
 	EXPECT_EQ (queue_size_, 0);
 	for (int i = 0; i < NUM_PRIORITIES; ++i)
-		ASSERT_EQ (counters_ [i], 0);
+		EXPECT_EQ (counters_ [i], 0) << i;
 }
 
 TYPED_TEST (TestPriorityQueue, MultiThread)

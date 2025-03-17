@@ -102,7 +102,10 @@ void SyncDomain::execute (Thread& worker) noexcept
 	state_.compare_exchange_strong (state, State::STOP_SCHEDULING);
 
 	Ref <Executor> executor;
-	NIRVANA_VERIFY (queue_.delete_min (executor));
+	{
+		Port::Thread::PriorityBoost boost (&worker);
+		NIRVANA_VERIFY (queue_.delete_min (executor));
+	}
 	ExecDomain& ed = static_cast <ExecDomain&> (*executor);
 	executing_domain_ = &ed;
 	ed.execute (worker, *this);

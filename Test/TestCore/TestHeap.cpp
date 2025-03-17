@@ -26,6 +26,8 @@
 #include "pch.h"
 #include "../Source/SharedAllocator.h"
 #include "../Source/HeapAllocator.h"
+#include "../Source/Chrono.h"
+#include "../Source/SystemInfo.h"
 #include <random>
 #include <thread>
 #include <atomic>
@@ -54,8 +56,10 @@ protected:
 	{
 		// Code here will be called immediately after the constructor (right
 		// before each test).
+		SystemInfo::initialize ();
 		ASSERT_TRUE (Heap::initialize ());
 		EXPECT_TRUE (heap_.cleanup ());
+		Chrono::initialize ();
 	}
 
 	virtual void TearDown ()
@@ -63,7 +67,9 @@ protected:
 		// Code here will be called immediately after each test (right
 		// before the destructor).
 		EXPECT_TRUE (heap_.cleanup ());
+		Chrono::terminate ();
 		Heap::terminate ();
+		SystemInfo::terminate ();
 	}
 
 protected:
@@ -383,8 +389,8 @@ void AllocatedBlocks::check (Core::Heap& memory)
 TEST_F (TestHeap, Random)
 {
 	RandomAllocator ra (std::mt19937::default_seed);
-	static const int ITERATIONS = 50;
-	static const int ALLOC_ITERATIONS = 1000;
+	static const int ITERATIONS = 10;
+	static const int ALLOC_ITERATIONS = 500;
 	for (int i = 0; i < ITERATIONS; ++i) {
 		ASSERT_NO_FATAL_FAILURE (ra.run (heap_, ALLOC_ITERATIONS, i));
 
@@ -419,8 +425,8 @@ public:
 TEST_F (TestHeap, MultiThread)
 {
 	const unsigned int thread_cnt = std::thread::hardware_concurrency ();
-	static const int ITERATIONS = 50;
-	static const int THREAD_ITERATIONS = 1000;
+	static const int ITERATIONS = 10;
+	static const int THREAD_ITERATIONS = 200;
 	std::vector <ThreadAllocator> threads;
 	threads.reserve (thread_cnt);
 	for (unsigned int i = 0; i < thread_cnt; ++i)

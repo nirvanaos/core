@@ -35,7 +35,7 @@
 #pragma once
 
 #include "AtomicCounter.h"
-#include "TaggedPtr.h"
+#include "LockablePtr.h"
 #include "BackOff.h"
 #include "RandomGen.h"
 #include <algorithm>

@@ -25,16 +25,16 @@
 */
 #include "pch.h"
 #include "Binary.h"
-#include <Port/SystemInfo.h>
+#include "SystemInfo.h"
 
 namespace Nirvana {
 namespace Core {
 
 bool Binary::is_supported_platform (uint_fast16_t platform) noexcept
 {
-	return std::find (Port::SystemInfo::supported_platforms (),
-		Port::SystemInfo::supported_platforms () + Port::SystemInfo::SUPPORTED_PLATFORM_CNT,
-		platform) != Port::SystemInfo::supported_platforms () + Port::SystemInfo::SUPPORTED_PLATFORM_CNT;
+	return std::find (SystemInfo::supported_platforms (),
+		SystemInfo::supported_platforms () + SystemInfo::SUPPORTED_PLATFORM_CNT,
+		platform) != SystemInfo::supported_platforms () + SystemInfo::SUPPORTED_PLATFORM_CNT;
 }
 
 }

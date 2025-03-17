@@ -26,6 +26,8 @@
 #include "pch.h"
 #include "../Source/SkipList.h"
 #include "../Source/Heap.h"
+#include "../Source/Chrono.h"
+#include "../Source/SystemInfo.h"
 #include <random>
 
 using Nirvana::Core::SkipList;
@@ -49,7 +51,9 @@ protected:
 	{
 		// Code here will be called immediately after the constructor (right
 		// before each test).
+		Nirvana::Core::SystemInfo::initialize ();
 		ASSERT_TRUE (Nirvana::Core::Heap::initialize ());
+		Nirvana::Core::Chrono::initialize ();
 	}
 
 	virtual void TearDown ()
@@ -57,6 +61,8 @@ protected:
 		// Code here will be called immediately after each test (right
 		// before the destructor).
 		Nirvana::Core::Heap::terminate ();
+		Nirvana::Core::Chrono::terminate ();
+		Nirvana::Core::SystemInfo::terminate ();
 	}
 };
 
