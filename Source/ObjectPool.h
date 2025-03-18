@@ -184,7 +184,7 @@ public:
 			ret = Creator::create ();
 		}
 
-		assert (((uintptr_t)static_cast <Object*> (ret) & Stack::Ptr::ALIGN_MASK) == 0);
+		assert ((((uintptr_t)&*ret) & Stack::Ptr::ALIGN_MASK) == 0);
 		return ret;
 	}
 

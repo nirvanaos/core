@@ -296,7 +296,7 @@ private:
 		lock_queue_.retry_lock (lock_ranges_);
 	}
 
-	class HousekeepingTimer : public TimerAsyncCall
+	class HousekeepingTimer : public TimerAsyncCall, public UserObject
 	{
 	public:
 		void set (FileAccessDirect& obj, const TimeBase::TimeT& period)

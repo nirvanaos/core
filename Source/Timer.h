@@ -34,8 +34,7 @@
 namespace Nirvana {
 namespace Core {
 
-class NIRVANA_NOVTABLE Timer : 
-	private Port::Timer
+class Timer : private Port::Timer
 {
 public:
 	/// \brief Interpret initial expiration time as absolute UTC.

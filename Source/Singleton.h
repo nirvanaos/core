@@ -56,9 +56,6 @@ public:
 		Module::_remove_ref ();
 	}
 
-	using UserObject::operator new;
-	using UserObject::operator delete;
-
 	// Module::
 
 	virtual SyncContext& sync_context () noexcept override;

@@ -43,7 +43,9 @@ Global::Global () :
 {
 	sqlite3_config (SQLITE_CONFIG_PAGECACHE, nullptr, 0, 0);
 	sqlite3_config (SQLITE_CONFIG_MALLOC, &mem_methods);
-	sqlite3_config (SQLITE_CONFIG_MUTEX, &mutex_methods);
+
+//	sqlite3_config (SQLITE_CONFIG_MUTEX, &mutex_methods);
+
 	sqlite3_vfs_register (&vfs, 1);
 	sqlite3_initialize ();
 

@@ -33,7 +33,7 @@
 #include <Nirvana/Module_s.h>
 #include <Nirvana/ModuleInit.h>
 #include "AtomicCounter.h"
-#include "UserObject.h"
+#include "BinderObject.h"
 #include "AtExit.h"
 
 namespace Nirvana {
@@ -44,7 +44,7 @@ class Binder;
 
 /// Loadable module
 class NIRVANA_NOVTABLE Module :
-	public UserObject,
+	public BinderObject,
 	public Binary,
 	public CORBA::servant_traits <Nirvana::Module>::Servant <Module>,
 	public CORBA::Internal::LifeCycleRefCnt <Module>

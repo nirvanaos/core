@@ -30,6 +30,7 @@
 
 #include "TimerAsyncCall.h"
 #include "CoreInterface.h"
+#include "UserObject.h"
 
 namespace Nirvana {
 namespace Core {
@@ -44,7 +45,9 @@ protected:
 	TimeoutBase ();
 	~TimeoutBase ();
 
-	class TimerBase : public TimerAsyncCall
+	class TimerBase :
+		public TimerAsyncCall,
+		public UserObject
 	{
 	public:
 		void disconnect () noexcept
