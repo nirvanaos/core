@@ -124,6 +124,8 @@ void SyncDomain::leave () noexcept
 	// So we call activity_end () here for the balance.
 	activity_end ();
 
+	Port::Thread::PriorityBoost boost;
+
 	// Wait for the scheduling is complete
 	for (BackOff bo; state_.load (std::memory_order_acquire) != State::SCHEDULED;) {
 		bo ();

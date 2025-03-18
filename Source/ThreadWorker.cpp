@@ -32,7 +32,7 @@
 namespace Nirvana {
 namespace Core {
 
-/// This static method is called by the scheduler.
+/// This method is called by the scheduler.
 void ThreadWorker::execute (Executor& executor) noexcept
 {
 	// Always called in the neutral context.
