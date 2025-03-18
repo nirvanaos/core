@@ -34,7 +34,7 @@
 #include "FileDescriptors.h"
 #include "CurrentDir.h"
 #include "ExecDomain.h"
-#include "TimerEvent.h"
+#include "TimerSleep.h"
 #include "append_path.h"
 #include "unrecoverable_error.h"
 #include "Chrono.h"
@@ -204,11 +204,8 @@ public:
 	{
 		if (!period100ns)
 			Core::ExecDomain::reschedule ();
-		else {
-			Core::TimerEvent timer;
-			timer.set (0, period100ns, 0);
-			timer.wait ();
-		}
+		else
+			Core::TimerSleep ().sleep (period100ns);
 	}
 
 	static bool yield ()
