@@ -37,21 +37,25 @@ Event::Event (bool signalled) noexcept :
 void Event::wait ()
 {
 	if (!signalled_) {
-		ExecDomain& cur_ed = ExecDomain::current ();
+		Thread& thread = Thread::current ();
+		ExecDomain& cur_ed = *thread.exec_domain ();
 		bool pop_qnode = cur_ed.suspend_prepare_no_leave ();
 		push (cur_ed);
 		if (signalled_) {
 			cur_ed.suspend_unprepare (pop_qnode);
 			resume_all ();
 			eh_.check ();
-		} else
+		} else {
+			Port::Thread::PriorityBoost boost (&thread);
 			cur_ed.leave_and_suspend ();
+		}
 	} else
 		resume_all (); // Help others
 }
 
 void Event::resume_all () noexcept
 {
+	Port::Thread::PriorityBoost boost;
 	while (ExecDomain* ed = pop ()) {
 		if (ed->suspended ())
 			ed->resume (eh_);
