@@ -86,25 +86,26 @@ public:
 	/// Pop object from the stack.
 	/// 
 	/// \returns The object pointer or `nullptr` if the stack is empty.
-	T* pop (bool* last = nullptr) noexcept
+	T* pop () noexcept
 	{
 		for (;;) {
 			// Get head and increment counter on it
 			Ptr head = head_.lock ();
-			if ((T*)head) {
-				StackElem* node = static_cast <StackElem*> ((T*)head);
-				node->ref_cnt.increment ();
+			T* phead = head;
+			if (phead) {
+				StackElem& node = static_cast <StackElem&> (*phead);
+				node.ref_cnt.increment ();
 				head_.unlock ();
-				Ptr next = (T*)(node->next);
+				Ptr next = (T*)(node.next);
 				if (head_.cas (head, next)) {
 					// Node was detached from stack so we decrement the counter
 					if (!next)
-						Base::bottom ();
-					node->ref_cnt.decrement ();
+						Base::bottom (); // We reached the bottom
+					node.ref_cnt.decrement ();
 				}
 
 				// First thread that decrement counter to zero will return detached node
-				if (!node->ref_cnt.decrement_seq ())
+				if (!node.ref_cnt.decrement_seq ())
 					return head;
 			} else {
 				head_.unlock ();
