@@ -32,6 +32,14 @@
 
 #define VFS_NAME "nirvana"
 
+//#define DEBUG_TRACE
+
+#if !defined (NDEBUG) && defined (DEBUG_TRACE)
+#define SQLITE_TRACE NIRVANA_TRACE
+#else
+#define SQLITE_TRACE(fmt, ...)
+#endif
+
 namespace SQLite {
 
 extern struct sqlite3_vfs vfs;

@@ -147,12 +147,12 @@ public:
 				SQLite::exec (cmd.c_str ());
 			}
 		}
-		NIRVANA_TRACE ("SQLite: Connection created");
+		SQLITE_TRACE ("SQLite: Connection created");
 	}
 
 	~Connection ()
 	{
-		NIRVANA_TRACE ("SQLite: Connection destructed");
+		SQLITE_TRACE ("SQLite: Connection destructed");
 	}
 
 	void close ()
