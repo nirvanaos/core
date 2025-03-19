@@ -40,15 +40,18 @@ void Event::wait ()
 		Thread& thread = Thread::current ();
 		ExecDomain& cur_ed = *thread.exec_domain ();
 		bool pop_qnode = cur_ed.suspend_prepare_no_leave ();
+
+		// We need it for the correct BackOff in the
+		// ExecDomain::suspend() and ExecDomain::suspended() pair.
+		Port::Thread::PriorityBoost boost (&thread);
+		
 		push (cur_ed);
 		if (signalled_) {
 			cur_ed.suspend_unprepare (pop_qnode);
 			resume_all ();
 			eh_.check ();
-		} else {
-			Port::Thread::PriorityBoost boost (&thread);
+		} else
 			cur_ed.leave_and_suspend ();
-		}
 	} else
 		resume_all (); // Help others
 }

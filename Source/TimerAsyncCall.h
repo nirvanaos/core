@@ -36,8 +36,11 @@
 namespace Nirvana {
 namespace Core {
 
+/// Timer to make asynchronous calls.
+/// 
 class TimerAsyncCall : 
 	public Timer
+	// Derived class must derive memory allocation class such as UserObject or SharedObject
 {
 	DECLARE_CORE_INTERFACE
 
