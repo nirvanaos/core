@@ -112,6 +112,8 @@ class Connection :
 	public SQLite
 {
 public:
+	const TimeBase::TimeT DEFAULT_TIMEOUT = 30 * TimeBase::SECOND;
+
 	class Lock
 	{
 	public:
@@ -137,6 +139,7 @@ public:
 		consistent_ (Nirvana::the_system->create_event (false, true)),
 		savepoint_ (0)
 	{
+		set_busy_timeout ();
 		sqlite3_filename fn = sqlite3_db_filename (*this, nullptr);
 		if (fn) {
 			const char* journal_mode = sqlite3_uri_parameter (fn, "journal_mode");
@@ -211,7 +214,7 @@ public:
 	void setTimeout (const TimeBase::TimeT& timeout) noexcept
 	{
 		timeout_ = timeout;
-		global.static_data ().timeout (timeout);
+		set_busy_timeout ();
 	}
 
 	TimeBase::TimeT getTimeout () const noexcept
@@ -288,6 +291,7 @@ public:
 private:
 	void exec (const char* sql);
 	void check_exist () const;
+	void set_busy_timeout () const noexcept;
 
 private:
 	TimeBase::TimeT timeout_;

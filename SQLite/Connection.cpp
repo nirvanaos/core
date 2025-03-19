@@ -91,6 +91,11 @@ void Connection::exec (const char* sql)
 	SQLite::exec (sql);
 }
 
+void Connection::set_busy_timeout () const noexcept
+{
+	sqlite3_busy_timeout (*this, (timeout_ + TimeBase::MILLISECOND - 1) / TimeBase::MILLISECOND);
+}
+
 Connection::Lock::Lock (Connection& conn, bool no_check_exist) :
 	connection_ (conn)
 {

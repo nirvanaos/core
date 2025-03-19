@@ -52,10 +52,10 @@ extern const sqlite3_io_methods io_methods;
 class File : public sqlite3_file
 {
 public:
-	File (Nirvana::AccessDirect::_ref_type fa, bool delete_on_close) noexcept :
+	File (Nirvana::AccessDirect::_ref_type fa, int flags) noexcept :
 		access_ (std::move (fa)),
 		lock_level_ (Nirvana::LockType::LOCK_NONE),
-		delete_on_close_ (delete_on_close)
+		flags_ (flags)
 	{
 		pMethods = &io_methods;
 	}
@@ -64,9 +64,8 @@ public:
 	{
 		try {
 			Nirvana::File::_ref_type file_to_delete;
-			if (delete_on_close_) {
+			if (flags_ & SQLITE_OPEN_DELETEONCLOSE)
 				file_to_delete = access_->file ();
-			}
 			access_->close ();
 			access_ = nullptr;
 			if (file_to_delete)
@@ -196,38 +195,24 @@ public:
 	int lock (Nirvana::LockType level) noexcept
 	{
 		if (level > lock_level_) {
+			if (level > Nirvana::LockType::LOCK_SHARED && !(flags_ & SQLITE_OPEN_READWRITE))
+				return SQLITE_IOERR_LOCK;
+
 			try {
-				TimeBase::TimeT timeout = global.static_data ().timeout ();
-				if (Nirvana::LockType::LOCK_EXCLUSIVE == level) {
-					Nirvana::FileLock fl_excl (FILE_HEADER_SIZE, 0, Nirvana::LockType::LOCK_EXCLUSIVE);
-					if (lock_level_ < Nirvana::LockType::LOCK_PENDING) {
-						Nirvana::LockType lock_min = Nirvana::LockType::LOCK_SHARED == lock_level_ ?
-							Nirvana::LockType::LOCK_NONE : Nirvana::LockType::LOCK_PENDING;
-						Nirvana::LockType ret = access_->lock (fl_excl, lock_min, timeout);
-						if (ret >= lock_min)
-							lock_level_ = ret;
-						if (lock_level_ == Nirvana::LockType::LOCK_NONE)
-							return SQLITE_BUSY;
-					}
-					assert (lock_level_ >= Nirvana::LockType::LOCK_PENDING);
-					if (lock_level_ < Nirvana::LockType::LOCK_EXCLUSIVE) {
-						Nirvana::LockType ret = access_->lock (fl_excl, Nirvana::LockType::LOCK_EXCLUSIVE,
-							timeout);
-						if (ret == Nirvana::LockType::LOCK_NONE)
-							return SQLITE_BUSY;
-						assert (ret == Nirvana::LockType::LOCK_EXCLUSIVE);
-						lock_level_ = ret;
-					}
-				} else {
-					Nirvana::LockType lock_min = Nirvana::LockType::LOCK_SHARED == lock_level_ ?
-						Nirvana::LockType::LOCK_NONE : level;
-					Nirvana::LockType ret = access_->lock (Nirvana::FileLock (FILE_HEADER_SIZE, 0, level),
-						lock_min, timeout);
-					if (ret >= lock_min)
-						lock_level_ = ret;
-					if (lock_level_ < level)
-						return SQLITE_BUSY;
-				}
+				Nirvana::LockType lock_min = level;
+				if (Nirvana::LockType::LOCK_EXCLUSIVE == level
+					&& lock_level_ < Nirvana::LockType::LOCK_PENDING)
+					lock_min = Nirvana::LockType::LOCK_PENDING;
+
+				Nirvana::LockType ret = access_->lock (Nirvana::FileLock (FILE_HEADER_SIZE, 0, level),
+					lock_min, 0);
+
+				if (ret >= lock_min)
+					lock_level_ = ret;
+
+				if (lock_level_ < level)
+					return SQLITE_BUSY;
+
 			} catch (...) {
 				if (level > Nirvana::LockType::LOCK_SHARED)
 					return SQLITE_IOERR_LOCK;
@@ -241,17 +226,8 @@ public:
 	int unlock (Nirvana::LockType level) noexcept
 	{
 		if (lock_level_ > level) {
-			Nirvana::LockType lmin;
-			TimeBase::TimeT timeout;
-			if (Nirvana::LockType::LOCK_SHARED == level) {
-				lmin = Nirvana::LockType::LOCK_NONE;
-				timeout = global.static_data ().timeout ();
-			} else {
-				lmin = level;
-				timeout = 0;
-			}
 			try {
-				lock_level_ = access_->lock (Nirvana::FileLock (FILE_HEADER_SIZE, 0, level), lmin, timeout);
+				lock_level_ = access_->lock (Nirvana::FileLock (FILE_HEADER_SIZE, 0, level), level, 0);
 			} catch (...) {
 				return SQLITE_IOERR_UNLOCK;
 			}
@@ -274,12 +250,9 @@ public:
 	}
 
 private:
-	void unlock_noex (Nirvana::FileLock& fl) const noexcept;
-
-private:
 	Nirvana::AccessDirect::_ref_type access_;
 	Nirvana::LockType lock_level_;
-	bool delete_on_close_;
+	int flags_;
 
 	struct CacheEntry
 	{
@@ -294,14 +267,6 @@ private:
 	typedef Nirvana::Core::MapUnorderedUnstable <sqlite3_int64, CacheEntry> Cache;
 	Cache cache_;
 };
-
-void File::unlock_noex (Nirvana::FileLock& fl) const noexcept
-{
-	fl.type (Nirvana::LockType::LOCK_NONE);
-	try {
-		access_->lock (fl, Nirvana::LockType::LOCK_NONE, 0);
-	} catch (...) {}
-}
 
 extern "C" int xClose (sqlite3_file * f) noexcept
 {
@@ -416,7 +381,7 @@ int xOpen (sqlite3_vfs*, sqlite3_filename zName, sqlite3_file* file,
 #endif
 		return SQLITE_CANTOPEN;
 	}
-	new (file) File (fa, flags & SQLITE_OPEN_DELETEONCLOSE);
+	new (file) File (fa, flags);
 	return SQLITE_OK;
 }
 
