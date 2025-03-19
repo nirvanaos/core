@@ -136,7 +136,7 @@ public:
 	inline static void terminate () noexcept;
 
 protected:
-	Heap (size_t allocation_unit = HEAP_UNIT_DEFAULT) noexcept;
+	Heap (size_t allocation_unit = HEAP_UNIT_DEFAULT, bool do_not_decommit = false) noexcept;
 
 	typedef HeapDirectory <HEAP_DIRECTORY_SIZE, HEAP_DIRECTORY_LEVELS,
 		(Port::Memory::FLAGS & Memory::SPACE_RESERVATION) ?
@@ -319,6 +319,7 @@ protected:
 	size_t allocation_unit_;
 	MemoryBlock* part_list_;
 	BlockList block_list_;
+	bool do_not_decommit_;
 
 private:
 	static StaticallyAllocated <ImplStatic <HeapCore> > core_heap_;
@@ -329,7 +330,7 @@ class HeapCore : public Heap
 {
 public:
 	HeapCore () :
-		Heap (HEAP_UNIT_CORE)
+		Heap (HEAP_UNIT_CORE, true)
 	{}
 
 private:

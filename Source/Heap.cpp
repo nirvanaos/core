@@ -214,9 +214,10 @@ void Heap::LBErase::rollback_helper () noexcept
 	}
 }
 
-Heap::Heap (size_t allocation_unit) noexcept :
+Heap::Heap (size_t allocation_unit, bool do_not_decommit) noexcept :
 	allocation_unit_ (allocation_unit),
-	part_list_ (nullptr)
+	part_list_ (nullptr),
+	do_not_decommit_ (do_not_decommit)
 {
 	if (allocation_unit <= HEAP_UNIT_MIN)
 		allocation_unit_ = HEAP_UNIT_MIN;
@@ -305,7 +306,7 @@ void Heap::release (Directory& part, void* p, size_t size) const
 	size_t end = (offset + size + allocation_unit_ - 1) / allocation_unit_;
 	if (!part.check_allocated (begin, end))
 		throw_FREE_MEM ();
-	if (Directory::IMPLEMENTATION != HeapDirectoryImpl::PLAIN_MEMORY) {
+	if (Directory::IMPLEMENTATION != HeapDirectoryImpl::PLAIN_MEMORY && !do_not_decommit_) {
 		HeapInfo hi = { heap, allocation_unit_, Port::Memory::OPTIMAL_COMMIT_UNIT };
 		part.release (begin, end, &hi);
 	} else
