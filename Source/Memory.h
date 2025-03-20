@@ -27,7 +27,7 @@
 #define NIRVANA_CORE_MEMORY_H_
 #pragma once
 
-#include "HeapDynamic.h"
+#include "HeapCustom.h"
 
 namespace Nirvana {
 namespace Core {
@@ -75,7 +75,7 @@ public:
 
 	static Nirvana::Memory::_ref_type create_heap (size_t granularity)
 	{
-		return HeapDynamic::create (granularity);
+		return HeapCustom::create (granularity);
 	}
 };
 

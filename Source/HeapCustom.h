@@ -24,8 +24,8 @@
 * Send comments and/or bug reports to:
 *  popov.nirvana@gmail.com
 */
-#ifndef NIRVANA_CORE_HEAPDYNAMIC_H_
-#define NIRVANA_CORE_HEAPDYNAMIC_H_
+#ifndef NIRVANA_CORE_HEAPCUSTOM_H_
+#define NIRVANA_CORE_HEAPCUSTOM_H_
 #pragma once
 
 #include <CORBA/Server.h>
@@ -36,14 +36,14 @@
 namespace Nirvana {
 namespace Core {
 
-class HeapDynamic :
+class HeapCustom :
 	public HeapUser,
-	public CORBA::servant_traits <Nirvana::Memory>::Servant <HeapDynamic>,
-	public CORBA::Internal::LifeCycleRefCnt <HeapDynamic>,
-	public CORBA::Internal::RefCountBase <HeapDynamic>,
+	public CORBA::servant_traits <Nirvana::Memory>::Servant <HeapCustom>,
+	public CORBA::Internal::LifeCycleRefCnt <HeapCustom>,
+	public CORBA::Internal::RefCountBase <HeapCustom>,
 	public UserObject
 {
-	friend class CORBA::Internal::LifeCycleRefCnt <HeapDynamic>;
+	friend class CORBA::Internal::LifeCycleRefCnt <HeapCustom>;
 
 public:
 	using UserObject::operator new;
@@ -56,7 +56,7 @@ public:
 		return create (granularity);
 	}
 
-	HeapDynamic (size_t allocation_unit) :
+	HeapCustom (size_t allocation_unit) :
 		HeapUser (allocation_unit)
 	{}
 

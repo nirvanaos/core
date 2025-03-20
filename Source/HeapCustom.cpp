@@ -24,22 +24,22 @@
 *  popov.nirvana@gmail.com
 */
 #include "pch.h"
-#include "HeapDynamic.h"
+#include "HeapCustom.h"
 
 namespace Nirvana {
 namespace Core {
 
-Nirvana::Memory::_ref_type HeapDynamic::create (size_t allocation_unit)
+Nirvana::Memory::_ref_type HeapCustom::create (size_t allocation_unit)
 {
-	return CORBA::make_pseudo <HeapDynamic> (allocation_unit);
+	return CORBA::make_pseudo <HeapCustom> (allocation_unit);
 }
 
-void HeapDynamic::_add_ref () noexcept
+void HeapCustom::_add_ref () noexcept
 {
 	CORBA::Internal::RefCountLink::_add_ref ();
 }
 
-void HeapDynamic::_remove_ref () noexcept
+void HeapCustom::_remove_ref () noexcept
 {
 	CORBA::Internal::RefCountLink::_remove_ref ();
 }
